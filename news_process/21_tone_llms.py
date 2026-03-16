@@ -165,6 +165,7 @@ def build_batch_prompt(batch_items: list) -> str:
         f'    "verification_reason": "核心依据",\n'
         f'    "confirmed_bank": "确认的银行名称或null",\n'
         f'    "fintech_topic": "金融科技主题或null",\n'
+        f'    "fintech_category": "底层技术 或 应用场景（须从两者中选一）或null",\n'
         f'    "verification_confidence": 0.0~1.0,\n'
         f'    "sentiment": "正面/中性/负面",\n'
         f'    "sentiment_reason": "情感依据",\n'
@@ -415,6 +416,9 @@ def main():
         df['llm_verified'] = True  # 禁用 LLM 时，视为全部保留
         df['llm_sentiment'] = '中性'
         df['llm_agreement_rate'] = 0.0
+        df['fintech_category'] = '应用场景'
+        df['fintech_subcategory'] = '未分类'
+        df['category_confidence'] = 0.0
 
         output_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms', '21_tone_llms.parquet')
         output_path = os.path.join(CONFIG["paths"]["output_dir"], output_filename)
@@ -525,9 +529,12 @@ def main():
     # 标准化分类：从各模型 fintech_topic 中提取并映射为「底层技术」或「应用场景」
     logger.info("执行金融科技主题标准化分类（底层技术/应用场景）...")
     fintech_category_arr = []
+    fintech_subcategory_arr = []
+    category_confidence_arr = []
     for idx, row in df.iterrows():
         model_res = results_map.get(idx, {})
         topics = []
+        llm_categories = []  # LLM 直接返回的分类
         for m in MODELS:
             raw_text = model_res.get(m['model_name'], None)
             if raw_text is not None:
@@ -535,17 +542,47 @@ def main():
                 topic = jd.get('fintech_topic', None)
                 if topic and str(topic).strip().lower() not in ('null', 'none', ''):
                     topics.append(str(topic))
-        # 用所有模型返回的 topic 合并后判断
+                # 收集 LLM 直接返回的分类
+                llm_cat = jd.get('fintech_category', None)
+                if llm_cat and str(llm_cat).strip() in ('底层技术', '应用场景'):
+                    llm_categories.append(str(llm_cat).strip())
+        
+        # 用所有模型返回的 topic 合并后进行关键词分类
         combined_topic = ' '.join(topics) if topics else ''
-        fintech_category_arr.append(canonicalize_topic(combined_topic))
+        kw_category, kw_subcategory, kw_confidence = canonicalize_topic(combined_topic)
+        
+        # 优先使用 LLM 多数投票的分类结果，回退到关键词分类
+        if llm_categories:
+            cat_counter = Counter(llm_categories)
+            llm_majority_cat = cat_counter.most_common(1)[0][0]
+            # 如果 LLM 和关键词分类一致，提升置信度
+            if llm_majority_cat == kw_category:
+                final_confidence = min(kw_confidence + 0.2, 1.0)
+            else:
+                # 不一致时，以 LLM 为准，但降低置信度
+                final_confidence = round(kw_confidence * 0.5, 3)
+            fintech_category_arr.append(llm_majority_cat)
+            fintech_subcategory_arr.append(kw_subcategory)
+            category_confidence_arr.append(final_confidence)
+        else:
+            fintech_category_arr.append(kw_category)
+            fintech_subcategory_arr.append(kw_subcategory)
+            category_confidence_arr.append(kw_confidence)
     
     df['fintech_category'] = fintech_category_arr
+    df['fintech_subcategory'] = fintech_subcategory_arr
+    df['category_confidence'] = category_confidence_arr
     
     # 统计分类分布
     if df['llm_verified'].sum() > 0:
-        cat_counts = df[df['llm_verified']]['fintech_category'].value_counts()
+        verified_df = df[df['llm_verified']]
+        cat_counts = verified_df['fintech_category'].value_counts()
         for cat, cnt in cat_counts.items():
             logger.info(f"  金融科技分类 [{cat}]: {cnt}")
+        # 子类别分布
+        sub_counts = verified_df['fintech_subcategory'].value_counts()
+        for sub, cnt in sub_counts.head(10).items():
+            logger.info(f"    子类别 [{sub}]: {cnt}")
     
     # 结果统计
     total_len = len(df)

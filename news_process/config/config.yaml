@@ -318,6 +318,7 @@ tone_llm_processing:
       "verification_reason": "（必填）简明扼要说明判定为真或伪的核心依据，须引用文章具体内容",
       "confirmed_bank": "（若为 true）确认与金融科技主题存在实质关联的匹配银行名称；（若为 false）填 null",
       "fintech_topic": "（若为 true）文章核心金融科技主题的简短描述；（若为 false）填 null",
+      "fintech_category": "（若为 true）该金融科技主题属于「底层技术」还是「应用场景」，须从两者中选一。底层技术包括：人工智能、大数据、云计算、区块链、物联网等；应用场景包括：数字支付、智能风控、数字信贷、数字银行、数字化转型等。（若为 false）填 null",
       "verification_confidence": 判定置信度，取值范围 0.0～1.0 的浮点数,
       "sentiment": "正面/中性/负面（若 is_bank_fintech_news 为 false，固定填"中性"）",
       "sentiment_reason": "（必填）简明说明情感判定的主要依据",
