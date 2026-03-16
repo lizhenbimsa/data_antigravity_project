@@ -190,7 +190,7 @@ def compute_cronbachs_alpha(df_numeric: pd.DataFrame) -> float:
 
 
 def compute_label_agreement_rate(labels_df: pd.DataFrame) -> dict:
-    """计算多方法标签一致率。
+    """计算多方法标签一致率（向量化实现）。
 
     Args:
         labels_df: 各列为分类标签（正面/中性/负面）的 DataFrame。
@@ -204,23 +204,21 @@ def compute_label_agreement_rate(labels_df: pd.DataFrame) -> dict:
         return {'full_agreement_rate': 0.0, 'majority_agreement_rate': 0.0,
                 'n_samples': 0}
 
-    full_agree = 0
-    majority_agree = 0
+    n_methods = valid.shape[1]
 
-    for _, row in valid.iterrows():
-        values = row.values
-        counter = Counter(values)
-        most_common_count = counter.most_common(1)[0][1]
-        if most_common_count == len(values):
-            full_agree += 1
-        if most_common_count >= len(values) / 2:
-            majority_agree += 1
+    # 向量化：利用 nunique(axis=1) 判断完全一致（所有值相同 → nunique == 1）
+    nunique_per_row = valid.nunique(axis=1)
+    full_agree = int((nunique_per_row == 1).sum())
+
+    # 多数一致：每行最高频标签的频次 >= 列数 / 2
+    mode_counts = valid.apply(lambda row: row.value_counts().iloc[0], axis=1)
+    majority_agree = int((mode_counts >= n_methods / 2).sum())
 
     return {
         'full_agreement_rate': round(full_agree / n, 4),
         'majority_agreement_rate': round(majority_agree / n, 4),
         'n_samples': n,
-        'n_methods': labels_df.shape[1],
+        'n_methods': n_methods,
     }
 
 
@@ -488,8 +486,9 @@ def generate_validation_sample(df: pd.DataFrame,
             keep_cols.append(col)
 
     method_cols = [c for c in sample_df.columns
-                   if c.startswith('方法_') or c in ('多数投票标签', '样本类型',
-                                                      '人工判定_情感', '人工判定_理由')]
+                   if c.startswith(('词典_', 'BERT_', 'LLM_'))
+                   or c in ('多数投票标签', '样本类型',
+                            '人工判定_情感', '人工判定_理由')]
     keep_cols.extend(method_cols)
 
     sample_output = sample_df[keep_cols].copy()

@@ -642,6 +642,15 @@ class ArticleDeduplicator:
         self.threshold = self.params.get('jaccard_similarity_threshold', 0.85)
         self.ngram_size = self.params.get('ngram_size', 3)
 
+        # 参数边界校验
+        if not (0 < self.threshold < 1):
+            self.logger.warning(
+                f"jaccard_similarity_threshold={self.threshold} 超出合理范围 (0, 1)，"
+                f"已回退到默认值 0.85。"
+                f"（threshold=0 会将所有文档视为重复，threshold=1 不去除任何重复）"
+            )
+            self.threshold = 0.85
+
     def _load_media_weights(self) -> Dict[str, int]:
         """从 JSON 文件加载媒体权重评分表。
 

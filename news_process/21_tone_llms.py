@@ -43,7 +43,7 @@ if not LLM_CONFIG:
     sys.exit(1)
 
 MODELS = LLM_CONFIG.get('models', [])
-MAX_CONCURRENCY = LLM_CONFIG.get('max_concurrency', 100)
+MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', 100)))
 PROMPT_TEMPLATE = LLM_CONFIG.get('prompt_template', '')
 TEMPERATURE = LLM_CONFIG.get('temperature', 0.0)
 RANDOM_SEED = LLM_CONFIG.get('random_seed', 1)

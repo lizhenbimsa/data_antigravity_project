@@ -165,6 +165,7 @@ def main():
         sample_df.to_excel(output_path, index=False)
 
     log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(sample_df))
+    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")
 
 
 if __name__ == "__main__":

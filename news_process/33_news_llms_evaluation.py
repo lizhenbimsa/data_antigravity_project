@@ -306,10 +306,12 @@ def save_confusion_matrix_plot(metrics: dict, classifier_name: str,
         ax.set_yticks(range(n_classes))
         
         # 兼容二分类标签和多分类标签
-        if set(labels) == {0, 1} or set(labels) == {'0', '1'}:
-            # Ensure label 0 corresponds to the first element and 1 to the second
-            idx_0 = labels.index(0) if 0 in labels else labels.index('0')
-            idx_1 = labels.index(1) if 1 in labels else labels.index('1')
+        labels_str_set = set(str(l) for l in labels)
+        if labels_str_set == {'0', '1'}:
+            # 统一转 str 做索引查找，避免 int/str 类型不匹配
+            labels_as_str = [str(l) for l in labels]
+            idx_0 = labels_as_str.index('0')
+            idx_1 = labels_as_str.index('1')
             xticklabels = [''] * 2
             xticklabels[idx_0] = '预测: 否 (0)'
             xticklabels[idx_1] = '预测: 是 (1)'

@@ -36,6 +36,7 @@ def generate_pipeline_summary(config, logger):
         ("模块二: 11_news_bank", "output_11_bank_news"),
         ("模块二: 12_news_fintech", "output_12_fintech_news"),
         ("模块三: 21_tone_llms", "output_21_tone_llms"),
+        ("模块三: 21_tone_llms(全量)", "output_21_tone_llms_full"),
         ("模块三: 22_tone_words", "output_22_words_tone"),
         ("模块三: 23_tone_berts", "output_23_bert_tone"),
     ]

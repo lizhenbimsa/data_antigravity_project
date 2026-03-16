@@ -51,3 +51,7 @@ openpyxl>=3.1.0
 
 # LLM 缓存 (SQLite, 内置标准库无需安装)
 # sqlite3 — Python 内置
+
+# 模糊匹配 (fintech 主题标准化)
+fuzzywuzzy>=0.18.0
+python-Levenshtein>=0.21.0

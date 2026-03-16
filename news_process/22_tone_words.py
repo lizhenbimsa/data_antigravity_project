@@ -423,6 +423,15 @@ def _analyze_single_article(content: str) -> dict:
     # 分词（单次调用，所有词典共享分词结果）
     tokens = list(jieba.cut(content))
 
+    # 防御：极端文本（纯符号、纯控制字符）可能产生全空分词结果
+    tokens = [t for t in tokens if t.strip()]
+    if not tokens:
+        for dict_name, _ in ALL_DICTIONARIES:
+            result[f'{dict_name}_score'] = 0.0
+            result[f'{dict_name}_label'] = '中性'
+        result['sentiment_details'] = ''
+        return result
+
     # 对每个词典计算情感
     best_detail: list[dict[str, Any]] = []
     best_matched_count: int = 0
