@@ -1,1 +1,0 @@
-# AutoPaper Tournament System

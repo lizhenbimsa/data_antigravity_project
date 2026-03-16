@@ -54,7 +54,8 @@ def _ensure_db():
     cache_path = _get_cache_path()
     try:
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-        with sqlite3.connect(cache_path) as conn:
+        with sqlite3.connect(cache_path, check_same_thread=False) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute('''
                 CREATE TABLE IF NOT EXISTS bert_cache (
                     hash_key TEXT PRIMARY KEY,
@@ -94,7 +95,7 @@ def get_batch_from_cache(texts: list[str], model_name: str) -> dict[int, dict]:
     cached_results = {}
 
     try:
-        with sqlite3.connect(_get_cache_path()) as conn:
+        with sqlite3.connect(_get_cache_path(), check_same_thread=False) as conn:
             # 分批查询（SQLite 参数上限约 999）
             batch_size = 500
             for start in range(0, len(hash_keys), batch_size):
@@ -155,7 +156,7 @@ def save_batch_to_cache(texts: list[str], model_name: str,
         return
 
     try:
-        with sqlite3.connect(_get_cache_path()) as conn:
+        with sqlite3.connect(_get_cache_path(), check_same_thread=False) as conn:
             conn.executemany(
                 'INSERT OR REPLACE INTO bert_cache (hash_key, text_preview, model_name, result_json) '
                 'VALUES (?, ?, ?, ?)',

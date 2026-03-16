@@ -612,6 +612,21 @@ def main():
 
     # 合并全部结果
     processed_df = pd.concat(processed_dfs, ignore_index=True)
+
+    # P1-4: 为每个词典的得分列添加 Z-score 标准化列
+    # 解决跨词典量纲不一致问题，供 34_tone_validation.py 的 Cronbach's Alpha 分析使用
+    for dict_name, _ in ALL_DICTIONARIES:
+        score_col = f"{dict_name}_score"
+        zscore_col = f"{dict_name}_zscore"
+        if score_col in processed_df.columns:
+            mean_val = processed_df[score_col].mean()
+            std_val = processed_df[score_col].std()
+            if std_val > 0:
+                processed_df[zscore_col] = (processed_df[score_col] - mean_val) / std_val
+            else:
+                processed_df[zscore_col] = 0.0
+            logger.info(f"  {dict_name}: Z-score 标准化完成 (μ={mean_val:.4f}, σ={std_val:.4f})")
+
     processed_df.to_parquet(output_path, index=False)
 
     # 统计报告

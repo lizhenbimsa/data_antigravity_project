@@ -77,10 +77,9 @@ def _precompute_bank_matches(df: pd.DataFrame,
     再对不同阈值在预计算结果上快速过滤。
     """
     article_matches = []
-    for _, row in df.iterrows():
-        text = str(row.get('内容', '')) if pd.notna(row.get('内容')) else ''
-        title = str(row.get('标题', '')) if pd.notna(row.get('标题')) else ''
-
+    contents = df['内容'].fillna('').astype(str).tolist()
+    titles = df['标题'].fillna('').astype(str).tolist()
+    for text, title in zip(contents, titles):
         result = analyze_bank_matches(
             content=text,
             title=title,

@@ -233,21 +233,35 @@ def canonicalize_topic(raw_topic: str) -> tuple:
 
     text = _normalize_text(raw_topic)
 
-    # 第一轮：加权关键词匹配
+    # 第一轮：加权关键词匹配（最长匹配优先，避免子串重复计分）
     tech_score = 0.0
     app_score = 0.0
     tech_subcategories: dict[str, float] = {}
     app_subcategories: dict[str, float] = {}
 
-    for kw, weight, sub in _TECH_NORMALIZED:
-        if kw in text:
-            tech_score += weight
-            tech_subcategories[sub] = tech_subcategories.get(sub, 0.0) + weight
+    def _match_keywords(keywords, text):
+        """最长匹配优先的关键词匹配，返回(总分, 子类别得分字典)。"""
+        score = 0.0
+        subcategories: dict[str, float] = {}
+        matched_positions: set[int] = set()
+        # 关键词已按长度降序排列（长词优先）
+        sorted_kws = sorted(keywords, key=lambda x: len(x[0]), reverse=True)
+        for kw, weight, sub in sorted_kws:
+            start = 0
+            while True:
+                pos = text.find(kw, start)
+                if pos == -1:
+                    break
+                positions = set(range(pos, pos + len(kw)))
+                if not positions & matched_positions:  # 无重叠才计分
+                    score += weight
+                    subcategories[sub] = subcategories.get(sub, 0.0) + weight
+                    matched_positions |= positions
+                start = pos + 1
+        return score, subcategories
 
-    for kw, weight, sub in _APP_NORMALIZED:
-        if kw in text:
-            app_score += weight
-            app_subcategories[sub] = app_subcategories.get(sub, 0.0) + weight
+    tech_score, tech_subcategories = _match_keywords(_TECH_NORMALIZED, text)
+    app_score, app_subcategories = _match_keywords(_APP_NORMALIZED, text)
 
     total_score = tech_score + app_score
 

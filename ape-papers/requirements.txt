@@ -1,2 +1,0 @@
-# APEP 生产基础设施 — Python 依赖
-httpx>=0.27.0

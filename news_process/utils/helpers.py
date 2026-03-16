@@ -84,6 +84,52 @@ def load_config(config_path=None):
 # 2. 日志配置
 # ============================================================================
 
+class _ColoredFormatter(logging.Formatter):
+    """终端彩色日志格式化器，使用 ANSI 转义码为不同级别上色。
+
+    颜色方案（与 IDE 日志文件语法高亮视觉一致）：
+      - 时间戳：灰色          - 阶段名：蓝色
+      - DEBUG：青色           - INFO：绿色
+      - WARNING：黄色         - ERROR / CRITICAL：红色
+    """
+
+    # ANSI 颜色代码
+    _GREY    = '\033[38;5;245m'
+    _BLUE    = '\033[38;5;75m'
+    _CYAN    = '\033[36m'
+    _GREEN   = '\033[32m'
+    _YELLOW  = '\033[33m'
+    _RED     = '\033[31m'
+    _BOLD_RED = '\033[1;31m'
+    _RESET   = '\033[0m'
+
+    _LEVEL_COLORS = {
+        logging.DEBUG:    _CYAN,
+        logging.INFO:     _GREEN,
+        logging.WARNING:  _YELLOW,
+        logging.ERROR:    _RED,
+        logging.CRITICAL: _BOLD_RED,
+    }
+
+    def __init__(self, datefmt=None):
+        # 不在 __init__ 中设置 fmt，format() 中动态拼接
+        super().__init__(datefmt=datefmt)
+        self.default_msec_format = '%s.%03d'
+
+    def format(self, record):
+        level_color = self._LEVEL_COLORS.get(record.levelno, self._RESET)
+        # 拼接带颜色的格式串
+        fmt = (
+            f'{self._GREY}%(asctime)s{self._RESET} - '
+            f'{self._BLUE}%(name)s{self._RESET} - '
+            f'{self._GREY}PID:%(process)d{self._RESET} - '
+            f'{level_color}%(levelname)s{self._RESET} - '
+            f'%(message)s'
+        )
+        self._style._fmt = fmt
+        return super().format(record)
+
+
 def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
                   level=logging.INFO, max_bytes=50*1024*1024, backup_count=3):
     """配置带有文件轮转和控制台输出的日志记录器。
@@ -110,10 +156,12 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
 
     logger.setLevel(level)
 
-    # 格式：时间 | 阶段名 | 进程ID | 级别 | 消息
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - PID:%(process)d - %(levelname)s - %(message)s'
+    # 纯文本格式（用于文件输出，不含 ANSI 颜色）
+    file_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - PID:%(process)d - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
     )
+    file_formatter.default_msec_format = '%s.%03d'
 
     # 文件处理器（仅主进程使用，带轮转）
     if not console_only:
@@ -129,13 +177,14 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
             backupCount=backup_count, encoding='utf-8'
         )
         fh.setLevel(level)
-        fh.setFormatter(formatter)
+        fh.setFormatter(file_formatter)
         logger.addHandler(fh)
 
-    # 控制台处理器
+    # 控制台处理器（彩色输出）
     ch = logging.StreamHandler()
     ch.setLevel(level)
-    ch.setFormatter(formatter)
+    console_formatter = _ColoredFormatter(datefmt='%Y-%m-%d %H:%M:%S')
+    ch.setFormatter(console_formatter)
     logger.addHandler(ch)
 
     # 防止日志向 root logger 传播导致重复输出

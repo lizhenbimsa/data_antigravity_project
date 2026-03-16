@@ -139,6 +139,7 @@ def main():
     col_names = [
         '编码者A_验证', '编码者B_验证', '编码者A_情感', '编码者B_情感'
     ]
+    sample_df = sample_df.copy()
     for col in col_names:
         sample_df[col] = ''
     

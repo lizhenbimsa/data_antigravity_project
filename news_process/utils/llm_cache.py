@@ -52,7 +52,8 @@ def _ensure_db():
     cache_path = _get_cache_path()
     try:
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-        with sqlite3.connect(cache_path) as conn:
+        with sqlite3.connect(cache_path, check_same_thread=False) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.execute('''
                 CREATE TABLE IF NOT EXISTS api_cache (
                     hash_key TEXT PRIMARY KEY,
@@ -78,7 +79,7 @@ def get_from_cache(prompt: str, model_name: str) -> Optional[str]:
     _ensure_db()
     hash_key = _get_hash(prompt, model_name)
     try:
-        with sqlite3.connect(_get_cache_path()) as conn:
+        with sqlite3.connect(_get_cache_path(), check_same_thread=False) as conn:
             row = conn.execute('SELECT response FROM api_cache WHERE hash_key = ?', (hash_key,)).fetchone()
             if row:
                 return row[0]
@@ -92,7 +93,7 @@ def save_to_cache(prompt: str, model_name: str, response: str):
     _ensure_db()
     hash_key = _get_hash(prompt, model_name)
     try:
-        with sqlite3.connect(_get_cache_path()) as conn:
+        with sqlite3.connect(_get_cache_path(), check_same_thread=False) as conn:
             conn.execute(
                 'INSERT OR REPLACE INTO api_cache (hash_key, prompt, model_name, response) VALUES (?, ?, ?, ?)',
                 (hash_key, prompt, model_name, response)
