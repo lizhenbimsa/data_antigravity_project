@@ -1,0 +1,13 @@
+{
+    "_description": "AutoPaper 论文元数据模板 — metadata.json",
+    "_usage": "将此模板复制到 paper_XXXX/vN/ 目录下，替换所有占位符",
+    "paper_id": "paper_XXXX_vN",
+    "title": "{论文标题}",
+    "method": "{DiD|RDD|DR|IV|Unknown}",
+    "policy_id": null,
+    "contributor": "{GitHub 用户名}",
+    "authoring_model": "{撰写论文的 LLM 模型，如 claude-opus-4-5}",
+    "published_at": "{ISO 8601 格式, 如 2026-01-21T17:31:36.778591}",
+    "paper_family_id": "paper_XXXX",
+    "version": 1
+}

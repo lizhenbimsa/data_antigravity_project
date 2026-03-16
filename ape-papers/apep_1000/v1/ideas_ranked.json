@@ -1,0 +1,56 @@
+{
+  "rankings": [
+    {
+      "idea_id": 3,
+      "title": "带薪产假法律对女性劳动参与率的动态双重差分评估",
+      "originality": 8,
+      "feasibility": 9,
+      "causal_credibility": 9,
+      "policy_relevance": 9,
+      "total": 35,
+      "ranking_rationale": "本研究填补了跨州和动态效应视角对带薪产假影响的系统研究空白。使用交错DiD设计，识别策略稳健，能较好说服顶级期刊编辑。数据基于公开的Census ACS，获取方便且信息详实。政策具有高度现实意义，尤其对女性劳动参与和社会平等影响巨大。"
+    },
+    {
+      "idea_id": 2,
+      "title": "最低失业保险金增加对就业入职率的断点回归分析",
+      "originality": 8,
+      "feasibility": 9,
+      "causal_credibility": 9,
+      "policy_relevance": 8,
+      "total": 34,
+      "ranking_rationale": "利用断点回归的设计相当清晰，法定断点减少了选择性，提升因果识别力。公开的BLS数据可支持全面分析。文献中缺少通过自然断点系统评估最低失业金影响的工作，创新性较强。政策紧贴就业促进方向，具高度实际应用价值。"
+    },
+    {
+      "idea_id": 1,
+      "title": "州公务员养老改革对地方劳动力流动性的影响",
+      "originality": 7,
+      "feasibility": 8,
+      "causal_credibility": 7,
+      "policy_relevance": 8,
+      "total": 30,
+      "ranking_rationale": "通过多州改革交错实施，采用DiD估计养老改革影响，创新点在于关注劳动力流动而非传统财政或退休行为。数据可从Census和IPUMS获取，但处理州较少，且改革存在一定选择性，识别力中等。政策相关度高但识别需谨慎。"
+    },
+    {
+      "idea_id": 4,
+      "title": "职业证书门槛改革对青年就业匹配的断点回归分析",
+      "originality": 8,
+      "feasibility": 7,
+      "causal_credibility": 8,
+      "policy_relevance": 7,
+      "total": 30,
+      "ranking_rationale": "采用断点回归聚焦青年职业市场准入，创新且有说服力。就业匹配细节数据需额外依赖州考试成绩公开数据，数据可得性稍有难度。政策对青年就业帮助明显，具一定应用价值。"
+    },
+    {
+      "idea_id": 5,
+      "title": "增加最低劳动时间标准对兼职劳动力的收入和就业影响——州级双重差分",
+      "originality": 6,
+      "feasibility": 7,
+      "causal_credibility": 7,
+      "policy_relevance": 7,
+      "total": 27,
+      "ranking_rationale": "聚焦兼职劳动力影响的新政策评估方向，研究创新性一般。数据覆盖和政策处理州数量有限，DiD识别力受限，且兼职劳动力异质性较高影响估计复杂度。政策接地气，但潜在挑战不少。"
+    }
+  ],
+  "recommended": 3,
+  "recommendation_rationale": "综合考虑创新性、数据可得性、因果识别的说服力以及政策价值，带薪产假法律对女性劳动参与率的动态DiD评估方案最为完善且具备高影响力。该研究不仅填补文献空白，还能提供对女性劳动权益制定政策的重要证据，极具投稿顶级期刊的潜力。"
+}

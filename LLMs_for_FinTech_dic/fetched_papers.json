@@ -1,0 +1,482 @@
+[
+  {
+    "title": "SentiVol-GA: a volatility-scaled genetic fusion of predictive models and financial sentiment for adaptive stock forecasting",
+    "authors": "Monika Singh, Harinandan Tunga, Samarjit Kar",
+    "venue": "International Journal of Data Science and Analysis",
+    "year": 2026,
+    "url": "https://doi.org/10.1007/s41060-025-00983-w",
+    "abstract": null
+  },
+  {
+    "title": "Analysis of the Impact of Corporate Social Responsibility Report Tone on Corporate Profitability",
+    "authors": "Yujiang Shi",
+    "venue": "Advances in Economics, Management and Political Sciences",
+    "year": 2026,
+    "url": "https://doi.org/10.54254/2754-1169/2026.bj31885",
+    "abstract": "This paper uses Chinese A-share listed companies from 2008 to 2024 as its research sample. Based on impression management theory, agency theory, and situational theory, it employs a multiple regression model to empirically examine the impact of Corporate Social Responsibility (CSR) reporting tone on corporate profitability, as well as the moderating effects of external supervision and the post-pandemic context. The study constructs a CSR reporting tone index using the Loughran and McDonald financial sentiment dictionary (LM dictionary), measures corporate profitability with ROE, and after controlling for variables such as debt-to-equity ratio and growth, finds that: a positive CSR reporting tone is significantly negatively correlated with corporate profitability; this negative impact is more significant when external supervision is weak; and the negative effect of CSR tone on profitability is further enhanced after the COVID-19 pandemic. The results provide new empirical evidence for understanding the signaling value and \"greenwashing\" effect of CSR reporting tone, and also offer a reference for companies to optimize their information disclosure strategies and for stakeholders to rationally interpret CSR reports."
+  },
+  {
+    "title": "Artificial Intelligence Models for Detecting Greenwashing in UK ESG and Green Finance Projects",
+    "authors": "Bernard Wilson, Godiya Mallum Shallangwa, Samson Lamela Mela",
+    "venue": "World Journal of Advanced Research and Reviews",
+    "year": 2026,
+    "url": "https://doi.org/10.30574/wjarr.2026.29.1.0177",
+    "abstract": "This study examines the application of artificial intelligence models for detecting greenwashing practices in UK Environmental, Social, and Governance projects and green finance initiatives. The research addresses the growing concern over misleading sustainability claims in light of the UK Financial Conduct Authority's anti-greenwashing rule implemented in May 2024. Employing a mixed-methods approach, this study develops a comprehensive framework integrating Natural Language Processing techniques, specifically transformer-based models including BERT and ClimateBERT, with machine learning algorithms such as XGBoost and Random Forest for quantitative prediction and classification. The methodology incorporates a dataset of UK-based companies' sustainability reports, ESG disclosures, and green finance documentation from 2018 to 2024, comprising 487 firms across multiple sectors. The quantitative analysis utilizes a dual approach: textual analysis through NLP models achieving 86.34% accuracy in identifying greenwashing risk patterns, and financial-ESG divergence analysis using optimized machine learning models with R² values of 0.9790. Key findings reveal that AI models can effectively identify discrepancies between ESG disclosure scores and actual environmental performance, with firm size, governance structure, and financial constraints emerging as significant predictors of greenwashing behaviour. The study contributes to the literature by providing a robust, scalable methodology for regulatory bodies and investors to enhance transparency in sustainable finance markets, ultimately supporting the UK's commitment to achieving net-zero emissions targets."
+  },
+  {
+    "title": "Supply Chain Finance, FinTech and Corporate Risk-Taking: Evidence from Textual Analysis of China Public companies’ Announcements",
+    "authors": "Zhaoyi Xu, Bing Gong, Lei Hu, Haoran Gu",
+    "venue": "Emerging markets finance & trade",
+    "year": 2025,
+    "url": "https://doi.org/10.1080/1540496X.2025.2454990",
+    "abstract": "ABSTRACT In this study, we analyze the impact of FinTech-enabled supply chain finance (SCF) on corporate risk-taking through text analysis of SCF and FinTech keywords within 3.2 million announcements by public companies in China from 2007 to 2019. Our findings reveal that SCF significantly enhances firms’ risk-taking behavior and value. More SCF business types and frequent mentions of SCF in announcements correlate with higher risk-taking levels. Key mechanisms include easing financial constraints, broadening investment scopes, and improving capital efficiency. FinTech, with its advancements such as big data, artificial intelligence, and cloud computing, plays a crucial role in facilitating SCF’s effectiveness. The impact is more pronounced among companies in eastern and central China, larger firms, SOEs, and those in highly competitive sectors. These findings are still valid after a series of robustness tests."
+  },
+  {
+    "title": "Corruption Detection Through Textual Analysis: Evidence From Eurozone Banks",
+    "authors": "Rodolfo Damiano, Salvatore Polizzi, Enzo Scannella, Giuseppe Valenza",
+    "venue": "Business Ethics, the Environment &amp; Responsibility",
+    "year": 2025,
+    "url": "https://doi.org/10.1111/beer.12824",
+    "abstract": "This research investigates the disclosure of banking institutions by analyzing their annual reports to identify the determinants capable of signaling possible corruption scandals. A textual analysis was conducted on the financial reports of 42 Eurozone banks from the period 2013 to 2022. Drawing on impression management theory, we combine an advanced large language model (LLM) and dictionary approach to extract and analyze the governance‐related textual content of the banks in the sample. Machine learning algorithms—including random forests, support vector machines, gradient boosting, and naive Bayes classifiers—and logistic regression have been employed to verify whether disclosure indicators allow for the identification of corruption scandals from a preventive perspective. Our findings show that specific textual measures can be used to analyze the association between disclosure and corruption events and as predictive tools to detect corruption scandals before they become public domain. Our study has several implications, particularly for supervisors and investors who can proactively leverage our findings to identify possible corruption scandals in banks by analyzing their financial disclosures."
+  },
+  {
+    "title": "Sentiment analysis in FinTech: Trends and approaches in market, risk, and compliance",
+    "authors": "Büşra Özdenizci Köse",
+    "venue": "Business &amp; Management Studies: An International Journal",
+    "year": 2025,
+    "url": "https://doi.org/10.15295/bmij.v13i3.2633",
+    "abstract": "As the financial technology (FinTech) sector increasingly embraces data-driven strategies, sentiment analysis has emerged as a critical tool for extracting actionable insights from unstructured textual data. This study explores the strategic applications of sentiment analysis in FinTech, with a particular focus on its roles in market prediction, risk assessment, and regulatory compliance. Drawing on a systematic thematic analysis of the academic literature, this study synthesises how financial institutions utilise sentiment analysis to enhance decision-making, mitigate risks, and address evolving customer behaviours and regulatory demands. The findings indicate that sentiment analysis enables early detection of market trends, supports more nuanced credit evaluations, and strengthens compliance monitoring by uncovering behavioural patterns and emotional signals across multiple data sources. The study also discusses practical challenges—including data quality, integration issues, and model bias—that must be addressed to realise its full potential. This work contributes to the literature by providing a structured thematic framework and identifying underexplored application areas of sentiment analysis in the FinTech sector. Future research may extend this study by incorporating empirical testing of domain-specific sentiment models."
+  },
+  {
+    "title": "Review content and customer satisfaction: a textual analysis of Yelp restaurant reviews",
+    "authors": "Emitis Alikhani, Hassan F. Gholipour, Hossein Abbasinejad, Ramtin Rafat Nezhad",
+    "venue": "British Food Journal",
+    "year": 2025,
+    "url": "https://doi.org/10.1108/bfj-05-2025-0636",
+    "abstract": "\n \n This study aims to pinpoint which observable restaurant attributes most influence customer satisfaction, captured through review sentiment and star ratings.\n \n \n \n We analyze 580,000 Yelp reviews from 36,000 US restaurants (2019). Seven feature groups – services, ambience, amenities, alcohol, payment, menu breadth and entertainment – are regressed on average Valence Aware Dictionary and Sentiment Reasoner scores, AFINN (a sentiment lexicon used to evaluate emotional tone in text by assigning numerical values to individual words)-based positivity odds and mean star ratings, using restaurant, city and state fixed effects.\n \n \n \n Adding one core service (delivery, table service) lifts average sentiment by ˜ 0.02 points and star ratings by ˜ 0.10 stars. Modest ambience upgrades also help, though less. Extra amenities, wider payment menus, or broader food lists yield no further gains once basics are covered; in a few cases, they slightly depress ratings. The results show clear threshold benefits and sharp diminishing returns, aligning with utility theory for experience goods.\n \n \n \n Restaurants should invest in reliable service and a pleasant setting rather than piling low-impact extras. Review platforms and regulators might spotlight these core indicators instead of long attribute checklists.\n \n \n \n This is the first national-scale evidence linking verified feature flags to both text sentiment and star ratings while jointly testing threshold and diminishing-return effects in dining markets.\n"
+  },
+  {
+    "title": "Do Strategic Orientations and CSR Disclosures Affect Investment Efficiency? Evidence from Textual Analysis in Emerging Markets",
+    "authors": "Zabihollah Rezaee, Javad Rajabalizadeh",
+    "venue": "Journal of Risk and Financial Management",
+    "year": 2025,
+    "url": "https://doi.org/10.3390/jrfm18100535",
+    "abstract": "This study explores how firms’ strategic orientations—operational efficiency, customer intimacy, and product innovation—along with corporate social responsibility (CSR) disclosure, influence investment efficiency in emerging markets. Using 1594 firm-year observations from companies listed on the Tehran Stock Exchange (TSE) between 2015 and 2024, we combine quantitative analysis with textual evidence from Management Discussion and Analysis (MD&A) reports. The findings show that operational efficiency and customer intimacy are generally linked to lower investment efficiency, reflecting possible resource misallocation and short-term priorities. In contrast, product innovation has a more nuanced impact: it improves investment efficiency in R&D-intensive sectors and during stable economic periods. CSR disclosure is also negatively associated with investment efficiency, suggesting that while CSR reporting enhances legitimacy and stakeholder trust, it may shift managerial attention and resources away from core investments. Robustness checks—including firm fixed effects, alternative keyword dictionaries, placebo tests, and endogeneity controls—support these results. Additional sub-sample analyses indicate that strategic orientations and CSR disclosure also function as channels of financial innovation: operational efficiency fosters disciplined resource allocation, product innovation supports sustainable growth, and customer intimacy strengthens transparency and stakeholder engagement."
+  },
+  {
+    "title": "Research on Multi-Source Financial Dictionary Fusion and Adaptive Enhancement of Sentiment Analysis",
+    "authors": "Yongyong Sun, Haiping Yuan, Fei Xu",
+    "venue": "2025 8th International Conference on Computer Network, Electronic and Automation (ICCNEA)",
+    "year": 2025,
+    "url": "https://doi.org/10.1109/ICCNEA66167.2025.11211998",
+    "abstract": "The field of financial sentiment analysis encounters substantial obstacles when attempting to leverage lexicon-based knowledge effectively, especially in developing comprehensive multi-level integration approaches and addressing inconsistencies between different sentiment resources. To address these challenges, this research introduces a novel XGS-FinBERT methodology that combines diverse financial lexicons with FinBERT via XGBoost-SHAP directed feature significance assessment. The approach involves creating an extensive financial sentiment lexicon through the integration of five established resources: SenticNet, FinSenticNet, the Loughran-McDonald vocabulary, Stock_lex, and the ML-based dictionary. An XGBoost-SHAP framework quantifies feature contributions, identifying five core dimensions: sentiment, score, negative, positive, and intensity. The model employs a parallel fusion architecture with dynamic gating mechanisms that adaptively weight FinBERT semantic features and dictionary-based sentiment features. Anti-forgetting mechanisms and differential learning rates preserve pre-trained knowledge while enhancing domain-specific performance. Experimental results on the FPB dataset demonstrate that XGS-FinBERT achieves $\\mathbf{8 8. 6 \\%}$ accuracy and $\\mathbf{8 8. 7 \\%} \\mathbf{F 1}$ -score, improving by 2.2 and 2.2 percentage points respectively over the FinBERT baseline, validating the effectiveness of intelligent dictionary-model integration."
+  },
+  {
+    "title": "Beyond numbers: negative disclosure tone, bank risk, and ownership structure in Middle East and North African Banks",
+    "authors": "Mohamed Malek Belhoula, Naima Lassoued, Imen Khanchel, Dorsaf Ghraidi",
+    "venue": "International Journal of Disclosure and Governance",
+    "year": 2025,
+    "url": "https://doi.org/10.1057/s41310-025-00287-2",
+    "abstract": null
+  },
+  {
+    "title": "The Tell‐Tale Tone: Negative Tone Disclosure and Tax Avoidance in MENA Banks",
+    "authors": "Naima Lassoued, Imen Khanchel, Mohamed Malek Belhoula",
+    "venue": "Managerial and Decision Economics",
+    "year": 2025,
+    "url": "https://doi.org/10.1002/mde.70008",
+    "abstract": "This study examines the relationship between negative reporting tone in annual reports and tax avoidance practices in a panel of 63 banks operating in seven Middle Eastern and North African (MENA) countries observed over the 2012–2022 period. Using textual analysis based on the Loughran and McDonald dictionary to measure negative tone, we investigate opposing theoretical perspectives—the tax obfuscation hypothesis and the tax compliance hypothesis. Multivariate regression analysis reveals a significant inverse relationship between negative tone and tax avoidance, supporting the tax compliance perspective derived from signaling theory. Further analyses show that this relationship is strengthened by state, institutional, and foreign ownership, as well as by CEO duality and BIG 4 audit engagements. Additionally, bank‐specific characteristics including financial complexity, operational efficiency, income diversification, and Islamic banking principles significantly moderate the tone–tax avoidance relationship. These results have important implications for regulators and policymakers seeking to enhance tax compliance monitoring and strengthen transparency initiatives in the banking sector."
+  },
+  {
+    "title": "From complexity to clarity: unraveling the determinants of annual report readability and tone in an emerging market",
+    "authors": "S. Samarakoon, Rudra Pratap Pradhan, ·. R. P. C. R. Rajapakse, Premjit Sahoo, R. Rajapakse",
+    "venue": "Quality & Quantity: International Journal of Methodology",
+    "year": 2025,
+    "url": "https://doi.org/10.1007/s11135-025-02155-1",
+    "abstract": null
+  },
+  {
+    "title": "Words Matter: Forecasting Economic Downside Risks with Corporate Textual Data",
+    "authors": "C. Isler",
+    "venue": "",
+    "year": 2025,
+    "url": "https://www.semanticscholar.org/paper/a131dc32ff2af50d71d2f6965d26b90492a74832",
+    "abstract": "Accurate forecasting of downside risks to economic growth is critically important for policymakers and financial institutions, particularly in the wake of recent economic crises. This paper extends the Growth-at-Risk (GaR) approach by introducing a novel daily sentiment indicator derived from textual analysis of mandatory corporate disclosures (SEC 10-K and 10-Q reports) to forecast downside risks to economic growth. Using the Loughran--McDonald dictionary and a word-count methodology, I compute firm-level tone growth as the year-over-year difference between positive and negative sentiment expressed in corporate filings. These firm-specific sentiment metrics are aggregated into a weekly tone index, weighted by firms'market capitalizations to capture broader, economy-wide sentiment dynamics. Integrated into a mixed-data sampling (MIDAS) quantile regression framework, this sentiment-based indicator enhances the prediction of GDP growth downturns, outperforming traditional financial market indicators such as the National Financial Conditions Index (NFCI). The findings underscore corporate textual data as a powerful and timely resource for macroeconomic risk assessment and informed policymaking."
+  },
+  {
+    "title": "Measuring Geopolitical Risk Exposure Across Industries: A Firm-Centered Approach",
+    "authors": "Isabel Culver, Friederike Niepmann, Leslie Shen Sheng",
+    "venue": "FEDS Notes",
+    "year": 2025,
+    "url": "https://doi.org/10.17016/2380-7172.3882",
+    "abstract": "ConstructionTo measure how industries perceive geopolitical risk, we construct an industry-specific geopolitical risk sentiment index grounded in firm communications through earnings calls. Building on Niepmann and Shen (2025) and Shen (2025), we use the NL Analytics platformâa commercial implementation of the natural language processing methodology developed by Hassan et al. (2019)âto process over 240,000 earnings call transcripts from approximately 7,000 U.S.-domiciled firms, spanning the period 2002:Q1 to 2024:Q3. This platform enables us to apply our own natural language process-based criteria within its framework. We use the geopolitical risk dictionary from Caldara and Iacoviello (2022) and identify GPR-relevant sentences, classifying them as negative or positive based on their proximity to sentiment words from the Loughran and McDonald (2011) dictionary. By quantifying both positive and negative sentiment, we can distinguish between instances in which geopolitical developments are viewed as risks versus opportunitiesâa nuance that pure mention-count methods cannot capture."
+  },
+  {
+    "title": "Media Sentiment and Volatility Index Futures Returns: Evidence from Textual Analysis of News, Blogs, and Online Discussions",
+    "authors": "Ming‐Hung Wu, Chun-Yo Chen, Nai-Wen Cheng, Wei-Che Tsai",
+    "venue": "Journal of futures markets",
+    "year": 2025,
+    "url": "https://doi.org/10.1002/fut.70037",
+    "abstract": "This study investigates the predictive relationship between media sentiment and daily VIX futures returns through a comprehensive textual analysis of financial news articles, blogs, and online discussions. Employing the Loughran and McDonald lexicon‐based methodology, we construct sentiment indices derived from an extensive data set of over 700,000 media posts, with a particular emphasis on overnight sentiment effects. Our empirical results demonstrate that negative sentiment extracted from news articles and online discussions exhibits significant predictive power for subsequent VIX futures returns, whereas blog‐based sentiment demonstrates comparatively limited efficacy. Notably, this robust predictive relationship persists even during periods of macroeconomic announcements, suggesting that media sentiment captures information beyond traditional economic indicators. Furthermore, we develop sentiment‐based trading strategies that yield exceptional performance metrics, generating annualized risk‐adjusted returns of 46.32% for news‐derived strategies and 104.58% for online discussion‐based approaches—substantially outperforming conventional benchmark strategies."
+  },
+  {
+    "title": "Cross Domain Lexicon Transfer -A Case Specific to Application in Banking Domain",
+    "authors": "Nagendra BV., Kumar Chandar S, J. B. Simha, Manu K S, Kirubanand K V, Yash Kaushal",
+    "venue": "2025 6th International Conference on Mobile Computing and Sustainable Informatics (ICMCSI)",
+    "year": 2025,
+    "url": "https://doi.org/10.1109/ICMCSI64620.2025.10883579",
+    "abstract": "This study demonstrates the development of the financial domain lexicon and the implementation of the same in the banking sector. The study compared the working of Financial Naïve Bayes Lexicon (FNB Lex) developed with 533 quarterly Earnings Call Transcript (ECT) of 16 software companies, with standard available dictionaries like VADER and Loughran-McDonald. The study showed VADER's poor discriminatory power and Loughran-McDonald with satisfactory performance. FNB Lex lexicon performed better and provided better lift over VADER and Loughran-McDonald with improved precision, recall and F1-score."
+  },
+  {
+    "title": "Decoding corporate communication strategies: Analysing mandatory published information under Pillar 3 across turbulent periods with unsupervised machine learning",
+    "authors": "Anna Pilková, M. Munk, Lívia Kelebercová",
+    "venue": "PLoS ONE",
+    "year": 2025,
+    "url": "https://doi.org/10.1371/journal.pone.0328841",
+    "abstract": "This study explores the communication patterns of Slovak banks with stakeholders through mandatory disclosures mandated by Basel III’s Pillar 3 framework and annual reports in 2007−2022. Our primary objective is to identify key topics communicated by banks and analysing the sentiment of this communication during turbulent periods (i.e., alternating periods of stability and crisis) in 2007−2022. Textual data was collected from Pillar 3 disclosures, annual reports, and additional regulatory reports. A hybrid model was developed to extract the most important keywords from each collected document chapter. This hybrid model (model combining multiple approaches) combines elements of statistical approaches to keyword extraction, (keyword frequency dictionary), linguistic approaches (pair-of-speech tagging in order to select noun-phrases), and machine-learning based approaches (BERT) to extract meaningful keywords. Subsequently, a sentiment analysis was performed on the extracted keywords using a Loughran-McDonald lexicon (list of words labelled with sentiment) specially designed for financial texts. Based on the adjusted univariate results, we can reject the global null hypothesis of independence of the sentiment category of keywords from time for negative sentiment at p = 0.0000 for positive sentiment at p = 0.0005, and for neutral sentiment at p = 0.0000 significant level. The multilevel comparison revealed that negative sentiment was most frequent during the global financial crisis and the COVID-19 pandemic, likely impacting stakeholder confidence and trust. Conversely, positive sentiment dominated during periods of financial stability, potentially enhancing stakeholder satisfaction and investment decisions. This research points out that the sentiment of the selected commercial bank documents changes depending on the years. A commercial bank can use this knowledge and include sentiment information as predictors when modelling financial distress. For bank management of selected commercial bank the examined documents are an important communication tool, the wording of which can have a significant impact on stakeholder behaviour towards the bank, their styling is very important."
+  },
+  {
+    "title": "Crude oil price fluctuation forecasting incorporating news sentiment based on improved sentiment lexicon",
+    "authors": "Ming Li, Yue Xiao, Shaoheng Ding, Qingcheng Zhang, Haitao Xiong, Jin Ding",
+    "venue": "Journal of King Saud University: Computer and Information Sciences",
+    "year": 2025,
+    "url": "https://doi.org/10.1007/s44443-025-00289-8",
+    "abstract": null
+  },
+  {
+    "title": "IPO Breaking Anomaly in China: A Prospectus‐Based Textual Analysis",
+    "authors": "Xundi Diao, Meiling Cai",
+    "venue": "Accounting &amp; Finance",
+    "year": 2025,
+    "url": "https://doi.org/10.1111/acfi.70014",
+    "abstract": "We explore the determinants behind China's Initial Public Offering (IPO) ‘breaking’ anomaly, assessing the predictability of both break issues and the initial performance of IPOs. By integrating textual analysis with an ensemble of advanced machine learning techniques, our findings reveal that a higher degree of similarity, diminished readability and a more pronounced negative sentiment within the prospectus are associated with an increased likelihood of break issues and diminished initial returns. The text features, particularly similarity and sentiment, demonstrate substantial predictive power. Furthermore, our research highlights the superiority of certain sophisticated machine learning methodologies over traditional parametric models when dealing with high‐dimensional data."
+  },
+  {
+    "title": "Investor Site Visits, Discussion Contents, and Analyst Forecasts: A Machine Learning Approach",
+    "authors": "Jinyu Liang, Xiaogang Bi",
+    "venue": "International Journal of Finance &amp; Economics",
+    "year": 2025,
+    "url": "https://doi.org/10.1002/ijfe.70094",
+    "abstract": "\n We use machine learning to perform a textual analysis of 423,361 Q&As (questions and answers) involved in investor site‐visit reports, in order to explore the impact of information conveyed from them on analysts' forecast errors and revisions. We find that more performance‐ and operations‐related Q&A content discussed during site visits significantly reduces analysts' forecast errors and makes them have a lower degree of revisions. Furthermore, these relations are more pronounced when there are more institutional participants in the site visit. The results remain consistent after addressing endogeneity issues and using alternative calculations for an abnormally larger number of Q&As. Our paper supports the information digesting channel hypothesis of institutional investors and finds that questions raised by them are beneficial to analysts, no matter whether they participate in site visits, due to the timely and accurately conveying information to outside investors."
+  },
+  {
+    "title": "The Importance of Data Security Risk in Setting Audit Fees: Evidence from Machine Learning-Based Approach",
+    "authors": "Lingyun Xiong, Linxin Peng, Lijuan Xiao, Lijuan Yang",
+    "venue": "Emerging markets finance & trade",
+    "year": 2025,
+    "url": "https://doi.org/10.1080/1540496X.2025.2520882",
+    "abstract": "ABSTRACT Prior studies have examined the determinant factors of audit fees but overlooked the effect of enterprise data security risk on audit fees. Given the importance of auditors’ assessment of business risks and internal controls, we investigate the impact of corporate data security risk on audit fees and explore the underlying channels. We adopt the machine learning approach and textual analysis to construct a comprehensive indicator to measure corporate data security risk. Using a dataset of Chinese A-share listed companies from 2010 to 2022, encompassing 36,407 observations, we find that data security risk significantly increases firms’ audit fees. Mechanism analyses show that enterprise data security risk intensifies the operational, information disclosure and legal risk, and auditors’ extra effort. Such positive effect is stronger when auditors are more specialized; when corporate executives lack skills of information technology; and in non-high-tech enterprises, and in those firms with poor regional digital environment and digital finance and lower level of intellectual property protection. Moreover, data breaches lead to higher audit fees compared with other types of data security risk. This study sheds light on the important role of data security risk in auditing pricing decision and the significance of data security risk management in organizations."
+  },
+  {
+    "title": "Optimising Machine Learning Integration in Real-Time Text Analytics Platforms: Technical Approaches and Performance Criteria",
+    "authors": "O. Korostin",
+    "venue": "COMPUTER-INTEGRATED TECHNOLOGIES: EDUCATION, SCIENCE, PRODUCTION",
+    "year": 2025,
+    "url": "https://doi.org/10.36910/6775-2524-0560-2025-58-05",
+    "abstract": "The article investigates the integration of machine learning into real-time platforms for analysing text streams. The relevance of the topic is driven by the growing volume of unstructured textual data and the need for its prompt and accurate processing to support decision-making in such fields as media monitoring, cybersecurity, finance, and healthcare. The effectiveness of such platforms is shown to depend on the adaptability of algorithms, analysis accuracy, scalability, and transparency of results. Special attention is paid to the technical aspects of implementation, including distributed architecture, streaming data processing, optimisation of computing resources, and integration of explainable models. The purpose of the article is to study the possibilities of integrating machine learning algorithms into real-time platforms for analysing text streams, in particular, to develop approaches to improving the efficiency of data processing, ensuring their transparency and adaptability in a changing information environment. To achieve this goal, the study applies a combination of literature analysis, comparative evaluation of existing algorithms, and an experimental assessment of technical solutions. The findings indicate that the main challenges of integration include the computational complexity of deep models, scalability constraints, and delays in data stream processing. It has been shown that the use of distributed computing technologies, hardware accelerators (GPU/TPU), and online learning mechanisms significantly improves the performance of such platforms. The application of adaptive algorithms capable of real-time parameter updates increases analysis accuracy under unstable data conditions. The study concludes that integrating machine learning into real-time systems enhances the speed, reliability, and scalability of text analytics. Further research should focus on developing universal multilingual platforms that combine energy efficiency, modularity, and high analytical performance."
+  },
+  {
+    "title": "TRALSem: A Robust Model for Textual Sentiment Analysis",
+    "authors": "Bo Yang, Jiayi Dang, Huai Liu, Zhi Jin",
+    "venue": "IEEE Transactions on Computational Social Systems",
+    "year": 2025,
+    "url": "https://doi.org/10.1109/TCSS.2025.3558622",
+    "abstract": "Sentiment analysis has gained widespread applications across various domains due to its versatility and practicality. With the increasing availability of data and advancements in machine learning technologies, its utilization is expected to continue expanding. Deep learning (DL)-based sentiment analysis has demonstrated high accuracy and efficiency in numerous application areas, such as marketing, customer service, politics, healthcare, and finance, thereby highlighting its high potential. Despite recent progress, DL-based sentiment analysis methods still face significant challenges, particularly concerning the robustness of sentiment classification and scoring. To address these issues, our study introduces TRALSem, a novel text-centered sentiment analysis framework designed to tackle the unique challenges of sentiment classification and scoring, with a particular focus on enhancing the overall robustness of the model. We conducted extensive experiments on multilingual script datasets, including Chinese and English scripts, as well as the IMDB and SST datasets. The experimental results show that TRALSem significantly outperforms existing state-of-the-art sentiment analysis methods. In terms of sentiment classification, it achieves remarkable improvements, far surpassing the previous benchmarks. More importantly, TRALSem substantially enhances the model’s robustness, enabling it to maintain stable performance even in the face of complex and noisy data. It also significantly reduces the model’s sensitivity to noise data, effectively filtering out interference and providing more reliable and accurate sentiment analysis results. Moreover, it offers better interpretability to users, making the sentiment analysis process and outcomes more understandable and actionable."
+  },
+  {
+    "title": "Research on SSE 50 Index Prediction Based on Wavelet Denoising and BP Neural Network with Textual Information Integration",
+    "authors": "Xin Sui, Qi Zhang, Haoran Xu",
+    "venue": "Proceedings of the 2025 International Conference on Machine Learning and Neural Networks",
+    "year": 2025,
+    "url": "https://doi.org/10.1145/3747227.3747247",
+    "abstract": "Stock market forecasting, as an important component of the economic system, has long been a significant research hotspot in financial studies. Traditional stock price prediction models rely on econometric methods, assuming linear markets, stable data and returns of normal distribution. However, the real market exhibits nonlinearity, non-steadiness, noise, thick-tail return distribution and investor irrationality, making the traditional model insufficient. This has prompted researchers to adopt machine learning and deep learning methods to simulate complex market behaviors and integrate insights from behavioral finance. In this study, wavelet denoising technology is adopted to preprocess the original indicators, effectively eliminating the interference of high-frequency noise and improving the data quality. Through the text analysis of the relevant financial news of the SSE 50 and CSI 300, the investor sentiment index is constructed. Subsequently, two BP neural network models are developed: an emotion enhancement model containing emotion indices and a benchmark model excluding emotion factors. Both of these models are designed to predict closing prices, logarithmic returns, and index differences. Empirical results show that the sentiment enhancement model exhibits statistically superior performance in all three prediction objectives, confirming the incremental explanatory power of investor sentiment in understanding stock price fluctuations."
+  },
+  {
+    "title": "Stock Market Liquidity Risk Early Warning Mechanism Based on Support Vector Machine and Web Text Mining",
+    "authors": "Zemiao Wang",
+    "venue": "2025 2nd International Conference on Intelligent Computing and Robotics (ICICR)",
+    "year": 2025,
+    "url": "https://doi.org/10.1109/ICICR65456.2025.00022",
+    "abstract": "With the rapid expansion of online textual data, leveraging machine learning techniques to extract and analyze meaningful patterns has become a crucial task in computational finance and natural language processing. This study introduces a novel method for early warning of stock market liquidity risks by integrating Support Vector Machine (SVM) with web-based text mining techniques. By constructing feature variables such as sentiment, attention, and interactivity from vast online financial discussions, this approach significantly enhances the predictive capability of market risk models. The study focuses on the technical implementation of web information preprocessing, sentiment analysis, and machine learning classification, ensuring efficient and scalable risk prediction. The proposed method is validated using real-world market data, demonstrating improved accuracy and robustness compared to traditional financial indicators alone. This research contributes to the development of intelligent financial analysis systems, providing a computational framework for risk assessment and market prediction."
+  },
+  {
+    "title": "Exploring Ontology Construction Using Text Mining in Islamic Social Finance: A Scoping Review",
+    "authors": "Nurul Syifa Shafirah Omar, S. Shuhidan, Nurul Aida Bt Osman, Mohd Anuaruddin Bin Ahmadon, Nur Izyan Yasmin Saat, Shingo Yamaguchi",
+    "venue": "Global Conference on Consumer Electronics",
+    "year": 2025,
+    "url": "https://doi.org/10.1109/GCCE65946.2025.11275402",
+    "abstract": "Islamic Social Finance (ISF) is broadly acknowledged as a ground component of wider Islamic finance system that is growing but lack of knowledge representations from the Arabic origin. Therefore, ontology-driven semantic textual analysis is required in this field. Existing ontology development relies heavily on the manual construction to group key concepts of Islamic Finance. This scoping review aims to systematically identify existing approaches in ontology constructions within Islamic social finance domains using text mining with machine learning techniques as well as to assess gaps in applying semantic technologies in Islamic social finance while directing future work. JBI PRISMA-ScR guidelines was referred within databases such as Scopus, Web of Science, IEEE Xplore and Google Scholar resulting 36 peer-reviewed, English language articles (2020-2025) that are extracted using Covidence, thematically analyzed and visualized using Excel and Python programming language. The results found challenges and barriers in applying semantic technologies in Islamic social finance and ontology constructions or knowledge graph are the most discussed among researchers."
+  },
+  {
+    "title": "Decoding ESG Report Narratives: Unveiling Sustainable Supply Chain Insights and Impacts Through Textual Analysis",
+    "authors": "Yicheng Wang, Ying Peng, Chen Yang",
+    "venue": "Corporate Social Responsibility and Environmental Management",
+    "year": 2024,
+    "url": "https://doi.org/10.1002/csr.3079",
+    "abstract": "This study explores industry‐specific sustainable supply chain (SSC) practices and their impact on firm value using textual analysis of 4791 ESG reports from S&P 500 companies. A novel SSC dictionary, developed using Word2Vec, highlights variations in SSC practices across eight dimensions—procurement, production, logistics, warehousing, distribution, transportation, retail, and supplier—across different industries. Regression analysis shows that emphasis on procurement and retail SSC practices positively correlates with firm value, with warehousing practices showing marginal significance. The research contributes to SSC literature by introducing a quantitative methodology linking SSC to corporate performance, offering practical insights for aligning supply chain sustainability with profitability."
+  },
+  {
+    "title": "Fiscal policy in the Bundestag: Textual analysis and macroeconomic effects",
+    "authors": "Albina Latifi, Viktoriia Naboka‐Krell, Peter Tillmann, Peter Winker",
+    "venue": "European Economic Review",
+    "year": 2024,
+    "url": "https://doi.org/10.1016/j.euroecorev.2024.104827",
+    "abstract": "Fiscal policy is made in parliament. We go to the roots of changes of fiscal policy in Germany and use a novel data set on all parliamentary speeches in the Bundestag from 1960 to 2021. We propose an embedding-based approach, which allows the representation of words and documents in a shared vector space, in order to measure fiscal policy-related sentiment in parliamentary debates at a scale from con-tractionary to expansionary. For this purpose, a dictionary containing terms related to expansionary and contractionary policy measures is created. We put fiscal sentiment into a series of recursively-identified vector autoregressive (VAR) models to show that a change in fiscal sentiment causes a change in government spending and has strong effects on the macroeconomy. The results support the notion that the debate in parliament contains information for the identification of government spending shocks."
+  },
+  {
+    "title": "Decoding the directives: a textual analysis of monetary policy",
+    "authors": "Rajesh Sharma, P. Kafle",
+    "venue": "Global Knowledge Memory and Communication",
+    "year": 2024,
+    "url": "https://doi.org/10.1108/gkmc-12-2023-0520",
+    "abstract": "\nPurpose\nThis study aims to explore the linguistic and syntactic textual features of Central Bank of Nepal (Nepal Rastra Bank [NRB])’s monetary policy. Considering the recent literature and methodological advancement in computational linguistic analysis, this study intends to explore the features of published monetary policy reports.\n\n\nDesign/methodology/approach\nText mining technique has been used on the monetary policy published by Central Bank of Nepal for the period between 2002/03 and 2021/22 to describe the textual features such as length, tone, degree of forward looking, use of numerical contents and readability. The raw text was tokenized using Python’s Natural Language Toolkit. Considering the LM dictionary, the frequency of tokens matching with dictionary is computed and divided by total number of words to normalize the obtained value.\n\n\nFindings\nThis study found that NRB publishes lengthy monetary policies during economic contractions and vice versa. The tone of the policies are pessimistic most of the time. NRB’s policies are not sufficiently forward looking and complex to be comprehended by layman. Ergo, NRB shall form a team of communication experts to ensure publication of optimistic policies with appropriate linguistic features. Furthermore, publishing the minutes of monetary policy meetings will help enhance effective communication through transparency and proper functioning of expectations channel.\n\n\nOriginality/value\nTo the best of the authors’ knowledge, no similar study has been conducted to assess the textual features of monetary policy in Nepal. And this study will be helpful to gauge the status of central bank communication in the context of emerging and least developed countries.\n"
+  },
+  {
+    "title": "Textual Out-of-Distribution Data Detection Based on Granular Dictionary",
+    "authors": "Tinghui Ouyang, Toshiyuki Amagasa",
+    "venue": "BigData Congress [Services Society]",
+    "year": 2024,
+    "url": "https://doi.org/10.1109/BigData62323.2024.10825751",
+    "abstract": "As an factor influencing data quality, out-of-distribution (OOD) data detection plays a critical role in AI quality assurance. This paper presents an advanced OOD detection method based on Granular Computing (GrC) and dictionary learning, specifically designed for detecting textual OOD in natural language processing (NLP) systems. First, informative data structure descriptors (information granules) are generated through GrC, which are aimed to reduce the computation overhead in big data analysis. Next, granular dictionary is constructed from these granules and used to represent original data through dictionary learning and data reconstruction. Finally, OOD detection is formalized by analyzing differences between original and reconstructed data. Finally, the proposed method formulate OOD detection via the difference between original and reconstructed data. Experiments conducted on a sentiment analysis system based on a large language model (LLM) and three OOD datasets are implemented. The constructed granular dictionary is firstly demonstrated to have good representation ability supporting effective OOD detection. Furthermore, the proposed method’s effectiveness, efficiency and scalability in textual OOD detection are validated through comprehensive comparative analysis."
+  },
+  {
+    "title": "Textual sentiment analysis and description characteristics in crowdfunding success: The case of cybersecurity and IoT industries",
+    "authors": "Abraham Yosipof, Netanel Drori, Or Elroy, Yannis Pierraki",
+    "venue": "Electronic Markets",
+    "year": 2024,
+    "url": "https://doi.org/10.1007/s12525-024-00712-4",
+    "abstract": null
+  },
+  {
+    "title": "Panning for gold: Comparative analysis of cross-platform approaches for automated detection of political content in textual data",
+    "authors": "M. Makhortykh, Ernesto de León, Aleksandra Urman, T. Gil-López, C. Christner, Maryna Sydorova, Silke Adam, Michael Maier",
+    "venue": "PLoS ONE",
+    "year": 2024,
+    "url": "https://doi.org/10.1371/journal.pone.0312865",
+    "abstract": "To understand and measure political information consumption in the high-choice media environment, we need new methods to trace individual interactions with online content and novel techniques to analyse and detect politics-related information. In this paper, we report the results of a comparative analysis of the performance of automated content analysis techniques for detecting political content in the German language across different platforms. Using three validation datasets, we compare the performance of three groups of detection techniques relying on dictionaries, classic supervised machine learning, and deep learning. We also examine the impact of different modes of data preprocessing on the low-cost implementations of these techniques using a large set (n = 66) of models. Our results show the limited impact of preprocessing on model performance, with the best results for less noisy data being achieved by deep learning- and classic machine learning-based models, in contrast to the more robust performance of dictionary-based models on noisy data."
+  },
+  {
+    "title": "A Hybrid Ensemble Model for Drug Recommendation with Sentiment Analysis from Textual Reviews",
+    "authors": "N. K, Gokul Yesudas, Muhammed Azeem Yoonus, Faheem V, Siji Rani S",
+    "venue": "International Conference on Computing Communication and Networking Technologies",
+    "year": 2024,
+    "url": "https://doi.org/10.1109/ICCCNT61001.2024.10723850",
+    "abstract": "The usage of online recommender systems in health-care, pharmaceuticals, and hospitals is growing. Nowadays, the vast majority of consumers research potential prescriptions online before consulting their doctors for a variety of medical issues. Modern drug recommendation systems frequently pay no attention to the unique needs of a patient and don’t wait for the expectations of the patient. To this, we propose a novel hybrid ensemble model that incorporates Deep Learning, Machine Learning, and Sentiment Analysis. The contribution of the TensorFlow/Keras neural network is in drug review analysis for sentiment, meanwhile LightGBM classifier that offers an alternative approach is another part of the network. Besides TextBlob and a dictionary-based annotation approach, machine learning taking place during classification brings value to sentiment analysis. Forecasts of authorities are pooled, weighted by review influence, and clashed to produce drug-specific studies. This multi-faceted strategy is better compartmentalized and tailor to each patient’s needs, taking emotional state into account, thereby patients are able to access more accurate drug advice and healthcare professionals to make informed decision. Qualitative analysis of the efficiency the model will be carried out using the confusion matrices. Thus, by means of the research on hand, we expect the transformation of the drug recommendation system taking into consideration and patient-individualized system, which will contribute to the improvement of healthcare delivery."
+  },
+  {
+    "title": "Sentiment analysis of microblog text based on sentiment dictionary",
+    "authors": "Gnanapriya S, Anandan K",
+    "venue": "E-Learning and Digital Media",
+    "year": 2024,
+    "url": "https://doi.org/10.1177/20427530241276141",
+    "abstract": "This study introduces a method for sentiment analysis applied to microblog texts, leveraging a sentiment dictionary. Focused on discerning sentiments as positive, negative, or neutral, the research incorporates a sentiment dictionary tailored for microblog content. The experiment employs a dataset pertaining to the new coronavirus epidemic collected from a microblogging platform for testing and compares the outcomes with those of existing methods. Key enhancements include the integration of a microblog-specific emotion dictionary and the formulation of semantic rules designed for the nuances of Chinese text. Results demonstrate improved accuracy in text emotion recognition, outperforming traditional methods and achieving notable accuracies for positive, negative, and neutral sentiments. Objective: To develop and implement a robust sentiment analysis model for microblog text, leveraging a comprehensive sentiment dictionary to accurately classify the emotional tone and polarity of textual data. The model aims to enhance the understanding of user sentiments on microblogging platforms by examining the nuances of text and identifying positive, negative, or neutral sentiments. The analysis will facilitate the extraction of insights from large volumes of user-generated content, enabling applications such as social media monitoring, brand perception analysis, and opinion tracking."
+  },
+  {
+    "title": "Sentiment Analysis of Student Evaluation for Teachers Using Valence-Aware Dictionary and Sentiment Reasoner",
+    "authors": "Kristel Anne Telmo, Kervie Alviola, Jazler Jhon Desamparado, John Nathaniel Cabigan, C. Santiago, Richard Aries Shimada",
+    "venue": "Journal of Interdisciplinary Perspectives",
+    "year": 2024,
+    "url": "https://doi.org/10.69569/jip.2024.0328",
+    "abstract": "This study analyzed the quality of teaching using the Student Evaluation of Teaching (SET) and the Valence Aware Dictionary and Sentiment Reasoner (VADER) to assess textual comments, providing a comprehensive view of teaching effectiveness beyond numerical ratings. The objectives were to identify faculty strengths and areas for improvement based on student feedback, analyze sentiment toward teaching methods, and determine the optimal number of clusters within the dataset. The analysis included 28,222 student comments from three semesters, preprocessed through tokenization, stopword removal, part-of-speech tagging, and lemmatization. A word cloud visualized common terms, while K-means clustering and the Elbow method identified five as the optimal number of clusters. Results indicate that most comments are positive, emphasizing effective teaching methods' role in creating a positive educational experience. The findings suggest integrating machine learning with VADER and expanding the dataset for broader insights. Institutions should develop effective teaching strategies, prioritizing regular feedback collection and analysis."
+  },
+  {
+    "title": "Enhanced Financial Sentiment Analysis and Trading Strategy Development Using Large Language Models",
+    "authors": "Kemal Kirtac, Guido Germano",
+    "venue": "Workshop on Computational Approaches to Subjectivity, Sentiment and Social Media Analysis",
+    "year": 2024,
+    "url": "https://doi.org/10.18653/v1/2024.wassa-1.1",
+    "abstract": "This study examines a novel methodology for enhanced financial sentiment analysis and trading strategy development using large language models (LLMs) such as OPT, BERT, FinBERT, LLAMA 3, and RoBERTa. Utilizing a dataset of 965,375 U.S. financial news articles from 2010 to 2023, our research demonstrates that the GPT-3-based OPT significantly outperforms other models, achieving a prediction accuracy of 74.4% for stock market returns. Our findings reveal that the advanced capabilities of LLMs, particularly OPT, surpass traditional sentiment analysis methods such as the Loughran-McDonald dictionary model in predicting and explaining stock returns. For instance, a self-financing strategy based on OPT scores achieves a Sharpe ratio of 3.05 over our sample period, compared to a Sharpe ratio of 1.23 for the strategy based on the dictionary model. This study highlights the superior performance of LLMs in financial sentiment analysis, encouraging further research into integrating artificial intelligence and LLMs in financial markets."
+  },
+  {
+    "title": "The Effects of Sentiment Evolution in Financial Texts: A Word Embedding Approach",
+    "authors": "Jiexin Zheng, Ka Chung Ng, Rong Zheng, K. Tam",
+    "venue": "Journal of Management Information Systems",
+    "year": 2024,
+    "url": "https://doi.org/10.1080/07421222.2023.2301176",
+    "abstract": "ABSTRACT We examine the evolutionary effects of sentiment words in financial text and their implications for various business outcomes. We propose an algorithm called Word List Vector for Sentiment (WOLVES) that leverages both a human-defined sentiment word list and the word embedding approach to quantify text sentiment over time. We then apply WOLVES to investigate the evolutionary effects of the most popular financial word list, Loughran and McDonald (LM) dictionary, in annual reports, conference calls, and financial news. We find that LM negative words become less negative over time in annual reports compared to conference calls and financial news, while LM positive words remain qualitatively unchanged. This finding reconciles with existing evidence that negative words are more subject to managers’ strategic communication. We also provide practical implications of WOLVES by correlating the sentiment evolution of LM negative words in annual reports with market reaction, earnings performance, and accounting fraud."
+  },
+  {
+    "title": "Sentiment trading with large language models",
+    "authors": "Kemal Kirtac, Guido Germano",
+    "venue": "Finance Research Letters",
+    "year": 2024,
+    "url": "https://doi.org/10.1016/j.frl.2024.105227",
+    "abstract": "We investigate the efficacy of large language models (LLMs) in sentiment analysis of U.S. financial news and their potential in predicting stock market returns. We analyze a dataset comprising 965,375 news articles that span from January 1, 2010, to June 30, 2023; we focus on the performance of various LLMs, including BERT, OPT, FINBERT, and the traditional Loughran-McDonald dictionary model, which has been a dominant methodology in the finance literature. The study documents a significant association between LLM scores and subsequent daily stock returns. Specifically, OPT, which is a GPT-3 based LLM, shows the highest accuracy in sentiment prediction with an accuracy of 74.4%, slightly ahead of BERT (72.5%) and FINBERT (72.2%). In contrast, the Loughran-McDonald dictionary model demonstrates considerably lower effectiveness with only 50.1% accuracy. Regression analyses highlight a robust positive impact of OPT model scores on next-day stock returns, with coefficients of 0.274 and 0.254 in different model specifications. BERT and FINBERT also exhibit predictive relevance, though to a lesser extent. Notably, we do not observe a significant relationship between the Loughran-McDonald dictionary model scores and stock returns, challenging the efficacy of this traditional method in the current financial context. In portfolio performance, the long-short OPT strategy excels with a Sharpe ratio of 3.05, compared to 2.11 for BERT and 2.07 for FINBERT long-short strategies. Strategies based on the Loughran-McDonald dictionary yield the lowest Sharpe ratio of 1.23. Our findings emphasize the superior performance of advanced LLMs, especially OPT, in financial market prediction and portfolio management, marking a significant shift in the landscape of financial analysis tools with implications to financial regulation and policy analysis."
+  },
+  {
+    "title": "Tone at the top, corporate irresponsibility and the Enron emails",
+    "authors": "Kieran Taylor-Neu, Abu S. Rahaman, Gregory D. Saxton, Dean Neu",
+    "venue": "Accounting, Auditing &amp; Accountability Journal",
+    "year": 2024,
+    "url": "https://doi.org/10.1108/aaaj-12-2023-6792",
+    "abstract": "PurposeThis study aims to examine whether senior Enron executive emails celebrated, or at least left a space for, corporate irresponsibility. Engaging with prior organizational-focused research, we investigate how corporate emails sent by senior executives help constitute Enron by communicating to employees senior management’s stance about important topics and social characters.Design/methodology/approachThe study analyzes the 527,356 sentences contained in 144,228 emails sent by Enron senior executives and other employees in the three-year period (1999–2001) before the company’s collapse. Sentences are used as the base-level speech unit because we are interested in identifying the tone and emotions expressed about specific topics and stakeholders. Tone is measured using Loughran and McDonald’s (2016) financial dictionary approach, and emotion is measured using Mohammad and Turney’s (2013) NRC word-emotion lexicon. Least Absolute Shrinkage and Selection Operator (LASSO) regressions are used to explore the determinants of senior management tone and emotions.FindingsThe analysis illustrates that while both senior executives and other employees utilized email to help accomplish task-related activities, they employed different evaluative tones to talk about key topics and stakeholders. Also important is what is left unsaid, with a “spiral of silence” emanating from senior management that created a space for corporate irresponsibility.Originality/valueCombining advanced computerized textual analysis with qualitative techniques, we analyze a unique dataset to explore micro details involved in using email to communicate a tone at the top. The findings illustrate how what is said or not said by senior management contributes to the constitution of an organization."
+  },
+  {
+    "title": "Value-Enhancing Effect of Climate Change Risk Disclosure by Firms: Empirical Evidence Based on Textual Analysis and Machine Learning",
+    "authors": "Wenwei Guo, Baoling Mo, Yanling Chen, Zicong Huang",
+    "venue": "Emerging markets finance & trade",
+    "year": 2024,
+    "url": "https://doi.org/10.1080/1540496X.2024.2381556",
+    "abstract": "ABSTRACT This study utilizes textual data from the social responsibility reports of Shanghai and Shenzhen A-share listed companies in China between 2007 and 2019. Through the application of textual analysis and machine learning technology, an index is constructed to gauge the extent of climate change risk disclosure by corporations. The paper examines the impact of climate change risk disclosure on corporate value, drawing from theoretical reasoning and empirical evidence.The findings reveal a significantly positive relationship between corporate climate change risk disclosure and corporate value, indicating the existence of a value promotion effect. Mechanism tests demonstrate that firms’ climate change risk disclosure enhances corporate transparency by attracting attention from analysts and the media. Consequently, this reduces information asymmetry and fosters an increase in corporate value. Furthermore, the study highlights that non-state-owned and high-polluting corporations exhibit a more pronounced value enhancement effect from climate change risk disclosure compared to other corporations. Additionally, corporations with highly readable and positively-toned textual information experience stronger value-promoting effects. These results provide robust empirical evidence supporting the practice of climate change risk disclosure among corporations in China."
+  },
+  {
+    "title": "The impacts of China's shadow banking regulation on bank lending—An empirical analysis based on textual analysis and machine learning",
+    "authors": "Sha Sun, Gong Qian, Jingjing Yu",
+    "venue": "Pacific-Basin Finance Journal",
+    "year": 2024,
+    "url": "https://doi.org/10.1016/j.pacfin.2024.102565",
+    "abstract": null
+  },
+  {
+    "title": "Corporate culture and shareholder litigation rights: evidence from a quasi-natural experiment and textual analysis",
+    "authors": "Viput Ongsakul, Pandej Chintrakarn, P. Jiraporn",
+    "venue": "Review of Behavioral Finance",
+    "year": 2024,
+    "url": "https://doi.org/10.1108/rbf-04-2024-0123",
+    "abstract": "PurposeTaking advantage of an innovative measure of corporate culture obtained from advanced machine learning and textual analysis, we investigate how corporate culture is influenced by shareholder litigation rights, which are widely recognized as a crucial external governance mechanism. The innovative measure of corporate culture is based on a textual analysis of over 200,000 earnings call transcripts.Design/methodology/approachTo mitigate endogeneity and thus demonstrate causality, we exploit a quasi-natural experiment based on the staggered passage of universal demand laws, which reduce shareholder litigation rights. The enactment of state-level legislation is likely exogenous to individual firms’ characteristics as it is beyond the control of any given firm. Following the literature, we employ a difference-in-difference analysis, supplemented by several robustness checks, i.e. propensity score matching and entropy balancing.FindingsOur difference-in-difference estimates show that an exogenous reduction in shareholder litigation rights weakens corporate culture considerably. Specifically, corporate culture is 12.74–14.41% weaker after the implementation of universal demand laws. Our results corroborate the hypothesis that a decline in litigation risk exacerbates agency problems, discouraging self-interested managers from taking actions that enhance shareholder value in the long run, such as cultivating a strong corporate culture.Originality/valueOur study is the first to explore how corporate culture is affected by shareholder litigation risk, which constitutes a vital external governance mechanism. Moreover, we utilize an innovative measure of corporate culture based on sophisticated textual analysis. Finally, we employ a quasi-natural experiment based on an exogenous shock, making it more likely that our conclusion reflects a causal influence rather than merely a correlation."
+  },
+  {
+    "title": "Sentiment Analysis of Multimodal Content: A Fusion of Visual and Textual Clues",
+    "authors": "Irtika Khan, Siddhi Kadu",
+    "venue": "Innova",
+    "year": 2024,
+    "url": "https://doi.org/10.1109/INNOVA63080.2024.10846981",
+    "abstract": "Multimodal data analysis is crucial in understanding complex information across various domains in today's digital society. It integrates textual, visual, and audio data, offering deep insights into human behavior and interactions. Utilizing advanced machine learning techniques like deep learning and fusion methodologies, multimodal data analysis drives innovation in industries such as marketing, entertainment, healthcare, and finance. This work introduces a novel sentiment analysis approach, emphasizing multimedia content interpretation using the CMU-MOSI dataset with CNN and BERT models and by combining the inputs through early and late fusion techniques. Early fusion integrates features from transcripts and video frames after which a variety of machine learning techniques, including Support Vector Machine, Logistic Regression, and Naive Bayes are used for classification, whereas late fusion uses a weighted average formula to balance the predictions. This method enhances sentiment analysis accuracy and multimedia content interpretation, benefiting areas like digital media analysis, psychology, and marketing."
+  },
+  {
+    "title": "EUR/USD Exchange Rate Forecasting incorporating Text Mining Based on Pre-trained Language Models and Deep Learning Methods",
+    "authors": "Xiangyu Shi, Hongcheng Ding, Salaar Faroog, Deshinta Arova Dewi, Shamsul Nahar Abdullah, Bahiah A. Malek",
+    "venue": "arXiv.org",
+    "year": 2024,
+    "url": "https://doi.org/10.48550/arXiv.2411.07560",
+    "abstract": "This study introduces a novel approach for EUR/USD exchange rate forecasting that integrates deep learning, textual analysis, and particle swarm optimization (PSO). By incorporating online news and analysis texts as qualitative data, the proposed PSO-LSTM model demonstrates superior performance compared to traditional econometric and machine learning models. The research employs advanced text mining techniques, including sentiment analysis using the RoBERTa-Large model and topic modeling with LDA. Empirical findings underscore the significant advantage of incorporating textual data, with the PSO-LSTM model outperforming benchmark models such as SVM, SVR, ARIMA, and GARCH. Ablation experiments reveal the contribution of each textual data category to the overall forecasting performance. The study highlights the transformative potential of artificial intelligence in finance and paves the way for future research in real-time forecasting and the integration of alternative data sources."
+  },
+  {
+    "title": "Enhancing Stock Price Prediction: A Hybrid Approach Leveraging Large Language Models and Deep Learning",
+    "authors": "Mohamed Ahmed, G. Ebrahim, Marwa A. Abdelaal",
+    "venue": "International Conferences on Computing Advancements",
+    "year": 2024,
+    "url": "https://doi.org/10.1109/ICCA62237.2024.10927923",
+    "abstract": "Accurate stock price prediction is a challenging yet crucial goal in finance, with significant implications for investment decisions and risk management. This paper presents a comprehensive review of machine learning techniques for stock price prediction, examining traditional methods such as regression and ensemble models, as well as advanced approaches that integrate sentiment analysis and textual data sources. With the emergence of powerful Large Language Models (LLMs) such as ChatGPT, Llama and Gemini, we explore their potential for enhancing predictive accuracy using historical stock data. Key challenges are discussed, including data quality, model interpretability, and adapting to dynamic market conditions. Additionally, this paper proposes a trustworthy stock price prediction model based on LLMs enabling informed investment decision-making. Experimental results demonstrate that ChatGPT-4o model achieved a prediction accuracy of approximately 97%, which can be improved by tuning model parameters. Consequently, the paper highlights the potential of LLMs in improving stock price forecasting."
+  },
+  {
+    "title": "Comparative Analysis of Predictive Algorithms for Performance Measurement",
+    "authors": "Swati Gupta, B. Kishan, Preeti Gulia",
+    "venue": "IEEE Access",
+    "year": 2024,
+    "url": "https://doi.org/10.1109/ACCESS.2024.3372082",
+    "abstract": "Predictive algorithms, also known as mathematical models, utilize historical data to accurately predict future outcomes. These algorithms identify patterns and relationships within the data, resulting in precise predictions. The growing importance of predictive algorithms in various domains, such as finance, healthcare, marketing, weather forecasting, E-commerce, etc., has led to an increasing need for robust and accurate models. Machine learning (ML) and deep learning (DL) algorithms, including supervised, unsupervised, & reinforcement learning, play a crucial role in prediction. Supervised algorithms include classification and regression, while unsupervised algorithms primarily focus on clustering. In this study, a detailed comparative analysis of eight classification algorithms, six regression algorithms, and five clustering algorithms is performed using diverse datasets and performance metrics. ROBERTA, ResNet, Random Forest Regression, and K-means clustering algorithms outperformed traditional algorithms in textual classification, image classification, regression, and clustering. This study enables data scientists and practitioners to make informed decisions when selecting appropriate models for their specific applications."
+  },
+  {
+    "title": "An exploratory study that uses textual analysis to examine the financial reporting sentiments during the COVID-19 pandemic",
+    "authors": "N. Non, Norazlin Ab Aziz",
+    "venue": "Journal of Financial Reporting & Accounting",
+    "year": 2023,
+    "url": "https://doi.org/10.1108/jfra-10-2022-0364",
+    "abstract": "\nPurpose\nThis paper aims to examine if Malaysian public listed companies have expressed any specific sentiment(s) when publishing their financial performance during the COVID-19 pandemic.\n\n\nDesign/methodology/approach\nThe disclosed sentiments contained in the management discussion and analysis section of the companies’ annual reports were extracted by means of computer-automated textual analysis through the linguistic inquiry and word counts and the Loughran–McDonald Financial Sentiment Dictionary. Next, a correlation analysis was conducted. Finally, a qualitative content analysis (QCA) was conducted to confirm these sentiments.\n\n\nFindings\nThe analysis shows that companies adopted various tones of sentiments when communicating with their stakeholders. Most companies used negative sentiments to voice their concerns about how the COVID-19 pandemic has impacted upon their business operations. Only a few companies reflected positive sentiments, whilst those that experienced operating losses also expressed uncertainty.\n\n\nResearch limitations/implications\nThis study may assist either the regulators or accounting bodies to introduce a reporting framework that public companies can adopt during natural hazards. It also provides useful insights to (potential) investors to enable them to better understand the business landscape. For future research, the same study could be conducted on more countries so that their experiences can be used to better understand the business phenomenon from a global perspective.\n\n\nOriginality/value\nThis study is one of few studies to adopt automated textual analysis and QCA to examine the exhibited sentiments when public companies reported their financial performance during the COVID-19 pandemic.\n"
+  },
+  {
+    "title": "The Impact of Collaborative Documentation on Person-Centered Care: Textual Analysis of Clinical Notes",
+    "authors": "Victoria Stanhope, Nari Yoo, Elizabeth B. Matthews, Daniel Baslock, Yuanyuan Hu",
+    "venue": "JMIR Medical Informatics",
+    "year": 2023,
+    "url": "https://doi.org/10.2196/52678",
+    "abstract": "Abstract Background Collaborative documentation (CD) is a behavioral health practice involving shared writing of clinic visit notes by providers and consumers. Despite widespread dissemination of CD, research on its effectiveness or impact on person-centered care (PCC) has been limited. Principles of PCC planning, a recovery-based approach to service planning that operationalizes PCC, can inform the measurement of person-centeredness within clinical documentation. Objective This study aims to use the clinical informatics approach of natural language processing (NLP) to examine the impact of CD on person-centeredness in clinic visit notes. Using a dictionary-based approach, this study conducts a textual analysis of clinic notes from a community mental health center before and after staff were trained in CD. Methods This study used visit notes (n=1981) from 10 providers in a community mental health center 6 months before and after training in CD. LIWC-22 was used to assess all notes using the Linguistic Inquiry and Word Count (LIWC) dictionary, which categorizes over 5000 linguistic and psychological words. Twelve LIWC categories were selected and mapped onto PCC planning principles through the consensus of 3 domain experts. The LIWC-22 contextualizer was used to extract sentence fragments from notes corresponding to LIWC categories. Then, fixed-effects modeling was used to identify differences in notes before and after CD training while accounting for nesting within the provider. Results Sentence fragments identified by the contextualizing process illustrated how visit notes demonstrated PCC. The fixed effects analysis found a significant positive shift toward person-centeredness; this was observed in 6 of the selected LIWC categories post CD. Specifically, there was a notable increase in words associated with achievement (β=.774, P<.001), power (β=.831, P<.001), money (β=.204, P<.001), physical health (β=.427, P=.03), while leisure words decreased (β=−.166, P=.002). Conclusions By using a dictionary-based approach, the study identified how CD might influence the integration of PCC principles within clinical notes. Although the results were mixed, the findings highlight the potential effectiveness of CD in enhancing person-centeredness in clinic notes. By leveraging NLP techniques, this research illuminated the value of narrative clinical notes in assessing the quality of care in behavioral health contexts. These findings underscore the promise of NLP for quality assurance in health care settings and emphasize the need for refining algorithms to more accurately measure PCC."
+  },
+  {
+    "title": "Using textual analysis in bankruptcy prediction: Evidence from Indian firms under IBC",
+    "authors": "Vandana Gupta, A. Banerjee",
+    "venue": "Investment Management & Financial Innovations",
+    "year": 2023,
+    "url": "https://doi.org/10.21511/imfi.20(3).2023.03",
+    "abstract": "Identifying and managing credit risk is vital for all lending institutions. Historically, credit risk is assessed using financial data from published financial statements. However, research indicates that the ability to detect financial hardship may be improved by textual analysis of firms’ disclosed records. This study aims to establish an association between themes and words from Management Discussion and Analysis (MDA) reports of firms and corporate failures. The study took a sample of 57 Indian listed firms declared bankrupt under the Insolvency and Bankruptcy Code (IBC) along with a matched sample of 55 solvent firms (matched by industry and size) for the period of FY2011–2019. The first part of analysis identifies negative words from the published reports and compares them with the negative words of the Loughran-McDonald dictionary. Then a thematic analysis is done to identify the key themes from the MDA reports and the significant themes are validated with their corresponding financial ratios in the third step using a panel logistic regression. Word analysis results show that IBC firms have significantly greater negative tone (2.21 percent) as against 1.30 percent of solvent firms. Thematic analysis results show that manageability, activity and performance are significant themes for predicting financial distress. Financial variables such as ownership pattern, promoters’ shares pledged, return on capital employed, asset utilization are some of the ratios in sync with the key themes. The study recommends that lenders and other stakeholders should look beyond financial statements which may be ‘window dressed’ by firms to qualitative disclosures in annual reports which may forewarn against impending financial distress.\n Acknowledgments The infrastructural support provided by FORE School of Management, New Delhi in completing this paper is gratefully acknowledged."
+  },
+  {
+    "title": "Predicting Firm Financial Performance from SEC Filing Changes Using Automatically Generated Dictionary",
+    "authors": "Aparna Gupta, Vipula Rawte, Mohammed J. Zaki",
+    "venue": "Computational Economics",
+    "year": 2023,
+    "url": "https://doi.org/10.1007/s10614-023-10443-x",
+    "abstract": null
+  },
+  {
+    "title": "A Study on Information Value of Analyst Report Text Based on the Analysts’ Herding Behavior Under Globalized Financial Markets",
+    "authors": "Su-Ji Cho",
+    "venue": "Korea Association for International Commerce and Information",
+    "year": 2023,
+    "url": "https://doi.org/10.15798/kaici.2023.25.2.3",
+    "abstract": "Recently, the investment information is spreading in near real-time due to the global integration of the international financial market. At this point, it is essential to resolve the information asymmetry in the capital market to vitalize domestic and foreign investment. Analysts improve market efficiency, by performing information intermediary role between the capital market and investors. However, the herding behavior among analysts in the market can weaken the information quality and lead to inefficiency in the financial market. In this study, the relationship between analyst herding behavior and the text of the report is analyzed. In addition, the effect of the text of the report body on the information power according to the analyst's herding behavior was verified. To this end, the positive and negative emotions shown in the body of the analyst report were extracted as words of up to 2-gram units and merged with the list of positive and negative words of Loughran and McDonald(2011), a sentiment dictionary widely used in the financial field. As a result of the analysis, when an analyst presents a 'bold' opinion that deviates from the consensus, the sentiment of the report body is more extreme than that of an ‘herd’ opinion. In addition, it was confirmed that positive emotion weakens the report information power according to the analyst's herding behavior. This study is expected to alleviate information asymmetry between investors and the financial market. Furthermore, the text mining methodology used in this study can be readily applied to any other kind of text, including News, Social Network Services, or IR reports."
+  },
+  {
+    "title": "Does the fintech create value? A textual analysis of commercial banks in China",
+    "authors": "Qian Li, Rongcheng Zhu, Wenjun Qin",
+    "venue": "Technology Analysis & Strategic Management",
+    "year": 2022,
+    "url": "https://doi.org/10.1080/09537325.2022.2145185",
+    "abstract": "ABSTRACT The rapid development of fintech has significantly impacted the traditional financial market and brought technological opportunities for commercial banks. In this context, based on a sample of 36 Chinese commercial banks from 2003-2019, this paper empirically investigates the impact of fintech on the performance of commercial banks through textual analysis. The results show that the effects of fintech on commercial banks’ performance are mixed, where technology basis has a significant negative impact on performance, and electronic payment can enhance commercial banks’ earnings. In addition, both the negative effect of technology basis and the positive effect of electronic payment on commercial bank performance are more substantial on non-state banks and, at the same time, national banks."
+  },
+  {
+    "title": "Do\n Sell‐Side\n Analysts Play a Role in Hedge Fund Activism? Evidence from Textual Analysis†",
+    "authors": "H. Chen, Thomas D. Shohfi",
+    "venue": "Contemporary Accounting Research",
+    "year": 2022,
+    "url": "https://doi.org/10.1111/1911-3846.12760",
+    "abstract": null
+  },
+  {
+    "title": "Textual Analysis Applications: Subject Review",
+    "authors": "Abeer K. Al-Mashhsdany, Safa A. Ahmed",
+    "venue": "Journal of university of Anbar for pure science",
+    "year": 2022,
+    "url": "https://doi.org/10.37652/juaps.2022.171861",
+    "abstract": "This paper is a literature survey about applications of textual analysis. It aims to provide brief description about the common textual analysis applications. The paper talks about the dictionary which is mostly, one of the main components for textual analysis applications. The paper highlights a number of related examples that were proved in previous published papers. Common features for the related examples are illustrated. And their results are discussed. It will be shown that “morphological and syntactic analysis” is a proved approach. Also, it will be shown that text similarity based on “morphological and syntactic analysis” approach has more accurate results than text similarity based on semantic approach ."
+  },
+  {
+    "title": "Generating business intelligence through automated textual analysis: measuring corporate image with online information",
+    "authors": "Ziqing Peng, Yan Wan",
+    "venue": "Chinese Management Studies",
+    "year": 2022,
+    "url": "https://doi.org/10.1108/cms-07-2021-0318",
+    "abstract": "\nPurpose\nIn this age of extremely well-developed social media, it is necessary to detect any change in the corporate image of an enterprise immediately so as to take quick action to avoid the wide spread of a negative image. However, existing survey-based corporate image evaluation methods are costly, slow and static, and the results may quickly become outdated. User comments, news reports and we-media articles on the internet offer varied channels for enterprises to obtain public evaluations and feedback. The purpose of this study is to effectively use online information to timely and accurately measure enterprises’ corporate images.\n\n\nDesign/methodology/approach\nA new corporate image evaluation method was built by first using a literature review to establish a corporate image evaluation index system. Next, an automatic text analysis of online public information was performed through a topic classification and sentiment analysis algorithm based on the dictionary. The accuracy of the topic classification and sentiment analysis algorithm is then calculated. Finally, three internet enterprises were chosen as cases, and their corporate image was evaluated.\n\n\nFindings\nThe results show that the author’s corporate image evaluation method is effective.\n\n\nOriginality/value\nFirst, in this study, a new corporate image evaluation index system is constructed. Second, a new corporate image evaluation method based on text mining is proposed that can support data-driven decision-making for managers with real-time corporate image evaluation results. Finally, this study improves the understanding of corporate image by generating business intelligence through online information. The findings provide researchers with specific and detailed suggestions that focus on the corporate image management of emerging internet enterprises.\n"
+  },
+  {
+    "title": "А Cognitive Study of “Вaburname”’S Translations and Principle of Compiling a Textual Dictionary",
+    "authors": "Ziyodakhon Qodirovna Teshaboyeva",
+    "venue": "Journal of Pharmaceutical Negative Results",
+    "year": 2022,
+    "url": "https://doi.org/10.47750/pnr.2022.13.s08.244",
+    "abstract": "Zahiriddin Muhammad Babur's memoir “Baburname” is well known and well thought-out as a rare source by the world scholars which provide gorgeous information about the history of Central Asian people. His work written in an autobiographical way that contains a vast data about the way of life of people in Central Asia, as abroad scholars called Transoxiana political and social activities of that time, the way of national and cultural life and wonderful customs and traditions. At the same time the literary translation of “Baburname” is also serving as a model of both diachronic and synchronic study from a linguistic translation point of view. The paremiological and phraseological units used in work “Baburname” also served to describe the character of historical figures. This article is devoted to the study of comparative – conceptual analysis of Russian-English translations and suggest the possibility of creating a textual dictionary based on its’ translations and the development of principles of creating dictionary as the work that undergone the history of translation. The English translations made by J. Leyden-W. Erskine (1826), A.S. Beveridge (1921) and W. Thackston (1996) are compared in this article. The tables of phraseological expressions worked out in “Baburname”’s translations, aimed at revealing the cognitive interpretation of the author's point of view."
+  },
+  {
+    "title": "What’s that noise? Analysing sentiment-based variation in central bank communication",
+    "authors": "B. Hayo, Johannes Zahner",
+    "venue": "Economics Letters",
+    "year": 2022,
+    "url": "https://doi.org/10.1016/j.econlet.2022.110962",
+    "abstract": "To which degree can variation in sentiment-based indicators of central bank communication be attributed to changes in macroeconomic, financial, and monetary variables; idiosyncratic speaker effects; sentiment persistence; and random ‘noise’? Using the Loughran and McDonald (2011) dictionary on a text corpus containing more than 10,000 speeches and press statements, we construct sentiment-based indicators for the ECB and the Fed. An analysis of variance (ANOVA) shows that sentiment is strongly persistent and influenced by speaker-specific effects. With about 80% of the variation in sentiment being due to noise, our findings cast doubt on the reliability of conclusions based on variation in dictionary-based indicators. JEL"
+  },
+  {
+    "title": "Media-based investor sentiment and stock returns: a textual analysis based on newspapers",
+    "authors": "Yu He, Linshan Qu, Ran Wei, Xuankai Zhao",
+    "venue": "Applied Economics",
+    "year": 2021,
+    "url": "https://doi.org/10.1080/00036846.2021.1966369",
+    "abstract": "ABSTRACT This study constructs a media-based investor sentiment index based on a textual analysis of China’s leading financial newspapers. We employ both the Word2Vec technique and the dictionary method to measure the aggregate textual tone in the media news. Based on a sample of publicly listed A-share firms in China, we document that media-based sentiment is positively (negatively) related to the cross-section of stock returns over a short (long) horizon. Further analysis shows that higher information quality, measured by more analyst coverage, better audit opinions and non-governmental ownership could mitigate the effects of sentiment. Overall, our findings imply that media news contains important information for measuring the overall investor sentiment that drives the future stock price up in the short term and then down in the long term."
+  },
+  {
+    "title": "Textual analysis of moral components in Islamic and Non-Islamic business in Russia",
+    "authors": "H. Penikas, E. Fedorova, A. R. Nevredinov, S. Druchok",
+    "venue": "2021 International Conference on Sustainable Islamic Business and Finance",
+    "year": 2021,
+    "url": "https://doi.org/10.1109/ieeeconf53626.2021.9686337",
+    "abstract": "This article examines the possibility of improving financial modeling through the use of textual analysis methods, in particular, the analysis of the moral component of the texts to determine the attitude of people to the object of analysis. The data source for the analysis is proposed to be a large portal with reviews of Islamic and Non-Islamic business from the customers who describe their experience with the object of analysis. A way to study social assessments of business models ethics in modern Russia based on an adaptation of the dictionary MFD was developed, the results showed the greatest coverage of the block “authority”."
+  },
+  {
+    "title": "Financial Twitter Sentiment on Bitcoin Return and High-Frequency Volatility",
+    "authors": "Xiang Gao, Weige Huang, Hua Wang",
+    "venue": "",
+    "year": 2021,
+    "url": "https://doi.org/10.34021/VE.2021.04.01(1)",
+    "abstract": "This paper studies how sentiment affect Bitcoin pricing by examining, at an hourly frequency, the linkage between sentiment of finance-related Twitter messages and return as well as the volatility of Bitcoin as a financial asset. On the one hand, there was calculated the return from minute-level Bitcoin exchange quotes and use of both rolling variance and high-minus-low price to proxy for Bitcoin volatility per each trading hour. On the other hand, the mood signals from tweets were extracted based on a list of positive, negative, and uncertain words according to the Loughran-McDonald finance-specific dictionary. These signals were translated by categorizing each tweet into one of three sentiments, namely, bullish, bearish, and null. Then the total number of tweets were adopted in each category over one hour and their differences as potential Bitcoin price predictors. The empirical results indicate that after controlling a list of lagged returns and volatilities, stronger bullish sentiment significantly foreshadows higher Bitcoin return and volatility over the time range of 24 hours. While bearish and neutral financial Twitter sentiments have no such consistent performance, the difference between bullish and bearish ratings can improve prediction consistency. Overall, this research results add to the growing Bitcoin literature by demonstrating that the Bitcoin pricing mechanism can be partially revealed by the momentum on sentiment in social media networks, justifying a sentimental appetite for cryptocurrency investment."
+  }
+]

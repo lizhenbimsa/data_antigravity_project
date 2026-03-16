@@ -1,0 +1,56 @@
+{
+  "rankings": [
+    {
+      "idea_id": 3,
+      "title": "职业培训补贴对低技能工人就业稳定性的断点回归分析",
+      "originality": 9,
+      "feasibility": 9,
+      "causal_credibility": 9,
+      "policy_relevance": 8,
+      "total": 35,
+      "ranking_rationale": "该项目以断点回归设计识别职业培训对就业稳定性影响，创新性强，聚焦就业持续时间等较少被研究的指标。数据公开、可访问性高，断点设计减少选择性偏差，因果识别能力强，适合发表于顶级期刊。政策相关性显著，有助于劳动力培训政策优化。"
+    },
+    {
+      "idea_id": 1,
+      "title": "最低工时保障法对女性劳动参与率的影响",
+      "originality": 8,
+      "feasibility": 8,
+      "causal_credibility": 8,
+      "policy_relevance": 9,
+      "total": 33,
+      "ranking_rationale": "通过双重差分方法利用多州实施时间错位识别最低工时保障对女性劳动参与率的影响。研究填补文献对最低工时政策影响的关注不足，数据来源可靠，政策变异较好。因果信誉较好，政策价值高，但政策叠加因素需谨慎控制。整体具有很强的实证及政策意义。"
+    },
+    {
+      "idea_id": 5,
+      "title": "高校毕业生贷款宽免政策对创业率的切断截断设计分析",
+      "originality": 8,
+      "feasibility": 7,
+      "causal_credibility": 8,
+      "policy_relevance": 7,
+      "total": 30,
+      "ranking_rationale": "基于断点回归方法分析贷款宽免对高校毕业生创业率的影响，创新视角聚焦创业路径较少涉及，数据公开可得。识别策略具有较强说服力，政策影响明确。但由于政策覆盖州数有限，且部分执行差异需额外验证，数据和变异性稍逊。"
+    },
+    {
+      "idea_id": 4,
+      "title": "托幼补贴扩展对单亲家庭女性劳动时间的影响（交错DiD）",
+      "originality": 7,
+      "feasibility": 7,
+      "causal_credibility": 7,
+      "policy_relevance": 7,
+      "total": 28,
+      "ranking_rationale": "关注托幼补贴对单亲女性劳动时间影响，利用交错DiD设计，填补劳动强度因果估计空白。数据可得但处理州较少限制统计功效，识别策略需控制混淆政策。政策价值不错，对社会福利政策制定有参考意义。"
+    },
+    {
+      "idea_id": 2,
+      "title": "婚育假政策放宽对年轻女性工资动态的影响",
+      "originality": 7,
+      "feasibility": 6,
+      "causal_credibility": 6,
+      "policy_relevance": 7,
+      "total": 26,
+      "ranking_rationale": "研究婚育假对工资成长路径动态影响，属于相对新颖话题。数据资源丰富但处理州数量少且存在部分政策叠加，影响识别力度和统计功效。政策相关性中等，仍具有一定贡献。"
+    }
+  ],
+  "recommended": 3,
+  "recommendation_rationale": "职业培训补贴对低技能工人就业稳定性的断点回归分析项目，在创新性、识别策略的可信度和数据可行性方面表现最佳。其因果设计严谨，利用断点回归减少选择性偏差，聚焦就业稳定性这一重要且相对较少研究的议题，政策相关性强。综合评估认为该项目最符合经济学顶级期刊的发表标准，建议优先推进。"
+}

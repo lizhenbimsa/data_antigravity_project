@@ -1,0 +1,233 @@
+% ============================================================
+% APEP 论文 LaTeX 模板 — paper_template.tex
+% 基于 AER/AEJ 风格的经济学论文模板
+% ============================================================
+
+\documentclass[12pt]{article}
+
+% --- 页面设置 ---
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\doublespacing
+
+% --- 数学与符号 ---
+\usepackage{amsmath, amssymb, amsfonts}
+
+% --- 表格 ---
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{threeparttable}
+
+% --- 图片 ---
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+
+% --- 引用 ---
+\usepackage{natbib}
+\bibliographystyle{aer}  % AER 引用风格
+
+% --- 链接 ---
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% --- 其他 ---
+\usepackage{appendix}
+\usepackage{enumitem}
+
+% ============================================================
+% 论文信息 — 请替换以下内容
+% ============================================================
+\title{%
+  {PAPER_TITLE} \\
+  \large Evidence from {POLICY_CONTEXT}%
+}
+\author{%
+  APEP Working Paper No. apep\_XXXX \\
+  Autonomous Policy Evaluation Project%
+}
+\date{\today}
+
+% ============================================================
+\begin{document}
+
+\maketitle
+
+% --- 摘要 ---
+\begin{abstract}
+\noindent
+{ABSTRACT_TEXT: 描述研究问题、数据来源、识别策略、主要发现和政策含义。250 词以内。}
+
+\bigskip
+\noindent\textbf{Keywords:} {keyword1}, {keyword2}, {keyword3}
+
+\noindent\textbf{JEL Codes:} {J01}, {H75}, {I38}
+\end{abstract}
+
+\newpage
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+{INTRO_PARAGRAPH_1: 引出研究问题，说明政策背景的重要性。}
+
+{INTRO_PARAGRAPH_2: 文献空白与本文贡献。}
+
+This paper makes three contributions to the literature. First, ...
+Second, ...
+Third, ...
+
+{INTRO_PARAGRAPH_3: 方法概述和主要发现预览。}
+
+The remainder of this paper is organized as follows. Section~\ref{sec:background} provides institutional background. Section~\ref{sec:data} describes the data. Section~\ref{sec:strategy} presents the empirical strategy. Section~\ref{sec:results} reports the main results. Section~\ref{sec:robustness} discusses robustness checks. Section~\ref{sec:conclusion} concludes.
+
+% ============================================================
+\section{Institutional Background} \label{sec:background}
+% ============================================================
+
+{BACKGROUND: 政策的详细时间线、实施内容、覆盖范围。}
+
+% 政策实施时间线表格
+\begin{table}[H]
+\centering
+\caption{Policy Adoption Timeline}
+\label{tab:timeline}
+\begin{threeparttable}
+\begin{tabular}{lcc}
+\toprule
+State & Adoption Year & Key Provisions \\
+\midrule
+{State1} & {Year1} & {Provision1} \\
+{State2} & {Year2} & {Provision2} \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Notes: {表格注释}
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+% ============================================================
+\section{Data} \label{sec:data}
+% ============================================================
+
+\subsection{Data Sources}
+{DATA_SOURCES: 描述数据来源、API、时间覆盖、地理覆盖。}
+
+\subsection{Variable Definitions}
+{VARIABLES: 关键变量的定义和构造方法。}
+
+\subsection{Summary Statistics}
+
+\begin{table}[H]
+\centering
+\caption{Summary Statistics}
+\label{tab:summary}
+\begin{threeparttable}
+\begin{tabular}{lccccc}
+\toprule
+Variable & N & Mean & SD & Min & Max \\
+\midrule
+{var1} & & & & & \\
+{var2} & & & & & \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item Notes: {来源和样本描述}
+\end{tablenotes}
+\end{threeparttable}
+\end{table}
+
+% ============================================================
+\section{Empirical Strategy} \label{sec:strategy}
+% ============================================================
+
+% === DiD 模型规范 ===
+We exploit the staggered adoption of {POLICY_NAME} across states using a difference-in-differences framework. Our baseline specification is:
+
+\begin{equation}
+Y_{st} = \alpha + \beta \cdot D_{st} + \gamma_s + \delta_t + \epsilon_{st}
+\label{eq:main}
+\end{equation}
+
+where $Y_{st}$ is {OUTCOME_DESCRIPTION} in state $s$ in year $t$, $D_{st}$ is an indicator equal to one if state $s$ has adopted {POLICY_NAME} by year $t$, $\gamma_s$ and $\delta_t$ are state and year fixed effects, respectively.
+
+% === RDD 模型规范（替代） ===
+% We employ a sharp regression discontinuity design:
+% \begin{equation}
+% Y_i = \alpha + \tau \cdot \mathbb{1}[X_i \geq c] + f(X_i - c) + \epsilon_i
+% \end{equation}
+
+\subsection{Identification Assumptions}
+{ASSUMPTIONS: 平行趋势假设的论证。}
+
+\subsection{Modern DiD Estimators}
+To address concerns about heterogeneous treatment effects in staggered designs \citep{goodman-bacon2021}, we supplement our TWFE estimates with:
+\begin{itemize}
+    \item The interaction-weighted estimator of \citet{sun-abraham2021}
+    \item The group-time ATT estimator of \citet{callaway-santanna2021}
+    \item The two-stage estimator of \citet{gardner2022}
+\end{itemize}
+
+% ============================================================
+\section{Results} \label{sec:results}
+% ============================================================
+
+\subsection{Main Results}
+\input{tables/main_results.tex}
+
+{RESULTS_DISCUSSION: 解读主要回归结果，强调经济意义。}
+
+\subsection{Event Study}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/event_study.pdf}
+\caption{Event Study Estimates}
+\label{fig:event_study}
+\floatfoot{Notes: {图表注释}}
+\end{figure}
+
+{EVENT_STUDY_DISCUSSION: 事件研究图的解读，预趋势分析。}
+
+% ============================================================
+\section{Robustness} \label{sec:robustness}
+% ============================================================
+
+\subsection{Placebo Tests}
+{PLACEBO: 安慰剂检验结果。}
+
+\subsection{Alternative Specifications}
+{ALT_SPECS: 不同设定的结果。}
+
+\subsection{Heterogeneity Analysis}
+{HETEROGENEITY: 子样本异质性分析。}
+
+% ============================================================
+\section{Conclusion} \label{sec:conclusion}
+% ============================================================
+
+{CONCLUSION: 总结主要发现、政策含义、局限性和未来研究方向。}
+
+% ============================================================
+% 参考文献
+% ============================================================
+\newpage
+\bibliography{references}
+
+% ============================================================
+% 附录
+% ============================================================
+\newpage
+\appendix
+\section{Additional Results}
+{APPENDIX_TABLES_FIGURES}
+
+\end{document}

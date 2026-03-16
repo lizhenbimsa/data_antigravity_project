@@ -1,0 +1,577 @@
+# ==============================================================================
+# 新闻处理流水线配置文件 (News Processing Pipeline Configuration)
+# ==============================================================================
+# 本文件包含新闻数据处理流水线各阶段所需的全部配置参数。
+# 各配置段按流水线阶段顺序组织。
+
+# ------------------------------------------------------------------------------
+# 文件路径配置 (File Paths)
+# ------------------------------------------------------------------------------
+# 定义所有输入/输出目录及外部资源文件的路径。
+# 以 "./" 开头的路径会被自动解析为相对于项目根目录 (news_process/) 的绝对路径。
+paths:
+  raw_data_dir: ./data_excel                       # 原始 Excel 数据文件所在目录
+  output_dir: ./data_processed                     # 各阶段处理结果输出目录
+  log_dir: ./logs                                  # 日志文件输出目录
+  stopwords_zh: ./config/zh_stopwords.txt           # 中文停用词表
+  stopwords_en: ./config/en_stopwords.txt           # 英文停用词表
+  noise_patterns_file: ./config/noise_patterns.json # 噪声模式正则表达式文件
+  media_weights_file: ./config/media_weights.json   # 媒体权重评分文件
+  bank_names_file: ./config/bank_names.json         # 银行名称及其别名映射文件（用于11步银行新闻分类）
+  bank_keywords_file: ./config/bank_keywords.json   # 银行关键词列表文件（用于00步内容过滤，保留包含银行关键词的新闻）
+  # [已移除] 以下中国人民银行相关条目已从 bank_names.json 和 bank_keywords.json 中移除：
+  # - 中国人民银行  # - 人民银行   # - 人行   # - 中国中央银行   # - 中国央行   # - 我国中央银行   # - 我国央行
+  fintech_dict_file: ./config/fintech_dict.json     # 金融科技关键词词典文件
+  bank_name_exclusions_file: ./config/bank_name_exclusions.json  # 银行名称否定模式与短名歧义消解配置
+  tone_dicts_file: ./config/tone_dicts.json         # 情感词典文件（正面/负面/否定词等）
+  sentiment_dicts_dir: ./config/sentiment_dicts      # 情感分析辅助词典目录
+
+# ------------------------------------------------------------------------------
+# 输出文件名配置 (Output Filenames)
+# ------------------------------------------------------------------------------
+# 各处理阶段输出的 Parquet 文件名，存放于 paths.output_dir 目录下。
+filenames:
+  # 键名格式: output_XX_描述（XX = 生成该文件的脚本前缀编号）
+  output_00_preprocessing: 00_preprocessing.parquet       # 00_preprocessing.py → 数据预处理（加载、过滤、标准化、去重）
+  output_11_bank_news: 11_bank_news.parquet               # 11_news_bank.py → 银行新闻分类
+  output_12_fintech_news: 12_fintech_news.parquet         # 12_news_fintech.py → 金融科技新闻分类（仅保留金融科技新闻）
+  output_12_fintech_full: 12_fintech_news_full.parquet    # 12_news_fintech.py → 全量分类结果（含非金融科技，用于人工验证抽样）
+  output_21_tone_llms: 21_tone_llms.parquet               # 21_tone_llms.py → LLM 语义精筛与情感分析（仅 llm_verified=True）
+  output_21_tone_llms_full: 21_tone_llms_full.parquet     # 21_tone_llms.py → LLM 全量结果（含 llm_verified=True/False，供验证模块使用）
+  output_22_words_tone: 22_words_tone.parquet             # 22_tone_words.py → 词典法情感分析
+  output_23_bert_tone: 23_bert_tone.parquet               # 23_tone_berts.py → BERT 模型情感分析
+  output_32_human_sample: 32_human_samples.xlsx           # 32_news_llms_human.py → 人工验证样本（含真伪与情感标注）
+
+# ------------------------------------------------------------------------------
+# 并行处理配置 (Parallel Processing)
+# ------------------------------------------------------------------------------
+parallel:
+  n_jobs: -1                                        # 并行工作进程数（-1 表示使用全部CPU核心）
+  batch_size: 5000                                  # 每批次处理的数据行数
+
+# ------------------------------------------------------------------------------
+# [模块一：新闻预处理模块] 数据预处理 (Preprocessing) - 阶段 00
+# ------------------------------------------------------------------------------
+# 控制数据加载、清洗、过滤等预处理步骤的参数。
+preprocessing:
+  fasttext_model_path: models/lid.176.bin           # FastText 语言检测模型路径
+  text_column: 内容                                  # 主要文本列名
+  min_lang_detect_length: 15                        # 语言检测所需的最小文本长度（字符数）
+  sheet_name: Sheet1                                 # Excel 工作表名称
+
+  # --- 媒体类型过滤 ---
+  # 需要排除的媒体类型列表（按"媒体类型(中文)"字段匹配）
+  media_types_to_exclude:
+  - APP
+  - 微博
+  - 政府
+  - 网页(U)
+
+  # --- 关键字段缺失值检查 ---
+  # 以下字段中任一为空值时，该条记录将被移除
+  key_columns_for_na_check:
+  - 标题
+  - 内容
+  - 媒体(中文)
+  - 日期
+
+  # --- 保留列 ---
+  # 从原始 Excel 文件中仅保留以下列，其余列将被丢弃
+  required_columns:
+  - docid
+  - pubcode
+  - 媒体(中文)
+  - 媒体类型(中文)
+  - 内容
+  - 日期
+  - 标题
+  - 版面
+  - 栏名
+  - 页号
+  - 作者
+  - 国家地区/省份
+  - 城市
+
+  # --- 媒体地域过滤 ---
+  # 仅保留"国家地区/省份"字段匹配以下地区的记录（中国大陆省级行政区划）
+  mainland_china_regions:
+  - 中国
+  - 北京
+  - 天津
+  - 上海
+  - 重庆
+  - 河北
+  - 山西
+  - 辽宁
+  - 吉林
+  - 黑龙江
+  - 江苏
+  - 浙江
+  - 安徽
+  - 福建
+  - 江西
+  - 山东
+  - 河南
+  - 湖北
+  - 湖南
+  - 广东
+  - 海南
+  - 四川
+  - 贵州
+  - 云南
+  - 陕西
+  - 甘肃
+  - 青海
+  - 内蒙古
+  - 广西
+  - 西藏
+  - 宁夏
+  - 新疆
+  - 香港
+  - 澳门
+  - 台湾
+
+  # --- 标题和内容长度过滤阈值 ---
+  title_min_length: 2                               # 标题最少汉字数
+  content_min_length: 100                            # 内容最少汉字数
+  content_max_length: 10000                          # 内容最多汉字数
+
+  # --- 广告/公告类标题关键词 ---
+  # 标题、版面、栏名中包含以下关键词的记录将被移除
+  ad_keywords:
+  - 广告
+  - 公告
+  - 公示
+  - 启事
+  - 通知
+  - 通报
+  - 声明
+  - 信息披露
+  - 年度报告
+  - 半年度报告
+  - 半年度度报告
+  - 季度报告
+  - 基金合同摘要
+  - 半年报摘要
+  - 年报摘要
+  - 说明书摘要
+  - 意向书摘要
+  - 半年报正文
+  - 年报正文
+  - 说明书正文
+  - 基金合同正文
+  - 意向书正文
+  - 招募说明书
+  - 权益变动报告书
+  - 专项报告
+  - 专项说明
+  - 股票预案
+  - 风险提示
+  - 事先催告书
+  - 事先告知书
+  - 事先告知函
+  - 风险揭示书
+  - 业绩预告
+  - 草案摘要
+  - （草案）摘要
+  - 核查意见
+  - 分类信息
+  - 玩吧资讯
+  - 公益指引
+  - 招领联盟
+  - 书讯
+  - 特别提示
+  - 拍卖资讯
+  - 知识问答
+  - 名词解释
+  - 转债行情
+  - 导读
+  - 倡议书
+  - 遗失
+  - 挂失
+  - 失物招领
+  - 微博集萃
+  - 通告
+  - 大事预报
+
+# ------------------------------------------------------------------------------
+# [模块一：新闻预处理模块] 文本标准化配置 (Normalization) - 阶段 00 内部执行
+# ------------------------------------------------------------------------------
+# 控制文本标准化步骤（繁简转换、HTML清理等）的参数。
+normalization:
+  opencc_config: t2s                                # OpenCC 转换配置（t2s = 繁体转简体）
+  html_removal_length_threshold: 0.7                # HTML标签移除后长度缩减超过此比例时，标记为疑似代码文档
+
+# ------------------------------------------------------------------------------
+# [模块一：新闻预处理模块] 文本去重配置 (Deduplication) - 阶段 00 内部执行
+# ------------------------------------------------------------------------------
+deduplication:
+  jaccard_similarity_threshold: 0.8                 # Jaccard 相似度阈值（超过此值视为重复）
+  minhash_permutations: 128                         # MinHash 排列数（越大越精确，但越慢）
+  ngram_size: 3                                     # 字符级 n-gram 大小（用于 MinHash 特征提取）
+  parallel_workers: 4                               # pandarallel 并行工作进程数
+
+# ------------------------------------------------------------------------------
+# [模块二：新闻筛选模块] 银行新闻分类配置 (Bank News Classification) - 阶段 11
+# ------------------------------------------------------------------------------
+# 控制银行新闻识别和分类的参数。
+bank_news_classification:
+  split_ratio: 0.5                                  # 银行名称拆分比例阈值
+  min_occurrences_upper: 1                          # 大写（全称）最少出现次数
+  min_occurrences_lower: 1                          # 小写（简称）最少出现次数
+  min_name_occurrences: 3                           # 最少出现次数（银行名称变体在标题或全文中合计至少出现的次数）
+
+# ------------------------------------------------------------------------------
+# [模块二：新闻筛选模块] 金融科技新闻分类配置 (FinTech News Classification) - 阶段 12
+# ------------------------------------------------------------------------------
+fintech_news_classification:
+  split_ratio: 0.5                                  # 关键词拆分比例阈值
+  min_occurrences_upper: 1                          # 大写（全称）最少出现次数
+  min_occurrences_lower: 1                          # 小写（简称）最少出现次数
+  min_distinct_keywords: 3                          # 最少不同词汇数（标题或全文中至少出现的不同关键词数量）
+
+# ------------------------------------------------------------------------------
+# [模块三：新闻情感模块] 统一 LLM 语义精筛与情感分析 (Tone LLM Processing) - 阶段 21
+# ------------------------------------------------------------------------------
+# 使用大语言模型对规则预筛后的候选文章进行语义验证和情感定性（通过思维链，单次调用完成两项任务）。
+tone_llm_processing:
+  enabled: true                                     # 是否启用统一 LLM 处理
+  timeout: 600                                      # 请求超时时间（秒）
+  max_retries: 100                                  # 最大重试次数
+  retry_delay: 10                                   # 重试间隔时间（秒）
+  max_concurrency: 200                              # 最大并发请求数
+  temperature: 0.0                                  # 推理温度（0 = 确定性输出）
+  random_seed: 1                                    # 随机种子（确保确定性输出）
+  force_json: true                                  # 启用 response_format 强制 JSON 输出
+  batch_size: 5                                     # 批量提示每批文章数（论文推荐 b=5）
+  ensemble_method: majority_vote                    # 多模型聚合方法
+
+  # LLM 模型列表 (三角验证)
+  models:
+    - model_name: gpt-5-nano-2025-08-07
+      short_name: gpt5nano
+      description: GPT-5 Nano 轻量版
+      base_url: https://yunwu.ai/v1                 # GPT-5 Nano API 地址
+      api_key: ***ROTATED-2026-05-09***  # GPT-5 Nano API 密钥
+    - model_name: gemini-3-flash-preview-nothinking
+      short_name: gemini3
+      description: Gemini 3 Flash Preview-nothinking
+      base_url: https://yunwu.ai/v1                 # Gemini 3 API 地址
+      api_key: ***ROTATED-2026-05-09***  # Gemini 3 API 密钥
+    - model_name: grok-4-1-fast-non-reasoning
+      short_name: grok4
+      description: Grok 4.1 Fast (Non-Reasoning)
+      base_url: https://yunwu.ai/v1                 # Grok 4.1 API 地址
+      api_key: ***ROTATED-2026-05-09***  # Grok 4.1 API 密钥
+
+  # Unified CoT 提示词模板
+  # 强制 JSON 输出，包含真伪判定、情感判定及相关的连贯推理步骤字段
+  prompt_template: |
+    <role>
+    你是一位资深金融科技研究员，在银行数字化转型与金融科技领域具有深厚的学术背景与行业经验，同时精通中文财经文本的情感分析。请严格遵循结构化思维链（Chain-of-Thought）完成以下分析任务。
+    </role>
+
+    <task>
+    对提供的新闻文章执行**两阶段序贯分析**：
+    — 阶段一：语义真伪精筛（判断文章是否为真实的"银行金融科技新闻"）
+    — 阶段二：情感倾向分析（仅当阶段一判定为 true 时执行）
+    </task>
+
+    <step1_verification>
+    **阶段一：语义真伪精筛**
+
+    分析对象：严格限定为 <input_data> 中【规则预筛匹配银行】所列银行（一个或多个，以分号";"分隔）。对于未列出的银行，不予验证；若所列银行均不满足下述条件，则判定为 false。
+
+    **判定为 true（真实银行金融科技新闻）须同时满足以下三项条件：**
+    1. **主体关联**：新闻正文中明确、实质性地涉及【规则预筛匹配银行】中至少一家。
+    2. **主题聚焦**：新闻的核心议题或重要内容聚焦于金融科技领域（如：人工智能应用、区块链技术、数字货币/央行数字货币、大数据风控、云计算、开放银行、数字支付等）。
+    3. **实质落地**：上述匹配银行与金融科技主题之间存在可证实的实质性关联，包括但不限于：技术研发、产品发布、业务合作、战略部署、监管互动或具体应用场景落地。
+
+    **判定为 false（排除）的典型情形：**
+    - 匹配银行仅出现于新闻来源标注、免责声明、广告或赞助声明中；
+    - 匹配银行仅充当赞助商、场地提供方或活动冠名方，与金融科技核心议题无关；
+    - 文章为纯宏观政策解读或行业综述，未提及具体匹配银行的实际行动或案例；
+    - 金融科技关键词仅作为引言背景、修辞素材或引用语出现，并非文章核心焦点。
+    </step1_verification>
+
+    <step2_sentiment>
+    **阶段二：情感倾向分析**
+
+    仅当阶段一判定为 true 时执行。分析该新闻对上述确认匹配银行所呈现的整体情感倾向，依据如下：
+    - `正面`：报道基调积极，涉及业绩增长、技术突破、产品创新、战略合作利好、奖项荣誉、监管认可等正面事件或评价。
+    - `中性`：客观陈述事实、政策信息披露或中立性行业动态，无明显褒贬情感倾向。
+    - `负面`：涉及风险暴露、监管处罚、经营亏损、技术安全事故、系统故障、舆论危机或其他负面事件。
+
+    注意：情感判定应聚焦于新闻对**匹配银行**的态度，而非对整个行业或监管政策的泛化评价。
+    </step2_sentiment>
+
+    <input_data>
+    规则预筛匹配银行: {matched_bank_names}
+    标题: {title}
+    内容: {content}
+    </input_data>
+
+    <output_format>
+    严格输出以下 JSON 格式，禁止添加任何前缀、后缀或 Markdown 代码块包裹。所有键名须与模板完全一致：
+    {{
+      "is_bank_fintech_news": true/false,
+      "verification_reason": "（必填）简明扼要说明判定为真或伪的核心依据，须引用文章具体内容",
+      "confirmed_bank": "（若为 true）确认与金融科技主题存在实质关联的匹配银行名称；（若为 false）填 null",
+      "fintech_topic": "（若为 true）文章核心金融科技主题的简短描述；（若为 false）填 null",
+      "verification_confidence": 判定置信度，取值范围 0.0～1.0 的浮点数,
+      "sentiment": "正面/中性/负面（若 is_bank_fintech_news 为 false，固定填"中性"）",
+      "sentiment_reason": "（必填）简明说明情感判定的主要依据",
+      "sentiment_confidence": 情感判定置信度，取值范围 0.0～1.0 的浮点数
+    }}
+    </output_format>
+
+# ------------------------------------------------------------------------------
+# [模块四：评估验证模块] 人工抽样验证配置 (Human Validation) - 阶段 32
+# ------------------------------------------------------------------------------
+# 根据国际顶级期刊标准，生成人工编码验证样本。
+human_validation:
+  sample_size: 500                                  # 目标抽样数量
+  random_seed: 42                                   # 随机种子（保证可复现）
+  stratify_by:                                      # 分层抽样字段
+  - 媒体类型(中文)
+  - llm_verified
+
+# ------------------------------------------------------------------------------
+# [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31/33/34
+# ------------------------------------------------------------------------------
+# 控制是否启用各验证阶段（默认全部启用）。
+validation:
+  classification_eval: true                         # 阶段33: 分类有效性评估 (Cohen's Kappa, P/R/F1)
+  threshold_sensitivity: true                       # 阶段31: 阈值敏感性分析
+  sentiment_validation: true                        # 阶段34: 情感三角验证 (Cronbach's α, 交叉相关)
+
+# 阈值敏感性分析参数 (Threshold Sensitivity) - 阶段 31
+threshold_sensitivity:
+  sample_fraction: 0.10                             # 用于快速分析的抽样比例
+  sample_max: 10000                                 # 最大抽样数量
+  threshold_range: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] # 阈值搜索范围
+
+# ------------------------------------------------------------------------------
+# [模块三：新闻情感模块] 情感分析配置 (Sentiment Analysis) - 阶段 22/23
+# ------------------------------------------------------------------------------
+sentiment_analysis:
+  # 启用的情感分析方法（可选: tone_llms, tone_words, tone_berts）
+  enabled_methods:
+  - tone_llms
+  - tone_words
+  - tone_berts
+
+  # 词典法情感分析参数
+  tone_words:
+    pos_threshold: 0.1                              # 正面情感得分阈值
+    neg_threshold: -0.1                             # 负面情感得分阈值
+    negation_window: 2                              # 否定词有效作用窗口（向后影响的分词单元数）
+    adversative_boost: 1.5                          # 转折后权重提升倍数
+
+    # 否定词集合（遇到否定词时，将其后 negation_window 个分词单元内的情感词极性翻转）
+    negation_words:
+      # A. 单字否定
+      - "不"
+      - "没"
+      - "未"
+      - "非"
+      - "无"
+      - "别"
+      - "莫"
+      - "勿"
+      - "否"
+      # B. 双字否定短语
+      - "没有"
+      - "不再"
+      - "不会"
+      - "不能"
+      - "不可"
+      - "不曾"
+      - "不应"
+      - "不必"
+      - "不得"
+      - "不肯"
+      - "不敢"
+      - "不愿"
+      - "不宜"
+      - "不像"
+      - "不算"
+      - "不够"
+      - "并非"
+      - "毫无"
+      - "从未"
+      - "绝非"
+      - "未能"
+      - "未必"
+      - "未曾"
+      - "无法"
+      - "无从"
+      - "无需"
+      - "无须"
+      - "难以"
+      - "缺乏"
+      - "缺少"
+      - "拒绝"
+      # C. 三字否定组合
+      - "不可能"
+      - "不允许"
+      - "不存在"
+      - "不显著"
+      - "未必然"
+      - "绝对不"
+      - "从来不"
+      - "从来没"
+      - "根本不"
+      - "根本没"
+      # D. 特殊否定结构（程度性/委婉否定）
+      - "远未"
+      - "尚未"
+      - "仍未"
+      - "至今未"
+      - "始终未"
+      - "迟迟未"
+      - "不那么"
+      - "不太"
+      - "不甚"
+      - "不大"
+      - "不怎么"
+
+    # 程度副词及其权重倍数（>1 程度加强，<1 程度减弱）
+    degree_words:
+      # 极强级（×2.5~3.0）
+      "极其": 3.0
+      "极为": 3.0
+      "极度": 3.0
+      "空前": 2.8
+      "无比": 2.8
+      "极端": 2.8
+      "绝对": 2.8
+      "无与伦比": 2.8
+      # 强级（×2.0~2.5）
+      "非常": 2.5
+      "十分": 2.5
+      "特别": 2.5
+      "尤其": 2.2
+      "格外": 2.2
+      "异常": 2.2
+      "深感": 2.2
+      "倍感": 2.2
+      "深度": 2.0
+      "高度": 2.0
+      "严重": 2.0
+      "强烈": 2.0
+      "大力": 2.0
+      "全力": 2.0
+      "着力": 2.0
+      # 中强级（×1.5~1.9）
+      "相当": 1.9
+      "颇为": 1.8
+      "尤为": 1.8
+      "甚为": 1.8
+      "颇": 1.7
+      "甚": 1.7
+      "大为": 1.7
+      "比较": 1.5
+      # 中级（×1.2~1.5）
+      "很": 1.5
+      "更": 1.5
+      "更加": 1.5
+      "愈加": 1.5
+      "越发": 1.5
+      "愈": 1.4
+      "越": 1.4
+      "进一步": 1.4
+      "持续": 1.3
+      "不断": 1.3
+      "日益": 1.3
+      "逐步": 1.2
+      "逐渐": 1.2
+      "较为": 1.2
+      # 弱级（×0.6~0.9）
+      "相对": 0.9
+      "稍显": 0.8
+      "一定程度": 0.8
+      "一定程度上": 0.8
+      "有所": 0.8
+      "有些": 0.7
+      "有点": 0.7
+      "略": 0.6
+      "略微": 0.6
+      "略有": 0.6
+      "稍": 0.6
+      "稍微": 0.6
+      "稍有": 0.6
+      # 极弱级（×0.3~0.5）
+      "微": 0.5
+      "微微": 0.5
+      "微幅": 0.5
+      "小幅": 0.5
+      "些许": 0.4
+      "轻微": 0.4
+      "稍稍": 0.4
+      "几乎不": 0.3
+
+    # 转折连词集合（转折后的内容更能反映作者真实立场，权重提升 adversative_boost 倍）
+    adversative_words:
+      # A. 强转折
+      - "但是"
+      - "然而"
+      - "却"
+      - "可是"
+      - "反而"
+      - "相反"
+      - "但"
+      - "偏偏"
+      - "岂料"
+      - "孰料"
+      - "谁知"
+      # B. 弱转折 / 让步
+      - "不过"
+      - "只是"
+      - "只不过"
+      - "尽管如此"
+      - "虽然如此"
+      - "即便如此"
+      - "话虽如此"
+      - "尽管"
+      # C. 对比 / 修正
+      - "实则"
+      - "事实上"
+      - "实际上"
+      - "实际却"
+      - "实际上却"
+
+  # BERT 模型情感分析参数
+  tone_berts:
+    window_stride_ratio: 0.5                        # 滑动窗口步长比例
+    inference_batch_size: 128                       # GPU 推理批次大小（v5: 增大到128, FP16下显存充裕）
+    articles_per_batch: 200                          # 每次 engine.run_all_models 处理的文章批次数
+
+    # BERT 模型列表（从代码迁移至此，便于统一管理）
+    models:
+      - model_id: yiyanghkust/finbert-tone-chinese
+        short_name: finbert_cn
+        description: "FinBERT 中文情感分析(金融社区中认知度较高)"
+        max_length: 512
+        label_map: {"0": "中性", "1": "正面", "2": "负面"}
+      - model_id: bardsai/finance-sentiment-zh-base
+        short_name: fin_sent_zh
+        description: "中文金融情感分析(基于Financial PhraseBank微调；F1 macro 0.966)"
+        max_length: 512
+        label_map: {"0": "正面", "1": "中性", "2": "负面"}
+      - model_id: IDEA-CCNL/Erlangshen-Roberta-110M-Sentiment
+        short_name: erlangshen
+        description: "二郎神 Roberta 110M 情感分类"
+        max_length: 512
+        label_map: {"0": "负面", "1": "正面"}
+      - model_id: hw2942/bert-base-chinese-finetuning-financial-news-sentiment-v2
+        short_name: hw2942
+        description: "hw2942金融新闻文本的情感分类（训练数据量偏小，泛化能力可能有限）"
+        max_length: 512
+        label_map: {"0": "负面", "1": "中性", "2": "正面"}
+      - model_id: F:/WiseSearch/data_antigravity_project/FinBERT/Fin-labeler/classifier_models/FinBERT2-base_SC_2
+        short_name: finbert2
+        description: "FinBERT2 金融微调分类模型"
+        max_length: 512
+        label_map: {"0": "负面", "1": "正面"}
+

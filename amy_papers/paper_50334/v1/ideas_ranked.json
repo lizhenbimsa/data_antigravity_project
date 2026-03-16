@@ -1,0 +1,56 @@
+{
+  "rankings": [
+    {
+      "idea_id": 5,
+      "title": "绿色信贷专项政策对银行绿色贷款布局和信用风险的动态差分研究",
+      "originality": 9,
+      "feasibility": 9,
+      "causal_credibility": 9,
+      "policy_relevance": 10,
+      "total": 37,
+      "ranking_rationale": "该创意利用多期多组DiD设计，结合跨省绿色信贷政策启动时间差异，因果识别严谨且政策相关度高。数据可得且政策实操意义强，填补绿色金融动态效应实证研究空白。对金融绿色转型和监管具有重要指导价值。"
+    },
+    {
+      "idea_id": 1,
+      "title": "监管资本充足率门槛对银行信贷风险的断点回归评估",
+      "originality": 8,
+      "feasibility": 8,
+      "causal_credibility": 9,
+      "policy_relevance": 9,
+      "total": 34,
+      "ranking_rationale": "利用核心资本充足率监管阈值断点回归，识别策略细致，数据变量完整，且该政策对银行信贷风险监管作用关键。创新点在于结合拨备覆盖率分析，政策指向明确，适合顶级期刊发表。"
+    },
+    {
+      "idea_id": 3,
+      "title": "金融科技贷款推广政策对商业银行贷款结构和风险的政策冲击回归（DiD）",
+      "originality": 7,
+      "feasibility": 9,
+      "causal_credibility": 8,
+      "policy_relevance": 8,
+      "total": 32,
+      "ranking_rationale": "该研究通过区域差异和时间对照，有效揭示科技金融政策对银行贷款结构及风险的影响。数据覆盖广，识别策略扎实，具有较强现实政策意义，尤其在金融创新领域具备较好填补。"
+    },
+    {
+      "idea_id": 2,
+      "title": "上市银行新信息披露标准实施对银行信用风险的双重差分分析",
+      "originality": 7,
+      "feasibility": 8,
+      "causal_credibility": 7,
+      "policy_relevance": 8,
+      "total": 30,
+      "ranking_rationale": "利用上市与非上市银行差异结合不同年份实施时点，具有良好的DiD设计。数据可得性较好，但潜在上市选择性偏差需谨慎处理，异质性较大。政策与市场透明度相关，创新性适中。"
+    },
+    {
+      "idea_id": 4,
+      "title": "流动性覆盖率新规对银行流动性和盈利能力的断点回归分析",
+      "originality": 7,
+      "feasibility": 7,
+      "causal_credibility": 8,
+      "policy_relevance": 7,
+      "total": 29,
+      "ranking_rationale": "断点回归设置合理，紧扣巴塞尔III流动性监管新规，研究视角独特，数据可获取性较好。活跃度和盈利性结合体现政策价值，但相较其他创意样本均衡性和并行干扰控制有待加强。"
+    }
+  ],
+  "recommended": 5,
+  "recommendation_rationale": "综合来看，绿色信贷专项政策的多期多组DiD研究不仅创新性高，因果识别清晰严谨，而且它所聚焦的绿色金融与银行风险动态影响正是当前金融政策和经济转型的热点问题。该创意的数据可行性强，政策相关性极高，能够为监管决策提供明确实证依据，因此最值得优先支持和发表。"
+}
