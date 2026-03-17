@@ -3,9 +3,9 @@
 ========================================================================
 
 功能：
-    从 `21_tone_llms.parquet` 或后续处理文件中抽样（默认 500 条），生成带有
-    数据校验(Data Validation)的 Excel 文件，包含人类判定真伪（Verification）和
-    人类判定情感（Sentiment）的双重联合标注列。
+    从 `21_tone_llms.parquet` 或后续处理文件中进行简单随机抽样（默认 500 条），
+    生成带有数据校验(Data Validation)的 Excel 文件，包含人类判定真伪（Verification）
+    和人类判定情感（Sentiment）的双重联合标注列。
     
 输出：
     一站式标注工作台 Excel 文件：`32_news_llms_human_samples.xlsx`
@@ -29,7 +29,6 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 HUMAN_VAL_CONFIG = CONFIG.get('human_validation', {})
 SAMPLE_SIZE = HUMAN_VAL_CONFIG.get('sample_size', 500)
 RANDOM_SEED = HUMAN_VAL_CONFIG.get('random_seed', 42)
-STRATIFY_BY = HUMAN_VAL_CONFIG.get('stratify_by', ['媒体类型(中文)'])
 
 
 def set_excel_data_validation(writer, sheet_name, df, start_row=1):
@@ -82,7 +81,7 @@ def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
     
-    # 优先使用全量 LLM 结果（含 llm_verified=True/False），使分层抽样有效
+    # 优先使用全量 LLM 结果
     input_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms_full', '21_tone_llms_full.parquet')
     input_path = os.path.join(CONFIG["paths"]["output_dir"], input_filename)
     
@@ -113,26 +112,9 @@ def main():
         sample_df = df.copy()
         logger.info("数据量少于或等于目标抽样量，直接全选。")
     else:
-        # 分层抽样尝试
-        valid_stratify = [col for col in STRATIFY_BY if col in df.columns]
-        if valid_stratify:
-            logger.info(f"根据 {valid_stratify} 进行分层抽样")
-            try:
-                sample_df = df.groupby(valid_stratify, group_keys=False).apply(
-                    lambda x: x.sample(int(np.rint(target_sample_size * len(x) / len(df))), random_state=RANDOM_SEED)
-                )
-                if len(sample_df) < target_sample_size:
-                    rem = target_sample_size - len(sample_df)
-                    add_df = df.drop(sample_df.index).sample(rem, random_state=RANDOM_SEED)
-                    sample_df = pd.concat([sample_df, add_df])
-                elif len(sample_df) > target_sample_size:
-                    sample_df = sample_df.sample(target_sample_size, random_state=RANDOM_SEED)
-            except ValueError as e:
-                logger.warning(f"分层抽样失败 ({e})，回退到随机抽样。")
-                sample_df = df.sample(n=target_sample_size, random_state=RANDOM_SEED)
-        else:
-            logger.info("未发现有效的分层字段，执行简单随机抽样")
-            sample_df = df.sample(n=target_sample_size, random_state=RANDOM_SEED)
+        # 全样本简单随机抽样
+        logger.info("执行简单随机抽样")
+        sample_df = df.sample(n=target_sample_size, random_state=RANDOM_SEED)
 
     # 追加人工标注“一站式”作业台的四列
     # 新规定：用 1/0 代表真假，直接用中文表示情感
@@ -168,5 +150,140 @@ def main():
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")
 
 
+# ============================================================================
+# 3. 人工标注合并（编码完成后使用）
+# ============================================================================
+
+def merge_annotations(input_path: str = None, output_path: str = None):
+    """合并两位编码者的人工判定，生成黄金标准列。
+
+    合并规则：
+      - 一致：取共识值写入 ``最终_验证`` / ``最终_情感``
+      - 分歧：标记为 ``待仲裁``（验证列写 -1，情感列写 "待仲裁"）
+
+    同时生成合并统计摘要（一致率、分歧条目数），供研究者参考。
+
+    Args:
+        input_path:  已标注的 Excel 文件路径。默认自动从配置读取。
+        output_path: 合并后的输出文件路径。默认在同目录生成 ``_merged`` 后缀文件。
+    """
+    merge_start = time.time()
+    logger.info(f"--- 开始人工标注合并 ---")
+
+    # 解析路径
+    if input_path is None:
+        input_filename = CONFIG.get('filenames', {}).get(
+            'output_32_human_sample', '32_news_llms_human_samples.xlsx'
+        )
+        input_path = os.path.join(CONFIG["paths"]["output_dir"], input_filename)
+
+    if not os.path.exists(input_path):
+        logger.error(f"标注文件未找到: {input_path}")
+        return
+
+    if output_path is None:
+        base, ext = os.path.splitext(input_path)
+        output_path = f"{base}_merged{ext}"
+
+    # 读取已标注数据
+    logger.info(f"读取标注文件: {input_path}")
+    try:
+        xl = pd.ExcelFile(input_path)
+        sheet_name = '验证数据' if '验证数据' in xl.sheet_names else xl.sheet_names[0]
+        df = pd.read_excel(xl, sheet_name=sheet_name)
+    except Exception as e:
+        logger.error(f"读取标注文件失败: {e}")
+        return
+
+    logger.info(f"共 {len(df)} 条标注记录")
+
+    # --- 合并验证判定 ---
+    ver_a_col, ver_b_col = '编码者A_验证', '编码者B_验证'
+    final_ver_col = '最终_验证'
+
+    if ver_a_col in df.columns and ver_b_col in df.columns:
+        df[ver_a_col] = pd.to_numeric(df[ver_a_col], errors='coerce')
+        df[ver_b_col] = pd.to_numeric(df[ver_b_col], errors='coerce')
+
+        both_valid = df[ver_a_col].notna() & df[ver_b_col].notna()
+        agree_mask = both_valid & (df[ver_a_col] == df[ver_b_col])
+        disagree_mask = both_valid & (df[ver_a_col] != df[ver_b_col])
+
+        df[final_ver_col] = np.nan
+        df.loc[agree_mask, final_ver_col] = df.loc[agree_mask, ver_a_col]
+        df.loc[disagree_mask, final_ver_col] = -1  # 待仲裁标记
+
+        n_agree_ver = int(agree_mask.sum())
+        n_disagree_ver = int(disagree_mask.sum())
+        n_total_ver = int(both_valid.sum())
+        agree_rate_ver = n_agree_ver / n_total_ver * 100 if n_total_ver > 0 else 0
+
+        logger.info(f"[验证] 合并完成: 一致={n_agree_ver}, 分歧={n_disagree_ver}, "
+                     f"一致率={agree_rate_ver:.1f}%")
+    else:
+        logger.warning(f"未找到验证判定列（{ver_a_col}, {ver_b_col}），跳过验证合并")
+
+    # --- 合并情感判定 ---
+    sen_a_col, sen_b_col = '编码者A_情感', '编码者B_情感'
+    final_sen_col = '最终_情感'
+
+    if sen_a_col in df.columns and sen_b_col in df.columns:
+        df[sen_a_col] = df[sen_a_col].astype(str).str.strip()
+        df[sen_b_col] = df[sen_b_col].astype(str).str.strip()
+
+        # 将空字符串和 'nan' 视为缺失
+        for col in [sen_a_col, sen_b_col]:
+            df.loc[df[col].isin(['', 'nan', 'None']), col] = np.nan
+
+        both_valid_sen = df[sen_a_col].notna() & df[sen_b_col].notna()
+        agree_mask_sen = both_valid_sen & (df[sen_a_col] == df[sen_b_col])
+        disagree_mask_sen = both_valid_sen & (df[sen_a_col] != df[sen_b_col])
+
+        df[final_sen_col] = np.nan
+        df.loc[agree_mask_sen, final_sen_col] = df.loc[agree_mask_sen, sen_a_col]
+        df.loc[disagree_mask_sen, final_sen_col] = '待仲裁'
+
+        n_agree_sen = int(agree_mask_sen.sum())
+        n_disagree_sen = int(disagree_mask_sen.sum())
+        n_total_sen = int(both_valid_sen.sum())
+        agree_rate_sen = n_agree_sen / n_total_sen * 100 if n_total_sen > 0 else 0
+
+        logger.info(f"[情感] 合并完成: 一致={n_agree_sen}, 分歧={n_disagree_sen}, "
+                     f"一致率={agree_rate_sen:.1f}%")
+    else:
+        logger.warning(f"未找到情感判定列（{sen_a_col}, {sen_b_col}），跳过情感合并")
+
+    # --- 添加裁定备注列（如不存在） ---
+    if '裁定备注' not in df.columns:
+        df['裁定备注'] = ''
+
+    # --- 输出 ---
+    try:
+        df.to_excel(output_path, index=False)
+        logger.info(f"合并结果已保存: {output_path}")
+    except Exception as e:
+        logger.error(f"保存合并结果失败: {e}")
+        return
+
+    # 统计摘要
+    logger.info("--- 合并统计摘要 ---")
+    if final_ver_col in df.columns:
+        pending_ver = int((df[final_ver_col] == -1).sum())
+        logger.info(f"  验证: 待仲裁 {pending_ver} 条")
+    if final_sen_col in df.columns:
+        pending_sen = int((df[final_sen_col] == '待仲裁').sum())
+        logger.info(f"  情感: 待仲裁 {pending_sen} 条")
+
+    elapsed = time.time() - merge_start
+    logger.info(f"--- 标注合并完毕 (耗时 {elapsed:.1f}s) ---")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == 'merge':
+        # 用法: python 32_news_llms_human.py merge [input.xlsx] [output.xlsx]
+        inp = sys.argv[2] if len(sys.argv) > 2 else None
+        out = sys.argv[3] if len(sys.argv) > 3 else None
+        merge_annotations(inp, out)
+    else:
+        main()

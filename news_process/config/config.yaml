@@ -243,7 +243,7 @@ tone_llm_processing:
   temperature: 0.0                                  # 推理温度（0 = 确定性输出）
   random_seed: 1                                    # 随机种子（确保确定性输出）
   force_json: true                                  # 启用 response_format 强制 JSON 输出
-  batch_size: 5                                     # 批量提示每批文章数（论文推荐 b=5）
+  batch_size: 3                                     # 批量提示每批文章数（论文推荐 b=3）
   ensemble_method: majority_vote                    # 多模型聚合方法
 
   # LLM 模型列表 (三角验证)
@@ -333,9 +333,6 @@ tone_llm_processing:
 human_validation:
   sample_size: 500                                  # 目标抽样数量
   random_seed: 42                                   # 随机种子（保证可复现）
-  stratify_by:                                      # 分层抽样字段
-  - 媒体类型(中文)
-  - llm_verified
 
 # ------------------------------------------------------------------------------
 # [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31/33/34
