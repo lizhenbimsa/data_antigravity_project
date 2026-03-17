@@ -61,7 +61,6 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 from utils.helpers import load_config, setup_logging, log_memory_usage, log_stage_summary, safe_save_preview_csv
-from utils.bert_cache import get_batch_from_cache, save_batch_to_cache
 
 try:
     import torch
@@ -497,13 +496,7 @@ class MultiModelSentimentEngine:
 # ============================================================================
 
 def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine) -> dict:
-    """使用多模型引擎对全部数据进行批量推理（带本地缓存）。
-
-    缓存策略：
-      1. 每个 batch 推理前，按模型批量查缓存
-      2. 仅对未命中的文章进行 GPU 推理
-      3. 推理后批量写入缓存
-      4. 合并缓存结果 + 新推理结果
+    """使用多模型引擎对全部数据进行批量推理。
 
     Args:
         df:     包含"内容"列的 DataFrame。
@@ -524,110 +517,39 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine) -> d
             model_results_all[sn] = []
             loaded_model_names.append(sn)
 
-    # 缓存统计
-    cache_stats = {sn: {'hit': 0, 'miss': 0} for sn in loaded_model_names}
-
     inference_start = time.time()
 
     for batch_start in range(0, total, ARTICLES_PER_BATCH):
         batch_end = min(batch_start + ARTICLES_PER_BATCH, total)
         batch_texts = content_list[batch_start:batch_end]
-        batch_size = len(batch_texts)
 
-        # ── Step 1: 按模型批量查缓存 ──
-        cached_by_model = {}  # sn -> {local_idx: result_dict}
-        uncached_indices = set(range(batch_size))  # 所有模型的未命中交集
-        per_model_uncached = {}  # sn -> set of local indices
+        # 直接批量推理
+        try:
+            new_results = engine.run_all_models(batch_texts)
+        except Exception as e:
+            logger.warning(f"  批次 {batch_start}-{batch_end} 推理异常: {e}")
+            new_results = {}
+            for sn in loaded_model_names:
+                new_results[sn] = [engine._empty_result(sn) for _ in batch_texts]
 
         for sn in loaded_model_names:
-            cached = get_batch_from_cache(batch_texts, sn)
-            cached_by_model[sn] = cached
-            cache_stats[sn]['hit'] += len(cached)
-            cache_stats[sn]['miss'] += batch_size - len(cached)
-            per_model_uncached[sn] = set(range(batch_size)) - set(cached.keys())
-
-        # 需要推理的文章：所有模型中任意一个未命中的索引
-        # 为简化逻辑，用所有模型未命中的并集
-        any_uncached = set()
-        for sn in loaded_model_names:
-            any_uncached |= per_model_uncached[sn]
-
-        # ── Step 2: 对未命中文章进行推理 ──
-        if any_uncached:
-            uncached_list = sorted(any_uncached)
-            uncached_texts = [batch_texts[i] for i in uncached_list]
-
-            try:
-                new_results = engine.run_all_models(uncached_texts)
-            except Exception as e:
-                logger.warning(f"  批次 {batch_start}-{batch_end} 推理异常: {e}")
-                new_results = {}
-                for sn in loaded_model_names:
-                    new_results[sn] = [engine._empty_result(sn) for _ in uncached_texts]
-
-            # ── Step 3: 合并 cached + new，并写入缓存 ──
-            for sn in loaded_model_names:
-                merged = [None] * batch_size
-                sn_new_results = new_results.get(sn, [])
-
-                # 填入缓存命中的结果
-                for idx, result in cached_by_model[sn].items():
-                    merged[idx] = result
-
-                # 填入新推理的结果，并收集待写入缓存的
-                new_for_cache_indices = []
-                new_for_cache_results = []
-                for j, local_idx in enumerate(uncached_list):
-                    if j < len(sn_new_results):
-                        merged[local_idx] = sn_new_results[j]
-                        # 仅当该模型确实未命中时才写缓存
-                        if local_idx in per_model_uncached[sn]:
-                            new_for_cache_indices.append(local_idx)
-                            new_for_cache_results.append(sn_new_results[j])
-
-                # 填充可能的空洞（理论上不应发生）
-                for i in range(batch_size):
-                    if merged[i] is None:
-                        merged[i] = engine._empty_result(sn)
-
-                model_results_all[sn].extend(merged)
-
-                # 批量写入缓存
-                if new_for_cache_results:
-                    save_batch_to_cache(
-                        batch_texts, sn, new_for_cache_results, new_for_cache_indices
-                    )
-        else:
-            # 全部命中缓存，直接使用
-            for sn in loaded_model_names:
-                merged = [cached_by_model[sn].get(i, engine._empty_result(sn))
-                          for i in range(batch_size)]
-                model_results_all[sn].extend(merged)
+            sn_results = new_results.get(sn, [])
+            # 填充可能的长度不足（理论上不应发生）
+            while len(sn_results) < len(batch_texts):
+                sn_results.append(engine._empty_result(sn))
+            model_results_all[sn].extend(sn_results)
 
         # 进度日志
         processed = batch_end
         if processed % 500 == 0 or processed == total:
             elapsed = time.time() - inference_start
             speed = processed / elapsed if elapsed > 0 else 0
-            # 计算当前命中率
-            total_hits = sum(s['hit'] for s in cache_stats.values())
-            total_queries = sum(s['hit'] + s['miss'] for s in cache_stats.values())
-            hit_rate = total_hits / total_queries * 100 if total_queries > 0 else 0
             logger.info(f"  [全部模型] 进度: {processed}/{total} "
-                        f"({speed:.1f} 文章/秒, 缓存命中率: {hit_rate:.1f}%)")
+                        f"({speed:.1f} 文章/秒)")
 
     total_elapsed = time.time() - inference_start
     logger.info(f"  全部模型推理完成。总耗时: {total_elapsed:.1f}s, "
                 f"速度: {total / total_elapsed:.1f} 文章/秒 (×{len(model_results_all)}模型)")
-
-    # ── 缓存统计摘要 ──
-    logger.info("  缓存统计:")
-    for sn in loaded_model_names:
-        s = cache_stats[sn]
-        total_q = s['hit'] + s['miss']
-        rate = s['hit'] / total_q * 100 if total_q > 0 else 0
-        logger.info(f"    {sn}: 命中={s['hit']:,}, 未命中={s['miss']:,}, "
-                    f"命中率={rate:.1f}%")
 
     # GPU 显存日志
     if DEVICE.type == 'cuda':

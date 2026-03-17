@@ -239,11 +239,10 @@ tone_llm_processing:
   timeout: 600                                      # 请求超时时间（秒）
   max_retries: 100                                  # 最大重试次数
   retry_delay: 10                                   # 重试间隔时间（秒）
-  max_concurrency: 200                              # 最大并发请求数
+  max_concurrency: 300                              # 最大并发请求数
   temperature: 0.0                                  # 推理温度（0 = 确定性输出）
-  random_seed: 1                                    # 随机种子（确保确定性输出）
+  random_seed: 42                                   # 随机种子（确保确定性输出）
   force_json: true                                  # 启用 response_format 强制 JSON 输出
-  batch_size: 3                                     # 批量提示每批文章数（论文推荐 b=3）
   ensemble_method: majority_vote                    # 多模型聚合方法
 
   # LLM 模型列表 (三角验证)
@@ -253,56 +252,41 @@ tone_llm_processing:
       description: GPT-5 Nano 轻量版
       base_url: https://yunwu.ai/v1                 # GPT-5 Nano API 地址
       api_key: ***ROTATED-2026-05-09***  # GPT-5 Nano API 密钥
-    - model_name: gemini-3-flash-preview-nothinking
+    - model_name: gpt-5-nano-2025-08-07  #gemini-3-flash-preview-nothinking
       short_name: gemini3
       description: Gemini 3 Flash Preview-nothinking
       base_url: https://yunwu.ai/v1                 # Gemini 3 API 地址
       api_key: ***ROTATED-2026-05-09***  # Gemini 3 API 密钥
-    - model_name: grok-4-1-fast-non-reasoning
+    - model_name: gpt-5-nano-2025-08-07  #grok-4-1-fast-non-reasoning
       short_name: grok4
       description: Grok 4.1 Fast (Non-Reasoning)
       base_url: https://yunwu.ai/v1                 # Grok 4.1 API 地址
       api_key: ***ROTATED-2026-05-09***  # Grok 4.1 API 密钥
 
-  # Unified CoT 提示词模板
-  # 强制 JSON 输出，包含真伪判定、情感判定及相关的连贯推理步骤字段
+  # Unified CoT 提示词模板（精简版）
   prompt_template: |
     <role>
-    你是一位资深金融科技研究员，在银行数字化转型与金融科技领域具有深厚的学术背景与行业经验，同时精通中文财经文本的情感分析。请严格遵循结构化思维链（Chain-of-Thought）完成以下分析任务。
+    你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格遵循思维链（Chain-of-Thought）完成以下两阶段序贯分析。
     </role>
-
-    <task>
-    对提供的新闻文章执行**两阶段序贯分析**：
-    — 阶段一：语义真伪精筛（判断文章是否为真实的"银行金融科技新闻"）
-    — 阶段二：情感倾向分析（仅当阶段一判定为 true 时执行）
-    </task>
 
     <step1_verification>
     **阶段一：语义真伪精筛**
 
-    分析对象：严格限定为 <input_data> 中【规则预筛匹配银行】所列银行（一个或多个，以分号";"分隔）。对于未列出的银行，不予验证；若所列银行均不满足下述条件，则判定为 false。
+    仅针对【规则预筛匹配银行】（以分号分隔）进行验证。判定为 true 须**同时满足**：
+    1. **主体关联**：正文实质性涉及至少一家匹配银行（不含来源标注、免责声明、赞助冠名等边缘提及）。
+    2. **主题聚焦**：核心议题聚焦金融科技（AI、区块链、数字货币、大数据风控、云计算、开放银行、数字支付等）。
+    3. **实质关联**：该银行与金融科技主题存在可证实的实质联系（技术研发、产品发布、业务合作、战略部署、应用落地等）。
 
-    **判定为 true（真实银行金融科技新闻）须同时满足以下三项条件：**
-    1. **主体关联**：新闻正文中明确、实质性地涉及【规则预筛匹配银行】中至少一家。
-    2. **主题聚焦**：新闻的核心议题或重要内容聚焦于金融科技领域（如：人工智能应用、区块链技术、数字货币/央行数字货币、大数据风控、云计算、开放银行、数字支付等）。
-    3. **实质落地**：上述匹配银行与金融科技主题之间存在可证实的实质性关联，包括但不限于：技术研发、产品发布、业务合作、战略部署、监管互动或具体应用场景落地。
-
-    **判定为 false（排除）的典型情形：**
-    - 匹配银行仅出现于新闻来源标注、免责声明、广告或赞助声明中；
-    - 匹配银行仅充当赞助商、场地提供方或活动冠名方，与金融科技核心议题无关；
-    - 文章为纯宏观政策解读或行业综述，未提及具体匹配银行的实际行动或案例；
-    - 金融科技关键词仅作为引言背景、修辞素材或引用语出现，并非文章核心焦点。
+    不满足任一条件、或金融科技仅作背景修辞、或文章为纯宏观综述而无具体银行行动，均判定为 false。
     </step1_verification>
 
     <step2_sentiment>
-    **阶段二：情感倾向分析**
+    **阶段二：情感倾向分析**（仅当阶段一判定为 true 时执行）
 
-    仅当阶段一判定为 true 时执行。分析该新闻对上述确认匹配银行所呈现的整体情感倾向，依据如下：
-    - `正面`：报道基调积极，涉及业绩增长、技术突破、产品创新、战略合作利好、奖项荣誉、监管认可等正面事件或评价。
-    - `中性`：客观陈述事实、政策信息披露或中立性行业动态，无明显褒贬情感倾向。
-    - `负面`：涉及风险暴露、监管处罚、经营亏损、技术安全事故、系统故障、舆论危机或其他负面事件。
-
-    注意：情感判定应聚焦于新闻对**匹配银行**的态度，而非对整个行业或监管政策的泛化评价。
+    聚焦新闻对**匹配银行**的整体情感倾向：
+    - `正面`：业绩增长、技术突破、创新合作、监管认可等积极事件。
+    - `中性`：客观陈述事实或中立行业动态，无明显褒贬。
+    - `负面`：风险暴露、监管处罚、安全事故、舆论危机等负面事件。
     </step2_sentiment>
 
     <input_data>
@@ -312,17 +296,17 @@ tone_llm_processing:
     </input_data>
 
     <output_format>
-    严格输出以下 JSON 格式，禁止添加任何前缀、后缀或 Markdown 代码块包裹。所有键名须与模板完全一致：
+    严格输出以下 JSON，禁止添加前缀、后缀或 Markdown 包裹：
     {{
       "is_bank_fintech_news": true/false,
-      "verification_reason": "（必填）简明扼要说明判定为真或伪的核心依据，须引用文章具体内容",
-      "confirmed_bank": "（若为 true）确认与金融科技主题存在实质关联的匹配银行名称；（若为 false）填 null",
-      "fintech_topic": "（若为 true）文章核心金融科技主题的简短描述；（若为 false）填 null",
-      "fintech_category": "（若为 true）该金融科技主题属于「底层技术」还是「应用场景」，须从两者中选一。底层技术包括：人工智能、大数据、云计算、区块链、物联网等；应用场景包括：数字支付、智能风控、数字信贷、数字银行、数字化转型等。（若为 false）填 null",
-      "verification_confidence": 判定置信度，取值范围 0.0～1.0 的浮点数,
-      "sentiment": "正面/中性/负面（若 is_bank_fintech_news 为 false，固定填"中性"）",
-      "sentiment_reason": "（必填）简明说明情感判定的主要依据",
-      "sentiment_confidence": 情感判定置信度，取值范围 0.0～1.0 的浮点数
+      "verification_reason": "简明说明判定依据，须引用文章具体内容",
+      "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
+      "fintech_topic": "核心金融科技主题简述（false 时填 null）",
+      "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
+      "verification_confidence": 0.0~1.0,
+      "sentiment": "正面/中性/负面（false 时固定填\"中性\"）",
+      "sentiment_reason": "简明说明情感判定依据",
+      "sentiment_confidence": 0.0~1.0
     }}
     </output_format>
 

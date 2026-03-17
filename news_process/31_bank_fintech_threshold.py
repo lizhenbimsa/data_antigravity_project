@@ -135,9 +135,9 @@ def _precompute_fintech_matches(df: pd.DataFrame,
                                   split_ratio: float) -> list:
     """预计算每篇文章的金融科技关键词匹配数据（一次遍历）。"""
     article_matches = []
-    for _, row in df.iterrows():
-        text = str(row.get('内容', '')) if pd.notna(row.get('内容')) else ''
-        title = str(row.get('标题', '')) if pd.notna(row.get('标题')) else ''
+    contents = df['内容'].fillna('').astype(str).tolist()
+    titles = df['标题'].fillna('').astype(str).tolist()
+    for text, title in zip(contents, titles):
 
         if not text and not title:
             article_matches.append({
