@@ -251,17 +251,17 @@ tone_llm_processing:
       short_name: gpt5nano
       description: GPT-5 Nano 轻量版
       base_url: https://yunwu.ai/v1                 # GPT-5 Nano API 地址
-      api_key: ${LLM_API_KEY}  # GPT-5 Nano API 密钥
+      api_key: ${GPT5NANO_API_KEY}                  # GPT-5 Nano API 密钥（从 .env 读取）
     - model_name: gemini-3-flash-preview-nothinking #gpt-5-nano-2025-08-07  #
       short_name: gemini3
       description: Gemini 3 Flash Preview-nothinking
       base_url: https://yunwu.ai/v1                 # Gemini 3 API 地址
-      api_key: ${LLM_API_KEY}  # Gemini 3 API 密钥
+      api_key: ${GEMINI3_API_KEY}                   # Gemini 3 API 密钥（从 .env 读取）
     - model_name: grok-4-1-fast-non-reasoning       #gpt-5-nano-2025-08-07
       short_name: grok4
       description: Grok 4.1 Fast (Non-Reasoning)
       base_url: https://yunwu.ai/v1                 # Grok 4.1 API 地址
-      api_key: ${LLM_API_KEY}  # Grok 4.1 API 密钥
+      api_key: ${GROK4_API_KEY}                     # Grok 4.1 API 密钥（从 .env 读取）
 
   # Unified CoT 提示词模板（精简版）
   prompt_template: |
