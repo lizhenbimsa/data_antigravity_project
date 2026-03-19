@@ -34,20 +34,29 @@ import psutil
 def load_config(config_path=None):
     """加载 YAML 配置文件，并将相对路径解析为绝对路径。
 
+    支持环境变量替换：配置值中的 ``${VAR_NAME}`` 占位符将被自动替换为
+    对应的环境变量值。启动时自动加载项目根目录下的 ``.env`` 文件。
+
     Args:
         config_path: 配置文件路径。若为 None，则自动定位到
                      ``<project_root>/config/config.yaml``。
                      若传入相对路径，则基于项目根目录解析。
 
     Returns:
-        dict: 解析后的配置字典，所有以 ``./`` 开头的值已转为绝对路径。
+        dict: 解析后的配置字典，所有以 ``./`` 开头的值已转为绝对路径，
+              ``${VAR}`` 占位符已替换为环境变量值。
 
     Raises:
         FileNotFoundError: 配置文件不存在时抛出。
     """
+    import re
+
     # 获取 utils/ 目录的父目录 → 项目根目录 (news_process/)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
+
+    # 加载 .env 文件（若存在），将其中的变量注入到 os.environ
+    _load_dotenv(project_root)
 
     if config_path is None:
         config_path = os.path.join(project_root, 'config', 'config.yaml')
@@ -61,23 +70,73 @@ def load_config(config_path=None):
     with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
+    # 环境变量占位符模式: ${VAR_NAME}
+    _env_pattern = re.compile(r'\$\{([^}]+)\}')
+
+    def _resolve_env_vars(value: str) -> str:
+        """将字符串中的 ${VAR} 替换为环境变量值。"""
+        def _replacer(match):
+            var_name = match.group(1)
+            env_val = os.environ.get(var_name, '')
+            if not env_val:
+                logging.getLogger(__name__).warning(
+                    f"环境变量 {var_name} 未设置，配置值将为空。"
+                    f"请在 .env 文件或系统环境变量中设置该值。"
+                )
+            return env_val
+        return _env_pattern.sub(_replacer, value)
+
     def resolve_paths(d, root):
-        """递归将 ``./`` 开头的相对路径转为绝对路径。"""
+        """递归将 ``./`` 开头的相对路径转为绝对路径，并替换 ``${VAR}`` 占位符。"""
         if isinstance(d, dict):
             for k, v in d.items():
-                if isinstance(v, str) and (v.startswith('./') or v.startswith('.\\')):
-                    d[k] = os.path.normpath(os.path.join(root, v))
+                if isinstance(v, str):
+                    if _env_pattern.search(v):
+                        d[k] = _resolve_env_vars(v)
+                    elif v.startswith('./') or v.startswith('.\\'):
+                        d[k] = os.path.normpath(os.path.join(root, v))
                 elif isinstance(d[k], (dict, list)):
                     resolve_paths(d[k], root)
         elif isinstance(d, list):
             for i, v in enumerate(d):
-                if isinstance(v, str) and (v.startswith('./') or v.startswith('.\\')):
-                    d[i] = os.path.normpath(os.path.join(root, v))
+                if isinstance(v, str):
+                    if _env_pattern.search(v):
+                        d[i] = _resolve_env_vars(v)
+                    elif v.startswith('./') or v.startswith('.\\'):
+                        d[i] = os.path.normpath(os.path.join(root, v))
                 elif isinstance(d[i], (dict, list)):
                     resolve_paths(d[i], root)
 
     resolve_paths(config, project_root)
     return config
+
+
+def _load_dotenv(project_root: str):
+    """加载项目根目录下的 .env 文件到 os.environ。
+
+    优先使用 python-dotenv 库；若未安装，则使用内置简易解析器。
+    不会覆盖已存在的环境变量。
+    """
+    env_path = os.path.join(project_root, '.env')
+    if not os.path.exists(env_path):
+        return
+
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(env_path, override=False)
+    except ImportError:
+        # 简易 .env 解析器（无 python-dotenv 时的回退方案）
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if '=' in line:
+                    key, _, value = line.partition('=')
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    if key and key not in os.environ:
+                        os.environ[key] = value
 
 
 # ============================================================================
