@@ -124,7 +124,13 @@ async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
     total_tasks = len(df) * len(models)
     logger.info(f"逐条请求: {len(df)} 条新闻 × {len(models)} 模型 = {total_tasks} 个请求")
     
-    async with aiohttp.ClientSession() as session:
+    # 连接池优化：复用 TCP 连接 + keepalive，减少握手和 TLS 协商开销
+    connector = aiohttp.TCPConnector(
+        limit=MAX_CONCURRENCY,        # 连接池大小与并发数匹配
+        keepalive_timeout=30,         # 连接保活 30 秒
+        enable_cleanup_closed=True,   # 自动清理已关闭连接
+    )
+    async with aiohttp.ClientSession(connector=connector) as session:
         # 构建任务列表：每行 x 每模型
         real_tasks = []
         for idx, row in df.iterrows():
@@ -242,6 +248,8 @@ def main():
     llm_verified_arr = []
     llm_sentiment_arr = []
     agreement_rate_arr = []
+    fintech_category_arr = []
+    category_confidence_arr = []
     
     # 预分配每个模型的独立判断列表（批量赋值，避免逐行 df.at）
     per_model_cols = {}
@@ -258,6 +266,8 @@ def main():
         model_res = results_map.get(idx, {})
         v_votes = []
         s_votes = []
+        topics = []
+        llm_categories = []  # LLM 直接返回的分类
         
         for m in MODELS:
             short = m['short_name']
@@ -295,6 +305,19 @@ def main():
             per_model_cols[f"{short}_verification_confidence"].append(jd.get('verification_confidence', 0.0))
             per_model_cols[f"{short}_sentiment_confidence"].append(jd.get('sentiment_confidence', 0.0))
             
+            # 同步提取 fintech_topic 和 fintech_category（复用已解析的 jd）
+            topic = jd.get('fintech_topic', None)
+            if topic and str(topic).strip().lower() not in ('null', 'none', ''):
+                topics.append(str(topic))
+            llm_cat = jd.get('fintech_category', None)
+            if llm_cat:
+                cat_str = str(llm_cat).strip().replace('；', ';')
+                for part in cat_str.split(';'):
+                    part = part.strip()
+                    if part in ('底层技术', '应用场景'):
+                        llm_categories.append(part)
+                        break
+            
         final_v = majority_vote_bool(v_votes)
         final_s = majority_vote_sentiment(s_votes) if final_v else "中性"
         
@@ -306,6 +329,23 @@ def main():
         llm_verified_arr.append(final_v)
         llm_sentiment_arr.append(final_s)
         agreement_rate_arr.append(agree_rate)
+        
+        # 金融科技主题标准化分类
+        combined_topic = ' '.join(topics) if topics else ''
+        kw_category, kw_confidence = canonicalize_topic(combined_topic)
+        
+        if llm_categories:
+            cat_votes = Counter(llm_categories)
+            llm_majority_cat = cat_votes.most_common(1)[0][0] if cat_votes else kw_category
+            if llm_majority_cat == kw_category:
+                final_confidence = min(kw_confidence + 0.2, 1.0)
+            else:
+                final_confidence = round(kw_confidence * 0.5, 3)
+            fintech_category_arr.append(llm_majority_cat)
+            category_confidence_arr.append(final_confidence)
+        else:
+            fintech_category_arr.append(kw_category)
+            category_confidence_arr.append(kw_confidence)
     
     # 批量赋值各模型独立判断列
     for col_name, col_values in per_model_cols.items():
@@ -314,60 +354,11 @@ def main():
     df['llm_verified'] = llm_verified_arr
     df['llm_sentiment'] = llm_sentiment_arr
     df['llm_agreement_rate'] = agreement_rate_arr
+    df['fintech_category'] = fintech_category_arr
+    df['category_confidence'] = category_confidence_arr
     
     if n_api_failures > 0:
         logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
-    
-    # 标准化分类：从各模型 fintech_topic 中提取并映射为「底层技术」或「应用场景」
-    logger.info("执行金融科技主题标准化分类（底层技术/应用场景）...")
-    fintech_category_arr = []
-    category_confidence_arr = []
-    for idx, row in df.iterrows():
-        model_res = results_map.get(idx, {})
-        topics = []
-        llm_categories = []  # LLM 直接返回的分类
-        for m in MODELS:
-            raw_text = model_res.get(m['model_name'], None)
-            if raw_text is not None:
-                jd = parse_json_response(raw_text)
-                topic = jd.get('fintech_topic', None)
-                if topic and str(topic).strip().lower() not in ('null', 'none', ''):
-                    topics.append(str(topic))
-                # 收集 LLM 直接返回的分类
-                llm_cat = jd.get('fintech_category', None)
-                if llm_cat:
-                    cat_str = str(llm_cat).strip().replace('；', ';')
-                    # 如果 LLM 返回了多个分类（如 "底层技术;应用场景"），取第一个有效的
-                    for part in cat_str.split(';'):
-                        part = part.strip()
-                        if part in ('底层技术', '应用场景'):
-                            llm_categories.append(part)
-                            break
-        
-        # 用所有模型返回的 topic 合并后进行关键词分类
-        combined_topic = ' '.join(topics) if topics else ''
-        kw_category, kw_confidence = canonicalize_topic(combined_topic)
-        
-        # 优先使用 LLM 多数投票的分类结果，回退到关键词分类
-        if llm_categories:
-            # 多数投票：选择出现次数最多的分类
-            cat_votes = Counter(llm_categories)
-            llm_majority_cat = cat_votes.most_common(1)[0][0] if cat_votes else kw_category
-            
-            # 置信度：LLM 和关键词分类一致时提升，不一致时降低
-            if llm_majority_cat == kw_category:
-                final_confidence = min(kw_confidence + 0.2, 1.0)
-            else:
-                final_confidence = round(kw_confidence * 0.5, 3)
-            fintech_category_arr.append(llm_majority_cat)
-
-            category_confidence_arr.append(final_confidence)
-        else:
-            fintech_category_arr.append(kw_category)
-            category_confidence_arr.append(kw_confidence)
-    
-    df['fintech_category'] = fintech_category_arr
-    df['category_confidence'] = category_confidence_arr
     
     # 统计分类分布
     if df['llm_verified'].sum() > 0:
