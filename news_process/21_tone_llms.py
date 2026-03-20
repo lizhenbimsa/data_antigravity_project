@@ -5,7 +5,7 @@
 功能：
     将早期的 `13_news_llms.py` (真伪精筛) 和 `23_tone_llms.py` (情感分析) 组合，
     使用同一个大模型 Prompt 构建思维链 (Chain-of-Thought)，单次请求获取"真伪"与"情感"。
-    采用多模型（如 gpt5nano, gemini3, grok4）逐条并发请求，并使用多数投票（Majority Vote）
+    采用多模型（如 gpt5nano, gemini3, claude4h）逐条并发请求，并使用多数投票（Majority Vote）
     合成最终共识，满足顶级学术期刊的交叉验证和三角验证标准。
     每条新闻独立请求各模型，通过信号量控制并发。
 

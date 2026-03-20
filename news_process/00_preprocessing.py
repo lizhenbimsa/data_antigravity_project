@@ -18,7 +18,7 @@
     - ProcessPoolExecutor 多进程并行处理独立 XLSX 文件
     - Aho-Corasick 自动机实现 O(n) 银行关键词匹配
     - 预编译正则合并（单次 re.sub 替代多次调用）
-    - pandarallel 并行 MinHash 生成
+    - multiprocessing.Pool 分块并行 MinHash 生成（每 10% 进度输出）
     - 增量缓存避免重复处理
     - Parquet + Snappy 压缩减少磁盘 I/O
 
@@ -30,7 +30,7 @@
 
 依赖：
     pandas, pyarrow, openpyxl/calamine, ftfy, opencc-python-reimplemented,
-    ahocorasick, selectolax, pandarallel, datasketch, tqdm
+    ahocorasick, selectolax, datasketch, tqdm
 """
 
 import os
@@ -41,6 +41,7 @@ import time
 import string
 import concurrent.futures
 import json
+import multiprocessing
 from functools import partial
 from typing import Any, Callable, Dict, Set
 
@@ -53,7 +54,7 @@ import ftfy
 import opencc
 import ahocorasick
 from selectolax.parser import HTMLParser
-from pandarallel import pandarallel
+
 from datasketch import MinHash, MinHashLSH
 
 try:
@@ -84,7 +85,7 @@ logger = setup_logging(STAGE_NAME, CONFIG['paths']['log_dir'], console_only=_is_
 # 去重相关配置
 DEDUP_PARAMS = CONFIG.get('deduplication', {})
 nb_workers = DEDUP_PARAMS.get("parallel_workers", os.cpu_count() or 1)
-pandarallel.initialize(progress_bar=False, nb_workers=nb_workers)
+
 
 # ============================================================================
 # 从配置中提取常量（模块加载时执行一次，避免运行时重复查找）
@@ -685,26 +686,29 @@ class ArticleDeduplicator:
         return {cleaned_text[i:i + n] for i in range(len(cleaned_text) - n + 1)}
 
     @staticmethod
-    def _create_minhash(text: str, num_perm: int,
-                        tokenizer_func: Callable[[str], Set[str]]) -> MinHash | None:
+    def _create_minhash(args, num_perm: int = 128,
+                        tokenizer_func: Callable[[str], Set[str]] = None):
         """为单个文本创建 MinHash 签名。
 
+        设计为 multiprocessing.Pool 的工作函数，接受 (index, text) 元组。
+
         Args:
-            text:           待处理文本。
+            args:           (index, text) 元组，index 用于追踪结果归属。
             num_perm:       置换函数数量（越大越精确，越慢）。
             tokenizer_func: 分词函数，返回 token 集合。
 
         Returns:
-            MinHash | None: MinHash 签名，或 None（空文本）。
+            tuple: (index, MinHash | None)，空文本时 MinHash 为 None。
         """
+        idx, text = args
         from datasketch import MinHash
         m = MinHash(num_perm=num_perm)
         tokens = tokenizer_func(str(text))
         if not tokens:
-            return None
+            return (idx, None)
         # 批量更新替代逐 token 循环，减少 Python 函数调用开销（2-3x 加速）
         m.update_batch([t.encode('utf8') for t in tokens])
-        return m
+        return (idx, m)
 
     def _prepare_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """添加去重所需的辅助列（媒体权重、内容长度、合并文本、日期）。
@@ -773,14 +777,34 @@ class ArticleDeduplicator:
         """
         self.logger.info("执行近似去重（LSH + 时间窗口）...")
 
-        # ── Step 1: 并行生成 MinHash 签名 ──
-        self.logger.info(f"生成 MinHash 签名（{self.num_perm} 个置换）...")
+        # ── Step 1: 标准进程池分块并行生成 MinHash 签名 ──
+        self.logger.info(f"生成 MinHash 签名（{self.num_perm} 个置换，{nb_workers} 个工作进程）...")
         create_minhash_with_params = partial(
             self._create_minhash,
             num_perm=self.num_perm,
             tokenizer_func=self._clean_and_tokenize
         )
-        minhashes = df[self.COL_COMBINED].parallel_apply(create_minhash_with_params).dropna()
+
+        texts = df[self.COL_COMBINED].tolist()
+        indices = df.index.tolist()
+        tasks = list(zip(indices, texts))  # (index, text) 元组
+        total_count = len(tasks)
+        progress_step = max(1, total_count // 10)  # 每 10% 输出一次进度
+
+        minhash_results = {}  # {index: MinHash}
+        with multiprocessing.Pool(processes=nb_workers) as pool:
+            for i, (idx, mh) in enumerate(pool.imap_unordered(
+                create_minhash_with_params,
+                tasks,
+                chunksize=max(1, total_count // (nb_workers * 4))
+            )):
+                if mh is not None:
+                    minhash_results[idx] = mh
+                if (i + 1) % progress_step == 0 or (i + 1) == total_count:
+                    pct = (i + 1) / total_count * 100
+                    self.logger.info(f"  MinHash 进度: {i + 1:,}/{total_count:,} ({pct:.0f}%)")
+
+        minhashes = pd.Series(minhash_results)
 
         if minhashes.empty:
             self.logger.warning("无有效 MinHash，跳过近似去重")

@@ -97,9 +97,9 @@ def run_pipeline():
     logger.info(f"启用的情感分析方法: {enabled_methods}")
 
     sentiment_stages = {
-        'tone_llms':  ("21_tone_llms.py",  "阶段21: 统一 LLM 语义精筛与情感分析"),
-        'tone_words': ("22_tone_words.py", "阶段22: 词典法情感分析"),
-        'tone_berts': ("23_tone_berts.py", "阶段23: BERT模型情感分析"),
+        #'tone_llms':  ("21_tone_llms.py",  "阶段21: 统一 LLM 语义精筛与情感分析"),
+        #'tone_words': ("22_tone_words.py", "阶段22: 词典法情感分析"),
+        #'tone_berts': ("23_tone_berts.py", "阶段23: BERT模型情感分析"),
     }
     for method in enabled_methods:
         if method in sentiment_stages:
