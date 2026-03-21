@@ -251,12 +251,12 @@ tone_llm_processing:
       description: GPT-5 Nano 轻量版
       base_url: https://yunwu.ai/v1                 # GPT-5 Nano API 地址
       api_key: ${GPT5NANO_API_KEY}                  # GPT-5 Nano API 密钥（从 .env 读取）
-    - model_name: gemini-3-flash-preview-nothinking 
+    - model_name: gpt-5-nano-2025-08-07 #gemini-3-flash-preview-nothinking 
       short_name: gemini3
       description: Gemini 3 Flash Preview-nothinking
       base_url: https://yunwu.ai/v1                 # Gemini 3 API 地址
       api_key: ${GEMINI3_API_KEY}                   # Gemini 3 API 密钥（从 .env 读取）
-    - model_name: glm-4.5-flash #claude-haiku-4-5-20251001
+    - model_name: gpt-5-nano-2025-08-07 #glm-4.5-flash #claude-haiku-4-5-20251001
       short_name: claude4h
       description: Claude Haiku 4.5 轻量高效版
       base_url: https://yunwu.ai/v1                 # Claude Haiku 4.5 API 地址
