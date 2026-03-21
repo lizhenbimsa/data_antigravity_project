@@ -145,52 +145,76 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     titles = df['标题'].fillna('').astype(str).values if '标题' in df.columns else [''] * len(df)
     results = [_analyze_single_article(c, t) for c, t in zip(contents, titles)]
 
-    # 提取结果列
-    df['is_bank_news'] = [r['is_bank_news'] for r in results]
-    df['matched_banks_info'] = [
-        json.dumps(r['matched_banks'], ensure_ascii=False) if r['matched_banks'] else ''
-        for r in results
-    ]
+    # === 提早展开: 每个合格银行生成独立物理行 (Firm-Document Level) ===
+    expanded_rows = []
+    original_columns = list(df.columns)
 
-    # 提取满足条件的银行名称，用分号拼接
-    # 条件：(upper>=MIN_UPPER & lower>=MIN_LOWER)
-    #      | (in_title=true & total>=MIN_UPPER)
-    df['matched_bank_names'] = [
-        ';'.join(
-            b['bank_name']
-            for b in r['matched_banks']
+    for row_i in range(len(df)):
+        r = results[row_i]
+        if not r['is_bank_news']:
+            continue
+
+        # 提取满足阈值的银行（复用原有判定逻辑，确保一致性）
+        qualified_banks = [
+            b for b in r['matched_banks']
             if b.get('total_with_title', b['total_count']) >= MIN_NAME_OCCURRENCES
                and ((b['upper_count'] >= MIN_UPPER and b['lower_count'] >= MIN_LOWER)
                     or (b['in_title'] and b['total_count'] >= MIN_UPPER))
-        )
-        for r in results
-    ]
+        ]
+        if not qualified_banks:
+            continue
+
+        all_qualified_names = [b['bank_name'] for b in qualified_banks]
+        row_data = df.iloc[row_i]
+
+        for bank_info in qualified_banks:
+            new_row = row_data.to_dict()
+            new_row['is_bank_news'] = True
+            new_row['target_bank'] = bank_info['bank_name']
+            new_row['co_mentioned_banks'] = ';'.join(
+                [n for n in all_qualified_names if n != bank_info['bank_name']]
+            )
+            new_row['target_bank_in_title'] = int(bank_info.get('in_title', False))
+            new_row['matched_banks_info'] = json.dumps(
+                r['matched_banks'], ensure_ascii=False
+            )
+            # 保留 matched_bank_names 以兼容下游过渡期
+            new_row['matched_bank_names'] = ';'.join(all_qualified_names)
+            expanded_rows.append(new_row)
+
+    # 构建展开后的 DataFrame
+    if expanded_rows:
+        df = pd.DataFrame(expanded_rows)
+    else:
+        # 边界情况：该批次无任何银行新闻
+        extra_cols = ['is_bank_news', 'target_bank', 'co_mentioned_banks',
+                      'target_bank_in_title', 'matched_banks_info', 'matched_bank_names']
+        df = pd.DataFrame(columns=original_columns + extra_cols)
 
     # 统计
-    stats['is_bank_news_true'] = int(df['is_bank_news'].sum())
-    stats['is_bank_news_false'] = stats['total'] - stats['is_bank_news_true']
+    n_bank_news_articles = len(set(
+        i for i in range(len(results)) if results[i]['is_bank_news']
+    ))
+    stats['is_bank_news_true'] = n_bank_news_articles
+    stats['is_bank_news_false'] = stats['total'] - n_bank_news_articles
     stats['is_bank_news_with_title'] = sum(
-        1 for r in results 
+        1 for r in results
         if r['is_bank_news'] and any(b.get('in_title', False) for b in r['matched_banks'])
     )
 
-    # 汇总排除计数
+    # 汇总排除计数（遍历原始 results）
     for result in results:
         stats['negation_excluded_total'] += result['negation_excluded']
         stats['short_name_excluded_total'] += result['short_name_excluded']
 
-    # 统计各银行被判定为银行新闻的文章数
-    for result in results:
-        if result['is_bank_news']:
-            for bank_info in result['matched_banks']:
-                if (bank_info.get('total_with_title', bank_info['total_count']) >= MIN_NAME_OCCURRENCES
-                        and ((bank_info['upper_count'] >= MIN_UPPER
-                             and bank_info['lower_count'] >= MIN_LOWER)
-                            or (bank_info.get('in_title', False)
-                                and bank_info['total_count'] >= MIN_UPPER))):
-                    stats['bank_article_counts'][bank_info['bank_name']] += 1
-                    if bank_info.get('in_title', False):
-                        stats['bank_title_article_counts'][bank_info['bank_name']] += 1
+    # 各银行文章计数（使用展开后的 target_bank）
+    if not df.empty and 'target_bank' in df.columns:
+        for bank_name in df['target_bank']:
+            stats['bank_article_counts'][bank_name] += 1
+        if 'target_bank_in_title' in df.columns:
+            title_mask = df['target_bank_in_title'] == 1
+            for bank_name in df.loc[title_mask, 'target_bank']:
+                stats['bank_title_article_counts'][bank_name] += 1
 
     return df, stats
 
@@ -360,14 +384,10 @@ def main():
     merged_stats = merge_stats(all_stats)
     log_classification_report(merged_stats, logger)
     
-    # --- 只保留银行新闻 ---
-    before_count = len(processed_df)
-    processed_df = processed_df[processed_df['is_bank_news'] == True].reset_index(drop=True)
+    # 提早展开已在 classify_batch 中完成过滤，所有行均为银行新闻
+    processed_df = processed_df.reset_index(drop=True)
     after_count = len(processed_df)
-    logger.info(
-        f"过滤非银行新闻: {before_count:,} → {after_count:,} 行"
-        f"（移除 {before_count - after_count:,} 行）"
-    )
+    logger.info(f"展开后 Firm-Document 对总数: {after_count:,} 行")
     
     # --- 保存结果 ---
     logger.info(f"正在将处理结果写入 {output_path}...")

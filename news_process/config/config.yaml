@@ -41,6 +41,8 @@ filenames:
   output_22_words_tone: 22_words_tone.parquet             # 22_tone_words.py → 词典法情感分析
   output_23_bert_tone: 23_bert_tone.parquet               # 23_tone_berts.py → BERT 模型情感分析
   output_32_human_sample: 32_human_samples.xlsx           # 32_news_llms_human.py → 人工验证样本（含真伪与情感标注）
+  output_40_panel_yearly: 40_panel_yearly.parquet          # 40_build_panel.py → 年度平衡面板 (Bank-Year)
+  output_40_article_bank: 40_article_bank_level.parquet    # 40_build_panel.py → 展开后文章-银行级数据
 
 # ------------------------------------------------------------------------------
 # 并行处理配置 (Parallel Processing)
@@ -254,7 +256,7 @@ tone_llm_processing:
       description: Gemini 3 Flash Preview-nothinking
       base_url: https://yunwu.ai/v1                 # Gemini 3 API 地址
       api_key: ${GEMINI3_API_KEY}                   # Gemini 3 API 密钥（从 .env 读取）
-    - model_name: claude-haiku-4-5-20251001
+    - model_name: glm-4.5-flash #claude-haiku-4-5-20251001
       short_name: claude4h
       description: Claude Haiku 4.5 轻量高效版
       base_url: https://yunwu.ai/v1                 # Claude Haiku 4.5 API 地址
@@ -269,8 +271,8 @@ tone_llm_processing:
     <step1_verification>
     **阶段一：语义真伪精筛**
 
-    仅针对【规则预筛匹配银行】（以分号分隔）进行验证。判定为 true 须**同时满足**：
-    1. **主体关联**：正文实质性涉及至少一家匹配银行（不含来源标注、免责声明、赞助冠名等边缘提及）。
+    仅针对【目标分析银行: {target_bank}】进行验证。判定为 true 须**同时满足**：
+    1. **主体关联**：正文实质性涉及【{target_bank}】（不含来源标注、免责声明、赞助冠名等边缘提及）。
     2. **主题聚焦**：核心议题聚焦金融科技（AI、区块链、数字货币、大数据风控、云计算、开放银行、数字支付等）。
     3. **实质关联**：该银行与金融科技主题存在可证实的实质联系（技术研发、产品发布、业务合作、战略部署、应用落地等）。
 
@@ -280,14 +282,16 @@ tone_llm_processing:
     <step2_sentiment>
     **阶段二：情感倾向分析**（仅当阶段一判定为 true 时执行）
 
-    聚焦新闻对**匹配银行**的整体情感倾向：
+    聚焦新闻**仅对【{target_bank}】**的情感倾向。
+    ⚠️ 抗污染指令：文中可能同时提及同行（{co_mentioned_banks}），其利好或负面与【{target_bank}】无直接关联时，一律视为噪音，不影响评分。
     - `正面`：业绩增长、技术突破、创新合作、监管认可等积极事件。
     - `中性`：客观陈述事实或中立行业动态，无明显褒贬。
     - `负面`：风险暴露、监管处罚、安全事故、舆论危机等负面事件。
     </step2_sentiment>
 
     <input_data>
-    规则预筛匹配银行: {matched_bank_names}
+    目标分析银行: {target_bank}
+    同文提及的其他银行（仅供参考，不作为评分对象）: {co_mentioned_banks}
     标题: {title}
     内容: {content}
     </input_data>
@@ -312,7 +316,7 @@ tone_llm_processing:
 # ------------------------------------------------------------------------------
 # 根据国际顶级期刊标准，生成人工编码验证样本。
 human_validation:
-  sample_size: 500                                  # 目标抽样数量
+  sample_size: 1000                                 # 目标抽样数量
   random_seed: 42                                   # 随机种子（保证可复现）
 
 # ------------------------------------------------------------------------------
@@ -554,3 +558,9 @@ sentiment_analysis:
         max_length: 512
         label_map: {"0": "负面", "1": "正面"}
 
+# ------------------------------------------------------------------------------
+# [模块四：面板数据构建] Bank-Year 面板构建 - 阶段 40
+# ------------------------------------------------------------------------------
+panel_building:
+  aggregation_frequency: yearly
+  export_stata: true

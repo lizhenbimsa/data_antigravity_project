@@ -485,8 +485,22 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     df = df_batch.copy()
     stats['total'] = len(df)
 
-    # 对每篇文章执行分析
-    results = df['内容'].astype(str).apply(_analyze_single_article)
+    # 对每篇文章执行实体特异性上下文分析
+    from utils.entity_context import extract_entity_context, get_target_aliases
+    _bnf = CONFIG['paths'].get('bank_names_file', '')
+    _ac = {}
+
+    def _ctx_analyze(row):
+        t = row.get('target_bank', '')
+        c = str(row.get('内容', ''))
+        if t:
+            if t not in _ac:
+                _ac[t] = get_target_aliases(t, _bnf)
+            ctx = extract_entity_context(c, _ac[t])
+            return _analyze_single_article(ctx if ctx else c)
+        return _analyze_single_article(c)
+
+    results = df.apply(_ctx_analyze, axis=1)
 
     # 提取各列
     for dict_name, _ in ALL_DICTIONARIES:

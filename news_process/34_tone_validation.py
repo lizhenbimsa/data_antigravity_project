@@ -202,7 +202,7 @@ def compute_label_agreement_rate(labels_df: pd.DataFrame) -> dict:
     n = len(valid)
     if n == 0:
         return {'full_agreement_rate': 0.0, 'majority_agreement_rate': 0.0,
-                'n_samples': 0}
+                'n_samples': 0, 'n_methods': 0}
 
     n_methods = valid.shape[1]
 

@@ -506,7 +506,21 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine) -> d
         dict: {short_name: {'columns': {...}, 'stats': {...}}}
     """
     total = len(df)
-    content_list = df['内容'].astype(str).tolist()
+    # 构建实体特异性上下文列表
+    from utils.entity_context import extract_entity_context, get_target_aliases
+    _bnf = CONFIG['paths'].get('bank_names_file', '')
+    _ac = {}
+    content_list = []
+    for _, row in df.iterrows():
+        t = row.get('target_bank', '')
+        raw = str(row.get('内容', ''))
+        if t:
+            if t not in _ac:
+                _ac[t] = get_target_aliases(t, _bnf)
+            ctx = extract_entity_context(raw, _ac[t])
+            content_list.append(ctx if ctx else raw)
+        else:
+            content_list.append(raw)
 
     # 初始化收集器
     model_results_all = {}

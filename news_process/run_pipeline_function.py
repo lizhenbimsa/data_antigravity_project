@@ -16,15 +16,16 @@ run_pipeline_function.py — 新闻处理流水线调度器
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块二：新闻筛选模块 ──────────────────────────────┐
-    │ 11_news_bank → 12_news_fintech → 21_tone_llms              │
+    │ 11_news_bank → 12_news_fintech                             │
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块三：新闻情感模块 ──────────────────────────────┐
     │ 21_tone_llms → 22_tone_words → 23_tone_berts               │
     └────────────────────────────────────────────────────────────┘
                       ↓
-    模块四（评估验证）独立运行：
-      python run_pipeline_validation.py
+    ┌─ 模块五：面板数据构建 ──────────────────────────────┐
+    │ 40_build_panel                                             │
+    └────────────────────────────────────────────────────────────┘
                       ↓
                 pipeline_summary
 
@@ -64,7 +65,8 @@ def run_pipeline():
       1. 执行模块一：新闻预处理模块 (00)
       2. 执行模块二：新闻筛选模块 (11, 12)
       3. 执行模块三：新闻情感模块 (21, 22, 23, 视配置启动)
-      4. 生成管道执行摘要报告和耗时统计
+      4. 执行模块五：面板数据构建 (40)
+      5. 生成管道执行摘要报告和耗时统计
 
     注：模块四（评估验证）已独立为 run_pipeline_validation.py，
         请单独执行：python run_pipeline_validation.py
@@ -78,8 +80,8 @@ def run_pipeline():
     logger.info(f"工作目录: {os.path.dirname(os.path.abspath(__file__))}")
     log_memory_usage(logger, "管道启动")
 
-    # ── 流水线四模块执行顺序 ──
-    # 按照严格递进流转：预处理 → 筛选 → 情感 → 验证
+    # ── 流水线执行顺序（模块一至三 + 模块五）──
+    # 按照严格递进流转：预处理 → 筛选 → 情感 → 面板构建
 
     stages = []
 
@@ -97,9 +99,9 @@ def run_pipeline():
     logger.info(f"启用的情感分析方法: {enabled_methods}")
 
     sentiment_stages = {
-        #'tone_llms':  ("21_tone_llms.py",  "阶段21: 统一 LLM 语义精筛与情感分析"),
-        #'tone_words': ("22_tone_words.py", "阶段22: 词典法情感分析"),
-        #'tone_berts': ("23_tone_berts.py", "阶段23: BERT模型情感分析"),
+        'tone_llms':  ("21_tone_llms.py",  "阶段21: 统一 LLM 语义精筛与情感分析"),
+        'tone_words': ("22_tone_words.py", "阶段22: 词典法情感分析"),
+        'tone_berts': ("23_tone_berts.py", "阶段23: BERT模型情感分析"),
     }
     for method in enabled_methods:
         if method in sentiment_stages:
@@ -107,6 +109,8 @@ def run_pipeline():
         else:
             logger.warning(f"未知的情感分析方法: {method}，已跳过")
 
+    # ── 模块五：面板数据构建 ──
+    stages.append(("40_build_panel.py", "阶段40: Bank-Year 面板数据构建"))
 
     logger.info(f"管道共 {len(stages)} 个阶段")
     for i, (script, name) in enumerate(stages, 1):

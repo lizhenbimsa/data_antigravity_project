@@ -126,7 +126,7 @@ def main():
         sample_df[col] = ''
     
     # 重排列表将验证列放在标题与内容之前，让标注者第一眼就能填
-    desired_front = col_names + ['日期', '媒体类型(中文)', '标题', '内容', 'matched_bank_names', 'fintech_keyword_details']
+    desired_front = col_names + ['日期', '媒体类型(中文)', '标题', '内容', 'target_bank', 'co_mentioned_banks', 'fintech_keyword_details']
     front_cols = [c for c in desired_front if c in sample_df.columns]
     other_cols = [c for c in sample_df.columns if c not in front_cols]
     sample_df = sample_df[front_cols + other_cols]

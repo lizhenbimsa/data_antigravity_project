@@ -137,7 +137,8 @@ async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
             prompt = PROMPT_TEMPLATE.format(
                 title=str(row.get('标题', '')),
                 content=str(row.get('内容', '')),
-                matched_bank_names=str(row.get('matched_bank_names', '')),
+                target_bank=str(row.get('target_bank', '')),
+                co_mentioned_banks=str(row.get('co_mentioned_banks', '无')),
             )
             for m in models:
                 real_tasks.append(fetch_llm_async(session, semaphore, prompt, m, idx))

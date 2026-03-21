@@ -159,7 +159,8 @@ class TestDataFlow:
         # Stage 11 应保留 00 的列并添加银行分类列
         df_11 = df_00.copy()
         df_11['is_bank_news'] = True
-        df_11['matched_bank_names'] = '中国工商银行'
+        df_11['target_bank'] = '中国工商银行'
+        df_11['co_mentioned_banks'] = ''
         assert '标题' in df_11.columns
         assert 'is_bank_news' in df_11.columns
 
@@ -192,7 +193,7 @@ class TestDataFlow:
             '标题': ['银行创新', '普通新闻', '银行科技'],
             '内容': ['内容1', '内容2', '内容3'],
             'is_bank_news': [True, False, True],
-            'matched_bank_names': ['工商银行', '', '建设银行'],
+            'target_bank': ['工商银行', '', '建设银行'],
         })
 
         # 筛选为银行新闻
@@ -203,7 +204,7 @@ class TestDataFlow:
         df_filtered['is_fintech_news'] = [True, False]
         df_fintech = df_filtered[df_filtered['is_fintech_news']].copy()
         assert len(df_fintech) == 1
-        assert df_fintech.iloc[0]['matched_bank_names'] == '工商银行'
+        assert df_fintech.iloc[0]['target_bank'] == '工商银行'
 
 
 # ============================================================================
