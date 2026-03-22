@@ -596,7 +596,9 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine) -> d
         for label_name, probs_list in all_probs.items():
             columns[f'{sn}_{label_name}'] = probs_list
 
-        output[sn] = {'columns': columns, 'stats': stats, 'avg_windows': avg_windows}
+        num_windows_list = [r['num_windows'] for r in results]
+        output[sn] = {'columns': columns, 'stats': stats, 'avg_windows': avg_windows,
+                      'num_windows_list': num_windows_list}
 
     return output
 
@@ -642,6 +644,32 @@ def log_classification_report(output: dict, total: int):
         neg_pct = f"{neg / total * 100:.1f}%" if total > 0 else "N/A"
         logger.info(f"  {sn:<20} {pos:>8,} {neu:>8,} {neg:>8,} "
                     f"{pos_pct:>10} {neu_pct:>10} {neg_pct:>10}")
+
+    # ── 滑动窗口截断统计 ──
+    _first_key = next(iter(output), None)
+    if _first_key and 'num_windows_list' in output[_first_key]:
+        nw_list = output[_first_key]['num_windows_list']
+        nw_arr = np.array(nw_list)
+        # num_windows=0 表示空文本/推理异常，排除后统计
+        valid_nw = nw_arr[nw_arr > 0]
+        if len(valid_nw) > 0:
+            multi_window = int((valid_nw > 1).sum())
+            single_window = int((valid_nw == 1).sum())
+            n_valid = len(valid_nw)
+            n_excluded = int((nw_arr == 0).sum())
+            logger.info("-" * 70)
+            logger.info("滑动窗口截断统计 (Sliding Window Truncation Statistics):")
+            logger.info(f"  有效文章数: {n_valid:,} (排除 {n_excluded} 篇空文本/异常)")
+            logger.info(f"  单窗口文章: {single_window:,} 篇 ({single_window / n_valid * 100:.1f}%)")
+            logger.info(f"  多窗口文章: {multi_window:,} 篇 ({multi_window / n_valid * 100:.1f}%)")
+            logger.info(f"  窗口数统计: mean={valid_nw.mean():.2f}, "
+                        f"median={float(np.median(valid_nw)):.0f}, "
+                        f"max={int(valid_nw.max())}, std={valid_nw.std():.2f}")
+            nw_dist = sorted(Counter(valid_nw.tolist()).items())
+            dist_str = ", ".join(f"{int(k)}窗口:{v}篇" for k, v in nw_dist[:8])
+            if len(nw_dist) > 8:
+                dist_str += f", ... (共{len(nw_dist)}种)"
+            logger.info(f"  窗口数分布: {dist_str}")
 
     logger.info("=" * 70)
 
@@ -709,6 +737,13 @@ def main():
         if sn in output:
             for col_name, col_data in output[sn]['columns'].items():
                 df[col_name] = col_data
+
+    # ── Step 3b: 写入 BERT 窗口数列（供下游分层分析使用） ──
+    _first_sn = next((mc['short_name'] for mc in MODEL_CONFIGS
+                      if mc['short_name'] in output), None)
+    if _first_sn and 'num_windows_list' in output[_first_sn]:
+        df['bert_num_windows'] = output[_first_sn]['num_windows_list']
+        logger.info(f"  已写入 bert_num_windows 列 (基于模型: {_first_sn})")
 
     # ── Step 4: 保存输出 ──
     df.to_parquet(output_path, index=False)

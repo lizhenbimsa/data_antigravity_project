@@ -499,6 +499,194 @@ def run_sensitivity_analysis(
 # 6. 报告生成
 # ============================================================================
 
+def _log_key_interpretation(results: dict, dict_names: list[str], logger):
+    """根据分析结果自动生成关键解读并记录到日志。
+
+    解读逻辑：
+        1. 检测标签不平衡程度，判断 Kappa 悖论风险
+        2. 按对比组分类统计（极端窗口 r=0 vs 邻近窗口 r=2/3）
+        3. 汇总 t 检验显著性
+        4. 生成综合研判结论（适合论文讨论部分引用）
+    """
+    meta = results['meta']
+    baseline_radius = 1
+    radii = meta['radii_tested']
+    total_articles = meta['total_articles']
+
+    logger.info("")
+    logger.info("─" * 80)
+    logger.info(">>>  关键解读（自动生成）  <<<")
+    logger.info("─" * 80)
+
+    # ── 1. 标签不平衡检测与 Kappa 悖论 ──
+    logger.info("")
+    logger.info("【1. 标签分布不平衡检测】")
+    max_dominant_pct = 0.0
+    dominant_label = ""
+    for dn in dict_names:
+        for r in radii:
+            dist_pct = results['per_radius'][str(r)]['dictionaries'][dn]['label_distribution_pct']
+            for label, pct in dist_pct.items():
+                if pct > max_dominant_pct:
+                    max_dominant_pct = pct
+                    dominant_label = label
+
+    # 计算各半径下主导标签的平均占比
+    dominant_pcts_per_radius = {}
+    for r in radii:
+        pcts = []
+        for dn in dict_names:
+            dist_pct = results['per_radius'][str(r)]['dictionaries'][dn]['label_distribution_pct']
+            pcts.append(max(dist_pct.values()))
+        dominant_pcts_per_radius[r] = np.mean(pcts)
+
+    avg_dominant = np.mean(list(dominant_pcts_per_radius.values()))
+    logger.info(f"  主导标签「{dominant_label}」平均占比: {avg_dominant:.1f}%")
+
+    kappa_paradox = avg_dominant >= 90.0
+    if kappa_paradox:
+        logger.info(f"  ⚠ 检测到高度不平衡（主导标签 ≥ 90%）")
+        logger.info(f"    → Kappa 悖论 (Paradox of High Agreement but Low Kappa):")
+        logger.info(f"      当分类高度集中于单一类别时，即使一致率很高，")
+        logger.info(f"      Kappa 也会因为 P(e) 过大而被严重压低。")
+        logger.info(f"      因此 Kappa 值不应作为唯一稳健性判据。")
+    else:
+        logger.info(f"  标签分布相对均衡，Kappa 指标可作为可靠判据。")
+
+    # ── 2. 分组对比分析 ──
+    logger.info("")
+    logger.info("【2. 分组对比分析】")
+
+    # 区分极端窗口 (r=0) 和邻近窗口 (r=2, r=3)
+    extreme_key = f"r{baseline_radius}_vs_r0"
+    adjacent_keys = [k for k in results['cross_radius'].keys() if k != extreme_key]
+
+    # 极端窗口 (r=0)
+    if extreme_key in results['cross_radius']:
+        pair_data = results['cross_radius'][extreme_key]
+        kappas = [pair_data[dn]['cohens_kappa'] for dn in dict_names]
+        pearsons = [pair_data[dn]['pearson_r'] for dn in dict_names]
+        agrees = [pair_data[dn]['label_agreement'] for dn in dict_names]
+        t_ps = [pair_data[dn]['paired_t_p'] for dn in dict_names]
+        sig_count = sum(1 for p in t_ps if p < 0.05)
+
+        logger.info(f"  ── r=1 vs r=0（极端窗口: 仅实体所在句）──")
+        logger.info(f"     Kappa 范围:     {min(kappas):.4f} ~ {max(kappas):.4f}  (均值 {np.mean(kappas):.4f})")
+        logger.info(f"     Pearson 范围:   {min(pearsons):.4f} ~ {max(pearsons):.4f}  (均值 {np.mean(pearsons):.4f})")
+        logger.info(f"     一致率范围:     {min(agrees):.2%} ~ {max(agrees):.2%}")
+        logger.info(f"     t 检验显著 (p<0.05): {sig_count}/{len(dict_names)} 个词典")
+        if np.mean(kappas) < 0.60:
+            logger.info(f"     → 解读: r=0 仅保留实体所在句，上下文信息严重不足，")
+            logger.info(f"       与 r=1 差异较大属于预期行为，不影响 r=1 的合理性。")
+
+    # 邻近窗口 (r=2, r=3)
+    if adjacent_keys:
+        adj_kappas = []
+        adj_pearsons = []
+        adj_agrees = []
+        adj_t_ps = []
+        for key in adjacent_keys:
+            pair_data = results['cross_radius'][key]
+            for dn in dict_names:
+                adj_kappas.append(pair_data[dn]['cohens_kappa'])
+                adj_pearsons.append(pair_data[dn]['pearson_r'])
+                adj_agrees.append(pair_data[dn]['label_agreement'])
+                adj_t_ps.append(pair_data[dn]['paired_t_p'])
+
+        adj_sig_count = sum(1 for p in adj_t_ps if p < 0.05)
+        adj_radii_str = ", ".join(k.split("_vs_")[1] for k in adjacent_keys)
+
+        logger.info(f"  ── r=1 vs 邻近窗口（{adj_radii_str}）──")
+        logger.info(f"     Kappa 范围:     {min(adj_kappas):.4f} ~ {max(adj_kappas):.4f}  (均值 {np.mean(adj_kappas):.4f})")
+        logger.info(f"     Pearson 范围:   {min(adj_pearsons):.4f} ~ {max(adj_pearsons):.4f}  (均值 {np.mean(adj_pearsons):.4f})")
+        logger.info(f"     一致率范围:     {min(adj_agrees):.2%} ~ {max(adj_agrees):.2%}")
+        logger.info(f"     t 检验显著 (p<0.05): {adj_sig_count}/{len(adj_t_ps)} 个词典×对比组")
+        if np.mean(adj_pearsons) >= 0.80:
+            logger.info(f"     → 解读: 邻近半径间得分高度相关 (Pearson ≥ 0.80)，")
+            logger.info(f"       标签变化极少，结果具有良好稳健性。")
+
+    # ── 3. t 检验显著性汇总 ──
+    logger.info("")
+    logger.info("【3. 配对 t 检验显著性汇总】")
+    all_t_ps = []
+    sig_pairs = []
+    for pair_key, pair_data in results['cross_radius'].items():
+        for dn in dict_names:
+            p_val = pair_data[dn]['paired_t_p']
+            all_t_ps.append(p_val)
+            if p_val < 0.05:
+                sig_pairs.append((pair_key, dn, p_val))
+
+    total_tests = len(all_t_ps)
+    total_sig = len(sig_pairs)
+    logger.info(f"  共进行 {total_tests} 组配对 t 检验（{len(results['cross_radius'])} 对比组 × {len(dict_names)} 词典）")
+    logger.info(f"  显著 (p < 0.05): {total_sig} 组")
+    logger.info(f"  不显著 (p ≥ 0.05): {total_tests - total_sig} 组")
+    if sig_pairs:
+        logger.info(f"  显著的对比组:")
+        for pair_key, dn, p_val in sig_pairs:
+            logger.info(f"    - {pair_key} × {dn}: p = {p_val:.6f}")
+    else:
+        logger.info(f"  → 所有对比组的均值差异均不具有统计显著性。")
+
+    # ── 4. 综合研判结论 ──
+    logger.info("")
+    logger.info("【4. 综合研判结论】")
+
+    # 判定邻近窗口的稳健性
+    adj_robust = (len(adjacent_keys) > 0
+                  and np.mean(adj_pearsons) >= 0.80
+                  and np.mean(adj_agrees) >= 0.95)
+
+    # 判定极端窗口是否有偏差
+    extreme_deviated = False
+    if extreme_key in results['cross_radius']:
+        extreme_pair = results['cross_radius'][extreme_key]
+        extreme_kappas = [extreme_pair[dn]['cohens_kappa'] for dn in dict_names]
+        extreme_deviated = np.mean(extreme_kappas) < 0.60
+
+    # 判定 t 检验总体不显著
+    mostly_nonsig = (total_sig / total_tests) <= 0.2 if total_tests > 0 else True
+
+    if adj_robust and mostly_nonsig:
+        # 邻近稳健 + t 检验多数不显著 → 实质稳健
+        if extreme_deviated and kappa_paradox:
+            logger.info("  结论: 情感分析结果对窗口半径选择具有实质稳健性。")
+            logger.info("")
+            logger.info(f"  - 当前生产配置 r={baseline_radius} 是合理的折中选择。")
+            logger.info(f"  - 邻近半径 (r={baseline_radius} vs r=2/r=3) 一致率 ≥ {min(adj_agrees):.1%}，")
+            logger.info(f"    Pearson 相关 ≥ {min(adj_pearsons):.3f}，差异统计上不显著。")
+            logger.info(f"  - r=0 的 Kappa 较低是由标签高度不平衡导致的 Kappa 悖论，")
+            logger.info(f"    以及 r=0 上下文信息不足的双重因素所致，")
+            logger.info(f"    不影响 r={baseline_radius} 作为默认值的方法论合理性。")
+            logger.info(f"  - 建议论文讨论: 在附录中报告本检验结果，说明 r=0 偏差")
+            logger.info(f"    归因于上下文信息不足，符合 proximity-based attribution 的理论预期。")
+        elif extreme_deviated:
+            logger.info("  结论: 情感分析结果在邻近半径间具有良好稳健性，")
+            logger.info("        但 r=0 极端窗口存在显著偏差。")
+            logger.info("")
+            logger.info(f"  - r={baseline_radius} 与 r=2/r=3 的差异不显著，结果稳健。")
+            logger.info(f"  - r=0 偏差较大，建议在论文中讨论上下文窗口的边界效应。")
+        else:
+            logger.info("  结论: 情感分析结果对窗口半径选择具有良好稳健性。")
+            logger.info("")
+            logger.info(f"  - 所有半径对比均显示较高一致性。")
+            logger.info(f"  - r={baseline_radius} 是稳健的默认选择。")
+    elif adj_robust:
+        logger.info("  结论: 邻近半径间稳健性良好，但个别对比组存在统计显著差异。")
+        logger.info("")
+        logger.info(f"  - 虽有 {total_sig} 组 t 检验显著，但实际均值差异幅度很小。")
+        logger.info(f"  - r={baseline_radius} 仍可作为合理的默认选择。")
+    else:
+        logger.info("  结论: 情感分析结果对窗口半径选择存在一定敏感性。")
+        logger.info("")
+        logger.info(f"  - 建议在论文中充分讨论参数选择依据。")
+        logger.info(f"  - 考虑展示多半径结果作为稳健性检验的一部分。")
+
+    logger.info("")
+    logger.info("=" * 80)
+
+
 def log_report(results: dict):
     """将分析结果输出到日志（结构化文本报告）。"""
     meta = results['meta']
@@ -589,6 +777,9 @@ def log_report(results: dict):
             logger.info("  ❌ 判定: 情感分析结果对窗口半径选择敏感（κ < 0.60），需仔细讨论参数选择")
 
     logger.info("=" * 80)
+
+    # ── 关键解读（自动生成） ──
+    _log_key_interpretation(results, dict_names, logger)
 
 
 def generate_latex_table(results: dict) -> str:

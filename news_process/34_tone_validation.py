@@ -618,6 +618,43 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
 
         results['by_year'] = year_results
 
+    # --- 按 BERT 窗口数分层（单窗口 vs 多窗口） ---
+    if 'bert_num_windows' in df.columns:
+        nw = df['bert_num_windows']
+        # 排除未推理的文章 (num_windows=0)
+        valid_mask = nw > 0
+        if valid_mask.sum() >= 40:  # 两组各至少需要 20 篇
+            window_groups = {
+                '单窗口 (=1)': valid_mask & (nw == 1),
+                '多窗口 (>1)': valid_mask & (nw > 1),
+            }
+
+            window_results = {}
+            for group_name, mask in window_groups.items():
+                group_scores = all_scores_df.loc[mask]
+                if len(group_scores) < 20:
+                    continue
+
+                alpha = compute_cronbachs_alpha(group_scores)
+                group_labels = all_labels_df.loc[mask]
+                agreement = compute_label_agreement_rate(group_labels)
+
+                window_results[group_name] = {
+                    'n_samples': int(mask.sum()),
+                    'cronbach_alpha': alpha,
+                    'full_agreement_rate': agreement['full_agreement_rate'],
+                }
+                logger_inst.info(
+                    f"  分层[{group_name}]: n={int(mask.sum()):,}, "
+                    f"α={alpha:.3f}, 完全一致率={agreement['full_agreement_rate']:.3f}"
+                )
+
+            results['by_window_count'] = window_results
+        else:
+            logger_inst.info("  bert_num_windows 有效样本不足 40，跳过窗口数分层分析")
+    else:
+        logger_inst.info("  bert_num_windows 列不存在，跳过窗口数分层分析（需先运行阶段 23）")
+
     return results
 
 
