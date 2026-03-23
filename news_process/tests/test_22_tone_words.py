@@ -25,6 +25,8 @@ TEST_NEGATION_WINDOW = 2
 TEST_ADVERSATIVE_BOOST = 1.5
 
 
+TEST_SENTENCE_END = frozenset(['。', '！', '？', '!', '?', '；', ';'])
+
 def _compute_sentiment_with_rules(
     tokens, sentiment_dict,
     negation_words=TEST_NEGATION_WORDS,
@@ -32,6 +34,7 @@ def _compute_sentiment_with_rules(
     adversative_words=TEST_ADVERSATIVE_WORDS,
     negation_window=TEST_NEGATION_WINDOW,
     adversative_boost=TEST_ADVERSATIVE_BOOST,
+    sentence_end_markers=TEST_SENTENCE_END,
 ):
     """语言学规则增强的词典法情感计算（测试版）。"""
     total_score = 0.0
@@ -44,6 +47,12 @@ def _compute_sentiment_with_rules(
     adversative_active = False
 
     for token in tokens:
+        if token in sentence_end_markers:
+            adversative_active = False
+            negation_remaining = 0
+            degree_multiplier = 1.0
+            continue
+
         if token in adversative_words:
             adversative_active = True
             degree_multiplier = 1.0
@@ -282,11 +291,76 @@ class TestAdversative:
         assert score == 1.5
 
     def test_adversative_permanent(self):
-        """转折一旦激活永不关闭。"""
+        """转折在同一句内（无句末标点）持续生效。"""
         tokens = ['但是', '增长', '创新']
         score, _, _, _, _ = _compute_sentiment_with_rules(tokens, TEST_DICT)
-        # 增长: 1.0 × 1.5 = 1.5, 创新: 1.0 × 1.5 = 1.5
+        # 同一句内: 增长: 1.0 × 1.5 = 1.5, 创新: 1.0 × 1.5 = 1.5
         assert score == 3.0
+
+
+# ============================================================================
+# 转折词句末作用域测试 (修补致命硬伤 1)
+# ============================================================================
+
+class TestAdversativeSentenceScope:
+    """测试转折词在句末标点处正确重置（Ding 2008 从句级作用域）。"""
+
+    def test_resets_at_period(self):
+        """句号应重置转折效应。"""
+        tokens = ['但是', '下降', '。', '增长']
+        score, _, _, _, _ = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        # 下降: -1.0 × 1.5 = -1.5, 。→重置, 增长: +1.0
+        assert score == -0.5
+
+    def test_resets_at_exclamation(self):
+        """感叹号应重置转折效应。"""
+        tokens = ['但是', '下降', '！', '增长']
+        score, _, _, _, _ = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        assert score == -0.5
+
+    def test_resets_at_question(self):
+        """问号应重置转折效应。"""
+        tokens = ['但是', '下降', '？', '增长']
+        score, _, _, _, _ = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        assert score == -0.5
+
+    def test_resets_at_semicolon(self):
+        """分号应重置转折效应。"""
+        tokens = ['但是', '下降', '；', '增长']
+        score, _, _, _, _ = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        assert score == -0.5
+
+    def test_persists_within_sentence(self):
+        """句内无标点时转折应持续生效。"""
+        tokens = ['但是', '下降', '风险']
+        score, _, _, _, _ = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        assert score == -3.0
+
+    def test_comma_does_not_reset(self):
+        """逗号不是句末标点，不应重置。"""
+        tokens = ['但是', '下降', '，', '增长']
+        score, _, _, _, _ = _compute_sentiment_with_rules(
+            tokens, TEST_DICT, sentence_end_markers=frozenset(['。', '！', '？'])
+        )
+        assert score == 0.0  # -1.5 + 1.5
+
+    def test_multi_sentence_independent(self):
+        """多句场景：各句转折效应独立。"""
+        tokens = ['但是', '下降', '。', '然而', '增长', '。', '风险']
+        score, _, _, _, _ = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        assert score == -1.0
+
+    def test_negation_resets_at_period(self):
+        """句末标点应同时重置否定窗口。"""
+        tokens = ['不', '。', '增长']
+        score, _, _, _, _ = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        assert score == 1.0
+
+    def test_degree_resets_at_period(self):
+        """句末标点应重置程度副词。"""
+        tokens = ['非常', '。', '增长']
+        score, _, _, _, _ = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        assert score == 1.0
 
 
 # ============================================================================

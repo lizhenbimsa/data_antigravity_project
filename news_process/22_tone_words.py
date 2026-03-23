@@ -124,6 +124,14 @@ ADVERSATIVE_WORDS: frozenset[str] = frozenset(SENTIMENT_PARAMS.get('adversative_
 # 转折后权重提升倍数
 ADVERSATIVE_BOOST: float = float(SENTIMENT_PARAMS.get('adversative_boost', 1.5))
 
+# ── 句末标点集合（句法边界标记）──
+# 遇到句末标点时重置转折/否定/程度状态，确保作用域限定为当前句
+# 学术依据: Ding, Liu & Yu (2008, WSDM) 的转折效应作用域为从句级别
+# 注意: 不包含逗号——逗号连接同一复句内的从句, 转折效应理应跨越
+SENTENCE_END_MARKERS: frozenset[str] = frozenset(
+    SENTIMENT_PARAMS.get('sentence_end_markers', ['。', '！', '？', '!', '?', '；', ';'])
+)
+
 # 否定词有效作用窗口（向后影响的分词单元数）
 # 设为 2：覆盖"不 [程度副词] 情感词"结构（如"不太 乐观"）
 NEGATION_WINDOW = SENTIMENT_PARAMS.get('negation_window', 2)
@@ -215,9 +223,10 @@ def _compute_sentiment_with_rules(tokens: list[str], sentiment_dict: dict[str, f
       遍历 token 序列，维护三个状态变量：
         ① negation_remaining: 否定窗口剩余 token 数（>0 则极性翻转）
         ② degree_multiplier:  当前程度副词倍率（碰到情感词时消费并重置）
-        ③ adversative_active:  是否处于转折后区域（一旦激活，永不关闭）
+        ③ adversative_active:  是否处于转折后区域（遇句末标点重置, Ding 2008 从句级作用域）
 
     状态转移规则：
+        token ∈ SENTENCE_END_MARKERS → 重置转折、否定、程度（句法边界）
         token ∈ ADVERSATIVE_WORDS → 激活转折，重置否定和程度
         token ∈ NEGATION_WORDS    → 设置否定窗口
         token ∈ DEGREE_WORDS      → 设置程度倍率
@@ -241,6 +250,14 @@ def _compute_sentiment_with_rules(tokens: list[str], sentiment_dict: dict[str, f
     adversative_active: bool = False
 
     for token in tokens:
+        # ── 句法边界: 句末标点重置全部句法级状态 ──
+        # Ding et al. (2008): 转折效应限定为从句级 (Clause-level)
+        if token in SENTENCE_END_MARKERS:
+            adversative_active = False
+            negation_remaining = 0
+            degree_multiplier = 1.0
+            continue
+
         # 检查转折连词
         if token in ADVERSATIVE_WORDS:
             adversative_active = True
@@ -284,6 +301,7 @@ def _compute_sentiment_with_rules(tokens: list[str], sentiment_dict: dict[str, f
                 'word': token,
                 'base': sentiment_dict[token],
                 'final': round(final_score, 4),
+                'boosted': adversative_active,
             })
 
             degree_multiplier = 1.0  # 已消费程度副词

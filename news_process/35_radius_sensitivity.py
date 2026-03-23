@@ -76,6 +76,9 @@ NEGATION_WINDOW = SENTIMENT_PARAMS.get('negation_window', 2)
 POS_THRESHOLD = SENTIMENT_PARAMS.get('pos_threshold', 0.1)
 NEG_THRESHOLD = SENTIMENT_PARAMS.get('neg_threshold', -0.1)
 
+# 句末标点集合（遇到时重置转折/否定/程度状态，确保作用域限定为当前句）
+SENTENCE_END_MARKERS = frozenset(SENTIMENT_PARAMS.get('sentence_end_markers', ['。', '！', '？', '!', '?', '；', ';']))
+
 # 词典文件路径
 TONE_DICTS_FILE = CONFIG['paths'].get(
     'tone_dicts_file',
@@ -142,6 +145,11 @@ def _compute_sentiment_with_rules(
     adversative_active = False
 
     for token in tokens:
+        if token in SENTENCE_END_MARKERS:
+            adversative_active = False
+            negation_remaining = 0
+            degree_multiplier = 1.0
+            continue
         if token in ADVERSATIVE_WORDS:
             adversative_active = True
             degree_multiplier = 1.0

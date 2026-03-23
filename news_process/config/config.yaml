@@ -351,6 +351,18 @@ sentiment_analysis:
     negation_window: 2                              # 否定词有效作用窗口（向后影响的分词单元数）
     adversative_boost: 1.5                          # 转折后权重提升倍数
 
+    # 句末标点集合（遇到时重置转折/否定/程度状态，确保作用域限定为当前句）
+    # 学术依据: Ding, Liu & Yu (2008, WSDM) — 转折效应作用域为从句级别 (Clause-level)
+    # 注意: 不包含逗号(，)和顿号(、)——它们连接同一复句内的从句，转折效应理应跨越
+    sentence_end_markers:
+      - "。"
+      - "！"
+      - "？"
+      - "!"
+      - "?"
+      - "；"
+      - ";"
+
     # 否定词集合（遇到否定词时，将其后 negation_window 个分词单元内的情感词极性翻转）
     negation_words:
       # A. 单字否定
