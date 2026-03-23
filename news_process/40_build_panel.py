@@ -76,37 +76,41 @@ SENTIMENT_MAP = {'正面': 1, '中性': 0, '负面': -1}
 
 
 def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
-    """篇章级情感数值编码：离散 + 连续。"""
+    """篇章级情感数值编码：离散 + 连续（双轨）。"""
     logger.info("=" * 60)
-    logger.info("步骤 2: 篇章级情感数值编码")
+    logger.info("步骤 2: 篇章级情感数值编码（双轨）")
     logger.info("=" * 60)
 
-    # --- LLM 投票结果 离散编码 ---
-    df['llm_vote_score'] = df['llm_sentiment'].map(SENTIMENT_MAP).fillna(0).astype(int)
-    df['is_positive'] = (df['llm_vote_score'] == 1).astype(int)
-    df['is_negative'] = (df['llm_vote_score'] == -1).astype(int)
-    df['is_neutral'] = (df['llm_vote_score'] == 0).astype(int)
+    encoded_cols = []
+    for track in ['_full', '_ctx']:
+        # --- LLM 投票结果 离散编码 ---
+        df[f'llm_vote_score{track}'] = df[f'llm_sentiment{track}'].map(SENTIMENT_MAP).fillna(0).astype(int)
+        df[f'is_positive{track}'] = (df[f'llm_vote_score{track}'] == 1).astype(int)
+        df[f'is_negative{track}'] = (df[f'llm_vote_score{track}'] == -1).astype(int)
+        df[f'is_neutral{track}'] = (df[f'llm_vote_score{track}'] == 0).astype(int)
 
-    # --- LLM 投票结果 连续编码 ---
-    df['llm_vote_cont'] = df['llm_vote_score'] * df['llm_agreement_rate'].fillna(0)
+        # --- LLM 投票结果 连续编码 ---
+        df[f'llm_vote_cont{track}'] = df[f'llm_vote_score{track}'] * df[f'llm_agreement_rate{track}'].fillna(0)
 
-    # --- LLM 逐模型 离散 + 连续编码 ---
-    for short in LLM_MODELS:
-        sent_col = f'{short}_sentiment'
-        conf_col = f'{short}_sentiment_confidence'
-        if sent_col in df.columns:
-            df[f'{short}_score'] = df[sent_col].map(SENTIMENT_MAP).fillna(0).astype(int)
-            if conf_col in df.columns:
-                df[f'{short}_cont'] = df[f'{short}_score'] * df[conf_col].fillna(0)
-            else:
-                df[f'{short}_cont'] = df[f'{short}_score'].astype(float)
+        # --- LLM 逐模型 离散 + 连续编码 ---
+        for short in LLM_MODELS:
+            sent_col = f'{short}_sentiment{track}'
+            conf_col = f'{short}_sentiment_confidence{track}'
+            if sent_col in df.columns:
+                df[f'{short}_score{track}'] = df[sent_col].map(SENTIMENT_MAP).fillna(0).astype(int)
+                if conf_col in df.columns:
+                    df[f'{short}_cont{track}'] = df[f'{short}_score{track}'] * df[conf_col].fillna(0)
+                else:
+                    df[f'{short}_cont{track}'] = df[f'{short}_score{track}'].astype(float)
+
+        encoded_cols.extend([
+            f'llm_vote_score{track}', f'is_positive{track}', f'is_negative{track}',
+            f'is_neutral{track}', f'llm_vote_cont{track}'
+        ])
+        for short in LLM_MODELS:
+            encoded_cols.extend([f'{short}_score{track}', f'{short}_cont{track}'])
 
     # --- 词典法 & BERT: 直接使用上游连续值, 无需额外编码 ---
-
-    encoded_cols = ['llm_vote_score', 'is_positive', 'is_negative', 'is_neutral',
-                    'llm_vote_cont']
-    for short in LLM_MODELS:
-        encoded_cols.extend([f'{short}_score', f'{short}_cont'])
 
     logger.info(f"  生成编码列: {len(encoded_cols)} 个")
     logger.info(f"  离散映射: 正面=1, 中性=0, 负面=-1")
@@ -150,61 +154,72 @@ def parse_time(df: pd.DataFrame) -> pd.DataFrame:
 # ============================================================================
 
 def build_aggregation_dict() -> dict:
-    """构建 GroupBy 聚合字典。"""
+    """构建 GroupBy 聚合字典（双轨）。"""
     agg = {}
 
-    # --- A. LLM 逐模型 ---
-    for short in LLM_MODELS:
-        score_col = f'{short}_score'
-        cont_col = f'{short}_cont'
-        agg[f'{short}_tone'] = (score_col, 'mean')
-        agg[f'{short}_tone_sum'] = (score_col, 'sum')
-        agg[f'{short}_cont_mean'] = (cont_col, 'mean')
-        agg[f'{short}_cont_sum'] = (cont_col, 'sum')
-        agg[f'{short}_tone_std'] = (score_col, 'std')
+    for track in ['_full', '_ctx']:
+        # --- A. LLM 逐模型 ---
+        for short in LLM_MODELS:
+            agg[f'{short}_tone{track}'] = (f'{short}_score{track}', 'mean')
+            agg[f'{short}_tone_sum{track}'] = (f'{short}_score{track}', 'sum')
+            agg[f'{short}_cont_mean{track}'] = (f'{short}_cont{track}', 'mean')
+            agg[f'{short}_cont_sum{track}'] = (f'{short}_cont{track}', 'sum')
+            agg[f'{short}_tone_std{track}'] = (f'{short}_score{track}', 'std')
 
-    # --- B. LLM 投票结果 ---
-    agg['llm_vote_tone'] = ('llm_vote_score', 'mean')
-    agg['llm_vote_tone_sum'] = ('llm_vote_score', 'sum')
-    agg['llm_vote_tone_std'] = ('llm_vote_score', 'std')
-    agg['pos_frac'] = ('is_positive', 'mean')
-    agg['neg_frac'] = ('is_negative', 'mean')
-    agg['pos_count'] = ('is_positive', 'sum')
-    agg['neg_count'] = ('is_negative', 'sum')
-    agg['llm_vote_cont'] = ('llm_vote_cont', 'mean')
-    agg['llm_vote_cont_sum'] = ('llm_vote_cont', 'sum')
+        # --- B. LLM 投票结果 ---
+        agg[f'llm_vote_tone{track}'] = (f'llm_vote_score{track}', 'mean')
+        agg[f'llm_vote_tone_sum{track}'] = (f'llm_vote_score{track}', 'sum')
+        agg[f'llm_vote_tone_std{track}'] = (f'llm_vote_score{track}', 'std')
+        agg[f'pos_frac{track}'] = (f'is_positive{track}', 'mean')
+        agg[f'neg_frac{track}'] = (f'is_negative{track}', 'mean')
+        agg[f'pos_count{track}'] = (f'is_positive{track}', 'sum')
+        agg[f'neg_count{track}'] = (f'is_negative{track}', 'sum')
+        agg[f'llm_vote_cont{track}'] = (f'llm_vote_cont{track}', 'mean')
+        agg[f'llm_vote_cont_sum{track}'] = (f'llm_vote_cont{track}', 'sum')
 
-    # --- C. 词典法 ---
-    for d in DICT_NAMES:
-        score_col = f'{d}_score'
-        agg[f'{d}_tone'] = (score_col, 'mean')
-        agg[f'{d}_tone_sum'] = (score_col, 'sum')
-        agg[f'{d}_tone_std'] = (score_col, 'std')
+        # --- C. 词典法 ---
+        for d in DICT_NAMES:
+            agg[f'{d}_tone{track}'] = (f'{d}_score{track}', 'mean')
+            agg[f'{d}_tone_sum{track}'] = (f'{d}_score{track}', 'sum')
+            agg[f'{d}_tone_std{track}'] = (f'{d}_score{track}', 'std')
 
-    # --- D. BERT 逐模型 ---
-    for short in BERT_MODELS:
-        pos_col = f'{short}_正面'
-        neg_col = f'{short}_负面'
-        agg[f'{short}_pos'] = (pos_col, 'mean')
-        agg[f'{short}_pos_sum'] = (pos_col, 'sum')
-        agg[f'{short}_neg'] = (neg_col, 'mean')
-        agg[f'{short}_neg_sum'] = (neg_col, 'sum')
-        agg[f'{short}_pos_std'] = (pos_col, 'std')
-        if short in THREE_CLASS_MODELS:
-            neu_col = f'{short}_中性'
-            agg[f'{short}_neu'] = (neu_col, 'mean')
-            agg[f'{short}_neu_sum'] = (neu_col, 'sum')
+        # --- D. BERT 逐模型 ---
+        for short in BERT_MODELS:
+            agg[f'{short}_pos{track}'] = (f'{short}_正面{track}', 'mean')
+            agg[f'{short}_pos_sum{track}'] = (f'{short}_正面{track}', 'sum')
+            agg[f'{short}_neg{track}'] = (f'{short}_负面{track}', 'mean')
+            agg[f'{short}_neg_sum{track}'] = (f'{short}_负面{track}', 'sum')
+            agg[f'{short}_pos_std{track}'] = (f'{short}_正面{track}', 'std')
+            if short in THREE_CLASS_MODELS:
+                agg[f'{short}_neu{track}'] = (f'{short}_中性{track}', 'mean')
+                agg[f'{short}_neu_sum{track}'] = (f'{short}_中性{track}', 'sum')
 
-    # --- E. 新闻覆盖量 & 稳健性辅助 ---
-    agg['n_articles'] = ('llm_vote_score', 'count')
+    # --- E. 新闻覆盖量 & 稳健性辅助（无需双轨） ---
+    agg['n_articles'] = ('llm_vote_score_full', 'count')
     agg['headline_frac'] = ('in_title', 'mean')
     agg['multi_bank_frac'] = ('is_multi_bank', 'mean')
     agg['avg_bank_count'] = ('bank_count', 'mean')
     agg['max_bank_count'] = ('bank_count', 'max')
-    agg['avg_agreement_rate'] = ('llm_agreement_rate', 'mean')
+    agg['avg_agreement_rate_full'] = ('llm_agreement_rate_full', 'mean')
+    agg['avg_agreement_rate_ctx'] = ('llm_agreement_rate_ctx', 'mean')
 
-    # tech_frac (is_fintech_news 可能不存在)
-    # 会在聚合后单独处理
+    # --- F. Value-weighted 辅助列 (Hassan 2019, Sautner 2023 范式) ---
+    agg['sum_mention_density'] = ('mention_density', 'sum')
+    agg['sum_doc_length'] = ('doc_length', 'sum')
+    agg['sum_target_mentions'] = ('target_bank_mention_count', 'sum')
+    for track in ['_full', '_ctx']:
+        agg[f'llm_vote_score_w_sum{track}'] = (f'llm_vote_score_w{track}', 'sum')
+        agg[f'llm_vote_cont_w_sum{track}'] = (f'llm_vote_cont_w{track}', 'sum')
+        agg[f'pos_count_vw{track}'] = (f'is_positive_w{track}', 'sum')
+        agg[f'neg_count_vw{track}'] = (f'is_negative_w{track}', 'sum')
+        for short in LLM_MODELS:
+            agg[f'{short}_score_w_sum{track}'] = (f'{short}_score_w{track}', 'sum')
+            agg[f'{short}_cont_w_sum{track}'] = (f'{short}_cont_w{track}', 'sum')
+        for d in DICT_NAMES:
+            agg[f'{d}_score_w_sum{track}'] = (f'{d}_score_w{track}', 'sum')
+        for b in BERT_MODELS:
+            agg[f'{b}_正面_w_sum{track}'] = (f'{b}_正面_w{track}', 'sum')
+            agg[f'{b}_负面_w_sum{track}'] = (f'{b}_负面_w{track}', 'sum')
 
     return agg
 
@@ -259,6 +274,31 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # 新闻覆盖量对数
     panel['ln_news_coverage'] = np.log1p(panel['n_articles'])
 
+    # --- Value-weighted Tone 计算 (VW, Hassan 2019 范式, 双轨) ---
+    if 'sum_mention_density' in panel.columns:
+        denom = panel['sum_mention_density'].replace(0, np.nan)
+        for track in ['_full', '_ctx']:
+            if f'llm_vote_score_w_sum{track}' in panel.columns:
+                panel[f'llm_vote_tone_vw{track}'] = panel[f'llm_vote_score_w_sum{track}'] / denom
+            if f'llm_vote_cont_w_sum{track}' in panel.columns:
+                panel[f'llm_vote_cont_vw{track}'] = panel[f'llm_vote_cont_w_sum{track}'] / denom
+            for short in LLM_MODELS:
+                w_col = f'{short}_score_w_sum{track}'
+                if w_col in panel.columns:
+                    panel[f'{short}_tone_vw{track}'] = panel[w_col] / denom
+            for d in DICT_NAMES:
+                w_col = f'{d}_score_w_sum{track}'
+                if w_col in panel.columns:
+                    panel[f'{d}_tone_vw{track}'] = panel[w_col] / denom
+            for b in BERT_MODELS:
+                w_pos = f'{b}_正面_w_sum{track}'
+                w_neg = f'{b}_负面_w_sum{track}'
+                if w_pos in panel.columns:
+                    panel[f'{b}_pos_vw{track}'] = panel[w_pos] / denom
+                if w_neg in panel.columns:
+                    panel[f'{b}_neg_vw{track}'] = panel[w_neg] / denom
+        logger.info(f"  已计算 Value-weighted Tone 指标（双轨）")
+
     logger.info(f"  聚合后面板行数: {panel.shape[0]:,}")
     logger.info(f"  唯一银行数: {panel['target_bank'].nunique()}")
     logger.info(f"  年份范围: {panel['year'].min()} - {panel['year'].max()}")
@@ -293,7 +333,9 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     # 填充为 0 的列: 计数类和流量类
     zero_fill_patterns = ['n_articles', 'ln_news_coverage', 'media_breadth']
     sum_cols = [c for c in panel.columns if c.endswith('_sum')]
-    count_cols = ['pos_count', 'neg_count']
+    count_cols = ['pos_count', 'neg_count',
+                  'pos_count_vw', 'neg_count_vw',
+                  'sum_mention_density', 'sum_doc_length', 'sum_target_mentions']
     zero_fill_cols = zero_fill_patterns + sum_cols + count_cols
 
     for col in zero_fill_cols:
@@ -328,46 +370,34 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         return pd.Series(np.nan, index=panel.index)
 
     # --- LLM 逐模型综合 ---
-    llm_tone_cols = [f'{s}_tone' for s in LLM_MODELS]
-    llm_tone_sum_cols = [f'{s}_tone_sum' for s in LLM_MODELS]
-    llm_cont_cols = [f'{s}_cont_mean' for s in LLM_MODELS]
-    llm_cont_sum_cols = [f'{s}_cont_sum' for s in LLM_MODELS]
-    llm_std_cols = [f'{s}_tone_std' for s in LLM_MODELS]
+    for track in ['_full', '_ctx']:
+        panel[f'llm_models_avg_tone{track}'] = _safe_mean([f'{s}_tone{track}' for s in LLM_MODELS])
+        panel[f'llm_models_avg_tone_sum{track}'] = _safe_mean([f'{s}_tone_sum{track}' for s in LLM_MODELS])
+        panel[f'llm_models_avg_cont{track}'] = _safe_mean([f'{s}_cont_mean{track}' for s in LLM_MODELS])
+        panel[f'llm_models_avg_cont_sum{track}'] = _safe_mean([f'{s}_cont_sum{track}' for s in LLM_MODELS])
+        panel[f'llm_models_avg_tone_std{track}'] = _safe_mean([f'{s}_tone_std{track}' for s in LLM_MODELS])
 
-    panel['llm_models_avg_tone'] = _safe_mean(llm_tone_cols)
-    panel['llm_models_avg_tone_sum'] = _safe_mean(llm_tone_sum_cols)
-    panel['llm_models_avg_cont'] = _safe_mean(llm_cont_cols)
-    panel['llm_models_avg_cont_sum'] = _safe_mean(llm_cont_sum_cols)
-    panel['llm_models_avg_tone_std'] = _safe_mean(llm_std_cols)
+        # --- 词典法综合 ---
+        panel[f'dict_avg_tone{track}'] = _safe_mean([f'{d}_tone{track}' for d in DICT_NAMES])
+        panel[f'dict_avg_tone_sum{track}'] = _safe_mean([f'{d}_tone_sum{track}' for d in DICT_NAMES])
+        panel[f'dict_avg_tone_std{track}'] = _safe_mean([f'{d}_tone_std{track}' for d in DICT_NAMES])
 
-    # --- 词典法综合 ---
-    dict_tone_cols = [f'{d}_tone' for d in DICT_NAMES]
-    dict_tone_sum_cols = [f'{d}_tone_sum' for d in DICT_NAMES]
-    dict_std_cols = [f'{d}_tone_std' for d in DICT_NAMES]
+        # --- BERT 综合 ---
+        panel[f'bert_avg_pos{track}'] = _safe_mean([f'{b}_pos{track}' for b in BERT_MODELS])
+        panel[f'bert_avg_neg{track}'] = _safe_mean([f'{b}_neg{track}' for b in BERT_MODELS])
+        panel[f'bert_avg_neu{track}'] = _safe_mean([f'{b}_neu{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
+        panel[f'bert_avg_pos_sum{track}'] = _safe_mean([f'{b}_pos_sum{track}' for b in BERT_MODELS])
+        panel[f'bert_avg_neg_sum{track}'] = _safe_mean([f'{b}_neg_sum{track}' for b in BERT_MODELS])
+        panel[f'bert_avg_neu_sum{track}'] = _safe_mean([f'{b}_neu_sum{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
+        panel[f'bert_avg_pos_std{track}'] = _safe_mean([f'{b}_pos_std{track}' for b in BERT_MODELS])
 
-    panel['dict_avg_tone'] = _safe_mean(dict_tone_cols)
-    panel['dict_avg_tone_sum'] = _safe_mean(dict_tone_sum_cols)
-    panel['dict_avg_tone_std'] = _safe_mean(dict_std_cols)
+        # --- VW 综合指标 ---
+        panel[f'llm_models_avg_tone_vw{track}'] = _safe_mean([f'{s}_tone_vw{track}' for s in LLM_MODELS])
+        panel[f'dict_avg_tone_vw{track}'] = _safe_mean([f'{d}_tone_vw{track}' for d in DICT_NAMES])
+        panel[f'bert_avg_pos_vw{track}'] = _safe_mean([f'{b}_pos_vw{track}' for b in BERT_MODELS])
+        panel[f'bert_avg_neg_vw{track}'] = _safe_mean([f'{b}_neg_vw{track}' for b in BERT_MODELS])
 
-    # --- BERT 综合 ---
-    bert_pos_cols = [f'{b}_pos' for b in BERT_MODELS]
-    bert_neg_cols = [f'{b}_neg' for b in BERT_MODELS]
-    bert_neu_cols = [f'{b}_neu' for b in BERT_MODELS if b in THREE_CLASS_MODELS]
-    bert_pos_sum_cols = [f'{b}_pos_sum' for b in BERT_MODELS]
-    bert_neg_sum_cols = [f'{b}_neg_sum' for b in BERT_MODELS]
-    bert_neu_sum_cols = [f'{b}_neu_sum' for b in BERT_MODELS if b in THREE_CLASS_MODELS]
-    bert_pos_std_cols = [f'{b}_pos_std' for b in BERT_MODELS]
-
-    panel['bert_avg_pos'] = _safe_mean(bert_pos_cols)
-    panel['bert_avg_neg'] = _safe_mean(bert_neg_cols)
-    panel['bert_avg_neu'] = _safe_mean(bert_neu_cols)
-    panel['bert_avg_pos_sum'] = _safe_mean(bert_pos_sum_cols)
-    panel['bert_avg_neg_sum'] = _safe_mean(bert_neg_sum_cols)
-    panel['bert_avg_neu_sum'] = _safe_mean(bert_neu_sum_cols)
-    panel['bert_avg_pos_std'] = _safe_mean(bert_pos_std_cols)
-
-    composite_count = 15  # 以上共 15 个综合指标
-    logger.info(f"  生成综合指标: {composite_count} 个")
+    logger.info(f"  生成双轨综合指标完成")
     return panel
 
 
@@ -398,8 +428,8 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         logger.info(f"    mean={desc['mean']:.1f}, median={desc['50%']:.0f}, "
                     f"max={desc['max']:.0f}, std={desc['std']:.1f}")
 
-    if 'llm_vote_tone' in panel.columns:
-        valid_tone = panel['llm_vote_tone'].dropna()
+    if 'llm_vote_tone_full' in panel.columns:
+        valid_tone = panel['llm_vote_tone_full'].dropna()
         if len(valid_tone) > 0:
             logger.info(f"  LLM 投票情感强度: mean={valid_tone.mean():.4f}, "
                         f"std={valid_tone.std():.4f}")
@@ -493,7 +523,7 @@ def main():
     logger.info(f"  行数: {len(df):,}, 列数: {df.shape[1]}")
 
     # 校验关键列
-    required_cols = ['target_bank', 'llm_sentiment', '日期', 'llm_agreement_rate']
+    required_cols = ['target_bank', 'llm_sentiment_full', '日期', 'llm_agreement_rate_full']
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         logger.error(f"  缺失关键列: {missing}")
@@ -522,6 +552,41 @@ def main():
         df['in_title'] = df['target_bank_in_title'].astype(int)
     elif 'in_title' not in df.columns:
         df['in_title'] = 0
+
+    # --- 3b. 提及密度加权列预计算 (Value-weighted Exposure, Hassan 2019 QJE) ---
+    if 'mention_density' in df.columns:
+        logger.info("=" * 60)
+        logger.info("步骤 3b: 提及密度加权列预计算 (VW, 双轨)")
+        logger.info("=" * 60)
+        w = df['mention_density'].fillna(0)
+        for track in ['_full', '_ctx']:
+            # 情感离散/连续
+            df[f'llm_vote_score_w{track}'] = df[f'llm_vote_score{track}'] * w
+            df[f'llm_vote_cont_w{track}'] = df[f'llm_vote_cont{track}'] * w
+            # 频次
+            df[f'is_positive_w{track}'] = df[f'is_positive{track}'] * w
+            df[f'is_negative_w{track}'] = df[f'is_negative{track}'] * w
+            # LLM 逐模型
+            for short in LLM_MODELS:
+                for sfx in ['_score', '_cont']:
+                    src = f'{short}{sfx}{track}'
+                    if src in df.columns:
+                        df[f'{src}_w'] = df[src] * w
+            # 词典
+            for d in DICT_NAMES:
+                src = f'{d}_score{track}'
+                if src in df.columns:
+                    df[f'{src}_w'] = df[src] * w
+            # BERT
+            for b in BERT_MODELS:
+                for label in ['_正面', '_负面']:
+                    src = f'{b}{label}{track}'
+                    if src in df.columns:
+                        df[f'{src}_w'] = df[src] * w
+        vw_cols = [c for c in df.columns if c.endswith('_w')]
+        logger.info(f"  已生成 {len(vw_cols)} 个加权列")
+    else:
+        logger.info("  mention_density 列不存在, 跳过加权列预计算")
 
     # --- 4. 时间解析 ---
     df = parse_time(df)

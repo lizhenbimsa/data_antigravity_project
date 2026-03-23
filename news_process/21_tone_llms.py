@@ -1,5 +1,5 @@
 """
-21_tone_llms.py — 第二十一阶段：统一 LLM 语义精筛与情感分析
+21_tone_llms.py — 第二十一阶段：统一 LLM 语义精筛与情感分析（双轨版）
 =====================================================
 
 功能：
@@ -8,6 +8,9 @@
     采用多模型（如 gpt5nano, gemini3, claude4h）逐条并发请求，并使用多数投票（Majority Vote）
     合成最终共识，满足顶级学术期刊的交叉验证和三角验证标准。
     每条新闻独立请求各模型，通过信号量控制并发。
+
+    【双轨输入】每条新闻同时以全文 (_full) 和上下文片段 (_ctx) 两种输入分别请求模型，
+    生成两套完整的验证与情感判定结果，供下游消融研究和三角验证使用。
 
 输入：
     模块二前置输出的 `12_fintech_news.parquet`
@@ -29,6 +32,7 @@ from collections import Counter
 from utils.helpers import load_config, setup_logging, log_memory_usage, log_stage_summary, save_dataset
 
 from utils.canonicalization import canonicalize_topic
+from utils.entity_context import extract_entity_context, get_target_aliases
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -60,12 +64,18 @@ RETRY_DELAY = LLM_CONFIG.get('retry_delay', '')
 # ============================================================================
 
 async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Semaphore, 
-                          prompt: str, model_cfg: dict, row_idx: int) -> tuple:
+                          prompt: str, model_cfg: dict, row_idx: int, track: str) -> tuple:
     """异步请求单个模型的单篇文章，自带重试保护。
     
     model_cfg 结构示例：
         {model_name: ..., short_name: ..., base_url: ..., api_key: ...}
     每个模型可独立指定 base_url 和 api_key。
+
+    Args:
+        track: 'full' 或 'ctx'，标识本次请求使用的文本轨道。
+    
+    Returns:
+        tuple: (row_idx, model_id, result_text, track)
     """
     model_id = model_cfg['model_name']
     base_url = model_cfg.get('base_url', '')
@@ -94,7 +104,7 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                     if resp.status == 200:
                         data = await resp.json()
                         result_text = data['choices'][0]['message']['content']
-                        return row_idx, model_id, result_text
+                        return row_idx, model_id, result_text, track
                     elif resp.status in (429, 500, 502, 503, 504):
                         logger.warning(f"[{model_id}] API HTTP {resp.status} - 等待 {RETRY_DELAY}s 后重试...")
                         await asyncio.sleep(RETRY_DELAY)
@@ -111,18 +121,25 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
 
     # 所有重试均失败，返回 None 标记（区别于空 JSON，避免影响多数投票）
     logger.warning(f"[{model_id}] 行 {row_idx}: 所有 {MAX_RETRIES} 次重试均失败，该模型结果将从投票中排除")
-    return row_idx, model_id, None
+    return row_idx, model_id, None, track
 
 async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
-    """逐条并发执行 DataFrame 中所有行对所有配置模型的请求。
+    """逐条并发执行 DataFrame 中所有行对所有配置模型的双轨请求。
     
-    为每行 × 每模型生成独立 prompt，通过信号量控制并发数。
+    为每行 × 每模型 × 每轨道 生成独立 prompt，通过信号量控制并发数。
+    
+    Returns:
+        dict: {row_idx: {'full': {model_id: res_text}, 'ctx': {model_id: res_text}}}
     """
     semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
-    results_map = {i: {} for i in df.index}
+    results_map = {i: {'full': {}, 'ctx': {}} for i in df.index}
     
-    total_tasks = len(df) * len(models)
-    logger.info(f"逐条请求: {len(df)} 条新闻 × {len(models)} 模型 = {total_tasks} 个请求")
+    total_tasks = len(df) * len(models) * 2  # ×2 因为双轨
+    logger.info(f"逐条请求: {len(df)} 条新闻 × {len(models)} 模型 × 2 轨道 = {total_tasks} 个请求")
+    
+    # 上下文提取缓存
+    _bnf = CONFIG['paths'].get('bank_names_file', '')
+    _alias_cache = {}
     
     # 连接池优化：复用 TCP 连接 + keepalive，减少握手和 TLS 协商开销
     connector = aiohttp.TCPConnector(
@@ -131,34 +148,48 @@ async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
         enable_cleanup_closed=True,   # 自动清理已关闭连接
     )
     async with aiohttp.ClientSession(connector=connector) as session:
-        # 构建任务列表：每行 x 每模型
+        # 构建任务列表：每行 x 每轨道 x 每模型
         real_tasks = []
         for idx, row in df.iterrows():
-            prompt = PROMPT_TEMPLATE.format(
-                title=str(row.get('标题', '')),
-                content=str(row.get('内容', '')),
-                target_bank=str(row.get('target_bank', '')),
-                co_mentioned_banks=str(row.get('co_mentioned_banks', '无')),
-            )
-            for m in models:
-                real_tasks.append(fetch_llm_async(session, semaphore, prompt, m, idx))
+            content_full = str(row.get('内容', ''))
+            target_bank = str(row.get('target_bank', ''))
+            
+            # 上下文提取（含缓存 + 回退）
+            if target_bank:
+                if target_bank not in _alias_cache:
+                    _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
+                content_ctx = extract_entity_context(content_full, _alias_cache[target_bank])
+                if not content_ctx:
+                    content_ctx = content_full  # 回退公理
+            else:
+                content_ctx = content_full
+            
+            for track, content in [('full', content_full), ('ctx', content_ctx)]:
+                prompt = PROMPT_TEMPLATE.format(
+                    title=str(row.get('标题', '')),
+                    content=content,
+                    target_bank=target_bank,
+                    co_mentioned_banks=str(row.get('co_mentioned_banks', '无')),
+                )
+                for m in models:
+                    real_tasks.append(fetch_llm_async(session, semaphore, prompt, m, idx, track))
         
         completed = 0
         total = len(real_tasks)
         report_interval = max(1, total // 20)  # 每 5% 汇报一次
         next_report = report_interval
-        logger.info(f"📡 LLM 逐条请求开始: 共 {total} 个请求")
+        logger.info(f"📡 LLM 双轨逐条请求开始: 共 {total} 个请求")
         
         for coro in asyncio.as_completed(real_tasks):
-            row_idx, model_id, res_text = await coro
-            results_map[row_idx][model_id] = res_text
+            row_idx, model_id, res_text, track = await coro
+            results_map[row_idx][track][model_id] = res_text
             completed += 1
             if completed >= next_report or completed == total:
                 pct = completed / total * 100
                 logger.info(f"📡 LLM 请求进度: {completed}/{total} ({pct:.1f}%)")
                 next_report += report_interval
         
-        logger.info(f"📡 LLM 逐条请求完成: 共 {total} 个请求全部处理完毕")
+        logger.info(f"📡 LLM 双轨逐条请求完成: 共 {total} 个请求全部处理完毕")
     
     return results_map
 
@@ -196,9 +227,88 @@ def majority_vote_sentiment(sents: list) -> str:
         return "中性"
     return most_common[0][0]
 
+
+def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
+    """对某一轨道的模型响应进行解析和多数投票聚合。
+    
+    Args:
+        model_res_dict: {model_id: res_text} — 某一轨道的模型响应
+        models: 模型配置列表
+    
+    Returns:
+        tuple: (final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, n_failures)
+            per_model_parsed: {f'{short}_verified': v, ...} 的字典
+    """
+    v_votes = []
+    s_votes = []
+    topics = []
+    llm_categories = []
+    per_model_parsed = {}
+    n_failures = 0
+    
+    for m in models:
+        short = m['short_name']
+        m_id = m['model_name']
+        raw_text = model_res_dict.get(m_id, None)
+        
+        # None 表示该模型 API 调用失败，跳过投票
+        if raw_text is None:
+            n_failures += 1
+            per_model_parsed[f"{short}_verified"] = None
+            per_model_parsed[f"{short}_sentiment"] = None
+            per_model_parsed[f"{short}_verification_confidence"] = 0.0
+            per_model_parsed[f"{short}_sentiment_confidence"] = 0.0
+            continue
+        
+        jd = parse_json_response(raw_text)
+        
+        # 解析对应字段（安全处理 LLM 返回的字符串布尔值）
+        v = jd.get('is_bank_fintech_news', False)
+        if isinstance(v, str):
+            v = v.strip().lower() in ('true', '1', 'yes')
+        v = bool(v)
+        
+        s = jd.get('sentiment', '中性')
+        
+        # 若判别为伪，其情感严格规定为中性以防噪声
+        if not v:
+            s = "中性"
+            
+        v_votes.append(v)
+        s_votes.append(s)
+        
+        per_model_parsed[f"{short}_verified"] = v
+        per_model_parsed[f"{short}_sentiment"] = s
+        per_model_parsed[f"{short}_verification_confidence"] = jd.get('verification_confidence', 0.0)
+        per_model_parsed[f"{short}_sentiment_confidence"] = jd.get('sentiment_confidence', 0.0)
+        
+        # 同步提取 fintech_topic 和 fintech_category（复用已解析的 jd）
+        topic = jd.get('fintech_topic', None)
+        if topic and str(topic).strip().lower() not in ('null', 'none', ''):
+            topics.append(str(topic))
+        llm_cat = jd.get('fintech_category', None)
+        if llm_cat:
+            cat_str = str(llm_cat).strip().replace('；', ';')
+            for part in cat_str.split(';'):
+                part = part.strip()
+                if part in ('底层技术', '应用场景'):
+                    llm_categories.append(part)
+                    break
+    
+    final_v = majority_vote_bool(v_votes)
+    final_s = majority_vote_sentiment(s_votes) if final_v else "中性"
+    
+    # 计算一致性：有效投票中支持 majority 的比例
+    n_valid_votes = len(v_votes)
+    agree_v_count = sum(1 for x in v_votes if x == final_v)
+    agree_rate = agree_v_count / n_valid_votes if n_valid_votes > 0 else 0.0
+    
+    return final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, n_failures
+
+
 def main():
     stage_start = time.time()
-    logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
+    logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
     
     if not LLM_CONFIG.get('enabled', False):
         logger.info("统一 LLM 处理已在 config.yaml 中禁用。将透传输入数据。")
@@ -212,12 +322,23 @@ def main():
 
         df = pd.read_parquet(input_path)
 
-        # 添加空的 LLM 列，确保下游阶段不因缺列报错
-        df['llm_verified'] = True  # 禁用 LLM 时，视为全部保留
-        df['llm_sentiment'] = '中性'
-        df['llm_agreement_rate'] = 0.0
+        # 添加空的 LLM 双轨列，确保下游阶段不因缺列报错
+        df['llm_verified_full'] = True
+        df['llm_verified_ctx'] = True
+        df['llm_sentiment_full'] = '中性'
+        df['llm_sentiment_ctx'] = '中性'
+        df['llm_agreement_rate_full'] = 0.0
+        df['llm_agreement_rate_ctx'] = 0.0
         df['fintech_category'] = '应用场景'
         df['category_confidence'] = 0.0
+        # 逐模型虚拟列补全
+        for m in MODELS:
+            short = m['short_name']
+            for track in ['_full', '_ctx']:
+                df[f'{short}_verified{track}'] = True
+                df[f'{short}_sentiment{track}'] = '中性'
+                df[f'{short}_verification_confidence{track}'] = 0.0
+                df[f'{short}_sentiment_confidence{track}'] = 0.0
 
         output_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms', '21_tone_llms.parquet')
         output_path = os.path.join(CONFIG["paths"]["output_dir"], output_filename)
@@ -239,104 +360,75 @@ def main():
     logger.info(f"总计候选新闻: {len(df)}")
     log_memory_usage(logger, "数据加载完成")
     
-    # 异步并发大模型
-    logger.info(f"开始分发组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")
+    # 异步并发大模型（双轨）
+    logger.info(f"开始分发双轨组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")
     results_map = asyncio.run(run_all_llms(df, MODELS))
     
-    # 提取与投票
-    logger.info("开始聚合各模型 JSON 响应并执行多数投票三角验证...")
+    # 提取与投票（双轨）
+    logger.info("开始聚合各模型 JSON 响应并执行双轨多数投票三角验证...")
     
-    llm_verified_arr = []
-    llm_sentiment_arr = []
-    agreement_rate_arr = []
+    llm_verified_full_arr = []
+    llm_verified_ctx_arr = []
+    llm_sentiment_full_arr = []
+    llm_sentiment_ctx_arr = []
+    agreement_rate_full_arr = []
+    agreement_rate_ctx_arr = []
     fintech_category_arr = []
     category_confidence_arr = []
     
-    # 预分配每个模型的独立判断列表（批量赋值，避免逐行 df.at）
+    # 预分配每个模型 × 每轨道的独立判断列表
     per_model_cols = {}
     for m in MODELS:
         short = m['short_name']
-        per_model_cols[f"{short}_verified"] = []
-        per_model_cols[f"{short}_sentiment"] = []
-        per_model_cols[f"{short}_verification_confidence"] = []
-        per_model_cols[f"{short}_sentiment_confidence"] = []
+        for track in ['_full', '_ctx']:
+            per_model_cols[f"{short}_verified{track}"] = []
+            per_model_cols[f"{short}_sentiment{track}"] = []
+            per_model_cols[f"{short}_verification_confidence{track}"] = []
+            per_model_cols[f"{short}_sentiment_confidence{track}"] = []
     
     n_api_failures = 0
     
     for idx, row in df.iterrows():
-        model_res = results_map.get(idx, {})
-        v_votes = []
-        s_votes = []
-        topics = []
-        llm_categories = []  # LLM 直接返回的分类
+        row_results = results_map.get(idx, {'full': {}, 'ctx': {}})
+        
+        # ── Full 轨道聚合 ──
+        final_v_full, final_s_full, agree_rate_full, parsed_full, topics_full, llm_cats_full, n_fail_full = \
+            _aggregate_track(row_results.get('full', {}), MODELS)
+        n_api_failures += n_fail_full
+        
+        llm_verified_full_arr.append(final_v_full)
+        llm_sentiment_full_arr.append(final_s_full)
+        agreement_rate_full_arr.append(agree_rate_full)
         
         for m in MODELS:
             short = m['short_name']
-            m_id = m['model_name']
-            raw_text = model_res.get(m_id, None)
-            
-            # None 表示该模型 API 调用失败，跳过投票
-            if raw_text is None:
-                n_api_failures += 1
-                per_model_cols[f"{short}_verified"].append(None)
-                per_model_cols[f"{short}_sentiment"].append(None)
-                per_model_cols[f"{short}_verification_confidence"].append(0.0)
-                per_model_cols[f"{short}_sentiment_confidence"].append(0.0)
-                continue
-            
-            jd = parse_json_response(raw_text)
-            
-            # 解析对应字段（安全处理 LLM 返回的字符串布尔值）
-            v = jd.get('is_bank_fintech_news', False)
-            if isinstance(v, str):
-                v = v.strip().lower() in ('true', '1', 'yes')
-            v = bool(v)
-            
-            s = jd.get('sentiment', '中性')
-            
-            # 若判别为伪，其情感严格规定为中性以防噪声
-            if not v:
-                s = "中性"
-                
-            v_votes.append(v)
-            s_votes.append(s)
-            
-            per_model_cols[f"{short}_verified"].append(v)
-            per_model_cols[f"{short}_sentiment"].append(s)
-            per_model_cols[f"{short}_verification_confidence"].append(jd.get('verification_confidence', 0.0))
-            per_model_cols[f"{short}_sentiment_confidence"].append(jd.get('sentiment_confidence', 0.0))
-            
-            # 同步提取 fintech_topic 和 fintech_category（复用已解析的 jd）
-            topic = jd.get('fintech_topic', None)
-            if topic and str(topic).strip().lower() not in ('null', 'none', ''):
-                topics.append(str(topic))
-            llm_cat = jd.get('fintech_category', None)
-            if llm_cat:
-                cat_str = str(llm_cat).strip().replace('；', ';')
-                for part in cat_str.split(';'):
-                    part = part.strip()
-                    if part in ('底层技术', '应用场景'):
-                        llm_categories.append(part)
-                        break
-            
-        final_v = majority_vote_bool(v_votes)
-        final_s = majority_vote_sentiment(s_votes) if final_v else "中性"
+            per_model_cols[f"{short}_verified_full"].append(parsed_full.get(f"{short}_verified"))
+            per_model_cols[f"{short}_sentiment_full"].append(parsed_full.get(f"{short}_sentiment"))
+            per_model_cols[f"{short}_verification_confidence_full"].append(parsed_full.get(f"{short}_verification_confidence", 0.0))
+            per_model_cols[f"{short}_sentiment_confidence_full"].append(parsed_full.get(f"{short}_sentiment_confidence", 0.0))
         
-        # 计算一致性：有效投票中支持 majority 的比例
-        n_valid_votes = len(v_votes)
-        agree_v_count = sum(1 for x in v_votes if x == final_v)
-        agree_rate = agree_v_count / n_valid_votes if n_valid_votes > 0 else 0.0
+        # ── Ctx 轨道聚合 ──
+        final_v_ctx, final_s_ctx, agree_rate_ctx, parsed_ctx, topics_ctx, llm_cats_ctx, n_fail_ctx = \
+            _aggregate_track(row_results.get('ctx', {}), MODELS)
+        n_api_failures += n_fail_ctx
         
-        llm_verified_arr.append(final_v)
-        llm_sentiment_arr.append(final_s)
-        agreement_rate_arr.append(agree_rate)
+        llm_verified_ctx_arr.append(final_v_ctx)
+        llm_sentiment_ctx_arr.append(final_s_ctx)
+        agreement_rate_ctx_arr.append(agree_rate_ctx)
         
-        # 金融科技主题标准化分类
-        combined_topic = ' '.join(topics) if topics else ''
+        for m in MODELS:
+            short = m['short_name']
+            per_model_cols[f"{short}_verified_ctx"].append(parsed_ctx.get(f"{short}_verified"))
+            per_model_cols[f"{short}_sentiment_ctx"].append(parsed_ctx.get(f"{short}_sentiment"))
+            per_model_cols[f"{short}_verification_confidence_ctx"].append(parsed_ctx.get(f"{short}_verification_confidence", 0.0))
+            per_model_cols[f"{short}_sentiment_confidence_ctx"].append(parsed_ctx.get(f"{short}_sentiment_confidence", 0.0))
+        
+        # ── 金融科技主题标准化分类（仅基于 full 轨道） ──
+        combined_topic = ' '.join(topics_full) if topics_full else ''
         kw_category, kw_confidence = canonicalize_topic(combined_topic)
         
-        if llm_categories:
-            cat_votes = Counter(llm_categories)
+        if llm_cats_full:
+            cat_votes = Counter(llm_cats_full)
             llm_majority_cat = cat_votes.most_common(1)[0][0] if cat_votes else kw_category
             if llm_majority_cat == kw_category:
                 final_confidence = min(kw_confidence + 0.2, 1.0)
@@ -352,31 +444,37 @@ def main():
     for col_name, col_values in per_model_cols.items():
         df[col_name] = col_values
     
-    df['llm_verified'] = llm_verified_arr
-    df['llm_sentiment'] = llm_sentiment_arr
-    df['llm_agreement_rate'] = agreement_rate_arr
+    df['llm_verified_full'] = llm_verified_full_arr
+    df['llm_verified_ctx'] = llm_verified_ctx_arr
+    df['llm_sentiment_full'] = llm_sentiment_full_arr
+    df['llm_sentiment_ctx'] = llm_sentiment_ctx_arr
+    df['llm_agreement_rate_full'] = agreement_rate_full_arr
+    df['llm_agreement_rate_ctx'] = agreement_rate_ctx_arr
     df['fintech_category'] = fintech_category_arr
     df['category_confidence'] = category_confidence_arr
     
     if n_api_failures > 0:
         logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
     
-    # 统计分类分布
-    if df['llm_verified'].sum() > 0:
-        verified_df = df[df['llm_verified']]
+    # 统计分类分布（基于 full 轨道）
+    if df['llm_verified_full'].sum() > 0:
+        verified_df = df[df['llm_verified_full']]
         cat_counts = verified_df['fintech_category'].value_counts()
         for cat, cnt in cat_counts.items():
             logger.info(f"  金融科技分类 [{cat}]: {cnt}")
     
-    # 结果统计
+    # 结果统计（双轨对比）
     total_len = len(df)
-    passed_len = df['llm_verified'].sum()
-    logger.info(f"多数决判定为真: {passed_len}/{total_len} ({passed_len/total_len*100:.1f}%)")
-    
-    if passed_len > 0:
-        sent_counts = df[df['llm_verified']]['llm_sentiment'].value_counts()
-        for s_type, cnt in sent_counts.items():
-            logger.info(f"  [{s_type}]: {cnt} ({cnt/passed_len*100:.1f}%)")
+    for track in ['_full', '_ctx']:
+        ver_col = f'llm_verified{track}'
+        sent_col = f'llm_sentiment{track}'
+        passed_len = df[ver_col].sum()
+        logger.info(f"[{track}] 多数决判定为真: {passed_len}/{total_len} ({passed_len/total_len*100:.1f}%)")
+        
+        if passed_len > 0:
+            sent_counts = df[df[ver_col]][sent_col].value_counts()
+            for s_type, cnt in sent_counts.items():
+                logger.info(f"  [{track}] [{s_type}]: {cnt} ({cnt/passed_len*100:.1f}%)")
             
     # 保存全量结果（含 llm_verified=True 和 False），供验证模块使用
     full_output_filename = CONFIG.get('filenames', {}).get(
@@ -385,8 +483,8 @@ def main():
     save_dataset(df, full_output_path, logger)
     logger.info(f"全量 LLM 结果已保存: {full_output_path} ({len(df)} 行)")
 
-    # 过滤丢弃不相关的假新闻
-    df_filtered = df[df['llm_verified'] == True].copy()
+    # 过滤丢弃不相关的假新闻（基于 full 轨道）
+    df_filtered = df[df['llm_verified_full'] == True].copy()
     
     # ======================================================================
     # 4. 保存文件与报告

@@ -180,6 +180,11 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             )
             # 保留 matched_bank_names 以兼容下游过渡期
             new_row['matched_bank_names'] = ';'.join(all_qualified_names)
+            # --- 提及密度（Value-weighted Exposure, Hassan 2019 QJE）---
+            doc_len = max(len(str(row_data.get('内容', ''))), 1)
+            new_row['doc_length'] = doc_len
+            new_row['target_bank_mention_count'] = bank_info['total_count']
+            new_row['mention_density'] = bank_info['total_count'] / doc_len
             expanded_rows.append(new_row)
 
     # 构建展开后的 DataFrame
@@ -188,7 +193,8 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     else:
         # 边界情况：该批次无任何银行新闻
         extra_cols = ['is_bank_news', 'target_bank', 'co_mentioned_banks',
-                      'target_bank_in_title', 'matched_banks_info', 'matched_bank_names']
+                      'target_bank_in_title', 'matched_banks_info', 'matched_bank_names',
+                      'doc_length', 'target_bank_mention_count', 'mention_density']
         df = pd.DataFrame(columns=original_columns + extra_cols)
 
     # 统计

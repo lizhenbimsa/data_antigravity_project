@@ -465,7 +465,7 @@ def _analyze_single_article(content: str) -> dict:
 # ============================================================================
 
 def classify_batch(df_batch: pd.DataFrame) -> tuple:
-    """对单个批次执行词典法情感分析。
+    """对单个批次执行词典法双轨情感分析（全文 + 上下文片段）。
 
     Args:
         df_batch: 待分析的 DataFrame 批次。
@@ -475,9 +475,10 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     """
     stats = {'total': 0}
     for dict_name, _ in ALL_DICTIONARIES:
-        stats[f'{dict_name}_正面'] = 0
-        stats[f'{dict_name}_中性'] = 0
-        stats[f'{dict_name}_负面'] = 0
+        for track in ['_full', '_ctx']:
+            stats[f'{dict_name}_正面{track}'] = 0
+            stats[f'{dict_name}_中性{track}'] = 0
+            stats[f'{dict_name}_负面{track}'] = 0
 
     if df_batch.empty:
         return df_batch, stats
@@ -485,34 +486,53 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     df = df_batch.copy()
     stats['total'] = len(df)
 
-    # 对每篇文章执行实体特异性上下文分析
+    # 对每篇文章执行双轨实体特异性上下文分析
     from utils.entity_context import extract_entity_context, get_target_aliases
     _bnf = CONFIG['paths'].get('bank_names_file', '')
     _ac = {}
 
-    def _ctx_analyze(row):
+    def _dual_analyze(row):
         t = row.get('target_bank', '')
-        c = str(row.get('内容', ''))
+        content_full = str(row.get('内容', ''))
+
+        # 上下文提取（含回退）
         if t:
             if t not in _ac:
                 _ac[t] = get_target_aliases(t, _bnf)
-            ctx = extract_entity_context(c, _ac[t])
-            return _analyze_single_article(ctx if ctx else c)
-        return _analyze_single_article(c)
+            content_ctx = extract_entity_context(content_full, _ac[t])
+            if not content_ctx:
+                content_ctx = content_full  # 回退公理
+        else:
+            content_ctx = content_full
 
-    results = df.apply(_ctx_analyze, axis=1)
+        res_full = _analyze_single_article(content_full)
+        res_ctx = _analyze_single_article(content_ctx)
 
-    # 提取各列
+        # 合并：为每个键追加轨道后缀
+        merged = {}
+        for k, v in res_full.items():
+            merged[f'{k}_full'] = v
+        for k, v in res_ctx.items():
+            merged[f'{k}_ctx'] = v
+        return merged
+
+    results = df.apply(_dual_analyze, axis=1)
+
+    # 提取各列（双轨）
     for dict_name, _ in ALL_DICTIONARIES:
-        df[f'{dict_name}_score'] = results.apply(lambda r: r.get(f'{dict_name}_score', 0.0))
-        df[f'{dict_name}_label'] = results.apply(lambda r: r.get(f'{dict_name}_label', '中性'))
+        for track in ['_full', '_ctx']:
+            df[f'{dict_name}_score{track}'] = results.apply(
+                lambda r: r.get(f'{dict_name}_score{track}', 0.0))
+            df[f'{dict_name}_label{track}'] = results.apply(
+                lambda r: r.get(f'{dict_name}_label{track}', '中性'))
 
-        label_counts = df[f'{dict_name}_label'].value_counts()
-        stats[f'{dict_name}_正面'] = int(label_counts.get('正面', 0))
-        stats[f'{dict_name}_中性'] = int(label_counts.get('中性', 0))
-        stats[f'{dict_name}_负面'] = int(label_counts.get('负面', 0))
+            label_counts = df[f'{dict_name}_label{track}'].value_counts()
+            stats[f'{dict_name}_正面{track}'] = int(label_counts.get('正面', 0))
+            stats[f'{dict_name}_中性{track}'] = int(label_counts.get('中性', 0))
+            stats[f'{dict_name}_负面{track}'] = int(label_counts.get('负面', 0))
 
-    df['sentiment_details'] = results.apply(lambda r: r.get('sentiment_details', ''))
+    df['sentiment_details_full'] = results.apply(lambda r: r.get('sentiment_details_full', ''))
+    df['sentiment_details_ctx'] = results.apply(lambda r: r.get('sentiment_details_ctx', ''))
 
     return df, stats
 
@@ -528,28 +548,32 @@ def merge_stats(stats_list: list) -> dict:
     """
     merged = {'total': 0}
     for dict_name, _ in ALL_DICTIONARIES:
-        merged[f'{dict_name}_正面'] = 0
-        merged[f'{dict_name}_中性'] = 0
-        merged[f'{dict_name}_负面'] = 0
+        for track in ['_full', '_ctx']:
+            merged[f'{dict_name}_正面{track}'] = 0
+            merged[f'{dict_name}_中性{track}'] = 0
+            merged[f'{dict_name}_负面{track}'] = 0
 
     for s in stats_list:
         merged['total'] += s['total']
         for dict_name, _ in ALL_DICTIONARIES:
-            merged[f'{dict_name}_正面'] += s.get(f'{dict_name}_正面', 0)
-            merged[f'{dict_name}_中性'] += s.get(f'{dict_name}_中性', 0)
-            merged[f'{dict_name}_负面'] += s.get(f'{dict_name}_负面', 0)
+            for track in ['_full', '_ctx']:
+                merged[f'{dict_name}_正面{track}'] += s.get(f'{dict_name}_正面{track}', 0)
+                merged[f'{dict_name}_中性{track}'] += s.get(f'{dict_name}_中性{track}', 0)
+                merged[f'{dict_name}_负面{track}'] += s.get(f'{dict_name}_负面{track}', 0)
     return merged
 
 
-def log_classification_report(stats: dict, logger):
+def log_classification_report(stats: dict, logger, track_suffix: str = ''):
     """输出词典法情感分析统计报告。
 
     Args:
-        stats:  合并后的统计字典。
-        logger: 日志记录器。
+        stats:         合并后的统计字典。
+        logger:        日志记录器。
+        track_suffix:  轨道后缀 ('_full' 或 '_ctx')，用于区分报告。
     """
+    track_label = '全文' if track_suffix == '_full' else '上下文片段' if track_suffix == '_ctx' else ''
     logger.info("=" * 70)
-    logger.info("===      词典法情感分析统计报告      ===")
+    logger.info(f"===      词典法情感分析统计报告 [{track_label}]      ===")
     logger.info("=" * 70)
 
     total = stats['total']
@@ -566,9 +590,9 @@ def log_classification_report(stats: dict, logger):
     logger.info("-" * 70)
 
     for dict_name, d in ALL_DICTIONARIES:
-        pos = stats.get(f'{dict_name}_正面', 0)
-        neu = stats.get(f'{dict_name}_中性', 0)
-        neg = stats.get(f'{dict_name}_负面', 0)
+        pos = stats.get(f'{dict_name}_正面{track_suffix}', 0)
+        neu = stats.get(f'{dict_name}_中性{track_suffix}', 0)
+        neg = stats.get(f'{dict_name}_负面{track_suffix}', 0)
         pos_pct = f"{pos / total * 100:.1f}%" if total > 0 else "N/A"
         neu_pct = f"{neu / total * 100:.1f}%" if total > 0 else "N/A"
         neg_pct = f"{neg / total * 100:.1f}%" if total > 0 else "N/A"
@@ -636,26 +660,29 @@ def main():
     # 合并全部结果
     processed_df = pd.concat(processed_dfs, ignore_index=True)
 
-    # P1-4: 为每个词典的得分列添加 Z-score 标准化列
+    # P1-4: 为每个词典的得分列添加 Z-score 标准化列（双轨独立计算）
     # 解决跨词典量纲不一致问题，供 34_tone_validation.py 的 Cronbach's Alpha 分析使用
+    # 注意：_full 和 _ctx 的 μ 和 σ 必须独立计算，因文本长度差异导致数值分布本质不同
     for dict_name, _ in ALL_DICTIONARIES:
-        score_col = f"{dict_name}_score"
-        zscore_col = f"{dict_name}_zscore"
-        if score_col in processed_df.columns:
-            mean_val = processed_df[score_col].mean()
-            std_val = processed_df[score_col].std()
-            if std_val > 0:
-                processed_df[zscore_col] = (processed_df[score_col] - mean_val) / std_val
-            else:
-                processed_df[zscore_col] = 0.0
-            logger.info(f"  {dict_name}: Z-score 标准化完成 (μ={mean_val:.4f}, σ={std_val:.4f})")
+        for track in ['_full', '_ctx']:
+            score_col = f"{dict_name}_score{track}"
+            zscore_col = f"{dict_name}_zscore{track}"
+            if score_col in processed_df.columns:
+                mean_val = processed_df[score_col].mean()
+                std_val = processed_df[score_col].std()
+                if std_val > 0:
+                    processed_df[zscore_col] = (processed_df[score_col] - mean_val) / std_val
+                else:
+                    processed_df[zscore_col] = 0.0
+                logger.info(f"  {dict_name} [{track}]: Z-score 标准化完成 (μ={mean_val:.4f}, σ={std_val:.4f})")
 
     processed_df.to_parquet(output_path, index=False)
 
-    # 统计报告
+    # 统计报告（双轨分别打印）
     if all_stats:
         merged_stats = merge_stats(all_stats)
-        log_classification_report(merged_stats, logger)
+        log_classification_report(merged_stats, logger, track_suffix='_full')
+        log_classification_report(merged_stats, logger, track_suffix='_ctx')
 
 
 
@@ -665,7 +692,7 @@ def main():
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=input_rows, output_rows=len(processed_df))
-    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")
+    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (双轨模式) ---")
 
 
 if __name__ == "__main__":

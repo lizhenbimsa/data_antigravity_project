@@ -495,32 +495,18 @@ class MultiModelSentimentEngine:
 # 4. 批量处理协调器
 # ============================================================================
 
-def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine) -> dict:
+def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, content_list: list) -> dict:
     """使用多模型引擎对全部数据进行批量推理。
 
     Args:
-        df:     包含"内容"列的 DataFrame。
-        engine: 已加载全部模型的多模型引擎。
+        df:           包含"内容"列的 DataFrame。
+        engine:       已加载全部模型的多模型引擎。
+        content_list: 预构建的文本列表（全文或上下文片段）。
 
     Returns:
         dict: {short_name: {'columns': {...}, 'stats': {...}}}
     """
     total = len(df)
-    # 构建实体特异性上下文列表
-    from utils.entity_context import extract_entity_context, get_target_aliases
-    _bnf = CONFIG['paths'].get('bank_names_file', '')
-    _ac = {}
-    content_list = []
-    for _, row in df.iterrows():
-        t = row.get('target_bank', '')
-        raw = str(row.get('内容', ''))
-        if t:
-            if t not in _ac:
-                _ac[t] = get_target_aliases(t, _bnf)
-            ctx = extract_entity_context(raw, _ac[t])
-            content_list.append(ctx if ctx else raw)
-        else:
-            content_list.append(raw)
 
     # 初始化收集器
     model_results_all = {}
@@ -726,24 +712,56 @@ def main():
         return
     log_memory_usage(logger, "全部模型加载后")
 
-    # ── Step 2: 批量推理 ──
+    # ── Step 1b: 构建双轨文本列表 ──
+    from utils.entity_context import extract_entity_context, get_target_aliases
+    _bnf = CONFIG['paths'].get('bank_names_file', '')
+    _alias_cache = {}
+
+    content_full_list = []
+    content_ctx_list = []
+    for _, row in df.iterrows():
+        raw = str(row.get('内容', ''))
+        content_full_list.append(raw)
+
+        target_bank = str(row.get('target_bank', ''))
+        if target_bank:
+            if target_bank not in _alias_cache:
+                _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
+            ctx = extract_entity_context(raw, _alias_cache[target_bank])
+            content_ctx_list.append(ctx if ctx else raw)  # 回退公理
+        else:
+            content_ctx_list.append(raw)
+
+    logger.info(f"双轨文本列表构建完成: full={len(content_full_list)}, ctx={len(content_ctx_list)}")
+
+    # ── Step 2: 双轨批量推理（物理隔离，防止 OOM） ──
     logger.info("=" * 50)
-    logger.info("开始多模型批量推理...")
-    output = process_all_models(df, engine)
+    logger.info("开始多模型双轨批量推理...")
 
-    # ── Step 3: 将结果写回 DataFrame ──
-    for mc in MODEL_CONFIGS:
-        sn = mc['short_name']
-        if sn in output:
-            for col_name, col_data in output[sn]['columns'].items():
-                df[col_name] = col_data
+    logger.info("启动 [_ctx] 轨道推理...")
+    output_ctx = process_all_models(df, engine, content_ctx_list)
 
-    # ── Step 3b: 写入 BERT 窗口数列（供下游分层分析使用） ──
+    logger.info("启动 [_full] 轨道推理...")
+    output_full = process_all_models(df, engine, content_full_list)
+
+    # ── Step 3: 将双轨结果写回 DataFrame（带后缀） ──
+    for out_dict, suffix in [(output_ctx, '_ctx'), (output_full, '_full')]:
+        for mc in MODEL_CONFIGS:
+            sn = mc['short_name']
+            if sn in out_dict:
+                for col_name, col_data in out_dict[sn]['columns'].items():
+                    df[f"{col_name}{suffix}"] = col_data
+
+    # ── Step 3b: 写入 BERT 窗口数列（双轨，供下游分层分析使用） ──
     _first_sn = next((mc['short_name'] for mc in MODEL_CONFIGS
-                      if mc['short_name'] in output), None)
-    if _first_sn and 'num_windows_list' in output[_first_sn]:
-        df['bert_num_windows'] = output[_first_sn]['num_windows_list']
-        logger.info(f"  已写入 bert_num_windows 列 (基于模型: {_first_sn})")
+                      if mc['short_name'] in output_full), None)
+    if _first_sn:
+        if _first_sn in output_ctx and 'num_windows_list' in output_ctx[_first_sn]:
+            df['bert_num_windows_ctx'] = output_ctx[_first_sn]['num_windows_list']
+            logger.info(f"  已写入 bert_num_windows_ctx 列 (基于模型: {_first_sn})")
+        if _first_sn in output_full and 'num_windows_list' in output_full[_first_sn]:
+            df['bert_num_windows_full'] = output_full[_first_sn]['num_windows_list']
+            logger.info(f"  已写入 bert_num_windows_full 列 (基于模型: {_first_sn})")
 
     # ── Step 4: 保存输出 ──
     df.to_parquet(output_path, index=False)
@@ -753,8 +771,11 @@ def main():
     engine.unload_all()
     log_memory_usage(logger, "模型释放后")
 
-    # ── 打印统计报告 ──
-    log_classification_report(output, len(df))
+    # ── 打印统计报告（双轨分别打印） ──
+    logger.info("=== [_ctx] 轨道统计 ===")
+    log_classification_report(output_ctx, len(df))
+    logger.info("=== [_full] 轨道统计 ===")
+    log_classification_report(output_full, len(df))
 
     # ── 生成预览 CSV ──
     preview_path = output_path.replace('.parquet', '.csv')
@@ -762,7 +783,7 @@ def main():
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=input_rows, output_rows=len(df))
-    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")
+    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (双轨模式) ---")
 
 
 if __name__ == "__main__":

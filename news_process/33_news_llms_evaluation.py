@@ -634,26 +634,38 @@ def main():
     logger.info(f"    Macro F1:  {rule_metrics['macro']['f1']:.4f}")
     logger.info(f"    Accuracy:  {rule_metrics['accuracy']:.4f}")
 
-    # LLM 分类器
-    if 'llm_verified' in df_eval_ver.columns:
-        y_pred_llm = df_eval_ver['llm_verified'].fillna(False).astype(int).values
-        llm_metrics = compute_classification_metrics(y_gold_ver, y_pred_llm, labels=[0, 1])
-        results['classifier_metrics']['verification'].update({'LLM 验证 (LLM-Verified)': llm_metrics})
+    # LLM 分类器（双轨对比）
+    y_pred_llm_tracks = {}
+    for track in ['_full', '_ctx']:
+        ver_col = f'llm_verified{track}'
+        if ver_col in df_eval_ver.columns:
+            y_pred_llm = df_eval_ver[ver_col].fillna(False).astype(int).values
+            y_pred_llm_tracks[track] = y_pred_llm
+            llm_metrics = compute_classification_metrics(y_gold_ver, y_pred_llm, labels=[0, 1])
+            results['classifier_metrics']['verification'][f'LLM 验证 ({track})'] = llm_metrics
 
-        logger.info("  LLM 语义精筛:")
-        logger.info(f"    Macro Precision: {llm_metrics['macro']['precision']:.4f}")
-        logger.info(f"    Macro Recall:    {llm_metrics['macro']['recall']:.4f}")
-        logger.info(f"    Macro F1:  {llm_metrics['macro']['f1']:.4f}")
-        logger.info(f"    Accuracy:  {llm_metrics['accuracy']:.4f}")
+            logger.info(f"  LLM 语义精筛 [{track}]:")
+            logger.info(f"    Macro Precision: {llm_metrics['macro']['precision']:.4f}")
+            logger.info(f"    Macro Recall:    {llm_metrics['macro']['recall']:.4f}")
+            logger.info(f"    Macro F1:  {llm_metrics['macro']['f1']:.4f}")
+            logger.info(f"    Accuracy:  {llm_metrics['accuracy']:.4f}")
 
-        save_confusion_matrix_plot(
-            llm_metrics, 'LLM 语义精筛验证',
-            os.path.join(output_dir, 'cm_verification_llm.png'), logger
-        )
+            save_confusion_matrix_plot(
+                llm_metrics, f'LLM 语义精筛验证 {track}',
+                os.path.join(output_dir, f'cm_verification_llm{track}.png'), logger
+            )
 
-        mcnemar = compute_mcnemar_test(y_gold_ver, y_pred_rule, y_pred_llm)
-        results.update({'mcnemar_test': mcnemar})
-        logger.info(f"  McNemar p值: {mcnemar['p_value']:.6f}  {'显著' if mcnemar['significant'] else '不显著'}")
+    # McNemar: 规则 vs LLM_full
+    if '_full' in y_pred_llm_tracks:
+        mcnemar = compute_mcnemar_test(y_gold_ver, y_pred_rule, y_pred_llm_tracks['_full'])
+        results['mcnemar_rule_vs_llm_full'] = mcnemar
+        logger.info(f"  McNemar (规则 vs LLM_full) p值: {mcnemar['p_value']:.6f}  {'显著' if mcnemar['significant'] else '不显著'}")
+
+    # McNemar: full vs ctx
+    if '_full' in y_pred_llm_tracks and '_ctx' in y_pred_llm_tracks:
+        mcnemar_fc = compute_mcnemar_test(y_gold_ver, y_pred_llm_tracks['_full'], y_pred_llm_tracks['_ctx'])
+        results['mcnemar_full_vs_ctx'] = mcnemar_fc
+        logger.info(f"  McNemar (full vs ctx) p值: {mcnemar_fc['p_value']:.6f}  {'显著' if mcnemar_fc['significant'] else '不显著'}")
         
     # 4.1b === 各 LLM 模型独立验证评估 ===
     logger.info(">>> 评估各 LLM 模型独立验证性能")
@@ -663,27 +675,28 @@ def main():
     
     for m in model_list:
         short = m.get('short_name', '')
-        col_name = f"{short}_verified"
-        if col_name in df_eval_ver.columns:
-            y_pred_model = df_eval_ver[col_name].fillna(False)
-            if y_pred_model.dtype == object:
-                y_pred_model = y_pred_model.map(
-                    lambda x: 1 if str(x).strip().lower() in ('true', '1', 'yes') else 0
-                ).astype(int).values
+        for track in ['_full', '_ctx']:
+            col_name = f"{short}_verified{track}"
+            if col_name in df_eval_ver.columns:
+                y_pred_model = df_eval_ver[col_name].fillna(False)
+                if y_pred_model.dtype == object:
+                    y_pred_model = y_pred_model.map(
+                        lambda x: 1 if str(x).strip().lower() in ('true', '1', 'yes') else 0
+                    ).astype(int).values
+                else:
+                    y_pred_model = y_pred_model.astype(int).values
+                
+                model_metrics = compute_classification_metrics(y_gold_ver, y_pred_model, labels=[0, 1])
+                per_model_ver_results[f"{short}{track}"] = model_metrics
+                results['classifier_metrics']['verification'][f"{short}{track} (独立)"] = model_metrics
+                
+                logger.info(f"  {short}{track} 独立验证:")
+                logger.info(f"    Precision: {model_metrics['macro']['precision']:.4f}")
+                logger.info(f"    Recall:    {model_metrics['macro']['recall']:.4f}")
+                logger.info(f"    F1:        {model_metrics['macro']['f1']:.4f}")
+                logger.info(f"    Accuracy:  {model_metrics['accuracy']:.4f}")
             else:
-                y_pred_model = y_pred_model.astype(int).values
-            
-            model_metrics = compute_classification_metrics(y_gold_ver, y_pred_model, labels=[0, 1])
-            per_model_ver_results[short] = model_metrics
-            results['classifier_metrics']['verification'][f"{short} (独立)"] = model_metrics
-            
-            logger.info(f"  {short} 独立验证:")
-            logger.info(f"    Precision: {model_metrics['macro']['precision']:.4f}")
-            logger.info(f"    Recall:    {model_metrics['macro']['recall']:.4f}")
-            logger.info(f"    F1:        {model_metrics['macro']['f1']:.4f}")
-            logger.info(f"    Accuracy:  {model_metrics['accuracy']:.4f}")
-        else:
-            logger.info(f"  {short}: 列 {col_name} 不存在，跳过")
+                logger.info(f"  {short}{track}: 列 {col_name} 不存在，跳过")
     
     if per_model_ver_results:
         comparison_rows = []
@@ -709,45 +722,47 @@ def main():
         
         labels_sen = ['正面', '中性', '负面']
         
-        # LLM 情感评估
-        if 'llm_sentiment' in df_eval_sen.columns:
-            y_pred_llm_sen = df_eval_sen['llm_sentiment'].fillna('中性').astype(str).values
-            # 补齐未见过的分类到中性以防万一
-            y_pred_llm_sen = np.where(np.isin(y_pred_llm_sen, labels_sen), y_pred_llm_sen, '中性')
-            
-            llm_sen_metrics = compute_classification_metrics(y_gold_sen, y_pred_llm_sen, labels=labels_sen)
-            results['classifier_metrics']['sentiment'].update({'LLM 情感分析 (LLM-Tone)': llm_sen_metrics})
-            
-            logger.info("  LLM 情感分析:")
-            logger.info(f"    Macro Precision: {llm_sen_metrics['macro']['precision']:.4f}")
-            logger.info(f"    Macro Recall:    {llm_sen_metrics['macro']['recall']:.4f}")
-            logger.info(f"    Macro F1:  {llm_sen_metrics['macro']['f1']:.4f}")
-            logger.info(f"    Accuracy:  {llm_sen_metrics['accuracy']:.4f}")
-            
-            save_confusion_matrix_plot(
-                llm_sen_metrics, 'LLM 情感分析',
-                os.path.join(output_dir, 'cm_sentiment_llm.png'), logger
-            )
+        # LLM 情感评估（双轨对比）
+        for track in ['_full', '_ctx']:
+            sen_col = f'llm_sentiment{track}'
+            if sen_col in df_eval_sen.columns:
+                y_pred_llm_sen = df_eval_sen[sen_col].fillna('中性').astype(str).values
+                y_pred_llm_sen = np.where(np.isin(y_pred_llm_sen, labels_sen), y_pred_llm_sen, '中性')
+                
+                llm_sen_metrics = compute_classification_metrics(y_gold_sen, y_pred_llm_sen, labels=labels_sen)
+                results['classifier_metrics']['sentiment'][f'LLM 情感分析 ({track})'] = llm_sen_metrics
+                
+                logger.info(f"  LLM 情感分析 [{track}]:")
+                logger.info(f"    Macro Precision: {llm_sen_metrics['macro']['precision']:.4f}")
+                logger.info(f"    Macro Recall:    {llm_sen_metrics['macro']['recall']:.4f}")
+                logger.info(f"    Macro F1:  {llm_sen_metrics['macro']['f1']:.4f}")
+                logger.info(f"    Accuracy:  {llm_sen_metrics['accuracy']:.4f}")
+                
+                save_confusion_matrix_plot(
+                    llm_sen_metrics, f'LLM 情感分析 {track}',
+                    os.path.join(output_dir, f'cm_sentiment_llm{track}.png'), logger
+                )
         
         # 4.2b === 各 LLM 模型独立情感评估 ===
         logger.info(">>> 评估各 LLM 模型独立情感性能")
         per_model_sen_results = {}
         for m_cfg in model_list:
             short = m_cfg.get('short_name', '')
-            col_name = f"{short}_sentiment"
-            if col_name in df_eval_sen.columns:
-                y_pred_model_sen = df_eval_sen[col_name].fillna('中性').astype(str).values
-                y_pred_model_sen = np.where(np.isin(y_pred_model_sen, labels_sen), y_pred_model_sen, '中性')
-                model_sen_metrics = compute_classification_metrics(y_gold_sen, y_pred_model_sen, labels=labels_sen)
-                per_model_sen_results[short] = model_sen_metrics
-                results['classifier_metrics']['sentiment'][f"{short} (独立)"] = model_sen_metrics
-                logger.info(f"  {short} 独立情感:")
-                logger.info(f"    Precision: {model_sen_metrics['macro']['precision']:.4f}")
-                logger.info(f"    Recall:    {model_sen_metrics['macro']['recall']:.4f}")
-                logger.info(f"    F1:        {model_sen_metrics['macro']['f1']:.4f}")
-                logger.info(f"    Accuracy:  {model_sen_metrics['accuracy']:.4f}")
-            else:
-                logger.info(f"  {short}: 列 {col_name} 不存在，跳过")
+            for track in ['_full', '_ctx']:
+                col_name = f"{short}_sentiment{track}"
+                if col_name in df_eval_sen.columns:
+                    y_pred_model_sen = df_eval_sen[col_name].fillna('中性').astype(str).values
+                    y_pred_model_sen = np.where(np.isin(y_pred_model_sen, labels_sen), y_pred_model_sen, '中性')
+                    model_sen_metrics = compute_classification_metrics(y_gold_sen, y_pred_model_sen, labels=labels_sen)
+                    per_model_sen_results[f"{short}{track}"] = model_sen_metrics
+                    results['classifier_metrics']['sentiment'][f"{short}{track} (独立)"] = model_sen_metrics
+                    logger.info(f"  {short}{track} 独立情感:")
+                    logger.info(f"    Precision: {model_sen_metrics['macro']['precision']:.4f}")
+                    logger.info(f"    Recall:    {model_sen_metrics['macro']['recall']:.4f}")
+                    logger.info(f"    F1:        {model_sen_metrics['macro']['f1']:.4f}")
+                    logger.info(f"    Accuracy:  {model_sen_metrics['accuracy']:.4f}")
+                else:
+                    logger.info(f"  {short}{track}: 列 {col_name} 不存在，跳过")
         
         if per_model_sen_results:
             sen_comparison_rows = []
@@ -869,8 +884,10 @@ def _generate_demo_data(n=200) -> pd.DataFrame:
         '标题': [f'模拟新闻标题_{i}' for i in range(1, n + 1)],
         '内容': [f'模拟新闻内容_{i}' for i in range(1, n + 1)],
         
-        'llm_verified': llm_verified,
-        'llm_sentiment': llm_sentiment,
+        'llm_verified_full': llm_verified,
+        'llm_verified_ctx': llm_verified,
+        'llm_sentiment_full': llm_sentiment,
+        'llm_sentiment_ctx': llm_sentiment,
         
         '编码者A_验证': coder_a_ver,
         '编码者A_情感': coder_a_sen,
@@ -885,7 +902,7 @@ def _generate_demo_data(n=200) -> pd.DataFrame:
         '裁定备注': '',
     })
 
-    # 生成各模型独立列的模拟数据（用于 P1-5 各模型独立评估）
+    # 生成各模型独立列的模拟数据（双轨）
     try:
         config = load_config()
         model_list = config.get('tone_llm_processing', {}).get('models', [])
@@ -896,22 +913,23 @@ def _generate_demo_data(n=200) -> pd.DataFrame:
         short = m.get('short_name', '')
         if not short:
             continue
-        # 各模型独立验证：以不同噪声率模拟（10%-20%）
-        noise_rate = rng.uniform(0.10, 0.20)
-        model_ver = np.where(rng.binomial(1, noise_rate, n), 1 - gold_ver, gold_ver).astype(bool)
-        df[f'{short}_verified'] = model_ver
-        # 各模型独立情感
-        model_sen = []
-        noise_model = rng.binomial(1, noise_rate, n)
-        for i in range(n):
-            if noise_model[i]:
-                model_sen.append(rng.choice([x for x in labels if x != gold_sen[i]]))
-            else:
-                model_sen.append(gold_sen[i])
-        df[f'{short}_sentiment'] = model_sen
-        # 各模型置信度
-        df[f'{short}_verification_confidence'] = rng.uniform(0.6, 1.0, n).round(2)
-        df[f'{short}_sentiment_confidence'] = rng.uniform(0.5, 1.0, n).round(2)
+        for track in ['_full', '_ctx']:
+            # 各模型独立验证：以不同噪声率模拟（10%-20%）
+            noise_rate = rng.uniform(0.10, 0.20)
+            model_ver = np.where(rng.binomial(1, noise_rate, n), 1 - gold_ver, gold_ver).astype(bool)
+            df[f'{short}_verified{track}'] = model_ver
+            # 各模型独立情感
+            model_sen = []
+            noise_model = rng.binomial(1, noise_rate, n)
+            for i in range(n):
+                if noise_model[i]:
+                    model_sen.append(rng.choice([x for x in labels if x != gold_sen[i]]))
+                else:
+                    model_sen.append(gold_sen[i])
+            df[f'{short}_sentiment{track}'] = model_sen
+            # 各模型置信度
+            df[f'{short}_verification_confidence{track}'] = rng.uniform(0.6, 1.0, n).round(2)
+            df[f'{short}_sentiment_confidence{track}'] = rng.uniform(0.5, 1.0, n).round(2)
 
     return df
 

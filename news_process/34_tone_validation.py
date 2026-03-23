@@ -65,10 +65,14 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # 2. 列名自动发现
 # ============================================================================
 
-def discover_sentiment_columns(df: pd.DataFrame) -> dict:
-    """自动发现 DataFrame 中的情感分析输出列。
+def discover_sentiment_columns(df: pd.DataFrame, track_suffix: str = '') -> dict:
+    """自动发现 DataFrame 中指定轨道的情感分析输出列。
 
     通过列名后缀模式匹配，自动识别词典法、BERT、LLM 各方法的输出列。
+
+    Args:
+        df:           DataFrame
+        track_suffix: 轨道后缀，如 '_full' 或 '_ctx'。为空则匹配无后缀列(向后兼容)。
 
     Returns:
         dict: {
@@ -80,13 +84,13 @@ def discover_sentiment_columns(df: pd.DataFrame) -> dict:
     columns = list(df.columns)
     result = {'words': {}, 'bert': {}, 'llm': {}}
 
-    # 词典法列: {name}_score, {name}_label
-    score_suffix = '_score'
-    label_suffix = '_label'
-    sentiment_suffix = '_sentiment'
-    confidence_suffix = '_confidence'
+    # 词典法列: {name}_score{track_suffix}, {name}_label{track_suffix}
+    score_suffix = f'_score{track_suffix}'
+    label_suffix = f'_label{track_suffix}'
+    sentiment_suffix = f'_sentiment{track_suffix}'
+    confidence_suffix = f'_confidence{track_suffix}'
 
-    # 词典法：找 _score 列
+    # 词典法：找 _score{track_suffix} 列
     for col in columns:
         if col.endswith(score_suffix):
             dict_name = col[:-len(score_suffix)]
@@ -97,7 +101,7 @@ def discover_sentiment_columns(df: pd.DataFrame) -> dict:
                     'label': label_col,
                 }
 
-    # LLM 法：找 _sentiment 列
+    # LLM 法：找 _sentiment{track_suffix} 列
     for col in columns:
         if col.endswith(sentiment_suffix):
             short_name = col[:-len(sentiment_suffix)]
@@ -107,7 +111,7 @@ def discover_sentiment_columns(df: pd.DataFrame) -> dict:
                 'confidence': conf_col if conf_col in columns else None,
             }
 
-    # BERT 法：找 _label 列（排除已被词典法识别的；排除 LLM 的）
+    # BERT 法：找 _label{track_suffix} 列（排除已被词典法识别的；排除 LLM 的）
     words_names = set(result['words'].keys())
     llm_names = set(result['llm'].keys())
     for col in columns:
@@ -116,8 +120,12 @@ def discover_sentiment_columns(df: pd.DataFrame) -> dict:
             if name not in words_names and name not in llm_names:
                 probs = {}
                 for c in columns:
-                    if c.startswith(f'{name}_') and c != col:
+                    # 查找同 track 的概率列：{name}_{prob_label}{track_suffix}
+                    if c.startswith(f'{name}_') and c.endswith(track_suffix) and c != col:
+                        # 去除前缀和后缀得到 prob_label
                         prob_label = c[len(f'{name}_'):]
+                        if track_suffix:
+                            prob_label = prob_label[:-len(track_suffix)]
                         if prob_label not in ('label', 'score', 'sentiment', 'confidence'):
                             probs[prob_label] = c
                 result['bert'][name] = {
@@ -663,9 +671,9 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
 # ============================================================================
 
 def main():
-    """情感三角验证主入口。"""
+    """情感三角验证主入口（双轨模式）。"""
     stage_start = time.time()
-    logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
+    logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
 
     output_dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
     os.makedirs(output_dir, exist_ok=True)
@@ -695,9 +703,27 @@ def main():
     log_memory_usage(logger, "数据加载完成")
 
     # ======================================================================
+    # Step 2: 双轨三角验证循环
+    # ======================================================================
+    # 对 _full 和 _ctx 两条轨道分别执行完整的三角验证流水线
+    for track in ['_full', '_ctx']:
+        track_label = '全文' if track == '_full' else '上下文片段'
+        logger.info("\n" + "#" * 70)
+        logger.info(f"#####  三角验证轨道: [{track_label}] ({track})  #####")
+        logger.info("#" * 70)
+        _run_validation_for_track(df, track, output_dir, logger, CONFIG)
+
+    log_stage_summary(logger, STAGE_NAME, stage_start,
+                      input_rows=len(df))
+    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (双轨模式) ---")
+
+
+def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
+    """对指定轨道执行完整的三角验证流水线。"""
+    # ======================================================================
     # Step 2: 自动发现情感列
     # ======================================================================
-    sentiment_cols = discover_sentiment_columns(df)
+    sentiment_cols = discover_sentiment_columns(df, track_suffix=track)
 
     logger.info("=" * 70)
     logger.info("===    已发现的情感分析列    ===")
@@ -967,7 +993,7 @@ def main():
     logger.info("=" * 70)
 
     # JSON 结果（将 numpy 类型转换为原生 Python 类型）
-    json_path = os.path.join(output_dir, 'sentiment_validation_results.json')
+    json_path = os.path.join(output_dir, f'sentiment_validation_results{track}.json')
 
     def _json_serializable(obj):
         if isinstance(obj, (np.integer,)):
@@ -985,7 +1011,7 @@ def main():
     logger.info(f"JSON 结果已保存: {json_path}")
 
     # LaTeX 表格
-    latex_path = os.path.join(output_dir, 'sentiment_validation_table.tex')
+    latex_path = os.path.join(output_dir, f'sentiment_validation_table{track}.tex')
     generate_validation_latex(within_results, cross_results, latex_path, logger)
 
     # CSV 汇总
@@ -993,7 +1019,7 @@ def main():
     for method_pair, rho in cross_results.get('spearman_pairs', {}).items():
         csv_rows.append({'比较': method_pair, 'Spearman ρ': rho})
     if csv_rows:
-        csv_path = os.path.join(output_dir, 'sentiment_cross_method.csv')
+        csv_path = os.path.join(output_dir, f'sentiment_cross_method{track}.csv')
         pd.DataFrame(csv_rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
         logger.info(f"跨方法对比 CSV: {csv_path}")
 
@@ -1006,19 +1032,15 @@ def main():
             "Cronbach's Alpha": alpha,
         })
     if alpha_rows:
-        csv_path = os.path.join(output_dir, 'cronbachs_alpha_summary.csv')
+        csv_path = os.path.join(output_dir, f'cronbachs_alpha_summary{track}.csv')
         pd.DataFrame(alpha_rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
         logger.info(f"Cronbach's Alpha 汇总: {csv_path}")
 
-    log_stage_summary(logger, STAGE_NAME, stage_start,
-                      input_rows=len(df),
-                      extra_info={
-                          '词典法模型数': n_words,
-                          'BERT模型数': n_bert,
-                          'LLM模型数': n_llm,
-                          '总方法/模型数': total_methods,
-                      })
-    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")
+    n_words = len(sentiment_cols['words'])
+    n_bert = len(sentiment_cols['bert'])
+    n_llm = len(sentiment_cols['llm'])
+    total_methods = n_words + n_bert + n_llm
+    logger.info(f"[{track}] 三角验证完毕: 词典={n_words}, BERT={n_bert}, LLM={n_llm}")
 
 
 if __name__ == "__main__":
