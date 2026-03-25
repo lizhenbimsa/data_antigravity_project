@@ -127,6 +127,7 @@ async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
     """逐条并发执行 DataFrame 中所有行对所有配置模型的双轨请求。
     
     为每行 × 每模型 × 每轨道 生成独立 prompt，通过信号量控制并发数。
+    要求 df 中已包含 'content_ctx' 列（由 main() 预计算并物化）。
     
     Returns:
         dict: {row_idx: {'full': {model_id: res_text}, 'ctx': {model_id: res_text}}}
@@ -136,10 +137,6 @@ async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
     
     total_tasks = len(df) * len(models) * 2  # ×2 因为双轨
     logger.info(f"逐条请求: {len(df)} 条新闻 × {len(models)} 模型 × 2 轨道 = {total_tasks} 个请求")
-    
-    # 上下文提取缓存
-    _bnf = CONFIG['paths'].get('bank_names_file', '')
-    _alias_cache = {}
     
     # 连接池优化：复用 TCP 连接 + keepalive，减少握手和 TLS 协商开销
     connector = aiohttp.TCPConnector(
@@ -152,17 +149,8 @@ async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
         real_tasks = []
         for idx, row in df.iterrows():
             content_full = str(row.get('内容', ''))
+            content_ctx = str(row.get('content_ctx', content_full))
             target_bank = str(row.get('target_bank', ''))
-            
-            # 上下文提取（含缓存 + 回退）
-            if target_bank:
-                if target_bank not in _alias_cache:
-                    _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
-                content_ctx = extract_entity_context(content_full, _alias_cache[target_bank])
-                if not content_ctx:
-                    content_ctx = content_full  # 回退公理
-            else:
-                content_ctx = content_full
             
             for track, content in [('full', content_full), ('ctx', content_ctx)]:
                 prompt = PROMPT_TEMPLATE.format(
@@ -306,6 +294,49 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     return final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, n_failures
 
 
+def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
+    """预计算并物化 content_ctx 列，供双轨分析和下游阶段复用。
+
+    对每个 (文章, 目标银行) 对调用 extract_entity_context() 提取
+    实体特异性上下文片段，结果存入 'content_ctx' 列。下游阶段
+    22_tone_words 和 23_tone_berts 直接读取此列，避免重复计算
+    并确保三种情感分析方法对完全一致的文本进行分析。
+
+    Args:
+        df: 含 '内容' 和 'target_bank' 列的 DataFrame。
+
+    Returns:
+        pd.DataFrame: 增加了 'content_ctx' 列的 DataFrame。
+    """
+    logger.info("物化 content_ctx 列（实体特异性上下文提取）...")
+    _bnf = CONFIG['paths'].get('bank_names_file', '')
+    _alias_cache = {}
+
+    ctx_list = []
+    for _, row in df.iterrows():
+        content_full = str(row.get('内容', ''))
+        target_bank = str(row.get('target_bank', ''))
+
+        if target_bank:
+            if target_bank not in _alias_cache:
+                _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
+            content_ctx = extract_entity_context(content_full, _alias_cache[target_bank])
+            if not content_ctx:
+                content_ctx = content_full  # 回退公理
+        else:
+            content_ctx = content_full
+
+        ctx_list.append(content_ctx)
+
+    df['content_ctx'] = ctx_list
+    n_fallback = sum(1 for ctx, full in zip(ctx_list, df['内容'].astype(str)) if ctx == full)
+    n_with_bank = (df['target_bank'].astype(str).str.strip() != '').sum()
+    logger.info(f"  content_ctx 列物化完成: {len(df)} 行, "
+                f"回退至全文: {n_fallback}/{n_with_bank} 条"
+                f"（{n_fallback/max(n_with_bank,1)*100:.1f}%）")
+    return df
+
+
 def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
@@ -321,6 +352,9 @@ def main():
             return
 
         df = pd.read_parquet(input_path)
+
+        # 物化 content_ctx 列（即使 LLM 禁用，下游词典/BERT 仍需此列）
+        df = _materialize_content_ctx(df)
 
         # 添加空的 LLM 双轨列，确保下游阶段不因缺列报错
         df['llm_verified_full'] = True
@@ -359,6 +393,9 @@ def main():
     df = pd.read_parquet(input_path)
     logger.info(f"总计候选新闻: {len(df)}")
     log_memory_usage(logger, "数据加载完成")
+    
+    # 物化 content_ctx 列（供 LLM 双轨请求 + 下游阶段 22/23 直接复用）
+    df = _materialize_content_ctx(df)
     
     # 异步并发大模型（双轨）
     logger.info(f"开始分发双轨组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")

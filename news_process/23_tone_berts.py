@@ -713,24 +713,9 @@ def main():
     log_memory_usage(logger, "全部模型加载后")
 
     # ── Step 1b: 构建双轨文本列表 ──
-    from utils.entity_context import extract_entity_context, get_target_aliases
-    _bnf = CONFIG['paths'].get('bank_names_file', '')
-    _alias_cache = {}
-
-    content_full_list = []
-    content_ctx_list = []
-    for _, row in df.iterrows():
-        raw = str(row.get('内容', ''))
-        content_full_list.append(raw)
-
-        target_bank = str(row.get('target_bank', ''))
-        if target_bank:
-            if target_bank not in _alias_cache:
-                _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
-            ctx = extract_entity_context(raw, _alias_cache[target_bank])
-            content_ctx_list.append(ctx if ctx else raw)  # 回退公理
-        else:
-            content_ctx_list.append(raw)
+    # content_ctx 由阶段 21 预计算并物化为列，直接读取以确保三种方法输入一致
+    content_full_list = df['内容'].fillna('').astype(str).tolist()
+    content_ctx_list = df['content_ctx'].fillna(df['内容']).astype(str).tolist()
 
     logger.info(f"双轨文本列表构建完成: full={len(content_full_list)}, ctx={len(content_ctx_list)}")
 

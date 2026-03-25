@@ -486,7 +486,8 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     """对单个批次执行词典法双轨情感分析（全文 + 上下文片段）。
 
     Args:
-        df_batch: 待分析的 DataFrame 批次。
+        df_batch: 待分析的 DataFrame 批次（需含 'content_ctx' 列，
+                  由阶段 21 物化生成）。
 
     Returns:
         tuple: (processed_df, stats_dict)
@@ -504,24 +505,11 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     df = df_batch.copy()
     stats['total'] = len(df)
 
-    # 对每篇文章执行双轨实体特异性上下文分析
-    from utils.entity_context import extract_entity_context, get_target_aliases
-    _bnf = CONFIG['paths'].get('bank_names_file', '')
-    _ac = {}
-
+    # 对每篇文章执行双轨情感分析
+    # content_ctx 由阶段 21 预计算并物化为列，直接读取以确保三种方法输入一致
     def _dual_analyze(row):
-        t = row.get('target_bank', '')
         content_full = str(row.get('内容', ''))
-
-        # 上下文提取（含回退）
-        if t:
-            if t not in _ac:
-                _ac[t] = get_target_aliases(t, _bnf)
-            content_ctx = extract_entity_context(content_full, _ac[t])
-            if not content_ctx:
-                content_ctx = content_full  # 回退公理
-        else:
-            content_ctx = content_full
+        content_ctx = str(row.get('content_ctx', content_full))
 
         res_full = _analyze_single_article(content_full)
         res_ctx = _analyze_single_article(content_ctx)
