@@ -71,29 +71,32 @@ def synthetic_df():
             '', '', '', '',
         ],
         'target_bank_in_title': np.random.choice([0, 1], n),
-        'llm_sentiment': np.random.choice(['正面', '中性', '负面'], n),
-        'llm_agreement_rate': np.random.uniform(0.5, 1.0, n),
         '媒体(中文)': np.random.choice(['新浪财经', '第一财经', '澎湃新闻', '财新网'], n),
         'is_fintech_news': np.random.choice([True, False], n),
     }
 
-    # LLM 逐模型列
-    for short in LLM_SHORTS:
-        data[f'{short}_sentiment'] = np.random.choice(['正面', '中性', '负面'], n)
-        data[f'{short}_sentiment_confidence'] = np.random.uniform(0.5, 1.0, n)
+    # LLM 投票结果 + 逐模型列（双轨）
+    for track in ['_full', '_ctx']:
+        data[f'llm_sentiment{track}'] = np.random.choice(['正面', '中性', '负面'], n)
+        data[f'llm_agreement_rate{track}'] = np.random.uniform(0.5, 1.0, n)
+        for short in LLM_SHORTS:
+            data[f'{short}_sentiment{track}'] = np.random.choice(['正面', '中性', '负面'], n)
+            data[f'{short}_sentiment_confidence{track}'] = np.random.uniform(0.5, 1.0, n)
 
-    # 词典法列
+    # 词典法列（双轨）
     for d in DICT_NAMES:
-        data[f'{d}_score'] = np.random.uniform(-1, 1, n)
-        data[f'{d}_label'] = np.random.choice(['正面', '中性', '负面'], n)
+        for track in ['_full', '_ctx']:
+            data[f'{d}_score{track}'] = np.random.uniform(-1, 1, n)
+            data[f'{d}_label{track}'] = np.random.choice(['正面', '中性', '负面'], n)
 
-    # BERT 列
+    # BERT 列（双轨）
     for b in BERT_SHORTS:
-        data[f'{b}_正面'] = np.random.uniform(0, 1, n)
-        data[f'{b}_负面'] = np.random.uniform(0, 1, n)
-        data[f'{b}_label'] = np.random.choice(['正面', '中性', '负面'], n)
-        if b in THREE_CLASS:
-            data[f'{b}_中性'] = np.random.uniform(0, 1, n)
+        for track in ['_full', '_ctx']:
+            data[f'{b}_正面{track}'] = np.random.uniform(0, 1, n)
+            data[f'{b}_负面{track}'] = np.random.uniform(0, 1, n)
+            data[f'{b}_label{track}'] = np.random.choice(['正面', '中性', '负面'], n)
+            if b in THREE_CLASS:
+                data[f'{b}_中性{track}'] = np.random.uniform(0, 1, n)
 
     # matched_banks_info JSON
     banks_info_list = []
@@ -102,6 +105,16 @@ def synthetic_df():
         in_title = bool(data['target_bank_in_title'][i])
         banks_info_list.append(_build_banks_info([bank_name], [bank_name] if in_title else []))
     data['matched_banks_info'] = banks_info_list
+
+    # 前瞻性陈述、可读性、正负面分离（双轨）
+    for track in ['_full', '_ctx']:
+        data[f'forward_looking_ratio{track}'] = np.random.uniform(0, 0.1, n)
+        data[f'forward_looking_count{track}'] = np.random.randint(0, 10, n)
+        data[f'avg_sentence_len{track}'] = np.random.uniform(20, 80, n)
+        data[f'type_token_ratio{track}'] = np.random.uniform(0.3, 0.9, n)
+        data[f'char_per_word{track}'] = np.random.uniform(1.2, 2.5, n)
+        data[f'pos_ratio{track}'] = np.random.uniform(0, 0.05, n)
+        data[f'neg_ratio{track}'] = np.random.uniform(0, 0.05, n)
 
     df = pd.DataFrame(data)
 
@@ -123,22 +136,25 @@ def synthetic_df():
 class TestEncoding:
     def test_discrete_encoding(self, synthetic_df):
         df = bp.encode_sentiment(synthetic_df.copy())
-        assert 'llm_vote_score' in df.columns
-        assert set(df['llm_vote_score'].unique()).issubset({-1, 0, 1})
-        # 互斥性: 每行只能属于一个类别
-        total = df['is_positive'] + df['is_negative'] + df['is_neutral']
-        assert (total == 1).all()
+        for track in ['_full', '_ctx']:
+            assert f'llm_vote_score{track}' in df.columns
+            assert set(df[f'llm_vote_score{track}'].unique()).issubset({-1, 0, 1})
+            # 互斥性: 每行只能属于一个类别
+            total = df[f'is_positive{track}'] + df[f'is_negative{track}'] + df[f'is_neutral{track}']
+            assert (total == 1).all()
 
     def test_continuous_encoding(self, synthetic_df):
         df = bp.encode_sentiment(synthetic_df.copy())
-        assert df['llm_vote_cont'].between(-1, 1).all()
-        for short in LLM_SHORTS:
-            assert df[f'{short}_cont'].between(-1, 1).all()
+        for track in ['_full', '_ctx']:
+            assert df[f'llm_vote_cont{track}'].between(-1, 1).all()
+            for short in LLM_SHORTS:
+                assert df[f'{short}_cont{track}'].between(-1, 1).all()
 
     def test_per_model_score(self, synthetic_df):
         df = bp.encode_sentiment(synthetic_df.copy())
-        for short in LLM_SHORTS:
-            assert set(df[f'{short}_score'].unique()).issubset({-1, 0, 1})
+        for track in ['_full', '_ctx']:
+            for short in LLM_SHORTS:
+                assert set(df[f'{short}_score{track}'].unique()).issubset({-1, 0, 1})
 
 
 # TestExplode 已移除 — explode_banks 函数已迁移至 11_news_bank.py
@@ -173,12 +189,19 @@ class TestAggregation:
         df = bp.encode_sentiment(synthetic_df.copy())
         df = bp.parse_time(df)
         panel = bp.aggregate_panel(df)
+        # 双轨列使用 _full 后缀检查（_ctx 同理）
         required = [
-            'llm_vote_tone', 'llm_vote_tone_sum', 'llm_vote_tone_std',
-            'pos_frac', 'neg_frac', 'pos_count', 'neg_count',
+            'llm_vote_tone_full', 'llm_vote_tone_sum_full', 'llm_vote_tone_std_full',
+            'pos_frac_full', 'neg_frac_full', 'pos_count_full', 'neg_count_full',
             'n_articles', 'ln_news_coverage', 'headline_frac',
             'media_breadth', 'multi_bank_frac',
-            'avg_bank_count', 'max_bank_count', 'avg_agreement_rate',
+            'avg_bank_count', 'max_bank_count', 'avg_agreement_rate_full',
+            # 前瞻性陈述 (Li 2010, Journal of Accounting Research)
+            'avg_fl_ratio_full', 'sum_fl_count_full',
+            # 可读性 (Loughran & McDonald 2014, Journal of Finance)
+            'avg_sent_len_full', 'avg_ttr_full', 'avg_cpw_full',
+            # 正/负面分离 (Berger et al. 2024, Appendix S6)
+            'avg_pos_ratio_full', 'avg_neg_ratio_full',
         ]
         for col in required:
             assert col in panel.columns, f"Missing: {col}"
@@ -187,8 +210,9 @@ class TestAggregation:
         df = bp.encode_sentiment(synthetic_df.copy())
         df = bp.parse_time(df)
         panel = bp.aggregate_panel(df)
-        assert panel['pos_frac'].between(0, 1).all()
-        assert panel['neg_frac'].between(0, 1).all()
+        for track in ['_full', '_ctx']:
+            assert panel[f'pos_frac{track}'].between(0, 1).all()
+            assert panel[f'neg_frac{track}'].between(0, 1).all()
 
 
 # ============================================================================
@@ -212,10 +236,11 @@ class TestPanelBalancing:
         balanced = bp.balance_panel(panel)
         zero_rows = balanced[balanced['n_articles'] == 0]
         if len(zero_rows) > 0:
-            sum_cols = [c for c in zero_rows.columns if c.endswith('_sum')]
+            sum_cols = [c for c in zero_rows.columns if c.endswith('_sum') or
+                        c.endswith('_sum_full') or c.endswith('_sum_ctx')]
             for col in sum_cols:
                 assert (zero_rows[col] == 0).all(), f"{col} not 0 for no-news"
-            assert (zero_rows['pos_count'] == 0).all()
+            assert (zero_rows['pos_count_full'] == 0).all()
 
     def test_nan_preserved_for_means(self, synthetic_df):
         df = bp.encode_sentiment(synthetic_df.copy())
@@ -224,8 +249,8 @@ class TestPanelBalancing:
         balanced = bp.balance_panel(panel)
         zero_rows = balanced[balanced['n_articles'] == 0]
         if len(zero_rows) > 0:
-            assert zero_rows['llm_vote_tone'].isna().all()
-            assert zero_rows['pos_frac'].isna().all()
+            assert zero_rows['llm_vote_tone_full'].isna().all()
+            assert zero_rows['pos_frac_full'].isna().all()
 
 
 # ============================================================================
@@ -240,13 +265,13 @@ class TestCompositeIndicators:
         panel = bp.balance_panel(panel)
         panel = bp.compute_composite_indicators(panel)
         expected = [
-            'llm_models_avg_tone', 'llm_models_avg_tone_sum',
-            'llm_models_avg_cont', 'llm_models_avg_cont_sum',
-            'llm_models_avg_tone_std',
-            'dict_avg_tone', 'dict_avg_tone_sum', 'dict_avg_tone_std',
-            'bert_avg_pos', 'bert_avg_neg', 'bert_avg_neu',
-            'bert_avg_pos_sum', 'bert_avg_neg_sum', 'bert_avg_neu_sum',
-            'bert_avg_pos_std',
+            'llm_models_avg_tone_full', 'llm_models_avg_tone_sum_full',
+            'llm_models_avg_cont_full', 'llm_models_avg_cont_sum_full',
+            'llm_models_avg_tone_std_full',
+            'dict_avg_tone_full', 'dict_avg_tone_sum_full', 'dict_avg_tone_std_full',
+            'bert_avg_pos_full', 'bert_avg_neg_full', 'bert_avg_neu_full',
+            'bert_avg_pos_sum_full', 'bert_avg_neg_sum_full', 'bert_avg_neu_sum_full',
+            'bert_avg_pos_std_full',
         ]
         for col in expected:
             assert col in panel.columns, f"Missing: {col}"

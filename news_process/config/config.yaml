@@ -536,6 +536,97 @@ sentiment_analysis:
       - "实际却"
       - "实际上却"
 
+    # ── 前瞻性陈述词汇集 (Forward-Looking Statement Dictionary) ──
+    #
+    # 学术依据:
+    #   Li, F. (2010). The Information Content of Forward-Looking Statements
+    #   in Corporate Filings—A Naive Bayesian Machine Learning Approach.
+    #   Journal of Accounting Research, 48(5), 1049-1102.
+    #   DOI: 10.1111/j.1475-679X.2010.00382.x
+    #
+    #   Muslu, V., Radhakrishnan, S., Subramanyam, K.R. & Lim, D. (2015).
+    #   Forward-Looking MD&A Disclosures and the Information Environment.
+    #   Management Science, 61(5), 931-948.
+    #   DOI: 10.1287/mnsc.2014.1921
+    #
+    # 构建方法:
+    #   基于 Li (2010) Table 1 英文 FLS 关键词 + PSLRA Safe Harbor 标准词表
+    #   翻译为中文，并根据中文金融新闻语域特征扩充。
+    #
+    # 用途:
+    #   计算 forward_looking_ratio（前瞻性词频占比），供异质性分析
+    #   （Berger et al. 2024, Table 3 columns 5-6）。
+    forward_looking_words:
+      # A. 意图/计划类 — Li (2010): will, plan, intend, seek
+      - "将"
+      - "将会"
+      - "将要"
+      - "拟"
+      - "计划"
+      - "规划"
+      - "打算"
+      - "筹划"
+      - "筹备"
+      - "部署"
+      - "布局"
+      - "谋划"
+      - "酝酿"
+      - "推进"
+      # B. 预期/预测类 — Li (2010): expect, anticipate, forecast, predict, estimate, project
+      - "预计"
+      - "预期"
+      - "预测"
+      - "预判"
+      - "预见"
+      - "展望"
+      - "前瞻"
+      - "估计"
+      - "估算"
+      - "测算"
+      - "研判"
+      # C. 信念/判断类 — Li (2010): believe, hope, contemplate
+      - "认为"
+      - "相信"
+      - "判断"
+      - "看好"
+      - "看多"
+      - "看空"
+      - "乐观"
+      - "悲观"
+      - "有望"
+      - "料将"
+      - "料"
+      # D. 可能/或然类 — Li (2010): may, might, could, would, should
+      - "可能"
+      - "或将"
+      - "有可能"
+      - "大概率"
+      - "不排除"
+      - "或许"
+      - "恐将"
+      - "势必"
+      # E. 目标/方向类 — Li (2010): target, objective
+      - "目标"
+      - "力争"
+      - "确保"
+      - "争取"
+      - "致力于"
+      # F. 持续/趋势类 — Li (2010): continue, ongoing, potential
+      - "持续"
+      - "继续"
+      - "进一步"
+      - "不断"
+      - "逐步"
+      # G. 时间指向类 — 中文新闻语域扩充
+      - "未来"
+      - "下一步"
+      - "明年"
+      - "后续"
+      - "中长期"
+      - "远期"
+      - "长远"
+      - "前景"
+
   # BERT 模型情感分析参数
   tone_berts:
     window_stride_ratio: 0.5                        # 滑动窗口步长比例

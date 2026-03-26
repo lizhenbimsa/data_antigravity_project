@@ -47,6 +47,7 @@
 """
 
 import os
+import re
 import json
 import time
 import logging
@@ -135,6 +136,15 @@ SENTENCE_END_MARKERS: frozenset[str] = frozenset(
 # 否定词有效作用窗口（向后影响的分词单元数）
 # 设为 2：覆盖"不 [程度副词] 情感词"结构（如"不太 乐观"）
 NEGATION_WINDOW = SENTIMENT_PARAMS.get('negation_window', 2)
+
+# ── 前瞻性陈述词汇集 ──
+# Li, F. (2010). The Information Content of Forward-Looking Statements
+# in Corporate Filings—A Naive Bayesian Machine Learning Approach.
+# Journal of Accounting Research, 48(5), 1049-1102.
+# DOI: 10.1111/j.1475-679X.2010.00382.x
+FORWARD_LOOKING_WORDS: frozenset[str] = frozenset(
+    SENTIMENT_PARAMS.get('forward_looking_words', [])
+)
 
 
 # ============================================================================
@@ -338,6 +348,86 @@ def _score_to_label(normalized_score: float, pos_threshold=0.1, neg_threshold=-0
         return "中性"
 
 
+def _compute_forward_looking_ratio(tokens: list[str]) -> tuple[float, int]:
+    """计算前瞻性词汇比率。
+
+    学术依据:
+      Li, F. (2010). The Information Content of Forward-Looking Statements
+      in Corporate Filings—A Naive Bayesian Machine Learning Approach.
+      Journal of Accounting Research, 48(5), 1049-1102.
+      DOI: 10.1111/j.1475-679X.2010.00382.x
+
+    Li (2010) 使用前瞻性关键词在 MD&A 中的句子级占比衡量前瞻性信息含量。
+    本实现使用 token 级占比作为中文新闻的等价度量。
+
+    注意: 否定句中的前瞻性词仍计入（"不预计降息"中"预计"仍属前瞻性表述），
+    因为判定的是时间取向（prospective vs. retrospective），而非极性。
+
+    Args:
+        tokens: jieba 分词结果列表（已过滤空白 token）。
+
+    Returns:
+        tuple: (fl_ratio, fl_count)
+            fl_ratio: 前瞻性词汇 token 占总 token 之比 ∈ [0, 1]
+            fl_count: 前瞻性词汇绝对频次
+    """
+    if not tokens:
+        return 0.0, 0
+    fl_count = sum(1 for t in tokens if t in FORWARD_LOOKING_WORDS)
+    return fl_count / len(tokens), fl_count
+
+
+def _compute_readability(content: str, tokens: list[str]) -> dict[str, float]:
+    """计算中文文本可读性的三维度代理指标。
+
+    学术依据:
+      Loughran, T. & McDonald, B. (2014). Measuring Readability in
+      Financial Disclosures. Journal of Finance, 69(4), 1643-1671.
+      DOI: 10.1111/jofi.12162
+      — 指出 Gunning-Fog Index 不适用于金融文本（多音节商业术语
+      如 "financial", "company" 被误判为"复杂"），建议使用替代度量。
+
+      Bonsall, S.B., Leone, A.J., Miller, B.P. & Rennekamp, K. (2017).
+      A Plain English Measure of Financial Reporting Readability.
+      Journal of Accounting and Economics, 63(2-3), 329-357.
+      DOI: 10.1016/j.jacceco.2017.03.002
+      — 提出 Bog Index 捕捉 SEC Plain English 属性，但依赖英文句法。
+
+    对于中文文本，采用以下三个维度的代理指标：
+
+    1. avg_sentence_len (ASL): 平均句长（字符/句）— 越长越难读
+    2. type_token_ratio (TTR): 词汇丰富度（唯一词/总词）— 越高越复杂
+    3. char_per_word (CPW): 平均词长（字符/词）— 越长越倾向专业术语
+
+    Args:
+        content: 原始文本字符串。
+        tokens:  jieba 分词结果列表（已过滤空白 token）。
+
+    Returns:
+        dict: {'avg_sentence_len': float, 'type_token_ratio': float,
+               'char_per_word': float}
+    """
+    # 1. 平均句长 (ASL) — 按中文句末标点分割
+    sentences = re.split(r'[。！？!?；;]', content)
+    sentences = [s for s in sentences if len(s.strip()) > 0]
+    n_sentences = max(len(sentences), 1)
+    avg_sentence_len = sum(len(s.strip()) for s in sentences) / n_sentences
+
+    # 2. Type-Token Ratio (TTR) — 词汇丰富度
+    n_tokens = max(len(tokens), 1)
+    ttr = len(set(tokens)) / n_tokens
+
+    # 3. 平均词长 (CPW) — 字符级词复杂度
+    total_chars = sum(len(t) for t in tokens)
+    cpw = total_chars / n_tokens
+
+    return {
+        'avg_sentence_len': round(avg_sentence_len, 2),
+        'type_token_ratio': round(ttr, 4),
+        'char_per_word': round(cpw, 4),
+    }
+
+
 # ============================================================================
 # 5. 单篇文章分析
 # ============================================================================
@@ -412,6 +502,12 @@ def _inject_custom_dicts_to_jieba():
     for word in ADVERSATIVE_WORDS:
         jieba.add_word(word)
 
+    # 5. 注入前瞻性词汇（防止多字前瞻性词被 jieba 切碎，
+    #    如"预判""酝酿""筹划"等）
+    for word in FORWARD_LOOKING_WORDS:
+        if len(word) > 1:  # 单字词无需注入
+            jieba.add_word(word)
+
     logger.info(f"成功注入 {added_count} 个领域自定义词汇到 jieba 分词树。")
 
 # 注入操作延迟到 main() 中执行
@@ -436,6 +532,13 @@ def _analyze_single_article(content: str) -> dict:
             result[f'{dict_name}_score'] = 0.0
             result[f'{dict_name}_label'] = '中性'
         result['sentiment_details'] = ''
+        result['forward_looking_ratio'] = 0.0
+        result['forward_looking_count'] = 0
+        result['avg_sentence_len'] = 0.0
+        result['type_token_ratio'] = 0.0
+        result['char_per_word'] = 0.0
+        result['pos_ratio'] = 0.0
+        result['neg_ratio'] = 0.0
         return result
 
     # 分词（单次调用，所有词典共享分词结果）
@@ -448,11 +551,20 @@ def _analyze_single_article(content: str) -> dict:
             result[f'{dict_name}_score'] = 0.0
             result[f'{dict_name}_label'] = '中性'
         result['sentiment_details'] = ''
+        result['forward_looking_ratio'] = 0.0
+        result['forward_looking_count'] = 0
+        result['avg_sentence_len'] = 0.0
+        result['type_token_ratio'] = 0.0
+        result['char_per_word'] = 0.0
+        result['pos_ratio'] = 0.0
+        result['neg_ratio'] = 0.0
         return result
 
     # 对每个词典计算情感
     best_detail: list[dict[str, Any]] = []
     best_matched_count: int = 0
+    best_pos_count: int = 0
+    best_neg_count: int = 0
 
     for dict_name, sentiment_dict in ALL_DICTIONARIES:
         if not sentiment_dict:
@@ -466,14 +578,41 @@ def _analyze_single_article(content: str) -> dict:
         result[f'{dict_name}_score'] = round(norm_score, 4)
         result[f'{dict_name}_label'] = _score_to_label(norm_score)
 
-        # 记录匹配词最多的词典的详情（用于最终输出）
+        # 记录匹配词最多的词典的详情（用于最终输出和正/负面词频分离）
         if len(matched) > best_matched_count:
             best_matched_count = len(matched)
             best_detail = matched
+            best_pos_count = pos_cnt
+            best_neg_count = neg_cnt
 
     # 仅保留 Top-20 匹配词（按绝对影响力降序）
     top_detail = sorted(best_detail, key=lambda x: abs(x['final']), reverse=True)[:20]
     result['sentiment_details'] = json.dumps(top_detail, ensure_ascii=False) if top_detail else ''
+
+    # ── 前瞻性陈述比率 ──
+    # Li, F. (2010). Journal of Accounting Research, 48(5), 1049-1102.
+    # DOI: 10.1111/j.1475-679X.2010.00382.x
+    fl_ratio, fl_count = _compute_forward_looking_ratio(tokens)
+    result['forward_looking_ratio'] = round(fl_ratio, 6)
+    result['forward_looking_count'] = fl_count
+
+    # ── 文本可读性控制变量 ──
+    # Loughran, T. & McDonald, B. (2014). Journal of Finance, 69(4), 1643-1671.
+    # DOI: 10.1111/jofi.12162
+    readability = _compute_readability(content, tokens)
+    result['avg_sentence_len'] = readability['avg_sentence_len']
+    result['type_token_ratio'] = readability['type_token_ratio']
+    result['char_per_word'] = readability['char_per_word']
+
+    # ── 正/负面词频分离（稳健性检验）──
+    # Berger, A.N., Kim, S. & Ma, F. (2024). Bank Sentiment and Liquidity
+    # Hoarding. SSRN Working Paper, Appendix S6.
+    # Loughran, T. & McDonald, B. (2011). When Is a Liability Not a Liability?
+    # Textual Analysis, Dictionaries, and 10-Ks.
+    # Journal of Finance, 66(1), 35-65. DOI: 10.1111/j.1540-6261.2010.01625.x
+    n_tokens = len(tokens)
+    result['pos_ratio'] = round(best_pos_count / n_tokens, 6) if n_tokens > 0 else 0.0
+    result['neg_ratio'] = round(best_neg_count / n_tokens, 6) if n_tokens > 0 else 0.0
 
     return result
 
@@ -539,6 +678,17 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
 
     df['sentiment_details_full'] = results.apply(lambda r: r.get('sentiment_details_full', ''))
     df['sentiment_details_ctx'] = results.apply(lambda r: r.get('sentiment_details_ctx', ''))
+
+    # ── 提取新增指标列（双轨）──
+    new_metric_cols = [
+        'forward_looking_ratio', 'forward_looking_count',
+        'avg_sentence_len', 'type_token_ratio', 'char_per_word',
+        'pos_ratio', 'neg_ratio',
+    ]
+    for col in new_metric_cols:
+        for track in ['_full', '_ctx']:
+            col_key = f'{col}{track}'
+            df[col_key] = results.apply(lambda r, k=col_key: r.get(k, 0.0))
 
     return df, stats
 

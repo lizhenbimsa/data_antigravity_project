@@ -556,3 +556,148 @@ class TestSentimentEdgeCases:
         assert result[1] > 0  # normalized_score
 
 
+# ============================================================================
+# 前瞻性词频测试
+# Li, F. (2010). Journal of Accounting Research, 48(5), 1049-1102.
+# DOI: 10.1111/j.1475-679X.2010.00382.x
+# ============================================================================
+
+TEST_FL_WORDS = frozenset(['预计', '计划', '将', '展望', '可能', '未来'])
+
+
+def _compute_forward_looking_ratio(tokens, fl_words=TEST_FL_WORDS):
+    """前瞻性词频计算（测试版）。"""
+    if not tokens:
+        return 0.0, 0
+    fl_count = sum(1 for t in tokens if t in fl_words)
+    return fl_count / len(tokens), fl_count
+
+
+class TestForwardLookingRatio:
+    """测试前瞻性词汇比率计算 (Li 2010)。"""
+
+    def test_empty_tokens(self):
+        """空列表应返回 (0.0, 0)。"""
+        assert _compute_forward_looking_ratio([]) == (0.0, 0)
+
+    def test_all_forward_looking(self):
+        """全部为前瞻性词应返回 ratio = 1.0。"""
+        ratio, count = _compute_forward_looking_ratio(['预计', '计划', '展望'])
+        assert ratio == 1.0
+        assert count == 3
+
+    def test_no_forward_looking(self):
+        """无前瞻性词应返回 ratio = 0.0。"""
+        ratio, count = _compute_forward_looking_ratio(['银行', '贷款', '利率'])
+        assert ratio == 0.0
+        assert count == 0
+
+    def test_mixed_text(self):
+        """混合文本应返回 0 < ratio < 1。"""
+        ratio, count = _compute_forward_looking_ratio(['银行', '预计', '明年', '增长'])
+        assert 0 < ratio < 1
+        assert count == 1  # 仅 '预计' 在 TEST_FL_WORDS 中
+
+    def test_negated_fl_word_still_counted(self):
+        """否定句中的前瞻性词仍应计入（时间取向不变）。"""
+        ratio, count = _compute_forward_looking_ratio(['不', '预计', '降息'])
+        assert count == 1
+
+
+# ============================================================================
+# 文本可读性测试
+# Loughran, T. & McDonald, B. (2014). Journal of Finance, 69(4), 1643-1671.
+# DOI: 10.1111/jofi.12162
+# Bonsall, S.B. et al. (2017). Journal of Accounting and Economics,
+# 63(2-3), 329-357. DOI: 10.1016/j.jacceco.2017.03.002
+# ============================================================================
+
+import re as _re
+
+
+def _compute_readability(content, tokens):
+    """中文文本可读性计算（测试版）。"""
+    sentences = _re.split(r'[。！？!?；;]', content)
+    sentences = [s for s in sentences if len(s.strip()) > 0]
+    n_sentences = max(len(sentences), 1)
+    avg_sentence_len = sum(len(s.strip()) for s in sentences) / n_sentences
+    n_tokens = max(len(tokens), 1)
+    ttr = len(set(tokens)) / n_tokens
+    cpw = sum(len(t) for t in tokens) / n_tokens
+    return {
+        'avg_sentence_len': round(avg_sentence_len, 2),
+        'type_token_ratio': round(ttr, 4),
+        'char_per_word': round(cpw, 4),
+    }
+
+
+class TestReadability:
+    """测试中文文本可读性三维度代理指标。"""
+
+    def test_single_sentence(self):
+        """单句文本 ASL 应等于文本字符数。"""
+        r = _compute_readability('银行推出新产品', ['银行', '推出', '新', '产品'])
+        assert r['avg_sentence_len'] == 7
+        assert r['char_per_word'] > 1.0
+
+    def test_multi_sentence(self):
+        """多句文本 ASL 应为各句均值。"""
+        r = _compute_readability('银行增长。风险下降。', ['银行', '增长', '风险', '下降'])
+        assert r['avg_sentence_len'] == 4.0
+
+    def test_ttr_all_unique(self):
+        """全不同词 TTR 应等于 1.0。"""
+        r = _compute_readability('一二三', ['一', '二', '三'])
+        assert r['type_token_ratio'] == 1.0
+
+    def test_ttr_all_same(self):
+        """全重复词 TTR 应接近 1/n。"""
+        r = _compute_readability('的的的', ['的', '的', '的'])
+        assert abs(r['type_token_ratio'] - 1 / 3) < 0.01
+
+    def test_cpw_single_char_words(self):
+        """全单字词 CPW 应等于 1.0。"""
+        r = _compute_readability('一二三', ['一', '二', '三'])
+        assert r['char_per_word'] == 1.0
+
+    def test_cpw_multi_char_words(self):
+        """含多字词 CPW 应大于 1.0。"""
+        r = _compute_readability('金融科技', ['金融', '科技'])
+        assert r['char_per_word'] == 2.0
+
+
+# ============================================================================
+# 正/负面词频分离测试
+# Berger, A.N., Kim, S. & Ma, F. (2024). Bank Sentiment and Liquidity
+# Hoarding. SSRN Working Paper, Appendix S6.
+# Loughran, T. & McDonald, B. (2011). Journal of Finance, 66(1), 35-65.
+# DOI: 10.1111/j.1540-6261.2010.01625.x
+# ============================================================================
+
+class TestPosNegRatioSeparation:
+    """测试正/负面词频分离逻辑。"""
+
+    def test_all_positive(self):
+        """全正面词 → pos_ratio > 0, neg_ratio = 0。"""
+        tokens = ['增长', '创新', '其他', '无关']
+        pos_count, neg_count = 2, 0
+        pos_ratio = pos_count / len(tokens)
+        neg_ratio = neg_count / len(tokens)
+        assert pos_ratio == 0.5
+        assert neg_ratio == 0.0
+
+    def test_all_negative(self):
+        """全负面词 → pos_ratio = 0, neg_ratio > 0。"""
+        tokens = ['下降', '风险', '其他']
+        pos_count, neg_count = 0, 2
+        pos_ratio = pos_count / len(tokens)
+        neg_ratio = neg_count / len(tokens)
+        assert pos_ratio == 0.0
+        assert abs(neg_ratio - 2 / 3) < 0.01
+
+    def test_sum_leq_one(self):
+        """pos_ratio + neg_ratio 之和不应超过 1.0。"""
+        tokens = ['增长', '下降', '创新', '风险', '其他']
+        pos_count, neg_count = 2, 2
+        total_ratio = (pos_count + neg_count) / len(tokens)
+        assert total_ratio <= 1.0

@@ -194,6 +194,23 @@ def build_aggregation_dict() -> dict:
                 agg[f'{short}_neu{track}'] = (f'{short}_中性{track}', 'mean')
                 agg[f'{short}_neu_sum{track}'] = (f'{short}_中性{track}', 'sum')
 
+        # --- G. 前瞻性陈述 (Li 2010, Journal of Accounting Research) ---
+        agg[f'avg_fl_ratio{track}'] = (f'forward_looking_ratio{track}', 'mean')
+        agg[f'avg_fl_ratio_std{track}'] = (f'forward_looking_ratio{track}', 'std')
+        agg[f'sum_fl_count{track}'] = (f'forward_looking_count{track}', 'sum')
+
+        # --- H. 文本可读性控制变量 (Loughran & McDonald 2014, Journal of Finance) ---
+        agg[f'avg_sent_len{track}'] = (f'avg_sentence_len{track}', 'mean')
+        agg[f'avg_ttr{track}'] = (f'type_token_ratio{track}', 'mean')
+        agg[f'avg_cpw{track}'] = (f'char_per_word{track}', 'mean')
+
+        # --- I. 正/负面词频分离 (Berger et al. 2024, Appendix S6;
+        #        Loughran & McDonald 2011, Journal of Finance) ---
+        agg[f'avg_pos_ratio{track}'] = (f'pos_ratio{track}', 'mean')
+        agg[f'avg_neg_ratio{track}'] = (f'neg_ratio{track}', 'mean')
+        agg[f'avg_pos_ratio_std{track}'] = (f'pos_ratio{track}', 'std')
+        agg[f'avg_neg_ratio_std{track}'] = (f'neg_ratio{track}', 'std')
+
     # --- E. 新闻覆盖量 & 稳健性辅助（无需双轨） ---
     agg['n_articles'] = ('llm_vote_score_full', 'count')
     agg['headline_frac'] = ('in_title', 'mean')
@@ -335,7 +352,8 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     sum_cols = [c for c in panel.columns if c.endswith('_sum')]
     count_cols = ['pos_count', 'neg_count',
                   'pos_count_vw', 'neg_count_vw',
-                  'sum_mention_density', 'sum_doc_length', 'sum_target_mentions']
+                  'sum_mention_density', 'sum_doc_length', 'sum_target_mentions',
+                  'sum_fl_count_full', 'sum_fl_count_ctx']
     zero_fill_cols = zero_fill_patterns + sum_cols + count_cols
 
     for col in zero_fill_cols:
