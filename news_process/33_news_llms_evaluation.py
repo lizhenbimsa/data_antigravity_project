@@ -13,12 +13,18 @@
          - Precision / Recall / F1-Score
          - 混淆矩阵（含可视化）
          - McNemar 检验（比较规则分类器 vs LLM 分类器）
-      3. 输出 LaTeX 格式表格（可直接嵌入论文）
+      3. 误分类系统相关性诊断 (Carlson & Burbano 2026)
+      4. 输出 LaTeX 格式表格（可直接嵌入论文）
 
     学术依据：
-      - Loughran & McDonald (2011, Journal of Finance)
-      - Krippendorff (2018): Cohen's Kappa ≥ 0.80
-      - Tetlock et al. (2008, Journal of Finance)
+      - Loughran, T. & McDonald, B. (2011). "When Is a Liability Not a Liability?
+        Textual Analysis, Dictionaries, and 10-Ks." Journal of Finance, 66(1), 35-65.
+      - Krippendorff, K. (2018). Content Analysis: An Introduction to Its
+        Methodology (4th ed.). Sage. Threshold: Cohen's Kappa >= 0.80.
+      - Tetlock, P., Saar-Tsechansky, M., & Macskassy, S. (2008). "More Than Words:
+        Quantifying Language to Measure Firms' Fundamentals." JF, 63(3), 1437-1467.
+      - Carlson, N. A. & Burbano, V. C. (2026). "The Use of LLMs to Annotate Data
+        in Management Research." Strategic Management Journal, 47(3), 699-725.
 
 输入：
     阶段 03c 输出的人工验证 Excel 文件（已填写编码者判定）
@@ -464,7 +470,7 @@ def generate_latex_table(results: dict, output_path: str, logger_inst):
 
 
 # ============================================================================
-# 4b. 误分类系统相关性诊断 (Carlson & Burbano 2025)
+# 4b. 误分类系统相关性诊断 (Carlson & Burbano 2026, SMJ)
 # ============================================================================
 
 SENTIMENT_MAP_DIAG = {'正面': 1, '中性': 0, '负面': -1}
@@ -565,10 +571,13 @@ def diagnose_misclassification_bias(
     """第一阶段误分类 vs 下游变量系统相关性诊断。
 
     学术依据:
-      Carlson & Burbano (2025, Figure 1): "greater accuracy in the first
-      stage does not necessarily translate to better recovery of the 'true'
-      effect if the direction of error is correlated with the second-stage
-      dependent variable."
+      Carlson, N. A. & Burbano, V. C. (2026). "The Use of LLMs to Annotate
+      Data in Management Research: Foundational Guidelines and Warnings."
+      Strategic Management Journal, 47(3), 699-725.
+
+      核心论点 (Figure 1): "greater accuracy in the first stage does not
+      necessarily translate to better recovery of the 'true' effect if the
+      direction of error is correlated with the second-stage dependent variable."
 
     检验项:
       T1: FP vs TP 情感分数 (t-test)     — 检测 FP 是否偏正面
@@ -601,6 +610,9 @@ def diagnose_misclassification_bias(
         diag['conclusion'] = '缺少必要列，诊断跳过'
         return diag
 
+    if lg:
+        lg.info(f"  [{track}] 开始诊断: 金标准列='{gold_ver_col}', 预测列='{ver_col}', 样本数={len(df_verify)}")
+
     df = df_verify.copy()
     df['_gold'] = pd.to_numeric(df[gold_ver_col], errors='coerce').fillna(0).astype(int)
     # 处理 bool / str / int 混合类型
@@ -609,8 +621,12 @@ def diagnose_misclassification_bias(
         df['_pred'] = _pred_raw.map(
             lambda x: 1 if str(x).strip().lower() in ('true', '1', 'yes') else 0
         ).astype(int)
+        if lg:
+            lg.info(f"  [{track}] 预测列类型: object (str)，已映射为 0/1")
     else:
         df['_pred'] = _pred_raw.astype(int)
+        if lg:
+            lg.info(f"  [{track}] 预测列类型: {_pred_raw.dtype}")
 
     # ── 四象限 ──
     tp = (df['_gold'] == 1) & (df['_pred'] == 1)
@@ -619,20 +635,42 @@ def diagnose_misclassification_bias(
     tn = (df['_gold'] == 0) & (df['_pred'] == 0)
     n_tp, n_fp, n_fn, n_tn = int(tp.sum()), int(fp.sum()), int(fn.sum()), int(tn.sum())
     diag['quadrant_counts'] = {'TP': n_tp, 'FP': n_fp, 'FN': n_fn, 'TN': n_tn}
+    n_total = n_tp + n_fp + n_fn + n_tn
+    n_wrong = n_fp + n_fn
+    n_correct = n_tp + n_tn
     if lg:
-        lg.info(f"  [{track}] 四象限: TP={n_tp}, FP={n_fp}, FN={n_fn}, TN={n_tn}")
+        lg.info(f"  [{track}] 混淆矩阵四象限:")
+        lg.info(f"  [{track}]   True Positive  (TP) = {n_tp:>4d}  (gold=1, pred=1: 正确保留)")
+        lg.info(f"  [{track}]   False Positive (FP) = {n_fp:>4d}  (gold=0, pred=1: 应排除却保留)")
+        lg.info(f"  [{track}]   False Negative (FN) = {n_fn:>4d}  (gold=1, pred=0: 应保留却排除)")
+        lg.info(f"  [{track}]   True Negative  (TN) = {n_tn:>4d}  (gold=0, pred=0: 正确排除)")
+        lg.info(f"  [{track}]   总计={n_total}, 误分类={n_wrong} ({n_wrong/max(n_total,1)*100:.1f}%), 正确={n_correct} ({n_correct/max(n_total,1)*100:.1f}%)")
 
     # ── 构建下游代理变量 ──
+    if lg:
+        lg.info(f"  [{track}] 构建下游代理变量...")
+
     # (a) 情感数值: 正面→+1, 中性→0, 负面→-1
     if sent_col in df.columns:
         df['_sent'] = df[sent_col].map(SENTIMENT_MAP_DIAG).astype(float)
+        sent_dist = df['_sent'].value_counts().to_dict()
+        if lg:
+            lg.info(f"  [{track}]   (a) 情感分数 '{sent_col}': 映射 {{正面:+1, 中性:0, 负面:-1}}, 分布={sent_dist}")
     else:
         df['_sent'] = 0.0
+        if lg:
+            lg.info(f"  [{track}]   (a) 情感列 '{sent_col}' 不存在，默认全部为 0.0")
+
     # (b) 文本长度
     if '内容' in df.columns:
         df['_len'] = df['内容'].astype(str).str.len().astype(float)
+        if lg:
+            lg.info(f"  [{track}]   (b) 文本长度: min={df['_len'].min():.0f}, median={df['_len'].median():.0f}, max={df['_len'].max():.0f} 字符")
     else:
         df['_len'] = np.nan
+        if lg:
+            lg.info(f"  [{track}]   (b) '内容'列不存在，文本长度设为 NaN")
+
     # (c) 验证置信度均值（逐模型置信度列的平均）
     try:
         cfg = load_config()
@@ -643,31 +681,43 @@ def diagnose_misclassification_bias(
                  for m in models if m.get('short_name', '')]
     conf_cols = [c for c in conf_cols if c in df.columns]
     df['_conf'] = df[conf_cols].mean(axis=1) if conf_cols else np.nan
+    if lg:
+        if conf_cols:
+            lg.info(f"  [{track}]   (c) 验证置信度: 聚合 {len(conf_cols)} 个模型列均值, mean={df['_conf'].mean():.4f}")
+        else:
+            lg.info(f"  [{track}]   (c) 无可用验证置信度列 (模型数={len(models)})")
+
+    if lg:
+        lg.info(f"  [{track}] ── 开始 6 项统计检验 (Carlson & Burbano 2026, SMJ) ──")
 
     # ── T1: FP vs TP 情感偏差 ──
     if lg:
-        lg.info(f"  [{track}] --- T1: FP vs TP 情感分数 (t-test) ---")
+        lg.info(f"  [{track}] --- T1: FP vs TP 情感分数 (Welch's t-test) ---")
+        lg.info(f"  [{track}]     目的: 检测被错误保留的非相关文章(FP)是否情感偏正面")
     diag['tests'].append(_safe_ttest(
         df.loc[fp, '_sent'].values, df.loc[tp, '_sent'].values,
         'FP', 'TP', f'情感分数{track}', lg))
 
     # ── T2: FN vs TN 情感偏差 ──
     if lg:
-        lg.info(f"  [{track}] --- T2: FN vs TN 情感分数 (t-test) ---")
+        lg.info(f"  [{track}] --- T2: FN vs TN 情感分数 (Welch's t-test) ---")
+        lg.info(f"  [{track}]     目的: 检测被错误排除的相关文章(FN)是否情感偏负面")
     diag['tests'].append(_safe_ttest(
         df.loc[fn, '_sent'].values, df.loc[tn, '_sent'].values,
         'FN', 'TN', f'情感分数{track}', lg))
 
     # ── T3: FP vs TP 情感分布 (KS) ──
     if lg:
-        lg.info(f"  [{track}] --- T3: FP vs TP 情感分布 (KS) ---")
+        lg.info(f"  [{track}] --- T3: FP vs TP 情感分布 (Kolmogorov-Smirnov) ---")
+        lg.info(f"  [{track}]     目的: 检测 FP 与 TP 的情感分布形状是否存在差异")
     diag['tests'].append(_safe_kstest(
         df.loc[fp, '_sent'].values, df.loc[tp, '_sent'].values,
         'FP', 'TP', f'情感分布{track}', lg))
 
     # ── T4: FN vs TN 情感分布 (KS) ──
     if lg:
-        lg.info(f"  [{track}] --- T4: FN vs TN 情感分布 (KS) ---")
+        lg.info(f"  [{track}] --- T4: FN vs TN 情感分布 (Kolmogorov-Smirnov) ---")
+        lg.info(f"  [{track}]     目的: 检测 FN 与 TN 的情感分布形状是否存在差异")
     diag['tests'].append(_safe_kstest(
         df.loc[fn, '_sent'].values, df.loc[tn, '_sent'].values,
         'FN', 'TN', f'情感分布{track}', lg))
@@ -676,14 +726,16 @@ def diagnose_misclassification_bias(
     wrong = fp | fn
     correct = tp | tn
     if lg:
-        lg.info(f"  [{track}] --- T5: 误分类 vs 正确 文本长度 (t-test) ---")
+        lg.info(f"  [{track}] --- T5: 误分类 vs 正确 文本长度 (Welch's t-test) ---")
+        lg.info(f"  [{track}]     目的: 检测文本长度是否影响分类准确性")
     diag['tests'].append(_safe_ttest(
         df.loc[wrong, '_len'].values, df.loc[correct, '_len'].values,
         '误分类', '正确', f'文本长度{track}', lg))
 
     # ── T6: 误分类 vs 正确 验证置信度 ──
     if lg:
-        lg.info(f"  [{track}] --- T6: 误分类 vs 正确 验证置信度 (t-test) ---")
+        lg.info(f"  [{track}] --- T6: 误分类 vs 正确 验证置信度 (Welch's t-test) ---")
+        lg.info(f"  [{track}]     目的: 检测模型置信度是否能有效区分正确与错误分类")
     if conf_cols:
         diag['tests'].append(_safe_ttest(
             df.loc[wrong, '_conf'].values, df.loc[correct, '_conf'].values,
@@ -701,21 +753,38 @@ def diagnose_misclassification_bias(
             lg.info(f"    验证置信度: 跳过 — 无可用的验证置信度列")
 
     # ── 汇总结论 ──
+    n_total_tests = len(diag['tests'])
+    n_skipped = sum(1 for t in diag['tests'] if t.get('skipped', True))
+    n_executed = n_total_tests - n_skipped
     sig_tests = [t for t in diag['tests']
                  if not t.get('skipped', True) and t.get('significant', False)]
+    nonsig_tests = [t for t in diag['tests']
+                    if not t.get('skipped', True) and not t.get('significant', False)]
+
+    if lg:
+        lg.info(f"  [{track}] ── 检验汇总 ──")
+        lg.info(f"  [{track}]   总检验数: {n_total_tests}, 成功执行: {n_executed}, 跳过: {n_skipped}")
+        lg.info(f"  [{track}]   显著(p<0.05): {len(sig_tests)}, 不显著: {len(nonsig_tests)}")
+        if sig_tests:
+            for t in sig_tests:
+                lg.info(f"  [{track}]   ⚠️  {t['var']}: p={t.get('p_value','N/A')} (显著)")
+        if nonsig_tests:
+            for t in nonsig_tests:
+                lg.info(f"  [{track}]   ✓  {t['var']}: p={t.get('p_value','N/A')}")
+
     if sig_tests:
         sig_names = [t['var'] for t in sig_tests]
         diag['conclusion'] = (
-            f"⚠️ 发现 {len(sig_tests)} 项显著系统相关: {sig_names}。"
-            f"建议在论文 Robustness Check 中报告。"
+            f"⚠️ 发现 {len(sig_tests)}/{n_executed} 项显著系统相关: {sig_names}。"
+            f"建议在论文 Robustness Check 中报告 (Carlson & Burbano 2026, SMJ)。"
         )
     else:
         diag['conclusion'] = (
-            "✓ 未发现误分类与下游变量的显著系统相关，"
-            "第一阶段筛选无方向性偏差证据。"
+            f"✓ {n_executed}/{n_executed} 项检验均不显著(p>0.05)，"
+            f"未发现误分类与下游变量的系统相关，第一阶段筛选无方向性偏差证据。"
         )
     if lg:
-        lg.info(f"  [{track}] 结论: {diag['conclusion']}")
+        lg.info(f"  [{track}] 最终结论: {diag['conclusion']}")
 
     # ── 输出 CSV ──
     if output_dir:
@@ -1128,10 +1197,12 @@ def main():
         logger.info("  未找到有效的情感分类黄金标准。")
 
     # ======================================================================
-    # Step 4b: 误分类系统相关性诊断 (Carlson & Burbano 2025)
+    # Step 4b: 误分类系统相关性诊断 (Carlson & Burbano 2026, SMJ 47(3))
     # ======================================================================
     logger.info("=" * 70)
-    logger.info("===    误分类系统相关性诊断 (Carlson & Burbano 2025)    ===")
+    logger.info("===    Step 4b: 误分类系统相关性诊断    ===")
+    logger.info("===    Carlson & Burbano (2026, Strategic Management Journal, 47(3), 699-725)    ===")
+    logger.info("===    检验第一阶段筛选的误分类方向是否与下游情感变量系统相关    ===")
     logger.info("=" * 70)
     for track in ['_full', '_ctx']:
         ver_col_diag = f'llm_verified{track}'
