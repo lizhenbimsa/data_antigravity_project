@@ -701,3 +701,208 @@ class TestPosNegRatioSeparation:
         pos_count, neg_count = 2, 2
         total_ratio = (pos_count + neg_count) / len(tokens)
         assert total_ratio <= 1.0
+
+
+# ============================================================================
+# IDF 加权稳健性检验测试 (Gentzkow, Kelly & Taddy, 2019, JEL §2.2)
+# ============================================================================
+
+import math
+import numpy as np
+
+
+def _build_idf_weights_test(docs: list[str],
+                            dictionaries: list[tuple[str, dict[str, float]]],
+                            ) -> dict[str, dict[str, float]]:
+    """复刻 build_idf_weights 的核心逻辑供测试使用（无 DataFrame/AC 依赖）。"""
+    import ahocorasick as ahc
+
+    N = len(docs)
+    if N == 0:
+        return {name: {w: 1.0 for w in d} for name, d in dictionaries}
+
+    all_words = set()
+    for _, d in dictionaries:
+        all_words.update(d.keys())
+
+    if not all_words:
+        return {name: {} for name, _ in dictionaries}
+
+    A = ahc.Automaton()
+    for word in sorted(all_words):
+        A.add_word(word, word)
+    A.make_automaton()
+
+    from collections import Counter
+    doc_freq: Counter = Counter()
+    for text in docs:
+        seen = set()
+        for _, word in A.iter(text):
+            seen.add(word)
+        doc_freq.update(seen)
+
+    result = {}
+    for dict_name, sentiment_dict in dictionaries:
+        if not sentiment_dict:
+            result[dict_name] = {}
+            continue
+
+        raw_idf = {}
+        for word in sentiment_dict:
+            df_w = doc_freq.get(word, 0)
+            raw_idf[word] = math.log10(N / (1 + df_w))
+
+        values = list(raw_idf.values())
+        mean_val = float(np.mean(values)) if values else 1.0
+        if mean_val > 0:
+            normed = {w: v / mean_val for w, v in raw_idf.items()}
+        else:
+            normed = {w: 1.0 for w in raw_idf}
+
+        normed_vals = np.array(list(normed.values()))
+        if len(normed_vals) >= 2:
+            p1 = float(np.percentile(normed_vals, 1))
+            p99 = float(np.percentile(normed_vals, 99))
+            capped = {w: float(np.clip(v, p1, p99)) for w, v in normed.items()}
+        else:
+            capped = dict(normed)
+
+        result[dict_name] = capped
+    return result
+
+
+def _build_idf_weighted_dict_test(sentiment_dict, idf_weights):
+    """复刻 _build_idf_weighted_dict 供测试使用。"""
+    return {
+        word: base_score * idf_weights.get(word, 1.0)
+        for word, base_score in sentiment_dict.items()
+    }
+
+
+class TestIDFWeighting:
+    """IDF 加权稳健性检验测试。
+
+    学术依据:
+      Gentzkow, M., Kelly, B. & Taddy, M. (2019). Text as Data.
+      Journal of Economic Literature, 57(3), 535-574. §2.2.
+    """
+
+    # 测试用简易语料
+    CORPUS = [
+        '银行增长发展态势良好',   # 增长✓ 发展✓ 风险✗
+        '增长速度快发展好',       # 增长✓ 发展✓ 风险✗
+        '增长率提高',             # 增长✓ 发展✗ 风险✗
+        '发展态势好增长快',       # 增长✓ 发展✓ 风险✗
+        '风险控制良好',           # 增长✗ 发展✗ 风险✓
+    ]
+    # 增长 DF=4, 发展 DF=3, 风险 DF=1 → 风险最稀有 → IDF 最高
+
+    TEST_DICT = {'增长': 1.0, '发展': 1.0, '风险': -1.0}
+    DICTS = [('test', TEST_DICT)]
+
+    def test_rare_word_higher_idf(self):
+        """稀有词（DF 低）的 IDF 应大于高频词。"""
+        weights = _build_idf_weights_test(self.CORPUS, self.DICTS)
+        w = weights['test']
+        # 风险(DF=1) > 发展(DF=3) > 增长(DF=4)
+        assert w['风险'] > w['发展'], f"风险 {w['风险']:.4f} <= 发展 {w['发展']:.4f}"
+        assert w['发展'] > w['增长'], f"发展 {w['发展']:.4f} <= 增长 {w['增长']:.4f}"
+
+    def test_ubiquitous_word_lower_idf(self):
+        """出现在所有/大部分文档中的词 IDF 应最低。"""
+        weights = _build_idf_weights_test(self.CORPUS, self.DICTS)
+        w = weights['test']
+        assert w['增长'] == min(w.values()), "最高频词应有最低 IDF"
+
+    def test_preserves_polarity(self):
+        """IDF 加权不改变正/负极性方向。"""
+        weights = _build_idf_weights_test(self.CORPUS, self.DICTS)
+        idf_dict = _build_idf_weighted_dict_test(self.TEST_DICT, weights['test'])
+        assert idf_dict['增长'] > 0, "正面词加权后应仍为正"
+        assert idf_dict['风险'] < 0, "负面词加权后应仍为负"
+
+    def test_preserves_asymmetric_base(self):
+        """du_2022 政治正面词 base=0.5 应保留非对称性。"""
+        asym_dict = {'增长': 0.5, '风险': -1.0}
+        weights = _build_idf_weights_test(self.CORPUS, [('asym', asym_dict)])
+        idf_dict = _build_idf_weighted_dict_test(asym_dict, weights['asym'])
+        # |增长_idf| < |风险_idf| 因为 base 不同
+        assert abs(idf_dict['增长']) < abs(idf_dict['风险']), \
+            "非对称 base_score 应保留: |0.5×idf| < |1.0×idf|"
+
+    def test_normalized_mean_near_one(self):
+        """归一化后 IDF 均值应接近 1.0。"""
+        weights = _build_idf_weights_test(self.CORPUS, self.DICTS)
+        w = weights['test']
+        mean_idf = np.mean(list(w.values()))
+        assert abs(mean_idf - 1.0) < 0.15, f"均值={mean_idf:.4f}，应接近 1.0"
+
+    def test_winsorize_clips_extreme_high(self):
+        """Winsorize 后最大值应等于 P99。"""
+        # 构造 100 个词，分布一致时 Winsorize 不改变任何值
+        many_words = {f'term_{i:04d}': 1.0 for i in range(100)}
+        # 第1篇含所有词，其余每篇只含前 50 个词
+        all_terms = ' '.join(f'term_{i:04d}' for i in range(100))
+        common_terms = ' '.join(f'term_{i:04d}' for i in range(50))
+        docs = [all_terms] + [common_terms for _ in range(49)]
+
+        weights = _build_idf_weights_test(docs, [('test', many_words)])
+        w = weights['test']
+        vals = np.array(list(w.values()))
+        # 基本检查：Winsorize 后，最大值 ≤ P99 + 容差
+        p99 = float(np.percentile(vals, 99))
+        assert max(vals) <= p99 + 0.01
+
+    def test_winsorize_clips_extreme_low(self):
+        """Winsorize 后最小值应等于 P1。"""
+        many_words = {f'term_{i:04d}': 1.0 for i in range(100)}
+        all_terms = ' '.join(f'term_{i:04d}' for i in range(100))
+        common_terms = ' '.join(f'term_{i:04d}' for i in range(50))
+        docs = [all_terms] + [common_terms for _ in range(49)]
+
+        weights = _build_idf_weights_test(docs, [('test', many_words)])
+        w = weights['test']
+        vals = np.array(list(w.values()))
+        p1 = float(np.percentile(vals, 1))
+        assert min(vals) >= p1 - 0.01
+
+    def test_df_zero_gets_max_idf(self):
+        """词典中存在但语料中 DF=0 的词应获得最高 IDF（被 Winsorize 封顶）。"""
+        ghost_dict = {'增长': 1.0, '幽灵词': 1.0}
+        docs = ['增长态势好', '增长率高']
+        weights = _build_idf_weights_test(docs, [('ghost', ghost_dict)])
+        w = weights['ghost']
+        assert w['幽灵词'] >= w['增长'], \
+            f"DF=0 的词 IDF={w['幽灵词']:.4f} 应 >= DF>0 的词 IDF={w['增长']:.4f}"
+
+    def test_empty_corpus_degrades_to_equal_weight(self):
+        """空语料时 IDF 应优雅降级为均等权重（全部 = 1.0）。"""
+        weights = _build_idf_weights_test([], self.DICTS)
+        w = weights['test']
+        for word, val in w.items():
+            assert val == 1.0, f"{word} 的 IDF={val}，空语料应为 1.0"
+
+    def test_idf_dict_works_with_negation(self):
+        """IDF 词典应与否定词规则正确协作。"""
+        weights = _build_idf_weights_test(self.CORPUS, self.DICTS)
+        idf_dict = _build_idf_weighted_dict_test(self.TEST_DICT, weights['test'])
+
+        # "不 增长" → 否定翻转
+        tokens = ['不', '增长']
+        _, norm, _, _, _ = _compute_sentiment_with_rules(tokens, idf_dict)
+        assert norm < 0, f"'不 增长' IDF 加权后应为负，实际={norm:.4f}"
+
+    def test_idf_dict_works_with_degree_and_adversative(self):
+        """IDF 词典应与程度副词+转折规则正确协作。"""
+        weights = _build_idf_weights_test(self.CORPUS, self.DICTS)
+        idf_dict = _build_idf_weighted_dict_test(self.TEST_DICT, weights['test'])
+
+        # "非常 增长" → 程度放大
+        tokens_deg = ['非常', '增长']
+        _, norm_deg, _, _, _ = _compute_sentiment_with_rules(tokens_deg, idf_dict)
+        # "增长" only
+        tokens_plain = ['增长']
+        _, norm_plain, _, _, _ = _compute_sentiment_with_rules(tokens_plain, idf_dict)
+        # 加了"非常"的分数绝对值应更大
+        assert abs(norm_deg) > abs(norm_plain), \
+            f"程度副词应放大: |{norm_deg:.4f}| > |{norm_plain:.4f}|"

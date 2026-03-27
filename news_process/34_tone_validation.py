@@ -90,16 +90,25 @@ def discover_sentiment_columns(df: pd.DataFrame, track_suffix: str = '') -> dict
     sentiment_suffix = f'_sentiment{track_suffix}'
     confidence_suffix = f'_confidence{track_suffix}'
 
-    # 词典法：找 _score{track_suffix} 列
+    # 词典法：找 _score{track_suffix} 列，区分等权 vs IDF
+    result['words_idf'] = {}  # IDF 加权词典（稳健性检验，独立分组）
+
     for col in columns:
         if col.endswith(score_suffix):
             dict_name = col[:-len(score_suffix)]
             label_col = f'{dict_name}{label_suffix}'
             if label_col in columns:
-                result['words'][dict_name] = {
-                    'score': col,
-                    'label': label_col,
-                }
+                if '_idf' in dict_name:
+                    # IDF 列 → 单独分组（不与等权混入 Cronbach's α）
+                    result['words_idf'][dict_name] = {
+                        'score': col,
+                        'label': label_col,
+                    }
+                else:
+                    result['words'][dict_name] = {
+                        'score': col,
+                        'label': label_col,
+                    }
 
     # LLM 法：找 _sentiment{track_suffix} 列
     for col in columns:
@@ -826,6 +835,30 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
             spearman, 'Spearman 相关矩阵 — 词典法 (内部)',
             os.path.join(output_dir, 'heatmap_within_words.png'), logger
         )
+
+    # 3.1b IDF 词典法内部一致性（稳健性检验，独立报告）
+    # IDF 与等权是同源数据的不同加权，非独立观测，
+    # 混入同一 Cronbach's α 会虚假膨胀。因此单独报告。
+    # 注意：使用局部变量，不修改共享的 all_scores/all_scores_df，
+    #       防止下游跨方法分析被 IDF 列污染。
+    n_words_idf = len(sentiment_cols.get('words_idf', {}))
+    if n_words_idf >= 2:
+        logger.info(f"--- 词典法 IDF (稳健性检验): {n_words_idf} 个词典 ---")
+        idf_scores_dict = {}
+        for dict_name, cols_info in sentiment_cols['words_idf'].items():
+            idf_scores_dict[f'词典_{dict_name}'] = df[cols_info['score']].astype(float)
+
+        idf_scores = pd.DataFrame(idf_scores_dict)
+        if len(idf_scores.columns) >= 2:
+            idf_alpha = compute_cronbachs_alpha(idf_scores)
+            within_results['cronbach_alpha']['Dictionary_IDF'] = idf_alpha
+            within_results['n_models']['Dictionary_IDF'] = n_words_idf
+            logger.info(f"  IDF Cronbach's Alpha: {idf_alpha:.4f}")
+
+            idf_spearman = compute_spearman_matrix(idf_scores)
+            logger.info("  IDF Spearman 相关矩阵:")
+            logger.info(f"\n{idf_spearman.to_string()}")
+            results['within_method']['words_idf_spearman'] = idf_spearman.to_dict()
 
     # 3.2 BERT 模型间一致性
     if n_bert >= 2:

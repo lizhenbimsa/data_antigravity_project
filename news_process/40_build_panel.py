@@ -183,6 +183,12 @@ def build_aggregation_dict() -> dict:
             agg[f'{d}_tone_sum{track}'] = (f'{d}_score{track}', 'sum')
             agg[f'{d}_tone_std{track}'] = (f'{d}_score{track}', 'std')
 
+        # --- C2. 词典法 IDF 加权稳健性检验 (Gentzkow et al. 2019) ---
+        for d in DICT_NAMES:
+            agg[f'{d}_idf_tone{track}'] = (f'{d}_idf_score{track}', 'mean')
+            agg[f'{d}_idf_tone_sum{track}'] = (f'{d}_idf_score{track}', 'sum')
+            agg[f'{d}_idf_tone_std{track}'] = (f'{d}_idf_score{track}', 'std')
+
         # --- D. BERT 逐模型 ---
         for short in BERT_MODELS:
             agg[f'{short}_pos{track}'] = (f'{short}_正面{track}', 'mean')
@@ -234,6 +240,9 @@ def build_aggregation_dict() -> dict:
             agg[f'{short}_cont_w_sum{track}'] = (f'{short}_cont_w{track}', 'sum')
         for d in DICT_NAMES:
             agg[f'{d}_score_w_sum{track}'] = (f'{d}_score_w{track}', 'sum')
+        # --- F2. IDF VW 聚合 (Gentzkow et al. 2019 稳健性检验) ---
+        for d in DICT_NAMES:
+            agg[f'{d}_idf_score_w_sum{track}'] = (f'{d}_idf_score_w{track}', 'sum')
         for b in BERT_MODELS:
             agg[f'{b}_正面_w_sum{track}'] = (f'{b}_正面_w{track}', 'sum')
             agg[f'{b}_负面_w_sum{track}'] = (f'{b}_负面_w{track}', 'sum')
@@ -307,6 +316,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 w_col = f'{d}_score_w_sum{track}'
                 if w_col in panel.columns:
                     panel[f'{d}_tone_vw{track}'] = panel[w_col] / denom
+            # IDF VW Tone (Gentzkow et al. 2019 稳健性检验)
+            for d in DICT_NAMES:
+                w_col = f'{d}_idf_score_w_sum{track}'
+                if w_col in panel.columns:
+                    panel[f'{d}_idf_tone_vw{track}'] = panel[w_col] / denom
             for b in BERT_MODELS:
                 w_pos = f'{b}_正面_w_sum{track}'
                 w_neg = f'{b}_负面_w_sum{track}'
@@ -400,6 +414,10 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         panel[f'dict_avg_tone_sum{track}'] = _safe_mean([f'{d}_tone_sum{track}' for d in DICT_NAMES])
         panel[f'dict_avg_tone_std{track}'] = _safe_mean([f'{d}_tone_std{track}' for d in DICT_NAMES])
 
+        # --- 词典法 IDF 综合 (Gentzkow et al. 2019 稳健性检验) ---
+        panel[f'dict_avg_idf_tone{track}'] = _safe_mean([f'{d}_idf_tone{track}' for d in DICT_NAMES])
+        panel[f'dict_avg_idf_tone_sum{track}'] = _safe_mean([f'{d}_idf_tone_sum{track}' for d in DICT_NAMES])
+
         # --- BERT 综合 ---
         panel[f'bert_avg_pos{track}'] = _safe_mean([f'{b}_pos{track}' for b in BERT_MODELS])
         panel[f'bert_avg_neg{track}'] = _safe_mean([f'{b}_neg{track}' for b in BERT_MODELS])
@@ -412,6 +430,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         # --- VW 综合指标 ---
         panel[f'llm_models_avg_tone_vw{track}'] = _safe_mean([f'{s}_tone_vw{track}' for s in LLM_MODELS])
         panel[f'dict_avg_tone_vw{track}'] = _safe_mean([f'{d}_tone_vw{track}' for d in DICT_NAMES])
+        panel[f'dict_avg_idf_tone_vw{track}'] = _safe_mean([f'{d}_idf_tone_vw{track}' for d in DICT_NAMES])
         panel[f'bert_avg_pos_vw{track}'] = _safe_mean([f'{b}_pos_vw{track}' for b in BERT_MODELS])
         panel[f'bert_avg_neg_vw{track}'] = _safe_mean([f'{b}_neg_vw{track}' for b in BERT_MODELS])
 
@@ -593,6 +612,11 @@ def main():
             # 词典
             for d in DICT_NAMES:
                 src = f'{d}_score{track}'
+                if src in df.columns:
+                    df[f'{src}_w'] = df[src] * w
+            # 词典 IDF (Gentzkow et al. 2019 稳健性检验)
+            for d in DICT_NAMES:
+                src = f'{d}_idf_score{track}'
                 if src in df.columns:
                     df[f'{src}_w'] = df[src] * w
             # BERT

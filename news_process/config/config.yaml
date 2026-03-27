@@ -361,6 +361,9 @@ sentiment_analysis:
 
   # 词典法情感分析参数
   tone_words:
+    idf_weighting: true                             # TF-IDF 加权稳健性检验（默认开启）
+                                                    # Gentzkow, Kelly & Taddy (2019, JEL) §2.2
+                                                    # 为每个词典新增 IDF 加权并行度量，与等权版共存
     pos_threshold: 0.1                              # 正面情感得分阈值
     neg_threshold: -0.1                             # 负面情感得分阈值
     negation_window: 2                              # 否定词有效作用窗口（向后影响的分词单元数）
