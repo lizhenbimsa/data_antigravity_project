@@ -414,6 +414,24 @@ def generate_latex_table(results: dict, output_path: str, logger_inst):
                 f"  {name} & {pos_r:.3f} & {neu_r:.3f} & {neg_r:.3f} & {total} \\\\"
             )
 
+    # Panel D: 误分类系统相关性诊断 (Carlson & Burbano 2025)
+    bias_full = results.get('misclassification_bias_full', {})
+    bias_tests = bias_full.get('tests', []) if isinstance(bias_full, dict) else []
+    non_skipped = [t for t in bias_tests if not t.get('skipped', True)]
+    if non_skipped:
+        lines.append(r"\hline")
+        lines.append(r"\multicolumn{5}{l}{\textbf{Panel D: Misclassification Bias Diagnostic}} \\")
+        lines.append(r"\hline")
+        lines.append(r"Variable & Grp A Mean & Grp B Mean & Statistic & p-value \\")
+        lines.append(r"\hline")
+        for t in non_skipped:
+            ma = f"{t['mean_a']:.4f}" if t.get('mean_a') is not None else 'N/A'
+            mb = f"{t['mean_b']:.4f}" if t.get('mean_b') is not None else 'N/A'
+            st = f"{t['statistic']:.4f}" if t.get('statistic') is not None else 'N/A'
+            pv = f"{t['p_value']:.4f}" if t.get('p_value') is not None else 'N/A'
+            vn = t.get('var', '').replace('_', r'\_')
+            lines.append(f"  {vn} & {ma} & {mb} & {st} & {pv} \\\\")
+
     lines.extend([
         r"\hline",
         r"\end{tabular}",
@@ -443,6 +461,288 @@ def generate_latex_table(results: dict, output_path: str, logger_inst):
         logger_inst.info(f"LaTeX 表格已保存: {output_path}")
     except Exception as e:
         logger_inst.warning(f"保存 LaTeX 表格失败: {e}")
+
+
+# ============================================================================
+# 4b. 误分类系统相关性诊断 (Carlson & Burbano 2025)
+# ============================================================================
+
+SENTIMENT_MAP_DIAG = {'正面': 1, '中性': 0, '负面': -1}
+
+
+def _safe_ttest(group_a, group_b, label_a, label_b, var_name, logger_inst):
+    """安全执行 Welch's t-test，处理所有边界情况。
+
+    边界情况处理:
+      - 任一组样本量 < 2 → skipped
+      - scipy 未安装 → skipped
+      - 方差均为 0 → skipped (scipy 会抛 warning)
+    """
+    n_a = int(np.sum(~np.isnan(group_a))) if len(group_a) > 0 else 0
+    n_b = int(np.sum(~np.isnan(group_b))) if len(group_b) > 0 else 0
+    result = {
+        'var': var_name, 'test': 'welch_t',
+        'group_a': label_a, 'n_a': n_a,
+        'mean_a': round(float(np.nanmean(group_a)), 4) if n_a > 0 else None,
+        'group_b': label_b, 'n_b': n_b,
+        'mean_b': round(float(np.nanmean(group_b)), 4) if n_b > 0 else None,
+        'statistic': None, 'p_value': None, 'significant': None,
+        'skipped': False, 'skip_reason': None,
+    }
+    if n_a < 2 or n_b < 2:
+        result['skipped'] = True
+        result['skip_reason'] = f'样本量不足 (n_a={n_a}, n_b={n_b}，至少需要 2)'
+        if logger_inst:
+            logger_inst.info(f"    {var_name}: 跳过 — {result['skip_reason']}")
+        return result
+    try:
+        from scipy.stats import ttest_ind
+        stat, p = ttest_ind(group_a, group_b, equal_var=False, nan_policy='omit')
+        result['statistic'] = round(float(stat), 4)
+        result['p_value'] = round(float(p), 6)
+        result['significant'] = bool(p < 0.05)
+    except ImportError:
+        result['skipped'] = True
+        result['skip_reason'] = 'scipy 未安装'
+    except Exception as e:
+        result['skipped'] = True
+        result['skip_reason'] = str(e)
+    if logger_inst and not result['skipped']:
+        diff = (result['mean_a'] or 0) - (result['mean_b'] or 0)
+        sig = '⚠️ 显著' if result['significant'] else '不显著'
+        logger_inst.info(
+            f"    {var_name}: {label_a}均值={result['mean_a']}(n={n_a}), "
+            f"{label_b}均值={result['mean_b']}(n={n_b}), "
+            f"差值={diff:+.4f}, t={result['statistic']}, p={result['p_value']} {sig}"
+        )
+    return result
+
+
+def _safe_kstest(group_a, group_b, label_a, label_b, var_name, logger_inst):
+    """安全执行 Kolmogorov-Smirnov 双样本检验。"""
+    n_a = int(np.sum(~np.isnan(group_a))) if len(group_a) > 0 else 0
+    n_b = int(np.sum(~np.isnan(group_b))) if len(group_b) > 0 else 0
+    result = {
+        'var': var_name, 'test': 'ks_2samp',
+        'group_a': label_a, 'n_a': n_a, 'mean_a': None,
+        'group_b': label_b, 'n_b': n_b, 'mean_b': None,
+        'statistic': None, 'p_value': None, 'significant': None,
+        'skipped': False, 'skip_reason': None,
+    }
+    if n_a < 1 or n_b < 1:
+        result['skipped'] = True
+        result['skip_reason'] = f'样本量不足 (n_a={n_a}, n_b={n_b})'
+        if logger_inst:
+            logger_inst.info(f"    {var_name} KS: 跳过 — {result['skip_reason']}")
+        return result
+    try:
+        from scipy.stats import ks_2samp
+        stat, p = ks_2samp(group_a[~np.isnan(group_a)], group_b[~np.isnan(group_b)])
+        result['statistic'] = round(float(stat), 4)
+        result['p_value'] = round(float(p), 6)
+        result['significant'] = bool(p < 0.05)
+    except ImportError:
+        result['skipped'] = True
+        result['skip_reason'] = 'scipy 未安装'
+    except Exception as e:
+        result['skipped'] = True
+        result['skip_reason'] = str(e)
+    if logger_inst and not result['skipped']:
+        sig = '⚠️ 显著' if result['significant'] else '不显著'
+        logger_inst.info(
+            f"    {var_name} KS: D={result['statistic']}, p={result['p_value']} {sig}"
+        )
+    return result
+
+
+def diagnose_misclassification_bias(
+    df_verify: pd.DataFrame,
+    gold_ver_col: str,
+    track: str = '_full',
+    logger_inst=None,
+    output_dir: str = None,
+) -> dict:
+    """第一阶段误分类 vs 下游变量系统相关性诊断。
+
+    学术依据:
+      Carlson & Burbano (2025, Figure 1): "greater accuracy in the first
+      stage does not necessarily translate to better recovery of the 'true'
+      effect if the direction of error is correlated with the second-stage
+      dependent variable."
+
+    检验项:
+      T1: FP vs TP 情感分数 (t-test)     — 检测 FP 是否偏正面
+      T2: FN vs TN 情感分数 (t-test)     — 检测 FN 是否偏负面
+      T3: FP vs TP 情感分数 (KS)         — 分布形状差异
+      T4: FN vs TN 情感分数 (KS)         — 分布形状差异
+      T5: 误分类 vs 正确 文本长度 (t-test) — 长度偏差
+      T6: 误分类 vs 正确 置信度 (t-test)   — 置信度校准
+
+    Args:
+        df_verify:    金标准验证样本 DataFrame。
+        gold_ver_col: 黄金标准验证列名（如 '最终_验证'）。
+        track:        轨道后缀（'_full' 或 '_ctx'）。
+        logger_inst:  日志记录器（可选）。
+        output_dir:   CSV 输出目录（可选）。
+
+    Returns:
+        dict: 包含四象限计数、检验结果列表和总体结论。
+    """
+    ver_col = f'llm_verified{track}'
+    sent_col = f'llm_sentiment{track}'
+    lg = logger_inst
+
+    diag = {'track': track, 'tests': [], 'quadrant_counts': {}, 'conclusion': ''}
+
+    # ── 安全检查 ──
+    if gold_ver_col not in df_verify.columns or ver_col not in df_verify.columns:
+        if lg:
+            lg.warning(f"  [{track}] 缺少必要列 ({gold_ver_col} 或 {ver_col})，跳过诊断")
+        diag['conclusion'] = '缺少必要列，诊断跳过'
+        return diag
+
+    df = df_verify.copy()
+    df['_gold'] = pd.to_numeric(df[gold_ver_col], errors='coerce').fillna(0).astype(int)
+    # 处理 bool / str / int 混合类型
+    _pred_raw = df[ver_col].fillna(False)
+    if _pred_raw.dtype == object:
+        df['_pred'] = _pred_raw.map(
+            lambda x: 1 if str(x).strip().lower() in ('true', '1', 'yes') else 0
+        ).astype(int)
+    else:
+        df['_pred'] = _pred_raw.astype(int)
+
+    # ── 四象限 ──
+    tp = (df['_gold'] == 1) & (df['_pred'] == 1)
+    fp = (df['_gold'] == 0) & (df['_pred'] == 1)
+    fn = (df['_gold'] == 1) & (df['_pred'] == 0)
+    tn = (df['_gold'] == 0) & (df['_pred'] == 0)
+    n_tp, n_fp, n_fn, n_tn = int(tp.sum()), int(fp.sum()), int(fn.sum()), int(tn.sum())
+    diag['quadrant_counts'] = {'TP': n_tp, 'FP': n_fp, 'FN': n_fn, 'TN': n_tn}
+    if lg:
+        lg.info(f"  [{track}] 四象限: TP={n_tp}, FP={n_fp}, FN={n_fn}, TN={n_tn}")
+
+    # ── 构建下游代理变量 ──
+    # (a) 情感数值: 正面→+1, 中性→0, 负面→-1
+    if sent_col in df.columns:
+        df['_sent'] = df[sent_col].map(SENTIMENT_MAP_DIAG).astype(float)
+    else:
+        df['_sent'] = 0.0
+    # (b) 文本长度
+    if '内容' in df.columns:
+        df['_len'] = df['内容'].astype(str).str.len().astype(float)
+    else:
+        df['_len'] = np.nan
+    # (c) 验证置信度均值（逐模型置信度列的平均）
+    try:
+        cfg = load_config()
+        models = cfg.get('tone_llm_processing', {}).get('models', [])
+    except Exception:
+        models = []
+    conf_cols = [f"{m.get('short_name', '')}_verification_confidence{track}"
+                 for m in models if m.get('short_name', '')]
+    conf_cols = [c for c in conf_cols if c in df.columns]
+    df['_conf'] = df[conf_cols].mean(axis=1) if conf_cols else np.nan
+
+    # ── T1: FP vs TP 情感偏差 ──
+    if lg:
+        lg.info(f"  [{track}] --- T1: FP vs TP 情感分数 (t-test) ---")
+    diag['tests'].append(_safe_ttest(
+        df.loc[fp, '_sent'].values, df.loc[tp, '_sent'].values,
+        'FP', 'TP', f'情感分数{track}', lg))
+
+    # ── T2: FN vs TN 情感偏差 ──
+    if lg:
+        lg.info(f"  [{track}] --- T2: FN vs TN 情感分数 (t-test) ---")
+    diag['tests'].append(_safe_ttest(
+        df.loc[fn, '_sent'].values, df.loc[tn, '_sent'].values,
+        'FN', 'TN', f'情感分数{track}', lg))
+
+    # ── T3: FP vs TP 情感分布 (KS) ──
+    if lg:
+        lg.info(f"  [{track}] --- T3: FP vs TP 情感分布 (KS) ---")
+    diag['tests'].append(_safe_kstest(
+        df.loc[fp, '_sent'].values, df.loc[tp, '_sent'].values,
+        'FP', 'TP', f'情感分布{track}', lg))
+
+    # ── T4: FN vs TN 情感分布 (KS) ──
+    if lg:
+        lg.info(f"  [{track}] --- T4: FN vs TN 情感分布 (KS) ---")
+    diag['tests'].append(_safe_kstest(
+        df.loc[fn, '_sent'].values, df.loc[tn, '_sent'].values,
+        'FN', 'TN', f'情感分布{track}', lg))
+
+    # ── T5: 误分类 vs 正确 文本长度 ──
+    wrong = fp | fn
+    correct = tp | tn
+    if lg:
+        lg.info(f"  [{track}] --- T5: 误分类 vs 正确 文本长度 (t-test) ---")
+    diag['tests'].append(_safe_ttest(
+        df.loc[wrong, '_len'].values, df.loc[correct, '_len'].values,
+        '误分类', '正确', f'文本长度{track}', lg))
+
+    # ── T6: 误分类 vs 正确 验证置信度 ──
+    if lg:
+        lg.info(f"  [{track}] --- T6: 误分类 vs 正确 验证置信度 (t-test) ---")
+    if conf_cols:
+        diag['tests'].append(_safe_ttest(
+            df.loc[wrong, '_conf'].values, df.loc[correct, '_conf'].values,
+            '误分类', '正确', f'验证置信度{track}', lg))
+    else:
+        skip_entry = {
+            'var': f'验证置信度{track}', 'test': 'welch_t',
+            'group_a': '误分类', 'n_a': 0, 'mean_a': None,
+            'group_b': '正确', 'n_b': 0, 'mean_b': None,
+            'statistic': None, 'p_value': None, 'significant': None,
+            'skipped': True, 'skip_reason': '无可用的验证置信度列',
+        }
+        diag['tests'].append(skip_entry)
+        if lg:
+            lg.info(f"    验证置信度: 跳过 — 无可用的验证置信度列")
+
+    # ── 汇总结论 ──
+    sig_tests = [t for t in diag['tests']
+                 if not t.get('skipped', True) and t.get('significant', False)]
+    if sig_tests:
+        sig_names = [t['var'] for t in sig_tests]
+        diag['conclusion'] = (
+            f"⚠️ 发现 {len(sig_tests)} 项显著系统相关: {sig_names}。"
+            f"建议在论文 Robustness Check 中报告。"
+        )
+    else:
+        diag['conclusion'] = (
+            "✓ 未发现误分类与下游变量的显著系统相关，"
+            "第一阶段筛选无方向性偏差证据。"
+        )
+    if lg:
+        lg.info(f"  [{track}] 结论: {diag['conclusion']}")
+
+    # ── 输出 CSV ──
+    if output_dir:
+        try:
+            rows = []
+            for t in diag['tests']:
+                rows.append({
+                    'track': track, 'variable': t.get('var', ''),
+                    'test': t.get('test', ''),
+                    'group_a': t.get('group_a', ''), 'n_a': t.get('n_a', ''),
+                    'mean_a': t.get('mean_a', ''),
+                    'group_b': t.get('group_b', ''), 'n_b': t.get('n_b', ''),
+                    'mean_b': t.get('mean_b', ''),
+                    'statistic': t.get('statistic', ''), 'p_value': t.get('p_value', ''),
+                    'significant': t.get('significant', ''),
+                    'skipped': t.get('skipped', False),
+                    'skip_reason': t.get('skip_reason', ''),
+                })
+            csv_path = os.path.join(output_dir, f'misclassification_bias_diag{track}.csv')
+            pd.DataFrame(rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
+            if lg:
+                lg.info(f"  [{track}] 诊断 CSV 已保存: {csv_path}")
+        except Exception as e:
+            if lg:
+                lg.warning(f"  [{track}] 保存诊断 CSV 失败: {e}")
+
+    return diag
 
 
 # ============================================================================
@@ -828,6 +1128,26 @@ def main():
         logger.info("  未找到有效的情感分类黄金标准。")
 
     # ======================================================================
+    # Step 4b: 误分类系统相关性诊断 (Carlson & Burbano 2025)
+    # ======================================================================
+    logger.info("=" * 70)
+    logger.info("===    误分类系统相关性诊断 (Carlson & Burbano 2025)    ===")
+    logger.info("=" * 70)
+    for track in ['_full', '_ctx']:
+        ver_col_diag = f'llm_verified{track}'
+        if ver_col_diag in df_eval_ver.columns:
+            bias_diag = diagnose_misclassification_bias(
+                df_verify=df_eval_ver,
+                gold_ver_col=gold_ver_col,
+                track=track,
+                logger_inst=logger,
+                output_dir=output_dir,
+            )
+            results[f'misclassification_bias{track}'] = bias_diag
+        else:
+            logger.info(f"  [{track}] 列 {ver_col_diag} 不存在，跳过诊断")
+
+    # ======================================================================
     # Step 5: 生成报告
     # ======================================================================
     logger.info("=" * 70)
@@ -985,6 +1305,11 @@ def _generate_demo_data(n=200) -> pd.DataFrame:
             # 各模型置信度
             df[f'{short}_verification_confidence{track}'] = rng.uniform(0.6, 1.0, n).round(2)
             df[f'{short}_sentiment_confidence{track}'] = rng.uniform(0.5, 1.0, n).round(2)
+
+    # 补充更真实的内容长度（供误分类诊断 T5 使用）
+    df['内容'] = [
+        '模' * rng.randint(200, 3000) for _ in range(n)
+    ]
 
     return df
 
