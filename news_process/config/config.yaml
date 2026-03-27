@@ -43,6 +43,7 @@ filenames:
   output_32_human_sample: 32_human_samples.xlsx           # 32_news_llms_human.py → 人工验证样本（含真伪与情感标注）
   output_40_panel_yearly: 40_panel_yearly.parquet          # 40_build_panel.py → 年度平衡面板 (Bank-Year)
   output_40_article_bank: 40_article_bank_level.parquet    # 40_build_panel.py → 展开后文章-银行级数据
+  output_41_panel_controls: 41_panel_with_controls.parquet  # 41_falsification_test.py → 含伪造检验对照变量的面板
 
 # ------------------------------------------------------------------------------
 # 并行处理配置 (Parallel Processing)
@@ -327,6 +328,20 @@ validation:
   classification_eval: true                         # 阶段33: 分类有效性评估 (Cohen's Kappa, P/R/F1)
   threshold_sensitivity: true                       # 阶段31: 阈值敏感性分析
   sentiment_validation: true                        # 阶段34: 情感三角验证 (Cronbach's α, 交叉相关)
+
+# ------------------------------------------------------------------------------
+# [模块四：评估验证模块] Entity Masking 稳健性测试 - 阶段 36
+# ------------------------------------------------------------------------------
+# 通过将银行名替换为匿名占位符，验证 LLM 判定是否依赖文本语义而非实体先验。
+entity_masking_test:
+  enabled: true
+  sample_size: 1000                                 # 随机抽样数量
+  random_seed: 42                                   # 随机种子（保证可复现）
+  placeholder: "目标银行A"                           # 目标银行替换占位符
+  peer_placeholder_template: "同业银行{}"             # 共提银行占位符模板（{} 填 B, C, D...）
+  pass_threshold_verification: 0.90                 # 验证一致率通过阈值 (≥90%)
+  pass_threshold_sentiment: 0.85                    # 情感一致率通过阈值 (≥85%)
+  pass_threshold_kappa: 0.80                        # Cohen's κ 通过阈值 (≥0.80)
 
 # 阈值敏感性分析参数 (Threshold Sensitivity) - 阶段 31
 threshold_sensitivity:

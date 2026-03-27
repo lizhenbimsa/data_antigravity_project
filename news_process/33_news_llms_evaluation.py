@@ -385,7 +385,7 @@ def generate_latex_table(results: dict, output_path: str, logger_inst):
     lines.append(r"\hline")
 
     # 添加 Sentiment 评估结果
-    lines.append(r"\multicolumn{5}{l}{\textbf{Panel B: Sentiment Task (Three-class)}} \\")
+    lines.append(r"\multicolumn{5}{l}{\textbf{Panel B: Sentiment Task (Three-class, Macro Avg)}} \\")
     for name, metrics in results.get('classifier_metrics', {}).get('sentiment', {}).items():
         macro = metrics.get('macro', {})
         lines.append(
@@ -393,6 +393,26 @@ def generate_latex_table(results: dict, output_path: str, logger_inst):
             f"{macro.get('recall', 0):.3f} & {macro.get('f1', 0):.3f} & "
             f"{metrics.get('accuracy', 0):.3f} \\\\"
         )
+
+    lines.append(r"\hline")
+
+    # Panel C: 情感任务逐类别 Recall（cf. FinBERT Table 1 Panel A）
+    sentiment_metrics = results.get('classifier_metrics', {}).get('sentiment', {})
+    if sentiment_metrics:
+        lines.append(r"\multicolumn{5}{l}{\textbf{Panel C: Sentiment Per-class Recall}} \\")
+        lines.append(r"\hline")
+        # 表头改为: Classifier & 正面 Recall & 中性 Recall & 负面 Recall & Support \\
+        lines.append(r"Classifier & Pos.~Recall & Neu.~Recall & Neg.~Recall & Total \\")
+        lines.append(r"\hline")
+        for name, metrics in sentiment_metrics.items():
+            pc = metrics.get('per_class', {})
+            pos_r = pc.get('正面', pc.get('positive', {})).get('recall', 0) if isinstance(pc.get('正面', pc.get('positive', {})), dict) else 0
+            neu_r = pc.get('中性', pc.get('neutral', {})).get('recall', 0) if isinstance(pc.get('中性', pc.get('neutral', {})), dict) else 0
+            neg_r = pc.get('负面', pc.get('negative', {})).get('recall', 0) if isinstance(pc.get('负面', pc.get('negative', {})), dict) else 0
+            total = metrics.get('total', 0)
+            lines.append(
+                f"  {name} & {pos_r:.3f} & {neu_r:.3f} & {neg_r:.3f} & {total} \\\\"
+            )
 
     lines.extend([
         r"\hline",
@@ -737,6 +757,20 @@ def main():
                 logger.info(f"    Macro Recall:    {llm_sen_metrics['macro']['recall']:.4f}")
                 logger.info(f"    Macro F1:  {llm_sen_metrics['macro']['f1']:.4f}")
                 logger.info(f"    Accuracy:  {llm_sen_metrics['accuracy']:.4f}")
+                # 逐类别 Recall（cf. FinBERT Table 1 Panel A: Per-class Recall）
+                per_class = llm_sen_metrics.get('per_class', {})
+                if per_class:
+                    logger.info(f"    --- 逐类别指标 (Per-class) ---")
+                    for cls_label in labels_sen:
+                        cls_m = per_class.get(str(cls_label), {})
+                        support = cls_m.get('support', 0)
+                        logger.info(
+                            f"    {cls_label:　<3s}: "
+                            f"Precision={cls_m.get('precision', 0):.4f}  "
+                            f"Recall={cls_m.get('recall', 0):.4f}  "
+                            f"F1={cls_m.get('f1', 0):.4f}  "
+                            f"(n={support})"
+                        )
                 
                 save_confusion_matrix_plot(
                     llm_sen_metrics, f'LLM 情感分析 {track}',
@@ -761,6 +795,18 @@ def main():
                     logger.info(f"    Recall:    {model_sen_metrics['macro']['recall']:.4f}")
                     logger.info(f"    F1:        {model_sen_metrics['macro']['f1']:.4f}")
                     logger.info(f"    Accuracy:  {model_sen_metrics['accuracy']:.4f}")
+                    # 逐类别指标
+                    per_class_m = model_sen_metrics.get('per_class', {})
+                    if per_class_m:
+                        for cls_label in labels_sen:
+                            cls_m = per_class_m.get(str(cls_label), {})
+                            logger.info(
+                                f"      {cls_label}: "
+                                f"P={cls_m.get('precision', 0):.4f} "
+                                f"R={cls_m.get('recall', 0):.4f} "
+                                f"F1={cls_m.get('f1', 0):.4f} "
+                                f"(n={cls_m.get('support', 0)})"
+                            )
                 else:
                     logger.info(f"  {short}{track}: 列 {col_name} 不存在，跳过")
         
@@ -813,17 +859,26 @@ def main():
             'Accuracy': m.get('accuracy', 0)
         })
         
-    # 汇总情感分类器
+    # 汇总情感分类器（含逐类别 Recall）
     for name, m in results.get('classifier_metrics', {}).get('sentiment', {}).items():
         macro = m.get('macro', {})
-        csv_rows.append({
+        pc = m.get('per_class', {})
+        row = {
             '任务': '情感',
             '分类器': name,
             'Macro Precision': macro.get('precision', 0),
             'Macro Recall': macro.get('recall', 0),
             'Macro F1-Score': macro.get('f1', 0),
-            'Accuracy': m.get('accuracy', 0)
-        })
+            'Accuracy': m.get('accuracy', 0),
+        }
+        # 逐类别指标（Recall 为核心，附 Precision 和 F1）
+        for cls_label in ['正面', '中性', '负面']:
+            cls_m = pc.get(str(cls_label), {})
+            row[f'{cls_label}_Precision'] = cls_m.get('precision', '')
+            row[f'{cls_label}_Recall'] = cls_m.get('recall', '')
+            row[f'{cls_label}_F1'] = cls_m.get('f1', '')
+            row[f'{cls_label}_Support'] = cls_m.get('support', '')
+        csv_rows.append(row)
         
     if csv_rows:
         csv_path = os.path.join(output_dir, 'classification_eval_summary.csv')

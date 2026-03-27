@@ -195,3 +195,44 @@ def mock_config(tmp_dir):
             'parallel_workers': 1,
         },
     }
+
+
+# ============================================================================
+# 日志隔离 — 防止测试运行污染生产日志文件
+# ============================================================================
+
+@pytest.fixture(autouse=True, scope='session')
+def _isolate_loggers_from_production_files():
+    """在 pytest session 开始时移除所有模块级 logger 中的文件 handler。
+
+    问题根因:
+      各 pipeline 脚本（如 41_falsification_test.py）在模块级别执行
+      ``logger = setup_logging(STAGE_NAME, ...)``，当 pytest import 这些模块时，
+      RotatingFileHandler 被注册到 logger 上，导致测试中每个函数调用的日志
+      都写入生产 .log 文件，产生重复输出问题。
+
+    本 fixture 在所有测试开始前，扫描已注册的 logger，将文件 handler 替换为
+    NullHandler，确保测试只输出到控制台（stderr），不触碰生产日志文件。
+    """
+    import logging
+    from logging.handlers import RotatingFileHandler
+
+    patched = []
+    for name, lg in logging.Logger.manager.loggerDict.items():
+        if not isinstance(lg, logging.Logger):
+            continue
+        file_handlers = [
+            h for h in lg.handlers
+            if isinstance(h, (logging.FileHandler, RotatingFileHandler))
+        ]
+        for fh in file_handlers:
+            lg.removeHandler(fh)
+            patched.append((name, fh))
+
+    yield  # 测试运行
+
+    # 恢复（可选，session 结束后进程即退出，恢复非必须）
+    for name, fh in patched:
+        lg = logging.getLogger(name)
+        if fh not in lg.handlers:
+            lg.addHandler(fh)
