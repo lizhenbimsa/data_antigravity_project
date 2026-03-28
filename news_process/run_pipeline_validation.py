@@ -9,6 +9,9 @@ run_pipeline_validation.py — 新闻处理流水线：评估验证模块
       - 阶段32: 人工抽样验证样本生成  (32_news_llms_human.py)
       - 阶段33: 分类有效性评估        (33_news_llms_evaluation.py)
       - 阶段34: 情感三角验证          (34_tone_validation.py)
+      - 阶段35: 窗口半径敏感性检验    (35_radius_sensitivity.py)
+      - 阶段37: 金融科技词典覆盖率审计  (37_dict_coverage_audit.py)
+      - 阶段36: Entity Masking 稳健性测试 (36_entity_masking_test.py)
 
 使用方法::
 
@@ -41,6 +44,9 @@ def run_validation():
       2. 阶段32: 人工抽样验证样本生成
       3. 阶段33: 分类有效性评估（由 validation.classification_eval 控制）
       4. 阶段34: 情感三角验证（由 validation.sentiment_validation 控制）
+      5. 阶段35: 窗口半径敏感性检验（由 validation.radius_sensitivity 控制）
+      6. 阶段37: 金融科技词典覆盖率审计（由 validation.dict_coverage_audit 控制）
+      7. 阶段36: Entity Masking 稳健性测试（由 validation.entity_masking 控制）
     """
     module_start = time.time()
 
@@ -65,6 +71,15 @@ def run_validation():
 
     if validation_config.get('sentiment_validation', True):
         stages.append(("34_tone_validation.py", "阶段34: 情感三角验证"))
+
+    if validation_config.get('radius_sensitivity', True):
+        stages.append(("35_radius_sensitivity.py", "阶段35: 窗口半径敏感性检验"))
+
+    if validation_config.get('dict_coverage_audit', True):
+        stages.append(("37_dict_coverage_audit.py", "阶段37: 金融科技词典覆盖率审计"))
+
+    if validation_config.get('entity_masking', True):
+        stages.append(("36_entity_masking_test.py", "阶段36: Entity Masking 稳健性测试"))
 
     logger.info(f"评估验证模块共 {len(stages)} 个阶段")
     for i, (script, name) in enumerate(stages, 1):

@@ -321,13 +321,16 @@ human_validation:
   random_seed: 42                                   # 随机种子（保证可复现）
 
 # ------------------------------------------------------------------------------
-# [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31/33/34
+# [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31-37
 # ------------------------------------------------------------------------------
-# 控制是否启用各验证阶段（默认全部启用）。
+# 控制是否启用各验证阶段（默认全部启用）。阶段32始终执行，无开关控制。
 validation:
   classification_eval: true                         # 阶段33: 分类有效性评估 (Cohen's Kappa, P/R/F1)
   threshold_sensitivity: true                       # 阶段31: 阈值敏感性分析
   sentiment_validation: true                        # 阶段34: 情感三角验证 (Cronbach's α, 交叉相关)
+  radius_sensitivity: true                          # 阶段35: 窗口半径敏感性检验
+  dict_coverage_audit: true                         # 阶段37: 金融科技词典覆盖率审计
+  entity_masking: true                              # 阶段36: Entity Masking 稳健性测试
 
 # ------------------------------------------------------------------------------
 # [模块四：评估验证模块] Entity Masking 稳健性测试 - 阶段 36

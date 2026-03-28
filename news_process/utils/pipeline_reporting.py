@@ -118,3 +118,46 @@ def generate_pipeline_summary(config, logger):
                 logger.error(f"生成最终详细报告失败: {e}")
         else:
             logger.warning(f"最终输出文件不存在，无法生成详细统计: {final_file_path}")
+
+    # --- 面板构建阶段数据流统计 ---
+    # 注: 40/41 输出为 Bank-Year 面板级数据（粒度与文章级不同），
+    #     独立报告行数，不与文章级阶段计算 Change/Retention。
+    panel_stages = [
+        ("模块五: 40_build_panel", "output_40_panel_yearly"),
+        ("模块五: 40_article_bank", "output_40_article_bank"),
+        ("模块六: 41_falsification", "output_41_panel_controls"),
+    ]
+
+    panel_data = []
+    for stage_name, filename_key in panel_stages:
+        filename = config['filenames'].get(filename_key)
+        if not filename:
+            continue
+        file_path = os.path.join(output_dir, filename)
+        try:
+            if os.path.exists(file_path):
+                metadata = pq.read_metadata(file_path)
+                panel_data.append({
+                    "Stage": stage_name,
+                    "Rows": metadata.num_rows,
+                    "Columns": metadata.num_columns,
+                })
+            else:
+                panel_data.append({
+                    "Stage": stage_name,
+                    "Rows": "未生成",
+                    "Columns": "N/A",
+                })
+        except Exception as e:
+            logger.error(f"无法读取面板阶段 {stage_name} 的输出: {e}")
+            panel_data.append({
+                "Stage": stage_name,
+                "Rows": "Error",
+                "Columns": "N/A",
+            })
+
+    if panel_data:
+        panel_summary_df = pd.DataFrame(panel_data)
+        logger.info("\n面板构建阶段统计 (Panel Construction Summary, Bank-Year 级):")
+        logger.info("\n" + panel_summary_df.to_string(index=False))
+

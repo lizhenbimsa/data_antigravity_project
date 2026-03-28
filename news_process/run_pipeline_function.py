@@ -27,6 +27,10 @@ run_pipeline_function.py — 新闻处理流水线调度器
     │ 40_build_panel                                             │
     └────────────────────────────────────────────────────────────┘
                       ↓
+    ┌─ 模块六：伪造检验 ────────────────────────────────┐
+    │ 41_falsification_test                                      │
+    └────────────────────────────────────────────────────────────┘
+                      ↓
                 pipeline_summary
 
     情感分析的三个变体（words/BERT/LLM）由 config.yaml 中
@@ -66,7 +70,8 @@ def run_pipeline():
       2. 执行模块二：新闻筛选模块 (11, 12)
       3. 执行模块三：新闻情感模块 (21, 22, 23, 视配置启动)
       4. 执行模块五：面板数据构建 (40)
-      5. 生成管道执行摘要报告和耗时统计
+      5. 执行模块六：伪造检验对照变量构建 (41)
+      6. 生成管道执行摘要报告和耗时统计
 
     注：模块四（评估验证）已独立为 run_pipeline_validation.py，
         请单独执行：python run_pipeline_validation.py
@@ -80,8 +85,8 @@ def run_pipeline():
     logger.info(f"工作目录: {os.path.dirname(os.path.abspath(__file__))}")
     log_memory_usage(logger, "管道启动")
 
-    # ── 流水线执行顺序（模块一至三 + 模块五）──
-    # 按照严格递进流转：预处理 → 筛选 → 情感 → 面板构建
+    # ── 流水线执行顺序（模块一至三 + 模块五至六）──
+    # 按照严格递进流转：预处理 → 筛选 → 情感 → 面板构建 → 伪造检验
 
     stages = []
 
@@ -111,6 +116,9 @@ def run_pipeline():
 
     # ── 模块五：面板数据构建 ──
     stages.append(("40_build_panel.py", "阶段40: Bank-Year 面板数据构建"))
+
+    # ── 模块六：伪造检验 ──
+    stages.append(("41_falsification_test.py", "阶段41: 伪造检验对照变量构建"))
 
     logger.info(f"管道共 {len(stages)} 个阶段")
     for i, (script, name) in enumerate(stages, 1):
