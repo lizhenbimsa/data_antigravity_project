@@ -1,0 +1,2498 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Project Technical Manual</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Project Technical Manual</h1>
+</header>
+<h1 id="商业银行金融科技新闻舆情数据处理与情感分析系统技术说明书">商业银行金融科技新闻舆情数据处理与情感分析系统：技术说明书</h1>
+<hr />
+<p><strong>版本</strong>: 2.0<br />
+<strong>日期</strong>: 2026年3月<br />
+<strong>文档性质</strong>: 项目技术说明书（Technical Manual）</p>
+<hr />
+<h2 id="摘要">摘要</h2>
+<p>本项目构建了一套面向中国商业银行金融科技领域的新闻舆情数据处理与情感分析系统（以下简称“本系统”或“管道系统”）。系统以“数据驱动、方法三角验证、学术出版就绪”为核心设计理念，实现了从原始新闻数据采集到Bank-Year面板数据输出的完整自动化管道（Pipeline）。整个系统包含五大功能模块：<strong>新闻预处理模块</strong>（数据加载、多层过滤、文本标准化、精确与近似去重）、<strong>新闻筛选模块</strong>（银行新闻识别与金融科技新闻分类）、<strong>新闻情感分析模块</strong>（LLM双轨情感分析、词典法情感分析、BERT模型情感分析）、<strong>评估验证模块</strong>（人工验证、编码者间一致性检验、三角验证、阈值敏感性分析、窗口半径稳健性检验、实体掩码稳健性测试、词典覆盖率审计、伪造检验）、以及<strong>面板数据构建模块</strong>（Bank-Year面板数据构建与多格式导出）。</p>
+<p>在方法论层面，系统借鉴了Tetlock et al. (2008)、Loughran &amp; McDonald (2011)、Hassan et al. (2019)、Gentzkow et al. (2019)等国际顶级期刊的研究范式，采用多方法三角验证（Triangulation）策略确保情感度量的构建效度（Construct Validity）。在技术实现层面，系统大量运用Aho-Corasick多模式匹配、MinHash LSH近似去重、GPU加速的FP16混合精度推理、异步并发API调用等高性能计算技术，确保在大规模数据集（千万级新闻文本）上的高效处理。最终输出的Bank-Year平衡面板数据集包含等权重（Equal-Weighted）与价值加权（Value-Weighted）双指标体系，以及全文与上下文片段双轨（Dual-Track）情感度量，可直接导入Stata进行计量经济学回归分析。</p>
+<p><strong>关键词：</strong> 金融科技、商业银行、新闻情感分析、自然语言处理、大语言模型、BERT、词典法、面板数据、三角验证、构建效度</p>
+<hr />
+<h2 id="第一章-引言">第一章 引言</h2>
+<h3 id="研究背景与问题提出">1.1 研究背景与问题提出</h3>
+<p>金融科技（Financial Technology, FinTech）的迅猛发展正在深刻重塑全球银行业的竞争格局与服务模式。从移动支付到智能风控，从区块链到开放银行，金融科技的各个细分领域都在加速推动传统商业银行的数字化转型进程。中国作为全球金融科技发展最为活跃的市场之一，其商业银行在金融科技领域的探索和实践尤为引人注目。中国人民银行发布的《金融科技发展规划（2022-2025年）》明确提出要推动金融科技深度融入金融机构的数字化转型，为商业银行的金融科技战略提供了政策指引。</p>
+<p>在这一背景下，新闻媒体作为信息传播的重要渠道，其对商业银行金融科技活动的报道不仅反映了行业动态，还通过舆论引导机制影响着市场预期、投资者情绪和监管决策。学术研究表明，媒体情绪对资本市场具有显著的预测力——Tetlock (2007) 发现《华尔街日报》的悲观语调能够预测市场下行压力和交易量的增加；Tetlock et al. (2008) 进一步证明了新闻报道中负面词汇的比例能够预测个股的盈余和收益率。因此，系统性地收集、处理和分析与商业银行金融科技相关的新闻报道，并量化其情感倾向，对于学术研究和政策制定具有重要价值。</p>
+<p>然而，构建一套高质量的银行金融科技新闻情感数据集面临多重技术挑战：</p>
+<p><strong>第一，数据规模与噪声挑战</strong>。原始新闻数据往往规模庞大（数以千万计），包含大量噪声（广告、公告、重复稿件），需要高效的数据清洗与去重技术。中国新闻数据库中的原始数据格式多样、编码不统一、含有大量非新闻类内容（如招募说明书、年报摘要、广告信息等），这些噪声如果不加以清除，将严重干扰情感分析的准确性。</p>
+<p><strong>第二，分类精度挑战</strong>。从海量新闻中精准识别与特定银行相关、且聚焦金融科技主题的文章，需要兼顾分类精度与召回率的智能筛选方法。银行名称在中文语境中存在大量简称和歧义（如“民生”可能指“民生银行”也可能指“民生问题”），金融科技的边界也并非清晰可定义——一篇讨论银行数字化转型的文章是否属于金融科技新闻，需要精细的语义判断。</p>
+<p><strong>第三，情感分析方法论挑战</strong>。中文金融文本的情感分析面临词汇歧义、上下文依赖、多实体混淆等特殊困难，单一方法难以保证度量的可靠性。当一篇新闻同时涉及多家银行时，文章整体的情感倾向可能并不适用于每一家被提及的银行——某银行的利好消息可能伴随着竞争对手的负面评价。Loughran &amp; McDonald (2011) 在其里程碑式研究中指出，通用情感词典在金融文本中存在严重的误分类问题，强调了领域适应性词典的重要性。</p>
+<p><strong>第四，学术标准挑战</strong>。高水平学术研究要求数据处理过程的可复现性、透明性和稳健性，所有关键参数选择都需要进行敏感性分析和有效性验证。Gentzkow, Kelly &amp; Taddy (2019) 特别强调，文本分析中所有人为选择（如分类阈值、词典选择、模型参数等）都需要进行稳健性报告。Loughran &amp; McDonald (2016) 在其对会计和金融文本分析的系统综述中进一步提出了文本度量的关键质量标准，包括透明性、统计性质报告、构建效度检验、敏感性评估和局限性讨论。</p>
+<h3 id="研究目的与核心贡献">1.2 研究目的与核心贡献</h3>
+<p>本项目旨在构建一套符合国际顶级学术期刊标准（如Journal of Finance、Quarterly Journal of Economics、Journal of Financial Economics等）的新闻舆情数据处理与情感分析系统。系统的核心贡献体现在以下六个方面：</p>
+<p><strong>贡献一：完整的六阶段自动化管道架构。</strong> 本系统提出了“数据采集→预处理→分类筛选→情感分析→验证评估→面板构建”六阶段自动化管道架构。每个阶段的输入输出通过Apache Parquet格式的中间文件进行级联传递，实现了模块化解耦与可重入性。系统采用统一的YAML配置文件管理所有参数，确保了实验的完全可复现性。这种流水线设计使得研究者可以在任意阶段中断和恢复处理，每个阶段的输出都可以独立检查和验证。</p>
+<p><strong>贡献二：基于Aho-Corasick的高精度银行新闻识别算法。</strong> 在新闻分类层面，系统实现了基于Aho-Corasick多模式匹配的银行新闻识别算法，该算法结合了否定模式排除（Negation Pattern Exclusion）和短名歧义消解（Short Name Disambiguation）机制，有效降低了假阳性率。同时，系统在分类阶段即完成了“文章级→银行-文章级”的数据展开（Expansion），参照Hassan et al. (2019) 的Proximity-based Attribution方法，为每个银行-文章对计算提及密度（Mention Density），为后续的价值加权聚合奠定基础。</p>
+<p><strong>贡献三：创新性的“三方法×双轨道”多维度情感度量框架。</strong> 在情感分析层面，系统创新性地实现了三种独立方法与双轨道处理的交叉组合。三种方法分别为：(1) LLM多模型投票法（三模型多数投票）；(2) 词典法（基于五部中文金融情感词典，融合否定词处理、程度副词缩放、转折连词增强和IDF加权等语言学规则）；(3) BERT模型法（基于五个预训练模型，采用滑动窗口与置信度加权池化处理长文本）。双轨道是指每种方法同时处理全文（Full-Text）和实体上下文片段（Context Snippet），后者通过句子级滑动窗口提取目标银行周边文本，消除非目标实体的情感污染，实现交叉验证和消融分析。</p>
+<p><strong>贡献四：全面的质量保证与验证评估框架。</strong> 在验证评估层面，系统构建了包含八个独立检验模块的全面质量保证框架：编码者间一致性检验（Cohen’s Kappa与Krippendorff’s Alpha）、分类有效性评估（Precision/Recall/F1与McNemar检验）、情感分析三角验证（Cronbach’s Alpha内部一致性、Spearman跨方法相关、标签一致率）、分类阈值敏感性分析、上下文窗口半径稳健性检验、实体掩码（Entity Masking）稳健性测试、金融科技词典覆盖率审计、以及基于Hassan et al. (2019) 伪造检验范式的构造效度验证。</p>
+<p><strong>贡献五：符合计量经济学标准的面板数据构建。</strong> 在面板数据构建层面，系统遵循Tetlock et al. (2008) 的“先分后合”（Disaggregate-then-Aggregate）原则，在文章级保留所有独立模型的情感得分，在Bank-Year聚合阶段分别计算等权重均值和价值加权均值（以提及密度为权重），最终输出包含200+变量的平衡面板数据，同时提供Parquet和Stata (.dta)双格式，变量命名符合Stata规范，可直接用于高维固定效应回归分析。</p>
+<p><strong>贡献六：高性能计算技术的系统性应用。</strong> 在技术实现层面，系统充分利用Aho-Corasick自动机（O(n)多模式匹配）、MinHash LSH（亚线性近似去重）、FP16混合精度推理（GPU显存减半、推理加速2-3x）、asyncio异步并发（300并发API调用）等高性能计算技术，确保整个管道在千万级新闻数据集上的高效运行。</p>
+<h3 id="技术路线概述">1.3 技术路线概述</h3>
+<p>本系统的技术路线遵循“渐进式精炼”（Progressive Refinement）的设计思想，将数据处理过程分解为多个独立且可复现的阶段。完整的数据流如下：</p>
+<pre><code>原始Excel数据 → [00_preprocessing] → 清洗去重后Parquet
+                        ↓
+              [11_news_bank] → 银行-文章级展开数据
+                        ↓
+              [12_news_fintech] → 金融科技新闻标注
+                        ↓
+              [21_tone_llms] → LLM双轨语义精筛+情感分析
+                        ↓
+              [22_tone_words] → 词典法双轨情感分析
+                        ↓
+              [23_tone_berts] → BERT模型双轨情感分析
+                        ↓
+              [40_build_panel] → Bank-Year面板数据
+                        ↓
+              [41_falsification_test] → 含伪造检验对照变量的面板
+
+验证评估脚本（独立于主管道运行）：
+  [31_bank_fintech_threshold] → 分类阈值敏感性分析
+  [32_news_llms_human]        → 人工验证样本生成
+  [33_news_llms_evaluation]   → 分类有效性评估
+  [34_tone_validation]        → 情感分析三角验证
+  [35_radius_sensitivity]     → 窗口半径稳健性检验
+  [36_entity_masking_test]    → 实体掩码稳健性测试
+  [37_dict_coverage_audit]    → 金融科技词典覆盖率审计</code></pre>
+<p>验证评估脚本独立于主管道运行，不修改中间数据文件，确保主流程的纯净性和可复现性。</p>
+<h3 id="文档结构安排">1.4 文档结构安排</h3>
+<p>本说明书的组织结构如下：第二章系统阐述与本项目相关的文献综述，涵盖金融文本分析、情感度量方法和新闻效应的实证研究；第三章详细描述系统总体架构与设计原则；第四章深入讨论数据预处理模块的方法论与技术实现；第五章阐述新闻分类模块的算法设计；第六章至第八章分别深入讨论三种情感分析方法的理论基础、算法设计与实现细节；第九章介绍实体特异性上下文提取引擎；第十章全面阐述验证评估框架；第十一章讨论面板数据构建方法；第十二章介绍伪造检验模块；第十三章给出性能优化策略；第十四章讨论系统工程质量保障；第十五章总结全文并展望未来研究方向。附录部分提供深度技术细节、伪代码、统计学推导和完整参考文献。</p>
+<hr />
+<h2 id="第二章-文献综述">第二章 文献综述</h2>
+<h3 id="金融文本分析的学术发展脉络">2.1 金融文本分析的学术发展脉络</h3>
+<p>金融文本分析（Financial Text Analysis）是文本挖掘与金融学交叉领域的重要研究方向，其核心目标是从非结构化的文本数据中提取对金融市场和企业行为有预测力的信息。早期研究主要依赖人工编码和简单的词频统计方法，随着自然语言处理（NLP）技术的发展，研究方法逐步从基于规则的方法演进到基于统计学习和深度学习的方法。</p>
+<p>Tetlock (2007) 开创性地将媒体悲观情绪与股票市场收益率联系起来，发现《华尔街日报》“Abreast of the Market”专栏的悲观语调能够预测市场下行压力和交易量的增加。这篇发表在Journal of Finance的论文为后续大量金融文本分析研究奠定了方法论基础，确立了“使用词频统计量化媒体情绪”的研究范式。</p>
+<blockquote>
+<p>Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. <em>Journal of Finance</em>, 62(3), 1139–1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x</p>
+</blockquote>
+<p>Tetlock, Saar-Tsechansky &amp; Macskassy (2008) 进一步将分析对象从市场层面拓展到企业层面，利用新闻报道中负面词汇的比例预测个股的盈余和收益率，证明了媒体情绪包含超越量化指标的增量信息。该研究确立了“文章级情感得分→企业-时间面板聚合→回归分析”的标准研究范式，直接影响了本项目的面板数据构建策略。</p>
+<blockquote>
+<p>Tetlock, P. C., Saar-Tsechansky, M., &amp; Macskassy, S. (2008). More than words: Quantifying language to measure firms’ fundamentals. <em>Journal of Finance</em>, 63(3), 1437–1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x</p>
+</blockquote>
+<p>近年来，随着机器学习和深度学习技术的成熟，金融文本分析的方法论发生了重大转变。Gentzkow, Kelly &amp; Taddy (2019) 在Journal of Economic Literature上发表的综述性文章系统讨论了文本作为经济学数据的处理方法，将文本数据的分析流程概括为三个阶段：文本的数值表示（Representation）、特征降维与选择（Dimensionality Reduction）、以及与经济变量的统计关联（Statistical Analysis）。他们特别强调了文本分析中所有人为选择都需要进行稳健性报告的重要性。</p>
+<blockquote>
+<p>Gentzkow, M., Kelly, B., &amp; Taddy, M. (2019). Text as data. <em>Journal of Economic Literature</em>, 57(3), 535–574. https://doi.org/10.1257/jel.20181020</p>
+</blockquote>
+<h3 id="情感词典与领域适应性">2.2 情感词典与领域适应性</h3>
+<p>在情感度量方法的发展中，通用英文情感词典（如Harvard General Inquirer的H4N词表）长期占据主导地位。然而，Loughran &amp; McDonald (2011) 的里程碑式研究彻底改变了这一局面。他们指出，通用词典在金融文本中存在严重的误分类问题——大量在日常语境中带有负面含义的词汇（如“tax”、“cost”、“liability”等）在金融语境中实际上是中性的专业术语。他们构建了专门面向10-K年报的金融情感词典（LM词典），并实证证明LM词典的情感度量在预测企业文件申报后收益率方面显著优于Harvard词典。这一研究为后续所有领域特异性情感词典的构建奠定了学术基础。</p>
+<blockquote>
+<p>Loughran, T., &amp; McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. <em>Journal of Finance</em>, 66(1), 35–65. https://doi.org/10.1111/j.1540-6261.2010.01625.x</p>
+</blockquote>
+<p>Loughran &amp; McDonald (2016) 后续在Journal of Accounting Research发表了对金融文本分析方法论的系统性综述，强调了多度量方法间的相关性分析是构建效度（Construct Validity）的核心证据。该观点直接催生了本项目的三角验证（Triangulation）策略。</p>
+<blockquote>
+<p>Loughran, T., &amp; McDonald, B. (2016). Textual analysis in accounting and finance: A survey. <em>Journal of Accounting Research</em>, 54(4), 1187–1230. https://doi.org/10.1111/1475-679X.12123</p>
+</blockquote>
+<p>对于中文金融文本情感分析，由于中文词汇的多义性和金融领域的专业性，直接翻译英文词典效果不佳，因此国内学者构建了多部中文金融情感词典。本项目集成了五部代表性词典，覆盖了不同的构建方法和应用领域。这五部词典的并行使用不仅提高了情感度量的覆盖面，还为Cronbach’s Alpha内部一致性检验提供了基础。</p>
+<h3 id="深度学习与预训练模型在金融文本分析中的应用">2.3 深度学习与预训练模型在金融文本分析中的应用</h3>
+<p>以BERT (Bidirectional Encoder Representations from Transformers) 为代表的预训练语言模型在NLP领域取得了突破性进展。Devlin et al. (2019) 提出的BERT模型通过在大规模语料上进行双向预训练，学习到了丰富的上下文语义表示，在下游任务上仅需少量标注数据即可实现显著的性能提升。</p>
+<blockquote>
+<p>Devlin, J., Chang, M. W., Lee, K., &amp; Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. <em>Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (NAACL-HLT 2019)</em>, 4171–4186. https://doi.org/10.18653/v1/N19-1423</p>
+</blockquote>
+<p>在金融领域，Huang, Wang &amp; Yang (2023) 在Contemporary Accounting Research上发表的FinBERT研究系统评估了预训练语言模型在金融文本信息提取中的应用。他们发现，领域适应性预训练（Domain-Adaptive Pre-training）显著提升了金融文本情感分类的准确率，并证明了FinBERT在多个金融NLP基准测试中都优于通用BERT模型。</p>
+<blockquote>
+<p>Huang, A. H., Wang, H., &amp; Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. <em>Contemporary Accounting Research</em>, 40(2), 806–841. https://doi.org/10.1111/1911-3846.12832</p>
+</blockquote>
+<h3 id="大语言模型在文本分析中的新兴应用">2.4 大语言模型在文本分析中的新兴应用</h3>
+<p>大语言模型（Large Language Models, LLMs）的出现为金融文本分析提供了全新的可能性。与传统NLP方法相比，LLMs具有以下优势：(1) 强大的上下文理解能力，能够捕捉复杂的语义关系和隐含情感；(2) 零样本或少样本学习能力，无需大量标注数据即可完成分类任务；(3) 可通过精心设计的提示词（Prompt）实现多任务联合推理。</p>
+<p>Lopez-Lira &amp; Tang (2023) 在SSRN工作论文中研究了ChatGPT在预测股票价格变动方面的能力，发现LLM基于新闻标题生成的情感信号对次日股票收益率具有显著的预测力，且该预测力不能被传统情感词典方法所解释。</p>
+<p>Carlson &amp; Burbano (2026) 在Strategic Management Journal上探讨了使用LLMs进行管理学研究中数据标注的方法论问题，指出LLM标注需要关注系统性偏差检测——即LLM的分类错误是否与下游面板变量存在系统性相关。本项目的LLM偏差诊断模块正是基于这一学术要求而设计的。</p>
+<h3 id="新闻效应与实体级别归因">2.5 新闻效应与实体级别归因</h3>
+<p>在新闻效应的实证研究中，一个关键的方法论问题是如何将新闻文章的情感正确归因于特定实体。Hassan et al. (2019) 在Quarterly Journal of Economics发表的研究中提出了基于临近性的归因方法（Proximity-based Attribution），通过计算目标实体在文本中的提及密度来衡量文章对该实体的暴露程度，并以此作为情感加权的依据。本项目直接借鉴了该方法，在银行新闻分类阶段即计算每个银行-文章对的提及密度，在面板构建阶段使用该密度作为价值加权聚合的权重。</p>
+<blockquote>
+<p>Hassan, T. A., Hollander, S., van Lent, L., &amp; Tahoun, A. (2019). Firm-level political risk: Measurement and effects. <em>Quarterly Journal of Economics</em>, 134(4), 2135–2202. https://doi.org/10.1093/qje/qjz021</p>
+</blockquote>
+<p>Sautner, van Lent, Vilkov &amp; Zhang (2023) 在Journal of Finance上发表的企业气候变化暴露度量研究进一步发展了基于文本的企业层面风险度量方法。他们指出，预定义的关键词表会系统性遗漏“利基语言”（niche language），并建议定期对关键词词典进行覆盖率审计。本项目的词典覆盖率审计模块（37阶段）正是受此启发而设计。</p>
+<blockquote>
+<p>Sautner, Z., van Lent, L., Vilkov, G., &amp; Zhang, R. (2023). Firm-level climate change exposure. <em>Journal of Finance</em>, 78(3), 1449–1498. https://doi.org/10.1111/jofi.13219</p>
+</blockquote>
+<p>Calomiris &amp; Mamaysky (2019) 在Journal of Financial Economics上研究了新闻内容如何驱动全球市场的风险和收益率，提出了基于主题模型和文本熵的新闻信息度量方法。</p>
+<blockquote>
+<p>Calomiris, C. W., &amp; Mamaysky, H. (2019). How news and its context drive risk and returns around the world. <em>Journal of Financial Economics</em>, 133(2), 299–336. https://doi.org/10.1016/j.jfineco.2018.11.009</p>
+</blockquote>
+<h3 id="编码者间一致性与度量有效性">2.6 编码者间一致性与度量有效性</h3>
+<p>在基于人工编码的文本分析研究中，编码者间一致性（Inter-Coder Reliability, ICR）是评估编码方案质量的核心指标。Krippendorff (2018) 建议Cohen’s Kappa系数应达到0.80以上才能被认为是可接受的编码一致性水平。</p>
+<blockquote>
+<p>Krippendorff, K. (2018). <em>Content analysis: An introduction to its methodology</em> (4th ed.). Sage Publications. ISBN: 978-1-5063-9566-1</p>
+</blockquote>
+<p>Cronbach (1951) 提出的Alpha系数广泛用于评估多个度量方法的内部一致性，其临界值通常设定为0.70。</p>
+<blockquote>
+<p>Cronbach, L. J. (1951). Coefficient alpha and the internal structure of tests. <em>Psychometrika</em>, 16(3), 297–334. https://doi.org/10.1007/BF02310555</p>
+</blockquote>
+<h3 id="媒体覆盖与信息环境">2.7 媒体覆盖与信息环境</h3>
+<p>Fang &amp; Peress (2009) 在Journal of Finance上研究了媒体覆盖与股票截面收益率的关系，发现无媒体覆盖的股票年均收益率比有覆盖的高约3个百分点（经控制后）。他们使用 ln(1 + 新闻报道数) 作为媒体关注度的连续变量，这一对数变换方法被本项目在面板构建和伪造检验中广泛采用。</p>
+<blockquote>
+<p>Fang, L., &amp; Peress, J. (2009). Media coverage and the cross-section of stock returns. <em>Journal of Finance</em>, 64(5), 2023–2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x</p>
+</blockquote>
+<p>Bushee, Core, Guay &amp; Hamm (2010) 在Journal of Accounting Research上研究了商业媒体作为信息中介的角色，指出不同媒体来源的数量（媒体广度）反映了信息环境的丰富程度。本项目在面板数据中纳入了 <code>media_breadth</code> 变量，正是基于这一理论。</p>
+<blockquote>
+<p>Bushee, B. J., Core, J. E., Guay, W., &amp; Hamm, S. J. W. (2010). The role of the business press as an information intermediary. <em>Journal of Accounting Research</em>, 48(1), 1–19. https://doi.org/10.1111/j.1475-679X.2009.00357.x</p>
+</blockquote>
+<h3 id="信息不对称理论与新闻中介功能的经济学基础">2.8 信息不对称理论与新闻中介功能的经济学基础</h3>
+<p>本项目的学术基础深深植根于信息经济学和金融中介理论。在金融市场中，信息不对称是影响资源配置效率的核心问题。新闻媒体作为信息中介，通过收集、加工和传播企业相关信息，在降低投资者与企业之间的信息不对称方面发挥着关键作用。</p>
+<p>从信息生产的角度看，新闻记者和财经分析师通过实地调研、采访管理层、分析财务数据等方式生产出关于企业经营状况的增量信息。这些信息被转化为新闻报道后，以极低的边际成本传播给大量投资者——这正是信息公共品特征的体现。Bushee et al. (2010) 的实证研究表明，商业媒体在传播企业盈余信息方面起到了显著的放大效应，特别是对于那些缺乏分析师覆盖的中小企业，新闻报道几乎是投资者获取信息的唯一渠道。</p>
+<p>本项目构建的金融科技新闻情感指标正是这一理论框架的实证操作化：通过系统性地采集、分类和量化银行金融科技相关的新闻报道，项目将分散在数千篇新闻中的定性信息聚合为可用于计量分析的定量指标。这种从定性到定量的转化过程本身就是一种信息生产——它提取了嵌入在自然语言中的隐含信息，使之成为研究者和决策者可操作的信号。</p>
+<h3 id="有效市场假说与媒体信息效率">2.9 有效市场假说与媒体信息效率</h3>
+<p>有效市场假说（Efficient Market Hypothesis, EMH）预测，新信息应当被迅速且完整地反映在股票价格中。然而，大量实证研究表明，市场对新闻信息的吸收并非即时完成。Tetlock (2007) 发现，媒体中的负面情绪能够预测短期内（1-2天）的市场下跌和随后的回调，表明市场对媒体信号存在初始过度反应。Tetlock et al. (2008) 进一步发现，新闻文本中的负面词汇比例能够预测企业的盈余和收益率，且这种预测力在控制了历史财务数据后仍然显著——这意味着新闻文本包含了超越定量财务指标的增量信息。</p>
+<p>这些发现对本项目具有双重意义：首先，从方法论角度，它们为使用新闻情感作为解释变量提供了理论支撑——如果新闻情感仅仅是已知信息的噪声性重述，它不应在回归中具有显著的解释力。其次，从构建效度角度，这些发现为本项目的伪造检验设计提供了理论基础——金融科技新闻的情感应当包含超越一般媒体关注度的特异性信息内容（information content），这正是本项目41阶段伪造检验所要验证的核心假设。</p>
+<p>Calomiris &amp; Mamaysky (2019) 在Journal of Financial Economics上的研究将新闻分析扩展到了全球市场维度，利用主题模型和文本熵来度量新闻的信息含量，发现新闻异常（即新闻内容偏离历史模式的程度）能够预测多个国家的股市收益率和波动率。他们的研究方法论启示在于：新闻文本不仅可以通过情感极性来度量，还可以通过信息论指标（如熵、互信息）来度量其信息含量。本项目目前侧重于情感极性维度，但系统的模块化架构为未来引入信息论度量预留了扩展空间。</p>
+<h3 id="行为金融学视角与投资者情感">2.10 行为金融学视角与投资者情感</h3>
+<p>行为金融学理论为新闻情感分析提供了另一个重要的理论框架。与EMH假设投资者完全理性不同，行为金融学认为投资者在信息处理过程中会受到认知偏差和情绪因素的系统性影响。新闻媒体不仅是信息的中立传递者，更可能放大或加剧投资者的情绪波动。</p>
+<p>Tetlock (2007) 的研究直接连接了媒体情感与投资者行为：他使用《华尔街日报》“Abreast of the Market”专栏的文本内容构建了媒体悲观主义指标（media pessimism），发现该指标在控制了历史收益和交易量后仍能显著预测市场走势，并且这种预测力与交易量的异常增加相伴随——这一模式与噪声交易者理论的预测一致。</p>
+<p>本项目在设计情感分析方法论时充分考虑了这些理论洞见。系统采用的三方法并行架构（LLM、词典法、BERT）正是为了减少单一方法可能引入的度量偏差——例如，词典法可能过度聚焦于显性的情感词汇而忽略隐含的语境信息，BERT可能受到预训练数据分布的影响，LLM可能存在实体先验偏见。通过比较三种方法的一致性和差异，研究者可以更准确地评估哪些情感信号是文本内容的真实反映，哪些可能是方法论伪影。</p>
+<h3 id="文本作为数据在金融学中的方法论范式">2.11 文本作为数据在金融学中的方法论范式</h3>
+<p>Gentzkow, Kelly &amp; Taddy (2019) 在Journal of Economic Literature上发表的综述性论文为文本分析在经济学和金融学中的应用提供了系统的方法论框架。他们将文本数据的研究方法总结为三个步骤：(1) 文本表示（Representation）——将自然语言转化为数值向量；(2) 降维或特征选择（Dimensionality Reduction）——从高维词向量中提取经济学意义上相关的信号；(3) 回归或预测（Prediction）——将文本衍生变量纳入经济学模型。</p>
+<p>本项目的技术架构精确对应了上述三步框架：<strong>文本表示阶段</strong>，系统通过预处理管道（繁简转换、停用词过滤、标准化）将原始新闻文本转化为清洁的可分析文本，并使用词典匹配和BERT嵌入两种方式将文本转化为数值表示。<strong>降维阶段</strong>，系统通过金融科技关键词过滤和银行名称归属将百万级新闻语料降维到目标子集，并通过多模型集成将数十个独立情感评分降维为少量核心指标。<strong>回归阶段</strong>，系统输出的面板数据直接服务于下游的计量经济学分析。</p>
+<p>Loughran &amp; McDonald (2016) 在其对会计和金融文本分析的综述中特别强调了以下方法论要点，本项目均有对应的设计考量：(1) <strong>词典的领域适应性</strong>——通用情感词典在金融语境中可能产生严重偏差（如“liability”在通用词典中是负面词，但在财务语境中是中性的会计术语），本项目采用五部专门为中文金融文本设计的情感词典来确保领域适应性。(2) <strong>数据清洗的透明性</strong>——样本筛选的每一步都应详细报告，本项目的预处理阶段输出完整的漏斗图统计量。(3) <strong>度量选择的稳健性</strong>——关键结论不应依赖于特定的操作化选择，本项目的多方法并行和多参数敏感性分析正是为此设计。</p>
+<h3 id="因果推断与文本数据的识别策略">2.12 因果推断与文本数据的识别策略</h3>
+<p>在使用文本衍生变量进行实证分析时，因果识别是一个核心的方法论挑战。新闻情感与企业表现之间的相关性可能反映了三种不同的因果机制：(1) 新闻→影响投资者预期→影响企业估值（信息效应）；(2) 企业表现→引发新闻报道→情感反映（反向因果）；(3) 共同的第三因素（如宏观经济环境）同时影响新闻和企业表现（遗漏变量偏差）。</p>
+<p>本项目的设计中内置了多种策略来帮助研究者应对这些识别挑战：</p>
+<p><strong>时序结构</strong>：面板数据的年度聚合粒度允许研究者在回归设定中控制时间固定效应，并使用前导-滞后（lead-lag）结构来排除同期性偏差。</p>
+<p><strong>双向固定效应</strong>：附录L提供的Stata回归模板默认包含银行固定效应和年度固定效应，通过吸收银行时不变特征和年度共同冲击来缓解遗漏变量偏差。</p>
+<p><strong>伪造检验</strong>：41阶段的伪造检验为因果识别提供了间接证据——如果金融科技情感指标的解释力主要来自因果路径(2)（即企业表现→新闻报道），那么非金融科技新闻也应表现出类似的解释力。伪造检验通过验证非金融科技新闻对照组不具有显著的解释力来排除这一反向因果假说。</p>
+<p><strong>工具变量候选</strong>：对于更严格的因果推断需求，研究者可以考虑使用本项目输出的 <code>media_breadth</code>（媒体广度）作为新闻情感的工具变量——媒体广度主要反映信息供给侧的特征（即有多少媒体在报道该银行），相对于新闻的情感内容，它更不容易受到企业表现的内生性影响。</p>
+<h3 id="词典法情感分析的语言学基础">2.13 词典法情感分析的语言学基础</h3>
+<p>Ding, Liu &amp; Yu (2008) 在WSDM会议上发表的研究系统性地探讨了转折连词对意见挖掘的影响，提出了一种基于语言学规则的整体情感分析方法。本项目的转折连词增强机制直接基于该研究。</p>
+<blockquote>
+<p>Ding, X., Liu, B., &amp; Yu, P. S. (2008). A holistic lexicon-based approach to opinion mining. <em>Proceedings of the 2008 International Conference on Web Search and Data Mining (WSDM ’08)</em>, 231–240. https://doi.org/10.1145/1341531.1341561</p>
+</blockquote>
+<p>Li (2010) 在Journal of Accounting Research上研究了公司文件中前瞻性陈述的信息含量，构建了基于关键词的前瞻性陈述识别方法。本项目的 <code>forward_looking_words</code> 词汇集正是基于其Table 1中的英文关键词翻译并扩展而来。</p>
+<blockquote>
+<p>Li, F. (2010). The information content of forward-looking statements in corporate filings—A naive Bayesian machine learning approach. <em>Journal of Accounting Research</em>, 48(5), 1049–1102. https://doi.org/10.1111/j.1475-679X.2010.00382.x</p>
+</blockquote>
+<h3 id="idf加权在文本分析中的应用">2.14 IDF加权在文本分析中的应用</h3>
+<p>逆文档频率（Inverse Document Frequency, IDF）加权是信息检索领域的经典技术，最早由Sparck Jones (1972) 提出。在金融文本分析中，IDF加权的核心思想是：在大量文档中普遍出现的词汇（如“银行”、“经济”）对情感区分的贡献应低于仅在少数文档中出现的特异性词汇（如“资产减值”、“技术突破”）。Gentzkow et al. (2019) 在讨论文本表示方法时特别推荐了TF-IDF加权作为基础方法。本项目的词典法情感分析模块（22阶段）实现了IDF加权的并行度量变体，与等权重版本共存，为稳健性检验提供了额外维度。</p>
+<hr />
+<h2 id="第三章-系统总体架构与设计原则">第三章 系统总体架构与设计原则</h2>
+<h3 id="模块化管道架构">3.1 模块化管道架构</h3>
+<p>本系统采用模块化管道（Modular Pipeline）架构，将整个数据处理流程分解为16个独立的Python脚本，按功能归属于五大模块：</p>
+<table>
+<thead>
+<tr class="header">
+<th>模块</th>
+<th>阶段编号</th>
+<th>脚本名称</th>
+<th>核心功能</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>新闻预处理</td>
+<td>00</td>
+<td><code>00_preprocessing.py</code></td>
+<td>数据加载、多层过滤、文本标准化、精确与近似去重</td>
+</tr>
+<tr class="even">
+<td>新闻筛选</td>
+<td>11</td>
+<td><code>11_news_bank.py</code></td>
+<td>银行新闻识别、银行-文章级展开、提及密度计算</td>
+</tr>
+<tr class="odd">
+<td>新闻筛选</td>
+<td>12</td>
+<td><code>12_news_fintech.py</code></td>
+<td>金融科技新闻分类、关键词匹配</td>
+</tr>
+<tr class="even">
+<td>情感分析</td>
+<td>21</td>
+<td><code>21_tone_llms.py</code></td>
+<td>LLM双轨语义精筛与情感分析</td>
+</tr>
+<tr class="odd">
+<td>情感分析</td>
+<td>22</td>
+<td><code>22_tone_words.py</code></td>
+<td>词典法双轨情感分析（含IDF加权）</td>
+</tr>
+<tr class="even">
+<td>情感分析</td>
+<td>23</td>
+<td><code>23_tone_berts.py</code></td>
+<td>BERT模型双轨情感分析</td>
+</tr>
+<tr class="odd">
+<td>评估验证</td>
+<td>31</td>
+<td><code>31_bank_fintech_threshold.py</code></td>
+<td>分类阈值敏感性分析</td>
+</tr>
+<tr class="even">
+<td>评估验证</td>
+<td>32</td>
+<td><code>32_news_llms_human.py</code></td>
+<td>人工验证样本生成与标注合并</td>
+</tr>
+<tr class="odd">
+<td>评估验证</td>
+<td>33</td>
+<td><code>33_news_llms_evaluation.py</code></td>
+<td>分类有效性评估（含Per-Class Recall）</td>
+</tr>
+<tr class="even">
+<td>评估验证</td>
+<td>34</td>
+<td><code>34_tone_validation.py</code></td>
+<td>情感分析三角验证</td>
+</tr>
+<tr class="odd">
+<td>评估验证</td>
+<td>35</td>
+<td><code>35_radius_sensitivity.py</code></td>
+<td>上下文窗口半径稳健性检验</td>
+</tr>
+<tr class="even">
+<td>评估验证</td>
+<td>36</td>
+<td><code>36_entity_masking_test.py</code></td>
+<td>实体掩码稳健性测试</td>
+</tr>
+<tr class="odd">
+<td>评估验证</td>
+<td>37</td>
+<td><code>37_dict_coverage_audit.py</code></td>
+<td>金融科技词典覆盖率审计</td>
+</tr>
+<tr class="even">
+<td>面板构建</td>
+<td>40</td>
+<td><code>40_build_panel.py</code></td>
+<td>Bank-Year面板数据构建与导出</td>
+</tr>
+<tr class="odd">
+<td>面板构建</td>
+<td>41</td>
+<td><code>41_falsification_test.py</code></td>
+<td>伪造检验对照变量构建</td>
+</tr>
+</tbody>
+</table>
+<p>每个阶段的输出以Apache Parquet格式保存，同时生成UTF-8-sig编码的CSV预览文件供快速检查。Parquet格式的选择基于以下考量：(1) 列式存储格式在分析型工作负载中具有显著的I/O性能优势；(2) 内置数据类型保持，避免了CSV格式在日期、浮点数等类型上的歧义；(3) 高效的Snappy压缩降低了磁盘占用。</p>
+<h3 id="共享基础设施层">3.2 共享基础设施层</h3>
+<p>系统的共享基础设施封装在 <code>utils/</code> 目录下，包含以下核心模块：</p>
+<p><strong><code>utils/helpers.py</code></strong>（约23KB）：提供配置加载（YAML解析与路径自动解析）、日志配置（带轮转的文件+彩色控制台双输出）、执行计时装饰器（<code>log_and_time</code>）、内存使用快照（<code>log_memory_usage</code>）、阶段级统计摘要（<code>log_stage_summary</code>）、DataFrame并行分批处理（<code>parallelize_dataframe</code>）、数据集安全保存（<code>save_dataset</code>）、子进程阶段调度（<code>run_stage</code>）等公共功能。配置加载函数支持环境变量占位符替换（<code>${VAR_NAME}</code>），通过自动加载项目根目录下的 <code>.env</code> 文件实现敏感信息（如API密钥）的安全管理。</p>
+<p><strong><code>utils/aho_corasick.py</code></strong>（约17KB）：封装了Aho-Corasick自动机的构建、银行名称加载、否定模式排除和短名歧义消解等核心匹配逻辑。该模块被 <code>11_news_bank.py</code>、<code>12_news_fintech.py</code> 和 <code>31_bank_fintech_threshold.py</code> 共享调用，确保主分类流程与敏感性分析使用完全一致的匹配逻辑。</p>
+<p><strong><code>utils/entity_context.py</code></strong>（约6KB）：实现了实体特异性上下文提取引擎，包括基于句号边界的句子分割、O(N log N)区间合并、句子级滑动窗口上下文提取、字符级回退策略，以及带文件级缓存的银行别名查询（<code>get_target_aliases</code>）。</p>
+<p><strong><code>utils/canonicalization.py</code></strong>（约9KB）：提供文本标准化功能，包括繁简转换（OpenCC）、全半角转换、编码修复（ftfy）、HTML标签清理（selectolax）等。</p>
+<p><strong><code>utils/pipeline_reporting.py</code></strong> 和 <strong><code>utils/reporting.py</code></strong>：分别负责管道总体报告生成和阶段级报告格式化。</p>
+<h3 id="统一配置管理">3.3 统一配置管理</h3>
+<p>系统的全部参数通过单一的 <code>config/config.yaml</code> 文件（约688行）进行集中管理。该文件包含以下配置段：</p>
+<ol type="1">
+<li><strong>文件路径配置（<code>paths</code>）</strong>：定义所有输入/输出目录及外部资源文件的路径</li>
+<li><strong>输出文件名配置（<code>filenames</code>）</strong>：各处理阶段输出的Parquet/Excel文件名</li>
+<li><strong>并行处理配置（<code>parallel</code>）</strong>：工作进程数、批次大小</li>
+<li><strong>预处理配置（<code>preprocessing</code>）</strong>：媒体类型过滤、地域过滤、长度阈值、广告关键词</li>
+<li><strong>文本标准化配置（<code>normalization</code>）</strong>：OpenCC配置、HTML缩减阈值</li>
+<li><strong>去重配置（<code>deduplication</code>）</strong>：Jaccard阈值、MinHash排列数、n-gram大小</li>
+<li><strong>银行新闻分类配置（<code>bank_news_classification</code>）</strong>：出现次数阈值、分割比例</li>
+<li><strong>金融科技新闻分类配置（<code>fintech_news_classification</code>）</strong>：最少不同关键词数</li>
+<li><strong>LLM处理配置（<code>tone_llm_processing</code>）</strong>：模型列表、API地址、CoT提示词模板、并发数、重试策略</li>
+<li><strong>情感分析配置（<code>sentiment_analysis</code>）</strong>：词典法参数（否定窗口、程度词典66条、转折词集26条、前瞻性词汇集60+条）、BERT模型列表</li>
+<li><strong>人工验证配置（<code>human_validation</code>）</strong>：抽样大小和随机种子</li>
+<li><strong>验证评估配置（<code>validation</code>）</strong>：各验证模块的启用开关</li>
+<li><strong>实体掩码配置（<code>entity_masking_test</code>）</strong>：占位符模板、通过阈值</li>
+<li><strong>面板构建配置（<code>panel_building</code>）</strong>：聚合频率、Stata导出开关</li>
+</ol>
+<p>这种集中式配置管理确保了实验参数的透明性和可复现性，研究者只需修改配置文件即可调整任意阶段的行为，无需修改代码。</p>
+<h3 id="关键设计原则">3.4 关键设计原则</h3>
+<p><strong>原则一：先分后合（Disaggregate-then-Aggregate）。</strong> 情感指标不在文章级预先综合，而是在Bank-Year聚合阶段对每个模型/词典分别聚合，最后在面板层级计算综合指标。这一原则源自Tetlock et al. (2008) 的研究范式，确保了下游研究者在回归分析中可以灵活选择使用单一模型的指标、综合指标或两者的对比。</p>
+<p><strong>原则二：双轨并行（Dual-Track Processing）。</strong> 每种情感分析方法同时处理全文和实体上下文片段，产生 <code>_full</code> 和 <code>_ctx</code> 双后缀的列。双轨设计的学术价值在于：(1) 提供了全文vs局部上下文的消融对比，有助于评估多实体混淆的影响程度；(2) 两条轨道的一致性本身就是情感度量可靠性的证据；(3) 为下游研究者提供了选择自由度。</p>
+<p><strong>原则三：配置驱动（Configuration-Driven）。</strong> 所有阈值、参数和文件路径均从 <code>config.yaml</code> 读取，代码中无硬编码常量。所有涉及随机性的操作使用统一的 <code>random_seed: 42</code>，确保完全可复现。</p>
+<p><strong>原则四：渐进式精炼（Progressive Refinement）。</strong> 数据在管道中逐步精炼，每个阶段的输出是下一个阶段的输入。验证脚本独立运行，不修改中间数据文件。</p>
+<p><strong>原则五：验证与主管道分离（Validation Isolation）。</strong> 所有验证评估脚本（31-37系列）读取主管道的中间文件进行分析，但绝不修改这些文件，确保验证过程不引入任何副作用。</p>
+<h3 id="数据流架构详解">3.5 数据流架构详解</h3>
+<p>本系统的数据流采用严格的层级传递模式。每个处理阶段从上游阶段的输出Parquet文件中读取数据，完成本阶段的处理逻辑后，将结果写入新的Parquet文件。这种设计确保了以下重要特性：</p>
+<p><strong>可追溯性</strong>。研究者可以打开任何阶段的中间文件，检查该阶段的输入和输出数据。例如，如果最终面板数据中某个银行的情感得分异常，研究者可以回溯到23阶段的BERT结果文件，检查该银行对应文章的各模型概率分布，进一步回溯到21阶段检查LLM的判定详情，甚至回溯到11阶段检查该银行的新闻匹配情况。这种全链路可追溯性是学术研究中数据审计的基本要求。</p>
+<p><strong>可重入性</strong>。如果某个阶段因为意外中断（如网络故障导致LLM API调用失败，或GPU故障导致BERT推理中断），研究者只需重新运行该阶段即可，无需从头开始运行整个管道。前提条件是该阶段所需的上游中间文件完整存在。这种可重入性在处理大规模数据时尤为重要——一次完整的管道运行可能需要数小时甚至数天，任何中断都不应导致已完成工作的丢失。</p>
+<p><strong>模块独立性</strong>。不同阶段之间通过Parquet文件进行松耦合的数据传递，没有共享的内存状态或全局变量。这意味着研究者可以对任何单个阶段进行修改或替换，只要保持输入输出的列名约定不变，就不会影响其他阶段。例如，研究者可以用自己实现的词典法替换22阶段的默认实现，或者添加新的BERT模型到23阶段，只要输出的Parquet文件包含预期的列即可。</p>
+<p><strong>空间效率</strong>。Parquet格式的列式存储和Snappy压缩使得中间文件占用的磁盘空间远小于等效的CSV文件。在典型的百万级新闻数据集上，整个管道的所有中间文件总计约占用数GB的磁盘空间，远低于原始Excel文件的总大小。列式存储还允许在读取数据时只加载所需的列，而非将整个DataFrame加载到内存中，这对于包含上百列的23阶段输出文件尤为重要。</p>
+<h3 id="管道调度器机制">3.6 管道调度器机制</h3>
+<p>系统的管道调度器（<code>run_pipeline_function.py</code>）负责按照正确的顺序依次执行各处理阶段。调度器的核心设计决策是将每个阶段作为独立的Python子进程运行，而非在同一个Python进程中依次导入和调用各阶段的主函数。这一设计的动机源于以下工程考量：</p>
+<p><strong>内存隔离</strong>。Python的垃圾回收机制有时无法完全释放大型数据结构占用的内存，尤其是在使用了C语言扩展库（如pandas的底层C数组、PyTorch的GPU张量）的场景中。通过子进程隔离，每个阶段运行在独立的进程空间中，阶段完成后进程退出，操作系统内核负责回收该进程的所有内存资源——无论是堆内存、映射文件还是GPU显存。这种操作系统级别的资源回收比Python的垃圾回收机制更为彻底和可靠。</p>
+<p><strong>全局状态隔离</strong>。某些Python库（如jieba分词库）在首次使用时会加载大量的词典数据到全局变量中，且这些全局变量在整个Python进程的生命周期内都不会被释放。子进程隔离确保了每个阶段从干净的Python环境开始，不受前序阶段加载的全局状态的影响。</p>
+<p><strong>异常隔离</strong>。如果某个阶段因为未捕获的异常而崩溃，调度器可以捕获子进程的退出码和错误输出，记录到日志中，并根据配置决定是继续执行后续阶段还是终止管道。在同进程模式下，未捕获的异常会直接导致整个调度器崩溃。</p>
+<p>调度器通过Python的 <code>subprocess.run()</code> 函数启动子进程，设置 <code>check=True</code> 参数以自动检测非零退出码。每个子进程的标准输出和标准错误被重定向到日志系统，与调度器自身的日志合并存储在 <code>logs/pipeline.log</code> 中。</p>
+<h3 id="中间文件管理策略">3.7 中间文件管理策略</h3>
+<p>系统对中间文件的命名采用了“数字前缀+语义描述”的约定。数字前缀（如“00”、“11”、“12”、“21”等）的十位数表示功能模块编号（0=预处理、1=分类、2=情感分析、3=验证、4=面板构建），个位数表示模块内的阶段序号。这种编号方案确保了文件在文件系统中按处理顺序自然排列，便于研究者快速定位特定阶段的输出。</p>
+<p>中间文件存储在 <code>data_processed/</code> 目录下，与原始数据（<code>data_excel/</code>）和配置文件（<code>config/</code>）严格分离。<code>data_processed/</code> 目录应被纳入版本控制系统的忽略列表（<code>.gitignore</code>），因为中间文件可以从原始数据和代码完全复现，不需要版本化存储。</p>
+<p>对于每个Parquet文件，系统同时生成一个对应的CSV预览文件（默认包含前1000行），文件名以 <code>_preview.csv</code> 为后缀。CSV预览文件使用UTF-8-sig编码（带BOM标记），确保在Microsoft Excel中直接打开时中文字符能正确显示——这是因为Excel在默认情况下不会自动检测UTF-8编码，而BOM标记可以解决这一问题。研究者可以通过Excel快速浏览中间数据的格式和内容，无需编写Python代码。</p>
+<h3 id="错误处理与容错设计">3.8 错误处理与容错设计</h3>
+<p>在处理千万级新闻数据时，个别记录可能包含异常内容（如损坏的编码、超长的文本、特殊字符等），不应导致整个阶段的处理失败。系统在以下层面实施了容错设计：</p>
+<p><strong>记录级容错</strong>。对于非关键的处理步骤（如文本标准化中的编码修复），系统使用 <code>try-except</code> 块捕获单条记录的处理异常，记录WARNING日志并跳过该记录，继续处理后续记录。被跳过的记录数量和原因在阶段结束时的统计摘要中汇总报告。</p>
+<p><strong>阶段级容错</strong>。调度器为每个阶段设置了最大重试次数（默认1次）、超时限制和内存使用监控。当某个阶段因OOM（内存不足）被操作系统杀死时，调度器会检测到子进程的非正常退出，记录错误日志，并发出建议（如减小批次大小或增大系统内存）。</p>
+<p><strong>API级容错</strong>。LLM API调用的容错机制尤为重要，因为API服务的可用性和响应时间存在固有的不确定性。系统实现了三层容错：(1) 请求级重试——单个API请求失败后自动重试，使用指数退避策略避免对API服务器造成压力；(2) 模型级降级——如果某个模型的API持续不可用，系统可以基于剩余两个模型的结果进行投票（2/2 = 100%一致率）；(3) 记录级跳过——如果所有三个模型的API调用对某条记录都失败（极端情况），该记录被标记为“LLM处理失败”，不影响其他记录的处理。</p>
+<h3 id="学术可复现性的工程保障">3.9 学术可复现性的工程保障</h3>
+<p>可复现性是学术研究的基石。本系统从以下工程层面确保了实验结果的完全可复现性：</p>
+<p><strong>随机种子控制</strong>。系统使用统一的随机种子（默认 <code>random_seed: 42</code>）控制所有涉及随机性的操作，包括：人工验证样本的抽样（32阶段）、实体掩码测试的抽样（36阶段）、MinHash签名的哈希函数选择、以及任何涉及 <code>random.sample()</code> 或 <code>numpy.random</code> 的操作。只要随机种子相同，这些操作的结果就完全确定。</p>
+<p><strong>确定性排序</strong>。在数据处理过程中，DataFrame的行顺序可能因为并行处理或分区读取而不确定。系统在关键的聚合和去重操作前后都会对DataFrame按指定列进行排序，确保行顺序的确定性。例如，在精确去重中使用 <code>keep='first'</code> 策略，配合排序操作，确保同一组重复记录中始终保留相同的那一条。</p>
+<p><strong>版本锁定</strong>。<code>requirements.txt</code> 文件精确指定了所有依赖库的版本号（使用 <code>==</code> 而非 <code>&gt;=</code>），防止因第三方库的版本更新导致行为变化。特别是对于依赖随机性的库（如datasketch的MinHash实现），版本锁定尤为重要。</p>
+<p><strong>环境记录</strong>。每次管道运行开始时，系统在日志中记录完整的运行环境信息，包括：Python版本、操作系统版本、关键依赖库的实际版本、GPU硬件信息（型号、显存、CUDA版本）、以及 <code>config.yaml</code> 的哈希摘要。这些信息使得在不同环境中复现实验结果时可以排除环境差异导致的问题。</p>
+<p><strong>配置快照</strong>。系统在每次运行时将当前使用的 <code>config.yaml</code> 文件复制到输出目录中，文件名包含时间戳（如 <code>config_20260328_090000.yaml</code>）。这确保了即使研究者在后续修改了配置文件，也可以准确地知道某次运行使用的具体配置参数。</p>
+<hr />
+<h2 id="第四章-数据预处理模块00阶段">第四章 数据预处理模块（00阶段）</h2>
+<h3 id="模块概述">4.1 模块概述</h3>
+<p>数据预处理模块（<code>00_preprocessing.py</code>）是管道的第一个阶段，负责将原始Excel格式的新闻数据转换为经过清洗、标准化和去重的结构化数据集。该模块的设计目标是最大限度地消除原始数据中的噪声，同时保留所有对后续分析有价值的信息。模块采用“多层过滤+多层去重”的漏斗式处理策略，每一层过滤都有明确的学术依据和可配置的参数。</p>
+<h3 id="数据加载与性能优化">4.2 数据加载与性能优化</h3>
+<p>原始数据存储于 <code>data_excel/</code> 目录下的多个Excel文件中。系统使用Python的Calamine引擎（通过pandas的 <code>engine='calamine'</code> 参数）加载Excel文件，相较于默认的openpyxl引擎，Calamine引擎在大文件读取上速度提升3-5倍。对于包含数百万行的超大型Excel文件，系统采用分块（chunked）读取策略，每次仅加载固定数量的行（由 <code>batch_size</code> 参数控制），处理完毕后释放内存并加载下一批。</p>
+<p>加载过程中，系统对每个文件执行列名校验，确认必需列（如“标题”、“内容”、“日期”、“媒体(中文)”等）是否存在。缺少必需列的文件将被跳过并记录WARNING日志。所有成功加载的数据合并为统一的DataFrame。</p>
+<h3 id="多层内容过滤">4.3 多层内容过滤</h3>
+<h4 id="媒体类型过滤">4.3.1 媒体类型过滤</h4>
+<p>系统首先根据“媒体类别”列过滤非新闻类数据源。配置文件中的 <code>excluded_media_types</code> 列表定义了需要排除的媒体类别（默认排除“微博”、“论坛”、“评论”等用户生成内容类型），确保分析对象限定于专业新闻媒体的报道。</p>
+<h4 id="内容长度过滤">4.3.2 内容长度过滤</h4>
+<p>过短的文本（默认 &lt; 50字符）可能是新闻标题、新闻快讯或数据不完整的记录，不适合进行情感分析。过长的文本（默认 &gt; 50,000字符）可能是年报全文、招募说明书等非新闻类文档。系统对“内容”列的长度进行上下界过滤，阈值通过 <code>min_content_length</code> 和 <code>max_content_length</code> 参数控制。</p>
+<h4 id="广告与非新闻内容过滤">4.3.3 广告与非新闻内容过滤</h4>
+<p>系统使用配置文件中的 <code>ad_keywords</code> 列表（包含“免责声明”、“投资有风险”、“仅供参考”、“广告”等）进行关键词匹配过滤。当文章内容包含预设广告关键词且出现在文章起始或结尾部分时，该文章被标记为潜在非新闻内容并予以排除。系统还检查“内容”列是否包含大量重复短句模式（如上市公司公告中的标准化声明），这类模式通常出现在公告中而非新闻报道中。</p>
+<h4 id="日期有效性过滤">4.3.4 日期有效性过滤</h4>
+<p>系统使用 <code>pd.to_datetime()</code> 函数（设置 <code>errors='coerce'</code>）将“日期”列转换为标准日期格式，无法解析的日期被转换为 <code>NaT</code>。包含 <code>NaT</code> 日期的记录被过滤。如果配置了有效日期范围，超出范围的记录也会被过滤。</p>
+<h3 id="文本标准化">4.4 文本标准化</h3>
+<p>文本标准化由 <code>utils/canonicalization.py</code> 模块实现，包含以下步骤：</p>
+<p><strong>Unicode规范化</strong>。对所有文本应用NFKC规范化，将等效的Unicode字符统一为标准形式。</p>
+<p><strong>繁简转换</strong>。使用OpenCC将繁体中文转换为简体中文（采用 <code>t2s</code> 配置），确保后续分词和关键词匹配的一致性。</p>
+<p><strong>全半角转换</strong>。将全角字符转换为半角形式，避免后续匹配中的遗漏。</p>
+<p><strong>编码修复</strong>。使用ftfy库修复常见编码错误，如UTF-8编码被误解为Latin-1导致的乱码、HTML实体引用未解码等。</p>
+<p><strong>HTML标签清理</strong>。使用selectolax库（基于C语言的Modest HTML解析引擎）高效去除文本中残留的HTML标签。selectolax相较于BeautifulSoup具有10-100倍的速度优势。当清理前后的文本长度差异超过配置阈值（默认50%）时，系统记录WARNING日志。</p>
+<p><strong>空白字符标准化</strong>。将连续空白字符压缩为单个空格，去除首尾空白。</p>
+<h3 id="精确去重">4.5 精确去重</h3>
+<p>精确去重基于指定列组合的完全一致匹配。默认使用（“标题”、“日期”、“媒体(中文)”）三列组合作为复合键。使用pandas的 <code>drop_duplicates()</code> 方法实现，保留每组重复记录中的第一条（<code>keep='first'</code>），确保去重过程的确定性。</p>
+<h3 id="基于minhash-lsh的近似去重">4.6 基于MinHash LSH的近似去重</h3>
+<h4 id="算法原理">4.6.1 算法原理</h4>
+<p>精确去重无法处理对原文有修改的转载文章。系统引入MinHash和LSH的近似去重方法。MinHash算法将文本转换为字符n-gram集合（默认n=3），对集合施加128个独立随机哈希函数取最小值，组成MinHash签名向量。两个签名向量对应位置相同的概率等于两个集合的Jaccard相似度：<span class="math inline"><em>J</em>(<em>A</em>, <em>B</em>) = |<em>A</em> ∩ <em>B</em>|/|<em>A</em> ∪ <em>B</em>|</span>。LSH通过分带策略高效检索候选近似重复对。</p>
+<h4 id="时间窗口约束">4.6.2 时间窗口约束</h4>
+<p>系统引入时间窗口约束：只有发布日期在配置时间窗口内（默认30天）的文章对才纳入候选范围，显著减少比较对数量。</p>
+<h4 id="实现细节">4.6.3 实现细节</h4>
+<p>使用 <code>datasketch</code> 库实现。参数：排列数128，Jaccard阈值0.8，n-gram大小3。每组近似重复文章保留最早发布的那条。去重日志记录每组近似重复文章的标题、日期和Jaccard相似度估计值。</p>
+<h3 id="预处理输出">4.7 预处理输出</h3>
+<p>输出 <code>00_preprocessed.parquet</code> 文件及CSV预览文件。日志记录每个过滤步骤的前后行数对比和丢弃比例，形成完整的数据流水审计轨迹。</p>
+<h3 id="文本标准化的六步流程详解">4.8 文本标准化的六步流程详解</h3>
+<p>文本标准化是预处理中最精细化的环节，通过六个顺序执行的步骤将原始文本转换为统一的规范化形式。标准化的目标是消除同一文本的不同表示形式之间的差异，确保后续的字符串匹配、分词和情感分析的一致性。</p>
+<p><strong>步骤1：Unicode规范化（NFKC）</strong>。Unicode标准允许同一个“视觉字符”有多种编码表示。例如，全角字母“Ａ”（U+FF21）和半角字母“A”（U+0041）在视觉上相似但编码不同；合字符“ﬁ”（U+FB01）可以分解为“fi”两个独立字符。NFKC规范化将所有兼容等价的字符统一为标准表示，消除这些编码差异。这一步骤确保了后续的关键词匹配不会因为全角半角混用而遗漏匹配。</p>
+<p><strong>步骤2：繁简中文转换（OpenCC）</strong>。中文新闻数据可能包含繁体字符（尤其是来自港澳台地区的媒体或早期数字化的文档）。OpenCC库通过维护一个庞大的繁简对应词表，将繁体字符统一转换为简体字符。需要注意的是，繁简转换不仅涉及单字替换（如“國”→“国”），还涉及多字词汇的转换（如“報導”→“报道”、“軟體”→“软件”），后者需要词级别的上下文判断。</p>
+<p><strong>步骤3：全角到半角转换</strong>。在中文排版中，数字、字母和标点符号经常使用全角形式（如“１２３”、“ＡＢＣ”、“，”）。这些全角字符在正则表达式匹配和关键词检索中会导致不匹配。系统将所有全角数字和字母转换为半角形式，同时保留中文标点的全角形式（因为中文标点的全角形式是语言规范的一部分）。</p>
+<p><strong>步骤4：编码修复（ftfy）</strong>。网络采集的文本经常因为编码转换过程中的错误而产生“乱码”（mojibake）。例如，UTF-8编码的中文被错误地按ISO-8859-1解码后再按UTF-8编码，会产生类似“ä¸­æ–‡”的乱码序列。ftfy库通过启发式算法检测和修复这些常见的编码错误，将文本恢复为可读的中文。</p>
+<p><strong>步骤5：HTML标签清除（selectolax）</strong>。部分新闻内容在数据采集过程中保留了HTML标签（如 <code>&lt;p&gt;</code>、<code>&lt;div&gt;</code>、<code>&lt;span&gt;</code>等）和HTML实体（如 <code>&amp;amp;</code>、<code>&amp;lt;</code> 等）。selectolax库使用基于C语言的HTML解析器高效地剥离所有HTML标签，只保留纯文本内容。系统在清除后检查文本长度的缩减比例——如果缩减超过配置阈值（默认50%），记录WARNING日志，因为过大的缩减可能意味着文本的核心内容嵌套在HTML结构中，清除后可能丢失了重要信息。</p>
+<p><strong>步骤6：空白符标准化</strong>。将连续的空白字符（空格、制表符、换行符）压缩为单个空格，去除首尾空白。这一步骤确保了后续的字符计数和位置索引的准确性。</p>
+<h3 id="广告过滤策略">4.9 广告过滤策略</h3>
+<p>金融类新闻数据库中经常混入大量的商业广告和营销软文。这些伪新闻不包含有价值的情感信息，但其文本中可能包含银行名称和金融科技关键词（如“某某银行信用卡优惠活动”），如果不过滤会导致下游分类的误判。</p>
+<p>系统通过关键词匹配机制识别广告内容。广告关键词列表在 <code>config.yaml</code> 中配置，典型的广告标识包括“免责声明”、“投资有风险”、“广告”、“推广”、“优惠活动”、“限时折扣”等。当文章的标题或内容中包含这些关键词时，该文章被标记为广告并排除。</p>
+<p>广告过滤的阈值是一个精度-召回的权衡：关键词列表过宽会误杀合法的金融新闻（如一篇讨论“银行风险管理”的严肃报道可能包含“投资有风险”字样），列表过窄则会遗漏变体形式的广告。系统默认采用保守策略（精度优先），宁可保留少量广告也不冒误杀合法新闻的风险。</p>
+<h3 id="数据质量度量">4.10 数据质量度量</h3>
+<p>预处理阶段在日志中输出以下数据质量度量指标，供研究者评估原始数据的整体质量：</p>
+<ul>
+<li><strong>缺失率</strong>：各必需列（标题、内容、日期、媒体来源）的缺失值比例</li>
+<li><strong>过滤率</strong>：每层过滤步骤的丢弃比例及累计总过滤率</li>
+<li><strong>去重率</strong>：精确去重和近似去重各自消除的重复比例</li>
+<li><strong>编码异常率</strong>：ftfy修复了编码的文章占比</li>
+<li><strong>HTML残留率</strong>：包含HTML标签的文章占比（标准化前）</li>
+<li><strong>内容长度分布</strong>：标准化后内容长度的P10/P25/P50/P75/P90分位数</li>
+<li><strong>时间覆盖</strong>：最早和最晚的文章日期，年度文章数分布</li>
+</ul>
+<p>这些度量指标不仅帮助研究者了解数据的基本特征，还为论文的数据描述部分提供了必要的统计信息。</p>
+<h3 id="数据清洗的学术透明性要求">4.11 数据清洗的学术透明性要求</h3>
+<p>根据Loughran &amp; McDonald (2016, JAR) 和Gentzkow et al. (2019, JEL) 的最佳实践指南，文本作为数据的研究应当在论文中详细报告数据清洗的每一步及其对样本量的影响。预处理阶段的分步行数记录正是为此目的设计：研究者可以直接从日志中提取“原始数据→媒体过滤→长度过滤→广告过滤→日期过滤→精确去重→近似去重→最终输出”的漏斗图数据，在论文的附录或在线附件中展示完整的样本筛选过程，满足顶级期刊的数据透明性要求。</p>
+<hr />
+<h2 id="第五章-新闻分类模块11-12阶段">第五章 新闻分类模块（11-12阶段）</h2>
+<h3 id="银行名称词典的构建方法论">5.6 银行名称词典的构建方法论</h3>
+<p>银行名称词典（<code>bank_names.json</code>）是银行新闻识别模块的核心知识库。词典的日常以标准化的JSON格式存储，每条记录包含银行的标准名称（如“中国工商银行股份有限公司”）和所有已知的名称变体（别名），包括简称（“工商银行”、“工行”）、英文缩写（“ICBC”）、证券代码（“601398”）和常见的非正式称呼（“宇宙行”）。</p>
+<p>词典的构建遵循“穷举+验证”的策略：首先从银保监会（现国家金融监督管理总局）的官方银行业金融机构名录中提取所有商业银行的法定全称，然后通过银行官网、年报封面、新闻报道中的实际用法收集各种别名变体。每个别名在添加到词典前都需要经过歧义检查——确认该别名在常见语境中不会被误解为非目标实体。例如，“中信”作为中信银行的简称，同时也是中信集团、中信证券、中信建投等多个实体的简称，因此需要配合上下文歧义消解机制使用。</p>
+<h3 id="短别名歧义消解的详细逻辑">5.7 短别名歧义消解的详细逻辑</h3>
+<p>当银行别名长度低于配置阈值（默认3个字符，如“工行”、“中信”、“招行”）时，系统启动上下文歧义消解机制。该机制的核心逻辑是：</p>
+<p><strong>扩展上下文窗口</strong>。以匹配位置为中心，向前后各扩展100个字符（可配置），提取上下文片段。上下文窗口的大小选择基于中文新闻的典型句子长度（平均30-50字），100字符的窗口通常可以覆盖包含匹配词的完整句子及其前后各一句。</p>
+<p><strong>金融语境验证</strong>。在上下文片段中搜索一组金融领域标志词（如“银行”、“金融”、“贷款”、“理财”、“存款”、“融资”、“信贷”等）。如果上下文中包含至少一个金融标志词，则认为当前匹配是在金融语境中出现的，大概率指向目标银行而非其他同名实体。如果上下文中没有金融标志词，则该匹配被判定为歧义匹配并被排除。</p>
+<p><strong>排除列表过滤</strong>。系统还维护了一个排除列表（<code>bank_name_exclusions.json</code>），记录了已知的误匹配短语。例如，“工行距离”中的“工行”实际上是“工人行走距离”的简写而非“工商银行”，此类已知误匹配可以通过排除列表直接过滤。排除列表的维护是一个持续过程——随着对数据的深入了解，研究者可以逐步发现和添加新的误匹配模式。</p>
+<h3 id="金融科技关键词分类学">5.8 金融科技关键词分类学</h3>
+<p>金融科技关键词库按照技术领域和应用场景组织，覆盖以下大类：(1) 数字支付（如“移动支付”、“扫码支付”、“数字钱包”、“二维码支付”）；(2) 区块链与数字货币（如“区块链”、“数字人民币”、“智能合约”、“分布式账本”）；(3) 人工智能与大数据（如“智能风控”、“大数据征信”、“机器学习”、“人脸识别”）；(4) 互联网金融（如“网络银行”、“直销银行”、“开放银行”、“金融科技子公司”）；(5) 监管科技（如“穿透式监管”、“合规科技”、“监管沙盒”）；(6) 保险科技（如“智能理赔”、“在线保险”、“健康科技”）。</p>
+<p>关键词的选择参考了已有的金融科技文献和行业报告，确保覆盖范围的全面性。关键词的粒度选择需要平衡精度和召回：过于笼统的关键词（如“技术”、“系统”）会引入大量噪声，过于具体的关键词（如“基于联邦学习的隐私计算信贷风控模型”）则会遗漏大量相关文章。系统选择中等粒度的关键词（通常2-6个字），并通过阈值参数 <span class="math inline"><em>T</em></span> 要求文章匹配到的不同关键词数达到指定数量，以提高分类精度。</p>
+<h3 id="多级分类的精度-召回权衡">5.9 多级分类的精度-召回权衡</h3>
+<p>11阶段和12阶段的分类实质上构成了一个两级漏斗——第一级（11阶段）识别银行相关新闻，第二级（12阶段）在银行新闻中筛选金融科技新闻。每一级都是精度和召回之间的权衡：</p>
+<p>在第一级（银行新闻识别）中，精度取决于银行名匹配的准确性（通过歧义消解机制提高），召回取决于银行名词典的覆盖率（需要包含尽可能多的别名变体）。极端情况下，如果某家银行在新闻中被称为一个词典中未收录的非正式名称，该文章就会被第一级漏掉。</p>
+<p>在第二级（金融科技分类）中，精度取决于阈值 <span class="math inline"><em>T</em></span> 的选择——<span class="math inline"><em>T</em></span> 越高，通过的文章越可能是真正的金融科技新闻；召回取决于关键词库的覆盖范围——未收录的新兴术语对应的文章会被漏掉。31阶段的阈值敏感性分析和37阶段的词典覆盖率审计分别从这两个维度评估分类质量。</p>
+<h3 id="llm语义精筛作为第三级分类">5.10 LLM语义精筛作为第三级分类</h3>
+<p>在12阶段的关键词分类之后，21阶段的LLM语义精筛实质上构成了第三级分类。这一级分类的目的是利用LLM的深度语义理解能力，过滤掉关键词匹配阶段的假阳性——即那些虽然包含足够多金融科技关键词，但实际上并非讨论目标银行金融科技活动的文章。</p>
+<p>典型的假阳性案例包括：(1) 行业综述类文章——泛泛讨论金融科技行业趋势，顺便提到了某家银行但并非讨论该银行的具体活动；(2) 政策解读类文章——分析监管政策对金融科技行业的影响，银行仅作为受影响主体被提及；(3) 人事新闻——报道银行高管任命，文章中出现金融科技关键词仅因为高管曾任职于金融科技部门。LLM的CoT推理能够理解这些语义层面的细微差别，在关键词匹配无法覆盖的维度上进行精细化筛选。</p>
+<hr />
+<h3 id="银行新闻识别11阶段">5.1 银行新闻识别（11阶段）</h3>
+<h4 id="核心挑战">5.1.1 核心挑战</h4>
+<p>银行新闻识别的核心挑战在于中文银行名称的复杂性：(1) 同一银行拥有多个名称变体（如“中国工商银行”、“工商银行”、“工行”、“ICBC”）；(2) 短名在中文语境中存在歧义（如“民生”同时指代银行和民生议题）；(3) 否定语境中的出现不应被计入。</p>
+<h4 id="aho-corasick多模式匹配">5.1.2 Aho-Corasick多模式匹配</h4>
+<p>Aho-Corasick算法由Aho和Corasick (1975) 提出，在 <span class="math inline"><em>O</em>(<em>n</em> + <em>m</em> + <em>z</em>)</span> 时间复杂度内完成全部模式串匹配（<span class="math inline"><em>n</em></span>=文本长度，<span class="math inline"><em>m</em></span>=模式串总长度，<span class="math inline"><em>z</em></span>=匹配结果数），相较逐模式搜索（<span class="math inline"><em>O</em>(<em>k</em> ⋅ <em>n</em>)</span>）具有数量级优势。</p>
+<blockquote>
+<p>Aho, A. V., &amp; Corasick, M. J. (1975). Efficient string matching: An aid to bibliographic search. <em>Communications of the ACM</em>, 18(6), 333–340. https://doi.org/10.1145/360825.360855</p>
+</blockquote>
+<p>银行名称及其别名从 <code>config/bank_names.json</code> 加载，每个银行包含正式名称、简称、英文名称和曾用名。</p>
+<h4 id="否定模式排除">5.1.3 否定模式排除</h4>
+<p>系统维护否定排除列表，当检测到银行名出现时，回溯检查匹配位置前N个字符（默认N=3）是否包含否定前缀（如“非”、“除了”等），若存在则排除该匹配。</p>
+<h4 id="短名歧义消解">5.1.4 短名歧义消解</h4>
+<p>对长度小于3字符的银行简称，系统要求在匹配位置的上下文窗口（默认前后100字符）内同时出现金融关键词（如“银行”、“金融”、“贷款”等），才确认该短名指代银行。</p>
+<h4 id="数据展开与提及密度">5.1.5 数据展开与提及密度</h4>
+<p>11阶段将文章级数据展开为银行-文章级数据。当一篇新闻提及多家银行时，该文章被复制为多条记录，每条对应一个目标银行。每条记录包含：目标银行出现次数（<code>target_count</code>）、标题中是否出现（<code>target_bank_in_title</code>）、共提银行列表（<code>co_mentioned_banks</code>）、提及密度（<code>mention_density</code> = 出现次数 / 全文字符数 × 10,000）。提及密度在面板构建阶段被用作价值加权的权重，参照Hassan et al. (2019) 的方法论。</p>
+<h4 id="双区分布检验">5.1.6 双区分布检验</h4>
+<p>系统将内容按配置比例分割为前半和后半部分，检验目标银行是否在两个区域都有出现，以过滤仅在文末结构化信息中出现的假阳性匹配。</p>
+<h3 id="金融科技新闻分类12阶段">5.2 金融科技新闻分类（12阶段）</h3>
+<h4 id="关键词匹配">5.2.1 关键词匹配</h4>
+<p>12阶段使用独立的Aho-Corasick自动机进行金融科技主题分类。金融科技关键词存储在 <code>config/fintech_dict.json</code>（1000+个术语），覆盖移动支付、区块链、人工智能、大数据、云计算、生物识别、智能投顾、数字货币、开放银行、监管科技等子领域。</p>
+<p>系统对每篇文章计算匹配的不同关键词数和关键词详情。当不同关键词数 ≥ 阈值 <span class="math inline"><em>T</em></span>（默认3）时标记为金融科技新闻。<span class="math inline"><em>T</em> = 3</span> 的选择基于：<span class="math inline"><em>T</em> = 1</span> 过于宽松，<span class="math inline"><em>T</em> = 2</span> 可能包含泛化词汇组合的一般报道，<span class="math inline"><em>T</em> ≥ 3</span> 显著提高精度。31阶段提供 <span class="math inline"><em>T</em></span> 在不同取值下的效果评估。</p>
+<h4 id="全量分类结果保留">5.2.2 全量分类结果保留</h4>
+<p>12阶段输出两个文件：筛选后的金融科技新闻和全量银行新闻含分类结果。全量文件支持41阶段伪造检验和37阶段词典覆盖率审计。</p>
+<hr />
+<h2 id="第六章-llm情感分析模块21阶段">第六章 LLM情感分析模块（21阶段）</h2>
+<h3 id="模块概述-1">6.1 模块概述</h3>
+<p>LLM情感分析模块使用三个商业大语言模型（GPT-5 Nano、Gemini 3、Claude Haiku）通过CoT提示词完成双任务：语义精筛和情感分类。三模型通过多数投票融合结果。</p>
+<h3 id="学术依据">6.2 学术依据</h3>
+<p>本模块融合两个前沿学术方向：LLM作为文本标注工具（Carlson &amp; Burbano, 2026, SMJ），以及多分类器集成方法。使用三个不同厂商和架构的LLM实现了模型层面的多样性，降低了单一模型系统性偏差的影响。</p>
+<h3 id="chain-of-thought提示词设计">6.3 Chain-of-Thought提示词设计</h3>
+<p>提示词模板采用CoT结构化推理，要求LLM按四步推理：(1) 实体识别——确认目标银行是否为核心讨论对象；(2) 主题判定——判断是否涉及金融科技主题；(3) 相关性推理——综合判定是否为目标银行的金融科技新闻；(4) 情感分析——判定情感倾向。返回格式为标准JSON。</p>
+<h3 id="双轨处理">6.4 双轨处理</h3>
+<p>Full轨道使用完整文章内容，Context轨道使用银行周边上下文片段（默认300字符窗口）。两条轨道独立运行，产生 <code>_full</code> 和 <code>_ctx</code> 后缀列。</p>
+<h3 id="异步并发与容错">6.5 异步并发与容错</h3>
+<p>通过 <code>asyncio</code> 和 <code>aiohttp</code> 实现异步并发，<code>Semaphore</code> 控制最大并发数（默认300）。每个请求配置指数退避重试（最大3次，初始退避2秒，倍数2.0）。<code>TCPConnector</code> 配置连接池管理参数。</p>
+<h3 id="多数投票融合">6.6 多数投票融合</h3>
+<p>验证投票：至少两个模型判定True则为True。情感投票：取出现次数最多的标签，三方完全分歧时回退为“中性”。系统记录投票一致率，反映多模型共识程度。</p>
+<h3 id="json解析与异常处理">6.7 JSON解析与异常处理</h3>
+<p>LLM返回文本经正则预处理提取JSON对象，解析失败时标记为缺失（不参与投票但不阻断流程）。</p>
+<h3 id="输出">6.8 输出</h3>
+<p>输出 <code>21_tone_llms.parquet</code>（通过精筛的记录）和 <code>21_tone_llms_full.parquet</code>（全量数据含中间结果）。</p>
+<h3 id="chain-of-thought推理链路的质量评估">6.9 Chain-of-Thought推理链路的质量评估</h3>
+<p>Chain-of-Thought提示词的核心价值在于强制LLM进行显式的多步推理，而非直接输出分类结果。通过要求LLM先识别实体、再判定主题、然后进行相关性推理，最终给出情感分析，每一步的中间推理结果都被保留在JSON输出中，为后续的质量审计提供了透明的依据。</p>
+<p>研究者可以通过以下方式评估CoT推理的质量：(1) 检查LLM的实体识别是否准确——即LLM是否正确识别出目标银行是文章的核心讨论对象，还是仅被顺带提及；(2) 检查主题判定的合理性——LLM对文章是否涉及金融科技主题的判断是否与关键词匹配结果一致；(3) 检查相关性推理的逻辑——LLM是否在实体识别和主题判定的基础上做出了逻辑一致的相关性判定。这种多步骤透明推理相比单步“黑箱”分类，显著提高了结果的可审计性和可解释性。</p>
+<p>在实践中，CoT推理偶尔会出现“推理与结论不一致”的情况——例如LLM在推理过程中指出“文章主要讨论的是另一家银行的金融科技业务”，但最终仍然给出 <code>is_bank_fintech_news: true</code> 的判定。系统的33阶段（分类有效性评估）可以帮助识别这类不一致，研究者在人工验证阶段应特别关注LLM推理链路中的逻辑断裂。</p>
+<h3 id="多模型多样性的学术价值">6.10 多模型多样性的学术价值</h3>
+<p>使用三个来自不同厂商（OpenAI、Google、Anthropic）的LLM进行集成判定，其学术价值超越了简单的“少数服从多数”投票逻辑。三个模型的多样性体现在以下维度：</p>
+<p><strong>训练数据多样性</strong>。GPT系列、Gemini系列和Claude系列分别使用了不同的预训练语料库。虽然这些模型的训练数据存在一定重叠（如公开的网络文本），但每个厂商在数据收集、清洗和配比策略上的差异，使得模型在面对中文金融文本时可能关注不同的语义特征。</p>
+<p><strong>对齐策略多样性</strong>。三个模型使用了不同的人类反馈强化学习（RLHF）或直接偏好优化（DPO）策略进行对齐。这些对齐策略的差异影响了模型在边界案例上的判定倾向。例如，某些模型可能在情感判定上偏保守（倾向于判定“中性”），而另一些模型可能更敏感（更容易判定为“正面”或“负面”）。多模型投票有效地平衡了这种个体偏差。</p>
+<p><strong>架构多样性</strong>。三个模型基于不同的神经网络架构和注意力机制变体。架构层面的差异意味着模型对长文本中不同位置的信息赋予不同的注意力权重，从而在处理同一篇新闻时可能捕获到不同的语义信号。</p>
+<p>当三个模型对某篇文章给出一致的判定时（一致率=1.0），该判定的可信度显著高于任何单一模型的判定。当出现2:1的分歧时（一致率=0.67），系统遵循多数意见但记录分歧信息，研究者在后续分析中可以将分歧率作为噪声度量纳入稳健性检验。</p>
+<h3 id="llm系统性偏差检测">6.11 LLM系统性偏差检测</h3>
+<p>基于Carlson &amp; Burbano (2026, SMJ) 的方法论指导，系统设计了LLM系统性偏差检测机制。该机制的核心问题是：LLM的分类错误是否与下游面板变量（如银行规模、所有制类型、地理区域）存在系统性相关？</p>
+<p>如果LLM倾向于将国有大型银行的新闻判定为正面（因为训练数据中国有银行的正面报道更多），而倾向于将中小银行的新闻判定为中性或负面，那么基于LLM情感指标的回归分析可能会产生虚假的相关性。这种系统性偏差在模型训练阶段就已经嵌入，单纯的多数投票机制无法消除。</p>
+<p>系统通过以下方法检测此类偏差：(1) 将LLM的分类错误（相对于人工标注的金标准）与银行特征变量进行独立样本t检验和KS检验；(2) 检查错误分布在不同银行类型间是否存在统计显著差异；(3) 如果发现显著的系统性偏差，研究者可以在回归模型中加入银行类型×情感指标的交互项进行控制。</p>
+<h3 id="提示词版本管理">6.12 提示词版本管理</h3>
+<p>提示词（Prompt）是LLM分析的核心控制参数，其微小变化可能显著影响分类结果。系统将提示词模板存储在外部文件中（路径由 <code>config.yaml</code> 指定），而非硬编码在Python脚本中。这种设计的优势在于：(1) 提示词的修改不需要修改代码，降低了引入代码错误的风险；(2) 每次管道运行时，系统在日志中记录所使用的提示词完整内容的SHA-256哈希值，确保后续可以精确确认特定运行使用的提示词版本；(3) 研究者可以通过版本控制系统对提示词文件的历史变更进行追踪。</p>
+<h3 id="api调用成本与效益分析">6.13 API调用成本与效益分析</h3>
+<p>LLM API调用的成本是本系统运行成本的主要组成部分。以三个商业模型为例，每篇文章的处理涉及以下API调用：三个模型×双轨道（全文+上下文）= 6次API调用。对于10万篇候选文章，总计需要约60万次API调用。按照典型的定价标准（每千个token约0.015美元），假设每次调用平均消耗2000个token，总成本约为1,800美元。</p>
+<p>这一成本在学术研究中通常是可接受的，尤其是考虑到LLM方法相比传统的人工编码方法在效率和成本上的巨大优势——人工编码10万篇中文新闻文章可能需要数十名编码者数周的工作时间，成本远高于LLM API调用。然而，对于预算有限的研究者，可以考虑以下策略降低成本：(1) 仅对关键词匹配阶段通过率较高的文章（如 distinct_keywords≥5）使用LLM精筛，对通过率较低的文章直接使用关键词匹配结果；(2) 使用开源LLM（如LLaMA系列）进行本地部署，将API调用成本转化为一次性的GPU硬件投资；(3) 减少模型数量（如仅使用两个模型进行投票），以牺牲一定的多样性为代价降低成本。</p>
+<hr />
+<h2 id="第七章-词典法情感分析模块22阶段">第七章 词典法情感分析模块（22阶段）</h2>
+<h3 id="模块概述-2">7.1 模块概述</h3>
+<p>词典法情感分析模块实现了基于五部中文金融情感词典的情感评分。理论基础源自Loughran &amp; McDonald (2011)。词典法的优势在于完全透明和可解释——每个得分可追溯到具体词汇。</p>
+<h3 id="五部中文金融情感词典">7.2 五部中文金融情感词典</h3>
+<p>系统集成五部词典，覆盖通用情感极性、金融专用术语、语义分析、新闻媒体领域和综合来源。五部词典的并行使用提高了内容效度并为Cronbach’s Alpha检验提供基础。</p>
+<h3 id="五步分析流程">7.3 五步分析流程</h3>
+<p><strong>步骤1：分词与词频统计</strong>。使用jieba精确模式分词。</p>
+<p><strong>步骤2：正负面词匹配</strong>。逐词扫描匹配五部词典，统计正面词数和负面词数。</p>
+<p><strong>步骤3：否定词处理</strong>。当情感词前N个词（默认N=2）内出现否定词，该词极性翻转。</p>
+<p><strong>步骤4：程度副词缩放</strong>。系统配置66条程度副词规则，分六个级别（极度2.0至极轻0.3），对情感词权重进行缩放。</p>
+<p><strong>步骤5：转折连词增强</strong>。转折连词（26个，如“但是”、“然而”）之后的情感词权重增强1.5倍，基于Ding, Liu &amp; Yu (2008) 的研究。</p>
+<h3 id="情感得分计算">7.4 情感得分计算</h3>
+<p>原始得分：<span class="math inline">score = pos_count − neg_count</span></p>
+<p>归一化得分：<span class="math inline">norm_score = (pos_count − neg_count)/(pos_count + neg_count)</span></p>
+<p>情感标签基于归一化得分的正负判定。</p>
+<h3 id="idf加权变体">7.5 IDF加权变体</h3>
+<p>IDF权重：<span class="math inline">IDF(<em>w</em>) = log (<em>N</em>/(1 + df(<em>w</em>)))</span>，每个匹配情感词贡献 <span class="math inline"> ± IDF(<em>w</em>)</span> 而非 <span class="math inline"> ± 1</span>。IDF加权得分以 <code>_idf</code> 后缀命名，与等权重版本并行存在。预处理阶段使用Aho-Corasick在全语料上高效计算文档频率。</p>
+<h3 id="双轨道处理">7.6 双轨道处理</h3>
+<p>词典法对全文和上下文片段同时处理，双轨差异直接反映了非目标银行内容对情感得分的“污染程度”。</p>
+<h3 id="词典法的学术方法论考量">7.7 词典法的学术方法论考量</h3>
+<p>词典法在金融文本分析中的应用有深厚的学术传统。Loughran &amp; McDonald (2011) 的开创性研究指出，通用情感词典（如Harvard General Inquirer）在金融语境中表现不佳，因为许多在日常语言中具有负面含义的词汇（如“liability”、“risk”、“capital”）在金融语境中是中性的技术术语。这一发现催生了领域专用情感词典的研究方向。</p>
+<p>本系统使用的五部词典涵盖了不同的构建策略和覆盖范围。有些词典采用人工编纂的方式，由金融领域专家逐词判定极性；有些词典采用半自动化的方式，从已标注的金融文本中统计高频情感词汇。五部词典的并行使用不仅提高了内容效度（content validity），更使得Cronbach’s Alpha内部一致性检验成为可能——如果五部独立编纂的词典在大规模数据上给出高度一致的情感评分（α≥0.70），这强烈暗示它们在度量同一个潜在构念（latent construct），即文本的情感极性。</p>
+<h3 id="否定词处理的精细化设计">7.8 否定词处理的精细化设计</h3>
+<p>中文的否定表达比英文更为复杂和多样化。除了显式否定词（如“不”、“没有”、“未”、“无法”、“难以”），中文还存在大量的隐式否定表达（如“远非”、“谈不上”、“有待改善”）和双重否定（如“不无道理”、“并非不可能”）。</p>
+<p>系统的否定词处理采用两词窗口策略：对于当前匹配到的情感词，检查其前两个词位是否包含否定词。如果检测到否定词，则将情感词的极性翻转（正面→负面，负面→正面）。选择两词窗口的依据是中文语法中否定词通常紧邻或仅间隔一个程度副词出现在被否定词之前。</p>
+<p>然而，否定词处理也面临以下挑战：(1) 否定范围歧义——“不”字究竟否定的是其后的第一个动词、形容词还是整个子句，在没有句法分析的情况下难以精确确定；(2) 讽刺和反语——某些新闻可能使用反讽的修辞手法，字面上的正面表述实际上传达负面含义；(3) 条件否定——“如果不采取措施，可能导致……”中的否定词并非真正否定情感词。系统通过保持否定窗口较窄（仅两个词位）来控制误判率，宁可遗漏一些需要翻转的情感词，也不冒过度翻转的风险。</p>
+<h3 id="程度副词缩放的量化逻辑">7.9 程度副词缩放的量化逻辑</h3>
+<p>中文程度副词的缩放系统按照语义强度分为六个等级。系统内置的程度副词表包含约66个词条，每个词条对应一个缩放系数：</p>
+<p><strong>极端强调</strong>（系数约2.0-2.5）：如“极其”、“异常”、“高度”，表示情感极性被显著放大。 <strong>强烈程度</strong>（系数约1.5-2.0）：如“非常”、“十分”、“显著”，表示情感极性被明显增强。 <strong>中等程度</strong>（系数约1.2-1.5）：如“比较”、“相当”、“颇为”，表示情感极性被适度增强。 <strong>轻微程度</strong>（系数约0.8-1.0）：如“稍微”、“略”、“有些”，表示情感极性被削弱。 <strong>弱化修饰</strong>（系数约0.5-0.8）：如“不太”、“不很”，表示情感极性被大幅削弱。</p>
+<p>程度副词的缩放在否定词处理之后应用。如果一个正面情感词被否定翻转为负面后，又被程度副词放大，最终效果是增强其负面程度。这种层叠处理符合中文语法中“否定词+程度副词+情感词”的常见搭配模式（如“非常不满意”→ 强烈负面）。</p>
+<h3 id="转折连词增强的语言学依据">7.10 转折连词增强的语言学依据</h3>
+<p>中文的转折连词（如“但是”、“然而”、“不过”、“可是”、“尽管如此”）在语篇中起着关键的语义转向作用。在新闻报道中，转折连词之后的内容通常才是作者真正想要传达的核心信息和立场。例如，“虽然该银行在上半年取得了不错的业绩，<strong>但是</strong>其金融科技系统频繁出现安全漏洞”——在这段描述中，转折后的负面信息（安全漏洞）比转折前的正面信息（业绩不错）具有更大的信息权重。</p>
+<p>系统通过为转折连词之后的情感词乘以增强系数（默认1.5倍）来实现这种语义权重分配。增强系数的具体值可以通过配置文件调整。增强的具体实现是：在分词后首先扫描整个词序列，记录所有转折连词的位置索引。在随后的情感词匹配过程中，如果匹配到的情感词的位置索引大于最后一个转折连词的位置索引（即出现在转折之后），则对该词的权重乘以增强系数。</p>
+<p>需要注意的是，一篇文章中可能包含多个转折连词，系统始终以最后一个转折连词为基准——这基于“最终转折”通常是全文最重要的语义转向的假设。这一设计选择的敏感性可以在34阶段的三角验证中通过比较“启用转折增强”与“禁用转折增强”的得分差异来评估。</p>
+<h3 id="词典法的局限性讨论">7.11 词典法的局限性讨论</h3>
+<p>词典法虽然具有透明性和可解释性的优势，但也存在已知的局限性。首先，词典法是“词袋模型”（bag-of-words）的一种形式，它忽略了词与词之间的语法关系和语义依存。例如，“该银行成功避免了金融风险”中，“避免”和“风险”分别出现在积极和消极词典中，但词典法无法理解“避免风险”是一个整体正面的表述。</p>
+<p>其次，词典法对未登录词（out-of-vocabulary words）无能为力。如果新闻中使用了词典未收录的新兴金融科技术语或网络用语（如“爆雷”、“跑路”），这些高信息量的词汇将被忽略。这正是系统同时采用LLM和BERT方法的原因——LLM和BERT基于深度学习的语义理解能力可以弥补词典法在覆盖面和语境理解上的不足。</p>
+<p>第三，不同词典之间可能存在覆盖和评分标准的差异。同一个词在某些词典中可能被标注为正面，在另一些词典中可能被标注为中性或未收录。这种差异实际上是多词典策略的“特性”而非“缺陷”——差异的存在使得Cronbach’s Alpha检验具有实质意义，如果所有词典完全一致，那么多词典策略就退化为单一词典的简单重复。</p>
+<hr />
+<h2 id="第八章-bert模型情感分析模块23阶段">第八章 BERT模型情感分析模块（23阶段）</h2>
+<h3 id="模块概述-3">8.1 模块概述</h3>
+<p>BERT模型情感分析模块使用五个预训练中文BERT变体模型进行情感分类，利用GPU加速实现大规模推理。</p>
+<h3 id="模型选择">8.2 模型选择</h3>
+<p>五个模型涵盖不同预训练架构（BERT/RoBERTa/ERNIE/MacBERT/FinBERT）、预训练语料（通用/金融/新闻）和微调策略。多样性设计的学术依据是Ensemble Learning理论——基学习器多样性越高，集成效果越好。</p>
+<h3 id="滑动窗口与置信度加权池化">8.3 滑动窗口与置信度加权池化</h3>
+<p>BERT最大输入512 token，新闻文章通常远超此限。系统采用滑动窗口策略：将文章分割为多个重叠窗口（512 token，步长由 <code>stride_ratio</code> 控制，默认0.5）。每个窗口独立推理得到情感概率分布 <span class="math inline">[<em>P</em><sub>pos</sub>, <em>P</em><sub>neu</sub>, <em>P</em><sub>neg</sub>]</span>。</p>
+<p>多窗口通过置信度加权平均融合：<span class="math inline"><em>P</em><sub>final</sub> = ∑conf<sub><em>i</em></sub> ⋅ <em>P</em><sub><em>i</em></sub>/∑conf<sub><em>i</em></sub></span>，其中 <span class="math inline">conf<sub><em>i</em></sub> = max (<em>P</em><sub><em>i</em></sub>)</span>。确信度高的窗口贡献更大。</p>
+<h3 id="fp16混合精度推理">8.4 FP16混合精度推理</h3>
+<p>通过 <code>torch.cuda.amp.autocast()</code> 实现FP16推理，GPU显存减半，在Tensor Core GPU上速度提升2-3倍。精度损失通常不超过0.1%。</p>
+<h3 id="gpu资源管理">8.5 GPU资源管理</h3>
+<p>五个模型按“模型优先”策略顺序处理——每个模型加载一次权重，处理完所有数据后释放显存再加载下一个。系统动态查询可用显存调整批次大小，防止OOM。</p>
+<h3 id="标签映射与归一化">8.6 标签映射与归一化</h3>
+<p>配置文件为每个模型定义标签映射规则（<code>label_map</code>），统一映射为“正面/中性/负面”。二分类模型通过置信度阈值（默认0.6）将低置信度判定归为“中性”。</p>
+<h3 id="输出-1">8.7 输出</h3>
+<p>输出 <code>23_bert_tone.parquet</code>，包含约100+个情感分析列，是数据集中最“宽”的中间文件。</p>
+<h3 id="预训练语料差异与迁移学习效果">8.8 预训练语料差异与迁移学习效果</h3>
+<p>五个BERT变体模型使用了不同的预训练语料库，这直接影响了它们对中文金融文本的理解能力。基础BERT-Chinese模型使用通用的中文维基百科数据预训练，具有广泛的世界知识但缺乏金融领域的专业理解。RoBERTa-Chinese变体使用了更大规模的通用中文预训练语料并采用了更长的训练轮次和更大的批次大小，在语言理解的深度上优于基础BERT。ERNIE（百度）特别设计了知识增强的预训练策略，通过学习实体和短语级别的语义表示，在命名实体识别和关系抽取任务上表现更优——这一特性对于识别银行名称和金融科技主题可能有独特的优势。MacBERT用同义词替换代替了BERT的掩码语言模型预训练任务中的随机替换，使模型在预训练阶段就学会了处理同义词和近义词的语义关系。FinBERT是专门在金融领域文本上进行领域适应预训练的模型变体，对金融专用术语和表达方式具有更深入的理解。</p>
+<p>这些预训练策略的差异使得五个模型在面对同一篇金融新闻时可能关注不同的语义线索。当多个具有不同预训练背景的模型对某篇文章给出一致的情感判定时，该判定的稳健性远高于任何单一模型的判定。这种多样性是集成学习（Ensemble Learning）有效性的理论基础。</p>
+<h3 id="transformer注意力机制在情感分析中的学术价值">8.9 Transformer注意力机制在情感分析中的学术价值</h3>
+<p>与词典法的“词袋模型”不同，BERT基于Transformer架构的自注意力机制能够捕获文本中任意两个位置之间的语义依赖关系。这意味着BERT在进行情感分析时，不仅考虑单个词汇的极性，还会考虑词汇出现的语境、句法结构和篇章级别的语义关系。</p>
+<p>例如，在处理“该银行尚未在金融科技领域取得显著突破”这句话时，词典法可能会将“突破”匹配为正面词，忽略“尚未”和“显著”的修饰作用。而BERT通过注意力机制可以感知“尚未”对“取得突破”的否定关系，以及“显著”对“突破”的程度修饰，从而给出更准确的整体情感判定。这种语境理解能力使得BERT在处理含有复杂修辞、长距离依存和隐式情感表达的金融文本时具有显著优势。</p>
+<p>然而注意力机制也带来了可解释性的挑战。与词典法的完全透明不同，BERT的判定过程是一个“灰箱”——虽然可以通过注意力权重可视化（Attention Visualization）分析模型关注了文本的哪些部分，但注意力权重与最终判定之间的因果关系仍然不够清晰。这也是系统坚持同时使用词典法（完全可解释）和BERT（语境理解能力强）的方法论原因——两种方法在不同维度上具有互补的优势。</p>
+<h3 id="多模型集成的投票与概率融合策略">8.10 多模型集成的投票与概率融合策略</h3>
+<p>系统在面板层面聚合BERT结果时，采用了两种互补的集成策略。第一种是标签投票——将每个模型的三分类标签视为投票，最终标签由多数票决定。这种策略的优势是简单和稳健，缺点是丢失了概率信息。第二种是概率融合——对五个模型的正面概率取算术平均作为集成的正面概率，这种策略保留了连续量值的信息，适用于需要连续因变量的回归分析。</p>
+<p>在面板数据中，这两种集成策略分别产生量占比变量（如 <code>bert_ensemble_pos_frac</code>，基于标签投票）和连续概率变量（如 <code>bert_ensemble_pos_prob</code>，基于概率融合）。研究者可以根据研究设计选择使用哪种变量——前者更适合离散分析（如计数模型），后者更适合连续回归。</p>
+<h3 id="二分类模型的中性判定机制">8.11 二分类模型的中性判定机制</h3>
+<p>系统使用的五个BERT模型中，有些是三分类模型（输出正面/中性/负面三个概率），有些是二分类模型（仅输出正面/负面两个概率，没有独立的“中性”类别）。对于二分类模型，系统通过置信度阈值机制引入中性判定：当最高概率低于阈值（默认0.6）时，判定为“中性”。</p>
+<p>这一策略的学术依据是：在情感分析的实际应用中，相当比例的金融新闻是客观的事实报道，既不明显正面也不明显负面。强制二分类模型在正面和负面之间做出选择，可能会因为微小的概率差异（如正面51%、负面49%）产生不稳定的判定。通过引入置信度阈值，那些模型本身不“确信”的判定被归为中性，提高了最终面板数据中情感标签的信噪比。</p>
+<p>置信度阈值的选择是一个精度-召回权衡：阈值越高，中性判定越多，正面和负面标签的精度越高但召回越低；阈值越低，情感标签的分布越接近二分类模型的原始输出。系统的默认阈值0.6经过34阶段的三角验证检验，在保持标签质量的同时不会过度增加中性判定的比例。</p>
+<h3 id="bert方法相对于llm方法的比较优势">8.12 BERT方法相对于LLM方法的比较优势</h3>
+<p>BERT方法和LLM方法虽然都基于深度学习技术，但在实际应用中有显著的差异。BERT方法的主要优势在于：(1) 成本可控——模型权重在本地运行，除一次性的模型下载外不产生持续的API调用费用；(2) 处理速度快——GPU推理速度远高于API调用的网络延迟；(3) 数据隐私——所有文本数据在本地处理，不需要传输到第三方服务器；(4) 确定性输出——相同的输入始终产生相同的输出，不受API服务端的随机性影响。</p>
+<p>LLM方法的优势则在于：(1) 理解能力更强——大型语言模型的参数规模（数百亿到数万亿）远超BERT系列（数亿），在处理复杂语义和隐式情感表达时更为准确；(2) 灵活性更高——可以通过自然语言的Prompt指令调整分析维度和深度，无需重新训练模型；(3) 推理能力——可以执行Chain-of-Thought多步推理，给出判定依据而非仅输出概率值。</p>
+<p>正是因为两种方法各有优劣，系统将它们并行部署以实现互补。在最终的面板数据中，研究者可以在主回归中使用一种方法的指标，在稳健性检验中使用另一种方法的指标，以展示结论的方法无关性。</p>
+<hr />
+<h2 id="第九章-实体特异性上下文提取引擎">第九章 实体特异性上下文提取引擎</h2>
+<h3 id="设计动机">9.1 设计动机</h3>
+<p>当一篇新闻同时涉及多家银行时，文章的整体情感可能不适用于每一家被提及的银行。例如，一篇报道“工商银行推出智能风控系统，招商银行因系统故障导致用户投诉”的文章，其整体情感可能是中性的，但对工商银行的情感是正面的，对招商银行的情感是负面的。双轨道设计（Context Track）通过仅提取目标银行周边的上下文片段，消除了这种多实体混淆。</p>
+<h3 id="上下文提取算法">9.2 上下文提取算法</h3>
+<p>上下文提取引擎（<code>utils/entity_context.py</code>）的核心算法流程如下：</p>
+<p><strong>步骤1：实体定位</strong>。使用Aho-Corasick自动机在全文中定位目标银行的所有出现位置（考虑所有别名），返回 <code>[(start, end)]</code> 位置列表。</p>
+<p><strong>步骤2：句子级窗口扩展</strong>。对每个实体出现位置，以配置的窗口半径（默认300字符）向前后扩展。扩展时以中文句号（“。”）为边界，将窗口对齐到完整句子——即窗口起点回退到前一个句号之后，终点延伸到下一个句号之后。这种句子级对齐确保了上下文片段在语义上的完整性，避免了在句子中间截断导致的语义破碎。</p>
+<p><strong>步骤3：区间合并</strong>。当目标银行在文中多次出现且各出现位置的窗口有重叠时，使用 <span class="math inline"><em>O</em>(<em>N</em>log <em>N</em>)</span> 区间合并算法（排序+线性扫描）将重叠窗口合并为更大的连续区间，避免重复提取和片段拼接时的冗余。</p>
+<p><strong>步骤4：片段拼接</strong>。将所有合并后的区间对应的文本片段按出现顺序拼接，各片段间以“……”（省略号）分隔，标识文本的非连续性。</p>
+<p><strong>步骤5：字符级回退</strong>。当文本中找不到句号边界（如某些新闻的段落格式使用换行符而非句号分隔），系统回退到字符级窗口——直接在实体位置前后截取指定字符数，不再进行句子对齐。日志记录回退事件的频率，供研究者评估上下文质量。</p>
+<h3 id="窗口半径的选择与敏感性">9.3 窗口半径的选择与敏感性</h3>
+<p>窗口半径的选择面临信息完整性与噪声过滤之间的权衡：窗口过小可能遗漏重要的上下文信息，窗口过大则可能纳入非目标实体的内容。系统的35阶段（窗口半径稳健性检验）通过在多个半径值（如100、200、300、500、800字符）上重新运行词典法和BERT法，评估情感得分对窗口半径的敏感性。若情感得分在不同半径下保持稳定（即变化幅度在预设阈值内），则默认半径的选择具有稳健性。</p>
+<h3 id="银行别名缓存">9.4 银行别名缓存</h3>
+<p><code>get_target_aliases(bank_name, bank_names_file)</code> 函数负责查询给定银行的所有名称变体。该函数实现了文件级缓存机制：首次调用时解析 <code>bank_names.json</code> 文件并构建银行名到别名列表的映射字典，后续调用直接从内存缓存中查询，避免重复的文件I/O操作。</p>
+<h3 id="双轨道差异的度量学意义">9.5 双轨道差异的度量学意义</h3>
+<p>全文轨道（Full Track）和上下文轨道（Context Track）的情感得分之间的差异是系统提供的一个重要度量维度。这一差异直接反映了文章中非目标银行相关内容对情感得分的“污染程度”。</p>
+<p>当一篇文章仅涉及单一银行时，全文轨道和上下文轨道的得分应当高度近似（因为上下文片段可能几乎等于全文）。但当一篇文章涉及多家银行时，两个轨道的得分可能出现显著分歧。例如，一篇文章同时报道了工商银行的正面新闻（发布新的金融科技平台）和建设银行的负面新闻（系统宕机事故），全文轨道可能给出中性的情感得分（正面和负面相互抵消），而上下文轨道则能为工商银行和建设银行分别给出正确的正面和负面得分。</p>
+<p>在面板数据中，研究者可以通过比较全文和上下文轨道的聚合得分来评估多实体污染的严重程度。如果两个轨道的面板层面相关系数很高（如Spearman ρ &gt; 0.9），说明多实体污染的影响较小，全文轨道的结果是可靠的。如果相关系数较低（如ρ &lt; 0.7），研究者应在主回归中使用上下文轨道的指标，或至少在稳健性检验中展示两个轨道的结果差异。</p>
+<h3 id="上下文质量评估指标">9.6 上下文质量评估指标</h3>
+<p>系统在日志中输出以下上下文提取质量指标：</p>
+<ul>
+<li><strong>平均片段长度</strong>：上下文片段的平均字符数，反映实际提取的信息量</li>
+<li><strong>回退率</strong>：句子级对齐失败、回退到字符级窗口的比例</li>
+<li><strong>空片段率</strong>：提取结果为空的比例（可能因为目标银行仅出现在标题而非正文中）</li>
+<li><strong>片段数分布</strong>：每篇文章的上下文片段数分布（多个片段意味着目标银行在文中多处出现）</li>
+<li><strong>覆盖率</strong>：上下文片段长度占全文长度的比例分布</li>
+</ul>
+<p>这些指标帮助研究者评估上下文提取的整体质量。若回退率或空片段率过高（如超过10%），研究者应检查原始数据的段落格式（是否使用了非标准的段落分隔符），或考虑增大窗口半径来减少回退事件。</p>
+<h3 id="多实体文章的学术处理策略">9.7 多实体文章的学术处理策略</h3>
+<p>多实体文章（即一篇文章同时涉及多家银行）在银行新闻数据集中是常见现象。金融新闻经常在报道某一市场事件时同时提及多家银行的反应和表现——例如，一篇关于某银行监管政策解读的报道可能同时引用了五六家银行的高管评论。处理多实体文章有三种常见的学术策略：</p>
+<p><strong>策略一：文章级归属</strong>。将整篇文章的情感归属于所有被提及的银行。这是最简单的策略，但当文章对不同银行的评价方向不同时会产生噪声。</p>
+<p><strong>策略二：实体级归属</strong>。仅使用目标银行周边的上下文片段计算情感，忽略文章中与其他银行相关的内容。这正是本系统的上下文轨道（Context Track）所采用的策略。</p>
+<p><strong>策略三：加权归属</strong>。根据每家银行在文章中的提及密度（mention_density）进行加权归属——提及密度越高的银行被认为是文章的“主要讨论对象”，获得更大的权重。本系统在面板层面的价值加权聚合（VW aggregation）隐式地实现了这一策略。</p>
+<p>三种策略各有优劣，研究者可以通过使用不同轨道和不同聚合方式的指标来评估策略选择对研究结论的影响。</p>
+<h3 id="上下文提取与信息损失的权衡分析">9.8 上下文提取与信息损失的权衡分析</h3>
+<p>上下文提取必然涉及信息的取舍。通过仅保留目标银行周边的文本片段，系统消除了非目标实体内容的噪声，但同时也可能丢失了对理解目标银行情感有价值的背景信息。例如，一篇文章可能先在前半部分描述了行业整体的发展趋势（正面背景），然后在后半部分报道了目标银行在该趋势下的具体举措——如果目标银行仅出现在后半部分，上下文窗口可能无法覆盖前半部分的正面背景描述。</p>
+<p>这种信息损失的程度取决于窗口半径的选择和文章的结构特征。系统的35阶段通过在多个半径上重新运行情感分析来量化这种影响。如果在较小的半径（如100字）和较大的半径（如800字）下情感得分高度一致，说明目标银行相关的情感信息高度集中在银行名称周围，信息损失可以忽略。如果得分差异显著，说明远距离的上下文信息对情感判定有重要影响，研究者应考虑使用较大的窗口半径或直接使用全文轨道。</p>
+<h3 id="句子级对齐算法的边界情况处理">9.9 句子级对齐算法的边界情况处理</h3>
+<p>句子级对齐算法在实际运行中会遇到多种边界情况：(1) 文章不包含中文句号——某些新闻格式使用英文句号或换行符作为段落分隔，系统检测到缺少中文句号时自动回退到字符级窗口；(2) 超长单句——个别文章包含极长的复合句（如法律条文或政策原文引用），整个句子可能超过窗口半径，此时系统保留完整的超长句子而非在句中截断；(3) 银行名出现在文章开头或结尾——当窗口扩展到文章边界时，系统自动将窗口截断到文章的起始或结束位置，不进行环绕处理；(4) 空行和特殊排版——某些文章在段落间使用多个连续空行或特殊Unicode字符进行排版，系统的空白符标准化（在预处理阶段完成）确保了这些情况不会影响上下文提取的准确性。</p>
+<hr />
+<h2 id="第十章-验证评估框架">第十章 验证评估框架</h2>
+<h3 id="框架概述">10.1 框架概述</h3>
+<p>验证评估框架是本系统的核心学术质量保证机制，包含八个独立的评估模块，从不同维度检验系统输出的可靠性和有效性。所有验证脚本遵循“只读”原则——读取主管道的中间文件进行分析，但绝不修改这些文件。</p>
+<h3 id="分类阈值敏感性分析31阶段">10.2 分类阈值敏感性分析（31阶段）</h3>
+<p><code>31_bank_fintech_threshold.py</code> 模块评估金融科技新闻分类阈值 <span class="math inline"><em>T</em></span> 的选择对下游分析的影响。模块在 <span class="math inline"><em>T</em> ∈ {1, 2, 3, 4, 5, 6}</span> 的范围内，对每个阈值重新执行分类并统计：通过文章数、唯一银行数、LLM验证通过率（若可用）和面板覆盖率。输出结果为一个阈值-指标矩阵，供研究者在论文的稳健性检验章节直接引用。</p>
+<p>这一分析直接回应了Gentzkow et al. (2019) 关于“所有人为选择都需要进行稳健性报告”的要求。理想情况下，核心研究结论应在 <span class="math inline"><em>T</em></span> 的不同取值下保持稳定。</p>
+<h3 id="人工验证样本生成32阶段">10.3 人工验证样本生成（32阶段）</h3>
+<p><code>32_news_llms_human.py</code> 模块从LLM判定结果中随机抽取验证样本（默认200条，可通过配置调整），生成人工标注任务Excel文件。文件包含文章标题、内容摘要、LLM判定结果（隐藏以避免标注者偏见）和空白的人工判定列。标注完成后，标注结果被合并回系统用于33阶段的评估。</p>
+<p>人工标注采用双编码者设计——每条样本由两名独立标注者分别判定，不互相参考。这一设计为编码者间一致性检验提供了基础。标注指南强调了标注者需要关注的关键判定标准，包括金融科技相关性的边界案例。</p>
+<h3 id="分类有效性评估33阶段">10.4 分类有效性评估（33阶段）</h3>
+<p><code>33_news_llms_evaluation.py</code> 模块将LLM的分类判定与人工标注结果进行对比，计算以下指标：</p>
+<ul>
+<li><strong>整体准确率（Accuracy）</strong>：正确分类的比例</li>
+<li><strong>精确率（Precision）</strong>：被判定为金融科技新闻的文章中确实是金融科技新闻的比例</li>
+<li><strong>召回率（Recall）</strong>：真正的金融科技新闻中被正确识别的比例</li>
+<li><strong>F1分数</strong>：精确率和召回率的调和均值</li>
+<li><strong>Per-Class Recall</strong>：正面/中性/负面三个类别各自的召回率</li>
+<li><strong>Cohen’s Kappa</strong>：排除随机一致后的编码者间一致度</li>
+<li><strong>Krippendorff’s Alpha</strong>：适用于多编码者和缺失数据的一致性系数</li>
+<li><strong>McNemar检验</strong>：评估两种分类方法（如LLM vs 人工）的分歧是否对称</li>
+</ul>
+<p>Cohen’s Kappa的计算公式为：<span class="math inline"><em>κ</em> = (<em>p</em><sub><em>o</em></sub> − <em>p</em><sub><em>e</em></sub>)/(1 − <em>p</em><sub><em>e</em></sub>)</span>，其中 <span class="math inline"><em>p</em><sub><em>o</em></sub></span> 为观测一致率，<span class="math inline"><em>p</em><sub><em>e</em></sub></span> 为预期随机一致率。根据Krippendorff (2018) 的标准，<span class="math inline"><em>κ</em> ≥ 0.80</span> 表示“几乎完美一致”。</p>
+<h3 id="情感分析三角验证34阶段">10.5 情感分析三角验证（34阶段）</h3>
+<p><code>34_tone_validation.py</code> 模块实现了三方法（LLM/词典/BERT）×双轨道的情感度量三角验证，是本系统学术质量保证的核心模块。验证内容包括：</p>
+<p><strong>内部一致性检验（Cronbach’s Alpha）</strong>。对五部词典的归一化得分和五个BERT模型的正面概率分别计算Cronbach’s Alpha，评估同一方法内部多个操作化方式的一致性。<span class="math inline"><em>α</em> ≥ 0.70</span> 表示可接受的内部一致性。</p>
+<p>Cronbach’s Alpha的计算公式为：<span class="math inline">$\alpha = \frac{k}{k-1}\left(1 - \frac{\sum \sigma_i^2}{\sigma_T^2}\right)$</span>，其中 <span class="math inline"><em>k</em></span> 为度量数（词典数或模型数），<span class="math inline"><em>σ</em><sub><em>i</em></sub><sup>2</sup></span> 为第 <span class="math inline"><em>i</em></span> 个度量的方差，<span class="math inline"><em>σ</em><sub><em>T</em></sub><sup>2</sup></span> 为总分的方差。</p>
+<p><strong>跨方法Spearman相关</strong>。计算LLM、词典法和BERT法的情感得分之间的Spearman秩相关系数，评估收敛效度。正的显著相关系数表明三种方法在度量同一潜在构念。</p>
+<p><strong>标签一致率矩阵</strong>。计算三种方法在“正面/中性/负面”标签上的两两一致率和三方一致率。</p>
+<p><strong>分层稳健性</strong>。按文章长度（短/中/长）和时间段（年度分组）分层计算上述指标，检验区分效度——即情感度量是否受到文章长度或时间因素的系统性影响。</p>
+<h3 id="上下文窗口半径稳健性35阶段">10.6 上下文窗口半径稳健性（35阶段）</h3>
+<p><code>35_radius_sensitivity.py</code> 模块在多个窗口半径下重新运行上下文提取和情感分析，评估情感得分对窗口选择的敏感性。该检验直接回应了Gentzkow et al. (2019) 关于“必须评估度量对替代操作化选择的敏感性”的标准。</p>
+<h3 id="实体掩码稳健性测试36阶段">10.7 实体掩码稳健性测试（36阶段）</h3>
+<p><code>36_entity_masking_test.py</code> 模块通过将目标银行和共提银行名称替换为匿名占位符（如“目标银行A”、“同业银行B”），验证LLM的判定是否依赖文本语义内容而非实体先验知识（如“工商银行→国有大行→稳健”的刻板印象）。</p>
+<p>测试流程：(1) 随机抽样N=1000条；(2) 提取baseline判定；(3) 执行银行名→匿名占位符替换；(4) 实体残留检测；(5) 掩码文本重新调用LLM；(6) 计算四维一致性指标。</p>
+<p>四维一致性指标包括：验证一致率（掩码前后is_bank_fintech_news一致比例）、情感一致率（条件子集中sentiment一致比例）、Cohen’s κ（排除随机一致后的验证一致度）、逐模型分解（每个LLM独立的一致率）。通过阈值为：验证一致率≥90%、情感一致率≥85%、κ≥0.80。</p>
+<p>该测试的学术依据引自SSRN-4558295 §7.2（Entity Substitution Robustness Check）。</p>
+<h3 id="词典覆盖率审计37阶段">10.8 词典覆盖率审计（37阶段）</h3>
+<p><code>37_dict_coverage_audit.py</code> 模块从Precision、Coverage和Stability三个维度评估金融科技词典的质量，其学术依据来自Sautner et al. (2023, JF)关于“预定义关键词表会系统性遗漏利基语言”的发现。</p>
+<p>五个分析维度：</p>
+<p><strong>分析1：边际通过率分布</strong>。统计恰好以阈值 <span class="math inline"><em>T</em></span> 通过的文章比例。若该比例超过15%，说明大量文章是“勉强通过”的。</p>
+<p><strong>分析2：LLM验证率单调性</strong>。使用Cochran-Armitage趋势检验验证关键词数越多→LLM验证率越高的单调性假设。统计方法参考Cochran (1954, Biometrics) 和Armitage (1955, Biometrics)。</p>
+<p><strong>分析3：关键词贡献集中度</strong>。使用HHI（Herfindahl-Hirschman Index）衡量关键词使用的集中程度，计算有效关键词数ENK=1/HHI。ENK的概念类比引自Laakso &amp; Taagepera (1979, Comparative Political Studies)。</p>
+<p><strong>分析4：时间稳定性</strong>。逐年追踪边际通过率和平均命中词数，检测词典“老化”趋势。</p>
+<p><strong>分析5：灰色地带评估</strong>。对关键词命中数在 <span class="math inline">[1, <em>T</em>)</span> 范围内的文章（即被词典“刚好漏掉”的文章）进行统计和可选的LLM交叉验证，估计False Negative Rate。</p>
+<h3 id="验证评估框架与六项质量标准的对应">10.9 验证评估框架与六项质量标准的对应</h3>
+<p>Loughran &amp; McDonald (2016, JAR) 和Gentzkow et al. (2019, JEL) 在其综述性工作中提出了文本度量在经济学和金融学中应满足的若干关键质量标准。本系统的八个验证模块与这六项标准的对应关系如下：</p>
+<p><strong>标准1：概念有效性（Conceptual Validity）</strong>——度量是否准确反映了目标概念？33阶段的分类有效性评估通过与人工标注的金标准对比，检验LLM的金融科技新闻判定是否与人类专家的理解一致。Cohen’s Kappa和Krippendorff’s Alpha系数量化了这种一致性。</p>
+<p><strong>标准2：操作化稳健性（Operationalization Robustness）</strong>——度量对操作化选择的敏感程度如何？31阶段的阈值敏感性分析和35阶段的窗口半径稳健性检验分别评估了分类阈值和上下文窗口两个关键操作化参数的影响。如果度量在合理参数范围内保持稳定，则操作化是稳健的。</p>
+<p><strong>标准3：内部一致性（Internal Consistency）</strong>——多个度量是否在捕获同一构念？34阶段的Cronbach’s Alpha检验评估了五部词典和五个BERT模型各自的内部一致性。五部独立编纂的词典在大规模数据上给出一致的评分，说明它们在度量同一个潜在构念。</p>
+<p><strong>标准4：收敛效度（Convergent Validity）</strong>——不同方法的度量是否高度相关？34阶段的跨方法Spearman相关矩阵检验LLM、词典法和BERT法的情感得分是否正相关。正的显著相关表明三种方法虽然使用了完全不同的技术路径，但都在捕获文本的情感极性。</p>
+<p><strong>标准5：区分效度（Discriminant Validity）</strong>——度量是否与无关的构念具有低相关？34阶段按文章长度和时间段分层计算相关系数，检验情感度量是否受到文章长度或时间因素的系统性影响。如果情感得分与文章长度的相关性接近零，说明度量具有良好的区分效度。</p>
+<p><strong>标准6：预测效度（Predictive Validity）</strong>——度量是否能预测理论预期的结果？41阶段的伪造检验通过构建非金融科技对照变量，检验金融科技情感指标是否具有超越一般媒体关注度的增量解释力。如果fintech tone在控制了非金融科技新闻量后仍然显著，而非金融科技对照变量本身不显著，则支持金融科技情感指标的预测效度。</p>
+<h3 id="验证结果的学术报告建议">10.10 验证结果的学术报告建议</h3>
+<p>在学术论文中报告验证结果时，建议采用以下组织方式：</p>
+<p><strong>数据与方法部分</strong>：简要描述系统的多方法三角验证策略，引用相关方法论文献（如Loughran &amp; McDonald, 2016; Gentzkow et al., 2019），并报告核心质量指标的汇总值（如三种方法间的平均Spearman相关系数、所有词典和模型的Cronbach’s Alpha范围）。</p>
+<p><strong>稳健性检验部分</strong>：提供完整的验证表格，包括：(1) 分类有效性评估表（Accuracy、Precision、Recall、F1、Kappa）；(2) 三角验证的相关矩阵和一致率矩阵；(3) 阈值敏感性曲线图（通过率和验证率随阈值变化的趋势）；(4) 实体掩码测试结果表（四维一致性指标）。</p>
+<p><strong>在线附件</strong>：可以在在线附件中进一步提供：(1) 分层稳健性分析的完整表格（按文章长度和年度分层）；(2) 词典覆盖率审计的五维分析报告；(3) 窗口半径敏感性分析的完整结果；(4) 伪造检验的完整回归表。</p>
+<h3 id="验证模块的独立执行保障">10.11 验证模块的独立执行保障</h3>
+<p>所有验证脚本的设计严格遵循“只读”原则——它们从主管道的中间文件中读取数据进行分析，但绝不向这些文件写入任何内容。这一设计确保了验证过程不会引入任何副作用，研究者可以在主管道运行完成后的任何时间点执行验证脚本，不必担心影响主管道的输出。</p>
+<p>验证脚本之间也是相互独立的——每个验证脚本可以独立运行，不依赖于其他验证脚本的输出。这意味着研究者可以根据需要选择性地运行某些验证检验（例如只运行三角验证和实体掩码测试），而不必运行整个验证套件。</p>
+<h3 id="验证评估的持续迭代">10.12 验证评估的持续迭代</h3>
+<p>验证评估不应被视为一次性的检查，而应在整个研究周期中持续进行。当研究者对系统的某个组件进行修改（如更换Prompt模板、更新关键词库、添加新的BERT模型），应重新运行相关的验证脚本以确保修改没有引入意料之外的质量退化。</p>
+<p>系统的日志系统为这种持续迭代提供了支持——每次验证运行的完整结果被保存在带有时间戳的日志文件中，研究者可以轻松比较修改前后的质量指标差异。如果某次修改导致了Cronbach’s Alpha或跨方法相关系数的显著下降，日志中的详细记录可以帮助研究者快速定位问题根源。</p>
+<h3 id="验证评估框架的方法论创新">10.13 验证评估框架的方法论创新</h3>
+<p>本系统的验证评估框架在以下方面超越了现有文献中的常见做法：</p>
+<p><strong>多层次验证</strong>。大多数文本分析研究仅报告整体准确率或F1分数，缺乏对构建过程中各环节质量的系统性检验。本系统从分类阈值、编码者间一致性、多方法三角验证、窗口半径稳健性、实体掩码稳健性、词典覆盖率和伪造检验七个维度进行全面检验，形成了一个多层次、多角度的质量保证网络。</p>
+<p><strong>方法内+方法间验证</strong>。Cronbach’s Alpha检验方法内的多个操作化方式的一致性（如五部词典之间），Spearman相关检验方法间的收敛效度（如LLM与词典之间）。这种区分使得研究者可以分别从“同一方法的多个实现是否一致”和“不同方法是否殊途同归”两个维度评估度量质量。</p>
+<p><strong>主动式验证</strong>。实体掩码测试通过主动介入实验条件（将银行名替换为匿名占位符），而非被动地观察数据分布，来检验LLM的判定是否受到实体先验偏见的影响。这种主动式（interventionist）验证方法在文本分析领域仍然较为少见，借鉴了因果推断中的实验操纵思想。</p>
+<hr />
+<h2 id="第十一章-面板数据构建40阶段">第十一章 面板数据构建（40阶段）</h2>
+<h3 id="模块概述-4">11.1 模块概述</h3>
+<p>面板数据构建模块（<code>40_build_panel.py</code>）将文章级的情感分析结果聚合为Bank-Year面板数据。该模块的设计遵循Tetlock et al. (2008) 的“先分后合”研究范式，确保聚合过程的每一步都有明确的学术依据。</p>
+<h3 id="年份提取与日期标准化">11.2 年份提取与日期标准化</h3>
+<p>系统从“日期”列提取年份信息。由于上游各阶段可能已对日期列进行了类型转换，系统统一使用 <code>pd.to_datetime(errors='coerce')</code> 进行智能解析，再提取 <code>.dt.year</code>。无效日期的记录被过滤。</p>
+<h3 id="等权重聚合ew指标">11.3 等权重聚合（EW指标）</h3>
+<p>对每个 (target_bank, year) 组，计算该组内所有文章的情感得分简单算术均值。等权重聚合的假设是：每篇文章对银行金融科技舆情的贡献相同，不论文章长度、媒体来源或提及密度。</p>
+<h3 id="价值加权聚合vw指标">11.4 价值加权聚合（VW指标）</h3>
+<p>价值加权聚合使用提及密度（<code>mention_density</code>，11阶段计算）作为权重。权重归一化后的加权均值公式为：</p>
+<p><span class="math display">$$\bar{s}_{b,t}^{VW} = \frac{\sum_{i \in \{b,t\}} w_i \cdot s_i}{\sum_{i \in \{b,t\}} w_i}$$</span></p>
+<p>其中 <span class="math inline"><em>w</em><sub><em>i</em></sub></span> 为文章 <span class="math inline"><em>i</em></span> 对银行 <span class="math inline"><em>b</em></span> 的提及密度，<span class="math inline"><em>s</em><sub><em>i</em></sub></span> 为文章 <span class="math inline"><em>i</em></span> 的情感得分。价值加权的学术依据是Hassan et al. (2019) 的Proximity-based Attribution——提及密度越高的文章对目标银行的信息量越大。</p>
+<h3 id="平衡面板构建">11.5 平衡面板构建</h3>
+<p>系统通过银行集合与年份集合的笛卡尔积构建平衡面板框架，确保每个银行在每个年份都有一条记录（即使该银行在某些年份没有被报道）。缺失的Bank-Year对的聚合指标填充为NaN，新闻数量填充为0。填充策略确保了面板数据结构的完整性，但研究者需要注意在回归模型中含NaN的观测值会被自动剔除。</p>
+<h3 id="控制变量生成">11.6 控制变量生成</h3>
+<p>面板模块同时生成以下控制变量：</p>
+<ul>
+<li><code>n_articles</code>：该银行该年度的金融科技新闻总篇数</li>
+<li><code>ln_coverage</code>：<span class="math inline">ln (1 + <em>n</em>_<em>a</em><em>r</em><em>t</em><em>i</em><em>c</em><em>l</em><em>e</em><em>s</em>)</span>，参照Fang &amp; Peress (2009)</li>
+<li><code>media_breadth</code>：该银行该年度的不同媒体来源数，参照Bushee et al. (2010)</li>
+<li><code>headline_frac</code>：标题提及率（目标银行出现在标题中的文章比例）</li>
+</ul>
+<h3 id="多格式导出">11.7 多格式导出</h3>
+<p>面板数据同时导出为：(1) Parquet格式（供Python/R分析使用）；(2) Stata .dta格式（供Stata计量分析使用）。Stata导出时自动清理列名（去除中文字符、截断32字符、处理重复名称），并生成变量名映射表供研究者参考。</p>
+<h3 id="面板数据的平衡化策略与学术考量">11.8 面板数据的平衡化策略与学术考量</h3>
+<p>系统默认构建完全平衡面板（Balanced Panel），即确保每一个（银行, 年份）组合在面板中都有对应的行——即使某些银行在某些年份没有任何金融科技新闻报道。对于这些缺失的观测值，系统使用NaN填充情感得分列，使用0填充计数变量（如 <code>n_articles</code>）。</p>
+<p>平衡面板的学术优势在于：(1) 简化了面板回归的设定——大多数面板估计量（如固定效应模型）可以直接处理平衡面板，不需要额外的非平衡面板校正；(2) 使得研究者可以清楚地区分“没有新闻”（n_articles = 0）和“有新闻但数据缺失”两种不同的缺失机制；(3) 为面板中添加银行层面的时变控制变量（如资产规模、ROA等）预留了行结构。</p>
+<p>然而，平衡面板也可能引入选择偏差——如果某些银行在样本期间内并非全部年份都在经营（如新设银行或合并银行），强制平衡化可能包含虚假的零值观测。研究者在使用面板数据时应注意检查银行的实际经营年限，并在需要时截断至银行的实际经营期间。</p>
+<h3 id="媒体覆盖度控制变量的信息含量">11.9 媒体覆盖度控制变量的信息含量</h3>
+<p>面板中包含的三个媒体覆盖度控制变量各自捕获不同维度的信息：</p>
+<p><strong>ln_coverage</strong>（对数新闻量）：度量银行金融科技相关新闻的绝对数量。取对数是金融学文献中的标准做法——Fang &amp; Peress (2009) 在其开创性研究中使用 <span class="math inline">ln (1 + n_articles)</span> 度量媒体覆盖度，对数变换有效缓解了新闻量的右偏分布和异方差问题。加1是为了处理零新闻的观测值（<span class="math inline">ln (0)</span> 未定义）。</p>
+<p><strong>media_breadth</strong>（媒体广度）：度量报道来源的多样性。一组来自同一媒体源的10篇报道和来自10个不同媒体源的10篇报道在信息含量上存在本质差异——前者可能是同一信息的重复报道，后者则暗示该事件引起了更广泛的公共关注。Bushee et al. (2010, JAR) 使用媒体广度（unique news outlets）作为信息中介作用的代理变量，发现媒体广度比绝对新闻量具有更强的信息含量。</p>
+<p><strong>headline_frac</strong>（标题提及率）：度量银行在新闻标题中被提及的比例。当银行名出现在标题中（而非仅出现在正文中），通常意味着该银行是文章的核心讨论对象。标题提及率越高，该组新闻对目标银行的相关性越强——高标题提及率暗示着文章的主选题就是该银行的金融科技活动，而非在讨论其他主题时顺带提及。</p>
+<h3 id="多维度指标矩阵的命名约定详解">11.10 多维度指标矩阵的命名约定详解</h3>
+<p>面板数据包含数十个情感指标列，遵循严格的命名约定：<code>{method}_{metric}_{track}_{aggregation}</code>。以下是各维度全部可能取值的详细说明：</p>
+<p><strong>方法维度（method）</strong>：(1) <code>llm_</code>——基于三个LLM的多数投票结果；(2) <code>dict_</code>——基于五部词典的情感评分；(3) <code>bert_</code>——基于五个BERT模型的推理结果。</p>
+<p><strong>指标维度（metric）</strong>：(1) <code>tone</code>——情感得分的连续值（LLM方法）；(2) <code>pos_frac</code> / <code>neg_frac</code> / <code>neu_frac</code>——正面/负面/中性标签的占比（基于标签投票）；(3) <code>ensemble_score</code>——多词典集成得分（词典方法）；(4) <code>ensemble_pos_prob</code> / <code>neg_prob</code>——多模型集成概率（BERT方法）。</p>
+<p><strong>轨道维度（track）</strong>：(1) <code>full</code>——基于全文的情感分析结果；(2) <code>ctx</code>——基于上下文片段的情感分析结果。</p>
+<p><strong>聚合维度（aggregation）</strong>：(1) <code>ew</code>——等权重算术均值聚合；(2) <code>vw</code>——以提及密度为权重的价值加权聚合。</p>
+<p>这种四维组合产生了丰富但结构清晰的指标矩阵。研究者在论文中应明确报告主回归使用的具体指标及其选择理由（如“主回归使用 <code>llm_tone_full_ew</code> 作为核心解释变量，因为LLM方法在33阶段的分类有效性评估中表现最优”），并在稳健性检验中系统地展示替代指标的回归结果。</p>
+<h3 id="面板数据质量审计">11.11 面板数据质量审计</h3>
+<p>面板构建完成后，系统在日志中输出以下质量审计统计量：</p>
+<ul>
+<li><strong>面板维度</strong>：银行数 <span class="math inline"><em>N</em></span>、时间跨度 <span class="math inline"><em>T</em></span>、总行数 <span class="math inline"><em>N</em> × <em>T</em></span></li>
+<li><strong>覆盖度统计</strong>：每银行平均新闻量、新闻量的跨银行标准差、新闻量为零的观测比例</li>
+<li><strong>指标覆盖率</strong>：各情感指标列的非缺失值比例（对于平衡面板中的NaN填充行，该比例反映了实际有新闻覆盖的观测比例）</li>
+<li><strong>极端值检测</strong>：各连续变量超过3倍标准差的观测比例</li>
+<li><strong>平衡性检验</strong>：确认面板是否为完全平衡面板，报告任何缺失的（银行, 年份）组合</li>
+</ul>
+<h3 id="面板变量与下游计量分析的衔接">11.12 面板变量与下游计量分析的衔接</h3>
+<p>系统输出的面板数据是“半成品”——它提供了左手边（left-hand side）和控制变量的候选集合，但研究者仍需要从其他数据源合并右手边（right-hand side）的因变量（如银行绩效指标ROA、ROE、Tobin’s Q等）和额外的控制变量（如银行规模、资本充足率、不良贷款率等）。系统有意不将这些外部变量纳入面板构建过程，因为不同研究的因变量和控制变量集合可能完全不同。</p>
+<p>为便于下游合并，面板数据以 <code>target_bank</code>（银行名称的标准化形式）和 <code>year</code>（整数年份）作为索引列。研究者可以使用Stata的 <code>merge</code> 命令或Python的 <code>pd.merge()</code> 函数，基于这两列将系统输出的面板与外部数据源进行一对一匹配合并。附录L提供了完整的Stata回归模板，展示了从面板加载到双向固定效应回归的完整代码流程。</p>
+<hr />
+<h2 id="第十二章-伪造检验模块41阶段">第十二章 伪造检验模块（41阶段）</h2>
+<h3 id="学术背景">12.1 学术背景</h3>
+<p>伪造检验（Falsification Test）是实证研究中检验构造效度的重要手段。本模块基于Hassan et al. (2019, QJE) Table 7的伪造检验范式：通过构建非金融科技（Non-Fintech）新闻对照变量，检验核心金融科技情感指标是否具有超越一般媒体关注度的增量解释力。</p>
+<p>假设检验框架： - H0：fintech tone的解释力完全来自银行层面一般媒体关注度 - H1：fintech tone包含金融科技维度的特异性增量信息</p>
+<h3 id="anti-join构建对照组">12.2 Anti-Join构建对照组</h3>
+<p>非金融科技对照组通过anti-join定义：Non-Fintech = 全量银行新闻（12阶段输出）MINUS 最终面板文章（40阶段输出）。这确保了Fintech面板文章 + Non-Fintech对照组 = 全量银行新闻，遵循Hassan et al. (2019) 的穷举划分原则。</p>
+<p>技术细节：由于12阶段和40阶段的日期列可能存在类型不一致（string vs datetime64），系统统一转为YYYY-MM-DD格式字符串后再执行anti-join匹配。系统同时记录三分类统计和恒等式校验（<span class="math inline"><em>N</em><sub><em>p</em><em>a</em><em>n</em><em>e</em><em>l</em></sub> + <em>N</em><sub><em>n</em><em>o</em><em>n</em> − <em>f</em><em>i</em><em>n</em><em>t</em><em>e</em><em>c</em><em>h</em></sub> = <em>N</em><sub><em>t</em><em>o</em><em>t</em><em>a</em><em>l</em></sub></span>）。</p>
+<h3 id="对照变量构建">12.3 对照变量构建</h3>
+<p>Non-Fintech对照组生成以下Bank-Year级别变量： - <code>nf_n_articles</code>：非金融科技新闻篇数 - <code>nf_ln_coverage</code>：<span class="math inline">ln (1 + <em>n</em><em>f</em>_<em>n</em>_<em>a</em><em>r</em><em>t</em><em>i</em><em>c</em><em>l</em><em>e</em><em>s</em>)</span>，参照Fang &amp; Peress (2009) - <code>nf_media_breadth</code>：非金融科技新闻的不同媒体来源数，参照Bushee et al. (2010) - <code>nf_headline_frac</code>：非金融科技新闻中的标题提及率</p>
+<h3 id="总量变量与赛马回归">12.4 总量变量与赛马回归</h3>
+<p>模块还构建以下总量变量： - <code>all_n_articles</code> = <code>n_articles</code> + <code>nf_n_articles</code>（穷举总量） - <code>all_ln_coverage</code> = <span class="math inline">ln (1 + <em>a</em><em>l</em><em>l</em>_<em>n</em>_<em>a</em><em>r</em><em>t</em><em>i</em><em>c</em><em>l</em><em>e</em><em>s</em>)</span> - <code>fintech_share</code> = <code>n_articles</code> / <code>all_n_articles</code>（金融科技信息密集度）</p>
+<h3 id="诊断报告">12.5 诊断报告</h3>
+<p>模块输出Pearson和Spearman相关矩阵，包含金融科技情感指标与非金融科技新闻量之间的相关系数。根据Tetlock (2007) 的理论，新闻volume和content是独立维度——若 <span class="math inline">|<em>r</em>| &lt; 0.3</span>，支持H1。</p>
+<h3 id="stata回归模板">12.6 Stata回归模板</h3>
+<p>模块在日志中输出完整的Stata回归模板，包含五个检验： 1. 基准回归（仅fintech tone） 2. 控制非金融科技新闻量后的回归 3. 替换检验（仅用non-fintech变量） 4. 赛马回归（同时控制总量） 5. 交互项检验（fintech_share调节效应）</p>
+<hr />
+<h2 id="第十三章-性能优化策略">第十三章 性能优化策略</h2>
+<h3 id="计算密集型操作的优化">13.1 计算密集型操作的优化</h3>
+<p>本系统在处理千万级新闻数据时面临显著的计算性能挑战。系统在以下关键环节实施了针对性的性能优化：</p>
+<p><strong>Aho-Corasick自动机</strong>。银行名称和金融科技关键词的匹配使用C语言实现的 <code>ahocorasick</code> 库，在Python层面实现了 <span class="math inline"><em>O</em>(<em>n</em>)</span> 时间复杂度的多模式匹配。自动机在每个阶段的初始化时一次性构建，后续对每篇文章的匹配直接查询自动机，避免了重复构建的开销。</p>
+<p><strong>MinHash LSH近似去重</strong>。使用 <code>datasketch</code> 库的优化C扩展实现MinHash签名计算和LSH索引构建。通过时间窗口约束（默认30天）大幅减少候选文章对数量，将近似去重的时间复杂度从 <span class="math inline"><em>O</em>(<em>n</em><sup>2</sup>)</span> 降低到接近 <span class="math inline"><em>O</em>(<em>n</em>)</span>。</p>
+<p><strong>DataFrame分批并行处理</strong>。<code>utils/helpers.py</code> 中的 <code>parallelize_dataframe()</code> 函数将大型DataFrame按 <code>batch_size</code> 分割为多个子DataFrame，使用 <code>joblib</code> 库的 <code>Parallel</code> 和 <code>delayed</code> 接口实现多核并行处理。批次大小默认为5000行，在内存占用和并行效率之间取得平衡。</p>
+<p><strong>GPU推理优化</strong>。BERT模型推理通过FP16混合精度（显存减半、速度提升2-3倍）、动态批次大小调节（根据可用显存自动调整）和模型顺序加载策略（避免频繁切换的显存碎片化）实现了高效的GPU资源利用。</p>
+<p><strong>异步API并发</strong>。LLM API调用通过 <code>asyncio</code> 实现300并发的异步请求，结合TCP连接池复用和指数退避重试，最大化API调用吞吐量同时确保容错性。</p>
+<h3 id="io优化">13.2 I/O优化</h3>
+<p><strong>Parquet列式存储</strong>。所有中间数据使用Apache Parquet格式存储，受益于列式存储的按需读取、类型保持和Snappy压缩。在典型工作负载中，Parquet的读取速度比CSV快5-10倍，文件大小减小3-5倍。</p>
+<p><strong>Calamine Excel引擎</strong>。原始数据的Excel加载使用Rust语言实现的Calamine引擎，相较默认的openpyxl引擎速度提升3-5倍，显著减少了预处理阶段的I/O瓶颈。</p>
+<h3 id="内存管理">13.3 内存管理</h3>
+<p>系统在以下层面实施内存管理：(1) 管道调度器（<code>run_pipeline_function.py</code>）将每个阶段作为独立子进程运行，进程退出时操作系统自动回收所有内存，防止内存泄漏跨阶段累积。(2) BERT推理阶段在每个模型处理完成后显式调用 <code>torch.cuda.empty_cache()</code> 释放GPU显存。(3) <code>log_memory_usage()</code> 函数在每个阶段的关键节点记录当前进程的RSS内存使用量和系统可用内存，供性能调优参考。(4) 使用 <code>psutil</code> 库实时监控系统资源。</p>
+<hr />
+<h2 id="第十四章-系统工程质量保障">第十四章 系统工程质量保障</h2>
+<h3 id="日志系统">14.1 日志系统</h3>
+<p>系统采用Python标准库 <code>logging</code> 的双输出日志架构：</p>
+<p><strong>文件输出</strong>：使用 <code>RotatingFileHandler</code> 实现日志轮转（默认单文件最大10MB，保留5个备份），确保长时间运行不会耗尽磁盘空间。日志文件存储在 <code>logs/</code> 目录下，每个阶段对应一个独立的日志文件。</p>
+<p><strong>控制台输出</strong>：使用 <code>StreamHandler</code> 输出到标准错误流（stderr），支持彩色格式化（通过ANSI转义码区分INFO/WARNING/ERROR等级别），提升开发者阅读效率。</p>
+<p>每条日志记录包含：时间戳（精确到毫秒）、日志级别、阶段名称和消息内容。关键操作步骤（如数据加载、过滤、情感分析）均有详细的日志输出，包括处理前后的行数变化、耗时统计和中间结果抽样。</p>
+<h3 id="执行计时装饰器">14.2 执行计时装饰器</h3>
+<p><code>@log_and_time</code> 装饰器自动记录被装饰函数的执行开始、结束和总耗时，无需在每个函数体内手动添加计时代码。装饰器支持嵌套使用，在日志中通过缩进层级反映函数调用层次。</p>
+<h3 id="阶段级统计摘要">14.3 阶段级统计摘要</h3>
+<p><code>log_stage_summary()</code> 函数在每个阶段结束时输出标准化的统计摘要，包括：阶段名称、输入行数、输出行数、丢弃行数及比例、关键指标统计量（均值/中位数/标准差/最大最小值）和总耗时。这一标准化输出确保了所有阶段的日志具有一致的格式，便于比较和审计。</p>
+<h3 id="测试框架">14.4 测试框架</h3>
+<p>系统包含18个单元测试文件（位于 <code>tests/</code> 目录），覆盖了核心模块的关键功能。测试使用Python的 <code>pytest</code> 框架编写，包括但不限于：</p>
+<ul>
+<li><code>test_aho_corasick.py</code>：Aho-Corasick自动机的匹配正确性</li>
+<li><code>test_entity_masking.py</code>：实体掩码替换的完整性</li>
+<li><code>test_entity_context.py</code>：上下文提取的窗口边界和区间合并</li>
+<li><code>test_canonicalization.py</code>：文本标准化的各个步骤</li>
+<li><code>test_deduplication.py</code>：精确去重和MinHash近似去重</li>
+<li><code>test_tone_words.py</code>：词典法的否定词处理、程度副词和转折连词</li>
+<li><code>test_panel_building.py</code>：面板数据的平衡性和聚合正确性</li>
+<li><code>test_falsification.py</code>：伪造检验的anti-join和恒等式校验</li>
+</ul>
+<h3 id="环境变量与安全管理">14.5 环境变量与安全管理</h3>
+<p>敏感信息（如API密钥）通过 <code>.env</code> 文件管理，该文件在 <code>.gitignore</code> 中排除，不会被提交到版本控制系统。配置文件中使用 <code>${VAR_NAME}</code> 占位符引用环境变量，<code>load_config()</code> 函数在加载时自动替换。当环境变量不存在时，系统记录WARNING日志并保留占位符原文，确保配置文件的完整性。</p>
+<h3 id="子进程隔离">14.6 子进程隔离</h3>
+<p>管道调度器（<code>run_pipeline_function.py</code>）通过 <code>subprocess.run()</code> 将每个阶段作为独立Python子进程执行。这种设计提供了三重隔离保障：(1) 单阶段异常不影响已完成阶段的输出；(2) 内存在进程退出后完全释放；(3) 全局状态（如jieba词典加载）不会在阶段间冲突。</p>
+<hr />
+<h2 id="第十五章-结论与展望">第十五章 结论与展望</h2>
+<h3 id="主要成果总结">15.1 主要成果总结</h3>
+<p>本说明书详细阐述了商业银行金融科技新闻舆情数据处理与情感分析系统的完整设计与实现。系统的核心学术贡献可概括为以下几个方面：</p>
+<p><strong>方法论层面</strong>，系统实现了“三方法×双轨道”的多维度情感度量框架，通过LLM多模型投票、五部词典情感分析和五个BERT模型的集成，构建了规模宏大的情感度量矩阵。三种方法从不同理论视角和技术路径独立度量文本情感，其一致性通过Cronbach’s Alpha、Spearman相关和标签一致率进行严格的三角验证。</p>
+<p><strong>验证层面</strong>，系统构建了包含八个独立检验模块的全面质量保证框架，覆盖了分类阈值敏感性、编码者间一致性、情感分析三角验证、窗口半径稳健性、实体掩码稳健性、词典覆盖率审计和伪造检验等多个维度。这一验证框架确保了系统输出满足Loughran &amp; McDonald (2016, JAR) 和Gentzkow et al. (2019, JEL) 所提出的文本度量质量标准。</p>
+<p><strong>工程层面</strong>，系统充分利用了Aho-Corasick自动机、MinHash LSH、FP16混合精度推理和异步并发等高性能计算技术，实现了千万级新闻数据的高效处理。模块化管道架构和统一配置管理确保了系统的可维护性和可复现性。</p>
+<h3 id="局限性与未来方向">15.2 局限性与未来方向</h3>
+<p><strong>词典时效性</strong>。静态情感词典和金融科技关键词表可能无法覆盖新兴术语。37阶段的词典覆盖率审计提供了定期审检机制，但词典的手工更新仍需要领域专家的参与。</p>
+<p><strong>LLM成本与隐私</strong>。商业LLM API的调用成本随数据规模线性增长，且需要将文本发送到第三方服务器。未来可探索使用本地部署的开源大模型（如LLaMA系列）替代API调用。</p>
+<p><strong>语言覆盖</strong>。当前系统针对中文新闻设计，部分组件（如jieba分词、OpenCC繁简转换、中文情感词典）具有语言特异性。扩展到英文或多语言场景需要替换相应的NLP工具链。</p>
+<p><strong>因果推断</strong>。面板数据提供了相关性分析的基础，但从相关性到因果性需要更精细的计量经济学设计（如工具变量、断点回归、Granger因果检验等），这超出了本系统数据处理管道的范围。</p>
+<p><strong>时间粒度</strong>。当前系统默认以“年”为聚合粒度。对于需要更高频数据的研究（如事件研究），可将配置中的 <code>aggregation_level</code> 调整为“quarter”或“month”，但需要注意更高频率下的数据稀疏性问题。</p>
+<hr />
+<h2 id="参考文献">参考文献</h2>
+<p>Aho, A. V., &amp; Corasick, M. J. (1975). Efficient string matching: An aid to bibliographic search. <em>Communications of the ACM</em>, 18(6), 333–340. https://doi.org/10.1145/360825.360855</p>
+<p>Armitage, P. (1955). Tests for linear trends in proportions and frequencies. <em>Biometrics</em>, 11(3), 375–386. https://doi.org/10.2307/3001775</p>
+<p>Bushee, B. J., Core, J. E., Guay, W., &amp; Hamm, S. J. W. (2010). The role of the business press as an information intermediary. <em>Journal of Accounting Research</em>, 48(1), 1–19. https://doi.org/10.1111/j.1475-679X.2009.00357.x</p>
+<p>Calomiris, C. W., &amp; Mamaysky, H. (2019). How news and its context drive risk and returns around the world. <em>Journal of Financial Economics</em>, 133(2), 299–336. https://doi.org/10.1016/j.jfineco.2018.11.009</p>
+<p>Carlson, N. A., &amp; Burbano, V. (2026). The use of LLMs to annotate data in management research: Foundational guidelines and warnings. <em>Strategic Management Journal</em>, 47(3), 699–725. https://doi.org/10.1002/smj.3654</p>
+<p>Cochran, W. G. (1954). Some methods for strengthening the common χ² tests. <em>Biometrics</em>, 10(4), 417–451. https://doi.org/10.2307/3001616</p>
+<p>Cronbach, L. J. (1951). Coefficient alpha and the internal structure of tests. <em>Psychometrika</em>, 16(3), 297–334. https://doi.org/10.1007/BF02310555</p>
+<p>Devlin, J., Chang, M. W., Lee, K., &amp; Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. <em>Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies (NAACL-HLT 2019)</em>, 4171–4186. https://doi.org/10.18653/v1/N19-1423</p>
+<p>Ding, X., Liu, B., &amp; Yu, P. S. (2008). A holistic lexicon-based approach to opinion mining. <em>Proceedings of the 2008 International Conference on Web Search and Data Mining (WSDM ’08)</em>, 231–240. https://doi.org/10.1145/1341531.1341561</p>
+<p>Fang, L., &amp; Peress, J. (2009). Media coverage and the cross-section of stock returns. <em>Journal of Finance</em>, 64(5), 2023–2052. https://doi.org/10.1111/j.1540-6261.2009.01493.x</p>
+<p>Gentzkow, M., Kelly, B., &amp; Taddy, M. (2019). Text as data. <em>Journal of Economic Literature</em>, 57(3), 535–574. https://doi.org/10.1257/jel.20181020</p>
+<p>Hassan, T. A., Hollander, S., van Lent, L., &amp; Tahoun, A. (2019). Firm-level political risk: Measurement and effects. <em>Quarterly Journal of Economics</em>, 134(4), 2135–2202. https://doi.org/10.1093/qje/qjz021</p>
+<p>Huang, A. H., Wang, H., &amp; Yang, Y. (2023). FinBERT: A large language model for extracting information from financial text. <em>Contemporary Accounting Research</em>, 40(2), 806–841. https://doi.org/10.1111/1911-3846.12832</p>
+<p>Krippendorff, K. (2018). <em>Content analysis: An introduction to its methodology</em> (4th ed.). Sage Publications. ISBN: 978-1-5063-9566-1.</p>
+<p>Laakso, M., &amp; Taagepera, R. (1979). “Effective” number of parties: A measure with application to West Europe. <em>Comparative Political Studies</em>, 12(1), 3–27. https://doi.org/10.1177/001041407901200101</p>
+<p>Li, F. (2010). The information content of forward-looking statements in corporate filings—A naive Bayesian machine learning approach. <em>Journal of Accounting Research</em>, 48(5), 1049–1102. https://doi.org/10.1111/j.1475-679X.2010.00382.x</p>
+<p>Lopez-Lira, A., &amp; Tang, Y. (2023). Can ChatGPT forecast stock price movements? Return predictability and large language models. <em>SSRN Electronic Journal</em>. https://doi.org/10.2139/ssrn.4412788</p>
+<p>Loughran, T., &amp; McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. <em>Journal of Finance</em>, 66(1), 35–65. https://doi.org/10.1111/j.1540-6261.2010.01625.x</p>
+<p>Loughran, T., &amp; McDonald, B. (2016). Textual analysis in accounting and finance: A survey. <em>Journal of Accounting Research</em>, 54(4), 1187–1230. https://doi.org/10.1111/1475-679X.12123</p>
+<p>Sautner, Z., van Lent, L., Vilkov, G., &amp; Zhang, R. (2023). Firm-level climate change exposure. <em>Journal of Finance</em>, 78(3), 1449–1498. https://doi.org/10.1111/jofi.13219</p>
+<p>Sparck Jones, K. (1972). A statistical interpretation of term specificity and its application in retrieval. <em>Journal of Documentation</em>, 28(1), 11–21. https://doi.org/10.1108/eb026526</p>
+<p>Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. <em>Journal of Finance</em>, 62(3), 1139–1168. https://doi.org/10.1111/j.1540-6261.2007.01232.x</p>
+<p>Tetlock, P. C., Saar-Tsechansky, M., &amp; Macskassy, S. (2008). More than words: Quantifying language to measure firms’ fundamentals. <em>Journal of Finance</em>, 63(3), 1437–1467. https://doi.org/10.1111/j.1540-6261.2008.01362.x</p>
+<p>Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. <em>Journal of the American Statistical Association</em>, 22(158), 209–212. https://doi.org/10.1080/01621459.1927.10502953</p>
+<hr />
+<h2 id="附录a-各阶段数据接口规范">附录A 各阶段数据接口规范</h2>
+<h3 id="a.1-阶段00到阶段11的接口">A.1 阶段00到阶段11的接口</h3>
+<p><strong>文件名</strong>：<code>00_preprocessed.parquet</code></p>
+<p><strong>核心列</strong>（保留自原始数据）： - <code>标题</code>（字符串）：新闻标题原文 - <code>内容</code>（字符串）：经文本标准化后的新闻正文 - <code>日期</code>（字符串或datetime64）：新闻发布日期 - <code>媒体(中文)</code>（字符串）：媒体来源的中文名称 - <code>媒体类别</code>（字符串）：媒体来源的类别标签 - <code>来源链接</code>（字符串，可选）：新闻原文链接</p>
+<p><strong>新增列</strong>（预处理阶段添加）： - <code>content_length</code>（整数）：标准化后内容的字符数 - <code>_dedup_group</code>（整数，内部使用）：近似去重的分组标识</p>
+<p><strong>数据粒度</strong>：每行代表一篇独立的新闻文章（article级）。</p>
+<p><strong>预期行数量级</strong>：数十万到数百万行（取决于原始数据规模和过滤强度）。</p>
+<h3 id="a.2-阶段11到阶段12的接口">A.2 阶段11到阶段12的接口</h3>
+<p><strong>文件名</strong>：<code>11_bank_news.parquet</code></p>
+<p><strong>核心列</strong>（继承自阶段00）：保留所有原始列。</p>
+<p><strong>新增列</strong>： - <code>target_bank</code>（字符串）：目标银行的标准化名称，如“中国工商银行” - <code>target_count</code>（整数）：目标银行名称（含所有别名）在内容中的出现次数 - <code>target_bank_in_title</code>（布尔值）：目标银行名称是否出现在标题中 - <code>co_mentioned_banks</code>（字符串）：共同提及的其他银行列表，分号分隔 - <code>mention_density</code>（浮点数）：提及密度 = target_count / content_length × 10000 - <code>in_first_half</code>（布尔值）：目标银行是否出现在内容的前半部分 - <code>in_second_half</code>（布尔值）：目标银行是否出现在内容的后半部分</p>
+<p><strong>数据粒度</strong>：每行代表一个银行-文章对（bank × article级）。一篇涉及三家银行的文章在此被展开为三行。</p>
+<p><strong>预期行数量级</strong>：原始文章数 × 平均每篇涉及银行数（通常1.2-1.5倍）。</p>
+<h3 id="a.3-阶段12到阶段21的接口">A.3 阶段12到阶段21的接口</h3>
+<p><strong>文件名</strong>：<code>12_fintech_news.parquet</code>（筛选后）/ <code>12_fintech_news_full.parquet</code>（全量）</p>
+<p><strong>新增列</strong>（相对于阶段11输出）： - <code>is_fintech_news</code>（布尔值）：是否被判定为金融科技新闻 - <code>fintech_distinct_keywords</code>（整数）：匹配到的不同金融科技关键词数 - <code>fintech_keyword_details</code>（字符串/JSON）：每个匹配关键词的详情，包含关键词原文、匹配位置和频次 - <code>fintech_total_hits</code>（整数）：金融科技关键词的总命中次数（含重复）</p>
+<p><strong>筛选逻辑</strong>：<code>12_fintech_news.parquet</code> 仅保留 <code>is_fintech_news == True</code> 的行。</p>
+<h3 id="a.4-阶段21到阶段22的接口">A.4 阶段21到阶段22的接口</h3>
+<p><strong>文件名</strong>：<code>21_tone_llms.parquet</code>（通过精筛）/ <code>21_tone_llms_full.parquet</code>（全量）</p>
+<p><strong>新增列</strong>（主要，相对于阶段12输出）： - <code>llm_verified_full</code>（布尔值）：Full轨道的LLM多数投票验证结果 - <code>llm_verified_ctx</code>（布尔值）：Context轨道的验证结果 - <code>llm_sentiment_full</code>（字符串）：Full轨道的情感标签（正面/中性/负面） - <code>llm_sentiment_ctx</code>（字符串）：Context轨道的情感标签 - <code>llm_agreement_full</code>（浮点数）：Full轨道的投票一致率（0.67或1.0） - <code>llm_agreement_ctx</code>（浮点数）：Context轨道的投票一致率 - <code>context_snippet</code>（字符串）：提取的上下文片段原文 - 各模型独立结果列（每模型×双轨道×多字段，如 <code>gpt5nano_verified_full</code>、<code>gpt5nano_sentiment_full</code> 等）</p>
+<h3 id="a.5-阶段22到阶段23的接口">A.5 阶段22到阶段23的接口</h3>
+<p><strong>文件名</strong>：<code>22_dict_tone.parquet</code></p>
+<p><strong>新增列</strong>（主要，相对于阶段21输出）——每部词典×双轨道产生以下列： - <code>{dict_name}_score_full</code> / <code>_ctx</code>（浮点数）：原始得分（正面词数 - 负面词数） - <code>{dict_name}_norm_score_full</code> / <code>_ctx</code>（浮点数）：归一化得分（[-1, 1]区间） - <code>{dict_name}_label_full</code> / <code>_ctx</code>（字符串）：情感标签 - <code>{dict_name}_pos_count_full</code> / <code>_ctx</code>（整数）：正面词匹配数 - <code>{dict_name}_neg_count_full</code> / <code>_ctx</code>（整数）：负面词匹配数 - <code>{dict_name}_idf_score_full</code> / <code>_ctx</code>（浮点数）：IDF加权得分</p>
+<h3 id="a.6-阶段23到阶段40的接口">A.6 阶段23到阶段40的接口</h3>
+<p><strong>文件名</strong>：<code>23_bert_tone.parquet</code></p>
+<p><strong>新增列</strong>（主要，相对于阶段22输出）——每个BERT模型×双轨道产生以下列： - <code>{model_name}_label_full</code> / <code>_ctx</code>（字符串）：情感标签 - <code>{model_name}_pos_prob_full</code> / <code>_ctx</code>（浮点数）：正面概率 - <code>{model_name}_neg_prob_full</code> / <code>_ctx</code>（浮点数）：负面概率 - <code>{model_name}_confidence_full</code> / <code>_ctx</code>（浮点数）：最高分类概率</p>
+<p><strong>总列数</strong>：此阶段的输出包含原始列+约100个情感分析列，是数据最“宽”的中间文件。</p>
+<hr />
+<h2 id="附录b-预处理阶段伪代码">附录B 预处理阶段伪代码</h2>
+<pre><code>算法: 数据预处理流程 (00_preprocessing)
+
+输入: data_excel/目录下的N个Excel文件
+输出: 00_preprocessed.parquet
+
+1. 初始化空DataFrame df_all
+2. FOR EACH excel_file IN data_excel/:
+   2.1 使用Calamine引擎加载Excel文件
+   2.2 校验必需列是否存在
+   2.3 IF 缺少必需列 THEN 跳过并记录WARNING
+   2.4 ELSE 追加到df_all
+3. 记录: &quot;合并后总行数: {len(df_all)}&quot;
+
+4. // 多层过滤
+5. df = filter_media_type(df_all, excluded_types)
+6. 记录: &quot;媒体过滤后: {len(df)}&quot;
+7. df = filter_content_length(df, min_len, max_len)
+8. 记录: &quot;长度过滤后: {len(df)}&quot;
+9. df = filter_ad_keywords(df, ad_keywords)
+10. 记录: &quot;广告过滤后: {len(df)}&quot;
+11. df = filter_invalid_dates(df)
+12. 记录: &quot;日期过滤后: {len(df)}&quot;
+
+13. // 文本标准化
+14. FOR EACH row IN df:
+    14.1 text = row[&#39;内容&#39;]
+    14.2 text = unicode_normalize(text, &#39;NFKC&#39;)
+    14.3 text = opencc_convert(text, &#39;t2s&#39;)
+    14.4 text = fullwidth_to_halfwidth(text)
+    14.5 text = ftfy_fix(text)
+    14.6 text = selectolax_strip_html(text)
+    14.7 text = normalize_whitespace(text)
+    14.8 row[&#39;内容&#39;] = text
+
+15. // 精确去重
+16. n_before = len(df)
+17. df = df.drop_duplicates(subset=[&#39;标题&#39;,&#39;日期&#39;,&#39;媒体(中文)&#39;], keep=&#39;first&#39;)
+18. 记录: &quot;精确去重: {n_before} → {len(df)}&quot;
+
+19. // MinHash LSH近似去重
+20. 构建MinHash签名 (num_perm=128, ngram=3)
+21. 构建LSH索引 (threshold=0.8)
+22. 查询候选重复对 (时间窗口=30天)
+23. 对每组保留最早发布的记录
+24. 记录: &quot;近似去重: → {len(df)}&quot;
+
+25. save_dataset(df, &#39;00_preprocessed.parquet&#39;)</code></pre>
+<hr />
+<h2 id="附录c-银行新闻匹配伪代码">附录C 银行新闻匹配伪代码</h2>
+<pre><code>算法: 银行新闻识别与展开 (11_news_bank)
+
+输入: 00_preprocessed.parquet, bank_names.json, bank_name_exclusions.json
+输出: 11_bank_news.parquet
+
+1. 加载银行名称词典 → bank_dict = {bank_id: [alias1, alias2, ...]}
+2. 加载否定排除列表 → exclusion_patterns
+3. 构建Aho-Corasick自动机 ac_automaton
+
+4. results = []
+5. FOR EACH article IN df:
+   5.1 text = article[&#39;内容&#39;]
+   5.2 title = article[&#39;标题&#39;]
+   5.3 matches = ac_automaton.search(text + title)
+   
+   5.4 // 否定模式排除
+   5.5 filtered_matches = []
+   5.6 FOR EACH (position, bank_id, alias) IN matches:
+       5.6.1 prefix = text[max(0, position-3) : position]
+       5.6.2 IF any(neg IN prefix FOR neg IN [&#39;非&#39;,&#39;除了&#39;,&#39;不含&#39;]):
+           5.6.3 SKIP  // 否定上下文,排除此匹配
+       5.6.4 ELSE IF len(alias) &lt; 3:  // 短名歧义消解
+           5.6.5 context = text[max(0,position-100) : min(len(text),position+100)]
+           5.6.6 IF NOT any(kw IN context FOR kw IN [&#39;银行&#39;,&#39;金融&#39;,&#39;贷款&#39;,&#39;理财&#39;]):
+               5.6.7 SKIP  // 上下文缺少金融词汇
+       5.6.8 filtered_matches.append((bank_id, alias, position))
+   
+   5.7 // 按银行分组
+   5.8 bank_groups = group_by(filtered_matches, key=bank_id)
+   5.9 FOR EACH bank_id, group IN bank_groups:
+       5.9.1 target_count = len(group)
+       5.9.2 in_title = any(alias IN title FOR alias IN bank_dict[bank_id])
+       5.9.3 density = target_count / len(text) * 10000
+       5.9.4 co_banks = [b FOR b IN bank_groups IF b != bank_id]
+       5.9.5 results.append(article + {target_bank, target_count, in_title, density, co_banks})
+
+6. df_out = DataFrame(results)
+7. save_dataset(df_out, &#39;11_bank_news.parquet&#39;)</code></pre>
+<hr />
+<h2 id="附录d-llm调用与投票伪代码">附录D LLM调用与投票伪代码</h2>
+<pre><code>算法: LLM双轨语义精筛与情感分析 (21_tone_llms)
+
+输入: 12_fintech_news.parquet, prompt_template, models=[GPT5Nano, Gemini3, ClaudeHaiku]
+输出: 21_tone_llms.parquet, 21_tone_llms_full.parquet
+
+1. 加载数据 df
+2. 提取上下文片段: df[&#39;context_snippet&#39;] = extract_context(df, radius=300)
+
+3. // 异步API调用
+4. semaphore = Semaphore(MAX_CONCURRENCY=300)
+5. FOR EACH track IN [&#39;full&#39;, &#39;ctx&#39;]:
+   5.1 FOR EACH row IN df:
+       5.1.1 IF track == &#39;full&#39;: text = row[&#39;内容&#39;]
+       5.1.2 ELSE: text = row[&#39;context_snippet&#39;]
+       5.1.3 prompt = prompt_template.format(title=row[&#39;标题&#39;], content=text,
+                   target_bank=row[&#39;target_bank&#39;], co_banks=row[&#39;co_mentioned_banks&#39;])
+       5.1.4 FOR EACH model IN models:
+           5.1.4.1 ASYNC: response = call_api(model, prompt, semaphore, max_retries=3)
+           5.1.4.2 parsed = parse_json(response)  // 正则提取JSON
+           5.1.4.3 store(row_idx, model, track, parsed)
+
+6. // 多数投票
+7. FOR EACH row IN df:
+   7.1 FOR EACH track IN [&#39;full&#39;, &#39;ctx&#39;]:
+       7.1.1 votes_verified = [parsed[model][&#39;is_bank_fintech_news&#39;] FOR model IN models]
+       7.1.2 votes_sentiment = [parsed[model][&#39;sentiment&#39;] FOR model IN models IF verified]
+       7.1.3 final_verified = majority_vote(votes_verified)  // ≥2/3为True
+       7.1.4 final_sentiment = plurality_vote(votes_sentiment) // 最多票标签
+       7.1.5 IF 三方完全分歧: final_sentiment = &#39;中性&#39;
+       7.1.6 agreement_rate = max_vote_count / total_valid_votes
+       7.1.7 store(row, track, final_verified, final_sentiment, agreement_rate)
+
+8. df_verified = df[df[&#39;llm_verified_full&#39;] == True]
+9. save_dataset(df_verified, &#39;21_tone_llms.parquet&#39;)
+10. save_dataset(df, &#39;21_tone_llms_full.parquet&#39;)</code></pre>
+<hr />
+<h2 id="附录e-词典法情感分析伪代码">附录E 词典法情感分析伪代码</h2>
+<pre><code>算法: 词典法双轨情感分析 (22_tone_words)
+
+输入: 21_tone_llms.parquet, 5部情感词典, 否定词表, 程度副词表, 转折词集
+输出: 22_dict_tone.parquet
+
+1. 加载5部词典: dicts = {name: {word: polarity(+1/-1)} FOR EACH dict_file}
+2. 加载否定词表: negation_words = [&#39;不&#39;,&#39;没有&#39;,&#39;未&#39;,&#39;无法&#39;,&#39;难以&#39;,...]
+3. 加载程度副词: degree_words = {word: scale FOR word, scale IN degree_config}
+4. 加载转折词集: adversatives = [&#39;但是&#39;,&#39;然而&#39;,&#39;不过&#39;,&#39;可是&#39;,...]
+
+5. // 计算IDF权重 (全语料)
+6. FOR EACH word IN union(all_dict_words):
+   6.1 df_count = count_documents_containing(word, full_corpus)
+   6.2 idf[word] = log(N / (1 + df_count))
+
+7. FOR EACH row IN df:
+   7.1 FOR EACH track IN [&#39;full&#39;, &#39;ctx&#39;]:
+       7.1.1 IF track == &#39;full&#39;: text = row[&#39;内容&#39;]
+       7.1.2 ELSE: text = row[&#39;context_snippet&#39;]
+       7.1.3 tokens = jieba.cut(text, cut_all=False)  // 精确模式分词
+       
+       7.1.4 // 检测转折位置
+       7.1.5 adversative_positions = [i FOR i, t IN enumerate(tokens) IF t IN adversatives]
+       
+       7.1.6 FOR EACH dict_name, dict_words IN dicts:
+           7.1.6.1 pos_count = 0; neg_count = 0; idf_score = 0
+           7.1.6.2 FOR i, token IN enumerate(tokens):
+               7.1.6.2.1 IF token NOT IN dict_words: CONTINUE
+               7.1.6.2.2 polarity = dict_words[token]  // +1 或 -1
+               7.1.6.2.3 weight = 1.0
+               
+               7.1.6.2.4 // 否定词检测 (窗口=2)
+               7.1.6.2.5 IF any(tokens[j] IN negation_words FOR j IN [i-2, i-1]):
+                   7.1.6.2.6 polarity = -polarity  // 极性翻转
+               
+               7.1.6.2.7 // 程度副词缩放
+               7.1.6.2.8 FOR j IN [i-2, i-1]:
+                   7.1.6.2.9 IF tokens[j] IN degree_words:
+                       7.1.6.2.10 weight *= degree_words[tokens[j]]
+               
+               7.1.6.2.11 // 转折连词增强
+               7.1.6.2.12 IF i &gt; max(adversative_positions, default=-1):
+                   7.1.6.2.13 weight *= 1.5  // 转折后增强
+               
+               7.1.6.2.14 IF polarity &gt; 0: pos_count += weight
+               7.1.6.2.15 ELSE: neg_count += weight
+               7.1.6.2.16 idf_score += polarity * weight * idf[token]
+           
+           7.1.6.3 score = pos_count - neg_count
+           7.1.6.4 norm_score = score / (pos_count + neg_count) IF (pos+neg) &gt; 0 ELSE 0
+           7.1.6.5 label = &#39;正面&#39; IF norm_score &gt; 0 ELSE (&#39;负面&#39; IF norm_score &lt; 0 ELSE &#39;中性&#39;)
+           7.1.6.6 store(row, dict_name, track, score, norm_score, label, idf_score)
+
+8. save_dataset(df, &#39;22_dict_tone.parquet&#39;)</code></pre>
+<hr />
+<h2 id="附录f-bert推理伪代码">附录F BERT推理伪代码</h2>
+<pre><code>算法: BERT模型双轨情感分析 (23_tone_berts)
+
+输入: 22_dict_tone.parquet, 5个BERT模型配置
+输出: 23_bert_tone.parquet
+
+1. FOR EACH model_config IN bert_models:
+   1.1 model_name = model_config[&#39;name&#39;]
+   1.2 model = load_pretrained(model_config[&#39;huggingface_id&#39;])
+   1.3 tokenizer = load_tokenizer(model_config[&#39;huggingface_id&#39;])
+   1.4 label_map = model_config[&#39;label_map&#39;]
+   1.5 IF config[&#39;use_fp16&#39;]: model = model.half()
+   1.6 model.to(device=&#39;cuda&#39;); model.eval()
+   
+   1.7 FOR EACH track IN [&#39;full&#39;, &#39;ctx&#39;]:
+       1.7.1 FOR EACH batch IN split_dataframe(df, batch_size):
+           1.7.1.1 FOR EACH row IN batch:
+               1.7.1.1.1 IF track == &#39;full&#39;: text = row[&#39;内容&#39;]
+               1.7.1.1.2 ELSE: text = row[&#39;context_snippet&#39;]
+               
+               1.7.1.1.3 // 滑动窗口分割
+               1.7.1.1.4 tokens = tokenizer.encode(text, add_special_tokens=False)
+               1.7.1.1.5 max_len = 512; stride = int(max_len * stride_ratio)
+               1.7.1.1.6 windows = []
+               1.7.1.1.7 FOR start IN range(0, len(tokens), stride):
+                   1.7.1.1.8 end = min(start + max_len, len(tokens))
+                   1.7.1.1.9 windows.append(tokens[start:end])
+                   1.7.1.1.10 IF end == len(tokens): BREAK
+               
+               1.7.1.1.11 // 逐窗口推理
+               1.7.1.1.12 all_probs = []; all_confs = []
+               1.7.1.1.13 FOR window IN windows:
+                   1.7.1.1.14 input_ids = prepare_input(window, tokenizer)
+                   1.7.1.1.15 WITH torch.no_grad(), autocast(fp16):
+                       1.7.1.1.16 logits = model(input_ids).logits
+                   1.7.1.1.17 probs = softmax(logits)  // [P_pos, P_neu, P_neg]
+                   1.7.1.1.18 conf = max(probs)
+                   1.7.1.1.19 all_probs.append(probs); all_confs.append(conf)
+               
+               1.7.1.1.20 // 置信度加权池化
+               1.7.1.1.21 final_probs = weighted_average(all_probs, weights=all_confs)
+               1.7.1.1.22 label = label_map[argmax(final_probs)]
+               1.7.1.1.23 store(row, model_name, track, label, final_probs, max(final_probs))
+   
+   1.8 torch.cuda.empty_cache()  // 释放显存
+   1.9 记录: &quot;{model_name} 推理完成&quot;
+
+2. save_dataset(df, &#39;23_bert_tone.parquet&#39;)</code></pre>
+<hr />
+<h2 id="附录g-config.yaml-关键配置参数速查表">附录G config.yaml 关键配置参数速查表</h2>
+<p>本附录列出系统 <code>config/config.yaml</code> 文件中所有核心参数的含义、默认值和取值建议，按功能分组排列。</p>
+<h3 id="g.1-预处理参数">G.1 预处理参数</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>preprocessing.min_content_length</code></td>
+<td>50</td>
+<td>内容最小字符数</td>
+<td>过低会引入噪声片段</td>
+</tr>
+<tr class="even">
+<td><code>preprocessing.max_content_length</code></td>
+<td>50000</td>
+<td>内容最大字符数</td>
+<td>过高会纳入年报等长文档</td>
+</tr>
+<tr class="odd">
+<td><code>preprocessing.excluded_media_types</code></td>
+<td>[微博,论坛,评论]</td>
+<td>排除的媒体类别</td>
+<td>应排除所有UGC来源</td>
+</tr>
+<tr class="even">
+<td><code>preprocessing.ad_keywords</code></td>
+<td>[免责声明,…]</td>
+<td>广告过滤关键词</td>
+<td>根据语料特征适当调整</td>
+</tr>
+<tr class="odd">
+<td><code>preprocessing.date_range_start</code></td>
+<td>null</td>
+<td>有效日期起始</td>
+<td>依据研究的样本期间设定</td>
+</tr>
+<tr class="even">
+<td><code>preprocessing.date_range_end</code></td>
+<td>null</td>
+<td>有效日期结束</td>
+<td>依据研究的样本期间设定</td>
+</tr>
+</tbody>
+</table>
+<h3 id="g.2-文本标准化参数">G.2 文本标准化参数</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>normalization.opencc_config</code></td>
+<td>t2s</td>
+<td>OpenCC繁简转换配置</td>
+<td>t2s（繁→简）</td>
+</tr>
+<tr class="even">
+<td><code>normalization.html_reduction_threshold</code></td>
+<td>0.5</td>
+<td>HTML清理后长度缩减WARNING阈值</td>
+<td>0.3-0.7</td>
+</tr>
+</tbody>
+</table>
+<h3 id="g.3-去重参数">G.3 去重参数</h3>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 25%" />
+<col style="width: 18%" />
+<col style="width: 28%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>deduplication.exact_dedup_columns</code></td>
+<td>[标题,日期,媒体(中文)]</td>
+<td>精确去重的复合键列</td>
+<td>不建议修改</td>
+</tr>
+<tr class="even">
+<td><code>deduplication.jaccard_threshold</code></td>
+<td>0.8</td>
+<td>MinHash LSH的Jaccard相似度阈值</td>
+<td>0.7-0.9，越低去重越激进</td>
+</tr>
+<tr class="odd">
+<td><code>deduplication.num_perm</code></td>
+<td>128</td>
+<td>MinHash排列函数数</td>
+<td>64-256，影响精度和速度</td>
+</tr>
+<tr class="even">
+<td><code>deduplication.ngram_size</code></td>
+<td>3</td>
+<td>字符n-gram大小</td>
+<td>2-5，中文通常2-3效果最佳</td>
+</tr>
+<tr class="odd">
+<td><code>deduplication.time_window_days</code></td>
+<td>30</td>
+<td>近似去重的时间窗口（天）</td>
+<td>7-90，根据转载时效调整</td>
+</tr>
+</tbody>
+</table>
+<h3 id="g.4-银行新闻分类参数">G.4 银行新闻分类参数</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>bank_news_classification.min_occurrences</code></td>
+<td>1</td>
+<td>最少出现次数</td>
+<td>增大可提高精度但降低召回</td>
+</tr>
+<tr class="even">
+<td><code>bank_news_classification.short_name_threshold</code></td>
+<td>3</td>
+<td>短名长度阈值（字符）</td>
+<td>2-4，越大歧义消解范围越广</td>
+</tr>
+<tr class="odd">
+<td><code>bank_news_classification.context_window</code></td>
+<td>100</td>
+<td>短名歧义消解上下文窗口（字符）</td>
+<td>50-200</td>
+</tr>
+<tr class="even">
+<td><code>bank_news_classification.split_ratio</code></td>
+<td>0.5</td>
+<td>双区分布检验的分割比例</td>
+<td>0.5（前后各半）</td>
+</tr>
+<tr class="odd">
+<td><code>bank_news_classification.require_both_halves</code></td>
+<td>false</td>
+<td>是否要求双区出现</td>
+<td>设为true时更严格</td>
+</tr>
+</tbody>
+</table>
+<h3 id="g.5-金融科技分类参数">G.5 金融科技分类参数</h3>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 25%" />
+<col style="width: 18%" />
+<col style="width: 28%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>fintech_news_classification.min_distinct_keywords</code></td>
+<td>3</td>
+<td>最少不同关键词数阈值T</td>
+<td>2-5，见31阶段敏感性分析</td>
+</tr>
+</tbody>
+</table>
+<h3 id="g.6-llm处理参数">G.6 LLM处理参数</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>tone_llm_processing.max_concurrency</code></td>
+<td>300</td>
+<td>最大异步并发数</td>
+<td>根据API限流配额调整</td>
+</tr>
+<tr class="even">
+<td><code>tone_llm_processing.max_retries</code></td>
+<td>3</td>
+<td>最大重试次数</td>
+<td>2-5</td>
+</tr>
+<tr class="odd">
+<td><code>tone_llm_processing.initial_backoff</code></td>
+<td>2.0</td>
+<td>初始退避秒数</td>
+<td>1.0-5.0</td>
+</tr>
+<tr class="even">
+<td><code>tone_llm_processing.backoff_multiplier</code></td>
+<td>2.0</td>
+<td>退避倍数</td>
+<td>1.5-3.0</td>
+</tr>
+<tr class="odd">
+<td><code>tone_llm_processing.max_content_chars</code></td>
+<td>8000</td>
+<td>发送给LLM的最大内容长度</td>
+<td>根据模型上下文窗口设定</td>
+</tr>
+<tr class="even">
+<td><code>tone_llm_processing.context_radius</code></td>
+<td>300</td>
+<td>上下文提取窗口半径（字符）</td>
+<td>见35阶段敏感性分析</td>
+</tr>
+</tbody>
+</table>
+<h3 id="g.7-词典法参数">G.7 词典法参数</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>sentiment_analysis.negation_window</code></td>
+<td>2</td>
+<td>否定词检测窗口（词数）</td>
+<td>1-3</td>
+</tr>
+<tr class="even">
+<td><code>sentiment_analysis.degree_words_count</code></td>
+<td>66</td>
+<td>程度副词规则总数</td>
+<td>视词表完整性</td>
+</tr>
+<tr class="odd">
+<td><code>sentiment_analysis.adversative_boost</code></td>
+<td>1.5</td>
+<td>转折连词后的增强倍数</td>
+<td>1.2-2.0</td>
+</tr>
+</tbody>
+</table>
+<h3 id="g.8-bert参数">G.8 BERT参数</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>sentiment_analysis.bert.stride_ratio</code></td>
+<td>0.5</td>
+<td>滑动窗口步长比例</td>
+<td>0.3-0.8，越小重叠越多</td>
+</tr>
+<tr class="even">
+<td><code>sentiment_analysis.bert.use_fp16</code></td>
+<td>true</td>
+<td>是否启用FP16推理</td>
+<td>GPU支持时建议开启</td>
+</tr>
+<tr class="odd">
+<td><code>sentiment_analysis.bert.confidence_threshold</code></td>
+<td>0.6</td>
+<td>二分类模型的中性判定阈值</td>
+<td>0.5-0.7</td>
+</tr>
+</tbody>
+</table>
+<h3 id="g.9-面板构建参数">G.9 面板构建参数</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>panel_building.aggregation_level</code></td>
+<td>year</td>
+<td>聚合时间粒度</td>
+<td>year/quarter/month</td>
+</tr>
+<tr class="even">
+<td><code>panel_building.export_stata</code></td>
+<td>true</td>
+<td>是否导出Stata .dta格式</td>
+<td>需Stata分析时开启</td>
+</tr>
+</tbody>
+</table>
+<h3 id="g.10-全局参数">G.10 全局参数</h3>
+<table>
+<thead>
+<tr class="header">
+<th>参数路径</th>
+<th>默认值</th>
+<th>含义</th>
+<th>取值建议</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>random_seed</code></td>
+<td>42</td>
+<td>全局随机种子</td>
+<td>任意整数，保持一致即可</td>
+</tr>
+<tr class="even">
+<td><code>parallel.n_workers</code></td>
+<td>-1</td>
+<td>并行工作进程数（-1=全部CPU核心）</td>
+<td>根据可用资源调整</td>
+</tr>
+<tr class="odd">
+<td><code>parallel.batch_size</code></td>
+<td>5000</td>
+<td>DataFrame分批大小</td>
+<td>1000-10000</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="附录h-核心统计检验公式推导">附录H 核心统计检验公式推导</h2>
+<h3 id="h.1-cohens-kappa系数">H.1 Cohen’s Kappa系数</h3>
+<p>Cohen’s Kappa系数用于衡量两个编码者之间的一致性，在排除随机一致后的净一致度量。</p>
+<p>设 <span class="math inline"><em>N</em></span> 为总标注样本数，编码者在类别 <span class="math inline"><em>c</em></span> 上的边际频率分别为 <span class="math inline"><em>f</em><sub>1<em>c</em></sub></span> 和 <span class="math inline"><em>f</em><sub>2<em>c</em></sub></span>。</p>
+<p><strong>观测一致率</strong>：<span class="math inline">$p_o = \frac{1}{N}\sum_{c=1}^{k} n_{cc}$</span>，其中 <span class="math inline"><em>n</em><sub><em>c</em><em>c</em></sub></span> 为两个编码者同时判定为类别 <span class="math inline"><em>c</em></span> 的样本数。</p>
+<p><strong>预期随机一致率</strong>：<span class="math inline">$p_e = \sum_{c=1}^{k} \frac{f_{1c}}{N} \cdot \frac{f_{2c}}{N}$</span></p>
+<p><strong>Kappa系数</strong>：<span class="math inline">$\kappa = \frac{p_o - p_e}{1 - p_e}$</span></p>
+<p><strong>解释标准</strong>（引自Krippendorff, 2018）： - <span class="math inline"><em>κ</em> &lt; 0.20</span>：几乎无一致 - <span class="math inline">0.20 ≤ <em>κ</em> &lt; 0.40</span>：轻度一致 - <span class="math inline">0.40 ≤ <em>κ</em> &lt; 0.60</span>：中度一致 - <span class="math inline">0.60 ≤ <em>κ</em> &lt; 0.80</span>：实质性一致 - <span class="math inline">0.80 ≤ <em>κ</em> ≤ 1.00</span>：几乎完美一致</p>
+<h3 id="h.2-cronbachs-alpha系数">H.2 Cronbach’s Alpha系数</h3>
+<p>设有 <span class="math inline"><em>k</em></span> 个度量项目（如5部词典或5个BERT模型），第 <span class="math inline"><em>i</em></span> 个项目在所有样本上的方差为 <span class="math inline"><em>σ</em><sub><em>i</em></sub><sup>2</sup></span>，所有项目得分之和的方差为 <span class="math inline"><em>σ</em><sub><em>T</em></sub><sup>2</sup></span>。</p>
+<p><span class="math display">$$\alpha = \frac{k}{k-1}\left(1 - \frac{\sum_{i=1}^{k} \sigma_i^2}{\sigma_T^2}\right)$$</span></p>
+<p><strong>等价表述</strong>（基于项目间平均相关系数 <span class="math inline"><em>r̄</em></span>）：</p>
+<p><span class="math display">$$\alpha = \frac{k \cdot \bar{r}}{1 + (k-1) \cdot \bar{r}}$$</span></p>
+<p>此等价表述揭示了Cronbach’s Alpha的本质：它是项目数量 <span class="math inline"><em>k</em></span> 和项目间平均相关系数 <span class="math inline"><em>r̄</em></span> 的函数。当 <span class="math inline"><em>k</em></span> 固定时，<span class="math inline"><em>α</em></span> 单调递增于 <span class="math inline"><em>r̄</em></span>；当 <span class="math inline"><em>r̄</em></span> 固定时，增加项目数会提高 <span class="math inline"><em>α</em></span>。</p>
+<p><strong>临界值</strong>（引自Cronbach, 1951）： - <span class="math inline"><em>α</em> ≥ 0.90</span>：优秀 - <span class="math inline">0.80 ≤ <em>α</em> &lt; 0.90</span>：良好 - <span class="math inline">0.70 ≤ <em>α</em> &lt; 0.80</span>：可接受 - <span class="math inline"><em>α</em> &lt; 0.70</span>：需要改进</p>
+<h3 id="h.3-mcnemar检验">H.3 McNemar检验</h3>
+<p>McNemar检验用于评估配对样本中两种分类方法的分歧是否对称。设 <span class="math inline"><em>b</em></span> 为方法1正确但方法2错误的样本数，<span class="math inline"><em>c</em></span> 为方法1错误但方法2正确的样本数。</p>
+<p><strong>检验统计量</strong>（连续性校正）：<span class="math inline">$\chi^2 = \frac{(|b - c| - 1)^2}{b + c}$</span></p>
+<p>在零假设（两种方法的错误率无差异）下，<span class="math inline"><em>χ</em><sup>2</sup></span> 服从自由度为1的卡方分布。当 <span class="math inline"><em>b</em> + <em>c</em> &lt; 25</span> 时，应使用精确二项检验替代。</p>
+<h3 id="h.4-spearman秩相关系数">H.4 Spearman秩相关系数</h3>
+<p>设两组变量的秩为 <span class="math inline"><em>r</em><sub><em>i</em></sub></span> 和 <span class="math inline"><em>s</em><sub><em>i</em></sub></span>，样本量为 <span class="math inline"><em>n</em></span>。</p>
+<p><span class="math display">$$\rho = 1 - \frac{6\sum_{i=1}^{n} d_i^2}{n(n^2 - 1)}$$</span></p>
+<p>其中 <span class="math inline"><em>d</em><sub><em>i</em></sub> = <em>r</em><sub><em>i</em></sub> − <em>s</em><sub><em>i</em></sub></span> 为第 <span class="math inline"><em>i</em></span> 个观测的秩差。当存在相同排名（ties）时，使用校正公式。</p>
+<p><strong>检验统计量</strong>：<span class="math inline">$t = \rho\sqrt{\frac{n-2}{1-\rho^2}}$</span>，服从自由度为 <span class="math inline"><em>n</em> − 2</span> 的t分布。</p>
+<h3 id="h.5-cochran-armitage趋势检验">H.5 Cochran-Armitage趋势检验</h3>
+<p>令 <span class="math inline"><em>k</em></span> 个有序组的样本量分别为 <span class="math inline"><em>n</em><sub>1</sub>, …, <em>n</em><sub><em>k</em></sub></span>，各组中“成功”数为 <span class="math inline"><em>x</em><sub>1</sub>, …, <em>x</em><sub><em>k</em></sub></span>，组赋分为 <span class="math inline"><em>t</em><sub>1</sub>, …, <em>t</em><sub><em>k</em></sub></span>（如 <span class="math inline"><em>t</em><sub><em>i</em></sub> = <em>i</em></span>）。</p>
+<p><strong>检验统计量</strong>： <span class="math display">$$Z = \frac{\sum_{i=1}^{k} t_i(x_i - n_i\bar{p})}{\bar{p}(1-\bar{p})\left[\sum_{i=1}^{k} n_i t_i^2 - \frac{(\sum n_i t_i)^2}{\sum n_i}\right]^{1/2}}$$</span></p>
+<p>其中 <span class="math inline"><em>p̄</em> = ∑<em>x</em><sub><em>i</em></sub>/∑<em>n</em><sub><em>i</em></sub></span> 为总体成功率。在零假设（无线性趋势）下，<span class="math inline"><em>Z</em></span> 渐近服从标准正态分布。</p>
+<h3 id="h.6-jaccard相似度与minhash理论">H.6 Jaccard相似度与MinHash理论</h3>
+<p><strong>Jaccard相似度</strong>定义：<span class="math inline">$J(A, B) = \frac{|A \cap B|}{|A \cup B|}$</span></p>
+<p><strong>MinHash估计量</strong>：对独立随机哈希函数 <span class="math inline"><em>h</em></span>，有 <span class="math inline"><em>P</em>[min (<em>h</em>(<em>A</em>)) = min (<em>h</em>(<em>B</em>))] = <em>J</em>(<em>A</em>, <em>B</em>)</span>。</p>
+<p>使用 <span class="math inline"><em>k</em></span> 个独立哈希函数估计Jaccard相似度时，估计量 <span class="math inline"><em>Ĵ</em></span> 的期望和方差为： - <span class="math inline"><em>E</em>[<em>Ĵ</em>] = <em>J</em>(<em>A</em>, <em>B</em>)</span>（无偏） - <span class="math inline">$\text{Var}[\hat{J}] = \frac{J(A,B)(1-J(A,B))}{k}$</span></p>
+<p><strong>LSH分带检测概率</strong>：将 <span class="math inline"><em>k</em></span> 个签名分为 <span class="math inline"><em>b</em></span> 个带（bands），每带 <span class="math inline"><em>r</em></span> 行（<span class="math inline"><em>k</em> = <em>b</em><em>r</em></span>），则Jaccard相似度为 <span class="math inline"><em>s</em></span> 的文档对被检测为候选对的概率为：</p>
+<p><span class="math display"><em>P</em>(candidate) = 1 − (1 − <em>s</em><sup><em>r</em></sup>)<sup><em>b</em></sup></span></p>
+<p>这一概率函数整体呈S型曲线，以 <span class="math inline"><em>s</em><sup>*</sup> = (1/<em>b</em>)<sup>1/<em>r</em></sup></span> 为近似阈值点。通过调节 <span class="math inline"><em>b</em></span> 和 <span class="math inline"><em>r</em></span> 可以精确控制假阳性和假阴性的权衡。</p>
+<h3 id="h.7-herfindahl-hirschman指数hhi">H.7 Herfindahl-Hirschman指数（HHI）</h3>
+<p>HHI用于度量分布的集中程度。令 <span class="math inline"><em>p</em><sub><em>i</em></sub></span> 为第 <span class="math inline"><em>i</em></span> 个类别的频率份额（<span class="math inline">∑<em>p</em><sub><em>i</em></sub> = 1</span>），则：</p>
+<p><span class="math display">$$\text{HHI} = \sum_{i=1}^{n} p_i^2$$</span></p>
+<p><span class="math inline">HHI</span> 取值范围为 <span class="math inline">[1/<em>n</em>, 1]</span>，越接近1表示分布越集中。</p>
+<p><strong>有效关键词数（ENK）</strong> = <span class="math inline">1/HHI</span>，其概念类比引自Laakso &amp; Taagepera (1979) 的“有效政党数”（Effective Number of Parties）。ENK反映了词典的“等效均匀使用关键词数”——若所有关键词被均匀使用，ENK等于关键词总数；若仅少数关键词主导，ENK远低于总数。</p>
+<hr />
+<h2 id="附录i-面板数据变量完整清单">附录I 面板数据变量完整清单</h2>
+<h3 id="i.1-标识变量">I.1 标识变量</h3>
+<table>
+<thead>
+<tr class="header">
+<th>变量名</th>
+<th>类型</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>target_bank</code></td>
+<td>字符串</td>
+<td>目标银行标准化名称</td>
+</tr>
+<tr class="even">
+<td><code>year</code></td>
+<td>整数</td>
+<td>年份</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i.2-文章计数与媒体覆盖">I.2 文章计数与媒体覆盖</h3>
+<table>
+<thead>
+<tr class="header">
+<th>变量名</th>
+<th>类型</th>
+<th>含义</th>
+<th>学术来源</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>n_articles</code></td>
+<td>整数</td>
+<td>金融科技新闻篇数</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td><code>ln_coverage</code></td>
+<td>浮点数</td>
+<td>ln(1 + n_articles)</td>
+<td>Fang &amp; Peress (2009)</td>
+</tr>
+<tr class="odd">
+<td><code>media_breadth</code></td>
+<td>整数</td>
+<td>不同媒体来源数</td>
+<td>Bushee et al. (2010)</td>
+</tr>
+<tr class="even">
+<td><code>headline_frac</code></td>
+<td>浮点数</td>
+<td>标题提及率</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i.3-llm情感指标双轨道ewvw">I.3 LLM情感指标（双轨道×EW/VW）</h3>
+<table>
+<thead>
+<tr class="header">
+<th>变量名模式</th>
+<th>类型</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>llm_pos_frac_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>正面判定文章占比</td>
+</tr>
+<tr class="even">
+<td><code>llm_neg_frac_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>负面判定文章占比</td>
+</tr>
+<tr class="odd">
+<td><code>llm_tone_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>综合情感得分 (pos_frac - neg_frac)</td>
+</tr>
+<tr class="even">
+<td><code>llm_agreement_{full/ctx}_mean</code></td>
+<td>浮点数</td>
+<td>平均投票一致率</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i.4-词典法情感指标五部词典双轨道ewvw等权idf">I.4 词典法情感指标（五部词典×双轨道×EW/VW×等权/IDF）</h3>
+<table>
+<thead>
+<tr class="header">
+<th>变量名模式</th>
+<th>类型</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>{dict}_norm_score_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>归一化情感得分均值</td>
+</tr>
+<tr class="even">
+<td><code>{dict}_idf_score_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>IDF加权情感得分均值</td>
+</tr>
+<tr class="odd">
+<td><code>{dict}_pos_frac_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>正面判定文章占比</td>
+</tr>
+<tr class="even">
+<td><code>{dict}_neg_frac_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>负面判定文章占比</td>
+</tr>
+<tr class="odd">
+<td><code>dict_ensemble_score_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>五部词典的简单平均得分</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i.5-bert模型情感指标五模型双轨道ewvw">I.5 BERT模型情感指标（五模型×双轨道×EW/VW）</h3>
+<table>
+<thead>
+<tr class="header">
+<th>变量名模式</th>
+<th>类型</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>{model}_pos_prob_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>正面概率均值</td>
+</tr>
+<tr class="even">
+<td><code>{model}_neg_prob_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>负面概率均值</td>
+</tr>
+<tr class="odd">
+<td><code>{model}_pos_frac_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>正面判定文章占比</td>
+</tr>
+<tr class="even">
+<td><code>bert_ensemble_pos_prob_{full/ctx}_{ew/vw}</code></td>
+<td>浮点数</td>
+<td>五模型正面概率的简单平均</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i.6-伪造检验对照变量">I.6 伪造检验对照变量</h3>
+<table>
+<thead>
+<tr class="header">
+<th>变量名</th>
+<th>类型</th>
+<th>含义</th>
+<th>学术来源</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>nf_n_articles</code></td>
+<td>整数</td>
+<td>非金融科技新闻篇数</td>
+<td>Hassan et al. (2019)</td>
+</tr>
+<tr class="even">
+<td><code>nf_ln_coverage</code></td>
+<td>浮点数</td>
+<td>ln(1 + nf_n_articles)</td>
+<td>Fang &amp; Peress (2009)</td>
+</tr>
+<tr class="odd">
+<td><code>nf_media_breadth</code></td>
+<td>整数</td>
+<td>非金融科技新闻的媒体来源数</td>
+<td>Bushee et al. (2010)</td>
+</tr>
+<tr class="even">
+<td><code>nf_headline_frac</code></td>
+<td>浮点数</td>
+<td>非金融科技新闻的标题提及率</td>
+<td>—</td>
+</tr>
+<tr class="odd">
+<td><code>all_n_articles</code></td>
+<td>整数</td>
+<td>全量银行新闻篇数</td>
+<td>—</td>
+</tr>
+<tr class="even">
+<td><code>all_ln_coverage</code></td>
+<td>浮点数</td>
+<td>ln(1 + all_n_articles)</td>
+<td>—</td>
+</tr>
+<tr class="odd">
+<td><code>fintech_share</code></td>
+<td>浮点数</td>
+<td>金融科技新闻占比</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i.7-变量命名说明">I.7 变量命名说明</h3>
+<p>面板数据中的变量名遵循以下命名约定：</p>
+<ul>
+<li><code>{method}</code>：方法标识，如 <code>llm</code>、<code>{dict_name}</code>、<code>{bert_model_name}</code></li>
+<li><code>{track}</code>：轨道标识，<code>full</code>（全文）或 <code>ctx</code>（上下文）</li>
+<li><code>{agg}</code>：聚合方式，<code>ew</code>（等权重）或 <code>vw</code>（价值加权）</li>
+<li><code>_frac</code> 后缀表示比例（0-1区间）</li>
+<li><code>_prob</code> 后缀表示概率（0-1区间）</li>
+<li><code>_score</code> 后缀表示连续评分</li>
+</ul>
+<p>Stata导出时，变量名会自动截断为32字符，并生成 <code>variable_name_mapping.csv</code> 文件记录完整名称与截断名称的对应关系。</p>
+<hr />
+<h2 id="附录j-验证报告解读指南">附录J 验证报告解读指南</h2>
+<h3 id="j.1-三角验证报告的解读">J.1 三角验证报告的解读</h3>
+<p>34阶段输出的三角验证报告包含以下核心表格。本节提供每个表格的解读方法和学术标准。</p>
+<p><strong>表1：Cronbach’s Alpha内部一致性</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>方法组</th>
+<th>α值</th>
+<th>解读</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>五部词典 (Full轨道)</td>
+<td>≥0.70</td>
+<td>可接受，五部词典在捕获同一情感构念上具有一致性</td>
+</tr>
+<tr class="even">
+<td>五部词典 (Context轨道)</td>
+<td>≥0.70</td>
+<td>同上，上下文片段的一致性</td>
+</tr>
+<tr class="odd">
+<td>五个BERT模型 (Full轨道)</td>
+<td>≥0.70</td>
+<td>可接受，五个模型的判定具有内部一致性</td>
+</tr>
+<tr class="even">
+<td>五个BERT模型 (Context轨道)</td>
+<td>≥0.70</td>
+<td>同上</td>
+</tr>
+</tbody>
+</table>
+<p>若 <span class="math inline"><em>α</em> &lt; 0.70</span>，需调查低一致性的来源——可能某部词典或某个模型的覆盖范围显著不同。可通过“删除项目后的Alpha”分析识别异常项。</p>
+<p><strong>表2：跨方法Spearman相关矩阵</strong></p>
+<p>该表展示LLM/词典/BERT三种方法两两之间的秩相关系数。解读标准： - <span class="math inline"><em>ρ</em> &gt; 0.3</span>：中等正相关，三种方法在度量同一构念 - <span class="math inline"><em>ρ</em> &gt; 0.5</span>：强正相关，收敛效度良好 - <span class="math inline"><em>ρ</em> &lt; 0.1</span>：弱相关，可能意味着方法间存在系统性差异，需进一步调查 - <span class="math inline"><em>ρ</em> &lt; 0</span>：负相关，不应发生，若出现需检查数据处理错误</p>
+<p><strong>表3：标签一致率矩阵</strong></p>
+<p>三种方法在正面/中性/负面标签上的一致率。两两一致率应高于50%（优于随机），三方一致率应高于30%（考虑三分类的随机基线约33%）。</p>
+<h3 id="j.2-实体掩码测试报告的解读">J.2 实体掩码测试报告的解读</h3>
+<p>36阶段输出的报告包含四维一致性指标。通过标准为： 1. 验证一致率 ≥ 90%：确保掩码前后的分类决策高度一致 2. 情感一致率 ≥ 85%：在合格子集中，情感判定的稳定性 3. Cohen’s κ ≥ 0.80：排除随机一致后的实质性一致度 4. 逐模型分解：每个LLM的独立一致率均不低于总体标准的5个百分点</p>
+<p>若测试未通过，说明LLM对特定银行名称存在先验偏见，需要调整Prompt中的去偏指令或考虑使用上下文轨道（Context Track）的结果作为主要度量。</p>
+<h3 id="j.3-阈值敏感性报告的解读">J.3 阈值敏感性报告的解读</h3>
+<p>31阶段输出阈值 <span class="math inline"><em>T</em></span> 在不同取值下的效果矩阵。关注以下指标随 <span class="math inline"><em>T</em></span> 变化的趋势： - 通过文章数：<span class="math inline"><em>T</em></span> 增大时应单调递减 - LLM验证率（如有）：<span class="math inline"><em>T</em></span> 增大时应单调递增（筛选更严格→精度更高） - 面板覆盖率：<span class="math inline"><em>T</em></span> 增大时应关注是否出现Bank-Year空洞</p>
+<p>若核心研究结论（如情感指标对因变量的回归系数符号和显著性）在 <span class="math inline"><em>T</em> ∈ [2, 5]</span> 范围内保持稳定，则 <span class="math inline"><em>T</em> = 3</span> 的默认选择具有足够的稳健性。</p>
+<hr />
+<h2 id="附录k-技术栈详细说明">附录K 技术栈详细说明</h2>
+<h3 id="k.1-核心依赖库">K.1 核心依赖库</h3>
+<table>
+<thead>
+<tr class="header">
+<th>库名</th>
+<th>版本要求</th>
+<th>用途</th>
+<th>许可证</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>pandas</code></td>
+<td>≥2.0</td>
+<td>数据分析核心框架</td>
+<td>BSD-3</td>
+</tr>
+<tr class="even">
+<td><code>numpy</code></td>
+<td>≥1.24</td>
+<td>数值计算</td>
+<td>BSD-3</td>
+</tr>
+<tr class="odd">
+<td><code>torch</code> (PyTorch)</td>
+<td>≥2.0</td>
+<td>深度学习推理引擎</td>
+<td>BSD</td>
+</tr>
+<tr class="even">
+<td><code>transformers</code></td>
+<td>≥4.35</td>
+<td>HuggingFace预训练模型加载</td>
+<td>Apache-2.0</td>
+</tr>
+<tr class="odd">
+<td><code>aiohttp</code></td>
+<td>≥3.9</td>
+<td>异步HTTP客户端</td>
+<td>Apache-2.0</td>
+</tr>
+<tr class="even">
+<td><code>ahocorasick</code></td>
+<td>≥2.0</td>
+<td>Aho-Corasick多模式匹配</td>
+<td>BSD-3</td>
+</tr>
+<tr class="odd">
+<td><code>datasketch</code></td>
+<td>≥1.6</td>
+<td>MinHash LSH近似去重</td>
+<td>MIT</td>
+</tr>
+<tr class="even">
+<td><code>jieba</code></td>
+<td>≥0.42</td>
+<td>中文分词</td>
+<td>MIT</td>
+</tr>
+<tr class="odd">
+<td><code>opencc</code></td>
+<td>≥1.1</td>
+<td>繁简中文转换</td>
+<td>Apache-2.0</td>
+</tr>
+<tr class="even">
+<td><code>ftfy</code></td>
+<td>≥6.0</td>
+<td>文本编码修复</td>
+<td>Apache-2.0</td>
+</tr>
+<tr class="odd">
+<td><code>selectolax</code></td>
+<td>≥0.3</td>
+<td>高性能HTML解析</td>
+<td>MIT</td>
+</tr>
+<tr class="even">
+<td><code>scikit-learn</code></td>
+<td>≥1.3</td>
+<td>分类评估指标</td>
+<td>BSD-3</td>
+</tr>
+<tr class="odd">
+<td><code>scipy</code></td>
+<td>≥1.11</td>
+<td>统计检验函数</td>
+<td>BSD-3</td>
+</tr>
+<tr class="even">
+<td><code>statsmodels</code></td>
+<td>≥0.14</td>
+<td>计量经济学统计检验</td>
+<td>BSD-3</td>
+</tr>
+<tr class="odd">
+<td><code>pyyaml</code></td>
+<td>≥6.0</td>
+<td>YAML配置文件解析</td>
+<td>MIT</td>
+</tr>
+<tr class="even">
+<td><code>python-dotenv</code></td>
+<td>≥1.0</td>
+<td>.env环境变量加载</td>
+<td>BSD-3</td>
+</tr>
+<tr class="odd">
+<td><code>joblib</code></td>
+<td>≥1.3</td>
+<td>并行计算</td>
+<td>BSD-3</td>
+</tr>
+<tr class="even">
+<td><code>psutil</code></td>
+<td>≥5.9</td>
+<td>系统资源监控</td>
+<td>BSD-3</td>
+</tr>
+<tr class="odd">
+<td><code>tqdm</code></td>
+<td>≥4.66</td>
+<td>进度条显示</td>
+<td>MIT/MPL</td>
+</tr>
+<tr class="even">
+<td><code>openpyxl</code></td>
+<td>≥3.1</td>
+<td>Excel写入</td>
+<td>MIT</td>
+</tr>
+<tr class="odd">
+<td><code>python-calamine</code></td>
+<td>≥0.2</td>
+<td>高速Excel读取（Rust引擎）</td>
+<td>MIT</td>
+</tr>
+</tbody>
+</table>
+<h3 id="k.2-硬件要求">K.2 硬件要求</h3>
+<table>
+<thead>
+<tr class="header">
+<th>组件</th>
+<th>最低要求</th>
+<th>推荐配置</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CPU</td>
+<td>4核心</td>
+<td>16核心以上（加速并行处理）</td>
+</tr>
+<tr class="even">
+<td>内存</td>
+<td>16GB</td>
+<td>64GB以上（大规模数据集）</td>
+</tr>
+<tr class="odd">
+<td>GPU</td>
+<td>NVIDIA GTX 1660 (6GB)</td>
+<td>NVIDIA A100 (40GB)</td>
+</tr>
+<tr class="even">
+<td>磁盘</td>
+<td>100GB SSD</td>
+<td>500GB NVMe SSD</td>
+</tr>
+</tbody>
+</table>
+<p><strong>GPU说明</strong>：GPU仅在23阶段（BERT推理）中使用。若不使用BERT方法（配置中禁用），可在无GPU的环境中运行整个管道的其余部分。FP16推理需要GPU支持FP16计算（所有NVIDIA Pascal及以后架构均支持）。Tensor Core加速需要Volta及以后架构（V100/A100/H100）。</p>
+<h3 id="k.3-python环境">K.3 Python环境</h3>
+<p>系统要求Python 3.10或更高版本。推荐使用conda或virtualenv创建隔离的虚拟环境：</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-n</span> news_process python=3.11</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> activate news_process</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span></code></pre></div>
+<p>对于GPU支持，需要安装与CUDA版本匹配的PyTorch。</p>
+<hr />
+<h2 id="附录l-stata回归模板">附录L Stata回归模板</h2>
+<h3 id="l.1-基准回归金融科技情感与企业绩效">L.1 基准回归：金融科技情感与企业绩效</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>* ============================================================</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>* 基准回归：金融科技情感与银行绩效</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>* ============================================================</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>* 加载面板数据</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="kw">use</span> <span class="st">&quot;40_panel_data.dta&quot;</span>, <span class="kw">clear</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>* 设定面板结构</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="kw">encode</span> target_bank, <span class="kw">gen</span>(bank_id)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>xtset bank_id <span class="fu">year</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>* 模型1: 基准OLS（双向固定效应）</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>reghdfe y_performance llm_tone_full_ew, <span class="co">///</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    absorb(bank_id <span class="fu">year</span>) <span class="co">///</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="kw">estimates</span> <span class="kw">store</span> m1_baseline</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>* 模型2: 加入控制变量</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>reghdfe y_performance llm_tone_full_ew <span class="co">///</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    ln_coverage media_breadth headline_frac, <span class="co">///</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    absorb(bank_id <span class="fu">year</span>) <span class="co">///</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="kw">estimates</span> <span class="kw">store</span> m2_controls</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>* 模型3: 使用词典法指标</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>reghdfe y_performance dict_ensemble_score_full_ew <span class="co">///</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    ln_coverage media_breadth headline_frac, <span class="co">///</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    absorb(bank_id <span class="fu">year</span>) <span class="co">///</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="kw">estimates</span> <span class="kw">store</span> m3_dict</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>* 模型4: 使用BERT指标</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>reghdfe y_performance bert_ensemble_pos_prob_full_ew <span class="co">///</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>    ln_coverage media_breadth headline_frac, <span class="co">///</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    absorb(bank_id <span class="fu">year</span>) <span class="co">///</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a><span class="kw">estimates</span> <span class="kw">store</span> m4_bert</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>* 输出回归表</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>esttab m1_baseline m2_controls m3_dict m4_bert <span class="co">///</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> <span class="st">&quot;Table_Baseline.tex&quot;</span>, <span class="kw">replace</span> <span class="co">///</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>    <span class="bn">title</span>(<span class="st">&quot;金融科技新闻情感与银行绩效&quot;</span>) <span class="co">///</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>    b(3) se(3) <span class="kw">star</span>(* 0.10 ** 0.05 *** 0.01) <span class="co">///</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>    scalars(<span class="st">&quot;N Observations&quot;</span> <span class="st">&quot;r2_a Adjusted R-squared&quot;</span>) <span class="co">///</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>    <span class="kw">note</span>(<span class="st">&quot;标准误聚类至银行层面。所有模型包含银行和年份固定效应。&quot;</span>)</span></code></pre></div>
+<h3 id="l.2-伪造检验回归">L.2 伪造检验回归</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>* ============================================================</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>* 伪造检验：非金融科技对照变量</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>* ============================================================</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>* 检验1: 控制非金融科技新闻量后，fintech tone是否仍然显著</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>reghdfe y_performance llm_tone_full_ew <span class="co">///</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    nf_ln_coverage nf_media_breadth <span class="co">///</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    ln_coverage media_breadth, <span class="co">///</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    absorb(bank_id <span class="fu">year</span>) <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="kw">estimates</span> <span class="kw">store</span> f1_control_nf</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>* 检验2: 替换检验——仅用non-fintech变量（应不显著）</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>reghdfe y_performance nf_ln_coverage nf_media_breadth <span class="co">///</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    nf_headline_frac, <span class="co">///</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    absorb(bank_id <span class="fu">year</span>) <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="kw">estimates</span> <span class="kw">store</span> f2_placebo</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>* 检验3: 赛马回归——同时纳入fintech和总量变量</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>reghdfe y_performance llm_tone_full_ew <span class="co">///</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    all_ln_coverage fintech_share, <span class="co">///</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    absorb(bank_id <span class="fu">year</span>) <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="kw">estimates</span> <span class="kw">store</span> f3_horse_race</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>* 检验4: 交互项——fintech_share的调节效应</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="kw">gen</span> tone_x_share = llm_tone_full_ew * fintech_share</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>reghdfe y_performance llm_tone_full_ew fintech_share <span class="co">///</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    tone_x_share all_ln_coverage, <span class="co">///</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    absorb(bank_id <span class="fu">year</span>) <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a><span class="kw">estimates</span> <span class="kw">store</span> f4_interaction</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>* 输出伪造检验表</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>esttab f1_control_nf f2_placebo f3_horse_race f4_interaction <span class="co">///</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>    <span class="kw">using</span> <span class="st">&quot;Table_Falsification.tex&quot;</span>, <span class="kw">replace</span> <span class="co">///</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    <span class="bn">title</span>(<span class="st">&quot;伪造检验：金融科技情感的增量信息含量&quot;</span>) <span class="co">///</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>    b(3) se(3) <span class="kw">star</span>(* 0.10 ** 0.05 *** 0.01)</span></code></pre></div>
+<h3 id="l.3-稳健性检验多方法多轨道">L.3 稳健性检验：多方法多轨道</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode stata"><code class="sourceCode stata"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>* ============================================================</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>* 稳健性检验：不同方法和轨道的一致性</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>* ============================================================</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>* Panel A: 不同方法</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> method <span class="kw">in</span> llm_tone dict_ensemble_score bert_ensemble_pos_prob {</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    reghdfe y_performance <span class="ot">`method&#39;</span>_full_ew <span class="co">///</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        ln_coverage media_breadth, <span class="co">///</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        absorb(bank_id <span class="fu">year</span>) <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">estimates</span> <span class="kw">store</span> rob_<span class="ot">`method&#39;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>* Panel B: Full vs Context轨道</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> <span class="fu">track</span> <span class="kw">in</span> full ctx {</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    reghdfe y_performance llm_tone_<span class="ot">`track&#39;</span>_ew <span class="co">///</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        ln_coverage media_breadth, <span class="co">///</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        absorb(bank_id <span class="fu">year</span>) <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">estimates</span> <span class="kw">store</span> rob_<span class="ot">`track&#39;</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>* Panel C: 等权重 vs 价值加权</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="kw">foreach</span> agg <span class="kw">in</span> ew vw {</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    reghdfe y_performance llm_tone_full_<span class="ot">`agg&#39;</span> <span class="co">///</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        ln_coverage media_breadth, <span class="co">///</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        absorb(bank_id <span class="fu">year</span>) <span class="kw">vce</span>(<span class="kw">cluster</span> bank_id)</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">estimates</span> <span class="kw">store</span> rob_<span class="ot">`agg&#39;</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>* Panel D: 不同分类阈值（需使用不同阈值生成的面板）</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>* 此部分需配合31阶段的敏感性分析数据</span></code></pre></div>
+<hr />
+<h2 id="附录m-管道运行指南">附录M 管道运行指南</h2>
+<h3 id="m.1-快速启动">M.1 快速启动</h3>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. 进入项目目录</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> news_process/</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. 配置环境变量</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">cp</span> .env.example .env</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 编辑.env文件，填入API密钥:</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co"># GPT5NANO_API_KEY=your_api_key_here</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co"># GEMINI3_API_KEY=your_api_key_here</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># CLAUDE4H_API_KEY=your_api_key_here</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. 确认原始数据已放置在 data_excel/ 目录下</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. 运行完整管道</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> run_pipeline_function.py</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. 运行验证脚本（可选，独立于主管道）</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> 34_tone_validation.py</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> 36_entity_masking_test.py</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> 37_dict_coverage_audit.py</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> 41_falsification_test.py</span></code></pre></div>
+<h3 id="m.2-分阶段运行">M.2 分阶段运行</h3>
+<p>每个阶段可以独立运行（只要其依赖的上游数据已生成）：</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 仅运行预处理</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> 00_preprocessing.py</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 仅运行银行新闻识别（需要00阶段输出）</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> 11_news_bank.py</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 仅运行LLM情感分析（需要12阶段输出）</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> 21_tone_llms.py</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 仅构建面板（需要23阶段输出）</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> 40_build_panel.py</span></code></pre></div>
+<h3 id="m.3-恢复与重运行">M.3 恢复与重运行</h3>
+<p>系统支持从任意阶段重启管道。只需确保该阶段所需的上游Parquet文件存在于 <code>data_processed/</code> 目录中。重运行某个阶段会覆盖该阶段的输出文件，但不影响其他阶段的文件。</p>
+<h3 id="m.4-日志查看">M.4 日志查看</h3>
+<p>每个阶段的日志存储在 <code>logs/</code> 目录下：</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 查看预处理日志</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> logs/00_preprocessing.log</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 查看LLM处理日志（关注API错误和重试情况）</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="st">&quot;ERROR\|WARNING\|retry&quot;</span> logs/21_tone_llms.log</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 查看面板构建的统计摘要</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="fu">grep</span> <span class="st">&quot;SUMMARY\|Stage Summary&quot;</span> logs/40_build_panel.log</span></code></pre></div>
+<hr />
+<h2 id="附录n-常见问题与故障排除">附录N 常见问题与故障排除</h2>
+<h3 id="n.1-api相关问题">N.1 API相关问题</h3>
+<table>
+<thead>
+<tr class="header">
+<th>问题</th>
+<th>原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>大量429错误</td>
+<td>API限流</td>
+<td>降低 <code>max_concurrency</code> 参数（如从300降至100）</td>
+</tr>
+<tr class="even">
+<td>超时错误</td>
+<td>网络不稳定</td>
+<td>增大 <code>timeout</code> 参数，或使用代理</td>
+</tr>
+<tr class="odd">
+<td>JSON解析失败率高</td>
+<td>模型返回格式不稳定</td>
+<td>检查Prompt模板，确保JSON格式要求清晰</td>
+</tr>
+<tr class="even">
+<td>API密钥无效</td>
+<td>.env文件未配置</td>
+<td>检查.env文件是否存在且格式正确</td>
+</tr>
+</tbody>
+</table>
+<h3 id="n.2-gpu相关问题">N.2 GPU相关问题</h3>
+<table>
+<thead>
+<tr class="header">
+<th>问题</th>
+<th>原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CUDA out of memory</td>
+<td>批次大小过大</td>
+<td>减小 <code>batch_size</code>，或启用FP16</td>
+</tr>
+<tr class="even">
+<td>torch.cuda.is_available()返回False</td>
+<td>PyTorch版本不匹配</td>
+<td>安装与CUDA版本匹配的PyTorch</td>
+</tr>
+<tr class="odd">
+<td>FP16推理结果异常</td>
+<td>个别模型不支持FP16</td>
+<td>对问题模型禁用FP16</td>
+</tr>
+</tbody>
+</table>
+<h3 id="n.3-数据相关问题">N.3 数据相关问题</h3>
+<table>
+<thead>
+<tr class="header">
+<th>问题</th>
+<th>原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Excel加载失败</td>
+<td>文件格式损坏</td>
+<td>尝试用Excel打开并另存为</td>
+</tr>
+<tr class="even">
+<td>去重后数据量异常减少</td>
+<td>Jaccard阈值过低</td>
+<td>提高 <code>jaccard_threshold</code>（如从0.8提高到0.9）</td>
+</tr>
+<tr class="odd">
+<td>银行名匹配数为0</td>
+<td>bank_names.json格式错误</td>
+<td>检查JSON文件的编码和格式</td>
+</tr>
+<tr class="even">
+<td>面板中存在大量NaN</td>
+<td>部分Bank-Year组合无新闻</td>
+<td>这是正常的平衡面板填充结果</td>
+</tr>
+</tbody>
+</table>
+<h3 id="n.4-性能相关问题">N.4 性能相关问题</h3>
+<table>
+<thead>
+<tr class="header">
+<th>问题</th>
+<th>原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>预处理阶段极慢</td>
+<td>Excel文件过大</td>
+<td>检查是否有不必要的超大文件</td>
+</tr>
+<tr class="even">
+<td>LLM阶段极慢</td>
+<td>并发数不足</td>
+<td>增大 <code>max_concurrency</code>（注意API限额）</td>
+</tr>
+<tr class="odd">
+<td>内存不足</td>
+<td>数据量超出系统内存</td>
+<td>增大系统内存，或减小 <code>batch_size</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="附录o-中英文术语对照表">附录O 中英文术语对照表</h2>
+<table>
+<thead>
+<tr class="header">
+<th>中文术语</th>
+<th>英文术语</th>
+<th>首次出现章节</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>金融科技</td>
+<td>Financial Technology (FinTech)</td>
+<td>第一章</td>
+</tr>
+<tr class="even">
+<td>情感分析</td>
+<td>Sentiment Analysis</td>
+<td>第一章</td>
+</tr>
+<tr class="odd">
+<td>构建效度</td>
+<td>Construct Validity</td>
+<td>第一章</td>
+</tr>
+<tr class="even">
+<td>三角验证</td>
+<td>Triangulation</td>
+<td>第一章</td>
+</tr>
+<tr class="odd">
+<td>先分后合</td>
+<td>Disaggregate-then-Aggregate</td>
+<td>第三章</td>
+</tr>
+<tr class="even">
+<td>双轨道</td>
+<td>Dual-Track</td>
+<td>第三章</td>
+</tr>
+<tr class="odd">
+<td>配置驱动</td>
+<td>Configuration-Driven</td>
+<td>第三章</td>
+</tr>
+<tr class="even">
+<td>渐进式精炼</td>
+<td>Progressive Refinement</td>
+<td>第三章</td>
+</tr>
+<tr class="odd">
+<td>多模式匹配</td>
+<td>Multi-Pattern Matching</td>
+<td>第五章</td>
+</tr>
+<tr class="even">
+<td>否定模式排除</td>
+<td>Negation Pattern Exclusion</td>
+<td>第五章</td>
+</tr>
+<tr class="odd">
+<td>短名歧义消解</td>
+<td>Short Name Disambiguation</td>
+<td>第五章</td>
+</tr>
+<tr class="even">
+<td>提及密度</td>
+<td>Mention Density</td>
+<td>第五章</td>
+</tr>
+<tr class="odd">
+<td>多数投票</td>
+<td>Majority Voting</td>
+<td>第六章</td>
+</tr>
+<tr class="even">
+<td>链式思维</td>
+<td>Chain-of-Thought (CoT)</td>
+<td>第六章</td>
+</tr>
+<tr class="odd">
+<td>语义精筛</td>
+<td>Semantic Screening</td>
+<td>第六章</td>
+</tr>
+<tr class="even">
+<td>否定词处理</td>
+<td>Negation Handling</td>
+<td>第七章</td>
+</tr>
+<tr class="odd">
+<td>程度副词缩放</td>
+<td>Degree Adverb Scaling</td>
+<td>第七章</td>
+</tr>
+<tr class="even">
+<td>转折连词增强</td>
+<td>Adversative Conjunction Boosting</td>
+<td>第七章</td>
+</tr>
+<tr class="odd">
+<td>逆文档频率</td>
+<td>Inverse Document Frequency (IDF)</td>
+<td>第七章</td>
+</tr>
+<tr class="even">
+<td>滑动窗口</td>
+<td>Sliding Window</td>
+<td>第八章</td>
+</tr>
+<tr class="odd">
+<td>置信度加权池化</td>
+<td>Confidence-Weighted Pooling</td>
+<td>第八章</td>
+</tr>
+<tr class="even">
+<td>混合精度推理</td>
+<td>Mixed-Precision Inference</td>
+<td>第八章</td>
+</tr>
+<tr class="odd">
+<td>上下文提取</td>
+<td>Context Extraction</td>
+<td>第九章</td>
+</tr>
+<tr class="even">
+<td>区间合并</td>
+<td>Interval Merging</td>
+<td>第九章</td>
+</tr>
+<tr class="odd">
+<td>编码者间一致性</td>
+<td>Inter-Coder Reliability (ICR)</td>
+<td>第十章</td>
+</tr>
+<tr class="even">
+<td>内部一致性</td>
+<td>Internal Consistency</td>
+<td>第十章</td>
+</tr>
+<tr class="odd">
+<td>实体掩码</td>
+<td>Entity Masking</td>
+<td>第十章</td>
+</tr>
+<tr class="even">
+<td>词典覆盖率审计</td>
+<td>Dictionary Coverage Audit</td>
+<td>第十章</td>
+</tr>
+<tr class="odd">
+<td>伪造检验</td>
+<td>Falsification Test</td>
+<td>第十二章</td>
+</tr>
+<tr class="even">
+<td>反连接</td>
+<td>Anti-Join</td>
+<td>第十二章</td>
+</tr>
+<tr class="odd">
+<td>等权重</td>
+<td>Equal-Weighted (EW)</td>
+<td>第十一章</td>
+</tr>
+<tr class="even">
+<td>价值加权</td>
+<td>Value-Weighted (VW)</td>
+<td>第十一章</td>
+</tr>
+<tr class="odd">
+<td>平衡面板</td>
+<td>Balanced Panel</td>
+<td>第十一章</td>
+</tr>
+<tr class="even">
+<td>日志轮转</td>
+<td>Log Rotation</td>
+<td>第十四章</td>
+</tr>
+<tr class="odd">
+<td>子进程隔离</td>
+<td>Subprocess Isolation</td>
+<td>第十四章</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="附录p-学术写作建议">附录P 学术写作建议</h2>
+<h3 id="p.1-在论文中引用本系统的建议">P.1 在论文中引用本系统的建议</h3>
+<p>当研究者使用本系统生成的面板数据进行学术研究时，建议在论文的数据和方法部分包含以下信息：</p>
+<p><strong>数据来源描述</strong>： &gt; “本研究使用的金融科技新闻情感数据来自一套自动化的新闻舆情数据处理管道。该管道包含16个阶段，从原始新闻数据出发，经过数据清洗（MinHash LSH近似去重）、银行新闻识别（Aho-Corasick多模式匹配）、金融科技主题分类（关键词阈值法）、三种独立的情感分析方法（LLM多模型投票、五部中文金融词典、五个BERT预训练模型），最终生成Bank-Year级别的平衡面板数据。”</p>
+<p><strong>方法论说明</strong>： &gt; “为确保情感度量的构建效度，我们采用了多方法三角验证策略（Loughran &amp; McDonald, 2016），包括内部一致性检验（Cronbach’s Alpha ≥ 0.70）、跨方法Spearman相关、标签一致率分析、实体掩码稳健性测试和伪造检验（Hassan et al., 2019）。”</p>
+<p><strong>变量构建说明</strong>： &gt; “我们使用三种方法（LLM/词典/BERT）×双轨道（全文/上下文）×双聚合方式（等权重/价值加权）的组合，构建了多维度的情感指标。主回归使用LLM投票的综合情感得分（llm_tone_full_ew）作为核心解释变量，词典法和BERT法的指标用于稳健性检验。”</p>
+<h3 id="p.2-在稳健性检验中展示多维度结果">P.2 在稳健性检验中展示多维度结果</h3>
+<p>建议在论文的稳健性检验部分，通过以下维度展示结果的稳健性：</p>
+<ol type="1">
+<li><strong>方法维度</strong>：使用LLM、词典法、BERT法的不同指标重复核心回归</li>
+<li><strong>轨道维度</strong>：使用Full轨道和Context轨道的指标对比</li>
+<li><strong>聚合维度</strong>：使用等权重和价值加权的指标对比</li>
+<li><strong>阈值维度</strong>：使用不同的金融科技分类阈值 <span class="math inline"><em>T</em></span> 重复分析</li>
+<li><strong>窗口维度</strong>：使用不同的上下文窗口半径重复分析</li>
+</ol>
+<p>若核心结论在上述所有维度上保持一致（系数符号不变、统计显著性保持），则构造效度和稳健性得到充分论证。</p>
+<hr />
+<p><em>商业银行金融科技新闻舆情数据处理与情感分析系统技术说明书——全文完</em></p>
+<p><em>本文档随系统代码同步更新。如有技术问题，请参阅各阶段脚本中的内联注释和日志输出。</em></p>
+</body>
+</html>
