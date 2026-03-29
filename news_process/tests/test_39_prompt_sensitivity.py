@@ -62,9 +62,9 @@ else:
 
 # A4: validation 开关总数
 n_switches = len(val_cfg)
-print(f"  {'✅' if n_switches == 7 else '❌'} A4: validation 开关数 = {n_switches} (期望7)")
-if n_switches != 7:
-    issues.append(f"A4: 开关数 {n_switches} != 7")
+print(f"  {'✅' if n_switches == 8 else '❌'} A4: validation 开关数 = {n_switches} (期望8)")
+if n_switches != 8:
+    issues.append(f"A4: 开关数 {n_switches} != 8")
 
 
 # ============================================================================
@@ -84,11 +84,11 @@ else:
     issues.append("B1: docstring 缺少阶段39")
     print("  ❌ B1: docstring 缺少")
 
-# B2: 8个阶段
-if '8 个验证阶段' in rpv:
-    print("  ✅ B2: 日志说明 8 个阶段")
+# B2: 9个阶段
+if '9 个验证阶段' in rpv:
+    print("  ✅ B2: 日志说明 9 个阶段")
 else:
-    issues.append("B2: 日志说明非 8 个阶段")
+    issues.append("B2: 日志说明非 9 个阶段")
     print("  ❌ B2: 阶段数不匹配")
 
 # B3: stages.append 包含39
