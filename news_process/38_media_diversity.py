@@ -75,7 +75,6 @@
 """
 
 import os
-import sys
 import json
 import time
 from collections import Counter
@@ -101,7 +100,7 @@ FILENAMES = CONFIG.get("filenames", {})
 PREPROCESSING_PARAMS = CONFIG.get("preprocessing", {})
 MAINLAND_REGIONS = PREPROCESSING_PARAMS.get("mainland_china_regions", [])
 
-# 参考文献完整引用 (供日志输出)
+# 参考文献完整引用 (供日志输出, 顺序与 docstring 一致)
 REFERENCES = {
     'Shannon1948': (
         'Shannon, C.E. (1948). "A Mathematical Theory of Communication." '
@@ -110,6 +109,10 @@ REFERENCES = {
     'Herfindahl1950': (
         'Herfindahl, O.C. (1950). Concentration in the Steel Industry. '
         'PhD Dissertation, Columbia University.'
+    ),
+    'Hirschman1964': (
+        'Hirschman, A.O. (1964). "The Paternity of an Index." '
+        'American Economic Review, 54(5), 761–762.'
     ),
     'Pielou1966': (
         'Pielou, E.C. (1966). "The Measurement of Diversity in Different '
@@ -123,6 +126,11 @@ REFERENCES = {
         'Bushee, B.J., Core, J.E., Guay, W. & Hamm, S.J.W. (2010). '
         '"The Role of the Business Press as an Information Intermediary." '
         'Journal of Accounting Research, 48(1), 1–19.'
+    ),
+    'Tetlock2007': (
+        'Tetlock, P.C. (2007). "Giving Content to Investor Sentiment: '
+        'The Role of Media in the Stock Market." '
+        'The Journal of Finance, 62(3), 1139–1168.'
     ),
     'Laakso1979': (
         'Laakso, M. & Taagepera, R. (1979). "Effective Number of Parties." '
@@ -242,9 +250,9 @@ def get_tier(weight: int) -> str:
     if weight >= 100:
         return "Tier 1 (中央级, 100)"
     elif weight >= 90:
-        return "Tier 2 (省部级/政策, 90-95)"
+        return "Tier 2 (省部级/政策, 90-99)"
     elif weight >= 80:
-        return "Tier 3 (都市/行业, 80-85)"
+        return "Tier 3 (都市/行业, 80-89)"
     elif weight >= 70:
         return "Tier 4 (地市/行业, 70-79)"
     elif weight >= 60:
@@ -324,7 +332,7 @@ def analyze_media_names(df: pd.DataFrame, stage_name: str,
     top5_share = media_counts.head(5).sum() / total
     top10_share = media_counts.head(10).sum() / total
     top20_share = media_counts.head(20).sum() / total
-    shannon = float(-np.sum(shares * np.log2(shares + 1e-15)))
+    shannon = max(0.0, float(-np.sum(shares * np.log2(shares + 1e-15))))
     shannon_max = float(np.log2(n_unique)) if n_unique > 1 else 1.0
     evenness = compute_pielou_evenness(shannon, n_unique)
     gini = compute_gini(media_counts.values.astype(float))
@@ -474,7 +482,7 @@ def analyze_regions(df: pd.DataFrame, stage_name: str,
         region_hhi = float((region_shares ** 2).sum())
         region_enr = 1.0 / region_hhi if region_hhi > 0 else n_unique
         top3_share = region_counts.head(3).sum() / total
-        region_shannon = float(-np.sum(region_shares * np.log2(region_shares + 1e-15)))
+        region_shannon = max(0.0, float(-np.sum(region_shares * np.log2(region_shares + 1e-15))))
         region_shannon_max = float(np.log2(n_unique)) if n_unique > 1 else 1.0
         region_evenness = compute_pielou_evenness(region_shannon, n_unique)
         region_gini = compute_gini(region_counts.values.astype(float))
@@ -588,7 +596,7 @@ def analyze_bank_media(df: pd.DataFrame, media_weights: dict,
 
         # Shannon 熵
         shares = counts / total
-        bank_shannon = float(-np.sum(shares * np.log2(shares + 1e-15)))
+        bank_shannon = max(0.0, float(-np.sum(shares * np.log2(shares + 1e-15))))
 
         # 层级加权得分
         weighted_sum = 0
@@ -625,7 +633,7 @@ def analyze_bank_media(df: pd.DataFrame, media_weights: dict,
     logger.info(f"  银行媒体多样性汇总统计:")
     logger.info(f"    唯一媒体数: mean={bank_df['唯一媒体数'].mean():.1f}, "
                  f"median={bank_df['唯一媒体数'].median():.0f}, "
-                 f"std={bank_df['唯一媒体数'].std():.1f}")
+                 f"std={bank_df['唯一媒体数'].std(ddof=0):.1f}")
     logger.info(f"    Shannon 熵: mean={bank_df['Shannon熵'].mean():.3f}, "
                  f"median={bank_df['Shannon熵'].median():.3f}")
     logger.info(f"    层级加权得分: mean={bank_df['层级加权得分'].mean():.1f}, "
@@ -639,7 +647,8 @@ def analyze_bank_media(df: pd.DataFrame, media_weights: dict,
 # ============================================================================
 
 def analyze_temporal_stability(df: pd.DataFrame, stage_name: str,
-                               media_weights: dict, default_weight: int,
+                               media_weights: dict = None,
+                               default_weight: int = 10,
                                media_col: str = '媒体(中文)') -> pd.DataFrame:
     """按年份追踪媒体构成变化, 检测时序稳定性。
 
@@ -651,8 +660,9 @@ def analyze_temporal_stability(df: pd.DataFrame, stage_name: str,
     Args:
         df:             待分析的 DataFrame (需含 '日期' 列)。
         stage_name:     阶段标识名。
-        media_weights:  媒体权重字典。
-        default_weight: 默认权重。
+        media_weights:  [预留] 媒体权重字典，当前未使用，
+                        为未来按年加权 HHI 扩展预留。
+        default_weight: [预留] 默认权重，当前未使用。
         media_col:      媒体名称列名。
 
     Returns:
@@ -685,7 +695,7 @@ def analyze_temporal_stability(df: pd.DataFrame, stage_name: str,
 
         shares = counts / total
         hhi = float((shares ** 2).sum())
-        shannon = float(-np.sum(shares * np.log2(shares + 1e-15)))
+        shannon = max(0.0, float(-np.sum(shares * np.log2(shares + 1e-15))))
         evenness = compute_pielou_evenness(shannon, n_unique)
 
         # 年际变化
@@ -696,7 +706,7 @@ def analyze_temporal_stability(df: pd.DataFrame, stage_name: str,
             union = len(current_set | prev_media_set)
             jaccard = intersection / union if union > 0 else 0
         else:
-            new_in, dropped, jaccard = 0, 0, 0.0
+            new_in, dropped, jaccard = 0, 0, np.nan  # 首年无前置对比
 
         rows.append({
             '阶段': stage_name, '年份': yr, '报道数': total,
@@ -754,11 +764,10 @@ def analyze_weight_coverage(media_counts: pd.Series, stage_name: str,
     """
     unrated_rows = []
     for name, count in media_counts.items():
-        w = media_weights.get(name, default_weight)
-        if w == default_weight and name not in ("default", "其他媒体", "未知"):
+        if name not in media_weights and name not in ("default", "其他媒体", "未知"):
             unrated_rows.append({
                 "阶段": stage_name, "媒体名称": name,
-                "报道数": count, "当前权重": w,
+                "报道数": count, "当前权重": default_weight,
                 "建议": "建议补充评级" if count >= 5 else "低频可忽略",
             })
 
@@ -854,12 +863,11 @@ def compute_cross_stage_delta(overview_rows: list,
 # 10. 综合诊断结论
 # ============================================================================
 
-def log_comprehensive_summary(overview_rows: list, final_metrics: dict,
+def log_comprehensive_summary(final_metrics: dict,
                               final_region_metrics: dict):
     """输出综合审计结论 (对标 37_dict_coverage_audit log_summary 风格)。
 
     Args:
-        overview_rows:       各阶段总览指标列表。
         final_metrics:       最终阶段的媒体指标。
         final_region_metrics: 最终阶段的地域指标。
     """
@@ -965,6 +973,10 @@ def export_to_excel(all_results: dict, output_path: str):
         all_results: 包含各类 DataFrame 的结果字典。
         output_path: 输出 Excel 文件路径。
     """
+    if not all_results:
+        logger.warning("  无任何分析结果，跳过 Excel 导出")
+        return
+
     logger.info("=" * 60)
     logger.info("导出 Excel 报告")
     logger.info("=" * 60)
@@ -985,6 +997,7 @@ def export_to_excel(all_results: dict, output_path: str):
     ]
 
     try:
+        sheets_written = 0
         with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
             for key, sheet_name in sheet_map:
                 if key in all_results and not all_results[key].empty:
@@ -992,6 +1005,13 @@ def export_to_excel(all_results: dict, output_path: str):
                         writer, sheet_name=sheet_name, index=False)
                     logger.info(f"  Sheet '{sheet_name}': "
                                  f"{len(all_results[key])} 行")
+                    sheets_written += 1
+
+            if sheets_written == 0:
+                # 填充一个空数据说明 Sheet, 避免 openpyxl IndexError
+                pd.DataFrame([{"说明": "本次审计无有效分析结果"}]).to_excel(
+                    writer, sheet_name="说明", index=False)
+                logger.warning("  所有分析结果为空，已创建占位 Sheet")
 
         logger.info(f"  Excel 报告已保存: {output_path}")
 
@@ -1194,7 +1214,7 @@ def main():
 
     # --- 综合诊断结论 ---
     if last_metrics and last_region_metrics:
-        log_comprehensive_summary(overview_rows, last_metrics, last_region_metrics)
+        log_comprehensive_summary(last_metrics, last_region_metrics)
 
     # --- 导出 Excel ---
     output_path = os.path.join(EVAL_DIR, "38_media_diversity.xlsx")
