@@ -149,7 +149,7 @@ preprocessing:
   - 信息披露
   - 年度报告
   - 半年度报告
-  - 半年度度报告
+  - 半年度度报告                                    # 保留：匹配源数据中同名拼写错误（不可删除）
   - 季度报告
   - 基金合同摘要
   - 半年报摘要
@@ -216,18 +216,18 @@ deduplication:
 # ------------------------------------------------------------------------------
 # 控制银行新闻识别和分类的参数。
 bank_news_classification:
-  split_ratio: 0.5                                  # 银行名称拆分比例阈值
-  min_occurrences_upper: 1                          # 大写（全称）最少出现次数
-  min_occurrences_lower: 1                          # 小写（简称）最少出现次数
+  split_ratio: 0.5                                  # 内容按字符数等分的分割比例（0.5 = 上下各50%）
+  min_occurrences_upper: 1                          # 文章上半部分最少出现次数
+  min_occurrences_lower: 1                          # 文章下半部分最少出现次数
   min_name_occurrences: 3                           # 最少出现次数（银行名称变体在标题或全文中合计至少出现的次数）
 
 # ------------------------------------------------------------------------------
 # [模块二：新闻筛选模块] 金融科技新闻分类配置 (FinTech News Classification) - 阶段 12
 # ------------------------------------------------------------------------------
 fintech_news_classification:
-  split_ratio: 0.5                                  # 关键词拆分比例阈值
-  min_occurrences_upper: 1                          # 大写（全称）最少出现次数
-  min_occurrences_lower: 1                          # 小写（简称）最少出现次数
+  split_ratio: 0.5                                  # 内容按字符数等分的分割比例（0.5 = 上下各50%）
+  min_occurrences_upper: 1                          # 文章上半部分最少出现次数
+  min_occurrences_lower: 1                          # 文章下半部分最少出现次数
   min_distinct_keywords: 3                          # 最少不同词汇数（标题或全文中至少出现的不同关键词数量）
 
 # ------------------------------------------------------------------------------
@@ -651,7 +651,7 @@ sentiment_analysis:
   # BERT 模型情感分析参数
   tone_berts:
     window_stride_ratio: 0.5                        # 滑动窗口步长比例
-    inference_batch_size: 128                       # GPU 推理批次大小（v5: 增大到128, FP16下显存充裕）
+    inference_batch_size: 128                       # GPU 推理批次大小（v5: 增大到128, AMP下显存充裕）
     articles_per_batch: 600                          # 每次 engine.run_all_models 处理的文章批次数（已优化：增大批次减少GPU空闲）
 
     # BERT 模型列表（从代码迁移至此，便于统一管理）

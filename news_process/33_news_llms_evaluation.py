@@ -20,14 +20,15 @@
       - Loughran, T. & McDonald, B. (2011). "When Is a Liability Not a Liability?
         Textual Analysis, Dictionaries, and 10-Ks." Journal of Finance, 66(1), 35-65.
       - Krippendorff, K. (2018). Content Analysis: An Introduction to Its
-        Methodology (4th ed.). Sage. Threshold: Cohen's Kappa >= 0.80.
+        Methodology (4th ed.). Sage. Threshold: Krippendorff's Alpha >= 0.80.
+        (Cohen's Kappa >= 0.80 threshold: Landis & Koch 1977, Biometrics 33(1):159-174)
       - Tetlock, P., Saar-Tsechansky, M., & Macskassy, S. (2008). "More Than Words:
         Quantifying Language to Measure Firms' Fundamentals." JF, 63(3), 1437-1467.
       - Carlson, N. A. & Burbano, V. C. (2026). "The Use of LLMs to Annotate Data
         in Management Research." Strategic Management Journal, 47(3), 699-725.
 
 输入：
-    阶段 03c 输出的人工验证 Excel 文件（已填写编码者判定）
+    阶段 32 输出的人工验证 Excel 文件（已填写编码者判定）
 
 输出：
     评估报告（日志 + CSV + PNG 图表 + LaTeX 表格）
@@ -420,7 +421,7 @@ def generate_latex_table(results: dict, output_path: str, logger_inst):
                 f"  {name} & {pos_r:.3f} & {neu_r:.3f} & {neg_r:.3f} & {total} \\\\"
             )
 
-    # Panel D: 误分类系统相关性诊断 (Carlson & Burbano 2025)
+    # Panel D: 误分类系统相关性诊断 (Carlson & Burbano 2026)
     bias_full = results.get('misclassification_bias_full', {})
     bias_tests = bias_full.get('tests', []) if isinstance(bias_full, dict) else []
     non_skipped = [t for t in bias_tests if not t.get('skipped', True)]

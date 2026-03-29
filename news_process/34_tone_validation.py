@@ -37,7 +37,7 @@
       - Cronbach (1951, Psychometrika 16(3):297-334): 内部一致性系数 α ≥ 0.70 可接受
 
 输入：
-    阶段 06 的最终 Parquet 文件（包含全部词典/BERT/LLM 列）
+    阶段 21/22/23 输出的最终 Parquet 文件（包含全部词典/BERT/LLM 列）
 
 输出：
     验证报告（CSV + PNG + LaTeX）+ 人工验证样本 Excel

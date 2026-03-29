@@ -668,8 +668,8 @@ class TestReadability:
 
 # ============================================================================
 # 正/负面词频分离测试
-# Berger, A.N., Kim, S. & Ma, F. (2024). Bank Sentiment and Liquidity
-# Hoarding. SSRN Working Paper, Appendix S6.
+# Berger, A.N., Kim, H.H. & Ma, X. (2024). Bank Sentiment and Liquidity
+# Hoarding. Contemporary Accounting Research, 41(3). Appendix S6.
 # Loughran, T. & McDonald, B. (2011). Journal of Finance, 66(1), 35-65.
 # DOI: 10.1111/j.1540-6261.2010.01625.x
 # ============================================================================

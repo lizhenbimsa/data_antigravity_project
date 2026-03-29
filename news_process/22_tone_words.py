@@ -40,7 +40,7 @@
     - joblib 并行分批处理
 
 输入：
-    阶段3b输出的 Parquet 文件（经过 LLM 语义精筛确认的银行金融科技新闻）
+    阶段21输出的 Parquet 文件（经过 LLM 语义精筛确认的银行金融科技新闻）
 
 输出：
     追加各词典的得分、标签和匹配详情列
@@ -749,8 +749,8 @@ def _analyze_single_article(content: str) -> dict:
     result['char_per_word'] = readability['char_per_word']
 
     # ── 正/负面词频分离（稳健性检验）──
-    # Berger, A.N., Kim, S. & Ma, F. (2024). Bank Sentiment and Liquidity
-    # Hoarding. SSRN Working Paper, Appendix S6.
+    # Berger, A.N., Kim, H.H. & Ma, X. (2024). Bank Sentiment and Liquidity
+    # Hoarding. Contemporary Accounting Research, 41(3). Appendix S6.
     # Loughran, T. & McDonald, B. (2011). When Is a Liability Not a Liability?
     # Textual Analysis, Dictionaries, and 10-Ks.
     # Journal of Finance, 66(1), 35-65. DOI: 10.1111/j.1540-6261.2010.01625.x

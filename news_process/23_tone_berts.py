@@ -38,8 +38,9 @@
       label* = argmax(probs*)
 
 性能优化（v5 — GPU 全面加速架构）：
-    - **FP16 模型权重**：model.half() 将权重永久转为半精度，减半显存带宽
-    - **增大 batch size**：128，FP16 下 RTX 3090 显存充裕
+    - **AMP 动态混合精度**：torch.amp.autocast 自动选择最优数值精度，
+      兼顾推理速度与数值稳定性（替代早期 model.half() 永久转换方案）
+    - **增大 batch size**：128，AMP 下 RTX 3090 显存充裕
     - **动态填充 + 长度排序**：窗口按长度排序分桶，每个 mini-batch 仅填充到
       实际最长序列，减少无效计算
     - **cuDNN benchmark**：自动调优卷积算法
@@ -98,7 +99,7 @@ if DEVICE.type == 'cuda':
 # 是否启用 AMP (Automatic Mixed Precision) 加速
 USE_AMP = (DEVICE.type == 'cuda' and hasattr(torch, 'amp'))
 if USE_AMP:
-    logger.info("Mixed Precision (FP16) 推理加速: 已启用")
+    logger.info("Mixed Precision (AMP) 推理加速: 已启用")
 
 # 标签映射（从模型输出 id 到中文标签）
 DEFAULT_LABEL_MAP = {0: "负面", 1: "中性", 2: "正面"}
@@ -181,7 +182,7 @@ MODEL_CONFIGS = _build_model_configs()
 WINDOW_STRIDE_RATIO = BERT_PARAMS.get('window_stride_ratio', 0.5)
 
 # ── 推理 batch size ──
-# v5: 增大到 128，FP16 下 RTX 3090 显存充裕
+# v5: 增大到 128，AMP 下 RTX 3090 显存充裕
 INFERENCE_BATCH_SIZE = BERT_PARAMS.get('inference_batch_size', 128)
 
 # 每次调用 engine.run_all_models 的文章批次数
@@ -189,7 +190,7 @@ ARTICLES_PER_BATCH = BERT_PARAMS.get('articles_per_batch', 200)
 
 
 # ============================================================================
-# 3. 多模型推理引擎（v5 — FP16 + 动态填充 + 长度排序）
+# 3. 多模型推理引擎（v5 — AMP 动态混合精度 + 动态填充 + 长度排序）
 # ============================================================================
 
 class MultiModelSentimentEngine:
@@ -204,11 +205,12 @@ class MultiModelSentimentEngine:
     Attributes:
         models:       已加载的 PyTorch 模型。
         tokenizers:   每个模型对应的 tokenizer。
-        model_configs: 模型配置列表。n    """
+        model_configs: 模型配置列表。
+    """
 
     def __init__(self, model_configs: list):
         self.model_configs = model_configs
-        self.models = {}         # short_name -> PyTorch model (FP16)
+        self.models = {}         # short_name -> PyTorch model (FP32, AMP推理)
         self.tokenizers = {}     # short_name -> tokenizer
         self.loaded_configs = {} # short_name -> config (含实际 num_labels)
 
@@ -216,7 +218,7 @@ class MultiModelSentimentEngine:
         self._groups = {}  # max_length -> [short_name, ...]
 
     def load_all(self) -> list:
-        """一次性加载全部模型到 GPU（FP16 权重）。
+        """一次性加载全部模型到 GPU（FP32 权重, AMP 推理）。
 
         Returns:
             list: 成功加载的模型名称列表。
@@ -308,7 +310,7 @@ class MultiModelSentimentEngine:
         v5 核心优化：
           - 共享分词 + 窗口构造
           - 按窗口长度排序 → 动态填充到 mini-batch 内最长序列
-          - FP16 权重 + AMP autocast 推理
+          - AMP autocast 动态混合精度推理
           - 增大 batch size (128)
 
         Args:
@@ -434,7 +436,7 @@ class MultiModelSentimentEngine:
                         input_ids_t = input_ids_t.pin_memory()
                         attn_mask_t = attn_mask_t.pin_memory()
 
-                    # GPU 推理（FP16 权重 + AMP autocast）
+                    # GPU 推理（AMP autocast 动态混合精度）
                     inputs = {
                         'input_ids': input_ids_t.to(DEVICE, non_blocking=True),
                         'attention_mask': attn_mask_t.to(DEVICE, non_blocking=True),
@@ -605,8 +607,8 @@ def log_classification_report(output: dict, total: int):
     logger.info("=" * 70)
     logger.info(f"总记录数: {total:,}")
     logger.info(f"推理设备: {DEVICE}")
-    logger.info(f"Mixed Precision: {'FP16' if USE_AMP else '禁用'}")
-    logger.info(f"FP16 模型权重: {'已启用' if DEVICE.type == 'cuda' else '禁用'}")
+    logger.info(f"Mixed Precision: {'AMP' if USE_AMP else '禁用'}")
+    logger.info(f"模型权重精度: {'FP32 (AMP推理时动态转换)' if DEVICE.type == 'cuda' else 'FP32'}")
     logger.info(f"滑动窗口步长比例: {WINDOW_STRIDE_RATIO}")
     logger.info(f"推理 batch 大小: {INFERENCE_BATCH_SIZE}")
     logger.info(f"动态填充 + 长度排序: 已启用")
@@ -669,7 +671,7 @@ def main():
 
     流程：
       1. 加载输入数据（阶段22词典法输出）
-      2. 预加载全部模型到 GPU (FP16)
+      2. 预加载全部模型到 GPU (FP32, AMP推理)
       3. 批量推理（分批调用 process_all_models）
       4. 写回各模型预测列，保存输出 Parquet
       5. 释放模型显存，生成统计报告和预览 CSV
@@ -718,9 +720,9 @@ def main():
     logger.info(f"已加载 {input_rows:,} 行数据。")
     log_memory_usage(logger, "数据加载后")
 
-    # ── Step 1: 一次性加载全部模型到 GPU (FP16) ──
+    # ── Step 1: 一次性加载全部模型到 GPU (FP32, AMP推理) ──
     logger.info("=" * 50)
-    logger.info("正在预加载全部模型到 GPU (FP16)...")
+    logger.info("正在预加载全部模型到 GPU (FP32, AMP推理)...")
     engine = MultiModelSentimentEngine(MODEL_CONFIGS)
     loaded_names = engine.load_all()
     if not loaded_names:

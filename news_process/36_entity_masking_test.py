@@ -1,5 +1,5 @@
 """
-36_entity_masking_test.py — 第三十六阶段：Entity Masking 稳健性测试
+36_entity_masking_test.py — 阶段36：Entity Masking 稳健性测试
 =====================================================================
 
 功能：
