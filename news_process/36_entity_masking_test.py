@@ -17,7 +17,10 @@
 
     学术依据：
       - SSRN-4558295 §7.2: Entity substitution robustness check
-      - Krippendorff (2018): κ ≥ 0.80 → "almost perfect agreement"
+      - Landis & Koch (1977, Biometrics 33(1):159-174): Cohen's κ 解释标准
+        κ ≥ 0.81 → "almost perfect agreement"
+        注: 本模块计算的是 Cohen's κ（2 编码者名义一致性），
+        解释阈值出自 Landis & Koch (1977)，而非 Krippendorff's α
 
 输入：
     `21_tone_llms_full.parquet`（全量 LLM 判定结果）
@@ -400,6 +403,21 @@ def main():
     logger.info("=" * 60)
     logger.info("--- 开始执行 Entity Masking 稳健性测试 ---")
     logger.info("=" * 60)
+    logger.info("")
+    logger.info("  📌 阶段目的")
+    logger.info("     将目标银行名替换为匿名占位符(如 '工商银行'→'[BANK_A]'),")
+    logger.info("     验证 LLM 情感判定是否依赖文本语义, 而非实体先验知识。")
+    logger.info("     若掩码后判定一致率高, 说明情感度量的构建效度强。")
+    logger.info("")
+    logger.info("  📖 方法论依据")
+    logger.info("     · SSRN-4558295 §7.2: Entity substitution robustness check")
+    logger.info("     · Landis & Koch (1977, Biometrics 33(1):159-174): Cohen's κ 解释标准")
+    logger.info("")
+    logger.info("  📊 关键指标解读")
+    logger.info("     · 验证一致率 ≥ 90%: 判定不受实体身份干扰, 稳健性优秀")
+    logger.info("     · Cohen's κ: ≥0.81 almost perfect, 0.61-0.80 substantial, 0.41-0.60 moderate")
+    logger.info("     · 实体残留率: 应为 0%, 否则掩码替换不完整")
+    logger.info("")
 
     # ── 配置 ──
     if not EM_CFG.get('enabled', False):

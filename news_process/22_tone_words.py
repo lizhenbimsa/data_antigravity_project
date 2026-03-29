@@ -933,6 +933,23 @@ def main():
     
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
+    logger.info("")
+    logger.info("  📌 阶段目的")
+    logger.info("     使用五部中文金融情感词典对每篇新闻进行情感打分。")
+    logger.info("     每部词典独立计算正/负词频比, 并通过语言学规则(否定/程度/转折)修正。")
+    logger.info("     采用双轨模式: 全文(_full)和上下文片段(_ctx)分别计算, 供下游三角验证。")
+    logger.info("")
+    logger.info("  📖 方法论依据")
+    logger.info("     · IDF 加权: Gentzkow, Kelly & Taddy (2019, JEL 57(3):535-574) §2.2")
+    logger.info("       → 降低高频常见词的权重, 提升稀有金融术语的区分度")
+    logger.info("     · 语言学规则参考: Jia et al. (2009), Pang & Lee (2008),")
+    logger.info("       Li et al. (2010), Liu (2012), Kennedy & Inkpen (2006)")
+    logger.info("")
+    logger.info("  📊 关键指标解读")
+    logger.info("     · Z-score 标准化: 均值=0, 标准差=1。正值=正面倾向, 负值=负面倾向")
+    logger.info("     · IDF 权重分位数: P25-P75 的范围越窄 → 词典词汇区分度越均匀")
+    logger.info("     · 正/中/负面占比: 若某词典负面>60%, 可能存在负面偏差")
+    logger.info("")
 
     # 延迟加载词典和注入 jieba（避免 import 时的副作用）
     ALL_DICTIONARIES = load_all_dictionaries()

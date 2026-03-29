@@ -33,9 +33,8 @@
     └────────────────────────────────────────────────────────────┘
 
     学术依据：
-      - Loughran & McDonald (2016, RFS): 多度量方法间的相关性是构建效度的核心证据
-      - Cronbach (1951): 内部一致性系数 α ≥ 0.70 可接受
-      - Chen et al. (2023, JFE): 文本度量的构建效度需多方法三角验证
+      - Loughran & McDonald (2016, JAR 54(4):1187-1230): 多度量方法间的相关性是构建效度的核心证据
+      - Cronbach (1951, Psychometrika 16(3):297-334): 内部一致性系数 α ≥ 0.70 可接受
 
 输入：
     阶段 06 的最终 Parquet 文件（包含全部词典/BERT/LLM 列）
@@ -683,6 +682,23 @@ def main():
     """情感三角验证主入口（双轨模式）。"""
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
+    logger.info("")
+    logger.info("  📌 阶段目的")
+    logger.info("     对三种情感分析方法(词典法/BERT/LLM)进行系统性交叉验证,")
+    logger.info("     以确保情感度量的构建效度(Construct Validity)符合顶级期刊标准。")
+    logger.info("     双轨模式: 全文(_full)和上下文片段(_ctx)分别执行完整验证。")
+    logger.info("")
+    logger.info("  📖 方法论依据")
+    logger.info("     · Loughran & McDonald (2016, JAR 54(4):1187-1230):")
+    logger.info("       多度量方法间的相关性是构建效度的核心证据")
+    logger.info("     · Cronbach (1951, Psychometrika 16(3):297-334):")
+    logger.info("       内部一致性系数 α 的计算与解释标准")
+    logger.info("")
+    logger.info("  📊 关键指标解读")
+    logger.info("     · Cronbach's Alpha: ≥0.90(优秀), ≥0.80(良好), ≥0.70(可接受), <0.70(需改进)")
+    logger.info("     · Spearman ρ ≥ 0.7: 方法间一致性强; 0.4-0.7: 中等; <0.4: 弱")
+    logger.info("     · 跨方法标签一致性: ≥85% 视为方法间一致性良好 (经验参考值)")
+    logger.info("")
 
     output_dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
     os.makedirs(output_dir, exist_ok=True)
