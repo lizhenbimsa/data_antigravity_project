@@ -3,11 +3,20 @@ utils/pipeline_reporting.py
 ============================
 管道执行摘要报告生成器。
 
-在整个流水线运行完成后，读取各阶段的 Parquet 输出文件，
+在整个流水线运行完成后, 读取各阶段的 Parquet 输出文件,
 生成包含数据量流转统计和最终数据详细分析的综合报告。
 
-使用 ``pyarrow.parquet.read_metadata()`` 高效获取行数，
-避免将整个文件加载到内存。
+报告包含两个粒度的统计:
+  1. 文章级数据流转 (Data Flow):
+     追踪从 00_preprocessing 到 23_tone_berts 的每个阶段,
+     记录行数变化与累计保留率。
+  2. 面板级数据流转 (Panel Summary):
+     40_build_panel 和 41_falsification 的输出为 Bank-Year 级别数据,
+     粒度与文章级不同, 统计独立报告。
+
+使用 ``pyarrow.parquet.read_metadata()`` 高效获取行数,
+仅读取 Parquet 文件末尾的 footer metadata (< 1KB),
+避免将整个文件加载到内存(单个文件可达数 GB)。
 """
 
 import os
@@ -30,7 +39,11 @@ def generate_pipeline_summary(config, logger):
     logger.info("===          数据管道执行摘要报告 (Pipeline Summary)         ===")
     logger.info("=" * 70)
 
-    # 定义阶段和对应的输出文件名键名（按管道执行顺序排列）
+    # 定义阶段和对应的输出文件名键名(按管道执行顺序排列)
+    # 各阶段的数据量应呈单调递减或稳定趋势:
+    #   00_preprocessing: 原始数据 -> 清洗后(排重、去空)
+    #   11/12:            全量文章 -> 银行/金融科技相关子集
+    #   21/22/23:         情感标注(行数通常不变, 仅增加情感列)
     stages = [
         ("模块一: 00_preprocessing", "output_00_preprocessing"),
         ("模块二: 11_news_bank", "output_11_bank_news"),
@@ -60,14 +73,18 @@ def generate_pipeline_summary(config, logger):
         try:
             current_count = 0
             if os.path.exists(file_path):
-                # 使用 pyarrow 读取 Parquet 元数据获取行数，无需加载任何数据
-                # 这比 pd.read_parquet(columns=[]) 更高效
+                # 使用 pyarrow 读取 Parquet 元数据获取行数, 无需加载任何数据。
+                # Parquet 文件的 footer 包含 num_rows 统计量,
+                # pq.read_metadata() 仅读取这个 footer(< 1KB),
+                # 比 pd.read_parquet(columns=[]) 更高效(后者仍需解析列元数据)。
                 metadata = pq.read_metadata(file_path)
                 current_count = metadata.num_rows
             else:
                 logger.warning(f"文件未找到: {file_path}")
 
-            # 计算各阶段数据量变化
+            # 计算各阶段数据量变化:
+            #   Change:    与前一阶段的行数差值(负值表示数据减少)
+            #   Retention: 与初始阶段的累计保留率(追踪整体数据損耗)
             if stage_name == "模块一: 00_preprocessing":
                 change = 0
                 pct_change = 0.0
@@ -120,8 +137,11 @@ def generate_pipeline_summary(config, logger):
             logger.warning(f"最终输出文件不存在，无法生成详细统计: {final_file_path}")
 
     # --- 面板构建阶段数据流统计 ---
-    # 注: 40/41 输出为 Bank-Year 面板级数据（粒度与文章级不同），
-    #     独立报告行数，不与文章级阶段计算 Change/Retention。
+    # 注: 40/41 输出为 Bank-Year 面板级数据(粒度与文章级不同),
+    #     独立报告行数, 不与文章级阶段计算 Change/Retention。
+    # 典型规模:
+    #   output_40_panel_yearly: ~1,000 行 (50 银行 x 20 年)
+    #   output_40_article_bank: ~500,000 行 (文章-银行二元组)
     panel_stages = [
         ("模块五: 40_build_panel", "output_40_panel_yearly"),
         ("模块五: 40_article_bank", "output_40_article_bank"),

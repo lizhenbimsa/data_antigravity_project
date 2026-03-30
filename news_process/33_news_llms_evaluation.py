@@ -56,27 +56,50 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # ============================================================================
 
 def compute_cohens_kappa(rater1: np.ndarray, rater2: np.ndarray) -> dict:
-    """计算 Cohen's Kappa 编码者间一致性系数。
+    """计算 Cohen's Kappa 编码者间一致性系数（支持多分类）。
+
+    基于混淆矩阵方法，自动适配任意数量的类别。当输入为二分类 (0/1)
+    时，结果与旧版完全一致；当输入为三分类 (0/1/2) 或更多类别时，
+    expected_agreement 正确累加所有类别的边际概率乘积。
+
+    数学公式 (Cohen 1960, Educational and Psychological Measurement):
+        p_o = Σ_k n_{kk} / N           (观察一致率：对角线之和 / 总数)
+        p_e = Σ_k (n_{k·} × n_{·k}) / N²  (随机一致率：行和 × 列和之积)
+        κ   = (p_o - p_e) / (1 - p_e)
 
     Args:
-        rater1: 编码者 A 的判定数组（0/1 整型）。
-        rater2: 编码者 B 的判定数组（0/1 整型）。
+        rater1: 编码者 A 的判定数组（整型，支持任意类别值）。
+        rater2: 编码者 B 的判定数组（整型，支持任意类别值）。
 
     Returns:
-        dict: 包含 kappa, observed_agreement, expected_agreement 的字典。
+        dict: 包含 kappa, observed_agreement, expected_agreement, n_samples 的字典。
     """
+    rater1 = np.asarray(rater1)
+    rater2 = np.asarray(rater2)
     assert len(rater1) == len(rater2), "两个编码者的样本数必须一致"
     n = len(rater1)
 
-    # 观察一致率
-    observed_agreement = np.sum(rater1 == rater2) / n
+    if n == 0:
+        return {'kappa': 0.0, 'observed_agreement': 0.0,
+                'expected_agreement': 0.0, 'n_samples': 0}
 
-    # 随机一致率
-    p1_yes = np.sum(rater1 == 1) / n
-    p1_no = np.sum(rater1 == 0) / n
-    p2_yes = np.sum(rater2 == 1) / n
-    p2_no = np.sum(rater2 == 0) / n
-    expected_agreement = p1_yes * p2_yes + p1_no * p2_no
+    # 自动发现所有类别（合并两个编码者的标签集）
+    categories = sorted(set(np.concatenate([rater1, rater2])))
+    cat_idx = {c: i for i, c in enumerate(categories)}
+    k = len(categories)
+
+    # 构建 k×k 混淆矩阵
+    confusion = np.zeros((k, k), dtype=int)
+    for a, b in zip(rater1, rater2):
+        confusion[cat_idx[a], cat_idx[b]] += 1
+
+    # 观察一致率 p_o = 对角线之和 / N
+    observed_agreement = float(np.trace(confusion)) / n
+
+    # 随机一致率 p_e = Σ_k (行和_k × 列和_k) / N²
+    row_sums = confusion.sum(axis=1)   # 编码者 A 各类别频次
+    col_sums = confusion.sum(axis=0)   # 编码者 B 各类别频次
+    expected_agreement = float((row_sums * col_sums).sum()) / (n * n)
 
     # Kappa
     if expected_agreement == 1.0:

@@ -1,14 +1,19 @@
 """
-utils/canonicalization.py — 金融科技主题标准化分类（增强版）
+utils/canonicalization.py - 金融科技主题标准化分类(增强版)
 =====================================================
 
-将 LLM 自由文本输出的 fintech_topic 标准化分类为二选一：
-    - 底层技术：大数据、云计算、人工智能、区块链、物联网等
-    - 应用场景：数字支付、智能风控、智能客服、数字信贷、数字营销等
+将 LLM 自由文本输出的 fintech_topic 标准化分类为二选一:
+    - 底层技术: 大数据、云计算、人工智能、区块链、物联网等
+    - 应用场景: 数字支付、智能风控、智能客服、数字信贷、数字营销等
 
-增强特性：
-    - 加权关键词评分（核心词 2.0，长词 1.0，短词 0.5）
-    - 分类置信度
+分类策略(三轮决策):
+  第 1 轮: 加权关键词匹配(最长匹配优先, 取得分较高者为最终分类)
+  第 2 轮: fuzzywuzzy 模糊匹配(匹配度 >= 60, 置信度打 0.7 折扣)
+  第 3 轮: 兜底默认归为"应用场景"(基率更高), 置信度 0.0
+
+增强特性:
+    - 加权关键词评分(核心词 2.0, 长词 1.0, 短词 0.5)
+    - 分类置信度(0.0~1.0)
     - 全角/大小写归一化
     - fuzzywuzzy 模糊匹配兜底
 """
@@ -44,9 +49,13 @@ def _normalize_text(text: str) -> str:
 
 
 # ============================================================================
-# 标准化分类关键词表（加权）
-# 格式：(关键词, 权重)
-# 权重说明：核心标志词 2.0，普通长词 1.0，短词/易误匹配 0.5
+# 标准化分类关键词表(加权)
+# 格式: (关键词, 权重)
+# 权重设计依据:
+#   2.0 - 核心标志词: 明确指向某一类别的标志性术语, 如"人工智能"、"数字支付"
+#   1.5 - 第二梯队: 较强指示, 但可能跨类, 如"神经网络"、"反欺诈"
+#   1.0 - 普通长词: 有指示性但较广泛, 如"AI"、"数据分析"
+#   0.5 - 短词/易误匹配: 可能在多种语境中出现, 如"加密"、"合规"、"API"
 # ============================================================================
 
 # 底层技术关键词
@@ -208,6 +217,7 @@ APPLICATION_KEYWORDS = [
 ]
 
 # 预构建归一化后的关键词查找表
+# 在模块加载时一次性将所有关键词转为大写, 避免每次调用时重复转换
 _TECH_NORMALIZED = [(kw.upper(), weight) for kw, weight in TECHNOLOGY_KEYWORDS]
 _APP_NORMALIZED  = [(kw.upper(), weight) for kw, weight in APPLICATION_KEYWORDS]
 
@@ -232,10 +242,15 @@ def canonicalize_topic(raw_topic: str) -> tuple:
 
     # 第一轮：加权关键词匹配（最长匹配优先，避免子串重复计分）
     def _match_keywords(keywords, text):
-        """最长匹配优先的关键词匹配，返回总分。"""
+        """最长匹配优先的关键词匹配, 返回加权总分。
+
+        策略: 关键词按长度降序排序, 长词优先匹配。
+        已被长词占据的字符位置不会被短词重复计分。
+        例如: 如果匹配了"人工智能"(权重 2.0), 则子串"人工"不再计分。
+        """
         score = 0.0
-        matched_positions: set[int] = set()
-        # 关键词按长度降序排列（长词优先）
+        matched_positions: set[int] = set()  # 记录已被匹配占据的字符位置
+        # 关键词按长度降序排列(长词优先)
         sorted_kws = sorted(keywords, key=lambda x: len(x[0]), reverse=True)
         for kw, weight in sorted_kws:
             start = 0
@@ -246,24 +261,31 @@ def canonicalize_topic(raw_topic: str) -> tuple:
                 positions = set(range(pos, pos + len(kw)))
                 if not positions & matched_positions:  # 无重叠才计分
                     score += weight
-                    matched_positions |= positions
+                    matched_positions |= positions  # 标记这些位置已被占据
                 start = pos + 1
         return score
 
     tech_score = _match_keywords(_TECH_NORMALIZED, text)
     app_score = _match_keywords(_APP_NORMALIZED, text)
 
+    # 第 1 轮结果评估: 取得分较高的一方为最终分类
     total_score = tech_score + app_score
 
     if total_score > 0:
         if tech_score >= app_score:
+            # 置信度 = 胜出方得分 / 总分, 上限 1.0
+            # 当 tech_score 远大于 app_score 时, 置信度接近 1.0
+            # 当两者接近时, 置信度接近 0.5(表示不确定)
             confidence = min(tech_score / max(total_score, 1.0), 1.0)
             return ("底层技术", round(confidence, 3))
         else:
             confidence = min(app_score / max(total_score, 1.0), 1.0)
             return ("应用场景", round(confidence, 3))
 
-    # 第二轮：模糊匹配
+    # 第二轮：模糊匹配(仅当第 1 轮得分为 0 时触发)
+    # 使用 fuzzywuzzy 的 partial_token_set_ratio:
+    #   - partial: 支持子串匹配(输入可能包含额外文字)
+    #   - token_set: 对词语集合比较, 容忍词序差异
     try:
         from fuzzywuzzy import fuzz
 
@@ -279,7 +301,9 @@ def canonicalize_topic(raw_topic: str) -> tuple:
             if score > best_app_score:
                 best_app_score = score
 
+        # 匹配度阈值 60: 低于此值认为匹配不可靠, 进入兜底
         if best_tech_score >= 60 and best_tech_score >= best_app_score:
+            # 模糊匹配的置信度打 0.7 折扣, 反映其不确定性高于精确匹配
             confidence = best_tech_score / 100.0 * 0.7
             return ("底层技术", round(confidence, 3))
         elif best_app_score >= 60:
@@ -288,5 +312,7 @@ def canonicalize_topic(raw_topic: str) -> tuple:
     except ImportError:
         logger.warning("fuzzywuzzy 未安装，跳过模糊匹配")
 
-    # 兜底：默认归为应用场景
+    # 第 3 轮: 兜底默认 -- 归为应用场景, 置信度 0.0(表示完全不确定)
+    # 设计决策: 默认应用场景而非底层技术, 因为在金融新闻语境中,
+    # "应用场景"是更常见的类别(基率更高)
     return ("应用场景", 0.0)

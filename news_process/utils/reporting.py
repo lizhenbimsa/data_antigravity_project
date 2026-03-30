@@ -3,11 +3,16 @@ utils/reporting.py
 ==================
 DataFrame 统计报告生成器。
 
-为给定的 Pandas DataFrame 生成包含以下内容的详细异构分析报告：
+为给定的 Pandas DataFrame 生成包含以下内容的详细异构分析报告:
   - 整体维度、内存占用、重复行、数据类型分布
-  - 逐列分析：缺失值、唯一值、数值统计 / 日期范围 / 布尔分布 / 类别频次
+  - 逐列分析: 缺失值、唯一值、数值统计 / 日期范围 / 布尔分布 / 类别频次
 
-主要用于管道结束后的数据质量审查。
+主要用于管道结束后的数据质量审查, 由 pipeline_reporting.py 调用。
+
+设计原则:
+  - 非关键路径: 报告生成失败不会中断流水线执行
+  - 自适应分析: 根据列的 dtype 自动选择合适的统计方法
+  - 智能显示: 低基数列(≤ 15)显示完整分布, 高基数列仅显示 Top 5
 """
 
 import logging
@@ -66,7 +71,10 @@ def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
         duplicate_percentage = (duplicate_rows / total_rows) * 100 if total_rows > 0 else 0
         logger.info(f"重复行数 (Duplicate Rows): {duplicate_rows:,} ({duplicate_percentage:.2f}%)")
 
-        # 内存占用（自动选择合适单位）
+        # 内存占用(自动选择合适单位)
+        # deep=True: 计算 object 列中每个字符串的实际内存, 而非仅指针大小。
+        # 对于包含大量中文新闻内容的 DataFrame, deep=True 的结果可能是
+        # deep=False 的 5-10 倍。
         memory_usage_bytes = df.memory_usage(deep=True).sum()
         if memory_usage_bytes < 1024**2:
             memory_usage, unit = memory_usage_bytes / 1024, "KB"
@@ -105,7 +113,11 @@ def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
             unique_count = col_series.nunique()
             logger.info(f"    - 唯一值数量 (Unique Values): {unique_count:,}")
 
-            # 根据数据类型执行不同的统计分析
+            # 根据数据类型执行不同的统计分析:
+            #   数值型 -> 五数概括(min, 25%, 50%, 75%, max) + 均值/标准差
+            #   日期型 -> 最早/最晚时间 + 时间跨度
+            #   布尔型 -> True/False 分布
+            #   文本/类别型 -> 值频次分布(低基数完整显示, 高基数 Top 5)
             if col_series.isnull().all():
                 logger.info("    - 该字段所有值均为空。")
 
@@ -149,13 +161,17 @@ def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
         logger.info("=" * 60 + "\n")
 
     except Exception as e:
-        # 报告生成是非关键路径，异常不应阻断管道执行
-        # 但仍然记录完整堆栈以便事后排查
+        # 报告生成是非关键路径, 异常不应阻断管道执行。
+        # 设计决策: 使用 warning 而非 error, 因为报告失败不影响数据处理结果。
+        # exc_info=True: 记录完整堆栈以便事后排查。
         logger.warning(f"生成统计报告时发生错误（不影响数据处理）: {e}", exc_info=True)
 
 
 def _is_categorical(dtype):
-    """安全检测列是否为分类类型（兼容 pandas >= 2.1 的 API 变更）。
+    """安全检测列是否为分类类型(兼容 pandas >= 2.1 的 API 变更)。
+
+    pandas >= 2.1 废弃了 ``pd.api.types.is_categorical_dtype()``,
+    这里改用 isinstance 检查以避免 DeprecationWarning。
 
     Args:
         dtype: pandas 列的 dtype。

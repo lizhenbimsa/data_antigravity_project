@@ -1,10 +1,10 @@
 """
-run_pipeline_validation.py — 新闻处理流水线：评估验证模块
+run_pipeline_validation.py - 新闻处理流水线: 评估验证模块
 ===========================================================
 
-功能：
-    单独执行流水线的模块四：评估验证模块。
-    包含以下阶段（由 config.yaml 中 validation 节点控制）：
+功能:
+    单独执行流水线的模块四: 评估验证模块。
+    包含以下阶段(由 config.yaml 中 validation 节点控制):
       - 阶段31: 阈值敏感性分析        (31_bank_fintech_threshold.py)
       - 阶段32: 人工抽样验证样本生成  (32_news_llms_human.py)
       - 阶段33: 分类有效性评估        (33_news_llms_evaluation.py)
@@ -13,7 +13,15 @@ run_pipeline_validation.py — 新闻处理流水线：评估验证模块
       - 阶段36: Entity Masking 稳健性测试 (36_entity_masking_test.py)
       - 阶段37: 金融科技词典覆盖率审计  (37_dict_coverage_audit.py)
       - 阶段38: 媒体名称与地域多样性审计 (38_media_diversity.py)
-      - 阶段39: Prompt 措辞敏感度测试  (39_prompt_sensitivity.py)
+      - 阶段39: Prompt 措词敏感度测试  (39_prompt_sensitivity.py)
+
+设计意图:
+    这些验证模块对应经济学顶级期刊审稿中常见的稳健性检验要求:
+    - 阈值敏感性(31): 证明结论不依赖特定参数选择
+    - 人工标注一致性(32-33): Cohen's κ 和 Krippendorff's α
+    - 三角验证(34): 开放科学中的 “方法三角化” 原则
+    - 实体掩码(36): Carlson & Burbano (2026, SMJ) LLM 偏差诊断
+    - Prompt 敏感度(39): LLM 研究中的表述稳健性检验
 
 使用方法::
 
@@ -77,7 +85,11 @@ def run_validation():
     logger.info(f"工作目录: {os.path.dirname(os.path.abspath(__file__))}")
     log_memory_usage(logger, "模块启动")
 
-    # ── 模块四：评估验证模块 ──
+    # ── 模块四: 评估验证模块 ──
+    # 每个阶段由 config.yaml 中的 validation.<key> 开关控制:
+    #   值为 true(默认) -> 执行
+    #   值为 false -> 跳过
+    # 这允许研究者根据需要选择性执行耗时较长的验证模块
     validation_config = CONFIG.get('validation', {})
     stages = []
 
@@ -121,6 +133,9 @@ def run_validation():
 
         if not success:
             all_success = False
+            # Fail-fast: 与主流水线相同的中断策略.
+            # 验证模块间存在隐式依赖(如 36 依赖 21 的输出),
+            # 因此前置模块失败后续结果无意义。
             logger.error(f"评估验证模块在 {name} 处中断。后续阶段将跳过。")
             break
 

@@ -77,8 +77,10 @@ CONFIG = load_config()
 STAGE_NAME = "00_preprocessing"
 PARAMS = CONFIG['preprocessing']
 
-# 子进程（ProcessPoolExecutor spawn 模式）重新导入本模块时，
-# 使用 console_only 模式避免多进程并发写同一日志文件导致损坏
+# 子进程(ProcessPoolExecutor spawn 模式)重新导入本模块时,
+# 使用 console_only 模式避免多进程并发写同一日志文件导致损坏。
+# Windows 下的 spawn 模式会重新执行模块顶层代码,
+# 因此需通过 __name__ 检查区分主进程与子进程。
 _is_subprocess = (__name__ != "__main__")
 logger = setup_logging(STAGE_NAME, CONFIG['paths']['log_dir'], console_only=_is_subprocess)
 
@@ -88,7 +90,9 @@ nb_workers = DEDUP_PARAMS.get("parallel_workers", os.cpu_count() or 1)
 
 
 # ============================================================================
-# 从配置中提取常量（模块加载时执行一次，避免运行时重复查找）
+# 从配置中提取常量(模块加载时执行一次, 避免运行时重复查找)
+# 这种“预热”模式将配置查找开销从 O(n) 降为 O(1),
+# 对于处理 ~1700 万条记录的场景显著减少累计开销。
 # ============================================================================
 
 KEY_COLUMNS = PARAMS.get('key_columns_for_na_check', [])
@@ -102,7 +106,10 @@ AD_KEYWORDS = PARAMS.get('ad_keywords', [])
 NORMALIZATION_PARAMS = CONFIG.get('normalization', {})
 CLEANING_PARAMS = CONFIG.get('normalization', {})
 
-# OpenCC 转换器（延迟初始化：每个工作进程首次调用时创建，避免 fork 不安全）
+# OpenCC 转换器(延迟初始化)
+# 每个工作进程首次调用时创建, 避免 fork 不安全。
+# OpenCC 的 C++ 底层对象不支持跨进程序列化,
+# 因此必须在每个 worker 进程中独立初始化。
 _worker_cc = None
 
 # ============================================================================
@@ -953,7 +960,8 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
         cache_path = os.path.join(
             cache_dir, os.path.basename(xlsx_file).replace('.xlsx', '.parquet')
         )
-        # 缓存有效条件：缓存文件存在 且 修改时间晚于源文件
+        # 缓存有效条件: 缓存文件存在 且 修改时间晚于源文件
+        # 这确保当源 XLSX 内容更新时, 缓存自动失效重新处理
         if os.path.exists(cache_path) and os.path.getmtime(cache_path) > os.path.getmtime(xlsx_file):
             cached_files.append(cache_path)
         else:
@@ -1101,10 +1109,10 @@ def main() -> None:
             table = pa.Table.from_pandas(df, preserve_index=False)
             pq.write_table(
                 table, output_path,
-                compression='snappy',
-                row_group_size=100_000,
-                use_dictionary=True,       # 字符串列字典编码，节省磁盘空间
-                write_statistics=True,     # 列统计信息，加速后续谓词下推过滤
+                compression='snappy',      # Snappy: 压缩比 ~2:1, 解压缩极快(~250MB/s)
+                row_group_size=100_000,     # 每组 10万行: 平衡列存储压缩率与读取粒度
+                use_dictionary=True,        # 字符串列字典编码, 重复值多时显著节省空间
+                write_statistics=True,      # 列统计(min/max), 加速后续谓词下推过滤
             )
 
             # 生成 CSV 预览（前 2000 行，便于用 Excel 快速检查）

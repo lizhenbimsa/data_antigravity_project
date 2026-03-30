@@ -1,12 +1,37 @@
 """
-utils/entity_context.py — 实体特异性上下文提取引擎
+utils/entity_context.py - 实体特异性上下文提取引擎
 ==================================================
 
-为每个 (文章, 目标银行) 对提取局部上下文窗口，
+为每个 (文章, 目标银行) 对提取局部上下文窗口,
 消除非目标实体的情感污染。
 
-算法：基于句号边界的滑动窗口 + O(N log N) 区间合并。
-学术参考：Hassan et al. (2019, QJE) Proximity-based Attribution。
+问题背景:
+  一篇新闻可能同时提及多家银行, 且对不同银行的情感可能截然不同:
+  “工商银行利润大增, 但建设银行因不良贷款报亏”。如果对全文做情感分析,
+  两家银行会获得相同的混合情感分数。实体特异性上下文提取
+  通过仅保留目标银行周围的句子来解决这个问题。
+
+算法原理 (基于句号边界的滑动窗口 + O(N log N) 区间合并):
+
+  步骤 1: 全文 -> 句子序列
+    "工行利润增。建行亏损。交行扩张。中行稳定。"
+    -> [S0, S1, S2, S3]
+
+  步骤 2: 定位目标银行出现的句子索引 (target="工行")
+    -> hit_indices = {0}
+
+  步骤 3: 扩展窗口 (radius=1)
+    -> 原始区间 = [(max(0, 0-1), min(3, 0+1))] = [(0, 1)]
+
+  步骤 4: 区间合并 (消除重叠)
+    -> merged = [(0, 1)]
+
+  步骤 5: 拼接输出
+    -> "工行利润增。建行亏损。"  (仅保留 S0+S1, 排除了 S2+S3)
+
+学术参考: Hassan et al. (2019, QJE) Proximity-based Attribution。
+该方法确保情感分数仅反映目标实体周围的文本内容,
+而非全文混合情感。
 """
 
 import re
@@ -16,7 +41,10 @@ from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
-# 中文句号边界正则（句号、问号、感叹号、分号作为硬分割点）
+# 中文句号边界正则:
+# 句号(。)、问号(？?)、感叹号(！!)、分号(；;) 作为硬分割点。
+# 不使用逗号/顿号作为分割点, 因为它们在中文中常用于句内停顿,
+# 分割后会产生过多破碎片段, 降低上下文质量。
 _SENT_SPLIT_RE = re.compile(r'([。！？!?；;])')
 
 
@@ -28,15 +56,18 @@ def _split_sentences(text: str) -> List[str]:
     Returns:
         list[str]: 非空句子列表。
     """
+    # re.split 使用捕获组 () 时, 分隔符本身会作为独立元素保留在结果中。
+    # 例如: "工行好。建行差。" -> ["工行好", "。", "建行差", "。", ""]
+    # 我们需要将标点重新附着到前一句末尾: "工行好。", "建行差。"
     parts = _SENT_SPLIT_RE.split(text)
     sentences = []
     i = 0
     while i < len(parts):
         seg = parts[i]
-        # 如果下一个 part 是标点，拼接到当前句子
+        # 如果下一个 part 是标点, 拼接到当前句子末尾
         if i + 1 < len(parts) and _SENT_SPLIT_RE.fullmatch(parts[i + 1]):
             seg += parts[i + 1]
-            i += 2
+            i += 2  # 跳过已处理的标点部分
         else:
             i += 1
         seg = seg.strip()
@@ -56,13 +87,16 @@ def _merge_intervals(intervals: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     """
     if not intervals:
         return []
+    # 步骤 1: 按起始位置升序排序 -> O(N log N)
     sorted_iv = sorted(intervals, key=lambda x: x[0])
     merged = [list(sorted_iv[0])]
     for curr_start, curr_end in sorted_iv[1:]:
         prev = merged[-1]
-        if curr_start <= prev[1] + 1:  # 相邻或重叠
+        # 相邻(+1)或重叠 -> 合并: 扩展前一个区间的右边界
+        if curr_start <= prev[1] + 1:
             prev[1] = max(prev[1], curr_end)
         else:
+            # 不重叠 -> 新开一个区间
             merged.append([curr_start, curr_end])
     return [tuple(iv) for iv in merged]
 
@@ -96,7 +130,8 @@ def extract_entity_context(
 
     sentences = _split_sentences(text)
 
-    # 当句子分割退化（<3 句）时，回退到字符级窗口
+    # 当句子分割退化(< 3 句)时, 回退到字符级窗口。
+    # 退化场景: 文本过短或缺少句号标点(如标题、摘要)
     if len(sentences) < 3:
         return _char_level_fallback(text, target_aliases, fallback_char_radius)
 
@@ -111,17 +146,19 @@ def extract_entity_context(
     if not hit_indices:
         return ""
 
-    # 构建窗口区间
+    # 构建窗口区间: 每个命中句子向前后扩展 sentence_radius 句
+    # 例如: hit=5, radius=1 -> 区间 [4, 6]
     n = len(sentences)
     raw_intervals = [
         (max(0, i - sentence_radius), min(n - 1, i + sentence_radius))
         for i in hit_indices
     ]
 
-    # 区间合并
+    # 区间合并: 当多个命中句子的窗口有重叠时, 合并为一个连续区间
+    # 避免同一句子被重复包含导致情感分数偏移
     merged = _merge_intervals(raw_intervals)
 
-    # 拼接
+    # 拼接: 非连续区间用 " [...] " 分隔, 表示省略了中间的无关内容
     fragments = ["".join(sentences[s:e + 1]) for s, e in merged]
     return " [...] ".join(fragments)
 
@@ -131,7 +168,11 @@ def _char_level_fallback(
     target_aliases: List[str],
     radius: int = 150,
 ) -> str:
-    """字符级回退：当文本过短无法有效分句时使用。"""
+    """字符级回退: 当文本过短无法有效分句时使用。
+
+    策略: 以银行名称出现位置为中心, 前后各取 radius 个字符。
+    多个匹配位置的窗口仍执行区间合并。
+    """
     intervals = []
     for alias in target_aliases:
         start_pos = 0
@@ -150,7 +191,11 @@ def _char_level_fallback(
     return " [...] ".join(text[s:e + 1] for s, e in merged)
 
 
-# === 别名查询（带文件级缓存，避免重复读盘） ===
+# === 别名查询(带文件级缓存, 避免重复读盘) ===
+# 设计: 全局缓存策略
+#   - _BANK_DATA: 缓存整个 bank_names.json 文件内容(首次读取后不再读盘)
+#   - _ALIASES_CACHE: 缓存每个银行的别名列表(避免重复遍历 JSON 数组)
+#   在处理 ~50,000 篇文章 x ~500 家银行时, 缓存可避免数百万次重复查找
 _ALIASES_CACHE = {}   # {bank_name: [aliases]}
 _BANK_DATA = None     # 缓存整个 bank_names.json
 

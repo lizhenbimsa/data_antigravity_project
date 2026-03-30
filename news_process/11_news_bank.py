@@ -60,6 +60,9 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 BANK_NEWS_PARAMS = CONFIG.get('bank_news_classification', {})
 
 # 分割比例和阈值
+# “上下半分布”策略的设计依据: 如果一家银行在文章的上半和下半都被提及,
+# 说明该银行是文章的核心主题(而非仅在某处一笔带过)。
+# 参考: Hassan et al. (2019, QJE) Firm-Level Political Risk
 SPLIT_RATIO = BANK_NEWS_PARAMS.get('split_ratio', 0.5)
 MIN_UPPER = BANK_NEWS_PARAMS.get('min_occurrences_upper', 1)
 MIN_LOWER = BANK_NEWS_PARAMS.get('min_occurrences_lower', 1)
@@ -146,6 +149,10 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     results = [_analyze_single_article(c, t) for c, t in zip(contents, titles)]
 
     # === 提早展开: 每个合格银行生成独立物理行 (Firm-Document Level) ===
+    # 设计意图: 一篇新闻可能同时提及多家银行(如“工行和建行签署合作协议”),
+    # 需要为每家银行生成一条独立记录, 以便后续阶段对每家银行
+    # 独立计算实体特异性情感分数。
+    # 这种“展开”会增加行数, 但这是计量经济学中 Firm-Document 级别分析的标准做法。
     expanded_rows = []
     original_columns = list(df.columns)
 
@@ -180,7 +187,10 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             )
             # 保留 matched_bank_names 以兼容下游过渡期
             new_row['matched_bank_names'] = ';'.join(all_qualified_names)
-            # --- 提及密度（Value-weighted Exposure, Hassan 2019 QJE）---
+            # --- 提及密度(Value-weighted Exposure, Hassan 2019 QJE) ---
+            # mention_density = 提及次数 / 文档总字数
+            # 这个指标反映了银行在新闻中的“占比”, 可用于加权情感分析。
+            # 更高的密度意味着该银行更可能是新闻的核心主题。
             doc_len = max(len(str(row_data.get('内容', ''))), 1)
             new_row['doc_length'] = doc_len
             new_row['target_bank_mention_count'] = bank_info['total_count']

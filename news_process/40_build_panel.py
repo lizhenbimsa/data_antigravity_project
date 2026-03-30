@@ -1,13 +1,19 @@
 """
-40_build_panel.py — Bank-Year 面板数据构建
+40_build_panel.py - Bank-Year 面板数据构建
 ==========================================
 
-将篇章级新闻情感分析数据（23_bert_tone.parquet）转化为 **Bank-Year 面板数据**,
+将篇章级新闻情感分析数据(23_bert_tone.parquet)转化为 **Bank-Year 面板数据**,
 遵循 Tetlock et al. (2008, JF) 范式, 为 Stata 回归提供出版就绪数据集。
 
-核心设计原则 — 先分后合（Disaggregate-then-Aggregate）:
+核心设计原则 - 先分后合(Disaggregate-then-Aggregate):
   情感指标不在篇章级预先综合, 而是在 Bank-Year 聚合阶段对每个模型/词典
   分别聚合, 最后在面板层级计算综合指标。
+
+聚合指标设计:
+  - tone_mean:       篇章级情感的简单均值
+  - tone_weighted:   提及密度加权均值 (Hassan et al., 2019, QJE)
+  - coverage_ratio:  篇数覆盖率 = 有效篇数 / 总篇数
+  - article_count:   Bank-Year 下的总文章数
 
 输入:
   data_processed/23_bert_tone.parquet
@@ -47,11 +53,12 @@ OUTPUT_DIR = CONFIG["paths"]["output_dir"]
 FILENAMES = CONFIG.get("filenames", {})
 PANEL_CFG = CONFIG.get("panel_building", {})
 
-# LLM 模型 short_name 列表（从 tone_llm_processing.models 读取）
+# LLM 模型 short_name 列表(从 tone_llm_processing.models 读取)
+# 这些名称用于定位阶段 21 输出中各模型对应的情感结果列
 _llm_cfg = CONFIG.get('tone_llm_processing', {}).get('models', [])
 LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt5nano', 'gemini3', 'claude4h']
 
-# 词典名列表
+# 词典名列表 — 对应阶段 22 中的五本中文金融情感词典
 DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
 
 # BERT 模型 short_name 列表与分类数（从 sentiment_analysis.tone_berts.models 读取）
@@ -70,6 +77,8 @@ if not THREE_CLASS_MODELS:
 
 # ============================================================================
 # 2. 情感编码函数
+# 将三分类中文标签映射为数值, 便于 Stata 回归使用:
+#   正面 -> +1, 中性 -> 0, 负面 -> -1
 # ============================================================================
 
 SENTIMENT_MAP = {'正面': 1, '中性': 0, '负面': -1}
@@ -154,7 +163,17 @@ def parse_time(df: pd.DataFrame) -> pd.DataFrame:
 # ============================================================================
 
 def build_aggregation_dict() -> dict:
-    """构建 GroupBy 聚合字典（双轨）。"""
+    """构建 GroupBy 聚合字典(双轨)。
+
+    聚合策略遵循 Tetlock et al. (2008, JF) 范式:
+      - mean: Bank-Year 均值(核心情感指标)
+      - sum:  Bank-Year 总和(加权指标的分子)
+      - std:  Bank-Year 标准差(情感分散度, 反映信息环境不确定性)
+      - count: 新闻覆盖量
+
+    双轨(_full + _ctx)确保全文和上下文片段两种输入分别聚合,
+    供下游消融研究和稳健性检验使用。
+    """
     agg = {}
 
     for track in ['_full', '_ctx']:
@@ -251,7 +270,13 @@ def build_aggregation_dict() -> dict:
 
 
 def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
-    """按 (target_bank, year) 聚合生成面板。"""
+    """按 (target_bank, year) 聚合生成面板。
+
+    核心输出:
+      - n_articles: Bank-Year 下的新闻篇数(Fang & Peress 2009 范式)
+      - media_breadth: log(1 + 不同媒体来源数)(信息环境指标)
+      - VW Tone: 提及密度加权情感(Hassan et al. 2019 QJE)
+    """
     logger.info("=" * 60)
     logger.info("步骤 5: Bank-Year 聚合")
     logger.info("=" * 60)
@@ -301,6 +326,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     panel['ln_news_coverage'] = np.log1p(panel['n_articles'])
 
     # --- Value-weighted Tone 计算 (VW, Hassan 2019 范式, 双轨) ---
+    # 公式: VW_tone_i = Σ(mention_density_j × tone_j) / Σ(mention_density_j)
+    # 其中 j 遍历 Bank i 在 Year t 下的所有文章。
+    # 提及密度越高的文章对聚合情感的贡献越大,
+    # 这反映了"银行作为核心主题的文章应有更大权重"的直觉。
     if 'sum_mention_density' in panel.columns:
         denom = panel['sum_mention_density'].replace(0, np.nan)
         for track in ['_full', '_ctx']:

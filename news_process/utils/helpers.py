@@ -1,18 +1,39 @@
 """
-utils/helpers.py
-================
-新闻处理流水线的公共基础设施模块。
+utils/helpers.py - 新闻处理流水线公共基础设施模块
+==================================================
 
-提供以下核心功能：
-  1. load_config()         — YAML 配置文件加载与路径自动解析
-  2. setup_logging()       — 日志记录器配置（文件+控制台，支持轮转）
-  3. log_and_time()        — 函数执行计时与 I/O 摘要装饰器
-  4. log_memory_usage()    — 当前进程内存使用快照
-  5. log_stage_summary()   — 阶段级别统计摘要（行数变化、耗时、内存）
-  6. parallelize_dataframe — 基于 joblib 的 DataFrame 并行分批处理
+本模块是整个流水线的"地基"--所有 16 个阶段脚本(00-41)均依赖
+此处提供的配置加载、日志系统、计时装饰器和并行处理工具。
+修改本模块时需格外谨慎, 因为任何变更都会传播到全部下游阶段。
 
-依赖：
-  - pyyaml, pandas, joblib, psutil
+提供以下核心功能:
+  1. load_config()           - YAML 配置文件加载, 自动解析相对路径为绝对路径,
+                               替换 ${VAR} 环境变量占位符, 加载 .env 文件
+  2. setup_logging()         - 日志记录器配置: RotatingFileHandler 文件轮转
+                               + 终端 ANSI 彩色输出, 支持子进程安全模式
+  3. log_and_time()          - 函数执行计时与 I/O 摘要装饰器: 自动记录
+                               输入/输出行数、耗时、内存变化
+  4. log_memory_usage()      - 当前进程 RSS 内存使用快照 + 系统可用内存
+  5. log_stage_summary()     - 阶段级别统计摘要(行数变化、保留率、耗时)
+  6. parallelize_dataframe() - 基于 joblib 的 DataFrame 并行分批处理
+  7. safe_save_preview_csv() - 权限安全的 CSV 预览文件写入
+  8. save_dataset()          - Parquet + CSV 双格式持久化
+  9. run_stage()             - 子进程隔离执行单个阶段脚本(含超时保护)
+
+设计哲学:
+  - **子进程隔离**: 每个阶段以独立子进程运行(run_stage),
+    崩溃不影响主调度器, 内存由操作系统自动回收。
+  - **日志安全**: 子进程使用 console_only 模式, 避免多进程并发写
+    同一日志文件导致数据损坏(Windows 环境尤为关键)。
+  - **幂等性**: load_config() 可被多次调用, 每次返回独立字典副本。
+  - **防御式编程**: CSV 预览写入使用异常捕获, 永远不因非关键 I/O
+    失败而中断主流水线。
+
+依赖:
+  - pyyaml   - YAML 配置解析
+  - pandas   - DataFrame 操作
+  - joblib   - 多进程并行执行(loky 后端)
+  - psutil   - 跨平台进程/系统指标
 """
 
 import os
@@ -29,6 +50,16 @@ import psutil
 
 # ============================================================================
 # 1. 配置文件加载
+#
+# 设计: 采用两阶段解析策略
+#   Phase 1: yaml.safe_load() 将 YAML 文本解析为嵌套 Python dict/list
+#   Phase 2: resolve_paths() 递归遍历整个字典树, 对每个字符串值执行:
+#            (a) ${VAR_NAME} -> os.environ[VAR_NAME] (环境变量替换)
+#            (b) ./relative  -> /absolute/path (相对路径转绝对路径)
+#
+# 为什么不在 YAML 级别支持变量?
+#   YAML 1.1 的 & / * 锚点语法仅支持文档内引用, 无法读取外部环境变量。
+#   自定义 ${VAR} 语法提供了更灵活的运行时配置能力。
 # ============================================================================
 
 def load_config(config_path=None):
@@ -71,6 +102,8 @@ def load_config(config_path=None):
         config = yaml.safe_load(f)
 
     # 环境变量占位符模式: ${VAR_NAME}
+    # 正则解释: \$\{ 匹配字面 "${", ([^}]+) 捕获花括号内的变量名, \} 匹配 "}"
+    # 使用 [^}]+ (非贪婪) 确保 ${A}xxx${B} 中 A 和 B 被分别捕获
     _env_pattern = re.compile(r'\$\{([^}]+)\}')
 
     def _resolve_env_vars(value: str) -> str:
@@ -87,7 +120,15 @@ def load_config(config_path=None):
         return _env_pattern.sub(_replacer, value)
 
     def resolve_paths(d, root):
-        """递归将 ``./`` 开头的相对路径转为绝对路径，并替换 ``${VAR}`` 占位符。"""
+        """递归将 ``./`` 开头的相对路径转为绝对路径, 并替换 ``${VAR}`` 占位符。
+
+        遍历策略: 深度优先递归, 对 dict 和 list 两种容器分别处理。
+        处理优先级: 环境变量替换优先于路径解析, 因为 ${VAR} 可能
+        包含相对路径前缀(如 ${DATA_ROOT}/output)。
+
+        就地修改(in-place): 直接修改传入的 dict/list, 不创建副本,
+        因为 yaml.safe_load() 已返回全新对象, 无需担心影响外部引用。
+        """
         if isinstance(d, dict):
             for k, v in d.items():
                 if isinstance(v, str):
@@ -114,8 +155,21 @@ def load_config(config_path=None):
 def _load_dotenv(project_root: str):
     """加载项目根目录下的 .env 文件到 os.environ。
 
-    优先使用 python-dotenv 库；若未安装，则使用内置简易解析器。
-    不会覆盖已存在的环境变量。
+    优先使用 python-dotenv 库(功能更完善, 支持引号嵌套和注释);
+    若未安装, 则回退到内置简易解析器(仅支持 KEY=VALUE 格式)。
+
+    安全策略:
+      - ``override=False`` / ``if key not in os.environ``:
+        已存在的环境变量不会被 .env 覆盖。
+        这确保 CI/CD 或 Docker 传入的环境变量优先于 .env 文件。
+      - .env 文件不存在时静默返回, 不抛出异常。
+
+    .env 文件示例::
+
+        # API 密钥(每个 LLM 模型独立配置)
+        GPT5NANO_API_KEY=sk-xxxxxxxx
+        GEMINI3_API_KEY=AIzaSyxxxxxx
+        CLAUDE4H_API_KEY=sk-ant-xxxxxxxx
     """
     env_path = os.path.join(project_root, '.env')
     if not os.path.exists(env_path):
@@ -141,6 +195,21 @@ def _load_dotenv(project_root: str):
 
 # ============================================================================
 # 2. 日志配置
+#
+# 架构设计:
+#   主进程(__name__ == "__main__") -> 文件 + 控制台 双通道
+#   子进程(__name__ != "__main__") -> 仅控制台(console_only=True)
+#
+# 为什么子进程不写文件?
+#   Python 的 logging 模块在多进程(spawn 模式)下, 多个进程同时写入
+#   同一日志文件会导致 I/O 竞争和数据交错损坏。Windows 环境下更为严重,
+#   因为 Windows 默认对文件加排他锁。使用 console_only 模式让子进程
+#   的日志通过 subprocess.PIPE 被主进程捕获并统一写入。
+#
+# 轮转策略:
+#   RotatingFileHandler 在单个日志文件达到 max_bytes(默认 50MB)时,
+#   自动轮转为 .log.1, .log.2, ... 最多保留 backup_count 份。
+#   这防止长时间运行的流水线生成过大的日志文件。
 # ============================================================================
 
 class _ColoredFormatter(logging.Formatter):
@@ -171,8 +240,11 @@ class _ColoredFormatter(logging.Formatter):
     }
 
     def __init__(self, datefmt=None):
-        # 不在 __init__ 中设置 fmt，format() 中动态拼接
+        # 不在 __init__ 中设置固定 fmt 字符串:
+        # 因为不同日志级别需要不同颜色, format() 方法会在每次调用时
+        # 根据 record.levelno 动态拼接带颜色的格式串
         super().__init__(datefmt=datefmt)
+        # 毫秒格式: '2026-03-30 11:30:00.123'(3 位毫秒精度)
         self.default_msec_format = '%s.%03d'
 
     def format(self, record):
@@ -222,18 +294,25 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
     )
     file_formatter.default_msec_format = '%s.%03d'
 
-    # 文件处理器（仅主进程使用，带轮转）
+    # 文件处理器(仅主进程使用, 带轮转)
+    # 子进程(ProcessPoolExecutor spawn 模式)使用 console_only=True,
+    # 避免多进程并发写同一日志文件导致数据损坏
     if not console_only:
         log_file = os.path.join(log_dir, f"{stage_name}.log")
-        # 首次运行时清空旧日志（file_mode='w'），之后由 RotatingFileHandler 管理轮转
+        # 首次运行时清空旧日志(file_mode='w'), 确保每次流水线执行
+        # 从干净的日志文件开始。之后由 RotatingFileHandler 管理轮转。
+        # 注意: RotatingFileHandler 本身不支持 mode='w'(截断模式),
+        # 因此需要手动清空文件后再以 mode='a' 创建 handler。
         if file_mode == 'w' and os.path.exists(log_file):
             try:
-                open(log_file, 'w').close()  # 清空文件
+                open(log_file, 'w').close()  # 清空文件(截断为 0 字节)
             except OSError:
-                pass
+                pass  # Windows 下文件可能被其他进程锁定, 静默跳过
         fh = RotatingFileHandler(
-            log_file, mode='a', maxBytes=max_bytes,
-            backupCount=backup_count, encoding='utf-8'
+            log_file, mode='a',            # 追加模式(配合手动清空实现截断语义)
+            maxBytes=max_bytes,             # 单文件上限(默认 50MB)
+            backupCount=backup_count,       # 保留轮转备份数(默认 3 份)
+            encoding='utf-8'                # 确保中文日志正确编码
         )
         fh.setLevel(level)
         fh.setFormatter(file_formatter)
@@ -254,6 +333,17 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
 
 # ============================================================================
 # 3. 执行计时与 I/O 摘要装饰器
+#
+# 用法示例:
+#   @log_and_time(logger)
+#   def process_data(df: pd.DataFrame) -> pd.DataFrame:
+#       ...
+#
+# 装饰后, 函数调用会自动产生如下日志:
+#   --- 开始执行: process_data ---
+#   输入DataFrame行数: 170,000
+#   --- 执行完毕: process_data | 耗时: 12.34s | 内存变化: +45.2MB |
+#       结果: 输出DataFrame行数: 52,000 (已过滤 118,000 行) ---
 # ============================================================================
 
 def log_and_time(logger):
@@ -283,7 +373,9 @@ def log_and_time(logger):
             func_name = func.__name__
             logger.info(f"--- 开始执行: {func_name} ---")
 
-            # --- 智能输入日志：记录第一个 DataFrame 参数的行数 ---
+            # --- 智能输入日志: 自动检测第一个 DataFrame 参数并记录行数 ---
+            # 遍历位置参数和关键字参数, 找到第一个 pd.DataFrame 实例。
+            # 这样无论函数签名如何, 装饰器都能自适应地记录输入规模。
             input_df = None
             all_args = list(args) + list(kwargs.values())
             for arg in all_args:
@@ -292,7 +384,9 @@ def log_and_time(logger):
                     logger.info(f"输入DataFrame行数: {len(input_df):,}")
                     break
 
-            # 记录起始内存
+            # 记录起始内存(RSS = Resident Set Size, 进程实际占用的物理内存)
+            # 通过比较函数执行前后的 RSS 差值, 可以粗略估计函数的内存开销。
+            # 注意: RSS 包含共享库内存, 且受 GC 时机影响, 仅作参考。
             mem_before = psutil.Process().memory_info().rss
 
             start_time = time.time()
@@ -307,6 +401,9 @@ def log_and_time(logger):
                 end_time = time.time()
                 duration = end_time - start_time
                 mem_after = psutil.Process().memory_info().rss
+                # 内存变化量 = 执行后 RSS - 执行前 RSS, 转换为 MB
+                # 正值表示内存增长(可能有新对象未被 GC),
+                # 负值表示内存释放(函数内 del 或 GC 触发)
                 mem_delta = (mem_after - mem_before) / (1024 ** 2)  # MB
 
                 # --- 智能输出摘要 ---
@@ -337,6 +434,11 @@ def log_and_time(logger):
 
 # ============================================================================
 # 4. 内存使用快照
+#
+# 在流水线的关键检查点(如数据加载后, 大批量处理后, 模型加载后)
+# 调用 log_memory_usage() 记录当前内存状态, 帮助识别:
+#   - 内存泄漏(RSS 持续增长且不回落)
+#   - 内存瓶颈(Available 接近 0 时可能触发交换/OOM)
 # ============================================================================
 
 def log_memory_usage(logger, tag=""):
@@ -423,6 +525,14 @@ def log_stage_summary(logger, stage_name, start_time, input_rows=None,
 
 # ============================================================================
 # 6. DataFrame 并行分批处理
+#
+# 并行策略说明:
+#   - 使用 joblib.Parallel 的 loky 后端(默认), 通过 spawn 模式
+#     创建子进程, 避免 fork 模式在 macOS 和 Windows 上的不安全性。
+#   - 每个子进程获得 DataFrame 切片的独立副本(pickle 序列化),
+#     进程间无共享状态, 天然线程安全。
+#   - return_as="generator" 模式支持实时进度回调, 而非等待全部
+#     批次完成后才返回结果。
 # ============================================================================
 
 def parallelize_dataframe(df, func, n_jobs=-1, batch_size=10000,
@@ -444,9 +554,11 @@ def parallelize_dataframe(df, func, n_jobs=-1, batch_size=10000,
         pd.DataFrame: 所有批次处理结果纵向拼接后的 DataFrame。
     """
     if n_jobs == -1:
+        # 保留 1 个 CPU 核心给操作系统和主进程, 避免系统卡顿
         n_jobs = max(1, psutil.cpu_count(logical=True) - 1)
 
-    # 使用 numpy array_split 避免逐批 iloc 切片的内存拷贝
+    # 分批策略: 将 DataFrame 按 batch_size 行切分为多个批次
+    # 公式: ceil(len(df) / batch_size) 等价于 (len(df) - 1) // batch_size + 1
     num_batches = max(1, (len(df) - 1) // batch_size + 1)
     df_batches = [df.iloc[i * batch_size:(i + 1) * batch_size] for i in range(num_batches)]
 
@@ -457,7 +569,11 @@ def parallelize_dataframe(df, func, n_jobs=-1, batch_size=10000,
             f"每批次 {batch_size} 行，使用 {n_jobs} 个并行进程"
         )
 
-    # 使用 joblib 并行处理，generator 模式支持实时进度回调
+    # 使用 joblib 并行处理:
+    #   return_as="generator" 使 Parallel 返回一个生成器而非列表,
+    #   每完成一个批次就 yield 结果, 支持实时进度回调。
+    #   对比 return_as="list"(默认), 生成器模式不需要等待全部
+    #   批次完成, 用户可以更早看到进度信息。
     results = []
     completed = 0
     for result in Parallel(n_jobs=n_jobs, return_as="generator")(
@@ -473,6 +589,16 @@ def parallelize_dataframe(df, func, n_jobs=-1, batch_size=10000,
 
 # ============================================================================
 # 7. CSV 预览安全落盘
+#
+# 设计意图:
+#   CSV 文件仅用于人工快速预览(如在 Excel 中查看前 5000 行),
+#   而非作为流水线的正式传输格式(Parquet 承担此职责)。
+#   因此, CSV 写入失败(如文件被 Excel 占用)不应中断主流水线。
+#
+# Windows 特有问题:
+#   当用户在 Excel 中打开 .csv 文件时, Windows 会对该文件加排他锁,
+#   此时 Python 写入会抛出 PermissionError。本函数通过 try/except
+#   捕获此异常, 仅输出警告而不中断流程。
 # ============================================================================
 
 def safe_save_preview_csv(df: pd.DataFrame, preview_path: str, logger=None):
@@ -496,7 +622,15 @@ def safe_save_preview_csv(df: pd.DataFrame, preview_path: str, logger=None):
 
 
 # ============================================================================
-# 8. 数据集保存（parquet + csv 双格式）
+# 8. 数据集保存(Parquet + CSV 双格式)
+#
+# 为什么选择 Parquet 作为主格式?
+#   1. 列式存储: 读取特定列时仅加载所需列数据, I/O 减少 80%+
+#   2. Snappy 压缩: 默认启用, 压缩比约 3-5x, 无需显式解压
+#   3. 保留类型信息: string / int64 / datetime 等类型在读写间
+#      不会丢失(CSV 会将所有值读为字符串)
+#   4. 元数据内嵌: 行数等统计量可通过 footer metadata 获取,
+#      无需加载全部数据(pipeline_reporting.py 利用此特性)
 # ============================================================================
 
 def save_dataset(df: pd.DataFrame, output_path: str, logger=None):
@@ -531,6 +665,16 @@ def save_dataset(df: pd.DataFrame, output_path: str, logger=None):
 
 # ============================================================================
 # 9. 流水线阶段子进程执行器
+#
+# 为什么使用子进程执行而非直接 import?
+#   1. **内存隔离**: 每个阶段在独立进程地址空间中运行,
+#      阶段完成后操作系统自动回收全部内存, 避免累积泄漏。
+#      对于处理 ~37GB 原始数据的流水线, 这是关键设计。
+#   2. **错误隔离**: 某个阶段的段错误、OOM Kill 不会影响
+#      主调度器进程(run_pipeline_function.py)。
+#   3. **全局状态清洁**: GPU 显存、jieba 全局词典、OpenCC 转换器等
+#      进程级资源在阶段结束后自动释放, 无需手动清理。
+#   4. **超时保护**: timeout 参数防止单个阶段无限挂起。
 # ============================================================================
 
 def run_stage(stage_script: str, stage_name: str, logger,
@@ -569,6 +713,13 @@ def run_stage(stage_script: str, stage_name: str, logger,
     start_time = time.time()
 
     try:
+        # subprocess.run 参数说明:
+        #   sys.executable: 使用当前 Python 解释器(确保虚拟环境一致性)
+        #   capture_output=True: 捕获 stdout/stderr(不直接打印到终端)
+        #   text=True: 将 stdout/stderr 以字符串而非 bytes 返回
+        #   encoding='utf-8': 确保中文输出正确解码
+        #   errors='replace': 遇到无法解码的字节时替换为 '?', 而非崩溃
+        #   timeout: 超时秒数, 超过后抛出 TimeoutExpired 并终止子进程
         result = subprocess.run(
             [sys.executable, script_path],
             capture_output=True, text=True, encoding='utf-8', errors='replace',

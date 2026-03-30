@@ -52,6 +52,12 @@ from utils.helpers import load_config, setup_logging, log_memory_usage, log_stag
 
 # ============================================================================
 # 配置与初始化
+#
+# 加载顺序:
+#   1. load_config(): 解析 config.yaml + .env 环境变量
+#   2. setup_logging(): 创建带时间戳的日志文件 + 控制台输出
+# 注意: 这是主调度器进程, 使用完整的文件+控制台双通道日志。
+# 各阶段子进程会各自创建独立的日志文件。
 # ============================================================================
 
 CONFIG = load_config()
@@ -59,7 +65,7 @@ STAGE_NAME = "run_pipeline_function"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 
-# 脚本所在目录（用于定位阶段脚本）
+# 脚本所在目录(用于定位阶段脚本, 传给 run_stage() 的 base_dir 参数)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def run_pipeline():
@@ -85,8 +91,9 @@ def run_pipeline():
     logger.info(f"工作目录: {os.path.dirname(os.path.abspath(__file__))}")
     log_memory_usage(logger, "管道启动")
 
-    # ── 流水线执行顺序（模块一至三 + 模块五至六）──
-    # 按照严格递进流转：预处理 → 筛选 → 情感 → 面板构建 → 伪造检验
+    # ── 流水线执行顺序(模块一至三 + 模块五至六) ──
+    # 严格递进流转: 预处理 → 筛选 → 情感 → 面板构建 → 伪造检验
+    # 每个阶段的输入依赖前一阶段的输出, 因此必须严格顺序执行。
 
     stages = []
 
@@ -108,6 +115,11 @@ def run_pipeline():
         'tone_words': ("22_tone_words.py", "阶段22: 词典法情感分析"),
         'tone_berts': ("23_tone_berts.py", "阶段23: BERT模型情感分析"),
     }
+    # 根据 config.yaml 中的 sentiment_analysis.enabled_methods 动态确定
+    # 哪些情感分析方法需要执行。可选方法:
+    #   tone_llms:  LLM 语义精筛 + 情感分析(依赖外部 API)
+    #   tone_words: 词典法情感分析(无外部依赖, 速度最快)
+    #   tone_berts: BERT 模型情感分析(依赖 GPU/CPU, 计算量最大)
     for method in enabled_methods:
         if method in sentiment_stages:
             stages.append(sentiment_stages[method])
@@ -126,6 +138,9 @@ def run_pipeline():
         logger.info(f"  {i}. {name} ({script}) [{status}]")
 
     # ── 逐阶段执行 ──
+    # Fail-fast 策略: 任何阶段失败即立中断整个管道。
+    # 这样的设计确保不会基于错误的中间数据继续执行,
+    # 避免产生难以追溯的级联错误。
     stage_timings = []
     all_success = True
 
@@ -154,11 +169,15 @@ def run_pipeline():
     logger.info(f"{'阶段':<30} {'耗时(秒)':>12} {'耗时占比':>10} {'状态':>6}")
     logger.info("-" * 70)
 
+    # 耗时统计符号说明:
+    #   ✓: 执行成功
+    #   ✗: 执行失败
+    #   ⏭: 已跳过(配置未启用或前置条件未满足)
     for name, elapsed, success in stage_timings:
         pct = (elapsed / total_elapsed * 100) if total_elapsed > 0 else 0
         status = "✓" if success else "✗"
         if elapsed == 0.0 and success:
-            status = "⏭"
+            status = "⏭"  # 已跳过
         logger.info(f"  {name:<28} {elapsed:>10.1f}s {pct:>9.1f}% {status:>6}")
 
     logger.info("-" * 70)

@@ -48,8 +48,11 @@ if not LLM_CONFIG:
     logger.error("在 config.yaml 中未找到 tone_llm_processing 配置节！")
     sys.exit(1)
 
+# 模型列表: 多模型并行请求以支持多数投票(Majority Vote)共识机制
+# 推荐至少 3 个模型, 以实现 2/3 多数投票的稳健共识
 MODELS = LLM_CONFIG.get('models', [])
 MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', '')))
+# Prompt 模板: 包含 {title}, {content}, {target_bank}, {co_mentioned_banks} 占位符
 PROMPT_TEMPLATE = LLM_CONFIG.get('prompt_template', '')
 TEMPERATURE = LLM_CONFIG.get('temperature', '')
 RANDOM_SEED = LLM_CONFIG.get('random_seed', '')
@@ -187,7 +190,11 @@ async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
 # ============================================================================
 
 def parse_json_response(res_text: str) -> dict:
-    """尝试从大模型结果中解析 JSON"""
+    """尝试从大模型结果中解析 JSON。
+
+    容错策略: 自动去除 markdown 代码块包围(```json ... ```),
+    因为部分模型(如 GPT 系列)倾向于在 JSON 响应外添加代码块标记。
+    """
     try:
         # 去除 markdown json 代码块包围
         text = res_text.strip()

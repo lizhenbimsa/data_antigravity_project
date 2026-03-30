@@ -51,6 +51,9 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 FINTECH_NEWS_PARAMS = CONFIG.get('fintech_news_classification', {})
 
 # 分割比例和阈值
+# “多样性条件”设计依据: 要求至少 MIN_DISTINCT_KEYWORDS 个不同词汇出现,
+# 而非仅计算总出现次数。这避免了单个高频词(如"数字化")的多次出现
+# 导致假阳性(如“数字化转型”在非金融科技语境中也常见)。
 SPLIT_RATIO = FINTECH_NEWS_PARAMS.get('split_ratio', 0.5)
 MIN_UPPER = FINTECH_NEWS_PARAMS.get('min_occurrences_upper', 1)
 MIN_LOWER = FINTECH_NEWS_PARAMS.get('min_occurrences_lower', 1)
