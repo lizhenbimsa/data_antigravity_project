@@ -14,6 +14,8 @@
   - tone_weighted:   提及密度加权均值 (Hassan et al., 2019, QJE)
   - coverage_ratio:  篇数覆盖率 = 有效篇数 / 总篇数
   - article_count:   Bank-Year 下的总文章数
+  - _tech / _app:    按 fintech_category 分组的分类情感均值
+                     (底层技术 vs. 应用场景异质性分析)
 
 输入:
   data_processed/23_bert_tone.parquet
@@ -202,7 +204,7 @@ def build_aggregation_dict() -> dict:
             agg[f'{d}_tone_sum{track}'] = (f'{d}_score{track}', 'sum')
             agg[f'{d}_tone_std{track}'] = (f'{d}_score{track}', 'std')
 
-        # --- C2. 词典法 IDF 加权稳健性检验 (Gentzkow et al. 2019) ---
+        # --- C2. 词典法 IDF 加权稳健性检验 (Gentzkow, Kelly & Taddy 2019, JEL) ---
         for d in DICT_NAMES:
             agg[f'{d}_idf_tone{track}'] = (f'{d}_idf_score{track}', 'mean')
             agg[f'{d}_idf_tone_sum{track}'] = (f'{d}_idf_score{track}', 'sum')
@@ -219,18 +221,18 @@ def build_aggregation_dict() -> dict:
                 agg[f'{short}_neu{track}'] = (f'{short}_中性{track}', 'mean')
                 agg[f'{short}_neu_sum{track}'] = (f'{short}_中性{track}', 'sum')
 
-        # --- G. 前瞻性陈述 (Li 2010, Journal of Accounting Research) ---
+        # --- G. 前瞻性陈述 (Li 2010, JAR) ---
         agg[f'avg_fl_ratio{track}'] = (f'forward_looking_ratio{track}', 'mean')
         agg[f'avg_fl_ratio_std{track}'] = (f'forward_looking_ratio{track}', 'std')
         agg[f'sum_fl_count{track}'] = (f'forward_looking_count{track}', 'sum')
 
-        # --- H. 文本可读性控制变量 (Loughran & McDonald 2014, Journal of Finance) ---
+        # --- H. 文本可读性控制变量 (Loughran & McDonald 2014, JF) ---
         agg[f'avg_sent_len{track}'] = (f'avg_sentence_len{track}', 'mean')
         agg[f'avg_ttr{track}'] = (f'type_token_ratio{track}', 'mean')
         agg[f'avg_cpw{track}'] = (f'char_per_word{track}', 'mean')
 
-        # --- I. 正/负面词频分离 (Berger et al. 2024, Appendix S6;
-        #        Loughran & McDonald 2011, Journal of Finance) ---
+        # --- I. 正/负面词频分离 (Berger, Kim & Ma 2024, CAR;
+        #        Loughran & McDonald 2011, JF) ---
         agg[f'avg_pos_ratio{track}'] = (f'pos_ratio{track}', 'mean')
         agg[f'avg_neg_ratio{track}'] = (f'neg_ratio{track}', 'mean')
         agg[f'avg_pos_ratio_std{track}'] = (f'pos_ratio{track}', 'std')
@@ -245,7 +247,7 @@ def build_aggregation_dict() -> dict:
     agg['avg_agreement_rate_full'] = ('llm_agreement_rate_full', 'mean')
     agg['avg_agreement_rate_ctx'] = ('llm_agreement_rate_ctx', 'mean')
 
-    # --- F. Value-weighted 辅助列 (Hassan 2019, Sautner 2023 范式) ---
+    # --- F. Value-weighted 辅助列 (Hassan et al. 2019, QJE; Sautner et al. 2023, JF) ---
     agg['sum_mention_density'] = ('mention_density', 'sum')
     agg['sum_doc_length'] = ('doc_length', 'sum')
     agg['sum_target_mentions'] = ('target_bank_mention_count', 'sum')
@@ -259,7 +261,7 @@ def build_aggregation_dict() -> dict:
             agg[f'{short}_cont_w_sum{track}'] = (f'{short}_cont_w{track}', 'sum')
         for d in DICT_NAMES:
             agg[f'{d}_score_w_sum{track}'] = (f'{d}_score_w{track}', 'sum')
-        # --- F2. IDF VW 聚合 (Gentzkow et al. 2019 稳健性检验) ---
+        # --- F2. IDF VW 聚合 (Gentzkow, Kelly & Taddy 2019, JEL) ---
         for d in DICT_NAMES:
             agg[f'{d}_idf_score_w_sum{track}'] = (f'{d}_idf_score_w{track}', 'sum')
         for b in BERT_MODELS:
@@ -273,9 +275,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     """按 (target_bank, year) 聚合生成面板。
 
     核心输出:
-      - n_articles: Bank-Year 下的新闻篇数(Fang & Peress 2009 范式)
+      - n_articles: Bank-Year 下的新闻篇数 (Fang & Peress 2009, JF)
       - media_breadth: log(1 + 不同媒体来源数)(信息环境指标)
-      - VW Tone: 提及密度加权情感(Hassan et al. 2019 QJE)
+      - VW Tone: 提及密度加权情感 (Hassan et al. 2019, QJE)
+      - _tech / _app 分类指标: 按 fintech_category 分组的情感均值
     """
     logger.info("=" * 60)
     logger.info("步骤 5: Bank-Year 聚合")
@@ -313,19 +316,122 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         logger.warning("  列 '媒体(中文)' 不存在, media_breadth 将为 NaN")
         panel['media_breadth'] = np.nan
 
-    # --- tech_frac ---
-    if 'is_fintech_news' in df.columns:
-        tech_frac = df.groupby(['target_bank', 'year'])['is_fintech_news'].mean().reset_index()
-        tech_frac.columns = ['target_bank', 'year', 'tech_frac']
-        panel = panel.merge(tech_frac, on=['target_bank', 'year'], how='left')
+    # --- 按 fintech_category 分组聚合（底层技术 / 应用场景） ---
+    if 'fintech_category' in df.columns:
+        # 防御性校验：检查非预期值
+        valid_cats = {'底层技术', '应用场景'}
+        actual_cats = set(df['fintech_category'].dropna().unique())
+        unexpected = actual_cats - valid_cats
+        if unexpected:
+            logger.warning(f"  fintech_category 含非预期值: {unexpected}，这些文章将不计入分类聚合")
+
+        cat_mapping = [('底层技术', '_tech'), ('应用场景', '_app')]
+
+        for cat_label, suffix in cat_mapping:
+            df_cat = df[df['fintech_category'] == cat_label]
+            if df_cat.empty:
+                logger.warning(f"  分类 '{cat_label}' 无文章，跳过 {suffix} 聚合")
+                panel[f'n_articles{suffix}'] = 0
+                continue
+
+            # 构建分类聚合字典（仅 mean，不含 sum/std/VW）
+            cat_agg = {}
+            cat_agg[f'n_articles{suffix}'] = ('llm_vote_score_full', 'count')
+
+            for track in ['_full', '_ctx']:
+                # A. LLM 逐模型（离散 + 连续）
+                for short in LLM_MODELS:
+                    src_score = f'{short}_score{track}'
+                    src_cont = f'{short}_cont{track}'
+                    if src_score in df_cat.columns:
+                        cat_agg[f'{short}_tone{suffix}{track}'] = (src_score, 'mean')
+                    if src_cont in df_cat.columns:
+                        cat_agg[f'{short}_cont_mean{suffix}{track}'] = (src_cont, 'mean')
+
+                # B. LLM 投票
+                src_vote = f'llm_vote_score{track}'
+                src_vcont = f'llm_vote_cont{track}'
+                if src_vote in df_cat.columns:
+                    cat_agg[f'llm_vote_tone{suffix}{track}'] = (src_vote, 'mean')
+                if src_vcont in df_cat.columns:
+                    cat_agg[f'llm_vote_cont{suffix}{track}'] = (src_vcont, 'mean')
+
+                # C. 词典法
+                for d in DICT_NAMES:
+                    src_d = f'{d}_score{track}'
+                    if src_d in df_cat.columns:
+                        cat_agg[f'{d}_tone{suffix}{track}'] = (src_d, 'mean')
+
+                # C2. 词典法 IDF
+                for d in DICT_NAMES:
+                    src_idf = f'{d}_idf_score{track}'
+                    if src_idf in df_cat.columns:
+                        cat_agg[f'{d}_idf_tone{suffix}{track}'] = (src_idf, 'mean')
+
+                # D. BERT
+                for short in BERT_MODELS:
+                    src_pos = f'{short}_正面{track}'
+                    src_neg = f'{short}_负面{track}'
+                    if src_pos in df_cat.columns:
+                        cat_agg[f'{short}_pos{suffix}{track}'] = (src_pos, 'mean')
+                    if src_neg in df_cat.columns:
+                        cat_agg[f'{short}_neg{suffix}{track}'] = (src_neg, 'mean')
+                    if short in THREE_CLASS_MODELS:
+                        src_neu = f'{short}_中性{track}'
+                        if src_neu in df_cat.columns:
+                            cat_agg[f'{short}_neu{suffix}{track}'] = (src_neu, 'mean')
+
+            # 单次 groupby + 单次 merge
+            cat_panel = df_cat.groupby(['target_bank', 'year']).agg(**cat_agg).reset_index()
+            panel = panel.merge(cat_panel, on=['target_bank', 'year'], how='left')
+            logger.info(f"  分类 '{cat_label}' 聚合完成: {len(cat_panel):,} 个 Bank-Year, "
+                        f"{len(cat_agg)} 个指标")
+
+        # 分类计数列填充（merge 后可能产生 NaN）
+        for suffix in ['_tech', '_app']:
+            col = f'n_articles{suffix}'
+            if col in panel.columns:
+                panel[col] = panel[col].fillna(0).astype(int)
+
+        # tech_frac / app_frac
+        panel['tech_frac'] = np.where(
+            panel['n_articles'] > 0,
+            panel['n_articles_tech'] / panel['n_articles'],
+            np.nan
+        )
+        panel['app_frac'] = np.where(
+            panel['n_articles'] > 0,
+            panel['n_articles_app'] / panel['n_articles'],
+            np.nan
+        )
+
+        # avg_category_confidence
+        if 'category_confidence' in df.columns:
+            conf = df.groupby(['target_bank', 'year'])['category_confidence'].mean().reset_index()
+            conf.columns = ['target_bank', 'year', 'avg_category_confidence']
+            panel = panel.merge(conf, on=['target_bank', 'year'], how='left')
+        else:
+            panel['avg_category_confidence'] = np.nan
+
+        # 恒等式校验
+        if 'n_articles_tech' in panel.columns and 'n_articles_app' in panel.columns:
+            has_news = panel['n_articles'] > 0
+            identity_check = (panel.loc[has_news, 'n_articles'] ==
+                              panel.loc[has_news, 'n_articles_tech'] + panel.loc[has_news, 'n_articles_app'])
+            if identity_check.all():
+                logger.info("  ✓ 恒等式校验通过: n_articles == n_articles_tech + n_articles_app")
+            else:
+                n_fail = (~identity_check).sum()
+                logger.warning(f"  ✗ 恒等式校验失败: {n_fail} 行不满足 n_articles == n_articles_tech + n_articles_app")
     else:
-        logger.info("  列 'is_fintech_news' 不存在, tech_frac 将为 NaN")
+        logger.info("  列 'fintech_category' 不存在, 分类聚合将跳过")
         panel['tech_frac'] = np.nan
+        panel['app_frac'] = np.nan
 
     # 新闻覆盖量对数
     panel['ln_news_coverage'] = np.log1p(panel['n_articles'])
 
-    # --- Value-weighted Tone 计算 (VW, Hassan 2019 范式, 双轨) ---
+    # --- Value-weighted Tone 计算 (Hassan et al. 2019, QJE; 双轨) ---
     # 公式: VW_tone_i = Σ(mention_density_j × tone_j) / Σ(mention_density_j)
     # 其中 j 遍历 Bank i 在 Year t 下的所有文章。
     # 提及密度越高的文章对聚合情感的贡献越大,
@@ -345,7 +451,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 w_col = f'{d}_score_w_sum{track}'
                 if w_col in panel.columns:
                     panel[f'{d}_tone_vw{track}'] = panel[w_col] / denom
-            # IDF VW Tone (Gentzkow et al. 2019 稳健性检验)
+            # IDF VW Tone (Gentzkow, Kelly & Taddy 2019, JEL)
             for d in DICT_NAMES:
                 w_col = f'{d}_idf_score_w_sum{track}'
                 if w_col in panel.columns:
@@ -370,7 +476,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 # ============================================================================
 
 def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
-    """构建平衡面板: 银行 × 年份笛卡尔积 + 科学填充。"""
+    """构建平衡面板: 银行 × 年份笛卡尔积 + 科学填充。
+
+    填充策略:
+      - 计数类(n_articles, n_articles_tech, n_articles_app): 填充为 0
+      - 比例类(tech_frac, app_frac, avg_category_confidence): 保持 NaN
+      - 情感类(所有 _tone, _pos, _neg 列): 保持 NaN
+    """
     logger.info("=" * 60)
     logger.info("步骤 6: 面板平衡与缺失期填充 (Panel Balancing)")
     logger.info("=" * 60)
@@ -403,7 +515,15 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
         if col in panel.columns:
             panel[col] = panel[col].fillna(0)
 
+    # --- 分类维度计数列填充为 0 ---
+    # zero_fill_patterns 中的 'n_articles' 为精确匹配，不会捕获 n_articles_tech / n_articles_app
+    for suffix in ['_tech', '_app']:
+        col = f'n_articles{suffix}'
+        if col in panel.columns:
+            panel[col] = panel[col].fillna(0).astype(int)
+
     # 其余 NaN 列保持不变（均值、比例、离散度等由 Stata 处理）
+    # tech_frac / app_frac / avg_category_confidence: 零新闻行保持 NaN
 
     logger.info(f"  完全笛卡尔积: {len(all_banks)} 银行 × {len(all_years)} 年 = {rows_after:,} 行")
     logger.info(f"  原有观测值: {rows_before:,} 行")
@@ -443,7 +563,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         panel[f'dict_avg_tone_sum{track}'] = _safe_mean([f'{d}_tone_sum{track}' for d in DICT_NAMES])
         panel[f'dict_avg_tone_std{track}'] = _safe_mean([f'{d}_tone_std{track}' for d in DICT_NAMES])
 
-        # --- 词典法 IDF 综合 (Gentzkow et al. 2019 稳健性检验) ---
+        # --- 词典法 IDF 综合 (Gentzkow, Kelly & Taddy 2019, JEL) ---
         panel[f'dict_avg_idf_tone{track}'] = _safe_mean([f'{d}_idf_tone{track}' for d in DICT_NAMES])
         panel[f'dict_avg_idf_tone_sum{track}'] = _safe_mean([f'{d}_idf_tone_sum{track}' for d in DICT_NAMES])
 
@@ -464,6 +584,38 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         panel[f'bert_avg_neg_vw{track}'] = _safe_mean([f'{b}_neg_vw{track}' for b in BERT_MODELS])
 
     logger.info(f"  生成双轨综合指标完成")
+
+    # --- 分类维度综合指标 ---
+    for suffix in ['_tech', '_app']:
+        # 仅当分类计数列存在时生成
+        if f'n_articles{suffix}' not in panel.columns:
+            continue
+
+        for track in ['_full', '_ctx']:
+            # LLM 逐模型综合
+            panel[f'llm_models_avg_tone{suffix}{track}'] = _safe_mean(
+                [f'{s}_tone{suffix}{track}' for s in LLM_MODELS])
+            panel[f'llm_models_avg_cont{suffix}{track}'] = _safe_mean(
+                [f'{s}_cont_mean{suffix}{track}' for s in LLM_MODELS])
+
+            # 词典法综合
+            panel[f'dict_avg_tone{suffix}{track}'] = _safe_mean(
+                [f'{d}_tone{suffix}{track}' for d in DICT_NAMES])
+
+            # 词典法 IDF 综合
+            panel[f'dict_avg_idf_tone{suffix}{track}'] = _safe_mean(
+                [f'{d}_idf_tone{suffix}{track}' for d in DICT_NAMES])
+
+            # BERT 综合
+            panel[f'bert_avg_pos{suffix}{track}'] = _safe_mean(
+                [f'{b}_pos{suffix}{track}' for b in BERT_MODELS])
+            panel[f'bert_avg_neg{suffix}{track}'] = _safe_mean(
+                [f'{b}_neg{suffix}{track}' for b in BERT_MODELS])
+            panel[f'bert_avg_neu{suffix}{track}'] = _safe_mean(
+                [f'{b}_neu{suffix}{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
+
+        logger.info(f"  分类 {suffix} 综合指标生成完成")
+
     return panel
 
 
@@ -472,7 +624,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
 # ============================================================================
 
 def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
-    """输出面板诊断统计。"""
+    """输出面板诊断统计, 包含分类维度(底层技术/应用场景)的覆盖率和置信度。"""
     logger.info("=" * 60)
     logger.info("步骤 8: 诊断统计量")
     logger.info("=" * 60)
@@ -499,6 +651,29 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         if len(valid_tone) > 0:
             logger.info(f"  LLM 投票情感强度: mean={valid_tone.mean():.4f}, "
                         f"std={valid_tone.std():.4f}")
+
+    # --- 分类维度诊断 ---
+    if 'tech_frac' in panel.columns:
+        valid_tf = panel['tech_frac'].dropna()
+        if len(valid_tf) > 0:
+            logger.info(f"  底层技术占比 (tech_frac):")
+            logger.info(f"    mean={valid_tf.mean():.3f}, median={valid_tf.median():.3f}, "
+                        f"std={valid_tf.std():.3f}")
+    for suffix, label in [('_tech', '底层技术'), ('_app', '应用场景')]:
+        col = f'n_articles{suffix}'
+        if col in panel.columns:
+            has_cat = (panel[col] > 0).sum()
+            total = (panel['n_articles'] > 0).sum()
+            if total > 0:
+                logger.info(f"  {label} ({col}): "
+                            f"有文章的 Bank-Year = {has_cat}/{total} ({has_cat/total:.1%})")
+            else:
+                logger.info(f"  {label} ({col}): 无有效新闻观测")
+    if 'avg_category_confidence' in panel.columns:
+        valid_conf = panel['avg_category_confidence'].dropna()
+        if len(valid_conf) > 0:
+            logger.info(f"  分类置信度: mean={valid_conf.mean():.3f}, "
+                        f"median={valid_conf.median():.3f}")
 
     # 文章级统计
     logger.info(f"  展开后文章-银行级行数: {len(df_exploded):,}")
@@ -643,7 +818,7 @@ def main():
                 src = f'{d}_score{track}'
                 if src in df.columns:
                     df[f'{src}_w'] = df[src] * w
-            # 词典 IDF (Gentzkow et al. 2019 稳健性检验)
+            # 词典 IDF (Gentzkow, Kelly & Taddy 2019, JEL)
             for d in DICT_NAMES:
                 src = f'{d}_idf_score{track}'
                 if src in df.columns:
@@ -690,6 +865,7 @@ def main():
             '年份跨度': f"{panel['year'].min()}-{panel['year'].max()}",
             '零新闻观测占比': f"{(panel['n_articles'] == 0).mean():.1%}",
             '面板总列数': panel.shape[1],
+            '分类指标': '已生成' if 'n_articles_tech' in panel.columns else '未生成',
         }
     )
 
