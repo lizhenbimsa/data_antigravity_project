@@ -474,6 +474,13 @@ def merge_to_panel(panel: pd.DataFrame,
     logger.info(f"    学术意义: 衡量金融科技新闻在全部银行新闻中的信息密集度,")
     logger.info(f"              类似 Hassan (2019) 中 PRisk / (PRisk + NPRisk) 的比例。")
 
+    # --- 挤出效应弹性变量 (避免百分比回归机械 β=-1) ---
+    panel['ln_ft_articles'] = np.log1p(panel['n_articles'])
+    panel['ln_nf_articles'] = np.log1p(panel['nf_n_articles'])
+    logger.info(f"  ln_ft_articles  = ln(1 + n_articles)")
+    logger.info(f"  ln_nf_articles  = ln(1 + nf_n_articles)")
+    logger.info(f"    依据: 对数弹性 ln(nf) ~ ln(ft) 避免 fintech% + nf% ≡ 100% 约束")
+
     # --- 恒等式校验 ---
     logger.info("")
     logger.info("  ─── 恒等式校验 ───")
@@ -598,6 +605,24 @@ def run_diagnostics(panel: pd.DataFrame):
                 logger.info(f"     |r| = {r_abs:.4f} ≥ 0.70 → 高度相关")
                 logger.info(f"     解读: 需警惕多重共线性,可能削弱赛马回归的区分效力。")
 
+    # ── 挤出弹性相关性校验 (方案断言 4) ──
+    if 'ln_ft_articles' in panel.columns and 'ln_nf_articles' in panel.columns:
+        valid_pair = panel[['ln_ft_articles', 'ln_nf_articles']].dropna()
+        if len(valid_pair) >= 2:
+            r_elast = valid_pair.corr().iloc[0, 1]
+            logger.info("")
+            logger.info("  ─── 挤出弹性校验 ───")
+            logger.info(f"  r(ln_ft, ln_nf) = {r_elast:.4f}")
+            if r_elast < -0.95:
+                logger.error("  ✗ r < -0.95: 疑似机械关联, "
+                             "百分比约束未被对数变换消除!")
+            elif r_elast < -0.5:
+                logger.warning(f"  ⚠️ r ∈ (-0.95, -0.50): 中等负相关, "
+                               f"回归中应注意共线性")
+            else:
+                logger.info(f"  ✓ r > -0.50: 非机械关联, "
+                            f"对数弹性策略有效")
+
     return pearson
 
 
@@ -643,7 +668,16 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
         panel_stata.columns = clean_cols
         for col in panel_stata.select_dtypes(include=['Float64', 'Int64']).columns:
             panel_stata[col] = panel_stata[col].astype(float)
-        panel_stata.to_stata(dta_path, write_index=False, version=118)
+        # 挤出弹性与总量变量标签
+        STATA_LABELS_41 = {
+            'ln_ft_articles':  'ln(1 + Fintech Articles)',
+            'ln_nf_articles':  'ln(1 + Non-Fintech Articles)',
+            'fintech_share':   'Fintech News Share',
+        }
+        labels_41 = {k: v for k, v in STATA_LABELS_41.items()
+                     if k in panel_stata.columns}
+        panel_stata.to_stata(dta_path, write_index=False, version=118,
+                             variable_labels=labels_41)
         logger.info(f"  ✓ 已导出 Stata 文件: {dta_path}")
         logger.info(f"    Stata 列数: {len(clean_cols)}")
     except Exception as e:

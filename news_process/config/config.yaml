@@ -706,3 +706,5 @@ sentiment_analysis:
 panel_building:
   aggregation_frequency: yearly
   export_stata: true
+  compute_attention_index: true      # 6b. 金融科技注意力指数 (三级地理维度)
+  compute_media_heterogeneity: true  # 6c. 媒体异质性 (四维度: 财经/综合/中央级/其他)
