@@ -97,6 +97,16 @@ REFERENCES = {
         '"The Role of the Business Press as an Information Intermediary." '
         'Journal of Accounting Research, 48(1), 1-19.'
     ),
+    'Garcia2013': (
+        'Garcia, D. (2013). '
+        '"Sentiment during Recessions." '
+        'The Journal of Finance, 68(3), 1267-1300.'
+    ),
+    'DimSV2024': (
+        'Dim, C., Sangiorgi, I. & Vilkov, G. (2024). '
+        '"Media Narratives and Price Informativeness." '
+        'SSRN Working Paper No. 4323093.'
+    ),
 }
 
 
@@ -773,8 +783,22 @@ reghdfe Y llm_vote_tone_full avg_article_length avg_sent_len_full ///
   absorb(target_bank year) vce(cluster target_bank)
   est store ctrl_ling
 
+* ── 检验 7: 排除压力年份稳健性 ──
+* 目的: 移除系统性危机年份, 验证 fintech tone 不受宏观冲击驱动
+* 对标: Dim, Sangiorgi & Vilkov (2024, §3.5)
+*        — 移除 NBER 衰退年份 (2001, 2008-2009, 2020) 后结果不变
+*        Garcia (2013, JF, 68(3), 1267-1300)
+*        — 衰退期间情感指标统计特征显著不同
+* 中国银行业压力期: 2015(股灾), 2018(去杠杆), 2020(疫情)
+preserve
+  drop if inlist(year, 2015, 2018, 2020)
+  reghdfe Y llm_vote_tone_full nf_ln_coverage nf_media_breadth X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+  est store robust_no_stress
+restore
+
 * ── 输出格式化表格 ──
-esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling ///
+esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling robust_no_stress ///
   using "table_falsification.tex", ///
   star(* 0.10 ** 0.05 *** 0.01) se replace
 
@@ -789,6 +813,9 @@ esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling ///
 *
 * β₁ 不再显著 + β₂ 显著
 *   → ⚠️ 金融科技情感可能仅代理一般媒体关注度 (需要进一步分析)
+*
+* β₁(tone) 在排除压力年份后仍显著
+*   → ✅ 金融科技情感非系统危机的副产品 (Dim et al. 2024, §3.5)
 * ============================================================
 
 * ============================================================

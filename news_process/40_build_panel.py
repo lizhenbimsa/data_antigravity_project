@@ -17,6 +17,9 @@
   - article_count:   Bank-Year 下的总文章数
   - _tech / _app:    按 fintech_category 分组的分类情感均值
                      (底层技术 vs. 应用场景异质性分析)
+  - fintech_exposure: ln_coverage × tone_std 复合指标
+                     (Dim et al., 2024 NarrativeExposure 概念迁移)
+  - _z 后缀列:       年度截面 z-score 标准化 (Fama-MacBeth 1973)
 
 输入:
   data_processed/23_bert_tone.parquet
@@ -1209,6 +1212,150 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
 
         logger.info(f"  分类 {suffix} 综合指标生成完成")
 
+    # ─── Fintech Exposure 复合指标 (Dim et al. 2024, Eq. 3 概念迁移) ───
+    # 概念类比:
+    #   论文: NarrativeExposure_n = Σ|β_n,l^narr| × σ(θ_l) / Σσ(θ_l)
+    #     |β| = 资产对特定叙事注意力冲击的敏感度
+    #     σ(θ) = 叙事注意力的时间序列波动率
+    #   本项目: FintechExposure_i,t = ln_coverage_i,t × tone_std_i,t
+    #     ln_coverage 类比 |β| → 银行在 fintech 叙事中的信息暴露强度
+    #     tone_std 类比 σ(θ) → fintech 报道情感的离散程度
+    #   乘积含义: 高覆盖 + 高波动 = 高叙事暴露度
+    logger.info("  ─── Fintech Exposure 复合指标 ───")
+    has_news = panel['n_articles'] > 0
+    for track in ['_full', '_ctx']:
+        std_col = f'llm_vote_tone_std{track}'
+        if std_col in panel.columns and 'ln_news_coverage' in panel.columns:
+            # 零新闻行 → NaN (与面板情感变量 NaN 语义一致)
+            coverage = panel['ln_news_coverage'].where(has_news, np.nan)
+            panel[f'fintech_exposure{track}'] = coverage * panel[std_col]
+            valid = panel[f'fintech_exposure{track}'].dropna()
+            logger.info(f"  fintech_exposure{track}: "
+                        f"mean={valid.mean():.4f}, "
+                        f"std={valid.std():.4f}, "
+                        f"非空={len(valid):,}")
+        else:
+            panel[f'fintech_exposure{track}'] = np.nan
+            logger.warning(f"  fintech_exposure{track}: "
+                          f"缺少 {std_col} 或 ln_news_coverage, 填 NaN")
+
+    return panel
+
+
+# ============================================================================
+# 7b. 年度截面标准化 (Fama & MacBeth 1973)
+# ============================================================================
+
+# 核心回归变量白名单 (仅这些列生成 _z 后缀)
+_STANDARDIZE_COLS = [
+    # LLM 投票 (主指标)
+    'llm_vote_tone_{t}', 'llm_vote_cont_{t}',
+    # LLM 逐模型综合
+    'llm_models_avg_tone_{t}', 'llm_models_avg_cont_{t}',
+    # 词典法综合
+    'dict_avg_tone_{t}', 'dict_avg_idf_tone_{t}',
+    # BERT 综合
+    'bert_avg_pos_{t}', 'bert_avg_neg_{t}',
+    # VW 加权
+    'llm_vote_tone_vw_{t}', 'dict_avg_tone_vw_{t}',
+    # MW 加权 (Holzman 2023)
+    'llm_vote_tone_mw_{t}', 'dict_avg_tone_mw_{t}',
+    # MSENT (He et al. 2024)
+    'avg_msent_{t}',
+    # Fintech Exposure (Dim et al. 2024 概念迁移)
+    'fintech_exposure_{t}',
+]
+# 无双轨的标量变量
+_STANDARDIZE_SCALAR = [
+    'ln_news_coverage', 'media_breadth',
+    'avg_article_length',
+]
+
+
+def _expand_track_templates(templates: list) -> list:
+    """将含 {t} 占位符的模板展开为 _full 和 _ctx 两个变量名。"""
+    result = []
+    for tmpl in templates:
+        if '{t}' in tmpl:
+            result.append(tmpl.replace('{t}', 'full'))
+            result.append(tmpl.replace('{t}', 'ctx'))
+        else:
+            result.append(tmpl)
+    return result
+
+
+def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
+    """年度截面标准化: 核心回归变量在每个年度截面内归至单位方差。
+
+    学术依据:
+      Fama, E.F. & MacBeth, J.D. (1973, JPE, 71, 607-636):
+        两阶段回归要求截面变量可比, 标准化确保系数
+        可直接解读为 "1σ 变化对应 β 个单位的因变量变动"。
+
+    操作:
+      1. 仅处理有新闻覆盖的 Bank-Year (n_articles > 0)
+      2. 对白名单内的核心回归变量执行年度截面 z-score
+      3. 生成 _z 后缀列, 保留原始列不变
+      4. 零新闻行保持 NaN
+
+    输出列命名: 原列名 + '_z'
+    """
+    logger.info("=" * 60)
+    logger.info("步骤 7b: 年度截面标准化 (Fama-MacBeth 1973)")
+    logger.info("=" * 60)
+
+    # ── 展开白名单 ──
+    target_cols = (_expand_track_templates(_STANDARDIZE_COLS)
+                   + _STANDARDIZE_SCALAR)
+    valid_cols = [c for c in target_cols
+                  if c in panel.columns
+                  and panel[c].notna().sum() >= 10]
+    skipped = [c for c in target_cols
+               if c in panel.columns
+               and panel[c].notna().sum() < 10]
+    missing = [c for c in target_cols if c not in panel.columns]
+
+    logger.info(f"  白名单总数: {len(target_cols)}, "
+                f"有效: {len(valid_cols)}, "
+                f"观测不足跳过: {len(skipped)}, "
+                f"列不存在: {len(missing)}")
+    if skipped:
+        logger.info(f"    跳过(观测<10): {skipped}")
+
+    # ── 执行年度截面 z-score ──
+    has_news = panel['n_articles'] > 0
+    z_count = 0
+
+    for col in valid_cols:
+        z_col = f'{col}_z'
+        panel[z_col] = np.nan
+
+        for year, grp in panel[has_news].groupby('year'):
+            vals = grp[col].dropna()
+            if len(vals) < 3:
+                continue
+            mu = vals.mean()
+            sigma = vals.std()
+            if sigma < 1e-10:
+                continue
+            idx = grp.index
+            panel.loc[idx, z_col] = (panel.loc[idx, col] - mu) / sigma
+
+        z_count += 1
+
+    logger.info(f"  已生成 {z_count} 个 _z 标准化列")
+
+    # ── 校验: 标准化后年内 std ≈ 1 ──
+    sample_z_cols = [c for c in panel.columns if c.endswith('_z')][:5]
+    for col in sample_z_cols:
+        within_std = (panel[has_news].dropna(subset=[col])
+                      .groupby('year')[col].std())
+        mean_std = within_std.mean()
+        if pd.notna(mean_std):
+            ok = '✓' if abs(mean_std - 1.0) < 0.1 else '⚠️'
+            logger.info(f"  校验 {col}: 年内 std 均值 = "
+                        f"{mean_std:.4f} {ok}")
+
     return panel
 
 
@@ -1374,6 +1521,20 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_msent_std_ctx':               'MSENT Std Dev (Ctx)',
                 # 文章长度 (He et al. 2024, IRFA)
                 'avg_article_length':             'Article Length ln(1+avg_words)',
+                # Fintech Exposure (Dim et al. 2024 概念迁移)
+                'fintech_exposure_full':   'Fintech Exposure (Cov*Std, Full)',
+                'fintech_exposure_ctx':    'Fintech Exposure (Cov*Std, Ctx)',
+                # 截面标准化 (Fama-MacBeth 1973)
+                'llm_vote_tone_full_z':    'LLM Vote Tone Z-scored (Full)',
+                'llm_vote_tone_ctx_z':     'LLM Vote Tone Z-scored (Ctx)',
+                'llm_vote_cont_full_z':    'LLM Vote Cont Z-scored (Full)',
+                'llm_vote_cont_ctx_z':     'LLM Vote Cont Z-scored (Ctx)',
+                'dict_avg_tone_full_z':    'Dict Avg Tone Z-scored (Full)',
+                'dict_avg_tone_ctx_z':     'Dict Avg Tone Z-scored (Ctx)',
+                'ln_news_coverage_z':      'News Coverage ln Z-scored',
+                'media_breadth_z':         'Media Breadth Z-scored',
+                'fintech_exposure_full_z': 'Fintech Exposure Z (Full)',
+                'fintech_exposure_ctx_z':  'Fintech Exposure Z (Ctx)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -1540,6 +1701,9 @@ def main():
 
     # --- 7. 综合指标 ---
     panel = compute_composite_indicators(panel)
+
+    # --- 7b. 年度截面标准化 ---
+    panel = standardize_panel_variables(panel)
 
     # --- 8. 诊断统计 ---
     log_diagnostics(panel, df_exploded)
