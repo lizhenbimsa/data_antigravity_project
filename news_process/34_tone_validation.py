@@ -577,8 +577,9 @@ def generate_validation_sample(df: pd.DataFrame,
 # ============================================================================
 
 def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
-                        all_labels_df: pd.DataFrame, logger_inst) -> dict:
-    """按新闻长度和时间段进行分层一致性分析。"""
+                        all_labels_df: pd.DataFrame, logger_inst,
+                        track: str = '_full') -> dict:
+    """按新闻长度、时间段和词典覆盖率进行分层一致性分析。"""
     results = {}
 
     # --- 按新闻长度分层 ---
@@ -651,6 +652,105 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
 
         results['by_year'] = year_results
 
+        # --- 年际一致性趋势检测 (Anis et al. 2024, §III Challenge [21]) ---
+        # 论文依据: 跨时间泛化是深度学习金融情感分析的核心稳健性威胁。
+        # 通过检测 Cronbach's α 的年际变化趋势，预警模型时间漂移。
+        if len(year_results) >= 3:
+            years_sorted = sorted(year_results.keys(), key=int)
+            alphas = [year_results[y]['cronbach_alpha'] for y in years_sorted]
+            years_int = [int(y) for y in years_sorted]
+
+            valid_pairs = [(y, a) for y, a in zip(years_int, alphas)
+                           if not np.isnan(a)]
+            n_valid = len(valid_pairs)
+
+            if n_valid >= 5:
+                # 统计功效充足: 执行 Spearman 秩相关趋势检验
+                valid_years = [v[0] for v in valid_pairs]
+                valid_alphas = [v[1] for v in valid_pairs]
+
+                # 防御: 常数输入检测 (std==0 时 spearmanr 返回 NaN
+                # 并触发 ConstantInputWarning，需提前拦截)
+                alpha_arr_sp = np.array(valid_alphas)
+                if alpha_arr_sp.std() == 0:
+                    trend_result = {
+                        'test': 'descriptive_only',
+                        'reason': f'所有 {n_valid} 年的 α 完全相同，无变异',
+                        'alpha_mean': round(float(alpha_arr_sp.mean()), 4),
+                        'alpha_std': 0.0,
+                        'alpha_range': [round(float(alpha_arr_sp.min()), 4),
+                                        round(float(alpha_arr_sp.max()), 4)],
+                        'n_years': n_valid,
+                    }
+                    logger_inst.info(
+                        f"  ✓ 年际α完全一致 (n={n_valid}年，"
+                        f"α={alpha_arr_sp.mean():.3f}，无变异)"
+                    )
+                else:
+                    try:
+                        from scipy.stats import spearmanr
+                        rho, p_val = spearmanr(valid_years, valid_alphas)
+                        trend_result = {
+                            'test': 'spearman_trend',
+                            'spearman_rho': round(rho, 4),
+                            'p_value': round(p_val, 4),
+                            'trend': 'declining' if rho < 0 else 'stable_or_improving',
+                            'significant': p_val < 0.05,
+                            'n_years': n_valid,
+                        }
+                        if p_val < 0.05 and rho < 0:
+                            logger_inst.warning(
+                                f"  ⚠️ 年际一致性趋势: α 呈显著下降 "
+                                f"(ρ={rho:.3f}, p={p_val:.3f}, n={n_valid}年)"
+                            )
+                            logger_inst.warning(
+                                f"     解读: 模型可能存在时间漂移(temporal drift)，"
+                                f"建议检查近年数据的语义分布变化"
+                            )
+                        else:
+                            logger_inst.info(
+                                f"  ✓ 年际一致性趋势: 无显著衰减 "
+                                f"(ρ={rho:.3f}, p={p_val:.3f}, n={n_valid}年)"
+                            )
+                    except ImportError:
+                        alpha_arr = np.array(valid_alphas)
+                        trend_result = {
+                            'test': 'descriptive_only',
+                            'reason': 'scipy 不可用',
+                            'alpha_mean': round(float(alpha_arr.mean()), 4),
+                            'alpha_std': round(float(alpha_arr.std()), 4),
+                            'alpha_range': [round(float(alpha_arr.min()), 4),
+                                            round(float(alpha_arr.max()), 4)],
+                            'n_years': n_valid,
+                        }
+                        logger_inst.info(
+                            f"  ℹ️ 年际α描述性统计 (scipy不可用): "
+                            f"mean={alpha_arr.mean():.3f}, std={alpha_arr.std():.3f}"
+                        )
+            elif n_valid >= 3:
+                # 统计功效不足: 仅输出描述性统计
+                alpha_arr = np.array([v[1] for v in valid_pairs])
+                trend_result = {
+                    'test': 'descriptive_only',
+                    'reason': f'有效年份仅 {n_valid} 年 (<5)，功效不足',
+                    'alpha_mean': round(float(alpha_arr.mean()), 4),
+                    'alpha_std': round(float(alpha_arr.std()), 4),
+                    'alpha_range': [round(float(alpha_arr.min()), 4),
+                                    round(float(alpha_arr.max()), 4)],
+                    'n_years': n_valid,
+                }
+                logger_inst.info(
+                    f"  ℹ️ 年际α描述性统计 (n={n_valid}<5，不做推断): "
+                    f"mean={alpha_arr.mean():.3f}, std={alpha_arr.std():.3f}"
+                )
+            else:
+                trend_result = {
+                    'test': 'skipped',
+                    'reason': f'有效年份 {n_valid} < 3',
+                }
+
+            results['temporal_drift'] = trend_result
+
     # --- 按 BERT 窗口数分层（单窗口 vs 多窗口） ---
     if 'bert_num_windows' in df.columns:
         nw = df['bert_num_windows']
@@ -687,6 +787,82 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
             logger_inst.info("  bert_num_windows 有效样本不足 40，跳过窗口数分层分析")
     else:
         logger_inst.info("  bert_num_windows 列不存在，跳过窗口数分层分析（需先运行阶段 23）")
+
+    # --- 按词典覆盖率分层 (Rizinski et al. 2024 [22], XLex 方法论) ---
+    # 论文依据: lexicon 方法的词汇覆盖率限制是核心挑战。
+    # 覆盖率代理: pos_ratio + neg_ratio (22_tone_words.py L751-759)
+    # 该比率 = 情感词频次 / 总 token 数，直接反映词汇覆盖密度。
+    # 注意: 不使用 |score| 之和 (score 是归一化强度，非覆盖率)。
+    pos_ratio_col = f'pos_ratio{track}'
+    neg_ratio_col = f'neg_ratio{track}'
+
+    if pos_ratio_col in df.columns and neg_ratio_col in df.columns:
+        coverage = df[pos_ratio_col].fillna(0) + df[neg_ratio_col].fillna(0)
+        has_coverage = coverage > 0
+
+        if has_coverage.sum() >= 60:
+            q33 = coverage[has_coverage].quantile(0.33)
+            q66 = coverage[has_coverage].quantile(0.66)
+
+            coverage_groups = {
+                '低覆盖率 (<33%)': has_coverage & (coverage <= q33),
+                '中覆盖率 (33-66%)': has_coverage & (coverage > q33) & (coverage <= q66),
+                '高覆盖率 (>66%)': has_coverage & (coverage > q66),
+            }
+
+            coverage_results = {}
+            non_words_score_cols = [c for c in all_scores_df.columns
+                                    if not c.startswith('词典_')]
+            non_words_label_cols = [c for c in all_labels_df.columns
+                                    if not c.startswith('词典_')]
+
+            for group_name, mask in coverage_groups.items():
+                if mask.sum() < 20:
+                    continue
+                group_scores = all_scores_df.loc[mask, non_words_score_cols]
+                alpha = compute_cronbachs_alpha(group_scores)
+                group_labels = all_labels_df.loc[mask, non_words_label_cols]
+                agreement = compute_label_agreement_rate(group_labels)
+
+                coverage_results[group_name] = {
+                    'n_samples': int(mask.sum()),
+                    'cronbach_alpha_bert_llm': alpha,
+                    'full_agreement_rate_bert_llm': agreement['full_agreement_rate'],
+                }
+                logger_inst.info(
+                    f"  分层[{group_name}]: n={int(mask.sum()):,}, "
+                    f"α(BERT+LLM)={alpha:.3f}, "
+                    f"一致率={agreement['full_agreement_rate']:.3f}"
+                )
+
+            results['by_dict_coverage'] = coverage_results
+
+            # 自动解读: 低 vs 高覆盖率组的 α 差异
+            low = coverage_results.get('低覆盖率 (<33%)', {})
+            high = coverage_results.get('高覆盖率 (>66%)', {})
+            if low and high:
+                alpha_low = low.get('cronbach_alpha_bert_llm', np.nan)
+                alpha_high = high.get('cronbach_alpha_bert_llm', np.nan)
+                if not np.isnan(alpha_low) and not np.isnan(alpha_high):
+                    delta = alpha_high - alpha_low
+                    if delta > 0.10:
+                        logger_inst.warning(
+                            f"  ⚠️ 覆盖率依赖: Δα={delta:+.3f}，"
+                            f"词典法锚点在低覆盖率文章中不可靠"
+                        )
+                    else:
+                        logger_inst.info(
+                            f"  ✓ BERT+LLM 在低覆盖率文章中仍稳健 "
+                            f"(Δα={delta:+.3f})"
+                        )
+        else:
+            logger_inst.info(
+                f"  覆盖率分层: 有效样本不足60 ({has_coverage.sum()})"
+            )
+    else:
+        logger_inst.info(
+            f"  pos_ratio/neg_ratio 列不存在，跳过覆盖率分层"
+        )
 
     return results
 
@@ -1436,7 +1612,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     logger.info("===    四、分层稳健性分析    ===")
     logger.info("=" * 70)
 
-    stratified = stratified_analysis(df, all_scores_df, all_labels_df, logger)
+    stratified = stratified_analysis(df, all_scores_df, all_labels_df, logger, track=track)
     results['stratified'] = stratified
 
     # ======================================================================
