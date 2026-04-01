@@ -10,8 +10,9 @@
   分别聚合, 最后在面板层级计算综合指标。
 
 聚合指标设计:
-  - tone_mean:       篇章级情感的简单均值
-  - tone_weighted:   提及密度加权均值 (Hassan et al., 2019, QJE)
+  - tone_mean:       篇章级情感的简单均值 (EW)
+  - tone_weighted:   提及密度加权均值 (VW, Hassan et al., 2019, QJE)
+  - tone_mw:         媒体权威性加权均值 (MW, Holzman et al., 2023, JAR)
   - coverage_ratio:  篇数覆盖率 = 有效篇数 / 总篇数
   - article_count:   Bank-Year 下的总文章数
   - _tech / _app:    按 fintech_category 分组的分类情感均值
@@ -131,6 +132,103 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
 
 # explode_banks 函数已移除 — 展开逻辑已迁移至 11_news_bank.py（Phase 1 提早展开）
 # 数据抵达此阶段时已包含 target_bank、co_mentioned_banks 等列
+
+
+# ============================================================================
+# 3c. 媒体权威性加权 (Holzman, Miller & Twedt 2023, JAR, Appendix A)
+# ============================================================================
+
+def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
+    """步骤 3c: 媒体权威性加权。
+
+    学术依据:
+      Holzman, E.R., Miller, B.P. & Twedt, B.J. (2023).
+      "Curbing Enthusiasm: Media Sentiment and the Disciplining Role
+      of Quarterly Earnings Announcements."
+      Journal of Accounting Research, 61(2), 429-473.
+      → Appendix A: Outlet Impact Media Sent 加权方法
+
+    该论文通过滚动回归估计每家媒体对股票周转率的边际贡献,
+    然后按排名百分位加权。本项目使用 media_weights.json 中的
+    静态权威性评分 (10-100) 作为简化替代。
+
+    匹配策略: 精确匹配 → 去括号归一化匹配 → 默认权重。
+    归一化: raw_weight / mean(raw_weight), 使量级 ≈ 等权版。
+
+    Args:
+        df: 篇章级 DataFrame, 须含 '媒体(中文)' 列。
+
+    Returns:
+        df: 附加 'media_authority_weight' 列的 DataFrame。
+    """
+    logger.info("=" * 60)
+    logger.info("步骤 3c: 媒体权威性加权 (Holzman et al. 2023, JAR)")
+    logger.info("=" * 60)
+
+    # ── 加载 media_weights.json ──
+    weights_path = CONFIG['paths'].get('media_weights_file', '')
+    if not os.path.exists(weights_path):
+        logger.warning(f"  media_weights_file 不存在: {weights_path}, 全部使用默认权重")
+        df['media_authority_weight'] = 1.0
+        return df
+
+    with open(weights_path, 'r', encoding='utf-8') as f:
+        raw_weights = json.load(f)
+    # 过滤注释键
+    media_weights = {k: v for k, v in raw_weights.items()
+                     if not k.startswith('//')}
+    logger.info(f"  已加载 {len(media_weights)} 条媒体权重")
+
+    # 默认权重: 从 media_weights.json 的 "default" 键读取
+    # 与 38_media_diversity.py 的 media_weights.get("default", 10) 一致
+    default_weight = media_weights.get('default', 10)
+    logger.info(f"  未评级媒体默认权重: {default_weight}")
+
+    # ── 双层匹配 ──
+    def _normalize_media_name(name: str) -> str:
+        """去除括号后缀: '扬子晚报(数字报)' → '扬子晚报'。"""
+        return re.sub(r'[（(][^)）]*[)）]', '', str(name)).strip()
+
+    exact_count = 0
+    fuzzy_count = 0
+    default_count = 0
+    weights_assigned = []
+
+    for idx, name in df['媒体(中文)'].items():
+        name_str = str(name).strip()
+        if name_str in media_weights:
+            w = media_weights[name_str]
+            exact_count += 1
+        else:
+            norm_name = _normalize_media_name(name_str)
+            if norm_name in media_weights:
+                w = media_weights[norm_name]
+                fuzzy_count += 1
+            else:
+                w = default_weight
+                default_count += 1
+        weights_assigned.append(w)
+
+    raw_series = pd.Series(weights_assigned, index=df.index, dtype=float)
+
+    # ── 均值归一化 ──
+    raw_mean = raw_series.mean()
+    if raw_mean > 0:
+        df['media_authority_weight'] = raw_series / raw_mean
+    else:
+        df['media_authority_weight'] = 1.0
+
+    # ── 诊断日志 ──
+    total = len(df)
+    logger.info(f"  匹配诊断: 精确={exact_count} ({exact_count/total:.1%}), "
+                f"归一化={fuzzy_count} ({fuzzy_count/total:.1%}), "
+                f"默认={default_count} ({default_count/total:.1%})")
+    logger.info(f"  原始权重: mean={raw_series.mean():.1f}, "
+                f"min={raw_series.min():.0f}, max={raw_series.max():.0f}")
+    logger.info(f"  归一化后: mean={df['media_authority_weight'].mean():.4f}, "
+                f"std={df['media_authority_weight'].std():.4f}")
+
+    return df
 
 
 # ============================================================================
@@ -267,6 +365,21 @@ def build_aggregation_dict() -> dict:
         for b in BERT_MODELS:
             agg[f'{b}_正面_w_sum{track}'] = (f'{b}_正面_w{track}', 'sum')
             agg[f'{b}_负面_w_sum{track}'] = (f'{b}_负面_w{track}', 'sum')
+
+    # --- F3. 媒体权威性加权聚合 (Holzman et al. 2023, JAR) ---
+    agg['sum_media_authority_weight'] = ('media_authority_weight', 'sum')
+    for track in ['_full', '_ctx']:
+        agg[f'llm_vote_score_mw_sum{track}'] = (f'llm_vote_score_mw{track}', 'sum')
+        agg[f'llm_vote_cont_mw_sum{track}'] = (f'llm_vote_cont_mw{track}', 'sum')
+        for short in LLM_MODELS:
+            agg[f'{short}_score_mw_sum{track}'] = (f'{short}_score_mw{track}', 'sum')
+            agg[f'{short}_cont_mw_sum{track}'] = (f'{short}_cont_mw{track}', 'sum')
+        for d in DICT_NAMES:
+            agg[f'{d}_score_mw_sum{track}'] = (f'{d}_score_mw{track}', 'sum')
+            agg[f'{d}_idf_score_mw_sum{track}'] = (f'{d}_idf_score_mw{track}', 'sum')
+        for b in BERT_MODELS:
+            agg[f'{b}_正面_mw_sum{track}'] = (f'{b}_正面_mw{track}', 'sum')
+            agg[f'{b}_负面_mw_sum{track}'] = (f'{b}_负面_mw{track}', 'sum')
 
     return agg
 
@@ -465,6 +578,34 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     panel[f'{b}_neg_vw{track}'] = panel[w_neg] / denom
         logger.info(f"  已计算 Value-weighted Tone 指标（双轨）")
 
+    # --- MW Tone (媒体权威性加权, Holzman et al. 2023, JAR) ---
+    if 'sum_media_authority_weight' in panel.columns:
+        mw_denom = panel['sum_media_authority_weight'].replace(0, np.nan)
+        for track in ['_full', '_ctx']:
+            if f'llm_vote_score_mw_sum{track}' in panel.columns:
+                panel[f'llm_vote_tone_mw{track}'] = (
+                    panel[f'llm_vote_score_mw_sum{track}'] / mw_denom)
+            if f'llm_vote_cont_mw_sum{track}' in panel.columns:
+                panel[f'llm_vote_cont_mw{track}'] = (
+                    panel[f'llm_vote_cont_mw_sum{track}'] / mw_denom)
+            for short in LLM_MODELS:
+                w_col = f'{short}_score_mw_sum{track}'
+                if w_col in panel.columns:
+                    panel[f'{short}_tone_mw{track}'] = panel[w_col] / mw_denom
+            for d in DICT_NAMES:
+                w_col = f'{d}_score_mw_sum{track}'
+                if w_col in panel.columns:
+                    panel[f'{d}_tone_mw{track}'] = panel[w_col] / mw_denom
+                w_idf = f'{d}_idf_score_mw_sum{track}'
+                if w_idf in panel.columns:
+                    panel[f'{d}_idf_tone_mw{track}'] = panel[w_idf] / mw_denom
+            for b in BERT_MODELS:
+                for label, sfx in [('_正面', '_pos'), ('_负面', '_neg')]:
+                    w_col = f'{b}{label}_mw_sum{track}'
+                    if w_col in panel.columns:
+                        panel[f'{b}{sfx}_mw{track}'] = panel[w_col] / mw_denom
+        logger.info(f"  已计算 Media-Authority-weighted Tone 指标（双轨）")
+
     logger.info(f"  聚合后面板行数: {panel.shape[0]:,}")
     logger.info(f"  唯一银行数: {panel['target_bank'].nunique()}")
     logger.info(f"  年份范围: {panel['year'].min()} - {panel['year'].max()}")
@@ -508,7 +649,8 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     count_cols = ['pos_count', 'neg_count',
                   'pos_count_vw', 'neg_count_vw',
                   'sum_mention_density', 'sum_doc_length', 'sum_target_mentions',
-                  'sum_fl_count_full', 'sum_fl_count_ctx']
+                  'sum_fl_count_full', 'sum_fl_count_ctx',
+                  'sum_media_authority_weight']
     zero_fill_cols = zero_fill_patterns + sum_cols + count_cols
 
     for col in zero_fill_cols:
@@ -1014,6 +1156,13 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         panel[f'bert_avg_pos_vw{track}'] = _safe_mean([f'{b}_pos_vw{track}' for b in BERT_MODELS])
         panel[f'bert_avg_neg_vw{track}'] = _safe_mean([f'{b}_neg_vw{track}' for b in BERT_MODELS])
 
+        # --- MW 综合指标 (Holzman et al. 2023, JAR) ---
+        panel[f'llm_models_avg_tone_mw{track}'] = _safe_mean([f'{s}_tone_mw{track}' for s in LLM_MODELS])
+        panel[f'dict_avg_tone_mw{track}'] = _safe_mean([f'{d}_tone_mw{track}' for d in DICT_NAMES])
+        panel[f'dict_avg_idf_tone_mw{track}'] = _safe_mean([f'{d}_idf_tone_mw{track}' for d in DICT_NAMES])
+        panel[f'bert_avg_pos_mw{track}'] = _safe_mean([f'{b}_pos_mw{track}' for b in BERT_MODELS])
+        panel[f'bert_avg_neg_mw{track}'] = _safe_mean([f'{b}_neg_mw{track}' for b in BERT_MODELS])
+
     logger.info(f"  生成双轨综合指标完成")
 
     # --- 分类维度综合指标 ---
@@ -1190,6 +1339,21 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'tone_gap_central_local_ctx':  'Tone Gap: Central - Local (Ctx)',
                 # 集中度
                 'media_hhi':                   'Media Source HHI',
+                # 媒体权威性加权 (Holzman et al. 2023, JAR)
+                'llm_vote_tone_mw_full':          'LLM Vote Tone (Media-Auth Wt, Full)',
+                'llm_vote_tone_mw_ctx':           'LLM Vote Tone (Media-Auth Wt, Ctx)',
+                'llm_vote_cont_mw_full':          'LLM Vote Cont (Media-Auth Wt, Full)',
+                'llm_vote_cont_mw_ctx':           'LLM Vote Cont (Media-Auth Wt, Ctx)',
+                'llm_models_avg_tone_mw_full':    'LLM Avg Tone (Media-Auth Wt, Full)',
+                'llm_models_avg_tone_mw_ctx':     'LLM Avg Tone (Media-Auth Wt, Ctx)',
+                'dict_avg_tone_mw_full':          'Dict Avg Tone (Media-Auth Wt, Full)',
+                'dict_avg_tone_mw_ctx':           'Dict Avg Tone (Media-Auth Wt, Ctx)',
+                'dict_avg_idf_tone_mw_full':      'Dict IDF Tone (Media-Auth Wt, Full)',
+                'dict_avg_idf_tone_mw_ctx':       'Dict IDF Tone (Media-Auth Wt, Ctx)',
+                'bert_avg_pos_mw_full':           'BERT Avg Pos (Media-Auth Wt, Full)',
+                'bert_avg_pos_mw_ctx':            'BERT Avg Pos (Media-Auth Wt, Ctx)',
+                'bert_avg_neg_mw_full':           'BERT Avg Neg (Media-Auth Wt, Full)',
+                'bert_avg_neg_mw_ctx':            'BERT Avg Neg (Media-Auth Wt, Ctx)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -1303,6 +1467,33 @@ def main():
         logger.info(f"  已生成 {len(vw_cols)} 个加权列")
     else:
         logger.info("  mention_density 列不存在, 跳过加权列预计算")
+
+    # --- 3c. 媒体权威性加权列预计算 (Holzman et al. 2023, JAR) ---
+    if PANEL_CFG.get('compute_media_authority_weighting', False):
+        df = compute_media_authority_weights(df)
+        mw = df['media_authority_weight'].fillna(1.0)
+        for track in ['_full', '_ctx']:
+            df[f'llm_vote_score_mw{track}'] = df[f'llm_vote_score{track}'] * mw
+            df[f'llm_vote_cont_mw{track}'] = df[f'llm_vote_cont{track}'] * mw
+            for short in LLM_MODELS:
+                for sfx in ['_score', '_cont']:
+                    src = f'{short}{sfx}{track}'
+                    if src in df.columns:
+                        df[f'{short}{sfx}_mw{track}'] = df[src] * mw
+            for d in DICT_NAMES:
+                src = f'{d}_score{track}'
+                if src in df.columns:
+                    df[f'{d}_score_mw{track}'] = df[src] * mw
+                src_idf = f'{d}_idf_score{track}'
+                if src_idf in df.columns:
+                    df[f'{d}_idf_score_mw{track}'] = df[src_idf] * mw
+            for b in BERT_MODELS:
+                for label in ['_正面', '_负面']:
+                    src = f'{b}{label}{track}'
+                    if src in df.columns:
+                        df[f'{b}{label}_mw{track}'] = df[src] * mw
+        mw_cols = [c for c in df.columns if '_mw' in c]
+        logger.info(f"  已生成 {len(mw_cols)} 个媒体权威性加权列")
 
     # --- 4. 时间解析 ---
     df = parse_time(df)
