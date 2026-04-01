@@ -49,10 +49,19 @@ def discover_sentiment_columns(df: pd.DataFrame) -> dict:
     for col in columns:
         if col.endswith(sentiment_suffix):
             short_name = col[:-len(sentiment_suffix)]
-            conf_col = f'{short_name}{confidence_suffix}'
+            # 置信度列查找：优先 _sentiment_confidence 模式（21_tone_llms.py 输出格式）
+            # 回退到 _confidence 模式以兼容旧数据
+            conf_col_primary = f'{short_name}_sentiment{confidence_suffix}'
+            conf_col_fallback = f'{short_name}{confidence_suffix}'
+            if conf_col_primary in columns:
+                conf_col = conf_col_primary
+            elif conf_col_fallback in columns:
+                conf_col = conf_col_fallback
+            else:
+                conf_col = None
             result['llm'][short_name] = {
                 'sentiment': col,
-                'confidence': conf_col if conf_col in columns else None,
+                'confidence': conf_col,
             }
 
     words_names = set(result['words'].keys())
@@ -167,7 +176,7 @@ class TestDiscoverSentimentColumns:
         assert 'yao_2021' in result['words']
 
     def test_discover_llm_columns(self):
-        """应正确识别 LLM 列。"""
+        """应正确识别 LLM 列（旧格式: _confidence 回退）。"""
         df = pd.DataFrame({
             'gpt4_sentiment': ['正面'],
             'gpt4_confidence': [0.9],
@@ -177,6 +186,28 @@ class TestDiscoverSentimentColumns:
         assert len(result['llm']) == 2
         assert result['llm']['gpt4']['confidence'] == 'gpt4_confidence'
         assert result['llm']['claude']['confidence'] is None
+
+    def test_discover_llm_confidence_new_format(self):
+        """应优先匹配新格式 _sentiment_confidence 列名（21_tone_llms.py 输出）。"""
+        df = pd.DataFrame({
+            'gpt5nano_sentiment': ['正面'],
+            'gpt5nano_sentiment_confidence': [0.92],
+            'gemini3_sentiment': ['中性'],
+            'gemini3_sentiment_confidence': [0.78],
+        })
+        result = discover_sentiment_columns(df)
+        assert result['llm']['gpt5nano']['confidence'] == 'gpt5nano_sentiment_confidence'
+        assert result['llm']['gemini3']['confidence'] == 'gemini3_sentiment_confidence'
+
+    def test_discover_llm_confidence_priority(self):
+        """新旧格式共存时应优先选择新格式 _sentiment_confidence。"""
+        df = pd.DataFrame({
+            'model_a_sentiment': ['负面'],
+            'model_a_sentiment_confidence': [0.85],  # 新格式（应优先）
+            'model_a_confidence': [0.60],             # 旧格式
+        })
+        result = discover_sentiment_columns(df)
+        assert result['llm']['model_a']['confidence'] == 'model_a_sentiment_confidence'
 
     def test_discover_bert_columns(self):
         """应正确识别 BERT 列（排除 words 和 llm 已识别的）。"""

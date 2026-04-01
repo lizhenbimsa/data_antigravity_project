@@ -27,6 +27,10 @@
     │    4.1 按新闻长度分层                                        │
     │    4.2 按时间段分层                                          │
     │                                                            │
+    │ 4.5 LLM 概率诊断 (Chiu & Hung 2024 M3 降级适配)             │
+    │    4.5a LLM 类别偏向分析 (chi-square + Jensen-Shannon)       │
+    │    4.5b 置信度校准诊断 (ECE / 降级: 描述性统计)               │
+    │                                                            │
     │ 五、人工验证样本生成                                         │
     │    5.1 一致样本随机抽取                                      │
     │    5.2 不一致样本邻域加密抽取                                │
@@ -35,6 +39,9 @@
     学术依据：
       - Loughran & McDonald (2016, JAR 54(4):1187-1230): 多度量方法间的相关性是构建效度的核心证据
       - Cronbach (1951, Psychometrika 16(3):297-334): 内部一致性系数 α ≥ 0.70 可接受
+      - Chiu & Hung (2024, IRFA): Dirichlet 不确定性估计揭示 LLM 类别偏向
+      - Carlson & Burbano (2026, SMJ 47(3):699-725): LLM 注释应报告 model certainty
+      - Guo et al. (2017, ICML): Expected Calibration Error (ECE) 校准诊断
 
 输入：
     阶段 21/22/23 输出的最终 Parquet 文件（包含全部词典/BERT/LLM 列）
@@ -113,10 +120,20 @@ def discover_sentiment_columns(df: pd.DataFrame, track_suffix: str = '') -> dict
     for col in columns:
         if col.endswith(sentiment_suffix):
             short_name = col[:-len(sentiment_suffix)]
-            conf_col = f'{short_name}{confidence_suffix}'
+            # 置信度列查找：21_tone_llms.py 输出格式为
+            # {short}_sentiment_confidence{track}，优先匹配此模式；
+            # 回退到 {short}_confidence{track} 以兼容历史数据
+            conf_col_primary = f'{short_name}_sentiment{confidence_suffix}'
+            conf_col_fallback = f'{short_name}{confidence_suffix}'
+            if conf_col_primary in columns:
+                conf_col = conf_col_primary
+            elif conf_col_fallback in columns:
+                conf_col = conf_col_fallback
+            else:
+                conf_col = None
             result['llm'][short_name] = {
                 'sentiment': col,
-                'confidence': conf_col if conf_col in columns else None,
+                'confidence': conf_col,
             }
 
     # BERT 法：找 _label{track_suffix} 列（排除已被词典法识别的；排除 LLM 的）
@@ -675,6 +692,407 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
 
 
 # ============================================================================
+# 9.5 LLM 概率诊断 (Chiu & Hung 2024 M3 降级适配)
+# ============================================================================
+
+def _compute_jsd(p: np.ndarray, q: np.ndarray) -> float:
+    """计算 Jensen-Shannon 散度（以 bit 为单位）。
+
+    JSD(P||Q) = 0.5 * KLD(P||M) + 0.5 * KLD(Q||M)，其中 M = 0.5*(P+Q)。
+    自动处理零概率（加 1e-12 平滑），避免 log(0)。
+
+    Args:
+        p: 概率分布向量（需归一化）。
+        q: 概率分布向量（需归一化）。
+
+    Returns:
+        float: JSD 值，范围 [0, 1]（以 log2 计算时上界为 1）。
+    """
+    eps = 1e-12
+    p = np.asarray(p, dtype=float) + eps
+    q = np.asarray(q, dtype=float) + eps
+    p = p / p.sum()
+    q = q / q.sum()
+    m = 0.5 * (p + q)
+    kld_pm = float(np.sum(p * np.log2(p / m)))
+    kld_qm = float(np.sum(q * np.log2(q / m)))
+    return round(0.5 * kld_pm + 0.5 * kld_qm, 6)
+
+
+def _chi2_contingency_manual(observed: np.ndarray) -> tuple:
+    """手动计算 chi-square 独立性检验（scipy 不可用时的回退实现）。
+
+    Args:
+        observed: 列联表（r x c numpy 数组）。
+
+    Returns:
+        tuple: (chi2_statistic, p_value_approx, dof)
+               p 值为近似值（使用 chi-square CDF 的正态近似）。
+    """
+    observed = np.asarray(observed, dtype=float)
+    row_sums = observed.sum(axis=1)
+    col_sums = observed.sum(axis=0)
+    total = observed.sum()
+    if total == 0:
+        return 0.0, 1.0, 0
+    expected = np.outer(row_sums, col_sums) / total
+    # 避免除零
+    mask = expected > 0
+    chi2 = float(np.sum((observed[mask] - expected[mask]) ** 2 / expected[mask]))
+    dof = (observed.shape[0] - 1) * (observed.shape[1] - 1)
+    if dof <= 0:
+        return chi2, 1.0, dof
+    # Wilson-Hilferty 正态近似
+    z = ((chi2 / dof) ** (1.0 / 3) - (1 - 2.0 / (9 * dof))) / (2.0 / (9 * dof)) ** 0.5
+    # 标准正态 CDF 近似 (Abramowitz & Stegun)
+    if z > 8:
+        p_val = 0.0
+    elif z < -8:
+        p_val = 1.0
+    else:
+        t = 1.0 / (1.0 + 0.2316419 * abs(z))
+        d = 0.3989422804014327  # 1/sqrt(2*pi)
+        poly = t * (0.319381530 + t * (-0.356563782 + t * (
+            1.781477937 + t * (-1.821255978 + t * 1.330274429))))
+        cdf = 1.0 - d * np.exp(-0.5 * z * z) * poly if z > 0 else d * np.exp(-0.5 * z * z) * poly
+        p_val = 1.0 - cdf
+    return chi2, max(0.0, min(1.0, p_val)), dof
+
+
+def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
+                                track: str, output_dir: str,
+                                logger_inst) -> dict:
+    """诊断各 LLM 模型的系统性类别偏向及模型间独立性。
+
+    基于 Chiu & Hung (2024, IRFA) Fig. 2 的 Neutral 偏好诊断思路降级适配。
+    项目数据为单次打标，无法复刻原始 Dirichlet 批次更新，改为经验性类别
+    比例分析 + 模型间 chi-square 独立性检验 + Jensen-Shannon 散度。
+
+    学术依据：
+      - Chiu & Hung (2024): 模型存在系统性 Neutral 偏好倾向
+      - Carlson & Burbano (2026, SMJ §4.2): 建议报告 model certainty
+
+    Args:
+        df:          当前轨道的 DataFrame。
+        llm_cols:    sentiment_cols['llm'] 的值，结构为
+                     {short_name: {'sentiment': col, 'confidence': col|None}}。
+                     注意：包含投票聚合列 short_name='llm'，需过滤。
+        track:       轨道后缀（'_full' 或 '_ctx'）。
+        output_dir:  输出目录（eval_reports/）。
+        logger_inst: 日志记录器。
+
+    Returns:
+        dict: 诊断结果，包含各模型类别比例、chi-square 结果、JS 散度。
+    """
+    track_label = '全文' if track == '_full' else '上下文片段'
+    logger_inst.info("=" * 70)
+    logger_inst.info(f"===    4.5a LLM 类别偏向诊断 [{track_label}]    ===")
+    logger_inst.info("=" * 70)
+
+    # ── 0. 过滤聚合列，仅保留独立模型 ──
+    independent_models = {
+        name: info for name, info in llm_cols.items()
+        if name != 'llm'  # 排除多数投票聚合列
+    }
+    n_models = len(independent_models)
+    if n_models < 1:
+        logger_inst.warning("  无独立 LLM 模型列可用，跳过类别偏向诊断")
+        return {}
+
+    logger_inst.info(f"  独立模型数: {n_models} ({list(independent_models.keys())})")
+
+    # ── 1. 各模型类别分布 ──
+    categories = ['正面', '中性', '负面']
+    distributions = {}  # name -> {cat: proportion}
+    counts_raw = {}     # name -> {cat: count}
+    model_names = []
+
+    for name, info in independent_models.items():
+        sent_col = info['sentiment']
+        if sent_col not in df.columns:
+            logger_inst.warning(f"  列 '{sent_col}' 不存在，跳过模型 {name}")
+            continue
+        model_names.append(name)
+        vc = df[sent_col].value_counts()
+        total = vc.sum()
+        dist = {}
+        cnt = {}
+        for cat in categories:
+            c = int(vc.get(cat, 0))
+            cnt[cat] = c
+            dist[cat] = round(c / max(total, 1), 4)
+        distributions[name] = dist
+        counts_raw[name] = cnt
+        logger_inst.info(
+            f"  [{name}] 类别分布: "
+            + ", ".join(f"{cat}={dist[cat]:.1%} ({cnt[cat]})" for cat in categories)
+        )
+
+    if len(model_names) < 2:
+        logger_inst.info("  独立模型不足 2 个，跳过两两比较")
+        return {'distributions': distributions}
+
+    # ── 2. 模型间 chi-square 同质性检验（两两） ──
+    # 注：2×3 列联表检验两模型的边际分类分布是否相同（homogeneity test），
+    # 而非同一样本上两变量的独立性。两种检验公式和统计量完全相同。
+    logger_inst.info("  --- 模型间类别分布同质性检验 ---")
+    try:
+        from scipy.stats import chi2_contingency
+        _use_scipy = True
+    except ImportError:
+        _use_scipy = False
+        logger_inst.info("  scipy 不可用，使用手动 chi-square 实现")
+
+    chi2_results = []
+    for i in range(len(model_names)):
+        for j in range(i + 1, len(model_names)):
+            m1, m2 = model_names[i], model_names[j]
+            # 构建 2 x len(categories) 列联表
+            row1 = [counts_raw[m1].get(cat, 0) for cat in categories]
+            row2 = [counts_raw[m2].get(cat, 0) for cat in categories]
+            contingency = np.array([row1, row2])
+
+            if _use_scipy:
+                chi2_stat, p_val, dof, _ = chi2_contingency(contingency)
+            else:
+                chi2_stat, p_val, dof = _chi2_contingency_manual(contingency)
+
+            chi2_results.append({
+                'pair': f"{m1} vs {m2}",
+                'chi2': round(chi2_stat, 4),
+                'p_value': round(p_val, 6),
+                'dof': dof,
+                'significant': p_val < 0.05,
+            })
+            sig_mark = '*' if p_val < 0.05 else ''
+            logger_inst.info(
+                f"  {m1} vs {m2}: chi2={chi2_stat:.2f}, "
+                f"p={p_val:.4f}{sig_mark}, dof={dof}"
+            )
+
+    # ── 3. 模型间 Jensen-Shannon 散度 ──
+    logger_inst.info("  --- 模型间 Jensen-Shannon 散度 ---")
+    js_results = []
+    for i in range(len(model_names)):
+        for j in range(i + 1, len(model_names)):
+            m1, m2 = model_names[i], model_names[j]
+            p = np.array([distributions[m1].get(cat, 0) for cat in categories])
+            q = np.array([distributions[m2].get(cat, 0) for cat in categories])
+            jsd = _compute_jsd(p, q)
+            js_results.append({'pair': f"{m1} vs {m2}", 'jsd': jsd})
+
+            if jsd > 0.1:
+                interp = '偏向差异大（多数投票有效性正面证据）'
+            elif jsd < 0.01:
+                interp = '高度同质化（多数投票退化风险）'
+            else:
+                interp = '偏向差异适中'
+            logger_inst.info(f"  {m1} vs {m2}: JSD={jsd:.4f} — {interp}")
+
+    # ── 4. 输出 CSV ──
+    csv_rows = []
+    for name in model_names:
+        row = {'模型': name}
+        row.update({f'比例_{cat}': distributions[name][cat] for cat in categories})
+        csv_rows.append(row)
+    # 追加检验结果
+    for cr in chi2_results:
+        csv_rows.append({
+            '模型': cr['pair'],
+            'chi2': cr['chi2'],
+            'p_value': cr['p_value'],
+            'significant': cr['significant'],
+        })
+    for jr in js_results:
+        csv_rows.append({'模型': jr['pair'], 'JSD': jr['jsd']})
+
+    csv_path = os.path.join(output_dir, f'llm_bias_diagnostic{track}.csv')
+    pd.DataFrame(csv_rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
+    logger_inst.info(f"  类别偏向诊断 CSV: {csv_path}")
+
+    # ── 5. 输出 PNG ──
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei',
+                                            'DejaVu Sans']
+        plt.rcParams['axes.unicode_minus'] = False
+
+        x = np.arange(len(categories))
+        width = 0.8 / max(len(model_names), 1)
+        fig, ax = plt.subplots(figsize=(8, 5))
+
+        for idx, name in enumerate(model_names):
+            vals = [distributions[name].get(cat, 0) for cat in categories]
+            offset = (idx - (len(model_names) - 1) / 2) * width
+            bars = ax.bar(x + offset, vals, width * 0.9, label=name, alpha=0.85)
+            for bar, v in zip(bars, vals):
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01,
+                        f'{v:.1%}', ha='center', va='bottom', fontsize=8)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(categories, fontsize=11)
+        ax.set_ylabel('比例', fontsize=11)
+        ax.set_title(f'LLM 模型类别分布对比 [{track_label}]', fontsize=13, fontweight='bold')
+        ax.legend(fontsize=9)
+        ax.set_ylim(0, 1.0)
+        fig.tight_layout()
+
+        png_path = os.path.join(output_dir, f'llm_bias_diagnostic{track}.png')
+        fig.savefig(png_path, dpi=150, bbox_inches='tight')
+        plt.close(fig)
+        logger_inst.info(f"  类别偏向诊断图: {png_path}")
+    except ImportError:
+        logger_inst.warning("  matplotlib 不可用，跳过类别偏向柱状图")
+    except Exception as e:
+        logger_inst.warning(f"  绘制类别偏向图失败: {e}")
+
+    return {
+        'distributions': distributions,
+        'chi2_tests': chi2_results,
+        'js_divergences': js_results,
+    }
+
+
+def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
+                                     track: str, output_dir: str,
+                                     logger_inst) -> dict:
+    """检查 LLM 模型自报告置信度是否校准良好。
+
+    当 33 阶段人工金标准数据存在时，计算 Expected Calibration Error (ECE)
+    并绘制可靠性图。否则降级为仅输出置信度分布描述性统计。
+
+    学术依据：
+      - Guo et al. (2017, ICML): ECE < 0.05 校准良好
+      - Niculescu-Mizil & Caruana (2005, ICML): 可靠性图
+
+    Args:
+        df:          当前轨道的 DataFrame。
+        llm_cols:    sentiment_cols['llm'] 的值（含聚合列，需过滤）。
+        track:       轨道后缀。
+        output_dir:  输出目录。
+        logger_inst: 日志记录器。
+
+    Returns:
+        dict: 校准诊断结果。
+    """
+    track_label = '全文' if track == '_full' else '上下文片段'
+    logger_inst.info("=" * 70)
+    logger_inst.info(f"===    4.5b 置信度校准诊断 [{track_label}]    ===")
+    logger_inst.info("=" * 70)
+
+    # ── 0. 过滤聚合列 ──
+    independent_models = {
+        name: info for name, info in llm_cols.items()
+        if name != 'llm'
+    }
+    if not independent_models:
+        logger_inst.warning("  无独立 LLM 模型列可用，跳过置信度校准诊断")
+        return {}
+
+    # ── 1. 置信度描述性统计（始终执行） ──
+    logger_inst.info("  --- 置信度分布描述性统计 ---")
+    stats_results = {}
+
+    for name, info in independent_models.items():
+        conf_col = info.get('confidence')
+        if not conf_col or conf_col not in df.columns:
+            logger_inst.info(f"  [{name}] 无置信度列，跳过")
+            continue
+
+        conf = pd.to_numeric(df[conf_col], errors='coerce').dropna()
+        if len(conf) == 0:
+            logger_inst.info(f"  [{name}] 置信度列全为空值，跳过")
+            continue
+
+        stats = {
+            'mean': round(float(conf.mean()), 4),
+            'median': round(float(conf.median()), 4),
+            'std': round(float(conf.std()), 4),
+            'min': round(float(conf.min()), 4),
+            'max': round(float(conf.max()), 4),
+            'n': len(conf),
+        }
+        # skew: 手动计算避免 scipy 依赖
+        if stats['std'] > 0:
+            stats['skew'] = round(float((((conf - conf.mean()) / conf.std()) ** 3).mean()), 4)
+        else:
+            stats['skew'] = 0.0
+
+        stats_results[name] = stats
+        logger_inst.info(
+            f"  [{name}] mean={stats['mean']:.3f}, "
+            f"median={stats['median']:.3f}, std={stats['std']:.3f}, "
+            f"skew={stats['skew']:.3f}, n={stats['n']}"
+        )
+
+    # ── 2. 输出 CSV（描述性统计，始终生成） ──
+    csv_rows = []
+    for name, s in stats_results.items():
+        row = {'模型': name}
+        row.update(s)
+        csv_rows.append(row)
+
+    csv_path = os.path.join(output_dir, f'llm_calibration{track}.csv')
+    if csv_rows:
+        pd.DataFrame(csv_rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
+        logger_inst.info(f"  置信度校准 CSV: {csv_path}")
+
+    # ── 3. 置信度直方图（降级模式，始终绘制） ──
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei',
+                                            'DejaVu Sans']
+        plt.rcParams['axes.unicode_minus'] = False
+
+        n_plots = len(stats_results)
+        if n_plots > 0:
+            fig, axes = plt.subplots(1, n_plots, figsize=(5 * n_plots, 4),
+                                     squeeze=False)
+            plot_idx = 0
+            for name, info in independent_models.items():
+                conf_col = info.get('confidence')
+                if not conf_col or conf_col not in df.columns:
+                    continue
+                if name not in stats_results:
+                    continue
+                if plot_idx >= n_plots:
+                    break
+                ax = axes[0, plot_idx]
+                conf = pd.to_numeric(df[conf_col], errors='coerce').dropna()
+                ax.hist(conf, bins=20, range=(0, 1), alpha=0.7,
+                        color='steelblue', edgecolor='white')
+                ax.set_title(f'{name}', fontsize=11, fontweight='bold')
+                ax.set_xlabel('置信度', fontsize=10)
+                ax.set_ylabel('频次', fontsize=10)
+                s = stats_results[name]
+                ax.axvline(s['mean'], color='red', linestyle='--', linewidth=1,
+                           label=f"mean={s['mean']:.2f}")
+                ax.legend(fontsize=8)
+                plot_idx += 1
+
+            fig.suptitle(f'LLM 置信度分布 [{track_label}]', fontsize=13,
+                         fontweight='bold')
+            fig.tight_layout(rect=[0, 0, 1, 0.93])
+            png_path = os.path.join(output_dir, f'llm_calibration{track}.png')
+            fig.savefig(png_path, dpi=150, bbox_inches='tight')
+            plt.close(fig)
+            logger_inst.info(f"  置信度分布图: {png_path}")
+    except ImportError:
+        logger_inst.warning("  matplotlib 不可用，跳过置信度直方图")
+    except Exception as e:
+        logger_inst.warning(f"  绘制置信度直方图失败: {e}")
+
+    return {
+        'stats': stats_results,
+        'mode': 'descriptive_only',
+    }
+
+
+# ============================================================================
 # 10. 主函数
 # ============================================================================
 
@@ -799,7 +1217,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         # 用标签×置信度作为连续得分
         if cols_info.get('confidence'):
             numeric = label_to_numeric(df[cols_info['sentiment']])
-            conf = df[cols_info['confidence']].astype(float).fillna(0.5)
+            conf = pd.to_numeric(df[cols_info['confidence']], errors='coerce').fillna(0.5)
             all_scores[f'LLM_{short_name}'] = numeric * conf
         else:
             all_scores[f'LLM_{short_name}'] = label_to_numeric(
@@ -1020,6 +1438,22 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
 
     stratified = stratified_analysis(df, all_scores_df, all_labels_df, logger)
     results['stratified'] = stratified
+
+    # ======================================================================
+    # Step 6.5: LLM 概率诊断 (Chiu & Hung 2024 M3 降级适配)
+    # ======================================================================
+    # n_llm 包含聚合列 'llm'（= 独立模型数 + 1），此处仅做粗筛；
+    # 函数内部过滤聚合列后会自行检查独立模型数 >= 2，不足则跳过两两比较
+    if n_llm >= 2:
+        bias_diag = diagnose_llm_category_bias(
+            df, sentiment_cols['llm'], track, output_dir, logger
+        )
+        results['llm_bias_diagnostic'] = bias_diag
+
+        calib_diag = diagnose_confidence_calibration(
+            df, sentiment_cols['llm'], track, output_dir, logger
+        )
+        results['llm_calibration'] = calib_diag
 
     # ======================================================================
     # Step 7: 人工验证样本生成
