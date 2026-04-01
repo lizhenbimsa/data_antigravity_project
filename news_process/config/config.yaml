@@ -25,6 +25,7 @@ paths:
   bank_name_exclusions_file: ./config/bank_name_exclusions.json  # 银行名称否定模式与短名歧义消解配置
   tone_dicts_file: ./config/tone_dicts.json         # 情感词典文件（正面/负面/否定词等）
   sentiment_dicts_dir: ./config/sentiment_dicts      # 情感分析辅助词典目录
+  bank_addresses_file: ./config/bank_addresses.json  # 银行注册地地址信息（省份/城市/区县，用于省级/城市级聚类标准误和 leave-one-out 工具变量构建）
 
 # ------------------------------------------------------------------------------
 # 输出文件名配置 (Output Filenames)

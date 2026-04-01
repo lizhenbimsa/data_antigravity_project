@@ -107,6 +107,29 @@ REFERENCES = {
         '"Media Narratives and Price Informativeness." '
         'SSRN Working Paper No. 4323093.'
     ),
+    # ── 以下引用为检验 8-10 (IV 回归, Oster 检验, 地理聚类) 新增 ──
+    'LuoLi2025': (
+        'Luo, Q. & Li, H. (2025). '
+        '"Media sentiment and corporate R&D manipulation." '
+        'Finance Research Letters, 81, 107505.'
+    ),
+    'Oster2019': (
+        'Oster, E. (2019). '
+        '"Unobservable Selection and Coefficient Stability: '
+        'Theory and Evidence." '
+        'Journal of Business & Economic Statistics, 37(2), 187-204.'
+    ),
+    'GurunButler2012': (
+        'Gurun, U.G. & Butler, A.W. (2012). '
+        '"Don\'t Believe the Hype: Local Media Slant, Local Advertising, '
+        'and Firm Value." '
+        'The Journal of Finance, 67(2), 561-598.'
+    ),
+    'CameronMiller2015': (
+        'Cameron, A.C. & Miller, D.L. (2015). '
+        '"A Practitioner\'s Guide to Cluster-Robust Inference." '
+        'Journal of Human Resources, 50(2), 317-372.'
+    ),
 }
 
 
@@ -683,6 +706,15 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
             'ln_ft_articles':  'ln(1 + Fintech Articles)',
             'ln_nf_articles':  'ln(1 + Non-Fintech Articles)',
             'fintech_share':   'Fintech News Share',
+            # 银行注册地 (步骤 40 的 7c 生成)
+            'bank_province':               'Bank HQ Province',
+            'bank_city':                   'Bank HQ City',
+            # Leave-one-out 情感 IV (步骤 40 的 7d 生成)
+            # 用途: ivreghdfe Y (tone = prov_leave1out_tone_full) X, ...
+            'prov_leave1out_tone_full':     'Prov Leave-1-Out Tone (Full)',
+            'prov_leave1out_tone_ctx':      'Prov Leave-1-Out Tone (Ctx)',
+            'city_leave1out_tone_full':     'City Leave-1-Out Tone (Full)',
+            'city_leave1out_tone_ctx':      'City Leave-1-Out Tone (Ctx)',
         }
         labels_41 = {k: v for k, v in STATA_LABELS_41.items()
                      if k in panel_stata.columns}
@@ -797,8 +829,214 @@ preserve
   est store robust_no_stress
 restore
 
+* ============================================================
+* 检验 8-10: 因果识别与地理稳健性
+* ============================================================
+* 背景:
+*   OLS 回归 Y = β·tone + controls 中, β 的因果解读要求 tone
+*   与误差项不相关。但以下两种情形下此条件被违反:
+*     (1) 反向因果: 企业行为 (如 R&D 操纵) 引发媒体报道
+*     (2) 遗漏变量: 不可观测的企业能力同时影响媒体关注和投资
+*   检验 8 (IV) 和检验 9 (Oster) 分别从不同角度处理内生性。
+*   检验 10 (地理聚类) 则验证推断对空间相关性的稳健性。
+*
+* 对标: Luo & Li (2025, FRL, Tables 3-4, A.2)
+* ============================================================
+
+* ── 检验 8: 工具变量回归 (IV/2SLS) ──
+*
+* 方法论说明:
+*   工具变量 Z 须满足两个条件:
+*     (i)  相关性 (relevance): Cov(Z, tone) ≠ 0
+*          → 通过第一阶段 F 统计量检验, F > 10 为合格门槛
+*             (Stock & Yogo 2005, JBES)
+*     (ii) 排他性 (exclusion): Cov(Z, ε) = 0
+*          → Z 只通过 tone 影响 Y, 不直接影响 Y
+*          → 当 IV 数量 > 内生变量数量时, 可通过 Hansen J 检验
+*
+*   本模板提供两个维度共四个 IV:
+*     维度 1 — 媒体关注度 IV (Bhojraj et al. 2025):
+*       ft_attn_prov / ft_attn_city
+*       = 报道该银行的媒体来源地的金融科技文章占全部文章的比例
+*       排他性论证: 媒体所在地区的金融科技关注度影响其报道银行时的
+*                  选题倾向和行文方式 (相关性), 但一个地区的媒体生态
+*                  不会直接影响被报道银行的经营决策 (排他性)
+*
+*     维度 2 — 情感溢出 IV (Luo & Li 2025):
+*       prov_leave1out_tone_full / city_leave1out_tone_full
+*       = 同省/城市其他银行的年度平均情感 (排除目标银行自身)
+*       排他性论证: 同地区银行共享相同的地方媒体环境 (记者网络、
+*                  编辑偏好、地方政策报道基调), 导致情感得分正相关 (相关性)。
+*                  但其他银行的平均媒体情感不直接驱动目标银行的
+*                  R&D 投资决策 (排他性)。
+*                  → 直接对标 Luo & Li (2025) Table 3 的 Province_news_sentiment
+*
+* 前提: ssc install ivreghdfe
+
+* ─── 维度 1: 媒体关注度 IV ───
+
+* (8a) 省级关注度 IV
+*   ft_attn_prov = 报道该银行的媒体来源省份的金融科技文章占比
+*   第一阶段: tone_i = π·ft_attn_prov + controls + FE + v
+ivreghdfe Y (llm_vote_tone_full = ft_attn_prov) X, ///
+  absorb(target_bank year) cluster(target_bank) first
+  est store iv_attn_prov
+* 弱工具变量检验: 查看上方输出中的 Kleibergen-Paap rk Wald F > 10
+*   (Stock & Yogo 2005 临界值; ivreghdfe 基于 ivreg2, 主输出自动报告)
+
+* (8b) 城市级关注度 IV
+*   ft_attn_city = 报道该银行的媒体来源城市的金融科技文章占比
+*   预期: 城市级变异 > 省级变异 → 第一阶段 F 更高
+ivreghdfe Y (llm_vote_tone_full = ft_attn_city) X, ///
+  absorb(target_bank year) cluster(target_bank) first
+  est store iv_attn_city
+
+* ─── 维度 2: 情感溢出 IV (直接对标论文) ───
+
+* (8c) 省级情感 IV — 精确对标 Luo & Li (2025, Table 3)
+*   prov_leave1out_tone_full = 同省其他银行的年度平均情感 (排除自身)
+*   构建方法: (省内所有银行 tone 总和 - 自身 tone) / (省内银行数 - 1)
+*   论文原文: "Province_news_sentiment, which is the average news sentiment
+*             of firms in the same province" (Luo & Li 2025, §4.1)
+ivreghdfe Y (llm_vote_tone_full = prov_leave1out_tone_full) X, ///
+  absorb(target_bank year) cluster(target_bank) first
+  est store iv_sent_prov
+
+* (8d) 城市级情感 IV — 城市级媒体生态的情感溢出
+*   city_leave1out_tone_full = 同城市其他银行的年度平均情感 (排除自身)
+*   与 8c 的区别: 城市级捕获更精细的地方媒体环境差异
+*   (同一个省内不同城市的媒体生态可能显著不同)
+ivreghdfe Y (llm_vote_tone_full = city_leave1out_tone_full) X, ///
+  absorb(target_bank year) cluster(target_bank) first
+  est store iv_sent_city
+
+* (8e) 多 IV 过度识别检验 (Hansen J test)
+*   当 IV 数量 (2) > 内生变量数量 (1) 时, 可检验排他性约束
+*   H0: 所有 IV 均满足排他性 (均外生)
+*   p > 0.10 → 无法拒绝 H0 → 排他性可信
+*   此处使用关注度 + 情感两个不同维度的 IV
+ivreghdfe Y (llm_vote_tone_full = ft_attn_prov ///
+  prov_leave1out_tone_full) X, ///
+  absorb(target_bank year) cluster(target_bank)
+  est store iv_overid
+* Hansen J 过度识别检验 p 值已在上方 ivreghdfe 主输出中报告
+* (ivreghdfe 基于 ivreg2, 当 IV 数 > 内生变量数时自动报告 Hansen J)
+
+* (8f) Distance IV — 需用户自行构建数据
+*   ln_distance = ln(媒体-银行平均地理距离)
+*   排他性: 距离影响报道正面偏向 (proximity bias),
+*           但距离本身不影响银行投资决策
+*   数据来源: bank_addresses.json 中的银行地址 + 媒体地址
+*   参考: Gurun & Butler (2012, JF, 67(2), 561-598)
+* ivreghdfe Y (llm_vote_tone_full = ln_distance) X, ///
+*   absorb(target_bank year) cluster(target_bank)
+
+* ── 检验 9: Oster (2019) 遗漏变量偏误检验 ──
+*
+* 方法论说明:
+*   IV 处理可观测的内生性, 但 Oster (2019) 方法处理的是:
+*   "假如存在不可观测的遗漏变量, 它们需要多大的选择效应
+*   才能完全消除 tone 的回归系数?"
+*
+*   核心参数:
+*     δ = (不可观测变量的选择效应) / (可观测控制变量的选择效应)
+*     → δ > 1 意味着遗漏变量需要比所有已有控制变量组合起来
+*       更强的解释力才能消除效应
+*     → δ < 0 意味着加入更多控制后系数反而增大 (保守估计)
+*
+*     bounded set = [β̂, β*(δ=1, R_max=1.3×R²)]
+*     → 如果 bounded set 不包含 0, 则即使在最悲观的遗漏变量
+*       假设下, 效应仍非零
+*
+*   实际操作:
+*     R_max = 1.3 × R²_long 是 Oster (2019, Table 1) 推荐的
+*     保守设定, 假设 R² 上限为完整模型 R² 的 1.3 倍
+*
+* 对标: Luo & Li (2025, FRL, Table 4)
+* 前提: ssc install psacalc
+*
+* ⚠️ 技术注意: psacalc 包仅兼容 reg/areg/xtreg 等标准回归命令,
+*    不支持 reghdfe (因 e() 返回值结构不同)。
+*    等价替代: areg Y ... i.year, absorb(target_bank)
+*    ≡ reghdfe Y ..., absorb(target_bank year)
+*    (两者计量上完全等价, 仅实现方式不同)
+
+* 步骤 1: 短回归 (仅核心自变量 + FE, 无额外控制)
+*   目的: 观察无控制变量时的系数 β_short 和 R²_short
+*   注: psacalc 会内部自行计算短回归, 此步骤仅供用户
+*       对比 β_short vs β_long 的衰减方向 (诊断选择偏误方向)
+areg Y llm_vote_tone_full i.year, absorb(target_bank) vce(cluster target_bank)
+local r2_short = e(r2)
+
+* 步骤 2: 长回归 (核心自变量 + 全部控制变量 + FE)
+*   目的: 获取加入控制后的系数和 R²
+*   关键观察: |β_long| 相对 |β_short| 的变化方向表明选择偏误方向
+areg Y llm_vote_tone_full X i.year, absorb(target_bank) vce(cluster target_bank)
+local r2_long = e(r2)
+
+* 步骤 3: 计算 δ 和 bounded set
+*   R_max = 1.3 × R²_long (Oster 2019, JBEStat, Table 1)
+psacalc delta llm_vote_tone_full, rmax(`=1.3*`r2_long'')
+*   → 输出 δ 值. 解读:
+*     δ < 0: 加入控制变量使系数增大, 选择性为保守方向 (较理想)
+*     0 < δ < 1: 遗漏变量选择效应小于可观测变量, 不足以翻转结论
+*     δ > 1: 遗漏变量需要更强效应才能消除结果, 结论较稳健
+*     |δ| >> 1: 极其稳健, 遗漏变量几乎不可能消除效应
+psacalc beta llm_vote_tone_full, rmax(`=1.3*`r2_long'') delta(1)
+*   → 输出 β*(δ=1, R_max) — 假设遗漏变量与可观测变量选择效应
+*     相同时的系数. 若 β* 与 β̂ 同号且 bounded set 不含 0, 结论稳健
+
+* ── 检验 10: 地理层级递进聚类标准误 ──
+*
+* 方法论说明:
+*   标准面板回归使用银行级聚类: vce(cluster target_bank)
+*   但如果同省/同城市银行因共同的媒体环境导致误差项组内相关,
+*   银行级聚类会低估标准误 → t 值偏高 → 虚假显著。
+*
+*   通过逐级提升聚类层级, 可检验系数显著性是否稳健:
+*     银行级 (基准) → 城市级 (329 组) → 省级 (31 组)
+*
+*   ⚠️ 关键: 不能同时 absorb(target_bank bank_province)!
+*   因为每家银行仅注册在一个省, bank_province 是 target_bank
+*   的确定性函数, 两者间存在完美共线性。
+*   正确做法: 保留原 FE 结构, 仅提升聚类层级。
+*
+* 对标: Luo & Li (2025, FRL, Table A.2, Col. 3)
+*        Cameron & Miller (2015, JHR): 聚类数 ≥ 50 门槛
+
+* (10a) 城市级聚类 — 329 个聚类, 超过 Cameron & Miller (2015) 的 50 个门槛
+*   标准渐近推断可靠, 无需 wild bootstrap 补充
+reghdfe Y llm_vote_tone_full nf_ln_coverage nf_media_breadth X, ///
+  absorb(target_bank year) vce(cluster bank_city)
+  est store robust_city_cluster
+
+* (10b) 省级聚类 — 31 个聚类, 低于 50 个门槛
+*   ⚠️ Cameron & Miller (2015, JHR, p.355) 指出:
+*   聚类数 < 50 时, 标准聚类 SE 通常偏小 (over-rejection),
+*   导致 Wald test 的实际拒绝率高于名义水平。
+*   如果系数在此设定下仍显著, 结论更令人信服;
+*   如果边际不显著, 建议运行 10c 的 wild bootstrap 确认。
+reghdfe Y llm_vote_tone_full nf_ln_coverage nf_media_breadth X, ///
+  absorb(target_bank year) vce(cluster bank_province)
+  est store robust_prov_cluster
+
+* (10c) Wild cluster bootstrap — 省级, 适用于少聚类情形
+*   Cameron, Gelbach & Miller (2008, REStat):
+*     wild bootstrap 在聚类数极少时仍能保持正确的拒绝率
+*   前提: ssc install boottest
+*   注: 默认为注释状态, 需要时取消注释运行
+*   weighttype(webb): 31 个聚类 → Rademacher 仅 2^31 种排列,
+*     Webb (2014) 六点分布在少聚类下提供更精确的 p 值
+* boottest llm_vote_tone_full, cluster(bank_province) ///
+*   weighttype(webb) reps(9999) seed(42)
+
 * ── 输出格式化表格 ──
-esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling robust_no_stress ///
+* 列顺序: 基准 → 控制 → 替换 → 赛马 → 交互 → 语言 → 压力年
+*         → IV(关注度×2 + 情感×2 + overid) → 聚类(城市 + 省)
+esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling ///
+  robust_no_stress iv_attn_prov iv_attn_city ///
+  iv_sent_prov iv_sent_city iv_overid ///
+  robust_city_cluster robust_prov_cluster ///
   using "table_falsification.tex", ///
   star(* 0.10 ** 0.05 *** 0.01) se replace
 
@@ -816,6 +1054,28 @@ esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling robust_no_stress ///
 *
 * β₁(tone) 在排除压力年份后仍显著
 *   → ✅ 金融科技情感非系统危机的副产品 (Dim et al. 2024, §3.5)
+*
+* IV: leave1out_tone 系数显著且第一阶段 F > 10
+*   → ✅ 同区域情感溢出是有效外生变异来源
+*     精确对标 Luo & Li (2025) Table 3 的 Province_news_sentiment
+*
+* 城市级 IV 第一阶段 F > 省级 IV
+*   → ✅ 城市内媒体生态变异更强, 工具更有力
+*   (同一省内不同城市的媒体环境差异提供了额外的变异来源)
+*
+* Hansen J (overid) p > 0.10
+*   → ✅ 关注度 IV 和情感 IV 同时满足排他性约束
+*   (两个不同维度的 IV 给出一致的因果估计)
+*
+* Oster δ < 0 或 |δ| >> 1
+*   → ✅ 不可观测选择性不足以消除效应 (Oster 2019, JBEStat)
+*
+* β₁ 在城市/省级聚类下仍显著
+*   → ✅ 效应非地理空间自相关的产物
+*
+* β₁ 在省级聚类下边际不显著但城市聚类下显著
+*   → ℹ️ 可能因 31 个聚类数不足导致 SE 偏大
+*      运行 10c wild cluster bootstrap 确认
 * ============================================================
 
 * ============================================================
