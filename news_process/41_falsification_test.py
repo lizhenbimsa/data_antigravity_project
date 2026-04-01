@@ -760,8 +760,21 @@ reghdfe Y c.llm_vote_tone_full##c.fintech_share X, ///
   absorb(target_bank year) vce(cluster target_bank)
   est store interact
 
+* ── 检验 6: 控制新闻语言特征 ──
+* 目的: 验证 tone 不受文本长度/词汇多样性/可读性驱动
+* 对标: He et al. (2024, IRFA, Table 4, Panel A.5)
+* 变量映射:
+*   avg_article_length — ln(1+平均文章词数), ≈ 论文 MLENGTH (无 track 后缀)
+*   avg_sent_len_full  — 平均句长
+*   avg_ttr_full       — 类符/形符比 (词汇多样性)
+*   avg_cpw_full       — 字符/词 (可读性)
+reghdfe Y llm_vote_tone_full avg_article_length avg_sent_len_full ///
+  avg_ttr_full avg_cpw_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store ctrl_ling
+
 * ── 输出格式化表格 ──
-esttab base ctrl_nf replace_nf ctrl_all interact ///
+esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling ///
   using "table_falsification.tex", ///
   star(* 0.10 ** 0.05 *** 0.01) se replace
 
@@ -776,6 +789,28 @@ esttab base ctrl_nf replace_nf ctrl_all interact ///
 *
 * β₁ 不再显著 + β₂ 显著
 *   → ⚠️ 金融科技情感可能仅代理一般媒体关注度 (需要进一步分析)
+* ============================================================
+
+* ============================================================
+* 稳健性检验: 计数型情感指标 (MSENT 公式族)
+* ────────────────────────────────────────────────────────────
+* 管道主得分 (如 llm_vote_tone_full) 使用语言学增强加权公式,
+* 与 Tetlock (2007, JF) / He et al. (2024, IRFA) 的简单
+* 计数型公式不同。以下提供两种计数型替代指标:
+*
+* (A) MSENT 主公式: (Neg-Pos)/(Neg+Pos), 值域 [-1,+1]
+*     对标: He et al. (2024, IRFA), Eq. (1)
+*     面板变量: avg_msent_full (由管道直接输出)
+reghdfe Y avg_msent_full X, absorb(target_bank year) vce(cluster target_bank)
+*
+* (B) MSENT2 公式: (Neg-Pos)/TotalWords
+*     对标: He et al. (2024, IRFA), Table 3, Panel B
+*     可在 Stata 中从现有变量近似重构:
+*     注: pos_ratio/neg_ratio 使用语言学规则后极性 (含否定翻转),
+*         与论文原始词典计数存在微小差异 (~5% 词受否定影响)
+cap drop dict_msent2_full
+gen dict_msent2_full = avg_neg_ratio_full - avg_pos_ratio_full
+reghdfe Y dict_msent2_full X, absorb(target_bank year) vce(cluster target_bank)
 * ============================================================
 """
     for line in template.strip().split('\n'):

@@ -336,6 +336,12 @@ def build_aggregation_dict() -> dict:
         agg[f'avg_pos_ratio_std{track}'] = (f'pos_ratio{track}', 'std')
         agg[f'avg_neg_ratio_std{track}'] = (f'neg_ratio{track}', 'std')
 
+        # --- I2. 计数型情感指标 MSENT (He et al. 2024, IRFA;
+        #         Tetlock 2007, JF) ---
+        agg[f'avg_msent{track}'] = (f'msent_score{track}', 'mean')
+        agg[f'avg_msent_std{track}'] = (f'msent_score{track}', 'std')
+        agg[f'msent_sum{track}'] = (f'msent_score{track}', 'sum')
+
     # --- E. 新闻覆盖量 & 稳健性辅助（无需双轨） ---
     agg['n_articles'] = ('llm_vote_score_full', 'count')
     agg['headline_frac'] = ('in_title', 'mean')
@@ -348,6 +354,7 @@ def build_aggregation_dict() -> dict:
     # --- F. Value-weighted 辅助列 (Hassan et al. 2019, QJE; Sautner et al. 2023, JF) ---
     agg['sum_mention_density'] = ('mention_density', 'sum')
     agg['sum_doc_length'] = ('doc_length', 'sum')
+    agg['avg_doc_length'] = ('doc_length', 'mean')
     agg['sum_target_mentions'] = ('target_bank_mention_count', 'sum')
     for track in ['_full', '_ctx']:
         agg[f'llm_vote_score_w_sum{track}'] = (f'llm_vote_score_w{track}', 'sum')
@@ -1165,6 +1172,12 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
 
     logger.info(f"  生成双轨综合指标完成")
 
+    # --- 文章平均长度 (He et al. 2024, IRFA, Panel A.5: MLENGTH) ---
+    # MLENGTH = ln(文章词数), 此处取 Bank-Year 均值后 ln 变换
+    if 'avg_doc_length' in panel.columns:
+        panel['avg_article_length'] = np.log1p(panel['avg_doc_length'])
+        logger.info(f"  avg_article_length (MLENGTH proxy) 已生成")
+
     # --- 分类维度综合指标 ---
     for suffix in ['_tech', '_app']:
         # 仅当分类计数列存在时生成
@@ -1354,6 +1367,13 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'bert_avg_pos_mw_ctx':            'BERT Avg Pos (Media-Auth Wt, Ctx)',
                 'bert_avg_neg_mw_full':           'BERT Avg Neg (Media-Auth Wt, Full)',
                 'bert_avg_neg_mw_ctx':            'BERT Avg Neg (Media-Auth Wt, Ctx)',
+                # MSENT 计数型情感 (He et al. 2024, IRFA)
+                'avg_msent_full':                 'MSENT (Neg-Pos)/(Neg+Pos) EW Mean (Full)',
+                'avg_msent_ctx':                  'MSENT (Neg-Pos)/(Neg+Pos) EW Mean (Ctx)',
+                'avg_msent_std_full':              'MSENT Std Dev (Full)',
+                'avg_msent_std_ctx':               'MSENT Std Dev (Ctx)',
+                # 文章长度 (He et al. 2024, IRFA)
+                'avg_article_length':             'Article Length ln(1+avg_words)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()

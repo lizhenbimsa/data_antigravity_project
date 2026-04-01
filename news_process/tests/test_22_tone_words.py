@@ -704,6 +704,94 @@ class TestPosNegRatioSeparation:
 
 
 # ============================================================================
+# MSENT 计数型情感指标测试
+# He, Lu, Wei & Wang (2024). IRFA, 95, 103430. Eq. (1)
+# Tetlock, P. (2007). Journal of Finance, 62(3), 1139-1168.
+# ============================================================================
+
+class TestMsentScore:
+    """测试 MSENT = (Neg-Pos)/(Neg+Pos) 使用原始词典极性计数。"""
+
+    def test_all_positive_msent(self):
+        """全正面词 → MSENT = (0-N)/(N+0) = -1.0。"""
+        tokens = ['增长', '创新']
+        _, _, _, _, matched = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        raw_pos = sum(1 for m in matched if m['base'] > 0)
+        raw_neg = sum(1 for m in matched if m['base'] < 0)
+        total = raw_pos + raw_neg
+        msent = (raw_neg - raw_pos) / total if total > 0 else 0.0
+        assert msent == -1.0
+
+    def test_all_negative_msent(self):
+        """全负面词 → MSENT = (N-0)/(0+N) = +1.0。"""
+        tokens = ['下降', '风险']
+        _, _, _, _, matched = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        raw_pos = sum(1 for m in matched if m['base'] > 0)
+        raw_neg = sum(1 for m in matched if m['base'] < 0)
+        total = raw_pos + raw_neg
+        msent = (raw_neg - raw_pos) / total if total > 0 else 0.0
+        assert msent == 1.0
+
+    def test_balanced_msent(self):
+        """等量正负面词 → MSENT = 0.0。"""
+        tokens = ['增长', '下降']
+        _, _, _, _, matched = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        raw_pos = sum(1 for m in matched if m['base'] > 0)
+        raw_neg = sum(1 for m in matched if m['base'] < 0)
+        total = raw_pos + raw_neg
+        msent = (raw_neg - raw_pos) / total if total > 0 else 0.0
+        assert msent == 0.0
+
+    def test_no_match_msent(self):
+        """无匹配词 → MSENT = 0.0 (默认中性)。"""
+        tokens = ['今天', '天气']
+        _, _, _, _, matched = _compute_sentiment_with_rules(tokens, TEST_DICT)
+        raw_pos = sum(1 for m in matched if m['base'] > 0)
+        raw_neg = sum(1 for m in matched if m['base'] < 0)
+        total = raw_pos + raw_neg
+        msent = (raw_neg - raw_pos) / total if total > 0 else 0.0
+        assert msent == 0.0
+
+    def test_msent_uses_raw_not_final(self):
+        """否定词场景: MSENT 应使用原始词典极性 (base), 而非语言学规则后极性 (final)。
+
+        "不 增长": '增长' 在词典中 base=+1 (正面), 但 final=-1 (被否定翻转).
+        MSENT 应基于 base → pos=1, neg=0 → MSENT = (0-1)/(1+0) = -1.0
+        而非基于 final → pos=0, neg=1 → 错误地得到 +1.0
+        """
+        tokens = ['不', '增长']
+        _, _, pos_count, neg_count, matched = _compute_sentiment_with_rules(
+            tokens, TEST_DICT)
+        # final 极性 (后规则): "增长" 被否定 → neg_count=1
+        assert neg_count == 1, "后规则计数应为 neg=1"
+        assert pos_count == 0, "后规则计数应为 pos=0"
+
+        # 原始词典极性 (base): "增长" base=+1 → raw_pos=1
+        raw_pos = sum(1 for m in matched if m['base'] > 0)
+        raw_neg = sum(1 for m in matched if m['base'] < 0)
+        assert raw_pos == 1, "原始计数应为 pos=1"
+        assert raw_neg == 0, "原始计数应为 neg=0"
+
+        # MSENT 应使用原始计数
+        msent = (raw_neg - raw_pos) / (raw_pos + raw_neg)
+        assert msent == -1.0, "MSENT 应为 -1.0 (基于原始词典极性)"
+
+    def test_msent_value_range(self):
+        """MSENT 值域应为 [-1, +1]。"""
+        for tokens in [
+            ['增长'], ['下降'], ['增长', '下降'],
+            ['增长', '增长', '下降'],
+        ]:
+            _, _, _, _, matched = _compute_sentiment_with_rules(tokens, TEST_DICT)
+            raw_pos = sum(1 for m in matched if m['base'] > 0)
+            raw_neg = sum(1 for m in matched if m['base'] < 0)
+            total = raw_pos + raw_neg
+            if total > 0:
+                msent = (raw_neg - raw_pos) / total
+                assert -1.0 <= msent <= 1.0, f"MSENT={msent} 超出 [-1,+1]"
+
+
+# ============================================================================
 # IDF 加权稳健性检验测试 (Gentzkow, Kelly & Taddy, 2019, JEL §2.2)
 # ============================================================================
 

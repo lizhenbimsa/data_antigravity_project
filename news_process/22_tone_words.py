@@ -697,6 +697,7 @@ def _analyze_single_article(content: str) -> dict:
         result['char_per_word'] = 0.0
         result['pos_ratio'] = 0.0
         result['neg_ratio'] = 0.0
+        result['msent_score'] = 0.0
         # IDF 加权列一致性初始化（确保所有行返回相同 key 结构）
         if IDF_DICTIONARIES is not None:
             for dict_name, _ in IDF_DICTIONARIES:
@@ -757,6 +758,20 @@ def _analyze_single_article(content: str) -> dict:
     n_tokens = len(tokens)
     result['pos_ratio'] = round(best_pos_count / n_tokens, 6) if n_tokens > 0 else 0.0
     result['neg_ratio'] = round(best_neg_count / n_tokens, 6) if n_tokens > 0 else 0.0
+
+    # ── 计数型情感指标 MSENT (He et al. 2024, IRFA, Eq. 1;
+    #    Tetlock 2007, JF) ──
+    # MSENT = (Negative Words − Positive Words) / (Positive Words + Negative Words)
+    # 注意: 此处使用**原始词典极性**计数 (base 字段), 而非语言学规则处理后的
+    # 极性 (final 字段)。论文的 MSENT 基于词典查找, 不考虑否定/程度/转折修饰。
+    # 例: "不好" 中 "好" 在词典中为正面词 → 计为 Positive, 即使 final_score < 0。
+    # 与管道主得分 (normalized_score, 语言学加权) 互为稳健性检验。
+    raw_pos = sum(1 for m in best_detail if m['base'] > 0)
+    raw_neg = sum(1 for m in best_detail if m['base'] < 0)
+    total_raw = raw_pos + raw_neg
+    result['msent_score'] = round(
+        (raw_neg - raw_pos) / total_raw, 6
+    ) if total_raw > 0 else 0.0
 
     # ── IDF 加权并行度量 (Gentzkow et al. 2019, JEL §2.2) ──
     # 复用同一次 jieba.cut() 的 tokens，零额外分词开销
@@ -849,6 +864,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         'forward_looking_ratio', 'forward_looking_count',
         'avg_sentence_len', 'type_token_ratio', 'char_per_word',
         'pos_ratio', 'neg_ratio',
+        'msent_score',  # He et al. (2024, IRFA), Eq. 1
     ]
     for col in new_metric_cols:
         for track in ['_full', '_ctx']:
