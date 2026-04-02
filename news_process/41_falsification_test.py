@@ -137,6 +137,22 @@ REFERENCES = {
         'Evidence from China." '
         'International Review of Economics & Finance, 91, 1150-1172.'
     ),
+    # ── 以下引用为调节效应与异质性检验新增 ──
+    'QuYang2025': (
+        'Qu, L. & Yang, R. (2025). '
+        '"Media sentiment, financial services, and corporate investment levels." '
+        'Working Paper / Finance Research Letters series.'
+    ),
+    'BramborCG2006': (
+        'Brambor, T., Clark, W.R. & Golder, M. (2006). '
+        '"Understanding Interaction Models: Improving Empirical Analyses." '
+        'Political Analysis, 14(1), 63-82.'
+    ),
+    'Chow1960': (
+        'Chow, G.C. (1960). '
+        '"Tests of Equality Between Sets of Coefficients in Two Linear Regressions." '
+        'Econometrica, 28(3), 591-605.'
+    ),
 }
 
 
@@ -809,6 +825,56 @@ reghdfe Y c.llm_vote_tone_full##c.fintech_share X, ///
   absorb(target_bank year) vce(cluster target_bank)
   est store interact
 
+* ── 检验 5b: 外部经济环境调节效应 ──
+* 目的: 检验外部环境变量 M 是否调节 tone → Y 的传导机制
+* 对标: Qu & Yang (2025, §4.3, Eq. 3)
+*       Finratio1 × mediasen 交互项检验金融服务的调节效应
+*
+* 理论逻辑:
+*   情感 → 行为 的传导可能取决于外部环境:
+*   (1) 金融服务环境: 融资渠道畅通时, 乐观情感更易转化为投资
+*   (2) 数字金融环境: 数字普惠金融发达地区, 信息传导更高效
+*   (3) 融资约束: 约束严重的企业对负面情感更敏感
+*
+* 推荐调节变量 M 的候选 (用户需从 CSMAR/Wind/PKU-DFIIC 获取):
+*   DFIIC      — 北大数字普惠金融指数 (地级市级)
+*               郭峰等 (2020, 经济学(季刊), 19(4), 1401-1418)
+*   SA_index   — SA 融资约束指数
+*               Hadlock & Pierce (2010, RFS, 23(5), 1909-1940)
+*   Finratio1  — 金融服务便利度综合指数 (Qu & Yang 2025, 熵权法)
+*   MKT_index  — 市场化指数 (省级)
+*               王小鲁、樊纲、胡李鹏 (2021, 《中国分省份市场化指数报告》)
+*
+* 注: 以下使用 M 作为通用占位符, 请替换为实际变量名 (DFIIC/SA_index/...)
+*
+* ⚠️ 技术要求 (Brambor, Clark & Golder 2006, PA):
+*   交互项回归中, 主效应 tone 和 M 必须同时进入模型,
+*   否则交互项系数估计有偏。Stata 的 ## 语法自动满足此要求。
+*
+* ⚠️ 变量重复声明警告:
+*   ## 语法会自动将 M 作为主效应纳入。如果 M 已在 X 中,
+*   须从 X 中移除 M, 否则因完美共线性导致估计失败。
+*   例: X 定义为 "Size Lev ROA" 而非 "Size Lev ROA M"
+*
+* ⚠️ 中心化建议: 当 M 的均值远离 0 时,
+*   交互项可能产生 VIF 膨胀。建议先去均值:
+*   egen M_c = std(M)  // 标准化 (均值=0, 标准差=1)
+*   或 sum M → gen M_c = M - r(mean)  // 仅去均值
+
+* (5b-1) 连续型调节变量
+reghdfe Y c.llm_vote_tone_full##c.M X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store moderate_cont
+
+* (5b-2) 虚拟型调节变量 (适用于阈值型机制)
+* cap drop M_high
+* sum M, detail
+* gen M_high = (M >= r(p50)) if !missing(M)
+*   // ⚠️ if !missing(M) 防止缺失值被归入高组 (同 7b 缺失值陷阱)
+* reghdfe Y c.llm_vote_tone_full##i.M_high X, ///
+*   absorb(target_bank year) vce(cluster target_bank)
+*   est store moderate_dum
+
 * ── 检验 6: 控制新闻语言特征 ──
 * 目的: 验证 tone 不受文本长度/词汇多样性/可读性驱动
 * 对标: He et al. (2024, IRFA, Table 4, Panel A.5)
@@ -835,6 +901,88 @@ preserve
     absorb(target_bank year) vce(cluster target_bank)
   est store robust_no_stress
 restore
+
+* ── 检验 7b: 银行特征异质性分组检验 ──
+* 目的: 检验 tone 的直接效应在不同银行类型间是否存在异质性
+* 对标: Qu & Yang (2025, §5.7, Tables 8-9)
+*       按收入增长率 / 上市年限中位数分组
+*
+* 方法论说明:
+*   分样本回归 + 全样本交互项 — 双方法互验
+*   (a) 分样本法: 直观展示各组系数大小和显著性
+*   (b) 交互项法: 提供组间差异的正式统计检验
+*   两者在线性模型 + 同方差假设下给出完全相同的 F 统计量
+*   (Chow 1960, Econometrica, 28(3), 591-605)
+*   注: 使用 vce(cluster) 时, 两种方法的点估计相同,
+*   但标准误可能存在微小差异 (因子样本聚类数更少)
+*
+*   ⚠️ 分样本法的局限:
+*     两组 β₁ 可能均显著但数值不同, 而差异实际不显著
+*     → 必须配合 (b) 交互项法确认组间差异的统计显著性
+*
+* 推荐分组变量 Z (需从 CSMAR/Wind 获取并合并):
+*   ln_total_assets — 银行规模 (大行 vs 中小行)
+*   ROA            — 盈利能力 (高盈利 vs 低盈利)
+*   NPL_ratio      — 不良贷款率 (高 vs 低)
+*   listing_age    — 上市年限 (长 vs 短, 直接对标论文 H5)
+*
+* 注: 以下使用 Z 作为通用占位符, 请替换为实际变量名
+
+* ── 动态中位数计算 (避免硬编码) ──
+sum Z, detail
+local med_Z = r(p50)
+
+* ── (7b-a) 分样本法 ──
+* 注: local 宏在 preserve/restore 内仍可访问 (不随数据恢复而丢失)
+*
+* ⚠️ Stata 缺失值陷阱:
+*   Stata 中 missing (.) 被视为正无穷大.
+*   因此 `Z >= med_Z` 在 Z 缺失时为 TRUE,
+*   会将缺失值观测错误归入高组.
+*   → 必须显式排除: & !missing(Z)
+
+preserve
+  keep if Z >= `med_Z' & !missing(Z)
+  reghdfe Y llm_vote_tone_full X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+  est store het_high
+restore
+
+preserve
+  keep if Z < `med_Z' & !missing(Z)
+  reghdfe Y llm_vote_tone_full X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+  est store het_low
+restore
+
+* ── (7b-b) 全样本交互项法 (正式统计检验) ──
+cap drop Z_high
+gen Z_high = (Z >= `med_Z') if !missing(Z)
+* 注: if !missing(Z) 使 Z 缺失时 Z_high = . (而非 1)
+*     reghdfe 自动排除 Z_high 为缺失的观测
+reghdfe Y c.llm_vote_tone_full##i.Z_high X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store het_chow
+* → c.llm_vote_tone_full#1.Z_high 的系数 = β₁(高组) - β₁(低组)
+* → 该系数显著 ⇒ 组间异质性在统计上成立(Chow 1960)
+
+* ── (7b-c) 稳健性: 三分位分组 (排除二分法阈值敏感性) ──
+* xtile Z_tercile = Z, nq(3)
+* reghdfe Y c.llm_vote_tone_full##i.Z_tercile X, ///
+*   absorb(target_bank year) vce(cluster target_bank)
+*   est store het_tercile
+
+* ── (7b-d) 进阶: 调节效应异质性 (三重交互项) ──
+* → 检验调节效应本身在不同银行类型间是否不同
+*   (直接对标 Qu & Yang 2025, Tables 8-9 的精确回归设定)
+* → 需同时拥有调节变量 M (检验 5b) 和分组变量 Z
+* ⚠️ 样本量要求: 三重交互产生 7 个系数 (3主效应 + 3二重 + 1三重),
+*   对于银行面板 (~40 家 × 15 年 ≈ 600 obs) 可能精度不足.
+*   建议: N > 1000 时再尝试, 或使用 7b-a/b 的分样本法替代.
+* reghdfe Y c.llm_vote_tone_full##c.M##i.Z_high X, ///
+*   absorb(target_bank year) vce(cluster target_bank)
+*   est store het_mod_chow
+* → c.llm_vote_tone_full#c.M#1.Z_high = 调节效应的组间差异
 
 * ============================================================
 * 检验 8-10: 因果识别与地理稳健性
@@ -1038,13 +1186,27 @@ reghdfe Y llm_vote_tone_full nf_ln_coverage nf_media_breadth X, ///
 *   weighttype(webb) reps(9999) seed(42)
 
 * ── 输出格式化表格 ──
-* 列顺序: 基准 → 控制 → 替换 → 赛马 → 交互 → 语言 → 压力年
-*         → IV(关注度×2 + 情感×2 + overid) → 聚类(城市 + 省)
-esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling ///
-  robust_no_stress iv_attn_prov iv_attn_city ///
+* 采用分表策略 (学术出版标准: 每表 ≤ 8 列)
+
+* 表 1: 伪造检验主表 (对标 Hassan 2019, Table 7)
+* 列: 基准 → 控制 → 替换 → 赛马 → 交互 → 语言 → 压力年
+esttab base ctrl_nf replace_nf ctrl_all interact ///
+  ctrl_ling robust_no_stress ///
+  using "table_falsification.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace
+
+* 表 2: 调节效应与异质性 (对标 Qu & Yang 2025, Tables 6, 8-9)
+* 列: 调节 → 高Z组 → 低Z组 → Chow检验
+esttab moderate_cont het_high het_low het_chow ///
+  using "table_moderation_heterogeneity.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace
+
+* 表 3: 因果识别 (对标 Luo & Li 2025, Tables 3-4, A.2)
+* 列: IV(关注度×2 + 情感×2 + overid) → 聚类(城市 + 省)
+esttab iv_attn_prov iv_attn_city ///
   iv_sent_prov iv_sent_city iv_overid ///
   robust_city_cluster robust_prov_cluster ///
-  using "table_falsification.tex", ///
+  using "table_causal_identification.tex", ///
   star(* 0.10 ** 0.05 *** 0.01) se replace
 
 * ============================================================
@@ -1094,6 +1256,38 @@ esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling ///
 * β₁(residual_tone) 不显著
 *   → ⚠️ 情感效应主要反映基本面信息, 而非媒体报道本身
 *     (需结合 Oster δ 值和 IV 结果综合判断)
+*
+* ── 调节效应解读 (检验 5b, 对标 Qu & Yang 2025 Table 6) ──
+*
+* ⚠️ 解读前提 (Brambor et al. 2006):
+*   在交互项模型中, β₁(tone) 的含义是 "当 M=0 时 tone 的效应".
+*   如果 M 未中心化, M=0 可能在数据范围外, β₁ 不可解读.
+*   建议: 先对 M 去均值 (egen M_c = std(M)), 此时
+*   β₁ = "在 M 的均值处, tone 的边际效应"
+*
+* β₃(tone×M) 显著且 β₁(tone) 仍显著
+*   → ✅ 外部环境调节情感传导, 且存在直接效应 (互补型调节)
+*
+* β₃(tone×M) 显著但 β₁(tone) 不显著
+*   → ℹ️ 在 M 的均值处, 情感无直接效应,
+*     但情感效应随 M 增大而显现 (纯调节型)
+*     → 需确认 M 已中心化, 否则 β₁ 不可解读
+*
+* β₃(tone×M) 不显著
+*   → ℹ️ 外部环境不调节情感传导 (直接效应型稳定)
+*
+* ── 异质性分组解读 (检验 7b, 对标 Qu & Yang 2025 Tables 8-9) ──
+*
+* β₁ 在高Z组显著但低Z组不显著 (或反之)
+*   → ✅ 效应存在银行特征异质性
+*
+* 交互项 (7b-b) c.llm_vote_tone_full#1.Z_high 显著
+*   → ✅ 组间差异有正式统计推断支持 (Chow 1960)
+*
+* 两组 β₁ 均显著但数值不同, 交互项不显著
+*   → ℹ️ 差异存在但统计功效不足
+*     建议: (1) 增大样本 (2) 使用连续交互项 (5b)
+*     (3) 使用三分位 (7b-c) 检查单调性
 * ============================================================
 
 * ============================================================
