@@ -130,6 +130,13 @@ REFERENCES = {
         '"A Practitioner\'s Guide to Cluster-Robust Inference." '
         'Journal of Human Resources, 50(2), 317-372.'
     ),
+    # ── 以下引用为残差法稳健性检验新增 ──
+    'FangWWY2024': (
+        'Fang, Y., Wang, Q., Wang, Y. & Yuan, Y. (2024). '
+        '"Media sentiment, deposit stability and bank systemic risk: '
+        'Evidence from China." '
+        'International Review of Economics & Finance, 91, 1150-1172.'
+    ),
 }
 
 
@@ -1076,6 +1083,17 @@ esttab base ctrl_nf replace_nf ctrl_all interact ctrl_ling ///
 * β₁ 在省级聚类下边际不显著但城市聚类下显著
 *   → ℹ️ 可能因 31 个聚类数不足导致 SE 偏大
 *      运行 10c wild cluster bootstrap 确认
+*
+* β₁(residual_tone) 显著且 ≈ β₁(baseline tone)
+*   → ✅ 情感效应非银行基本面信息的副产品
+*     对标 Fang et al. (2024, IREF, Table 5, Panel A)
+*
+* β₁(residual_tone) 显著但明显小于 β₁(baseline tone)
+*   → ℹ️ 基本面部分混淆情感效应, 但独立媒体冲击仍存在
+*
+* β₁(residual_tone) 不显著
+*   → ⚠️ 情感效应主要反映基本面信息, 而非媒体报道本身
+*     (需结合 Oster δ 值和 IV 结果综合判断)
 * ============================================================
 
 * ============================================================
@@ -1098,6 +1116,59 @@ reghdfe Y avg_msent_full X, absorb(target_bank year) vce(cluster target_bank)
 cap drop dict_msent2_full
 gen dict_msent2_full = avg_neg_ratio_full - avg_pos_ratio_full
 reghdfe Y dict_msent2_full X, absorb(target_bank year) vce(cluster target_bank)
+* ============================================================
+
+* ============================================================
+* 稳健性检验: 剔除银行基本面的纯情感残差
+* ────────────────────────────────────────────────────────────
+* 对标: Fang, Wang, Wang & Yuan (2024, IREF, 91, 1150-1172)
+*       Table 5, Panel A: "Excluding bank fundamentals"
+*
+* 方法论说明:
+*   银行基本面 (规模、杠杆、盈利等) 可能同时影响媒体报道的
+*   情感基调和因变量, 导致遗漏变量偏误。本检验将情感指标
+*   对银行基本面回归取残差, 残差仅保留"纯媒体冲击"成分。
+*
+*   Fang et al. (2024) 步骤 1 中使用的基本面变量:
+*     Size         = ln(总资产)
+*     Leverage     = 杠杆率 (常用: 总负债/总资产, 需按论文确认)
+*     Liquidity    = 流动资产/总资产
+*     Inefficiency = 营业成本/总营业收入
+*     Income_div   = 非利息收入/总营业收入
+*     Loan_ratio   = 贷款/总资产
+*     BM           = 账面/市值
+*     DI_dummy     = 存款保险制度虚拟变量 (2015年后=1)
+*   注: 以上为论文原始变量, 用户应根据自身数据替换 X
+*
+* 与 Oster 检验 (检验 9) 的区别:
+*   Oster: 假设性推演 — "需要多大的遗漏变量才能消除效应?"
+*   残差法: 直接操作 — 从情感中剔除基本面可预测的部分
+*   两者互补: Oster 检验不可观测变量, 残差法处理可观测变量
+*
+* ⚠️ FWL 注意: 步骤 1 故意不含银行 FE (仅 reg + i.year),
+*   步骤 2 含银行 FE (reghdfe)。FE 结构差异避免 FWL 退化。
+*   进阶: 在步骤 1 的 X 中额外加入非标准控制变量
+*   (如 DI_dummy) 可增强残差法的独立信息量。
+*
+* 标准误说明: 步骤 2 中 residual_tone 为生成回归元 (generated
+*   regressor), 其标准误未校正步骤 1 的估计不确定性。实践中
+*   Fang et al. (2024) 等应用文献均未校正此项, 但用户应知
+*   这可能导致 SE 略小于真实值 (即 t 统计量略有膨胀)。
+*
+* 步骤 1: 情感 ~ 银行基本面 (无银行 FE), 取残差
+reg llm_vote_tone_full X i.year, vce(cluster target_bank)
+*   → 检查 R²: 若 R² 极低, 基本面几乎不预测情感,
+*     残差 ≈ 原始情感, 本检验无附加信息
+cap drop residual_tone
+predict residual_tone, residual
+*
+* 步骤 2: 用残差替代原始情感指标 (含银行 FE)
+reghdfe Y residual_tone X, absorb(target_bank year) vce(cluster target_bank)
+  est store residual_base
+*
+* 解读:
+*   residual_tone 显著 → 情感效应来自媒体报道本身 (非信息渠道)
+*   residual_tone 不显著 → 情感效应主要反映基本面信息, 需审慎
 * ============================================================
 """
     for line in template.strip().split('\n'):
