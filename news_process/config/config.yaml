@@ -709,4 +709,4 @@ panel_building:
   export_stata: true
   compute_attention_index: true      # 6b. 金融科技注意力指数 (三级地理维度)
   compute_media_heterogeneity: true  # 6c. 媒体异质性 (四维度: 财经/综合/中央级/其他)
-  compute_media_authority_weighting: true  # 3c. 媒体权威性加权 (Holzman et al. 2023, JAR)
+  compute_media_authority_weighting: true  # 3c. 媒体权威性加权 (Holzman et al. 2023, TAR)
