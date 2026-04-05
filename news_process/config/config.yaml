@@ -710,3 +710,5 @@ panel_building:
   compute_attention_index: true      # 6b. 金融科技注意力指数 (三级地理维度)
   compute_media_heterogeneity: true  # 6c. 媒体异质性 (四维度: 财经/综合/中央级/其他)
   compute_media_authority_weighting: true  # 3c. 媒体权威性加权 (Holzman et al. 2023, TAR)
+  compute_bartik_iv: true                 # 7e. Bartik Shift-Share IV 29套 (Goldsmith-Pinkham et al. 2020, AER)
+  compute_policy_shocks: true             # 7g. DID 政策冲击变量 — DCEP + Fintech Sandbox (Callaway & Sant'Anna 2021, JoE)
