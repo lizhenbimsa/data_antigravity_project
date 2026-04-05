@@ -44,7 +44,7 @@ filenames:
   output_32_human_sample: 32_human_samples.xlsx           # 32_news_llms_human.py → 人工验证样本（含真伪与情感标注）
   output_40_panel_yearly: 40_panel_yearly.parquet          # 40_build_panel.py → 年度平衡面板 (Bank-Year)
   output_40_article_bank: 40_article_bank_level.parquet    # 40_build_panel.py → 展开后文章-银行级数据
-  output_41_panel_controls: 41_panel_with_controls.parquet  # 41_falsification_test.py → 含伪造检验对照变量的面板
+  output_51_panel_controls: 51_panel_with_controls.parquet  # 51_falsification_test.py → 含伪造检验对照变量的面板
 
 # ------------------------------------------------------------------------------
 # 并行处理配置 (Parallel Processing)

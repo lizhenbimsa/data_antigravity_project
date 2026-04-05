@@ -206,7 +206,7 @@ def _isolate_loggers_from_production_files():
     """在 pytest session 开始时移除所有模块级 logger 中的文件 handler。
 
     问题根因:
-      各 pipeline 脚本（如 41_falsification_test.py）在模块级别执行
+      各 pipeline 脚本（如 51_falsification_test.py）在模块级别执行
       ``logger = setup_logging(STAGE_NAME, ...)``，当 pytest import 这些模块时，
       RotatingFileHandler 被注册到 logger 上，导致测试中每个函数调用的日志
       都写入生产 .log 文件，产生重复输出问题。

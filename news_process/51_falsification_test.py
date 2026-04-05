@@ -1,5 +1,5 @@
 """
-41_falsification_test.py — 伪造检验: 非金融科技对照变量构建
+51_falsification_test.py — 伪造检验: 非金融科技对照变量构建
 ============================================================
 
 学术背景与方法论依据:
@@ -42,9 +42,9 @@
   data_processed/40_panel_yearly.parquet
 
 输出:
-  data_processed/41_panel_with_controls.parquet
-  data_processed/41_panel_with_controls.dta
-  data_processed/41_falsification_diagnostics.csv
+  data_processed/51_panel_with_controls.parquet
+  data_processed/51_panel_with_controls.dta
+  data_processed/51_falsification_diagnostics.csv
 """
 
 import os
@@ -67,7 +67,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "41_falsification_test"
+STAGE_NAME = "51_falsification_test"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 OUTPUT_DIR = CONFIG["paths"]["output_dir"]
@@ -694,7 +694,7 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
 
     # Parquet
     output_filename = FILENAMES.get(
-        'output_41_panel_controls', '41_panel_with_controls.parquet'
+        'output_51_panel_controls', '51_panel_with_controls.parquet'
     )
     output_path = os.path.join(OUTPUT_DIR, output_filename)
     save_dataset(panel, output_path, logger)
@@ -750,7 +750,7 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
 
     # 相关矩阵 CSV
     if pearson_corr is not None:
-        diag_path = os.path.join(OUTPUT_DIR, '41_falsification_diagnostics.csv')
+        diag_path = os.path.join(OUTPUT_DIR, '51_falsification_diagnostics.csv')
         pearson_corr.to_csv(diag_path)
         logger.info(f"  ✓ 已导出诊断文件: {diag_path}")
 
@@ -779,7 +779,7 @@ def print_stata_template():
 * ============================================================
 * 伪造检验 Stata 回归模板
 * ============================================================
-* 数据文件: 41_panel_with_controls.dta
+* 数据文件: 51_panel_with_controls.dta
 * 请将 Y 替换为因变量 (如: ROA, Tobin_Q, 数字化转型投资等)
 * 请将 X 替换为其他控制变量 (如: size, leverage, age 等)
 *
@@ -788,7 +788,7 @@ def print_stata_template():
 *   QJE, 134(4), 2135-2202, Table 7.
 * ============================================================
 
-use "41_panel_with_controls.dta", clear
+use "51_panel_with_controls.dta", clear
 
 * ── 检验 1: 基准回归 ──
 * 目的: 确认 fintech tone 对 Y 有显著解释力
@@ -1387,10 +1387,10 @@ def print_references():
 # ============================================================================
 
 def main():
-    """41_falsification_test 主流程。"""
+    """51_falsification_test 主流程。"""
     start_time = time.time()
     logger.info("=" * 70)
-    logger.info("===  41_falsification_test: 伪造检验对照变量构建  ===")
+    logger.info("===  51_falsification_test: 伪造检验对照变量构建  ===")
     logger.info("=" * 70)
     logger.info("")
     logger.info("  假设检验框架:")
@@ -1424,7 +1424,7 @@ def main():
         }
     )
 
-    logger.info("41_falsification_test 执行完毕 ✓")
+    logger.info("51_falsification_test 执行完毕 ✓")
 
 
 if __name__ == '__main__':

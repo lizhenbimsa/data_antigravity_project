@@ -1,8 +1,8 @@
 """
-test_41_falsification_test.py — 伪造检验单元测试
+test_51_falsification_test.py — 伪造检验单元测试
 =================================================
 
-使用合成数据验证 41_falsification_test.py 的核心逻辑:
+使用合成数据验证 51_falsification_test.py 的核心逻辑:
   1. Anti-join 正确性
   2. 恒等式 all_n_articles == n_articles + nf_n_articles
   3. fintech_share ∈ [0, 1]
@@ -20,7 +20,7 @@ import pandas as pd
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from importlib import import_module
-mod = import_module('41_falsification_test')
+mod = import_module('51_falsification_test')
 
 
 # ============================================================================

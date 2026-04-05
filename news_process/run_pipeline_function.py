@@ -28,7 +28,7 @@ run_pipeline_function.py — 新闻处理流水线调度器
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块六：伪造检验 ────────────────────────────────┐
-    │ 41_falsification_test                                      │
+    │ 51_falsification_test                                      │
     └────────────────────────────────────────────────────────────┘
                       ↓
                 pipeline_summary
@@ -130,7 +130,7 @@ def run_pipeline():
     stages.append(("40_build_panel.py", "阶段40: Bank-Year 面板数据构建"))
 
     # ── 模块六：伪造检验 ──
-    stages.append(("41_falsification_test.py", "阶段41: 伪造检验对照变量构建"))
+    stages.append(("51_falsification_test.py", "阶段51: 伪造检验对照变量构建"))
 
     logger.info(f"管道共 {len(stages)} 个阶段")
     for i, (script, name) in enumerate(stages, 1):
