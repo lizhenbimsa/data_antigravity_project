@@ -12,7 +12,7 @@
 聚合指标设计:
   - tone_mean:       篇章级情感的简单均值 (EW)
   - tone_weighted:   提及密度加权均值 (VW, Hassan et al., 2019, QJE)
-  - tone_mw:         媒体权威性加权均值 (MW, Holzman et al., 2023, JAR)
+  - tone_mw:         媒体权威性加权均值 (MW, Holzman et al., 2023, TAR)
   - coverage_ratio:  篇数覆盖率 = 有效篇数 / 总篇数
   - article_count:   Bank-Year 下的总文章数
   - _tech / _app:    按 fintech_category 分组的分类情感均值
@@ -138,7 +138,522 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ============================================================================
-# 3c. 媒体权威性加权 (Holzman, Miller & Twedt 2023, JAR, Appendix A)
+# 2b. 银行分组映射加载 (Bartik IV 前置依赖)
+# ============================================================================
+
+def load_bank_group_maps() -> tuple:
+    """从 bank_addresses.json 读取银行分组映射。
+
+    Returns:
+        type_map:  {银行名 → 'soe'/'joint'/'city'/'rural'/'private'/'foreign'/'other'}
+        scale_map: {银行名 → 'L'/'M'/'S'/'XS'/'other'}
+    """
+    addr_path = os.path.join(os.path.dirname(__file__), 'config', 'bank_addresses.json')
+    with open(addr_path, 'r', encoding='utf-8') as f:
+        addresses = json.load(f)
+
+    NFRA_TO_SHORT = {
+        '国有大型商业银行': 'soe',
+        '股份制商业银行':   'joint',
+        '城市商业银行':     'city',
+        '农村商业银行':     'rural',
+        '民营银行':         'private',
+        '外资法人银行':     'foreign',
+    }
+    SCALE_TO_SHORT = {
+        'L(大型)': 'L', 'M(中型)': 'M', 'S(小型)': 'S', 'XS(微型)': 'XS',
+    }
+
+    type_map, scale_map = {}, {}
+    for bank_name, info in addresses.items():
+        type_map[bank_name] = NFRA_TO_SHORT.get(info.get('nfra_type', ''), 'other')
+        scale_map[bank_name] = SCALE_TO_SHORT.get(info.get('enterprise_scale', ''), 'other')
+
+    return type_map, scale_map
+
+
+# ============================================================================
+# 2c. 通用 Bartik Shift-Share IV 计算
+#     学术依据:
+#       [1] Goldsmith-Pinkham, Sorkin & Swift (2020, AER)
+#           DOI: 10.1257/aer.20181047  — Share 视角: 基期份额外生性
+#       [2] Borusyak, Hull & Jaravel (2022, RES)
+#           DOI: 10.1093/restud/rdab030 — Shift 视角: 冲击准随机性
+# ============================================================================
+
+def compute_bartik_iv(panel: pd.DataFrame,
+                      df_exploded: pd.DataFrame,
+                      bank_group_map: dict,
+                      group_prefix: str,
+                      base_year: int = None) -> pd.DataFrame:
+    """通用 Bartik Shift-Share IV 计算。
+
+    参数:
+        panel:          Bank-Year 面板
+        df_exploded:    文章级数据 (含 target_bank, co_mentioned_banks)
+        bank_group_map: {银行名 → 组别标签} (如 type_map 或 scale_map)
+        group_prefix:   输出列名前缀 ('type' 或 'scale')
+        base_year:      基期年份 (None = 面板最早年份)
+
+    输出列:
+        bartik_{prefix}_iv_full / _ctx         — Bartik IV 值
+        bartik_{prefix}_share_{group}          — 基期份额
+        bank_{prefix}                          — 银行分组标签
+
+    索引安全: 全程 merge-based, 不依赖行序。
+    """
+    T0 = base_year if base_year is not None else panel['year'].min()
+    groups = sorted(set(v for v in bank_group_map.values() if v != 'other'))
+    logger.info(f"  Bartik IV [{group_prefix}]: 基期 T0={T0}, "
+                f"组别={groups} ({len(groups)} 维)")
+
+    # --- Step 1: 银行分组标签 ---
+    panel[f'bank_{group_prefix}'] = (
+        panel['target_bank'].map(bank_group_map).fillna('other')
+    )
+
+    # --- Step 2: 基期份额 (通过 co_mentioned_banks 计算跨组暴露) ---
+    base = df_exploded[df_exploded['year'] == T0].copy()
+    if len(base) == 0:
+        logger.warning(f"  基期 T0={T0} 无数据, Bartik IV [{group_prefix}] 跳过")
+        for track in ['_full', '_ctx']:
+            panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
+        return panel
+
+    def get_co_groups(co_banks_str):
+        """从 co_mentioned_banks 提取涉及的组别。"""
+        if not co_banks_str or str(co_banks_str).strip() in ('', 'nan'):
+            return []
+        banks = [b.strip() for b in str(co_banks_str).split(';') if b.strip()]
+        return [bank_group_map.get(b, 'other') for b in banks]
+
+    base['_co_groups'] = base['co_mentioned_banks'].apply(get_co_groups)
+
+    # 计算每家银行在基期的跨组暴露份额
+    all_banks = panel['target_bank'].unique()
+    shares_data = []
+    for bank in all_banks:
+        bank_base = base[base['target_bank'] == bank]
+        if len(bank_base) == 0:
+            continue
+        group_counts = {}
+        for groups_list in bank_base['_co_groups']:
+            for g in groups_list:
+                if g != 'other':
+                    group_counts[g] = group_counts.get(g, 0) + 1
+        total = sum(group_counts.values())
+        if total == 0:
+            own_group = bank_group_map.get(bank, 'other')
+            for g in groups:
+                shares_data.append({
+                    'target_bank': bank, 'group': g,
+                    'share': 1.0 if g == own_group else 0.0
+                })
+        else:
+            for g in groups:
+                shares_data.append({
+                    'target_bank': bank, 'group': g,
+                    'share': group_counts.get(g, 0) / total
+                })
+
+    shares_df = pd.DataFrame(shares_data)
+
+    for g in groups:
+        g_shares = shares_df[shares_df['group'] == g][['target_bank', 'share']]
+        col_name = f'bartik_{group_prefix}_share_{g}'
+        g_shares = g_shares.rename(columns={'share': col_name})
+        # 防止多次调用时重复列: 先删除已有列
+        if col_name in panel.columns:
+            panel = panel.drop(columns=[col_name])
+        panel = panel.merge(g_shares, on='target_bank', how='left')
+        panel[col_name] = panel[col_name].fillna(0)
+
+    # --- Step 3: 组别×年份 shift (关键: 自身组=LOO, 其他组=FULL) ---
+    df_with_group = df_exploded.copy()
+    df_with_group['_group'] = df_with_group['target_bank'].map(bank_group_map).fillna('other')
+
+    for track in ['_full', '_ctx']:
+        score_col = f'llm_vote_score{track}'
+        if score_col not in df_with_group.columns:
+            panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
+            continue
+
+        # Step 3a: 组×年份 的聚合统计 (文章级)
+        group_year_stats = (df_with_group[df_with_group['_group'].isin(groups)]
+                           .groupby(['_group', 'year'])[score_col]
+                           .agg(['sum', 'count'])
+                           .reset_index())
+
+        # Step 3b: 银行×组×年份 的贡献量 (用于 LOO 减除)
+        bank_group_contrib = (df_with_group[df_with_group['_group'].isin(groups)]
+                             .groupby(['target_bank', '_group', 'year'])[score_col]
+                             .agg(['sum', 'count'])
+                             .reset_index()
+                             .rename(columns={'sum': '_bi_sum', 'count': '_bi_cnt'}))
+
+        # Step 3c: 为每个 (bank, year) 构建各组 shift
+        all_banks_df = panel[['target_bank', 'year']].drop_duplicates()
+
+        for g in groups:
+            # 组 g 的年度聚合
+            g_stats = group_year_stats[group_year_stats['_group'] == g][['year', 'sum', 'count']]
+            g_stats = g_stats.rename(columns={'sum': f'_sum_{g}', 'count': f'_cnt_{g}'})
+            all_banks_df = all_banks_df.merge(g_stats, on='year', how='left')
+
+            # 银行 i 在组 g 中的贡献 (仅当 bank i ∈ g 时有值)
+            bi_g = bank_group_contrib[bank_group_contrib['_group'] == g][
+                ['target_bank', 'year', '_bi_sum', '_bi_cnt']]
+            bi_g = bi_g.rename(columns={'_bi_sum': f'_bi_sum_{g}', '_bi_cnt': f'_bi_cnt_{g}'})
+            all_banks_df = all_banks_df.merge(bi_g, on=['target_bank', 'year'], how='left')
+            all_banks_df[f'_bi_sum_{g}'] = all_banks_df[f'_bi_sum_{g}'].fillna(0)
+            all_banks_df[f'_bi_cnt_{g}'] = all_banks_df[f'_bi_cnt_{g}'].fillna(0)
+
+            # LOO: (组总和 - 银行贡献) / (组计数 - 银行计数)
+            remain_sum = all_banks_df[f'_sum_{g}'] - all_banks_df[f'_bi_sum_{g}']
+            remain_cnt = all_banks_df[f'_cnt_{g}'] - all_banks_df[f'_bi_cnt_{g}']
+            all_banks_df[f'shift_{g}'] = np.where(
+                remain_cnt > 0,
+                remain_sum / remain_cnt,
+                np.nan  # 组内仅有自己 → 无法 LOO
+            )
+
+        # --- Step 4: BIV = Σ share × shift (merge-based) ---
+        share_cols = [f'bartik_{group_prefix}_share_{g}' for g in groups]
+        biv = panel[['target_bank', 'year'] + share_cols].copy()
+        shift_cols_needed = [f'shift_{g}' for g in groups]
+        biv = biv.merge(
+            all_banks_df[['target_bank', 'year'] + shift_cols_needed],
+            on=['target_bank', 'year'], how='left')
+
+        biv_val = pd.Series(0.0, index=biv.index)
+        for g in groups:
+            share_col = f'bartik_{group_prefix}_share_{g}'
+            shift_col = f'shift_{g}'
+            if shift_col in biv.columns:
+                # NaN shift → 0: 当某组在该年份无 LOO 可计算时
+                # (组内仅剩自身银行), 视该维度暴露为零
+                # 学术合理性: 等价于 exclusion restriction (该维度无外生冲击)
+                biv_val += biv[share_col].fillna(0) * biv[shift_col].fillna(0)
+
+        # 通过 target_bank+year 对齐回 panel，确保行序安全
+        biv_result = biv[['target_bank', 'year']].copy()
+        biv_result[f'bartik_{group_prefix}_iv{track}'] = biv_val.values
+        # 先删除已有列(若存在)再 merge
+        iv_col = f'bartik_{group_prefix}_iv{track}'
+        if iv_col in panel.columns:
+            panel = panel.drop(columns=[iv_col])
+        panel = panel.merge(biv_result[['target_bank', 'year', iv_col]],
+                            on=['target_bank', 'year'], how='left')
+
+    # 诊断
+    group_dist = panel.drop_duplicates('target_bank')[f'bank_{group_prefix}'].value_counts()
+    logger.info(f"  分组分布: {dict(group_dist)}")
+
+    return panel
+
+
+# ============================================================================
+# 2d. 文章属性维度 Bartik IV (基于文章自身分类列, 而非 co_mentioned_banks)
+#     适用于 fintech_category, _media_type, _half_year 等维度
+# ============================================================================
+
+def compute_bartik_iv_fintech(panel: pd.DataFrame,
+                              df_exploded: pd.DataFrame,
+                              category_map: dict,
+                              group_prefix: str,
+                              base_year: int = None,
+                              category_col: str = 'fintech_category') -> pd.DataFrame:
+    """文章属性维度 Bartik IV (基于文章自身分类列, 而非 co_mentioned_banks)。
+
+    通用接口: 可接受任意文章级分类列 (fintech_category, _media_type,
+    _half_year, _doclen_type 等), 将文章按 category_col 分组后计算
+    Bartik Shift-Share IV。
+
+    share_{i,k,T0} = 银行 i 在基期文章中, category_col=k 的占比
+    shift_{k,t}    = 类别 k 中其他银行的 leave-one-out 年度情感均值
+    """
+    T0 = base_year if base_year is not None else panel['year'].min()
+    # 修正5: 排除兜底类别 'other', 与 compute_bartik_iv 保持一致
+    groups = sorted(set(v for v in category_map.values() if v != 'other'))
+
+    # Step 1: 基期份额 (直接从文章的分类列计算)
+    base = df_exploded[df_exploded['year'] == T0].copy()
+    base['_cat_short'] = base[category_col].map(category_map)
+
+    shares = (base.groupby(['target_bank', '_cat_short']).size()
+              .unstack(fill_value=0))
+    total = shares.sum(axis=1).replace(0, np.nan)
+    shares = shares.div(total, axis=0).fillna(0)
+
+    for g in groups:
+        col_name = f'bartik_{group_prefix}_share_{g}'
+        if g in shares.columns:
+            panel[col_name] = panel['target_bank'].map(shares[g]).fillna(0)
+        else:
+            panel[col_name] = 0.0
+
+    # Step 2: shift (用 bank×category×year 的贡献做 LOO 减除)
+    df_cat = df_exploded.copy()
+    df_cat['_cat_short'] = df_cat[category_col].map(category_map)
+
+    for track in ['_full', '_ctx']:
+        score_col = f'llm_vote_score{track}'
+        if score_col not in df_cat.columns:
+            panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
+            continue
+
+        # 类别×年份 聚合
+        gys = (df_cat[df_cat['_cat_short'].isin(groups)]
+               .groupby(['_cat_short', 'year'])[score_col]
+               .agg(['sum', 'count']).reset_index())
+
+        # 银行×类别×年份 的贡献量
+        bgc = (df_cat[df_cat['_cat_short'].isin(groups)]
+               .groupby(['target_bank', '_cat_short', 'year'])[score_col]
+               .agg(['sum', 'count']).reset_index()
+               .rename(columns={'sum': '_bi_sum', 'count': '_bi_cnt'}))
+
+        abd = panel[['target_bank', 'year']].drop_duplicates()
+
+        for g in groups:
+            gs = gys[gys['_cat_short'] == g][['year', 'sum', 'count']]
+            gs = gs.rename(columns={'sum': f'_sum_{g}', 'count': f'_cnt_{g}'})
+            abd = abd.merge(gs, on='year', how='left')
+
+            bi_g = bgc[bgc['_cat_short'] == g][['target_bank', 'year', '_bi_sum', '_bi_cnt']]
+            bi_g = bi_g.rename(columns={'_bi_sum': f'_bi_sum_{g}', '_bi_cnt': f'_bi_cnt_{g}'})
+            abd = abd.merge(bi_g, on=['target_bank', 'year'], how='left')
+            abd[f'_bi_sum_{g}'] = abd[f'_bi_sum_{g}'].fillna(0)
+            abd[f'_bi_cnt_{g}'] = abd[f'_bi_cnt_{g}'].fillna(0)
+
+            remain_sum = abd[f'_sum_{g}'] - abd[f'_bi_sum_{g}']
+            remain_cnt = abd[f'_cnt_{g}'] - abd[f'_bi_cnt_{g}']
+            abd[f'shift_{g}'] = np.where(
+                remain_cnt > 0,
+                remain_sum / remain_cnt,
+                np.nan
+            )
+
+        # BIV = Σ share × shift
+        biv = panel[['target_bank', 'year']].copy()
+        for g in groups:
+            biv[f's_{g}'] = panel[f'bartik_{group_prefix}_share_{g}']
+        biv = biv.merge(
+            abd[['target_bank', 'year'] + [f'shift_{g}' for g in groups]],
+            on=['target_bank', 'year'], how='left')
+        biv_val = sum(biv[f's_{g}'].fillna(0) * biv[f'shift_{g}'].fillna(0) for g in groups)
+        # 通过 target_bank+year 对齐回 panel，确保行序安全
+        biv_result = biv[['target_bank', 'year']].copy()
+        biv_result[f'bartik_{group_prefix}_iv{track}'] = biv_val.values
+        iv_col = f'bartik_{group_prefix}_iv{track}'
+        if iv_col in panel.columns:
+            panel = panel.drop(columns=[iv_col])
+        panel = panel.merge(biv_result[['target_bank', 'year', iv_col]],
+                            on=['target_bank', 'year'], how='left')
+
+    # 诊断日志
+    for track in ['_full', '_ctx']:
+        iv_col = f'bartik_{group_prefix}_iv{track}'
+        if iv_col in panel.columns:
+            n_valid = panel[iv_col].notna().sum()
+            iv_mean = panel[iv_col].mean()
+            iv_std = panel[iv_col].std()
+            logger.info(f"  [{group_prefix}] {iv_col}: "
+                        f"{n_valid}/{len(panel)} 有效, "
+                        f"mean={iv_mean:.4f}, std={iv_std:.4f}")
+
+    return panel
+
+
+# ============================================================================
+# 2e. 经济圈 Leave-One-Out IV
+# ============================================================================
+
+PROVINCE_TO_ZONE = {
+    '北京': '京津冀', '天津': '京津冀', '河北': '京津冀',
+    '上海': '长三角', '江苏': '长三角', '浙江': '长三角', '安徽': '长三角',
+    '广东': '珠三角',
+    '四川': '成渝', '重庆': '成渝',
+    '辽宁': '东北', '吉林': '东北', '黑龙江': '东北',
+    '湖北': '中部', '湖南': '中部', '江西': '中部', '山西': '中部', '河南': '中部',
+    '陕西': '西北', '甘肃': '西北', '青海': '西北', '宁夏': '西北', '新疆': '西北',
+    '云南': '西南', '贵州': '西南', '广西': '西南', '西藏': '西南',
+    '福建': '东南', '海南': '东南',
+    '山东': '环渤海', '内蒙古': '环渤海',
+}
+
+
+def compute_zone_leave1out(panel: pd.DataFrame,
+                          df_exploded: pd.DataFrame,
+                          min_group_size: int = 3) -> pd.DataFrame:
+    """经济圈维度 Leave-One-Out 情感均值，作为省级 LOO 的补充 IV。
+
+    与省级 LOO 的区别:
+        - 省级 LOO: 同省内其他银行 → 粒度细，但省内银行数可能太少
+        - 经济圈 LOO: 同经济圈(跨省)内其他银行 → 样本更充足，捕捉区域共同冲击
+
+    输出列:
+        zone_leave1out_tone_full / zone_leave1out_tone_ctx
+        bank_zone (银行所属经济圈标签)
+    """
+    # Step 1: 为面板加上经济圈标签
+    panel['bank_zone'] = panel['bank_province'].map(PROVINCE_TO_ZONE).fillna('other')
+
+    # Step 2: 文章级数据也打上经济圈标签 (通过 target_bank merge)
+    bank_zone_map = panel.drop_duplicates('target_bank').set_index('target_bank')['bank_zone']
+    df_z = df_exploded.copy()
+    df_z['_zone'] = df_z['target_bank'].map(bank_zone_map).fillna('other')
+
+    for track in ['_full', '_ctx']:
+        score_col = f'llm_vote_score{track}'
+        out_col = f'zone_leave1out_tone{track}'
+        if score_col not in df_z.columns:
+            panel[out_col] = np.nan
+            continue
+
+        # 经济圈×年份 聚合
+        zone_agg = (df_z.groupby(['_zone', 'year'])[score_col]
+                    .agg(['sum', 'count']).reset_index())
+
+        # 银行×经济圈×年份 的贡献量
+        bank_agg = (df_z.groupby(['target_bank', '_zone', 'year'])[score_col]
+                    .agg(['sum', 'count']).reset_index()
+                    .rename(columns={'sum': '_bi_sum', 'count': '_bi_cnt'}))
+
+        # merge: 面板 ← 经济圈聚合 ← 银行贡献
+        tmp = panel[['target_bank', 'year', 'bank_zone']].drop_duplicates()
+        tmp = tmp.merge(zone_agg, left_on=['bank_zone', 'year'],
+                        right_on=['_zone', 'year'], how='left')
+        tmp = tmp.merge(bank_agg[['target_bank', 'year', '_bi_sum', '_bi_cnt']],
+                        on=['target_bank', 'year'], how='left')
+        tmp['_bi_sum'] = tmp['_bi_sum'].fillna(0)
+        tmp['_bi_cnt'] = tmp['_bi_cnt'].fillna(0)
+
+        # LOO: (经济圈总和 - 自身贡献) / (经济圈计数 - 自身计数)
+        remain_sum = tmp['sum'] - tmp['_bi_sum']
+        remain_cnt = tmp['count'] - tmp['_bi_cnt']
+        tmp[out_col] = np.where(
+            remain_cnt >= min_group_size,  # 组内(排除自身后)至少3篇文章
+            remain_sum / remain_cnt,
+            np.nan
+        )
+        panel = panel.merge(tmp[['target_bank', 'year', out_col]],
+                            on=['target_bank', 'year'], how='left')
+
+    # 诊断
+    zone_dist = panel.drop_duplicates('target_bank')['bank_zone'].value_counts()
+    logger.info(f"  经济圈分布: {dict(zone_dist)}")
+    for track in ['_full', '_ctx']:
+        out_col = f'zone_leave1out_tone{track}'
+        if out_col in panel.columns:
+            n_valid = panel[out_col].notna().sum()
+            logger.info(f"  {out_col}: {n_valid}/{len(panel)} 有效 ({n_valid/len(panel)*100:.1f}%)")
+
+    return panel
+
+
+# ============================================================================
+# 2f. DID 政策冲击变量合并
+#     学术依据: Callaway & Sant'Anna (2021, JoE)
+#     DOI: 10.1016/j.jeconom.2020.12.001
+# ============================================================================
+
+def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
+    """合并政策冲击 DID 变量（仅年份维度，不区分波次/月份）。
+
+    设计思路:
+        面板为 Bank-Year 年度频率，因此政策冲击只需定位到"年份"即可。
+        同一年内若有多批次（如 DCEP 2022年3月第三批 + 12月第四批），
+        统一视为该年处理。
+
+    对每个政策(dcep / sandbox)生成 3 个变量:
+        {prefix}_treated:    处理组哑变量 (0/1)
+        {prefix}_post:       政策后哑变量 (0/1)
+        {prefix}_treat_year: 首次被处理的年份 (0=控制组, 用于交错DID的 gvar)
+
+    匹配规则（按优先级从高到低）:
+        1. cities:         按 bank_city 精确匹配
+        2. full_province:  按 bank_province 匹配整个省份的全部银行
+        3. new_cities:     按 bank_city 匹配零散新增城市
+        先入为主: 一旦银行已被某年份匹配, 后续年份不再覆盖。
+    """
+    shock_path = os.path.join(os.path.dirname(__file__), 'config', 'policy_shocks.json')
+    if not os.path.exists(shock_path):
+        logger.warning("  policy_shocks.json 不存在, 跳过 DID 变量")
+        return panel
+
+    with open(shock_path, 'r', encoding='utf-8') as f:
+        shocks = json.load(f)
+
+    # 城市名别名映射 (雄安新区行政上属保定市)
+    CITY_ALIASES = {
+        '雄安': ['雄安', '保定'],
+    }
+
+    for policy_name, cfg in shocks.items():
+        if policy_name.startswith('_'):
+            continue
+        prefix = cfg['prefix']
+
+        # 前置校验: bank_city 是 DID 匹配的必要列
+        if 'bank_city' not in panel.columns:
+            logger.warning(f"  bank_city 列不存在, 跳过 {policy_name} DID 匹配"
+                           " (请确保 merge_bank_geography 已在前序步骤中执行)")
+            continue
+
+        panel[f'{prefix}_treat_year'] = 0
+        panel_city = panel['bank_city'].fillna('').str.rstrip('市')
+
+        for group in cfg['groups']:
+            treat_year = group['year']
+
+            # (a) 城市级匹配
+            if 'cities' in group:
+                for city in group['cities']:
+                    city_clean = city.rstrip('市')
+                    aliases = CITY_ALIASES.get(city_clean, [city_clean])
+                    for alias in aliases:
+                        mask = (panel_city == alias) & (panel[f'{prefix}_treat_year'] == 0)
+                        panel.loc[mask, f'{prefix}_treat_year'] = treat_year
+
+            # (b) 省级匹配
+            if 'full_province' in group and 'bank_province' in panel.columns:
+                provs = set(group['full_province'])
+                mask = (panel['bank_province'].isin(provs)
+                        & (panel[f'{prefix}_treat_year'] == 0))
+                panel.loc[mask, f'{prefix}_treat_year'] = treat_year
+
+            # (c) 零散新增城市
+            if 'new_cities' in group:
+                new_city_set = set(c.rstrip('市') for c in group['new_cities'])
+                if '西双版纳' in new_city_set:
+                    new_city_set.add('景洪')
+                mask = (panel_city.isin(new_city_set)
+                        & (panel[f'{prefix}_treat_year'] == 0))
+                panel.loc[mask, f'{prefix}_treat_year'] = treat_year
+
+        # 生成最终 DID 变量
+        panel[f'{prefix}_treated'] = (panel[f'{prefix}_treat_year'] > 0).astype(int)
+        panel[f'{prefix}_post'] = np.where(
+            panel[f'{prefix}_treat_year'] > 0,
+            (panel['year'] >= panel[f'{prefix}_treat_year']).astype(int),
+            0
+        )
+
+        # 诊断日志
+        n_treated = panel.loc[panel[f'{prefix}_treated'] == 1, 'target_bank'].nunique()
+        n_control = panel.loc[panel[f'{prefix}_treated'] == 0, 'target_bank'].nunique()
+        year_dist = (panel.drop_duplicates('target_bank')
+                     .groupby(f'{prefix}_treat_year')['target_bank'].count()
+                     .to_dict())
+        logger.info(f"  {policy_name}: 处理组 {n_treated} 家, "
+                    f"控制组 {n_control} 家, 年份分布 {year_dist}")
+
+    return panel
+
+
+# ============================================================================
+# 3c. 媒体权威性加权 (Holzman, Miller & Twedt 2023, TAR)
 # ============================================================================
 
 def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
@@ -148,7 +663,7 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
       Holzman, E.R., Miller, B.P. & Twedt, B.J. (2023).
       "Curbing Enthusiasm: Media Sentiment and the Disciplining Role
       of Quarterly Earnings Announcements."
-      Journal of Accounting Research, 61(2), 429-473.
+      The Accounting Review, 98(7), 315-345. DOI: 10.2308/TAR-2020-0104
       → Appendix A: Outlet Impact Media Sent 加权方法
 
     该论文通过滚动回归估计每家媒体对股票周转率的边际贡献,
@@ -165,7 +680,7 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
         df: 附加 'media_authority_weight' 列的 DataFrame。
     """
     logger.info("=" * 60)
-    logger.info("步骤 3c: 媒体权威性加权 (Holzman et al. 2023, JAR)")
+    logger.info("步骤 3c: 媒体权威性加权 (Holzman et al. 2023, TAR)")
     logger.info("=" * 60)
 
     # ── 加载 media_weights.json ──
@@ -376,7 +891,7 @@ def build_aggregation_dict() -> dict:
             agg[f'{b}_正面_w_sum{track}'] = (f'{b}_正面_w{track}', 'sum')
             agg[f'{b}_负面_w_sum{track}'] = (f'{b}_负面_w{track}', 'sum')
 
-    # --- F3. 媒体权威性加权聚合 (Holzman et al. 2023, JAR) ---
+    # --- F3. 媒体权威性加权聚合 (Holzman et al. 2023, TAR) ---
     agg['sum_media_authority_weight'] = ('media_authority_weight', 'sum')
     for track in ['_full', '_ctx']:
         agg[f'llm_vote_score_mw_sum{track}'] = (f'llm_vote_score_mw{track}', 'sum')
@@ -588,7 +1103,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     panel[f'{b}_neg_vw{track}'] = panel[w_neg] / denom
         logger.info(f"  已计算 Value-weighted Tone 指标（双轨）")
 
-    # --- MW Tone (媒体权威性加权, Holzman et al. 2023, JAR) ---
+    # --- MW Tone (媒体权威性加权, Holzman et al. 2023, TAR) ---
     if 'sum_media_authority_weight' in panel.columns:
         mw_denom = panel['sum_media_authority_weight'].replace(0, np.nan)
         for track in ['_full', '_ctx']:
@@ -1166,7 +1681,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         panel[f'bert_avg_pos_vw{track}'] = _safe_mean([f'{b}_pos_vw{track}' for b in BERT_MODELS])
         panel[f'bert_avg_neg_vw{track}'] = _safe_mean([f'{b}_neg_vw{track}' for b in BERT_MODELS])
 
-        # --- MW 综合指标 (Holzman et al. 2023, JAR) ---
+        # --- MW 综合指标 (Holzman et al. 2023, TAR) ---
         panel[f'llm_models_avg_tone_mw{track}'] = _safe_mean([f'{s}_tone_mw{track}' for s in LLM_MODELS])
         panel[f'dict_avg_tone_mw{track}'] = _safe_mean([f'{d}_tone_mw{track}' for d in DICT_NAMES])
         panel[f'dict_avg_idf_tone_mw{track}'] = _safe_mean([f'{d}_idf_tone_mw{track}' for d in DICT_NAMES])
@@ -1805,7 +2320,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'tone_gap_central_local_ctx':  'Tone Gap: Central - Local (Ctx)',
                 # 集中度
                 'media_hhi':                   'Media Source HHI',
-                # 媒体权威性加权 (Holzman et al. 2023, JAR)
+                # 媒体权威性加权 (Holzman et al. 2023, TAR)
                 'llm_vote_tone_mw_full':          'LLM Vote Tone (Media-Auth Wt, Full)',
                 'llm_vote_tone_mw_ctx':           'LLM Vote Tone (Media-Auth Wt, Ctx)',
                 'llm_vote_cont_mw_full':          'LLM Vote Cont (Media-Auth Wt, Full)',
@@ -1852,6 +2367,144 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'prov_leave1out_tone_ctx':          'Province Leave-1-Out Tone (Ctx)',
                 'city_leave1out_tone_full':         'City Leave-1-Out Tone (Full)',
                 'city_leave1out_tone_ctx':          'City Leave-1-Out Tone (Ctx)',
+                # Bartik IV — 银行类型维度 (主)
+                'bank_type':                           'Bank Type (nfra_type)',
+                'bartik_type_iv_full':                 'Bartik IV: Bank-Type (Full)',
+                'bartik_type_iv_ctx':                  'Bartik IV: Bank-Type (Ctx)',
+                'bartik_type_share_soe':               'Bartik Share: SOE Banks',
+                'bartik_type_share_joint':             'Bartik Share: Joint-Stock',
+                'bartik_type_share_city':              'Bartik Share: City Commercial',
+                'bartik_type_share_rural':             'Bartik Share: Rural Commercial',
+                'bartik_type_share_private':           'Bartik Share: Private Banks',
+                'bartik_type_share_foreign':           'Bartik Share: Foreign Banks',
+                # Bartik IV — 规模维度 (稳健性 1)
+                'bank_scale':                          'Bank Scale (enterprise_scale)',
+                'bartik_scale_iv_full':                'Bartik IV: Bank-Scale (Full)',
+                'bartik_scale_iv_ctx':                 'Bartik IV: Bank-Scale (Ctx)',
+                'bartik_scale_share_L':                'Bartik Share: Large Banks',
+                'bartik_scale_share_M':                'Bartik Share: Medium Banks',
+                'bartik_scale_share_S':                'Bartik Share: Small Banks',
+                'bartik_scale_share_XS':               'Bartik Share: Micro Banks',
+                # Bartik IV — 金融科技类型维度 (稳健性 2)
+                'bartik_fintech_iv_full':              'Bartik IV: Fintech-Category (Full)',
+                'bartik_fintech_iv_ctx':               'Bartik IV: Fintech-Category (Ctx)',
+                'bartik_fintech_share_tech':           'Bartik Share: Technology',
+                'bartik_fintech_share_app':            'Bartik Share: Application',
+                # Bartik IV — 媒体类型维度 (稳健性 3)
+                'bartik_media_iv_full':                'Bartik IV: Media-Type (Full)',
+                'bartik_media_iv_ctx':                 'Bartik IV: Media-Type (Ctx)',
+                'bartik_media_share_fin':              'Bartik Share: Financial Media',
+                'bartik_media_share_comp':             'Bartik Share: Comprehensive Media',
+                # Bartik IV — 中央/地方 (稳健性 4)
+                'bartik_mcentral_iv_full':             'Bartik IV: Central-Local (Full)',
+                'bartik_mcentral_iv_ctx':              'Bartik IV: Central-Local (Ctx)',
+                'bartik_mcentral_share_central':       'Bartik Share: Central Media',
+                'bartik_mcentral_share_local':         'Bartik Share: Local Media',
+                # Bartik IV — 财经/非财经 (稳健性 5)
+                'bartik_mfin_iv_full':                 'Bartik IV: Fin-NonFin (Full)',
+                'bartik_mfin_iv_ctx':                  'Bartik IV: Fin-NonFin (Ctx)',
+                'bartik_mfin_share_fin':               'Bartik Share: Financial',
+                'bartik_mfin_share_nonfin':            'Bartik Share: Non-Financial',
+                # Bartik IV — 综合类/非综合类 (稳健性 6)
+                'bartik_mcomp_iv_full':                'Bartik IV: Comp-NonComp (Full)',
+                'bartik_mcomp_iv_ctx':                 'Bartik IV: Comp-NonComp (Ctx)',
+                'bartik_mcomp_share_comp':             'Bartik Share: Comprehensive',
+                'bartik_mcomp_share_noncomp':          'Bartik Share: Non-Comprehensive',
+                # Bartik IV — 媒体省份 (稳健性 7)
+                'bartik_mprov_iv_full':                'Bartik IV: Media-Province (Full)',
+                'bartik_mprov_iv_ctx':                 'Bartik IV: Media-Province (Ctx)',
+                # Bartik IV — 媒体权威性 (稳健性 8)
+                'bartik_mauth_iv_full':                'Bartik IV: Media-Authority (Full)',
+                'bartik_mauth_iv_ctx':                 'Bartik IV: Media-Authority (Ctx)',
+                'bartik_mauth_share_high':             'Bartik Share: High Authority',
+                'bartik_mauth_share_mid':              'Bartik Share: Mid Authority',
+                'bartik_mauth_share_low':              'Bartik Share: Low Authority',
+                # Bartik IV — 文章长度 (稳健性 9)
+                'bartik_doclen_iv_full':               'Bartik IV: Doc-Length (Full)',
+                'bartik_doclen_iv_ctx':                'Bartik IV: Doc-Length (Ctx)',
+                'bartik_doclen_share_long':            'Bartik Share: Long Articles',
+                'bartik_doclen_share_short':           'Bartik Share: Short Articles',
+                # Bartik IV — 半年度 (稳健性 10)
+                'bartik_half_iv_full':                 'Bartik IV: Half-Year (Full)',
+                'bartik_half_iv_ctx':                  'Bartik IV: Half-Year (Ctx)',
+                'bartik_half_share_H1':                'Bartik Share: First Half',
+                'bartik_half_share_H2':                'Bartik Share: Second Half',
+                # Bartik IV — 季度 (稳健性 11)
+                'bartik_qtr_iv_full':                  'Bartik IV: Quarter (Full)',
+                'bartik_qtr_iv_ctx':                   'Bartik IV: Quarter (Ctx)',
+                # Bartik IV — 月度 (稳健性 12)
+                'bartik_month_iv_full':                'Bartik IV: Month (Full)',
+                'bartik_month_iv_ctx':                 'Bartik IV: Month (Ctx)',
+                # Bartik IV — 工作日/周末 (稳健性 13)
+                'bartik_wkday_iv_full':                'Bartik IV: Weekday-Weekend (Full)',
+                'bartik_wkday_iv_ctx':                 'Bartik IV: Weekday-Weekend (Ctx)',
+                # Bartik IV — 专属/共享 (稳健性 14)
+                'bartik_excl_iv_full':                 'Bartik IV: Exclusive-Shared (Full)',
+                'bartik_excl_iv_ctx':                  'Bartik IV: Exclusive-Shared (Ctx)',
+                'bartik_excl_share_exclusive':         'Bartik Share: Exclusive',
+                'bartik_excl_share_shared':            'Bartik Share: Shared',
+                # Bartik IV — 地理邻近 (稳健性 15)
+                'bartik_geoprox_iv_full':              'Bartik IV: Geo-Proximity (Full)',
+                'bartik_geoprox_iv_ctx':               'Bartik IV: Geo-Proximity (Ctx)',
+                # Bartik IV — 标题出现 (稳健性 16)
+                'bartik_title_iv_full':                'Bartik IV: Title-Body (Full)',
+                'bartik_title_iv_ctx':                 'Bartik IV: Title-Body (Ctx)',
+                # Bartik IV — 关键词多样性 (稳健性 17)
+                'bartik_mden_iv_full':                 'Bartik IV: Mention-Density (Full)',
+                'bartik_mden_iv_ctx':                  'Bartik IV: Mention-Density (Ctx)',
+                # Bartik IV — 关键词密度 (稳健性 18)
+                'bartik_mcount_iv_full':               'Bartik IV: Mention-Count (Full)',
+                'bartik_mcount_iv_ctx':                'Bartik IV: Mention-Count (Ctx)',
+                # Bartik IV — 提及密度 (稳健性 19)
+                'bartik_breadth_iv_full':              'Bartik IV: Outlet-Breadth (Full)',
+                'bartik_breadth_iv_ctx':               'Bartik IV: Outlet-Breadth (Ctx)',
+                # Bartik IV — 银行提及次数 (稳健性 20)
+                'bartik_fwdlook_iv_full':              'Bartik IV: Forward-Looking (Full)',
+                'bartik_fwdlook_iv_ctx':               'Bartik IV: Forward-Looking (Ctx)',
+                # Bartik IV — 媒体覆盖广度 (稳健性 21)
+                'bartik_sentlen_iv_full':              'Bartik IV: Sentence-Length (Full)',
+                'bartik_sentlen_iv_ctx':               'Bartik IV: Sentence-Length (Ctx)',
+                # Bartik IV — 前瞻性语言 (稳健性 22)
+                'bartik_ttr_iv_full':                  'Bartik IV: Type-Token-Ratio (Full)',
+                'bartik_ttr_iv_ctx':                   'Bartik IV: Type-Token-Ratio (Ctx)',
+                # Bartik IV — 平均句长 (稳健性 23)
+                'bartik_pubfmt_iv_full':               'Bartik IV: Pub-Format (Full)',
+                'bartik_pubfmt_iv_ctx':                'Bartik IV: Pub-Format (Ctx)',
+                # Bartik IV — 词汇丰富度 (稳健性 24)
+                'bartik_author_iv_full':               'Bartik IV: Author-Byline (Full)',
+                'bartik_author_iv_ctx':                'Bartik IV: Author-Byline (Ctx)',
+                # Bartik IV — 出版形态 (稳健性 25)
+                'bartik_page_iv_full':                 'Bartik IV: Section-Position (Full)',
+                'bartik_page_iv_ctx':                  'Bartik IV: Section-Position (Ctx)',
+                # Bartik IV — 作者署名 (稳健性 26)
+                'bartik_pgnum_iv_full':                'Bartik IV: Page-Number (Full)',
+                'bartik_pgnum_iv_ctx':                 'Bartik IV: Page-Number (Ctx)',
+                # Bartik IV — 版面位置 (稳健性 27)
+                'bartik_kwdiv_iv_full':                'Bartik IV: Keyword-Diversity (Full)',
+                'bartik_kwdiv_iv_ctx':                 'Bartik IV: Keyword-Diversity (Ctx)',
+                # Bartik IV — 页号位置 (稳健性 28)
+                'bartik_kwden_iv_full':                'Bartik IV: Keyword-Density (Full)',
+                'bartik_kwden_iv_ctx':                 'Bartik IV: Keyword-Density (Ctx)',
+                # Bartik IV — 基期敏感性
+                'bartik_type_iv_full_t0':              'Bartik IV: Type (Full, T0)',
+                'bartik_type_iv_full_t1':              'Bartik IV: Type (Full, T0+1)',
+                'bartik_type_iv_full_t01':             'Bartik IV: Type (Full, T0&T0+1)',
+                'bartik_type_iv_ctx_t0':               'Bartik IV: Type (Ctx, T0)',
+                'bartik_type_iv_ctx_t1':               'Bartik IV: Type (Ctx, T0+1)',
+                'bartik_type_iv_ctx_t01':              'Bartik IV: Type (Ctx, T0&T0+1)',
+                # 经济圈 LOO IV
+                'zone_leave1out_tone_full':            'Econ Zone Leave-1-Out Tone (Full)',
+                'zone_leave1out_tone_ctx':             'Econ Zone Leave-1-Out Tone (Ctx)',
+                'bank_zone':                           'Economic Zone',
+                # DID 政策冲击
+                'dcep_treated':                        'DCEP Pilot (0/1)',
+                'dcep_post':                           'Post DCEP Pilot (0/1)',
+                'dcep_treat_year':                     'DCEP First Treatment Year',
+                'sandbox_treated':                     'Fintech Sandbox (0/1)',
+                'sandbox_post':                        'Post Sandbox (0/1)',
+                'sandbox_treat_year':                  'Sandbox First Treatment Year',
+                # 其他
+                'has_coverage':                        'Has News Coverage (0/1)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -1966,7 +2619,7 @@ def main():
     else:
         logger.info("  mention_density 列不存在, 跳过加权列预计算")
 
-    # --- 3c. 媒体权威性加权列预计算 (Holzman et al. 2023, JAR) ---
+    # --- 3c. 媒体权威性加权列预计算 (Holzman et al. 2023, TAR) ---
     if PANEL_CFG.get('compute_media_authority_weighting', False):
         df = compute_media_authority_weights(df)
         mw = df['media_authority_weight'].fillna(1.0)
@@ -2005,6 +2658,11 @@ def main():
     # --- 6. 面板平衡 ---
     panel = balance_panel(panel)
 
+    # --- 6a. has_coverage 哑变量 ---
+    panel['has_coverage'] = (panel['n_articles'] > 0).astype(int)
+    logger.info(f"  has_coverage: 有报道={panel['has_coverage'].sum()}, "
+                f"无报道={len(panel) - panel['has_coverage'].sum()}")
+
     # --- 6b. 金融科技注意力指数 (三级) ---
     # ⚠️ 必须在 balance_panel() 之后调用 (确保完全笛卡尔积)
     # ⚠️ 不使用 df_exploded (仅含 fintech 文章), 而是直接读取
@@ -2033,7 +2691,430 @@ def main():
     # (Luo & Li 2025, Table 3: Province_news_sentiment)
     panel = compute_leave_one_out_sentiment(panel)
 
-    # --- 8. 诊断统计 ---
+    # --- 7e. Bartik IV (29套分类维度) ---
+    if PANEL_CFG.get('compute_bartik_iv', True):
+        logger.info("=" * 60)
+        logger.info("步骤 7e: Bartik Shift-Share IV (29套)")
+        logger.info("=" * 60)
+        type_map, scale_map = load_bank_group_maps()
+        T0 = panel['year'].min()
+
+        # --- 主 Bartik: 银行类型 (6类, 5有效IV) ---
+        panel = compute_bartik_iv(panel, df_exploded, type_map, 'type')
+        # 基期敏感性 (T0, T0+1, T0&T0+1)
+        # ⚠️ 使用 merge-based 赋值，避免 .values 行序错配
+        for suffix, base_yr in [('_t0', T0), ('_t1', T0+1)]:
+            ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
+                                     df_exploded, type_map, 'type',
+                                     base_year=base_yr)
+            for track in ['_full', '_ctx']:
+                src_col = f'bartik_type_iv{track}'
+                dst_col = f'bartik_type_iv{track}{suffix}'
+                ptmp = ptmp.rename(columns={src_col: dst_col})
+            panel = panel.merge(
+                ptmp[['target_bank', 'year',
+                      f'bartik_type_iv_full{suffix}',
+                      f'bartik_type_iv_ctx{suffix}']],
+                on=['target_bank', 'year'], how='left')
+        base_t01 = df_exploded[df_exploded['year'].isin([T0, T0+1])]
+        ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
+                                 base_t01, type_map, 'type', base_year=T0)
+        for track in ['_full', '_ctx']:
+            src_col = f'bartik_type_iv{track}'
+            ptmp = ptmp.rename(columns={src_col: f'bartik_type_iv{track}_t01'})
+        panel = panel.merge(
+            ptmp[['target_bank', 'year',
+                  'bartik_type_iv_full_t01',
+                  'bartik_type_iv_ctx_t01']],
+            on=['target_bank', 'year'], how='left')
+
+        # --- 稳健性 1: 银行规模 (4类, 3有效IV) ---
+        panel = compute_bartik_iv(panel, df_exploded, scale_map, 'scale')
+
+        # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) ---
+        fintech_map = {'底层技术': 'tech', '应用场景': 'app'}
+        panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech')
+
+        # --- 稳健性 3-6: 媒体分类 Bartik (4种分类方式) ---
+        # 3=财经/综合 4=中央/地方 5=财经/非财经 6=综合/非综合
+        cls_path = os.path.join(os.path.dirname(__file__),
+                                'config', 'media_classification.json')
+        if os.path.exists(cls_path):
+            with open(cls_path, 'r', encoding='utf-8') as f:
+                media_cls = json.load(f)
+            FIN = set(media_cls.get('financial_media', []))
+            COMP = set(media_cls.get('comprehensive_media', []))
+            CENTRAL = set(media_cls.get('central_media', []))
+            media_col = '媒体(中文)'
+
+            # 3a: 财经/综合/其他
+            if '_media_type' not in df_exploded.columns:
+                df_exploded['_media_type'] = df_exploded[media_col].apply(
+                    lambda x: 'fin' if x in FIN else ('comp' if x in COMP else 'other')
+                )
+            media_map = {'fin': 'fin', 'comp': 'comp', 'other': 'other'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, media_map, 'media',
+                category_col='_media_type'
+            )
+
+            # 3b: 中央级/地方级
+            df_exploded['_media_central'] = df_exploded[media_col].apply(
+                lambda x: 'central' if x in CENTRAL else 'local'
+            )
+            mcentral_map = {'central': 'central', 'local': 'local'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mcentral_map, 'mcentral',
+                category_col='_media_central'
+            )
+
+            # 3c: 财经/非财经
+            df_exploded['_media_fin_binary'] = df_exploded[media_col].apply(
+                lambda x: 'fin' if x in FIN else 'nonfin'
+            )
+            mfin_map = {'fin': 'fin', 'nonfin': 'nonfin'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mfin_map, 'mfin',
+                category_col='_media_fin_binary'
+            )
+
+            # 3d: 综合性/非综合性
+            df_exploded['_media_comp_binary'] = df_exploded[media_col].apply(
+                lambda x: 'comp' if x in COMP else 'noncomp'
+            )
+            mcomp_map = {'comp': 'comp', 'noncomp': 'noncomp'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mcomp_map, 'mcomp',
+                category_col='_media_comp_binary'
+            )
+
+            logger.info(f"  媒体分类 Bartik: 3a(fin/comp/other) + "
+                        f"3b(central/local) + 3c(fin/nonfin) + 3d(comp/noncomp)")
+        else:
+            logger.warning("  media_classification.json 不存在, 跳过所有媒体分类 Bartik")
+
+        # --- 稳健性 7: 媒体省份 ---
+        MPROV_MIN_ARTICLES = 5
+        mprov_col = '国家地区/省份'
+        if mprov_col in df_exploded.columns:
+            prov_counts = df_exploded[mprov_col].value_counts()
+            valid_provs = set(prov_counts[prov_counts >= MPROV_MIN_ARTICLES].index)
+            mprov_map = {p: p for p in valid_provs}
+            mprov_map['other'] = 'other'
+            df_exploded['_media_province'] = df_exploded[mprov_col].apply(
+                lambda x: x if x in valid_provs else 'other'
+            )
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mprov_map, 'mprov',
+                category_col='_media_province'
+            )
+            logger.info(f"  媒体省份 Bartik: {len(valid_provs)} 个有效省份")
+        else:
+            logger.warning(f"  列 '{mprov_col}' 不存在, 跳过媒体省份 Bartik")
+
+        # --- 稳健性 8: 媒体权威性 ---
+        mw_path = os.path.join(os.path.dirname(__file__),
+                               'config', 'media_weights.json')
+        if os.path.exists(mw_path):
+            with open(mw_path, 'r', encoding='utf-8') as f:
+                mw = json.load(f)
+            mw = {k: v for k, v in mw.items() if not k.startswith('//')}
+            media_col = '媒体(中文)'
+            df_exploded['_media_authority'] = df_exploded[media_col].apply(
+                lambda x: 'high' if mw.get(x, 10) >= 80
+                          else ('mid' if mw.get(x, 10) >= 60 else 'low')
+            )
+            mauth_map = {'high': 'high', 'mid': 'mid', 'low': 'low'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mauth_map, 'mauth',
+                category_col='_media_authority'
+            )
+        else:
+            logger.warning("  media_weights.json 不存在, 跳过媒体权威性 Bartik")
+
+        # --- 稳健性 9: 文章长度 ---
+        if 'doc_length' in df_exploded.columns:
+            year_median_doclen = df_exploded.groupby('year')['doc_length'].transform('median')
+            df_exploded['_doclen_type'] = np.where(
+                df_exploded['doc_length'] > year_median_doclen,
+                'long', 'short'
+            )
+            doclen_map = {'long': 'long', 'short': 'short'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, doclen_map, 'doclen',
+                category_col='_doclen_type'
+            )
+        else:
+            logger.warning("  doc_length 列不存在, 跳过文章长度 Bartik")
+
+        # --- 稳健性 10: 半年度 ---
+        date_col = '日期'
+        if date_col in df_exploded.columns:
+            df_exploded['_half_year'] = df_exploded[date_col].apply(
+                lambda x: 'H1' if pd.to_datetime(x).month <= 6 else 'H2'
+            )
+            half_map = {'H1': 'H1', 'H2': 'H2'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, half_map, 'half',
+                category_col='_half_year'
+            )
+        else:
+            logger.warning(f"  列 '{date_col}' 不存在, 跳过半年度 Bartik")
+
+        # --- 稳健性 11: 季度 ---
+        if date_col in df_exploded.columns:
+            df_exploded['_quarter'] = df_exploded[date_col].apply(
+                lambda x: f'Q{(pd.to_datetime(x).month - 1) // 3 + 1}'
+            )
+            qtr_map = {'Q1': 'Q1', 'Q2': 'Q2', 'Q3': 'Q3', 'Q4': 'Q4'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, qtr_map, 'qtr',
+                category_col='_quarter'
+            )
+
+        # --- 稳健性 12: 月度 ---
+        if date_col in df_exploded.columns:
+            df_exploded['_pub_month'] = df_exploded[date_col].apply(
+                lambda x: f'M{pd.to_datetime(x).month:02d}'
+            )
+            month_map = {f'M{m:02d}': f'M{m:02d}' for m in range(1, 13)}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, month_map, 'month',
+                category_col='_pub_month'
+            )
+
+        # --- 稳健性 13: 工作日/周末 ---
+        if date_col in df_exploded.columns:
+            df_exploded['_wkday_type'] = df_exploded[date_col].apply(
+                lambda x: 'weekend' if pd.to_datetime(x).dayofweek >= 5 else 'weekday'
+            )
+            wkday_map = {'weekday': 'weekday', 'weekend': 'weekend'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, wkday_map, 'wkday',
+                category_col='_wkday_type'
+            )
+
+        # --- 稳健性 14: 专属/共享报道 ---
+        if 'is_multi_bank' in df_exploded.columns:
+            df_exploded['_excl_type'] = df_exploded['is_multi_bank'].map(
+                {0: 'exclusive', 1: 'shared'}
+            )
+            excl_map = {'exclusive': 'exclusive', 'shared': 'shared'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, excl_map, 'excl',
+                category_col='_excl_type'
+            )
+        else:
+            logger.warning("  is_multi_bank 列不存在, 跳过专属/共享 Bartik")
+
+        # --- 稳健性 15: 地理邻近性 ---
+        media_prov_col = '国家地区/省份'
+        if media_prov_col in df_exploded.columns:
+            addr_path = os.path.join(os.path.dirname(__file__),
+                                     'config', 'bank_addresses.json')
+            if os.path.exists(addr_path):
+                with open(addr_path, 'r', encoding='utf-8') as f:
+                    _addr = json.load(f)
+                _prov_map = {k: v.get('province', '') for k, v in _addr.items()}
+                df_exploded['_bank_prov'] = df_exploded['target_bank'].map(_prov_map)
+                df_exploded['_geo_proximity'] = np.where(
+                    df_exploded[media_prov_col] == df_exploded['_bank_prov'],
+                    'local', 'nonlocal'
+                )
+                geoprox_map = {'local': 'local', 'nonlocal': 'nonlocal'}
+                panel = compute_bartik_iv_fintech(
+                    panel, df_exploded, geoprox_map, 'geoprox',
+                    category_col='_geo_proximity'
+                )
+
+        # --- 稳健性 16: 标题出现 ---
+        if 'target_bank_in_title' in df_exploded.columns:
+            df_exploded['_title_type'] = df_exploded['target_bank_in_title'].map(
+                {1: 'title', 0: 'body'}
+            )
+            title_map = {'title': 'title', 'body': 'body'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, title_map, 'title',
+                category_col='_title_type'
+            )
+
+        # --- 稳健性 17: 关键词多样性 ---
+        if 'fintech_distinct_keywords' in df_exploded.columns:
+            year_median_kwdiv = df_exploded.groupby('year')['fintech_distinct_keywords'].transform('median')
+            df_exploded['_kwdiv_type'] = np.where(
+                df_exploded['fintech_distinct_keywords'] > year_median_kwdiv,
+                'high_div', 'low_div'
+            )
+            kwdiv_map = {'high_div': 'high_div', 'low_div': 'low_div'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, kwdiv_map, 'kwdiv',
+                category_col='_kwdiv_type'
+            )
+
+        # --- 稳健性 18: 关键词密度 ---
+        if 'fintech_total_count' in df_exploded.columns:
+            year_median_kwden = df_exploded.groupby('year')['fintech_total_count'].transform('median')
+            df_exploded['_kwden_type'] = np.where(
+                df_exploded['fintech_total_count'] > year_median_kwden,
+                'dense', 'sparse'
+            )
+            kwden_map = {'dense': 'dense', 'sparse': 'sparse'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, kwden_map, 'kwden',
+                category_col='_kwden_type'
+            )
+
+        # --- 稳健性 19: 提及密度 ---
+        if 'mention_density' in df_exploded.columns:
+            year_median_mden = df_exploded.groupby('year')['mention_density'].transform('median')
+            df_exploded['_mden_type'] = np.where(
+                df_exploded['mention_density'] > year_median_mden,
+                'deep', 'shallow'
+            )
+            mden_map = {'deep': 'deep', 'shallow': 'shallow'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mden_map, 'mden',
+                category_col='_mden_type'
+            )
+
+        # --- 稳健性 20: 银行提及次数 ---
+        if 'target_bank_mention_count' in df_exploded.columns:
+            df_exploded['_mcount_type'] = pd.cut(
+                df_exploded['target_bank_mention_count'],
+                bins=[-1, 3, 4, float('inf')],  # -1 确保 mention_count=0 也被覆盖
+                labels=['low', 'mid', 'high']
+            ).astype(str)  # Categorical → str, 避免下游 map() 兼容性问题
+            mcount_map = {'low': 'low', 'mid': 'mid', 'high': 'high'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mcount_map, 'mcount',
+                category_col='_mcount_type'
+            )
+
+        # --- 稳健性 21: 媒体覆盖广度 ---
+        media_col = '媒体(中文)'
+        if media_col in df_exploded.columns:
+            media_bank_counts = df_exploded.groupby(media_col)['target_bank'].nunique()
+            median_cov = media_bank_counts.median()
+            broad_set = set(media_bank_counts[media_bank_counts > median_cov].index)
+            df_exploded['_breadth_type'] = df_exploded[media_col].apply(
+                lambda m: 'broad' if m in broad_set else 'niche'
+            )
+            breadth_map = {'broad': 'broad', 'niche': 'niche'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, breadth_map, 'breadth',
+                category_col='_breadth_type'
+            )
+
+        # --- 稳健性 22: 前瞻性语言 ---
+        if 'forward_looking_ratio_full' in df_exploded.columns:
+            year_median_fl = df_exploded.groupby('year')['forward_looking_ratio_full'].transform('median')
+            df_exploded['_fwdlook_type'] = np.where(
+                df_exploded['forward_looking_ratio_full'] > year_median_fl,
+                'forward', 'backward'
+            )
+            fwdlook_map = {'forward': 'forward', 'backward': 'backward'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, fwdlook_map, 'fwdlook',
+                category_col='_fwdlook_type'
+            )
+
+        # --- 稳健性 23: 平均句长 ---
+        if 'avg_sentence_len_full' in df_exploded.columns:
+            year_median_sl = df_exploded.groupby('year')['avg_sentence_len_full'].transform('median')
+            df_exploded['_sentlen_type'] = np.where(
+                df_exploded['avg_sentence_len_full'] > year_median_sl,
+                'complex', 'simple'
+            )
+            sentlen_map = {'complex': 'complex', 'simple': 'simple'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, sentlen_map, 'sentlen',
+                category_col='_sentlen_type'
+            )
+
+        # --- 稳健性 24: 词汇丰富度 TTR ---
+        if 'type_token_ratio_full' in df_exploded.columns:
+            year_median_ttr = df_exploded.groupby('year')['type_token_ratio_full'].transform('median')
+            df_exploded['_ttr_type'] = np.where(
+                df_exploded['type_token_ratio_full'] > year_median_ttr,
+                'diverse', 'uniform'
+            )
+            ttr_map = {'diverse': 'diverse', 'uniform': 'uniform'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, ttr_map, 'ttr',
+                category_col='_ttr_type'
+            )
+
+        # --- 稳健性 25: 出版形态 ---
+        if '媒体类型(中文)' in df_exploded.columns:
+            pubfmt_map_raw = {
+                '报纸': 'newspaper', '杂志': 'magazine', '新闻通讯社': 'agency'
+            }
+            df_exploded['_pubformat'] = df_exploded['媒体类型(中文)'].map(pubfmt_map_raw).fillna('newspaper')
+            pubfmt_map = {'newspaper': 'newspaper', 'magazine': 'magazine', 'agency': 'agency'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, pubfmt_map, 'pubfmt',
+                category_col='_pubformat'
+            )
+
+        # --- 稳健性 26: 作者署名 ---
+        if '作者' in df_exploded.columns:
+            df_exploded['_author_type'] = np.where(
+                df_exploded['作者'].notna() & (df_exploded['作者'].astype(str).str.strip() != ''),
+                'named', 'anonymous'
+            )
+            author_map = {'named': 'named', 'anonymous': 'anonymous'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, author_map, 'author',
+                category_col='_author_type'
+            )
+
+        # --- 稳健性 27: 版面位置 ---
+        if '版面' in df_exploded.columns:
+            front_page_keywords = ['头版', '要闻', '头条']
+            df_exploded['_section_pos'] = np.where(
+                df_exploded['版面'].fillna('').str.contains('|'.join(front_page_keywords)),
+                'front_page', 'inner'
+            )
+            page_map = {'front_page': 'front_page', 'inner': 'inner'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, page_map, 'page',
+                category_col='_section_pos'
+            )
+
+        # --- 稳健性 28: 页号位置 ---
+        if '页号' in df_exploded.columns:
+            def extract_page_num(x):
+                if pd.isna(x):
+                    return np.nan
+                nums = re.findall(r'\d+', str(x))
+                return int(nums[0]) if nums else np.nan
+            df_exploded['_page_numeric'] = df_exploded['页号'].apply(extract_page_num)
+            df_exploded['_pgnum_type'] = np.where(
+                df_exploded['_page_numeric'].fillna(99) <= 3,
+                'early_page', 'late_page'
+            )
+            pgnum_map = {'early_page': 'early_page', 'late_page': 'late_page'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, pgnum_map, 'pgnum',
+                category_col='_pgnum_type'
+            )
+
+        logger.info(f"  Bartik IV 共29套已完成")
+
+    # --- 7f. 经济圈 Leave-One-Out IV ---
+    if PANEL_CFG.get('compute_bartik_iv', True):
+        logger.info("=" * 60)
+        logger.info("步骤 7f: 经济圈 Leave-One-Out IV")
+        logger.info("=" * 60)
+        panel = compute_zone_leave1out(panel, df_exploded)
+
+    # --- 7g. DID 政策冲击变量 ---
+    if PANEL_CFG.get('compute_policy_shocks', True):
+        logger.info("=" * 60)
+        logger.info("步骤 7g: DID 政策冲击变量 (DCEP + Sandbox)")
+        logger.info("=" * 60)
+        panel = merge_policy_shocks(panel)
+
     log_diagnostics(panel, df_exploded)
 
     # --- 9. 导出 ---
