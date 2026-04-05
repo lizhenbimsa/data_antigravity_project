@@ -69,7 +69,7 @@
                         ↓
               [23_tone_berts] → BERT模型双轨情感分析
                         ↓
-              [40_build_panel] → Bank-Year面板数据
+              [41→42→43→44→45] → Bank-Year面板数据
                         ↓
               [51_falsification_test] → 含伪造检验对照变量的面板
 
@@ -256,7 +256,7 @@ Li (2010) 在Journal of Accounting Research上研究了公司文件中前瞻性�
 | 评估验证 | 35 | `35_radius_sensitivity.py` | 上下文窗口半径稳健性检验 |
 | 评估验证 | 36 | `36_entity_masking_test.py` | 实体掩码稳健性测试 |
 | 评估验证 | 37 | `37_dict_coverage_audit.py` | 金融科技词典覆盖率审计 |
-| 面板构建 | 40 | `40_build_panel.py` | Bank-Year面板数据构建与导出 |
+| 面板构建 | 41-45 | `45_panel_export_main.py` (入口) | Bank-Year面板数据构建与导出 |
 | 面板构建 | 51 | `51_falsification_test.py` | 伪造检验对照变量构建 |
 
 每个阶段的输出以Apache Parquet格式保存，同时生成UTF-8-sig编码的CSV预览文件供快速检查。Parquet格式的选择基于以下考量：(1) 列式存储格式在分析型工作负载中具有显著的I/O性能优势；(2) 内置数据类型保持，避免了CSV格式在日期、浮点数等类型上的歧义；(3) 高效的Snappy压缩降低了磁盘占用。
@@ -998,7 +998,7 @@ Loughran & McDonald (2016, JAR) 和Gentzkow et al. (2019, JEL) 在其综述性�
 
 ### 11.1 模块概述
 
-面板数据构建模块（`40_build_panel.py`）将文章级的情感分析结果聚合为Bank-Year面板数据。该模块的设计遵循Tetlock et al. (2008) 的"先分后合"研究范式，确保聚合过程的每一步都有明确的学术依据。
+面板数据构建模块（`41-45` 系列文件，入口: `45_panel_export_main.py`）将文章级的情感分析结果聚合为Bank-Year面板数据。该模块的设计遵循Tetlock et al. (2008) 的"先分后合"研究范式，确保聚合过程的每一步都有明确的学术依据。
 
 ### 11.2 年份提取与日期标准化
 
@@ -2161,7 +2161,7 @@ python 11_news_bank.py
 python 21_tone_llms.py
 
 # 仅构建面板（需要23阶段输出）
-python 40_build_panel.py
+python 45_panel_export_main.py
 ```
 
 ### M.3 恢复与重运行
@@ -2180,7 +2180,7 @@ cat logs/00_preprocessing.log
 grep "ERROR\|WARNING\|retry" logs/21_tone_llms.log
 
 # 查看面板构建的统计摘要
-grep "SUMMARY\|Stage Summary" logs/40_build_panel.log
+grep "SUMMARY\|Stage Summary" logs/45_panel_export_main.log
 ```
 
 ---

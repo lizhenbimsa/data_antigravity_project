@@ -193,7 +193,7 @@ def load_data():
     )
     if not os.path.exists(art_path):
         logger.error(f"  ✗ 输入文件不存在: {art_path}")
-        logger.error(f"  → 请先运行 40_build_panel.py 生成此文件")
+        logger.error(f"  → 请先运行 45_panel_export_main.py 生成此文件")
         sys.exit(1)
     df_art = pd.read_parquet(art_path)
     logger.info(f"  (b) 40_article_bank_level: {len(df_art):,} 行")
@@ -208,7 +208,7 @@ def load_data():
     )
     if not os.path.exists(panel_path):
         logger.error(f"  ✗ 输入文件不存在: {panel_path}")
-        logger.error(f"  → 请先运行 40_build_panel.py 生成此文件")
+        logger.error(f"  → 请先运行 45_panel_export_main.py 生成此文件")
         sys.exit(1)
     panel = pd.read_parquet(panel_path)
     logger.info(f"  (c) 40_panel_yearly: {len(panel):,} 行")
@@ -247,7 +247,7 @@ def build_non_fintech(df_full: pd.DataFrame,
     logger.info("")
     logger.info("  数据处理说明:")
     logger.info("    ⚠️ 关键技术细节: 40_article_bank_level 中 '日期' 列已被")
-    logger.info("      40_build_panel.py 第135行转为 datetime64 类型,")
+    logger.info("      41_panel_encode_aggregate.py parse_time() 转为 datetime64 类型,")
     logger.info("      而 12_fintech_news_full 中 '日期' 仍为原始 string 类型。")
     logger.info("      为避免类型不匹配导致 anti-join 静默失败,")
     logger.info("      统一转为 YYYY-MM-DD 格式字符串后再匹配。")
@@ -415,7 +415,7 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  标题提及列 '{headline_col}' {'✓ 存在' if has_headline else '✗ 不存在'}")
     if has_headline:
         logger.info(f"    ⚠️ 技术备注: 列名是 '{headline_col}' (来自 11_news_bank.py),")
-        logger.info(f"       而非 'in_title' (40_build_panel.py 中的重命名版本)")
+        logger.info(f"       而非 'in_title' (45_panel_export_main.py main() 中的重命名版本)")
 
     nf_agg = df_nf.groupby(['target_bank', '_year']).agg(
         nf_n_articles=('target_bank', 'count'),
@@ -507,7 +507,7 @@ def merge_to_panel(panel: pd.DataFrame,
             panel[c] = panel[c].fillna(0)
     logger.info(f"  NaN 填充: {filled_count:,} 个单元格填为 0")
     logger.info(f"    说明: 某些 Bank-Year 在非金融科技组中没有新闻报道,")
-    logger.info(f"          与 40_build_panel.py balance_panel 的零新闻处理一致。")
+    logger.info(f"          与 41_panel_encode_aggregate.py balance_panel 的零新闻处理一致。")
 
     # --- 总量变量 ---
     logger.info("")
@@ -1010,7 +1010,7 @@ reghdfe Y c.llm_vote_tone_full##i.Z_high X, ///
 *          → 当 IV 数量 > 内生变量数量时, 可通过 Hansen J 检验
 *
 *   本模板提供两个维度共四个 IV:
-*     维度 1 — 媒体关注度 IV (Bhojraj et al. 2025):
+*     维度 1 — 媒体关注度 IV (Da et al. 2011; Fang & Peress 2009):
 *       ft_attn_prov / ft_attn_city
 *       = 报道该银行的媒体来源地的金融科技文章占全部文章的比例
 *       排他性论证: 媒体所在地区的金融科技关注度影响其报道银行时的

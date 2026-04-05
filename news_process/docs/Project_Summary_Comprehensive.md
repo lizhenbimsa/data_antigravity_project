@@ -180,9 +180,9 @@ Tetlock (2007) 发表在《The Journal of Finance》上的划时代论文率先�
 
 `31_bank_fintech_threshold.py` 运用无监督技术矩阵计算了全市场宏大维度的概率密度，通过引入如前 5% 或 2.5% 的极高横杆（Threshold Barriers）硬阈值，残忍剔除了那些可能由于打擦边球营销口号或者同业连带随口提及招致的无价值噪声数据，为面板（Panel）确立了纯洁的屏障保护。
 
-#### 7.2 日/月度宏观加权卷和与多重面板重塑工程 (`40_build_panel.py`)
+#### 7.2 日/月度宏观加权卷和与多重面板重塑工程 (`45_panel_export_main.py`)
 
-`40_build_panel.py` 精妙地充当了终级时序织布机（Assembler Weaving Loom），将深邃高耸的非规整时序碎片完美重塑成供各类因果面板线性/逻辑回归直接汲取营养的超宽表矩阵（Wide Dataframe Configurations）：从频数累加到采用 $\text{Polarization} = \frac{Pos - Neg}{\max(1, Total)}$  所产出的净情绪指数波浪图谱。
+`45_panel_export_main.py` 精妙地充当了终级时序织布机（Assembler Weaving Loom），将深邃高耸的非规整时序碎片完美重塑成供各类因果面板线性/逻辑回归直接汲取营养的超宽表矩阵（Wide Dataframe Configurations）：从频数累加到采用 $\text{Polarization} = \frac{Pos - Neg}{\max(1, Total)}$  所产出的净情绪指数波浪图谱。
 
 ### 8. 结论与研究局限性 (Conclusion and Limitations)
 

@@ -105,8 +105,8 @@ if os.path.exists(df23_path):
 else:
     ERRORS.append("23_bert_tone.parquet not found")
 
-# ━━━ 4. 阶段 40: 面板数据双轨输出 ━━━
-print("\n━━━ 阶段 40: 面板数据双轨输出 ━━━")
+# ━━━ 4. 阶段 41-45: 面板数据双轨输出 ━━━
+print("\n━━━ 阶段 41-45: 面板数据双轨输出 ━━━")
 df40_path = os.path.join(OUTPUT_DIR, "40_panel_yearly.parquet")
 if os.path.exists(df40_path):
     df40 = pd.read_parquet(df40_path)

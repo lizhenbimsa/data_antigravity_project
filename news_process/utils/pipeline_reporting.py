@@ -11,7 +11,7 @@ utils/pipeline_reporting.py
      追踪从 00_preprocessing 到 23_tone_berts 的每个阶段,
      记录行数变化与累计保留率。
   2. 面板级数据流转 (Panel Summary):
-     40_build_panel 和 51_falsification 的输出为 Bank-Year 级别数据,
+      45_panel_export_main (原 40, 已拆分为 41-45) 和 51_falsification 的输出为 Bank-Year 级别数据,
      粒度与文章级不同, 统计独立报告。
 
 使用 ``pyarrow.parquet.read_metadata()`` 高效获取行数,
@@ -137,14 +137,14 @@ def generate_pipeline_summary(config, logger):
             logger.warning(f"最终输出文件不存在，无法生成详细统计: {final_file_path}")
 
     # --- 面板构建阶段数据流统计 ---
-    # 注: 40/41 输出为 Bank-Year 面板级数据(粒度与文章级不同),
+    # 注: 41-45/51 输出为 Bank-Year 面板级数据(粒度与文章级不同),
     #     独立报告行数, 不与文章级阶段计算 Change/Retention。
     # 典型规模:
     #   output_40_panel_yearly: ~1,000 行 (50 银行 x 20 年)
     #   output_40_article_bank: ~500,000 行 (文章-银行二元组)
     panel_stages = [
-        ("模块五: 40_build_panel", "output_40_panel_yearly"),
-        ("模块五: 40_article_bank", "output_40_article_bank"),
+        ("模块五: 45_panel_export_main", "output_40_panel_yearly"),
+        ("模块五: 45_article_bank", "output_40_article_bank"),
         ("模块六: 51_falsification", "output_51_panel_controls"),
     ]
 

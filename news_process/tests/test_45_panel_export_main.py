@@ -1,8 +1,8 @@
 """
-test_40_build_panel.py — 40_build_panel 端到端单元测试
+test_45_panel_export_main.py — 面板构建模块 (41-45) 端到端单元测试
 ======================================================
 用合成数据模拟上游 23_bert_tone.parquet 的完整列结构，
-验证 40_build_panel.py 各步骤的数据流正确性。
+验证 45_panel_export_main.py 各步骤的数据流正确性。
 """
 import os
 import sys
@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # 以数字开头的模块名需要特殊导入
 _mod_path = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    '40_build_panel.py'
+    '45_panel_export_main.py'
 )
 _spec = importlib.util.spec_from_file_location('build_panel', _mod_path)
 bp = importlib.util.module_from_spec(_spec)
@@ -118,7 +118,7 @@ def synthetic_df():
 
     df = pd.DataFrame(data)
 
-    # 计算多银行特征（与 40_build_panel.py:main() 中的逻辑一致）
+    # 计算多银行特征（与 45_panel_export_main.py:main() 中的逻辑一致）
     df['bank_count'] = df['co_mentioned_banks'].apply(
         lambda x: len(str(x).split(';')) + 1 if x and str(x).strip() else 1
     )

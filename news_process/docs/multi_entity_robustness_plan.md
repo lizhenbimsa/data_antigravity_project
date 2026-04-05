@@ -61,11 +61,11 @@
 | **共现强度** | $CooccurIntensity_{i,t}$ | 该文章匹配的银行数量取对数 $\ln(N_{banks})$ | `matched_bank_names` |
 | **LLM 一致性** | $AgreementRate_{i,t}$ | 多模型投票一致性得分均值 | 阶段 21 `llm_agreement_rate` |
 
-### 2.2 核心 Python 代码 (`40_build_panel.py`)
+### 2.2 核心 Python 代码 (`45_panel_export_main.py`)
 
 ```python
 """
-脚本: 40_build_panel.py
+脚本: 45_panel_export_main.py
 功能: 将篇章级新闻情感数据 → Firm-Time 面板，附带稳健性检验变量
 依据: Tetlock et al. (2008, JF) 的 Article-to-Firm 平权映射范式
 """
