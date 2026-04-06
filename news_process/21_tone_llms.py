@@ -55,8 +55,10 @@ MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', '')))
 # Prompt 模板: 包含 {title}, {content}, {target_bank}, {co_mentioned_banks} 占位符
 PROMPT_TEMPLATE = LLM_CONFIG.get('prompt_template', '')
 # G-06: 温度参数锁定 — temperature=0 确保确定性推理输出, 保证可复现性
-# 学术依据: Lopez-Lira & Tang (2025, JF): "We use temperature = 0 to ensure
-#           deterministic outputs for reproducibility of sentiment labels."
+# 学术依据: Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock price
+#           movements? SSRN Working Paper No. 4412788:
+#           "We use temperature = 0 to ensure deterministic outputs for
+#           reproducibility of sentiment labels."
 # 同见: Carlson & Burbano (2026, SMJ §3.3): "temperature should be fixed and reported"
 TEMPERATURE = LLM_CONFIG.get('temperature', '')
 RANDOM_SEED = LLM_CONFIG.get('random_seed', '')

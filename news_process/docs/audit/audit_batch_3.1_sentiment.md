@@ -15,7 +15,7 @@
 
 ## 二、核心文献精读摘要
 
-### 2.1 Lopez-Lira & Tang (2025, JF) — *Can ChatGPT Forecast Stock Price Movements?*
+### 2.1 Lopez-Lira & Tang (2023, SSRN WP) — *Can ChatGPT Forecast Stock Price Movements?*
 
 **核心发现**：
 - GPT-4 对隔夜新闻的初始反应命中率达 **93.3%**，漂移策略年化 Sharpe Ratio = **2.97**
@@ -33,7 +33,7 @@
 | RavenPack 传统情感被 GPT-4 吸收 | 词典法作为独立方法保留 | ✅ 互补设计 |
 | Fama-French 5因子 Alpha | Panel 导出已有标准化但无FF5 | ⚠️ 需下游验证 |
 
-### 2.2 Chiu & Hung (2024, IRFA) — *Finance-specific LLMs: Advancing Sentiment with LLaMA 2*
+### 2.2 Chiu & Hung (2025, PBFJ) — *Finance-specific LLMs: Advancing Sentiment with LLaMA 2*
 
 **核心发现**：
 - **AI驱动两步摘要法** (LongT5)：MD&A 全文→0.72%压缩率，解决 LLM 输入长度限制
@@ -63,18 +63,18 @@
 | 1 | 多模型投票机制 | `majority_vote()` 多数投票 + `agreement_rate` | Lopez-Lira (2025) Table 5 模型对比 |
 | 2 | 双轨 (full/ctx) 消融 | 每条新闻生成 full/ctx 两组特征 | Hassan et al. (2019) entity-specific |
 | 3 | 公司名称锚定 Prompt | Prompt 含 `{bank_name}` 占位符 | Lopez-Lira (2025) §5 |
-| 4 | 连续置信度编码 | `cont = direction × confidence` | Chiu & Hung (2024) Bayesian |
+| 4 | 连续置信度编码 | `cont = direction × confidence` | Chiu & Hung (2025, PBFJ) Bayesian |
 | 5 | 一致率诊断 | `agreement_rate` 跨模型一致性 | Carlson & Burbano (2026, SMJ) |
 
 #### 🔴 识别的方法论差距
 
 | # | 差距 | 严重等级 | 文献依据 | 修复建议 |
 |---|-----|---------|---------|---------|
-| S1 | **LLM 温度参数未显式锁定** | 🟡 中 | Lopez-Lira (2025) §5: "temperature=0 for reproducibility" | 在 config 中显式设定 `temperature=0.0` 并在论文方法部分说明 |
+| S1 | **LLM 温度参数未显式锁定** | 🟡 中 | Lopez-Lira & Tang (2023, SSRN WP) §5: "temperature=0 for reproducibility" | 在 config 中显式设定 `temperature=0.0` 并在论文方法部分说明 |
 | S2 | **三分类 vs 五分类 Likert 未讨论** | 🟡 中 | 多篇文献使用 5-point (strong pos/pos/neutral/neg/strong neg) | 作为稳健性检验添加 5-point 变体 (39_prompt_sensitivity 可扩展) |
-| S3 | **Dirichlet 概率校准降级** | 🔴 高 | Chiu & Hung (2024, IRFA) §2.1: empirically-driven Dirichlet Bayesian | 实现完整 Dirichlet 后验估计，产出分类概率分布图 |
-| S4 | **缺乏 LLM 时间衰减分析** | 🟡 中 | Lopez-Lira (2025) §8.2: Sharpe 从 6.54→1.22 | 添加年度/季度子样本分析至 Panel 稳健性 |
-| S5 | **Prompt 消融不充分** | 🟡 中 | Lopez-Lira (2025) Appendix C: 12种不同 Prompt | 39_prompt_sensitivity 可扩展更多变体 |
+| S3 | **Dirichlet 概率校准降级** | 🔴 高 | Chiu & Hung (2025, PBFJ) §2.1: empirically-driven Dirichlet Bayesian | 实现完整 Dirichlet 后验估计，产出分类概率分布图 |
+| S4 | **缺乏 LLM 时间衰减分析** | 🟡 中 | Lopez-Lira & Tang (2023, SSRN WP) §8.2: Sharpe 从 6.54→1.22 | 添加年度/季度子样本分析至 Panel 稳健性 |
+| S5 | **Prompt 消融不充分** | 🟡 中 | Lopez-Lira & Tang (2023, SSRN WP) Appendix C: 12种不同 Prompt | 39_prompt_sensitivity 可扩展更多变体 |
 
 ### 3.2 `22_tone_words.py` — 词典法情感分析模块
 
@@ -92,7 +92,7 @@
 | # | 差距 | 严重等级 | 文献依据 | 修复建议 |
 |---|-----|---------|---------|---------|
 | D1 | **未实现 SentimentR 连续情感度量** | 🟡 中 | Ke, Kelly & Xiu (2020, RFS): 每个词的边际情感贡献 | 技术难度高，可作为"未来研究方向"在论文中讨论 |
-| D2 | **词典 domain adaptation 缺失** | 🟡 中 | Rizinski et al. (2024): domain-specific dictionary refinement | 利用 LLM 辅助扩展词典 (可行性高) |
+| D2 | **词典 domain adaptation 缺失** | 🟡 中 | Rizinski et al. (2024, IEEE Access): domain-specific dictionary refinement | 利用 LLM 辅助扩展词典 (可行性高) |
 | D3 | **词频倒排索引优化** | ⚪ 低 | 工程优化，非学术差距 | 当前性能足够 |
 
 ### 3.3 `23_tone_berts.py` — BERT 情感分析模块
@@ -102,7 +102,7 @@
 | # | 最佳实践 | 实现方式 | 学术支撑 |
 |---|---------|---------|---------|
 | 1 | 多模型集成 | 5个 BERT 模型 | Lopez-Lira (2025) Table 5 |
-| 2 | 滑动窗口推理 | 超512 token 自动分割 | Chiu & Hung (2024): LongT5 也面临此问题 |
+| 2 | 滑动窗口推理 | 超512 token 自动分割 | Chiu & Hung (2025, PBFJ): LongT5 也面临此问题 |
 | 3 | 置信度加权池化 | 按模型置信度加权合并 | 学术标准实践 |
 | 4 | AMP 混合精度 | GPU 加速 | 工程最佳实践 |
 
@@ -110,8 +110,8 @@
 
 | # | 差距 | 严重等级 | 文献依据 | 修复建议 |
 |---|-----|---------|---------|---------|
-| B1 | **无 temporal drift 监控** | 🟡 中 | Anis et al. (2024): 预训练模型时效性退化 | 添加分年份准确率追踪 (与 34_tone_validation 集成) |
-| B2 | **无 fine-tuning 路径** | ⚪ 低 | Chiu & Hung (2024): LLaMA-2 fine-tune 显著优于 FinBERT | 设计取舍：使用预训练推理降低复杂度，可接受 |
+| B1 | **无 temporal drift 监控** | 🟡 中 | Anis, S. (2024, IEEE Survey): 预训练模型时效性退化 | 添加分年份准确率追踪 (与 34_tone_validation 集成) |
+| B2 | **无 fine-tuning 路径** | ⚪ 低 | Chiu & Hung (2025, PBFJ): LLaMA-2 fine-tune 显著优于 FinBERT | 设计取舍：使用预训练推理降低复杂度，可接受 |
 | B3 | **label_map 自动检测未文档化** | ⚪ 低 | — | 添加代码注释说明自动检测逻辑 |
 
 ### 3.4 `34_tone_validation.py` — 三角验证模块
@@ -122,17 +122,17 @@
 |---|---------|---------|---------|
 | 1 | Cronbach's Alpha 内部一致性 | 三方法聚合度量 | Loughran & McDonald (2016, JAR) |
 | 2 | Spearman 秩相关 | 跨方法排序一致性 | 标准心理测量实践 |
-| 3 | LLM 置信度校准引用 | 引用 Chiu & Hung (2024) 和 ECE | ✅ 学术意识正确 |
+| 3 | LLM 置信度校准引用 | 引用 Chiu & Hung (2025) 和 ECE | ✅ 学术意识正确 |
 | 4 | Cohen's Kappa | 评分者间一致性 | 标准分类验证 |
 
 #### 🔴 识别的方法论差距
 
 | # | 差距 | 严重等级 | 文献依据 | 修复建议 |
 |---|-----|---------|---------|---------|
-| V1 | **Dirichlet 校准降级为描述性** | 🔴 高 | Chiu & Hung (2024) §2.1: Bayesian update with Dirichlet prior | 实现完整迭代采样 → 后验分布图 |
+| V1 | **Dirichlet 校准降级为描述性** | 🔴 高 | Chiu & Hung (2025, PBFJ) §2.1: Bayesian update with Dirichlet prior | 实现完整迭代采样 → 后验分布图 |
 | V2 | **ECE (Expected Calibration Error) 未实现** | 🟡 中 | 标准校准度量 | 添加 reliability diagram + ECE/MCE 计算 |
 | V3 | **缺乏 McNemar 检验** | 🟡 中 | 统计显著性检验标准 | 添加成对方法显著性检验 |
-| V4 | **缺乏 Topic-Level 分解** | 🟡 中 | Lopez-Lira (2025) Table 4: 按新闻类型分析准确率 | 按新闻来源/主题细分验证结果 |
+| V4 | **缺乏 Topic-Level 分解** | 🟡 中 | Lopez-Lira & Tang (2023, SSRN WP) Table 4: 按新闻类型分析准确率 | 按新闻来源/主题细分验证结果 |
 
 ---
 
@@ -155,18 +155,18 @@
 
 ### 5.1 必须修复 (Reviewer 大概率提出)
 
-1. **Dirichlet 概率校准** (P1): 项目已引用 Chiu & Hung (2024) 但仅实现了描述性统计。审稿人会问："你引用了 Dirichlet 校准，具体如何实现的？" 需要：
+1. **Dirichlet 概率校准** (P1): 项目已引用 Chiu & Hung (2025, PBFJ) 但仅实现了描述性统计。审稿人会问："你引用了 Dirichlet 校准，具体如何实现的？" 需要：
    - 实现迭代采样 (≥500样本/批) → Dirichlet 后验更新
    - 产出三分类后验概率分布密度图 (类似 Chiu Fig.2)
    - ECE + Reliability Diagram 作为附录
 
-2. **LLM 可复现性** (P3): Lopez-Lira (2025) 显式说明 temperature=0。项目需：
+2. **LLM 可复现性** (P3): Lopez-Lira & Tang (2023, SSRN WP) 显式说明 temperature=0。项目需：
    - 确认所有 LLM API 调用的温度设置
    - 在方法部分说明随机种子/模型版本锁定
 
 ### 5.2 显著增值 (区分度提升)
 
-3. **Topic-Level 分解** (V4): Lopez-Lira (2025) 通过 BERTopic 分解发现市场对不同主题的反应速度差异巨大。项目可：
+3. **Topic-Level 分解** (V4): Lopez-Lira & Tang (2023, SSRN WP) 通过 BERTopic 分解发现市场对不同主题的反应速度差异巨大。项目可：
    - 对银行新闻按来源类型（央媒/财经/地方）分层验证
    - 检验情感准确率是否因新闻来源而异
 
@@ -183,8 +183,8 @@
 
 | 文献 | 项目引用 | 方法采纳 | 差距等级 |
 |-----|---------|---------|---------|
-| Lopez-Lira & Tang (2025, JF) | 隐含 | 部分 (多模型对比) | 🟡 |
-| Chiu & Hung (2024, IRFA) | ✅ 显式 | 部分 (Dirichlet降级) | 🔴 |
+| Lopez-Lira & Tang (2023, SSRN WP) | 隐含 | 部分 (多模型对比) | 🟡 |
+| Chiu & Hung (2025, PBFJ) | ✅ 显式 | 部分 (Dirichlet降级) | 🔴 |
 | Tetlock (2007, JF) | ✅ 显式 | ✅ 完整 (词频范式) | ✅ |
 | Tetlock et al. (2008, JF) | ✅ 显式 | ✅ 完整 (聚合范式) | ✅ |
 | Loughran & McDonald (2016, JAR) | ✅ 显式 | ✅ 完整 (多度量) | ✅ |

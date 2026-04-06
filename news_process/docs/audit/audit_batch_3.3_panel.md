@@ -187,7 +187,7 @@
 | 1 | 先分后合聚合 | `build_aggregation_dict()` 含 mean/sum/std/count 四种聚合 | Tetlock et al. (2008, JF) |
 | 2 | 三种加权方案 | EW + VW (mention_density) + MW (media_authority) | Hassan (2019) / Holzman (2023) |
 | 3 | 双轨并行 | `_full` + `_ctx` 所有指标 | Hassan (2019): entity-specific |
-| 4 | 连续置信度编码 | `direction × confidence` | Chiu & Hung (2024, IRFA) |
+| 4 | 连续置信度编码 | `direction × confidence` | Chiu & Hung (2025, PBFJ) |
 | 5 | LLM 置信度合成 | `avg_llm_conf` = 三模型宏平均 | Shapiro et al. (2022, JoE) |
 | 6 | 面板平衡 (笛卡尔积) | `balance_panel()` 完全展开 | 标准面板数据实践 |
 | 7 | 科学填充策略 | 计数→0, 情感→NaN | 避免人为引入偏误 |

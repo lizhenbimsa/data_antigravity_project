@@ -638,9 +638,19 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
             if len(u) < 10:
                 logger.warning(f"  {dn} uniform vs {fn}: 有效样本 < 10, 跳过")
                 continue
+            
+            # 零方差防御 (当序列为常数时，无法计算相关系数)
+            if np.std(u) == 0 or np.std(d) == 0:
+                logger.warning(f"  {dn} uniform vs {fn}: 数据存在零方差 (Constant Input), 无法计算相关性, 默认赋值为 0.0")
+                pr, sr = 0.0, 0.0
+            else:
+                try:
+                    pr, _ = sp_stats.pearsonr(u, d)
+                    sr, _ = sp_stats.spearmanr(u, d)
+                except Exception as e:
+                    logger.warning(f"  {dn} 分布异常: {e}, 默认赋值 0.0")
+                    pr, sr = 0.0, 0.0
 
-            pr, _ = sp_stats.pearsonr(u, d)
-            sr, _ = sp_stats.spearmanr(u, d)
             mean_diff = np.mean(d - u)
             all_pearsons.append(pr)
 

@@ -767,9 +767,10 @@ def _analyze_single_article(content: str) -> dict:
     result['char_per_word'] = readability['char_per_word']
 
     # ── 正/负面词频分离（稳健性检验）──
-    # Berger, A. N., Kim, H. H., & Ma, X. (2024). Bank sentiment and liquidity hoarding. 
-    # Contemporary Accounting Research, 41(3), 1696-1736. Appendix S6.
-    # https://doi.org/10.1111/1911-3846.12948
+    # 学术依据: 将正负面词汇分离作为独立的协变量，能有效缓解传统净情感指标可能带来的极性对冲掩蔽问题。
+    # Garcia, D. (2013). Sentiment during recessions.
+    # The Journal of Finance, 68(3), 1267-1300.
+    # https://doi.org/10.1111/jofi.12027
     #
     # Loughran, T., & McDonald, B. (2011). When is a liability not a liability? 
     # Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65.
@@ -779,9 +780,10 @@ def _analyze_single_article(content: str) -> dict:
     result['neg_ratio'] = round(best_neg_count / n_tokens, 6) if n_tokens > 0 else 0.0
 
     # ── 计数型情感指标 MSENT ──
-    # He, F., Lu, X., Wei, Z., & Wang, Y. (2024). Bank sentiment and lending. 
-    # International Review of Financial Analysis, 95, 103430. Eq. 1.
-    # https://doi.org/10.1016/j.irfa.2024.103430
+    # 学术依据: 经典的基于净负面值占比的情感计量方法，提供稳健性交叉验证。
+    # Henry, E. (2008). Are investors influenced by how earnings press releases are written? 
+    # Journal of Business Communication, 45(4), 363-407.
+    # https://doi.org/10.1177/0021943608319388
     #
     # Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. 
     # The Journal of Finance, 62(3), 1139-1168.

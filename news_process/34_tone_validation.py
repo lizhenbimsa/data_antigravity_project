@@ -27,7 +27,7 @@
     │    4.1 按新闻长度分层                                        │
     │    4.2 按时间段分层                                          │
     │                                                            │
-    │ 4.5 LLM 概率诊断 (Chiu & Hung 2024 M3 降级适配)             │
+    │ 4.5 LLM 概率诊断 (Chiu & Hung 2025 M3 降级适配)             │
     │    4.5a LLM 类别偏向分析 (chi-square + Jensen-Shannon)       │
     │    4.5b 置信度校准诊断 (ECE / 降级: 描述性统计)               │
     │                                                            │
@@ -39,7 +39,7 @@
     学术依据：
       - Loughran & McDonald (2016, JAR 54(4):1187-1230): 多度量方法间的相关性是构建效度的核心证据
       - Cronbach (1951, Psychometrika 16(3):297-334): 内部一致性系数 α ≥ 0.70 可接受
-      - Chiu & Hung (2024, IRFA): Dirichlet 不确定性估计揭示 LLM 类别偏向
+      - Chiu & Hung (2025, PBFJ 90:102632): Dirichlet 不确定性估计揭示 LLM 类别偏向
       - Carlson & Burbano (2026, SMJ 47(3):699-725): LLM 注释应报告 model certainty
       - Guo et al. (2017, ICML): Expected Calibration Error (ECE) 校准诊断
 
@@ -652,8 +652,10 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
 
         results['by_year'] = year_results
 
-        # --- 年际一致性趋势检测 (Anis et al. 2024, §III Challenge [21]) ---
-        # 论文依据: 跨时间泛化是深度学习金融情感分析的核心稳健性威胁。
+        # --- 年际一致性趋势检测 ---
+        # 方法论依据: 跨时间泛化是深度学习金融情感分析的核心稳健性威胁
+        # (详见 Anis, S. (2024). "Fintech Sentiment Analysis Using Deep
+        # Learning Approaches: A Survey", IEEE §III Challenge [21])。
         # 通过检测 Cronbach's α 的年际变化趋势，预警模型时间漂移。
         if len(year_results) >= 3:
             years_sorted = sorted(year_results.keys(), key=int)
@@ -788,8 +790,10 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
     else:
         logger_inst.info("  bert_num_windows 列不存在，跳过窗口数分层分析（需先运行阶段 23）")
 
-    # --- 按词典覆盖率分层 (Rizinski et al. 2024 [22], XLex 方法论) ---
-    # 论文依据: lexicon 方法的词汇覆盖率限制是核心挑战。
+    # --- 按词典覆盖率分层 ---
+    # 方法论依据: lexicon 方法的词汇覆盖率限制是核心挑战
+    # (参见: Rizinski, M. et al. (2024). "Sentiment Analysis in Finance:
+    # From Transformers Back to eXplainable Lexicons (XLex)", IEEE Access)。
     # 覆盖率代理: pos_ratio + neg_ratio (22_tone_words.py L751-759)
     # 该比率 = 情感词频次 / 总 token 数，直接反映词汇覆盖密度。
     # 注意: 不使用 |score| 之和 (score 是归一化强度，非覆盖率)。
@@ -868,7 +872,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
 
 
 # ============================================================================
-# 9.5 LLM 概率诊断 (Chiu & Hung 2024 M3 降级适配)
+# 9.5 LLM 概率诊断 (Chiu & Hung 2025 M3 降级适配)
 # ============================================================================
 
 def _compute_jsd(p: np.ndarray, q: np.ndarray) -> float:
@@ -940,12 +944,12 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
                                 logger_inst) -> dict:
     """诊断各 LLM 模型的系统性类别偏向及模型间独立性。
 
-    基于 Chiu & Hung (2024, IRFA) Fig. 2 的 Neutral 偏好诊断思路降级适配。
+    基于 Chiu & Hung (2025, PBFJ) Fig. 2 的 Neutral 偏好诊断思路降级适配。
     项目数据为单次打标，无法复刻原始 Dirichlet 批次更新，改为经验性类别
     比例分析 + 模型间 chi-square 独立性检验 + Jensen-Shannon 散度。
 
     学术依据：
-      - Chiu & Hung (2024): 模型存在系统性 Neutral 偏好倾向
+      - Chiu & Hung (2025, PBFJ): 模型存在系统性 Neutral 偏好倾向
       - Carlson & Burbano (2026, SMJ §4.2): 建议报告 model certainty
 
     Args:
@@ -1790,7 +1794,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     results['stratified'] = stratified
 
     # ======================================================================
-    # Step 6.5: LLM 概率诊断 (Chiu & Hung 2024 M3 降级适配)
+    # Step 6.5: LLM 概率诊断 (Chiu & Hung 2025 M3 降级适配)
     # ======================================================================
     # n_llm 包含聚合列 'llm'（= 独立模型数 + 1），此处仅做粗筛；
     # 函数内部过滤聚合列后会自行检查独立模型数 >= 2，不足则跳过两两比较

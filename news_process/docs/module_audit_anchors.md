@@ -45,7 +45,7 @@
 | **分类策略** | 多样性条件 (≥MIN_DISTINCT_KEYWORDS) + 分布条件 | ✅ 减少假阳性 |
 | **可调参数** | `SPLIT_RATIO=0.5`, `MIN_UPPER=1`, `MIN_LOWER=1`, `MIN_DISTINCT_KEYWORDS=3` | 可配置 |
 | **全量保存** | `12_fintech_news_full.parquet` (过滤前) | ✅ 为 51_falsification 提供基础 |
-| **学术引用** | 无显式引用 | **面板诊断**: 建议引用胡俊(2023)关键词法 + 下游LLM验证形成二阶段筛选 |
+| **学术引用** | 无显式引用 | **面板诊断**: 建议引用胡俊 et al. (2024, 中国管理科学)关键词法 + 下游LLM验证形成二阶段筛选 |
 | **验证机制** | 依赖 31_bank_fintech_threshold.py 外部验证 | ✅ 独立验证 |
 
 ### 2.3 `21_tone_llms.py` — LLM 情感分析 (多模型投票)
@@ -58,7 +58,7 @@
 | **学术引用** | Carlson & Burbano (2026, SMJ) 已引用 | ✅ 最新文献 |
 | **Prompt设计** | 三分类 (正面/中性/负面) + 置信度 | 需审查: 是否需要 5-point Likert |
 | **可调参数** | `sentence_radius`, 模型列表 | 可配置 |
-| **面板诊断** | Chiu & Hung (2024, IRFA) Dirichlet 校准未实现 | **已在 34_tone_validation L30 引用但降级** |
+| **面板诊断** | Chiu & Hung (2025, PBFJ) Dirichlet 校准未实现 | **已在 34_tone_validation L30 引用但降级** |
 
 ### 2.4 `22_tone_words.py` — 词典法情感分析
 
@@ -148,7 +148,7 @@
 | Bushee et al. (2010, JAR) | `51_falsification.py` L27 | 媒体广度 |
 | Shannon (1948) | `38_media_diversity.py` L23 | Shannon熵 |
 | Carlson & Burbano (2026, SMJ) | `34_tone_validation.py` L43 | LLM注释方法论 |
-| Chiu & Hung (2024, IRFA) | `34_tone_validation.py` L42 | Dirichlet校准(降级) |
+| Chiu & Hung (2025, PBFJ) | `34_tone_validation.py` L42 | Dirichlet校准(降级) |
 | Loughran & McDonald (2016, JAR) | `34_tone_validation.py` L40 | 多度量方法效度 |
 | Gentzkow, Kelly & Taddy (2019, JEL) | `45_panel_export_main.py` L521 | IDF加权 |
 
@@ -156,11 +156,11 @@
 
 | # | 差距描述 | 涉及模块 | 对标文献 |
 |---|---------|---------|---------|
-| G1 | LLM 概率校准未完整实现 (仅描述性统计) | `34_tone_validation.py` | Chiu & Hung (2024, IRFA) |
+| G1 | LLM 概率校准未完整实现 (仅描述性统计) | `34_tone_validation.py` | Chiu & Hung (2025, PBFJ) |
 | G2 | 未实现 Ke-Kelly-Xiu SentimentR 连续情感 | `22_tone_words.py` | Ke et al. (2020, RFS) |
-| G3 | 实体距离衰减权重未实现 | `entity_context.py` | Sautner et al. (2023, ECGI) |
+| G3 | 实体距离衰减权重未实现 | `entity_context.py` | Sautner et al. (2023, JF) |
 | G4 | Placebo 时点检验未实现 | `51_falsification.py` | Hassan et al. (2019, QJE) |
 | G5 | 面板平衡性诊断缺失 | `41_panel_encode_aggregate.py` | 标准面板数据实践 |
-| G6 | 词典法无 domain adaptation 机制 | `22_tone_words.py` | Rizinski et al. (2024) |
-| G7 | BERT 模型无 temporal drift 监控 | `23_tone_berts.py` | Anis et al. (2024) |
+| G6 | 词典法无 domain adaptation 机制 | `22_tone_words.py` | Rizinski et al. (2024, IEEE Access) |
+| G7 | BERT 模型无 temporal drift 监控 | `23_tone_berts.py` | Anis, S. (2024, IEEE Survey) |
 | G8 | LLM Prompt 三分类 vs 五分类 Likert 未讨论 | `21_tone_llms.py` | Lopez-Lira & Tang (2023) |

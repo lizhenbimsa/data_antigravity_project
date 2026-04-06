@@ -39,7 +39,7 @@
 | 短文本退化处理 | `fallback_char_radius=150` 字符级回退 | ✅ **超越**原文 |
 | 距离衰减权重 | **未实现** | ⚠️ 见 Sautner (2023) |
 
-### 2.2 Sautner, van Lent, Vilkov & Zhang (2023, ECGI) — *Firm-Level Climate Change Exposure*
+### 2.2 Sautner, van Lent, Vilkov & Zhang (2023, JF) — *Firm-Level Climate Change Exposure*
 
 **核心方法论**：
 - **演进式关键词发现算法 (Keyword Discovery Algorithm)**：
@@ -173,7 +173,7 @@
 
 | # | 差距 | 严重等级 | 文献依据 | 修复建议 |
 |---|-----|---------|---------|---------|
-| E1 | **均匀权重窗口 (无距离衰减)** | 🟡 中 | Sautner et al. (2023, ECGI) §2.2: 距离越远权重越低 | 添加可选的距离衰减函数 (如 `w(d) = 1/(1+d)` 或指数衰减) 作为稳健性变体 |
+| E1 | **均匀权重窗口 (无距离衰减)** | 🟡 中 | Sautner et al. (2023, JF) §2.2: 距离越远权重越低 | 添加可选的距离衰减函数 (如 `w(d) = 1/(1+d)` 或指数衰减) 作为稳健性变体 |
 | E2 | **缺乏文档长度归一化** | 🟡 中 | Sautner et al. (2023): 用总对话长度归一化 | 项目下游在 Panel 聚合时通过 Fama-MacBeth z-score 隐式处理，可在文档中显式说明 |
 | E3 | **未实现多实体竞争归因** | 🟡 中 | Fan et al. (2025): 同一段文本可能与多个实体相关 | 项目通过 `co_mentioned_banks` 记录共提及关系，但上下文窗口仍为独立提取。可在方法部分讨论 |
 | E4 | **中文分句规则硬编码** | ⚪ 低 | 工程层面 | 当前实现 (句号/问号/叹号) 覆盖主要中文标点，可考虑添加分号/省略号作为次级边界 |
@@ -215,7 +215,7 @@
 | # | 差距 | 严重等级 | 文献依据 | 修复建议 |
 |---|-----|---------|---------|---------|
 | F1 | **关键词选择过程未文档化** | 🟡 中 | Sautner (2023): Keyword Discovery Algorithm 系统化过程 | 在论文/技术文档中说明关键词的来源、筛选标准、迭代过程 |
-| F2 | **缺乏显式学术引用** | 🟡 中 | 无 | 引用胡俊(2023)或相关金融科技分类文献 |
+| F2 | **缺乏显式学术引用** | 🟡 中 | 无 | 引用胡俊 et al. (2024, 中国管理科学)或相关金融科技分类文献 |
 | F3 | **分布均匀性条件缺乏理论支撑** | 🟡 中 | Fan et al. (2025): 信息网络一致性验证 | 在方法部分提供"为何分布均匀性意味着更高的分类可靠性"的直觉解释 |
 | F4 | **未利用 LLM 二阶段确认** | ⚪ 低 | de Kok (2024): LLM 作为 zero-shot 分类器 | 可将 LLM 作为第二阶段验证器，对关键词法筛出的结果进行确认 (可选扩展) |
 
@@ -309,7 +309,7 @@ entity_context.py ──> 提取 target_bank 的上下文窗口 (ctx)
 | 文献 | 项目引用 | 方法采纳 | 差距等级 |
 |-----|---------|---------|---------|
 | Hassan et al. (2019, QJE) | ✅ 显式 (entity_context.py L32, 51_falsification.py L11) | ✅ **完整** (proximity-based attribution + PRisk/NPRisk) | ✅ |
-| Sautner et al. (2023, ECGI) | 未引用 | **部分** (proximity 窗口，但无距离衰减) | 🟡 |
+| Sautner et al. (2023, JF) | 未引用 | **部分** (proximity 窗口，但无距离衰减) | 🟡 |
 | Fan et al. (2025, ManSci) | 未引用 | **隐含** (媒体权威加权 ≈ 可靠性权重) | 🟡 |
 | Hassan et al. (2024) Text-as-Data | 未引用 | ✅ 隐含遵循 (human audit, 文档粒度敏感性) | ✅ |
 | Gentzkow, Kelly & Taddy (2019, JEL) | ✅ 显式 (45_panel_export.py L521) | ✅ **完整** (IDF加权, 三步框架) | ✅ |
@@ -357,7 +357,7 @@ entity_context.py ──> 提取 target_bank 的上下文窗口 (ctx)
 | # | 文献 | 精读深度 | 关键贡献 |
 |---|------|---------|---------|
 | 1 | Hassan et al. (2019, QJE) | ★★★★★ | Proximity-based attribution 基准方法 |
-| 2 | Sautner et al. (2023, ECGI) | ★★★★★ | 距离衰减 + 演进式词典构建 |
+| 2 | Sautner et al. (2023, JF) | ★★★★★ | 距离衰减 + 演进式词典构建 |
 | 3 | Fan et al. (2025, ManSci) | ★★★★★ | 信息网络 + 可靠性加权 |
 | 4 | Hassan et al. (2024) | ★★★★ | Text-as-Data 综合框架 |
 | 5 | Gentzkow, Kelly & Taddy (2019, JEL) | ★★★★ | D→C→V̂ 三步框架 + 验证范式 |

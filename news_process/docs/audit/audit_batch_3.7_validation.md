@@ -154,7 +154,7 @@
 | 6 | 多数投票对比 | 标签级一致性 |
 | 7 | 按新闻长度分层 | 检验长文/短文差异 |
 | 8 | 按时间段分层 | 检验时序稳定性 |
-| 9 | LLM 类别偏向 (chi-square + Jensen-Shannon) | Chiu & Hung (2024) |
+| 9 | LLM 类别偏向 (chi-square + Jensen-Shannon) | Chiu & Hung (2025, PBFJ) |
 | 10 | 置信度校准诊断 (ECE 降级) | Guo et al. (2017, ICML) |
 | 11 | 人工验证样本生成 | Carlson (2026) Stage 4 |
 

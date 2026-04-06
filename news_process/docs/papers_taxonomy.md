@@ -75,7 +75,7 @@
 | ID | 论文 | 语言 | 关键对标模块 |
 |----|------|------|------------|
 | 8 | Firm-level Political Risk: Measurement and Effects (Hassan, QJE) | EN | `entity_context.py`, sentence_radius |
-| 7 | Firm-level Climate Change Exposure (Sautner, ECGI) | EN | 实体暴露度测度 |
+| 7 | Firm-level Climate Change Exposure (Sautner, JF) | EN | 实体暴露度测度 |
 | 97 | Measuring Firm Exposure to Government Agencies | EN | 实体暴露度 |
 | 12 | Measuring Misinformation in Financial Markets (Fan) | EN | 信息可靠度 |
 
