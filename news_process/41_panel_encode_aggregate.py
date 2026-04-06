@@ -111,6 +111,25 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
 
     # --- 词典法 & BERT: 直接使用上游连续值, 无需额外编码 ---
 
+    # --- LLM 置信度合成列 (Shapiro, Sudhof & Wilson 2022, JoE;
+    #     Baker et al. 2024, JAR — 信号清晰度/衰减偏误调节) ---
+    # 三模型情感置信度的宏平均, 用于下游面板聚合
+    # 学术依据:
+    #   Shapiro, A.H., Sudhof, M. & Wilson, D.J. (2022).
+    #   'Measuring News Sentiment.'
+    #   Journal of Econometrics, 228(2), 221-243.
+    #   DOI: 10.1016/j.jeconom.2020.07.053
+    #   → 情感度量噪声导致回归系数衰减偏误(attenuation bias)
+    #   → LLM 置信度低 = 信号噪声大 → 情感效应被低估
+    for track in ['_full', '_ctx']:
+        conf_cols = [f'{s}_sentiment_confidence{track}' for s in LLM_MODELS
+                     if f'{s}_sentiment_confidence{track}' in df.columns]
+        if conf_cols:
+            df[f'avg_llm_conf{track}'] = df[conf_cols].mean(axis=1)
+            logger.info(f"  avg_llm_conf{track}: 由 {len(conf_cols)} 个模型置信度合成")
+        else:
+            logger.warning(f"  未找到 LLM 置信度列, 跳过 avg_llm_conf{track}")
+
     logger.info(f"  生成编码列: {len(encoded_cols)} 个")
     logger.info(f"  离散映射: 正面=1, 中性=0, 负面=-1")
     logger.info(f"  连续编码: direction × confidence ∈ [-1, +1]")
@@ -326,6 +345,20 @@ def build_aggregation_dict() -> dict:
         agg[f'avg_msent{track}'] = (f'msent_score{track}', 'mean')
         agg[f'avg_msent_std{track}'] = (f'msent_score{track}', 'std')
         agg[f'msent_sum{track}'] = (f'msent_score{track}', 'sum')
+
+    # --- J. LLM 置信度聚合 (Shapiro, Sudhof & Wilson 2022, JoE;
+    #        Baker et al. 2024, JAR — 信号清晰度/衰减偏误调节) ---
+    # 学术依据: 情感度量的信噪比直接影响回归系数的估计精度
+    # (Shapiro et al. 2022, Section 4: attenuation bias correction)
+    # 置信度越低 → 测量误差越大 → Tone 对因变量的估计系数向零衰减
+    for track in ['_full', '_ctx']:
+        # 三模型宏平均置信度 → Bank-Year 均值 & 标准差
+        agg[f'avg_llm_conf{track}'] = (f'avg_llm_conf{track}', 'mean')
+        agg[f'avg_llm_conf_std{track}'] = (f'avg_llm_conf{track}', 'std')
+        # 逐模型置信度 → Bank-Year 均值 (稳健性分解)
+        for short in LLM_MODELS:
+            conf_src = f'{short}_sentiment_confidence{track}'
+            agg[f'avg_{short}_conf{track}'] = (conf_src, 'mean')
 
     # --- E. 新闻覆盖量 & 稳健性辅助（无需双轨） ---
     agg['n_articles'] = ('llm_vote_score_full', 'count')

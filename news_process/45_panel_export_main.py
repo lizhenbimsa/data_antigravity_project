@@ -407,6 +407,17 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'sandbox_treated':                     'Fintech Sandbox (0/1)',
                 'sandbox_post':                        'Post Sandbox (0/1)',
                 'sandbox_treat_year':                  'Sandbox First Treatment Year',
+                # LLM 置信度 (Shapiro et al. 2022, JoE; Baker et al. 2024, JAR)
+                'avg_llm_conf_full':                   'LLM Avg Confidence (Full)',
+                'avg_llm_conf_std_full':               'LLM Confidence Std Dev (Full)',
+                'avg_llm_conf_ctx':                    'LLM Avg Confidence (Ctx)',
+                'avg_llm_conf_std_ctx':                'LLM Confidence Std Dev (Ctx)',
+                'avg_gpt5nano_conf_full':              'GPT-5nano Confidence (Full)',
+                'avg_gpt5nano_conf_ctx':               'GPT-5nano Confidence (Ctx)',
+                'avg_gemini3_conf_full':               'Gemini-3 Confidence (Full)',
+                'avg_gemini3_conf_ctx':                'Gemini-3 Confidence (Ctx)',
+                'avg_claude4h_conf_full':              'Claude-4h Confidence (Full)',
+                'avg_claude4h_conf_ctx':               'Claude-4h Confidence (Ctx)',
                 # 其他
                 'has_coverage':                        'Has News Coverage (0/1)',
             }
