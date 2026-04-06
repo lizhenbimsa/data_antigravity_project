@@ -606,24 +606,31 @@ class TestForwardLookingRatio:
 
 # ============================================================================
 # 文本可读性测试
-# Loughran, T. & McDonald, B. (2014). Journal of Finance, 69(4), 1643-1671.
-# DOI: 10.1111/jofi.12162
-# Bonsall, S.B. et al. (2017). Journal of Accounting and Economics,
-# 63(2-3), 329-357. DOI: 10.1016/j.jacceco.2017.03.002
+# Loughran, T., & McDonald, B. (2014). Measuring readability in financial disclosures. 
+# The Journal of Finance, 69(4), 1643-1671.
+# https://doi.org/10.1111/jofi.12162
+# Bonsall, S. B., Leone, A. J., Miller, B. P., & Rennekamp, K. (2017). 
+# A plain English measure of financial reporting readability. 
+# Journal of Accounting and Economics, 63(2-3), 329-357.
+# https://doi.org/10.1016/j.jacceco.2017.03.002
 # ============================================================================
 
 import re as _re
-
+import string as _string
 
 def _compute_readability(content, tokens):
     """中文文本可读性计算（测试版）。"""
+    punctuation_set = frozenset(_string.punctuation + "“”‘’：；！？（）【】「」《》、，。·…—\n\t \r")
+    real_tokens = [t for t in tokens if t not in punctuation_set and not t.isspace() and t]
+
     sentences = _re.split(r'[。！？!?；;]', content)
     sentences = [s for s in sentences if len(s.strip()) > 0]
     n_sentences = max(len(sentences), 1)
     avg_sentence_len = sum(len(s.strip()) for s in sentences) / n_sentences
-    n_tokens = max(len(tokens), 1)
-    ttr = len(set(tokens)) / n_tokens
-    cpw = sum(len(t) for t in tokens) / n_tokens
+
+    n_real_tokens = max(len(real_tokens), 1)
+    ttr = len(set(real_tokens)) / n_real_tokens
+    cpw = sum(len(t) for t in real_tokens) / n_real_tokens
     return {
         'avg_sentence_len': round(avg_sentence_len, 2),
         'type_token_ratio': round(ttr, 4),
@@ -664,6 +671,14 @@ class TestReadability:
         """含多字词 CPW 应大于 1.0。"""
         r = _compute_readability('金融科技', ['金融', '科技'])
         assert r['char_per_word'] == 2.0
+
+    def test_exclude_punctuation(self):
+        """测试 TTR 和 CPW 计算时应当剔除所有标点符号及空白文本。"""
+        # "你好，世界！" => 2个有效词，2个无效词
+        r1 = _compute_readability('你好世界', ['你好', '世界'])
+        r2 = _compute_readability('你好，世界！', ['你好', '，', '世界', '！', '   '])
+        assert r1['type_token_ratio'] == r2['type_token_ratio']
+        assert r1['char_per_word'] == r2['char_per_word']
 
 
 # ============================================================================

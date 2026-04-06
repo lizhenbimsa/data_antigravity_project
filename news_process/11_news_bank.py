@@ -19,6 +19,18 @@
     6. 短名歧义消解：对 ≤2 字的银行简称（如"工行""中行"），检查前后
        context_window 个字符的上下文，命中排除词则排除该匹配
 
+学术依据：
+    [Hassan2019]  Hassan, T.A., Hollander, S., van Lent, L. & Tahoun, A. (2019).
+                  "Firm-Level Political Risk: Measurement and Effects."
+                  Quarterly Journal of Economics, 134(4), 2135–2202.
+                  → 企业级文本暴露度测度: 关键词在文本中的出现频次作为风险暴露指标
+                  → 本模块的 "article × bank" 展开逻辑对标其 firm-level exposure 框架
+
+    [Gentzkow2019] Gentzkow, M., Kelly, B. & Taddy, M. (2019).
+                   "Text as Data." Journal of Economic Literature, 57(3), 535–574.
+                   → 文本分类的规范化框架: 关键词匹配 + 分布条件 + 阈值敏感性
+                   → 本模块的多条件判定逻辑和阈值设计遵循该方法论标准
+
 性能优化：
     - 使用 Aho-Corasick 自动机一次线性扫描匹配所有银行名称变体
     - 复杂度从 O(文本长度 × 银行数 × 变体数) 降至 O(文本长度)

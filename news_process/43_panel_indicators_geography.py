@@ -581,5 +581,59 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
                         f"有效={n_valid}, "
                         f"单一银行组={n_singleton}")
 
+    # ── G-08: 多情感度量 LOO IV 扩展 ──
+    # 学术依据: 过度识别检验 (Hansen J test) 要求至少 2 个独立 IV。
+    #   若 llm_vote_tone, dict_avg_tone, bert_avg_pos 的 LOO IV 均可用,
+    #   则可在 Stata 中执行 overid 检验。
+    # 参考: Luo & Li (2025, FRL, Table 3), Goldsmith-Pinkham (2020, AER, §4)
+    logger.info("  ── G-08: 多情感度量 LOO IV 扩展 ──")
+    extra_tone_cols = {
+        'dict_avg_tone': '词典法综合',
+        'bert_avg_pos': 'BERT正面概率',
+    }
+    for base_col, desc in extra_tone_cols.items():
+        for geo_col, geo_label in [('bank_province', '省级'),
+                                    ('bank_city', '城市级')]:
+            if geo_col not in panel.columns or (panel[geo_col] == '').all():
+                continue
+            for track in ['_full', '_ctx']:
+                tone_col = f'{base_col}{track}'
+                out_col = f'{_GEO_SHORT[geo_col]}_leave1out_{base_col}{track}'
+
+                if tone_col not in panel.columns:
+                    continue
+
+                mask = (panel[geo_col] != '') & panel[tone_col].notna()
+                subset = panel.loc[mask]
+                if len(subset) < 5:
+                    continue
+
+                grp_sum = subset.groupby(
+                    [geo_col, 'year']
+                )[tone_col].transform('sum')
+                grp_cnt = subset.groupby(
+                    [geo_col, 'year']
+                )[tone_col].transform('count')
+
+                panel[out_col] = np.nan
+                valid_idx = subset.index[grp_cnt > 1]
+                panel.loc[valid_idx, out_col] = (
+                    (grp_sum.loc[valid_idx]
+                     - subset.loc[valid_idx, tone_col])
+                    / (grp_cnt.loc[valid_idx] - 1)
+                )
+
+                n_valid = panel[out_col].notna().sum()
+                logger.info(f"    {out_col} ({desc}): 有效={n_valid}")
+
+    # 输出 Stata over-identification 检验命令
+    logger.info("  ── G-08: Stata 过度识别检验命令 ──")
+    logger.info("    * ivreghdfe Y (llm_vote_tone_full = "
+                "prov_leave1out_tone_full "
+                "prov_leave1out_dict_avg_tone_full "
+                "prov_leave1out_bert_avg_pos_full), "
+                "absorb(target_bank year) cluster(target_bank)")
+    logger.info("    * estat overid  // Hansen J test")
+
     return panel
 

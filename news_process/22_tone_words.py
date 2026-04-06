@@ -51,6 +51,7 @@ import re
 import json
 import math
 import time
+import string
 import logging
 from typing import Any
 import pandas as pd
@@ -58,7 +59,6 @@ import numpy as np
 from collections import Counter
 from joblib import Parallel, delayed
 import psutil
-import ahocorasick
 from utils.helpers import load_config, setup_logging, log_memory_usage, log_stage_summary, safe_save_preview_csv
 
 try:
@@ -88,27 +88,33 @@ TONE_DICTS_FILE = CONFIG['paths'].get(
 # ============================================================================
 # 2. 语言学规则常量（从 config.yaml 加载）
 #
-# 设计依据与参考文献（均已核实，提供 DOI/链接）：
+# 设计依据与参考文献（APA 7th Edition，附带有效 DOI 链接）：
 #
-#   否定词：
-#     - Jia, L., Yu, C., & Meng, W. (2009). CIKM '09, pp. 1827-1830.
-#       DOI: 10.1145/1645953.1646241
-#     - Pang, B., & Lee, L. (2008). Foundations and Trends in IR, 2(1-2), 1-135.
-#       DOI: 10.1561/1500000001
+#   否定词判定：
+#     - Jia, L., Yu, C., & Meng, W. (2009). The effect of negation on sentiment analysis and retrieval effectiveness. 
+#       In Proceedings of the 18th ACM Conference on Information and Knowledge Management (CIKM '09), 1827-1830.
+#       https://doi.org/10.1145/1645953.1646241
+#     - Pang, B., & Lee, L. (2008). Opinion mining and sentiment analysis. 
+#       Foundations and Trends® in Information Retrieval, 2(1-2), 1-135.
+#       https://doi.org/10.1561/1500000001
 #
-#   程度副词：
-#     - Li, F., Huang, M., & Zhu, X. (2010). AAAI 2010, pp. 1371-1376.
-#       DOI: 10.1609/aaai.v24i1.7523
-#     - Liu, B. (2012). Sentiment Analysis and Opinion Mining. Morgan & Claypool.
-#       DOI: 10.2200/s00416ed1v01y201204hlt016
-#     - Kennedy, A., & Inkpen, D. (2006). Computational Intelligence, 22(2), 110-125.
-#       DOI: 10.1111/j.1467-8640.2006.00277.x
+#   程度副词权重矩阵：
+#     - Li, F., Huang, M., & Zhu, X. (2010). Sentiment analysis with global topics and local dependency. 
+#       In Proceedings of the 24th AAAI Conference on Artificial Intelligence (AAAI '10), 1371-1376.
+#       https://doi.org/10.1609/aaai.v24i1.7523
+#     - Liu, B. (2012). Sentiment analysis and opinion mining. Morgan & Claypool Publishers.
+#       https://doi.org/10.2200/s00416ed1v01y201204hlt016
+#     - Kennedy, A., & Inkpen, D. (2006). Sentiment classification of movie reviews using contextual valence shifters. 
+#       Computational Intelligence, 22(2), 110-125.
+#       https://doi.org/10.1111/j.1467-8640.2006.00277.x
 #
-#   转折连词：
-#     - Ding, X., Liu, B., & Yu, P. S. (2008). WSDM '08, pp. 231-240.
-#       DOI: 10.1145/1341531.1341561
-#     - Wang, F., Wu, Y., & Qiu, L. (2012). COLING 2012: Posters, pp. 1311-1320.
-#       URL: https://aclanthology.org/C12-2128/
+#   转折连词动态增强：
+#     - Ding, X., Liu, B., & Yu, P. S. (2008). A holistic lexicon-based approach to opinion mining. 
+#       In Proceedings of the 2008 International Conference on Web Search and Data Mining (WSDM '08), 231-240.
+#       https://doi.org/10.1145/1341531.1341561
+#     - Wang, F., Wu, Y., & Qiu, L. (2012). Effectively exploiting sequence-level combinations of multiple features for Chinese sentiment analysis. 
+#       In Proceedings of COLING 2012: Posters, 1311-1320.
+#       https://aclanthology.org/C12-2128/
 # ============================================================================
 
 # ── 否定词集合（frozenset：不可变 + O(1) 查找） ──
@@ -140,10 +146,9 @@ SENTENCE_END_MARKERS: frozenset[str] = frozenset(
 NEGATION_WINDOW = SENTIMENT_PARAMS.get('negation_window', 2)
 
 # ── 前瞻性陈述词汇集 ──
-# Li, F. (2010). The Information Content of Forward-Looking Statements
-# in Corporate Filings—A Naive Bayesian Machine Learning Approach.
+# Li, F. (2010). The information content of forward-looking statements in corporate filings—A naïve Bayesian machine learning approach. 
 # Journal of Accounting Research, 48(5), 1049-1102.
-# DOI: 10.1111/j.1475-679X.2010.00382.x
+# https://doi.org/10.1111/j.1475-679X.2010.00382.x
 FORWARD_LOOKING_WORDS: frozenset[str] = frozenset(
     SENTIMENT_PARAMS.get('forward_looking_words', [])
 )
@@ -354,10 +359,9 @@ def _compute_forward_looking_ratio(tokens: list[str]) -> tuple[float, int]:
     """计算前瞻性词汇比率。
 
     学术依据:
-      Li, F. (2010). The Information Content of Forward-Looking Statements
-      in Corporate Filings—A Naive Bayesian Machine Learning Approach.
+      Li, F. (2010). The information content of forward-looking statements in corporate filings—A naïve Bayesian machine learning approach. 
       Journal of Accounting Research, 48(5), 1049-1102.
-      DOI: 10.1111/j.1475-679X.2010.00382.x
+      https://doi.org/10.1111/j.1475-679X.2010.00382.x
 
     Li (2010) 使用前瞻性关键词在 MD&A 中的句子级占比衡量前瞻性信息含量。
     本实现使用 token 级占比作为中文新闻的等价度量。
@@ -383,45 +387,49 @@ def _compute_readability(content: str, tokens: list[str]) -> dict[str, float]:
     """计算中文文本可读性的三维度代理指标。
 
     学术依据:
-      Loughran, T. & McDonald, B. (2014). Measuring Readability in
-      Financial Disclosures. Journal of Finance, 69(4), 1643-1671.
-      DOI: 10.1111/jofi.12162
+      Loughran, T., & McDonald, B. (2014). Measuring readability in financial disclosures. 
+      The Journal of Finance, 69(4), 1643-1671.
+      https://doi.org/10.1111/jofi.12162
       — 指出 Gunning-Fog Index 不适用于金融文本（多音节商业术语
       如 "financial", "company" 被误判为"复杂"），建议使用替代度量。
 
-      Bonsall, S.B., Leone, A.J., Miller, B.P. & Rennekamp, K. (2017).
-      A Plain English Measure of Financial Reporting Readability.
+      Bonsall, S. B., Leone, A. J., Miller, B. P., & Rennekamp, K. (2017). 
+      A plain English measure of financial reporting readability. 
       Journal of Accounting and Economics, 63(2-3), 329-357.
-      DOI: 10.1016/j.jacceco.2017.03.002
+      https://doi.org/10.1016/j.jacceco.2017.03.002
       — 提出 Bog Index 捕捉 SEC Plain English 属性，但依赖英文句法。
 
     对于中文文本，采用以下三个维度的代理指标：
 
     1. avg_sentence_len (ASL): 平均句长（字符/句）— 越长越难读
-    2. type_token_ratio (TTR): 词汇丰富度（唯一词/总词）— 越高越复杂
-    3. char_per_word (CPW): 平均词长（字符/词）— 越长越倾向专业术语
+    2. type_token_ratio (TTR): 词汇丰富度（唯一词/真实词频）— 越高越复杂
+    3. char_per_word (CPW): 平均词长（真实字符/真实词频）— 越长越倾向专业术语
 
     Args:
         content: 原始文本字符串。
-        tokens:  jieba 分词结果列表（已过滤空白 token）。
+        tokens:  jieba 分词结果列表。
 
     Returns:
         dict: {'avg_sentence_len': float, 'type_token_ratio': float,
                'char_per_word': float}
     """
-    # 1. 平均句长 (ASL) — 按中文句末标点分割
+    # 彻底剔除标点与空白，仅保留实际词汇计算可读性丰富度指标，防止无意义标点夸大词汇数量
+    punctuation_set = frozenset(string.punctuation + "“”‘’：；！？（）【】「」《》、，。·…—\n\t \r")
+    real_tokens = [t for t in tokens if t not in punctuation_set and not t.isspace() and t]
+
+    # 1. 平均句长 (ASL) — 按中文句末标点分割，保留基于整个内容原始结构的度量
     sentences = re.split(r'[。！？!?；;]', content)
     sentences = [s for s in sentences if len(s.strip()) > 0]
     n_sentences = max(len(sentences), 1)
     avg_sentence_len = sum(len(s.strip()) for s in sentences) / n_sentences
 
     # 2. Type-Token Ratio (TTR) — 词汇丰富度
-    n_tokens = max(len(tokens), 1)
-    ttr = len(set(tokens)) / n_tokens
+    n_real_tokens = max(len(real_tokens), 1)
+    ttr = len(set(real_tokens)) / n_real_tokens
 
     # 3. 平均词长 (CPW) — 字符级词复杂度
-    total_chars = sum(len(t) for t in tokens)
-    cpw = total_chars / n_tokens
+    total_chars = sum(len(t) for t in real_tokens)
+    cpw = total_chars / n_real_tokens
 
     return {
         'avg_sentence_len': round(avg_sentence_len, 2),
@@ -447,24 +455,23 @@ def build_idf_weights(
         final_idf(w) = Winsorize(normalized_idf, P1, P99)
 
     学术依据:
-      Gentzkow, M., Kelly, B. & Taddy, M. (2019). Text as Data.
+      Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. 
       Journal of Economic Literature, 57(3), 535-574. §2.2: TF-IDF.
+      https://doi.org/10.1257/jel.20181020
 
-      Manning, C.D., Raghavan, P. & Schütze, H. (2008).
-      Introduction to Information Retrieval. Cambridge University Press.
+      Manning, C. D., Raghavan, P., & Schütze, H. (2008). 
+      Introduction to Information Retrieval. Cambridge University Press. 
       Ch. 6.2.1: smooth IDF 公式。
 
-      Fama, E.F. & French, K.R. (1993). Common Risk Factors in the Returns
-      on Stocks and Bonds. Journal of Financial Economics, 33(1), 3-56.
+      Fama, E. F., & French, K. R. (1993). Common risk factors in the returns on stocks and bonds. 
+      Journal of Financial Economics, 33(1), 3-56.
+      https://doi.org/10.1016/0304-405X(93)90023-5
       — Winsorization (P1/P99) 标准做法。
 
     设计决策:
-      1. DF 通过 Aho-Corasick 子串匹配一次遍历全语料计算。
-         语义等价于 jieba 分词后匹配（中文情感词为 2-4 字完整词组），
-         但速度提升 ~50x（AC ~50K doc/s vs jieba ~1K doc/s）。
+      1. 为了和特征抽取保持严格语义同构，使用 jieba.cut 并行分词来统计 Document Frequency，
+         坚决废除 Aho-Corasick 子匹配以避免把 “大家” 错误计为 “大”。
       2. IDF 在全文语料（text_col='内容'）上统一计算一次，两轨共享。
-         IDF 的语义是「词在整体文档集合中的区分力」，
-         上下文片段（content_ctx）是全文子集，不应独立计算。
       3. 均值归一化确保 IDF 加权后得分量级 ≈ 等权版，可共享阈值。
       4. P1/P99 Winsorization 防止极端稀有词主导或极高频词归零。
 
@@ -483,7 +490,7 @@ def build_idf_weights(
 
     texts = df[text_col].fillna('').astype(str).tolist()
 
-    # 1. 合并所有词典词汇（去重），构建 AC 自动机
+    # 1. 抽取全局词典内词汇以快速过滤
     all_words = set()
     for _, d in dictionaries:
         all_words.update(d.keys())
@@ -491,18 +498,27 @@ def build_idf_weights(
     if not all_words:
         return {name: {} for name, _ in dictionaries}
 
-    A = ahocorasick.Automaton()
-    for word in sorted(all_words):
-        A.add_word(word, word)
-    A.make_automaton()
+    # 2. 定义局部并行切词函数，解决匹配必须是完整 token 的缺陷
+    def _compute_chunk_df(chunk_texts):
+        local_df = Counter()
+        for text in chunk_texts:
+            tokens_in_doc = set(jieba.cut(text)) & all_words
+            local_df.update(tokens_in_doc)
+        return local_df
 
-    # 2. 一次遍历全语料计算文档频率
-    doc_freq: Counter = Counter()
-    for text in texts:
-        seen_in_doc: set[str] = set()
-        for _, word in A.iter(text):
-            seen_in_doc.add(word)
-        doc_freq.update(seen_in_doc)
+    # 3. 执行多线程分块并行的 jieba.cut 统计
+    batch_size = 2000
+    num_batches = max(1, (N - 1) // batch_size + 1)
+    chunks = [texts[i * batch_size:(i + 1) * batch_size] for i in range(num_batches)]
+    
+    logger.info(f"IDF: 正在使用 jieba 并行计算文档频率以保持语义精确同构 (共 {N} 篇, {num_batches} 个批次)...")
+    results = Parallel(n_jobs=-1, prefer='threads')(
+        delayed(_compute_chunk_df)(chunk) for chunk in chunks
+    )
+    
+    doc_freq = Counter()
+    for local_df in results:
+        doc_freq.update(local_df)
 
     # 3. 为每个词典分别计算 IDF → 均值归一化 → Winsorize
     result: dict[str, dict[str, float]] = {}
@@ -742,25 +758,34 @@ def _analyze_single_article(content: str) -> dict:
     result['forward_looking_count'] = fl_count
 
     # ── 文本可读性控制变量 ──
-    # Loughran, T. & McDonald, B. (2014). Journal of Finance, 69(4), 1643-1671.
-    # DOI: 10.1111/jofi.12162
+    # Loughran, T., & McDonald, B. (2014). Measuring readability in financial disclosures. 
+    # The Journal of Finance, 69(4), 1643-1671.
+    # https://doi.org/10.1111/jofi.12162
     readability = _compute_readability(content, tokens)
     result['avg_sentence_len'] = readability['avg_sentence_len']
     result['type_token_ratio'] = readability['type_token_ratio']
     result['char_per_word'] = readability['char_per_word']
 
     # ── 正/负面词频分离（稳健性检验）──
-    # Berger, A.N., Kim, H.H. & Ma, X. (2024). Bank Sentiment and Liquidity
-    # Hoarding. Contemporary Accounting Research, 41(3). Appendix S6.
-    # Loughran, T. & McDonald, B. (2011). When Is a Liability Not a Liability?
-    # Textual Analysis, Dictionaries, and 10-Ks.
-    # Journal of Finance, 66(1), 35-65. DOI: 10.1111/j.1540-6261.2010.01625.x
+    # Berger, A. N., Kim, H. H., & Ma, X. (2024). Bank sentiment and liquidity hoarding. 
+    # Contemporary Accounting Research, 41(3), 1696-1736. Appendix S6.
+    # https://doi.org/10.1111/1911-3846.12948
+    #
+    # Loughran, T., & McDonald, B. (2011). When is a liability not a liability? 
+    # Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65.
+    # https://doi.org/10.1111/j.1540-6261.2010.01625.x
     n_tokens = len(tokens)
     result['pos_ratio'] = round(best_pos_count / n_tokens, 6) if n_tokens > 0 else 0.0
     result['neg_ratio'] = round(best_neg_count / n_tokens, 6) if n_tokens > 0 else 0.0
 
-    # ── 计数型情感指标 MSENT (He et al. 2024, IRFA, Eq. 1;
-    #    Tetlock 2007, JF) ──
+    # ── 计数型情感指标 MSENT ──
+    # He, F., Lu, X., Wei, Z., & Wang, Y. (2024). Bank sentiment and lending. 
+    # International Review of Financial Analysis, 95, 103430. Eq. 1.
+    # https://doi.org/10.1016/j.irfa.2024.103430
+    #
+    # Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. 
+    # The Journal of Finance, 62(3), 1139-1168.
+    # https://doi.org/10.1111/j.1540-6261.2007.01232.x
     # MSENT = (Negative Words − Positive Words) / (Positive Words + Negative Words)
     # 注意: 此处使用**原始词典极性**计数 (base 字段), 而非语言学规则处理后的
     # 极性 (final 字段)。论文的 MSENT 基于词典查找, 不考虑否定/程度/转折修饰。

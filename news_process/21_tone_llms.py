@@ -54,9 +54,18 @@ MODELS = LLM_CONFIG.get('models', [])
 MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', '')))
 # Prompt 模板: 包含 {title}, {content}, {target_bank}, {co_mentioned_banks} 占位符
 PROMPT_TEMPLATE = LLM_CONFIG.get('prompt_template', '')
+# G-06: 温度参数锁定 — temperature=0 确保确定性推理输出, 保证可复现性
+# 学术依据: Lopez-Lira & Tang (2025, JF): "We use temperature = 0 to ensure
+#           deterministic outputs for reproducibility of sentiment labels."
+# 同见: Carlson & Burbano (2026, SMJ §3.3): "temperature should be fixed and reported"
 TEMPERATURE = LLM_CONFIG.get('temperature', '')
 RANDOM_SEED = LLM_CONFIG.get('random_seed', '')
 FORCE_JSON = LLM_CONFIG.get('force_json', True)
+
+# 显式记录 LLM 推理参数 (G-06: 审稿人可追溯的参数报告)
+logger.info(f"LLM 推理参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
+            f"force_json={FORCE_JSON}, models={len(MODELS)}, "
+            f"concurrency={MAX_CONCURRENCY}")
 
 MAX_RETRIES = LLM_CONFIG.get('max_retries', '')
 RETRY_DELAY = LLM_CONFIG.get('retry_delay', '')

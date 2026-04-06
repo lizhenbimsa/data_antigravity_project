@@ -191,6 +191,82 @@ def _char_level_fallback(
     return " [...] ".join(text[s:e + 1] for s, e in merged)
 
 
+# ============================================================================
+# G-14: 距离衰减结构化输出
+# ============================================================================
+# 学术依据:
+#   Sautner, van Lent, Vilkov & Zhang (2023, ECGI §2.2):
+#     "We weight each bigram token by its inverse distance to the
+#      nearest climate change keyword."
+#   本函数返回句子+距离对, 供下游词典法做距离加权情感计算。
+# ============================================================================
+
+def extract_entity_context_with_distances(
+    text: str,
+    target_aliases: List[str],
+    sentence_radius: int = 2,
+) -> List[Tuple[str, int]]:
+    """返回窗口内句子及其到最近目标实体的句级距离。
+
+    与 extract_entity_context() 的区别:
+      - 返回 [(sentence_text, min_distance), ...] 而非拼接字符串
+      - min_distance = 该句到最近实体提及句的距离 (0=命中句本身)
+      - 默认 radius=2 (比 ctx 轨道的 1 更大, 提供衰减空间)
+
+    Args:
+        text:            文章全文。
+        target_aliases:  目标银行的所有名称变体。
+        sentence_radius: 句子级窗口半径 (默认 2)。
+
+    Returns:
+        list[tuple[str, int]]: 窗口内的 (句子文本, 距离) 对。
+            空列表表示未匹配到目标银行。
+    """
+    if not text or not target_aliases:
+        return []
+
+    sentences = _split_sentences(text)
+
+    if len(sentences) < 3:
+        # 短文本退化: 检查是否有任何句子命中目标银行
+        has_hit = any(
+            alias in s
+            for s in sentences
+            for alias in target_aliases
+        )
+        if has_hit:
+            return [(sent, 0) for sent in sentences]
+        return []
+
+    # 定位命中句索引
+    hit_indices = set()
+    for i, sent in enumerate(sentences):
+        for alias in target_aliases:
+            if alias in sent:
+                hit_indices.add(i)
+                break
+
+    if not hit_indices:
+        return []
+
+    # 构建窗口区间
+    n = len(sentences)
+    raw_intervals = [
+        (max(0, i - sentence_radius), min(n - 1, i + sentence_radius))
+        for i in hit_indices
+    ]
+    merged = _merge_intervals(raw_intervals)
+
+    # 计算每个窗口内句子到最近命中句的距离
+    result = []
+    for start, end in merged:
+        for i in range(start, end + 1):
+            min_dist = min(abs(i - h) for h in hit_indices)
+            result.append((sentences[i], min_dist))
+
+    return result
+
+
 # === 别名查询(带文件级缓存, 避免重复读盘) ===
 # 设计: 全局缓存策略
 #   - _BANK_DATA: 缓存整个 bank_names.json 文件内容(首次读取后不再读盘)

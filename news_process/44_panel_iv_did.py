@@ -533,6 +533,46 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
             0
         )
 
+        # ── G-01: Event Study 动态效应支持 ──
+        # 学术依据: Callaway & Sant'Anna (2021, JoE), Sun & Abraham (2021, JoE)
+        # relative_year = year - treat_year (控制组设为 NaN，Stata 中自动排除)
+        # 用于:
+        #   1. Event Study Plot: 逐期 ATT 估计
+        #   2. 平行趋势检验: relative_year < 0 的系数应不显著
+        #   3. 动态效应: relative_year >= 0 的系数变化趋势
+        panel[f'{prefix}_rel_year'] = np.where(
+            panel[f'{prefix}_treat_year'] > 0,
+            panel['year'] - panel[f'{prefix}_treat_year'],
+            np.nan  # 控制组: NaN, Stata 中作为 never-treated baseline
+        )
+
+        # 生成 Event Study lead/lag 虚拟变量 (k = -3 到 +3, 以 k=-1 为基期)
+        # 设计: 覆盖 pre-treatment 3 期 + post-treatment 3 期
+        #   Stata 用法:
+        #     * 方法一 (csdid): csdid Y X, ivar(bank_id) time(year) gvar({prefix}_treat_year)
+        #     * 方法二 (手动): reghdfe Y {prefix}_lead3 ... {prefix}_lag3 X, absorb(bank_id year)
+        for k in range(-3, 4):
+            if k == -1:
+                continue  # k=-1 为基期 (omitted)
+            col_name = f'{prefix}_lag{k}' if k >= 0 else f'{prefix}_lead{abs(k)}'
+            panel[col_name] = np.where(
+                panel[f'{prefix}_rel_year'] == k,
+                1, 0
+            ).astype(int)
+            # 控制组的 lead/lag 全为 0 (因为 rel_year 是 NaN, == k 为 False)
+
+        # Endpoint binning: k <= -4 合并为 lead4plus, k >= 4 合并为 lag4plus
+        panel[f'{prefix}_lead4plus'] = np.where(
+            panel[f'{prefix}_rel_year'].fillna(0) <= -4,
+            (panel[f'{prefix}_treat_year'] > 0).astype(int),
+            0
+        ).astype(int)
+        panel[f'{prefix}_lag4plus'] = np.where(
+            panel[f'{prefix}_rel_year'].fillna(0) >= 4,
+            (panel[f'{prefix}_treat_year'] > 0).astype(int),
+            0
+        ).astype(int)
+
         # 诊断日志
         n_treated = panel.loc[panel[f'{prefix}_treated'] == 1, 'target_bank'].nunique()
         n_control = panel.loc[panel[f'{prefix}_treated'] == 0, 'target_bank'].nunique()
@@ -542,4 +582,201 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
         logger.info(f"  {policy_name}: 处理组 {n_treated} 家, "
                     f"控制组 {n_control} 家, 年份分布 {year_dist}")
 
+        # Event Study 诊断
+        if panel[f'{prefix}_rel_year'].notna().any():
+            rel_year_dist = panel.loc[
+                panel[f'{prefix}_rel_year'].notna(),
+                f'{prefix}_rel_year'
+            ].value_counts().sort_index().to_dict()
+            logger.info(f"  {policy_name} Event Study relative_year 分布: "
+                        f"{rel_year_dist}")
+            logger.info(f"  {policy_name} Stata Event Study 命令:")
+            logger.info(f"    * csdid Y X, ivar(bank_id) time(year) "
+                        f"gvar({prefix}_treat_year)")
+            logger.info(f"    * estat event  // 绘制 Event Study Plot")
+            logger.info(f"    * estat pretrend  // 平行趋势检验")
+
+    # ── G-05: 多政策处理组正交性诊断 ──
+    # 学术依据: Callaway & Sant'Anna (2021, JoE, §6.1):
+    #   当面板中存在多个政策冲击时, 需检验处理组是否高度重叠 (overlapping treatments)。
+    #   若重叠过高, DiD 估计量可能混淆多个政策效应, 导致因果识别失效。
+    policy_prefixes = [cfg['prefix'] for name, cfg in shocks.items()
+                       if not name.startswith('_')
+                       and f"{cfg['prefix']}_treated" in panel.columns]
+    if len(policy_prefixes) >= 2:
+        logger.info("=" * 60)
+        logger.info("G-05: 多政策处理组正交性诊断")
+        logger.info("  对标: DID 标准假设 — 处理组交叉独立性")
+        logger.info("=" * 60)
+
+        from itertools import combinations
+        for p1, p2 in combinations(policy_prefixes, 2):
+            t1 = panel[f'{p1}_treated']
+            t2 = panel[f'{p2}_treated']
+            crosstab = pd.crosstab(t1, t2, margins=True)
+            logger.info(f"  {p1} × {p2} 交叉表:")
+            for idx in crosstab.index:
+                logger.info(f"    {p1}={idx}: {dict(crosstab.loc[idx])}")
+
+            # 计算 Cramér's V (关联强度)
+            n_obs = t1.notna().sum()
+            chi2 = 0
+            for v1 in [0, 1]:
+                for v2 in [0, 1]:
+                    obs = ((t1 == v1) & (t2 == v2)).sum()
+                    exp = ((t1 == v1).sum() * (t2 == v2).sum()) / max(n_obs, 1)
+                    if exp > 0:
+                        chi2 += (obs - exp) ** 2 / exp
+            cramers_v = (chi2 / max(n_obs, 1)) ** 0.5
+            logger.info(f"  Cramér's V = {cramers_v:.4f}"
+                        f" {'✓ < 0.3 弱相关' if cramers_v < 0.3 else '⚠️ ≥ 0.3 中强相关'}")
+            if cramers_v >= 0.3:
+                logger.info(f"  → 建议: 在论文中讨论 {p1} 与 {p2} 的处理组重叠问题,")
+                logger.info(f"    或在稳健性检验中单独估计各政策效应")
+
     return panel
+
+
+# ============================================================================
+# G-03: Rotemberg 权重诊断
+# ============================================================================
+# 学术依据:
+#   Goldsmith-Pinkham, Sorkin & Swift (2020, AER, §5):
+#     "The Rotemberg weights α_k decompose the just-identified Bartik
+#      estimator into a weighted sum of group-specific estimators.
+#      Negative weights indicate potential misspecification."
+#   DOI: 10.1257/aer.20181047
+#
+#   Borusyak, Hull & Jaravel (2022, RES, §4.2):
+#     "Under the shift-share interpretation, one should verify that
+#      no single industry (share) dominates the variation."
+#   DOI: 10.1093/restud/rdab030
+# ============================================================================
+
+def diagnose_rotemberg_weights(panel: pd.DataFrame,
+                                group_prefix: str,
+                                groups: list = None,
+                                logger_inst=None) -> dict:
+    """计算 Bartik IV 的 Rotemberg (1983) 权重分解。
+
+    Rotemberg 权重 α_k 衡量每个 share 维度 k 对整体 Bartik IV 的贡献。
+    诊断目标:
+      1. 识别 α_k < 0 的"负权重"维度 (Goldsmith-Pinkham 2020 §5 核心检验)
+      2. 识别贡献集中度 (HHI of α_k): HHI > 0.25 表示少数维度主导
+      3. 报告前 5 大权重维度及其基期份额均值
+
+    参数:
+        panel:        Bank-Year 面板
+        group_prefix: Bartik IV 系列前缀 (如 'type', 'scale', 'ft_cat')
+        groups:       组别列表 (None 时从面板 share 列推断)
+        logger_inst:  日志实例 (None 时使用模块级 logger)
+
+    返回:
+        dict: {
+          'weights': {group_k: alpha_k, ...},
+          'hhi': float,
+          'n_negative': int,
+          'top5': [(group, weight), ...],
+          'share_means': {group_k: mean_share, ...},
+        }
+    """
+    lg = logger_inst or logger
+
+    lg.info("=" * 60)
+    lg.info(f"G-03: Rotemberg 权重诊断 [{group_prefix}]")
+    lg.info("  对标: Goldsmith-Pinkham et al. (2020, AER, §5, Table 3)")
+    lg.info("=" * 60)
+
+    # 推断组别列表
+    if groups is None:
+        share_cols = [c for c in panel.columns
+                      if c.startswith(f'bartik_{group_prefix}_share_')]
+        groups = [c.replace(f'bartik_{group_prefix}_share_', '')
+                  for c in share_cols]
+    if not groups:
+        lg.warning(f"  未找到 bartik_{group_prefix}_share_* 列，跳过诊断")
+        return {}
+
+    # --- 计算近似 Rotemberg 权重 ---
+    # α_k ≈ Cov(share_k, BIV) / Var(BIV)
+    # 这是 Rotemberg (1983) 权重的 OLS 分解近似
+    iv_col = f'bartik_{group_prefix}_iv_full'
+    if iv_col not in panel.columns:
+        lg.warning(f"  {iv_col} 不存在，跳过诊断")
+        return {}
+
+    biv = panel[iv_col].dropna()
+    if biv.var() == 0 or len(biv) < 10:
+        lg.warning(f"  {iv_col} 方差为 0 或样本太小，跳过诊断")
+        return {}
+
+    var_biv = biv.var()
+    weights = {}
+    share_means = {}
+    for g in groups:
+        share_col = f'bartik_{group_prefix}_share_{g}'
+        if share_col not in panel.columns:
+            continue
+        valid = panel[[share_col, iv_col]].dropna()
+        if len(valid) < 10:
+            continue
+        cov = valid[share_col].cov(valid[iv_col])
+        alpha_k = cov / var_biv
+        weights[g] = round(alpha_k, 6)
+        share_means[g] = round(valid[share_col].mean(), 4)
+
+    if not weights:
+        lg.warning("  无法计算权重，跳过")
+        return {}
+
+    # --- 诊断指标 ---
+    # (1) 负权重检查
+    n_negative = sum(1 for v in weights.values() if v < 0)
+    neg_groups = [g for g, v in weights.items() if v < 0]
+
+    # (2) HHI 集中度 (α_k 归一化后的 Herfindahl)
+    total_abs = sum(abs(v) for v in weights.values())
+    if total_abs > 0:
+        hhi = sum((abs(v) / total_abs) ** 2 for v in weights.values())
+    else:
+        hhi = 0.0
+
+    # (3) Top-5 排序
+    top5 = sorted(weights.items(), key=lambda x: abs(x[1]), reverse=True)[:5]
+
+    # --- 日志输出 ---
+    lg.info(f"  ── Rotemberg 权重 α_k (共 {len(weights)} 个维度) ──")
+    for g, alpha in sorted(weights.items(), key=lambda x: -abs(x[1])):
+        flag = " ⚠️ NEGATIVE" if alpha < 0 else ""
+        lg.info(f"    {g:>15s}: α = {alpha:+.6f}, "
+                f"E[share] = {share_means.get(g, 0):.4f}{flag}")
+
+    lg.info(f"  ── 诊断汇总 ──")
+    lg.info(f"    负权重维度: {n_negative}/{len(weights)}"
+            f"{' → ' + str(neg_groups) if neg_groups else ''}")
+    if n_negative > 0:
+        lg.info(f"    ⚠️ 负权重提示可能的排他性约束违背 "
+                f"(Goldsmith-Pinkham 2020, AER §5.2)")
+        lg.info(f"    → 建议: 在论文稳健性检验中移除负权重维度后重新估计")
+    lg.info(f"    HHI(|α|) = {hhi:.4f}"
+            f" {'✓ < 0.25 分散' if hhi < 0.25 else '⚠️ ≥ 0.25 集中'}")
+    lg.info(f"    Top-5 权重维度: "
+            f"{[(g, f'{a:+.4f}') for g, a in top5]}")
+
+    # Stata 命令建议
+    lg.info(f"  ── Stata 验证命令 ──")
+    lg.info(f"    * 使用 bartik_weight 包 (Goldsmith-Pinkham 2020 官方):")
+    lg.info(f"      ssc install bartik_weight")
+    lg.info(f"      bartik_weight Y bartik_{group_prefix}_iv_full "
+            f"{' '.join(f'bartik_{group_prefix}_share_{g}' for g in groups[:5])}, "
+            f"absorb(target_bank year)")
+
+    result = {
+        'weights': weights,
+        'hhi': round(hhi, 6),
+        'n_negative': n_negative,
+        'negative_groups': neg_groups,
+        'top5': top5,
+        'share_means': share_means,
+    }
+    return result

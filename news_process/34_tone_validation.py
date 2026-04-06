@@ -1136,12 +1136,18 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
                                      logger_inst) -> dict:
     """检查 LLM 模型自报告置信度是否校准良好。
 
-    当 33 阶段人工金标准数据存在时，计算 Expected Calibration Error (ECE)
-    并绘制可靠性图。否则降级为仅输出置信度分布描述性统计。
+    升级版 (G-02): 实现完整的 Expected Calibration Error (ECE) 和可靠性图。
+
+    ECE 计算策略:
+      - 若 33 阶段人工金标准数据存在 → 用人工标注作为 ground truth
+      - 否则 → 用多数投票标签 (llm_sentiment{track}) 作为伪标准 (pseudo-ground-truth)
+        理由: 多数投票是 3 模型的共识, 单模型的 confidence 应与该共识一致
 
     学术依据：
-      - Guo et al. (2017, ICML): ECE < 0.05 校准良好
-      - Niculescu-Mizil & Caruana (2005, ICML): 可靠性图
+      - Guo et al. (2017, ICML): ECE = Σ(|B_m|/n) × |acc(B_m) - conf(B_m)|
+        其中 B_m 为第 m 个分箱, acc 为实际准确率, conf 为平均置信度
+      - Niculescu-Mizil & Caruana (2005, ICML): 可靠性图 (Reliability Diagram)
+      - Carlson & Burbano (2026, SMJ): LLM 标注应报告 model certainty
 
     Args:
         df:          当前轨道的 DataFrame。
@@ -1151,7 +1157,7 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
         logger_inst: 日志记录器。
 
     Returns:
-        dict: 校准诊断结果。
+        dict: 校准诊断结果，含 ECE 值和可靠性图数据。
     """
     track_label = '全文' if track == '_full' else '上下文片段'
     logger_inst.info("=" * 70)
@@ -1166,6 +1172,8 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
     if not independent_models:
         logger_inst.warning("  无独立 LLM 模型列可用，跳过置信度校准诊断")
         return {}
+
+    N_BINS = 10  # ECE 标准分箱数 (Guo et al. 2017)
 
     # ── 1. 置信度描述性统计（始终执行） ──
     logger_inst.info("  --- 置信度分布描述性统计 ---")
@@ -1203,11 +1211,130 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
             f"skew={stats['skew']:.3f}, n={stats['n']}"
         )
 
-    # ── 2. 输出 CSV（描述性统计，始终生成） ──
+    # ── 2. ECE 计算 (G-02 升级) ──
+    logger_inst.info("  --- Expected Calibration Error (ECE) ---")
+    logger_inst.info(f"  分箱数: {N_BINS} (Guo et al. 2017, ICML)")
+
+    # 确定 ground truth 标签
+    # 优先使用人工金标准 (33 阶段输出), 否则使用多数投票标签
+    human_col = f'human_sentiment{track}'
+    vote_col = f'llm_sentiment{track}'
+    if human_col in df.columns and df[human_col].notna().sum() > 100:
+        gt_col = human_col
+        gt_source = '人工金标准 (Stage 33)'
+    elif vote_col in df.columns:
+        gt_col = vote_col
+        gt_source = '多数投票伪标准 (3-model consensus)'
+    else:
+        logger_inst.warning("  无可用 ground truth 标签，ECE 计算跳过")
+        gt_col = None
+        gt_source = None
+
+    ece_results = {}
+    reliability_data = {}
+
+    if gt_col is not None:
+        logger_inst.info(f"  Ground Truth 来源: {gt_source}")
+
+        for name, info in independent_models.items():
+            conf_col = info.get('confidence')
+            sent_col = info.get('score')  # 模型情感标签列
+            if not conf_col or conf_col not in df.columns:
+                continue
+
+            # 获取该模型的情感预测标签
+            # 查找模型的 sentiment 标签列
+            model_sent_col = None
+            for candidate in [f'{name}_sentiment{track}', sent_col]:
+                if candidate and candidate in df.columns:
+                    model_sent_col = candidate
+                    break
+            if model_sent_col is None:
+                logger_inst.info(f"  [{name}] 无情感标签列，跳过 ECE")
+                continue
+
+            # 构建有效数据掩码
+            valid_mask = (
+                df[conf_col].notna() &
+                df[model_sent_col].notna() &
+                df[gt_col].notna()
+            )
+            if valid_mask.sum() < 50:
+                logger_inst.info(f"  [{name}] 有效观测 < 50，跳过 ECE")
+                continue
+
+            confidences = pd.to_numeric(df.loc[valid_mask, conf_col], errors='coerce').values
+            predictions = df.loc[valid_mask, model_sent_col].astype(str).values
+            ground_truth = df.loc[valid_mask, gt_col].astype(str).values
+
+            # 计算 ECE (10-bin equal-width binning)
+            bin_boundaries = np.linspace(0, 1, N_BINS + 1)
+            bin_ece = 0.0
+            n_total = len(confidences)
+            bin_details = []
+
+            for i in range(N_BINS):
+                low, high = bin_boundaries[i], bin_boundaries[i + 1]
+                if i == N_BINS - 1:
+                    in_bin = (confidences >= low) & (confidences <= high)
+                else:
+                    in_bin = (confidences >= low) & (confidences < high)
+
+                bin_size = in_bin.sum()
+                if bin_size == 0:
+                    bin_details.append({
+                        'bin': f'{low:.1f}-{high:.1f}',
+                        'n': 0, 'avg_conf': 0, 'accuracy': 0, 'gap': 0
+                    })
+                    continue
+
+                avg_conf = float(confidences[in_bin].mean())
+                accuracy = float((predictions[in_bin] == ground_truth[in_bin]).mean())
+                gap = abs(accuracy - avg_conf)
+                bin_ece += (bin_size / n_total) * gap
+
+                bin_details.append({
+                    'bin': f'{low:.1f}-{high:.1f}',
+                    'n': int(bin_size),
+                    'avg_conf': round(avg_conf, 4),
+                    'accuracy': round(accuracy, 4),
+                    'gap': round(gap, 4),
+                })
+
+            ece_value = round(float(bin_ece), 4)
+            ece_results[name] = ece_value
+            reliability_data[name] = bin_details
+
+            # ECE 解读 (Guo et al. 2017)
+            if ece_value < 0.05:
+                quality = '✅ 校准良好 (< 0.05)'
+            elif ece_value < 0.10:
+                quality = '⚠️ 校准一般 (0.05-0.10)'
+            elif ece_value < 0.15:
+                quality = '⚠️ 校准偏差 (0.10-0.15)'
+            else:
+                quality = '🔴 校准不良 (≥ 0.15)'
+
+            logger_inst.info(f"  [{name}] ECE = {ece_value:.4f} {quality}")
+            logger_inst.info(f"    Ground Truth: {gt_source}, N = {n_total}")
+
+            # 输出分箱详情
+            for bd in bin_details:
+                if bd['n'] > 0:
+                    logger_inst.info(
+                        f"    Bin {bd['bin']}: n={bd['n']:>5}, "
+                        f"avg_conf={bd['avg_conf']:.3f}, "
+                        f"accuracy={bd['accuracy']:.3f}, "
+                        f"gap={bd['gap']:.3f}"
+                    )
+
+    # ── 3. 输出 CSV ──
     csv_rows = []
     for name, s in stats_results.items():
         row = {'模型': name}
         row.update(s)
+        if name in ece_results:
+            row['ECE'] = ece_results[name]
         csv_rows.append(row)
 
     csv_path = os.path.join(output_dir, f'llm_calibration{track}.csv')
@@ -1215,7 +1342,7 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
         pd.DataFrame(csv_rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
         logger_inst.info(f"  置信度校准 CSV: {csv_path}")
 
-    # ── 3. 置信度直方图（降级模式，始终绘制） ──
+    # ── 4. 可靠性图 + 置信度直方图 (升级版) ──
     try:
         import matplotlib
         matplotlib.use('Agg')
@@ -1224,9 +1351,13 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
                                             'DejaVu Sans']
         plt.rcParams['axes.unicode_minus'] = False
 
-        n_plots = len(stats_results)
-        if n_plots > 0:
-            fig, axes = plt.subplots(1, n_plots, figsize=(5 * n_plots, 4),
+        n_models = len(stats_results)
+        if n_models > 0:
+            # 每个模型: 上方可靠性图 + 下方直方图
+            has_ece = len(ece_results) > 0
+            n_rows = 2 if has_ece else 1
+            fig, axes = plt.subplots(n_rows, n_models,
+                                     figsize=(5 * n_models, 4 * n_rows),
                                      squeeze=False)
             plot_idx = 0
             for name, info in independent_models.items():
@@ -1235,37 +1366,80 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
                     continue
                 if name not in stats_results:
                     continue
-                if plot_idx >= n_plots:
+                if plot_idx >= n_models:
                     break
-                ax = axes[0, plot_idx]
+
                 conf = pd.to_numeric(df[conf_col], errors='coerce').dropna()
-                ax.hist(conf, bins=20, range=(0, 1), alpha=0.7,
-                        color='steelblue', edgecolor='white')
-                ax.set_title(f'{name}', fontsize=11, fontweight='bold')
-                ax.set_xlabel('置信度', fontsize=10)
-                ax.set_ylabel('频次', fontsize=10)
+
+                # ── 可靠性图 (Reliability Diagram) ──
+                if has_ece and name in reliability_data:
+                    ax_rel = axes[0, plot_idx]
+                    bins = reliability_data[name]
+                    bin_mids = [(i + 0.5) / N_BINS for i in range(N_BINS)]
+                    accs = [b['accuracy'] for b in bins]
+                    confs_avg = [b['avg_conf'] for b in bins]
+                    sizes = [b['n'] for b in bins]
+
+                    # 只画有样本的 bin
+                    valid = [i for i, s in enumerate(sizes) if s > 0]
+                    if valid:
+                        ax_rel.bar([bin_mids[i] for i in valid],
+                                   [accs[i] for i in valid],
+                                   width=1/N_BINS, alpha=0.6,
+                                   color='steelblue', edgecolor='white',
+                                   label='Accuracy')
+                        ax_rel.plot([0, 1], [0, 1], '--', color='gray',
+                                    linewidth=1, label='Perfect calibration')
+                    ax_rel.set_xlim(0, 1)
+                    ax_rel.set_ylim(0, 1)
+                    ax_rel.set_xlabel('Mean Predicted Confidence', fontsize=9)
+                    ax_rel.set_ylabel('Fraction of Correct', fontsize=9)
+                    ece_val = ece_results.get(name, 0)
+                    ax_rel.set_title(f'{name}\nECE = {ece_val:.4f}',
+                                     fontsize=10, fontweight='bold')
+                    ax_rel.legend(fontsize=7, loc='upper left')
+
+                # ── 置信度直方图 ──
+                hist_row = 1 if has_ece else 0
+                ax_hist = axes[hist_row, plot_idx]
+                ax_hist.hist(conf, bins=20, range=(0, 1), alpha=0.7,
+                            color='steelblue', edgecolor='white')
+                ax_hist.set_xlabel('置信度', fontsize=10)
+                ax_hist.set_ylabel('频次', fontsize=10)
                 s = stats_results[name]
-                ax.axvline(s['mean'], color='red', linestyle='--', linewidth=1,
-                           label=f"mean={s['mean']:.2f}")
-                ax.legend(fontsize=8)
+                ax_hist.axvline(s['mean'], color='red', linestyle='--',
+                               linewidth=1, label=f"mean={s['mean']:.2f}")
+                ax_hist.legend(fontsize=8)
+                if not has_ece:
+                    ax_hist.set_title(f'{name}', fontsize=11, fontweight='bold')
+
                 plot_idx += 1
 
-            fig.suptitle(f'LLM 置信度分布 [{track_label}]', fontsize=13,
-                         fontweight='bold')
+            title_suffix = ' (with ECE)' if has_ece else ''
+            fig.suptitle(f'LLM 置信度校准诊断 [{track_label}]{title_suffix}',
+                         fontsize=13, fontweight='bold')
             fig.tight_layout(rect=[0, 0, 1, 0.93])
             png_path = os.path.join(output_dir, f'llm_calibration{track}.png')
             fig.savefig(png_path, dpi=150, bbox_inches='tight')
             plt.close(fig)
-            logger_inst.info(f"  置信度分布图: {png_path}")
+            logger_inst.info(f"  置信度校准图: {png_path}")
     except ImportError:
-        logger_inst.warning("  matplotlib 不可用，跳过置信度直方图")
+        logger_inst.warning("  matplotlib 不可用，跳过校准图绘制")
     except Exception as e:
-        logger_inst.warning(f"  绘制置信度直方图失败: {e}")
+        logger_inst.warning(f"  绘制校准图失败: {e}")
 
-    return {
+    # ── 5. 汇总 ──
+    mode = 'full_ece' if ece_results else 'descriptive_only'
+    result = {
         'stats': stats_results,
-        'mode': 'descriptive_only',
+        'mode': mode,
     }
+    if ece_results:
+        result['ece'] = ece_results
+        result['ece_bins'] = N_BINS
+        result['ground_truth_source'] = gt_source
+        result['reliability_data'] = reliability_data
+    return result
 
 
 # ============================================================================

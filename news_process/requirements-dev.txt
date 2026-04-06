@@ -1,0 +1,11 @@
+# news_process 开发/测试依赖
+# ============================
+#
+# 安装方式:
+#   pip install -r requirements.txt -r requirements-dev.txt
+
+# 测试框架
+pytest>=7.4.0
+
+# 代码覆盖率 (可选, 用于 CI/CD)
+pytest-cov>=4.1.0

@@ -9,6 +9,10 @@ from utils.helpers import (
     log_memory_usage,
     log_stage_summary,
     safe_save_preview_csv,
+    save_dataset,
+    log_and_time,
+    parallelize_dataframe,
+    run_stage,
 )
 
 __all__ = [
@@ -17,4 +21,8 @@ __all__ = [
     'log_memory_usage',
     'log_stage_summary',
     'safe_save_preview_csv',
+    'save_dataset',
+    'log_and_time',
+    'parallelize_dataframe',
+    'run_stage',
 ]

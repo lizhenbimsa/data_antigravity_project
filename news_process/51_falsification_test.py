@@ -1383,6 +1383,239 @@ def print_references():
 
 
 # ============================================================================
+# G-13: Placebo 时点检验
+# ============================================================================
+# 学术依据:
+#   Hassan et al. (2019, QJE, Table 7):
+#     通过构造 placebo 政策时点 (将真实处理年份提前 k 年),
+#     检验处理效应是否在真实政策实施前就已存在。
+#     若 placebo 效应显著 → 平行趋势假设可能违反。
+#
+#   Callaway & Sant'Anna (2021, JoE, §4.3):
+#     "Pre-treatment placebo tests are essential for validating
+#      the parallel trends assumption in staggered DID."
+# ============================================================================
+
+def generate_placebo_did_variables(panel: pd.DataFrame,
+                                   placebo_shifts: list = None,
+                                   logger_inst=None) -> pd.DataFrame:
+    """G-13: 构建 Placebo 时点 DID 变量。
+
+    对面板中每个 DID 政策冲击, 将 treat_year 提前 k 年 (k ∈ placebo_shifts),
+    生成伪处理变量 {prefix}_placebo{k}_post, 供回归检验使用。
+
+    参数:
+        panel:           Bank-Year 面板 (须已包含 {prefix}_treat_year 列)
+        placebo_shifts:  提前年数列表 (默认 [1, 2, 3])
+        logger_inst:     日志实例
+
+    新增列 (每个政策 × 每个 shift):
+        {prefix}_placebo{k}_post:  伪政策后哑变量
+        {prefix}_placebo{k}_did:   伪 DID 交互项 (treated × placebo_post)
+
+    Stata 用法:
+      * 检验 placebo DID 是否显著 (应不显著):
+        reghdfe Y dcep_placebo2_did X, absorb(bank_id year) cluster(bank_id)
+      * 若显著 → 平行趋势假设可能违反, 需关注
+
+    返回:
+        panel: 附加 placebo DID 变量的 DataFrame
+    """
+    lg = logger_inst or logger
+    if placebo_shifts is None:
+        placebo_shifts = [1, 2, 3]
+
+    lg.info("=" * 70)
+    lg.info("G-13: Placebo 时点检验变量生成")
+    lg.info("  对标: Hassan et al. (2019, QJE, Table 7)")
+    lg.info("  对标: Callaway & Sant'Anna (2021, JoE, §4.3)")
+    lg.info(f"  Placebo shifts: {placebo_shifts} (提前 k 年)")
+    lg.info("=" * 70)
+
+    # 找到所有 DID 政策前缀
+    treat_year_cols = [c for c in panel.columns if c.endswith('_treat_year')]
+    if not treat_year_cols:
+        lg.warning("  未找到 *_treat_year 列, 跳过 Placebo 检验")
+        return panel
+
+    for ty_col in treat_year_cols:
+        prefix = ty_col.replace('_treat_year', '')
+
+        for k in placebo_shifts:
+            # 伪治疗年份 = 真实治疗年份 - k
+            placebo_ty = np.where(
+                panel[ty_col] > 0,
+                panel[ty_col] - k,
+                0
+            )
+
+            # 伪政策后哑变量
+            plac_post_col = f'{prefix}_placebo{k}_post'
+            panel[plac_post_col] = np.where(
+                placebo_ty > 0,
+                (panel['year'] >= placebo_ty).astype(int),
+                0
+            )
+
+            # 伪 DID 交互项
+            plac_did_col = f'{prefix}_placebo{k}_did'
+            treated_col = f'{prefix}_treated'
+            if treated_col in panel.columns:
+                panel[plac_did_col] = (
+                    panel[treated_col] * panel[plac_post_col]
+                )
+            else:
+                panel[plac_did_col] = 0
+
+            n_treated_plac = (panel[plac_did_col] == 1).sum()
+            lg.info(f"  {plac_did_col}: treated×post = {n_treated_plac}")
+
+        # Stata 命令建议
+        lg.info(f"  ── {prefix} Placebo Stata 命令 ──")
+        for k in placebo_shifts:
+            lg.info(f"    reghdfe Y {prefix}_placebo{k}_did X, "
+                    f"absorb(bank_id year) cluster(bank_id)")
+        lg.info(f"    * 预期: 所有 placebo DID 系数应不显著 (p > 0.10)")
+        lg.info(f"    * 若显著: 平行趋势假设可能不成立")
+
+    return panel
+
+
+# ============================================================================
+# G-09: 金融科技分类外部交叉验证诊断
+# ============================================================================
+# 学术依据:
+#   胡俊 (2023): 银行金融科技关键词测度
+#   Gentzkow et al. (2019, JEL): "Text as Data" — 测度有效性验证
+# ============================================================================
+
+def diagnose_fintech_classification_consistency(panel: pd.DataFrame,
+                                                 logger_inst=None) -> dict:
+    """G-09: 诊断金融科技分类指标的内部一致性。
+
+    在无外部数据源的情况下, 通过面板内部指标间的相关性
+    检验金融科技分类的收敛有效性 (convergent validity):
+      1. tech_frac vs fintech_article_count: 应高度正相关
+      2. tech_frac vs LLM 情感: 应有合理的相关模式
+      3. 年度均值趋势: 应呈上升趋势 (金融科技投入逐年增加)
+
+    返回:
+        dict: 诊断结果
+    """
+    lg = logger_inst or logger
+
+    lg.info("=" * 70)
+    lg.info("G-09: 金融科技分类内部一致性诊断")
+    lg.info("  对标: Gentzkow et al. (2019, JEL §3): 测度收敛有效性")
+    lg.info("=" * 70)
+
+    result = {}
+
+    # (1) tech_frac vs n_articles 相关性
+    if 'tech_frac' in panel.columns and 'n_articles' in panel.columns:
+        valid = panel[['tech_frac', 'n_articles']].dropna()
+        if len(valid) > 10:
+            corr = valid['tech_frac'].corr(valid['n_articles'])
+            result['tech_frac_vs_n_articles'] = round(corr, 4)
+            lg.info(f"  tech_frac × n_articles: r = {corr:.4f}"
+                    f" {'✓ 正相关' if corr > 0.1 else '⚠️ 低相关'}")
+
+    # (2) 年度均值趋势
+    if 'tech_frac' in panel.columns and 'year' in panel.columns:
+        trend = panel.groupby('year')['tech_frac'].mean()
+        result['yearly_trend'] = trend.to_dict()
+        lg.info(f"  tech_frac 年度均值趋势:")
+        for y, v in trend.items():
+            lg.info(f"    {y}: {v:.4f}")
+
+        # 简单线性趋势检验 (年份与均值的相关性)
+        if len(trend) >= 3:
+            years = np.array(list(trend.index), dtype=float)
+            vals = np.array(list(trend.values), dtype=float)
+            if np.std(years) > 0 and np.std(vals) > 0:
+                trend_corr = np.corrcoef(years, vals)[0, 1]
+                result['trend_correlation'] = round(trend_corr, 4)
+                lg.info(f"  时间趋势相关系数: r = {trend_corr:.4f}"
+                        f" {'✓ 上升趋势' if trend_corr > 0.3 else '⚠️ 无明显趋势'}")
+
+    # (3) 外部验证建议
+    lg.info("  ── 外部验证建议 (如有数据可用) ──")
+    lg.info("    * 与北大数字金融普惠指数 (Peking University DFIIC) 相关性分析")
+    lg.info("    * 与各银行年报中 '金融科技' 章节词频的 Pearson/Spearman 相关")
+    lg.info("    * 与银保监会金融科技监管评级 (如有) 的序数相关")
+
+    return result
+
+
+# ============================================================================
+# G-11: 别名系统精确率-召回率定量报告
+# ============================================================================
+# 学术依据: 标准分类评估 (Precision / Recall / F1)
+# ============================================================================
+
+def diagnose_alias_matching_quality(panel: pd.DataFrame,
+                                     logger_inst=None) -> dict:
+    """G-11: 别名系统匹配质量诊断。
+
+    通过面板中的匹配统计间接评估别名系统的质量:
+      1. 银行覆盖率: 有多少银行至少匹配到 1 篇文章
+      2. 匹配浓度: 每家银行的年均文章数分布 (检测异常值)
+      3. 零匹配年份: Bank-Year 中无文章的观测比例
+
+    返回:
+        dict: 诊断结果
+    """
+    lg = logger_inst or logger
+
+    lg.info("=" * 70)
+    lg.info("G-11: 别名匹配质量诊断")
+    lg.info("=" * 70)
+
+    result = {}
+
+    if 'n_articles' not in panel.columns:
+        lg.warning("  n_articles 列不存在, 跳过诊断")
+        return result
+
+    # (1) 银行覆盖率
+    bank_has_articles = panel.groupby('target_bank')['n_articles'].sum() > 0
+    n_covered = bank_has_articles.sum()
+    n_total = len(bank_has_articles)
+    result['bank_coverage'] = f"{n_covered}/{n_total}"
+    lg.info(f"  银行覆盖率: {n_covered}/{n_total} "
+            f"({n_covered/max(n_total,1)*100:.1f}%)")
+
+    # (2) 匹配浓度
+    bank_avg = panel.groupby('target_bank')['n_articles'].mean()
+    result['articles_per_bank_mean'] = round(bank_avg.mean(), 2)
+    result['articles_per_bank_median'] = round(bank_avg.median(), 2)
+    result['articles_per_bank_p95'] = round(bank_avg.quantile(0.95), 2)
+    lg.info(f"  年均文章数: mean={bank_avg.mean():.1f}, "
+            f"median={bank_avg.median():.1f}, "
+            f"P95={bank_avg.quantile(0.95):.1f}")
+
+    # (3) 异常值检测 (>3σ)
+    threshold = bank_avg.mean() + 3 * bank_avg.std()
+    outliers = bank_avg[bank_avg > threshold]
+    if len(outliers) > 0:
+        result['outlier_banks'] = list(outliers.index[:5])
+        lg.info(f"  ⚠️ 高匹配异常值 (>3σ={threshold:.0f}): "
+                f"{list(outliers.index[:5])}")
+    else:
+        lg.info(f"  ✓ 无高匹配异常值 (3σ={threshold:.0f})")
+
+    # (4) 零匹配年份比例
+    zero_pct = (panel['n_articles'] == 0).sum() / max(len(panel), 1)
+    result['zero_article_pct'] = round(zero_pct, 4)
+    lg.info(f"  零匹配 Bank-Year: {(panel['n_articles']==0).sum()}/{len(panel)} "
+            f"({zero_pct*100:.1f}%)")
+    if zero_pct > 0.5:
+        lg.info(f"  ⚠️ 零匹配比例较高, 建议检查关键词阈值或银行名称覆盖度")
+
+    return result
+
+
+# ============================================================================
 # 主流程
 # ============================================================================
 

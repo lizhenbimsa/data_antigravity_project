@@ -1,0 +1,793 @@
+﻿
+================================================================================
+BATCH 1: Papers 1 - 25
+================================================================================
+
+--- [  1] [EN] Bank Sentiment and Liquidity Hoarding-ssrn-358
+    Title hints: Bank Sentiment and Liquidity Hoarding $ ^{*} $ | Allen N. Berger
+    Preview: # Bank Sentiment and Liquidity Hoarding $ ^{*} $  Allen N. Berger  University of South Carolina  Center for Financial Institutions at the Darla Moore School of Business  Wharton Financial Institutions Center  European Banking Center  Hugh Hoikwang Kim  University of South Carolina  Xiaonan 鈥淔lora鈥?Ma  Washington State University  March 2024  ## ABSTRACT  We analyze how bank sentiment affects bank
+
+
+--- [  2] [EN] Can ChatGPT Forecast Stock Price Movements_Return Predictability and Large Language Models-ssrn-4412788
+    Title hints: Can ChatGPT Forecast Stock Price Movements? Return Predictability and Large Language Models  $ * $ | Alejandro Lopez-Lira and Yuehua Tang
+    Preview: # Can ChatGPT Forecast Stock Price Movements? Return Predictability and Large Language Models  $ * $  Alejandro Lopez-Lira and Yuehua Tang  University of Florida  First Version: April 6, 2023; This Version: October 28, 2025  ## Abstract  We document the capability of large language models (LLMs) like ChatGPT to predict stock market reactions from news headlines without direct financial training. U
+
+
+--- [  3] [EN] ChatGPT for Textual Analysis How to use Generative LLMs in Accounting Research-ssrn-4429658
+    Title hints: ChatGPT for Textual Analysis? How to use Generative LLMs in Accounting Research | Ties de Kok
+    Preview: # ChatGPT for Textual Analysis? How to use Generative LLMs in Accounting Research  Ties de Kok  tdekok@uw.edu  University of Washington  June 2024  ## Abstract  Generative Large Language Models (GLLMs), such as ChatGPT and GPT-4 by OpenAI, are emerging as powerful tools for textual analysis tasks in accounting research. GLLMs can solve any textual analysis task solvable using non-generative method
+
+
+--- [  4] [EN] Dissecting Corporate Culture Using Generative AI-ssrn-4558295
+    Title hints: Dissecting Corporate Culture Using Generative AI $ ^{*} $ | Kai Li
+    Preview: # Dissecting Corporate Culture Using Generative AI $ ^{*} $  Kai Li  Sauder School of Business, University of British Columbia  Feng Mai  Tippie College of Business, University of Iowa  Rui Shen  Shenzhen Finance Institute, School of Management and Economics  The Chinese University of Hong Kong, Shenzhen  Chelsea Yang  Sauder School of Business, University of British Columbia  Tengfei Zhang  Rutge
+
+
+--- [  5] [EN] ESG News, Future Cash Flows, and Firm Value-ss
+    Title hints: ESG news, future cash flows, and firm value* | Francois Derrien $ ^{\dagger} $
+    Preview: # ESG news, future cash flows, and firm value*  Francois Derrien $ ^{\dagger} $  Philipp Krueger $ ^{\ddagger} $  Augustin Landier $ ^{\S} $  Tianhao Yao 露  December 2, 2024  ## Abstract  We investigate the expected consequences of negative ESG news on firms' future profits. After learning about negative ESG news, analysts significantly downgrade their forecasts at short and longer horizons. Negat
+
+
+--- [  6] [EN] FinBERT_A large language model for extracting information from financial text
+    Title hints: FinBERT: A Large Language Model for Extracting Information from Financial Text $ ^{*} $ | ALLEN H. HUANG  $ {}^{ID} $, HKUST $ ^{\dagger} $
+    Preview: # FinBERT: A Large Language Model for Extracting Information from Financial Text $ ^{*} $  ALLEN H. HUANG  $ {}^{ID} $, HKUST $ ^{\dagger} $  HUI WANG  $ \textcircled{D} $, Renmin University of China  YI YANG D, HKUST  ## ABSTRACT  We develop FinBERT, a state-of-the-art large language model that adapts to the finance domain. We show that FinBERT incorporates finance knowledge and can better summar
+
+
+--- [  7] [EN] Firm-Level Climate Change Exposure_ssrn-3642508
+    Title hints: Firm-level Climate Change Exposure | Finance Working Paper N掳 686/2020
+    Preview: # Firm-level Climate Change Exposure  Finance Working Paper N掳 686/2020  March 2023  Zacharias Sautner  Frankfurt School of Finance and Management and  ECGI  Laurence van Lent  Frankfurt School of Finance and Management  Grigory Vilkov  Frankfurt School of Finance and Management  Ruishen Zhang  Shanghai University of Finance and Economics  漏 Zacharias Sautner, Laurence van Lent, Grigory Vilkov and
+
+
+--- [  8] [EN] Firm-level political risk_ Measurement and eff
+    Title hints: NBER WORKING PAPER SERIES | FIRM-LEVEL POLITICAL RISK: MEASUREMENT AND EFFECTS
+    Preview: # NBER WORKING PAPER SERIES  # FIRM-LEVEL POLITICAL RISK: MEASUREMENT AND EFFECTS  Tarek A. Hassan  Stephan Hollander  Laurence van Lent  Ahmed Tahoun  Working Paper 24029  http://www.nber.org/papers/w24029  NATIONAL BUREAU OF ECONOMIC RESEARCH  1050 Massachusetts Avenue  Cambridge, MA 02138  November 2017, Revised June 2019  We thank seminar participants at Barcelona GSE, Boston University, the F
+
+
+--- [  9] [EN] How news and its context drive risk and returns around the world
+    Title hints: How news and its context drive risk and returns around the world鈽?| <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//58b65fa4-579d-42d4-b35e-a5c39aa61eed/markdown_0/imgs/img_in_image_box_898_334_956_390.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-22T03%3A37%3A35Z%2F-1%2F%2F7d28f9c02221e0a4b7c95baf30c7b3560bd261624d1ce76772fa971601369648" alt="Image" width="5%" /></div>
+    Preview: # How news and its context drive risk and returns around the world鈽? <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//58b65fa4-579d-42d4-b35e-a5c39aa61eed/markdown_0/imgs/img_in_image_box_898_334_956_390.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-22T03%3A37%3A35Z%2F-1%2F%2F7d28f9c02221e0a4b7c95baf30c7b
+
+
+--- [ 10] [EN] Manager sentiment and stock returns
+    Title hints: Manager sentiment and stock returns鈽?| Fuwei Jiang $ ^{a} $, Joshua Lee $ ^{b} $, Xiumin Martin $ ^{c} $, Guofu Zhou $ ^{c,*} $
+    Preview: # Manager sentiment and stock returns鈽? Fuwei Jiang $ ^{a} $, Joshua Lee $ ^{b} $, Xiumin Martin $ ^{c} $, Guofu Zhou $ ^{c,*} $  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//046af638-236f-422d-89cd-6d0c2cb42680/markdown_0/imgs/img_in_image_box_908_334_964_390.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F202
+
+
+--- [ 11] [EN] Measuring Corporate Culture Using Machine Lear
+    Title hints: Measuring Corporate Culture Using Machine Learning $ ^{*} $ | Kai Li
+    Preview: # Measuring Corporate Culture Using Machine Learning $ ^{*} $  Kai Li  Sauder School of Business, University of British Columbia  Feng Mai  School of Business, Stevens Institute of Technology  Rui Shen  Shenzhen Finance Institute, School of Management and Economics  The Chinese University of Hong Kong, Shenzhen  Xinyan Yan  School of Business Administration, University of Dayton  Review of Financi
+
+
+--- [ 12] [EN] Measuring Misinformation in Financial Markets_ssrn-4922648
+    Title hints: Measuring Misinformation in Financial Markets | Jianqing Fan, Qingfu Liu, Yang Song, Zilu Wang
+    Preview: # Measuring Misinformation in Financial Markets  Jianqing Fan, Qingfu Liu, Yang Song, Zilu Wang  December 2025  ## Abstract  We propose a framework for measuring firm-level misinformation. By leveraging advanced AI and LLM technologies, we categorize unstructured text into comparable information, assess the reliability of information sources, extract reliability-weighted benchmark from each set of
+
+
+--- [ 13] [EN] Text as Data in Economic Analysis
+    Title hints: Text as Data in Economic Analysis | Tarek A. Hassan, Stephan Hollander, Aakash Kalyani, Laurence van Lent, Markus Schwedeler, and Ahmed Tahoun
+    Preview: # Text as Data in Economic Analysis  Tarek A. Hassan, Stephan Hollander, Aakash Kalyani, Laurence van Lent, Markus Schwedeler, and Ahmed Tahoun  Advancements in information technology, coupled with the rapid growth of digitally accessible text, have greatly enhanced economists' ability to use text as data in their research (Baker, Bloom, and Davis 2016; Gentzkow, Kelly, and Taddy 2019). Today, the
+
+
+--- [ 14] [EN] Text as data_w23276
+    Title hints: NBER WORKING PAPER SERIES | TEXT AS DATA
+    Preview: NBER WORKING PAPER SERIES  TEXT AS DATA  Matthew Gentzkow  Bryan T. Kelly  Matt Taddy  Working Paper 23276  http://www.nber.org/papers/w23276  NATIONAL BUREAU OF ECONOMIC RESEARCH  1050 Massachusetts Avenue  Cambridge, MA 02138  March 2017  The views expressed herein are those of the authors and do not necessarily reflect the views of the National Bureau of Economic Research.  At least one co-auth
+
+
+--- [ 15] [EN] The News in Earnings Announcement Disclosures-
+    Title hints: The News in Earnings Announcement Disclosures: Capturing Word Context Using LLM Methods | Federico Siano
+    Preview: # The News in Earnings Announcement Disclosures: Capturing Word Context Using LLM Methods  Federico Siano  University of Texas at Dallas  February 2025  ## Abstract  This study examines the information content of textual disclosures in firms鈥?earnings announcements. Using a large language model (LLM) to capture information in both words and word context, I show that the news in earnings press rele
+
+
+--- [ 16] [EN] The use of LLMs to annotate data in management research
+    Title hints: The Use of LLMs to Annotate Data in Management Research: Foundational Guidelines and Warnings | Natalie A. Carlson $ ^{*1} $ and Vanessa Burbano $ ^{2} $
+    Preview: # The Use of LLMs to Annotate Data in Management Research: Foundational Guidelines and Warnings  Natalie A. Carlson $ ^{*1} $ and Vanessa Burbano $ ^{2} $   $ ^{1} $The Wharton School, University of Pennsylvania   $ ^{2} $Columbia Business School, Columbia University  ## Abstract  The emergence of large language models (LLMs) has opened new avenues for integrating artificial intelligence into rese
+
+
+--- [ 17] [EN] Work Design and Compensation Strategies in a Post-COVID World-ssrn-6224698
+    Title hints: Work Design and Compensation Strategies in a Post-COVID World: Evidence from Online Job Postings | Chunmian Ge鹿, Huiqi Deng鹿, Dongyuan Wu虏*, Hanwei Huang鲁,鈦?鈦?, James H. Dulebohn鈦?
+    Preview: # Work Design and Compensation Strategies in a Post-COVID World: Evidence from Online Job Postings  Chunmian Ge鹿, Huiqi Deng鹿, Dongyuan Wu虏*, Hanwei Huang鲁,鈦?鈦?, James H. Dulebohn鈦? 1 School of Business Administration, South China University of Technology, Guangzhou, China  2 School of Management, Fudan University, Shanghai, China  3 Department of Economics and Finance, City University of Hong Kon
+
+
+--- [ 18] [EN] Adding Fuel to the Fire_ Media Coverage of ESG and Earnings News
+    Title hints: Adding Fuel to the Fire: Media Coverage of ESG and Earnings News $ ^{*} $ | Sanjeev Bhojraj $ ^{a} $, Nick Guest $ ^{a} $, Emma Wang $ ^{a} $, Elisha Yu $ ^{b} $
+    Preview: # Adding Fuel to the Fire: Media Coverage of ESG and Earnings News $ ^{*} $  Sanjeev Bhojraj $ ^{a} $, Nick Guest $ ^{a} $, Emma Wang $ ^{a} $, Elisha Yu $ ^{b} $   $ ^{a} $Cornell University   $ ^{b} $Baruch College  June 2025  ## Abstract  In this study, we examine the extent to which financial media outlets shift their coverage during periods of heightened public attention and sentiment regardi
+
+
+--- [ 19] [EN] Curbing Enthusiasm_Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements-ssrn-4449028
+    Title hints: Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements | Eric R. Holzman
+    Preview: # Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements  Eric R. Holzman  Indiana University  erholzma@indiana.edu  Brian P. Miller  Indiana University  bpm@indiana.edu  Brady J. Twedt  Texas A&M University  btwedt@mays.tamu.edu  Running Head: Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements  We have benef
+
+
+--- [ 20] [EN] Finance-specific large language models_ Advancing sentiment analysis and return prediction with LLaMA 2
+    Title hints: Finance-specific large language models: Advancing sentiment analysis and return prediction with LLaMA 2 | I-Chan Chiu $ ^{a,*} $, Mao-Wei Hung $ ^{b} $
+    Preview: # Finance-specific large language models: Advancing sentiment analysis and return prediction with LLaMA 2  I-Chan Chiu $ ^{a,*} $, Mao-Wei Hung $ ^{b} $   $ ^{a} $ Department of Finance, National Taiwan University, Taiwan   $ ^{b} $ Department of International Business, National Taiwan University, Taiwan  #### ARTICLE INFO    <table border=1 style='margin: auto; word-wrap: break-word;'><tr><td sty
+
+
+--- [ 21] [EN] Fintech_Sentiment_Analysis_Using_Deep_Learning_Approaches_A_Survey
+    Title hints: Fintech Sentiment Analysis using Deep Learning Approaches: a Survey | Sarah Anis
+    Preview: # Fintech Sentiment Analysis using Deep Learning Approaches: a Survey  Sarah Anis  Faculty of Computer and Information Sciences  Ain-shams University  Cairo, Egypt  0000-0002-4337-4948  sarrahaniss@gmail.com  Mohamed Mabrouk Morsey  Faculty of Computer and Information Sciences  Ain-shams University  Cairo, Egypt  0009-0005-6181-9057  mohamed.mabrouk@cis.asu.edu.eg  Mostafa Aref  Faculty of Compute
+
+
+--- [ 22] [EN] Local media sentiment towards pollution and its effect on corporate green innovation
+    Title hints: Local media sentiment towards pollution and its effect on corporate green innovation | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//dbe40847-e5a0-4062-8dab-bd9c2a0e959e/markdown_0/imgs/img_in_image_box_1001_297_1058_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-31T08%3A09%3A05Z%2F-1%2F%2F04df242f5521afa249439e844757d7638d7b488a84655a7cc298ea0919aa4b91" alt="Image" width="4%" /></div>
+    Preview: # Local media sentiment towards pollution and its effect on corporate green innovation  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//dbe40847-e5a0-4062-8dab-bd9c2a0e959e/markdown_0/imgs/img_in_image_box_1001_297_1058_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-31T08%3A09%3A05Z%2F-1%2F%2F04df242f
+
+
+--- [ 23] [EN] Media Narratives and Price Informativeness_ssrn-4323093
+    Title hints: Hong Kong University Business School: | HKU Jockey Club Enterprise Sustainability
+    Preview: #### Hong Kong University Business School:  HKU Jockey Club Enterprise Sustainability  Global Research Institute Paper Series  ### Media Narratives and Price Informativeness  #### Chukwuma Dim  George Washington University  #### Francesco Sangiorgi  Frankfurt School of Finance and Management  #### Grigory Vilkov  Frankfurt School of Finance and Management  # Media Narratives and Price Informativen
+
+
+--- [ 24] [EN] Media Sentiment and Currency Reversals_ssrn-3846136
+    Title hints: DISCUSSION PAPER SERIES | DP16049
+    Preview: ## DISCUSSION PAPER SERIES  DP16049  Media Sentiment and Currency  Reversals  Ilias Filippou, Mark Taylor and Zigan Wang  FINANCIAL ECONOMICS  INTERNATIONAL MACROECONOMICS AND FINANCE  CEPR  # Media Sentiment and Currency Reversals  Ilias Filippou, Mark Taylor and Zigan Wang  Discussion Paper DP16049  Published 18 April 2021  Submitted 17 April 2021  Centre for Economic Policy Research  33 Great S
+
+
+--- [ 25] [EN] Media sentiment and corporate R&D manipulation
+    Title hints: Media sentiment and corporate R&D manipulation | Qi Luo, Hanqi Li $ ^{*} $
+    Preview: # Media sentiment and corporate R&D manipulation  Qi Luo, Hanqi Li $ ^{*} $  School of Economics and Management, Wuhan University, Wuhan, PR China  #### ARTICLE INFO  Keywords: Media sentiment R&D manipulation Investor sentiment Performance pressure  ## A B S T R A C T  Using samples of Chinese listed companies from 2009 to 2023, this study examines the impact of media sentiment on corporate resea
+
+
+================================================================================
+BATCH 2: Papers 26 - 50
+================================================================================
+
+--- [ 26] [EN] Media sentiment and international asset prices
+    Title hints: Full Length Articles | Media sentiment and international asset prices鈽?
+    Preview: Full Length Articles  # Media sentiment and international asset prices鈽? Samuel P. Fraiberger $ ^{a} $, Do Lee $ ^{b} $, Damien Puy $ ^{c,*} $, Romain Ranciere $ ^{d} $  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//07b103d2-cfbc-4ea5-a189-7eacd4bc78c3/markdown_0/imgs/img_in_image_box_897_321_956_379.jpg?authorization=bce-au
+
+
+--- [ 27] [EN] Media sentiment, deposit stability and bank systemic risk_ Evidence from China
+    Title hints: Media sentiment, deposit stability and bank systemic risk: Evidence from China | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//ff6c86d7-e895-4df9-a173-d4e7dcf8dd3a/markdown_0/imgs/img_in_image_box_897_291_954_347.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-31T08%3A08%3A59Z%2F-1%2F%2Fde5c8a1a93c0776c341ab74cb50b78bc8594b91964774f960cad899c61a10278" alt="Image" width="5%" /></div>
+    Preview: # Media sentiment, deposit stability and bank systemic risk: Evidence from China  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//ff6c86d7-e895-4df9-a173-d4e7dcf8dd3a/markdown_0/imgs/img_in_image_box_897_291_954_347.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-31T08%3A08%3A59Z%2F-1%2F%2Fde5c8a1a93c0776c
+
+
+--- [ 28] [EN] Media sentiment, financial services, and corporate investment levels
+    Title hints: Media sentiment, financial services, and corporate investment levels | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//b68596d7-9483-433f-a231-5b231258a1fb/markdown_0/imgs/img_in_image_box_897_290_954_347.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-31T08%3A08%3A58Z%2F-1%2F%2Fc0e751a1f85d812d78fafec5acffc2eae9579e33dc92b78c4bdd5169f0da3a48" alt="Image" width="5%" /></div>
+    Preview: # Media sentiment, financial services, and corporate investment levels  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//b68596d7-9483-433f-a231-5b231258a1fb/markdown_0/imgs/img_in_image_box_897_290_954_347.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-31T08%3A08%3A58Z%2F-1%2F%2Fc0e751a1f85d812d78fafec5ac
+
+
+--- [ 29] [EN] News sentiment and investment risk management_Innovative evidence from the large language models
+    Title hints: News sentiment and investment risk management: Innovative evidence from the large language models | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//d597bd66-95bf-471d-ab0d-ed47f2602549/markdown_0/imgs/img_in_image_box_1001_297_1058_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-31T08%3A09%3A02Z%2F-1%2F%2F5e5089c747b3fe777f637f3077e926b2f669d264d0b5934acdadf862b6653535" alt="Image" width="4%" /></div>
+    Preview: # News sentiment and investment risk management: Innovative evidence from the large language models  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//d597bd66-95bf-471d-ab0d-ed47f2602549/markdown_0/imgs/img_in_image_box_1001_297_1058_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-03-31T08%3A09%3A02Z%2F-1%
+
+
+--- [ 30] [EN] Predicting Returns with Text Data_ssrn-3446492
+    Title hints: PREDICTING RETURNS WITH TEXT DATA | Zheng Tracy Ke
+    Preview: # PREDICTING RETURNS WITH TEXT DATA  Zheng Tracy Ke  Bryan T. Kelly  Dacheng Xiu  Working Paper 26186  http://www.nber.org/papers/w26186  NATIONAL BUREAU OF ECONOMIC RESEARCH  1050 Massachusetts Avenue  Cambridge, MA 02138  August 2019  We thank Kangying Zhou and Mingye Yin for excellent research assistance. We benefited from discussions with Torben Andersen, Robert Engle, Timothy Loughran, Xavier
+
+
+--- [ 31] [EN] When ESG news talks_How media sentiment shapes corporate financial behavior in China
+    Title hints: When ESG news talks: How media sentiment shapes corporate financial behavior in China | Weijie Tan $ ^{a,1} $, Yiqian Liu $ ^{b,1} $, Mingming Teng $ ^{c,*} $
+    Preview: # When ESG news talks: How media sentiment shapes corporate financial behavior in China  Weijie Tan $ ^{a,1} $, Yiqian Liu $ ^{b,1} $, Mingming Teng $ ^{c,*} $   $ ^{a} $ College of Public Finance and Investment, Shanghai University of Finance and Economics, Shanghai, China   $ ^{b} $ International School of Business and Finance, Sun Yat-sen University, Zhuhai, Guangdong, China   $ ^{c} $ School o
+
+
+--- [ 32] [EN] Why Do Investors Like Short-leg Securities_Evidence from a Textual Analysis of Buy Recommendations
+    Title hints: The Review of Financial Studies | Why Do Investors Like Short-leg Securities? Evidence from a Textual Analysis of Buy Recommendations
+    Preview: The Review of Financial Studies  # Why Do Investors Like Short-leg Securities? Evidence from a Textual Analysis of Buy Recommendations  Hailiang Chen  Faculty of Business and Economics, The University of Hong Kong, Hong Kong  Byoung-Hyoun Hwang  Nanyang Business School, NTU, Singapore  Zhuozhen Peng  Central University of Finance and Economics, China  Our paper examines analyst reports and online
+
+
+--- [ 33] [EN] 200 years of news-based economic sentiment_w32026
+    Title hints: NBER WORKING PAPER SERIES | (ALMOST) 200 YEARS OF NEWS-BASED ECONOMIC SENTIMENT
+    Preview: NBER WORKING PAPER SERIES  # (ALMOST) 200 YEARS OF NEWS-BASED ECONOMIC SENTIMENT  Jules H. van Binsbergen  Svetlana Bryzgalova  Mayukh Mukhopadhyay  Varun Sharma  Working Paper 32026  http://www.nber.org/papers/w32026  NATIONAL BUREAU OF ECONOMIC RESEARCH  1050 Massachusetts Avenue  Cambridge, MA 02138  January 2024  Any errors or omissions are the responsibility of the authors. For helpful commen
+
+
+--- [ 34] [EN] A Text-Based Analysis of Corporate Innovation_ssrn-2803232
+    Title hints: A Text-Based Analysis of Corporate Innovation | Gustaf Bellstam, Sanjai Bhagat and J. Anthony Cookson $ ^{*} $
+    Preview: # A Text-Based Analysis of Corporate Innovation  Gustaf Bellstam, Sanjai Bhagat and J. Anthony Cookson $ ^{*} $  April 10, 2019  ## Abstract  We develop a new measure of innovation using a textual analysis of analyst reports of S&P500 firms. Our text-based measure gives a useful description of innovation by firms with and without patenting and R&D. For non-patenting firms, the measure identifies i
+
+
+--- [ 35] [EN] A picture is worth a thousand words_ Measuring investor sentiment by combining machine learning and photos from news
+    Title hints: A picture is worth a thousand words: Measuring investor sentiment by combining machine learning and photos from news鈽?| Khaled Obaid $ ^{a} $, Kuntara Pukthuanthong $ ^{b,*} $
+    Preview: # A picture is worth a thousand words: Measuring investor sentiment by combining machine learning and photos from news鈽? Khaled Obaid $ ^{a} $, Kuntara Pukthuanthong $ ^{b,*} $   $ ^{a} $ College of Business and Economics, California State University-East Bay, Hayward, CA 94542, United States   $ ^{b} $ Robert J. Trulaske Sr. College of Business, University of Missouri, Columbia, MO 65211, United
+
+
+--- [ 36] [EN] A scoping review of ChatGPT research in accounting and finance
+    Title hints: A scoping review of ChatGPT research in accounting and finance | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//a441d6dd-b373-4b7e-9c1b-e10be6b871c2/markdown_0/imgs/img_in_image_box_897_290_954_348.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A51Z%2F-1%2F%2Fac52d19fb552342b73b46e277cbcdd28c753296e79240a9b384bc04b6f639c52" alt="Image" width="5%" /></div>
+    Preview: # A scoping review of ChatGPT research in accounting and finance  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//a441d6dd-b373-4b7e-9c1b-e10be6b871c2/markdown_0/imgs/img_in_image_box_897_290_954_348.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A51Z%2F-1%2F%2Fac52d19fb552342b73b46e277cbcdd28
+
+
+--- [ 37] [EN] AI-Generated Report, Information Risk and Stock Return-ssrn-5956736
+    Title hints: AI-generated Report, Information Risk and Stock Return | Yunchuan Sun $ ^{*} $, Business School, Beijing Normal University, Beijing, 100875, China.
+    Preview: # AI-generated Report, Information Risk and Stock Return  Yunchuan Sun $ ^{*} $, Business School, Beijing Normal University, Beijing, 100875, China.  Ying Xu, Business School, Beijing Normal University, Beijing, 100875, China.  Xiaoping Zeng, Tsinghua University, Shenzhen, 518055, China.  Abstract: The rise of generative artificial intelligence (GAI) has fundamentally changed the way how firms fin
+
+
+--- [ 38] [EN] Accounting information usage and trading by retail investors_ Evidence from integrated trading platform
+    Title hints: DOI: 10.1111/1475-679X.12606 | Journal of Accounting Research
+    Preview: DOI: 10.1111/1475-679X.12606  Journal of Accounting Research  Vol. 63 No. 4 September 2025  Printed in U.S.A.  CHICAGO BOOTH  # Accounting Information Usage and Trading by Retail Investors: Evidence from Integrated Trading Platform  JACKY CHAU $ ^{*} $  Received 1 August 2021; accepted 14 October 2024  ## ABSTRACT  This registered report investigates self-directed retail investors' information cho
+
+
+--- [ 39] [EN] An explainable attention network for fraud detection in claims management
+    Title hints: An explainable attention network for fraud detection in claims management鈽?| <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//04d54618-4f38-483d-b2a8-90356a68b93d/markdown_0/imgs/img_in_image_box_895_329_953_386.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A21Z%2F-1%2F%2Fd3e0fb7ef4349a56ca8a1e170422adf8a08c4a31be33c7c6dd010250d279cbaa" alt="Image" width="5%" /></div>
+    Preview: # An explainable attention network for fraud detection in claims management鈽? <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//04d54618-4f38-483d-b2a8-90356a68b93d/markdown_0/imgs/img_in_image_box_895_329_953_386.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A21Z%2F-1%2F%2Fd3e0fb7ef4349a56ca8a
+
+
+--- [ 40] [EN] Are There Externalities of Private Firm News Disclosure- Evidence from Public Firms' Investment
+    Title hints: Are There Externalities of Private Firm News Disclosure? Evidence from Public Firms' Investment $ ^{*} $ | Feng Chen
+    Preview: # Are There Externalities of Private Firm News Disclosure? Evidence from Public Firms' Investment $ ^{*} $  Feng Chen  University of Toronto  feng.chen@rotman.utoronto.ca  Yi Ding  Chinese University of Hong Kong, Shenzhen  yiding@cuhk.edu.cn  Xingqiang Du  Xiamen University  xqdu@xmu.edu.cn  Kevin Tseng  Chinese University of Hong Kong  National Taiwan University  kevintseng@cuhk.edu.hk  Xiaoqiao
+
+
+--- [ 41] [EN] Are the futures computable_ Knightian uncertainty and artificial intelligence
+    Title hints: ARE THE FUTURES COMPUTABLE? KNIGHTIAN UNCERTAINTY & ARTIFICIAL INTELLIGENCE | Note: This is a Pre-Print Version the Published Article in the Academy of Management Review AMR Link: 10.5465/amr.2022.0237
+    Preview: # ARE THE FUTURES COMPUTABLE? KNIGHTIAN UNCERTAINTY & ARTIFICIAL INTELLIGENCE  Note: This is a Pre-Print Version the Published Article in the Academy of Management Review AMR Link: 10.5465/amr.2022.0237  For complete citation, please use:  Townsend, D.M., Hunt, R.A., Rady, J., Manocha, P. & Jin, J-H. (2024) Are the Futures Computable? Knightian Uncertainty and Artificial Intelligence. Academy of M
+
+
+--- [ 42] [EN] Artificial intelligence, firm growth, and product innovation
+    Title hints: Artificial intelligence, firm growth, and product innovation | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//468ab43c-ef5a-478d-bd02-fa59def4485b/markdown_0/imgs/img_in_image_box_1002_297_1059_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A14Z%2F-1%2F%2Fa20c6ea77977f6ef8fd185fad34a82615930e147dfdb1d5d90f5f05b7f32ec01" alt="Image" width="4%" /></div>
+    Preview: # Artificial intelligence, firm growth, and product innovation  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//468ab43c-ef5a-478d-bd02-fa59def4485b/markdown_0/imgs/img_in_image_box_1002_297_1059_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A14Z%2F-1%2F%2Fa20c6ea77977f6ef8fd185fad34a8261
+
+
+--- [ 43] [EN] Bank Sentiment, Loan Loss Provisioning, and Le
+    Title hints: Bank Sentiment, Loan Loss Provisioning, and Lending $ ^{*} $ | Junsung Bae鈥?Allen N. Berger鈥?Hyun-Soo Choi搂 Hugh H. Kim露
+    Preview: # Bank Sentiment, Loan Loss Provisioning, and Lending $ ^{*} $  Junsung Bae鈥?Allen N. Berger鈥?Hyun-Soo Choi搂 Hugh H. Kim露  January 2025  ## Abstract  Regulatory shifts towards forward-looking loan-loss provisioning hinge on assumed rational behaviors by bank managers. This paper challenges this premise by investigating the influence of bank managerial sentiment. Using large-language models, we ext
+
+
+--- [ 44] [EN] Beyond the Fundamentals_How Media-Driven Narratives Influence Cross-Border Capital Flows
+    Title hints: I Z A Institute of Labor Economics | Initiated by Deutsche Post Foundation
+    Preview: ## I Z A Institute of Labor Economics  Initiated by Deutsche Post Foundation    <table border=1 style='margin: auto; word-wrap: break-word;'><tr><td colspan="2">DISCUSSION PAPER SERIES</td></tr><tr><td style='text-align: center; word-wrap: break-word;'>IZA DP No. 17442</td><td style='text-align: center; word-wrap: break-word;'>Beyond the Fundamentals: How Media-Driven Narratives Influence Cross-Bo
+
+
+--- [ 45] [EN] Business news and business cycles
+    Title hints: The Journal of THE AMERICAN FINANCE ASSOCIATION | THE JOURNAL OF FINANCE 鈥?VOL. LXXIX, NO. 5 鈥?OCTOBER 2024
+    Preview: The Journal of THE AMERICAN FINANCE ASSOCIATION  THE JOURNAL OF FINANCE 鈥?VOL. LXXIX, NO. 5 鈥?OCTOBER 2024  # Business News and Business Cycles  LELAND BYBEE, BRYAN KELLY, ASAF MANELA, and DACHENG XIU $ ^{*} $  ## ABSTRACT  We propose an approach to measuring the state of the economy via textual analysis of business news. From the full text of 800,000 Wall Street Journal articles for 1984 to 2017,
+
+
+--- [ 46] [EN] CEO emotions and firm valuation in initial coin offerings_ an artificial emotional intelligence approach
+    Title hints: RESEARCH ARTICLE | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//6b3a6980-7257-4feb-80aa-747b60008a28/markdown_0/imgs/img_in_image_box_673_103_891_139.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A59%3A42Z%2F-1%2F%2F0f9c49c8824fd49f20057ce651addb892151aad2ad26d5ec77c5d641e8b67038" alt="Image" width="22%" /></div>
+    Preview: RESEARCH ARTICLE  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//6b3a6980-7257-4feb-80aa-747b60008a28/markdown_0/imgs/img_in_image_box_673_103_891_139.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A59%3A42Z%2F-1%2F%2F0f9c49c8824fd49f20057ce651addb892151aad2ad26d5ec77c5d641e8b67038" alt="Image" wi
+
+
+--- [ 47] [EN] CEO turnover, sequential disclosure, and stock returns
+    Title hints: CEO turnover, sequential disclosure, and stock returns | Jiayin Hu $ ^{1,2} $, Laura Xiaolei Liu $ ^{3} $, Chloe Yue Liu $ ^{3} $, Hao Qu $ ^{4} $, Yingguang Zhang $ ^{3,*} $
+    Preview: # CEO turnover, sequential disclosure, and stock returns  Jiayin Hu $ ^{1,2} $, Laura Xiaolei Liu $ ^{3} $, Chloe Yue Liu $ ^{3} $, Hao Qu $ ^{4} $, Yingguang Zhang $ ^{3,*} $   $ ^{1} $China Center for Economic Research, National School of Development, Peking University, Beijing, China     $ ^{2} $Institute of Digital Finance, Peking University, Beijing, China     $ ^{3} $Guanghua School of Manag
+
+
+--- [ 48] [EN] Can ChatGPT Decipher Fedspeak_ssrn-4399406
+    Title hints: Can ChatGPT Decipher Fedspeak? | Anne Lundgaard Hansen and Sophia Kazinnik $ ^{*} $
+    Preview: # Can ChatGPT Decipher Fedspeak?  Anne Lundgaard Hansen and Sophia Kazinnik $ ^{*} $  April 10, 2024  ## Abstract  Abstract  This paper examines the ability of large language models (LLMs) to decipher Fedspeak, the technical language used by the Federal Reserve to communicate on policy decisions. We evaluate the ability of the GPT-3.5 and GPT-4 models to correctly classify the policy stance of FOM
+
+
+--- [ 49] [EN] Can generative AI help identify peer firms
+    Title hints: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//71024506-4d24-486b-9b27-4c046d5bc9bb/markdown_0/imgs/img_in_image_box_719_126_777_184.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A14Z%2F-1%2F%2F94e41c2d1b634d58c1a76b0f07544141290a3e735cbb6d04325c09ce8e94570c" alt="Image" width="6%" /></div> | Can generative AI help identify peer firms?
+    Preview: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//71024506-4d24-486b-9b27-4c046d5bc9bb/markdown_0/imgs/img_in_image_box_719_126_777_184.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A14Z%2F-1%2F%2F94e41c2d1b634d58c1a76b0f07544141290a3e735cbb6d04325c09ce8e94570c" alt="Image" width="6%" /></div>
+
+
+--- [ 50] [EN] Can investors learn from patent documents_Evidence from textual analysis
+    Title hints: DOI: 10.1111/1911-3846.13036 | ARTICLE
+    Preview: DOI: 10.1111/1911-3846.13036  ARTICLE  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//59f8ae99-f27b-4bf9-8f96-4a143c5ec668/markdown_0/imgs/img_in_image_box_598_112_890_145.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A08Z%2F-1%2F%2F3de30a92caceb8c01bff5da6d0562923022668c7dfee4660f55f5382c5e
+
+
+================================================================================
+BATCH 3: Papers 51 - 75
+================================================================================
+
+--- [ 51] [EN] Can we measure inflation expectations using Twitter
+    Title hints: Can we measure inflation expectations using Twitter? | Cristina Angelico $ ^{a} $, Juri Marcucci $ ^{a} $, Marcello Miccoli $ ^{a,*} $, Filippo Quarta $ ^{b} $
+    Preview: # Can we measure inflation expectations using Twitter?  Cristina Angelico $ ^{a} $, Juri Marcucci $ ^{a} $, Marcello Miccoli $ ^{a,*} $, Filippo Quarta $ ^{b} $  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//eb85da0b-de08-4d7e-9546-ca5524d1968a/markdown_0/imgs/img_in_image_box_895_332_954_390.jpg?authorization=bce-auth-v1%2F
+
+
+--- [ 52] [EN] Central bank mandates and monetary policy stances_Through the lens of Federal Reserve speeches
+    Title hints: Central bank mandates and monetary policy stances: Through the lens of Federal Reserve speeches鈽?| <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//2c600c10-9c00-41e8-9424-aa60a10921ef/markdown_0/imgs/img_in_image_box_894_324_954_382.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A19Z%2F-1%2F%2Fd709947c4285e35762a8fc179c3a83af787fbc9cf937c84808fd12d7171458ba" alt="Image" width="5%" /></div>
+    Preview: # Central bank mandates and monetary policy stances: Through the lens of Federal Reserve speeches鈽? <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//2c600c10-9c00-41e8-9424-aa60a10921ef/markdown_0/imgs/img_in_image_box_894_324_954_382.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A19Z%2F-1%2F%
+
+
+--- [ 53] [EN] ChatGPT for textual analysis_How to use generative LLMs in accounting research
+    Title hints: This article was downloaded by: [106.120.213.182] On: 10 November 2025, At: 23:52 | Publisher: Institute for Operations Research and the Management Sciences (INFORMS)
+    Preview: This article was downloaded by: [106.120.213.182] On: 10 November 2025, At: 23:52  Publisher: Institute for Operations Research and the Management Sciences (INFORMS)  INFORMS is located in Maryland, USA  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//5831e3a2-0c3d-44d1-9f34-c4b7e53e5795/markdown_0/imgs/img_in_image_box_51_155
+
+
+--- [ 54] [EN] ChatGPT outperforms crowd workers for text-annotation tasks
+    Title hints: ChatGPT outperforms crowd workers for text-annotation tasks | Fabrizio Gilardi $ ^{a,1} $ $ ^{ID} $, Meysam Alizadeh $ ^{a} $ $ ^{ID} $, and Ma毛l Kubli $ ^{a} $ $ ^{ID} $
+    Preview: # ChatGPT outperforms crowd workers for text-annotation tasks  Fabrizio Gilardi $ ^{a,1} $ $ ^{ID} $, Meysam Alizadeh $ ^{a} $ $ ^{ID} $, and Ma毛l Kubli $ ^{a} $ $ ^{ID} $  Edited by Mary Waters, Harvard University, Cambridge, MA; received March 27, 2023; accepted June 2, 2023  Many NLP applications require manual text annotations for a variety of tasks, notably to train classifiers or evaluate th
+
+
+--- [ 55] [EN] Common volatility shocks driven by the global carbon transition
+    Title hints: Common volatility shocks driven by the global carbon transition | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//f46824d9-012c-4fcd-8ac4-3652ad25a271/markdown_0/imgs/img_in_image_box_895_329_954_388.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A18Z%2F-1%2F%2F89efd4dc5e63a778c3e0fb403698b0ffcc61cd58b33259f14bf64041a33ce63d" alt="Image" width="5%" /></div>
+    Preview: # Common volatility shocks driven by the global carbon transition  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//f46824d9-012c-4fcd-8ac4-3652ad25a271/markdown_0/imgs/img_in_image_box_895_329_954_388.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A18Z%2F-1%2F%2F89efd4dc5e63a778c3e0fb403698b0f
+
+
+--- [ 56] [EN] Computational emotion analysis with multimodal LLMs_ Current evidence on an emerging methodological opportunity
+    Title hints: Computational emotion analysis with multimodal LLMs Current evidence on an emerging methodological opportunity | Hauke Licht $ ^{*} $
+    Preview: # Computational emotion analysis with multimodal LLMs Current evidence on an emerging methodological opportunity  Hauke Licht $ ^{*} $  University of Innsbruck  2026-01-16  ## Abstract  Research increasingly leverages audio-visual materials to analyze emotions in political communication. Multimodal large language models (mLLMs) promise to enable such analyses through in-context learning. However,
+
+
+--- [ 57] [EN] Context鈥恇ased interpretation of financial information
+    Title hints: CHICAGO BOOTH | Context-Based Interpretation of Financial Information
+    Preview: CHICAGO BOOTH  # Context-Based Interpretation of Financial Information  ALEX G. KIM $ ^{ID*} $ AND VALERI V. NIKOLAEV $ ^{ID*} $  Received 6 June 2023; accepted 31 October 2024  ## ABSTRACT  To what extent does the narrative context surrounding the numbers in financial statements alter the informativeness of these numbers, that is, contextualize them? Answering this question empirically presents a
+
+
+--- [ 58] [EN] Contractual arrangements and information consistency_ How ESG executive compensation incentives affect corporate AI disclosure
+    Title hints: Contractual arrangements and information consistency: How ESG executive compensation incentives affect corporate AI disclosure | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//6c63130a-1a3d-4d9b-a77f-f000768c3456/markdown_0/imgs/img_in_image_box_1001_297_1058_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A58%3A24Z%2F-1%2F%2Fc33c5740b527a4b3527c6d710a8212a94f95c312b9c59a9faa1478056ff868ae" alt="Image" width="4%" /></div>
+    Preview: # Contractual arrangements and information consistency: How ESG executive compensation incentives affect corporate AI disclosure  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//6c63130a-1a3d-4d9b-a77f-f000768c3456/markdown_0/imgs/img_in_image_box_1001_297_1058_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2
+
+
+--- [ 59] [EN] Corporate Climate Risk_ Measurements and Responses
+    Title hints: Corporate Climate Risk: Measurements and Responses | Qing Li
+    Preview: # Corporate Climate Risk: Measurements and Responses  Qing Li  Warrington College of Business, University of Florida, United States  Hongyu Shan  China Europe International Business School, China and Fordham University, United States  Yuehua Tang  Warrington College of Business, University of Florida, United States  J. Mack Robinson College of Business, Georgia State University, United States  Thi
+
+
+--- [ 60] [EN] Corporate responses to generative AI_ Early evidence from conference calls
+    Title hints: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//9aca0b35-b732-4a30-825c-0d6b8b61cd35/markdown_0/imgs/img_in_image_box_719_126_777_183.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A07Z%2F-1%2F%2Fe4fa465e8e279578b53547a30ab4dacf131c5071279cb64966559c4eba356aff" alt="Image" width="6%" /></div> | Corporate responses to generative AI: early evidence from conference calls
+    Preview: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//9aca0b35-b732-4a30-825c-0d6b8b61cd35/markdown_0/imgs/img_in_image_box_719_126_777_183.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A07Z%2F-1%2F%2Fe4fa465e8e279578b53547a30ab4dacf131c5071279cb64966559c4eba356aff" alt="Image" width="6%" /></div>
+
+
+--- [ 61] [EN] Cross-Lingual Multi-Label Emotion Detection Using Generative Models
+    Title hints: JNLP at SemEval-2025 Task 11: Cross-Lingual Multi-Label Emotion Detection Using Generative Models | Jieying Xue $ ^{1} $, Phuong Minh Nguyen $ ^{2,1} $, Minh Le Nguyen $ ^{1} $, Xin Liu $ ^{3} $
+    Preview: # JNLP at SemEval-2025 Task 11: Cross-Lingual Multi-Label Emotion Detection Using Generative Models  Jieying Xue $ ^{1} $, Phuong Minh Nguyen $ ^{2,1} $, Minh Le Nguyen $ ^{1} $, Xin Liu $ ^{3} $   $ ^{1} $Japan Advanced Institute of Science and Technology   $ ^{2} $ROIS-DS Center for Juris-Informatics, NII, Tokyo, Japan   $ ^{3} $National Institute of Advanced Industrial Science and Technology  {
+
+
+--- [ 62] [EN] Curbing Enthusiasm_Media Sentiment and the Dis
+    Title hints: Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements | Eric R. Holzman
+    Preview: # Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements  Eric R. Holzman  Indiana University  erholzma@indiana.edu  Brian P. Miller  Indiana University  bpm@indiana.edu  Brady J. Twedt  Texas A&M University  btwedt@mays.tamu.edu  Running Head: Curbing Enthusiasm: Media Sentiment and the Disciplining Role of Quarterly Earnings Announcements  We have benef
+
+
+--- [ 63] [EN] Decoding_China's_Industrial_Policies
+    Title hints: NBER WORKING PAPER SERIES | DECODING CHINA'S INDUSTRIAL POLICIES
+    Preview: NBER WORKING PAPER SERIES  # DECODING CHINA'S INDUSTRIAL POLICIES  Hanming Fang Ming Li Guangli Lu  Working Paper 33814  http://www.nber.org/papers/w33814  NATIONAL BUREAU OF ECONOMIC RESEARCH  1050 Massachusetts Avenue  Cambridge, MA 02138  May 2025  We thank Loren Brandt, Chang-Tai Hsieh, Ruixue Jia, Nathan Lane, Shanjun Li, Barry Naughton, Michael Zheng Song, Shaoda Wang, Shang-Jin Wei, Wei Xio
+
+
+--- [ 64] [EN] Dissecting climate change risk and financial market instability_ Implications for ecological risk management
+    Title hints: ORCA - Online Research @ Cardiff | This is an Open Access document downloaded from ORCA, Cardiff University's institutional repository:https://orca.cardiff.ac.uk/id/eprint/165113/
+    Preview: # ORCA - Online Research @ Cardiff  This is an Open Access document downloaded from ORCA, Cardiff University's institutional repository:https://orca.cardiff.ac.uk/id/eprint/165113/  This is the author鈥檚 version of a work that was submitted to / accepted for publication.  Citation for final published version:  Ma, Feng, Cao, Jiawei, Wang, Yizhi, Vigne, Samuel A. and Dong, Dayong 2025. Dissecting cl
+
+
+--- [ 65] [EN] Diversity washing
+    Title hints: DOI: 10.1111/1475-679X.12542 | Journal of Accounting Research
+    Preview: DOI: 10.1111/1475-679X.12542  Journal of Accounting Research  Vol. 62 No. 5 December 2024  Printed in U.S.A.  CHICAGO BOOTH  # Diversity Washing  ANDREW C. BAKER, * DAVID F. LARCKER, 鈥? 鈥? 搂 CHARLES G. MC CLURE ID, ** DURGESH SARAPH, 鈭?AND EDWARD M. WATTS ID#  Received 9 December 2022; accepted 11 February 2024  ## ABSTRACT  We provide large-sample evidence on whether U.S. publicly traded corporat
+
+
+--- [ 66] [EN] Do makerspaces affect entrepreneurship_ If so, who, how, and when
+    Title hints: RESEARCH ARTICLE | Do makerspaces affect entrepreneurship? If so, who, how, and when?
+    Preview: RESEARCH ARTICLE  # Do makerspaces affect entrepreneurship? If so, who, how, and when?  Jiayi Bao  Mays Business School, Texas A&M University, College Station, Texas, USA  Correspondence  Jiayi Bao, Mays Business School, Texas A&M University, 4221 TAMU, College Station, TX 77843, USA.  Email: jbao@mays.tamu.edu  Funding information  National Science Foundation,  Grant/Award Number: SES-2122428  ##
+
+
+--- [ 67] [EN] Does Finance Benefit Society- A Language Embedding Approach
+    Title hints: Does Finance Benefit Society? A Language Embedding Approach | Manish Jha
+    Preview: # Does Finance Benefit Society? A Language Embedding Approach  Manish Jha  Georgia State University, USA  Hongyi Liu  Washington University in St. Louis, USA  #### Asaf Manela  Washington University in St. Louis, USA  We measure popular sentiment toward finance by applying a large language model to millions of books published in eight countries over hundreds of years. We extensively validate this
+
+
+--- [ 68] [EN] ESG Disclosures in the Private Equity Industry
+    Title hints: DOI: 10.1111/1475-679X.12570 | Journal of Accounting Research
+    Preview: DOI: 10.1111/1475-679X.12570  Journal of Accounting Research  Vol. 62 No. 5 December 2024  Printed in U.S.A.  CHICAGO BOOTH  # ESG Disclosures in the Private Equity Industry  JEFFERSON ABRAHAM,* MARCEL OLBERT  $ ^{ID} $, * AND FLORIN VASVARI*  Received 1 November 2022; accepted 19 July 2024  ## ABSTRACT  This paper offers the first systematic evidence on environmental, social, and governance (ESG)
+
+
+--- [ 69] [EN] ESG News, Future Cash Flows, and Firm Value
+    Title hints: The Journal of THE AMERICAN FINANCE ASSOCIATION | THE JOURNAL OF FINANCE 鈥?VOL. LXXX, NO. 6 鈥?DECEMBER 2025
+    Preview: The Journal of THE AMERICAN FINANCE ASSOCIATION  THE JOURNAL OF FINANCE 鈥?VOL. LXXX, NO. 6 鈥?DECEMBER 2025  # ESG News, Future Cash Flows, and Firm Value  FRAN脟OIS DERRIEN, PHILIPP KR脺GER, AUGUSTIN LANDIER,  and TIANHAO YAO $ ^{*} $  ## ABSTRACT  We investigate the expected consequences of negative environmental, social, and governance (ESG) news on firms' future profits. After learning about nega
+
+
+--- [ 70] [CN] ESG鏂伴椈鑸嗘儏濡備綍褰卞搷浼佷笟闈炴晥鐜囨姇璧勮涓衡€斺€斿熀浜庝俊鎭拰鎯呯华鍙岄噸瑙嗚_浣曢潚
+    Title hints: ESG 鏂伴椈鑸嗘儏濡備綍褰卞搷浼佷笟 闈炴晥鐜囨姇璧勮涓?| 鈥斺€斿熀浜庝俊鎭拰鎯呯华鍙岄噸瑙嗚
+    Preview: # ESG 鏂伴椈鑸嗘儏濡備綍褰卞搷浼佷笟 闈炴晥鐜囨姇璧勮涓? 鈥斺€斿熀浜庝俊鎭拰鎯呯华鍙岄噸瑙嗚  浣?闈?搴勬湅娑?澶?鐞?鐞氭湜闈? (鍗楀紑澶у閲戣瀺瀛﹂櫌, 澶╂触 300350)  ##### 鎽?瑕? 鎽樿锛氬獟浣撳湪璧勬湰甯傚満涓吋鍏蜂俊鎭紶閫掍笌鎯呯华浼犳煋鍙岄噸鍔熻兘銆傚熀浜庡叕鍙告不鐞嗕笌琛屼负閲戣瀺鐞嗚锛屾湰鏂囨瀯寤衡€滀俊鎭€旀儏缁€濆弻璺緞鍒嗘瀽妗嗘灦锛岀郴缁熻€冨療ESG鏂伴椈鑸嗘儏瀵逛紒涓氶潪鏁堢巼鎶曡祫鐨勪綔鐢ㄦ満鍒躲€傜粨鏋滆〃鏄庯細锛?锛夋暣浣撲笂锛孍SG鏂伴椈鑸嗘儏涓庝紒涓氶潪鏁堢巼鎶曡祫琛屼负鍛堟樉钁楁鍚戝叧绯伙紝鍗宠秼鍚戞闈㈢殑ESG鏂伴椈鑸嗘儏浼氬姞鍓т紒涓氶潪鏁堢巼鎶曡祫锛涳紙2锛塃SG鏂伴椈鑸嗘儏鐨勪俊鎭晥搴旈€氳繃缂撹В淇℃伅涓嶅绉版姂鍒朵簡浼佷笟闈炴晥鐜囨姇璧勶紝鑰屾儏缁晥搴斿垯閫氳繃婵€鍙戞姇璧勮€呮儏缁笌绠＄悊鑰呬箰瑙傞鏈燂紝鍔犲墽浜嗕紒涓氶潪鏁堢巼鎶曡祫锛涳紙3锛夊湪ESG瀛愮淮搴︿腑锛屽叕鍙告不鐞嗙被鏂伴椈鑸嗘儏鐨勫奖鍝嶆渶涓烘樉钁楋紱锛?锛夊湪闈炲浗鏈変紒涓氥€侀珮璧勬湰瀵嗛泦琛屼笟銆佺鐞嗚嚜涓绘€ц緝寮恒€佺鐞嗚€呴闄╁亸濂借緝楂樹互鍙婂競鍦虹害鏉熶笉瓒筹紙濡傚垎鏋愬笀鍏虫敞搴﹁緝浣庛€佸崠绌哄帇鍔涜緝寮憋級绛夋儏
+
+
+--- [ 71] [EN] Economic policy uncertainty and bank liquidity
+    Title hints: Economic policy uncertainty and bank liquidity hoarding | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//617642fb-cde7-4a17-b079-a3453f22be83/markdown_0/imgs/img_in_image_box_1002_297_1058_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A58%3A03Z%2F-1%2F%2F45a37b3a527378b085d78ca6d4a2bcb617c4448d5a88f8914b6f0ed87fc1709d" alt="Image" width="4%" /></div>
+    Preview: # Economic policy uncertainty and bank liquidity hoarding  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//617642fb-cde7-4a17-b079-a3453f22be83/markdown_0/imgs/img_in_image_box_1002_297_1058_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A58%3A03Z%2F-1%2F%2F45a37b3a527378b085d78ca6d4a2bcb617c44
+
+
+--- [ 72] [EN] Employee Overtime and Innovation Dilemma
+    Title hints: ORIGINAL PAPER | Employee Overtime and Innovation Dilemma
+    Preview: ORIGINAL PAPER  # Employee Overtime and Innovation Dilemma  Jingjing Yang $ ^{1,2} $ 路 Di Fan $ ^{3} $ 路 Caifu Li $ ^{4} $  Received: 2 February 2024 / Accepted: 21 December 2024 / Published online: 5 January 2025 漏 The Author(s), under exclusive licence to Springer Nature B.V. 2025  ## Abstract  We examine the influence of human resource (HR) slack, specifically that accrued through employee over
+
+
+--- [ 73] [EN] Enhancing Investment Decisions with Sentiment Analysis  A Probabilistic Ranking Framework 
+    Title hints: Enhancing Investment Decisions with Sentiment Analysis: A Probabilistic Ranking Framework $ ^{*} $ | Zheng Tracy Ke, Bryan Kelly & Dacheng Xiu
+    Preview: # Enhancing Investment Decisions with Sentiment Analysis: A Probabilistic Ranking Framework $ ^{*} $  Zheng Tracy Ke, Bryan Kelly & Dacheng Xiu  To cite this article: Zheng Tracy Ke, Bryan Kelly & Dacheng Xiu (20 Mar 2026): Enhancing Investment Decisions with Sentiment Analysis: A Probabilistic Ranking Framework*, Journal of the American Statistical Association, DOI:  $ \underline{\text{10.1080/01
+
+
+--- [ 74] [EN] Epidemic effects in the diffusion of emerging digital technologies_ evidence from artificial intelligence adoption
+    Title hints: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//9165e565-066f-49b2-99e6-6113d6ad1bc0/markdown_0/imgs/img_in_image_box_1001_297_1059_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A26Z%2F-1%2F%2F1706b2d6f6beaa9fad849ec8052e3317bce3bf61b830600f96129c3c6b65faf1" alt="Image" width="4%" /></div> | Epidemic effects in the diffusion of emerging digital technologies: evidence from artificial intelligence adoption
+    Preview: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//9165e565-066f-49b2-99e6-6113d6ad1bc0/markdown_0/imgs/img_in_image_box_1001_297_1059_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A26Z%2F-1%2F%2F1706b2d6f6beaa9fad849ec8052e3317bce3bf61b830600f96129c3c6b65faf1" alt="Image" width="4%" /></div
+
+
+--- [ 75] [EN] Financial constraints and corporate environmental policies
+    Title hints: Financial Constraints and Corporate Environmental Policies | Qiping Xu
+    Preview: # Financial Constraints and Corporate Environmental Policies  Qiping Xu  University of Illinois Urbana-Champaign  Taehyun Kim  Chung-Ang University  This paper documents evidence that financial constraints increase firms' toxic emissions given that firms actively trade off abatement costs against potential legal liabilities. Exploring three quasi-natural experiments in which firms' financial resou
+
+
+================================================================================
+BATCH 4: Papers 76 - 100
+================================================================================
+
+--- [ 76] [EN] Firm Inattention and the Efficacy of Monetary Policy_ A Text-Based Approach
+    Title hints: Review of Economic Studies (2025) 92, 3438鈥?469 https://doi.org/10.1093/restud/rdae102 | 漏 The Author(s) 2024. Published by Oxford University Press on behalf of The Review of Economic Studies Limited. All rights reserved. For commercial re-use, please contact reprints@oup.com for reprints and translation rights for reprints. All other permissions can be obtained through our RightsLink service via the Permissions link on the article page on our site鈥攆or further information please contact journals.permissions@oup.com. Advance access publication 23 October 2024
+    Preview: Review of Economic Studies (2025) 92, 3438鈥?469 https://doi.org/10.1093/restud/rdae102  漏 The Author(s) 2024. Published by Oxford University Press on behalf of The Review of Economic Studies Limited. All rights reserved. For commercial re-use, please contact reprints@oup.com for reprints and translation rights for reprints. All other permissions can be obtained through our RightsLink service via t
+
+
+--- [ 77] [EN] From Man vs. Machine to Man + Machine- The art
+    Title hints: From Man vs. Machine to Man + Machine: The art and AI of stock analyses鈽?| <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//8455378f-a45a-4ac6-a8ec-96c617403062/markdown_0/imgs/img_in_image_box_1001_297_1058_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A53Z%2F-1%2F%2F04d949ce8397a556406dda20e4031a7249aa82a1d871faffdf601e44cf460252" alt="Image" width="4%" /></div>
+    Preview: # From Man vs. Machine to Man + Machine: The art and AI of stock analyses鈽? <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//8455378f-a45a-4ac6-a8ec-96c617403062/markdown_0/imgs/img_in_image_box_1001_297_1058_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A53Z%2F-1%2F%2F04d949ce8397a556406d
+
+
+--- [ 78] [EN] From evidence to impact_ The use of scientific research in policy documents
+    Title hints: From evidence to impact: The use of scientific research in policy documents | Andreas P. Distel $ ^{a} $, Christoph Grimpe $ ^{b,c,*} $, Marion Poetz $ ^{b} $
+    Preview: # From evidence to impact: The use of scientific research in policy documents  Andreas P. Distel $ ^{a} $, Christoph Grimpe $ ^{b,c,*} $, Marion Poetz $ ^{b} $   $ ^{a} $ Rotterdam School of Management, Erasmus University, Department of Strategic Management and Entrepreneurship, Burgemeester Oudlaan 50, 3062 PA Rotterdam, the Netherlands   $ ^{b} $ Copenhagen Business School, Department of Strateg
+
+
+--- [ 79] [EN] Generative AI and Finance
+    Title hints: Annual Review of Financial Economics Generative AI and Finance | Andrea L. Eisfeldt and Gregor Schubert
+    Preview: # Annual Review of Financial Economics Generative AI and Finance  Andrea L. Eisfeldt and Gregor Schubert  Anderson School of Management, University of California, Los Angeles, California, USA; email: andrea.eisfeldt@anderson.ucla.edu  ## ANNUAL REVIEWS CONNECT  ##### www.annualreviews.org  鈥?Download figures  鈥?Navigate cited references  鈥?Keyword search  鈥?Explore related articles  鈥?Share via em
+
+
+--- [ 80] [EN] Generative AI at Work-qjae044
+    Title hints: GENERATIVE AI AT WORK $ ^{*} $ ERIK BRYNJOLFSSON DANIELLE LI LINDSEY RAYMOND | We study the staggered introduction of a generative AI-based conversational assistant using data from 5,172 customer-support agents. Access to AI assistance increases worker productivity, as measured by issues resolved per hour, by 15% on average, with substantial heterogeneity across workers. The effects vary significantly across different agents. Less experienced and lower-skilled workers improve both the speed and quality of their output, while the most experienced and highest-skilled workers see small gains in speed and small declines in quality. We also find evidence that AI assistance facilitates worker learning and improves English fluency, particularly among international agents. While AI systems improve with more training data, we find that the gains from AI adoption are largest for moderately rare problems, where human agents have less baseline experience but the system still has adequate training data. Finally, we provide evidence that AI assistance improves the experience of work along several dimensions: customers are more polite and less likely to ask to speak to a manager. JEL codes: D80, J24, M15, M51, O33.
+    Preview: ## GENERATIVE AI AT WORK $ ^{*} $ ERIK BRYNJOLFSSON DANIELLE LI LINDSEY RAYMOND  We study the staggered introduction of a generative AI-based conversational assistant using data from 5,172 customer-support agents. Access to AI assistance increases worker productivity, as measured by issues resolved per hour, by 15% on average, with substantial heterogeneity across workers. The effects vary signifi
+
+
+--- [ 81] [EN] Generative AI in Financial Reporting-ssrn-4986017
+    Title hints: Generative AI in Financial Reporting | Elizabeth Blankespoor
+    Preview: # Generative AI in Financial Reporting  Elizabeth Blankespoor  University of Washington  Ed de Haan  Stanford University  Qianqian Li  Stanford University  February 14, 2026  ## Abstract  Forthcoming, Journal of Accounting Research  Generative Artificial Intelligence (GAI) will likely alter many aspects of the financial reporting process and spawn a deep stream of academic research. We take an ear
+
+
+--- [ 82] [EN] Generative artificial intelligence and evaluating strategic decisions
+    Title hints: Generative artificial intelligence and evaluating strategic decisions | Anil R. Doshi $ ^{1} $ | J. Jason Bell $ ^{2} $ | Emil Mirzayev $ ^{1} $ | Bart S. Vanneste $ ^{1} $
+    Preview: # Generative artificial intelligence and evaluating strategic decisions  Anil R. Doshi $ ^{1} $ | J. Jason Bell $ ^{2} $ | Emil Mirzayev $ ^{1} $ | Bart S. Vanneste $ ^{1} $   $ ^{1} $UCL School of Management, University College London, London, UK   $ ^{2} $Sa茂d Business School, University of Oxford, Oxford, UK  ##### Correspondence  Anil R. Doshi, UCL School of Management, University College Lond
+
+
+--- [ 83] [EN] Global Business Networks
+    Title hints: Global Business Networks $ ^{\star} $ | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//f48f869b-8475-4881-b880-adb846790128/markdown_0/imgs/img_in_image_box_1002_297_1059_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A58%3A24Z%2F-1%2F%2F6a5264dcdc31c9e1737acc2a87351f00d3568a75b31961f80e04b67dd406ca52" alt="Image" width="4%" /></div>
+    Preview: # Global Business Networks $ ^{\star} $  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//f48f869b-8475-4881-b880-adb846790128/markdown_0/imgs/img_in_image_box_1002_297_1059_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A58%3A24Z%2F-1%2F%2F6a5264dcdc31c9e1737acc2a87351f00d3568a75b31961f80e04b67
+
+
+--- [ 84] [EN] Going digital_ implications for firm value and performance
+    Title hints: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//bab9039a-0a78-429a-8e6f-74a08fce56f9/markdown_0/imgs/img_in_image_box_719_125_777_183.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A59%3A40Z%2F-1%2F%2Fb13c8d2d60f99406d5a141f1587f200a3cd2d6b50ed89f8692b2397358ad21f9" alt="Image" width="6%" /></div> | Going digital: implications for firm value and performance
+    Preview: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//bab9039a-0a78-429a-8e6f-74a08fce56f9/markdown_0/imgs/img_in_image_box_719_125_777_183.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A59%3A40Z%2F-1%2F%2Fb13c8d2d60f99406d5a141f1587f200a3cd2d6b50ed89f8692b2397358ad21f9" alt="Image" width="6%" /></div>
+
+
+--- [ 85] [EN] Hedging Climate Change News
+    Title hints: Hedging Climate Change News | Robert F. Engle
+    Preview: # Hedging Climate Change News  Robert F. Engle  NYU Stern and NBER  Stefano Giglio  Yale University, NBER, and CEPR  Bryan Kelly  Yale University, AQR Capital Management, and NBER  Heebum Lee  NYU Stern  Johannes Stroebel  NYU Stern, NBER, and CEPR  We propose and implement a procedure to dynamically hedge climate change risk. We extract innovations from climate news series that we construct throu
+
+
+--- [ 86] [EN] How Does Artificial Intelligence Shape Audit Firms
+    Title hints: This article was downloaded by: [152.70.120.148] On: 04 April 2026, At: 03:30 | Publisher: Institute for Operations Research and the Management Sciences (INFORMS)
+    Preview: This article was downloaded by: [152.70.120.148] On: 04 April 2026, At: 03:30  Publisher: Institute for Operations Research and the Management Sciences (INFORMS)  INFORMS is located in Maryland, USA  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//79d29b21-5614-43a6-b45c-55efd8f826b3/markdown_0/imgs/img_in_image_box_50_155_325
+
+
+--- [ 87] [EN] How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk
+    Title hints: How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk鈽?| <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//ca459d41-614f-47a7-b22a-5ba7736a70ef/markdown_0/imgs/img_in_image_box_1001_297_1058_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A53Z%2F-1%2F%2F1782338b68a6c872980cc1c80cc00070af0e391cc567ff57aea5a759b62e9850" alt="Image" width="4%" /></div>
+    Preview: # How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk鈽? <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//ca459d41-614f-47a7-b22a-5ba7736a70ef/markdown_0/imgs/img_in_image_box_1001_297_1058_354.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A
+
+
+--- [ 88] [EN] How much can machines learn finance from Chinese text data
+    Title hints: How Much Can Machines Learn Finance From Chinese Text Data? * | Jianqing Fan
+    Preview: # How Much Can Machines Learn Finance From Chinese Text Data? *  Jianqing Fan  Department of ORFE  Princeton University  NJ 08544, USA  jqfan@princeton.edu  Lirong Xue  Department of ORFE  Princeton University  NJ 08544, USA  lirongx@princeton.edu  Yang Zhou  School of Data Science  Fudan University  Shanghai 200433, China  yangzhou@fudan.edu.cn  January 11, 2021  ## Abstract  How much can we lear
+
+
+--- [ 89] [EN] How to Talk When a Machine Is Listening_ Corporate Disclosure in the Age of AI
+    Title hints: How to Talk When a Machine Is Listening: Corporate Disclosure in the Age of AI | Sean Cao
+    Preview: # How to Talk When a Machine Is Listening: Corporate Disclosure in the Age of AI  Sean Cao  Robert H. Smith School of Business, University of Maryland, USA  Wei Jiang  Goizueta Business School, Emory University, USA  ### Baozhong Yang  J. Mack Robinson College of Business, Georgia State University, USA  ### Alan L. Zhang  College of Business, Florida International University, USA  Growing AI reade
+
+
+--- [ 90] [EN] Human Capital Disclosure and Labor Market Outcomes  Evidence from Regulation S鈥怟
+    Title hints: DOI: 10.1111/1475-679x.70036 | Journal of Accounting Research
+    Preview: DOI: 10.1111/1475-679x.70036  Journal of Accounting Research  Vol. No. January 2026  Printed in U.S.A.  CHICAGO BOOTH  # Human Capital Disclosure and Labor Market Outcomes: Evidence from Regulation S-K  JUNG HO CHOI  $ {}^{ID} $, * DAN LI, 鈥?AND DANIELE MACCIOCCHI  $ {}^{ID} $  Received 15 October 2024; accepted 26 August 2025  ## ABSTRACT  We examine the labor market consequences of the 2020 Regu
+
+
+--- [ 91] [EN] Identify critical nodes in complex network with large language models
+    Title hints: Identify Critical Nodes in Complex Network with Large Language Models | Jinzhu Mao$^{1}$, Dongyun Zou$^{1}$, Li Sheng$^{1}$, Siyi Liu$^{2}$, Chen Gao$^{1}$, Yue Wang$^{1}$, Yong Li$^{1}$
+    Preview: # Identify Critical Nodes in Complex Network with Large Language Models  Jinzhu Mao$^{1}$, Dongyun Zou$^{1}$, Li Sheng$^{1}$, Siyi Liu$^{2}$, Chen Gao$^{1}$, Yue Wang$^{1}$, Yong Li$^{1}$  $^{1}$Department of Electronic Engineering, BNRist, Tsinghua University, China  $^{2}$脡cole Polytechnique F茅d茅rale de Lausanne, Switzerland  {maojz22,zoudy22,cheng122}@mails.tsinghua.edu.cn  {ssui.liu1022,chgao9
+
+
+--- [ 92] [EN] Institutional Brokerage Networks_Facilitating Liquidity Provision
+    Title hints: Institutional Brokerage Networks: Facilitating Liquidity Provision $ ^{*} $ | Munhee Han Sanghyun (Hugh) Kim Vikram K. Nanda
+    Preview: # Institutional Brokerage Networks: Facilitating Liquidity Provision $ ^{*} $  Munhee Han Sanghyun (Hugh) Kim Vikram K. Nanda  February 6, 2024  ## Abstract  We argue that institutional brokerage networks facilitate liquidity provision and mitigate the price impact of large non-information-motivated trades. Using commissions, we map trading networks of mutual funds (institutions) and their brokers
+
+
+--- [ 93] [EN] Learning from Earnings Calls_ Graph-Based Conversational Modeling for Financial Prediction
+    Title hints: EBSCO Export | LongDbName: Business Source Complete
+    Preview: ## EBSCO Export  LongDbName: Business Source Complete  ShortDbName: bth  AN: 190869724  Title: Learning from Earnings Calls: Graph-Based Conversational Modeling for Financial Prediction.  PublicationDate: 20260116  Contributors: Yang, Yi; Tang, Yixuan; Fan, Yangyang; Zhang, Kunpeng; DocTypes: Article; PubTypes:  CoverDate: Jan2026  PeerReviewed: true  Source: Information Systems Research (INFORMS)
+
+
+--- [ 94] [EN] Local newspaper closures and bank loan contracts
+    Title hints: ARTICLE | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//d8d002de-18ee-4eb8-ad3a-dff04f8b2900/markdown_0/imgs/img_in_image_box_598_112_890_145.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A11Z%2F-1%2F%2F54712db7cd8cca897de63369daac4c6b5a157a6e4a117dcb78e1dae373f5de48" alt="Image" width="30%" /></div>
+    Preview: ARTICLE  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//d8d002de-18ee-4eb8-ad3a-dff04f8b2900/markdown_0/imgs/img_in_image_box_598_112_890_145.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A01%3A11Z%2F-1%2F%2F54712db7cd8cca897de63369daac4c6b5a157a6e4a117dcb78e1dae373f5de48" alt="Image" width="30%"
+
+
+--- [ 95] [EN] Measuring Corporate Culture Using Machine Lear
+    Title hints: Measuring Corporate Culture Using Machine Learning $ ^{*} $ | Kai Li
+    Preview: # Measuring Corporate Culture Using Machine Learning $ ^{*} $  Kai Li  Sauder School of Business, University of British Columbia  Feng Mai  School of Business, Stevens Institute of Technology  Rui Shen  Shenzhen Finance Institute, School of Management and Economics  The Chinese University of Hong Kong, Shenzhen  Xinyan Yan  School of Business Administration, University of Dayton  Review of Financi
+
+
+--- [ 96] [EN] Measuring R&D activity through 10-K narrative disclosures
+    Title hints: Measuring R&D activity through 10-K narrative disclosures | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//5d78a927-4abb-403b-a1ff-e75328ec19dc/markdown_0/imgs/img_in_image_box_1001_297_1059_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A59%3A05Z%2F-1%2F%2Fbad7a329c811f83e8620261418d44fb93ba9cedaa072bbb8c642a66c080fe5f4" alt="Image" width="4%" /></div>
+    Preview: # Measuring R&D activity through 10-K narrative disclosures  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//5d78a927-4abb-403b-a1ff-e75328ec19dc/markdown_0/imgs/img_in_image_box_1001_297_1059_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A59%3A05Z%2F-1%2F%2Fbad7a329c811f83e8620261418d44fb93ba
+
+
+--- [ 97] [EN] Measuring firm exposure to government agencies
+    Title hints: Measuring firm exposure to government agencies鈽?| <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//f2cfaf16-1f9c-455f-ac18-215172c784d1/markdown_0/imgs/img_in_image_box_897_291_954_348.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A59%3A41Z%2F-1%2F%2F355ff1d69e5b7ecc278b0564f1bcf5270673cdb25b14683379dbc7d123f167f7" alt="Image" width="5%" /></div>
+    Preview: # Measuring firm exposure to government agencies鈽? <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//f2cfaf16-1f9c-455f-ac18-215172c784d1/markdown_0/imgs/img_in_image_box_897_291_954_348.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A59%3A41Z%2F-1%2F%2F355ff1d69e5b7ecc278b0564f1bcf5270673cdb25b14683
+
+
+--- [ 98] [EN] Measuring founding strategy_ssrn-3489585
+    Title hints: Measuring Founding Strategy  $ * $ | Jorge Guzman
+    Preview: # Measuring Founding Strategy  $ * $  Jorge Guzman  Aishen Li  Columbia University  $ \dagger $  Columbia University  $ \ddagger $  ## Abstract  We propose an approach to measure strategy using text-based machine learning. The key insight is that distance in the statements made by companies can be partially indicative of their strategic positioning with respect to each other. We formalize this ins
+
+
+--- [ 99] [EN] Measuring news sentiment
+    Title hints: Measuring news sentiment $ ^{\star} $ | Adam Hale Shapiro $ ^{a,*} $, Moritz Sudhof $ ^{b} $, Daniel J. Wilson $ ^{a} $
+    Preview: # Measuring news sentiment $ ^{\star} $  Adam Hale Shapiro $ ^{a,*} $, Moritz Sudhof $ ^{b} $, Daniel J. Wilson $ ^{a} $  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//a30b9915-e9f4-4592-8cd9-bc678186d9aa/markdown_0/imgs/img_in_image_box_895_336_954_393.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T
+
+
+--- [100] [EN] Measuring the commercial potential of science
+    Title hints: Measuring the commercial potential of science | Roger Masclans $ ^{1} $ | Sharique Hasan $ ^{1} $ | Wesley M. Cohen $ ^{2} $
+    Preview: # Measuring the commercial potential of science  Roger Masclans $ ^{1} $ | Sharique Hasan $ ^{1} $ | Wesley M. Cohen $ ^{2} $   $ ^{1} $Duke University, The Fuqua School of Business, Durham, North Carolina, USA   $ ^{2} $Duke University, The Fuqua School of Business and National Bureau of Economic Research, Durham, North Carolina, USA  Correspondence  Sharique Hasan, Duke University, The Fuqua Sch
+
+
+================================================================================
+BATCH 5: Papers 101 - 125
+================================================================================
+
+--- [101] [EN] Monetary Policy Shocks_ A New Hope_ Large Language Models and Central Bank Communication ssrn-5669212
+    Title hints: Monetary Policy Shocks: A New Hope Large Language Models and Central Bank Communication $ ^{*} $ | Rub茅n Fern谩ndez-Fuertes鈥?
+    Preview: # Monetary Policy Shocks: A New Hope Large Language Models and Central Bank Communication $ ^{*} $  Rub茅n Fern谩ndez-Fuertes鈥? Job Market Paper  First Version: 12th October 2025 鈥?This Version: November 3, 2025  Please check here for the latest version  ## Abstract  I develop a multi-agent LLM framework that processes Federal Reserve communications to construct narrative monetary policy surprises.
+
+
+--- [102] [EN] Research in Commotion_ Measuring AI Research and Development through Conference Call Transcripts
+    Title hints: Finance and Economics Discussion Series | Federal Reserve Board, Washington, D.C.
+    Preview: Finance and Economics Discussion Series  Federal Reserve Board, Washington, D.C.  ISSN 1936-2854 (Print)  ISSN 2767-3898 (Online)  # Research in Commotion: Measuring AI Research and Development through Conference Call Transcripts  Paul E. Soto  2025-011  Please cite this paper as:  Soto, Paul E. (2025). 鈥淩esearch in Commotion: Measuring AI Research and Development through Conference Call Transcrip
+
+
+--- [103] [EN] Responding to Climate Change Crises_Firms' Tra
+    Title hints: Responding to Climate Change Crises: Firms' Trade-Offs | Felix Fritsch* Qi Zhang鈥?Xiang Zheng鈥?
+    Preview: # Responding to Climate Change Crises: Firms' Trade-Offs  Felix Fritsch* Qi Zhang鈥?Xiang Zheng鈥? Journal of Accounting Research, forthcoming搂  ## Abstract  We examine firms' trade-offs in their voluntary disclosure decisions following negative media coverage of climate change incidents. By combining a keyword discovery algorithm and a fine-tuned BERT model, we identify "hard" and "soft" climate di
+
+
+--- [104] [EN] Sentiment Management -AI-based Evidence from E
+    Title hints: Sentiment Management: | AI-based Evidence from Earnings Guidance
+    Preview: Sentiment Management:  AI-based Evidence from Earnings Guidance  Jonathan Berkovitch  Department of Business and Management  Luiss Guido Carli University  Doron Israeli  Arison School of Business  Reichman University  and  Graduate School of Business  Nazarbayev University  Ron Kasznik  Graduate School of Business  Stanford University  May 2025  Contact: kasznik@stanford.edu. We thank Cindy Xinyi
+
+
+--- [105] [EN] Shall we talk_The role of interactive investor platforms in corporate communication
+    Title hints: Shall we talk? The role of interactive investor platforms in corporate communication鈽?| Charles M.C. Lee $ ^{a,b} $, Qinlin Zhong $ ^{c,*} $
+    Preview: # Shall we talk? The role of interactive investor platforms in corporate communication鈽? Charles M.C. Lee $ ^{a,b} $, Qinlin Zhong $ ^{c,*} $   $ ^{a} $ Graduate School of Business, Stanford University, United States   $ ^{b} $ Foster School of Business, University of Washington, United States   $ ^{c} $ School of Management, Fudan University, China  #### ARTICLE INFO  Article history:  Received 2
+
+
+--- [106] [EN] Surviving the Fintech Disruption
+    Title hints: Surviving the fintech disruption $ ^{\star} $ | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//3e7be1fb-0a7f-4944-9afc-0b1e7e9cb6d7/markdown_0/imgs/img_in_image_box_1002_297_1059_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-05T07%3A49%3A32Z%2F-1%2F%2F60bdcdaf7b62db2f991fe507716e92cf1a96fffc945ad709bee8041c1161aa65" alt="Image" width="4%" /></div>
+    Preview: # Surviving the fintech disruption $ ^{\star} $  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//3e7be1fb-0a7f-4944-9afc-0b1e7e9cb6d7/markdown_0/imgs/img_in_image_box_1002_297_1059_353.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-05T07%3A49%3A32Z%2F-1%2F%2F60bdcdaf7b62db2f991fe507716e92cf1a96fffc945ad70
+
+
+--- [107] [EN] The Effects of Sentiment Evolution in Financial Texts  A Word Embedding Approach
+    Title hints: The Effects of Sentiment Evolution in Financial Texts: A Word Embedding Approach | Jiexin Zheng, Ka Chung Ng, Rong Zheng & Kar Yan Tam
+    Preview: # The Effects of Sentiment Evolution in Financial Texts: A Word Embedding Approach  Jiexin Zheng, Ka Chung Ng, Rong Zheng & Kar Yan Tam  To cite this article: Jiexin Zheng, Ka Chung Ng, Rong Zheng & Kar Yan Tam (2024) The Effects of Sentiment Evolution in Financial Texts: A Word Embedding Approach, Journal of Management Information Systems, 41:1, 178-205, DOI:  $ \underline{\text{10.1080/07421222.
+
+
+--- [108] [EN] The Impact of Generative AI on Information Processing Evidence from the Ban of ChatGPT in Italy
+    Title hints: Journal Pre-proof | The Impact of Generative AI on Information Processing: Evidence from the Ban of ChatGPT in Italy
+    Preview: # Journal Pre-proof  The Impact of Generative AI on Information Processing: Evidence from the Ban of ChatGPT in Italy  Jeremy Bertomeu, Yupeng Lin, Yibin Liu, Zhenghui Ni  PII: S0165-4101(25)00018-7  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//f5a55491-35a3-478a-8f3d-4a84f8248c62/markdown_0/imgs/img_in_image_box_899_149_10
+
+
+--- [109] [EN] The bullwhip effect in servitized manufacturers
+    Title hints: EBSCO Export | LongDbName: Business Source Complete
+    Preview: ## EBSCO Export  LongDbName: Business Source Complete  ShortDbName: bth  AN: 182281763  Title: The Bullwhip Effect in Servitized Manufacturers.  PublicationDate: 20250101  Contributors: Niu, Yimeng; Wu, Jing; Jiang, Shenyang; Jiang, Zhibin; DocTypes: Article; PubTypes: CoverDate: Jan2025  PeerReviewed: true  Source: Management Science (INFORMS)  IsiType: JOUR  DOIDS: ;  ISBNS: ;  ISSNS: 0025-1909;
+
+
+--- [110] [EN] The effect of media-linked directors on financing and external governance
+    Title hints: The effect of media-linked directors on financing and external governance鈽?| <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//320a2201-06a4-44ac-b096-f82865795628/markdown_0/imgs/img_in_image_box_892_334_948_390.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A57%3A54Z%2F-1%2F%2F4debb61fbfbe64916b39083dc08ed2ca3bed92aae0ed7ffbff88125033aa52ba" alt="Image" width="5%" /></div>
+    Preview: # The effect of media-linked directors on financing and external governance鈽? <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//320a2201-06a4-44ac-b096-f82865795628/markdown_0/imgs/img_in_image_box_892_334_948_390.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A57%3A54Z%2F-1%2F%2F4debb61fbfbe64916b39
+
+
+--- [111] [EN] The impact of tariffs and uncertainty on Chinese firms in the trade war
+    Title hints: Anxiety or pain? The impact of tariffs and uncertainty on Chinese firms in the trade war鈽?| Felipe Benguria $ ^{a} $, Jaerim Choi $ ^{b} $, Deborah L. Swenson $ ^{c,*} $, Mingzhi (Jimmy) Xu $ ^{d} $
+    Preview: # Anxiety or pain? The impact of tariffs and uncertainty on Chinese firms in the trade war鈽? Felipe Benguria $ ^{a} $, Jaerim Choi $ ^{b} $, Deborah L. Swenson $ ^{c,*} $, Mingzhi (Jimmy) Xu $ ^{d} $  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//1d86ea9a-43a6-49c1-ba2d-2ee3ef9d9b40/markdown_0/imgs/img_in_image_box_897_321_9
+
+
+--- [112] [EN] The informational content of key audit matters_ Evidence from using artificial intelligence in textual analysis
+    Title hints: DOI: 10.1111/1911-3846.13070 | ARTICLE
+    Preview: DOI: 10.1111/1911-3846.13070  ARTICLE  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//7c8887e8-ba7a-49c9-815f-97a76f0bb243/markdown_0/imgs/img_in_image_box_598_112_890_145.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A59%3A38Z%2F-1%2F%2Fd856f854f2522ff84b831d140986d66e4981b43c685aa81a52ebe2df9bf
+
+
+--- [113] [EN] The power of the pen and executive compensatio
+    Title hints: The power of the pen and executive compensation 鈽?| John E. Core $ ^{a} $, Wayne Guay $ ^{a,*} $, David F. Larcker $ ^{b} $
+    Preview: # The power of the pen and executive compensation 鈽? John E. Core $ ^{a} $, Wayne Guay $ ^{a,*} $, David F. Larcker $ ^{b} $   $ ^{a} $The Wharton School, University of Pennsylvania, Philadelphia, PA 19104, USA   $ ^{b} $Graduate School of Business, Stanford University, Stanford, CA 94305, USA  Received 28 October 2005; received in revised form 20 March 2007; accepted 4 May 2007    Available onlin
+
+
+--- [114] [EN] The use of LLMs to annotate data in management research_Foundational guidelines and warnings
+    Title hints: RESEARCH ARTICLE | SMS Strategic Management Journal
+    Preview: RESEARCH ARTICLE  SMS Strategic Management Journal  # The use of LLMs to annotate data in management research: Foundational guidelines and warnings  Natalie A. Carlson $ ^{1} $ | Vanessa Burbano $ ^{2} $   $ ^{1} $The Wharton School, University of Pennsylvania, Philadelphia, Pennsylvania, USA   $ ^{2} $Columbia Business School, Columbia University, New York, New York, USA  ##### Correspondence  Na
+
+
+--- [115] [EN] The voice of monetary policy
+    Title hints: University of Birmingham Research at Birmingham | The voice of monetary policy
+    Preview: # University of Birmingham Research at Birmingham  ## The voice of monetary policy  Gorodnichenko, Yuriy; Pham, Tho; Talavera, Oleksandr  DOI: 10.1257/aer.20220129  License: None: All rights reserved  Document Version  Peer reviewed version  Citation for published version (Harvard):  Gorodnichenko, Y, Pham, T & Talavera, O 2023, 'The voice of monetary policy', The American Economic Review, vol. 11
+
+
+--- [116] [EN] Using GPT to measure business complexity
+    Title hints: Using GPT to Measure Business Complexity | Darren Bernard
+    Preview: # Using GPT to Measure Business Complexity  Darren Bernard  Elizabeth Blankespoor  Ties de Kok  University of Washington  Sara Toynbee  The University of Texas at Austin  ABSTRACT: Business complexity involves important tradeoffs for managers and investors, but empirical evidence is limited by measurement issues. We construct and validate a measure of business complexity using a GPT model fine-tun
+
+
+--- [117] [EN] Using machine learning to measure conservatism_ssrn-3924961
+    Title hints: Using Machine Learning to Measure Conservatism | Jeremy Bertomeu, Edwige Cheynel, Yifei Liao, Mario Milone $ ^{*} $
+    Preview: # Using Machine Learning to Measure Conservatism  Jeremy Bertomeu, Edwige Cheynel, Yifei Liao, Mario Milone $ ^{*} $  ## Abstract  Machine learning can improve empirical proxies of conservatism by detecting patterns beyond linear regression techniques assumed in prior literature. Using a neural network approach, we show that measures based on machine-learning exhibit (a) better fit adjusted for de
+
+
+--- [118] [EN] Using supervised machine learning for large-scale classification in management research_The case for identifying artificial intelligence patents
+    Title hints: RESEARCH ARTICLE | <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//2a6e835b-0c73-451d-ba7d-f45accb7915f/markdown_0/imgs/img_in_image_box_673_104_892_139.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A20Z%2F-1%2F%2F0c89390591987bd8ffe0e74ac9c816d65a8479001ee77340d19236f7c32ec719" alt="Image" width="22%" /></div>
+    Preview: ##### RESEARCH ARTICLE  <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//2a6e835b-0c73-451d-ba7d-f45accb7915f/markdown_0/imgs/img_in_image_box_673_104_892_139.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T15%3A00%3A20Z%2F-1%2F%2F0c89390591987bd8ffe0e74ac9c816d65a8479001ee77340d19236f7c32ec719" alt="Ima
+
+
+--- [119] [EN] War Discourse and Disaster Premium_160 Years of Evidence from the Stock Market
+    Title hints: War Discourse and Disaster Premium: 160 Years of Evidence from the Stock Market | David Hirshleifer
+    Preview: # War Discourse and Disaster Premium: 160 Years of Evidence from the Stock Market  David Hirshleifer  Marshall School of Business, University of Southern California, United States  Dat Mai  MKT MediaStats LLC, United States  ### Kuntara Pukthuanthong  Robert J. Trulaske, Sr. College of Business, University of Missouri-Columbia, United States  Using a semisupervised topic model on 7 million New Yor
+
+
+--- [120] [EN] What Is Rationality, Whom Is It Ascribed To, and Why Does It Matter_ Evidence From Internet Text for 66 Social Groups and 101 Occupations
+    Title hints: What Is Rationality, Whom Is It Ascribed To, and Why Does It Matter? Evidence From Internet Text for 66 Social Groups and 101 Occupations | Psychological Science 2025, Vol. 36(9) 713鈥?31
+    Preview: # What Is Rationality, Whom Is It Ascribed To, and Why Does It Matter? Evidence From Internet Text for 66 Social Groups and 101 Occupations  Psychological Science 2025, Vol. 36(9) 713鈥?31  漏 The Author(s) 2025  Article reuse guidelines:  sagepub.com/journals-permissions  DOI: 10.1177/09567976251362120  www.psychologicalscience.org/PS  S Sage  Charles A. Dorison $ ^{1} $ and Tessa E. S. Charleswort
+
+
+--- [121] [EN] When ESG news talks_How media sentiment shapes corporate financial behavior in China
+    Title hints: When ESG news talks: How media sentiment shapes corporate financial behavior in China | Weijie Tan $ ^{a,1} $, Yiqian Liu $ ^{b,1} $, Mingming Teng $ ^{c,*} $
+    Preview: # When ESG news talks: How media sentiment shapes corporate financial behavior in China  Weijie Tan $ ^{a,1} $, Yiqian Liu $ ^{b,1} $, Mingming Teng $ ^{c,*} $   $ ^{a} $ College of Public Finance and Investment, Shanghai University of Finance and Economics, Shanghai, China   $ ^{b} $ International School of Business and Finance, Sun Yat-sen University, Zhuhai, Guangdong, China   $ ^{c} $ School o
+
+
+--- [122] [EN] Work Design and Compensation Strategies in a Post-COVID World_ Evidence From Online Job Postings
+    Title hints: Work Design and Compensation Strategies in a Post-COVID World: Evidence From Online Job Postings | Chunmian Ge $ ^{1} $ | Huiqi Deng $ ^{1} $ | Dongyuan Wu $ ^{2} $ | Hanwei Huang $ ^{3,4,5} $ | James H. Dulebohn $ ^{6} $
+    Preview: # Work Design and Compensation Strategies in a Post-COVID World: Evidence From Online Job Postings  Chunmian Ge $ ^{1} $ | Huiqi Deng $ ^{1} $ | Dongyuan Wu $ ^{2} $ | Hanwei Huang $ ^{3,4,5} $ | James H. Dulebohn $ ^{6} $   $ ^{1} $School of Business Administration, South China University of Technology, Guangzhou, China |  $ ^{2} $School of Management, Fudan University, Shanghai, China |  $ ^{3}
+
+
+--- [123] [CN] 鈥滄紓缁库€濆缁胯壊鍒涙柊鐨勬尋鍑烘晥搴擾钄＄湡
+    Title hints: 鈥滄紓缁库€濆缁胯壊鍒涙柊鐨勬尋鍑烘晥搴?| 钄＄湡涓囧厗闇嶇泩杈板垬鍐?$ ^{*} $
+    Preview: # 鈥滄紓缁库€濆缁胯壊鍒涙柊鐨勬尋鍑烘晥搴? 钄＄湡涓囧厗闇嶇泩杈板垬鍐?$ ^{*} $  鍐呭鎻愯 缁胯壊鍙戝睍鏄珮璐ㄩ噺鍙戝睍鐨勫簳鑹诧紝鏋勫缓缁胯壊鎶€鏈垱鏂颁綋绯绘槸缁胯壊鍙戝睍鐨勯噸瑕佷妇鎺箣涓€銆傚綋鍓嶄腑鍥界豢鑹插垱鏂版綔鍔涘皻鏈緱鍒板畬鍏ㄦ縺鍙戯紝閲嶈鍘熷洜涔嬩竴涓庘€滄紓缁库€濆鑷寸殑甯傚満澶辩伒鏈夊叧銆傛湰鏂囧熀浜?006-2023骞翠腑鍥紸鑲′笂甯傚叕鍙告暟鎹紝閫氳繃鏈哄櫒瀛︿範銆佹枃鏈寲鎺樻妧鏈瀯寤轰簡鍏ㄦ柊鐨勬紓缁垮彉閲忥紝骞跺熀浜庢绯荤粺鐮旂┒浜嗗悓琛屾紓缁垮缁胯壊鍒涙柊浜у嚭鐨勫奖鍝嶃€傜爺绌跺彂鐜帮紝鍚岃婕傜豢绋嬪害瓒婇珮锛屼紒涓氱殑缁胯壊鍒涙柊鏁伴噺琚尋鍑虹殑瓒婂銆傛満鍒剁爺绌惰〃鏄庯細鍦ㄤ骇鍝佸競鍦轰笂鍚岃婕傜豢鍓婂急浜嗕紒涓氱殑甯傚満鍔垮姏锛屽鍔犱簡鍏惰惀閿€闅惧害锛岄檷浣庝簡鍏剁泩鍒╄兘鍔涳紱鍦ㄨ祫閲戝競鍦轰笂鍚岃婕傜豢鍓婂急浜嗕紒涓氳瀺璧勮兘鍔涳紝鍑忓皯浜嗗叾鑾峰緱鐜繚琛ヨ创鐨勮妯★紝澧炲姞浜嗗叾鎬讳綋铻嶈祫绾︽潫銆備袱绉嶆満鍒舵渶缁堝墛寮变簡浼佷笟鍦ㄧ豢鑹插垱鏂版柟闈㈢殑椋庨櫓鎵挎媴鎰忔効鍜岃祫婧愭姇鍏ヨ兘鍔涖€傚紓璐ㄦ€у垎鏋愬彂鐜帮紝鍚岃婕傜豢鏄捐憲鐮村潖浜嗗競鍦烘甯哥珵浜夌З搴忥紝浣嗗湪閫嗗悜閫夋嫨闂涓嶄弗閲嶇殑甯傚満涓尋鍑烘晥搴旇緝涓嶆樉钁椼€傛湰鏂囦赴
+
+
+--- [124] [CN] 涓嶅悓鏉ユ簮閲戣瀺鏂囨湰淇℃伅鍚噺鐨勫紓璐ㄦ€у垎鏋愨€斺€斿熀浜庢贩鍚堝紡鏂囨湰鎯呯华娴嬪害鏂规硶_鑼冨皬浜?
+    Title hints: 涓嶅悓鏉ユ簮閲戣瀺鏂囨湰淇℃伅鍚噺鐨?寮傝川鎬у垎鏋?$ ^{*} $ 鈥斺€斿熀浜庢贩鍚堝紡鏂囨湰鎯呯华娴嬪害鏂规硶 | 鑼冨皬浜?鐜嬩笟涓?鐜嬮亾骞?閮枃鐠?鑳＄厞缈?
+    Preview: 缁忔祹瀛? # 涓嶅悓鏉ユ簮閲戣瀺鏂囨湰淇℃伅鍚噺鐨?寮傝川鎬у垎鏋?$ ^{*} $ 鈥斺€斿熀浜庢贩鍚堝紡鏂囨湰鎯呯华娴嬪害鏂规硶  鑼冨皬浜?鐜嬩笟涓?鐜嬮亾骞?閮枃鐠?鑳＄厞缈? 鎽樿:鎯呯华瀵瑰畯瑙傜粡娴庡拰閲戣瀺甯傚満鍏锋湁閲嶈鐨勯娴嬭兘鍔涖€傛湰鏂囪瘎浼颁簡涓嶅悓鏂囨湰鎯呯华鍒嗘瀽鏂规硶鐨勫噯纭€э紝寮€鍙戜簡涓€绉嶆柊鐨勪腑鏂囬噾铻嶆枃鏈儏缁瘝鍏革紝骞惰瀺鍚堟満鍣ㄥ涔犵畻娉曟彁鍑轰簡涓€绉嶆贩鍚堝紡鎯呯华娴嬪害鏂规硶銆傛湰鏂囨暟鎹潵婧愪簬2011~2019骞翠腑鍥?2瀹剁煡鍚嶆姤鍒婂彂甯冪殑175涓囨潯鏂伴椈鍜屾姇璧勮€呭湪涓滄柟璐㈠瘜缃戣偂鍚у彂琛ㄧ殑杩?500涓囨潯甯栧瓙銆備笌浠呭熀浜庤瘝鍏告硶鎴栨満鍣ㄥ涔犵殑鏂规硶鐩告瘮锛屾贩鍚堝紡鏂规硶鍙互鎻愰珮鎯呯华娴嬪害鐨勫噯纭巼銆傛湰鏂囧疄璇佺粨鏋滆〃鏄庯紝鏂伴椈鎯呯华瀵瑰畯瑙傜粡娴庢寚鏍囬娴嬫晥鏋滆緝濂斤紝璇佸埜绫诲拰缁忔祹绫绘柊闂诲鑲＄エ甯傚満涔熷叿鏈変竴瀹氱殑棰勬祴鑳藉姏銆傝偂鍚ф儏缁垯鑳芥樉钁楅娴嬭偂绁ㄥ競鍦虹殑鏀剁泭鐜囥€佷氦鏄撻噺鍜屾尝鍔ㄦ€э紝浣嗗瀹忚缁忔祹褰卞搷鐢氬井銆傝繘涓€姝ュ垎鏋愯〃鏄庯紝涓嶅悓缁忔祹鍛ㄦ湡銆佷氦鏄撴棩浠ュ強涓嶅悓绫诲瀷鑲＄エ鐨勬枃鏈儏缁鑲＄エ鏀剁泭鐜囩殑棰勬祴鏁堟灉涔熷叿鏈夊紓璐ㄦ€с€? 鍏?
+
+
+--- [125] [CN] 涓浗涓婂競鍏徃鏁板瓧鍖栨按骞虫祴搴︿笌婕斿寲鐮旂┒鈥斺€旀潵鑷勾鎶ユ枃鏈殑缁忛獙璇佹嵁_鑳″繝涔?
+    Title hints: 鏂囩珷缂栧彿锛?003-207(2025)04-0036-14 DOI:10.16381/j.cnki.issn1003-207x.2023.1961 | 涓浗涓婂競鍏徃鏁板瓧鍖栨按骞虫祴搴︿笌婕斿寲鐮旂┒ 鈥斺€旀潵鑷勾鎶ユ枃鏈殑缁忛獙璇佹嵁
+    Preview: 鏂囩珷缂栧彿锛?003-207(2025)04-0036-14 DOI:10.16381/j.cnki.issn1003-207x.2023.1961  # 涓浗涓婂競鍏徃鏁板瓧鍖栨按骞虫祴搴︿笌婕斿寲鐮旂┒ 鈥斺€旀潵鑷勾鎶ユ枃鏈殑缁忛獙璇佹嵁  鑳″繝涔?$ ^{1,2} $锛岀◣鍏哥▼ $ ^{1} $锛屽惔姹?$ ^{1,2} $  (1. 姝︽眽澶у淇℃伅绠＄悊瀛﹂櫌, 婀栧寳 姝︽眽 430072; 2. 姝︽眽澶у鐢靛瓙鍟嗗姟鐮旂┒涓庡彂灞曚腑蹇? 婀栧寳 姝︽眽 430072)  鎽?瑕?绯荤粺鑰屽叏闈㈠湴娴嬪害浼佷笟鐨勬暟瀛楀寲姘村钩鏄繁鍏ユ帰璁ㄦ暟瀛楀寲杞瀷鎴愭晥鐨勫叧閿€傞€氳繃缁熻骞存姤鏂囨湰涓暟瀛楀寲鏈鐨勮瘝棰戞潵娴嬬畻浼佷笟鐨勬暟瀛楀寲姘村钩锛屽凡鍙楀埌瀛︾晫鐨勫箍娉涘叧娉ㄣ€傜劧鑰岋紝浠ュ線鐮旂┒鎵€閲囩敤鐨勬湳璇瘝鍏歌妯″皬銆佽鐩栭潰绐勩€佹墿灞曟€у樊锛屽鑷翠紒涓氭暟瀛楀寲姘村钩鐨勬祴搴︿笉澶熷叏闈€備负浜嗚В鍐宠繖涓€闂锛屾湰鏂囧埄鐢ㄨ嚜鐒惰瑷€澶勭悊鍜屾繁搴﹀涔犳妧鏈紝鏋勫缓浜咮ERT-GlobalPointer鍜孊ERT-Globa
+
+
+================================================================================
+BATCH 6: Papers 126 - 150
+================================================================================
+
+--- [126] [CN] 涓浗浼佷笟鏁板瓧鎶€鏈闄╂毚闇插浼佷笟浠峰€肩殑褰卞搷
+    Title hints: 涓浗浼佷笟鏁板瓧鎶€鏈闄╂毚闇插浼佷笟浠峰€肩殑褰卞搷 $ ^{*} $ | 鈥斺€旀潵鑷ぇ璇█妯″瀷鐨勬枃鏈垎鏋愯瘉鎹?
+    Preview: # 涓浗浼佷笟鏁板瓧鎶€鏈闄╂毚闇插浼佷笟浠峰€肩殑褰卞搷 $ ^{*} $  鈥斺€旀潵鑷ぇ璇█妯″瀷鐨勬枃鏈垎鏋愯瘉鎹? 闄嗙懚鏂藉嚱闈掑懆娆ｆ€? #### 鍐呭鎻愯  鍐呭鎻愯锛氬仛浼樺仛寮烘暟瀛楃粡娴庯紝闇€瑕佺粺绛瑰彂灞曞拰瀹夊叏涓や釜鏂归潰锛岄珮搴﹂噸瑙嗘柊涓€杞暟瀛楁妧鏈彉闈╀腑鐨勯闄╅槻鑼冮棶棰樸€傛湰鏂囧埄鐢‵inBERT鍜孏PT澶ц瑷€妯″瀷瀵笰鑲′笂甯傚叕鍙稿勾鎶ョ鐞嗗眰璁ㄨ涓庡垎鏋愰儴鍒嗚繘琛屾枃鏈垎鏋愶紝鏋勫缓澶氬眰娆℃暟瀛楁妧鏈闄╂毚闇茬▼搴︾殑琛￠噺鎸囨爣锛屾帰璁ㄦ垜鍥戒紒涓氭暟瀛楁妧鏈闄╃殑鏆撮湶鎯呭喌鍙婂浼佷笟甯傚満浠峰€肩殑褰卞搷銆傜爺绌跺彂鐜帮細绗竴锛屽勾榫勮緝澶с€佹潬鏉嗙巼杈冮珮銆佽祫浜ф敹鐩婄巼杈冧綆銆佸叕鍙告不鐞嗘按骞宠緝宸殑浼佷笟闈复鏇翠弗閲嶇殑鏁板瓧鎶€鏈闄╂毚闇层€傜浜岋紝鏁板瓧鎶€鏈闄╂毚闇蹭細鏄捐憲闄嶄綆鍏徃鐨勯暱鏈熷競鍦轰环鍊笺€傚叾涓紝鏁版嵁瀹夊叏椋庨櫓鍜岀綉缁滃畨鍏ㄩ闄╁潎鏈夋槑鏄捐礋闈㈠奖鍝嶃€傚湪鍒╃敤缇庡浗鍚岃涓氭暟瀛楁妧鏈闄╂毚闇蹭綔涓哄伐鍏峰彉閲忕紦瑙ｅ唴鐢熸€ч棶棰樺悗锛屾湰鏂囧疄璇佺粨鏋滀繚鎸佺ǔ鍋ャ€傜涓夛紝涓昏鐨勫奖鍝嶆満鍒跺湪浜庢暟瀛楁妧鏈闄╅€氳繃鏁板瓧鍩虹璁炬柦鐨勪簰鑱旀€э紝瀵逛緵搴旈摼鐢?
+
+
+--- [127] [CN] 浜т笟閾捐瀺鍏ヤ笌浼佷笟鍒涙柊鈥斺€斿熀浜庡井瑙備紒涓氭暟鎹殑浜т笟閾炬祴搴︽柊鏂规硶_闄堟灄
+    Title hints: 浜т笟閾捐瀺鍏ヤ笌浼佷笟鍒涙柊 $ ^{*} $ | 鈥斺€斿熀浜庡井瑙備紒涓氭暟鎹殑浜т笟閾炬祴搴︽柊鏂规硶
+    Preview: # 浜т笟閾捐瀺鍏ヤ笌浼佷笟鍒涙柊 $ ^{*} $  鈥斺€斿熀浜庡井瑙備紒涓氭暟鎹殑浜т笟閾炬祴搴︽柊鏂规硶  闄堟灄 闄堣嚮 寮犵幒鏂?榫欒彶  ##### 鍐呭鎻愯  鍐呭鎻愯锛氣€滃垱鏂伴摼浜т笟閾捐祫閲戦摼浜烘墠閾炬繁搴﹁瀺鍚堚€濇槸褰撳墠鍥藉鐨勯噸澶ф垬鐣ワ紝涓嶅悓閾句箣闂村浣曞疄鐜版繁搴﹁瀺鍚堝瘜鍚悊璁轰笌瀹炶返浠峰€笺€傚凡鏈夌爺绌朵腑浜т笟閾剧殑閲忓寲妗嗘灦杈冧负缂轰箯锛屾湰鏂囧皾璇曚娇鐢ㄤ汉宸ユ櫤鑳芥妧鏈垎甯冨紡鎶撳彇鐖变紒鏌ャ€佸晢鍟嗘煡銆佸悇鍦板尯鎷涙姇鏍囧叕鍛婂強涓婂競鍏徃骞存姤涓殑浼佷笟鍏宠仈淇℃伅锛屼緷鎵楢cemoglu绛変互鏈夊悜鍥炬暟瀛︾悊璁烘敼鑹姇鍏ヤ骇鍑鸿〃鐨勬€濊矾锛岄噰鐢ㄦ繁搴︿紭鍏堟悳绱㈢畻娉曟瀯寤哄叏浜т笟閾惧浘璋辨暟鎹簱锛屾祴绠椾骇涓氶摼鐨勫唴閮ㄥ叧鑱斿害銆佽川蹇冨害绛夋寚鏍囷紝骞舵祴鍑烘瘡涓摼涓婁紒涓氱殑浜т笟閾捐瀺鍏ュ害锛屾渶缁堟瀯寤哄嚭涓€涓骇涓氶摼娴嬪害鐨勭悊璁烘鏋朵笌鏂版柟娉曘€傜粨鏋滆〃鏄庯紝铻嶅叆浜т笟閾捐兘鏈夋晥婵€鍔变紒涓氬垱鏂扮哗鏁堬紝骞堕€氳繃鐭ヨ瘑婧㈠嚭銆佽妯＄粡娴庣瓑浜х敓绉瀬浣滅敤銆傝鏁堝簲浼氬洜閾句富浼佷笟鎬ц川銆佷骇鏉冩€ц川绛夊憟鐜板嚭鏄捐憲寮傝川鎬э紝鏇村厖鍒嗙殑琛屼笟绔炰簤浜﹁兘寮哄寲浜т笟閾剧殑鍒涙柊鏁堝簲銆傛湰浜т笟閾鹃噺鍖栨
+
+
+--- [128] [CN] 浜哄伐鏅鸿兘濡備綍鎻愬崌浼佷笟鐢熶骇鏁堢巼锛熲€斺€斿熀浜庡姵鍔ㄥ姏鎶€鑳界粨鏋勮皟鏁寸殑瑙嗚_濮氬姞鏉?
+    Title hints: 浜哄伐鏅鸿兘濡備綍鎻愬崌 浼佷笟鐢熶骇鏁堢巼锛?$ ^{*} $ | 鈥斺€斿熀浜庡姵鍔ㄥ姏鎶€鑳界粨鏋勮皟鏁寸殑瑙嗚
+    Preview: # 浜哄伐鏅鸿兘濡備綍鎻愬崌 浼佷笟鐢熶骇鏁堢巼锛?$ ^{*} $  # 鈥斺€斿熀浜庡姵鍔ㄥ姏鎶€鑳界粨鏋勮皟鏁寸殑瑙嗚  濮氬姞鏉?寮犻敓婢?閮潕楣?鍐华  鎽樿锛氫汉宸ユ櫤鑳芥妧鏈瀹炵幇缁忔祹鐨勯珮璐ㄩ噺鍙戝睍鍏锋湁閲嶈鎰忎箟銆傜幇鏈夌爺绌跺鑱氱劍浜庝汉宸ユ櫤鑳藉瀹忚缁忔祹鐨勫奖鍝嶏紝鏈枃浠庝紒涓氬眰闈㈣€冨療浜嗕汉宸ユ櫤鑳芥妧鏈浣曞奖鍝嶇敓浜ф晥鐜囧拰鍔冲姩鍔涙妧鑳界粨鏋勩€傛湰鏂囪繍鐢ㄦ満鍣ㄥ涔犳柟娉曠敓鎴愪簡浜哄伐鏅鸿兘璇嶅吀锛屽苟瀵逛笂甯傚叕鍙哥殑骞存姤鍜屼笓鍒╄繘琛屾枃鏈垎鏋愶紝杩涜€屾瀯寤轰簡浼佷笟灞傞潰鐨勪汉宸ユ櫤鑳芥寚鏍囥€傜爺绌跺彂鐜帮紝浜哄伐鏅鸿兘鏄捐憲鎻愬崌浜嗕腑鍥戒笂甯傚叕鍙哥殑鐢熶骇鐜囷紝骞朵笖璇ョ粨璁哄湪涓€绯诲垪绋冲仴鎬ф楠屽悗渚濇棫鎴愮珛銆傚湪褰卞搷鏈哄埗鏂归潰锛屼汉宸ユ櫤鑳介€氳繃淇冧娇浼佷笟鍑忓皯甯歌浣庢妧鑳藉姵鍔ㄥ姏闇€姹傘€佸鍔犻潪甯歌楂樻妧鑳藉姵鍔ㄥ姏闇€姹傜殑鏂瑰紡鎻愬崌浼佷笟鐨勭敓浜х巼锛岃繖浣撶幇浜嗕紒涓氬姵鍔ㄥ姏鎶€鑳界粨鏋勭殑璋冩暣銆傚紓璐ㄦ€у垎鏋愯〃鏄庯紝浜ф潈鎬ц川銆佷汉鎵嶈幏寰楁柟寮忋€佸姵鍔ㄥ姏淇濋殰銆佹不鐞嗙粨鏋勭瓑浼佷笟灞傞潰鍥犵礌瀵逛汉宸ユ櫤鑳界殑鐢熶骇鐜囨晥搴旀湁杈冨ぇ褰卞搷銆傛澶栵紝浼佷笟鎵€澶勭殑琛屼笟鍜屽湴鍖哄眰闈㈠洜绱犱篃褰卞搷浜嗕汉宸ユ櫤鑳界殑
+
+
+--- [129] [CN] 浼佷笟渚涘簲閾鹃闄╀笌绾靛悜骞惰喘鍐崇瓥涔嬭皽鈥斺€旀潵鑷枃鏈寲鎺樼殑缁忛獙璇佹嵁_钃濆彂閽?
+    Title hints: 浼佷笟渚涘簲閾鹃闄╀笌绾靛悜骞惰喘鍐崇瓥涔嬭皽 | 鈥斺€旀潵鑷枃鏈寲鎺樼殑缁忛獙璇佹嵁
+    Preview: # 浼佷笟渚涘簲閾鹃闄╀笌绾靛悜骞惰喘鍐崇瓥涔嬭皽  鈥斺€旀潵鑷枃鏈寲鎺樼殑缁忛獙璇佹嵁  钃濆彂閽?鑳℃檽鏁?鍥芥枃濠?寰愬崜鐞?$ ^{*} $  ##### 鎽樿  鎭伀锛氫紶缁熶氦鏄撴垚鏈悊璁鸿涓猴紝閫氳繃绾靛悜骞惰喘瀹炵幇涓€浣撳寲鏄紒涓氶檷浣庝緵搴旈摼椋庨櫓銆佹彁鍗囦緵搴旈摼闊ф€х殑鏈夋晥鎵嬫銆傜劧鑰岋紝闅忕潃杩戝勾鏉ヤ緵搴旈摼椋庨櫓鏃ョ泭鍔犲墽锛屼紒涓氱旱鍚戝苟璐椿鍔ㄥ嵈鏈棰勬湡鑸椿璺冦€傝仛鐒︿簬杩欎竴鐜拌薄锛屾湰鏂囧€熷姪浜庢枃鏈寲鎺樻妧鏈В璇讳腑鍥戒笂甯傚叕鍙稿勾鎶ヤ俊鎭瀯寤轰紒涓氬眰闈緵搴旈摼椋庨櫓鎸囨爣锛岀郴缁熸楠屼簡渚涘簲閾鹃闄╁浣曞奖鍝嶄紒涓氱殑绾靛悜骞惰喘鍐崇瓥鍙婂叾鍐呭湪鏈哄埗銆傜爺绌跺彂鐜帮紝涓庝紶缁熶氦鏄撴垚鏈悊璁虹浉鎮栵紝鏆撮湶鍦ㄩ珮渚涘簲閾鹃闄╀腑鐨勪紒涓氬弽鑰屽噺灏戜簡绾靛悜骞惰喘鎶曡祫锛岃繖涓€鐜拌薄鍦ㄤ环鍊奸摼宓屽叆浣嶇疆杈冧綆銆佸尯鍩熻锤鏄撳鍨掕緝楂樺強鏁板瓧鍖栬浆鍨嬫粸鍚庣殑浼佷笟涓洿涓烘樉钁椼€備緵搴旈摼椋庨櫓鍐插嚮涓嬶紝鍟嗕笟淇＄敤鎸ゅ崰鍓婂噺浜嗕紒涓氬唴閮ㄧ幇閲戠暀瀛橈紝鍚屾椂閲戣瀺鎽╂摝鍔犲墽杩涗竴姝ラ檺鍒朵簡浼佷笟澶栭儴淇¤捶铻嶈祫鑾峰彇锛屽唴澶栭儴铻嶈祫鍙楅檺浣夸紒涓氶櫡鍏ユ祦鍔ㄦ€у洶澧冿紝鎴愪负浼佷笟鏃犳硶寮€灞曠旱鍚戝苟璐椿鍔ㄧ殑閲嶈鍘?
+
+
+--- [130] [CN] 浼佷笟鍖呭鎬у垱鏂扮殑娴嬪害锛氬熀浜庡ぇ璇█妯″瀷鐨勬柊鏂规硶_姊佸畤濂?
+    Title hints: 浼佷笟鍖呭鎬у垱鏂扮殑娴嬪害锛氬熀浜庡ぇ璇█妯″瀷鐨勬柊鏂规硶 | 姊佸畤濂?璧典簯杈?浠樻槦鏄?璧电憺楣?
+    Preview: # 浼佷笟鍖呭鎬у垱鏂扮殑娴嬪害锛氬熀浜庡ぇ璇█妯″瀷鐨勬柊鏂规硶  姊佸畤濂?璧典簯杈?浠樻槦鏄?璧电憺楣? 鎽?瑕侊細鍖呭鎬у垱鏂颁綔涓轰紒涓氶潰鍚?BoP 甯傚満杩涜澶氬厓浠峰€煎垱閫犵殑鍏ㄦ柊鍒涙柊褰㈡€侊紝寮曞彂瀛︽湳鐣岀殑骞挎硾鍏虫敞銆備絾鐩墠灏氭湭鏈変竴绉嶅瑙傘€侀珮鏁堜笖鍑嗙‘鐨勬柟娉曟祴搴﹀寘瀹规€у垱鏂般€備负瑙ｅ喅杩欎竴闂锛屾彁鍑轰竴濂楀熀浜庡ぇ璇█妯″瀷鐨勬柊娴嬪害鏂规硶銆傞€氳繃鏋勫缓鍏抽敭璇嶈瘝鍏革紝瀵?2013-2022 骞?31549 浠戒笂甯傚叕鍙稿勾搴︽姤鍛婁腑鍖呭惈鍏抽敭璇嶇殑鏈夋晥璇彞杩涜浜哄伐鏍囪锛屼娇鐢ㄦ爣璁扮粨鏋滃井璋冨拰璁粌 BERT 棰勮缁冩ā鍨嬶紝閫夋嫨璁粌杩囩▼涓垎绫绘€ц兘鏈€濂界殑妯″瀷瀵瑰叏閮ㄦ枃鏈繘琛屽垎绫伙紝鏈€缁堟瀯寤轰簡浼佷笟鍖呭鎬у垱鏂版寚鏍囥€傜浉鍏虫€у拰鏈夋晥鎬ф楠岀粨鏋滆繘涓€姝ヨ〃鏄庯紝浼佷笟鍖呭鎬у垱鏂板叿鏈夋槑鏄剧殑鍦板尯鍒嗗竷鐗圭偣銆佽涓氬樊寮傛€э紝涓庡浗瀹舵斂绛栭珮搴︾浉鍏筹紝鑳藉杈冨噯纭湴鍙嶆槧浼佷笟鍖呭鎬у垱鏂版寚鏍囨瀯寤虹殑鍚堢悊鎬с€傜爺绌舵垚鏋滃浜庢帹鍔ㄤ紒涓氬寘瀹规€у垱鏂伴鍩熺爺绌跺叿鏈夐噸瑕佹剰涔夈€? 鍏抽敭璇嶏細浼佷笟鍖呭鎬у垱鏂帮紱閲戝瓧濉斿簳灞傦紙BoP锛夋垬鐣ワ紱澶ц瑷€妯″瀷
+
+
+--- [131] [CN] 浼佷笟鏁板瓧鍖栦笌鎶€鏈噰鐢細涓浗鏁翠綋鎶€鏈崌绾ц矾寰勭殑鎺㈣_楂樿繙涓?
+    Title hints: 浼佷笟鏁板瓧鍖栦笌鎶€鏈噰鐢?涓浗鏁翠綋鎶€鏈?鍗囩骇璺緞鐨勬帰璁?$ ^{*} $ | 楂樿繙涓?闄嗗瓙椤?椤瑰悗鍐?
+    Preview: # 浼佷笟鏁板瓧鍖栦笌鎶€鏈噰鐢?涓浗鏁翠綋鎶€鏈?鍗囩骇璺緞鐨勬帰璁?$ ^{*} $  楂樿繙涓?闄嗗瓙椤?椤瑰悗鍐? #### 鍐呭鎻愯  鍐呭鎻愯锛氭湰鍙堝熀浜庢姇璧勭殑璋冩暣鎴愭湰鐞嗚锛屾彁鍑轰紒涓氳兘鍚︿互杈冧綆鐨勮皟鏁存垚鏈渶澶у寲鎶€鏈噰鐢ㄦ姤閰紝灏嗙洿鎺ュ喅瀹氫紒涓氭槸鍚︺€佷綍鏃堕噰鐢ㄦ柊鎶€鏈紝骞惰璇佷簡浼佷笟鏁板瓧鍖栧浣曢€氳繃闄嶄綆璋冩暣鎴愭湰鍔犻€熶簡鎶€鏈噰鐢ㄣ€傚疄璇佸眰闈紝鏈枃鍩轰簬杩囧幓鍗佸勾涓婂競浼佷笟鍙戞槑涓撳埄鐨勫紩鏂囦俊鎭紝鍙戠幇浼佷笟鏁板瓧鍖栦細鍔犻€熷叾閲囩敤澶栭儴鎶€鏈紝鍦ㄦ帓闄や簡浼佷笟鏁板瓧鍖栨湰韬鏁板瓧鎶€鏈噰鐢ㄩ渶姹傚悗涓婅堪缁撹渚濈劧鎴愮珛锛屼粠鑰岃瘉瀹炰簡浼佷笟鏁板瓧鍖栬儗鍚庣殑鏁板瓧鎶€鏈睘鎬у叿鏈夐€氱敤鐩殑銆傚缁存笭閬撳垎鏋愯〃鏄庯紝浼佷笟鏁板瓧鍖栫‘瀹為€氳繃闄嶄綆鎶€鏈噰鐢ㄧ殑璋冩暣鎴愭湰鍔犻€熶簡鎶€鏈噰鐢紝涓斾笉瀛樺湪閫氳繃渚靛崰鐭ヨ瘑浜ф潈浠ュ姞閫熸妧鏈噰鐢ㄧ殑浣滅敤娓犻亾锛岃繖鎰忓懗鐫€浼佷笟鏁板瓧鍖栧己鍖栦簡鍏堕噰鐢ㄥ閮ㄦ妧鏈殑鍐呯敓鍔ㄥ姏銆傝繘涓€姝ラ€氳繃鏋勫缓浼佷笟灞傞潰鐨勭敓浜х巼杩借刀妯″瀷锛岃繕鍙戠幇浼佷笟鏁板瓧鍖栧姞閫熶簡钀藉悗浼佷笟閫氳繃鎶€鏈噰鐢ㄥ疄鐜版妧鏈崌绾с€傛湰鐮旂┒瀵逛簬鐞嗚В浼佷笟鏂版棫鎶€鏈浆
+
+
+--- [132] [CN] 浼佷笟鏁板瓧鍖栬浆鍨嬬殑娴嬪害闅鹃锛氬熀浜庡ぇ璇█妯″瀷鐨勬柊鏂规硶涓庢柊鍙戠幇_閲戞槦鏅?
+    Title hints: 浼佷笟鏁板瓧鍖栬浆鍨嬬殑娴嬪害闅鹃锛?鍩轰簬澶ц瑷€妯″瀷鐨勬柊鏂规硶涓庢柊鍙戠幇 $ ^{*} $ | 閲戞槦鏅?宸︿粠姹?鏂规槑鏈?鏉?娑?鑱傝緣鍗?
+    Preview: # 浼佷笟鏁板瓧鍖栬浆鍨嬬殑娴嬪害闅鹃锛?鍩轰簬澶ц瑷€妯″瀷鐨勬柊鏂规硶涓庢柊鍙戠幇 $ ^{*} $  閲戞槦鏅?宸︿粠姹?鏂规槑鏈?鏉?娑?鑱傝緣鍗? #### 鍐呭鎻愯  鍐呭鎻愯锛氱ぞ浼氬悇鐣屽叧浜庝紒涓氭暟瀛楀寲杞瀷鐨勯噸瑕佹€у凡缁忓熀鏈揪鎴愬叡璇嗭紝浣嗗浼佷笟鏁板瓧鍖栬浆鍨嬬殑鏁堟灉瀛樺湪涓ラ噸鍒嗘銆備骇鐢熻繖涓€鐜拌薄鐨勪富瑕佸師鍥犳槸鐜版湁鐮旂┒瀵逛紒涓氭暟瀛楀寲杞瀷鐨勬祴搴﹀瓨鍦ㄩ棶棰橈細涓€鏄祴搴﹀璞′笉澶熺粺涓€鏄庣‘锛屼簩鏄祴搴︽柟娉曚笉澶熺瀛﹀噯纭€傝繖瀵艰嚧寰堝鐮旂┒缁撹涓嶅彲姣旇緝銆侀毦浠ュ鍒跺拰鐩镐簰鍐茬獊銆備负浜嗘洿濂藉湴澶勭悊涓婅堪闅鹃锛屾湰鏂囪繍鐢ㄦ満鍣ㄥ涔犲拰澶ц瑷€妯″瀷鏋勯€犱竴濂楁柊鐨勪紒涓氭暟瀛楀寲杞瀷鎸囨爣銆傛湰鏂囬鍏堝2006鈥?020骞翠笂甯傚叕鍙稿勾鎶ヤ腑鐨勫彞瀛愯繘琛屼汉宸ユ墦鏍囩锛岀劧鍚庣敤鏍囪缁撴灉璁粌鍜屽井璋冨寘鎷ぇ璇█妯″瀷鍦ㄥ唴鐨勫涓満鍣ㄥ涔犳ā鍨嬶紝閫夋嫨鍏朵腑鍒嗙被鏁堟灉鏈€濂界殑ERNIE妯″瀷浣滀负鍙ュ瓙鍒嗙被妯″瀷鏉ラ娴嬪叏閮ㄦ枃鏈腑鍙ュ瓙鐨勬爣绛撅紝鏈€缁堟瀯閫犱簡浼佷笟鏁板瓧鍖栬浆鍨嬫寚鏍囥€傜悊璁哄垎鏋愬拰鏁版嵁浜ゅ弶楠岃瘉鍧囪〃鏄庯紝鏈枃鏋勫缓鐨勬寚鏍囩浉瀵瑰凡鏈夋柟娉曟洿鍑嗙‘銆傚湪
+
+
+--- [133] [CN] 浼佷笟鏁板瓧鍖栬浆鍨嬬▼搴︾殑缁熻娴嬪害锛氫互鏁板瓧鎶€鏈汉鎵嶉渶姹備负瑙嗚_璋幑
+    Title hints: 浼佷笟鏁板瓧鍖栬浆鍨嬬▼搴︾殑缁熻娴嬪害锛?浠ユ暟瀛楁妧鏈汉鎵嶉渶姹備负瑙嗚 $ ^{*} $ | 璋幑 鍒橀鏉?寮犲媼
+    Preview: # 浼佷笟鏁板瓧鍖栬浆鍨嬬▼搴︾殑缁熻娴嬪害锛?浠ユ暟瀛楁妧鏈汉鎵嶉渶姹備负瑙嗚 $ ^{*} $  璋幑 鍒橀鏉?寮犲媼  鍐呭鎻愯: 鍏氱殑浜屽崄灞婁笁涓叏浼氬己璋冣€滃仴鍏ㄤ績杩涘疄浣撶粡娴庡拰鏁板瓧缁忔祹娣卞害铻嶅悎鍒跺害鈥濓紝鑰屼紒涓氭暟瀛楀寲杞瀷鏄績杩涘疄浣撶粡娴庡拰鏁板瓧缁忔祹娣卞害铻嶅悎鐨勫叧閿€斿緞銆傜劧鑰岋紝鐜版湁鐮旂┒瀵逛簬涓浗浼佷笟鐨勬暟瀛楀寲杞瀷绋嬪害鐨勮瘎浼板瓨鍦ㄥ垎姝э紝涓昏鍘熷洜鏄紒涓氭暟瀛楀寲杞瀷鐨勬祴搴﹀瓨鍦ㄩ棶棰橈細涓€鏄祴搴﹁瑙掑鑱氱劍浜庣敓浜х幆鑺傦紝椴滄湁鏂囩尞浠庡姵鍔ㄦ姇鍏ョ殑瑙掑害灞曞紑锛涗簩鏄祴搴﹀璞″鑱氱劍浜庝笂甯傚叕鍙革紝瀛樺湪鏍锋湰閫夋嫨鍋忚銆備负鏇村ソ鍦板鐞嗕笂杩伴毦棰橈紝鏈枃鍦ㄨ璇佹祴搴︾瓥鐣ョ殑绉戝鎬х殑鍩虹涓婏紝閲囩敤2014鈥?021骞翠腑鍥?339187瀹跺寘鎷腑灏忓井浼佷笟鍦ㄥ唴鐨勪紒涓氱綉缁滄嫑鑱樻暟鎹紝閫氳繃鏂囨湰鍒嗘瀽璇嗗埆浼佷笟瀵规暟瀛楁妧鏈汉鎵嶇殑闇€姹傦紝杩涜€屽涓浗浼佷笟鏁板瓧鍖栬浆鍨嬬▼搴﹁繘琛岄噸浼般€備及璁＄粨鏋滄樉绀猴紝鎴嚦2021骞达紝涓浗浼佷笟鐨勬暟瀛楀寲杞瀷鐜囦粎鏈?3.2%锛屾樉钁椾綆浜庝娇鐢ㄤ笂甯傚叕鍙镐负鏍锋湰鐨勬祴绠楃粨鏋滐紝鎰忓懗鐫€鎴戝浗涓皬寰紒涓氱殑鏁板瓧
+
+
+--- [134] [CN] 淇℃伅鎽╂摝銆佸叕鍏辨暟鎹笌浼佷笟鍒涙柊杈圭晫_璋匠鏉?
+    Title hints: 淇℃伅鎽╂摝銆佸叕鍏辨暟鎹笌浼佷笟鍒涙柊杈圭晫 $ ^{*} $ | 璋匠鏉?妯婂槈璇?鏋楀缓娴?
+    Preview: # 淇℃伅鎽╂摝銆佸叕鍏辨暟鎹笌浼佷笟鍒涙柊杈圭晫 $ ^{*} $  璋匠鏉?妯婂槈璇?鏋楀缓娴? 鍐呭鎻愯: 鍦ㄤ粠鈥滃垱鏂板ぇ鍥解€濊繄鍚戔€滃垱鏂板己鍥解€濈殑鎴樼暐杞瀷涓? 濡備綍鐮磋В绐佺牬寮忓垱鏂颁笉瓒崇殑缁撴瀯鎬у洶澧? 宸叉垚涓烘彁鍗囦腑鍥界鎶€绔炰簤鍔涚殑鍏抽敭鍛介銆傛湰鏂囦粠淇℃伅鎽╂摝瑙嗚鍑哄彂, 鏋勫缓浜嗕竴涓寘鍚鏈夋暟鎹笌鍏叡鏁版嵁鐨勫紓璐ㄦ€у垱鏂伴€夋嫨妯″瀷, 鍒荤敾浼佷笟鍦ㄦ笎杩涘紡涓庣獊鐮村紡鍒涙柊涔嬮棿鐨勬渶浼樺喅绛栥€傜悊璁哄垎鏋愯〃鏄? 鍏叡鏁版嵁浣滀负涓€绉嶅叕鍏变俊鎭? 涓€鏂归潰澧炲己浼佷笟瀵瑰閮ㄥ垱鏂扮幆澧冪殑璇嗗埆鑳藉姏(淇℃伅渚涚粰), 鍙︿竴鏂归潰鏈夊姪浜庨檷浣庝紒涓氶棿鍒涙柊缃戠粶鐨勫崗鍚屾垚鏈?鍗忚皟寮哄寲), 浠庤€屾彁楂樹紒涓氱爺鍙戞晥鐜囧苟婵€鍔辩獊鐮村紡鍒涙柊, 鎺ㄥ姩鍒涙柊杈圭晫鎷撳睍銆傚湪姝ゅ熀纭€涓? 鏈枃鍒╃敤涓浗鍦版柟鏀垮簻鍏叡鏁版嵁寮€鏀惧钩鍙颁笂绾夸綔涓哄奖鍝嶄紒涓氫俊鎭幆澧冪殑鍐插嚮, 瀵规ā鍨嬬粨璁鸿繘琛屽疄璇佹楠? 缁撴灉涓庣悊璁洪娴嬬浉绗︺€傝繘涓€姝ュ湴, 鏈枃鍩轰簬澶ц瑷€妯″瀷瀵逛紒涓氫笓鍒╄繘琛屾妧鏈鍩熻瘑鍒? 璁＄畻鍏朵笌鍦版柟鏀垮簻鍏叡鏁版嵁鎵€灞為鍩熺殑浣欏鸡鐩镐技搴? 鏋勫缓
+
+
+--- [135] [CN] 鍏崇◣澹佸瀿銆佽法鍥界煡璇嗘祦鍔ㄤ笌鍚庡彂鍥藉绐佺牬鎬у垱鏂扳€斺€斿熀浜庝腑缇庝笓鍒╂枃鏈殑鐮旂┒_鏉庡厓鐞?
+    Title hints: 鍏崇◣澹佸瀿銆佽法鍥界煡璇嗘祦鍔ㄤ笌鍚庡彂鍥藉绐佺牬鎬у垱鏂?鈥斺€斿熀浜庝腑缇庝笓鍒╂枃鏈殑鐮旂┒ | [鎽樿]
+    Preview: # 鍏崇◣澹佸瀿銆佽法鍥界煡璇嗘祦鍔ㄤ笌鍚庡彂鍥藉绐佺牬鎬у垱鏂?鈥斺€斿熀浜庝腑缇庝笓鍒╂枃鏈殑鐮旂┒  鏉庡厓鐞? #### [鎽樿]  銆旀憳瑕併€曠獊鐮存€у垱鏂版槸鍚庡彂鍥藉瀹炵幇璺ㄨ秺寮忓彂灞曠殑鍏抽敭椹卞姩鍔涳紝浣嗗叾鍩硅偛甯稿彈鍒板厛鍙戝浗瀹跺叧绋庡鍨掔殑鍒剁害銆傛绫诲鍨掑浣曞奖鍝嶅悗鍙戝浗瀹剁殑绐佺牬鎬у垱鏂帮紝鏄綋鍓嶅叏鐞冪粡璐告懇鎿﹂鍙戣儗鏅笅鐨勯噸瑕佽棰樸€傛湰鏂囧熀浜庝腑鍥藉拰缇庡浗鐨勪笓鍒╂枃鏈紝鍒╃敤AI澶ц瑷€妯″瀷S-BERT鏋勫缓浜嗕笓鍒╁眰闈㈢殑绐佺牬鎬у垱鏂板拰璺ㄥ浗鐭ヨ瘑娴佸姩鎸囨爣锛屽苟閲囩敤鍙岄噸宸垎娉曡€冨療浜嗗姞寰佸叧绋庡鍨掑鍚庡彂鍥藉绐佺牬鎬у垱鏂扮殑褰卞搷鍙婂叾浼犲鏈哄埗銆傜爺绌跺彂鐜帮紝澶栭儴鍏崇◣澹佸瀿瀵瑰悗鍙戝浗瀹朵紒涓氱殑绐佺牬鎬у垱鏂版湁涓嶅埄褰卞搷锛屽娓愯繘鎬у垱鏂扮殑褰卞搷涓嶆樉钁楋紱鏈哄埗鍒嗘瀽琛ㄦ槑锛屽閮ㄥ叧绋庡鍨掑苟鏈€氳繃鈥滆祫閲戞祦鈥濊矾寰勯檷浣庝紒涓氱殑鐮斿彂鎶曞叆锛岃€屾槸閫氳繃鍑忓皯琛屼笟闂村拰琛屼笟鍐呯殑璺ㄥ浗鐭ヨ瘑娴佸姩锛屽绐佺牬鎬у垱鏂颁骇鐢熻礋鍚戝奖鍝嶏紱杩涗竴姝ュ垎鏋愯〃鏄庯紝寮曡繘鍒涙柊鍓嶆部鍥藉鐨勫鍟嗙洿鎺ユ姇璧勶紙FDI锛夈€佸墠寰€鍒涙柊鍓嶆部鍥藉鐨勫澶栫洿鎺ユ姇璧勶紙OFDI锛変互鍙婅嚜鐢辫锤鏄撹瘯楠?
+
+
+--- [136] [CN] 鍔冲姩鍔涙垚鏈笌鍔冲姩鑺傜害鍨嬫妧鏈垱鏂扳€斺€旀潵鑷狝I璇█妯″瀷鍜屼笓鍒╂枃鏈殑璇佹嵁_鍒橀潚
+    Title hints: 鍔冲姩鍔涙垚鏈笌鍔冲姩鑺傜害鍨嬫妧鏈垱鏂?$ ^{*} $ | 鈥斺€旀潵鑷?AI 璇█妯″瀷鍜屼笓鍒╂枃鏈殑璇佹嵁
+    Preview: # 鍔冲姩鍔涙垚鏈笌鍔冲姩鑺傜害鍨嬫妧鏈垱鏂?$ ^{*} $  鈥斺€旀潵鑷?AI 璇█妯″瀷鍜屼笓鍒╂枃鏈殑璇佹嵁  鍒橀潚鑲栨煆楂? 鍐呭鎻愯: 浠庢浛浠ｄ綋鍔涚殑钂告苯鏈哄埌鏇夸唬鑴戝姏鐨?AI, 閲嶅ぇ鍔冲姩鑺傜害鍨嬫妧鏈殑鍒涙柊鍜屽簲鐢ㄩ兘娣卞害鏀瑰彉浜嗕笘鐣岀粡娴庡彂灞曟牸灞€, 骞舵垚涓哄鐣岀爺绌剁劍鐐广€傜劧鑰屾⒊鐞嗘枃鐚彂鐜? 鐜版湁鍏充簬鍔冲姩鑺傜害鍨嬫妧鏈殑鐮旂┒涓昏鑱氱劍浜庡叾搴旂敤鎴栧紩杩? 瀵瑰叾鍒涙柊鍏虫敞鐢氬皯銆傛湰鏂囬娆＄粨鍚?AI 棰嗗煙鍓嶆部鐨?BERT 璇█妯″瀷鍜屼笓鍒╂憳瑕佽緝涓虹簿鍑嗗湴璇嗗埆鍔冲姩鑺傜害鍨嬫妧鏈垱鏂般€傚湪姝ゅ熀纭€涓? 鑰冭檻鍒颁腑鍥芥澶勪簬鑰侀緞鍖栧姞鍓с€佸姵鍔ㄥ姏鎴愭湰蹇€熶笂娑ㄩ樁娈典笖鍔冲姩鑺傜害鍨嬪墠娌挎妧鏈紩杩涙棩鐩婂彈闃? 妫€楠屽姵鍔ㄥ姏鎴愭湰涓婂崌濡備綍褰卞搷涓浗浼佷笟鐨勫姵鍔ㄨ妭绾﹀瀷鎶€鏈嚜涓诲垱鏂般€傚熀浜庝笂甯傚叕鍙告暟鎹? 鏈枃鍙戠幇鍔冲姩鍔涙垚鏈笂鍗囨樉钁楀湴淇冭繘浜嗗姵鍔ㄨ妭绾﹀瀷鎶€鏈垱鏂扮殑姒傜巼銆佹暟閲忋€佸崰姣斾互鍙婅川閲忋€備娇鐢ㄨ€冭檻涓浗鐪佺晫鐗瑰緛鐨勭浉閭诲煄甯傛牱鏈潵瑙ｅ喅娼滃湪鍐呯敓鎬ч棶棰樺悗缁撹渚濈劧鎴愮珛銆傛湰鏂囨彁鍑虹殑鐗瑰畾鎶€鏈垱鏂扮殑璇嗗埆鏂规硶鍙
+
+
+--- [137] [CN] 鍔冲姩鑺傜害鍨嬪垱鏂般€佷拱鏂瑰瀯鏂笌瓒呴鍒╂鼎鈥斺€斿吋璁鸿嚜鍔ㄥ寲鑳屾櫙涓嬬殑宸ヨ祫鏀粯淇濋殰鏈哄埗_鍠荤悊
+    Title hints: 2025骞寸9鏈?| 鍔冲姩鑺傜害鍨嬪垱鏂般€佷拱鏂瑰瀯鏂?涓庤秴棰濆埄娑?$ ^{*} $ 鈥斺€斿吋璁鸿嚜鍔ㄥ寲鑳屾櫙涓嬬殑宸ヨ祫鏀粯淇濋殰鏈哄埗
+    Preview: 2025骞寸9鏈? # 鍔冲姩鑺傜害鍨嬪垱鏂般€佷拱鏂瑰瀯鏂?涓庤秴棰濆埄娑?$ ^{*} $ 鈥斺€斿吋璁鸿嚜鍔ㄥ寲鑳屾櫙涓嬬殑宸ヨ祫鏀粯淇濋殰鏈哄埗  鍠?鐞?鐜嬫窇濠?鏉?鍑?鑹炬槬鑽? 鎽樿锛氫负鎵╁ぇ鍐呴渶鍜屾帹鍔ㄩ珮璐ㄩ噺鍙戝睍锛岃繎鏈熷浗瀹跺眰闈㈠娆″己璋冭瀹屽杽鍔冲姩鑰呭伐璧勫喅瀹氥€佸悎鐞嗗闀夸笌鏀粯淇濋殰鏈哄埗锛屽苟鍋ュ叏瑕佺礌鐨勫垵娆″垎閰嶄綋绯汇€傚湪姝よ儗鏅笅锛屾湰鏂囩爺绌朵簡鍔冲姩鑺傜害鍨嬪垱鏂板浣曞奖鍝嶅姵鍔ㄥ姏涔版柟鍔垮姏锛屼负鍦ㄨ嚜鍔ㄥ寲鑳屾櫙涓嬪畬鍠勫姵鍔ㄨ€呭伐璧勫喅瀹氭満鍒舵彁渚涘井瑙傝瘉鎹€傛湰鏂囧熀浜?007~2016骞村叏鍥界◣鏀惰皟鏌ユ暟鎹紝鍊熷姪澶ц瑷€妯″瀷鏋勫缓鏍囨敞闆嗭紝鍦ㄦ鍩虹涓婂井璋傿ERT妯″瀷锛屼互瀵逛紒涓氱爺鍙戞椿鍔ㄧ殑绫诲瀷杩涜鍒嗙被銆傜爺绌跺彂鐜帮紝鍔冲姩鑺傜害鍨嬪垱鏂伴€氳繃绉熼噾杞Щ銆佹浛浠ｄ緥琛屼换鍔′笌淇冭繘瓒呯骇鏄庢槦浼佷笟宕涜捣绛夋笭閬擄紝鏄捐憲澧炲己浜嗕紒涓氱殑鍔冲姩鍔涗拱鏂瑰娍鍔涳紝骞跺湪渚涘簲閾鹃棿浜х敓鏄捐憲婧㈠嚭鏁堝簲锛涜€屽姵鍔ㄥ寮哄瀷鍒涙柊鍒欒兘澶熸湁鏁堟姂鍒跺姵鍔ㄥ姏涔版柟鍔垮姏鐨勬墿寮犮€傝繘涓€姝ョ爺绌跺彂鐜帮紝鐢卞姵鍔ㄨ妭绾﹀瀷鍒涙柊寮曡嚧鐨勫姵鍔ㄥ姏涔版柟鍔垮姏鎵╁紶锛屾槸瀵艰嚧浼佷笟鍔冲姩鏀跺叆浠介
+
+
+--- [138] [CN] 鍩轰簬鏂囨湰鍒嗘瀽鐨勫晢涓氶摱琛岄噾铻嶇鎶€娴嬪害鍙婅祴鑳芥晥鏋滄楠宊鑳′繆
+    Title hints: 鏂囩珷缂栧彿锛?003-207(2024)01-0031-11 DOI:10.16381/j.cnki.issn1003-207x.2021.1714 | 鍩轰簬鏂囨湰鍒嗘瀽鐨勫晢涓氶摱琛岄噾铻嶇鎶€娴嬪害鍙?璧嬭兘鏁堟灉妫€楠?
+    Preview: 鏂囩珷缂栧彿锛?003-207(2024)01-0031-11 DOI:10.16381/j.cnki.issn1003-207x.2021.1714  # 鍩轰簬鏂囨湰鍒嗘瀽鐨勫晢涓氶摱琛岄噾铻嶇鎶€娴嬪害鍙?璧嬭兘鏁堟灉妫€楠? 鑳′繆 $ ^{1} $锛屾潕寮?$ ^{2} $锛屾埓鍢夎瘹 $ ^{2} $锛屾浘鍕?$ ^{2} $  (1. 瑗垮崡璐㈢粡澶у閲戣瀺瀛﹂櫌, 鍥涘窛 鎴愰兘 611130; 2. 鐢靛瓙绉戞妧澶у缁忔祹涓庣鐞嗗闄? 鍥涘窛 鎴愰兘 611731)  鎽?瑕?鍙戝睍閲戣瀺绉戞妧鏄晢涓氶摱琛屾暟瀛楀寲杞瀷鍜岃返琛屾櫘鎯犻噾铻嶇殑閲嶈鎴樼暐閫夋嫨銆傜幇鏈夌爺绌舵棦缂轰箯閾惰涓綋灞傞潰閲戣瀺绉戞妧姘村钩鐨勭粺涓€娴嬪害锛屼篃椴滃皯瀹氶噺鑰冨療閾惰閲戣瀺绉戞妧鐨勮祴鑳芥晥鏋溿€傛湰鏂囧埄鐢ㄨ秴杩?7涓囨潯鏈夊叧鍟嗕笟閾惰鎶ラ亾鐨勬柊闂绘枃鏈紝杩愮敤鍛藉悕瀹炰綋璇嗗埆銆侀璁粌璇嶅悜閲忋€丩DA涓婚妯″瀷绛夊绉嶈嚜鐒惰瑷€澶勭悊鎶€鏈紝鏋勫缓浜嗏€滃晢涓氶摱琛岄噾铻嶇鎶€鈥濆拰鈥滃晢涓氶摱琛屽悕绉扳€濅袱涓熀纭€璇嶅簱锛岄娆℃祴搴︿簡2011鈥?019骞撮棿
+
+
+--- [139] [CN] 澧炲€肩◣鐣欐姷閫€绋庛€侀鏈熶笌浼佷笟闆囦剑_闄堝畤__
+    Title hints: 澧炲€肩◣鐣欐姷閫€绋庛€侀鏈熶笌浼佷笟闆囦剑 | 闄堝畤 闄堣秴鍑?鏉庨拪 閭撶
+    Preview: # 澧炲€肩◣鐣欐姷閫€绋庛€侀鏈熶笌浼佷笟闆囦剑  闄堝畤 闄堣秴鍑?鏉庨拪 閭撶  (涓ぎ璐㈢粡澶у璐㈡斂绋庡姟瀛﹂櫌, 鍖椾含 102200; 鍖椾含宸ュ晢澶у缁忔祹瀛﹂櫌, 鍖椾含 100048)  鎽?瑕?鏈枃浠?016鈥?022骞碅鑲′笂甯傚叕鍙镐负鐮旂┒鏍锋湰,鍒╃敤澶氭湡DID妯″瀷鐮旂┒澧炲€肩◣鐣欐姷閫€绋庢斂绛栧浼佷笟闆囦剑瑙勬ā鐨勫奖鍝嶃€傜爺绌跺彂鐜?澧炲€肩◣鐣欐姷閫€绋庢斂绛栦娇寰椾紒涓氶泧浣ｈ妯″钩鍧囨墿澶т簡2.31%,骞朵笖璇ユ晥搴斿璧勬湰瀵嗛泦鍨嬨€佸浜庢垚闀挎湡鐨勪紒涓氥€侀潪鍥芥湁浼佷笟鍜岃瀺璧勭害鏉熷ぇ鐨勪紒涓氬奖鍝嶆洿涓烘樉钁椼€傛満鍒舵楠岃〃鏄?璇ユ晥搴旈€氳繃缂撹В浼佷笟娴佸姩鎬х害鏉熴€佹敼鍙樿绱犳姇璧勫喅绛栥€佹彁鎸粡钀ヤ富浣撲俊蹇冨疄鐜般€傛澶?鏀垮簻棰勬湡绠＄悊姘村钩鏇撮珮鐨勫湴鍖?鐣欐姷閫€绋庣殑灏变笟淇冭繘鏁堝簲鏇村ぇ銆傛湰鏂囧叧浜庣暀鎶甸€€绋庢斂绛栧浼佷笟闆囦剑鐨勫奖鍝嶇爺绌剁粨璁?鍙负杩涗竴姝ュ彂鎸ョ暀鎶甸€€绋庢斂绛栫殑灏变笟鏁堝簲鎻愪緵鍙傝€冦€? 鍏抽敭璇嶏細澧炲€肩◣鐣欐姷閫€绋庯紱浼佷笟闆囦剑锛涢鏈燂紱澶氭湡DID锛涙枃鏈垎鏋? JEL 鍒嗙被鍙凤細E24锛孍62锛孒20 鏂囩尞鏍囪瘑鐮侊細A 鏂?
+
+
+--- [140] [CN] 澶ц瑷€妯″瀷銆佹枃鏈儏缁笌閲戣瀺甯傚満_濮滃瘜浼?
+    Title hints: DOI:10.19744/j.cnki.11-1235/f.2024.0090 | 澶ц瑷€妯″瀷銆佹枃鏈儏缁?涓庨噾铻嶅競鍦?$ ^{*} $
+    Preview: 缁忔祹瀛? DOI:10.19744/j.cnki.11-1235/f.2024.0090  # 澶ц瑷€妯″瀷銆佹枃鏈儏缁?涓庨噾铻嶅競鍦?$ ^{*} $  濮滃瘜浼?鍒橀洦鏃?瀛熶护瓒? 鎽樿锛氣€滀汉宸ユ櫤鑳?鈥濊鍔ㄦ槸鍙戝睍鏂拌川鐢熶骇鍔涚殑閲嶈閫斿緞锛屽叾鍦ㄩ噾铻嶉鍩熺殑搴旂敤鏈夊姪浜庨噾铻嶅己鍥藉缓璁俱€傛湰鏂囧垱鏂版€у湴铻嶅悎缁撴瀯鍖栭噾铻嶅競鍦烘暟鎹拰闈炵粨鏋勫寲閲戣瀺鏂囨湰澶ф暟鎹紝骞剁粨鍚堜腑鍥界壒鑹查噾铻嶅競鍦虹殑鐙壒鐗瑰緛锛岃缁冧簡涓€涓洿閫傜敤浜庢垜鍥介噾铻嶉鍩熺殑涓枃閲戣瀺澶ц瑷€妯″瀷锛屽苟寮€灞曢噾铻嶅競鍦烘儏缁祴搴﹀拰璧勪骇浠锋牸椋庨櫓棰勬祴銆傜爺绌跺彂鐜帮紝涓庝紶缁熷瓧鍏告硶鐩告瘮锛屼娇鐢ㄤ腑鏂囬噾铻嶅ぇ璇█妯″瀷鏋勫缓鐨勫ぇ妯″瀷鎯呯华鍦ㄩ噾铻嶅競鍦哄洖鎶ラ娴嬫柟闈㈣〃鐜版樉钁楁洿浣炽€傚ぇ妯″瀷鎯呯华瀵瑰緢澶氬畯瑙傜粡娴庡彉閲忎篃鏈夋樉钁楅娴嬭兘鍔涳紝鑳藉鎹曟崏闈炵悊鎬ф儏缁啿鍑诲瀹忚缁忔祹鍩烘湰闈㈢殑褰卞搷銆傚ぇ妯″瀷鎯呯华鍦ㄧ粡娴庝笅琛屽拰鏋佺椋庨櫓浜嬩欢鏈熼棿鐨勯娴嬫晥鏋滄洿寮猴紝濂戝悎浜嗛噾铻嶇悊璁轰腑闈炵悊鎬ф儏缁閲戣瀺甯傚満鍜屽畯瑙傜粡娴庝細浜х敓闈炲绉颁笌闈炵嚎鎬у奖鍝嶇殑缁撴灉銆傜患涓婏紝鏈爺绌跺睍鐜颁簡鈥?
+
+
+--- [141] [CN] 澶娌熼€氬叕鍛婃湁鍔╀簬鎻愬崌鏀跨瓥鍒╃巼鐨勪紶瀵兼晥鐜囧悧锛焈娆ч槼蹇楀垰
+    Title hints: 澶娌熼€氬叕鍛婃湁鍔╀簬鎻愬崌鏀跨瓥鍒╃巼鐨勪紶瀵兼晥鐜囧悧锛?| 娆ч槼蹇楀垰 鑳￠洴鍗?$ ^{*} $
+    Preview: # 澶娌熼€氬叕鍛婃湁鍔╀簬鎻愬崌鏀跨瓥鍒╃巼鐨勪紶瀵兼晥鐜囧悧锛? 娆ч槼蹇楀垰 鑳￠洴鍗?$ ^{*} $  鎽樿锛氭斂绛栧埄鐜囧悜璐у竵甯傚満鐭湡鍒╃巼鐨勪紶瀵兼晥鐜囨槸澶瀹炴柦璐у竵鏀跨瓥璋冩帶鐨勫叧閿幆鑺傦紝閽堝杩欎竴鍏抽敭鐜妭锛屾湰鏂囧皢澶娌熼€氬叕鍛婂尯鍒嗕负鏄庣‘璐у竵鏀跨瓥鎿嶄綔鐩爣鐨勫畾閲忓叕鍛婂拰鏈槑纭搷浣滅洰鏍囩殑瀹氭€у叕鍛婏紝瀹炶瘉鐮旂┒涓嶅悓褰㈠紡鐨勫ぎ琛屾矡閫氬叕鍛婂鏀跨瓥鍒╃巼浼犲鏁堢巼鐨勫奖鍝嶃€傜爺绌跺彂鐜帮細瀹氶噺鍏憡鏈夊姪浜庢彁鍗囨斂绛栧埄鐜囩殑浼犲鏁堢巼锛屽畾鎬у叕鍛婂奖鍝嶄笉鏄捐憲銆傚湪鎵€鏈夊畾閲忓叕鍛婁腑锛屸€滃皬绾告潯鈥濆鏀跨瓥鍒╃巼浼犲鏁堢巼鐨勬彁鍗囦綔鐢ㄦ渶鏄捐憲銆傛湰鏂囪繘涓€姝ユ瀯寤烘矡閫氳璋冨彉鍖栧拰鏂囨湰鐩镐技搴︽寚鏍囨楠屸€滃皬绾告潯鈥濇彁鍗囨斂绛栧埄鐜囦紶瀵兼晥鐜囩殑璺緞銆傜粨鏋滆〃鏄庯紝鈥滃皬绾告潯鈥濇矡閫氳璋冨彉鍖栭€氳繃鍒堕€犫€滄柊淇℃伅鈥濇彁楂樺叕鍏变俊鎭簿搴︼紝澧炲己鍏紬瀵瑰叕寮€甯傚満鎿嶄綔鏀跨瓥鐨勪俊浠诲害锛屽鏀跨瓥鍒╃巼浼犲鏁堢巼浜х敓褰卞搷銆傜浉閭烩€滃皬绾告潯鈥濋棿鐩镐技鐨勬矡閫氫範鎯拰琛ㄨ揪鏂瑰紡鏈夊姪浜庡叕浼楀噯纭悊瑙ｈ揣甯佸綋灞€鎰忓浘锛屾彁楂樺叕浼楀鍏叡淇℃伅鐨勭悊瑙ｅ噯纭害锛屾彁鍗囨斂绛栧埄鐜囩殑浼犲鏁堢巼銆備笂
+
+
+--- [142] [EN] 濯掍綋鎯呯华涓庝紒涓氶闄╂壙鎷呪€斺€斿熀浜庢満鍣ㄥ涔犲拰鏂囨湰鍒嗘瀽鐨勮瘉鎹甠瀹檽鑾?
+    Title hints: doi: 10.12011/SETP2023-1488 | 涓浘娉曞垎绫诲彿锛欶832
+    Preview: doi: 10.12011/SETP2023-1488    涓浘娉曞垎绫诲彿锛欶832  鏂囩尞鏍囧織鐮侊細A  # 濯掍綋鎯呯华涓庝紒涓氶闄╂壙鎷呪€斺€斿熀浜庢満鍣ㄥ涔犲拰鏂囨湰鍒嗘瀽鐨勮瘉鎹? 瀹檽鑾?$ ^{1,2} $锛屽緪灏忔儬 $ ^{1} $锛岀唺鐔?$ ^{2,3} $  (1. 闈掑矝澶у 缁忔祹瀛﹂櫌, 闈掑矝 266071; 2. 澶╂触澶у 澶嶆潅绠＄悊绯荤粺瀹為獙瀹? 澶╂触 300072; 3. 澶╂触澶у 绠＄悊涓庣粡娴庡閮? 澶╂触 300072)  鎽?瑕?濯掍綋鑸嗚浣滀负浼佷笟杩愯惀杩囩▼涓笌澶栫晫淇℃伅浜や簰鐨勯噸瑕佹笭閬擄紝鑳藉閫氳繃淇℃伅鍔犲伐鍜屽弽棣堟綔绉婚粯鍖栧湴褰卞搷浼佷笟鍐崇瓥銆傚熀浜庝紭鍖栨満鍣ㄥ涔犳柟娉曟祴閲忓緱鍒扮殑濯掍綋鎯呯华寰楀垎锛屾湰鏂囧彂鐜板獟浣撴儏缁細鎶戝埗浼佷笟椋庨櫓鎵挎媴锛岃繖涓€缁撹缁忚繃鍏呭垎绋冲仴鎬ф楠屽悗浠嶇劧鎴愮珛銆傛満鍒跺垎鏋愯〃鏄庯紝濯掍綋鎯呯华涓昏閫氳繃褰卞搷淇℃伅涓嶅绉扮▼搴︺€佹劅鏌撴姇璧勮€呮儏缁拰鍔犲墽鍒嗘瀽甯堢緤缇よ涓哄疄鐜板浼佷笟椋庨櫓鎵挎媴鐨勬姂鍒舵晥搴斻€傚紓璐ㄦ€у垎鏋愯〃鏄庣浉姣斾簬璐熼潰濯掍綋鎯呯华锛屾闈?
+
+
+--- [143] [CN] 甯傚満涓€浣撳寲瀵逛紒涓氭暟瀛楀垱鏂扮殑褰卞搷鈥斺€斿吋璁烘暟瀛楀垱鏂拌　閲忔柟娉昣鑳″鐜?
+    Title hints: 甯傚満涓€浣撳寲瀵逛紒涓氭暟瀛楀垱鏂扮殑褰卞搷 $ ^{*} $ | 鈥斺€斿吋璁烘暟瀛楀垱鏂拌　閲忔柟娉?
+    Preview: # 甯傚満涓€浣撳寲瀵逛紒涓氭暟瀛楀垱鏂扮殑褰卞搷 $ ^{*} $  鈥斺€斿吋璁烘暟瀛楀垱鏂拌　閲忔柟娉? 鑳″鐜?椹堪蹇? 鍐呭鎻愯锛氭暟瀛楀垱鏂版槸缁忔祹楂樿川閲忓彂灞曠殑閲嶈鎺ㄥ姩鍔涢噺锛屽叏鍥界粺涓€澶у競鍦哄缓璁句細鏀惧ぇ鏁板瓧鍒涙柊鐨勮妯＄粡娴庡拰鍒涢€犳€х牬鍧忔晥搴旓紝鎴愪负鍦ㄧ鎶€鍒涙柊棰嗗煙琚€滃崱鑴栧瓙鈥濆洶澧冧笅寮曢浼佷笟鏁板瓧鍒涙柊鐨勫叧閿€傚綋鍓嶆暟瀛楀垱鏂伴噺鍖栫爺绌惰緝灏戯紝鏈枃鍒涙柊鎬т娇鐢ㄨ嚜鐒惰瑷€澶勭悊涓庢満鍣ㄥ涔犱氦鍙夎寖鐣寸殑棰勮缁冭瑷€妯″瀷锛屽熀浜?985鈥?017骞翠腑鍥戒笓鍒╁叏鏂囨暟鎹簱鍜屾暟瀛楃粡娴庢牳蹇冧骇涓氬垎绫绘弿杩版枃鏈繘琛屾暟瀛楀垱鏂拌瘑鍒伐浣滐紝骞跺皢璇嗗埆鍒扮殑鏁板瓧鍒涙柊涓庡ぉ鐪兼煡鏁版嵁搴撳尮閰嶃€備箣鍚庯紝鏈枃浠ュ叏鍥界粺涓€澶у競鍦轰笌鏁板瓧鍒涙柊涔嬮棿鐨勫叧閿仈绯讳负鍒囧叆鐐癸紝鍩轰簬鏁伴噺鍜岃川閲忓弻閲嶈瑙掞紝鎺㈢┒甯傚満涓€浣撳寲瀵逛紒涓氭暟瀛楀垱鏂扮殑褰卞搷鍙婂叾娓犻亾銆傜粨鏋滃彂鐜帮細甯傚満涓€浣撳寲姘村钩鐨勬彁楂樺彲浠ユ樉钁椾績杩涗紒涓氭暟瀛楀垱鏂扳€滄彁璐ㄥ閲忊€濓紝甯傚満涓€浣撳寲甯︽潵鐨勫競鍦鸿妯＄殑鎵╁ぇ鍜屽競鍦虹珵浜夌殑鍔犲墽鏄奖鍝嶄紒涓氭暟瀛楀垱鏂扮殑閲嶈娓犻亾锛屽競鍦鸿妯＄殑鎵╁ぇ淇冭繘浼佷笟鏁板瓧鍒涙柊锛岃€?
+
+
+--- [144] [CN] 鏁板瓧浜哄姏鎶曞叆涓庝紒涓氫环鏍煎姞鎴愨€斺€旀潵鑷嫑鑱樺ぇ鏁版嵁鐨勮瘉鎹甠浣欏吀鑼?
+    Title hints: 鏁板瓧浜哄姏鎶曞叆涓庝紒涓氫环鏍煎姞鎴?鈥斺€旀潵鑷嫑鑱樺ぇ鏁版嵁鐨勮瘉鎹?| 浣欏吀鑼冿紝寮犲畤锛屽畫鏅?
+    Preview: # 鏁板瓧浜哄姏鎶曞叆涓庝紒涓氫环鏍煎姞鎴?鈥斺€旀潵鑷嫑鑱樺ぇ鏁版嵁鐨勮瘉鎹? 浣欏吀鑼冿紝寮犲畤锛屽畫鏅? ### [鎽樿]  銆旀憳瑕併€曞湪淇冭繘鏁板瓧缁忔祹鍙戝睍杩囩▼涓紝浠ユ暟瀛椾汉鍔涙姇鍏ラ┍鍔ㄦ暟瀛楀寲杞瀷鏄紒涓氱珵浜変紭鍔跨殑閲嶈鏉ユ簮銆傛湰鏂囧熀浜庤繎7000涓囨潯鎷涜仒澶ф暟鎹紝浣跨敤澶ц瑷€妯″瀷鏂囨湰鍒嗘瀽鏂规硶锛岀瀛︺€佸噯纭湴娴嬪害浜嗕笂甯傚叕鍙稿勾搴﹀眰绾х殑鏁板瓧浜哄姏鎶曞叆銆傚湪姝ゅ熀纭€涓婏紝灏嗘暟瀛椾汉鍔涙姇鍏ョ撼鍏ュ紓璐ㄦ€т紒涓氭ā鍨嬶紝閫氳繃鐞嗚鍒嗘瀽鍜屽疄璇佹楠屽彂鐜帮紝鏁板瓧浜哄姏鎶曞叆鑳藉鎻愬崌浼佷笟浠锋牸鍔犳垚锛屼骇鍝佽川閲忔敼鍠勫拰鐢熶骇鏁堢巼鎻愬崌鏄叾閲嶈褰卞搷娓犻亾銆傚紓璐ㄦ€у垎鏋愬彂鐜帮紝鏁板瓧浜哄姏鎶曞叆鐨勪环鏍煎姞鎴愭彁鍗囨晥搴斿湪鍔冲姩鍔涗繚闅滅▼搴﹂珮銆佷骇涓氭暟瀛楀寲棰嗗煙銆佺爺鍙戝瘑闆嗗害浣庡拰浼佷笟瑙勬ā杈冨ぇ鐨勬牱鏈腑琛ㄧ幇寰楁洿涓烘槑鏄撅紝杩欐剰鍛崇潃瑙勮寖鐨勫姵鍔ㄤ繚闅滄満鍒躲€佷赴瀵岀殑瀹炴暟铻嶅悎鍦烘櫙銆佽緝浣庣殑鎶€鏈簲鐢ㄩ棬妲涳紝浠ュ強鑹ソ鐨勪紒涓氬唴閮ㄨ祫婧愬崗鍚岃兘鏇村ソ鍦板彂鎸ユ暟瀛椾汉鎵嶆晥搴斻€傝繘涓€姝ュ垎鏋愯〃鏄庯紝涓庡寤惰竟闄呫€佸崟涓€鍨嬫暟瀛椾汉鍔涙姇鍏ョ浉姣旓紝瀵规暟瀛椾汉鎵嶈繘琛岃拷鍔犳嫑鑱樸€佹嫑鑱樺吋鍏锋暟瀛楄亴鑳戒笌
+
+
+--- [145] [CN] 绠＄悊灞傛湁闄愯閲庝笌浼佷笟ESG琛ㄧ幇_濮滃瘜浼?
+    Title hints: 绠＄悊灞傛湁闄愯閲庝笌浼佷笟 ESG 琛ㄧ幇 | 濮滃瘜浼?寮犺姺瀹?涓佹収
+    Preview: # 绠＄悊灞傛湁闄愯閲庝笌浼佷笟 ESG 琛ㄧ幇  濮滃瘜浼?寮犺姺瀹?涓佹収  (鍘﹂棬澶у缁忔祹瀛﹂櫌/鐜嬩簹鍗楃粡娴庣爺绌堕櫌,绂忓缓鍘﹂棬 361005; 涓ぎ璐㈢粡澶у閲戣瀺瀛﹂櫌,鍖椾含 100081)  鎽?瑕? 鍦ㄩ珮璐ㄩ噺鍙戝睍鑳屾櫙涓? 浼佷笟鐜銆佺ぞ浼氬拰鍏徃娌荤悊(ESG)琛ㄧ幇涓嶄粎鍙楀埌鎶曡祫鑰呯殑骞挎硾鍏虫敞, 鏇存槸褰卞搷浼佷笟闀挎湡缁忚惀鐨勯噸瑕佸洜绱犮€傛帰绌舵垜鍥戒紒涓?ESG 鎶曞叆涓嶈冻鐨勫唴鍦ㄥ姩鍥犲苟璁捐鏈夋晥鐨勬縺鍔辨柟妗? 瀵逛簬鎻愬崌浼佷笟 ESG 琛ㄧ幇鍏锋湁閲嶈鎰忎箟銆傛湰鏂囨帰绌朵簡浼佷笟绠＄悊灞傛湁闄愯閲庡 ESG 鐨勫奖鍝? 鏋勫缓浜嗗寘鍚?ESG 椤圭洰鐨勫姩鎬佸绾︾悊璁烘ā鍨? 骞朵互 2010鈥?022 骞?A 鑲′笂甯傚叕鍙镐负鏍锋湰杩涜瀹炶瘉妫€楠屻€傜粨鏋滄樉绀? 绠＄悊灞傛湁闄愯閲庢樉钁楀埗绾︿簡浼佷笟 ESG 琛ㄧ幇鎻愬崌, 鍘熷洜鏄湁闄愯閲庣殑绠＄悊灞傞檷浣庝簡鍏徃淇℃伅鎶湶璐ㄩ噺銆佸墛寮变簡浼佷笟瀵逛簬闀挎湡璧勯噾鐨勫惛寮曞姏銆備笌鐭湡涓氱哗鎸傞挬鐨勭煭鏈熸縺鍔变細鍔犲墽 ESG 鎶曞叆涓嶈冻, 涓庤偂鏉冩寕閽╃殑闀挎湡婵€鍔卞垯鏈夊姪浜庣紦瑙ｈ繖涓€闂?
+
+
+--- [146] [CN] 缃戠粶瀹夊叏椋庨櫓娌荤悊涓庝紒涓氬垱鏂扳€斺€斿熀浜庡ぇ璇█妯″瀷鐨勮瘑鍒笌鍙戠幇_鏉ㄩ箯
+    Title hints: 缃戠粶瀹夊叏椋庨櫓娌荤悊涓庝紒涓氬垱鏂?鈥斺€斿熀浜庡ぇ璇█妯″瀷鐨勮瘑鍒笌鍙戠幇 | 鏉ㄩ箯 瀛欎紵澧?鐢拌僵 宸︾ゥ澶?
+    Preview: # 缃戠粶瀹夊叏椋庨櫓娌荤悊涓庝紒涓氬垱鏂?鈥斺€斿熀浜庡ぇ璇█妯″瀷鐨勮瘑鍒笌鍙戠幇  鏉ㄩ箯 瀛欎紵澧?鐢拌僵 宸︾ゥ澶? ##### 鎽?瑕? 鎽樿锛氭湰鏂囧熀浜?007鈥?021骞翠腑鍥紸鑲′笂甯備紒涓氬勾鎶ユ枃鏈紝杩愮敤澶ц瑷€妯″瀷鏋勫缓浜嗚　閲忎紒涓氱綉缁滃畨鍏ㄩ闄╂不鐞嗘按骞崇殑鎸囨爣锛屽疄璇佹楠岀綉缁滃畨鍏ㄩ闄╂不鐞嗗浼佷笟鍒涙柊鐨勫奖鍝嶄笌鍐呭湪鏈哄埗銆傜爺绌跺彂鐜帮細锛?锛夌綉缁滃畨鍏ㄩ闄╂不鐞嗘樉钁楁彁楂樹簡浼佷笟鍒涙柊浜у嚭锛屽叾鍏抽敭鏈哄埗鍦ㄤ簬鏁版嵁鍒╃敤鏁堢巼鎻愬崌銆佸悎浣滃垱鏂板叧绯荤ǔ鍥哄拰铻嶈祫绾︽潫缂撹В锛涳紙2锛夎淇冭繘浣滅敤鍦ㄥ湴鍖虹綉缁滅幆澧冭緝涓哄鏉傘€佹暟瀛楁妧鏈緷璧栫▼搴﹀拰鍥介檯鍖栨按骞宠緝楂樼殑浼佷笟涓〃鐜版洿鏄捐憲锛屽苟鎺ㄥ姩浼佷笟鏇村姞閲嶈缃戠粶瀹夊叏棰嗗煙鐨勪笓鍒╁垱閫狅紱锛?锛変紒涓氱綉缁滃畨鍏ㄩ闄╂不鐞嗗湪渚涘簲閾剧旱鍚戝叧绯讳腑瀛樺湪闈炲绉版孩鍑烘晥搴旓紝瀵逛笂娓镐緵搴斿晢寮€灞曠綉缁滃畨鍏ㄥ垱鏂板叿鏈夋鍚戜績杩涗綔鐢紝鑰屽涓嬫父瀹㈡埛鍒欎骇鐢熷弽鍚戞姂鍒躲€傛湰鏂囩爺绌剁粨璁鸿〃鏄庯紝鍦ㄦ暟瀛楃粡娴庢椂浠ｏ紝浼佷笟椤荤潃鍔涙彁鍗囩綉缁滃畨鍏ㄩ闄╂不鐞嗚兘鍔涳紝鍦ㄤ繚闅滅綉缁滃畨鍏ㄧ殑鍩虹涓婂疄鐜伴珮璐ㄩ噺鍒涙柊銆? 鍏抽敭璇嶏細缃?
+
+
+--- [147] [CN] 璇氫俊鏂囧寲涓庨噾铻嶄紒涓氱ぞ浼氳矗浠绘壙鎷卂鐢板瓙鏂?
+    Title hints: 璇氫俊鏂囧寲涓庨噾铻嶄紒涓氱ぞ浼氳矗浠绘壙鎷?| 鐢板瓙鏂?宸︿粠姹?鏉?娑?璧靛鍑?
+    Preview: # 璇氫俊鏂囧寲涓庨噾铻嶄紒涓氱ぞ浼氳矗浠绘壙鎷? 鐢板瓙鏂?宸︿粠姹?鏉?娑?璧靛鍑? (涓ぎ璐㈢粡澶у缁忔祹瀛﹂櫌, 鍖椾含 100081)  ##### 鎽?瑕? 鎽樿锛氭湰鏂囧熀浜庢垜鍥芥勃娣盇鑲￠噾铻嶄笂甯傚叕鍙哥殑骞存姤鏂囨湰鏁版嵁锛岄噰鐢ㄦ湁鐩戠潱鐨勬満鍣ㄥ涔犳柟娉曠瓫閫夋枃鏈紝骞惰繍鐢ㄥぇ璇█妯″瀷鏋勫缓閲戣瀺涓婂競鍏徃璇氫俊鏂囧寲寮哄害鎸囨爣锛岀郴缁熻€冨療浜嗚瘹淇℃枃鍖栧鍏徃绀句細璐ｄ换琛ㄧ幇鐨勫奖鍝嶅強鍐呭閮ㄦ満鍒躲€傜爺绌跺彂鐜帮紝浣滀负姝ｅ紡鍒跺害鐨勯噸瑕佽ˉ鍏咃紝璇氫俊鏂囧寲瀵归噾铻嶄笂甯傚叕鍙哥ぞ浼氳矗浠昏〃鐜板叿鏈夋樉钁楃殑淇冭繘浣滅敤锛岄€氳繃琛屼负瑙勮寖鍜岄亾寰风害鏉燂紝涓€瀹氱▼搴︿笂缂撹В浜嗛噾铻嶈祫婧愰潪鍧囪　娴佸姩鍜岀ぞ浼氳矗浠昏〃鐜颁箣闂寸殑鍐茬獊銆傝繘涓€姝ュ垎鏋愯〃鏄庯紝瀵逛簬鍒濆垱鍨嬨€佺哗鏁堣緝宸€佽偂鏉冮泦涓害杈冮珮銆佹墍鍦ㄥ湴甯傚満鍖栨按骞宠緝浣庡拰澶栭儴鍏虫敞搴﹁緝浣庣殑閲戣瀺涓婂競鍏徃锛岃瘹淇℃枃鍖栫殑淇冭繘浣滅敤鏇村姞鏄捐憲銆傛満鍒剁爺绌惰〃鏄庯紝璇氫俊鏂囧寲閫氳繃澧炲己淇℃伅閫忔槑搴﹀拰闄嶄綆缁忚惀椋庨櫓锛屾樉钁楁彁鍗囦簡閲戣瀺涓婂競鍏徃鐨勭ぞ浼氳矗浠昏〃鐜般€傛湰鏂囩爺绌跺杩涗竴姝ョ悊瑙ｄ腑鍥界壒鑹查噾铻嶆枃鍖栧叿鏈夊惎绀烘剰涔夈€? 鍏抽敭璇嶏細
+
+
+--- [148] [CN] 璋冮鏈熴€侀槻椋庨櫓锛氬ぎ琛岄噾铻嶇ǔ瀹氭矡閫氭晥鏋滅爺绌垛€斺€斿熀浜庢枃鏈垎鏋愮殑瑙嗚_濮滃瘜浼?
+    Title hints: 璋冮鏈熴€侀槻椋庨櫓锛氬ぎ琛岄噾铻嶇ǔ瀹氭矡閫氭晥鏋滅爺绌?| 鈥斺€斿熀浜庢枃鏈垎鏋愮殑瑙嗚
+    Preview: # 璋冮鏈熴€侀槻椋庨櫓锛氬ぎ琛岄噾铻嶇ǔ瀹氭矡閫氭晥鏋滅爺绌? 鈥斺€斿熀浜庢枃鏈垎鏋愮殑瑙嗚  濮滃瘜浼?鏉庢ⅵ濡?瀛熶护瓒?$ ^{*} $  鎽樿锛氭湰鏂囧埄鐢?Word2Vec 绠楁硶鏋勫缓浜嗕竴娆鹃噾铻嶇ǔ瀹氭矡閫氳瘝鍏革紝浠庤€屾祴搴︿簡澶閲戣瀺绋冲畾娌熼€氱殑鏂囨湰鎯呯华銆傚疄璇佸彂鐜板ぎ琛岄噾铻嶇ǔ瀹氭矡閫氳兘澶熸彁楂樿偂绁ㄥ洖鎶ュ苟闄嶄綆娉㈠姩锛岃〃鏄庡叾鑳藉寮曞甯傚満棰勬湡骞堕檷浣庡競鍦洪闄┿€傚ぎ琛岄噾铻嶇ǔ瀹氭矡閫氬彲浠ラ€氳繃淇″彿娓犻亾寮曞鎶曡祫鑰呴鏈燂紝鍚屾椂閫氳繃鍗忓悓娓犻亾闄嶄綆鎶曡祫鑰呮剰瑙佸垎姝с€傛湰鏂囨瀯寤虹殑閲戣瀺绋冲畾娌熼€氳瘝鍏稿～琛ヤ簡鍥藉唴璇ラ鍩熺爺绌剁殑绌虹櫧锛屽悓鏃舵湰鏂囩粨璁哄浜庡ぎ琛屽浣曚娇鐢ㄩ噾铻嶇ǔ瀹氭矡閫氳皟鎺ч鏈熷拰闃茶寖椋庨櫓鍏锋湁閲嶈鐨勭悊璁哄拰鐜板疄鎰忎箟銆? 鍏抽敭璇嶏細閲戣瀺绋冲畾锛涗腑澶摱琛屾矡閫氾紱鎯呮劅璇嶅吀  DOI: 10.13821/j.cnki.ceq.2024.06.19  ## 涓€銆佸紩瑷€  2008骞村浗闄呴噾铻嶅嵄鏈轰箣鍚庯紝鏀跨瓥鍒跺畾鑰呭拰瀛︽湳鐣屾渶鏃╄揪鎴愮殑鍏辫瘑涔嬩竴鏄繀椤诲姞寮哄畯瑙傚鎱庣洃绠★紝浠ョ淮鎶ら噾铻嶇ǔ瀹氾紙鏉庡锛?009锛夈€傚紩瀵?
+
+
+--- [149] [CN] 璞″緛鎬ц繕鏄疄璐ㄦ€э細鍚堟硶鎬у帇鍔涗笅鐨勪紒涓欵SG琛屽姩绛栫暐鐮旂┒_鏉庨泤鏂?
+    Title hints: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//7aade046-4f5c-45ce-88ee-b04e016686c4/markdown_0/imgs/img_in_image_box_179_147_302_307.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A58%3A22Z%2F-1%2F%2Fbb2dd3ac0736fc89a637bc83aca34bd42077c6a57f794c07a0951969796102a1" alt="Image" width="10%" /></div> | 鍗楀紑绠＄悊璇勮
+    Preview: <div style="text-align: center;"><img src="https://pplines-online.bj.bcebos.com/deploy/official/paddleocr/pp-ocr-vl-15//7aade046-4f5c-45ce-88ee-b04e016686c4/markdown_0/imgs/img_in_image_box_179_147_302_307.jpg?authorization=bce-auth-v1%2FALTAKzReLNvew3ySINYJ0fuAMN%2F2026-04-04T14%3A58%3A22Z%2F-1%2F%2Fbb2dd3ac0736fc89a637bc83aca34bd42077c6a57f794c07a0951969796102a1" alt="Image" width="10%" /></div>
+
+
+--- [150] [CN] 閲戣瀺绋冲畾娌熼€氫笌閾惰绯荤粺鎬ч闄濮滃瘜浼?
+    Title hints: 閲戣瀺绋冲畾娌熼€氫笌閾惰绯荤粺鎬ч闄?| 濮滃瘜浼?鏉庢ⅵ濡?瀛熶护瓒?$ ^{*} $
+    Preview: # 閲戣瀺绋冲畾娌熼€氫笌閾惰绯荤粺鎬ч闄? 濮滃瘜浼?鏉庢ⅵ濡?瀛熶护瓒?$ ^{*} $  鍐呭鎻愯 闃茶寖绯荤粺鎬ч噾铻嶉闄╁浜庣淮鎶ょ粡娴庨噾铻嶅畨鍏ㄧǔ瀹氳嚦鍏抽噸瑕併€傛湰鏂囦粠涓浗浜烘皯閾惰缃戠珯鏀堕泦浜?010鑷?020骞存墍鏈夌殑娌熼€氭枃鏈紝骞跺熀浜嶢鑲′笂甯傚晢涓氶摱琛屾暟鎹紝閫氳繃浣跨敤璇嶅吀娉曟瀯寤洪噾铻嶇ǔ瀹氭矡閫氭寚鏍囷紝娴嬪害浜嗕腑鍥戒汉姘戦摱琛岄噾铻嶇ǔ瀹氭矡閫氭枃鏈墍琛ㄨ揪鎯呯华鐨勪箰瑙傜▼搴︼紝鐮旂┒閲戣瀺绋冲畾娌熼€氶槻鑼冮摱琛岀郴缁熸€ч闄╃殑鏁堟灉銆傛湰鏂囧彂鐜版闈㈢殑閲戣瀺绋冲畾娌熼€氫細瀵艰嚧閾惰绯荤粺鎬ч闄╀笅闄嶏紝浣滅敤鏈哄埗涓猴細姝ｉ潰娌熼€氫竴鏂归潰鍙互寮曞鍜屽崗璋冨瓨娆句汉棰勬湡锛岄伩鍏嶉摱琛屾尋鍏戝彂鐢燂紝鏈夊埄浜庨檷浣庨摱琛岀殑娴佸姩鎬ч闄╋紱鍙︿竴鏂归潰鍙互绋冲畾閲戣瀺甯傚満锛屾彁楂樺€熸浼佷笟鍋垮€鸿兘鍔涳紝鏈夊埄浜庨檷浣庨摱琛岀殑淇＄敤椋庨櫓銆傛闈㈡矡閫氳繕鍙互鍑忓急閾惰闂寸殑椋庨櫓浼犳煋銆備絾鏄紝姝ｉ潰娌熼€氳秴鍑轰竴瀹氫复鐣屽€煎悗鍙兘浼氭彁楂樼郴缁熸€ч闄┿€傛湰鐮旂┒鍑告樉浜嗗姞寮洪鏈熺鐞嗙殑閲嶈鎬э紝瀵逛负闃茶寖绯荤粺鎬ч闄╄€岃繘琛岀殑閲戣瀺绋冲畾娌熼€氬拰棰勬湡绠＄悊鏀跨瓥鍒跺畾鍏锋湁鍙傝€冧环鍊笺€? 鍏抽敭璇?閲戣瀺
+
+
+================================================================================
+BATCH 7: Papers 151 - 153
+================================================================================
+
+--- [151] [CN] 闈炴寮忚瀺璧勪腑鐨勬枃鍖栧姏閲忊€斺€斾紒涓氭枃鍖栧鍟嗕笟淇＄敤鐨勫奖鍝峗鍗庣钀?
+    Title hints: 闈炴寮忚瀺璧勪腑鐨勬枃鍖栧姏閲?鈥斺€斾紒涓氭枃鍖栧鍟嗕笟淇＄敤鐨勫奖鍝?| 鍗庣钀?绋嬫€濈澘 鏉庡瀹?鐜嬪媷
+    Preview: # 闈炴寮忚瀺璧勪腑鐨勬枃鍖栧姏閲?鈥斺€斾紒涓氭枃鍖栧鍟嗕笟淇＄敤鐨勫奖鍝? 鍗庣钀?绋嬫€濈澘 鏉庡瀹?鐜嬪媷  (璇轰竵姹夊ぇ瀛﹀晢瀛﹂櫌(涓浗), 娴欐睙瀹佹尝 315100; 鍖椾含澶у鏂扮粨鏋勭粡娴庡鐮旂┒闄? 鍖椾含 100871)  鎽?瑕?鏈枃鍩轰簬 A 鑲′笂甯傚叕鍙哥殑鏂囨湰鏁版嵁,浣跨敤璇嶅悜閲忕瓑鏈哄櫒瀛︿範妯″瀷,鎻愮偧涓浗浼佷笟鏂囧寲鐨勭淮搴︺€佹瀯寤轰腑鍥界壒鑹茬殑浼佷笟鏂囧寲璇嶅吀,搴﹂噺浜嗕紒涓氭枃鍖栧己搴︽按骞?鍒嗘瀽浜嗕紒涓氭枃鍖栧鍟嗕笟淇＄敤铻嶈祫姘村钩鐨勫奖鍝嶃€傜爺绌跺彂鐜?寮轰紒涓氭枃鍖栬兘澶熷府鍔╀紒涓氳幏寰楁洿澶氬晢涓氫俊鐢ㄨ瀺璧勩€傛満鍒跺垎鏋愭樉绀?鏂囧寲寮哄害杈冮珮鐨勪紒涓氭嫢鏈夎緝浣庣殑淇＄敤椋庨櫓姘村钩銆佽緝楂樼殑鏈潵鍙戝睍娼滃姏,鏇村姞閲嶈浜у搧璐ㄩ噺骞舵洿渚濊禆鍟嗕笟淇＄敤瀵逛緵搴斿晢浜у搧璐ㄩ噺瀹炴柦鐩戠潱銆傝繘涓€姝ョ爺绌惰〃鏄?鍦ㄤ笉鍚岀殑浼佷笟淇℃伅閫忔槑搴︺€佺ぞ浼氫俊浠绘按骞炽€佸湴鍖鸿惀鍟嗙幆澧冧笅,浼佷笟鏂囧寲瀵瑰晢涓氫俊鐢ㄧ殑褰卞搷绋嬪害瀛樺湪寮傝川鎬с€傛湰鏂囦赴瀵屼簡涓浗涓婂競鍏徃浼佷笟鏂囧寲鐨勫害閲忔柟娉曚笌瀹炶瘉鍒嗘瀽,涓轰紒涓氱殑鏂囧寲寤鸿鍜屼环鍊煎垱閫犳彁渚涗簡鏂扮殑瑙佽В,涔熶负鏀垮簻濡備綍寮曞浼佷笟
+
+
+--- [152] [CN] 闈炵粨鏋勫寲鏁版嵁澧炲己鍑哄彛棰勬祴锛氬熀浜庢満鍣ㄥ涔犱笌澶ц瑷€妯″瀷_瀛熷簡浼?
+    Title hints: 闈炵粨鏋勫寲鏁版嵁澧炲己鍑哄彛棰勬祴锛氬熀浜庢満鍣ㄥ涔犱笌澶ц瑷€妯″瀷 | 瀛熷簡浼?閽熷畞妗?閮濋洦妗?瑙ｅ挭 $ ^{*} $
+    Preview: # 闈炵粨鏋勫寲鏁版嵁澧炲己鍑哄彛棰勬祴锛氬熀浜庢満鍣ㄥ涔犱笌澶ц瑷€妯″瀷  瀛熷簡浼?閽熷畞妗?閮濋洦妗?瑙ｅ挭 $ ^{*} $  鍐呭鎻愯 澶栬锤鍑哄彛鍦ㄦ垜鍥界粡娴庤繍琛屼腑鍙戞尌鐫€鈥滃帇鑸辩煶鈥濅綔鐢紝灏ゅ叾鍦ㄥ叏鐞冪粡娴庝笉纭畾鎬т笂鍗囧拰澶栭儴鐜澶嶆潅澶氬彉鐜板疄涓嬶紝瀵规垜鍥藉嚭鍙ｇ殑鍙婃椂涓庡墠鐬绘€у垽鏂叿鏈夐噸瑕佹剰涔夈€傛湰鏂囪繍鐢ㄦ満鍣ㄥ涔犳柟娉曚笌娣卞害姹傜储锛圖eepSeek锛夊ぇ璇█妯″瀷锛屾帰绌朵互鐮旀姤鏂囨湰涓轰唬琛ㄧ殑闈炵粨鏋勫寲鏁版嵁瀵瑰嚭鍙ｉ娴嬬殑澧炲己浣滅敤銆傜爺绌跺彂鐜帮紝鍩轰簬楂樼淮缁撴瀯鍖栨暟鎹殑鏈哄櫒瀛︿範妯″瀷鍦ㄥ嚭鍙ｉ娴嬩腑琛ㄧ幇浼樹簬浼犵粺鏃跺簭鏂规硶锛屼絾鍏堕娴嬭兘鍔涘瓨鍦ㄨ竟鐣屻€傚湪寮曞叆缁廌eepSeek澶勭悊鐨勯潪缁撴瀯鍖栨枃鏈悗锛屾ā鍨嬬殑棰勬祴绮惧害鏈夋樉钁楁彁鍗囥€傛満鍒跺垎鏋愯〃鏄庯紝澶ц瑷€妯″瀷鑳戒粠鍒嗘瀽甯堟枃鏈腑鎻愬彇闅愬惈鐨勭粡楠屾€т俊鎭紝鎹曟崏瀹忚鎸囨爣闅句互鍙嶆槧鐨勫墠鐬讳俊鍙凤紝杩欐槸闈炵粨鏋勫寲鏁版嵁鎻愰珮棰勬祴鑳藉姏鐨勫叧閿€傜浉杈冨父鐢ㄧ殑鎯呮劅璇嶅吀鏂规硶锛屽ぇ璇█妯″瀷鍦ㄥ鐞嗛暱鏂囨湰鏃跺吋鍏蜂俊鎭瘑搴︿笌鎯呯华璇嗗埆浼樺娍锛屾洿鑳芥寲鎺樻綔鍦ㄦ儏缁彉鍖栥€傛湰鐮旂┒鐨勯娴嬭寖寮忓睍鐜板嚭浜嗚緝
+
+
+--- [153] [CN] 棰勬湡鐨勫崥寮堬細澶娌熼€氫笌鍥藉€烘敹鐩婄巼鏇茬嚎_灏氱帀鐨?
+    Title hints: 棰勬湡鐨勫崥寮?澶娌熼€氫笌鍥藉€烘敹鐩婄巼鏇茬嚎 | 灏氱帀鐨?鍒樺崕 鐢冲嘲
+    Preview: # 棰勬湡鐨勫崥寮?澶娌熼€氫笌鍥藉€烘敹鐩婄巼鏇茬嚎  灏氱帀鐨?鍒樺崕 鐢冲嘲  (瑗垮崡璐㈢粡澶у涓浗閲戣瀺鐮旂┒闄?閲戣瀺瀛﹂櫌, 鍥涘窛鎴愰兘 611130)  鎽?瑕?娓呮櫚鐨勫ぎ琛屾矡閫氬拰鐣呴€氱殑鍥藉€烘敹鐩婄巼鏇茬嚎浼犲娓犻亾鏄仴鍏ㄧ幇浠ｈ揣甯佹斂绛栨鏋剁殑閲嶈鐜妭,涔熸槸寤鸿寮哄ぇ涓ぎ閾惰鐨勯噸瑕佷繚闅溿€傛湰鏂囧熀浜庛€婁腑鍥借揣甯佹斂绛栨墽琛屾姤鍛娿€嬨€佸叕寮€璁茶瘽銆佹柊闂诲彂甯冧細绛夋矡閫氫俊鎭舰鎴愬ぇ鏁版嵁鏂囨湰璇枡搴?鏋勫缓澶娌熼€氭儏缁寚鏁?鍦ㄦ贩棰戞棤濂楀埄鏈熼檺缁撴瀯妯″瀷鐨勬鏋朵笅,鍩轰簬淇″彿鏁堝簲闃愰噴澶娌熼€氫笌鍥藉€烘敹鐩婄巼鏇茬嚎鐨勪綔鐢ㄦ満鍒躲€傜粨鏋滆〃鏄?杈冮珮鐨勫ぎ琛屾矡閫氭儏缁寚鏁颁綋鐜颁簡鏈潵鏀跨瓥鐨勫鏉鹃鏈?浼氬鑷村浗鍊烘敹鐩婄巼鏇茬嚎鐨勬暣浣撲笅绉讳互鍙婃湡闄愬埄宸殑鏀剁獎銆傚悓鏃舵湡闄愮粨鏋勯殣鍚殑甯傚満棰勬湡淇℃伅涔熶細褰卞搷鏈潵澶娌熼€氱殑鏂瑰悜鍜屽姏搴︺€傝繘涓€姝ュ垎鏋愯〃鏄?鍒╃巼甯傚満鍖栨敼闈╀互鏉?澶娌熼€氬鍥藉€烘敹鐩婄巼鏇茬嚎鐨勫奖鍝嶆洿鍔犳樉钁?鍥藉€烘敹鐩婄巼鏇茬嚎瀵瑰ぎ琛屾矡閫氭儏缁殑褰卞搷涔熸槑鏄惧寮?澶鍦ㄦ矡閫氫腑鏇村姞娉ㄩ噸甯傚満淇″彿鐨勫弽棣堟満鍒躲€傝繖绉嶉鏈熶俊鍙风殑鍙屽悜
+

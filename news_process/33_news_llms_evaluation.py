@@ -1300,6 +1300,86 @@ def main():
         pd.DataFrame(csv_rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
         logger.info(f"CSV 汇总已保存: {csv_path}")
 
+    # ======================================================================
+    # G-10: 人工验证标准化报告 (论文方法论章节所需)
+    # 学术依据: Carlson & Burbano (2026, SMJ §3.4):
+    #   "Authors should report: (1) sample size, (2) inter-coder reliability
+    #    metrics with confidence intervals, (3) coding protocol details."
+    # ======================================================================
+    logger.info("=" * 70)
+    logger.info("===    G-10: 标准化人工验证报告 (论文方法论章节)    ===")
+    logger.info("=" * 70)
+
+    std_report = {
+        '数据模式': '模拟数据' if demo_mode else '真实数据',
+        '验证样本总量 (N)': len(df_verify),
+        '有效验证样本 (n_gold_ver)': n_gold_ver,
+    }
+
+    # 提取 κ 和 α
+    icr_ver = results.get('inter_coder_reliability', {}).get('verification', {})
+    if icr_ver:
+        kappa_ver = icr_ver.get('cohens_kappa', {})
+        alpha_ver = icr_ver.get('krippendorffs_alpha', None)
+        std_report['验证任务_Cohens_κ'] = kappa_ver.get('kappa', 'N/A')
+        std_report['验证任务_Krippendorffs_α'] = alpha_ver
+        std_report['验证任务_observed_agreement'] = kappa_ver.get('observed_agreement', 'N/A')
+        std_report['验证任务_n_samples'] = kappa_ver.get('n_samples', 'N/A')
+
+        # κ 的近似 95% CI: κ ± 1.96 × SE(κ)
+        # SE(κ) ≈ sqrt(p_o × (1 - p_o) / (n × (1 - p_e)²))
+        kappa_val = kappa_ver.get('kappa', 0)
+        p_o = kappa_ver.get('observed_agreement', 0)
+        p_e = kappa_ver.get('expected_agreement', 0)
+        n_s = kappa_ver.get('n_samples', 0)
+        if n_s > 0 and p_e < 1:
+            import math
+            se_kappa = math.sqrt(p_o * (1 - p_o) / (n_s * (1 - p_e) ** 2))
+            ci_low = round(kappa_val - 1.96 * se_kappa, 4)
+            ci_high = round(kappa_val + 1.96 * se_kappa, 4)
+            std_report['验证任务_κ_95%CI'] = f"[{ci_low}, {ci_high}]"
+            logger.info(f"  验证任务: κ = {kappa_val:.4f}, 95% CI = [{ci_low:.4f}, {ci_high:.4f}]")
+            logger.info(f"  验证任务: α = {alpha_ver}, N = {n_s}")
+
+    icr_sen = results.get('inter_coder_reliability', {}).get('sentiment', {})
+    if icr_sen:
+        kappa_sen = icr_sen.get('cohens_kappa', {})
+        alpha_sen = icr_sen.get('krippendorffs_alpha', None)
+        std_report['情感任务_Cohens_κ'] = kappa_sen.get('kappa', 'N/A')
+        std_report['情感任务_Krippendorffs_α'] = alpha_sen
+        std_report['情感任务_n_samples'] = kappa_sen.get('n_samples', 'N/A')
+
+        kappa_val_s = kappa_sen.get('kappa', 0)
+        p_o_s = kappa_sen.get('observed_agreement', 0)
+        p_e_s = kappa_sen.get('expected_agreement', 0)
+        n_s_s = kappa_sen.get('n_samples', 0)
+        if n_s_s > 0 and p_e_s < 1:
+            se_s = math.sqrt(p_o_s * (1 - p_o_s) / (n_s_s * (1 - p_e_s) ** 2))
+            ci_low_s = round(kappa_val_s - 1.96 * se_s, 4)
+            ci_high_s = round(kappa_val_s + 1.96 * se_s, 4)
+            std_report['情感任务_κ_95%CI'] = f"[{ci_low_s}, {ci_high_s}]"
+            logger.info(f"  情感任务: κ = {kappa_val_s:.4f}, 95% CI = [{ci_low_s:.4f}, {ci_high_s:.4f}]")
+            logger.info(f"  情感任务: α = {alpha_sen}, N = {n_s_s}")
+
+    # 输出标准化报告 CSV
+    std_report_path = os.path.join(output_dir, 'validation_standard_report.csv')
+    pd.DataFrame([std_report]).to_csv(std_report_path, index=False, encoding='utf-8-sig')
+    logger.info(f"  标准化验证报告: {std_report_path}")
+
+    # 论文引用建议
+    logger.info("")
+    logger.info("  ── 论文方法论章节建议表述 ──")
+    logger.info(f"  \"We randomly sampled {std_report.get('验证样本总量 (N)', 'N')} articles")
+    logger.info(f"   for manual validation. Two independent coders evaluated each article")
+    logger.info(f"   following a standardized protocol (Carlson & Burbano, 2026, SMJ).")
+    if icr_ver:
+        logger.info(f"   Inter-coder reliability for the verification task was")
+        logger.info(f"   κ = {std_report.get('验证任务_Cohens_κ', 'N/A')} "
+                    f"{std_report.get('验证任务_κ_95%CI', '')}, "
+                    f"α = {std_report.get('验证任务_Krippendorffs_α', 'N/A')}.\"")
+
+    results['standardized_validation_report'] = std_report
+
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=len(df_verify), output_rows=n_gold_ver)
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")

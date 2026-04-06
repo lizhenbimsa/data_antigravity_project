@@ -579,15 +579,15 @@ sentiment_analysis:
     # ── 前瞻性陈述词汇集 (Forward-Looking Statement Dictionary) ──
     #
     # 学术依据:
-    #   Li, F. (2010). The Information Content of Forward-Looking Statements
-    #   in Corporate Filings—A Naive Bayesian Machine Learning Approach.
+    #   Li, F. (2010). The information content of forward-looking statements
+    #   in corporate filings—A naïve Bayesian machine learning approach.
     #   Journal of Accounting Research, 48(5), 1049-1102.
-    #   DOI: 10.1111/j.1475-679X.2010.00382.x
+    #   https://doi.org/10.1111/j.1475-679X.2010.00382.x
     #
-    #   Muslu, V., Radhakrishnan, S., Subramanyam, K.R. & Lim, D. (2015).
-    #   Forward-Looking MD&A Disclosures and the Information Environment.
+    #   Muslu, V., Radhakrishnan, S., Subramanyam, K. R., & Lim, D. (2015).
+    #   Forward-looking MD&A disclosures and the information environment.
     #   Management Science, 61(5), 931-948.
-    #   DOI: 10.1287/mnsc.2014.1921
+    #   https://doi.org/10.1287/mnsc.2014.1921
     #
     # 构建方法:
     #   基于 Li (2010) Table 1 英文 FLS 关键词 + PSLRA Safe Harbor 标准词表

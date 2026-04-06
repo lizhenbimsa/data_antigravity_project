@@ -89,7 +89,8 @@ merge_policy_shocks = _m44.merge_policy_shocks
 # ============================================================================
 
 def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
-    """输出面板诊断统计, 包含分类维度(底层技术/应用场景)的覆盖率和置信度。"""
+    """输出面板诊断统计, 包含分类维度(底层技术/应用场景)的覆盖率、置信度
+    和面板平衡性诊断 (G-07)。"""
     logger.info("=" * 60)
     logger.info("步骤 8: 诊断统计量")
     logger.info("=" * 60)
@@ -140,9 +141,93 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             logger.info(f"  分类置信度: mean={valid_conf.mean():.3f}, "
                         f"median={valid_conf.median():.3f}")
 
+            # ── G-20: 低置信度分类诊断列 ──
+            # 纯诊断性质: 标记 avg_category_confidence < 0.5 的 Bank-Year,
+            # 供下游分析筛选, 不改变任何指标的计算逻辑
+            panel['low_conf_flag'] = (
+                panel['avg_category_confidence'] < 0.5
+            ).astype(int)
+            low_n = panel['low_conf_flag'].sum()
+            low_pct = low_n / max(len(panel), 1)
+            logger.info(f"  G-20 低置信度标记: {low_n}/{len(panel)} "
+                        f"({low_pct:.1%} Bank-Year, conf < 0.5)")
+
+    # ── G-14: 距离衰减敏感性检验结果摘要 ──
+    decay_report = os.path.join(OUTPUT_DIR, 'eval_reports', '38_decay_sensitivity.csv')
+    if os.path.exists(decay_report):
+        try:
+            decay_df = pd.read_csv(decay_report)
+            # 计算 uniform vs inverse 的平均 Pearson
+            dict_names = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+            pearsons = []
+            for dn in dict_names:
+                u_col, d_col = f'{dn}_uniform', f'{dn}_inverse'
+                if u_col in decay_df.columns and d_col in decay_df.columns:
+                    r = decay_df[u_col].corr(decay_df[d_col])
+                    if not np.isnan(r):
+                        pearsons.append(r)
+            if pearsons:
+                logger.info(f"  G-14 距离衰减: Pearson(uniform, inverse) = "
+                            f"{np.mean(pearsons):.4f} (avg), "
+                            f"{min(pearsons):.4f} (min)")
+        except Exception as e:
+            logger.debug(f"  G-14 报告读取失败: {e}")
+
     # 文章级统计
     logger.info(f"  展开后文章-银行级行数: {len(df_exploded):,}")
     logger.info(f"  多银行文章占比: {df_exploded['is_multi_bank'].mean():.1%}")
+
+
+    # ── G-07: 面板平衡性诊断 ──
+    # 学术依据: Wooldridge (2010), Baltagi (2021) — 不平衡面板的标准诊断
+    logger.info("")
+    logger.info("  --- 面板平衡性诊断 (G-07) ---")
+
+    # (a) 理论最大行数 vs 实际行数
+    max_years = year_max - year_min + 1
+    theoretical_rows = n_banks * max_years
+    balance_ratio = len(panel) / theoretical_rows if theoretical_rows > 0 else 0
+    logger.info(f"  理论最大维度: {n_banks} 银行 × {max_years} 年 = {theoretical_rows:,} 行")
+    logger.info(f"  实际行数: {len(panel):,} ({balance_ratio:.1%} 平衡率)")
+    if balance_ratio >= 0.95:
+        logger.info(f"  ✅ 高度平衡面板 (≥95%)")
+    elif balance_ratio >= 0.80:
+        logger.info(f"  ⚠️ 近似平衡面板 (80-95%)")
+    else:
+        logger.info(f"  🔴 不平衡面板 (<80%), 建议检查银行进入/退出")
+
+    # (b) 每家银行的年份覆盖
+    bank_year_counts = panel.groupby('target_bank')['year'].nunique()
+    full_coverage = (bank_year_counts == max_years).sum()
+    partial = (bank_year_counts < max_years).sum()
+    logger.info(f"  完整覆盖 ({max_years} 年): {full_coverage}/{n_banks} 银行 "
+                f"({full_coverage/n_banks:.1%})")
+    if partial > 0:
+        min_years = bank_year_counts.min()
+        logger.info(f"  部分覆盖银行: {partial} 家, 最少仅覆盖 {min_years} 年")
+
+    # (c) 每年的银行数
+    year_bank_counts = panel.groupby('year')['target_bank'].nunique()
+    logger.info(f"  逐年银行数分布:")
+    for yr in sorted(year_bank_counts.index):
+        cnt = year_bank_counts[yr]
+        marker = "" if cnt == n_banks else f" (缺 {n_banks - cnt})"
+        logger.info(f"    {yr}: {cnt} 家{marker}")
+
+    # (d) 有效覆盖率 (有新闻的 Bank-Year 占比)
+    has_news = (panel['n_articles'] > 0).sum()
+    news_coverage = has_news / len(panel) if len(panel) > 0 else 0
+    logger.info(f"  有效新闻覆盖: {has_news}/{len(panel)} Bank-Year ({news_coverage:.1%})")
+
+    # (e) 关键变量缺失率
+    key_vars = ['llm_vote_tone_full', 'llm_vote_tone_ctx', 'bank_province',
+                'bank_city', 'ln_news_coverage']
+    logger.info(f"  关键变量缺失率:")
+    for var in key_vars:
+        if var in panel.columns:
+            miss = panel[var].isna().sum()
+            miss_pct = miss / len(panel) if len(panel) > 0 else 0
+            logger.info(f"    {var}: {miss:,}/{len(panel):,} ({miss_pct:.1%})")
 
 
 # ============================================================================
