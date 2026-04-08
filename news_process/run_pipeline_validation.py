@@ -5,15 +5,17 @@ run_pipeline_validation.py - 新闻处理流水线: 评估验证模块
 功能:
     单独执行流水线的模块四: 评估验证模块。
     包含以下阶段(由 config.yaml 中 validation 节点控制):
-      - 阶段31: 阈值敏感性分析        (31_bank_fintech_threshold.py)
-      - 阶段32: 人工抽样验证样本生成  (32_news_llms_human.py)
-      - 阶段33: 分类有效性评估        (33_news_llms_evaluation.py)
-      - 阶段34: 情感三角验证          (34_tone_validation.py)
-      - 阶段35: 窗口半径敏感性检验    (35_radius_sensitivity.py)
-      - 阶段36: Entity Masking 稳健性测试 (36_entity_masking_test.py)
-      - 阶段37: 金融科技词典覆盖率审计  (37_dict_coverage_audit.py)
-      - 阶段38: 媒体名称与地域多样性审计 (38_media_diversity.py)
-      - 阶段39: Prompt 措词敏感度测试  (39_prompt_sensitivity.py)
+      - 阶段31:  阈值敏感性分析         (31_bank_fintech_threshold.py)
+      - 阶段32:  人工抽样验证样本生成   (32_news_llms_human.py)
+      - 阶段33:  分类有效性评估         (33_news_llms_evaluation.py)
+      - 阶段34:  情感三角验证           (34_tone_validation.py)
+      - 阶段35:  窗口半径敏感性检验     (35_radius_sensitivity.py)
+      - 阶段36:  Entity Masking 稳健性测试 (36_entity_masking_test.py)
+      - 阶段37:  金融科技词典覆盖率审计 (37_dict_coverage_audit.py)
+      - 阶段38:  媒体名称与地域多样性审计 (38_media_diversity.py)
+      - 阶段381: 时间掩码前视偏误检验   (381_temporal_mask_test.py)
+      - 阶段382: 距离衰减权重敏感性检验 (382_decay_sensitivity.py)
+      - 阶段39:  Prompt 措词敏感度测试  (39_prompt_sensitivity.py)
 
 设计意图:
     这些验证模块对应经济学顶级期刊审稿中常见的稳健性检验要求:
@@ -58,7 +60,9 @@ def run_validation():
       6. 阶段36: Entity Masking 稳健性测试（由 validation.entity_masking 控制）
       7. 阶段37: 金融科技词典覆盖率审计（由 validation.dict_coverage_audit 控制）
       8. 阶段38: 媒体名称与地域多样性审计（由 validation.media_diversity 控制）
-      9. 阶段39: Prompt 措辞敏感度测试（由 validation.prompt_sensitivity 控制）
+      9. 阶段381: 时间掩码前视偏误检验（由 temporal_mask_test.enabled 控制）
+     10. 阶段382: 距离衰减权重敏感性检验（始终执行）
+     11. 阶段39: Prompt 措辞敏感度测试（由 validation.prompt_sensitivity 控制）
     """
     module_start = time.time()
 
@@ -70,16 +74,18 @@ def run_validation():
     logger.info("     对前三模块(预处理→分类→情感分析)的全部关键决策进行系统性验证,")
     logger.info("     确保研究结论不受人为参数选择、模型偏差或数据噪声的影响。")
     logger.info("")
-    logger.info("  📖 9 个验证阶段说明")
-    logger.info("     31: 阈值敏感性 — 分类参数做网格搜索, 证明当前阈值是稳健的")
-    logger.info("     32: 人工抽样   — 生成分层随机样本供人工标注比对")
-    logger.info("     33: 分类评估   — 计算 Cohen's κ / Krippendorff's α, 量化 LLM 一致性")
-    logger.info("     34: 三角验证   — 词典/BERT/LLM 三种方法交叉验证构建效度")
-    logger.info("     35: 窗口敏感性 — 检验上下文提取半径对情感度量的影响")
-    logger.info("     36: 实体掩码   — 替换银行名验证情感判定不依赖实体先验")
-    logger.info("     37: 词典审计   — 金融科技关键词覆盖率和精确度系统审计")
-    logger.info("     38: 媒体多样性 — HHI/Shannon/Gini 多维度量化媒体来源与地域覆盖")
-    logger.info("     39: 提示词敏感度 — 系统性改写 Prompt 措辞, 量化标注结果的表述稳健性")
+    logger.info("  📖 11 个验证阶段说明")
+    logger.info("     31:  阈值敏感性  — 分类参数做网格搜索, 证明当前阈值是稳健的")
+    logger.info("     32:  人工抽样    — 生成分层随机样本供人工标注比对")
+    logger.info("     33:  分类评估    — 计算 Cohen's κ / Krippendorff's α, 量化 LLM 一致性")
+    logger.info("     34:  三角验证    — 词典/BERT/LLM 三种方法交叉验证构建效度")
+    logger.info("     35:  窗口敏感性  — 检验上下文提取半径对情感度量的影响")
+    logger.info("     36:  实体掩码    — 替换银行名验证情感判定不依赖实体先验")
+    logger.info("     37:  词典审计    — 金融科技关键词覆盖率和精确度系统审计")
+    logger.info("     38:  媒体多样性  — HHI/Shannon/Gini 多维度量化媒体来源与地域覆盖")
+    logger.info("     381: 时间掩码    — 逐步掩码最新N年新闻, 检验前视偏误 (Tetlock 2008)")
+    logger.info("     382: 衰减敏感性  — 比较 uniform/inverse/exponential 权重, 检验结果稳健性")
+    logger.info("     39:  提示词敏感度 — 系统性改写 Prompt 措辞, 量化标注结果的表述稳健性")
     logger.info("")
     logger.info(f"Python: {sys.version}")
     logger.info(f"工作目录: {os.path.dirname(os.path.abspath(__file__))}")
@@ -115,6 +121,13 @@ def run_validation():
 
     if validation_config.get('media_diversity', True):
         stages.append(("38_media_diversity.py", "阶段38: 媒体名称与地域多样性审计"))
+
+    # B2-1: 时间掩码前视偏误检验 (Tetlock et al. 2008, JF)
+    if CONFIG.get('temporal_mask_test', {}).get('enabled', False):
+        stages.append(("381_temporal_mask_test.py", "阶段381: 时间掩码前视偏误检验"))
+
+    # G-14: 距离衰减权重敏感性检验 (Sautner et al. 2023, JF)
+    stages.append(("382_decay_sensitivity.py", "阶段382: 距离衰减权重敏感性检验"))
 
     if validation_config.get('prompt_sensitivity', True):
         stages.append(("39_prompt_sensitivity.py", "阶段39: Prompt措辞敏感度测试"))

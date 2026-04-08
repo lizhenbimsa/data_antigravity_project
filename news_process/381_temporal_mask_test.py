@@ -1,5 +1,5 @@
 """
-38_temporal_mask_test.py — B2-1: 时间掩码前视偏误检验
+381_temporal_mask_test.py — B2-1: 时间掩码前视偏误检验
 =====================================================
 
 学术依据:
@@ -36,7 +36,7 @@ from utils.helpers import (
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "38_temporal_mask_test"
+STAGE_NAME = "381_temporal_mask_test"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 MASK_CONFIG = CONFIG.get('temporal_mask_test', {})

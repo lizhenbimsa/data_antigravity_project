@@ -16,9 +16,9 @@ def load_module(name, path):
 # 获取被测模块的绝对路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
-module_path = os.path.join(parent_dir, '38b_decay_sensitivity.py')
+module_path = os.path.join(parent_dir, '382_decay_sensitivity.py')
 
-decay = load_module('decay_sensitivity_38b', module_path)
+decay = load_module('decay_sensitivity_382', module_path)
 
 @pytest.fixture
 def mock_sentiment_dict():
