@@ -292,12 +292,17 @@ tone_llm_processing:
     </step2_sentiment>
 
     <step3_text_type>
-    **阶段三：新闻文本类型分类**（仅当阶段一判定为 true 时执行）
+    **阶段三：新闻文本类型与时态朝向分类**（仅当阶段一判定为 true 时执行）
 
     判断新闻内容是否涉及具体的金融科技实质性落地，还是仅限于描述性陈述：
     - `实质性`：包含具体技术部署、产品上线、系统落地、业务数据披露等可验证事实。
     - `描述性`：仅包含战略规划、目标口号、发展方向、“将要/计划/探索”等前瞻性表述，无具体落地细节。
     - `混合型`：同时包含实质性内容和描述性内容，两者兼有。
+
+    同时判断该新闻的**核心时态朝向**：
+    - `is_forward_looking`：若报道的核心内容是面向未来的计划、预期、战略规划、即将部署的项目，设为 true。
+    - 若核心内容是已完成的事件、已落地的系统、已发布的业绩数据，设为 false。
+    - ⚠️ 注意：即使文中含有"计划"一词，若上下文表明是"回顾过去的计划执行情况"，仍应判定为 false。
     </step3_text_type>
 
     <input_data>
@@ -320,7 +325,8 @@ tone_llm_processing:
       "sentiment_reason": "简明说明情感判定依据",
       "sentiment_confidence": 0.0~1.0,
       "text_type": "实质性/描述性/混合型（false 时填 null）",
-      "text_type_reason": "简明说明判定依据（false 时填 null）"
+      "text_type_reason": "简明说明判定依据（false 时填 null）",
+      "is_forward_looking": true/false（false 时填 null）
     }}
     </output_format>
 
@@ -450,3 +456,16 @@ temporal_mask_test:
   output_dir_suffix: '_temporal_mask'
   # 回归稳定性阈值: 掩码前后系数变动超过此比例则报警
   coefficient_stability_threshold: 0.20
+
+# ------------------------------------------------------------------------------
+# 跟风/抄袭新闻检测配置 (Herd Detection)
+# ------------------------------------------------------------------------------
+# 学术依据: Tetlock (2011, JF) — 媒体新闻信息冗余与重复效应
+# 对同一银行时间窗口内的相似新闻施加衰减权重
+herd_detection:
+  similarity_threshold: 0.35   # 余弦相似度阈值, 高于此值视为跟风
+  time_window_days: 7          # 时间窗口(天), 仅比较窗口内的文章
+  max_features: 10000          # TF-IDF 最大特征数 (维度封锁)
+  min_df: 5                    # TF-IDF 最小文档频率
+  max_df: 0.9                  # TF-IDF 最大文档频率
+  chunk_size: 1000             # 分块运算大小 (控制内存)

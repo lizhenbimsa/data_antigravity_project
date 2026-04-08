@@ -83,6 +83,16 @@ PROVINCE_TO_ZONE = _m44.PROVINCE_TO_ZONE
 compute_zone_leave1out = _m44.compute_zone_leave1out
 merge_policy_shocks = _m44.merge_policy_shocks
 
+# --- 从 46 导入 (网络溢出) ---
+_p46 = os.path.join(os.path.dirname(__file__), '46_network_spillovers.py')
+if os.path.exists(_p46):
+    _s46 = _iu.spec_from_file_location('_46_mod', _p46)
+    _m46 = _iu.module_from_spec(_s46)
+    _s46.loader.exec_module(_m46)
+    compute_network_spillovers = _m46.compute_network_spillovers
+else:
+    compute_network_spillovers = None
+
 
 # ============================================================================
 # 8. 诊断统计量
@@ -1120,6 +1130,102 @@ def main():
         logger.info("步骤 7g: DID 政策冲击变量 (DCEP + Sandbox)")
         logger.info("=" * 60)
         panel = merge_policy_shocks(panel)
+
+    # --- 7h-net. 同行网络传染/溢出效应 (Leary & Roberts 2014, JF) ---
+    if compute_network_spillovers is not None:
+        logger.info("=" * 60)
+        logger.info("步骤 7h-net: 同行网络传染/溢出效应")
+        logger.info("=" * 60)
+        panel = compute_network_spillovers(panel, df_exploded)
+    else:
+        logger.info("  46_network_spillovers.py 不存在, 跳过网络溢出计算")
+
+    # =========================================================================
+    # 步骤 7h: 洗稿率 (Washing Ratio) — 仅限正面新闻
+    # 学术依据: Bingler et al. (2024, RFS) cheap talk 度量
+    # 公式: WR_i,t = n_articles_desc_positive / n_articles_positive
+    #   - 分母仅含正面新闻 (pos_count_full > 0)
+    #   - 分子仅含正面 + 描述性新闻 (空话类正面新闻)
+    #   - 若全年无正面新闻: WR = NaN (结构性缺失, 非零)
+    # =========================================================================
+    logger.info("=" * 60)
+    logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 仅限正面新闻")
+    logger.info("=" * 60)
+
+    if 'pos_count_full' in panel.columns and 'n_articles_sub' in panel.columns:
+        # n_articles_desc_positive 需要从篇章级重新聚合
+        # 但面板已展开, 我们用已有变量近似:
+        #   正面新闻数 = pos_count_full
+        #   实质性新闻数 = n_articles_sub (含正负中)
+        #   描述性正面占比 ≈ desc_frac × pos_count_full
+        # 更精确的做法: 用 (正面总数 - 实质性正面数) / 正面总数
+        # 此处使用面板级近似: 描述性比例作为洗稿的代理
+        pos_count = panel['pos_count_full']
+        has_positive = pos_count > 0
+
+        # Washing Ratio: 在有正面新闻的样本中, 描述性占比越高 = 空话越多
+        if 'desc_frac' in panel.columns:
+            panel['washing_ratio'] = np.where(
+                has_positive,
+                panel['desc_frac'],  # 描述性新闻占比作为洗稿率代理
+                np.nan  # 结构性 NaN: 无正面新闻 ≠ 洗稿率为零
+            )
+        else:
+            panel['washing_ratio'] = np.nan
+
+        # Dummy: 全年无正面新闻的银行
+        panel['dummy_no_positive_news'] = (~has_positive).astype(int)
+
+        n_no_pos = panel['dummy_no_positive_news'].sum()
+        n_has_wr = panel['washing_ratio'].notna().sum()
+        logger.info(f"  washing_ratio 有效值: {n_has_wr:,} / {len(panel):,}")
+        logger.info(f"  dummy_no_positive_news=1: {n_no_pos:,} 个 Bank-Year")
+        if n_has_wr > 0:
+            logger.info(f"  washing_ratio: mean={panel['washing_ratio'].mean():.4f}, "
+                        f"std={panel['washing_ratio'].std():.4f}")
+    else:
+        logger.warning("  pos_count_full 或 n_articles_sub 不存在, 跳过洗稿率计算")
+
+    # =========================================================================
+    # 步骤 7i: Janis-Fadner (J-F) 情绪系数 — 稳健性替代指标
+    # 学术依据: Janis & Fadner (1965); Deephouse (2000, SMJ)
+    # 公式:
+    #   若 P > N: JF = (P² - P×N) / (P+N)²
+    #   若 N > P: JF = (P×N - N²) / (P+N)²
+    #   若 P = N: JF = 0
+    # 取值范围: [-1, +1], 克服简单均值的零分悖论
+    # =========================================================================
+    logger.info("=" * 60)
+    logger.info("步骤 7i: Janis-Fadner (J-F) 情绪系数")
+    logger.info("=" * 60)
+
+    for track in ['_full', '_ctx', '_title']:
+        pos_col = f'pos_count{track}'
+        neg_col = f'neg_count{track}'
+        if pos_col in panel.columns and neg_col in panel.columns:
+            P = panel[pos_col].fillna(0)
+            N = panel[neg_col].fillna(0)
+            total_sq = (P + N) ** 2
+            # 安全除法: 防止 0/0
+            safe_denom = total_sq.replace(0, np.nan)
+
+            jf = np.where(
+                P > N,
+                (P**2 - P * N) / safe_denom,
+                np.where(
+                    N > P,
+                    (P * N - N**2) / safe_denom,
+                    0.0  # P == N
+                )
+            )
+            panel[f'jf_coefficient{track}'] = np.where(
+                safe_denom.isna(), np.nan, jf
+            )
+            logger.info(f"  jf_coefficient{track}: "
+                        f"mean={panel[f'jf_coefficient{track}'].mean():.4f}, "
+                        f"std={panel[f'jf_coefficient{track}'].std():.4f}")
+        else:
+            logger.warning(f"  {pos_col} 或 {neg_col} 不存在, 跳过 J-F 系数{track}")
 
     log_diagnostics(panel, df_exploded)
 

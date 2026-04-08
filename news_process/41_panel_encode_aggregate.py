@@ -365,6 +365,9 @@ def build_aggregation_dict() -> dict:
             agg[f'avg_{short}_conf{track}'] = (conf_src, 'mean')
 
     # --- E. 新闻覆盖量 & 稳健性辅助（无需双轨） ---
+    # --- G2. LLM 前瞻性交叉验证 (AI 时态判断, 与词典法 G 互为稳健性检验) ---
+    agg['avg_is_forward_looking'] = ('is_forward_looking', 'mean')
+    agg['sum_is_forward_looking'] = ('is_forward_looking', 'sum')
     agg['n_articles'] = ('llm_vote_score_full', 'count')
     agg['headline_frac'] = ('in_title', 'mean')
     agg['multi_bank_frac'] = ('is_multi_bank', 'mean')
@@ -398,6 +401,9 @@ def build_aggregation_dict() -> dict:
 
     # --- F3. 媒体权威性加权聚合 (Holzman et al. 2023, TAR) ---
     agg['sum_media_authority_weight'] = ('media_authority_weight', 'sum')
+    # --- F4. 跟风衰减权重 (Tetlock 2011, JF) — 作为面板控制变量 ---
+    agg['avg_herd_weight'] = ('herd_weight', 'mean')
+    agg['min_herd_weight'] = ('herd_weight', 'min')
     for track in ['_full', '_ctx', '_title']:
         agg[f'llm_vote_score_mw_sum{track}'] = (f'llm_vote_score_mw{track}', 'sum')
         agg[f'llm_vote_cont_mw_sum{track}'] = (f'llm_vote_cont_mw{track}', 'sum')
