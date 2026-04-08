@@ -367,6 +367,44 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         if df[col].dtype == 'object':
             df[col] = df[col].fillna('').astype(str)
 
+    # 7. 媒体名称清理：去除报纸名称中的各类修饰后缀、附加版面及无效字符
+    if '媒体(中文)' in df.columns:
+        orig_media = df['媒体(中文)'].astype(str)
+        # (0) 基础预清理：剔除换行/制表符等不可见格式字符，作为最安全的基底名称
+        s_base = orig_media.str.replace(r'[\r\n\t]+', ' ', regex=True).str.strip()
+        s = s_base.copy()
+
+        # (1) 括号内内容清除
+        s = s.str.replace(r'[\(（\[【].*?[\)）\]】]', '', regex=True)
+        # (2) 数字报及固定短语清除
+        s = s.str.replace('数字报', '', regex=False)
+        # (3) 日期及 since 清除 (如 " - since 2005", " - 20030102 - 2010", " 20080301-20130805")
+        s = s.str.replace(r'\s*-\s*since\s+.*', '', flags=re.IGNORECASE, regex=True)
+        s = s.str.replace(r'\s*-\s*\d{8}\s*-\s*\d{8}.*', '', regex=True)
+        s = s.str.replace(r'\s+\d{8}-\d{8}.*', '', regex=True)
+        # (4) 点号及中圆点后缀清除 (限制：仅截断紧跟在中文字符后的首个点号，防误伤 "U.S. News" 或引发多次截断溢出)
+        s = s.str.replace(r'^(.*?[\u4e00-\u9fa5][^·\.]*)[·\.].*', r'\1', regex=True)
+        # (5) 特定地域及版面清除
+        s = s.str.replace(r'\s*-?\s*(英文版|中文版|东莞版|加东版|加西版|美西版|粤东版|台湾版|纽约免费报|东九龙|西九龙).*', '', regex=True)
+        # (6) 删除末尾纯英文字符串 (限制：仅当左侧存在中文字符时生效，防误伤纯英文媒体如 "IT Times")
+        s = s.str.replace(r'(.*[\u4e00-\u9fa5].*?)\s+[a-zA-Z\s]+$', r'\1', regex=True)
+
+        cleaned_media = s.str.strip()
+
+        # 防御性回退：如果清洗后变为空（如纯括号组成），则保留预清理后的原名称，避免信息彻底丢失
+        s_final = cleaned_media.where(cleaned_media != '', s_base)
+
+        # (7) 重点特例覆盖 (针对不应被清理掉或是需要变名的情况)
+        overrides = {
+            '读者文摘 - 中文版': '读者文摘 - 中文版',
+            '中国服装·鞋帮': '中国服装报'
+        }
+        # 遍历特殊名单进行安全的底层硬覆盖，彻底规避由于 Pandas Map 机制产生的 Series.mask() Float/String 混合类型警告风险
+        for k, v in overrides.items():
+            s_final = s_final.where(s_base != k, v)
+        
+        df['媒体(中文)'] = s_final
+
     return df
 
 
