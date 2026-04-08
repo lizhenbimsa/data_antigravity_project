@@ -291,6 +291,15 @@ tone_llm_processing:
     - `负面`：风险暴露、监管处罚、安全事故、舆论危机等负面事件。
     </step2_sentiment>
 
+    <step3_text_type>
+    **阶段三：新闻文本类型分类**（仅当阶段一判定为 true 时执行）
+
+    判断新闻内容是否涉及具体的金融科技实质性落地，还是仅限于描述性陈述：
+    - `实质性`：包含具体技术部署、产品上线、系统落地、业务数据披露等可验证事实。
+    - `描述性`：仅包含战略规划、目标口号、发展方向、“将要/计划/探索”等前瞻性表述，无具体落地细节。
+    - `混合型`：同时包含实质性内容和描述性内容，两者兼有。
+    </step3_text_type>
+
     <input_data>
     目标分析银行: {target_bank}
     同文提及的其他银行（仅供参考，不作为评分对象）: {co_mentioned_banks}
@@ -305,12 +314,46 @@ tone_llm_processing:
       "verification_reason": "简明说明判定依据，须引用文章具体内容",
       "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
       "fintech_topic": "核心金融科技主题简述（false 时填 null）",
-      "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
+      "fintech_category": "「底层技术」或「应用场景」或「混合型」（false 时填 null）",
       "verification_confidence": 0.0~1.0,
       "sentiment": "正面/中性/负面（false 时固定填\"中性\"）",
       "sentiment_reason": "简明说明情感判定依据",
-      "sentiment_confidence": 0.0~1.0
+      "sentiment_confidence": 0.0~1.0,
+      "text_type": "实质性/描述性/混合型（false 时填 null）",
+      "text_type_reason": "简明说明判定依据（false 时填 null）"
     }}
+    </output_format>
+
+  # ── 标题轨道情感分析 Prompt（批量 100 条，仅情感，无需验证） ──
+  # 学术依据: 姜富伟等 (2024, 管理世界) — 标题短文本LLM情感
+  # 仅对 llm_verified_full=True 的已验证样本运行
+  title_sentiment_prompt_template: |
+    你是一位资深金融新闻分析师，擅长对新闻标题进行情感判断。
+
+    <task>
+    对以下编号的金融科技新闻标题逐一判断情感倾向。
+    ⚠️ 每条标题独立判断，不要相互影响。
+
+    情感分类标准：
+    - `正面`：涉及业绩增长、技术突破、创新合作、监管认可等积极事件。
+    - `中性`：客观陈述事实或中立行业动态，无明显褒贬。
+    - `负面`：涉及风险暴露、监管处罚、安全事故、舆论危机等负面事件。
+    </task>
+
+    <input_titles>
+    {numbered_titles}
+    </input_titles>
+
+    <output_format>
+    严格输出以下 JSON 对象（不要输出裸数组），禁止添加前缀、后缀或 Markdown 包裹：
+    {{
+      "results": [
+        {{"id": 1, "sentiment": "正面/中性/负面", "confidence": 0.0~1.0}},
+        {{"id": 2, "sentiment": "正面/中性/负面", "confidence": 0.0~1.0}},
+        ...
+      ]
+    }}
+    注意：results 数组中的条目数量必须与输入标题数量完全一致，id 必须连续。
     </output_format>
 
 # ------------------------------------------------------------------------------
@@ -390,3 +433,17 @@ panel_building:
   compute_media_authority_weighting: true  # 3c. 媒体权威性加权 (Holzman et al. 2023, TAR)
   compute_bartik_iv: true                 # 7e. Bartik Shift-Share IV 29套 (Goldsmith-Pinkham et al. 2020, AER)
   compute_policy_shocks: true             # 7g. DID 政策冲击变量 — DCEP + Fintech Sandbox (Callaway & Sant'Anna 2021, JoE)
+
+# ------------------------------------------------------------------------------
+# [模块五：鲁棒性检验] 时间掩码前视偏误测试 - B2-1
+# ------------------------------------------------------------------------------
+# 学术依据: Tetlock et al. (2008, JF) — 确保情感度量不依赖于未来信息
+# 检测窗口: 掩码 t 年的新闻后重建面板, 比较回归系数稳定性
+temporal_mask_test:
+  enabled: true
+  mask_windows:
+    - {name: 'last_year', description: '掩码最后一年', n_years_mask: 1}
+    - {name: 'last_2years', description: '掩码最后两年', n_years_mask: 2}
+  output_dir_suffix: '_temporal_mask'
+  # 回归稳定性阈值: 掩码前后系数变动超过此比例则报警
+  coefficient_stability_threshold: 0.20

@@ -831,7 +831,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     """
     stats = {'total': 0}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             stats[f'{dict_name}_正面{track}'] = 0
             stats[f'{dict_name}_中性{track}'] = 0
             stats[f'{dict_name}_负面{track}'] = 0
@@ -847,9 +847,11 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     def _dual_analyze(row):
         content_full = str(row.get('内容', ''))
         content_ctx = str(row.get('content_ctx', content_full))
+        content_title = str(row.get('标题', ''))
 
         res_full = _analyze_single_article(content_full)
         res_ctx = _analyze_single_article(content_ctx)
+        res_title = _analyze_single_article(content_title)
 
         # 合并：为每个键追加轨道后缀
         merged = {}
@@ -857,13 +859,15 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             merged[f'{k}_full'] = v
         for k, v in res_ctx.items():
             merged[f'{k}_ctx'] = v
+        for k, v in res_title.items():
+            merged[f'{k}_title'] = v
         return merged
 
     results = df.apply(_dual_analyze, axis=1)
 
     # 提取各列（双轨）
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             df[f'{dict_name}_score{track}'] = results.apply(
                 lambda r: r.get(f'{dict_name}_score{track}', 0.0))
             df[f'{dict_name}_label{track}'] = results.apply(
@@ -876,11 +880,12 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
 
     df['sentiment_details_full'] = results.apply(lambda r: r.get('sentiment_details_full', ''))
     df['sentiment_details_ctx'] = results.apply(lambda r: r.get('sentiment_details_ctx', ''))
+    df['sentiment_details_title'] = results.apply(lambda r: r.get('sentiment_details_title', ''))
 
     # ── 提取 IDF 加权列（双轨）──
     if IDF_DICTIONARIES is not None:
         for dict_name, _ in IDF_DICTIONARIES:
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_title']:
                 df[f'{dict_name}_idf_score{track}'] = results.apply(
                     lambda r, k=f'{dict_name}_idf_score{track}': r.get(k, 0.0))
                 df[f'{dict_name}_idf_label{track}'] = results.apply(
@@ -894,7 +899,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         'msent_score',  # He et al. (2024, IRFA), Eq. 1
     ]
     for col in new_metric_cols:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             col_key = f'{col}{track}'
             df[col_key] = results.apply(lambda r, k=col_key: r.get(k, 0.0))
 
@@ -912,7 +917,7 @@ def merge_stats(stats_list: list) -> dict:
     """
     merged = {'total': 0}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             merged[f'{dict_name}_正面{track}'] = 0
             merged[f'{dict_name}_中性{track}'] = 0
             merged[f'{dict_name}_负面{track}'] = 0
@@ -920,7 +925,7 @@ def merge_stats(stats_list: list) -> dict:
     for s in stats_list:
         merged['total'] += s['total']
         for dict_name, _ in ALL_DICTIONARIES:
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_title']:
                 merged[f'{dict_name}_正面{track}'] += s.get(f'{dict_name}_正面{track}', 0)
                 merged[f'{dict_name}_中性{track}'] += s.get(f'{dict_name}_中性{track}', 0)
                 merged[f'{dict_name}_负面{track}'] += s.get(f'{dict_name}_负面{track}', 0)
@@ -1100,7 +1105,7 @@ def main():
     # 解决跨词典量纲不一致问题，供 34_tone_validation.py 的 Cronbach's Alpha 分析使用
     # 注意：_full 和 _ctx 的 μ 和 σ 必须独立计算，因文本长度差异导致数值分布本质不同
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             score_col = f"{dict_name}_score{track}"
             zscore_col = f"{dict_name}_zscore{track}"
             if score_col in processed_df.columns:
@@ -1115,7 +1120,7 @@ def main():
     # IDF 列 Z-score 标准化
     if IDF_DICTIONARIES is not None:
         for dict_name, _ in IDF_DICTIONARIES:
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_title']:
                 score_col = f"{dict_name}_idf_score{track}"
                 zscore_col = f"{dict_name}_idf_zscore{track}"
                 if score_col in processed_df.columns:

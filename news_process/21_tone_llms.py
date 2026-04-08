@@ -86,7 +86,7 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     每个模型可独立指定 base_url 和 api_key。
 
     Args:
-        track: 'full' 或 'ctx'，标识本次请求使用的文本轨道。
+        track: 'full'、'ctx' 或 'title'，标识本次请求使用的文本轨道。
     
     Returns:
         tuple: (row_idx, model_id, result_text, track)
@@ -242,13 +242,14 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         models: 模型配置列表
     
     Returns:
-        tuple: (final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, n_failures)
+        tuple: (final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, text_types, n_failures)
             per_model_parsed: {f'{short}_verified': v, ...} 的字典
     """
     v_votes = []
     s_votes = []
     topics = []
     llm_categories = []
+    text_types = []
     per_model_parsed = {}
     n_failures = 0
     
@@ -297,9 +298,15 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             cat_str = str(llm_cat).strip().replace('；', ';')
             for part in cat_str.split(';'):
                 part = part.strip()
-                if part in ('底层技术', '应用场景'):
+                if part in ('底层技术', '应用场景', '混合型'):
                     llm_categories.append(part)
                     break
+        # 提取 text_type（与 fintech_category 对称的三分类模式）
+        llm_tt = jd.get('text_type', None)
+        if llm_tt:
+            tt_str = str(llm_tt).strip()
+            if tt_str in ('实质性', '描述性', '混合型'):
+                text_types.append(tt_str)
     
     final_v = majority_vote_bool(v_votes)
     final_s = majority_vote_sentiment(s_votes) if final_v else "中性"
@@ -309,7 +316,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     agree_v_count = sum(1 for x in v_votes if x == final_v)
     agree_rate = agree_v_count / n_valid_votes if n_valid_votes > 0 else 0.0
     
-    return final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, n_failures
+    return final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, text_types, n_failures
 
 
 def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
@@ -430,6 +437,7 @@ def main():
     agreement_rate_ctx_arr = []
     fintech_category_arr = []
     category_confidence_arr = []
+    text_type_arr = []
     
     # 预分配每个模型 × 每轨道的独立判断列表
     per_model_cols = {}
@@ -447,7 +455,7 @@ def main():
         row_results = results_map.get(idx, {'full': {}, 'ctx': {}})
         
         # ── Full 轨道聚合 ──
-        final_v_full, final_s_full, agree_rate_full, parsed_full, topics_full, llm_cats_full, n_fail_full = \
+        final_v_full, final_s_full, agree_rate_full, parsed_full, topics_full, llm_cats_full, text_types_full, n_fail_full = \
             _aggregate_track(row_results.get('full', {}), MODELS)
         n_api_failures += n_fail_full
         
@@ -463,7 +471,7 @@ def main():
             per_model_cols[f"{short}_sentiment_confidence_full"].append(parsed_full.get(f"{short}_sentiment_confidence", 0.0))
         
         # ── Ctx 轨道聚合 ──
-        final_v_ctx, final_s_ctx, agree_rate_ctx, parsed_ctx, topics_ctx, llm_cats_ctx, n_fail_ctx = \
+        final_v_ctx, final_s_ctx, agree_rate_ctx, parsed_ctx, topics_ctx, llm_cats_ctx, text_types_ctx, n_fail_ctx = \
             _aggregate_track(row_results.get('ctx', {}), MODELS)
         n_api_failures += n_fail_ctx
         
@@ -484,7 +492,12 @@ def main():
         
         if llm_cats_full:
             cat_votes = Counter(llm_cats_full)
-            llm_majority_cat = cat_votes.most_common(1)[0][0] if cat_votes else kw_category
+            top = cat_votes.most_common(2)
+            if len(top) >= 2 and top[0][1] == top[1][1]:
+                # 平局：降为混合型（无法确定主分类）
+                llm_majority_cat = '混合型'
+            else:
+                llm_majority_cat = top[0][0] if top else kw_category
             if llm_majority_cat == kw_category:
                 final_confidence = min(kw_confidence + 0.2, 1.0)
             else:
@@ -494,6 +507,17 @@ def main():
         else:
             fintech_category_arr.append(kw_category)
             category_confidence_arr.append(kw_confidence)
+        
+        # ── 文本类型分类多数决（仅基于 full 轨道，与 fintech_category 一致） ──
+        if text_types_full:
+            tt_votes = Counter(text_types_full)
+            tt_top = tt_votes.most_common(2)
+            if len(tt_top) >= 2 and tt_top[0][1] == tt_top[1][1]:
+                text_type_arr.append('混合型')  # 平局降为混合型
+            else:
+                text_type_arr.append(tt_top[0][0])
+        else:
+            text_type_arr.append(None)
     
     # 批量赋值各模型独立判断列
     for col_name, col_values in per_model_cols.items():
@@ -507,6 +531,7 @@ def main():
     df['llm_agreement_rate_ctx'] = agreement_rate_ctx_arr
     df['fintech_category'] = fintech_category_arr
     df['category_confidence'] = category_confidence_arr
+    df['text_type'] = text_type_arr
     
     if n_api_failures > 0:
         logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
@@ -540,6 +565,158 @@ def main():
 
     # 过滤丢弃不相关的假新闻（基于 full 轨道）
     df_filtered = df[df['llm_verified_full'] == True].copy()
+    
+    # ── B1-2: 标题轨道独立情感提取（仅已验证样本） ──
+    # 学术依据: 姜富伟等 (2024, 管理世界) — 标题短文本LLM情感
+    TITLE_PROMPT_TEMPLATE = LLM_CONFIG.get('title_sentiment_prompt_template', '')
+    
+    if TITLE_PROMPT_TEMPLATE and len(df_filtered) > 0:
+        logger.info(f"── 标题轨道情感提取开始 ({len(df_filtered)} 条已验证样本) ──")
+        
+        BATCH_SIZE = 100
+        titles = df_filtered['标题'].fillna('').astype(str).tolist()
+        indices = df_filtered.index.tolist()
+        
+        # 按批次分组
+        batches = []
+        for i in range(0, len(titles), BATCH_SIZE):
+            batch_titles = titles[i:i+BATCH_SIZE]
+            batch_indices = indices[i:i+BATCH_SIZE]
+            numbered = '\n'.join(f"{j+1}. {t}" for j, t in enumerate(batch_titles))
+            prompt = TITLE_PROMPT_TEMPLATE.format(numbered_titles=numbered)
+            batches.append((batch_indices, batch_titles, prompt))
+        
+        logger.info(f"  共 {len(batches)} 批 × {len(MODELS)} 模型 = {len(batches)*len(MODELS)} 次 API 调用")
+        
+        async def _run_title_batches():
+            """批量调用LLM获取标题情感"""
+            semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
+            connector = aiohttp.TCPConnector(limit=MAX_CONCURRENCY * 2)
+            timeout = aiohttp.ClientTimeout(total=LLM_CONFIG.get('timeout', 600))
+            
+            # {batch_idx: {model_id: response_text}}
+            batch_results = {}
+            
+            async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+                tasks = []
+                for b_idx, (b_indices, b_titles, prompt) in enumerate(batches):
+                    for m in MODELS:
+                        tasks.append(
+                            fetch_llm_async(session, semaphore, prompt, m, b_idx, 'title')
+                        )
+                
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                for res in results:
+                    if isinstance(res, Exception):
+                        logger.warning(f"  标题批次请求异常: {res}")
+                        continue
+                    b_idx, model_id, text, track = res
+                    if b_idx not in batch_results:
+                        batch_results[b_idx] = {}
+                    batch_results[b_idx][model_id] = text
+            
+            return batch_results
+        
+        batch_results = asyncio.run(_run_title_batches())
+        
+        # 解析批量结果 → 逐条多数决
+        title_sentiment_map = {}  # {df_index: {'sentiment': ..., 'confidence': ..., per_model...}}
+        
+        for b_idx, (b_indices, b_titles, _) in enumerate(batches):
+            # 收集每个模型对这批的解析结果
+            per_model_parsed = {}  # {model_short: [{id, sentiment, confidence}, ...]}
+            
+            for m in MODELS:
+                short = m['short_name']
+                m_id = m['model_name']
+                raw = batch_results.get(b_idx, {}).get(m_id, None)
+                
+                if raw is None:
+                    per_model_parsed[short] = [None] * len(b_indices)
+                    continue
+                
+                jd = parse_json_response(raw)
+                items = jd.get('results', [])
+                
+                # 构建 id → item 映射（防止 id 缺失或乱序）
+                id_map = {}
+                for item in items:
+                    if isinstance(item, dict):
+                        id_map[item.get('id', -1)] = item
+                
+                parsed_list = []
+                for j in range(len(b_indices)):
+                    item = id_map.get(j + 1, None)
+                    if item:
+                        try:
+                            conf_val = float(item.get('confidence', 0.0))
+                        except (ValueError, TypeError):
+                            conf_val = 0.0
+                        parsed_list.append({
+                            'sentiment': item.get('sentiment', '中性'),
+                            'confidence': conf_val
+                        })
+                    else:
+                        parsed_list.append(None)
+                per_model_parsed[short] = parsed_list
+            
+            # 逐条多数决
+            for j, df_idx in enumerate(b_indices):
+                s_votes = []
+                per_model_data = {}
+                
+                for m in MODELS:
+                    short = m['short_name']
+                    item = per_model_parsed[short][j]
+                    if item is not None:
+                        s_votes.append(item['sentiment'])
+                        per_model_data[f'{short}_sentiment_title'] = item['sentiment']
+                        per_model_data[f'{short}_sentiment_confidence_title'] = item['confidence']
+                    else:
+                        per_model_data[f'{short}_sentiment_title'] = None
+                        per_model_data[f'{short}_sentiment_confidence_title'] = 0.0
+                
+                # 多数决
+                if s_votes:
+                    final_s = Counter(s_votes).most_common(1)[0][0]
+                    agree_count = sum(1 for v in s_votes if v == final_s)
+                    agree_rate = agree_count / len(s_votes)
+                else:
+                    final_s = '中性'
+                    agree_rate = 0.0
+                
+                title_sentiment_map[df_idx] = {
+                    'llm_sentiment_title': final_s,
+                    'llm_agreement_rate_title': agree_rate,
+                    **per_model_data
+                }
+        
+        # 写入 DataFrame
+        for col in ['llm_sentiment_title', 'llm_agreement_rate_title']:
+            df_filtered[col] = df_filtered.index.map(
+                lambda idx, c=col: title_sentiment_map.get(idx, {}).get(c))
+        
+        for m in MODELS:
+            short = m['short_name']
+            for suffix in ['_sentiment_title', '_sentiment_confidence_title']:
+                col = f'{short}{suffix}'
+                df_filtered[col] = df_filtered.index.map(
+                    lambda idx, c=col: title_sentiment_map.get(idx, {}).get(c))
+        
+        # Step 1c: llm_verified_title 固定为 True（已通过 full 轨道验证）
+        df_filtered['llm_verified_title'] = True
+        
+        # 统计
+        sent_counts = df_filtered['llm_sentiment_title'].value_counts()
+        logger.info(f"── 标题轨道情感提取完成 ──")
+        for s_type, cnt in sent_counts.items():
+            logger.info(f"  [_title] [{s_type}]: {cnt} ({cnt/len(df_filtered)*100:.1f}%)")
+    else:
+        if not TITLE_PROMPT_TEMPLATE:
+            logger.info("  title_sentiment_prompt_template 未配置，跳过标题轨道")
+        else:
+            logger.info("  无已验证样本，跳过标题轨道")
     
     # ======================================================================
     # 4. 保存文件与报告

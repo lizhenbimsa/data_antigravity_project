@@ -125,7 +125,7 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             logger.info(f"  底层技术占比 (tech_frac):")
             logger.info(f"    mean={valid_tf.mean():.3f}, median={valid_tf.median():.3f}, "
                         f"std={valid_tf.std():.3f}")
-    for suffix, label in [('_tech', '底层技术'), ('_app', '应用场景')]:
+    for suffix, label in [('_tech', '底层技术'), ('_app', '应用场景'), ('_mix', '混合型')]:
         col = f'n_articles{suffix}'
         if col in panel.columns:
             has_cat = (panel[col] > 0).sum()
@@ -585,7 +585,10 @@ def main():
         logger.info("步骤 3b: 提及密度加权列预计算 (VW, 双轨)")
         logger.info("=" * 60)
         w = df['mention_density'].fillna(0)
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
+            # _title 轨道可能因未配置而不存在
+            if f'llm_vote_score{track}' not in df.columns:
+                continue
             # 情感离散/连续
             df[f'llm_vote_score_w{track}'] = df[f'llm_vote_score{track}'] * w
             df[f'llm_vote_cont_w{track}'] = df[f'llm_vote_cont{track}'] * w
@@ -623,7 +626,10 @@ def main():
     if PANEL_CFG.get('compute_media_authority_weighting', False):
         df = compute_media_authority_weights(df)
         mw = df['media_authority_weight'].fillna(1.0)
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
+            # _title 轨道可能因未配置而不存在
+            if f'llm_vote_score{track}' not in df.columns:
+                continue
             df[f'llm_vote_score_mw{track}'] = df[f'llm_vote_score{track}'] * mw
             df[f'llm_vote_cont_mw{track}'] = df[f'llm_vote_cont{track}'] * mw
             for short in LLM_MODELS:
@@ -707,7 +713,7 @@ def main():
             ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
                                      df_exploded, type_map, 'type',
                                      base_year=base_yr)
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_title']:
                 src_col = f'bartik_type_iv{track}'
                 dst_col = f'bartik_type_iv{track}{suffix}'
                 ptmp = ptmp.rename(columns={src_col: dst_col})
@@ -719,7 +725,7 @@ def main():
         base_t01 = df_exploded[df_exploded['year'].isin([T0, T0+1])]
         ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
                                  base_t01, type_map, 'type', base_year=T0)
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             src_col = f'bartik_type_iv{track}'
             ptmp = ptmp.rename(columns={src_col: f'bartik_type_iv{track}_t01'})
         panel = panel.merge(

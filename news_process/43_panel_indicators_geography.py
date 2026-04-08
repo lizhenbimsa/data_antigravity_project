@@ -53,7 +53,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         return pd.Series(np.nan, index=panel.index)
 
     # --- LLM 逐模型综合 ---
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         panel[f'llm_models_avg_tone{track}'] = _safe_mean([f'{s}_tone{track}' for s in LLM_MODELS])
         panel[f'llm_models_avg_tone_sum{track}'] = _safe_mean([f'{s}_tone_sum{track}' for s in LLM_MODELS])
         panel[f'llm_models_avg_cont{track}'] = _safe_mean([f'{s}_cont_mean{track}' for s in LLM_MODELS])
@@ -101,12 +101,12 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         logger.info(f"  avg_article_length (MLENGTH proxy) 已生成")
 
     # --- 分类维度综合指标 ---
-    for suffix in ['_tech', '_app']:
+    for suffix in ['_tech', '_app', '_mix']:
         # 仅当分类计数列存在时生成
         if f'n_articles{suffix}' not in panel.columns:
             continue
 
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             # LLM 逐模型综合
             panel[f'llm_models_avg_tone{suffix}{track}'] = _safe_mean(
                 [f'{s}_tone{suffix}{track}' for s in LLM_MODELS])
@@ -142,7 +142,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
     #   乘积含义: 高覆盖 + 高波动 = 高叙事暴露度
     logger.info("  ─── Fintech Exposure 复合指标 ───")
     has_news = panel['n_articles'] > 0
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         std_col = f'llm_vote_tone_std{track}'
         if std_col in panel.columns and 'ln_news_coverage' in panel.columns:
             # 零新闻行 → NaN (与面板情感变量 NaN 语义一致)
@@ -192,12 +192,13 @@ _STANDARDIZE_SCALAR = [
 
 
 def _expand_track_templates(templates: list) -> list:
-    """将含 {t} 占位符的模板展开为 _full 和 _ctx 两个变量名。"""
+    """将含 {t} 占位符的模板展开为 _full、_ctx 和 _title 三个变量名。"""
     result = []
     for tmpl in templates:
         if '{t}' in tmpl:
             result.append(tmpl.replace('{t}', 'full'))
             result.append(tmpl.replace('{t}', 'ctx'))
+            result.append(tmpl.replace('{t}', 'title'))
         else:
             result.append(tmpl)
     return result
@@ -537,7 +538,7 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
             logger.warning(f"  {geo_col} 不可用, 跳过 {geo_label}")
             continue
 
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             tone_col = f'llm_vote_tone{track}'
             # 使用 _GEO_SHORT 缩写映射, 确保变量名与 Stata 模板一致
             # bank_province → prov_leave1out_tone_full (25字符)
@@ -596,7 +597,7 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
                                     ('bank_city', '城市级')]:
             if geo_col not in panel.columns or (panel[geo_col] == '').all():
                 continue
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_title']:
                 tone_col = f'{base_col}{track}'
                 out_col = f'{_GEO_SHORT[geo_col]}_leave1out_{base_col}{track}'
 

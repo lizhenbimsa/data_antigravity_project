@@ -75,6 +75,15 @@ class TestStage21LLMDualTrack:
                     col = f"{sn}{sfx}{track}"
                     assert col in df21.columns, \
                         f"逐模型列缺失: {col}"
+            # 标题轨道仅含情感列（无真伪验证列）
+            # 注：需要重跑管线后才会生成 _title 列
+            first_title_col = f"{model_shorts[0]}_sentiment_title"
+            if first_title_col not in df21.columns:
+                pytest.skip("标题轨道列尚未生成（需重跑 21_tone_llms.py）")
+            for sfx in ['_sentiment', '_sentiment_confidence']:
+                col = f"{sn}{sfx}_title"
+                assert col in df21.columns, \
+                    f"标题轨道列缺失: {col}"
 
 
 # ============================================================================
@@ -97,6 +106,13 @@ class TestStage22DictDualTrack:
                 for sfx in ['_score', '_label', '_zscore']:
                     col = f"{d}{sfx}{track}"
                     assert col in df22.columns, f"缺少列: {col}"
+        # 标题轨道（需重跑管线）
+        if f'{dicts[0]}_score_title' not in df22.columns:
+            pytest.skip("标题轨道列尚未生成（需重跑 22_tone_words.py）")
+        for d in dicts:
+            for sfx in ['_score', '_label', '_zscore']:
+                col = f"{d}{sfx}_title"
+                assert col in df22.columns, f"缺少列: {col}"
 
     def test_sentiment_details_columns(self, df22):
         """sentiment_details 双轨列存在"""

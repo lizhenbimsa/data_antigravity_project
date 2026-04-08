@@ -383,7 +383,7 @@ def compute_media_heterogeneity(df, panel):
         panel = panel.merge(frac, on=['target_bank', 'year'], how='left')
 
     # (2) 三类型情感均值 + 三维度缺口 - 维度①②③
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -415,7 +415,7 @@ def compute_media_heterogeneity(df, panel):
     panel = panel.merge(frac_c, on=['target_bank', 'year'], how='left')
 
     # (4) 中央/地方情感均值 + 缺口
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue

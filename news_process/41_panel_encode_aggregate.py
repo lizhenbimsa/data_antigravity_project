@@ -81,7 +81,11 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
 
     encoded_cols = []
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
+        # _title 轨道可能因未配置 title_sentiment_prompt_template 而不存在
+        if f'llm_sentiment{track}' not in df.columns:
+            logger.info(f"  跳过 {track} 轨道编码（列 llm_sentiment{track} 不存在）")
+            continue
         # --- LLM 投票结果 离散编码 ---
         df[f'llm_vote_score{track}'] = df[f'llm_sentiment{track}'].map(SENTIMENT_MAP).fillna(0).astype(int)
         df[f'is_positive{track}'] = (df[f'llm_vote_score{track}'] == 1).astype(int)
@@ -121,7 +125,7 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     #   DOI: 10.1016/j.jeconom.2020.07.053
     #   → 情感度量噪声导致回归系数衰减偏误(attenuation bias)
     #   → LLM 置信度低 = 信号噪声大 → 情感效应被低估
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         conf_cols = [f'{s}_sentiment_confidence{track}' for s in LLM_MODELS
                      if f'{s}_sentiment_confidence{track}' in df.columns]
         if conf_cols:
@@ -280,7 +284,7 @@ def build_aggregation_dict() -> dict:
     """
     agg = {}
 
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         # --- A. LLM 逐模型 ---
         for short in LLM_MODELS:
             agg[f'{short}_tone{track}'] = (f'{short}_score{track}', 'mean')
@@ -351,7 +355,7 @@ def build_aggregation_dict() -> dict:
     # 学术依据: 情感度量的信噪比直接影响回归系数的估计精度
     # (Shapiro et al. 2022, Section 4: attenuation bias correction)
     # 置信度越低 → 测量误差越大 → Tone 对因变量的估计系数向零衰减
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         # 三模型宏平均置信度 → Bank-Year 均值 & 标准差
         agg[f'avg_llm_conf{track}'] = (f'avg_llm_conf{track}', 'mean')
         agg[f'avg_llm_conf_std{track}'] = (f'avg_llm_conf{track}', 'std')
@@ -368,13 +372,14 @@ def build_aggregation_dict() -> dict:
     agg['max_bank_count'] = ('bank_count', 'max')
     agg['avg_agreement_rate_full'] = ('llm_agreement_rate_full', 'mean')
     agg['avg_agreement_rate_ctx'] = ('llm_agreement_rate_ctx', 'mean')
+    agg['avg_agreement_rate_title'] = ('llm_agreement_rate_title', 'mean')
 
     # --- F. Value-weighted 辅助列 (Hassan et al. 2019, QJE; Sautner et al. 2023, JF) ---
     agg['sum_mention_density'] = ('mention_density', 'sum')
     agg['sum_doc_length'] = ('doc_length', 'sum')
     agg['avg_doc_length'] = ('doc_length', 'mean')
     agg['sum_target_mentions'] = ('target_bank_mention_count', 'sum')
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         agg[f'llm_vote_score_w_sum{track}'] = (f'llm_vote_score_w{track}', 'sum')
         agg[f'llm_vote_cont_w_sum{track}'] = (f'llm_vote_cont_w{track}', 'sum')
         agg[f'pos_count_vw{track}'] = (f'is_positive_w{track}', 'sum')
@@ -393,7 +398,7 @@ def build_aggregation_dict() -> dict:
 
     # --- F3. 媒体权威性加权聚合 (Holzman et al. 2023, TAR) ---
     agg['sum_media_authority_weight'] = ('media_authority_weight', 'sum')
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         agg[f'llm_vote_score_mw_sum{track}'] = (f'llm_vote_score_mw{track}', 'sum')
         agg[f'llm_vote_cont_mw_sum{track}'] = (f'llm_vote_cont_mw{track}', 'sum')
         for short in LLM_MODELS:
@@ -457,13 +462,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # --- 按 fintech_category 分组聚合（底层技术 / 应用场景） ---
     if 'fintech_category' in df.columns:
         # 防御性校验：检查非预期值
-        valid_cats = {'底层技术', '应用场景'}
+        valid_cats = {'底层技术', '应用场景', '混合型'}
         actual_cats = set(df['fintech_category'].dropna().unique())
         unexpected = actual_cats - valid_cats
         if unexpected:
             logger.warning(f"  fintech_category 含非预期值: {unexpected}，这些文章将不计入分类聚合")
 
-        cat_mapping = [('底层技术', '_tech'), ('应用场景', '_app')]
+        cat_mapping = [('底层技术', '_tech'), ('应用场景', '_app'), ('混合型', '_mix')]
 
         for cat_label, suffix in cat_mapping:
             df_cat = df[df['fintech_category'] == cat_label]
@@ -476,7 +481,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             cat_agg = {}
             cat_agg[f'n_articles{suffix}'] = ('llm_vote_score_full', 'count')
 
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_title']:
                 # A. LLM 逐模型（离散 + 连续）
                 for short in LLM_MODELS:
                     src_score = f'{short}_score{track}'
@@ -526,12 +531,12 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                         f"{len(cat_agg)} 个指标")
 
         # 分类计数列填充（merge 后可能产生 NaN）
-        for suffix in ['_tech', '_app']:
+        for suffix in ['_tech', '_app', '_mix']:
             col = f'n_articles{suffix}'
             if col in panel.columns:
                 panel[col] = panel[col].fillna(0).astype(int)
 
-        # tech_frac / app_frac
+        # tech_frac / app_frac / mix_frac
         panel['tech_frac'] = np.where(
             panel['n_articles'] > 0,
             panel['n_articles_tech'] / panel['n_articles'],
@@ -540,6 +545,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         panel['app_frac'] = np.where(
             panel['n_articles'] > 0,
             panel['n_articles_app'] / panel['n_articles'],
+            np.nan
+        )
+        panel['mix_frac'] = np.where(
+            panel['n_articles'] > 0,
+            panel['n_articles_mix'] / panel['n_articles'],
             np.nan
         )
 
@@ -551,20 +561,87 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         else:
             panel['avg_category_confidence'] = np.nan
 
-        # 恒等式校验
-        if 'n_articles_tech' in panel.columns and 'n_articles_app' in panel.columns:
+        # 恒等式校验（三分类）
+        if all(f'n_articles{s}' in panel.columns for s in ['_tech', '_app', '_mix']):
             has_news = panel['n_articles'] > 0
             identity_check = (panel.loc[has_news, 'n_articles'] ==
-                              panel.loc[has_news, 'n_articles_tech'] + panel.loc[has_news, 'n_articles_app'])
+                              panel.loc[has_news, 'n_articles_tech'] +
+                              panel.loc[has_news, 'n_articles_app'] +
+                              panel.loc[has_news, 'n_articles_mix'])
             if identity_check.all():
-                logger.info("  ✓ 恒等式校验通过: n_articles == n_articles_tech + n_articles_app")
+                logger.info("  ✓ 恒等式校验通过: n_articles == n_articles_tech + n_articles_app + n_articles_mix")
             else:
                 n_fail = (~identity_check).sum()
-                logger.warning(f"  ✗ 恒等式校验失败: {n_fail} 行不满足 n_articles == n_articles_tech + n_articles_app")
+                logger.warning(f"  ✗ 恒等式校验失败: {n_fail} 行不满足 n_articles == n_articles_tech + n_articles_app + n_articles_mix")
     else:
         logger.info("  列 'fintech_category' 不存在, 分类聚合将跳过")
         panel['tech_frac'] = np.nan
         panel['app_frac'] = np.nan
+
+    # --- 按 text_type 分组聚合（实质性 / 描述性 / 混合型） ---
+    if 'text_type' in df.columns:
+        valid_tts = {'实质性', '描述性', '混合型'}
+        actual_tts = set(df['text_type'].dropna().unique())
+        unexpected_tt = actual_tts - valid_tts
+        if unexpected_tt:
+            logger.warning(f"  text_type 含非预期值: {unexpected_tt}，这些文章将不计入分类聚合")
+
+        tt_mapping = [('实质性', '_sub'), ('描述性', '_desc'), ('混合型', '_tmix')]
+
+        for tt_label, suffix in tt_mapping:
+            df_tt = df[df['text_type'] == tt_label]
+            if df_tt.empty:
+                logger.warning(f"  text_type '{tt_label}' 无文章，跳过 {suffix} 聚合")
+                panel[f'n_articles{suffix}'] = 0
+                continue
+
+            tt_agg = {}
+            tt_agg[f'n_articles{suffix}'] = ('llm_vote_score_full', 'count')
+
+            for track in ['_full', '_ctx', '_title']:
+                src_vote = f'llm_vote_score{track}'
+                if src_vote in df_tt.columns:
+                    tt_agg[f'llm_vote_tone{suffix}{track}'] = (src_vote, 'mean')
+
+            tt_panel = df_tt.groupby(['target_bank', 'year']).agg(**tt_agg).reset_index()
+            panel = panel.merge(tt_panel, on=['target_bank', 'year'], how='left')
+            logger.info(f"  text_type '{tt_label}' 聚合完成: {len(tt_panel):,} 个 Bank-Year, "
+                        f"{len(tt_agg)} 个指标")
+
+        # text_type 计数列填充
+        for suffix in ['_sub', '_desc', '_tmix']:
+            col = f'n_articles{suffix}'
+            if col in panel.columns:
+                panel[col] = panel[col].fillna(0).astype(int)
+
+        # sub_frac / desc_frac / tmix_frac
+        for suffix in ['_sub', '_desc', '_tmix']:
+            panel[f'{suffix[1:]}_frac'] = np.where(
+                panel['n_articles'] > 0,
+                panel[f'n_articles{suffix}'] / panel['n_articles'],
+                np.nan
+            )
+
+        # 情感纯度差距指标
+        if 'llm_vote_tone_sub_full' in panel.columns and 'llm_vote_tone_desc_full' in panel.columns:
+            panel['tone_gap_sub_desc'] = (
+                panel['llm_vote_tone_sub_full'] - panel['llm_vote_tone_desc_full']
+            )
+
+        # text_type 恒等式校验
+        if all(f'n_articles{s}' in panel.columns for s in ['_sub', '_desc', '_tmix']):
+            has_news = panel['n_articles'] > 0
+            tt_identity = (panel.loc[has_news, 'n_articles'] ==
+                           panel.loc[has_news, 'n_articles_sub'] +
+                           panel.loc[has_news, 'n_articles_desc'] +
+                           panel.loc[has_news, 'n_articles_tmix'])
+            if tt_identity.all():
+                logger.info("  ✓ text_type 恒等式校验通过: n_articles == n_articles_sub + n_articles_desc + n_articles_tmix")
+            else:
+                n_fail_tt = (~tt_identity).sum()
+                logger.warning(f"  ✗ text_type 恒等式校验失败: {n_fail_tt} 行")
+    else:
+        logger.info("  列 'text_type' 不存在, text_type 分组聚合将跳过")
 
     # 新闻覆盖量对数
     panel['ln_news_coverage'] = np.log1p(panel['n_articles'])
@@ -576,7 +653,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # 这反映了"银行作为核心主题的文章应有更大权重"的直觉。
     if 'sum_mention_density' in panel.columns:
         denom = panel['sum_mention_density'].replace(0, np.nan)
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             if f'llm_vote_score_w_sum{track}' in panel.columns:
                 panel[f'llm_vote_tone_vw{track}'] = panel[f'llm_vote_score_w_sum{track}'] / denom
             if f'llm_vote_cont_w_sum{track}' in panel.columns:
@@ -606,7 +683,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # --- MW Tone (媒体权威性加权, Holzman et al. 2023, TAR) ---
     if 'sum_media_authority_weight' in panel.columns:
         mw_denom = panel['sum_media_authority_weight'].replace(0, np.nan)
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             if f'llm_vote_score_mw_sum{track}' in panel.columns:
                 panel[f'llm_vote_tone_mw{track}'] = (
                     panel[f'llm_vote_score_mw_sum{track}'] / mw_denom)
@@ -630,6 +707,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     if w_col in panel.columns:
                         panel[f'{b}{sfx}_mw{track}'] = panel[w_col] / mw_denom
         logger.info(f"  已计算 Media-Authority-weighted Tone 指标（双轨）")
+
+    # --- 标题-全文情感缺口（B1-2 Step 4d） ---
+    # 衡量"标题党/软文嫌疑": gap越大→标题情感偏离全文→投资者可能过度反应
+    if 'llm_vote_tone_title' in panel.columns and 'llm_vote_tone_full' in panel.columns:
+        panel['tone_gap_title_full'] = (
+            panel['llm_vote_tone_title'] - panel['llm_vote_tone_full']
+        )
+        logger.info("  已计算 tone_gap_title_full (标题-全文情感缺口)")
 
     logger.info(f"  聚合后面板行数: {panel.shape[0]:,}")
     logger.info(f"  唯一银行数: {panel['target_bank'].nunique()}")
@@ -674,8 +759,9 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     count_cols = ['pos_count', 'neg_count',
                   'pos_count_vw', 'neg_count_vw',
                   'sum_mention_density', 'sum_doc_length', 'sum_target_mentions',
-                  'sum_fl_count_full', 'sum_fl_count_ctx',
                   'sum_media_authority_weight']
+    # 动态匹配所有 sum_fl_count 列（三轨: _full/_ctx/_title）
+    count_cols += [c for c in panel.columns if c.startswith('sum_fl_count')]
     zero_fill_cols = zero_fill_patterns + sum_cols + count_cols
 
     for col in zero_fill_cols:
@@ -683,14 +769,20 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
             panel[col] = panel[col].fillna(0)
 
     # --- 分类维度计数列填充为 0 ---
-    # zero_fill_patterns 中的 'n_articles' 为精确匹配，不会捕获 n_articles_tech / n_articles_app
-    for suffix in ['_tech', '_app']:
+    # zero_fill_patterns 中的 'n_articles' 为精确匹配，不会捕获 n_articles_tech / n_articles_app / n_articles_mix
+    for suffix in ['_tech', '_app', '_mix']:
+        col = f'n_articles{suffix}'
+        if col in panel.columns:
+            panel[col] = panel[col].fillna(0).astype(int)
+
+    # --- text_type 分类维度计数列填充为 0（独立循环，不追加到 fintech_category） ---
+    for suffix in ['_sub', '_desc', '_tmix']:
         col = f'n_articles{suffix}'
         if col in panel.columns:
             panel[col] = panel[col].fillna(0).astype(int)
 
     # 其余 NaN 列保持不变（均值、比例、离散度等由 Stata 处理）
-    # tech_frac / app_frac / avg_category_confidence: 零新闻行保持 NaN
+    # tech_frac / app_frac / mix_frac / sub_frac / desc_frac / tmix_frac / avg_category_confidence: 零新闻行保持 NaN
 
     logger.info(f"  完全笛卡尔积: {len(all_banks)} 银行 × {len(all_years)} 年 = {rows_after:,} 行")
     logger.info(f"  原有观测值: {rows_before:,} 行")

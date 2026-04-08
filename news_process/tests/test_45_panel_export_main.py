@@ -76,7 +76,7 @@ def synthetic_df():
     }
 
     # LLM 投票结果 + 逐模型列（双轨）
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         data[f'llm_sentiment{track}'] = np.random.choice(['正面', '中性', '负面'], n)
         data[f'llm_agreement_rate{track}'] = np.random.uniform(0.5, 1.0, n)
         for short in LLM_SHORTS:
@@ -85,13 +85,13 @@ def synthetic_df():
 
     # 词典法列（双轨）
     for d in DICT_NAMES:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             data[f'{d}_score{track}'] = np.random.uniform(-1, 1, n)
             data[f'{d}_label{track}'] = np.random.choice(['正面', '中性', '负面'], n)
 
     # BERT 列（双轨）
     for b in BERT_SHORTS:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             data[f'{b}_正面{track}'] = np.random.uniform(0, 1, n)
             data[f'{b}_负面{track}'] = np.random.uniform(0, 1, n)
             data[f'{b}_label{track}'] = np.random.choice(['正面', '中性', '负面'], n)
@@ -107,7 +107,7 @@ def synthetic_df():
     data['matched_banks_info'] = banks_info_list
 
     # 前瞻性陈述、可读性、正负面分离（双轨）
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         data[f'forward_looking_ratio{track}'] = np.random.uniform(0, 0.1, n)
         data[f'forward_looking_count{track}'] = np.random.randint(0, 10, n)
         data[f'avg_sentence_len{track}'] = np.random.uniform(20, 80, n)
@@ -136,7 +136,7 @@ def synthetic_df():
 class TestEncoding:
     def test_discrete_encoding(self, synthetic_df):
         df = bp.encode_sentiment(synthetic_df.copy())
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             assert f'llm_vote_score{track}' in df.columns
             assert set(df[f'llm_vote_score{track}'].unique()).issubset({-1, 0, 1})
             # 互斥性: 每行只能属于一个类别
@@ -145,14 +145,14 @@ class TestEncoding:
 
     def test_continuous_encoding(self, synthetic_df):
         df = bp.encode_sentiment(synthetic_df.copy())
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             assert df[f'llm_vote_cont{track}'].between(-1, 1).all()
             for short in LLM_SHORTS:
                 assert df[f'{short}_cont{track}'].between(-1, 1).all()
 
     def test_per_model_score(self, synthetic_df):
         df = bp.encode_sentiment(synthetic_df.copy())
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             for short in LLM_SHORTS:
                 assert set(df[f'{short}_score{track}'].unique()).issubset({-1, 0, 1})
 
@@ -210,7 +210,7 @@ class TestAggregation:
         df = bp.encode_sentiment(synthetic_df.copy())
         df = bp.parse_time(df)
         panel = bp.aggregate_panel(df)
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             assert panel[f'pos_frac{track}'].between(0, 1).all()
             assert panel[f'neg_frac{track}'].between(0, 1).all()
 

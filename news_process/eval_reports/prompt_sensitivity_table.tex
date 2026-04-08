@@ -1,0 +1,32 @@
+\begin{table}[htbp]
+\centering
+\caption{Prompt Wording Sensitivity Analysis ($N=771$, Dual-Track)}
+\label{tab:prompt_sensitivity}
+\begin{tabular}{lcccc}
+\hline
+Variant & Verif. Agree. & Sent. Agree. & Cohen's $\kappa_{\text{verif}}$ & Parse Fail \\
+\hline
+\multicolumn{5}{l}{\textit{Panel A: Full-Text Track (Pairwise vs. Baseline)}} \\
+\quad V1 (Role) & 83.8\% & 81.5\% & 0.6350 & -- \\
+\quad V2 (Structure) & 86.0\% & 82.5\% & 0.6693 & -- \\
+\quad V3 (Concise) & 80.3\% & 78.5\% & 0.5735 & -- \\
+\quad V4 (Paraphrase) & 82.5\% & 80.4\% & 0.6140 & -- \\
+\hline
+\multicolumn{5}{l}{\textit{Panel B: Context-Snippet Track (Pairwise vs. Baseline)}} \\
+\quad V1 (Role) & 84.6\% & 82.8\% & 0.6657 & -- \\
+\quad V2 (Structure) & 86.8\% & 84.3\% & 0.7081 & -- \\
+\quad V3 (Concise) & 82.8\% & 81.1\% & 0.6327 & -- \\
+\quad V4 (Paraphrase) & 84.3\% & 82.5\% & 0.6642 & -- \\
+\hline
+\multicolumn{5}{l}{\textit{Panel C: Multi-Variant Agreement (Full / Ctx)}} \\
+\quad Krippendorff's $\alpha$ & \multicolumn{4}{c}{0.7447 / 0.7855} \\
+\quad Fleiss' $\kappa$ & \multicolumn{4}{c}{0.7447 / 0.7855} \\
+\quad Cross-Variant $\sigma$(True Rate) & \multicolumn{4}{c}{0.0659 / 0.0551} \\
+\hline
+\end{tabular}
+\par\smallskip\footnotesize
+\textit{Notes:} Baseline uses the original prompt from the production pipeline.
+Each variant modifies wording while preserving identical task semantics.
+Full track uses complete article text; Ctx track uses entity-specific context snippets.
+Methodology follows Carlson \& Burbano (2026, SMJ \S3.5).
+\end{table}

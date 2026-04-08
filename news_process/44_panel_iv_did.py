@@ -111,7 +111,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
     base = df_exploded[df_exploded['year'] == T0].copy()
     if len(base) == 0:
         logger.warning(f"  基期 T0={T0} 无数据, Bartik IV [{group_prefix}] 跳过")
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_title']:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
         return panel
 
@@ -167,7 +167,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
     df_with_group = df_exploded.copy()
     df_with_group['_group'] = df_with_group['target_bank'].map(bank_group_map).fillna('other')
 
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         score_col = f'llm_vote_score{track}'
         if score_col not in df_with_group.columns:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
@@ -291,7 +291,7 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
     df_cat = df_exploded.copy()
     df_cat['_cat_short'] = df_cat[category_col].map(category_map)
 
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         score_col = f'llm_vote_score{track}'
         if score_col not in df_cat.columns:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
@@ -347,7 +347,7 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
                             on=['target_bank', 'year'], how='left')
 
     # 诊断日志
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         iv_col = f'bartik_{group_prefix}_iv{track}'
         if iv_col in panel.columns:
             n_valid = panel[iv_col].notna().sum()
@@ -398,7 +398,7 @@ def compute_zone_leave1out(panel: pd.DataFrame,
     df_z = df_exploded.copy()
     df_z['_zone'] = df_z['target_bank'].map(bank_zone_map).fillna('other')
 
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         score_col = f'llm_vote_score{track}'
         out_col = f'zone_leave1out_tone{track}'
         if score_col not in df_z.columns:
@@ -437,7 +437,7 @@ def compute_zone_leave1out(panel: pd.DataFrame,
     # 诊断
     zone_dist = panel.drop_duplicates('target_bank')['bank_zone'].value_counts()
     logger.info(f"  经济圈分布: {dict(zone_dist)}")
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_title']:
         out_col = f'zone_leave1out_tone{track}'
         if out_col in panel.columns:
             n_valid = panel[out_col].notna().sum()
