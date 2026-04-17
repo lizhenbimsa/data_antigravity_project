@@ -562,6 +562,25 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'sandbox_treated':                     'Fintech Sandbox (0/1)',
                 'sandbox_post':                        'Post Sandbox (0/1)',
                 'sandbox_treat_year':                  'Sandbox First Treatment Year',
+                # Event Study 动态效应 (Callaway & Sant'Anna 2021, JoE)
+                'dcep_rel_year':                       'DCEP Relative Year to Treatment',
+                'dcep_lead3':                          'DCEP Lead 3 Periods (k=-3)',
+                'dcep_lead2':                          'DCEP Lead 2 Periods (k=-2)',
+                'dcep_lag0':                           'DCEP Treatment Year (k=0)',
+                'dcep_lag1':                           'DCEP Lag 1 Period (k=+1)',
+                'dcep_lag2':                           'DCEP Lag 2 Periods (k=+2)',
+                'dcep_lag3':                           'DCEP Lag 3 Periods (k=+3)',
+                'dcep_lead4plus':                      'DCEP Lead 4+ Periods (k<=-4)',
+                'dcep_lag4plus':                       'DCEP Lag 4+ Periods (k>=+4)',
+                'sandbox_rel_year':                    'Sandbox Relative Year to Treatment',
+                'sandbox_lead3':                       'Sandbox Lead 3 Periods (k=-3)',
+                'sandbox_lead2':                       'Sandbox Lead 2 Periods (k=-2)',
+                'sandbox_lag0':                        'Sandbox Treatment Year (k=0)',
+                'sandbox_lag1':                        'Sandbox Lag 1 Period (k=+1)',
+                'sandbox_lag2':                        'Sandbox Lag 2 Periods (k=+2)',
+                'sandbox_lag3':                        'Sandbox Lag 3 Periods (k=+3)',
+                'sandbox_lead4plus':                   'Sandbox Lead 4+ Periods (k<=-4)',
+                'sandbox_lag4plus':                    'Sandbox Lag 4+ Periods (k>=+4)',
                 # LLM 置信度 (Shapiro et al. 2022, JoE; Baker et al. 2024, JAR)
                 'avg_llm_conf_full':                   'LLM Avg Confidence (Full)',
                 'avg_llm_conf_std_full':               'LLM Confidence Std Dev (Full)',
@@ -578,6 +597,11 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # 跟风新闻检测 (Tetlock 2011, JF)
                 'avg_herd_weight':                     'Avg Herd Decay Weight 1/(1+N) (Tetlock 2011)',
                 'min_herd_weight':                     'Min Herd Decay Weight (Tetlock 2011)',
+                # 跟风衰减加权情感 (Tetlock 2011, JF)
+                'llm_vote_tone_hw_full':               'LLM Vote Tone (Herd-Decay Wt, Full)',
+                'llm_vote_tone_hw_ctx':                'LLM Vote Tone (Herd-Decay Wt, Ctx)',
+                'llm_vote_cont_hw_full':               'LLM Vote Cont (Herd-Decay Wt, Full)',
+                'llm_vote_cont_hw_ctx':                'LLM Vote Cont (Herd-Decay Wt, Ctx)',
                 # ═══ 银行共现网络: Part A (11) ═══
                 'bank_degree_cent':     'Co-mention Degree Centrality (Freeman 1979)',
                 'bank_strength_cent':   'Co-mention Strength Centrality (Opsahl 2010)',
@@ -774,6 +798,41 @@ def main():
                         df[f'{b}{label}_mw{track}'] = df[src] * mw
         mw_cols = [c for c in df.columns if '_mw' in c]
         logger.info(f"  已生成 {len(mw_cols)} 个媒体权威性加权列")
+
+    # --- 3d. 跟风衰减加权列预计算 (Tetlock 2011, JF) ---
+    if 'herd_weight' in df.columns:
+        logger.info("=" * 60)
+        logger.info("步骤 3d: 跟风衰减加权列预计算 (HW, 双轨)")
+        logger.info("=" * 60)
+        hw = df['herd_weight'].fillna(1.0)
+        for track in ['_full', '_ctx', '_title']:
+            if f'llm_vote_score{track}' not in df.columns:
+                continue
+            # 情感离散/连续 (遵循 MW 命名模式: _hw 在 track 之前)
+            df[f'llm_vote_score_hw{track}'] = df[f'llm_vote_score{track}'] * hw
+            df[f'llm_vote_cont_hw{track}'] = df[f'llm_vote_cont{track}'] * hw
+            # LLM 逐模型
+            for short in LLM_MODELS:
+                for sfx in ['_score', '_cont']:
+                    src = f'{short}{sfx}{track}'
+                    if src in df.columns:
+                        df[f'{short}{sfx}_hw{track}'] = df[src] * hw
+            # 词典
+            for d in DICT_NAMES:
+                src = f'{d}_score{track}'
+                if src in df.columns:
+                    df[f'{d}_score_hw{track}'] = df[src] * hw
+                src_idf = f'{d}_idf_score{track}'
+                if src_idf in df.columns:
+                    df[f'{d}_idf_score_hw{track}'] = df[src_idf] * hw
+            # BERT
+            for b in BERT_MODELS:
+                for label in ['_正面', '_负面']:
+                    src = f'{b}{label}{track}'
+                    if src in df.columns:
+                        df[f'{b}{label}_hw{track}'] = df[src] * hw
+        hw_cols = [c for c in df.columns if '_hw' in c]
+        logger.info(f"  已生成 {len(hw_cols)} 个跟风衰减加权列")
 
     # --- 4. 时间解析 ---
     df = parse_time(df)

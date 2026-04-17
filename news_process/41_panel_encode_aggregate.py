@@ -404,6 +404,20 @@ def build_aggregation_dict() -> dict:
     # --- F4. 跟风衰减权重 (Tetlock 2011, JF) — 作为面板控制变量 ---
     agg['avg_herd_weight'] = ('herd_weight', 'mean')
     agg['min_herd_weight'] = ('herd_weight', 'min')
+    # --- F5. 跟风衰减加权聚合 (Tetlock 2011, JF) ---
+    agg['sum_herd_weight'] = ('herd_weight', 'sum')
+    for track in ['_full', '_ctx', '_title']:
+        agg[f'llm_vote_score_hw_sum{track}'] = (f'llm_vote_score_hw{track}', 'sum')
+        agg[f'llm_vote_cont_hw_sum{track}'] = (f'llm_vote_cont_hw{track}', 'sum')
+        for short in LLM_MODELS:
+            agg[f'{short}_score_hw_sum{track}'] = (f'{short}_score_hw{track}', 'sum')
+            agg[f'{short}_cont_hw_sum{track}'] = (f'{short}_cont_hw{track}', 'sum')
+        for d in DICT_NAMES:
+            agg[f'{d}_score_hw_sum{track}'] = (f'{d}_score_hw{track}', 'sum')
+            agg[f'{d}_idf_score_hw_sum{track}'] = (f'{d}_idf_score_hw{track}', 'sum')
+        for b in BERT_MODELS:
+            agg[f'{b}_正面_hw_sum{track}'] = (f'{b}_正面_hw{track}', 'sum')
+            agg[f'{b}_负面_hw_sum{track}'] = (f'{b}_负面_hw{track}', 'sum')
     for track in ['_full', '_ctx', '_title']:
         agg[f'llm_vote_score_mw_sum{track}'] = (f'llm_vote_score_mw{track}', 'sum')
         agg[f'llm_vote_cont_mw_sum{track}'] = (f'llm_vote_cont_mw{track}', 'sum')
@@ -713,6 +727,34 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     if w_col in panel.columns:
                         panel[f'{b}{sfx}_mw{track}'] = panel[w_col] / mw_denom
         logger.info(f"  已计算 Media-Authority-weighted Tone 指标（双轨）")
+
+    # --- HW Tone (跟风衰减加权, Tetlock 2011, JF) ---
+    if 'sum_herd_weight' in panel.columns:
+        hw_denom = panel['sum_herd_weight'].replace(0, np.nan)
+        for track in ['_full', '_ctx', '_title']:
+            if f'llm_vote_score_hw_sum{track}' in panel.columns:
+                panel[f'llm_vote_tone_hw{track}'] = (
+                    panel[f'llm_vote_score_hw_sum{track}'] / hw_denom)
+            if f'llm_vote_cont_hw_sum{track}' in panel.columns:
+                panel[f'llm_vote_cont_hw{track}'] = (
+                    panel[f'llm_vote_cont_hw_sum{track}'] / hw_denom)
+            for short in LLM_MODELS:
+                w_col = f'{short}_score_hw_sum{track}'
+                if w_col in panel.columns:
+                    panel[f'{short}_tone_hw{track}'] = panel[w_col] / hw_denom
+            for d in DICT_NAMES:
+                w_col = f'{d}_score_hw_sum{track}'
+                if w_col in panel.columns:
+                    panel[f'{d}_tone_hw{track}'] = panel[w_col] / hw_denom
+                w_idf = f'{d}_idf_score_hw_sum{track}'
+                if w_idf in panel.columns:
+                    panel[f'{d}_idf_tone_hw{track}'] = panel[w_idf] / hw_denom
+            for b in BERT_MODELS:
+                for label, sfx in [('_正面', '_pos'), ('_负面', '_neg')]:
+                    w_col = f'{b}{label}_hw_sum{track}'
+                    if w_col in panel.columns:
+                        panel[f'{b}{sfx}_hw{track}'] = panel[w_col] / hw_denom
+        logger.info(f"  已计算 Herd-Decay-weighted Tone 指标（双轨）")
 
     # --- 标题-全文情感缺口（B1-2 Step 4d） ---
     # 衡量"标题党/软文嫌疑": gap越大→标题情感偏离全文→投资者可能过度反应

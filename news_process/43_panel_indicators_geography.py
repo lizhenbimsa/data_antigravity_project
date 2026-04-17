@@ -92,6 +92,13 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         panel[f'bert_avg_pos_mw{track}'] = _safe_mean([f'{b}_pos_mw{track}' for b in BERT_MODELS])
         panel[f'bert_avg_neg_mw{track}'] = _safe_mean([f'{b}_neg_mw{track}' for b in BERT_MODELS])
 
+        # --- HW 综合指标 (Tetlock 2011, JF) ---
+        panel[f'llm_models_avg_tone_hw{track}'] = _safe_mean([f'{s}_tone_hw{track}' for s in LLM_MODELS])
+        panel[f'dict_avg_tone_hw{track}'] = _safe_mean([f'{d}_tone_hw{track}' for d in DICT_NAMES])
+        panel[f'dict_avg_idf_tone_hw{track}'] = _safe_mean([f'{d}_idf_tone_hw{track}' for d in DICT_NAMES])
+        panel[f'bert_avg_pos_hw{track}'] = _safe_mean([f'{b}_pos_hw{track}' for b in BERT_MODELS])
+        panel[f'bert_avg_neg_hw{track}'] = _safe_mean([f'{b}_neg_hw{track}' for b in BERT_MODELS])
+
     logger.info(f"  生成双轨综合指标完成")
 
     # --- 文章平均长度 (He et al. 2024, IRFA, Panel A.5: MLENGTH) ---
@@ -179,6 +186,8 @@ _STANDARDIZE_COLS = [
     'llm_vote_tone_vw_{t}', 'dict_avg_tone_vw_{t}',
     # MW 加权 (Holzman 2023)
     'llm_vote_tone_mw_{t}', 'dict_avg_tone_mw_{t}',
+    # HW 加权 (Tetlock 2011)
+    'llm_vote_tone_hw_{t}', 'dict_avg_tone_hw_{t}',
     # MSENT (He et al. 2024)
     'avg_msent_{t}',
     # Fintech Exposure (Dim et al. 2024 概念迁移)
