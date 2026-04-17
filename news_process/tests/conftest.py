@@ -179,8 +179,10 @@ def mock_config(tmp_dir):
             'output_11_bank_news': '11_bank_news.parquet',
             'output_12_fintech_news': '12_fintech_news.parquet',
             'output_21_tone_llms': '21_tone_llms.parquet',
+            'output_21_tone_llms_full': '21_tone_llms_full.parquet',
             'output_22_words_tone': '22_words_tone.parquet',
             'output_23_bert_tone': '23_bert_tone.parquet',
+            'output_24_herd_decay': '24_herd_decay.parquet',
         },
         'parallel': {'n_jobs': 1, 'batch_size': 5},
         'preprocessing': {

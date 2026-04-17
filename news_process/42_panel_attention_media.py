@@ -346,8 +346,14 @@ def compute_media_heterogeneity(df, panel):
     FIN = set(media_cls.get('financial_media', []))
     COMP = set(media_cls.get('comprehensive_media', []))
     CENTRAL = set(media_cls.get('central_media', []))
+    OFFICIAL = set(media_cls.get('official_media', []))
+    MARKET = set(media_cls.get('market_media', []))
+    DEEPDIVE = set(media_cls.get('deep_dive_periodicals', []))
+    DAILY = set(media_cls.get('high_frequency_dailies', []))
     logger.info(f"  财经类: {len(FIN)} 家, 综合性: {len(COMP)} 家, "
                 f"中央级: {len(CENTRAL)} 家")
+    logger.info(f"  官方: {len(OFFICIAL)} 家, 市场化: {len(MARKET)} 家, "
+                f"深度期刊: {len(DEEPDIVE)} 家, 高频日报: {len(DAILY)} 家")
 
     # 防御性检查: 财经/综合不应重叠 (中央级与其正交, 允许重叠)
     overlap_fc = FIN & COMP
@@ -428,6 +434,122 @@ def compute_media_heterogeneity(df, panel):
             panel.get(f'tone_central_media{track}', np.nan)
             - panel.get(f'tone_local_media{track}', np.nan))
 
+    # ── 维度⑤: 官方 vs 非官方 ──
+    # 理论基础: 国有控制媒体受政治激励影响, 报道倾向性与市场化媒体显著不同
+    #   - You, Zhang & Zhang (2018, RFS): 官方媒体负面报道不影响高管更替,
+    #     市场化媒体则有显著治理效应 (doi: 10.1093/rfs/hhx055)
+    #   - Piotroski, Wong & Zhang (2015, JAR): 政治激励导致关联企业负面信息
+    #     被暂时压制 (doi: 10.1111/1475-679X.12071)
+    # 操作化: official_media 名单来自 NPPA 数据库, 以主管单位为党政机关为判据
+    df['_is_official'] = df['媒体(中文)'].isin(OFFICIAL).astype(int)
+    n_official = df['_is_official'].sum()
+    logger.info(f"    政治取向 - 官方: {n_official:,} "
+                f"({n_official/len(df)*100:.1f}%)")
+
+    frac_off = (df.groupby(['target_bank', 'year'])['_is_official']
+                .mean().reset_index(name='official_media_frac'))
+    panel = panel.merge(frac_off, on=['target_bank', 'year'], how='left')
+
+    for track in ['_full', '_ctx', '_title']:
+        src = f'llm_vote_score{track}'
+        if src not in df.columns:
+            continue
+        for is_o, sfx in [(1, 'official'), (0, 'nonoff')]:
+            tone = (df[df['_is_official'] == is_o]
+                    .groupby(['target_bank', 'year'])[src]
+                    .mean().reset_index(name=f'tone_{sfx}_media{track}'))
+            panel = panel.merge(tone, on=['target_bank', 'year'], how='left')
+        panel[f'tone_gap_official_nonoff{track}'] = (
+            panel.get(f'tone_official_media{track}', np.nan)
+            - panel.get(f'tone_nonoff_media{track}', np.nan))
+
+    # ── 维度⑥: 市场化 vs 非市场化 ──
+    # 理论基础: 市场化媒体依赖广告和发行收入, 报道更独立、批判性更强
+    #   - You, Zhang & Zhang (2018, RFS): 市场化媒体负面报道显著促进高管更替,
+    #     体现了媒体治理功能 (doi: 10.1093/rfs/hhx055)
+    #   - Fang & Peress (2009, JF): 媒体覆盖度越高, 信息不对称越低,
+    #     无覆盖股票存在回报溢价 (doi: 10.1111/j.1540-6261.2009.01493.x)
+    # 操作化: market_media 名单来自 NPPA 数据库, 以主办单位为企业/商业集团为判据
+    df['_is_market'] = df['媒体(中文)'].isin(MARKET).astype(int)
+    n_market = df['_is_market'].sum()
+    logger.info(f"    政治取向 - 市场化: {n_market:,} "
+                f"({n_market/len(df)*100:.1f}%)")
+
+    frac_mkt = (df.groupby(['target_bank', 'year'])['_is_market']
+                .mean().reset_index(name='market_media_frac'))
+    panel = panel.merge(frac_mkt, on=['target_bank', 'year'], how='left')
+
+    for track in ['_full', '_ctx', '_title']:
+        src = f'llm_vote_score{track}'
+        if src not in df.columns:
+            continue
+        for is_m, sfx in [(1, 'market'), (0, 'nonmkt')]:
+            tone = (df[df['_is_market'] == is_m]
+                    .groupby(['target_bank', 'year'])[src]
+                    .mean().reset_index(name=f'tone_{sfx}_media{track}'))
+            panel = panel.merge(tone, on=['target_bank', 'year'], how='left')
+        panel[f'tone_gap_market_nonmkt{track}'] = (
+            panel.get(f'tone_market_media{track}', np.nan)
+            - panel.get(f'tone_nonmkt_media{track}', np.nan))
+
+    # ── 维度⑦: 深度期刊 vs 非深度 ──
+    # 理论基础: 低频出版的深度期刊具有更强的信息分析与原创内容创造能力
+    #   - Bushee, Core, Guay & Hamm (2010, JAR): 媒体信息中介功能中,
+    #     原创信息创造比简单转载传播更具治理效力 (doi: 10.1111/j.1475-679X.2009.00357.x)
+    #   - Guest (2021, JAR): 深度分析型媒体的新闻原创性越高,
+    #     对公司治理的改善效果越显著 (doi: 10.1111/1475-679X.12349)
+    # 操作化: deep_dive_periodicals 基于 NPPA 出版周期≥周报的非日刊出版物
+    df['_is_deepdive'] = df['媒体(中文)'].isin(DEEPDIVE).astype(int)
+    n_deepdive = df['_is_deepdive'].sum()
+    logger.info(f"    出版频率 - 深度期刊: {n_deepdive:,} "
+                f"({n_deepdive/len(df)*100:.1f}%)")
+
+    frac_dd = (df.groupby(['target_bank', 'year'])['_is_deepdive']
+               .mean().reset_index(name='deepdive_media_frac'))
+    panel = panel.merge(frac_dd, on=['target_bank', 'year'], how='left')
+
+    for track in ['_full', '_ctx', '_title']:
+        src = f'llm_vote_score{track}'
+        if src not in df.columns:
+            continue
+        for is_d, sfx in [(1, 'deepdive'), (0, 'nondeep')]:
+            tone = (df[df['_is_deepdive'] == is_d]
+                    .groupby(['target_bank', 'year'])[src]
+                    .mean().reset_index(name=f'tone_{sfx}_media{track}'))
+            panel = panel.merge(tone, on=['target_bank', 'year'], how='left')
+        panel[f'tone_gap_deepdive_nondeep{track}'] = (
+            panel.get(f'tone_deepdive_media{track}', np.nan)
+            - panel.get(f'tone_nondeep_media{track}', np.nan))
+
+    # ── 维度⑧: 高频日报 vs 非日报 ──
+    # 理论基础: 日报具有更高的出版频率和时效性, 是日频情感指标的主要驱动
+    #   - Tetlock (2007, JF): 基于 WSJ 每日专栏构建悲观指数,
+    #     证明日频媒体情感可预测市场回报 (doi: 10.1111/j.1540-6261.2007.01232.x)
+    #   - Tetlock, Saar-Tsechansky & Macskassy (2008, JF): 每日新闻中的负面词汇比例
+    #     能预测企业盈余和回报 (doi: 10.1111/j.1540-6261.2008.01362.x)
+    # 操作化: high_frequency_dailies 基于 NPPA 出版周期为日报的出版物
+    df['_is_daily'] = df['媒体(中文)'].isin(DAILY).astype(int)
+    n_daily = df['_is_daily'].sum()
+    logger.info(f"    出版频率 - 高频日报: {n_daily:,} "
+                f"({n_daily/len(df)*100:.1f}%)")
+
+    frac_dl = (df.groupby(['target_bank', 'year'])['_is_daily']
+               .mean().reset_index(name='daily_media_frac'))
+    panel = panel.merge(frac_dl, on=['target_bank', 'year'], how='left')
+
+    for track in ['_full', '_ctx', '_title']:
+        src = f'llm_vote_score{track}'
+        if src not in df.columns:
+            continue
+        for is_dl, sfx in [(1, 'daily'), (0, 'nondaily')]:
+            tone = (df[df['_is_daily'] == is_dl]
+                    .groupby(['target_bank', 'year'])[src]
+                    .mean().reset_index(name=f'tone_{sfx}_media{track}'))
+            panel = panel.merge(tone, on=['target_bank', 'year'], how='left')
+        panel[f'tone_gap_daily_nondaily{track}'] = (
+            panel.get(f'tone_daily_media{track}', np.nan)
+            - panel.get(f'tone_nondaily_media{track}', np.nan))
+
     # ── (5) 媒体来源 HHI ──
     def _hhi(group):
         s = group.value_counts(normalize=True)
@@ -436,16 +558,168 @@ def compute_media_heterogeneity(df, panel):
            .apply(_hhi).reset_index(name='media_hhi'))
     panel = panel.merge(hhi, on=['target_bank', 'year'], how='left')
 
+    # ── 维度⑨: 地理邻近性 — 本地 vs 异地媒体 (同省/同城双层) ──
+    # 理论基础: 本地媒体因广告收入依赖、地方政府关系等因素,
+    #   倾向于对本地企业进行系统性正面倾斜 (media slant)。
+    #   Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype:
+    #   Local media slant, local advertising, and firm value.
+    #   The Journal of Finance, 67(2), 561-598.
+    #   DOI: 10.1111/j.1540-6261.2012.01725.x
+    # 操作化: 以银行注册地省份/城市 vs 媒体来源省份/城市进行匹配,
+    #   在省级 (Prov) 和市级 (City) 两个层面平行构建三组核心指标。
+    #   命名采用 homeprov/homecity 前缀, 与现有 central/local (行政层级) 正交。
+    logger.info("  ── 维度⑨: 地理邻近性 (同省/同城双层) ──")
+
+    # (9a) 加载银行注册地信息
+    addr_path = os.path.join(config_dir, 'bank_addresses.json')
+    if os.path.exists(addr_path):
+        with open(addr_path, 'r', encoding='utf-8') as f:
+            _addr_data = json.load(f)
+        _bank_prov_map = {k: v.get('province', '') for k, v in _addr_data.items()}
+        _bank_city_map = {k: v.get('city', '') for k, v in _addr_data.items()}
+        logger.info(f"    银行注册地: {len(_bank_prov_map)} 家 "
+                    f"({len(set(_bank_prov_map.values()))} 省, "
+                    f"{len(set(_bank_city_map.values()))} 市)")
+
+        # (9b) 映射到文章级数据
+        df['_bank_prov'] = df['target_bank'].map(_bank_prov_map)
+        df['_bank_city'] = df['target_bank'].map(_bank_city_map)
+
+        # (9c) 地名后缀清洗 — 解决 "杭州市" ≠ "杭州" 匹配问题
+        _GEO_SUFFIXES = (r'省|市|维吾尔自治区|回族自治区|壮族自治区'
+                         r'|自治区|特别行政区')
+
+        def _clean_geo(s):
+            """移除行政区划后缀, 使省市名称标准化。"""
+            return (s.astype(str)
+                    .str.replace(_GEO_SUFFIXES, '', regex=True)
+                    .str.strip())
+
+        _news_prov_clean = _clean_geo(df['国家地区/省份'])
+        _bank_prov_clean = _clean_geo(df['_bank_prov'])
+        _news_city_clean = _clean_geo(df['城市']) if '城市' in df.columns else pd.Series('', index=df.index)
+        _bank_city_clean = _clean_geo(df['_bank_city'])
+
+        df['_is_homeprov'] = (_news_prov_clean == _bank_prov_clean).astype(int)
+        df['_is_homecity'] = (_news_city_clean == _bank_city_clean).astype(int)
+
+        # (9d) NaN / 空值 显式守卫
+        #   防止 _clean_geo(NaN) → "nan" == "nan" 假阳性
+        #   以及 "" == "" 假阳性 (当 bank_addresses 或新闻数据缺省份/城市时)
+        _prov_invalid = (df['_bank_prov'].isna()
+                         | df['国家地区/省份'].isna()
+                         | (df['_bank_prov'].astype(str).str.strip() == '')
+                         | (df['国家地区/省份'].astype(str).str.strip() == ''))
+        df.loc[_prov_invalid, '_is_homeprov'] = 0
+        if '城市' in df.columns:
+            _city_invalid = (df['_bank_city'].isna()
+                             | df['城市'].isna()
+                             | (df['_bank_city'].astype(str).str.strip() == '')
+                             | (df['城市'].astype(str).str.strip() == ''))
+            df.loc[_city_invalid, '_is_homecity'] = 0
+        else:
+            df['_is_homecity'] = 0
+
+        # (9e) 拓扑不变量: 同城 ⊆ 同省
+        df['_is_homeprov'] = np.maximum(df['_is_homeprov'], df['_is_homecity'])
+
+        # 诊断
+        n_total = len(df)
+        n_homeprov = df['_is_homeprov'].sum()
+        n_homecity = df['_is_homecity'].sum()
+        logger.info(f"    同省报道: {n_homeprov:,} ({n_homeprov/n_total*100:.1f}%), "
+                    f"同城报道: {n_homecity:,} ({n_homecity/n_total*100:.1f}%)")
+
+        # (9f) 三项核心指标 × Prov/City 双轨
+        #   指标1: 偏袒度 (tone_gap) — 均值层面的系统性倾斜
+        #   指标2: 封闭度 (media_frac) — 本地报道占比
+        #   指标3: 负面过滤 (neg_frac) — 负面消息尾部的选择性抑制
+        #     Core, J. E., Guay, W., & Larcker, D. F. (2008).
+        #     The power of the pen and executive compensation.
+        #     Journal of Financial Economics, 88(1), 1-25.
+        #     DOI: 10.1016/j.jfineco.2007.05.001
+        for geo_tag, geo_col, geo_label in [
+            ('prov', '_is_homeprov', '省级'),
+            ('city', '_is_homecity', '市级'),
+        ]:
+            home_sfx = f'home{geo_tag}'
+            away_sfx = f'non{geo_tag}'
+
+            # ── 指标2: 封闭度 ──
+            frac_col = f'{home_sfx}_media_frac'
+            frac = (df.groupby(['target_bank', 'year'])[geo_col]
+                    .mean().reset_index(name=frac_col))
+            panel = panel.merge(frac, on=['target_bank', 'year'], how='left')
+
+            # ── 指标1: 偏袒度 + 指标3: 负面过滤 ──
+            for track in ['_full', '_ctx', '_title']:
+                src_tone = f'llm_vote_score{track}'
+                src_neg = f'is_negative{track}'
+                if src_tone not in df.columns:
+                    continue
+
+                for is_h, sfx in [(1, home_sfx), (0, away_sfx)]:
+                    sub = df[df[geo_col] == is_h]
+                    if sub.empty:
+                        continue
+
+                    # 指标1: 情感均值
+                    tone = (sub.groupby(['target_bank', 'year'])[src_tone]
+                            .mean().reset_index(
+                                name=f'tone_{sfx}_media{track}'))
+                    panel = panel.merge(
+                        tone, on=['target_bank', 'year'], how='left')
+
+                    # 指标3: 负面比例
+                    if src_neg in df.columns:
+                        neg = (sub.groupby(['target_bank', 'year'])[src_neg]
+                               .mean().reset_index(
+                                   name=f'neg_frac_{sfx}{track}'))
+                        panel = panel.merge(
+                            neg, on=['target_bank', 'year'], how='left')
+
+                # 指标1: 偏袒度缺口
+                panel[f'tone_gap_{home_sfx}_{away_sfx}{track}'] = (
+                    panel.get(f'tone_{home_sfx}_media{track}', np.nan)
+                    - panel.get(f'tone_{away_sfx}_media{track}', np.nan))
+
+            logger.info(f"    {geo_label}: {frac_col} 均值="
+                        f"{panel[frac_col].dropna().mean():.4f}")
+
+        # (9g) 拓扑断言: 同省占比 >= 同城占比
+        if ('homeprov_media_frac' in panel.columns
+                and 'homecity_media_frac' in panel.columns):
+            _valid_both = panel.dropna(
+                subset=['homeprov_media_frac', 'homecity_media_frac'])
+            if len(_valid_both) > 0:
+                _violation = (_valid_both['homeprov_media_frac']
+                              < _valid_both['homecity_media_frac'] - 1e-10)
+                if _violation.any():
+                    logger.error(f"  ✗ 拓扑违规: {_violation.sum()} 行 "
+                                 f"homeprov_frac < homecity_frac!")
+                else:
+                    logger.info("  ✓ 拓扑不变量: "
+                                "homeprov_media_frac >= homecity_media_frac")
+
+        logger.info("  已生成: homeprov/homecity_media_frac, "
+                    "tone_gap, neg_frac (地理邻近性)")
+    else:
+        logger.warning(f"  {addr_path} 不存在, 跳过维度⑨")
+
     # ── 清理 ──
     temp = [c for c in df.columns
-            if c.startswith('_is_') or c == '_media_type']
+            if c.startswith('_is_') or c == '_media_type'
+            or c in ('_bank_prov', '_bank_city')]
     df.drop(columns=temp, inplace=True)
-    logger.info("  已生成: fin/comp/central_media_frac, "
-                "四维度 tone_gap, media_hhi")
+    logger.info("  已生成: fin/comp/central/official/market/deepdive/daily_media_frac, "
+                "八维度 tone_gap, media_hhi")
 
     # ── 校验 (方案断言 5-7) ──
     # (5) 占比值域 [0, 1]
     for col in ['fin_media_frac', 'comp_media_frac', 'central_media_frac',
+                'official_media_frac', 'market_media_frac',
+                'deepdive_media_frac', 'daily_media_frac',
+                'homeprov_media_frac', 'homecity_media_frac',
                 'media_hhi']:
         if col in panel.columns:
             valid = panel[col].dropna()
@@ -462,7 +736,16 @@ def compute_media_heterogeneity(df, panel):
         else:
             logger.info("  ✓ fin + comp 互斥约束成立")
 
-    # (7) 中央级与内容分类正交 (无需 <= 1 校验, 仅记录交叉统计)
-    logger.info("  ✓ 中央级与内容分类为正交分类 (无互斥约束)")
+    # (7) deepdive + daily 互斥: deepdive + daily <= 1
+    if 'deepdive_media_frac' in panel.columns and 'daily_media_frac' in panel.columns:
+        _sum_dd = panel['deepdive_media_frac'].fillna(0) + panel['daily_media_frac'].fillna(0)
+        if (_sum_dd > 1.0001).any():
+            logger.error("  ✗ deepdive + daily 占比之和超过 1!")
+        else:
+            logger.info("  ✓ deepdive + daily 互斥约束成立")
+
+    # (8) 正交分类说明
+    logger.info("  ✓ 中央级/official/market 与内容分类为正交分类 (无互斥约束)")
+    logger.info("  ✓ deepdive/daily 与其他维度正交")
 
     return panel

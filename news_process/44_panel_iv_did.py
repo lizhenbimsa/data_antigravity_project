@@ -164,8 +164,8 @@ def compute_bartik_iv(panel: pd.DataFrame,
         panel[col_name] = panel[col_name].fillna(0)
 
     # --- Step 3: 组别×年份 shift (关键: 自身组=LOO, 其他组=FULL) ---
-    df_with_group = df_exploded.copy()
-    df_with_group['_group'] = df_with_group['target_bank'].map(bank_group_map).fillna('other')
+    df_exploded['_group'] = df_exploded['target_bank'].map(bank_group_map).fillna('other')
+    df_with_group = df_exploded
 
     for track in ['_full', '_ctx', '_title']:
         score_col = f'llm_vote_score{track}'
@@ -288,8 +288,8 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
             panel[col_name] = 0.0
 
     # Step 2: shift (用 bank×category×year 的贡献做 LOO 减除)
-    df_cat = df_exploded.copy()
-    df_cat['_cat_short'] = df_cat[category_col].map(category_map)
+    df_exploded['_cat_short'] = df_exploded[category_col].map(category_map)
+    df_cat = df_exploded
 
     for track in ['_full', '_ctx', '_title']:
         score_col = f'llm_vote_score{track}'
@@ -395,8 +395,8 @@ def compute_zone_leave1out(panel: pd.DataFrame,
 
     # Step 2: 文章级数据也打上经济圈标签 (通过 target_bank merge)
     bank_zone_map = panel.drop_duplicates('target_bank').set_index('target_bank')['bank_zone']
-    df_z = df_exploded.copy()
-    df_z['_zone'] = df_z['target_bank'].map(bank_zone_map).fillna('other')
+    df_exploded['_zone'] = df_exploded['target_bank'].map(bank_zone_map).fillna('other')
+    df_z = df_exploded
 
     for track in ['_full', '_ctx', '_title']:
         score_col = f'llm_vote_score{track}'

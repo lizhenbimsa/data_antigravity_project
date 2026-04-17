@@ -239,7 +239,7 @@ def merge_annotations(input_path: str = None, output_path: str = None):
         agree_mask_sen = both_valid_sen & (df[sen_a_col] == df[sen_b_col])
         disagree_mask_sen = both_valid_sen & (df[sen_a_col] != df[sen_b_col])
 
-        df[final_sen_col] = np.nan
+        df[final_sen_col] = pd.array([pd.NA] * len(df), dtype='object')
         df.loc[agree_mask_sen, final_sen_col] = df.loc[agree_mask_sen, sen_a_col]
         df.loc[disagree_mask_sen, final_sen_col] = '待仲裁'
 

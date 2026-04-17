@@ -41,6 +41,7 @@ filenames:
   output_21_tone_llms_full: 21_tone_llms_full.parquet     # 21_tone_llms.py → LLM 全量结果（含 llm_verified=True/False，供验证模块使用）
   output_22_words_tone: 22_words_tone.parquet             # 22_tone_words.py → 词典法情感分析
   output_23_bert_tone: 23_bert_tone.parquet               # 23_tone_berts.py → BERT 模型情感分析
+  output_24_herd_decay: 24_herd_decay.parquet             # 24_herd_decay_processor.py → 跟风衰减权重 (Tetlock 2011, JF)
   output_32_human_sample: 32_human_samples.xlsx           # 32_news_llms_human.py → 人工验证样本（含真伪与情感标注）
   output_40_panel_yearly: 40_panel_yearly.parquet          # 45_panel_export_main.py → 年度平衡面板 (Bank-Year)
   output_40_article_bank: 40_article_bank_level.parquet    # 45_panel_export_main.py → 展开后文章-银行级数据
@@ -64,12 +65,18 @@ preprocessing:
   sheet_name: Sheet1                                 # Excel 工作表名称
 
   # --- 媒体类型过滤 ---
-  # 需要排除的媒体类型列表（按"媒体类型(中文)"字段匹配）
-  media_types_to_exclude:
-  - APP
-  - 微博
-  - 政府
-  - 网页(U)
+  # 仅保留的媒体类型列表（按"媒体类型(中文)"字段匹配，不在此列表中的类型将被排除），其他类型还包括APP、微博、政府、网页(U)、新闻通讯社、杂志。
+  media_types_to_include:
+  - 报纸
+
+  # --- 媒体名称黑名单 ---
+  # "媒体(中文)"字段精确匹配以下名称的记录将被删除（剪报服务机构等非原始新闻来源）
+  media_names_to_exclude:
+  - Mainland Clipping House
+  - 中国航务周刊              # NPPA期刊库匹配 — 非报纸类新闻来源
+  - 今日消费                  # NPPA期刊库匹配 — 非报纸类新闻来源
+  - 数字化用户                # NPPA期刊库匹配 — 非报纸类新闻来源
+  - 计算机产品与流通           # NPPA期刊库匹配 — 非报纸类新闻来源
 
   # --- 关键字段缺失值检查 ---
   # 以下字段中任一为空值时，该条记录将被移除

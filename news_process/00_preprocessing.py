@@ -96,11 +96,34 @@ nb_workers = DEDUP_PARAMS.get("parallel_workers", os.cpu_count() or 1)
 # ============================================================================
 
 KEY_COLUMNS = PARAMS.get('key_columns_for_na_check', [])
-MEDIA_TYPES_TO_EXCLUDE = PARAMS.get('media_types_to_exclude', [])
+MEDIA_TYPES_TO_INCLUDE = PARAMS.get('media_types_to_include', [])
 REQUIRED_COLUMNS = PARAMS.get('required_columns', [])
 SHEET_NAME = PARAMS.get('sheet_name', 'Sheet1')
 MAINLAND_CHINA_REGIONS = PARAMS.get('mainland_china_regions', [])
 AD_KEYWORDS = PARAMS.get('ad_keywords', [])
+MEDIA_NAMES_TO_EXCLUDE = frozenset(PARAMS.get('media_names_to_exclude', []))
+
+# 媒体名称映射表：将地方版/子版名称统一合并到母报
+# 此映射在两处应用：
+#   ① _clean_and_filter_dataframe() → 新文件处理时即时清洗
+#   ② main() → 读取合并数据后全局兜底（覆盖增量缓存中的旧数据）
+MEDIA_NAME_OVERRIDES = {
+    # 保留原名的特殊媒体（防止被正则步骤误清洗）
+    '读者文摘 - 中文版': '读者文摘 - 中文版',
+    '中国服装·鞋帮': '中国服装报',
+    # ── 地方版 / 子版名称 → 母报名称 ──
+    '太行日报晚报版': '太行日报',
+    '安徽日报农村版': '安徽日报',
+    '人民日报市场版': '人民日报',
+    '羊城晚报深圳版': '羊城晚报',
+    '羊城晚报佛山版': '羊城晚报',
+    '羊城晚报珠中江地方版': '羊城晚报',
+    '羊城晚报顺德版': '羊城晚报',
+    '生活报七台河版': '生活报',
+    '新民晚报社区版家庭周刊': '新民晚报社区版',
+    '武汉科技报少年科普周刊': '武汉科技报',
+    '新闻晨报社区版': '新闻晨报',
+}
 
 # 文本标准化配置
 NORMALIZATION_PARAMS = CONFIG.get('normalization', {})
@@ -291,8 +314,8 @@ REGION_PATTERN = re.compile('|'.join(MAINLAND_CHINA_REGIONS)) if MAINLAND_CHINA_
 # 汉字字符匹配（用于统计标题/内容中的汉字数量）
 CHINESE_CHAR_PATTERN = re.compile(r'[\u4e00-\u9fff]')
 
-# 媒体类型排除集（frozenset 的 __contains__ 比 list 快 O(1) vs O(n)）
-MEDIA_TYPES_EXCLUDE_SET = frozenset(MEDIA_TYPES_TO_EXCLUDE)
+# 媒体类型保留集（frozenset 的 __contains__ 比 list 快 O(1) vs O(n)）
+MEDIA_TYPES_INCLUDE_SET = frozenset(MEDIA_TYPES_TO_INCLUDE)
 
 
 # ============================================================================
@@ -306,10 +329,11 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     确保高淘汰率的过滤先执行，最大化减少后续步骤的数据量：
       1. 媒体地域过滤（淘汰率最高，~60-70%）
       2. 媒体类型过滤（~5-10%）
-      3. 缺失值过滤（~2-5%）
-      4. 广告关键词过滤（~1-3%）
-      5. 银行关键词保留过滤（Aho-Corasick，~30-50%）
-      6. Schema 统一（object → string，不改变行数）
+      3. 媒体名称黑名单过滤（排除剪报服务等非原始新闻来源）
+      4. 缺失值过滤（~2-5%）
+      5. 广告关键词过滤（~1-3%）
+      6. 银行关键词保留过滤（Aho-Corasick，~30-50%）
+      7. Schema 统一（object → string，不改变行数）
 
     Args:
         df: 从 Excel 文件读取的原始 DataFrame。
@@ -325,30 +349,37 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         rows_before = len(df)
         region_cleaned = df['国家地区/省份'].astype(str).str.replace(r'\s+', '', regex=True)
         df = df[region_cleaned.str.contains(REGION_PATTERN, na=False, regex=True)]
-        logger.info(f"  [1/5 地域过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+        logger.info(f"  [1/6 地域过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
-    # 2. 媒体类型过滤：排除 APP、微博、政府等
+    # 2. 媒体类型过滤：仅保留指定类型（如“报纸”）
     rows_before = len(df)
-    df = df[~df['媒体类型(中文)'].isin(MEDIA_TYPES_EXCLUDE_SET)]
-    logger.info(f"  [2/5 类型过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+    df = df[df['媒体类型(中文)'].isin(MEDIA_TYPES_INCLUDE_SET)]
+    logger.info(f"  [2/6 类型过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
-    # 3. 关键字段缺失值过滤（标题、内容、媒体名、日期任一为空则移除）
+    # 3. 媒体名称黑名单过滤：排除剪报服务机构等非原始新闻来源
+    if MEDIA_NAMES_TO_EXCLUDE:
+        rows_before = len(df)
+        df = df[~df['媒体(中文)'].astype(str).isin(MEDIA_NAMES_TO_EXCLUDE)]
+        if rows_before - len(df) > 0:
+            logger.info(f"  [3/6 媒体名称黑名单] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+
+    # 4. 关键字段缺失值过滤（标题、内容、媒体名、日期任一为空则移除）
     rows_before = len(df)
     df = df.dropna(subset=KEY_COLUMNS)
-    logger.info(f"  [3/5 缺失值过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+    logger.info(f"  [4/6 缺失值过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
-    # 4. 广告关键词过滤（检查标题、版面、栏名三个字段）
+    # 5. 广告关键词过滤（检查标题、版面、栏名三个字段）
     if AD_PATTERN is not None:
         for field_name, col_name in [('标题', '标题'), ('版面', '版面'), ('栏名', '栏名')]:
             rows_before = len(df)
             df = df[~df[col_name].astype(str).str.contains(AD_PATTERN, na=False, regex=True)]
             if rows_before - len(df) > 0:
                 logger.info(
-                    f"  [4/5 广告过滤-{field_name}] "
+                    f"  [5/6 广告过滤-{field_name}] "
                     f"移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}"
                 )
 
-    # 5. 银行关键词保留过滤（Aho-Corasick O(n) 复杂度）
+    # 6. 银行关键词保留过滤（Aho-Corasick O(n) 复杂度）
     # 只保留内容中提及至少一个银行关键词的新闻
     if BANK_KW_AUTOMATON is not None:
         rows_before = len(df)
@@ -360,14 +391,14 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             count=len(content_values)
         )
         df = df[mask]
-        logger.info(f"  [5/5 银行关键词过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+        logger.info(f"  [6/6 银行关键词过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
-    # 6. Schema 统一：object 列 → string，确保后续 Parquet 序列化安全
+    # 7. Schema 统一：object 列 → string，确保后续 Parquet 序列化安全
     for col in df.columns:
         if df[col].dtype == 'object':
             df[col] = df[col].fillna('').astype(str)
 
-    # 7. 媒体名称清理：去除报纸名称中的各类修饰后缀、附加版面及无效字符
+    # 8. 媒体名称清理：去除报纸名称中的各类修饰后缀、附加版面及无效字符
     if '媒体(中文)' in df.columns:
         orig_media = df['媒体(中文)'].astype(str)
         # (0) 基础预清理：剔除换行/制表符等不可见格式字符，作为最安全的基底名称
@@ -385,7 +416,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         # (4) 点号及中圆点后缀清除 (限制：仅截断紧跟在中文字符后的首个点号，防误伤 "U.S. News" 或引发多次截断溢出)
         s = s.str.replace(r'^(.*?[\u4e00-\u9fa5][^·\.]*)[·\.].*', r'\1', regex=True)
         # (5) 特定地域及版面清除
-        s = s.str.replace(r'\s*-?\s*(英文版|中文版|东莞版|加东版|加西版|美西版|粤东版|台湾版|纽约免费报|东九龙|西九龙).*', '', regex=True)
+        s = s.str.replace(r'\s*-?\s*(英文版|中文版|东莞版|加东版|加西版|美西版|粤东版|台湾版|网络版|电子版|手机版|华南版|华东版|西北版|纽约免费报|东九龙|西九龙).*', '', regex=True)
         # (6) 删除末尾纯英文字符串 (限制：仅当左侧存在中文字符时生效，防误伤纯英文媒体如 "IT Times")
         s = s.str.replace(r'(.*[\u4e00-\u9fa5].*?)\s+[a-zA-Z\s]+$', r'\1', regex=True)
 
@@ -394,13 +425,9 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         # 防御性回退：如果清洗后变为空（如纯括号组成），则保留预清理后的原名称，避免信息彻底丢失
         s_final = cleaned_media.where(cleaned_media != '', s_base)
 
-        # (7) 重点特例覆盖 (针对不应被清理掉或是需要变名的情况)
-        overrides = {
-            '读者文摘 - 中文版': '读者文摘 - 中文版',
-            '中国服装·鞋帮': '中国服装报'
-        }
+        # (7) 重点特例覆盖 (使用模块级常量 MEDIA_NAME_OVERRIDES)
         # 遍历特殊名单进行安全的底层硬覆盖，彻底规避由于 Pandas Map 机制产生的 Series.mask() Float/String 混合类型警告风险
-        for k, v in overrides.items():
+        for k, v in MEDIA_NAME_OVERRIDES.items():
             s_final = s_final.where(s_base != k, v)
         
         df['媒体(中文)'] = s_final
@@ -1131,15 +1158,29 @@ def main() -> None:
     # ── 数据加载、过滤和标准化 ──
     load_rows = load_and_process_data(CONFIG['paths']['raw_data_dir'], output_path)
 
-    # ── 去重 ──
+    # ── 媒体名称映射后处理 + 去重 ──
     if os.path.exists(output_path):
-        logger.info("读取合并数据，执行去重...")
+        logger.info("读取合并数据...")
         df = pd.read_parquet(output_path)
         df = df.reset_index(drop=True)
         input_rows = len(df)
         log_memory_usage(logger, "去重前")
 
         if not df.empty:
+            # ── 媒体名称全局映射（使用模块级常量 MEDIA_NAME_OVERRIDES）──
+            # 注意: _clean_and_filter_dataframe 中的 override 仅在处理新 xlsx 时执行，
+            # 增量缓存命中时会被跳过。此处作为兜底，确保映射始终作用于全量数据。
+            if '媒体(中文)' in df.columns:
+                replaced = df['媒体(中文)'].replace(MEDIA_NAME_OVERRIDES)
+                n_changed = (replaced != df['媒体(中文)']).sum()
+                if n_changed > 0:
+                    df['媒体(中文)'] = replaced
+                    logger.info(f"媒体名称全局映射: {n_changed:,} 条记录已更新")
+                else:
+                    logger.info("媒体名称全局映射: 无需更新")
+
+            # ── 去重 ──
+            logger.info("执行去重...")
             deduplicator = ArticleDeduplicator(config=CONFIG, logger_instance=logger)
             df = deduplicator.run(df)
 

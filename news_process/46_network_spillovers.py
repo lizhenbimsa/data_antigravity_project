@@ -28,6 +28,12 @@ import pandas as pd
 
 from scipy.sparse import csr_matrix, lil_matrix
 
+try:
+    import networkx as nx
+    HAS_NETWORKX = True
+except ImportError:
+    HAS_NETWORKX = False
+
 from utils.helpers import load_config, setup_logging
 
 # ============================================================================
@@ -203,6 +209,10 @@ def compute_network_spillovers(
             # W: (n×n), tone_vec: (n,) → peer_tone: (n,)
             peer_tone = W.values @ tone_vec.fillna(0).values
 
+            # 二阶溢出: 捕获"邻居的邻居"间接情感传染 (LeSage & Pace 2009)
+            # peer_tone_2nd = W × peer_tone = W² × tone
+            peer_tone_2nd = W.values @ peer_tone
+
             # 存储结果（使用字典累积, 避免多 tone_col 合并丢失）
             suffix = tone_col.replace('llm_vote_tone', '')
             for idx, bank in enumerate(bank_list):
@@ -210,6 +220,7 @@ def compute_network_spillovers(
                 if key not in peer_dict:
                     peer_dict[key] = {'target_bank': bank, 'year': year}
                 peer_dict[key][f'peer_tone_lag1{suffix}'] = peer_tone[idx]
+                peer_dict[key][f'peer_tone_2nd_lag1{suffix}'] = peer_tone_2nd[idx]
 
         n_edges = (adj_df > 0).sum().sum() // 2
         logger.info(f"  年份 {year}: {len(bank_list)} 家银行, "
@@ -227,12 +238,378 @@ def compute_network_spillovers(
         # 统计汇总
         for tone_col in tone_cols:
             suffix = tone_col.replace('llm_vote_tone', '')
-            peer_col = f'peer_tone_lag1{suffix}'
-            if peer_col in panel.columns:
-                valid = panel[peer_col].notna().sum()
-                logger.info(f"    {peer_col}: {valid:,} 有效值, "
-                            f"mean={panel[peer_col].mean():.4f}")
+            for prefix in ['peer_tone_lag1', 'peer_tone_2nd_lag1']:
+                peer_col = f'{prefix}{suffix}'
+                if peer_col in panel.columns:
+                    valid = panel[peer_col].notna().sum()
+                    logger.info(f"    {peer_col}: {valid:,} 有效值, "
+                                f"mean={panel[peer_col].mean():.4f}")
     else:
         logger.warning("  未生成任何网络溢出变量")
+
+    return panel
+
+
+# ============================================================================
+# 5. 银行共现网络中心度计算 (22 指标)
+# ============================================================================
+
+def _gini(arr: np.ndarray) -> float:
+    """计算 Gini 系数 (度分布不平等度)。"""
+    arr = np.sort(arr)
+    n = len(arr)
+    if n == 0 or arr.sum() == 0:
+        return np.nan
+    index = np.arange(1, n + 1)
+    return (2 * (index * arr).sum() / (n * arr.sum())) - (n + 1) / n
+
+
+def compute_bank_network_centrality(
+    panel: pd.DataFrame,
+    df_exploded: pd.DataFrame
+) -> pd.DataFrame:
+    """计算银行共现网络中心度指标 (22 种) 并合并至面板。
+
+    指标分 4 组:
+      Part A (11): degree, strength, betweenness, harmonic, eigen, katz,
+                   subgraph, cfbetween, clustering, constraint, hub
+      Part B (7):  ego_density, ci, effective_size, closeness,
+                   eccentricity, avg_nbr_deg, coreness
+      Part C (4):  net_density_yr, net_avg_cluster_yr, net_avg_path_yr,
+                   net_degree_gini_yr
+
+    学术依据:
+      Freeman (1979), Bonacich (1972), Burt (1992), Estrada (2005),
+      Newman (2005), Billio et al. (2012, JFE), Watts & Strogatz (1998)
+
+    关键设计:
+      - 路径型指标 (betweenness/harmonic/closeness/eccentricity) 使用
+        倒数权重图 G_inv (edge_weight = 1/w)
+      - CFB 使用原始图 (weight = 电导语义)
+      - eigenvector 三级 fallback: 全图 power → numpy(LCC) → NaN
+      - 断连图: CFB/eccentricity/avg_path 仅对最大连通分量计算
+
+    Args:
+        panel: Bank-Year 面板 DataFrame
+        df_exploded: 篇章级 DataFrame
+
+    Returns:
+        panel: 追加 22 列的面板 (18 节点级 + 4 网络级)
+    """
+    if not HAS_NETWORKX:
+        logger.warning("  networkx 未安装, 跳过网络中心度计算。"
+                       " 请运行: pip install networkx")
+        return panel
+
+    logger.info("=" * 60)
+    logger.info("步骤: 银行共现网络中心度计算 (22 指标)")
+    logger.info("=" * 60)
+
+    years = sorted(panel['year'].unique())
+    logger.info(f"  面板年份范围: {min(years)}-{max(years)}, 共 {len(years)} 年")
+
+    # 结果容器
+    node_results = {}   # {(bank, year): {metric: value}}
+    net_results = {}    # {year: {metric: value}}
+
+    for year in years:
+        # 1. 构建年度邻接矩阵
+        adj_df, bank_list = build_adjacency_matrix(df_exploded, year)
+
+        if adj_df.empty or len(bank_list) < 2:
+            logger.info(f"  年份 {year}: 共现数据不足, 跳过")
+            continue
+
+        n_nodes = len(bank_list)
+        n_edges_raw = int((adj_df > 0).sum().sum() // 2)
+
+        # 2. 构建原始图 (用于谱/结构型指标)
+        G = nx.Graph()
+        for i, b1 in enumerate(bank_list):
+            for j, b2 in enumerate(bank_list):
+                if j > i and adj_df.iloc[i, j] > 0:
+                    G.add_edge(b1, b2, weight=float(adj_df.iloc[i, j]))
+        # 确保所有银行都在图中 (含孤立节点)
+        for b in bank_list:
+            if b not in G:
+                G.add_node(b)
+
+        # 3. 构建倒数图 (用于路径型指标: weight = distance)
+        G_inv = nx.Graph()
+        for u, v, d in G.edges(data=True):
+            G_inv.add_edge(u, v, weight=1.0 / d['weight'])
+        for b in bank_list:
+            if b not in G_inv:
+                G_inv.add_node(b)
+
+        # 4. 识别最大连通分量 (用于 CFB, eccentricity, avg_path)
+        components = list(nx.connected_components(G))
+        lcc_nodes = max(components, key=len) if components else set()
+        G_lcc = G.subgraph(lcc_nodes).copy()
+        G_inv_lcc = G_inv.subgraph(lcc_nodes).copy()
+
+        # ─── 5. 计算 18 种节点级指标 ───
+
+        metrics = {b: {} for b in bank_list}
+
+        # ── a. 原始图组 (12 种) ──
+
+        # (1) Degree Centrality — 纯拓扑
+        dc = nx.degree_centrality(G)
+        for b in bank_list:
+            metrics[b]['bank_degree_cent'] = dc.get(b, 0.0)
+
+        # (2) Strength Centrality — 加权度, max-normalize
+        strength = dict(G.degree(weight='weight'))
+        max_str = max(strength.values()) if strength else 1.0
+        if max_str == 0:
+            max_str = 1.0
+        for b in bank_list:
+            metrics[b]['bank_strength_cent'] = strength.get(b, 0.0) / max_str
+
+        # (5) Eigenvector Centrality — 三级 fallback
+        eigen_done = False
+        try:
+            ec = nx.eigenvector_centrality(
+                G, weight='weight', max_iter=1000, tol=1e-06)
+            for b in bank_list:
+                metrics[b]['bank_eigen_cent'] = ec.get(b, 0.0)
+            eigen_done = True
+        except nx.PowerIterationFailedConvergence:
+            pass
+        if not eigen_done:
+            try:
+                ec_lcc = nx.eigenvector_centrality_numpy(
+                    G_lcc, weight='weight')
+                for b in bank_list:
+                    metrics[b]['bank_eigen_cent'] = ec_lcc.get(b, np.nan)
+                eigen_done = True
+            except Exception:
+                pass
+        if not eigen_done:
+            for b in bank_list:
+                metrics[b]['bank_eigen_cent'] = np.nan
+            logger.warning(f"  年份 {year}: eigenvector 三级 fallback 均失败")
+
+        # (6) Katz Centrality — α = 0.9 / λ_max
+        try:
+            A = nx.to_numpy_array(G, nodelist=bank_list)
+            lam_max = max(abs(np.linalg.eigvals(A)))
+            alpha_katz = 0.9 / lam_max if lam_max > 0 else 0.01
+            kc = nx.katz_centrality(G, alpha=alpha_katz, weight='weight')
+            for b in bank_list:
+                metrics[b]['bank_katz_cent'] = kc.get(b, 0.0)
+        except Exception as e:
+            logger.warning(f"  年份 {year}: Katz 失败 ({e})")
+            for b in bank_list:
+                metrics[b]['bank_katz_cent'] = np.nan
+
+        # (7) Subgraph Centrality — 不接受 weight, try/except 防溢出
+        try:
+            sc = nx.subgraph_centrality(G)
+            for b in bank_list:
+                metrics[b]['bank_subgraph_cent'] = sc.get(b, np.nan)
+        except (OverflowError, ValueError, np.linalg.LinAlgError) as e:
+            logger.warning(f"  年份 {year}: subgraph_centrality 溢出 ({e})")
+            for b in bank_list:
+                metrics[b]['bank_subgraph_cent'] = np.nan
+
+        # (8) Current-Flow Betweenness — 原始图, 仅 LCC
+        if len(lcc_nodes) >= 2:
+            try:
+                cfb = nx.current_flow_betweenness_centrality(
+                    G_lcc, weight='weight')
+                for b in bank_list:
+                    metrics[b]['bank_cfbetween_cent'] = cfb.get(b, np.nan)
+            except Exception as e:
+                logger.warning(f"  年份 {year}: CFB 失败 ({e})")
+                for b in bank_list:
+                    metrics[b]['bank_cfbetween_cent'] = np.nan
+        else:
+            for b in bank_list:
+                metrics[b]['bank_cfbetween_cent'] = np.nan
+
+        # (9) Clustering Coefficient — 原始图
+        cc = nx.clustering(G, weight='weight')
+        for b in bank_list:
+            metrics[b]['bank_clustering'] = cc.get(b, 0.0)
+
+        # (10) Structural Constraint — 原始图, degree<2 → NaN
+        try:
+            con = nx.constraint(G, weight='weight')
+            for b in bank_list:
+                deg = G.degree(b)
+                if deg < 2:
+                    metrics[b]['bank_constraint'] = np.nan
+                else:
+                    metrics[b]['bank_constraint'] = con.get(b, np.nan)
+        except Exception:
+            for b in bank_list:
+                metrics[b]['bank_constraint'] = np.nan
+
+        # (12) Ego-Network Density — 手工计算邻居间边密度
+        for b in bank_list:
+            nbrs = list(G.neighbors(b))
+            k = len(nbrs)
+            if k <= 1:
+                metrics[b]['bank_ego_density'] = np.nan
+            else:
+                ego_edges = 0
+                for ii in range(k):
+                    for jj in range(ii + 1, k):
+                        if G.has_edge(nbrs[ii], nbrs[jj]):
+                            ego_edges += 1
+                max_ego = k * (k - 1) / 2
+                metrics[b]['bank_ego_density'] = ego_edges / max_ego
+
+        # (14) Effective Size — 原始图
+        try:
+            es = nx.effective_size(G, weight='weight')
+            for b in bank_list:
+                if G.degree(b) == 0:
+                    metrics[b]['bank_effective_size'] = np.nan
+                else:
+                    metrics[b]['bank_effective_size'] = es.get(b, np.nan)
+        except Exception:
+            for b in bank_list:
+                metrics[b]['bank_effective_size'] = np.nan
+
+        # (17) Average Neighbor Degree — 原始图, degree=0 → NaN
+        and_map = nx.average_neighbor_degree(G, weight='weight')
+        for b in bank_list:
+            if G.degree(b) == 0:
+                metrics[b]['bank_avg_nbr_deg'] = np.nan
+            else:
+                metrics[b]['bank_avg_nbr_deg'] = and_map.get(b, np.nan)
+
+        # (18) Coreness (k-core) — 纯拓扑
+        cn = nx.core_number(G)
+        for b in bank_list:
+            metrics[b]['bank_coreness'] = cn.get(b, 0)
+
+        # ── b. 倒数图组 (4 种) ──
+
+        # (3) Betweenness Centrality — 倒数图
+        bc = nx.betweenness_centrality(G_inv, weight='weight')
+        for b in bank_list:
+            metrics[b]['bank_between_cent'] = bc.get(b, 0.0)
+
+        # (4) Harmonic Centrality — 倒数图, 参数名 distance
+        hc = nx.harmonic_centrality(G_inv, distance='weight')
+        for b in bank_list:
+            metrics[b]['bank_harmonic_cent'] = hc.get(b, 0.0)
+
+        # (15) Closeness Centrality — 倒数图, 参数名 distance
+        clc = nx.closeness_centrality(G_inv, distance='weight')
+        for b in bank_list:
+            metrics[b]['bank_closeness_cent'] = clc.get(b, 0.0)
+
+        # (16) Eccentricity — 倒数图, 仅 LCC
+        if len(lcc_nodes) >= 2:
+            try:
+                ecc = nx.eccentricity(G_inv_lcc, weight='weight')
+                for b in bank_list:
+                    metrics[b]['bank_eccentricity'] = ecc.get(b, np.nan)
+            except nx.NetworkXError:
+                for b in bank_list:
+                    metrics[b]['bank_eccentricity'] = np.nan
+        else:
+            for b in bank_list:
+                metrics[b]['bank_eccentricity'] = np.nan
+
+        # ── c. 衍生组 (2 种) ──
+
+        # (13) CI = 1 / constraint
+        for b in bank_list:
+            c_val = metrics[b].get('bank_constraint', np.nan)
+            if pd.notna(c_val) and c_val > 0:
+                metrics[b]['bank_ci'] = 1.0 / c_val
+            else:
+                metrics[b]['bank_ci'] = np.nan
+
+        # (11) Hub (Top 10% degree)
+        deg_values = [(b, metrics[b]['bank_degree_cent']) for b in bank_list]
+        deg_values.sort(key=lambda x: x[1], reverse=True)
+        top10_count = max(1, int(len(deg_values) * 0.10))
+        top10_banks = {b for b, _ in deg_values[:top10_count]}
+        for b in bank_list:
+            metrics[b]['bank_is_hub'] = 1 if b in top10_banks else 0
+
+        # 存储节点级结果
+        for b in bank_list:
+            node_results[(b, year)] = metrics[b]
+
+        # ─── 6. 网络级控制变量 (Part C) ───
+
+        net_yr = {}
+
+        # N1. 网络密度
+        net_yr['net_density_yr'] = nx.density(G)
+
+        # N2. 平均聚类系数
+        net_yr['net_avg_cluster_yr'] = nx.average_clustering(
+            G, weight='weight')
+
+        # N3. 平均路径长度 (LCC, 倒数图)
+        if len(lcc_nodes) >= 2:
+            try:
+                net_yr['net_avg_path_yr'] = \
+                    nx.average_shortest_path_length(
+                        G_inv_lcc, weight='weight')
+            except nx.NetworkXError:
+                net_yr['net_avg_path_yr'] = np.nan
+        else:
+            net_yr['net_avg_path_yr'] = np.nan
+
+        # N4. 度分布 Gini 系数
+        degree_seq = np.array([G.degree(b) for b in bank_list],
+                              dtype=np.float64)
+        net_yr['net_degree_gini_yr'] = _gini(degree_seq)
+
+        net_results[year] = net_yr
+
+        logger.info(f"  年份 {year}: {n_nodes} 节点, {n_edges_raw} 边, "
+                    f"LCC={len(lcc_nodes)}, "
+                    f"density={net_yr['net_density_yr']:.4f}")
+
+    # ─── 7. 合并至面板 ───
+
+    if not node_results:
+        logger.warning("  未计算任何中心度指标")
+        return panel
+
+    # 节点级 → DataFrame
+    node_records = []
+    for (bank, year), mdict in node_results.items():
+        row = {'target_bank': bank, 'year': year}
+        row.update(mdict)
+        node_records.append(row)
+    node_df = pd.DataFrame(node_records)
+
+    # 网络级 → DataFrame (年度级, 广播到所有银行)
+    net_records = []
+    for year, ndict in net_results.items():
+        row = {'year': year}
+        row.update(ndict)
+        net_records.append(row)
+    net_df = pd.DataFrame(net_records)
+
+    # 合并
+    panel = panel.merge(node_df, on=['target_bank', 'year'], how='left')
+    panel = panel.merge(net_df, on='year', how='left')
+
+    # 统计汇总
+    cent_cols = [c for c in node_df.columns
+                 if c not in ('target_bank', 'year')]
+    net_cols = [c for c in net_df.columns if c != 'year']
+    logger.info(f"  网络中心度已合并: {len(cent_cols)} 节点级 + "
+                f"{len(net_cols)} 网络级 = {len(cent_cols)+len(net_cols)} 变量")
+    for col in cent_cols + net_cols:
+        if col in panel.columns:
+            valid = panel[col].notna().sum()
+            total = len(panel)
+            logger.info(f"    {col}: {valid:,}/{total:,} "
+                        f"({valid/total:.1%}), "
+                        f"mean={panel[col].mean():.4f}")
 
     return panel

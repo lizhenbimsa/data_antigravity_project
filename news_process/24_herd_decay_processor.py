@@ -16,8 +16,9 @@
   - 相似度阈值 0.35: 高于此值视为"跟风"
   - 衰减公式: weight = 1 / (1 + n_similar_predecessors)
 
-输入: 21_tone_llms.parquet (篇章级已验证新闻)
-输出: 21_tone_llms.parquet (原地追加 herd_weight 列)
+输入: 按优先级自动查找: 23_bert_tone → 22_words_tone → 21_tone_llms
+      (取决于 config.yaml 中 sentiment_analysis.enabled_methods 配置)
+输出: 24_herd_decay.parquet (追加 herd_weight 列)
 """
 
 import os
@@ -48,7 +49,7 @@ TIME_WINDOW_DAYS = HERD_CFG.get('time_window_days', 7)
 MAX_FEATURES = HERD_CFG.get('max_features', 10000)
 MIN_DF = HERD_CFG.get('min_df', 5)
 MAX_DF = HERD_CFG.get('max_df', 0.9)
-CHUNK_SIZE = HERD_CFG.get('chunk_size', 1000)
+CHUNK_SIZE = HERD_CFG.get('chunk_size', 1000)  # 仅用于日志显示; 实际内存分块由 pairwise_distances_chunked(working_memory=) 控制
 
 
 # ============================================================================
@@ -67,7 +68,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
       5. 衰减公式: weight_j = 1 / (1 + n_similar_predecessors)
 
     Args:
-        df: 篇章级 DataFrame, 须含 'target_bank', '日期', '正文' 列
+        df: 篇章级 DataFrame, 须含 'target_bank', '日期', '内容' 列
 
     Returns:
         df: 附加 'herd_weight' 和 'n_similar_articles' 列
@@ -83,7 +84,8 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     df['日期'] = pd.to_datetime(df['日期'], errors='coerce')
 
     # 确定文本列
-    text_col = '正文' if '正文' in df.columns else 'content'
+    # 文本列名优先级: '内容'(流水线标准列名) > '正文' > 'content'
+    text_col = '内容' if '内容' in df.columns else ('正文' if '正文' in df.columns else 'content')
     if text_col not in df.columns:
         logger.warning(f"  文本列 '{text_col}' 不存在, 所有 herd_weight 设为 1.0")
         df['herd_weight'] = 1.0
@@ -93,6 +95,11 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     # 初始化结果列
     df['herd_weight'] = 1.0
     df['n_similar_articles'] = 0
+
+    # 校验必需列
+    if 'target_bank' not in df.columns:
+        logger.warning("  'target_bank' 列不存在, 所有 herd_weight 设为 1.0")
+        return df
 
     # 按银行分组处理
     bank_groups = df.groupby('target_bank')
@@ -205,21 +212,42 @@ def main():
     logger.info(f"阶段 {STAGE_NAME} 启动")
     logger.info("=" * 60)
 
-    # 加载篇章级数据
-    input_file = os.path.join(OUTPUT_DIR, '21_tone_llms.parquet')
-    if not os.path.exists(input_file):
-        logger.error(f"输入文件不存在: {input_file}")
+    # 加载篇章级数据: 按优先级查找最后一个可用的情感分析输出
+    # 优先级: 23_bert → 22_words → 21_llms (取决于 enabled_methods 配置)
+    filenames = CONFIG.get('filenames', {})
+    input_candidates = [
+        filenames.get('output_23_bert_tone', '23_bert_tone.parquet'),
+        filenames.get('output_22_words_tone', '22_words_tone.parquet'),
+        filenames.get('output_21_tone_llms', '21_tone_llms.parquet'),
+    ]
+    input_filename = None
+    for candidate in input_candidates:
+        candidate_path = os.path.join(OUTPUT_DIR, candidate)
+        if os.path.exists(candidate_path):
+            input_filename = candidate
+            logger.info(f"  找到输入文件: {candidate}")
+            break
+    if input_filename is None:
+        logger.error(
+            f"未找到任何可用的情感分析输出文件，"
+            f"已搜索: {input_candidates}"
+        )
         return
 
+    output_filename = filenames.get('output_24_herd_decay', '24_herd_decay.parquet')
+    input_file = os.path.join(OUTPUT_DIR, input_filename)
+    output_file = os.path.join(OUTPUT_DIR, output_filename)
+    # 文件存在性已在上方回退链中验证，无需重复检查
+
     df = pd.read_parquet(input_file)
-    logger.info(f"  加载 {len(df):,} 条新闻")
+    logger.info(f"  加载 {len(df):,} 条新闻 (来源: {input_filename})")
 
     # 执行跟风检测
     df = compute_herd_weights(df)
 
-    # 保存 (原地覆写, 追加 herd_weight 列)
-    df.to_parquet(input_file, index=False)
-    logger.info(f"  已保存至 {input_file}")
+    # 保存 (追加 herd_weight 列后写入独立输出文件)
+    df.to_parquet(output_file, index=False)
+    logger.info(f"  已保存至 {output_file}")
 
     elapsed = time.time() - start_time
     logger.info(f"  耗时: {elapsed:.1f}秒")

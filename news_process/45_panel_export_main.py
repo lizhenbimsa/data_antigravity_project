@@ -90,8 +90,10 @@ if os.path.exists(_p46):
     _m46 = _iu.module_from_spec(_s46)
     _s46.loader.exec_module(_m46)
     compute_network_spillovers = _m46.compute_network_spillovers
+    compute_bank_network_centrality = _m46.compute_bank_network_centrality
 else:
     compute_network_spillovers = None
+    compute_bank_network_centrality = None
 
 
 # ============================================================================
@@ -317,6 +319,39 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'tone_gap_comp_other_ctx':     'Tone Gap: Comp - Other (Ctx)',
                 'tone_gap_fin_comp_ctx':       'Tone Gap: Fin - Comp (Ctx)',
                 'tone_gap_central_local_ctx':  'Tone Gap: Central - Local (Ctx)',
+                # 媒体异质性 - 占比 (新增四维度)
+                'official_media_frac':          'Official Media Share (You 2018)',
+                'market_media_frac':            'Market Media Share (You 2018)',
+                'deepdive_media_frac':          'Deep-dive Periodical Share (Bushee 2010)',
+                'daily_media_frac':             'High-freq Daily Share (Tetlock 2007)',
+                # 媒体异质性 - 新增情感均值 (Full 轨道)
+                'tone_official_media_full':     'Avg Tone: Official Media (Full)',
+                'tone_nonoff_media_full':       'Avg Tone: Non-Official Media (Full)',
+                'tone_market_media_full':       'Avg Tone: Market Media (Full)',
+                'tone_nonmkt_media_full':       'Avg Tone: Non-Market Media (Full)',
+                'tone_deepdive_media_full':     'Avg Tone: Deep-dive Media (Full)',
+                'tone_nondeep_media_full':      'Avg Tone: Non-Deep Media (Full)',
+                'tone_daily_media_full':        'Avg Tone: Daily Media (Full)',
+                'tone_nondaily_media_full':     'Avg Tone: Non-Daily Media (Full)',
+                # 媒体异质性 - 新增情感均值 (Ctx 轨道)
+                'tone_official_media_ctx':      'Avg Tone: Official Media (Ctx)',
+                'tone_nonoff_media_ctx':        'Avg Tone: Non-Official Media (Ctx)',
+                'tone_market_media_ctx':        'Avg Tone: Market Media (Ctx)',
+                'tone_nonmkt_media_ctx':        'Avg Tone: Non-Market Media (Ctx)',
+                'tone_deepdive_media_ctx':      'Avg Tone: Deep-dive Media (Ctx)',
+                'tone_nondeep_media_ctx':       'Avg Tone: Non-Deep Media (Ctx)',
+                'tone_daily_media_ctx':         'Avg Tone: Daily Media (Ctx)',
+                'tone_nondaily_media_ctx':      'Avg Tone: Non-Daily Media (Ctx)',
+                # 媒体异质性 - 新增情感缺口 (Full)
+                'tone_gap_official_nonoff_full':   'Tone Gap: Official-NonOff (Full)',
+                'tone_gap_market_nonmkt_full':     'Tone Gap: Market-NonMkt (Full)',
+                'tone_gap_deepdive_nondeep_full':  'Tone Gap: DeepDive-NonDeep (Full)',
+                'tone_gap_daily_nondaily_full':    'Tone Gap: Daily-NonDaily (Full)',
+                # 媒体异质性 - 新增情感缺口 (Ctx)
+                'tone_gap_official_nonoff_ctx':    'Tone Gap: Official-NonOff (Ctx)',
+                'tone_gap_market_nonmkt_ctx':      'Tone Gap: Market-NonMkt (Ctx)',
+                'tone_gap_deepdive_nondeep_ctx':   'Tone Gap: DeepDive-NonDeep (Ctx)',
+                'tone_gap_daily_nondaily_ctx':     'Tone Gap: Daily-NonDaily (Ctx)',
                 # 集中度
                 'media_hhi':                   'Media Source HHI',
                 # 媒体权威性加权 (Holzman et al. 2023, TAR)
@@ -409,7 +444,32 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'bartik_mcomp_iv_ctx':                 'Bartik IV: Comp-NonComp (Ctx)',
                 'bartik_mcomp_share_comp':             'Bartik Share: Comprehensive',
                 'bartik_mcomp_share_noncomp':          'Bartik Share: Non-Comprehensive',
-                # Bartik IV — 媒体省份 (稳健性 7)
+                # Bartik IV — 官方/非官方 (稳健性 7a)
+                'bartik_mofficial_iv_full':             'Bartik IV: Official-NonOff (Full)',
+                'bartik_mofficial_iv_ctx':              'Bartik IV: Official-NonOff (Ctx)',
+                'bartik_mofficial_share_official':      'Bartik Share: Official Media',
+                'bartik_mofficial_share_nonoff':        'Bartik Share: Non-Official',
+                # Bartik IV — 市场化/非市场化 (稳健性 7b)
+                'bartik_mmarket_iv_full':               'Bartik IV: Market-NonMkt (Full)',
+                'bartik_mmarket_iv_ctx':                'Bartik IV: Market-NonMkt (Ctx)',
+                'bartik_mmarket_share_market':          'Bartik Share: Market Media',
+                'bartik_mmarket_share_nonmkt':          'Bartik Share: Non-Market',
+                # Bartik IV — 出版频率三方 (稳健性 7c)
+                'bartik_mfreq_iv_full':                'Bartik IV: Pub-Frequency (Full)',
+                'bartik_mfreq_iv_ctx':                 'Bartik IV: Pub-Frequency (Ctx)',
+                'bartik_mfreq_share_deepdive':          'Bartik Share: Deep-dive',
+                'bartik_mfreq_share_daily':             'Bartik Share: Daily',
+                # Bartik IV — 深度/非深度 (稳健性 7d)
+                'bartik_mdeep_iv_full':                'Bartik IV: Deep-NonDeep (Full)',
+                'bartik_mdeep_iv_ctx':                 'Bartik IV: Deep-NonDeep (Ctx)',
+                'bartik_mdeep_share_deepdive':          'Bartik Share: Deep-dive',
+                'bartik_mdeep_share_nondeep':           'Bartik Share: Non-Deep',
+                # Bartik IV — 日报/非日报 (稳健性 7e)
+                'bartik_mdaily_iv_full':                'Bartik IV: Daily-NonDaily (Full)',
+                'bartik_mdaily_iv_ctx':                 'Bartik IV: Daily-NonDaily (Ctx)',
+                'bartik_mdaily_share_daily':            'Bartik Share: Daily',
+                'bartik_mdaily_share_nondaily':         'Bartik Share: Non-Daily',
+                # Bartik IV — 媒体省份 (稳健性 8)
                 'bartik_mprov_iv_full':                'Bartik IV: Media-Province (Full)',
                 'bartik_mprov_iv_ctx':                 'Bartik IV: Media-Province (Ctx)',
                 # Bartik IV — 媒体权威性 (稳健性 8)
@@ -515,6 +575,59 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_claude4h_conf_ctx':               'Claude-4h Confidence (Ctx)',
                 # 其他
                 'has_coverage':                        'Has News Coverage (0/1)',
+                # 跟风新闻检测 (Tetlock 2011, JF)
+                'avg_herd_weight':                     'Avg Herd Decay Weight 1/(1+N) (Tetlock 2011)',
+                'min_herd_weight':                     'Min Herd Decay Weight (Tetlock 2011)',
+                # ═══ 银行共现网络: Part A (11) ═══
+                'bank_degree_cent':     'Co-mention Degree Centrality (Freeman 1979)',
+                'bank_strength_cent':   'Co-mention Strength Centrality (Opsahl 2010)',
+                'bank_between_cent':    'Co-mention Betweenness (Battiston 2012)',
+                'bank_harmonic_cent':   'Co-mention Harmonic Centrality (Boldi 2014)',
+                'bank_eigen_cent':      'Co-mention Eigenvec Centrality (Bonacich 1972)',
+                'bank_katz_cent':       'Co-mention Katz Centrality (Acemoglu 2012)',
+                'bank_subgraph_cent':   'Co-mention Subgraph Centrality (Estrada 2005)',
+                'bank_cfbetween_cent':  'Co-mention Current-Flow Betw (Newman 2005)',
+                'bank_clustering':      'Co-mention Clustering Coeff (Watts 1998)',
+                'bank_constraint':      'Co-mention Structural Constraint (Burt 1992)',
+                'bank_is_hub':          'Co-mention Hub (Top 10% Degree, 0/1)',
+                # ═══ 银行共现网络: Part B (7) ═══
+                'bank_ego_density':     'Co-mention Ego-Network Density (Burt 1992)',
+                'bank_ci':              'Co-mention Struct Hole Richness CI (Burt 1992)',
+                'bank_effective_size':  'Co-mention Effective Size (Burt 1992)',
+                'bank_closeness_cent':  'Co-mention Closeness Centrality (Freeman 1979)',
+                'bank_eccentricity':    'Co-mention Eccentricity (Harary 1969)',
+                'bank_avg_nbr_deg':     'Co-mention Avg Neighbor Degree (Barrat 2004)',
+                'bank_coreness':        'Co-mention K-Core Number (Seidman 1983)',
+                # ═══ 银行共现网络: Part C (4) ═══
+                'net_density_yr':       'Annual Co-mention Network Density',
+                'net_avg_cluster_yr':   'Annual Avg Clustering Coefficient',
+                'net_avg_path_yr':      'Annual Avg Path Length (LCC)',
+                'net_degree_gini_yr':   'Annual Degree Distribution Gini',
+                # ═══ 银行共现网络: Part D (3) ═══
+                'peer_tone_2nd_lag1_full':  '2nd-Order Peer Sentiment Spillover (Full)',
+                'peer_tone_2nd_lag1_ctx':   '2nd-Order Peer Sentiment Spillover (Ctx)',
+                'peer_tone_2nd_lag1_title': '2nd-Order Peer Sentiment Spillover (Title)',
+                # ═══ 地理邻近性: 维度⑨ (Gurun & Butler 2012, JF) ═══
+                'homeprov_media_frac':              'Home-Province Media Fraction',
+                'homecity_media_frac':              'Home-City Media Fraction',
+                'tone_homeprov_media_full':         'Home-Province Media Tone (Full)',
+                'tone_nonprov_media_full':          'Non-Province Media Tone (Full)',
+                'tone_gap_homeprov_nonprov_full':   'Local Media Slant: Prov (Full)',
+                'tone_homecity_media_full':         'Home-City Media Tone (Full)',
+                'tone_noncity_media_full':          'Non-City Media Tone (Full)',
+                'tone_gap_homecity_noncity_full':   'Local Media Slant: City (Full)',
+                'neg_frac_homeprov_full':           'Home-Province Neg Frac (Full)',
+                'neg_frac_nonprov_full':            'Non-Province Neg Frac (Full)',
+                'neg_frac_homecity_full':           'Home-City Neg Frac (Full)',
+                'neg_frac_noncity_full':            'Non-City Neg Frac (Full)',
+                # 姜富伟系数 (Jiang et al. 2019)
+                'jf_coefficient_full':              'JF Coefficient (Full-text)',
+                'jf_coefficient_ctx':               'JF Coefficient (Context)',
+                'jf_coefficient_title':             'JF Coefficient (Title)',
+                # 媒体质量指标
+                'washing_ratio':                    'News Washing Ratio',
+                'dummy_no_positive_news':           'No Positive News Dummy',
+                'low_conf_flag':                    'Low Confidence Flag',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -547,7 +660,7 @@ def main():
     logger.info("步骤 1: 数据加载与验证")
     logger.info("=" * 60)
 
-    input_filename = FILENAMES.get('output_23_bert_tone', '23_bert_tone.parquet')
+    input_filename = FILENAMES.get('output_24_herd_decay', '24_herd_decay.parquet')
     input_path = os.path.join(OUTPUT_DIR, input_filename)
 
     if not os.path.exists(input_path):
@@ -665,11 +778,12 @@ def main():
     # --- 4. 时间解析 ---
     df = parse_time(df)
 
-    # 保存展开后文章级数据引用
-    df_exploded = df.copy()
-
-    # --- 5. Bank-Year 聚合 ---
+    # --- 5. Bank-Year 聚合 (df 为只读: groupby/filter/merge) ---
     panel = aggregate_panel(df)
+
+    # 引用转移: aggregate_panel 已完成, 后续全部使用 df_exploded
+    df_exploded = df
+    del df  # 防止后续误用, 对象由 df_exploded 持有不会被回收
 
     # --- 6. 面板平衡 ---
     panel = balance_panel(panel)
@@ -806,6 +920,66 @@ def main():
 
             logger.info(f"  媒体分类 Bartik: 3a(fin/comp/other) + "
                         f"3b(central/local) + 3c(fin/nonfin) + 3d(comp/noncomp)")
+
+            # --- 新增四维度媒体分类 Bartik (3e-3i) ---
+            OFFICIAL = set(media_cls.get('official_media', []))
+            MARKET = set(media_cls.get('market_media', []))
+            DEEPDIVE = set(media_cls.get('deep_dive_periodicals', []))
+            DAILY = set(media_cls.get('high_frequency_dailies', []))
+
+            # 3e: 官方/非官方
+            df_exploded['_media_official_binary'] = df_exploded[media_col].apply(
+                lambda x: 'official' if x in OFFICIAL else 'nonoff'
+            )
+            mofficial_map = {'official': 'official', 'nonoff': 'nonoff'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mofficial_map, 'mofficial',
+                category_col='_media_official_binary'
+            )
+
+            # 3f: 市场化/非市场化
+            df_exploded['_media_market_binary'] = df_exploded[media_col].apply(
+                lambda x: 'market' if x in MARKET else 'nonmkt'
+            )
+            mmarket_map = {'market': 'market', 'nonmkt': 'nonmkt'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mmarket_map, 'mmarket',
+                category_col='_media_market_binary'
+            )
+
+            # 3g: 深度/日报/其他 (三方)
+            df_exploded['_media_freq_type'] = df_exploded[media_col].apply(
+                lambda x: 'deepdive' if x in DEEPDIVE else ('daily' if x in DAILY else 'other')
+            )
+            mfreq_map = {'deepdive': 'deepdive', 'daily': 'daily', 'other': 'other'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mfreq_map, 'mfreq',
+                category_col='_media_freq_type'
+            )
+
+            # 3h: 深度/非深度
+            df_exploded['_media_deep_binary'] = df_exploded[media_col].apply(
+                lambda x: 'deepdive' if x in DEEPDIVE else 'nondeep'
+            )
+            mdeep_map = {'deepdive': 'deepdive', 'nondeep': 'nondeep'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mdeep_map, 'mdeep',
+                category_col='_media_deep_binary'
+            )
+
+            # 3i: 日报/非日报
+            df_exploded['_media_daily_binary'] = df_exploded[media_col].apply(
+                lambda x: 'daily' if x in DAILY else 'nondaily'
+            )
+            mdaily_map = {'daily': 'daily', 'nondaily': 'nondaily'}
+            panel = compute_bartik_iv_fintech(
+                panel, df_exploded, mdaily_map, 'mdaily',
+                category_col='_media_daily_binary'
+            )
+
+            logger.info(f"  新增媒体 Bartik: 3e(official/nonoff) + "
+                        f"3f(market/nonmkt) + 3g(freq-3way) + "
+                        f"3h(deep/nondeep) + 3i(daily/nondaily)")
         else:
             logger.warning("  media_classification.json 不存在, 跳过所有媒体分类 Bartik")
 
@@ -863,52 +1037,43 @@ def main():
         else:
             logger.warning("  doc_length 列不存在, 跳过文章长度 Bartik")
 
-        # --- 稳健性 10: 半年度 ---
+        # --- 稳健性 10-13: 时间维度 (半年度/季度/月度/工作日) ---
         date_col = '日期'
         if date_col in df_exploded.columns:
-            df_exploded['_half_year'] = df_exploded[date_col].apply(
-                lambda x: 'H1' if pd.to_datetime(x).month <= 6 else 'H2'
-            )
+            # 向量化日期特征提取 (parse_time L780 已确保 datetime 类型)
+            _month = df_exploded[date_col].dt.month
+            _dow   = df_exploded[date_col].dt.dayofweek
+            df_exploded['_half_year']  = np.where(_month <= 6, 'H1', 'H2')
+            df_exploded['_quarter']    = 'Q' + ((_month - 1) // 3 + 1).astype(str)
+            df_exploded['_pub_month']  = 'M' + _month.astype(str).str.zfill(2)
+            df_exploded['_wkday_type'] = np.where(_dow >= 5, 'weekend', 'weekday')
+
+            # 稳健性 10: 半年度
             half_map = {'H1': 'H1', 'H2': 'H2'}
             panel = compute_bartik_iv_fintech(
                 panel, df_exploded, half_map, 'half',
                 category_col='_half_year'
             )
-        else:
-            logger.warning(f"  列 '{date_col}' 不存在, 跳过半年度 Bartik")
-
-        # --- 稳健性 11: 季度 ---
-        if date_col in df_exploded.columns:
-            df_exploded['_quarter'] = df_exploded[date_col].apply(
-                lambda x: f'Q{(pd.to_datetime(x).month - 1) // 3 + 1}'
-            )
+            # 稳健性 11: 季度
             qtr_map = {'Q1': 'Q1', 'Q2': 'Q2', 'Q3': 'Q3', 'Q4': 'Q4'}
             panel = compute_bartik_iv_fintech(
                 panel, df_exploded, qtr_map, 'qtr',
                 category_col='_quarter'
             )
-
-        # --- 稳健性 12: 月度 ---
-        if date_col in df_exploded.columns:
-            df_exploded['_pub_month'] = df_exploded[date_col].apply(
-                lambda x: f'M{pd.to_datetime(x).month:02d}'
-            )
+            # 稳健性 12: 月度
             month_map = {f'M{m:02d}': f'M{m:02d}' for m in range(1, 13)}
             panel = compute_bartik_iv_fintech(
                 panel, df_exploded, month_map, 'month',
                 category_col='_pub_month'
             )
-
-        # --- 稳健性 13: 工作日/周末 ---
-        if date_col in df_exploded.columns:
-            df_exploded['_wkday_type'] = df_exploded[date_col].apply(
-                lambda x: 'weekend' if pd.to_datetime(x).dayofweek >= 5 else 'weekday'
-            )
+            # 稳健性 13: 工作日/周末
             wkday_map = {'weekday': 'weekday', 'weekend': 'weekend'}
             panel = compute_bartik_iv_fintech(
                 panel, df_exploded, wkday_map, 'wkday',
                 category_col='_wkday_type'
             )
+        else:
+            logger.warning(f"  列 '{date_col}' 不存在, 跳过时间维度 Bartik (稳健性 10-13)")
 
         # --- 稳健性 14: 专属/共享报道 ---
         if 'is_multi_bank' in df_exploded.columns:
@@ -1139,6 +1304,12 @@ def main():
         panel = compute_network_spillovers(panel, df_exploded)
     else:
         logger.info("  46_network_spillovers.py 不存在, 跳过网络溢出计算")
+
+    # --- 7h-cent. 银行共现网络中心度 (Freeman 1979; Billio et al. 2012) ---
+    if compute_bank_network_centrality is not None:
+        panel = compute_bank_network_centrality(panel, df_exploded)
+    else:
+        logger.info("  compute_bank_network_centrality 不可用, 跳过")
 
     # =========================================================================
     # 步骤 7h: 洗稿率 (Washing Ratio) — 仅限正面新闻

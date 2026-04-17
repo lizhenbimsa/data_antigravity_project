@@ -52,6 +52,7 @@ def generate_pipeline_summary(config, logger):
         ("模块三: 21_tone_llms(全量)", "output_21_tone_llms_full"),
         ("模块三: 22_tone_words", "output_22_words_tone"),
         ("模块三: 23_tone_berts", "output_23_bert_tone"),
+        ("模块三: 24_herd_decay", "output_24_herd_decay"),
     ]
 
     summary_data = []

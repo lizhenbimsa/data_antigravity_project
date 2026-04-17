@@ -21,6 +21,7 @@ run_pipeline_function.py — 新闻处理流水线调度器
                       ↓
     ┌─ 模块三：新闻情感模块 ──────────────────────────────┐
     │ 21_tone_llms → 22_tone_words → 23_tone_berts               │
+    │ → 24_herd_decay_processor                                  │
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块五：面板数据构建 ──────────────────────────────┐
@@ -47,7 +48,6 @@ run_pipeline_function.py — 新闻处理流水线调度器
 import os
 import sys
 import time
-import psutil
 from utils.helpers import load_config, setup_logging, log_memory_usage, log_stage_summary, run_stage
 
 # ============================================================================
@@ -125,6 +125,9 @@ def run_pipeline():
             stages.append(sentiment_stages[method])
         else:
             logger.warning(f"未知的情感分析方法: {method}，已跳过")
+
+    # ── 模块四b：跟风衰减权重 (Tetlock 2011, JF) ──
+    stages.append(("24_herd_decay_processor.py", "阶段24: 跟风衰减权重"))
 
     # ── 模块五：面板数据构建 ──
     stages.append(("45_panel_export_main.py", "阶段40-45: Bank-Year 面板数据构建"))

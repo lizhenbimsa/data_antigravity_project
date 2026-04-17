@@ -42,6 +42,7 @@ def pipeline_config(tmp_path):
             'output_21_tone_llms_full': '21_tone_llms_full.parquet',
             'output_22_words_tone': '22_words_tone.parquet',
             'output_23_bert_tone': '23_bert_tone.parquet',
+            'output_24_herd_decay': '24_herd_decay.parquet',
         },
     }
 
@@ -83,6 +84,7 @@ class TestGeneratePipelineSummary:
             '21_tone_llms_full.parquet': 800,
             '22_words_tone.parquet': 450,
             '23_bert_tone.parquet': 450,
+            '24_herd_decay.parquet': 450,
         }
         for filename, n_rows in stage_rows.items():
             _create_parquet(output_dir, filename, n_rows)
