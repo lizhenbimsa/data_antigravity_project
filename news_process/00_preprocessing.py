@@ -127,7 +127,7 @@ MEDIA_NAME_OVERRIDES = {
 
 # 文本标准化配置
 NORMALIZATION_PARAMS = CONFIG.get('normalization', {})
-CLEANING_PARAMS = CONFIG.get('normalization', {})
+
 
 # OpenCC 转换器(延迟初始化)
 # 每个工作进程首次调用时创建, 避免 fork 不安全。
@@ -539,7 +539,7 @@ def clean_text_batch(df_batch: pd.DataFrame) -> pd.DataFrame:
         # 检测疑似代码/结构化文档（HTML 移除后长度大幅缩减的记录）
         len_after = series.str.len()
         reduction_ratio = (original_len - len_after) / original_len.replace(0, 1)
-        threshold = CLEANING_PARAMS.get('html_removal_length_threshold', 0.7)
+        threshold = NORMALIZATION_PARAMS.get('html_removal_length_threshold', 0.7)
         is_suspect = reduction_ratio > threshold
         df_batch['suspected_code_doc'] = df_batch['suspected_code_doc'] | is_suspect
 
