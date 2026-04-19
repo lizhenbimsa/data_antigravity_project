@@ -52,59 +52,63 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
             return panel[existing].mean(axis=1)
         return pd.Series(np.nan, index=panel.index)
 
+    # 使用字典收集所有新列, 避免逐列原地赋值导致 DataFrame 碎片化
+    # (PerformanceWarning: DataFrame is highly fragmented)
+    new_cols = {}
+
     # --- LLM 逐模型综合 ---
     for track in ['_full', '_ctx', '_title']:
-        panel[f'llm_models_avg_tone{track}'] = _safe_mean([f'{s}_tone{track}' for s in LLM_MODELS])
-        panel[f'llm_models_avg_tone_sum{track}'] = _safe_mean([f'{s}_tone_sum{track}' for s in LLM_MODELS])
-        panel[f'llm_models_avg_cont{track}'] = _safe_mean([f'{s}_cont_mean{track}' for s in LLM_MODELS])
-        panel[f'llm_models_avg_cont_sum{track}'] = _safe_mean([f'{s}_cont_sum{track}' for s in LLM_MODELS])
-        panel[f'llm_models_avg_tone_std{track}'] = _safe_mean([f'{s}_tone_std{track}' for s in LLM_MODELS])
+        new_cols[f'llm_models_avg_tone{track}'] = _safe_mean([f'{s}_tone{track}' for s in LLM_MODELS])
+        new_cols[f'llm_models_avg_tone_sum{track}'] = _safe_mean([f'{s}_tone_sum{track}' for s in LLM_MODELS])
+        new_cols[f'llm_models_avg_cont{track}'] = _safe_mean([f'{s}_cont_mean{track}' for s in LLM_MODELS])
+        new_cols[f'llm_models_avg_cont_sum{track}'] = _safe_mean([f'{s}_cont_sum{track}' for s in LLM_MODELS])
+        new_cols[f'llm_models_avg_tone_std{track}'] = _safe_mean([f'{s}_tone_std{track}' for s in LLM_MODELS])
 
         # --- 词典法综合 ---
-        panel[f'dict_avg_tone{track}'] = _safe_mean([f'{d}_tone{track}' for d in DICT_NAMES])
-        panel[f'dict_avg_tone_sum{track}'] = _safe_mean([f'{d}_tone_sum{track}' for d in DICT_NAMES])
-        panel[f'dict_avg_tone_std{track}'] = _safe_mean([f'{d}_tone_std{track}' for d in DICT_NAMES])
+        new_cols[f'dict_avg_tone{track}'] = _safe_mean([f'{d}_tone{track}' for d in DICT_NAMES])
+        new_cols[f'dict_avg_tone_sum{track}'] = _safe_mean([f'{d}_tone_sum{track}' for d in DICT_NAMES])
+        new_cols[f'dict_avg_tone_std{track}'] = _safe_mean([f'{d}_tone_std{track}' for d in DICT_NAMES])
 
         # --- 词典法 IDF 综合 (Gentzkow, Kelly & Taddy 2019, JEL) ---
-        panel[f'dict_avg_idf_tone{track}'] = _safe_mean([f'{d}_idf_tone{track}' for d in DICT_NAMES])
-        panel[f'dict_avg_idf_tone_sum{track}'] = _safe_mean([f'{d}_idf_tone_sum{track}' for d in DICT_NAMES])
+        new_cols[f'dict_avg_idf_tone{track}'] = _safe_mean([f'{d}_idf_tone{track}' for d in DICT_NAMES])
+        new_cols[f'dict_avg_idf_tone_sum{track}'] = _safe_mean([f'{d}_idf_tone_sum{track}' for d in DICT_NAMES])
 
         # --- BERT 综合 ---
-        panel[f'bert_avg_pos{track}'] = _safe_mean([f'{b}_pos{track}' for b in BERT_MODELS])
-        panel[f'bert_avg_neg{track}'] = _safe_mean([f'{b}_neg{track}' for b in BERT_MODELS])
-        panel[f'bert_avg_neu{track}'] = _safe_mean([f'{b}_neu{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
-        panel[f'bert_avg_pos_sum{track}'] = _safe_mean([f'{b}_pos_sum{track}' for b in BERT_MODELS])
-        panel[f'bert_avg_neg_sum{track}'] = _safe_mean([f'{b}_neg_sum{track}' for b in BERT_MODELS])
-        panel[f'bert_avg_neu_sum{track}'] = _safe_mean([f'{b}_neu_sum{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
-        panel[f'bert_avg_pos_std{track}'] = _safe_mean([f'{b}_pos_std{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_pos{track}'] = _safe_mean([f'{b}_pos{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_neg{track}'] = _safe_mean([f'{b}_neg{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_neu{track}'] = _safe_mean([f'{b}_neu{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
+        new_cols[f'bert_avg_pos_sum{track}'] = _safe_mean([f'{b}_pos_sum{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_neg_sum{track}'] = _safe_mean([f'{b}_neg_sum{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_neu_sum{track}'] = _safe_mean([f'{b}_neu_sum{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
+        new_cols[f'bert_avg_pos_std{track}'] = _safe_mean([f'{b}_pos_std{track}' for b in BERT_MODELS])
 
         # --- VW 综合指标 ---
-        panel[f'llm_models_avg_tone_vw{track}'] = _safe_mean([f'{s}_tone_vw{track}' for s in LLM_MODELS])
-        panel[f'dict_avg_tone_vw{track}'] = _safe_mean([f'{d}_tone_vw{track}' for d in DICT_NAMES])
-        panel[f'dict_avg_idf_tone_vw{track}'] = _safe_mean([f'{d}_idf_tone_vw{track}' for d in DICT_NAMES])
-        panel[f'bert_avg_pos_vw{track}'] = _safe_mean([f'{b}_pos_vw{track}' for b in BERT_MODELS])
-        panel[f'bert_avg_neg_vw{track}'] = _safe_mean([f'{b}_neg_vw{track}' for b in BERT_MODELS])
+        new_cols[f'llm_models_avg_tone_vw{track}'] = _safe_mean([f'{s}_tone_vw{track}' for s in LLM_MODELS])
+        new_cols[f'dict_avg_tone_vw{track}'] = _safe_mean([f'{d}_tone_vw{track}' for d in DICT_NAMES])
+        new_cols[f'dict_avg_idf_tone_vw{track}'] = _safe_mean([f'{d}_idf_tone_vw{track}' for d in DICT_NAMES])
+        new_cols[f'bert_avg_pos_vw{track}'] = _safe_mean([f'{b}_pos_vw{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_neg_vw{track}'] = _safe_mean([f'{b}_neg_vw{track}' for b in BERT_MODELS])
 
         # --- MW 综合指标 (Holzman et al. 2023, TAR) ---
-        panel[f'llm_models_avg_tone_mw{track}'] = _safe_mean([f'{s}_tone_mw{track}' for s in LLM_MODELS])
-        panel[f'dict_avg_tone_mw{track}'] = _safe_mean([f'{d}_tone_mw{track}' for d in DICT_NAMES])
-        panel[f'dict_avg_idf_tone_mw{track}'] = _safe_mean([f'{d}_idf_tone_mw{track}' for d in DICT_NAMES])
-        panel[f'bert_avg_pos_mw{track}'] = _safe_mean([f'{b}_pos_mw{track}' for b in BERT_MODELS])
-        panel[f'bert_avg_neg_mw{track}'] = _safe_mean([f'{b}_neg_mw{track}' for b in BERT_MODELS])
+        new_cols[f'llm_models_avg_tone_mw{track}'] = _safe_mean([f'{s}_tone_mw{track}' for s in LLM_MODELS])
+        new_cols[f'dict_avg_tone_mw{track}'] = _safe_mean([f'{d}_tone_mw{track}' for d in DICT_NAMES])
+        new_cols[f'dict_avg_idf_tone_mw{track}'] = _safe_mean([f'{d}_idf_tone_mw{track}' for d in DICT_NAMES])
+        new_cols[f'bert_avg_pos_mw{track}'] = _safe_mean([f'{b}_pos_mw{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_neg_mw{track}'] = _safe_mean([f'{b}_neg_mw{track}' for b in BERT_MODELS])
 
         # --- HW 综合指标 (Tetlock 2011, JF) ---
-        panel[f'llm_models_avg_tone_hw{track}'] = _safe_mean([f'{s}_tone_hw{track}' for s in LLM_MODELS])
-        panel[f'dict_avg_tone_hw{track}'] = _safe_mean([f'{d}_tone_hw{track}' for d in DICT_NAMES])
-        panel[f'dict_avg_idf_tone_hw{track}'] = _safe_mean([f'{d}_idf_tone_hw{track}' for d in DICT_NAMES])
-        panel[f'bert_avg_pos_hw{track}'] = _safe_mean([f'{b}_pos_hw{track}' for b in BERT_MODELS])
-        panel[f'bert_avg_neg_hw{track}'] = _safe_mean([f'{b}_neg_hw{track}' for b in BERT_MODELS])
+        new_cols[f'llm_models_avg_tone_hw{track}'] = _safe_mean([f'{s}_tone_hw{track}' for s in LLM_MODELS])
+        new_cols[f'dict_avg_tone_hw{track}'] = _safe_mean([f'{d}_tone_hw{track}' for d in DICT_NAMES])
+        new_cols[f'dict_avg_idf_tone_hw{track}'] = _safe_mean([f'{d}_idf_tone_hw{track}' for d in DICT_NAMES])
+        new_cols[f'bert_avg_pos_hw{track}'] = _safe_mean([f'{b}_pos_hw{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_neg_hw{track}'] = _safe_mean([f'{b}_neg_hw{track}' for b in BERT_MODELS])
 
     logger.info(f"  生成双轨综合指标完成")
 
     # --- 文章平均长度 (He et al. 2024, IRFA, Panel A.5: MLENGTH) ---
     # MLENGTH = ln(文章词数), 此处取 Bank-Year 均值后 ln 变换
     if 'avg_doc_length' in panel.columns:
-        panel['avg_article_length'] = np.log1p(panel['avg_doc_length'])
+        new_cols['avg_article_length'] = np.log1p(panel['avg_doc_length'])
         logger.info(f"  avg_article_length (MLENGTH proxy) 已生成")
 
     # --- 分类维度综合指标 ---
@@ -115,25 +119,25 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
 
         for track in ['_full', '_ctx', '_title']:
             # LLM 逐模型综合
-            panel[f'llm_models_avg_tone{suffix}{track}'] = _safe_mean(
+            new_cols[f'llm_models_avg_tone{suffix}{track}'] = _safe_mean(
                 [f'{s}_tone{suffix}{track}' for s in LLM_MODELS])
-            panel[f'llm_models_avg_cont{suffix}{track}'] = _safe_mean(
+            new_cols[f'llm_models_avg_cont{suffix}{track}'] = _safe_mean(
                 [f'{s}_cont_mean{suffix}{track}' for s in LLM_MODELS])
 
             # 词典法综合
-            panel[f'dict_avg_tone{suffix}{track}'] = _safe_mean(
+            new_cols[f'dict_avg_tone{suffix}{track}'] = _safe_mean(
                 [f'{d}_tone{suffix}{track}' for d in DICT_NAMES])
 
             # 词典法 IDF 综合
-            panel[f'dict_avg_idf_tone{suffix}{track}'] = _safe_mean(
+            new_cols[f'dict_avg_idf_tone{suffix}{track}'] = _safe_mean(
                 [f'{d}_idf_tone{suffix}{track}' for d in DICT_NAMES])
 
             # BERT 综合
-            panel[f'bert_avg_pos{suffix}{track}'] = _safe_mean(
+            new_cols[f'bert_avg_pos{suffix}{track}'] = _safe_mean(
                 [f'{b}_pos{suffix}{track}' for b in BERT_MODELS])
-            panel[f'bert_avg_neg{suffix}{track}'] = _safe_mean(
+            new_cols[f'bert_avg_neg{suffix}{track}'] = _safe_mean(
                 [f'{b}_neg{suffix}{track}' for b in BERT_MODELS])
-            panel[f'bert_avg_neu{suffix}{track}'] = _safe_mean(
+            new_cols[f'bert_avg_neu{suffix}{track}'] = _safe_mean(
                 [f'{b}_neu{suffix}{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
 
         logger.info(f"  分类 {suffix} 综合指标生成完成")
@@ -154,17 +158,24 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         if std_col in panel.columns and 'ln_news_coverage' in panel.columns:
             # 零新闻行 → NaN (与面板情感变量 NaN 语义一致)
             coverage = panel['ln_news_coverage'].where(has_news, np.nan)
-            panel[f'fintech_exposure{track}'] = coverage * panel[std_col]
-            valid = panel[f'fintech_exposure{track}'].dropna()
+            new_cols[f'fintech_exposure{track}'] = coverage * panel[std_col]
+            valid = new_cols[f'fintech_exposure{track}'].dropna()
             logger.info(f"  fintech_exposure{track}: "
                         f"mean={valid.mean():.4f}, "
                         f"std={valid.std():.4f}, "
                         f"非空={len(valid):,}")
         else:
-            panel[f'fintech_exposure{track}'] = np.nan
+            new_cols[f'fintech_exposure{track}'] = pd.Series(np.nan, index=panel.index)
             logger.warning(f"  fintech_exposure{track}: "
                           f"缺少 {std_col} 或 ln_news_coverage, 填 NaN")
 
+    # ── 一次性合并所有新列, 消除 DataFrame 碎片化 ──
+    overlap = [c for c in new_cols if c in panel.columns]
+    if overlap:
+        panel = panel.drop(columns=overlap)
+    panel = pd.concat(
+        [panel, pd.DataFrame(new_cols, index=panel.index)], axis=1
+    )
     return panel
 
 
@@ -252,12 +263,14 @@ def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
         logger.info(f"    跳过(观测<10): {skipped}")
 
     # ── 执行年度截面 z-score ──
+    # 使用字典收集所有 _z 列, 避免逐列原地赋值导致 DataFrame 碎片化
     has_news = panel['n_articles'] > 0
     z_count = 0
+    new_cols = {}
 
     for col in valid_cols:
         z_col = f'{col}_z'
-        panel[z_col] = np.nan
+        z_series = pd.Series(np.nan, index=panel.index)
 
         for year, grp in panel[has_news].groupby('year'):
             vals = grp[col].dropna()
@@ -268,9 +281,18 @@ def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
             if sigma < 1e-10:
                 continue
             idx = grp.index
-            panel.loc[idx, z_col] = (panel.loc[idx, col] - mu) / sigma
+            z_series.loc[idx] = (panel.loc[idx, col] - mu) / sigma
 
+        new_cols[z_col] = z_series
         z_count += 1
+
+    # ── 一次性合并所有 _z 列 ──
+    overlap = [c for c in new_cols if c in panel.columns]
+    if overlap:
+        panel = panel.drop(columns=overlap)
+    panel = pd.concat(
+        [panel, pd.DataFrame(new_cols, index=panel.index)], axis=1
+    )
 
     logger.info(f"  已生成 {z_count} 个 _z 标准化列")
 
@@ -540,6 +562,9 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info("  对标: Province_news_sentiment (Table 3)")
     logger.info("  公式: leave1out_i = (Σ tone_j - tone_i) / (N - 1), j ≠ i")
 
+    # 使用字典收集所有新列, 避免逐列原地赋值导致 DataFrame 碎片化
+    new_cols = {}
+
     for geo_col, geo_label in [('bank_province', '省级'),
                                 ('bank_city', '城市级')]:
         # 检查地理列是否可用 (非空)
@@ -576,16 +601,17 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
             # ── 赋值 (仅对组内 ≥ 2 家银行的观测) ──
             # grp_cnt == 1: 某省/城市某年仅此一家银行有数据,
             #   leave-one-out 分母为 0, 赋 NaN (方法论正确)
-            panel[out_col] = np.nan
+            out_series = pd.Series(np.nan, index=panel.index)
             valid_idx = subset.index[grp_cnt > 1]
-            panel.loc[valid_idx, out_col] = (
+            out_series.loc[valid_idx] = (
                 (grp_sum.loc[valid_idx]
                  - subset.loc[valid_idx, tone_col])
                 / (grp_cnt.loc[valid_idx] - 1)
             )
+            new_cols[out_col] = out_series
 
             # ── 诊断日志 ──
-            n_valid = panel[out_col].notna().sum()
+            n_valid = out_series.notna().sum()
             n_singleton = mask.sum() - len(valid_idx)
             logger.info(f"  {out_col}: "
                         f"有效={n_valid}, "
@@ -625,15 +651,16 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
                     [geo_col, 'year']
                 )[tone_col].transform('count')
 
-                panel[out_col] = np.nan
+                out_series = pd.Series(np.nan, index=panel.index)
                 valid_idx = subset.index[grp_cnt > 1]
-                panel.loc[valid_idx, out_col] = (
+                out_series.loc[valid_idx] = (
                     (grp_sum.loc[valid_idx]
                      - subset.loc[valid_idx, tone_col])
                     / (grp_cnt.loc[valid_idx] - 1)
                 )
+                new_cols[out_col] = out_series
 
-                n_valid = panel[out_col].notna().sum()
+                n_valid = out_series.notna().sum()
                 logger.info(f"    {out_col} ({desc}): 有效={n_valid}")
 
     # 输出 Stata over-identification 检验命令
@@ -644,6 +671,14 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
                 "prov_leave1out_bert_avg_pos_full), "
                 "absorb(target_bank year) cluster(target_bank)")
     logger.info("    * estat overid  // Hansen J test")
+
+    # ── 一次性合并所有 leave-one-out 列 ──
+    overlap = [c for c in new_cols if c in panel.columns]
+    if overlap:
+        panel = panel.drop(columns=overlap)
+    panel = pd.concat(
+        [panel, pd.DataFrame(new_cols, index=panel.index)], axis=1
+    )
 
     return panel
 
