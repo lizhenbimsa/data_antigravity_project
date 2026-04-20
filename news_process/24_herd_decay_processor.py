@@ -16,8 +16,7 @@
   - 相似度阈值 0.35: 高于此值视为"跟风"
   - 衰减公式: weight = 1 / (1 + n_similar_predecessors)
 
-输入: 按优先级自动查找: 23_bert_tone → 22_words_tone → 21_tone_llms
-      (取决于 config.yaml 中 sentiment_analysis.enabled_methods 配置)
+输入: 23_bert_tone.parquet (阶段 23 BERT 情感分析的输出, 硬编码读取, 不做回退)
 输出: 24_herd_decay.parquet (追加 herd_weight 列)
 """
 
@@ -212,32 +211,28 @@ def main():
     logger.info(f"阶段 {STAGE_NAME} 启动")
     logger.info("=" * 60)
 
-    # 加载篇章级数据: 按优先级查找最后一个可用的情感分析输出
-    # 优先级: 23_bert → 22_words → 21_llms (取决于 enabled_methods 配置)
+    # 加载篇章级数据: 固定读取阶段 23 (BERT情感分析) 的输出
+    # 严禁回退读取 22/21 的输出，避免磁盘残留旧文件导致静默数据污染
     filenames = CONFIG.get('filenames', {})
-    input_candidates = [
-        filenames.get('output_23_bert_tone', '23_bert_tone.parquet'),
-        filenames.get('output_22_words_tone', '22_words_tone.parquet'),
-        filenames.get('output_21_tone_llms', '21_tone_llms.parquet'),
-    ]
-    input_filename = None
-    for candidate in input_candidates:
-        candidate_path = os.path.join(OUTPUT_DIR, candidate)
-        if os.path.exists(candidate_path):
-            input_filename = candidate
-            logger.info(f"  找到输入文件: {candidate}")
-            break
-    if input_filename is None:
-        logger.error(
-            f"未找到任何可用的情感分析输出文件，"
-            f"已搜索: {input_candidates}"
-        )
-        return
-
+    input_filename = filenames.get('output_23_bert_tone', '23_bert_tone.parquet')
     output_filename = filenames.get('output_24_herd_decay', '24_herd_decay.parquet')
     input_file = os.path.join(OUTPUT_DIR, input_filename)
     output_file = os.path.join(OUTPUT_DIR, output_filename)
-    # 文件存在性已在上方回退链中验证，无需重复检查
+
+    if not os.path.exists(input_file):
+        logger.error(
+            f"输入文件未找到: {input_file}。"
+            f"请确保阶段 23 (tone_berts) 已在 enabled_methods 中启用并成功执行。"
+        )
+        return
+
+    # 记录输入文件修改时间，便于数据溯源审计
+    import datetime as _dt
+    _mtime = os.path.getmtime(input_file)
+    logger.info(
+        f"  📁 输入文件: {input_filename} "
+        f"(修改时间: {_dt.datetime.fromtimestamp(_mtime).strftime('%Y-%m-%d %H:%M:%S')})"
+    )
 
     df = pd.read_parquet(input_file)
     logger.info(f"  加载 {len(df):,} 条新闻 (来源: {input_filename})")

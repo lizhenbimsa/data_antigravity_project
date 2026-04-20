@@ -126,6 +126,34 @@ def run_pipeline():
         else:
             logger.warning(f"未知的情感分析方法: {method}，已跳过")
 
+    # ── 数据流防护：清理未启用的情感分析阶段的残留输出 ──
+    # 阶段 24 硬编码读取阶段 23 的输出，若 tone_berts 未启用但
+    # 磁盘上残留旧的 23 输出文件，会导致阶段 24 静默读取过期数据。
+    _sentiment_output_map = {
+        'tone_llms':  CONFIG.get('filenames', {}).get(
+            'output_21_tone_llms', '21_tone_llms.parquet'),
+        'tone_words': CONFIG.get('filenames', {}).get(
+            'output_22_words_tone', '22_words_tone.parquet'),
+        'tone_berts': CONFIG.get('filenames', {}).get(
+            'output_23_bert_tone', '23_bert_tone.parquet'),
+    }
+    for method, filename in _sentiment_output_map.items():
+        if method not in enabled_methods:
+            stale_path = os.path.join(
+                CONFIG['paths']['output_dir'], filename)
+            if os.path.exists(stale_path):
+                os.remove(stale_path)
+                logger.info(f"  🧹 已清理未启用阶段的残留文件: {filename}")
+
+    # 无条件预清理阶段 24 自身输出，防止其失败后旧文件残留误导下游
+    _stage24_output = os.path.join(
+        CONFIG['paths']['output_dir'],
+        CONFIG.get('filenames', {}).get(
+            'output_24_herd_decay', '24_herd_decay.parquet'))
+    if os.path.exists(_stage24_output):
+        os.remove(_stage24_output)
+        logger.info(f"  🧹 已预清理阶段 24 输出: {os.path.basename(_stage24_output)}")
+
     # ── 模块四b：跟风衰减权重 (Tetlock 2011, JF) ──
     stages.append(("24_herd_decay_processor.py", "阶段24: 跟风衰减权重"))
 
