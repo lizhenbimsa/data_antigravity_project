@@ -1016,6 +1016,26 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
 
     # ── 增量缓存检查 ──
     # 已处理的文件写入 Parquet 缓存，下次运行时直接读取
+
+    # 配置哈希：用于检测预处理配置是否变更，变更时自动使缓存失效
+    def _compute_config_hash() -> str:
+        import hashlib
+        relevant = {
+            'media_types_to_include': PARAMS.get('media_types_to_include'),
+            'media_names_to_exclude': PARAMS.get('media_names_to_exclude'),
+            'required_columns': PARAMS.get('required_columns'),
+            'key_columns_for_na_check': PARAMS.get('key_columns_for_na_check'),
+            'content_min_length': PARAMS.get('content_min_length'),
+            'content_max_length': PARAMS.get('content_max_length'),
+            'title_min_length': PARAMS.get('title_min_length'),
+        }
+        return hashlib.md5(
+            json.dumps(relevant, sort_keys=True, ensure_ascii=False).encode()
+        ).hexdigest()
+
+    config_hash = _compute_config_hash()
+    logger.info(f"当前预处理配置哈希: {config_hash}")
+
     cache_dir = os.path.join(os.path.dirname(output_path), '_cache')
     os.makedirs(cache_dir, exist_ok=True)
 
@@ -1025,12 +1045,19 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
         cache_path = os.path.join(
             cache_dir, os.path.basename(xlsx_file).replace('.xlsx', '.parquet')
         )
-        # 缓存有效条件: 缓存文件存在 且 修改时间晚于源文件
-        # 这确保当源 XLSX 内容更新时, 缓存自动失效重新处理
+        # 缓存有效条件: 缓存文件存在 且 修改时间晚于源文件 且 配置哈希一致
+        # 这确保当源 XLSX 内容更新或配置变更时, 缓存自动失效重新处理
         if os.path.exists(cache_path) and os.path.getmtime(cache_path) > os.path.getmtime(xlsx_file):
-            cached_files.append(cache_path)
-        else:
-            files_to_process.append(xlsx_file)
+            try:
+                cached_meta = pq.read_schema(cache_path).metadata or {}
+                if cached_meta.get(b'config_hash', b'').decode() == config_hash:
+                    cached_files.append(cache_path)
+                    continue
+                else:
+                    logger.info(f"  配置已变更，缓存失效: {os.path.basename(cache_path)}")
+            except Exception:
+                pass
+        files_to_process.append(xlsx_file)
 
     logger.info(f"增量处理: {len(cached_files)} 个已缓存，{len(files_to_process)} 个待处理")
 
@@ -1097,6 +1124,9 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
                         cache_dir, file_name.replace('.xlsx', '.parquet')
                     )
                     try:
+                        existing_meta = table.schema.metadata or {}
+                        new_meta = {**existing_meta, b'config_hash': config_hash.encode()}
+                        table = table.replace_schema_metadata(new_meta)
                         pq.write_table(table, cache_path, compression='snappy')
                     except Exception as e:
                         logger.warning(f"缓存写入失败 {cache_path}: {e}")

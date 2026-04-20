@@ -142,8 +142,11 @@ def run_pipeline():
             stale_path = os.path.join(
                 CONFIG['paths']['output_dir'], filename)
             if os.path.exists(stale_path):
-                os.remove(stale_path)
-                logger.info(f"  🧹 已清理未启用阶段的残留文件: {filename}")
+                try:
+                    os.remove(stale_path)
+                    logger.info(f"  🧹 已清理未启用阶段的残留文件: {filename}")
+                except OSError as e:
+                    logger.warning(f"  ⚠️ 清理残留文件失败: {filename} ({e})")
 
     # 无条件预清理阶段 24 自身输出，防止其失败后旧文件残留误导下游
     _stage24_output = os.path.join(
@@ -151,8 +154,11 @@ def run_pipeline():
         CONFIG.get('filenames', {}).get(
             'output_24_herd_decay', '24_herd_decay.parquet'))
     if os.path.exists(_stage24_output):
-        os.remove(_stage24_output)
-        logger.info(f"  🧹 已预清理阶段 24 输出: {os.path.basename(_stage24_output)}")
+        try:
+            os.remove(_stage24_output)
+            logger.info(f"  🧹 已预清理阶段 24 输出: {os.path.basename(_stage24_output)}")
+        except OSError as e:
+            logger.warning(f"  ⚠️ 预清理阶段 24 输出失败: {e}")
 
     # ── 模块四b：跟风衰减权重 (Tetlock 2011, JF) ──
     stages.append(("24_herd_decay_processor.py", "阶段24: 跟风衰减权重"))

@@ -21,7 +21,6 @@ pyahocorasick>=2.0.0,<3.0.0
 datasketch>=1.6.0,<2.0.0
 
 # 并行处理
-pandarallel>=1.6.0,<2.0.0
 joblib>=1.3.0,<2.0.0
 psutil>=5.9.0,<6.0.0
 

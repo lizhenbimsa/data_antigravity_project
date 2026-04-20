@@ -30,6 +30,7 @@ import pandas as pd
 
 from collections import Counter
 from utils.helpers import load_config, setup_logging, log_memory_usage, log_stage_summary, save_dataset
+from utils.llm_cache import LLMCache
 
 from utils.canonicalization import canonicalize_topic
 from utils.entity_context import extract_entity_context, get_target_aliases
@@ -78,8 +79,9 @@ RETRY_DELAY = LLM_CONFIG.get('retry_delay', '')
 # ============================================================================
 
 async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Semaphore, 
-                          prompt: str, model_cfg: dict, row_idx: int, track: str) -> tuple:
-    """异步请求单个模型的单篇文章，自带重试保护。
+                          prompt: str, model_cfg: dict, row_idx: int, track: str,
+                          cache: LLMCache = None) -> tuple:
+    """异步请求单个模型的单篇文章，自带重试保护和缓存。
     
     model_cfg 结构示例：
         {model_name: ..., short_name: ..., base_url: ..., api_key: ...}
@@ -87,6 +89,7 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
 
     Args:
         track: 'full'、'ctx' 或 'title'，标识本次请求使用的文本轨道。
+        cache: LLMCache 实例，用于查询/写入缓存。
     
     Returns:
         tuple: (row_idx, model_id, result_text, track)
@@ -94,6 +97,12 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     model_id = model_cfg['model_name']
     base_url = model_cfg.get('base_url', '')
     api_key  = model_cfg.get('api_key', '')
+
+    # 缓存查询（sqlite3 同步调用为微秒级，不阻塞事件循环）
+    if cache is not None:
+        cached_response = cache.get(model_id, prompt)
+        if cached_response is not None:
+            return row_idx, model_id, cached_response, track
 
     # 准备请求
     headers = {
@@ -118,6 +127,9 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                     if resp.status == 200:
                         data = await resp.json()
                         result_text = data['choices'][0]['message']['content']
+                        # 仅缓存成功响应（避免永久化瞬时故障）
+                        if cache is not None:
+                            cache.put(model_id, prompt, result_text)
                         return row_idx, model_id, result_text, track
                     elif resp.status in (429, 500, 502, 503, 504):
                         logger.warning(f"[{model_id}] API HTTP {resp.status} - 等待 {RETRY_DELAY}s 后重试...")
@@ -137,7 +149,7 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     logger.warning(f"[{model_id}] 行 {row_idx}: 所有 {MAX_RETRIES} 次重试均失败，该模型结果将从投票中排除")
     return row_idx, model_id, None, track
 
-async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
+async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -> dict:
     """逐条并发执行 DataFrame 中所有行对所有配置模型的双轨请求。
     
     为每行 × 每模型 × 每轨道 生成独立 prompt，通过信号量控制并发数。
@@ -174,7 +186,7 @@ async def run_all_llms(df: pd.DataFrame, models: list) -> dict:
                     co_mentioned_banks=str(row.get('co_mentioned_banks', '无')),
                 )
                 for m in models:
-                    real_tasks.append(fetch_llm_async(session, semaphore, prompt, m, idx, track))
+                    real_tasks.append(fetch_llm_async(session, semaphore, prompt, m, idx, track, cache=cache))
         
         completed = 0
         total = len(real_tasks)
@@ -372,6 +384,11 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
 def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
+
+    # 初始化 LLM 请求级 SQLite 缓存
+    cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
+    cache = LLMCache(cache_db)
+    logger.info(f"LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
     
     if not LLM_CONFIG.get('enabled', False):
         logger.info("统一 LLM 处理已在 config.yaml 中禁用。将透传输入数据。")
@@ -381,6 +398,7 @@ def main():
 
         if not os.path.exists(input_path):
             logger.error(f"输入文件未找到: {input_path}")
+            cache.close()
             return
 
         df = pd.read_parquet(input_path)
@@ -412,6 +430,7 @@ def main():
 
         log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(df))
         logger.info(f"已透传 {len(df)} 行数据至 {output_path}")
+        cache.close()
         return
         
     input_filename = CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')
@@ -419,6 +438,7 @@ def main():
     
     if not os.path.exists(input_path):
         logger.error(f"输入文件未找到: {input_path}")
+        cache.close()
         return
         
     logger.info(f"加载预筛数据: {input_path}")
@@ -431,7 +451,7 @@ def main():
     
     # 异步并发大模型（双轨）
     logger.info(f"开始分发双轨组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")
-    results_map = asyncio.run(run_all_llms(df, MODELS))
+    results_map = asyncio.run(run_all_llms(df, MODELS, cache=cache))
     
     # 提取与投票（双轨）
     logger.info("开始聚合各模型 JSON 响应并执行双轨多数投票三角验证...")
@@ -618,7 +638,7 @@ def main():
                 for b_idx, (b_indices, b_titles, prompt) in enumerate(batches):
                     for m in MODELS:
                         tasks.append(
-                            fetch_llm_async(session, semaphore, prompt, m, b_idx, 'title')
+                            fetch_llm_async(session, semaphore, prompt, m, b_idx, 'title', cache=cache)
                         )
                 
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -744,6 +764,7 @@ def main():
     save_dataset(df_filtered, output_path, logger)
     
     log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(df_filtered))
+    cache.close()
 
 if __name__ == "__main__":
     main()

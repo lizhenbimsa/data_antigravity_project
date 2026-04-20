@@ -27,7 +27,7 @@ import pandas as pd
 
 from scipy.sparse import csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import pairwise_distances_chunked
+from sklearn.metrics import pairwise_distances_chunked, pairwise_distances
 
 from utils.helpers import load_config, setup_logging
 
@@ -142,37 +142,54 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
         # 分块计算余弦距离
         n_articles = len(indices)
-        similar_counts = np.zeros(n_articles, dtype=int)
 
-        # 使用 pairwise_distances_chunked 控制内存
-        # metric='cosine' → 距离 ∈ [0, 2], 相似度 = 1 - 距离
-        row_start = 0
-        for chunk in pairwise_distances_chunked(
-            tfidf_matrix, 
-            working_memory=128,  # MB, 控制每个 chunk 的内存
-            metric='cosine'
-        ):
-            n_rows_in_chunk = chunk.shape[0]
-            similarity_chunk = 1.0 - chunk  # 转为相似度
+        if n_articles <= 2000:
+            # ---- 向量化路径 ----
+            # NaT 处理策略：NaT → NaN → 任何含 NaN 的 time_diff → nan_to_num(0)
+            # 等价于原始代码 "if pd.notna(date_i) and pd.notna(date_j)" 为 False 时跳过窗口检查
+            # 使用 epoch 绝对日期转换，避免 dates[0] 为 NaT 时污染所有有效日期
+            _epoch = pd.Timestamp('1970-01-01')
+            dates_num = np.array(
+                [(d - _epoch).days if pd.notna(d) else np.nan for d in dates],
+                dtype=np.float64)
+            time_diff = np.abs(np.subtract.outer(dates_num, dates_num))
+            # NaN time_diff → 0.0: 含 NaT 的配对总是通过时间窗口检查（匹配原始行为）
+            time_diff = np.nan_to_num(time_diff, nan=0.0)
+            valid_mask = (time_diff <= TIME_WINDOW_DAYS) & np.tril(
+                np.ones((n_articles, n_articles), dtype=bool), k=-1)
+            sim_matrix = 1.0 - pairwise_distances(tfidf_matrix, metric='cosine')
+            herd_mask = (sim_matrix >= SIMILARITY_THRESHOLD) & valid_mask
+            similar_counts = herd_mask.sum(axis=1)
+        else:
+            # ---- 分块路径（保留原始逻辑）----
+            similar_counts = np.zeros(n_articles, dtype=int)
+            row_start = 0
+            for chunk in pairwise_distances_chunked(
+                tfidf_matrix,
+                working_memory=128,  # MB, 控制每个 chunk 的内存
+                metric='cosine'
+            ):
+                n_rows_in_chunk = chunk.shape[0]
+                similarity_chunk = 1.0 - chunk  # 转为相似度
 
-            for local_i in range(n_rows_in_chunk):
-                global_i = row_start + local_i
-                date_i = dates[global_i]
+                for local_i in range(n_rows_in_chunk):
+                    global_i = row_start + local_i
+                    date_i = dates[global_i]
 
-                # 只检查比自己更早的文章 (j < global_i)
-                for j in range(global_i):
-                    date_j = dates[j]
-                    # 时间窗口检查
-                    if pd.notna(date_i) and pd.notna(date_j):
-                        delta_days = abs((date_i - date_j).days)
-                        if delta_days > TIME_WINDOW_DAYS:
-                            continue
+                    # 只检查比自己更早的文章 (j < global_i)
+                    for j in range(global_i):
+                        date_j = dates[j]
+                        # 时间窗口检查
+                        if pd.notna(date_i) and pd.notna(date_j):
+                            delta_days = abs((date_i - date_j).days)
+                            if delta_days > TIME_WINDOW_DAYS:
+                                continue
 
-                    sim = similarity_chunk[local_i, j]
-                    if sim >= SIMILARITY_THRESHOLD:
-                        similar_counts[global_i] += 1
+                        sim = similarity_chunk[local_i, j]
+                        if sim >= SIMILARITY_THRESHOLD:
+                            similar_counts[global_i] += 1
 
-            row_start += n_rows_in_chunk
+                row_start += n_rows_in_chunk
 
         # 计算衰减权重
         for k in range(n_articles):
