@@ -648,10 +648,35 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'jf_coefficient_full':              'JF Coefficient (Full-text)',
                 'jf_coefficient_ctx':               'JF Coefficient (Context)',
                 'jf_coefficient_title':             'JF Coefficient (Title)',
-                # 媒体质量指标
-                'washing_ratio':                    'News Washing Ratio',
+                # 媒体质量指标 — 洗稿率 44 种 (Bingler et al. 2022, FRL)
+                'washing_ratio':                    'Washing Ratio: LLM Vote (Full)',
+                'washing_ratio_ctx':                'Washing Ratio: LLM Vote (Ctx)',
+                'neg_sub_ratio_full':               'Neg Substantive Ratio (Full)',
+                'neg_sub_ratio_ctx':                'Neg Substantive Ratio (Ctx)',
+                'washing_asymmetry_full':           'Washing Asymmetry (Full)',
+                'washing_asymmetry_ctx':            'Washing Asymmetry (Ctx)',
+                'tone_gap_desc_sub_full':           'Tone Gap: Desc-Sub (Full)',
+                'tone_gap_desc_sub_ctx':            'Tone Gap: Desc-Sub (Ctx)',
+                'washing_ratio_dict':               'WR: Dict 5-Avg (Full)',
+                'washing_ratio_dict_ctx':           'WR: Dict 5-Avg (Ctx)',
+                'washing_ratio_bert':               'WR: BERT 5-Avg (Full)',
+                'washing_ratio_bert_ctx':           'WR: BERT 5-Avg (Ctx)',
+                'washing_ratio_hc':                 'WR: Hi-Conf (Full)',
+                'washing_ratio_hc_ctx':             'WR: Hi-Conf (Ctx)',
+                'washing_tone_shift_full':          'Desc Tone Shift (Full)',
+                'washing_tone_shift_ctx':           'Desc Tone Shift (Ctx)',
+                'washing_ratio_fl':                 'WR: Fwd-Look (Full)',
+                'washing_ratio_fl_ctx':             'WR: Fwd-Look (Ctx)',
+                'pos_desc_count_full':              'Pos & Desc Count (Full)',
+                'pos_desc_count_ctx':               'Pos & Desc Count (Ctx)',
                 'dummy_no_positive_news':           'No Positive News Dummy',
                 'low_conf_flag':                    'Low Confidence Flag',
+                # 单模型洗稿率 — 双轨 (动态生成)
+                **{f'washing_ratio_{m}{s}': f'WR: {m} ({t})'
+                   for m in ['gpt5nano', 'gemini3', 'claude4h',
+                             'jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
+                             'finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+                   for s, t in [('', 'Full'), ('_ctx', 'Ctx')]},
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -836,6 +861,113 @@ def main():
 
     # --- 4. 时间解析 ---
     df = parse_time(df)
+
+    # =========================================================================
+    # 洗稿率前置列: 多方法 × 双轨篇章级标记
+    # =========================================================================
+    # 学术依据:
+    #   Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022).
+    #   Cheap talk and cherry-picking: What ClimateBert has to say on corporate
+    #   climate risk disclosures. Finance Research Letters, 47(Part B), 102776.
+    #   https://doi.org/10.1016/j.frl.2022.102776
+    #
+    # 构造 44 种洗稿率变体 (11 方法 × 双轨 Full/Ctx) 的篇章级标记列:
+    #   A:  LLM 多数投票 (is_positive{track}, 双轨)
+    #   A2: 单个 LLM (逐 LLM 情感{track} > 0)
+    #   B:  反向验证 (负面{track} ∧ 实质性)
+    #   D/D2: 词典均值 / 单词典 ({dict}_score{track} > 0)
+    #   E/E2: BERT 均值 / 单 BERT ({bert}_正面{track} > 0.5)
+    #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3)
+    #   H:  前瞻性空洞法 (正面{track} ∧ 描述性 ∧ fl_ratio{track} > 中位数)
+    # 方法 C 和 G 无需篇章级标记, 直接使用面板级已有变量计算
+    _tt = df['text_type'].astype(str).str.strip() if 'text_type' in df.columns else None
+    _is_desc = (_tt == '描述性') if _tt is not None else None
+    _is_sub  = (_tt == '实质性') if _tt is not None else None
+
+    for track in ['_full', '_ctx']:
+        pos_col = f'is_positive{track}'
+        neg_col = f'is_negative{track}'
+        if pos_col not in df.columns or _is_desc is None:
+            continue
+
+        # --- 方法 A: LLM 投票 (正面 ∧ 描述性) ---
+        df[f'_is_pos_desc{track}'] = (
+            (df[pos_col] == 1) & _is_desc
+        ).astype(int)
+
+        # --- 方法 B: 反向验证 (负面 ∧ 实质性) ---
+        # 学术依据: Deephouse, D.L. (2000). Media reputation as a strategic
+        #   resource. Journal of Management, 26(6), 1091-1112.
+        #   https://doi.org/10.1177/014920630002600602
+        if neg_col in df.columns and _is_sub is not None:
+            df[f'_is_neg_sub{track}'] = (
+                (df[neg_col] == 1) & _is_sub
+            ).astype(int)
+
+        # --- 方法 A2: 单个 LLM (Loughran & McDonald 2016, JAR) ---
+        for llm in LLM_MODELS:
+            src_col = f'{llm}_score{track}'
+            if src_col in df.columns:
+                _llm_pos = (df[src_col] > 0)
+                df[f'_is_{llm}_positive{track}'] = _llm_pos.astype(int)
+                df[f'_is_{llm}_pos_desc{track}'] = (_llm_pos & _is_desc).astype(int)
+
+        # --- 方法 D: 词典均值 (Loughran & McDonald 2011, JF) ---
+        _dict_cols = [f'{d}_score{track}' for d in DICT_NAMES
+                      if f'{d}_score{track}' in df.columns]
+        if _dict_cols:
+            df[f'_dict_avg_score{track}'] = df[_dict_cols].mean(axis=1)
+            df[f'_is_dict_positive{track}'] = (df[f'_dict_avg_score{track}'] > 0).astype(int)
+            df[f'_is_dict_pos_desc{track}'] = (
+                (df[f'_is_dict_positive{track}'] == 1) & _is_desc
+            ).astype(int)
+
+        # --- 方法 D2: 单个词典 (Gentzkow et al. 2019, JEL) ---
+        for d in DICT_NAMES:
+            src_col = f'{d}_score{track}'
+            if src_col in df.columns:
+                _d_pos = (df[src_col] > 0)
+                df[f'_is_{d}_positive{track}'] = _d_pos.astype(int)
+                df[f'_is_{d}_pos_desc{track}'] = (_d_pos & _is_desc).astype(int)
+
+        # --- 方法 E: BERT 均值 (Huang et al. 2023, CAR) ---
+        _bert_pos_cols = [f'{b}_正面{track}' for b in BERT_MODELS
+                          if f'{b}_正面{track}' in df.columns]
+        if _bert_pos_cols:
+            df[f'_bert_avg_pos{track}'] = df[_bert_pos_cols].mean(axis=1)
+            df[f'_is_bert_positive{track}'] = (df[f'_bert_avg_pos{track}'] > 0.5).astype(int)
+            df[f'_is_bert_pos_desc{track}'] = (
+                (df[f'_is_bert_positive{track}'] == 1) & _is_desc
+            ).astype(int)
+
+        # --- 方法 E2: 单个 BERT ---
+        for b in BERT_MODELS:
+            src_col = f'{b}_正面{track}'
+            if src_col in df.columns:
+                _b_pos = (df[src_col] > 0.5)
+                df[f'_is_{b}_positive{track}'] = _b_pos.astype(int)
+                df[f'_is_{b}_pos_desc{track}'] = (_b_pos & _is_desc).astype(int)
+
+        # --- 方法 F: 高置信度子样本 (Shapiro et al. 2022, JoE) ---
+        agr_col = f'llm_agreement_rate{track}'
+        if agr_col in df.columns:
+            _hc = df[agr_col].fillna(0) >= 0.67
+            df[f'_is_pos_hc{track}'] = ((df[pos_col] == 1) & _hc).astype(int)
+            df[f'_is_pos_desc_hc{track}'] = (
+                (df[pos_col] == 1) & _is_desc & _hc
+            ).astype(int)
+
+        # --- 方法 H: 前瞻性空洞法 (Li 2010, JAR; Bingler et al. 2024, JBF) ---
+        fl_col = f'forward_looking_ratio{track}'
+        if fl_col in df.columns:
+            _fl_median = df[fl_col].median()
+            _high_fl = df[fl_col] > _fl_median
+            df[f'_is_pos_desc_fl{track}'] = (
+                (df[pos_col] == 1) & _is_desc & _high_fl
+            ).astype(int)
+
+    _wr_flag_cols = [c for c in df.columns if c.startswith('_is_')]
+    logger.info(f"  洗稿率前置列生成完毕: {len(_wr_flag_cols)} 列 (双轨)")
 
     # --- 5. Bank-Year 聚合 (df 为只读: groupby/filter/merge) ---
     panel = aggregate_panel(df)
@@ -1371,50 +1503,152 @@ def main():
         logger.info("  compute_bank_network_centrality 不可用, 跳过")
 
     # =========================================================================
-    # 步骤 7h: 洗稿率 (Washing Ratio) — 仅限正面新闻
-    # 学术依据: Bingler et al. (2024, RFS) cheap talk 度量
-    # 公式: WR_i,t = n_articles_desc_positive / n_articles_positive
-    #   - 分母仅含正面新闻 (pos_count_full > 0)
-    #   - 分子仅含正面 + 描述性新闻 (空话类正面新闻)
-    #   - 若全年无正面新闻: WR = NaN (结构性缺失, 非零)
+    # 步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造
+    # =========================================================================
+    # 学术依据:
+    #   Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022).
+    #   Cheap talk and cherry-picking. Finance Research Letters, 47(B), 102776.
+    #   https://doi.org/10.1016/j.frl.2022.102776
+    #
+    # 构造 44 种洗稿率变体 (11 方法 × 双轨 Full/Ctx):
+    #   A/A2: LLM 投票 + 单 LLM (3模型) × 双轨
+    #   B:    反向验证 + 非对称性 × 双轨
+    #   C:    情感纯度缺口 × 双轨
+    #   D/D2: 词典均值 + 单词典 (5本) × 双轨
+    #   E/E2: BERT 均值 + 单 BERT (5模型) × 双轨
+    #   F:    高置信度子样本 × 双轨
+    #   G:    描述性文章情感偏移 × 双轨
+    #   H:    前瞻性空洞 × 双轨
     # =========================================================================
     logger.info("=" * 60)
-    logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 仅限正面新闻")
+    logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造 (44种)")
     logger.info("=" * 60)
 
-    if 'pos_count_full' in panel.columns and 'n_articles_sub' in panel.columns:
-        # n_articles_desc_positive 需要从篇章级重新聚合
-        # 但面板已展开, 我们用已有变量近似:
-        #   正面新闻数 = pos_count_full
-        #   实质性新闻数 = n_articles_sub (含正负中)
-        #   描述性正面占比 ≈ desc_frac × pos_count_full
-        # 更精确的做法: 用 (正面总数 - 实质性正面数) / 正面总数
-        # 此处使用面板级近似: 描述性比例作为洗稿的代理
-        pos_count = panel['pos_count_full']
-        has_positive = pos_count > 0
+    def _safe_ratio(numer, denom):
+        """安全除法: 分母 <= 0 时返回 NaN, 使用 np.divide + where 避免 RuntimeWarning。"""
+        out = np.full(len(denom), np.nan)
+        mask = np.asarray(denom) > 0
+        np.divide(np.asarray(numer), np.asarray(denom), out=out, where=mask)
+        return out
 
-        # Washing Ratio: 在有正面新闻的样本中, 描述性占比越高 = 空话越多
-        if 'desc_frac' in panel.columns:
-            panel['washing_ratio'] = np.where(
-                has_positive,
-                panel['desc_frac'],  # 描述性新闻占比作为洗稿率代理
-                np.nan  # 结构性 NaN: 无正面新闻 ≠ 洗稿率为零
-            )
-        else:
-            panel['washing_ratio'] = np.nan
+    wr_variants = {}  # {变量名: 描述}
 
-        # Dummy: 全年无正面新闻的银行
-        panel['dummy_no_positive_news'] = (~has_positive).astype(int)
+    for track in ['_full', '_ctx']:
+        _sfx = '' if track == '_full' else '_ctx'  # Full 不加后缀 (主指标)
+        pos_col = f'pos_count{track}'
 
-        n_no_pos = panel['dummy_no_positive_news'].sum()
-        n_has_wr = panel['washing_ratio'].notna().sum()
-        logger.info(f"  washing_ratio 有效值: {n_has_wr:,} / {len(panel):,}")
-        logger.info(f"  dummy_no_positive_news=1: {n_no_pos:,} 个 Bank-Year")
-        if n_has_wr > 0:
-            logger.info(f"  washing_ratio: mean={panel['washing_ratio'].mean():.4f}, "
-                        f"std={panel['washing_ratio'].std():.4f}")
-    else:
-        logger.warning("  pos_count_full 或 n_articles_sub 不存在, 跳过洗稿率计算")
+        # --- 方法 A: LLM 投票极化条件法 ---
+        pd_col = f'pos_desc_count{track}'
+        vn = f'washing_ratio{_sfx}'
+        if pos_col in panel.columns and pd_col in panel.columns:
+            panel[vn] = _safe_ratio(panel[pd_col], panel[pos_col])
+            wr_variants[vn] = f'A: LLM投票{track}'
+
+        # --- 方法 A2: 单个 LLM ---
+        for llm in LLM_MODELS:
+            pc = f'{llm}_pos_count{track}'
+            pdc = f'{llm}_pos_desc_count{track}'
+            vn = f'washing_ratio_{llm}{_sfx}'
+            if pc in panel.columns and pdc in panel.columns:
+                panel[vn] = _safe_ratio(panel[pdc], panel[pc])
+                wr_variants[vn] = f'A2: {llm}{track}'
+
+        # --- 方法 B: 反向验证 ---
+        neg_col = f'neg_count{track}'
+        ns_col = f'neg_sub_count{track}'
+        if neg_col in panel.columns and ns_col in panel.columns:
+            vn_r = f'neg_sub_ratio{track}'
+            panel[vn_r] = _safe_ratio(panel[ns_col], panel[neg_col])
+            wr_variants[vn_r] = f'B: 负面实质性{track}'
+            # 非对称性
+            wr_a = f'washing_ratio{_sfx}'
+            if wr_a in panel.columns:
+                vn_asym = f'washing_asymmetry{track}'
+                panel[vn_asym] = panel[vn_r] - (1 - panel[wr_a])
+                wr_variants[vn_asym] = f'B: 非对称性{track}'
+
+        # --- 方法 C: 情感纯度缺口 ---
+        sub_col = f'llm_vote_tone_sub{track}'
+        desc_col = f'llm_vote_tone_desc{track}'
+        if sub_col in panel.columns and desc_col in panel.columns:
+            vn = f'tone_gap_desc_sub{track}'
+            panel[vn] = panel[desc_col] - panel[sub_col]
+            wr_variants[vn] = f'C: 情感缺口{track}'
+
+        # --- 方法 D: 词典均值 ---
+        dpc = f'dict_pos_count{track}'
+        dpdc = f'dict_pos_desc_count{track}'
+        if dpc in panel.columns and dpdc in panel.columns:
+            vn = f'washing_ratio_dict{_sfx}'
+            panel[vn] = _safe_ratio(panel[dpdc], panel[dpc])
+            wr_variants[vn] = f'D: 词典均值{track}'
+
+        # --- 方法 D2: 单个词典 ---
+        for d in DICT_NAMES:
+            pc = f'{d}_pos_count{track}'
+            pdc = f'{d}_pos_desc_count{track}'
+            vn = f'washing_ratio_{d}{_sfx}'
+            if pc in panel.columns and pdc in panel.columns:
+                panel[vn] = _safe_ratio(panel[pdc], panel[pc])
+                wr_variants[vn] = f'D2: {d}{track}'
+
+        # --- 方法 E: BERT 均值 ---
+        bpc = f'bert_pos_count{track}'
+        bpdc = f'bert_pos_desc_count{track}'
+        if bpc in panel.columns and bpdc in panel.columns:
+            vn = f'washing_ratio_bert{_sfx}'
+            panel[vn] = _safe_ratio(panel[bpdc], panel[bpc])
+            wr_variants[vn] = f'E: BERT均值{track}'
+
+        # --- 方法 E2: 单个 BERT ---
+        for b in BERT_MODELS:
+            pc = f'{b}_pos_count{track}'
+            pdc = f'{b}_pos_desc_count{track}'
+            vn = f'washing_ratio_{b}{_sfx}'
+            if pc in panel.columns and pdc in panel.columns:
+                panel[vn] = _safe_ratio(panel[pdc], panel[pc])
+                wr_variants[vn] = f'E2: {b}{track}'
+
+        # --- 方法 F: 高置信度子样本 ---
+        hpc = f'pos_hc_count{track}'
+        hpdc = f'pos_desc_hc_count{track}'
+        if hpc in panel.columns and hpdc in panel.columns:
+            vn = f'washing_ratio_hc{_sfx}'
+            panel[vn] = _safe_ratio(panel[hpdc], panel[hpc])
+            wr_variants[vn] = f'F: 高置信{track}'
+
+        # --- 方法 G: 情感偏移 ---
+        desc_tone = f'llm_vote_tone_desc{track}'
+        all_tone = f'llm_vote_tone{track}'
+        if desc_tone in panel.columns and all_tone in panel.columns:
+            vn = f'washing_tone_shift{track}'
+            panel[vn] = panel[desc_tone] - panel[all_tone]
+            wr_variants[vn] = f'G: 情感偏移{track}'
+
+        # --- 方法 H: 前瞻性空洞 ---
+        flc = f'pos_desc_fl_count{track}'
+        if flc in panel.columns and pos_col in panel.columns:
+            vn = f'washing_ratio_fl{_sfx}'
+            panel[vn] = _safe_ratio(panel[flc], panel[pos_col])
+            wr_variants[vn] = f'H: 前瞻性{track}'
+
+    # --- Dummy: 全年无正面新闻 ---
+    if 'pos_count_full' in panel.columns:
+        panel['dummy_no_positive_news'] = (panel['pos_count_full'] <= 0).astype(int)
+        logger.info(f"  dummy_no_positive_news=1: {panel['dummy_no_positive_news'].sum():,} 个 Bank-Year")
+
+    # --- 诊断日志 ---
+    logger.info(f"  洗稿率变体数: {len(wr_variants)}")
+    for var_name, desc in wr_variants.items():
+        if var_name in panel.columns:
+            valid = panel[var_name].dropna()
+            if len(valid) > 0:
+                logger.info(f"    {var_name} [{desc}]: "
+                            f"n={len(valid):,}, mean={valid.mean():.4f}, "
+                            f"std={valid.std():.4f}")
+            else:
+                logger.info(f"    {var_name} [{desc}]: 全部 NaN")
+
 
     # =========================================================================
     # 步骤 7i: Janis-Fadner (J-F) 情绪系数 — 稳健性替代指标

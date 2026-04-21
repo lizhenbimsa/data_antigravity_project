@@ -431,6 +431,36 @@ def build_aggregation_dict() -> dict:
             agg[f'{b}_正面_mw_sum{track}'] = (f'{b}_正面_mw{track}', 'sum')
             agg[f'{b}_负面_mw_sum{track}'] = (f'{b}_负面_mw{track}', 'sum')
 
+    # --- K. 洗稿率聚合: 多方法 × 双轨 (Bingler et al. 2022, FRL) ---
+    for track in ['_full', '_ctx']:
+        # A: LLM 投票
+        agg[f'pos_desc_count{track}'] = (f'_is_pos_desc{track}', 'sum')
+        # B: 反向验证
+        agg[f'neg_sub_count{track}'] = (f'_is_neg_sub{track}', 'sum')
+        # A2: 单个 LLM (Loughran & McDonald 2016, JAR)
+        for llm in LLM_MODELS:
+            agg[f'{llm}_pos_count{track}'] = (f'_is_{llm}_positive{track}', 'sum')
+            agg[f'{llm}_pos_desc_count{track}'] = (f'_is_{llm}_pos_desc{track}', 'sum')
+        # D: 词典均值
+        agg[f'dict_pos_count{track}'] = (f'_is_dict_positive{track}', 'sum')
+        agg[f'dict_pos_desc_count{track}'] = (f'_is_dict_pos_desc{track}', 'sum')
+        # D2: 单个词典 (Gentzkow et al. 2019, JEL)
+        for d in DICT_NAMES:
+            agg[f'{d}_pos_count{track}'] = (f'_is_{d}_positive{track}', 'sum')
+            agg[f'{d}_pos_desc_count{track}'] = (f'_is_{d}_pos_desc{track}', 'sum')
+        # E: BERT 均值
+        agg[f'bert_pos_count{track}'] = (f'_is_bert_positive{track}', 'sum')
+        agg[f'bert_pos_desc_count{track}'] = (f'_is_bert_pos_desc{track}', 'sum')
+        # E2: 单个 BERT (Huang et al. 2023, CAR)
+        for b in BERT_MODELS:
+            agg[f'{b}_pos_count{track}'] = (f'_is_{b}_positive{track}', 'sum')
+            agg[f'{b}_pos_desc_count{track}'] = (f'_is_{b}_pos_desc{track}', 'sum')
+        # F: 高置信度子样本
+        agg[f'pos_hc_count{track}'] = (f'_is_pos_hc{track}', 'sum')
+        agg[f'pos_desc_hc_count{track}'] = (f'_is_pos_desc_hc{track}', 'sum')
+        # H: 前瞻性空洞
+        agg[f'pos_desc_fl_count{track}'] = (f'_is_pos_desc_fl{track}', 'sum')
+
     return agg
 
 

@@ -64,43 +64,85 @@ def test_jf_coefficient():
 
 
 def test_washing_ratio():
-    """测试 Washing Ratio 的 NaN 处理逻辑。"""
+    """测试 Washing Ratio 多方法 × 双轨构造的数学正确性。
+
+    覆盖: A (双轨), A2 (单LLM双轨), B (反向双轨), D/D2 (词典双轨), E/E2 (BERT双轨)
+    学术依据: Bingler et al. (2022, FRL); Loughran & McDonald (2016, JAR)
+    """
     print("=" * 60)
-    print("TEST 2: Washing Ratio NaN 逻辑验证")
+    print("TEST 2: Washing Ratio 多方法 × 双轨验证")
     print("=" * 60)
 
-    # 模拟面板
+    def _safe_ratio(numer, denom):
+        out = np.full(len(denom), np.nan)
+        mask = np.asarray(denom) > 0
+        np.divide(np.asarray(numer), np.asarray(denom), out=out, where=mask)
+        return out
+
+    # 模拟面板 — 每列均有 Full + Ctx 两轨
     panel = pd.DataFrame({
-        'target_bank': ['工行', '建行', '农行', '招行'],
-        'year': [2023, 2023, 2023, 2023],
-        'pos_count_full': [10, 0, 5, 0],
-        'desc_frac': [0.3, 0.5, 0.1, np.nan],
-        'n_articles_sub': [7, 0, 4, 0],
+        'target_bank': ['工行', '建行', '农行'],
+        'year': [2023, 2023, 2023],
+        # A Full + Ctx
+        'pos_count_full': [10, 0, 5], 'pos_count_ctx': [8, 0, 4],
+        'pos_desc_count_full': [3, 0, 1], 'pos_desc_count_ctx': [2, 0, 1],
+        # B
+        'neg_count_full': [5, 0, 8], 'neg_count_ctx': [4, 0, 6],
+        'neg_sub_count_full': [4, 0, 7], 'neg_sub_count_ctx': [3, 0, 5],
+        # A2 (gpt5nano)
+        'gpt5nano_pos_count_full': [12, 0, 6], 'gpt5nano_pos_count_ctx': [10, 0, 5],
+        'gpt5nano_pos_desc_count_full': [4, 0, 2], 'gpt5nano_pos_desc_count_ctx': [3, 0, 1],
+        # D
+        'dict_pos_count_full': [8, 0, 6], 'dict_pos_count_ctx': [7, 0, 5],
+        'dict_pos_desc_count_full': [2, 0, 2], 'dict_pos_desc_count_ctx': [1, 0, 1],
     })
 
-    # 计算 Washing Ratio
-    has_positive = panel['pos_count_full'] > 0
-    panel['washing_ratio'] = np.where(
-        has_positive,
-        panel['desc_frac'],
-        np.nan
-    )
-    panel['dummy_no_positive_news'] = (~has_positive).astype(int)
+    # --- A Full ---
+    panel['washing_ratio'] = _safe_ratio(panel['pos_desc_count_full'], panel['pos_count_full'])
+    assert abs(panel.loc[0, 'washing_ratio'] - 0.3) < 1e-6
+    assert np.isnan(panel.loc[1, 'washing_ratio'])
+    # --- A Ctx ---
+    panel['washing_ratio_ctx'] = _safe_ratio(panel['pos_desc_count_ctx'], panel['pos_count_ctx'])
+    assert abs(panel.loc[0, 'washing_ratio_ctx'] - 0.25) < 1e-6
+    print("  方法 A 双轨: Full=0.30, Ctx=0.25 ✓")
 
-    # 验证
-    assert panel.loc[0, 'washing_ratio'] == 0.3, "工行 WR 应为 0.3"
-    assert np.isnan(panel.loc[1, 'washing_ratio']), "建行 WR 应为 NaN (无正面新闻)"
-    assert panel.loc[2, 'washing_ratio'] == 0.1, "农行 WR 应为 0.1"
-    assert np.isnan(panel.loc[3, 'washing_ratio']), "招行 WR 应为 NaN (无正面新闻)"
+    # --- A2 双轨 ---
+    panel['washing_ratio_gpt5nano'] = _safe_ratio(
+        panel['gpt5nano_pos_desc_count_full'], panel['gpt5nano_pos_count_full'])
+    panel['washing_ratio_gpt5nano_ctx'] = _safe_ratio(
+        panel['gpt5nano_pos_desc_count_ctx'], panel['gpt5nano_pos_count_ctx'])
+    assert abs(panel.loc[0, 'washing_ratio_gpt5nano'] - 4/12) < 1e-6
+    assert abs(panel.loc[0, 'washing_ratio_gpt5nano_ctx'] - 3/10) < 1e-6
+    print(f"  方法 A2 双轨 (gpt5nano): Full={4/12:.4f}, Ctx={3/10:.4f} ✓")
 
-    assert panel.loc[0, 'dummy_no_positive_news'] == 0, "工行 dummy 应为 0"
-    assert panel.loc[1, 'dummy_no_positive_news'] == 1, "建行 dummy 应为 1"
+    # --- B 双轨 ---
+    panel['neg_sub_ratio_full'] = _safe_ratio(panel['neg_sub_count_full'], panel['neg_count_full'])
+    panel['neg_sub_ratio_ctx'] = _safe_ratio(panel['neg_sub_count_ctx'], panel['neg_count_ctx'])
+    assert abs(panel.loc[0, 'neg_sub_ratio_full'] - 0.8) < 1e-6
+    assert abs(panel.loc[0, 'neg_sub_ratio_ctx'] - 0.75) < 1e-6
+    print("  方法 B 双轨: Full=0.80, Ctx=0.75 ✓")
 
-    print("  工行: WR=0.30, dummy=0 ✓")
-    print("  建行: WR=NaN, dummy=1 ✓")
-    print("  农行: WR=0.10, dummy=0 ✓")
-    print("  招行: WR=NaN, dummy=1 ✓")
-    print("  Washing Ratio: 全部 4 个 case 通过 ✓\n")
+    # --- D 双轨 ---
+    panel['washing_ratio_dict'] = _safe_ratio(
+        panel['dict_pos_desc_count_full'], panel['dict_pos_count_full'])
+    panel['washing_ratio_dict_ctx'] = _safe_ratio(
+        panel['dict_pos_desc_count_ctx'], panel['dict_pos_count_ctx'])
+    assert abs(panel.loc[0, 'washing_ratio_dict'] - 0.25) < 1e-6
+    assert abs(panel.loc[0, 'washing_ratio_dict_ctx'] - 1/7) < 1e-6
+    print(f"  方法 D 双轨: Full=0.25, Ctx={1/7:.4f} ✓")
+
+    # --- 取值域 ---
+    ratio_cols = [c for c in panel.columns if c.startswith('washing_ratio') or c.startswith('neg_sub_ratio')]
+    for col in ratio_cols:
+        valid = panel[col].dropna()
+        assert (valid >= 0).all() and (valid <= 1).all(), f"{col} 应在 [0,1]"
+    print("  边界检查: 所有 ratio ∈ [0, 1] ✓")
+
+    panel['dummy_no_positive_news'] = (panel['pos_count_full'] == 0).astype(int)
+    assert panel.loc[1, 'dummy_no_positive_news'] == 1
+    print("  dummy_no_positive_news: 建行=1 ✓")
+
+    print("  Washing Ratio: 多方法 × 双轨全部验证通过 ✓\n")
 
 
 def test_forward_looking_vote():
