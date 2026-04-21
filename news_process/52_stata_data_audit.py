@@ -1,5 +1,5 @@
 """
-90_stata_data_audit.py — Stata 用面板数据最高标准审核与验证
+52_stata_data_audit.py — Stata 用面板数据最高标准审核与验证
 ===============================================================
 
 功能:
@@ -28,8 +28,8 @@
   data_processed/40_article_bank_level.parquet
 
 输出:
-  data_processed/eval_reports/90_stata_data_audit.csv    (审核摘要表)
-  logs/90_stata_data_audit.log                           (详细日志)
+  data_processed/eval_reports/52_stata_data_audit.csv    (审核摘要表)
+  logs/52_stata_data_audit.log                           (详细日志)
 """
 
 import os
@@ -50,7 +50,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "90_stata_data_audit"
+STAGE_NAME = "52_stata_data_audit"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 OUTPUT_DIR = CONFIG["paths"]["output_dir"]
@@ -786,7 +786,7 @@ def audit_geography_variables(panel: pd.DataFrame, name: str):
 def main():
     start_time = time.time()
     logger.info("=" * 70)
-    logger.info("===  90_stata_data_audit: Stata 用面板数据全面审核  ===")
+    logger.info("===  52_stata_data_audit: Stata 用面板数据全面审核  ===")
     logger.info("=" * 70)
 
     # --- 加载数据 ---
@@ -871,13 +871,13 @@ def main():
     # 导出审核结果
     report_dir = os.path.join(OUTPUT_DIR, 'eval_reports')
     os.makedirs(report_dir, exist_ok=True)
-    report_path = os.path.join(report_dir, '90_stata_data_audit.csv')
+    report_path = os.path.join(report_dir, '52_stata_data_audit.csv')
     df_results.to_csv(report_path, index=False, encoding='utf-8-sig')
     logger.info(f"  审核报告已导出: {report_path}")
 
     elapsed = time.time() - start_time
     logger.info(f"  总耗时: {elapsed:.1f}s")
-    logger.info("90_stata_data_audit 完成 ✓")
+    logger.info("52_stata_data_audit 完成 ✓")
 
     # 返回状态码
     return 1 if n_fail > 0 else 0

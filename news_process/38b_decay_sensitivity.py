@@ -1,5 +1,5 @@
 """
-382_decay_sensitivity.py — 距离衰减权重敏感性检验 (G-14)
+38b_decay_sensitivity.py — 距离衰减权重敏感性检验 (G-14)
 =======================================================
 
 功能：
@@ -51,7 +51,7 @@
 
 输出：
     1. 衰减 vs 均匀权重的 Pearson/Spearman 相关性报告
-    2. eval_reports/382_decay_sensitivity.csv
+    2. eval_reports/38b_decay_sensitivity.csv
 """
 
 import os
@@ -84,7 +84,7 @@ except ImportError:
 # ============================================================================
 
 CONFIG = load_config()
-STAGE_NAME = "382_decay_sensitivity"
+STAGE_NAME = "38b_decay_sensitivity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 OUTPUT_DIR = CONFIG["paths"]["output_dir"]
@@ -693,7 +693,7 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
 # ============================================================================
 
 def main():
-    """382_decay_sensitivity 主流程。
+    """38b_decay_sensitivity 主流程。
 
     执行步骤:
       1. 加载 5 套中文金融情感词典
@@ -705,7 +705,7 @@ def main():
     """
     start_time = time.time()
     logger.info("=" * 70)
-    logger.info("===  382_decay_sensitivity: 距离衰减权重敏感性检验 (G-14)  ===")
+    logger.info("===  38b_decay_sensitivity: 距离衰减权重敏感性检验 (G-14)  ===")
     logger.info("=" * 70)
 
     # ── 步骤 1: 加载词典 ──
@@ -750,7 +750,7 @@ def main():
     log_correlation_report(score_df, dict_names)
 
     # ── 保存 CSV ──
-    output_path = os.path.join(EVAL_DIR, '382_decay_sensitivity.csv')
+    output_path = os.path.join(EVAL_DIR, '38b_decay_sensitivity.csv')
     score_df.to_csv(output_path, index=False, encoding='utf-8-sig')
     logger.info(f"结果已保存: {output_path}")
 

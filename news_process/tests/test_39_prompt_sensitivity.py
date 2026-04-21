@@ -109,7 +109,7 @@ class TestPipelineValidationConsistency:
         assert '阶段39' in rpv_code, "docstring 缺少阶段39"
 
     def test_b2_eleven_stages(self, rpv_code):
-        """B2: 日志说明 11 个阶段 (原9个 + 381_temporal_mask + 382_decay_sensitivity)"""
+        """B2: 日志说明 11 个阶段 (原9个 + 38a_temporal_mask + 38b_decay_sensitivity)"""
         assert '11 个验证阶段' in rpv_code, "日志说明非 11 个阶段"
 
     def test_b3_stages_list_includes_39(self, rpv_code):
