@@ -677,6 +677,25 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                              'jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
                              'finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
                    for s, t in [('', 'Full'), ('_ctx', 'Ctx')]},
+                # ═══ 停刊稳健性 (Heese et al. 2022, JFE) ═══
+                'ceased_media_frac':             'Ceased Media Article Share',
+                'n_articles_exc':                'N Articles Excl Ceased Media',
+                'exc_tone_full':                 'Tone Excl Ceased (LLM Vote, Full)',
+                'exc_tone_ctx':                  'Tone Excl Ceased (LLM Vote, Ctx)',
+                'exc_tone_title':                'Tone Excl Ceased (LLM Vote, Title)',
+                # ═══ 平衡媒体面板 (Wooldridge 2010, §19.9) ═══
+                'bal_w0724_tone_full':           'Balanced W07-24 Tone (Full)',
+                'bal_w0724_tone_ctx':            'Balanced W07-24 Tone (Ctx)',
+                'bal_w0724_tone_title':          'Balanced W07-24 Tone (Title)',
+                'bal_w1024_tone_full':           'Balanced W10-24 Tone (Full)',
+                'bal_w1024_tone_ctx':            'Balanced W10-24 Tone (Ctx)',
+                'bal_w1024_tone_title':          'Balanced W10-24 Tone (Title)',
+                'bal_w1124_tone_full':           'Balanced W11-24 Tone (Full)',
+                'bal_w1124_tone_ctx':            'Balanced W11-24 Tone (Ctx)',
+                'bal_w1124_tone_title':          'Balanced W11-24 Tone (Title)',
+                'n_media_bal_w0724':             'N Media Balanced W07-24',
+                'n_media_bal_w1024':             'N Media Balanced W10-24',
+                'n_media_bal_w1124':             'N Media Balanced W11-24',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()

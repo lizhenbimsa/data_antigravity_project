@@ -11,6 +11,7 @@
 
 import os
 import json
+import csv
 import importlib.util as _iu
 
 import numpy as np
@@ -28,6 +29,163 @@ OUTPUT_DIR = _m41.OUTPUT_DIR
 FILENAMES = _m41.FILENAMES
 PANEL_CFG = _m41.PANEL_CFG
 
+# ── 停刊检测的情感列前缀（动态发现用） ──
+# 覆盖: LLM 投票 + 各大模型 + 词典法 + BERT
+_SCORE_PATTERNS = [
+    'llm_vote_score_', 'gpt5nano_score_', 'gemini3_score_',
+    'claude4h_score_',
+    'jiang_2021_score_', 'yao_2021_score_', 'bian_2021_score_',
+    'du_2022_score_', 'you_2018_score_',
+    'finbert_cn_\u6b63\u9762_', 'fin_sent_zh_\u6b63\u9762_',
+    'finbert2_\u6b63\u9762_',
+]
+
+
+def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
+    """数据驱动 + NPPA 交叉验证的隐性停刊检测。
+
+    学术基础:
+      报纸停刊导致地方企业监督真空，显著增加公司违规行为
+      (Heese et al., 2022, JFE) 及公共财政成本 (Gao et al., 2020, JFE)。
+      在以媒体情感为核心变量的面板研究中，必须识别并控制
+      因媒体来源消失引入的样本选择偏误 (Wooldridge, 2010, Ch.19)。
+
+    算法:
+      1. 计算每家媒体的 first_year, last_year, n_articles
+      2. 标记 last_year < sample_max - threshold_gap 为疑似停刊
+      3. NPPA 交叉验证: confirmed / suspected / nppa_only / active
+      4. 返回 ceased_media_set (confirmed ∪ suspected)
+
+    References:
+      Heese, J., Pérez-Cavazos, G., & Peter, C. D. (2022). JFE, 145(2B),
+        445-463. https://doi.org/10.1016/j.jfineco.2021.08.015
+      Gao, P., Lee, C., & Murphy, D. (2020). JFE, 135(2), 445-467.
+        https://doi.org/10.1016/j.jfineco.2019.06.003
+      Wooldridge, J. M. (2010). Ch. 19. MIT Press.
+    """
+    media_span = df.groupby('媒体(中文)').agg(
+        first_year=('year', 'min'),
+        last_year=('year', 'max'),
+        n_articles=('year', 'size'))
+    sample_max = int(df['year'].max())
+    cutoff = sample_max - threshold_gap
+
+    data_ceased = set(media_span[
+        (media_span['last_year'] < cutoff) &
+        (media_span['n_articles'] >= 10)].index)
+
+    nppa_path = os.path.join(os.path.dirname(__file__),
+                             'config', 'nppa_newspapers_all.csv')
+    nppa_ceased = set()
+    if os.path.exists(nppa_path):
+        try:
+            with open(nppa_path, 'r', encoding='utf-8-sig') as f:
+                for r in csv.DictReader(f):
+                    if r['出版状态'] in ('注销', '停办', '休刊'):
+                        nppa_ceased.add(r['机构名称'])
+        except Exception as e:
+            logger.warning(f"  NPPA CSV 读取失败: {e}")
+
+    confirmed = data_ceased & nppa_ceased
+    suspected = data_ceased - nppa_ceased
+    nppa_only = (nppa_ceased & set(media_span.index)) - data_ceased
+    ceased_all = confirmed | suspected
+
+    logger.info(f"  停刊检测: confirmed={len(confirmed)}, "
+                f"suspected={len(suspected)}, "
+                f"nppa_only={len(nppa_only)}, "
+                f"active={len(set(media_span.index) - data_ceased)}")
+
+    df['_is_ceased_media'] = df['媒体(中文)'].isin(ceased_all).astype(int)
+
+    report = media_span.copy()
+    report['cessation_status'] = 'active'
+    report.loc[report.index.isin(confirmed), 'cessation_status'] = 'confirmed'
+    report.loc[report.index.isin(suspected), 'cessation_status'] = 'suspected'
+    report.loc[report.index.isin(nppa_only), 'cessation_status'] = 'nppa_only'
+    try:
+        report.to_excel(os.path.join(output_dir, '42_cessation_report.xlsx'))
+    except Exception:
+        report.to_csv(os.path.join(output_dir, '42_cessation_report.csv'))
+
+    return ceased_all, report
+
+
+# 3 个时间窗口: 全样本 / 排除金融危机恢复期 / 排除四万亿刺激期
+ROBUSTNESS_WINDOWS = [
+    (2007, 2024, 'w0724'),
+    (2010, 2024, 'w1024'),
+    (2011, 2024, 'w1124'),
+]
+
+
+def compute_balanced_media_robustness(df, panel, logger, score_patterns):
+    """3 个时间窗口的平衡媒体面板稳健性检验。
+
+    学术基础:
+      在非平衡面板中，媒体来源的进入-退出可能引入样本选择偏误。
+      通过构建"全程在刊"的平衡媒体子集，检验基准结果是否受
+      幸存者偏差驱动 (Wooldridge, 2010, §19.9.3)。
+
+    References:
+      Wooldridge, J. M. (2010). §19.9.3 Attrition. MIT Press.
+      Engelberg & Parsons (2011). JF, 66(1), 67-97.
+        https://doi.org/10.1111/j.1540-6261.2010.01626.x
+    """
+    media_span = df.groupby('媒体(中文)').agg(
+        first_year=('year', 'min'),
+        last_year=('year', 'max'))
+
+    for start_year, end_year, suffix in ROBUSTNESS_WINDOWS:
+        df_w = df[(df['year'] >= start_year) & (df['year'] <= end_year)]
+        balanced = media_span[
+            (media_span['first_year'] <= start_year) &
+            (media_span['last_year'] >= end_year)].index
+        df_b = df_w[df_w['媒体(中文)'].isin(balanced)]
+
+        if len(df_b) == 0:
+            logger.warning(f"  窗口 {suffix}: 无平衡媒体数据")
+            continue
+
+        # (D.a) 三轨道全局情感均值 (平衡子集)
+        for track in ['_full', '_ctx', '_title']:
+            src = f'llm_vote_score{track}'
+            col = f'bal_{suffix}_tone{track}'
+            if src in df_b.columns:
+                tone = (df_b.groupby(['target_bank', 'year'])[src]
+                        .mean().reset_index(name=col))
+                if col in panel.columns:
+                    panel = panel.drop(columns=[col])
+                panel = panel.merge(
+                    tone, on=['target_bank', 'year'], how='left')
+
+        # (D.b) 全方法情感均值 (平衡子集) — 动态发现
+        _bal_cols = []
+        for src in df_b.columns:
+            if any(src.startswith(pat) for pat in score_patterns):
+                # 排除已加权变体和已在 D.a 单独处理的 llm_vote_score
+                if (src.endswith('_w') or '_mw_' in src or '_idf_' in src
+                        or src.startswith('llm_vote_score_')):
+                    continue
+                col = f'bal_{suffix}_{src}'
+                if len(col) > 32:
+                    logger.warning(f"  变量名过长({len(col)}): {col}")
+                tone = (df_b.groupby(['target_bank', 'year'])[src]
+                        .mean().reset_index(name=col))
+                if col in panel.columns:
+                    panel = panel.drop(columns=[col])
+                panel = panel.merge(
+                    tone, on=['target_bank', 'year'], how='left')
+                _bal_cols.append(col)
+
+        col_n = f'n_media_bal_{suffix}'
+        if col_n in panel.columns:
+            panel = panel.drop(columns=[col_n])
+        panel[col_n] = len(balanced)
+        logger.info(f"  窗口 {suffix}: {len(balanced)} 家平衡媒体, "
+                    f"3 轨道 + {len(_bal_cols)} 全方法列")
+
+    return panel
 
 # ============================================================================
 # 6b. 金融科技公众注意力指数 (Da et al. 2011, JF; Fang & Peress 2009, JF)
@@ -705,6 +863,67 @@ def compute_media_heterogeneity(df, panel):
                     "tone_gap, neg_frac (地理邻近性)")
     else:
         logger.warning(f"  {addr_path} 不存在, 跳过维度⑨")
+
+    # ── 隐性停刊检测 ──
+    # 学术动机: 媒体来源消失引入幸存者偏差 (survivorship bias)，
+    # 导致情感指标向存活媒体倾斜，污染 Bartik IV 工具变量。
+    # 参考: Gentzkow et al. (2011). AER, 101(7), 2980-3018.
+    #   https://doi.org/10.1257/aer.101.7.2980
+    ceased_set, cessation_report = detect_defacto_cessation(
+        df, logger, OUTPUT_DIR)
+
+    # ── 停刊稳健性变量 ──
+    # 构建排除停刊媒体后的替代指标，供 Stata 端系数稳定性检验。
+    # 参考: Fang & Peress (2009). JF, 64(5), 2023-2052.
+    #   https://doi.org/10.1111/j.1540-6261.2009.01493.x
+
+    # (C.1) bank-year 级: 停刊媒体文章占比
+    ceased_frac = (df.groupby(['target_bank', 'year'])['_is_ceased_media']
+                   .mean().reset_index(name='ceased_media_frac'))
+    panel = panel.merge(ceased_frac, on=['target_bank', 'year'], how='left')
+
+    # (C.2) 排除停刊后文章数
+    n_ex = (df[df['_is_ceased_media'] == 0]
+            .groupby(['target_bank', 'year']).size()
+            .reset_index(name='n_articles_exc'))
+    panel = panel.merge(n_ex, on=['target_bank', 'year'], how='left')
+
+    # (C.3) bank-year 三轨道全局情感均值（排除停刊）
+    df_alive = df[df['_is_ceased_media'] == 0]
+    for track in ['_full', '_ctx', '_title']:
+        src = f'llm_vote_score{track}'
+        col = f'exc_tone{track}'
+        if src in df_alive.columns:
+            tone = (df_alive.groupby(['target_bank', 'year'])[src]
+                    .mean().reset_index(name=col))
+            if col in panel.columns:
+                panel = panel.drop(columns=[col])
+            panel = panel.merge(tone, on=['target_bank', 'year'], how='left')
+
+    # (C.4) 排除停刊后的全方法情感均值 — 动态发现
+    # 覆盖: LLM 投票 + 各大模型 + 词典法 + BERT
+    _exc_cols = []
+    for src in df_alive.columns:
+        if any(src.startswith(pat) for pat in _SCORE_PATTERNS):
+            # 排除已加权变体和已在 C.3 单独处理的 llm_vote_score
+            if (src.endswith('_w') or '_mw_' in src or '_idf_' in src
+                    or src.startswith('llm_vote_score_')):
+                continue
+            col = f'exc_{src}'
+            if len(col) > 32:
+                logger.warning(f"  变量名过长({len(col)}): {col}")
+            tone = (df_alive.groupby(['target_bank', 'year'])[src]
+                    .mean().reset_index(name=col))
+            if col in panel.columns:
+                panel = panel.drop(columns=[col])
+            panel = panel.merge(tone, on=['target_bank', 'year'], how='left')
+            _exc_cols.append(col)
+    logger.info(f"  停刊稳健性: ceased_media_frac, n_articles_exc, "
+                f"exc_tone_{{full/ctx/title}}, {len(_exc_cols)} 个 exc_* 列")
+
+    # ── 平衡媒体面板 ──
+    # 参考 Wooldridge (2010, §19.9): 比较平衡/非平衡面板系数稳定性
+    panel = compute_balanced_media_robustness(df, panel, logger, _SCORE_PATTERNS)
 
     # ── 清理 ──
     temp = [c for c in df.columns
