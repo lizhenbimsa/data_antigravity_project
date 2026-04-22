@@ -153,6 +153,46 @@ REFERENCES = {
         '"Tests of Equality Between Sets of Coefficients in Two Linear Regressions." '
         'Econometrica, 28(3), 591-605.'
     ),
+    # ── 以下引用为检验 15 (治理约束型合约控制变量) 新增 ──
+    'ZhouCZY2026': (
+        'Zhou, Y., Chen, L., Zhou, F. & Ye, M. (2026). '
+        '"Contractual arrangements and information consistency: '
+        'How ESG executive compensation incentives affect corporate AI disclosure." '
+        'Journal of Business Research, 207, 116019. '
+        'https://doi.org/10.1016/j.jbusres.2026.116019'
+    ),
+    'CoreGL2003': (
+        'Core, J.E., Guay, W.R. & Larcker, D.F. (2003). '
+        '"Executive Equity Compensation and Incentives: A Survey." '
+        'FRBNY Economic Policy Review, 9(1), 27-50. '
+        'https://www.newyorkfed.org/medialibrary/media/research/epr/03v09n1/0304core.pdf'
+    ),
+    'FlaBan2017': (
+        'Flammer, C. & Bansal, P. (2017). '
+        '"Does a Long-Term Orientation Create Value? Evidence from a '
+        'Regression Discontinuity." '
+        'Strategic Management Journal, 38(9), 1827-1847. '
+        'https://doi.org/10.1002/smj.2629'
+    ),
+    'EdmGL2009': (
+        'Edmans, A., Gabaix, X. & Landier, A. (2009). '
+        '"A Multiplicative Model of Optimal CEO Incentives in Market Equilibrium." '
+        'The Review of Financial Studies, 22(12), 4881-4917. '
+        'https://doi.org/10.1093/rfs/hhn117'
+    ),
+    'IoanSer2015': (
+        'Ioannou, I. & Serafeim, G. (2015). '
+        '"The Impact of Corporate Social Responsibility on Investment Recommendations: '
+        'Analysts\' Perceptions and Shifting Institutional Logics." '
+        'Strategic Management Journal, 36(7), 1053-1081. '
+        'https://doi.org/10.1002/smj.2268'
+    ),
+    'FamaJen1983': (
+        'Fama, E.F. & Jensen, M.C. (1983). '
+        '"Separation of Ownership and Control." '
+        'Journal of Law and Economics, 26(2), 301-325. '
+        'https://doi.org/10.1086/467037'
+    ),
 }
 
 
@@ -738,6 +778,15 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
             'prov_leave1out_tone_ctx':      'Prov Leave-1-Out Tone (Ctx)',
             'city_leave1out_tone_full':     'City Leave-1-Out Tone (Full)',
             'city_leave1out_tone_ctx':      'City Leave-1-Out Tone (Ctx)',
+            # 治理约束型合约 (Zhou et al., 2026, JBR §2.1; Core et al. 2003)
+            'GOV_equity_ratio':             'Equity Comp / Total Comp Ratio',
+            'GOV_cash_ratio':               'Cash Comp / Total Comp Ratio',
+            'GOV_top3_pay_gap':             'ln(Top3 Exec Pay / Avg Emp Pay)',
+            'GOV_esg_kpi':                  'ESG-KPI in Exec Comp (0/1)',
+            'GOV_board_indep':              'Independent Director Ratio',
+            'GOV_dual_chair':               'CEO-Chair Duality (0/1)',
+            'GOV_comp_committee':           'Compensation Committee (0/1)',
+            'GOV_ceo_tenure':               'CEO Tenure (Years)',
         }
         labels_41 = {k: v for k, v in STATA_LABELS_41.items()
                      if k in panel_stata.columns}
@@ -1499,6 +1548,268 @@ esttab lag_effect reversal ///
   using "table_dynamic_effects.tex", ///
   star(* 0.10 ** 0.05 *** 0.01) se replace ///
   mtitles("Lag Effect" "Reversal")
+
+* ============================================================
+* 检验 15: 治理约束型合约控制变量 — 解决遗漏变量问题
+* ============================================================
+*
+* 理论背景:
+*   Zhou, Y., Chen, L., Zhou, F. & Ye, M. (2026, JBR, DOI: 10.1016/j.jbusres.2026.116019)
+*   §2.1: 内部高管的长期主义 (受ESG挂钩薪酬等契约影响) 是
+*   减少"AI漂洗 (AI Washing)" 行为的根本机制。
+*   当前面板遗漏了内部治理结构层面的变量, 可能导致
+*   Tone → Y 估计量存在遗漏变量偏误 (OVB)。
+*
+* 核心逻辑:
+*   银行高管的薪酬契约结构影响其战略叙事偏好:
+*     短期激励型 (高现金奖金/低股权) → 倾向正面"金融科技概念炒作"
+*     长期约束型 (高股权/ESG-KPI挂钩) → 审慎、实质性表述
+*   若不控制此治理维度, Tone 可能内含治理效应 → OVB
+*
+* 学术依据:
+*   Zhou, Y., Chen, L., Zhou, F. & Ye, M. (2026). Contractual arrangements
+*     and information consistency. JBR, 207, 116019.
+*     DOI: 10.1016/j.jbusres.2026.116019
+*   Core, J.E., Guay, W.R. & Larcker, D.F. (2003). Executive Equity
+*     Compensation and Incentives: A Survey. FRBNY EPR, 9(1), 27-50.
+*   Flammer, C. & Bansal, P. (2017). Does a Long-Term Orientation
+*     Create Value? SMJ, 38(9), 1827-1847. DOI: 10.1002/smj.2629
+*   Edmans, A., Gabaix, X. & Landier, A. (2009). A Multiplicative Model
+*     of Optimal CEO Incentives. RFS, 22(12), 4881-4917.
+*     DOI: 10.1093/rfs/hhn117
+*   Ioannou, I. & Serafeim, G. (2015). The Impact of CSR on Investment
+*     Recommendations. SMJ, 36(7), 1053-1081. DOI: 10.1002/smj.2268
+*   Fama, E.F. & Jensen, M.C. (1983). Separation of Ownership and Control.
+*     JLE, 26(2), 301-325. DOI: 10.1086/467037
+*
+* ⚠️ 数据获取说明:
+*   以下治理变量需用户从外部数据库 (CSMAR/Wind/CNRDS/银行年报) 获取后
+*   合并至面板数据中。变量命名均已按 Stata 32 字符限制设计。
+*
+* 变量定义:
+*   GOV_equity_ratio    — 股权激励占比 = 股权薪酬 / 总薪酬
+*                         来源: CSMAR 高管薪酬数据库
+*                         Core et al. (2003): 股权激励比例越高,
+*                         高管越关注长期价值而非短期概念炒作
+*
+*   GOV_cash_ratio      — 现金薪酬占比 = 现金薪酬 / 总薪酬
+*                         = 1 - GOV_equity_ratio (互补)
+*                         高现金比例 → 短期激励 → 利于概念炒作
+*
+*   GOV_top3_pay_gap    — 前三名高管与员工平均薪酬差距
+*                         = ln(前三名高管平均薪酬 / 员工平均薪酬)
+*                         来源: CSMAR 或银行年报
+*                         Edmans et al. (2009): 薪酬差距反映激励结构
+*
+*   GOV_esg_kpi         — 是否引入 ESG/可持续发展 KPI (0/1)
+*                         = 1 若银行公开披露将 ESG 指标纳入高管考核
+*                         来源: 银行年报/CSR报告/ESG报告手工编码
+*                         Zhou et al. (2026, JBR) §2.1: ESG-KPI 挂钩
+*                         是抑制漂洗行为的核心治理约束
+*
+*   GOV_board_indep     — 独立董事占比 = 独立董事人数 / 董事会人数
+*                         来源: CSMAR 公司治理数据库
+*                         作为公司治理质量的标准代理变量
+*
+*   GOV_dual_chair      — 两职合一 (0/1)
+*                         = 1 若董事长兼任行长/总经理
+*                         Fama & Jensen (1983, JLE): 决策管理与决策控制
+*                         集中于同一人 → 削弱董事会独立监督职能
+*                         DOI: 10.1086/467037
+*
+*   GOV_comp_committee  — 是否设立薪酬委员会 (0/1)
+*                         来源: CSMAR 公司治理数据库
+*
+*   GOV_ceo_tenure      — CEO 任期 (年)
+*                         来源: CSMAR 高管信息数据库
+*                         长任期 → 长期主义, 抑制概念炒作
+*
+* ⚠️ 变量可用性说明:
+*   并非所有银行 (尤其非上市城商行/农商行) 均披露上述信息。
+*   建议先检查数据覆盖率 (参见 15-0 覆盖率诊断步骤), 对缺失严重的
+*   变量使用行业中位数填补或降低为次要控制变量。
+* ============================================================
+
+* ── 数据准备: 合并治理变量 ──
+* 假设用户已将治理变量存储在 governance_controls.dta 中
+* 结构: target_bank (string) × year (int) × GOV_* 变量
+
+* merge 1:1 target_bank year using "governance_controls.dta", nogenerate keepusing(GOV_*)
+* 注: 取消上行注释后执行; nogenerate 避免 _merge 列污染
+
+* ── (15-0) 数据覆盖率诊断 ──
+* ⚠️ 关键步骤: 合并后必须检查治理变量的非缺失覆盖率
+*   如果覆盖率 < 50%, 该变量的回归结果可解释性受限
+*   → 建议: 以子样本稳健性形式报告, 而非主回归
+foreach gov_var of varlist GOV_* {
+  quietly count if !missing(`gov_var')
+  local n_valid = r(N)
+  quietly count
+  local n_total = r(N)
+  local pct = `n_valid' / `n_total' * 100
+  display "  `gov_var': `n_valid'/`n_total' (`pct'% 非缺失)"
+}
+
+* ── (15a) 基准 + 治理约束控制 ──
+* 目的: 在基准回归中引入治理变量, 检验 Tone 系数是否因
+*       遗漏治理结构而被高估/低估
+* 对标: Zhou et al. (2026, JBR) §2.1 → 内部治理 → 言行一致性
+* 预期: 若 β(Tone) 显著衰减 → 治理是重要的遗漏变量
+*       若 β(Tone) 稳健 → Tone 效应独立于治理结构
+reghdfe Y llm_vote_tone_full ///
+  GOV_equity_ratio GOV_board_indep GOV_ceo_tenure ///
+  GOV_dual_chair X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store gov_base
+
+* ── (15b) 薪酬结构 × Tone 调节效应 ──
+* 目的: 检验股权激励比例是否调节 Tone 对 Y 的传导效应
+* 方法论: Brambor et al. (2006) — 交互项 + 主效应同时进入
+* 假设 (Zhou et al., 2026, JBR, §2.1):
+*   GOV_equity_ratio 高 → 高管长期主义 → Tone 更反映实质信息
+*   → β₃(Tone × equity_ratio) 应为正 (增强效应)
+*   GOV_equity_ratio 低 → 高管短期主义 → Tone 可能含"概念炒作"噪声
+*   → β₁(Tone|equity=0) 效应较弱或含偏误
+*
+* ⚠️ 中心化处理: GOV_equity_ratio 的均值远离 0,
+*   须先标准化以获得可解读的主效应
+egen GOV_equity_z = std(GOV_equity_ratio)
+reghdfe Y c.llm_vote_tone_full##c.GOV_equity_z ///
+  GOV_board_indep GOV_ceo_tenure X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store gov_equity_mod
+* → c.llm_vote_tone_full#c.GOV_equity_z 正显著
+*   → 股权激励越高, 情感信号的信息含量越强
+
+* ── (15c) ESG-KPI 虚拟变量交互 ──
+* 目的: 是否引入 ESG 考核 KPI 调节 Tone 效应
+* 对标: Zhou et al. (2026, JBR) 核心假说 — ESG 薪酬挂钩
+*       抑制符号性披露 (漂洗), 增强实质性信息内容
+* 预期: β₃(Tone × ESG_KPI=1) > 0
+*   → ESG-KPI 银行的 Tone 更真实、更有预测力
+reghdfe Y c.llm_vote_tone_full##i.GOV_esg_kpi ///
+  GOV_equity_ratio GOV_board_indep X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store gov_esg_kpi
+* → c.llm_vote_tone_full#1.GOV_esg_kpi 正显著
+*   → 有 ESG-KPI 约束的银行, Tone 效应更强 (信号更纯)
+
+* ── (15d) 多维度治理组合 (综合遗漏变量控制) ──
+* 目的: 同时控制所有可获取的治理变量, 穷尽式吸收治理维度
+*       对 Tone 系数的稳健性做最严格检验
+* 注: 变量间可能存在共线性 (如 equity_ratio 与 esg_kpi 正相关)
+*     若 VIF > 10, 考虑降维 (PCA/逐步剔除)
+reghdfe Y llm_vote_tone_full ///
+  GOV_equity_ratio GOV_cash_ratio GOV_top3_pay_gap ///
+  GOV_esg_kpi GOV_board_indep GOV_dual_chair ///
+  GOV_comp_committee GOV_ceo_tenure X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store gov_full
+* ⚠️ 如果 GOV_cash_ratio = 1 - GOV_equity_ratio (完美共线性),
+*     须从模型中移除其一; 仅当两者独立计量时同时纳入
+
+* ── (15d-vif) 共线性诊断 ──
+* 注: reghdfe 不直接输出 VIF, 需改用 reg + i.target_bank i.year
+quietly reg Y llm_vote_tone_full ///
+  GOV_equity_ratio GOV_top3_pay_gap GOV_esg_kpi ///
+  GOV_board_indep GOV_dual_chair GOV_ceo_tenure ///
+  X i.year, vce(cluster target_bank)
+vif
+* → VIF > 10 的变量存在严重共线性, 建议剔除或合并
+
+* ── (15e) 治理约束异质性分组 (薪酬粘度二分法) ──
+* 目的: 按股权激励比例中位数分组, 检验 Tone 效应异质性
+* 对标: Qu & Yang (2025) Tables 8-9 的分样本法
+* 逻辑: 高股权激励组 → 长期主义 → Tone 更有效
+*       低股权激励组 → 短期主义 → Tone 含"炒作"噪声
+
+sum GOV_equity_ratio, detail
+local med_equity = r(p50)
+
+* (15e-a) 高股权激励组
+preserve
+  keep if GOV_equity_ratio >= `med_equity' & !missing(GOV_equity_ratio)
+  reghdfe Y llm_vote_tone_full X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+  est store gov_het_high_eq
+restore
+
+* (15e-b) 低股权激励组
+preserve
+  keep if GOV_equity_ratio < `med_equity' & !missing(GOV_equity_ratio)
+  reghdfe Y llm_vote_tone_full X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+  est store gov_het_low_eq
+restore
+
+* (15e-c) 全样本交互项 (正式 Chow 检验, Chow 1960)
+cap drop GOV_eq_high
+gen GOV_eq_high = (GOV_equity_ratio >= `med_equity') if !missing(GOV_equity_ratio)
+reghdfe Y c.llm_vote_tone_full##i.GOV_eq_high X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store gov_het_chow
+* → c.llm_vote_tone_full#1.GOV_eq_high = 高-低股权组的系数差异
+*   显著正 → 高股权激励银行的 Tone 效应显著更强
+
+* ── (15f) Oster (2019) 扩展检验 — 含治理变量的 δ 估计 ──
+* 目的: 将治理变量纳入控制集后, 重新估计 Oster δ
+*       → 如果 |δ| 增大 → 治理变量有效降低了遗漏变量偏误
+*       → 如果 |δ| 不变 → 还有其他未控制的遗漏变量
+areg Y llm_vote_tone_full ///
+  GOV_equity_ratio GOV_board_indep GOV_ceo_tenure ///
+  X i.year, absorb(target_bank) vce(cluster target_bank)
+local r2_gov_long = e(r2)
+psacalc delta llm_vote_tone_full, rmax(`=1.3*`r2_gov_long'')
+psacalc beta llm_vote_tone_full, rmax(`=1.3*`r2_gov_long'') delta(1)
+* → 将此 δ 与检验 9 (无治理控制) 的 δ 对比:
+*   δ(含治理) > δ(不含治理) → 治理变量有效降低 OVB
+
+* ── 输出格式化表格 ──
+* 表 7: 治理约束型合约控制变量 (对标 Zhou et al. 2026 改进 B)
+esttab gov_base gov_equity_mod gov_esg_kpi gov_full ///
+  using "table_governance_controls.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace ///
+  mtitles("+Gov Base" "+Equity Mod" "+ESG-KPI" "+Gov Full")
+
+* 表 8: 治理约束异质性
+esttab gov_het_high_eq gov_het_low_eq gov_het_chow ///
+  using "table_governance_heterogeneity.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace ///
+  mtitles("High Equity" "Low Equity" "Chow Test")
+
+* ============================================================
+* 检验 15 结果解读指南:
+* ────────────────────────────────────────────────────────────
+*
+* β₁(Tone) 在加入 GOV_* 后仍显著且幅度稳定
+*   → ✅ Tone 效应独立于治理结构, OVB 风险低
+*
+* β₁(Tone) 显著衰减但仍显著
+*   → ℹ️ 治理是部分遗漏变量, 但 Tone 仍有独立信息
+*   → 建议在主回归中始终控制 GOV_* 变量
+*
+* β₁(Tone) 不再显著
+*   → ⚠️ Tone 效应主要由治理结构驱动, 因果推断需审慎
+*   → 结合 IV (检验 8) 和 Oster (检验 9/15f) 综合判断
+*
+* β₃(Tone × GOV_equity_z) 正显著
+*   → ✅ 长期激励增强情感信号的信息含量
+*   → 直接支持 Zhou et al. (2026, JBR) 核心假说 (§2.1)
+*
+* β₃(Tone × GOV_esg_kpi) 正显著
+*   → ✅ ESG 考核机制遏制"金融科技概念炒作"
+*   → 有 ESG-KPI 的银行, 正面 Tone 更可能是实质性信号
+*
+* GOV_esg_kpi 主效应显著正
+*   → ✅ ESG 治理本身有直接正效应 (无需通过 Tone 传导)
+*
+* 高股权组 β₁ > 低股权组 β₁, Chow 交互项显著
+*   → ✅ 治理约束调节情感传导机制, 支持异质性假说
+*   → 低股权组的 Tone 效应弱 → 可能含概念炒作噪声
+*
+* Oster δ(含治理) > Oster δ(不含治理)
+*   → ✅ 治理变量作为遗漏变量控制有效
+*   → 如果 |δ(含治理)| >> 1, 结论极其稳健
 * ============================================================
 """
     for line in template.strip().split('\n'):

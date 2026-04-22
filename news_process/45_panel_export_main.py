@@ -808,6 +808,15 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'brokerage_fire_sale':           'Brokerage x Neg Shock',
                 # === 同行金融科技溢出 (Berger et al. 2022) ===
                 'peer_fintech_exposure_lag1':    'Peer Fintech Exposure (L1)',
+                # ═══ 治理约束型合约 (Zhou et al., 2026, JBR §2.1; Core et al. 2003) ═══
+                'GOV_equity_ratio':             'Equity Comp / Total Comp Ratio',
+                'GOV_cash_ratio':               'Cash Comp / Total Comp Ratio',
+                'GOV_top3_pay_gap':             'ln(Top3 Exec Pay / Avg Emp Pay)',
+                'GOV_esg_kpi':                  'ESG-KPI in Exec Comp (0/1)',
+                'GOV_board_indep':              'Independent Director Ratio',
+                'GOV_dual_chair':               'CEO-Chair Duality (0/1)',
+                'GOV_comp_committee':           'Compensation Committee (0/1)',
+                'GOV_ceo_tenure':               'CEO Tenure (Years)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
