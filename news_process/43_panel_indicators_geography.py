@@ -7,13 +7,22 @@
   - Fama-MacBeth 年度截面标准化 (standardize_panel_variables)
   - 银行地理信息合并 (merge_bank_geography)
   - Leave-One-Out 省/市情感 IV (compute_leave_one_out_sentiment)
+  - 四梯度地理距离缓冲 (compute_geo_proximity_buffers)
+    → 50/100/150/200 km 下的 28 个媒体接近度指标
+    → Gurun & Butler (2012, JF); Engelberg & Parsons (2011, JF)
+  - 六层区域 AI 模仿渗透率 (compute_regional_imitation_pressure)
+    → 省/市/50/100/150/200 km LOO 同行模仿压力
+    → Leary & Roberts (2014, JF); Dahlke et al. (2024, RP)
 
 拆分自: 40_build_panel.py (L1638-2181)
-学术依据: Fama & MacBeth (1973, JPE); Luo & Li (2025)
+学术依据: Fama & MacBeth (1973, JPE); Luo & Li (2025);
+          Coval & Moskowitz (1999, JF)
 """
 
 import os
+import re
 import json
+import math
 import importlib.util as _iu
 
 import numpy as np
@@ -680,5 +689,430 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
         [panel, pd.DataFrame(new_cols, index=panel.index)], axis=1
     )
 
+    return panel
+
+
+# ============================================================================
+# 11. Haversine 距离公式
+# ============================================================================
+
+_GEO_SUFFIXES_DIST = re.compile(
+    r'省|市|维吾尔自治区|回族自治区|壮族自治区|自治区|特别行政区|地区|林区'
+)
+
+_DISTANCE_THRESHOLDS_KM = [50, 100, 150, 200]
+
+
+def _clean_geo_name(name: str) -> str:
+    """移除行政区划后缀, 标准化城市/省份名称。"""
+    return _GEO_SUFFIXES_DIST.sub('', str(name)).strip()
+
+
+def _haversine(lat1: float, lon1: float,
+               lat2: float, lon2: float) -> float:
+    """Haversine 公式计算两点间球面距离 (km)。
+
+    学术依据:
+      Coval, J. D., & Moskowitz, T. J. (1999). Home bias at home:
+      Local equity preference in domestic portfolios. The Journal of
+      Finance, 54(6), 2045-2073. DOI: 10.1111/0022-1082.00181
+      → 使用多距离阈值方法论需要精确距离计算
+
+    Args:
+        lat1, lon1: 点 A 的纬度/经度 (度)
+        lat2, lon2: 点 B 的纬度/经度 (度)
+
+    Returns:
+        距离 (km)
+    """
+    R = 6371.0  # 地球半径 (km)
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2 +
+         math.cos(math.radians(lat1)) *
+         math.cos(math.radians(lat2)) *
+         math.sin(dlon / 2) ** 2)
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+# ============================================================================
+# 12. 四梯度地理距离缓冲
+# ============================================================================
+
+def compute_geo_proximity_buffers(
+    df_exploded: pd.DataFrame,
+    panel: pd.DataFrame
+) -> pd.DataFrame:
+    """计算多梯度地理距离缓冲下的媒体接近度指标。
+
+    对 50/100/150/200 km 四个阈值, 分别计算 7 个变量, 共 28 个:
+      - prox_{d}km_n_media:    距离圈内的媒体来源数
+      - prox_{d}km_n_articles: 距离圈内的文章数
+      - prox_{d}km_frac:       距离圈内文章占比
+      - prox_{d}km_tone_full:  距离圈内文章的平均情感
+      - prox_{d}km_pos_frac:   距离圈内正面文章比例
+      - prox_{d}km_neg_frac:   距离圈内负面文章比例
+      - prox_{d}km_is_local:   是否存在距离圈内媒体 (0/1)
+
+    学术依据:
+      Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype:
+      Local media slant, local advertising, and firm value. The Journal
+      of Finance, 67(2), 561-598. DOI: 10.1111/j.1540-6261.2012.01725.x
+      → 本地媒体对本地公司有正面偏差
+
+      Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of
+      media in financial markets. The Journal of Finance, 66(1), 67-97.
+      DOI: 10.1111/j.1540-6261.2010.01626.x
+      → 多距离梯度方法论
+
+    Args:
+        df_exploded: 篇章级 DataFrame
+        panel: Bank-Year 面板
+
+    Returns:
+        panel: 追加 28 个距离缓冲变量
+    """
+    logger.info("=" * 60)
+    logger.info("步骤: 四梯度地理距离缓冲 "
+                "(Gurun & Butler 2012; Engelberg & Parsons 2011)")
+    logger.info("=" * 60)
+
+    # ── 加载坐标数据 ──
+    config_dir = os.path.join(os.path.dirname(__file__), 'config')
+    coord_path = os.path.join(config_dir, 'city_coordinates.json')
+    capital_path = os.path.join(config_dir, 'province_capital_map.json')
+    bank_addr_path = os.path.join(config_dir, 'bank_addresses.json')
+
+    if not os.path.exists(coord_path):
+        logger.warning(f"  {coord_path} 不存在, 跳过距离缓冲。"
+                       " 请先运行: python scripts/build_city_coordinates.py")
+        return panel
+
+    with open(coord_path, 'r', encoding='utf-8') as f:
+        city_coords = json.load(f)
+
+    clean_to_raw = {}
+    for raw_name in city_coords:
+        clean_to_raw[_clean_geo_name(raw_name)] = raw_name
+
+    province_capital = {}
+    if os.path.exists(capital_path):
+        with open(capital_path, 'r', encoding='utf-8') as f:
+            province_capital = json.load(f)
+
+    bank_city_map = {}
+    if os.path.exists(bank_addr_path):
+        with open(bank_addr_path, 'r', encoding='utf-8') as f:
+            bank_addr = json.load(f)
+        for bank, info in bank_addr.items():
+            c = info.get('city', '').strip()
+            if c:
+                bank_city_map[bank] = c
+
+    logger.info(f"  坐标数据: {len(city_coords)} 城市, "
+                f"{len(province_capital)} 省会映射, "
+                f"{len(bank_city_map)} 银行地址")
+
+    # ── 城市坐标查找辅助函数 (三级退化: 精确→清洗→省会) ──
+    def _lookup_coords(city_name, province_name=None):
+        """三级查找: 精确匹配 → 清洗后匹配 → 省会退化。"""
+        if city_name is not None and not pd.isna(city_name):
+            cn = str(city_name).strip()
+            # Level 1: 精确
+            if cn in city_coords:
+                c = city_coords[cn]
+                return c['lat'], c['lon']
+            # Level 2: 清洗
+            clean = _clean_geo_name(cn)
+            if clean in clean_to_raw:
+                c = city_coords[clean_to_raw[clean]]
+                return c['lat'], c['lon']
+        # Level 3: 省会退化
+        if province_name is not None and not pd.isna(province_name):
+            prov_clean = _clean_geo_name(str(province_name).strip())
+            capital = province_capital.get(prov_clean)
+            if capital and capital in clean_to_raw:
+                c = city_coords[clean_to_raw[capital]]
+                return c['lat'], c['lon']
+        return None, None
+
+    # ── 媒体地理列发现 ──
+    media_city_col = '城市' if '城市' in df_exploded.columns else None
+    media_prov_col = None
+    for candidate in ['国家地区/省份', '省份']:
+        if candidate in df_exploded.columns:
+            media_prov_col = candidate
+            break
+
+    if media_city_col is None and media_prov_col is None:
+        logger.warning("  无媒体地理信息列 ('城市'/'省份'), 跳过距离缓冲")
+        return panel
+
+    logger.info(f"  媒体地理列: city={media_city_col}, prov={media_prov_col}")
+
+    # ── 逐 bank-year 计算 ──
+    buf_results = {}  # {(bank, year): {col_name: value}}
+
+    for year in sorted(panel['year'].unique()):
+        df_year = df_exploded[df_exploded['year'] == year]
+        if df_year.empty:
+            continue
+
+        for bank in df_year['target_bank'].unique():
+            bank_city = bank_city_map.get(bank)
+            b_lat, b_lon = _lookup_coords(bank_city)
+            if b_lat is None:
+                continue
+
+            df_bank = df_year[df_year['target_bank'] == bank]
+            n_total = len(df_bank)
+            if n_total == 0:
+                continue
+
+            # 计算每篇文章与银行的距离
+            distances = []
+            for _, row in df_bank.iterrows():
+                m_city = row.get(media_city_col) if media_city_col else None
+                m_prov = row.get(media_prov_col) if media_prov_col else None
+                m_lat, m_lon = _lookup_coords(m_city, m_prov)
+                if m_lat is not None:
+                    distances.append(_haversine(b_lat, b_lon, m_lat, m_lon))
+                else:
+                    distances.append(np.nan)
+
+            df_bank = df_bank.copy()
+            df_bank['_dist_km'] = distances
+
+            key = (bank, year)
+            buf_results[key] = {}
+
+            for threshold in _DISTANCE_THRESHOLDS_KM:
+                prefix = f'prox_{threshold}km'
+                within = df_bank[df_bank['_dist_km'] <= threshold]
+                n_within = len(within)
+
+                buf_results[key][f'{prefix}_n_articles'] = n_within
+                buf_results[key][f'{prefix}_frac'] = (
+                    n_within / n_total if n_total > 0 else np.nan)
+                buf_results[key][f'{prefix}_is_local'] = (
+                    1 if n_within > 0 else 0)
+
+                # 媒体来源数
+                if '媒体(中文)' in within.columns:
+                    buf_results[key][f'{prefix}_n_media'] = (
+                        within['媒体(中文)'].nunique())
+                else:
+                    buf_results[key][f'{prefix}_n_media'] = 0
+
+                # 情感 (LLM 投票分数)
+                tone_col = 'llm_vote_score_full'
+                if tone_col in within.columns and n_within > 0:
+                    buf_results[key][f'{prefix}_tone_full'] = (
+                        within[tone_col].mean())
+                else:
+                    buf_results[key][f'{prefix}_tone_full'] = np.nan
+
+                # 正面比例
+                if 'is_positive_full' in within.columns and n_within > 0:
+                    buf_results[key][f'{prefix}_pos_frac'] = (
+                        within['is_positive_full'].mean())
+                else:
+                    buf_results[key][f'{prefix}_pos_frac'] = np.nan
+
+                # 负面比例
+                if 'is_negative_full' in within.columns and n_within > 0:
+                    buf_results[key][f'{prefix}_neg_frac'] = (
+                        within['is_negative_full'].mean())
+                else:
+                    buf_results[key][f'{prefix}_neg_frac'] = np.nan
+
+    # ── 合并至面板 ──
+    if buf_results:
+        buf_rows = []
+        for (bank, year), vals in buf_results.items():
+            row = {'target_bank': bank, 'year': year}
+            row.update(vals)
+            buf_rows.append(row)
+        buf_df = pd.DataFrame(buf_rows)
+        panel = panel.merge(buf_df, on=['target_bank', 'year'], how='left')
+
+        # ── 拓扑断言: prox_50km ≤ prox_100km ≤ prox_150km ≤ prox_200km ──
+        for col_type in ['_n_articles', '_frac']:
+            prev_col = None
+            for threshold in _DISTANCE_THRESHOLDS_KM:
+                col = f'prox_{threshold}km{col_type}'
+                if col in panel.columns and prev_col is not None:
+                    violations = panel[
+                        panel[col].notna() & panel[prev_col].notna() &
+                        (panel[col] < panel[prev_col] - 1e-10)
+                    ]
+                    if len(violations) > 0:
+                        logger.warning(
+                            f"  拓扑违规: {prev_col} > {col} "
+                            f"({len(violations)} 行)")
+                prev_col = col
+
+        n_vars = len([c for c in buf_df.columns if c.startswith('prox_')])
+        logger.info(f"  距离缓冲已合并: {len(buf_df):,} 个 Bank-Year, "
+                    f"{n_vars} 个变量")
+    else:
+        logger.warning("  未生成任何距离缓冲变量")
+
+    return panel
+
+
+# ============================================================================
+# 13. 区域 AI 模仿渗透率 (六层 LOO)
+# ============================================================================
+
+def compute_regional_imitation_pressure(
+    panel: pd.DataFrame
+) -> pd.DataFrame:
+    """计算六层区域 AI 模仿渗透率 (Leave-One-Out)。
+
+    六层:
+      1. ai_reg_province: 同省 LOO
+      2. ai_reg_city: 同城 LOO
+      3-6. ai_reg_50km/100km/150km/200km: 距离圈 LOO
+
+    指标定义:
+      ai_reg_X_i,t = mean_{j!=i, j in Region_X}(has_fintech_news_j,t)
+      其中 has_fintech_news = I(n_articles > 0)
+
+    学术依据:
+      Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect
+      corporate financial policy? The Journal of Finance, 69(1), 139-178.
+      DOI: 10.1111/jofi.12104
+      → 同行模仿效应的操作化
+
+      Dahlke, J., et al. (2024). Epidemic effects in the diffusion
+      of emerging digital technologies. Research Policy, 53(2), 104917.
+      DOI: 10.1016/j.respol.2023.104917
+      → AI 技术扩散传染病模型
+
+    Args:
+        panel: Bank-Year 面板
+
+    Returns:
+        panel: 追加 6 个 ai_reg_* 变量
+    """
+    logger.info("=" * 60)
+    logger.info("步骤: 区域 AI 模仿渗透率 (六层 LOO, Leary & Roberts 2014)")
+    logger.info("=" * 60)
+
+    # 指示变量: 该银行该年是否有 fintech 新闻
+    if 'n_articles' not in panel.columns:
+        logger.warning("  n_articles 不存在, 跳过区域模仿渗透率")
+        return panel
+
+    panel['_has_fintech'] = (panel['n_articles'] > 0).astype(int)
+
+    # ── 省/市级 LOO ──
+    for geo_col, var_name in [('bank_province', 'ai_reg_province'),
+                               ('bank_city', 'ai_reg_city')]:
+        if geo_col not in panel.columns:
+            logger.warning(f"  {geo_col} 不存在, 跳过 {var_name}")
+            continue
+
+        vals = pd.Series(np.nan, index=panel.index)
+        for (region, year), grp in panel.groupby([geo_col, 'year']):
+            if len(grp) < 2:
+                continue
+            total = grp['_has_fintech'].sum()
+            for idx in grp.index:
+                own = panel.at[idx, '_has_fintech']
+                vals.at[idx] = (total - own) / (len(grp) - 1)
+
+        panel[var_name] = vals
+        valid = vals.notna().sum()
+        logger.info(f"  {var_name}: {valid:,} 有效值, "
+                    f"mean={vals.mean():.4f}")
+
+    # ── 距离级 LOO ──
+    config_dir = os.path.join(os.path.dirname(__file__), 'config')
+    coord_path = os.path.join(config_dir, 'city_coordinates.json')
+    bank_addr_path = os.path.join(config_dir, 'bank_addresses.json')
+
+    if not os.path.exists(coord_path) or not os.path.exists(bank_addr_path):
+        logger.warning("  坐标/银行地址不存在, 跳过距离级 LOO")
+        panel.drop('_has_fintech', axis=1, inplace=True, errors='ignore')
+        return panel
+
+    with open(coord_path, 'r', encoding='utf-8') as f:
+        city_coords = json.load(f)
+    with open(bank_addr_path, 'r', encoding='utf-8') as f:
+        bank_addr = json.load(f)
+
+    clean_to_raw_loc = {}
+    for raw_name in city_coords:
+        clean_to_raw_loc[_clean_geo_name(raw_name)] = raw_name
+
+    # 银行 → 坐标
+    bank_coords = {}
+    for bank, info in bank_addr.items():
+        c = info.get('city', '').strip()
+        if c:
+            if c in city_coords:
+                bank_coords[bank] = (city_coords[c]['lat'],
+                                     city_coords[c]['lon'])
+            else:
+                clean = _clean_geo_name(c)
+                if clean in clean_to_raw_loc:
+                    cc = city_coords[clean_to_raw_loc[clean]]
+                    bank_coords[bank] = (cc['lat'], cc['lon'])
+
+    logger.info(f"  银行坐标匹配: {len(bank_coords)}/{len(bank_addr)}")
+
+    # 逐年计算距离级 LOO
+    for threshold in _DISTANCE_THRESHOLDS_KM:
+        var_name = f'ai_reg_{threshold}km'
+        vals = pd.Series(np.nan, index=panel.index)
+
+        for year in panel['year'].unique():
+            mask = panel['year'] == year
+            year_panel = panel.loc[mask]
+
+            for idx in year_panel.index:
+                bank_i = panel.at[idx, 'target_bank']
+                if bank_i not in bank_coords:
+                    continue
+
+                lat_i, lon_i = bank_coords[bank_i]
+                peers_ft = []
+
+                for idx_j in year_panel.index:
+                    if idx_j == idx:
+                        continue
+                    bank_j = panel.at[idx_j, 'target_bank']
+                    if bank_j not in bank_coords:
+                        continue
+
+                    lat_j, lon_j = bank_coords[bank_j]
+                    dist = _haversine(lat_i, lon_i, lat_j, lon_j)
+                    if dist <= threshold:
+                        peers_ft.append(panel.at[idx_j, '_has_fintech'])
+
+                if peers_ft:
+                    vals.at[idx] = np.mean(peers_ft)
+
+        panel[var_name] = vals
+        valid = vals.notna().sum()
+        logger.info(f"  {var_name}: {valid:,} 有效值, "
+                    f"mean={vals.mean():.4f}")
+
+    # ── 拓扑断言 ──
+    for i in range(len(_DISTANCE_THRESHOLDS_KM) - 1):
+        t1 = _DISTANCE_THRESHOLDS_KM[i]
+        t2 = _DISTANCE_THRESHOLDS_KM[i + 1]
+        col1 = f'ai_reg_{t1}km'
+        col2 = f'ai_reg_{t2}km'
+        if col1 in panel.columns and col2 in panel.columns:
+            n1 = panel[col1].notna().sum()
+            n2 = panel[col2].notna().sum()
+            if n1 > n2:
+                logger.warning(
+                    f"  拓扑警告: {col1} 有效样本 ({n1}) > {col2} ({n2})")
+
+    panel.drop('_has_fintech', axis=1, inplace=True, errors='ignore')
     return panel
 

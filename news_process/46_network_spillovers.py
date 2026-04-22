@@ -2,24 +2,46 @@
 46_network_spillovers.py — 同行网络传染/溢出效应模块
 ==========================================================
 
-功能:
-  从 co_mentioned_banks 构建银行共现邻接矩阵,
-  行随机标准化后, 用 Lag(Y-1) 加权平均同行情感作为网络压力变量,
-  合并至年度面板。
+管线位置:
+  45_panel_export_main.py → 步骤 7f / 7g / 7h-cogn
+  本模块在 44_panel_iv_did.py 之后、 47_network_brokerage.py 之前执行。
+  依赖 41_panel_encode_aggregate.py 生成的 co_mentioned_banks 列
+  和 llm_vote_tone_* 情感指标。
+
+核心功能 (三大子模块):
+  1. 同行网络溢出 (compute_network_spillovers):
+     从 co_mentioned_banks 构建银行共现邻接矩阵,
+     行随机标准化后, 用 Lag(Y-1) 加权平均同行情感作为网络压力变量。
+     包含一阶溢出 (W×tone) 和二阶溢出 (W²×tone)。
+  2. 银行共现网络中心度 (compute_bank_network_centrality):
+     计算 22 种网络中心度指标 (18 节点级 + 4 网络级)。
+  3. 认知邻近度 (compute_cognitive_proximity):
+     基于 TF-IDF 文本向量余弦相似度衡量银行间知识基础的相似程度。
 
 学术依据:
-  - Leary & Roberts (2014, JF): 同行效应与公司金融决策
-  - Manski (1993, RES): 反射问题 → 使用 Lag(Y-1) 规避
-  - 行随机标准化: 防止大银行规模主导网络权重
+  Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect
+  corporate financial policy? The Journal of Finance, 69(1), 139-178.
+  DOI: 10.1111/jofi.12104
+  → 同行效应与公司金融决策; 本项目用新闻共现构建同行网络
+
+  Manski, C. F. (1993). Identification of endogenous social effects.
+  The Review of Economic Studies, 60(3), 531-542. DOI: 10.2307/2298123
+  → 反射问题 → 使用 Lag(Y-1) 规避同期内生性
+
+  Boschma, R. (2005). Proximity and innovation: A critical assessment.
+  Regional Studies, 39(1), 61-74. DOI: 10.1080/0034340052000320887
+  → 认知邻近度的理论基础 (五维邻近度框架)
 
 关键设计:
   - 邻接矩阵: A[i,j] = bank_i 与 bank_j 在 Year t 的新闻共现次数
   - 行随机标准化: W[i,j] = A[i,j] / Σ_k A[i,k], 每行和为 1
+    防止大银行规模主导网络权重 (类比空间计量的空间权重矩阵)
   - 网络压力: peer_tone_i,t = Σ_j W[i,t-1] × tone_j,t-1
   - 严格 Lag(Y-1): 用去年的网络权重 × 去年的同行情感
+    避免 Manski 反射问题和同期反向因果
 
 输入: 41_panel_encode_aggregate 生成的面板 + 篇章级 df_exploded
-输出: 面板中追加 peer_tone_lag1_* 列
+输出: 面板中追加 peer_tone_lag1_*、22 种中心度、bank_cogn_mean 列
 """
 
 import logging
@@ -27,6 +49,13 @@ import numpy as np
 import pandas as pd
 
 from scipy.sparse import csr_matrix, lil_matrix
+
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity as _cosine_sim
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
 
 try:
     import networkx as nx
@@ -48,19 +77,31 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # ============================================================================
 # 2. 邻接矩阵构建
 # ============================================================================
+# co_mentioned_banks 列由 11_news_bank.py 在实体匹配阶段生成,
+# 格式为分号分隔字符串, 如 "工商银行;建设银行;农业银行"。
+# 该矩阵是后续所有网络指标 (溢出、中心度) 的共同基础。
 
 def build_adjacency_matrix(
     df_exploded: pd.DataFrame, 
     year: int
 ) -> tuple[pd.DataFrame, list[str]]:
-    """从篇章级数据构建特定年份的银行共现邻接矩阵。
+    """构建年度银行共现邻接矩阵。
+
+    从 co_mentioned_banks 列解析共现关系:
+      如果文章 k 同时提及银行 A 和银行 B,
+      则 A[A,B] += 1, A[B,A] += 1 (对称)。
+
+    注: 由此矩阵计算的 bank_degree_cent (Freeman 1979 度中心度)
+    在传染病扩散框架中等价于 Dahlke et al. (2024, RP) 的 degree_ai,
+    即银行在金融科技信息网络中的连接程度。
 
     Args:
-        df_exploded: 篇章级 DataFrame, 须含 'target_bank', 'co_mentioned_banks', 'year'
+        df_exploded: 篇章级 DataFrame, 须含 co_mentioned_banks 列
         year: 目标年份
 
     Returns:
-        (adj_df, bank_list): 邻接矩阵 DataFrame 和银行列表
+        adj_df: 对称邻接矩阵 DataFrame (index=columns=银行列表)
+        bank_list: 银行名称列表
     """
     df_year = df_exploded[df_exploded['year'] == year].copy()
 
@@ -106,6 +147,10 @@ def build_adjacency_matrix(
 # ============================================================================
 # 3. 行随机标准化
 # ============================================================================
+# 空间计量经济学标准操作: 将邻接矩阵 A 转化为权重矩阵 W,
+# 使每行之和为 1, 从而 W×tone 的含义为"加权平均同行情感"。
+# 参考: LeSage, J., & Pace, R. K. (2009). Introduction to Spatial
+# Econometrics. CRC Press. DOI: 10.1201/9781420064254
 
 def row_stochastic_normalize(adj_df: pd.DataFrame) -> pd.DataFrame:
     """行随机标准化: 每行除以行和, 使得每行权重总和为 1。
@@ -222,6 +267,28 @@ def compute_network_spillovers(
                 peer_dict[key][f'peer_tone_lag1{suffix}'] = peer_tone[idx]
                 peer_dict[key][f'peer_tone_2nd_lag1{suffix}'] = peer_tone_2nd[idx]
 
+        # ── 同行金融科技声量溢出 ──
+        # Berger, A. N., Guedhami, O., Kim, H. H., & Li, X. (2022).
+        # Economic policy uncertainty and bank liquidity hoarding.
+        # Journal of Financial Intermediation, 49, 100893.
+        # DOI: 10.1016/j.jfi.2020.100893
+        # → 同行溢出: peer_fintech_exposure_i,t = Σ_j W[i,t-1] × ln_coverage_j,t-1
+        # peer_fintech_exposure_i,t = Σ_j W[i,t-1] × ln_news_coverage_j,t-1
+        if 'ln_news_coverage' in panel_lag.columns:
+            cov_vec = pd.Series(np.nan, index=bank_list)
+            for bank in bank_list:
+                if bank in panel_lag.index:
+                    val = panel_lag.loc[bank, 'ln_news_coverage']
+                    if isinstance(val, pd.Series):
+                        val = val.iloc[0]
+                    cov_vec[bank] = val
+            peer_cov = W.values @ cov_vec.fillna(0).values
+            for idx_b, bank in enumerate(bank_list):
+                key = (bank, year)
+                if key not in peer_dict:
+                    peer_dict[key] = {'target_bank': bank, 'year': year}
+                peer_dict[key]['peer_fintech_exposure_lag1'] = peer_cov[idx_b]
+
         n_edges = (adj_df > 0).sum().sum() // 2
         logger.info(f"  年份 {year}: {len(bank_list)} 家银行, "
                     f"{n_edges} 条共现边 (基于 {lag_year} 年数据)")
@@ -253,6 +320,25 @@ def compute_network_spillovers(
 # ============================================================================
 # 5. 银行共现网络中心度计算 (22 指标)
 # ============================================================================
+# 学术依据:
+#   Freeman, L. C. (1979). Centrality in social networks. Social Networks,
+#   1(3), 215-239. DOI: 10.1016/0378-8733(78)90021-7
+#   → degree, betweenness, closeness 的经典定义
+#
+#   Burt, R. S. (1992). Structural Holes. Harvard University Press.
+#   → constraint, effective_size, ci (结构洞指标)
+#
+#   Billio, M., et al. (2012). Econometric measures of connectedness
+#   and systemic risk. JFE, 104(3), 535-559.
+#   DOI: 10.1016/j.jfineco.2011.12.010
+#   → 网络密度与系统性风险的理论基础
+#
+# 设计要点:
+#   - 路径型指标 (betweenness/harmonic/closeness/eccentricity) 使用
+#     倒数权重图 G_inv (edge_weight = 1/w), 将"共现强度"转为"距离"
+#   - CFB 使用原始图 (电导语义), eigenvector 三级 fallback
+#   - 断连图: CFB/eccentricity/avg_path 仅对最大连通分量计算
+#   - Part C (4 种网络级控制变量) 为年度级, 广播至所有银行
 
 def _gini(arr: np.ndarray) -> float:
     """计算 Gini 系数 (度分布不平等度)。"""
@@ -611,5 +697,167 @@ def compute_bank_network_centrality(
             logger.info(f"    {col}: {valid:,}/{total:,} "
                         f"({valid/total:.1%}), "
                         f"mean={panel[col].mean():.4f}")
+
+    return panel
+
+
+# ============================================================================
+# 6. 认知邻近度 (独立顶层函数)
+# ============================================================================
+# 认知邻近度衡量银行间"知识基础的相似程度":
+# - 将每家银行当年所有新闻文本拼接为"超级文档"
+# - 使用 TF-IDF 向量化 + Cosine Similarity 计算成对相似度
+# - bank_cogn_mean = 银行 i 与所有其他银行的 cosine 均值
+# 高值: 银行新闻主题与行业整体高度相似 (认知锁定风险)
+# 低值: 银行在信息空间中具有独特性 (差异化优势)
+#
+# Stata 回归示例:
+#   reg Y X bank_cogn_mean, cluster(province)
+#   → 控制银行间信息环境的同质性对情感指标的干扰
+
+def compute_cognitive_proximity(
+    df_exploded: pd.DataFrame,
+    panel: pd.DataFrame
+) -> pd.DataFrame:
+    """计算银行间认知邻近度 (TF-IDF 文本向量余弦相似度)。
+
+    理论基础:
+      Boschma, R. (2005). Proximity and innovation: A critical
+      assessment. Regional Studies, 39(1), 61-74.
+      DOI: 10.1080/0034340052000320887
+      → 认知邻近度 = 知识基础的相似度, Cosine Similarity 为标准操作化
+
+    操作化:
+      Dahlke, J., et al. (2024). Epidemic effects in the diffusion
+      of emerging digital technologies. Research Policy, 53(2), 104917.
+      DOI: 10.1016/j.respol.2023.104917
+      → cogn_mean: 每家银行与所有其他银行的 TF-IDF cosine 均值
+
+    设计决策:
+      - 逐年计算 (避免跨年词汇漂移)
+      - 标题+内容拼接 (信息量最大化)
+      - char_wb analyzer + ngram(2,4) (中文友好, 无需分词)
+      - 100 字符阈值 (过短文本 TF-IDF 退化)
+      - 稀疏矩阵 cosine_similarity (内存安全)
+
+    Args:
+        df_exploded: 篇章级 DataFrame, 须含 '内容' 列
+        panel: Bank-Year 面板 DataFrame
+
+    Returns:
+        panel: 追加 bank_cogn_mean 列的面板
+    """
+    if not HAS_SKLEARN:
+        logger.warning("  scikit-learn 未安装, 跳过认知邻近度计算。"
+                       " 请运行: pip install scikit-learn")
+        return panel
+
+    logger.info("=" * 60)
+    logger.info("步骤: 认知邻近度计算 (Boschma 2005; Dahlke et al. 2024)")
+    logger.info("=" * 60)
+
+    # 文本列发现 (复用 24_herd_decay_processor.py L86-87 逻辑)
+    text_col = ('内容' if '内容' in df_exploded.columns else
+                '正文' if '正文' in df_exploded.columns else 'content')
+    title_col = '标题' if '标题' in df_exploded.columns else None
+
+    if text_col not in df_exploded.columns:
+        logger.warning(f"  文本列 '{text_col}' 不存在, 跳过认知邻近度")
+        return panel
+
+    logger.info(f"  文本列: {text_col}" +
+                (f" + {title_col}" if title_col else ""))
+
+    years = sorted(panel['year'].unique())
+    cogn_results = {}  # {(bank, year): cogn_mean}
+
+    for year in years:
+        df_year = df_exploded[df_exploded['year'] == year]
+        if df_year.empty:
+            continue
+
+        # 按银行聚合: 标题+内容拼接为"超级文档"
+        def _concat_text(group):
+            bodies = group[text_col].fillna('').astype(str)
+            if title_col and title_col in group.columns:
+                titles = group[title_col].fillna('').astype(str)
+                return ' '.join(titles + ' ' + bodies)
+            return ' '.join(bodies)
+
+        bank_texts = df_year.groupby('target_bank').apply(
+            _concat_text, include_groups=False)
+        bank_list = bank_texts.index.tolist()
+        n_banks = len(bank_list)
+
+        if n_banks < 2:
+            continue
+
+        # 100 字符阈值守卫 (≈50 中文词)
+        char_counts = bank_texts.str.len()
+        valid_mask = char_counts >= 100
+        valid_banks = bank_texts[valid_mask]
+
+        if len(valid_banks) < 2:
+            for bank in bank_list:
+                cogn_results[(bank, year)] = np.nan
+            logger.info(f"  年份 {year}: 有效银行 < 2, 全部 NaN")
+            continue
+
+        # TF-IDF (复用 24 模块参数)
+        try:
+            vectorizer = TfidfVectorizer(
+                max_features=5000,
+                min_df=min(2, len(valid_banks)),
+                max_df=0.95,
+                analyzer='char_wb',
+                ngram_range=(2, 4),
+                dtype=np.float32
+            )
+            tfidf_matrix = vectorizer.fit_transform(valid_banks.values)
+        except ValueError as e:
+            logger.warning(f"  年份 {year}: TF-IDF 失败 ({e})")
+            for bank in bank_list:
+                cogn_results[(bank, year)] = np.nan
+            continue
+
+        # Cosine similarity (稀疏输入 → dense 输出)
+        sim_matrix = _cosine_sim(tfidf_matrix)
+        np.fill_diagonal(sim_matrix, np.nan)  # 排除自身
+
+        # 提取均值
+        valid_bank_list = valid_banks.index.tolist()
+        for i, bank in enumerate(valid_bank_list):
+            cogn_results[(bank, year)] = float(np.nanmean(sim_matrix[i]))
+
+        # 无效银行 → NaN
+        for bank in bank_list:
+            if (bank, year) not in cogn_results:
+                cogn_results[(bank, year)] = np.nan
+
+        n_valid = len(valid_banks)
+        year_vals = [v for k, v in cogn_results.items()
+                     if k[1] == year and not np.isnan(v)]
+        mean_val = np.mean(year_vals) if year_vals else float('nan')
+        logger.info(f"  年份 {year}: {n_valid}/{n_banks} 有效银行, "
+                    f"cogn_mean 均值={mean_val:.4f}")
+
+    # 合并至面板
+    if cogn_results:
+        cogn_df = pd.DataFrame([
+            {'target_bank': k[0], 'year': k[1], 'bank_cogn_mean': v}
+            for k, v in cogn_results.items()
+        ])
+        panel = panel.merge(cogn_df, on=['target_bank', 'year'], how='left')
+
+        # 范围断言: TF-IDF 向量非负 → cosine ∈ [0, 1]
+        valid_vals = panel['bank_cogn_mean'].dropna()
+        if len(valid_vals) > 0:
+            assert (valid_vals >= -1e-10).all() and (valid_vals <= 1 + 1e-10).all(), \
+                f"bank_cogn_mean 超出 [0,1]: [{valid_vals.min():.6f}, {valid_vals.max():.6f}]"
+            n_valid_total = valid_vals.notna().sum()
+            logger.info(f"  认知邻近度已合并: {n_valid_total:,} 有效值, "
+                        f"mean={valid_vals.mean():.4f}, std={valid_vals.std():.4f}")
+    else:
+        logger.warning("  未生成任何认知邻近度变量")
 
     return panel

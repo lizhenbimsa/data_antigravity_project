@@ -2,10 +2,22 @@
 45_panel_export_main.py — 面板导出与主流程编排 (入口文件)
 ==========================================================
 
-功能:
-  - 面板诊断统计 (log_diagnostics)
-  - 多格式导出: Parquet + Stata .dta (export_panel)
-  - 主流程编排 main(): 41→42→43→44→45 的执行序列
+本文件是整个金融科技新闻研究管线的主入口和编排器。
+
+核心功能:
+  1. 面板诊断统计 (log_diagnostics): 输出覆盖率、平衡性、缺失值等
+  2. 多格式导出 (export_panel): Parquet + Stata .dta (含学术级标签)
+  3. 主流程编排 main(): 41→42→43→44→46→47→45 的执行序列
+
+执行序列 (步骤号对应 main() 中的日志标记):
+  Step 1-3: 数据加载、情感编码、面板聚合 (41_panel_encode_aggregate)
+  Step 4-5: 金融科技注意力 + 媒体异质性 (42_panel_attention_media)
+  Step 6:   复合指标 + 地理缓冲 + AI 模仿 (43_panel_indicators_geography)
+  Step 7a-e: Bartik IV + DID + 政策冲击 (44_panel_iv_did)
+  Step 7f:  同行网络溢出 (46_network_spillovers)
+  Step 7g:  网络中心度 22 指标 (46_network_spillovers)
+  Step 7h:  经纪网络 + LOO冲击 + 火灾甩卖 (47_network_brokerage)
+  Step 8-9: 诊断统计 + 多格式导出 (45_panel_export_main)
 
 拆分自: 40_build_panel.py (L2187-3142)
 
@@ -24,6 +36,9 @@ import numpy as np
 import pandas as pd
 
 # --- 从 41 导入共享配置和函数 ---
+# 41_panel_encode_aggregate.py: 情感编码 + 面板聚合
+# 提供: CONFIG(全局配置), encode_sentiment(情感映射),
+#   aggregate_panel(银行-年聚合), balance_panel(面板平衡)
 _p41 = os.path.join(os.path.dirname(__file__), '41_panel_encode_aggregate.py')
 _s41 = _iu.spec_from_file_location('_41_mod', _p41)
 _m41 = _iu.module_from_spec(_s41)
@@ -51,6 +66,8 @@ balance_panel = _m41.balance_panel
 from utils.helpers import log_stage_summary, save_dataset
 
 # --- 从 42 导入 ---
+# 42_panel_attention_media.py: 金融科技注意力指数 + 媒体异质性指标
+# 提供: ft_attn_yr/prov/city, 媒体类型占比, 情感缺口, HHI 等
 _p42 = os.path.join(os.path.dirname(__file__), '42_panel_attention_media.py')
 _s42 = _iu.spec_from_file_location('_42_mod', _p42)
 _m42 = _iu.module_from_spec(_s42)
@@ -60,6 +77,8 @@ compute_fintech_attention_index = _m42.compute_fintech_attention_index
 compute_media_heterogeneity = _m42.compute_media_heterogeneity
 
 # --- 从 43 导入 ---
+# 43_panel_indicators_geography.py: 复合指标 + 28种地理缓冲 + 6层AI模仿
+# 提供: 标准化变量, LOO情感, 银行地理坐标合并等
 _p43 = os.path.join(os.path.dirname(__file__), '43_panel_indicators_geography.py')
 _s43 = _iu.spec_from_file_location('_43_mod', _p43)
 _m43 = _iu.module_from_spec(_s43)
@@ -71,6 +90,8 @@ merge_bank_geography = _m43.merge_bank_geography
 compute_leave_one_out_sentiment = _m43.compute_leave_one_out_sentiment
 
 # --- 从 44 导入 ---
+# 44_panel_iv_did.py: Bartik IV + 政策冲击 DID
+# 提供: shift-share IV, 地理分区 LOO, 政策事件合并等
 _p44 = os.path.join(os.path.dirname(__file__), '44_panel_iv_did.py')
 _s44 = _iu.spec_from_file_location('_44_mod', _p44)
 _m44 = _iu.module_from_spec(_s44)
@@ -84,6 +105,8 @@ compute_zone_leave1out = _m44.compute_zone_leave1out
 merge_policy_shocks = _m44.merge_policy_shocks
 
 # --- 从 46 导入 (网络溢出) ---
+# 46_network_spillovers.py: 同行溢出 + 22种中心度 + 认知邻近度
+# 可选依赖: 该文件可能不存在于早期版本, 通过 os.path.exists 守护
 _p46 = os.path.join(os.path.dirname(__file__), '46_network_spillovers.py')
 if os.path.exists(_p46):
     _s46 = _iu.spec_from_file_location('_46_mod', _p46)
@@ -91,9 +114,27 @@ if os.path.exists(_p46):
     _s46.loader.exec_module(_m46)
     compute_network_spillovers = _m46.compute_network_spillovers
     compute_bank_network_centrality = _m46.compute_bank_network_centrality
+    compute_cognitive_proximity = getattr(_m46, 'compute_cognitive_proximity', None)
 else:
     compute_network_spillovers = None
     compute_bank_network_centrality = None
+    compute_cognitive_proximity = None
+
+# --- 从 47 导入 (信息经纪网络) ---
+# 47_network_brokerage.py: 媒体-银行二分图中心度 + LOO行业冲击 + 火灾甩卖
+# 可选依赖: 同上, 通过 os.path.exists 守护
+_p47 = os.path.join(os.path.dirname(__file__), '47_network_brokerage.py')
+if os.path.exists(_p47):
+    _s47 = _iu.spec_from_file_location('_47_mod', _p47)
+    _m47 = _iu.module_from_spec(_s47)
+    _s47.loader.exec_module(_m47)
+    compute_brokerage_centrality = _m47.compute_brokerage_centrality
+    compute_industry_neg_shock = _m47.compute_industry_neg_shock
+    compute_fire_sale_interaction = _m47.compute_fire_sale_interaction
+else:
+    compute_brokerage_centrality = None
+    compute_industry_neg_shock = None
+    compute_fire_sale_interaction = None
 
 
 # ============================================================================
@@ -696,6 +737,50 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'n_media_bal_w0724':             'N Media Balanced W07-24',
                 'n_media_bal_w1024':             'N Media Balanced W10-24',
                 'n_media_bal_w1124':             'N Media Balanced W11-24',
+                # === 四梯度距离缓冲 (Gurun & Butler 2012) ===
+                'prox_50km_n_media':             'N Media Within 50km',
+                'prox_50km_n_articles':          'N Articles Within 50km',
+                'prox_50km_frac':                'Frac Articles Within 50km',
+                'prox_50km_tone_full':           'Avg Tone Within 50km (Full)',
+                'prox_50km_pos_frac':            'Pos Frac Within 50km',
+                'prox_50km_neg_frac':            'Neg Frac Within 50km',
+                'prox_50km_is_local':            'Has Local Media 50km (0/1)',
+                'prox_100km_n_media':            'N Media Within 100km',
+                'prox_100km_n_articles':         'N Articles Within 100km',
+                'prox_100km_frac':               'Frac Articles Within 100km',
+                'prox_100km_tone_full':          'Avg Tone Within 100km (Full)',
+                'prox_100km_pos_frac':           'Pos Frac Within 100km',
+                'prox_100km_neg_frac':           'Neg Frac Within 100km',
+                'prox_100km_is_local':           'Has Local Media 100km (0/1)',
+                'prox_150km_n_media':            'N Media Within 150km',
+                'prox_150km_n_articles':         'N Articles Within 150km',
+                'prox_150km_frac':               'Frac Articles Within 150km',
+                'prox_150km_tone_full':          'Avg Tone Within 150km (Full)',
+                'prox_150km_pos_frac':           'Pos Frac Within 150km',
+                'prox_150km_neg_frac':           'Neg Frac Within 150km',
+                'prox_150km_is_local':           'Has Local Media 150km (0/1)',
+                'prox_200km_n_media':            'N Media Within 200km',
+                'prox_200km_n_articles':         'N Articles Within 200km',
+                'prox_200km_frac':               'Frac Articles Within 200km',
+                'prox_200km_tone_full':          'Avg Tone Within 200km (Full)',
+                'prox_200km_pos_frac':           'Pos Frac Within 200km',
+                'prox_200km_neg_frac':           'Neg Frac Within 200km',
+                'prox_200km_is_local':           'Has Local Media 200km (0/1)',
+                # === 区域 AI 模仿渗透率 (Leary & Roberts 2014) ===
+                'ai_reg_province':               'AI Imitation Rate (Province)',
+                'ai_reg_city':                   'AI Imitation Rate (City)',
+                'ai_reg_50km':                   'AI Imitation Rate (50km)',
+                'ai_reg_100km':                  'AI Imitation Rate (100km)',
+                'ai_reg_150km':                  'AI Imitation Rate (150km)',
+                'ai_reg_200km':                  'AI Imitation Rate (200km)',
+                # === 认知邻近度 (Boschma 2005) ===
+                'bank_cogn_mean':                'Cognitive Proximity (TF-IDF)',
+                # === 信息经纪网络 (Han et al. 2024) ===
+                'brokerage_eigen_cent':          'Brokerage Eigenvector Cent',
+                'industry_neg_shock':            'Industry Neg Shock (LOO)',
+                'brokerage_fire_sale':           'Brokerage x Neg Shock',
+                # === 同行金融科技溢出 (Berger et al. 2022) ===
+                'peer_fintech_exposure_lag1':    'Peer Fintech Exposure (L1)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -1030,6 +1115,24 @@ def main():
     # 构建同省/同城市其他银行的平均情感 → 工具变量
     # (Luo & Li 2025, Table 3: Province_news_sentiment)
     panel = compute_leave_one_out_sentiment(panel)
+
+    # --- 7d-geo. 四梯度地理距离缓冲 (Gurun & Butler 2012; Engelberg & Parsons 2011) ---
+    try:
+        if hasattr(_m43, 'compute_geo_proximity_buffers'):
+            panel = _m43.compute_geo_proximity_buffers(df_exploded, panel)
+        else:
+            logger.info("  compute_geo_proximity_buffers 不可用, 跳过")
+    except Exception as e:
+        logger.warning(f"  四梯度距离缓冲失败: {e}")
+
+    # --- 7d-imit. 区域 AI 模仿渗透率 (六层 LOO, Leary & Roberts 2014) ---
+    try:
+        if hasattr(_m43, 'compute_regional_imitation_pressure'):
+            panel = _m43.compute_regional_imitation_pressure(panel)
+        else:
+            logger.info("  compute_regional_imitation_pressure 不可用, 跳过")
+    except Exception as e:
+        logger.warning(f"  区域模仿渗透率失败: {e}")
 
     # --- 7e. Bartik IV (29套分类维度) ---
     if PANEL_CFG.get('compute_bartik_iv', True):
@@ -1520,6 +1623,30 @@ def main():
         panel = compute_bank_network_centrality(panel, df_exploded)
     else:
         logger.info("  compute_bank_network_centrality 不可用, 跳过")
+
+    # --- 7h-cogn. 认知邻近度 (Boschma 2005; Dahlke et al. 2024) ---
+    if compute_cognitive_proximity is not None:
+        panel = compute_cognitive_proximity(df_exploded, panel)
+    else:
+        logger.info("  compute_cognitive_proximity 不可用, 跳过")
+
+    # --- 7h-brok. 信息经纪网络中心度 (Han et al. 2024, RFS) ---
+    if compute_brokerage_centrality is not None:
+        panel = compute_brokerage_centrality(panel, df_exploded)
+    else:
+        logger.info("  compute_brokerage_centrality 不可用, 跳过")
+
+    # --- 7h-neg. 行业负面冲击指数 (LOO, Manski 1993) ---
+    if compute_industry_neg_shock is not None:
+        panel = compute_industry_neg_shock(panel)
+    else:
+        logger.info("  compute_industry_neg_shock 不可用, 跳过")
+
+    # --- 7h-fire. 火灾甩卖交乘项 (依赖 brokerage + neg_shock) ---
+    if compute_fire_sale_interaction is not None:
+        panel = compute_fire_sale_interaction(panel)
+    else:
+        logger.info("  compute_fire_sale_interaction 不可用, 跳过")
 
     # =========================================================================
     # 步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造
