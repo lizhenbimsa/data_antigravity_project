@@ -635,6 +635,33 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_claude4h_conf_ctx':               'Claude-4h Confidence (Ctx)',
                 # 其他
                 'has_coverage':                        'Has News Coverage (0/1)',
+                # ═══ 异质性分析变量 (Angrist & Pischke 2009; Brambor et al. 2006) ═══
+                'is_soe':                              'SOE Dummy (0/1)',
+                'bank_scale_ord':                      'Bank Scale Ordinal (XS=1..L=4)',
+                'high_coverage':                       'High Media Coverage (0/1)',
+                'tone_x_soe_full':                     'Tone x SOE (Full)',
+                'tone_x_soe_ctx':                      'Tone x SOE (Ctx)',
+                'tone_x_scale_full':                   'Tone x Bank Scale (Full)',
+                'tone_x_scale_ctx':                    'Tone x Bank Scale (Ctx)',
+                'tone_x_highcov_full':                 'Tone x High Coverage (Full)',
+                'tone_x_highcov_ctx':                  'Tone x High Coverage (Ctx)',
+                'digital_frontier':                    'Digital Frontier (0/1)',
+                'dcep_ddd_digfront':                   'DCEP x Post x DigFrontier (DDD)',
+                'sandbox_ddd_digfront':                'Sandbox x Post x DigFrontier (DDD)',
+                'avg_llm_conf_full_z':                 'LLM Confidence Z (Full)',
+                'avg_llm_conf_ctx_z':                  'LLM Confidence Z (Ctx)',
+                'stress_period':                       'Stress Period (2015/2018/2020)',
+                'tone_x_stress_full':                  'Tone x Stress Period (Full)',
+                'tone_x_stress_ctx':                   'Tone x Stress Period (Ctx)',
+                'depins_post':                         'Post Deposit Insurance (0/1)',
+                'tone_x_depins_full':                  'Tone x Deposit Insurance (Full)',
+                'tone_x_depins_ctx':                   'Tone x Deposit Insurance (Ctx)',
+                'concern_score_full':                  'Concern Score (Full)',
+                'concern_score_ctx':                   'Concern Score (Ctx)',
+                'llm_vote_tone_full_lag1':             'Lagged Tone t-1 (Full)',
+                'llm_vote_tone_ctx_lag1':              'Lagged Tone t-1 (Ctx)',
+                'tone_reversal_full':                  'Tone Reversal t-(t-1) (Full)',
+                'tone_reversal_ctx':                   'Tone Reversal t-(t-1) (Ctx)',
                 # 跟风新闻检测 (Tetlock 2011, JF)
                 'avg_herd_weight':                     'Avg Herd Decay Weight 1/(1+N) (Tetlock 2011)',
                 'min_herd_weight':                     'Min Herd Decay Weight (Tetlock 2011)',
@@ -1174,6 +1201,27 @@ def main():
         # --- 稳健性 1: 银行规模 (4类, 3有效IV) ---
         panel = compute_bartik_iv(panel, df_exploded, scale_map, 'scale')
 
+        # --- 7e-digfront. 数字化前沿距离代理变量 ---
+        # 按同类型银行的年度中位数新闻覆盖量划分 (仅有新闻覆盖的银行参与)
+        # 概念迁移自:
+        #   Goldfarb, A. & Tucker, C. (2019). Digital economics.
+        #   Journal of Economic Literature, 57(1), 3-43.
+        #   https://doi.org/10.1257/jel.20171452
+        # 用途: DDD 三重差分 — 数字化前沿 × 政策冲击 (步骤 7g 后构建)
+        if 'bank_type' in panel.columns:
+            _has_news_df = panel['n_articles'] > 0
+            _grp_median = panel[_has_news_df].groupby(
+                ['bank_type', 'year'])['n_articles'].transform('median')
+            panel['digital_frontier'] = 0
+            panel.loc[_has_news_df, 'digital_frontier'] = (
+                panel.loc[_has_news_df, 'n_articles'] >= _grp_median
+            ).astype(int)
+            logger.info(f"  digital_frontier: "
+                        f"1={panel['digital_frontier'].sum()}, "
+                        f"0={(panel['digital_frontier'] == 0).sum()}")
+        else:
+            logger.warning("  bank_type 不存在, 跳过 digital_frontier 构建")
+
         # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) ---
         fintech_map = {'底层技术': 'tech', '应用场景': 'app'}
         panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech')
@@ -1608,6 +1656,172 @@ def main():
         logger.info("步骤 7g: DID 政策冲击变量 (DCEP + Sandbox)")
         logger.info("=" * 60)
         panel = merge_policy_shocks(panel)
+
+    # =========================================================================
+    # 步骤 7g-het: 异质性分析交互项预计算
+    # =========================================================================
+    # 总体学术依据:
+    #   Angrist, J.D. & Pischke, J.-S. (2009). Mostly Harmless Econometrics:
+    #   An Empiricist's Companion. Princeton University Press.
+    #   https://doi.org/10.1515/9781400829828
+    #   → §3.4.2: 交互项优于中介回归，避免"Bad Controls"问题
+    #
+    #   Brambor, T., Clark, W.R. & Golder, M. (2006). Understanding interaction
+    #   models: Improving empirical analyses. Political Analysis, 14(1), 63-82.
+    #   https://doi.org/10.1093/pan/mpi014
+    #   → 交互项模型中主效应 (constituent terms) 必须同时进入回归，否则系数有偏
+    # =========================================================================
+    logger.info("=" * 60)
+    logger.info("步骤 7g-het: 异质性分析交互项预计算")
+    logger.info("=" * 60)
+
+    # --- (a) SOE 哑变量 ---
+    # bank_type 由步骤 7e compute_bartik_iv() 生成
+    if 'bank_type' in panel.columns:
+        panel['is_soe'] = (panel['bank_type'] == 'soe').astype(int)
+        logger.info(f"  is_soe: SOE={panel['is_soe'].sum()}, "
+                    f"非SOE={(panel['is_soe'] == 0).sum()}")
+    else:
+        logger.warning("  bank_type 不存在, is_soe 设为 0")
+        panel['is_soe'] = 0
+
+    # --- (b) bank_scale 有序编码 ---
+    # scale_map: 'L'/'M'/'S'/'XS'/'other' (44_panel_iv_did.py L58-59)
+    scale_map_ord = {'XS': 1, 'S': 2, 'M': 3, 'L': 4}
+    if 'bank_scale' in panel.columns:
+        panel['bank_scale_ord'] = panel['bank_scale'].map(
+            scale_map_ord).fillna(0).astype(int)
+        logger.info(f"  bank_scale_ord 分布: "
+                    f"{panel['bank_scale_ord'].value_counts().sort_index().to_dict()}")
+    else:
+        logger.warning("  bank_scale 不存在, bank_scale_ord 设为 0")
+        panel['bank_scale_ord'] = 0
+
+    # --- (c) 覆盖强度分组 (替代二元 has_coverage) ---
+    # 仅在有新闻覆盖的银行中按年度中位数分组
+    # 学术依据:
+    #   Fang, L.H. & Peress, J. (2009). Media coverage and the cross-section
+    #   of stock returns. Journal of Finance, 64(5), 2023-2052.
+    #   https://doi.org/10.1111/j.1540-6261.2009.01493.x
+    #   → 媒体覆盖的边际效应递减，需区分高低覆盖强度
+    # ⚠️ 注意: 原始 has_coverage (0/1) 与 tone 的交互项无额外信息 (冗余):
+    #   零新闻行 tone=NaN → tone×has_coverage=NaN (非0);
+    #   有新闻行 tone×1=tone → 交互项退化为 tone 本身，无增量信息
+    has_news_het = panel['n_articles'] > 0
+    year_median_cov = panel[has_news_het].groupby(
+        'year')['n_articles'].transform('median')
+    panel['high_coverage'] = 0
+    panel.loc[has_news_het, 'high_coverage'] = (
+        panel.loc[has_news_het, 'n_articles'] >= year_median_cov
+    ).astype(int)
+    logger.info(f"  high_coverage: 1={panel['high_coverage'].sum()}, "
+                f"0={(panel['high_coverage'] == 0).sum()}")
+
+    # --- (d) 交互项构建 (双轨: _full + _ctx) ---
+    het_count = 0
+    for track in ['_full', '_ctx']:
+        tone = f'llm_vote_tone{track}'
+        if tone not in panel.columns:
+            continue
+        panel[f'tone_x_soe{track}'] = panel[tone] * panel['is_soe']
+        panel[f'tone_x_scale{track}'] = panel[tone] * panel['bank_scale_ord']
+        panel[f'tone_x_highcov{track}'] = panel[tone] * panel['high_coverage']
+        het_count += 3
+    logger.info(f"  已生成 {het_count} 个异质性交互项 (Tone × SOE/Scale/HighCov)")
+
+    # --- (e) DDD 三重差分交互项 ---
+    # 学术依据:
+    #   Wooldridge, J.M. (2010). Econometric Analysis of Cross Section and
+    #   Panel Data (2nd ed.). MIT Press. ISBN: 978-0-262-23258-6
+    #   → §10.4: 三重差分要求 Stata 中同时纳入所有低阶交互项 (## 语法自动满足)
+    ddd_count = 0
+    for prefix in ['dcep', 'sandbox']:
+        t_col, p_col = f'{prefix}_treated', f'{prefix}_post'
+        if (t_col in panel.columns and p_col in panel.columns
+                and 'digital_frontier' in panel.columns):
+            panel[f'{prefix}_ddd_digfront'] = (
+                panel[t_col] * panel[p_col] * panel['digital_frontier']
+            )
+            ddd_count += 1
+    if ddd_count > 0:
+        logger.info(f"  已生成 {ddd_count} 个 DDD 三重差分交互项 "
+                    f"(Treated × Post × DigFrontier)")
+    else:
+        logger.info("  DDD 交互项跳过 (DID 变量或 digital_frontier 不存在)")
+
+    # --- (f) 银行业压力期非对称效应 ---
+    # 学术依据:
+    #   García, D. (2013). Sentiment during recessions. Journal of Finance,
+    #   68(3), 1267-1300. https://doi.org/10.1111/jofi.12027
+    #   → 衰退/压力期间情感指标的统计特征显著不同于常规期
+    # 压力年份定义与 51_falsification_test.py L897-899 一致
+    STRESS_YEARS = {2015, 2018, 2020}  # 股灾、去杠杆、疫情
+    panel['stress_period'] = panel['year'].isin(STRESS_YEARS).astype(int)
+    stress_count = 0
+    for track in ['_full', '_ctx']:
+        tone = f'llm_vote_tone{track}'
+        if tone in panel.columns:
+            panel[f'tone_x_stress{track}'] = panel[tone] * panel['stress_period']
+            stress_count += 1
+    logger.info(f"  stress_period: 压力年={panel['stress_period'].sum()}, "
+                f"常规年={(panel['stress_period'] == 0).sum()} "
+                f"({stress_count} 个交互项)")
+
+    # --- (g) 存款保险制度时间断点调节项 ---
+    # 《存款保险条例》(国务院令第660号) 2015.05.01 全国统一施行
+    # 设计: 时间断点调节项, 非 DID (全国统一实施, 无处理/控制分组)
+    # ⚠️ 不可通过 policy_shocks.json 实现:
+    #   merge_policy_shocks() 通过 panel['bank_province'].isin(provs) 匹配,
+    #   "全国" 不是有效省份名 (44_panel_iv_did.py L513-517)
+    panel['depins_post'] = (panel['year'] >= 2015).astype(int)
+    depins_count = 0
+    for track in ['_full', '_ctx']:
+        tone = f'llm_vote_tone{track}'
+        if tone in panel.columns:
+            panel[f'tone_x_depins{track}'] = panel[tone] * panel['depins_post']
+            depins_count += 1
+    logger.info(f"  depins_post: 实施后={panel['depins_post'].sum()}, "
+                f"实施前={(panel['depins_post'] == 0).sum()} "
+                f"({depins_count} 个交互项)")
+
+    # --- (h) 复合关注度指数 (Concern Score) ---
+    # 公式: concern_score = ln_news_coverage × (senti_ratio + 1) / 2
+    # 其中 senti_ratio = (neg_count - pos_count) / (neg_count + pos_count) ∈ [-1, 1]
+    # → concern_score ∈ [0, ∞): 越高 = 越多负面新闻 + 越多报道量
+    # ⚠️ 全中性文章 (pos=neg=0): total_pn=0 → senti_ratio=NaN → concern_score=NaN
+    #   (语义合理: 无正/负方向性信息时, 关注度方向未定义)
+    concern_count = 0
+    for track in ['_full', '_ctx']:
+        pos_c, neg_c = f'pos_count{track}', f'neg_count{track}'
+        if pos_c in panel.columns and neg_c in panel.columns:
+            total_pn = panel[pos_c] + panel[neg_c]
+            safe_total = total_pn.replace(0, np.nan)
+            senti_ratio = (panel[neg_c] - panel[pos_c]) / safe_total
+            panel[f'concern_score{track}'] = (
+                panel['ln_news_coverage'] * (senti_ratio + 1) / 2
+            )
+            concern_count += 1
+    logger.info(f"  已生成 {concern_count} 个 concern_score 变量")
+
+    # --- (i) 情感滞后与反转效应 ---
+    # 学术依据:
+    #   De Bondt, W.F.M. & Thaler, R. (1985). Does the stock market overreact?
+    #   Journal of Finance, 40(3), 793-805.
+    #   https://doi.org/10.1111/j.1540-6261.1985.tb05004.x
+    #   → 过度反应假说: 前期极端情感 → 后期均值回归/反转
+    # ⚠️ balance_panel() 确保面板为完全笛卡尔积 (银行×年份),
+    #   shift(1) 不会跳过年份。首年滞后值为 NaN (预期行为)
+    panel = panel.sort_values(['target_bank', 'year'])
+    lag_count = 0
+    for track in ['_full', '_ctx']:
+        tone = f'llm_vote_tone{track}'
+        if tone in panel.columns:
+            panel[f'{tone}_lag1'] = panel.groupby('target_bank')[tone].shift(1)
+            panel[f'tone_reversal{track}'] = panel[tone] - panel[f'{tone}_lag1']
+            lag_count += 2
+    logger.info(f"  已生成 {lag_count} 个滞后/反转变量 (lag1 + reversal)")
+
+    logger.info(f"  ── 异质性分析交互项预计算完成 ──")
 
     # --- 7h-net. 同行网络传染/溢出效应 (Leary & Roberts 2014, JF) ---
     if compute_network_spillovers is not None:

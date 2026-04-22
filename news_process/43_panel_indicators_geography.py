@@ -212,6 +212,14 @@ _STANDARDIZE_COLS = [
     'avg_msent_{t}',
     # Fintech Exposure (Dim et al. 2024 概念迁移)
     'fintech_exposure_{t}',
+    # LLM 置信度 Z-score (信号清晰度调节)
+    # 学术依据:
+    #   Shapiro, A.H., Sudhof, M. & Wilson, D.J. (2022). Measuring news
+    #   sentiment. Journal of Econometrics, 228(2), 221-243.
+    #   https://doi.org/10.1016/j.jeconom.2020.07.053
+    #   → §4: 情感测量噪声导致回归系数衰减偏误(attenuation bias)
+    #   → 置信度越低 → 测量误差越大 → Tone 系数向零衰减
+    'avg_llm_conf_{t}',
 ]
 # 无双轨的标量变量
 _STANDARDIZE_SCALAR = [

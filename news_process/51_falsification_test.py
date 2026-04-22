@@ -1364,6 +1364,142 @@ reghdfe Y residual_tone X, absorb(target_bank year) vce(cluster target_bank)
 *   residual_tone 显著 → 情感效应来自媒体报道本身 (非信息渠道)
 *   residual_tone 不显著 → 情感效应主要反映基本面信息, 需审慎
 * ============================================================
+
+* ============================================================
+* 检验 11: 异质性分析 — 银行特征条件效应
+* ============================================================
+* 对标: 华秀萍等 表7-表8; Angrist & Pischke (2009, §3.4.2)
+* 方法: 交互项法 (优于中介回归, 避免 Bad Controls)
+*
+* Brambor, T., Clark, W.R. & Golder, M. (2006). Political Analysis,
+*   14(1), 63-82. DOI: 10.1093/pan/mpi014
+*   → 交互项模型中主效应 (constituent terms) 必须同时进入
+*
+* 注: reghdfe 的 ## 语法自动包含主效应, 等价于手工输入
+*     c.X c.Z c.X#c.Z, 符合 Brambor et al. (2006) 规范
+
+* ── (11a) SOE vs 非SOE: 分样本法 ──
+preserve
+  keep if is_soe == 1
+  reghdfe Y llm_vote_tone_full X, absorb(target_bank year) vce(cluster target_bank)
+  est store het_soe
+restore
+preserve
+  keep if is_soe == 0
+  reghdfe Y llm_vote_tone_full X, absorb(target_bank year) vce(cluster target_bank)
+  est store het_nonsoe
+restore
+
+* ── (11b) SOE 交互项法 (正式统计检验, Chow 1960) ──
+* Chow, G.C. (1960). Econometrica, 28(3), 591-605.
+*   DOI: 10.2307/1910133
+reghdfe Y c.llm_vote_tone_full##i.is_soe X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store het_soe_chow
+* → c.llm_vote_tone_full#1.is_soe = SOE 与非SOE 的系数差异
+*   显著 → 组间差异有正式统计推断支持
+
+* ── (11c) 银行规模交互 (连续有序变量) ──
+reghdfe Y c.llm_vote_tone_full##c.bank_scale_ord X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store het_scale
+* → c.llm_vote_tone_full#c.bank_scale_ord: 每增一级规模, Tone 效应变化量
+
+* ── (11d) 媒体覆盖强度交互 ──
+* Fang, L.H. & Peress, J. (2009). JF, 64(5), 2023-2052.
+*   DOI: 10.1111/j.1540-6261.2009.01493.x
+reghdfe Y c.llm_vote_tone_full##i.high_coverage X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store het_coverage
+
+* ============================================================
+* 检验 12: DDD 三重差分 — 数字化前沿距离
+* ============================================================
+* Wooldridge, J.M. (2010). MIT Press, §10.4
+* → 三重差分要求同时纳入所有低阶交互项 (## 语法自动满足)
+
+* ── (12a) DCEP × 数字前沿 DDD ──
+reghdfe Y c.dcep_treated##c.dcep_post##i.digital_frontier X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store ddd_dcep
+* → c.dcep_treated#c.dcep_post#1.digital_frontier = DDD 估计量
+*   正显著 → 数字前沿银行从 DCEP 政策中获益更多
+
+* ── (12b) Sandbox × 数字前沿 DDD ──
+reghdfe Y c.sandbox_treated##c.sandbox_post##i.digital_frontier X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store ddd_sandbox
+
+* ============================================================
+* 检验 13: 时间断点与压力期调节效应
+* ============================================================
+
+* ── (13a) 压力期交互 ──
+* García, D. (2013). JF, 68(3), 1267-1300. DOI: 10.1111/jofi.12027
+* → 衰退/压力期间情感指标的统计特征显著不同
+reghdfe Y c.llm_vote_tone_full##i.stress_period X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store mod_stress
+* → c.llm_vote_tone_full#1.stress_period: 压力年份 Tone 效应的增量
+
+* ── (13b) 存款保险时间断点 ──
+* 《存款保险条例》(国务院令第660号) 2015.05.01 全国施行
+* 设计: 时间断点调节项, 非 DID (全国统一, 无处理/控制分组)
+reghdfe Y c.llm_vote_tone_full##i.depins_post X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store mod_depins
+* → c.llm_vote_tone_full#1.depins_post: 存保制度后 Tone 效应的结构变化
+
+* ── (13c) LLM 置信度调节 (信号清晰度) ──
+* Shapiro, A.H., Sudhof, M. & Wilson, D.J. (2022). JoE, 228(2), 221-243.
+*   DOI: 10.1016/j.jeconom.2020.07.053
+*   → §4: 测量噪声导致衰减偏误, 高置信度 → 更精确的 Tone 信号
+reghdfe Y c.llm_vote_tone_full##c.avg_llm_conf_full_z X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store mod_confidence
+* → c.llm_vote_tone_full#c.avg_llm_conf_full_z 正显著
+*   → 高置信度样本中 Tone 效应更强 (衰减偏误减轻)
+
+* ============================================================
+* 检验 14: 动态效应 — 情感滞后与反转
+* ============================================================
+* De Bondt, W.F.M. & Thaler, R. (1985). JF, 40(3), 793-805.
+*   DOI: 10.1111/j.1540-6261.1985.tb05004.x
+*   → 过度反应假说: 前期极端情感 → 后期反转
+
+* ── (14a) 滞后情感的独立效应 ──
+reghdfe Y llm_vote_tone_full llm_vote_tone_full_lag1 X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store lag_effect
+* → lag1 显著 + 当期显著 → 情感效应具有持续性 (persistent)
+* → lag1 不显著 → 效应仅限当期, 无动态溢出
+
+* ── (14b) 反转效应 ──
+reghdfe Y tone_reversal_full llm_vote_tone_full_lag1 X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store reversal
+* → reversal 系数负显著 → 均值回归 (mean reversion)
+* → reversal 系数正显著 → 动量效应 (momentum)
+
+* ── 输出表格 ──
+* 表 4: 异质性分析 (对标 华秀萍等 表7-8)
+esttab het_soe het_nonsoe het_soe_chow het_scale het_coverage ///
+  using "table_heterogeneity.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace ///
+  mtitles("SOE" "Non-SOE" "Chow" "Scale" "Coverage")
+
+* 表 5: DDD + 调节效应
+esttab ddd_dcep ddd_sandbox mod_stress mod_depins mod_confidence ///
+  using "table_moderation_extended.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace ///
+  mtitles("DCEP-DDD" "Sandbox-DDD" "Stress" "DepIns" "Confidence")
+
+* 表 6: 动态效应
+esttab lag_effect reversal ///
+  using "table_dynamic_effects.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace ///
+  mtitles("Lag Effect" "Reversal")
+* ============================================================
 """
     for line in template.strip().split('\n'):
         logger.info(f"  {line}")
