@@ -115,10 +115,12 @@ if os.path.exists(_p46):
     compute_network_spillovers = _m46.compute_network_spillovers
     compute_bank_network_centrality = _m46.compute_bank_network_centrality
     compute_cognitive_proximity = getattr(_m46, 'compute_cognitive_proximity', None)
+    compute_embedding_peer_network = getattr(_m46, 'compute_embedding_peer_network', None)
 else:
     compute_network_spillovers = None
     compute_bank_network_centrality = None
     compute_cognitive_proximity = None
+    compute_embedding_peer_network = None
 
 # --- 从 47 导入 (信息经纪网络) ---
 # 47_network_brokerage.py: 媒体-银行二分图中心度 + LOO行业冲击 + 火灾甩卖
@@ -135,6 +137,19 @@ else:
     compute_brokerage_centrality = None
     compute_industry_neg_shock = None
     compute_fire_sale_interaction = None
+
+# --- 从 48 导入 (LLM-Peer 竞争网络 IV) ---
+# 48_llm_peer_iv.py: 基于 LLM 语义判断的动态竞争网络 IV
+# 可选依赖: 同上, 通过 os.path.exists 守护
+# 学术依据: Cao, Y. et al. (2025). RAS, 30(4), 3344-3386.
+_p48 = os.path.join(os.path.dirname(__file__), '48_llm_peer_iv.py')
+if os.path.exists(_p48):
+    _s48 = _iu.spec_from_file_location('_48_mod', _p48)
+    _m48 = _iu.module_from_spec(_s48)
+    _s48.loader.exec_module(_m48)
+    compute_llm_peer_iv = _m48.compute_llm_peer_iv
+else:
+    compute_llm_peer_iv = None
 
 
 # ============================================================================
@@ -695,7 +710,11 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'net_avg_cluster_yr':   'Annual Avg Clustering Coefficient',
                 'net_avg_path_yr':      'Annual Avg Path Length (LCC)',
                 'net_degree_gini_yr':   'Annual Degree Distribution Gini',
-                # ═══ 银行共现网络: Part D (3) ═══
+                # ═══ 银行共现网络: Part D-1 一阶溢出 (3) ═══
+                'peer_tone_lag1_full':      '1st-Order Peer Sentiment (Full)',
+                'peer_tone_lag1_ctx':       '1st-Order Peer Sentiment (Ctx)',
+                'peer_tone_lag1_title':     '1st-Order Peer Sentiment (Title)',
+                # ═══ 银行共现网络: Part D-2 二阶溢出 (3) ═══
                 'peer_tone_2nd_lag1_full':  '2nd-Order Peer Sentiment Spillover (Full)',
                 'peer_tone_2nd_lag1_ctx':   '2nd-Order Peer Sentiment Spillover (Ctx)',
                 'peer_tone_2nd_lag1_title': '2nd-Order Peer Sentiment Spillover (Title)',
@@ -808,6 +827,13 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'brokerage_fire_sale':           'Brokerage x Neg Shock',
                 # === 同行金融科技溢出 (Berger et al. 2022) ===
                 'peer_fintech_exposure_lag1':    'Peer Fintech Exposure (L1)',
+                # === Embedding 同业网络 (Hoberg & Phillips 2016) ===
+                'emb_peer_tone_lag1_full':      'Emb Peer Tone L1 (Full)',
+                'bank_emb_sim_mean':            'Bank Embedding Sim Mean',
+                # === LLM-Peer 竞争网络 IV (Cao et al. 2025) ===
+                'llm_peer_tone_iv_full':        'LLM-Peer Tone IV (Full)',
+                'llm_peer_coverage_iv':         'LLM-Peer Coverage IV',
+                'llm_peer_count':               'LLM-Peer Count',
                 # ═══ 治理约束型合约 (Zhou et al., 2026, JBR §2.1; Core et al. 2003) ═══
                 'GOV_equity_ratio':             'Equity Comp / Total Comp Ratio',
                 'GOV_cash_ratio':               'Cash Comp / Total Comp Ratio',
@@ -1870,6 +1896,22 @@ def main():
         panel = compute_fire_sale_interaction(panel)
     else:
         logger.info("  compute_fire_sale_interaction 不可用, 跳过")
+
+    # --- 7h-emb. Embedding 同业网络控制 (Hoberg & Phillips 2016; Reimers 2019) ---
+    # 基于 Sentence Embedding 向量相似度构建动态同业网络权重矩阵,
+    # 计算加权同行情感作为控制变量, 补充共现网络的语义维度。
+    if compute_embedding_peer_network is not None:
+        panel = compute_embedding_peer_network(df_exploded, panel)
+    else:
+        logger.info("  compute_embedding_peer_network 不可用, 跳过")
+
+    # --- 7h-llmpeer. LLM-Peer 动态竞争网络 IV (Cao et al. 2025) ---
+    # 基于 LLM 语义判断构建竞争同行网络, 加权同行情感作为 IV。
+    # 双重筛选句子 (2+ 银行名 + 金融科技关键词) → GPT → 模糊匹配 → 滞后 IV
+    if compute_llm_peer_iv is not None:
+        panel = compute_llm_peer_iv(panel, df_exploded)
+    else:
+        logger.info("  compute_llm_peer_iv 不可用, 跳过")
 
     # =========================================================================
     # 步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造

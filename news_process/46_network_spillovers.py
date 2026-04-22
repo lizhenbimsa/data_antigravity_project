@@ -861,3 +861,238 @@ def compute_cognitive_proximity(
         logger.warning("  未生成任何认知邻近度变量")
 
     return panel
+
+
+# ============================================================================
+# 7. Embedding 同业网络控制变量
+# ============================================================================
+# 学术依据:
+#   Hoberg, G., & Phillips, G. (2016). Text-based network industries and
+#   endogenous product differentiation. Journal of Political Economy, 124(5),
+#   1423-1465. DOI: 10.1086/688176
+#   → 用产品描述文本构建动态同行网络; 本模块用 Embedding 向量相似度
+#     替代 TF-IDF cosine, 捕获更深层的语义邻近度
+#
+#   Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings
+#   using Siamese BERT-networks. EMNLP-IJCNLP 2019, 3982-3992.
+#   DOI: 10.18653/v1/D19-1410
+#   → Sentence-BERT 为本地降级方案提供学术依据
+#
+#   Manski, C. F. (1993). Identification of endogenous social effects:
+#   The reflection problem. The Review of Economic Studies, 60(3), 531-542.
+#   DOI: 10.2307/2298123
+#   → 使用 Lag(Y-1) 规避同期反射问题
+#
+# 流程:
+#   1. 按银行×年份聚合文本 (标题+内容)
+#   2. 截断至 8000 字符 (API token 限制)
+#   3. 调用 yunwu.ai/v1/embeddings (降级: sentence-transformers)
+#   4. cosine_similarity → 对角线置零 → row_stochastic_normalize
+#   5. emb_peer_tone = W_emb(t-1) × tone(t-1) (滞后一期)
+#
+# 输出:
+#   emb_peer_tone_lag1_full: Embedding 加权同行情感 (控制变量)
+#   bank_emb_sim_mean:       银行 Embedding 平均相似度 (控制变量)
+# ============================================================================
+
+# 读取 LLM 配置 (与 21_tone_llms.py 共享同一份 config.yaml 配置)
+LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
+_EMB_MODELS = LLM_CONFIG.get('models', [])
+
+
+async def _get_embeddings_api(texts, model='text-embedding-3-small'):
+    """调用 OpenAI 兼容 /embeddings 端点获取文本向量。
+
+    base_url 和 api_key 从 config.yaml 的 tone_llm_processing.models[0]
+    读取, 与 21_tone_llms.py 共享同一份配置, 严禁硬编码。
+
+    Args:
+        texts: list[str], 待编码文本列表
+        model: str, embedding 模型名称
+
+    Returns:
+        np.ndarray, shape=(len(texts), dim), 归一化后的嵌入向量矩阵
+
+    Raises:
+        RuntimeError: API 返回非 200 状态码
+    """
+    import aiohttp
+
+    if not _EMB_MODELS:
+        raise RuntimeError("config.yaml 中无可用 LLM 模型配置")
+
+    model_cfg = _EMB_MODELS[0]  # 使用第一个模型的 API 端点
+    base_url = model_cfg.get('base_url', '')
+    api_key = model_cfg.get('api_key', '')
+
+    headers = {"Content-Type": "application/json",
+               "Authorization": f"Bearer {api_key}"}
+    BATCH = 100  # OpenAI embeddings API 单次最多 2048 个输入
+    all_emb = []
+    async with aiohttp.ClientSession() as session:
+        for i in range(0, len(texts), BATCH):
+            batch_texts = texts[i:i + BATCH]
+            payload = {"model": model, "input": batch_texts}
+            async with session.post(f"{base_url}/embeddings",
+                                     json=payload, headers=headers,
+                                     timeout=aiohttp.ClientTimeout(total=120)
+                                     ) as resp:
+                if resp.status != 200:
+                    body = await resp.text()
+                    raise RuntimeError(
+                        f"Embedding API HTTP {resp.status}: {body[:200]}")
+                data = await resp.json()
+                for item in sorted(data['data'], key=lambda x: x['index']):
+                    all_emb.append(item['embedding'])
+            logger.info(f"    Embedding batch {i // BATCH + 1}/"
+                        f"{(len(texts) - 1) // BATCH + 1} 完成")
+    return np.array(all_emb)
+
+
+def compute_embedding_peer_network(df_exploded: pd.DataFrame,
+                                    panel: pd.DataFrame) -> pd.DataFrame:
+    """基于 Embedding 向量相似度的同业网络控制变量。
+
+    使用 Sentence Embedding 将每家银行每年的新闻文本编码为向量,
+    通过余弦相似度构建动态同业网络权重矩阵, 计算加权同行情感
+    作为内生性处理的控制变量。
+
+    方法论:
+      - 权重矩阵 W_emb 基于 Embedding 余弦相似度, 非二值共现
+      - 滞后一期 (t-1) 避免 Manski (1993) 反射问题
+      - API 优先, sentence-transformers 降级保护
+
+    Args:
+        df_exploded: 文章级 DataFrame, 含 target_bank/year/标题/内容
+        panel: 银行-年份面板 DataFrame
+
+    Returns:
+        panel: 追加 emb_peer_tone_lag1_full, bank_emb_sim_mean 列的面板
+
+    References:
+        Hoberg, G., & Phillips, G. (2016). JPE, 124(5), 1423-1465.
+        Reimers, N., & Gurevych, I. (2019). EMNLP-IJCNLP 2019.
+        Manski, C. F. (1993). RES, 60(3), 531-542.
+    """
+    import asyncio
+
+    logger.info("=" * 60)
+    logger.info("Embedding 同业网络控制变量 (Hoberg & Phillips 2016)")
+    logger.info("=" * 60)
+
+    text_col = '内容'
+    title_col = '标题'
+    tone_col = 'llm_vote_tone_full'
+    MAX_CHARS = 8000  # 截断阈值: ~4000 中文字 ≈ 5000 tokens
+
+    if tone_col not in panel.columns:
+        logger.warning(f"  {tone_col} 不存在, 跳过 Embedding 同业网络")
+        return panel
+
+    years = sorted(panel['year'].unique())
+    emb_results = {}  # key: (bank, year), value: dict
+
+    for year in years:
+        lag_year = year - 1
+        df_lag = df_exploded[df_exploded['year'] == lag_year]
+
+        if df_lag.empty:
+            logger.info(f"  年份 {year}: 滞后年 {lag_year} 无数据, 跳过")
+            continue
+
+        # ── 1. 按银行聚合文本 (复用 _concat_text 模式) ──
+        def _concat_text_emb(group):
+            bodies = group[text_col].fillna('').astype(str)
+            if title_col in group.columns:
+                titles = group[title_col].fillna('').astype(str)
+                return ' '.join(titles + ' ' + bodies)
+            return ' '.join(bodies)
+
+        bank_texts = df_lag.groupby('target_bank').apply(
+            _concat_text_emb, include_groups=False)
+        bank_list = bank_texts.index.tolist()
+        n_banks = len(bank_list)
+
+        if n_banks < 2:
+            logger.info(f"  年份 {year}: 仅 {n_banks} 家银行, 跳过")
+            continue
+
+        # ── 2. 截断至 MAX_CHARS ──
+        texts = [t[:MAX_CHARS] for t in bank_texts.values]
+
+        # ── 3. 获取 Embedding (API 优先, 降级 sentence-transformers) ──
+        try:
+            emb_matrix = asyncio.run(_get_embeddings_api(texts))
+            logger.info(f"  年份 {year}: API Embedding 成功, "
+                        f"{n_banks} 银行, dim={emb_matrix.shape[1]}")
+        except Exception as e:
+            logger.warning(f"  年份 {year}: API embedding 失败 ({e}), "
+                           f"回退 sentence-transformers")
+            try:
+                from sentence_transformers import SentenceTransformer
+                st_model = SentenceTransformer('shibing624/text2vec-base-chinese')
+                emb_matrix = st_model.encode(texts, show_progress_bar=True)
+                logger.info(f"  年份 {year}: sentence-transformers 成功, "
+                            f"dim={emb_matrix.shape[1]}")
+            except Exception as e2:
+                logger.error(f"  年份 {year}: Embedding 完全失败 ({e2}), 跳过")
+                continue
+
+        # ── 4. cosine_similarity → 对角线置零 → 行随机标准化 ──
+        if HAS_SKLEARN:
+            sim_matrix = _cosine_sim(emb_matrix)
+        else:
+            # 手动计算: 归一化后点积
+            norms = np.linalg.norm(emb_matrix, axis=1, keepdims=True)
+            norms = np.where(norms == 0, 1, norms)
+            normed = emb_matrix / norms
+            sim_matrix = normed @ normed.T
+
+        np.fill_diagonal(sim_matrix, 0)  # 自身不算同行
+        sim_df = pd.DataFrame(sim_matrix, index=bank_list, columns=bank_list)
+        W_emb = row_stochastic_normalize(sim_df)
+
+        # ── 5. emb_peer_tone = W_emb(t-1) × tone(t-1) ──
+        panel_lag = panel[panel['year'] == lag_year].set_index('target_bank')
+        tone_vec = pd.Series(np.nan, index=bank_list)
+        for bank in bank_list:
+            if bank in panel_lag.index:
+                val = panel_lag.loc[bank, tone_col]
+                if isinstance(val, pd.Series):
+                    val = val.iloc[0]
+                tone_vec[bank] = val
+
+        emb_peer_tone = W_emb.values @ tone_vec.fillna(0).values
+
+        for idx, bank in enumerate(bank_list):
+            # 平均相似度: 该银行与所有其他银行的 Embedding 余弦相似度均值
+            sim_row = sim_matrix[idx].copy()
+            sim_mean = float(np.mean(sim_row[sim_row > 0])) if (sim_row > 0).any() else np.nan
+
+            emb_results[(bank, year)] = {
+                'emb_peer_tone_lag1_full': emb_peer_tone[idx],
+                'bank_emb_sim_mean': sim_mean,
+            }
+
+        logger.info(f"  年份 {year}: {n_banks} 家银行, "
+                    f"Embedding 同行情感均值={np.nanmean(emb_peer_tone):.4f}")
+
+    # 合并至面板
+    if emb_results:
+        emb_df = pd.DataFrame([
+            {'target_bank': k[0], 'year': k[1], **v}
+            for k, v in emb_results.items()
+        ])
+        panel = panel.merge(emb_df, on=['target_bank', 'year'], how='left')
+
+        # 范围断言
+        valid_sim = panel['bank_emb_sim_mean'].dropna()
+        if len(valid_sim) > 0:
+            assert (valid_sim >= -1e-10).all() and (valid_sim <= 1 + 1e-10).all(), \
+                f"bank_emb_sim_mean 超出 [0,1]: [{valid_sim.min():.6f}, {valid_sim.max():.6f}]"
+            logger.info(f"  Embedding 同业网络已合并: {len(valid_sim):,} 有效值, "
+                        f"sim_mean={valid_sim.mean():.4f}")
+    else:
+        logger.warning("  未生成任何 Embedding 同业网络变量")
+
+    return panel
