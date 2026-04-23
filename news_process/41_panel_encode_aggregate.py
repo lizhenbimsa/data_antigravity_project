@@ -461,6 +461,33 @@ def build_aggregation_dict() -> dict:
         # H: 前瞻性空洞
         agg[f'pos_desc_fl_count{track}'] = (f'_is_pos_desc_fl{track}', 'sum')
 
+    # --- L. 单方法 neg_count (用于 disag 指标) ---
+    # Garcia, D. (2013). Sentiment during recessions.
+    #   The Journal of Finance, 68(3), 1267-1300. DOI: 10.1111/jofi.12027
+    #   → 正负面分离避免极性对冲掩蔽, 为下游 disag 公式提供输入
+    for track in ['_full', '_ctx']:
+        for llm in LLM_MODELS:
+            agg[f'{llm}_neg_count{track}'] = (f'_is_{llm}_negative{track}', 'sum')
+        for d in DICT_NAMES:
+            agg[f'{d}_neg_count{track}'] = (f'_is_{d}_negative{track}', 'sum')
+        for b in BERT_MODELS:
+            agg[f'{b}_neg_count{track}'] = (f'_is_{b}_negative{track}', 'sum')
+
+    # --- M. 单词典 pos_ratio / neg_ratio 聚合 (词级 disag 输入) ---
+    # 姜富伟, 李梦如, 孟令超 (2024). 经济学（季刊）, 24(6), 2281-2300.
+    #   DOI: 10.13821/j.cnki.ceq.2024.06.19
+    for track in ['_full', '_ctx']:
+        for d in DICT_NAMES:
+            agg[f'avg_{d}_pos_ratio{track}'] = (f'{d}_pos_ratio{track}', 'mean')
+            agg[f'avg_{d}_neg_ratio{track}'] = (f'{d}_neg_ratio{track}', 'mean')
+
+    # --- N. 相对披露密度 (Abraham et al. 2024, JAR, 62(5), 1611-1660) ---
+    # DOI: 10.1111/1475-679X.12570
+    #   → 篇章级 fintech_word_ratio 在 aggregate_panel() 中预计算,
+    #     此处仅注册聚合入口
+    agg['avg_ft_word_ratio'] = ('_ft_word_ratio', 'mean')
+    agg['avg_ft_word_ratio_std'] = ('_ft_word_ratio', 'std')
+
     return agg
 
 
@@ -476,6 +503,17 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
     logger.info("步骤 5: Bank-Year 聚合")
     logger.info("=" * 60)
+
+    # --- 篇章级相对披露密度预计算 ---
+    # Abraham, J., Olbert, M., & Vasvari, F. P. (2024). ESG disclosures
+    #   in the private equity industry. Journal of Accounting Research, 62(5), 1611-1660.
+    #   DOI: 10.1111/1475-679X.12570
+    #   → 必须在 groupby 前计算, 否则 mean(a/b) ≠ mean(a)/mean(b) (Jensen 不等式)
+    if 'fintech_total_count' in df.columns and 'doc_length' in df.columns:
+        df['_ft_word_ratio'] = df['fintech_total_count'] / df['doc_length'].replace(0, np.nan)
+        logger.info(f"  _ft_word_ratio 预计算完成: "
+                    f"mean={df['_ft_word_ratio'].mean():.6f}, "
+                    f"非空={df['_ft_word_ratio'].notna().sum()}")
 
     agg_dict = build_aggregation_dict()
 

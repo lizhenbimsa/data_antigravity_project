@@ -739,6 +739,16 @@ def _analyze_single_article(content: str) -> dict:
         result[f'{dict_name}_score'] = round(norm_score, 4)
         result[f'{dict_name}_label'] = _score_to_label(norm_score)
 
+        # --- 单词典正/负面词频分离 ---
+        # 学术依据: Garcia, D. (2013). Sentiment during recessions.
+        #   The Journal of Finance, 68(3), 1267-1300.
+        #   DOI: 10.1111/jofi.12027
+        #   → 将正负面词汇分离为独立协变量, 避免净情感指标的极性对冲掩蔽
+        # 用途: 下游 disag (情感分歧) 指标的单词典变体输入
+        _n = len(tokens)
+        result[f'{dict_name}_pos_ratio'] = round(pos_cnt / _n, 6) if _n > 0 else 0.0
+        result[f'{dict_name}_neg_ratio'] = round(neg_cnt / _n, 6) if _n > 0 else 0.0
+
         # 记录匹配词最多的词典的详情（用于最终输出和正/负面词频分离）
         if len(matched) > best_matched_count:
             best_matched_count = len(matched)
@@ -877,6 +887,12 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             stats[f'{dict_name}_正面{track}'] = int(label_counts.get('正面', 0))
             stats[f'{dict_name}_中性{track}'] = int(label_counts.get('中性', 0))
             stats[f'{dict_name}_负面{track}'] = int(label_counts.get('负面', 0))
+
+            # 单词典 pos/neg ratio 提取 (Garcia 2013, JF)
+            df[f'{dict_name}_pos_ratio{track}'] = results.apply(
+                lambda r, k=f'{dict_name}_pos_ratio{track}': r.get(k, 0.0))
+            df[f'{dict_name}_neg_ratio{track}'] = results.apply(
+                lambda r, k=f'{dict_name}_neg_ratio{track}': r.get(k, 0.0))
 
     df['sentiment_details_full'] = results.apply(lambda r: r.get('sentiment_details_full', ''))
     df['sentiment_details_ctx'] = results.apply(lambda r: r.get('sentiment_details_ctx', ''))

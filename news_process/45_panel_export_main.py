@@ -843,6 +843,64 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'GOV_dual_chair':               'CEO-Chair Duality (0/1)',
                 'GOV_comp_committee':           'Compensation Committee (0/1)',
                 'GOV_ceo_tenure':               'CEO Tenure (Years)',
+                # ═══ 情感分歧 (姜富伟 2024; Antweiler & Frank 2004) ═══
+                **{f'disag{s}': f'Disagreement: Dict Avg ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'disag_{d}{s}': f'Disagreement: {d} ({t})'
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'disag_llm{s}': f'Disagreement: LLM Vote ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'disag_{m}{s}': f'Disagreement: {m} ({t})'
+                   for m in ['gpt5nano', 'gemini3', 'claude4h']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'disag_bert{s}': f'Disagreement: BERT Avg ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'disag_{b}{s}': f'Disagreement: {b} ({t})'
+                   for b in ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                # ═══ 对数降噪情感 (Angelico et al. 2022) ═══
+                **{f'log_sent{s}': f'Log Sentiment ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                # ═══ 算法迎合度 (Cao et al. 2023; Huang et al. 2023) ═══
+                **{f'algo_cater{s}': f'Algo Catering: Dict-LLM ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'algo_cater_b{s}': f'Algo Catering: Dict-BERT ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'{d}_cater{s}': f'Catering: {d}-LLM ({t})'
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'{d}_cater_b{s}': f'Catering: {d}-BERT ({t})'
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'cater_{m}{s}': f'Catering: Dict-{m} ({t})'
+                   for m in ['gpt5nano', 'gemini3', 'claude4h']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'cater_{b}{s}': f'Catering: Dict-{b} ({t})'
+                   for b in ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                # ═══ 披露密度 (Abraham et al. 2024) ═══
+                'avg_ft_word_ratio':     'Avg Fintech Word Ratio',
+                'avg_ft_word_ratio_std': 'Std Fintech Word Ratio',
+                # ═══ 同业竞争 (Cao et al. 2025) ═══
+                'peer_compete_idx':      'LLM-Peer Competition Index',
+                # ═══ 前置中间变量: neg_count ═══
+                **{f'{m}_neg_count{s}': f'Neg Count: {m} ({t})'
+                   for m in ['gpt5nano', 'gemini3', 'claude4h']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'{d}_neg_count{s}': f'Neg Count: {d} ({t})'
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'{b}_neg_count{s}': f'Neg Count: {b} ({t})'
+                   for b in ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                # ═══ 前置中间变量: 单词典 pos/neg ratio ═══
+                **{f'avg_{d}_pos_ratio{s}': f'Avg Pos Ratio: {d} ({t})'
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                **{f'avg_{d}_neg_ratio{s}': f'Avg Neg Ratio: {d} ({t})'
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -1077,6 +1135,8 @@ def main():
                 _llm_pos = (df[src_col] > 0)
                 df[f'_is_{llm}_positive{track}'] = _llm_pos.astype(int)
                 df[f'_is_{llm}_pos_desc{track}'] = (_llm_pos & _is_desc).astype(int)
+                # negative 编码 (Garcia 2013, JF → disag 输入)
+                df[f'_is_{llm}_negative{track}'] = (df[src_col] < 0).astype(int)
 
         # --- 方法 D: 词典均值 (Loughran & McDonald 2011, JF) ---
         _dict_cols = [f'{d}_score{track}' for d in DICT_NAMES
@@ -1095,6 +1155,8 @@ def main():
                 _d_pos = (df[src_col] > 0)
                 df[f'_is_{d}_positive{track}'] = _d_pos.astype(int)
                 df[f'_is_{d}_pos_desc{track}'] = (_d_pos & _is_desc).astype(int)
+                # negative 编码 (Garcia 2013, JF → disag 输入)
+                df[f'_is_{d}_negative{track}'] = (df[src_col] < 0).astype(int)
 
         # --- 方法 E: BERT 均值 (Huang et al. 2023, CAR) ---
         _bert_pos_cols = [f'{b}_正面{track}' for b in BERT_MODELS
@@ -1113,6 +1175,10 @@ def main():
                 _b_pos = (df[src_col] > 0.5)
                 df[f'_is_{b}_positive{track}'] = _b_pos.astype(int)
                 df[f'_is_{b}_pos_desc{track}'] = (_b_pos & _is_desc).astype(int)
+                # negative 编码 (Garcia 2013, JF → disag 输入)
+                neg_src = f'{b}_负面{track}'
+                if neg_src in df.columns:
+                    df[f'_is_{b}_negative{track}'] = (df[neg_src] > 0.5).astype(int)
 
         # --- 方法 F: 高置信度子样本 (Shapiro et al. 2022, JoE) ---
         agr_col = f'llm_agreement_rate{track}'
@@ -2101,6 +2167,106 @@ def main():
                         f"std={panel[f'jf_coefficient{track}'].std():.4f}")
         else:
             logger.warning(f"  {pos_col} 或 {neg_col} 不存在, 跳过 J-F 系数{track}")
+
+    # ═══ 8b. 情感意见分歧 (Disagreement Index) ═══
+    # 姜富伟, 李梦如, 孟令超 (2024). 调预期、防风险：央行金融稳定沟通效果研究.
+    #   经济学（季刊）, 24(6), 2281-2300. DOI: 10.13821/j.cnki.ceq.2024.06.19
+    # Antweiler, W., & Frank, M. Z. (2004). Is all that talk just noise?
+    #   The Journal of Finance, 59(3), 1259-1294. DOI: 10.1111/j.1540-6261.2004.00662.x
+    # 公式: disag = sqrt(1 - ((pos - neg) / (pos + neg))²)  ∈ [0, 1]
+    #   0 = 完全一致 (全正或全负), 1 = 最大分歧 (正负相等)
+    def _compute_disag(p_col, n_col, _panel):
+        """通用 disag 计算, 处理 denom=0 边界 → NaN"""
+        if p_col not in _panel.columns or n_col not in _panel.columns:
+            return pd.Series(np.nan, index=_panel.index)
+        p, n = _panel[p_col], _panel[n_col]
+        denom = p + n
+        ratio = ((p - n) / denom.replace(0, np.nan)) ** 2
+        return np.sqrt(1 - ratio)
+
+    for track in ['_full', '_ctx']:
+        # (a) 词典综合 (词级比率)
+        panel[f'disag{track}'] = _compute_disag(
+            f'avg_pos_ratio{track}', f'avg_neg_ratio{track}', panel)
+        # (b) 单词典 (词级比率)
+        for d in DICT_NAMES:
+            panel[f'disag_{d}{track}'] = _compute_disag(
+                f'avg_{d}_pos_ratio{track}', f'avg_{d}_neg_ratio{track}', panel)
+        # (c) LLM 投票综合 (篇章计数)
+        panel[f'disag_llm{track}'] = _compute_disag(
+            f'pos_count{track}', f'neg_count{track}', panel)
+        # (d) 单 LLM (篇章计数)
+        for llm in LLM_MODELS:
+            panel[f'disag_{llm}{track}'] = _compute_disag(
+                f'{llm}_pos_count{track}', f'{llm}_neg_count{track}', panel)
+        # (e) BERT 综合 (概率均值, 43 L86 生成)
+        panel[f'disag_bert{track}'] = _compute_disag(
+            f'bert_avg_pos{track}', f'bert_avg_neg{track}', panel)
+        # (f) 单 BERT (概率均值)
+        for b in BERT_MODELS:
+            panel[f'disag_{b}{track}'] = _compute_disag(
+                f'{b}_pos{track}', f'{b}_neg{track}', panel)
+    logger.info(f"  disag 指标计算完成 (32 变量)")
+
+    # ═══ 8c. 对数降噪定向情感 (Log-Transformed Sentiment) ═══
+    # Angelico, C., Marcucci, J., Miccoli, M., & Quarta, F. (2022).
+    #   Can we measure inflation expectations using Twitter?
+    #   Journal of Econometrics, 228(2), 259-277. DOI: 10.1016/j.jeconom.2021.12.008
+    # 公式: log_sent = log(1 + pos_count) - log(1 + neg_count)
+    for track in ['_full', '_ctx']:
+        pc, nc = f'pos_count{track}', f'neg_count{track}'
+        if pc in panel.columns and nc in panel.columns:
+            panel[f'log_sent{track}'] = (
+                np.log1p(panel[pc].fillna(0)) -
+                np.log1p(panel[nc].fillna(0)))
+    logger.info(f"  log_sent 指标计算完成 (2 变量)")
+
+    # ═══ 8d. 算法迎合度 (Algorithmic Catering) — 全展开 ═══
+    # Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk
+    #   when a machine is listening. RFS, 36(9), 3603-3642. DOI: 10.1093/rfs/hhad021
+    # Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT.
+    #   CAR, 40(2), 806-841. DOI: 10.1111/1911-3846.12832
+    # 公式: algo_cater = dict_tone - deep_model_tone
+    #   正值 → 词典比深层模型更正面 (潜在迎合)
+    _cater_count = 0
+    for track in ['_full', '_ctx']:
+        dc = f'dict_avg_tone{track}'
+        lc = f'llm_vote_tone{track}'
+        bp, bn = f'bert_avg_pos{track}', f'bert_avg_neg{track}'
+
+        # A. 综合词典 vs 综合 LLM
+        if dc in panel.columns and lc in panel.columns:
+            panel[f'algo_cater{track}'] = panel[dc] - panel[lc]
+            _cater_count += 1
+        # A2. 综合词典 vs 综合 BERT
+        if dc in panel.columns and bp in panel.columns and bn in panel.columns:
+            panel[f'algo_cater_b{track}'] = panel[dc] - (panel[bp] - panel[bn])
+            _cater_count += 1
+
+        # B. 单词典 vs 综合深层模型
+        for d in DICT_NAMES:
+            d_col = f'{d}_tone{track}'
+            if d_col in panel.columns:
+                if lc in panel.columns:
+                    panel[f'{d}_cater{track}'] = panel[d_col] - panel[lc]
+                    _cater_count += 1
+                if bp in panel.columns and bn in panel.columns:
+                    panel[f'{d}_cater_b{track}'] = panel[d_col] - (panel[bp] - panel[bn])
+                    _cater_count += 1
+
+        # C. 综合词典 vs 单深层模型
+        if dc in panel.columns:
+            for llm in LLM_MODELS:
+                llm_s = f'{llm}_tone{track}'
+                if llm_s in panel.columns:
+                    panel[f'cater_{llm}{track}'] = panel[dc] - panel[llm_s]
+                    _cater_count += 1
+            for b in BERT_MODELS:
+                b_p, b_n = f'{b}_pos{track}', f'{b}_neg{track}'
+                if b_p in panel.columns and b_n in panel.columns:
+                    panel[f'cater_{b}{track}'] = panel[dc] - (panel[b_p] - panel[b_n])
+                    _cater_count += 1
+    logger.info(f"  algo_cater 指标计算完成 ({_cater_count} 变量)")
 
     log_diagnostics(panel, df_exploded)
 

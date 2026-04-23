@@ -622,7 +622,46 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         ])
         panel = panel.merge(iv_df, on=['target_bank', 'year'], how='left')
 
-        # 诊断统计
+    # ── 7b. 同业竞争压力指标 (Peer Competition Index) ──
+    # Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025).
+    #   Can generative AI help identify peer firms?
+    #   Review of Accounting Studies, 30(4), 3344-3386.
+    #   DOI: 10.1007/s11142-025-09892-6
+    # 公式: peer_compete_idx = 与 LLM 识别同行共现的文章比例 ∈ [0, 1]
+    compete_records = []
+    banks = panel['target_bank'].unique()
+    years = panel['year'].unique()
+    for bank in banks:
+        for year in years:
+            key = f'{bank}_{year}'
+            peers = peer_map.get(key, [])
+            if not peers:
+                continue
+            peer_set = set(peers)
+            mask = ((df_exploded['target_bank'] == bank) &
+                    (df_exploded['year'] == year))
+            articles = df_exploded.loc[mask]
+            if len(articles) == 0:
+                continue
+            co_with_peer = articles['co_mentioned_banks'].apply(
+                lambda x: bool(set(str(x).split(';')) & peer_set)
+                if pd.notna(x) and str(x).strip() else False
+            ).sum()
+            compete_records.append({
+                'target_bank': bank, 'year': year,
+                'peer_compete_idx': co_with_peer / len(articles),
+            })
+    if compete_records:
+        compete_df = pd.DataFrame(compete_records)
+        panel = panel.merge(compete_df, on=['target_bank', 'year'], how='left')
+        logger.info(f"  peer_compete_idx: "
+                    f"mean={panel['peer_compete_idx'].mean():.4f}, "
+                    f"非空={panel['peer_compete_idx'].notna().sum()}")
+    else:
+        logger.info("  peer_compete_idx: 无 peer_map 记录, 跳过")
+
+    # 诊断统计
+    if results:
         for col in ['llm_peer_tone_iv_full', 'llm_peer_coverage_iv', 'llm_peer_count']:
             if col in panel.columns:
                 valid = panel[col].dropna()
