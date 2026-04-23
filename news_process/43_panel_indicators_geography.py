@@ -574,8 +574,10 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
         panel: 附加 4 个 leave-one-out 列的 DataFrame。
     """
     logger.info("=" * 60)
-    logger.info("步骤 7d: Leave-one-out 地理平均情感 (Luo & Li 2025)")
+    logger.info("步骤 7d: Leave-one-out 地理平均情感 (Luo & Li 2025; Manski 1993; Bramoullé 2009)")
     logger.info("=" * 60)
+    logger.info("  [文献支撑 1]: Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies. https://doi.org/10.2307/2298123")
+    logger.info("  [文献支撑 2]: Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics. https://doi.org/10.1016/j.jeconom.2008.12.021")
     logger.info("  对标: Province_news_sentiment (Table 3)")
     logger.info("  公式: leave1out_i = (Σ tone_j - tone_i) / (N - 1), j ≠ i")
 
@@ -620,6 +622,13 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
             #   leave-one-out 分母为 0, 赋 NaN (方法论正确)
             out_series = pd.Series(np.nan, index=panel.index)
             valid_idx = subset.index[grp_cnt > 1]
+            
+            # [白盒安全加固] 强校验：绝不信任外部 groupby 广播的返回，确保参与计算的值无任何空值或负分母
+            if len(valid_idx) > 0:
+                assert subset.loc[valid_idx, tone_col].notna().all(), "LOO IV 计算前置校验失败: 存在空值情感分数"
+                assert grp_cnt.loc[valid_idx].notna().all(), "LOO IV 计算前置校验失败: 组频数存在 NaN"
+                assert (grp_cnt.loc[valid_idx] - 1 > 0).all(), "LOO IV 分母出现非法非正值！"
+                
             out_series.loc[valid_idx] = (
                 (grp_sum.loc[valid_idx]
                  - subset.loc[valid_idx, tone_col])
@@ -990,7 +999,7 @@ def compute_regional_imitation_pressure(
     学术依据:
       Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect
       corporate financial policy? The Journal of Finance, 69(1), 139-178.
-      DOI: 10.1111/jofi.12104
+      https://doi.org/10.1111/jofi.12094
       → 同行模仿效应的操作化
 
       Dahlke, J., et al. (2024). Epidemic effects in the diffusion

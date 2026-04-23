@@ -393,6 +393,7 @@ validation:
   entity_masking: true                              # 阶段36: Entity Masking 稳健性测试
   media_diversity: true                             # 阶段38: 媒体名称与地域多样性审计
   prompt_sensitivity: true                           # 阶段39: Prompt 措辞敏感度量化测试
+  dedup_sensitivity: true                            # 阶段32a: 去重阈值敏感性分析 (Broder 1997; 全量数据, 耗时约2.5小时)
 
 # ------------------------------------------------------------------------------
 # [模块四：评估验证模块] Entity Masking 稳健性测试 - 阶段 36

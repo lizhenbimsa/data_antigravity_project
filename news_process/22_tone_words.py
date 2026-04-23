@@ -48,6 +48,7 @@
 
 import os
 import re
+import threading
 import json
 import math
 import time
@@ -585,80 +586,107 @@ def _build_idf_weighted_dict(
 ALL_DICTIONARIES = None
 IDF_DICTIONARIES = None  # IDF 加权词典（稳健性检验，在 main() 中初始化）
 
+_JIEBA_INJECTED = False
+_JIEBA_LOCK = threading.Lock()
+
 def _inject_custom_dicts_to_jieba():
-    """将所有情感词、银行名称、金融科技词汇注入jieba分词器，防止专业词汇被切碎。"""
-    logger.info("正在将自定义领域词汇注入 jieba 分词器...")
-    added_count = 0
+    global _JIEBA_INJECTED
+    # 第一次检查 (无锁)：在绝大多数情况下，字典已被加载，直接返回，避免获取锁的系统开销
+    if _JIEBA_INJECTED:
+        return
+    with _JIEBA_LOCK:
+        # 第二次检查 (有锁)：防止多个线程同时越过第一次检查，排队获取锁后造成重复注入
+        if _JIEBA_INJECTED:
+            return
+        
+        """
+        将所有情感词、银行名称、金融科技词汇注入jieba分词器，防止专业词汇被切碎。
+        
+        [并发机理与锁机制依据]:
+        jieba 底层维护了一个全局共享的字典树 (Trie tree, 即 jieba.dt)。在 joblib 或 concurrent.futures
+        等多线程/多进程后端调用 add_word 时，若没有严格的互斥锁保护，会导致字典树的内部指针状态
+        损坏 (Race Condition)，引发 KeyError 或分词结果不可逆的碎片化。
+        此处严格采用 Double-Checked Locking (DCL) 模式保证只执行一次 O(n) 的插入操作。
+        - Schmidt, D. C., & Harrison, T. (1997). Double-checked locking: An optimization pattern 
+          for efficiently initializing and accessing thread-safe objects. Pattern Languages of Program Design 3, 363-375.
+        
+        [领域词库基石依据]:
+        Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. 
+        The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
+        """
+        logger.info("正在将自定义领域词汇注入 jieba 分词器...")
+        added_count = 0
 
-    # 1. 注入所有情感词典中的词汇
-    for dict_name, sentiment_dict in ALL_DICTIONARIES:
-        if sentiment_dict:
-            for word in sentiment_dict.keys():
-                jieba.add_word(word)
-                added_count += 1
+        # 1. 注入所有情感词典中的词汇
+        for dict_name, sentiment_dict in ALL_DICTIONARIES:
+            if sentiment_dict:
+                for word in sentiment_dict.keys():
+                    jieba.add_word(word)
+                    added_count += 1
 
-    # 2. 注入银行名称库 (11_news_bank.py 的同源字典)
-    bank_dict_path = CONFIG['paths'].get(
-        'bank_names_file',
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'bank_names.json')
-    )
-    if os.path.exists(bank_dict_path):
-        try:
-            with open(bank_dict_path, 'r', encoding='utf-8') as f:
-                bank_data = json.load(f)
-                if isinstance(bank_data, list):
-                    for bank in bank_data:
-                        if not isinstance(bank, dict): continue
-                        std_name = bank.get('standard_name')
-                        if std_name:
-                            jieba.add_word(str(std_name).strip())
-                            added_count += 1
-                        for variant in bank.get('variants', []):
-                            if variant:
-                                jieba.add_word(str(variant).strip())
+        # 2. 注入银行名称库 (11_news_bank.py 的同源字典)
+        bank_dict_path = CONFIG['paths'].get(
+            'bank_names_file',
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'bank_names.json')
+        )
+        if os.path.exists(bank_dict_path):
+            try:
+                with open(bank_dict_path, 'r', encoding='utf-8') as f:
+                    bank_data = json.load(f)
+                    if isinstance(bank_data, list):
+                        for bank in bank_data:
+                            if not isinstance(bank, dict): continue
+                            std_name = bank.get('standard_name')
+                            if std_name:
+                                jieba.add_word(str(std_name).strip())
                                 added_count += 1
-        except Exception as e:
-            logger.warning(f"未能加载银行词典注入jieba: {e}")
-
-    # 3. 注入金融科技词典 (12_news_fintech.py 的同源字典)
-    fintech_dict_path = CONFIG['paths'].get(
-        'fintech_dict_file',
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'fintech_dict.json')
-    )
-    if os.path.exists(fintech_dict_path):
-        try:
-            with open(fintech_dict_path, 'r', encoding='utf-8') as f:
-                fintech_data = json.load(f)
-                if isinstance(fintech_data, list):
-                    for word in fintech_data:
-                        if word:
-                            jieba.add_word(str(word).strip())
-                            added_count += 1
-                elif isinstance(fintech_data, dict):
-                    for category, words_list in fintech_data.items():
-                        if isinstance(words_list, list):
-                            for word in words_list:
-                                if word:
-                                    jieba.add_word(str(word).strip())
+                            for variant in bank.get('variants', []):
+                                if variant:
+                                    jieba.add_word(str(variant).strip())
                                     added_count += 1
-        except Exception as e:
-            logger.warning(f"未能加载金融科技词典注入jieba: {e}")
-            
-    # 4. 注入否定词与程度词增强规则库
-    for word in NEGATION_WORDS:
-        jieba.add_word(word)
-    for word in DEGREE_WORDS.keys():
-        jieba.add_word(word)
-    for word in ADVERSATIVE_WORDS:
-        jieba.add_word(word)
+            except Exception as e:
+                logger.warning(f"未能加载银行词典注入jieba: {e}")
 
-    # 5. 注入前瞻性词汇（防止多字前瞻性词被 jieba 切碎，
-    #    如"预判""酝酿""筹划"等）
-    for word in FORWARD_LOOKING_WORDS:
-        if len(word) > 1:  # 单字词无需注入
+        # 3. 注入金融科技词典 (12_news_fintech.py 的同源字典)
+        fintech_dict_path = CONFIG['paths'].get(
+            'fintech_dict_file',
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'fintech_dict.json')
+        )
+        if os.path.exists(fintech_dict_path):
+            try:
+                with open(fintech_dict_path, 'r', encoding='utf-8') as f:
+                    fintech_data = json.load(f)
+                    if isinstance(fintech_data, list):
+                        for word in fintech_data:
+                            if word:
+                                jieba.add_word(str(word).strip())
+                                added_count += 1
+                    elif isinstance(fintech_data, dict):
+                        for category, words_list in fintech_data.items():
+                            if isinstance(words_list, list):
+                                for word in words_list:
+                                    if word:
+                                        jieba.add_word(str(word).strip())
+                                        added_count += 1
+            except Exception as e:
+                logger.warning(f"未能加载金融科技词典注入jieba: {e}")
+                
+        # 4. 注入否定词与程度词增强规则库
+        for word in NEGATION_WORDS:
+            jieba.add_word(word)
+        for word in DEGREE_WORDS.keys():
+            jieba.add_word(word)
+        for word in ADVERSATIVE_WORDS:
             jieba.add_word(word)
 
-    logger.info(f"成功注入 {added_count} 个领域自定义词汇到 jieba 分词树。")
+        # 5. 注入前瞻性词汇（防止多字前瞻性词被 jieba 切碎，
+        #    如"预判""酝酿""筹划"等）
+        for word in FORWARD_LOOKING_WORDS:
+            if len(word) > 1:  # 单字词无需注入
+                jieba.add_word(word)
+
+        logger.info(f"成功注入 {added_count} 个领域自定义词汇到 jieba 分词树。")
+        _JIEBA_INJECTED = True
 
 # 注入操作延迟到 main() 中执行
 # _inject_custom_dicts_to_jieba()

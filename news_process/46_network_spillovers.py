@@ -21,7 +21,7 @@
 学术依据:
   Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect
   corporate financial policy? The Journal of Finance, 69(1), 139-178.
-  DOI: 10.1111/jofi.12104
+  https://doi.org/10.1111/jofi.12094
   → 同行效应与公司金融决策; 本项目用新闻共现构建同行网络
 
   Manski, C. F. (1993). Identification of endogenous social effects.

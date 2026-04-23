@@ -7,6 +7,7 @@ run_pipeline_validation.py - 新闻处理流水线: 评估验证模块
     包含以下阶段(由 config.yaml 中 validation 节点控制):
       - 阶段31:  阈值敏感性分析         (31_bank_fintech_threshold.py)
       - 阶段32:  人工抽样验证样本生成   (32_news_llms_human.py)
+      - 阶段32a: 去重阈值敏感性分析     (32a_dedup_threshold_sensitivity.py)
       - 阶段33:  分类有效性评估         (33_news_llms_evaluation.py)
       - 阶段34:  情感三角验证           (34_tone_validation.py)
       - 阶段35:  窗口半径敏感性检验     (35_radius_sensitivity.py)
@@ -54,6 +55,7 @@ def run_validation():
     流程：
       1. 阶段31: 阈值敏感性分析（由 validation.threshold_sensitivity 控制）
       2. 阶段32: 人工抽样验证样本生成
+      2a.阶段32a: 去重阈值敏感性分析（由 validation.dedup_sensitivity 控制）
       3. 阶段33: 分类有效性评估（由 validation.classification_eval 控制）
       4. 阶段34: 情感三角验证（由 validation.sentiment_validation 控制）
       5. 阶段35: 窗口半径敏感性检验（由 validation.radius_sensitivity 控制）
@@ -74,9 +76,10 @@ def run_validation():
     logger.info("     对前三模块(预处理→分类→情感分析)的全部关键决策进行系统性验证,")
     logger.info("     确保研究结论不受人为参数选择、模型偏差或数据噪声的影响。")
     logger.info("")
-    logger.info("  📖 11 个验证阶段说明")
+    logger.info("  📖 12 个验证阶段说明")
     logger.info("     31:  阈值敏感性  — 分类参数做网格搜索, 证明当前阈值是稳健的")
     logger.info("     32:  人工抽样    — 生成分层随机样本供人工标注比对")
+    logger.info("     32a: 去重敏感性  — Jaccard MinHash 多阈值去重, 证明去重参数稳健 (Broder 1997)")
     logger.info("     33:  分类评估    — 计算 Cohen's κ / Krippendorff's α, 量化 LLM 一致性")
     logger.info("     34:  三角验证    — 词典/BERT/LLM 三种方法交叉验证构建效度")
     logger.info("     35:  窗口敏感性  — 检验上下文提取半径对情感度量的影响")
@@ -103,6 +106,13 @@ def run_validation():
         stages.append(("31_bank_fintech_threshold.py", "阶段31: 阈值敏感性分析"))
 
     stages.append(("32_news_llms_human.py", "阶段32: 人工抽样验证样本生成"))
+
+    # 阶段32a: 去重阈值敏感性分析 (Broder 1997, IEEE SEQUENCES)
+    # 全量数据 MinHash 运行耗时约 2.5 小时
+    # 输出: eval_reports/dedup_sensitivity_report.csv (供论文附录参数稳健性表格)
+    if validation_config.get('dedup_sensitivity', True):
+        stages.append(("32a_dedup_threshold_sensitivity.py",
+                       "阶段32a: 去重阈值敏感性分析"))
 
     if validation_config.get('classification_eval', True):
         stages.append(("33_news_llms_evaluation.py", "阶段33: 分类有效性评估"))

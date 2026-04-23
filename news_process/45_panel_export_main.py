@@ -831,9 +831,20 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'emb_peer_tone_lag1_full':      'Emb Peer Tone L1 (Full)',
                 'bank_emb_sim_mean':            'Bank Embedding Sim Mean',
                 # === LLM-Peer 竞争网络 IV (Cao et al. 2025) ===
+                # 主回归变量 (cutoff=0.80 TNIC 标准, 无后缀)
                 'llm_peer_tone_iv_full':        'LLM-Peer Tone IV (Full)',
                 'llm_peer_coverage_iv':         'LLM-Peer Coverage IV',
                 'llm_peer_count':               'LLM-Peer Count',
+                'peer_compete_idx':             'Peer Competition Index (0.80)',
+                # 多阈值敏感性变体 (cutoff=0.70/0.75/0.80/0.85/0.90)
+                **{f'llm_peer_tone_iv_full_{c}': f'LLM-Peer Tone IV (Full, c={c/100:.2f})'
+                   for c in [70, 75, 80, 85, 90]},
+                **{f'llm_peer_coverage_iv_{c}': f'LLM-Peer Coverage IV (c={c/100:.2f})'
+                   for c in [70, 75, 80, 85, 90]},
+                **{f'llm_peer_count_{c}': f'LLM-Peer Count (c={c/100:.2f})'
+                   for c in [70, 75, 80, 85, 90]},
+                **{f'peer_compete_idx_{c}': f'Peer Compete Idx (c={c/100:.2f})'
+                   for c in [70, 75, 80, 85, 90]},
                 # ═══ 治理约束型合约 (Zhou et al., 2026, JBR §2.1; Core et al. 2003) ═══
                 'GOV_equity_ratio':             'Equity Comp / Total Comp Ratio',
                 'GOV_cash_ratio':               'Cash Comp / Total Comp Ratio',

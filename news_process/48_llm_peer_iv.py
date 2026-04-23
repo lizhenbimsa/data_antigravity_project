@@ -15,22 +15,22 @@
 学术依据:
   Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI
   help identify peer firms? Review of Accounting Studies, 30(4), 3344-3386.
-  DOI: 10.1007/s11142-025-09892-6
+  https://doi.org/10.1007/s11142-025-09892-6
   → LLM 识别产品市场竞争同行; Peer 数量上限 = 10 (TNIC 标准)
 
   Hoberg, G., & Phillips, G. (2016). Text-based network industries and
   endogenous product differentiation. Journal of Political Economy, 124(5),
-  1423-1465. DOI: 10.1086/688176
+  1423-1465. https://doi.org/10.1086/688176
   → TNIC 方法标准为 "10 closest peers", 本模块遵循此上限
 
   Manski, C. F. (1993). Identification of endogenous social effects:
   The reflection problem. The Review of Economic Studies, 60(3), 531-542.
-  DOI: 10.2307/2298123
+  https://doi.org/10.2307/2298123
   → 使用 Lag(Y-1) 规避同期反射问题
 
   Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate
   financial policy? The Journal of Finance, 69(1), 139-178.
-  DOI: 10.1111/jofi.12094
+  https://doi.org/10.1111/jofi.12094
   → 同行情感均值作为 IV 的理论基础
 
 输出:
@@ -345,7 +345,8 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
 
 def _normalize_peer_names(raw_peers: List[str],
                            canonical_names: List[str],
-                           variant_to_canonical: Optional[Dict[str, str]] = None
+                           variant_to_canonical: Optional[Dict[str, str]] = None,
+                           cutoff: float = 0.8
                            ) -> List[str]:
     """将 LLM 输出的银行名模糊匹配至 bank_names.json 标准名。
 
@@ -369,13 +370,14 @@ def _normalize_peer_names(raw_peers: List[str],
     Returns:
         list[str]: 去重后的标准银行名列表
     """
+    canonical_set = set(canonical_names)  # O(1) 查找优化 (银行数 ~200+)
     normalized = []
     for name in raw_peers:
         name = name.strip()
         if not name:
             continue
-        # 策略 1: 精确匹配
-        if name in canonical_names:
+        # 策略 1: 精确匹配 (使用 set 实现 O(1) 复杂度)
+        if name in canonical_set:
             normalized.append(name)
             continue
         # 策略 2: 变体映射 (处理 '工行'/'招行' 等简称)
@@ -392,7 +394,7 @@ def _normalize_peer_names(raw_peers: List[str],
                 normalized.append(best)
                 continue
         # 策略 4: difflib 模糊匹配 (最后手段)
-        match = get_close_matches(name, canonical_names, n=1, cutoff=0.8)
+        match = get_close_matches(name, canonical_names, n=1, cutoff=cutoff)
         if match:
             normalized.append(match[0])
     return list(set(normalized))  # 去重
@@ -563,7 +565,8 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         _save_peer_cache(cache, cache_path)
 
     # ── 5. 解析缓存 → peer_map ──
-    peer_map: Dict[str, List[str]] = {}  # key: "bank_year", value: [peer1, ...]
+    cutoffs = [0.70, 0.75, 0.80, 0.85, 0.90]
+    peer_maps = {c: {} for c in cutoffs}
     for cache_key, raw_json in cache.items():
         try:
             # 与 21_tone_llms.py parse_json_response 保持一致:
@@ -579,17 +582,19 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
             parsed = json.loads(_raw.strip())
             raw_peers = parsed.get('peers', [])
             if raw_peers:
-                normalized = _normalize_peer_names(
-                    raw_peers, canonical_names, variant_to_canonical)
-                # 排除自身
                 bank_name = cache_key.replace('peer_', '').rsplit('_', 1)[0]
-                normalized = [p for p in normalized if p != bank_name]
-                if normalized:
-                    peer_map[cache_key.replace('peer_', '')] = normalized
+                for c in cutoffs:
+                    normalized = _normalize_peer_names(
+                        raw_peers, canonical_names, variant_to_canonical, cutoff=c)
+                    # 排除自身
+                    normalized = [p for p in normalized if p != bank_name]
+                    if normalized:
+                        peer_maps[c][cache_key.replace('peer_', '')] = normalized
         except (json.JSONDecodeError, AttributeError) as e:
             logger.warning(f"  解析失败 {cache_key}: {e}")
 
-    logger.info(f"  Peer 网络: {len(peer_map)} 对有效 (银行×年份)")
+    for c in cutoffs:
+        logger.info(f"  Peer 网络 (cutoff={c}): {len(peer_maps[c])} 对有效 (银行×年份)")
 
     # ── 6. IV 构建 (滞后一期) ──
     results = {}  # key: (bank, year), value: dict
@@ -597,21 +602,39 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         lag_year = year - 1
         for bank_i in banks:
             key = f'{bank_i}_{lag_year}'
-            peers = peer_map.get(key, [])
-            if not peers:
-                continue
-            # 取 t-1 年 LLM-peers 的情感均值
-            peer_mask = (panel['year'] == lag_year) & (panel['target_bank'].isin(peers))
-            tone_vals = panel.loc[peer_mask, tone_col]
-            if len(tone_vals) > 0:
-                iv_entry = {
-                    'llm_peer_tone_iv_full': tone_vals.mean(),
-                    'llm_peer_count': len(peers),
-                }
-                # 声量 IV (可选, 取决于列是否存在)
+            iv_entry = {}
+            for c in cutoffs:
+                peers = peer_maps[c].get(key, [])
+                if not peers:
+                    continue
+                c_str = f"{int(c*100)}"
+                # [计量逻辑加固] 同侪数量 (网络中心度) 属于网络拓扑结构变量
+                # 绝对不能因为同侪恰好当年未发布新闻 (情感为 NaN) 而将其连带设置为缺失
+                iv_entry[f'llm_peer_count_{c_str}'] = len(peers)
+
+                # 取 t-1 年 LLM-peers 的情感均值 (规避同期反射问题 Manski, 1993)
+                peer_mask = (panel['year'] == lag_year) & (panel['target_bank'].isin(peers))
+                tone_vals = panel.loc[peer_mask, tone_col]
+                
+                # [白盒安全加固] 必须使用 notna().any() 而非 len() > 0 
+                # 防止当所有匹配到的 peer 情感值全为 NaN 时，触发均值计算污染面板数据
+                if tone_vals.notna().any():
+                    iv_entry[f'llm_peer_tone_iv_full_{c_str}'] = tone_vals.mean()
+                
                 if coverage_col in panel.columns:
                     cov_vals = panel.loc[peer_mask, coverage_col]
-                    iv_entry['llm_peer_coverage_iv'] = cov_vals.mean()
+                    if cov_vals.notna().any():
+                        iv_entry[f'llm_peer_coverage_iv_{c_str}'] = cov_vals.mean()
+            # 主回归用无后缀变量: cutoff=0.80 (Hoberg & Phillips 2016 TNIC 标准)
+            # 与 45_panel_export_main.py Stata 标签 'llm_peer_tone_iv_full' 等对齐
+            for primary_col, suffixed_col in [
+                ('llm_peer_count', 'llm_peer_count_80'),
+                ('llm_peer_tone_iv_full', 'llm_peer_tone_iv_full_80'),
+                ('llm_peer_coverage_iv', 'llm_peer_coverage_iv_80'),
+            ]:
+                if suffixed_col in iv_entry:
+                    iv_entry[primary_col] = iv_entry[suffixed_col]
+            if iv_entry:
                 results[(bank_i, year)] = iv_entry
 
     # ── 7. 合并至面板 ──
@@ -623,10 +646,12 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         panel = panel.merge(iv_df, on=['target_bank', 'year'], how='left')
 
     # ── 7b. 同业竞争压力指标 (Peer Competition Index) ──
-    # Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025).
-    #   Can generative AI help identify peer firms?
-    #   Review of Accounting Studies, 30(4), 3344-3386.
-    #   DOI: 10.1007/s11142-025-09892-6
+    # 学术依据: Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). 
+    #   Can generative AI help identify peer firms? Review of Accounting Studies, 30(4), 3344-3386. 
+    #   https://doi.org/10.1007/s11142-025-09892-6
+    # 辅助依据 (对比 TNIC): Hoberg, G., & Phillips, G. (2016). 
+    #   Text-based network industries and endogenous product differentiation. Journal of Political Economy, 124(5), 1423-1465. 
+    #   https://doi.org/10.1086/688176
     # 公式: peer_compete_idx = 与 LLM 识别同行共现的文章比例 ∈ [0, 1]
     compete_records = []
     banks = panel['target_bank'].unique()
@@ -634,39 +659,47 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
     for bank in banks:
         for year in years:
             key = f'{bank}_{year}'
-            peers = peer_map.get(key, [])
-            if not peers:
-                continue
-            peer_set = set(peers)
-            mask = ((df_exploded['target_bank'] == bank) &
-                    (df_exploded['year'] == year))
-            articles = df_exploded.loc[mask]
-            if len(articles) == 0:
-                continue
-            co_with_peer = articles['co_mentioned_banks'].apply(
-                lambda x: bool(set(str(x).split(';')) & peer_set)
-                if pd.notna(x) and str(x).strip() else False
-            ).sum()
-            compete_records.append({
-                'target_bank': bank, 'year': year,
-                'peer_compete_idx': co_with_peer / len(articles),
-            })
+            compete_entry = {'target_bank': bank, 'year': year}
+            has_data = False
+            for c in cutoffs:
+                peers = peer_maps[c].get(key, [])
+                if not peers:
+                    continue
+                peer_set = set(peers)
+                mask = ((df_exploded['target_bank'] == bank) &
+                        (df_exploded['year'] == year))
+                articles = df_exploded.loc[mask]
+                if len(articles) == 0:
+                    continue
+                co_with_peer = articles['co_mentioned_banks'].apply(
+                    lambda x: bool(set(str(x).split(';')) & peer_set)
+                    if pd.notna(x) and str(x).strip() else False
+                ).sum()
+                c_str = f"{int(c*100)}"
+                idx_val = co_with_peer / len(articles)
+                compete_entry[f'peer_compete_idx_{c_str}'] = idx_val
+                # 主回归用无后缀变量 (cutoff=0.80 TNIC 标准)
+                if c == 0.80:
+                    compete_entry['peer_compete_idx'] = idx_val
+                has_data = True
+            if has_data:
+                compete_records.append(compete_entry)
     if compete_records:
         compete_df = pd.DataFrame(compete_records)
         panel = panel.merge(compete_df, on=['target_bank', 'year'], how='left')
-        logger.info(f"  peer_compete_idx: "
-                    f"mean={panel['peer_compete_idx'].mean():.4f}, "
-                    f"非空={panel['peer_compete_idx'].notna().sum()}")
+        logger.info(f"  peer_compete_idx 生成完毕 (多阈值)")
     else:
         logger.info("  peer_compete_idx: 无 peer_map 记录, 跳过")
 
     # 诊断统计
     if results:
-        for col in ['llm_peer_tone_iv_full', 'llm_peer_coverage_iv', 'llm_peer_count']:
-            if col in panel.columns:
-                valid = panel[col].dropna()
-                logger.info(f"  {col}: {len(valid):,} 有效值, "
-                            f"mean={valid.mean():.4f}")
+        for c in cutoffs:
+            c_str = f"{int(c*100)}"
+            for col in [f'llm_peer_tone_iv_full_{c_str}', f'llm_peer_coverage_iv_{c_str}', f'llm_peer_count_{c_str}']:
+                if col in panel.columns:
+                    valid = panel[col].dropna()
+                    logger.info(f"  {col}: {len(valid):,} 有效值, "
+                                f"mean={valid.mean():.4f}")
     else:
         logger.warning("  未生成任何 LLM-Peer IV 变量")
 
