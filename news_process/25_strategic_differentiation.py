@@ -85,6 +85,14 @@
      N=5 近邻占样本比例 ~10%, 需注意小样本偏差
   3. Embedding 输入截断为 8000 字符, 可能丢失超长文本的尾部信息
 """
+# ── 导入依赖库 ──
+# 【白话】下面这些 import 就是"引入工具箱":
+#   - numpy/pandas: 数据处理的基础工具，类似 Excel 的高级版
+#   - jieba: 中文分词器，能把"银行金融科技"切成"银行""金融""科技"
+#   - TfidfVectorizer: 把文本转成数字向量（想象成把文章变成坐标点）
+#   - cosine_similarity: 计算两个向量的"方向相似度"（0=完全不同, 1=完全相同）
+#   - LDA: 主题模型，自动发现文本中隐藏的"话题"（如"移动支付""区块链"）
+#   - jensenshannon: 衡量两个概率分布有多不同的数学工具
 import os, logging, asyncio
 import numpy as np, pandas as pd, jieba
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
@@ -94,6 +102,8 @@ from scipy.spatial.distance import jensenshannon
 import importlib.util as _iu
 
 # --- 从 41 导入共享配置 ---
+# 【白话】项目的"总开关"配置（数据路径、模型参数等）统一在 41 号文件里管理，
+#   这里把它读进来，所有模块共用同一套设置，避免各自为政。
 _p41 = os.path.join(os.path.dirname(__file__), '41_panel_encode_aggregate.py')
 _s41 = _iu.spec_from_file_location('_41', _p41)
 _m41 = _iu.module_from_spec(_s41); _s41.loader.exec_module(_m41)
@@ -101,6 +111,8 @@ logger = _m41.logger; CONFIG = _m41.CONFIG
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 
 # 中文停用词表 — 排除高频虚词以提高 TF-IDF 区分度
+# 【白话】"的""了""在"这些词几乎每篇文章都有，不能帮我们区分不同银行，
+#   所以要去掉，只保留有实际含义的词（如"区块链""风控""支付"）。
 # 参考: Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data.
 # Journal of Economic Literature, 57(3), 535–574.
 # https://doi.org/10.1257/jel.20181020
@@ -111,20 +123,29 @@ _STOPWORDS = {'的', '了', '在', '是', '和', '与', '为', '对', '等',
 def _jieba_tokenizer(text: str) -> list[str]:
     """jieba 中文分词器, 过滤单字和停用词。
 
-    保留长度≥2 的词语以排除无信息量的单字符 token,
-    符合 NLP 中文文本预处理的标准做法。
+    【白话】把一段中文文本切成一个个词语，然后：
+      - 扔掉单个字（如"的""了"），因为单字没啥意义
+      - 扔掉停用词（如"和""在"），只保留有意义的词
+    例如: "银行的金融科技" → ["银行", "金融", "科技"]
     """
     return [w for w in jieba.lcut(text) if len(w) >= 2 and w not in _STOPWORDS]
 
 
 def _l2_normalize(m: np.ndarray) -> np.ndarray:
-    """L2 行归一化, 零向量保持不变 (避免除零)。"""
+    """L2 行归一化, 零向量保持不变 (避免除零)。
+
+    【白话】把每行向量"拉"成长度为 1，这样比较方向时不受"长度"影响。
+    就像比较两个人走的方向，不管他们走了多远，只看方向是否一致。
+    """
     norms = np.linalg.norm(m, axis=1, keepdims=True)
     return m / np.where(norms == 0, 1, norms)
 
 
 # ============================================================================
 # 1. 文本聚合: 按 (银行, 年度) 拼接新闻标题+正文
+# 【白话】把同一家银行、同一年的所有新闻全部拼在一起，变成一篇"大文章"。
+#   就像把某银行 2023 年所有新闻合并成一份"年度总结"，用来代表它这一年的
+#   金融科技战略方向。
 # ============================================================================
 
 def _aggregate_bank_year_texts(df_exploded):
@@ -160,6 +181,9 @@ def _aggregate_bank_year_texts(df_exploded):
 
 # ============================================================================
 # 2. TF-IDF 相似度矩阵 (Hoberg & Phillips 2016, §III)
+# 【白话】把每家银行的"年度总结"文本变成数字向量，然后两两比较。
+#   就像把 54 家银行放在一个"坐标系"里，离得近的银行说明它们做的
+#   金融科技战略很像，离得远的说明很不一样。
 # ============================================================================
 
 def _build_tfidf_sim_matrix(texts, mode='char'):
@@ -209,6 +233,10 @@ def _build_tfidf_sim_matrix(texts, mode='char'):
 
 # ============================================================================
 # 3. LDA + Jensen-Shannon 距离矩阵 (Lin 1991; Blei et al. 2003)
+# 【白话】另一种比较方法。先用 LDA 发现每家银行新闻的"主题比例"
+#   （比如: 30% 讲移动支付, 20% 讲区块链, 50% 讲智能风控），
+#   然后用 JSD 距离衡量两家银行的主题比例有多不同。
+#   这是 TF-IDF 方法的稳健性检验，看换一种方法结果是否一致。
 # ============================================================================
 
 def _build_lda_jsd_matrix(texts, n_banks):
@@ -259,6 +287,9 @@ def _build_lda_jsd_matrix(texts, n_banks):
 
 # ============================================================================
 # 4. Embedding 相似度矩阵 (Reimers & Gurevych 2019)
+# 【白话】第三种比较方法。用 AI 模型把文本变成"语义向量"，能理解
+#   "移动支付"和"手机银行"意思很像（而 TF-IDF 只能看字面）。
+#   这也是稳健性检验，看不同方法结果是否一致。
 # ============================================================================
 
 async def _get_embeddings_api(texts):
@@ -331,6 +362,10 @@ def _build_embedding_sim_matrix(texts):
 
 # ============================================================================
 # 5. N-最近邻聚合 (Hoberg & Phillips 2016, §III.B)
+# 【白话】这是核心步驤！对每家银行，找到和它最像的 N 家同行，
+#   然后看它与这 N 家同行的"平均距离"。
+#   比喻: 就像在班级里找到和你成绩最接近的 5 个同学，
+#   然后看你们的平均差距有多大 — 差距越大，说明你越"与众不同"。
 # ============================================================================
 
 def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
@@ -395,6 +430,10 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
 
 # ============================================================================
 # 6. 产品市场流动性 Fluidity (Hoberg et al. 2014, JF)
+# 【白话】衡量竞争者是否正在向你的"领地"移动。
+#   想象你开了一家奶茶店，如果别人也纷纷开始卖奶茶，那就是"Fluidity 高"，
+#   说明竞争加剧了。反之如果别人都在做咖啡，没人跟你抢奶茶生意，
+#   那就是"Fluidity 低"。
 # ============================================================================
 
 def _compute_fluidity(agg_df, mode='char'):
@@ -455,6 +494,8 @@ def _compute_fluidity(agg_df, mode='char'):
 
 # ============================================================================
 # 7. 主入口 + 诊断
+# 【白话】下面是这个模块的"总指挥"，调用上面所有工具函数，
+#   按顺序执行: 聚合文本 → 计算距离 → 找最近邻 → 算 Fluidity → 合并到面板
 # ============================================================================
 
 def compute_strategic_differentiation(df_exploded, panel):
@@ -497,26 +538,32 @@ def compute_strategic_differentiation(df_exploded, panel):
     logger.info("战略差异度指数 (Guzman & Li 2023; Hoberg & Phillips 2016)")
     logger.info("=" * 60)
 
+    # 【白话】N_LIST = [3,4,5,6,7] 表示分别看最像的 3/4/5/6/7 家同行
+    #   N=5 是论文推荐的基准值，其他是"换个数字看结果是否稳定"
     N_LIST = [3, 4, 5, 6, 7]
+    # 第一步: 把所有新闻按 (银行, 年) 合并成"年度总结"大文档
     agg_df = _aggregate_bank_year_texts(df_exploded)
-    all_results = []
+    all_results = []  # 用来收集所有年度、所有银行的计算结果
 
+    # 【白话】逐年计算 — 每一年独立建模，不跨年混合
+    #   这样做是因为金融科技领域变化很快，2020年的"热词"和2024年可能完全不同
     for year in sorted(agg_df['year'].unique()):
         dy = agg_df[agg_df['year'] == year]
-        banks = dy['target_bank'].tolist()
-        texts = dy['agg_text'].tolist()
+        banks = dy['target_bank'].tolist()   # 这一年有哪些银行
+        texts = dy['agg_text'].tolist()       # 每家银行的"年度总结"文本
         if len(banks) < 3:
+            # 少于 3 家银行没法比较，跳过
             logger.warning(f"  年度={year}: 仅 {len(banks)} 家银行, 跳过 (最低要求 3)")
             continue
         logger.info(f"  年度={year}, 银行数={len(banks)}")
 
-        # 方法 A: TF-IDF char_wb(2,4)
+        # 方法 A: TF-IDF 字符级 — 看字符组合的相似度（不依赖分词）
         sc = _compute_nn_scores(
             _build_tfidf_sim_matrix(texts, 'char'), banks, N_LIST)
-        # 方法 B: TF-IDF jieba 词级
+        # 方法 B: TF-IDF 词级 — 用 jieba 分词后比较（语义更精准）
         sw = _compute_nn_scores(
             _build_tfidf_sim_matrix(texts, 'word'), banks, N_LIST)
-        # 方法 C: LDA + JSD (可能因稀疏性失败, 安全降级)
+        # 方法 C: LDA + JSD — 比较"主题分布"的差异（稳健性检验）
         try:
             sl = _compute_nn_scores(
                 _build_lda_jsd_matrix(texts, len(banks)),
@@ -524,37 +571,47 @@ def compute_strategic_differentiation(df_exploded, panel):
         except Exception as e:
             logger.warning(f"    LDA+JSD 失败 ({type(e).__name__}), 跳过")
             sl = None
-        # 方法 D: Embedding (三层降级)
+        # 方法 D: Embedding — 用 AI 理解语义后比较（稳健性检验）
         se_mat = _build_embedding_sim_matrix(texts)
         se = _compute_nn_scores(se_mat, banks, [5]) if se_mat is not None else None
 
-        # 汇总当年所有银行的结果
+        # 【白话】把这一年每家银行的计算结果打包成一行行数据
+        #   每一行 = 一家银行在这一年的所有差异度分数
         for bank in banks:
             row = {'target_bank': bank, 'year': year}
             for N in N_LIST:
+                # strat_diff_n5 = 和最像的5家同行的平均"距离"（字符级）
                 row[f'strat_diff_n{N}'] = sc[f'n{N}'][bank]
+                # strat_diff_n5_w = 同上，但用词级方法（稳健性）
                 row[f'strat_diff_n{N}_w'] = sw[f'n{N}'][bank]
+            # strat_sim_max = 和最像的那一家同行的相似度
             row['strat_sim_max'] = sc['sim_max'][bank]
             row['strat_sim_max_w'] = sw['sim_max'][bank]
-            if sl:
+            if sl:  # LDA 方法成功时才有
                 row['strat_diff_n5_lda'] = sl['n5'].get(bank, np.nan)
                 row['strat_sim_max_lda'] = sl['sim_max'].get(bank, np.nan)
-            if se:
+            if se:  # Embedding 方法成功时才有
                 row['strat_diff_n5_emb'] = se['n5'].get(bank, np.nan)
                 row['strat_sim_max_emb'] = se['sim_max'].get(bank, np.nan)
             all_results.append(row)
 
-    # Fluidity: 双模式 (char + word)
+    # 【白话】Fluidity: 衡量竞争者是否在向你的"领地"移动
+    #   char/word 双模式 = 用两种不同的文本分析方法各算一遍
     flu_c = _compute_fluidity(agg_df, 'char')
     flu_w = _compute_fluidity(agg_df, 'word')
 
+    # 【白话】最终组装: 把所有计算结果合并到面板数据里
+    #   面板(panel) = 每行是一家银行的一年，这里把差异度分数填进去
     if all_results:
         res = pd.DataFrame(all_results)
+        # 把 Fluidity 分数也加上
         res['strat_fluidity'] = res.apply(
             lambda r: flu_c.get((r['target_bank'], r['year']), np.nan), axis=1)
         res['strat_fluidity_w'] = res.apply(
             lambda r: flu_w.get((r['target_bank'], r['year']), np.nan), axis=1)
+        # 用银行名+年份做"钥匙"，把新列合并到面板
         panel = panel.merge(res, on=['target_bank', 'year'], how='left')
+        # 跑诊断: 检查四种方法的结果是否大致一致（收敛效度）
         _log_robustness_diagnostics(panel)
         logger.info(f"  ✅ 战略差异度: 成功合并 {len(res)} 行, "
                     f"新增 {len(res.columns) - 2} 列")
@@ -566,10 +623,10 @@ def compute_strategic_differentiation(df_exploded, panel):
 def _log_robustness_diagnostics(panel):
     """输出四方法相关矩阵 + 值域断言。
 
-    四方法 (TF-IDF char / jieba / LDA+JSD / Embedding) 的相关系数
-    用于验证指标的收敛效度 (convergent validity):
-      - 正相关且显著 → 多方法一致, 构念效度良好
-      - 弱相关或不一致 → 需检查数据质量或方法适用性
+    【白话】这是"质量检查"函数，做两件事：
+      1. 看四种方法（TF-IDF字符/词级、LDA、Embedding）算出来的分数
+         是否大致一致 — 如果四种方法都说某银行很独特，说明结果可靠
+      2. 检查所有分数是否在 0~1 之间 — 超出范围说明计算有 Bug
     """
     cols = [c for c in ['strat_diff_n5', 'strat_diff_n5_w',
                         'strat_diff_n5_lda', 'strat_diff_n5_emb']
