@@ -151,6 +151,17 @@ if os.path.exists(_p48):
 else:
     compute_llm_peer_iv = None
 
+# --- 从 25 导入 (战略差异度指数) ---
+# 25_strategic_differentiation.py: 金融科技战略差异度指数
+# 学术依据: Guzman & Li (2023, MS); Hoberg & Phillips (2016, JPE)
+_p25 = os.path.join(os.path.dirname(__file__), '25_strategic_differentiation.py')
+if os.path.exists(_p25):
+    _s25 = _iu.spec_from_file_location('_25_mod', _p25)
+    _m25 = _iu.module_from_spec(_s25); _s25.loader.exec_module(_m25)
+    compute_strategic_differentiation = _m25.compute_strategic_differentiation
+else:
+    compute_strategic_differentiation = None
+
 
 # ============================================================================
 # 8. 诊断统计量
@@ -819,6 +830,25 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'ai_reg_100km':                  'AI Imitation Rate (100km)',
                 'ai_reg_150km':                  'AI Imitation Rate (150km)',
                 'ai_reg_200km':                  'AI Imitation Rate (200km)',
+                # === 战略差异度 (Guzman & Li 2023; Hoberg & Phillips 2016) ===
+                'strat_diff_n3':       'Strat Diff N=3 (TF-IDF char)',
+                'strat_diff_n4':       'Strat Diff N=4 (TF-IDF char)',
+                'strat_diff_n5':       'Strat Diff N=5 (TF-IDF char)',
+                'strat_diff_n6':       'Strat Diff N=6 (TF-IDF char)',
+                'strat_diff_n7':       'Strat Diff N=7 (TF-IDF char)',
+                'strat_diff_n3_w':     'Strat Diff N=3 (TF-IDF jieba)',
+                'strat_diff_n4_w':     'Strat Diff N=4 (TF-IDF jieba)',
+                'strat_diff_n5_w':     'Strat Diff N=5 (TF-IDF jieba)',
+                'strat_diff_n6_w':     'Strat Diff N=6 (TF-IDF jieba)',
+                'strat_diff_n7_w':     'Strat Diff N=7 (TF-IDF jieba)',
+                'strat_sim_max':       'Max Peer Similarity (TF-IDF char)',
+                'strat_sim_max_w':     'Max Peer Similarity (TF-IDF jieba)',
+                'strat_fluidity':      'Product Mkt Fluidity (TF-IDF char)',
+                'strat_fluidity_w':    'Product Mkt Fluidity (TF-IDF jieba)',
+                'strat_diff_n5_lda':   'Strat Diff N=5 (LDA+JSD)',
+                'strat_sim_max_lda':   'Max Peer Similarity (LDA+JSD)',
+                'strat_diff_n5_emb':   'Strat Diff N=5 (Embedding)',
+                'strat_sim_max_emb':   'Max Peer Similarity (Embedding)',
                 # === 认知邻近度 (Boschma 2005) ===
                 'bank_cogn_mean':                'Cognitive Proximity (TF-IDF)',
                 # === 信息经纪网络 (Han et al. 2024) ===
@@ -1955,6 +1985,12 @@ def main():
         panel = compute_cognitive_proximity(df_exploded, panel)
     else:
         logger.info("  compute_cognitive_proximity 不可用, 跳过")
+
+    # --- 7h-strat. 战略差异度指数 (Guzman & Li 2023; Hoberg & Phillips 2016) ---
+    if compute_strategic_differentiation is not None:
+        panel = compute_strategic_differentiation(df_exploded, panel)
+    else:
+        logger.info("  compute_strategic_differentiation 不可用, 跳过")
 
     # --- 7h-brok. 信息经纪网络中心度 (Han et al. 2024, RFS) ---
     if compute_brokerage_centrality is not None:
