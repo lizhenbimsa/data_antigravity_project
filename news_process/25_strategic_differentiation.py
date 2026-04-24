@@ -58,6 +58,12 @@
   - JSD 距离: Lin, J. (1991). Divergence measures based on the Shannon
     entropy. IEEE Transactions on Information Theory, 37(1), 145–151.
     https://doi.org/10.1109/18.61115
+  - TF-IDF 稳健性: Manning, C. D., Raghavan, P., & Schütze, H. (2008). 
+    Introduction to information retrieval. Cambridge University Press. 
+    https://doi.org/10.1017/CBO9780511809071
+  - 文本连贯性: 欧阳志刚, 胡雯华. (2024). 央行沟通公告有助于提升政策利率
+    的传导效率吗？数量经济技术经济研究, 41(10), 69–88. 
+    https://doi.org/10.13653/j.cnki.jqte.2024.10.004
   - 句向量表征: Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence
     embeddings using Siamese BERT-networks. Proceedings of EMNLP 2019,
     3982–3992. https://doi.org/10.18653/v1/D19-1410
@@ -68,7 +74,7 @@
     data. Journal of Economic Literature, 57(3), 535–574.
     https://doi.org/10.1257/jel.20181020
 
-输出列 (18 列, 值域均为 [0, 1]):
+输出列 (26 列, 值域均为 [0, 1]):
   strat_diff_n{3..7}       TF-IDF char N-近邻差异度 (Ŝ_i, N=3~7)
   strat_diff_n{3..7}_w     TF-IDF jieba 词级 N-近邻差异度 (稳健性检验)
   strat_sim_max / _w       最大同行相似度 (max cosine sim to any peer)
@@ -77,6 +83,13 @@
   strat_sim_max_lda        LDA+JSD 最大同行相似度
   strat_diff_n5_emb        Embedding N=5 差异度 (稠密语义距离, 稳健性检验)
   strat_sim_max_emb        Embedding 最大同行相似度
+  coh_tfidf_c_{full|ctx}   TF-IDF char 相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024)
+  coh_tfidf_w_{full|ctx}   TF-IDF jieba 相邻期文本连贯性 (稳健性检验)
+  coh_lda_{full|ctx}       LDA+JSD 相邻期文本连贯性 (稳健性检验)
+  coh_emb_{full|ctx}       Embedding 相邻期文本连贯性 (稳健性检验)
+
+注意: 连贯性变量 (coh_*) 对首年及年份间隙返回 NaN (与 strat_fluidity 一致),
+      严格定义"相邻期"为连续年度 (year_t 与 year_{t-1})。
 
 局限性:
   1. 原始文献 (Hoberg & Phillips 2016) 使用企业自有 10-K 披露文本,
@@ -158,25 +171,31 @@ def _l2_normalize(m: np.ndarray) -> np.ndarray:
 #   金融科技战略方向。
 # ============================================================================
 
-def _aggregate_bank_year_texts(df_exploded):
+def _aggregate_bank_year_texts(df_exploded, text_col='内容'):
     """按 (target_bank, year) 聚合新闻文本。
 
-    将同一银行同一年度的所有新闻标题和正文拼接为单一文档,
-    构成 Hoberg & Phillips (2016) 框架中"企业产品描述"的代理变量。
+    【学术】Hoberg & Phillips (2016, JPE, §II.A) 将同一企业同一年度的
+    所有 10-K 产品描述拼接为单一文档, 构建"年度产品空间"向量。
+    本函数将其适配至新闻场景: 每家银行每年的所有新闻拼接为一篇"年度文本画像"。
+
+    【白话】把同一家银行同一年的所有新闻（标题+正文）合并成一大段文本,
+    方便后续用数学方法比较不同年份之间这段文本的变化程度。
 
     Args:
-        df_exploded: 文章-银行级 DataFrame, 需包含 target_bank, year, 内容 列
+        df_exploded: 文章-银行级 DataFrame, 需包含 target_bank, year 列
+        text_col: 聚合使用的文本列名 ('内容' for Full 轨, 'content_ctx' for Ctx 轨)
 
     Returns:
         DataFrame[target_bank, year, agg_text], 已过滤空文本行
     """
-    # 守卫: 空输入直接返回空 DataFrame，避免 groupby 空集引发异常
-    if df_exploded.empty or '内容' not in df_exploded.columns:
-        logger.info("  文本聚合: 0 个 Bank-Year 文档 (覆盖 0 银行, 0 年)")
+    # 守卫: 空输入或目标文本列缺失 → 直接返回空 DataFrame
+    if df_exploded.empty or text_col not in df_exploded.columns:
+        logger.info(f"  文本聚合: 0 个 Bank-Year 文档 (text_col='{text_col}' 缺失或数据为空)")
         return pd.DataFrame(columns=['target_bank', 'year', 'agg_text'])
 
     def _concat(group):
-        bodies = group['内容'].fillna('').astype(str)
+        # 闭包引用外层 text_col (而非硬编码 '内容'), 支持双轨聚合
+        bodies = group[text_col].fillna('').astype(str)
         titles = group['标题'].fillna('').astype(str) if '标题' in group.columns else bodies
         return ' '.join(titles + ' ' + bodies)
 
@@ -512,6 +531,270 @@ def _compute_fluidity(agg_df, mode='char'):
 
 
 # ============================================================================
+# 6b. 相邻期文本连贯性 (Temporal Text Coherence)
+# 【术语】实现欧阳志刚 & 胡雯华 (2024, 数量经济技术经济研究, §三(三)2.(2)) 的
+#   余弦相似度连贯性指标: 同一银行 t 期与 t-1 期聚合文本的高维特征相似度。
+#   高连贯性 → 市场理解偏差小 → 不确定性降低 → 信息传导效率高。
+# 【白话】看每家银行今年的新闻画像和去年有多像。越像 = 沟通越稳定一致,
+#   市场越容易理解其意图。这是一个"连贯性"指标, 与情感分析正交。
+#
+# 学术参考:
+#   欧阳志刚, 胡雯华. (2024). 央行沟通公告有助于提升政策利率的传导效率吗？
+#     数量经济技术经济研究, 41(10), 69–88.
+#     https://doi.org/10.13653/j.cnki.jqte.2024.10.004
+#   Salton, G., & Buckley, C. (1988). Term-weighting approaches in automatic
+#     text retrieval. Information Processing & Management, 24(5), 513–523.
+#     https://doi.org/10.1016/0306-4573(88)90021-0
+#   Blei, D. M., Ng, A. Y., & Jordan, M. I. (2003). Latent Dirichlet
+#     allocation. JMLR, 3(Jan), 993–1022.
+#     https://www.jmlr.org/papers/v3/blei03a.html
+#   Lin, J. (1991). Divergence measures based on the Shannon entropy.
+#     IEEE Trans. Inform. Theory, 37(1), 145–151.
+#     https://doi.org/10.1109/18.61115
+# ============================================================================
+
+
+def _compute_tfidf_coherence(agg_df, mode='char'):
+    """计算同一银行相邻两期 (t, t-1) 聚合文本的 TF-IDF 余弦相似度。
+
+    【学术】欧阳志刚 & 胡雯华 (2024, 数量经济技术经济研究, §三(三)2.(2)):
+    "利用余弦相似度计算前后相邻两期文本的高维特征相似度,
+    论证高相似度的文本能降低市场理解偏差（不确定性）。"
+
+    TF-IDF 加权方案参见 Salton & Buckley (1988, IP&M);
+    sublinear_tf=True 即 Manning et al. (2008, §6.4) 的 1+log(tf) 缩放,
+    降低词频极端值对相似度的扭曲影响。
+
+    【白话】对每家银行, 把今年和去年的"年度文本画像"分别转换成数字向量,
+    然后算两个向量之间的"夹角余弦值"。值越接近1, 说明两年的新闻内容越像
+    (沟通连贯); 值越接近0, 说明内容变化很大(沟通不连贯)。
+
+    策略: 逐对年度 (t, t-1) 池化所有银行文本 fit TF-IDF,
+    使 IDF 权重在共享词表空间中有区分力 (避免仅 2 文档时 IDF 退化为二值)。
+    与 _compute_fluidity 同构, 但计算目标不同: fluidity = 竞争者变化,
+    coherence = 自身连贯性。
+
+    注意: 首年及年份间隙 (如 2018→2020 缺 2019) 返回缺失, 严格定义"相邻"为连续年度,
+    与 strat_fluidity 处理方式一致。
+
+    Args:
+        agg_df: _aggregate_bank_year_texts 的输出 DataFrame[target_bank, year, agg_text]
+        mode: 'char' (字符 n-gram, analyzer='char_wb', ngram 2-4) 或
+              'word' (jieba 分词, 词级 TF-IDF)
+
+    Returns:
+        dict: {(bank, year): coherence ∈ [0,1]}, 首年/间隙年 → 缺失
+    """
+    coherence = {}
+    # TF-IDF 参数与 _build_tfidf_sim_matrix 保持一致 (含 sublinear_tf=True)
+    if mode == 'char':
+        _kw = dict(analyzer='char_wb', ngram_range=(2, 4),
+                   max_features=5000, min_df=1, sublinear_tf=True)
+    else:
+        _kw = dict(tokenizer=_jieba_tokenizer,
+                   max_features=5000, min_df=1, sublinear_tf=True)
+
+    for year in sorted(agg_df['year'].unique()):
+        df_t = agg_df[agg_df['year'] == year]
+        df_t1 = agg_df[agg_df['year'] == year - 1]
+        if df_t1.empty:
+            continue  # 首年无前期数据 → 该年所有银行的连贯性为 NaN
+
+        # 池化 t 和 t-1 所有银行文本 → fit TF-IDF (共享 IDF 权重空间)
+        pooled_texts = pd.concat([df_t['agg_text'], df_t1['agg_text']],
+                                  ignore_index=True)
+        try:
+            vec = TfidfVectorizer(max_df=0.95, **_kw).fit(pooled_texts)
+        except ValueError:
+            logger.warning(f"    Coherence TF-IDF {mode} {year}: "
+                           f"max_df=0.95 词表清空, 降级为 max_df=1.0")
+            vec = TfidfVectorizer(max_df=1.0, **_kw).fit(pooled_texts)
+
+        vt = vec.transform(df_t['agg_text'].values)
+        vt1 = vec.transform(df_t1['agg_text'].values)
+
+        # 建立 t-1 期银行索引映射
+        t1_map = {b: i for i, b in enumerate(df_t1['target_bank'].values)}
+        for i, bank in enumerate(df_t['target_bank'].values):
+            if bank in t1_map:
+                # cosine_similarity 接受稀疏矩阵, 内部含 L2 归一化
+                sim = cosine_similarity(vt[i:i+1], vt1[t1_map[bank]:t1_map[bank]+1])
+                coherence[(bank, year)] = float(sim[0, 0])
+
+    logger.info(f"    TF-IDF {mode} 连贯性: {len(coherence)} 个 Bank-Year 对")
+    return coherence
+
+
+def _compute_lda_coherence(agg_df):
+    """LDA 主题模型 + Jensen-Shannon 散度的相邻期文本连贯性。
+
+    【学术】Blei, Ng & Jordan (2003, JMLR) 的 LDA 提取文档主题分布 θ,
+    然后用 Lin (1991, IEEE TIT) 的 Jensen-Shannon 散度衡量分布差异:
+      coherence = 1 - JSD_distance(θ_{i,t}, θ_{i,t-1})
+    其中 scipy.jensenshannon 返回 √JSD (JSD distance), ∈ [0,1] (log base 2)。
+    因此 coherence = 1 - √JSD ∈ [0,1], 高值 = 主题分布接近 = 连贯。
+
+    【白话】用主题模型把每篇"年度文本画像"概括成若干主题的比例组合
+    (比如 30% 谈 AI, 40% 谈风控, 30% 谈支付), 然后比较同一银行今年和去年
+    的主题比例是否接近。越接近 = 沟通越连贯。
+
+    参数一致性: random_state=42, max_iter=50, learning_method='online',
+    n_jobs=-1 (与 _build_lda_jsd_matrix 完全一致, 保证可复现性)。
+
+    Args:
+        agg_df: _aggregate_bank_year_texts 的输出
+
+    Returns:
+        dict: {(bank, year): coherence ∈ [0,1]}, 首年/间隙年 → 缺失
+    """
+    coherence = {}
+    for year in sorted(agg_df['year'].unique()):
+        df_t = agg_df[agg_df['year'] == year]
+        df_t1 = agg_df[agg_df['year'] == year - 1]
+        if df_t1.empty:
+            continue
+
+        n_t = len(df_t)
+        all_texts = pd.concat([df_t['agg_text'], df_t1['agg_text']],
+                               ignore_index=True).tolist()
+        n_total = len(all_texts)
+        K = max(10, n_total // 30)  # 主题数: 与 _build_lda_jsd_matrix 一致
+
+        try:
+            # CountVectorizer → DTM → LDA
+            cv = CountVectorizer(tokenizer=_jieba_tokenizer,
+                                 max_features=5000, min_df=1, max_df=0.95)
+            try:
+                dtm = cv.fit_transform(all_texts)
+            except ValueError:
+                cv = CountVectorizer(tokenizer=_jieba_tokenizer,
+                                     max_features=5000, min_df=1, max_df=1.0)
+                dtm = cv.fit_transform(all_texts)
+
+            lda = LatentDirichletAllocation(
+                n_components=K, random_state=42,
+                max_iter=50, learning_method='online', n_jobs=-1)
+            theta = lda.fit_transform(dtm)
+            # theta[:n_t] 对应 df_t, theta[n_t:] 对应 df_t1
+
+            t1_map = {b: idx + n_t for idx, b in
+                      enumerate(df_t1['target_bank'].values)}
+            for i, bank in enumerate(df_t['target_bank'].values):
+                if bank in t1_map:
+                    # jensenshannon 返回 √JSD ∈ [0,1] (Lin, 1991)
+                    d = jensenshannon(theta[i], theta[t1_map[bank]])
+                    coherence[(bank, year)] = float(1.0 - d)
+        except Exception as e:
+            logger.warning(f"    LDA 连贯性 {year}: {type(e).__name__}: {e}, 跳过")
+            continue
+
+    logger.info(f"    LDA+JSD 连贯性: {len(coherence)} 个 Bank-Year 对")
+    return coherence
+
+
+def _compute_emb_coherence(agg_df):
+    """稠密语义嵌入的相邻期文本连贯性。
+
+    【学术】使用预训练语言模型 (text2vec / OpenAI Embedding) 将文本映射到
+    高维语义空间, 计算 cosine similarity。与 TF-IDF 的词袋假设不同,
+    Embedding 捕获词序和上下文语义 (Guzman & Li 2023, Management Science)。
+
+    【白话】让 AI "读懂" 每年的文本画像, 把理解结果变成一串数字(向量),
+    然后比较今年和去年的"理解"有多接近。AI 比 TF-IDF 更"聪明",
+    能理解同义词和上下文, 但计算更慢(需要调用 API)。
+
+    效率: 一次性获取所有 Bank-Year 嵌入 (~540 文本/轨, 批量 100 条 ≈ 6 次 API),
+    避免逐对调用。三层降级: API → sentence-transformers → 返回空 dict。
+
+    Args:
+        agg_df: _aggregate_bank_year_texts 的输出
+
+    Returns:
+        dict: {(bank, year): coherence ∈ [0,1]}, 首年/间隙年 → 缺失
+    """
+    coherence = {}
+    all_texts = agg_df['agg_text'].tolist()
+    banks = agg_df['target_bank'].tolist()
+    years = agg_df['year'].tolist()
+
+    if not all_texts:
+        return coherence
+
+    # 截断至 8000 字符 (与 _build_embedding_sim_matrix 一致)
+    truncated = [t[:8000] for t in all_texts]
+
+    # 三层降级获取嵌入
+    try:
+        emb = asyncio.run(_get_embeddings_api(truncated))
+        emb = np.array(emb)
+    except Exception as e1:
+        logger.warning(f"    Embedding 连贯性: API 失败 ({e1}), 尝试本地模型")
+        try:
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer('shibing624/text2vec-base-chinese')
+            emb = model.encode(truncated, show_progress_bar=False)
+        except Exception as e2:
+            logger.warning(f"    Embedding 连贯性: 本地模型失败 ({e2}), 跳过")
+            return coherence
+
+    # 【审查加固】防范 API 静默丢弃文档导致向量与银行列表不对齐
+    if len(emb) != len(banks):
+        logger.warning(f"    Embedding 连贯性: 向量数量与文档数量不匹配 "
+                       f"(expected {len(banks)}, got {len(emb)})，已降级跳过计算")
+        return coherence
+
+    # 建立 (bank, year) → row_index 映射
+    emb_map = {(banks[i], years[i]): i for i in range(len(banks))}
+
+    for i, (bank, year) in enumerate(zip(banks, years)):
+        key_t1 = (bank, year - 1)
+        if key_t1 in emb_map:
+            sim = cosine_similarity(
+                emb[i].reshape(1, -1),
+                emb[emb_map[key_t1]].reshape(1, -1))
+            coherence[(bank, year)] = float(sim[0, 0])
+
+    logger.info(f"    Embedding 连贯性: {len(coherence)} 个 Bank-Year 对")
+    return coherence
+
+
+def _log_coherence_diagnostics(panel):
+    """输出连贯性四方法相关矩阵 + 值域断言。
+
+    【白话】连贯性的"质量检查"函数:
+      1. 四种方法 (TF-IDF char/word, LDA, Embedding) 的结果是否大致一致
+         — 如果四种方法都说某银行的沟通很连贯, 说明结论可靠
+      2. 与情感变量 (llm_vote_tone_full) 相关性低 → 确认正交性
+         — 连贯性衡量"稳定性", 情感衡量"内容", 二者应独立
+      3. 所有分数是否在 [0,1] 范围内 — 超出说明计算有 Bug
+    """
+    # 四方法收敛效度 (Full 轨)
+    coh_cols = [c for c in ['coh_tfidf_c_full', 'coh_tfidf_w_full',
+                            'coh_lda_full', 'coh_emb_full']
+                if c in panel.columns]
+    if len(coh_cols) >= 2:
+        logger.info(f"  连贯性四方法相关矩阵:\n"
+                    f"{panel[coh_cols].corr().round(3).to_string()}")
+
+    # 正交性验证: 与情感变量的相关系数 (期望 |r| < 0.3)
+    tone_col = 'llm_vote_tone_full'
+    if tone_col in panel.columns and len(coh_cols) >= 1:
+        for cc in coh_cols:
+            valid = panel[[cc, tone_col]].dropna()
+            if len(valid) > 5:
+                r = valid[cc].corr(valid[tone_col])
+                logger.info(f"    {cc} ↔ {tone_col}: r = {r:.3f} "
+                            f"({'✅ 正交' if abs(r) < 0.3 else '⚠️ 相关较高'})")
+
+    # 值域断言: 所有 coh_* 列 ∈ [0, 1] (含浮点误差容忍)
+    for col in [c for c in panel.columns if c.startswith('coh_')]:
+        v = panel[col].dropna()
+        if len(v) > 0:
+            assert (v >= -1e-10).all() and (v <= 1 + 1e-10).all(), \
+                f"{col} 超出 [0,1] 值域: min={v.min():.6f}, max={v.max():.6f}"
+
+
+# ============================================================================
 # 7. 主入口 + 诊断 (Main Entry + Diagnostics)
 # 【术语】编排全部 pipeline: 文本聚合 → 多方法距离矩阵 → NN 聚合 → Fluidity →
 #   面板合并 + 收敛效度诊断 (convergent validity diagnostics)
@@ -638,6 +921,52 @@ def compute_strategic_differentiation(df_exploded, panel):
                     f"新增 {len(res.columns) - 2} 列")
     else:
         logger.warning("  ⚠️ 无有效结果 (所有年度银行数不足 3)")
+
+    # ══════════════════════════════════════════════════════════════════
+    # 改进 B: 相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024)
+    # ══════════════════════════════════════════════════════════════════
+    # 【学术】欧阳志刚 & 胡雯华 (2024, 数量经济技术经济研究, §三(三)2.(2)):
+    #   余弦相似度 → 连贯性 → 降低不确定性 → 提升传导效率
+    # 【白话】看每家银行今年和去年的新闻有多像, 越像说明沟通越稳定
+    logger.info("=" * 60)
+    logger.info("相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024)")
+    logger.info("=" * 60)
+
+    # Full 轨: 复用本函数顶部已生成的 agg_df (避免冗余聚合)
+    # Ctx 轨: 新建聚合 (使用 content_ctx 列)
+    tracks = [('_full', agg_df)]
+    if 'content_ctx' in df_exploded.columns:
+        agg_ctx = _aggregate_bank_year_texts(df_exploded, text_col='content_ctx')
+        tracks.append(('_ctx', agg_ctx))
+    else:
+        logger.warning("  连贯性 _ctx: 列 'content_ctx' 不存在, 跳过 Ctx 轨道")
+
+    for track_suffix, agg_track in tracks:
+        if agg_track.empty:
+            continue
+        logger.info(f"  轨道{track_suffix}: {len(agg_track)} 个 Bank-Year 文档")
+
+        coh_tc  = _compute_tfidf_coherence(agg_track, 'char')
+        coh_tw  = _compute_tfidf_coherence(agg_track, 'word')
+        coh_lda = _compute_lda_coherence(agg_track)
+        coh_emb = _compute_emb_coherence(agg_track)
+
+        for name, coh_dict in [
+            (f'coh_tfidf_c{track_suffix}', coh_tc),
+            (f'coh_tfidf_w{track_suffix}', coh_tw),
+            (f'coh_lda{track_suffix}',     coh_lda),
+            (f'coh_emb{track_suffix}',     coh_emb),
+        ]:
+            # d=coh_dict: 默认参数绑定避免 Python 闭包延迟绑定陷阱 (审阅问题 9)
+            panel[name] = panel.apply(
+                lambda r, d=coh_dict: d.get(
+                    (r['target_bank'], r['year']), np.nan),
+                axis=1)
+
+    _log_coherence_diagnostics(panel)
+    coh_count = sum(1 for c in panel.columns if c.startswith('coh_'))
+    logger.info(f"  ✅ 文本连贯性: 新增 {coh_count} 列")
+
     return panel
 
 

@@ -849,6 +849,15 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'strat_sim_max_lda':   'Max Peer Similarity (LDA+JSD)',
                 'strat_diff_n5_emb':   'Strat Diff N=5 (Embedding)',
                 'strat_sim_max_emb':   'Max Peer Similarity (Embedding)',
+                # === 相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024; Temporal Text Coherence) ===
+                'coh_tfidf_c_full':  'Text Coherence t/(t-1) TF-IDF char (Full)',
+                'coh_tfidf_c_ctx':   'Text Coherence t/(t-1) TF-IDF char (Ctx)',
+                'coh_tfidf_w_full':  'Text Coherence t/(t-1) TF-IDF jieba (Full)',
+                'coh_tfidf_w_ctx':   'Text Coherence t/(t-1) TF-IDF jieba (Ctx)',
+                'coh_lda_full':      'Text Coherence t/(t-1) LDA+JSD (Full)',
+                'coh_lda_ctx':       'Text Coherence t/(t-1) LDA+JSD (Ctx)',
+                'coh_emb_full':      'Text Coherence t/(t-1) Embedding (Full)',
+                'coh_emb_ctx':       'Text Coherence t/(t-1) Embedding (Ctx)',
                 # === 认知邻近度 (Boschma 2005) ===
                 'bank_cogn_mean':                'Cognitive Proximity (TF-IDF)',
                 # === 信息经纪网络 (Han et al. 2024) ===

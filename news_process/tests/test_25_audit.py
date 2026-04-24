@@ -287,5 +287,165 @@ class TestComputeStrategicDifferentiation:
             assert result['strat_fluidity'].isna().all()
 
 
+# =============================================================================
+# 7. 相邻期文本连贯性 (Temporal Text Coherence)
+#    欧阳志刚 & 胡雯华 (2024), 数量经济技术经济研究, §三(三)2.(2)
+# =============================================================================
+
+# 导入连贯性函数
+_compute_tfidf_coherence = _m25._compute_tfidf_coherence
+_compute_lda_coherence = _m25._compute_lda_coherence
+
+
+class TestTemporalCoherence:
+    """测试相邻期文本连贯性计算。
+
+    【学术】验证 欧阳志刚 & 胡雯华 (2024) 的余弦相似度连贯性指标实现:
+    - 相同文本 → 完美连贯 (sim ≈ 1.0)
+    - 不同文本 → 低连贯 (sim ≈ 0)
+    - 首年无前期 → NaN
+    - 值域 ∈ [0, 1]
+    """
+
+    def _make_coherence_data(self, texts_by_bank_year):
+        """构造 agg_df 格式的测试数据。
+
+        Args:
+            texts_by_bank_year: dict of {(bank, year): text}
+        Returns:
+            DataFrame[target_bank, year, agg_text]
+        """
+        rows = [{'target_bank': b, 'year': y, 'agg_text': t}
+                for (b, y), t in texts_by_bank_year.items()]
+        return pd.DataFrame(rows)
+
+    def test_identical_texts_perfect_coherence(self):
+        """相同文本在相邻两期 → TF-IDF 余弦相似度 ≈ 1.0。
+
+        【白话】如果一家银行今年和去年的新闻完全一样, 连贯性应该接近满分。
+        """
+        agg_df = self._make_coherence_data({
+            ('BankA', 2020): '银行金融科技创新发展报告' * 20,
+            ('BankA', 2021): '银行金融科技创新发展报告' * 20,
+            ('BankB', 2020): '保险行业数字化转型进展' * 20,
+            ('BankB', 2021): '保险行业数字化转型进展' * 20,
+        })
+        coh = _compute_tfidf_coherence(agg_df, 'char')
+        assert ('BankA', 2021) in coh
+        assert coh[('BankA', 2021)] > 0.99, f"Expected ≈1.0, got {coh[('BankA', 2021)]}"
+        assert coh[('BankB', 2021)] > 0.99
+
+    def test_disjoint_texts_low_coherence(self):
+        """完全不同的文本 → 低连贯性。
+
+        【白话】如果一家银行今年和去年谈的内容完全不同, 连贯性应该很低。
+        """
+        agg_df = self._make_coherence_data({
+            ('BankA', 2020): '互联网金融创新科技发展区块链数字货币' * 20,
+            ('BankA', 2021): '绿色环保低碳经济可持续发展新能源汽车' * 20,
+            ('BankB', 2020): '互联网金融创新' * 20,
+            ('BankB', 2021): '互联网金融创新' * 20,  # 对照: 保持相同
+        })
+        coh = _compute_tfidf_coherence(agg_df, 'char')
+        assert coh[('BankA', 2021)] < 0.5, f"Expected low, got {coh[('BankA', 2021)]}"
+        assert coh[('BankB', 2021)] > coh[('BankA', 2021)], \
+            "相同文本的连贯性应高于不同文本"
+
+    def test_first_year_nan(self):
+        """首年 (无 t-1 数据) 应不出现在结果中 → 对应 NaN。
+
+        【白话】如果是数据中的第一年, 没有"去年"可以比较, 所以连贯性为空。
+        """
+        agg_df = self._make_coherence_data({
+            ('BankA', 2020): '银行金融科技' * 20,
+            ('BankA', 2021): '银行金融科技' * 20,
+        })
+        coh = _compute_tfidf_coherence(agg_df, 'char')
+        assert ('BankA', 2020) not in coh, "首年不应有连贯性值"
+        assert ('BankA', 2021) in coh, "第二年应有连贯性值"
+
+    def test_value_range_01(self):
+        """所有 TF-IDF 连贯性输出值应在 [0, 1] 内。"""
+        agg_df = self._make_coherence_data({
+            ('BankA', 2020): '银行金融科技创新区块链' * 10,
+            ('BankA', 2021): '数字经济转型发展报告' * 10,
+            ('BankA', 2022): '智能风控大数据分析' * 10,
+            ('BankB', 2020): '保险行业科技' * 10,
+            ('BankB', 2021): '保险数字化' * 10,
+            ('BankB', 2022): '保险数字化' * 10,
+        })
+        for mode in ['char', 'word']:
+            coh = _compute_tfidf_coherence(agg_df, mode)
+            for key, val in coh.items():
+                assert 0.0 - 1e-10 <= val <= 1.0 + 1e-10, \
+                    f"TF-IDF {mode} coherence{key} = {val} 超出 [0,1]"
+
+    def test_dual_track_independence(self):
+        """Full 和 Ctx 轨道使用不同文本列时, 结果可以不同。
+
+        【白话】全文和上下文窗口可能给出不同的连贯性分数, 验证双轨独立性。
+        """
+        data_full = {
+            ('BankA', 2020): '银行金融科技创新' * 20,
+            ('BankA', 2021): '银行金融科技创新' * 20,
+        }
+        data_ctx = {
+            ('BankA', 2020): '银行金融科技创新' * 20,
+            ('BankA', 2021): '完全不同的上下文内容绿色环保低碳' * 20,
+        }
+        agg_full = self._make_coherence_data(data_full)
+        agg_ctx = self._make_coherence_data(data_ctx)
+
+        coh_full = _compute_tfidf_coherence(agg_full, 'char')
+        coh_ctx = _compute_tfidf_coherence(agg_ctx, 'char')
+
+        assert coh_full[('BankA', 2021)] > coh_ctx[('BankA', 2021)], \
+            "Full 轨 (相同文本) 应比 Ctx 轨 (不同文本) 连贯性更高"
+
+    def test_lda_coherence_direction(self):
+        """LDA 连贯性: 1 - JSD 方向正确, 相似文本 → 高值。
+
+        【白话】主题模型的连贯性也应该遵循"相似=高分"的规则。
+        """
+        agg_df = self._make_coherence_data({
+            ('BankA', 2020): '银行金融科技创新区块链数字货币人工智能' * 30,
+            ('BankA', 2021): '银行金融科技创新区块链数字货币人工智能' * 30,
+            ('BankB', 2020): '银行金融科技创新' * 30,
+            ('BankB', 2021): '绿色环保低碳经济可持续发展新能源汽车' * 30,
+        })
+        coh = _compute_lda_coherence(agg_df)
+        if ('BankA', 2021) in coh and ('BankB', 2021) in coh:
+            assert coh[('BankA', 2021)] >= coh[('BankB', 2021)], \
+                f"相同文本的LDA连贯性({coh[('BankA', 2021)]:.3f})应 >= " \
+                f"不同文本({coh[('BankB', 2021)]:.3f})"
+        # LDA 有随机性, 宽松断言: 至少值在 [0, 1]
+        for key, val in coh.items():
+            assert 0.0 - 1e-10 <= val <= 1.0 + 1e-10, \
+                f"LDA coherence{key} = {val} 超出 [0,1]"
+
+    def test_year_gap_returns_nan(self):
+        """年份间隙 (如 2020→2022 缺 2021) 应返回 NaN, 不应计算"跨年连贯性"。
+
+        【学术】欧阳志刚 & 胡雯华 (2024) 严格定义"相邻期"为连续年度 (t 与 t-1)。
+        如果中间缺了一年 (比如 2021 没有数据), 那么 2022 就没有"去年"可比较。
+
+        【白话】如果一家银行 2020 年有新闻, 2021 年没有, 2022 年又有了,
+        那 2022 年的连贯性应该是空的 (NaN), 而不是和 2020 年比较。
+        因为隔了一年, "去年"的数据不存在, 不能算"相邻"。
+        """
+        agg_df = self._make_coherence_data({
+            ('BankA', 2020): '银行金融科技创新发展报告' * 20,
+            # 2021 年完全缺失 → gap
+            ('BankA', 2022): '银行金融科技创新发展报告' * 20,
+        })
+        coh = _compute_tfidf_coherence(agg_df, 'char')
+        # 2020 是首年, 不应有值
+        assert ('BankA', 2020) not in coh, "首年不应有连贯性值"
+        # 2022 的 year-1=2021 不存在于数据中, 也不应有值
+        assert ('BankA', 2022) not in coh, \
+            "年份间隙后的年度 (2022, 缺 2021 数据) 不应有连贯性值"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])
+
