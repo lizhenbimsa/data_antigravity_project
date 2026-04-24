@@ -2,21 +2,56 @@
 25_strategic_differentiation.py — 金融科技战略差异度指数
 =======================================================
 
+改进 A: 构建基于文本距离的"金融科技战略差异度指数"
+      (FinTech Strategic Differentiation Score)
+
+论文依据 (核心公式映射):
+  严格映射 Guzman & Li (2023, MS) Section 3 "From similarity to founding
+  strategy" 中关于计算企业文本表述的余弦相似度并聚合至最近竞争者的规则:
+
+      Ŝ_i = (1/N) Σ_{j ∈ J_i^N} δ_ij
+      (Guzman & Li 2023, MS, Eq. in §3; 本模块 N=5 为基准, N=3~7 为敏感性检验)
+
+  其中:
+    - δ_ij = 1 - cosine_similarity(TF-IDF_i, TF-IDF_j) 为银行 i 与银行 j
+      之间的文本距离
+    - J_i^N 为银行 i 在文本向量空间中的 N 个最近邻集合
+    - Ŝ_i 值越大, 表明银行 i 的金融科技战略与同业差异越大, 即占据更独特的
+      "战略生态位" (strategic niche)
+
+  Hoberg & Phillips (2016, JPE, §III) 原始框架使用 10-K 产品描述构建
+  Text-based Network Industry Classifications (TNIC), 本模块将其迁移至
+  银行金融科技新闻文本场景, 将每家银行的年度新闻聚合文档视为其"产品描述"
+  的代理变量。
+
+预期的边际贡献 / 解决的内生性问题:
+  引入该指数作为全新的分析维度。将所有银行当年的金融科技新闻文本聚合,
+  并计算其与其他所有银行的 TF-IDF (及 LDA+JSD / Embedding) 文本相似度,
+  通过测度每家银行在向量空间中与其最近的几家同业的文本"距离", 能够揭示
+  银行业金融科技创新的战略生态位。这解决了当前研究中粗颗粒度加权方法
+  (单纯比拼新闻数量和情感得分) 所带来的内生性问题 — 数量和情感指标
+  容易受银行规模、媒体关注度等混杂因素驱动, 而文本距离度量的是战略内容
+  本身的差异性, 能更精准地分离出差异化战略所带来的超额边际贡献。
+
 本模块实现基于新闻文本的银行战略差异度量化框架, 核心思路是:
-  1. 按 (银行, 年度) 聚合新闻文本
+  1. 按 (银行, 年度) 聚合新闻文本 → 构建 "企业-年" 文档
   2. 使用多种文本表征方法 (TF-IDF / LDA / Embedding) 计算银行间文本距离
-  3. 对每家银行取 N-最近邻 (N=3~7) 的平均距离作为差异度指标
+  3. 对每家银行取 N-最近邻 (N=3~7) 的平均距离作为差异度指标 → Ŝ_i
   4. 计算 Fluidity (市场流动性) 衡量竞争环境变化速度
 
 方法论来源:
-  - 文本产品空间: Hoberg, G., & Phillips, G. (2016). Text-based network
-    industries and endogenous product differentiation. Journal of Political
-    Economy, 124(5), 1423–1465. https://doi.org/10.1086/688176
-  - 创业战略度量: Guzman, J., & Li, A. (2023). Measuring founding strategy.
-    Management Science, 69(1), 101–118. https://doi.org/10.1287/mnsc.2022.4369
+  - [核心] 创业战略度量: Guzman, J., & Li, A. (2023). Measuring founding
+    strategy. Management Science, 69(1), 101–118.
+    https://doi.org/10.1287/mnsc.2022.4369
+    → Section 3: 余弦相似度 + N-最近邻聚合公式, 本模块的核心算法来源
+  - [核心] 文本产品空间: Hoberg, G., & Phillips, G. (2016). Text-based
+    network industries and endogenous product differentiation. Journal of
+    Political Economy, 124(5), 1423–1465. https://doi.org/10.1086/688176
+    → §III: TNIC 框架, 逐年重建文本相似度矩阵的方法论基础
   - 产品市场流动性: Hoberg, G., Phillips, G., & Prabhala, N. (2014). Product
     market threats, payouts, and financial flexibility. The Journal of Finance,
     69(1), 293–324. https://doi.org/10.1111/jofi.12050
+    → Eq. 2: Fluidity 指标定义, 衡量竞争环境动态变化
   - 文本创新度量: Bellstam, G., Bhagat, S., & Cookson, J. A. (2021). A
     text-based analysis of corporate innovation. Management Science, 67(7),
     4004–4031. https://doi.org/10.1287/mnsc.2020.3682
@@ -34,13 +69,13 @@
     https://doi.org/10.1257/jel.20181020
 
 输出列 (18 列, 值域均为 [0, 1]):
-  strat_diff_n{3..7}       TF-IDF char N-近邻差异度
-  strat_diff_n{3..7}_w     TF-IDF jieba 词级 N-近邻差异度
-  strat_sim_max / _w       最大同行相似度
-  strat_fluidity / _w      市场流动性 (Hoberg et al. 2014)
-  strat_diff_n5_lda        LDA+JSD N=5 差异度
+  strat_diff_n{3..7}       TF-IDF char N-近邻差异度 (Ŝ_i, N=3~7)
+  strat_diff_n{3..7}_w     TF-IDF jieba 词级 N-近邻差异度 (稳健性检验)
+  strat_sim_max / _w       最大同行相似度 (max cosine sim to any peer)
+  strat_fluidity / _w      市场流动性 (Hoberg et al. 2014, Eq. 2)
+  strat_diff_n5_lda        LDA+JSD N=5 差异度 (主题分布距离, 稳健性检验)
   strat_sim_max_lda        LDA+JSD 最大同行相似度
-  strat_diff_n5_emb        Embedding N=5 差异度
+  strat_diff_n5_emb        Embedding N=5 差异度 (稠密语义距离, 稳健性检验)
   strat_sim_max_emb        Embedding 最大同行相似度
 
 局限性:
@@ -299,12 +334,22 @@ def _build_embedding_sim_matrix(texts):
 # ============================================================================
 
 def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
-    """N-最近邻差异度聚合。
+    """N-最近邻差异度聚合 — 实现 Guzman & Li (2023) Section 3 核心公式。
+
+    本函数直接实现论文中从相似度到战略差异度的转换规则:
+
+        Ŝ_i = (1/N) Σ_{j ∈ J_i^N} δ_ij
+        (Guzman & Li 2023, Management Science, §3 "From similarity to
+         founding strategy")
+
+    其中 δ_ij = 1 - cosine_similarity(v_i, v_j) 为文本距离,
+    J_i^N 为银行 i 的 N 个最近邻 (文本空间中相似度最高的 N 家同行)。
 
     对于每家银行, 找到文本空间中最近的 N 个同行:
-      - similarity 矩阵: 取最大 N 个, 差异度 = mean(1 - sim_topN)
-      - distance 矩阵: 取最小 N 个, 差异度 = mean(dist_topN)
+      - similarity 矩阵: 取最大 N 个, 差异度 = mean(1 - sim_topN) → Ŝ_i
+      - distance 矩阵: 取最小 N 个, 差异度 = mean(dist_topN) → Ŝ_i
 
+    N=5 为基准 (与论文一致), N=3,4,6,7 为敏感性检验。
     N 值敏感性检验的理论基础:
       Bresnahan, T. F., & Reiss, P. C. (1991). Entry and competition in
       concentrated markets. Journal of Political Economy, 99(5), 977–1009.
@@ -317,7 +362,7 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
         is_distance: True=距离矩阵, False=相似度矩阵
 
     Returns:
-        dict: {f'n{N}': {bank: score}, 'sim_max': {bank: score}}
+        dict: {f'n{N}': {bank: Ŝ_i}, 'sim_max': {bank: max_similarity}}
     """
     results = {f'n{N}': {} for N in N_list}
     results['sim_max'] = {}
@@ -329,18 +374,21 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
             results['sim_max'][bank] = np.nan
             continue
         if is_distance:
-            # 距离矩阵: 升序排列, 取最小 N 个
+            # 距离矩阵: 升序排列, 取最小 N 个 (LDA+JSD 路径)
             idx = np.argsort(valid)
             results['sim_max'][bank] = float(1.0 - valid[idx[0]])
             for N in N_list:
                 k = min(N, len(valid))
+                # Ŝ_i = mean(dist_topK), K = min(N, |peers|)
                 results[f'n{N}'][bank] = float(np.mean(valid[idx[:k]]))
         else:
-            # 相似度矩阵: 降序排列, 取最大 N 个, 差异度 = 1 - sim
+            # 相似度矩阵: 降序排列, 取最大 N 个
+            # Guzman & Li (2023, §3): δ_ij = 1 - sim_ij → Ŝ_i = mean(δ_topN)
             idx = np.argsort(valid)[::-1]
             results['sim_max'][bank] = float(valid[idx[0]])
             for N in N_list:
                 k = min(N, len(valid))
+                # Ŝ_i = (1/k) Σ_{j ∈ J_i^k} (1 - sim_ij)
                 results[f'n{N}'][bank] = float(np.mean(1.0 - valid[idx[:k]]))
     return results
 
@@ -410,14 +458,33 @@ def _compute_fluidity(agg_df, mode='char'):
 # ============================================================================
 
 def compute_strategic_differentiation(df_exploded, panel):
-    """计算金融科技战略差异度指数 — 主入口函数。
+    """计算金融科技战略差异度指数 (FinTech Strategic Differentiation Score)。
+
+    改进 A: 构建基于文本距离的全新分析维度
+    ─────────────────────────────────────
+    论文依据:
+      严格映射 Guzman & Li (2023, MS) Section 3 "From similarity to founding
+      strategy" 中关于计算企业文本表述的余弦相似度并聚合至最近竞争者的规则:
+
+          Ŝ_i = (1/N) Σ_{j ∈ J_i^N} δ_ij
+          (N=5 为基准, N=3~7 为敏感性检验)
+
+    边际贡献 / 解决的内生性问题:
+      将所有银行当年的金融科技新闻文本聚合, 计算其与其他所有银行的
+      TF-IDF (及 LDA+JSD / Embedding) 文本相似度。通过测度每家银行在
+      向量空间中与其最近的几家同业的文本"距离", 揭示银行业金融科技
+      创新的战略生态位。这解决了当前粗颗粒度加权方法 (单纯比拼新闻
+      数量和情感得分) 所带来的内生性问题 — 数量和情感指标容易受银行
+      规模、媒体关注度等混杂因素驱动, 而文本距离度量的是战略内容本身
+      的差异性, 能更精准地分离出差异化战略所带来的超额边际贡献。
 
     处理流程:
-      1. 按 (银行, 年度) 聚合新闻文本
+      1. 按 (银行, 年度) 聚合新闻文本 → "企业产品描述"代理变量
       2. 逐年计算 4 种文本距离矩阵 (TF-IDF char/word, LDA+JSD, Embedding)
-      3. N-最近邻聚合 (N=3,4,5,6,7 for TF-IDF; N=5 for LDA/Embedding)
-      4. 计算 Fluidity (char/word 双模式)
-      5. 合并到面板并执行诊断
+         → Hoberg & Phillips (2016, JPE, §III) 逐年重建方法
+      3. N-最近邻聚合 → Ŝ_i (N=3,4,5,6,7 for TF-IDF; N=5 for LDA/Embedding)
+      4. 计算 Fluidity → Hoberg et al. (2014, JF, Eq. 2)
+      5. 合并到面板并执行四方法收敛效度诊断
 
     Args:
         df_exploded: 文章-银行级 DataFrame
