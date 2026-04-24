@@ -85,14 +85,15 @@
      N=5 近邻占样本比例 ~10%, 需注意小样本偏差
   3. Embedding 输入截断为 8000 字符, 可能丢失超长文本的尾部信息
 """
-# ── 导入依赖库 ──
+# ══ 导入依赖库 (Dependencies) ══
+# 【术语】导入数值计算、NLP 特征提取、主题模型和信息论距离等工具库
 # 【白话】下面这些 import 就是"引入工具箱":
 #   - numpy/pandas: 数据处理的基础工具，类似 Excel 的高级版
 #   - jieba: 中文分词器，能把"银行金融科技"切成"银行""金融""科技"
-#   - TfidfVectorizer: 把文本转成数字向量（想象成把文章变成坐标点）
-#   - cosine_similarity: 计算两个向量的"方向相似度"（0=完全不同, 1=完全相同）
-#   - LDA: 主题模型，自动发现文本中隐藏的"话题"（如"移动支付""区块链"）
-#   - jensenshannon: 衡量两个概率分布有多不同的数学工具
+#   - TfidfVectorizer: 把文本转成 TF-IDF 向量（想象成把文章变成坐标点）
+#   - cosine_similarity: 计算两个向量的余弦相似度（0=方向完全不同, 1=方向完全相同）
+#   - LDA (Latent Dirichlet Allocation): 主题模型，自动发现文本中隐藏的"话题"
+#   - jensenshannon: Jensen-Shannon 散度，衡量两个概率分布有多不同
 import os, logging, asyncio
 import numpy as np, pandas as pd, jieba
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
@@ -101,7 +102,8 @@ from sklearn.decomposition import LatentDirichletAllocation
 from scipy.spatial.distance import jensenshannon
 import importlib.util as _iu
 
-# --- 从 41 导入共享配置 ---
+# --- 从 41 导入共享配置 (Shared Configuration) ---
+# 【术语】通过 importlib 动态加载 41 号模块，复用全局 logger 和 CONFIG 字典
 # 【白话】项目的"总开关"配置（数据路径、模型参数等）统一在 41 号文件里管理，
 #   这里把它读进来，所有模块共用同一套设置，避免各自为政。
 _p41 = os.path.join(os.path.dirname(__file__), '41_panel_encode_aggregate.py')
@@ -110,7 +112,9 @@ _m41 = _iu.module_from_spec(_s41); _s41.loader.exec_module(_m41)
 logger = _m41.logger; CONFIG = _m41.CONFIG
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 
-# 中文停用词表 — 排除高频虚词以提高 TF-IDF 区分度
+# 中文停用词表 (Stopwords) — 排除高频虚词以提高 TF-IDF 区分度
+# 【术语】停用词 (Stopwords) 是 NLP 中被过滤的高频无信息量词汇，
+#   去除后可提升 TF-IDF 的区分性 (discriminative power)
 # 【白话】"的""了""在"这些词几乎每篇文章都有，不能帮我们区分不同银行，
 #   所以要去掉，只保留有实际含义的词（如"区块链""风控""支付"）。
 # 参考: Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data.
@@ -121,8 +125,10 @@ _STOPWORDS = {'的', '了', '在', '是', '和', '与', '为', '对', '等',
 
 
 def _jieba_tokenizer(text: str) -> list[str]:
-    """jieba 中文分词器, 过滤单字和停用词。
+    """jieba 中文分词 + 停用词过滤 (Chinese Tokenizer with Stopword Filtering)。
 
+    【术语】基于 jieba 的中文分词器，保留 len≥2 的 token 并移除停用词，
+      符合 NLP 中文文本预处理的标准做法 (Gentzkow et al. 2019, JEL)。
     【白话】把一段中文文本切成一个个词语，然后：
       - 扔掉单个字（如"的""了"），因为单字没啥意义
       - 扔掉停用词（如"和""在"），只保留有意义的词
@@ -132,17 +138,21 @@ def _jieba_tokenizer(text: str) -> list[str]:
 
 
 def _l2_normalize(m: np.ndarray) -> np.ndarray:
-    """L2 行归一化, 零向量保持不变 (避免除零)。
+    """L2 行归一化 (L2 Row Normalization)，零向量保持不变 (避免除零)。
 
+    【术语】将每行向量除以其 L2 范数 (Euclidean norm)，使其模长为 1，
+      确保 cosine_similarity 等价于向量内积，提升计算效率。
     【白话】把每行向量"拉"成长度为 1，这样比较方向时不受"长度"影响。
-    就像比较两个人走的方向，不管他们走了多远，只看方向是否一致。
+      就像比较两个人走的方向，不管他们走了多远，只看方向是否一致。
     """
     norms = np.linalg.norm(m, axis=1, keepdims=True)
     return m / np.where(norms == 0, 1, norms)
 
 
 # ============================================================================
-# 1. 文本聚合: 按 (银行, 年度) 拼接新闻标题+正文
+# 1. 文本聚合 (Text Aggregation): 按 (银行, 年度) 拼接新闻标题+正文
+# 【术语】构建 Hoberg & Phillips (2016) 框架中的"企业-年"文档 (firm-year document)，
+#   将同一银行同一年度的所有新闻拼接为单一文档作为"产品描述"的代理变量 (proxy)。
 # 【白话】把同一家银行、同一年的所有新闻全部拼在一起，变成一篇"大文章"。
 #   就像把某银行 2023 年所有新闻合并成一份"年度总结"，用来代表它这一年的
 #   金融科技战略方向。
@@ -180,10 +190,11 @@ def _aggregate_bank_year_texts(df_exploded):
 
 
 # ============================================================================
-# 2. TF-IDF 相似度矩阵 (Hoberg & Phillips 2016, §III)
+# 2. TF-IDF 相似度矩阵 (Cosine Similarity Matrix) (Hoberg & Phillips 2016, §III)
+# 【术语】通过 TF-IDF 向量化构建逐年的 pairwise cosine similarity matrix，
+#   复现 Hoberg & Phillips (2016, JPE) §III 中的 TNIC 方法论。
 # 【白话】把每家银行的"年度总结"文本变成数字向量，然后两两比较。
-#   就像把 54 家银行放在一个"坐标系"里，离得近的银行说明它们做的
-#   金融科技战略很像，离得远的说明很不一样。
+#   就像把 54 家银行放在一个"坐标系"里，离得近的说明战略很像，离得远说明很不一样。
 # ============================================================================
 
 def _build_tfidf_sim_matrix(texts, mode='char'):
@@ -232,11 +243,13 @@ def _build_tfidf_sim_matrix(texts, mode='char'):
 
 
 # ============================================================================
-# 3. LDA + Jensen-Shannon 距离矩阵 (Lin 1991; Blei et al. 2003)
+# 3. LDA + Jensen-Shannon 距离矩阵 (Topic Distribution Distance) (Lin 1991; Blei et al. 2003)
+# 【术语】先通过 LDA (Blei et al. 2003) 得到每家银行的主题分布 θ_i，
+#   再用 JSD (Lin 1991) 计算 pairwise 主题分布距离，作为 TF-IDF 的稳健性检验。
 # 【白话】另一种比较方法。先用 LDA 发现每家银行新闻的"主题比例"
 #   （比如: 30% 讲移动支付, 20% 讲区块链, 50% 讲智能风控），
 #   然后用 JSD 距离衡量两家银行的主题比例有多不同。
-#   这是 TF-IDF 方法的稳健性检验，看换一种方法结果是否一致。
+#   这是 TF-IDF 方法的稳健性检验 (robustness check)，看换一种方法结果是否一致。
 # ============================================================================
 
 def _build_lda_jsd_matrix(texts, n_banks):
@@ -286,10 +299,12 @@ def _build_lda_jsd_matrix(texts, n_banks):
 
 
 # ============================================================================
-# 4. Embedding 相似度矩阵 (Reimers & Gurevych 2019)
+# 4. Embedding 相似度矩阵 (Dense Semantic Similarity) (Reimers & Gurevych 2019)
+# 【术语】用预训练语言模型 (Sentence-BERT) 生成稠密语义向量，
+#   计算 pairwise cosine similarity，作为 TF-IDF/LDA 的第三种稳健性检验。
 # 【白话】第三种比较方法。用 AI 模型把文本变成"语义向量"，能理解
 #   "移动支付"和"手机银行"意思很像（而 TF-IDF 只能看字面）。
-#   这也是稳健性检验，看不同方法结果是否一致。
+#   这也是稳健性检验 (robustness check)，看不同方法结果是否一致。
 # ============================================================================
 
 async def _get_embeddings_api(texts):
@@ -361,7 +376,9 @@ def _build_embedding_sim_matrix(texts):
 
 
 # ============================================================================
-# 5. N-最近邻聚合 (Hoberg & Phillips 2016, §III.B)
+# 5. N-最近邻聚合 (N-Nearest Neighbor Aggregation) (Hoberg & Phillips 2016, §III.B)
+# 【术语】实现 Guzman & Li (2023, MS, §3) 核心公式 Ŝ_i = (1/N)Σδ_ij，
+#   对每家银行取其在文本空间中 N 个最近邻的平均距离作为战略差异度。
 # 【白话】这是核心步驤！对每家银行，找到和它最像的 N 家同行，
 #   然后看它与这 N 家同行的"平均距离"。
 #   比喻: 就像在班级里找到和你成绩最接近的 5 个同学，
@@ -429,11 +446,13 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
 
 
 # ============================================================================
-# 6. 产品市场流动性 Fluidity (Hoberg et al. 2014, JF)
+# 6. 产品市场流动性 (Product Market Fluidity) (Hoberg et al. 2014, JF, Eq.2)
+# 【术语】Fluidity_i,t = cos(N_i,t, Σ_{j≠i}|N_j,t - N_j,t-1|)，衡量银行 i 当前
+#   的文本位置与竞争对手 t 期与 t-1 期之间变化方向的一致性。
 # 【白话】衡量竞争者是否正在向你的"领地"移动。
-#   想象你开了一家奶茶店，如果别人也纷纷开始卖奶茶，那就是"Fluidity 高"，
+#   想象你开了一家奶茶店，如果别人也纷纷开始卖奶茶，那就是 Fluidity 高，
 #   说明竞争加剧了。反之如果别人都在做咖啡，没人跟你抢奶茶生意，
-#   那就是"Fluidity 低"。
+#   那就是 Fluidity 低。
 # ============================================================================
 
 def _compute_fluidity(agg_df, mode='char'):
@@ -493,7 +512,9 @@ def _compute_fluidity(agg_df, mode='char'):
 
 
 # ============================================================================
-# 7. 主入口 + 诊断
+# 7. 主入口 + 诊断 (Main Entry + Diagnostics)
+# 【术语】编排全部 pipeline: 文本聚合 → 多方法距离矩阵 → NN 聚合 → Fluidity →
+#   面板合并 + 收敛效度诊断 (convergent validity diagnostics)
 # 【白话】下面是这个模块的"总指挥"，调用上面所有工具函数，
 #   按顺序执行: 聚合文本 → 计算距离 → 找最近邻 → 算 Fluidity → 合并到面板
 # ============================================================================
