@@ -488,6 +488,14 @@ def build_aggregation_dict() -> dict:
     agg['avg_ft_word_ratio'] = ('_ft_word_ratio', 'mean')
     agg['avg_ft_word_ratio_std'] = ('_ft_word_ratio', 'std')
 
+    # --- O. 技术重度 (14_fintech_intensity.py, Li et al. 2021, RFS) ---
+    # DOI: 10.1093/rfs/hhaa079
+    #   → TF-IDF + SIF 质心连续型技术强度得分, Bank-Year 均值聚合
+    #   → 防御: 若跳过阶段 14, fintech_intensity_score 列不存在,
+    #     valid_agg (L520-534) 自动跳过, 不引发 KeyError
+    agg['avg_ft_intensity'] = ('fintech_intensity_score', 'mean')
+    agg['avg_ft_intensity_std'] = ('fintech_intensity_score', 'std')
+
     return agg
 
 

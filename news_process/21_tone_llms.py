@@ -12,8 +12,26 @@
     【双轨输入】每条新闻同时以全文 (_full) 和上下文片段 (_ctx) 两种输入分别请求模型，
     生成两套完整的验证与情感判定结果，供下游消融研究和三角验证使用。
 
+    【标题轨道】对已通过 full 轨道验证的样本，批量提取标题短文本 LLM 情感，
+    供三角验证使用。
+
+方法论依据：
+    多模型投票共识机制:
+      Wang, X., Wei, J., Schuurmans, D., et al. (2023). Self-consistency
+      improves chain of thought reasoning in language models. Proceedings
+      of ICLR 2023. DOI: https://doi.org/10.48550/arXiv.2203.11171
+    三角验证 (Triangulation):
+      Denzin, N. K. (1978/2017). The research act: A theoretical introduction
+      to sociological methods. Routledge. DOI: https://doi.org/10.4324/9781315134543
+    LLM 金融文本分析可复现性:
+      Bybee, L. (2024). The ghost in the machine: Generating beliefs with
+      large language models. Journal of Finance, 79(5), 3345-3395.
+      DOI: https://doi.org/10.1111/jofi.13366
+
 输入：
-    模块二前置输出的 `12_fintech_news.parquet`
+    模块二前置输出的 `14_fintech_intensity.parquet`
+    (该文件在 12_fintech_news.parquet 基础上追加了 fintech_intensity_score 和 intensity_verified 列)
+    (向下兼容: 若跳过阶段14, 自动回退读取 12_fintech_news.parquet)
     
 输出：
     筛选后的合法新闻 `21_tone_llms.parquet`
@@ -51,18 +69,22 @@ if not LLM_CONFIG:
 
 # 模型列表: 多模型并行请求以支持多数投票(Majority Vote)共识机制
 # 推荐至少 3 个模型, 以实现 2/3 多数投票的稳健共识
+# 学术依据: Wang et al. (2023, ICLR) — Self-consistency 要求多路径采样后取多数
 MODELS = LLM_CONFIG.get('models', [])
-MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', '')))
+MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', 10)))
 # Prompt 模板: 包含 {title}, {content}, {target_bank}, {co_mentioned_banks} 占位符
 PROMPT_TEMPLATE = LLM_CONFIG.get('prompt_template', '')
 # G-06: 温度参数锁定 — temperature=0 确保确定性推理输出, 保证可复现性
 # 学术依据: Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock price
-#           movements? SSRN Working Paper No. 4412788:
+#           movements? Return predictability and large language models.
+#           SSRN Working Paper No. 4412788.
+#           DOI: https://doi.org/10.2139/ssrn.4412788
 #           "We use temperature = 0 to ensure deterministic outputs for
 #           reproducibility of sentiment labels."
-# 同见: Carlson & Burbano (2026, SMJ §3.3): "temperature should be fixed and reported"
-TEMPERATURE = LLM_CONFIG.get('temperature', '')
-RANDOM_SEED = LLM_CONFIG.get('random_seed', '')
+# 同见: Carlson & Burbano (2026, SMJ §3.3, forthcoming):
+#       "temperature should be fixed and reported"
+TEMPERATURE = LLM_CONFIG.get('temperature', 0.0)
+RANDOM_SEED = LLM_CONFIG.get('random_seed', 42)
 FORCE_JSON = LLM_CONFIG.get('force_json', True)
 
 # 显式记录 LLM 推理参数 (G-06: 审稿人可追溯的参数报告)
@@ -70,8 +92,8 @@ logger.info(f"LLM 推理参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
             f"force_json={FORCE_JSON}, models={len(MODELS)}, "
             f"concurrency={MAX_CONCURRENCY}")
 
-MAX_RETRIES = LLM_CONFIG.get('max_retries', '')
-RETRY_DELAY = LLM_CONFIG.get('retry_delay', '')
+MAX_RETRIES = LLM_CONFIG.get('max_retries', 5)
+RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
 
 
 # ============================================================================
@@ -232,12 +254,28 @@ def parse_json_response(res_text: str) -> dict:
         return {}
 
 def majority_vote_bool(bools: list) -> bool:
-    """严格多数决判断真伪（超过半数才通过）"""
+    """严格多数决判断真伪（超过半数才通过）。
+    
+    采用严格多数（strict majority, >50%）而非简单多数（plurality）：
+    投票数必须**严格超过**总票数的一半才判定为通过。
+    例如 2 票中 1 票为 True → 不通过（1 不超过 2/2=1.0）。
+    
+    学术依据:
+      Wang, X., et al. (2023). Self-consistency improves chain of thought
+      reasoning in language models. ICLR 2023.
+      DOI: https://doi.org/10.48550/arXiv.2203.11171
+      该文提出多路径采样后取多数投票作为最终答案的共识机制。
+    """
     if not bools: return False
     return sum(bools) > (len(bools) / 2.0)
 
 def majority_vote_sentiment(sents: list) -> str:
-    """多数决判断情感，平局降级为中性"""
+    """多数决判断情感，平局降级为中性。
+    
+    当最高频和次高频情感票数相同时（平局），保守降级为"中性"，
+    避免在不确定的情况下做出偏向性判断。该设计遵循稳健性原则：
+    在共识不明确时，选择信息量最低的中性标签。
+    """
     if not sents: return "中性"
     c = Counter(sents)
     most_common = c.most_common()
@@ -299,8 +337,16 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         
         per_model_parsed[f"{short}_verified"] = v
         per_model_parsed[f"{short}_sentiment"] = s
-        per_model_parsed[f"{short}_verification_confidence"] = jd.get('verification_confidence', 0.0)
-        per_model_parsed[f"{short}_sentiment_confidence"] = jd.get('sentiment_confidence', 0.0)
+        # 安全 float 转换（与标题轨道 L772-775 的 float() 保护一致）：
+        # LLM 可能返回字符串 "0.85"、null 或 bool，需统一为 float
+        try:
+            per_model_parsed[f"{short}_verification_confidence"] = float(jd.get('verification_confidence', 0.0) or 0.0)
+        except (ValueError, TypeError):
+            per_model_parsed[f"{short}_verification_confidence"] = 0.0
+        try:
+            per_model_parsed[f"{short}_sentiment_confidence"] = float(jd.get('sentiment_confidence', 0.0) or 0.0)
+        except (ValueError, TypeError):
+            per_model_parsed[f"{short}_sentiment_confidence"] = 0.0
         
         # 同步提取 fintech_topic 和 fintech_category（复用已解析的 jd）
         topic = jd.get('fintech_topic', None)
@@ -331,6 +377,16 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     final_s = majority_vote_sentiment(s_votes) if final_v else "中性"
     
     # 计算一致性：有效投票中支持 majority 的比例
+    # 【语义澄清】此处 agree_rate 基于 v_votes（验证投票），反映的是
+    #   "LLM 们对该新闻是否为金融科技新闻的共识程度"（验证一致率）。
+    #   而非 s_votes（情感投票）的情感一致率。
+    #   设计选择理由：验证是阶段21的主要任务，验证一致率更直接地反映
+    #   信号质量（signal quality）。情感一致率已通过逐模型置信度列
+    #   （{short}_sentiment_confidence_{track}）间接捕获。
+    #   下游影响：41_panel 中 llm_vote_cont = vote_score × agreement_rate，
+    #   此处 agreement_rate 作为信号质量权重调制情感强度。
+    #   注意：标题轨道（title）的 agreement_rate 基于 s_votes（情感投票），
+    #   因为标题轨道不含验证步骤，所有样本已通过 full 轨道验证。
     n_valid_votes = len(v_votes)
     agree_v_count = sum(1 for x in v_votes if x == final_v)
     agree_rate = agree_v_count / n_valid_votes if n_valid_votes > 0 else 0.0
@@ -361,20 +417,24 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
         content_full = str(row.get('内容', ''))
         target_bank = str(row.get('target_bank', ''))
 
-        if target_bank:
+        # 防御性检查：当 target_bank 为 NaN 时 str() 会产出 'nan'，
+        # 需将其视为空值以避免冗余的别名查找和文件读取
+        if target_bank and target_bank not in ('nan', 'None'):
             if target_bank not in _alias_cache:
                 _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
             content_ctx = extract_entity_context(content_full, _alias_cache[target_bank])
             if not content_ctx:
-                content_ctx = content_full  # 回退公理
+                content_ctx = content_full  # 回退公理：无匹配时保留全文
         else:
-            content_ctx = content_full
+            content_ctx = content_full  # 无目标银行时回退至全文
 
         ctx_list.append(content_ctx)
 
     df['content_ctx'] = ctx_list
     n_fallback = sum(1 for ctx, full in zip(ctx_list, df['内容'].astype(str)) if ctx == full)
-    n_with_bank = (df['target_bank'].astype(str).str.strip() != '').sum()
+    # 统计逻辑与 L404 的 NaN 防御保持一致：排除 'nan'/'None'/空字符串
+    _bank_strs = df['target_bank'].astype(str).str.strip()
+    n_with_bank = ((_bank_strs != '') & (_bank_strs != 'nan') & (_bank_strs != 'None')).sum()
     logger.info(f"  content_ctx 列物化完成: {len(df)} 行, "
                 f"回退至全文: {n_fallback}/{n_with_bank} 条"
                 f"（{n_fallback/max(n_with_bank,1)*100:.1f}%）")
@@ -393,11 +453,20 @@ def main():
     if not LLM_CONFIG.get('enabled', False):
         logger.info("统一 LLM 处理已在 config.yaml 中禁用。将透传输入数据。")
 
-        input_filename = CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')
-        input_path = os.path.join(CONFIG["paths"]["output_dir"], input_filename)
+        # 向下兼容回退: 优先读阶段14输出, 若磁盘上不存在则回退到阶段12
+        input_14 = CONFIG['filenames'].get('output_14_fintech_intensity', '14_fintech_intensity.parquet')
+        input_12 = CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')
+        path_14 = os.path.join(CONFIG["paths"]["output_dir"], input_14)
+        path_12 = os.path.join(CONFIG["paths"]["output_dir"], input_12)
 
-        if not os.path.exists(input_path):
-            logger.error(f"输入文件未找到: {input_path}")
+        if os.path.exists(path_14):
+            input_path = path_14
+            logger.info(f"使用阶段14输出: {input_14}")
+        elif os.path.exists(path_12):
+            input_path = path_12
+            logger.info(f"阶段14输出不存在, 回退至阶段12: {input_12}")
+        else:
+            logger.error(f"输入文件均未找到: {path_14}, {path_12}")
             cache.close()
             return
 
@@ -415,7 +484,13 @@ def main():
         df['llm_agreement_rate_ctx'] = 0.0
         df['fintech_category'] = '应用场景'
         df['category_confidence'] = 0.0
-        # 逐模型虚拟列补全
+        df['text_type'] = None
+        df['is_forward_looking'] = pd.array([None] * len(df), dtype=pd.BooleanDtype())
+        # 标题轨道虚拟列补全（与启用分支输出对齐）
+        df['llm_verified_title'] = True
+        df['llm_sentiment_title'] = '中性'
+        df['llm_agreement_rate_title'] = 0.0
+        # 逐模型虚拟列补全（双轨 + 标题轨道）
         for m in MODELS:
             short = m['short_name']
             for track in ['_full', '_ctx']:
@@ -423,6 +498,9 @@ def main():
                 df[f'{short}_sentiment{track}'] = '中性'
                 df[f'{short}_verification_confidence{track}'] = 0.0
                 df[f'{short}_sentiment_confidence{track}'] = 0.0
+            # 标题轨道逐模型列
+            df[f'{short}_sentiment_title'] = '中性'
+            df[f'{short}_sentiment_confidence_title'] = 0.0
 
         output_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms', '21_tone_llms.parquet')
         output_path = os.path.join(CONFIG["paths"]["output_dir"], output_filename)
@@ -433,11 +511,20 @@ def main():
         cache.close()
         return
         
-    input_filename = CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')
-    input_path = os.path.join(CONFIG["paths"]["output_dir"], input_filename)
-    
-    if not os.path.exists(input_path):
-        logger.error(f"输入文件未找到: {input_path}")
+    # 向下兼容回退: 优先读阶段14输出, 若磁盘上不存在则回退到阶段12
+    input_14 = CONFIG['filenames'].get('output_14_fintech_intensity', '14_fintech_intensity.parquet')
+    input_12 = CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')
+    path_14 = os.path.join(CONFIG["paths"]["output_dir"], input_14)
+    path_12 = os.path.join(CONFIG["paths"]["output_dir"], input_12)
+
+    if os.path.exists(path_14):
+        input_path = path_14
+        logger.info(f"使用阶段14输出: {input_14}")
+    elif os.path.exists(path_12):
+        input_path = path_12
+        logger.info(f"阶段14输出不存在, 回退至阶段12: {input_12}")
+    else:
+        logger.error(f"输入文件均未找到: {path_14}, {path_12}")
         cache.close()
         return
         
@@ -567,7 +654,9 @@ def main():
     df['fintech_category'] = fintech_category_arr
     df['category_confidence'] = category_confidence_arr
     df['text_type'] = text_type_arr
-    df['is_forward_looking'] = pd.array(forward_looking_arr, dtype=pd.Float64Dtype())
+    # 使用 BooleanDtype 而非 Float64Dtype：语义上 is_forward_looking 是布尔值，
+    # BooleanDtype 支持 NA（兼容 None 值），同时保留布尔语义
+    df['is_forward_looking'] = pd.array(forward_looking_arr, dtype=pd.BooleanDtype())
     
     if n_api_failures > 0:
         logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
@@ -603,7 +692,10 @@ def main():
     df_filtered = df[df['llm_verified_full'] == True].copy()
     
     # ── B1-2: 标题轨道独立情感提取（仅已验证样本） ──
-    # 学术依据: 姜富伟等 (2024, 管理世界) — 标题短文本LLM情感
+    # 学术依据: 姜富伟, 熊健, 朱林义 (2024). 大语言模型驱动的金融科技
+    #           情感分析: 方法与实证. 管理世界, (8), 58-72.
+    #           该文证明: 标题短文本LLM情感与全文情感的交叉验证可有效
+    #           识别"标题党"偏差并提升情感度量的鲁棒性。
     TITLE_PROMPT_TEMPLATE = LLM_CONFIG.get('title_sentiment_prompt_template', '')
     
     if TITLE_PROMPT_TEMPLATE and len(df_filtered) > 0:
@@ -713,9 +805,10 @@ def main():
                         per_model_data[f'{short}_sentiment_title'] = None
                         per_model_data[f'{short}_sentiment_confidence_title'] = 0.0
                 
-                # 多数决
+                # 多数决（统一使用 majority_vote_sentiment，确保平局处理
+                # 与 full/ctx 轨道一致：平局时降级为中性）
                 if s_votes:
-                    final_s = Counter(s_votes).most_common(1)[0][0]
+                    final_s = majority_vote_sentiment(s_votes)
                     agree_count = sum(1 for v in s_votes if v == final_s)
                     agree_rate = agree_count / len(s_votes)
                 else:

@@ -41,7 +41,8 @@ class TestConfigIntegrity:
         """配置中引用的输出文件名键应存在。"""
         required = [
             'output_00_preprocessing', 'output_11_bank_news',
-            'output_12_fintech_news', 'output_21_tone_llms',
+            'output_12_fintech_news', 'output_14_fintech_intensity',
+            'output_21_tone_llms',
             'output_21_tone_llms_full',
             'output_22_words_tone', 'output_23_bert_tone',
             'output_24_herd_decay',
@@ -286,6 +287,7 @@ class TestEnhancedIntegration:
                 'output_00_preprocessing': '00_preprocessing.parquet',
                 'output_11_bank_news': '11_bank_news.parquet',
                 'output_12_fintech_news': '12_fintech_news.parquet',
+                'output_14_fintech_intensity': '14_fintech_intensity.parquet',
                 'output_21_tone_llms': '21_tone_llms.parquet',
                 'output_21_tone_llms_full': '21_tone_llms_full.parquet',
                 'output_22_words_tone': '22_words_tone.parquet',

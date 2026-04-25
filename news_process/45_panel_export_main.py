@@ -932,6 +932,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # ═══ 披露密度 (Abraham et al. 2024) ═══
                 'avg_ft_word_ratio':     'Avg Fintech Word Ratio',
                 'avg_ft_word_ratio_std': 'Std Fintech Word Ratio',
+                # ═══ 技术重度 (Li et al. 2021, RFS; 14_fintech_intensity.py) ═══
+                'avg_ft_intensity':     'Avg FinTech Intensity Score (TF-IDF)',
+                'avg_ft_intensity_std': 'Std FinTech Intensity Score (TF-IDF)',
                 # ═══ 同业竞争 (Cao et al. 2025) ═══
                 'peer_compete_idx':      'LLM-Peer Competition Index',
                 # ═══ 前置中间变量: neg_count ═══
