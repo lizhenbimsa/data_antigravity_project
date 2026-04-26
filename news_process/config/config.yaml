@@ -386,6 +386,24 @@ tone_llm_processing:
     注意：results 数组中的条目数量必须与输入标题数量完全一致，id 必须连续。
     </output_format>
 
+  # ── Logit-to-Score 概率映射法（稳健性检验指标）──────────────────────────
+  # 将 LLM 三分类标签 + sentiment_confidence 转化为 [-1, +1] 连续分数。
+  # 公式: Score = P(正面) - P(负面)
+  # 概率来自 confidence 模拟（非 logprobs），作为序数代理变量（ordinal proxy）。
+  #
+  # 学术依据:
+  #   Törnberg, P. (2024). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
+  #   Shapiro, A.H. et al. (2022). JoE, 228(2), 221-243. DOI: 10.1016/j.jeconom.2020.07.053
+  #   Jaynes, E.T. (1957). Phys Rev, 106(4), 620-630. DOI: 10.1103/PhysRev.106.620
+  #     → 最大熵原理: 剩余概率均分 (1-c)/2 为唯一最大熵解
+  #
+  # 局限性:
+  #   confidence 为 LLM 自报值（verbalized confidence），非校准概率。
+  #   Xiong et al. (2024, ICLR). DOI: 10.48550/arXiv.2306.13063
+  #     → LLM confidence 系统性过度自信，但保序性成立，作为序数代理变量可靠。
+  logit_to_score:
+    enabled: true
+
 # ------------------------------------------------------------------------------
 # [模块四：评估验证模块] 人工抽样验证配置 (Human Validation) - 阶段 32
 # ------------------------------------------------------------------------------

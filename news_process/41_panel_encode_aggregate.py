@@ -137,6 +137,15 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  生成编码列: {len(encoded_cols)} 个")
     logger.info(f"  离散映射: 正面=1, 中性=0, 负面=-1")
     logger.info(f"  连续编码: direction × confidence ∈ [-1, +1]")
+
+    # Logit-to-Score 概率分数诊断（如果 21_tone_llms 已生成）
+    for track in ['_full', '_ctx', '_title']:
+        src = f'llm_prob_score{track}'
+        if src in df.columns:
+            valid = df[src].notna()
+            logger.info(f"  {src}: mean={df.loc[valid, src].mean():.4f}, "
+                        f"std={df.loc[valid, src].std():.4f}, n={valid.sum()}")
+
     return df
 
 
@@ -496,6 +505,19 @@ def build_aggregation_dict() -> dict:
     agg['avg_ft_intensity'] = ('fintech_intensity_score', 'mean')
     agg['avg_ft_intensity_std'] = ('fintech_intensity_score', 'std')
 
+    # --- P. Logit-to-Score 概率映射情感（稳健性检验）---
+    # Törnberg (2024). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
+    # Shapiro et al. (2022). JoE, 228(2). DOI: 10.1016/j.jeconom.2020.07.053
+    #   → Score = P(正面) - P(负面) ∈ [-1, +1]
+    #   → 等权 mean/std/sum + VW/HW/MW 加权辅助 sum
+    for track in ['_full', '_ctx', '_title']:
+        agg[f'avg_llm_prob_score{track}'] = (f'llm_prob_score{track}', 'mean')
+        agg[f'avg_llm_prob_score_std{track}'] = (f'llm_prob_score{track}', 'std')
+        agg[f'llm_prob_score_sum{track}'] = (f'llm_prob_score{track}', 'sum')
+        agg[f'llm_prob_score_w_sum{track}'] = (f'llm_prob_score_w{track}', 'sum')
+        agg[f'llm_prob_score_mw_sum{track}'] = (f'llm_prob_score_mw{track}', 'sum')
+        agg[f'llm_prob_score_hw_sum{track}'] = (f'llm_prob_score_hw{track}', 'sum')
+
     return agg
 
 
@@ -620,6 +642,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                         if src_neu in df_cat.columns:
                             cat_agg[f'{short}_neu{suffix}{track}'] = (src_neu, 'mean')
 
+                # E. Logit-to-Score 概率分数
+                src_prob = f'llm_prob_score{track}'
+                if src_prob in df_cat.columns:
+                    cat_agg[f'llm_prob_score{suffix}{track}'] = (src_prob, 'mean')
+
             # 单次 groupby + 单次 merge
             cat_panel = df_cat.groupby(['target_bank', 'year']).agg(**cat_agg).reset_index()
             panel = panel.merge(cat_panel, on=['target_bank', 'year'], how='left')
@@ -699,6 +726,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 if src_vote in df_tt.columns:
                     tt_agg[f'llm_vote_tone{suffix}{track}'] = (src_vote, 'mean')
 
+                # Logit-to-Score 概率分数
+                src_prob = f'llm_prob_score{track}'
+                if src_prob in df_tt.columns:
+                    tt_agg[f'llm_prob_score{suffix}{track}'] = (src_prob, 'mean')
+
             tt_panel = df_tt.groupby(['target_bank', 'year']).agg(**tt_agg).reset_index()
             panel = panel.merge(tt_panel, on=['target_bank', 'year'], how='left')
             logger.info(f"  text_type '{tt_label}' 聚合完成: {len(tt_panel):,} 个 Bank-Year, "
@@ -774,6 +806,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     panel[f'{b}_pos_vw{track}'] = panel[w_pos] / denom
                 if w_neg in panel.columns:
                     panel[f'{b}_neg_vw{track}'] = panel[w_neg] / denom
+            # Logit-to-Score 概率分数 VW
+            w_prob = f'llm_prob_score_w_sum{track}'
+            if w_prob in panel.columns:
+                panel[f'llm_vote_tone_vw_prob{track}'] = panel[w_prob] / denom
         logger.info(f"  已计算 Value-weighted Tone 指标（双轨）")
 
     # --- MW Tone (媒体权威性加权, Holzman et al. 2023, TAR) ---
@@ -802,6 +838,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     w_col = f'{b}{label}_mw_sum{track}'
                     if w_col in panel.columns:
                         panel[f'{b}{sfx}_mw{track}'] = panel[w_col] / mw_denom
+            # Logit-to-Score 概率分数 MW
+            w_prob = f'llm_prob_score_mw_sum{track}'
+            if w_prob in panel.columns:
+                panel[f'llm_vote_tone_mw_prob{track}'] = panel[w_prob] / mw_denom
         logger.info(f"  已计算 Media-Authority-weighted Tone 指标（双轨）")
 
     # --- HW Tone (跟风衰减加权, Tetlock 2011, JF) ---
@@ -830,6 +870,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     w_col = f'{b}{label}_hw_sum{track}'
                     if w_col in panel.columns:
                         panel[f'{b}{sfx}_hw{track}'] = panel[w_col] / hw_denom
+            # Logit-to-Score 概率分数 HW
+            w_prob = f'llm_prob_score_hw_sum{track}'
+            if w_prob in panel.columns:
+                panel[f'llm_vote_tone_hw_prob{track}'] = panel[w_prob] / hw_denom
         logger.info(f"  已计算 Herd-Decay-weighted Tone 指标（双轨）")
 
     # --- 标题-全文情感缺口（B1-2 Step 4d） ---
@@ -839,6 +883,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             panel['llm_vote_tone_title'] - panel['llm_vote_tone_full']
         )
         logger.info("  已计算 tone_gap_title_full (标题-全文情感缺口)")
+
+    # 标题-全文概率分数缺口（Logit-to-Score 稳健性检验）
+    if 'avg_llm_prob_score_title' in panel.columns and 'avg_llm_prob_score_full' in panel.columns:
+        panel['prob_gap_title_full'] = (
+            panel['avg_llm_prob_score_title'] - panel['avg_llm_prob_score_full']
+        )
+        logger.info("  已计算 prob_gap_title_full (概率分数标题-全文缺口)")
 
     logger.info(f"  聚合后面板行数: {panel.shape[0]:,}")
     logger.info(f"  唯一银行数: {panel['target_bank'].nunique()}")

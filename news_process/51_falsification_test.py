@@ -924,6 +924,35 @@ reghdfe Y c.llm_vote_tone_full##c.M X, ///
 *   absorb(target_bank year) vce(cluster target_bank)
 *   est store moderate_dum
 
+* ── 检验 5c: Logit-to-Score 概率映射法替换 (稳健性检验) ──
+* 目的: 以连续概率分数 avg_llm_prob_score_full 替换离散 llm_vote_tone_full
+*       验证核心发现对度量方法的敏感性
+* 方法论:
+*   Törnberg, P. (2024). How to use LLMs for text analysis.
+*   arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
+*
+*   Score = P(正面) - P(负面) ∈ [-1, +1]
+*   概率从 LLM sentiment_confidence 模拟:
+*   主类 P = c, 其余 P = (1-c)/2 (Jaynes 1957, 最大熵原理)
+*
+* 预期: 系数符号一致、显著性相近 → 度量方法稳健
+
+* (5c-1) 基准替换: 概率分数 → Y
+reghdfe Y avg_llm_prob_score_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store prob_base
+
+* (5c-2) 赛马: 离散 + 概率分数同时进入
+reghdfe Y llm_vote_tone_full avg_llm_prob_score_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store prob_horse
+
+* (5c-3) 标题-全文概率缺口 → Y
+* 衡量"标题党/软文嫌疑": gap 越大 → 标题情感偏离全文
+reghdfe Y prob_gap_title_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store prob_gap
+
 * ── 检验 6: 控制新闻语言特征 ──
 * 目的: 验证 tone 不受文本长度/词汇多样性/可读性驱动
 * 对标: He et al. (2024, IRFA, Table 4, Panel A.5)

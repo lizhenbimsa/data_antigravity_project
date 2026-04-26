@@ -588,7 +588,7 @@ def main():
         row_res = masked_llm_results.get(idx, {'full': {}, 'ctx': {}})
 
         for track in TRACKS:
-            final_v, final_s, agree_rate, parsed, _, _, n_fail = \
+            final_v, final_s, agree_rate, parsed, _, _, _, _, n_fail, _ = \
                 _aggregate_track(row_res.get(track, {}), MODELS)
 
             df_sample.at[idx, f'masked_verified_{track}'] = final_v

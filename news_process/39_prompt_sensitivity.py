@@ -427,7 +427,7 @@ def aggregate_variant_results(
 
         for idx in df.index:
             model_res = results_map.get(idx, {}).get(track_key, {})
-            final_v, final_s, _, _, _, _, n_fail = _aggregate_track(model_res, models)
+            final_v, final_s, _, _, _, _, _, _, n_fail, _ = _aggregate_track(model_res, models)
             v_list.append(final_v)
             s_list.append(final_s)
             n_parse_fail += n_fail

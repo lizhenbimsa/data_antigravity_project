@@ -95,6 +95,15 @@ logger.info(f"LLM 推理参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
 MAX_RETRIES = LLM_CONFIG.get('max_retries', 5)
 RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
 
+# ── Logit-to-Score 概率映射法（稳健性检验指标）──────────────────────────
+# 将 LLM 三分类标签 + sentiment_confidence 转化为 [-1, +1] 连续分数。
+# 学术依据:
+#   Törnberg, P. (2024). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
+#   Shapiro, A.H. et al. (2022). JoE, 228(2). DOI: 10.1016/j.jeconom.2020.07.053
+LOGIT_SCORE_CFG = LLM_CONFIG.get('logit_to_score', {})
+LOGIT_SCORE_ENABLED = LOGIT_SCORE_CFG.get('enabled', False)
+logger.info(f"Logit-to-Score 概率映射: enabled={LOGIT_SCORE_ENABLED}")
+
 
 # ============================================================================
 # 2. 异步请求大模型 API
@@ -284,6 +293,99 @@ def majority_vote_sentiment(sents: list) -> str:
     return most_common[0][0]
 
 
+def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
+    """基于情感标签和置信度计算概率映射连续分数 [-1, +1]。
+
+    【白话解释】
+      把大模型输出的"正面/中性/负面"标签 + 它自己报的置信度数字，
+      转换成一个 -1 到 +1 之间的连续分数。分数越接近 +1 表示越正面，
+      越接近 -1 表示越负面，0 表示中性。
+
+    【学术依据】
+      概率映射法 (Logit-to-Score):
+        Törnberg, P. (2024). How to use large language models for text analysis.
+        arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
+        → 利用 LLM 分类输出构建连续分析指标的方法论框架
+
+      连续情感度量在金融计量中的必要性:
+        Shapiro, A.H., Sudhof, M. & Wilson, D.J. (2022). Measuring news
+        sentiment. Journal of Econometrics, 228(2), 221-243.
+        DOI: 10.1016/j.jeconom.2020.07.053
+
+      剩余概率均分 (1-c)/2 的理论基础 — 最大熵原理:
+        Jaynes, E.T. (1957). Information theory and statistical mechanics.
+        Physical Review, 106(4), 620-630. DOI: 10.1103/PhysRev.106.620
+        → 在已知主类概率 c 的约束下，最大化 Shannon 熵的
+          唯一解为其余类均匀分布: P(其余) = (1-c)/2
+
+    【局限性声明】
+      sentiment_confidence 是 LLM 生成的文本数值（verbalized confidence），
+      非内部 softmax 概率。它作为分类确信度的**序数代理变量**使用，
+      不可直接解释为校准后的概率。
+
+      已知局限 — 系统性过度自信:
+        Xiong, M. et al. (2024). Can LLMs express their uncertainty?
+        ICLR 2024. DOI: 10.48550/arXiv.2306.13063
+        → LLM verbalized confidence 倾向过度自信，但保序性基本成立，
+          即 conf(A) > conf(B) 时 acc(A) > acc(B)，
+          因此作为序数代理变量（ordinal proxy）在排序层面可靠。
+
+      LLM 文本标注能力的基准验证:
+        Gilardi, F. et al. (2023). PNAS, 120(30), e2305016120.
+        DOI: 10.1073/pnas.2305016120
+
+    【概率模拟策略】
+      P2 路径 (confidence > 0):
+        主类概率 = c, 其余两类概率 = (1-c)/2
+        公式: Score = P(正面) - P(负面)
+      P3 路径 (confidence ≤ 0 或无效):
+        one-hot: 主类=1.0, 其余=0.0
+        Score ∈ {+1.0, 0.0, -1.0}
+
+    【数学性质】（已数学证明，P2 路径 c ∈ (0, 1]）
+      - label="中性" → Score ≡ 0（∀ c，因 P_pos = P_neg = (1-c)/2）
+      - label="正面" → Score = (3c-1)/2 ∈ (-0.5, 1.0]
+        当 c > 1/3 时 Score > 0（符合直觉）
+        当 c = 1/3 时 Score = 0（三类等概率，信号消失）
+        当 c < 1/3 时 Score < 0（模型不确定性压倒分类标签）
+        实践中 LLM confidence 通常 ∈ [0.6, 0.95]，Score 始终 > 0
+      - label="负面" → Score = (1-3c)/2 ∈ [-1.0, 0.5)
+        对称于"正面"，c > 1/3 时 Score < 0
+      - Σ(P_pos + P_neu + P_neg) = 1（概率公理）
+
+    Args:
+        sentiment_label: "正面" / "中性" / "负面"
+        confidence: LLM 自报 sentiment_confidence ∈ [0, 1]
+
+    Returns:
+        dict: prob_pos, prob_neu, prob_neg (各∈[0,1], Σ=1),
+              prob_score ∈ [-1, +1],
+              prob_source: "P2" 或 "P3"
+    """
+    LABEL_MAP = {"正面": "positive", "中性": "neutral", "负面": "negative"}
+    cls = LABEL_MAP.get(sentiment_label, "neutral")
+
+    c = max(0.0, min(1.0, confidence)) if confidence else 0.0
+    if c > 0:
+        probs = {k: (1.0 - c) / 2.0 for k in ["positive", "neutral", "negative"]}
+        probs[cls] = c
+        source = "P2"
+    else:
+        probs = {"positive": 0.0, "neutral": 0.0, "negative": 0.0}
+        probs[cls] = 1.0
+        source = "P3"
+
+    score = probs["positive"] - probs["negative"]
+
+    return {
+        "prob_pos": probs["positive"],
+        "prob_neu": probs["neutral"],
+        "prob_neg": probs["negative"],
+        "prob_score": round(score, 6),
+        "prob_source": source,
+    }
+
+
 def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     """对某一轨道的模型响应进行解析和多数投票聚合。
     
@@ -292,8 +394,11 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         models: 模型配置列表
     
     Returns:
-        tuple: (final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, text_types, forward_looking_votes, n_failures)
+        tuple: (final_v, final_s, agree_rate, per_model_parsed, topics,
+                llm_categories, text_types, forward_looking_votes,
+                n_failures, avg_prob_score)
             per_model_parsed: {f'{short}_verified': v, ...} 的字典
+            avg_prob_score: Logit-to-Score 多模型平均概率分数 ∈ [-1, +1]
     """
     v_votes = []
     s_votes = []
@@ -391,7 +496,20 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     agree_v_count = sum(1 for x in v_votes if x == final_v)
     agree_rate = agree_v_count / n_valid_votes if n_valid_votes > 0 else 0.0
     
-    return final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, text_types, forward_looking_votes, n_failures
+    # ── Logit-to-Score: 计算每个模型的概率分数并取平均 ──
+    prob_scores = []
+    for m in models:
+        short = m['short_name']
+        s_label = per_model_parsed.get(f"{short}_sentiment")
+        s_conf = per_model_parsed.get(f"{short}_sentiment_confidence", 0.0)
+        if s_label is not None:
+            ps_result = compute_prob_score(s_label, s_conf)
+            per_model_parsed[f"{short}_prob_score"] = ps_result['prob_score']
+            per_model_parsed[f"{short}_prob_source"] = ps_result['prob_source']
+            prob_scores.append(ps_result['prob_score'])
+    avg_prob_score = sum(prob_scores) / len(prob_scores) if prob_scores else 0.0
+
+    return final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, text_types, forward_looking_votes, n_failures, avg_prob_score
 
 
 def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
@@ -502,6 +620,21 @@ def main():
             df[f'{short}_sentiment_title'] = '中性'
             df[f'{short}_sentiment_confidence_title'] = 0.0
 
+        # Logit-to-Score 禁用分支虚拟列（与启用分支输出列对齐）
+        if LOGIT_SCORE_ENABLED:
+            # 聚合级概率分数（三轨道）
+            for track in ['_full', '_ctx', '_title']:
+                df[f'llm_prob_score{track}'] = 0.0
+            # 逐模型概率分数（三轨道）
+            for m in MODELS:
+                short = m['short_name']
+                for track in ['_full', '_ctx']:
+                    df[f'{short}_prob_score{track}'] = 0.0
+                    df[f'{short}_prob_source{track}'] = 'P3'
+                # 标题轨道逐模型列（与 L620-621 对齐）
+                df[f'{short}_prob_score_title'] = 0.0
+                df[f'{short}_prob_source_title'] = 'P3'
+
         output_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms', '21_tone_llms.parquet')
         output_path = os.path.join(CONFIG["paths"]["output_dir"], output_filename)
         save_dataset(df, output_path, logger)
@@ -563,6 +696,13 @@ def main():
             per_model_cols[f"{short}_sentiment{track}"] = []
             per_model_cols[f"{short}_verification_confidence{track}"] = []
             per_model_cols[f"{short}_sentiment_confidence{track}"] = []
+            if LOGIT_SCORE_ENABLED:
+                per_model_cols[f"{short}_prob_score{track}"] = []
+                per_model_cols[f"{short}_prob_source{track}"] = []
+    
+    # Logit-to-Score 轨道级数组
+    prob_score_full_arr = []
+    prob_score_ctx_arr = []
     
     n_api_failures = 0
     
@@ -570,7 +710,7 @@ def main():
         row_results = results_map.get(idx, {'full': {}, 'ctx': {}})
         
         # ── Full 轨道聚合 ──
-        final_v_full, final_s_full, agree_rate_full, parsed_full, topics_full, llm_cats_full, text_types_full, fl_votes_full, n_fail_full = \
+        final_v_full, final_s_full, agree_rate_full, parsed_full, topics_full, llm_cats_full, text_types_full, fl_votes_full, n_fail_full, avg_prob_full = \
             _aggregate_track(row_results.get('full', {}), MODELS)
         n_api_failures += n_fail_full
         
@@ -584,9 +724,13 @@ def main():
             per_model_cols[f"{short}_sentiment_full"].append(parsed_full.get(f"{short}_sentiment"))
             per_model_cols[f"{short}_verification_confidence_full"].append(parsed_full.get(f"{short}_verification_confidence", 0.0))
             per_model_cols[f"{short}_sentiment_confidence_full"].append(parsed_full.get(f"{short}_sentiment_confidence", 0.0))
+            if LOGIT_SCORE_ENABLED:
+                per_model_cols[f"{short}_prob_score_full"].append(parsed_full.get(f"{short}_prob_score", 0.0))
+                per_model_cols[f"{short}_prob_source_full"].append(parsed_full.get(f"{short}_prob_source", 'P3'))
+        prob_score_full_arr.append(avg_prob_full)
         
         # ── Ctx 轨道聚合 ──
-        final_v_ctx, final_s_ctx, agree_rate_ctx, parsed_ctx, topics_ctx, llm_cats_ctx, text_types_ctx, fl_votes_ctx, n_fail_ctx = \
+        final_v_ctx, final_s_ctx, agree_rate_ctx, parsed_ctx, topics_ctx, llm_cats_ctx, text_types_ctx, fl_votes_ctx, n_fail_ctx, avg_prob_ctx = \
             _aggregate_track(row_results.get('ctx', {}), MODELS)
         n_api_failures += n_fail_ctx
         
@@ -600,6 +744,10 @@ def main():
             per_model_cols[f"{short}_sentiment_ctx"].append(parsed_ctx.get(f"{short}_sentiment"))
             per_model_cols[f"{short}_verification_confidence_ctx"].append(parsed_ctx.get(f"{short}_verification_confidence", 0.0))
             per_model_cols[f"{short}_sentiment_confidence_ctx"].append(parsed_ctx.get(f"{short}_sentiment_confidence", 0.0))
+            if LOGIT_SCORE_ENABLED:
+                per_model_cols[f"{short}_prob_score_ctx"].append(parsed_ctx.get(f"{short}_prob_score", 0.0))
+                per_model_cols[f"{short}_prob_source_ctx"].append(parsed_ctx.get(f"{short}_prob_source", 'P3'))
+        prob_score_ctx_arr.append(avg_prob_ctx)
         
         # ── 金融科技主题标准化分类（仅基于 full 轨道） ──
         combined_topic = ' '.join(topics_full) if topics_full else ''
@@ -657,6 +805,17 @@ def main():
     # 使用 BooleanDtype 而非 Float64Dtype：语义上 is_forward_looking 是布尔值，
     # BooleanDtype 支持 NA（兼容 None 值），同时保留布尔语义
     df['is_forward_looking'] = pd.array(forward_looking_arr, dtype=pd.BooleanDtype())
+    
+    # ── Logit-to-Score 概率分数写入 DataFrame ──
+    if LOGIT_SCORE_ENABLED:
+        df['llm_prob_score_full'] = prob_score_full_arr
+        df['llm_prob_score_ctx'] = prob_score_ctx_arr
+        n_rows = len(prob_score_full_arr)
+        mean_full = sum(prob_score_full_arr) / max(n_rows, 1)
+        mean_ctx = sum(prob_score_ctx_arr) / max(n_rows, 1)
+        logger.info(f"Logit-to-Score: "
+                    f"full mean={mean_full:.4f}, ctx mean={mean_ctx:.4f}, "
+                    f"n={n_rows}")
     
     if n_api_failures > 0:
         logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
@@ -801,9 +960,16 @@ def main():
                         s_votes.append(item['sentiment'])
                         per_model_data[f'{short}_sentiment_title'] = item['sentiment']
                         per_model_data[f'{short}_sentiment_confidence_title'] = item['confidence']
+                        if LOGIT_SCORE_ENABLED:
+                            ps = compute_prob_score(item['sentiment'], item['confidence'])
+                            per_model_data[f'{short}_prob_score_title'] = ps['prob_score']
+                            per_model_data[f'{short}_prob_source_title'] = ps['prob_source']
                     else:
                         per_model_data[f'{short}_sentiment_title'] = None
                         per_model_data[f'{short}_sentiment_confidence_title'] = 0.0
+                        if LOGIT_SCORE_ENABLED:
+                            per_model_data[f'{short}_prob_score_title'] = 0.0
+                            per_model_data[f'{short}_prob_source_title'] = 'P3'
                 
                 # 多数决（统一使用 majority_vote_sentiment，确保平局处理
                 # 与 full/ctx 轨道一致：平局时降级为中性）
@@ -835,6 +1001,23 @@ def main():
         
         # Step 1c: llm_verified_title 固定为 True（已通过 full 轨道验证）
         df_filtered['llm_verified_title'] = True
+        
+        # Logit-to-Score 标题轨道概率分数
+        if LOGIT_SCORE_ENABLED:
+            # 计算每篇文章的多模型平均 prob_score
+            def _calc_title_prob(idx):
+                data = title_sentiment_map.get(idx, {})
+                scores = [data.get(f'{m["short_name"]}_prob_score_title', 0.0) for m in MODELS
+                          if data.get(f'{m["short_name"]}_sentiment_title') is not None]
+                return sum(scores) / len(scores) if scores else 0.0
+            df_filtered['llm_prob_score_title'] = df_filtered.index.map(_calc_title_prob)
+            
+            for m in MODELS:
+                short = m['short_name']
+                for suffix in ['_prob_score_title', '_prob_source_title']:
+                    col = f'{short}{suffix}'
+                    df_filtered[col] = df_filtered.index.map(
+                        lambda idx, c=col: title_sentiment_map.get(idx, {}).get(c))
         
         # 统计
         sent_counts = df_filtered['llm_sentiment_title'].value_counts()

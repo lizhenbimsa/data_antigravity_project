@@ -954,6 +954,20 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'avg_{d}_neg_ratio{s}': f'Avg Neg Ratio: {d} ({t})'
                    for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
+                # ═══ Logit-to-Score 概率映射情感 (Törnberg 2024 / Shapiro 2022) ═══
+                **{f'avg_llm_prob_score{s}': f'Avg Prob Score ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                **{f'avg_llm_prob_score_std{s}': f'Std Prob Score ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                **{f'llm_prob_score_sum{s}': f'Sum Prob Score ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                **{f'llm_vote_tone_vw_prob{s}': f'VW Prob Tone ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                **{f'llm_vote_tone_mw_prob{s}': f'MW Prob Tone ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                **{f'llm_vote_tone_hw_prob{s}': f'HW Prob Tone ({t})'
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                'prob_gap_title_full': 'Prob Score Gap: Title - Full',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -1066,6 +1080,10 @@ def main():
                     src = f'{b}{label}{track}'
                     if src in df.columns:
                         df[f'{src}_w'] = df[src] * w
+            # Logit-to-Score 概率分数
+            src_prob = f'llm_prob_score{track}'
+            if src_prob in df.columns:
+                df[f'llm_prob_score_w{track}'] = df[src_prob] * w
         vw_cols = [c for c in df.columns if c.endswith('_w')]
         logger.info(f"  已生成 {len(vw_cols)} 个加权列")
     else:
@@ -1098,6 +1116,10 @@ def main():
                     src = f'{b}{label}{track}'
                     if src in df.columns:
                         df[f'{b}{label}_mw{track}'] = df[src] * mw
+            # Logit-to-Score 概率分数
+            src_prob = f'llm_prob_score{track}'
+            if src_prob in df.columns:
+                df[f'llm_prob_score_mw{track}'] = df[src_prob] * mw
         mw_cols = [c for c in df.columns if '_mw' in c]
         logger.info(f"  已生成 {len(mw_cols)} 个媒体权威性加权列")
 
@@ -1133,6 +1155,10 @@ def main():
                     src = f'{b}{label}{track}'
                     if src in df.columns:
                         df[f'{b}{label}_hw{track}'] = df[src] * hw
+            # Logit-to-Score 概率分数
+            src_prob = f'llm_prob_score{track}'
+            if src_prob in df.columns:
+                df[f'llm_prob_score_hw{track}'] = df[src_prob] * hw
         hw_cols = [c for c in df.columns if '_hw' in c]
         logger.info(f"  已生成 {len(hw_cols)} 个跟风衰减加权列")
 
