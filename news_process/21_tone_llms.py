@@ -520,13 +520,29 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     22_tone_words 和 23_tone_berts 直接读取此列，避免重复计算
     并确保三种情感分析方法对完全一致的文本进行分析。
 
+    窗口参数从 config.yaml 的 context_window 节读取，确保参数
+    可追溯性和审计透明度：
+      - sentence_radius: 句子级窗口半径（默认 1 = 命中句前后各1句）
+      - fallback_char_radius: 文本过短时的字符级回退半径
+
+    学术依据:
+      Hassan et al. (2019, QJE) Proximity-based Attribution。
+      敏感性检验: 35_radius_sensitivity.py 验证 radius ∈ {0,1,2,3} 的稳健性。
+
     Args:
         df: 含 '内容' 和 'target_bank' 列的 DataFrame。
 
     Returns:
         pd.DataFrame: 增加了 'content_ctx' 列的 DataFrame。
     """
-    logger.info("物化 content_ctx 列（实体特异性上下文提取）...")
+    # 从 config.yaml 读取窗口参数（显式参数化，取代函数默认值）
+    _ctx_cfg = CONFIG.get('context_window', {})
+    _sentence_radius = _ctx_cfg.get('sentence_radius', 1)
+    _fallback_char_radius = _ctx_cfg.get('fallback_char_radius', 150)
+
+    logger.info(f"物化 content_ctx 列（实体特异性上下文提取）"
+                f"— sentence_radius={_sentence_radius}, "
+                f"fallback_char_radius={_fallback_char_radius}")
     _bnf = CONFIG['paths'].get('bank_names_file', '')
     _alias_cache = {}
 
@@ -540,7 +556,11 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
         if target_bank and target_bank not in ('nan', 'None'):
             if target_bank not in _alias_cache:
                 _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
-            content_ctx = extract_entity_context(content_full, _alias_cache[target_bank])
+            content_ctx = extract_entity_context(
+                content_full, _alias_cache[target_bank],
+                sentence_radius=_sentence_radius,
+                fallback_char_radius=_fallback_char_radius,
+            )
             if not content_ctx:
                 content_ctx = content_full  # 回退公理：无匹配时保留全文
         else:
