@@ -176,6 +176,20 @@ if os.path.exists(_p26):
 else:
     compute_authoritative_similarity = None
 
+# --- 从 27 导入 (经营效益情感态度投影: Benefit-Operations Projection) ---
+# 27_fintech_benefit_society.py: 双极锚点投影法测度银行金融科技的经营效益情感态度。
+# 【学术依据】Jha, Liu & Manela (2026, RFS §1.3.2 Eq. 1)
+#   双极锚点投影: cos(news_emb, pos_anchor - neg_anchor)
+# 【方法论上游】Kozlowski, Taddy & Evans (2019, ASR §2.1)
+#   差分向量定义语义维度
+_p27 = os.path.join(os.path.dirname(__file__), '27_fintech_benefit_society.py')
+if os.path.exists(_p27):
+    _s27 = _iu.spec_from_file_location('_27_mod', _p27)
+    _m27 = _iu.module_from_spec(_s27); _s27.loader.exec_module(_m27)
+    compute_benefit_society_panel = _m27.compute_benefit_society_panel
+else:
+    compute_benefit_society_panel = None
+
 
 # ============================================================================
 # 8. 诊断统计量
@@ -1019,6 +1033,15 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'auth_sim_tfidf_w_ctx':   'Auth Alignment TF-IDF word (Ctx)',
                 'auth_sim_lda_ctx':       'Auth Alignment LDA (Ctx)',
                 'auth_sim_emb_ctx':       'Auth Alignment Embedding (Ctx)',
+                # ═══ 经营效益情感态度投影 (Stage 27; Jha, Liu & Manela 2026, RFS §1.3.2) ═══
+                'benefit_mean_full':      'Benefit-Operations Attitude Mean (Full)',
+                'benefit_mean_ctx':       'Benefit-Operations Attitude Mean (Ctx)',
+                'benefit_std_full':       'Benefit-Operations Attitude Std (Full)',
+                'benefit_std_ctx':        'Benefit-Operations Attitude Std (Ctx)',
+                'benefit_pos_frac_full':  'Benefit-Ops Positive Frac (Full)',
+                'benefit_pos_frac_ctx':   'Benefit-Ops Positive Frac (Ctx)',
+                'benefit_neg_frac_full':  'Benefit-Ops Negative Frac (Full)',
+                'benefit_neg_frac_ctx':   'Benefit-Ops Negative Frac (Ctx)',
                 # === Article-level Policy Alignment (Stage 15; Distel et al. 2026) ===
                 # Continuous aggregation (main regression)
                 'article_sim_mean':       'Avg Article-Policy Cosine Sim',
@@ -2121,6 +2144,20 @@ def main():
             panel[sim_cols] = panel[sim_cols].fillna(0.0)
     else:
         logger.info("  compute_authoritative_similarity 不可用, 跳过")
+
+    # --- 7h-benefit. 经营效益情感态度投影 (Jha, Liu & Manela 2026, RFS) ---
+    # 【学术依据】Jha et al. (2026, RFS §1.3.2 Eq. 1): 双极连续余弦投影
+    #   a_j = cos(s_j, mean(pos) - mean(neg))
+    # 【白话】用"利好经营 vs 损害经营"方向轴给每篇新闻打态度分
+    if compute_benefit_society_panel is not None:
+        panel = compute_benefit_society_panel(panel, df_exploded)
+        # 【学术防塌陷熔断机制】
+        # 零向量投影 = 中性 (cos(0, p) = 0)，NaN → 0.0 保证面板严格平衡
+        bene_cols = [c for c in panel.columns if c.startswith('benefit_')]
+        if bene_cols:
+            panel[bene_cols] = panel[bene_cols].fillna(0.0)
+    else:
+        logger.info("  compute_benefit_society_panel 不可用, 跳过")
 
     # --- 7h-token. 文章级政策对齐 + Token/Hidden 四象限分类 ---
     # 【学术支撑】

@@ -48,6 +48,7 @@ filenames:
   output_40_panel_yearly: 40_panel_yearly.parquet          # 45_panel_export_main.py → 年度平衡面板 (Bank-Year)
   output_40_article_bank: 40_article_bank_level.parquet    # 45_panel_export_main.py → 展开后文章-银行级数据
   output_51_panel_controls: 51_panel_with_controls.parquet  # 51_falsification_test.py → 含伪造检验对照变量的面板
+  output_27_benefit_cache: 27_benefit_embeddings.npy        # 27_fintech_benefit_society.py → Embedding 缓存 (Jha et al. 2026)
 
 # ------------------------------------------------------------------------------
 # 并行处理配置 (Parallel Processing)
@@ -764,3 +765,20 @@ herd_detection:
   min_df: 5                    # TF-IDF 最小文档频率
   max_df: 0.9                  # TF-IDF 最大文档频率
   chunk_size: 1000             # 分块运算大小 (控制内存)
+
+# ------------------------------------------------------------------------------
+# [模块二] 金融科技经营效益态度指数 - 阶段 27
+# ------------------------------------------------------------------------------
+# 学术依据:
+#   Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society?
+#     RFS, 39(5), 1227-1266. DOI: 10.1093/rfs/hhaf012
+#   方法论上游: Kozlowski, Taddy, & Evans (2019). ASR, 84(5), 905-949.
+#     DOI: 10.1177/0003122419877135
+# 白话: 用"利好经营 vs 损害经营"方向轴给每篇新闻打态度分
+benefit_society:
+  max_tokens_per_input: 8191        # 单条输入 token 上限 (text-embedding-3-small 硬性上限)
+  max_tokens_per_request: 250000    # 单次 API 请求总 token 上限
+  positive_anchors: null            # 预留扩展: 自定义正极句列表 (当前版本未启用, 始终使用模块内置 10 对)
+  negative_anchors: null            # 预留扩展: 自定义负极句列表 (当前版本未启用, 始终使用模块内置 10 对)
+  cache_embeddings: true            # 缓存 Embedding 为 .npy (降低 API 成本)
+

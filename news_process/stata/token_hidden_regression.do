@@ -1,9 +1,10 @@
 /*
  * token_hidden_regression.do
  * ============================================================================
- * Token/Hidden 采纳行为三层回归架构
+ * Token/Hidden 采纳行为 + 经营效益态度投影 四层回归架构
  *
  * 【学术支撑】
+ *   层 1-3:
  *   Distel, A. P., Grimpe, C., & Poetz, M. (2026). From evidence to impact.
  *   Research Policy, 55(3), 105426.
  *   https://doi.org/10.1016/j.respol.2026.105426
@@ -13,11 +14,18 @@
  *   ASQ, 46(2), 202–228. https://doi.org/10.2307/2667086
  *   → Token Adoption 的制度理论基础
  *
+ *   层 4:
+ *   Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society?
+ *   A language embedding approach. Review of Financial Studies, 39(5),
+ *   1227–1266. https://doi.org/10.1093/rfs/hhaf012
+ *   → §1.3.2 Eq. 1: 双极锚点投影测度经营效益情感态度
+ *
  * 【白话说明】
- *   三层回归：
+ *   四层回归：
  *     层1 (主回归)：用连续变量看"政策对齐度"对银行绩效的影响
  *     层2 (机制检验)：用离散变量看"洗科技"和"闷声干大事"各自的影响
  *     层3 (稳健性)：换不同阈值和度量方式，看结论是否稳定
+ *     层4 (态度投影)：用"利好经营 vs 损害经营"的态度分看对绩效的影响
  * ============================================================================
  */
 
@@ -106,12 +114,60 @@ reghdfe ROA token_adopt_int_p50 hidden_adopt_int_p50 ///
 eststo m8_int_track
 
 * ============================================================================
+* 层 4: 经营效益情感态度投影 (Jha, Liu & Manela 2026, RFS)
+* ============================================================================
+* 【术语】双极连续余弦投影 (Bipolar Anchor Projection)
+*   核心公式 (§1.3.2 Eq. 1):
+*     a_j = cos(s_j, p),  p = mean(pos_emb) - mean(neg_emb)
+*   值域 ∈ [-1, 1]: >0 = 利好经营, <0 = 损害经营, =0 = 中性
+*
+*   Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit society?
+*     A language embedding approach. Review of Financial Studies, 39(5),
+*     1227–1266. https://doi.org/10.1093/rfs/hhaf012
+*
+*   方法论上游:
+*   Kozlowski, A. C., Taddy, M., & Evans, J. A. (2019). The geometry of
+*     culture: Analyzing the meanings of class through word embeddings.
+*     American Sociological Review, 84(5), 905–949.
+*     https://doi.org/10.1177/0003122419877135
+*
+* 【白话】给每篇金融科技新闻打一个"经营效益态度分":
+*   正分 = 新闻把金融科技描述成利好银行经营
+*   负分 = 新闻把金融科技描述成损害银行经营
+*   然后取每家银行每年的均值/比例作为回归变量
+
+* m9: 主回归 — 态度均值 → 银行绩效
+* 【白话】经营效益态度越正面的银行，ROA 是否更高？
+reghdfe ROA benefit_mean_full $controls, absorb(bank_id year) vce(cluster bank_id)
+eststo m9_benefit
+
+* m10: 交互项 — 态度 × 技术强度
+* 【白话】如果一家银行既报道"态度正面"又"技术投入重"，效果是否叠加？
+gen benefit_x_intensity = benefit_mean_full * fintech_intensity_mean
+reghdfe ROA benefit_mean_full fintech_intensity_mean benefit_x_intensity ///
+    $controls, absorb(bank_id year) vce(cluster bank_id)
+eststo m10_benefit_interact
+
+* m11: 稳健性 A — Ctx 轨 (仅使用提及该银行的段落)
+* 【白话】只看"提到这家银行"的段落，排除其他银行的情感干扰
+reghdfe ROA benefit_mean_ctx $controls, absorb(bank_id year) vce(cluster bank_id)
+eststo m11_benefit_ctx
+
+* m12: 稳健性 B — 正/负态度比例分解
+* 【白话】不看平均分，而是看"正面新闻占多少" vs "负面新闻占多少"
+reghdfe ROA benefit_pos_frac_full benefit_neg_frac_full ///
+    $controls, absorb(bank_id year) vce(cluster bank_id)
+eststo m12_benefit_frac
+
+* ============================================================================
 * 输出回归表
 * ============================================================================
 esttab m1_sim m2_interact m3_token_car m4_hidden_roa m5_subst_roa ///
     m6_p25 m7_p75 m8_int_track ///
+    m9_benefit m10_benefit_interact m11_benefit_ctx m12_benefit_frac ///
     using "token_hidden_results.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) ///
     se(3) b(3) ///
-    title("Token/Hidden Adoption and Bank Performance") ///
+    title("Fintech Adoption, Benefit-Operations Attitude, and Bank Performance") ///
     label compress
+
