@@ -38,6 +38,7 @@ filenames:
   output_12_fintech_news: 12_fintech_news.parquet         # 12_news_fintech.py → 金融科技新闻分类（仅保留金融科技新闻）
   output_12_fintech_full: 12_fintech_news_full.parquet    # 12_news_fintech.py → 全量分类结果（含非金融科技，用于人工验证抽样）
   output_14_fintech_intensity: 14_fintech_intensity.parquet  # 14_fintech_intensity.py → TF-IDF 技术重度评分（在 12 基础上追加 intensity 列）
+  output_15_article_alignment: 15_article_alignment.parquet  # 15_article_policy_alignment.py → 文章级政策语义对齐度 (Distel et al. 2026)
   output_21_tone_llms: 21_tone_llms.parquet               # 21_tone_llms.py → LLM 语义精筛与情感分析（仅 llm_verified=True）
   output_21_tone_llms_full: 21_tone_llms_full.parquet     # 21_tone_llms.py → LLM 全量结果（含 llm_verified=True/False，供验证模块使用）
   output_22_words_tone: 22_words_tone.parquet             # 22_tone_words.py → 词典法情感分析
@@ -254,6 +255,21 @@ fintech_intensity:
   min_distinct_keywords_jieba: 2                         # Jieba 精算后去重关键词最低数量（二次熔断阈值）
   winsorize_percentiles: [1, 99]                         # IDF Winsorization 分位数 (P1/P99)
   anisotropy_floor: 0.1                                  # 各向异性校准下限 (Ethayarajh, 2019)
+
+# ------------------------------------------------------------------------------
+# [模块二：新闻筛选模块] 文章级政策语义对齐度 (Article-level Policy Alignment) - 阶段 15
+# ------------------------------------------------------------------------------
+# 为每篇金融科技新闻计算与权威政策语料的余弦相似度 (policy_cosine_sim)。
+# 支持后续 Token/Hidden 四象限分类 (Distel et al. 2026, Research Policy)。
+# 学术依据:
+#   Distel, A. P., Grimpe, C., & Poetz, M. (2026). From evidence to impact.
+#     Research Policy, 55(3), 105426. DOI: 10.1016/j.respol.2026.105426
+#   Hassan, T. A. et al. (2019). Firm-level political risk. QJE, 134(4),
+#     2135-2202. DOI: 10.1093/qje/qjz021
+article_alignment:
+  max_tokens_per_input: 8191                               # 单条文本 token 上限 (OpenAI 硬性限制)
+  max_tokens_per_request: 250000                           # 单次 API 请求总 token 安全上限 (300K - 50K 余量)
+  quadrant_percentiles: [25, 50, 75]                       # 四象限分类的分位数阈值集合
 
 # ------------------------------------------------------------------------------
 # [模块二：新闻筛选模块] 实体上下文窗口配置 (Entity Context Window) - 阶段 21 物化

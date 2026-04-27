@@ -1019,6 +1019,32 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'auth_sim_tfidf_w_ctx':   'Auth Alignment TF-IDF word (Ctx)',
                 'auth_sim_lda_ctx':       'Auth Alignment LDA (Ctx)',
                 'auth_sim_emb_ctx':       'Auth Alignment Embedding (Ctx)',
+                # === Article-level Policy Alignment (Stage 15; Distel et al. 2026) ===
+                # Continuous aggregation (main regression)
+                'article_sim_mean':       'Avg Article-Policy Cosine Sim',
+                'article_sim_std':        'Std Article-Policy Cosine Sim',
+                'fintech_intensity_mean': 'Avg FinTech Intensity Score',
+                # Quadrant discrete classification (mechanism / robustness)
+                # Track A (kw) x P={25,50,75}
+                'token_adopt_kw_p25':     'Token Adoption (KW, P25)',
+                'hidden_adopt_kw_p25':    'Hidden Adoption (KW, P25)',
+                'subst_adopt_kw_p25':     'Substantive Adoption (KW, P25)',
+                'token_adopt_kw_p50':     'Token Adoption (KW, P50)',
+                'hidden_adopt_kw_p50':    'Hidden Adoption (KW, P50)',
+                'subst_adopt_kw_p50':     'Substantive Adoption (KW, P50)',
+                'token_adopt_kw_p75':     'Token Adoption (KW, P75)',
+                'hidden_adopt_kw_p75':    'Hidden Adoption (KW, P75)',
+                'subst_adopt_kw_p75':     'Substantive Adoption (KW, P75)',
+                # Track B (int) x P={25,50,75}
+                'token_adopt_int_p25':    'Token Adoption (INT, P25)',
+                'hidden_adopt_int_p25':   'Hidden Adoption (INT, P25)',
+                'subst_adopt_int_p25':    'Substantive Adoption (INT, P25)',
+                'token_adopt_int_p50':    'Token Adoption (INT, P50)',
+                'hidden_adopt_int_p50':   'Hidden Adoption (INT, P50)',
+                'subst_adopt_int_p50':    'Substantive Adoption (INT, P50)',
+                'token_adopt_int_p75':    'Token Adoption (INT, P75)',
+                'hidden_adopt_int_p75':   'Hidden Adoption (INT, P75)',
+                'subst_adopt_int_p75':    'Substantive Adoption (INT, P75)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -2095,6 +2121,154 @@ def main():
             panel[sim_cols] = panel[sim_cols].fillna(0.0)
     else:
         logger.info("  compute_authoritative_similarity 不可用, 跳过")
+
+    # --- 7h-token. 文章级政策对齐 + Token/Hidden 四象限分类 ---
+    # 【学术支撑】
+    #   Distel, A. P., Grimpe, C., & Poetz, M. (2026). From evidence to
+    #   impact. Research Policy, 55(3), 105426.
+    #   https://doi.org/10.1016/j.respol.2026.105426
+    #   -> S3.2.1: 解耦"显性引用"(Token) 与"文本级语义实质借鉴"(Hidden)
+    #
+    #   Westphal, J. D. & Zajac, E. J. (2001). Decoupling policy from practice.
+    #   ASQ, 46(2), 202-228. https://doi.org/10.2307/2667086
+    #   -> Token Adoption = 象征性采用 (合法性功能)
+    #
+    # 【白话说明】
+    #   读取 Stage 15 的逐篇文章政策对齐分数 (policy_cosine_sim),
+    #   结合词频维度(双轨), 把每篇文章分到四个象限:
+    #     Token(说得多+没落地) / Hidden(说得少+做得真) /
+    #     Substantive(言行一致) / Irrelevant(不相关)
+    #   然后按(银行,年)统计各象限的文章占比, 作为面板变量.
+    # -----------------------------------------------------------------------
+    logger.info("=" * 60)
+    logger.info("步骤 7h-token: 文章级政策对齐 + Token/Hidden 四象限分类")
+    logger.info("=" * 60)
+
+    # 尝试加载 Stage 15 输出
+    _align_filename = FILENAMES.get(
+        'output_15_article_alignment', '15_article_alignment.parquet')
+    _align_path = os.path.join(OUTPUT_DIR, _align_filename)
+
+    if os.path.exists(_align_path):
+        df_align = pd.read_parquet(_align_path)
+        logger.info(f"  加载 Stage 15: {len(df_align)} 篇, "
+                    f"policy_cosine_sim 非空率: "
+                    f"{df_align['policy_cosine_sim'].notna().mean():.1%}")
+
+        # 【关键】Stage 15 的输出基于 Stage 14 (14_fintech_intensity.parquet),
+        #   该文件不含 'year' 列 — year 由 Stage 45 的 parse_time() 从 '日期' 派生。
+        #   因此必须在此处自行从 '日期' 列计算 year, 否则 groupby('year') 会 KeyError。
+        if 'year' not in df_align.columns and '日期' in df_align.columns:
+            df_align['日期'] = pd.to_datetime(df_align['日期'], errors='coerce')
+            df_align['year'] = df_align['日期'].dt.year
+            df_align = df_align.dropna(subset=['year'])
+            df_align['year'] = df_align['year'].astype(int)
+            logger.info(f"  从 '日期' 列派生 year: {df_align['year'].nunique()} 个年份")
+
+        # --- 逻辑 A: 连续聚合变量 (主回归) ---
+        # 【术语】按 (target_bank, year) 聚合文章级 policy_cosine_sim
+        #   为 mean 和 std, 以及 fintech_intensity_score 的 mean
+        #   参考: Royston, Altman & Sauerbrei (2006, Stat Med) --
+        #   连续变量优于离散化
+        # 【白话】算每家银行每年的平均政策对齐分和平均技术强度分
+        if 'target_bank' in df_align.columns and 'year' in df_align.columns:
+            _agg = df_align.groupby(['target_bank', 'year']).agg(
+                article_sim_mean=('policy_cosine_sim', 'mean'),
+                article_sim_std=('policy_cosine_sim', 'std'),
+                fintech_intensity_mean=('fintech_intensity_score', 'mean')
+            ).reset_index()
+            # std 对单篇文章的 bank-year 返回 NaN, 填 0
+            _agg['article_sim_std'] = _agg['article_sim_std'].fillna(0.0)
+            panel = panel.merge(_agg, on=['target_bank', 'year'], how='left')
+            logger.info(f"  连续聚合: article_sim_mean/std, "
+                        f"fintech_intensity_mean 已合并")
+
+            # --- 逻辑 B: 四象限离散分类 (机制检验 / 稳健性) ---
+            # 【术语】
+            #   双轨词频维度:
+            #     Track A (kw): fintech_distinct_keywords (AC 原始去重关键词数)
+            #     Track B (int): fintech_intensity_score (TF-IDF x SIF 加权)
+            #   分位数阈值: P={25, 50, 75}
+            #     P50 = 机制检验基准 (与项目 10+ 处中位数分割惯例一致)
+            #     P25/P75 = 稳健性检验
+            #
+            #   四象限定义 (逐篇文章级):
+            #     Substantive: 词频 >= 分位数 AND 相似度 >= 分位数 (言行一致)
+            #     Token:       词频 >= 分位数 AND 相似度 <  分位数 (洗科技)
+            #     Hidden:      词频 <  分位数 AND 相似度 >= 分位数 (闷声干大事)
+            #     Irrelevant:  词频 <  分位数 AND 相似度 <  分位数 (不相关)
+            #
+            # 【白话】把每篇新闻放进四个格子里:
+            #   纵轴 = 关键词多不多, 横轴 = 跟政策像不像
+            #   然后数每家银行每年各有多少比例的新闻在每个格子里
+
+            _tracks = [
+                ('kw', 'fintech_distinct_keywords'),
+                ('int', 'fintech_intensity_score'),
+            ]
+            _align_cfg = CONFIG.get('article_alignment', {})
+            _percentiles = _align_cfg.get('quadrant_percentiles', [25, 50, 75])
+
+            for track_name, freq_col in _tracks:
+                if freq_col not in df_align.columns:
+                    logger.warning(f"  {freq_col} 列缺失, 跳过 Track {track_name}")
+                    continue
+
+                for pct in _percentiles:
+                    # 按年度计算分位数阈值
+                    # 使用默认参数绑定 p=pct, 防止 late-binding 陷阱
+                    _yearly_sim_thresh = df_align.groupby('year')[
+                        'policy_cosine_sim'].transform(
+                        lambda x, p=pct: x.quantile(p / 100.0))
+                    _yearly_freq_thresh = df_align.groupby('year')[
+                        freq_col].transform(
+                        lambda x, p=pct: x.quantile(p / 100.0))
+
+                    # 四象限分类 (互斥穷尽)
+                    _high_freq = df_align[freq_col] >= _yearly_freq_thresh
+                    _high_sim = df_align['policy_cosine_sim'] >= _yearly_sim_thresh
+
+                    df_align[f'_is_token_{track_name}_p{pct}'] = (
+                        _high_freq & ~_high_sim).astype(int)
+                    df_align[f'_is_hidden_{track_name}_p{pct}'] = (
+                        ~_high_freq & _high_sim).astype(int)
+                    df_align[f'_is_subst_{track_name}_p{pct}'] = (
+                        _high_freq & _high_sim).astype(int)
+
+                    # 按 (银行, 年) 聚合为占比
+                    _quadrant_agg = df_align.groupby(
+                        ['target_bank', 'year']).agg(
+                        **{f'token_adopt_{track_name}_p{pct}': (
+                            f'_is_token_{track_name}_p{pct}', 'mean'),
+                           f'hidden_adopt_{track_name}_p{pct}': (
+                            f'_is_hidden_{track_name}_p{pct}', 'mean'),
+                           f'subst_adopt_{track_name}_p{pct}': (
+                            f'_is_subst_{track_name}_p{pct}', 'mean'),
+                           }
+                    ).reset_index()
+
+                    panel = panel.merge(
+                        _quadrant_agg, on=['target_bank', 'year'], how='left')
+
+                logger.info(f"  Track {track_name}: P={{25,50,75}} "
+                            f"四象限占比已合并")
+
+            # 填充 NaN (无 Stage 15 数据的 bank-year)
+            _token_cols = [c for c in panel.columns
+                          if c.startswith(('token_adopt_', 'hidden_adopt_',
+                                           'subst_adopt_', 'article_sim_',
+                                           'fintech_intensity_mean'))]
+            panel[_token_cols] = panel[_token_cols].fillna(0.0)
+            logger.info(f"  Token/Hidden 面板变量: 共 {len(_token_cols)} 列")
+
+            # 清理临时列
+            _tmp_cols = [c for c in df_align.columns if c.startswith('_is_')]
+            df_align.drop(columns=_tmp_cols, inplace=True, errors='ignore')
+
+        else:
+            logger.warning("  Stage 15 数据缺少 target_bank/year 列, 跳过")
+    else:
+        logger.info(f"  Stage 15 文件不存在 ({_align_path}), 跳过 Token/Hidden 计算")
 
     # --- 7h-brok. 信息经纪网络中心度 (Han et al. 2024, RFS) ---
     if compute_brokerage_centrality is not None:
