@@ -207,3 +207,45 @@ esttab cd_full cd_ctx using "output/centroid_full_vs_ctx.tex", ///
 reghdfe Y strat_diff_n5 centroid_diff_tfidf_c $controls, ///
     absorb(bank_id year) vce(cluster bank_id)
 eststo horse_race
+
+* =========================================================================
+* 10. 权威政策战略响应度 (Stage 26: Authoritative Policy Alignment)
+*     【学术方法论】
+*     - 先将银行新闻按年聚合(Pool-then-Vectorize), 与政策基准(如《关于促进
+*       互联网金融健康发展的指导意见》等)一同映射入当年的 TF-IDF / LDA / 
+*       Embedding 特征空间, 作为 "Ghost Anchor" (虚拟锚点)。随后提取最后一行
+*       切片，计算高维空间中的余弦相似度。
+*     【白话解释】
+*     - 简单来说，就是把国家政策当成“满分标准答案”，看看各大银行当年的新闻
+*       和这个标答有多像。越像，说明银行越听话、越紧跟国家战略步伐。
+*     【参考文献】
+*     - Hassan, T. A., et al. (2019). Firm-level political risk: Measurement 
+*       and effects. QJE. https://doi.org/10.1093/qje/qjz021
+*     - Hoberg, G., & Phillips, G. (2016). Text-based network industries and 
+*       endogenous product differentiation. JPE. https://doi.org/10.1086/688176
+* =========================================================================
+
+* ── 10a. 描述性统计与方法论收敛效度 (Convergent Validity) ──
+sum auth_sim_*_full, detail
+pwcorr auth_sim_tfidf_c_full auth_sim_tfidf_w_full ///
+       auth_sim_lda_full auth_sim_emb_full, sig star(0.05)
+
+* ── 10b. 四维度并行基准回归 ──
+* 这里仍使用示例 Y
+foreach m in tfidf_c tfidf_w lda emb {
+    reghdfe Y auth_sim_`m'_full $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+    eststo auth_`m'_f
+}
+
+esttab auth_tfidf_c_f auth_tfidf_w_f auth_lda_f auth_emb_f ///
+    using "output/auth_sim_full_robustness.tex", ///
+    star(* .10 ** .05 *** .01) se replace ///
+    b(%9.3f) t(%9.2f) compress label ///
+    mtitles("TF-IDF(c)" "TF-IDF(w)" "LDA" "Emb") ///
+    title("Table: Multidimensional Robustness of Authoritative Policy Alignment")
+
+* ── 10c. 权威政策响应度 (Centroid) 与 N-最近邻 (N-NN) 的 Horse Race ──
+reghdfe Y auth_sim_tfidf_c_full strat_diff_n5 $controls, ///
+    absorb(bank_id year) vce(cluster bank_id)
+eststo auth_horse_race

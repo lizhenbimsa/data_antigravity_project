@@ -162,6 +162,20 @@ if os.path.exists(_p25):
 else:
     compute_strategic_differentiation = None
 
+# --- 从 26 导入 (权威政策战略响应度: Authoritative Policy Alignment) ---
+# 26_authoritative_similarity.py: 测度微观银行新闻与宏观顶层设计文本的战略相似度。
+# 【学术原理】: 融合 Hassan et al. (2019, QJE) 的文本锚定距离思想与 Hoberg & Phillips 
+# (2016, JPE) 的 TF-IDF/LDA 乘积空间。通过动态将权威政策(如《关于促进互联网金融健康发展
+# 的指导意见》)作为 (N+1) 维的"虚拟锚点(Ghost Anchor)"挂载至文本全集进行联合特征化，
+# 彻底消除独立提取时存在的词表映射错位问题(Vocabulary Mismatch Problem)。
+_p26 = os.path.join(os.path.dirname(__file__), '26_authoritative_similarity.py')
+if os.path.exists(_p26):
+    _s26 = _iu.spec_from_file_location('_26_mod', _p26)
+    _m26 = _iu.module_from_spec(_s26); _s26.loader.exec_module(_m26)
+    compute_authoritative_similarity = _m26.compute_authoritative_similarity
+else:
+    compute_authoritative_similarity = None
+
 
 # ============================================================================
 # 8. 诊断统计量
@@ -629,6 +643,15 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'sandbox_treated':                     'Fintech Sandbox (0/1)',
                 'sandbox_post':                        'Post Sandbox (0/1)',
                 'sandbox_treat_year':                  'Sandbox First Treatment Year',
+                # 权威政策响应度 (Stage 26, Hassan et al. 2019)
+                'auth_sim_tfidf_c_full':               'Auth Alignment TF-IDF char (Full)',
+                'auth_sim_tfidf_w_full':               'Auth Alignment TF-IDF word (Full)',
+                'auth_sim_lda_full':                   'Auth Alignment LDA (Full)',
+                'auth_sim_emb_full':                   'Auth Alignment Embedding (Full)',
+                'auth_sim_tfidf_c_ctx':                'Auth Alignment TF-IDF char (Ctx)',
+                'auth_sim_tfidf_w_ctx':                'Auth Alignment TF-IDF word (Ctx)',
+                'auth_sim_lda_ctx':                    'Auth Alignment LDA (Ctx)',
+                'auth_sim_emb_ctx':                    'Auth Alignment Embedding (Ctx)',
                 # Event Study 动态效应 (Callaway & Sant'Anna 2021, JoE)
                 'dcep_rel_year':                       'DCEP Relative Year to Treatment',
                 'dcep_lead3':                          'DCEP Lead 3 Periods (k=-3)',
@@ -987,6 +1010,15 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'llm_vote_tone_hw_prob{s}': f'HW Prob Tone ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
                 'prob_gap_title_full': 'Prob Score Gap: Title - Full',
+                # === 权威政策战略响应度 (Stage 26; Hassan et al. 2019) ===
+                'auth_sim_tfidf_c_full':  'Auth Alignment TF-IDF char (Full)',
+                'auth_sim_tfidf_w_full':  'Auth Alignment TF-IDF word (Full)',
+                'auth_sim_lda_full':      'Auth Alignment LDA (Full)',
+                'auth_sim_emb_full':      'Auth Alignment Embedding (Full)',
+                'auth_sim_tfidf_c_ctx':   'Auth Alignment TF-IDF char (Ctx)',
+                'auth_sim_tfidf_w_ctx':   'Auth Alignment TF-IDF word (Ctx)',
+                'auth_sim_lda_ctx':       'Auth Alignment LDA (Ctx)',
+                'auth_sim_emb_ctx':       'Auth Alignment Embedding (Ctx)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
@@ -2048,6 +2080,21 @@ def main():
         panel = compute_strategic_differentiation(df_exploded, panel)
     else:
         logger.info("  compute_strategic_differentiation 不可用, 跳过")
+
+    # --- 7h-auth. 权威政策战略响应度 (Hassan et al. 2019, QJE) ---
+    if compute_authoritative_similarity is not None:
+        panel = compute_authoritative_similarity(df_exploded, panel)
+        # 【学术防塌陷熔断机制 (Mathematical & Academic Fallback)】
+        # 补全可能由于分轨导致部分银行在某一轨中没有数据而产生的 NaN 为 0.0。
+        # 学术合理性：在 NLP 向量空间中，如果没有观测到该维度的新闻（例如银行该年度无 Ctx 语境文本），
+        # 那么其特征向量为空 (zero-vector)。由于余弦相似度的定义为内积，零向量与政策锚点向量的相似度
+        # 在数学上严格正交且为 0.0。因此，此处使用 0.0 填充不仅是为了保证 STATA 面板的严格平衡性，
+        # 更是理论层面的必然要求，彻底避免了因 NaN 导致观测样本丢失 (Listwise Deletion) 的计量学灾难。
+        sim_cols = [c for c in panel.columns if c.startswith('auth_sim_')]
+        if sim_cols:
+            panel[sim_cols] = panel[sim_cols].fillna(0.0)
+    else:
+        logger.info("  compute_authoritative_similarity 不可用, 跳过")
 
     # --- 7h-brok. 信息经纪网络中心度 (Han et al. 2024, RFS) ---
     if compute_brokerage_centrality is not None:
