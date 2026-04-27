@@ -849,6 +849,25 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'strat_sim_max_lda':   'Max Peer Similarity (LDA+JSD)',
                 'strat_diff_n5_emb':   'Strat Diff N=5 (Embedding)',
                 'strat_sim_max_emb':   'Max Peer Similarity (Embedding)',
+                # === N-最近邻 Ctx 轨 (Guzman & Li 2023, Ctx window) ===
+                'strat_diff_n5_ctx':       'Strat Diff N=5 TF-IDF char (Ctx)',
+                'strat_diff_n5_w_ctx':     'Strat Diff N=5 TF-IDF jieba (Ctx)',
+                'strat_sim_max_ctx':       'Max Peer Similarity char (Ctx)',
+                'strat_sim_max_w_ctx':     'Max Peer Similarity jieba (Ctx)',
+                'strat_diff_n5_lda_ctx':   'Strat Diff N=5 LDA+JSD (Ctx)',
+                'strat_sim_max_lda_ctx':   'Max Peer Similarity LDA (Ctx)',
+                'strat_diff_n5_emb_ctx':   'Strat Diff N=5 Embedding (Ctx)',
+                'strat_sim_max_emb_ctx':   'Max Peer Similarity Emb (Ctx)',
+                # === 全行业向量法 Full (谢佳松 2025; Industry Centroid) ===
+                'centroid_diff_tfidf_c':     'Centroid Dist TF-IDF char (Full)',
+                'centroid_diff_tfidf_w':     'Centroid Dist TF-IDF jieba (Full)',
+                'centroid_diff_lda':         'Centroid Dist LDA theta (Full)',
+                'centroid_diff_emb':         'Centroid Dist Embedding (Full)',
+                # === 全行业向量法 Ctx (谢佳松 2025; Industry Centroid) ===
+                'centroid_diff_tfidf_c_ctx': 'Centroid Dist TF-IDF char (Ctx)',
+                'centroid_diff_tfidf_w_ctx': 'Centroid Dist TF-IDF jieba (Ctx)',
+                'centroid_diff_lda_ctx':     'Centroid Dist LDA theta (Ctx)',
+                'centroid_diff_emb_ctx':     'Centroid Dist Embedding (Ctx)',
                 # === 相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024; Temporal Text Coherence) ===
                 'coh_tfidf_c_full':  'Text Coherence t/(t-1) TF-IDF char (Full)',
                 'coh_tfidf_c_ctx':   'Text Coherence t/(t-1) TF-IDF char (Ctx)',

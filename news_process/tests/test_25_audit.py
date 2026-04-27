@@ -27,6 +27,7 @@ _s25.loader.exec_module(_m25)
 _l2_normalize = _m25._l2_normalize
 _compute_nn_scores = _m25._compute_nn_scores
 _build_tfidf_sim_matrix = _m25._build_tfidf_sim_matrix
+_compute_centroid_scores = _m25._compute_centroid_scores
 _aggregate_bank_year_texts = _m25._aggregate_bank_year_texts
 
 
@@ -143,14 +144,14 @@ class TestTfidfSimMatrix:
     def test_diagonal_nan(self):
         """对角线应为 NaN。"""
         texts = ["银行金融科技创新", "保险科技风控管理", "证券公司投资理财"]
-        sim = _build_tfidf_sim_matrix(texts, 'char')
+        sim, _ = _build_tfidf_sim_matrix(texts, 'char')
         for i in range(len(texts)):
             assert np.isnan(sim[i, i])
 
     def test_symmetry(self):
         """相似度矩阵应对称。"""
         texts = ["银行金融科技创新", "保险科技风控管理", "证券公司投资理财"]
-        sim = _build_tfidf_sim_matrix(texts, 'char')
+        sim, _ = _build_tfidf_sim_matrix(texts, 'char')
         for i in range(len(texts)):
             for j in range(i + 1, len(texts)):
                 assert abs(sim[i, j] - sim[j, i]) < 1e-10
@@ -158,7 +159,7 @@ class TestTfidfSimMatrix:
     def test_identical_texts_high_similarity(self):
         """完全相同的文本应有高相似度。"""
         texts = ["银行金融科技创新发展报告"] * 3
-        sim = _build_tfidf_sim_matrix(texts, 'char')
+        sim, _ = _build_tfidf_sim_matrix(texts, 'char')
         # 完全相同的文本, 非对角线应趋近 1.0
         off_diag = sim[np.isfinite(sim)]
         assert np.all(off_diag > 0.99)
@@ -166,13 +167,13 @@ class TestTfidfSimMatrix:
     def test_word_mode(self):
         """word 模式不应抛出异常。"""
         texts = ["银行金融科技创新发展报告", "保险行业数字化转型进展", "证券投资基金管理条例"]
-        sim = _build_tfidf_sim_matrix(texts, 'word')
+        sim, _ = _build_tfidf_sim_matrix(texts, 'word')
         assert sim.shape == (3, 3)
 
     def test_max_df_fallback(self):
         """当所有文档内容相同导致 max_df=0.95 清空词表时, 应降级而非崩溃。"""
         texts = ["完全一样的内容"] * 5
-        sim = _build_tfidf_sim_matrix(texts, 'char')
+        sim, _ = _build_tfidf_sim_matrix(texts, 'char')
         assert sim.shape == (5, 5)
 
 
@@ -446,6 +447,59 @@ class TestTemporalCoherence:
             "年份间隙后的年度 (2022, 缺 2021 数据) 不应有连贯性值"
 
 
+# =============================================================================
+# 10. _compute_centroid_scores (谢佳松 2025, 经济研究, 图 1)
+# =============================================================================
+
+class TestCentroidScores:
+    """全行业向量法 (Centroid Distance) 单元测试。
+
+    验证 1 - CosineSim(bank_vec, industry_centroid) 的计算正确性。
+    """
+
+    def test_identical_texts(self):
+        """全相同文本 → centroid_diff ≈ 0。"""
+        texts = ["银行金融科技创新发展报告"] * 3
+        _, tfidf_mat = _build_tfidf_sim_matrix(texts, 'char')
+        banks = ['A', 'B', 'C']
+        scores = _compute_centroid_scores(tfidf_mat, banks, is_sparse=True)
+        for bank in banks:
+            assert scores[bank] < 0.01, \
+                f"相同文本的 centroid_diff 应趋近 0, 实际={scores[bank]}"
+
+    def test_outlier_high(self):
+        """离群文本 → centroid_diff 显著高于其他。"""
+        texts = ["银行金融科技创新发展",
+                 "银行金融科技创新进展",
+                 "乡村农业种植养殖报告"]  # 离群
+        _, tfidf_mat = _build_tfidf_sim_matrix(texts, 'char')
+        banks = ['BankA', 'BankB', 'Outlier']
+        scores = _compute_centroid_scores(tfidf_mat, banks, is_sparse=True)
+        assert scores['Outlier'] > scores['BankA'], \
+            f"离群文本应有更高的 centroid_diff: Outlier={scores['Outlier']}, BankA={scores['BankA']}"
+
+    def test_value_range(self):
+        """所有输出 ∈ [0, 1]。"""
+        texts = ["银行金融科技创新", "保险行业数字化转型",
+                 "证券投资基金管理", "小额贷款普惠金融"]
+        _, tfidf_mat = _build_tfidf_sim_matrix(texts, 'char')
+        banks = ['A', 'B', 'C', 'D']
+        scores = _compute_centroid_scores(tfidf_mat, banks, is_sparse=True)
+        for bank, val in scores.items():
+            assert 0.0 <= val <= 1.0, \
+                f"{bank} 的 centroid_diff={val} 超出 [0,1]"
+
+    def test_dense_input(self):
+        """稠密矩阵输入正确处理。"""
+        vectors = np.array([[1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
+        banks = ['X', 'Y', 'Z']
+        scores = _compute_centroid_scores(vectors, banks, is_sparse=False)
+        for bank in banks:
+            assert 0.0 <= scores[bank] <= 1.0
+        # Z=[1,1] 最接近 centroid=mean([1,0],[0,1],[1,1])=[0.67,0.67]
+        assert scores['Z'] < scores['X'], \
+            f"Z 应比 X 更接近质心: Z={scores['Z']}, X={scores['X']}"
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v', '--tb=short'])
-
