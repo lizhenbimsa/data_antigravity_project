@@ -465,12 +465,15 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
                 if part in ('底层技术', '应用场景', '混合型'):
                     llm_categories.append(part)
                     break
-        # 提取 text_type（与 fintech_category 对称的三分类模式）
+        # 提取 text_type（二分类模式：实质性 / 描述性）
         llm_tt = jd.get('text_type', None)
         if llm_tt:
             tt_str = str(llm_tt).strip()
-            if tt_str in ('实质性', '描述性', '混合型'):
+            if tt_str in ('实质性', '描述性'):
                 text_types.append(tt_str)
+            elif tt_str == '混合型':
+                # 向后兼容：旧缓存/LLM偶发输出 → 按最低阈值原则归入"实质性"
+                text_types.append('实质性')
         # 提取 is_forward_looking（时态朝向，交叉验证词典法 forward_looking_ratio）
         fl_val = jd.get('is_forward_looking', None)
         if fl_val is not None:
@@ -791,12 +794,12 @@ def main():
             fintech_category_arr.append(kw_category)
             category_confidence_arr.append(kw_confidence)
         
-        # ── 文本类型分类多数决（仅基于 full 轨道，与 fintech_category 一致） ──
+        # ── 文本类型分类多数决（仅基于 full 轨道，二分类） ──
         if text_types_full:
             tt_votes = Counter(text_types_full)
             tt_top = tt_votes.most_common(2)
             if len(tt_top) >= 2 and tt_top[0][1] == tt_top[1][1]:
-                text_type_arr.append('混合型')  # 平局降为混合型
+                text_type_arr.append('描述性')  # 二分类平局：保守降为描述性（方案A）
             else:
                 text_type_arr.append(tt_top[0][0])
         else:

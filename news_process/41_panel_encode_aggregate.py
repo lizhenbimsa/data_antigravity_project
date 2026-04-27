@@ -701,15 +701,23 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         panel['tech_frac'] = np.nan
         panel['app_frac'] = np.nan
 
-    # --- 按 text_type 分组聚合（实质性 / 描述性 / 混合型） ---
+    # --- 按 text_type 分组聚合（实质性 / 描述性，二分类） ---
     if 'text_type' in df.columns:
-        valid_tts = {'实质性', '描述性', '混合型'}
+        valid_tts = {'实质性', '描述性'}
+
+        # 向后兼容：将旧版三分类数据中的“混合型”按最低阈值原则重映射为“实质性”
+        # 白话：老版本标注的“混合型”，因为包含了真实落地内容，归入“干了实事”类
+        n_legacy_mix = (df['text_type'] == '混合型').sum()
+        if n_legacy_mix > 0:
+            df.loc[df['text_type'] == '混合型', 'text_type'] = '实质性'
+            logger.info(f"  向后兼容: {n_legacy_mix:,} 篇旧'混合型'文章已重映射为'实质性'")
+
         actual_tts = set(df['text_type'].dropna().unique())
         unexpected_tt = actual_tts - valid_tts
         if unexpected_tt:
             logger.warning(f"  text_type 含非预期值: {unexpected_tt}，这些文章将不计入分类聚合")
 
-        tt_mapping = [('实质性', '_sub'), ('描述性', '_desc'), ('混合型', '_tmix')]
+        tt_mapping = [('实质性', '_sub'), ('描述性', '_desc')]
 
         for tt_label, suffix in tt_mapping:
             df_tt = df[df['text_type'] == tt_label]
@@ -736,14 +744,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             logger.info(f"  text_type '{tt_label}' 聚合完成: {len(tt_panel):,} 个 Bank-Year, "
                         f"{len(tt_agg)} 个指标")
 
-        # text_type 计数列填充
-        for suffix in ['_sub', '_desc', '_tmix']:
+        # text_type 计数列填充（二分类）
+        for suffix in ['_sub', '_desc']:
             col = f'n_articles{suffix}'
             if col in panel.columns:
                 panel[col] = panel[col].fillna(0).astype(int)
 
-        # sub_frac / desc_frac / tmix_frac
-        for suffix in ['_sub', '_desc', '_tmix']:
+        # sub_frac / desc_frac（二分类）
+        for suffix in ['_sub', '_desc']:
             panel[f'{suffix[1:]}_frac'] = np.where(
                 panel['n_articles'] > 0,
                 panel[f'n_articles{suffix}'] / panel['n_articles'],
@@ -756,15 +764,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 panel['llm_vote_tone_sub_full'] - panel['llm_vote_tone_desc_full']
             )
 
-        # text_type 恒等式校验
-        if all(f'n_articles{s}' in panel.columns for s in ['_sub', '_desc', '_tmix']):
+        # text_type 恒等式校验（二分类）
+        if all(f'n_articles{s}' in panel.columns for s in ['_sub', '_desc']):
             has_news = panel['n_articles'] > 0
             tt_identity = (panel.loc[has_news, 'n_articles'] ==
                            panel.loc[has_news, 'n_articles_sub'] +
-                           panel.loc[has_news, 'n_articles_desc'] +
-                           panel.loc[has_news, 'n_articles_tmix'])
+                           panel.loc[has_news, 'n_articles_desc'])
             if tt_identity.all():
-                logger.info("  ✓ text_type 恒等式校验通过: n_articles == n_articles_sub + n_articles_desc + n_articles_tmix")
+                logger.info("  ✓ text_type 恒等式校验通过: n_articles == n_articles_sub + n_articles_desc")
             else:
                 n_fail_tt = (~tt_identity).sum()
                 logger.warning(f"  ✗ text_type 恒等式校验失败: {n_fail_tt} 行")
@@ -951,13 +958,13 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
             panel[col] = panel[col].fillna(0).astype(int)
 
     # --- text_type 分类维度计数列填充为 0（独立循环，不追加到 fintech_category） ---
-    for suffix in ['_sub', '_desc', '_tmix']:
+    for suffix in ['_sub', '_desc']:
         col = f'n_articles{suffix}'
         if col in panel.columns:
             panel[col] = panel[col].fillna(0).astype(int)
 
     # 其余 NaN 列保持不变（均值、比例、离散度等由 Stata 处理）
-    # tech_frac / app_frac / mix_frac / sub_frac / desc_frac / tmix_frac / avg_category_confidence: 零新闻行保持 NaN
+    # tech_frac / app_frac / mix_frac / sub_frac / desc_frac / avg_category_confidence: 零新闻行保持 NaN
 
     logger.info(f"  完全笛卡尔积: {len(all_banks)} 银行 × {len(all_years)} 年 = {rows_after:,} 行")
     logger.info(f"  原有观测值: {rows_before:,} 行")

@@ -23,7 +23,7 @@
 
 | 序号 | 任务 | 预期收益 | 实施成本 | 依赖 |
 |------|------|---------|---------|------|
-| CA-1 | 新建 `21b_news_classification.py`：LLM新闻三分类 | 核心方法论突破——解决"情感纯度"问题 | 高 | 无 |
+| CA-1 | 新建 `21b_news_classification.py`：LLM新闻二分类 | 核心方法论突破——解决"情感纯度"问题 | 高 | 无 |
 | CA-2 | 新建 Washing Index 计算逻辑 | 精炼的信号操纵代理变量 | 中 | CA-1 |
 | CA-3 | 构建 `Peer_Washing_LOO` 核心解释变量 | 实现"负外部性"叙事 | 中 | CA-2 |
 | CA-4 | Stata 回归模板重构 + 机制检验设计 | 直接对接实证分析 | 低 | CA-3 |
@@ -119,7 +119,7 @@ if 'bank_type' in panel.columns:
 
 ### 阶段二：新闻文本分类模块（第1-2周）
 
-#### 动作2.1：新闻三分类模块 [CA-1]
+#### 动作2.1：新闻二分类模块 [CA-1]
 
 **指令**：
 
@@ -155,7 +155,7 @@ if 'bank_type' in panel.columns:
 仅输出JSON: {"class": 0|1|2, "confidence": 0.0-1.0, "evidence": "简要理由"}
 ```
 
-3. 对每篇新闻调用LLM进行三分类，输出列 `news_substance_type` 和 `news_substance_conf`
+3. 对每篇新闻调用LLM进行二分类，输出列 `news_substance_type` 和 `news_substance_conf`
 
 4. 构建200篇人工验证集（分层抽样: 实质性/描述性/非金融科技各~67篇）
 
@@ -164,7 +164,7 @@ if 'bank_type' in panel.columns:
 **交付物标准**：
 - [ ] 分类准确率 > 85%（200篇人工验证）
 - [ ] 输出包含 `news_substance_type`(0/1/2) 和 `news_substance_conf` 两列
-- [ ] 类别分布统计: 预期实质性30-40%, 描述性40-50%, 混合/非相关10-20%
+- [ ] 类别分布统计: 预期实质性30-50%, 描述性50-70%
 - [ ] Cohen's Kappa (人机一致性) ≥ 0.70
 
 **风险预案 — 如果准确率不达标 (<80%)**：
@@ -454,7 +454,7 @@ reghdfe Y c.peer_washing_type_full##c.ft_attn_yr Controls, ///
 
 | 风险 | 触发条件 | Plan B | Plan C |
 |------|---------|--------|--------|
-| LLM分类准确率不达标 | < 80% | 降级为二分类(实质性 vs 非实质性) | 用 `forward_looking_ratio` 代理 |
+| LLM分类准确率不达标 | < 80% | ~~降级为二分类~~ **已采纳**：当前即为二分类（实质性 vs 描述性） | 用 `forward_looking_ratio` 代理 |
 | Washing Index变异不足 | std < 0.02 | 分组扩大至全体银行 | 使用P60分位数替代中位数 |
 | Peer LOO组内样本过少 | 多数银行NaN | 合并稀疏银行类型 | 用省份替代类型分组 |
 | 一阶F统计量低 | F < 10 | Anderson-Rubin弱IV稳健推断 | LIML替代2SLS |
@@ -473,7 +473,7 @@ gantt
     QW-2 同类型LOO新增            :a2, 2026-04-07, 1d
     QW-3 STATA_LABELS清理         :a3, after a1, 1d
     section 阶段二: 分类
-    CA-1 新闻三分类模块            :b1, 2026-04-08, 7d
+    CA-1 新闻二分类模块            :b1, 2026-04-08, 7d
     CA-1 人工验证200篇            :b2, after b1, 3d
     CA-2 Washing Index实现        :b3, after b2, 2d
     section 阶段三: 核心变量
