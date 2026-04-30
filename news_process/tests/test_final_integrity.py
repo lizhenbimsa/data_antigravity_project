@@ -3,6 +3,7 @@ import sys, os, threading
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import uuid
 import numpy as np
 import pandas as pd
 
@@ -18,12 +19,19 @@ def check(n, c, d=''):
         failed += 1
         print(f'  FAIL: {n} {d}')
 
+
+def _make_test_tempdir():
+    base_dir = os.path.join(os.getcwd(), ".test_tmp")
+    os.makedirs(base_dir, exist_ok=True)
+    path = os.path.join(base_dir, uuid.uuid4().hex)
+    os.makedirs(path, exist_ok=False)
+    return path
+
 # === F1: llm_cache.py 完整性 ===
 print("=== F1: llm_cache final state ===")
 from utils.llm_cache import LLMCache
-import tempfile
 
-db = os.path.join(tempfile.mkdtemp(), "f.db")
+db = os.path.join(_make_test_tempdir(), "f.db")
 c = LLMCache(db)
 check("has _lock", hasattr(c, "_lock") and isinstance(c._lock, type(threading.Lock())))
 check("has _conn", c._conn is not None)

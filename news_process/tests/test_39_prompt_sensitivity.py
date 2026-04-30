@@ -13,8 +13,8 @@ test_39_prompt_sensitivity.py — 阶段39 Prompt 措辞敏感度量化 单元�
 """
 import os
 import json
-import tempfile
 import shutil
+import uuid
 
 import pytest
 import numpy as np
@@ -24,6 +24,14 @@ import yaml
 # ── 导入被测模块 ──
 # conftest.py 已确保 news_process 目录在 sys.path 中
 _MOD39_PATH = os.path.join(os.path.dirname(__file__), '..', '39_prompt_sensitivity.py')
+
+
+def _make_test_tempdir():
+    base_dir = os.path.join(os.getcwd(), ".test_tmp")
+    os.makedirs(base_dir, exist_ok=True)
+    path = os.path.join(base_dir, uuid.uuid4().hex)
+    os.makedirs(path, exist_ok=False)
+    return path
 
 
 # ============================================================================
@@ -108,9 +116,10 @@ class TestPipelineValidationConsistency:
         """B1: docstring 包含阶段39"""
         assert '阶段39' in rpv_code, "docstring 缺少阶段39"
 
-    def test_b2_eleven_stages(self, rpv_code):
-        """B2: 日志说明 11 个阶段 (原9个 + 38a_temporal_mask + 38b_decay_sensitivity)"""
-        assert '11 个验证阶段' in rpv_code, "日志说明非 11 个阶段"
+    def test_b2_validation_stage_count_is_dynamic(self, rpv_code):
+        """B2: 验证阶段数量应由 stages 列表动态记录。"""
+        assert 'logger.info(f"评估验证模块共 {len(stages)} 个阶段")' in rpv_code
+        assert 'logger.info("  📖 12 个验证阶段说明")' in rpv_code
 
     def test_b3_stages_list_includes_39(self, rpv_code):
         """B3: stages 列表包含 39_prompt_sensitivity.py"""
@@ -288,7 +297,7 @@ class TestLatexCorrectness:
             '_ctx': {'true_rate_std': 0.018},
         }
 
-        tmp_dir = tempfile.mkdtemp()
+        tmp_dir = _make_test_tempdir()
         try:
             mod39._generate_latex_table(
                 mock_pairwise, mock_multi, mock_variance,
@@ -387,7 +396,7 @@ class TestEndToEndSimulation:
             variance_results[track] = mod39.compute_cross_variant_variance(
                 mock_data, variant_keys, track)
 
-        tmp_report = tempfile.mkdtemp()
+        tmp_report = _make_test_tempdir()
         try:
             mod39.generate_reports(
                 mock_data, variant_keys, pairwise_results,
@@ -425,7 +434,7 @@ class TestEndToEndSimulation:
             variance_results[track] = mod39.compute_cross_variant_variance(
                 mock_data, variant_keys, track)
 
-        tmp_report = tempfile.mkdtemp()
+        tmp_report = _make_test_tempdir()
         try:
             mod39.generate_reports(
                 mock_data, variant_keys, pairwise_results,

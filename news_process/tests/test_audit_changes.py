@@ -5,9 +5,9 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import tempfile
 import hashlib
 import json
+import uuid
 import numpy as np
 import pandas as pd
 
@@ -23,13 +23,21 @@ def check(name, condition, detail=""):
         failed += 1
         print(f"  FAIL: {name} {detail}")
 
+
+def _make_test_tempdir():
+    base_dir = os.path.join(os.getcwd(), ".test_tmp")
+    os.makedirs(base_dir, exist_ok=True)
+    path = os.path.join(base_dir, uuid.uuid4().hex)
+    os.makedirs(path, exist_ok=False)
+    return path
+
 # ============================================
 # Test 1: LLMCache
 # ============================================
 print("=== Test 1: LLMCache ===")
 from utils.llm_cache import LLMCache
 
-db_path = os.path.join(tempfile.mkdtemp(), "test_cache.db")
+db_path = os.path.join(_make_test_tempdir(), "test_cache.db")
 cache = LLMCache(db_path)
 
 check("T1.1: empty size", cache.size() == 0)
@@ -56,7 +64,7 @@ cache.close()  # double close should not error
 check("T1.8: double close safe", True)
 
 # Key collision test
-c2 = LLMCache(os.path.join(tempfile.mkdtemp(), "test2.db"))
+c2 = LLMCache(os.path.join(_make_test_tempdir(), "test2.db"))
 c2.put("model_a:extra", "prompt", "r1")
 c2.put("model_a", "extra:prompt", "r2")
 check("T1.9a: key collision prevention",

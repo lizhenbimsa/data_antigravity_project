@@ -117,7 +117,7 @@
      本项目使用第三方新闻报道, 测量的是"媒体感知差异"而非"自我披露差异"
   2. 银行样本量 (~54 家/年) 远小于 TNIC 数据集 (~5000 家/年),
      N=5 近邻占样本比例 ~10%, 需注意小样本偏差
-  3. Embedding 输入截断为 8000 字符, 可能丢失超长文本的尾部信息
+  3. Embedding 长文本已采用 token 分段 + 均值池化, 避免超长文本尾部语义被截断
 """
 # ══ 导入依赖库 (Dependencies) ══
 # 【术语】导入数值计算、NLP 特征提取、主题模型和信息论距离等工具库
@@ -135,6 +135,54 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import LatentDirichletAllocation
 from scipy.spatial.distance import jensenshannon
 import importlib.util as _iu
+import tiktoken
+
+# Embedding Token 级精确截断与分段 (统一 Stage 15 标准)
+# 【术语】text-embedding-3-small 使用 cl100k_base 编码，单条上限 8,191 tokens
+#   对超过上限的文本 (如权威政策语料)，采用 Early Chunking + Mean Pooling
+#   策略 (Guenther et al., 2024, arXiv:2409.04701; Reimers & Gurevych, 2019,
+#   EMNLP, DOI: 10.18653/v1/D19-1410)，分段嵌入后均值池化为单个向量。
+# 【白话】用 AI 模型同款的"令牌计数器"来精确控制文本长度，
+#   短文本正常处理，超长文本切段后取平均，保留完整语义。
+_EMB_ENCODING = tiktoken.get_encoding("cl100k_base")
+_EMB_MAX_TOKENS = 8191
+_EMB_MAX_TOKENS_PER_REQUEST = 250_000
+
+
+def _coerce_positive_int(value, default: int) -> int:
+    """配置兜底: 将 token 上限解析为正整数，异常时回退到安全默认值。"""
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+def _split_text_for_embedding(text: str) -> list[str]:
+    """按 token 粒度切分超长文本，适配 Embedding 模型上限。
+
+    【术语】Early Chunking (Guenther et al., 2024, arXiv:2409.04701):
+      将超过单条上限的文本切分为不重叠段，各段独立嵌入后均值池化。
+    【白话】短文本原样返回；超长文本（如权威政策语料）切成多段处理。
+
+    Returns:
+        list[str]: 分段文本列表，每段 <= 8,191 tokens。
+    """
+    try:
+        if pd.isna(text):
+            text = ""
+    except (TypeError, ValueError):
+        pass
+    text = str(text)
+    if not text:
+        text = " "
+
+    tokens = _EMB_ENCODING.encode(text)
+    if len(tokens) <= _EMB_MAX_TOKENS:
+        return [text]  # 未超限，直接返回原文 (避免 encode/decode 往返)
+    return [_EMB_ENCODING.decode(tokens[i:i + _EMB_MAX_TOKENS])
+            for i in range(0, len(tokens), _EMB_MAX_TOKENS)]
+
 
 # --- 从 41 导入共享配置 (Shared Configuration) ---
 # 【术语】通过 importlib 动态加载 41 号模块，复用全局 logger 和 CONFIG 字典
@@ -145,6 +193,13 @@ _s41 = _iu.spec_from_file_location('_41', _p41)
 _m41 = _iu.module_from_spec(_s41); _s41.loader.exec_module(_m41)
 logger = _m41.logger; CONFIG = _m41.CONFIG
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
+_ALIGN_CFG = CONFIG.get('article_alignment', {})
+_EMB_MAX_TOKENS = _coerce_positive_int(
+    _ALIGN_CFG.get('max_tokens_per_input'), _EMB_MAX_TOKENS)
+_EMB_MAX_TOKENS_PER_REQUEST = _coerce_positive_int(
+    _ALIGN_CFG.get('max_tokens_per_request'), _EMB_MAX_TOKENS_PER_REQUEST)
+_EMB_MAX_TOKENS_PER_REQUEST = max(
+    _EMB_MAX_TOKENS, _EMB_MAX_TOKENS_PER_REQUEST)
 
 # 中文停用词表 (Stopwords) — 排除高频虚词以提高 TF-IDF 区分度
 # 【术语】停用词 (Stopwords) 是 NLP 中被过滤的高频无信息量词汇，
@@ -359,68 +414,163 @@ async def _get_embeddings_api(texts):
     """通过 API 获取文本 Embedding 向量。
 
     复用 tone_llm_processing 配置中的第一个模型的 base_url 和 api_key。
-    采用批量请求 (每批 100 条) 以控制单次请求大小。
+    按单批文本条数与 token 总量动态切分，避免超出 Embedding API 的
+    单请求容量上限。
 
     Raises:
         RuntimeError: API 返回非 200 状态码
     """
     import aiohttp
-    cfg = LLM_CONFIG.get('models', [{}])[0]
+    texts = [] if texts is None else list(texts)
+    if len(texts) == 0:
+        return np.empty((0, 0), dtype=np.float32)
+
+    models = LLM_CONFIG.get('models') or []
+    cfg = models[0] if models else {}
+    base_url = cfg.get('base_url')
+    api_key = cfg.get('api_key')
+    if not base_url or not api_key:
+        raise RuntimeError("Embedding API 配置缺少 base_url 或 api_key")
+
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {cfg['api_key']}"
+        "Authorization": f"Bearer {api_key}"
     }
+
+    batches = []
+    current_batch = []
+    current_tokens = 0
+    for text in texts:
+        n_tok = max(1, len(_EMB_ENCODING.encode(text)))
+        if n_tok > _EMB_MAX_TOKENS:
+            raise RuntimeError(
+                f"Embedding 单条输入仍超限: {n_tok} > {_EMB_MAX_TOKENS}")
+
+        if (current_batch and
+                (len(current_batch) >= 100 or
+                 current_tokens + n_tok > _EMB_MAX_TOKENS_PER_REQUEST)):
+            batches.append(current_batch)
+            current_batch = []
+            current_tokens = 0
+
+        current_batch.append(text)
+        current_tokens += n_tok
+
+    if current_batch:
+        batches.append(current_batch)
+
+    if len(batches) > 1:
+        logger.info(f"    Embedding 动态分批: {len(texts)} 段 → {len(batches)} 批")
+
     all_emb = []
     async with aiohttp.ClientSession() as session:
-        for i in range(0, len(texts), 100):
-            batch = texts[i:i + 100]
+        for batch_idx, batch in enumerate(batches):
             async with session.post(
-                f"{cfg['base_url']}/embeddings",
+                f"{base_url}/embeddings",
                 json={"model": "text-embedding-3-small", "input": batch},
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=120)
             ) as resp:
                 if resp.status != 200:
-                    raise RuntimeError(f"Embedding API HTTP {resp.status}")
+                    err_text = await resp.text()
+                    raise RuntimeError(
+                        f"Embedding API HTTP {resp.status} "
+                        f"(batch {batch_idx + 1}/{len(batches)}, "
+                        f"{len(batch)} texts): {err_text[:200]}")
                 data = await resp.json()
                 all_emb.extend([
                     d['embedding']
                     for d in sorted(data['data'], key=lambda x: x['index'])
                 ])
+
+    if len(all_emb) != len(texts):
+        raise RuntimeError(
+            f"Embedding API 返回数量异常: expected {len(texts)}, got {len(all_emb)}")
     return np.array(all_emb)
 
 
-def _build_embedding_sim_matrix(texts):
-    """构建 Embedding cosine 相似度矩阵, 三层降级策略。
+def _embed_texts_with_chunk_pooling(texts, *, log_prefix="Embedding"):
+    """将任意长度文本嵌入为文本级向量。
+
+    对超过 8,191 token 上限的文本 (如权威政策语料)，采用 Early Chunking
+    + Mean Pooling: 分段嵌入后均值池化为单个文本级向量。普通 Bank-Year
+    聚合文本通常不超限，会退化为原有单段行为。
 
     降级顺序:
       1. API (text-embedding-3-small) — 首选, 质量最高
       2. sentence-transformers (shibing624/text2vec-base-chinese) — 本地备选
       3. None — 跳过 Embedding 方法
 
-    文本截断为 8000 字符以适配 API token 限制。
+    Returns:
+        np.ndarray | None: 文本级 Embedding 向量 (n_texts, dim)
+    """
+    texts = [] if texts is None else list(texts)
+    if len(texts) == 0:
+        return None
+
+    all_chunks = []
+    chunk_map = []
+    for text in texts:
+        chunks = _split_text_for_embedding(text)
+        start = len(all_chunks)
+        all_chunks.extend(chunks)
+        chunk_map.append((start, len(all_chunks)))
+
+    n_orig = len(texts)
+    n_chunks = len(all_chunks)
+    if n_chunks > n_orig:
+        logger.info(f"    {log_prefix} 分段: {n_orig} 文本 → {n_chunks} 段 "
+                    f"(含 {n_chunks - n_orig} 个超长文本扩展段)")
+
+    # 策略 1: API Embedding
+    try:
+        raw_emb = asyncio.run(_get_embeddings_api(all_chunks))
+        logger.info(f"    {log_prefix}: API (text-embedding-3-small) 成功")
+    except Exception as e:
+        logger.warning(f"    {log_prefix} API 降级: {type(e).__name__}: {e}")
+        # 策略 2: 本地 sentence-transformers
+        try:
+            from sentence_transformers import SentenceTransformer
+            raw_emb = SentenceTransformer(
+                'shibing624/text2vec-base-chinese').encode(all_chunks)
+            logger.info(f"    {log_prefix}: 本地 text2vec-base-chinese 成功")
+        except Exception as e2:
+            logger.warning(f"    {log_prefix} 完全降级: {type(e2).__name__}: {e2}")
+            return None
+
+    raw_emb = np.array(raw_emb) if not isinstance(raw_emb, np.ndarray) else raw_emb
+    if raw_emb.ndim != 2 or raw_emb.shape[0] != n_chunks:
+        logger.warning(f"    {log_prefix}: 向量形状异常 "
+                       f"(expected {n_chunks}×D, got {raw_emb.shape})")
+        return None
+
+    # Mean Pooling: chunk embeddings -> original text embeddings.
+    emb = np.zeros((n_orig, raw_emb.shape[1]), dtype=raw_emb.dtype)
+    for i, (start, end) in enumerate(chunk_map):
+        if end - start == 1:
+            emb[i] = raw_emb[start]
+            continue
+
+        pooled = raw_emb[start:end].mean(axis=0)
+        norm = np.linalg.norm(pooled)
+        emb[i] = pooled / norm if norm > 0 else pooled
+
+    return emb
+
+
+def _build_embedding_sim_matrix(texts):
+    """构建 Embedding cosine 相似度矩阵, 三层降级 + 长文本分段池化。
 
     Returns:
         tuple: (sim, emb)
           - sim: np.ndarray | None, 相似度矩阵, 降级失败时返回 None
-          - emb: np.ndarray | None, 原始 Embedding 向量 (n_banks, dim)
+          - emb: np.ndarray | None, 文本级 Embedding 向量 (n_banks, dim)
             (供 centroid 计算复用)
     """
-    truncated = [t[:8000] for t in texts]
-    # 策略 1: API Embedding
-    try:
-        emb = asyncio.run(_get_embeddings_api(truncated))
-        logger.info("    Embedding: API (text-embedding-3-small) 成功")
-    except Exception as e:
-        logger.warning(f"    Embedding API 降级: {type(e).__name__}: {e}")
-        # 策略 2: 本地 sentence-transformers
-        try:
-            from sentence_transformers import SentenceTransformer
-            emb = SentenceTransformer('shibing624/text2vec-base-chinese').encode(truncated)
-            logger.info("    Embedding: 本地 text2vec-base-chinese 成功")
-        except Exception as e2:
-            logger.warning(f"    Embedding 完全降级: {type(e2).__name__}: {e2}")
-            return None, None
+    emb = _embed_texts_with_chunk_pooling(texts, log_prefix="Embedding")
+    if emb is None:
+        return None, None
+
     sim = cosine_similarity(emb)
     np.fill_diagonal(sim, np.nan)
     return sim, emb  # sim: similarity ∈ [0,1]; emb: ndarray (n_banks, dim)
@@ -834,7 +984,7 @@ def _compute_emb_coherence(agg_df):
     然后比较今年和去年的"理解"有多接近。AI 比 TF-IDF 更"聪明",
     能理解同义词和上下文, 但计算更慢(需要调用 API)。
 
-    效率: 一次性获取所有 Bank-Year 嵌入 (~540 文本/轨, 批量 100 条 ≈ 6 次 API),
+    效率: 一次性获取所有 Bank-Year 嵌入，长文本复用分段池化逻辑；
     避免逐对调用。三层降级: API → sentence-transformers → 返回空 dict。
 
     Args:
@@ -851,22 +1001,9 @@ def _compute_emb_coherence(agg_df):
     if not all_texts:
         return coherence
 
-    # 截断至 8000 字符 (与 _build_embedding_sim_matrix 一致)
-    truncated = [t[:8000] for t in all_texts]
-
-    # 三层降级获取嵌入
-    try:
-        emb = asyncio.run(_get_embeddings_api(truncated))
-        emb = np.array(emb)
-    except Exception as e1:
-        logger.warning(f"    Embedding 连贯性: API 失败 ({e1}), 尝试本地模型")
-        try:
-            from sentence_transformers import SentenceTransformer
-            model = SentenceTransformer('shibing624/text2vec-base-chinese')
-            emb = model.encode(truncated, show_progress_bar=False)
-        except Exception as e2:
-            logger.warning(f"    Embedding 连贯性: 本地模型失败 ({e2}), 跳过")
-            return coherence
+    emb = _embed_texts_with_chunk_pooling(all_texts, log_prefix="Embedding 连贯性")
+    if emb is None:
+        return coherence
 
     # 【审查加固】防范 API 静默丢弃文档导致向量与银行列表不对齐
     if len(emb) != len(banks):

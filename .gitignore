@@ -9,6 +9,12 @@ __pycache__/
 *.egg
 dist/
 build/
+.pytest_cache/
+.tmp/
+.test_tmp/
+/tmp*/
+news_process/.pytest_cache/
+news_process/.test_tmp/
 
 # ============================================================
 # 虚拟环境
