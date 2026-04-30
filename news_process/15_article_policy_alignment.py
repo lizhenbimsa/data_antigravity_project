@@ -107,8 +107,43 @@ STAGE_NAME = "15_article_policy_alignment"
 
 _ENCODING = tiktoken.get_encoding("cl100k_base")
 _ALIGN_CFG = CONFIG.get('article_alignment', {})
-_MAX_TOKENS_PER_INPUT = _ALIGN_CFG.get('max_tokens_per_input', 8191)
-_MAX_TOKENS_PER_REQUEST = _ALIGN_CFG.get('max_tokens_per_request', 250_000)
+
+
+def _coerce_positive_int(value, default: int) -> int:
+    """配置兜底: 将 token 上限解析为正整数，异常时回退到安全默认值。
+
+    【术语】防御式类型校验 (Defensive Type Coercion)
+      YAML 1.1 规范下，未加引号的数字值会被 PyYAML 自动推断为 int/float，
+      但加了引号的 "8191" 会被解析为 str。此函数统一处理两种情况，
+      确保下游 token 切片逻辑 (tokens[:max_tokens]) 的操作数始终为 int。
+      与 Stage 25 (25_strategic_differentiation.py L152-158) 保持一致，
+      维护流水线跨阶段的配置解析行为一致性 (Configuration Consistency)。
+    【白话】config.yaml 里的数字可能被误写成字符串或留空 (null)，
+      这个函数确保无论怎么写，最终拿到的都是一个正整数。
+      如果实在解析不了，就用安全的默认值兜底，不会让流水线崩溃。
+
+    Args:
+        value: 从 config.yaml 读取的原始值 (可能是 int, str, None 等)
+        default: 解析失败时的回退默认值
+
+    Returns:
+        int: 正整数配置值。若 value 无法解析或 <= 0，返回 default。
+    """
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+# 【术语】OpenAI text-embedding-3-small 的硬性约束:
+#   单条输入上限 8,191 tokens (cl100k_base 编码)
+#   单次请求总 token 上限 ~300,000 tokens (经验值, 官方文档未精确公布)
+# 【白话】每篇文章最多约 4,000 中文字, 每次 API 调用最多装约 125,000 中文字
+_MAX_TOKENS_PER_INPUT = _coerce_positive_int(
+    _ALIGN_CFG.get('max_tokens_per_input'), 8191)
+_MAX_TOKENS_PER_REQUEST = _coerce_positive_int(
+    _ALIGN_CFG.get('max_tokens_per_request'), 250_000)
 
 
 def _count_tokens(text: str) -> int:
@@ -140,6 +175,35 @@ def _truncate_to_max_tokens(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) 
     if len(tokens) <= max_tokens:
         return text
     return _ENCODING.decode(tokens[:max_tokens])
+
+
+def _split_into_chunks(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> list[str]:
+    """将超长文本按 token 粒度切分为多个不重叠分段。
+
+    【术语】Early Chunking (Günther et al., 2024, arXiv:2409.04701):
+      对超过 Embedding 模型单条上限的长文本，先按固定 token 数切分为 K 个
+      不重叠段，各段独立嵌入后均值池化 (Mean Pooling)，是 API 调用场景下
+      长文档嵌入的标准基线方案。
+      池化策略依据: Reimers & Gurevych (2019, EMNLP, DOI: 10.18653/v1/D19-1410)
+      确认 Mean Pooling 在三种池化方式 (CLS/Mean/Max) 中综合表现最优。
+    【白话】把超长政策文件切成多段，每段不超过模型容量上限 (8,191 tokens)，
+      之后分别处理再取平均，这样 5 份政策文件的全部语义信息都能保留。
+
+    Args:
+        text: 原始文本
+        max_tokens: 每段最大 token 数 (默认 8191)
+
+    Returns:
+        list[str]: 分段文本列表，每段 token 数 ≤ max_tokens。
+                   若原文未超限，返回包含原文的单元素列表。
+    """
+    tokens = _ENCODING.encode(text)
+    if len(tokens) <= max_tokens:
+        return [text]  # 未超限，原样返回，避免 encode/decode 往返引入编码伪影
+    chunks = []
+    for i in range(0, len(tokens), max_tokens):
+        chunks.append(_ENCODING.decode(tokens[i:i + max_tokens]))
+    return chunks
 
 
 # ============================================================================
@@ -185,10 +249,23 @@ async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int])
         RuntimeError: API 返回非 200 状态码
     """
     import aiohttp
-    cfg = LLM_CONFIG.get('models', [{}])[0]
+    # --- 配置提取与前置校验 (Fail-Fast) ---
+    # 【术语】Fail-Fast 原则: 在函数入口处立即校验所有必要前置条件,
+    #   而非等到实际调用 API 时才发现配置缺失。这避免了在已消耗大量
+    #   计算资源 (如 token 计数、批量切分) 后才崩溃的浪费。
+    # 【白话】先检查"钥匙"和"地址"有没有配好，没配好就立刻报错,
+    #   不要等到真正要开门的时候才发现没带钥匙。
+    models = LLM_CONFIG.get('models') or []
+    cfg = models[0] if models else {}
+    base_url = cfg.get('base_url')
+    api_key = cfg.get('api_key')
+    if not base_url or not api_key:
+        raise RuntimeError(
+            "Embedding API 配置缺少 base_url 或 api_key "
+            "(检查 config.yaml → tone_llm_processing → models)")
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {cfg['api_key']}"
+        "Authorization": f"Bearer {api_key}"
     }
 
     # --- 动态批量切分 ---
@@ -214,7 +291,7 @@ async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int])
     async with aiohttp.ClientSession() as session:
         for batch_idx, batch in enumerate(batches):
             async with session.post(
-                f"{cfg['base_url']}/embeddings",
+                f"{base_url}/embeddings",
                 json={"model": "text-embedding-3-small", "input": batch},
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=180)
@@ -235,6 +312,20 @@ async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int])
             if (batch_idx + 1) % 5 == 0:
                 logger.info(f"    Embedding 进度: {batch_idx+1}/{len(batches)} 批完成")
 
+    # 【术语】Embedding 对齐不变量 (Alignment Invariant):
+    #   输入 N 条文本必须精确返回 N 个向量。若不等, 说明 API 静默
+    #   丢弃了某些输入 (如空字符串或超长文本), 后续 cosine_similarity
+    #   矩阵的行索引会与 DataFrame 行索引错位, 导致 policy_cosine_sim
+    #   列被错误赋值到不相关的文章上——这是无法通过下游断言检测的
+    #   "静默数据污染" (Silent Data Corruption)。
+    #   与 Stage 25 (25_strategic_differentiation.py L486-488) 的防护标准对齐。
+    # 【白话】发出去 100 篇文章, 必须拿回 100 个向量。如果 API 偷偷吞了
+    #   几篇, 后面算出来的相似度就会张冠李戴——这种错误最危险, 因为
+    #   程序不会报错, 但数据已经错了。
+    if len(all_emb) != len(texts):
+        raise RuntimeError(
+            f"Embedding API 返回数量异常: expected {len(texts)}, "
+            f"got {len(all_emb)}")
     return np.array(all_emb)
 
 
@@ -379,19 +470,24 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  Token 统计: 平均 {avg_tokens:.0f} tokens/篇, "
                 f"截断 {n_truncated}/{len(raw_texts)} 篇")
 
-    # ---- 4.4 权威政策文本截断 ----
-    auth_text_trunc = _truncate_to_max_tokens(auth_text, _MAX_TOKENS_PER_INPUT)
-    auth_tok_count = _count_tokens(auth_text_trunc)
-    logger.info(f"  政策文本: {auth_tok_count} tokens "
-                f"{'(已截断至 %d)' % _MAX_TOKENS_PER_INPUT if auth_tok_count == _MAX_TOKENS_PER_INPUT else ''}")
+    # ---- 4.4 权威政策文本分段 (Chunk-then-Pool) ----
+    # 【术语】Early Chunking + Mean Pooling (Günther et al., 2024; Reimers &
+    #   Gurevych, 2019): 将超长锚点文本按 token 上限切分为 K 个不重叠段，
+    #   各段独立嵌入后均值池化为单个锚点向量，保留全部语义信息。
+    # 【白话】政策文件可能远超模型单条输入上限 (8,191 tokens)，所以按实际 token
+    #   数切成多段分别处理，最后取平均，5 份文件的内容都不会被丢弃。
+    auth_chunks = _split_into_chunks(auth_text, _MAX_TOKENS_PER_INPUT)
+    auth_chunk_tok_counts = [_count_tokens(c) for c in auth_chunks]
+    auth_total_tokens = sum(auth_chunk_tok_counts)
+    logger.info(f"  政策文本: {auth_total_tokens:,} tokens → "
+                f"{len(auth_chunks)} 段 (Chunk-then-Pool)")
 
     # ---- 4.5 获取 Embedding ----
-    # 【术语】将政策文本和所有文章一起送入 Embedding 模型
-    #   政策文本放在列表末尾 (与 Stage 26 的 Ghost Anchor 策略一致)
-    #   这样只需一次 API 调用即可获取所有向量
-    # 【白话】把"标准答案"和所有"考生答卷"一起送去打分
-    all_texts = truncated_texts + [auth_text_trunc]
-    all_token_counts = token_counts + [auth_tok_count]
+    # 【术语】新闻文章 + 政策分段共用同一 API 调用流 (动态批量调度)
+    #   政策分段放在列表末尾 (与 Stage 26 的 Ghost Anchor 策略一致)
+    # 【白话】把所有"考生答卷"和"切段后的标准答案"一起送去打分
+    all_texts = truncated_texts + auth_chunks
+    all_token_counts = token_counts + auth_chunk_tok_counts
 
     emb = _get_embeddings_with_fallback(all_texts, all_token_counts)
 
@@ -414,8 +510,26 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     #   说明这篇新闻跟政策越像
     from sklearn.metrics.pairwise import cosine_similarity
 
-    article_embs = emb[:-1]  # 前 N 个 = 文章
-    auth_emb = emb[-1:]       # 最后 1 个 = 政策锚点 (保持 2D: 1×d)
+    # 分离: 前 N 个 = 文章, 后 K 个 = 政策分段
+    n_articles = len(truncated_texts)
+    article_embs = emb[:n_articles]        # N × 1536
+    auth_chunk_embs = emb[n_articles:]     # K × 1536
+
+    # 均值池化 + L2 归一化 → 单个政策锚点向量
+    # 【术语】Mean Pooling (Reimers & Gurevych, 2019, EMNLP,
+    #   DOI: 10.18653/v1/D19-1410): 对 K 个分段向量取算术均值后
+    #   L2 归一化，生成文档级语义表示。
+    # 【白话】把 K 段的向量取平均，得到一个代表全部政策的"标准答案向量"
+    auth_emb = auth_chunk_embs.mean(axis=0, keepdims=True)  # (1, 1536)
+    auth_norm = np.linalg.norm(auth_emb, axis=1, keepdims=True)
+    if auth_norm.item() > 0:
+        auth_emb = auth_emb / auth_norm
+    else:
+        logger.error("  ⚠️ 政策锚点均值池化后范数为零!")
+        df['policy_cosine_sim'] = np.nan
+        return df
+    logger.info(f"  政策锚点: {len(auth_chunk_embs)} 段 → "
+                f"Mean Pooling → 1 个 {auth_emb.shape[1]}D 向量")
 
     # cosine_similarity 返回 (N, 1)，取 [:, 0] 展平为 (N,)
     sim_scores = cosine_similarity(article_embs, auth_emb)[:, 0]

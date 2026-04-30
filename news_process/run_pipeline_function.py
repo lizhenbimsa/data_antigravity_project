@@ -17,6 +17,7 @@ run_pipeline_function.py — 新闻处理流水线调度器
                       ↓
     ┌─ 模块二：新闻筛选模块 ──────────────────────────────┐
     │ 11_news_bank → 12_news_fintech → 14_fintech_intensity      │
+    │ → 15_article_policy_alignment                              │
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块三：新闻情感模块 ──────────────────────────────┐
@@ -73,7 +74,7 @@ def run_pipeline():
 
     流程：
       1. 执行模块一：新闻预处理模块 (00)
-      2. 执行模块二：新闻筛选模块 (11, 12, 14)
+      2. 执行模块二：新闻筛选模块 (11, 12, 14, 15)
       3. 执行模块三：新闻情感模块 (21, 22, 23, 视配置启动)
       4. 执行模块五：面板数据构建 (41-45)
       5. 执行模块六：伪造检验对照变量构建 (51)
@@ -105,6 +106,7 @@ def run_pipeline():
         ("11_news_bank.py",          "阶段11: 银行新闻判断"),
         ("12_news_fintech.py",       "阶段12: 金融科技新闻判断 + 全量分类结果"),
         ("14_fintech_intensity.py",  "阶段14: 金融科技技术重度评分 (TF-IDF)"),
+        ("15_article_policy_alignment.py", "阶段15: 文章级政策语义对齐度"),
     ])
 
     # ── 模块三：新闻情感模块 ──
@@ -182,8 +184,20 @@ def run_pipeline():
     stage_timings = []
     all_success = True
 
+    stage_timeouts = {
+        "00_preprocessing.py": 10000,
+        "15_article_policy_alignment.py": 7200,  # 含 Embedding API 调用
+        "45_panel_export_main.py": 7200,          # 含 Stage 25/26/27 Embedding 计算
+    }
+
     for script, name in stages:
-        success, elapsed = run_stage(script, name, logger, SCRIPT_DIR)
+        success, elapsed = run_stage(
+            script,
+            name,
+            logger,
+            SCRIPT_DIR,
+            timeout=stage_timeouts.get(script, 3600),
+        )
         stage_timings.append((name, elapsed, success))
 
         if not success:
