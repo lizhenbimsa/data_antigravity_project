@@ -331,7 +331,7 @@ tone_llm_processing:
   #   强制要求模型先生成解释，然后再输出分数或判定结论，从而彻底纠正模型的因果错位（Post-hoc rationalization）与幻觉。
   prompt_template: |
     <role>
-    你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格遵循思维链（Chain-of-Thought）完成以下两阶段序贯分析。
+    你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格遵循思维链（Chain-of-Thought）完成以下三阶段序贯分析。
     </role>
 
     <step1_verification>
@@ -356,16 +356,11 @@ tone_llm_processing:
     </step2_sentiment>
 
     <step3_text_type>
-    **阶段三：新闻文本类型与时态朝向分类**（仅当阶段一判定为 true 时执行）
+    **阶段三：新闻文本类型分类**（仅当阶段一判定为 true 时执行）
 
     判断新闻的金融科技内容类型（二分类，最低阈值原则）：
     - `实质性`：含至少一项可验证事实（技术部署、产品上线、数据披露、协议签署、专利获批等）。
     - `描述性`：完全不含可验证事实，仅有战略口号、规划愿景或趋势讨论。
-
-    同时判断该新闻的**核心时态朝向**：
-    - `is_forward_looking`：若报道的核心内容是面向未来的计划、预期、战略规划、即将部署的项目，设为 true。
-    - 若核心内容是已完成的事件、已落地的系统、已发布的业绩数据，设为 false。
-    - ⚠️ 注意：即使文中含有"计划"一词，若上下文表明是"回顾过去的计划执行情况"，仍应判定为 false。
     </step3_text_type>
 
     <input_data>
@@ -382,14 +377,13 @@ tone_llm_processing:
       "is_bank_fintech_news": true/false,
       "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
       "fintech_topic": "核心金融科技主题简述（false 时填 null）",
-      "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
+      "fintech_category": "底层技术/应用场景（false 时填 null）",
       "verification_confidence": 0.0~1.0,
       "sentiment_reason": "简明说明情感判定依据",
-      "sentiment": "正面/中性/负面（false 时固定填\"中性\"）",
+      "sentiment": "正面/中性/负面（false 时填'中性'）",  
       "sentiment_confidence": 0.0~1.0,
       "text_type_reason": "简明说明判定依据（false 时填 null）",
-      "text_type": "实质性/描述性（false 时填 null）",
-      "is_forward_looking": true/false（false 时填 null）
+      "text_type": "实质性/描述性（false 时填 null）"
     }}
     </output_format>
 

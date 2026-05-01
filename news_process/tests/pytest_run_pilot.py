@@ -1,9 +1,9 @@
 """
 pytest_run_pilot.py — 微缩沙盒测试 (200条合成数据)
 ====================================================
-验证 6 项升级改动的端到端正确性:
-  1. is_forward_looking 提取与多数投票
-  2. 41 聚合中的 G2 块
+  1. 41 聚合中的 G2 块
+  2. Washing Ratio + dummy_no_positive_news
+  3. J-F 系数计算
   3. Washing Ratio + dummy_no_positive_news
   4. J-F 系数计算
   5. 跟风检测 (24_herd_decay_processor)
@@ -145,34 +145,6 @@ def test_washing_ratio():
     print("  Washing Ratio: 多方法 × 双轨全部验证通过 ✓\n")
 
 
-def test_forward_looking_vote():
-    """测试 is_forward_looking 多数投票逻辑。"""
-    print("=" * 60)
-    print("TEST 3: is_forward_looking 多数投票验证")
-    print("=" * 60)
-
-    # 模拟 3 个模型的投票
-    test_cases = [
-        ([True, True, False], True, "2/3 true → True"),
-        ([False, False, True], False, "1/3 true → False"),
-        ([True, True, True], True, "3/3 true → True"),
-        ([False, False, False], False, "0/3 true → False"),
-        ([], None, "空投票 → None"),
-    ]
-
-    for votes, expected, desc in test_cases:
-        if votes:
-            fl_true_count = sum(1 for x in votes if x)
-            result = fl_true_count > len(votes) / 2
-        else:
-            result = None
-
-        assert result == expected, f"失败: {desc}, 得到 {result}"
-        print(f"  {desc}: {result} ✓")
-
-    print("  前瞻性投票: 全部 5 个 case 通过 ✓\n")
-
-
 def test_herd_detection():
     """测试跟风检测模块的核心逻辑。"""
     print("=" * 60)
@@ -274,7 +246,6 @@ def main():
 
     test_jf_coefficient()
     test_washing_ratio()
-    test_forward_looking_vote()
     test_herd_detection()
     test_network_spillover()
 

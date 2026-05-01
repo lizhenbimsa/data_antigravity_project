@@ -146,13 +146,7 @@ SENTENCE_END_MARKERS: frozenset[str] = frozenset(
 # 设为 2：覆盖"不 [程度副词] 情感词"结构（如"不太 乐观"）
 NEGATION_WINDOW = SENTIMENT_PARAMS.get('negation_window', 2)
 
-# ── 前瞻性陈述词汇集 ──
-# Li, F. (2010). The information content of forward-looking statements in corporate filings—A naïve Bayesian machine learning approach. 
-# Journal of Accounting Research, 48(5), 1049-1102.
-# https://doi.org/10.1111/j.1475-679X.2010.00382.x
-FORWARD_LOOKING_WORDS: frozenset[str] = frozenset(
-    SENTIMENT_PARAMS.get('forward_looking_words', [])
-)
+
 
 
 # ============================================================================
@@ -356,32 +350,7 @@ def _score_to_label(normalized_score: float, pos_threshold=0.1, neg_threshold=-0
         return "中性"
 
 
-def _compute_forward_looking_ratio(tokens: list[str]) -> tuple[float, int]:
-    """计算前瞻性词汇比率。
 
-    学术依据:
-      Li, F. (2010). The information content of forward-looking statements in corporate filings—A naïve Bayesian machine learning approach. 
-      Journal of Accounting Research, 48(5), 1049-1102.
-      https://doi.org/10.1111/j.1475-679X.2010.00382.x
-
-    Li (2010) 使用前瞻性关键词在 MD&A 中的句子级占比衡量前瞻性信息含量。
-    本实现使用 token 级占比作为中文新闻的等价度量。
-
-    注意: 否定句中的前瞻性词仍计入（"不预计降息"中"预计"仍属前瞻性表述），
-    因为判定的是时间取向（prospective vs. retrospective），而非极性。
-
-    Args:
-        tokens: jieba 分词结果列表（已过滤空白 token）。
-
-    Returns:
-        tuple: (fl_ratio, fl_count)
-            fl_ratio: 前瞻性词汇 token 占总 token 之比 ∈ [0, 1]
-            fl_count: 前瞻性词汇绝对频次
-    """
-    if not tokens:
-        return 0.0, 0
-    fl_count = sum(1 for t in tokens if t in FORWARD_LOOKING_WORDS)
-    return fl_count / len(tokens), fl_count
 
 
 def _compute_readability(content: str, tokens: list[str]) -> dict[str, float]:
@@ -679,11 +648,6 @@ def _inject_custom_dicts_to_jieba():
         for word in ADVERSATIVE_WORDS:
             jieba.add_word(word)
 
-        # 5. 注入前瞻性词汇（防止多字前瞻性词被 jieba 切碎，
-        #    如"预判""酝酿""筹划"等）
-        for word in FORWARD_LOOKING_WORDS:
-            if len(word) > 1:  # 单字词无需注入
-                jieba.add_word(word)
 
         logger.info(f"成功注入 {added_count} 个领域自定义词汇到 jieba 分词树。")
         _JIEBA_INJECTED = True
@@ -710,8 +674,7 @@ def _analyze_single_article(content: str) -> dict:
             result[f'{dict_name}_score'] = 0.0
             result[f'{dict_name}_label'] = '中性'
         result['sentiment_details'] = ''
-        result['forward_looking_ratio'] = 0.0
-        result['forward_looking_count'] = 0
+
         result['avg_sentence_len'] = 0.0
         result['type_token_ratio'] = 0.0
         result['char_per_word'] = 0.0
@@ -734,8 +697,7 @@ def _analyze_single_article(content: str) -> dict:
             result[f'{dict_name}_score'] = 0.0
             result[f'{dict_name}_label'] = '中性'
         result['sentiment_details'] = ''
-        result['forward_looking_ratio'] = 0.0
-        result['forward_looking_count'] = 0
+
         result['avg_sentence_len'] = 0.0
         result['type_token_ratio'] = 0.0
         result['char_per_word'] = 0.0
@@ -788,12 +750,7 @@ def _analyze_single_article(content: str) -> dict:
     top_detail = sorted(best_detail, key=lambda x: abs(x['final']), reverse=True)[:20]
     result['sentiment_details'] = json.dumps(top_detail, ensure_ascii=False) if top_detail else ''
 
-    # ── 前瞻性陈述比率 ──
-    # Li, F. (2010). Journal of Accounting Research, 48(5), 1049-1102.
-    # DOI: 10.1111/j.1475-679X.2010.00382.x
-    fl_ratio, fl_count = _compute_forward_looking_ratio(tokens)
-    result['forward_looking_ratio'] = round(fl_ratio, 6)
-    result['forward_looking_count'] = fl_count
+
 
     # ── 文本可读性控制变量 ──
     # Loughran, T., & McDonald, B. (2014). Measuring readability in financial disclosures. 
@@ -937,7 +894,6 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
 
     # ── 提取新增指标列（双轨）──
     new_metric_cols = [
-        'forward_looking_ratio', 'forward_looking_count',
         'avg_sentence_len', 'type_token_ratio', 'char_per_word',
         'pos_ratio', 'neg_ratio',
         'msent_score',  # He et al. (2024, IRFA), Eq. 1

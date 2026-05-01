@@ -271,15 +271,7 @@ agg[f'sum_bl_count{track}'] = (f'backward_looking_count{track}', 'sum')
 在 `45_panel_export_main.py` 的综合指标计算步骤中追加:
 
 ```python
-# 时间取向指数: FL / (FL + BL), ∈ [0, 1]
-# 0 = 纯回顾性新闻环境, 1 = 纯前瞻性, 0.5 = 均衡
-for track in ['_full', '_ctx']:
-    fl = panel[f'avg_fl_ratio{track}'].fillna(0)
-    bl = panel[f'avg_bl_ratio{track}'].fillna(0)
-    denom = fl + bl
-    panel[f'time_orientation{track}'] = np.where(
-        denom > 0, fl / denom, 0.5  # 无前瞻/回顾词时设为中性
-    )
+
 ```
 
 #### 动作 2.5: Stata 标签
@@ -287,15 +279,12 @@ for track in ['_full', '_ctx']:
 ```python
 'avg_bl_ratio_full':       'Backward-Looking Ratio EW Mean (Full)',
 'avg_bl_ratio_ctx':        'Backward-Looking Ratio EW Mean (Ctx)',
-'time_orientation_full':   'Time Orientation FL/(FL+BL) (Full)',
-'time_orientation_ctx':    'Time Orientation FL/(FL+BL) (Ctx)',
 ```
 
 #### 交付物标准
 
 - [ ] `backward_looking_ratio` 在文章级数据中与 `forward_looking_ratio` 共存
-- [ ] `time_orientation_full/ctx` 取值 ∈ [0, 1], 均值在 0.3-0.7 区间（合理性校验）
-- [ ] Stata `.dta` 文件中新增上述 4 个面板级变量
+- [ ] Stata `.dta` 文件中新增面板级变量
 
 ---
 
@@ -317,15 +306,10 @@ python 45_panel_export_main.py
 
 ```stata
 * 描述性统计
-sum avg_fl_ratio_full avg_bl_ratio_full time_orientation_full, d
-
-* 相关性矩阵: 时间取向 vs 情感
-pwcorr time_orientation_full llm_vote_tone_full avg_llm_conf_full_z, sig
+sum avg_fl_ratio_full avg_bl_ratio_full, d
 ```
 
 **验收标准**:
-- `time_orientation_full` 均值 ∈ [0.3, 0.7], 标准差 > 0.05
-- `time_orientation` 与 `llm_vote_tone` 的相关系数 < 0.5 (确认是独立维度)
 - `avg_llm_conf_full_z` 年度截面均值 ≈ 0
 
 #### 动作 3.3: 更新技术文档
@@ -344,21 +328,13 @@ pwcorr time_orientation_full llm_vote_tone_full avg_llm_conf_full_z, sig
 | **根因分析** | 金融科技新闻天然偏向前瞻性话语, 回顾性表述出现频率低 |
 | **Plan B** | ① 放宽词库: 将 "上涨""下跌""增长""下降" 等带有时间暗示的结果性动词纳入; ② 替代指标: 使用 LLM 在 CoT 第二阶段新增一个布尔值 `is_forward_looking`, 直接由模型判断文章时间取向; ③ 最终保底: 仅保留 `forward_looking_ratio` 作为异质性分组变量, 放弃对偶设计 |
 
-### 风险 2: 时间取向指数与情感高度共线
-
-| 维度 | 描述 |
-|:---|:---|
-| **触发条件** | `Corr(time_orientation, llm_vote_tone)` > 0.7 |
-| **根因分析** | 前瞻性语言天然偏正面 ("预计增长""计划布局"), 回顾性偏中性/负面 |
-| **Plan B** | ① 在回归中使用残差正交化: `reg time_orientation_full llm_vote_tone_full → 取残差`; ② 替代使用: 按 `time_orientation` 中位数分组, 作为分样本回归的分组变量, 而非连续变量 |
-
 ### 风险 3: Stata 列名超限
 
 | 维度 | 描述 |
 |:---|:---|
 | **触发条件** | 新增变量名超过 Stata 32 字符限制 |
 | **根因分析** | `backward_looking_ratio` 等列名较长 |
-| **Plan B** | 使用缩写: `bl_ratio_full`, `bl_ratio_ctx`, `time_orient_full`, `time_orient_ctx` |
+| **Plan B** | 使用缩写: `bl_ratio_full`, `bl_ratio_ctx` |
 
 ---
 

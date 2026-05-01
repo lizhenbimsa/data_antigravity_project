@@ -106,10 +106,9 @@ def synthetic_df():
         banks_info_list.append(_build_banks_info([bank_name], [bank_name] if in_title else []))
     data['matched_banks_info'] = banks_info_list
 
-    # 前瞻性陈述、可读性、正负面分离（双轨）
+    # 可读性、正负面分离（双轨）
     for track in ['_full', '_ctx', '_title']:
-        data[f'forward_looking_ratio{track}'] = np.random.uniform(0, 0.1, n)
-        data[f'forward_looking_count{track}'] = np.random.randint(0, 10, n)
+
         data[f'avg_sentence_len{track}'] = np.random.uniform(20, 80, n)
         data[f'type_token_ratio{track}'] = np.random.uniform(0.3, 0.9, n)
         data[f'char_per_word{track}'] = np.random.uniform(1.2, 2.5, n)
@@ -196,8 +195,7 @@ class TestAggregation:
             'n_articles', 'ln_news_coverage', 'headline_frac',
             'media_breadth', 'multi_bank_frac',
             'avg_bank_count', 'max_bank_count', 'avg_agreement_rate_full',
-            # 前瞻性陈述 (Li 2010, Journal of Accounting Research)
-            'avg_fl_ratio_full', 'sum_fl_count_full',
+
             # 可读性 (Loughran & McDonald 2014, Journal of Finance)
             'avg_sent_len_full', 'avg_ttr_full', 'avg_cpw_full',
             # 正/负面分离 (Berger et al. 2024, Appendix S6)

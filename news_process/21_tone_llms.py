@@ -395,7 +395,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     
     Returns:
         tuple: (final_v, final_s, agree_rate, per_model_parsed, topics,
-                llm_categories, text_types, forward_looking_votes,
+                llm_categories, text_types,
                 n_failures, avg_prob_score)
             per_model_parsed: {f'{short}_verified': v, ...} 的字典
             avg_prob_score: Logit-to-Score 多模型平均概率分数 ∈ [-1, +1]
@@ -405,7 +405,6 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     topics = []
     llm_categories = []
     text_types = []
-    forward_looking_votes = []
     per_model_parsed = {}
     n_failures = 0
     
@@ -471,12 +470,6 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             tt_str = str(llm_tt).strip()
             if tt_str in ('实质性', '描述性'):
                 text_types.append(tt_str)
-        # 提取 is_forward_looking（时态朝向，交叉验证词典法 forward_looking_ratio）
-        fl_val = jd.get('is_forward_looking', None)
-        if fl_val is not None:
-            if isinstance(fl_val, str):
-                fl_val = fl_val.strip().lower() in ('true', '1', 'yes')
-            forward_looking_votes.append(bool(fl_val))
     
     final_v = majority_vote_bool(v_votes)
     final_s = majority_vote_sentiment(s_votes) if final_v else "中性"
@@ -509,7 +502,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             prob_scores.append(ps_result['prob_score'])
     avg_prob_score = sum(prob_scores) / len(prob_scores) if prob_scores else 0.0
 
-    return final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, text_types, forward_looking_votes, n_failures, avg_prob_score
+    return final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, text_types, n_failures, avg_prob_score
 
 
 def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
@@ -623,7 +616,6 @@ def main():
         df['fintech_category'] = '应用场景'
         df['category_confidence'] = 0.0
         df['text_type'] = None
-        df['is_forward_looking'] = pd.array([None] * len(df), dtype=pd.BooleanDtype())
         # 标题轨道虚拟列补全（与启用分支输出对齐）
         df['llm_verified_title'] = True
         df['llm_sentiment_title'] = '中性'
@@ -705,7 +697,6 @@ def main():
     fintech_category_arr = []
     category_confidence_arr = []
     text_type_arr = []
-    forward_looking_arr = []
     
     # 预分配每个模型 × 每轨道的独立判断列表
     per_model_cols = {}
@@ -730,7 +721,7 @@ def main():
         row_results = results_map.get(idx, {'full': {}, 'ctx': {}})
         
         # ── Full 轨道聚合 ──
-        final_v_full, final_s_full, agree_rate_full, parsed_full, topics_full, llm_cats_full, text_types_full, fl_votes_full, n_fail_full, avg_prob_full = \
+        final_v_full, final_s_full, agree_rate_full, parsed_full, topics_full, llm_cats_full, text_types_full, n_fail_full, avg_prob_full = \
             _aggregate_track(row_results.get('full', {}), MODELS)
         n_api_failures += n_fail_full
         
@@ -750,7 +741,7 @@ def main():
         prob_score_full_arr.append(avg_prob_full)
         
         # ── Ctx 轨道聚合 ──
-        final_v_ctx, final_s_ctx, agree_rate_ctx, parsed_ctx, topics_ctx, llm_cats_ctx, text_types_ctx, fl_votes_ctx, n_fail_ctx, avg_prob_ctx = \
+        final_v_ctx, final_s_ctx, agree_rate_ctx, parsed_ctx, topics_ctx, llm_cats_ctx, text_types_ctx, n_fail_ctx, avg_prob_ctx = \
             _aggregate_track(row_results.get('ctx', {}), MODELS)
         n_api_failures += n_fail_ctx
         
@@ -802,12 +793,7 @@ def main():
         else:
             text_type_arr.append(None)
         
-        # ── 前瞻性时态多数决（仅基于 full 轨道） ──
-        if fl_votes_full:
-            fl_true_count = sum(1 for x in fl_votes_full if x)
-            forward_looking_arr.append(fl_true_count > len(fl_votes_full) / 2)
-        else:
-            forward_looking_arr.append(None)
+    
     
     # 批量赋值各模型独立判断列
     for col_name, col_values in per_model_cols.items():
@@ -822,9 +808,6 @@ def main():
     df['fintech_category'] = fintech_category_arr
     df['category_confidence'] = category_confidence_arr
     df['text_type'] = text_type_arr
-    # 使用 BooleanDtype 而非 Float64Dtype：语义上 is_forward_looking 是布尔值，
-    # BooleanDtype 支持 NA（兼容 None 值），同时保留布尔语义
-    df['is_forward_looking'] = pd.array(forward_looking_arr, dtype=pd.BooleanDtype())
     
     # ── Logit-to-Score 概率分数写入 DataFrame ──
     if LOGIT_SCORE_ENABLED:

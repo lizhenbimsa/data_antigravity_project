@@ -336,10 +336,6 @@ def build_aggregation_dict() -> dict:
                 agg[f'{short}_neu{track}'] = (f'{short}_中性{track}', 'mean')
                 agg[f'{short}_neu_sum{track}'] = (f'{short}_中性{track}', 'sum')
 
-        # --- G. 前瞻性陈述 (Li 2010, JAR) ---
-        agg[f'avg_fl_ratio{track}'] = (f'forward_looking_ratio{track}', 'mean')
-        agg[f'avg_fl_ratio_std{track}'] = (f'forward_looking_ratio{track}', 'std')
-        agg[f'sum_fl_count{track}'] = (f'forward_looking_count{track}', 'sum')
 
         # --- H. 文本可读性控制变量 (Loughran & McDonald 2014, JF) ---
         agg[f'avg_sent_len{track}'] = (f'avg_sentence_len{track}', 'mean')
@@ -374,9 +370,7 @@ def build_aggregation_dict() -> dict:
             agg[f'avg_{short}_conf{track}'] = (conf_src, 'mean')
 
     # --- E. 新闻覆盖量 & 稳健性辅助（无需双轨） ---
-    # --- G2. LLM 前瞻性交叉验证 (AI 时态判断, 与词典法 G 互为稳健性检验) ---
-    agg['avg_is_forward_looking'] = ('is_forward_looking', 'mean')
-    agg['sum_is_forward_looking'] = ('is_forward_looking', 'sum')
+
     agg['n_articles'] = ('llm_vote_score_full', 'count')
     agg['headline_frac'] = ('in_title', 'mean')
     agg['multi_bank_frac'] = ('is_multi_bank', 'mean')
@@ -467,8 +461,6 @@ def build_aggregation_dict() -> dict:
         # F: 高置信度子样本
         agg[f'pos_hc_count{track}'] = (f'_is_pos_hc{track}', 'sum')
         agg[f'pos_desc_hc_count{track}'] = (f'_is_pos_desc_hc{track}', 'sum')
-        # H: 前瞻性空洞
-        agg[f'pos_desc_fl_count{track}'] = (f'_is_pos_desc_fl{track}', 'sum')
 
     # --- L. 单方法 neg_count (用于 disag 指标) ---
     # Garcia, D. (2013). Sentiment during recessions.
@@ -765,6 +757,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     else:
         logger.info("  列 'text_type' 不存在, text_type 分组聚合将跳过")
 
+
     # 新闻覆盖量对数
     panel['ln_news_coverage'] = np.log1p(panel['n_articles'])
 
@@ -929,8 +922,6 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
                   'pos_count_vw', 'neg_count_vw',
                   'sum_mention_density', 'sum_doc_length', 'sum_target_mentions',
                   'sum_media_authority_weight']
-    # 动态匹配所有 sum_fl_count 列（三轨: _full/_ctx/_title）
-    count_cols += [c for c in panel.columns if c.startswith('sum_fl_count')]
     zero_fill_cols = zero_fill_patterns + sum_cols + count_cols
 
     for col in zero_fill_cols:

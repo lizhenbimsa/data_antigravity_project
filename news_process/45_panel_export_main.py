@@ -612,13 +612,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # Bartik IV — 提及密度 (稳健性 19)
                 'bartik_breadth_iv_full':              'Bartik IV: Outlet-Breadth (Full)',
                 'bartik_breadth_iv_ctx':               'Bartik IV: Outlet-Breadth (Ctx)',
-                # Bartik IV — 银行提及次数 (稳健性 20)
-                'bartik_fwdlook_iv_full':              'Bartik IV: Forward-Looking (Full)',
-                'bartik_fwdlook_iv_ctx':               'Bartik IV: Forward-Looking (Ctx)',
-                # Bartik IV — 媒体覆盖广度 (稳健性 21)
+
                 'bartik_sentlen_iv_full':              'Bartik IV: Sentence-Length (Full)',
                 'bartik_sentlen_iv_ctx':               'Bartik IV: Sentence-Length (Ctx)',
-                # Bartik IV — 前瞻性语言 (稳健性 22)
+                # Bartik IV — 词汇丰富度 (稳健性 22)
                 'bartik_ttr_iv_full':                  'Bartik IV: Type-Token-Ratio (Full)',
                 'bartik_ttr_iv_ctx':                   'Bartik IV: Type-Token-Ratio (Ctx)',
                 # Bartik IV — 平均句长 (稳健性 23)
@@ -798,10 +795,17 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'washing_ratio_bert_ctx':           'WR: BERT 5-Avg (Ctx)',
                 'washing_ratio_hc':                 'WR: Hi-Conf (Full)',
                 'washing_ratio_hc_ctx':             'WR: Hi-Conf (Ctx)',
+                # 文本类型与时间取向 (Categorical Dimensions)
+                'n_articles_sub':                   'Count: Substantive News',
+                'sub_frac':                         'Frac: Substantive News',
+                'n_articles_desc':                  'Count: Descriptive News',
+                'desc_frac':                        'Frac: Descriptive News',
+                'llm_vote_tone_sub_full':           'Avg Tone: Substantive (Full)',
+                'llm_vote_tone_sub_ctx':            'Avg Tone: Substantive (Ctx)',
+                'llm_vote_tone_desc_full':          'Avg Tone: Descriptive (Full)',
+                'llm_vote_tone_desc_ctx':           'Avg Tone: Descriptive (Ctx)',
                 'washing_tone_shift_full':          'Desc Tone Shift (Full)',
                 'washing_tone_shift_ctx':           'Desc Tone Shift (Ctx)',
-                'washing_ratio_fl':                 'WR: Fwd-Look (Full)',
-                'washing_ratio_fl_ctx':             'WR: Fwd-Look (Ctx)',
                 'pos_desc_count_full':              'Pos & Desc Count (Full)',
                 'pos_desc_count_ctx':               'Pos & Desc Count (Ctx)',
                 'dummy_no_positive_news':           'No Positive News Dummy',
@@ -1274,14 +1278,13 @@ def main():
     #   climate risk disclosures. Finance Research Letters, 47(Part B), 102776.
     #   https://doi.org/10.1016/j.frl.2022.102776
     #
-    # 构造 44 种洗稿率变体 (11 方法 × 双轨 Full/Ctx) 的篇章级标记列:
+    # 构造 40 种洗稿率变体 (10 方法 × 双轨 Full/Ctx) 的篇章级标记列:
     #   A:  LLM 多数投票 (is_positive{track}, 双轨)
     #   A2: 单个 LLM (逐 LLM 情感{track} > 0)
     #   B:  反向验证 (负面{track} ∧ 实质性)
     #   D/D2: 词典均值 / 单词典 ({dict}_score{track} > 0)
     #   E/E2: BERT 均值 / 单 BERT ({bert}_正面{track} > 0.5)
     #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3)
-    #   H:  前瞻性空洞法 (正面{track} ∧ 描述性 ∧ fl_ratio{track} > 中位数)
     # 方法 C 和 G 无需篇章级标记, 直接使用面板级已有变量计算
     _tt = df['text_type'].astype(str).str.strip() if 'text_type' in df.columns else None
     _is_desc = (_tt == '描述性') if _tt is not None else None
@@ -1368,14 +1371,7 @@ def main():
                 (df[pos_col] == 1) & _is_desc & _hc
             ).astype(int)
 
-        # --- 方法 H: 前瞻性空洞法 (Li 2010, JAR; Bingler et al. 2024, JBF) ---
-        fl_col = f'forward_looking_ratio{track}'
-        if fl_col in df.columns:
-            _fl_median = df[fl_col].median()
-            _high_fl = df[fl_col] > _fl_median
-            df[f'_is_pos_desc_fl{track}'] = (
-                (df[pos_col] == 1) & _is_desc & _high_fl
-            ).astype(int)
+
 
     _wr_flag_cols = [c for c in df.columns if c.startswith('_is_')]
     logger.info(f"  洗稿率前置列生成完毕: {len(_wr_flag_cols)} 列 (双轨)")
@@ -1827,18 +1823,6 @@ def main():
                 category_col='_breadth_type'
             )
 
-        # --- 稳健性 22: 前瞻性语言 ---
-        if 'forward_looking_ratio_full' in df_exploded.columns:
-            year_median_fl = df_exploded.groupby('year')['forward_looking_ratio_full'].transform('median')
-            df_exploded['_fwdlook_type'] = np.where(
-                df_exploded['forward_looking_ratio_full'] > year_median_fl,
-                'forward', 'backward'
-            )
-            fwdlook_map = {'forward': 'forward', 'backward': 'backward'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, fwdlook_map, 'fwdlook',
-                category_col='_fwdlook_type'
-            )
 
         # --- 稳健性 23: 平均句长 ---
         if 'avg_sentence_len_full' in df_exploded.columns:
@@ -2349,7 +2333,7 @@ def main():
     #   Cheap talk and cherry-picking. Finance Research Letters, 47(B), 102776.
     #   https://doi.org/10.1016/j.frl.2022.102776
     #
-    # 构造 44 种洗稿率变体 (11 方法 × 双轨 Full/Ctx):
+    # 构造 40 种洗稿率变体 (10 方法 × 双轨 Full/Ctx):
     #   A/A2: LLM 投票 + 单 LLM (3模型) × 双轨
     #   B:    反向验证 + 非对称性 × 双轨
     #   C:    情感纯度缺口 × 双轨
@@ -2357,10 +2341,9 @@ def main():
     #   E/E2: BERT 均值 + 单 BERT (5模型) × 双轨
     #   F:    高置信度子样本 × 双轨
     #   G:    描述性文章情感偏移 × 双轨
-    #   H:    前瞻性空洞 × 双轨
     # =========================================================================
     logger.info("=" * 60)
-    logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造 (44种)")
+    logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造 (40种)")
     logger.info("=" * 60)
 
     def _safe_ratio(numer, denom):
@@ -2406,7 +2389,7 @@ def main():
                 panel[vn_asym] = panel[vn_r] - (1 - panel[wr_a])
                 wr_variants[vn_asym] = f'B: 非对称性{track}'
 
-        # --- 方法 C: 情感纯度缺口 ---
+        # --- 方法 C: 情感纯度缺口 (实质性 vs 描述性) ---
         sub_col = f'llm_vote_tone_sub{track}'
         desc_col = f'llm_vote_tone_desc{track}'
         if sub_col in panel.columns and desc_col in panel.columns:
@@ -2463,13 +2446,6 @@ def main():
             vn = f'washing_tone_shift{track}'
             panel[vn] = panel[desc_tone] - panel[all_tone]
             wr_variants[vn] = f'G: 情感偏移{track}'
-
-        # --- 方法 H: 前瞻性空洞 ---
-        flc = f'pos_desc_fl_count{track}'
-        if flc in panel.columns and pos_col in panel.columns:
-            vn = f'washing_ratio_fl{_sfx}'
-            panel[vn] = _safe_ratio(panel[flc], panel[pos_col])
-            wr_variants[vn] = f'H: 前瞻性{track}'
 
     # --- Dummy: 全年无正面新闻 ---
     if 'pos_count_full' in panel.columns:
