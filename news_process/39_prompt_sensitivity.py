@@ -113,14 +113,14 @@ VARIANT_PROMPTS = {
 
 严格输出以下 JSON，禁止添加前缀、后缀或 Markdown 包裹：
 {{
-  "is_bank_fintech_news": true/false,
   "verification_reason": "简明说明判定依据，须引用文章具体内容",
+  "is_bank_fintech_news": true/false,
   "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
   "fintech_topic": "核心金融科技主题简述（false 时填 null）",
   "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
   "verification_confidence": 0.0~1.0,
-  "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_reason": "简明说明情感判定依据",
+  "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_confidence": 0.0~1.0
 }}""",
 
@@ -159,14 +159,14 @@ VARIANT_PROMPTS = {
 
 严格输出以下 JSON，禁止添加前缀、后缀或 Markdown 包裹：
 {{
-  "is_bank_fintech_news": true/false,
   "verification_reason": "简明说明判定依据，须引用文章具体内容",
+  "is_bank_fintech_news": true/false,
   "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
   "fintech_topic": "核心金融科技主题简述（false 时填 null）",
   "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
   "verification_confidence": 0.0~1.0,
-  "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_reason": "简明说明情感判定依据",
+  "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_confidence": 0.0~1.0
 }}""",
 
@@ -189,14 +189,14 @@ VARIANT_PROMPTS = {
 
 严格输出以下 JSON：
 {{
-  "is_bank_fintech_news": true/false,
   "verification_reason": "简明说明判定依据，须引用文章具体内容",
+  "is_bank_fintech_news": true/false,
   "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
   "fintech_topic": "核心金融科技主题简述（false 时填 null）",
   "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
   "verification_confidence": 0.0~1.0,
-  "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_reason": "简明说明情感判定依据",
+  "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_confidence": 0.0~1.0
 }}""",
 
@@ -237,14 +237,14 @@ C. **银行与技术的因果关联**：存在可验证的证据表明该银行�
 <output_format>
 严格输出以下 JSON，禁止添加前缀、后缀或 Markdown 包裹：
 {{
-  "is_bank_fintech_news": true/false,
   "verification_reason": "简明说明判定依据，须引用文章具体内容",
+  "is_bank_fintech_news": true/false,
   "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
   "fintech_topic": "核心金融科技主题简述（false 时填 null）",
   "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
   "verification_confidence": 0.0~1.0,
-  "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_reason": "简明说明情感判定依据",
+  "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
   "sentiment_confidence": 0.0~1.0
 }}
 </output_format>""",
