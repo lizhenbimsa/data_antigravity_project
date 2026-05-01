@@ -365,14 +365,14 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
                 record(cat, f'{wt_type}加权恒等式', 'WARN',
                        f'列 {tone_col} 不存在, 跳过检验')
 
-    # 3f. 分类恒等式 n = tech + app + mix
-    if all(c in panel.columns for c in ['n_articles', 'n_articles_tech', 'n_articles_app', 'n_articles_mix']):
+    # 3f. 分类恒等式 n = tech + app
+    if all(c in panel.columns for c in ['n_articles', 'n_articles_tech', 'n_articles_app']):
         check = panel.loc[has_news]
         identity = (check['n_articles'] ==
-                    check['n_articles_tech'] + check['n_articles_app'] + check['n_articles_mix'])
+                    check['n_articles_tech'] + check['n_articles_app'])
         failures = (~identity).sum()
         if failures > 0:
-            record(cat, 'fintech分类恒等式', 'FAIL', f'{failures} 行不满足 n=tech+app+mix')
+            record(cat, 'fintech分类恒等式', 'FAIL', f'{failures} 行不满足 n=tech+app')
         else:
             record(cat, 'fintech分类恒等式', 'PASS', '恒等式成立')
 

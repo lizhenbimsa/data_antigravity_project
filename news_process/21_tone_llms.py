@@ -462,7 +462,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             cat_str = str(llm_cat).strip().replace('；', ';')
             for part in cat_str.split(';'):
                 part = part.strip()
-                if part in ('底层技术', '应用场景', '混合型'):
+                if part in ('底层技术', '应用场景'):
                     llm_categories.append(part)
                     break
         # 提取 text_type（二分类模式：实质性 / 描述性）
@@ -471,9 +471,6 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             tt_str = str(llm_tt).strip()
             if tt_str in ('实质性', '描述性'):
                 text_types.append(tt_str)
-            elif tt_str == '混合型':
-                # 向后兼容：旧缓存/LLM偶发输出 → 按最低阈值原则归入"实质性"
-                text_types.append('实质性')
         # 提取 is_forward_looking（时态朝向，交叉验证词典法 forward_looking_ratio）
         fl_val = jd.get('is_forward_looking', None)
         if fl_val is not None:
@@ -780,8 +777,8 @@ def main():
             cat_votes = Counter(llm_cats_full)
             top = cat_votes.most_common(2)
             if len(top) >= 2 and top[0][1] == top[1][1]:
-                # 平局：降为混合型（无法确定主分类）
-                llm_majority_cat = '混合型'
+                # 二分类平局：保守降为应用场景
+                llm_majority_cat = '应用场景'
             else:
                 llm_majority_cat = top[0][0] if top else kw_category
             if llm_majority_cat == kw_category:

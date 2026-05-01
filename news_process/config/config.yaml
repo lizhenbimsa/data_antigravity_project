@@ -382,7 +382,7 @@ tone_llm_processing:
       "is_bank_fintech_news": true/false,
       "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
       "fintech_topic": "核心金融科技主题简述（false 时填 null）",
-      "fintech_category": "「底层技术」或「应用场景」或「混合型」（false 时填 null）",
+      "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
       "verification_confidence": 0.0~1.0,
       "sentiment_reason": "简明说明情感判定依据",
       "sentiment": "正面/中性/负面（false 时固定填\"中性\"）",

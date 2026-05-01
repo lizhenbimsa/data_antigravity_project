@@ -580,13 +580,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # --- 按 fintech_category 分组聚合（底层技术 / 应用场景） ---
     if 'fintech_category' in df.columns:
         # 防御性校验：检查非预期值
-        valid_cats = {'底层技术', '应用场景', '混合型'}
+        valid_cats = {'底层技术', '应用场景'}
         actual_cats = set(df['fintech_category'].dropna().unique())
         unexpected = actual_cats - valid_cats
         if unexpected:
             logger.warning(f"  fintech_category 含非预期值: {unexpected}，这些文章将不计入分类聚合")
 
-        cat_mapping = [('底层技术', '_tech'), ('应用场景', '_app'), ('混合型', '_mix')]
+        cat_mapping = [('底层技术', '_tech'), ('应用场景', '_app')]
 
         for cat_label, suffix in cat_mapping:
             df_cat = df[df['fintech_category'] == cat_label]
@@ -654,12 +654,12 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                         f"{len(cat_agg)} 个指标")
 
         # 分类计数列填充（merge 后可能产生 NaN）
-        for suffix in ['_tech', '_app', '_mix']:
+        for suffix in ['_tech', '_app']:
             col = f'n_articles{suffix}'
             if col in panel.columns:
                 panel[col] = panel[col].fillna(0).astype(int)
 
-        # tech_frac / app_frac / mix_frac
+        # tech_frac / app_frac
         panel['tech_frac'] = np.where(
             panel['n_articles'] > 0,
             panel['n_articles_tech'] / panel['n_articles'],
@@ -668,11 +668,6 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         panel['app_frac'] = np.where(
             panel['n_articles'] > 0,
             panel['n_articles_app'] / panel['n_articles'],
-            np.nan
-        )
-        panel['mix_frac'] = np.where(
-            panel['n_articles'] > 0,
-            panel['n_articles_mix'] / panel['n_articles'],
             np.nan
         )
 
@@ -684,18 +679,17 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         else:
             panel['avg_category_confidence'] = np.nan
 
-        # 恒等式校验（三分类）
-        if all(f'n_articles{s}' in panel.columns for s in ['_tech', '_app', '_mix']):
+        # 恒等式校验（二分类）
+        if all(f'n_articles{s}' in panel.columns for s in ['_tech', '_app']):
             has_news = panel['n_articles'] > 0
             identity_check = (panel.loc[has_news, 'n_articles'] ==
                               panel.loc[has_news, 'n_articles_tech'] +
-                              panel.loc[has_news, 'n_articles_app'] +
-                              panel.loc[has_news, 'n_articles_mix'])
+                              panel.loc[has_news, 'n_articles_app'])
             if identity_check.all():
-                logger.info("  ✓ 恒等式校验通过: n_articles == n_articles_tech + n_articles_app + n_articles_mix")
+                logger.info("  ✓ 恒等式校验通过: n_articles == n_articles_tech + n_articles_app")
             else:
                 n_fail = (~identity_check).sum()
-                logger.warning(f"  ✗ 恒等式校验失败: {n_fail} 行不满足 n_articles == n_articles_tech + n_articles_app + n_articles_mix")
+                logger.warning(f"  ✗ 恒等式校验失败: {n_fail} 行不满足 n_articles == n_articles_tech + n_articles_app")
     else:
         logger.info("  列 'fintech_category' 不存在, 分类聚合将跳过")
         panel['tech_frac'] = np.nan
@@ -704,13 +698,6 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # --- 按 text_type 分组聚合（实质性 / 描述性，二分类） ---
     if 'text_type' in df.columns:
         valid_tts = {'实质性', '描述性'}
-
-        # 向后兼容：将旧版三分类数据中的“混合型”按最低阈值原则重映射为“实质性”
-        # 白话：老版本标注的“混合型”，因为包含了真实落地内容，归入“干了实事”类
-        n_legacy_mix = (df['text_type'] == '混合型').sum()
-        if n_legacy_mix > 0:
-            df.loc[df['text_type'] == '混合型', 'text_type'] = '实质性'
-            logger.info(f"  向后兼容: {n_legacy_mix:,} 篇旧'混合型'文章已重映射为'实质性'")
 
         actual_tts = set(df['text_type'].dropna().unique())
         unexpected_tt = actual_tts - valid_tts
@@ -951,8 +938,8 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
             panel[col] = panel[col].fillna(0)
 
     # --- 分类维度计数列填充为 0 ---
-    # zero_fill_patterns 中的 'n_articles' 为精确匹配，不会捕获 n_articles_tech / n_articles_app / n_articles_mix
-    for suffix in ['_tech', '_app', '_mix']:
+    # zero_fill_patterns 中的 'n_articles' 为精确匹配，不会捕获 n_articles_tech / n_articles_app
+    for suffix in ['_tech', '_app']:
         col = f'n_articles{suffix}'
         if col in panel.columns:
             panel[col] = panel[col].fillna(0).astype(int)
@@ -964,7 +951,7 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
             panel[col] = panel[col].fillna(0).astype(int)
 
     # 其余 NaN 列保持不变（均值、比例、离散度等由 Stata 处理）
-    # tech_frac / app_frac / mix_frac / sub_frac / desc_frac / avg_category_confidence: 零新闻行保持 NaN
+    # tech_frac / app_frac / sub_frac / desc_frac / avg_category_confidence: 零新闻行保持 NaN
 
     logger.info(f"  完全笛卡尔积: {len(all_banks)} 银行 × {len(all_years)} 年 = {rows_after:,} 行")
     logger.info(f"  原有观测值: {rows_before:,} 行")

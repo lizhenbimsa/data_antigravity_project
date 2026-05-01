@@ -232,7 +232,7 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             logger.info(f"  底层技术占比 (tech_frac):")
             logger.info(f"    mean={valid_tf.mean():.3f}, median={valid_tf.median():.3f}, "
                         f"std={valid_tf.std():.3f}")
-    for suffix, label in [('_tech', '底层技术'), ('_app', '应用场景'), ('_mix', '混合型')]:
+    for suffix, label in [('_tech', '底层技术'), ('_app', '应用场景')]:
         col = f'n_articles{suffix}'
         if col in panel.columns:
             has_cat = (panel[col] > 0).sum()

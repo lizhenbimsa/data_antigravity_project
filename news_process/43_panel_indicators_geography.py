@@ -121,7 +121,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         logger.info(f"  avg_article_length (MLENGTH proxy) 已生成")
 
     # --- 分类维度综合指标 ---
-    for suffix in ['_tech', '_app', '_mix']:
+    for suffix in ['_tech', '_app']:
         # 仅当分类计数列存在时生成
         if f'n_articles{suffix}' not in panel.columns:
             continue
