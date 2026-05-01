@@ -76,6 +76,7 @@ STAGE_NAME = "27_fintech_benefit_society"
 
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
 
 # 模块专属配置
 _BENEFIT_CFG = CONFIG.get('benefit_society', {})
@@ -217,9 +218,23 @@ async def _get_embeddings_api(texts: list[str], token_counts: list[int]) -> np.n
     """
     import aiohttp
     cfg = LLM_CONFIG.get('models', [{}])[0]
+    if EMBEDDING_CONFIG:
+        base_url = EMBEDDING_CONFIG.get('base_url')
+        api_key = EMBEDDING_CONFIG.get('api_key')
+        embedding_model = (
+            EMBEDDING_CONFIG.get('model') or "text-embedding-3-small")
+    else:
+        base_url = cfg.get('base_url')
+        api_key = cfg.get('api_key')
+        embedding_model = "text-embedding-3-small"
+    if not base_url or not api_key:
+        raise RuntimeError(
+            "Embedding API config missing base_url or api_key "
+            "(check config.yaml -> embedding_api and .env EMBEDDING_API_KEY)")
+    base_url = str(base_url).rstrip("/")
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {cfg['api_key']}"
+        "Authorization": f"Bearer {api_key}"
     }
 
     # 动态批量切分 (按 token 总数)
@@ -241,8 +256,8 @@ async def _get_embeddings_api(texts: list[str], token_counts: list[int]) -> np.n
     async with aiohttp.ClientSession() as session:
         for batch_idx, batch in enumerate(batches):
             async with session.post(
-                f"{cfg['base_url']}/embeddings",
-                json={"model": "text-embedding-3-small", "input": batch},
+                f"{base_url}/embeddings",
+                json={"model": embedding_model, "input": batch},
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=180)
             ) as resp:

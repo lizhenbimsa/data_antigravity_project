@@ -91,6 +91,7 @@ CONFIG = _m41.CONFIG
 
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
 
 # Stage 名称
 STAGE_NAME = "15_article_policy_alignment"
@@ -257,12 +258,20 @@ async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int])
     #   不要等到真正要开门的时候才发现没带钥匙。
     models = LLM_CONFIG.get('models') or []
     cfg = models[0] if models else {}
-    base_url = cfg.get('base_url')
-    api_key = cfg.get('api_key')
+    if EMBEDDING_CONFIG:
+        base_url = EMBEDDING_CONFIG.get('base_url')
+        api_key = EMBEDDING_CONFIG.get('api_key')
+        embedding_model = (
+            EMBEDDING_CONFIG.get('model') or "text-embedding-3-small")
+    else:
+        base_url = cfg.get('base_url')
+        api_key = cfg.get('api_key')
+        embedding_model = "text-embedding-3-small"
     if not base_url or not api_key:
         raise RuntimeError(
-            "Embedding API 配置缺少 base_url 或 api_key "
-            "(检查 config.yaml → tone_llm_processing → models)")
+            "Embedding API config missing base_url or api_key "
+            "(check config.yaml -> embedding_api and .env EMBEDDING_API_KEY)")
+    base_url = str(base_url).rstrip("/")
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
@@ -292,7 +301,7 @@ async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int])
         for batch_idx, batch in enumerate(batches):
             async with session.post(
                 f"{base_url}/embeddings",
-                json={"model": "text-embedding-3-small", "input": batch},
+                json={"model": embedding_model, "input": batch},
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=180)
             ) as resp:

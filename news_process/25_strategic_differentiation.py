@@ -193,6 +193,7 @@ _s41 = _iu.spec_from_file_location('_41', _p41)
 _m41 = _iu.module_from_spec(_s41); _s41.loader.exec_module(_m41)
 logger = _m41.logger; CONFIG = _m41.CONFIG
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
 _ALIGN_CFG = CONFIG.get('article_alignment', {})
 _EMB_MAX_TOKENS = _coerce_positive_int(
     _ALIGN_CFG.get('max_tokens_per_input'), _EMB_MAX_TOKENS)
@@ -427,10 +428,20 @@ async def _get_embeddings_api(texts):
 
     models = LLM_CONFIG.get('models') or []
     cfg = models[0] if models else {}
-    base_url = cfg.get('base_url')
-    api_key = cfg.get('api_key')
+    if EMBEDDING_CONFIG:
+        base_url = EMBEDDING_CONFIG.get('base_url')
+        api_key = EMBEDDING_CONFIG.get('api_key')
+        embedding_model = (
+            EMBEDDING_CONFIG.get('model') or "text-embedding-3-small")
+    else:
+        base_url = cfg.get('base_url')
+        api_key = cfg.get('api_key')
+        embedding_model = "text-embedding-3-small"
     if not base_url or not api_key:
-        raise RuntimeError("Embedding API 配置缺少 base_url 或 api_key")
+        raise RuntimeError(
+            "Embedding API config missing base_url or api_key "
+            "(check config.yaml -> embedding_api and .env EMBEDDING_API_KEY)")
+    base_url = str(base_url).rstrip("/")
 
     headers = {
         "Content-Type": "application/json",
@@ -467,7 +478,7 @@ async def _get_embeddings_api(texts):
         for batch_idx, batch in enumerate(batches):
             async with session.post(
                 f"{base_url}/embeddings",
-                json={"model": "text-embedding-3-small", "input": batch},
+                json={"model": embedding_model, "input": batch},
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=120)
             ) as resp:

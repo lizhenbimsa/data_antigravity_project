@@ -774,6 +774,12 @@ herd_detection:
 #   方法论上游: Kozlowski, Taddy, & Evans (2019). ASR, 84(5), 905-949.
 #     DOI: 10.1177/0003122419877135
 # 白话: 用"利好经营 vs 损害经营"方向轴给每篇新闻打态度分
+# Shared Embedding API for text-embedding-3-small (Stages 15/25/27).
+embedding_api:
+  model: text-embedding-3-small
+  base_url: https://yunwu.ai/v1
+  api_key: ${EMBEDDING_API_KEY}
+
 benefit_society:
   max_tokens_per_input: 8191        # 单条输入 token 上限 (text-embedding-3-small 硬性上限)
   max_tokens_per_request: 250000    # 单次 API 请求总 token 上限
