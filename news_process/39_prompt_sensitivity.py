@@ -83,6 +83,11 @@ PASS_THRESHOLD_ALPHA        = PS_CFG.get('pass_threshold_alpha', 0.667)
 # 设计原则：每个变体仅改变表述方式，保持任务语义和输出 JSON schema 不变。
 # 所有变体共享 {target_bank}, {co_mentioned_banks}, {title}, {content} 占位符
 # 和 {{ / }} JSON 转义格式。
+#
+# 学术依据 1: De Kok (2025) Appendix C - GLLMs Generate Text Left to Right. 
+#   在 JSON 输出中前置 explanation（如 verification_reason），迫使模型将其作为后续 classification 的上下文，以实现 Zero-shot CoT。
+# 学术依据 2: Generative AI and Finance (Section 3.7.2) - Explanation and evaluation of LLM reasoning.
+#   强制要求模型先生成解释，然后再输出分数或判定结论，从而彻底纠正模型的因果错位（Post-hoc rationalization）与幻觉。
 
 VARIANT_PROMPTS = {
     # ── V1: 角色改写 (Role-Based Variation) ──

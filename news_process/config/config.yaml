@@ -325,6 +325,10 @@ tone_llm_processing:
       api_key: ${CLAUDE4H_API_KEY}                  # Claude Haiku 4.5 API 密钥（从 .env 读取）
 
   # Unified CoT 提示词模板（精简版）
+  # 学术依据 1: De Kok (2025) Appendix C - GLLMs Generate Text Left to Right. 
+  #   在 JSON 输出中前置 explanation（如 verification_reason），迫使模型将其作为后续 classification 的上下文，以实现 Zero-shot CoT。
+  # 学术依据 2: Generative AI and Finance (Section 3.7.2) - Explanation and evaluation of LLM reasoning.
+  #   强制要求模型先生成解释，然后再输出分数或判定结论，从而彻底纠正模型的因果错位（Post-hoc rationalization）与幻觉。
   prompt_template: |
     <role>
     你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格遵循思维链（Chain-of-Thought）完成以下两阶段序贯分析。
