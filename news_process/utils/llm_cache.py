@@ -129,3 +129,12 @@ class LLMCache:
             if self._conn:
                 self._conn.close()
                 self._conn = None
+
+    def __enter__(self):
+        """上下文管理器入口。"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """上下文管理器退出，自动关闭连接。"""
+        self.close()
+        return False
