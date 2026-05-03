@@ -34,15 +34,48 @@ run_pipeline_validation.py - 新闻处理流水线: 评估验证模块
 import os
 import sys
 import time
+
+# Phase 1: ensure project parent on sys.path so that ``import news_process`` works
+# regardless of cwd (subprocess invocations may launch from elsewhere).
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(_HERE)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
 from utils.helpers import load_config, setup_logging, log_memory_usage, run_stage
 
+# Phase 1: import the canonical validation DAG declaration.  STAGES is exposed
+# as a module-level constant for the static consistency test in
+# tests/integration/test_dag_consistency.py.
+from news_process.core.dag import STAGES_VALIDATION as STAGES, filter_enabled
+
 # ============================================================================
-# 配置与初始化
+# 配置与初始化  (Phase 1.5: NEWS_PROCESS_RUN_ID 生成与 env 注入)
 # ============================================================================
 
 CONFIG = load_config()
 STAGE_NAME = "run_pipeline_validation"
+
+
+def _generate_run_id() -> str:
+    """Mint a per-run id and put into env (preserving any existing value)."""
+    import datetime as _dt
+    import socket as _socket
+
+    existing = os.environ.get("NEWS_PROCESS_RUN_ID")
+    if existing:
+        return existing
+
+    ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    host = _socket.gethostname().split(".")[0][:24]
+    rid = f"{ts}-{host}-{os.getpid()}"
+    os.environ["NEWS_PROCESS_RUN_ID"] = rid
+    return rid
+
+
+_RUN_ID = _generate_run_id()
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
+logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")
 
 
 # 脚本所在目录（用于定位阶段脚本）
@@ -95,63 +128,22 @@ def run_validation():
     log_memory_usage(logger, "模块启动")
 
     # ── 模块四: 评估验证模块 ──
-    # 每个阶段由 config.yaml 中的 validation.<key> 开关控制:
-    #   值为 true(默认) -> 执行
-    #   值为 false -> 跳过
-    # 这允许研究者根据需要选择性执行耗时较长的验证模块
-    validation_config = CONFIG.get('validation', {})
-    stages = []
-
-    if validation_config.get('threshold_sensitivity', True):
-        stages.append(("31_bank_fintech_threshold.py", "阶段31: 阈值敏感性分析"))
-
-    stages.append(("32_news_llms_human.py", "阶段32: 人工抽样验证样本生成"))
-
-    # 阶段32a: 去重阈值敏感性分析 (Broder 1997, IEEE SEQUENCES)
-    # 全量数据 MinHash 运行耗时约 2.5 小时
-    # 输出: eval_reports/dedup_sensitivity_report.csv (供论文附录参数稳健性表格)
-    if validation_config.get('dedup_sensitivity', True):
-        stages.append(("32a_dedup_threshold_sensitivity.py",
-                       "阶段32a: 去重阈值敏感性分析"))
-
-    if validation_config.get('classification_eval', True):
-        stages.append(("33_news_llms_evaluation.py", "阶段33: 分类有效性评估"))
-
-    if validation_config.get('sentiment_validation', True):
-        stages.append(("34_tone_validation.py", "阶段34: 情感三角验证"))
-
-    if validation_config.get('radius_sensitivity', True):
-        stages.append(("35_radius_sensitivity.py", "阶段35: 窗口半径敏感性检验"))
-
-    if validation_config.get('entity_masking', True):
-        stages.append(("36_entity_masking_test.py", "阶段36: Entity Masking 稳健性测试"))
-
-    if validation_config.get('dict_coverage_audit', True):
-        stages.append(("37_dict_coverage_audit.py", "阶段37: 金融科技词典覆盖率审计"))
-
-    if validation_config.get('media_diversity', True):
-        stages.append(("38_media_diversity.py", "阶段38: 媒体名称与地域多样性审计"))
-
-    # B2-1: 时间掩码前视偏误检验 (Tetlock et al. 2008, JF)
-    if CONFIG.get('temporal_mask_test', {}).get('enabled', False):
-        stages.append(("38a_temporal_mask_test.py", "阶段38a: 时间掩码前视偏误检验"))
-
-    # G-14: 距离衰减权重敏感性检验 (Sautner et al. 2023, JF)
-    stages.append(("38b_decay_sensitivity.py", "阶段38b: 距离衰减权重敏感性检验"))
-
-    if validation_config.get('prompt_sensitivity', True):
-        stages.append(("39_prompt_sensitivity.py", "阶段39: Prompt措辞敏感度测试"))
+    # Phase 1 重构: 阶段定义已迁移至 news_process/core/dag.py:STAGES_VALIDATION,
+    # 每条 StageSpec.enabled_when 谓词承接旧的 validation_config.get(...) 分支判定。
+    # 旧的内联 12 处 if-append 链已被 filter_enabled() 取代。
+    active_specs = filter_enabled(STAGES, CONFIG)
+    stages = [(s.script, s.name, s.timeout) for s in active_specs]
 
     logger.info(f"评估验证模块共 {len(stages)} 个阶段")
-    for i, (script, name) in enumerate(stages, 1):
+    for i, (script, name, _to) in enumerate(stages, 1):
         logger.info(f"  {i}. {name} ({script})")
 
     # ── 逐阶段执行 ──
     stage_timings = []
     all_success = True
 
-    for script, name in stages:
-        success, elapsed = run_stage(script, name, logger, SCRIPT_DIR)
+    for script, name, timeout in stages:
+        success, elapsed = run_stage(script, name, logger, SCRIPT_DIR, timeout=timeout)
         stage_timings.append((name, elapsed, success))
 
         if not success:

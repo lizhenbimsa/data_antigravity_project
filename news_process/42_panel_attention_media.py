@@ -74,8 +74,12 @@ def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
         (media_span['last_year'] < cutoff) &
         (media_span['n_articles'] >= 10)].index)
 
-    nppa_path = os.path.join(os.path.dirname(__file__),
-                             'config', 'nppa_newspapers_all.csv')
+    # Phase 1 重构: 优先读取 CONFIG['paths']['nppa_newspapers_csv']。
+    nppa_path = CONFIG['paths'].get(
+        'nppa_newspapers_csv',
+        os.path.join(os.path.dirname(__file__),
+                     'config', 'nppa_newspapers_all.csv'),
+    )
     nppa_ceased = set()
     if os.path.exists(nppa_path):
         try:

@@ -26,6 +26,9 @@ news_process/.test_tmp/
 # ============================================================
 .env
 .env.*
+# Phase 1: ``.env.example`` is a tracked template (variable names only, no values).
+!.env.example
+!**/.env.example
 
 # ============================================================
 # IDE / 编辑器配置
@@ -93,7 +96,14 @@ FinBERT/
 # ============================================================
 # 论文 / 参考资料 (非代码, 二进制文件)
 # ============================================================
-news_process/papers/
+# Phase 1/3 注: ``news_process/papers/`` 同名目录现引入为 Python 子包。
+# 不能整目录 ignore (否则后续 .py 无法重新包含)；改为按内容类型排除二进制
+# 而保留代码与子包结构。
+news_process/papers/**/*.pdf
+news_process/papers/**/*.docx
+news_process/papers/**/*.doc
+news_process/papers/**/*.zip
+news_process/papers/**/*.epub
 *.pdf
 
 # ============================================================

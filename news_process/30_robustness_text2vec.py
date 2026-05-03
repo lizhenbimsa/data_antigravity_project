@@ -114,7 +114,11 @@ def main():
         logger.info("已修复 'year' 时序特征。")
         
     # 载入权威政策文本 (使用 utf-8-sig 免疫 BOM 零宽字符乱码)
-    auth_path = os.path.join(os.path.dirname(__file__), 'config', 'authoritative_corpus.txt')
+    # Phase 1 重构: 优先读取 CONFIG['paths']['authoritative_corpus_file']。
+    auth_path = CONFIG['paths'].get(
+        'authoritative_corpus_file',
+        os.path.join(os.path.dirname(__file__), 'config', 'authoritative_corpus.txt'),
+    )
     auth_text = ""
     if os.path.exists(auth_path):
         with open(auth_path, 'r', encoding='utf-8-sig') as f:

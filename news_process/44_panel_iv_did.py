@@ -43,7 +43,11 @@ def load_bank_group_maps() -> tuple:
         type_map:  {银行名 → 'soe'/'joint'/'city'/'rural'/'private'/'foreign'/'other'}
         scale_map: {银行名 → 'L'/'M'/'S'/'XS'/'other'}
     """
-    addr_path = os.path.join(os.path.dirname(__file__), 'config', 'bank_addresses.json')
+    # Phase 1 重构: 优先读取 CONFIG['paths']['bank_addresses_file']。
+    addr_path = CONFIG['paths'].get(
+        'bank_addresses_file',
+        os.path.join(os.path.dirname(__file__), 'config', 'bank_addresses.json'),
+    )
     with open(addr_path, 'r', encoding='utf-8') as f:
         addresses = json.load(f)
 
@@ -470,7 +474,11 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
         3. new_cities:     按 bank_city 匹配零散新增城市
         先入为主: 一旦银行已被某年份匹配, 后续年份不再覆盖。
     """
-    shock_path = os.path.join(os.path.dirname(__file__), 'config', 'policy_shocks.json')
+    # Phase 1 重构: 优先读取 CONFIG['paths']['policy_shocks_file']。
+    shock_path = CONFIG['paths'].get(
+        'policy_shocks_file',
+        os.path.join(os.path.dirname(__file__), 'config', 'policy_shocks.json'),
+    )
     if not os.path.exists(shock_path):
         logger.warning("  policy_shocks.json 不存在, 跳过 DID 变量")
         return panel

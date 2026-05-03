@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "news-process"
+version = "0.1.0-phase1"
+description = "Bank-fintech news -> bank-year panel data pipeline (refactor in progress)."
+requires-python = ">=3.10"
+readme = "README.md"
+license = { text = "Proprietary" }
+
+# Runtime deps are managed via requirements.txt for now;
+# this file's primary purpose during Phase 1 is to mark the directory
+# as an installable package and to declare correct package discovery
+# (avoiding setuptools choking on root-level digit-prefixed shims).
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+# Only treat the `news_process` namespace and its sub-packages as packages.
+# This keeps setuptools from trying to discover root-level files like
+# `00_preprocessing.py` (their digit-prefixed names are not legal Python
+# identifiers and would otherwise crash package discovery).
+include = ["news_process*"]
+exclude = [
+    "tests*",
+    "scripts*",
+    "data*",
+    "logs*",
+    "stata*",
+    "papers_assets*",
+    "models*",
+    "papers*",  # See note: this means *legacy paper PDFs*, not the future src package
+]
+namespaces = false
+
+# NOTE on `papers/` collision:
+# At Phase 1 the legacy directory `papers/` contains paper PDFs (a non-code asset).
+# In Phase 3 we will introduce `news_process/papers/` (a code package) plus a top-level
+# `papers_assets/` for the non-code research outputs.  The exclude rule above ignores
+# the legacy `papers/` directory; the future code package is captured by the
+# `news_process*` include glob.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"

@@ -13,10 +13,16 @@ import tempfile
 import pandas as pd
 import numpy as np
 
-# 确保 news_process 目录在 sys.path 中
+# 确保 news_process 目录在 sys.path 中  (legacy: ``from utils.helpers import X`` 形式仍需此项)
 NEWS_PROCESS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if NEWS_PROCESS_DIR not in sys.path:
     sys.path.insert(0, NEWS_PROCESS_DIR)
+
+# Phase 1: 同时把项目根的父目录 (data_antigravity_project/) 加入 sys.path,
+# 这样 ``import news_process`` 才能解析到包根 (news_process/__init__.py)。
+PROJECT_PARENT = os.path.dirname(NEWS_PROCESS_DIR)
+if PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, PROJECT_PARENT)
 
 
 # ============================================================================

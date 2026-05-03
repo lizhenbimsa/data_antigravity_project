@@ -1524,8 +1524,12 @@ def main():
 
         # --- 稳健性 3-6: 媒体分类 Bartik (4种分类方式) ---
         # 3=财经/综合 4=中央/地方 5=财经/非财经 6=综合/非综合
-        cls_path = os.path.join(os.path.dirname(__file__),
-                                'config', 'media_classification.json')
+        # Phase 1 重构: 优先读取 CONFIG['paths']['media_classification_file']。
+        cls_path = CONFIG['paths'].get(
+            'media_classification_file',
+            os.path.join(os.path.dirname(__file__),
+                         'config', 'media_classification.json'),
+        )
         if os.path.exists(cls_path):
             with open(cls_path, 'r', encoding='utf-8') as f:
                 media_cls = json.load(f)
@@ -1660,8 +1664,12 @@ def main():
             logger.warning(f"  列 '{mprov_col}' 不存在, 跳过媒体省份 Bartik")
 
         # --- 稳健性 8: 媒体权威性 ---
-        mw_path = os.path.join(os.path.dirname(__file__),
-                               'config', 'media_weights.json')
+        # Phase 1 重构: 优先读取 CONFIG['paths']['media_weights_file']。
+        mw_path = CONFIG['paths'].get(
+            'media_weights_file',
+            os.path.join(os.path.dirname(__file__),
+                         'config', 'media_weights.json'),
+        )
         if os.path.exists(mw_path):
             with open(mw_path, 'r', encoding='utf-8') as f:
                 mw = json.load(f)
@@ -1748,8 +1756,12 @@ def main():
         # --- 稳健性 15: 地理邻近性 ---
         media_prov_col = '国家地区/省份'
         if media_prov_col in df_exploded.columns:
-            addr_path = os.path.join(os.path.dirname(__file__),
-                                     'config', 'bank_addresses.json')
+            # Phase 1 重构: 优先读取 CONFIG['paths']['bank_addresses_file']。
+            addr_path = CONFIG['paths'].get(
+                'bank_addresses_file',
+                os.path.join(os.path.dirname(__file__),
+                             'config', 'bank_addresses.json'),
+            )
             if os.path.exists(addr_path):
                 with open(addr_path, 'r', encoding='utf-8') as f:
                     _addr = json.load(f)

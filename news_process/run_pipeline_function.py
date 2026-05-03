@@ -50,22 +50,67 @@ run_pipeline_function.py — 新闻处理流水线调度器
 import os
 import sys
 import time
+
+# Phase 1: ensure project parent on sys.path so that ``import news_process`` works
+# regardless of cwd (subprocess invocations may launch from elsewhere).
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(_HERE)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
 from utils.helpers import load_config, setup_logging, log_memory_usage, log_stage_summary, run_stage
 from utils.pipeline_lock import PipelineLock
+
+# Phase 1: import the canonical DAG declaration so that this orchestrator and
+# core/dag.py share a single source of stage definitions.  STAGES is exposed
+# as a module-level constant for the static consistency test in
+# tests/integration/test_dag_consistency.py.
+from news_process.core.dag import STAGES_MAIN as STAGES, filter_enabled
 
 # ============================================================================
 # 配置与初始化
 #
 # 加载顺序:
 #   1. load_config(): 解析 config.yaml + .env 环境变量
-#   2. setup_logging(): 创建带时间戳的日志文件 + 控制台输出
+#   2. _generate_run_id(): 生成本次运行的唯一 ID 并写入 NEWS_PROCESS_RUN_ID 环境变量
+#                          (Phase 1.5; 子进程通过环境变量继承, 共享同一个 logs/runs/<run_id>/)
+#   3. setup_logging(): 创建带时间戳的日志文件 + 控制台输出
+#                       (若 NEWS_PROCESS_RUN_ID 已设置, 路径解析为 <log_dir>/runs/<run_id>/<stage>.log;
+#                        否则回退至 legacy <log_dir>/<stage>.log)
 # 注意: 这是主调度器进程, 使用完整的文件+控制台双通道日志。
-# 各阶段子进程会各自创建独立的日志文件。
+# 各阶段子进程会各自创建独立的日志文件 (相同 run_id 子目录内).
 # ============================================================================
 
 CONFIG = load_config()
 STAGE_NAME = "run_pipeline_function"
+
+
+def _generate_run_id() -> str:
+    """Generate a per-run identifier and inject into env for subprocess inheritance.
+
+    Format: ``YYYYMMDDTHHMMSSZ-<hostname>-<pid>``  e.g.
+    ``20260503T231245Z-DESKTOP-1234``.
+
+    If NEWS_PROCESS_RUN_ID is already in env (e.g. parent CI pipeline supplied
+    one), preserve it.  Otherwise mint a new one.
+    """
+    import datetime as _dt
+    import socket as _socket
+
+    existing = os.environ.get("NEWS_PROCESS_RUN_ID")
+    if existing:
+        return existing
+
+    ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    host = _socket.gethostname().split(".")[0][:24]  # truncate long FQDNs
+    rid = f"{ts}-{host}-{os.getpid()}"
+    os.environ["NEWS_PROCESS_RUN_ID"] = rid
+    return rid
+
+
+_RUN_ID = _generate_run_id()
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
+logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")
 
 
 # 脚本所在目录(用于定位阶段脚本, 传给 run_stage() 的 base_dir 参数)
@@ -129,39 +174,13 @@ def run_pipeline():
         # ── 流水线执行顺序(模块一至三 + 模块五至六) ──
         # 严格递进流转: 预处理 → 筛选 → 情感 → 面板构建 → 伪造检验
         # 每个阶段的输入依赖前一阶段的输出, 因此必须严格顺序执行。
+        #
+        # Phase 1 重构: 阶段定义已迁移至 news_process/core/dag.py:STAGES_MAIN,
+        # 这里通过 filter_enabled() 按当前 config 的 enabled_when 谓词筛选,
+        # 替代旧的 ``for method in enabled_methods: stages.append(...)`` 内联分支。
 
-        stages = []
-
-        # ── 模块一：新闻预处理模块 ──
-        stages.append(("00_preprocessing.py", "阶段00: 数据预处理"))
-
-        # ── 模块二：新闻筛选模块 ──
-        stages.extend([
-            ("11_news_bank.py",          "阶段11: 银行新闻判断"),
-            ("12_news_fintech.py",       "阶段12: 金融科技新闻判断 + 全量分类结果"),
-            ("14_fintech_intensity.py",  "阶段14: 金融科技技术重度评分 (TF-IDF)"),
-            ("15_article_policy_alignment.py", "阶段15: 文章级政策语义对齐度"),
-        ])
-
-        # ── 模块三：新闻情感模块 ──
         enabled_methods = CONFIG.get('sentiment_analysis', {}).get('enabled_methods', [])
         logger.info(f"启用的情感分析方法: {enabled_methods}")
-
-        sentiment_stages = {
-            'tone_llms':  ("21_tone_llms.py",  "阶段21: 统一 LLM 语义精筛与情感分析"),
-            'tone_words': ("22_tone_words.py", "阶段22: 词典法情感分析"),
-            'tone_berts': ("23_tone_berts.py", "阶段23: BERT模型情感分析"),
-        }
-        # 根据 config.yaml 中的 sentiment_analysis.enabled_methods 动态确定
-        # 哪些情感分析方法需要执行。可选方法:
-        #   tone_llms:  LLM 语义精筛 + 情感分析(依赖外部 API)
-        #   tone_words: 词典法情感分析(无外部依赖, 速度最快)
-        #   tone_berts: BERT 模型情感分析(依赖 GPU/CPU, 计算量最大)
-        for method in enabled_methods:
-            if method in sentiment_stages:
-                stages.append(sentiment_stages[method])
-            else:
-                logger.warning(f"未知的情感分析方法: {method}，已跳过")
 
         # ── 数据流防护：清理未启用的情感分析阶段的残留输出 ──
         # 阶段 24 硬编码读取阶段 23 的输出，若 tone_berts 未启用但
@@ -197,17 +216,13 @@ def run_pipeline():
             except OSError as e:
                 logger.warning(f"  ⚠️ 预清理阶段 24 输出失败: {e}")
 
-        # ── 模块四b：跟风衰减权重 (Tetlock 2011, JF) ──
-        stages.append(("24_herd_decay_processor.py", "阶段24: 跟风衰减权重"))
-
-        # ── 模块五：面板数据构建 ──
-        stages.append(("45_panel_export_main.py", "阶段40-45: Bank-Year 面板数据构建"))
-
-        # ── 模块六：伪造检验 ──
-        stages.append(("51_falsification_test.py", "阶段51: 伪造检验对照变量构建"))
+        # ── Phase 1: 从 core/dag.py 加载完整 DAG，按 enabled_when 谓词过滤 ──
+        active_specs = filter_enabled(STAGES, CONFIG)
+        # 兼容下方既有迭代结构: 每条 (script, name, timeout)。
+        stages = [(s.script, s.name, s.timeout) for s in active_specs]
 
         logger.info(f"管道共 {len(stages)} 个阶段")
-        for i, (script, name) in enumerate(stages, 1):
+        for i, (script, name, _to) in enumerate(stages, 1):
             status = "待执行"
             logger.info(f"  {i}. {name} ({script}) [{status}]")
 
@@ -218,13 +233,11 @@ def run_pipeline():
         stage_timings = []
         all_success = True
 
-        stage_timeouts = {
-            "00_preprocessing.py": 10000,
-            "15_article_policy_alignment.py": 7200,  # 含 Embedding API 调用
-            "45_panel_export_main.py": 7200,          # 含 Stage 25/26/27 Embedding 计算
-        }
+        # Phase 1: timeouts now sourced from StageSpec (single source via core/dag.py).
+        # Pre-Phase-1 had a local stage_timeouts dict here; that source has been
+        # promoted to StageSpec.timeout in core/dag.STAGES_MAIN.
 
-        for script, name in stages:
+        for script, name, timeout in stages:
             # ── 数据流防护：预清理阶段输出，防止陈旧数据污染 ──
             # 在每个阶段执行前，清理其输出文件，确保不会读取上次失败残留的旧数据
             output_files = _get_stage_output_files(script)
@@ -242,7 +255,7 @@ def run_pipeline():
                 name,
                 logger,
                 SCRIPT_DIR,
-                timeout=stage_timeouts.get(script, 3600),
+                timeout=timeout,
             )
             stage_timings.append((name, elapsed, success))
 

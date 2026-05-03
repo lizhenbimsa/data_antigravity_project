@@ -402,8 +402,12 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # 【术语】权威政策语料 = 国家级金融科技宏观政策文件的拼接文本
     #   与 Stage 26 (26_authoritative_similarity.py L106) 共享同一份语料
     # 【白话】读取国家的重磅政策文件，作为"标准答案"
-    auth_path = os.path.join(os.path.dirname(__file__),
-                             'config', 'authoritative_corpus.txt')
+    # Phase 1 重构: 通过 CONFIG['paths']['authoritative_corpus_file'] 读取，
+    # 替代旧的 os.path.dirname(__file__) + 'config/' 硬编码。
+    auth_path = CONFIG['paths'].get(
+        'authoritative_corpus_file',
+        os.path.join(os.path.dirname(__file__), 'config', 'authoritative_corpus.txt'),
+    )
     if not os.path.exists(auth_path):
         logger.warning(f"  找不到权威政策语料: {auth_path}。"
                        f"跳过 Stage 15 计算。")

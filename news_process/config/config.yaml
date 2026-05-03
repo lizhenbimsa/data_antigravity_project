@@ -27,6 +27,14 @@ paths:
   sentiment_dicts_dir: ./config/sentiment_dicts      # 情感分析辅助词典目录
   bank_addresses_file: ./config/bank_addresses.json  # 银行注册地地址信息（省份/城市/区县，用于省级/城市级聚类标准误和 leave-one-out 工具变量构建）
 
+  # ── Phase 1 重构补齐 (2026-05-03): 替代 os.path.dirname(__file__) + 'config/...' 硬编码 ──
+  # 受影响文件: 15/30 (auth_path), 42 (nppa_path), 44 (shock_path), 45 (cls_path)
+  # Phase 2f 拆分 paths.yaml 时这 4 个键随段一并迁入新文件，无需重写。
+  authoritative_corpus_file: ./config/authoritative_corpus.txt  # 权威政策语料 (供 15/26/30 计算政策语义对齐)
+  policy_shocks_file: ./config/policy_shocks.json               # 政策冲击事件清单 (供 44 DID 处理)
+  nppa_newspapers_csv: ./config/nppa_newspapers_all.csv         # NPPA 注册报刊全表 (供 42 媒体多样性合并)
+  media_classification_file: ./config/media_classification.json # 媒体分类映射 (供 45 panel export 媒体异质性指标)
+
 # ------------------------------------------------------------------------------
 # 输出文件名配置 (Output Filenames)
 # ------------------------------------------------------------------------------
