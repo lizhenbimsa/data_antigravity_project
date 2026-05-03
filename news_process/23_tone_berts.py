@@ -413,10 +413,12 @@ class MultiModelSentimentEngine:
                 all_logits = torch.zeros(total_windows, num_labels,
                                          device=DEVICE if DEVICE.type == 'cuda' else 'cpu')
 
+                batch_counter = 0
                 for bs in range(0, total_windows, INFERENCE_BATCH_SIZE):
                     be = min(bs + INFERENCE_BATCH_SIZE, total_windows)
                     batch_sorted_idx = sorted_indices[bs:be]
                     batch_size = be - bs
+                    batch_counter += 1
 
                     # 动态填充：仅填充到该 mini-batch 内的最长序列
                     max_seq_in_batch = max(windows_data[k][1] for k in batch_sorted_idx)
@@ -448,6 +450,10 @@ class MultiModelSentimentEngine:
                     batch_logits = outputs.logits.float()
                     for local_i, global_i in enumerate(batch_sorted_idx):
                         all_logits[global_i] = batch_logits[local_i]
+
+                    # GPU 内存管理：每10批清理一次缓存，防止碎片累积
+                    if DEVICE.type == 'cuda' and batch_counter % 10 == 0:
+                        torch.cuda.empty_cache()
 
                 # 一次性回传 CPU 做聚合
                 all_logits_cpu = all_logits.cpu()

@@ -1,0 +1,83 @@
+# Schema定义文件 - 各阶段输出的列Schema
+# 用于在运行时验证数据完整性，防止列缺失导致的KeyError
+
+stage_00_output:
+  required_columns:
+    - 标题
+    - 内容
+    - 发布时间
+    - 媒体名称
+
+stage_11_output:
+  required_columns:
+    - 标题
+    - 内容
+    - 发布时间
+    - 媒体名称
+    - is_bank_news
+    - target_bank
+    - co_mentioned_banks
+
+stage_12_output:
+  required_columns:
+    - 标题
+    - 内容
+    - 发布时间
+    - 媒体名称
+    - is_bank_news
+    - target_bank
+    - is_fintech_news
+    - fintech_keyword_details
+
+stage_14_output:
+  required_columns:
+    - 标题
+    - 内容
+    - is_fintech_news
+    - fintech_intensity_score
+    - intensity_verified
+    - fintech_distinct_keywords
+
+stage_15_output:
+  required_columns:
+    - 标题
+    - 内容
+    - is_fintech_news
+    - fintech_intensity_score
+    - policy_cosine_sim
+    - fintech_distinct_keywords
+
+stage_21_output:
+  required_columns:
+    - 标题
+    - 内容
+    - is_fintech_news
+    - llm_verified_full
+    - llm_verified_ctx
+    - llm_sentiment_full
+    - llm_sentiment_ctx
+    - fintech_category
+    - text_type
+
+stage_22_output:
+  required_columns:
+    - 标题
+    - 内容
+    - llm_sentiment_full
+    - jiang_2021_score_full
+    - jiang_2021_score_ctx
+
+stage_23_output:
+  required_columns:
+    - 标题
+    - 内容
+    - llm_sentiment_full
+    - bert_num_windows_full
+    - bert_num_windows_ctx
+
+stage_24_output:
+  required_columns:
+    - 标题
+    - 内容
+    - herd_weight
+    - n_similar_articles
