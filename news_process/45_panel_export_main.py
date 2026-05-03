@@ -342,7 +342,16 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
 # ============================================================================
 
 def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
-    """多格式导出面板数据。"""
+    """多格式导出面板数据。
+    
+    【方法论演变与学术辩护 (Methodological Evolution & Academic Defense)】
+    本函数作为项目数据管线的最终“封印”环节，承载着 Python 动态数据流与传统计量经济学软件（Stata）严格边界之间的适配责任。
+    - 前置假设条件 (A Priori Assumptions)：假定 Python 端的所有浮点计算（Float64/Int64）必须降级兼容为 Stata 支持的 strict float/double，否则 xtset 或 reghdfe 会遭遇不可预知的 type casting error。
+    - 潜在局限性 (Potential Limitations)：Stata 的底层 C 语言框架要求变量名极其苛刻的 32 字符截断限制。在高度复杂的深度网络推导中（例如 LLM_peer_competition_idx_full），强行截断极易产生列名哈希碰撞（Collision）。本模块构建了严密的截断降级与字典映射防撞机制。
+    
+    【通俗应用 (Layman's Terms)】
+    这里是数据的“出关口岸”。Python 可以随意给数据起长名字（比如长达100个字母），但古老的 Stata 只认 32 个字母，超出就报错，甚至把两个名字砍短后变成同名从而导致数据崩溃。本模块就是个极其严格的“护照审查员”，把长名字安全剪裁，并贴上详细的学术标签（STATA_LABELS），确保导入 Stata 后能直接跑回归。
+    """
     logger.info("=" * 60)
     logger.info("步骤 9: 多格式导出")
     logger.info("=" * 60)
@@ -357,9 +366,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         dta_path = os.path.splitext(panel_path)[0] + '.dta'
         try:
             panel_stata = panel.copy()
-            # Stata 列名清理：移除中文和特殊字符, 限制 32 字符, 去重
+            # Stata 列名清理：移除中文和特殊字符, 绝对限制 32 字符, 防止碰撞
             clean_cols = []
-            seen = {}
+            seen = set()
             for c in panel_stata.columns:
                 # 替换中文括号和英文括号
                 c_clean = c.replace('(', '_').replace(')', '_')
@@ -369,15 +378,21 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # 确保不为空
                 if not c_clean or not c_clean.strip('_'):
                     c_clean = f'col_{len(clean_cols)}'
-                # Stata 变量名不超过 32 字符
-                c_clean = c_clean[:32]
-                # 去重：重复列名追加 _2, _3, ...
-                if c_clean in seen:
-                    seen[c_clean] += 1
-                    c_clean = f'{c_clean[:29]}_{seen[c_clean]}'
-                else:
-                    seen[c_clean] = 1
-                clean_cols.append(c_clean)
+                
+                # 截断到预备安全长度 (28 字符，为后续可能追加的 _12 预留空间)
+                c_base = c_clean[:28]
+                final_c = c_base
+                
+                # 严格去重：确保不与原始列或其他衍生列碰撞
+                counter = 1
+                while final_c in seen:
+                    # _ + 至少 1 位数字，所以长度最大可能达到 28 + 1 + length(counter) 
+                    # 因为 Stata 限制 32 字符，只要 counter < 1000 即安全
+                    final_c = f'{c_base}_{counter}'
+                    counter += 1
+                    
+                seen.add(final_c)
+                clean_cols.append(final_c)
             panel_stata.columns = clean_cols
             # 确保数值列没有 nullable dtypes（Stata 不支持）
             for col in panel_stata.select_dtypes(include=['Float64', 'Int64']).columns:
@@ -663,6 +678,11 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'auth_sim_tfidf_w_ctx':                'Auth Alignment TF-IDF word (Ctx)',
                 'auth_sim_lda_ctx':                    'Auth Alignment LDA (Ctx)',
                 'auth_sim_emb_ctx':                    'Auth Alignment Embedding (Ctx)',
+                # 文本张量双轨稳健性 (Stage 30)
+                'strat_diff_t2v_full':                 'Strategic Diff (T2V, Full)',
+                'strat_diff_t2v_ctx':                  'Strategic Diff (T2V, Ctx)',
+                'policy_cosine_sim_t2v_full':          'Policy Auth Sim (T2V, Full)',
+                'policy_cosine_sim_t2v_ctx':           'Policy Auth Sim (T2V, Ctx)',
                 # Event Study 动态效应 (Callaway & Sant'Anna 2021, JoE)
                 'dcep_rel_year':                       'DCEP Relative Year to Treatment',
                 'dcep_lead3':                          'DCEP Lead 3 Periods (k=-3)',
@@ -2605,6 +2625,34 @@ def main():
                     panel[f'cater_{b}{track}'] = panel[dc] - (panel[b_p] - panel[b_n])
                     _cater_count += 1
     logger.info(f"  algo_cater 指标计算完成 ({_cater_count} 变量)")
+
+    # ═══ 8e. 数据双轨 (Data Dual-Track) 稳健性特征融合 (Stage 30) ═══
+    # 【学术机制】稳健性联合检验 (Robustness Joint Testing)
+    # 通过将本地特征矩阵与面板数据合并，应对大语言模型潜在的“幻觉偏移”(Hallucination Bias)。
+    t2v_path = os.path.join(OUTPUT_DIR, '30_text2vec_indicators.parquet')
+    if os.path.exists(t2v_path):
+        logger.info(f"  合并 30_text2vec_indicators.parquet...")
+        t2v_df = pd.read_parquet(t2v_path)
+        panel = panel.merge(t2v_df, on=['target_bank', 'year'], how='left')
+        
+        # 正交保护 (Orthogonal Protection): 拒绝 0.0 填充
+        # 【学术机制】Listwise Deletion vs Sample Selection Bias
+        # 理论基石：Allison, P. D. (2001). Missing Data. SAGE Publications. DOI: 10.4135/9781412985079
+        # Heckman, J. J. (1979). Sample Selection Bias as a Specification Error. Econometrica, 47(1), 153-161. DOI: 10.2307/1912352
+        # 修正：此前试图对无新闻样本使用 0.0 补偿，但这在计量经济学上是致命的。
+        # 0.0 距离代表该银行完美贴合行业均值质心，0.0 相似度代表绝对正交。
+        # 强制将“无数据”转化为极端的“0值”，会导致 TWFE 回归中出现大量人造的人工断点 (Artificial Spikes)，
+        # 严重扭曲真实系数。因此，必须保留 NaN，交由 Stata 在固定效应面板回归中自动执行 Listwise Deletion，
+        # 维护样本空间的连续性，避免人为制造的伪稳健性。
+        # 【通俗应用】如果一家银行整年连一条新闻都没有，我们不能强行说它“和大家完全一样”或者“完全相反”，
+        # 最科学的做法就是留空 (NaN)，让 Stata 在跑回归的时候自动忽略没有数据的那几年，避免假数据捣乱。
+        t2v_cols = [
+            'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
+            'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx'
+        ]
+        logger.info(f"  ✅ 成功挂载双轨稳健性特征 (保留自然缺失值 NaN): {t2v_cols}")
+    else:
+        logger.warning(f"  ⚠️ 未找到 {t2v_path}，跳过双轨特征挂载。")
 
     log_diagnostics(panel, df_exploded)
 
