@@ -38,6 +38,11 @@ paths:
   city_coordinates_file: ./config/city_coordinates.json         # 城市经纬度 (供 43 距离缓冲)
   province_capital_map_file: ./config/province_capital_map.json # 省会城市映射 (供 43 LOO 模仿压力)
 
+  # ── Phase 3b 新增 (2026-05-04): papers_assets/ 多论文非代码资产根目录 ──
+  # 用于 papers/_common/paper_config.py:get_paper_config() 解析每篇论文的
+  # output_dir / do_dir。Phase 2f 拆 paths.yaml 时随段迁入。
+  papers_assets_root: ./papers_assets
+
 # ------------------------------------------------------------------------------
 # 输出文件名配置 (Output Filenames)
 # ------------------------------------------------------------------------------
