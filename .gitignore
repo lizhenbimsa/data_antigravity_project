@@ -104,7 +104,25 @@ news_process/papers/**/*.docx
 news_process/papers/**/*.doc
 news_process/papers/**/*.zip
 news_process/papers/**/*.epub
+news_process/papers/**/*.md
 *.pdf
+
+# ============================================================
+# Phase 3: papers_assets/ — 非代码研究资产
+# ============================================================
+# 文献库为纯参考材料 (35MB+ PDF/MD)，永不入仓
+news_process/papers_assets/literature/
+# 论文产出二进制 (生成文件)，默认忽略
+news_process/papers_assets/**/output/
+news_process/papers_assets/**/drafts/*.pdf
+news_process/papers_assets/**/drafts/*.docx
+news_process/papers_assets/**/drafts/*.doc
+news_process/papers_assets/**/drafts/*.zip
+# 显式白名单 (即使匹配上面规则也予以追踪)：
+!news_process/papers_assets/**/*.do
+!news_process/papers_assets/**/*.tex
+!news_process/papers_assets/**/*.bib
+!news_process/papers_assets/**/README.md
 
 # ============================================================
 # 操作系统生成文件
