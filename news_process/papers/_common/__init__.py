@@ -37,6 +37,9 @@ from news_process.papers._common.tables import (
 from news_process.papers._common.figures import (
     apply_publication_style,
     COLORBLIND_PALETTE,
+    FIGSIZE_SINGLE,
+    FIGSIZE_WIDE,
+    FIGSIZE_SQUARE,
 )
 from news_process.papers._common.stata_runner import (
     run_do,
@@ -54,6 +57,9 @@ __all__ = [
     "summary_stats",
     "apply_publication_style",
     "COLORBLIND_PALETTE",
+    "FIGSIZE_SINGLE",
+    "FIGSIZE_WIDE",
+    "FIGSIZE_SQUARE",
     "run_do",
     "StataNotFoundError",
 ]
