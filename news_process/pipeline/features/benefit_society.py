@@ -56,23 +56,11 @@ import pandas as pd
 import tiktoken
 import json
 from utils.llm_cache import LLMCache
-import importlib.util as _iu
 
 # ============================================================================
-# 1. 全局配置和初始化
+# 1. 全局配置和初始化  (Phase 2a: 取代旧的 importlib 反射)
 # ============================================================================
-# 【术语】通过 importlib 动态加载 41 号共享配置模块，复用 logger 和 CONFIG
-# 【白话】项目的"总开关"配置统一在 41 号文件里管理，所有模块共用同一套设置
-_p41 = os.path.join(os.path.dirname(__file__), '41_panel_encode_aggregate.py')
-if not os.path.exists(_p41):
-    raise FileNotFoundError(f"缺失共享配置依赖: {_p41}")
-_s41 = _iu.spec_from_file_location('_41_mod', _p41)
-_m41 = _iu.module_from_spec(_s41)
-_s41.loader.exec_module(_m41)
-logger = _m41.logger
-CONFIG = _m41.CONFIG
-FILENAMES = _m41.FILENAMES
-OUTPUT_DIR = _m41.OUTPUT_DIR
+from news_process.pipeline.panel.encode import logger, CONFIG, FILENAMES, OUTPUT_DIR  # noqa: E402
 
 STAGE_NAME = "27_fintech_benefit_society"
 

@@ -18,18 +18,12 @@
 import os
 import json
 import re
-import importlib.util as _iu
 
 import numpy as np
 import pandas as pd
 
-# --- 从 41 导入共享配置 ---
-_p41 = os.path.join(os.path.dirname(__file__), '41_panel_encode_aggregate.py')
-_s41 = _iu.spec_from_file_location('_41_mod', _p41)
-_m41 = _iu.module_from_spec(_s41)
-_s41.loader.exec_module(_m41)
-
-logger = _m41.logger
+# Phase 2a: 取代旧的 importlib.spec_from_file_location 反射,改为正规子包 import。
+from news_process.pipeline.panel.encode import CONFIG, logger
 
 
 # ============================================================================

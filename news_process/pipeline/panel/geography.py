@@ -23,25 +23,15 @@ import os
 import re
 import json
 import math
-import importlib.util as _iu
 
 import numpy as np
 import pandas as pd
 
-# --- 从 41 导入共享配置 ---
-_p41 = os.path.join(os.path.dirname(__file__), '41_panel_encode_aggregate.py')
-_s41 = _iu.spec_from_file_location('_41_mod', _p41)
-_m41 = _iu.module_from_spec(_s41)
-_s41.loader.exec_module(_m41)
-
-CONFIG = _m41.CONFIG
-logger = _m41.logger
-OUTPUT_DIR = _m41.OUTPUT_DIR
-FILENAMES = _m41.FILENAMES
-LLM_MODELS = _m41.LLM_MODELS
-DICT_NAMES = _m41.DICT_NAMES
-BERT_MODELS = _m41.BERT_MODELS
-THREE_CLASS_MODELS = _m41.THREE_CLASS_MODELS
+# Phase 2a: 取代旧的 importlib.spec_from_file_location 反射,改为正规子包 import。
+from news_process.pipeline.panel.encode import (
+    CONFIG, logger, OUTPUT_DIR, FILENAMES,
+    LLM_MODELS, DICT_NAMES, BERT_MODELS, THREE_CLASS_MODELS,
+)
 
 
 # ============================================================================
@@ -794,13 +784,12 @@ def compute_geo_proximity_buffers(
                 "(Gurun & Butler 2012; Engelberg & Parsons 2011)")
     logger.info("=" * 60)
 
-    # ── 加载坐标数据 ──
-    config_dir = os.path.join(os.path.dirname(__file__), 'config')
-    coord_path = os.path.join(config_dir, 'city_coordinates.json')
-    capital_path = os.path.join(config_dir, 'province_capital_map.json')
-    bank_addr_path = os.path.join(config_dir, 'bank_addresses.json')
+    # ── 加载坐标数据 (Phase 2a: 通过 CONFIG['paths'][...] 解析) ──
+    coord_path = CONFIG['paths'].get('city_coordinates_file')
+    capital_path = CONFIG['paths'].get('province_capital_map_file')
+    bank_addr_path = CONFIG['paths'].get('bank_addresses_file')
 
-    if not os.path.exists(coord_path):
+    if not coord_path or not os.path.exists(coord_path):
         logger.warning(f"  {coord_path} 不存在, 跳过距离缓冲。"
                        " 请先运行: python scripts/build_city_coordinates.py")
         return panel
@@ -1045,12 +1034,12 @@ def compute_regional_imitation_pressure(
         logger.info(f"  {var_name}: {valid:,} 有效值, "
                     f"mean={vals.mean():.4f}")
 
-    # ── 距离级 LOO ──
-    config_dir = os.path.join(os.path.dirname(__file__), 'config')
-    coord_path = os.path.join(config_dir, 'city_coordinates.json')
-    bank_addr_path = os.path.join(config_dir, 'bank_addresses.json')
+    # ── 距离级 LOO (Phase 2a: 通过 CONFIG['paths'][...] 解析) ──
+    coord_path = CONFIG['paths'].get('city_coordinates_file')
+    bank_addr_path = CONFIG['paths'].get('bank_addresses_file')
 
-    if not os.path.exists(coord_path) or not os.path.exists(bank_addr_path):
+    if not coord_path or not bank_addr_path \
+       or not os.path.exists(coord_path) or not os.path.exists(bank_addr_path):
         logger.warning("  坐标/银行地址不存在, 跳过距离级 LOO")
         panel.drop('_has_fintech', axis=1, inplace=True, errors='ignore')
         return panel

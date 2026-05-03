@@ -7,13 +7,12 @@ from unittest.mock import patch
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.llm_cache import LLMCache
-import importlib.util
 
-# 动态加载 15 模块
-module_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "15_article_policy_alignment.py")
-spec = importlib.util.spec_from_file_location("mod15", module_path)
-mod15 = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mod15)
+# Phase 2a: 15's body migrated to news_process.pipeline.filtering.policy_alignment.
+# The legacy importlib.spec_from_file_location("15_article_policy_alignment.py")
+# loaded the (now shim) root file and expected its body symbols.
+# Updated to import the canonical body directly.
+from news_process.pipeline.filtering import policy_alignment as mod15  # noqa: E402
 
 def test_cache_put_batch(tmp_path):
     """

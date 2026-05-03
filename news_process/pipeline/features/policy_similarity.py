@@ -33,32 +33,16 @@ import os
 import sys
 import numpy as np
 import pandas as pd
-import importlib.util as _iu
 
-# --- 从 41 导入共享配置 (Shared Configuration) ---
-_p41 = os.path.join(os.path.dirname(__file__), '41_panel_encode_aggregate.py')
-if not os.path.exists(_p41):
-    raise FileNotFoundError(f"缺失共享配置依赖: {_p41}")
-_s41 = _iu.spec_from_file_location('_41_mod', _p41)
-_m41 = _iu.module_from_spec(_s41)
-_s41.loader.exec_module(_m41)
-logger = _m41.logger
-
-# ============================================================================
-# 动态加载 Stage 25 算法底层 (DRY 原则与绝对同构)
-# ============================================================================
-_p25 = os.path.join(os.path.dirname(__file__), '25_strategic_differentiation.py')
-if not os.path.exists(_p25):
-    raise FileNotFoundError(f"缺失核心算法依赖: {_p25}")
-
-_s25 = _iu.spec_from_file_location("_25_mod", _p25)
-_m25 = _iu.module_from_spec(_s25)
-_s25.loader.exec_module(_m25)
-
-_aggregate = _m25._aggregate_bank_year_texts
-_build_tfidf = _m25._build_tfidf_sim_matrix
-_build_lda = _m25._build_lda_jsd_matrix
-_build_emb = _m25._build_embedding_sim_matrix
+# --- Phase 2a: 取代旧的 importlib 反射 ---
+# 共享配置来自 panel/encode (原 41); Stage 25 算法底层来自 features/strategic_diff (原 25)。
+from news_process.pipeline.panel.encode import logger, CONFIG  # noqa: E402
+from news_process.pipeline.features.strategic_diff import (  # noqa: E402
+    _aggregate_bank_year_texts as _aggregate,
+    _build_tfidf_sim_matrix as _build_tfidf,
+    _build_lda_jsd_matrix as _build_lda,
+    _build_embedding_sim_matrix as _build_emb,
+)
 
 
 # ============================================================================
@@ -102,8 +86,11 @@ def compute_authoritative_similarity(df_exploded, panel):
     logger.info("开始计算: 权威政策战略响应度 (Stage 26)")
     logger.info("=" * 60)
 
-    # 1. 载入权威政策文本锚点
-    auth_path = os.path.join(os.path.dirname(__file__), 'config', 'authoritative_corpus.txt')
+    # 1. 载入权威政策文本锚点 (Phase 2a: 通过 CONFIG['paths'][...] 解析)
+    auth_path = CONFIG['paths'].get(
+        'authoritative_corpus_file',
+        os.path.join(os.path.dirname(__file__), 'config', 'authoritative_corpus.txt'),
+    )
     if not os.path.exists(auth_path):
         logger.warning(f"  找不到权威政策语料: {auth_path}。跳过 Stage 26 计算。")
         return panel

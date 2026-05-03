@@ -34,6 +34,9 @@ paths:
   policy_shocks_file: ./config/policy_shocks.json               # 政策冲击事件清单 (供 44 DID 处理)
   nppa_newspapers_csv: ./config/nppa_newspapers_all.csv         # NPPA 注册报刊全表 (供 42 媒体多样性合并)
   media_classification_file: ./config/media_classification.json # 媒体分类映射 (供 45 panel export 媒体异质性指标)
+  # ── Phase 2a 补齐 (2026-05-04): 43 (geography.py) compute_geo_proximity_buffers 与 compute_regional_imitation_pressure 之前 deferred ──
+  city_coordinates_file: ./config/city_coordinates.json         # 城市经纬度 (供 43 距离缓冲)
+  province_capital_map_file: ./config/province_capital_map.json # 省会城市映射 (供 43 LOO 模仿压力)
 
 # ------------------------------------------------------------------------------
 # 输出文件名配置 (Output Filenames)

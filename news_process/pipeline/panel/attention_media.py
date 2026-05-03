@@ -12,22 +12,14 @@
 import os
 import json
 import csv
-import importlib.util as _iu
 
 import numpy as np
 import pandas as pd
 
-# --- 从 41 导入共享配置 ---
-_p41 = os.path.join(os.path.dirname(__file__), '41_panel_encode_aggregate.py')
-_s41 = _iu.spec_from_file_location('_41_mod', _p41)
-_m41 = _iu.module_from_spec(_s41)
-_s41.loader.exec_module(_m41)
-
-CONFIG = _m41.CONFIG
-logger = _m41.logger
-OUTPUT_DIR = _m41.OUTPUT_DIR
-FILENAMES = _m41.FILENAMES
-PANEL_CFG = _m41.PANEL_CFG
+# Phase 2a: 取代旧的 importlib.spec_from_file_location 反射,改为正规子包 import。
+from news_process.pipeline.panel.encode import (
+    CONFIG, logger, OUTPUT_DIR, FILENAMES, PANEL_CFG,
+)
 
 # ── 停刊检测的情感列前缀（动态发现用） ──
 # 覆盖: LLM 投票 + 各大模型 + 词典法 + BERT

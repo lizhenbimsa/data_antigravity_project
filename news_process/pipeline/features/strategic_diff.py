@@ -134,7 +134,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import LatentDirichletAllocation
 from scipy.spatial.distance import jensenshannon
-import importlib.util as _iu
 import tiktoken
 import json
 from utils.llm_cache import LLMCache
@@ -189,14 +188,8 @@ def _split_text_for_embedding(text: str) -> list[str]:
             for i in range(0, len(tokens), _EMB_MAX_TOKENS)]
 
 
-# --- 从 41 导入共享配置 (Shared Configuration) ---
-# 【术语】通过 importlib 动态加载 41 号模块，复用全局 logger 和 CONFIG 字典
-# 【白话】项目的"总开关"配置（数据路径、模型参数等）统一在 41 号文件里管理，
-#   这里把它读进来，所有模块共用同一套设置，避免各自为政。
-_p41 = os.path.join(os.path.dirname(__file__), '41_panel_encode_aggregate.py')
-_s41 = _iu.spec_from_file_location('_41', _p41)
-_m41 = _iu.module_from_spec(_s41); _s41.loader.exec_module(_m41)
-logger = _m41.logger; CONFIG = _m41.CONFIG
+# --- 从 panel/encode 导入共享配置 (Phase 2a: 取代旧的 importlib 反射) ---
+from news_process.pipeline.panel.encode import logger, CONFIG  # noqa: E402
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
 _ALIGN_CFG = CONFIG.get('article_alignment', {})
