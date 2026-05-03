@@ -54,6 +54,8 @@ import asyncio
 import numpy as np
 import pandas as pd
 import tiktoken
+import json
+from utils.llm_cache import LLMCache
 import importlib.util as _iu
 
 # ============================================================================
@@ -83,6 +85,10 @@ _BENEFIT_CFG = CONFIG.get('benefit_society', {})
 _MAX_TOKENS_PER_INPUT = _BENEFIT_CFG.get('max_tokens_per_input', 8191)
 _MAX_TOKENS_PER_REQUEST = _BENEFIT_CFG.get('max_tokens_per_request', 250_000)
 _CACHE_EMBEDDINGS = _BENEFIT_CFG.get('cache_embeddings', True)
+
+RETRY_DELAY = 5
+MAX_RETRY_DELAY = 60
+CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
 
 # tiktoken 精确 Token 计数器
 _ENCODING = tiktoken.get_encoding("cl100k_base")
@@ -195,131 +201,101 @@ def _truncate_to_max_tokens(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) 
     return _ENCODING.decode(tokens[:max_tokens])
 
 
-async def _get_embeddings_api(texts: list[str], token_counts: list[int]) -> np.ndarray:
-    """通过 API 获取文本 Embedding 向量 — 动态批量策略。
-
-    【术语】复用 Stage 15 (15_article_policy_alignment.py L161-238) 的动态批量策略
-      API 限制 (OpenAI 官方文档, 经生产验证):
-        - 单条输入上限: 8,191 tokens
-        - 单次请求总 token 上限: 300,000 tokens (安全线设为 250,000)
-        - 超限行为: HTTP 400 BadRequestError (不会自动截断)
-    【白话】把文章发给 AI 模型变成数字向量，按总字数自动切分批次
-      短新闻多的批次可能装 200+ 篇，长新闻多的批次可能只装 30 篇
-
-    Args:
-        texts: 已截断至 8191 tokens 的文本列表
-        token_counts: 每篇文本对应的 token 数
-
-    Returns:
-        np.ndarray: Embedding 矩阵 (N × 1536)
-
-    Raises:
-        RuntimeError: API 返回非 200 状态码
-    """
+async def _get_embeddings_api(texts: list[str], token_counts: list[int], cache: LLMCache = None) -> np.ndarray:
+    """通过 API 获取文本 Embedding 向量 — 穿透式缓存与死战不退容错。"""
     import aiohttp
-    cfg = LLM_CONFIG.get('models', [{}])[0]
+    models = LLM_CONFIG.get('models') or []
+    cfg = models[0] if models else {}
     if EMBEDDING_CONFIG:
         base_url = EMBEDDING_CONFIG.get('base_url')
         api_key = EMBEDDING_CONFIG.get('api_key')
-        embedding_model = (
-            EMBEDDING_CONFIG.get('model') or "text-embedding-3-small")
+        embedding_model = EMBEDDING_CONFIG.get('model') or "text-embedding-3-small"
     else:
         base_url = cfg.get('base_url')
         api_key = cfg.get('api_key')
         embedding_model = "text-embedding-3-small"
     if not base_url or not api_key:
-        raise RuntimeError(
-            "Embedding API config missing base_url or api_key "
-            "(check config.yaml -> embedding_api and .env EMBEDDING_API_KEY)")
+        raise RuntimeError("Embedding API config missing base_url or api_key")
     base_url = str(base_url).rstrip("/")
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
 
-    # 动态批量切分 (按 token 总数)
-    batches = []
-    current_batch, current_tokens = [], 0
-    for text, n_tok in zip(texts, token_counts):
-        if current_batch and current_tokens + n_tok > _MAX_TOKENS_PER_REQUEST:
+    cached_results = [cache.get(embedding_model, text) if cache else None for text in texts]
+    missing_indices = [i for i, res in enumerate(cached_results) if res is None]
+    missing_texts = [texts[i] for i in missing_indices]
+    missing_tokens = [token_counts[i] for i in missing_indices]
+
+    missing_embs = []
+    if missing_texts:
+        batches = []
+        current_batch, current_tokens = [], 0
+        for text, n_tok in zip(missing_texts, missing_tokens):
+            if current_batch and (len(current_batch) >= 2000 or current_tokens + n_tok > _MAX_TOKENS_PER_REQUEST):
+                batches.append(current_batch)
+                current_batch, current_tokens = [], 0
+            current_batch.append(text)
+            current_tokens += n_tok
+        if current_batch:
             batches.append(current_batch)
-            current_batch, current_tokens = [], 0
-        current_batch.append(text)
-        current_tokens += n_tok
-    if current_batch:
-        batches.append(current_batch)
 
-    logger.info(f"    Embedding 动态分批: {len(batches)} 批, "
-                f"共 {len(texts)} 条, 总 {sum(token_counts):,} tokens")
+        logger.info(f"    Embedding 动态分批: {len(batches)} 批")
 
-    all_emb = []
-    async with aiohttp.ClientSession() as session:
-        for batch_idx, batch in enumerate(batches):
-            async with session.post(
-                f"{base_url}/embeddings",
-                json={"model": embedding_model, "input": batch},
-                headers=headers,
-                timeout=aiohttp.ClientTimeout(total=180)
-            ) as resp:
-                if resp.status != 200:
-                    err_text = await resp.text()
-                    raise RuntimeError(
-                        f"Embedding API HTTP {resp.status} "
-                        f"(batch {batch_idx+1}/{len(batches)}, "
-                        f"{len(batch)} texts): {err_text[:200]}"
-                    )
-                data = await resp.json()
-                all_emb.extend([
-                    d['embedding']
-                    for d in sorted(data['data'], key=lambda x: x['index'])
-                ])
+        async with aiohttp.ClientSession() as session:
+            for batch_idx, batch in enumerate(batches):
+                delay = RETRY_DELAY
+                while True:
+                    try:
+                        async with session.post(
+                            f"{base_url}/embeddings",
+                            json={"model": embedding_model, "input": batch},
+                            headers=headers,
+                            timeout=aiohttp.ClientTimeout(total=180)
+                        ) as resp:
+                            status = resp.status
+                            if status == 200:
+                                data = await resp.json()
+                                if 'data' not in data:
+                                    raise ValueError(f"API 响应格式异常(缺少'data'): {str(data)[:200]}")
+                                sorted_data = sorted(data['data'], key=lambda x: x.get('index', 0))
+                                batch_embs = [d['embedding'] for d in sorted_data]
+                                missing_embs.extend(batch_embs)
+                                if cache:
+                                    cache.put_batch(
+                                        embedding_model,
+                                        batch,
+                                        [json.dumps(emb) for emb in batch_embs]
+                                    )
+                                break
+                            elif status in (429, 500, 502, 503, 504):
+                                err_text = await resp.text()
+                                logger.warning(f"    HTTP {status} (batch {batch_idx+1}): {err_text[:100]}。休眠 {delay} 秒后重试...")
+                                await asyncio.sleep(delay)
+                                delay = min(delay * 2, MAX_RETRY_DELAY)
+                            else:
+                                err_text = await resp.text()
+                                raise ValueError(f"不可恢复的 API 错误 {status} (batch {batch_idx+1}): {err_text[:200]}")
+                    except ValueError:
+                        raise
+                    except Exception as e:
+                        logger.warning(f"    网络异常 (batch {batch_idx+1}): {type(e).__name__}: {e}。休眠 {delay} 秒后重试...")
+                        await asyncio.sleep(delay)
+                        delay = min(delay * 2, MAX_RETRY_DELAY)
 
-            if (batch_idx + 1) % 5 == 0:
-                logger.info(f"    Embedding 进度: {batch_idx+1}/{len(batches)} 批完成")
+    assert len(missing_embs) == len(missing_texts)
+    final_embs = []
+    missing_ptr = 0
+    for res in cached_results:
+        if res is not None:
+            final_embs.append(json.loads(res))
+        else:
+            final_embs.append(missing_embs[missing_ptr])
+            missing_ptr += 1
 
-    return np.array(all_emb)
+    return np.array(final_embs, dtype=np.float32)
 
 
-def _get_embeddings_with_fallback(texts: list[str], token_counts: list[int]) -> np.ndarray | None:
-    """三层降级策略获取 Embedding 向量。
-
-    【术语】三层降级: API → 本地 Sentence-BERT → None
-      复用 Stage 15 (L241-280) / Stage 25 (L393-426) 的降级架构
-    【白话】优先用在线模型，不行就用本地模型，再不行就放弃
-
-    ⚠️ 降级风险警告:
-      API (1536 维) 和本地 text2vec (768 维) 的向量空间不同构。
-      如果锚点使用 API 而新闻降级为本地模型，方向向量与新闻向量
-      将处于不同维度空间，余弦投影在数学上无意义。
-      当前设计: 锚点和新闻在同一次调用中使用相同降级策略，
-      因此不会出现跨空间投影。
-
-    Args:
-        texts: 已截断的文本列表
-        token_counts: 每篇文本的 token 数
-
-    Returns:
-        np.ndarray (N × d) 或 None (完全降级失败)
-    """
-    # 策略 1: API (text-embedding-3-small, 1536 维)
-    try:
-        emb = asyncio.run(_get_embeddings_api(texts, token_counts))
-        logger.info(f"    Embedding: API 成功, 维度 {emb.shape}")
-        return emb
-    except Exception as e:
-        logger.warning(f"    Embedding API 降级: {type(e).__name__}: {e}")
-
-    # 策略 2: 本地 sentence-transformers
-    try:
-        from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer('shibing624/text2vec-base-chinese')
-        emb = model.encode(texts, show_progress_bar=True, batch_size=64)
-        logger.info(f"    Embedding: 本地 text2vec 成功, 维度 {emb.shape}")
-        return np.array(emb)
-    except Exception as e2:
-        logger.warning(f"    Embedding 完全降级: {type(e2).__name__}: {e2}")
-
-    return None
 
 
 # ============================================================================
@@ -327,70 +303,27 @@ def _get_embeddings_with_fallback(texts: list[str], token_counts: list[int]) -> 
 # ============================================================================
 
 def _compute_direction_vector() -> np.ndarray | None:
-    """计算"利好经营"方向向量 p = mean(pos_emb) - mean(neg_emb)。
-
-    【学术依据】
-    Jha et al. (2026, RFS §1.3.2): "average the embeddings of positive
-    sentences less [minus] that of their negative counterparts"
-    Kozlowski et al. (2019, ASR §2.1): 差分向量定义语义维度
-
-    【白话】把 10 句"利好经营的话"和 10 句"不利经营的话"分别平均，
-    然后做差，得到一个指向"利好经营"的方向。这个方向是全局唯一的，
-    不按年份重算。
-
-    Returns:
-        np.ndarray (d,) 或 None (Embedding 失败 / 方向向量退化)
-    """
-    # ---- 锚点 Embedding 缓存 ----
-    # 【白话】锚点句固定不变，缓存后不再重复花钱调 API
-    anchor_cache_name = FILENAMES.get('output_27_benefit_cache',
-                                      '27_benefit_embeddings.npy')
-    anchor_cache_path = os.path.join(
-        OUTPUT_DIR, anchor_cache_name.replace('.npy', '_anchors.npy'))
-
-    emb = None
-    if _CACHE_EMBEDDINGS and os.path.exists(anchor_cache_path):
-        cached = np.load(anchor_cache_path)
-        if cached.shape[0] == len(POSITIVE_ANCHORS) + len(NEGATIVE_ANCHORS):
-            emb = cached
-            logger.info(f"    锚点 Embedding 缓存命中: {anchor_cache_path}")
-        else:
-            logger.warning(f"    锚点缓存行数不匹配 ({cached.shape[0]} vs "
-                           f"{len(POSITIVE_ANCHORS) + len(NEGATIVE_ANCHORS)}), 重新计算")
-
-    if emb is None:
-        all_anchors = POSITIVE_ANCHORS + NEGATIVE_ANCHORS
-        token_counts = [_count_tokens(s) for s in all_anchors]
-        emb = _get_embeddings_with_fallback(all_anchors, token_counts)
-        if emb is None:
-            return None
-        # 保存锚点缓存
-        if _CACHE_EMBEDDINGS:
-            os.makedirs(os.path.dirname(anchor_cache_path), exist_ok=True)
-            np.save(anchor_cache_path, emb)
-            logger.info(f"    锚点 Embedding 缓存已保存: {anchor_cache_path}")
+    all_anchors = POSITIVE_ANCHORS + NEGATIVE_ANCHORS
+    token_counts = [_count_tokens(s) for s in all_anchors]
+    with LLMCache(CACHE_DB_PATH) as cache:
+        emb = asyncio.run(_get_embeddings_api(all_anchors, token_counts, cache))
+    if emb is None or len(emb) == 0:
+        return None
 
     n_pos = len(POSITIVE_ANCHORS)
-    pos_emb = emb[:n_pos].mean(axis=0)    # 正极均值
-    neg_emb = emb[n_pos:].mean(axis=0)    # 负极均值
-    direction = pos_emb - neg_emb         # 利好经营方向
+    pos_emb = emb[:n_pos].mean(axis=0)
+    neg_emb = emb[n_pos:].mean(axis=0)
+    direction = pos_emb - neg_emb
 
-    # ---- 零范数防护 (退化检测) ----
-    # 【学术依据】Kozlowski et al. (2019, ASR §2.1): 差分向量为零意味着
-    #   正/负极在语义空间中完全重合，方向轴退化，投影无意义。
-    # 【白话】如果"利好"和"损害"的向量完全一样，说明模型分不清好坏，
-    #   这种情况下不能继续计算，否则会产生 inf/NaN 污染整个面板。
     dir_norm_val = np.linalg.norm(direction)
     if dir_norm_val < 1e-10:
         logger.error("    ❌ 方向向量范数为零 (正/负极语义重合), 中止 Stage 27")
         return None
 
-    # 方向性自检: 每句正极的投影应 > 0, 每句负极应 < 0
     dir_norm = direction / dir_norm_val
     for i, s in enumerate(POSITIVE_ANCHORS):
         emb_norm = np.linalg.norm(emb[i])
         if emb_norm < 1e-10:
-            logger.warning(f"    ⚠️ 正极句 #{i+1} 为零向量, 跳过自检: {s[:20]}...")
             continue
         score = np.dot(emb[i], dir_norm) / emb_norm
         if score <= 0:
@@ -398,14 +331,12 @@ def _compute_direction_vector() -> np.ndarray | None:
     for i, s in enumerate(NEGATIVE_ANCHORS):
         emb_norm = np.linalg.norm(emb[n_pos + i])
         if emb_norm < 1e-10:
-            logger.warning(f"    ⚠️ 负极句 #{i+1} 为零向量, 跳过自检: {s[:20]}...")
             continue
         score = np.dot(emb[n_pos + i], dir_norm) / emb_norm
         if score >= 0:
             logger.warning(f"    ⚠️ 负极句 #{i+1} 投影为正 ({score:.4f}): {s[:20]}...")
 
-    logger.info(f"    方向向量: 维度 {direction.shape}, "
-                f"||p|| = {dir_norm_val:.4f}")
+    logger.info(f"    方向向量: 维度 {direction.shape}, ||p|| = {dir_norm_val:.4f}")
     return direction
 
 
@@ -413,62 +344,21 @@ def _compute_direction_vector() -> np.ndarray | None:
 # 5. 文章级投影计算
 # ============================================================================
 
-def _project_texts(texts: list[str], direction: np.ndarray,
-                   cache_path: str | None = None) -> np.ndarray:
-    """将文本列表投影至方向向量，返回连续态度得分 ∈ [-1, 1]。
-
-    【学术依据】Jha et al. (2026, RFS §1.3.2 Eq. 1):
-        a_j = cos(s_j, p) = (s_j · p) / (||s_j|| × ||p||)
-
-    【白话】算每篇新闻在"利好经营"方向上的投影 — 正数=利好, 负数=损害, 零=中性
-
-    Args:
-        texts: 文章文本列表
-        direction: 方向向量 p
-        cache_path: .npy 缓存路径 (可选)
-
-    Returns:
-        np.ndarray (N,): 连续态度得分
-    """
-    # 尝试加载缓存
-    # 【白话】如果之前已经算过并保存了结果，直接加载，不再花钱调 API
-    # ⚠️ 缓存一致性约束: 缓存仅按行数校验。若锚点句变更导致方向向量
-    #   改变，而缓存的 Embedding 未更新，投影值仍为旧方向上的投影。
-    #   解决方案: 修改锚点后需手动删除 .npy 缓存文件。
-    if cache_path and os.path.exists(cache_path):
-        logger.info(f"    加载 Embedding 缓存: {cache_path}")
-        emb = np.load(cache_path)
-        if emb.shape[0] == len(texts):
-            dir_norm = direction / np.linalg.norm(direction)
-            norms = np.linalg.norm(emb, axis=1, keepdims=True)
-            norms = np.where(norms == 0, 1.0, norms)  # 避免除零
-            scores = (emb @ dir_norm) / norms.ravel()
-            return scores
-        else:
-            logger.warning(f"    缓存行数不匹配 ({emb.shape[0]} vs {len(texts)}), 重新计算")
-
-    # 截断 + token 计数
+def _project_texts(texts: list[str], direction: np.ndarray, cache_path: str | None = None) -> np.ndarray:
     truncated = [_truncate_to_max_tokens(t) for t in texts]
     token_counts = [_count_tokens(t) for t in truncated]
 
-    # 获取 Embedding
-    emb = _get_embeddings_with_fallback(truncated, token_counts)
-    if emb is None:
+    with LLMCache(CACHE_DB_PATH) as cache:
+        emb = asyncio.run(_get_embeddings_api(truncated, token_counts, cache))
+
+    if emb is None or len(emb) == 0:
         return np.full(len(texts), np.nan)
 
-    # 保存缓存
-    if cache_path and _CACHE_EMBEDDINGS:
-        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-        np.save(cache_path, emb)
-        logger.info(f"    Embedding 缓存已保存: {cache_path}")
-
-    # 余弦投影
     dir_norm = direction / np.linalg.norm(direction)
     norms = np.linalg.norm(emb, axis=1, keepdims=True)
-    norms = np.where(norms == 0, 1.0, norms)  # 避免除零
+    norms = np.where(norms == 0, 1.0, norms)
     scores = (emb @ dir_norm) / norms.ravel()
     return scores
-
 
 # ============================================================================
 # 6. Bank-Year 聚合 + 面板合并（核心入口函数）

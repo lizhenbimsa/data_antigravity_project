@@ -72,8 +72,11 @@ import asyncio
 import time
 import numpy as np
 import pandas as pd
+import json
 import tiktoken
 import importlib.util as _iu
+
+from utils.llm_cache import LLMCache
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -92,6 +95,12 @@ CONFIG = _m41.CONFIG
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
+RETRY_DELAY = 5
+MAX_RETRY_DELAY = 60
+CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
+
+# 模块专属配置
+_ALIGN_CFG = CONFIG.get('policy_alignment', {})
 
 # Stage 名称
 STAGE_NAME = "15_article_policy_alignment"
@@ -223,161 +232,128 @@ def _split_into_chunks(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> li
 #   短新闻多的批次可能装 200+ 篇，长新闻多的批次可能只装 30 篇
 #   这样确保每次调用 API 都不会超过它的容量上限
 
-async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int]) -> np.ndarray:
-    """通过 API 获取文本 Embedding 向量 — 动态批量策略。
+async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int], cache: LLMCache = None) -> np.ndarray:
+    """通过 API 获取文本 Embedding 向量 — 穿透式缓存与死战不退容错。
 
     【术语】
-    与 Stage 25 的 _get_embeddings_api() (L358-390) 功能等价，但批量策略不同:
-      - Stage 25: 固定每批 100 条 (L375)
-      - Stage 15: 动态批量，按 token 总数切分 (MAX_TOKENS_PER_REQUEST = 250,000)
+    引入 LLMCache 穿透查询，未命中则走 API。
+    针对 API 使用"无限退避重试 (Infinite Exponential Backoff)"，
+    只要是网络故障 (429, 500+) 绝不退出，直到取回完美向量为止。
+    若是致命错误 (400, 401, 404)，则抛出 ValueError 拦截并中止进程。
 
-    API 限制 (经验证):
-      - 单条输入上限: 8,191 tokens (OpenAI 官方文档)
-      - 单次请求总 token 上限: 300,000 tokens (OpenAI 官方文档)
-      - 超限行为: HTTP 400 BadRequestError (不会自动截断)
-
-    【白话】把一批文章发给 AI 模型，让它把每篇文章变成一个数字向量。
-    为了不超过模型的容量限制，每次发送的文章总字数不超过 25 万个令牌。
+    【白话】先把文章在缓存库里查一遍。没查到的打包发给大模型。
+    如果网断了或者被限流，就一直等、一直试，绝不报错退出（除非密码错了），
+    确保拿回来的全是完好无损的数据。
 
     Args:
         texts: 已截断至 8191 tokens 的文本列表
         token_counts: 每篇文本对应的 token 数
+        cache: LLMCache 实例
 
     Returns:
-        np.ndarray: Embedding 矩阵 (N × d)，d = 1536 for text-embedding-3-small
-
-    Raises:
-        RuntimeError: API 返回非 200 状态码
+        np.ndarray: Embedding 矩阵 (N × d)，d = 1536
     """
     import aiohttp
-    # --- 配置提取与前置校验 (Fail-Fast) ---
-    # 【术语】Fail-Fast 原则: 在函数入口处立即校验所有必要前置条件,
-    #   而非等到实际调用 API 时才发现配置缺失。这避免了在已消耗大量
-    #   计算资源 (如 token 计数、批量切分) 后才崩溃的浪费。
-    # 【白话】先检查"钥匙"和"地址"有没有配好，没配好就立刻报错,
-    #   不要等到真正要开门的时候才发现没带钥匙。
     models = LLM_CONFIG.get('models') or []
     cfg = models[0] if models else {}
     if EMBEDDING_CONFIG:
         base_url = EMBEDDING_CONFIG.get('base_url')
         api_key = EMBEDDING_CONFIG.get('api_key')
-        embedding_model = (
-            EMBEDDING_CONFIG.get('model') or "text-embedding-3-small")
+        embedding_model = (EMBEDDING_CONFIG.get('model') or "text-embedding-3-small")
     else:
         base_url = cfg.get('base_url')
         api_key = cfg.get('api_key')
         embedding_model = "text-embedding-3-small"
     if not base_url or not api_key:
-        raise RuntimeError(
-            "Embedding API config missing base_url or api_key "
-            "(check config.yaml -> embedding_api and .env EMBEDDING_API_KEY)")
+        raise RuntimeError("Embedding API config missing base_url or api_key")
     base_url = str(base_url).rstrip("/")
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
 
-    # --- 动态批量切分 ---
-    # 按 token 总数切分批次，而非固定条数
-    batches = []
-    current_batch = []
-    current_tokens = 0
-    for i, (text, n_tok) in enumerate(zip(texts, token_counts)):
-        if current_batch and current_tokens + n_tok > _MAX_TOKENS_PER_REQUEST:
+    # --- 1. 穿透式缓存层 ---
+    cached_results = [cache.get(embedding_model, text) if cache else None for text in texts]
+    missing_indices = [i for i, res in enumerate(cached_results) if res is None]
+    missing_texts = [texts[i] for i in missing_indices]
+    missing_tokens = [token_counts[i] for i in missing_indices]
+
+    logger.info(f"    缓存拦截: 命中 {len(texts) - len(missing_texts)} 条, 缺失 {len(missing_texts)} 条")
+
+    missing_embs = []
+    if missing_texts:
+        # --- 2. 动态批量切分 ---
+        batches = []
+        current_batch, current_tokens = [], 0
+        for text, n_tok in zip(missing_texts, missing_tokens):
+            if current_batch and (len(current_batch) >= 2000 or current_tokens + n_tok > _MAX_TOKENS_PER_REQUEST):
+                batches.append(current_batch)
+                current_batch, current_tokens = [], 0
+            current_batch.append(text)
+            current_tokens += n_tok
+        if current_batch:
             batches.append(current_batch)
-            current_batch = []
-            current_tokens = 0
-        current_batch.append(text)
-        current_tokens += n_tok
-    if current_batch:  # 最后一批
-        batches.append(current_batch)
 
-    logger.info(f"    Embedding 动态分批: {len(batches)} 批, "
-                f"共 {len(texts)} 篇, 总 {sum(token_counts):,} tokens")
+        logger.info(f"    网络请求: 动态分批为 {len(batches)} 批")
 
-    # --- 逐批请求 ---
-    all_emb = []
-    async with aiohttp.ClientSession() as session:
-        for batch_idx, batch in enumerate(batches):
-            async with session.post(
-                f"{base_url}/embeddings",
-                json={"model": embedding_model, "input": batch},
-                headers=headers,
-                timeout=aiohttp.ClientTimeout(total=180)
-            ) as resp:
-                if resp.status != 200:
-                    err_text = await resp.text()
-                    raise RuntimeError(
-                        f"Embedding API HTTP {resp.status} "
-                        f"(batch {batch_idx+1}/{len(batches)}, "
-                        f"{len(batch)} texts): {err_text[:200]}"
-                    )
-                data = await resp.json()
-                all_emb.extend([
-                    d['embedding']
-                    for d in sorted(data['data'], key=lambda x: x['index'])
-                ])
+        # --- 3. 死战不退重试循环 ---
+        async with aiohttp.ClientSession() as session:
+            for batch_idx, batch in enumerate(batches):
+                delay = RETRY_DELAY
+                while True:
+                    try:
+                        async with session.post(
+                            f"{base_url}/embeddings",
+                            json={"model": embedding_model, "input": batch},
+                            headers=headers,
+                            timeout=aiohttp.ClientTimeout(total=180)
+                        ) as resp:
+                            status = resp.status
+                            if status == 200:
+                                data = await resp.json()
+                                if 'data' not in data:
+                                    raise ValueError(f"API 响应格式异常(缺少'data'): {str(data)[:200]}")
+                                sorted_data = sorted(data['data'], key=lambda x: x.get('index', 0))
+                                batch_embs = [d['embedding'] for d in sorted_data]
+                                missing_embs.extend(batch_embs)
+                                # 原子写入缓存
+                                if cache:
+                                    cache.put_batch(
+                                        embedding_model,
+                                        batch,
+                                        [json.dumps(emb) for emb in batch_embs]
+                                    )
+                                break  # 成功，跳出无限重试
+                            elif status in (429, 500, 502, 503, 504):
+                                err_text = await resp.text()
+                                logger.warning(f"    HTTP {status} (batch {batch_idx+1}): {err_text[:100]}。休眠 {delay} 秒后重试...")
+                                await asyncio.sleep(delay)
+                                delay = min(delay * 2, MAX_RETRY_DELAY)
+                            else:
+                                err_text = await resp.text()
+                                raise ValueError(f"不可恢复的 API 错误 {status} (batch {batch_idx+1}): {err_text[:200]}")
+                    except ValueError:
+                        raise  # 直接向上抛出致命错误
+                    except Exception as e:
+                        logger.warning(f"    网络异常 (batch {batch_idx+1}): {type(e).__name__}: {e}。休眠 {delay} 秒后重试...")
+                        await asyncio.sleep(delay)
+                        delay = min(delay * 2, MAX_RETRY_DELAY)
 
-            if (batch_idx + 1) % 5 == 0:
-                logger.info(f"    Embedding 进度: {batch_idx+1}/{len(batches)} 批完成")
+                if (batch_idx + 1) % 5 == 0:
+                    logger.info(f"    API 进度: {batch_idx+1}/{len(batches)} 批完成")
 
-    # 【术语】Embedding 对齐不变量 (Alignment Invariant):
-    #   输入 N 条文本必须精确返回 N 个向量。若不等, 说明 API 静默
-    #   丢弃了某些输入 (如空字符串或超长文本), 后续 cosine_similarity
-    #   矩阵的行索引会与 DataFrame 行索引错位, 导致 policy_cosine_sim
-    #   列被错误赋值到不相关的文章上——这是无法通过下游断言检测的
-    #   "静默数据污染" (Silent Data Corruption)。
-    #   与 Stage 25 (25_strategic_differentiation.py L486-488) 的防护标准对齐。
-    # 【白话】发出去 100 篇文章, 必须拿回 100 个向量。如果 API 偷偷吞了
-    #   几篇, 后面算出来的相似度就会张冠李戴——这种错误最危险, 因为
-    #   程序不会报错, 但数据已经错了。
-    if len(all_emb) != len(texts):
-        raise RuntimeError(
-            f"Embedding API 返回数量异常: expected {len(texts)}, "
-            f"got {len(all_emb)}")
-    return np.array(all_emb)
+    # --- 4. 向量拼装复原 ---
+    assert len(missing_embs) == len(missing_texts), "返回数量与缺失数量不符！"
+    final_embs = []
+    missing_ptr = 0
+    for res in cached_results:
+        if res is not None:
+            final_embs.append(json.loads(res))
+        else:
+            final_embs.append(missing_embs[missing_ptr])
+            missing_ptr += 1
 
-
-def _get_embeddings_with_fallback(texts: list[str], token_counts: list[int]) -> np.ndarray | None:
-    """三层降级策略获取 Embedding 向量。
-
-    【术语】复用 Stage 25 (L393-426) 的三层降级逻辑:
-      1. API (text-embedding-3-small) — 首选, 质量最高, 1536 维
-      2. sentence-transformers (shibing624/text2vec-base-chinese) — 本地备选
-      3. None — 跳过，返回 None
-
-    【白话】优先用在线 AI 模型（效果最好），如果在线不行就用本地模型，
-    如果本地也不行就放弃。
-
-    Args:
-        texts: 已截断的文本列表
-        token_counts: 每篇文本的 token 数
-
-    Returns:
-        np.ndarray (N × d) 或 None (降级失败)
-    """
-    # 策略 1: API Embedding
-    try:
-        emb = asyncio.run(_get_embeddings_api_dynamic(texts, token_counts))
-        logger.info(f"    Embedding: API (text-embedding-3-small) 成功, "
-                    f"维度 {emb.shape}")
-        return emb
-    except Exception as e:
-        logger.warning(f"    Embedding API 降级: {type(e).__name__}: {e}")
-
-    # 策略 2: 本地 sentence-transformers
-    try:
-        from sentence_transformers import SentenceTransformer
-        model = SentenceTransformer('shibing624/text2vec-base-chinese')
-        emb = model.encode(texts, show_progress_bar=True, batch_size=64)
-        logger.info(f"    Embedding: 本地 text2vec-base-chinese 成功, "
-                    f"维度 {emb.shape}")
-        return np.array(emb)
-    except Exception as e2:
-        logger.warning(f"    Embedding 完全降级: {type(e2).__name__}: {e2}")
-
-    # 策略 3: 放弃
-    return None
+    return np.array(final_embs, dtype=np.float32)
 
 
 # ============================================================================
@@ -498,10 +474,12 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     all_texts = truncated_texts + auth_chunks
     all_token_counts = token_counts + auth_chunk_tok_counts
 
-    emb = _get_embeddings_with_fallback(all_texts, all_token_counts)
+    with LLMCache(CACHE_DB_PATH) as cache:
+        emb = asyncio.run(_get_embeddings_api_dynamic(all_texts, all_token_counts, cache))
 
-    if emb is None:
-        logger.error("  Embedding 获取完全失败。所有文章 policy_cosine_sim 设为 NaN。")
+    # 死战不退机制保证了 emb 绝对不是 None 且不含 NaN，若 API 实在不可恢复，程序早就中断了
+    if emb is None or len(emb) == 0:
+        logger.error("  Embedding 获取失败或为空，终止计算。")
         df['policy_cosine_sim'] = np.nan
         return df
 

@@ -73,7 +73,9 @@ class LLMCache:
         Returns:
             str: 64 字符的十六进制 SHA-256 哈希值。
         """
-        raw = f"{len(model_id)}:{model_id}:{prompt}"
+        m_id = str(model_id) if model_id is not None else ""
+        p_str = str(prompt) if prompt is not None else ""
+        raw = f"{len(m_id)}:{m_id}:{p_str}"
         return hashlib.sha256(raw.encode('utf-8')).hexdigest()
 
     def get(self, model_id: str, prompt: str) -> str | None:
@@ -105,11 +107,43 @@ class LLMCache:
             response: API 返回的原始响应文本。
         """
         key = self._make_key(model_id, prompt)
+        m_id = str(model_id) if model_id is not None else ""
+        r_str = str(response) if response is not None else ""
         with self._lock:
             self._conn.execute(
                 "INSERT OR REPLACE INTO llm_cache (cache_key, model_id, response, created_at) "
                 "VALUES (?, ?, ?, ?)",
-                (key, model_id, response, time.time())
+                (key, m_id, r_str, time.time())
+            )
+            self._conn.commit()
+
+    def put_batch(self, model_id: str, prompts: list[str], responses: list[str]) -> None:
+        """批量原子写入缓存。
+
+        使用 executemany 配合事务大幅提升高并发环境下的写入吞吐量。
+        在处理 Batch Embedding (每批数千条) 时可避免频繁的 I/O 锁抢占。
+
+        Args:
+            model_id: 模型标识符。
+            prompts: 请求的 prompt 列表。
+            responses: API 对应的响应文本列表。
+        """
+        if not prompts or not responses or len(prompts) != len(responses):
+            return
+            
+        now = time.time()
+        rows = []
+        m_id = str(model_id) if model_id is not None else ""
+        for p, r in zip(prompts, responses):
+            key = self._make_key(model_id, p)
+            r_str = str(r) if r is not None else ""
+            rows.append((key, m_id, r_str, now))
+            
+        with self._lock:
+            self._conn.executemany(
+                "INSERT OR REPLACE INTO llm_cache (cache_key, model_id, response, created_at) "
+                "VALUES (?, ?, ?, ?)",
+                rows
             )
             self._conn.commit()
 
