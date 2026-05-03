@@ -117,14 +117,20 @@ logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def _get_stage_output_files(stage_script: str) -> list:
-    """根据阶段脚本名获取其输出文件列表。
+    """Return the parquet outputs of ``stage_script``.
 
-    Args:
-        stage_script: 阶段脚本文件名（如 "00_preprocessing.py"）
-
-    Returns:
-        list: 该阶段输出的文件名列表
+    Phase 2d: delegates to ``news_process.core.schemas.get_stage_outputs`` —
+    the single-source registry — eliminating the prior
+    duplicate-hardcoding hazard.  The legacy local mapping below is preserved
+    only as a safety net for stage names not in the registry; in normal
+    operation the registry returns first and the local map is unreachable.
     """
+    from news_process.core.schemas import get_stage_outputs as _registry_outputs
+    files = _registry_outputs(stage_script)
+    if files:
+        return files
+
+    # Legacy fallback (preserved verbatim — Phase 2d deprecation safety net).
     stage_num = stage_script.split('_')[0]
     output_map = {
         '00': ['00_preprocessing.parquet'],
