@@ -3,7 +3,7 @@
 Phase 3b 交付物。提供 5 个互不耦合的支柱:
 
     paper_config   — PaperConfig dataclass + 路径解析
-    panel_loader   — 按 paper_id 加载 data_processed/*.parquet
+    panel_loader   — 按 paper_id 加载 data/processed/*.parquet (Phase 8 重命名)
     tables         — Stata-safe 列名清洗 + 通用 .dta 导出 + summary stats
     figures        — matplotlib rcParams + 色盲友好调色板
     stata_runner   — 调用本地 Stata 执行 .do 文件的 subprocess 包装

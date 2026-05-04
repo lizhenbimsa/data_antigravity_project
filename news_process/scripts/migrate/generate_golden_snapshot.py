@@ -2,7 +2,7 @@
 generate_golden_snapshot.py — Phase 0 deliverable
 
 Computes column-level value hashes for every existing parquet artifact in
-``data_processed/`` and writes the result to ``tests/fixtures/golden_panel_v0.json``.
+``data/processed/`` (Phase 8 重命名) and writes the result to ``tests/fixtures/golden_panel_v0.json``.
 
 This is the **degraded-path** Phase 0 snapshot (per the restructuring plan):
 we do NOT re-run the main pipeline. We hash whatever artifacts exist on disk
@@ -78,12 +78,13 @@ def hash_parquet(path: Path) -> dict:
 
 def main() -> int:
     project_root = Path(__file__).resolve().parents[2]
-    data_dir = project_root / "data_processed"
+    # Phase 8 (2026-05-04): data_processed → data/processed
+    data_dir = project_root / "data" / "processed"
     fixture_path = project_root / "tests" / "fixtures" / "golden_panel_v0.json"
     fixture_path.parent.mkdir(parents=True, exist_ok=True)
 
     if not data_dir.is_dir():
-        print(f"ERROR: data_processed/ not found at {data_dir}", file=sys.stderr)
+        print(f"ERROR: data/processed/ not found at {data_dir}", file=sys.stderr)
         return 2
 
     snapshot: dict = {

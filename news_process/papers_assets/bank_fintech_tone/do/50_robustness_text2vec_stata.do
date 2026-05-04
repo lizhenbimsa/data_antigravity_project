@@ -14,7 +14,7 @@ set more off
 * (在 do 本文件之前 set 即可)。
 * ----------------------------------------------------------------------------
 if "$panel_dta" == "" {
-    global panel_dta "../../../data_processed/40_panel_yearly.dta"
+    global panel_dta "../../../data/processed/40_panel_yearly.dta"
 }
 if "$out_dir" == "" {
     global out_dir "../output"

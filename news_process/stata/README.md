@@ -18,12 +18,12 @@ the standard path prelude (`global panel_dta`, `global out_dir`).
 ## Path correction
 
 All 5 `.do` files referenced one of two stale paths:
-- `output/40_panel_yearly.dta` (the actual file lived at `data_processed/40_panel_yearly.dta`)
+- `output/40_panel_yearly.dta` (the actual file lived at `data/processed/40_panel_yearly.dta`)
 - `output/40_panel_data.dta` (a file that has never existed — likely a planning leftover)
 
 Phase 4a normalises both to `$panel_dta`, defaulting to
-`../../../data_processed/40_panel_yearly.dta` (3 levels up from
-`papers_assets/<paper>/do/` to `news_process/`, then into `data_processed/`).
+`../../../data/processed/40_panel_yearly.dta` (3 levels up from
+`papers_assets/<paper>/do/` to `news_process/`, then into `data/processed/`).
 
 `output/<x>.tex` references are likewise normalised to `$out_dir/<x>.tex`,
 defaulting to `../output/` so each paper's outputs land in

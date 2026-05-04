@@ -1,10 +1,13 @@
 """tests/integration/test_panel_reproducibility.py — Phase 2g acceptance gate.
 
-Verifies that every parquet currently present in ``data_processed/`` produces
+Verifies that every parquet currently present in ``data/processed/`` produces
 the same per-column value hashes as the Phase 0 ``golden_panel_v0.json``
-baseline.  Any column-level mismatch indicates a Phase 2 refactor accidentally
-altered downstream data — a reason to roll back to ``phase-1-baseline`` (or
-the relevant earlier baseline).
+baseline.  Any column-level mismatch indicates a refactor accidentally altered
+downstream data — a reason to roll back to ``phase-1-baseline`` (or the
+relevant earlier baseline).
+
+Phase 8 (2026-05-04): the on-disk layout migrated from ``data_processed/`` to
+``data/processed/``; ``data_dir`` fixture now points at the new location.
 
 The check is **column-level hash-only** (per the restructuring plan's Phase 2g
 spec).  Reasons hash-only is the right choice over ``assert_frame_equal``:
@@ -61,8 +64,8 @@ def golden() -> dict:
 
 @pytest.fixture(scope="module")
 def data_dir() -> Path:
-    """Resolve the parquet directory (Phase 1: still ``data_processed/``)."""
-    return _project_root() / "data_processed"
+    """Resolve the parquet directory (Phase 8: ``data_processed`` → ``data/processed``)."""
+    return _project_root() / "data" / "processed"
 
 
 def _stages_present(golden: dict, data_dir: Path) -> list[str]:

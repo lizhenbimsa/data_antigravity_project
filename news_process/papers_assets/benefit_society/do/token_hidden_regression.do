@@ -45,7 +45,7 @@ set more off
 * 用户可通过 `global panel_dta "..."` / `global out_dir "..."` 显式覆盖。
 * ----------------------------------------------------------------------------
 if "$panel_dta" == "" {
-    global panel_dta "../../../data_processed/40_panel_yearly.dta"
+    global panel_dta "../../../data/processed/40_panel_yearly.dta"
 }
 if "$out_dir" == "" {
     global out_dir "../output"

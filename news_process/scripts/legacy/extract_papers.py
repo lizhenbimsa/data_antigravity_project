@@ -61,7 +61,7 @@ class MarkdownPaperExtractor:
 if __name__ == "__main__":
     PROJECT_ROOT = Path(r"f:\WiseSearch\data_antigravity_project\news_process")
     PAPERS_DIR = PROJECT_ROOT / "papers"
-    OUTPUT_JSON = PROJECT_ROOT / "data_processed" / "papers_extracted.json"
+    OUTPUT_JSON = PROJECT_ROOT / "data" / "processed" / "papers_extracted.json"  # Phase 8: data_processed → data/processed
     
     extractor = MarkdownPaperExtractor(
         papers_dir=str(PAPERS_DIR),

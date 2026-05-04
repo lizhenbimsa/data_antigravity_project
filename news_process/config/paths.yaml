@@ -4,7 +4,7 @@
 
 paths:
   raw_data_dir: ./data_excel                       # 原始 Excel 数据文件所在目录
-  output_dir: ./data_processed                     # 各阶段处理结果输出目录
+  output_dir: ./data/processed                     # 各阶段处理结果输出目录 (Phase 8: ./data_processed → ./data/processed)
   log_dir: ./logs                                  # 日志文件输出目录
   stopwords_zh: ./config/zh_stopwords.txt           # 中文停用词表
   stopwords_en: ./config/en_stopwords.txt           # 英文停用词表

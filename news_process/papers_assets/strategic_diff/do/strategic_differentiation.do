@@ -49,10 +49,10 @@ set more off
 *     news_process/papers_assets/strategic_diff/do/
 * 用户可通过 `global panel_dta "..."` / `global out_dir "..."` 显式覆盖。
 * 历史注: 原 `use "output/40_panel_data.dta"` 路径已纠正为
-*         真实落盘文件 `data_processed/40_panel_yearly.dta`。
+*         真实落盘文件 `data/processed/40_panel_yearly.dta` (Phase 8 重命名)。
 * ----------------------------------------------------------------------------
 if "$panel_dta" == "" {
-    global panel_dta "../../../data_processed/40_panel_yearly.dta"
+    global panel_dta "../../../data/processed/40_panel_yearly.dta"
 }
 if "$out_dir" == "" {
     global out_dir "../output"

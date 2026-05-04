@@ -26,14 +26,14 @@ news_process.pipeline.audit.stata_audit — Stata 用面板数据最高标准审
       "Bartik Instruments." → Bartik 份额归一化检验
 
 输入:
-  data_processed/40_panel_yearly.parquet
-  data_processed/40_panel_yearly.dta
-  data_processed/51_panel_with_controls.parquet
-  data_processed/51_panel_with_controls.dta
-  data_processed/40_article_bank_level.parquet
+  data/processed/40_panel_yearly.parquet
+  data/processed/40_panel_yearly.dta
+  data/processed/51_panel_with_controls.parquet
+  data/processed/51_panel_with_controls.dta
+  data/processed/40_article_bank_level.parquet
 
 输出:
-  data_processed/eval_reports/52_stata_data_audit.csv    (审核摘要表)
+  data/processed/eval_reports/52_stata_data_audit.csv    (审核摘要表)
   logs/52_stata_data_audit.log                           (详细日志)
 """
 

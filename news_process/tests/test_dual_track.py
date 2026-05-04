@@ -5,8 +5,10 @@ test_dual_track.py — 双轨重构全面验证测试
 用 pytest 验证所有阶段输出的列完整性、数据质量和回退公理。
 
 注意:
-  本测试需要实际的 data_processed/*.parquet 文件存在。
+  本测试需要实际的 data/processed/*.parquet 文件存在。
   如果文件不存在，对应测试将被 skip 而非 fail。
+
+Phase 8 (2026-05-04): 路径从 ``data_processed`` 重命名为 ``data/processed``.
 """
 import os
 
@@ -19,10 +21,10 @@ import pandas as pd
 
 @pytest.fixture(scope='module')
 def output_dir():
-    """返回 data_processed 绝对路径。"""
+    """返回 data/processed 绝对路径 (Phase 8 重命名后)。"""
     return os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        'data_processed',
+        'data', 'processed',
     )
 
 

@@ -59,7 +59,7 @@ news_process.validation.media_diversity — 媒体名称与地域多样性审计
                    → 等效数量 ENM = 1/HHI 的方法论来源
 
 输出:
-    data_processed/eval_reports/38_media_diversity.xlsx
+    data/processed/eval_reports/38_media_diversity.xlsx
         - Sheet "跨阶段总览"       (含 Gini、均匀度、加权HHI 等扩展指标)
         - Sheet "全部媒体"
         - Sheet "媒体名称_Top20"

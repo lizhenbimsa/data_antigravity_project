@@ -2,7 +2,7 @@
   "schema_version": 1,
   "generated_utc": "2026-05-03T15:07:05.336098+00:00",
   "git_tag": "baseline-pre-restructure",
-  "data_dir": "data_processed",
+  "data_dir": "data/processed",
   "hash_method": "pd.util.hash_pandas_object(s, index=False).sum() -> u64 hex",
   "stages": {
     "00_preprocessing.parquet": {

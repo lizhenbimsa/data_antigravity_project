@@ -55,7 +55,7 @@ news_process/
 │       └── title_sentiment.txt #   标题轨道情感分析提示词
 │
 ├── data_excel/                 # 原始 XLSX 数据 (gitignored)
-├── data_processed/             # 各阶段 parquet/dta/csv 输出 (gitignored)
+├── data/processed/             # 各阶段 parquet/dta/csv 输出 (gitignored, Phase 8 重命名)
 ├── tests/                      # pytest 测试套件 (778 tests, 100% pass)
 │   └── integration/            #   跨阶段集成测试 (含 Phase 0 reproducibility)
 ├── scripts/
@@ -150,7 +150,7 @@ python -m pytest news_process/tests/test_00_preprocessing.py -v
 
 ```stata
 if "$panel_dta" == "" {
-    global panel_dta "../../../data_processed/40_panel_yearly.dta"
+    global panel_dta "../../../data/processed/40_panel_yearly.dta"
 }
 if "$out_dir" == "" {
     global out_dir "../output"
@@ -184,11 +184,13 @@ baseline-pre-restructure
 
 每个 phase 内的子任务也单独 commit，可单点 `git revert <hash>`。
 
-## 7. 已知 deferred 项
+## 7. 已知 deferred 项 (Phase 8 之后还可选的进一步优化)
 
-- **Phase 4f / 5b** (高风险, 独立授权): `data_processed/` → `data/processed/<group>/` 物理分组迁移
-- **Phase 7+** (可选): 21 个根级 `[0-9]*_*.py` fully-bodied 脚本进一步 body relocate 到 `pipeline/<sub>/` + `validation/<x>/`，根文件变 thin shim（Phase 2c 模板复制）。Phase 6 已完成 utils 引用清理 + utils/ 删除，body relocate 是纯架构优化，非功能必须。
-- **Phase 7+**: `validation/` 包内填 stages 31-39
+- **Phase 9+ (极低优先级)**: `data/processed/<group>/` 业务组子分区。当前 Phase 8 的"单层重命名"方案保留扁平布局；若未来出现存储分层、按组冷存储保留策略等场景，可参考 `scripts/migrate/migrate_data_layout.py` 完成深一级分组。但需注意：跨阶段交叉读取（如 stage 21 读 stage 14、stage 24 读 stage 23）会迫使 `CONFIG['filenames']` 携带组前缀信息，反向增加耦合，违反 DRY — 不推荐做此细分。
+
+> **Phase 7a (2026-05-04)** 已完成 8 个 pipeline 类 root body 迁入 `pipeline/<sub>/` + thin shim 化。
+> **Phase 7b (2026-05-04)** 已完成 13 个 validation 类 root body 迁入 `news_process/validation/` 扁平布局 + thin shim 化。
+> **Phase 8 (2026-05-04)** 已完成 `data_processed/` → `data/processed/` 单层重命名。
 
 ## 8. 文献依据汇总
 

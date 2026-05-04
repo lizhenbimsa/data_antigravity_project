@@ -37,14 +37,14 @@
               MINUS 40_article_bank_level.parquet (最终面板文章)
 
 输入:
-  data_processed/12_fintech_news_full.parquet
-  data_processed/40_article_bank_level.parquet
-  data_processed/40_panel_yearly.parquet
+  data/processed/12_fintech_news_full.parquet
+  data/processed/40_article_bank_level.parquet
+  data/processed/40_panel_yearly.parquet
 
 输出:
-  data_processed/51_panel_with_controls.parquet
-  data_processed/51_panel_with_controls.dta
-  data_processed/51_falsification_diagnostics.csv
+  data/processed/51_panel_with_controls.parquet
+  data/processed/51_panel_with_controls.dta
+  data/processed/51_falsification_diagnostics.csv
 """
 
 import os

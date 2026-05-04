@@ -11,7 +11,7 @@ hardcode while stages independently read filenames from
 hazard.  Phase 2d eliminates the divergence at this single registry.
 
 The registry preserves the legacy parquet-filename contract verbatim so
-that existing files in ``data_processed/`` remain reachable through the
+that existing files in ``data/processed/`` remain reachable through the
 new abstraction.
 """
 

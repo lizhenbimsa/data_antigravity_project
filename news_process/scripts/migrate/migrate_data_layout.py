@@ -1,9 +1,26 @@
-"""migrate_data_layout.py — Phase 2e migration helper (DEFERRED execution).
+"""migrate_data_layout.py — Phase 2e migration helper (DEFERRED, partially obsoleted by Phase 8).
 
-Purpose
--------
-Phase 2e of the news_process restructuring blueprint mandates the move from
-the flat ``news_process/data_processed/`` directory to a stage-grouped layout::
+Phase 8 status (2026-05-04)
+---------------------------
+Phase 8 (delivered) performed the **single-level** rename
+``data_processed/`` → ``data/processed/`` *without* the originally-planned
+business-group sub-partitioning (``00_preprocess/``, ``10_filter/``, ...).
+Rationale: cross-stage parquet reads (e.g. stage 21 reads stage 14 output,
+stage 24 reads stage 23 output) would force ``CONFIG['filenames']`` to carry
+group prefixes, *increasing* coupling rather than reducing it (DRY violation).
+The flat layout under ``data/processed/`` keeps its original prefix discipline
+(``NN_xxx.parquet``) which already encodes business group via the numeric
+prefix, with zero duplication.
+
+This script remains as **archival/optional helper** for any future scenario
+where someone explicitly wants the deeper grouping (e.g. when storage tiering
+or per-group cold-storage retention policies become a requirement). When
+invoking, target paths now sit under ``data/processed/<group>/``.
+
+Purpose (original)
+------------------
+The original Phase 2e blueprint mandated the move from the flat
+``news_process/data_processed/`` directory to a stage-grouped layout::
 
     data/processed/00_preprocess/    # 00 outputs
     data/processed/10_filter/        # 11/12/14/15 outputs
@@ -81,9 +98,15 @@ def _project_root() -> Path:
 
 
 def plan_moves() -> list[tuple[Path, Path]]:
-    """Return the list of (src, dst) pairs that would be moved."""
+    """Return the list of (src, dst) pairs that would be moved.
+
+    Phase 8 update: source root migrated from ``data_processed/`` to
+    ``data/processed/`` (single-level rename). This helper, when invoked,
+    would deepen that one level further into ``data/processed/<group>/``.
+    """
     root = _project_root()
-    src_dir = root / "data_processed"
+    # Phase 8 (2026-05-04): src_dir migrated from data_processed/ → data/processed/
+    src_dir = root / "data" / "processed"
     dst_root = root / "data" / "processed"
     moves: list[tuple[Path, Path]] = []
     for fname, sub in TARGET_LAYOUT.items():
@@ -106,7 +129,7 @@ def main():
 
     moves = plan_moves()
     if not moves:
-        print("No files to move (data_processed/ is empty or layout already complete).")
+        print("No files to move (data/processed/ is empty or layout already complete).")
         return 0
 
     print(f"Phase 2e plan: {len(moves)} moves")

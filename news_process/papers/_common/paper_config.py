@@ -30,7 +30,7 @@ class PaperConfig:
                        (snake_case)。
         project_root:  ``news_process/`` 目录绝对路径。
         panel_dir:     pipeline 阶段输出的 parquet 落盘目录
-                       (默认 ``data_processed/``)。
+                       (默认 ``data/processed/``，Phase 8 重命名后)。
         output_dir:    本论文专属表/图最终输出目录
                        (``papers_assets/<paper_id>/output/``)。
         do_dir:        本论文专属 .do 脚本目录
@@ -134,7 +134,8 @@ def get_paper_config(paper_id: str,
     cfg = project_config if project_config is not None else load_config()
     paths = cfg.get('paths', {})
     project_root = _resolve_project_root(cfg)
-    panel_dir = Path(paths.get('output_dir', project_root / 'data_processed'))
+    # Phase 8 (2026-05-04): default fallback path migrated to ``data/processed/``
+    panel_dir = Path(paths.get('output_dir', project_root / 'data' / 'processed'))
     assets_root = get_papers_assets_root(cfg)
     paper_root = assets_root / paper_id
 
