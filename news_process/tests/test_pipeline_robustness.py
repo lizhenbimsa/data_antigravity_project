@@ -4,9 +4,14 @@ import numpy as np
 import pytest
 from unittest.mock import patch
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Phase 5c-2: 注入项目父目录解析 ``news_process.*``
+_PROJECT_PARENT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-from utils.llm_cache import LLMCache
+from news_process.core.caching import LLMCache
 
 # Phase 2a: 15's body migrated to news_process.pipeline.filtering.policy_alignment.
 # The legacy importlib.spec_from_file_location("15_article_policy_alignment.py")

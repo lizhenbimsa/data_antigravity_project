@@ -11,13 +11,20 @@ import pytest
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from utils.helpers import (
-    load_config, setup_logging, log_and_time, log_memory_usage,
-    log_stage_summary, parallelize_dataframe, safe_save_preview_csv,
-    save_dataset, run_stage,
+# Phase 5c-2: 注入项目父目录, 让 ``news_process.core.*`` 在包模式下可解析
+_PROJECT_PARENT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.config import load_config
+from news_process.core.logging import (
+    setup_logging, log_and_time, log_memory_usage, log_stage_summary,
+)
+from news_process.core.parallel import parallelize_dataframe
+from news_process.core.reporting import safe_save_preview_csv, save_dataset
+from news_process.core.stage import run_stage
 
 
 # ============================================================================

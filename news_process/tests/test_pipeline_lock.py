@@ -21,11 +21,12 @@ from unittest.mock import Mock, patch, MagicMock
 import subprocess
 import threading
 
-# 添加项目路径到sys.path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+# Phase 5c-2: 添加项目父目录到 sys.path 解析 ``news_process.*``
+_PROJECT_PARENT = Path(__file__).resolve().parents[2]
+if str(_PROJECT_PARENT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_PARENT))
 
-from utils.pipeline_lock import PipelineLock
+from news_process.core.locking import PipelineLock
 
 
 class TestPipelineLock(unittest.TestCase):

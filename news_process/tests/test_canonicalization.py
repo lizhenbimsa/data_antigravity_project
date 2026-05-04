@@ -7,9 +7,14 @@ import os
 import sys
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Phase 5c-2: 注入项目父目录解析 ``news_process.*``
+_PROJECT_PARENT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-from utils.canonicalization import _normalize_text, canonicalize_topic
+from news_process.core.text.canonicalization import _normalize_text, canonicalize_topic
 
 
 # ============================================================================

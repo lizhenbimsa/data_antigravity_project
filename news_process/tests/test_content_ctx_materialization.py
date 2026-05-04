@@ -17,14 +17,21 @@ import pytest
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Phase 5c-2: 注入项目父目录解析 ``news_process.*``
+_PROJECT_PARENT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
 
 # ============================================================================
 # 复刻 entity_context 核心函数（避免依赖文件系统）
 # ============================================================================
 
-from utils.entity_context import extract_entity_context, _split_sentences, _merge_intervals
+from news_process.core.text.entity_context import (
+    extract_entity_context, _split_sentences, _merge_intervals,
+)
 
 
 # ============================================================================
@@ -101,7 +108,7 @@ class TestMaterializeContentCtx:
         bnf.write_text(json.dumps(bank_names, ensure_ascii=False), encoding='utf-8')
 
         # 清除 entity_context 的全局缓存
-        import utils.entity_context as ec
+        from news_process.core.text import entity_context as ec
         ec._ALIASES_CACHE.clear()
         ec._BANK_DATA = None
 
@@ -110,7 +117,9 @@ class TestMaterializeContentCtx:
     def _make_materialize_fn(self, bank_names_file):
         """构建一个可测试的 _materialize_content_ctx 函数。"""
         import logging
-        from utils.entity_context import extract_entity_context, get_target_aliases
+        from news_process.core.text.entity_context import (
+            extract_entity_context, get_target_aliases,
+        )
 
         logger = logging.getLogger('test_materialize')
 

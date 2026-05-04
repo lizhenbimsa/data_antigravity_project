@@ -12,10 +12,15 @@ import pytest
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Phase 5c-2: 注入项目父目录解析 ``news_process.*``
+_PROJECT_PARENT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-from utils.pipeline_reporting import generate_pipeline_summary
-from utils.helpers import setup_logging
+from news_process.core.reporting import generate_pipeline_summary
+from news_process.core.logging import setup_logging
 
 
 # ============================================================================

@@ -8,9 +8,14 @@ import sys
 import json
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Phase 5c-2: 注入项目父目录解析 ``news_process.*``
+_PROJECT_PARENT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-from utils.aho_corasick import (
+from news_process.core.text.ahocorasick import (
     load_bank_names, load_exclusion_patterns, is_match_excluded,
     analyze_bank_matches, load_fintech_dict, analyze_fintech_matches,
 )
