@@ -1,24 +1,20 @@
 import os
 import sys
-import importlib.util
 import pytest
 import pandas as pd
 import numpy as np
 import math
 
-def load_module(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
+# Phase 7b: 注入项目父目录, 让 ``news_process.*`` 在任意 cwd 解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(_HERE))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-# 获取被测模块的绝对路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-module_path = os.path.join(parent_dir, '38b_decay_sensitivity.py')
-
-decay = load_module('decay_sensitivity_38b', module_path)
+# Phase 7b: body 已迁至 news_process.validation.decay_sensitivity,
+# 旧 ``spec_from_file_location('decay_sensitivity_38b', '38b_decay_sensitivity.py')``
+# 现仅返回 thin shim, 直接走规范 import 即可拿到全部内部函数与模块级常量。
+from news_process.validation import decay_sensitivity as decay
 
 @pytest.fixture
 def mock_sentiment_dict():

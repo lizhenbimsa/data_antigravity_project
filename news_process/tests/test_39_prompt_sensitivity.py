@@ -22,8 +22,11 @@ import pandas as pd
 import yaml
 
 # ── 导入被测模块 ──
-# conftest.py 已确保 news_process 目录在 sys.path 中
-_MOD39_PATH = os.path.join(os.path.dirname(__file__), '..', '39_prompt_sensitivity.py')
+# Phase 7b: body 已迁至 news_process.validation.prompt_sensitivity,
+# 旧 39_prompt_sensitivity.py 现仅是 thin shim, 不再 expose 内部函数。
+_MOD39_PATH = os.path.join(
+    os.path.dirname(__file__), '..', 'validation', 'prompt_sensitivity.py'
+)
 
 
 def _make_test_tempdir():
@@ -40,13 +43,20 @@ def _make_test_tempdir():
 
 @pytest.fixture(scope='module')
 def mod39():
-    """延迟导入 39_prompt_sensitivity 模块，避免模块级副作用。"""
-    return __import__('39_prompt_sensitivity')
+    """延迟导入 prompt_sensitivity 模块（Phase 7b 后规范包路径）。"""
+    import sys
+    PROJECT_PARENT = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if PROJECT_PARENT not in sys.path:
+        sys.path.insert(0, PROJECT_PARENT)
+    from news_process.validation import prompt_sensitivity
+    return prompt_sensitivity
 
 
 @pytest.fixture(scope='module')
 def source_code():
-    """读取 39_prompt_sensitivity.py 源代码文本。"""
+    """读取 prompt_sensitivity body 源代码文本（Phase 7b 后路径）。"""
     with open(_MOD39_PATH, 'r', encoding='utf-8') as f:
         return f.read()
 

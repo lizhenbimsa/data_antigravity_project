@@ -20,9 +20,18 @@ import pandas as pd
 
 @pytest.fixture
 def audit_module():
-    """导入 37_dict_coverage_audit 模块。"""
-    import importlib
-    return importlib.import_module('37_dict_coverage_audit')
+    """导入 37 模块（Phase 7b 后规范包路径）。"""
+    # Phase 7b: body 已迁至 news_process.validation.dict_coverage,
+    # 旧 ``importlib.import_module('37_dict_coverage_audit')`` 现仅返回 thin shim,
+    # 直接走规范 import 即可拿到全部内部函数与模块级常量。
+    import os, sys
+    _PROJECT_PARENT = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _PROJECT_PARENT not in sys.path:
+        sys.path.insert(0, _PROJECT_PARENT)
+    from news_process.validation import dict_coverage
+    return dict_coverage
 
 
 # ============================================================================

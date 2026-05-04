@@ -19,9 +19,18 @@ from unittest.mock import MagicMock
 
 @pytest.fixture
 def human_module():
-    """导入 32_news_llms_human 模块。"""
-    import importlib
-    return importlib.import_module('32_news_llms_human')
+    """导入 32 模块（Phase 7b 后规范包路径）。"""
+    # Phase 7b: body 已迁至 news_process.validation.llms_human,
+    # 旧 ``importlib.import_module('32_news_llms_human')`` 现仅返回 thin shim,
+    # 直接走规范 import 即可拿到全部内部函数与模块级常量。
+    import os, sys
+    _PROJECT_PARENT = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _PROJECT_PARENT not in sys.path:
+        sys.path.insert(0, _PROJECT_PARENT)
+    from news_process.validation import llms_human
+    return llms_human
 
 
 # ============================================================================

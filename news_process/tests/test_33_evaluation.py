@@ -9,13 +9,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
-NEWS_PROCESS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if NEWS_PROCESS_DIR not in sys.path:
-    sys.path.insert(0, NEWS_PROCESS_DIR)
+# Phase 7b: 注入项目父目录, 让 ``news_process.*`` 在任意 cwd 解析
+_PROJECT_PARENT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-# 使用 importlib 处理数字开头的模块名
-from importlib import import_module
-_mod = import_module('33_news_llms_evaluation')
+# Phase 7b: body 已迁至 news_process.validation.llms_evaluation,
+# 旧 ``import_module('33_news_llms_evaluation')`` 现仅返回 thin shim,
+# 直接走规范 import 即可拿到全部内部函数与模块级常量。
+from news_process.validation import llms_evaluation as _mod
 diagnose_misclassification_bias = _mod.diagnose_misclassification_bias
 
 
