@@ -1,0 +1,30 @@
+# news_process v2.0.0 — Documentation site dependencies (Phase D)
+# ================================================================
+#
+# 仅文档构建需要; 主流水线不依赖任何此文件中的包.
+# 安装: ``pip install -r news_process/requirements-docs.txt``
+# 构建: ``cd docs && make html``
+#
+# Reproducibility note:
+#   Pin to >=major,<next-major to allow patch updates while preventing
+#   breaking changes from major version jumps.
+
+# Core: Sphinx 7.2+ supports modern Python 3.10+ type hints out of the box
+sphinx>=7.2,<9.0
+
+# Theme: Furo (modern, mobile-friendly, syntax-highlighted code blocks).
+# Maintained by Pradyun Gedam (also pip's official documentation theme).
+furo>=2024.1.29
+
+# Markdown via MyST — lets us write prose in Markdown instead of RST.
+# myst-parser supports cross-references, math, admonitions, code blocks.
+myst-parser>=2.0,<5.0
+
+# Auto-render type hints from Python annotations into the docs.
+sphinx-autodoc-typehints>=2.0,<4.0
+
+# "Copy" button on every code block (UX polish).
+sphinx-copybutton>=0.5,<1.0
+
+# Mermaid diagrams for architecture visualizations.
+sphinxcontrib-mermaid>=0.9,<2.0
