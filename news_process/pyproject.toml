@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "news-process"
-version = "0.1.0-phase1"
-description = "Bank-fintech news -> bank-year panel data pipeline (refactor in progress)."
+version = "0.5.0-phase5"
+description = "Bank-fintech news -> bank-year panel data pipeline (Phase 5 baseline)."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "Proprietary" }
