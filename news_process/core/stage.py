@@ -9,16 +9,64 @@ Phase 3 将在此处增加 ``Stage`` 运行时抽象基类 + ``@stage`` 装饰�
 与 ``core/dag.py`` 中声明的 *声明式* ``StageSpec`` 数据类分离。
 两个名字 ``Stage`` (运行时基类) 与 ``StageSpec`` (声明式记录) 刻意不同,
 以避免命名冲突。
+
+Phase 9 (plan c4): ``run_stage`` 由 ``subprocess.run(capture_output=True)``
+重写为 ``subprocess.Popen`` + 双 reader 线程, 解决三个长期痛点:
+  1. 内存爆涨 — 旧实现把子进程整段 stdout/stderr 累积到父进程内存,
+     LLM 阶段 (stage 21, timeout 7200s) 与 panel 阶段 (stage 45)
+     长输出会导致父进程 RSS 暴增。
+  2. 无实时进度 — 旧实现等子进程 EOF 才一次性返回, 用户跑 7200s 阶段
+     在父端完全看不到进度。
+  3. 失败信息截断 — 旧实现仅保留末 30 行 stderr, 关键 traceback 上文
+     与 stdout 全部丢失。
+
+新实现以行为单位通过两个后台线程实时把子进程 stdout/stderr 转发到父 logger,
+同时用环形缓冲 (deque(maxlen=N)) 累积末尾 N 行用于诊断, 既保证可观测性
+又封顶内存占用。
 """
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 import sys
+import threading
 import time
+from collections import deque
+from typing import Deque, IO
 
 from .logging import log_memory_usage, get_run_id
+
+
+# 子进程 stdout/stderr 累积上限 (行数); 防止任意大日志撑爆父进程
+_TAIL_BUFFER_MAXLEN = 10000
+
+
+def _reader_thread(stream: IO[str],
+                   logger: logging.Logger,
+                   prefix: str,
+                   accumulator: Deque[str],
+                   log_level: int = logging.INFO) -> None:
+    """逐行读取 ``stream`` → 转发到 ``logger`` + 累积到 ``accumulator``.
+
+    在子进程关闭流 (EOF) 时自然退出。线程被外层标记为 daemon, 父进程退出时
+    不会因此挂起。``logging.Logger`` 自身线程安全 (内置 RLock), 因此双 reader
+    线程可同时调用同一 logger 而无需额外锁。
+    """
+    try:
+        for line in iter(stream.readline, ''):
+            # 去掉行末换行 / 回车; 保留行内空白以维持原始可读性
+            line = line.rstrip('\r\n')
+            logger.log(log_level, f"  {prefix} {line}")
+            accumulator.append(line)
+    except Exception as e:  # pragma: no cover — defensive
+        logger.warning(f"  reader thread ({prefix}) 异常: {e}")
+    finally:
+        try:
+            stream.close()
+        except Exception:
+            pass
 
 
 def run_stage(stage_script: str, stage_name: str, logger,
@@ -39,6 +87,11 @@ def run_stage(stage_script: str, stage_name: str, logger,
 
     子进程从父进程继承 ``NEWS_PROCESS_RUN_ID`` (以及其他全部 env 变量),
     使得每次运行的日志目录自动传播。
+
+    实现说明 (plan c4):
+    子进程 stdout/stderr 由两个 daemon reader 线程逐行抽取 → 实时转发到父 logger,
+    同时累积末尾 ``_TAIL_BUFFER_MAXLEN`` 行供失败诊断。timeout 路径下用
+    ``proc.kill()`` 终止子进程, reader 线程在管道关闭后自然退出。
     """
     if base_dir is None:
         # core/stage.py -> core/ -> news_process/  (上溯一层到项目根)
@@ -57,50 +110,107 @@ def run_stage(stage_script: str, stage_name: str, logger,
     logger.info(f"{'─'*60}")
     log_memory_usage(logger, f"阶段 {stage_name} 开始前")
 
-    # 显式传播 run_id (防御性写法 — subprocess.run 默认已继承 env,
+    # 显式传播 run_id (防御性写法 — Popen 默认已继承 env,
     # 但此处显式物化, 便于日志可读性)。
     env = os.environ.copy()
     run_id = get_run_id()
     if run_id:
         env["NEWS_PROCESS_RUN_ID"] = run_id
 
+    # plan c4 后续改进: 子进程 stdout/stderr 完全不缓冲, 让父端 reader 线程
+    # 不必等 Windows pipe chunk 满才看到行 (即使子进程 print 不主动 flush 也立即透传)。
+    # 副作用: 子进程 stdio 性能轻微下降, 在 IO 远大于 stdio 的 ETL 中可忽略。
+    env.setdefault("PYTHONUNBUFFERED", "1")
+
     start_time = time.time()
 
+    proc: subprocess.Popen | None = None
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             [sys.executable, script_path],
-            capture_output=True, text=True,
-            encoding='utf-8', errors='replace',
-            timeout=timeout,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding='utf-8',
+            errors='replace',
             env=env,
+            bufsize=1,  # 行缓冲: 让 reader 线程能尽早拿到完整行
         )
+    except Exception as e:
         elapsed = time.time() - start_time
+        logger.error(f"✗ {stage_name} 启动子进程失败: {e}")
+        return False, elapsed
 
-        if result.returncode == 0:
-            logger.info(
-                f"✓ {stage_name} 执行成功（耗时 {elapsed:.1f}s）"
-            )
-            return True, elapsed
-        else:
-            logger.error(
-                f"✗ {stage_name} 执行失败（返回码 {result.returncode}）"
-            )
-            if result.stderr:
-                stderr_lines = result.stderr.strip().split('\n')
-                last_lines = stderr_lines[-30:]
-                logger.error("最后 30 行 stderr:")
-                for line in last_lines:
-                    logger.error(f"  | {line}")
-            return False, elapsed
+    stdout_tail: Deque[str] = deque(maxlen=_TAIL_BUFFER_MAXLEN)
+    stderr_tail: Deque[str] = deque(maxlen=_TAIL_BUFFER_MAXLEN)
 
+    assert proc.stdout is not None and proc.stderr is not None
+    t_out = threading.Thread(
+        target=_reader_thread,
+        args=(proc.stdout, logger, '│', stdout_tail, logging.INFO),
+        name=f"stage-{stage_script}-stdout",
+        daemon=True,
+    )
+    t_err = threading.Thread(
+        target=_reader_thread,
+        args=(proc.stderr, logger, '│⚠', stderr_tail, logging.INFO),
+        name=f"stage-{stage_script}-stderr",
+        daemon=True,
+    )
+    t_out.start()
+    t_err.start()
+
+    try:
+        returncode = proc.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         elapsed = time.time() - start_time
         logger.error(
-            f"✗ {stage_name} 执行超时（超过 {timeout}s），已强制终止"
+            f"✗ {stage_name} 执行超时（超过 {timeout}s），强制终止子进程..."
         )
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            logger.error(f"  子进程 PID={proc.pid} 在 10s 内未响应 SIGKILL")
+        # 等 reader 线程把已缓冲的剩余行排空 (管道关闭后自然 EOF)
+        t_out.join(timeout=5)
+        t_err.join(timeout=5)
         return False, elapsed
-
     except Exception as e:
         elapsed = time.time() - start_time
-        logger.error(f"✗ {stage_name} 执行异常: {e}")
+        logger.error(f"✗ {stage_name} 等待子进程异常: {e}")
+        try:
+            proc.kill()
+            proc.wait(timeout=5)
+        except Exception:
+            pass
+        t_out.join(timeout=5)
+        t_err.join(timeout=5)
+        return False, elapsed
+
+    # 子进程已正常退出: 等 reader 线程把剩余行排空再返回
+    t_out.join(timeout=30)
+    t_err.join(timeout=30)
+    elapsed = time.time() - start_time
+
+    if returncode == 0:
+        logger.info(
+            f"✓ {stage_name} 执行成功（耗时 {elapsed:.1f}s, "
+            f"stdout {len(stdout_tail)} 行 / stderr {len(stderr_tail)} 行已透传）"
+        )
+        return True, elapsed
+    else:
+        logger.error(
+            f"✗ {stage_name} 执行失败（返回码 {returncode}, 耗时 {elapsed:.1f}s）"
+        )
+        # 完整 stderr 已实时透传到父 logger (前缀 '│⚠'); 此处不再重复打印,
+        # 仅给出 tail 提示便于在长日志中快速定位
+        if stderr_tail:
+            tail_n = min(30, len(stderr_tail))
+            logger.error(f"诊断提示 — 末 {tail_n} 行 stderr:")
+            for line in list(stderr_tail)[-tail_n:]:
+                logger.error(f"  | {line}")
         return False, elapsed

@@ -123,18 +123,19 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
     # ── 增量缓存检查 ──
     # 已处理的文件写入 Parquet 缓存, 下次运行时直接读取
     # 配置哈希: 用于检测预处理配置是否变更, 变更时自动使缓存失效
+    #
+    # plan m4 修复: 哈希整段 PARAMS, 不再仅哈希 7 个白名单键。
+    # 旧实现遗漏 noise_patterns_file / media_weights_file / title_max_length /
+    # ad_keywords / mainland_china_regions / normalize* 等键, 用户改这些值时
+    # 缓存仍命中, 半成品 parquet 进入合并, 最终输出在某些行使用旧规则。
+    #
+    # 排除项 (这些不影响 per-file 处理结果, 只影响合并/IO 阶段):
+    # - fasttext_model_path / sheet_name 等 IO/外部资源路径 (可改名但语义相同)
+    # 实际很少会改, 一并入哈希也无害, 因此不做白名单过滤, 保持"全部入哈希"
+    # 的最强语义。
     def _compute_config_hash() -> str:
-        relevant = {
-            'media_types_to_include': PARAMS.get('media_types_to_include'),
-            'media_names_to_exclude': PARAMS.get('media_names_to_exclude'),
-            'required_columns': PARAMS.get('required_columns'),
-            'key_columns_for_na_check': PARAMS.get('key_columns_for_na_check'),
-            'content_min_length': PARAMS.get('content_min_length'),
-            'content_max_length': PARAMS.get('content_max_length'),
-            'title_min_length': PARAMS.get('title_min_length'),
-        }
         return hashlib.md5(
-            json.dumps(relevant, sort_keys=True, ensure_ascii=False).encode()
+            json.dumps(PARAMS, sort_keys=True, ensure_ascii=False, default=str).encode()
         ).hexdigest()
 
     config_hash = _compute_config_hash()

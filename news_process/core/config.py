@@ -26,12 +26,21 @@ _SPLIT_DOMAINS: tuple[str, ...] = (
 )
 
 
-def _detect_split_mode(config_dir: str) -> bool:
-    """当 ``config_dir`` 下 7 个域 YAML 全部存在时返回 True。"""
+def _detect_split_mode(config_dir: str) -> tuple[bool, list[str]]:
+    """检查 split-mode 7 个域 YAML 的存在情况。
+
+    Returns:
+        ``(all_present, missing)``:
+            - ``all_present``: 7 个文件是否全部存在;
+            - ``missing``: 缺失的 ``<domain>.yaml`` 文件名列表
+              (全部存在时为空列表; 全部缺失时长度等于
+              ``len(_SPLIT_DOMAINS)``)。
+    """
+    missing: list[str] = []
     for domain in _SPLIT_DOMAINS:
         if not os.path.exists(os.path.join(config_dir, f'{domain}.yaml')):
-            return False
-    return True
+            missing.append(f'{domain}.yaml')
+    return len(missing) == 0, missing
 
 
 def _deep_merge(a: dict, b: dict) -> dict:
@@ -139,27 +148,66 @@ def load_config(config_path=None):
 
     config_dir = os.path.join(project_root, 'config')
 
-    if config_path is None and _detect_split_mode(config_dir):
-        # Phase 4d split-mode
-        config = {}
-        for domain in _SPLIT_DOMAINS:
-            domain_path = os.path.join(config_dir, f'{domain}.yaml')
-            with open(domain_path, 'r', encoding='utf-8') as f:
-                domain_cfg = yaml.safe_load(f) or {}
-            config = _deep_merge(config, domain_cfg)
-    else:
-        # Legacy monolithic 模式 (或显式 config_path 覆盖)
-        if config_path is None:
-            config_path = os.path.join(config_dir, 'config.yaml')
+    if config_path is None:
+        split_complete, split_missing = _detect_split_mode(config_dir)
+        if split_complete:
+            # Phase 4d split-mode (优先, 7 个域 YAML 全部存在)
+            config = {}
+            for domain in _SPLIT_DOMAINS:
+                domain_path = os.path.join(config_dir, f'{domain}.yaml')
+                with open(domain_path, 'r', encoding='utf-8') as f:
+                    domain_cfg = yaml.safe_load(f) or {}
+                config = _deep_merge(config, domain_cfg)
+        elif len(split_missing) < len(_SPLIT_DOMAINS):
+            # 部分 split YAML 存在但不齐全 → 不可恢复, 显式抛错
+            # (避免静默回退到空 stub config.yaml 触发下游隐晦 KeyError)
+            existing = [
+                f'{d}.yaml' for d in _SPLIT_DOMAINS
+                if f'{d}.yaml' not in split_missing
+            ]
+            raise RuntimeError(
+                f"配置目录 {config_dir} 处于不一致状态: split-mode 检测到 "
+                f"{len(existing)}/{len(_SPLIT_DOMAINS)} 个域 YAML 存在 "
+                f"({existing}), 但缺失 {split_missing}。\n"
+                f"请补齐缺失文件; 或删除全部 split YAML 让系统回退到 legacy "
+                f"config.yaml 单文件模式。"
+            )
         else:
-            if not os.path.isabs(config_path):
-                config_path = os.path.join(project_root, config_path)
+            # 全部 split YAML 都缺失 → 走 legacy 单文件模式
+            config_path = os.path.join(config_dir, 'config.yaml')
+            if not os.path.exists(config_path):
+                raise FileNotFoundError(
+                    f"配置文件未找到: {config_path} (且 split-mode 7 个域 "
+                    f"YAML 也全部不存在: {split_missing})"
+                )
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f) or {}
+            if not config:
+                # config.yaml 为空 stub (Phase 4d 后的常见状态) — 显式报错
+                # 否则下游 CONFIG['paths'] 等会触发隐晦 KeyError, 用户难以诊断
+                raise RuntimeError(
+                    f"Legacy 配置文件 {config_path} 为空或仅含注释 (空 stub)。\n"
+                    f"自 Phase 4d 起该文件已被拆分为 7 个域 YAML; "
+                    f"请在 {config_dir} 下提供 "
+                    f"{[f'{d}.yaml' for d in _SPLIT_DOMAINS]}, "
+                    f"或将原始 config.yaml 内容恢复进单文件以继续使用 legacy 模式。"
+                )
+    else:
+        # 显式指定 config_path → 强制单文件模式 (绕过 split-mode 检测)
+        if not os.path.isabs(config_path):
+            config_path = os.path.join(project_root, config_path)
 
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"配置文件未找到: {config_path}")
 
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f) or {}
+
+        if not config:
+            raise RuntimeError(
+                f"显式指定的配置文件 {config_path} 为空或仅含注释; "
+                f"请检查文件内容是否正确。"
+            )
 
     _env_pattern = re.compile(r'\$\{([^}]+)\}')
 
@@ -175,27 +223,56 @@ def load_config(config_path=None):
             return env_val
         return _env_pattern.sub(_replacer, value)
 
-    def resolve_paths(d, root):
+    # plan s4 漏洞 A 修复: 把 env 替换与 path resolve 拆为两遍
+    # ─────────────────────────────────────────────────────────────────
+    # 旧实现是 if/elif 互斥: 若一个字符串既含 ${VAR} 又是 ./xxx 形式 (env 值
+    # 本身是相对路径), env 替换后不会再走 ./ join project_root 分支, 结果残留
+    # 相对 CWD 的字符串。
+    # 修复策略: 第一遍仅做 env 替换并把结果写回; 第二遍重新检测 ./ 前缀做
+    # path resolve。这样两类规范化语义独立, 任何 env→相对路径的中转都能命中。
+    #
+    # ⚠️严禁简化为"去掉 ./ 前缀过滤后对所有字符串 join project_root":
+    # media_types_to_include: ['报纸'] / enabled_methods: [tone_llms] /
+    # model_name: gpt-... 等非路径字符串会被错误解析成 <project_root>/报纸,
+    # 整个配置层秒崩。./ 前缀是项目内部"这是项目根相对路径"的约定标记,
+    # 不能去掉。漏洞 B (YAML 中部分路径缺 ./ 前缀) 由数据层独立修复。
+
+    def _resolve_env_in_place(d):
+        """第一遍: 仅做 ${VAR} 替换, 原地写回。"""
         if isinstance(d, dict):
             for k, v in d.items():
                 if isinstance(v, str):
                     if _env_pattern.search(v):
                         d[k] = _resolve_env_vars(v)
-                    elif v.startswith('./') or v.startswith('.\\'):
-                        d[k] = os.path.normpath(os.path.join(root, v))
-                elif isinstance(d[k], (dict, list)):
-                    resolve_paths(d[k], root)
+                elif isinstance(v, (dict, list)):
+                    _resolve_env_in_place(v)
         elif isinstance(d, list):
             for i, v in enumerate(d):
                 if isinstance(v, str):
                     if _env_pattern.search(v):
                         d[i] = _resolve_env_vars(v)
-                    elif v.startswith('./') or v.startswith('.\\'):
-                        d[i] = os.path.normpath(os.path.join(root, v))
-                elif isinstance(d[i], (dict, list)):
-                    resolve_paths(d[i], root)
+                elif isinstance(v, (dict, list)):
+                    _resolve_env_in_place(v)
 
-    resolve_paths(config, project_root)
+    def _resolve_paths_in_place(d, root):
+        """第二遍: 检测 ``./`` / ``.\\`` 前缀并 join project_root。"""
+        if isinstance(d, dict):
+            for k, v in d.items():
+                if isinstance(v, str):
+                    if v.startswith('./') or v.startswith('.\\'):
+                        d[k] = os.path.normpath(os.path.join(root, v))
+                elif isinstance(v, (dict, list)):
+                    _resolve_paths_in_place(v, root)
+        elif isinstance(d, list):
+            for i, v in enumerate(d):
+                if isinstance(v, str):
+                    if v.startswith('./') or v.startswith('.\\'):
+                        d[i] = os.path.normpath(os.path.join(root, v))
+                elif isinstance(v, (dict, list)):
+                    _resolve_paths_in_place(v, root)
+
+    _resolve_env_in_place(config)
+    _resolve_paths_in_place(config, project_root)
 
     # Phase 4d: 把任何外部 prompt 模板文件内联到 config dict 中
     _inline_external_prompts(config, project_root)

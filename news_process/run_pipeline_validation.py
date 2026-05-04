@@ -43,6 +43,7 @@ if _PROJECT_PARENT not in sys.path:
 
 # Phase 6a: utils.* → news_process.core.*
 from news_process.core.config import load_config
+from news_process.core.locking import PipelineLock
 from news_process.core.logging import setup_logging, log_memory_usage
 from news_process.core.stage import run_stage
 
@@ -102,86 +103,90 @@ def run_validation():
     """
     module_start = time.time()
 
-    logger.info("=" * 70)
-    logger.info("===    模块四：评估验证模块    ===")
-    logger.info("=" * 70)
-    logger.info("")
-    logger.info("  📌 模块目的")
-    logger.info("     对前三模块(预处理→分类→情感分析)的全部关键决策进行系统性验证,")
-    logger.info("     确保研究结论不受人为参数选择、模型偏差或数据噪声的影响。")
-    logger.info("")
-    logger.info("  📖 12 个验证阶段说明")
-    logger.info("     31:  阈值敏感性  — 分类参数做网格搜索, 证明当前阈值是稳健的")
-    logger.info("     32:  人工抽样    — 生成分层随机样本供人工标注比对")
-    logger.info("     32a: 去重敏感性  — Jaccard MinHash 多阈值去重, 证明去重参数稳健 (Broder 1997)")
-    logger.info("     33:  分类评估    — 计算 Cohen's κ / Krippendorff's α, 量化 LLM 一致性")
-    logger.info("     34:  三角验证    — 词典/BERT/LLM 三种方法交叉验证构建效度")
-    logger.info("     35:  窗口敏感性  — 检验上下文提取半径对情感度量的影响")
-    logger.info("     36:  实体掩码    — 替换银行名验证情感判定不依赖实体先验")
-    logger.info("     37:  词典审计    — 金融科技关键词覆盖率和精确度系统审计")
-    logger.info("     38:  媒体多样性  — HHI/Shannon/Gini 多维度量化媒体来源与地域覆盖")
-    logger.info("     38a: 时间掩码    — 逐步掩码最新N年新闻, 检验前视偏误 (Tetlock 2008)")
-    logger.info("     38b: 衰减敏感性  — 比较 uniform/inverse/exponential 权重, 检验结果稳健性")
-    logger.info("     39:  提示词敏感度 — 系统性改写 Prompt 措辞, 量化标注结果的表述稳健性")
-    logger.info("")
-    logger.info(f"Python: {sys.version}")
-    logger.info(f"工作目录: {os.path.dirname(os.path.abspath(__file__))}")
-    log_memory_usage(logger, "模块启动")
+    # ── 并发运行保护 (plan s3): 与主流水线对称, 共享同一锁文件 ──
+    # validation 与 main pipeline 都会读写 output_dir/, 共享 logger / 中间 cache;
+    # 同时跑两个进程会产生数据竞争与日志互踩, 必须互斥。
+    with PipelineLock(logger, CONFIG["paths"]["output_dir"]):
+        logger.info("=" * 70)
+        logger.info("===    模块四：评估验证模块    ===")
+        logger.info("=" * 70)
+        logger.info("")
+        logger.info("  📌 模块目的")
+        logger.info("     对前三模块(预处理→分类→情感分析)的全部关键决策进行系统性验证,")
+        logger.info("     确保研究结论不受人为参数选择、模型偏差或数据噪声的影响。")
+        logger.info("")
+        logger.info("  📖 12 个验证阶段说明")
+        logger.info("     31:  阈值敏感性  — 分类参数做网格搜索, 证明当前阈值是稳健的")
+        logger.info("     32:  人工抽样    — 生成分层随机样本供人工标注比对")
+        logger.info("     32a: 去重敏感性  — Jaccard MinHash 多阈值去重, 证明去重参数稳健 (Broder 1997)")
+        logger.info("     33:  分类评估    — 计算 Cohen's κ / Krippendorff's α, 量化 LLM 一致性")
+        logger.info("     34:  三角验证    — 词典/BERT/LLM 三种方法交叉验证构建效度")
+        logger.info("     35:  窗口敏感性  — 检验上下文提取半径对情感度量的影响")
+        logger.info("     36:  实体掩码    — 替换银行名验证情感判定不依赖实体先验")
+        logger.info("     37:  词典审计    — 金融科技关键词覆盖率和精确度系统审计")
+        logger.info("     38:  媒体多样性  — HHI/Shannon/Gini 多维度量化媒体来源与地域覆盖")
+        logger.info("     38a: 时间掩码    — 逐步掩码最新N年新闻, 检验前视偏误 (Tetlock 2008)")
+        logger.info("     38b: 衰减敏感性  — 比较 uniform/inverse/exponential 权重, 检验结果稳健性")
+        logger.info("     39:  提示词敏感度 — 系统性改写 Prompt 措辞, 量化标注结果的表述稳健性")
+        logger.info("")
+        logger.info(f"Python: {sys.version}")
+        logger.info(f"工作目录: {os.path.dirname(os.path.abspath(__file__))}")
+        log_memory_usage(logger, "模块启动")
 
-    # ── 模块四: 评估验证模块 ──
-    # Phase 1 重构: 阶段定义已迁移至 news_process/core/dag.py:STAGES_VALIDATION,
-    # 每条 StageSpec.enabled_when 谓词承接旧的 validation_config.get(...) 分支判定。
-    # 旧的内联 12 处 if-append 链已被 filter_enabled() 取代。
-    active_specs = filter_enabled(STAGES, CONFIG)
-    stages = [(s.script, s.name, s.timeout) for s in active_specs]
+        # ── 模块四: 评估验证模块 ──
+        # Phase 1 重构: 阶段定义已迁移至 news_process/core/dag.py:STAGES_VALIDATION,
+        # 每条 StageSpec.enabled_when 谓词承接旧的 validation_config.get(...) 分支判定。
+        # 旧的内联 12 处 if-append 链已被 filter_enabled() 取代。
+        active_specs = filter_enabled(STAGES, CONFIG)
+        stages = [(s.script, s.name, s.timeout) for s in active_specs]
 
-    logger.info(f"评估验证模块共 {len(stages)} 个阶段")
-    for i, (script, name, _to) in enumerate(stages, 1):
-        logger.info(f"  {i}. {name} ({script})")
+        logger.info(f"评估验证模块共 {len(stages)} 个阶段")
+        for i, (script, name, _to) in enumerate(stages, 1):
+            logger.info(f"  {i}. {name} ({script})")
 
-    # ── 逐阶段执行 ──
-    stage_timings = []
-    all_success = True
+        # ── 逐阶段执行 ──
+        stage_timings = []
+        all_success = True
 
-    for script, name, timeout in stages:
-        success, elapsed = run_stage(script, name, logger, SCRIPT_DIR, timeout=timeout)
-        stage_timings.append((name, elapsed, success))
+        for script, name, timeout in stages:
+            success, elapsed = run_stage(script, name, logger, SCRIPT_DIR, timeout=timeout)
+            stage_timings.append((name, elapsed, success))
 
-        if not success:
-            all_success = False
-            # 速败策略: 与主流水线一致, 任一阶段失败即中止。
-            # 验证模块间存在隐式依赖 (如 36 依赖 21 的输出),
-            # 前置失败则后续结果无解释意义。
-            logger.error(f"评估验证模块在 {name} 处中断。后续阶段将跳过。")
-            break
+            if not success:
+                all_success = False
+                # 速败策略: 与主流水线一致, 任一阶段失败即中止。
+                # 验证模块间存在隐式依赖 (如 36 依赖 21 的输出),
+                # 前置失败则后续结果无解释意义。
+                logger.error(f"评估验证模块在 {name} 处中断。后续阶段将跳过。")
+                break
 
-    # ── 耗时统计 ──
-    total_elapsed = time.time() - module_start
-    logger.info("\n" + "=" * 70)
-    logger.info("===    评估验证模块耗时统计    ===")
-    logger.info("=" * 70)
-    logger.info(f"{'阶段':<30} {'耗时(秒)':>12} {'耗时占比':>10} {'状态':>6}")
-    logger.info("-" * 70)
+        # ── 耗时统计 ──
+        total_elapsed = time.time() - module_start
+        logger.info("\n" + "=" * 70)
+        logger.info("===    评估验证模块耗时统计    ===")
+        logger.info("=" * 70)
+        logger.info(f"{'阶段':<30} {'耗时(秒)':>12} {'耗时占比':>10} {'状态':>6}")
+        logger.info("-" * 70)
 
-    for name, elapsed, success in stage_timings:
-        pct = (elapsed / total_elapsed * 100) if total_elapsed > 0 else 0
-        status = "✓" if success else "✗"
-        if elapsed == 0.0 and success:
-            status = "⏭"
-        logger.info(f"  {name:<28} {elapsed:>10.1f}s {pct:>9.1f}% {status:>6}")
+        for name, elapsed, success in stage_timings:
+            pct = (elapsed / total_elapsed * 100) if total_elapsed > 0 else 0
+            status = "✓" if success else "✗"
+            if elapsed == 0.0 and success:
+                status = "⏭"
+            logger.info(f"  {name:<28} {elapsed:>10.1f}s {pct:>9.1f}% {status:>6}")
 
-    logger.info("-" * 70)
-    minutes = total_elapsed / 60
-    logger.info(f"  {'总计':<28} {total_elapsed:>10.1f}s ({minutes:.1f} 分钟)")
-    logger.info("=" * 70)
+        logger.info("-" * 70)
+        minutes = total_elapsed / 60
+        logger.info(f"  {'总计':<28} {total_elapsed:>10.1f}s ({minutes:.1f} 分钟)")
+        logger.info("=" * 70)
 
-    log_memory_usage(logger, "模块完成")
+        log_memory_usage(logger, "模块完成")
 
-    if all_success:
-        logger.info("✓ 评估验证模块全部阶段执行成功！")
-    else:
-        logger.error("✗ 评估验证模块执行中断，请检查日志。")
-        sys.exit(1)
+        if all_success:
+            logger.info("✓ 评估验证模块全部阶段执行成功！")
+        else:
+            logger.error("✗ 评估验证模块执行中断，请检查日志。")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

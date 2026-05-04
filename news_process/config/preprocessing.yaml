@@ -3,7 +3,7 @@
 # Original section ownership preserved; comments may have been re-flowed during round-trip.
 
 preprocessing:
-  fasttext_model_path: models/lid.176.bin           # FastText 语言检测模型路径
+  fasttext_model_path: ./models/lid.176.bin         # FastText 语言检测模型路径 (plan s4 漏洞 B: 加 ./ 前缀让 resolve_paths 解析为项目根绝对路径)
   text_column: 内容                                  # 主要文本列名
   min_lang_detect_length: 15                        # 语言检测所需的最小文本长度（字符数）
   sheet_name: Sheet1                                 # Excel 工作表名称

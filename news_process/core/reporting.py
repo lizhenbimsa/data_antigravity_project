@@ -293,28 +293,33 @@ def generate_pipeline_summary(config, logger):
             else:
                 logger.warning(f"文件未找到: {file_path}")
 
+            # plan m3: initial_count == 0 时分母为零, 旧实现强行返回 0.0%,
+            # 容易被运维误读为"全丢光"; 现改为显式 "N/A" 字符串
             if stage_name == "模块一: 00_preprocessing":
                 change = 0
-                pct_change = 0.0
+                pct_change_str = "+0.00%"
                 initial_count = current_count
-                retention_rate = 100.0
+                if initial_count > 0:
+                    retention_str = "100.00%"
+                else:
+                    retention_str = "N/A"
             else:
                 change = current_count - previous_count
-                pct_change = (
-                    (change / previous_count * 100)
-                    if previous_count > 0 else 0.0
-                )
-                retention_rate = (
-                    (current_count / initial_count * 100)
-                    if initial_count > 0 else 0.0
-                )
+                if previous_count > 0:
+                    pct_change_str = f"{change / previous_count * 100:+.2f}%"
+                else:
+                    pct_change_str = "N/A"
+                if initial_count > 0:
+                    retention_str = f"{current_count / initial_count * 100:.2f}%"
+                else:
+                    retention_str = "N/A"
 
             summary_data.append({
                 "Stage": stage_name,
                 "Rows": current_count,
                 "Change": change,
-                "Change (%)": f"{pct_change:+.2f}%",
-                "Retention (vs Initial)": f"{retention_rate:.2f}%",
+                "Change (%)": pct_change_str,
+                "Retention (vs Initial)": retention_str,
             })
 
             previous_count = current_count

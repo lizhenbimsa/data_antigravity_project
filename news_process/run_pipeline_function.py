@@ -47,6 +47,7 @@ run_pipeline_function.py — 新闻处理流水线调度器
     python run_pipeline_function.py
 """
 
+import argparse
 import os
 import sys
 import time
@@ -125,9 +126,13 @@ def _get_stage_output_files(stage_script: str) -> list:
     duplicate-hardcoding hazard.  The legacy local mapping below is preserved
     only as a safety net for stage names not in the registry; in normal
     operation the registry returns first and the local map is unreachable.
+
+    Phase 9 (plan m2): 把 ``CONFIG`` 传入 ``get_stage_outputs``, 使其按
+    ``CONFIG['filenames'][filename_key]`` 解析用户自定义文件名;
+    用户在 ``paths.yaml::filenames`` 中改名后预清理逻辑能自动跟进。
     """
     from news_process.core.schemas import get_stage_outputs as _registry_outputs
-    files = _registry_outputs(stage_script)
+    files = _registry_outputs(stage_script, config=CONFIG)
     if files:
         return files
 
@@ -153,7 +158,31 @@ def _get_stage_output_files(stage_script: str) -> list:
         logger.debug(f"未知阶段 {stage_num}，无预定义输出文件")
     return files
 
-def run_pipeline():
+def _parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """解析主流水线 CLI 参数。
+
+    Phase 9 (plan m1 方案 C): 引入 ``--skip-21-if-exists`` 单 stage 增量执行 flag,
+    覆盖 80% "LLM 阶段已跑完, 想从下游重跑" 的实际痛点。完整 ``--resume-from`` /
+    ``--skip-existing`` 通用方案延后至 plan m1 方案 A; ``config_hash`` 元数据级
+    自动失效方案延后至 plan m1 方案 B。
+    """
+    parser = argparse.ArgumentParser(
+        prog="run_pipeline_function",
+        description="新闻处理主流水线 (模块一/二/三/五/六)",
+    )
+    parser.add_argument(
+        "--skip-21-if-exists",
+        action="store_true",
+        help=(
+            "若 stage 21 (LLM tone) 的输出 parquet 已存在 (含 _full 变体), "
+            "跳过该阶段的预清理与子进程执行。常用场景: LLM 已花费 7200s 跑完, "
+            "想增量重跑下游 stage 而不重新调用 LLM API。"
+        ),
+    )
+    return parser.parse_args(argv)
+
+
+def run_pipeline(args: argparse.Namespace | None = None):
     """执行完整的数据处理流水线。
 
     流程：
@@ -166,7 +195,14 @@ def run_pipeline():
 
     注：模块四（评估验证）已独立为 run_pipeline_validation.py，
         请单独执行：python run_pipeline_validation.py
+
+    Args:
+        args: argparse.Namespace, 由 ``_parse_cli_args`` 解析得到; 默认 None
+              表示按默认全量执行 (向后兼容旧调用方式)。
     """
+    if args is None:
+        args = argparse.Namespace(skip_21_if_exists=False)
+
     pipeline_start = time.time()
 
     # ── 并发运行保护：确保同一时间只有一个管道实例运行 ──
@@ -192,16 +228,19 @@ def run_pipeline():
         # ── 数据流防护：清理未启用的情感分析阶段的残留输出 ──
         # 阶段 24 硬编码读取阶段 23 的输出，若 tone_berts 未启用但
         # 磁盘上残留旧的 23 输出文件，会导致阶段 24 静默读取过期数据。
-        _sentiment_output_map = {
-            'tone_llms':  CONFIG.get('filenames', {}).get(
-                'output_21_tone_llms', '21_tone_llms.parquet'),
-            'tone_words': CONFIG.get('filenames', {}).get(
-                'output_22_words_tone', '22_words_tone.parquet'),
-            'tone_berts': CONFIG.get('filenames', {}).get(
-                'output_23_bert_tone', '23_bert_tone.parquet'),
+        #
+        # plan m5 修复: 改用 OUTPUT_REGISTRY 取阶段全部输出 (含 _full 变体),
+        # 否则 21_tone_llms_full.parquet 会被遗漏 → 验证阶段 32/36/37/39
+        # 静默读取上一次 LLM 的旧结果, 与本次配置不一致。
+        _sentiment_method_to_script = {
+            'tone_llms':  '21_tone_llms.py',
+            'tone_words': '22_tone_words.py',
+            'tone_berts': '23_tone_berts.py',
         }
-        for method, filename in _sentiment_output_map.items():
-            if method not in enabled_methods:
+        for method, _script in _sentiment_method_to_script.items():
+            if method in enabled_methods:
+                continue
+            for filename in _get_stage_output_files(_script):
                 stale_path = os.path.join(
                     CONFIG['paths']['output_dir'], filename)
                 if os.path.exists(stale_path):
@@ -243,6 +282,29 @@ def run_pipeline():
         # 重构前此处曾有本地 stage_timeouts 字典; 已上收为 StageSpec.timeout。
 
         for script, name, timeout in stages:
+            # plan m1 方案 C: stage 21 增量跳过开关
+            # 若 --skip-21-if-exists 启用, 且 stage 21 主输出 + _full 变体均已存在,
+            # 跳过预清理与 run_stage 调用 (视作 success+0s, 与已 skip 的阶段同状态符号)。
+            if (args.skip_21_if_exists and script == '21_tone_llms.py'):
+                stage21_outputs = _get_stage_output_files(script)
+                stage21_paths = [
+                    os.path.join(CONFIG['paths']['output_dir'], f)
+                    for f in stage21_outputs
+                ]
+                if stage21_paths and all(os.path.exists(p) for p in stage21_paths):
+                    logger.info(
+                        f"  ⏭ {name}: --skip-21-if-exists 命中, 已跳过 "
+                        f"(检测到 {len(stage21_paths)} 个输出: "
+                        f"{[os.path.basename(p) for p in stage21_paths]})"
+                    )
+                    stage_timings.append((name, 0.0, True))
+                    continue
+                else:
+                    logger.info(
+                        f"  --skip-21-if-exists 已启用, 但 {name} 输出不全, "
+                        f"仍执行该阶段"
+                    )
+
             # ── 数据流防护：预清理阶段输出，防止陈旧数据污染 ──
             # 在每个阶段执行前，清理其输出文件，确保不会读取上次失败残留的旧数据
             output_files = _get_stage_output_files(script)
@@ -313,4 +375,4 @@ def run_pipeline():
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    run_pipeline(_parse_cli_args())

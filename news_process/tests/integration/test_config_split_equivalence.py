@@ -87,19 +87,27 @@ class TestDeepMerge:
 class TestDetectSplitMode:
     def test_real_config_dir(self):
         # 实际项目 config_dir — 现在应该是 split-mode (Phase 4d 完成后)
-        # 或 legacy mode (Phase 4d 未完成). 不强制断言任一; 只断言函数不抛异常。
+        # 或 legacy mode (Phase 4d 未完成). 不强制断言任一; 只断言函数返回值结构正确。
         config_dir = PROJECT_PARENT / 'news_process' / 'config'
-        assert isinstance(_detect_split_mode(str(config_dir)), bool)
+        result = _detect_split_mode(str(config_dir))
+        assert isinstance(result, tuple) and len(result) == 2
+        complete, missing = result
+        assert isinstance(complete, bool)
+        assert isinstance(missing, list)
 
     def test_split_mode_requires_all_domains(self, tmp_path):
         # 缺一个就不算 split-mode
         for d in _SPLIT_DOMAINS[:-1]:
             (tmp_path / f"{d}.yaml").write_text("k: v")
-        assert _detect_split_mode(str(tmp_path)) is False
+        complete, missing = _detect_split_mode(str(tmp_path))
+        assert complete is False
+        assert missing == [f'{_SPLIT_DOMAINS[-1]}.yaml']
 
         # 补齐最后一个
         (tmp_path / f"{_SPLIT_DOMAINS[-1]}.yaml").write_text("k: v")
-        assert _detect_split_mode(str(tmp_path)) is True
+        complete, missing = _detect_split_mode(str(tmp_path))
+        assert complete is True
+        assert missing == []
 
 
 class TestInlineExternalPrompts:
@@ -151,7 +159,8 @@ def legacy_yaml_path(project_root: Path) -> Path:
     try:
         merged = {}
         config_dir = project_root / 'config'
-        if not _detect_split_mode(str(config_dir)):
+        split_complete, _ = _detect_split_mode(str(config_dir))
+        if not split_complete:
             pytest.skip("Phase 4d split YAMLs not present; equivalence "
                         "fixture cannot reconstruct legacy mode.")
         for domain in _SPLIT_DOMAINS:

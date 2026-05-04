@@ -326,17 +326,59 @@ def build_non_fintech(df_full: pd.DataFrame,
     logger.info("    说明: 两个文件均为 article × bank 粒度,")
     logger.info("          继承自 11_news_bank.py 的提早展开逻辑,")
     logger.info("          因此 (target_bank, 标题, 日期) 可作为可靠的匹配键。")
+
+    # ── plan s2 修复: 集合 anti-join 在多重集场景下会破坏类划分 ──
+    # 原始实现 `df_full[~_key.isin(panel_keys)]` 用 set 包装 df_art 的键,
+    # 当同一 (target_bank, 标题, 日期) 在 df_art 出现多行时, df_full 中所有
+    # 同键副本会被一律排除, 但 df_art 端只折叠为 1 行, 导致 panel + nf != total
+    # 且互补划分被破坏。修复策略 (plan s2 方案 A): 双侧按复合键 drop_duplicates,
+    # 显式约定"同 (target_bank, 标题, 日期) = 同一稿件"的集合语义, 报告被去重比例。
+    _key_cols = ['target_bank', '标题', '_date_str']
+
+    # 双侧去重诊断 (在 drop 之前) 与执行
+    _df_art_before = len(df_art)
+    df_art = df_art.drop_duplicates(subset=_key_cols, keep='first').copy()
+    _df_art_dropped = _df_art_before - len(df_art)
+
+    _df_full_before = len(df_full)
+    df_full = df_full.drop_duplicates(subset=_key_cols, keep='first').copy()
+    _df_full_dropped = _df_full_before - len(df_full)
+
+    logger.info("")
+    logger.info("  ─── 双侧 drop_duplicates(subset=复合键) 去重诊断 ───")
+    logger.info(
+        f"    40_article_bank_level: {_df_art_before:,} → {len(df_art):,} "
+        f"(去重 {_df_art_dropped:,} 行, "
+        f"{_df_art_dropped / max(_df_art_before, 1) * 100:.4f}%)"
+    )
+    logger.info(
+        f"    12_fintech_news_full:  {_df_full_before:,} → {len(df_full):,} "
+        f"(去重 {_df_full_dropped:,} 行, "
+        f"{_df_full_dropped / max(_df_full_before, 1) * 100:.4f}%)"
+    )
+    if _df_art_dropped > 0 or _df_full_dropped > 0:
+        logger.info(
+            "    说明: 同 (target_bank, 标题, 日期) 视为同一稿件 (集合语义)。"
+            "如需多重集差集 (按行级配对), 见 plan s2 方案 B/C。"
+        )
+
+    # 反连接 (anti-join, 集合差集)
     panel_keys = set(zip(
         df_art['target_bank'],
         df_art['标题'],
         df_art['_date_str']
     ))
-    logger.info(f"  面板文章唯一键数: {len(panel_keys):,}")
-    logger.info(f"  面板文章总行数: {len(df_art):,}")
+    logger.info(f"  面板文章唯一键数 (= 行数): {len(panel_keys):,}")
+    # 用显式 raise 替代 assert (assert 在 ``python -O`` 模式下被禁用),
+    # 这是 drop_duplicates 之后必然成立的不变量; 一旦失败说明 pandas 行为
+    # 异常或上游数据存在不可序列化的复合 NaN 类型, 必须立即停下排查。
     if len(panel_keys) != len(df_art):
-        logger.warning(f"  ⚠️ 唯一键数 ≠ 总行数, 存在 {len(df_art) - len(panel_keys):,} 个重复键")
+        raise RuntimeError(
+            f"drop_duplicates 后 panel_keys ({len(panel_keys):,}) 与 "
+            f"df_art ({len(df_art):,}) 行数不一致, 数据异常 — 可能是 "
+            f"_date_str 中存在不同 NaT 实例或 pandas 行为异常"
+        )
 
-    # 反连接 (anti-join)
     df_full['_key'] = list(zip(
         df_full['target_bank'],
         df_full['标题'],
@@ -347,11 +389,11 @@ def build_non_fintech(df_full: pd.DataFrame,
     df_full.drop(columns=['_key', '_date_str'], inplace=True)
 
     # --- 三分类校验与详细统计 ---
-    n_total = len(df_full)
-    n_panel = len(df_art)
+    n_total = len(df_full)  # 已去重
+    n_panel = len(df_art)   # 已去重
     n_nf = len(df_nf)
     logger.info("")
-    logger.info("  ─── 三分类统计 ───")
+    logger.info("  ─── 三分类统计 (基于双侧去重后的口径) ───")
     logger.info(f"    ③ Fintech 面板文章 (keyword=True + LLM通过): {n_panel:,} 条")
     logger.info(f"    ①+② Non-Fintech 对照组:                     {n_nf:,} 条")
     logger.info(f"    全量银行新闻:                                 {n_total:,} 条")
@@ -361,10 +403,13 @@ def build_non_fintech(df_full: pd.DataFrame,
     logger.info(f"    Non-Fintech 占比: {n_nf / n_total * 100:.1f}%")
 
     if n_panel + n_nf != n_total:
-        diff = abs(n_total - n_panel - n_nf)
-        logger.warning(f"  ⚠️ 三分类不等式不成立! 差异 {diff:,} 条。")
-        logger.warning(f"     可能原因: 存在相同 (target_bank, 标题, 日期) 但不同内容的文章。")
-        logger.warning(f"     影响评估: 差异量占总量 {diff / n_total * 100:.4f}%, 通常可忽略。")
+        # 双侧 drop_duplicates 后理论上必有 panel + nf == total; 仍不等说明
+        # df_art 中存在 (target_bank, 标题, 日期) 落在 df_full 之外的"幽灵键"
+        diff = n_panel + n_nf - n_total
+        logger.warning(f"  ⚠️ 去重后三分类不等式仍不成立! panel+nf-total = {diff:,} 条。")
+        logger.warning("     可能原因: df_art 中存在 df_full 未覆盖的 (target_bank, 标题, 日期) 组合,")
+        logger.warning("              即上游 ETL 漏抓部分稿件; 请检查 12 与 40 的覆盖一致性。")
+        logger.warning(f"     影响评估: 差异量占总量 {abs(diff) / n_total * 100:.4f}%, 通常可忽略。")
 
     # 子分类统计 (区分 ① 和 ②)
     if 'is_fintech_news' in df_nf.columns:

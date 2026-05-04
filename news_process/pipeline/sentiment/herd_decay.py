@@ -159,23 +159,24 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
         if n_articles <= 2000:
             # ---- 向量化路径 ----
-            # NaT 处理策略：NaT → NaN → 任何含 NaN 的 time_diff → nan_to_num(0)
-            # 等价于原始代码 "if pd.notna(date_i) and pd.notna(date_j)" 为 False 时跳过窗口检查
-            # 使用 epoch 绝对日期转换，避免 dates[0] 为 NaT 时污染所有有效日期
+            # NaT 处理策略 (plan s1)：含 NaT 的配对视为"窗口外"，不计入跟风
+            # 用 epoch 绝对日期转换，避免基准点漂移
             _epoch = pd.Timestamp('1970-01-01')
             dates_num = np.array(
                 [(d - _epoch).days if pd.notna(d) else np.nan for d in dates],
                 dtype=np.float64)
             time_diff = np.abs(np.subtract.outer(dates_num, dates_num))
-            # NaN time_diff → 0.0: 含 NaT 的配对总是通过时间窗口检查（匹配原始行为）
-            time_diff = np.nan_to_num(time_diff, nan=0.0)
+            # NaN time_diff → TIME_WINDOW_DAYS+1: 含 NaT 的配对必然超出窗口
+            # (修复历史 bug: 之前 nan_to_num(..., nan=0.0) 会让 NaT 配对总是通过窗口检查,
+            #  导致跨任意时间相隔的相似文章被误判为前驱、herd_weight 系统性偏低)
+            time_diff = np.nan_to_num(time_diff, nan=float(TIME_WINDOW_DAYS + 1))
             valid_mask = (time_diff <= TIME_WINDOW_DAYS) & np.tril(
                 np.ones((n_articles, n_articles), dtype=bool), k=-1)
             sim_matrix = 1.0 - pairwise_distances(tfidf_matrix, metric='cosine')
             herd_mask = (sim_matrix >= SIMILARITY_THRESHOLD) & valid_mask
             similar_counts = herd_mask.sum(axis=1)
         else:
-            # ---- 分块路径（保留原始逻辑）----
+            # ---- 分块路径 ----
             similar_counts = np.zeros(n_articles, dtype=int)
             row_start = 0
             for chunk in pairwise_distances_chunked(
@@ -193,11 +194,12 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
                     # 只检查比自己更早的文章 (j < global_i)
                     for j in range(global_i):
                         date_j = dates[j]
-                        # 时间窗口检查
-                        if pd.notna(date_i) and pd.notna(date_j):
-                            delta_days = abs((date_i - date_j).days)
-                            if delta_days > TIME_WINDOW_DAYS:
-                                continue
+                        # 时间窗口检查 (plan s1: 任一为 NaT → 视为窗口外, 跳过)
+                        if pd.isna(date_i) or pd.isna(date_j):
+                            continue
+                        delta_days = abs((date_i - date_j).days)
+                        if delta_days > TIME_WINDOW_DAYS:
+                            continue
 
                         sim = similarity_chunk[local_i, j]
                         if sim >= SIMILARITY_THRESHOLD:
@@ -255,7 +257,9 @@ def main():
             f"输入文件未找到: {input_file}。"
             f"请确保阶段 23 (tone_berts) 已在 enabled_methods 中启用并成功执行。"
         )
-        return
+        # 显式以非零返回码退出, 让上游编排器能感知"DAG 24 依赖 23"契约违规,
+        # 避免父进程把 'silent return' 误判为 stage 24 成功 (详见 plan c2)。
+        raise SystemExit(1)
 
     # 记录输入文件修改时间，便于数据溯源审计
     import datetime as _dt

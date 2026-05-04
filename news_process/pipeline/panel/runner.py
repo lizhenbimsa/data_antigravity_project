@@ -55,6 +55,10 @@ from news_process.pipeline.panel.geography import (
     compute_composite_indicators, standardize_panel_variables,
     merge_bank_geography, compute_leave_one_out_sentiment,
 )
+# Phase 2a 扫尾：补全 _m43 模块别名，恢复地理距离缓冲 + 区域模仿渗透率两组特征
+# （commit 722bc0e 删除 importlib 反射时遗漏对 _m43.foo() 调用点的更新；
+# 详见 plan c1：runner.py 中 hasattr(_m43, ...) 调用点位于 ~L446 / ~L455）。
+from news_process.pipeline.panel import geography as _m43
 
 # 从 panel.iv_did (原 44)
 from news_process.pipeline.panel.iv_did import (
