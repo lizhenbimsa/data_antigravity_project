@@ -6,7 +6,109 @@
 
 ---
 
-## phase-6-baseline (2026-05-04, current HEAD)
+## v2.0.0 / phase-8-baseline (2026-05-04, current HEAD)
+
+### v2.0.0 总目标
+完成八期重构 (Phase 0 → 8) 的全终态：26 个根级数字前缀脚本全部统一为 thin shim；`news_process/{core, pipeline, papers, validation, scripts, config}` 形成完整 canonical 包结构；data 物理布局规范化；版本号正式 bump 到 v2.0.0。
+
+### Phase 7a (`bcfea64`) — 8 pipeline 类 root body 迁入子包 (+5,527 / -5,397 LOC)
+- **目标**: 把 8 个 pipeline 业务的 fully-bodied root scripts 的 body 迁入对应 `news_process.pipeline.*` 子包，root 文件变 thin shim (~23 行)，保留 `python NN_xxx.py` subprocess 调用契约。
+- **迁移列表 (5,441 LOC body)**:
+  - `11_news_bank.py` (445L)              → `pipeline/filtering/news_bank.py`
+  - `12_news_fintech.py` (356L)           → `pipeline/filtering/news_fintech.py`
+  - `14_fintech_intensity.py` (444L)      → `pipeline/filtering/fintech_intensity.py`
+  - `21_tone_llms.py` (1036L)             → `pipeline/sentiment/tone_llms.py`
+  - `22_tone_words.py` (1168L)            → `pipeline/sentiment/tone_words.py`
+  - `23_tone_berts.py` (818L)             → `pipeline/sentiment/tone_berts.py`
+  - `24_herd_decay_processor.py` (278L)   → `pipeline/sentiment/herd_decay.py`
+  - `52_stata_data_audit.py` (896L)       → `pipeline/audit/stata_audit.py`
+- **关键修复**:
+  - 子包内 `sys.path` 注入路径深度从 root 的 1 级升级为 3 级 (`os.path.dirname × 3`)。
+  - `36/39` 内部 `import_module('21_tone_llms')` 改为 `'news_process.pipeline.sentiment.tone_llms'` 以让 thin shim 化后内部函数仍可解析。
+  - 5 个测试文件 (test_11/12/22/23/24) 的 `importlib.import_module(...)` / `spec_from_file_location(...)` 加载 fixture 改为规范包 import。
+- **验收**: 778 passed / 7 skipped / 0 failed (与 phase-6-baseline 完全持平).
+
+### Phase 7b (`a4d8aec`) — 13 validation 类 root body 迁入扁平包 (+11,005 / -10,608 LOC)
+- **目标**: 把 13 个 validation 业务的 fully-bodied root scripts 的 body 迁入 `news_process/validation/` 扁平布局，原 placeholder 包正式填实。
+- **迁移列表 (10,734 LOC body)**:
+  - `30_robustness_text2vec.py` (240L)        → `validation/text2vec.py`
+  - `31_bank_fintech_threshold.py` (644L)     → `validation/threshold.py`
+  - `32_news_llms_human.py` (298L)            → `validation/llms_human.py`
+  - `32a_dedup_threshold_sensitivity.py`(193L)→ `validation/dedup_threshold.py`
+  - `33_news_llms_evaluation.py` (1502L)      → `validation/llms_evaluation.py`
+  - `34_tone_validation.py` (1893L)           → `validation/tone_validation.py`
+  - `35_radius_sensitivity.py` (1047L)        → `validation/radius_sensitivity.py`
+  - `36_entity_masking_test.py` (674L)        → `validation/entity_masking.py`
+  - `37_dict_coverage_audit.py` (993L)        → `validation/dict_coverage.py`
+  - `38_media_diversity.py` (1251L)           → `validation/media_diversity.py`
+  - `38a_temporal_mask_test.py` (194L)        → `validation/temporal_mask.py`
+  - `38b_decay_sensitivity.py` (779L)         → `validation/decay_sensitivity.py`
+  - `39_prompt_sensitivity.py` (1000L)        → `validation/prompt_sensitivity.py`
+- **关键决策**: 选择**扁平**布局 (`validation/<name>.py`) 而非按风格再分子包 (`validation/sensitivity/`, `validation/comparison/`...)，因为 12 个验证模块彼此独立、关系平行，扁平更符合 Occam's Razor。
+- **关键修复**:
+  - `entity_masking.py` / `prompt_sensitivity.py` 内 `import_module('33_news_llms_evaluation')` → `'news_process.validation.llms_evaluation'`。
+  - 6 个测试文件 (test_32/33/35/37/38b/39) fixture 修复。
+  - 临时迁移辅助脚本 `_phase7b_fix.py` 用完即删。
+- **验收**: 778 passed / 7 skipped / 0 failed.
+
+### Phase 8 (`6c31adf`) — `data_processed/` → `data/processed/` 物理重命名 (+92 / -59 LOC)
+- **目标**: 顶层数据目录重命名为更规范的层级形式。
+- **关键决策（修订原计划）**: 原 Phase 4f/5b/6e 蓝图要求的「业务组子分区」(`data/processed/00_preprocess/`, `10_filter/`, `20_sentiment/`, `40_panel/`, `50_falsification/`, `validation/`) 经审视后**主动撤销**。理由: 跨阶段交叉读取 (stage 21 读 stage 14 输出, stage 24 读 stage 23 输出, stage 51 读 stage 40 输出, stage 32a 读 stage 21 输出) 会迫使 `CONFIG['filenames']` 携带组前缀信息，反向**增加耦合** (DRY 违反)。扁平布局保留原有 `NN_xxx` 文件名前缀纪律，已用最经济方式编码业务组。
+- **物理迁移**: 22 GB / 56 文件，同卷 `mv` 原子操作 2.5 秒完成。
+- **代码改动 (12 处功能性 + ~15 处文档同步)**:
+  - `news_process/config/paths.yaml`: `output_dir: ./data_processed` → `./data/processed`。
+  - `news_process/.gitignore`: `news_process/data_processed/` → `news_process/data/`。
+  - 5 个 Stata `.do` 文件 path prelude 硬路径统一替换。
+  - `tests/fixtures/golden_panel_v0.json` 中 `data_dir` 字段更新（列 hash 不受路径影响，无需重建 fixture）。
+  - 4 个测试/脚本中的 path 解析 (test_panel_reproducibility, test_dual_track, generate_golden_snapshot, extract_papers)。
+  - `papers/_common/paper_config.py:get_paper_config()` 默认 fallback 路径更新。
+  - `migrate_data_layout.py` 头部加入 Phase 8 status notes，并把 src_dir 从 `data_processed/` 切到 `data/processed/`（变成对未来任意子分区的辅助脚本）。
+- **验收**: pytest 778 / 7 / 0；config 加载 `output_dir` 解析到 `.../news_process/data/processed`，目录可达；golden snapshot 列 hash 测试照常通过。
+- **外部影响**: 项目外 Stata 用户脚本中硬编码 `data_processed/...` 的需要搜索替换。
+
+### v2.0.0 收官 (本 commit)
+- `news_process/__init__.py`: `__version__ = "2.0.0"`，docstring 改写为 v2.0 终态描述。
+- `news_process/pyproject.toml`: `version = "2.0.0"`, description = `(v2.0.0 / phase-8-baseline)`。
+- README + 本 CHANGELOG 同步。
+- Tag chain (8 个 baseline + 1 个 release):
+  - `baseline-pre-restructure` (Phase 0 起点)
+  - `phase-1-baseline`, `phase-2-baseline`, `phase-3-baseline`, `phase-4-baseline`,
+    `phase-5-baseline`, `phase-6-baseline`, `phase-7a-baseline`, `phase-7b-baseline`,
+    `phase-8-baseline`
+  - `v2.0.0` (本次 release tag)
+
+### v2.0.0 终态架构
+```
+news_process/
+├── __init__.py (v2.0.0)
+├── pyproject.toml
+├── 26 × thin shim (≤30 LOC each)         # python NN_xxx.py 历史调用契约保留
+├── run_paper.py                            # 多论文 CLI 调度器
+├── run_pipeline_function.py                # 主流水线编排器
+├── run_pipeline_validation.py              # 验证模块编排器
+├── core/                                   # 共享内核 (config, logging, dag, schemas, ...)
+├── pipeline/                               # 业务流水线
+│   ├── preprocess/   (load, normalize, filter, dedup, runner, _constants)
+│   ├── filtering/    (news_bank, news_fintech, fintech_intensity, policy_alignment)
+│   ├── sentiment/    (tone_llms, tone_words, tone_berts, herd_decay)
+│   ├── features/     (benefit_society, strategic_diff, policy_similarity)
+│   ├── panel/        (encode, attention_media, geography, iv_did, network_*, llm_peer_iv, runner, export)
+│   ├── falsification/(controls)
+│   └── audit/        (stats_excel, stata_audit)
+├── validation/                             # 验证模块 (扁平 13 文件)
+├── papers/                                 # 多论文代码 (5 papers + _common)
+├── papers_assets/                          # 多论文非代码资产 (do/, drafts/, output/, ...)
+├── config/                                 # 7 域 YAML + prompts/
+├── data/processed/                         # 各阶段输出 (gitignored, 22 GB)
+├── data_excel/                             # 原始数据 (gitignored)
+├── tests/                                  # pytest 778 测试套件
+├── scripts/                                # CLI 工具与迁移辅助
+└── stata/                                  # README only (5 .do 已迁至 papers_assets/)
+```
+
+---
+
+## phase-6-baseline (2026-05-04)
 
 ### Phase 6 总目标
 完成 v2.0 utils/ 退役承诺：21 个根级 fully-bodied 脚本 + 2 个 orchestrator + 4 个 audit/legacy 助手统一迁移到 `news_process.core.*` canonical 路径；`news_process/utils/` 整目录删除。

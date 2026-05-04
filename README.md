@@ -4,7 +4,15 @@
 从 ~37GB 原始 XLSX 媒体报道生成可用于计量经济学研究的银行—年面板数据，
 支持 5 个独立的研究产品（论文）共享同一处理内核。
 
-## 1. 顶层架构（Phase 5 终态）
+> **当前版本: v2.0.0 / phase-8-baseline (2026-05-04)**
+> 八期重构（Phase 0 → 8）已完成。26 个根级数字前缀脚本全部统一为 thin shim；
+> `news_process/{core, pipeline, papers, validation, scripts, config}` 形成完整 canonical 包结构；
+> 数据物理布局规范化为 `data/processed/`。pytest 778 passed / 7 skipped / 0 failed。
+> 完整演进史见 [CHANGELOG.md](./CHANGELOG.md)，rollback tag 链：
+> `baseline-pre-restructure → phase-{1..6}-baseline → phase-7a-baseline →
+> phase-7b-baseline → phase-8-baseline → v2.0.0`。
+
+## 1. 顶层架构（v2.0.0 终态）
 
 ```
 news_process/
@@ -21,13 +29,29 @@ news_process/
 │   ├── dag.py                  #   STAGES_MAIN / STAGES_VALIDATION 声明式 DAG
 │   └── text/                   #   AC自动机 + 规范化 + 实体上下文抽取
 │
-├── pipeline/                   # 模块化流水线 (Phase 2-4)
+├── pipeline/                   # 模块化流水线 (Phase 2-4 + 7a)
 │   ├── preprocess/             #   阶段 00: load + normalize + filter + dedup
-│   ├── filtering/              #   阶段 15: 文章级政策语义对齐
-│   ├── sentiment/              #   阶段 21-23 (待 Phase 6 迁入)
+│   ├── filtering/              #   阶段 11/12/14/15: 银行/金融科技分类 + 强度 + 政策对齐
+│   ├── sentiment/              #   阶段 21/22/23/24: LLM/词典/BERT/跟风衰减
 │   ├── features/               #   阶段 25-27: 战略差异度 + 政策对齐 + 经营态度
 │   ├── panel/                  #   阶段 41-48 + 45 主面板组装
-│   └── falsification/          #   阶段 51: 对照变量构建
+│   ├── falsification/          #   阶段 51: 对照变量构建
+│   └── audit/                  #   阶段 52/53: Stata 数据审计 + 摘要导出
+│
+├── validation/                 # 验证模块 (Phase 7b 扁平 13 文件)
+│   ├── text2vec.py             #   阶段 30: 文本相似度稳健性
+│   ├── threshold.py            #   阶段 31: 阈值敏感性
+│   ├── llms_human.py           #   阶段 32: 人工抽样
+│   ├── dedup_threshold.py      #   阶段 32a: 去重阈值敏感性
+│   ├── llms_evaluation.py      #   阶段 33: LLM 一致性评估
+│   ├── tone_validation.py      #   阶段 34: 情感三角验证
+│   ├── radius_sensitivity.py   #   阶段 35: 上下文窗口半径
+│   ├── entity_masking.py       #   阶段 36: 实体掩码
+│   ├── dict_coverage.py        #   阶段 37: 词典覆盖率
+│   ├── media_diversity.py      #   阶段 38: 媒体多样性
+│   ├── temporal_mask.py        #   阶段 38a: 时间掩码 (前视偏误)
+│   ├── decay_sensitivity.py    #   阶段 38b: 距离衰减权重
+│   └── prompt_sensitivity.py   #   阶段 39: Prompt 措辞敏感度
 │
 ├── papers/                     # 多论文产品层 (Phase 3)
 │   ├── _common/                #   PaperConfig + load_panel + tables + figures + stata_runner
@@ -63,12 +87,11 @@ news_process/
 │   ├── legacy/                 #   归档的孤立模块
 │   └── migrate/                #   迁移辅助脚本
 ├── stata/README.md             # 历史标记: 5 个 .do 已迁至 papers_assets/<paper>/do/
-├── 00_preprocessing.py         # 根级 thin shim (CLI: ``python 00_preprocessing.py``)
-├── 11_..52_*.py                # 21 个 fully-bodied 阶段脚本 (Phase 6 待迁入 pipeline/)
+├── 00_preprocessing.py … 53_export_stats_excel.py   # 26 个 thin shim (≤30 行/个, 历史 ``python NN_xxx.py`` 调用契约保留)
 ├── run_pipeline_function.py    # 主管线编排 (消费 core.dag.STAGES_MAIN)
 ├── run_pipeline_validation.py  # 验证管线编排 (消费 core.dag.STAGES_VALIDATION)
 ├── run_paper.py                # 多论文 CLI 调度器
-└── pyproject.toml              # setuptools.packages.find = ["news_process*"]
+└── pyproject.toml              # setuptools.packages.find = ["news_process*"]; version = "2.0.0"
 ```
 
 ## 2. 快速上手
