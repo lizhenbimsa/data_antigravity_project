@@ -14,20 +14,20 @@ import numpy as np
 import pandas as pd
 import pytest
 
-# 添加项目路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+# 添加项目父目录到 sys.path 以解析 ``news_process.*``
+PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, PROJECT_PARENT)
 
-# 直接导入被测函数 (避免执行 41 的副作用)
-import importlib.util as _iu
-_p25 = os.path.join(os.path.dirname(__file__), '..', '25_strategic_differentiation.py')
-_s25 = _iu.spec_from_file_location('_25_test', _p25)
-_m25 = _iu.module_from_spec(_s25)
-_s25.loader.exec_module(_m25)
-
-_l2_normalize = _m25._l2_normalize
-_compute_nn_scores = _m25._compute_nn_scores
-_build_tfidf_sim_matrix = _m25._build_tfidf_sim_matrix
-_compute_centroid_scores = _m25._compute_centroid_scores
+# Phase 2a 重构: 25_strategic_differentiation.py 已迁移至
+# news_process.pipeline.features.strategic_diff. Phase 4e 同步 test 导入路径。
+from news_process.pipeline.features import strategic_diff as _m25
+from news_process.pipeline.features.strategic_diff import (
+    _l2_normalize,
+    _compute_nn_scores,
+    _build_tfidf_sim_matrix,
+    _compute_centroid_scores,
+)
 _aggregate_bank_year_texts = _m25._aggregate_bank_year_texts
 
 

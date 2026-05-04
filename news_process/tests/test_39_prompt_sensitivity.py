@@ -53,10 +53,19 @@ def source_code():
 
 @pytest.fixture(scope='module')
 def config():
-    """加载 config.yaml。"""
-    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'config.yaml')
-    with open(config_path, 'r', encoding='utf-8') as f:
-        return yaml.safe_load(f)
+    """加载完整项目配置.
+
+    Phase 4d 起 config 被拆为 7 个领域 YAML; 直接读 config.yaml 会得到 stub。
+    必须走 ``news_process.core.config.load_config()`` 自动 deep-merge。
+    """
+    import sys
+    PROJECT_PARENT = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if PROJECT_PARENT not in sys.path:
+        sys.path.insert(0, PROJECT_PARENT)
+    from news_process.core.config import load_config
+    return load_config()
 
 
 @pytest.fixture(scope='module')
@@ -127,10 +136,34 @@ class TestPipelineValidationConsistency:
             "stages 列表缺少 39"
 
     def test_b4_switch_name_consistent(self, rpv_code):
-        """B4: 开关名 prompt_sensitivity 与 config.yaml 一致"""
-        assert "prompt_sensitivity'" in rpv_code or \
-               'prompt_sensitivity"' in rpv_code, \
-            "开关名不一致"
+        """B4: 开关名 prompt_sensitivity 与 config.yaml 一致.
+
+        Phase 1 重构后 stage 谓词集中在 ``core/dag.py:_VALIDATION_PREDS``,
+        run_pipeline_validation.py 通过 ``filter_enabled(STAGES, CONFIG)``
+        间接消费它。校验范围扩展至 core/dag.py 与 rpv 两处。
+        """
+        # Run-pipeline-validation 仍含字符串 (docstring + 注释)
+        rpv_has_token = (
+            "prompt_sensitivity'" in rpv_code
+            or 'prompt_sensitivity"' in rpv_code
+            or 'prompt_sensitivity' in rpv_code  # docstring/comment 兜底
+        )
+
+        # core/dag.py 中是规范的 _VALIDATION_PREDS 键
+        dag_path = os.path.join(
+            os.path.dirname(__file__), '..', 'core', 'dag.py'
+        )
+        with open(dag_path, 'r', encoding='utf-8') as f:
+            dag_code = f.read()
+        dag_has_token = (
+            "'prompt_sensitivity'" in dag_code
+            or '"prompt_sensitivity"' in dag_code
+        )
+
+        assert rpv_has_token and dag_has_token, (
+            f"开关名不一致: rpv_has_token={rpv_has_token}, "
+            f"dag_has_token={dag_has_token}"
+        )
 
     def test_b5_stage39_after_37(self, rpv_code):
         """B5: 阶段39在阶段37之后"""

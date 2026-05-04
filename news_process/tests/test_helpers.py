@@ -59,11 +59,25 @@ class TestSetupLogging:
     """测试 setup_logging() 日志配置功能。"""
 
     def test_creates_log_file(self, tmp_dir):
-        """应自动创建日志文件。"""
+        """应自动创建日志文件。
+
+        Phase 4e 修复: setup_logging 在 NEWS_PROCESS_RUN_ID 环境变量存在时
+        会把日志路由到 ``<log_dir>/runs/<run_id>/<stage>.log`` (per-run 隔离)。
+        测试需要适配两种路径模式; 早期版本只检查 legacy 路径, 在
+        test_dag_consistency 等先 import 的测试设置 RUN_ID 后失败。
+        """
         log_dir = str(tmp_dir / 'logs')
         logger = setup_logging('test_stage', log_dir)
         logger.info("测试消息")
-        assert os.path.exists(os.path.join(log_dir, 'test_stage.log'))
+        run_id = os.environ.get("NEWS_PROCESS_RUN_ID")
+        if run_id:
+            expected = os.path.join(log_dir, 'runs', run_id, 'test_stage.log')
+        else:
+            expected = os.path.join(log_dir, 'test_stage.log')
+        assert os.path.exists(expected), (
+            f"Log file not at expected path {expected!r}; "
+            f"NEWS_PROCESS_RUN_ID={run_id!r}"
+        )
 
     def test_console_only_no_file(self, tmp_dir):
         """console_only=True 时不应创建文件。"""

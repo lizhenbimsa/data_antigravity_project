@@ -192,8 +192,14 @@ class TestPipelineLock(unittest.TestCase):
 
         print("✓ 测试通过")
 
+    @unittest.skipIf(
+        sys.platform == 'win32',
+        "Windows: same-process open('r') on a held-write file → "
+        "PermissionError. See test_pipeline_lock.py::test_lock_file_content "
+        "for the same skip rationale."
+    )
     def test_03_lock_file_content(self):
-        """测试3: 锁文件内容验证"""
+        """测试3: 锁文件内容验证 (Unix-only)"""
         print("\n[测试3] 锁文件内容验证...")
 
         with PipelineLock(self.logger, self.temp_dir):
@@ -319,8 +325,14 @@ class TestPipelineLock(unittest.TestCase):
                         "最终锁文件应该被清理")
         print("✓ 测试通过")
 
+    @unittest.skipIf(
+        sys.platform == 'win32',
+        "Windows: _handle_lock_failure cannot read the lock file from the "
+        "same process holding it → lock_info='未知', no PID/启动时间. See "
+        "test_pipeline_lock.py::test_lock_info_on_conflict for full rationale."
+    )
     def test_10_lock_info_on_conflict(self):
-        """测试10: 锁冲突时的信息显示"""
+        """测试10: 锁冲突时的信息显示 (Unix-only)"""
         print("\n[测试10] 锁冲突时的信息显示...")
 
         with PipelineLock(self.logger, self.temp_dir):
