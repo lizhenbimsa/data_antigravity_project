@@ -5,9 +5,10 @@ schema_validator.py — DataFrame Schema验证工具
 功能：
     验证DataFrame是否符合预定义的Schema，防止列缺失导致的KeyError。
 
-使用方法：
-    from utils.schema_validator import validate_schema, load_schemas
-
+使用方法（archive only — 此模块已被 Phase 1 弃用, 仅作历史归档）：
+    # 历史用法 (utils/ 在 Phase 6b 被删除前可用):
+    #     from utils.schema_validator import validate_schema, load_schemas
+    # 后续替代方案: news_process.core.quality.* 与 news_process.core.schemas
     schemas = load_schemas()
     if not validate_schema(df, 'stage_14_output', schemas, logger):
         raise ValueError("输入数据Schema不匹配")

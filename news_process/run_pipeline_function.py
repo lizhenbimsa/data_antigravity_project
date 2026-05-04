@@ -58,8 +58,11 @@ _PROJECT_PARENT = os.path.dirname(_HERE)
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from utils.helpers import load_config, setup_logging, log_memory_usage, log_stage_summary, run_stage
-from utils.pipeline_lock import PipelineLock
+# Phase 6a: utils.* → news_process.core.*
+from news_process.core.config import load_config
+from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.stage import run_stage
+from news_process.core.locking import PipelineLock
 
 # Phase 1: import the canonical DAG declaration so that this orchestrator and
 # core/dag.py share a single source of stage definitions.  STAGES is exposed
@@ -273,7 +276,8 @@ def run_pipeline():
         # ── 生成管道摘要报告 ──
         if all_success:
             try:
-                from utils.pipeline_reporting import generate_pipeline_summary
+                # Phase 6a: utils.pipeline_reporting → news_process.core.reporting
+                from news_process.core.reporting import generate_pipeline_summary
                 generate_pipeline_summary(CONFIG, logger)
             except Exception as e:
                 logger.error(f"生成管道摘要报告失败: {e}")

@@ -39,6 +39,8 @@
 
 import os
 import sys
+import os
+import sys
 import time
 import json
 import logging
@@ -47,11 +49,19 @@ import aiohttp
 import pandas as pd
 
 from collections import Counter
-from utils.helpers import load_config, setup_logging, log_memory_usage, log_stage_summary, save_dataset
-from utils.llm_cache import LLMCache
 
-from utils.canonicalization import canonicalize_topic
-from utils.entity_context import extract_entity_context, get_target_aliases
+# Phase 6a: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(_HERE)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.config import load_config
+from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.reporting import save_dataset
+from news_process.core.caching import LLMCache
+from news_process.core.text.canonicalization import canonicalize_topic
+from news_process.core.text.entity_context import extract_entity_context, get_target_aliases
 
 # ============================================================================
 # 1. 全局配置和初始化

@@ -51,13 +51,22 @@ import sys
 import json
 import time
 import argparse
+import os
+import sys
 import warnings
 from collections import Counter
 
 import numpy as np
 import pandas as pd
 
-from utils.helpers import load_config, setup_logging, log_stage_summary
+# Phase 6a: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(_HERE)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.config import load_config
+from news_process.core.logging import setup_logging, log_stage_summary
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -644,8 +653,10 @@ def analysis_5b_llm_cross_validation(grey_zone_df: pd.DataFrame):
     # --- 复用 21_tone_llms.py 的 LLM 基础设施 ---
     try:
         # 延迟导入, 仅在 --run-llm-check 时加载
-        from utils.helpers import load_config
-        from utils.llm_clients import call_llm_models_async
+        # Phase 6a: utils.helpers → news_process.core.config (load_config 已在文件顶部 import,
+        # 此处保留是历史 dead-code; utils.llm_clients 模块从未存在, 整个 try-block 必然走 except 分支)
+        from news_process.core.config import load_config  # noqa: F401  (re-import OK)
+        from utils.llm_clients import call_llm_models_async  # noqa: F401 — known-broken; preserved verbatim
 
         llm_config = CONFIG.get('tone_llm_processing', {})
         models = llm_config.get('models', [])

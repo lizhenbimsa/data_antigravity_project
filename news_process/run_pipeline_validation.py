@@ -42,7 +42,10 @@ _PROJECT_PARENT = os.path.dirname(_HERE)
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from utils.helpers import load_config, setup_logging, log_memory_usage, run_stage
+# Phase 6a: utils.* → news_process.core.*
+from news_process.core.config import load_config
+from news_process.core.logging import setup_logging, log_memory_usage
+from news_process.core.stage import run_stage
 
 # Phase 1: import the canonical validation DAG declaration.  STAGES is exposed
 # as a module-level constant for the static consistency test in

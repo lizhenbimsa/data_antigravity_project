@@ -29,7 +29,8 @@ def _make_test_tempdir():
 
 # === F1: llm_cache.py 完整性 ===
 print("=== F1: llm_cache final state ===")
-from utils.llm_cache import LLMCache
+# Phase 6a: utils.llm_cache → news_process.core.caching
+from news_process.core.caching import LLMCache
 
 db = os.path.join(_make_test_tempdir(), "f.db")
 c = LLMCache(db)
@@ -61,7 +62,9 @@ print()
 print("=== F3: 21_tone_llms structure ===")
 with open("21_tone_llms.py", "r", encoding="utf-8") as f:
     src = f.read()
-check("import LLMCache", "from utils.llm_cache import LLMCache" in src)
+# Phase 6a: 检查 21_tone_llms 已迁移到 canonical 路径
+check("import LLMCache (canonical)",
+      "from news_process.core.caching import LLMCache" in src)
 check("cache init", "cache = LLMCache(cache_db)" in src)
 close_count = src.count("cache.close()")
 check(f"cache.close() count={close_count}",

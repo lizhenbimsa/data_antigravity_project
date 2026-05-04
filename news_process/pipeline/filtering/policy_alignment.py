@@ -582,7 +582,8 @@ def main():
         'output_15_article_alignment', '15_article_alignment.parquet')
     output_path = os.path.join(output_dir, output_filename)
 
-    from utils.helpers import save_dataset, log_stage_summary
+    from news_process.core.reporting import save_dataset
+    from news_process.core.logging import log_stage_summary
     save_dataset(df, output_path, logger)
 
     # 统计报告

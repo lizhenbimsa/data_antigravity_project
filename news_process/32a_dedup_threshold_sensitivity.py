@@ -42,16 +42,25 @@ import time
 import importlib
 import gc
 
-# 确保能正确引用本地包
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Phase 6a: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # 保留以兼容 importlib 加载 00_preprocessing
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(_HERE)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-from utils.helpers import load_config, setup_logging
+from news_process.core.config import load_config
+from news_process.core.logging import setup_logging
 
+# Phase 6a: 00_preprocessing.py 已是 Phase 2c thin shim, ArticleDeduplicator
+# 的 canonical 路径是 news_process.pipeline.preprocess.dedup
 try:
-    preprocessing = importlib.import_module("00_preprocessing")
-    ArticleDeduplicator = preprocessing.ArticleDeduplicator
+    from news_process.pipeline.preprocess.dedup import ArticleDeduplicator
 except ImportError as e:
-    raise ImportError(f"无法导入 00_preprocessing.py: {e}")
+    raise ImportError(
+        f"无法导入 ArticleDeduplicator: {e}. "
+        f"canonical path: news_process.pipeline.preprocess.dedup"
+    )
 
 STAGE_NAME = "32a_dedup_sensitivity"
 

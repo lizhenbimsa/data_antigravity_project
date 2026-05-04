@@ -35,7 +35,8 @@ def _make_test_tempdir():
 # Test 1: LLMCache
 # ============================================
 print("=== Test 1: LLMCache ===")
-from utils.llm_cache import LLMCache
+# Phase 6a: utils.llm_cache → news_process.core.caching
+from news_process.core.caching import LLMCache
 
 db_path = os.path.join(_make_test_tempdir(), "test_cache.db")
 cache = LLMCache(db_path)
@@ -80,7 +81,8 @@ print()
 # Test 2: Config Hash
 # ============================================
 print("=== Test 2: Config Hash ===")
-from utils.helpers import load_config
+# Phase 6a: utils.helpers → news_process.core.config
+from news_process.core.config import load_config
 CONFIG = load_config()
 PARAMS = CONFIG["preprocessing"]
 

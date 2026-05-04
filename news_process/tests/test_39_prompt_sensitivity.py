@@ -200,9 +200,14 @@ class TestImportCompleteness:
             assert found, f"未使用的 import: {mod_name}"
 
     def test_c_no_redundant_imports(self, source_code):
-        """C: 冗余导入已清理"""
+        """C: 冗余导入已清理.
+
+        Phase 6a 注: ``import sys`` 因 sys.path 注入需要被合法保留;
+        从 cleaned 清单中移除 (此 import 不再算"冗余"). 其余条目仍守护
+        历史已清理状态。
+        """
         cleaned = [
-            'import sys', 'import logging',
+            'import logging',
             'from collections import Counter',
             'from utils.entity_context import',
         ]

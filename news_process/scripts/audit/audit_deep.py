@@ -37,7 +37,8 @@ def _make_test_tempdir():
 # Test A: LLMCache 并发安全 + 极端边界
 # ============================================
 print("=== Test A: LLMCache Concurrency & Edge Cases ===")
-from utils.llm_cache import LLMCache
+# Phase 6a: utils.llm_cache → news_process.core.caching
+from news_process.core.caching import LLMCache
 
 # A1: 空 prompt
 db = os.path.join(_make_test_tempdir(), "conc.db")
@@ -114,7 +115,8 @@ print()
 # Test B: Config Hash — 配置回归 + 字段覆盖
 # ============================================
 print("=== Test B: Config Hash Regression ===")
-from utils.helpers import load_config
+# Phase 6a: utils.helpers → news_process.core.config
+from news_process.core.config import load_config
 CONFIG = load_config()
 PARAMS = CONFIG["preprocessing"]
 

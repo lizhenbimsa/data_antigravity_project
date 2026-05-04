@@ -28,13 +28,22 @@
 """
 
 import os
+import sys
 import time
 import math
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
-from utils.helpers import load_config, setup_logging, save_dataset
+# Phase 6a: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(_HERE)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.config import load_config
+from news_process.core.logging import setup_logging
+from news_process.core.reporting import save_dataset
 
 CONFIG = load_config()
 STAGE_NAME = "30_robustness_text2vec"

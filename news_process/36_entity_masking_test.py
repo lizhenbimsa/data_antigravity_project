@@ -42,6 +42,8 @@ import time
 import json
 import logging
 import asyncio
+import os
+import sys
 import aiohttp
 import numpy as np
 import pandas as pd
@@ -50,7 +52,16 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from importlib import import_module
-from utils.helpers import load_config, setup_logging, save_dataset
+
+# Phase 6a: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(_HERE)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.config import load_config
+from news_process.core.logging import setup_logging
+from news_process.core.reporting import save_dataset
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -69,7 +80,7 @@ PROMPT_TEMPLATE  = _tone_llms.PROMPT_TEMPLATE
 MAX_CONCURRENCY  = _tone_llms.MAX_CONCURRENCY
 
 # get_target_aliases + extract_entity_context 在 utils.entity_context 中
-from utils.entity_context import get_target_aliases, extract_entity_context
+from news_process.core.text.entity_context import get_target_aliases, extract_entity_context
 
 # 复用评估模块的 Cohen's Kappa
 _eval = import_module('33_news_llms_evaluation')
