@@ -6,8 +6,23 @@
 clear all
 set more off
 
+* ----------------------------------------------------------------------------
+* Phase 4a 路径前奏 — papers_assets/<paper>/do/ 自包含调用契约
+* 默认假设当前工作目录是本 .do 文件所在目录:
+*     news_process/papers_assets/bank_fintech_tone/do/
+* 用户可通过 `global panel_dta "..."` / `global out_dir "..."` 显式覆盖
+* (在 do 本文件之前 set 即可)。
+* ----------------------------------------------------------------------------
+if "$panel_dta" == "" {
+    global panel_dta "../../../data_processed/40_panel_yearly.dta"
+}
+if "$out_dir" == "" {
+    global out_dir "../output"
+    capture mkdir "$out_dir"
+}
+
 // 1. 挂载数据 (确保 Python 轨已先运行导出 .dta)
-use "output/40_panel_yearly.dta", clear
+use "$panel_dta", clear
 
 // 2. 致命隐患规避：生成数值型面板 ID
 encode target_bank, generate(bank_id)
@@ -39,6 +54,6 @@ reghdfe DV strat_diff_t2v_ctx $controls, absorb(bank_id year) vce(cluster bank_i
 est store m_sd_ctx
 
 // 4. 导出 LaTeX 学术表格 (双轨并列呈现)
-esttab m_ap_full m_ap_ctx m_sd_full m_sd_ctx using "output/robustness_t2v_dual_track.tex", ///
+esttab m_ap_full m_ap_ctx m_sd_full m_sd_ctx using "$out_dir/robustness_t2v_dual_track.tex", ///
     replace label b(3) p(3) star(* 0.10 ** 0.05 *** 0.01) ///
     indicate("Bank FE = *bank_id" "Year FE = *year")

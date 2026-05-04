@@ -19,7 +19,9 @@ Strategic-Diff — 银行金融科技战略差异度 (Strategic Differentiation)
 非代码资产
 ----------
 - ``papers_assets/strategic_diff/{do,output,drafts}/``
-- TODO(Phase 3d): 关联 ``stata/strategic_differentiation.do`` 待归属确认后迁移
+- Phase 4a 已迁入:
+  - ``strategic_differentiation.do`` (Guzman-Li 2023 + Hoberg-Phillips 2016 战略差异度回归)
+  - ``text_coherence.do`` (欧阳-胡 2024 + Hoberg-Phillips 2016 相邻期文本连贯性)
 """
 
 from news_process.papers.strategic_diff import dag

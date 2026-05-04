@@ -39,13 +39,27 @@
 clear all
 set more off
 
+* ----------------------------------------------------------------------------
+* Phase 4a 路径前奏 — papers_assets/<paper>/do/ 自包含调用契约
+* 默认假设当前工作目录是本 .do 文件所在目录:
+*     news_process/papers_assets/brokerage_network/do/
+* 用户可通过 `global panel_dta "..."` / `global out_dir "..."` 显式覆盖。
+* 历史注: 原 `use "output/40_panel_data.dta"` 路径已纠正为
+*         真实落盘文件 `data_processed/40_panel_yearly.dta`。
+* ----------------------------------------------------------------------------
+if "$panel_dta" == "" {
+    global panel_dta "../../../data_processed/40_panel_yearly.dta"
+}
+if "$out_dir" == "" {
+    global out_dir "../output"
+    capture mkdir "$out_dir"
+}
+
 * ═══════════════════════════════════════════════════════════════════════════
 * 0. 数据加载与面板设定
 * ═══════════════════════════════════════════════════════════════════════════
 
-* 注意: 文件名可能因 config.yaml 中的 FILENAMES 设定而异,
-*       请根据实际输出文件名修改下行路径
-use "output/40_panel_data.dta", clear
+use "$panel_dta", clear
 
 * ── 面板设定 ──
 * encode: 将字符串型银行名转换为数值 ID (Stata 面板命令的要求)
@@ -255,7 +269,7 @@ eststo iv_ctx
 * ═══════════════════════════════════════════════════════════════════════════
 
 esttab ols_baseline iv_net2sls b1 b2 b3 c1 c2 c3 iv_ctx ///
-    using "output/network_causal.tex", ///
+    using "$out_dir/network_causal.tex", ///
     star(* .10 ** .05 *** .01) se replace ///
     title("Network Causal Identification: 2SLS and Heterogeneous Effects") ///
     mtitles("OLS" "Net-2SLS" ///

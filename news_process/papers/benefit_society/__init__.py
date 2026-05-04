@@ -15,7 +15,7 @@ Benefit-Society — 经营效益态度投影 (Operating Benefit Sentiment Projec
 非代码资产
 ----------
 - ``papers_assets/benefit_society/{do,output,drafts}/``
-- TODO(Phase 3d): 关联 ``stata/token_hidden_regression.do`` 待归属确认后迁移
+- Phase 4a 已迁入: ``token_hidden_regression.do`` (Distel 2026 + Jha-Liu-Manela 2026 双层回归)
 """
 
 from news_process.papers.benefit_society import dag

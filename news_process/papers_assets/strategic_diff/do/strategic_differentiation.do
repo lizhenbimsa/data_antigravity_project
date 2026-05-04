@@ -42,7 +42,24 @@
 
 clear all
 set more off
-use "output/40_panel_data.dta", clear
+
+* ----------------------------------------------------------------------------
+* Phase 4a 路径前奏 — papers_assets/<paper>/do/ 自包含调用契约
+* 默认假设当前工作目录是本 .do 文件所在目录:
+*     news_process/papers_assets/strategic_diff/do/
+* 用户可通过 `global panel_dta "..."` / `global out_dir "..."` 显式覆盖。
+* 历史注: 原 `use "output/40_panel_data.dta"` 路径已纠正为
+*         真实落盘文件 `data_processed/40_panel_yearly.dta`。
+* ----------------------------------------------------------------------------
+if "$panel_dta" == "" {
+    global panel_dta "../../../data_processed/40_panel_yearly.dta"
+}
+if "$out_dir" == "" {
+    global out_dir "../output"
+    capture mkdir "$out_dir"
+}
+
+use "$panel_dta", clear
 
 * ── 面板设定 ──
 encode target_bank, gen(bank_id)
@@ -90,7 +107,7 @@ foreach n of numlist 3/7 {
         absorb(bank_id year) vce(cluster bank_id)
     eststo n`n'
 }
-esttab n3 n4 n5 n6 n7 using "output/strat_n_sensitivity.tex", ///
+esttab n3 n4 n5 n6 n7 using "$out_dir/strat_n_sensitivity.tex", ///
     star(* .10 ** .05 *** .01) se replace ///
     mtitles("N=3" "N=4" "N=5" "N=6" "N=7")
 
@@ -110,7 +127,7 @@ reghdfe Y strat_diff_n5_emb $controls, ///
     absorb(bank_id year) vce(cluster bank_id)
 eststo rc
 
-esttab m1 ra rb rc using "output/strat_robustness.tex", ///
+esttab m1 ra rb rc using "$out_dir/strat_robustness.tex", ///
     star(* .10 ** .05 *** .01) se replace ///
     mtitles("TF-IDF char" "TF-IDF jieba" "LDA+JSD" "Embedding")
 
@@ -167,7 +184,7 @@ foreach method in tfidf_c tfidf_w lda emb {
     eststo cd_`method'
 }
 esttab cd_tfidf_c cd_tfidf_w cd_lda cd_emb ///
-    using "output/centroid_robustness.tex", ///
+    using "$out_dir/centroid_robustness.tex", ///
     star(* .10 ** .05 *** .01) se replace ///
     mtitles("TF-IDF char" "TF-IDF jieba" "LDA" "Embedding")
 
@@ -185,7 +202,7 @@ reghdfe Y strat_diff_n5_ctx $controls, ///
     absorb(bank_id year) vce(cluster bank_id)
 eststo nn_ctx
 
-esttab nn_full nn_ctx using "output/nn_full_vs_ctx.tex", ///
+esttab nn_full nn_ctx using "$out_dir/nn_full_vs_ctx.tex", ///
     star(* .10 ** .05 *** .01) se replace ///
     mtitles("N-NN (Full)" "N-NN (Ctx)")
 
@@ -198,7 +215,7 @@ reghdfe Y centroid_diff_tfidf_c_ctx $controls, ///
     absorb(bank_id year) vce(cluster bank_id)
 eststo cd_ctx
 
-esttab cd_full cd_ctx using "output/centroid_full_vs_ctx.tex", ///
+esttab cd_full cd_ctx using "$out_dir/centroid_full_vs_ctx.tex", ///
     star(* .10 ** .05 *** .01) se replace ///
     mtitles("Centroid (Full)" "Centroid (Ctx)")
 
@@ -239,7 +256,7 @@ foreach m in tfidf_c tfidf_w lda emb {
 }
 
 esttab auth_tfidf_c_f auth_tfidf_w_f auth_lda_f auth_emb_f ///
-    using "output/auth_sim_full_robustness.tex", ///
+    using "$out_dir/auth_sim_full_robustness.tex", ///
     star(* .10 ** .05 *** .01) se replace ///
     b(%9.3f) t(%9.2f) compress label ///
     mtitles("TF-IDF(c)" "TF-IDF(w)" "LDA" "Emb") ///

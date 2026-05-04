@@ -38,10 +38,24 @@ set more off
 *   ssc install ftools, replace
 *   ssc install estout, replace
 
+* ----------------------------------------------------------------------------
+* Phase 4a 路径前奏 — papers_assets/<paper>/do/ 自包含调用契约
+* 默认假设当前工作目录是本 .do 文件所在目录:
+*     news_process/papers_assets/benefit_society/do/
+* 用户可通过 `global panel_dta "..."` / `global out_dir "..."` 显式覆盖。
+* ----------------------------------------------------------------------------
+if "$panel_dta" == "" {
+    global panel_dta "../../../data_processed/40_panel_yearly.dta"
+}
+if "$out_dir" == "" {
+    global out_dir "../output"
+    capture mkdir "$out_dir"
+}
+
 * --- 数据加载 ---
-* 文件名与 45_panel_export_main.py L337-343 的导出逻辑一致:
+* 文件名与 pipeline.panel.runner 的导出逻辑一致:
 *   panel_path = '40_panel_yearly.parquet' -> dta_path = '40_panel_yearly.dta'
-use "40_panel_yearly.dta", clear
+use "$panel_dta", clear
 
 * --- 面板设定 ---
 * encode: 将字符串型银行名转换为数值 ID (Stata 面板命令的要求)

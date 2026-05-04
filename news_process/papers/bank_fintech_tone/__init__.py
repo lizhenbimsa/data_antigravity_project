@@ -16,9 +16,7 @@ the entire 00→11→12→14→15→21/22/23→24→45→51 stage chain).
 非代码资产
 ----------
 - ``papers_assets/bank_fintech_tone/do/``      : Stata .do 脚本
-   (Phase 3 暂留 ``news_process/stata/`` 集中目录, 按文件归属逐步迁移;
-    本论文目前确认归属: ``50_robustness_text2vec_stata.do``。其余
-    .do 文件归属待 Phase 3d 衍生论文落地后定。)
+   (Phase 4a 已迁入: ``50_robustness_text2vec_stata.do``)
 - ``papers_assets/bank_fintech_tone/output/``  : 表/图最终成品
 - ``papers_assets/bank_fintech_tone/drafts/``  : 手稿/送审稿
 """

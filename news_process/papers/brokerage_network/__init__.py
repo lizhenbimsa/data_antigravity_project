@@ -16,7 +16,7 @@ Brokerage-Network — 信息经纪网络与企业表现 (Information Brokerage N
 非代码资产
 ----------
 - ``papers_assets/brokerage_network/{do,output,drafts}/``
-- TODO(Phase 3d): 关联 ``stata/network_causal.do`` 待归属确认后迁移
+- Phase 4a 已迁入: ``network_causal.do`` (Bramoullé 2009 + Manski 1993 网络 2SLS + 异质性)
 """
 
 from news_process.papers.brokerage_network import dag

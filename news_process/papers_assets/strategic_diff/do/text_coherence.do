@@ -30,7 +30,24 @@
 
 clear all
 set more off
-use "output/40_panel_data.dta", clear
+
+* ----------------------------------------------------------------------------
+* Phase 4a 路径前奏 — papers_assets/<paper>/do/ 自包含调用契约
+* 默认假设当前工作目录是本 .do 文件所在目录:
+*     news_process/papers_assets/strategic_diff/do/
+* 用户可通过 `global panel_dta "..."` / `global out_dir "..."` 显式覆盖。
+* 历史注: 原 `use "output/40_panel_data.dta"` 路径已纠正为
+*         真实落盘文件 `data_processed/40_panel_yearly.dta`。
+* ----------------------------------------------------------------------------
+if "$panel_dta" == "" {
+    global panel_dta "../../../data_processed/40_panel_yearly.dta"
+}
+if "$out_dir" == "" {
+    global out_dir "../output"
+    capture mkdir "$out_dir"
+}
+
+use "$panel_dta", clear
 
 * ── 面板设定 ──
 encode target_bank, gen(bank_id)
@@ -82,7 +99,7 @@ foreach v in coh_tfidf_c_full coh_tfidf_w_full coh_lda_full coh_emb_full {
     eststo `v'
 }
 esttab coh_tfidf_c_full coh_tfidf_w_full coh_lda_full coh_emb_full ///
-    using "output/coh_robustness.tex", ///
+    using "$out_dir/coh_robustness.tex", ///
     star(* .10 ** .05 *** .01) se replace ///
     mtitles("TF-IDF char" "TF-IDF jieba" "LDA+JSD" "Embedding")
 

@@ -16,7 +16,8 @@ LLM-Peer — 基于大语言模型构造的同业竞争 IV (LLM-Generated Peer C
 非代码资产
 ----------
 - ``papers_assets/llm_peer/{do,output,drafts}/``
-- TODO(Phase 3d): .do 文件待迁移 (主线 stata/ 暂未确认归属此论文的 .do)
+- Phase 4a 审计: ``stata/`` 5 个原始 .do 文件均归属其它 4 篇论文; 本论文目前
+  无独立 .do, 论文级回归预计在后续手稿写作阶段补齐。
 """
 
 from news_process.papers.llm_peer import dag
