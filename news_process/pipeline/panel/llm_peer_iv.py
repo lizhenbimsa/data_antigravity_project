@@ -41,6 +41,7 @@
 
 import os
 import re
+import sys
 import json
 import asyncio
 from difflib import get_close_matches
@@ -55,7 +56,14 @@ try:
 except ImportError:
     HAS_AIOHTTP = False
 
-from utils.helpers import load_config, setup_logging
+# Phase 5c-1: 注入项目根, 让 ``news_process.core.*`` 在包模式下可解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.config import load_config
+from news_process.core.logging import setup_logging
 
 # ============================================================================
 # 1. 全局配置

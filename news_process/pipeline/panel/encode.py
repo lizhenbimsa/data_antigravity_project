@@ -17,16 +17,23 @@
 
 import os
 import re
+import sys
 import json
 import time
 import warnings
 
+# Phase 5c-1: 解析 ``news_process.core.*`` 需要项目根 (news_process/ 父目录)
+# 在 sys.path 中。包模式 / pytest fixture / 根 shim 调用都安全。
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
 import numpy as np
 import pandas as pd
 
-from utils.helpers import (
-    load_config, setup_logging
-)
+from news_process.core.config import load_config
+from news_process.core.logging import setup_logging
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 

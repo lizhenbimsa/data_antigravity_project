@@ -23,7 +23,7 @@ from news_process.pipeline.panel.encode import (
     CONFIG, logger, OUTPUT_DIR, FILENAMES, PANEL_CFG,
     LLM_MODELS, DICT_NAMES, BERT_MODELS, THREE_CLASS_MODELS,
 )
-from utils.helpers import save_dataset
+from news_process.core.reporting import save_dataset
 
 
 # ============================================================================

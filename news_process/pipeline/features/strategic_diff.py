@@ -128,7 +128,7 @@
 #   - cosine_similarity: 计算两个向量的余弦相似度（0=方向完全不同, 1=方向完全相同）
 #   - LDA (Latent Dirichlet Allocation): 主题模型，自动发现文本中隐藏的"话题"
 #   - jensenshannon: Jensen-Shannon 散度，衡量两个概率分布有多不同
-import os, logging, asyncio
+import os, sys, logging, asyncio
 import numpy as np, pandas as pd, jieba
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -136,7 +136,14 @@ from sklearn.decomposition import LatentDirichletAllocation
 from scipy.spatial.distance import jensenshannon
 import tiktoken
 import json
-from utils.llm_cache import LLMCache
+
+# Phase 5c-1: 注入项目根, 让 ``news_process.core.*`` 在包模式下可解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.caching import LLMCache
 
 # Embedding Token 级精确截断与分段 (统一 Stage 15 标准)
 # 【术语】text-embedding-3-small 使用 cl100k_base 编码，单条上限 8,191 tokens

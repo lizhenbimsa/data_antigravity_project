@@ -42,7 +42,8 @@ from news_process.pipeline.panel.encode import (
     encode_sentiment, compute_media_authority_weights, parse_time,
     build_aggregation_dict, aggregate_panel, balance_panel,
 )
-from utils.helpers import log_stage_summary, save_dataset
+from news_process.core.logging import log_stage_summary
+from news_process.core.reporting import save_dataset
 
 # 从 panel.attention_media (原 42)
 from news_process.pipeline.panel.attention_media import (

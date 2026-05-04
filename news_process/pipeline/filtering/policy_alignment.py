@@ -68,6 +68,7 @@
 """
 
 import os
+import sys
 import asyncio
 import time
 import numpy as np
@@ -75,7 +76,13 @@ import pandas as pd
 import json
 import tiktoken
 
-from utils.llm_cache import LLMCache
+# Phase 5c-1: 注入项目根, 让 ``news_process.core.*`` 在包模式下可解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.caching import LLMCache
 
 # ============================================================================
 # 1. 全局配置和初始化  (Phase 2a: 取代旧的 importlib 反射)
