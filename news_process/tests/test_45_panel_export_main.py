@@ -8,21 +8,40 @@ import os
 import sys
 import json
 import pytest
-import importlib
 import numpy as np
 import pandas as pd
 
-# 确保能 import 项目代码
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# 以数字开头的模块名需要特殊导入
-_mod_path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    '45_panel_export_main.py'
+# Phase 5a: 注入 news_process 父目录, 解析 ``news_process.*``
+_PROJECT_PARENT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 )
-_spec = importlib.util.spec_from_file_location('build_panel', _mod_path)
-bp = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(bp)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+# Phase 2c 拆分: 45_panel_export_main.py 已变为 thin shim, body 迁到
+# pipeline/panel/{encode, export, geography, runner}.py。Phase 5a 修复测试
+# 导入路径, 通过 facade 把被测函数与常量整合到 ``bp`` 命名空间。
+from news_process.pipeline.panel import encode as _enc  # noqa: E402
+from news_process.pipeline.panel import export as _exp  # noqa: E402
+from news_process.pipeline.panel import geography as _geo  # noqa: E402
+
+
+class _BpFacade:
+    """Phase 5a: 桥接层, 供测试以 ``bp.<x>`` 访问迁移后的函数与常量."""
+    # Functions
+    encode_sentiment = staticmethod(_enc.encode_sentiment)
+    parse_time = staticmethod(_enc.parse_time)
+    aggregate_panel = staticmethod(_enc.aggregate_panel)
+    balance_panel = staticmethod(_enc.balance_panel)
+    compute_composite_indicators = staticmethod(_geo.compute_composite_indicators)
+    log_diagnostics = staticmethod(_exp.log_diagnostics)
+    # Module-level constants (从 encode.py 透传)
+    LLM_MODELS = _enc.LLM_MODELS
+    BERT_MODELS = _enc.BERT_MODELS
+    THREE_CLASS_MODELS = _enc.THREE_CLASS_MODELS
+
+
+bp = _BpFacade()
 
 
 # ============================================================================

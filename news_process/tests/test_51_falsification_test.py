@@ -16,11 +16,16 @@ import pytest
 import numpy as np
 import pandas as pd
 
-# 确保可以导入项目模块
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+# Phase 5a: 注入 news_process 父目录, 解析 ``news_process.*``
+_PROJECT_PARENT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-from importlib import import_module
-mod = import_module('51_falsification_test')
+# Phase 2c 拆分: 51_falsification_test.py 已变为 thin shim, body 迁到
+# pipeline/falsification/controls.py。Phase 5a 修复测试导入路径。
+from news_process.pipeline.falsification import controls as mod  # noqa: E402
 
 
 # ============================================================================
