@@ -1,0 +1,6754 @@
+{
+  "best_global_step": 400,
+  "best_metric": 0.949927192320138,
+  "best_model_checkpoint": null,
+  "epoch": 1.0,
+  "eval_steps": 10,
+  "global_step": 800,
+  "is_hyper_param_search": false,
+  "is_local_process_zero": true,
+  "is_world_process_zero": true,
+  "log_history": [
+    {
+      "epoch": 0.00125,
+      "grad_norm": 8.601187705993652,
+      "learning_rate": 5e-05,
+      "loss": 0.7834191918373108,
+      "step": 1
+    },
+    {
+      "epoch": 0.0025,
+      "grad_norm": 5.120415210723877,
+      "learning_rate": 4.99375e-05,
+      "loss": 0.6345288157463074,
+      "step": 2
+    },
+    {
+      "epoch": 0.00375,
+      "grad_norm": 12.83114242553711,
+      "learning_rate": 4.9875000000000006e-05,
+      "loss": 1.0740807056427002,
+      "step": 3
+    },
+    {
+      "epoch": 0.005,
+      "grad_norm": 4.3782525062561035,
+      "learning_rate": 4.98125e-05,
+      "loss": 0.6763445734977722,
+      "step": 4
+    },
+    {
+      "epoch": 0.00625,
+      "grad_norm": 7.70233678817749,
+      "learning_rate": 4.975e-05,
+      "loss": 0.6874319314956665,
+      "step": 5
+    },
+    {
+      "epoch": 0.0075,
+      "grad_norm": 9.704964637756348,
+      "learning_rate": 4.96875e-05,
+      "loss": 0.5423927307128906,
+      "step": 6
+    },
+    {
+      "epoch": 0.00875,
+      "grad_norm": 10.38403034210205,
+      "learning_rate": 4.962500000000001e-05,
+      "loss": 0.8296507596969604,
+      "step": 7
+    },
+    {
+      "epoch": 0.01,
+      "grad_norm": 11.196682929992676,
+      "learning_rate": 4.95625e-05,
+      "loss": 0.9832194447517395,
+      "step": 8
+    },
+    {
+      "epoch": 0.01125,
+      "grad_norm": 4.264225959777832,
+      "learning_rate": 4.9500000000000004e-05,
+      "loss": 0.4737222194671631,
+      "step": 9
+    },
+    {
+      "epoch": 0.0125,
+      "grad_norm": 4.959493637084961,
+      "learning_rate": 4.94375e-05,
+      "loss": 0.44988328218460083,
+      "step": 10
+    },
+    {
+      "epoch": 0.0125,
+      "eval_accuracy": 0.68,
+      "eval_currentsteps": 10,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.5947861811391223,
+      "eval_loss": 0.5684413313865662,
+      "eval_precision": 0.7566509053165724,
+      "eval_recall": 0.68,
+      "eval_runtime": 2.8361,
+      "eval_samples_per_second": 141.04,
+      "eval_steps_per_second": 2.821,
+      "step": 10
+    },
+    {
+      "epoch": 0.01375,
+      "grad_norm": 3.920053243637085,
+      "learning_rate": 4.937500000000001e-05,
+      "loss": 0.42566975951194763,
+      "step": 11
+    },
+    {
+      "epoch": 0.015,
+      "grad_norm": 3.0048716068267822,
+      "learning_rate": 4.93125e-05,
+      "loss": 0.3777734637260437,
+      "step": 12
+    },
+    {
+      "epoch": 0.01625,
+      "grad_norm": 2.961376190185547,
+      "learning_rate": 4.9250000000000004e-05,
+      "loss": 0.36300987005233765,
+      "step": 13
+    },
+    {
+      "epoch": 0.0175,
+      "grad_norm": 6.5584845542907715,
+      "learning_rate": 4.91875e-05,
+      "loss": 0.6584052443504333,
+      "step": 14
+    },
+    {
+      "epoch": 0.01875,
+      "grad_norm": 3.763075113296509,
+      "learning_rate": 4.9125e-05,
+      "loss": 0.3058552145957947,
+      "step": 15
+    },
+    {
+      "epoch": 0.02,
+      "grad_norm": 4.473612308502197,
+      "learning_rate": 4.90625e-05,
+      "loss": 0.45577192306518555,
+      "step": 16
+    },
+    {
+      "epoch": 0.02125,
+      "grad_norm": 1.9860529899597168,
+      "learning_rate": 4.9e-05,
+      "loss": 0.13063818216323853,
+      "step": 17
+    },
+    {
+      "epoch": 0.0225,
+      "grad_norm": 1.18988037109375,
+      "learning_rate": 4.8937500000000004e-05,
+      "loss": 0.05104019120335579,
+      "step": 18
+    },
+    {
+      "epoch": 0.02375,
+      "grad_norm": 14.828057289123535,
+      "learning_rate": 4.8875e-05,
+      "loss": 1.2050974369049072,
+      "step": 19
+    },
+    {
+      "epoch": 0.025,
+      "grad_norm": 2.5787770748138428,
+      "learning_rate": 4.88125e-05,
+      "loss": 0.07358764857053757,
+      "step": 20
+    },
+    {
+      "epoch": 0.025,
+      "eval_accuracy": 0.67,
+      "eval_currentsteps": 20,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.5696934865900384,
+      "eval_loss": 0.9191410541534424,
+      "eval_precision": 0.7831428571428571,
+      "eval_recall": 0.67,
+      "eval_runtime": 2.8556,
+      "eval_samples_per_second": 140.075,
+      "eval_steps_per_second": 2.802,
+      "step": 20
+    },
+    {
+      "epoch": 0.02625,
+      "grad_norm": 0.5972456932067871,
+      "learning_rate": 4.875e-05,
+      "loss": 0.02343006059527397,
+      "step": 21
+    },
+    {
+      "epoch": 0.0275,
+      "grad_norm": 0.27902549505233765,
+      "learning_rate": 4.8687500000000004e-05,
+      "loss": 0.012652099132537842,
+      "step": 22
+    },
+    {
+      "epoch": 0.02875,
+      "grad_norm": 14.473398208618164,
+      "learning_rate": 4.8625e-05,
+      "loss": 1.396071195602417,
+      "step": 23
+    },
+    {
+      "epoch": 0.03,
+      "grad_norm": 0.15197426080703735,
+      "learning_rate": 4.85625e-05,
+      "loss": 0.0069196708500385284,
+      "step": 24
+    },
+    {
+      "epoch": 0.03125,
+      "grad_norm": 0.14571751654148102,
+      "learning_rate": 4.85e-05,
+      "loss": 0.006506463047116995,
+      "step": 25
+    },
+    {
+      "epoch": 0.0325,
+      "grad_norm": 0.14994563162326813,
+      "learning_rate": 4.8437500000000005e-05,
+      "loss": 0.006346073001623154,
+      "step": 26
+    },
+    {
+      "epoch": 0.03375,
+      "grad_norm": 19.82332992553711,
+      "learning_rate": 4.8375000000000004e-05,
+      "loss": 1.9586910009384155,
+      "step": 27
+    },
+    {
+      "epoch": 0.035,
+      "grad_norm": 10.75793170928955,
+      "learning_rate": 4.83125e-05,
+      "loss": 0.24341049790382385,
+      "step": 28
+    },
+    {
+      "epoch": 0.03625,
+      "grad_norm": 0.09144730865955353,
+      "learning_rate": 4.825e-05,
+      "loss": 0.004174670670181513,
+      "step": 29
+    },
+    {
+      "epoch": 0.0375,
+      "grad_norm": 12.09437084197998,
+      "learning_rate": 4.81875e-05,
+      "loss": 0.25940248370170593,
+      "step": 30
+    },
+    {
+      "epoch": 0.0375,
+      "eval_accuracy": 0.7675,
+      "eval_currentsteps": 30,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.7416037735849056,
+      "eval_loss": 0.8487252593040466,
+      "eval_precision": 0.7950833333333333,
+      "eval_recall": 0.7675,
+      "eval_runtime": 2.8587,
+      "eval_samples_per_second": 139.923,
+      "eval_steps_per_second": 2.798,
+      "step": 30
+    },
+    {
+      "epoch": 0.03875,
+      "grad_norm": 8.113752365112305,
+      "learning_rate": 4.8125000000000004e-05,
+      "loss": 0.126143217086792,
+      "step": 31
+    },
+    {
+      "epoch": 0.04,
+      "grad_norm": 4.446271896362305,
+      "learning_rate": 4.80625e-05,
+      "loss": 0.11150965839624405,
+      "step": 32
+    },
+    {
+      "epoch": 0.04125,
+      "grad_norm": 0.6827715635299683,
+      "learning_rate": 4.8e-05,
+      "loss": 0.020263483747839928,
+      "step": 33
+    },
+    {
+      "epoch": 0.0425,
+      "grad_norm": 58.194515228271484,
+      "learning_rate": 4.79375e-05,
+      "loss": 0.5091487169265747,
+      "step": 34
+    },
+    {
+      "epoch": 0.04375,
+      "grad_norm": 25.041109085083008,
+      "learning_rate": 4.7875000000000005e-05,
+      "loss": 1.1529083251953125,
+      "step": 35
+    },
+    {
+      "epoch": 0.045,
+      "grad_norm": 18.445222854614258,
+      "learning_rate": 4.7812500000000003e-05,
+      "loss": 0.09624128043651581,
+      "step": 36
+    },
+    {
+      "epoch": 0.04625,
+      "grad_norm": 5.142294406890869,
+      "learning_rate": 4.775e-05,
+      "loss": 0.056159377098083496,
+      "step": 37
+    },
+    {
+      "epoch": 0.0475,
+      "grad_norm": 16.178647994995117,
+      "learning_rate": 4.76875e-05,
+      "loss": 1.0610157251358032,
+      "step": 38
+    },
+    {
+      "epoch": 0.04875,
+      "grad_norm": 24.252960205078125,
+      "learning_rate": 4.7625000000000006e-05,
+      "loss": 0.1339850276708603,
+      "step": 39
+    },
+    {
+      "epoch": 0.05,
+      "grad_norm": 0.2521956264972687,
+      "learning_rate": 4.7562500000000004e-05,
+      "loss": 0.00918782688677311,
+      "step": 40
+    },
+    {
+      "epoch": 0.05,
+      "eval_accuracy": 0.8875,
+      "eval_currentsteps": 40,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.886895592640137,
+      "eval_loss": 0.34077587723731995,
+      "eval_precision": 0.886875,
+      "eval_recall": 0.8875,
+      "eval_runtime": 2.8654,
+      "eval_samples_per_second": 139.595,
+      "eval_steps_per_second": 2.792,
+      "step": 40
+    },
+    {
+      "epoch": 0.05125,
+      "grad_norm": 0.42176100611686707,
+      "learning_rate": 4.75e-05,
+      "loss": 0.010755407623946667,
+      "step": 41
+    },
+    {
+      "epoch": 0.0525,
+      "grad_norm": 0.10085593163967133,
+      "learning_rate": 4.74375e-05,
+      "loss": 0.004207047633826733,
+      "step": 42
+    },
+    {
+      "epoch": 0.05375,
+      "grad_norm": 80.63140869140625,
+      "learning_rate": 4.7375e-05,
+      "loss": 0.47717899084091187,
+      "step": 43
+    },
+    {
+      "epoch": 0.055,
+      "grad_norm": 1.1819169521331787,
+      "learning_rate": 4.7312500000000005e-05,
+      "loss": 0.012516465969383717,
+      "step": 44
+    },
+    {
+      "epoch": 0.05625,
+      "grad_norm": 7.002363681793213,
+      "learning_rate": 4.7249999999999997e-05,
+      "loss": 0.03084968961775303,
+      "step": 45
+    },
+    {
+      "epoch": 0.0575,
+      "grad_norm": 6.467590808868408,
+      "learning_rate": 4.71875e-05,
+      "loss": 0.06060405448079109,
+      "step": 46
+    },
+    {
+      "epoch": 0.05875,
+      "grad_norm": 36.088375091552734,
+      "learning_rate": 4.7125e-05,
+      "loss": 0.13828139007091522,
+      "step": 47
+    },
+    {
+      "epoch": 0.06,
+      "grad_norm": 0.06855568289756775,
+      "learning_rate": 4.7062500000000006e-05,
+      "loss": 0.003113921033218503,
+      "step": 48
+    },
+    {
+      "epoch": 0.06125,
+      "grad_norm": 29.300756454467773,
+      "learning_rate": 4.7e-05,
+      "loss": 0.14918917417526245,
+      "step": 49
+    },
+    {
+      "epoch": 0.0625,
+      "grad_norm": 0.05510879307985306,
+      "learning_rate": 4.69375e-05,
+      "loss": 0.002572179539129138,
+      "step": 50
+    },
+    {
+      "epoch": 0.0625,
+      "eval_accuracy": 0.895,
+      "eval_currentsteps": 50,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.8952863712933501,
+      "eval_loss": 0.4117671847343445,
+      "eval_precision": 0.8957601265991118,
+      "eval_recall": 0.895,
+      "eval_runtime": 2.8932,
+      "eval_samples_per_second": 138.253,
+      "eval_steps_per_second": 2.765,
+      "step": 50
+    },
+    {
+      "epoch": 0.06375,
+      "grad_norm": 33.1311149597168,
+      "learning_rate": 4.6875e-05,
+      "loss": 1.9156005382537842,
+      "step": 51
+    },
+    {
+      "epoch": 0.065,
+      "grad_norm": 17.216632843017578,
+      "learning_rate": 4.6812500000000006e-05,
+      "loss": 2.3947932720184326,
+      "step": 52
+    },
+    {
+      "epoch": 0.06625,
+      "grad_norm": 2.298537015914917,
+      "learning_rate": 4.6750000000000005e-05,
+      "loss": 0.010368498042225838,
+      "step": 53
+    },
+    {
+      "epoch": 0.0675,
+      "grad_norm": 0.6286584734916687,
+      "learning_rate": 4.66875e-05,
+      "loss": 0.006594317965209484,
+      "step": 54
+    },
+    {
+      "epoch": 0.06875,
+      "grad_norm": 79.34068298339844,
+      "learning_rate": 4.6625e-05,
+      "loss": 0.9707247018814087,
+      "step": 55
+    },
+    {
+      "epoch": 0.07,
+      "grad_norm": 0.06557424366474152,
+      "learning_rate": 4.65625e-05,
+      "loss": 0.0022209263406693935,
+      "step": 56
+    },
+    {
+      "epoch": 0.07125,
+      "grad_norm": 22.141231536865234,
+      "learning_rate": 4.6500000000000005e-05,
+      "loss": 3.342845916748047,
+      "step": 57
+    },
+    {
+      "epoch": 0.0725,
+      "grad_norm": 47.131988525390625,
+      "learning_rate": 4.64375e-05,
+      "loss": 0.7895606756210327,
+      "step": 58
+    },
+    {
+      "epoch": 0.07375,
+      "grad_norm": 20.399608612060547,
+      "learning_rate": 4.6375e-05,
+      "loss": 0.9741218686103821,
+      "step": 59
+    },
+    {
+      "epoch": 0.075,
+      "grad_norm": 0.07628480345010757,
+      "learning_rate": 4.63125e-05,
+      "loss": 0.0033431171905249357,
+      "step": 60
+    },
+    {
+      "epoch": 0.075,
+      "eval_accuracy": 0.84,
+      "eval_currentsteps": 60,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.8291480008373456,
+      "eval_loss": 0.6083181500434875,
+      "eval_precision": 0.8610306198655713,
+      "eval_recall": 0.84,
+      "eval_runtime": 2.8896,
+      "eval_samples_per_second": 138.427,
+      "eval_steps_per_second": 2.769,
+      "step": 60
+    },
+    {
+      "epoch": 0.07625,
+      "grad_norm": 6.370356559753418,
+      "learning_rate": 4.6250000000000006e-05,
+      "loss": 1.0391007661819458,
+      "step": 61
+    },
+    {
+      "epoch": 0.0775,
+      "grad_norm": 52.27104568481445,
+      "learning_rate": 4.61875e-05,
+      "loss": 1.235314965248108,
+      "step": 62
+    },
+    {
+      "epoch": 0.07875,
+      "grad_norm": 0.777672529220581,
+      "learning_rate": 4.6125e-05,
+      "loss": 0.013010336086153984,
+      "step": 63
+    },
+    {
+      "epoch": 0.08,
+      "grad_norm": 22.981449127197266,
+      "learning_rate": 4.60625e-05,
+      "loss": 0.3964284062385559,
+      "step": 64
+    },
+    {
+      "epoch": 0.08125,
+      "grad_norm": 6.165037631988525,
+      "learning_rate": 4.600000000000001e-05,
+      "loss": 0.7985392808914185,
+      "step": 65
+    },
+    {
+      "epoch": 0.0825,
+      "grad_norm": 151.50222778320312,
+      "learning_rate": 4.59375e-05,
+      "loss": 0.4591450095176697,
+      "step": 66
+    },
+    {
+      "epoch": 0.08375,
+      "grad_norm": 1.5421600341796875,
+      "learning_rate": 4.5875000000000004e-05,
+      "loss": 0.034226469695568085,
+      "step": 67
+    },
+    {
+      "epoch": 0.085,
+      "grad_norm": 1.414178490638733,
+      "learning_rate": 4.58125e-05,
+      "loss": 0.040940236300230026,
+      "step": 68
+    },
+    {
+      "epoch": 0.08625,
+      "grad_norm": 3.4289956092834473,
+      "learning_rate": 4.575e-05,
+      "loss": 0.08841271698474884,
+      "step": 69
+    },
+    {
+      "epoch": 0.0875,
+      "grad_norm": 0.8087802529335022,
+      "learning_rate": 4.56875e-05,
+      "loss": 0.030108267441391945,
+      "step": 70
+    },
+    {
+      "epoch": 0.0875,
+      "eval_accuracy": 0.9225,
+      "eval_currentsteps": 70,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9231190742049936,
+      "eval_loss": 0.32380881905555725,
+      "eval_precision": 0.9257500000000001,
+      "eval_recall": 0.9225,
+      "eval_runtime": 3.2766,
+      "eval_samples_per_second": 122.076,
+      "eval_steps_per_second": 2.442,
+      "step": 70
+    },
+    {
+      "epoch": 0.08875,
+      "grad_norm": 8.71561336517334,
+      "learning_rate": 4.5625e-05,
+      "loss": 0.11612711101770401,
+      "step": 71
+    },
+    {
+      "epoch": 0.09,
+      "grad_norm": 17.331785202026367,
+      "learning_rate": 4.55625e-05,
+      "loss": 0.6917524337768555,
+      "step": 72
+    },
+    {
+      "epoch": 0.09125,
+      "grad_norm": 4.9185686111450195,
+      "learning_rate": 4.55e-05,
+      "loss": 0.06731556355953217,
+      "step": 73
+    },
+    {
+      "epoch": 0.0925,
+      "grad_norm": 2.3282008171081543,
+      "learning_rate": 4.54375e-05,
+      "loss": 0.027585115283727646,
+      "step": 74
+    },
+    {
+      "epoch": 0.09375,
+      "grad_norm": 0.11663749814033508,
+      "learning_rate": 4.5375e-05,
+      "loss": 0.005388789810240269,
+      "step": 75
+    },
+    {
+      "epoch": 0.095,
+      "grad_norm": 8.215834617614746,
+      "learning_rate": 4.5312500000000004e-05,
+      "loss": 0.050158239901065826,
+      "step": 76
+    },
+    {
+      "epoch": 0.09625,
+      "grad_norm": 5.181911945343018,
+      "learning_rate": 4.525e-05,
+      "loss": 1.2800781726837158,
+      "step": 77
+    },
+    {
+      "epoch": 0.0975,
+      "grad_norm": 5.53354024887085,
+      "learning_rate": 4.518750000000001e-05,
+      "loss": 0.0295399222522974,
+      "step": 78
+    },
+    {
+      "epoch": 0.09875,
+      "grad_norm": 7.856886863708496,
+      "learning_rate": 4.5125e-05,
+      "loss": 1.208402156829834,
+      "step": 79
+    },
+    {
+      "epoch": 0.1,
+      "grad_norm": 7.3964924812316895,
+      "learning_rate": 4.5062500000000004e-05,
+      "loss": 1.106452226638794,
+      "step": 80
+    },
+    {
+      "epoch": 0.1,
+      "eval_accuracy": 0.9225,
+      "eval_currentsteps": 80,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9224441774205491,
+      "eval_loss": 0.2702104151248932,
+      "eval_precision": 0.9224006309998921,
+      "eval_recall": 0.9225,
+      "eval_runtime": 3.2587,
+      "eval_samples_per_second": 122.749,
+      "eval_steps_per_second": 2.455,
+      "step": 80
+    },
+    {
+      "epoch": 0.10125,
+      "grad_norm": 8.20474910736084,
+      "learning_rate": 4.5e-05,
+      "loss": 0.9901391863822937,
+      "step": 81
+    },
+    {
+      "epoch": 0.1025,
+      "grad_norm": 24.441020965576172,
+      "learning_rate": 4.49375e-05,
+      "loss": 2.014626979827881,
+      "step": 82
+    },
+    {
+      "epoch": 0.10375,
+      "grad_norm": 0.3054734468460083,
+      "learning_rate": 4.4875e-05,
+      "loss": 0.01011539064347744,
+      "step": 83
+    },
+    {
+      "epoch": 0.105,
+      "grad_norm": 0.3408147692680359,
+      "learning_rate": 4.4812500000000005e-05,
+      "loss": 0.014253474771976471,
+      "step": 84
+    },
+    {
+      "epoch": 0.10625,
+      "grad_norm": 0.334770143032074,
+      "learning_rate": 4.4750000000000004e-05,
+      "loss": 0.01416890136897564,
+      "step": 85
+    },
+    {
+      "epoch": 0.1075,
+      "grad_norm": 3.5965383052825928,
+      "learning_rate": 4.46875e-05,
+      "loss": 0.03895730525255203,
+      "step": 86
+    },
+    {
+      "epoch": 0.10875,
+      "grad_norm": 0.7768566608428955,
+      "learning_rate": 4.4625e-05,
+      "loss": 0.019598398357629776,
+      "step": 87
+    },
+    {
+      "epoch": 0.11,
+      "grad_norm": 0.8176143765449524,
+      "learning_rate": 4.45625e-05,
+      "loss": 0.024535764008760452,
+      "step": 88
+    },
+    {
+      "epoch": 0.11125,
+      "grad_norm": 0.3474259078502655,
+      "learning_rate": 4.4500000000000004e-05,
+      "loss": 0.016858384013175964,
+      "step": 89
+    },
+    {
+      "epoch": 0.1125,
+      "grad_norm": 8.588044166564941,
+      "learning_rate": 4.44375e-05,
+      "loss": 0.040714941918849945,
+      "step": 90
+    },
+    {
+      "epoch": 0.1125,
+      "eval_accuracy": 0.925,
+      "eval_currentsteps": 90,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9235294117647058,
+      "eval_loss": 0.2816697955131531,
+      "eval_precision": 0.9284399999999999,
+      "eval_recall": 0.925,
+      "eval_runtime": 3.2621,
+      "eval_samples_per_second": 122.62,
+      "eval_steps_per_second": 2.452,
+      "step": 90
+    },
+    {
+      "epoch": 0.11375,
+      "grad_norm": 0.13255858421325684,
+      "learning_rate": 4.4375e-05,
+      "loss": 0.006722387857735157,
+      "step": 91
+    },
+    {
+      "epoch": 0.115,
+      "grad_norm": 8.591821670532227,
+      "learning_rate": 4.43125e-05,
+      "loss": 0.8539228439331055,
+      "step": 92
+    },
+    {
+      "epoch": 0.11625,
+      "grad_norm": 12.085201263427734,
+      "learning_rate": 4.4250000000000005e-05,
+      "loss": 0.08909823000431061,
+      "step": 93
+    },
+    {
+      "epoch": 0.1175,
+      "grad_norm": 9.357352256774902,
+      "learning_rate": 4.4187500000000003e-05,
+      "loss": 1.0040738582611084,
+      "step": 94
+    },
+    {
+      "epoch": 0.11875,
+      "grad_norm": 6.418607711791992,
+      "learning_rate": 4.4125e-05,
+      "loss": 0.9973481297492981,
+      "step": 95
+    },
+    {
+      "epoch": 0.12,
+      "grad_norm": 0.2203211784362793,
+      "learning_rate": 4.40625e-05,
+      "loss": 0.010081974789500237,
+      "step": 96
+    },
+    {
+      "epoch": 0.12125,
+      "grad_norm": 0.22220070660114288,
+      "learning_rate": 4.4000000000000006e-05,
+      "loss": 0.011163007467985153,
+      "step": 97
+    },
+    {
+      "epoch": 0.1225,
+      "grad_norm": 5.14579963684082,
+      "learning_rate": 4.3937500000000004e-05,
+      "loss": 0.9058439135551453,
+      "step": 98
+    },
+    {
+      "epoch": 0.12375,
+      "grad_norm": 1.0040106773376465,
+      "learning_rate": 4.3875e-05,
+      "loss": 0.016607416793704033,
+      "step": 99
+    },
+    {
+      "epoch": 0.125,
+      "grad_norm": 18.393190383911133,
+      "learning_rate": 4.38125e-05,
+      "loss": 0.07459238916635513,
+      "step": 100
+    },
+    {
+      "epoch": 0.125,
+      "eval_accuracy": 0.8925,
+      "eval_currentsteps": 100,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.8937560137457043,
+      "eval_loss": 0.4002581834793091,
+      "eval_precision": 0.9000107758620689,
+      "eval_recall": 0.8925,
+      "eval_runtime": 2.8892,
+      "eval_samples_per_second": 138.446,
+      "eval_steps_per_second": 2.769,
+      "step": 100
+    },
+    {
+      "epoch": 0.12625,
+      "grad_norm": 0.4315119683742523,
+      "learning_rate": 4.375e-05,
+      "loss": 0.018327664583921432,
+      "step": 101
+    },
+    {
+      "epoch": 0.1275,
+      "grad_norm": 8.591570854187012,
+      "learning_rate": 4.3687500000000005e-05,
+      "loss": 1.8177196979522705,
+      "step": 102
+    },
+    {
+      "epoch": 0.12875,
+      "grad_norm": 0.3466501533985138,
+      "learning_rate": 4.3625e-05,
+      "loss": 0.016091685742139816,
+      "step": 103
+    },
+    {
+      "epoch": 0.13,
+      "grad_norm": 34.449195861816406,
+      "learning_rate": 4.35625e-05,
+      "loss": 0.8164817094802856,
+      "step": 104
+    },
+    {
+      "epoch": 0.13125,
+      "grad_norm": 96.42601776123047,
+      "learning_rate": 4.35e-05,
+      "loss": 0.21657247841358185,
+      "step": 105
+    },
+    {
+      "epoch": 0.1325,
+      "grad_norm": 0.37841615080833435,
+      "learning_rate": 4.3437500000000006e-05,
+      "loss": 0.018169045448303223,
+      "step": 106
+    },
+    {
+      "epoch": 0.13375,
+      "grad_norm": 0.22013278305530548,
+      "learning_rate": 4.3375000000000004e-05,
+      "loss": 0.011242437176406384,
+      "step": 107
+    },
+    {
+      "epoch": 0.135,
+      "grad_norm": 0.41935592889785767,
+      "learning_rate": 4.33125e-05,
+      "loss": 0.01855052448809147,
+      "step": 108
+    },
+    {
+      "epoch": 0.13625,
+      "grad_norm": 15.571112632751465,
+      "learning_rate": 4.325e-05,
+      "loss": 0.08763788640499115,
+      "step": 109
+    },
+    {
+      "epoch": 0.1375,
+      "grad_norm": 0.2603761553764343,
+      "learning_rate": 4.3187500000000006e-05,
+      "loss": 0.01305989921092987,
+      "step": 110
+    },
+    {
+      "epoch": 0.1375,
+      "eval_accuracy": 0.9175,
+      "eval_currentsteps": 110,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9173178660401433,
+      "eval_loss": 0.3075001537799835,
+      "eval_precision": 0.91724609375,
+      "eval_recall": 0.9175,
+      "eval_runtime": 2.895,
+      "eval_samples_per_second": 138.168,
+      "eval_steps_per_second": 2.763,
+      "step": 110
+    },
+    {
+      "epoch": 0.13875,
+      "grad_norm": 7.896780490875244,
+      "learning_rate": 4.3125000000000005e-05,
+      "loss": 0.977611243724823,
+      "step": 111
+    },
+    {
+      "epoch": 0.14,
+      "grad_norm": 5.211127758026123,
+      "learning_rate": 4.30625e-05,
+      "loss": 0.883838951587677,
+      "step": 112
+    },
+    {
+      "epoch": 0.14125,
+      "grad_norm": 15.898067474365234,
+      "learning_rate": 4.3e-05,
+      "loss": 1.5280890464782715,
+      "step": 113
+    },
+    {
+      "epoch": 0.1425,
+      "grad_norm": 0.375763863325119,
+      "learning_rate": 4.29375e-05,
+      "loss": 0.01790052466094494,
+      "step": 114
+    },
+    {
+      "epoch": 0.14375,
+      "grad_norm": 0.27288657426834106,
+      "learning_rate": 4.2875000000000005e-05,
+      "loss": 0.01407112367451191,
+      "step": 115
+    },
+    {
+      "epoch": 0.145,
+      "grad_norm": 35.767921447753906,
+      "learning_rate": 4.28125e-05,
+      "loss": 0.15632519125938416,
+      "step": 116
+    },
+    {
+      "epoch": 0.14625,
+      "grad_norm": 1.2778816223144531,
+      "learning_rate": 4.275e-05,
+      "loss": 0.027934769168496132,
+      "step": 117
+    },
+    {
+      "epoch": 0.1475,
+      "grad_norm": 0.2771108150482178,
+      "learning_rate": 4.26875e-05,
+      "loss": 0.014695671387016773,
+      "step": 118
+    },
+    {
+      "epoch": 0.14875,
+      "grad_norm": 16.21714973449707,
+      "learning_rate": 4.2625000000000006e-05,
+      "loss": 0.6544057130813599,
+      "step": 119
+    },
+    {
+      "epoch": 0.15,
+      "grad_norm": 15.412474632263184,
+      "learning_rate": 4.25625e-05,
+      "loss": 0.676026463508606,
+      "step": 120
+    },
+    {
+      "epoch": 0.15,
+      "eval_accuracy": 0.885,
+      "eval_currentsteps": 120,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.8801573361022179,
+      "eval_loss": 0.39574187994003296,
+      "eval_precision": 0.8968720296003317,
+      "eval_recall": 0.885,
+      "eval_runtime": 2.8983,
+      "eval_samples_per_second": 138.014,
+      "eval_steps_per_second": 2.76,
+      "step": 120
+    },
+    {
+      "epoch": 0.15125,
+      "grad_norm": 26.755582809448242,
+      "learning_rate": 4.25e-05,
+      "loss": 0.7239950895309448,
+      "step": 121
+    },
+    {
+      "epoch": 0.1525,
+      "grad_norm": 9.964980125427246,
+      "learning_rate": 4.24375e-05,
+      "loss": 0.8085581064224243,
+      "step": 122
+    },
+    {
+      "epoch": 0.15375,
+      "grad_norm": 2.7305965423583984,
+      "learning_rate": 4.237500000000001e-05,
+      "loss": 0.026400331407785416,
+      "step": 123
+    },
+    {
+      "epoch": 0.155,
+      "grad_norm": 75.28052520751953,
+      "learning_rate": 4.23125e-05,
+      "loss": 0.301514208316803,
+      "step": 124
+    },
+    {
+      "epoch": 0.15625,
+      "grad_norm": 0.36440688371658325,
+      "learning_rate": 4.2250000000000004e-05,
+      "loss": 0.016234731301665306,
+      "step": 125
+    },
+    {
+      "epoch": 0.1575,
+      "grad_norm": 0.3068808615207672,
+      "learning_rate": 4.21875e-05,
+      "loss": 0.014163821935653687,
+      "step": 126
+    },
+    {
+      "epoch": 0.15875,
+      "grad_norm": 16.810569763183594,
+      "learning_rate": 4.2125e-05,
+      "loss": 0.6406798362731934,
+      "step": 127
+    },
+    {
+      "epoch": 0.16,
+      "grad_norm": 92.44607543945312,
+      "learning_rate": 4.2062500000000006e-05,
+      "loss": 1.0206239223480225,
+      "step": 128
+    },
+    {
+      "epoch": 0.16125,
+      "grad_norm": 6.850860595703125,
+      "learning_rate": 4.2e-05,
+      "loss": 0.0695517361164093,
+      "step": 129
+    },
+    {
+      "epoch": 0.1625,
+      "grad_norm": 7.9525041580200195,
+      "learning_rate": 4.19375e-05,
+      "loss": 0.5995244979858398,
+      "step": 130
+    },
+    {
+      "epoch": 0.1625,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 130,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9311030001604363,
+      "eval_loss": 0.23106029629707336,
+      "eval_precision": 0.9367809139784947,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.9057,
+      "eval_samples_per_second": 137.66,
+      "eval_steps_per_second": 2.753,
+      "step": 130
+    },
+    {
+      "epoch": 0.16375,
+      "grad_norm": 2.236126661300659,
+      "learning_rate": 4.1875e-05,
+      "loss": 0.048348505049943924,
+      "step": 131
+    },
+    {
+      "epoch": 0.165,
+      "grad_norm": 0.650623083114624,
+      "learning_rate": 4.181250000000001e-05,
+      "loss": 0.022754572331905365,
+      "step": 132
+    },
+    {
+      "epoch": 0.16625,
+      "grad_norm": 0.48812445998191833,
+      "learning_rate": 4.175e-05,
+      "loss": 0.023678001016378403,
+      "step": 133
+    },
+    {
+      "epoch": 0.1675,
+      "grad_norm": 22.07341766357422,
+      "learning_rate": 4.1687500000000004e-05,
+      "loss": 0.6007930040359497,
+      "step": 134
+    },
+    {
+      "epoch": 0.16875,
+      "grad_norm": 0.231856569647789,
+      "learning_rate": 4.1625e-05,
+      "loss": 0.012038280256092548,
+      "step": 135
+    },
+    {
+      "epoch": 0.17,
+      "grad_norm": 0.3961343467235565,
+      "learning_rate": 4.156250000000001e-05,
+      "loss": 0.010753652080893517,
+      "step": 136
+    },
+    {
+      "epoch": 0.17125,
+      "grad_norm": 16.566452026367188,
+      "learning_rate": 4.15e-05,
+      "loss": 0.06144300848245621,
+      "step": 137
+    },
+    {
+      "epoch": 0.1725,
+      "grad_norm": 6.543849468231201,
+      "learning_rate": 4.1437500000000004e-05,
+      "loss": 0.8503146171569824,
+      "step": 138
+    },
+    {
+      "epoch": 0.17375,
+      "grad_norm": 0.45899495482444763,
+      "learning_rate": 4.1375e-05,
+      "loss": 0.01441572792828083,
+      "step": 139
+    },
+    {
+      "epoch": 0.175,
+      "grad_norm": 10.106452941894531,
+      "learning_rate": 4.13125e-05,
+      "loss": 0.8321036100387573,
+      "step": 140
+    },
+    {
+      "epoch": 0.175,
+      "eval_accuracy": 0.915,
+      "eval_currentsteps": 140,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.915634278002699,
+      "eval_loss": 0.29209643602371216,
+      "eval_precision": 0.9179703280357003,
+      "eval_recall": 0.915,
+      "eval_runtime": 2.9042,
+      "eval_samples_per_second": 137.733,
+      "eval_steps_per_second": 2.755,
+      "step": 140
+    },
+    {
+      "epoch": 0.17625,
+      "grad_norm": 0.10743803530931473,
+      "learning_rate": 4.125e-05,
+      "loss": 0.004962938372045755,
+      "step": 141
+    },
+    {
+      "epoch": 0.1775,
+      "grad_norm": 101.14637756347656,
+      "learning_rate": 4.11875e-05,
+      "loss": 0.2312668114900589,
+      "step": 142
+    },
+    {
+      "epoch": 0.17875,
+      "grad_norm": 5.171983242034912,
+      "learning_rate": 4.1125000000000004e-05,
+      "loss": 0.9954632520675659,
+      "step": 143
+    },
+    {
+      "epoch": 0.18,
+      "grad_norm": 3.2079989910125732,
+      "learning_rate": 4.10625e-05,
+      "loss": 0.027296507731080055,
+      "step": 144
+    },
+    {
+      "epoch": 0.18125,
+      "grad_norm": 0.16436146199703217,
+      "learning_rate": 4.1e-05,
+      "loss": 0.00798429362475872,
+      "step": 145
+    },
+    {
+      "epoch": 0.1825,
+      "grad_norm": 0.20821040868759155,
+      "learning_rate": 4.09375e-05,
+      "loss": 0.008554241620004177,
+      "step": 146
+    },
+    {
+      "epoch": 0.18375,
+      "grad_norm": 4.869121074676514,
+      "learning_rate": 4.0875000000000004e-05,
+      "loss": 1.0602188110351562,
+      "step": 147
+    },
+    {
+      "epoch": 0.185,
+      "grad_norm": 20.56504249572754,
+      "learning_rate": 4.08125e-05,
+      "loss": 1.1942554712295532,
+      "step": 148
+    },
+    {
+      "epoch": 0.18625,
+      "grad_norm": 8.471122741699219,
+      "learning_rate": 4.075e-05,
+      "loss": 0.05564045161008835,
+      "step": 149
+    },
+    {
+      "epoch": 0.1875,
+      "grad_norm": 0.44695523381233215,
+      "learning_rate": 4.06875e-05,
+      "loss": 0.01645100675523281,
+      "step": 150
+    },
+    {
+      "epoch": 0.1875,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 150,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.935,
+      "eval_loss": 0.24553702771663666,
+      "eval_precision": 0.935,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.8891,
+      "eval_samples_per_second": 138.454,
+      "eval_steps_per_second": 2.769,
+      "step": 150
+    },
+    {
+      "epoch": 0.18875,
+      "grad_norm": 0.4311407804489136,
+      "learning_rate": 4.0625000000000005e-05,
+      "loss": 0.01510706264525652,
+      "step": 151
+    },
+    {
+      "epoch": 0.19,
+      "grad_norm": 21.08576011657715,
+      "learning_rate": 4.0562500000000003e-05,
+      "loss": 0.6018692255020142,
+      "step": 152
+    },
+    {
+      "epoch": 0.19125,
+      "grad_norm": 0.328975111246109,
+      "learning_rate": 4.05e-05,
+      "loss": 0.013632217422127724,
+      "step": 153
+    },
+    {
+      "epoch": 0.1925,
+      "grad_norm": 5.721887111663818,
+      "learning_rate": 4.04375e-05,
+      "loss": 0.04223586246371269,
+      "step": 154
+    },
+    {
+      "epoch": 0.19375,
+      "grad_norm": 8.146445274353027,
+      "learning_rate": 4.0375e-05,
+      "loss": 0.08685771375894547,
+      "step": 155
+    },
+    {
+      "epoch": 0.195,
+      "grad_norm": 0.16158218681812286,
+      "learning_rate": 4.0312500000000004e-05,
+      "loss": 0.00697675347328186,
+      "step": 156
+    },
+    {
+      "epoch": 0.19625,
+      "grad_norm": 0.18286475539207458,
+      "learning_rate": 4.025e-05,
+      "loss": 0.009394054301083088,
+      "step": 157
+    },
+    {
+      "epoch": 0.1975,
+      "grad_norm": 4.876049995422363,
+      "learning_rate": 4.01875e-05,
+      "loss": 1.0338345766067505,
+      "step": 158
+    },
+    {
+      "epoch": 0.19875,
+      "grad_norm": 7.353526592254639,
+      "learning_rate": 4.0125e-05,
+      "loss": 0.024974269792437553,
+      "step": 159
+    },
+    {
+      "epoch": 0.2,
+      "grad_norm": 4.830443382263184,
+      "learning_rate": 4.0062500000000005e-05,
+      "loss": 0.03456677123904228,
+      "step": 160
+    },
+    {
+      "epoch": 0.2,
+      "eval_accuracy": 0.94,
+      "eval_currentsteps": 160,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9394183849502998,
+      "eval_loss": 0.25348612666130066,
+      "eval_precision": 0.9407044025157234,
+      "eval_recall": 0.94,
+      "eval_runtime": 2.9082,
+      "eval_samples_per_second": 137.54,
+      "eval_steps_per_second": 2.751,
+      "step": 160
+    },
+    {
+      "epoch": 0.20125,
+      "grad_norm": 2.8034911155700684,
+      "learning_rate": 4e-05,
+      "loss": 0.023208821192383766,
+      "step": 161
+    },
+    {
+      "epoch": 0.2025,
+      "grad_norm": 19.821619033813477,
+      "learning_rate": 3.99375e-05,
+      "loss": 0.6475265026092529,
+      "step": 162
+    },
+    {
+      "epoch": 0.20375,
+      "grad_norm": 45.93604278564453,
+      "learning_rate": 3.9875e-05,
+      "loss": 0.29832375049591064,
+      "step": 163
+    },
+    {
+      "epoch": 0.205,
+      "grad_norm": 30.372156143188477,
+      "learning_rate": 3.9812500000000005e-05,
+      "loss": 0.6107548475265503,
+      "step": 164
+    },
+    {
+      "epoch": 0.20625,
+      "grad_norm": 3.973677396774292,
+      "learning_rate": 3.9750000000000004e-05,
+      "loss": 0.031000489369034767,
+      "step": 165
+    },
+    {
+      "epoch": 0.2075,
+      "grad_norm": 81.83518981933594,
+      "learning_rate": 3.96875e-05,
+      "loss": 0.6861572265625,
+      "step": 166
+    },
+    {
+      "epoch": 0.20875,
+      "grad_norm": 0.5073955059051514,
+      "learning_rate": 3.9625e-05,
+      "loss": 0.01318665873259306,
+      "step": 167
+    },
+    {
+      "epoch": 0.21,
+      "grad_norm": 0.16401652991771698,
+      "learning_rate": 3.95625e-05,
+      "loss": 0.008150670677423477,
+      "step": 168
+    },
+    {
+      "epoch": 0.21125,
+      "grad_norm": 0.28679540753364563,
+      "learning_rate": 3.9500000000000005e-05,
+      "loss": 0.009972766973078251,
+      "step": 169
+    },
+    {
+      "epoch": 0.2125,
+      "grad_norm": 45.45648193359375,
+      "learning_rate": 3.9437499999999996e-05,
+      "loss": 1.3253122568130493,
+      "step": 170
+    },
+    {
+      "epoch": 0.2125,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 170,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.93425,
+      "eval_loss": 0.28643134236335754,
+      "eval_precision": 0.936042775478021,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.9063,
+      "eval_samples_per_second": 137.632,
+      "eval_steps_per_second": 2.753,
+      "step": 170
+    },
+    {
+      "epoch": 0.21375,
+      "grad_norm": 0.47618356347084045,
+      "learning_rate": 3.9375e-05,
+      "loss": 0.015591459348797798,
+      "step": 171
+    },
+    {
+      "epoch": 0.215,
+      "grad_norm": 109.44165802001953,
+      "learning_rate": 3.93125e-05,
+      "loss": 0.08046059310436249,
+      "step": 172
+    },
+    {
+      "epoch": 0.21625,
+      "grad_norm": 23.184144973754883,
+      "learning_rate": 3.9250000000000005e-05,
+      "loss": 0.8247553706169128,
+      "step": 173
+    },
+    {
+      "epoch": 0.2175,
+      "grad_norm": 7.613543510437012,
+      "learning_rate": 3.91875e-05,
+      "loss": 1.0254676342010498,
+      "step": 174
+    },
+    {
+      "epoch": 0.21875,
+      "grad_norm": 7.908517360687256,
+      "learning_rate": 3.9125e-05,
+      "loss": 1.0107078552246094,
+      "step": 175
+    },
+    {
+      "epoch": 0.22,
+      "grad_norm": 0.1585244983434677,
+      "learning_rate": 3.90625e-05,
+      "loss": 0.008055651560425758,
+      "step": 176
+    },
+    {
+      "epoch": 0.22125,
+      "grad_norm": 37.545352935791016,
+      "learning_rate": 3.9000000000000006e-05,
+      "loss": 0.7235859036445618,
+      "step": 177
+    },
+    {
+      "epoch": 0.2225,
+      "grad_norm": 0.19092640280723572,
+      "learning_rate": 3.8937500000000005e-05,
+      "loss": 0.009086326695978642,
+      "step": 178
+    },
+    {
+      "epoch": 0.22375,
+      "grad_norm": 1.6213027238845825,
+      "learning_rate": 3.8875e-05,
+      "loss": 0.015760749578475952,
+      "step": 179
+    },
+    {
+      "epoch": 0.225,
+      "grad_norm": 5.122209072113037,
+      "learning_rate": 3.88125e-05,
+      "loss": 0.8536607623100281,
+      "step": 180
+    },
+    {
+      "epoch": 0.225,
+      "eval_accuracy": 0.93,
+      "eval_currentsteps": 180,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9289196813806836,
+      "eval_loss": 0.25885894894599915,
+      "eval_precision": 0.9320750021453703,
+      "eval_recall": 0.93,
+      "eval_runtime": 2.9051,
+      "eval_samples_per_second": 137.688,
+      "eval_steps_per_second": 2.754,
+      "step": 180
+    },
+    {
+      "epoch": 0.22625,
+      "grad_norm": 0.3296944200992584,
+      "learning_rate": 3.875e-05,
+      "loss": 0.013507010415196419,
+      "step": 181
+    },
+    {
+      "epoch": 0.2275,
+      "grad_norm": 0.3547375202178955,
+      "learning_rate": 3.8687500000000005e-05,
+      "loss": 0.0156782828271389,
+      "step": 182
+    },
+    {
+      "epoch": 0.22875,
+      "grad_norm": 1.5021196603775024,
+      "learning_rate": 3.8625e-05,
+      "loss": 0.028842046856880188,
+      "step": 183
+    },
+    {
+      "epoch": 0.23,
+      "grad_norm": 5.744002342224121,
+      "learning_rate": 3.85625e-05,
+      "loss": 0.7283192276954651,
+      "step": 184
+    },
+    {
+      "epoch": 0.23125,
+      "grad_norm": 5.158331871032715,
+      "learning_rate": 3.85e-05,
+      "loss": 0.9430446624755859,
+      "step": 185
+    },
+    {
+      "epoch": 0.2325,
+      "grad_norm": 0.7613006830215454,
+      "learning_rate": 3.8437500000000006e-05,
+      "loss": 0.0280836783349514,
+      "step": 186
+    },
+    {
+      "epoch": 0.23375,
+      "grad_norm": 0.9411861300468445,
+      "learning_rate": 3.8375e-05,
+      "loss": 0.02853768691420555,
+      "step": 187
+    },
+    {
+      "epoch": 0.235,
+      "grad_norm": 1.164604663848877,
+      "learning_rate": 3.83125e-05,
+      "loss": 0.028057897463440895,
+      "step": 188
+    },
+    {
+      "epoch": 0.23625,
+      "grad_norm": 0.5310914516448975,
+      "learning_rate": 3.825e-05,
+      "loss": 0.017935439944267273,
+      "step": 189
+    },
+    {
+      "epoch": 0.2375,
+      "grad_norm": 0.3545134663581848,
+      "learning_rate": 3.818750000000001e-05,
+      "loss": 0.016171026974916458,
+      "step": 190
+    },
+    {
+      "epoch": 0.2375,
+      "eval_accuracy": 0.925,
+      "eval_currentsteps": 190,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9239911519060614,
+      "eval_loss": 0.27301034331321716,
+      "eval_precision": 0.9262826697692897,
+      "eval_recall": 0.925,
+      "eval_runtime": 2.9039,
+      "eval_samples_per_second": 137.743,
+      "eval_steps_per_second": 2.755,
+      "step": 190
+    },
+    {
+      "epoch": 0.23875,
+      "grad_norm": 0.2903059422969818,
+      "learning_rate": 3.8125e-05,
+      "loss": 0.013539308682084084,
+      "step": 191
+    },
+    {
+      "epoch": 0.24,
+      "grad_norm": 0.23616966605186462,
+      "learning_rate": 3.8062500000000004e-05,
+      "loss": 0.010432790033519268,
+      "step": 192
+    },
+    {
+      "epoch": 0.24125,
+      "grad_norm": 0.1849268674850464,
+      "learning_rate": 3.8e-05,
+      "loss": 0.008899939246475697,
+      "step": 193
+    },
+    {
+      "epoch": 0.2425,
+      "grad_norm": 0.16709986329078674,
+      "learning_rate": 3.79375e-05,
+      "loss": 0.008517369627952576,
+      "step": 194
+    },
+    {
+      "epoch": 0.24375,
+      "grad_norm": 53.92308807373047,
+      "learning_rate": 3.7875e-05,
+      "loss": 1.774977445602417,
+      "step": 195
+    },
+    {
+      "epoch": 0.245,
+      "grad_norm": 0.09109526872634888,
+      "learning_rate": 3.78125e-05,
+      "loss": 0.004026874899864197,
+      "step": 196
+    },
+    {
+      "epoch": 0.24625,
+      "grad_norm": 0.1356898546218872,
+      "learning_rate": 3.775e-05,
+      "loss": 0.006400189362466335,
+      "step": 197
+    },
+    {
+      "epoch": 0.2475,
+      "grad_norm": 0.08310212194919586,
+      "learning_rate": 3.76875e-05,
+      "loss": 0.003557458519935608,
+      "step": 198
+    },
+    {
+      "epoch": 0.24875,
+      "grad_norm": 6.070054054260254,
+      "learning_rate": 3.7625e-05,
+      "loss": 1.1460884809494019,
+      "step": 199
+    },
+    {
+      "epoch": 0.25,
+      "grad_norm": 0.2662520110607147,
+      "learning_rate": 3.75625e-05,
+      "loss": 0.0056125326082110405,
+      "step": 200
+    },
+    {
+      "epoch": 0.25,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 200,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9312487228141876,
+      "eval_loss": 0.3636151850223541,
+      "eval_precision": 0.9358485401459853,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.9127,
+      "eval_samples_per_second": 137.33,
+      "eval_steps_per_second": 2.747,
+      "step": 200
+    },
+    {
+      "epoch": 0.25125,
+      "grad_norm": 10.35361385345459,
+      "learning_rate": 3.7500000000000003e-05,
+      "loss": 1.062126874923706,
+      "step": 201
+    },
+    {
+      "epoch": 0.2525,
+      "grad_norm": 0.06543921679258347,
+      "learning_rate": 3.74375e-05,
+      "loss": 0.0032427951227873564,
+      "step": 202
+    },
+    {
+      "epoch": 0.25375,
+      "grad_norm": 0.07207660377025604,
+      "learning_rate": 3.737500000000001e-05,
+      "loss": 0.0034611993469297886,
+      "step": 203
+    },
+    {
+      "epoch": 0.255,
+      "grad_norm": 0.0746781975030899,
+      "learning_rate": 3.73125e-05,
+      "loss": 0.0035930699668824673,
+      "step": 204
+    },
+    {
+      "epoch": 0.25625,
+      "grad_norm": 0.06382385641336441,
+      "learning_rate": 3.7250000000000004e-05,
+      "loss": 0.003183279884979129,
+      "step": 205
+    },
+    {
+      "epoch": 0.2575,
+      "grad_norm": 18.824026107788086,
+      "learning_rate": 3.71875e-05,
+      "loss": 0.8705110549926758,
+      "step": 206
+    },
+    {
+      "epoch": 0.25875,
+      "grad_norm": 0.0729154571890831,
+      "learning_rate": 3.7125e-05,
+      "loss": 0.0036393471527844667,
+      "step": 207
+    },
+    {
+      "epoch": 0.26,
+      "grad_norm": 22.14965057373047,
+      "learning_rate": 3.70625e-05,
+      "loss": 0.9566391706466675,
+      "step": 208
+    },
+    {
+      "epoch": 0.26125,
+      "grad_norm": 0.10099821537733078,
+      "learning_rate": 3.7e-05,
+      "loss": 0.004876072984188795,
+      "step": 209
+    },
+    {
+      "epoch": 0.2625,
+      "grad_norm": 6.908203125,
+      "learning_rate": 3.69375e-05,
+      "loss": 0.9994015693664551,
+      "step": 210
+    },
+    {
+      "epoch": 0.2625,
+      "eval_accuracy": 0.925,
+      "eval_currentsteps": 210,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.924658203125,
+      "eval_loss": 0.3344106376171112,
+      "eval_precision": 0.9247658752977902,
+      "eval_recall": 0.925,
+      "eval_runtime": 2.8973,
+      "eval_samples_per_second": 138.059,
+      "eval_steps_per_second": 2.761,
+      "step": 210
+    },
+    {
+      "epoch": 0.26375,
+      "grad_norm": 0.09445932507514954,
+      "learning_rate": 3.6875e-05,
+      "loss": 0.003956942353397608,
+      "step": 211
+    },
+    {
+      "epoch": 0.265,
+      "grad_norm": 0.08693316578865051,
+      "learning_rate": 3.68125e-05,
+      "loss": 0.003981724847108126,
+      "step": 212
+    },
+    {
+      "epoch": 0.26625,
+      "grad_norm": 0.08902250230312347,
+      "learning_rate": 3.675e-05,
+      "loss": 0.004349189810454845,
+      "step": 213
+    },
+    {
+      "epoch": 0.2675,
+      "grad_norm": 0.08981838822364807,
+      "learning_rate": 3.6687500000000004e-05,
+      "loss": 0.004452419932931662,
+      "step": 214
+    },
+    {
+      "epoch": 0.26875,
+      "grad_norm": 0.1602017730474472,
+      "learning_rate": 3.6625e-05,
+      "loss": 0.006680017802864313,
+      "step": 215
+    },
+    {
+      "epoch": 0.27,
+      "grad_norm": 57.15256881713867,
+      "learning_rate": 3.65625e-05,
+      "loss": 0.6828284859657288,
+      "step": 216
+    },
+    {
+      "epoch": 0.27125,
+      "grad_norm": 0.08628394454717636,
+      "learning_rate": 3.65e-05,
+      "loss": 0.004308904055505991,
+      "step": 217
+    },
+    {
+      "epoch": 0.2725,
+      "grad_norm": 26.24346923828125,
+      "learning_rate": 3.6437500000000005e-05,
+      "loss": 0.7059434652328491,
+      "step": 218
+    },
+    {
+      "epoch": 0.27375,
+      "grad_norm": 0.28802213072776794,
+      "learning_rate": 3.6375e-05,
+      "loss": 0.009076894260942936,
+      "step": 219
+    },
+    {
+      "epoch": 0.275,
+      "grad_norm": 0.1620459407567978,
+      "learning_rate": 3.63125e-05,
+      "loss": 0.006908254232257605,
+      "step": 220
+    },
+    {
+      "epoch": 0.275,
+      "eval_accuracy": 0.9225,
+      "eval_currentsteps": 220,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9224441774205491,
+      "eval_loss": 0.3448566496372223,
+      "eval_precision": 0.9224006309998921,
+      "eval_recall": 0.9225,
+      "eval_runtime": 2.9007,
+      "eval_samples_per_second": 137.897,
+      "eval_steps_per_second": 2.758,
+      "step": 220
+    },
+    {
+      "epoch": 0.27625,
+      "grad_norm": 26.6176700592041,
+      "learning_rate": 3.625e-05,
+      "loss": 0.903056263923645,
+      "step": 221
+    },
+    {
+      "epoch": 0.2775,
+      "grad_norm": 0.10458751767873764,
+      "learning_rate": 3.61875e-05,
+      "loss": 0.004947514273226261,
+      "step": 222
+    },
+    {
+      "epoch": 0.27875,
+      "grad_norm": 7.021316051483154,
+      "learning_rate": 3.6125000000000004e-05,
+      "loss": 1.050986409187317,
+      "step": 223
+    },
+    {
+      "epoch": 0.28,
+      "grad_norm": 42.67238235473633,
+      "learning_rate": 3.60625e-05,
+      "loss": 1.437119483947754,
+      "step": 224
+    },
+    {
+      "epoch": 0.28125,
+      "grad_norm": 0.15990887582302094,
+      "learning_rate": 3.6e-05,
+      "loss": 0.007125440053641796,
+      "step": 225
+    },
+    {
+      "epoch": 0.2825,
+      "grad_norm": 6.47001838684082,
+      "learning_rate": 3.59375e-05,
+      "loss": 0.9604090452194214,
+      "step": 226
+    },
+    {
+      "epoch": 0.28375,
+      "grad_norm": 2.0497961044311523,
+      "learning_rate": 3.5875000000000005e-05,
+      "loss": 0.00995925348252058,
+      "step": 227
+    },
+    {
+      "epoch": 0.285,
+      "grad_norm": 0.19054777920246124,
+      "learning_rate": 3.58125e-05,
+      "loss": 0.007335385773330927,
+      "step": 228
+    },
+    {
+      "epoch": 0.28625,
+      "grad_norm": 0.1681472361087799,
+      "learning_rate": 3.575e-05,
+      "loss": 0.007936157286167145,
+      "step": 229
+    },
+    {
+      "epoch": 0.2875,
+      "grad_norm": 0.17922315001487732,
+      "learning_rate": 3.56875e-05,
+      "loss": 0.007749693002551794,
+      "step": 230
+    },
+    {
+      "epoch": 0.2875,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 230,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9313896103896104,
+      "eval_loss": 0.3168911635875702,
+      "eval_precision": 0.935032169117647,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.9119,
+      "eval_samples_per_second": 137.368,
+      "eval_steps_per_second": 2.747,
+      "step": 230
+    },
+    {
+      "epoch": 0.28875,
+      "grad_norm": 0.5032674074172974,
+      "learning_rate": 3.5625000000000005e-05,
+      "loss": 0.00929873064160347,
+      "step": 231
+    },
+    {
+      "epoch": 0.29,
+      "grad_norm": 0.2654851973056793,
+      "learning_rate": 3.5562500000000004e-05,
+      "loss": 0.008439460769295692,
+      "step": 232
+    },
+    {
+      "epoch": 0.29125,
+      "grad_norm": 25.056785583496094,
+      "learning_rate": 3.55e-05,
+      "loss": 1.9274673461914062,
+      "step": 233
+    },
+    {
+      "epoch": 0.2925,
+      "grad_norm": 0.2502463757991791,
+      "learning_rate": 3.54375e-05,
+      "loss": 0.006791180931031704,
+      "step": 234
+    },
+    {
+      "epoch": 0.29375,
+      "grad_norm": 12.297037124633789,
+      "learning_rate": 3.5375e-05,
+      "loss": 0.5912641286849976,
+      "step": 235
+    },
+    {
+      "epoch": 0.295,
+      "grad_norm": 18.917516708374023,
+      "learning_rate": 3.5312500000000005e-05,
+      "loss": 1.016055941581726,
+      "step": 236
+    },
+    {
+      "epoch": 0.29625,
+      "grad_norm": 0.6167494058609009,
+      "learning_rate": 3.525e-05,
+      "loss": 0.019668208435177803,
+      "step": 237
+    },
+    {
+      "epoch": 0.2975,
+      "grad_norm": 0.12112854421138763,
+      "learning_rate": 3.51875e-05,
+      "loss": 0.005975055042654276,
+      "step": 238
+    },
+    {
+      "epoch": 0.29875,
+      "grad_norm": 31.77081871032715,
+      "learning_rate": 3.5125e-05,
+      "loss": 0.7908200621604919,
+      "step": 239
+    },
+    {
+      "epoch": 0.3,
+      "grad_norm": 9.245884895324707,
+      "learning_rate": 3.5062500000000005e-05,
+      "loss": 1.0007293224334717,
+      "step": 240
+    },
+    {
+      "epoch": 0.3,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 240,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.93425,
+      "eval_loss": 0.28653767704963684,
+      "eval_precision": 0.936042775478021,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.9139,
+      "eval_samples_per_second": 137.273,
+      "eval_steps_per_second": 2.745,
+      "step": 240
+    },
+    {
+      "epoch": 0.30125,
+      "grad_norm": 11.628060340881348,
+      "learning_rate": 3.5e-05,
+      "loss": 2.0247223377227783,
+      "step": 241
+    },
+    {
+      "epoch": 0.3025,
+      "grad_norm": 22.447355270385742,
+      "learning_rate": 3.49375e-05,
+      "loss": 0.06514813750982285,
+      "step": 242
+    },
+    {
+      "epoch": 0.30375,
+      "grad_norm": 0.24349986016750336,
+      "learning_rate": 3.4875e-05,
+      "loss": 0.010005732998251915,
+      "step": 243
+    },
+    {
+      "epoch": 0.305,
+      "grad_norm": 2.6613457202911377,
+      "learning_rate": 3.4812500000000006e-05,
+      "loss": 0.03577156737446785,
+      "step": 244
+    },
+    {
+      "epoch": 0.30625,
+      "grad_norm": 12.301518440246582,
+      "learning_rate": 3.475e-05,
+      "loss": 0.0577910952270031,
+      "step": 245
+    },
+    {
+      "epoch": 0.3075,
+      "grad_norm": 11.452179908752441,
+      "learning_rate": 3.46875e-05,
+      "loss": 0.8095938563346863,
+      "step": 246
+    },
+    {
+      "epoch": 0.30875,
+      "grad_norm": 0.17439474165439606,
+      "learning_rate": 3.4625e-05,
+      "loss": 0.006044662557542324,
+      "step": 247
+    },
+    {
+      "epoch": 0.31,
+      "grad_norm": 0.2063736617565155,
+      "learning_rate": 3.45625e-05,
+      "loss": 0.00826767086982727,
+      "step": 248
+    },
+    {
+      "epoch": 0.31125,
+      "grad_norm": 0.34932929277420044,
+      "learning_rate": 3.45e-05,
+      "loss": 0.015505040995776653,
+      "step": 249
+    },
+    {
+      "epoch": 0.3125,
+      "grad_norm": 24.3278865814209,
+      "learning_rate": 3.4437500000000004e-05,
+      "loss": 0.19697315990924835,
+      "step": 250
+    },
+    {
+      "epoch": 0.3125,
+      "eval_accuracy": 0.9275,
+      "eval_currentsteps": 250,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.927227534043432,
+      "eval_loss": 0.28175848722457886,
+      "eval_precision": 0.9272673053826836,
+      "eval_recall": 0.9275,
+      "eval_runtime": 2.9161,
+      "eval_samples_per_second": 137.169,
+      "eval_steps_per_second": 2.743,
+      "step": 250
+    },
+    {
+      "epoch": 0.31375,
+      "grad_norm": 0.22692011296749115,
+      "learning_rate": 3.4375e-05,
+      "loss": 0.00980019848793745,
+      "step": 251
+    },
+    {
+      "epoch": 0.315,
+      "grad_norm": 27.035869598388672,
+      "learning_rate": 3.43125e-05,
+      "loss": 0.7571597099304199,
+      "step": 252
+    },
+    {
+      "epoch": 0.31625,
+      "grad_norm": 6.343231201171875,
+      "learning_rate": 3.4250000000000006e-05,
+      "loss": 0.7298616766929626,
+      "step": 253
+    },
+    {
+      "epoch": 0.3175,
+      "grad_norm": 0.24034589529037476,
+      "learning_rate": 3.41875e-05,
+      "loss": 0.011365293525159359,
+      "step": 254
+    },
+    {
+      "epoch": 0.31875,
+      "grad_norm": 0.7312473058700562,
+      "learning_rate": 3.4125e-05,
+      "loss": 0.020124401897192,
+      "step": 255
+    },
+    {
+      "epoch": 0.32,
+      "grad_norm": 93.41641998291016,
+      "learning_rate": 3.40625e-05,
+      "loss": 0.25304514169692993,
+      "step": 256
+    },
+    {
+      "epoch": 0.32125,
+      "grad_norm": 1.457403540611267,
+      "learning_rate": 3.4000000000000007e-05,
+      "loss": 0.02233530953526497,
+      "step": 257
+    },
+    {
+      "epoch": 0.3225,
+      "grad_norm": 2.5038580894470215,
+      "learning_rate": 3.39375e-05,
+      "loss": 0.02022736892104149,
+      "step": 258
+    },
+    {
+      "epoch": 0.32375,
+      "grad_norm": 15.575806617736816,
+      "learning_rate": 3.3875000000000003e-05,
+      "loss": 0.8405803442001343,
+      "step": 259
+    },
+    {
+      "epoch": 0.325,
+      "grad_norm": 0.22485479712486267,
+      "learning_rate": 3.38125e-05,
+      "loss": 0.00850062258541584,
+      "step": 260
+    },
+    {
+      "epoch": 0.325,
+      "eval_accuracy": 0.9275,
+      "eval_currentsteps": 260,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.927227534043432,
+      "eval_loss": 0.3053906559944153,
+      "eval_precision": 0.9272673053826836,
+      "eval_recall": 0.9275,
+      "eval_runtime": 2.9095,
+      "eval_samples_per_second": 137.48,
+      "eval_steps_per_second": 2.75,
+      "step": 260
+    },
+    {
+      "epoch": 0.32625,
+      "grad_norm": 28.969491958618164,
+      "learning_rate": 3.375000000000001e-05,
+      "loss": 0.09855280816555023,
+      "step": 261
+    },
+    {
+      "epoch": 0.3275,
+      "grad_norm": 23.445310592651367,
+      "learning_rate": 3.36875e-05,
+      "loss": 0.7656244039535522,
+      "step": 262
+    },
+    {
+      "epoch": 0.32875,
+      "grad_norm": 0.12504543364048004,
+      "learning_rate": 3.3625000000000004e-05,
+      "loss": 0.005380361340939999,
+      "step": 263
+    },
+    {
+      "epoch": 0.33,
+      "grad_norm": 0.3079829514026642,
+      "learning_rate": 3.35625e-05,
+      "loss": 0.010667250491678715,
+      "step": 264
+    },
+    {
+      "epoch": 0.33125,
+      "grad_norm": 0.09017717838287354,
+      "learning_rate": 3.35e-05,
+      "loss": 0.003920841030776501,
+      "step": 265
+    },
+    {
+      "epoch": 0.3325,
+      "grad_norm": 0.13237258791923523,
+      "learning_rate": 3.34375e-05,
+      "loss": 0.005466174799948931,
+      "step": 266
+    },
+    {
+      "epoch": 0.33375,
+      "grad_norm": 0.09501536935567856,
+      "learning_rate": 3.3375e-05,
+      "loss": 0.004117757081985474,
+      "step": 267
+    },
+    {
+      "epoch": 0.335,
+      "grad_norm": 0.11353269219398499,
+      "learning_rate": 3.33125e-05,
+      "loss": 0.005587941501289606,
+      "step": 268
+    },
+    {
+      "epoch": 0.33625,
+      "grad_norm": 0.13635918498039246,
+      "learning_rate": 3.325e-05,
+      "loss": 0.005849352106451988,
+      "step": 269
+    },
+    {
+      "epoch": 0.3375,
+      "grad_norm": 253.29718017578125,
+      "learning_rate": 3.31875e-05,
+      "loss": 0.3937496244907379,
+      "step": 270
+    },
+    {
+      "epoch": 0.3375,
+      "eval_accuracy": 0.9375,
+      "eval_currentsteps": 270,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9373620197273814,
+      "eval_loss": 0.28325825929641724,
+      "eval_precision": 0.9373372395833335,
+      "eval_recall": 0.9375,
+      "eval_runtime": 2.9259,
+      "eval_samples_per_second": 136.711,
+      "eval_steps_per_second": 2.734,
+      "step": 270
+    },
+    {
+      "epoch": 0.33875,
+      "grad_norm": 0.06878803670406342,
+      "learning_rate": 3.3125e-05,
+      "loss": 0.002855944214388728,
+      "step": 271
+    },
+    {
+      "epoch": 0.34,
+      "grad_norm": 6.634084701538086,
+      "learning_rate": 3.3062500000000004e-05,
+      "loss": 0.02603013440966606,
+      "step": 272
+    },
+    {
+      "epoch": 0.34125,
+      "grad_norm": 0.06484384089708328,
+      "learning_rate": 3.3e-05,
+      "loss": 0.0030815061181783676,
+      "step": 273
+    },
+    {
+      "epoch": 0.3425,
+      "grad_norm": 0.1738828420639038,
+      "learning_rate": 3.29375e-05,
+      "loss": 0.006662188563495874,
+      "step": 274
+    },
+    {
+      "epoch": 0.34375,
+      "grad_norm": 23.967002868652344,
+      "learning_rate": 3.2875e-05,
+      "loss": 0.9814203977584839,
+      "step": 275
+    },
+    {
+      "epoch": 0.345,
+      "grad_norm": 0.06474987417459488,
+      "learning_rate": 3.2812500000000005e-05,
+      "loss": 0.0030187182128429413,
+      "step": 276
+    },
+    {
+      "epoch": 0.34625,
+      "grad_norm": 0.07575242966413498,
+      "learning_rate": 3.275e-05,
+      "loss": 0.0035171869676560163,
+      "step": 277
+    },
+    {
+      "epoch": 0.3475,
+      "grad_norm": 0.07927065342664719,
+      "learning_rate": 3.26875e-05,
+      "loss": 0.0032919857185333967,
+      "step": 278
+    },
+    {
+      "epoch": 0.34875,
+      "grad_norm": 0.07523870468139648,
+      "learning_rate": 3.2625e-05,
+      "loss": 0.0035853497684001923,
+      "step": 279
+    },
+    {
+      "epoch": 0.35,
+      "grad_norm": 0.05872252956032753,
+      "learning_rate": 3.25625e-05,
+      "loss": 0.0025669310707598925,
+      "step": 280
+    },
+    {
+      "epoch": 0.35,
+      "eval_accuracy": 0.94,
+      "eval_currentsteps": 280,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.940083655083655,
+      "eval_loss": 0.2992519438266754,
+      "eval_precision": 0.9402171181047622,
+      "eval_recall": 0.94,
+      "eval_runtime": 2.9148,
+      "eval_samples_per_second": 137.232,
+      "eval_steps_per_second": 2.745,
+      "step": 280
+    },
+    {
+      "epoch": 0.35125,
+      "grad_norm": 11.103507995605469,
+      "learning_rate": 3.2500000000000004e-05,
+      "loss": 1.173911690711975,
+      "step": 281
+    },
+    {
+      "epoch": 0.3525,
+      "grad_norm": 6.822651386260986,
+      "learning_rate": 3.24375e-05,
+      "loss": 1.0644919872283936,
+      "step": 282
+    },
+    {
+      "epoch": 0.35375,
+      "grad_norm": 185.115234375,
+      "learning_rate": 3.2375e-05,
+      "loss": 0.6156340837478638,
+      "step": 283
+    },
+    {
+      "epoch": 0.355,
+      "grad_norm": 36.25080490112305,
+      "learning_rate": 3.23125e-05,
+      "loss": 0.8712369203567505,
+      "step": 284
+    },
+    {
+      "epoch": 0.35625,
+      "grad_norm": 59.935035705566406,
+      "learning_rate": 3.2250000000000005e-05,
+      "loss": 1.8843597173690796,
+      "step": 285
+    },
+    {
+      "epoch": 0.3575,
+      "grad_norm": 0.08083528280258179,
+      "learning_rate": 3.21875e-05,
+      "loss": 0.0032906692940741777,
+      "step": 286
+    },
+    {
+      "epoch": 0.35875,
+      "grad_norm": 3.104750394821167,
+      "learning_rate": 3.2125e-05,
+      "loss": 0.012224903330206871,
+      "step": 287
+    },
+    {
+      "epoch": 0.36,
+      "grad_norm": 0.06979365646839142,
+      "learning_rate": 3.20625e-05,
+      "loss": 0.0033611743710935116,
+      "step": 288
+    },
+    {
+      "epoch": 0.36125,
+      "grad_norm": 0.6405373811721802,
+      "learning_rate": 3.2000000000000005e-05,
+      "loss": 0.00705877598375082,
+      "step": 289
+    },
+    {
+      "epoch": 0.3625,
+      "grad_norm": 0.3798176050186157,
+      "learning_rate": 3.1937500000000004e-05,
+      "loss": 0.00924586784094572,
+      "step": 290
+    },
+    {
+      "epoch": 0.3625,
+      "eval_accuracy": 0.9475,
+      "eval_currentsteps": 290,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9473840965710002,
+      "eval_loss": 0.24377918243408203,
+      "eval_precision": 0.9473828125,
+      "eval_recall": 0.9475,
+      "eval_runtime": 2.9169,
+      "eval_samples_per_second": 137.13,
+      "eval_steps_per_second": 2.743,
+      "step": 290
+    },
+    {
+      "epoch": 0.36375,
+      "grad_norm": 0.11135002970695496,
+      "learning_rate": 3.1875e-05,
+      "loss": 0.003196397330611944,
+      "step": 291
+    },
+    {
+      "epoch": 0.365,
+      "grad_norm": 0.052610382437705994,
+      "learning_rate": 3.18125e-05,
+      "loss": 0.0022295285016298294,
+      "step": 292
+    },
+    {
+      "epoch": 0.36625,
+      "grad_norm": 0.04576418176293373,
+      "learning_rate": 3.175e-05,
+      "loss": 0.0020186943002045155,
+      "step": 293
+    },
+    {
+      "epoch": 0.3675,
+      "grad_norm": 20.601137161254883,
+      "learning_rate": 3.1687500000000005e-05,
+      "loss": 0.04605928808450699,
+      "step": 294
+    },
+    {
+      "epoch": 0.36875,
+      "grad_norm": 16.70380401611328,
+      "learning_rate": 3.1624999999999996e-05,
+      "loss": 0.8237726092338562,
+      "step": 295
+    },
+    {
+      "epoch": 0.37,
+      "grad_norm": 0.09804587066173553,
+      "learning_rate": 3.15625e-05,
+      "loss": 0.0036416747607290745,
+      "step": 296
+    },
+    {
+      "epoch": 0.37125,
+      "grad_norm": 0.07322071492671967,
+      "learning_rate": 3.15e-05,
+      "loss": 0.0034389018546789885,
+      "step": 297
+    },
+    {
+      "epoch": 0.3725,
+      "grad_norm": 0.10471801459789276,
+      "learning_rate": 3.1437500000000005e-05,
+      "loss": 0.003970031626522541,
+      "step": 298
+    },
+    {
+      "epoch": 0.37375,
+      "grad_norm": 0.11851752549409866,
+      "learning_rate": 3.1375e-05,
+      "loss": 0.004611715208739042,
+      "step": 299
+    },
+    {
+      "epoch": 0.375,
+      "grad_norm": 0.04720982536673546,
+      "learning_rate": 3.13125e-05,
+      "loss": 0.002221797127276659,
+      "step": 300
+    },
+    {
+      "epoch": 0.375,
+      "eval_accuracy": 0.9475,
+      "eval_currentsteps": 300,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9473840965710002,
+      "eval_loss": 0.2606475055217743,
+      "eval_precision": 0.9473828125,
+      "eval_recall": 0.9475,
+      "eval_runtime": 2.9133,
+      "eval_samples_per_second": 137.3,
+      "eval_steps_per_second": 2.746,
+      "step": 300
+    },
+    {
+      "epoch": 0.37625,
+      "grad_norm": 58.18855285644531,
+      "learning_rate": 3.125e-05,
+      "loss": 0.9106189608573914,
+      "step": 301
+    },
+    {
+      "epoch": 0.3775,
+      "grad_norm": 0.05273960530757904,
+      "learning_rate": 3.1187500000000006e-05,
+      "loss": 0.0024937824346125126,
+      "step": 302
+    },
+    {
+      "epoch": 0.37875,
+      "grad_norm": 5.011938571929932,
+      "learning_rate": 3.1125000000000004e-05,
+      "loss": 1.3465299606323242,
+      "step": 303
+    },
+    {
+      "epoch": 0.38,
+      "grad_norm": 0.046955838799476624,
+      "learning_rate": 3.10625e-05,
+      "loss": 0.002183252479881048,
+      "step": 304
+    },
+    {
+      "epoch": 0.38125,
+      "grad_norm": 5.249147891998291,
+      "learning_rate": 3.1e-05,
+      "loss": 1.0742089748382568,
+      "step": 305
+    },
+    {
+      "epoch": 0.3825,
+      "grad_norm": 0.10904331505298615,
+      "learning_rate": 3.09375e-05,
+      "loss": 0.004509068094193935,
+      "step": 306
+    },
+    {
+      "epoch": 0.38375,
+      "grad_norm": 0.08089233934879303,
+      "learning_rate": 3.0875000000000005e-05,
+      "loss": 0.00367544824257493,
+      "step": 307
+    },
+    {
+      "epoch": 0.385,
+      "grad_norm": 0.1663610190153122,
+      "learning_rate": 3.08125e-05,
+      "loss": 0.006894067861139774,
+      "step": 308
+    },
+    {
+      "epoch": 0.38625,
+      "grad_norm": 0.07006248086690903,
+      "learning_rate": 3.075e-05,
+      "loss": 0.003389394376426935,
+      "step": 309
+    },
+    {
+      "epoch": 0.3875,
+      "grad_norm": 0.24085941910743713,
+      "learning_rate": 3.06875e-05,
+      "loss": 0.010433612391352654,
+      "step": 310
+    },
+    {
+      "epoch": 0.3875,
+      "eval_accuracy": 0.945,
+      "eval_currentsteps": 310,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9450766838266839,
+      "eval_loss": 0.22467349469661713,
+      "eval_precision": 0.9452034813765074,
+      "eval_recall": 0.945,
+      "eval_runtime": 2.9164,
+      "eval_samples_per_second": 137.155,
+      "eval_steps_per_second": 2.743,
+      "step": 310
+    },
+    {
+      "epoch": 0.38875,
+      "grad_norm": 31.476350784301758,
+      "learning_rate": 3.0625000000000006e-05,
+      "loss": 1.6263349056243896,
+      "step": 311
+    },
+    {
+      "epoch": 0.39,
+      "grad_norm": 0.07357865571975708,
+      "learning_rate": 3.05625e-05,
+      "loss": 0.003160781692713499,
+      "step": 312
+    },
+    {
+      "epoch": 0.39125,
+      "grad_norm": 9.442562103271484,
+      "learning_rate": 3.05e-05,
+      "loss": 0.8011987805366516,
+      "step": 313
+    },
+    {
+      "epoch": 0.3925,
+      "grad_norm": 17.027952194213867,
+      "learning_rate": 3.04375e-05,
+      "loss": 0.049663472920656204,
+      "step": 314
+    },
+    {
+      "epoch": 0.39375,
+      "grad_norm": 0.07420820742845535,
+      "learning_rate": 3.0375000000000003e-05,
+      "loss": 0.0033514767419546843,
+      "step": 315
+    },
+    {
+      "epoch": 0.395,
+      "grad_norm": 5.503218173980713,
+      "learning_rate": 3.0312499999999998e-05,
+      "loss": 0.028515737503767014,
+      "step": 316
+    },
+    {
+      "epoch": 0.39625,
+      "grad_norm": 0.152272567152977,
+      "learning_rate": 3.025e-05,
+      "loss": 0.006836466491222382,
+      "step": 317
+    },
+    {
+      "epoch": 0.3975,
+      "grad_norm": 0.19287759065628052,
+      "learning_rate": 3.0187500000000002e-05,
+      "loss": 0.008682566694915295,
+      "step": 318
+    },
+    {
+      "epoch": 0.39875,
+      "grad_norm": 17.342573165893555,
+      "learning_rate": 3.0125000000000004e-05,
+      "loss": 0.9845339059829712,
+      "step": 319
+    },
+    {
+      "epoch": 0.4,
+      "grad_norm": 0.08248186111450195,
+      "learning_rate": 3.00625e-05,
+      "loss": 0.0035419140476733446,
+      "step": 320
+    },
+    {
+      "epoch": 0.4,
+      "eval_accuracy": 0.9475,
+      "eval_currentsteps": 320,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9473026970659335,
+      "eval_loss": 0.23739345371723175,
+      "eval_precision": 0.9474256196091275,
+      "eval_recall": 0.9475,
+      "eval_runtime": 2.9217,
+      "eval_samples_per_second": 136.908,
+      "eval_steps_per_second": 2.738,
+      "step": 320
+    },
+    {
+      "epoch": 0.40125,
+      "grad_norm": 0.18516257405281067,
+      "learning_rate": 3e-05,
+      "loss": 0.007815486751496792,
+      "step": 321
+    },
+    {
+      "epoch": 0.4025,
+      "grad_norm": 1.716835379600525,
+      "learning_rate": 2.9937500000000003e-05,
+      "loss": 0.013773259706795216,
+      "step": 322
+    },
+    {
+      "epoch": 0.40375,
+      "grad_norm": 17.10102081298828,
+      "learning_rate": 2.9875000000000004e-05,
+      "loss": 0.8587868809700012,
+      "step": 323
+    },
+    {
+      "epoch": 0.405,
+      "grad_norm": 1.4230040311813354,
+      "learning_rate": 2.98125e-05,
+      "loss": 0.03741398826241493,
+      "step": 324
+    },
+    {
+      "epoch": 0.40625,
+      "grad_norm": 0.09713736176490784,
+      "learning_rate": 2.975e-05,
+      "loss": 0.004234647378325462,
+      "step": 325
+    },
+    {
+      "epoch": 0.4075,
+      "grad_norm": 0.19072991609573364,
+      "learning_rate": 2.96875e-05,
+      "loss": 0.008292892947793007,
+      "step": 326
+    },
+    {
+      "epoch": 0.40875,
+      "grad_norm": 0.16027800738811493,
+      "learning_rate": 2.9625000000000002e-05,
+      "loss": 0.006714825518429279,
+      "step": 327
+    },
+    {
+      "epoch": 0.41,
+      "grad_norm": 8.836094856262207,
+      "learning_rate": 2.9562500000000004e-05,
+      "loss": 0.7823058366775513,
+      "step": 328
+    },
+    {
+      "epoch": 0.41125,
+      "grad_norm": 7.067914962768555,
+      "learning_rate": 2.95e-05,
+      "loss": 0.7316935062408447,
+      "step": 329
+    },
+    {
+      "epoch": 0.4125,
+      "grad_norm": 0.08702709525823593,
+      "learning_rate": 2.94375e-05,
+      "loss": 0.004103872925043106,
+      "step": 330
+    },
+    {
+      "epoch": 0.4125,
+      "eval_accuracy": 0.9475,
+      "eval_currentsteps": 330,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9476085908789686,
+      "eval_loss": 0.2262238711118698,
+      "eval_precision": 0.9478300000000001,
+      "eval_recall": 0.9475,
+      "eval_runtime": 2.9153,
+      "eval_samples_per_second": 137.209,
+      "eval_steps_per_second": 2.744,
+      "step": 330
+    },
+    {
+      "epoch": 0.41375,
+      "grad_norm": 0.19046132266521454,
+      "learning_rate": 2.9375000000000003e-05,
+      "loss": 0.00830573309212923,
+      "step": 331
+    },
+    {
+      "epoch": 0.415,
+      "grad_norm": 0.15285298228263855,
+      "learning_rate": 2.9312500000000004e-05,
+      "loss": 0.005877031944692135,
+      "step": 332
+    },
+    {
+      "epoch": 0.41625,
+      "grad_norm": 7.148180961608887,
+      "learning_rate": 2.925e-05,
+      "loss": 0.7902002334594727,
+      "step": 333
+    },
+    {
+      "epoch": 0.4175,
+      "grad_norm": 5.817025184631348,
+      "learning_rate": 2.91875e-05,
+      "loss": 1.1108444929122925,
+      "step": 334
+    },
+    {
+      "epoch": 0.41875,
+      "grad_norm": 0.2908279299736023,
+      "learning_rate": 2.9125000000000003e-05,
+      "loss": 0.010981952771544456,
+      "step": 335
+    },
+    {
+      "epoch": 0.42,
+      "grad_norm": 0.1692676693201065,
+      "learning_rate": 2.9062500000000005e-05,
+      "loss": 0.00725591043010354,
+      "step": 336
+    },
+    {
+      "epoch": 0.42125,
+      "grad_norm": 0.3783646821975708,
+      "learning_rate": 2.9e-05,
+      "loss": 0.008390374481678009,
+      "step": 337
+    },
+    {
+      "epoch": 0.4225,
+      "grad_norm": 7.434035778045654,
+      "learning_rate": 2.8937500000000002e-05,
+      "loss": 0.7714259028434753,
+      "step": 338
+    },
+    {
+      "epoch": 0.42375,
+      "grad_norm": 0.38195228576660156,
+      "learning_rate": 2.8875e-05,
+      "loss": 0.011874811723828316,
+      "step": 339
+    },
+    {
+      "epoch": 0.425,
+      "grad_norm": 0.14004994928836823,
+      "learning_rate": 2.8812500000000002e-05,
+      "loss": 0.006352418102324009,
+      "step": 340
+    },
+    {
+      "epoch": 0.425,
+      "eval_accuracy": 0.9475,
+      "eval_currentsteps": 340,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9473840965710002,
+      "eval_loss": 0.19964782893657684,
+      "eval_precision": 0.9473828125,
+      "eval_recall": 0.9475,
+      "eval_runtime": 2.913,
+      "eval_samples_per_second": 137.318,
+      "eval_steps_per_second": 2.746,
+      "step": 340
+    },
+    {
+      "epoch": 0.42625,
+      "grad_norm": 10.770560264587402,
+      "learning_rate": 2.8749999999999997e-05,
+      "loss": 0.38420578837394714,
+      "step": 341
+    },
+    {
+      "epoch": 0.4275,
+      "grad_norm": 0.29885613918304443,
+      "learning_rate": 2.86875e-05,
+      "loss": 0.012001587077975273,
+      "step": 342
+    },
+    {
+      "epoch": 0.42875,
+      "grad_norm": 7.70734977722168,
+      "learning_rate": 2.8625e-05,
+      "loss": 0.9239827394485474,
+      "step": 343
+    },
+    {
+      "epoch": 0.43,
+      "grad_norm": 20.635684967041016,
+      "learning_rate": 2.8562500000000003e-05,
+      "loss": 0.07544143497943878,
+      "step": 344
+    },
+    {
+      "epoch": 0.43125,
+      "grad_norm": 5.446262836456299,
+      "learning_rate": 2.8499999999999998e-05,
+      "loss": 0.058893512934446335,
+      "step": 345
+    },
+    {
+      "epoch": 0.4325,
+      "grad_norm": 0.4849192500114441,
+      "learning_rate": 2.84375e-05,
+      "loss": 0.015596918761730194,
+      "step": 346
+    },
+    {
+      "epoch": 0.43375,
+      "grad_norm": 14.716392517089844,
+      "learning_rate": 2.8375000000000002e-05,
+      "loss": 0.5709363222122192,
+      "step": 347
+    },
+    {
+      "epoch": 0.435,
+      "grad_norm": 6.439243793487549,
+      "learning_rate": 2.8312500000000004e-05,
+      "loss": 0.048557497560977936,
+      "step": 348
+    },
+    {
+      "epoch": 0.43625,
+      "grad_norm": 0.6503591537475586,
+      "learning_rate": 2.825e-05,
+      "loss": 0.018666254356503487,
+      "step": 349
+    },
+    {
+      "epoch": 0.4375,
+      "grad_norm": 7.213067531585693,
+      "learning_rate": 2.81875e-05,
+      "loss": 0.7526695728302002,
+      "step": 350
+    },
+    {
+      "epoch": 0.4375,
+      "eval_accuracy": 0.95,
+      "eval_currentsteps": 350,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.949689804359065,
+      "eval_loss": 0.18570362031459808,
+      "eval_precision": 0.9502094875823479,
+      "eval_recall": 0.95,
+      "eval_runtime": 2.9104,
+      "eval_samples_per_second": 137.439,
+      "eval_steps_per_second": 2.749,
+      "step": 350
+    },
+    {
+      "epoch": 0.43875,
+      "grad_norm": 0.22395382821559906,
+      "learning_rate": 2.8125000000000003e-05,
+      "loss": 0.00946001149713993,
+      "step": 351
+    },
+    {
+      "epoch": 0.44,
+      "grad_norm": 10.55772876739502,
+      "learning_rate": 2.80625e-05,
+      "loss": 1.2282053232192993,
+      "step": 352
+    },
+    {
+      "epoch": 0.44125,
+      "grad_norm": 5.558923721313477,
+      "learning_rate": 2.8000000000000003e-05,
+      "loss": 0.09433380514383316,
+      "step": 353
+    },
+    {
+      "epoch": 0.4425,
+      "grad_norm": 0.20964133739471436,
+      "learning_rate": 2.79375e-05,
+      "loss": 0.008439647033810616,
+      "step": 354
+    },
+    {
+      "epoch": 0.44375,
+      "grad_norm": 23.861547470092773,
+      "learning_rate": 2.7875e-05,
+      "loss": 1.4176651239395142,
+      "step": 355
+    },
+    {
+      "epoch": 0.445,
+      "grad_norm": 14.651650428771973,
+      "learning_rate": 2.7812500000000002e-05,
+      "loss": 0.19488298892974854,
+      "step": 356
+    },
+    {
+      "epoch": 0.44625,
+      "grad_norm": 3.9350943565368652,
+      "learning_rate": 2.7750000000000004e-05,
+      "loss": 0.08178900182247162,
+      "step": 357
+    },
+    {
+      "epoch": 0.4475,
+      "grad_norm": 0.2695758044719696,
+      "learning_rate": 2.76875e-05,
+      "loss": 0.011573742143809795,
+      "step": 358
+    },
+    {
+      "epoch": 0.44875,
+      "grad_norm": 0.43957433104515076,
+      "learning_rate": 2.7625e-05,
+      "loss": 0.017185645177960396,
+      "step": 359
+    },
+    {
+      "epoch": 0.45,
+      "grad_norm": 2.3298566341400146,
+      "learning_rate": 2.7562500000000002e-05,
+      "loss": 0.045227620750665665,
+      "step": 360
+    },
+    {
+      "epoch": 0.45,
+      "eval_accuracy": 0.9475,
+      "eval_currentsteps": 360,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9475370028528277,
+      "eval_loss": 0.1759333461523056,
+      "eval_precision": 0.9475866044616045,
+      "eval_recall": 0.9475,
+      "eval_runtime": 2.918,
+      "eval_samples_per_second": 137.08,
+      "eval_steps_per_second": 2.742,
+      "step": 360
+    },
+    {
+      "epoch": 0.45125,
+      "grad_norm": 26.104019165039062,
+      "learning_rate": 2.7500000000000004e-05,
+      "loss": 0.2165376842021942,
+      "step": 361
+    },
+    {
+      "epoch": 0.4525,
+      "grad_norm": 8.088155746459961,
+      "learning_rate": 2.74375e-05,
+      "loss": 0.5581579208374023,
+      "step": 362
+    },
+    {
+      "epoch": 0.45375,
+      "grad_norm": 0.3019031882286072,
+      "learning_rate": 2.7375e-05,
+      "loss": 0.00997148733586073,
+      "step": 363
+    },
+    {
+      "epoch": 0.455,
+      "grad_norm": 8.745159149169922,
+      "learning_rate": 2.7312500000000003e-05,
+      "loss": 0.06866495311260223,
+      "step": 364
+    },
+    {
+      "epoch": 0.45625,
+      "grad_norm": 0.9246612787246704,
+      "learning_rate": 2.725e-05,
+      "loss": 0.022605231031775475,
+      "step": 365
+    },
+    {
+      "epoch": 0.4575,
+      "grad_norm": 16.138700485229492,
+      "learning_rate": 2.71875e-05,
+      "loss": 0.6409186124801636,
+      "step": 366
+    },
+    {
+      "epoch": 0.45875,
+      "grad_norm": 0.11348255723714828,
+      "learning_rate": 2.7125000000000002e-05,
+      "loss": 0.005557824391871691,
+      "step": 367
+    },
+    {
+      "epoch": 0.46,
+      "grad_norm": 0.18443171679973602,
+      "learning_rate": 2.70625e-05,
+      "loss": 0.007468726485967636,
+      "step": 368
+    },
+    {
+      "epoch": 0.46125,
+      "grad_norm": 0.19217130541801453,
+      "learning_rate": 2.7000000000000002e-05,
+      "loss": 0.008286948315799236,
+      "step": 369
+    },
+    {
+      "epoch": 0.4625,
+      "grad_norm": 0.5540891885757446,
+      "learning_rate": 2.6937499999999997e-05,
+      "loss": 0.01256842352449894,
+      "step": 370
+    },
+    {
+      "epoch": 0.4625,
+      "eval_accuracy": 0.945,
+      "eval_currentsteps": 370,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9450766838266839,
+      "eval_loss": 0.21192027628421783,
+      "eval_precision": 0.9452034813765074,
+      "eval_recall": 0.945,
+      "eval_runtime": 2.9229,
+      "eval_samples_per_second": 136.853,
+      "eval_steps_per_second": 2.737,
+      "step": 370
+    },
+    {
+      "epoch": 0.46375,
+      "grad_norm": 0.2327730357646942,
+      "learning_rate": 2.6875e-05,
+      "loss": 0.00826561264693737,
+      "step": 371
+    },
+    {
+      "epoch": 0.465,
+      "grad_norm": 0.15163834393024445,
+      "learning_rate": 2.68125e-05,
+      "loss": 0.004980604164302349,
+      "step": 372
+    },
+    {
+      "epoch": 0.46625,
+      "grad_norm": 0.10425504297018051,
+      "learning_rate": 2.6750000000000003e-05,
+      "loss": 0.004432907793670893,
+      "step": 373
+    },
+    {
+      "epoch": 0.4675,
+      "grad_norm": 108.76046752929688,
+      "learning_rate": 2.6687499999999998e-05,
+      "loss": 0.20686666667461395,
+      "step": 374
+    },
+    {
+      "epoch": 0.46875,
+      "grad_norm": 0.05732600390911102,
+      "learning_rate": 2.6625e-05,
+      "loss": 0.002838785294443369,
+      "step": 375
+    },
+    {
+      "epoch": 0.47,
+      "grad_norm": 0.05716811120510101,
+      "learning_rate": 2.6562500000000002e-05,
+      "loss": 0.00270063360221684,
+      "step": 376
+    },
+    {
+      "epoch": 0.47125,
+      "grad_norm": 0.04758187010884285,
+      "learning_rate": 2.6500000000000004e-05,
+      "loss": 0.0022841403260827065,
+      "step": 377
+    },
+    {
+      "epoch": 0.4725,
+      "grad_norm": 0.07975008338689804,
+      "learning_rate": 2.6437500000000002e-05,
+      "loss": 0.0033837396185845137,
+      "step": 378
+    },
+    {
+      "epoch": 0.47375,
+      "grad_norm": 15.563658714294434,
+      "learning_rate": 2.6375e-05,
+      "loss": 0.891693115234375,
+      "step": 379
+    },
+    {
+      "epoch": 0.475,
+      "grad_norm": 0.12596985697746277,
+      "learning_rate": 2.6312500000000003e-05,
+      "loss": 0.0044161658734083176,
+      "step": 380
+    },
+    {
+      "epoch": 0.475,
+      "eval_accuracy": 0.9425,
+      "eval_currentsteps": 380,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9423730581491908,
+      "eval_loss": 0.2558097541332245,
+      "eval_precision": 0.9423600260416666,
+      "eval_recall": 0.9425,
+      "eval_runtime": 2.9162,
+      "eval_samples_per_second": 137.165,
+      "eval_steps_per_second": 2.743,
+      "step": 380
+    },
+    {
+      "epoch": 0.47625,
+      "grad_norm": 0.040567174553871155,
+      "learning_rate": 2.625e-05,
+      "loss": 0.001954370178282261,
+      "step": 381
+    },
+    {
+      "epoch": 0.4775,
+      "grad_norm": 0.043067384511232376,
+      "learning_rate": 2.6187500000000003e-05,
+      "loss": 0.002024497138336301,
+      "step": 382
+    },
+    {
+      "epoch": 0.47875,
+      "grad_norm": 0.15713383257389069,
+      "learning_rate": 2.6124999999999998e-05,
+      "loss": 0.0037710140459239483,
+      "step": 383
+    },
+    {
+      "epoch": 0.48,
+      "grad_norm": 29.757266998291016,
+      "learning_rate": 2.60625e-05,
+      "loss": 0.8810397386550903,
+      "step": 384
+    },
+    {
+      "epoch": 0.48125,
+      "grad_norm": 13.379339218139648,
+      "learning_rate": 2.6000000000000002e-05,
+      "loss": 0.016435008496046066,
+      "step": 385
+    },
+    {
+      "epoch": 0.4825,
+      "grad_norm": 0.07513261586427689,
+      "learning_rate": 2.5937500000000004e-05,
+      "loss": 0.002615866716951132,
+      "step": 386
+    },
+    {
+      "epoch": 0.48375,
+      "grad_norm": 0.028324376791715622,
+      "learning_rate": 2.5875e-05,
+      "loss": 0.0013575720367953181,
+      "step": 387
+    },
+    {
+      "epoch": 0.485,
+      "grad_norm": 0.043035492300987244,
+      "learning_rate": 2.58125e-05,
+      "loss": 0.0019180793315172195,
+      "step": 388
+    },
+    {
+      "epoch": 0.48625,
+      "grad_norm": 0.032990191131830215,
+      "learning_rate": 2.5750000000000002e-05,
+      "loss": 0.001543719437904656,
+      "step": 389
+    },
+    {
+      "epoch": 0.4875,
+      "grad_norm": 0.6574929356575012,
+      "learning_rate": 2.5687500000000004e-05,
+      "loss": 0.0040389904752373695,
+      "step": 390
+    },
+    {
+      "epoch": 0.4875,
+      "eval_accuracy": 0.9425,
+      "eval_currentsteps": 390,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9424585832475043,
+      "eval_loss": 0.28950968384742737,
+      "eval_precision": 0.9424297540718369,
+      "eval_recall": 0.9425,
+      "eval_runtime": 2.9157,
+      "eval_samples_per_second": 137.189,
+      "eval_steps_per_second": 2.744,
+      "step": 390
+    },
+    {
+      "epoch": 0.48875,
+      "grad_norm": 0.7457775473594666,
+      "learning_rate": 2.5625e-05,
+      "loss": 0.005494633223861456,
+      "step": 391
+    },
+    {
+      "epoch": 0.49,
+      "grad_norm": 103.35224914550781,
+      "learning_rate": 2.55625e-05,
+      "loss": 0.18180307745933533,
+      "step": 392
+    },
+    {
+      "epoch": 0.49125,
+      "grad_norm": 0.030693763867020607,
+      "learning_rate": 2.5500000000000003e-05,
+      "loss": 0.001352351508103311,
+      "step": 393
+    },
+    {
+      "epoch": 0.4925,
+      "grad_norm": 0.08338949829339981,
+      "learning_rate": 2.54375e-05,
+      "loss": 0.0023254486732184887,
+      "step": 394
+    },
+    {
+      "epoch": 0.49375,
+      "grad_norm": 4.709102153778076,
+      "learning_rate": 2.5375e-05,
+      "loss": 0.011795761063694954,
+      "step": 395
+    },
+    {
+      "epoch": 0.495,
+      "grad_norm": 0.03878563642501831,
+      "learning_rate": 2.53125e-05,
+      "loss": 0.0016920631751418114,
+      "step": 396
+    },
+    {
+      "epoch": 0.49625,
+      "grad_norm": 0.36087703704833984,
+      "learning_rate": 2.525e-05,
+      "loss": 0.003293884452432394,
+      "step": 397
+    },
+    {
+      "epoch": 0.4975,
+      "grad_norm": 0.02581300586462021,
+      "learning_rate": 2.5187500000000002e-05,
+      "loss": 0.0012114621931686997,
+      "step": 398
+    },
+    {
+      "epoch": 0.49875,
+      "grad_norm": 0.03242507204413414,
+      "learning_rate": 2.5124999999999997e-05,
+      "loss": 0.0014237493742257357,
+      "step": 399
+    },
+    {
+      "epoch": 0.5,
+      "grad_norm": 0.03633962199091911,
+      "learning_rate": 2.50625e-05,
+      "loss": 0.0014243556652218103,
+      "step": 400
+    },
+    {
+      "epoch": 0.5,
+      "eval_accuracy": 0.95,
+      "eval_currentsteps": 400,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.949927192320138,
+      "eval_loss": 0.29214808344841003,
+      "eval_precision": 0.9499053414469236,
+      "eval_recall": 0.95,
+      "eval_runtime": 2.9083,
+      "eval_samples_per_second": 137.538,
+      "eval_steps_per_second": 2.751,
+      "step": 400
+    },
+    {
+      "epoch": 0.50125,
+      "grad_norm": 0.6567038297653198,
+      "learning_rate": 2.5e-05,
+      "loss": 0.003099618013948202,
+      "step": 401
+    },
+    {
+      "epoch": 0.5025,
+      "grad_norm": 0.025738153606653214,
+      "learning_rate": 2.4937500000000003e-05,
+      "loss": 0.0012367115123197436,
+      "step": 402
+    },
+    {
+      "epoch": 0.50375,
+      "grad_norm": 24.27583885192871,
+      "learning_rate": 2.4875e-05,
+      "loss": 0.905842125415802,
+      "step": 403
+    },
+    {
+      "epoch": 0.505,
+      "grad_norm": 76.80276489257812,
+      "learning_rate": 2.4812500000000003e-05,
+      "loss": 0.988063633441925,
+      "step": 404
+    },
+    {
+      "epoch": 0.50625,
+      "grad_norm": 0.024159416556358337,
+      "learning_rate": 2.4750000000000002e-05,
+      "loss": 0.0010368127841502428,
+      "step": 405
+    },
+    {
+      "epoch": 0.5075,
+      "grad_norm": 0.023664936423301697,
+      "learning_rate": 2.4687500000000004e-05,
+      "loss": 0.0011201169108971953,
+      "step": 406
+    },
+    {
+      "epoch": 0.50875,
+      "grad_norm": 23.666086196899414,
+      "learning_rate": 2.4625000000000002e-05,
+      "loss": 1.360285997390747,
+      "step": 407
+    },
+    {
+      "epoch": 0.51,
+      "grad_norm": 16.406909942626953,
+      "learning_rate": 2.45625e-05,
+      "loss": 1.097648024559021,
+      "step": 408
+    },
+    {
+      "epoch": 0.51125,
+      "grad_norm": 0.026000114157795906,
+      "learning_rate": 2.45e-05,
+      "loss": 0.001239790697582066,
+      "step": 409
+    },
+    {
+      "epoch": 0.5125,
+      "grad_norm": 9.309028625488281,
+      "learning_rate": 2.44375e-05,
+      "loss": 1.1810647249221802,
+      "step": 410
+    },
+    {
+      "epoch": 0.5125,
+      "eval_accuracy": 0.94,
+      "eval_currentsteps": 410,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9396277652308781,
+      "eval_loss": 0.30822083353996277,
+      "eval_precision": 0.9400749745031561,
+      "eval_recall": 0.94,
+      "eval_runtime": 2.9184,
+      "eval_samples_per_second": 137.06,
+      "eval_steps_per_second": 2.741,
+      "step": 410
+    },
+    {
+      "epoch": 0.51375,
+      "grad_norm": 0.10975434631109238,
+      "learning_rate": 2.4375e-05,
+      "loss": 0.0019233168568462133,
+      "step": 411
+    },
+    {
+      "epoch": 0.515,
+      "grad_norm": 4.8328776359558105,
+      "learning_rate": 2.43125e-05,
+      "loss": 1.4487192630767822,
+      "step": 412
+    },
+    {
+      "epoch": 0.51625,
+      "grad_norm": 9.81126594543457,
+      "learning_rate": 2.425e-05,
+      "loss": 0.9698282480239868,
+      "step": 413
+    },
+    {
+      "epoch": 0.5175,
+      "grad_norm": 0.03380861133337021,
+      "learning_rate": 2.4187500000000002e-05,
+      "loss": 0.001640755101107061,
+      "step": 414
+    },
+    {
+      "epoch": 0.51875,
+      "grad_norm": 24.69610023498535,
+      "learning_rate": 2.4125e-05,
+      "loss": 0.6574633717536926,
+      "step": 415
+    },
+    {
+      "epoch": 0.52,
+      "grad_norm": 0.07142316550016403,
+      "learning_rate": 2.4062500000000002e-05,
+      "loss": 0.002379275858402252,
+      "step": 416
+    },
+    {
+      "epoch": 0.52125,
+      "grad_norm": 0.040799349546432495,
+      "learning_rate": 2.4e-05,
+      "loss": 0.0019625783897936344,
+      "step": 417
+    },
+    {
+      "epoch": 0.5225,
+      "grad_norm": 19.514934539794922,
+      "learning_rate": 2.3937500000000002e-05,
+      "loss": 0.9976719617843628,
+      "step": 418
+    },
+    {
+      "epoch": 0.52375,
+      "grad_norm": 14.46216106414795,
+      "learning_rate": 2.3875e-05,
+      "loss": 0.0440327525138855,
+      "step": 419
+    },
+    {
+      "epoch": 0.525,
+      "grad_norm": 0.05438955873250961,
+      "learning_rate": 2.3812500000000003e-05,
+      "loss": 0.0022897154558449984,
+      "step": 420
+    },
+    {
+      "epoch": 0.525,
+      "eval_accuracy": 0.9375,
+      "eval_currentsteps": 420,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9368370257612847,
+      "eval_loss": 0.2696289122104645,
+      "eval_precision": 0.9383662046908315,
+      "eval_recall": 0.9375,
+      "eval_runtime": 2.9208,
+      "eval_samples_per_second": 136.949,
+      "eval_steps_per_second": 2.739,
+      "step": 420
+    },
+    {
+      "epoch": 0.52625,
+      "grad_norm": 1.3888461589813232,
+      "learning_rate": 2.375e-05,
+      "loss": 0.020248692482709885,
+      "step": 421
+    },
+    {
+      "epoch": 0.5275,
+      "grad_norm": 52.36869812011719,
+      "learning_rate": 2.36875e-05,
+      "loss": 0.12816883623600006,
+      "step": 422
+    },
+    {
+      "epoch": 0.52875,
+      "grad_norm": 1.7452610731124878,
+      "learning_rate": 2.3624999999999998e-05,
+      "loss": 0.021245313808321953,
+      "step": 423
+    },
+    {
+      "epoch": 0.53,
+      "grad_norm": 0.06790386885404587,
+      "learning_rate": 2.35625e-05,
+      "loss": 0.0031870969105511904,
+      "step": 424
+    },
+    {
+      "epoch": 0.53125,
+      "grad_norm": 93.28152465820312,
+      "learning_rate": 2.35e-05,
+      "loss": 0.756201982498169,
+      "step": 425
+    },
+    {
+      "epoch": 0.5325,
+      "grad_norm": 0.13931356370449066,
+      "learning_rate": 2.34375e-05,
+      "loss": 0.005618921481072903,
+      "step": 426
+    },
+    {
+      "epoch": 0.53375,
+      "grad_norm": 0.11539453268051147,
+      "learning_rate": 2.3375000000000002e-05,
+      "loss": 0.00322798453271389,
+      "step": 427
+    },
+    {
+      "epoch": 0.535,
+      "grad_norm": 12.835555076599121,
+      "learning_rate": 2.33125e-05,
+      "loss": 0.74705970287323,
+      "step": 428
+    },
+    {
+      "epoch": 0.53625,
+      "grad_norm": 38.4468994140625,
+      "learning_rate": 2.3250000000000003e-05,
+      "loss": 0.727206826210022,
+      "step": 429
+    },
+    {
+      "epoch": 0.5375,
+      "grad_norm": 19.347543716430664,
+      "learning_rate": 2.31875e-05,
+      "loss": 2.046562671661377,
+      "step": 430
+    },
+    {
+      "epoch": 0.5375,
+      "eval_accuracy": 0.94,
+      "eval_currentsteps": 430,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9393076923076924,
+      "eval_loss": 0.25482913851737976,
+      "eval_precision": 0.9411748472304357,
+      "eval_recall": 0.94,
+      "eval_runtime": 2.9181,
+      "eval_samples_per_second": 137.077,
+      "eval_steps_per_second": 2.742,
+      "step": 430
+    },
+    {
+      "epoch": 0.53875,
+      "grad_norm": 0.07841557264328003,
+      "learning_rate": 2.3125000000000003e-05,
+      "loss": 0.003757774131372571,
+      "step": 431
+    },
+    {
+      "epoch": 0.54,
+      "grad_norm": 0.06531653553247452,
+      "learning_rate": 2.30625e-05,
+      "loss": 0.0027012669015675783,
+      "step": 432
+    },
+    {
+      "epoch": 0.54125,
+      "grad_norm": 9.589631080627441,
+      "learning_rate": 2.3000000000000003e-05,
+      "loss": 0.0489649772644043,
+      "step": 433
+    },
+    {
+      "epoch": 0.5425,
+      "grad_norm": 0.6661024689674377,
+      "learning_rate": 2.2937500000000002e-05,
+      "loss": 0.021262668073177338,
+      "step": 434
+    },
+    {
+      "epoch": 0.54375,
+      "grad_norm": 17.14131736755371,
+      "learning_rate": 2.2875e-05,
+      "loss": 0.7606266140937805,
+      "step": 435
+    },
+    {
+      "epoch": 0.545,
+      "grad_norm": 0.33187246322631836,
+      "learning_rate": 2.28125e-05,
+      "loss": 0.01167524978518486,
+      "step": 436
+    },
+    {
+      "epoch": 0.54625,
+      "grad_norm": 0.18951797485351562,
+      "learning_rate": 2.275e-05,
+      "loss": 0.0059932200238108635,
+      "step": 437
+    },
+    {
+      "epoch": 0.5475,
+      "grad_norm": 0.09490680694580078,
+      "learning_rate": 2.26875e-05,
+      "loss": 0.004336194135248661,
+      "step": 438
+    },
+    {
+      "epoch": 0.54875,
+      "grad_norm": 0.2861526310443878,
+      "learning_rate": 2.2625e-05,
+      "loss": 0.0071454583667218685,
+      "step": 439
+    },
+    {
+      "epoch": 0.55,
+      "grad_norm": 12.416544914245605,
+      "learning_rate": 2.25625e-05,
+      "loss": 1.0888367891311646,
+      "step": 440
+    },
+    {
+      "epoch": 0.55,
+      "eval_accuracy": 0.945,
+      "eval_currentsteps": 440,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9447493489583334,
+      "eval_loss": 0.1964234858751297,
+      "eval_precision": 0.9449597469810236,
+      "eval_recall": 0.945,
+      "eval_runtime": 2.9215,
+      "eval_samples_per_second": 136.917,
+      "eval_steps_per_second": 2.738,
+      "step": 440
+    },
+    {
+      "epoch": 0.55125,
+      "grad_norm": 0.15039770305156708,
+      "learning_rate": 2.25e-05,
+      "loss": 0.006231384351849556,
+      "step": 441
+    },
+    {
+      "epoch": 0.5525,
+      "grad_norm": 0.0997476726770401,
+      "learning_rate": 2.24375e-05,
+      "loss": 0.004127745516598225,
+      "step": 442
+    },
+    {
+      "epoch": 0.55375,
+      "grad_norm": 7.93544340133667,
+      "learning_rate": 2.2375000000000002e-05,
+      "loss": 0.9721258282661438,
+      "step": 443
+    },
+    {
+      "epoch": 0.555,
+      "grad_norm": 0.4953581392765045,
+      "learning_rate": 2.23125e-05,
+      "loss": 0.011940124444663525,
+      "step": 444
+    },
+    {
+      "epoch": 0.55625,
+      "grad_norm": 0.08287110924720764,
+      "learning_rate": 2.2250000000000002e-05,
+      "loss": 0.0034885569475591183,
+      "step": 445
+    },
+    {
+      "epoch": 0.5575,
+      "grad_norm": 0.18815730512142181,
+      "learning_rate": 2.21875e-05,
+      "loss": 0.007795307785272598,
+      "step": 446
+    },
+    {
+      "epoch": 0.55875,
+      "grad_norm": 1.1937466859817505,
+      "learning_rate": 2.2125000000000002e-05,
+      "loss": 0.023587273433804512,
+      "step": 447
+    },
+    {
+      "epoch": 0.56,
+      "grad_norm": 0.34356069564819336,
+      "learning_rate": 2.20625e-05,
+      "loss": 0.0076391687616705894,
+      "step": 448
+    },
+    {
+      "epoch": 0.56125,
+      "grad_norm": 0.18166030943393707,
+      "learning_rate": 2.2000000000000003e-05,
+      "loss": 0.005635435227304697,
+      "step": 449
+    },
+    {
+      "epoch": 0.5625,
+      "grad_norm": 0.16340453922748566,
+      "learning_rate": 2.19375e-05,
+      "loss": 0.005067789927124977,
+      "step": 450
+    },
+    {
+      "epoch": 0.5625,
+      "eval_accuracy": 0.9425,
+      "eval_currentsteps": 450,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9426189328674417,
+      "eval_loss": 0.21439053118228912,
+      "eval_precision": 0.94285,
+      "eval_recall": 0.9425,
+      "eval_runtime": 2.9178,
+      "eval_samples_per_second": 137.088,
+      "eval_steps_per_second": 2.742,
+      "step": 450
+    },
+    {
+      "epoch": 0.56375,
+      "grad_norm": 23.4837646484375,
+      "learning_rate": 2.1875e-05,
+      "loss": 0.7313498258590698,
+      "step": 451
+    },
+    {
+      "epoch": 0.565,
+      "grad_norm": 0.13662977516651154,
+      "learning_rate": 2.18125e-05,
+      "loss": 0.004731576424092054,
+      "step": 452
+    },
+    {
+      "epoch": 0.56625,
+      "grad_norm": 17.223594665527344,
+      "learning_rate": 2.175e-05,
+      "loss": 0.9534828066825867,
+      "step": 453
+    },
+    {
+      "epoch": 0.5675,
+      "grad_norm": 0.08681043237447739,
+      "learning_rate": 2.1687500000000002e-05,
+      "loss": 0.0036153059918433428,
+      "step": 454
+    },
+    {
+      "epoch": 0.56875,
+      "grad_norm": 0.1486470103263855,
+      "learning_rate": 2.1625e-05,
+      "loss": 0.0051952856592834,
+      "step": 455
+    },
+    {
+      "epoch": 0.57,
+      "grad_norm": 0.10302218794822693,
+      "learning_rate": 2.1562500000000002e-05,
+      "loss": 0.004099653568118811,
+      "step": 456
+    },
+    {
+      "epoch": 0.57125,
+      "grad_norm": 117.09288024902344,
+      "learning_rate": 2.15e-05,
+      "loss": 0.36680084466934204,
+      "step": 457
+    },
+    {
+      "epoch": 0.5725,
+      "grad_norm": 0.22357434034347534,
+      "learning_rate": 2.1437500000000003e-05,
+      "loss": 0.005824532359838486,
+      "step": 458
+    },
+    {
+      "epoch": 0.57375,
+      "grad_norm": 0.07825494557619095,
+      "learning_rate": 2.1375e-05,
+      "loss": 0.0032981731928884983,
+      "step": 459
+    },
+    {
+      "epoch": 0.575,
+      "grad_norm": 19.765491485595703,
+      "learning_rate": 2.1312500000000003e-05,
+      "loss": 0.879915714263916,
+      "step": 460
+    },
+    {
+      "epoch": 0.575,
+      "eval_accuracy": 0.9475,
+      "eval_currentsteps": 460,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9473026970659335,
+      "eval_loss": 0.2192176878452301,
+      "eval_precision": 0.9474256196091275,
+      "eval_recall": 0.9475,
+      "eval_runtime": 2.9177,
+      "eval_samples_per_second": 137.092,
+      "eval_steps_per_second": 2.742,
+      "step": 460
+    },
+    {
+      "epoch": 0.57625,
+      "grad_norm": 0.11263414472341537,
+      "learning_rate": 2.125e-05,
+      "loss": 0.004157026298344135,
+      "step": 461
+    },
+    {
+      "epoch": 0.5775,
+      "grad_norm": 11.445816040039062,
+      "learning_rate": 2.1187500000000003e-05,
+      "loss": 1.0815119743347168,
+      "step": 462
+    },
+    {
+      "epoch": 0.57875,
+      "grad_norm": 0.06507361680269241,
+      "learning_rate": 2.1125000000000002e-05,
+      "loss": 0.0026345113292336464,
+      "step": 463
+    },
+    {
+      "epoch": 0.58,
+      "grad_norm": 67.72562408447266,
+      "learning_rate": 2.10625e-05,
+      "loss": 0.25980862975120544,
+      "step": 464
+    },
+    {
+      "epoch": 0.58125,
+      "grad_norm": 0.06489358842372894,
+      "learning_rate": 2.1e-05,
+      "loss": 0.00274434732273221,
+      "step": 465
+    },
+    {
+      "epoch": 0.5825,
+      "grad_norm": 0.12856337428092957,
+      "learning_rate": 2.09375e-05,
+      "loss": 0.0038874298334121704,
+      "step": 466
+    },
+    {
+      "epoch": 0.58375,
+      "grad_norm": 0.16570940613746643,
+      "learning_rate": 2.0875e-05,
+      "loss": 0.005259424448013306,
+      "step": 467
+    },
+    {
+      "epoch": 0.585,
+      "grad_norm": 0.5566295981407166,
+      "learning_rate": 2.08125e-05,
+      "loss": 0.006267891731113195,
+      "step": 468
+    },
+    {
+      "epoch": 0.58625,
+      "grad_norm": 16.90354347229004,
+      "learning_rate": 2.075e-05,
+      "loss": 0.8538364171981812,
+      "step": 469
+    },
+    {
+      "epoch": 0.5875,
+      "grad_norm": 0.07826811820268631,
+      "learning_rate": 2.06875e-05,
+      "loss": 0.002704798709601164,
+      "step": 470
+    },
+    {
+      "epoch": 0.5875,
+      "eval_accuracy": 0.9425,
+      "eval_currentsteps": 470,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9424585832475043,
+      "eval_loss": 0.2322039008140564,
+      "eval_precision": 0.9424297540718369,
+      "eval_recall": 0.9425,
+      "eval_runtime": 2.9206,
+      "eval_samples_per_second": 136.957,
+      "eval_steps_per_second": 2.739,
+      "step": 470
+    },
+    {
+      "epoch": 0.58875,
+      "grad_norm": 0.2758243978023529,
+      "learning_rate": 2.0625e-05,
+      "loss": 0.005714595317840576,
+      "step": 471
+    },
+    {
+      "epoch": 0.59,
+      "grad_norm": 0.17895059287548065,
+      "learning_rate": 2.0562500000000002e-05,
+      "loss": 0.005432054400444031,
+      "step": 472
+    },
+    {
+      "epoch": 0.59125,
+      "grad_norm": 1.3808926343917847,
+      "learning_rate": 2.05e-05,
+      "loss": 0.010126536712050438,
+      "step": 473
+    },
+    {
+      "epoch": 0.5925,
+      "grad_norm": 0.10079862177371979,
+      "learning_rate": 2.0437500000000002e-05,
+      "loss": 0.003244097577407956,
+      "step": 474
+    },
+    {
+      "epoch": 0.59375,
+      "grad_norm": 36.58726119995117,
+      "learning_rate": 2.0375e-05,
+      "loss": 0.7623730301856995,
+      "step": 475
+    },
+    {
+      "epoch": 0.595,
+      "grad_norm": 0.052199892699718475,
+      "learning_rate": 2.0312500000000002e-05,
+      "loss": 0.0021467101760208607,
+      "step": 476
+    },
+    {
+      "epoch": 0.59625,
+      "grad_norm": 7.011279106140137,
+      "learning_rate": 2.025e-05,
+      "loss": 0.013373916037380695,
+      "step": 477
+    },
+    {
+      "epoch": 0.5975,
+      "grad_norm": 1.5442782640457153,
+      "learning_rate": 2.01875e-05,
+      "loss": 0.009542843326926231,
+      "step": 478
+    },
+    {
+      "epoch": 0.59875,
+      "grad_norm": 37.387245178222656,
+      "learning_rate": 2.0125e-05,
+      "loss": 0.9099688529968262,
+      "step": 479
+    },
+    {
+      "epoch": 0.6,
+      "grad_norm": 0.05900321900844574,
+      "learning_rate": 2.00625e-05,
+      "loss": 0.0026737083680927753,
+      "step": 480
+    },
+    {
+      "epoch": 0.6,
+      "eval_accuracy": 0.945,
+      "eval_currentsteps": 480,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9448363759296822,
+      "eval_loss": 0.2565697729587555,
+      "eval_precision": 0.9448764659465049,
+      "eval_recall": 0.945,
+      "eval_runtime": 2.9166,
+      "eval_samples_per_second": 137.144,
+      "eval_steps_per_second": 2.743,
+      "step": 480
+    },
+    {
+      "epoch": 0.60125,
+      "grad_norm": 5.316549301147461,
+      "learning_rate": 2e-05,
+      "loss": 1.2190223932266235,
+      "step": 481
+    },
+    {
+      "epoch": 0.6025,
+      "grad_norm": 34.561859130859375,
+      "learning_rate": 1.99375e-05,
+      "loss": 0.0596127025783062,
+      "step": 482
+    },
+    {
+      "epoch": 0.60375,
+      "grad_norm": 0.03795967996120453,
+      "learning_rate": 1.9875000000000002e-05,
+      "loss": 0.001778004108928144,
+      "step": 483
+    },
+    {
+      "epoch": 0.605,
+      "grad_norm": 0.15359704196453094,
+      "learning_rate": 1.98125e-05,
+      "loss": 0.003936534747481346,
+      "step": 484
+    },
+    {
+      "epoch": 0.60625,
+      "grad_norm": 0.05526220425963402,
+      "learning_rate": 1.9750000000000002e-05,
+      "loss": 0.002252207137644291,
+      "step": 485
+    },
+    {
+      "epoch": 0.6075,
+      "grad_norm": 0.04628821089863777,
+      "learning_rate": 1.96875e-05,
+      "loss": 0.002213418949395418,
+      "step": 486
+    },
+    {
+      "epoch": 0.60875,
+      "grad_norm": 0.5981752276420593,
+      "learning_rate": 1.9625000000000003e-05,
+      "loss": 0.008411465212702751,
+      "step": 487
+    },
+    {
+      "epoch": 0.61,
+      "grad_norm": 0.07792483270168304,
+      "learning_rate": 1.95625e-05,
+      "loss": 0.0032309540547430515,
+      "step": 488
+    },
+    {
+      "epoch": 0.61125,
+      "grad_norm": 0.15303611755371094,
+      "learning_rate": 1.9500000000000003e-05,
+      "loss": 0.0037090741097927094,
+      "step": 489
+    },
+    {
+      "epoch": 0.6125,
+      "grad_norm": 0.04904782027006149,
+      "learning_rate": 1.94375e-05,
+      "loss": 0.0020255011040717363,
+      "step": 490
+    },
+    {
+      "epoch": 0.6125,
+      "eval_accuracy": 0.945,
+      "eval_currentsteps": 490,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9447493489583334,
+      "eval_loss": 0.28066378831863403,
+      "eval_precision": 0.9449597469810236,
+      "eval_recall": 0.945,
+      "eval_runtime": 2.9247,
+      "eval_samples_per_second": 136.764,
+      "eval_steps_per_second": 2.735,
+      "step": 490
+    },
+    {
+      "epoch": 0.61375,
+      "grad_norm": 2.5934128761291504,
+      "learning_rate": 1.9375e-05,
+      "loss": 0.01322974730283022,
+      "step": 491
+    },
+    {
+      "epoch": 0.615,
+      "grad_norm": 0.027481133118271828,
+      "learning_rate": 1.93125e-05,
+      "loss": 0.001242759870365262,
+      "step": 492
+    },
+    {
+      "epoch": 0.61625,
+      "grad_norm": 0.07145743072032928,
+      "learning_rate": 1.925e-05,
+      "loss": 0.0029472284950315952,
+      "step": 493
+    },
+    {
+      "epoch": 0.6175,
+      "grad_norm": 0.11310451477766037,
+      "learning_rate": 1.91875e-05,
+      "loss": 0.0044538844376802444,
+      "step": 494
+    },
+    {
+      "epoch": 0.61875,
+      "grad_norm": 0.2718993127346039,
+      "learning_rate": 1.9125e-05,
+      "loss": 0.004360978491604328,
+      "step": 495
+    },
+    {
+      "epoch": 0.62,
+      "grad_norm": 0.04866202548146248,
+      "learning_rate": 1.90625e-05,
+      "loss": 0.001923382980749011,
+      "step": 496
+    },
+    {
+      "epoch": 0.62125,
+      "grad_norm": 20.130844116210938,
+      "learning_rate": 1.9e-05,
+      "loss": 0.9375590085983276,
+      "step": 497
+    },
+    {
+      "epoch": 0.6225,
+      "grad_norm": 0.22419703006744385,
+      "learning_rate": 1.89375e-05,
+      "loss": 0.006378471851348877,
+      "step": 498
+    },
+    {
+      "epoch": 0.62375,
+      "grad_norm": 0.04404433071613312,
+      "learning_rate": 1.8875e-05,
+      "loss": 0.0020207182969897985,
+      "step": 499
+    },
+    {
+      "epoch": 0.625,
+      "grad_norm": 0.056212060153484344,
+      "learning_rate": 1.88125e-05,
+      "loss": 0.0023809815756976604,
+      "step": 500
+    },
+    {
+      "epoch": 0.625,
+      "eval_accuracy": 0.9425,
+      "eval_currentsteps": 500,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9420945324476239,
+      "eval_loss": 0.31405773758888245,
+      "eval_precision": 0.9427327414537007,
+      "eval_recall": 0.9425,
+      "eval_runtime": 2.9134,
+      "eval_samples_per_second": 137.297,
+      "eval_steps_per_second": 2.746,
+      "step": 500
+    },
+    {
+      "epoch": 0.62625,
+      "grad_norm": 0.29649925231933594,
+      "learning_rate": 1.8750000000000002e-05,
+      "loss": 0.003138400614261627,
+      "step": 501
+    },
+    {
+      "epoch": 0.6275,
+      "grad_norm": 0.04881713166832924,
+      "learning_rate": 1.8687500000000004e-05,
+      "loss": 0.0018352089682593942,
+      "step": 502
+    },
+    {
+      "epoch": 0.62875,
+      "grad_norm": 0.09258956462144852,
+      "learning_rate": 1.8625000000000002e-05,
+      "loss": 0.003696660976856947,
+      "step": 503
+    },
+    {
+      "epoch": 0.63,
+      "grad_norm": 8.292438507080078,
+      "learning_rate": 1.85625e-05,
+      "loss": 1.0702126026153564,
+      "step": 504
+    },
+    {
+      "epoch": 0.63125,
+      "grad_norm": 0.048143770545721054,
+      "learning_rate": 1.85e-05,
+      "loss": 0.002217089757323265,
+      "step": 505
+    },
+    {
+      "epoch": 0.6325,
+      "grad_norm": 91.17504119873047,
+      "learning_rate": 1.84375e-05,
+      "loss": 0.678970217704773,
+      "step": 506
+    },
+    {
+      "epoch": 0.63375,
+      "grad_norm": 43.095157623291016,
+      "learning_rate": 1.8375e-05,
+      "loss": 0.6821131706237793,
+      "step": 507
+    },
+    {
+      "epoch": 0.635,
+      "grad_norm": 0.16359196603298187,
+      "learning_rate": 1.83125e-05,
+      "loss": 0.004919023253023624,
+      "step": 508
+    },
+    {
+      "epoch": 0.63625,
+      "grad_norm": 0.037259869277477264,
+      "learning_rate": 1.825e-05,
+      "loss": 0.0017099010292440653,
+      "step": 509
+    },
+    {
+      "epoch": 0.6375,
+      "grad_norm": 47.53834533691406,
+      "learning_rate": 1.81875e-05,
+      "loss": 0.4779583513736725,
+      "step": 510
+    },
+    {
+      "epoch": 0.6375,
+      "eval_accuracy": 0.9375,
+      "eval_currentsteps": 510,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9369502293060673,
+      "eval_loss": 0.33342182636260986,
+      "eval_precision": 0.9379595588235294,
+      "eval_recall": 0.9375,
+      "eval_runtime": 3.2991,
+      "eval_samples_per_second": 121.245,
+      "eval_steps_per_second": 2.425,
+      "step": 510
+    },
+    {
+      "epoch": 0.63875,
+      "grad_norm": 0.06219217926263809,
+      "learning_rate": 1.8125e-05,
+      "loss": 0.0024994532577693462,
+      "step": 511
+    },
+    {
+      "epoch": 0.64,
+      "grad_norm": 0.03212227299809456,
+      "learning_rate": 1.8062500000000002e-05,
+      "loss": 0.0015763354022055864,
+      "step": 512
+    },
+    {
+      "epoch": 0.64125,
+      "grad_norm": 0.03445954620838165,
+      "learning_rate": 1.8e-05,
+      "loss": 0.0015845602611079812,
+      "step": 513
+    },
+    {
+      "epoch": 0.6425,
+      "grad_norm": 0.030514610931277275,
+      "learning_rate": 1.7937500000000002e-05,
+      "loss": 0.0014862538082525134,
+      "step": 514
+    },
+    {
+      "epoch": 0.64375,
+      "grad_norm": 49.436214447021484,
+      "learning_rate": 1.7875e-05,
+      "loss": 0.4269958436489105,
+      "step": 515
+    },
+    {
+      "epoch": 0.645,
+      "grad_norm": 0.25482457876205444,
+      "learning_rate": 1.7812500000000003e-05,
+      "loss": 0.008987220004200935,
+      "step": 516
+    },
+    {
+      "epoch": 0.64625,
+      "grad_norm": 14.548922538757324,
+      "learning_rate": 1.775e-05,
+      "loss": 1.089111328125,
+      "step": 517
+    },
+    {
+      "epoch": 0.6475,
+      "grad_norm": 0.03947067633271217,
+      "learning_rate": 1.76875e-05,
+      "loss": 0.001857951283454895,
+      "step": 518
+    },
+    {
+      "epoch": 0.64875,
+      "grad_norm": 0.04272479936480522,
+      "learning_rate": 1.7625e-05,
+      "loss": 0.0018865620950236917,
+      "step": 519
+    },
+    {
+      "epoch": 0.65,
+      "grad_norm": 132.66799926757812,
+      "learning_rate": 1.75625e-05,
+      "loss": 2.7599291801452637,
+      "step": 520
+    },
+    {
+      "epoch": 0.65,
+      "eval_accuracy": 0.9375,
+      "eval_currentsteps": 520,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9368370257612847,
+      "eval_loss": 0.33707866072654724,
+      "eval_precision": 0.9383662046908315,
+      "eval_recall": 0.9375,
+      "eval_runtime": 2.8707,
+      "eval_samples_per_second": 139.341,
+      "eval_steps_per_second": 2.787,
+      "step": 520
+    },
+    {
+      "epoch": 0.65125,
+      "grad_norm": 15.578726768493652,
+      "learning_rate": 1.75e-05,
+      "loss": 1.1613976955413818,
+      "step": 521
+    },
+    {
+      "epoch": 0.6525,
+      "grad_norm": 0.029490645974874496,
+      "learning_rate": 1.74375e-05,
+      "loss": 0.0011775689199566841,
+      "step": 522
+    },
+    {
+      "epoch": 0.65375,
+      "grad_norm": 0.03279546648263931,
+      "learning_rate": 1.7375e-05,
+      "loss": 0.0015151354018598795,
+      "step": 523
+    },
+    {
+      "epoch": 0.655,
+      "grad_norm": 0.15820080041885376,
+      "learning_rate": 1.73125e-05,
+      "loss": 0.0035650846548378468,
+      "step": 524
+    },
+    {
+      "epoch": 0.65625,
+      "grad_norm": 1.0551120042800903,
+      "learning_rate": 1.725e-05,
+      "loss": 0.008538583293557167,
+      "step": 525
+    },
+    {
+      "epoch": 0.6575,
+      "grad_norm": 0.04771045967936516,
+      "learning_rate": 1.71875e-05,
+      "loss": 0.0018307287245988846,
+      "step": 526
+    },
+    {
+      "epoch": 0.65875,
+      "grad_norm": 0.1788928359746933,
+      "learning_rate": 1.7125000000000003e-05,
+      "loss": 0.005918002687394619,
+      "step": 527
+    },
+    {
+      "epoch": 0.66,
+      "grad_norm": 0.10851734131574631,
+      "learning_rate": 1.70625e-05,
+      "loss": 0.004220528993755579,
+      "step": 528
+    },
+    {
+      "epoch": 0.66125,
+      "grad_norm": 0.5238946676254272,
+      "learning_rate": 1.7000000000000003e-05,
+      "loss": 0.005874351132661104,
+      "step": 529
+    },
+    {
+      "epoch": 0.6625,
+      "grad_norm": 205.42031860351562,
+      "learning_rate": 1.6937500000000002e-05,
+      "loss": 0.31973034143447876,
+      "step": 530
+    },
+    {
+      "epoch": 0.6625,
+      "eval_accuracy": 0.9375,
+      "eval_currentsteps": 530,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9368370257612847,
+      "eval_loss": 0.31732773780822754,
+      "eval_precision": 0.9383662046908315,
+      "eval_recall": 0.9375,
+      "eval_runtime": 2.9272,
+      "eval_samples_per_second": 136.65,
+      "eval_steps_per_second": 2.733,
+      "step": 530
+    },
+    {
+      "epoch": 0.66375,
+      "grad_norm": 0.04678378999233246,
+      "learning_rate": 1.6875000000000004e-05,
+      "loss": 0.002109078224748373,
+      "step": 531
+    },
+    {
+      "epoch": 0.665,
+      "grad_norm": 1.5837395191192627,
+      "learning_rate": 1.6812500000000002e-05,
+      "loss": 0.008808465674519539,
+      "step": 532
+    },
+    {
+      "epoch": 0.66625,
+      "grad_norm": 4.081182479858398,
+      "learning_rate": 1.675e-05,
+      "loss": 0.008468260988593102,
+      "step": 533
+    },
+    {
+      "epoch": 0.6675,
+      "grad_norm": 0.04992586746811867,
+      "learning_rate": 1.66875e-05,
+      "loss": 0.0021390512119978666,
+      "step": 534
+    },
+    {
+      "epoch": 0.66875,
+      "grad_norm": 0.04697118327021599,
+      "learning_rate": 1.6625e-05,
+      "loss": 0.002154698595404625,
+      "step": 535
+    },
+    {
+      "epoch": 0.67,
+      "grad_norm": 0.7569458484649658,
+      "learning_rate": 1.65625e-05,
+      "loss": 0.007822247222065926,
+      "step": 536
+    },
+    {
+      "epoch": 0.67125,
+      "grad_norm": 0.026585670188069344,
+      "learning_rate": 1.65e-05,
+      "loss": 0.0012789409374818206,
+      "step": 537
+    },
+    {
+      "epoch": 0.6725,
+      "grad_norm": 0.6002786159515381,
+      "learning_rate": 1.64375e-05,
+      "loss": 0.0034851492382586002,
+      "step": 538
+    },
+    {
+      "epoch": 0.67375,
+      "grad_norm": 38.66373825073242,
+      "learning_rate": 1.6375e-05,
+      "loss": 0.3092520534992218,
+      "step": 539
+    },
+    {
+      "epoch": 0.675,
+      "grad_norm": 0.03576426953077316,
+      "learning_rate": 1.63125e-05,
+      "loss": 0.001426832051947713,
+      "step": 540
+    },
+    {
+      "epoch": 0.675,
+      "eval_accuracy": 0.94,
+      "eval_currentsteps": 540,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9395250573206682,
+      "eval_loss": 0.3112313449382782,
+      "eval_precision": 0.9403385973189754,
+      "eval_recall": 0.94,
+      "eval_runtime": 2.9334,
+      "eval_samples_per_second": 136.362,
+      "eval_steps_per_second": 2.727,
+      "step": 540
+    },
+    {
+      "epoch": 0.67625,
+      "grad_norm": 0.03157059848308563,
+      "learning_rate": 1.6250000000000002e-05,
+      "loss": 0.00142268359195441,
+      "step": 541
+    },
+    {
+      "epoch": 0.6775,
+      "grad_norm": 0.031773392111063004,
+      "learning_rate": 1.61875e-05,
+      "loss": 0.0015027596382424235,
+      "step": 542
+    },
+    {
+      "epoch": 0.67875,
+      "grad_norm": 0.028503861278295517,
+      "learning_rate": 1.6125000000000002e-05,
+      "loss": 0.001369997626170516,
+      "step": 543
+    },
+    {
+      "epoch": 0.68,
+      "grad_norm": 17.550025939941406,
+      "learning_rate": 1.60625e-05,
+      "loss": 1.12076735496521,
+      "step": 544
+    },
+    {
+      "epoch": 0.68125,
+      "grad_norm": 0.022600799798965454,
+      "learning_rate": 1.6000000000000003e-05,
+      "loss": 0.0010696498211473227,
+      "step": 545
+    },
+    {
+      "epoch": 0.6825,
+      "grad_norm": 0.07580795139074326,
+      "learning_rate": 1.59375e-05,
+      "loss": 0.0019321499858051538,
+      "step": 546
+    },
+    {
+      "epoch": 0.68375,
+      "grad_norm": 32.14546203613281,
+      "learning_rate": 1.5875e-05,
+      "loss": 0.8516526222229004,
+      "step": 547
+    },
+    {
+      "epoch": 0.685,
+      "grad_norm": 0.045552950352430344,
+      "learning_rate": 1.5812499999999998e-05,
+      "loss": 0.001916047534905374,
+      "step": 548
+    },
+    {
+      "epoch": 0.68625,
+      "grad_norm": 0.03886851295828819,
+      "learning_rate": 1.575e-05,
+      "loss": 0.0014990463387221098,
+      "step": 549
+    },
+    {
+      "epoch": 0.6875,
+      "grad_norm": 0.03335507586598396,
+      "learning_rate": 1.56875e-05,
+      "loss": 0.0014007285935804248,
+      "step": 550
+    },
+    {
+      "epoch": 0.6875,
+      "eval_accuracy": 0.93,
+      "eval_currentsteps": 550,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.93,
+      "eval_loss": 0.32442620396614075,
+      "eval_precision": 0.93,
+      "eval_recall": 0.93,
+      "eval_runtime": 2.9164,
+      "eval_samples_per_second": 137.154,
+      "eval_steps_per_second": 2.743,
+      "step": 550
+    },
+    {
+      "epoch": 0.68875,
+      "grad_norm": 0.09313265979290009,
+      "learning_rate": 1.5625e-05,
+      "loss": 0.00327542657032609,
+      "step": 551
+    },
+    {
+      "epoch": 0.69,
+      "grad_norm": 12.985532760620117,
+      "learning_rate": 1.5562500000000002e-05,
+      "loss": 0.01834779977798462,
+      "step": 552
+    },
+    {
+      "epoch": 0.69125,
+      "grad_norm": 0.04316794499754906,
+      "learning_rate": 1.55e-05,
+      "loss": 0.0015079739969223738,
+      "step": 553
+    },
+    {
+      "epoch": 0.6925,
+      "grad_norm": 0.02999797649681568,
+      "learning_rate": 1.5437500000000003e-05,
+      "loss": 0.0012784695718437433,
+      "step": 554
+    },
+    {
+      "epoch": 0.69375,
+      "grad_norm": 10.132469177246094,
+      "learning_rate": 1.5375e-05,
+      "loss": 1.2776920795440674,
+      "step": 555
+    },
+    {
+      "epoch": 0.695,
+      "grad_norm": 0.031194981187582016,
+      "learning_rate": 1.5312500000000003e-05,
+      "loss": 0.001419886713847518,
+      "step": 556
+    },
+    {
+      "epoch": 0.69625,
+      "grad_norm": 34.2537956237793,
+      "learning_rate": 1.525e-05,
+      "loss": 0.6460009813308716,
+      "step": 557
+    },
+    {
+      "epoch": 0.6975,
+      "grad_norm": 0.032357603311538696,
+      "learning_rate": 1.5187500000000002e-05,
+      "loss": 0.0014495872892439365,
+      "step": 558
+    },
+    {
+      "epoch": 0.69875,
+      "grad_norm": 0.06809444725513458,
+      "learning_rate": 1.5125e-05,
+      "loss": 0.0021267030388116837,
+      "step": 559
+    },
+    {
+      "epoch": 0.7,
+      "grad_norm": 0.06730090826749802,
+      "learning_rate": 1.5062500000000002e-05,
+      "loss": 0.0019834027625620365,
+      "step": 560
+    },
+    {
+      "epoch": 0.7,
+      "eval_accuracy": 0.93,
+      "eval_currentsteps": 560,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9304456706281834,
+      "eval_loss": 0.36120614409446716,
+      "eval_precision": 0.9320995517810803,
+      "eval_recall": 0.93,
+      "eval_runtime": 2.9318,
+      "eval_samples_per_second": 136.437,
+      "eval_steps_per_second": 2.729,
+      "step": 560
+    },
+    {
+      "epoch": 0.70125,
+      "grad_norm": 0.07334176450967789,
+      "learning_rate": 1.5e-05,
+      "loss": 0.002406148938462138,
+      "step": 561
+    },
+    {
+      "epoch": 0.7025,
+      "grad_norm": 0.1619105339050293,
+      "learning_rate": 1.4937500000000002e-05,
+      "loss": 0.003585497383028269,
+      "step": 562
+    },
+    {
+      "epoch": 0.70375,
+      "grad_norm": 128.7621612548828,
+      "learning_rate": 1.4875e-05,
+      "loss": 0.5153034329414368,
+      "step": 563
+    },
+    {
+      "epoch": 0.705,
+      "grad_norm": 1.5762414932250977,
+      "learning_rate": 1.4812500000000001e-05,
+      "loss": 0.01625634916126728,
+      "step": 564
+    },
+    {
+      "epoch": 0.70625,
+      "grad_norm": 0.05420539155602455,
+      "learning_rate": 1.475e-05,
+      "loss": 0.0017495943466201425,
+      "step": 565
+    },
+    {
+      "epoch": 0.7075,
+      "grad_norm": 0.16720837354660034,
+      "learning_rate": 1.4687500000000001e-05,
+      "loss": 0.003119050059467554,
+      "step": 566
+    },
+    {
+      "epoch": 0.70875,
+      "grad_norm": 0.4535641670227051,
+      "learning_rate": 1.4625e-05,
+      "loss": 0.00508844293653965,
+      "step": 567
+    },
+    {
+      "epoch": 0.71,
+      "grad_norm": 0.037438590079545975,
+      "learning_rate": 1.4562500000000002e-05,
+      "loss": 0.0016074972227215767,
+      "step": 568
+    },
+    {
+      "epoch": 0.71125,
+      "grad_norm": 0.3369538187980652,
+      "learning_rate": 1.45e-05,
+      "loss": 0.004081885330379009,
+      "step": 569
+    },
+    {
+      "epoch": 0.7125,
+      "grad_norm": 0.08187292516231537,
+      "learning_rate": 1.44375e-05,
+      "loss": 0.002497853245586157,
+      "step": 570
+    },
+    {
+      "epoch": 0.7125,
+      "eval_accuracy": 0.925,
+      "eval_currentsteps": 570,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9253909678448895,
+      "eval_loss": 0.3625447154045105,
+      "eval_precision": 0.9265536537195525,
+      "eval_recall": 0.925,
+      "eval_runtime": 2.9128,
+      "eval_samples_per_second": 137.323,
+      "eval_steps_per_second": 2.746,
+      "step": 570
+    },
+    {
+      "epoch": 0.71375,
+      "grad_norm": 4.9752326011657715,
+      "learning_rate": 1.4374999999999999e-05,
+      "loss": 1.3230081796646118,
+      "step": 571
+    },
+    {
+      "epoch": 0.715,
+      "grad_norm": 0.04096034914255142,
+      "learning_rate": 1.43125e-05,
+      "loss": 0.001868401886895299,
+      "step": 572
+    },
+    {
+      "epoch": 0.71625,
+      "grad_norm": 0.09272687882184982,
+      "learning_rate": 1.4249999999999999e-05,
+      "loss": 0.0024584191851317883,
+      "step": 573
+    },
+    {
+      "epoch": 0.7175,
+      "grad_norm": 0.46095573902130127,
+      "learning_rate": 1.4187500000000001e-05,
+      "loss": 0.004104905761778355,
+      "step": 574
+    },
+    {
+      "epoch": 0.71875,
+      "grad_norm": 147.72584533691406,
+      "learning_rate": 1.4125e-05,
+      "loss": 0.27289456129074097,
+      "step": 575
+    },
+    {
+      "epoch": 0.72,
+      "grad_norm": 12.50767993927002,
+      "learning_rate": 1.4062500000000001e-05,
+      "loss": 1.1472463607788086,
+      "step": 576
+    },
+    {
+      "epoch": 0.72125,
+      "grad_norm": 0.23259949684143066,
+      "learning_rate": 1.4000000000000001e-05,
+      "loss": 0.004377212841063738,
+      "step": 577
+    },
+    {
+      "epoch": 0.7225,
+      "grad_norm": 7.557366371154785,
+      "learning_rate": 1.39375e-05,
+      "loss": 1.0051846504211426,
+      "step": 578
+    },
+    {
+      "epoch": 0.72375,
+      "grad_norm": 0.09580158442258835,
+      "learning_rate": 1.3875000000000002e-05,
+      "loss": 0.002642326056957245,
+      "step": 579
+    },
+    {
+      "epoch": 0.725,
+      "grad_norm": 37.162628173828125,
+      "learning_rate": 1.38125e-05,
+      "loss": 0.0612940788269043,
+      "step": 580
+    },
+    {
+      "epoch": 0.725,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 580,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.935,
+      "eval_loss": 0.31552937626838684,
+      "eval_precision": 0.935,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.8803,
+      "eval_samples_per_second": 138.877,
+      "eval_steps_per_second": 2.778,
+      "step": 580
+    },
+    {
+      "epoch": 0.72625,
+      "grad_norm": 0.11979372054338455,
+      "learning_rate": 1.3750000000000002e-05,
+      "loss": 0.0028009710367769003,
+      "step": 581
+    },
+    {
+      "epoch": 0.7275,
+      "grad_norm": 0.15565019845962524,
+      "learning_rate": 1.36875e-05,
+      "loss": 0.002999788150191307,
+      "step": 582
+    },
+    {
+      "epoch": 0.72875,
+      "grad_norm": 0.05317560210824013,
+      "learning_rate": 1.3625e-05,
+      "loss": 0.0022838388103991747,
+      "step": 583
+    },
+    {
+      "epoch": 0.73,
+      "grad_norm": 0.06422543525695801,
+      "learning_rate": 1.3562500000000001e-05,
+      "loss": 0.002352750627323985,
+      "step": 584
+    },
+    {
+      "epoch": 0.73125,
+      "grad_norm": 0.0954427644610405,
+      "learning_rate": 1.3500000000000001e-05,
+      "loss": 0.003561635036021471,
+      "step": 585
+    },
+    {
+      "epoch": 0.7325,
+      "grad_norm": 0.16413116455078125,
+      "learning_rate": 1.34375e-05,
+      "loss": 0.004079903941601515,
+      "step": 586
+    },
+    {
+      "epoch": 0.73375,
+      "grad_norm": 51.42337417602539,
+      "learning_rate": 1.3375000000000002e-05,
+      "loss": 0.2543175220489502,
+      "step": 587
+    },
+    {
+      "epoch": 0.735,
+      "grad_norm": 0.05101639777421951,
+      "learning_rate": 1.33125e-05,
+      "loss": 0.0019327073823660612,
+      "step": 588
+    },
+    {
+      "epoch": 0.73625,
+      "grad_norm": 17.75918960571289,
+      "learning_rate": 1.3250000000000002e-05,
+      "loss": 0.01679256558418274,
+      "step": 589
+    },
+    {
+      "epoch": 0.7375,
+      "grad_norm": 16.31824493408203,
+      "learning_rate": 1.31875e-05,
+      "loss": 0.050251562148332596,
+      "step": 590
+    },
+    {
+      "epoch": 0.7375,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 590,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9349053500161795,
+      "eval_loss": 0.30856236815452576,
+      "eval_precision": 0.9348607167004732,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.9162,
+      "eval_samples_per_second": 137.167,
+      "eval_steps_per_second": 2.743,
+      "step": 590
+    },
+    {
+      "epoch": 0.73875,
+      "grad_norm": 0.11023927479982376,
+      "learning_rate": 1.3125e-05,
+      "loss": 0.0031189508736133575,
+      "step": 591
+    },
+    {
+      "epoch": 0.74,
+      "grad_norm": 0.028258031234145164,
+      "learning_rate": 1.3062499999999999e-05,
+      "loss": 0.001140416949056089,
+      "step": 592
+    },
+    {
+      "epoch": 0.74125,
+      "grad_norm": 0.04469868540763855,
+      "learning_rate": 1.3000000000000001e-05,
+      "loss": 0.001958860084414482,
+      "step": 593
+    },
+    {
+      "epoch": 0.7425,
+      "grad_norm": 0.042768243700265884,
+      "learning_rate": 1.29375e-05,
+      "loss": 0.002006897469982505,
+      "step": 594
+    },
+    {
+      "epoch": 0.74375,
+      "grad_norm": 65.14153289794922,
+      "learning_rate": 1.2875000000000001e-05,
+      "loss": 0.24051395058631897,
+      "step": 595
+    },
+    {
+      "epoch": 0.745,
+      "grad_norm": 0.039483364671468735,
+      "learning_rate": 1.28125e-05,
+      "loss": 0.001813892973586917,
+      "step": 596
+    },
+    {
+      "epoch": 0.74625,
+      "grad_norm": 7.382754325866699,
+      "learning_rate": 1.2750000000000002e-05,
+      "loss": 0.901988685131073,
+      "step": 597
+    },
+    {
+      "epoch": 0.7475,
+      "grad_norm": 0.14003349840641022,
+      "learning_rate": 1.26875e-05,
+      "loss": 0.004643079824745655,
+      "step": 598
+    },
+    {
+      "epoch": 0.74875,
+      "grad_norm": 1.1620761156082153,
+      "learning_rate": 1.2625e-05,
+      "loss": 0.0070624337531626225,
+      "step": 599
+    },
+    {
+      "epoch": 0.75,
+      "grad_norm": 5.024120807647705,
+      "learning_rate": 1.2562499999999999e-05,
+      "loss": 0.017828967422246933,
+      "step": 600
+    },
+    {
+      "epoch": 0.75,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 600,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9349053500161795,
+      "eval_loss": 0.3098564147949219,
+      "eval_precision": 0.9348607167004732,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.9449,
+      "eval_samples_per_second": 135.826,
+      "eval_steps_per_second": 2.717,
+      "step": 600
+    },
+    {
+      "epoch": 0.75125,
+      "grad_norm": 58.2513427734375,
+      "learning_rate": 1.25e-05,
+      "loss": 0.3935677409172058,
+      "step": 601
+    },
+    {
+      "epoch": 0.7525,
+      "grad_norm": 1.996422290802002,
+      "learning_rate": 1.24375e-05,
+      "loss": 0.011469649150967598,
+      "step": 602
+    },
+    {
+      "epoch": 0.75375,
+      "grad_norm": 0.053492654114961624,
+      "learning_rate": 1.2375000000000001e-05,
+      "loss": 0.002485563512891531,
+      "step": 603
+    },
+    {
+      "epoch": 0.755,
+      "grad_norm": 0.06290559470653534,
+      "learning_rate": 1.2312500000000001e-05,
+      "loss": 0.002557068597525358,
+      "step": 604
+    },
+    {
+      "epoch": 0.75625,
+      "grad_norm": 0.029778867959976196,
+      "learning_rate": 1.225e-05,
+      "loss": 0.0011149296769872308,
+      "step": 605
+    },
+    {
+      "epoch": 0.7575,
+      "grad_norm": 97.64759063720703,
+      "learning_rate": 1.21875e-05,
+      "loss": 0.11877676099538803,
+      "step": 606
+    },
+    {
+      "epoch": 0.75875,
+      "grad_norm": 0.0548175573348999,
+      "learning_rate": 1.2125e-05,
+      "loss": 0.002449056599289179,
+      "step": 607
+    },
+    {
+      "epoch": 0.76,
+      "grad_norm": 0.07413528114557266,
+      "learning_rate": 1.20625e-05,
+      "loss": 0.0029244411271065474,
+      "step": 608
+    },
+    {
+      "epoch": 0.76125,
+      "grad_norm": 0.662517786026001,
+      "learning_rate": 1.2e-05,
+      "loss": 0.004679801873862743,
+      "step": 609
+    },
+    {
+      "epoch": 0.7625,
+      "grad_norm": 0.04249636083841324,
+      "learning_rate": 1.19375e-05,
+      "loss": 0.0019894291181117296,
+      "step": 610
+    },
+    {
+      "epoch": 0.7625,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 610,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9322463247990573,
+      "eval_loss": 0.3274292051792145,
+      "eval_precision": 0.9323068839392945,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.9232,
+      "eval_samples_per_second": 136.838,
+      "eval_steps_per_second": 2.737,
+      "step": 610
+    },
+    {
+      "epoch": 0.76375,
+      "grad_norm": 0.3251364827156067,
+      "learning_rate": 1.1875e-05,
+      "loss": 0.003646446391940117,
+      "step": 611
+    },
+    {
+      "epoch": 0.765,
+      "grad_norm": 0.09575849771499634,
+      "learning_rate": 1.1812499999999999e-05,
+      "loss": 0.004009521100670099,
+      "step": 612
+    },
+    {
+      "epoch": 0.76625,
+      "grad_norm": 0.05915546417236328,
+      "learning_rate": 1.175e-05,
+      "loss": 0.002598481485620141,
+      "step": 613
+    },
+    {
+      "epoch": 0.7675,
+      "grad_norm": 0.07042498886585236,
+      "learning_rate": 1.1687500000000001e-05,
+      "loss": 0.0022113285958766937,
+      "step": 614
+    },
+    {
+      "epoch": 0.76875,
+      "grad_norm": 0.04194233939051628,
+      "learning_rate": 1.1625000000000001e-05,
+      "loss": 0.0019587280694395304,
+      "step": 615
+    },
+    {
+      "epoch": 0.77,
+      "grad_norm": 84.77035522460938,
+      "learning_rate": 1.1562500000000002e-05,
+      "loss": 0.13249358534812927,
+      "step": 616
+    },
+    {
+      "epoch": 0.77125,
+      "grad_norm": 9.821205139160156,
+      "learning_rate": 1.1500000000000002e-05,
+      "loss": 1.225090742111206,
+      "step": 617
+    },
+    {
+      "epoch": 0.7725,
+      "grad_norm": 0.04598016291856766,
+      "learning_rate": 1.14375e-05,
+      "loss": 0.0021096626296639442,
+      "step": 618
+    },
+    {
+      "epoch": 0.77375,
+      "grad_norm": 0.04642980545759201,
+      "learning_rate": 1.1375e-05,
+      "loss": 0.0017532740021124482,
+      "step": 619
+    },
+    {
+      "epoch": 0.775,
+      "grad_norm": 0.032576557248830795,
+      "learning_rate": 1.13125e-05,
+      "loss": 0.0012499920558184385,
+      "step": 620
+    },
+    {
+      "epoch": 0.775,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 620,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9322463247990573,
+      "eval_loss": 0.33646002411842346,
+      "eval_precision": 0.9323068839392945,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.9379,
+      "eval_samples_per_second": 136.15,
+      "eval_steps_per_second": 2.723,
+      "step": 620
+    },
+    {
+      "epoch": 0.77625,
+      "grad_norm": 0.11104916036128998,
+      "learning_rate": 1.125e-05,
+      "loss": 0.0023290016688406467,
+      "step": 621
+    },
+    {
+      "epoch": 0.7775,
+      "grad_norm": 0.023321649059653282,
+      "learning_rate": 1.1187500000000001e-05,
+      "loss": 0.0010951478034257889,
+      "step": 622
+    },
+    {
+      "epoch": 0.77875,
+      "grad_norm": 0.04318783059716225,
+      "learning_rate": 1.1125000000000001e-05,
+      "loss": 0.001958835404366255,
+      "step": 623
+    },
+    {
+      "epoch": 0.78,
+      "grad_norm": 0.04578041657805443,
+      "learning_rate": 1.1062500000000001e-05,
+      "loss": 0.0018089546356350183,
+      "step": 624
+    },
+    {
+      "epoch": 0.78125,
+      "grad_norm": 0.23523634672164917,
+      "learning_rate": 1.1000000000000001e-05,
+      "loss": 0.0026990603655576706,
+      "step": 625
+    },
+    {
+      "epoch": 0.7825,
+      "grad_norm": 0.04000937193632126,
+      "learning_rate": 1.09375e-05,
+      "loss": 0.0015797095838934183,
+      "step": 626
+    },
+    {
+      "epoch": 0.78375,
+      "grad_norm": 0.036778371781110764,
+      "learning_rate": 1.0875e-05,
+      "loss": 0.0012674678582698107,
+      "step": 627
+    },
+    {
+      "epoch": 0.785,
+      "grad_norm": 0.42447546124458313,
+      "learning_rate": 1.08125e-05,
+      "loss": 0.004958782810717821,
+      "step": 628
+    },
+    {
+      "epoch": 0.78625,
+      "grad_norm": 11.737441062927246,
+      "learning_rate": 1.075e-05,
+      "loss": 1.3915081024169922,
+      "step": 629
+    },
+    {
+      "epoch": 0.7875,
+      "grad_norm": 0.02848331443965435,
+      "learning_rate": 1.06875e-05,
+      "loss": 0.0013807868817821145,
+      "step": 630
+    },
+    {
+      "epoch": 0.7875,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 630,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9322463247990573,
+      "eval_loss": 0.33953964710235596,
+      "eval_precision": 0.9323068839392945,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.8936,
+      "eval_samples_per_second": 138.237,
+      "eval_steps_per_second": 2.765,
+      "step": 630
+    },
+    {
+      "epoch": 0.78875,
+      "grad_norm": 11.38871955871582,
+      "learning_rate": 1.0625e-05,
+      "loss": 1.092869758605957,
+      "step": 631
+    },
+    {
+      "epoch": 0.79,
+      "grad_norm": 0.06262259930372238,
+      "learning_rate": 1.0562500000000001e-05,
+      "loss": 0.0026581683196127415,
+      "step": 632
+    },
+    {
+      "epoch": 0.79125,
+      "grad_norm": 0.1254597306251526,
+      "learning_rate": 1.05e-05,
+      "loss": 0.0025374938268214464,
+      "step": 633
+    },
+    {
+      "epoch": 0.7925,
+      "grad_norm": 0.03968249633908272,
+      "learning_rate": 1.04375e-05,
+      "loss": 0.0017848152201622725,
+      "step": 634
+    },
+    {
+      "epoch": 0.79375,
+      "grad_norm": 73.96804809570312,
+      "learning_rate": 1.0375e-05,
+      "loss": 0.16836193203926086,
+      "step": 635
+    },
+    {
+      "epoch": 0.795,
+      "grad_norm": 0.02624540962278843,
+      "learning_rate": 1.03125e-05,
+      "loss": 0.001098846783861518,
+      "step": 636
+    },
+    {
+      "epoch": 0.79625,
+      "grad_norm": 0.03825027123093605,
+      "learning_rate": 1.025e-05,
+      "loss": 0.0016024683136492968,
+      "step": 637
+    },
+    {
+      "epoch": 0.7975,
+      "grad_norm": 0.6742311716079712,
+      "learning_rate": 1.01875e-05,
+      "loss": 0.005433846265077591,
+      "step": 638
+    },
+    {
+      "epoch": 0.79875,
+      "grad_norm": 148.7698974609375,
+      "learning_rate": 1.0125e-05,
+      "loss": 0.16572508215904236,
+      "step": 639
+    },
+    {
+      "epoch": 0.8,
+      "grad_norm": 0.061370350420475006,
+      "learning_rate": 1.00625e-05,
+      "loss": 0.002599631668999791,
+      "step": 640
+    },
+    {
+      "epoch": 0.8,
+      "eval_accuracy": 0.93,
+      "eval_currentsteps": 640,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.93,
+      "eval_loss": 0.3419772982597351,
+      "eval_precision": 0.93,
+      "eval_recall": 0.93,
+      "eval_runtime": 2.8929,
+      "eval_samples_per_second": 138.271,
+      "eval_steps_per_second": 2.765,
+      "step": 640
+    },
+    {
+      "epoch": 0.80125,
+      "grad_norm": 0.03777012228965759,
+      "learning_rate": 1e-05,
+      "loss": 0.001447564922273159,
+      "step": 641
+    },
+    {
+      "epoch": 0.8025,
+      "grad_norm": 0.06194242835044861,
+      "learning_rate": 9.937500000000001e-06,
+      "loss": 0.0020783464424312115,
+      "step": 642
+    },
+    {
+      "epoch": 0.80375,
+      "grad_norm": 0.054880354553461075,
+      "learning_rate": 9.875000000000001e-06,
+      "loss": 0.0024199073668569326,
+      "step": 643
+    },
+    {
+      "epoch": 0.805,
+      "grad_norm": 0.29156675934791565,
+      "learning_rate": 9.812500000000001e-06,
+      "loss": 0.003304941114038229,
+      "step": 644
+    },
+    {
+      "epoch": 0.80625,
+      "grad_norm": 0.11076037585735321,
+      "learning_rate": 9.750000000000002e-06,
+      "loss": 0.0032645058818161488,
+      "step": 645
+    },
+    {
+      "epoch": 0.8075,
+      "grad_norm": 0.6381750106811523,
+      "learning_rate": 9.6875e-06,
+      "loss": 0.00602808129042387,
+      "step": 646
+    },
+    {
+      "epoch": 0.80875,
+      "grad_norm": 0.05492258816957474,
+      "learning_rate": 9.625e-06,
+      "loss": 0.0021661589853465557,
+      "step": 647
+    },
+    {
+      "epoch": 0.81,
+      "grad_norm": 5.4308600425720215,
+      "learning_rate": 9.5625e-06,
+      "loss": 0.010617392137646675,
+      "step": 648
+    },
+    {
+      "epoch": 0.81125,
+      "grad_norm": 51.85531997680664,
+      "learning_rate": 9.5e-06,
+      "loss": 0.04158156365156174,
+      "step": 649
+    },
+    {
+      "epoch": 0.8125,
+      "grad_norm": 0.029550252482295036,
+      "learning_rate": 9.4375e-06,
+      "loss": 0.0013141718227416277,
+      "step": 650
+    },
+    {
+      "epoch": 0.8125,
+      "eval_accuracy": 0.93,
+      "eval_currentsteps": 650,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.93,
+      "eval_loss": 0.3482376039028168,
+      "eval_precision": 0.93,
+      "eval_recall": 0.93,
+      "eval_runtime": 2.8788,
+      "eval_samples_per_second": 138.946,
+      "eval_steps_per_second": 2.779,
+      "step": 650
+    },
+    {
+      "epoch": 0.81375,
+      "grad_norm": 1.480607509613037,
+      "learning_rate": 9.375000000000001e-06,
+      "loss": 0.004542204085737467,
+      "step": 651
+    },
+    {
+      "epoch": 0.815,
+      "grad_norm": 0.025102930143475533,
+      "learning_rate": 9.312500000000001e-06,
+      "loss": 0.001041920273564756,
+      "step": 652
+    },
+    {
+      "epoch": 0.81625,
+      "grad_norm": 0.02995285764336586,
+      "learning_rate": 9.25e-06,
+      "loss": 0.0013355319388210773,
+      "step": 653
+    },
+    {
+      "epoch": 0.8175,
+      "grad_norm": 0.02318725921213627,
+      "learning_rate": 9.1875e-06,
+      "loss": 0.00111483468208462,
+      "step": 654
+    },
+    {
+      "epoch": 0.81875,
+      "grad_norm": 24.404199600219727,
+      "learning_rate": 9.125e-06,
+      "loss": 1.1303050518035889,
+      "step": 655
+    },
+    {
+      "epoch": 0.82,
+      "grad_norm": 0.027572648599743843,
+      "learning_rate": 9.0625e-06,
+      "loss": 0.0011204320471733809,
+      "step": 656
+    },
+    {
+      "epoch": 0.82125,
+      "grad_norm": 0.028548115864396095,
+      "learning_rate": 9e-06,
+      "loss": 0.001339177368208766,
+      "step": 657
+    },
+    {
+      "epoch": 0.8225,
+      "grad_norm": 9.533254623413086,
+      "learning_rate": 8.9375e-06,
+      "loss": 1.002354621887207,
+      "step": 658
+    },
+    {
+      "epoch": 0.82375,
+      "grad_norm": 111.0499496459961,
+      "learning_rate": 8.875e-06,
+      "loss": 0.0993146151304245,
+      "step": 659
+    },
+    {
+      "epoch": 0.825,
+      "grad_norm": 0.10548116266727448,
+      "learning_rate": 8.8125e-06,
+      "loss": 0.003050518687814474,
+      "step": 660
+    },
+    {
+      "epoch": 0.825,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 660,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9349053500161795,
+      "eval_loss": 0.3458501398563385,
+      "eval_precision": 0.9348607167004732,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.9649,
+      "eval_samples_per_second": 134.913,
+      "eval_steps_per_second": 2.698,
+      "step": 660
+    },
+    {
+      "epoch": 0.82625,
+      "grad_norm": 0.05463754013180733,
+      "learning_rate": 8.75e-06,
+      "loss": 0.0021657110191881657,
+      "step": 661
+    },
+    {
+      "epoch": 0.8275,
+      "grad_norm": 0.04873109236359596,
+      "learning_rate": 8.6875e-06,
+      "loss": 0.0019723372533917427,
+      "step": 662
+    },
+    {
+      "epoch": 0.82875,
+      "grad_norm": 16.313766479492188,
+      "learning_rate": 8.625e-06,
+      "loss": 0.8694550395011902,
+      "step": 663
+    },
+    {
+      "epoch": 0.83,
+      "grad_norm": 36.52055740356445,
+      "learning_rate": 8.562500000000001e-06,
+      "loss": 1.8623924255371094,
+      "step": 664
+    },
+    {
+      "epoch": 0.83125,
+      "grad_norm": 7.9712629318237305,
+      "learning_rate": 8.500000000000002e-06,
+      "loss": 1.2733771800994873,
+      "step": 665
+    },
+    {
+      "epoch": 0.8325,
+      "grad_norm": 0.028381796553730965,
+      "learning_rate": 8.437500000000002e-06,
+      "loss": 0.0012345908908173442,
+      "step": 666
+    },
+    {
+      "epoch": 0.83375,
+      "grad_norm": 0.08643924444913864,
+      "learning_rate": 8.375e-06,
+      "loss": 0.002962585771456361,
+      "step": 667
+    },
+    {
+      "epoch": 0.835,
+      "grad_norm": 0.04011116921901703,
+      "learning_rate": 8.3125e-06,
+      "loss": 0.0017859271029010415,
+      "step": 668
+    },
+    {
+      "epoch": 0.83625,
+      "grad_norm": 0.058094125241041183,
+      "learning_rate": 8.25e-06,
+      "loss": 0.001885690726339817,
+      "step": 669
+    },
+    {
+      "epoch": 0.8375,
+      "grad_norm": 0.07080604881048203,
+      "learning_rate": 8.1875e-06,
+      "loss": 0.00214094715192914,
+      "step": 670
+    },
+    {
+      "epoch": 0.8375,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 670,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9348066260987153,
+      "eval_loss": 0.33017146587371826,
+      "eval_precision": 0.934814426818318,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.9346,
+      "eval_samples_per_second": 136.303,
+      "eval_steps_per_second": 2.726,
+      "step": 670
+    },
+    {
+      "epoch": 0.83875,
+      "grad_norm": 0.03464391082525253,
+      "learning_rate": 8.125000000000001e-06,
+      "loss": 0.0015184327494353056,
+      "step": 671
+    },
+    {
+      "epoch": 0.84,
+      "grad_norm": 11.205425262451172,
+      "learning_rate": 8.062500000000001e-06,
+      "loss": 0.016814451664686203,
+      "step": 672
+    },
+    {
+      "epoch": 0.84125,
+      "grad_norm": 14.280250549316406,
+      "learning_rate": 8.000000000000001e-06,
+      "loss": 0.8319171071052551,
+      "step": 673
+    },
+    {
+      "epoch": 0.8425,
+      "grad_norm": 0.04783257097005844,
+      "learning_rate": 7.9375e-06,
+      "loss": 0.0015517917927354574,
+      "step": 674
+    },
+    {
+      "epoch": 0.84375,
+      "grad_norm": 0.08881064504384995,
+      "learning_rate": 7.875e-06,
+      "loss": 0.0025515463203191757,
+      "step": 675
+    },
+    {
+      "epoch": 0.845,
+      "grad_norm": 32.546974182128906,
+      "learning_rate": 7.8125e-06,
+      "loss": 1.8795779943466187,
+      "step": 676
+    },
+    {
+      "epoch": 0.84625,
+      "grad_norm": 1.9044294357299805,
+      "learning_rate": 7.75e-06,
+      "loss": 0.010082024149596691,
+      "step": 677
+    },
+    {
+      "epoch": 0.8475,
+      "grad_norm": 0.3645718991756439,
+      "learning_rate": 7.6875e-06,
+      "loss": 0.0040254127234220505,
+      "step": 678
+    },
+    {
+      "epoch": 0.84875,
+      "grad_norm": 0.06679538637399673,
+      "learning_rate": 7.625e-06,
+      "loss": 0.002117436844855547,
+      "step": 679
+    },
+    {
+      "epoch": 0.85,
+      "grad_norm": 0.21496723592281342,
+      "learning_rate": 7.5625e-06,
+      "loss": 0.005054354667663574,
+      "step": 680
+    },
+    {
+      "epoch": 0.85,
+      "eval_accuracy": 0.9375,
+      "eval_currentsteps": 680,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9373620197273814,
+      "eval_loss": 0.3162202835083008,
+      "eval_precision": 0.9373372395833335,
+      "eval_recall": 0.9375,
+      "eval_runtime": 2.9053,
+      "eval_samples_per_second": 137.679,
+      "eval_steps_per_second": 2.754,
+      "step": 680
+    },
+    {
+      "epoch": 0.85125,
+      "grad_norm": 0.29825517535209656,
+      "learning_rate": 7.5e-06,
+      "loss": 0.004853039979934692,
+      "step": 681
+    },
+    {
+      "epoch": 0.8525,
+      "grad_norm": 0.06592938303947449,
+      "learning_rate": 7.4375e-06,
+      "loss": 0.0028455632273107767,
+      "step": 682
+    },
+    {
+      "epoch": 0.85375,
+      "grad_norm": 0.0932723879814148,
+      "learning_rate": 7.375e-06,
+      "loss": 0.0028175022453069687,
+      "step": 683
+    },
+    {
+      "epoch": 0.855,
+      "grad_norm": 0.04639534279704094,
+      "learning_rate": 7.3125e-06,
+      "loss": 0.0019608207512646914,
+      "step": 684
+    },
+    {
+      "epoch": 0.85625,
+      "grad_norm": 17.85982894897461,
+      "learning_rate": 7.25e-06,
+      "loss": 1.2263673543930054,
+      "step": 685
+    },
+    {
+      "epoch": 0.8575,
+      "grad_norm": 0.025159120559692383,
+      "learning_rate": 7.187499999999999e-06,
+      "loss": 0.0011800220236182213,
+      "step": 686
+    },
+    {
+      "epoch": 0.85875,
+      "grad_norm": 0.04085930064320564,
+      "learning_rate": 7.1249999999999995e-06,
+      "loss": 0.001937786117196083,
+      "step": 687
+    },
+    {
+      "epoch": 0.86,
+      "grad_norm": 0.0548587441444397,
+      "learning_rate": 7.0625e-06,
+      "loss": 0.0020520982798188925,
+      "step": 688
+    },
+    {
+      "epoch": 0.86125,
+      "grad_norm": 0.04930322244763374,
+      "learning_rate": 7.000000000000001e-06,
+      "loss": 0.0021582029294222593,
+      "step": 689
+    },
+    {
+      "epoch": 0.8625,
+      "grad_norm": 0.457465797662735,
+      "learning_rate": 6.937500000000001e-06,
+      "loss": 0.00655400101095438,
+      "step": 690
+    },
+    {
+      "epoch": 0.8625,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 690,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9324513803340266,
+      "eval_loss": 0.30974364280700684,
+      "eval_precision": 0.9324151925358645,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.8931,
+      "eval_samples_per_second": 138.261,
+      "eval_steps_per_second": 2.765,
+      "step": 690
+    },
+    {
+      "epoch": 0.86375,
+      "grad_norm": 0.10349326580762863,
+      "learning_rate": 6.875000000000001e-06,
+      "loss": 0.0040477607399225235,
+      "step": 691
+    },
+    {
+      "epoch": 0.865,
+      "grad_norm": 0.03816545009613037,
+      "learning_rate": 6.8125e-06,
+      "loss": 0.0017479897942394018,
+      "step": 692
+    },
+    {
+      "epoch": 0.86625,
+      "grad_norm": 15.3324556350708,
+      "learning_rate": 6.750000000000001e-06,
+      "loss": 0.04362593591213226,
+      "step": 693
+    },
+    {
+      "epoch": 0.8675,
+      "grad_norm": 0.0441812239587307,
+      "learning_rate": 6.687500000000001e-06,
+      "loss": 0.0019597033970057964,
+      "step": 694
+    },
+    {
+      "epoch": 0.86875,
+      "grad_norm": 43.186885833740234,
+      "learning_rate": 6.625000000000001e-06,
+      "loss": 0.7029076814651489,
+      "step": 695
+    },
+    {
+      "epoch": 0.87,
+      "grad_norm": 117.22187805175781,
+      "learning_rate": 6.5625e-06,
+      "loss": 0.4047110676765442,
+      "step": 696
+    },
+    {
+      "epoch": 0.87125,
+      "grad_norm": 0.1872721165418625,
+      "learning_rate": 6.5000000000000004e-06,
+      "loss": 0.0048883771523833275,
+      "step": 697
+    },
+    {
+      "epoch": 0.8725,
+      "grad_norm": 0.03798326849937439,
+      "learning_rate": 6.437500000000001e-06,
+      "loss": 0.0017208326607942581,
+      "step": 698
+    },
+    {
+      "epoch": 0.87375,
+      "grad_norm": 140.27317810058594,
+      "learning_rate": 6.375000000000001e-06,
+      "loss": 0.725513756275177,
+      "step": 699
+    },
+    {
+      "epoch": 0.875,
+      "grad_norm": 0.052029576152563095,
+      "learning_rate": 6.3125e-06,
+      "loss": 0.0020235604606568813,
+      "step": 700
+    },
+    {
+      "epoch": 0.875,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 700,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9348066260987153,
+      "eval_loss": 0.32226693630218506,
+      "eval_precision": 0.934814426818318,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.9673,
+      "eval_samples_per_second": 134.801,
+      "eval_steps_per_second": 2.696,
+      "step": 700
+    },
+    {
+      "epoch": 0.87625,
+      "grad_norm": 0.3063545227050781,
+      "learning_rate": 6.25e-06,
+      "loss": 0.0033255808521062136,
+      "step": 701
+    },
+    {
+      "epoch": 0.8775,
+      "grad_norm": 0.08731900900602341,
+      "learning_rate": 6.1875000000000005e-06,
+      "loss": 0.0026649166829884052,
+      "step": 702
+    },
+    {
+      "epoch": 0.87875,
+      "grad_norm": 0.033354464918375015,
+      "learning_rate": 6.125e-06,
+      "loss": 0.0015661378856748343,
+      "step": 703
+    },
+    {
+      "epoch": 0.88,
+      "grad_norm": 0.13653716444969177,
+      "learning_rate": 6.0625e-06,
+      "loss": 0.004050052724778652,
+      "step": 704
+    },
+    {
+      "epoch": 0.88125,
+      "grad_norm": 0.1316186636686325,
+      "learning_rate": 6e-06,
+      "loss": 0.004151655361056328,
+      "step": 705
+    },
+    {
+      "epoch": 0.8825,
+      "grad_norm": 0.03109561838209629,
+      "learning_rate": 5.9375e-06,
+      "loss": 0.001329256221652031,
+      "step": 706
+    },
+    {
+      "epoch": 0.88375,
+      "grad_norm": 0.04158422723412514,
+      "learning_rate": 5.875e-06,
+      "loss": 0.0019237393280491233,
+      "step": 707
+    },
+    {
+      "epoch": 0.885,
+      "grad_norm": 0.03745342418551445,
+      "learning_rate": 5.812500000000001e-06,
+      "loss": 0.0016843436751514673,
+      "step": 708
+    },
+    {
+      "epoch": 0.88625,
+      "grad_norm": 32.96676254272461,
+      "learning_rate": 5.750000000000001e-06,
+      "loss": 0.08632667362689972,
+      "step": 709
+    },
+    {
+      "epoch": 0.8875,
+      "grad_norm": 0.08654869347810745,
+      "learning_rate": 5.6875e-06,
+      "loss": 0.003196512581780553,
+      "step": 710
+    },
+    {
+      "epoch": 0.8875,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 710,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9348066260987153,
+      "eval_loss": 0.3350563049316406,
+      "eval_precision": 0.934814426818318,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.9235,
+      "eval_samples_per_second": 136.822,
+      "eval_steps_per_second": 2.736,
+      "step": 710
+    },
+    {
+      "epoch": 0.88875,
+      "grad_norm": 16.57131576538086,
+      "learning_rate": 5.625e-06,
+      "loss": 0.868107795715332,
+      "step": 711
+    },
+    {
+      "epoch": 0.89,
+      "grad_norm": 0.03844001889228821,
+      "learning_rate": 5.5625000000000005e-06,
+      "loss": 0.0015735517954453826,
+      "step": 712
+    },
+    {
+      "epoch": 0.89125,
+      "grad_norm": 3.81253719329834,
+      "learning_rate": 5.500000000000001e-06,
+      "loss": 0.01565897837281227,
+      "step": 713
+    },
+    {
+      "epoch": 0.8925,
+      "grad_norm": 0.10413805395364761,
+      "learning_rate": 5.4375e-06,
+      "loss": 0.002486926969140768,
+      "step": 714
+    },
+    {
+      "epoch": 0.89375,
+      "grad_norm": 36.121463775634766,
+      "learning_rate": 5.375e-06,
+      "loss": 1.638092041015625,
+      "step": 715
+    },
+    {
+      "epoch": 0.895,
+      "grad_norm": 0.08810501545667648,
+      "learning_rate": 5.3125e-06,
+      "loss": 0.002123707439750433,
+      "step": 716
+    },
+    {
+      "epoch": 0.89625,
+      "grad_norm": 0.04220160096883774,
+      "learning_rate": 5.25e-06,
+      "loss": 0.0017470801249146461,
+      "step": 717
+    },
+    {
+      "epoch": 0.8975,
+      "grad_norm": 0.04691994562745094,
+      "learning_rate": 5.1875e-06,
+      "loss": 0.001976283732801676,
+      "step": 718
+    },
+    {
+      "epoch": 0.89875,
+      "grad_norm": 0.241135373711586,
+      "learning_rate": 5.125e-06,
+      "loss": 0.003726852359250188,
+      "step": 719
+    },
+    {
+      "epoch": 0.9,
+      "grad_norm": 0.044953107833862305,
+      "learning_rate": 5.0625e-06,
+      "loss": 0.0017768600955605507,
+      "step": 720
+    },
+    {
+      "epoch": 0.9,
+      "eval_accuracy": 0.935,
+      "eval_currentsteps": 720,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9348066260987153,
+      "eval_loss": 0.32647639513015747,
+      "eval_precision": 0.934814426818318,
+      "eval_recall": 0.935,
+      "eval_runtime": 2.8842,
+      "eval_samples_per_second": 138.686,
+      "eval_steps_per_second": 2.774,
+      "step": 720
+    },
+    {
+      "epoch": 0.90125,
+      "grad_norm": 25.504623413085938,
+      "learning_rate": 5e-06,
+      "loss": 1.0008033514022827,
+      "step": 721
+    },
+    {
+      "epoch": 0.9025,
+      "grad_norm": 8.117341995239258,
+      "learning_rate": 4.937500000000001e-06,
+      "loss": 0.9985454678535461,
+      "step": 722
+    },
+    {
+      "epoch": 0.90375,
+      "grad_norm": 29.738283157348633,
+      "learning_rate": 4.875000000000001e-06,
+      "loss": 0.04674772918224335,
+      "step": 723
+    },
+    {
+      "epoch": 0.905,
+      "grad_norm": 0.07216498255729675,
+      "learning_rate": 4.8125e-06,
+      "loss": 0.001848065061494708,
+      "step": 724
+    },
+    {
+      "epoch": 0.90625,
+      "grad_norm": 0.07056216150522232,
+      "learning_rate": 4.75e-06,
+      "loss": 0.0024732614401727915,
+      "step": 725
+    },
+    {
+      "epoch": 0.9075,
+      "grad_norm": 0.22392849624156952,
+      "learning_rate": 4.6875000000000004e-06,
+      "loss": 0.0036393075715750456,
+      "step": 726
+    },
+    {
+      "epoch": 0.90875,
+      "grad_norm": 0.25051212310791016,
+      "learning_rate": 4.625e-06,
+      "loss": 0.003550818655639887,
+      "step": 727
+    },
+    {
+      "epoch": 0.91,
+      "grad_norm": 0.04696296155452728,
+      "learning_rate": 4.5625e-06,
+      "loss": 0.001776769757270813,
+      "step": 728
+    },
+    {
+      "epoch": 0.91125,
+      "grad_norm": 0.030933169648051262,
+      "learning_rate": 4.5e-06,
+      "loss": 0.0013801848981529474,
+      "step": 729
+    },
+    {
+      "epoch": 0.9125,
+      "grad_norm": 74.35796356201172,
+      "learning_rate": 4.4375e-06,
+      "loss": 0.6403017640113831,
+      "step": 730
+    },
+    {
+      "epoch": 0.9125,
+      "eval_accuracy": 0.9375,
+      "eval_currentsteps": 730,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9373620197273814,
+      "eval_loss": 0.322815865278244,
+      "eval_precision": 0.9373372395833335,
+      "eval_recall": 0.9375,
+      "eval_runtime": 2.9314,
+      "eval_samples_per_second": 136.456,
+      "eval_steps_per_second": 2.729,
+      "step": 730
+    },
+    {
+      "epoch": 0.91375,
+      "grad_norm": 0.14206984639167786,
+      "learning_rate": 4.375e-06,
+      "loss": 0.004488571546971798,
+      "step": 731
+    },
+    {
+      "epoch": 0.915,
+      "grad_norm": 8.45569896697998,
+      "learning_rate": 4.3125e-06,
+      "loss": 0.8155509233474731,
+      "step": 732
+    },
+    {
+      "epoch": 0.91625,
+      "grad_norm": 0.07806766033172607,
+      "learning_rate": 4.250000000000001e-06,
+      "loss": 0.0020626126788556576,
+      "step": 733
+    },
+    {
+      "epoch": 0.9175,
+      "grad_norm": 0.16501668095588684,
+      "learning_rate": 4.1875e-06,
+      "loss": 0.004065568093210459,
+      "step": 734
+    },
+    {
+      "epoch": 0.91875,
+      "grad_norm": 0.09775756299495697,
+      "learning_rate": 4.125e-06,
+      "loss": 0.003934399224817753,
+      "step": 735
+    },
+    {
+      "epoch": 0.92,
+      "grad_norm": 0.22267228364944458,
+      "learning_rate": 4.0625000000000005e-06,
+      "loss": 0.007316121365875006,
+      "step": 736
+    },
+    {
+      "epoch": 0.92125,
+      "grad_norm": 41.477210998535156,
+      "learning_rate": 4.000000000000001e-06,
+      "loss": 0.9312860369682312,
+      "step": 737
+    },
+    {
+      "epoch": 0.9225,
+      "grad_norm": 0.038822706788778305,
+      "learning_rate": 3.9375e-06,
+      "loss": 0.0016523642698302865,
+      "step": 738
+    },
+    {
+      "epoch": 0.92375,
+      "grad_norm": 0.028745103627443314,
+      "learning_rate": 3.875e-06,
+      "loss": 0.0011854559415951371,
+      "step": 739
+    },
+    {
+      "epoch": 0.925,
+      "grad_norm": 0.11775168031454086,
+      "learning_rate": 3.8125e-06,
+      "loss": 0.004272495396435261,
+      "step": 740
+    },
+    {
+      "epoch": 0.925,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 740,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9322463247990573,
+      "eval_loss": 0.331691712141037,
+      "eval_precision": 0.9323068839392945,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.9387,
+      "eval_samples_per_second": 136.114,
+      "eval_steps_per_second": 2.722,
+      "step": 740
+    },
+    {
+      "epoch": 0.92625,
+      "grad_norm": 4.6012468338012695,
+      "learning_rate": 3.75e-06,
+      "loss": 0.014152894727885723,
+      "step": 741
+    },
+    {
+      "epoch": 0.9275,
+      "grad_norm": 27.719552993774414,
+      "learning_rate": 3.6875e-06,
+      "loss": 0.8206170797348022,
+      "step": 742
+    },
+    {
+      "epoch": 0.92875,
+      "grad_norm": 0.028877707198262215,
+      "learning_rate": 3.625e-06,
+      "loss": 0.0012634156737476587,
+      "step": 743
+    },
+    {
+      "epoch": 0.93,
+      "grad_norm": 0.0999603345990181,
+      "learning_rate": 3.5624999999999998e-06,
+      "loss": 0.0024904750753194094,
+      "step": 744
+    },
+    {
+      "epoch": 0.93125,
+      "grad_norm": 19.940881729125977,
+      "learning_rate": 3.5000000000000004e-06,
+      "loss": 0.8297796249389648,
+      "step": 745
+    },
+    {
+      "epoch": 0.9325,
+      "grad_norm": 0.1350116729736328,
+      "learning_rate": 3.4375000000000005e-06,
+      "loss": 0.0022289049811661243,
+      "step": 746
+    },
+    {
+      "epoch": 0.93375,
+      "grad_norm": 0.5191364884376526,
+      "learning_rate": 3.3750000000000003e-06,
+      "loss": 0.0044226632453501225,
+      "step": 747
+    },
+    {
+      "epoch": 0.935,
+      "grad_norm": 0.3022153675556183,
+      "learning_rate": 3.3125000000000005e-06,
+      "loss": 0.005275708623230457,
+      "step": 748
+    },
+    {
+      "epoch": 0.93625,
+      "grad_norm": 0.04187938570976257,
+      "learning_rate": 3.2500000000000002e-06,
+      "loss": 0.0016515832394361496,
+      "step": 749
+    },
+    {
+      "epoch": 0.9375,
+      "grad_norm": 0.24482278525829315,
+      "learning_rate": 3.1875000000000004e-06,
+      "loss": 0.003183545544743538,
+      "step": 750
+    },
+    {
+      "epoch": 0.9375,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 750,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9322463247990573,
+      "eval_loss": 0.33577537536621094,
+      "eval_precision": 0.9323068839392945,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.9051,
+      "eval_samples_per_second": 137.689,
+      "eval_steps_per_second": 2.754,
+      "step": 750
+    },
+    {
+      "epoch": 0.93875,
+      "grad_norm": 26.32726287841797,
+      "learning_rate": 3.125e-06,
+      "loss": 0.7146095633506775,
+      "step": 751
+    },
+    {
+      "epoch": 0.94,
+      "grad_norm": 0.03491736575961113,
+      "learning_rate": 3.0625e-06,
+      "loss": 0.0015163003699854016,
+      "step": 752
+    },
+    {
+      "epoch": 0.94125,
+      "grad_norm": 85.26220703125,
+      "learning_rate": 3e-06,
+      "loss": 0.11045350134372711,
+      "step": 753
+    },
+    {
+      "epoch": 0.9425,
+      "grad_norm": 46.049922943115234,
+      "learning_rate": 2.9375e-06,
+      "loss": 1.5757157802581787,
+      "step": 754
+    },
+    {
+      "epoch": 0.94375,
+      "grad_norm": 10.499056816101074,
+      "learning_rate": 2.8750000000000004e-06,
+      "loss": 0.990557849407196,
+      "step": 755
+    },
+    {
+      "epoch": 0.945,
+      "grad_norm": 0.07012324035167694,
+      "learning_rate": 2.8125e-06,
+      "loss": 0.002212689956650138,
+      "step": 756
+    },
+    {
+      "epoch": 0.94625,
+      "grad_norm": 0.7438259124755859,
+      "learning_rate": 2.7500000000000004e-06,
+      "loss": 0.005817054305225611,
+      "step": 757
+    },
+    {
+      "epoch": 0.9475,
+      "grad_norm": 27.548215866088867,
+      "learning_rate": 2.6875e-06,
+      "loss": 0.7717166543006897,
+      "step": 758
+    },
+    {
+      "epoch": 0.94875,
+      "grad_norm": 46.09663009643555,
+      "learning_rate": 2.625e-06,
+      "loss": 0.5695997476577759,
+      "step": 759
+    },
+    {
+      "epoch": 0.95,
+      "grad_norm": 0.4450725018978119,
+      "learning_rate": 2.5625e-06,
+      "loss": 0.005147405434399843,
+      "step": 760
+    },
+    {
+      "epoch": 0.95,
+      "eval_accuracy": 0.9325,
+      "eval_currentsteps": 760,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9322463247990573,
+      "eval_loss": 0.3343192934989929,
+      "eval_precision": 0.9323068839392945,
+      "eval_recall": 0.9325,
+      "eval_runtime": 2.88,
+      "eval_samples_per_second": 138.89,
+      "eval_steps_per_second": 2.778,
+      "step": 760
+    },
+    {
+      "epoch": 0.95125,
+      "grad_norm": 29.184406280517578,
+      "learning_rate": 2.5e-06,
+      "loss": 1.9193875789642334,
+      "step": 761
+    },
+    {
+      "epoch": 0.9525,
+      "grad_norm": 0.06298097968101501,
+      "learning_rate": 2.4375000000000004e-06,
+      "loss": 0.0018913305830210447,
+      "step": 762
+    },
+    {
+      "epoch": 0.95375,
+      "grad_norm": 0.07333916425704956,
+      "learning_rate": 2.375e-06,
+      "loss": 0.0025013950653374195,
+      "step": 763
+    },
+    {
+      "epoch": 0.955,
+      "grad_norm": 13.53948974609375,
+      "learning_rate": 2.3125e-06,
+      "loss": 2.224702835083008,
+      "step": 764
+    },
+    {
+      "epoch": 0.95625,
+      "grad_norm": 6.915741920471191,
+      "learning_rate": 2.25e-06,
+      "loss": 0.03165941685438156,
+      "step": 765
+    },
+    {
+      "epoch": 0.9575,
+      "grad_norm": 0.11670676618814468,
+      "learning_rate": 2.1875e-06,
+      "loss": 0.00235941749997437,
+      "step": 766
+    },
+    {
+      "epoch": 0.95875,
+      "grad_norm": 10.874878883361816,
+      "learning_rate": 2.1250000000000004e-06,
+      "loss": 1.2181320190429688,
+      "step": 767
+    },
+    {
+      "epoch": 0.96,
+      "grad_norm": 0.0836542472243309,
+      "learning_rate": 2.0625e-06,
+      "loss": 0.0032050360459834337,
+      "step": 768
+    },
+    {
+      "epoch": 0.96125,
+      "grad_norm": 6.982656955718994,
+      "learning_rate": 2.0000000000000003e-06,
+      "loss": 0.7884740829467773,
+      "step": 769
+    },
+    {
+      "epoch": 0.9625,
+      "grad_norm": 6.537864685058594,
+      "learning_rate": 1.9375e-06,
+      "loss": 0.7523261308670044,
+      "step": 770
+    },
+    {
+      "epoch": 0.9625,
+      "eval_accuracy": 0.93,
+      "eval_currentsteps": 770,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9296809895833335,
+      "eval_loss": 0.32681208848953247,
+      "eval_precision": 0.9298143432185987,
+      "eval_recall": 0.93,
+      "eval_runtime": 2.9026,
+      "eval_samples_per_second": 137.808,
+      "eval_steps_per_second": 2.756,
+      "step": 770
+    },
+    {
+      "epoch": 0.96375,
+      "grad_norm": 0.030446747317910194,
+      "learning_rate": 1.875e-06,
+      "loss": 0.0012472246307879686,
+      "step": 771
+    },
+    {
+      "epoch": 0.965,
+      "grad_norm": 0.17936627566814423,
+      "learning_rate": 1.8125e-06,
+      "loss": 0.002464003162458539,
+      "step": 772
+    },
+    {
+      "epoch": 0.96625,
+      "grad_norm": 0.13937366008758545,
+      "learning_rate": 1.7500000000000002e-06,
+      "loss": 0.004694055765867233,
+      "step": 773
+    },
+    {
+      "epoch": 0.9675,
+      "grad_norm": 0.03903728350996971,
+      "learning_rate": 1.6875000000000001e-06,
+      "loss": 0.0014491000911220908,
+      "step": 774
+    },
+    {
+      "epoch": 0.96875,
+      "grad_norm": 0.07548938691616058,
+      "learning_rate": 1.6250000000000001e-06,
+      "loss": 0.00308601139113307,
+      "step": 775
+    },
+    {
+      "epoch": 0.97,
+      "grad_norm": 0.3236582279205322,
+      "learning_rate": 1.5625e-06,
+      "loss": 0.009500155225396156,
+      "step": 776
+    },
+    {
+      "epoch": 0.97125,
+      "grad_norm": 16.049358367919922,
+      "learning_rate": 1.5e-06,
+      "loss": 1.014733076095581,
+      "step": 777
+    },
+    {
+      "epoch": 0.9725,
+      "grad_norm": 94.52535247802734,
+      "learning_rate": 1.4375000000000002e-06,
+      "loss": 0.4842328131198883,
+      "step": 778
+    },
+    {
+      "epoch": 0.97375,
+      "grad_norm": 0.04594659432768822,
+      "learning_rate": 1.3750000000000002e-06,
+      "loss": 0.001771770417690277,
+      "step": 779
+    },
+    {
+      "epoch": 0.975,
+      "grad_norm": 17.542043685913086,
+      "learning_rate": 1.3125e-06,
+      "loss": 0.9829972982406616,
+      "step": 780
+    },
+    {
+      "epoch": 0.975,
+      "eval_accuracy": 0.93,
+      "eval_currentsteps": 780,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9295657261026911,
+      "eval_loss": 0.3213702440261841,
+      "eval_precision": 0.9299404614239642,
+      "eval_recall": 0.93,
+      "eval_runtime": 2.9063,
+      "eval_samples_per_second": 137.63,
+      "eval_steps_per_second": 2.753,
+      "step": 780
+    },
+    {
+      "epoch": 0.97625,
+      "grad_norm": 0.5604158639907837,
+      "learning_rate": 1.25e-06,
+      "loss": 0.013915516436100006,
+      "step": 781
+    },
+    {
+      "epoch": 0.9775,
+      "grad_norm": 1.9284900426864624,
+      "learning_rate": 1.1875e-06,
+      "loss": 0.021152054890990257,
+      "step": 782
+    },
+    {
+      "epoch": 0.97875,
+      "grad_norm": 0.0682171881198883,
+      "learning_rate": 1.125e-06,
+      "loss": 0.0023371079005301,
+      "step": 783
+    },
+    {
+      "epoch": 0.98,
+      "grad_norm": 0.05484174191951752,
+      "learning_rate": 1.0625000000000002e-06,
+      "loss": 0.002365144668146968,
+      "step": 784
+    },
+    {
+      "epoch": 0.98125,
+      "grad_norm": 0.06032672896981239,
+      "learning_rate": 1.0000000000000002e-06,
+      "loss": 0.0023437151685357094,
+      "step": 785
+    },
+    {
+      "epoch": 0.9825,
+      "grad_norm": 0.09769601374864578,
+      "learning_rate": 9.375e-07,
+      "loss": 0.003026797669008374,
+      "step": 786
+    },
+    {
+      "epoch": 0.98375,
+      "grad_norm": 0.790250837802887,
+      "learning_rate": 8.750000000000001e-07,
+      "loss": 0.012747349217534065,
+      "step": 787
+    },
+    {
+      "epoch": 0.985,
+      "grad_norm": 0.0842195525765419,
+      "learning_rate": 8.125000000000001e-07,
+      "loss": 0.003071971470490098,
+      "step": 788
+    },
+    {
+      "epoch": 0.98625,
+      "grad_norm": 0.03795856982469559,
+      "learning_rate": 7.5e-07,
+      "loss": 0.0015741537790745497,
+      "step": 789
+    },
+    {
+      "epoch": 0.9875,
+      "grad_norm": 0.2007853090763092,
+      "learning_rate": 6.875000000000001e-07,
+      "loss": 0.006153601221740246,
+      "step": 790
+    },
+    {
+      "epoch": 0.9875,
+      "eval_accuracy": 0.9275,
+      "eval_currentsteps": 790,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9271104930347549,
+      "eval_loss": 0.32215064764022827,
+      "eval_precision": 0.9273365384615384,
+      "eval_recall": 0.9275,
+      "eval_runtime": 2.9041,
+      "eval_samples_per_second": 137.737,
+      "eval_steps_per_second": 2.755,
+      "step": 790
+    },
+    {
+      "epoch": 0.98875,
+      "grad_norm": 0.14100861549377441,
+      "learning_rate": 6.25e-07,
+      "loss": 0.0036074884701520205,
+      "step": 791
+    },
+    {
+      "epoch": 0.99,
+      "grad_norm": 0.031396206468343735,
+      "learning_rate": 5.625e-07,
+      "loss": 0.0014338387409225106,
+      "step": 792
+    },
+    {
+      "epoch": 0.99125,
+      "grad_norm": 0.058109357953071594,
+      "learning_rate": 5.000000000000001e-07,
+      "loss": 0.002416758332401514,
+      "step": 793
+    },
+    {
+      "epoch": 0.9925,
+      "grad_norm": 0.09767170250415802,
+      "learning_rate": 4.3750000000000005e-07,
+      "loss": 0.0027138087898492813,
+      "step": 794
+    },
+    {
+      "epoch": 0.99375,
+      "grad_norm": 0.0371382050216198,
+      "learning_rate": 3.75e-07,
+      "loss": 0.0015678256750106812,
+      "step": 795
+    },
+    {
+      "epoch": 0.995,
+      "grad_norm": 0.0751749724149704,
+      "learning_rate": 3.125e-07,
+      "loss": 0.003173563629388809,
+      "step": 796
+    },
+    {
+      "epoch": 0.99625,
+      "grad_norm": 0.22066600620746613,
+      "learning_rate": 2.5000000000000004e-07,
+      "loss": 0.00546197360381484,
+      "step": 797
+    },
+    {
+      "epoch": 0.9975,
+      "grad_norm": 0.04883088171482086,
+      "learning_rate": 1.875e-07,
+      "loss": 0.002122746082022786,
+      "step": 798
+    },
+    {
+      "epoch": 0.99875,
+      "grad_norm": 105.40575408935547,
+      "learning_rate": 1.2500000000000002e-07,
+      "loss": 0.2609846591949463,
+      "step": 799
+    },
+    {
+      "epoch": 1.0,
+      "grad_norm": 0.03949080780148506,
+      "learning_rate": 6.250000000000001e-08,
+      "loss": 0.0016344580799341202,
+      "step": 800
+    },
+    {
+      "epoch": 1.0,
+      "eval_accuracy": 0.93,
+      "eval_currentsteps": 800,
+      "eval_experimentname": "FinBERT2-base_SC_2",
+      "eval_f1": 0.9296809895833335,
+      "eval_loss": 0.32278990745544434,
+      "eval_precision": 0.9298143432185987,
+      "eval_recall": 0.93,
+      "eval_runtime": 2.9643,
+      "eval_samples_per_second": 134.937,
+      "eval_steps_per_second": 2.699,
+      "step": 800
+    }
+  ],
+  "logging_steps": 1,
+  "max_steps": 800,
+  "num_input_tokens_seen": 0,
+  "num_train_epochs": 1,
+  "save_steps": 100000,
+  "stateful_callbacks": {
+    "TrainerControl": {
+      "args": {
+        "should_epoch_stop": false,
+        "should_evaluate": false,
+        "should_log": false,
+        "should_save": true,
+        "should_training_stop": true
+      },
+      "attributes": {}
+    }
+  },
+  "total_flos": 950524659702600.0,
+  "train_batch_size": 5,
+  "trial_name": null,
+  "trial_params": null
+}

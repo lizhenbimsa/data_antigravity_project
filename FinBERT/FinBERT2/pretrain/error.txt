@@ -1,0 +1,50 @@
+retrain\run_mlm.py", line 89, in main
+    model = BertForMaskedLM.from_pretrained(model_args.model_name
+_or_path)     #从huggingface加载
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^
+  File "C:\Users\lizhe\.conda\envs\FinBERT\Lib\site-packages\tran
+sformers\modeling_utils.py", line 4072, in from_pretrained
+    loading_info, disk_offload_index = cls._load_pretrained_model
+(model, state_dict, checkpoint_files, load_config)
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lizhe\.conda\envs\FinBERT\Lib\site-packages\tran
+sformers\modeling_utils.py", line 4187, in _load_pretrained_model
+    merged_state_dict.update(load_state_dict(ckpt_file))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lizhe\.conda\envs\FinBERT\Lib\site-packages\tran
+sformers\modeling_utils.py", line 319, in load_state_dict
+    check_torch_load_is_safe()
+  File "C:\Users\lizhe\.conda\envs\FinBERT\Lib\site-packages\tran
+sformers\utils\import_utils.py", line 1220, in check_torch_load_i
+s_safe
+    raise ValueError(
+ValueError: Due to a serious vulnerability issue in `torch.load`,
+ even with `weights_only=True`, we now require users to upgrade t
+orch to at least v2.6 in order to use the function. This version 
+restriction does not apply when loading files with safetensors.
+See the vulnerability report here https://nvd.nist.gov/vuln/detai
+l/CVE-2025-32434
+02/24/2026 23:58:17 - INFO - httpx -   HTTP Request: GET https://
+huggingface.co/api/models/valuesimplex-ai-lab/FinBERT2-base "HTTP
+/1.1 200 OK"
+[INFO|safetensors_conversion.py:62] 2026-02-24 23:58:17,876 >> At
+tempting to create safetensors variant
+02/24/2026 23:58:18 - INFO - httpx -   HTTP Request: GET https://
+huggingface.co/api/models/valuesimplex-ai-lab/FinBERT2-base/commi
+ts/main "HTTP/1.1 200 OK"
+02/24/2026 23:58:18 - INFO - httpx -   HTTP Request: GET https://
+huggingface.co/api/models/valuesimplex-ai-lab/FinBERT2-base/discu
+ssions?p=0 "HTTP/1.1 200 OK"
+02/24/2026 23:58:18 - INFO - httpx -   HTTP Request: GET https://
+huggingface.co/api/models/valuesimplex-ai-lab/FinBERT2-base/commi
+ts/refs%2Fpr%2F2 "HTTP/1.1 200 OK"
+[INFO|safetensors_conversion.py:75] 2026-02-24 23:58:18,735 >> Sa
+fetensors PR exists
+02/24/2026 23:58:19 - INFO - httpx -   HTTP Request: HEAD https:/
+/huggingface.co/valuesimplex-ai-lab/FinBERT2-base/resolve/refs%2F
+pr%2F2/model.safetensors.index.json "HTTP/1.1 404 Not Found"
+02/24/2026 23:58:19 - INFO - httpx -   HTTP Request: HEAD https:/
+/huggingface.co/valuesimplex-ai-lab/FinBERT2-base/resolve/refs%2F
+pr%2F2/model.safetensors "HTTP/1.1 302 Found"
