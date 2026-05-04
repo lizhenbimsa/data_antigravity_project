@@ -62,7 +62,6 @@ news_process/
 │   ├── audit/                  #   一次性审计脚本 (sys.exit-style)
 │   ├── legacy/                 #   归档的孤立模块
 │   └── migrate/                #   迁移辅助脚本
-├── utils/                      # Phase 1 forward shims (DEPRECATED, slated for v2.0)
 ├── stata/README.md             # 历史标记: 5 个 .do 已迁至 papers_assets/<paper>/do/
 ├── 00_preprocessing.py         # 根级 thin shim (CLI: ``python 00_preprocessing.py``)
 ├── 11_..52_*.py                # 21 个 fully-bodied 阶段脚本 (Phase 6 待迁入 pipeline/)
@@ -188,8 +187,8 @@ baseline-pre-restructure
 ## 7. 已知 deferred 项
 
 - **Phase 4f / 5b** (高风险, 独立授权): `data_processed/` → `data/processed/<group>/` 物理分组迁移
-- **Phase 6**: 21 个根级 `[0-9]*_*.py` fully-bodied 脚本迁入 `pipeline/`，最终删除 `utils/` shims
-- **Phase 6+**: `validation/` 包内填 stages 31-39
+- **Phase 7+** (可选): 21 个根级 `[0-9]*_*.py` fully-bodied 脚本进一步 body relocate 到 `pipeline/<sub>/` + `validation/<x>/`，根文件变 thin shim（Phase 2c 模板复制）。Phase 6 已完成 utils 引用清理 + utils/ 删除，body relocate 是纯架构优化，非功能必须。
+- **Phase 7+**: `validation/` 包内填 stages 31-39
 
 ## 8. 文献依据汇总
 

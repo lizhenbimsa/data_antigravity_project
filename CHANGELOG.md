@@ -6,7 +6,37 @@
 
 ---
 
-## phase-5-baseline (2026-05-04, current HEAD)
+## phase-6-baseline (2026-05-04, current HEAD)
+
+### Phase 6 总目标
+完成 v2.0 utils/ 退役承诺：21 个根级 fully-bodied 脚本 + 2 个 orchestrator + 4 个 audit/legacy 助手统一迁移到 `news_process.core.*` canonical 路径；`news_process/utils/` 整目录删除。
+
+### 子任务
+
+- **Phase 6a (`2dd6b1a`) — 根脚本 + orchestrator + audit utils → core 迁移** (+279/-58 LOC)
+  - 21 个根脚本 (filtering 11/12/14, sentiment 21/22/23/24, validation 30-39, audit 52)
+  - 2 个 orchestrator (run_pipeline_function.py, run_pipeline_validation.py)
+  - 1 个 pipeline 函数体内 runtime import 漏网之鱼 (policy_alignment.py L585)
+  - 3 个 scripts/audit/ 文件 (audit_changes / audit_deep / final_integrity)
+  - 1 个 scripts/legacy/ docstring 更新
+  - 1 个 test 测试断言调整 (test_39 cleaned 列表)
+  - 关键边界处理: 32a 修复 Phase 2c 后的 ArticleDeduplicator 路径; 37 保留已知-broken `utils.llm_clients` 死代码
+  - 验证: 778 passed, 7 skipped, 0 failed; warning 39 → 33
+
+- **Phase 6b (本 commit) — `news_process/utils/` 整目录删除**
+  - 删除 9 个 forward shim + __init__.py = 共 10 个文件
+  - 兑现 Phase 1 的 "slated for removal in v2.0" 承诺
+  - README + CHANGELOG 同步移除 utils/ 章节
+  - 验证: 778 passed; warning 33 → ~25 (utils 系彻底退役)
+
+### Phase 6 验收
+- pytest news_process/tests/ → **778 passed, 7 skipped, 0 failed**
+- grep `from utils\.` 仅剩字符串字面量 / docstring 历史注释 (无实际 import)
+- `news_process/utils/` 目录不存在
+
+---
+
+## phase-5-baseline (2026-05-04, `d4a89ba`)
 
 ### Phase 5 总目标
 Phase 4 后 long-tail closure: 修复 Phase 2c 遗留测试故障；消除 pipeline/ 与 tests/ 的所有 `from utils.*` legacy import；项目级 README + CHANGELOG 文档化。

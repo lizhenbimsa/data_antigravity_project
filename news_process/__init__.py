@@ -5,9 +5,10 @@ This file makes the project root a real Python package, enabling
 for the layered topology (core / pipeline / papers / config split / etc.)
 and CHANGELOG.md for the phase-by-phase architectural evolution.
 
-Phase 5 baseline (2026-05-04): pipeline/ + tests/ migrated from utils.*
-to canonical news_process.core.*; full pytest 778 passed / 7 skipped /
-0 failed; project root README + CHANGELOG materialized.
+Phase 6 baseline (2026-05-04): root scripts + orchestrators migrated
+from utils.* to canonical news_process.core.*; news_process/utils/
+forward-shim package deleted (v2.0 promise fulfilled). Full pytest
+778 passed / 7 skipped / 0 failed.
 """
 
-__version__ = "0.5.0-phase5"
+__version__ = "0.6.0-phase6"
