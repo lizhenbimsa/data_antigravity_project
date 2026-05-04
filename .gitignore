@@ -120,6 +120,7 @@ news_process/papers_assets/**/drafts/*.doc
 news_process/papers_assets/**/drafts/*.zip
 # 显式白名单 (即使匹配上面规则也予以追踪)：
 !news_process/papers_assets/**/*.do
+!news_process/papers_assets/**/*.do.tmpl
 !news_process/papers_assets/**/*.tex
 !news_process/papers_assets/**/*.bib
 !news_process/papers_assets/**/README.md
