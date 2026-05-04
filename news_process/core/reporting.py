@@ -1,13 +1,13 @@
-"""news_process.core.reporting — dataset persistence + DataFrame & pipeline reports.
+"""news_process.core.reporting — 数据集持久化 + DataFrame 与流水线报告。
 
-Merges three legacy modules:
+由三个历史模块合并而来:
   - ``utils/helpers.py``   reporting helpers   → ``save_dataset`` / ``safe_save_preview_csv``
-  - ``utils/reporting.py`` DataFrame analysis  → ``generate_dataframe_report`` / ``_format_stat`` / ``_is_categorical``
+  - ``utils/reporting.py`` DataFrame 分析      → ``generate_dataframe_report`` / ``_format_stat`` / ``_is_categorical``
   - ``utils/pipeline_reporting.py``            → ``generate_pipeline_summary``
 
-Public API surface (forwarded by the legacy ``utils/*.py`` shims):
-``save_dataset``, ``safe_save_preview_csv``, ``generate_dataframe_report``,
-``_format_stat``, ``_is_categorical``, ``generate_pipeline_summary``.
+公开 API 表面 (历史 ``utils/*.py`` shim 已转发):
+``save_dataset``、``safe_save_preview_csv``、``generate_dataframe_report``、
+``_format_stat``、``_is_categorical``、``generate_pipeline_summary``。
 """
 
 from __future__ import annotations
@@ -21,16 +21,15 @@ import pyarrow.parquet as pq
 
 
 # ============================================================================
-# 1. Dataset persistence (Parquet + CSV preview).  From utils/helpers.py.
+# 1. 数据集持久化 (Parquet + CSV 预览)。来源于 utils/helpers.py。
 # ============================================================================
 
 
 def safe_save_preview_csv(df: pd.DataFrame, preview_path: str, logger=None):
-    """Save the first 5,000 rows as a CSV preview, swallowing PermissionError.
+    """保存前 5,000 行为 CSV 预览, 静默吞掉 PermissionError。
 
-    CSV preview is a non-critical path: a write failure (typically because
-    Excel has the file open) must not abort the main pipeline.  We log a
-    warning and continue.
+    CSV 预览是非关键路径: 写入失败 (典型情形是 Excel 已打开占用) 不应该
+    中断主流水线。本函数记录 warning 并继续执行。
     """
     try:
         df_preview = df.head(5000) if hasattr(df, 'head') else df
@@ -48,10 +47,10 @@ def safe_save_preview_csv(df: pd.DataFrame, preview_path: str, logger=None):
 
 
 def save_dataset(df: pd.DataFrame, output_path: str, logger=None):
-    """Persist ``df`` as Parquet + CSV preview at ``output_path``.
+    """将 ``df`` 同时持久化为 Parquet + CSV 预览, 两者共享 ``output_path`` 词干。
 
-    The ``.parquet`` is the contract format; the same-stem ``.csv`` is a
-    non-critical preview (failure to write CSV does not raise).
+    ``.parquet`` 是契约格式, 失败会抛异常; 同词干的 ``.csv`` 是非关键预览,
+    写入失败不会抛异常。
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
@@ -71,12 +70,12 @@ def save_dataset(df: pd.DataFrame, output_path: str, logger=None):
 
 
 # ============================================================================
-# 2. DataFrame analysis report.  From utils/reporting.py (verbatim).
+# 2. DataFrame 分析报告。逐字搬运自 utils/reporting.py。
 # ============================================================================
 
 
 def _format_stat(value, precision=2):
-    """Format a numeric value for log output, returning ``"N/A"`` for NaN."""
+    """格式化数值用于日志输出; NaN 返回 ``"N/A"``。"""
     if pd.isna(value):
         return "N/A"
     if isinstance(value, (int, float)):
@@ -85,21 +84,21 @@ def _format_stat(value, precision=2):
 
 
 def _is_categorical(dtype):
-    """pandas >= 2.1 compatible categorical-dtype check."""
+    """pandas >= 2.1 兼容的 categorical-dtype 检测。"""
     return isinstance(dtype, pd.CategoricalDtype)
 
 
 def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
-    """Emit a verbose statistical report for ``df`` to ``logger``.
+    """向 ``logger`` 输出 ``df`` 的详细统计报告。
 
-    Sections:
-      1. Overall: shape, duplicate-row count, memory footprint, dtype mix.
-      2. Per-column: missing rate, unique count, type-aware stats
-         (numeric five-number summary / datetime range / boolean counts /
-         categorical-or-object value distribution).
+    报告分两节:
+      1. 整体概览: shape、重复行数、内存占用、dtype 分布。
+      2. 逐列分析: 缺失率、唯一值数、类型自适应统计
+         (数值五数概括 / datetime 范围 / 布尔值计数 /
+         categorical-or-object 值分布)。
 
-    Designed to be defensive: any internal failure is logged at WARNING level
-    rather than raised, so report generation cannot break the host pipeline.
+    防御性设计: 任何内部失败均以 WARNING 级别打印, 不抛异常 — 保证
+    报告生成不会破坏宿主流水线。
     """
     try:
         logger.info("\n" + "=" * 60)
@@ -237,21 +236,21 @@ def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
 
 
 # ============================================================================
-# 3. End-of-pipeline data-flow summary.  From utils/pipeline_reporting.py.
+# 3. 流水线收尾的数据流转摘要。来源于 utils/pipeline_reporting.py。
 # ============================================================================
 
 
 def generate_pipeline_summary(config, logger):
-    """Print an end-of-run pipeline summary report.
+    """打印一次完整运行结束后的流水线摘要报告。
 
-    Two granularities:
-      1. Article-level data-flow (00 -> 24): row count per stage,
-         delta vs previous, retention vs initial.
-      2. Bank-Year panel summary (45 / 51): row x column counts.
+    报告分两个粒度:
+      1. 文章级数据流转 (00 -> 24): 每阶段的行数、与上一阶段的差值、
+         相对最初阶段的保留率。
+      2. Bank-Year 面板摘要 (45 / 51): 行数 x 列数。
 
-    Uses ``pyarrow.parquet.read_metadata`` for cheap row counts (only
-    reads the parquet footer, no full load), then loads the final stage
-    fully for ``generate_dataframe_report``.
+    使用 ``pyarrow.parquet.read_metadata`` 进行廉价行计数 (只读 parquet
+    footer, 不全量加载); 然后对最终阶段全量加载, 调用
+    ``generate_dataframe_report`` 输出完整统计。
     """
     logger.info("\n" + "=" * 70)
     logger.info("===          数据管道执行摘要报告 (Pipeline Summary)         ===")

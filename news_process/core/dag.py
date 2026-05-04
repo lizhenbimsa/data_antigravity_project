@@ -1,22 +1,20 @@
-"""news_process.core.dag — declarative pipeline DAG.
+"""news_process.core.dag — 声明式流水线 DAG.
 
-Phase 1 deliverable: ``StageSpec`` data class + ``STAGES_MAIN`` / ``STAGES_VALIDATION``
-lists.  These are the **single source of truth** for which stages exist and
-when they run; both ``run_pipeline_function.py`` (main pipeline runner) and
-``run_pipeline_validation.py`` (validation runner) import their ``STAGES``
-constant from here, and ``tests/integration/test_dag_consistency.py``
-verifies the bindings match by identity.
+Phase 1 交付物: ``StageSpec`` 数据类 + ``STAGES_MAIN`` / ``STAGES_VALIDATION``
+列表。这两份列表是 "哪些阶段存在 / 何时运行" 的 **单源真值**;
+``run_pipeline_function.py`` (主流水线执行器) 与
+``run_pipeline_validation.py`` (验证执行器) 都从此处 import 自己的
+``STAGES`` 常量, 并由 ``tests/integration/test_dag_consistency.py``
+通过 ``is`` 身份比对验证两端绑定一致。
 
-Naming discipline: ``StageSpec`` is the *declarative* record (a frozen
-dataclass) used in the DAG.  It is intentionally **distinct** from the
-*runtime* ``Stage`` abstract base class that will live in ``core/stage.py``
-in a later phase, to avoid a name collision.
+命名纪律: ``StageSpec`` 是 DAG 中使用的 *声明式* 记录 (frozen dataclass);
+刻意与未来某 phase 将在 ``core/stage.py`` 引入的 *运行时* ``Stage``
+抽象基类区分开, 以避免命名冲突。
 
-Config-conditional dynamism (e.g. sentiment.enabled_methods filtering
-21/22/23) is captured by the ``enabled_when`` predicate, not by branching
-inside the orchestrator.  Predicates are first-class Python callables
-declared at module scope so that identity (``is``) comparison is
-meaningful for the DAG-consistency test.
+配置条件性动态分支 (例如 sentiment.enabled_methods 决定 21/22/23 启停)
+通过 ``enabled_when`` 谓词捕获, 而非 orchestrator 内部分支。谓词必须是
+模块级 Python callable, 这样在多个 import 站点之间 ``is`` 身份比对才有
+意义 — DAG 一致性测试依赖这一点。
 """
 
 from __future__ import annotations
@@ -26,9 +24,9 @@ from typing import Any, Callable
 
 
 # ----------------------------------------------------------------------------
-# enabled_when predicates.  Declared at module scope so identity-equality
-# (``is``) holds across import sites — the DAG consistency test relies on
-# this to confirm both orchestrators reuse the same predicate object.
+# enabled_when 谓词集。声明在模块作用域, 以使 ``is`` 身份比对跨 import 站点
+# 仍然成立 — DAG 一致性测试依赖此性质来确认两个 orchestrator 复用同一个
+# 谓词对象。
 # ----------------------------------------------------------------------------
 
 
@@ -59,7 +57,7 @@ def berts_method_enabled(cfg: dict[str, Any]) -> bool:
 
 def _validation_flag(key: str, default: bool = True
                      ) -> Callable[[dict[str, Any]], bool]:
-    """Return a predicate that reads ``cfg['validation'][key]`` (default True)."""
+    """返回一个读取 ``cfg['validation'][key]`` 的谓词 (默认值 True)。"""
     def predicate(cfg: dict[str, Any]) -> bool:
         return cfg.get('validation', {}).get(key, default)
     predicate.__name__ = f"validation_{key}_enabled"
@@ -70,9 +68,9 @@ def temporal_mask_enabled(cfg: dict[str, Any]) -> bool:
     return cfg.get('temporal_mask_test', {}).get('enabled', False)
 
 
-# Validation predicate handles — declared once at module scope so both
-# core/dag.STAGES_VALIDATION and run_pipeline_validation.STAGES reuse the
-# same callable object.
+# 验证模块谓词句柄集 — 仅在模块作用域声明一次, 以使
+# core/dag.STAGES_VALIDATION 与 run_pipeline_validation.STAGES 复用同一
+# 个 callable 对象。
 _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'threshold_sensitivity': _validation_flag('threshold_sensitivity'),
     'dedup_sensitivity': _validation_flag('dedup_sensitivity'),
@@ -87,25 +85,25 @@ _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
 
 
 # ----------------------------------------------------------------------------
-# StageSpec — declarative DAG record.
+# StageSpec — 声明式 DAG 记录。
 # ----------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class StageSpec:
-    """Declarative descriptor for a single pipeline stage.
+    """单个流水线阶段的声明式描述符。
 
     Attributes:
-        name:         Human-readable stage label (used in logs, summaries).
-        script:       Filename relative to project root (``"00_preprocessing.py"``).
-        group:        ``"main"`` | ``"validation"`` | ``"feature"``.
-        kind:         Free-form label for kind/category.
-        timeout:      Subprocess timeout in seconds.
-        enabled_when: Predicate ``(cfg) -> bool`` deciding runtime inclusion.
-                      Use ``always_enabled`` for unconditional stages.
+        name:         人类可读的阶段标签 (用于日志、摘要)。
+        script:       相对于项目根的文件名 (``"00_preprocessing.py"``)。
+        group:        ``"main"`` | ``"validation"`` | ``"feature"``。
+        kind:         自由格式的类别标签。
+        timeout:      子进程超时秒数。
+        enabled_when: 谓词 ``(cfg) -> bool``, 决定运行时是否纳入该阶段;
+                      无条件运行的阶段使用 ``always_enabled``。
 
-    Phase 1 deliberately omits ``inputs`` / ``outputs`` field population;
-    those will be wired through ``core.schemas.OUTPUT_REGISTRY`` in Phase 2d.
+    Phase 1 刻意不填充 ``inputs`` / ``outputs`` 字段;
+    Phase 2d 将通过 ``core.schemas.OUTPUT_REGISTRY`` 串接二者。
     """
 
     name: str
@@ -117,9 +115,9 @@ class StageSpec:
 
 
 # ----------------------------------------------------------------------------
-# STAGES_MAIN — the production pipeline DAG (run_pipeline_function).
-# Mirrors run_pipeline_function.py:run_pipeline()'s stages list, with
-# config-driven branches captured as enabled_when predicates.
+# STAGES_MAIN — 生产流水线 DAG (run_pipeline_function)。
+# 镜像 run_pipeline_function.py:run_pipeline() 的 stages 列表;
+# 配置驱动的条件分支通过 enabled_when 谓词捕获。
 # ----------------------------------------------------------------------------
 
 
@@ -152,10 +150,10 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段15: 文章级政策语义对齐度",
         script="15_article_policy_alignment.py",
         group="main", kind="filter",
-        timeout=7200,  # contains Embedding API calls
+        timeout=7200,  # 阶段内含 Embedding API 调用
     ),
 
-    # ── 模块三：新闻情感模块 (config-conditional via enabled_methods) ──
+    # ── 模块三：新闻情感模块 (由 sentiment_analysis.enabled_methods 配置条件性启停) ──
     StageSpec(
         name="阶段21: 统一 LLM 语义精筛与情感分析",
         script="21_tone_llms.py",
@@ -187,7 +185,7 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段40-45: Bank-Year 面板数据构建",
         script="45_panel_export_main.py",
         group="main", kind="panel",
-        timeout=7200,  # contains Stage 25/26/27 Embedding computation
+        timeout=7200,  # 阶段内含 Stage 25/26/27 Embedding 计算
     ),
 
     # ── 模块六：伪造检验 ──
@@ -200,9 +198,9 @@ STAGES_MAIN: list[StageSpec] = [
 
 
 # ----------------------------------------------------------------------------
-# STAGES_VALIDATION — robustness/validation runner (run_pipeline_validation).
-# All predicates reuse the module-scope handles in _VALIDATION_PREDS so that
-# `is` identity holds across import sites.
+# STAGES_VALIDATION — 稳健性/验证执行器 (run_pipeline_validation)。
+# 所有谓词复用 _VALIDATION_PREDS 中的模块级句柄, 以使 `is` 身份比对
+# 跨 import 站点成立。
 # ----------------------------------------------------------------------------
 
 
@@ -217,7 +215,7 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段32: 人工抽样验证样本生成",
         script="32_news_llms_human.py",
         group="validation", kind="human",
-        # always_enabled — the legacy runner has no flag for stage 32
+        # always_enabled — 历史 runner 对 stage 32 没有专门的 flag
     ),
     StageSpec(
         name="阶段32a: 去重阈值敏感性分析",
@@ -271,7 +269,7 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段38b: 距离衰减权重敏感性检验",
         script="38b_decay_sensitivity.py",
         group="validation", kind="sensitivity",
-        # always_enabled — legacy runner has no flag for 38b
+        # always_enabled — 历史 runner 对 38b 没有专门的 flag
     ),
     StageSpec(
         name="阶段39: Prompt措辞敏感度测试",
@@ -283,11 +281,11 @@ STAGES_VALIDATION: list[StageSpec] = [
 
 
 # ----------------------------------------------------------------------------
-# Convenience helpers for orchestrators / tests.
+# 供 orchestrator / 测试使用的便捷工具函数。
 # ----------------------------------------------------------------------------
 
 
 def filter_enabled(stages: list[StageSpec],
                    config: dict[str, Any]) -> list[StageSpec]:
-    """Return the subset of ``stages`` whose ``enabled_when(config)`` is True."""
+    """返回 ``stages`` 中 ``enabled_when(config)`` 为 True 的子集。"""
     return [s for s in stages if s.enabled_when(config)]

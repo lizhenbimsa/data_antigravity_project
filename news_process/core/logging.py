@@ -1,14 +1,13 @@
-"""news_process.core.logging — logger setup, ANSI formatter, timing decorator.
+"""news_process.core.logging — logger 配置、ANSI 着色 formatter、计时装饰器。
 
-Split from legacy ``utils/helpers.py:196-523``.
-Public API preserved: ``setup_logging``, ``log_and_time``, ``log_memory_usage``,
-``log_stage_summary``, ``_ColoredFormatter``.
+由历史 ``utils/helpers.py:196-523`` 拆分而来。
+保留的公开 API: ``setup_logging``、``log_and_time``、``log_memory_usage``、
+``log_stage_summary``、``_ColoredFormatter``。
 
-The Phase 1 plan specifies a per-run log directory layout
-``logs/runs/<run_id>/<stage>.log``; ``setup_logging`` reads the
-``NEWS_PROCESS_RUN_ID`` environment variable. When present, logs go to
-``<log_dir>/runs/<run_id>/<stage>.log``; otherwise to ``<log_dir>/<stage>.log``
-(legacy fallback).
+Phase 1 规划要求的日志目录布局为 ``logs/runs/<run_id>/<stage>.log``;
+``setup_logging`` 通过读取 ``NEWS_PROCESS_RUN_ID`` 环境变量决定具体路径:
+存在时日志写入 ``<log_dir>/runs/<run_id>/<stage>.log``;
+否则回退到 ``<log_dir>/<stage>.log`` (legacy fallback)。
 """
 
 from __future__ import annotations
@@ -27,12 +26,12 @@ _RUN_ID_ENV = "NEWS_PROCESS_RUN_ID"
 
 
 def get_run_id() -> str | None:
-    """Return the value of NEWS_PROCESS_RUN_ID env var, or None."""
+    """返回 NEWS_PROCESS_RUN_ID 环境变量的值, 不存在返回 None。"""
     return os.environ.get(_RUN_ID_ENV)
 
 
 class _ColoredFormatter(logging.Formatter):
-    """ANSI-colored console formatter (different colors per log level)."""
+    """ANSI 着色 console formatter (按日志等级染色)。"""
 
     _GREY = '\033[38;5;245m'
     _BLUE = '\033[38;5;75m'
@@ -70,27 +69,26 @@ class _ColoredFormatter(logging.Formatter):
 
 def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
                   level=logging.INFO, max_bytes=50*1024*1024, backup_count=3):
-    """Configure a logger with rotating file + colored console output.
+    """配置一个集成了 rotating 文件输出 + 着色 console 输出的 logger。
 
     Args:
-        stage_name:    Logger namespace and log filename stem.
-        log_dir:       Base log directory.  When env var
-                       ``NEWS_PROCESS_RUN_ID`` is set, the actual file is
+        stage_name:    Logger 命名空间, 同时作为日志文件名词干。
+        log_dir:       日志根目录。当 ``NEWS_PROCESS_RUN_ID`` 环境变量已
+                       设置时, 实际写入路径为
                        ``<log_dir>/runs/<run_id>/<stage_name>.log``;
-                       otherwise ``<log_dir>/<stage_name>.log``.
-        file_mode:     'w' (truncate-on-start) or 'a' (append).
-        console_only:  If True, no file handler is created.  Used by
-                       subprocesses to avoid corruption from concurrent
-                       file writes.
-        level:         Default logging level.
-        max_bytes:     Per-file size cap before rotation (default 50MB).
-        backup_count:  Number of rotated backups to retain.
+                       否则为 ``<log_dir>/<stage_name>.log``。
+        file_mode:     ``'w'`` (启动时截断) 或 ``'a'`` (追加)。
+        console_only:  若为 True, 不创建文件 handler。用于子进程, 避免
+                       多进程并发写同一文件造成日志错乱。
+        level:         默认日志级别。
+        max_bytes:     单文件大小上限 (达到后 rotate, 默认 50 MB)。
+        backup_count:  rotate 保留的备份数量。
 
     Returns:
-        logging.Logger: configured logger instance (idempotent — re-calling
-        clears existing handlers first).
+        logging.Logger: 已配置好的 logger 实例 (幂等 — 重复调用会先清空
+        现有 handler 再注册)。
     """
-    # Resolve actual log directory: per-run subdir if NEWS_PROCESS_RUN_ID set.
+    # 解析实际的日志目录: 若 NEWS_PROCESS_RUN_ID 已设置, 用 per-run 子目录。
     run_id = get_run_id()
     if run_id and not console_only:
         actual_log_dir = os.path.join(log_dir, 'runs', run_id)
@@ -138,7 +136,7 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
 
 
 def log_and_time(logger):
-    """Decorator factory: log entry/exit, runtime, RSS delta, I/O size summary."""
+    """装饰器工厂: 自动打印进入/退出、耗时、RSS 内存增量、I/O 规模摘要。"""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -198,7 +196,7 @@ def log_and_time(logger):
 
 
 def log_memory_usage(logger, tag=""):
-    """Log current process RSS + system available memory."""
+    """记录当前进程 RSS 内存与系统可用内存。"""
     process = psutil.Process()
     rss_bytes = process.memory_info().rss
     available_bytes = psutil.virtual_memory().available
@@ -217,7 +215,7 @@ def log_memory_usage(logger, tag=""):
 
 def log_stage_summary(logger, stage_name, start_time, input_rows=None,
                       output_rows=None, extra_info=None):
-    """Print a stage-completion summary block (rows in/out, elapsed, RSS)."""
+    """打印阶段执行完毕摘要块 (输入/输出行数、耗时、RSS 内存)。"""
     elapsed = time.time() - start_time
     minutes = elapsed / 60
 

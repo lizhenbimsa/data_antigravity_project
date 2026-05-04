@@ -1,7 +1,7 @@
-"""news_process.core.parallel — joblib-based DataFrame batch parallelism.
+"""news_process.core.parallel — 基于 joblib 的 DataFrame 批次并行工具。
 
-Split from legacy ``utils/helpers.py:524-590``.
-Public API preserved: ``parallelize_dataframe``.
+由历史 ``utils/helpers.py:524-590`` 拆分而来。
+保留的公开 API: ``parallelize_dataframe``。
 """
 
 from __future__ import annotations
@@ -13,18 +13,18 @@ from joblib import Parallel, delayed
 
 def parallelize_dataframe(df, func, n_jobs=-1, batch_size=10000,
                           logger=None, desc=None):
-    """Apply ``func`` to ``df`` in row-batches across ``n_jobs`` worker processes.
+    """将 ``func`` 按行批次应用到 ``df``, 跨 ``n_jobs`` 个 worker 进程并行执行。
 
     Args:
-        df:         input DataFrame.
-        func:       callable ``(df_batch) -> df_result``.
-        n_jobs:     parallel worker count; -1 = all CPUs minus 1.
-        batch_size: rows per batch (default 10k).
-        logger:     optional logger for progress reporting.
-        desc:       optional progress label.
+        df:         输入 DataFrame。
+        func:       callable, 签名为 ``(df_batch) -> df_result``。
+        n_jobs:     并行 worker 数量; -1 表示 "全部 CPU - 1"。
+        batch_size: 每批次行数 (默认 10000)。
+        logger:     可选 logger, 用于进度上报。
+        desc:       可选进度标签。
 
     Returns:
-        pd.DataFrame: vertically concatenated result.
+        pd.DataFrame: 各批次结果纵向拼接后的整张 DataFrame。
     """
     if n_jobs == -1:
         n_jobs = max(1, psutil.cpu_count(logical=True) - 1)

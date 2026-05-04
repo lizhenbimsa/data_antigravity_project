@@ -1,14 +1,14 @@
-"""news_process.core.stage — subprocess-isolated stage runner + (future) Stage base.
+"""news_process.core.stage — 子进程隔离的阶段执行器 + (未来) Stage 基类。
 
-Split from legacy ``utils/helpers.py:666-752``.
+由历史 ``utils/helpers.py:666-752`` 拆分而来。
 
-Public API preserved: ``run_stage``.
+保留的公开 API: ``run_stage``。
 
-Phase 1 scope: this file hosts ``run_stage`` only (subprocess executor).
-Phase 3 will add a ``Stage`` runtime abstract base class + ``@stage`` decorator
-here, separately from the *declarative* ``StageSpec`` data class declared in
-``core/dag.py``.  The two names ``Stage`` (runtime base) vs ``StageSpec``
-(declarative record) are intentionally distinct to avoid collision.
+Phase 1 范围: 本文件仅承载 ``run_stage`` (子进程执行器)。
+Phase 3 将在此处增加 ``Stage`` 运行时抽象基类 + ``@stage`` 装饰器,
+与 ``core/dag.py`` 中声明的 *声明式* ``StageSpec`` 数据类分离。
+两个名字 ``Stage`` (运行时基类) 与 ``StageSpec`` (声明式记录) 刻意不同,
+以避免命名冲突。
 """
 
 from __future__ import annotations
@@ -24,25 +24,24 @@ from .logging import log_memory_usage, get_run_id
 def run_stage(stage_script: str, stage_name: str, logger,
               base_dir: str | None = None,
               timeout: int = 3600) -> tuple[bool, float]:
-    """Run a single pipeline stage script as an isolated subprocess.
+    """以隔离的子进程方式运行单个流水线阶段脚本.
 
     Args:
-        stage_script: filename (e.g. ``"00_preprocessing.py"``).
-        stage_name:   human-readable display name for log lines.
-        logger:       parent logger.
-        base_dir:     directory containing the stage script; defaults to the
-                      project root (parent of this file's package).
-        timeout:      hard subprocess timeout in seconds.
+        stage_script: 文件名 (例如 ``"00_preprocessing.py"``)。
+        stage_name:   日志中显示的人类可读阶段名。
+        logger:       父进程 logger。
+        base_dir:     阶段脚本所在目录; 默认为本文件所属包的父目录
+                      (即项目根)。
+        timeout:      子进程硬超时, 单位为秒。
 
     Returns:
         (success: bool, elapsed_seconds: float)
 
-    The child process inherits ``NEWS_PROCESS_RUN_ID`` (and all other env
-    vars) from the parent, so per-run log directories propagate
-    automatically.
+    子进程从父进程继承 ``NEWS_PROCESS_RUN_ID`` (以及其他全部 env 变量),
+    使得每次运行的日志目录自动传播。
     """
     if base_dir is None:
-        # core/stage.py -> core/ -> news_process/  (one level up to project root)
+        # core/stage.py -> core/ -> news_process/  (上溯一层到项目根)
         base_dir = os.path.dirname(
             os.path.dirname(os.path.abspath(__file__))
         )
@@ -58,8 +57,8 @@ def run_stage(stage_script: str, stage_name: str, logger,
     logger.info(f"{'─'*60}")
     log_memory_usage(logger, f"阶段 {stage_name} 开始前")
 
-    # Ensure run_id is propagated explicitly (defensive — subprocess.run
-    # already inherits env, but we materialize it here for clarity in logs).
+    # 显式传播 run_id (防御性写法 — subprocess.run 默认已继承 env,
+    # 但此处显式物化, 便于日志可读性)。
     env = os.environ.copy()
     run_id = get_run_id()
     if run_id:

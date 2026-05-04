@@ -1,10 +1,10 @@
-"""news_process.core.config — YAML config + .env loader.
+"""news_process.core.config — YAML 配置 + .env 加载器。
 
-Phase 1: split from legacy ``utils/helpers.py:1-194``.
-Phase 4d: added split-mode (7-domain YAMLs + externalized prompts) detection
-          + deep-merge loading + automatic prompt-from-disk injection.
+Phase 1: 由历史 ``utils/helpers.py:1-194`` 拆分而来。
+Phase 4d: 新增 split-mode 检测 (7 域 YAML + 外部化 prompt) +
+          deep-merge 加载 + 自动从磁盘注入 prompt 模板。
 
-Public API preserved: ``load_config()``.
+保留的公开 API: ``load_config()``。
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import yaml
 
 
 # ----------------------------------------------------------------------------
-# Phase 4d: split-mode constants
+# Phase 4d: split-mode 相关常量
 # ----------------------------------------------------------------------------
 
 _SPLIT_DOMAINS: tuple[str, ...] = (
@@ -27,7 +27,7 @@ _SPLIT_DOMAINS: tuple[str, ...] = (
 
 
 def _detect_split_mode(config_dir: str) -> bool:
-    """Return True iff all 7 domain YAMLs exist under ``config_dir``."""
+    """当 ``config_dir`` 下 7 个域 YAML 全部存在时返回 True。"""
     for domain in _SPLIT_DOMAINS:
         if not os.path.exists(os.path.join(config_dir, f'{domain}.yaml')):
             return False
@@ -35,14 +35,14 @@ def _detect_split_mode(config_dir: str) -> bool:
 
 
 def _deep_merge(a: dict, b: dict) -> dict:
-    """Deep-merge ``b`` into a copy of ``a``.
+    """将 ``b`` 深度合并进 ``a`` 的副本。
 
-    - Nested dicts merge recursively.
-    - Lists are *replaced* (not appended) — same semantic as etcd / k8s configmap.
-    - Scalars are replaced.
-    - Conflicting keys: ``b`` wins.
+    - 嵌套字典递归合并。
+    - 列表整体 *替换* (不做追加) — 与 etcd / k8s configmap 语义一致。
+    - 标量整体替换。
+    - key 冲突时 ``b`` 胜出。
 
-    Returns a new dict; neither input is mutated.
+    返回新字典; 两个入参均不被修改。
     """
     if not isinstance(a, dict):
         return b if b is not None else a
@@ -58,17 +58,17 @@ def _deep_merge(a: dict, b: dict) -> dict:
 
 
 def _inline_external_prompts(config: dict, project_root: str) -> None:
-    """Walk config and replace ``X_template_file`` keys with their disk content.
+    """递归遍历 config, 将 ``X_template_file`` 键替换为对应磁盘内容。
 
-    Convention: any leaf key ending in ``_template_file`` (sibling YAML field
-    pointing to a ``.txt`` on disk) is opened and its content placed under
-    the same key minus the ``_file`` suffix.  The ``_file`` key is then removed.
+    约定: 任何以 ``_template_file`` 结尾的叶节点键 (其值是 YAML 中指向某个
+    ``.txt`` 文件的路径), 会被读取后将文件内容写到 *同名键去掉 ``_file``
+    后缀* 的位置上, 然后保留 ``_file`` 元数据 (供下游可追溯)。
 
-    This makes downstream code (``cfg['tone_llm_processing']['prompt_template']``)
-    work identically whether the prompt was inline (legacy mode) or in a
-    separate ``.txt`` (Phase 4d split mode).
+    这样下游代码 (例如 ``cfg['tone_llm_processing']['prompt_template']``)
+    无论 prompt 是 YAML 内联 (legacy mode) 还是外部 ``.txt`` (Phase 4d
+    split mode) 均能透明使用。
 
-    Mutates ``config`` in place.
+    原地修改 ``config``。
     """
     if not isinstance(config, dict):
         return
@@ -78,17 +78,16 @@ def _inline_external_prompts(config: dict, project_root: str) -> None:
         if isinstance(v, dict):
             _inline_external_prompts(v, project_root)
         elif isinstance(v, str) and k.endswith('_template_file'):
-            target_key = k[:-len('_file')]  # strip the '_file' suffix only
+            target_key = k[:-len('_file')]  # 仅去掉 '_file' 后缀
             file_path = v
-            # `v` was already path-resolved by resolve_paths(); accept abs
+            # `v` 已经被 resolve_paths() 路径化; 接受绝对路径输入
             if not os.path.isabs(file_path):
                 file_path = os.path.normpath(os.path.join(project_root, file_path))
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
                 config[target_key] = content
-                # Keep the *_file metadata for traceability (downstream code
-                # ignoring it remains backward compatible).
+                # 保留 *_file 元数据供可追溯性使用 (下游若忽略此键, 仍向后兼容)。
             except FileNotFoundError:
                 logging.getLogger(__name__).warning(
                     f"Prompt 模板文件未找到: {file_path} (键 {k}); "
@@ -97,44 +96,42 @@ def _inline_external_prompts(config: dict, project_root: str) -> None:
 
 
 # ----------------------------------------------------------------------------
-# Public API
+# 公开 API
 # ----------------------------------------------------------------------------
 
 
 def load_config(config_path=None):
-    """Load YAML config and resolve relative paths to absolute.
+    """加载 YAML 配置, 并将相对路径解析为绝对路径。
 
-    Modes
+    模式
     -----
-    1. **Phase 4d split-mode** (preferred): when ``config/{paths,preprocessing,
-       filtering,sentiment,features,panel,validation}.yaml`` all exist, load
-       each one and *deep-merge* them. The legacy ``config.yaml`` is treated
-       as a stub and skipped.
-    2. **Legacy monolithic mode** (backwards compat): when any split YAML
-       is missing, fall back to reading ``config.yaml`` as a single file.
+    1. **Phase 4d split-mode** (优先): 当
+       ``config/{paths,preprocessing,filtering,sentiment,features,panel,
+       validation}.yaml`` 7 个文件全部存在时, 逐个加载并 *deep-merge*
+       合并; 历史的 ``config.yaml`` 已退化为 stub, 此模式下被跳过。
+    2. **Legacy monolithic mode** (向后兼容): 当任一 split YAML 缺失时,
+       回退到把 ``config.yaml`` 当作单文件读取。
 
-    In both modes, the returned dict is semantically identical (verified by
-    ``tests/integration/test_config_split_equivalence.py``).
+    两种模式下返回的字典**语义等价**, 由
+    ``tests/integration/test_config_split_equivalence.py`` 保证。
 
-    Post-processing applied to the merged dict:
+    对合并后字典做的后处理:
 
-    - ``${VAR_NAME}`` placeholders are substituted with env-var values
-      (auto-loads ``.env`` from project root).
-    - Relative paths (``./...``) are resolved to absolute paths under the
-      project root.
-    - Phase 4d: any leaf key ending in ``_template_file`` is read from disk
-      and its content placed under the corresponding key without the
-      ``_file`` suffix (so ``cfg['x']['prompt_template']`` works whether the
-      prompt was inline in YAML or external in a ``.txt``).
+    - ``${VAR_NAME}`` 占位符替换为 env 变量值 (自动从项目根加载 ``.env``)。
+    - 相对路径 (``./...``) 解析为基于项目根的绝对路径。
+    - Phase 4d: 任何以 ``_template_file`` 结尾的叶节点键, 其指向的
+      ``.txt`` 内容会被读取并写到同名键去掉 ``_file`` 后缀的位置 (使得
+      ``cfg['x']['prompt_template']`` 在 YAML 内联 prompt 和外部 ``.txt``
+      两种情形下行为一致)。
 
     Args:
-        config_path: optional path to a single YAML file (forces legacy mode);
-                     defaults to ``<project_root>/config/config.yaml``.
+        config_path: 可选; 指向单个 YAML 文件的路径 (强制 legacy 模式);
+                     不传时默认走 ``<project_root>/config/config.yaml``。
 
     Returns:
-        dict: resolved config (all strings normalized).
+        dict: 解析完毕的配置 (字符串均已规范化)。
     """
-    # core/config.py -> core/ -> news_process/  (one level up)
+    # core/config.py -> core/ -> news_process/  (上溯一层)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
 
@@ -151,7 +148,7 @@ def load_config(config_path=None):
                 domain_cfg = yaml.safe_load(f) or {}
             config = _deep_merge(config, domain_cfg)
     else:
-        # Legacy monolithic mode (or explicit config_path override)
+        # Legacy monolithic 模式 (或显式 config_path 覆盖)
         if config_path is None:
             config_path = os.path.join(config_dir, 'config.yaml')
         else:
@@ -200,17 +197,17 @@ def load_config(config_path=None):
 
     resolve_paths(config, project_root)
 
-    # Phase 4d: inline any external prompt template files into the dict
+    # Phase 4d: 把任何外部 prompt 模板文件内联到 config dict 中
     _inline_external_prompts(config, project_root)
 
     return config
 
 
 def _load_dotenv(project_root: str):
-    """Load ``project_root/.env`` into os.environ; existing values not overwritten.
+    """把 ``project_root/.env`` 加载到 os.environ; 已存在的值不覆盖。
 
-    Prefers ``python-dotenv`` if installed; falls back to a minimal parser.
-    Silent no-op when ``.env`` is absent.
+    若已安装 ``python-dotenv`` 则优先调用; 否则退化为最小化解析器。
+    ``.env`` 不存在时静默无操作。
     """
     env_path = os.path.join(project_root, '.env')
     if not os.path.exists(env_path):
