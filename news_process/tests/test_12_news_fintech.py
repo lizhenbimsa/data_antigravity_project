@@ -21,9 +21,18 @@ from unittest.mock import MagicMock
 
 @pytest.fixture
 def fintech_module():
-    """导入 12_news_fintech 模块。"""
-    import importlib
-    return importlib.import_module('12_news_fintech')
+    """导入金融科技新闻判断模块（Phase 7a-2 后规范包路径）。"""
+    # Phase 7a-2: body 已迁至 news_process.pipeline.filtering.news_fintech,
+    # 旧 ``importlib.import_module('12_news_fintech')`` 现仅返回 thin shim,
+    # 直接走规范 import 即可拿到全部内部函数与模块级常量。
+    import os, sys
+    _PROJECT_PARENT = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _PROJECT_PARENT not in sys.path:
+        sys.path.insert(0, _PROJECT_PARENT)
+    from news_process.pipeline.filtering import news_fintech
+    return news_fintech
 
 
 @pytest.fixture

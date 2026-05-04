@@ -27,21 +27,19 @@ from unittest.mock import patch, MagicMock
 
 @pytest.fixture
 def mock_bank_module(monkeypatch):
-    """Mock 11_news_bank 模块的全局状态。"""
-    import importlib
+    """Mock 银行新闻判断模块的全局状态（Phase 7a-1 后规范包路径）。"""
+    # Phase 7a-1: body 已迁至 news_process.pipeline.filtering.news_bank,
+    # 旧 ``importlib.import_module('11_news_bank')`` 现仅返回 thin shim,
+    # 直接走规范 import 即可拿到全部内部函数与模块级常量。
+    import os
     import sys
-
-    # 需要在首次导入前 mock 全局变量
-    # 由于 11_news_bank 在模块级别执行 load_config，
-    # 我们直接测试其子函数，通过 mock 全局变量隔离
-    mod_name = '11_news_bank'
-    if mod_name in sys.modules:
-        mod = sys.modules[mod_name]
-    else:
-        # 预设 mock 来避免模块级副作用
-        mod = importlib.import_module(mod_name.replace('-', '_'))
-
-    return mod
+    _PROJECT_PARENT = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    if _PROJECT_PARENT not in sys.path:
+        sys.path.insert(0, _PROJECT_PARENT)
+    from news_process.pipeline.filtering import news_bank
+    return news_bank
 
 
 @pytest.fixture

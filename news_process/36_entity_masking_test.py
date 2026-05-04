@@ -71,8 +71,9 @@ CONFIG = load_config()
 STAGE_NAME = "36_entity_masking_test"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
-# 复用 21_tone_llms.py 的 LLM 基础设施
-_tone_llms = import_module('21_tone_llms')
+# Phase 7a-4: 21_tone_llms 已 thin shim 化, body 迁至 news_process.pipeline.sentiment.tone_llms
+# 直接从规范包路径取内部函数, 不再走数字前缀文件名 import_module
+_tone_llms = import_module('news_process.pipeline.sentiment.tone_llms')
 fetch_llm_async  = _tone_llms.fetch_llm_async
 _aggregate_track = _tone_llms._aggregate_track
 MODELS           = _tone_llms.MODELS

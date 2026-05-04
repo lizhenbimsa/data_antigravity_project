@@ -1,23 +1,19 @@
 import os
 import sys
-import importlib.util
 import pytest
 import pandas as pd
 import numpy as np
 
-def load_module(name, path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
+# Phase 7a-5: 注入项目父目录, 让 ``news_process.*`` 在任意 cwd 解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(_HERE))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-# 获取被测模块的绝对路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-module_path = os.path.join(parent_dir, '22_tone_words.py')
-
-tone = load_module('tone_words_22', module_path)
+# Phase 7a-5: body 已迁至 news_process.pipeline.sentiment.tone_words,
+# 旧 ``spec_from_file_location('tone_words_22', '22_tone_words.py')`` 现仅
+# 返回 thin shim, 直接走规范 import 即可拿到全部内部函数与模块级常量。
+from news_process.pipeline.sentiment import tone_words as tone
 
 @pytest.fixture
 def mock_sentiment_dict():

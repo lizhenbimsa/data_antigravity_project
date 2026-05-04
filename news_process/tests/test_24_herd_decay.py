@@ -14,17 +14,22 @@ tests/test_24_herd_decay.py — 24_herd_decay_processor.py 单元测试
 
 import os
 import sys
-import importlib
 import logging
 
 import pytest
 import pandas as pd
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Phase 7a-7: 注入项目父目录, 使 ``news_process.*`` 可解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(_HERE))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
 
-# 导入模块（文件名以数字开头，须使用 importlib）
-herd_module = importlib.import_module('24_herd_decay_processor')
+# Phase 7a-7: body 已迁至 news_process.pipeline.sentiment.herd_decay,
+# 旧 ``importlib.import_module('24_herd_decay_processor')`` 现仅返回 thin shim,
+# 直接走规范 import 即可拿到全部内部函数与模块级常量。
+from news_process.pipeline.sentiment import herd_decay as herd_module
 compute_herd_weights = herd_module.compute_herd_weights
 
 
