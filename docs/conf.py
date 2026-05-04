@@ -1,28 +1,29 @@
-"""Sphinx configuration for news_process v2.0.0 documentation site.
+"""news_process v2.0.0 文档站 Sphinx 配置文件。
 
-Phase D — Documentation Production (2026-05-04).
+Phase D — 文档生产化 (2026-05-04)。
 
-Architectural choices
----------------------
-* **Theme**: Furo (Pradyun Gedam) — modern, mobile-friendly, dark-mode by
-  default, used by pip's official docs.
-* **Markdown**: ``myst-parser`` lets us write prose in Markdown.  All
-  ``.md`` files in this directory tree are first-class doc sources.
-* **API auto-extraction**: ``autodoc`` + ``autosummary`` recursively
-  enumerate every public symbol in ``news_process.{core,pipeline,
-  validation,papers}`` with **zero manual maintenance**.
-* **Docstring style**: Napoleon supports both NumPy and Google styles
-  simultaneously, matching the v2.0 codebase's mixed conventions.
-* **Type hints**: rendered into prose via ``sphinx_autodoc_typehints``.
-* **Mocked imports**: heavy ML deps (torch, transformers,
-  sentence_transformers) are stubbed during build to keep ``make html``
-  under 5 minutes and avoid GPU detection side-effects.
+架构选型
+---------
+* **Theme**: Furo (Pradyun Gedam 出品) — 现代化、移动端友好、默认夜间
+  模式; pip 官方文档同款。
+* **Markdown 源**: ``myst-parser`` 使本目录树下所有 ``.md`` 文件都可以
+  作为一等文档源, 让中文 prose 写起来比 reStructuredText 顺手。
+* **API 自动抽取**: ``autodoc`` + ``autosummary`` 递归枚举
+  ``news_process.{core,pipeline,validation,papers}`` 的全部公开符号,
+  **零人工维护**。
+* **Docstring 风格**: Napoleon 同时支持 NumPy 与 Google 风格, 匹配
+  v2.0 代码库混合约定的实际情况。
+* **类型注解**: ``sphinx_autodoc_typehints`` 自动把 type hints 渲染进
+  prose。
+* **被 mock 的 import**: 重型 ML 依赖 (torch, transformers,
+  sentence_transformers) 在构建期被 stub 化, 使 ``make html`` 控制
+  在 5 分钟内并避开 GPU 探测副作用。
 
-Build commands
---------------
+构建命令
+---------
     cd docs
-    make html       # build to docs/_build/html/
-    make clean      # remove _build/
+    make html       # 增量构建到 docs/_build/html/
+    make clean      # 清空 _build/
 """
 
 from __future__ import annotations
@@ -32,39 +33,39 @@ import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Path setup — make ``news_process.*`` importable for autodoc
+# 路径配置 — 让 autodoc 能够 ``import news_process.*``
 # ---------------------------------------------------------------------------
 
-# docs/conf.py → repo root (parent of docs/)
+# docs/conf.py → repo root (docs/ 的父目录)
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
-# Inject placeholder env vars so that ``load_config()`` doesn't crash on
-# missing ``.env`` keys during autodoc import. These never reach runtime.
+# 注入占位 env 变量, 使 autodoc import 期间 ``load_config()`` 不会因 .env
+# 缺失而崩溃。这些占位值不会进入运行时 (生产配置使用真实 .env)。
 os.environ.setdefault("GPT5NANO_API_KEY", "docs-build-placeholder")
 os.environ.setdefault("GEMINI3_API_KEY", "docs-build-placeholder")
 os.environ.setdefault("CLAUDE4H_API_KEY", "docs-build-placeholder")
 os.environ.setdefault("EMBEDDING_API_KEY", "docs-build-placeholder")
 
 # ---------------------------------------------------------------------------
-# Project metadata
+# 项目元数据
 # ---------------------------------------------------------------------------
 
 project = "news_process"
 author = "data_antigravity_project / news_process team"
-copyright = "2026, news_process v2.0.0"  # noqa: A001 — Sphinx convention
+copyright = "2026, news_process v2.0.0"  # noqa: A001 — Sphinx 约定字段名
 
-# Pull version dynamically from the package
+# 动态从包 ``__version__`` 拉取版本号
 try:
     import news_process  # noqa: E402
 
     release = news_process.__version__
-except Exception:  # pragma: no cover — fallback when package import fails
+except Exception:  # pragma: no cover — 包 import 失败时的兜底
     release = "2.0.0"
 version = release
 
 # ---------------------------------------------------------------------------
-# General Sphinx configuration
+# Sphinx 通用配置
 # ---------------------------------------------------------------------------
 
 extensions = [
@@ -80,7 +81,7 @@ extensions = [
     "sphinxcontrib.mermaid",
 ]
 
-# Source files: prefer Markdown, but accept legacy RST if any.
+# 文档源文件: 优先 Markdown, 兼顾历史 RST。
 source_suffix = {
     ".md": "markdown",
     ".rst": "restructuredtext",
@@ -89,12 +90,12 @@ source_suffix = {
 master_doc = "index"
 language = "zh_CN"
 
-# UI niceties
+# UI 细节
 html_show_sourcelink = False
 html_show_sphinx = True
 todo_include_todos = True
 
-# Patterns to ignore during the build
+# 构建期排除模式
 exclude_patterns = [
     "_build",
     "Thumbs.db",
@@ -109,14 +110,16 @@ exclude_patterns = [
 
 autodoc_default_options = {
     "members": True,
-    "undoc-members": False,  # keep noise low; prefer documented APIs
+    "undoc-members": False,  # 降噪: 优先收录已 documented 的 API
     "show-inheritance": True,
     "member-order": "bysource",
 }
 
-# Heavy / GPU-bound ML dependencies are mocked during build.
-# Their docstrings will still appear via napoleon if we trigger autodoc on
-# wrappers, but the heavy module bodies are not imported.
+# 重型 / GPU 相关的 ML 依赖在构建期被 mock。
+# 它们的 docstring 仍可通过 napoleon 在 wrapper 上正常渲染, 但重型模块
+# 本体不会被实际 import。
+# 下列包在「仅 requirements-docs.txt」环境中通常不存在; 对其 mock 可让
+# autosummary 在 import 各 stage 模块时不因依赖缺失而失败。
 autodoc_mock_imports = [
     "torch",
     "transformers",
@@ -126,19 +129,28 @@ autodoc_mock_imports = [
     "tqdm",
     "openpyxl",
     "matplotlib",
+    "pandas",
+    "numpy",
+    "psutil",
+    "aiohttp",
+    "scipy",
+    "sklearn",
+    "pyarrow",
+    "joblib",
+    "jieba",
 ]
 
-# NOTE on autosummary stubs:
-#   We disable stub generation because myst-parser's toctree directive does not
-#   recognise the stub paths via :glob:, leaving them orphaned. The autosummary
-#   tables in api/*.md already render the public-API matrix with auto-extracted
-#   module descriptions — sufficient for v2.0 docs scope. Detail-per-symbol
-#   pages can be re-enabled in a future docs release if needed.
+# 关于 autosummary stub:
+#   禁用 stub 生成的原因: myst-parser 的 toctree directive 通过 :glob:
+#   无法识别 autosummary 生成的 stub 路径, 会导致这些 stub 文件变成
+#   孤儿。api/*.md 中的 autosummary 表格已经能渲染出 "公开 API 矩阵 +
+#   自动抽取的模块描述", 对 v2.0 的文档范围足够。后续若需要单符号详情
+#   页可在未来的 docs release 重新启用。
 autosummary_generate = False
 autosummary_imported_members = False
 
 # ---------------------------------------------------------------------------
-# Napoleon (docstring styles)
+# Napoleon (docstring 风格)
 # ---------------------------------------------------------------------------
 
 napoleon_google_docstring = True
@@ -153,26 +165,26 @@ napoleon_use_rtype = True
 napoleon_preprocess_types = True
 
 # ---------------------------------------------------------------------------
-# myst-parser (Markdown extensions)
+# myst-parser (Markdown 扩展能力)
 # ---------------------------------------------------------------------------
 
 myst_enable_extensions = [
-    "deflist",          # definition lists
-    "colon_fence",      # ::: admonitions
-    "tasklist",         # GitHub-style task lists
-    "substitution",     # variable substitution
-    "linkify",          # auto-link bare URLs
+    "deflist",          # 定义列表
+    "colon_fence",      # ::: 围栏式 admonition
+    "tasklist",         # GitHub 风格任务清单
+    "substitution",     # 变量替换
+    "linkify",          # 裸 URL 自动链接
     "smartquotes",
     "fieldlist",
 ]
-myst_heading_anchors = 4  # generate slugs for h1..h4
+myst_heading_anchors = 4  # 为 h1..h4 生成锚点 slug
 myst_substitutions = {
     "version": release,
     "min_python": "3.10",
 }
 
 # ---------------------------------------------------------------------------
-# Type hints rendering
+# 类型提示 (type hints) 渲染
 # ---------------------------------------------------------------------------
 
 always_document_param_types = True
@@ -181,7 +193,7 @@ typehints_document_rtype = True
 typehints_use_rtype = True
 
 # ---------------------------------------------------------------------------
-# intersphinx — link to upstream docs
+# intersphinx — 指向上游文档的交叉引用映射
 # ---------------------------------------------------------------------------
 
 intersphinx_mapping = {
@@ -193,7 +205,7 @@ intersphinx_mapping = {
 }
 
 # ---------------------------------------------------------------------------
-# HTML output (Furo theme)
+# HTML 输出 (Furo 主题)
 # ---------------------------------------------------------------------------
 
 html_theme = "furo"
@@ -203,7 +215,7 @@ html_title = f"{project} v{release}"
 html_theme_options = {
     "sidebar_hide_name": False,
     "navigation_with_keys": True,
-    "top_of_page_buttons": [],  # no public source repo configured
+    "top_of_page_buttons": [],  # 未配置公开源码仓库, 故隐藏顶部按钮
     "footer_icons": [],
     "light_css_variables": {
         "color-brand-primary": "#0066CC",
@@ -215,12 +227,12 @@ html_theme_options = {
     },
 }
 
-# Chinese full-text search support (Sphinx 4.x+ has built-in jieba split).
+# 中文全文检索 (Sphinx 4.x+ 内置 jieba 分词支持)。
 html_search_language = "zh"
 
-# Copy-button: skip the prompt (>>>) and indent so users get just the code.
+# copybutton: 剥离提示符 (>>>) 与缩进, 仅复制纯代码正文。
 copybutton_prompt_text = r">>> |\.\.\. |\$ |# "
 copybutton_prompt_is_regexp = True
 
-# Mermaid: use the modern theme for cross-platform rendering.
+# Mermaid: 启用现代主题以获得跨平台一致渲染。
 mermaid_d3_zoom = True

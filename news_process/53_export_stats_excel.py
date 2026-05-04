@@ -1,23 +1,18 @@
-"""53_export_stats_excel.py — DEPRECATED CLI shim (Phase 1.4b pilot).
+"""53_export_stats_excel.py — 已弃用的 CLI 极薄适配层 (Phase 1.4b pilot).
 
-The canonical body has been relocated to
-``news_process.pipeline.audit.stats_excel:main`` during Phase 1's body-migration
-pilot.  This file remains as a backwards-compatible CLI entrypoint so that the
-historical contract ``python 53_export_stats_excel.py`` keeps working.
+实现正文已迁至 ``news_process.pipeline.audit.stats_excel:main``。
+历史约定 ``python 53_export_stats_excel.py`` 由本文件保留；编排器仍以子进程方式调用该脚本文件名。
 
-External tooling should migrate to either:
+建议外部工具改用:
     python -m news_process.pipeline.audit.stats_excel
-or (Phase 3+):
-    python -m news_process.cli run --target paper:bank_fintech_tone
 
-This shim is slated for removal in v2.0.
+计划于 v2.0 后移除 (pilot / 早期迁移项)。
 """
 
 import pathlib
 import sys
 
-# Inject project parent on sys.path so that ``import news_process`` works
-# regardless of cwd.
+# 将项目父目录置于 sys.path, 使任意 cwd 下 ``import news_process`` 均可解析。
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 

@@ -1,31 +1,26 @@
-"""tests/integration/test_panel_reproducibility.py — Phase 2g acceptance gate.
+"""tests/integration/test_panel_reproducibility.py — Phase 2g 验收门槛。
 
-Verifies that every parquet currently present in ``data/processed/`` produces
-the same per-column value hashes as the Phase 0 ``golden_panel_v0.json``
-baseline.  Any column-level mismatch indicates a refactor accidentally altered
-downstream data — a reason to roll back to ``phase-1-baseline`` (or the
-relevant earlier baseline).
+校验: 磁盘 ``data/processed/`` 上当前存在的各 parquet, 其**逐列取值哈希**
+须与 Phase 0 基线 ``golden_panel_v0.json`` 一致。任一列哈希不一致,
+即提示重构可能已改变下游数据语义, 应考虑回滚至 ``phase-1-baseline``
+(或更早相关 baseline tag)。
 
-Phase 8 (2026-05-04): the on-disk layout migrated from ``data_processed/`` to
-``data/processed/``; ``data_dir`` fixture now points at the new location.
+Phase 8 (2026-05-04): 物理目录自 ``data_processed/`` 迁至 ``data/processed/``;
+``data_dir`` fixture 已指向新路径。
 
-The check is **column-level hash-only** (per the restructuring plan's Phase 2g
-spec).  Reasons hash-only is the right choice over ``assert_frame_equal``:
-  - Phase 0 fixture stores hashes only (no full DataFrame), so equality cannot
-    be asserted structurally.
-  - Hash-only is forward-compatible: when Phase 2e migrates the on-disk
-    layout to ``data/processed/<group>/``, this test only needs to look up the
-    new location, not re-snapshot.
+本检查为**仅列级哈希**比对 (重整方案 Phase 2g 规约)。相对 ``assert_frame_equal``
+仅采用哈希的理由:
+  - Phase 0 基线仅存哈希 (无完整 DataFrame), 无法做结构级相等断言。
+  - 哈希方案向前兼容: 若未来 Phase 2e 将布局细分为 ``data/processed/<group>/``,
+    本测试仅需调整路径解析, 无需整表重快照。
 
-Behaviour:
-  - For each stage in ``OUTPUT_REGISTRY`` whose parquet currently exists,
-    recompute column-level value hashes and compare against the golden.
-  - Any column hash mismatch -> test FAIL with diagnostic delta.
-  - Any expected stage that's missing from the golden snapshot is skipped
-    with a note (Phase 0 marked ``incomplete=true`` because stage 15 had no
-    output at the time of snapshot).
-  - Stages currently present on disk but absent from the golden snapshot
-    likewise yield a SKIP (legitimate when a stage was re-run after Phase 0).
+行为概要:
+  - 对 golden 中已登记且磁盘存在的各阶段 parquet, 重算列哈希并与基线比对。
+  - 列哈希不一致 → 测试失败并输出诊断差分。
+  - golden 中缺失某阶段记录时 → 跳过并附说明 (Phase 0 快照时曾
+    ``incomplete=true``, 例如阶段 15 当时无产出)。
+  - 磁盘存在而 golden 未收录的阶段 → 同样跳过 (常见于 Phase 0 之后重跑某阶段、
+    未同步重快照的情形)。
 """
 
 from __future__ import annotations
@@ -43,20 +38,20 @@ def _project_root() -> Path:
 
 
 def _column_hash(s: pd.Series) -> str:
-    """64-bit unsigned hex digest of pandas value hash."""
+    """pandas 列取值哈希的无符号 64 位十六进制摘要。"""
     h = int(pd.util.hash_pandas_object(s, index=False).sum())
     return f"{h & ((1 << 64) - 1):016x}"
 
 
 @pytest.fixture(scope="module")
 def golden() -> dict:
-    """Load the Phase 0 baseline snapshot."""
+    """加载 Phase 0 基线快照 JSON。"""
     fixture_path = (_project_root() / "tests" / "fixtures"
                     / "golden_panel_v0.json")
     if not fixture_path.exists():
         pytest.skip(
-            f"Phase 0 fixture not found at {fixture_path}; "
-            "run `python scripts/migrate/generate_golden_snapshot.py` first."
+            f"未找到 Phase 0 基线文件 {fixture_path}; "
+            "请先运行: python news_process/scripts/migrate/generate_golden_snapshot.py"
         )
     with fixture_path.open(encoding="utf-8") as f:
         return json.load(f)
@@ -64,12 +59,12 @@ def golden() -> dict:
 
 @pytest.fixture(scope="module")
 def data_dir() -> Path:
-    """Resolve the parquet directory (Phase 8: ``data_processed`` → ``data/processed``)."""
+    """解析 parquet 产出根目录 (Phase 8: ``data_processed`` → ``data/processed``)。"""
     return _project_root() / "data" / "processed"
 
 
 def _stages_present(golden: dict, data_dir: Path) -> list[str]:
-    """Stages that exist both in the golden snapshot and on disk."""
+    """同时在 golden 快照与磁盘上存在的阶段文件名列表。"""
     return [
         name for name in golden.get("stages", {})
         if (data_dir / name).is_file()
@@ -79,11 +74,11 @@ def _stages_present(golden: dict, data_dir: Path) -> list[str]:
 
 
 def test_golden_snapshot_has_content(golden):
-    """Sanity: the snapshot must have at least one indexed stage."""
+    """健全性: 快照须至少包含一个已建索引列哈希的阶段。"""
     stages = golden.get("stages", {})
-    assert stages, "golden_panel_v0.json contains no stages"
+    assert stages, "golden_panel_v0.json 中无任何阶段记录"
     indexed = sum(1 for s in stages.values() if "column_hashes" in s)
-    assert indexed > 0, "no stage in the golden snapshot has column_hashes"
+    assert indexed > 0, "golden 快照中没有任何阶段含 column_hashes"
 
 
 @pytest.mark.parametrize("stage_filename", [
@@ -106,21 +101,20 @@ def test_golden_snapshot_has_content(golden):
     "51_panel_with_controls.parquet",
 ])
 def test_column_hashes_match_golden(stage_filename, golden, data_dir):
-    """Per-column value hashes must equal the Phase 0 baseline.
+    """逐列取值哈希须与 Phase 0 基线一致。
 
-    Skipped if either the stage is absent from disk (Phase 0 was incomplete)
-    or absent from the golden snapshot (legit if stage was re-snapshotted
-    after Phase 0).
+    若磁盘无该阶段 parquet (Phase 0 不完整), 或 golden 中无该阶段记录
+    (例如 Phase 0 之后新增阶段而未重快照), 则跳过。
     """
     parquet_path = data_dir / stage_filename
     if not parquet_path.is_file():
-        pytest.skip(f"Stage parquet not on disk: {stage_filename}")
+        pytest.skip(f"磁盘上不存在该阶段 parquet: {stage_filename}")
 
     stage_record = golden.get("stages", {}).get(stage_filename)
     if not stage_record or "column_hashes" not in stage_record:
         pytest.skip(
-            f"Stage {stage_filename} missing from golden snapshot "
-            "(generate_golden_snapshot.py was run before this stage existed)"
+            f"golden 快照缺少阶段 {stage_filename} "
+            "(生成快照时该阶段尚未存在或未写入 column_hashes)"
         )
 
     expected_hashes: dict = stage_record["column_hashes"]
@@ -128,18 +122,18 @@ def test_column_hashes_match_golden(stage_filename, golden, data_dir):
 
     df = pd.read_parquet(parquet_path)
 
-    # Column set match
+    # 列集合一致性
     df_cols = set(df.columns)
     expected_cols = set(expected_columns)
     extra = df_cols - expected_cols
     missing = expected_cols - df_cols
     assert not extra and not missing, (
-        f"{stage_filename}: column-set drift\n"
-        f"  added (in disk, not in golden):   {sorted(extra)[:10]}\n"
-        f"  removed (in golden, not in disk): {sorted(missing)[:10]}"
+        f"{stage_filename}: 列集合漂移\n"
+        f"  磁盘新增 (golden 无):   {sorted(extra)[:10]}\n"
+        f"  golden 有而磁盘缺: {sorted(missing)[:10]}"
     )
 
-    # Per-column hash match
+    # 逐列哈希比对
     mismatches = []
     for col in expected_columns:
         actual = _column_hash(df[col])
@@ -149,14 +143,13 @@ def test_column_hashes_match_golden(stage_filename, golden, data_dir):
 
     if mismatches:
         details = "\n".join(
-            f"  {col!r}: golden={exp}  current={act}"
+            f"  {col!r}: 基线={exp}  当前={act}"
             for col, exp, act in mismatches[:10]
         )
         n_more = len(mismatches) - 10
-        suffix = f"\n  ... and {n_more} more" if n_more > 0 else ""
+        suffix = f"\n  ... 另有 {n_more} 处不一致" if n_more > 0 else ""
         pytest.fail(
-            f"{stage_filename}: {len(mismatches)} column hash mismatches\n"
+            f"{stage_filename}: {len(mismatches)} 处列哈希不一致\n"
             f"{details}{suffix}\n"
-            f"  Phase 2 refactor may have altered downstream data; "
-            f"consider rolling back to phase-1-baseline."
+            f"  Phase 2 级重构可能已改变下游数据; 可考虑回滚至 phase-1-baseline。"
         )

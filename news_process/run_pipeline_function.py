@@ -51,8 +51,8 @@ import os
 import sys
 import time
 
-# Phase 1: ensure project parent on sys.path so that ``import news_process`` works
-# regardless of cwd (subprocess invocations may launch from elsewhere).
+# Phase 1: 将项目父目录置于 sys.path, 使任意 cwd 下 ``import news_process`` 均可解析
+# (子进程可能从其它工作目录启动)。
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_PARENT = os.path.dirname(_HERE)
 if _PROJECT_PARENT not in sys.path:
@@ -64,10 +64,8 @@ from news_process.core.logging import setup_logging, log_memory_usage, log_stage
 from news_process.core.stage import run_stage
 from news_process.core.locking import PipelineLock
 
-# Phase 1: import the canonical DAG declaration so that this orchestrator and
-# core/dag.py share a single source of stage definitions.  STAGES is exposed
-# as a module-level constant for the static consistency test in
-# tests/integration/test_dag_consistency.py.
+# Phase 1: 自单一真源导入 DAG, 使本编排器与 core/dag.py 共用同一份阶段定义。
+# STAGES 作为模块级常量暴露, 供 tests/integration/test_dag_consistency.py 做静态一致性校验。
 from news_process.core.dag import STAGES_MAIN as STAGES, filter_enabled
 
 # ============================================================================
@@ -89,13 +87,13 @@ STAGE_NAME = "run_pipeline_function"
 
 
 def _generate_run_id() -> str:
-    """Generate a per-run identifier and inject into env for subprocess inheritance.
+    """生成本次运行的唯一标识符, 并写入环境变量供子进程继承。
 
-    Format: ``YYYYMMDDTHHMMSSZ-<hostname>-<pid>``  e.g.
-    ``20260503T231245Z-DESKTOP-1234``.
+    格式: ``YYYYMMDDTHHMMSSZ-<hostname>-<pid>``, 例如
+    ``20260503T231245Z-DESKTOP-1234``。
 
-    If NEWS_PROCESS_RUN_ID is already in env (e.g. parent CI pipeline supplied
-    one), preserve it.  Otherwise mint a new one.
+    若环境变量 ``NEWS_PROCESS_RUN_ID`` 已存在 (例如上游 CI 已注入),
+    则原样保留; 否则生成新值。
     """
     import datetime as _dt
     import socket as _socket
@@ -105,7 +103,7 @@ def _generate_run_id() -> str:
         return existing
 
     ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    host = _socket.gethostname().split(".")[0][:24]  # truncate long FQDNs
+    host = _socket.gethostname().split(".")[0][:24]  # 截断过长 FQDN
     rid = f"{ts}-{host}-{os.getpid()}"
     os.environ["NEWS_PROCESS_RUN_ID"] = rid
     return rid
@@ -133,7 +131,7 @@ def _get_stage_output_files(stage_script: str) -> list:
     if files:
         return files
 
-    # Legacy fallback (preserved verbatim — Phase 2d deprecation safety net).
+    # 历史兜底映射 (逐字保留 — Phase 2d 弃用期安全网)。
     stage_num = stage_script.split('_')[0]
     output_map = {
         '00': ['00_preprocessing.parquet'],
@@ -236,15 +234,13 @@ def run_pipeline():
             logger.info(f"  {i}. {name} ({script}) [{status}]")
 
         # ── 逐阶段执行 ──
-        # Fail-fast 策略: 任何阶段失败即立中断整个管道。
-        # 这样的设计确保不会基于错误的中间数据继续执行,
-        # 避免产生难以追溯的级联错误。
+        # 速败 (fail-fast) 策略: 任一阶段失败则立即中止整条管道。
+        # 避免在错误中间结果上继续执行, 降低级联错误难以溯源的风险。
         stage_timings = []
         all_success = True
 
-        # Phase 1: timeouts now sourced from StageSpec (single source via core/dag.py).
-        # Pre-Phase-1 had a local stage_timeouts dict here; that source has been
-        # promoted to StageSpec.timeout in core/dag.STAGES_MAIN.
+        # Phase 1: 超时现取自 StageSpec (经 core/dag.py 单一真源)。
+        # 重构前此处曾有本地 stage_timeouts 字典; 已上收为 StageSpec.timeout。
 
         for script, name, timeout in stages:
             # ── 数据流防护：预清理阶段输出，防止陈旧数据污染 ──

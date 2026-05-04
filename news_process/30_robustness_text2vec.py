@@ -1,13 +1,12 @@
-"""30_robustness_text2vec.py — DEPRECATED CLI shim (Phase 7b).
+"""30_robustness_text2vec.py — 已弃用的 CLI 极薄适配层 (Phase 7b).
 
-Body migrated to ``news_process.validation.text2vec:main`` during Phase 7b.
-The historical contract ``python 30_robustness_text2vec.py`` is preserved by
-this thin shim; orchestrators continue to invoke it as a subprocess.
+实现正文已迁至 ``news_process.validation.text2vec:main``。
+历史约定 ``python 30_robustness_text2vec.py`` 由本文件保留；编排器仍以子进程方式调用该脚本文件名。
 
-External tooling should migrate to:
+建议外部工具改用:
     python -m news_process.validation.text2vec
 
-Slated for removal in v3.0.
+计划于 v3.0 移除。
 """
 
 import pathlib

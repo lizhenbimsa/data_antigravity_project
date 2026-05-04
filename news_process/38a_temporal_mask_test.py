@@ -1,14 +1,12 @@
-"""38a_temporal_mask_test.py — DEPRECATED CLI shim (Phase 7b).
+"""38a_temporal_mask_test.py — 已弃用的 CLI 极薄适配层 (Phase 7b).
 
-Body migrated to ``news_process.validation.temporal_mask:main`` during
-Phase 7b.  The historical contract ``python 38a_temporal_mask_test.py`` is
-preserved by this thin shim; orchestrators continue to invoke it as a
-subprocess.
+实现正文已迁至 ``news_process.validation.temporal_mask:main``。
+历史约定 ``python 38a_temporal_mask_test.py`` 由本文件保留；编排器仍以子进程方式调用该脚本文件名。
 
-External tooling should migrate to:
+建议外部工具改用:
     python -m news_process.validation.temporal_mask
 
-Slated for removal in v3.0.
+计划于 v3.0 移除。
 """
 
 import pathlib

@@ -1,18 +1,15 @@
-"""news_process.pipeline.audit.stats_excel — Stage 53 (audit/export stats Excel).
+"""news_process.pipeline.audit.stats_excel — 阶段 53: 审计用统计表 Excel 导出。
 
-Migrated from legacy ``news_process/53_export_stats_excel.py`` during
-Phase 1.4b as the **pilot** body relocation.  Functional behavior preserved
-verbatim; only the location changed and the legacy ``utils.helpers`` import
-now resolves through the Phase 1 forward-shim chain.
+由历史 ``news_process/53_export_stats_excel.py`` 在 Phase 1.4b **试点**
+正文迁移而来。功能行为逐字保留; 仅变更物理路径, 且原 ``utils.helpers``
+导入经 Phase 1 转发链解析至 ``news_process.core.*``。
 
-Phase 1 status: this is the canonical body.  The root file
-``news_process/53_export_stats_excel.py`` is a thin shim that calls
-``main()`` here.
+Phase 1 状态: 此处为规范实现体。根目录 ``news_process/53_export_stats_excel.py``
+为极薄 CLI 适配层, 仅转调本模块 ``main()``。
 
-Phase 2 will: (a) move the remaining 23 simple CLI bodies here, (b) refactor
-``__file__``-dependent resource paths in 22/23/35/38b/39 to read from
-``CONFIG['paths'][...]`` (with new keys ``models_dir`` / ``eval_reports_dir``
-added to ``paths.yaml``), and (c) atomically migrate 15/45/library files.
+Phase 2 规划: (a) 将其余 23 个简易 CLI 正文迁入子包; (b) 将 22/23/35/38b/39
+中依赖 ``__file__`` 的资源路径改为 ``CONFIG['paths'][...]`` (并在 ``paths.yaml``
+增补 ``models_dir`` / ``eval_reports_dir`` 等键); (c) 原子迁移 15/45/库文件路径。
 """
 
 from __future__ import annotations
@@ -26,8 +23,8 @@ from news_process.core.config import load_config
 
 
 def main():
-    """Build the Excel of media / region / city distribution per stage."""
-    # Windows console GBK fallback (preserve legacy behavior).
+    """按阶段汇总媒体 / 省域 / 城市分布, 写入 Excel。"""
+    # Windows 控制台 GBK 回退 (保持历史行为)。
     try:
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
         sys.stderr.reconfigure(encoding='utf-8', errors='replace')

@@ -6,7 +6,7 @@
    每个 StageSpec 元素都是 ``STAGES_MAIN`` 中对应对象的 *identity-equal*
    引用 (``is`` 关系), 这样 ``tests/integration/test_papers_dag_consistency``
    能验证子集关系与谓词共享。
-- *主线特例*: bank_fintech_tone 是项目主线, 其 STAGES 当前等同于
+- *主线特例*: news_process 是项目主线, 其 STAGES 当前等同于
    ``STAGES_MAIN`` 全集 (即"主管线 = 主论文")。Phase 3d 衍生论文会按
    名字过滤切片更窄的子集。
 - *验收门槛*: 后续 Phase 3 任意阶段 *不允许* 在论文 DAG 与 ``STAGES_MAIN``

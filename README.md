@@ -5,7 +5,7 @@
 支持 5 个独立的研究产品（论文）共享同一处理内核。
 
 > **当前版本: v2.0.0 / phase-8-baseline (2026-05-04)**
-> 八期重构（Phase 0 → 8）已完成。26 个根级数字前缀脚本全部统一为 thin shim；
+> 八期重构（Phase 0 → 8）已完成。26 个根级数字前缀脚本全部统一为极薄 CLI 适配层；
 > `news_process/{core, pipeline, papers, validation, scripts, config}` 形成完整 canonical 包结构；
 > 数据物理布局规范化为 `data/processed/`。pytest 778 passed / 7 skipped / 0 failed。
 > 完整演进史见 [CHANGELOG.md](./CHANGELOG.md)，rollback tag 链：
@@ -21,9 +21,9 @@ news_process/
 │   ├── logging.py              #   带 NEWS_PROCESS_RUN_ID 隔离的多进程日志
 │   ├── parallel.py             #   joblib / ProcessPoolExecutor 包装
 │   ├── reporting.py            #   parquet/csv/dta 持久化 + 数据集摘要
-│   ├── stage.py                #   subprocess stage executor
+│   ├── stage.py                #   子进程隔离的阶段执行器
 │   ├── locking.py              #   PipelineLock (跨平台文件锁)
-│   ├── caching.py              #   LLMCache (sqlite-backed)
+│   ├── caching.py              #   LLMCache (SQLite 持久化)
 │   ├── quality.py              #   数据质量校验
 │   ├── schemas.py              #   OUTPUT_REGISTRY 单源 (stage → parquet 文件名)
 │   ├── dag.py                  #   STAGES_MAIN / STAGES_VALIDATION 声明式 DAG
@@ -80,14 +80,14 @@ news_process/
 │
 ├── data_excel/                 # 原始 XLSX 数据 (gitignored)
 ├── data/processed/             # 各阶段 parquet/dta/csv 输出 (gitignored, Phase 8 重命名)
-├── tests/                      # pytest 测试套件 (778 tests, 100% pass)
-│   └── integration/            #   跨阶段集成测试 (含 Phase 0 reproducibility)
+├── tests/                      # pytest 测试套件 (778 用例, 当前全通过)
+│   └── integration/            #   跨阶段集成测试 (含 Phase 0 可复现性门槛)
 ├── scripts/
 │   ├── audit/                  #   一次性审计脚本 (sys.exit-style)
 │   ├── legacy/                 #   归档的孤立模块
 │   └── migrate/                #   迁移辅助脚本
 ├── stata/README.md             # 历史标记: 5 个 .do 已迁至 papers_assets/<paper>/do/
-├── 00_preprocessing.py … 53_export_stats_excel.py   # 26 个 thin shim (≤30 行/个, 历史 ``python NN_xxx.py`` 调用契约保留)
+├── 00_preprocessing.py … 53_export_stats_excel.py   # 26 个极薄 CLI 适配层 (≤30 行/个, 保留历史 ``python NN_xxx.py`` 契约)
 ├── run_pipeline_function.py    # 主管线编排 (消费 core.dag.STAGES_MAIN)
 ├── run_pipeline_validation.py  # 验证管线编排 (消费 core.dag.STAGES_VALIDATION)
 ├── run_paper.py                # 多论文 CLI 调度器
@@ -115,7 +115,7 @@ cp news_process/.env.example news_process/.env
 python news_process/run_pipeline_function.py
 
 # 方法 B: 经多论文 CLI (等价)
-python -m news_process.run_paper bank_fintech_tone --stage all
+python -m news_process.run_paper news_process --stage all
 ```
 
 ### 2.3 跑单篇论文表/图
@@ -125,7 +125,7 @@ python -m news_process.run_paper bank_fintech_tone --stage all
 python -m news_process.run_paper --list
 
 # 仅生成主线论文的 Table 1 (要求 pipeline 已跑过)
-python -m news_process.run_paper bank_fintech_tone --stage tables
+python -m news_process.run_paper news_process --stage tables
 
 # 干跑 (打印 DAG, 不真实执行)
 python -m news_process.run_paper benefit_society --dry-run

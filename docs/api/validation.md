@@ -51,4 +51,4 @@
 * 顶层定义 `STAGE_NAME = "NN_xxx"`（与 `core/dag.STAGES_VALIDATION` 中的 `script` 字段对应）
 * 顶层定义 `main()` 函数，接受零参数，从 `core.config.load_config()` 读取所有运行参数
 * 通过 `if __name__ == "__main__": main()` 支持 `python -m news_process.validation.<name>` 直接调用
-* 历史 `python NN_xxx.py` 调用契约由项目根的 thin shim 保留
+* 历史 `python NN_xxx.py` 调用契约由项目根目录极薄 CLI 兼容脚本保留

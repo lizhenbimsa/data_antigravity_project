@@ -268,7 +268,7 @@ def load_data():
 
 
 # ============================================================================
-# 3. Anti-join: 定义非金融科技对照组
+# 3. 反连接 (anti-join): 定义非金融科技对照组
 # ============================================================================
 
 def build_non_fintech(df_full: pd.DataFrame,
@@ -336,7 +336,7 @@ def build_non_fintech(df_full: pd.DataFrame,
     if len(panel_keys) != len(df_art):
         logger.warning(f"  ⚠️ 唯一键数 ≠ 总行数, 存在 {len(df_art) - len(panel_keys):,} 个重复键")
 
-    # Anti-join
+    # 反连接 (anti-join)
     df_full['_key'] = list(zip(
         df_full['target_bank'],
         df_full['标题'],
@@ -384,7 +384,7 @@ def build_non_fintech(df_full: pd.DataFrame,
 
 
 # ============================================================================
-# 4. Non-Fintech Bank-Year 聚合
+# 4. 非金融科技 Bank–Year 聚合
 # ============================================================================
 
 def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:

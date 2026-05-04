@@ -8,7 +8,7 @@
 
 | paper_id | 主题 | 主依赖 stage |
 |---|---|---|
-| `bank_fintech_tone` | 主线：银行金融科技语调 | 21/22/23 → 41 |
+| `news_process` | 主线：银行金融科技语调 | 21/22/23 → 41 |
 | `benefit_society` | 经营态度 → 社会福祉投影 | 27 (embedding) |
 | `brokerage_network` | 信息经纪网络 | 47 (network_brokerage) |
 | `llm_peer` | LLM 同业工具变量 | 48 (llm_peer_iv) |
@@ -21,7 +21,7 @@
 .venv/Scripts/python.exe news_process/run_paper.py --list
 
 # 跑指定论文（生成 tables + figures）
-.venv/Scripts/python.exe news_process/run_paper.py bank_fintech_tone
+.venv/Scripts/python.exe news_process/run_paper.py news_process
 
 # 仅跑特定 stage（如调试 figure 不重跑回归）
 .venv/Scripts/python.exe news_process/run_paper.py benefit_society --stage figures

@@ -19,7 +19,7 @@
 
 | paper_id | 主题 | 核心方法 | 状态 |
 |---|---|---|---|
-| `bank_fintech_tone` | 主线：银行金融科技语调 | LLM 三角验证 + 词典/BERT 对照 | 主线 |
+| `news_process` | 主线：银行金融科技语调 | LLM 三角验证 + 词典/BERT 对照 | 主线 |
 | `benefit_society` | 经营态度 → 社会福祉投影 | Jha-Liu-Manela (2026, RFS) embedding | 衍生 |
 | `brokerage_network` | 信息经纪网络 | Han et al. (2024) 网络中心度 | 衍生 |
 | `llm_peer` | LLM 同业工具变量 | Cao et al. (2025) LLM-IV | 衍生 |
@@ -49,7 +49,7 @@ news_process/papers/<paper_id>/
 通过 `run_paper.py` 调度器统一调用：
 
 ```bash
-python news_process/run_paper.py bank_fintech_tone
+python news_process/run_paper.py news_process
 python news_process/run_paper.py --list
 python news_process/run_paper.py benefit_society --dry-run
 ```

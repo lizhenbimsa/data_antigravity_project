@@ -1,11 +1,11 @@
-# Makefile — news_process v2.0.0 documentation site
-# ==================================================
+# Makefile — news_process v2.0.0 文档站
+# ======================================
 #
-# Standard targets:
-#   make html        — build HTML to ``_build/html/`` (incremental)
-#   make clean       — wipe ``_build/`` and ``api/_autosummary/``
-#   make rebuild     — clean + html (full from-scratch build)
-#   make serve       — start a local HTTP server at http://localhost:8000
+# 标准目标:
+#   make html        — 增量构建 HTML 至 ``_build/html/``
+#   make clean       — 清空 ``_build/`` 以及 ``api/_autosummary/``
+#   make rebuild     — clean + html (自零开始的完整构建)
+#   make serve       — 在 http://localhost:8000 启动本地 HTTP 服务
 
 SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
@@ -20,22 +20,22 @@ help:
 html:
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS)
 	@echo
-	@echo "Build finished. Open $(BUILDDIR)/html/index.html"
+	@echo "构建完成。请打开 $(BUILDDIR)/html/index.html"
 
 clean:
 	@rm -rf "$(BUILDDIR)" api/_autosummary api/generated
-	@echo "Cleaned $(BUILDDIR)/, api/_autosummary/, api/generated/"
+	@echo "已清理 $(BUILDDIR)/、api/_autosummary/、api/generated/"
 
 rebuild: clean html
 
 serve: html
-	@echo "Serving on http://localhost:8000  (Ctrl+C to stop)"
+	@echo "服务地址 http://localhost:8000  (Ctrl+C 停止)"
 	@cd $(BUILDDIR)/html && python -m http.server 8000
 
-# Strict: warnings become errors (used for DoD verification).
+# strict: 警告视为错误 (用于 Definition of Done 验收)。
 strict:
 	@$(SPHINXBUILD) -W --keep-going -b html "$(SOURCEDIR)" "$(BUILDDIR)/html" $(SPHINXOPTS)
 
-# Detect broken external links.
+# linkcheck: 探测失效外链。
 linkcheck:
 	@$(SPHINXBUILD) -b linkcheck "$(SOURCEDIR)" "$(BUILDDIR)/linkcheck" $(SPHINXOPTS)

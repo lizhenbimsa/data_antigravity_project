@@ -1,18 +1,12 @@
-"""51_falsification_test.py — DEPRECATED CLI shim (Phase 2c).
+"""51_falsification_test.py — 已弃用的 CLI 极薄适配层 (Phase 2c).
 
-Body migrated to ``news_process.pipeline.falsification.controls:main`` during
-Phase 2c.  The historical contract ``python 51_falsification_test.py`` is
-preserved by this thin shim.
+实现正文已迁至 ``news_process.pipeline.falsification.controls:main``。
+历史约定 ``python 51_falsification_test.py`` 由本文件保留；编排器仍以子进程方式调用该脚本文件名。
 
-Phase 2c-2 follow-up will extract the shared bank-year panel-assembly logic
-(currently inlined inside this body) into
-``news_process.pipeline.panel.falsification_helpers``, leaving
-``controls.py`` with only control-variable construction.
-
-External tooling should migrate to:
+建议外部工具改用:
     python -m news_process.pipeline.falsification.controls
 
-Slated for removal in v2.0.
+计划于 v2.0 后移除 (pilot / 早期迁移项)。
 """
 
 import pathlib

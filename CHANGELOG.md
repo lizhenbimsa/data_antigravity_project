@@ -1,4 +1,4 @@
-# CHANGELOG — news_process restructuring
+# CHANGELOG — news_process 架构重整记录
 
 按 Phase 演进记录全部架构改动。每个 phase 末打 git tag，单点 `git revert <hash>` 可回滚任意子任务。
 

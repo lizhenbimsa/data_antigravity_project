@@ -127,7 +127,7 @@ class ArticleDeduplicator:
     @staticmethod
     def _create_minhash(args, num_perm: int = 128,
                         tokenizer_func: Callable[[str], Set[str]] = None):
-        """为单个文本创建 MinHash 签名 (multiprocessing.Pool 工作函数)."""
+        """为单条文本创建 MinHash 签名 (供 multiprocessing.Pool 调用的工作函数)。"""
         idx, text = args
         from datasketch import MinHash as _MinHash
         m = _MinHash(num_perm=num_perm)

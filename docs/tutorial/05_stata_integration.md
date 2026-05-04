@@ -65,7 +65,7 @@ use "$panel_dta", clear
 
 | 论文 | .do 文件 | 用途 |
 |---|---|---|
-| `bank_fintech_tone` | `50_robustness_text2vec_stata.do` | text2vec 替代度量回归 |
+| `news_process` | `50_robustness_text2vec_stata.do` | text2vec 替代度量回归 |
 | `benefit_society` | `token_hidden_regression.do` | Token / Hidden 四象限回归 |
 | `brokerage_network` | `network_causal.do` | 网络中心度因果识别 |
 | `strategic_diff` | `strategic_differentiation.do` | 战略差异度主回归 |

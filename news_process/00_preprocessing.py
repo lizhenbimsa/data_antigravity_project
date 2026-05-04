@@ -1,17 +1,12 @@
-"""00_preprocessing.py — DEPRECATED CLI shim (Phase 2c).
+"""00_preprocessing.py — 已弃用的 CLI 极薄适配层 (Phase 2c).
 
-Body migrated to ``news_process.pipeline.preprocess.runner:main`` during
-Phase 2c.  The historical contract ``python 00_preprocessing.py`` is
-preserved by this thin shim.
+实现正文已迁至 ``news_process.pipeline.preprocess.runner:main``。
+历史约定 ``python 00_preprocessing.py`` 由本文件保留；编排器仍以子进程方式调用该脚本文件名。
 
-Phase 2c-2 follow-up will further split the runner into
-``load/normalize/filter/dedup`` sub-modules under
-``news_process.pipeline.preprocess``.
-
-External tooling should migrate to:
+建议外部工具改用:
     python -m news_process.pipeline.preprocess.runner
 
-Slated for removal in v2.0.
+计划于 v2.0 后移除 (pilot / 早期迁移项)。
 """
 
 import pathlib

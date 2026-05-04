@@ -5,26 +5,28 @@
 # 安装: ``pip install -r news_process/requirements-docs.txt``
 # 构建: ``cd docs && make html``
 #
-# Reproducibility note:
-#   Pin to >=major,<next-major to allow patch updates while preventing
-#   breaking changes from major version jumps.
+# 可复现性说明:
+#   采用 >=主版本,<下一主版本 的约束: 允许补丁级更新, 同时规避主版本
+#   跃迁带来的破坏性变更。
 
-# Core: Sphinx 7.2+ supports modern Python 3.10+ type hints out of the box
+# 核心: Sphinx 7.2+ 对现代 Python 3.10+ type hints 具备一等支持
 sphinx>=7.2,<9.0
 
-# Theme: Furo (modern, mobile-friendly, syntax-highlighted code blocks).
-# Maintained by Pradyun Gedam (also pip's official documentation theme).
+# 主题: Furo (现代化、移动端友好、代码块语法高亮)。
+# 维护者 Pradyun Gedam (亦为 pip 官方文档所用主题)。
 furo>=2024.1.29
 
-# Markdown via MyST — lets us write prose in Markdown instead of RST.
-# myst-parser supports cross-references, math, admonitions, code blocks.
+# Markdown 经由 MyST — 以 Markdown 撰写 prose, 替代传统 RST。
+# myst-parser 支持交叉引用、数学公式、admonition、代码块等。
+# linkify 扩展需额外安装 linkify-it-py (否则 myst 会在构建期抛错)。
 myst-parser>=2.0,<5.0
+linkify-it-py>=2.0,<3.0
 
-# Auto-render type hints from Python annotations into the docs.
+# 将 Python 注解中的 type hints 自动渲染进文档正文。
 sphinx-autodoc-typehints>=2.0,<4.0
 
-# "Copy" button on every code block (UX polish).
+# 代码块一键复制按钮 (交互体验润色)。
 sphinx-copybutton>=0.5,<1.0
 
-# Mermaid diagrams for architecture visualizations.
+# Mermaid 架构图渲染。
 sphinxcontrib-mermaid>=0.9,<2.0

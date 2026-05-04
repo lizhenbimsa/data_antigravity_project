@@ -1,24 +1,22 @@
 """
-generate_golden_snapshot.py — Phase 0 deliverable
+generate_golden_snapshot.py — Phase 0 交付物
 
-Computes column-level value hashes for every existing parquet artifact in
-``data/processed/`` (Phase 8 重命名) and writes the result to ``tests/fixtures/golden_panel_v0.json``.
+对 ``data/processed/`` (Phase 8 目录重命名) 下**当前磁盘上已存在**的全部
+parquet 产物逐列计算值哈希, 并写入 ``tests/fixtures/golden_panel_v0.json``。
 
-This is the **degraded-path** Phase 0 snapshot (per the restructuring plan):
-we do NOT re-run the main pipeline. We hash whatever artifacts exist on disk
-right now. If any expected stage output is missing, the JSON is marked with
-``"incomplete": true``; Phase 2's ``test_panel_reproducibility.py`` will then
-only verify the columns of stages we have a baseline for.
+本脚本走**降级路径** Phase 0 快照 (见重整方案): **不**重跑主流水线,
+仅对现存文件做哈希。若某预期阶段输出缺失, JSON 标记 ``"incomplete": true``;
+Phase 2 的 ``test_panel_reproducibility.py`` 将仅对有基线的阶段列做比对。
 
-Hash semantics:
-- Per column: hex(int(pd.util.hash_pandas_object(df[col], index=False).sum()))
-- Row count + column count + dtype dict captured for cheap structural diff.
-- Bytes hash of the parquet file is deliberately NOT captured (pyarrow
-  metadata / snappy block boundaries / timestamps are not stable across
-  re-writes).
+哈希语义:
+- 单列: ``hex(int(pd.util.hash_pandas_object(df[col], index=False).sum()))``
+  的无符号 64 位十六进制表示 (见 ``column_hash``)。
+- 同时记录行数、列数与 dtype 字典, 便于廉价结构 diff。
+- **不**记录 parquet 文件字节级哈希 (pyarrow 元数据、Snappy 块边界、
+  时间戳等在重复写出间不稳定)。
 
-Usage:
-    python scripts/migrate/generate_golden_snapshot.py
+用法:
+    python news_process/scripts/migrate/generate_golden_snapshot.py
 """
 
 from __future__ import annotations
@@ -31,8 +29,8 @@ from pathlib import Path
 import pandas as pd
 
 
-# Stages declared in run_pipeline_function.STAGES (per plan §1).
-# A subset of these may already exist on disk; missing ones flip "incomplete" to true.
+# 与 run_pipeline_function 管线阶段输出文件名对齐 (方案 §1)。
+# 磁盘上可能仅存在子集; 缺失项使 ``incomplete`` 为 true。
 EXPECTED_STAGES = [
     "00_preprocessing.parquet",
     "11_bank_news.parquet",
@@ -56,14 +54,14 @@ EXPECTED_STAGES = [
 
 
 def column_hash(s: pd.Series) -> str:
-    """Hex digest of pandas hash of a single column's values (index ignored)."""
+    """单列取值经 pandas 哈希后的十六进制摘要 (忽略行索引)。"""
     h = int(pd.util.hash_pandas_object(s, index=False).sum())
     h_unsigned = h & ((1 << 64) - 1)
     return f"{h_unsigned:016x}"
 
 
 def hash_parquet(path: Path) -> dict:
-    """Hash one parquet file column-by-column."""
+    """对单个 parquet 文件按列计算哈希及结构元数据。"""
     df = pd.read_parquet(path)
     return {
         "file": path.name,
@@ -84,7 +82,7 @@ def main() -> int:
     fixture_path.parent.mkdir(parents=True, exist_ok=True)
 
     if not data_dir.is_dir():
-        print(f"ERROR: data/processed/ not found at {data_dir}", file=sys.stderr)
+        print(f"错误: 未找到 data/processed/ 目录: {data_dir}", file=sys.stderr)
         return 2
 
     snapshot: dict = {
@@ -106,7 +104,7 @@ def main() -> int:
         try:
             snapshot["stages"][filename] = hash_parquet(path)
             present.append(filename)
-        except Exception as exc:  # noqa: BLE001 — diagnostic capture
+        except Exception as exc:  # noqa: BLE001 — 诊断性捕获
             snapshot["stages"][filename] = {
                 "file": filename,
                 "error": f"{type(exc).__name__}: {exc}",
@@ -125,13 +123,13 @@ def main() -> int:
         json.dump(snapshot, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
-    print(f"Wrote {fixture_path.relative_to(project_root)}")
-    print(f"  present: {len(present)} / {len(EXPECTED_STAGES)}")
+    print(f"已写入 {fixture_path.relative_to(project_root)}")
+    print(f"  已存在: {len(present)} / {len(EXPECTED_STAGES)}")
     if missing:
-        print(f"  missing: {missing}")
-        print(f"  incomplete = true (Phase 2 repro test will skip missing stages)")
+        print(f"  缺失: {missing}")
+        print("  incomplete = true (Phase 2 可复现性测试将跳过缺失阶段)")
     else:
-        print(f"  incomplete = false (full coverage)")
+        print("  incomplete = false (全覆盖)")
     return 0
 
 

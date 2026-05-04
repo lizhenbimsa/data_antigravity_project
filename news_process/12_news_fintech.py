@@ -1,13 +1,12 @@
-"""12_news_fintech.py — DEPRECATED CLI shim (Phase 7a-2).
+"""12_news_fintech.py — 已弃用的 CLI 极薄适配层 (Phase 7a-2).
 
-Body migrated to ``news_process.pipeline.filtering.news_fintech:main`` during
-Phase 7a-2.  The historical contract ``python 12_news_fintech.py`` is preserved
-by this thin shim; orchestrators continue to invoke it as a subprocess.
+实现正文已迁至 ``news_process.pipeline.filtering.news_fintech:main``。
+历史约定 ``python 12_news_fintech.py`` 由本文件保留；编排器仍以子进程方式调用该脚本文件名。
 
-External tooling should migrate to:
+建议外部工具改用:
     python -m news_process.pipeline.filtering.news_fintech
 
-Slated for removal in v3.0.
+计划于 v3.0 移除。
 """
 
 import pathlib

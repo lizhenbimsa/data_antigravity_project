@@ -1,22 +1,18 @@
-"""45_panel_export_main.py — DEPRECATED CLI shim (Phase 2a).
+"""45_panel_export_main.py — 已弃用的 CLI 极薄适配层 (Phase 2a).
 
-Body migrated to ``news_process.pipeline.panel.runner:main`` during Phase 2a's
-atomic reflection-purge migration (9 importlib reflections removed).
-Phase 2b will further split runner.py into runner+extras+export.
+实现正文已迁至 ``news_process.pipeline.panel.runner:main``。
+历史约定 ``python 45_panel_export_main.py`` 由本文件保留；编排器仍以子进程方式调用该脚本文件名。
 
-The historical contract ``python 45_panel_export_main.py`` is preserved by
-this thin shim.
-
-External tooling should migrate to:
+建议外部工具改用:
     python -m news_process.pipeline.panel.runner
 
-Slated for removal in v2.0.
+计划于 v2.0 后移除 (pilot / 早期迁移项)。
 """
 
 import pathlib
 import sys
 
-# Inject project parent so ``import news_process`` resolves regardless of cwd.
+# 将项目父目录置于 sys.path, 使 ``import news_process`` 与 cwd 无关。
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 

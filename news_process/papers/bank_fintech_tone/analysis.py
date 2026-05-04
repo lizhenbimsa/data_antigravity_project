@@ -3,7 +3,7 @@
 CLI 用法
 --------
 通过 ``python -m news_process.papers.bank_fintech_tone.analysis`` 调用,
-或经 Phase 3e 的统一调度器 ``python -m news_process.run_paper bank_fintech_tone``。
+或经 Phase 3e 的统一调度器 ``python -m news_process.run_paper news_process``。
 
 支持的阶段
 ----------
@@ -31,7 +31,7 @@ from news_process.papers._common import get_paper_config
 from news_process.papers.bank_fintech_tone.dag import STAGES
 
 
-_LOGGER = logging.getLogger('papers.bank_fintech_tone.analysis')
+_LOGGER = logging.getLogger('papers.news_process.analysis')
 
 
 def _run_pipeline_via_existing_orchestrator() -> None:

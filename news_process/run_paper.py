@@ -11,7 +11,7 @@ CLI 用法
     python -m news_process.run_paper <paper_id> [...]
 
 可选 paper_id (与 ``papers/<paper_id>/`` 一一对应):
-    bank_fintech_tone   — 主线: 银行金融科技语调 → 银行行为
+    news_process   — 主线: 银行金融科技语调 → 银行行为
     benefit_society     — 衍生 1: 经营效益态度投影 (Jha-Liu-Manela 2026)
     brokerage_network   — 衍生 2: 信息经纪网络 (Han et al. 2024)
     llm_peer            — 衍生 3: LLM 同业 IV (Cao et al. 2025)
@@ -55,7 +55,7 @@ from news_process.papers._common.paper_config import (  # noqa: E402
 _LOGGER = logging.getLogger('run_paper')
 
 
-# Paper-id → 一行简介 (供 --list 显示)
+# paper_id → 一行简介 (供 --list 展示)
 _PAPER_SUMMARIES: Final[dict[str, str]] = {
     'bank_fintech_tone':
         '主线: 媒体银行金融科技语调 → 银行行为 (整条 pipeline 的产品化封装)',
@@ -72,7 +72,7 @@ _PAPER_SUMMARIES: Final[dict[str, str]] = {
 
 def _print_paper_list() -> None:
     """打印所有可调度论文。"""
-    print("Available papers:\n")
+    print("可调度论文列表:\n")
     for pid in sorted(_VALID_PAPER_IDS):
         summary = _PAPER_SUMMARIES.get(pid, '(no summary)')
         print(f"  {pid:24s}  {summary}")
@@ -82,7 +82,7 @@ def _print_paper_list() -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog='python -m news_process.run_paper',
-        description='Multi-paper dispatcher — invoke a paper-specific analysis CLI.',
+        description='多论文统一调度器 — 调用指定论文子包的 analysis CLI。',
     )
     parser.add_argument(
         'paper_id', nargs='?',
@@ -126,14 +126,14 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.INFO,
         format='%(asctime)s [%(name)s] %(levelname)s %(message)s',
     )
-    _LOGGER.info("Dispatching to news_process.papers.%s.analysis.main()",
+    _LOGGER.info("正在调度至 news_process.papers.%s.analysis.main()",
                  args.paper_id)
 
     module_path = f"news_process.papers.{args.paper_id}.analysis"
     try:
         analysis_mod = importlib.import_module(module_path)
     except ImportError as e:
-        _LOGGER.error("Failed to import %s: %s", module_path, e)
+        _LOGGER.error("导入失败 %s: %s", module_path, e)
         return 1
 
     if not hasattr(analysis_mod, 'main'):

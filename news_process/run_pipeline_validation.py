@@ -1,5 +1,5 @@
 """
-run_pipeline_validation.py - 新闻处理流水线: 评估验证模块
+run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
 ===========================================================
 
 功能:
@@ -35,8 +35,7 @@ import os
 import sys
 import time
 
-# Phase 1: ensure project parent on sys.path so that ``import news_process`` works
-# regardless of cwd (subprocess invocations may launch from elsewhere).
+# Phase 1: 将项目父目录置于 sys.path, 使任意 cwd 下 ``import news_process`` 均可解析。
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_PARENT = os.path.dirname(_HERE)
 if _PROJECT_PARENT not in sys.path:
@@ -47,9 +46,8 @@ from news_process.core.config import load_config
 from news_process.core.logging import setup_logging, log_memory_usage
 from news_process.core.stage import run_stage
 
-# Phase 1: import the canonical validation DAG declaration.  STAGES is exposed
-# as a module-level constant for the static consistency test in
-# tests/integration/test_dag_consistency.py.
+# Phase 1: 导入验证 DAG 单一真源; STAGES 作为模块级常量供
+# tests/integration/test_dag_consistency.py 静态一致性校验。
 from news_process.core.dag import STAGES_VALIDATION as STAGES, filter_enabled
 
 # ============================================================================
@@ -61,7 +59,7 @@ STAGE_NAME = "run_pipeline_validation"
 
 
 def _generate_run_id() -> str:
-    """Mint a per-run id and put into env (preserving any existing value)."""
+    """生成本次运行 ID 并写入环境变量 (若已存在则保留原值)。"""
     import datetime as _dt
     import socket as _socket
 
@@ -151,9 +149,9 @@ def run_validation():
 
         if not success:
             all_success = False
-            # Fail-fast: 与主流水线相同的中断策略.
-            # 验证模块间存在隐式依赖(如 36 依赖 21 的输出),
-            # 因此前置模块失败后续结果无意义。
+            # 速败策略: 与主流水线一致, 任一阶段失败即中止。
+            # 验证模块间存在隐式依赖 (如 36 依赖 21 的输出),
+            # 前置失败则后续结果无解释意义。
             logger.error(f"评估验证模块在 {name} 处中断。后续阶段将跳过。")
             break
 
