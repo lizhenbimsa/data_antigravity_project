@@ -201,6 +201,14 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         dta_path = os.path.splitext(panel_path)[0] + '.dta'
         try:
             panel_stata = panel.copy()
+            # v6/F2 Stata 兼容: pandas Int8/Int16/Int32/Int64 nullable 类型
+            #   to_stata() 不能直接处理 <NA>，需先转 Float64 (NaN 会保留)。
+            #   Stata 端用 mvdecode 处理缺失，与原 NaN 语义一致。
+            for _col in panel_stata.select_dtypes(include=['Int8','Int16','Int32','Int64']).columns:
+                panel_stata[_col] = panel_stata[_col].astype('Float64')
+            # boolean nullable 同理
+            for _col in panel_stata.select_dtypes(include=['boolean']).columns:
+                panel_stata[_col] = panel_stata[_col].astype('Float64')
             # Stata 列名清理：移除中文和特殊字符, 绝对限制 32 字符, 防止碰撞
             clean_cols = []
             seen = set()
@@ -546,8 +554,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_gpt5nano_conf_ctx':               'GPT-5nano Confidence (Ctx)',
                 'avg_gemini3_conf_full':               'Gemini-3 Confidence (Full)',
                 'avg_gemini3_conf_ctx':                'Gemini-3 Confidence (Ctx)',
-                'avg_claude4h_conf_full':              'Claude-4h Confidence (Full)',
-                'avg_claude4h_conf_ctx':               'Claude-4h Confidence (Ctx)',
+                'avg_grok41_conf_full':                'Grok-4.1 Confidence (Full)',
+                'avg_grok41_conf_ctx':                 'Grok-4.1 Confidence (Ctx)',
                 # 其他
                 'has_coverage':                        'Has News Coverage (0/1)',
                 # ═══ 异质性分析变量 (Angrist & Pischke 2009; Brambor et al. 2006) ═══
@@ -667,7 +675,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'low_conf_flag':                    'Low Confidence Flag',
                 # 单模型洗稿率 — 双轨 (动态生成)
                 **{f'washing_ratio_{m}{s}': f'WR: {m} ({t})'
-                   for m in ['gpt5nano', 'gemini3', 'claude4h',
+                   for m in ['gpt5nano', 'gemini3', 'grok41',
                              'jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
                              'finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
                    for s, t in [('', 'Full'), ('_ctx', 'Ctx')]},
@@ -817,7 +825,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'disag_llm{s}': f'Disagreement: LLM Vote ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'disag_{m}{s}': f'Disagreement: {m} ({t})'
-                   for m in ['gpt5nano', 'gemini3', 'claude4h']
+                   for m in ['gpt5nano', 'gemini3', 'grok41']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'disag_bert{s}': f'Disagreement: BERT Avg ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
@@ -839,7 +847,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                    for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'cater_{m}{s}': f'Catering: Dict-{m} ({t})'
-                   for m in ['gpt5nano', 'gemini3', 'claude4h']
+                   for m in ['gpt5nano', 'gemini3', 'grok41']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'cater_{b}{s}': f'Catering: Dict-{b} ({t})'
                    for b in ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
@@ -854,7 +862,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'peer_compete_idx':      'LLM-Peer Competition Index',
                 # ═══ 前置中间变量: neg_count ═══
                 **{f'{m}_neg_count{s}': f'Neg Count: {m} ({t})'
-                   for m in ['gpt5nano', 'gemini3', 'claude4h']
+                   for m in ['gpt5nano', 'gemini3', 'grok41']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'{d}_neg_count{s}': f'Neg Count: {d} ({t})'
                    for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']

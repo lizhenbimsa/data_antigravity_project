@@ -40,19 +40,20 @@ EMBEDDING_API_KEY=sk-XXXXXXXXXXXXXXXXXXXXXXXX
 
 ```yaml
 tone_llm_processing:
+  # v6: 真三家族 (OpenAI + Google + xAI), 全部走 yunwu.ai 聚合代理
   models:
-    - model_name: gpt-5-nano
+    - model_name: gpt-5-nano-2025-08-07
       short_name: gpt5nano
-      base_url: https://api.openai.com/v1
-      api_key: ${GPT5NANO_API_KEY}    # ← 自动从 .env 替换
-    - model_name: gemini-3
+      base_url: https://yunwu.ai/v1
+      api_key: ${YUNWU_API_KEY}    # ← 自动从 .env 替换
+    - model_name: gemini-3-flash-preview-nothinking
       short_name: gemini3
-      base_url: https://generativelanguage.googleapis.com/v1
-      api_key: ${GEMINI3_API_KEY}
-    - model_name: claude-4-haiku
-      short_name: claude4h
-      base_url: https://api.anthropic.com/v1
-      api_key: ${CLAUDE4H_API_KEY}
+      base_url: https://yunwu.ai/v1
+      api_key: ${YUNWU_API_KEY}
+    - model_name: grok-4-1-fast-non-reasoning
+      short_name: grok41
+      base_url: https://yunwu.ai/v1
+      api_key: ${YUNWU_API_KEY}
 ```
 
 `load_config()` 会用 `string.Template` 风格替换 `${VAR_NAME}` 占位符。

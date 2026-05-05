@@ -340,7 +340,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
                        f'Pearson r={r:.4f}')
 
     # 3d. LLM 模型间情感一致性
-    llm_models = ['gpt5nano', 'gemini3', 'claude4h']
+    llm_models = ['gpt5nano', 'gemini3', 'grok41']  # v6: 真三家族 (OpenAI + Google + xAI)
     llm_tone_cols = [f'{m}_tone_full' for m in llm_models if f'{m}_tone_full' in p.columns]
     if len(llm_tone_cols) >= 2:
         corrs = p[llm_tone_cols].corr()

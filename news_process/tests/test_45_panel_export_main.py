@@ -48,7 +48,7 @@ bp = _BpFacade()
 # Fixtures: 合成上游数据
 # ============================================================================
 
-LLM_SHORTS = ['gpt5nano', 'gemini3', 'claude4h']
+LLM_SHORTS = ['gpt5nano', 'gemini3', 'grok41']  # v6: 真三家族
 DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
 BERT_SHORTS = ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
 THREE_CLASS = {'finbert_cn', 'fin_sent_zh', 'hw2942'}
@@ -300,7 +300,7 @@ class TestCompositeIndicators:
 
 class TestConfigReading:
     def test_llm_models_from_config(self):
-        assert bp.LLM_MODELS == ['gpt5nano', 'gemini3', 'claude4h']
+        assert bp.LLM_MODELS == ['gpt5nano', 'gemini3', 'grok41']  # v6
 
     def test_bert_models_from_config(self):
         assert bp.BERT_MODELS == ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']

@@ -202,8 +202,9 @@ def compute_bartik_iv(panel: pd.DataFrame,
             all_banks_df[f'_bi_cnt_{g}'] = all_banks_df[f'_bi_cnt_{g}'].fillna(0)
 
             # LOO: (组总和 - 银行贡献) / (组计数 - 银行计数)
-            remain_sum = all_banks_df[f'_sum_{g}'] - all_banks_df[f'_bi_sum_{g}']
-            remain_cnt = all_banks_df[f'_cnt_{g}'] - all_banks_df[f'_bi_cnt_{g}']
+            # v6/F2: groupby.sum() over nullable Int8 returns Int64 nullable → 转 float 再走 np.where
+            remain_sum = (all_banks_df[f'_sum_{g}'] - all_banks_df[f'_bi_sum_{g}']).astype('float64')
+            remain_cnt = (all_banks_df[f'_cnt_{g}'] - all_banks_df[f'_bi_cnt_{g}']).astype('float64')
             all_banks_df[f'shift_{g}'] = np.where(
                 remain_cnt > 0,
                 remain_sum / remain_cnt,
@@ -319,8 +320,9 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
             abd[f'_bi_sum_{g}'] = abd[f'_bi_sum_{g}'].fillna(0)
             abd[f'_bi_cnt_{g}'] = abd[f'_bi_cnt_{g}'].fillna(0)
 
-            remain_sum = abd[f'_sum_{g}'] - abd[f'_bi_sum_{g}']
-            remain_cnt = abd[f'_cnt_{g}'] - abd[f'_bi_cnt_{g}']
+            # v6/F2: nullable Int8 → float 兼容 np.where
+            remain_sum = (abd[f'_sum_{g}'] - abd[f'_bi_sum_{g}']).astype('float64')
+            remain_cnt = (abd[f'_cnt_{g}'] - abd[f'_bi_cnt_{g}']).astype('float64')
             abd[f'shift_{g}'] = np.where(
                 remain_cnt > 0,
                 remain_sum / remain_cnt,
@@ -422,8 +424,9 @@ def compute_zone_leave1out(panel: pd.DataFrame,
         tmp['_bi_cnt'] = tmp['_bi_cnt'].fillna(0)
 
         # LOO: (经济圈总和 - 自身贡献) / (经济圈计数 - 自身计数)
-        remain_sum = tmp['sum'] - tmp['_bi_sum']
-        remain_cnt = tmp['count'] - tmp['_bi_cnt']
+        # v6/F2: nullable Int8 → float 兼容 np.where
+        remain_sum = (tmp['sum'] - tmp['_bi_sum']).astype('float64')
+        remain_cnt = (tmp['count'] - tmp['_bi_cnt']).astype('float64')
         tmp[out_col] = np.where(
             remain_cnt >= min_group_size,  # 组内(排除自身后)至少3篇文章
             remain_sum / remain_cnt,

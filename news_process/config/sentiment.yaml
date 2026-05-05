@@ -5,31 +5,38 @@
 tone_llm_processing:
   enabled: true                                     # 是否启用统一 LLM 处理
   timeout: 600                                      # 请求超时时间（秒）
-  max_retries: 100                                  # 最大重试次数
-  retry_delay: 10                                   # 重试间隔时间（秒）
-  max_concurrency: 300                              # 最大并发请求数
+  max_retries: 8                                    # v6/N4: 最大重试次数（指数退避配合下，8 次足够覆盖瞬时故障）
+  retry_delay: 5                                    # v6/N4: 基础重试间隔（指数退避起点；秒）
+  retry_backoff: exponential                        # v6/N4: 指数退避策略
+  retry_backoff_cap: 600                            # v6/N4: 单次重试 sleep 上限（秒）
+  max_concurrency: 100                              # v6/N4: 单 yunwu 账户聚合上限，从 300 降至 100 避免雪崩
   temperature: 0.0                                  # 推理温度（0 = 确定性输出）
   random_seed: 42                                   # 随机种子（确保确定性输出）
   force_json: true                                  # 启用 response_format 强制 JSON 输出
   ensemble_method: majority_vote                    # 多模型聚合方法
 
-  # LLM 模型列表 (三角验证)
+  # v6 LLM 模型列表 — 真三家族三角验证 (基于 yunwu /v1/models 实际授权清单)
+  # 历史轨迹:
+  #   v3 锁定:  gpt-5.4-nano / gemini-3.1-flash-lite-preview / deepseek-v4-flash  (全部 403)
+  #   v6 锁定:  gpt-5-nano-2025-08-07 / gemini-3-flash-preview-nothinking / grok-4-1-fast-non-reasoning
+  # 学术叙述: "Three independent LLM families: OpenAI + Google + xAI/Grok,
+  #           routed via yunwu.ai aggregator (single account, OpenAI-compatible /v1/chat/completions)."
   models:
-    - model_name: gpt-5.4-nano
+    - model_name: gpt-5-nano-2025-08-07
       short_name: gpt5nano
-      description: GPT-5 Nano 轻量版
-      base_url: https://yunwu.ai/v1                 # GPT-5 Nano API 地址
-      api_key: ${GPT5NANO_API_KEY}                  # GPT-5 Nano API 密钥（从 .env 读取）
-    - model_name: gpt-5-nano-2025-08-07 #gemini-3-flash-preview-nothinking 
+      description: GPT-5 Nano (OpenAI dated 2025-08-07, via yunwu)
+      base_url: https://yunwu.ai/v1
+      api_key: ${YUNWU_API_KEY}                     # v6/N7: 统一 yunwu key
+    - model_name: gemini-3-flash-preview-nothinking
       short_name: gemini3
-      description: Gemini 3 Flash Preview-nothinking
-      base_url: https://yunwu.ai/v1                 # Gemini 3 API 地址
-      api_key: ${GEMINI3_API_KEY}                   # Gemini 3 API 密钥（从 .env 读取）
-    - model_name: glm-4.5-flash #glm-4.5-flash #claude-haiku-4-5-20251001
-      short_name: claude4h
-      description: Claude Haiku 4.5 轻量高效版
-      base_url: https://yunwu.ai/v1                 # Claude Haiku 4.5 API 地址
-      api_key: ${CLAUDE4H_API_KEY}                  # Claude Haiku 4.5 API 密钥（从 .env 读取）
+      description: Gemini 3 Flash Preview (no-thinking variant, Google via yunwu)
+      base_url: https://yunwu.ai/v1
+      api_key: ${YUNWU_API_KEY}
+    - model_name: grok-4-1-fast-non-reasoning
+      short_name: grok41                            # v6: 从 claude4h 重命名 (反映真实身份)
+      description: Grok 4.1 Fast (non-reasoning variant, xAI via yunwu)
+      base_url: https://yunwu.ai/v1
+      api_key: ${YUNWU_API_KEY}
 
   # Unified CoT 提示词模板（精简版）
   # 学术依据 1: De Kok (2025) Appendix C - GLLMs Generate Text Left to Right. 

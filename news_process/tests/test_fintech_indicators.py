@@ -183,7 +183,7 @@ class TestStataVarNames:
         *[f'disag_{d}{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
           for s in ['_full','_ctx']],
         'disag_llm_full','disag_llm_ctx',
-        *[f'disag_{m}{s}' for m in ['gpt5nano','gemini3','claude4h']
+        *[f'disag_{m}{s}' for m in ['gpt5nano','gemini3','grok41']
           for s in ['_full','_ctx']],
         'disag_bert_full','disag_bert_ctx',
         *[f'disag_{b}{s}' for b in ['finbert_cn','fin_sent_zh','erlangshen','hw2942','finbert2']
@@ -194,12 +194,12 @@ class TestStataVarNames:
           for s in ['_full','_ctx']],
         *[f'{d}_cater_b{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
           for s in ['_full','_ctx']],
-        *[f'cater_{m}{s}' for m in ['gpt5nano','gemini3','claude4h']
+        *[f'cater_{m}{s}' for m in ['gpt5nano','gemini3','grok41']
           for s in ['_full','_ctx']],
         *[f'cater_{b}{s}' for b in ['finbert_cn','fin_sent_zh','erlangshen','hw2942','finbert2']
           for s in ['_full','_ctx']],
         'avg_ft_word_ratio','avg_ft_word_ratio_std','peer_compete_idx',
-        *[f'{m}_neg_count{s}' for m in ['gpt5nano','gemini3','claude4h']
+        *[f'{m}_neg_count{s}' for m in ['gpt5nano','gemini3','grok41']
           for s in ['_full','_ctx']],
         *[f'{d}_neg_count{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
           for s in ['_full','_ctx']],

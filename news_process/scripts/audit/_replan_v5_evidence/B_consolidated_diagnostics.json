@@ -1,0 +1,97 @@
+{
+  "F2": {
+    "forced_neutral_count_full": 187,
+    "all_neutral_full": 229,
+    "all_rows": 771,
+    "forced_neutral_count_ctx": 217,
+    "all_neutral_ctx": 258
+  },
+  "F3": {
+    "shape": [
+      54,
+      1347
+    ],
+    "n_articles_zero": 0,
+    "auth_sim_": {
+      "n_cols": 8,
+      "eq_zero_in_zeronews": 0,
+      "isna_in_zeronews": 0
+    },
+    "benefit_": {
+      "n_cols": 8,
+      "eq_zero_in_zeronews": 0,
+      "isna_in_zeronews": 0
+    }
+  },
+  "F4": {
+    "bartik_total_cols": 214,
+    "bartik_categories": [
+      "author",
+      "breadth",
+      "doclen",
+      "excl",
+      "fintech",
+      "fwdlook",
+      "geoprox",
+      "half",
+      "kwden",
+      "kwdiv",
+      "mauth",
+      "mcentral",
+      "mcomp",
+      "mcount",
+      "mdaily",
+      "mdeep",
+      "mden",
+      "media",
+      "mfin",
+      "mfreq",
+      "mmarket",
+      "mofficial",
+      "month",
+      "mprov",
+      "page",
+      "pgnum",
+      "pubfmt",
+      "qtr",
+      "scale",
+      "sentlen",
+      "title",
+      "ttr",
+      "type",
+      "wkday"
+    ],
+    "bartik_first_30": [
+      "bartik_author_iv_ctx",
+      "bartik_author_iv_full",
+      "bartik_author_iv_title",
+      "bartik_author_share_anonymous",
+      "bartik_author_share_named",
+      "bartik_breadth_iv_ctx",
+      "bartik_breadth_iv_full",
+      "bartik_breadth_iv_title",
+      "bartik_breadth_share_broad",
+      "bartik_breadth_share_niche",
+      "bartik_doclen_iv_ctx",
+      "bartik_doclen_iv_full",
+      "bartik_doclen_iv_title",
+      "bartik_doclen_share_long",
+      "bartik_doclen_share_short",
+      "bartik_excl_iv_ctx",
+      "bartik_excl_iv_full",
+      "bartik_excl_iv_title",
+      "bartik_excl_share_exclusive",
+      "bartik_excl_share_shared",
+      "bartik_fintech_iv_ctx",
+      "bartik_fintech_iv_full",
+      "bartik_fintech_iv_title",
+      "bartik_fintech_share_app",
+      "bartik_fintech_share_tech",
+      "bartik_fwdlook_iv_ctx",
+      "bartik_fwdlook_iv_full",
+      "bartik_fwdlook_iv_title",
+      "bartik_fwdlook_share_backward",
+      "bartik_fwdlook_share_forward"
+    ]
+  }
+}

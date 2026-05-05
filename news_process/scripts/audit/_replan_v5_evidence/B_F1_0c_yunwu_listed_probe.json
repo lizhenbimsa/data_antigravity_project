@@ -1,0 +1,299 @@
+{
+  "timestamp": "2026-05-05 08:20:21",
+  "base_url": "https://yunwu.ai/v1",
+  "probes": [
+    {
+      "model": "gpt-5-nano-2025-08-07",
+      "mode": "minimal_force_json",
+      "force_json": true,
+      "http_status": 429,
+      "elapsed_ms": 1044,
+      "ok": false,
+      "model_field": null,
+      "system_fingerprint": null,
+      "usage": null,
+      "content_preview": null,
+      "error_msg": "'messages' must contain the word 'json' in some form, to use 'response_format' of type 'json_object'. (request id: 20260505082024140723181VvIm0i3b)"
+    },
+    {
+      "model": "gpt-5-nano-2025-08-07",
+      "mode": "minimal_no_force_json",
+      "force_json": false,
+      "http_status": 200,
+      "elapsed_ms": 2851,
+      "ok": true,
+      "model_field": "gpt-5-nano-2025-08-07",
+      "system_fingerprint": null,
+      "usage": {
+        "prompt_tokens": 7,
+        "completion_tokens": 200,
+        "total_tokens": 207,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 200,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "latency_checkpoint": {
+          "engine_tbt_ms": 6,
+          "engine_ttft_ms": 35,
+          "engine_ttlt_ms": 1210,
+          "pre_inference_ms": 102,
+          "service_tbt_ms": 6,
+          "service_ttft_ms": 550,
+          "service_ttlt_ms": 1724,
+          "total_duration_ms": 1634,
+          "user_visible_ttft_ms": 448
+        }
+      },
+      "content_preview": "",
+      "error_msg": null
+    },
+    {
+      "model": "gpt-5-nano-2025-08-07",
+      "mode": "real_world",
+      "force_json": true,
+      "http_status": 200,
+      "elapsed_ms": 3601,
+      "ok": true,
+      "model_field": "gpt-5-nano-2025-08-07",
+      "system_fingerprint": null,
+      "usage": {
+        "prompt_tokens": 120,
+        "completion_tokens": 200,
+        "total_tokens": 320,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 200,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "latency_checkpoint": {
+          "engine_tbt_ms": 10,
+          "engine_ttft_ms": 32,
+          "engine_ttlt_ms": 1955,
+          "pre_inference_ms": 90,
+          "service_tbt_ms": 10,
+          "service_ttft_ms": 537,
+          "service_ttlt_ms": 2459,
+          "total_duration_ms": 2377,
+          "user_visible_ttft_ms": 447
+        }
+      },
+      "content_preview": "",
+      "error_msg": null
+    },
+    {
+      "model": "gemini-3-flash-preview-nothinking",
+      "mode": "minimal_force_json",
+      "force_json": true,
+      "http_status": 200,
+      "elapsed_ms": 2337,
+      "ok": true,
+      "model_field": "gemini-3-flash-preview-nothinking",
+      "system_fingerprint": null,
+      "usage": {
+        "prompt_tokens": 2,
+        "completion_tokens": 64,
+        "total_tokens": 66,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "text_tokens": 0,
+          "audio_tokens": 0,
+          "image_tokens": 0
+        },
+        "completion_tokens_details": {
+          "text_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "input_tokens_details": null,
+        "claude_cache_creation_5_m_tokens": 0,
+        "claude_cache_creation_1_h_tokens": 0
+      },
+      "content_preview": "Hi there! How can I help you today?",
+      "error_msg": null
+    },
+    {
+      "model": "gemini-3-flash-preview-nothinking",
+      "mode": "minimal_no_force_json",
+      "force_json": false,
+      "http_status": 200,
+      "elapsed_ms": 37909,
+      "ok": true,
+      "model_field": "gemini-3-flash-preview-nothinking",
+      "system_fingerprint": null,
+      "usage": {
+        "prompt_tokens": 2,
+        "completion_tokens": 113,
+        "total_tokens": 115,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "text_tokens": 2,
+          "audio_tokens": 0,
+          "image_tokens": 0
+        },
+        "completion_tokens_details": {
+          "text_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 104
+        },
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "input_tokens_details": null,
+        "claude_cache_creation_5_m_tokens": 0,
+        "claude_cache_creation_1_h_tokens": 0
+      },
+      "content_preview": "Hello! How can I help you today?",
+      "error_msg": null
+    },
+    {
+      "model": "gemini-3-flash-preview-nothinking",
+      "mode": "real_world",
+      "force_json": true,
+      "http_status": 200,
+      "elapsed_ms": 4717,
+      "ok": true,
+      "model_field": "gemini-3-flash-preview-nothinking",
+      "system_fingerprint": null,
+      "usage": {
+        "prompt_tokens": 111,
+        "completion_tokens": 635,
+        "total_tokens": 746,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "text_tokens": 0,
+          "audio_tokens": 0,
+          "image_tokens": 0
+        },
+        "completion_tokens_details": {
+          "text_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "input_tokens_details": null,
+        "claude_cache_creation_5_m_tokens": 0,
+        "claude_cache_creation_1_h_tokens": 0
+      },
+      "content_preview": "{\"is_bank_fintech_news\": true, \"sentiment\": \"正面\", \"verification_confidence\": 1.0, \"sentiment_confidence\": 0.95, \"reason\": \"工行升级数币钱包功能，积极推动金融科技应用落地\"}",
+      "error_msg": null
+    },
+    {
+      "model": "grok-4-1-fast-non-reasoning",
+      "mode": "minimal_force_json",
+      "force_json": true,
+      "http_status": 200,
+      "elapsed_ms": 18020,
+      "ok": true,
+      "model_field": "grok-4-1-fast-non-reasoning",
+      "system_fingerprint": null,
+      "usage": {
+        "prompt_tokens": 10,
+        "completion_tokens": 14,
+        "total_tokens": 24,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0,
+          "text_tokens": 10,
+          "image_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "audio_prompt_tokens": 0,
+        "num_sources_used": 0
+      },
+      "content_preview": "{\"response\": \"Hi! How can I help you today?\"}",
+      "error_msg": null
+    },
+    {
+      "model": "grok-4-1-fast-non-reasoning",
+      "mode": "minimal_no_force_json",
+      "force_json": false,
+      "http_status": 200,
+      "elapsed_ms": 16733,
+      "ok": true,
+      "model_field": "grok-4-1-fast-non-reasoning",
+      "system_fingerprint": null,
+      "usage": {
+        "prompt_tokens": 1,
+        "completion_tokens": 5,
+        "total_tokens": 6,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0,
+          "text_tokens": 1,
+          "image_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "audio_prompt_tokens": 0,
+        "num_sources_used": 0
+      },
+      "content_preview": "Hi! What's up?",
+      "error_msg": null
+    },
+    {
+      "model": "grok-4-1-fast-non-reasoning",
+      "mode": "real_world",
+      "force_json": true,
+      "http_status": 200,
+      "elapsed_ms": 2513,
+      "ok": true,
+      "model_field": "grok-4-1-fast-non-reasoning",
+      "system_fingerprint": null,
+      "usage": {
+        "prompt_tokens": 116,
+        "completion_tokens": 59,
+        "total_tokens": 175,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0,
+          "text_tokens": 116,
+          "image_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "audio_prompt_tokens": 0,
+        "num_sources_used": 0
+      },
+      "content_preview": "{\"is_bank_fintech_news\": true, \"sentiment\": \"正面\", \"verification_confidence\": 1.0, \"sentiment_confidence\": 0.95, \"reason\": \"工商银行升级数字人民币钱包，新增智能合约，推动金融科技落地，积极新闻。\"}",
+      "error_msg": null
+    }
+  ],
+  "summary": {
+    "any_success": [
+      "gemini-3-flash-preview-nothinking",
+      "gpt-5-nano-2025-08-07",
+      "grok-4-1-fast-non-reasoning"
+    ],
+    "real_world_success": [
+      "gemini-3-flash-preview-nothinking",
+      "gpt-5-nano-2025-08-07",
+      "grok-4-1-fast-non-reasoning"
+    ]
+  }
+}

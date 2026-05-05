@@ -25,7 +25,7 @@ from news_process.pipeline.panel.encode import (
 # 覆盖: LLM 投票 + 各大模型 + 词典法 + BERT
 _SCORE_PATTERNS = [
     'llm_vote_score_', 'gpt5nano_score_', 'gemini3_score_',
-    'claude4h_score_',
+    'grok41_score_',  # v6: 从 claude4h_score_ 重命名 (反映真实身份: xAI Grok 4.1)
     'jiang_2021_score_', 'yao_2021_score_', 'bian_2021_score_',
     'du_2022_score_', 'you_2018_score_',
     'finbert_cn_\u6b63\u9762_', 'fin_sent_zh_\u6b63\u9762_',

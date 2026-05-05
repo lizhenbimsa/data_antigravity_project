@@ -1,0 +1,120 @@
+{
+  "timestamp": "2026-05-05 01:09:18",
+  "base_url": "https://yunwu.ai/v1",
+  "probes": [
+    {
+      "model": "gpt-5.4-nano",
+      "http_status": 403,
+      "elapsed_ms": 670,
+      "force_json": true,
+      "response_keys": [
+        "error"
+      ],
+      "has_choices": false,
+      "has_message_content": false,
+      "model_field": null,
+      "system_fingerprint": null,
+      "usage": null,
+      "content_preview": null,
+      "error": {
+        "message": "该令牌无权访问模型 gpt-5.4-nano (request id: 20260505010921768942518DRLOSdQI)",
+        "type": "new_api_error"
+      }
+    },
+    {
+      "model": "gpt-5.4-nano",
+      "http_status": 403,
+      "elapsed_ms": 791,
+      "force_json": false,
+      "response_keys": [
+        "error"
+      ],
+      "has_choices": false,
+      "has_message_content": false,
+      "model_field": null,
+      "system_fingerprint": null,
+      "usage": null,
+      "content_preview": null,
+      "error": {
+        "message": "该令牌无权访问模型 gpt-5.4-nano (request id: 20260505010923558730285lxRTcDLv)",
+        "type": "new_api_error"
+      }
+    },
+    {
+      "model": "gemini-3.1-flash-lite-preview",
+      "http_status": 403,
+      "elapsed_ms": 507,
+      "force_json": true,
+      "response_keys": [
+        "error"
+      ],
+      "has_choices": false,
+      "has_message_content": false,
+      "model_field": null,
+      "system_fingerprint": null,
+      "usage": null,
+      "content_preview": null,
+      "error": {
+        "message": "该令牌无权访问模型 gemini-3.1-flash-lite-preview (request id: 2026050501092575127616voxbo6ct)",
+        "type": "new_api_error"
+      }
+    },
+    {
+      "model": "gemini-3.1-flash-lite-preview",
+      "http_status": 403,
+      "elapsed_ms": 547,
+      "force_json": false,
+      "response_keys": [
+        "error"
+      ],
+      "has_choices": false,
+      "has_message_content": false,
+      "model_field": null,
+      "system_fingerprint": null,
+      "usage": null,
+      "content_preview": null,
+      "error": {
+        "message": "该令牌无权访问模型 gemini-3.1-flash-lite-preview (request id: 20260505010926622980479foh463YC)",
+        "type": "new_api_error"
+      }
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "http_status": 403,
+      "elapsed_ms": 601,
+      "force_json": true,
+      "response_keys": [
+        "error"
+      ],
+      "has_choices": false,
+      "has_message_content": false,
+      "model_field": null,
+      "system_fingerprint": null,
+      "usage": null,
+      "content_preview": null,
+      "error": {
+        "message": "该令牌无权访问模型 deepseek-v4-flash (request id: 20260505010928214646955r3qiUeiX)",
+        "type": "new_api_error"
+      }
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "http_status": 403,
+      "elapsed_ms": 549,
+      "force_json": false,
+      "response_keys": [
+        "error"
+      ],
+      "has_choices": false,
+      "has_message_content": false,
+      "model_field": null,
+      "system_fingerprint": null,
+      "usage": null,
+      "content_preview": null,
+      "error": {
+        "message": "该令牌无权访问模型 deepseek-v4-flash (request id: 20260505010929772214560CG4RG90q)",
+        "type": "new_api_error"
+      }
+    }
+  ]
+}

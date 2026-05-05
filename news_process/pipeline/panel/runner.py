@@ -323,8 +323,10 @@ def main():
             continue
 
         # --- 方法 A: LLM 投票 (正面 ∧ 描述性) ---
+        # v6/F2: is_positive 现在是 nullable Int8 (NaN = 测量失败/平局/拒绝)。
+        # NaN 行不应被视为"正面描述"，等价于 fillna(0) 后 == 1 比较为 False。
         df[f'_is_pos_desc{track}'] = (
-            (df[pos_col] == 1) & _is_desc
+            (df[pos_col].fillna(0) == 1) & _is_desc
         ).astype(int)
 
         # --- 方法 B: 反向验证 (负面 ∧ 实质性) ---
@@ -333,18 +335,20 @@ def main():
         #   https://doi.org/10.1177/014920630002600602
         if neg_col in df.columns and _is_sub is not None:
             df[f'_is_neg_sub{track}'] = (
-                (df[neg_col] == 1) & _is_sub
+                (df[neg_col].fillna(0) == 1) & _is_sub
             ).astype(int)
 
         # --- 方法 A2: 单个 LLM (Loughran & McDonald 2016, JAR) ---
         for llm in LLM_MODELS:
             src_col = f'{llm}_score{track}'
             if src_col in df.columns:
-                _llm_pos = (df[src_col] > 0)
+                # v6/F2: per-model score 是 nullable Int8，NaN 等价于"模型缺席"
+                _src = df[src_col].fillna(0)
+                _llm_pos = (_src > 0)
                 df[f'_is_{llm}_positive{track}'] = _llm_pos.astype(int)
                 df[f'_is_{llm}_pos_desc{track}'] = (_llm_pos & _is_desc).astype(int)
                 # negative 编码 (Garcia 2013, JF → disag 输入)
-                df[f'_is_{llm}_negative{track}'] = (df[src_col] < 0).astype(int)
+                df[f'_is_{llm}_negative{track}'] = (_src < 0).astype(int)
 
         # --- 方法 D: 词典均值 (Loughran & McDonald 2011, JF) ---
         _dict_cols = [f'{d}_score{track}' for d in DICT_NAMES
@@ -392,9 +396,10 @@ def main():
         agr_col = f'llm_agreement_rate{track}'
         if agr_col in df.columns:
             _hc = df[agr_col].fillna(0) >= 0.67
-            df[f'_is_pos_hc{track}'] = ((df[pos_col] == 1) & _hc).astype(int)
+            # v6/F2: pos_col nullable Int8 → fillna(0)
+            df[f'_is_pos_hc{track}'] = ((df[pos_col].fillna(0) == 1) & _hc).astype(int)
             df[f'_is_pos_desc_hc{track}'] = (
-                (df[pos_col] == 1) & _is_desc & _hc
+                (df[pos_col].fillna(0) == 1) & _is_desc & _hc
             ).astype(int)
 
 
@@ -463,17 +468,48 @@ def main():
     except Exception as e:
         logger.warning(f"  区域模仿渗透率失败: {e}")
 
-    # --- 7e. Bartik IV (29套分类维度) ---
+    # --- 7e. Bartik IV (v6: 修剪至 6 类核心维度) ---
+    # v6/F4 修复 (Goldsmith-Pinkham, Sorkin & Swift 2020, AER):
+    #   原 29 套 IV 中 28 类违反 share 在 pre-treatment 期固定外生性公理。
+    #   v6 保留 6 类：
+    #     - type / scale  : 银行属性（pre-treatment 固定）
+    #     - fintech       : LLM 主题分类（须配合论证）
+    #     - media         : 媒体三方类型（fin/comp/other，pre-treatment 媒体属性）
+    #     - geoprox       : 银行注册地 vs 媒体省份地理邻近性
+    #     - mauth         : 媒体权威性档位（high/mid/low）
+    #   删除 28 类的内生性 IV（doclen/kwdiv/kwden/mden/sentlen/ttr/author/
+    #   page/pgnum/half/qtr/month/wkday/excl/title/mcount/mcentral/mfin/
+    #   mcomp/mofficial/mmarket/mfreq/mdeep/mdaily/mprov/breadth/pubfmt等）。
+    #   IV 数量 ≥ 6 类 → 论文主表强制使用 Romano-Wolf step-down p 值校正。
+    # 基期约束 (v6/F4-3): bartik_base_year = max(panel.year.min(), 2010)；
+    #   若计算所得基期 ≥ 2019 (DCEP 沙盒里程碑) 强制抛错。
     if PANEL_CFG.get('compute_bartik_iv', True):
         logger.info("=" * 60)
-        logger.info("步骤 7e: Bartik Shift-Share IV (29套)")
+        logger.info("步骤 7e: Bartik Shift-Share IV (v6: 6 类核心)")
         logger.info("=" * 60)
         type_map, scale_map = load_bank_group_maps()
-        T0 = panel['year'].min()
+        # v6/F4-3 基期参数化：取 panel 起始年与 2010 中较晚者；强制 < 2019
+        _bartik_base_year_cfg = PANEL_CFG.get('bartik_base_year', 'auto')
+        _bartik_pre_cutoff = PANEL_CFG.get('bartik_pre_treatment_cutoff', 2019)
+        _panel_min = int(panel['year'].min())
+        if _bartik_base_year_cfg == 'auto' or _bartik_base_year_cfg is None:
+            T0 = max(_panel_min, 2010)
+        else:
+            T0 = int(_bartik_base_year_cfg)
+        if T0 >= _bartik_pre_cutoff:
+            raise RuntimeError(
+                f"Bartik 基期 T0={T0} ≥ 政策冲击里程碑 {_bartik_pre_cutoff}：share "
+                f"已在 post-treatment 区间，违反 Goldsmith-Pinkham et al. (2020) "
+                f"外生性公理。请检查 panel.yaml::panel_building.bartik_base_year 设置。"
+            )
+        logger.info(f"  Bartik 基期: T0={T0} (panel.year.min={_panel_min}, "
+                    f"cfg={_bartik_base_year_cfg}, cutoff={_bartik_pre_cutoff})")
 
         # --- 主 Bartik: 银行类型 (6类, 5有效IV) ---
-        panel = compute_bartik_iv(panel, df_exploded, type_map, 'type')
-        # 基期敏感性 (T0, T0+1, T0&T0+1)
+        # v6: 显式传基期 T0
+        panel = compute_bartik_iv(panel, df_exploded, type_map, 'type',
+                                   base_year=T0)
+        # 基期敏感性 (T0, T0+1, T0&T0+1) — 检验 IV 对基期选择的稳健性
         # ⚠️ 使用 merge-based 赋值，避免 .values 行序错配
         for suffix, base_yr in [('_t0', T0), ('_t1', T0+1)]:
             ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
@@ -500,8 +536,9 @@ def main():
                   'bartik_type_iv_ctx_t01']],
             on=['target_bank', 'year'], how='left')
 
-        # --- 稳健性 1: 银行规模 (4类, 3有效IV) ---
-        panel = compute_bartik_iv(panel, df_exploded, scale_map, 'scale')
+        # --- 稳健性 1: 银行规模 (4类, 3有效IV) — v6: 显式基期 T0 ---
+        panel = compute_bartik_iv(panel, df_exploded, scale_map, 'scale',
+                                   base_year=T0)
 
         # --- 7e-digfront. 数字化前沿距离代理变量 ---
         # 按同类型银行的年度中位数新闻覆盖量划分 (仅有新闻覆盖的银行参与)
@@ -524,13 +561,18 @@ def main():
         else:
             logger.warning("  bank_type 不存在, 跳过 digital_frontier 构建")
 
-        # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) ---
+        # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) — v6: 显式基期 T0 ---
+        # 注意: fintech_category 由 LLM 决定，须配合论证（v6/F4-2 须论证清单）
         fintech_map = {'底层技术': 'tech', '应用场景': 'app'}
-        panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech')
+        panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech',
+                                          base_year=T0)
 
-        # --- 稳健性 3-6: 媒体分类 Bartik (4种分类方式) ---
-        # 3=财经/综合 4=中央/地方 5=财经/非财经 6=综合/非综合
-        # Phase 1 重构: 优先读取 CONFIG['paths']['media_classification_file']。
+        # --- 稳健性 3: 媒体三方分类 Bartik (财经/综合/其他) ---
+        # v6/F4: 仅保留 3a 三方分类。删除 3b/3c/3d/3e/3f/3g/3h/3i 等 8 类
+        #   二分变体（文献依据：与 3a 高度相关，且二分组对处理变量的外生性
+        #   通道未在文献中独立验证；删除以避免 multiple testing inflation）。
+        # 学术依据 Snyder & Strömberg (2010, JPE 118(2)) — 媒体类型分布在
+        #   pre-treatment 期固定时可作为 share。
         cls_path = CONFIG['paths'].get(
             'media_classification_file',
             os.path.join(os.path.dirname(__file__),
@@ -541,10 +583,8 @@ def main():
                 media_cls = json.load(f)
             FIN = set(media_cls.get('financial_media', []))
             COMP = set(media_cls.get('comprehensive_media', []))
-            CENTRAL = set(media_cls.get('central_media', []))
             media_col = '媒体(中文)'
 
-            # 3a: 财经/综合/其他
             if '_media_type' not in df_exploded.columns:
                 df_exploded['_media_type'] = df_exploded[media_col].apply(
                     lambda x: 'fin' if x in FIN else ('comp' if x in COMP else 'other')
@@ -552,124 +592,16 @@ def main():
             media_map = {'fin': 'fin', 'comp': 'comp', 'other': 'other'}
             panel = compute_bartik_iv_fintech(
                 panel, df_exploded, media_map, 'media',
+                base_year=T0,
                 category_col='_media_type'
             )
-
-            # 3b: 中央级/地方级
-            df_exploded['_media_central'] = df_exploded[media_col].apply(
-                lambda x: 'central' if x in CENTRAL else 'local'
-            )
-            mcentral_map = {'central': 'central', 'local': 'local'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mcentral_map, 'mcentral',
-                category_col='_media_central'
-            )
-
-            # 3c: 财经/非财经
-            df_exploded['_media_fin_binary'] = df_exploded[media_col].apply(
-                lambda x: 'fin' if x in FIN else 'nonfin'
-            )
-            mfin_map = {'fin': 'fin', 'nonfin': 'nonfin'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mfin_map, 'mfin',
-                category_col='_media_fin_binary'
-            )
-
-            # 3d: 综合性/非综合性
-            df_exploded['_media_comp_binary'] = df_exploded[media_col].apply(
-                lambda x: 'comp' if x in COMP else 'noncomp'
-            )
-            mcomp_map = {'comp': 'comp', 'noncomp': 'noncomp'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mcomp_map, 'mcomp',
-                category_col='_media_comp_binary'
-            )
-
-            logger.info(f"  媒体分类 Bartik: 3a(fin/comp/other) + "
-                        f"3b(central/local) + 3c(fin/nonfin) + 3d(comp/noncomp)")
-
-            # --- 新增四维度媒体分类 Bartik (3e-3i) ---
-            OFFICIAL = set(media_cls.get('official_media', []))
-            MARKET = set(media_cls.get('market_media', []))
-            DEEPDIVE = set(media_cls.get('deep_dive_periodicals', []))
-            DAILY = set(media_cls.get('high_frequency_dailies', []))
-
-            # 3e: 官方/非官方
-            df_exploded['_media_official_binary'] = df_exploded[media_col].apply(
-                lambda x: 'official' if x in OFFICIAL else 'nonoff'
-            )
-            mofficial_map = {'official': 'official', 'nonoff': 'nonoff'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mofficial_map, 'mofficial',
-                category_col='_media_official_binary'
-            )
-
-            # 3f: 市场化/非市场化
-            df_exploded['_media_market_binary'] = df_exploded[media_col].apply(
-                lambda x: 'market' if x in MARKET else 'nonmkt'
-            )
-            mmarket_map = {'market': 'market', 'nonmkt': 'nonmkt'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mmarket_map, 'mmarket',
-                category_col='_media_market_binary'
-            )
-
-            # 3g: 深度/日报/其他 (三方)
-            df_exploded['_media_freq_type'] = df_exploded[media_col].apply(
-                lambda x: 'deepdive' if x in DEEPDIVE else ('daily' if x in DAILY else 'other')
-            )
-            mfreq_map = {'deepdive': 'deepdive', 'daily': 'daily', 'other': 'other'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mfreq_map, 'mfreq',
-                category_col='_media_freq_type'
-            )
-
-            # 3h: 深度/非深度
-            df_exploded['_media_deep_binary'] = df_exploded[media_col].apply(
-                lambda x: 'deepdive' if x in DEEPDIVE else 'nondeep'
-            )
-            mdeep_map = {'deepdive': 'deepdive', 'nondeep': 'nondeep'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mdeep_map, 'mdeep',
-                category_col='_media_deep_binary'
-            )
-
-            # 3i: 日报/非日报
-            df_exploded['_media_daily_binary'] = df_exploded[media_col].apply(
-                lambda x: 'daily' if x in DAILY else 'nondaily'
-            )
-            mdaily_map = {'daily': 'daily', 'nondaily': 'nondaily'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mdaily_map, 'mdaily',
-                category_col='_media_daily_binary'
-            )
-
-            logger.info(f"  新增媒体 Bartik: 3e(official/nonoff) + "
-                        f"3f(market/nonmkt) + 3g(freq-3way) + "
-                        f"3h(deep/nondeep) + 3i(daily/nondaily)")
+            logger.info(f"  媒体分类 Bartik: 3a(fin/comp/other) — v6 仅保留三方")
         else:
-            logger.warning("  media_classification.json 不存在, 跳过所有媒体分类 Bartik")
+            logger.warning("  media_classification.json 不存在, 跳过媒体分类 Bartik")
 
-        # --- 稳健性 7: 媒体省份 ---
-        MPROV_MIN_ARTICLES = 5
-        mprov_col = '国家地区/省份'
-        if mprov_col in df_exploded.columns:
-            prov_counts = df_exploded[mprov_col].value_counts()
-            valid_provs = set(prov_counts[prov_counts >= MPROV_MIN_ARTICLES].index)
-            mprov_map = {p: p for p in valid_provs}
-            mprov_map['other'] = 'other'
-            df_exploded['_media_province'] = df_exploded[mprov_col].apply(
-                lambda x: x if x in valid_provs else 'other'
-            )
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mprov_map, 'mprov',
-                category_col='_media_province'
-            )
-            logger.info(f"  媒体省份 Bartik: {len(valid_provs)} 个有效省份")
-        else:
-            logger.warning(f"  列 '{mprov_col}' 不存在, 跳过媒体省份 Bartik")
-
-        # --- 稳健性 8: 媒体权威性 ---
+        # --- 稳健性 4: 媒体权威性 (Holzman et al. 2023, TAR) ---
+        # v6/F4: 保留。媒体权威性档位由 media_weights.json 评分决定，
+        #   档位划分 (high≥80 / mid≥60 / low) 在 pre-treatment 期固定。
         # Phase 1 重构: 优先读取 CONFIG['paths']['media_weights_file']。
         mw_path = CONFIG['paths'].get(
             'media_weights_file',
@@ -688,81 +620,17 @@ def main():
             mauth_map = {'high': 'high', 'mid': 'mid', 'low': 'low'}
             panel = compute_bartik_iv_fintech(
                 panel, df_exploded, mauth_map, 'mauth',
+                base_year=T0,
                 category_col='_media_authority'
             )
         else:
             logger.warning("  media_weights.json 不存在, 跳过媒体权威性 Bartik")
 
-        # --- 稳健性 9: 文章长度 ---
-        if 'doc_length' in df_exploded.columns:
-            year_median_doclen = df_exploded.groupby('year')['doc_length'].transform('median')
-            df_exploded['_doclen_type'] = np.where(
-                df_exploded['doc_length'] > year_median_doclen,
-                'long', 'short'
-            )
-            doclen_map = {'long': 'long', 'short': 'short'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, doclen_map, 'doclen',
-                category_col='_doclen_type'
-            )
-        else:
-            logger.warning("  doc_length 列不存在, 跳过文章长度 Bartik")
-
-        # --- 稳健性 10-13: 时间维度 (半年度/季度/月度/工作日) ---
-        date_col = '日期'
-        if date_col in df_exploded.columns:
-            # 向量化日期特征提取 (parse_time L780 已确保 datetime 类型)
-            _month = df_exploded[date_col].dt.month
-            _dow   = df_exploded[date_col].dt.dayofweek
-            df_exploded['_half_year']  = np.where(_month <= 6, 'H1', 'H2')
-            df_exploded['_quarter']    = 'Q' + ((_month - 1) // 3 + 1).astype(str)
-            df_exploded['_pub_month']  = 'M' + _month.astype(str).str.zfill(2)
-            df_exploded['_wkday_type'] = np.where(_dow >= 5, 'weekend', 'weekday')
-
-            # 稳健性 10: 半年度
-            half_map = {'H1': 'H1', 'H2': 'H2'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, half_map, 'half',
-                category_col='_half_year'
-            )
-            # 稳健性 11: 季度
-            qtr_map = {'Q1': 'Q1', 'Q2': 'Q2', 'Q3': 'Q3', 'Q4': 'Q4'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, qtr_map, 'qtr',
-                category_col='_quarter'
-            )
-            # 稳健性 12: 月度
-            month_map = {f'M{m:02d}': f'M{m:02d}' for m in range(1, 13)}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, month_map, 'month',
-                category_col='_pub_month'
-            )
-            # 稳健性 13: 工作日/周末
-            wkday_map = {'weekday': 'weekday', 'weekend': 'weekend'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, wkday_map, 'wkday',
-                category_col='_wkday_type'
-            )
-        else:
-            logger.warning(f"  列 '{date_col}' 不存在, 跳过时间维度 Bartik (稳健性 10-13)")
-
-        # --- 稳健性 14: 专属/共享报道 ---
-        if 'is_multi_bank' in df_exploded.columns:
-            df_exploded['_excl_type'] = df_exploded['is_multi_bank'].map(
-                {0: 'exclusive', 1: 'shared'}
-            )
-            excl_map = {'exclusive': 'exclusive', 'shared': 'shared'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, excl_map, 'excl',
-                category_col='_excl_type'
-            )
-        else:
-            logger.warning("  is_multi_bank 列不存在, 跳过专属/共享 Bartik")
-
-        # --- 稳健性 15: 地理邻近性 ---
+        # --- 稳健性 5: 地理邻近性 (Engelberg & Parsons 2011, JF) ---
+        # v6/F4: 保留。银行注册地 pre-treatment 固定，媒体省份是文章属性，
+        #   两者交叉的二分变量 (local/nonlocal) 在 pre-treatment 期固定。
         media_prov_col = '国家地区/省份'
         if media_prov_col in df_exploded.columns:
-            # Phase 1 重构: 优先读取 CONFIG['paths']['bank_addresses_file']。
             addr_path = CONFIG['paths'].get(
                 'bank_addresses_file',
                 os.path.join(os.path.dirname(__file__),
@@ -780,170 +648,35 @@ def main():
                 geoprox_map = {'local': 'local', 'nonlocal': 'nonlocal'}
                 panel = compute_bartik_iv_fintech(
                     panel, df_exploded, geoprox_map, 'geoprox',
+                    base_year=T0,
                     category_col='_geo_proximity'
                 )
 
-        # --- 稳健性 16: 标题出现 ---
-        if 'target_bank_in_title' in df_exploded.columns:
-            df_exploded['_title_type'] = df_exploded['target_bank_in_title'].map(
-                {1: 'title', 0: 'body'}
-            )
-            title_map = {'title': 'title', 'body': 'body'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, title_map, 'title',
-                category_col='_title_type'
-            )
-
-        # --- 稳健性 17: 关键词多样性 ---
-        if 'fintech_distinct_keywords' in df_exploded.columns:
-            year_median_kwdiv = df_exploded.groupby('year')['fintech_distinct_keywords'].transform('median')
-            df_exploded['_kwdiv_type'] = np.where(
-                df_exploded['fintech_distinct_keywords'] > year_median_kwdiv,
-                'high_div', 'low_div'
-            )
-            kwdiv_map = {'high_div': 'high_div', 'low_div': 'low_div'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, kwdiv_map, 'kwdiv',
-                category_col='_kwdiv_type'
-            )
-
-        # --- 稳健性 18: 关键词密度 ---
-        if 'fintech_total_count' in df_exploded.columns:
-            year_median_kwden = df_exploded.groupby('year')['fintech_total_count'].transform('median')
-            df_exploded['_kwden_type'] = np.where(
-                df_exploded['fintech_total_count'] > year_median_kwden,
-                'dense', 'sparse'
-            )
-            kwden_map = {'dense': 'dense', 'sparse': 'sparse'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, kwden_map, 'kwden',
-                category_col='_kwden_type'
-            )
-
-        # --- 稳健性 19: 提及密度 ---
-        if 'mention_density' in df_exploded.columns:
-            year_median_mden = df_exploded.groupby('year')['mention_density'].transform('median')
-            df_exploded['_mden_type'] = np.where(
-                df_exploded['mention_density'] > year_median_mden,
-                'deep', 'shallow'
-            )
-            mden_map = {'deep': 'deep', 'shallow': 'shallow'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mden_map, 'mden',
-                category_col='_mden_type'
-            )
-
-        # --- 稳健性 20: 银行提及次数 ---
-        if 'target_bank_mention_count' in df_exploded.columns:
-            df_exploded['_mcount_type'] = pd.cut(
-                df_exploded['target_bank_mention_count'],
-                bins=[-1, 3, 4, float('inf')],  # -1 确保 mention_count=0 也被覆盖
-                labels=['low', 'mid', 'high']
-            ).astype(str)  # Categorical → str, 避免下游 map() 兼容性问题
-            mcount_map = {'low': 'low', 'mid': 'mid', 'high': 'high'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mcount_map, 'mcount',
-                category_col='_mcount_type'
-            )
-
-        # --- 稳健性 21: 媒体覆盖广度 ---
-        media_col = '媒体(中文)'
-        if media_col in df_exploded.columns:
-            media_bank_counts = df_exploded.groupby(media_col)['target_bank'].nunique()
-            median_cov = media_bank_counts.median()
-            broad_set = set(media_bank_counts[media_bank_counts > median_cov].index)
-            df_exploded['_breadth_type'] = df_exploded[media_col].apply(
-                lambda m: 'broad' if m in broad_set else 'niche'
-            )
-            breadth_map = {'broad': 'broad', 'niche': 'niche'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, breadth_map, 'breadth',
-                category_col='_breadth_type'
-            )
-
-
-        # --- 稳健性 23: 平均句长 ---
-        if 'avg_sentence_len_full' in df_exploded.columns:
-            year_median_sl = df_exploded.groupby('year')['avg_sentence_len_full'].transform('median')
-            df_exploded['_sentlen_type'] = np.where(
-                df_exploded['avg_sentence_len_full'] > year_median_sl,
-                'complex', 'simple'
-            )
-            sentlen_map = {'complex': 'complex', 'simple': 'simple'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, sentlen_map, 'sentlen',
-                category_col='_sentlen_type'
-            )
-
-        # --- 稳健性 24: 词汇丰富度 TTR ---
-        if 'type_token_ratio_full' in df_exploded.columns:
-            year_median_ttr = df_exploded.groupby('year')['type_token_ratio_full'].transform('median')
-            df_exploded['_ttr_type'] = np.where(
-                df_exploded['type_token_ratio_full'] > year_median_ttr,
-                'diverse', 'uniform'
-            )
-            ttr_map = {'diverse': 'diverse', 'uniform': 'uniform'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, ttr_map, 'ttr',
-                category_col='_ttr_type'
-            )
-
-        # --- 稳健性 25: 出版形态 ---
-        if '媒体类型(中文)' in df_exploded.columns:
-            pubfmt_map_raw = {
-                '报纸': 'newspaper', '杂志': 'magazine', '新闻通讯社': 'agency'
-            }
-            df_exploded['_pubformat'] = df_exploded['媒体类型(中文)'].map(pubfmt_map_raw).fillna('newspaper')
-            pubfmt_map = {'newspaper': 'newspaper', 'magazine': 'magazine', 'agency': 'agency'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, pubfmt_map, 'pubfmt',
-                category_col='_pubformat'
-            )
-
-        # --- 稳健性 26: 作者署名 ---
-        if '作者' in df_exploded.columns:
-            df_exploded['_author_type'] = np.where(
-                df_exploded['作者'].notna() & (df_exploded['作者'].astype(str).str.strip() != ''),
-                'named', 'anonymous'
-            )
-            author_map = {'named': 'named', 'anonymous': 'anonymous'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, author_map, 'author',
-                category_col='_author_type'
-            )
-
-        # --- 稳健性 27: 版面位置 ---
-        if '版面' in df_exploded.columns:
-            front_page_keywords = ['头版', '要闻', '头条']
-            df_exploded['_section_pos'] = np.where(
-                df_exploded['版面'].fillna('').str.contains('|'.join(front_page_keywords)),
-                'front_page', 'inner'
-            )
-            page_map = {'front_page': 'front_page', 'inner': 'inner'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, page_map, 'page',
-                category_col='_section_pos'
-            )
-
-        # --- 稳健性 28: 页号位置 ---
-        if '页号' in df_exploded.columns:
-            def extract_page_num(x):
-                if pd.isna(x):
-                    return np.nan
-                nums = re.findall(r'\d+', str(x))
-                return int(nums[0]) if nums else np.nan
-            df_exploded['_page_numeric'] = df_exploded['页号'].apply(extract_page_num)
-            df_exploded['_pgnum_type'] = np.where(
-                df_exploded['_page_numeric'].fillna(99) <= 3,
-                'early_page', 'late_page'
-            )
-            pgnum_map = {'early_page': 'early_page', 'late_page': 'late_page'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, pgnum_map, 'pgnum',
-                category_col='_pgnum_type'
-            )
-
-        logger.info(f"  Bartik IV 共29套已完成")
+        # ============================================================
+        # v6/F4 删除清单 (28 类违反外生性公理的 IV，已从 panel 输出移除)
+        # ------------------------------------------------------------
+        # 删除原因 (Goldsmith-Pinkham, Sorkin & Swift 2020, AER §2):
+        #   share 必须在 pre-treatment 期固定且独立于结果变量。
+        #   下列 IV 维度均违反此约束：
+        #     - doclen / kwdiv / kwden / mden / sentlen / ttr
+        #         → 文章特征是结果变量属性 (post-treatment article-level)
+        #     - author / page / pgnum
+        #         → 编辑事后决策 (post-treatment editorial decisions)
+        #     - half / qtr / month / wkday
+        #         → 时间切分与处理变量无清晰因果通道
+        #     - excl / title / mcount
+        #         → 编辑事后决策 + 直接结果变量
+        #     - mcentral / mfin / mcomp / mofficial / mmarket /
+        #       mfreq / mdeep / mdaily
+        #         → 媒体类型二分组与已保留的三方分类 (media) 高度相关，
+        #           multiple testing 通胀；删除以避免 p-hacking
+        #     - mprov
+        #         → 媒体省份与 geoprox 已保留的二分形式相关
+        #     - breadth / pubfmt
+        #         → 与 media / mauth 已保留维度高度相关
+        # ============================================================
+        logger.info(f"  Bartik IV (v6 修剪版): 6 类核心维度已完成 "
+                    f"(type/scale/fintech/media/geoprox/mauth)")
 
     # --- 7f. 经济圈 Leave-One-Out IV ---
     if PANEL_CFG.get('compute_bartik_iv', True):
@@ -1155,15 +888,12 @@ def main():
     # --- 7h-auth. 权威政策战略响应度 (Hassan et al. 2019, QJE) ---
     if compute_authoritative_similarity is not None:
         panel = compute_authoritative_similarity(df_exploded, panel)
-        # 【学术防塌陷熔断机制 (Mathematical & Academic Fallback)】
-        # 补全可能由于分轨导致部分银行在某一轨中没有数据而产生的 NaN 为 0.0。
-        # 学术合理性：在 NLP 向量空间中，如果没有观测到该维度的新闻（例如银行该年度无 Ctx 语境文本），
-        # 那么其特征向量为空 (zero-vector)。由于余弦相似度的定义为内积，零向量与政策锚点向量的相似度
-        # 在数学上严格正交且为 0.0。因此，此处使用 0.0 填充不仅是为了保证 STATA 面板的严格平衡性，
-        # 更是理论层面的必然要求，彻底避免了因 NaN 导致观测样本丢失 (Listwise Deletion) 的计量学灾难。
-        sim_cols = [c for c in panel.columns if c.startswith('auth_sim_')]
-        if sim_cols:
-            panel[sim_cols] = panel[sim_cols].fillna(0.0)
+        # v6/F3 修复 (主路径全 NaN)：删除原"零向量数学正交"熔断填充。
+        # 学术依据 (Allison 2001 §3 / Heckman 1979 ECMA)：当某 bank-year
+        # 在该 track 下无文章可计算余弦相似度时，正确语义是"未测量"
+        # (NaN)，而非"测量值为 0"。强行填 0 会在 TWFE 中制造伪零质心、
+        # 扭曲系数并低估标准误。Stata 端通过 listwise deletion 自然处理。
+        # 旧注释"零向量数学正交"为虚假学术依据：余弦相似度对零向量未定义。
     else:
         logger.info("  compute_authoritative_similarity 不可用, 跳过")
 
@@ -1173,11 +903,8 @@ def main():
     # 【白话】用"利好经营 vs 损害经营"方向轴给每篇新闻打态度分
     if compute_benefit_society_panel is not None:
         panel = compute_benefit_society_panel(panel, df_exploded)
-        # 【学术防塌陷熔断机制】
-        # 零向量投影 = 中性 (cos(0, p) = 0)，NaN → 0.0 保证面板严格平衡
-        bene_cols = [c for c in panel.columns if c.startswith('benefit_')]
-        if bene_cols:
-            panel[bene_cols] = panel[bene_cols].fillna(0.0)
+        # v6/F3 修复 (主路径全 NaN)：删除原 fillna(0.0) 熔断填充。
+        # 与 auth_sim_* 同：无文章观测 → 投影未定义 → NaN。
     else:
         logger.info("  compute_benefit_society_panel 不可用, 跳过")
 
@@ -1312,13 +1039,15 @@ def main():
                 logger.info(f"  Track {track_name}: P={{25,50,75}} "
                             f"四象限占比已合并")
 
-            # 填充 NaN (无 Stage 15 数据的 bank-year)
+            # v6/F3 修复 (主路径全 NaN)：删除原 fillna(0.0)。
+            # token_adopt / hidden_adopt / subst_adopt / article_sim_ / fintech_intensity_mean
+            # 这些都是"率/均值/相似度"类指标，无 Stage 15 数据的 bank-year
+            # 真实语义是"未测量"，强填 0 会污染 TWFE 系数 (Allison 2001 §3)。
             _token_cols = [c for c in panel.columns
                           if c.startswith(('token_adopt_', 'hidden_adopt_',
                                            'subst_adopt_', 'article_sim_',
                                            'fintech_intensity_mean'))]
-            panel[_token_cols] = panel[_token_cols].fillna(0.0)
-            logger.info(f"  Token/Hidden 面板变量: 共 {len(_token_cols)} 列")
+            logger.info(f"  Token/Hidden 面板变量: 共 {len(_token_cols)} 列 (NaN 保持，listwise 处理)")
 
             # 清理临时列
             _tmp_cols = [c for c in df_align.columns if c.startswith('_is_')]
@@ -1487,7 +1216,8 @@ def main():
 
     # --- Dummy: 全年无正面新闻 ---
     if 'pos_count_full' in panel.columns:
-        panel['dummy_no_positive_news'] = (panel['pos_count_full'] <= 0).astype(int)
+        # v6/F2: pos_count_full 可能为 nullable Int64 (sum of Int8)。NaN → 视为 0 (无观测)。
+        panel['dummy_no_positive_news'] = (panel['pos_count_full'].fillna(0) <= 0).astype(int)
         logger.info(f"  dummy_no_positive_news=1: {panel['dummy_no_positive_news'].sum():,} 个 Bank-Year")
 
     # --- 诊断日志 ---

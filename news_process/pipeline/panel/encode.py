@@ -52,8 +52,9 @@ PANEL_CFG = CONFIG.get("panel_building", {})
 
 # LLM 模型 short_name 列表(从 tone_llm_processing.models 读取)
 # 这些名称用于定位阶段 21 输出中各模型对应的情感结果列
+# v6 锁定: gpt5nano (OpenAI) / gemini3 (Google) / grok41 (xAI/Grok)
 _llm_cfg = CONFIG.get('tone_llm_processing', {}).get('models', [])
-LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt5nano', 'gemini3', 'claude4h']
+LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt5nano', 'gemini3', 'grok41']
 
 # 词典名列表 — 对应阶段 22 中的五本中文金融情感词典
 DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
@@ -82,9 +83,25 @@ SENTIMENT_MAP = {'正面': 1, '中性': 0, '负面': -1}
 
 
 def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
-    """篇章级情感数值编码：离散 + 连续（双轨）。"""
+    """篇章级情感数值编码：离散 + 连续（双轨）。
+
+    v6/F2 改动 (篇章级编码契约重写)
+    --------------------------------
+    历史：`llm_sentiment{track}.map(SENTIMENT_MAP).fillna(0)` 把所有缺失值
+          (verification 失败 / tie undefined / API 调用失败 / 真实中性)
+          统一坍塌为 0，导致 is_neutral 列同时混入 4 类语义不可分。
+
+    v6 行为：
+      1. 使用 nullable Int8 (pd.Int8 / pd.NA) 保留 NaN 语义；
+      2. 显式合并 4 个掩码列：llm_call_failure / llm_undefined / llm_verified=False
+         → 这三类的 vote_score 强制为 NaN，与"真实中性"严格区分；
+      3. is_positive/is_negative/is_neutral 三列均改为 nullable Int8；
+         `is_neutral{track}` 仅在 verified=True ∧ undefined=0 ∧ failure=0 ∧
+         sentiment="中性" 时为 1，否则 NaN；
+      4. 下游 sum 自动跳过 NaN，count() 给出"有效观测数"。
+    """
     logger.info("=" * 60)
-    logger.info("步骤 2: 篇章级情感数值编码（双轨）")
+    logger.info("步骤 2: 篇章级情感数值编码（双轨, v6/F2 nullable Int8 版本）")
     logger.info("=" * 60)
 
     encoded_cols = []
@@ -93,25 +110,70 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
         if f'llm_sentiment{track}' not in df.columns:
             logger.info(f"  跳过 {track} 轨道编码（列 llm_sentiment{track} 不存在）")
             continue
-        # --- LLM 投票结果 离散编码 ---
-        df[f'llm_vote_score{track}'] = df[f'llm_sentiment{track}'].map(SENTIMENT_MAP).fillna(0).astype(int)
-        df[f'is_positive{track}'] = (df[f'llm_vote_score{track}'] == 1).astype(int)
-        df[f'is_negative{track}'] = (df[f'llm_vote_score{track}'] == -1).astype(int)
-        df[f'is_neutral{track}'] = (df[f'llm_vote_score{track}'] == 0).astype(int)
 
-        # --- LLM 投票结果 连续编码 ---
-        df[f'llm_vote_cont{track}'] = df[f'llm_vote_score{track}'] * df[f'llm_agreement_rate{track}'].fillna(0)
+        # ── v6/F2: 准备掩码 ──
+        sent_col = f'llm_sentiment{track}'
+        ver_col = f'llm_verified{track}'
+        # title 轨道无 verification 步骤；ctx/full 含 verification
+        has_verification = ver_col in df.columns
 
-        # --- LLM 逐模型 离散 + 连续编码 ---
+        # 测量失败掩码（call_failure / undefined）：仅 _full / _ctx 有
+        cf_col = f'llm_call_failure{track}'
+        ud_col = f'llm_undefined{track}'
+        invalid_mask = pd.Series(False, index=df.index)
+        if cf_col in df.columns:
+            invalid_mask = invalid_mask | df[cf_col].fillna(0).astype(bool)
+        if ud_col in df.columns:
+            invalid_mask = invalid_mask | df[ud_col].fillna(0).astype(bool)
+
+        # verified=False 也视为情感不可信（v6/F2: 不再坍塌为"中性"）
+        if has_verification:
+            ver_invalid = ~df[ver_col].fillna(False).astype(bool)
+            invalid_mask = invalid_mask | ver_invalid
+
+        # ── 离散 vote_score: nullable Int8，无效行 → <NA> ──
+        raw_score = df[sent_col].map(SENTIMENT_MAP)
+        # 把 sentiment 是 None / NaN 的也视为无效
+        raw_score = raw_score.where(~df[sent_col].isna(), other=pd.NA)
+        raw_score = raw_score.where(~invalid_mask, other=pd.NA)
+        df[f'llm_vote_score{track}'] = raw_score.astype('Int8')
+
+        # ── 三个二值掩码（nullable Int8，无效行 → <NA>）──
+        df[f'is_positive{track}'] = (df[f'llm_vote_score{track}'] == 1).astype('Int8')
+        df[f'is_negative{track}'] = (df[f'llm_vote_score{track}'] == -1).astype('Int8')
+        df[f'is_neutral{track}'] = (df[f'llm_vote_score{track}'] == 0).astype('Int8')
+        # 把无效行的三列从 0 强制设回 <NA>（pandas 比较运算符在 <NA> 上返回 False）
+        for c in [f'is_positive{track}', f'is_negative{track}', f'is_neutral{track}']:
+            df.loc[invalid_mask, c] = pd.NA
+            df.loc[df[sent_col].isna(), c] = pd.NA
+
+        # ── 连续编码 (Float32, NaN 语义) ──
+        ar_col = f'llm_agreement_rate{track}'
+        ar_v = df[ar_col].astype('Float32') if ar_col in df.columns else pd.Series(1.0, index=df.index, dtype='Float32')
+        # vote_cont = score × agree_rate (自然传播 NaN)
+        df[f'llm_vote_cont{track}'] = df[f'llm_vote_score{track}'].astype('Float32') * ar_v
+
+        # ── LLM 逐模型 离散 + 连续 ──
         for short in LLM_MODELS:
-            sent_col = f'{short}_sentiment{track}'
-            conf_col = f'{short}_sentiment_confidence{track}'
-            if sent_col in df.columns:
-                df[f'{short}_score{track}'] = df[sent_col].map(SENTIMENT_MAP).fillna(0).astype(int)
-                if conf_col in df.columns:
-                    df[f'{short}_cont{track}'] = df[f'{short}_score{track}'] * df[conf_col].fillna(0)
+            m_sent = f'{short}_sentiment{track}'
+            m_conf = f'{short}_sentiment_confidence{track}'
+            m_ver = f'{short}_verified{track}'
+            if m_sent in df.columns:
+                m_score = df[m_sent].map(SENTIMENT_MAP)
+                m_score = m_score.where(~df[m_sent].isna(), other=pd.NA)
+                # 单模型 verified=False 时该模型自身的 score 也置 NA
+                if m_ver in df.columns:
+                    m_inv = ~df[m_ver].fillna(False).astype(bool)
+                    m_score = m_score.where(~m_inv, other=pd.NA)
+                df[f'{short}_score{track}'] = m_score.astype('Int8')
+
+                if m_conf in df.columns:
+                    df[f'{short}_cont{track}'] = (
+                        df[f'{short}_score{track}'].astype('Float32')
+                        * df[m_conf].astype('Float32')
+                    )
                 else:
-                    df[f'{short}_cont{track}'] = df[f'{short}_score{track}'].astype(float)
+                    df[f'{short}_cont{track}'] = df[f'{short}_score{track}'].astype('Float32')
 
         encoded_cols.extend([
             f'llm_vote_score{track}', f'is_positive{track}', f'is_negative{track}',

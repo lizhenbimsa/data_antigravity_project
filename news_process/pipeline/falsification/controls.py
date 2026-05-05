@@ -799,6 +799,9 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
     logger.info(f"          将自动清理列名 (去除中文、替换括号、截断32字符)。")
     try:
         panel_stata = panel.copy()
+        # v6/F2 Stata 兼容: pandas Int*/boolean nullable → Float64 (NaN 保留)
+        for _col in panel_stata.select_dtypes(include=['Int8','Int16','Int32','Int64','boolean']).columns:
+            panel_stata[_col] = panel_stata[_col].astype('Float64')
         clean_cols = []
         seen = {}
         for c in panel_stata.columns:

@@ -9,7 +9,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 功能：
     将早期的 `13_news_llms.py` (真伪精筛) 和 `23_tone_llms.py` (情感分析) 组合，
     使用同一个大模型 Prompt 构建思维链 (Chain-of-Thought)，单次请求获取"真伪"与"情感"。
-    采用多模型（如 gpt5nano, gemini3, claude4h）逐条并发请求，并使用多数投票（Majority Vote）
+    采用多模型（如 gpt5nano, gemini3, grok41）逐条并发请求，并使用多数投票（Majority Vote）
     合成最终共识，满足顶级学术期刊的交叉验证和三角验证标准。
     每条新闻独立请求各模型，通过信号量控制并发。
 
@@ -106,6 +106,20 @@ logger.info(f"LLM 推理参数: temperature={TEMPERATURE}, seed={RANDOM_SEED}, "
 
 MAX_RETRIES = LLM_CONFIG.get('max_retries', 5)
 RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
+# v6/N4: 指数退避 — 单 yunwu 账户避免雪崩
+RETRY_BACKOFF = LLM_CONFIG.get('retry_backoff', 'linear')  # 'exponential' or 'linear'
+RETRY_BACKOFF_CAP = LLM_CONFIG.get('retry_backoff_cap', 600)
+
+
+def _compute_retry_sleep(attempt: int) -> float:
+    """v6/N4: 计算第 attempt 次重试的 sleep 秒数。
+
+    指数退避: delay = min(RETRY_DELAY * 2**attempt, RETRY_BACKOFF_CAP)
+    线性回退到原行为: delay = RETRY_DELAY
+    """
+    if RETRY_BACKOFF == 'exponential':
+        return min(RETRY_DELAY * (2 ** attempt), RETRY_BACKOFF_CAP)
+    return RETRY_DELAY
 
 # ── Logit-to-Score 概率映射法（稳健性检验指标）──────────────────────────
 # 将 LLM 三分类标签 + sentiment_confidence 转化为 [-1, +1] 连续分数。
@@ -165,28 +179,28 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
 
     async with semaphore:
         for attempt in range(MAX_RETRIES):
+            sleep_s = _compute_retry_sleep(attempt)
             try:
                 async with session.post(f"{base_url}/chat/completions", json=payload, headers=headers, timeout=req_timeout) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         result_text = data['choices'][0]['message']['content']
-                        # 仅缓存成功响应（避免永久化瞬时故障）
                         if cache is not None:
                             cache.put(model_id, prompt, result_text)
                         return row_idx, model_id, result_text, track
                     elif resp.status in (429, 500, 502, 503, 504):
-                        logger.warning(f"[{model_id}] API HTTP {resp.status} - 等待 {RETRY_DELAY}s 后重试...")
-                        await asyncio.sleep(RETRY_DELAY)
+                        logger.warning(f"[{model_id}] API HTTP {resp.status} (attempt {attempt+1}/{MAX_RETRIES}) - 等待 {sleep_s:.1f}s 后重试...")
+                        await asyncio.sleep(sleep_s)
                     else:
                         resp_text = await resp.text()
                         logger.error(f"[{model_id}] API 错误 {resp.status}: {resp_text}")
                         break
             except asyncio.TimeoutError:
-                logger.warning(f"[{model_id}] 请求超时 - 等待 {RETRY_DELAY}s 后重试...")
-                await asyncio.sleep(RETRY_DELAY)
+                logger.warning(f"[{model_id}] 请求超时 (attempt {attempt+1}/{MAX_RETRIES}) - 等待 {sleep_s:.1f}s 后重试...")
+                await asyncio.sleep(sleep_s)
             except Exception as e:
-                logger.warning(f"[{model_id}] 异常 ({type(e).__name__}): {e}")
-                await asyncio.sleep(RETRY_DELAY)
+                logger.warning(f"[{model_id}] 异常 ({type(e).__name__}): {e} (attempt {attempt+1}/{MAX_RETRIES}) - 等待 {sleep_s:.1f}s")
+                await asyncio.sleep(sleep_s)
 
     # 所有重试均失败，返回 None 标记（区别于空 JSON，避免影响多数投票）
     logger.warning(f"[{model_id}] 行 {row_idx}: 所有 {MAX_RETRIES} 次重试均失败，该模型结果将从投票中排除")
@@ -258,8 +272,12 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
 def parse_json_response(res_text: str) -> dict:
     """尝试从大模型结果中解析 JSON。
 
-    容错策略: 自动去除 markdown 代码块包围(```json ... ```),
-    因为部分模型(如 GPT 系列)倾向于在 JSON 响应外添加代码块标记。
+    容错策略:
+    1. 自动去除 markdown 代码块包围(```json ... ```),
+       因为部分模型(如 GPT 系列)倾向于在 JSON 响应外添加代码块标记。
+    2. 若解析结果是 list (xAI Grok 偶尔返回 [{...}] 数组包裹形式),
+       且首元素为 dict, 则解包返回首元素。
+    3. 任何其他非 dict 解析结果统一返回 {}, 由上层视为"模型缺席"通道。
     """
     try:
         # 去除 markdown json 代码块包围
@@ -270,7 +288,12 @@ def parse_json_response(res_text: str) -> dict:
             text = text[3:]
         if text.endswith("```"):
             text = text[:-3]
-        return json.loads(text.strip())
+        result = json.loads(text.strip())
+        if isinstance(result, dict):
+            return result
+        if isinstance(result, list) and len(result) > 0 and isinstance(result[0], dict):
+            return result[0]
+        return {}
     except Exception:
         return {}
 
@@ -290,18 +313,33 @@ def majority_vote_bool(bools: list) -> bool:
     if not bools: return False
     return sum(bools) > (len(bools) / 2.0)
 
-def majority_vote_sentiment(sents: list) -> str:
-    """多数决判断情感，平局降级为中性。
-    
-    当最高频和次高频情感票数相同时（平局），保守降级为"中性"，
-    避免在不确定的情况下做出偏向性判断。该设计遵循稳健性原则：
-    在共识不明确时，选择信息量最低的中性标签。
+def majority_vote_sentiment(sents: list, tie_strategy: str = 'undefined'):
+    """多数决判断情感（v6/F2: 平局策略可配置）。
+
+    v6 改动 (F2 修复)：
+    ----------------
+    历史行为：平局 → 强制返回 "中性"，与"全员中性"在数据上不可区分，
+              且与上层 verified=False → forced "中性" 共同污染 is_neutral 列。
+              诊断显示 81.7%(_full) / 84.1%(_ctx) 的中性标签源自污染，
+              而非真实中性新闻。
+    新行为：默认平局返回 None，交由上层标记为 llm_undefined=1，与真实
+            中性严格区分；保留 'neutral' 作 robustness 备选。
+
+    Args:
+        sents: list of "正面"/"中性"/"负面" labels
+        tie_strategy: 'undefined' (返回 None) / 'neutral' (历史行为，返回"中性")
+
+    Returns:
+        str | None: 多数决结果；None 表示空票或平局-undefined 策略
     """
-    if not sents: return "中性"
+    if not sents:
+        return None
     c = Counter(sents)
     most_common = c.most_common()
     if len(most_common) > 1 and most_common[0][1] == most_common[1][1]:
-        return "中性"
+        if tie_strategy == 'neutral':
+            return "中性"
+        return None
     return most_common[0][0]
 
 
@@ -400,32 +438,44 @@ def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
 
 def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     """对某一轨道的模型响应进行解析和多数投票聚合。
-    
-    Args:
-        model_res_dict: {model_id: res_text} — 某一轨道的模型响应
-        models: 模型配置列表
-    
+
+    v6/F2 改动 (篇章级编码契约重写)
+    ----------------------------------
+    1. **解除 verification 与 sentiment 的耦合**：单模型 verified=False 不再
+       强制改写其 sentiment 为 "中性"。每个模型独立保留自己的 sentiment 判定。
+    2. **聚合 sentiment 投票仅纳入"通过 verification 的模型"**：避免拒绝该
+       新闻为金融科技的模型对情感投票产生噪声贡献。
+    3. **平局 → undefined**：majority_vote_sentiment 默认返回 None，上层
+       标记 llm_undefined=1；下游 panel 层把 None 映射为 NaN 而非"中性"。
+    4. **新增 4 个状态指标**：n_valid_votes / n_verifying_votes /
+       call_failure / undefined，用于下游精细化掩码。
+    5. **agree_rate 拆分**：agree_rate_v (验证投票一致率) /
+       agree_rate_s (情感投票一致率，仅在 verifying 子集上计算)。
+
     Returns:
-        tuple: (final_v, final_s, agree_rate, per_model_parsed, topics,
-                llm_categories, text_types,
+        tuple: (final_v, final_s, agree_rate_v, agree_rate_s,
+                n_valid_votes, n_verifying_votes,
+                call_failure, undefined,
+                per_model_parsed, topics, llm_categories, text_types,
                 n_failures, avg_prob_score)
             per_model_parsed: {f'{short}_verified': v, ...} 的字典
             avg_prob_score: Logit-to-Score 多模型平均概率分数 ∈ [-1, +1]
     """
     v_votes = []
-    s_votes = []
+    s_votes_all = []           # 所有成功调用模型的 sentiment（含 verified=False 模型）
+    s_votes_verified_only = [] # 仅含 verified=True 模型的 sentiment（v6/F2 新逻辑）
     topics = []
     llm_categories = []
     text_types = []
     per_model_parsed = {}
     n_failures = 0
-    
+    n_models = len(models)
+
     for m in models:
         short = m['short_name']
         m_id = m['model_name']
         raw_text = model_res_dict.get(m_id, None)
-        
-        # None 表示该模型 API 调用失败，跳过投票
+
         if raw_text is None:
             n_failures += 1
             per_model_parsed[f"{short}_verified"] = None
@@ -433,28 +483,34 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             per_model_parsed[f"{short}_verification_confidence"] = 0.0
             per_model_parsed[f"{short}_sentiment_confidence"] = 0.0
             continue
-        
+
         jd = parse_json_response(raw_text)
-        
-        # 解析对应字段（安全处理 LLM 返回的字符串布尔值）
+        # 双重保险：parse_json_response 已统一返回 dict，但仍防御 LLM 异常输出
+        if not isinstance(jd, dict):
+            jd = {}
+
         v = jd.get('is_bank_fintech_news', False)
         if isinstance(v, str):
             v = v.strip().lower() in ('true', '1', 'yes')
         v = bool(v)
-        
-        s = jd.get('sentiment', '中性')
-        
-        # 若判别为伪，其情感严格规定为中性以防噪声
-        if not v:
-            s = "中性"
-            
+
+        s_raw = jd.get('sentiment', None)
+        if isinstance(s_raw, str):
+            s = s_raw.strip()
+            if s not in ('正面', '中性', '负面'):
+                s = None
+        else:
+            s = None
+
         v_votes.append(v)
-        s_votes.append(s)
-        
+
+        if s is not None:
+            s_votes_all.append(s)
+            if v:
+                s_votes_verified_only.append(s)
+
         per_model_parsed[f"{short}_verified"] = v
         per_model_parsed[f"{short}_sentiment"] = s
-        # 安全 float 转换（与标题轨道 L772-775 的 float() 保护一致）：
-        # LLM 可能返回字符串 "0.85"、null 或 bool，需统一为 float
         try:
             per_model_parsed[f"{short}_verification_confidence"] = float(jd.get('verification_confidence', 0.0) or 0.0)
         except (ValueError, TypeError):
@@ -463,8 +519,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             per_model_parsed[f"{short}_sentiment_confidence"] = float(jd.get('sentiment_confidence', 0.0) or 0.0)
         except (ValueError, TypeError):
             per_model_parsed[f"{short}_sentiment_confidence"] = 0.0
-        
-        # 同步提取 fintech_topic 和 fintech_category（复用已解析的 jd）
+
         topic = jd.get('fintech_topic', None)
         if topic and str(topic).strip().lower() not in ('null', 'none', ''):
             topics.append(str(topic))
@@ -476,32 +531,33 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
                 if part in ('底层技术', '应用场景'):
                     llm_categories.append(part)
                     break
-        # 提取 text_type（二分类模式：实质性 / 描述性）
         llm_tt = jd.get('text_type', None)
         if llm_tt:
             tt_str = str(llm_tt).strip()
             if tt_str in ('实质性', '描述性'):
                 text_types.append(tt_str)
-    
+
     final_v = majority_vote_bool(v_votes)
-    final_s = majority_vote_sentiment(s_votes) if final_v else "中性"
-    
-    # 计算一致性：有效投票中支持 majority 的比例
-    # 【语义澄清】此处 agree_rate 基于 v_votes（验证投票），反映的是
-    #   "LLM 们对该新闻是否为金融科技新闻的共识程度"（验证一致率）。
-    #   而非 s_votes（情感投票）的情感一致率。
-    #   设计选择理由：验证是阶段21的主要任务，验证一致率更直接地反映
-    #   信号质量（signal quality）。情感一致率已通过逐模型置信度列
-    #   （{short}_sentiment_confidence_{track}）间接捕获。
-    #   下游影响：41_panel 中 llm_vote_cont = vote_score × agreement_rate，
-    #   此处 agreement_rate 作为信号质量权重调制情感强度。
-    #   注意：标题轨道（title）的 agreement_rate 基于 s_votes（情感投票），
-    #   因为标题轨道不含验证步骤，所有样本已通过 full 轨道验证。
+
+    # v6/F2: 仅在通过 verification 的模型子集上计算情感多数票。
+    if final_v:
+        final_s = majority_vote_sentiment(s_votes_verified_only, tie_strategy='undefined')
+    else:
+        # 整篇被多数判为非金融科技 → 情感无意义；标记为 undefined（None）。
+        final_s = None
+
     n_valid_votes = len(v_votes)
+    n_verifying_votes = sum(1 for v in v_votes if v == final_v) if final_v else 0
     agree_v_count = sum(1 for x in v_votes if x == final_v)
-    agree_rate = agree_v_count / n_valid_votes if n_valid_votes > 0 else 0.0
-    
-    # ── Logit-to-Score: 计算每个模型的概率分数并取平均 ──
+    agree_rate_v = agree_v_count / n_valid_votes if n_valid_votes > 0 else 0.0
+    if s_votes_verified_only and final_s is not None:
+        agree_rate_s = sum(1 for x in s_votes_verified_only if x == final_s) / len(s_votes_verified_only)
+    else:
+        agree_rate_s = float('nan')
+
+    call_failure = 1 if n_valid_votes == 0 else 0
+    undefined = 1 if (final_v and final_s is None) else 0
+
     prob_scores = []
     for m in models:
         short = m['short_name']
@@ -512,9 +568,16 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             per_model_parsed[f"{short}_prob_score"] = ps_result['prob_score']
             per_model_parsed[f"{short}_prob_source"] = ps_result['prob_source']
             prob_scores.append(ps_result['prob_score'])
-    avg_prob_score = sum(prob_scores) / len(prob_scores) if prob_scores else 0.0
+    avg_prob_score = sum(prob_scores) / len(prob_scores) if prob_scores else float('nan')
 
-    return final_v, final_s, agree_rate, per_model_parsed, topics, llm_categories, text_types, n_failures, avg_prob_score
+    return (
+        final_v, final_s,
+        agree_rate_v, agree_rate_s,
+        n_valid_votes, n_verifying_votes,
+        call_failure, undefined,
+        per_model_parsed, topics, llm_categories, text_types,
+        n_failures, avg_prob_score,
+    )
 
 
 def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
@@ -584,9 +647,50 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _write_run_lineage(stage_start: float):
+    """v6/N8: 写入本次 stage 21 运行的 LLM 配置 lineage 清单。
+
+    解决"换模型不留痕"问题：每次重跑生成 21_tone_llms_lineage_<timestamp>.json，
+    持久化记录 (slot, model_name, base_url, run_start_ts) 三元组。
+    """
+    lineage = {
+        "stage": STAGE_NAME,
+        "run_start_iso": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(stage_start)),
+        "run_start_ts": stage_start,
+        "models": [
+            {
+                "short_name": m.get("short_name"),
+                "model_name": m.get("model_name"),
+                "description": m.get("description"),
+                "base_url": m.get("base_url"),
+            }
+            for m in MODELS
+        ],
+        "concurrency": MAX_CONCURRENCY,
+        "max_retries": MAX_RETRIES,
+        "retry_delay": RETRY_DELAY,
+        "retry_backoff": RETRY_BACKOFF,
+        "retry_backoff_cap": RETRY_BACKOFF_CAP,
+        "temperature": TEMPERATURE,
+        "random_seed": RANDOM_SEED,
+        "force_json": FORCE_JSON,
+        "logit_to_score_enabled": LOGIT_SCORE_ENABLED,
+    }
+    out_dir = CONFIG["paths"]["output_dir"]
+    ts = time.strftime("%Y%m%d_%H%M%S", time.localtime(stage_start))
+    out_path = os.path.join(out_dir, f"21_tone_llms_lineage_{ts}.json")
+    try:
+        with open(out_path, 'w', encoding='utf-8') as f:
+            json.dump(lineage, f, ensure_ascii=False, indent=2)
+        logger.info(f"  [N8 lineage] 已写入: {out_path}")
+    except Exception as e:
+        logger.warning(f"  [N8 lineage] 写入失败 (非阻塞): {e}")
+
+
 def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
+    _write_run_lineage(stage_start)
 
     # 向下兼容回退: 优先读阶段14输出, 若磁盘上不存在则回退到阶段12
     input_14 = CONFIG['filenames'].get('output_14_fintech_intensity', '14_fintech_intensity.parquet')
@@ -622,6 +726,17 @@ def main():
         df['llm_sentiment_ctx'] = '中性'
         df['llm_agreement_rate_full'] = 0.0
         df['llm_agreement_rate_ctx'] = 0.0
+        # v6/F2 新增掩码列（禁用分支默认值）
+        df['llm_agreement_rate_s_full'] = float('nan')
+        df['llm_agreement_rate_s_ctx'] = float('nan')
+        df['n_valid_votes_full'] = 0
+        df['n_valid_votes_ctx'] = 0
+        df['n_verifying_votes_full'] = 0
+        df['n_verifying_votes_ctx'] = 0
+        df['llm_call_failure_full'] = 0
+        df['llm_call_failure_ctx'] = 0
+        df['llm_undefined_full'] = 0
+        df['llm_undefined_ctx'] = 0
         df['fintech_category'] = '应用场景'
         df['category_confidence'] = 0.0
         df['text_type'] = None
@@ -684,6 +799,17 @@ def main():
         llm_sentiment_ctx_arr = []
         agreement_rate_full_arr = []
         agreement_rate_ctx_arr = []
+        # v6/F2 新增掩码列
+        agreement_rate_s_full_arr = []
+        agreement_rate_s_ctx_arr = []
+        n_valid_votes_full_arr = []
+        n_valid_votes_ctx_arr = []
+        n_verifying_votes_full_arr = []
+        n_verifying_votes_ctx_arr = []
+        call_failure_full_arr = []
+        call_failure_ctx_arr = []
+        undefined_full_arr = []
+        undefined_ctx_arr = []
         fintech_category_arr = []
         category_confidence_arr = []
         text_type_arr = []
@@ -710,14 +836,23 @@ def main():
         for idx, row in df.iterrows():
             row_results = results_map.get(idx, {'full': {}, 'ctx': {}})
 
-            # ── Full 轨道聚合 ──
-            final_v_full, final_s_full, agree_rate_full, parsed_full, topics_full, llm_cats_full, text_types_full, n_fail_full, avg_prob_full = \
-                _aggregate_track(row_results.get('full', {}), MODELS)
+            # ── Full 轨道聚合 (v6/F2: 14 元组返回) ──
+            (final_v_full, final_s_full,
+             agree_rate_full, agree_rate_s_full,
+             n_valid_full, n_verifying_full,
+             call_failure_full, undefined_full,
+             parsed_full, topics_full, llm_cats_full, text_types_full,
+             n_fail_full, avg_prob_full) = _aggregate_track(row_results.get('full', {}), MODELS)
             n_api_failures += n_fail_full
 
             llm_verified_full_arr.append(final_v_full)
             llm_sentiment_full_arr.append(final_s_full)
             agreement_rate_full_arr.append(agree_rate_full)
+            agreement_rate_s_full_arr.append(agree_rate_s_full)
+            n_valid_votes_full_arr.append(n_valid_full)
+            n_verifying_votes_full_arr.append(n_verifying_full)
+            call_failure_full_arr.append(call_failure_full)
+            undefined_full_arr.append(undefined_full)
 
             for m in MODELS:
                 short = m['short_name']
@@ -730,14 +865,23 @@ def main():
                     per_model_cols[f"{short}_prob_source_full"].append(parsed_full.get(f"{short}_prob_source", 'P3'))
             prob_score_full_arr.append(avg_prob_full)
 
-            # ── Ctx 轨道聚合 ──
-            final_v_ctx, final_s_ctx, agree_rate_ctx, parsed_ctx, topics_ctx, llm_cats_ctx, text_types_ctx, n_fail_ctx, avg_prob_ctx = \
-                _aggregate_track(row_results.get('ctx', {}), MODELS)
+            # ── Ctx 轨道聚合 (v6/F2: 14 元组返回) ──
+            (final_v_ctx, final_s_ctx,
+             agree_rate_ctx, agree_rate_s_ctx,
+             n_valid_ctx, n_verifying_ctx,
+             call_failure_ctx, undefined_ctx,
+             parsed_ctx, topics_ctx, llm_cats_ctx, text_types_ctx,
+             n_fail_ctx, avg_prob_ctx) = _aggregate_track(row_results.get('ctx', {}), MODELS)
             n_api_failures += n_fail_ctx
 
             llm_verified_ctx_arr.append(final_v_ctx)
             llm_sentiment_ctx_arr.append(final_s_ctx)
             agreement_rate_ctx_arr.append(agree_rate_ctx)
+            agreement_rate_s_ctx_arr.append(agree_rate_s_ctx)
+            n_valid_votes_ctx_arr.append(n_valid_ctx)
+            n_verifying_votes_ctx_arr.append(n_verifying_ctx)
+            call_failure_ctx_arr.append(call_failure_ctx)
+            undefined_ctx_arr.append(undefined_ctx)
 
             for m in MODELS:
                 short = m['short_name']
@@ -795,6 +939,17 @@ def main():
         df['llm_sentiment_ctx'] = llm_sentiment_ctx_arr
         df['llm_agreement_rate_full'] = agreement_rate_full_arr
         df['llm_agreement_rate_ctx'] = agreement_rate_ctx_arr
+        # v6/F2 新增掩码 / 元数据列
+        df['llm_agreement_rate_s_full'] = agreement_rate_s_full_arr
+        df['llm_agreement_rate_s_ctx'] = agreement_rate_s_ctx_arr
+        df['n_valid_votes_full'] = n_valid_votes_full_arr
+        df['n_valid_votes_ctx'] = n_valid_votes_ctx_arr
+        df['n_verifying_votes_full'] = n_verifying_votes_full_arr
+        df['n_verifying_votes_ctx'] = n_verifying_votes_ctx_arr
+        df['llm_call_failure_full'] = call_failure_full_arr
+        df['llm_call_failure_ctx'] = call_failure_ctx_arr
+        df['llm_undefined_full'] = undefined_full_arr
+        df['llm_undefined_ctx'] = undefined_ctx_arr
         df['fintech_category'] = fintech_category_arr
         df['category_confidence'] = category_confidence_arr
         df['text_type'] = text_type_arr

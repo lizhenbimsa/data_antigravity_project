@@ -8,7 +8,18 @@ panel_building:
   compute_attention_index: true      # 6b. 金融科技注意力指数 (三级地理维度)
   compute_media_heterogeneity: true  # 6c. 媒体异质性 (四维度: 财经/综合/中央级/其他)
   compute_media_authority_weighting: true  # 3c. 媒体权威性加权 (Holzman et al. 2023, TAR)
-  compute_bartik_iv: true                 # 7e. Bartik Shift-Share IV 29套 (Goldsmith-Pinkham et al. 2020, AER)
+  # v6/F4 重构: Bartik IV 修剪至 6 类 (type/scale/fintech/media/geoprox/mauth)
+  # 删除 28 类违反外生性公理的 IV (doclen/kwdiv/kwden/mden/sentlen/ttr/excl/
+  # title/mcount/author/page/pgnum/half/qtr/month/wkday/breadth/pubfmt/
+  # mcentral/mfin/mcomp/mofficial/mmarket/mfreq/mdeep/mdaily/mprov)
+  # 学术依据: Goldsmith-Pinkham, Sorkin & Swift (2020, AER) §2
+  compute_bartik_iv: true
+  # v6/F4-3: Bartik 基期年份控制
+  #   'auto' = max(panel.year.min(), 2010)
+  #   显式 int = 强制使用该年；强制 < bartik_pre_treatment_cutoff
+  bartik_base_year: auto
+  # DCEP 沙盒里程碑 — 基期 ≥ 此值触发 RuntimeError，杜绝 post-treatment 基期
+  bartik_pre_treatment_cutoff: 2019
   compute_policy_shocks: true             # 7g. DID 政策冲击变量 — DCEP + Fintech Sandbox (Callaway & Sant'Anna 2021, JoE)
 
 # ------------------------------------------------------------------------------
