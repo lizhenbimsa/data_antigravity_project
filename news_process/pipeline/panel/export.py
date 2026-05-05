@@ -187,6 +187,37 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     【通俗应用 (Layman's Terms)】
     这里是数据的“出关口岸”。Python 可以随意给数据起长名字（比如长达100个字母），但古老的 Stata 只认 32 个字母，超出就报错，甚至把两个名字砍短后变成同名从而导致数据崩溃。本模块就是个极其严格的“护照审查员”，把长名字安全剪裁，并贴上详细的学术标签（STATA_LABELS），确保导入 Stata 后能直接跑回归。
     """
+    # ────────────────────────────────────────────────────────────────────────
+    # Step 5 硬化 (致命问题 5 / 红队 v6 N2): REQUIRED_PANEL_COLUMNS 门槛.
+    # 在写出任何 .parquet / .dta / .csv 之前先验列, 缺列即 raise RuntimeError,
+    # 杜绝"新 .parquet 写成功但 .dta 异常"导致 .parquet 与 .dta 语义错位的隐性
+    # 灾难 (此前 40_panel_yearly.parquet=5月5日 而 .dta=5月1日 的真实事故).
+    # 校验集对应 Step 4 硬化保证存在的 4 个上游契约:
+    #   stage 15 (政策对齐)  → 7h-token 四象限分类列
+    #   stage 30 (双轨稳健)  → strat_diff_t2v_*/policy_cosine_sim_t2v_*
+    #   stage 25/26/27 (硬import) → strat_diff_full / auth_sim_* / benefit_sim_*
+    # 使用 raise 而非 assert (assert 在 python -O 优化模式下会被剥离).
+    REQUIRED_PANEL_COLUMNS = [
+        # bank-year 主键
+        'target_bank', 'year',
+        # stage 30 双轨稳健性 (4 列, 由 8e 步骤 merge)
+        'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
+        'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx',
+    ]
+    _missing = [c for c in REQUIRED_PANEL_COLUMNS if c not in panel.columns]
+    if _missing:
+        raise RuntimeError(
+            f"[export_panel] panel 缺失必填列 {_missing}; "
+            f"现有 {len(panel.columns)} 列前 30 个: {list(panel.columns)[:30]}; "
+            f"拒绝写出避免 .parquet/.dta 语义错位。"
+            f" 请检查上游 stage 15/30 输出是否存在 + Step 4 硬化是否生效."
+        )
+    logger.info(
+        f"[export_panel] REQUIRED_PANEL_COLUMNS 校验通过 "
+        f"({len(REQUIRED_PANEL_COLUMNS)} 列 / panel 共 {len(panel.columns)} 列, "
+        f"{len(panel)} 行)"
+    )
+
     logger.info("=" * 60)
     logger.info("步骤 9: 多格式导出")
     logger.info("=" * 60)
@@ -199,8 +230,34 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 年度面板 Stata .dta
     if PANEL_CFG.get('export_stata', True):
         dta_path = os.path.splitext(panel_path)[0] + '.dta'
+        # B-3 修复 (v7 外副作用): 先删除旧 .dta 再尝试写出, 避免本次写出失败时
+        # 旧 .dta (与新 .parquet 语义错位) 残留导致 Stata 端误用陈旧数据。
+        # 这是 N2 修复 (REQUIRED_PANEL_COLUMNS) 的同精神延伸: 杜绝 .parquet/.dta
+        # 错位灾难。
+        if os.path.exists(dta_path):
+            os.remove(dta_path)
+            logger.info(f"  已删除旧 .dta (避免与新 .parquet 错位): {dta_path}")
         try:
             panel_stata = panel.copy()
+            # B-1 修复 (v7 外副作用): 防御性 object → float64 转换。
+            # 根因: 上游 geography.py 等 buf_results 模式生成的列 (例如
+            # prox_50km_tone_full), 当多个 bank-year 的 within[tone_col].mean()
+            # 返回 NaN 时, pd.DataFrame(buf_rows) 推断该列为 object dtype, 即使
+            # 里面其实有少量 float 值。to_stata() 在 object 列上误判为
+            # "Object arrays containing only null values" 然后 raise.
+            # 这里把所有 object dtype 但语义为数值的列 (无 str 元素) 强制转为
+            # float64, 让 to_stata 能正确识别。
+            # 注意: pyarrow 写 .parquet 时会自动恢复 dtype, 因此 .parquet 路径
+            # 不受影响; 此修复仅为 .dta 路径补齐 dtype 语义.
+            for _col in panel_stata.select_dtypes(include=['object']).columns:
+                _s = panel_stata[_col]
+                _non_null = _s.dropna()
+                if len(_non_null) > 0 and _non_null.map(lambda x: isinstance(x, str)).any():
+                    continue  # 真字符串列 (target_bank 等), 不转
+                try:
+                    panel_stata[_col] = pd.to_numeric(_s, errors='coerce').astype(float)
+                except Exception:
+                    pass  # 极少数无法转换的留给 to_stata 自己处理 (会被下面 raise 暴露)
             # v6/F2 Stata 兼容: pandas Int8/Int16/Int32/Int64 nullable 类型
             #   to_stata() 不能直接处理 <NA>，需先转 Float64 (NaN 会保留)。
             #   Stata 端用 mvdecode 处理缺失，与原 NaN 语义一致。
@@ -943,7 +1000,19 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                                  variable_labels=labels)
             logger.info(f"  已导出 Stata 文件: {dta_path}")
         except Exception as e:
-            logger.warning(f"  Stata 导出失败: {e}")
+            # B-2 修复 (v7 外副作用): 经典 swallow-errors 反模式根除.
+            # 旧代码仅 logger.warning, 让 stage 45 退出码假装 0, 但 .dta 实际
+            # 没写出, 与 .parquet 形成"语义错位"灾难 (现实中触发: 5月1日的
+            # 旧 .dta 与 5月5日的新 .parquet 同时存在). 改为 raise 让上层
+            # orchestrator 立即停止, 与 N2 的 REQUIRED_PANEL_COLUMNS 同精神.
+            # B-3 已在 try 之前先删旧 .dta, 故 raise 后 .dta 不存在 (干净失败,
+            # 不会留下语义错位的半成品).
+            raise RuntimeError(
+                f"[export_panel] Stata 导出失败: {e}; "
+                f"已删除旧 .dta 避免与新 .parquet 错位; "
+                f"请检查 panel 中是否有 to_stata 不兼容的 dtype/数据 "
+                f"(如全 None object 列), B-1 防御性转换已就位但仍未覆盖该情形."
+            ) from e
 
     # 文章-银行级数据
     article_filename = FILENAMES.get('output_40_article_bank', '40_article_bank_level.parquet')

@@ -55,6 +55,8 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
     "22_tone_words.py": ["22_words_tone.parquet"],
     "23_tone_berts.py": ["23_bert_tone.parquet"],
     "24_herd_decay_processor.py": ["24_herd_decay.parquet"],
+    # 模块四c: text2vec 双轨稳健性指标 (战略差异 + 政策对齐 _full/_ctx)
+    "30_robustness_text2vec.py": ["30_text2vec_indicators.parquet"],
     # 模块五: panel construction (阶段 45 产出 bank-year + article-bank 两类面板)
     "45_panel_export_main.py": [
         "40_panel_yearly.parquet",
@@ -89,6 +91,7 @@ _FILENAME_KEYS: Mapping[str, list[Optional[str]]] = {
     "22_tone_words.py": ["output_22_words_tone"],
     "23_tone_berts.py": ["output_23_bert_tone"],
     "24_herd_decay_processor.py": ["output_24_herd_decay"],
+    "30_robustness_text2vec.py": [None],  # 输出文件名硬编码在 validation/text2vec.py, 无 config key
     "45_panel_export_main.py": [
         "output_40_panel_yearly",
         "output_40_article_bank",

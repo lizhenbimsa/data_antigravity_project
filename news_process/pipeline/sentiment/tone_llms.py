@@ -692,21 +692,25 @@ def main():
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
     _write_run_lineage(stage_start)
 
-    # 向下兼容回退: 优先读阶段14输出, 若磁盘上不存在则回退到阶段12
+    # Step 4(a) 硬化 (致命问题 5 / 红队 v6 修订): 删除"14 不存在则回退 12"的
+    # 静默 fallback。Stage 14 输出 fintech_intensity_score / intensity_verified
+    # 是 LLM 双轨语义筛选的关键信号; fallback 到 12 会让 LLM 失去 TF-IDF 强度
+    # 锚点, 静默降级为旧版"无强度筛选"模式, 与 v6 三家族 LLM 设计假设矛盾。
+    # 若 stage 14 真的缺失, 必须通过 raise 让 orchestrator 立即停止并修复上游,
+    # 而非继续生产含有"未见过的隐性降级"标签的 21_tone_llms.parquet。
     input_14 = CONFIG['filenames'].get('output_14_fintech_intensity', '14_fintech_intensity.parquet')
-    input_12 = CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')
     path_14 = os.path.join(CONFIG["paths"]["output_dir"], input_14)
-    path_12 = os.path.join(CONFIG["paths"]["output_dir"], input_12)
 
-    if os.path.exists(path_14):
-        input_path = path_14
-        logger.info(f"使用阶段14输出: {input_14}")
-    elif os.path.exists(path_12):
-        input_path = path_12
-        logger.info(f"阶段14输出不存在, 回退至阶段12: {input_12}")
-    else:
-        logger.error(f"输入文件均未找到: {path_14}, {path_12}")
-        return
+    if not os.path.exists(path_14):
+        raise RuntimeError(
+            f"[stage 21] 上游输入缺失: {path_14} 不存在。"
+            f" Stage 21 (LLM 双轨情感分析) 硬依赖 stage 14 输出的 "
+            f"fintech_intensity_score 列。请先运行 "
+            f"`python -m news_process.pipeline.filtering.fintech_intensity` "
+            f"产出 {input_14} 后再重试。"
+        )
+    input_path = path_14
+    logger.info(f"使用阶段14输出: {input_14}")
         
     logger.info(f"加载预筛数据: {input_path}")
     df = pd.read_parquet(input_path)

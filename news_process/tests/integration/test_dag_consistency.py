@@ -84,10 +84,11 @@ def test_validation_orchestrator_uses_canonical_stages(rpv, core_dag):
 
 
 def test_main_stage_count(core_dag):
-    """``STAGES_MAIN`` 阶段数须等于 Phase 1 基线 (11)。"""
-    # 00 + 11 + 12 + 14 + 15 + 21 + 22 + 23 + 24 + 45 + 51 = 11
-    assert len(core_dag.STAGES_MAIN) == 11, (
-        f"STAGES_MAIN 数量漂移: 期望 11, 实际 {len(core_dag.STAGES_MAIN)}. "
+    """``STAGES_MAIN`` 阶段数须等于 Phase 1 基线 + Step 7a/v6 (12)。"""
+    # 00 + 11 + 12 + 14 + 15 + 21 + 22 + 23 + 24 + 30 + 45 + 51 = 12
+    # (v6 红队修复: 显式纳入 stage 30 双轨稳健性指标 / Step 3a)
+    assert len(core_dag.STAGES_MAIN) == 12, (
+        f"STAGES_MAIN 数量漂移: 期望 12, 实际 {len(core_dag.STAGES_MAIN)}. "
         "若有意增删阶段, 请同步更新本测试。"
     )
 
@@ -128,27 +129,27 @@ def test_predicate_identity_module_scope(core_dag):
 
 def test_filter_enabled_respects_predicate(core_dag):
     """``filter_enabled()`` 须正确应用 ``enabled_when`` 谓词。"""
-    # 三种情感方法全开 -> 11 阶段
+    # 三种情感方法全开 -> 12 阶段 (v6 红队修复: 含 stage 30 / Step 3a)
     cfg_full = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
         },
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 11
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 12
 
-    # 仅 LLM -> 11 - 2 = 9
+    # 仅 LLM -> 12 - 2 (words+berts) = 10
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 9
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 10
 
-    # 无情感方法 -> 11 - 3 = 8
+    # 无情感方法 -> 12 - 3 (llm+words+berts) = 9
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 8
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 9
     )

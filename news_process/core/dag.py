@@ -180,6 +180,14 @@ STAGES_MAIN: list[StageSpec] = [
         group="main", kind="sentiment",
     ),
 
+    # ── 模块四c：text2vec 双轨稳健性指标 (战略差异 + 政策对齐 _full/_ctx) ──
+    StageSpec(
+        name="阶段30: text2vec 双轨稳健性指标",
+        script="30_robustness_text2vec.py",
+        group="main", kind="robustness",
+        timeout=7200,  # 含 sentence-transformers 本地 GPU 编码 (双轨)
+    ),
+
     # ── 模块五：面板数据构建 ──
     StageSpec(
         name="阶段40-45: Bank-Year 面板数据构建",

@@ -92,6 +92,7 @@ def test_golden_snapshot_has_content(golden):
     "22_words_tone.parquet",
     "23_bert_tone.parquet",
     "24_herd_decay.parquet",
+    "30_text2vec_indicators.parquet",
     "40_panel_yearly.parquet",
     "40_article_bank_level.parquet",
     "40_attn_index_year.parquet",

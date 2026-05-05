@@ -86,23 +86,21 @@ from news_process.pipeline.panel import llm_peer_iv as _lp
 compute_llm_peer_iv = getattr(_lp, 'compute_llm_peer_iv', None)
 del _lp
 
-# 从 features.strategic_diff (原 25)
-from news_process.pipeline.features import strategic_diff as _sd
-compute_strategic_differentiation = getattr(
-    _sd, 'compute_strategic_differentiation', None)
-del _sd
-
-# 从 features.policy_similarity (原 26)
-from news_process.pipeline.features import policy_similarity as _ps
-compute_authoritative_similarity = getattr(
-    _ps, 'compute_authoritative_similarity', None)
-del _ps
-
-# 从 features.benefit_society (原 27)
-from news_process.pipeline.features import benefit_society as _bs
-compute_benefit_society_panel = getattr(
-    _bs, 'compute_benefit_society_panel', None)
-del _bs
+# Step 4(d-i) 硬化 (致命问题 5 / 红队 v6): 三处 getattr(..., None) 软依赖
+# 改为硬 import。这三个特征 (战略差异度 / 权威政策对齐 / 经营效益投影) 是
+# v6/F3 主路径的核心计量指标, 缺失会触发 L883/L889/L904 的 else 分支静默
+# logger.info("跳过") , 让 panel 缺列, 进而让 stage 51 falsification 测试基
+# 于不完整 panel 跑出无意义的对照系数。改为硬 import: 若 features 模块本
+# 身有缺陷或 ImportError, 必须立即 fail-loud, 而非降级生产部分 panel.
+from news_process.pipeline.features.strategic_diff import (
+    compute_strategic_differentiation,
+)
+from news_process.pipeline.features.policy_similarity import (
+    compute_authoritative_similarity,
+)
+from news_process.pipeline.features.benefit_society import (
+    compute_benefit_society_panel,
+)
 
 
 
@@ -880,33 +878,26 @@ def main():
         logger.info("  compute_cognitive_proximity 不可用, 跳过")
 
     # --- 7h-strat. 战略差异度指数 (Guzman & Li 2023; Hoberg & Phillips 2016) ---
-    if compute_strategic_differentiation is not None:
-        panel = compute_strategic_differentiation(df_exploded, panel)
-    else:
-        logger.info("  compute_strategic_differentiation 不可用, 跳过")
+    # Step 4(d-ii) 硬化: 删除原 if/else None-check, 配合 L89 硬 import
+    # 共同保证 fail-loud 而非降级跑出缺列 panel.
+    panel = compute_strategic_differentiation(df_exploded, panel)
 
     # --- 7h-auth. 权威政策战略响应度 (Hassan et al. 2019, QJE) ---
-    if compute_authoritative_similarity is not None:
-        panel = compute_authoritative_similarity(df_exploded, panel)
-        # v6/F3 修复 (主路径全 NaN)：删除原"零向量数学正交"熔断填充。
-        # 学术依据 (Allison 2001 §3 / Heckman 1979 ECMA)：当某 bank-year
-        # 在该 track 下无文章可计算余弦相似度时，正确语义是"未测量"
-        # (NaN)，而非"测量值为 0"。强行填 0 会在 TWFE 中制造伪零质心、
-        # 扭曲系数并低估标准误。Stata 端通过 listwise deletion 自然处理。
-        # 旧注释"零向量数学正交"为虚假学术依据：余弦相似度对零向量未定义。
-    else:
-        logger.info("  compute_authoritative_similarity 不可用, 跳过")
+    # v6/F3 修复 (主路径全 NaN)：删除原"零向量数学正交"熔断填充。
+    # 学术依据 (Allison 2001 §3 / Heckman 1979 ECMA)：当某 bank-year
+    # 在该 track 下无文章可计算余弦相似度时，正确语义是"未测量"
+    # (NaN)，而非"测量值为 0"。强行填 0 会在 TWFE 中制造伪零质心、
+    # 扭曲系数并低估标准误。Stata 端通过 listwise deletion 自然处理。
+    # 旧注释"零向量数学正交"为虚假学术依据：余弦相似度对零向量未定义。
+    panel = compute_authoritative_similarity(df_exploded, panel)
 
     # --- 7h-benefit. 经营效益情感态度投影 (Jha, Liu & Manela 2026, RFS) ---
     # 【学术依据】Jha et al. (2026, RFS §1.3.2 Eq. 1): 双极连续余弦投影
     #   a_j = cos(s_j, mean(pos) - mean(neg))
     # 【白话】用"利好经营 vs 损害经营"方向轴给每篇新闻打态度分
-    if compute_benefit_society_panel is not None:
-        panel = compute_benefit_society_panel(panel, df_exploded)
-        # v6/F3 修复 (主路径全 NaN)：删除原 fillna(0.0) 熔断填充。
-        # 与 auth_sim_* 同：无文章观测 → 投影未定义 → NaN。
-    else:
-        logger.info("  compute_benefit_society_panel 不可用, 跳过")
+    # v6/F3 修复 (主路径全 NaN)：删除原 fillna(0.0) 熔断填充。
+    # 与 auth_sim_* 同：无文章观测 → 投影未定义 → NaN。
+    panel = compute_benefit_society_panel(panel, df_exploded)
 
     # --- 7h-token. 文章级政策对齐 + Token/Hidden 四象限分类 ---
     # 【学术支撑】
@@ -934,6 +925,20 @@ def main():
     _align_filename = FILENAMES.get(
         'output_15_article_alignment', '15_article_alignment.parquet')
     _align_path = os.path.join(OUTPUT_DIR, _align_filename)
+
+    # Step 4(b) 硬化 (致命问题 5 / 红队 v6): 删除原"文件不存在则静默 skip"的
+    # 容错。Stage 15 (文章级政策对齐) 输出 policy_cosine_sim 是 7h-token 四
+    # 象限分类的硬依赖, skip 会让 panel 缺失 token_share / hidden_share 等列,
+    # 落到下游 stage 51 falsification 测试时会用 "缺列即 0" 的隐性默认值,
+    # 制造伪零样本污染计量结论。必须 fail-loud 让 orchestrator 立即停止.
+    if not os.path.exists(_align_path):
+        raise RuntimeError(
+            f"[stage 45/7h-token] 上游输入缺失: {_align_path} 不存在。"
+            f" Stage 45 的 7h-token 四象限分类硬依赖 stage 15 输出的 "
+            f"policy_cosine_sim 列。请先运行 "
+            f"`python -m news_process.pipeline.filtering.policy_alignment` "
+            f"产出 {_align_filename} 后再重试。"
+        )
 
     if os.path.exists(_align_path):
         df_align = pd.read_parquet(_align_path)
@@ -1378,6 +1383,20 @@ def main():
     # 【学术机制】稳健性联合检验 (Robustness Joint Testing)
     # 通过将本地特征矩阵与面板数据合并，应对大语言模型潜在的“幻觉偏移”(Hallucination Bias)。
     t2v_path = os.path.join(OUTPUT_DIR, '30_text2vec_indicators.parquet')
+    # Step 4(c) 硬化 (致命问题 5 / 红队 v6): 删除原"文件不存在则 warning skip"
+    # 的容错。Stage 30 是双轨稳健性 (Data Dual-Track) 的核心，缺失会让 panel
+    # 失去 strat_diff_t2v_full/_ctx + policy_cosine_sim_t2v_full/_ctx 共 4 列,
+    # 直接拆毁 v6/F2-F4 方法论防火墙 (LLM 主轨 vs Text2Vec 辅轨对照)。
+    # 必须 fail-loud 让 orchestrator 立即停止, 而非生产无法解释的部分 panel.
+    if not os.path.exists(t2v_path):
+        raise RuntimeError(
+            f"[stage 45/8e-t2v] 上游输入缺失: {t2v_path} 不存在。"
+            f" Stage 45 的 8e 数据双轨融合硬依赖 stage 30 输出的 "
+            f"strat_diff_t2v_* / policy_cosine_sim_t2v_* 共 4 列。请先运行 "
+            f"`python -m news_process.validation.text2vec` "
+            f"产出 30_text2vec_indicators.parquet 后再重试。"
+        )
+
     if os.path.exists(t2v_path):
         logger.info(f"  合并 30_text2vec_indicators.parquet...")
         t2v_df = pd.read_parquet(t2v_path)

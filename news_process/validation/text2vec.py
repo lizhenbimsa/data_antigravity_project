@@ -122,7 +122,16 @@ def main():
     df = pd.read_parquet(input_path)
     # 强制重置索引，杜绝因上游导致重复索引引发的 .loc 布尔掩码赋值错位或广播失败
     df = df.reset_index(drop=True)
-    
+
+    # Step 3b 修复 (致命缺陷 D1): 上游 14 不输出 content_ctx 列, 复用
+    # tone_llms._materialize_content_ctx 物化上下文 (与 prompt_sensitivity.py 同模式),
+    # 避免 _ctx 轨道在 L162-165 被静默 skip 致使列永久缺失、Step 5 必然 raise.
+    if 'content_ctx' not in df.columns:
+        from news_process.pipeline.sentiment.tone_llms import _materialize_content_ctx
+        logger.info("content_ctx 列缺失, 调用 _materialize_content_ctx 物化上下文 ...")
+        df = _materialize_content_ctx(df)
+        logger.info(f"content_ctx 物化完成, df 列数: {len(df.columns)}")
+
     # 1. [时序修复] 载入后使用 pd.to_datetime(df['日期']).dt.year 从底层规避 KeyError
     if 'year' not in df.columns and '日期' in df.columns:
         df['year'] = pd.to_datetime(df['日期'], errors='coerce').dt.year
