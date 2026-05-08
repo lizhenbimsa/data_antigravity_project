@@ -73,11 +73,30 @@ CONFIG = load_config()
 STAGE_NAME = "21_tone_llms"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
-# 读取 tone_llm_processing 配置
-LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-if not LLM_CONFIG:
-    logger.error("在 config.yaml 中未找到 tone_llm_processing 配置节！")
-    sys.exit(1)
+
+# v3 / Fix 3: 把顶层 sys.exit(1) 改为 raise RuntimeError 以消除"严重档"
+# 顶层副作用 — sys.exit 会让任何 import 链路 (包括 pytest 测试套件)
+# 被进程级 SystemExit 杀掉, 无法在 pytest 单测粒度被报告; raise RuntimeError
+# 保持子进程入口的退出码一致 (未捕获异常 → 非零退出码), 但允许 import
+# 路径下的调用方 (如 tests/integration/test_papers_imports.py 通过
+# importlib.import_module 间接 import 本模块) 在 pytest 中正常 fail
+# 而非杀掉整个 session.
+#
+# 当前事实: 真实环境下 sentiment.yaml 总能提供 tone_llm_processing 节,
+# raise 路径从未触发; 但作为防御性反模式仍应消除. 详见 v3 plan A.3 的
+# "副作用三档分级" 论证.
+def _ensure_llm_config(cfg: dict) -> dict:
+    """读取并校验 tone_llm_processing 配置; 缺失时 raise 而非 sys.exit."""
+    llm = cfg.get('tone_llm_processing', {})
+    if not llm:
+        raise RuntimeError(
+            "在 sentiment.yaml 中未找到 tone_llm_processing 配置节; "
+            "请检查 config split 是否完整或 legacy config.yaml 是否包含此节。"
+        )
+    return llm
+
+
+LLM_CONFIG = _ensure_llm_config(CONFIG)
 
 # 模型列表: 多模型并行请求以支持多数投票(Majority Vote)共识机制
 # 推荐至少 3 个模型, 以实现 2/3 多数投票的稳健共识
