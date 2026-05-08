@@ -13,8 +13,6 @@ test_39_prompt_sensitivity.py — 阶段39 Prompt 措辞敏感度量化 单元�
 """
 import os
 import json
-import shutil
-import uuid
 
 import pytest
 import numpy as np
@@ -29,12 +27,12 @@ _MOD39_PATH = os.path.join(
 )
 
 
-def _make_test_tempdir():
-    base_dir = os.path.join(os.getcwd(), ".test_tmp")
-    os.makedirs(base_dir, exist_ok=True)
-    path = os.path.join(base_dir, uuid.uuid4().hex)
-    os.makedirs(path, exist_ok=False)
-    return path
+# Plan P2-7: 历史 ``_make_test_tempdir()`` 用 ``os.getcwd()/.test_tmp/<uuid>``
+# 自定义临时目录, 测试结束后 ``shutil.rmtree`` 仅清理本次实例, 但若测试中途
+# 异常或被中断, UUID 子目录就永久残留 — 在本仓库中累积了 56 个共 856KB.
+# 现已全部改用 pytest 内置 ``tmp_path`` fixture, 由 pytest 自动管理生命
+# 周期 (``--basetemp`` 默认在 ``$TMPDIR/pytest-of-<user>/`` 下保留 3 次,
+# 之后滚动清理), 且每个测试函数独立隔离, 不再污染项目工作目录.
 
 
 # ============================================================================
@@ -322,8 +320,8 @@ class TestBoundaryConditions:
 class TestLatexCorrectness:
     """维度 E: LaTeX 语法正确性。"""
 
-    def test_e_latex_balanced_envs(self, mod39):
-        """E: LaTeX 环境 begin/end 配对 + 无占位符残留"""
+    def test_e_latex_balanced_envs(self, mod39, tmp_path):
+        """E: LaTeX 环境 begin/end 配对 + 无占位符残留 (Plan P2-7: tmp_path)"""
         mock_pairwise = {
             '_full': {vk: {
                 'verification_agreement': 0.92,
@@ -345,26 +343,23 @@ class TestLatexCorrectness:
             '_ctx': {'true_rate_std': 0.018},
         }
 
-        tmp_dir = _make_test_tempdir()
-        try:
-            mod39._generate_latex_table(
-                mock_pairwise, mock_multi, mock_variance,
-                list(mod39.VARIANT_PROMPTS.keys()), 1000, tmp_dir,
-            )
-            tex_path = os.path.join(tmp_dir, 'prompt_sensitivity_table.tex')
-            with open(tex_path, 'r', encoding='utf-8') as f:
-                tex = f.read()
+        tmp_dir = str(tmp_path)
+        mod39._generate_latex_table(
+            mock_pairwise, mock_multi, mock_variance,
+            list(mod39.VARIANT_PROMPTS.keys()), 1000, tmp_dir,
+        )
+        tex_path = os.path.join(tmp_dir, 'prompt_sensitivity_table.tex')
+        with open(tex_path, 'r', encoding='utf-8') as f:
+            tex = f.read()
 
-            for env in ['table', 'tabular']:
-                opens = tex.count(f'\\begin{{{env}}}')
-                closes = tex.count(f'\\end{{{env}}}')
-                assert opens == closes, \
-                    f"LaTeX {env} 不配对: {opens} opens vs {closes} closes"
+        for env in ['table', 'tabular']:
+            opens = tex.count(f'\\begin{{{env}}}')
+            closes = tex.count(f'\\end{{{env}}}')
+            assert opens == closes, \
+                f"LaTeX {env} 不配对: {opens} opens vs {closes} closes"
 
-            assert 'tablenotes' not in tex, "tablenotes 依赖应已移除"
-            assert 'x.xxxx' not in tex, "LaTeX 中残留占位符"
-        finally:
-            shutil.rmtree(tmp_dir)
+        assert 'tablenotes' not in tex, "tablenotes 依赖应已移除"
+        assert 'x.xxxx' not in tex, "LaTeX 中残留占位符"
 
 
 # ============================================================================
@@ -427,8 +422,8 @@ class TestEndToEndSimulation:
                 mock_data, variant_keys, track)
             assert 'true_rate_std' in var
 
-    def test_f4_report_generation(self, mod39, mock_data):
-        """F4: 报告文件生成 + 最小尺寸验证"""
+    def test_f4_report_generation(self, mod39, mock_data, tmp_path):
+        """F4: 报告文件生成 + 最小尺寸验证 (Plan P2-7: tmp_path)"""
         variant_keys = list(mod39.VARIANT_PROMPTS.keys())
         pairwise_results = {}
         multi_results = {}
@@ -444,29 +439,26 @@ class TestEndToEndSimulation:
             variance_results[track] = mod39.compute_cross_variant_variance(
                 mock_data, variant_keys, track)
 
-        tmp_report = _make_test_tempdir()
-        try:
-            mod39.generate_reports(
-                mock_data, variant_keys, pairwise_results,
-                multi_results, variance_results, True, tmp_report,
-            )
-            expected_files = {
-                'prompt_sensitivity_results.json': 1000,
-                'prompt_sensitivity_detail.csv': 1000,
-                'prompt_sensitivity_table.tex': 500,
-                'prompt_sensitivity_heatmap.png': 10000,
-            }
-            for fname, min_size in expected_files.items():
-                fpath = os.path.join(tmp_report, fname)
-                assert os.path.exists(fpath), f"{fname} 不存在"
-                size = os.path.getsize(fpath)
-                assert size >= min_size, \
-                    f"{fname} 过小: {size} < {min_size}"
-        finally:
-            shutil.rmtree(tmp_report)
+        tmp_report = str(tmp_path)
+        mod39.generate_reports(
+            mock_data, variant_keys, pairwise_results,
+            multi_results, variance_results, True, tmp_report,
+        )
+        expected_files = {
+            'prompt_sensitivity_results.json': 1000,
+            'prompt_sensitivity_detail.csv': 1000,
+            'prompt_sensitivity_table.tex': 500,
+            'prompt_sensitivity_heatmap.png': 10000,
+        }
+        for fname, min_size in expected_files.items():
+            fpath = os.path.join(tmp_report, fname)
+            assert os.path.exists(fpath), f"{fname} 不存在"
+            size = os.path.getsize(fpath)
+            assert size >= min_size, \
+                f"{fname} 过小: {size} < {min_size}"
 
-    def test_f5_json_structure(self, mod39, mock_data):
-        """F5: JSON 报告结构完整性"""
+    def test_f5_json_structure(self, mod39, mock_data, tmp_path):
+        """F5: JSON 报告结构完整性 (Plan P2-7: tmp_path)"""
         variant_keys = list(mod39.VARIANT_PROMPTS.keys())
         pairwise_results = {}
         multi_results = {}
@@ -482,24 +474,21 @@ class TestEndToEndSimulation:
             variance_results[track] = mod39.compute_cross_variant_variance(
                 mock_data, variant_keys, track)
 
-        tmp_report = _make_test_tempdir()
-        try:
-            mod39.generate_reports(
-                mock_data, variant_keys, pairwise_results,
-                multi_results, variance_results, True, tmp_report,
-            )
-            json_path = os.path.join(
-                tmp_report, 'prompt_sensitivity_results.json')
-            with open(json_path, 'r', encoding='utf-8') as f:
-                rpt = json.load(f)
-            required = [
-                'stage', 'methodology', 'sample_size', 'passed',
-                'full_track', 'ctx_track', 'thresholds',
-            ]
-            missing = [k for k in required if k not in rpt]
-            assert not missing, f"JSON 缺少 keys: {missing}"
-        finally:
-            shutil.rmtree(tmp_report)
+        tmp_report = str(tmp_path)
+        mod39.generate_reports(
+            mock_data, variant_keys, pairwise_results,
+            multi_results, variance_results, True, tmp_report,
+        )
+        json_path = os.path.join(
+            tmp_report, 'prompt_sensitivity_results.json')
+        with open(json_path, 'r', encoding='utf-8') as f:
+            rpt = json.load(f)
+        required = [
+            'stage', 'methodology', 'sample_size', 'passed',
+            'full_track', 'ctx_track', 'thresholds',
+        ]
+        missing = [k for k in required if k not in rpt]
+        assert not missing, f"JSON 缺少 keys: {missing}"
 
 
 # ============================================================================
