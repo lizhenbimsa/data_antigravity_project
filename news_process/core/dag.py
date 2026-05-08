@@ -159,6 +159,12 @@ STAGES_MAIN: list[StageSpec] = [
         script="21_tone_llms.py",
         group="main", kind="sentiment",
         enabled_when=llm_method_enabled,
+        # v3 / Fix 1: 6h 子进程硬超时. 已知工况 ~7200s (run_pipeline_function
+        # CLI help 自承), 留 3x 安全余量覆盖冷缓存 / 全样本 / 单 yunwu 账户雪崩
+        # 后的指数退避. 若全样本冷缓存仍不够, 调高此值即可 (一行修改).
+        # 旧值 (StageSpec.timeout=3600 默认) 与已知工况冲突, 会被父端
+        # proc.kill() 强杀, 留下 partial parquet.
+        timeout=21600,
     ),
     StageSpec(
         name="阶段22: 词典法情感分析",
