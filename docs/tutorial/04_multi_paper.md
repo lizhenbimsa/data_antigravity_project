@@ -1,6 +1,6 @@
 # 多论文工作流
 
-`news_process` v2.0 通过 `papers/` + `papers_assets/` + `run_paper.py`
+`news_process` v2.1 通过 `papers/` + `papers_assets/` + `run_paper.py`
 实现"一个 pipeline 内核 + N 篇独立论文"的产品化模式。本教程演示如何
 为每篇论文生成专属的 tables / figures / Stata 输出。
 
@@ -8,7 +8,7 @@
 
 | paper_id | 主题 | 主依赖 stage |
 |---|---|---|
-| `news_process` | 主线：银行金融科技语调 | 21/22/23 → 41 |
+| `bank_fintech_tone` | 主线：银行金融科技语调 | 21/22/23 → 41 |
 | `benefit_society` | 经营态度 → 社会福祉投影 | 27 (embedding) |
 | `brokerage_network` | 信息经纪网络 | 47 (network_brokerage) |
 | `llm_peer` | LLM 同业工具变量 | 48 (llm_peer_iv) |
@@ -21,7 +21,7 @@
 .venv/Scripts/python.exe news_process/run_paper.py --list
 
 # 跑指定论文（生成 tables + figures）
-.venv/Scripts/python.exe news_process/run_paper.py news_process
+.venv/Scripts/python.exe news_process/run_paper.py bank_fintech_tone
 
 # 仅跑特定 stage（如调试 figure 不重跑回归）
 .venv/Scripts/python.exe news_process/run_paper.py benefit_society --stage figures
@@ -39,11 +39,16 @@
 ```
 news_process/papers/bank_fintech_tone/
 ├── __init__.py        # PAPER_ID = "bank_fintech_tone"
-├── dag.py             # STAGES = list(STAGES_MAIN)（这个 paper 用全主线）
 ├── analysis.py        # main() — CLI 入口
+│                      #   顶部 STAGES = list(STAGES_MAIN)  (Phase 9a 契约)
+│                      #   调主流水线走 run_main_pipeline() (Phase 9b 桥接)
 ├── tables.py          # build_table1(), write_table1() ...
 └── figures.py         # plot_news_coverage_distribution() ...
 ```
+
+> **Phase 9a 改动**: v2.1 起每个 paper 不再有独立的 ``dag.py`` 子模块,
+> ``STAGES`` 直接挂在 ``analysis.py`` 顶部 (``STAGES = list(STAGES_MAIN)``).
+> 详见 [新增 Paper 指南 §4a](../guides/adding_paper.md#4a-stages-拷贝语义).
 
 调用时 `analysis.main()` 内部调用 `tables.write_table1(...)` 和
 `figures.plot_*(...)`，把结果写到对应的 `papers_assets/`。
@@ -148,14 +153,13 @@ print(result.returncode, result.stdout[:200])
 ## 7. 跨论文一致性测试
 
 ```bash
-.venv/Scripts/python.exe -m pytest news_process/tests/integration/test_papers_dag_consistency.py
 .venv/Scripts/python.exe -m pytest news_process/tests/integration/test_papers_imports.py
 ```
 
-* `test_papers_dag_consistency`: 验证每个 paper 的 `STAGES` 是
-  `STAGES_MAIN` 的 identity-preserved 子集（`is` 等价，不仅 `==`）。
-* `test_papers_imports`: 验证 5 个 paper 包均可 import 且暴露 `PAPER_ID` /
-  `dag` / `analysis.main`。
+* `test_papers_imports`: 验证 5 个 paper 包均可 import 且暴露
+  `PAPER_ID` 字符串 + ``analysis.main`` 函数 + ``analysis.STAGES`` 列表
+  (Phase 9a: STAGES 守护从原 ``papers.<id>.dag`` 子模块迁至
+  ``analysis`` 模块; ``test_papers_dag_consistency.py`` 已在 9a 整删).
 
 ## 8. 下一步
 

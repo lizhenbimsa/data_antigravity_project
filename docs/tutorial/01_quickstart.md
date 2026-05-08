@@ -1,7 +1,7 @@
 # 快速上手（5 分钟）
 
 本教程帮助你在 5 分钟内：装好环境、加载配置、跑一次 import smoke test，
-确认 v2.0.0 包可以正常工作。**不会**实际跑流水线（那需要 22 GB 数据 +
+确认 v2.1.0 包可以正常工作。**不会**实际跑流水线（那需要 22 GB 数据 +
 LLM API 配额，见 [主流水线教程](02_main_pipeline.md)）。
 
 ## 1. 系统要求
@@ -110,15 +110,21 @@ Papers loaded: ['bank_fintech_tone', 'benefit_society', 'brokerage_network', 'll
 .venv/Scripts/python.exe -m pytest news_process/tests/
 ```
 
-期望：
+期望（v2.1.0 / phase-9-baseline）：
 
 ```
-778 passed, 7 skipped, 33 warnings in 231.19s (0:03:51)
+772 passed, 6 skipped, 33 warnings in ~70s
 ```
 
 ```{warning}
-7 skipped 包含 3 个 Windows 文件锁测试（POSIX 专用）+ 4 个集成测试（依赖
+6 skipped 包含 3 个 Windows 文件锁测试（POSIX 专用）+ 3 个集成测试（依赖
 真实数据）。这是预期行为，**不要**当成 bug。
+
+历史对比 (v2.0.0 baseline): 778 passed / 7 skipped. v2.1.0 后 -16 测试
+(Phase 9a 整删 ``test_papers_dag_consistency.py`` 的 16 个 0-差异守护测试)
++ 1 测试 (Phase 9d 新增 ``test_stages_main_all_registered_in_output_registry``
+一致性守护) 净 -15. 对应实测 baseline 在 v2.0.0 之上还有 +9 (3 个 release-
+follow-up fix commit 各自带新测试), 故最终 772.
 ```
 
 ## 6. 下一步

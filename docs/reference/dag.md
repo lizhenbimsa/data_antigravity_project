@@ -234,11 +234,17 @@ for script, name, timeout in stages:
 2. 每个 `StageSpec.enabled_when` 在 orchestrator 与 `core.dag` 中是同一
    callable 对象（`is` 等价）。
 
-`tests/integration/test_papers_dag_consistency.py` 验证每篇论文的
-`STAGES`：
+`tests/integration/test_papers_imports.py::test_paper_analysis_has_stages_list`
+验证每篇论文的 `analysis.STAGES`：
 
-1. 是 `STAGES_MAIN` 的 identity-preserved 子集
-2. 元素引用同一 `StageSpec` 对象（不是新对象）
+1. 存在且为非空 list
+2. 通常由 ``STAGES = list(STAGES_MAIN)`` 拷贝得到 (允许切片如
+   ``list(STAGES_MAIN[:N])``)
+
+> Phase 9a 改动: 原 ``test_papers_dag_consistency.py`` 用 16 个测试守护
+> '5 个空壳必须 == STAGES_MAIN' (即 16 个测试守护 0 个差异), 已整删;
+> ``papers.<id>.dag`` 子模块也已删除, ``STAGES`` 直接挂在 ``analysis``
+> 模块顶部.
 
 ## 7. 扩展 DAG（添加新 stage）
 

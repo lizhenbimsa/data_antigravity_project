@@ -40,16 +40,19 @@
 ```text
 news_process/papers/<paper_id>/
 ├── __init__.py                  # 定义 PAPER_ID = "<paper_id>"
-├── dag.py                       # 定义 STAGES（通常 = STAGES_MAIN 子集 / 全集）
 ├── analysis.py                  # CLI 入口 main()，--list/--stage/--dry-run
+│                                # 顶部 STAGES = list(STAGES_MAIN) (Phase 9a)
 ├── tables.py                    # build_table1() / write_table1() ...
 └── figures.py                   # plot_*() 学术级 matplotlib
 ```
 
+> **Phase 9a 改动**: v2.1 起每个 paper 不再有独立的 ``dag.py`` 子模块,
+> ``STAGES`` 直接挂在 ``analysis.py`` 顶部 (``STAGES = list(STAGES_MAIN)``).
+
 通过 `run_paper.py` 调度器统一调用：
 
 ```bash
-python news_process/run_paper.py news_process
+python news_process/run_paper.py bank_fintech_tone     # 主线
 python news_process/run_paper.py --list
 python news_process/run_paper.py benefit_society --dry-run
 ```

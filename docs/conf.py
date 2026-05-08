@@ -1,4 +1,4 @@
-"""news_process v2.0.0 文档站 Sphinx 配置文件。
+"""news_process v2.1.0 文档站 Sphinx 配置文件。
 
 Phase D — 文档生产化 (2026-05-04)。
 
@@ -53,7 +53,7 @@ os.environ.setdefault("EMBEDDING_API_KEY", "docs-build-placeholder")
 
 project = "news_process"
 author = "data_antigravity_project / news_process team"
-copyright = "2026, news_process v2.0.0"  # noqa: A001 — Sphinx 约定字段名
+copyright = "2026, news_process v2.1.0"  # noqa: A001 — Sphinx 约定字段名
 
 # 动态从包 ``__version__`` 拉取版本号
 try:

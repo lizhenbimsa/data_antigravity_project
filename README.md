@@ -4,15 +4,19 @@
 从 ~37GB 原始 XLSX 媒体报道生成可用于计量经济学研究的银行—年面板数据，
 支持 5 个独立的研究产品（论文）共享同一处理内核。
 
-> **当前版本: v2.0.0 / phase-8-baseline (2026-05-04)**
-> 八期重构（Phase 0 → 8）已完成。26 个根级数字前缀脚本全部统一为极薄 CLI 适配层；
-> `news_process/{core, pipeline, papers, validation, scripts, config}` 形成完整 canonical 包结构；
-> 数据物理布局规范化为 `data/processed/`。pytest 778 passed / 7 skipped / 0 failed。
+> **当前版本: v2.1.0 / phase-9-baseline (2026-05-08)**
+> 八期重构（Phase 0 → 8）已完成；Phase 9（v2.1.0）做了 4 个子任务的
+> post-restructure cleanup — 删除 5 个 broken audit/test 脚本、删除 5 个
+> 空壳 ``papers/<id>/dag.py``、净化 paper analysis 中 5 处反射 import、
+> 删除 orchestrator 的历史 OUTPUT_REGISTRY fallback dict（不引入新抽象，
+> 不动 26 个 thin shim）。pytest 772 passed / 6 skipped / 0 failed。
 > 完整演进史见 [CHANGELOG.md](./CHANGELOG.md)，rollback tag 链：
 > `baseline-pre-restructure → phase-{1..6}-baseline → phase-7a-baseline →
-> phase-7b-baseline → phase-8-baseline → v2.0.0`。
+> phase-7b-baseline → phase-8-baseline → v2.0.0 → phase-9c-baseline →
+> phase-9d-baseline → phase-9a-baseline → phase-9b-baseline →
+> phase-9-baseline → v2.1.0`。
 
-## 1. 顶层架构（v2.0.0 终态）
+## 1. 顶层架构（v2.1.0 / phase-9-baseline 终态）
 
 ```
 news_process/
@@ -144,7 +148,7 @@ python -m pytest news_process/tests/integration/
 python -m pytest news_process/tests/test_00_preprocessing.py -v
 ```
 
-期望结果（Phase 5 末态）:`778 passed, 7 skipped, 0 failed`
+期望结果（Phase 9 末态 / v2.1.0）:`772 passed, 6 skipped, 0 failed`
 
 ## 3. 配置系统（Phase 4d）
 
@@ -156,11 +160,12 @@ python -m pytest news_process/tests/test_00_preprocessing.py -v
 
 `tests/integration/test_config_split_equivalence.py` 守护两种模式语义等价。
 
-## 4. 多论文产品（Phase 3）
+## 4. 多论文产品（Phase 3, 经 Phase 9a 简化）
 
 每篇论文是 `papers/<paper_id>/` 下的独立 Python 包，包含：
-- `dag.py` — 论文专属 DAG (从 `core.dag.STAGES_MAIN` 切片，identity-preserved)
-- `analysis.py` — CLI 入口 (`--stage pipeline|tables|figures|all`)
+- `analysis.py` — CLI 入口 (`--stage pipeline|tables|figures|all`)；
+  顶部 `STAGES = list(STAGES_MAIN)` 替代原 `dag.py` 子模块（Phase 9a）；
+  调主流水线走 `_common.run_main_pipeline()` 规范桥接（Phase 9b）
 - `tables.py` — Table 1+ 生成器 (调 `papers/_common/tables.py:summary_stats`)
 - `figures.py` — Figure 1+ 生成器 (用 `papers/_common/figures.py` 期刊级风格)
 
@@ -197,23 +202,41 @@ do <full path to .do>
 ## 6. 可回滚锚点
 
 ```
-phase-5-baseline   ← 当前
-phase-4-baseline
-phase-3-baseline
-phase-2-baseline
-phase-1-baseline
-baseline-pre-restructure
+v2.1.0 / phase-9-baseline   ← 当前 (recode follow-up: 见 HEAD)
+phase-9b-baseline           Phase 9b: papers 反射 import 净化
+phase-9a-baseline           Phase 9a: papers DAG 空壳清理
+phase-9d-baseline           Phase 9d: OUTPUT_REGISTRY fallback 删除
+phase-9c-baseline           Phase 9c: scripts dead code 清扫
+v2.0.0 / phase-8-baseline   v2.0 八期重构终态
+phase-7b-baseline           validation/ 扁平包 + 13 thin shim
+phase-7a-baseline           pipeline/ 子包 + 8 thin shim
+phase-6-baseline            utils/ 退役
+phase-5-baseline            pipeline/ + tests/ utils.* 迁移
+phase-4-baseline            7 域配置拆分 + Stata .do 归位
+phase-3-baseline            multi-paper 产品化
+phase-2-baseline            pipeline/ 子包 + importlib 反射净化
+phase-1-baseline            news_process 真包 + core/dag.py
+baseline-pre-restructure    重整起点
 ```
 
 每个 phase 内的子任务也单独 commit，可单点 `git revert <hash>`。
+完整 rollback 命令清单见 [`docs/reference/rollback_anchors.md`](docs/reference/rollback_anchors.md)。
 
-## 7. 已知 deferred 项 (Phase 8 之后还可选的进一步优化)
+## 7. 已知 deferred 项 (Phase 9 之后还可选的进一步优化)
 
-- **Phase 9+ (极低优先级)**: `data/processed/<group>/` 业务组子分区。当前 Phase 8 的"单层重命名"方案保留扁平布局；若未来出现存储分层、按组冷存储保留策略等场景，可参考 `scripts/migrate/migrate_data_layout.py` 完成深一级分组。但需注意：跨阶段交叉读取（如 stage 21 读 stage 14、stage 24 读 stage 23）会迫使 `CONFIG['filenames']` 携带组前缀信息，反向增加耦合，违反 DRY — 不推荐做此细分。
+- **v3.0 主迁移 (留待真正的 major bump)**: 删除 26 个数字前缀 thin shim,
+  把 `core/dag.py:StageSpec.script` 从文件名改为 module path
+  (`"news_process.pipeline.filtering.news_bank"`),
+  把 `core/stage.py:run_stage` 从 `subprocess.Popen([python, script_path])`
+  改为 `subprocess.Popen([python, "-m", module])`. 详细计划与外部影响面
+  评估见 [`docs/guides/thin_shim_pattern.md`](docs/guides/thin_shim_pattern.md)。
+- **极低优先级**: `data/processed/<group>/` 业务组子分区。当前 Phase 8 的"单层重命名"方案保留扁平布局；若未来出现存储分层、按组冷存储保留策略等场景，可参考 `scripts/migrate/migrate_data_layout.py` 完成深一级分组。但需注意：跨阶段交叉读取（如 stage 21 读 stage 14、stage 24 读 stage 23）会迫使 `CONFIG['filenames']` 携带组前缀信息，反向增加耦合，违反 DRY — 不推荐做此细分。
+- **历史命名遗留** (Phase 9 范围外, 留待 v3.0): `papers/bank_fintech_tone/analysis.py:35` 的 `_LOGGER` name 仍含 v1.x paper id `news_process` (应为 `bank_fintech_tone`); 同文件 docstring 中 `python -m news_process.run_paper news_process` 同样残留; `pyproject.toml` 部分 NOTE 用 Phase 1/3 时态描述。
 
 > **Phase 7a (2026-05-04)** 已完成 8 个 pipeline 类 root body 迁入 `pipeline/<sub>/` + thin shim 化。
 > **Phase 7b (2026-05-04)** 已完成 13 个 validation 类 root body 迁入 `news_process/validation/` 扁平布局 + thin shim 化。
 > **Phase 8 (2026-05-04)** 已完成 `data_processed/` → `data/processed/` 单层重命名。
+> **Phase 9 (2026-05-08)** 完成 4 个 post-restructure cleanup 子任务 (9c/9d/9a/9b) + v2.1.0 release。
 
 ## 8. 文献依据汇总
 

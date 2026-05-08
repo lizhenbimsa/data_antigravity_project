@@ -1,8 +1,8 @@
-# Rollback 锚点 — 11 个 git tag
+# Rollback 锚点 — 17 个 git tag
 
-`news_process` v2.0 八期重构期间在每个 phase 末打 git tag，提供**单点回滚
-颗粒度**。本参考列出全部 11 个 tag、各自的 commit hash、关键变更、以及
-回滚的具体场景。
+`news_process` 重构期间在每个 phase 末打 git tag，提供**单点回滚
+颗粒度**。本参考列出全部 17 个 tag (v2.0.0 八期重构 11 个 + Phase 9 系列
+6 个)、各自的 commit hash、关键变更、以及回滚的具体场景。
 
 ## 1. Tag 链总览
 
@@ -27,10 +27,23 @@ phase-7b-baseline  (13 validation body 迁入)
   ↓
 phase-8-baseline   (data 物理布局规范化)
   ↓
-v2.0.0             (release tag)
+v2.0.0             (release tag — 八期重构终态)
+  ↓
+phase-9c-baseline  (scripts dead code 清扫 -1180 LOC)
+  ↓
+phase-9d-baseline  (OUTPUT_REGISTRY fallback 删除 + 一致性测试)
+  ↓
+phase-9a-baseline  (papers DAG 空壳清理 + 公开 API 缩减)
+  ↓
+phase-9b-baseline  (papers 反射 import 净化)
+  ↓
+phase-9-baseline   (Phase 9 收官)
+  ↓
+v2.1.0             (release tag — post-restructure cleanup)
 ```
 
-每个 tag 都对应一个完整 + 通过 778 pytest 的稳定状态。
+每个 tag 都对应一个完整 + 通过 pytest 的稳定状态 (v2.0 段为 778 测试,
+v2.1 段为 772 测试).
 
 ## 2. 每个 tag 的关键信息
 
@@ -47,6 +60,12 @@ v2.0.0             (release tag)
 | `phase-7b-baseline` | `a4d8aec` | +11005 / -10608 | 13 validation 类 root body → `validation/` 扁平 + thin shim |
 | `phase-8-baseline` | `6c31adf` | +92 / -59 | `data_processed/` → `data/processed/`（22 GB 物理 mv） |
 | `v2.0.0` | `f629688` | +149 / -18 | version bump + README/CHANGELOG + release tag |
+| `phase-9c-baseline` | `fcdb6ad` | +10 / -1180 | scripts dead code 清扫 (5 broken audit/test 脚本) |
+| `phase-9d-baseline` | `5f768f0` | +30 / -32 | orchestrator OUTPUT_REGISTRY fallback 删除 + 新一致性测试 |
+| `phase-9a-baseline` | `69ee2de` | +71 / -234 | papers DAG 空壳清理 (5 dag.py 删 + 公开 API 缩减; -16 tests) |
+| `phase-9b-baseline` | `9d003c6` | +44 / -104 | papers 反射 import 净化 (pipeline_runner 桥接) |
+| `phase-9-baseline` | `98be76a` | +107 / -5 | Phase 9 收官 + v2.1.0 release |
+| `v2.1.0` | `98be76a` | (= phase-9-baseline) | minor bump release tag |
 
 ## 3. Rollback 场景与命令
 
@@ -149,7 +168,9 @@ parquet → skip 而不是 fail，但仍是数据不可重现的潜在风险。
 # 一键检查所有 phase tag 是否能 checkout + 跑 pytest
 for tag in phase-1-baseline phase-2-baseline phase-3-baseline phase-4-baseline \
            phase-5-baseline phase-6-baseline phase-7a-baseline phase-7b-baseline \
-           phase-8-baseline v2.0.0; do
+           phase-8-baseline v2.0.0 \
+           phase-9c-baseline phase-9d-baseline phase-9a-baseline \
+           phase-9b-baseline phase-9-baseline v2.1.0; do
     git checkout "$tag" 2>/dev/null
     echo "=== $tag ==="
     .venv/Scripts/python.exe -m pytest news_process/tests/ -q --no-header --tb=no 2>&1 | tail -1
@@ -157,8 +178,12 @@ done
 git checkout main  # 切回最新
 ```
 
+> 注: v2.0 段 (含) 之前期望 `778 passed`; Phase 9 系列各子任务期望分别为
+> `787` (9c, 因 v2.0 后有 +9 fix-commit 测试) / `788` (9d +1) / `772`
+> (9a -16) / `772` (9b 不变) / `772` (9-baseline / v2.1.0).
+
 ## 6. 见也
 
 * [CHANGELOG](../changelog.md) — 完整 commit 演进史
-* [架构总览](../architecture.md) — v2.0 终态架构
+* [架构总览](../architecture.md) — v2.1.0 终态架构
 * [新增 Stage 指南](../guides/adding_stage.md)

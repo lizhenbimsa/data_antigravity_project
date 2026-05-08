@@ -7,7 +7,9 @@
 ```{admonition} 当前版本
 :class: tip
 
-**v2.0.0 / phase-8-baseline (2026-05-04)**：八期重构（Phase 0 → 8）已完成。
+**v2.1.0 / phase-9-baseline (2026-05-08)**：八期重构（Phase 0 → 8）已完成,
+Phase 9 又做了 4 个 post-restructure cleanup 子任务 (scripts dead code 清扫 /
+OUTPUT_REGISTRY fallback 删除 / papers DAG 空壳清理 / papers 反射 import 净化).
 完整演进史见 [CHANGELOG](changelog.md)。
 ```
 
@@ -25,7 +27,7 @@
 | 理解声明式 DAG | [`StageSpec` 参考](reference/dag.md) |
 | 找具体函数 / 类的文档 | [API 参考](api/core.md) |
 
-## 核心特性（v2.0 终态）
+## 核心特性（v2.1.0 / phase-9-baseline）
 
 ```{mermaid}
 graph LR
@@ -58,8 +60,9 @@ graph LR
   output）。共享 `_common` 内核（`PaperConfig`、`load_panel`、tables/
   figures helpers、`stata_runner`）。
 * **完整 rollback 锚点链**：从 `baseline-pre-restructure` 到
-  `phase-8-baseline` 共 11 个 git tag，单点 `git revert <hash>` 可回滚
-  任意子阶段。详见 [Rollback 指南](reference/rollback_anchors.md)。
+  `phase-9-baseline` / `v2.1.0` 共 17 个 git tag (含 v2.0.0 与 v2.1.0
+  两个 release tag), 单点 `git revert <hash>` 可回滚任意子阶段。详见
+  [Rollback 指南](reference/rollback_anchors.md)。
 
 ## 文档导航
 

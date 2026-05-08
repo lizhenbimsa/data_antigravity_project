@@ -1,6 +1,6 @@
-# 架构总览（v2.0.0 终态）
+# 架构总览（v2.1.0 / phase-9-baseline）
 
-本页是 `news_process` v2.0.0 包结构、依赖关系与设计决策的**最高层视图**。
+本页是 `news_process` v2.1.0 包结构、依赖关系与设计决策的**最高层视图**。
 为细节实现请进入对应 [API 参考](api/core.md) 或 [开发指南](guides/adding_stage.md)。
 
 ## 1. 顶层包结构
@@ -169,11 +169,10 @@ prompts/*.txt`）。`load_config()` 自动 deep-merge + prompt 内联，对消�
 
 | 测试套件 | 数量 | 跑时 | DoD |
 |---|---|---|---|
-| `tests/` | 778 unit + integration | ~4 min | 100% pass, 0 failed |
-| Integration: `test_dag_consistency` | 验证 orchestrator-DAG 身份相等 | < 1s | identity check |
+| `tests/` | 772 unit + integration | ~1.2 min | 100% pass, 0 failed |
+| Integration: `test_dag_consistency` | 验证 orchestrator-DAG 身份相等 + STAGES_MAIN ↔ OUTPUT_REGISTRY 一致性 (Phase 9d) | < 1s | identity check |
 | Integration: `test_panel_reproducibility` | 列级 hash 比对 golden snapshot | < 5s | 0 hash drift |
-| Integration: `test_papers_dag_consistency` | 验证每个 paper DAG 是 STAGES_MAIN 子集 | < 1s | identity check |
-| Integration: `test_papers_imports` | 验证 5 个 paper 包均可 import + API | < 5s | smoke pass |
+| Integration: `test_papers_imports` | 验证 5 个 paper 包均可 import + 暴露 PAPER_ID + analysis.STAGES + main (Phase 9a) | < 5s | smoke pass |
 | Integration: `test_config_split_equivalence` | 验证 7 域 YAML deep-merge ≡ 单 YAML | < 5s | recursive equal |
 
 跑命令：`.venv/Scripts/python.exe -m pytest news_process/tests/`
@@ -195,7 +194,15 @@ phase-7a-baseline                # 8 pipeline body 迁入子包
 phase-7b-baseline                # 13 validation body 迁入扁平包
 phase-8-baseline                 # data_processed → data/processed
   ↓
-v2.0.0                           # release tag (本版本)
+v2.0.0                           # release tag (八期重构终态)
+  ↓
+phase-9c-baseline                # scripts dead code 清扫 (-1180 LOC)
+phase-9d-baseline                # OUTPUT_REGISTRY fallback 删除 + 一致性测试
+phase-9a-baseline                # papers DAG 空壳清理 + 公开 API 缩减
+phase-9b-baseline                # papers 反射 import 净化
+phase-9-baseline                 # Phase 9 收官
+  ↓
+v2.1.0                           # release tag (本版本; post-restructure cleanup)
 ```
 
 任意子阶段单点 `git revert <hash>` 即可回滚。详见 [Rollback 指南](

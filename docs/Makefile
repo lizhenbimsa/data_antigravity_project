@@ -1,4 +1,4 @@
-# Makefile — news_process v2.0.0 文档站
+# Makefile — news_process v2.1.0 文档站
 # ======================================
 #
 # 标准目标:
