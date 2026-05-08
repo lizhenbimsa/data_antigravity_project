@@ -92,31 +92,51 @@ news_process.papers.ai_regulation.analysis — CLI 分析入口.
 import argparse
 import sys
 
-from news_process.papers._common import get_paper_config, load_panel
-from news_process.papers.ai_regulation import tables, figures
+from news_process.papers._common import (
+    get_paper_config,
+    load_panel,
+    run_main_pipeline,    # Phase 9b: 调主流水线的规范桥接
+)
+from news_process.core.dag import STAGES_MAIN
+
+# Phase 9a 契约: analysis 模块顶部必须暴露 list 类型 STAGES
+# (由 test_paper_analysis_has_stages_list 守护). list() 拷贝防止本论文
+# 内部修改污染主 DAG ``core.dag.STAGES_MAIN``.
+STAGES = list(STAGES_MAIN)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="AI Regulation paper.")
-    parser.add_argument("--stage", choices=["tables", "figures", "all"],
-                        default="all", help="只跑特定子阶段。")
+    parser.add_argument(
+        "--stage", choices=["pipeline", "tables", "figures", "all"],
+        default="all", help="只跑特定子阶段。",
+    )
     parser.add_argument("--dry-run", action="store_true",
                         help="仅打印计划，不写文件。")
     args = parser.parse_args(argv)
 
     cfg = get_paper_config("ai_regulation")
-    panel = load_panel("40_panel_yearly", paper_id="ai_regulation")
-    print(f"Loaded panel: {panel.shape}")
+    print(f"DAG length: {len(STAGES)} stages")
 
     if args.dry_run:
+        for s in STAGES:
+            print(f"  - {s.script} ({s.name})")
         print(f"[dry-run] would write to {cfg.output_dir}")
         return 0
 
+    if args.stage in ("pipeline", "all"):
+        run_main_pipeline()    # Phase 9b 桥接: 调主流水线 (写 data/processed/*.parquet)
+
+    panel = load_panel("40_panel_yearly", paper_id="ai_regulation")
+    print(f"Loaded panel: {panel.shape}")
+
     if args.stage in ("tables", "all"):
+        from news_process.papers.ai_regulation import tables
         tables.write_table1(panel, output_dir=cfg.output_dir / "tables")
         tables.write_table2_did(panel, output_dir=cfg.output_dir / "tables")
 
     if args.stage in ("figures", "all"):
+        from news_process.papers.ai_regulation import figures
         figures.plot_event_study(panel, output_dir=cfg.output_dir / "figures")
 
     print(f"Done. Outputs at {cfg.output_dir}")
@@ -126,6 +146,14 @@ def main(argv: list[str] | None = None) -> int:
 if __name__ == "__main__":
     sys.exit(main())
 ```
+
+> **Phase 9 契约提醒**:
+> - `STAGES = list(STAGES_MAIN)` 必须在 analysis.py **顶部**暴露 (供
+>   `test_paper_analysis_has_stages_list` 守护). 不能省略或重命名.
+> - 调主流水线一律走 `run_main_pipeline()` (Phase 9b 规范桥接), 不再用
+>   `importlib.spec_from_file_location` 反射加载根级 `run_pipeline_function.py`.
+> - `tables` / `figures` 模块的 import 写在函数体内 (lazy), 让
+>   `--stage tables` 与 `--stage figures` 路径互不依赖.
 
 ### Step 5: 写 `tables.py`
 

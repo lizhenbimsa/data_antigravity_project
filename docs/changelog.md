@@ -6,7 +6,7 @@
 文档站这里仅做高层 phase summary 速查与 rollback 锚点导航。
 完整 commit hash + LOC 净改动 + 子任务说明请翻原始 CHANGELOG。
 
-## 八期重构总览
+## 重构演进总览（Phase 0 → Phase 9）
 
 | Phase | Tag | Commit | 主交付 |
 |---|---|---|---|

@@ -1,10 +1,12 @@
-"""Phase 3f 集成测试 — 多论文包导入冒烟测试.
+"""Phase 3f 集成测试 — 多论文包导入冒烟测试 (Phase 9a 修订).
 
 红线不变式
 ----------
 1. ``news_process.papers._common`` 与 5 个 paper 包都必须可 import 不报错。
-2. 每个 paper 包必须暴露 ``PAPER_ID`` 字符串 + ``dag`` 子模块。
-3. 每个 paper 的 ``analysis`` 子模块必须暴露 ``main(argv)`` 函数。
+2. 每个 paper 包必须暴露 ``PAPER_ID`` 字符串。
+3. 每个 paper 的 ``analysis`` 子模块必须暴露 ``main(argv)`` 函数 +
+   ``STAGES`` 列表 (Phase 9a: STAGES 守护从 ``papers.<id>.dag`` 子模块
+   迁移至 ``papers.<id>.analysis``; ``dag`` 子模块本身已删除).
 4. 每个 paper 的 ``tables`` / ``figures`` 子模块必须可 import (即使依赖
    pandas/matplotlib 也应 lazy 处理, 不在 import-time 触发数据加载)。
 5. ``news_process.run_paper`` 顶层调度脚本必须可 import 且 main() 存在。

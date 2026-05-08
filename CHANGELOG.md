@@ -73,7 +73,7 @@ pytest: 772 (不变).
 - Tag chain: `phase-9c-baseline` → `phase-9d-baseline` → `phase-9a-baseline` → `phase-9b-baseline` → `phase-9-baseline` → `v2.1.0`
 
 ### v2.1.0 验收
-- pytest `news_process/tests/` → **772 passed / 6 skipped / 0 failed** (v2.0.0 后 HEAD 786 + 1 [9d 新增 test_stages_main_all_registered_in_output_registry] - 16 [9a 删 test_papers_dag_consistency.py] = 772; CHANGELOG 历史 baseline 778 比当前 HEAD 少 9 因 v2.0.0 后 3 个 fix commit 增加了测试)
+- pytest `news_process/tests/` → **772 passed / 6 skipped / 0 failed** (v2.0.0 后 HEAD 实测 baseline 787 + 1 [9d 新增 test_stages_main_all_registered_in_output_registry] - 16 [9a 删 test_papers_dag_consistency.py 整文件] = 772; CHANGELOG v2.0.0 章节历史记录的 778 比当前 HEAD baseline 少 9, 因 v2.0.0 release 后又落了 3 个 fix commit 各自带新测试)
 - 反射 import 全 papers/ 生产代码零结果 (恢复 Phase 2a 不变式)
 - 所有 5 个 paper `python -m news_process.run_paper <id> --dry-run` 返回 0
 - `python -m news_process.run_paper --list` 输出 5 个 paper
