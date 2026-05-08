@@ -21,6 +21,11 @@
 | **7b** | `phase-7b-baseline` | `a4d8aec` | 13 个 validation 类 root body → `validation/` 扁平包 + thin shim |
 | **8** | `phase-8-baseline` | `6c31adf` | `data_processed/` → `data/processed/` 单层重命名（22 GB mv） |
 | **v2.0.0** | `v2.0.0` | `f629688` | 收官：version bump + README + CHANGELOG + release tag |
+| **9c** | `phase-9c-baseline` | `fcdb6ad` | scripts dead code 清扫（5 broken audit/test 脚本）|
+| **9d** | `phase-9d-baseline` | `5f768f0` | orchestrator OUTPUT_REGISTRY fallback 删除 + 一致性测试守护 |
+| **9a** | `phase-9a-baseline` | `69ee2de` | papers DAG 空壳清理（5 dag.py 删 + 公开 API 缩减） |
+| **9b** | `phase-9b-baseline` | `9d003c6` | papers 反射 import 净化（pipeline_runner 桥接） |
+| **v2.1.0** | `v2.1.0` / `phase-9-baseline` | (本 commit) | 收官：v2.0.0 → v2.1.0 minor bump + CHANGELOG / docs 同步 |
 
 ## 关键架构决策（按主题归类）
 
@@ -102,6 +107,12 @@ git checkout phase-7a-baseline
 
 # 仅回退某次 commit (例: 撤销 Phase 8)
 git revert 6c31adf
+
+# 回滚 Phase 9 系列单子任务
+git revert fcdb6ad   # 撤 9c (scripts dead code)
+git revert 5f768f0   # 撤 9d (OUTPUT_REGISTRY fallback)
+git revert 69ee2de   # 撤 9a (papers dag 空壳)
+git revert 9d003c6   # 撤 9b (papers 反射 import)
 
 # 列出所有可用 tag
 git tag --list | sort

@@ -1,4 +1,4 @@
-# news_process v2.0.0 — Documentation site dependencies (Phase D)
+# news_process v2.1.0 — Documentation site dependencies (Phase D)
 # ================================================================
 #
 # 仅文档构建需要; 主流水线不依赖任何此文件中的包.

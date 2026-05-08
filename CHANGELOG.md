@@ -6,7 +6,84 @@
 
 ---
 
-## v2.0.0 / phase-8-baseline (2026-05-04, current HEAD)
+## v2.1.0 / phase-9-baseline (2026-05-08, current HEAD)
+
+### v2.1.0 总目标
+清理 Phase 3 / Phase 7a 之后的架构遗留物 — papers DAG 空壳、papers 反射 import (生产代码)、scripts dead code、orchestrator OUTPUT_REGISTRY 兜底 dict. 不引入新抽象, 不动 26 个 thin shim (留待真正 v3.0).
+
+公开 API 缩减: `news_process.papers.<id>.dag` 子模块取消 (5 paper × 1 处复制, 0 外部消费者). 等价路径: `from news_process.core.dag import STAGES_MAIN`. v2.1 minor bump 是对外契约改变信号.
+
+### Phase 9c (`fcdb6ad`) — scripts dead code 清扫 (-1180 / +10 LOC)
+5 个 audit/test 脚本经静态分析全部 broken:
+- `_test_network_functions.py` / `_test_integration.py` / `_test_final_round.py`: 加载 Phase 2a 已删的 root 文件 (43/46/47_*.py); 部分含硬编码 Windows 绝对路径
+- `final_integrity.py` / `audit_changes.py`: grep Phase 7a 后已 thin shim 化的源码内容 (LLMCache/cache.close()/finally/pairwise_distances 等字符串), 在 21 行 shim 内 0 命中
+- 保留 `audit_deep.py` (canonical core API 仍有效) 与 `_replan_v5_evidence/` (历史归档)
+- 附带清理: `scripts/audit/__init__.py` docstring 反映现状; `scripts/build_city_coordinates.py:88-90` 注释悬挂引用
+
+pytest: 787 → 787 (5 文件不在 `testpaths=['tests']` 收集范围, 数不变).
+
+### Phase 9d (`5f768f0`) — orchestrator OUTPUT_REGISTRY fallback 删除 (-32 / +30 LOC)
+`run_pipeline_function._get_stage_output_files` 历史兜底 dict (Phase 2d 弃用期安全网) 删除. 自 Phase 2d 起 OUTPUT_REGISTRY 是单一真值, fallback 属 'never reached' 代码; 删除强制让任何新增 stage 必须在 schemas.py 登记, 否则陈旧文件预清理静默失效.
+
+新增 `test_stages_main_all_registered_in_output_registry` 守护 STAGES_MAIN ↔ OUTPUT_REGISTRY 一致性 (放 `tests/integration/test_dag_consistency.py` 与现有 DAG 一致性测试同位, 与 `test_main_orchestrator_uses_canonical_stages` 一起构成 DAG ↔ orchestrator ↔ schemas registry 三角不变式).
+
+静态 cross-check: 12 个 STAGES_MAIN scripts 全部已在 OUTPUT_REGISTRY 登记, 新测试当前 PASS.
+
+pytest: 787 → 788 (+1).
+
+### Phase 9a (`69ee2de`) — papers DAG 空壳清理 (-234 / +71 LOC, -16 tests)
+5 个 `papers/<id>/dag.py` 自 Phase 3c-3d 起就是 `STAGES = list(STAGES_MAIN)` 的 5 处复制. 没有任何 paper 真的需要切片 (Phase 3d 留的扩展点未实现), 而 `test_papers_dag_consistency.py` 用 16 个测试守护 '5 个空壳必须 == STAGES_MAIN' — 即 16 个测试守护 0 个差异.
+
+变更:
+- 删 5 个 `papers/<id>/dag.py`
+- 删 `test_papers_dag_consistency.py` 整文件 (16 tests)
+- 5 个 `papers/<id>/analysis.py`: 改 import + 加 `STAGES = list(STAGES_MAIN)`
+- 5 个 `papers/<id>/__init__.py`: 删 `from . import dag` + 从 `__all__` 移除 `'dag'`
+- `test_papers_imports.py`: 删 `assert hasattr(mod, 'dag')`; 把 `test_paper_dag_module_has_stages` 重命名为 `test_paper_analysis_has_stages_list`, STAGES 守护转移到 analysis 模块 (而非简单删除 — 失去的不变式不应同时失去守护)
+- `docs/guides/adding_paper.md` Step 3 / Step 8 / §4a / §5 DoD 同步重写
+
+公开 API 缩减: `news_process.papers.<id>.dag` 子模块取消, 等价路径 `from news_process.core.dag import STAGES_MAIN`. 项目内 5 处消费者全部纳入本 commit; 项目外无已知消费者 (无 PyPI 发布, 无 install 历史).
+
+pytest: 788 → 772 (-16, 仅整删 `test_papers_dag_consistency.py`; v3 计划预期 -21 含 `test_paper_dag_module_has_stages` 删 5, 实际改为重命名 + 转移守护 = -16).
+
+Smoke: 5 个 paper `run_paper.py <id> --dry-run` 全部 exit 0 + DAG length: 12 stages.
+
+### Phase 9b (`9d003c6`) — papers 反射 import 净化 (-104 / +44 LOC)
+5 个 paper `analysis.py` 中复制 5 份的 `_run_pipeline_via_existing_orchestrator()` 反射加载块 (Phase 3e 引入) 违反了 Phase 2a (commit `722bc0e`) 的 reflection-purge 不变式 (限生产代码). v2.0 起 `news_process` 是真包 (`pyproject.toml` `setuptools.packages.find`), 可走规范包导入 — 'run_pipeline_function 不是 package 一部分' 的 v1.x 历史理由已不成立.
+
+变更:
+- 新增 `papers/_common/pipeline_runner.py`: `run_main_pipeline()` 函数体内延迟 import `news_process.run_pipeline_function` (保持原反射设计的 '`--stage tables/figures` import-time 隔离' 意图)
+- 5 个 paper `analysis.py`: 删 `_run_pipeline_via_existing_orchestrator()` 函数 (5×~17 LOC) + 改调用点 → `run_main_pipeline()` + import 行加 `run_main_pipeline`
+- `bank_fintech_tone/analysis.py`: 顶层 unused `from pathlib import Path` 删除
+- `_common/__init__.py`: 加 `from .pipeline_runner import run_main_pipeline` + `__all__` 加 `'run_main_pipeline'`
+
+不变式验证:
+- `_run_pipeline_via_existing_orchestrator` grep: 仅余 `pipeline_runner.py` docstring 历史性提及
+- `_bft_/_bs_/_sd_/_lp_/_bn_run_pipeline_module` grep: 0 匹配
+- `spec_from_file_location` in `news_process/papers/`: 仅余 `pipeline_runner.py` docstring 注释 (生产代码 0 反射调用)
+- `spec_from_file_location` in `tests/integration/test_dag_consistency.py:37` 保留 (v1.7 测试有意隔离设计, 不在本子任务范围)
+
+pytest: 772 (不变).
+
+### v2.1.0 收官 (本 commit)
+- `news_process/__init__.py`: `__version__ = "2.1.0"` + docstring 加 v2.1 状态段
+- `news_process/pyproject.toml`: `version = "2.1.0"`, description = `(v2.1.0 / phase-9-baseline)`
+- `news_process/requirements-docs.txt`: 注释版本号同步
+- 本 CHANGELOG + `docs/changelog.md` 同步
+- Tag chain: `phase-9c-baseline` → `phase-9d-baseline` → `phase-9a-baseline` → `phase-9b-baseline` → `phase-9-baseline` → `v2.1.0`
+
+### v2.1.0 验收
+- pytest `news_process/tests/` → **772 passed / 6 skipped / 0 failed** (v2.0.0 后 HEAD 786 + 1 [9d 新增 test_stages_main_all_registered_in_output_registry] - 16 [9a 删 test_papers_dag_consistency.py] = 772; CHANGELOG 历史 baseline 778 比当前 HEAD 少 9 因 v2.0.0 后 3 个 fix commit 增加了测试)
+- 反射 import 全 papers/ 生产代码零结果 (恢复 Phase 2a 不变式)
+- 所有 5 个 paper `python -m news_process.run_paper <id> --dry-run` 返回 0
+- `python -m news_process.run_paper --list` 输出 5 个 paper
+
+### v2.1.0 累计净改动
+~ -1430 LOC (主要来自 9c 删 5 broken scripts -1180); 净增加 1 测试用例 - 16 删除 = -15 (在 v2.0.0 baseline 778 基础上 = 763; 但 HEAD 是 v2.0.0 + 3 fix commits = 787, 故实际从 HEAD 视角是 -15).
+
+---
+
+## v2.0.0 / phase-8-baseline (2026-05-04)
 
 ### v2.0.0 总目标
 完成八期重构 (Phase 0 → 8) 的全终态：26 个根级数字前缀脚本全部统一为 thin shim；`news_process/{core, pipeline, papers, validation, scripts, config}` 形成完整 canonical 包结构；data 物理布局规范化；版本号正式 bump 到 v2.0.0。
