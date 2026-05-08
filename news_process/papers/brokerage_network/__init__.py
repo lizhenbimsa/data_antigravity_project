@@ -19,7 +19,5 @@ Brokerage-Network — 信息经纪网络与企业表现 (Information Brokerage N
 - Phase 4a 已迁入: ``network_causal.do`` (Bramoullé 2009 + Manski 1993 网络 2SLS + 异质性)
 """
 
-from news_process.papers.brokerage_network import dag
-
 PAPER_ID = 'brokerage_network'
-__all__ = ['dag', 'PAPER_ID']
+__all__ = ['PAPER_ID']

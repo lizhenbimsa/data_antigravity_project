@@ -20,7 +20,5 @@ LLM-Peer — 基于大语言模型构造的同业竞争 IV (LLM-Generated Peer C
   无独立 .do, 论文级回归预计在后续手稿写作阶段补齐。
 """
 
-from news_process.papers.llm_peer import dag
-
 PAPER_ID = 'llm_peer'
-__all__ = ['dag', 'PAPER_ID']
+__all__ = ['PAPER_ID']

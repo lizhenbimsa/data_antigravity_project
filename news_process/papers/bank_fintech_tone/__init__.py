@@ -8,8 +8,9 @@ the entire 00→11→12→14→15→21/22/23→24→45→51 stage chain).
 
 包结构
 ------
-- ``dag.py``      : 论文专属 DAG (Phase 3c: 等同 ``core.dag.STAGES_MAIN``)
 - ``analysis.py`` : ``main()`` CLI 入口 — 调 ``run_pipeline()`` + 论文表/图
+                    Phase 9a: STAGES 直接 ``list(core.dag.STAGES_MAIN)`` 引用,
+                    不再有独立 ``dag.py`` 子模块.
 - ``tables.py``   : 论文 Table 1/2/... 生成器
 - ``figures.py``  : 论文 Figure 1/2/... 生成器
 
@@ -21,7 +22,5 @@ the entire 00→11→12→14→15→21/22/23→24→45→51 stage chain).
 - ``papers_assets/bank_fintech_tone/drafts/``  : 手稿/送审稿
 """
 
-from news_process.papers.bank_fintech_tone import dag
-
 PAPER_ID = 'bank_fintech_tone'
-__all__ = ['dag', 'PAPER_ID']
+__all__ = ['PAPER_ID']

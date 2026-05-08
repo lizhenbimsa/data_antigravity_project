@@ -55,30 +55,26 @@ news_process.papers.ai_regulation — AI 监管 → 银行金融科技投入
 PAPER_ID = "ai_regulation"
 ```
 
-### Step 3: 写 `dag.py`
+### Step 3: 在 `analysis.py` 中引用 `STAGES`
 
-通常一个新 paper 会消费 `STAGES_MAIN` 全集（即用整条主流水线产出做下游
-分析）：
+新 paper 通常消费 `STAGES_MAIN` 全集（用整条主流水线产出做下游分析）。
+v2.1（Phase 9a）起不再为每个 paper 创建独立 `dag.py` 子模块, 直接在
+`analysis.py` 顶部引用 `STAGES_MAIN`:
 
 ```python
-# news_process/papers/ai_regulation/dag.py
-"""
-news_process.papers.ai_regulation.dag — DAG (paper-level).
-
-用 STAGES_MAIN 全集；如果只需子集，可 STAGES = list(STAGES_MAIN[:N]).
-"""
-
 from news_process.core.dag import STAGES_MAIN
 
-# Identity-preserved（test_papers_dag_consistency.py 用 `is` 校验）
-STAGES = list(STAGES_MAIN)
+STAGES = list(STAGES_MAIN)  # 主流水线全集
 ```
 
-如果新 paper 仅需主流水线的前 4 个阶段，可以：
+如果新 paper 仅需主流水线的前 4 个阶段:
 
 ```python
-STAGES = list(STAGES_MAIN[:4])  # 仍是 identity-preserved 子集
+STAGES = list(STAGES_MAIN[:4])  # identity-preserved 切片子集
 ```
+
+`list(...)` 包装是必要的 — 拷贝语义防止 paper 内部对 `STAGES` 的修改
+（`.append` / `.pop`）污染主 DAG。
 
 ### Step 4: 写 `analysis.py` (CLI 入口)
 
@@ -232,8 +228,7 @@ _VALID_PAPER_IDS = frozenset({
 
 # 集成测试
 .venv/Scripts/python.exe -m pytest \
-    news_process/tests/integration/test_papers_imports.py \
-    news_process/tests/integration/test_papers_dag_consistency.py -v
+    news_process/tests/integration/test_papers_imports.py -v
 
 # 跑实际产出
 .venv/Scripts/python.exe news_process/run_paper.py ai_regulation
@@ -293,23 +288,25 @@ if args.stage in ("stata", "all"):
 
 ## 4. 关键约定 ⚠️
 
-### 4a. `STAGES` 必须 identity-preserved
+### 4a. `STAGES` 拷贝语义
 
-`test_papers_dag_consistency.py` 用 `is` 校验：
+5 个 paper 自 v2.1（Phase 9a）起统一在 `analysis.py` 顶部用
+`STAGES = list(STAGES_MAIN)` 取得独立拷贝, 避免论文内部对 `STAGES` 的
+修改 (`.append` / `.pop`) 污染主 DAG `STAGES_MAIN`. `core.dag.STAGES_MAIN`
+中的 `StageSpec` 元素是 frozen dataclass, 元素本身不可变; 但承载 list
+必须用 `list(...)` 浅拷贝。
+
+切片是允许的:
 
 ```python
-# ✗ 错误：列表推导创建新对象
-STAGES = [s for s in STAGES_MAIN]
-
-# ✓ 正确：list() 拷贝但元素是同一对象
-STAGES = list(STAGES_MAIN)
-
-# ✓ 正确：直接复用
-STAGES = STAGES_MAIN
-
-# ✓ 正确：identity-preserved 切片
-STAGES = list(STAGES_MAIN[:5])
+STAGES = list(STAGES_MAIN[:4])         # 仅前 4 stage
+STAGES = [s for s in STAGES_MAIN
+          if s.kind == 'sentiment']     # 按 kind 过滤
 ```
+
+切片得到的 `StageSpec` 元素与 `STAGES_MAIN` 中对应元素 identity-equal
+(`is` 关系), 因此 `enabled_when` 谓词在两端 (orchestrator + paper)
+共享同一 callable 对象, 测试 / debugger 使用 `is` 比较仍工作。
 
 ### 4b. 资产 vs 代码隔离
 
@@ -335,7 +332,7 @@ STAGES = list(STAGES_MAIN[:5])
 * ✓ `run_paper.py --list` 显示新 paper_id
 * ✓ `run_paper.py <new_paper> --dry-run` 不报错
 * ✓ `run_paper.py <new_paper>` 生成预期 tables / figures
-* ✓ `test_papers_imports` + `test_papers_dag_consistency` 都通过
+* ✓ `test_papers_imports` 通过
 * ✓ commit 信息含 `feat(papers): add <paper_id>`
 
 ## 6. 见也

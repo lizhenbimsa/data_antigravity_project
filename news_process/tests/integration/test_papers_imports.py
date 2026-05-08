@@ -55,24 +55,36 @@ def test_common_kernel_importable():
 
 @pytest.mark.parametrize("paper_id", sorted(_VALID_PAPER_IDS))
 def test_paper_package_importable(paper_id: str):
-    """整个 paper 包能 import."""
+    """整个 paper 包能 import.
+
+    Phase 9a: 取消 ``hasattr(mod, 'dag')`` 子模块断言 — papers.<id>.dag
+    子模块在 9a 删除, STAGES 改由 analysis.py 顶部 ``list(STAGES_MAIN)``
+    取得.  test_paper_analysis_has_stages_list (下方) 接管 STAGES 守护.
+    """
     mod = importlib.import_module(f"news_process.papers.{paper_id}")
     assert hasattr(mod, 'PAPER_ID'), \
         f"{paper_id} 包缺少 PAPER_ID 常量"
     assert mod.PAPER_ID == paper_id, \
         f"{paper_id}.PAPER_ID = {mod.PAPER_ID!r}, 预期 {paper_id!r}"
-    assert hasattr(mod, 'dag'), f"{paper_id} 包未暴露 dag 子模块"
 
 
 @pytest.mark.parametrize("paper_id", sorted(_VALID_PAPER_IDS))
-def test_paper_dag_module_has_stages(paper_id: str):
-    dag_mod = importlib.import_module(f"news_process.papers.{paper_id}.dag")
-    assert hasattr(dag_mod, 'STAGES'), \
-        f"{paper_id}.dag 缺少 STAGES 列表"
-    assert isinstance(dag_mod.STAGES, list), \
-        f"{paper_id}.dag.STAGES 不是 list"
-    assert len(dag_mod.STAGES) > 0, \
-        f"{paper_id}.dag.STAGES 为空"
+def test_paper_analysis_has_stages_list(paper_id: str):
+    """Phase 9a: STAGES 守护转移到 analysis 模块.
+
+    每个 paper 的 ``analysis`` 子模块顶部必须暴露 ``STAGES`` 列表
+    (由 ``list(STAGES_MAIN)`` 取拷贝). 9a 前由 papers.<id>.dag 子模块
+    暴露; 9a 起 STAGES 直接挂在 analysis 模块上.
+    """
+    analysis_mod = importlib.import_module(
+        f"news_process.papers.{paper_id}.analysis"
+    )
+    assert hasattr(analysis_mod, 'STAGES'), \
+        f"{paper_id}.analysis 缺少 STAGES 列表"
+    assert isinstance(analysis_mod.STAGES, list), \
+        f"{paper_id}.analysis.STAGES 不是 list"
+    assert len(analysis_mod.STAGES) > 0, \
+        f"{paper_id}.analysis.STAGES 为空"
 
 
 @pytest.mark.parametrize("paper_id", sorted(_VALID_PAPER_IDS))

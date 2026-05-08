@@ -7,7 +7,9 @@ import logging
 import sys
 
 from news_process.papers._common import get_paper_config
-from news_process.papers.brokerage_network.dag import STAGES
+from news_process.core.dag import STAGES_MAIN
+
+STAGES = list(STAGES_MAIN)  # Phase 9a: 原 papers.brokerage_network.dag 已删, list() 保持原拷贝语义
 
 _LOGGER = logging.getLogger('papers.brokerage_network.analysis')
 

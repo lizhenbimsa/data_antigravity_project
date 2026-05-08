@@ -24,7 +24,5 @@ Strategic-Diff — 银行金融科技战略差异度 (Strategic Differentiation)
   - ``text_coherence.do`` (欧阳-胡 2024 + Hoberg-Phillips 2016 相邻期文本连贯性)
 """
 
-from news_process.papers.strategic_diff import dag
-
 PAPER_ID = 'strategic_diff'
-__all__ = ['dag', 'PAPER_ID']
+__all__ = ['PAPER_ID']

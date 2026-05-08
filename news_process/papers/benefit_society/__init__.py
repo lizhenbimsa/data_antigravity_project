@@ -18,7 +18,5 @@ Benefit-Society — 经营效益态度投影 (Operating Benefit Sentiment Projec
 - Phase 4a 已迁入: ``token_hidden_regression.do`` (Distel 2026 + Jha-Liu-Manela 2026 双层回归)
 """
 
-from news_process.papers.benefit_society import dag
-
 PAPER_ID = 'benefit_society'
-__all__ = ['dag', 'PAPER_ID']
+__all__ = ['PAPER_ID']
