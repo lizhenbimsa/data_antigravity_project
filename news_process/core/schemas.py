@@ -12,19 +12,24 @@ Phase 1 时 orchestrator 内部持有一份私有的 ``_get_stage_output_files``
 注册表逐字保留历史 parquet 文件名契约, 确保 ``data/processed/`` 下既有
 文件在新抽象下仍可访问。
 
-Phase 9 (plan m2): 在 ``OUTPUT_REGISTRY`` (默认文件名) 之外引入
-``_FILENAME_KEYS`` (filename_key 间接索引层), 并让 ``get_stage_outputs``
-接受可选 ``config`` 参数。当 ``config`` 提供时, 优先读
-``config['filenames'][filename_key]`` 解析实际文件名, 否则 fallback 到
-默认文件名。这样用户在 ``paths.yaml::filenames`` 中改文件名后, 预清理
-逻辑能自动跟进, 不再有 "stage 写到 X / 预清理删 Y" 的双源真值漂移。
+v3 (Plan A.5 / Fix 5): 把原来的 ``_FILENAME_KEYS`` 列表下标对齐契约
+重写为 ``_OUTPUT_FILENAME_KEYS`` 复合 key 字典 ``(script, default_filename) ->
+filename_key | None``, 以彻底消除 "改一处忘改另一处导致 40_attn_index_city_year
+错映射" 的脆弱性。同时保留 ``OUTPUT_REGISTRY: Mapping[str, list[str]]`` 公共
+类型, 下游 ``papers/_common/panel_loader.py`` 等无需改动 (它们消费
+``parquets[i]`` 仍是 str)。
+
+模块加载时通过 ``_validate_registry_invariant()`` 做"纯结构 assert"型
+顶层校验 — 凡 ``OUTPUT_REGISTRY`` 中出现的 ``(script, filename)`` 必须
+在 ``_OUTPUT_FILENAME_KEYS`` 中显式登记 (str 或 None), 反之亦然。任何
+漂移在 import 时立即抛 ``RuntimeError``, 不会静默通过。
 
 注册表设计原则:
 - ``OUTPUT_REGISTRY[script] = list[默认文件名]`` 保持 ``list[str]`` 公开
   类型, 既有调用方 (例如 ``panel_loader.list_available_panels``) 无需改动。
-- ``_FILENAME_KEYS[script] = list[filename_key | None]`` 与 OUTPUT_REGISTRY
-  下标一一对应; ``None`` 表示该输出是 stage 内部副产物, 在 paths.yaml 的
-  ``filenames`` 节中无对应 key, 永远使用默认文件名。
+- ``_OUTPUT_FILENAME_KEYS[(script, default_filename)] = filename_key | None``:
+  ``str`` 表示 paths.yaml 中存在该 key (用户可改名); ``None`` 表示该输出
+  是 stage 内部副产物, 永远使用默认文件名。
 """
 
 from __future__ import annotations
@@ -70,52 +75,89 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
 }
 
 
-# plan m2: filename_key 间接索引层。下标与 OUTPUT_REGISTRY 一一对应:
-# - str  → 在 paths.yaml::filenames 中存在该 key, get_stage_outputs(config=...)
-#          调用时将优先读 config['filenames'][key] 取实际文件名。
-# - None → 该输出是 stage 内部副产物, paths.yaml::filenames 中无对应 key,
-#          永远使用 OUTPUT_REGISTRY 中的默认文件名 (用户不可在 config 改名)。
-_FILENAME_KEYS: Mapping[str, list[Optional[str]]] = {
-    "00_preprocessing.py": ["output_00_preprocessing"],
-    "11_news_bank.py": ["output_11_bank_news"],
-    "12_news_fintech.py": [
-        "output_12_fintech_news",
-        "output_12_fintech_full",
-    ],
-    "14_fintech_intensity.py": ["output_14_fintech_intensity"],
-    "15_article_policy_alignment.py": ["output_15_article_alignment"],
-    "21_tone_llms.py": [
-        "output_21_tone_llms",
-        "output_21_tone_llms_full",
-    ],
-    "22_tone_words.py": ["output_22_words_tone"],
-    "23_tone_berts.py": ["output_23_bert_tone"],
-    "24_herd_decay_processor.py": ["output_24_herd_decay"],
-    "30_robustness_text2vec.py": [None],  # 输出文件名硬编码在 validation/text2vec.py, 无 config key
-    "45_panel_export_main.py": [
-        "output_40_panel_yearly",
-        "output_40_article_bank",
-        None,  # 40_attn_index_year — 内部副输出, 无 config key
-        None,  # 40_attn_index_province_year
-        None,  # 40_attn_index_city_year
-    ],
-    "51_falsification_test.py": ["output_51_panel_controls"],
+# v3 / Fix 5: 复合 key 替换历史的列表下标对齐契约
+# ─────────────────────────────────────────────────────────────────────────────
+# 旧设计 (Phase 9 plan m2):
+#     _FILENAME_KEYS[script] = list[filename_key | None]   # 与 OUTPUT_REGISTRY 下标一一对应
+# 旧风险:
+#     若 OUTPUT_REGISTRY[script] 列表顺序改了一处忘改 _FILENAME_KEYS, 例如
+#     45_panel_export_main 的 5 个输出顺序漂移, 会让 40_attn_index_city_year.parquet
+#     被错映射到 'output_40_article_bank' 配置键 — 静默且严重。
+# 新设计 (本 Fix 5):
+#     _OUTPUT_FILENAME_KEYS[(script, default_filename)] = filename_key | None
+# 新优势:
+#     - 复合 key 直接用 (script, filename) 字面量定位, 不依赖列表下标。
+#     - import 时通过 _validate_registry_invariant() 做双向覆盖校验, 任何
+#       漂移立即在 import 阶段抛 RuntimeError (fail-fast)。
+#     - OUTPUT_REGISTRY 公共 API (Mapping[str, list[str]]) 保持不变,
+#       下游 papers/_common/panel_loader.py、tests/integration/test_dag_consistency.py
+#       等消费方零改动。
+_OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
+    ("00_preprocessing.py", "00_preprocessing.parquet"): "output_00_preprocessing",
+    ("11_news_bank.py", "11_bank_news.parquet"): "output_11_bank_news",
+    ("12_news_fintech.py", "12_fintech_news.parquet"): "output_12_fintech_news",
+    ("12_news_fintech.py", "12_fintech_news_full.parquet"): "output_12_fintech_full",
+    ("14_fintech_intensity.py", "14_fintech_intensity.parquet"): "output_14_fintech_intensity",
+    ("15_article_policy_alignment.py", "15_article_alignment.parquet"): "output_15_article_alignment",
+    ("21_tone_llms.py", "21_tone_llms.parquet"): "output_21_tone_llms",
+    ("21_tone_llms.py", "21_tone_llms_full.parquet"): "output_21_tone_llms_full",
+    ("22_tone_words.py", "22_words_tone.parquet"): "output_22_words_tone",
+    ("23_tone_berts.py", "23_bert_tone.parquet"): "output_23_bert_tone",
+    ("24_herd_decay_processor.py", "24_herd_decay.parquet"): "output_24_herd_decay",
+    # 30_text2vec_indicators 输出文件名硬编码在 validation/text2vec.py, 无 config key
+    ("30_robustness_text2vec.py", "30_text2vec_indicators.parquet"): None,
+    ("45_panel_export_main.py", "40_panel_yearly.parquet"): "output_40_panel_yearly",
+    ("45_panel_export_main.py", "40_article_bank_level.parquet"): "output_40_article_bank",
+    # 40_attn_index_* 三个 — stage 内部副输出, 无 config key
+    ("45_panel_export_main.py", "40_attn_index_year.parquet"): None,
+    ("45_panel_export_main.py", "40_attn_index_province_year.parquet"): None,
+    ("45_panel_export_main.py", "40_attn_index_city_year.parquet"): None,
+    ("51_falsification_test.py", "51_panel_with_controls.parquet"): "output_51_panel_controls",
 }
+
+
+def _validate_registry_invariant() -> None:
+    """import-time 不变式: OUTPUT_REGISTRY 与 _OUTPUT_FILENAME_KEYS 的 (script, filename) 双向覆盖.
+
+    凡出现在 OUTPUT_REGISTRY 中的 (script, default_filename) 都必须在
+    _OUTPUT_FILENAME_KEYS 中有显式登记 (str 或 None); 反之亦然 — 不允许
+    任一侧出现孤儿条目。
+
+    这是 v3 plan 中"允许的顶层副作用 (纯结构 assert)" 模式: 只验模块自身
+    内部表示自洽, 不依赖运行时外部状态; 触发时抛 RuntimeError 可被 pytest
+    / 上游 try/except 正常捕获 — 与 Python 社区 attrs/pydantic 等标准
+    实践一致。
+    """
+    expected = {(s, f) for s, files in OUTPUT_REGISTRY.items() for f in files}
+    actual = set(_OUTPUT_FILENAME_KEYS.keys())
+    missing_keys = expected - actual
+    extra_keys = actual - expected
+    if missing_keys or extra_keys:
+        raise RuntimeError(
+            f"OUTPUT_REGISTRY ↔ _OUTPUT_FILENAME_KEYS 不变式破坏: "
+            f"missing={sorted(missing_keys)}, extra={sorted(extra_keys)}"
+        )
+
+
+_validate_registry_invariant()  # 模块加载即校验 (fail-fast)
 
 
 def get_stage_outputs(stage_script: str,
                       config: Optional[Mapping] = None) -> list[str]:
-    """返回阶段脚本产出的 parquet 文件名列表 (无登记返回空列表)。
+    """返回阶段脚本产出的 parquet 文件名列表 (无登记返回空列表).
 
     Args:
-        stage_script: 阶段脚本名 (例如 ``'00_preprocessing.py'``)。
+        stage_script: 阶段脚本名 (例如 ``'00_preprocessing.py'``).
         config: 可选; 当提供时, 函数会先尝试从
             ``config['filenames'][filename_key]`` 解析实际文件名,
-            未配置或键缺失时 fallback 到 OUTPUT_REGISTRY 默认文件名。
-            ``None`` 时返回 OUTPUT_REGISTRY 默认文件名 (向后兼容)。
+            未配置或键缺失时 fallback 到 OUTPUT_REGISTRY 默认文件名.
+            ``None`` 时返回 OUTPUT_REGISTRY 默认文件名 (向后兼容).
 
     Returns:
-        文件名列表 (顺序与 OUTPUT_REGISTRY 一致)。
+        文件名列表 (顺序与 OUTPUT_REGISTRY 一致).
+
+    实现注 (v3): 通过 ``_OUTPUT_FILENAME_KEYS[(script, default_filename)]``
+    复合 key 反查 filename_key, 不再依赖与 OUTPUT_REGISTRY 的列表下标对齐.
     """
     defaults = OUTPUT_REGISTRY.get(stage_script, [])
     if not defaults:
@@ -123,12 +165,11 @@ def get_stage_outputs(stage_script: str,
     if config is None:
         return list(defaults)
 
-    keys = _FILENAME_KEYS.get(stage_script, [None] * len(defaults))
     filenames_cfg = config.get('filenames', {}) or {}
 
     out: list[str] = []
-    for i, default_filename in enumerate(defaults):
-        key = keys[i] if i < len(keys) else None
+    for default_filename in defaults:
+        key = _OUTPUT_FILENAME_KEYS.get((stage_script, default_filename))
         if key is not None and key in filenames_cfg:
             out.append(filenames_cfg[key])
         else:
