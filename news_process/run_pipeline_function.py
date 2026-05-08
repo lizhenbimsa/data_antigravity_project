@@ -121,41 +121,20 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 def _get_stage_output_files(stage_script: str) -> list:
     """Return the parquet outputs of ``stage_script``.
 
-    Phase 2d: delegates to ``news_process.core.schemas.get_stage_outputs`` —
-    the single-source registry — eliminating the prior
-    duplicate-hardcoding hazard.  The legacy local mapping below is preserved
-    only as a safety net for stage names not in the registry; in normal
-    operation the registry returns first and the local map is unreachable.
+    OUTPUT_REGISTRY 是单一真值 (Phase 2d 起 + Phase 8 baseline 后).
+    Phase 9d 删除历史兜底 dict — 任何 stage 缺登记直接返回空列表 + debug
+    log, 暴露注册缺失而非静默 fallback (这正是 Phase 2d 的初衷).
+    新的 STAGES_MAIN ↔ OUTPUT_REGISTRY 一致性由
+    ``tests/integration/test_dag_consistency.py::
+    test_stages_main_all_registered_in_output_registry`` 永久守护.
 
-    Phase 9 (plan m2): 把 ``CONFIG`` 传入 ``get_stage_outputs``, 使其按
-    ``CONFIG['filenames'][filename_key]`` 解析用户自定义文件名;
-    用户在 ``paths.yaml::filenames`` 中改名后预清理逻辑能自动跟进。
+    config 传入 ``get_stage_outputs`` 解析用户自定义文件名;
+    ``paths.yaml::filenames`` 改名后预清理逻辑自动跟进.
     """
     from news_process.core.schemas import get_stage_outputs as _registry_outputs
     files = _registry_outputs(stage_script, config=CONFIG)
-    if files:
-        return files
-
-    # 历史兜底映射 (逐字保留 — Phase 2d 弃用期安全网)。
-    stage_num = stage_script.split('_')[0]
-    output_map = {
-        '00': ['00_preprocessing.parquet'],
-        '11': ['11_bank_news.parquet'],
-        '12': ['12_fintech_news.parquet', '12_fintech_news_full.parquet'],
-        '14': ['14_fintech_intensity.parquet'],
-        '15': ['15_article_alignment.parquet'],
-        '21': ['21_tone_llms.parquet', '21_tone_llms_full.parquet'],
-        '22': ['22_words_tone.parquet'],
-        '23': ['23_bert_tone.parquet'],
-        '24': ['24_herd_decay.parquet'],
-        '45': ['40_panel_yearly.parquet', '40_article_bank_level.parquet',
-               '40_attn_index_year.parquet', '40_attn_index_province_year.parquet',
-               '40_attn_index_city_year.parquet'],
-        '51': ['51_panel_with_controls.parquet'],
-    }
-    files = output_map.get(stage_num, [])
-    if not files and stage_num not in output_map:
-        logger.debug(f"未知阶段 {stage_num}，无预定义输出文件")
+    if not files:
+        logger.debug(f"未知阶段 {stage_script}, OUTPUT_REGISTRY 无登记")
     return files
 
 def _parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:

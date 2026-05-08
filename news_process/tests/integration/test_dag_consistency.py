@@ -153,3 +153,22 @@ def test_filter_enabled_respects_predicate(core_dag):
     assert (
         len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 9
     )
+
+
+def test_stages_main_all_registered_in_output_registry(core_dag):
+    """Phase 9d: STAGES_MAIN 中所有 stage 的 script 必须在 OUTPUT_REGISTRY 登记.
+
+    9d 删除了 ``run_pipeline_function._get_stage_output_files`` 的历史 fallback
+    dict, 任何 stage 缺登记会让陈旧文件预清理静默失效 (orchestrator 从
+    ``_registry_outputs`` 拿到空列表). 本测试守护 STAGES_MAIN ↔
+    OUTPUT_REGISTRY 一致性 — 与上方 ``test_main_orchestrator_uses_canonical_stages``
+    一起构成 DAG ↔ orchestrator ↔ schemas registry 三角不变式.
+    """
+    from news_process.core.schemas import OUTPUT_REGISTRY
+
+    missing = [s.script for s in core_dag.STAGES_MAIN
+               if s.script not in OUTPUT_REGISTRY]
+    assert not missing, (
+        f"以下 STAGES_MAIN stage 未在 OUTPUT_REGISTRY 登记, "
+        f"会让陈旧文件预清理失效: {missing}"
+    )
