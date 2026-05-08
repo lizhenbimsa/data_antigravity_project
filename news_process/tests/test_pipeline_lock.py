@@ -37,15 +37,18 @@ class TestPipelineLock(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp()
         self.logger = Mock(spec=logging.Logger)
         self.lock_file_path = os.path.join(self.temp_dir, '.pipeline.lock')
+        # Plan P1-5: sidecar 文件路径 (PID + 启动时间存于此, 不再存于主锁文件)
+        self.sidecar_path = self.lock_file_path + '.info'
 
     def tearDown(self):
         """测试后清理"""
-        # 清理临时文件
-        if os.path.exists(self.lock_file_path):
-            try:
-                os.remove(self.lock_file_path)
-            except Exception:
-                pass
+        # 清理临时文件 + sidecar (Plan P1-5)
+        for p in (self.lock_file_path, self.sidecar_path):
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
 
         # 清理临时目录
         try:
@@ -83,16 +86,21 @@ class TestPipelineLock(unittest.TestCase):
             # 验证错误日志
             logger2.error.assert_called()
 
-    @unittest.skipIf(
-        sys.platform == 'win32',
-        "Windows: msvcrt.locking + open('w') hold prevents same-process "
-        "open('r') (PermissionError). Lock content is verified indirectly "
-        "by Phase 0/1/2/3 integration tests on the live pipeline."
-    )
     def test_lock_file_content(self):
-        """测试3: 锁文件内容验证 (Unix-only; 见 skipIf 注释)"""
+        """测试3: 锁文件 sidecar 内容验证 (Plan P1-5: 跨平台).
+
+        历史版本中, PID + 启动时间写入主锁文件 ``.pipeline.lock`` 内容,
+        但 Windows ``msvcrt.locking + open('w')`` 持有写句柄后同进程再
+        ``open('r')`` 触发 PermissionError, 让本测试在 Windows 上不得不
+        @skipIf. 现在改为 sidecar 文件 ``.pipeline.lock.info``, 写完立即
+        close 不持有句柄, 跨平台一致可读.
+        """
         with PipelineLock(self.logger, self.temp_dir):
-            with open(self.lock_file_path, 'r') as f:
+            # 主锁文件存在但内容不再是诊断信息载体 (Plan P1-5)
+            self.assertTrue(os.path.exists(self.lock_file_path))
+            # sidecar 文件存在且包含 PID + 启动时间
+            self.assertTrue(os.path.exists(self.sidecar_path))
+            with open(self.sidecar_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
 
             self.assertEqual(len(lines), 2)
@@ -160,17 +168,13 @@ class TestPipelineLock(unittest.TestCase):
             # 验证_locked标志
             self.assertTrue(lock._locked)
 
-    @unittest.skipIf(
-        sys.platform == 'win32',
-        "Windows: _handle_lock_failure tries to read the lock file from the "
-        "*same process* that holds it open in 'w' mode → PermissionError. "
-        "On Windows the production code degrades to lock_info='未知' and "
-        "doesn't include PID/启动时间, so the assertion fails. Cross-process "
-        "conflict (the realistic scenario) is covered by run_pipeline_function "
-        "+ PipelineLock integration in production."
-    )
     def test_lock_info_on_conflict(self):
-        """测试9: 锁冲突时的信息显示 (Unix-only; 见 skipIf 注释)"""
+        """测试9: 锁冲突时的诊断信息显示 (Plan P1-5: 跨平台).
+
+        Sidecar 化后, 冲突方 ``_handle_lock_failure`` 读独立的
+        ``.pipeline.lock.info`` 文件 (无任何句柄持有), Windows 也能正常
+        读到 PID + 启动时间. 历史 skipIf 已撤销.
+        """
         with PipelineLock(self.logger, self.temp_dir):
             logger2 = Mock(spec=logging.Logger)
 

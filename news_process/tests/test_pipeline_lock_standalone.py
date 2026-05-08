@@ -37,14 +37,16 @@ class MockLogger:
 
 
 # 直接导入PipelineLock类（内联代码以避免依赖问题）
+# Plan P1-5: 与生产 news_process/core/locking.py 的 sidecar 设计同步.
 class PipelineLock:
-    """管道运行锁，防止并发执行。"""
+    """管道运行锁 (内联副本, 与 news_process.core.locking.PipelineLock 同步; Plan P1-5 sidecar 设计)."""
 
     def __init__(self, logger, lock_dir: str = None):
         self.logger = logger
         if lock_dir is None:
             lock_dir = os.path.dirname(os.path.abspath(__file__))
         self.lock_file_path = os.path.join(lock_dir, '.pipeline.lock')
+        self.sidecar_path = self.lock_file_path + '.info'
         self.lock_file = None
         self.pid = os.getpid()
         self._locked = False
@@ -68,9 +70,14 @@ class PipelineLock:
                 except IOError:
                     self._handle_lock_failure()
 
-            self.lock_file.write(f"{self.pid}\n")
-            self.lock_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\n")
-            self.lock_file.flush()
+            try:
+                with open(self.sidecar_path, 'w', encoding='utf-8') as sf:
+                    sf.write(f"{self.pid}\n")
+                    sf.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            except OSError as e:
+                self.logger.warning(
+                    f"sidecar 写入失败 (主锁仍有效, 诊断信息将不可用): {e}"
+                )
 
             self.logger.info(f"已获取管道锁: {self.lock_file_path} (PID: {self.pid})")
             return self
@@ -94,12 +101,14 @@ class PipelineLock:
 
         lock_info = "未知"
         try:
-            with open(self.lock_file_path, 'r') as f:
+            with open(self.sidecar_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
                 if len(lines) >= 2:
                     lock_pid = lines[0].strip()
                     lock_time = lines[1].strip()
                     lock_info = f"PID {lock_pid}, 启动时间 {lock_time}"
+        except FileNotFoundError:
+            pass
         except Exception:
             pass
 
@@ -107,7 +116,8 @@ class PipelineLock:
             f"管道已在运行中，无法启动新实例。\n"
             f"锁文件: {self.lock_file_path}\n"
             f"占用者: {lock_info}\n"
-            f"如果确认没有其他实例运行，请手动删除锁文件。"
+            f"如果确认没有其他实例运行，请手动删除锁文件 (含 sidecar "
+            f"{os.path.basename(self.sidecar_path)})。"
         )
         self.logger.error(error_msg)
         raise RuntimeError(error_msg)
@@ -142,6 +152,11 @@ class PipelineLock:
                         self.logger.info(f"已释放管道锁: {self.lock_file_path}")
                     except Exception as e:
                         self.logger.warning(f"删除锁文件失败: {e}")
+                if os.path.exists(self.sidecar_path):
+                    try:
+                        os.remove(self.sidecar_path)
+                    except Exception as e:
+                        self.logger.warning(f"删除 sidecar 文件失败: {e}")
             except Exception as e:
                 self.logger.warning(f"清理锁文件失败: {e}")
 
@@ -153,13 +168,16 @@ class TestPipelineLock(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp()
         self.logger = MockLogger()
         self.lock_file_path = os.path.join(self.temp_dir, '.pipeline.lock')
+        # Plan P1-5: sidecar 路径 (PID + 启动时间存于此, 不再存于主锁文件)
+        self.sidecar_path = self.lock_file_path + '.info'
 
     def tearDown(self):
-        if os.path.exists(self.lock_file_path):
-            try:
-                os.remove(self.lock_file_path)
-            except Exception:
-                pass
+        for p in (self.lock_file_path, self.sidecar_path):
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
         try:
             os.rmdir(self.temp_dir)
         except Exception:
@@ -192,21 +210,19 @@ class TestPipelineLock(unittest.TestCase):
 
         print("✓ 测试通过")
 
-    @unittest.skipIf(
-        sys.platform == 'win32',
-        "Windows: same-process open('r') on a held-write file → "
-        "PermissionError. See test_pipeline_lock.py::test_lock_file_content "
-        "for the same skip rationale."
-    )
     def test_03_lock_file_content(self):
-        """测试3: 锁文件内容验证 (Unix-only)"""
-        print("\n[测试3] 锁文件内容验证...")
+        """测试3: sidecar 文件内容验证 (Plan P1-5: 跨平台)."""
+        print("\n[测试3] sidecar 文件内容验证 (Plan P1-5)...")
 
         with PipelineLock(self.logger, self.temp_dir):
-            with open(self.lock_file_path, 'r') as f:
+            self.assertTrue(os.path.exists(self.lock_file_path),
+                            "主锁文件应该存在")
+            self.assertTrue(os.path.exists(self.sidecar_path),
+                            "sidecar 文件应该存在")
+            with open(self.sidecar_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
 
-            self.assertEqual(len(lines), 2, "锁文件应该包含2行")
+            self.assertEqual(len(lines), 2, "sidecar 文件应该包含2行")
 
             pid = int(lines[0].strip())
             self.assertEqual(pid, os.getpid(), "PID应该匹配")
@@ -325,15 +341,9 @@ class TestPipelineLock(unittest.TestCase):
                         "最终锁文件应该被清理")
         print("✓ 测试通过")
 
-    @unittest.skipIf(
-        sys.platform == 'win32',
-        "Windows: _handle_lock_failure cannot read the lock file from the "
-        "same process holding it → lock_info='未知', no PID/启动时间. See "
-        "test_pipeline_lock.py::test_lock_info_on_conflict for full rationale."
-    )
     def test_10_lock_info_on_conflict(self):
-        """测试10: 锁冲突时的信息显示 (Unix-only)"""
-        print("\n[测试10] 锁冲突时的信息显示...")
+        """测试10: 锁冲突时的诊断信息显示 (Plan P1-5: 跨平台)."""
+        print("\n[测试10] 锁冲突时的诊断信息显示 (Plan P1-5)...")
 
         with PipelineLock(self.logger, self.temp_dir):
             logger2 = MockLogger()
