@@ -45,6 +45,9 @@ from news_process.papers._common.stata_runner import (
     run_do,
     StataNotFoundError,
 )
+from news_process.papers._common.pipeline_runner import (
+    run_main_pipeline,
+)
 
 __all__ = [
     "PaperConfig",
@@ -62,4 +65,5 @@ __all__ = [
     "FIGSIZE_SQUARE",
     "run_do",
     "StataNotFoundError",
+    "run_main_pipeline",
 ]

@@ -9,30 +9,12 @@ import argparse
 import logging
 import sys
 
-from news_process.papers._common import get_paper_config
+from news_process.papers._common import get_paper_config, run_main_pipeline
 from news_process.core.dag import STAGES_MAIN
 
 STAGES = list(STAGES_MAIN)  # Phase 9a: 原 papers.benefit_society.dag 已删, list() 保持原拷贝语义
 
 _LOGGER = logging.getLogger('papers.benefit_society.analysis')
-
-
-def _run_pipeline_via_existing_orchestrator() -> None:
-    """复用 ``run_pipeline_function:run_pipeline`` (与主线一致)."""
-    import importlib.util
-    from pathlib import Path
-
-    project_root = Path(__file__).resolve().parents[3]
-    script_path = project_root / 'run_pipeline_function.py'
-    if not script_path.exists():
-        raise FileNotFoundError(f"未找到 run_pipeline_function.py: {script_path}")
-    spec = importlib.util.spec_from_file_location(
-        '_bs_run_pipeline_module', script_path)
-    assert spec is not None and spec.loader is not None
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = mod
-    spec.loader.exec_module(mod)
-    mod.run_pipeline()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -62,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.stage in ('pipeline', 'all'):
         _LOGGER.info("阶段 pipeline: 调用 run_pipeline_function.run_pipeline()")
-        _run_pipeline_via_existing_orchestrator()
+        run_main_pipeline()
 
     if args.stage in ('tables', 'all'):
         from news_process.papers.benefit_society import tables
