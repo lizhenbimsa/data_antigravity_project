@@ -292,3 +292,62 @@ def test_recode_invariant_detects_missing_filename_key(monkeypatch):
 
     with pytest.raises(RuntimeError, match=r"missing="):
         schemas._validate_registry_invariant()
+
+
+def test_recode_invariant_detects_cross_stage_filename_collision(monkeypatch):
+    """recode round 2 校验 4: 同一 parquet 文件名出现在两个 stage 必须被捕获.
+
+    精确隔离: 让 21_tone_llms.py 与 22_tone_words.py 都声明 'shared.parquet'.
+    校验 1 (双向覆盖) 通过: _OUTPUT_FILENAME_KEYS 用复合 key 同时登记两条.
+    校验 2 (列表内去重) 通过: 每个 list 内仍唯一.
+    校验 3 (互斥) 通过: 与 EXPECTED 无重叠.
+    → 校验 4 必须捕获.
+    """
+    from news_process.core import schemas
+
+    bad_registry = dict(schemas.OUTPUT_REGISTRY)
+    bad_registry["21_tone_llms.py"] = ["shared.parquet"]
+    bad_registry["22_tone_words.py"] = ["shared.parquet"]
+    monkeypatch.setattr(schemas, 'OUTPUT_REGISTRY', bad_registry)
+
+    # 同步 _OUTPUT_FILENAME_KEYS 让校验 1 通过, 隔离校验 4
+    bad_keys = dict(schemas._OUTPUT_FILENAME_KEYS)
+    # 删除原 21/22 的 entry
+    del bad_keys[("21_tone_llms.py", "21_tone_llms.parquet")]
+    del bad_keys[("21_tone_llms.py", "21_tone_llms_full.parquet")]
+    del bad_keys[("22_tone_words.py", "22_words_tone.parquet")]
+    # 加新的 entry, 用唯一的 filename_key 让校验 5 也通过
+    bad_keys[("21_tone_llms.py", "shared.parquet")] = "output_shared_a"
+    bad_keys[("22_tone_words.py", "shared.parquet")] = "output_shared_b"
+    monkeypatch.setattr(schemas, '_OUTPUT_FILENAME_KEYS', bad_keys)
+
+    with pytest.raises(RuntimeError, match=r"跨 stage 出现重复 parquet 文件名"):
+        schemas._validate_registry_invariant()
+
+
+def test_recode_invariant_detects_filename_key_collision(monkeypatch):
+    """recode round 2 校验 5: 两个 (script, filename) 共享同一 filename_key 必须被捕获.
+
+    精确隔离: 让 22_tone_words.py 的 entry 借用 21_tone_llms.py 的 filename_key.
+    校验 1-4 全部通过 (类型 / 列表 / 互斥 / 跨 stage 文件名都正确).
+    → 校验 5 必须捕获.
+    """
+    from news_process.core import schemas
+
+    bad_keys = dict(schemas._OUTPUT_FILENAME_KEYS)
+    # 把 22_words_tone 的 filename_key 改成与 21_tone_llms 共享
+    bad_keys[("22_tone_words.py", "22_words_tone.parquet")] = "output_21_tone_llms"
+    monkeypatch.setattr(schemas, '_OUTPUT_FILENAME_KEYS', bad_keys)
+
+    with pytest.raises(RuntimeError, match=r"filename_key 跨条目重复"):
+        schemas._validate_registry_invariant()
+
+
+def test_recode_invariant_allows_multiple_none_filename_keys(monkeypatch):
+    """recode round 2 校验 5 边界: 多个 None filename_key 必须被允许 (不参与唯一性校验).
+
+    现状已有 4 个 None 条目 (30_text2vec + 3 个 40_attn_index_*); 必须正常通过.
+    本测试用未污染的 schemas 直接调用, 不抛即过.
+    """
+    from news_process.core import schemas
+    schemas._validate_registry_invariant()  # 真实数据, 不抛 = 通过

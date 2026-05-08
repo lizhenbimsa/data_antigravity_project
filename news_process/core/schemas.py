@@ -149,7 +149,7 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
 
 
 def _validate_registry_invariant() -> None:
-    """import-time 不变式三项校验 (recode 加固版):
+    """import-time 不变式五项校验 (recode round 1 + round 2 加固版):
 
     1. OUTPUT_REGISTRY 与 _OUTPUT_FILENAME_KEYS 的 (script, filename) 双向覆盖 —
        凡 OUTPUT_REGISTRY 中出现的 (script, default_filename) 必须在
@@ -159,6 +159,13 @@ def _validate_registry_invariant() -> None:
     3. OUTPUT_REGISTRY 与 EXPECTED_NO_OUTPUT_STAGES 必须互斥 — 一个 stage 不能
        既"产 parquet"又"不产 parquet"; 重叠通常意味着维护者把 main stage 误标
        为 no-output, 会让预清理被错误跳过 → 陈旧文件污染下游.
+    4. 跨 stage 文件名唯一性 (recode round 2) — 同一 parquet 文件名不允许出现
+       在两个 stage 的输出列表中. 否则 panel_loader._find_producer_stage 反查
+       只命中字典首位的 stage, 另一个 stage 的存在性被静默忽略.
+    5. _OUTPUT_FILENAME_KEYS 中 filename_key 跨条目唯一性 (recode round 2) —
+       不允许两个不同 (script, filename) 共享同一 paths.yaml::filenames key.
+       否则用户改名会让两个 stage 写到同一文件 → 数据竞争 + 互相覆盖. None
+       值不参与唯一性校验 (允许多个 stage 都标"无 config key").
 
     这是 v3 plan 中"允许的顶层副作用 (纯结构 assert)" 模式: 只验模块自身
     内部表示自洽, 不依赖运行时外部状态; 触发时抛 RuntimeError 可被 pytest
@@ -176,7 +183,7 @@ def _validate_registry_invariant() -> None:
             f"missing={sorted(missing_keys)}, extra={sorted(extra_keys)}"
         )
 
-    # ── 校验 2: 列表内去重 (recode 加固) ──
+    # ── 校验 2: 列表内去重 (recode round 1) ──
     for script, files in OUTPUT_REGISTRY.items():
         if len(files) != len(set(files)):
             dups = sorted({f for f in files if files.count(f) > 1})
@@ -185,7 +192,7 @@ def _validate_registry_invariant() -> None:
                 f"会让 panel_loader.list_available_panels 重复处理 — 请去重."
             )
 
-    # ── 校验 3: 与 EXPECTED_NO_OUTPUT_STAGES 互斥 (recode 加固) ──
+    # ── 校验 3: 与 EXPECTED_NO_OUTPUT_STAGES 互斥 (recode round 1) ──
     overlap = set(OUTPUT_REGISTRY.keys()) & EXPECTED_NO_OUTPUT_STAGES
     if overlap:
         raise RuntimeError(
@@ -193,6 +200,47 @@ def _validate_registry_invariant() -> None:
             f"{sorted(overlap)}; 一个 stage 不能既'产 parquet'又'不产'. "
             f"若该 stage 真的产 parquet, 从 EXPECTED_NO_OUTPUT_STAGES 移除; "
             f"否则从 OUTPUT_REGISTRY 移除."
+        )
+
+    # ── 校验 4: 跨 stage 文件名唯一性 (recode round 2) ──
+    # 现状: 18 个 parquet 文件名两两不同; 校验防御未来 copy-paste 笔误.
+    all_files = [f for files in OUTPUT_REGISTRY.values() for f in files]
+    if len(all_files) != len(set(all_files)):
+        from collections import Counter as _Counter
+        cross_dups = sorted(
+            {f for f, n in _Counter(all_files).items() if n > 1}
+        )
+        # 反向定位: 找出每个重复文件名涉及的 stage 列表
+        producers: dict[str, list[str]] = {}
+        for stage_script, files in OUTPUT_REGISTRY.items():
+            for f in files:
+                if f in cross_dups:
+                    producers.setdefault(f, []).append(stage_script)
+        raise RuntimeError(
+            f"OUTPUT_REGISTRY 中跨 stage 出现重复 parquet 文件名: {cross_dups}; "
+            f"涉及 stage: {producers}; 会让 papers/_common/panel_loader."
+            f"_find_producer_stage 反查只命中字典首位 stage, 静默忽略其它. "
+            f"请给每个 stage 的输出文件取唯一名."
+        )
+
+    # ── 校验 5: filename_key 跨条目唯一性 (recode round 2) ──
+    # None 值不参与校验 — 允许多个内部副输出都标 None.
+    non_none_keys = [k for k in _OUTPUT_FILENAME_KEYS.values() if k is not None]
+    if len(non_none_keys) != len(set(non_none_keys)):
+        from collections import Counter as _Counter
+        key_dups = sorted(
+            {k for k, n in _Counter(non_none_keys).items() if n > 1}
+        )
+        # 反向定位: 找出每个重复 filename_key 涉及的 (script, filename) 对
+        sharers: dict[str, list[tuple[str, str]]] = {}
+        for (s, f), key in _OUTPUT_FILENAME_KEYS.items():
+            if key in key_dups:
+                sharers.setdefault(key, []).append((s, f))
+        raise RuntimeError(
+            f"_OUTPUT_FILENAME_KEYS 中 filename_key 跨条目重复 (排除 None): "
+            f"{key_dups}; 涉及 (script, filename): {sharers}; "
+            f"用户在 paths.yaml::filenames 改名会让两个 stage 写到同一文件 "
+            f"→ 数据竞争 + 互相覆盖. 请给每个条目取唯一 filename_key."
         )
 
 
