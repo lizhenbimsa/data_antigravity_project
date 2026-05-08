@@ -285,6 +285,14 @@ def _load_dotenv(project_root: str):
 
     若已安装 ``python-dotenv`` 则优先调用; 否则退化为最小化解析器。
     ``.env`` 不存在时静默无操作。
+
+    Fallback 解析器与 python-dotenv 行为对齐 (Phase 9 / Plan P0-1):
+        - 行内 ``#`` 注释剥离 (要求注释前至少一个空白, 与 ``KEY=#hash`` 区分)
+        - ``${VAR}`` 嵌套展开 (使 ``CLAUDE_KEY=${YUNWU_KEY}`` 在缺 dotenv 时也工作)
+        - 已存在的 env 值不覆盖 (与 dotenv ``override=False`` 一致)
+    早期 fallback 不展开 ``${VAR}`` 会让字面量 ``"${YUNWU_API_KEY}"`` 污染
+    env, 后续 LLM 调用得到 401; 该 bug 在生产恰好被 requirements.txt 锁
+    住的 ``python-dotenv>=1.0.0`` 掩盖, 但 ImportError 一旦命中即崩。
     """
     env_path = os.path.join(project_root, '.env')
     if not os.path.exists(env_path):
@@ -293,15 +301,33 @@ def _load_dotenv(project_root: str):
     try:
         from dotenv import load_dotenv
         load_dotenv(env_path, override=False)
+        return
     except ImportError:
-        with open(env_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                if '=' in line:
-                    key, _, value = line.partition('=')
-                    key = key.strip()
-                    value = value.strip().strip('"').strip("'")
-                    if key and key not in os.environ:
-                        os.environ[key] = value
+        pass
+
+    _var_pattern = re.compile(r'\$\{([^}]+)\}')
+
+    def _expand_vars(value: str) -> str:
+        return _var_pattern.sub(
+            lambda m: os.environ.get(m.group(1), ''), value
+        )
+
+    with open(env_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            if '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            key = key.strip()
+            if not key:
+                continue
+            for sep in (' #', '\t#'):
+                if sep in value:
+                    value = value.split(sep, 1)[0]
+                    break
+            value = value.strip().strip('"').strip("'")
+            value = _expand_vars(value)
+            if key not in os.environ:
+                os.environ[key] = value
