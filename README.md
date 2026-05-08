@@ -9,7 +9,7 @@
 > post-restructure cleanup — 删除 5 个 broken audit/test 脚本、删除 5 个
 > 空壳 ``papers/<id>/dag.py``、净化 paper analysis 中 5 处反射 import、
 > 删除 orchestrator 的历史 OUTPUT_REGISTRY fallback dict（不引入新抽象，
-> 不动 26 个 thin shim）。pytest 772 passed / 6 skipped / 0 failed。
+> 不动 26 个 thin shim）。pytest 782 passed / 6 skipped / 0 failed (v2.1.0 release 后 5 个 recode/feat 子 commit 新增 10 个回归测试; v2.1.0 release tag 的 frozen baseline = 772)。
 > 完整演进史见 [CHANGELOG.md](./CHANGELOG.md)，rollback tag 链：
 > `baseline-pre-restructure → phase-{1..6}-baseline → phase-7a-baseline →
 > phase-7b-baseline → phase-8-baseline → v2.0.0 → phase-9c-baseline →
@@ -138,7 +138,7 @@ python -m news_process.run_paper benefit_society --dry-run
 ### 2.4 跑测试
 
 ```bash
-# 全套 (~1.2 分钟; v2.1.0 baseline = 772 passed / 6 skipped)
+# 全套 (~1.2 分钟; HEAD baseline = 782 passed / 6 skipped; v2.1.0 release tag = 772 passed)
 python -m pytest news_process/tests/
 
 # 仅红线集成测试
@@ -148,7 +148,9 @@ python -m pytest news_process/tests/integration/
 python -m pytest news_process/tests/test_00_preprocessing.py -v
 ```
 
-期望结果（Phase 9 末态 / v2.1.0）:`772 passed, 6 skipped, 0 failed`
+期望结果:
+- v2.1.0 release tag (frozen baseline): `772 passed, 6 skipped, 0 failed`
+- HEAD (含 5 个 post-release recode/feat commit, +10 回归测试): `782 passed, 6 skipped, 0 failed`
 
 ## 3. 配置系统（Phase 4d）
 
@@ -221,6 +223,12 @@ baseline-pre-restructure    重整起点
 
 每个 phase 内的子任务也单独 commit，可单点 `git revert <hash>`。
 完整 rollback 命令清单见 [`docs/reference/rollback_anchors.md`](docs/reference/rollback_anchors.md)。
+
+## 6.5 数据目录生命周期
+
+`news_process/data/processed/_backup_*` (99 MB)、`data_excel/back/` (43 GB)
+等历史快照与缓存目录的保留 / 清理策略, 见
+[`docs/guides/data_lifecycle.md`](docs/guides/data_lifecycle.md) (Plan P2-10 交付)。
 
 ## 7. 已知 deferred 项 (Phase 9 之后还可选的进一步优化)
 
