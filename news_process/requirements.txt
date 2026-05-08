@@ -1,6 +1,14 @@
 # news_process 项目依赖
 # =====================
 #
+# Plan P2-8 (2026-05-09): 自此版起 single source of truth 已迁至
+# pyproject.toml [project] dependencies 段. 本文件保留为:
+#   1. pip-only 用户的快速入口 (``pip install -r requirements.txt``)
+#   2. 与 pyproject.toml 中 dependencies 列表的"双向校验"参考清单
+# 任一处增删依赖必须同步两边. CI 应通过 ``pip-compile pyproject.toml``
+# 生成 ``requirements.lock`` 作为真正的可重现性基线, 而不是这两份范围
+# 声明的任一份.
+#
 # Reproducibility note:
 #   Use an isolated virtual environment when installing this file. Avoid
 #   `--system-site-packages`, because user/Conda site-package leakage can mask
@@ -9,7 +17,8 @@
 # 数据处理核心
 pandas>=2.2.0,<3.0.0
 numpy>=2.0.0,<3.0.0
-pyarrow>=18.0.0,<24.0.0
+# Plan P2-8: pyarrow<24 → <22 (历史范围跨 6 个大版本过宽)
+pyarrow>=18.0.0,<22.0.0
 
 # 文本清洗
 ftfy>=6.1.0,<7.0.0
@@ -27,7 +36,8 @@ datasketch>=1.6.0,<2.0.0
 
 # 并行处理
 joblib>=1.3.0,<2.0.0
-psutil>=5.9.0,<8.0.0
+# Plan P2-8: psutil<8 → <7
+psutil>=5.9.0,<7.0.0
 
 # 进度条
 tqdm>=4.65.0,<5.0.0
@@ -43,7 +53,8 @@ tiktoken>=0.7.0,<1.0.0
 
 # 深度学习 / BERT 情感分析
 torch>=2.0.0,<3.0.0
-transformers>=4.41.0,<6.0.0
+# Plan P2-8: transformers<6 → <5 (5.x 与 4.x 有 API 破坏性变更)
+transformers>=4.41.0,<5.0.0
 sentence-transformers>=5.0.0,<6.0.0
 
 # 机器学习评估
