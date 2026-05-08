@@ -85,8 +85,8 @@ def clean_geo(name: str) -> str:
       '新疆维吾尔自治区' → '新疆'  | '内蒙古自治区' → '内蒙古'
       '恩施土家族苗族自治州' → 不变 (正则不匹配自治州)
 
-    复用自 43_panel_indicators_geography.py 的 _GEO_SUFFIXES_DIST 逻辑。
-    已通过 _test_final_round.py 测试 1 验证 13 种边界情况。
+    复用自 pipeline/panel/geography.py 的 _GEO_SUFFIXES_DIST 逻辑
+    (Phase 2a 起从 43_panel_indicators_geography.py 迁出).
     """
     return _GEO_SUFFIXES.sub('', str(name)).strip()
 
