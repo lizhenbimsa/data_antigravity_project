@@ -142,6 +142,38 @@ def _validate_registry_invariant() -> None:
 _validate_registry_invariant()  # 模块加载即校验 (fail-fast)
 
 
+# v3 / Fix 4: 显式登记"已知不产 parquet"的 stage 集合
+# ─────────────────────────────────────────────────────────────────────────────
+# OUTPUT_REGISTRY 历史上对 STAGES_VALIDATION (stage 31-39) 故意不登记 —
+# 这些 stage 只写 eval_reports/*.csv, 不写 parquet。但旧的
+# _get_stage_output_files 用 ``if not files: logger.debug(...)`` 兜底,
+# 让"故意空"与"忘了登记 (新增 stage 漏)"无法区分, 后者的陈旧文件预清理
+# 会静默失效。
+#
+# Fix 4 引入 EXPECTED_NO_OUTPUT_STAGES 显式集合: orchestrator 在缺登记
+# 时, 若 stage 在此集合内 → debug log 跳过预清理 (合理); 否则 → raise
+# RuntimeError 强制开发者明确决定 (登记 OUTPUT_REGISTRY 或加入此集合)。
+#
+# 注: 52_stata_data_audit.py / 53_export_stats_excel.py 不在 STAGES_MAIN/
+# STAGES_VALIDATION 中, orchestrator 永远不会调 _get_stage_output_files()
+# 查它们, 故不列入此集合 (避免无效条目误导维护者)。
+EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
+    # validation stages (31-39): 只写 eval_reports/*.csv, 不写 parquet
+    "31_bank_fintech_threshold.py",
+    "32_news_llms_human.py",
+    "32a_dedup_threshold_sensitivity.py",
+    "33_news_llms_evaluation.py",
+    "34_tone_validation.py",
+    "35_radius_sensitivity.py",
+    "36_entity_masking_test.py",
+    "37_dict_coverage_audit.py",
+    "38_media_diversity.py",
+    "38a_temporal_mask_test.py",
+    "38b_decay_sensitivity.py",
+    "39_prompt_sensitivity.py",
+})
+
+
 def get_stage_outputs(stage_script: str,
                       config: Optional[Mapping] = None) -> list[str]:
     """返回阶段脚本产出的 parquet 文件名列表 (无登记返回空列表).
@@ -177,4 +209,4 @@ def get_stage_outputs(stage_script: str,
     return out
 
 
-__all__ = ["OUTPUT_REGISTRY", "get_stage_outputs"]
+__all__ = ["OUTPUT_REGISTRY", "EXPECTED_NO_OUTPUT_STAGES", "get_stage_outputs"]

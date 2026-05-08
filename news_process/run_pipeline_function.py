@@ -122,19 +122,40 @@ def _get_stage_output_files(stage_script: str) -> list:
     """Return the parquet outputs of ``stage_script``.
 
     OUTPUT_REGISTRY 是单一真值 (Phase 2d 起 + Phase 8 baseline 后).
-    Phase 9d 删除历史兜底 dict — 任何 stage 缺登记直接返回空列表 + debug
-    log, 暴露注册缺失而非静默 fallback (这正是 Phase 2d 的初衷).
+    Phase 9d 删除历史兜底 dict — 任何 stage 缺登记直接返回空列表.
+    v3 / Fix 4: 进一步引入 EXPECTED_NO_OUTPUT_STAGES 显式集合, 区分
+    "故意不产 parquet" (validation/audit 等) 与 "忘了登记的真 bug":
+      - stage 在 OUTPUT_REGISTRY 中  → 返回登记的文件名列表 (含 _full 变体)
+      - stage 在 EXPECTED_NO_OUTPUT_STAGES 中 → 返回空列表 + debug log
+      - 二者都不在                      → raise RuntimeError (fail-fast)
+
     新的 STAGES_MAIN ↔ OUTPUT_REGISTRY 一致性由
     ``tests/integration/test_dag_consistency.py::
-    test_stages_main_all_registered_in_output_registry`` 永久守护.
+    test_stages_main_all_registered_in_output_registry`` 永久守护; v3 又
+    新增 ``test_validation_stages_explicitly_marked_no_output`` 守住
+    STAGES_VALIDATION ↔ (OUTPUT_REGISTRY ∪ EXPECTED_NO_OUTPUT_STAGES).
 
     config 传入 ``get_stage_outputs`` 解析用户自定义文件名;
     ``paths.yaml::filenames`` 改名后预清理逻辑自动跟进.
     """
-    from news_process.core.schemas import get_stage_outputs as _registry_outputs
+    from news_process.core.schemas import (
+        get_stage_outputs as _registry_outputs,
+        OUTPUT_REGISTRY,
+        EXPECTED_NO_OUTPUT_STAGES,
+    )
     files = _registry_outputs(stage_script, config=CONFIG)
     if not files:
-        logger.debug(f"未知阶段 {stage_script}, OUTPUT_REGISTRY 无登记")
+        if stage_script in EXPECTED_NO_OUTPUT_STAGES:
+            logger.debug(
+                f"{stage_script} 显式无 parquet 输出 (validation/audit), "
+                f"跳过预清理"
+            )
+        elif stage_script not in OUTPUT_REGISTRY:
+            raise RuntimeError(
+                f"阶段 {stage_script} 既不在 OUTPUT_REGISTRY 也不在 "
+                f"EXPECTED_NO_OUTPUT_STAGES; 请在 news_process/core/schemas.py "
+                f"明确登记 (产 parquet) 或加入 EXPECTED_NO_OUTPUT_STAGES (不产)。"
+            )
     return files
 
 def _parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:

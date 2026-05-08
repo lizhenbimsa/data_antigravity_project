@@ -172,3 +172,36 @@ def test_stages_main_all_registered_in_output_registry(core_dag):
         f"以下 STAGES_MAIN stage 未在 OUTPUT_REGISTRY 登记, "
         f"会让陈旧文件预清理失效: {missing}"
     )
+
+
+def test_validation_stages_explicitly_marked_no_output(core_dag):
+    """v3 / Fix 4: STAGES_VALIDATION 中所有 stage 必须显式归入两类之一.
+
+    要么登记 OUTPUT_REGISTRY (产 parquet, 需预清理);
+    要么列入 EXPECTED_NO_OUTPUT_STAGES (只产 eval_reports/*.csv, 跳过预清理).
+    二者皆缺则 ``run_pipeline_function._get_stage_output_files`` 在 v3 后会
+    raise RuntimeError, 杜绝"忘了登记导致陈旧文件预清理静默失效"的反模式.
+    """
+    from news_process.core.schemas import (
+        OUTPUT_REGISTRY,
+        EXPECTED_NO_OUTPUT_STAGES,
+    )
+
+    unaccounted = [
+        s.script for s in core_dag.STAGES_VALIDATION
+        if s.script not in OUTPUT_REGISTRY
+        and s.script not in EXPECTED_NO_OUTPUT_STAGES
+    ]
+    assert not unaccounted, (
+        f"以下 STAGES_VALIDATION stage 既未登记 OUTPUT_REGISTRY 也未列入 "
+        f"EXPECTED_NO_OUTPUT_STAGES (Fix 4 后 orchestrator 会 raise): "
+        f"{unaccounted}"
+    )
+
+
+def test_output_filename_keys_invariant():
+    """v3 / Fix 5: import-time _validate_registry_invariant() 已校验,
+    此处显式覆盖以保证未来不被静默回退 (例如有人删除该顶层调用).
+    """
+    from news_process.core import schemas
+    schemas._validate_registry_invariant()  # 不抛即过
