@@ -179,11 +179,26 @@ STAGES_MAIN: list[StageSpec] = [
         enabled_when=berts_method_enabled,
     ),
 
-    # ── 模块四b：跟风衰减权重 ──
+    # ── 模块四b：跟风衰减权重 (硬依赖 stage 23 BERT 输出) ──
+    # Plan P1-4: stage 24 内部硬编码读 23_bert_tone.parquet (见
+    # pipeline/sentiment/herd_decay.py:24/247-262), tone_berts 未启用时
+    # 它必须跟随跳过, 否则 SystemExit(1). 用 berts_method_enabled 谓词
+    # 把这个隐式契约提升为 DAG 显式声明; 同时让
+    # run_pipeline_function.py:268-278 的"无条件预清理 stage 24 输出"
+    # 特例可以撤销 (改由 OUTPUT_REGISTRY 统一驱动).
+    #
+    # ⚠ 已知设计耦合 (Plan P1-4 范围外): stage 45 panel runner 也硬依赖
+    # 24_herd_decay.parquet (见 pipeline/panel/runner.py:131-136), 因此
+    # 当前项目 *实际上* 要求 enabled_methods 必须包含 'tone_berts'.
+    # 仅启用 tone_llms / tone_words 时, stage 24 会被本谓词正确跳过,
+    # 但流水线会在 stage 45 因输入缺失再次 sys.exit(1). 解耦 stage 45
+    # 对 24 的硬依赖 (改为 21/22/23 任一可用即接) 留待 v3.0 panel 拆分
+    # 同期完成 (Plan P1-6 选项 B).
     StageSpec(
         name="阶段24: 跟风衰减权重",
         script="24_herd_decay_processor.py",
         group="main", kind="sentiment",
+        enabled_when=berts_method_enabled,
     ),
 
     # ── 模块四c：text2vec 双轨稳健性指标 (战略差异 + 政策对齐 _full/_ctx) ──
@@ -194,9 +209,19 @@ STAGES_MAIN: list[StageSpec] = [
         timeout=7200,  # 含 sentence-transformers 本地 GPU 编码 (双轨)
     ),
 
-    # ── 模块五：面板数据构建 ──
+    # ── 模块五：面板数据构建 (单文件入口, 内部串行执行 7 个子步) ──
+    # Plan P1-6 (保守版): StageSpec.name 显式列出 panel runner 内部
+    # 41 → 42 → 43 → 44 → 46 → 47 → 45 子步语义, 让日志/摘要可读;
+    # 文件名维持 ``45_panel_export_main.py`` 以保留外部 ``python 45_*`` 调用契约.
+    # 真正拆分为 7 个独立 stage (子进程隔离 + OUTPUT_REGISTRY 重整) 留待 v3.0
+    # 与 thin shim 退役同期完成 (Plan 选项 B).
     StageSpec(
-        name="阶段40-45: Bank-Year 面板数据构建",
+        name=(
+            "阶段45 (内含 41+42+43+44+46+47): "
+            "Bank-Year 面板编排器 — 41 编码聚合 → 42 媒体注意力 → "
+            "43 地理缓冲 → 44 Bartik IV/DID → 46 网络溢出 → "
+            "47 经纪网络 → 45 诊断与多格式导出"
+        ),
         script="45_panel_export_main.py",
         group="main", kind="panel",
         timeout=7200,  # 阶段内含 Stage 25/26/27 Embedding 计算

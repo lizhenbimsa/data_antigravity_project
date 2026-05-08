@@ -128,7 +128,12 @@ def test_predicate_identity_module_scope(core_dag):
 
 
 def test_filter_enabled_respects_predicate(core_dag):
-    """``filter_enabled()`` 须正确应用 ``enabled_when`` 谓词。"""
+    """``filter_enabled()`` 须正确应用 ``enabled_when`` 谓词。
+
+    Plan P1-4 后的预期更新: stage 24 (herd_decay) 增加
+    ``enabled_when=berts_method_enabled`` 谓词, 与 stage 23 同步启停.
+    因此 cfg_llm_only / cfg_no_sentiment 下被排除的 stage 数 +1.
+    """
     # 三种情感方法全开 -> 12 阶段 (v6 红队修复: 含 stage 30 / Step 3a)
     cfg_full = {
         "sentiment_analysis": {
@@ -138,20 +143,20 @@ def test_filter_enabled_respects_predicate(core_dag):
     }
     assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 12
 
-    # 仅 LLM -> 12 - 2 (words+berts) = 10
+    # 仅 LLM -> 12 - 2 (words+berts) - 1 (24 跟随 berts) = 9
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 10
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 9
 
-    # 无情感方法 -> 12 - 3 (llm+words+berts) = 9
+    # 无情感方法 -> 12 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 8
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 9
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 8
     )
 
 
@@ -211,9 +216,11 @@ def test_method_to_predicate_covers_sentiment_specs(core_dag):
     """v3 / Fix 2: METHOD_TO_PREDICATE 必须覆盖 STAGES_MAIN 中所有
     kind='sentiment' 且非 always_enabled 的 stage 谓词, 反之亦然.
 
-    stage 24 (24_herd_decay_processor.py) kind='sentiment' 但 enabled_when
-    是 always_enabled (无配置开关), 故应被排除 — 它不属于"按方法名启停"
-    的范畴.
+    Plan P1-4 修订: stage 24 (24_herd_decay_processor.py) kind='sentiment'
+    现在 enabled_when=berts_method_enabled (原为 always_enabled).
+    它复用与 stage 23 相同的 berts 谓词, 故集合层面 sentiment_predicates
+    仍是 {llm, words, berts} = METHOD_TO_PREDICATE.values() (集合自动去重).
+    本测试不变, 通过.
     """
     sentiment_predicates = {
         s.enabled_when for s in core_dag.STAGES_MAIN

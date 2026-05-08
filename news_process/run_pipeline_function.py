@@ -265,17 +265,13 @@ def run_pipeline(args: argparse.Namespace | None = None):
                     except OSError as e:
                         logger.warning(f"  ⚠️ 清理残留文件失败: {filename} ({e})")
 
-        # 无条件预清理阶段 24 自身输出，防止其失败后旧文件残留误导下游
-        _stage24_output = os.path.join(
-            CONFIG['paths']['output_dir'],
-            CONFIG.get('filenames', {}).get(
-                'output_24_herd_decay', '24_herd_decay.parquet'))
-        if os.path.exists(_stage24_output):
-            try:
-                os.remove(_stage24_output)
-                logger.info(f"  🧹 已预清理阶段 24 输出: {os.path.basename(_stage24_output)}")
-            except OSError as e:
-                logger.warning(f"  ⚠️ 预清理阶段 24 输出失败: {e}")
+        # Plan P1-4: stage 24 现已通过 enabled_when=berts_method_enabled 谓词
+        # 与 stage 23 同步启停 (见 core/dag.py StageSpec). 历史的"无条件预清理
+        # stage 24 输出"特例已撤销 — 它原是为补救"stage 24 在 tone_berts 未启用
+        # 但磁盘有残留 23_bert_tone.parquet 时静默用过期数据"这一缺陷而存在,
+        # 谓词化后该路径被 filter_enabled() 直接排除, 不再需要特例补丁.
+        # 通用 stage 输出预清理由下方 ``for script,...: _get_stage_output_files``
+        # 循环 + STAGES 启用过滤共同覆盖, 维持 OUTPUT_REGISTRY 单一真值.
 
         # ── Phase 1: 从 core/dag.py 加载完整 DAG，按 enabled_when 谓词过滤 ──
         active_specs = filter_enabled(STAGES, CONFIG)
