@@ -84,7 +84,7 @@ news_process/
 │
 ├── data_excel/                 # 原始 XLSX 数据 (gitignored)
 ├── data/processed/             # 各阶段 parquet/dta/csv 输出 (gitignored, Phase 8 重命名)
-├── tests/                      # pytest 测试套件 (778 用例, 当前全通过)
+├── tests/                      # pytest 测试套件 (772 用例, 当前全通过; v2.1.0 baseline)
 │   └── integration/            #   跨阶段集成测试 (含 Phase 0 可复现性门槛)
 ├── scripts/
 │   ├── audit/                  #   一次性审计脚本 (sys.exit-style)
@@ -95,7 +95,7 @@ news_process/
 ├── run_pipeline_function.py    # 主管线编排 (消费 core.dag.STAGES_MAIN)
 ├── run_pipeline_validation.py  # 验证管线编排 (消费 core.dag.STAGES_VALIDATION)
 ├── run_paper.py                # 多论文 CLI 调度器
-└── pyproject.toml              # setuptools.packages.find = ["news_process*"]; version = "2.0.0"
+└── pyproject.toml              # setuptools.packages.find = ["news_process*"]; version = "2.1.0"
 ```
 
 ## 2. 快速上手
@@ -119,7 +119,7 @@ cp news_process/.env.example news_process/.env
 python news_process/run_pipeline_function.py
 
 # 方法 B: 经多论文 CLI (等价)
-python -m news_process.run_paper news_process --stage all
+python -m news_process.run_paper bank_fintech_tone --stage all
 ```
 
 ### 2.3 跑单篇论文表/图
@@ -129,7 +129,7 @@ python -m news_process.run_paper news_process --stage all
 python -m news_process.run_paper --list
 
 # 仅生成主线论文的 Table 1 (要求 pipeline 已跑过)
-python -m news_process.run_paper news_process --stage tables
+python -m news_process.run_paper bank_fintech_tone --stage tables
 
 # 干跑 (打印 DAG, 不真实执行)
 python -m news_process.run_paper benefit_society --dry-run
@@ -138,7 +138,7 @@ python -m news_process.run_paper benefit_society --dry-run
 ### 2.4 跑测试
 
 ```bash
-# 全套 (~5 分钟)
+# 全套 (~1.2 分钟; v2.1.0 baseline = 772 passed / 6 skipped)
 python -m pytest news_process/tests/
 
 # 仅红线集成测试
