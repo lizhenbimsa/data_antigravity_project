@@ -67,7 +67,14 @@ from news_process.core.locking import PipelineLock
 
 # Phase 1: 自单一真源导入 DAG, 使本编排器与 core/dag.py 共用同一份阶段定义。
 # STAGES 作为模块级常量暴露, 供 tests/integration/test_dag_consistency.py 做静态一致性校验。
-from news_process.core.dag import STAGES_MAIN as STAGES, filter_enabled
+# v3 / Fix 2: METHOD_TO_PREDICATE / get_script_for_method 由 dag.py 单源维护,
+# orchestrator 仅消费 (取代历史的本地 _sentiment_method_to_script 字典).
+from news_process.core.dag import (
+    STAGES_MAIN as STAGES,
+    filter_enabled,
+    METHOD_TO_PREDICATE,
+    get_script_for_method,
+)
 
 # ============================================================================
 # 配置与初始化
@@ -232,13 +239,21 @@ def run_pipeline(args: argparse.Namespace | None = None):
         # plan m5 修复: 改用 OUTPUT_REGISTRY 取阶段全部输出 (含 _full 变体),
         # 否则 21_tone_llms_full.parquet 会被遗漏 → 验证阶段 32/36/37/39
         # 静默读取上一次 LLM 的旧结果, 与本次配置不一致。
-        _sentiment_method_to_script = {
-            'tone_llms':  '21_tone_llms.py',
-            'tone_words': '22_tone_words.py',
-            'tone_berts': '23_tone_berts.py',
-        }
-        for method, _script in _sentiment_method_to_script.items():
+        #
+        # v3 / Fix 2: method → script 映射统一从 dag.METHOD_TO_PREDICATE
+        # + get_script_for_method() 反推, 不再在本文件内重复维护字典.
+        for method in METHOD_TO_PREDICATE:
             if method in enabled_methods:
+                continue
+            _script = get_script_for_method(method)
+            if _script is None:
+                # 防御性: METHOD_TO_PREDICATE 与 STAGES_MAIN 漂移由
+                # test_method_to_predicate_covers_sentiment_specs 守护;
+                # 这里仅做 best-effort 跳过, 避免单点失败阻塞清理流程.
+                logger.warning(
+                    f"  ⚠️ method '{method}' 在 dag.METHOD_TO_PREDICATE 已登记 "
+                    f"但 STAGES_MAIN 中找不到对应 stage; 跳过陈旧文件清理"
+                )
                 continue
             for filename in _get_stage_output_files(_script):
                 stale_path = os.path.join(

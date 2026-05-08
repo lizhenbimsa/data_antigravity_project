@@ -205,3 +205,38 @@ def test_output_filename_keys_invariant():
     """
     from news_process.core import schemas
     schemas._validate_registry_invariant()  # 不抛即过
+
+
+def test_method_to_predicate_covers_sentiment_specs(core_dag):
+    """v3 / Fix 2: METHOD_TO_PREDICATE 必须覆盖 STAGES_MAIN 中所有
+    kind='sentiment' 且非 always_enabled 的 stage 谓词, 反之亦然.
+
+    stage 24 (24_herd_decay_processor.py) kind='sentiment' 但 enabled_when
+    是 always_enabled (无配置开关), 故应被排除 — 它不属于"按方法名启停"
+    的范畴.
+    """
+    sentiment_predicates = {
+        s.enabled_when for s in core_dag.STAGES_MAIN
+        if s.kind == 'sentiment' and s.enabled_when is not core_dag.always_enabled
+    }
+    map_predicates = set(core_dag.METHOD_TO_PREDICATE.values())
+    assert sentiment_predicates == map_predicates, (
+        f"METHOD_TO_PREDICATE 与 STAGES_MAIN sentiment specs 谓词集不一致; "
+        f"STAGES_MAIN 独有: {sentiment_predicates - map_predicates}, "
+        f"METHOD_TO_PREDICATE 独有: {map_predicates - sentiment_predicates}"
+    )
+
+
+def test_get_script_for_method_round_trip(core_dag):
+    """v3 / Fix 2: METHOD_TO_PREDICATE 中所有 method 必须能反查到 STAGES_MAIN
+    中的对应 script.
+    """
+    for method in core_dag.METHOD_TO_PREDICATE:
+        script = core_dag.get_script_for_method(method)
+        assert script is not None, (
+            f"get_script_for_method({method!r}) 返回 None; "
+            f"METHOD_TO_PREDICATE 与 STAGES_MAIN 之间存在漂移"
+        )
+
+    # 反向检查: 未登记 method 必须返回 None (不应误命中其他 stage)
+    assert core_dag.get_script_for_method('totally_unknown_method') is None

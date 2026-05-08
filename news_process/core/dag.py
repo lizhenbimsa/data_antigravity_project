@@ -20,7 +20,7 @@ Phase 1 交付物: ``StageSpec`` 数据类 + ``STAGES_MAIN`` / ``STAGES_VALIDATI
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 
 # ----------------------------------------------------------------------------
@@ -297,3 +297,47 @@ def filter_enabled(stages: list[StageSpec],
                    config: dict[str, Any]) -> list[StageSpec]:
     """返回 ``stages`` 中 ``enabled_when(config)`` 为 True 的子集。"""
     return [s for s in stages if s.enabled_when(config)]
+
+
+# ----------------------------------------------------------------------------
+# v3 / Fix 2: METHOD_TO_PREDICATE 单一真源化
+# ----------------------------------------------------------------------------
+# 历史上 ``run_pipeline_function.py`` 持有一份本地的
+# ``_sentiment_method_to_script`` 字典 (line 214-218), 与 dag.py 中已有的
+# ``llm_method_enabled / words_method_enabled / berts_method_enabled`` 三个
+# 谓词构成"第三份事实来源" — 任一处漂移都会让"未启用阶段陈旧文件清理"
+# 与"DAG 阶段筛选"的语义不一致。
+#
+# Fix 2 把 method ↔ predicate 映射收回 dag.py (对称于已有的
+# ``_VALIDATION_PREDS``), 并通过 ``get_script_for_method()`` 公共函数把
+# script 名反查也封装在 dag.py 内部 — orchestrator 仅消费, 不再维护。
+METHOD_TO_PREDICATE: dict[str, Callable[[dict[str, Any]], bool]] = {
+    'tone_llms':  llm_method_enabled,
+    'tone_words': words_method_enabled,
+    'tone_berts': berts_method_enabled,
+}
+
+
+def get_script_for_method(method: str) -> Optional[str]:
+    """根据 sentiment method 名反查 STAGES_MAIN 中对应 stage 的 script.
+
+    依赖性质: ``StageSpec.enabled_when`` 必须是 ``METHOD_TO_PREDICATE``
+    中登记的某个模块级谓词 (``is`` 身份比对); 这一性质由
+    ``tests/integration/test_dag_consistency.py::
+    test_predicate_identity_module_scope`` 强制守护。
+
+    Returns:
+        - 找到对应 stage 时返回其 script 文件名 (例如 ``'21_tone_llms.py'``).
+        - method 名未在 ``METHOD_TO_PREDICATE`` 登记 → ``None``
+          (调用方应视为配置错误).
+        - method 已登记但 STAGES_MAIN 中找不到对应谓词的 stage → ``None``
+          (理论上不应发生; 由 ``test_method_to_predicate_covers_sentiment_specs``
+          强制守护).
+    """
+    pred = METHOD_TO_PREDICATE.get(method)
+    if pred is None:
+        return None
+    for spec in STAGES_MAIN:
+        if spec.enabled_when is pred:
+            return spec.script
+    return None
