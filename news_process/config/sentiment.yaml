@@ -267,9 +267,13 @@ sentiment_analysis:
         description: "hw2942金融新闻文本的情感分类（训练数据量偏小，泛化能力可能有限）"
         max_length: 512
         label_map: {"0": "负面", "1": "中性", "2": "正面"}
-      - model_id: F:/WiseSearch/data_antigravity_project/FinBERT/Fin-labeler/classifier_models/FinBERT2-base_SC_2
+      # finbert2 是本地训练的私有模型, 不在 huggingface hub 上.
+      # 通过 .env 中 FINBERT2_MODEL_DIR 指向其本地绝对路径以跨机器友好;
+      # 留空 (或路径不存在) 时, stage 23 graceful skip 该模型, 其余 4 个
+      # huggingface 模型仍正常工作.
+      - model_id: ${FINBERT2_MODEL_DIR}
         short_name: finbert2
-        description: "FinBERT2 金融微调分类模型"
+        description: "FinBERT2 金融微调分类模型 (本地路径, 见 .env::FINBERT2_MODEL_DIR)"
         max_length: 512
         label_map: {"0": "负面", "1": "正面"}
 

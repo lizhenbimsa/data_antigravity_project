@@ -123,7 +123,7 @@ DEFAULT_LABEL_MAP_2CLASS = {0: "负面", 1: "正面"}
 
 
 # ============================================================================
-# 2. 模型配置（从 config.yaml 加载，支持 fallback 到内置默认值）
+# 2. 模型配置（仅从 config.yaml 加载, 单一真值; Plan P0-2 删除内置 fallback 列表）
 # ============================================================================
 
 def _build_model_configs() -> list:
@@ -131,51 +131,34 @@ def _build_model_configs() -> list:
 
     label_map 键在 YAML 中为字符串（如 "0"），这里转换为整数。
 
+    Plan P0-2 (合并 #2 + #8) 修订:
+        删除原 80 行内置 fallback 列表 — 它与 config/sentiment.yaml 的
+        models 段形成"双源真值", 任一处增删模型都需手动同步, 极易漂移;
+        且 fallback 中包含某台开发机的 Windows 绝对路径, 让任何非该机器
+        的用户在 fallback 路径下立即失败.
+        现在 sentiment.yaml 缺失或 models 段为空时直接 raise, 提示明确.
+        finbert2 这类本地私有模型通过 ${FINBERT2_MODEL_DIR} env var 解析,
+        缺该 env 时 sentiment.yaml 解析为空字符串, 模型加载阶段 (L298 try/except)
+        graceful skip 而不影响其它 4 个 huggingface 模型.
+
     Returns:
         list: 模型配置字典列表，每项包含 model_id、short_name、description、
               max_length、label_map（int 键）。
+
+    Raises:
+        RuntimeError: 当 config 中 sentiment_analysis.tone_berts.models 段
+            缺失或为空时. (历史 fallback 用过期硬编码列表掩盖此配置错误,
+            导致用户在 config 损坏时仍貌似正常运行, 但用的是项目维护者上次
+            release 时的过期模型清单. )
     """
     yaml_models = BERT_PARAMS.get('models', [])
     if not yaml_models:
-        # Fallback：内置默认配置
-        logger.warning("config.yaml 中未找到 tone_berts.models，使用内置默认配置")
-        return [
-            {
-                "model_id": "yiyanghkust/finbert-tone-chinese",
-                "short_name": "finbert_cn",
-                "description": "FinBERT 中文情感分析(金融社区中认知度较高)",
-                "max_length": 512,
-                "label_map": {0: "中性", 1: "正面", 2: "负面"},
-            },
-            {
-                "model_id": "bardsai/finance-sentiment-zh-base",
-                "short_name": "fin_sent_zh",
-                "description": "中文金融情感分析(基于Financial PhraseBank微调；F1 macro 0.966)",
-                "max_length": 512,
-                "label_map": {0: "正面", 1: "中性", 2: "负面"},
-            },
-            {
-                "model_id": "IDEA-CCNL/Erlangshen-Roberta-110M-Sentiment",
-                "short_name": "erlangshen",
-                "description": "二郎神 Roberta 110M 情感分类",
-                "max_length": 512,
-                "label_map": {0: "负面", 1: "正面"},
-            },
-            {
-                "model_id": "hw2942/bert-base-chinese-finetuning-financial-news-sentiment-v2",
-                "short_name": "hw2942",
-                "description": "hw2942金融新闻文本的情感分类（训练数据量偏小，泛化能力可能有限）",
-                "max_length": 512,
-                "label_map": {0: "负面", 1: "中性", 2: "正面"},
-            },
-            {
-                "model_id": "F:/WiseSearch/data_antigravity_project/FinBERT/Fin-labeler/classifier_models/FinBERT2-base_SC_2",
-                "short_name": "finbert2",
-                "description": "FinBERT2 金融微调分类模型",
-                "max_length": 512,
-                "label_map": {0: "负面", 1: "正面"},
-            },
-        ]
+        raise RuntimeError(
+            "config/sentiment.yaml::sentiment_analysis.tone_berts.models "
+            "段缺失或为空. 该段是 stage 23 BERT 情感分析的模型清单单一真值, "
+            "请按既有格式补齐 (参考 v2.1.0 baseline 的 5 模型配置). "
+            "Plan P0-2 已删除代码内 fallback 双源以避免静默漂移."
+        )
 
     configs = []
     for m in yaml_models:
