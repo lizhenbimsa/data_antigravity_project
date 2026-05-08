@@ -6,6 +6,57 @@
 
 ---
 
+## post-v2.1.0 / HEAD baseline (2026-05-09 截止)
+
+### 测试 baseline 漂移记录 (Plan P0-3 跟踪)
+
+v2.1.0 release tag 的 frozen baseline = **772 passed / 6 skipped / 0 failed**.
+
+v2.1.0 release 后 5 个子 commit (无 release bump, 仍属 v2.1.x 系列) 总计新增 **+10 回归测试**, HEAD 实测 baseline = **782 passed / 6 skipped / 0 failed**:
+
+- `fb89495` docs(news_process): Phase 9 recode — fix 5 docstring/doc inconsistencies
+- `119bfef` feat(schemas): add `EXPECTED_NO_OUTPUT_STAGES`; orchestrator raises on truly missing entries
+- `edcc750` refactor(dag): move method→predicate map into dag.py; orchestrator drops local copy
+- `8115f54` fix(recode): tighten registry invariants and config type checks
+- `f0b93ca` fix(recode round 2): add 2 missing invariants for cross-stage uniqueness
+
+> 任何后续 PR 应以 HEAD baseline (782) 为合并门槛, 不得低于该数. v2.1.0 release tag 的 772 仅作历史 anchor 保留, 不应再作为 CI 通过条件.
+
+### Plan P0/P1/P2 修复记录 (2026-05-09)
+
+依据独立 plan 文件 `news_process_缺陷修复路线` (`.cursor/plans/`), 完成 12 个独立工作单元中的 P0/P1/P2 + P3 命名层修正部分:
+
+| # | 修复单元 | 范围 |
+|---|---|---|
+| P0-1 | `_load_dotenv` fallback 支持 `${VAR}` 嵌套展开 + 行内注释剥离 | [`core/config.py`](news_process/core/config.py) |
+| P0-2 | finbert2 模型路径外部化为 `${FINBERT2_MODEL_DIR}` env var; 删除代码内 80 行硬编码 fallback (双源真值) | [`config/sentiment.yaml`](news_process/config/sentiment.yaml), [`pipeline/sentiment/tone_berts.py`](news_process/pipeline/sentiment/tone_berts.py), [`.env.example`](news_process/.env.example) |
+| P0-3 | 测试 baseline 数 772 → 786, 多处文档同步 (含历史 anchor 保留) | README, CHANGELOG, `__init__.py` |
+| P1-4 | stage 24 加 `enabled_when=berts_method_enabled` 谓词; 撤销 stage 24 的"无条件预清理"特例 | [`core/dag.py`](news_process/core/dag.py), [`run_pipeline_function.py`](news_process/run_pipeline_function.py), `tests/integration/test_dag_consistency.py` |
+| P1-5 | PipelineLock sidecar 化: PID/启动时间存独立 `.pipeline.lock.info`, 跨平台 (Win/Unix) 一致可读; 6 个 SKIP → 2 个 (剩余为平台天然差异) | [`core/locking.py`](news_process/core/locking.py), `tests/test_pipeline_lock*.py` |
+| P1-6 | stage 45 StageSpec.name 显式列出 41+42+43+44+46+47 子步执行顺序 | [`core/dag.py`](news_process/core/dag.py) |
+| P2-7 | `tests/test_39_prompt_sensitivity.py` 改用 pytest `tmp_path` fixture, 消除 `.test_tmp/` 累积 (历史累积 56 个 UUID) | `tests/test_39_prompt_sensitivity.py` |
+| P2-8 | `requirements.txt` 内容迁入 `pyproject.toml [project] dependencies`; `transformers <6 → <5`, `pyarrow <24 → <22`, `psutil <8 → <7` | [`pyproject.toml`](news_process/pyproject.toml), [`requirements.txt`](news_process/requirements.txt) |
+| P2-9 | 新增 GitHub Actions CI: ubuntu+windows × py 3.11+3.13 矩阵, baseline 锁定 786 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| P2-10 | 新增 [`docs/guides/data_lifecycle.md`](docs/guides/data_lifecycle.md): 阐明 `data/processed/_backup_*` (99MB) 与 `data_excel/back/` (43GB) 的保留与清理策略 | docs/guides/, README §6.5 |
+| P2-11 | CHANGELOG.md v2.0.0 章节顶部补登 2 段 BREAKING CHANGES (`data_processed/` 重命名 + 真包化) | CHANGELOG.md |
+| P3-12 (部分) | papers/bank_fintech_tone logger 名 + docstring CLI 示例修正; pyproject NOTE 时态修正 | `papers/bank_fintech_tone/analysis.py`, `pyproject.toml` |
+
+#### 净基线变化
+
+| 指标 | 修复前 (HEAD) | 修复后 (本批 commit) |
+|------|--------------|---------------------|
+| pytest passed | 782 | **786** (+4 来自 P1-5 sidecar 让 4 个 Win SKIP 转 PASS) |
+| pytest skipped | 6 | **2** (-4, 同上) |
+| pytest failed | 0 | 0 |
+
+#### 仍 deferred 至 v3.0 的项目
+
+- **26 个数字前缀 thin shim 完整退役**: 删 26 个 ≤30 行 shim, `core/dag.py:StageSpec.script` 从文件名 (`"00_preprocessing.py"`) 改为 module path (`"news_process.pipeline.preprocess.runner"`), `core/stage.py:run_stage` 改用 `subprocess.Popen([python, "-m", module])`. 工程量大且涉及外部 ``python NN_xxx.py`` 调用契约破坏, 与 v2.x 释出不兼容. 详见 [`docs/guides/thin_shim_pattern.md`](docs/guides/thin_shim_pattern.md).
+- **stage 45 panel runner 真拆分** (Plan P1-6 选项 B): 把单文件 7-step 编排拆为 41/42/43/44/46/47/45 七个独立 stage; OUTPUT_REGISTRY 同步重整. 这能让 `enabled_methods` 配置矩阵真正可用 (当前任何不含 `tone_berts` 的组合仍会在 stage 45 因输入缺失崩溃, 见 [`core/dag.py`](news_process/core/dag.py) StageSpec 注释).
+- **LLM cache key 维度扩展** (Plan #14, 已降级): 把 `temperature` / `force_json` / `top_p` 等非 prompt 参数也纳入 cache key. 当前生产配置下这些参数恒定, 不出问题; 仅在未来引入参数 sweep 实验时需要.
+
+---
+
 ## v2.1.0 / phase-9-baseline (2026-05-08, current HEAD)
 
 ### v2.1.0 总目标
@@ -84,6 +135,57 @@ pytest: 772 (不变).
 ---
 
 ## v2.0.0 / phase-8-baseline (2026-05-04)
+
+### ⚠ BREAKING CHANGES (Plan P2-11 补登, 2026-05-09)
+
+> v2.0.0 release 当时仅在 §7 Phase 8 末尾用一句话提及"项目外 Stata 用户脚本中硬编码 `data_processed/...` 的需要搜索替换", 没有专门的 BREAKING CHANGES 段, 外部用户极易错过. 本段为补登, 让从 v1.x 升级或外部分支用户首次升级时能从 CHANGELOG 顶部看到破坏性变更提示.
+
+#### 1. 数据目录物理重命名: `data_processed/` → `data/processed/`
+
+**影响面**:
+- 任何在 `data_processed/` 路径下硬编码读写的 *项目外* 脚本 (Stata `.do`、外部 Python 分析、Jupyter notebook 等)
+- 项目内 5 个 Stata `.do` 已在本 release 内同步修复, 见 §Phase 8 详情
+
+**迁移步骤** (项目外用户必读):
+
+```bash
+# 1. 物理移动数据 (如果你 fork 的旧仓库还在用 data_processed/)
+mv news_process/data_processed news_process/data/processed
+
+# 2. 搜索替换硬编码路径 (.do 文件)
+sed -i 's|data_processed/|data/processed/|g' your_scripts/*.do
+
+# 3. 搜索替换硬编码路径 (.py 文件)
+grep -rn 'data_processed' your_external_scripts/
+# 人工确认后再 sed -i
+
+# 4. 校验
+python -c "from news_process.core.config import load_config; print(load_config()['paths']['output_dir'])"
+# 期望输出: <project_root>/news_process/data/processed
+```
+
+**为何破坏**: Phase 4f/5b/6e 蓝图原本规划"业务组子分区"(`data/processed/00_preprocess/` 等), 但因 stage 间交叉读取会迫使 `CONFIG['filenames']` 携带组前缀 (违反 DRY) 而撤销, 最终选定单层重命名方案. 此举属"长痛不如短痛", 让物理布局与项目内部"`paths.output_dir = ./data/processed`"约定一致.
+
+#### 2. `news_process` 真包化与 `python NN_xxx.py` 调用契约保留
+
+**v2.0.0 之前** (v1.x):
+- `news_process/` 不是真 Python 包 (无 `__init__.py` 真实导出)
+- 26 个 `NN_xxx.py` (00_preprocessing.py ... 53_export_stats_excel.py) 是 fully-bodied 业务脚本
+- 调用方式: `python news_process/00_preprocessing.py` (cwd 必须是项目父目录, 或脚本顶部 sys.path 注入)
+
+**v2.0.0 之后**:
+- `news_process/` 是真 Python 包 (`pyproject.toml` `setuptools.packages.find = ["news_process*"]`)
+- 26 个 root 脚本退化为 ≤30 行的 thin shim, body 已迁入 `news_process.pipeline.*` / `news_process.validation.*`
+- **`python news_process/00_preprocessing.py` 仍可用** (历史调用契约保留)
+- 推荐调用方式: `python -m news_process.pipeline.preprocess.runner` (规范包路径)
+
+**影响面**:
+- 任何 `from news_process import <legacy_name>` 直接导入根级文件内函数的代码 (历史从未推荐, 但理论可能存在)
+- `run_pipeline_function` 等编排器从 `subprocess.Popen([python, "NN_xxx.py"])` 改为内部消费 `core.dag.STAGES_MAIN` 后再 spawn (子进程契约不变, 但内部 spec 来源变化)
+
+**迁移成本**: 0, 除非你直接 import 了根级文件内的私有函数 (此种代码理论上违反封装, 修法是改 import 子包内规范路径).
+
+---
 
 ### v2.0.0 总目标
 完成八期重构 (Phase 0 → 8) 的全终态：26 个根级数字前缀脚本全部统一为 thin shim；`news_process/{core, pipeline, papers, validation, scripts, config}` 形成完整 canonical 包结构；data 物理布局规范化；版本号正式 bump 到 v2.0.0。
