@@ -113,7 +113,7 @@ Papers loaded: ['bank_fintech_tone', 'benefit_society', 'brokerage_network', 'll
 期望（v2.1.0 / phase-9-baseline）：
 
 ```
-772 passed, 6 skipped, 33 warnings in ~70s
+782 passed, 6 skipped, 33 warnings in ~32s   # HEAD baseline (v2.1.0 release tag = 772)
 ```
 
 ```{warning}

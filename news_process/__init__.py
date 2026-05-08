@@ -28,7 +28,11 @@ Phase 3 / Phase 7a residue, no new abstraction introduced:
     canonical-import bridge ``papers/_common/pipeline_runner.py``;
     Phase 2a reflection-purge invariant restored for production code
   - 26 thin shims: untouched (preserved for true v3.0)
-  - Full pytest: 772 passed / 6 skipped / 0 failed.
+  - Full pytest: 772 passed / 6 skipped / 0 failed (v2.1.0 release tag baseline).
+
+Post-v2.1.0 HEAD (recode round 1+2 + feat/refactor 5 个子 commit):
+  - +10 回归测试 (test_dag_consistency 增 cross-stage uniqueness invariants 等)
+  - Full pytest: 782 passed / 6 skipped / 0 failed (HEAD baseline).
 """
 
 __version__ = "2.1.0"
