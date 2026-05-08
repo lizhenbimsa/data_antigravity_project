@@ -116,32 +116,6 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
 }
 
 
-def _validate_registry_invariant() -> None:
-    """import-time 不变式: OUTPUT_REGISTRY 与 _OUTPUT_FILENAME_KEYS 的 (script, filename) 双向覆盖.
-
-    凡出现在 OUTPUT_REGISTRY 中的 (script, default_filename) 都必须在
-    _OUTPUT_FILENAME_KEYS 中有显式登记 (str 或 None); 反之亦然 — 不允许
-    任一侧出现孤儿条目。
-
-    这是 v3 plan 中"允许的顶层副作用 (纯结构 assert)" 模式: 只验模块自身
-    内部表示自洽, 不依赖运行时外部状态; 触发时抛 RuntimeError 可被 pytest
-    / 上游 try/except 正常捕获 — 与 Python 社区 attrs/pydantic 等标准
-    实践一致。
-    """
-    expected = {(s, f) for s, files in OUTPUT_REGISTRY.items() for f in files}
-    actual = set(_OUTPUT_FILENAME_KEYS.keys())
-    missing_keys = expected - actual
-    extra_keys = actual - expected
-    if missing_keys or extra_keys:
-        raise RuntimeError(
-            f"OUTPUT_REGISTRY ↔ _OUTPUT_FILENAME_KEYS 不变式破坏: "
-            f"missing={sorted(missing_keys)}, extra={sorted(extra_keys)}"
-        )
-
-
-_validate_registry_invariant()  # 模块加载即校验 (fail-fast)
-
-
 # v3 / Fix 4: 显式登记"已知不产 parquet"的 stage 集合
 # ─────────────────────────────────────────────────────────────────────────────
 # OUTPUT_REGISTRY 历史上对 STAGES_VALIDATION (stage 31-39) 故意不登记 —
@@ -172,6 +146,57 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "38b_decay_sensitivity.py",
     "39_prompt_sensitivity.py",
 })
+
+
+def _validate_registry_invariant() -> None:
+    """import-time 不变式三项校验 (recode 加固版):
+
+    1. OUTPUT_REGISTRY 与 _OUTPUT_FILENAME_KEYS 的 (script, filename) 双向覆盖 —
+       凡 OUTPUT_REGISTRY 中出现的 (script, default_filename) 必须在
+       _OUTPUT_FILENAME_KEYS 中显式登记 (str 或 None), 反之亦然。
+    2. OUTPUT_REGISTRY 各 script 的文件名列表内不允许重复 (防笔误如
+       ``["a.parquet", "a.parquet"]`` 让 panel_loader 重复迭代).
+    3. OUTPUT_REGISTRY 与 EXPECTED_NO_OUTPUT_STAGES 必须互斥 — 一个 stage 不能
+       既"产 parquet"又"不产 parquet"; 重叠通常意味着维护者把 main stage 误标
+       为 no-output, 会让预清理被错误跳过 → 陈旧文件污染下游.
+
+    这是 v3 plan 中"允许的顶层副作用 (纯结构 assert)" 模式: 只验模块自身
+    内部表示自洽, 不依赖运行时外部状态; 触发时抛 RuntimeError 可被 pytest
+    / 上游 try/except 正常捕获 — 与 Python 社区 attrs/pydantic 等标准
+    实践一致。
+    """
+    # ── 校验 1: 双向覆盖 ──
+    expected = {(s, f) for s, files in OUTPUT_REGISTRY.items() for f in files}
+    actual = set(_OUTPUT_FILENAME_KEYS.keys())
+    missing_keys = expected - actual
+    extra_keys = actual - expected
+    if missing_keys or extra_keys:
+        raise RuntimeError(
+            f"OUTPUT_REGISTRY ↔ _OUTPUT_FILENAME_KEYS 不变式破坏: "
+            f"missing={sorted(missing_keys)}, extra={sorted(extra_keys)}"
+        )
+
+    # ── 校验 2: 列表内去重 (recode 加固) ──
+    for script, files in OUTPUT_REGISTRY.items():
+        if len(files) != len(set(files)):
+            dups = sorted({f for f in files if files.count(f) > 1})
+            raise RuntimeError(
+                f"OUTPUT_REGISTRY[{script!r}] 列表内有重复文件名: {dups}; "
+                f"会让 panel_loader.list_available_panels 重复处理 — 请去重."
+            )
+
+    # ── 校验 3: 与 EXPECTED_NO_OUTPUT_STAGES 互斥 (recode 加固) ──
+    overlap = set(OUTPUT_REGISTRY.keys()) & EXPECTED_NO_OUTPUT_STAGES
+    if overlap:
+        raise RuntimeError(
+            f"OUTPUT_REGISTRY ∩ EXPECTED_NO_OUTPUT_STAGES 必须为空, 实际重叠: "
+            f"{sorted(overlap)}; 一个 stage 不能既'产 parquet'又'不产'. "
+            f"若该 stage 真的产 parquet, 从 EXPECTED_NO_OUTPUT_STAGES 移除; "
+            f"否则从 OUTPUT_REGISTRY 移除."
+        )
+
+
+_validate_registry_invariant()  # 模块加载即校验 (fail-fast)
 
 
 def get_stage_outputs(stage_script: str,

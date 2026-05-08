@@ -86,12 +86,25 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # raise 路径从未触发; 但作为防御性反模式仍应消除. 详见 v3 plan A.3 的
 # "副作用三档分级" 论证.
 def _ensure_llm_config(cfg: dict) -> dict:
-    """读取并校验 tone_llm_processing 配置; 缺失时 raise 而非 sys.exit."""
-    llm = cfg.get('tone_llm_processing', {})
+    """读取并校验 tone_llm_processing 配置; 缺失或类型异常时 raise.
+
+    recode 加固: 除"缺失"外, 还守住"YAML 把该节写成非 dict 值"
+    (如笔误成字符串/列表) — 此场景下下游 ``LLM_CONFIG.get('models', [])``
+    会抛 AttributeError, 错误信息不友好且根因不明。本 helper 在源头
+    给出明确诊断。
+    """
+    llm = cfg.get('tone_llm_processing')
     if not llm:
+        # 包含 None / {} / [] / "" / 0 等 falsy 情况 — 都视为"未配置"
         raise RuntimeError(
-            "在 sentiment.yaml 中未找到 tone_llm_processing 配置节; "
+            "在 sentiment.yaml 中未找到 tone_llm_processing 配置节 (或为空); "
             "请检查 config split 是否完整或 legacy config.yaml 是否包含此节。"
+        )
+    if not isinstance(llm, dict):
+        raise RuntimeError(
+            f"tone_llm_processing 配置节类型异常: 期望 dict, 实际 "
+            f"{type(llm).__name__} ({llm!r:.80s}); "
+            f"请检查 sentiment.yaml 该节的 YAML 缩进与值类型。"
         )
     return llm
 

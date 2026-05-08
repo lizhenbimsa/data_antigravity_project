@@ -240,3 +240,55 @@ def test_get_script_for_method_round_trip(core_dag):
 
     # 反向检查: 未登记 method 必须返回 None (不应误命中其他 stage)
     assert core_dag.get_script_for_method('totally_unknown_method') is None
+
+
+# ===========================================================================
+# recode 加固: 三项 schemas.py 不变式的破坏性测试 (验证守护机制本身有效)
+# ===========================================================================
+
+
+def test_recode_invariant_detects_dup_within_stage_outputs(monkeypatch):
+    """recode 加固校验 2: OUTPUT_REGISTRY 内重复文件名必须被 invariant 捕获.
+
+    精确隔离: 同步 _OUTPUT_FILENAME_KEYS 让校验 1 (双向覆盖) 通过 — 必须
+    既加新 (script, "a.parquet") key 又删除被替换的原 (script, "00_preprocessing.parquet") key,
+    才能让 expected ↔ actual 完全匹配, 从而走到校验 2.
+    """
+    from news_process.core import schemas
+
+    bad_registry = dict(schemas.OUTPUT_REGISTRY)
+    bad_registry["00_preprocessing.py"] = ["a.parquet", "a.parquet"]
+    monkeypatch.setattr(schemas, 'OUTPUT_REGISTRY', bad_registry)
+
+    # 同步 _OUTPUT_FILENAME_KEYS: 删除原 key + 加新 key, 让校验 1 通过, 隔离校验 2
+    bad_keys = dict(schemas._OUTPUT_FILENAME_KEYS)
+    del bad_keys[("00_preprocessing.py", "00_preprocessing.parquet")]
+    bad_keys[("00_preprocessing.py", "a.parquet")] = "output_dup"
+    monkeypatch.setattr(schemas, '_OUTPUT_FILENAME_KEYS', bad_keys)
+
+    with pytest.raises(RuntimeError, match=r"列表内有重复文件名"):
+        schemas._validate_registry_invariant()
+
+
+def test_recode_invariant_detects_overlap_with_no_output_set(monkeypatch):
+    """recode 加固校验 3: OUTPUT_REGISTRY 与 EXPECTED_NO_OUTPUT_STAGES 重叠必须被捕获."""
+    from news_process.core import schemas
+
+    overlapping = frozenset(schemas.EXPECTED_NO_OUTPUT_STAGES) | {"00_preprocessing.py"}
+    monkeypatch.setattr(schemas, 'EXPECTED_NO_OUTPUT_STAGES', overlapping)
+
+    with pytest.raises(RuntimeError, match=r"必须为空, 实际重叠"):
+        schemas._validate_registry_invariant()
+
+
+def test_recode_invariant_detects_missing_filename_key(monkeypatch):
+    """recode 加固校验 1 的回归测试 (双向覆盖): 在 OUTPUT_REGISTRY 加新 entry
+    但不同步 _OUTPUT_FILENAME_KEYS, 必须被捕获."""
+    from news_process.core import schemas
+
+    bad_registry = dict(schemas.OUTPUT_REGISTRY)
+    bad_registry["999_phantom.py"] = ["phantom.parquet"]
+    monkeypatch.setattr(schemas, 'OUTPUT_REGISTRY', bad_registry)
+
+    with pytest.raises(RuntimeError, match=r"missing="):
+        schemas._validate_registry_invariant()
