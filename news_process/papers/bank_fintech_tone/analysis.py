@@ -3,7 +3,7 @@
 CLI 用法
 --------
 通过 ``python -m news_process.papers.bank_fintech_tone.analysis`` 调用,
-或经 Phase 3e 的统一调度器 ``python -m news_process.run_paper news_process``。
+或经 Phase 3e 的统一调度器 ``python -m news_process.run_paper bank_fintech_tone``。
 
 支持的阶段
 ----------
@@ -32,7 +32,10 @@ from news_process.core.dag import STAGES_MAIN
 STAGES = list(STAGES_MAIN)  # Phase 9a: 原 papers.bank_fintech_tone.dag 已删, list() 保持原拷贝语义
 
 
-_LOGGER = logging.getLogger('papers.news_process.analysis')
+# Plan P3-12: logger 名同步至当前 paper_id 'bank_fintech_tone'.
+# 历史名 'papers.news_process.analysis' 是 v1.x 时期 paper_id 还叫 'news_process'
+# 时的残留, 已与 run_paper.py:_PAPER_SUMMARIES 中的白名单不一致.
+_LOGGER = logging.getLogger('papers.bank_fintech_tone.analysis')
 
 
 def main(argv: list[str] | None = None) -> int:
