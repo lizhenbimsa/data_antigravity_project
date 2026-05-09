@@ -78,8 +78,8 @@ def get_python_version() -> str:
 def get_key_dependencies() -> dict[str, str]:
     """获取关键依赖的版本。"""
     try:
-        import pandas
         import numpy
+        import pandas
         import torch
         import transformers
 
