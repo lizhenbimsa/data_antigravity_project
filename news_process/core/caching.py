@@ -65,6 +65,17 @@ logger = logging.getLogger(__name__)
 #
 # v0 — round 1+2 (key = sha256(len:model_id:prompt))
 # v1 — Plan-r3 P3-17 (key = sha256(SCHEMA|len:model_id|len:prompt|pv|temp))
+#
+# 平滑迁移: ``get()`` 在新键 (v1) miss 时, 自动按旧 (v0) 算法再算一次键
+# 做 fallback 读. 这样:
+#   - 历史 _llm_cache.db (v0 写入的 236 MiB) 仍能 hit, 测试 / 生产 stage
+#     无需等待 API 重调
+#   - 调用方传入 prompt_version='v6...' 或非默认 temperature 时, _make_key
+#     生成的 v1 键是全新命名空间, fallback v0 必 miss → 正确触发新 API call
+#   - put/put_batch 始终用 v1 算法, 老 v0 记录会逐步被新 v1 记录"超越"
+#     (相同 prompt 的新写入会建立 v1 key, 之后 get 直接命中 v1)
+#   - 用户在 v3.0 准备就绪后可手动 ``DELETE FROM llm_cache WHERE...`` 或
+#     直接删 _llm_cache.db 让 v0 命名空间归零.
 SCHEMA_VERSION = "v1"
 
 
@@ -135,10 +146,25 @@ class LLMCache:
         )
         return hashlib.sha256(raw.encode('utf-8')).hexdigest()
 
+    @staticmethod
+    def _make_key_v0(model_id: str, prompt: str) -> str:
+        """生成 v0 旧 schema 键 (Plan-r3 P3-17 平滑迁移用).
+
+        仅 ``get`` 在 v1 miss 时调用做 fallback 读. ``put`` 不再写 v0.
+        """
+        m_id = str(model_id) if model_id is not None else ""
+        p_str = str(prompt) if prompt is not None else ""
+        raw = f"{len(m_id)}:{m_id}:{p_str}"
+        return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
     def get(self, model_id: str, prompt: str,
             *, prompt_version: str = "v0",
             temperature: float = 0.0) -> str | None:
         """查询缓存 (Plan-r3 P3-17: 加 prompt_version + temperature 维度)。
+
+        平滑迁移: 新键 (v1) miss 后, 当 ``prompt_version='v0'`` 且
+        ``temperature=0.0`` (即调用方未传 P3-17 新参数时), 自动用旧 v0
+        算法再查一次, 让历史 _llm_cache.db 中的 v0 记录仍能被新代码命中.
 
         Args:
             model_id:        模型标识符.
@@ -157,7 +183,18 @@ class LLMCache:
                 "SELECT response FROM llm_cache WHERE cache_key = ?", (key,)
             )
             row = cursor.fetchone()
-        return row[0] if row else None
+        if row:
+            return row[0]
+        # v1 miss → 仅当调用方未指定新维度时, 尝试 v0 fallback
+        if prompt_version == "v0" and temperature == 0.0:
+            v0_key = self._make_key_v0(model_id, prompt)
+            with self._lock:
+                cursor = self._conn.execute(
+                    "SELECT response FROM llm_cache WHERE cache_key = ?", (v0_key,)
+                )
+                row = cursor.fetchone()
+            return row[0] if row else None
+        return None
 
     def put(self, model_id: str, prompt: str, response: str,
             *, prompt_version: str = "v0",
