@@ -11,6 +11,13 @@ readme = "README.md"
 license = { text = "Proprietary" }
 
 # Plan P2-8 (2026-05-09): runtime dependencies 从 requirements.txt 迁入此处.
+# Plan P0-1 (2026-05-09): requirements.lock 已生成，作为可重现性基线.
+#
+# 依赖管理策略:
+#   - pyproject.toml [project].dependencies: 范围版本声明 (single source of truth)
+#   - requirements.lock: 精确版本锁定 (由 pip-compile 生成，用于 CI 和生产)
+#   - requirements.txt: 向后兼容 fallback (与 pyproject.toml 保持同步)
+#
 # 历史注释 "Runtime deps are managed via requirements.txt for now" 已不再
 # 适用 — 在没有 dependencies 段的情况下 ``pip install news_process`` 不会
 # 安装任何运行时包, 导致 (a) 项目无法作为真包发布, (b) 新机器复现需手动
@@ -25,7 +32,7 @@ license = { text = "Proprietary" }
 #
 # requirements.txt 仍然保留作为 pip-only 用户的 fallback 入口, 但 single
 # source of truth 已从 requirements.txt 迁至此处. requirements.lock (由
-# pip-compile 生成) 是真正的可重现性基线 — 见 README §2.1.
+# pip-compile 生成) 是真正的可重现性基线.
 dependencies = [
     "pandas>=2.2.0,<3.0.0",
     "numpy>=2.0.0,<3.0.0",
@@ -102,6 +109,28 @@ namespaces = false
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["news_process"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+precision = 2
+show_missing = true
 
 # Plan-r3 P2-13: ruff lint config 落到 pyproject.toml (此前 ci.yml 内联,
 # 仅 --select E9,F63,F7,F82,F401, 错过大量正确性问题).
