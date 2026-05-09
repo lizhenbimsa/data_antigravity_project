@@ -264,3 +264,53 @@ class TestSplitLegacyEquivalence:
             "prompt_template still looks like a path — _inline_external_prompts "
             "did not run properly."
         )
+
+
+# ============================================================================
+# 5. Plan-r3 P1-4: .env.example ↔ yaml ${VAR} 对齐契约
+# ============================================================================
+
+
+class TestEnvExampleCoversYamlPlaceholders:
+    """``.env.example`` 必须声明所有 yaml 中实际引用的 ``${VAR}`` 占位符.
+
+    .env.example 中 ``# VAR=...`` 形式的 commented-out 行也算"已声明"
+    (Plan-r3 P1-4 把 4 个 legacy var 注释化保留, 旧调用方仍能被覆盖).
+
+    历史背景: round 2 sidecar 化前, .env.example 声明了 GPT5NANO/
+    GEMINI3/CLAUDE4H 三个 LLM key, 但 sentiment.yaml 实际引用的是
+    ${YUNWU_API_KEY} (v6/N7 后统一); .env.example 反而漏了它. 新机器复制
+    .env.example -> .env 后启动会因 YUNWU_API_KEY 未声明导致 LLM 401.
+    """
+
+    def _yaml_placeholders(self) -> set[str]:
+        import re
+        yaml_dir = Path(__file__).resolve().parents[2] / 'config'
+        placeholder_re = re.compile(r'\$\{([A-Z_][A-Z0-9_]*)\}')
+        ph: set[str] = set()
+        for f in yaml_dir.glob('*.yaml'):
+            ph.update(placeholder_re.findall(f.read_text(encoding='utf-8')))
+        return ph
+
+    def _env_example_declarations(self) -> set[str]:
+        import re
+        env_path = Path(__file__).resolve().parents[2] / '.env.example'
+        decl_re = re.compile(r'^\s*#?\s*([A-Z_][A-Z0-9_]*)\s*=', re.MULTILINE)
+        return set(decl_re.findall(env_path.read_text(encoding='utf-8')))
+
+    def test_yaml_placeholders_covered_by_env_example(self):
+        ph = self._yaml_placeholders()
+        decl = self._env_example_declarations()
+        undeclared = ph - decl
+        assert not undeclared, (
+            f"yaml 引用 ${{{{...}}}} 但 .env.example 未声明: {sorted(undeclared)}. "
+            f"新机器复制 .env.example -> .env 后启动会因这些变量缺失而失败. "
+            f"请在 .env.example 中加入 (即使值留空 / 加 # 前缀注释也算声明)."
+        )
+
+    def test_env_example_no_dead_declarations_overlap_yaml(self):
+        """sanity: .env.example 至少包含 yaml 引用的 var 集合的 ⊇ 关系
+        (但允许 .env.example 多声明 — 比如 legacy var 与外部脚本覆盖)."""
+        ph = self._yaml_placeholders()
+        decl = self._env_example_declarations()
+        assert ph.issubset(decl), f"yaml refs {ph - decl} not in env.example"

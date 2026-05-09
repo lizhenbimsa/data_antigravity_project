@@ -277,7 +277,61 @@ def load_config(config_path=None):
     # Phase 4d: 把任何外部 prompt 模板文件内联到 config dict 中
     _inline_external_prompts(config, project_root)
 
+    # Plan-r3 P1-4: 校验 yaml 引用的 ${VAR} 是否都在 .env.example 中声明
+    # (落地 .env.example 头部第 7-12 行原本承诺但未实现的"Phase 1 校验").
+    _validate_env_placeholders(project_root)
+
     return config
+
+
+def _validate_env_placeholders(project_root: str) -> None:
+    """扫描 ``config/*.yaml`` 中所有 ``${VAR}`` 占位符, 与 ``.env.example``
+    声明清单 (含 commented-out 行) 对比, 未声明的 var 报 warning。
+
+    Plan-r3 P1-4 落地: 此函数实现了 ``.env.example`` 头部承诺的"未声明
+    占位符警告"功能。设计要点:
+
+    - 仅做 warning 不 raise — 避免过严打断 pipeline 运行 (尤其新 yaml
+      字段试错期); CI 可通过 ``-W error::UserWarning`` 升级为强校验。
+    - .env.example 中 ``# VAR=...`` 形式的 commented-out 行也算"已声明"
+      — Plan-r3 P1-4 把 4 个 legacy var (GPT5NANO_API_KEY 等) 注释化保留,
+      不是删除, 这样旧调用方 (scripts/audit/_replan_v5_evidence/*) 仍能
+      被覆盖.
+    """
+    import re
+    yaml_dir = os.path.join(project_root, 'config')
+    env_example = os.path.join(project_root, '.env.example')
+    if not os.path.isdir(yaml_dir) or not os.path.isfile(env_example):
+        return
+
+    placeholders: set[str] = set()
+    placeholder_re = re.compile(r'\$\{([A-Z_][A-Z0-9_]*)\}')
+    for fname in os.listdir(yaml_dir):
+        if not fname.endswith('.yaml'):
+            continue
+        try:
+            with open(os.path.join(yaml_dir, fname), 'r', encoding='utf-8') as f:
+                txt = f.read()
+        except OSError:
+            continue
+        placeholders.update(placeholder_re.findall(txt))
+
+    declared: set[str] = set()
+    decl_re = re.compile(r'^\s*#?\s*([A-Z_][A-Z0-9_]*)\s*=', re.MULTILINE)
+    try:
+        with open(env_example, 'r', encoding='utf-8') as f:
+            declared.update(decl_re.findall(f.read()))
+    except OSError:
+        return
+
+    undeclared = placeholders - declared
+    if undeclared:
+        logging.getLogger(__name__).warning(
+            "yaml 中引用的环境变量未在 .env.example 中声明: %s. "
+            "请在 .env.example 中加入声明 (即使 value 留空) 以满足部署契约; "
+            "或检查 yaml 中的 ${%s} 是否拼写错误。",
+            sorted(undeclared), next(iter(undeclared))
+        )
 
 
 def _load_dotenv(project_root: str):
