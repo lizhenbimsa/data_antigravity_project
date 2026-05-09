@@ -378,7 +378,17 @@ def _save_attn_index(df, basename):
     """保存注意力指数中间数据 (Parquet + CSV)。"""
     parquet_path = os.path.join(OUTPUT_DIR, f'{basename}.parquet')
     csv_path = os.path.join(OUTPUT_DIR, f'{basename}.csv')
-    df.to_parquet(parquet_path, index=False)
+    # 使用数据版本控制保存
+    from news_process.core.data_versioning import save_parquet_with_metadata
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_24_herd_decay'])
+    save_parquet_with_metadata(
+        df=df,
+        output_path=parquet_path,
+        stage_name="45_panel_export_main",
+        config=cfg,
+        input_files=[input_file],
+    )
     df.to_csv(csv_path, index=False, encoding='utf-8-sig')
     logger.info(f"    已保存: {basename} ({len(df)} 行)")
 

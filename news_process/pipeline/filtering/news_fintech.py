@@ -297,7 +297,17 @@ def main():
         CONFIG['filenames'].get('output_12_fintech_full', '12_fintech_news_full.parquet')
     )
     logger.info(f"正在将全量分类结果（含非金融科技新闻）写入 {full_output_path}...")
-    processed_df.to_parquet(full_output_path, index=False)
+    # 使用数据版本控制保存 full 版本
+    from news_process.core.data_versioning import save_parquet_with_metadata
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_11_bank_news'])
+    save_parquet_with_metadata(
+        df=processed_df,
+        output_path=full_output_path,
+        stage_name="12_news_fintech",
+        config=cfg,
+        input_files=[input_file],
+    )
     full_preview_path = full_output_path.replace('.parquet', '.csv')
     safe_save_preview_csv(processed_df, full_preview_path, logger)
     logger.info(f"全量分类结果已保存: {len(processed_df):,} 行（供人工验证抽样使用）")
@@ -312,7 +322,17 @@ def main():
     )
 
     logger.info(f"正在将处理结果写入 {output_path}...")
-    processed_df.to_parquet(output_path, index=False)
+    # 使用数据版本控制保存 filtered 版本
+    from news_process.core.data_versioning import save_parquet_with_metadata
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_11_bank_news'])
+    save_parquet_with_metadata(
+        df=processed_df,
+        output_path=output_path,
+        stage_name="12_news_fintech",
+        config=cfg,
+        input_files=[input_file],
+    )
 
     preview_path = output_path.replace('.parquet', '.csv')
     safe_save_preview_csv(processed_df, preview_path, logger)

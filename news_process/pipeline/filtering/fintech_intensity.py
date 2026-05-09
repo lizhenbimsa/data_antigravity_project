@@ -369,7 +369,17 @@ def main():
     output_filename = CONFIG['filenames'].get(
         'output_14_fintech_intensity', '14_fintech_intensity.parquet')
     output_path = os.path.join(output_dir, output_filename)
-    save_dataset(df, output_path, logger)
+    # 使用数据版本控制保存
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_12_fintech_news'])
+    save_dataset(
+        df=df,
+        output_path=output_path,
+        logger=logger,
+        stage_name="14_fintech_intensity",
+        config=cfg,
+        input_files=[input_file],
+    )
 
     n_verified = sum(verified_flags)
     n_total = len(df)

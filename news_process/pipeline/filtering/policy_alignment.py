@@ -584,7 +584,17 @@ def main():
 
     from news_process.core.reporting import save_dataset
     from news_process.core.logging import log_stage_summary
-    save_dataset(df, output_path, logger)
+    # 使用数据版本控制保存
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_14_fintech_intensity'])
+    save_dataset(
+        df=df,
+        output_path=output_path,
+        logger=logger,
+        stage_name="15_article_policy_alignment",
+        config=cfg,
+        input_files=[input_file],
+    )
 
     # 统计报告
     n_valid = df['policy_cosine_sim'].notna().sum()

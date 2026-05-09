@@ -46,16 +46,44 @@ def safe_save_preview_csv(df: pd.DataFrame, preview_path: str, logger=None):
             logger.error(f"保存预览文件时发生未知错误: {preview_path} | {e}")
 
 
-def save_dataset(df: pd.DataFrame, output_path: str, logger=None):
+def save_dataset(
+    df: pd.DataFrame,
+    output_path: str,
+    logger=None,
+    stage_name: str = None,
+    config: dict = None,
+    input_files: list = None,
+):
     """将 ``df`` 同时持久化为 Parquet + CSV 预览, 两者共享 ``output_path`` 词干。
 
     ``.parquet`` 是契约格式, 失败会抛异常; 同词干的 ``.csv`` 是非关键预览,
     写入失败不会抛异常。
+
+    Args:
+        df: 要保存的 DataFrame
+        output_path: 输出文件路径
+        logger: 日志记录器
+        stage_name: 阶段名称（可选，用于数据版本控制）
+        config: 配置字典（可选，用于数据版本控制）
+        input_files: 依赖的输入文件列表（可选，用于数据版本控制）
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
     try:
-        df.to_parquet(output_path, index=False)
+        # 如果提供了版本控制参数，使用save_parquet_with_metadata
+        if stage_name and config is not None:
+            from news_process.core.data_versioning import save_parquet_with_metadata
+            save_parquet_with_metadata(
+                df=df,
+                output_path=output_path,
+                stage_name=stage_name,
+                config=config,
+                input_files=input_files,
+            )
+        else:
+            # 向后兼容：没有版本控制参数时使用原始方法
+            df.to_parquet(output_path, index=False)
+
         if logger:
             logger.info(
                 f"已保存 parquet 文件: {output_path}  ({len(df):,} 行)"

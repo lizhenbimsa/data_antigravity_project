@@ -1153,7 +1153,17 @@ def main():
                     logger.info(f"  {dict_name}_idf [{track}]: "
                                 f"Z-score (μ={mean_val:.4f}, σ={std_val:.4f})")
 
-    processed_df.to_parquet(output_path, index=False)
+    # 使用数据版本控制保存
+    from news_process.core.data_versioning import save_parquet_with_metadata
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_14_fintech_intensity'])
+    save_parquet_with_metadata(
+        df=processed_df,
+        output_path=output_path,
+        stage_name="22_tone_words",
+        config=cfg,
+        input_files=[input_file],
+    )
 
     # 统计报告（双轨分别打印）
     if all_stats:

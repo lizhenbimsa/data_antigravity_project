@@ -276,7 +276,17 @@ def main():
     df = compute_herd_weights(df)
 
     # 保存 (追加 herd_weight 列后写入独立输出文件)
-    df.to_parquet(output_file, index=False)
+    # 使用数据版本控制保存
+    from news_process.core.data_versioning import save_parquet_with_metadata
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_21_tone_llms'])
+    save_parquet_with_metadata(
+        df=df,
+        output_path=output_file,
+        stage_name="24_herd_decay",
+        config=cfg,
+        input_files=[input_file],
+    )
     logger.info(f"  已保存至 {output_file}")
 
     elapsed = time.time() - start_time

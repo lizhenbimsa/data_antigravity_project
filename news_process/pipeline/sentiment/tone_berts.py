@@ -779,7 +779,17 @@ def main():
             logger.info(f"  已写入 bert_num_windows_title 列 (基于模型: {_first_sn})")
 
     # ── Step 4: 保存输出 ──
-    df.to_parquet(output_path, index=False)
+    # 使用数据版本控制保存
+    from news_process.core.data_versioning import save_parquet_with_metadata
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_14_fintech_intensity'])
+    save_parquet_with_metadata(
+        df=df,
+        output_path=output_path,
+        stage_name="23_tone_berts",
+        config=cfg,
+        input_files=[input_file],
+    )
     logger.info(f"已保存输出文件: {output_path} ({len(df):,} 行)")
 
     # ── Step 5: 释放全部模型 ──

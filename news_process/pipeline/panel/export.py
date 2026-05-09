@@ -240,7 +240,12 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 年度面板 Parquet
     panel_filename = FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet')
     panel_path = os.path.join(OUTPUT_DIR, panel_filename)
-    save_dataset(panel, panel_path, logger)
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_24_herd_decay'])
+    save_dataset(panel, panel_path, logger,
+                stage_name="45_panel_export_main",
+                config=cfg,
+                input_files=[input_file])
 
     # 年度面板 Stata .dta
     if PANEL_CFG.get('export_stata', True):
@@ -1028,4 +1033,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 文章-银行级数据
     article_filename = FILENAMES.get('output_40_article_bank', '40_article_bank_level.parquet')
     article_path = os.path.join(OUTPUT_DIR, article_filename)
-    save_dataset(df_exploded, article_path, logger)
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_24_herd_decay'])
+    save_dataset(df_exploded, article_path, logger,
+                stage_name="45_panel_export_main",
+                config=cfg,
+                input_files=[input_file])

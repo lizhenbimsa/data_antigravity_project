@@ -435,7 +435,17 @@ def main():
 
     # --- 保存结果 ---
     logger.info(f"正在将处理结果写入 {output_path}...")
-    processed_df.to_parquet(output_path, index=False)
+    # 使用数据版本控制保存
+    from news_process.core.data_versioning import save_parquet_with_metadata
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_00_preprocessing'])
+    save_parquet_with_metadata(
+        df=processed_df,
+        output_path=output_path,
+        stage_name="11_news_bank",
+        config=cfg,
+        input_files=[input_file],
+    )
 
     preview_path = output_path.replace('.parquet', '.csv')
     safe_save_preview_csv(processed_df, preview_path, logger)

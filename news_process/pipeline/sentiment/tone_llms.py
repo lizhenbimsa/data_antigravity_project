@@ -826,7 +826,12 @@ def main():
 
         output_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms', '21_tone_llms.parquet')
         output_path = os.path.join(CONFIG["paths"]["output_dir"], output_filename)
-        save_dataset(df, output_path, logger)
+        input_file = os.path.join(CONFIG['paths']['output_dir'],
+                                  CONFIG['filenames']['output_14_fintech_intensity'])
+        save_dataset(df, output_path, logger,
+                    stage_name="21_tone_llms",
+                    config=CONFIG,
+                    input_files=[input_file])
 
         log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(df))
         logger.info(f"已透传 {len(df)} 行数据至 {output_path}")
@@ -1044,7 +1049,12 @@ def main():
         full_output_filename = CONFIG.get('filenames', {}).get(
             'output_21_tone_llms_full', '21_tone_llms_full.parquet')
         full_output_path = os.path.join(CONFIG["paths"]["output_dir"], full_output_filename)
-        save_dataset(df, full_output_path, logger)
+        input_file = os.path.join(CONFIG['paths']['output_dir'],
+                                  CONFIG['filenames']['output_14_fintech_intensity'])
+        save_dataset(df, full_output_path, logger,
+                    stage_name="21_tone_llms",
+                    config=CONFIG,
+                    input_files=[input_file])
         logger.info(f"全量 LLM 结果已保存: {full_output_path} ({len(df)} 行)")
 
         # 过滤丢弃不相关的假新闻（基于 full 轨道）
@@ -1237,7 +1247,12 @@ def main():
         output_path = os.path.join(CONFIG["paths"]["output_dir"], output_filename)
 
         logger.info(f"正在保存处理结果至 {output_path}...")
-        save_dataset(df_filtered, output_path, logger)
+        input_file = os.path.join(CONFIG['paths']['output_dir'],
+                                  CONFIG['filenames']['output_14_fintech_intensity'])
+        save_dataset(df_filtered, output_path, logger,
+                    stage_name="21_tone_llms",
+                    config=CONFIG,
+                    input_files=[input_file])
 
         log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(df_filtered))
 

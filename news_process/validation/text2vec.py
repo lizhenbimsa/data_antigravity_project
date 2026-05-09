@@ -246,7 +246,12 @@ def main():
     panel = df.groupby(['target_bank', 'year'], as_index=False).agg(agg_cols)
     
     out_path = os.path.join(output_dir, '30_text2vec_indicators.parquet')
-    save_dataset(panel, out_path, logger)
+    input_file = os.path.join(cfg['paths']['output_dir'],
+                              cfg['filenames']['output_21_tone_llms'])
+    save_dataset(panel, out_path, logger,
+                stage_name="30_robustness_text2vec",
+                config=cfg,
+                input_files=[input_file])
     
     elapsed = time.time() - stage_start
     logger.info(f"--- 阶段 30_robustness_text2vec 完成 (耗时 {elapsed:.1f} 秒) ---")
