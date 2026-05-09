@@ -1,12 +1,17 @@
-"""
-data_quality.py — 数据质量监控工具
-====================================
+"""news_process.core.quality — 数据质量监控工具。
 
-功能：
-    提供数据质量监控函数，记录类型强制转换等操作的影响。
+源自 Phase 1 mega-module ``utils/data_quality.py`` 拆分 (Plan-r3 P2-11
+头部修正: 此前 docstring 仍写旧文件名).
 
-使用方法：
-    from utils.data_quality import to_numeric_with_logging
+功能
+-----
+提供数据质量监控函数，记录类型强制转换等操作的影响。
+
+使用方法
+---------
+.. code-block:: python
+
+    from news_process.core.quality import to_numeric_with_logging
 
     df['column'] = to_numeric_with_logging(df['column'], 'column_name', logger)
 """

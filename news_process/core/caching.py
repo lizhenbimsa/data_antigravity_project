@@ -1,20 +1,32 @@
-"""
-utils/llm_cache.py — LLM 请求级 SQLite 缓存
-=============================================
+"""news_process.core.caching — LLM 请求级 SQLite 缓存。
 
-功能:
-  对 LLM API 请求进行持久化缓存，避免重复调用相同 prompt 的 API。
-  使用 SHA-256(len(model_id) + ":" + model_id + ":" + prompt_text) 作为缓存键，
-  长度前缀防止 model_id 含冒号时的键碰撞（如 "a:b" + "c" vs "a" + "b:c"）。
-  仅缓存 HTTP 200 成功响应，失败/超时不缓存（避免永久化瞬时故障）。
+源自 Phase 1 mega-module ``utils/llm_cache.py`` 拆分 (Plan-r3 P2-11
+头部修正: 此前 docstring 仍写旧文件名).
 
-线程安全:
-  sqlite3.connect(db_path, check_same_thread=False) + WAL 日志模式，
-  支持多线程并发读写（asyncio 事件循环中的同步调用为微秒级，不阻塞）。
+功能
+-----
+对 LLM API 请求进行持久化缓存，避免重复调用相同 prompt 的 API。
+使用 SHA-256(len(model_id) + ":" + model_id + ":" + prompt_text) 作为缓存键，
+长度前缀防止 model_id 含冒号时的键碰撞（如 "a:b" + "c" vs "a" + "b:c"）。
+仅缓存 HTTP 200 成功响应，失败/超时不缓存（避免永久化瞬时故障）。
 
-学术依据:
-  缓存机制确保实验可复现性 —— 相同输入始终返回相同输出，
-  符合 Carlson & Burbano (2026, SMJ §3.3) 对 LLM 实验可复现性的要求。
+.. todo:: v3.0 (Plan-r3 P3-17 锚点)
+
+    缓存键当前仅含 ``(model_id, prompt)``, 不含 ``temperature``、
+    ``random_seed``、``prompt_template_version``、``response_format``.
+    当 ``config/prompts/sentiment_cot.txt`` 被改写时, 旧 cache 仍命中
+    错答案 (silent staleness). v3.0 应升级 ``_make_key`` 签名 + 表结构,
+    BREAKING change (一次性 invalidate 既有 ``_llm_cache.db``).
+
+线程安全
+---------
+sqlite3.connect(db_path, check_same_thread=False) + WAL 日志模式，
+支持多线程并发读写（asyncio 事件循环中的同步调用为微秒级，不阻塞）。
+
+学术依据
+---------
+缓存机制确保实验可复现性 —— 相同输入始终返回相同输出，
+符合 Carlson & Burbano (2026, SMJ §3.3) 对 LLM 实验可复现性的要求。
 """
 
 import os
