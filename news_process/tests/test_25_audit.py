@@ -225,6 +225,27 @@ class TestAggregation:
 # =============================================================================
 
 class TestComputeStrategicDifferentiation:
+    @pytest.fixture(autouse=True)
+    def _mock_embedding_api(self, monkeypatch):
+        """CI 上无 .env / 真实 LLM key, mock _get_embeddings_api 返回固定向量.
+
+        `_m25.compute_strategic_differentiation` 通过 `_embed_texts_with_chunk_pooling`
+        间接调 `_get_embeddings_api` (strategic_diff.py L436-437) — 缺 EMBEDDING_CONFIG
+        即 raise. 直接 patch 该 async 函数返回 deterministic L2-normalized 单位向量,
+        既绕过 config 校验, 又避免 outbound network, 还让上层 cosine 相似度计算可走通.
+        向量 dim 取 8 (LLM 真实是 1536, mock 用 8 减小内存; 下游纯几何, dim 大小不影响通路).
+        """
+        async def _mock_api(texts, cache=None):
+            texts = [] if texts is None else list(texts)
+            if len(texts) == 0:
+                return np.empty((0, 0), dtype=np.float32)
+            rng = np.random.default_rng(seed=42)
+            mat = np.abs(rng.standard_normal((len(texts), 8))).astype(np.float32) + 1e-3
+            mat /= np.linalg.norm(mat, axis=1, keepdims=True).clip(min=1e-12)
+            return mat
+
+        monkeypatch.setattr(_m25, "_get_embeddings_api", _mock_api, raising=True)
+
     def _make_test_data(self, n_banks=5, n_years=2):
         """构造最小测试数据集。"""
         rows = []

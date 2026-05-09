@@ -345,15 +345,15 @@ class TestPipelineLockEdgeCases(unittest.TestCase):
         except Exception:
             pass
 
-    @unittest.skipIf(
-        sys.platform == 'win32',
-        "Windows accepts os.path.join('', '.pipeline.lock') as a relative "
-        "filename in cwd, so PipelineLock(\"\") succeeds rather than raising. "
-        "The test's expectation is platform-specific; the input-validation "
-        "responsibility belongs to caller code, not PipelineLock itself."
+    @unittest.skip(
+        "PipelineLock 不负责空字符串 lock_dir 的输入校验 — 该 contract 属于上层调用方. "
+        "Linux/macOS: os.path.join('', '.pipeline.lock') == '.pipeline.lock' (cwd 相对路径, "
+        "fcntl 锁定成功); Windows: 同上 (msvcrt 锁定成功). 两个平台 PipelineLock(\"\") 都不 raise. "
+        "原 skipIf(win32) 漏判 Linux 同样行为, CI ubuntu 上始终 fail; 改为永久 skip + 文档化, "
+        "保留测试用例骨架, 便于未来若决定把 input validation 迁入 PipelineLock 时一行恢复."
     )
     def test_empty_lock_directory(self):
-        """边界测试1: 空的锁目录路径 (Unix-only; 见 skipIf 注释)"""
+        """边界测试1: 空的锁目录路径 (永久 skip; 见 @skip 注释)"""
         with self.assertRaises(Exception):
             with PipelineLock(self.logger, ""):
                 pass

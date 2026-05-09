@@ -19,6 +19,23 @@ from news_process.core.caching import LLMCache
 # Updated to import the canonical body directly.
 from news_process.pipeline.filtering import policy_alignment as mod15  # noqa: E402
 
+
+@pytest.fixture(autouse=True)
+def _mock_embedding_config(monkeypatch):
+    """CI 上无 .env / 真实 LLM key, 注入 mock EMBEDDING_CONFIG 让通过 config 校验.
+
+    `mod15._get_embeddings_api_dynamic` (policy_alignment.py L264-265) 在调 API 前
+    会校验 `EMBEDDING_CONFIG.base_url / api_key`, 缺失即 raise RuntimeError.
+    本 fixture 注入 sentinel mock 值, 让 config 校验放行; 真实网络请求由各 test
+    内的 `aiohttp.ClientSession.post` mock 拦截 (避免任何 outbound network).
+    """
+    monkeypatch.setattr(
+        mod15, "EMBEDDING_CONFIG",
+        {"base_url": "https://mock.invalid", "api_key": "mock-key-ci-only",
+         "model": "text-embedding-3-small"},
+        raising=False,
+    )
+
 def test_cache_put_batch(tmp_path):
     """
     测试 LLMCache 的批量写入和读取功能。

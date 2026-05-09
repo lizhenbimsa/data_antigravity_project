@@ -7,9 +7,10 @@ name: news_process CI
 # CI 安装会触发约 4 GB 下载, 故只在 ubuntu-3.13 单元里跑全套, 其余三
 # 个矩阵单元只跑非-DL 测试 (排除 test_23_tone_berts.py) 控制时长.
 #
-# baseline 锁定在 814 passed / 2 skipped (Plan-r3 P0-P3 17 单元 + 两轮
-# recode + 一轮 review 修补达成: 17单元 +19 + recode +5 + review +6 = 786 → 814).
-# 任何降低此数的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
+# 本地 baseline 814 passed / 2 skipped (含完整 data/processed/, 见 news_process/__init__.py:62).
+# CI baseline 780 (full job 阈值, 实测 782 - 2 buffer): CI 上 data/processed/ 被
+# .gitignore 排除, 32 个数据依赖测试 (panel_reproducibility ×18 + dual_track ×14)
+# 自动 skip. 任何降低 CI baseline 的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
 
 on:
   push:
@@ -98,29 +99,34 @@ jobs:
         working-directory: ./news_process
         run: |
           # 排除 test_23_tone_berts.py (依赖 torch + transformers).
-          # 同时排除 test_25_audit.py 中需要 sklearn TfidfVectorizer 大模型的子测试 — 已通过 sklearn 安装解决.
-          # baseline (light 模式): 814 - 14 (test_23) = 800 passed
+          # baseline (CI light): 768 passed / ~34 skipped (实测 2026-05-09).
+          # CI 上 news_process/data/processed/ 不在 (.gitignore 排除), 32 个数据依赖
+          # 测试 (test_panel_reproducibility ×18 + test_dual_track ×14) 自动 skip.
+          # 故 CI 实际 passed << 本地 baseline 814; 不校验数字, 仅依赖 pytest exit code.
           python -m pytest tests/ \
             --ignore=tests/test_23_tone_berts.py \
             -q --tb=short
 
-      - name: Run tests (full - all 814)
+      - name: Run tests (full - DL + non-DL)
         if: matrix.dl-suite == 'full'
         working-directory: ./news_process
         run: |
-          # baseline (full 模式): 814 passed / 2 skipped (post Plan-r3 17 单元 + 两轮 recode + 一轮 review).
-          # SKIP 数为 2 即可 (剩 1 Unix-only fcntl test + 1 Win 空字符串路径).
-          # Plan-r3 round-3 review R2 修复: 此前有两次 pytest run (一次 -v + 一次 tee /tmp),
-          # 让 ubuntu CI 时长 double (~150s). 现合并为一次 run 同时输出到 stdout + tee 文件.
+          # baseline (CI full): 782 passed / 34 skipped (实测 2026-05-09 / commit 7027d5c+).
+          # 本地完整数据下 baseline 814 / 2 (见 news_process/__init__.py:62), 但 CI 上
+          # news_process/data/processed/ 被 .gitignore 排除, 32 个数据依赖测试自动 skip:
+          #   - test_panel_reproducibility ×18 (Phase 0 golden snapshot 比对, 需 *.parquet)
+          #   - test_dual_track ×14 (BERT/LLM 双轨一致性, 需 21/22/23/40_*.parquet)
+          # 加上 test_pipeline_lock::test_empty_lock_directory 永久 skip (input-validation
+          # 不属于 PipelineLock 职责) = 34 skipped (32 + 1 + 1 unix-only).
+          # baseline 校验阈值设 780 = 实测 782 - 2 buffer, 容忍极小波动而堵截真正回归.
+          # Plan-r3 round-3 review R2: 合并为一次 run 同时 stdout + tee 文件.
           # set -o pipefail 让 pytest 失败码能正确传播 (默认 tee 退出 0 会掩盖 pytest 失败).
           set -o pipefail
           python -m pytest tests/ -v --tb=short 2>&1 | tee /tmp/pytest_summary.txt
-          # baseline 校验: passed 必须 >= 814 (允许更多 -- 任何新增测试无害,
-          # 但低于 814 视为回归).
           PASSED=$(grep -oE '[0-9]+ passed' /tmp/pytest_summary.txt | head -1 | grep -oE '[0-9]+')
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
-          if [ "$PASSED" -lt 814 ]; then
-            echo "::error::baseline 退化: passed=$PASSED < 814"
+          if [ "$PASSED" -lt 780 ]; then
+            echo "::error::baseline 退化: passed=$PASSED < 780 (CI full baseline)"
             exit 1
           fi
 
