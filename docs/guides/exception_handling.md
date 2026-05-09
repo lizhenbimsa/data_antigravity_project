@@ -1,6 +1,6 @@
 # Exception Handling Policy
 
-**适用范围**: `news_process/` 生产代码（不含 tests/、scripts/legacy/）。
+**适用范围**: `news_process/` 生产代码（不含 tests/）。
 
 **Plan-r3 P2-14 落地（2026-05-09）** —— 二轮诊断曾把 100+ `except Exception` 列为反模式，
 核验后纠正为：**裸 `except:` 0 处，`except Exception: pass/continue/...` 13 处**，全部为 deliberate 的
@@ -54,7 +54,7 @@ F:/Anaconda3/python.exe -c "
 import re, pathlib
 def excluded(p):
     s = str(p).replace('\\\\', '/')
-    return any(x in s for x in ['__pycache__', '.egg-info', '/tests/', 'scripts/legacy', '.pytest_cache'])
+    return any(x in s for x in ['__pycache__', '.egg-info', '/tests/', '.pytest_cache'])
 
 hits = []
 for p in pathlib.Path('news_process').rglob('*.py'):

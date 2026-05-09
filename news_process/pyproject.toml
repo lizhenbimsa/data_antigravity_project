@@ -109,7 +109,6 @@ addopts = "-q"
 target-version = "py310"
 line-length = 120  # 高于 PEP-8 默认 79, 容忍长 docstring 和长 SQL/正则 literal
 exclude = [
-    "scripts/legacy",
     "scripts/audit/_replan_v5_evidence",  # 一次性 LLM 调试探针, 不入 lint
     "**/__pycache__",
     ".pytest_cache",
