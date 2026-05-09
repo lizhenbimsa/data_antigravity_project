@@ -78,6 +78,11 @@ logger = logging.getLogger(__name__)
 #     直接删 _llm_cache.db 让 v0 命名空间归零.
 SCHEMA_VERSION = "v1"
 
+# None 输入哨兵 (final recode F2 修复): 用 null byte (\x00) 区分 None 与空字符串.
+# null byte 不会出现在合法的 model_id / prompt / prompt_version 中
+# (Python sqlite3 + yaml 配置都不允许 \x00), 所以哨兵不会与真实输入碰撞.
+_NONE_SENTINEL = '\x00<None>\x00'
+
 
 class LLMCache:
     """LLM 请求级 SQLite 缓存。
@@ -133,15 +138,22 @@ class LLMCache:
             键格式见模块 docstring "缓存键组成". 任何破坏性变更必须 bump
             模块级 ``SCHEMA_VERSION`` 常量.
         """
-        m_id = str(model_id) if model_id is not None else ""
-        p_str = str(prompt) if prompt is not None else ""
-        pv = str(prompt_version) if prompt_version is not None else "v0"
+        # ⚠ final recode 审查发现: model_id=None 与 model_id="" 不能共用 namespace
+        # (旧实现 ``str(x) if x is not None else ""`` 让 None ≡ ""). 用 null byte 哨兵
+        # ``\x00<None>\x00`` 区分 — null byte 不会出现在合法字符串中, 与任何用户输入分离.
+        # 生产 code path 不传 None (yaml 配置必有值), 但作为公开 API 接口契约必须严格.
+        m_id = _NONE_SENTINEL if model_id is None else str(model_id)
+        p_str = _NONE_SENTINEL if prompt is None else str(prompt)
+        pv = _NONE_SENTINEL if prompt_version is None else str(prompt_version)
         # ⚠ recode 审查发现: 用 .4f 格式化会让 1e-30 与 0.0 都格式化为 "0.0000"
         # 引发键碰撞 (recode/test_cache_temperature_precision). 改用 repr() 保证
         # Python 浮点的 "shortest unambiguous representation":
         #   repr(0.0) == '0.0'    repr(1e-30) == '1e-30'  (区分)
         #   repr(0.5) == '0.5'    repr(0.05)  == '0.05'
         # 同时长度前缀让 prompt_version 含 '|' 也不引发碰撞.
+        # 边角说明 (final recode 审查通过):
+        #   - nan: repr(nan)='nan', 两次 nan 调用键相等 (避免 cache 无穷失效); 生产不传
+        #   - -0.0: repr(-0.0)='-0.0' 与 0.0 区分; 生产不传; 严格学术正确
         temp_str = repr(float(temperature))
         # SCHEMA|len:model|len:prompt|len:pv|temp_repr
         raw = (

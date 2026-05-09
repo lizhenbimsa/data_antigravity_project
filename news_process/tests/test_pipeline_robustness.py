@@ -109,6 +109,57 @@ def test_cache_pipe_in_prompt_version_no_collision(tmp_path):
         assert cache.get("m1", "p1", prompt_version="a|c") == "resp_ac"
 
 
+def test_cache_none_vs_empty_string_no_collision(tmp_path):
+    """final recode F2: None 与空字符串必须哈希到不同键 (接口契约).
+
+    旧实现 ``str(x) if x is not None else ""`` 让 None ≡ "" 共用 namespace.
+    用 null byte 哨兵区分: ``model_id=None`` 与 ``model_id=""`` 不应碰撞.
+    生产 code path 不会传 None (yaml 配置必有值), 但作为公开 API 接口必须严格.
+    """
+    db_path = str(tmp_path / "test_cache_none.db")
+    with LLMCache(db_path) as cache:
+        cache.put(None, "p1", "resp_none_model")
+        cache.put("", "p1", "resp_empty_model")
+        # 两次 put 应建立两条独立记录, 不互相覆盖
+        assert cache.get(None, "p1") == "resp_none_model"
+        assert cache.get("", "p1") == "resp_empty_model"
+        # 总条目数 = 2 (而非 1)
+        assert cache.size() == 2
+
+        # prompt 维度的 None vs "" 同样区分
+        cache.put("m1", None, "resp_none_prompt")
+        cache.put("m1", "", "resp_empty_prompt")
+        assert cache.get("m1", None) == "resp_none_prompt"
+        assert cache.get("m1", "") == "resp_empty_prompt"
+
+
+def test_cache_v0_fallback_priority_when_v1_exists(tmp_path):
+    """final recode F3: v1 cache 与 v0 cache 同时存在时, get 必须优先 v1.
+
+    避免"新代码升级后 cache 仍命中旧 v0 响应"的 silent staleness 反向风险.
+    """
+    db_path = str(tmp_path / "test_cache_v0_v1_coexist.db")
+    with LLMCache(db_path) as cache:
+        v0_key = LLMCache._make_key_v0("m1", "p1")
+        import time
+        # 手动插入 v0
+        cache._conn.execute(
+            "INSERT INTO llm_cache (cache_key, model_id, response, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (v0_key, "m1", "OLD_v0_response", time.time())
+        )
+        cache._conn.commit()
+        # 然后用新代码 put v1
+        cache.put("m1", "p1", "NEW_v1_response")
+
+        # 默认 get 必须命中 v1, 不应回退 v0 (v1 优先)
+        result = cache.get("m1", "p1")
+        assert result == "NEW_v1_response", (
+            f"v1+v0 共存时 fallback 优先级颠倒: "
+            f"应返回 NEW_v1_response, 实际 {result!r}"
+        )
+
+
 def test_cache_v0_fallback_only_on_default_params(tmp_path):
     """Plan-r3 P3-17 recode 审查: v0 fallback 仅在 (pv='v0', temp=0.0) 触发.
 

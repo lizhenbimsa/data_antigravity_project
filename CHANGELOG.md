@@ -16,26 +16,36 @@
 | post-round 1+2 (recode + 5 feat 子 commit, +10 回归测试) | 中间 HEAD | **782 / 6** |
 | post-round 2 P1-5 sidecar 化 (Win SKIP→PASS, +4) | round 2 末 HEAD | **786 / 2** |
 | post-round 3 / Plan-r3 P0-P3 17 单元 | round 3 中间 HEAD | **805 / 2** |
-| post-recode 审查 (round 3 末段, 修 1 cache 真 bug + 加 3 不变量) | **当前 HEAD** | **808 / 2** |
+| post-recode 审查 (round 3 末段, 修 1 cache 真 bug + 加 3 不变量) | round 3 末 | **808 / 2** |
+| post-final recode 审查 (修 1 接口契约 bug + 加 2 不变量) | **当前 HEAD** | **810 / 2** |
 
-> 本轮 (round 3 含 recode 审查) 增量 +22 来源:
+> 本轮 (round 3 含两轮 recode 审查) 增量 +24 来源:
 >   - P0-2 +2 invariant test (TestStataLabelsInvariant 防 STATA_LABELS dict-key 重复)
 >   - P1-4 +2 invariant test (TestEnvExampleCoversYamlPlaceholders 防 .env.example 错位)
 >   - P1-8 +12 smoke test (6 个零测 stage × 2 类: import + main-callable)
 >   - P3-17 +3 cache key invariant (prompt_version + temperature + SCHEMA_VERSION)
 >   - **recode 审查 +3 cache edge-case** (temperature precision .4f→repr / pipe collision / v0 fallback strict)
+>   - **final recode +2 cache 边角** (None vs '' / v0+v1 共存优先级)
 >
-> recode 审查发现并修复 1 个真 bug:
->   - **bug**: P3-17 用 ``f"{temp:.4f}"`` 格式化 temperature 入键, 让
->     ``temperature=1e-30`` 与 ``0.0`` 都格式化为 ``"0.0000"`` → 键碰撞,
->     温度 1e-4 以下精度被静默吞掉.
->   - **修复**: 改用 ``repr(float(temp))`` 获得 Python 浮点的"shortest
->     unambiguous representation". ``repr(0.0) == '0.0'``;
->     ``repr(1e-30) == '1e-30'`` 严格区分.
+> 两轮 recode 审查共发现 2 个真 bug 并修复:
+>
+> **Bug 1 (recode 审查)**: P3-17 用 ``f"{temp:.4f}"`` 格式化 temperature 入键,
+> 让 ``temperature=1e-30`` 与 ``0.0`` 都格式化为 ``"0.0000"`` → 键碰撞,
+> 1e-4 以下精度被静默吞掉.
+>   - **修复**: 改用 ``repr(float(temp))`` 获得 Python 浮点 shortest
+>     unambiguous representation.
 >   - **不变量**: ``test_cache_temperature_precision_no_collision`` 防回归.
 >
-> 任何后续 PR 应以 HEAD baseline (808) 为合并门槛, 不得低于该数.
-> 历史 anchor (772 / 782 / 786 / 805) 仅作回溯参考, 不再作为 CI 通过条件.
+> **Bug 2 (final recode 审查)**: ``_make_key`` 中 ``str(x) if x is not None
+> else ""`` 让 ``model_id=None`` 与 ``model_id=""`` 共用 namespace, 接口契约
+> 违反 (生产 yaml 配置永远不传 None, 但作为公开 API 必须严格).
+>   - **修复**: 用 null byte (``\\x00<None>\\x00``) 哨兵区分 — null byte
+>     不会出现在合法 model_id / prompt 中.
+>   - **不变量**: ``test_cache_none_vs_empty_string_no_collision``
+>     + ``test_cache_v0_fallback_priority_when_v1_exists`` 防回归.
+>
+> 任何后续 PR 应以 HEAD baseline (810) 为合并门槛, 不得低于该数.
+> 历史 anchor (772 / 782 / 786 / 805 / 808) 仅作回溯参考.
 
 ### Plan-r3 P0-P3 17 修复单元记录 (2026-05-09)
 
