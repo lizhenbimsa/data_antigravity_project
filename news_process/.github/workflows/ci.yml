@@ -32,11 +32,18 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest --tb=short --maxfail=5
+          pytest --tb=short --maxfail=5 --cov=news_process --cov-report=term --cov-report=xml
         env:
           # Mock API keys for testing
           YUNWU_API_KEY: "test-key-mock"
           EMBEDDING_API_KEY: "test-key-mock"
+
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.10'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
 
       - name: Upload test results
         if: failure()

@@ -108,7 +108,29 @@ namespaces = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-q"
+addopts = "-q --cov=news_process --cov-report=term-missing --cov-report=html"
+
+[tool.coverage.run]
+source = ["news_process"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+precision = 2
+show_missing = true
 
 # Plan-r3 P2-13: ruff lint config 落到 pyproject.toml (此前 ci.yml 内联,
 # 仅 --select E9,F63,F7,F82,F401, 错过大量正确性问题).
