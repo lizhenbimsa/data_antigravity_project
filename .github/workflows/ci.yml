@@ -7,7 +7,8 @@ name: news_process CI
 # CI 安装会触发约 4 GB 下载, 故只在 ubuntu-3.13 单元里跑全套, 其余三
 # 个矩阵单元只跑非-DL 测试 (排除 test_23_tone_berts.py) 控制时长.
 #
-# baseline 锁定在 786 passed / 2 skipped (Plan P1-5 sidecar 化后达成).
+# baseline 锁定在 800 passed / 2 skipped (Plan-r3 P0-2 +2 + P1-8 +12 后达成,
+# 在 round 2 P1-5 sidecar 化基础上叠加).
 # 任何降低此数的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
 
 on:
@@ -97,24 +98,25 @@ jobs:
         run: |
           # 排除 test_23_tone_berts.py (依赖 torch + transformers).
           # 同时排除 test_25_audit.py 中需要 sklearn TfidfVectorizer 大模型的子测试 — 已通过 sklearn 安装解决.
-          # baseline (light 模式): 786 - 14 (test_23) = 772 passed
+          # baseline (light 模式): 800 - 14 (test_23) = 786 passed
           python -m pytest tests/ \
             --ignore=tests/test_23_tone_berts.py \
             -q --tb=short
 
-      - name: Run tests (full - all 786)
+      - name: Run tests (full - all 800)
         if: matrix.dl-suite == 'full'
         working-directory: ./news_process
         run: |
-          # baseline (full 模式): 786 passed / 2 skipped (post Plan P1-5).
+          # baseline (full 模式): 800 passed / 2 skipped (post Plan-r3 P0-2 + P1-8).
           # SKIP 数为 2 即可 (剩 1 Unix-only fcntl test + 1 Win 空字符串路径).
           python -m pytest tests/ -v --tb=short
-          # baseline 校验: 任何 PR 降低 passed 数都让 grep -c 不达预期, CI 失败.
+          # baseline 校验: passed 必须 >= 800 (允许更多 -- 任何新增测试无害,
+          # 但低于 800 视为回归; 真正紧锁可改为 -ne 800 但会让正向新测 PR 失败).
           python -m pytest tests/ 2>&1 | tee /tmp/pytest_summary.txt
           PASSED=$(grep -oE '[0-9]+ passed' /tmp/pytest_summary.txt | head -1 | grep -oE '[0-9]+')
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
-          if [ "$PASSED" -lt 786 ]; then
-            echo "::error::baseline 退化: passed=$PASSED < 786"
+          if [ "$PASSED" -lt 800 ]; then
+            echo "::error::baseline 退化: passed=$PASSED < 800"
             exit 1
           fi
 

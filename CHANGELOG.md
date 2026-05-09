@@ -8,19 +8,29 @@
 
 ## post-v2.1.0 / HEAD baseline (2026-05-09 截止)
 
-### 测试 baseline 漂移记录 (Plan P0-3 跟踪)
+### 测试 baseline 漂移记录 (round 1 ~ round 3 全程)
 
-v2.1.0 release tag 的 frozen baseline = **772 passed / 6 skipped / 0 failed**.
+| 时点 | 来源 | passed / skipped |
+|---|---|---|
+| v2.1.0 release tag (frozen) | git tag | **772 / 6** |
+| post-round 1+2 (recode + 5 feat 子 commit, +10 回归测试) | 中间 HEAD | **782 / 6** |
+| post-round 2 P1-5 sidecar 化 (Win SKIP→PASS, +4) | round 2 末 HEAD | **786 / 2** |
+| post-round 3 / Plan-r3 P0-P3 17 单元 (本批) | **当前 HEAD** | **800 / 2** |
 
-v2.1.0 release 后 5 个子 commit (无 release bump, 仍属 v2.1.x 系列) 总计新增 **+10 回归测试**, HEAD 实测 baseline = **782 passed / 6 skipped / 0 failed**:
+> 本轮 (round 3) 增量 +14 来源:
+>   - P0-2 +2 invariant test (TestStataLabelsInvariant 防 STATA_LABELS dict-key 重复)
+>   - P1-8 +12 smoke test (6 个零测 stage × 2 类: import + main-callable)
+>
+> 任何后续 PR 应以 HEAD baseline (800) 为合并门槛, 不得低于该数.
+> 历史 anchor (772 / 782 / 786) 仅作回溯参考, 不再作为 CI 通过条件.
+
+### round 1+2 5 个 feat/recode 子 commit (2026-05-08)
 
 - `fb89495` docs(news_process): Phase 9 recode — fix 5 docstring/doc inconsistencies
 - `119bfef` feat(schemas): add `EXPECTED_NO_OUTPUT_STAGES`; orchestrator raises on truly missing entries
 - `edcc750` refactor(dag): move method→predicate map into dag.py; orchestrator drops local copy
 - `8115f54` fix(recode): tighten registry invariants and config type checks
 - `f0b93ca` fix(recode round 2): add 2 missing invariants for cross-stage uniqueness
-
-> 任何后续 PR 应以 HEAD baseline (782) 为合并门槛, 不得低于该数. v2.1.0 release tag 的 772 仅作历史 anchor 保留, 不应再作为 CI 通过条件.
 
 ### Plan P0/P1/P2 修复记录 (2026-05-09)
 
@@ -114,7 +124,7 @@ Smoke: 5 个 paper `run_paper.py <id> --dry-run` 全部 exit 0 + DAG length: 12 
 - `spec_from_file_location` in `news_process/papers/`: 仅余 `pipeline_runner.py` docstring 注释 (生产代码 0 反射调用)
 - `spec_from_file_location` in `tests/integration/test_dag_consistency.py:37` 保留 (v1.7 测试有意隔离设计, 不在本子任务范围)
 
-pytest: 772 (不变).
+pytest: 772 (不变, 当时为 v2.1.0 release tag baseline; HEAD 当前 baseline = 800, 见顶部漂移表).
 
 ### v2.1.0 收官 (本 commit)
 - `news_process/__init__.py`: `__version__ = "2.1.0"` + docstring 加 v2.1 状态段

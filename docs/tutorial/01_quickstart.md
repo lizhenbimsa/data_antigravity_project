@@ -110,15 +110,17 @@ Papers loaded: ['bank_fintech_tone', 'benefit_society', 'brokerage_network', 'll
 .venv/Scripts/python.exe -m pytest news_process/tests/
 ```
 
-期望（v2.1.0 / phase-9-baseline）：
+期望（post-recode round 3 / Plan-r3 P0-P3, 2026-05-09）：
 
 ```
-782 passed, 6 skipped, 33 warnings in ~32s   # HEAD baseline (v2.1.0 release tag = 772)
+800 passed, 2 skipped, 33 warnings in ~73s   # HEAD baseline
+                                             # (v2.1.0 release tag = 772; round 1+2 = 782; round 2 sidecar = 786)
 ```
 
 ```{warning}
-6 skipped 包含 3 个 Windows 文件锁测试（POSIX 专用）+ 3 个集成测试（依赖
-真实数据）。这是预期行为，**不要**当成 bug。
+2 skipped 是平台天然差异（1 个 Unix-only fcntl test + 1 个 Win 空字符串路径），
+不再像旧 baseline (6 skipped) 那样混入 Windows 文件锁测试 — Plan-r2 P1-5
+sidecar 化已让那 4 个原本的 Win SKIP 转为 PASS。
 
 历史对比 (v2.0.0 baseline): 778 passed / 7 skipped. v2.1.0 后 -16 测试
 (Phase 9a 整删 ``test_papers_dag_consistency.py`` 的 16 个 0-差异守护测试)

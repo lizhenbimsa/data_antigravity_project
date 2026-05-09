@@ -32,7 +32,21 @@ Phase 3 / Phase 7a residue, no new abstraction introduced:
 
 Post-v2.1.0 HEAD (recode round 1+2 + feat/refactor 5 个子 commit):
   - +10 回归测试 (test_dag_consistency 增 cross-stage uniqueness invariants 等)
-  - Full pytest: 782 passed / 6 skipped / 0 failed (HEAD baseline).
+  - Full pytest: 782 passed / 6 skipped / 0 failed.
+
+Post-recode round 3 (Plan-r3 P0-P3, 2026-05-09): 第二轮 17 单元修复
+  - P0-1: yunwu API key 轮换 + git filter-repo 改写 3 commit history + force push
+  - P0-2: pipeline/panel/export.py STATA_LABELS dedupe (9 dup -> 0); +2 invariant test
+  - P1-5/6/7: papers_assets/llm_peer/ 资产目录补齐 + 4 衍生 paper 骨架文档显式化
+              + 5 god function v3.0-split TODO 锚点
+  - P1-8: 6 个零测试 stage 加 import + main-callable smoke test (+12 test)
+  - P2-11/12/13/14: core/caching+quality 头部修正; thefuzz 评估 + requirements.lock;
+                   ruff pyproject 接入 + F601/B023/F811/B033 修复; 13 处 swallow except 文档化
+  - P3-15/16/17/18: Makefile cleanup; god function docstring; LLM cache key 升级;
+                   26 thin shim v3.0 退役 plan
+  - sidecar 化 (round 2 P1-5) baseline 跃迁: 782 -> 786 (+4 SKIP→PASS, Win 兼容性)
+  - 本轮 baseline 跃迁: 786 -> 800 (P0-2 +2 invariant + P1-8 +12 smoke)
+  - Full pytest: 800 passed / 2 skipped / 0 failed (HEAD baseline).
 """
 
 __version__ = "2.1.0"
