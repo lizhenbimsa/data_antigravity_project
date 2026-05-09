@@ -332,3 +332,57 @@ class TestEndToEnd:
         panel = bp.balance_panel(panel)
         panel = bp.compute_composite_indicators(panel)
         assert panel.shape[1] > 50, f"Only {panel.shape[1]} cols"
+
+
+class TestStataLabelsInvariant:
+    """Plan-r3 P0-2: STATA_LABELS dict literal key 唯一性不变量.
+
+    历史背景: line 919 的 'peer_compete_idx' 标签 'LLM-Peer Competition Index'
+    曾静默覆盖 line 857 的 'Peer Competition Index (0.80)' (含 cutoff=0.80
+    学术语义), 导致 .dta 输出变量标签丢失关键信息. 另有 8 个 auth_sim_*
+    系列 key 在 line 573-580 与 line 952-959 重复声明 (字符串相同的冗余).
+
+    本不变量直接解析 export.py 源码中 STATA_LABELS 字典字面量, 抽取所有
+    静态 'key': 'value' 形式的 key (不展开 ** dict comprehension), 断言
+    唯一. 任何回归会让 ruff F601 + 本测试同时报警.
+    """
+
+    @staticmethod
+    def _extract_static_keys() -> list[str]:
+        import re
+        from pathlib import Path
+        export_path = Path(_exp.__file__)
+        src = export_path.read_text(encoding='utf-8')
+        m = re.search(r'STATA_LABELS\s*=\s*\{', src)
+        assert m, "找不到 STATA_LABELS 字典字面量"
+        start = m.end() - 1
+        depth = 0
+        end = start
+        for i, c in enumerate(src[start:], start):
+            if c == '{':
+                depth += 1
+            elif c == '}':
+                depth -= 1
+                if depth == 0:
+                    end = i + 1
+                    break
+        literal = src[start:end]
+        line_re = re.compile(r"\s*'([A-Za-z_][\w]*)'\s*:\s*'[^']*'\s*,")
+        return [m2.group(1) for line in literal.splitlines()
+                if (m2 := line_re.match(line))]
+
+    def test_no_duplicate_static_keys(self):
+        """STATA_LABELS 中所有静态 'key': 'value' 对必须唯一."""
+        keys = self._extract_static_keys()
+        from collections import Counter
+        dup = {k: c for k, c in Counter(keys).items() if c > 1}
+        assert not dup, (
+            f"STATA_LABELS 出现 {len(dup)} 处重复 key (后定义会静默覆盖前定义, "
+            f"导致 .dta variable_labels 语义错乱): {dup}. "
+            f"参见 ruff F601 与 Plan-r3 P0-2."
+        )
+
+    def test_static_key_count_nonzero(self):
+        """sanity check: 字典字面量解析器不应返回空."""
+        keys = self._extract_static_keys()
+        assert len(keys) > 100, f"STATA_LABELS 静态 key 数 {len(keys)} 异常偏少"

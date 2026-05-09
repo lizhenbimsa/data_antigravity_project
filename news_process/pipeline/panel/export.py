@@ -916,7 +916,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_ft_intensity':     'Avg FinTech Intensity Score (TF-IDF)',
                 'avg_ft_intensity_std': 'Std FinTech Intensity Score (TF-IDF)',
                 # ═══ 同业竞争 (Cao et al. 2025) ═══
-                'peer_compete_idx':      'LLM-Peer Competition Index',
+                # 注: 'peer_compete_idx' 已在 line 857 声明为 'Peer Competition Index (0.80)'
+                # (含 cutoff=0.80 的明确学术语义); 此处不再重复以避免 dict-key silent
+                # override (Plan-r3 P0-2 修复, ruff F601).
                 # ═══ 前置中间变量: neg_count ═══
                 **{f'{m}_neg_count{s}': f'Neg Count: {m} ({t})'
                    for m in ['gpt5nano', 'gemini3', 'grok41']
@@ -949,14 +951,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
                 'prob_gap_title_full': 'Prob Score Gap: Title - Full',
                 # === 权威政策战略响应度 (Stage 26; Hassan et al. 2019) ===
-                'auth_sim_tfidf_c_full':  'Auth Alignment TF-IDF char (Full)',
-                'auth_sim_tfidf_w_full':  'Auth Alignment TF-IDF word (Full)',
-                'auth_sim_lda_full':      'Auth Alignment LDA (Full)',
-                'auth_sim_emb_full':      'Auth Alignment Embedding (Full)',
-                'auth_sim_tfidf_c_ctx':   'Auth Alignment TF-IDF char (Ctx)',
-                'auth_sim_tfidf_w_ctx':   'Auth Alignment TF-IDF word (Ctx)',
-                'auth_sim_lda_ctx':       'Auth Alignment LDA (Ctx)',
-                'auth_sim_emb_ctx':       'Auth Alignment Embedding (Ctx)',
+                # 注: 8 个 'auth_sim_*' key 已在 line 573-580 声明 (字符串完全相同),
+                # 此处不再重复以保持 dict-key 唯一性 (Plan-r3 P0-2 修复, ruff F601).
                 # ═══ 经营效益情感态度投影 (Stage 27; Jha, Liu & Manela 2026, RFS §1.3.2) ═══
                 'benefit_mean_full':      'Benefit-Operations Attitude Mean (Full)',
                 'benefit_mean_ctx':       'Benefit-Operations Attitude Mean (Ctx)',
