@@ -470,6 +470,19 @@ def _validate_attention_index(panel):
 def compute_media_heterogeneity(df, panel):
     """计算媒体信息中介异质性变量 - 四维度分析。
 
+    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, 497 行 god function)
+
+        本函数将四个独立维度的计算耦合在一个流程中. 学术上每维度的
+        测度方法 / 引用文献 / 标准误聚类层级都不同, 拆分理由充分:
+
+        - ``_compute_financial_vs_other`` -- 财经 / 综合 媒体语调差
+        - ``_compute_breadth_index`` -- Bushee et al. 2010 媒体广度
+        - ``_compute_central_periphery`` -- 央媒 / 非央媒 注意力差
+        - ``_compute_temporal_attention`` -- 月度注意力衰减权重
+
+        拆分后每个子函数独立可测 (合成 panel 行 + 各自断言), 现状只能
+        端到端测.
+
     四维度:
       1. 财经 vs 其他: 财经类报章 (15家) 与非财经类
       2. 综合 vs 其他: 综合性报章 (27家) 与非综合性

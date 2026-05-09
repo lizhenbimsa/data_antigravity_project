@@ -720,6 +720,22 @@ def _write_run_lineage(stage_start: float):
 
 
 def main():
+    """Stage 21 LLM 三模型 ensemble 情感分析主入口.
+
+    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, 505 行 god function)
+
+        本函数是 stage 21 的双轨 (full + ctx) LLM 调用主流程, 内部职责:
+        1. 加载 stage 12/14 上游 + schema 守护 (含 ``stage 14 fallback to 12``
+           硬化反模式根除, 见 line 727-732 的 "Step 4(a) 硬化")
+        2. 双轨数据准备 + content/ctx 物化
+        3. 三家族 LLM (gpt5nano / gemini3 / grok41) 并发请求 +
+           majority-vote ensemble (logit-to-score)
+        4. SQLite 缓存读写 (P3-17 拟升级缓存键含 prompt_version)
+        5. N8 lineage 记录 + parquet 双轨输出
+
+        v3.0 拆分应让 LLM 调用层独立可测 (mock yunwu API), 与上下游
+        IO 解耦.
+    """
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
     _write_run_lineage(stage_start)

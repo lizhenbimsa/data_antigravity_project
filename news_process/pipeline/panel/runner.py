@@ -117,7 +117,30 @@ from news_process.pipeline.panel.export import log_diagnostics, export_panel  # 
 # ============================================================================
 
 def main():
-    """45_panel_export_main 主流程。"""
+    """45_panel_export_main 主流程。
+
+    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, 1325 行 god function)
+
+        本函数当前是项目最大的 monolithic 主流程, 串行执行 7 个 stage 子步,
+        与 ``core.dag.py:STAGES_MAIN`` 的"阶段45 (内含 41+42+43+44+46+47)"
+        StageSpec.name 一一对应:
+
+            41 编码聚合          → encode.aggregate_panel
+            42 媒体注意力        → attention_media.compute_media_heterogeneity
+            43 地理缓冲          → geography.compute_geo_proximity_buffers
+            44 Bartik IV/DID    → iv_did.compute_bartik_iv + merge_policy_shocks
+            46 网络溢出          → network_spillover.compute_bank_network_centrality
+            47 经纪网络          → network_brokerage.<...>
+            45 诊断与多格式导出   → export.export_panel
+
+        v3.0 拆分策略:
+        1. 把每个子步提升为独立 ``StageSpec`` (子进程隔离, 便于失败定位)
+        2. 各子步 OUTPUT_REGISTRY 独立, 实现"中途断点续跑"
+        3. 本 main() 退化为薄编排器 (~50 行, 仅 dispatch + summary)
+
+        约束: 拆分必须与 thin shim 退役 (Plan-r3 P3-18) 同期, 否则会破坏
+        ``python news_process/45_panel_export_main.py`` 这个外部 CLI 契约.
+    """
     start_time = time.time()
     logger.info("=" * 70)
     logger.info("===    45_panel_export_main: Bank-Year 面板数据构建    ===")

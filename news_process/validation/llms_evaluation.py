@@ -858,7 +858,19 @@ def diagnose_misclassification_bias(
 # ============================================================================
 
 def main():
-    """分类有效性评估主入口。"""
+    """分类有效性评估主入口。
+
+    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, 541 行 god function)
+
+        本函数是 stage 33 的 monolithic 主流程, 内部 5 个职责紧耦合:
+        1. 加载 verify + tone_llms parquet (含 schema 守护)
+        2. compute_metrics -- precision/recall/F1 矩阵计算
+        3. diagnose_misclassification_bias (本文件 line 603, 251 行子函数)
+        4. diagnose_confidence_calibration (line 1153 of validation/tone_validation.py)
+        5. 报告渲染 + 多格式导出 (csv/markdown/json)
+
+        v3.0 拆分: 每个职责独立函数 + 一个薄 main 编排器.
+    """
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
 
