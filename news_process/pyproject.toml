@@ -102,3 +102,49 @@ namespaces = false
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
+
+# Plan-r3 P2-13: ruff lint config 落到 pyproject.toml (此前 ci.yml 内联,
+# 仅 --select E9,F63,F7,F82,F401, 错过大量正确性问题).
+[tool.ruff]
+target-version = "py310"
+line-length = 120  # 高于 PEP-8 默认 79, 容忍长 docstring 和长 SQL/正则 literal
+exclude = [
+    "scripts/legacy",
+    "scripts/audit/_replan_v5_evidence",  # 一次性 LLM 调试探针, 不入 lint
+    "**/__pycache__",
+    ".pytest_cache",
+    ".tmp",
+    ".test_tmp",
+    "data",
+    "data_excel",
+    "logs",
+    "models",
+    "papers_assets",
+]
+
+[tool.ruff.lint]
+# 启用集合: PEP-8 errors / pyflakes / bugbear / pyupgrade / simplify /
+# 模块导入排序 (I). 高风险类 (F601 / B023 / F811 / B033) 已在 P0-2 + P2-13
+# 中清零, ruff CI 接入后自动防回归.
+select = ["E", "F", "B", "UP", "SIM", "I"]
+ignore = [
+    "E501",   # line-too-long: 923 处大量来自长 docstring/SQL/正则, 强行折行损伤可读性
+    "F541",   # f-string-missing-placeholders: 193 处, 主要是 logger.info(f"==="*70) 之类
+    "E402",   # module-import-not-at-top: 138 处, thin shim 与测试 sys.path.insert 后
+              # import 是有意设计 (Phase 5a/7a/7b)
+    "UP015",  # redundant-open-modes: 69 处, 'r' 显式更可读
+    "SIM105", # suppressible-exception: 21 处, 显式 try/except 比 contextlib.suppress 更易读
+    "B007",   # unused-loop-control-variable: 24 处, 多见于解构 (for _, row in ...)
+    "B905",   # zip-without-explicit-strict: 25 处, 大多 zip() 长度天然相等, 强 strict
+              # 反引入新 ValueError; 高风险 zip 已在审查中专门处理
+    "B904",   # raise-without-from: 8 处, 大部分是 RuntimeError(f"...{e}") 已含原因
+    "SIM117", # multiple-with-statements: 7 处, 嵌套 with 在 IO 场景更清晰
+    "UP006",  # non-pep585-annotation: 33 处, 我们当前 typing.Dict/List 与 dict/list 混用,
+              # 全切到 PEP-585 留待 v3.0 (Plan-r3 P3-16 与 god-function docstring 同期)
+    "UP035",  # deprecated-import: 14 处, 同上
+    "UP045",  # non-pep604-annotation-optional: 6 处, 同上
+]
+per-file-ignores = { "tests/**/*.py" = ["B017", "B011"] }  # 测试中允许 assert raises Exception 等
+
+[tool.ruff.lint.isort]
+known-first-party = ["news_process"]

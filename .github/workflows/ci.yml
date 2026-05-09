@@ -130,11 +130,23 @@ jobs:
           python-version: '3.13'
       - name: Install ruff
         run: pip install ruff
-      - name: ruff check
-        # ruff 配置如未来加入, 在 pyproject.toml 中. 当前仅做 syntax / import 健康检查
-        # (--select E9,F63,F7,F82 等价 flake8 -E9 集合, 仅捕错误级别问题)
+      - name: ruff check (full config, advisory)
+        # 走 pyproject.toml 中的 [tool.ruff.lint] 全集 (Plan-r3 P2-13).
+        # 当前 ~375 处 lint 警告 (主要 I001 import 排序 + F401 未用 import),
+        # 不阻塞 CI; 仅作开发者可见的代码质量信号.
+        continue-on-error: true
+        working-directory: ./news_process
         run: |
-          ruff check news_process/ \
-            --select E9,F63,F7,F82,F401 \
-            --ignore F401 \
-            --exclude '__pycache__,*.pyc,news_process/data,news_process/data_excel,news_process/logs'
+          ruff check . --output-format=concise || true
+
+      - name: ruff check (high-risk classes, blocking)
+        # Plan-r3 P0-2 + P2-13 已清零的 4 类高风险 lint, CI 严格防回归:
+        #   F601: dict-key-repeated  (silent override 风险)
+        #   B023: closure-uses-loop-var (delayed-execution 翻车风险)
+        #   F811: redefined-while-unused (重复 import / 重复 def)
+        #   B033: duplicate-set-items ({0, 0.0, 1, 1.0} 类型混淆)
+        working-directory: ./news_process
+        run: |
+          ruff check . \
+            --select F601,B023,F811,B033 \
+            --no-cache

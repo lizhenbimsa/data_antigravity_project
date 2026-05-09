@@ -47,8 +47,6 @@ import time
 import json
 import logging
 import asyncio
-import os
-import sys
 import aiohttp
 import numpy as np
 import pandas as pd

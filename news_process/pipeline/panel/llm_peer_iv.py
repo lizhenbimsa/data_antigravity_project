@@ -679,8 +679,10 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                 articles = df_exploded.loc[mask]
                 if len(articles) == 0:
                     continue
+                # ruff B023: 默认参数绑定 peer_set, 与上方 tone_words.py
+                # 修复后风格一致 (Plan-r3 P2-13).
                 co_with_peer = articles['co_mentioned_banks'].apply(
-                    lambda x: bool(set(str(x).split(';')) & peer_set)
+                    lambda x, ps=peer_set: bool(set(str(x).split(';')) & ps)
                     if pd.notna(x) and str(x).strip() else False
                 ).sum()
                 c_str = f"{int(c*100)}"

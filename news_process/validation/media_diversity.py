@@ -81,7 +81,6 @@ news_process.validation.media_diversity — 媒体名称与地域多样性审计
 
 import os
 import json
-import os
 import sys
 import time
 from collections import Counter

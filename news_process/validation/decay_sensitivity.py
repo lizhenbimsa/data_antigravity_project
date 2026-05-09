@@ -62,7 +62,6 @@ news_process.validation.decay_sensitivity — 距离衰减权重敏感性检验 
 import os
 import math
 import json
-import os
 import sys
 import time
 import logging

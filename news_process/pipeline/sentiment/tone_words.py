@@ -57,7 +57,6 @@ import threading
 import json
 import math
 import time
-import os
 import string
 import sys
 import logging
@@ -878,12 +877,15 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     results = df.apply(_dual_analyze, axis=1)
 
     # 提取各列（双轨）
+    # ruff B023: lambda 显式默认参数绑定 (与同函数下方 894/897 风格一致).
+    # 当前 .apply() 同步执行不会出 bug, 但风格不统一, 且未来若改造为
+    # dask.delayed / asyncio 立即翻车. Plan-r3 P2-13 一次性收口.
     for dict_name, _ in ALL_DICTIONARIES:
         for track in ['_full', '_ctx', '_title']:
             df[f'{dict_name}_score{track}'] = results.apply(
-                lambda r: r.get(f'{dict_name}_score{track}', 0.0))
+                lambda r, k=f'{dict_name}_score{track}': r.get(k, 0.0))
             df[f'{dict_name}_label{track}'] = results.apply(
-                lambda r: r.get(f'{dict_name}_label{track}', '中性'))
+                lambda r, k=f'{dict_name}_label{track}': r.get(k, '中性'))
 
             label_counts = df[f'{dict_name}_label{track}'].value_counts()
             stats[f'{dict_name}_正面{track}'] = int(label_counts.get('正面', 0))

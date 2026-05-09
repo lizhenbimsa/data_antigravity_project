@@ -39,8 +39,6 @@ news_process.pipeline.audit.stata_audit — Stata 用面板数据最高标准审
 
 import os
 import sys
-import os
-import sys
 import time
 import warnings
 import json
@@ -249,7 +247,10 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
     for col in dummy_vars:
         if col in panel.columns:
             unique_vals = set(panel[col].dropna().unique())
-            valid_vals = {0, 0.0, 1, 1.0}
+            # ruff B033: {0, 0.0} / {1, 1.0} 在 set 中等价 → 折叠为 {0, 1}
+            # 原代码语义上想兼容 int/float 表示, 但 set 无差异; pandas
+            # .unique() 返回 dtype 取决于源列, issubset({0, 1}) 自动 OK.
+            valid_vals = {0, 1}
             if not unique_vals.issubset(valid_vals):
                 record(cat, f'哑变量{col}', 'FAIL',
                        f'含非0/1值: {unique_vals - valid_vals}')
@@ -506,19 +507,19 @@ def audit_did_variables(panel: pd.DataFrame, name: str):
             record(cat, f'{policy} 存在性', 'WARN', f'{treated_col} 列不存在')
             continue
 
-        # 5a. treated 应为 0/1
+        # 5a. treated 应为 0/1 (B033: {0, 0.0, 1, 1.0} → {0, 1})
         treated_vals = set(panel[treated_col].dropna().unique())
-        if not treated_vals.issubset({0, 0.0, 1, 1.0}):
+        if not treated_vals.issubset({0, 1}):
             record(cat, f'{policy}_treated 编码', 'FAIL', f'非0/1: {treated_vals}')
         else:
             n_treated = (panel[treated_col] == 1).sum()
             record(cat, f'{policy}_treated 编码', 'PASS',
                    f'treated=1: {n_treated:,} 行')
 
-        # 5b. post 应为 0/1
+        # 5b. post 应为 0/1 (B033: {0, 0.0, 1, 1.0} → {0, 1})
         if post_col in panel.columns:
             post_vals = set(panel[post_col].dropna().unique())
-            if not post_vals.issubset({0, 0.0, 1, 1.0}):
+            if not post_vals.issubset({0, 1}):
                 record(cat, f'{policy}_post 编码', 'FAIL', f'非0/1: {post_vals}')
             else:
                 record(cat, f'{policy}_post 编码', 'PASS', '0/1 编码正确')

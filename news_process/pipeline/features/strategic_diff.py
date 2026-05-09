@@ -419,7 +419,6 @@ def _build_lda_jsd_matrix(texts, n_banks):
 async def _get_embeddings_api(texts, cache=None):
     """通过 API 获取文本 Embedding 向量 — 穿透式缓存与死战不退容错。"""
     import aiohttp
-    import json
     texts = [] if texts is None else list(texts)
     if len(texts) == 0:
         return np.empty((0, 0), dtype=np.float32)
