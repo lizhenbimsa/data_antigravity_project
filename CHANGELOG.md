@@ -15,14 +15,37 @@
 | v2.1.0 release tag (frozen) | git tag | **772 / 6** |
 | post-round 1+2 (recode + 5 feat 子 commit, +10 回归测试) | 中间 HEAD | **782 / 6** |
 | post-round 2 P1-5 sidecar 化 (Win SKIP→PASS, +4) | round 2 末 HEAD | **786 / 2** |
-| post-round 3 / Plan-r3 P0-P3 17 单元 (本批) | **当前 HEAD** | **800 / 2** |
+| post-round 3 / Plan-r3 P0-P3 17 单元 (本批) | **当前 HEAD** | **805 / 2** |
 
-> 本轮 (round 3) 增量 +14 来源:
+> 本轮 (round 3) 增量 +19 来源:
 >   - P0-2 +2 invariant test (TestStataLabelsInvariant 防 STATA_LABELS dict-key 重复)
+>   - P1-4 +2 invariant test (TestEnvExampleCoversYamlPlaceholders 防 .env.example 错位)
 >   - P1-8 +12 smoke test (6 个零测 stage × 2 类: import + main-callable)
+>   - P3-17 +3 cache key invariant (prompt_version + temperature + SCHEMA_VERSION)
 >
-> 任何后续 PR 应以 HEAD baseline (800) 为合并门槛, 不得低于该数.
+> 任何后续 PR 应以 HEAD baseline (805) 为合并门槛, 不得低于该数.
 > 历史 anchor (772 / 782 / 786) 仅作回溯参考, 不再作为 CI 通过条件.
+
+### Plan-r3 P0-P3 17 修复单元记录 (2026-05-09)
+
+| # | 修复单元 | 关键变更 | commit |
+|---|---|---|---|
+| **P0-1** | yunwu API key 轮换 + git filter-repo 改写 history + force push | 旧 key 从 3 个历史 commit 中清除 (2c529f5/5f1dce4/6d60e21 → 39bfdfe/fc89174/4c9db27); user 已轮换并写新 key 到 .env | history rewrite (无 commit) |
+| **P0-2** | STATA_LABELS dedupe + F601 invariant test | export.py 9 dup keys 清零, peer_compete_idx 标签覆盖 silent override 修复 | f9477d6 |
+| **P1-3** | baseline 786 → 800 同步 | __init__.py / README / CHANGELOG / quickstart / ci.yml 全部刷至 805 | e9b0d90 |
+| **P1-4** | .env.example 重整 + _validate_env_placeholders 校验 | YAML 引用 ${YUNWU_API_KEY} 但 env.example 漏声明的契约错位修复 | 577172f |
+| **P1-5** | papers_assets/llm_peer/ 资产目录补齐 | 5 paper 白名单与目录契约一致 | a0d7b8f |
+| **P1-6** | 5-paper 成熟度梯度显式化 | README 区分 1 主线 / 3 半成熟 / 1 全骨架 | ddc8ff6 |
+| **P1-7** | 5 god function v3.0-split TODO 锚点 | runner.py:main 1325 行等加 ``.. todo:: v3.0-split`` 锚点 | f2d8cfd |
+| **P1-8** | 6 个零测 stage smoke test | test_stage_smoke.py +12 test (import + main-callable) | 6be5edb |
+| **P2-11** | core/caching + core/quality 头部 docstring | utils/llm_cache.py / data_quality.py 旧名修正 | ec632e0 |
+| **P2-12** | rapidfuzz 优先 + requirements.lock 生成 | thefuzz fallback + 67 transitive deps 锁定 | 78fcb62 |
+| **P2-13** | ruff pyproject 接入 + 4 类高风险 lint 修复 | F601 / B023 / F811 / B033 全清零, CI 双层 lint (advisory + blocking) | f856853 |
+| **P2-14** | 13 处 swallow except 文档化 | docs/guides/exception_handling.md 集中索引 + 不变量 | 62d7b00 |
+| **P3-15** | Makefile + cleanup.py 数据生命周期工具 | _cache 8472 MiB / _backup 98 MiB / 14+ derived 480 MiB 可一键清理 | eb6c4f1 |
+| **P3-16** | 4 god function docstring backfill | threshold/media_diversity/tone_validation 缺 docstring 函数从 4 → 0 | 7d4b672 |
+| **P3-17** | LLM cache key 加 SCHEMA_VERSION + prompt_version + temperature (BREAKING) | 防 silent staleness; v0→v1 read fallback 让历史 cache 仍能被新代码读 | f3a0000, 426e57c |
+| **P3-18** | 26 thin shim v3.0 退役 plan 文档化 | thin_shim_pattern.md §11 含 4 步退役 path + 26 shim 替换映射表 | 223ab3b |
 
 ### round 1+2 5 个 feat/recode 子 commit (2026-05-08)
 

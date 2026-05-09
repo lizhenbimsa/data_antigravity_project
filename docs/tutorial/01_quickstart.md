@@ -113,8 +113,8 @@ Papers loaded: ['bank_fintech_tone', 'benefit_society', 'brokerage_network', 'll
 期望（post-recode round 3 / Plan-r3 P0-P3, 2026-05-09）：
 
 ```
-800 passed, 2 skipped, 33 warnings in ~73s   # HEAD baseline
-                                             # (v2.1.0 release tag = 772; round 1+2 = 782; round 2 sidecar = 786)
+805 passed, 2 skipped, 33 warnings in ~32s   # HEAD baseline
+                                             # (v2.1.0 release tag = 772; round 1+2 = 782; round 2 sidecar = 786; round 3 P0-P3 = 805)
 ```
 
 ```{warning}
