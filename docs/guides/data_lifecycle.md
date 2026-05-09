@@ -150,3 +150,46 @@ news_process/data_excel/  # 整个 data_excel 目录 gitignored (含 back/)
 任何修改 [`news_process/.gitignore`](../../news_process/.gitignore) 让某些
 processed 文件可被 commit 的 PR,reviewer 必须确认这些文件不会膨胀仓库
 (>10 MB) 与不含 PII / API key。
+
+---
+
+## 7. 自动化清理工具 (Plan-r3 P3-15)
+
+二轮诊断核验时实测 `data/processed/` **9.4 GiB**（远超此前估算的 1 GiB），
+但本仓库一直无配套清理工具。Plan-r3 P3-15 落地后提供两套等价工具：
+
+### 7.1 Makefile target（Linux / WSL / mingw32-make）
+
+```bash
+make help            # 列出全部 target
+make sizes           # 显示各 cleanup target 当前可释放体积
+make clean-cache     # 删 _cache/ + _llm_cache.db          (~236 MiB; LLM 缓存归零)
+make clean-backup    # 删 _backup_*/                        (~99 MiB; 仅在 release 后执行)
+make clean-derived   # 删 stage 14+ parquet/csv/dta         (保留 stage 11/12 上游)
+make clean-logs      # 清空 news_process/logs/
+make purge-all       # 上述全部 + logs                       (DANGER: 完全重置)
+```
+
+### 7.2 纯 Python 版（Windows 友好，无 make 依赖）
+
+```bash
+python -m news_process.scripts.cleanup sizes
+python -m news_process.scripts.cleanup clean-cache
+python -m news_process.scripts.cleanup clean-backup
+python -m news_process.scripts.cleanup clean-derived
+python -m news_process.scripts.cleanup clean-logs
+python -m news_process.scripts.cleanup purge-all --yes
+```
+
+两套工具行为等价（Makefile target 内部即调 Python 单行 inline），输出格式一致。
+源码: [`news_process/scripts/cleanup.py`](../../news_process/scripts/cleanup.py)、
+项目根 [`Makefile`](../../Makefile)。
+
+### 7.3 推荐使用频率
+
+| 操作 | 触发场景 | 频率 |
+|---|---|---|
+| `clean-cache` | LLM prompt 模板有变更 / 想验证 cache 命中率改进 | 周级 |
+| `clean-derived` | 上游 stage 11/12 数据重抓 | 月级（每次 wisers 重抓时） |
+| `clean-backup` | issue 已 release 后 | release 级（v3.0 时清 issue #5 backup） |
+| `purge-all` | 仅在完全重置开发环境时（极少） | 年级 |
