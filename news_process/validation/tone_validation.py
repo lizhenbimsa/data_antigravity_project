@@ -594,7 +594,27 @@ def generate_validation_sample(df: pd.DataFrame,
 def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                         all_labels_df: pd.DataFrame, logger_inst,
                         track: str = '_full') -> dict:
-    """按新闻长度、时间段和词典覆盖率进行分层一致性分析。"""
+    """按新闻长度、时间段和词典覆盖率进行分层一致性分析 (Plan-r3 P3-16 docstring 扩充)。
+
+    分层维度:
+        - **新闻长度**: 短 (<200 字) / 中 (200-1000) / 长 (>1000)
+        - **时间段**: 按年度 / 按 DCEP 政策时点前后
+        - **词典覆盖率**: 高 (>=10 词) / 中 / 低 / 零覆盖
+
+    每个 strata 内分别计算 LLM 三家族 (gpt5nano/gemini3/grok41) 与
+    词典法 / BERT 的两两 Cohen Kappa + 多家族投票一致性.
+
+    Args:
+        df:              主面板 (含 sentiment_*_score / label 列)
+        all_scores_df:   同 df, 但只保留情感分数列, 与 all_labels_df 1:1 对齐
+        all_labels_df:   同 df, 只保留 LLM/词典/BERT label 列
+        logger_inst:     注入的 logger (避免顶层 logger 多进程串扰)
+        track:           '_full' (全文) / '_ctx' (上下文) / '_title' (标题)
+
+    Returns:
+        dict: 三层嵌套 ``{strata_kind: {strata_value: {pair: kappa}}}``
+              用于 stage 34 报告渲染.
+    """
     results = {}
 
     # --- 按新闻长度分层 ---
@@ -1531,7 +1551,28 @@ def main():
 
 
 def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
-    """对指定轨道执行完整的三角验证流水线。"""
+    """对指定轨道执行完整的三角验证流水线 (Plan-r3 P3-16 docstring 扩充)。
+
+    Stage 34 双轨执行的内部主入口. 接到 ``main()`` 的 dispatch, 对单一
+    track 跑完 6 步:
+
+        1. discover_sentiment_columns -- 自动发现 LLM/dict/BERT 情感列
+        2. compute_pairwise_kappa     -- 全部 model 两两 Cohen kappa
+        3. stratified_analysis        -- 按 length/time/dict-coverage 分层
+        4. diagnose_llm_category_bias -- LLM 偏向"中性"等分类偏倚检测
+        5. diagnose_confidence_calibration -- 置信度校准 ECE
+        6. 输出报告 ``34_tone_validation_<track>.{csv,md,json}``
+
+    Args:
+        df:         track 已过滤的双轨 panel
+        track:      '_full' / '_ctx' / '_title' (匹配双轨命名约定)
+        output_dir: 报告输出目录 (一般 ``data/processed/eval_reports/``)
+        logger:     注入 logger
+        CONFIG:     已加载的项目 cfg
+
+    Returns:
+        None — 副作用是写出 3 份 ``34_*_<track>.*`` 报告.
+    """
     # ======================================================================
     # Step 2: 自动发现情感列
     # ======================================================================

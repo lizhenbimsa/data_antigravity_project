@@ -1040,7 +1040,24 @@ def export_to_excel(all_results: dict, output_path: str):
 # ============================================================================
 
 def main():
-    """38_media_diversity 主流程。"""
+    """Stage 38 媒体名称与地域多样性审计主流程 (Plan-r3 P3-16 docstring 补齐)。
+
+    8 维度全自动化多样性诊断 — 把 stage 11/12 经过分类筛选后保留的媒体
+    -地域分布做完整刻画, 用于论文 "数据来源" 章节的客观性辩护.
+
+    8 维度:
+        1. 媒体数量 (Pielou 1966 evenness)
+        2. 媒体类型分布 (财经/综合/央媒/地方/网媒)
+        3. 媒体地域分布 (省级 / 市级 / 国家级)
+        4. Shannon 熵 (1948) — 信息论多样性
+        5. Herfindahl 指数 (1950) — 集中度反向
+        6. Gini 系数 (1912) — 不平等度
+        7. Bushee et al. (2010, JAR) media breadth
+        8. Laakso 1979 effective N media
+
+    输入: ``data/processed/12_fintech_news.parquet``
+    输出: ``data/processed/eval_reports/38_media_diversity_audit.{parquet,xlsx}``
+    """
     start_time = time.time()
     logger.info("=" * 70)
     logger.info("===  38_media_diversity: 媒体名称与地域多样性审计  ===")

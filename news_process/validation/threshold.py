@@ -413,7 +413,21 @@ def generate_sensitivity_latex(bank_results: list, fintech_results: list,
 # ============================================================================
 
 def main():
-    """阈值敏感性分析主入口。"""
+    """Stage 31 阈值敏感性分析主入口 (Plan-r3 P3-16 docstring 补齐)。
+
+    在 ``min_name_occurrences`` (银行新闻分类) 与 ``min_distinct_keywords``
+    (金融科技新闻分类) 两个核心阈值参数上做 1~10 的网格搜索, 输出每个阈值
+    组合下的最终样本量, 评估当前生产配置的稳健性。
+
+    输入:
+        ``data/processed/00_preprocessing.parquet`` (人民日报 + Wisers 全量)
+    输出:
+        ``data/processed/31_threshold_sensitivity.{parquet,csv}``
+        ``data/processed/eval_reports/31_threshold_grid.png``
+
+    学术依据: Loughran & McDonald (2011, JF) 阈值稳健性范式;
+              Tetlock (2007, JF) 媒体语调阈值敏感性.
+    """
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
     logger.info("")
