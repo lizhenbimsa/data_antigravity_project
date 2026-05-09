@@ -1,6 +1,16 @@
 # CLAUDE.md
 
+![CI Status](https://github.com/YOUR_USERNAME/news_process/workflows/CI/badge.svg)
+![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
+![Test Coverage](https://img.shields.io/badge/tests-814%20passed-green)
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+# Communication
+
+- Always respond in Simplified Chinese.
+- Explain code changes in Chinese.
+- Keep code comments in English unless the file already uses Chinese comments.
 
 ## Project Overview
 
@@ -64,8 +74,9 @@ python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Install dependencies (choose one)
-pip install -e .                    # Recommended: editable install
-pip install -r requirements.txt     # Fallback for pip-only users
+pip install -r requirements.lock    # Recommended: exact versions for reproducibility
+pip install -e .                     # Development: range versions from pyproject.toml
+pip install -r requirements.txt      # Fallback for pip-only users
 
 # Configure environment
 cp .env.example .env
