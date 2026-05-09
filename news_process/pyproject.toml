@@ -108,7 +108,7 @@ namespaces = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-q --cov=news_process --cov-report=term-missing --cov-report=html"
+addopts = "-q"
 
 [tool.coverage.run]
 source = ["news_process"]
