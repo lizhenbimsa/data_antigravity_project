@@ -39,6 +39,66 @@ def test_cache_put_batch(tmp_path):
 
     print(f"[OK] test_cache_put_batch passed (DB: {db_path})")
 
+
+def test_cache_key_includes_prompt_version(tmp_path):
+    """Plan-r3 P3-17: 缓存键必须包含 prompt_version 维度.
+
+    旧版仅 (model_id, prompt) 时, 改写 prompts/sentiment_cot.txt 后旧
+    cache 仍命中错答案 (silent staleness). 新版加 prompt_version, 改一行
+    prompt → cache miss → 重新调 API.
+    """
+    db_path = str(tmp_path / "test_cache_pv.db")
+    with LLMCache(db_path) as cache:
+        cache.put("m1", "prompt-A", "resp-v6", prompt_version="v6-2026-05-09")
+        # 同 (model, prompt) 但不同 prompt_version → 不应命中
+        assert cache.get("m1", "prompt-A", prompt_version="v6-2026-05-09") == "resp-v6"
+        assert cache.get("m1", "prompt-A", prompt_version="v7-2026-06-01") is None
+        # 不传 prompt_version (默认 v0) 也不应命中 v6
+        assert cache.get("m1", "prompt-A") is None
+
+
+def test_cache_key_includes_temperature(tmp_path):
+    """Plan-r3 P3-17: 缓存键必须包含 temperature 维度.
+
+    temperature=0.0 与 temperature=0.5 的 LLM 响应分布不同, 共用 cache
+    会污染. 新版让两种 temperature 命中各自命名空间.
+    """
+    db_path = str(tmp_path / "test_cache_temp.db")
+    with LLMCache(db_path) as cache:
+        cache.put("m1", "prompt-A", "resp-det", temperature=0.0)
+        cache.put("m1", "prompt-A", "resp-stoch", temperature=0.5)
+        assert cache.get("m1", "prompt-A", temperature=0.0) == "resp-det"
+        assert cache.get("m1", "prompt-A", temperature=0.5) == "resp-stoch"
+        # 默认 temperature=0.0 命中 deterministic
+        assert cache.get("m1", "prompt-A") == "resp-det"
+
+
+def test_cache_schema_version_invalidates_v0_keys(tmp_path):
+    """Plan-r3 P3-17: SCHEMA_VERSION 升级 ('v0' -> 'v1') 让历史 cache 自动 silent miss.
+
+    本测试通过对比 v1 schema 下 _make_key 与手写 v0 schema 哈希的差异,
+    验证 SCHEMA_VERSION 确实参与键的哈希 (任何 v0 旧记录的 cache_key 都不会
+    匹配 v1 算法生成的新键, 即等效 silent miss).
+    """
+    import hashlib
+    from news_process.core.caching import LLMCache, SCHEMA_VERSION
+
+    assert SCHEMA_VERSION == "v1", \
+        f"SCHEMA_VERSION 当前值 '{SCHEMA_VERSION}' 不是 Plan-r3 P3-17 的 'v1'"
+
+    # 模拟 v0 算法手算键
+    m_id, prompt = "m1", "prompt-A"
+    v0_raw = f"{len(m_id)}:{m_id}:{prompt}"
+    v0_key = hashlib.sha256(v0_raw.encode('utf-8')).hexdigest()
+
+    # 当前 (v1) 算法生成的键
+    v1_key = LLMCache._make_key(m_id, prompt)
+
+    assert v0_key != v1_key, (
+        "v0 旧键与 v1 新键相同 — SCHEMA_VERSION 未参与哈希? "
+        "Plan-r3 P3-17 升级失败."
+    )
+
 class MockResponse:
     def __init__(self, status, json_data=None, text_data=""):
         self.status = status
