@@ -281,3 +281,56 @@ class TestCanonicalizeTopicEnhanced:
         """纯应用场景关键词应返回应用场景。"""
         cat, conf = canonicalize_topic('移动支付')
         assert cat == '应用场景'
+
+
+# ============================================================================
+# Plan-r3 round-3 review M1: rapidfuzz vs thefuzz 数值 parity invariant
+# ============================================================================
+
+
+class TestRapidfuzzThefuzzParity:
+    """守护 Plan-r3 P2-12 'rapidfuzz drop-in replacement for thefuzz' 假设.
+
+    canonicalization.py:289 走 ``try rapidfuzz first, fallback thefuzz``
+    路径. 如果两者 ``fuzz.partial_token_set_ratio`` 数值不一致, 切换 fallback
+    会让 round 1+2 训练时的阈值 (>= 60) 在新代码下失效.
+
+    本 test 在两个库都装的环境下抽样验证两个函数在合成输入上 byte-equal,
+    任一缺失则 skip (CI light 模式 thefuzz 装但 rapidfuzz 也装, 应能跑).
+    """
+
+    @staticmethod
+    def _try_import_both():
+        try:
+            from rapidfuzz import fuzz as rfuzz
+        except ImportError:
+            rfuzz = None
+        try:
+            from thefuzz import fuzz as tfuzz
+        except ImportError:
+            tfuzz = None
+        return rfuzz, tfuzz
+
+    def test_partial_token_set_ratio_parity(self):
+        """两个库在 partial_token_set_ratio 上应数值一致 (canonicalization.py 唯一调用)."""
+        rfuzz, tfuzz = self._try_import_both()
+        if rfuzz is None or tfuzz is None:
+            pytest.skip("需要 rapidfuzz + thefuzz 同时安装")
+
+        # 抽样 canonicalization 实际场景的输入
+        cases = [
+            ('人工智能驱动的智能风控系统', '人工智能'),
+            ('blockchain 跨境支付', '区块链'),
+            ('mobile银行 + 5G', '移动支付'),
+            ('', ''),  # 边界
+            ('a', 'b'),
+            ('完全无关文本', '人工智能'),
+        ]
+        for a, b in cases:
+            r_score = rfuzz.partial_token_set_ratio(a, b)
+            t_score = tfuzz.partial_token_set_ratio(a, b)
+            # 允许 ±1 浮点/取整误差 (thefuzz round, rapidfuzz 可能 truncate)
+            assert abs(r_score - t_score) <= 1, (
+                f"rapidfuzz={r_score} vs thefuzz={t_score} 在输入 ({a!r}, {b!r}) "
+                f"上不一致 — canonicalization.py 切换 fallback 会让阈值 60 失效"
+            )

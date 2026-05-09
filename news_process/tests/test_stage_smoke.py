@@ -29,6 +29,7 @@ v2.1.x 之前完全没有的保护.
 from __future__ import annotations
 
 import importlib
+import shutil
 import sys
 from pathlib import Path
 
@@ -38,6 +39,38 @@ import pytest
 _PROJECT_PARENT = Path(__file__).resolve().parents[2]
 if str(_PROJECT_PARENT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_PARENT))
+
+
+# ----------------------------------------------------------------------------
+# Plan-r3 round-3 review R6: 6 个 backing module 中有 4 个在顶层调
+# ``load_config()`` + ``setup_logging()``, import 时会创建 ``news_process/
+# logs/`` 目录 + 写 *.log 文件. 这违反"smoke test 应隔离"纪律. 本 fixture
+# 在每个 import test 后回滚 logs/ 目录的状态, 让多次跑测试不污染仓库.
+# ----------------------------------------------------------------------------
+
+_LOGS_DIR = _PROJECT_PARENT / 'news_process' / 'logs'
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_smoke_log_artifacts():
+    """记录 logs/ 当前文件清单, test 后清理 import 触发的新增日志.
+
+    autouse=True 让本 fixture 自动应用于本文件所有 test, 不需要每个 test
+    显式列参数. 仅清理本次 test 期间 *新增* 的 .log 文件 (历史日志不动).
+    """
+    pre_existing: set[Path]
+    if _LOGS_DIR.exists():
+        pre_existing = {p for p in _LOGS_DIR.iterdir() if p.is_file()}
+    else:
+        pre_existing = set()
+    yield
+    if _LOGS_DIR.exists():
+        for p in _LOGS_DIR.iterdir():
+            if p.is_file() and p not in pre_existing:
+                try:
+                    p.unlink()
+                except OSError:
+                    pass
 
 
 # ----------------------------------------------------------------------------

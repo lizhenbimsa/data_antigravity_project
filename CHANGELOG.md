@@ -17,15 +17,17 @@
 | post-round 2 P1-5 sidecar 化 (Win SKIP→PASS, +4) | round 2 末 HEAD | **786 / 2** |
 | post-round 3 / Plan-r3 P0-P3 17 单元 | round 3 中间 HEAD | **805 / 2** |
 | post-recode 审查 (round 3 末段, 修 1 cache 真 bug + 加 3 不变量) | round 3 末 | **808 / 2** |
-| post-final recode 审查 (修 1 接口契约 bug + 加 2 不变量) | **当前 HEAD** | **810 / 2** |
+| post-final recode 审查 (修 1 接口契约 bug + 加 2 不变量) | round 3 final recode | **810 / 2** |
+| post-round-3 review (R1-R8 修补 + M1/M2 缺失测试 + R8 哨兵 ASCII 化) | **当前 HEAD** | **814 / 2** |
 
-> 本轮 (round 3 含两轮 recode 审查) 增量 +24 来源:
+> 本轮 (round 3 含两轮 recode + 一轮 review) 增量 +28 来源:
 >   - P0-2 +2 invariant test (TestStataLabelsInvariant 防 STATA_LABELS dict-key 重复)
 >   - P1-4 +2 invariant test (TestEnvExampleCoversYamlPlaceholders 防 .env.example 错位)
 >   - P1-8 +12 smoke test (6 个零测 stage × 2 类: import + main-callable)
 >   - P3-17 +3 cache key invariant (prompt_version + temperature + SCHEMA_VERSION)
 >   - **recode 审查 +3 cache edge-case** (temperature precision .4f→repr / pipe collision / v0 fallback strict)
 >   - **final recode +2 cache 边角** (None vs '' / v0+v1 共存优先级)
+>   - **round-3 review +6 reliability** (M1 rapidfuzz/thefuzz parity + M2×2 env 间接引用警告 + R8 哨兵 known-limitation + 其它 R1-R7 不增 test)
 >
 > 两轮 recode 审查共发现 2 个真 bug 并修复:
 >
@@ -44,8 +46,36 @@
 >   - **不变量**: ``test_cache_none_vs_empty_string_no_collision``
 >     + ``test_cache_v0_fallback_priority_when_v1_exists`` 防回归.
 >
-> 任何后续 PR 应以 HEAD baseline (810) 为合并门槛, 不得低于该数.
-> 历史 anchor (772 / 782 / 786 / 805 / 808) 仅作回溯参考.
+> **round-3 review (2026-05-09) 修补 7 项**:
+>
+> - **R1 修补**: ci.yml light job 内联 deps 漏装 rapidfuzz, 让 light 矩阵
+>   3/4 单元走 thefuzz fallback 而 full 矩阵 1/4 走 rapidfuzz first. 修补
+>   后 4/4 单元一致走 rapidfuzz first.
+> - **R2 修补**: ci.yml full job 跑了两次 pytest (一次 -v + 一次 tee), CI 时长
+>   double. 现合并为单次 ``set -o pipefail; pytest -v 2>&1 | tee /tmp/...``,
+>   pipefail 防 tee 掩盖 pytest 失败码.
+> - **R3 文档化**: caching.py docstring 明示 prompt_version 维度是 "infrastructure
+>   ready, NOT YET wired into production callers" (5 个生产 callsite 仍走默认
+>   "v0"); v3.0 PR 应让 callsites 显式传入 ``prompt_version=cfg['prompts']
+>   ['version']`` 才能真正激活防御.
+> - **R5 + M2 修补**: ``_validate_env_placeholders`` 加第二阶段递归扫描 —
+>   ``.env.example`` 中 ``KEY=${OTHER}`` 形式的间接引用, 若 OTHER 未声明也
+>   未在 os.environ 中, 触发 warning. 防止"复制 .env.example 后只填一个
+>   var, 间接引用 silent 展开为空字符串"的 silent failure.
+> - **R6 修补**: test_stage_smoke.py 加 conftest fixture 在每个 import test
+>   后清理 logs/ 中新增 .log 文件, 避免 4 个 backing module 顶层 setup_logging
+>   污染仓库.
+> - **R7 修补**: Makefile purge-all 加 ``CONFIRM=yes`` 守门, 与 cleanup.py
+>   ``--yes`` 一致. 防止 ``make purge-all`` 一键无确认地删除 9.4 GiB 数据.
+> - **R8 修补**: cache ``_NONE_SENTINEL`` 由 ``\\x00<None>\\x00`` (含 null
+>   byte) 改为 ``<<NULL_SENTINEL>>`` (纯 ASCII), 避免 sqlite/终端跨版本
+>   边角. 配套 ``test_cache_sentinel_known_limitation_with_literal_input``
+>   显式文档化"用户字面量传入哨兵会与 None 碰撞"是预期行为.
+> - **M1 新增**: rapidfuzz vs thefuzz parity 测试 (允许 ±1 取整误差),
+>   守护 P2-12 "drop-in replacement" 假设.
+>
+> 任何后续 PR 应以 HEAD baseline (814) 为合并门槛, 不得低于该数.
+> 历史 anchor (772 / 782 / 786 / 805 / 808 / 810) 仅作回溯参考.
 
 ### Plan-r3 P0-P3 17 修复单元记录 (2026-05-09)
 

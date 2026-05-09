@@ -39,6 +39,32 @@
   / ``temperature`` 都有默认值 (v0 / 0.0); 旧调用方不修改也能跑, 只是
   键会落到 (v1, v0, 0.0) 命名空间, 与 round 1+2 (v0 命名空间) 完全隔离.
 
+⚠ Feature flag 启用状态 (Plan-r3 round-3 review R3 诚实声明)
+------------------------------------------------------------
+本模块的 ``prompt_version`` 维度当前是 **infrastructure ready, NOT YET
+wired into production callers** — 也就是:
+
+- API 层面: ``_make_key/get/put/put_batch`` 已实现 ``prompt_version`` 维度,
+  并由 5 个 invariant test (test_pipeline_robustness.py) 守护正确性.
+- 调用层面: ``pipeline/sentiment/tone_llms.py`` / ``pipeline/features/
+  strategic_diff.py`` / ``pipeline/panel/llm_peer_iv.py`` /
+  ``pipeline/filtering/policy_alignment.py`` /
+  ``pipeline/features/benefit_society.py`` 共 5 个生产 LLM/embedding 调用
+  点, **全部使用 default ``prompt_version="v0"``**, 即未传该参数.
+
+这意味着:
+- 当前生产场景下, prompts/sentiment_cot.txt 改写后, 旧 cache 仍会命中
+  (因为新旧调用都用 prompt_version="v0", 共用同一 namespace).
+- silent staleness 风险与 round 3 之前**没有任何改变**.
+- v3.0 PR 应让 5 个生产 callsite 显式传入 ``prompt_version=cfg['prompts']
+  ['version']`` (从 prompts.yaml 头部 ``# version: v6-...`` 解析), 才能
+  真正激活防御.
+
+为什么 round 3 不一并启用? 因为 (a) 启用需要 prompts/*.txt 加版本头部
++ config 解析逻辑 + 5 个 callsite 同步, 是 BREAKING 场景的扩散; (b)
+启用后所有现有 cache 在版本号未指定 → "v0" 时仍命中, 必须配合 prompt
+模板的 v6 标识才有效, 是 v3.0 整体 prompt 治理的一环.
+
 线程安全
 ---------
 sqlite3.connect(db_path, check_same_thread=False) + WAL 日志模式。
@@ -78,10 +104,24 @@ logger = logging.getLogger(__name__)
 #     直接删 _llm_cache.db 让 v0 命名空间归零.
 SCHEMA_VERSION = "v1"
 
-# None 输入哨兵 (final recode F2 修复): 用 null byte (\x00) 区分 None 与空字符串.
-# null byte 不会出现在合法的 model_id / prompt / prompt_version 中
-# (Python sqlite3 + yaml 配置都不允许 \x00), 所以哨兵不会与真实输入碰撞.
-_NONE_SENTINEL = '\x00<None>\x00'
+# None 输入哨兵 (final recode F2 修复 + round-3 review R8 改为纯 ASCII):
+#
+# 旧版用 ``'\x00<None>\x00'`` (含 null byte) — 虽然 hashlib.sha256 输出不含
+# null byte (永远是 hex 字符), 但 round-3 review R8 指出: 万一未来代码 path
+# 把 m_id / p_str 直接 print 到 log 或写到非-hash 字段, 含 \x00 的字符串在
+# 部分终端 / sqlite3 实现下行为不可预测 (Python 3.11+ sqlite3 实测可存可读,
+# 但跨版本不保证).
+#
+# 新版用纯 ASCII ``'<<NULL_SENTINEL>>'`` — 字面量极不可能与合法 model_id /
+# prompt / prompt_version 碰撞 (生产 yaml 不会出现这种字符串). 把哨兵长度
+# 通过 ``f"{len(m_id)}:{m_id}"`` 长度前缀绑定, 确保即使用户传入字面量
+# ``'<<NULL_SENTINEL>>'`` 也与 None 区分 (两者长度不同 → key 不同).
+#
+# 注意: 这是 round-3 内的 SCHEMA-compatible 改动 — 既有的所有 v1 cache 写
+# 入都不传 None (生产 model_id / prompt 永远是非空字符串), 所以更换哨兵
+# 字面量不会让任何现有 v1 cache 失效. 仅理论上"曾用 None 输入"的合成测试
+# cache 失效, 但合成测试用 tmp_path 隔离, 也无 production cache 影响.
+_NONE_SENTINEL = '<<NULL_SENTINEL>>'
 
 
 class LLMCache:

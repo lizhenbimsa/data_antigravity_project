@@ -314,3 +314,79 @@ class TestEnvExampleCoversYamlPlaceholders:
         ph = self._yaml_placeholders()
         decl = self._env_example_declarations()
         assert ph.issubset(decl), f"yaml refs {ph - decl} not in env.example"
+
+
+class TestEnvExampleIndirectReferenceValidation:
+    """Plan-r3 round-3 review M2 / R5: .env.example 中 ``KEY=${OTHER}`` 间接引用
+    若 ``OTHER`` 既未声明又不在 os.environ 中, 应触发 warning.
+
+    新机器复制 .env.example -> .env 后, 只填 YUNWU_API_KEY 一个 var 是预期
+    工作流; 但若忘记填 (如 CI 环境无 .env), 间接引用会 silent 展开为空字符串
+    导致 LLM 调用 401. 本 invariant 守护 _validate_env_placeholders 第二阶段
+    (round-3 review R5 引入) 真的会 warning.
+    """
+
+    def test_indirect_ref_to_unset_var_triggers_warning(self, tmp_path, caplog):
+        """模拟一个含间接引用但目标 var 未在 os.environ 设置的 .env.example."""
+        import os
+        import logging as _log
+        # 构造 minimal yaml + env.example 沙盒
+        sandbox = tmp_path / "sandbox"
+        cfg_dir = sandbox / "config"
+        cfg_dir.mkdir(parents=True)
+        # 一个最小 yaml 文件 (引用 EMBEDDING_API_KEY)
+        (cfg_dir / "test.yaml").write_text(
+            "embedding_api:\n  api_key: ${EMBEDDING_API_KEY}\n",
+            encoding='utf-8'
+        )
+        # .env.example 声明 EMBEDDING_API_KEY 但间接引用 NONEXISTENT_VAR
+        (sandbox / ".env.example").write_text(
+            "EMBEDDING_API_KEY=${NONEXISTENT_VAR_FOR_TEST_M2}\n",
+            encoding='utf-8'
+        )
+
+        # 临时清除该 var (若 CI 里有的话)
+        backup = os.environ.pop('NONEXISTENT_VAR_FOR_TEST_M2', None)
+        try:
+            from news_process.core.config import _validate_env_placeholders
+            with caplog.at_level(_log.WARNING, logger='news_process.core.config'):
+                _validate_env_placeholders(str(sandbox))
+
+            # 应触发至少一条 warning, 且 message 含 'NONEXISTENT_VAR_FOR_TEST_M2'
+            warning_text = ' '.join(r.getMessage() for r in caplog.records)
+            assert 'NONEXISTENT_VAR_FOR_TEST_M2' in warning_text, (
+                f"间接引用未声明应触发 warning, 实际 captured: {warning_text!r}"
+            )
+        finally:
+            if backup is not None:
+                os.environ['NONEXISTENT_VAR_FOR_TEST_M2'] = backup
+
+    def test_indirect_ref_to_set_var_no_warning(self, tmp_path, caplog):
+        """间接引用的目标 var 在 os.environ 中有值时, 不应误报 warning."""
+        import os
+        import logging as _log
+        sandbox = tmp_path / "sandbox"
+        cfg_dir = sandbox / "config"
+        cfg_dir.mkdir(parents=True)
+        (cfg_dir / "test.yaml").write_text(
+            "embedding_api:\n  api_key: ${EMBEDDING_API_KEY}\n",
+            encoding='utf-8'
+        )
+        (sandbox / ".env.example").write_text(
+            "EMBEDDING_API_KEY=${PRESENT_VAR_FOR_TEST_M2}\n",
+            encoding='utf-8'
+        )
+
+        os.environ['PRESENT_VAR_FOR_TEST_M2'] = 'sk-fake-but-set'
+        try:
+            from news_process.core.config import _validate_env_placeholders
+            with caplog.at_level(_log.WARNING, logger='news_process.core.config'):
+                _validate_env_placeholders(str(sandbox))
+
+            # 不应在 warning 中提及 PRESENT_VAR_FOR_TEST_M2 (它已设置)
+            warning_text = ' '.join(r.getMessage() for r in caplog.records)
+            assert 'PRESENT_VAR_FOR_TEST_M2' not in warning_text, (
+                f"已设置的间接引用 var 不应警告, 实际 captured: {warning_text!r}"
+            )
+        finally:
+            del os.environ['PRESENT_VAR_FOR_TEST_M2']

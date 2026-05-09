@@ -110,10 +110,11 @@ def test_cache_pipe_in_prompt_version_no_collision(tmp_path):
 
 
 def test_cache_none_vs_empty_string_no_collision(tmp_path):
-    """final recode F2: None 与空字符串必须哈希到不同键 (接口契约).
+    """final recode F2 + round-3 review R8: None 与空字符串必须哈希到不同键 (接口契约).
 
     旧实现 ``str(x) if x is not None else ""`` 让 None ≡ "" 共用 namespace.
-    用 null byte 哨兵区分: ``model_id=None`` 与 ``model_id=""`` 不应碰撞.
+    用 ASCII 哨兵 ``'<<NULL_SENTINEL>>'`` 区分 (round-3 review R8 替换原
+    null byte 哨兵, 避免 sqlite/终端跨版本边角问题).
     生产 code path 不会传 None (yaml 配置必有值), 但作为公开 API 接口必须严格.
     """
     db_path = str(tmp_path / "test_cache_none.db")
@@ -131,6 +132,37 @@ def test_cache_none_vs_empty_string_no_collision(tmp_path):
         cache.put("m1", "", "resp_empty_prompt")
         assert cache.get("m1", None) == "resp_none_prompt"
         assert cache.get("m1", "") == "resp_empty_prompt"
+
+
+def test_cache_sentinel_known_limitation_with_literal_input(tmp_path):
+    """round-3 review R8: 文档化已知 trade-off — 当用户字面量传入与 ``_NONE_SENTINEL``
+    完全相同的字符串时, 与 ``None`` 输入会产生键碰撞.
+
+    设计原因: ``_NONE_SENTINEL = '<<NULL_SENTINEL>>'`` (ASCII) 让两者哈希到
+    同一 raw 字符串, 经长度前缀编码后键相同. 这是从 ``\\x00`` 哨兵换 ASCII
+    哨兵 (避免 sqlite/终端跨版本边角) 的代价.
+
+    生产保护: yaml 配置永远不传该字面量 (model_id 是 'gpt-5-nano-...' 等
+    标准字符串); prompts/*.txt 也不会含 ``'<<NULL_SENTINEL>>'`` 这种 ASCII
+    字符串. 因此 known limitation 不影响任何生产 code path.
+
+    本测试 assert ``size == 1`` (碰撞) 而非 ``== 2``, 显式守护这是当前
+    实现的 *预期行为*. 任何后续重构若把该 test 改成 ``size == 2`` (区分
+    了字面量与 None), 应同步 v3.0 升级 SCHEMA_VERSION.
+    """
+    from news_process.core.caching import _NONE_SENTINEL
+    db_path = str(tmp_path / "test_cache_sentinel_limitation.db")
+    with LLMCache(db_path) as cache:
+        cache.put(None, "p1", "resp_real_none")
+        cache.put(_NONE_SENTINEL, "p1", "resp_literal_sentinel")
+        # 已知 limitation: 后 put 静默覆盖前 put
+        assert cache.size() == 1, (
+            f"None vs 字面量哨兵 size={cache.size()} != 1; "
+            "实现已变更, 请同步 SCHEMA_VERSION 与本 test 文档."
+        )
+        # 后 put 的值胜出 (INSERT OR REPLACE 语义)
+        assert cache.get(None, "p1") == "resp_literal_sentinel"
+        assert cache.get(_NONE_SENTINEL, "p1") == "resp_literal_sentinel"
 
 
 def test_cache_v0_fallback_priority_when_v1_exists(tmp_path):

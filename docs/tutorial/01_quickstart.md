@@ -113,8 +113,9 @@ Papers loaded: ['bank_fintech_tone', 'benefit_society', 'brokerage_network', 'll
 期望（post-recode round 3 / Plan-r3 P0-P3, 2026-05-09）：
 
 ```
-810 passed, 2 skipped, 33 warnings in ~75s   # HEAD baseline (含 jieba 字典加载 ~0.3s × 多测试)
-                                             # (v2.1.0 = 772; round 1+2 = 782; round 2 sidecar = 786; round 3 P0-P3 = 805; recode 审查 = 808; final recode = 810)
+814 passed, 2 skipped, 33 warnings in ~33s   # HEAD baseline (jieba warm cache, cold start ~75s)
+                                             # (v2.1.0 = 772; round 1+2 = 782; round 2 sidecar = 786; round 3 P0-P3 = 805;
+                                             #  recode = 808; final recode = 810; round-3 review = 814)
 ```
 
 ```{warning}

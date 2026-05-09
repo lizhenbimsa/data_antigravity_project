@@ -7,9 +7,8 @@ name: news_process CI
 # CI 安装会触发约 4 GB 下载, 故只在 ubuntu-3.13 单元里跑全套, 其余三
 # 个矩阵单元只跑非-DL 测试 (排除 test_23_tone_berts.py) 控制时长.
 #
-# baseline 锁定在 810 passed / 2 skipped (Plan-r3 P0-P3 17 单元 + 两轮 recode
-# 审查修补达成: P0-2 +2 + P1-4 +2 + P1-8 +12 + P3-17 +3 + recode +3 + final
-# recode +2 = 786 → 810).
+# baseline 锁定在 814 passed / 2 skipped (Plan-r3 P0-P3 17 单元 + 两轮
+# recode + 一轮 review 修补达成: 17单元 +19 + recode +5 + review +6 = 786 → 814).
 # 任何降低此数的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
 
 on:
@@ -80,6 +79,7 @@ jobs:
             "matplotlib>=3.8.0,<4.0.0" \
             "xlsxwriter>=3.1.0,<4.0.0" \
             "openpyxl>=3.1.0,<4.0.0" \
+            "rapidfuzz>=3.0.0,<5.0.0" \
             "thefuzz>=0.22.0,<1.0.0" \
             "python-Levenshtein>=0.21.0,<1.0.0" \
             "python-dotenv>=1.0.0,<2.0.0" \
@@ -99,25 +99,28 @@ jobs:
         run: |
           # 排除 test_23_tone_berts.py (依赖 torch + transformers).
           # 同时排除 test_25_audit.py 中需要 sklearn TfidfVectorizer 大模型的子测试 — 已通过 sklearn 安装解决.
-          # baseline (light 模式): 810 - 14 (test_23) = 796 passed
+          # baseline (light 模式): 814 - 14 (test_23) = 800 passed
           python -m pytest tests/ \
             --ignore=tests/test_23_tone_berts.py \
             -q --tb=short
 
-      - name: Run tests (full - all 810)
+      - name: Run tests (full - all 814)
         if: matrix.dl-suite == 'full'
         working-directory: ./news_process
         run: |
-          # baseline (full 模式): 810 passed / 2 skipped (post Plan-r3 P0-P3 17 单元 + 两轮 recode +5).
+          # baseline (full 模式): 814 passed / 2 skipped (post Plan-r3 17 单元 + 两轮 recode + 一轮 review).
           # SKIP 数为 2 即可 (剩 1 Unix-only fcntl test + 1 Win 空字符串路径).
-          python -m pytest tests/ -v --tb=short
-          # baseline 校验: passed 必须 >= 810 (允许更多 -- 任何新增测试无害,
-          # 但低于 810 视为回归).
-          python -m pytest tests/ 2>&1 | tee /tmp/pytest_summary.txt
+          # Plan-r3 round-3 review R2 修复: 此前有两次 pytest run (一次 -v + 一次 tee /tmp),
+          # 让 ubuntu CI 时长 double (~150s). 现合并为一次 run 同时输出到 stdout + tee 文件.
+          # set -o pipefail 让 pytest 失败码能正确传播 (默认 tee 退出 0 会掩盖 pytest 失败).
+          set -o pipefail
+          python -m pytest tests/ -v --tb=short 2>&1 | tee /tmp/pytest_summary.txt
+          # baseline 校验: passed 必须 >= 814 (允许更多 -- 任何新增测试无害,
+          # 但低于 814 视为回归).
           PASSED=$(grep -oE '[0-9]+ passed' /tmp/pytest_summary.txt | head -1 | grep -oE '[0-9]+')
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
-          if [ "$PASSED" -lt 810 ]; then
-            echo "::error::baseline 退化: passed=$PASSED < 810"
+          if [ "$PASSED" -lt 814 ]; then
+            echo "::error::baseline 退化: passed=$PASSED < 814"
             exit 1
           fi
 

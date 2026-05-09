@@ -20,15 +20,18 @@ LOGS       := $(ROOT)news_process/logs
 PYTHON     ?= python
 
 help:
-	@echo "news_process Makefile targets (Plan-r3 P3-15)"
-	@echo "----------------------------------------------"
-	@echo "  clean-cache    : 删除 _cache/ + _llm_cache.db    (≈236 MiB; 重跑 LLM stage 会全部 cache miss)"
-	@echo "  clean-backup   : 删除 _backup_* 目录              (≈99 MiB; 仅在 issue #5 已 release 后执行)"
+	@echo "news_process Makefile targets (Plan-r3 P3-15 + round-3 review R7)"
+	@echo "------------------------------------------------------------------"
+	@echo "  clean-cache    : 删除 _cache/ + _llm_cache.db    (≈8700 MiB; 重跑 LLM/embedding stage 会全部 cache miss)"
+	@echo "  clean-backup   : 删除 _backup_* 目录              (≈100 MiB; 仅在 issue #5 已 release 后执行)"
 	@echo "  clean-derived  : 删除 stage 14+ parquet/csv/dta   (保留 stage 11/12 上游, 重跑 stage 14-51)"
-	@echo "  clean-logs     : 删除 news_process/logs/          (≈?? MB)"
-	@echo "  purge-all      : 上述全部 + logs                  (DANGER)"
+	@echo "  clean-logs     : 清空 news_process/logs/          (≈?? MB)"
+	@echo "  purge-all      : 上述全部 + logs                  (DANGER, 需 CONFIRM=yes 守门)"
 	@echo ""
 	@echo "  sizes          : 显示各 cleanup target 当前可释放体积"
+	@echo ""
+	@echo "DANGER 用法:"
+	@echo "  CONFIRM=yes make purge-all     # 显式确认才能删 9.4 GiB"
 	@echo ""
 	@echo "对应文档: docs/guides/data_lifecycle.md"
 
@@ -85,7 +88,19 @@ clean-logs:
 		p.mkdir(exist_ok=True); \
 		print(f'  ✓ {p} 已清空')"
 
-purge-all: clean-cache clean-backup clean-derived clean-logs
+# Plan-r3 round-3 review R7: 与 cleanup.py purge-all --yes 守门保持一致 —
+# Makefile 走 cleanup.py 而非依赖链, 避免 ``make purge-all`` 一键无确认地
+# 删除 9.4 GiB 数据 (cache 8.5 GiB + backup 100 MiB + derived 480 MiB + logs).
+# 用户必须显式 ``CONFIRM=yes make purge-all`` 才执行.
+purge-all:
+	@if [ "$(CONFIRM)" != "yes" ]; then \
+	    echo "✗ purge-all 会删除 ~9.4 GiB 数据 (cache + backup + derived + logs), 且不可逆."; \
+	    echo "  请用以下命令显式确认后再执行:"; \
+	    echo "    CONFIRM=yes make purge-all"; \
+	    exit 2; \
+	fi
+	@echo "→ purge-all 已确认, 开始执行..."
+	@$(PYTHON) -m news_process.scripts.cleanup purge-all --yes
 	@echo ""
 	@echo "Plan-r3 P3-15: purge-all 完成"
 	@echo "  下一次 ``run_pipeline_function.py`` 会从 stage 11/12 (上游) 重建全部派生数据."

@@ -15,7 +15,7 @@
 > post-restructure cleanup — 删除 5 个 broken audit/test 脚本、删除 5 个
 > 空壳 ``papers/<id>/dag.py``、净化 paper analysis 中 5 处反射 import、
 > 删除 orchestrator 的历史 OUTPUT_REGISTRY fallback dict（不引入新抽象，
-> 不动 26 个 thin shim）。pytest 810 passed / 2 skipped / 0 failed (post-recode round 3 / Plan-r3 P0-P3 17 单元 + 两轮 recode 审查共修 2 个真 bug; round 2 sidecar 化 baseline 786; round 1+2 baseline 782; v2.1.0 release tag frozen baseline 772)。
+> 不动 26 个 thin shim）。pytest 814 passed / 2 skipped / 0 failed (post-recode round 3 / Plan-r3 P0-P3 17 单元 + 两轮 recode + 一轮 review 修 2 个真 bug + 7 项改进; round 2 sidecar 化 baseline 786; round 1+2 baseline 782; v2.1.0 release tag frozen baseline 772)。
 > 完整演进史见 [CHANGELOG.md](./CHANGELOG.md)，rollback tag 链：
 > `baseline-pre-restructure → phase-{1..6}-baseline → phase-7a-baseline →
 > phase-7b-baseline → phase-8-baseline → v2.0.0 → phase-9c-baseline →
@@ -144,7 +144,7 @@ python -m news_process.run_paper benefit_society --dry-run
 ### 2.4 跑测试
 
 ```bash
-# 全套 (~75 秒含 jieba 字典加载; HEAD baseline = 810 passed / 2 skipped; v2.1.0 release tag = 772 passed)
+# 全套 (~33 秒含 jieba warm cache; HEAD baseline = 814 passed / 2 skipped; v2.1.0 release tag = 772 passed)
 python -m pytest news_process/tests/
 
 # 仅红线集成测试
@@ -158,11 +158,12 @@ python -m pytest news_process/tests/test_00_preprocessing.py -v
 - v2.1.0 release tag (frozen baseline): `772 passed, 6 skipped, 0 failed`
 - post-recode round 1+2 baseline: `782 passed, 6 skipped, 0 failed`
 - post-round 2 sidecar 化后 (P1-5 SKIP→PASS, Win 兼容): `786 passed, 2 skipped, 0 failed`
-- post-recode round 3 / Plan-r3 P0-P3 17 单元 + 两轮 recode 审查 (HEAD): `810 passed, 2 skipped, 0 failed`
-  - 增量来源: P0-2 +2 + P1-4 +2 + P1-8 +12 + P3-17 +3 + recode +3 + final recode +2
-  - 两轮 recode 审查共发现 2 个真 bug 并修复:
-    1. cache key `.4f` 格式化让 1e-30 ≡ 0.0 碰撞 → `repr()` 修复
-    2. cache key `None` ≡ `""` 共用 namespace (接口契约违反) → null-byte 哨兵修复
+- post-recode round 3 / 17 单元 + 两轮 recode + 一轮 review (HEAD): `814 passed, 2 skipped, 0 failed`
+  - 增量来源: 17 单元 +19 + 两轮 recode +5 + 一轮 review +6
+  - 两轮 recode + 一轮 review 共发现 2 个真 bug + 7 项改进, 加 6 个新不变量测试:
+    - bug 1 (recode): cache key `.4f` 让 1e-30 ≡ 0.0 碰撞 → `repr()` 修复
+    - bug 2 (final recode): cache key `None` ≡ `""` 共用 namespace → 哨兵区分修复
+    - review R1-R8: CI rapidfuzz / 单跑 pytest / prompt_version 状态文档 / env 间接引用递归 / smoke 副作用清理 / Makefile 守门 / 哨兵 ASCII 化
 
 ## 3. 配置系统（Phase 4d）
 

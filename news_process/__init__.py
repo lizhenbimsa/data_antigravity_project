@@ -45,14 +45,21 @@ Post-recode round 3 (Plan-r3 P0-P3, 2026-05-09): 第二轮 17 单元修复
   - P3-15/16/17/18: Makefile cleanup; god function docstring; LLM cache key 升级;
                    26 thin shim v3.0 退役 plan
   - sidecar 化 (round 2 P1-5) baseline 跃迁: 782 -> 786 (+4 SKIP→PASS, Win 兼容性)
-  - 本轮 baseline 跃迁: 786 -> 810 (P0-2 +2 + P1-4 +2 + P1-8 +12 + P3-17 +3 +
-                                       recode 审查 +3 + final recode +2 cache 边角)
-  - 两轮 recode 审查共发现 2 个真 bug:
-      1. P3-17 cache key .4f 格式化让 1e-30 与 0.0 碰撞 → 改用 repr() 修复
-      2. _make_key 让 model_id=None 与 model_id='' 共用 namespace (接口契约违反)
-         → 用 \\x00 null-byte 哨兵区分修复
-    +5 个 cache invariant 防回归.
-  - Full pytest: 810 passed / 2 skipped / 0 failed (HEAD baseline).
+  - 本轮 baseline 跃迁: 786 -> 814 (P0-2 +2 + P1-4 +2 + P1-8 +12 + P3-17 +3 +
+                                       recode +3 + final recode +2 + round-3 review +6)
+  - 两轮 recode + 一轮 review 共发现 2 个真 bug + 7 个改进项:
+      bug 1: P3-17 cache key .4f 格式化让 1e-30 与 0.0 碰撞 → 改用 repr() 修复
+      bug 2: _make_key 让 model_id=None 与 '' 共用 namespace (接口契约违反)
+             → 用 ASCII 哨兵 '<<NULL_SENTINEL>>' 区分修复 (round-3 R8 由 \\x00 改 ASCII)
+      review R1: ci.yml light job 补装 rapidfuzz (与 pyproject 对齐)
+      review R2: ci.yml full job 合并两次 pytest 为一次 (减半 CI 时长)
+      review R3: caching.py 明示 prompt_version 为 'infrastructure ready, NOT YET wired'
+      review R5: _validate_env_placeholders 加间接引用递归校验
+      review R6: test_stage_smoke 加 conftest fixture 清理 logs/ 副作用
+      review R7: Makefile purge-all 加 CONFIRM=yes 守门 (与 cleanup.py 一致)
+      review R8: cache _NONE_SENTINEL 由 \\x00 改 ASCII (避 sqlite 跨版本边角)
+      M1 (rapidfuzz/thefuzz parity) + M2×2 (env indirect ref) + R8 limitation +6 不变量
+  - Full pytest: 814 passed / 2 skipped / 0 failed (HEAD baseline).
 """
 
 __version__ = "2.1.0"

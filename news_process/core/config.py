@@ -289,7 +289,15 @@ def _validate_env_placeholders(project_root: str) -> None:
     声明清单 (含 commented-out 行) 对比, 未声明的 var 报 warning。
 
     Plan-r3 P1-4 落地: 此函数实现了 ``.env.example`` 头部承诺的"未声明
-    占位符警告"功能。设计要点:
+    占位符警告"功能。
+
+    Plan-r3 round-3 review R5 升级: 加第二阶段递归扫描 — ``.env.example``
+    中 ``KEY=${OTHER_KEY}`` 形式的间接引用, 若 ``OTHER_KEY`` 既未在
+    ``.env.example`` 声明, 也不在 ``os.environ`` 中, 同样报 warning. 防止
+    新机器复制 .env.example -> .env 后只填 YUNWU_API_KEY, 但 EMBEDDING_API_KEY
+    间接引用空值的 silent failure.
+
+    设计要点:
 
     - 仅做 warning 不 raise — 避免过严打断 pipeline 运行 (尤其新 yaml
       字段试错期); CI 可通过 ``-W error::UserWarning`` 升级为强校验。
@@ -297,6 +305,8 @@ def _validate_env_placeholders(project_root: str) -> None:
       — Plan-r3 P1-4 把 4 个 legacy var (GPT5NANO_API_KEY 等) 注释化保留,
       不是删除, 这样旧调用方 (scripts/audit/_replan_v5_evidence/*) 仍能
       被覆盖.
+    - 间接引用扫描仅看 .env.example 中**未注释**的赋值行 (commented-out
+      行的间接引用语义上是"模板示意", 不强制可解析).
     """
     import re
     yaml_dir = os.path.join(project_root, 'config')
@@ -304,8 +314,10 @@ def _validate_env_placeholders(project_root: str) -> None:
     if not os.path.isdir(yaml_dir) or not os.path.isfile(env_example):
         return
 
-    placeholders: set[str] = set()
     placeholder_re = re.compile(r'\$\{([A-Z_][A-Z0-9_]*)\}')
+
+    # 阶段 1: yaml 中所有 ${VAR}
+    placeholders: set[str] = set()
     for fname in os.listdir(yaml_dir):
         if not fname.endswith('.yaml'):
             continue
@@ -316,21 +328,48 @@ def _validate_env_placeholders(project_root: str) -> None:
             continue
         placeholders.update(placeholder_re.findall(txt))
 
+    # 阶段 2: .env.example 解析 (含 commented-out 也算声明)
     declared: set[str] = set()
+    indirect_refs: set[str] = set()
     decl_re = re.compile(r'^\s*#?\s*([A-Z_][A-Z0-9_]*)\s*=', re.MULTILINE)
+    # 仅未注释行的 KEY=${OTHER} 才算 production-binding 的间接引用
+    indirect_re = re.compile(
+        r'^\s*([A-Z_][A-Z0-9_]*)\s*=\s*[^#\n]*\$\{([A-Z_][A-Z0-9_]*)\}',
+        re.MULTILINE
+    )
     try:
         with open(env_example, 'r', encoding='utf-8') as f:
-            declared.update(decl_re.findall(f.read()))
+            ex_text = f.read()
     except OSError:
         return
+    declared.update(decl_re.findall(ex_text))
+    for _key, ref in indirect_re.findall(ex_text):
+        indirect_refs.add(ref)
 
+    logger = logging.getLogger(__name__)
+
+    # warning 1: yaml 引用未在 .env.example 声明
     undeclared = placeholders - declared
     if undeclared:
-        logging.getLogger(__name__).warning(
+        logger.warning(
             "yaml 中引用的环境变量未在 .env.example 中声明: %s. "
             "请在 .env.example 中加入声明 (即使 value 留空) 以满足部署契约; "
             "或检查 yaml 中的 ${%s} 是否拼写错误。",
             sorted(undeclared), next(iter(undeclared))
+        )
+
+    # warning 2 (round-3 review R5): .env.example 间接引用未声明且 os.environ 也无
+    indirect_missing = {
+        ref for ref in indirect_refs
+        if ref not in declared and not os.environ.get(ref)
+    }
+    if indirect_missing:
+        logger.warning(
+            ".env.example 中 KEY=${%s} 形式的间接引用既未声明也未在 os.environ "
+            "中设置: %s. 复制 .env.example -> .env 后这些间接引用会展开为空字符串, "
+            "导致 LLM/Embedding 调用 401 等 silent failure. 请确保被引用的 var "
+            "在 .env / os.environ 中有值.",
+            next(iter(indirect_missing)), sorted(indirect_missing)
         )
 
 
