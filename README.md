@@ -4,6 +4,12 @@
 从 ~37GB 原始 XLSX 媒体报道生成可用于计量经济学研究的银行—年面板数据，
 支持 5 个独立的研究产品（论文）共享同一处理内核。
 
+> **5 paper 成熟度梯度（Plan-r3 P1-6 显式化, 2026-05-09）**：
+> - **`bank_fintech_tone`**（主线）— Python 包 276 行 + Stata 1075 行（含 1016 行 falsification template）+ manuscript 已起草。
+> - **`benefit_society`** / **`brokerage_network`** / **`strategic_diff`**（半成熟）— Python `tables.py` 仅 Table 1 描述统计骨架（主回归 / 机制 / 异质性 表格全部在 `papers_assets/<id>/do/*.do` 中, 187 ~ 345 行 Stata 主回归脚本已落地）, manuscript 待起草。
+> - **`llm_peer`**（全骨架, Plan-r3 P1-5 刚补齐资产目录）— Python 165 行骨架 + Stata 0 行（main_regression.do 等待 v3.0 补齐）+ manuscript 未起草。
+> - 详见 `papers_assets/<id>/README.md`（仅 `llm_peer` 含, 其它 4 个 paper 在 `papers/<id>/__init__.py` 模块级 docstring）。
+
 > **当前版本: v2.1.0 / phase-9-baseline (2026-05-08)**
 > 八期重构（Phase 0 → 8）已完成；Phase 9（v2.1.0）做了 4 个子任务的
 > post-restructure cleanup — 删除 5 个 broken audit/test 脚本、删除 5 个
