@@ -136,13 +136,19 @@ class LLMCache:
         m_id = str(model_id) if model_id is not None else ""
         p_str = str(prompt) if prompt is not None else ""
         pv = str(prompt_version) if prompt_version is not None else "v0"
-        temp_str = f"{float(temperature):.4f}"
-        # SCHEMA|len:model|len:prompt|pv|temp
+        # ⚠ recode 审查发现: 用 .4f 格式化会让 1e-30 与 0.0 都格式化为 "0.0000"
+        # 引发键碰撞 (recode/test_cache_temperature_precision). 改用 repr() 保证
+        # Python 浮点的 "shortest unambiguous representation":
+        #   repr(0.0) == '0.0'    repr(1e-30) == '1e-30'  (区分)
+        #   repr(0.5) == '0.5'    repr(0.05)  == '0.05'
+        # 同时长度前缀让 prompt_version 含 '|' 也不引发碰撞.
+        temp_str = repr(float(temperature))
+        # SCHEMA|len:model|len:prompt|len:pv|temp_repr
         raw = (
             f"{SCHEMA_VERSION}|"
             f"{len(m_id)}:{m_id}|"
             f"{len(p_str)}:{p_str}|"
-            f"{pv}|{temp_str}"
+            f"{len(pv)}:{pv}|{temp_str}"
         )
         return hashlib.sha256(raw.encode('utf-8')).hexdigest()
 

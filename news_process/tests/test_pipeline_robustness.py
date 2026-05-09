@@ -73,6 +73,77 @@ def test_cache_key_includes_temperature(tmp_path):
         assert cache.get("m1", "prompt-A") == "resp-det"
 
 
+def test_cache_temperature_precision_no_collision(tmp_path):
+    """Plan-r3 P3-17 recode 审查: temperature 浮点精度边界.
+
+    历史 bug: f"{temp:.4f}" 让 1e-30 与 0.0 都格式化为 "0.0000" → 键碰撞.
+    修复后改用 repr(float(temp)) 保证 shortest unambiguous representation.
+    """
+    db_path = str(tmp_path / "test_cache_temp_precision.db")
+    with LLMCache(db_path) as cache:
+        cache.put("m1", "p1", "resp_zero", temperature=0.0)
+        # 1e-30 必须与 0.0 区分 (repr('0.0') != repr('1e-30'))
+        result = cache.get("m1", "p1", temperature=1e-30)
+        assert result is None, (
+            f"temperature=1e-30 不应命中 temperature=0.0 的命名空间 "
+            f"(实际命中: {result!r}). 修复已用 repr(float()) 替换 .4f."
+        )
+
+        cache.put("m1", "p2", "resp_low", temperature=0.05)
+        # 0.05 与 0.0500001 在 repr 下不同
+        assert cache.get("m1", "p2", temperature=0.05) == "resp_low"
+        assert cache.get("m1", "p2", temperature=0.0500001) is None
+
+
+def test_cache_pipe_in_prompt_version_no_collision(tmp_path):
+    """Plan-r3 P3-17 recode 审查: prompt_version 含 '|' 字符不引发键碰撞.
+
+    我加的键格式用 '|' 作分隔, 若 prompt_version 含 '|' 必须靠长度前缀
+    防碰撞. 验证: ('m', 'p', pv='a|b') vs ('m', 'p', pv='a|c') 必须不同.
+    """
+    db_path = str(tmp_path / "test_cache_pipe.db")
+    with LLMCache(db_path) as cache:
+        cache.put("m1", "p1", "resp_ab", prompt_version="a|b")
+        cache.put("m1", "p1", "resp_ac", prompt_version="a|c")
+        assert cache.get("m1", "p1", prompt_version="a|b") == "resp_ab"
+        assert cache.get("m1", "p1", prompt_version="a|c") == "resp_ac"
+
+
+def test_cache_v0_fallback_only_on_default_params(tmp_path):
+    """Plan-r3 P3-17 recode 审查: v0 fallback 仅在 (pv='v0', temp=0.0) 触发.
+
+    确保用户传入新 prompt_version 或非默认 temperature 时, 不会误命中
+    历史 v0 命名空间 (silent staleness 防御的核心契约).
+    """
+    db_path = str(tmp_path / "test_cache_v0_fallback.db")
+    with LLMCache(db_path) as cache:
+        # 手动插入 v0 cache 模拟历史
+        v0_key = LLMCache._make_key_v0("m1", "p1")
+        import time
+        cache._conn.execute(
+            "INSERT INTO llm_cache (cache_key, model_id, response, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (v0_key, "m1", "v0_legacy", time.time())
+        )
+        cache._conn.commit()
+
+        # 默认参数 → 应 fallback 命中
+        assert cache.get("m1", "p1") == "v0_legacy"
+
+        # 非默认 temperature → 不应 fallback
+        assert cache.get("m1", "p1", temperature=0.5) is None
+
+        # 非默认 prompt_version → 不应 fallback
+        assert cache.get("m1", "p1", prompt_version="v6_2026") is None
+
+        # v0 fallback 命中后, v1 cache 不应被自动写入 (避免污染)
+        v1_key = LLMCache._make_key("m1", "p1")
+        cur = cache._conn.execute(
+            "SELECT COUNT(*) FROM llm_cache WHERE cache_key = ?", (v1_key,)
+        )
+        assert cur.fetchone()[0] == 0, "v0 fallback 不应自动 put v1 (避免污染)"
+
+
 def test_cache_schema_version_invalidates_v0_keys(tmp_path):
     """Plan-r3 P3-17: SCHEMA_VERSION 升级 ('v0' -> 'v1') 让历史 cache 自动 silent miss.
 

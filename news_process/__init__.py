@@ -45,8 +45,11 @@ Post-recode round 3 (Plan-r3 P0-P3, 2026-05-09): 第二轮 17 单元修复
   - P3-15/16/17/18: Makefile cleanup; god function docstring; LLM cache key 升级;
                    26 thin shim v3.0 退役 plan
   - sidecar 化 (round 2 P1-5) baseline 跃迁: 782 -> 786 (+4 SKIP→PASS, Win 兼容性)
-  - 本轮 baseline 跃迁: 786 -> 805 (P0-2 +2 + P1-4 +2 + P1-8 +12 + P3-17 +3)
-  - Full pytest: 805 passed / 2 skipped / 0 failed (HEAD baseline).
+  - 本轮 baseline 跃迁: 786 -> 808 (P0-2 +2 + P1-4 +2 + P1-8 +12 + P3-17 +3 +
+                                       recode 审查 +3 cache edge-case invariant)
+  - 本轮 recode 审查发现 1 个真 bug: cache key .4f 格式化让 1e-30 与 0.0 碰撞,
+    改用 repr() 修复 + 加 3 个 invariant 防回归.
+  - Full pytest: 808 passed / 2 skipped / 0 failed (HEAD baseline).
 """
 
 __version__ = "2.1.0"
