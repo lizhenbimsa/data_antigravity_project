@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Data files
+data/processed/*.parquet
+data_excel/*.xlsx
+logs/
+models/
+
+# Environment
+.env
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# 临时报告文件
+*审查报告*.md
+*改进报告*.md
+*执行计划*.md
+*执行总结*.md
+bash_tool_audit.md
+
+# 保留最终文档
+!项目改进空间最终审核报告.md
+!执行计划_v2.2.0_完整版.md
+!所有parquet保存点汇总.md
+!执行计划审查报告.md
