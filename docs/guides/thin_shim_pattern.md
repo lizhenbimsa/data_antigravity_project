@@ -289,3 +289,94 @@ import classify_batch`。
 * [新增 Stage 指南](adding_stage.md) — 创建新 stage 时正确应用此模式
 * [`core.dag.StageSpec` 参考](../reference/dag.md)
 * CHANGELOG 中 Phase 7a / 7b 章节
+
+---
+
+## 11. v3.0 退役计划 (Plan-r3 P3-18 落地)
+
+二轮诊断把 26 thin shim 列为长期债：每加新 stage 都需要双源同步（shim
+文件 + pipeline 子模块），papers 5 个 analysis.py 也都重复实现 argparse
++ run_pipeline 桥接。本节明确退役步骤与契约边界，避免 v3.0 启动时再做
+现状评估。
+
+### 11.1 退役动机（再陈述）
+
+1. **双源维护成本**：每个 thin shim 都是 23 行模板，加新 stage 时必须同
+   时改两边（shim + 子包），易遗漏。
+2. **subprocess 调用成本**：orchestrator 仍用 `subprocess.run([python,
+   "NN_xxx.py"])` 子进程隔离，每次启动 Python 解释器 + reimport
+   `news_process.core.*` 约 1-2 秒。26 个 stage 累计成本 30-60 秒/run。
+3. **CLI 不一致**：thin shim 调用方式 `python NN_xxx.py` 与子包规范
+   `python -m news_process.pipeline.X.Y` 并存，新人易困惑。
+4. **测试无法直接 run shim**：测试已经 import body 子包（见 §7），
+   shim 自身从未被测试覆盖（除 P1-8 加的 6 个 smoke test）。
+
+### 11.2 退役 path（4 步，与 god function 拆分同期）
+
+| 步骤 | 文件级动作 | 影响范围 |
+|---|---|---|
+| **(1)** 引入 `[project.scripts]` console-scripts | `pyproject.toml` 加 `news_process_stage_NN = "news_process.pipeline.X.Y:main"` 26 条 | 安装后获得 `news_process_stage_11` 等 console 命令 |
+| **(2)** 改 orchestrator 调用方式 | `core.stage.run_stage()` 内 `subprocess.run([python, "-m", "news_process.pipeline.X.Y"])` 取代 `subprocess.run([python, "NN_xxx.py"])`；StageSpec.script 字段从 "11_news_bank.py" 改为 "news_process.pipeline.filtering.news_bank" | `core/stage.py` 一处 + `core/dag.py` 26 个 StageSpec 修订 |
+| **(3)** 删 26 thin shim | `git rm news_process/[0-9]*.py` 一次性 | 仓库根目录从 26 + N 个 .py 减至 N 个非 stage 入口（如 `run_pipeline_function.py`、`run_paper.py`） |
+| **(4)** 删 6 个 smoke test 中的 shim 引用 | P1-8 新加的 `test_stage_smoke.py` 改为只测 `python -m` 调用方式，不再 mention `NN_xxx.py` | tests baseline -3 (12 → 9, 因 import 测试与 main-callable 测试在 console-scripts 模式下合二为一) |
+
+### 11.3 26 thin shim 退役映射表
+
+| Shim | 替换路径（v3.0） |
+|---|---|
+| `00_preprocessing.py` | `python -m news_process.pipeline.preprocess.runner` |
+| `11_news_bank.py` | `python -m news_process.pipeline.filtering.news_bank` |
+| `12_news_fintech.py` | `python -m news_process.pipeline.filtering.news_fintech` |
+| `14_fintech_intensity.py` | `python -m news_process.pipeline.filtering.fintech_intensity` |
+| `15_article_policy_alignment.py` | `python -m news_process.pipeline.filtering.policy_alignment` |
+| `21_tone_llms.py` | `python -m news_process.pipeline.sentiment.tone_llms` |
+| `22_tone_words.py` | `python -m news_process.pipeline.sentiment.tone_words` |
+| `23_tone_berts.py` | `python -m news_process.pipeline.sentiment.tone_berts` |
+| `24_herd_decay_processor.py` | `python -m news_process.pipeline.sentiment.herd_decay` |
+| `30_robustness_text2vec.py` | `python -m news_process.validation.text2vec` |
+| `31_bank_fintech_threshold.py` | `python -m news_process.validation.threshold` |
+| `32_news_llms_human.py` | `python -m news_process.validation.llms_human` |
+| `32a_dedup_threshold_sensitivity.py` | `python -m news_process.validation.dedup_threshold` |
+| `33_news_llms_evaluation.py` | `python -m news_process.validation.llms_evaluation` |
+| `34_tone_validation.py` | `python -m news_process.validation.tone_validation` |
+| `35_radius_sensitivity.py` | `python -m news_process.validation.radius_sensitivity` |
+| `36_entity_masking_test.py` | `python -m news_process.validation.entity_masking` |
+| `37_dict_coverage_audit.py` | `python -m news_process.validation.dict_coverage` |
+| `38_media_diversity.py` | `python -m news_process.validation.media_diversity` |
+| `38a_temporal_mask_test.py` | `python -m news_process.validation.temporal_mask` |
+| `38b_decay_sensitivity.py` | `python -m news_process.validation.decay_sensitivity` |
+| `39_prompt_sensitivity.py` | `python -m news_process.validation.prompt_sensitivity` |
+| `45_panel_export_main.py` | `python -m news_process.pipeline.panel.runner` |
+| `51_falsification_test.py` | `python -m news_process.pipeline.falsification.controls` |
+| `52_stata_data_audit.py` | `python -m news_process.pipeline.audit.stata_audit` |
+| `53_export_stats_excel.py` | `python -m news_process.pipeline.audit.stats_excel` |
+
+### 11.4 退役同期需要做的相关项
+
+- **god function 拆分** (Plan-r3 P1-7 锚点的 5 个函数): `runner.py:main`
+  1325 行的"45 panel 编排 7 子步" 应同期拆为 7 个独立 StageSpec，每个
+  StageSpec 在 v3.0 console-scripts 中各自有入口。这两件事一起做能让
+  `core.dag.STAGES_MAIN` 净减 5 行（god function 原 1 个 StageSpec → 7 个）
+  + 26 个 shim 行删尽，整体复杂度下降。
+
+- **OUTPUT_REGISTRY 重整** (`core/schemas.py`): 当前 stage 45 在
+  OUTPUT_REGISTRY 中只登记最终 panel 输出，子步 41/42/43/44/46/47 输出
+  没登记。v3.0 拆分后 7 个子 StageSpec 各自登记，让 orchestrator 可以
+  对任一子步做断点续跑。
+
+### 11.5 退役风险
+
+| 风险 | 缓解 |
+|---|---|
+| 外部 Stata 用户、CI 脚本可能仍调 `python NN_xxx.py` | v3.0 release notes 显式标记 BREAKING；保留 console-scripts 与 `-m` 双入口让 PR 期间可平滑迁移 |
+| `subprocess.run([python, "-m", ...])` 在某些 Windows 路径中需 quote | `core/stage.py` 已用 list 而非 shell=True，无 quote 问题 |
+| `news_process` 必须 pip install 才能用 console-scripts | 当前 dev workflow 已是 `pip install -e ./news_process`（见 ci.yml `Run tests (full)` 步骤），不引入新负担 |
+
+### 11.6 不要做的事
+
+- ❌ **不要**把 26 shim 一个一个删（每个 1 commit）。应在单个 v3.0 release
+  PR 中原子完成 (1) 引入 console-scripts → (2) 改 orchestrator → (3) 整批
+  删 shim → (4) 跑 800+ pytest 全 pass。中间任何状态都让 orchestrator
+  与 shim 的 source-of-truth 对不齐。
+- ❌ **不要**保留任何 shim 作"过渡"。v3.0 BREAKING 的清晰度比向后兼容更
+  重要；console-scripts entry-points 已经覆盖外部 CLI 调用契约。
