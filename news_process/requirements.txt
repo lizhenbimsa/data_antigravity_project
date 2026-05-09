@@ -72,6 +72,8 @@ openpyxl>=3.1.0,<4.0.0
 # sqlite3 — Python 内置
 
 # 模糊匹配 (fintech 主题标准化)
+# Plan-r3 P2-12: rapidfuzz 为首选 (活跃维护, C++ 实现); thefuzz 保留兼容
+rapidfuzz>=3.0.0,<5.0.0
 thefuzz>=0.22.0,<1.0.0
 python-Levenshtein>=0.21.0,<1.0.0
 

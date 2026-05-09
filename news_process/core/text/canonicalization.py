@@ -283,11 +283,17 @@ def canonicalize_topic(raw_topic: str) -> tuple:
             return ("应用场景", round(confidence, 3))
 
     # 第二轮：模糊匹配(仅当第 1 轮得分为 0 时触发)
-    # 使用 thefuzz 的 partial_token_set_ratio:
+    # 使用 fuzz.partial_token_set_ratio:
     #   - partial: 支持子串匹配(输入可能包含额外文字)
     #   - token_set: 对词语集合比较, 容忍词序差异
+    #
+    # Plan-r3 P2-12: 优先 rapidfuzz (活跃维护, MIT, C++ 实现 5-10x 快),
+    # fallback thefuzz (向后兼容旧 venv). 两者 fuzz module API 完全兼容.
     try:
-        from thefuzz import fuzz
+        try:
+            from rapidfuzz import fuzz  # type: ignore[import-not-found]
+        except ImportError:
+            from thefuzz import fuzz  # type: ignore[import-not-found]
 
         best_tech_score = 0
         for kw, weight in _TECH_NORMALIZED:
@@ -310,7 +316,7 @@ def canonicalize_topic(raw_topic: str) -> tuple:
             confidence = best_app_score / 100.0 * 0.7
             return ("应用场景", round(confidence, 3))
     except ImportError:
-        logger.warning("thefuzz 未安装，跳过模糊匹配")
+        logger.warning("rapidfuzz / thefuzz 均未安装，跳过模糊匹配")
 
     # 第 3 轮: 兜底默认 -- 归为应用场景, 置信度 0.0(表示完全不确定)
     # 设计决策: 默认应用场景而非底层技术, 因为在金融新闻语境中,

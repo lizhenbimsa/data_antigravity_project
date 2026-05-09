@@ -50,6 +50,10 @@ dependencies = [
     "matplotlib>=3.8.0,<4.0.0",
     "xlsxwriter>=3.1.0,<4.0.0",
     "openpyxl>=3.1.0,<4.0.0",
+    # Plan-r3 P2-12: 模糊匹配优先 rapidfuzz (MIT, 活跃维护, C++ 实现);
+    # thefuzz + python-Levenshtein 保留作向后兼容 fallback (canonicalization.py
+    # try rapidfuzz then fall back).
+    "rapidfuzz>=3.0.0,<5.0.0",
     "thefuzz>=0.22.0,<1.0.0",
     "python-Levenshtein>=0.21.0,<1.0.0",
     "python-dotenv>=1.0.0,<2.0.0",
