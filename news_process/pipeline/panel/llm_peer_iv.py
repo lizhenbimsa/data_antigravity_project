@@ -64,6 +64,7 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging
+from news_process.core.caching import LLMCache
 
 # ============================================================================
 # 1. 全局配置
@@ -273,7 +274,7 @@ PEER_PROMPT = """你是一位中国银行业金融科技分析师。以下是 {y
 
 async def _call_llm_peer(session, semaphore, bank: str, year: int,
                           sentences: List[str], model_cfg: dict,
-                          cache: Optional[dict]) -> Tuple[str, int, Optional[str]]:
+                          cache: Optional[LLMCache]) -> Tuple[str, int, Optional[str]]:
     """调用 GPT 识别竞争对手, 含重试和缓存 (复用 21_tone_llms.py 模式)。
 
     全部推理参数 (temperature, seed, force_json, retries, delay)
@@ -286,18 +287,20 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
         year: 年份
         sentences: 筛选后的句子列表
         model_cfg: 模型配置字典 (含 model_name, api_key, base_url)
-        cache: 缓存字典, key=cache_key, value=result
+        cache: LLMCache 实例, 用于持久化缓存
 
     Returns:
         (bank, year, result_json_str or None)
     """
+    model_id = model_cfg['model_name']
     prompt = PEER_PROMPT.format(
         bank_name=bank, year=year,
         numbered_sentences='\n'.join(f'{i+1}. {s}' for i, s in enumerate(sentences))
     )
-    cache_key = f"peer_{bank}_{year}"
+
+    # 查询 LLMCache (SQLite 持久化缓存)
     if cache is not None:
-        cached = cache.get(cache_key)
+        cached = cache.get(model_id, prompt)
         if cached:
             return bank, year, cached
 
@@ -324,8 +327,9 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
                     if resp.status == 200:
                         data = await resp.json()
                         result = data['choices'][0]['message']['content']
+                        # 写入 LLMCache (SQLite 持久化缓存)
                         if cache is not None:
-                            cache[cache_key] = result
+                            cache.put(model_id, prompt, result)
                         return bank, year, result
                     elif resp.status in (429, 500, 502, 503, 504):
                         logger.warning(f"[Peer-IV] {bank}_{year} HTTP {resp.status}, "
@@ -502,25 +506,20 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         bank_names_path)
     fintech_keywords = _load_fintech_keywords(fintech_dict_path)
 
-    # ── 2. 缓存 ──
-    config_dir = os.path.dirname(bank_names_path)
-    cache_path = os.path.join(config_dir, 'llm_peer_map.json')
-    cache = _load_peer_cache(cache_path)
-    logger.info(f"  缓存: {len(cache)} 条已有记录")
+    # ── 2. 初始化 LLMCache (SQLite 持久化缓存) ──
+    cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
+    cache = LLMCache(cache_db)
+    logger.info(f"  LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
 
     # ── 3. 按银行×年份提取句子 + LLM 调用 ──
     banks = sorted(panel['target_bank'].unique())
     years = sorted(panel['year'].unique())
     model_cfg = MODELS[0]  # 使用第一个模型
 
-    # 收集需要调用的任务
+    # 收集需要调用的任务（所有任务，缓存查询在 _call_llm_peer 内部进行）
     tasks_to_call = []
     for bank in banks:
         for year in years:
-            cache_key = f"peer_{bank}_{year}"
-            if cache_key in cache:
-                continue  # 已缓存, 跳过
-
             df_by = df_exploded[
                 (df_exploded['target_bank'] == bank) &
                 (df_exploded['year'] == year)
@@ -531,16 +530,15 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
             sents = _extract_multi_bank_sentences(
                 df_by, all_bank_names, fintech_keywords)
             if not sents:
-                # 无满足条件的句子, 缓存空结果
-                cache[cache_key] = json.dumps({"peers": []})
+                logger.info(f"  {bank} {year}: 无符合条件的句子, 跳过")
                 continue
 
             tasks_to_call.append((bank, year, sents))
 
-    logger.info(f"  需调用 LLM: {len(tasks_to_call)} 对 (银行×年份), "
-                f"已缓存: {len(cache)} 条")
+    logger.info(f"  需调用 LLM: {len(tasks_to_call)} 对 (银行×年份)")
 
     # ── 4. 异步并发调用 ──
+    raw_results = []
     if tasks_to_call:
         async def _run_all():
             semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
@@ -569,13 +567,15 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
 
         logger.info(f"  LLM 调用完成: 成功={n_success}, 失败={n_fail}")
 
-        # 保存缓存
-        _save_peer_cache(cache, cache_path)
-
-    # ── 5. 解析缓存 → peer_map ──
+    # ── 5. 解析结果 → peer_map ──
     cutoffs = [0.70, 0.75, 0.80, 0.85, 0.90]
     peer_maps = {c: {} for c in cutoffs}
-    for cache_key, raw_json in cache.items():
+
+    # 从 raw_results 解析 peer_map
+    for r in raw_results:
+        if isinstance(r, Exception) or r[2] is None:
+            continue
+        bank, year, raw_json = r
         try:
             # 与 21_tone_llms.py parse_json_response 保持一致:
             # 自动去除 markdown 代码块包围 (```json ... ```)
@@ -590,16 +590,19 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
             parsed = json.loads(_raw.strip())
             raw_peers = parsed.get('peers', [])
             if raw_peers:
-                bank_name = cache_key.replace('peer_', '').rsplit('_', 1)[0]
+                # 使用从 raw_results 解析出的 bank 和 year 构建 key
                 for c in cutoffs:
                     normalized = _normalize_peer_names(
                         raw_peers, canonical_names, variant_to_canonical, cutoff=c)
                     # 排除自身
-                    normalized = [p for p in normalized if p != bank_name]
+                    normalized = [p for p in normalized if p != bank]
                     if normalized:
-                        peer_maps[c][cache_key.replace('peer_', '')] = normalized
+                        peer_maps[c][f"{bank}_{year}"] = normalized
         except (json.JSONDecodeError, AttributeError) as e:
-            logger.warning(f"  解析失败 {cache_key}: {e}")
+            logger.warning(f"  解析失败 ({bank}_{year}): {e}")
+
+    # 关闭 LLMCache
+    cache.close()
 
     for c in cutoffs:
         logger.info(f"  Peer 网络 (cutoff={c}): {len(peer_maps[c])} 对有效 (银行×年份)")

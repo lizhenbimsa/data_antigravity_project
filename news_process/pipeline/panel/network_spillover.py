@@ -47,6 +47,7 @@
 import logging
 import os
 import sys
+import json
 import numpy as np
 import pandas as pd
 
@@ -73,6 +74,7 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging
+from news_process.core.caching import LLMCache
 
 # ============================================================================
 # 1. 全局配置
@@ -909,8 +911,8 @@ LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 _EMB_MODELS = LLM_CONFIG.get('models', [])
 
 
-async def _get_embeddings_api(texts, model='text-embedding-3-small'):
-    """调用 OpenAI 兼容 /embeddings 端点获取文本向量。
+async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None):
+    """调用 OpenAI 兼容 /embeddings 端点获取文本向量（带缓存）。
 
     base_url 和 api_key 从 config.yaml 的 tone_llm_processing.models[0]
     读取, 与 21_tone_llms.py 共享同一份配置, 严禁硬编码。
@@ -918,6 +920,7 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small'):
     Args:
         texts: list[str], 待编码文本列表
         model: str, embedding 模型名称
+        cache: LLMCache 实例, 用于持久化缓存
 
     Returns:
         np.ndarray, shape=(len(texts), dim), 归一化后的嵌入向量矩阵
@@ -936,26 +939,57 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small'):
 
     headers = {"Content-Type": "application/json",
                "Authorization": f"Bearer {api_key}"}
-    BATCH = 100  # OpenAI embeddings API 单次最多 2048 个输入
-    all_emb = []
-    async with aiohttp.ClientSession() as session:
-        for i in range(0, len(texts), BATCH):
-            batch_texts = texts[i:i + BATCH]
-            payload = {"model": model, "input": batch_texts}
-            async with session.post(f"{base_url}/embeddings",
-                                     json=payload, headers=headers,
-                                     timeout=aiohttp.ClientTimeout(total=120)
-                                     ) as resp:
-                if resp.status != 200:
-                    body = await resp.text()
-                    raise RuntimeError(
-                        f"Embedding API HTTP {resp.status}: {body[:200]}")
-                data = await resp.json()
-                for item in sorted(data['data'], key=lambda x: x['index']):
-                    all_emb.append(item['embedding'])
-            logger.info(f"    Embedding batch {i // BATCH + 1}/"
-                        f"{(len(texts) - 1) // BATCH + 1} 完成")
-    return np.array(all_emb)
+
+    # 查询缓存
+    cached_results = [cache.get(model, text) if cache else None for text in texts]
+    missing_indices = [i for i, res in enumerate(cached_results) if res is None]
+    missing_texts = [texts[i] for i in missing_indices]
+
+    if cache and len(texts) > 0:
+        logger.info(f"    缓存拦截: 命中 {len(texts) - len(missing_texts)} 条, 缺失 {len(missing_texts)} 条")
+
+    # 调用 API 获取缺失的 embeddings
+    missing_embs = []
+    if missing_texts:
+        BATCH = 100  # OpenAI embeddings API 单次最多 2048 个输入
+        async with aiohttp.ClientSession() as session:
+            for i in range(0, len(missing_texts), BATCH):
+                batch_texts = missing_texts[i:i + BATCH]
+                payload = {"model": model, "input": batch_texts}
+                async with session.post(f"{base_url}/embeddings",
+                                         json=payload, headers=headers,
+                                         timeout=aiohttp.ClientTimeout(total=120)
+                                         ) as resp:
+                    if resp.status != 200:
+                        body = await resp.text()
+                        raise RuntimeError(
+                            f"Embedding API HTTP {resp.status}: {body[:200]}")
+                    data = await resp.json()
+                    batch_embs = [item['embedding'] for item in sorted(data['data'], key=lambda x: x['index'])]
+                    missing_embs.extend(batch_embs)
+
+                    # 批量写入缓存
+                    if cache:
+                        cache.put_batch(
+                            model,
+                            batch_texts,
+                            [json.dumps(emb) for emb in batch_embs]
+                        )
+
+                logger.info(f"    Embedding batch {i // BATCH + 1}/"
+                            f"{(len(missing_texts) - 1) // BATCH + 1} 完成")
+
+    # 拼装最终结果
+    final_embs = []
+    missing_ptr = 0
+    for res in cached_results:
+        if res is not None:
+            final_embs.append(json.loads(res))
+        else:
+            final_embs.append(missing_embs[missing_ptr])
+            missing_ptr += 1
+
+    return np.array(final_embs)
 
 
 def compute_embedding_peer_network(df_exploded: pd.DataFrame,
@@ -1030,13 +1064,19 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         texts = [t[:MAX_CHARS] for t in bank_texts.values]
 
         # ── 3. 获取 Embedding (API 优先, 降级 sentence-transformers) ──
+        # 初始化缓存
+        cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
+        cache = LLMCache(cache_db)
+
         try:
-            emb_matrix = asyncio.run(_get_embeddings_api(texts))
+            emb_matrix = asyncio.run(_get_embeddings_api(texts, cache=cache))
             logger.info(f"  年份 {year}: API Embedding 成功, "
                         f"{n_banks} 银行, dim={emb_matrix.shape[1]}")
         except Exception as e:
             logger.warning(f"  年份 {year}: API embedding 失败 ({e}), "
                            f"回退 sentence-transformers")
+        finally:
+            cache.close()
             try:
                 from sentence_transformers import SentenceTransformer
                 st_model = SentenceTransformer('shibing624/text2vec-base-chinese')
