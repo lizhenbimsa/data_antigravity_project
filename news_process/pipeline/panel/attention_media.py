@@ -380,13 +380,13 @@ def _save_attn_index(df, basename):
     csv_path = os.path.join(OUTPUT_DIR, f'{basename}.csv')
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_24_herd_decay'])
+    input_file = os.path.join(CONFIG['paths']['output_dir'],
+                              CONFIG['filenames']['output_24_herd_decay'])
     save_parquet_with_metadata(
         df=df,
         output_path=parquet_path,
         stage_name="45_panel_export_main",
-        config=cfg,
+        config=CONFIG,
         input_files=[input_file],
     )
     df.to_csv(csv_path, index=False, encoding='utf-8-sig')

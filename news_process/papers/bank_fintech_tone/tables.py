@@ -17,14 +17,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pandas as pd
-
-from news_process.papers._common import (
-    PaperConfig,
-    get_paper_config,
-    load_panel,
-    summary_stats,
-)
+from news_process.papers._common import PaperConfig
+from news_process.papers._common.tables import build_summary_table, write_summary_table
 
 
 # Bank-FinTech-Tone 主线论文的 Table 1 核心变量集.
@@ -56,7 +50,7 @@ _TABLE1_VARIABLES: list[str] = [
 ]
 
 
-def build_table1(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+def build_table1(paper_config: PaperConfig | None = None) -> 'pd.DataFrame':
     """生成 Table 1: 主关键变量描述统计.
 
     Args:
@@ -67,12 +61,7 @@ def build_table1(paper_config: PaperConfig | None = None) -> pd.DataFrame:
         以 variable 为 index 的描述统计 DataFrame
         (参见 ``papers/_common/tables.py:summary_stats``)。
     """
-    pc = paper_config or get_paper_config('bank_fintech_tone')
-    panel = load_panel('40_panel_yearly.parquet', paper_id=pc.paper_id,
-                       project_config=pc.config)
-
-    available = [v for v in _TABLE1_VARIABLES if v in panel.columns]
-    return summary_stats(panel, variables=available)
+    return build_summary_table('bank_fintech_tone', _TABLE1_VARIABLES, paper_config=paper_config)
 
 
 def write_table1(paper_config: PaperConfig | None = None,
@@ -90,18 +79,9 @@ def write_table1(paper_config: PaperConfig | None = None,
     Returns:
         CSV 文件路径。
     """
-    pc = paper_config or get_paper_config('bank_fintech_tone')
-    pc.output_dir.mkdir(parents=True, exist_ok=True)
-
-    table = build_table1(pc)
-    csv_path = pc.output_dir / filename
-    table.to_csv(csv_path, encoding='utf-8-sig')
-
-    if dta_filename:
-        from news_process.papers._common import export_dta
-        export_dta(table.reset_index(), pc.output_dir / dta_filename)
-
-    return csv_path
+    return write_summary_table('bank_fintech_tone', _TABLE1_VARIABLES,
+                               paper_config=paper_config,
+                               filename=filename, dta_filename=dta_filename)
 
 
 __all__ = ['build_table1', 'write_table1']

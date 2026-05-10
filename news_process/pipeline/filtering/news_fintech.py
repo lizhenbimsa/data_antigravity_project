@@ -299,13 +299,13 @@ def main():
     logger.info(f"正在将全量分类结果（含非金融科技新闻）写入 {full_output_path}...")
     # 使用数据版本控制保存 full 版本
     from news_process.core.data_versioning import save_parquet_with_metadata
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_11_bank_news'])
+    input_file = os.path.join(CONFIG['paths']['output_dir'],
+                              CONFIG['filenames']['output_11_bank_news'])
     save_parquet_with_metadata(
         df=processed_df,
         output_path=full_output_path,
         stage_name="12_news_fintech",
-        config=cfg,
+        config=CONFIG,
         input_files=[input_file],
     )
     full_preview_path = full_output_path.replace('.parquet', '.csv')
@@ -324,13 +324,13 @@ def main():
     logger.info(f"正在将处理结果写入 {output_path}...")
     # 使用数据版本控制保存 filtered 版本
     from news_process.core.data_versioning import save_parquet_with_metadata
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_11_bank_news'])
+    input_file = os.path.join(CONFIG['paths']['output_dir'],
+                              CONFIG['filenames']['output_11_bank_news'])
     save_parquet_with_metadata(
         df=processed_df,
         output_path=output_path,
         stage_name="12_news_fintech",
-        config=cfg,
+        config=CONFIG,
         input_files=[input_file],
     )
 

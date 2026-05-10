@@ -1155,13 +1155,13 @@ def main():
 
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_14_fintech_intensity'])
+    input_file = os.path.join(CONFIG['paths']['output_dir'],
+                              CONFIG['filenames']['output_14_fintech_intensity'])
     save_parquet_with_metadata(
         df=processed_df,
         output_path=output_path,
         stage_name="22_tone_words",
-        config=cfg,
+        config=CONFIG,
         input_files=[input_file],
     )
 

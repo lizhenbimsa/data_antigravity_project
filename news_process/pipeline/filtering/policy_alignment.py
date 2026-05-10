@@ -74,7 +74,6 @@ import time
 import numpy as np
 import pandas as pd
 import json
-import tiktoken
 
 # Phase 5c-1: 注入项目根, 让 ``news_process.core.*`` 在包模式下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -105,37 +104,13 @@ STAGE_NAME = "15_article_policy_alignment"
 # ============================================================================
 # 2. tiktoken 精确 Token 计数器
 # ============================================================================
-# 【术语】使用 OpenAI 官方的 tiktoken 库和 cl100k_base 编码器精确计算 token 数
-#   text-embedding-3-small 使用 cl100k_base 编码，单条输入上限 8191 tokens
-#   参考: OpenAI 官方文档 — Embeddings API
-# 【白话】把文字变成模型能读的"令牌"，然后数一数有多少个
-#   中文大约 1 个字 = 1.5~2 个令牌
-#   如果超过 8191 个令牌，就只保留前 8191 个（模型的硬性上限）
+# tiktoken 工具 — 统一复用 core/text/token_utils (薄包装保留旧签名)
 
-_ENCODING = tiktoken.get_encoding("cl100k_base")
 _ALIGN_CFG = CONFIG.get('article_alignment', {})
 
 
 def _coerce_positive_int(value, default: int) -> int:
-    """配置兜底: 将 token 上限解析为正整数，异常时回退到安全默认值。
-
-    【术语】防御式类型校验 (Defensive Type Coercion)
-      YAML 1.1 规范下，未加引号的数字值会被 PyYAML 自动推断为 int/float，
-      但加了引号的 "8191" 会被解析为 str。此函数统一处理两种情况，
-      确保下游 token 切片逻辑 (tokens[:max_tokens]) 的操作数始终为 int。
-      与 Stage 25 (25_strategic_differentiation.py L152-158) 保持一致，
-      维护流水线跨阶段的配置解析行为一致性 (Configuration Consistency)。
-    【白话】config.yaml 里的数字可能被误写成字符串或留空 (null)，
-      这个函数确保无论怎么写，最终拿到的都是一个正整数。
-      如果实在解析不了，就用安全的默认值兜底，不会让流水线崩溃。
-
-    Args:
-        value: 从 config.yaml 读取的原始值 (可能是 int, str, None 等)
-        default: 解析失败时的回退默认值
-
-    Returns:
-        int: 正整数配置值。若 value 无法解析或 <= 0，返回 default。
-    """
+    """配置兜底: 将 token 上限解析为正整数，异常时回退到安全默认值。"""
     try:
         value = int(value)
     except (TypeError, ValueError):
@@ -154,63 +129,21 @@ _MAX_TOKENS_PER_REQUEST = _coerce_positive_int(
 
 
 def _count_tokens(text: str) -> int:
-    """精确计算文本的 token 数。
-
-    【术语】使用 tiktoken cl100k_base 编码器 (text-embedding-3-small 的编码器)
-    【白话】数一数这段文字要用多少个"令牌"来表示
-    """
-    return len(_ENCODING.encode(text))
+    """精确计算文本的 token 数 (已迁至 core.text.token_utils)。"""
+    from news_process.core.text.token_utils import count_tokens
+    return count_tokens(text)
 
 
 def _truncate_to_max_tokens(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> str:
-    """将文本精确截断至不超过 max_tokens 个 token。
-
-    【术语】使用 tiktoken 编码→截断→解码三步法，确保结果严格不超限
-      - 与 Stage 25 的字符级粗略截断 (t[:8000]) 不同，本函数在 token 粒度操作
-      - 原因: 8000 中文字 ≈ 12,000~16,000 tokens，远超 8191 token 上限
-    【白话】如果文章太长（超过 ~4000 中文字），就只保留前面的部分
-      绝大多数新闻不会超限，只有极长的万字报告会被截断
-
-    Args:
-        text: 原始文本
-        max_tokens: 最大 token 数 (默认 8191)
-
-    Returns:
-        截断后的文本（token 数 ≤ max_tokens）
-    """
-    tokens = _ENCODING.encode(text)
-    if len(tokens) <= max_tokens:
-        return text
-    return _ENCODING.decode(tokens[:max_tokens])
+    """将文本精确截断至不超过 max_tokens 个 token (已迁至 core.text.token_utils)。"""
+    from news_process.core.text.token_utils import truncate_to_max_tokens
+    return truncate_to_max_tokens(text, max_tokens)
 
 
 def _split_into_chunks(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> list[str]:
-    """将超长文本按 token 粒度切分为多个不重叠分段。
-
-    【术语】Early Chunking (Günther et al., 2024, arXiv:2409.04701):
-      对超过 Embedding 模型单条上限的长文本，先按固定 token 数切分为 K 个
-      不重叠段，各段独立嵌入后均值池化 (Mean Pooling)，是 API 调用场景下
-      长文档嵌入的标准基线方案。
-      池化策略依据: Reimers & Gurevych (2019, EMNLP, DOI: 10.18653/v1/D19-1410)
-      确认 Mean Pooling 在三种池化方式 (CLS/Mean/Max) 中综合表现最优。
-    【白话】把超长政策文件切成多段，每段不超过模型容量上限 (8,191 tokens)，
-      之后分别处理再取平均，这样 5 份政策文件的全部语义信息都能保留。
-
-    Args:
-        text: 原始文本
-        max_tokens: 每段最大 token 数 (默认 8191)
-
-    Returns:
-        list[str]: 分段文本列表，每段 token 数 ≤ max_tokens。
-                   若原文未超限，返回包含原文的单元素列表。
-    """
-    tokens = _ENCODING.encode(text)
-    if len(tokens) <= max_tokens:
-        return [text]  # 未超限，原样返回，避免 encode/decode 往返引入编码伪影
-    chunks = []
-    for i in range(0, len(tokens), max_tokens):
-        chunks.append(_ENCODING.decode(tokens[i:i + max_tokens]))
-    return chunks
+    """将超长文本按 token 粒度切分为多个不重叠分段 (已迁至 core.text.token_utils)。"""
+    from news_process.core.text.token_utils import split_into_chunks
+    return split_into_chunks(text, max_tokens)
 
 
 # ============================================================================
@@ -585,14 +518,14 @@ def main():
     from news_process.core.reporting import save_dataset
     from news_process.core.logging import log_stage_summary
     # 使用数据版本控制保存
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_14_fintech_intensity'])
+    input_file = os.path.join(CONFIG['paths']['output_dir'],
+                              CONFIG['filenames']['output_14_fintech_intensity'])
     save_dataset(
         df=df,
         output_path=output_path,
         logger=logger,
         stage_name="15_article_policy_alignment",
-        config=cfg,
+        config=CONFIG,
         input_files=[input_file],
     )
 

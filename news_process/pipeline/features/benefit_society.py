@@ -54,7 +54,6 @@ import sys
 import asyncio
 import numpy as np
 import pandas as pd
-import tiktoken
 import json
 
 # Phase 5c-1: 注入项目根, 让 ``news_process.core.*`` 在包模式下可解析
@@ -86,8 +85,7 @@ RETRY_DELAY = 5
 MAX_RETRY_DELAY = 60
 CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
 
-# tiktoken 精确 Token 计数器
-_ENCODING = tiktoken.get_encoding("cl100k_base")
+# tiktoken 工具 — 统一复用 core/text/token_utils (下方 _count_tokens 等为薄包装)
 
 
 # ============================================================================
@@ -172,29 +170,15 @@ assert len(POSITIVE_ANCHORS) == len(NEGATIVE_ANCHORS), \
 # ============================================================================
 
 def _count_tokens(text: str) -> int:
-    """精确计算文本的 token 数 (cl100k_base 编码器)。
-
-    【术语】tiktoken cl100k_base 是 text-embedding-3-small 的底层编码器
-      参考: OpenAI Embeddings API 文档 — Model Overview
-    【白话】把一段中文变成模型能读的"令牌"，数一数有多少个
-      中文大约 1 个字 ≈ 1.5~2 个令牌
-    """
-    return len(_ENCODING.encode(text))
+    """精确计算文本的 token 数 (委托给 core.text.token_utils)。"""
+    from news_process.core.text.token_utils import count_tokens
+    return count_tokens(text)
 
 
 def _truncate_to_max_tokens(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> str:
-    """将文本精确截断至不超过 max_tokens 个 token。
-
-    【术语】使用 tiktoken 编码→截断→解码三步法，确保结果严格不超限
-      - text-embedding-3-small 单条输入硬性上限: 8,191 tokens (OpenAI 官方文档)
-      - 超限行为: HTTP 400 BadRequestError (API 不会自动截断)
-    【白话】如果文章太长（超过 ~4000 中文字），就只保留前面的部分
-      绝大多数新闻不会超限，只有极长的万字报告会被截断
-    """
-    tokens = _ENCODING.encode(text)
-    if len(tokens) <= max_tokens:
-        return text
-    return _ENCODING.decode(tokens[:max_tokens])
+    """将文本精确截断至不超过 max_tokens 个 token (委托给 core.text.token_utils)。"""
+    from news_process.core.text.token_utils import truncate_to_max_tokens
+    return truncate_to_max_tokens(text, max_tokens)
 
 
 async def _get_embeddings_api(texts: list[str], token_counts: list[int], cache: LLMCache = None) -> np.ndarray:

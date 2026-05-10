@@ -370,14 +370,14 @@ def main():
         'output_14_fintech_intensity', '14_fintech_intensity.parquet')
     output_path = os.path.join(output_dir, output_filename)
     # 使用数据版本控制保存
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_12_fintech_news'])
+    input_file = os.path.join(CONFIG['paths']['output_dir'],
+                              CONFIG['filenames']['output_12_fintech_news'])
     save_dataset(
         df=df,
         output_path=output_path,
         logger=logger,
         stage_name="14_fintech_intensity",
-        config=cfg,
+        config=CONFIG,
         input_files=[input_file],
     )
 

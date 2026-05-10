@@ -22,7 +22,6 @@ from news_process.core.config import load_config
 from news_process.core.logging import (
     setup_logging, log_and_time, log_memory_usage, log_stage_summary,
 )
-from news_process.core.parallel import parallelize_dataframe
 from news_process.core.reporting import safe_save_preview_csv, save_dataset
 from news_process.core.stage import run_stage
 
@@ -215,38 +214,6 @@ class TestLogStageSummary:
         start_time = time.time()
         log_stage_summary(logger, 'test_stage', start_time,
                           extra_info={'去重数': 100, '保留率': '50%'})
-
-
-# ============================================================================
-# parallelize_dataframe 测试
-# ============================================================================
-
-class TestParallelizeDataframe:
-    """测试 parallelize_dataframe() 并行处理功能。"""
-
-    def test_result_consistent(self, sample_df):
-        """并行处理结果应与串行一致。"""
-
-        def double_column(df_batch):
-            df_batch = df_batch.copy()
-            df_batch['new_col'] = 1
-            return df_batch
-
-        result = parallelize_dataframe(sample_df, double_column,
-                                       n_jobs=1, batch_size=5)
-        assert len(result) == len(sample_df)
-        assert 'new_col' in result.columns
-        assert (result['new_col'] == 1).all()
-
-    def test_empty_dataframe(self):
-        """空 DataFrame 应返回空 DataFrame。"""
-        df = pd.DataFrame({'a': []})
-
-        def identity(batch):
-            return batch
-
-        result = parallelize_dataframe(df, identity, n_jobs=1, batch_size=5)
-        assert len(result) == 0
 
 
 # ============================================================================

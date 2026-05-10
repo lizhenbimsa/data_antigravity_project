@@ -195,21 +195,23 @@ def log_and_time(logger):
     return decorator
 
 
+def _format_bytes(b: int) -> str:
+    """将字节数格式化为 GB/MB 字符串 (>=1GB 用 GB, 否则 MB)。"""
+    if b >= 1024 ** 3:
+        return f"{b / (1024 ** 3):.2f} GB"
+    return f"{b / (1024 ** 2):.1f} MB"
+
+
 def log_memory_usage(logger, tag=""):
     """记录当前进程 RSS 内存与系统可用内存。"""
     process = psutil.Process()
     rss_bytes = process.memory_info().rss
     available_bytes = psutil.virtual_memory().available
 
-    def _fmt(b):
-        if b >= 1024 ** 3:
-            return f"{b / (1024 ** 3):.2f} GB"
-        return f"{b / (1024 ** 2):.1f} MB"
-
     prefix = f"{tag} | " if tag else ""
     logger.info(
-        f"[Memory] {prefix}RSS: {_fmt(rss_bytes)} | "
-        f"Available: {_fmt(available_bytes)}"
+        f"[Memory] {prefix}RSS: {_format_bytes(rss_bytes)} | "
+        f"Available: {_format_bytes(available_bytes)}"
     )
 
 
@@ -233,10 +235,7 @@ def log_stage_summary(logger, stage_name, start_time, input_rows=None,
             logger.info(f"  保留率:   {retention:.1f}%")
 
     rss = psutil.Process().memory_info().rss
-    if rss >= 1024 ** 3:
-        logger.info(f"  内存RSS:  {rss / (1024 ** 3):.2f} GB")
-    else:
-        logger.info(f"  内存RSS:  {rss / (1024 ** 2):.1f} MB")
+    logger.info(f"  内存RSS:  {_format_bytes(rss)}")
 
     if extra_info:
         for k, v in extra_info.items():

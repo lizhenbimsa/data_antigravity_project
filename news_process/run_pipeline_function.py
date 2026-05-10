@@ -95,26 +95,9 @@ STAGE_NAME = "run_pipeline_function"
 
 
 def _generate_run_id() -> str:
-    """生成本次运行的唯一标识符, 并写入环境变量供子进程继承。
-
-    格式: ``YYYYMMDDTHHMMSSZ-<hostname>-<pid>``, 例如
-    ``20260503T231245Z-DESKTOP-1234``。
-
-    若环境变量 ``NEWS_PROCESS_RUN_ID`` 已存在 (例如上游 CI 已注入),
-    则原样保留; 否则生成新值。
-    """
-    import datetime as _dt
-    import socket as _socket
-
-    existing = os.environ.get("NEWS_PROCESS_RUN_ID")
-    if existing:
-        return existing
-
-    ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    host = _socket.gethostname().split(".")[0][:24]  # 截断过长 FQDN
-    rid = f"{ts}-{host}-{os.getpid()}"
-    os.environ["NEWS_PROCESS_RUN_ID"] = rid
-    return rid
+    """生成本次运行 ID (委托给 core.run_id.generate_run_id)。"""
+    from news_process.core.run_id import generate_run_id
+    return generate_run_id()
 
 
 _RUN_ID = _generate_run_id()

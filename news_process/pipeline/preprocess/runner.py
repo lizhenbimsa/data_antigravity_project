@@ -134,9 +134,8 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
     # 实际很少会改, 一并入哈希也无害, 因此不做白名单过滤, 保持"全部入哈希"
     # 的最强语义。
     def _compute_config_hash() -> str:
-        return hashlib.md5(
-            json.dumps(PARAMS, sort_keys=True, ensure_ascii=False, default=str).encode()
-        ).hexdigest()
+        from news_process.core.data_versioning import compute_config_hash
+        return compute_config_hash(PARAMS)
 
     config_hash = _compute_config_hash()
     logger.info(f"当前预处理配置哈希: {config_hash}")

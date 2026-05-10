@@ -60,19 +60,9 @@ STAGE_NAME = "run_pipeline_validation"
 
 
 def _generate_run_id() -> str:
-    """生成本次运行 ID 并写入环境变量 (若已存在则保留原值)。"""
-    import datetime as _dt
-    import socket as _socket
-
-    existing = os.environ.get("NEWS_PROCESS_RUN_ID")
-    if existing:
-        return existing
-
-    ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    host = _socket.gethostname().split(".")[0][:24]
-    rid = f"{ts}-{host}-{os.getpid()}"
-    os.environ["NEWS_PROCESS_RUN_ID"] = rid
-    return rid
+    """生成本次运行 ID (委托给 core.run_id.generate_run_id)。"""
+    from news_process.core.run_id import generate_run_id
+    return generate_run_id()
 
 
 _RUN_ID = _generate_run_id()

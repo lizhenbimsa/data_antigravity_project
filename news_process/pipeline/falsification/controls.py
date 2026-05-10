@@ -790,11 +790,11 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
         'output_51_panel_controls', '51_panel_with_controls.parquet'
     )
     output_path = os.path.join(OUTPUT_DIR, output_filename)
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_40_panel_yearly'])
+    input_file = os.path.join(CONFIG['paths']['output_dir'],
+                              CONFIG['filenames']['output_40_panel_yearly'])
     save_dataset(panel, output_path, logger,
                 stage_name="51_falsification_test",
-                config=cfg,
+                config=CONFIG,
                 input_files=[input_file])
 
     # Stata .dta

@@ -240,11 +240,11 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 年度面板 Parquet
     panel_filename = FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet')
     panel_path = os.path.join(OUTPUT_DIR, panel_filename)
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_24_herd_decay'])
+    input_file = os.path.join(CONFIG['paths']['output_dir'],
+                              CONFIG['filenames']['output_24_herd_decay'])
     save_dataset(panel, panel_path, logger,
                 stage_name="45_panel_export_main",
-                config=cfg,
+                config=CONFIG,
                 input_files=[input_file])
 
     # 年度面板 Stata .dta
@@ -286,34 +286,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             # boolean nullable 同理
             for _col in panel_stata.select_dtypes(include=['boolean']).columns:
                 panel_stata[_col] = panel_stata[_col].astype('Float64')
-            # Stata 列名清理：移除中文和特殊字符, 绝对限制 32 字符, 防止碰撞
-            clean_cols = []
-            seen = set()
-            for c in panel_stata.columns:
-                # 替换中文括号和英文括号
-                c_clean = c.replace('(', '_').replace(')', '_')
-                c_clean = c_clean.replace('（', '_').replace('）', '_')
-                # 移除其他非 ASCII 字符
-                c_clean = re.sub(r'[^\x00-\x7F]+', '', c_clean)
-                # 确保不为空
-                if not c_clean or not c_clean.strip('_'):
-                    c_clean = f'col_{len(clean_cols)}'
-                
-                # 截断到预备安全长度 (28 字符，为后续可能追加的 _12 预留空间)
-                c_base = c_clean[:28]
-                final_c = c_base
-                
-                # 严格去重：确保不与原始列或其他衍生列碰撞
-                counter = 1
-                while final_c in seen:
-                    # _ + 至少 1 位数字，所以长度最大可能达到 28 + 1 + length(counter) 
-                    # 因为 Stata 限制 32 字符，只要 counter < 1000 即安全
-                    final_c = f'{c_base}_{counter}'
-                    counter += 1
-                    
-                seen.add(final_c)
-                clean_cols.append(final_c)
-            panel_stata.columns = clean_cols
+            # Stata 列名清理: 复用 papers/_common/tables.py 的统一实现
+            from news_process.papers._common.tables import sanitize_stata_columns
+            panel_stata.columns = sanitize_stata_columns(panel_stata.columns, max_len=32)
             # 确保数值列没有 nullable dtypes（Stata 不支持）
             for col in panel_stata.select_dtypes(include=['Float64', 'Int64']).columns:
                 panel_stata[col] = panel_stata[col].astype(float)
@@ -1033,9 +1008,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 文章-银行级数据
     article_filename = FILENAMES.get('output_40_article_bank', '40_article_bank_level.parquet')
     article_path = os.path.join(OUTPUT_DIR, article_filename)
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_24_herd_decay'])
+    input_file = os.path.join(CONFIG['paths']['output_dir'],
+                              CONFIG['filenames']['output_24_herd_decay'])
     save_dataset(df_exploded, article_path, logger,
                 stage_name="45_panel_export_main",
-                config=cfg,
+                config=CONFIG,
                 input_files=[input_file])

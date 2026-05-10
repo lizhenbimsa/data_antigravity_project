@@ -185,4 +185,49 @@ def summary_stats(df: pd.DataFrame,
     return out
 
 
-__all__ = ['sanitize_stata_columns', 'export_dta', 'summary_stats']
+__all__ = ['sanitize_stata_columns', 'export_dta', 'summary_stats',
+           'build_summary_table', 'write_summary_table']
+
+
+# ----------------------------------------------------------------------------
+# 4. 通用 Table 1 骨架 (消除 5 个论文包的 build_table1/write_table1 重复)
+# ----------------------------------------------------------------------------
+
+def build_summary_table(paper_id: str,
+                        variables: list[str],
+                        panel_filename: str = '40_panel_yearly.parquet',
+                        paper_config=None) -> pd.DataFrame:
+    """通用 Table 1 描述统计。
+
+    Args:
+        paper_id:        论文标识 (如 'bank_fintech_tone')。
+        variables:       论文专属变量列表。
+        panel_filename:  面板文件名 (默认年度面板)。
+        paper_config:    可选已实例化的 PaperConfig。
+    """
+    from news_process.papers._common import get_paper_config, load_panel
+
+    pc = paper_config or get_paper_config(paper_id)
+    panel = load_panel(panel_filename, paper_id=pc.paper_id,
+                       project_config=pc.config)
+    available = [v for v in variables if v in panel.columns]
+    return summary_stats(panel, variables=available)
+
+
+def write_summary_table(paper_id: str,
+                        variables: list[str],
+                        paper_config=None,
+                        *,
+                        filename: str = 'table1_summary_stats.csv',
+                        dta_filename: str | None = 'table1_summary_stats.dta') -> Path:
+    """计算 Table 1 并写入 ``paper.output_dir``。"""
+    from news_process.papers._common import get_paper_config
+
+    pc = paper_config or get_paper_config(paper_id)
+    pc.output_dir.mkdir(parents=True, exist_ok=True)
+    table = build_summary_table(paper_id, variables, paper_config=pc)
+    csv_path = pc.output_dir / filename
+    table.to_csv(csv_path, encoding='utf-8-sig')
+    if dta_filename:
+        export_dta(table.reset_index(), pc.output_dir / dta_filename)
+    return csv_path

@@ -64,8 +64,12 @@ def compute_file_hash(file_path: str | Path) -> str:
 
 
 def compute_config_hash(config: dict) -> str:
-    """计算配置字典的 hash。"""
-    config_str = json.dumps(config, sort_keys=True, ensure_ascii=False)
+    """计算配置字典的 hash (SHA-256)。
+
+    ``default=str`` 兜底: 若字典含 datetime/Path 等非 JSON 原生类型,
+    转为字符串表示, 避免 TypeError。
+    """
+    config_str = json.dumps(config, sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(config_str.encode()).hexdigest()
 
 
