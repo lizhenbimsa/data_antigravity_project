@@ -336,7 +336,7 @@ def main():
     if not os.path.exists(full_path):
         logger.error(f"全量分类结果文件未找到: {full_path}")
         logger.error("请确保阶段 12 已执行且生成了全量输出文件。")
-        return
+        raise SystemExit(1)
 
     logger.info(f"加载全量分类结果: {full_path}")
     df_full = pd.read_parquet(full_path)
@@ -351,7 +351,7 @@ def main():
 
     if not os.path.exists(filtered_path):
         logger.error(f"金融科技子集文件未找到: {filtered_path}")
-        return
+        raise SystemExit(1)
 
     logger.info(f"加载金融科技子集: {filtered_path}")
     df = pd.read_parquet(filtered_path)
@@ -378,7 +378,7 @@ def main():
         logger=logger,
         stage_name="14_fintech_intensity",
         config=CONFIG,
-        input_files=[input_file],
+        input_files=[full_path, input_file],
     )
 
     n_verified = sum(verified_flags)

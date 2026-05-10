@@ -3,9 +3,10 @@
 #
 # Plan P2-8 (2026-05-09): 自此版起 single source of truth 已迁至
 # pyproject.toml [project] dependencies 段. 本文件保留为:
-#   1. pip-only 用户的快速入口 (``pip install -r requirements.txt``)
+#   1. pip-only 用户的快速入口 (``pip install -r news_process/requirements.txt``)
 #   2. 与 pyproject.toml 中 dependencies 列表的"双向校验"参考清单
-# 任一处增删依赖必须同步两边. CI 应通过 ``pip-compile pyproject.toml``
+# 任一处增删依赖必须同步两边. CI 应通过
+# ``pip-compile --output-file=news_process/requirements.lock pyproject.toml``
 # 生成 ``requirements.lock`` 作为真正的可重现性基线, 而不是这两份范围
 # 声明的任一份.
 #

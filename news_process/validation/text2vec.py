@@ -116,7 +116,7 @@ def main():
     
     if not os.path.exists(input_path):
         logger.error(f"输入文件缺失: {input_path}")
-        return
+        raise SystemExit(1)
         
     logger.info("加载 14_fintech_intensity.parquet ...")
     df = pd.read_parquet(input_path)
@@ -241,17 +241,15 @@ def main():
             
     if not agg_cols:
         logger.error("无指标生成，退出。")
-        return
+        raise SystemExit(1)
         
     panel = df.groupby(['target_bank', 'year'], as_index=False).agg(agg_cols)
     
     out_path = os.path.join(output_dir, '30_text2vec_indicators.parquet')
-    input_file = os.path.join(cfg['paths']['output_dir'],
-                              cfg['filenames']['output_21_tone_llms'])
     save_dataset(panel, out_path, logger,
                 stage_name="30_robustness_text2vec",
                 config=cfg,
-                input_files=[input_file])
+                input_files=[input_path])
     
     elapsed = time.time() - stage_start
     logger.info(f"--- 阶段 30_robustness_text2vec 完成 (耗时 {elapsed:.1f} 秒) ---")

@@ -494,7 +494,7 @@ def main():
 
     if not os.path.exists(input_path):
         logger.error(f"输入文件未找到: {input_path}")
-        return
+        raise SystemExit(1)
 
     logger.info(f"加载输入: {input_path}")
     df = pd.read_parquet(input_path)

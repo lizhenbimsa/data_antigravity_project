@@ -1025,7 +1025,7 @@ def main():
     non_empty_dicts = [(name, d) for name, d in ALL_DICTIONARIES if len(d) > 0]
     if not non_empty_dicts:
         logger.error("所有情感词典均为空！请检查词典文件。")
-        return
+        raise SystemExit(1)
 
     logger.info(f"有效词典: {len(non_empty_dicts)}/{len(ALL_DICTIONARIES)} 个")
 
@@ -1036,7 +1036,7 @@ def main():
 
     if not os.path.exists(input_path):
         logger.error(f"输入文件未找到: {input_path}")
-        return
+        raise SystemExit(1)
 
     logger.info(f"正在从 {input_path} 加载数据...")
     df = pd.read_parquet(input_path)
@@ -1155,14 +1155,12 @@ def main():
 
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata
-    input_file = os.path.join(CONFIG['paths']['output_dir'],
-                              CONFIG['filenames']['output_14_fintech_intensity'])
     save_parquet_with_metadata(
         df=processed_df,
         output_path=output_path,
         stage_name="22_tone_words",
         config=CONFIG,
-        input_files=[input_file],
+        input_files=[input_path],
     )
 
     # 统计报告（双轨分别打印）

@@ -80,33 +80,36 @@ docs = [
 [tool.setuptools]
 include-package-data = true
 
+[tool.setuptools.package-data]
+news_process = [
+    ".env.example",
+    "config/**/*.csv",
+    "config/**/*.json",
+    "config/**/*.txt",
+    "config/**/*.yaml",
+    "config/**/*.xlsx",
+    "papers_assets/**/*.do",
+    "papers_assets/**/*.do.tmpl",
+    "papers_assets/**/*.md",
+    "stata/**/*.do",
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 # Only treat the `news_process` namespace and its sub-packages as packages.
-# This keeps setuptools from trying to discover root-level files like
-# `00_preprocessing.py` (their digit-prefixed names are not legal Python
-# identifiers and would otherwise crash package discovery).
+# This keeps setuptools from trying to discover unrelated repository folders.
 include = ["news_process*"]
 exclude = [
-    "tests*",
-    "scripts*",
-    "data*",
-    "logs*",
-    "stata*",
-    "papers_assets*",
-    "models*",
-    "papers*",  # 见下方 NOTE: 此条匹配 *仓库根 papers/* 旧 PDF 资产, 而非 news_process/papers/ 代码包
+    "news_process.tests*",
+    "news_process.data*",
+    "news_process.data_excel*",
+    "news_process.logs*",
+    "news_process.models*",
 ]
 namespaces = false
 
-# NOTE on `papers/` collision (Plan P3-12 时态修正, 2026-05-09):
-# 历史的"仓库根 ``papers/``"目录在 v1.x 用作论文 PDF 归档. 自 Phase 3 (v2.0.0)
-# 起, 同名代码包 ``news_process/papers/`` 已落地, 非代码资产搬到 ``papers_assets/``.
-# 上方 ``exclude = [..., "papers*"]`` 排除的是仓库根 (前缀匹配), 而代码包
-# ``news_process/papers/`` 由 ``include = ["news_process*"]`` 命中, 二者不冲突.
-
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["news_process/tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
 
@@ -138,11 +141,17 @@ show_missing = true
 target-version = "py310"
 line-length = 120  # 高于 PEP-8 默认 79, 容忍长 docstring 和长 SQL/正则 literal
 exclude = [
-    "scripts/audit/_replan_v5_evidence",  # 一次性 LLM 调试探针, 不入 lint
+    "news_process/scripts/audit/_replan_v5_evidence",  # 一次性 LLM 调试探针, 不入 lint
+    "scripts/audit/_replan_v5_evidence",
     "**/__pycache__",
     ".pytest_cache",
     ".tmp",
     ".test_tmp",
+    "news_process/data",
+    "news_process/data_excel",
+    "news_process/logs",
+    "news_process/models",
+    "news_process/papers_assets",
     "data",
     "data_excel",
     "logs",
@@ -172,7 +181,11 @@ ignore = [
     "UP035",  # deprecated-import: 14 处, 同上
     "UP045",  # non-pep604-annotation-optional: 6 处, 同上
 ]
-per-file-ignores = { "tests/**/*.py" = ["B017", "B011"] }  # 测试中允许 assert raises Exception 等
+
+[tool.ruff.lint.per-file-ignores]
+# 测试中允许 assert raises Exception 等。
+"tests/**/*.py" = ["B017", "B011"]
+"news_process/tests/**/*.py" = ["B017", "B011"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["news_process"]

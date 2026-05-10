@@ -50,7 +50,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
           cache-dependency-path: |
-            news_process/pyproject.toml
+            pyproject.toml
             news_process/requirements.txt
 
       - name: Install runtime deps (light - skip torch/transformers)
@@ -92,7 +92,12 @@ jobs:
           python -m pip install --upgrade pip
           # 走 pyproject.toml [project] dependencies 的真实安装路径
           # (Plan P2-8 后 single source of truth)
-          pip install -e ./news_process pytest pytest-asyncio
+          pip install -e . pytest pytest-asyncio
+
+      - name: Editable install smoke
+        if: matrix.dl-suite == 'full'
+        run: |
+          python -c "import news_process; import news_process.core.dag; print(news_process.__version__)"
 
       - name: Run tests (light - exclude DL tests)
         if: matrix.dl-suite == 'light'
@@ -145,9 +150,8 @@ jobs:
         # 当前 ~375 处 lint 警告 (主要 I001 import 排序 + F401 未用 import),
         # 不阻塞 CI; 仅作开发者可见的代码质量信号.
         continue-on-error: true
-        working-directory: ./news_process
         run: |
-          ruff check . --output-format=concise || true
+          ruff check news_process --output-format=concise || true
 
       - name: ruff check (high-risk classes, blocking)
         # Plan-r3 P0-2 + P2-13 已清零的 4 类高风险 lint, CI 严格防回归:
@@ -155,8 +159,7 @@ jobs:
         #   B023: closure-uses-loop-var (delayed-execution 翻车风险)
         #   F811: redefined-while-unused (重复 import / 重复 def)
         #   B033: duplicate-set-items ({0, 0.0, 1, 1.0} 类型混淆)
-        working-directory: ./news_process
         run: |
-          ruff check . \
+          ruff check news_process \
             --select F601,B023,F811,B033 \
             --no-cache

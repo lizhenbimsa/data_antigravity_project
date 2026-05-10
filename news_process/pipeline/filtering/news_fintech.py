@@ -239,14 +239,14 @@ def main():
 
     if not FINTECH_KEYWORDS:
         logger.error("金融科技词典为空！无法执行分类。")
-        return
+        raise SystemExit(1)
 
     input_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames']['output_11_bank_news'])
     output_path = os.path.join(CONFIG['paths']['output_dir'], CONFIG['filenames']['output_12_fintech_news'])
 
     if not os.path.exists(input_path):
         logger.error(f"输入文件未找到: {input_path}")
-        return
+        raise SystemExit(1)
 
     logger.info(f"正在从 {input_path} 加载数据...")
     df = pd.read_parquet(input_path)

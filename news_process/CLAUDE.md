@@ -69,17 +69,18 @@ news_process/
 ### Environment Setup
 
 ```bash
+# From repository root
 # Create virtual environment
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Install dependencies (choose one)
-pip install -r requirements.lock    # Recommended: exact versions for reproducibility
-pip install -e .                     # Development: range versions from pyproject.toml
-pip install -r requirements.txt      # Fallback for pip-only users
+pip install -e .                                  # Development: range versions from pyproject.toml
+pip install -r news_process/requirements.lock && pip install -e . --no-deps  # Exact deps + editable package
+pip install -r news_process/requirements.txt && pip install -e . --no-deps   # Fallback for pip-only users
 
 # Configure environment
-cp .env.example .env
+cp news_process/.env.example news_process/.env
 # Edit .env: set YUNWU_API_KEY (required for LLM stages)
 ```
 

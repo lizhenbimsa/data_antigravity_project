@@ -101,8 +101,11 @@ news_process/
 ├── run_pipeline_function.py    # 主管线编排 (消费 core.dag.STAGES_MAIN)
 ├── run_pipeline_validation.py  # 验证管线编排 (消费 core.dag.STAGES_VALIDATION)
 ├── run_paper.py                # 多论文 CLI 调度器
-└── pyproject.toml              # setuptools.packages.find = ["news_process*"]; version = "2.1.0"
+├── requirements*.txt           # pip-only / lockfile 依赖入口
+└── __init__.py                 # 包版本与重构状态说明
 ```
+
+仓库根目录的 `pyproject.toml` 是 Python package metadata 与 editable install 入口。
 
 ## 2. 快速上手
 
@@ -111,11 +114,15 @@ news_process/
 ```bash
 # 假定 Python 3.13 + Anaconda
 python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r news_process/requirements.txt
+.venv/Scripts/python.exe -m pip install -e .
+# 如需严格复现锁定依赖，也可使用：
+# .venv/Scripts/python.exe -m pip install -r news_process/requirements.lock
+# .venv/Scripts/python.exe -m pip install -e . --no-deps
 
 # 复制 .env 模板, 填入 LLM API 密钥
 cp news_process/.env.example news_process/.env
-# 编辑 .env: GPT5NANO_API_KEY / GEMINI3_API_KEY / CLAUDE4H_API_KEY / EMBEDDING_API_KEY
+# 编辑 .env: 必填 YUNWU_API_KEY；可选覆盖 EMBEDDING_API_KEY / FINBERT2_MODEL_DIR
+# GPT5NANO_API_KEY / GEMINI3_API_KEY / CLAUDE4H_API_KEY 仅为 legacy 探针脚本兼容项，主流程不读取。
 ```
 
 ### 2.2 跑整条流水线（主线论文）
@@ -252,7 +259,7 @@ baseline-pre-restructure    重整起点
   改为 `subprocess.Popen([python, "-m", module])`. 详细计划与外部影响面
   评估见 [`docs/guides/thin_shim_pattern.md`](docs/guides/thin_shim_pattern.md)。
 - **极低优先级**: `data/processed/<group>/` 业务组子分区。当前 Phase 8 的"单层重命名"方案保留扁平布局；若未来出现存储分层、按组冷存储保留策略等场景，可参考 `scripts/migrate/migrate_data_layout.py` 完成深一级分组。但需注意：跨阶段交叉读取（如 stage 21 读 stage 14、stage 24 读 stage 23）会迫使 `CONFIG['filenames']` 携带组前缀信息，反向增加耦合，违反 DRY — 不推荐做此细分。
-- **历史命名遗留** (Phase 9 范围外, 留待 v3.0): `papers/bank_fintech_tone/analysis.py:35` 的 `_LOGGER` name 仍含 v1.x paper id `news_process` (应为 `bank_fintech_tone`); 同文件 docstring 中 `python -m news_process.run_paper news_process` 同样残留; `pyproject.toml` 部分 NOTE 用 Phase 1/3 时态描述。
+- **历史命名遗留** (Phase 9 范围外, 留待 v3.0): `papers/bank_fintech_tone/analysis.py:35` 的 `_LOGGER` name 仍含 v1.x paper id `news_process` (应为 `bank_fintech_tone`); 同文件 docstring 中 `python -m news_process.run_paper news_process` 同样残留。
 
 > **Phase 7a (2026-05-04)** 已完成 8 个 pipeline 类 root body 迁入 `pipeline/<sub>/` + thin shim 化。
 > **Phase 7b (2026-05-04)** 已完成 13 个 validation 类 root body 迁入 `news_process/validation/` 扁平布局 + thin shim 化。

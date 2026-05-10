@@ -717,7 +717,7 @@ def main():
 
     if not os.path.exists(input_path):
         logger.error(f"输入文件未找到: {input_path}")
-        return
+        raise SystemExit(1)
 
     logger.info(f"正在从 {input_path} 加载数据...")
     df = pd.read_parquet(input_path)
@@ -732,7 +732,7 @@ def main():
     loaded_names = engine.load_all()
     if not loaded_names:
         logger.error("没有模型加载成功，退出阶段")
-        return
+        raise SystemExit(1)
     log_memory_usage(logger, "全部模型加载后")
 
     # ── Step 1b: 构建双轨文本列表 ──
@@ -781,14 +781,12 @@ def main():
     # ── Step 4: 保存输出 ──
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata
-    input_file = os.path.join(CONFIG['paths']['output_dir'],
-                              CONFIG['filenames']['output_14_fintech_intensity'])
     save_parquet_with_metadata(
         df=df,
         output_path=output_path,
         stage_name="23_tone_berts",
         config=CONFIG,
-        input_files=[input_file],
+        input_files=[input_path],
     )
     logger.info(f"已保存输出文件: {output_path} ({len(df):,} 行)")
 

@@ -318,6 +318,19 @@ def run_pipeline(args: argparse.Namespace | None = None):
                 SCRIPT_DIR,
                 timeout=timeout,
             )
+
+            if success and output_files:
+                missing_outputs = [
+                    filename for filename in output_files
+                    if not os.path.exists(os.path.join(CONFIG['paths']['output_dir'], filename))
+                ]
+                if missing_outputs:
+                    logger.error(
+                        f"{name} 子进程返回成功，但登记输出未生成: {missing_outputs}. "
+                        f"按失败处理以避免下游读取陈旧或缺失数据。"
+                    )
+                    success = False
+
             stage_timings.append((name, elapsed, success))
 
             if not success:
