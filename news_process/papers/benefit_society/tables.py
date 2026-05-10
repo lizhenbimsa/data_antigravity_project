@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from news_process.papers._common import PaperConfig
 from news_process.papers._common.tables import build_summary_table, write_summary_table
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 _TABLE1_VARIABLES: list[str] = [

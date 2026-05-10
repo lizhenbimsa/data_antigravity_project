@@ -4,22 +4,29 @@ import argparse
 from pathlib import Path
 from typing import List
 
+from news_process.core.config import load_config
 from news_process.core.data_versioning import read_parquet_metadata, verify_data_integrity
 from news_process.core.schemas import OUTPUT_REGISTRY
 
 
-def audit_all_data() -> List[dict]:
+def audit_all_data(output_dir: str | Path | None = None) -> List[dict]:
     """
     审计所有数据文件。
+
+    Args:
+        output_dir: 可选的处理数据目录；默认读取配置中的 paths.output_dir。
 
     Returns:
         审计结果列表
     """
     results = []
+    if output_dir is None:
+        output_dir = load_config()["paths"]["output_dir"]
+    output_dir = Path(output_dir)
 
     for stage, output_files in OUTPUT_REGISTRY.items():
         for output_file in output_files:
-            output_path = Path("data/processed") / output_file
+            output_path = output_dir / output_file
 
             result = {
                 "file": output_file,

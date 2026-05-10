@@ -154,12 +154,13 @@ jobs:
           ruff check news_process --output-format=concise || true
 
       - name: ruff check (high-risk classes, blocking)
-        # Plan-r3 P0-2 + P2-13 已清零的 4 类高风险 lint, CI 严格防回归:
+        # Plan-r3 P0-2 + P2-13 已清零的高风险 lint, CI 严格防回归:
         #   F601: dict-key-repeated  (silent override 风险)
+        #   F821: undefined-name (运行到该路径才炸的拼写/变量名错误)
         #   B023: closure-uses-loop-var (delayed-execution 翻车风险)
         #   F811: redefined-while-unused (重复 import / 重复 def)
         #   B033: duplicate-set-items ({0, 0.0, 1, 1.0} 类型混淆)
         run: |
           ruff check news_process \
-            --select F601,B023,F811,B033 \
+            --select F601,F821,B023,F811,B033 \
             --no-cache

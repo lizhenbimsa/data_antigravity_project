@@ -29,12 +29,12 @@ news_process/
 ├── core/                       # 共享内核 (Phase 1)
 │   ├── config.py               #   YAML loader + .env + split-mode + prompt 内联
 │   ├── logging.py              #   带 NEWS_PROCESS_RUN_ID 隔离的多进程日志
-│   ├── parallel.py             #   joblib / ProcessPoolExecutor 包装
 │   ├── reporting.py            #   parquet/csv/dta 持久化 + 数据集摘要
 │   ├── stage.py                #   子进程隔离的阶段执行器
 │   ├── locking.py              #   PipelineLock (跨平台文件锁)
 │   ├── caching.py              #   LLMCache (SQLite 持久化)
-│   ├── quality.py              #   数据质量校验
+│   ├── data_versioning.py      #   parquet 元数据 + 血缘追踪
+│   ├── run_id.py               #   运行 ID 生成
 │   ├── schemas.py              #   OUTPUT_REGISTRY 单源 (stage → parquet 文件名)
 │   ├── dag.py                  #   STAGES_MAIN / STAGES_VALIDATION 声明式 DAG
 │   └── text/                   #   AC自动机 + 规范化 + 实体上下文抽取
@@ -90,7 +90,7 @@ news_process/
 │
 ├── data_excel/                 # 原始 XLSX 数据 (gitignored)
 ├── data/processed/             # 各阶段 parquet/dta/csv 输出 (gitignored, Phase 8 重命名)
-├── tests/                      # pytest 测试套件 (772 用例, 当前全通过; v2.1.0 baseline)
+├── tests/                      # pytest 测试套件 (HEAD baseline: 814 passed / 2 skipped)
 │   └── integration/            #   跨阶段集成测试 (含 Phase 0 可复现性门槛)
 ├── scripts/
 │   ├── audit/                  #   一次性审计脚本 (sys.exit-style)
@@ -178,7 +178,8 @@ python -m pytest news_process/tests/test_00_preprocessing.py -v
 
 - **Split mode (优先)**: `config/{paths,preprocessing,filtering,sentiment,features,panel,validation}.yaml`
   全部存在 → deep-merge 加载，外部 prompt `.txt` 自动内联到对应 `_template` 键
-- **Legacy mode (向后兼容)**: 任一 split YAML 缺失 → 退回单文件 `config/config.yaml`
+- **Legacy mode (向后兼容)**: 7 个 split YAML 全部缺失时 → 退回单文件 `config/config.yaml`
+  （若只缺一部分 split YAML，loader 会显式报错以避免静默读到不完整配置）
 
 `tests/integration/test_config_split_equivalence.py` 守护两种模式语义等价。
 

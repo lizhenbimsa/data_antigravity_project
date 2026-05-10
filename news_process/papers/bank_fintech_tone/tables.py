@@ -16,9 +16,13 @@ Phase 3c 交付物 (最小可用集)
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from news_process.papers._common import PaperConfig
 from news_process.papers._common.tables import build_summary_table, write_summary_table
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 # Bank-FinTech-Tone 主线论文的 Table 1 核心变量集.

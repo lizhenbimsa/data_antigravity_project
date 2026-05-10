@@ -248,7 +248,7 @@ def main():
     out_path = os.path.join(output_dir, '30_text2vec_indicators.parquet')
     save_dataset(panel, out_path, logger,
                 stage_name="30_robustness_text2vec",
-                config=cfg,
+                config=CONFIG,
                 input_files=[input_path])
     
     elapsed = time.time() - stage_start
