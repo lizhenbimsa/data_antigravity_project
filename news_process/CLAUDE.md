@@ -12,8 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v2.1.0 + cleanup/2026-05-13 + Wave 0/1 + Batch P0 + V8 (golden refresh + LLM snapshot metadata + BERT determinism + ruff clean + pre-commit + CI fail-fast + LLMCache.stats() + pyproject dev extras + log prune + main-paper smoke tests + Wave 2 iv_did batch 1)
-**Test baseline**: 891 passed / 2 skipped / 0 failed (Wave 1 +4 BERT determinism + Batch P0 +6 cache stats + 2 BERT->panel invariant + V8 +5 log-prune + 11 main-paper smoke + 12 iv_did paper-critical math)
+**Current version**: v2.1.0 + cleanup/2026-05-13 + Wave 0/1 + Batch P0 + V8 + Priority ABC (golden refresh + LLM snapshot metadata + BERT determinism + ruff clean + pre-commit + CI fail-fast + LLMCache.stats() + pyproject dev extras + log prune + main-paper smoke + Wave 2 iv_did b1+b2 + 4 derived-paper smoke + 6 panel modules smoke)
+**Test baseline**: 956 passed / 2 skipped / 0 failed (Wave 1 +4 BERT determinism + Batch P0 +6 cache stats + 2 BERT->panel invariant + V8 +5 log-prune + 11 main-paper smoke + Wave 2 b1 +12 iv_did math + Priority B +40 derived-paper smoke + Priority A +17 panel modules smoke + Priority C1 +8 DID policy shocks)
 
 ## Architecture
 
@@ -40,7 +40,7 @@ news_process/
 ├── validation/     # Robustness tests (threshold sensitivity, entity masking, etc.)
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
-├── tests/          # 891 passed / 2 skipped HEAD baseline (integration + unit)
+├── tests/          # 956 passed / 2 skipped HEAD baseline (integration + unit)
 └── NN_*.py         # 26 thin shim scripts under news_process/ (≤30 lines each,
                     # NN ∈ {00, 11..15, 21..24, 30..39 incl. 32a/38a/38b, 45, 51..53};
                     # delegate to pipeline/; planned retirement: Plan-r3 P3-18
