@@ -1,9 +1,5 @@
 # CLAUDE.md
 
-![CI Status](https://github.com/YOUR_USERNAME/news_process/workflows/CI/badge.svg)
-![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)
-![Test Coverage](https://img.shields.io/badge/tests-814%20passed-green)
-
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 # Communication
@@ -72,7 +68,12 @@ news_process/
 # From repository root
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+# Windows cmd.exe:
+venv\Scripts\activate
+# Windows PowerShell (本项目主环境):
+venv\Scripts\Activate.ps1
 
 # Install dependencies (choose one)
 pip install -e .                                  # Development: range versions from pyproject.toml
