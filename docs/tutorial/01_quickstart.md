@@ -110,12 +110,12 @@ Papers loaded: ['bank_fintech_tone', 'benefit_society', 'brokerage_network', 'll
 .venv/Scripts/python.exe -m pytest news_process/tests/
 ```
 
-期望（post-recode round 3 / Plan-r3 P0-P3, 2026-05-09）：
+期望（post-Wave 0/1 + Batch P0, 2026-05-13）：
 
 ```
-814 passed, 2 skipped, 33 warnings in ~33s   # HEAD baseline (jieba warm cache, cold start ~75s)
-                                             # (v2.1.0 = 772; round 1+2 = 782; round 2 sidecar = 786; round 3 P0-P3 = 805;
-                                             #  recode = 808; final recode = 810; round-3 review = 814)
+863 passed, 2 skipped, 33 warnings in ~33s   # HEAD baseline (jieba warm cache, cold start ~75s)
+                                             # 演进: v2.1.0=772 -> round 3 review=814 -> Wave 1 (+ BERT determinism)=855
+                                             #      -> Batch P0 (+ cache stats + BERT invariant)=863
 ```
 
 ```{warning}
