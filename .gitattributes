@@ -1,0 +1,21 @@
+# 仓库根 .gitattributes
+# =====================
+# V7 (2026-05-13): 仅标记二进制文件类型, 不写 `* text=auto eol=lf` —
+# 历史已混合 CRLF/LF, 强制 renormalize 会产生数百行尾改动 diff。
+# 当前策略: 文本文件保留 on-disk 行尾; 二进制文件正确标记避免 git
+# 尝试做文本 diff/merge。
+
+*.parquet binary
+*.xlsx    binary
+*.xls     binary
+*.db      binary
+*.pkl     binary
+*.pdf     binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.zip     binary
+*.7z      binary
+*.tar     binary
+*.gz      binary
