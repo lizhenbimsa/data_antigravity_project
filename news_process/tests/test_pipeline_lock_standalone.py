@@ -281,13 +281,13 @@ class TestPipelineLock(unittest.TestCase):
 
         if sys.platform == 'win32':
             try:
-                import msvcrt
+                import msvcrt  # noqa: F401 — 测试目的: 验证模块可导入
                 print("  - Windows平台: msvcrt模块可用")
             except ImportError:
                 self.fail("Windows平台应该有msvcrt模块")
         else:
             try:
-                import fcntl
+                import fcntl  # noqa: F401 — 测试目的: 验证模块可导入
                 print("  - Unix/Linux平台: fcntl模块可用")
             except ImportError:
                 self.fail("Unix/Linux平台应该有fcntl模块")

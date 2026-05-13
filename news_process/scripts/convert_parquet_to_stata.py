@@ -96,7 +96,9 @@ def convert_parquet_to_stata(
             # 只有当转换成功（不全是NaN）时才替换
             if not numeric_col.isna().all():
                 df[col] = numeric_col
-        except:
+        except (TypeError, ValueError):
+            # 非数值列 (str/object/mixed dtype) 转换会 raise TypeError/ValueError;
+            # 跳过即可, 保持原列不变.
             pass
 
     print("[OK] 数据类型处理完成")

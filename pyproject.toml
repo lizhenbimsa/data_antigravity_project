@@ -194,12 +194,29 @@ ignore = [
               # 全切到 PEP-585 留待 v3.0 (Plan-r3 P3-16 与 god-function docstring 同期)
     "UP035",  # deprecated-import: 14 处, 同上
     "UP045",  # non-pep604-annotation-optional: 6 处, 同上
+    # V4 T1.4 (2026-05-13): 加入剩余 89 警告中的纯样式类
+    "SIM108", # if-else-block-instead-of-if-exp: 21 处, ternary 偏好;
+              # 长 if-else 在多分支/含注释的情形下比 ternary 更可读.
+    "SIM102", # collapsible-if: 2 处, 嵌套 if 有时更清晰 (尤其当各层独立诊断时).
+    "SIM113", # enumerate-for-loop: 4 处, 手动计数器在某些 streaming 场景更明确.
+    "SIM118", # in-dict-keys: 4 处剩余, .keys() 显式有时更可读.
+    "SIM112", # uncapitalized-environment-variables: 2 处, NEWS_PROCESS_RUN_ID 已全大写;
+              # 误报往往是 logger var 名巧合.
+    "SIM115", # open-file-with-context-handler: 2 处, 手动审查后保留 (临时打开 + flush).
+    "E712",   # true-false-comparison: 10 处, pandas Series 与 == True/False 比较是
+              # 必要的 (Boolean indexing 与 .where() 模式); 全切 'is True' 会破坏向量化.
+    "E741",   # ambiguous-variable-name (l/I/O): 10 处, 多见于 scripts/audit 一次性脚本
+              # 的列表推导 `[l for l in lines]`. v3.0 重构期再统一改名.
+    "E701",   # multiple-statements-on-one-line-colon: 4 处, if/try 单语句行格式选择.
+    "E702",   # multiple-statements-on-one-line-semicolon: 8 处, 同上.
 ]
 
 [tool.ruff.lint.per-file-ignores]
 # 测试中允许 assert raises Exception 等。
 "tests/**/*.py" = ["B017", "B011"]
-"news_process/tests/**/*.py" = ["B017", "B011"]
+"news_process/tests/**/*.py" = ["B017", "B011", "F841"]  # F841 in tests: 有意保留以记录 fixture 调用
+"news_process/scripts/**/*.py" = ["F841"]  # audit/migration 脚本一次性, 不强求 F841
+"news_process/validation/**/*.py" = ["F841"]  # 评估脚本类似
 
 [tool.ruff.lint.isort]
 known-first-party = ["news_process"]

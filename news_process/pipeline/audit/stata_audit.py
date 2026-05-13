@@ -183,7 +183,6 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
         for var, expected_miss, label in key_vars:
             if var in panel.columns:
                 miss_pct = panel[var].isna().mean()
-                zero_news_pct = (panel['n_articles'] == 0).mean() if 'n_articles' in panel.columns else 0
                 if expected_miss is not None:
                     if miss_pct > expected_miss + 0.01:
                         record(cat, f'关键变量缺失-{label}', 'FAIL',
@@ -641,10 +640,6 @@ def audit_cross_file_consistency(panel_40: pd.DataFrame, panel_51: pd.DataFrame)
         record(cat, '行数一致', 'PASS', f'均为 {len(panel_40)} 行')
 
     # 7b. 核心变量值一致
-    common_cols = sorted(set(panel_40.columns) & set(panel_51.columns))
-    key_check_cols = ['target_bank', 'year', 'n_articles', 'llm_vote_tone_full',
-                      'llm_vote_tone_ctx', 'ln_news_coverage']
-
     merged = panel_40[['target_bank', 'year']].merge(
         panel_51[['target_bank', 'year']], on=['target_bank', 'year'], how='outer', indicator=True
     )

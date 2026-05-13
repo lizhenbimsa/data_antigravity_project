@@ -265,21 +265,27 @@ def extract_variable_stats(
 # 4. 生成完整的变量代码手册
 # ============================================================================
 
+_DEFAULT_CODEBOOK_FORMATS: tuple[str, ...] = ('excel', 'csv', 'markdown', 'json')
+
+
 def generate_codebook(
     panel: pd.DataFrame,
     output_dir: str,
-    formats: List[str] = ['excel', 'csv', 'markdown', 'json']
+    formats: List[str] | None = None,
 ) -> Dict[str, str]:
     """生成完整的变量代码手册
 
     Args:
         panel: 面板数据
         output_dir: 输出目录
-        formats: 输出格式列表，可选：'excel', 'csv', 'markdown', 'json'
+        formats: 输出格式列表，可选：'excel', 'csv', 'markdown', 'json'.
+            None 时取 _DEFAULT_CODEBOOK_FORMATS 全 4 格式.
 
     Returns:
         生成的文件路径字典
     """
+    if formats is None:
+        formats = list(_DEFAULT_CODEBOOK_FORMATS)
     logger.info("=" * 70)
     logger.info("生成变量代码手册（Variable Codebook）")
     logger.info("=" * 70)

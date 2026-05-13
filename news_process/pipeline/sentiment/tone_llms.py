@@ -738,7 +738,6 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     text_types = []
     per_model_parsed = {}
     n_failures = 0
-    n_models = len(models)
 
     for m in models:
         short = m['short_name']

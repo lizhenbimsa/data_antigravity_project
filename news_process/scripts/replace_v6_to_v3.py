@@ -16,7 +16,6 @@ replacements = {
     "v3 LLM 模型列表": "v3 LLM 模型列表",
     "v3:": "v3:",
     "OpenAI + Google + DeepSeek": "OpenAI + Google + DeepSeek",
-    "OpenAI + Google + DeepSeek": "OpenAI + Google + DeepSeek",
     "GPT-5.4 Nano (OpenAI via yunwu)": "GPT-5.4 Nano (OpenAI via yunwu)",
     "Gemini 3.1 Flash Lite Preview (Google via yunwu)": "Gemini 3.1 Flash Lite Preview (Google via yunwu)",
     "DeepSeek V4 Flash (DeepSeek via yunwu)": "DeepSeek V4 Flash (DeepSeek via yunwu)",
