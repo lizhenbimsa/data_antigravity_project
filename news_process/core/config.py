@@ -66,12 +66,22 @@ def _deep_merge(a: dict, b: dict) -> dict:
     return result
 
 
+_PROMPT_VERSION_HEADER = re.compile(r'^#\s*version:\s*(\S+)\s*\r?\n')
+
+
 def _inline_external_prompts(config: dict, project_root: str) -> None:
     """递归遍历 config, 将 ``X_template_file`` 键替换为对应磁盘内容。
 
     约定: 任何以 ``_template_file`` 结尾的叶节点键 (其值是 YAML 中指向某个
     ``.txt`` 文件的路径), 会被读取后将文件内容写到 *同名键去掉 ``_file``
     后缀* 的位置上, 然后保留 ``_file`` 元数据 (供下游可追溯)。
+
+    Plan-r3 P3-17 续: 若文件首行匹配 ``# version: <token>\\n``, 则:
+    - 把版本 token 写入 ``<target_key>_version`` 键 (供 callsite 传给
+      ``LLMCache.get/put`` 的 ``prompt_version`` 参数);
+    - 从 content 中剥离该首行, 避免把版本头当作 prompt 内容污染模型输入。
+    若无版本头, ``<target_key>_version`` 默认为 ``"v0"`` (与 caching.py
+    LLMCache 默认值一致, 与历史无关键值兼容)。
 
     这样下游代码 (例如 ``cfg['tone_llm_processing']['prompt_template']``)
     无论 prompt 是 YAML 内联 (legacy mode) 还是外部 ``.txt`` (Phase 4d
@@ -95,6 +105,12 @@ def _inline_external_prompts(config: dict, project_root: str) -> None:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
+                m = _PROMPT_VERSION_HEADER.match(content)
+                if m is not None:
+                    config[target_key + '_version'] = m.group(1)
+                    content = content[m.end():]
+                else:
+                    config[target_key + '_version'] = 'v0'
                 config[target_key] = content
                 # 保留 *_file 元数据供可追溯性使用 (下游若忽略此键, 仍向后兼容)。
             except FileNotFoundError:

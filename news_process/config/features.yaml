@@ -6,6 +6,12 @@ embedding_api:
   model: shibing624/text2vec-base-chinese
   base_url: local
   api_key: local
+  # Plan-r3 P3-17 接入: 传给 LLMCache.get/put 的 prompt_version 参数,
+  # 用于 embedding callsite (policy_alignment / benefit_society /
+  # strategic_diff / network_spillover) 的缓存键命名空间。
+  # 任何对 embedding 模型 / 文本预处理 / 切片策略的变更必须 bump 此版本号,
+  # 让既有 cache 自动失效, 防止 silent staleness 污染分析结果。
+  text_pipeline_version: "v1-2026-05-13"
 
 benefit_society:
   max_tokens_per_input: 8191        # 单条输入 token 上限 (text-embedding-3-small 硬性上限)

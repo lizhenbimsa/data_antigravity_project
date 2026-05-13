@@ -977,8 +977,18 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None)
     headers = {"Content-Type": "application/json",
                "Authorization": f"Bearer {api_key}"}
 
+    # Plan-r3 P3-17 接入: embedding 缓存键的 prompt_version 维度.
+    text_pipeline_version = (
+        EMBEDDING_CONFIG.get('text_pipeline_version', 'v0')
+        if EMBEDDING_CONFIG else 'v0'
+    )
+
     # 查询缓存
-    cached_results = [cache.get(model, text) if cache else None for text in texts]
+    cached_results = [
+        cache.get(model, text, prompt_version=text_pipeline_version)
+        if cache else None
+        for text in texts
+    ]
     missing_indices = [i for i, res in enumerate(cached_results) if res is None]
     missing_texts = [texts[i] for i in missing_indices]
 
@@ -1010,7 +1020,8 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None)
                         cache.put_batch(
                             model,
                             batch_texts,
-                            [json.dumps(emb) for emb in batch_embs]
+                            [json.dumps(emb) for emb in batch_embs],
+                            prompt_version=text_pipeline_version,
                         )
 
                 logger.info(f"    Embedding batch {i // BATCH + 1}/"

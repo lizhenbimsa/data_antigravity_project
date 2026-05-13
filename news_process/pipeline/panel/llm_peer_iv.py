@@ -267,6 +267,10 @@ PEER_PROMPT = """你是一位中国银行业金融科技分析师。以下是 {y
 仅输出 JSON: {{"peers": ["银行A全称", "银行B全称", ...]}}
 最多 10 家，按竞争强度排列。无法判断则 {{"peers": []}}。"""
 
+# Plan-r3 P3-17 接入: PEER_PROMPT 是模块内联常量 (不经 config/prompts/),
+# 任何对此字符串的修改必须同步 bump 此版本号, 让既有 LLMCache 自动失效.
+PEER_PROMPT_VERSION = "v1-2026-05-13"
+
 
 # ============================================================================
 # 6. LLM API 调用
@@ -300,7 +304,7 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
 
     # 查询 LLMCache (SQLite 持久化缓存)
     if cache is not None:
-        cached = cache.get(model_id, prompt)
+        cached = cache.get(model_id, prompt, prompt_version=PEER_PROMPT_VERSION)
         if cached:
             return bank, year, cached
 
@@ -329,7 +333,8 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
                         result = data['choices'][0]['message']['content']
                         # 写入 LLMCache (SQLite 持久化缓存)
                         if cache is not None:
-                            cache.put(model_id, prompt, result)
+                            cache.put(model_id, prompt, result,
+                                      prompt_version=PEER_PROMPT_VERSION)
                         return bank, year, result
                     elif resp.status in (429, 500, 502, 503, 504):
                         logger.warning(f"[Peer-IV] {bank}_{year} HTTP {resp.status}, "

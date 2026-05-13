@@ -197,13 +197,20 @@ async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int],
     if not base_url or not api_key:
         raise RuntimeError("Embedding API config missing base_url or api_key")
     base_url = str(base_url).rstrip("/")
+    # Plan-r3 P3-17 接入: embedding 缓存键的 prompt_version 维度,
+    # 防止改 embedding model / 文本预处理后旧 cache silent 命中.
+    text_pipeline_version = EMBEDDING_CONFIG.get('text_pipeline_version', 'v0')
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
 
     # --- 1. 穿透式缓存层 ---
-    cached_results = [cache.get(embedding_model, text) if cache else None for text in texts]
+    cached_results = [
+        cache.get(embedding_model, text, prompt_version=text_pipeline_version)
+        if cache else None
+        for text in texts
+    ]
     missing_indices = [i for i, res in enumerate(cached_results) if res is None]
     missing_texts = [texts[i] for i in missing_indices]
     missing_tokens = [token_counts[i] for i in missing_indices]
@@ -251,7 +258,8 @@ async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int],
                                     cache.put_batch(
                                         embedding_model,
                                         batch,
-                                        [json.dumps(emb) for emb in batch_embs]
+                                        [json.dumps(emb) for emb in batch_embs],
+                                        prompt_version=text_pipeline_version,
                                     )
                                 break  # 成功，跳出无限重试
                             elif status in (429, 500, 502, 503, 504):

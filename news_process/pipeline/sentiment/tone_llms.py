@@ -118,6 +118,11 @@ MODELS = LLM_CONFIG.get('models', [])
 MAX_CONCURRENCY = max(1, int(LLM_CONFIG.get('max_concurrency', 10)))
 # Prompt 模板: 包含 {title}, {content}, {target_bank}, {co_mentioned_banks} 占位符
 PROMPT_TEMPLATE = LLM_CONFIG.get('prompt_template', '')
+# Plan-r3 P3-17 接入: 由 core/config.py::_inline_external_prompts 从
+# config/prompts/unified_cot.txt 首行 ``# version: <token>`` 自动解析.
+# 用于 LLMCache.get/put 的 prompt_version 维度, 防止改 prompt 模板后旧
+# cache 静默命中污染分析结果. 默认 "v0" (与 LLMCache 默认值兼容).
+PROMPT_VERSION = LLM_CONFIG.get('prompt_template_version', 'v0')
 # G-06: 温度参数锁定 — temperature=0 确保确定性推理输出, 保证可复现性
 # 学术依据: Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock price
 #           movements? Return predictability and large language models.
@@ -355,15 +360,16 @@ logger.info(f"Logit-to-Score 概率映射: enabled={LOGIT_SCORE_ENABLED}")
 # 2. 异步请求大模型 API
 # ============================================================================
 
-async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Semaphore, 
+async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Semaphore,
                           prompt: str, model_cfg: dict, row_idx: int, track: str,
                           cache: LLMCache = None,
                           request_pacer: AsyncRequestPacer | None = None,
                           model_availability: AsyncModelAvailability | None = None,
                           request_timeout: aiohttp.ClientTimeout | None = None,
-                          max_retries: int | None = None) -> tuple:
+                          max_retries: int | None = None,
+                          prompt_version: str = "v0") -> tuple:
     """异步请求单个模型的单篇文章，自带重试保护和缓存。
-    
+
     model_cfg 结构示例：
         {model_name: ..., short_name: ..., base_url: ..., api_key: ...}
     每个模型可独立指定 base_url 和 api_key。
@@ -371,7 +377,11 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     Args:
         track: 'full'、'ctx' 或 'title'，标识本次请求使用的文本轨道。
         cache: LLMCache 实例，用于查询/写入缓存。
-    
+        prompt_version: prompt 模板版本字符串 (例如 ``"v6-2026-05-13"``),
+            传给 ``LLMCache.get/put`` 用作缓存键命名空间。caller 根据
+            track 选择对应模板的版本号 (full/ctx → PROMPT_VERSION,
+            title → TITLE_PROMPT_VERSION)。
+
     Returns:
         tuple: (row_idx, model_id, result_text, track)
     """
@@ -381,7 +391,7 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
 
     # 缓存查询（sqlite3 同步调用为微秒级，不阻塞事件循环）
     if cache is not None:
-        cached_response = cache.get(model_id, prompt)
+        cached_response = cache.get(model_id, prompt, prompt_version=prompt_version)
         if cached_response is not None:
             return row_idx, model_id, cached_response, track
 
@@ -411,7 +421,8 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                         data = await resp.json()
                         result_text = data['choices'][0]['message']['content']
                         if cache is not None:
-                            cache.put(model_id, prompt, result_text)
+                            cache.put(model_id, prompt, result_text,
+                                      prompt_version=prompt_version)
                         return row_idx, model_id, result_text, track
                     elif resp.status in (429, 500, 502, 503, 504):
                         last_failure_reason = f"连续 {max_attempts} 次请求未成功，最后状态码 {resp.status}"
@@ -499,6 +510,7 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
                             session, semaphore, prompt, m, idx, track, cache=cache,
                             request_pacer=request_pacers.get(m['model_name']),
                             model_availability=model_availability,
+                            prompt_version=PROMPT_VERSION,
                         )
                     )
         
@@ -1291,6 +1303,11 @@ def main():
         #           该文证明: 标题短文本LLM情感与全文情感的交叉验证可有效
         #           识别"标题党"偏差并提升情感度量的鲁棒性。
         TITLE_PROMPT_TEMPLATE = LLM_CONFIG.get('title_sentiment_prompt_template', '')
+        # Plan-r3 P3-17 接入: 与 PROMPT_VERSION 同源, 由 core/config.py
+        # 自动从 config/prompts/title_sentiment.txt 的 ``# version:`` 头解析.
+        TITLE_PROMPT_VERSION = LLM_CONFIG.get(
+            'title_sentiment_prompt_template_version', 'v0'
+        )
 
         if TITLE_PROMPT_TEMPLATE and len(df_filtered) > 0:
             logger.info(f"── 标题轨道情感提取开始 ({len(df_filtered)} 条已验证样本) ──")
@@ -1331,6 +1348,7 @@ def main():
                                     session, semaphore, prompt, m, b_idx, 'title', cache=cache,
                                     request_pacer=request_pacers.get(m['model_name']),
                                     model_availability=model_availability,
+                                    prompt_version=TITLE_PROMPT_VERSION,
                                 )
                             )
 

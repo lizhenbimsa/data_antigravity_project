@@ -39,31 +39,41 @@
   / ``temperature`` 都有默认值 (v0 / 0.0); 旧调用方不修改也能跑, 只是
   键会落到 (v1, v0, 0.0) 命名空间, 与 round 1+2 (v0 命名空间) 完全隔离.
 
-⚠ Feature flag 启用状态 (Plan-r3 round-3 review R3 诚实声明)
-------------------------------------------------------------
-本模块的 ``prompt_version`` 维度当前是 **infrastructure ready, NOT YET
-wired into production callers** — 也就是:
+✅ Feature flag 启用状态 (v3.0, 2026-05-13)
+------------------------------------------
+本模块的 ``prompt_version`` 维度已 **全量接入 6 个生产 callsite**:
 
-- API 层面: ``_make_key/get/put/put_batch`` 已实现 ``prompt_version`` 维度,
-  并由 5 个 invariant test (test_pipeline_robustness.py) 守护正确性.
-- 调用层面: ``pipeline/sentiment/tone_llms.py`` / ``pipeline/features/
-  strategic_diff.py`` / ``pipeline/panel/llm_peer_iv.py`` /
-  ``pipeline/filtering/policy_alignment.py`` /
-  ``pipeline/features/benefit_society.py`` 共 5 个生产 LLM/embedding 调用
-  点, **全部使用 default ``prompt_version="v0"``**, 即未传该参数.
+- API 层面: ``_make_key/get/put/put_batch`` 实现 ``prompt_version`` 维度,
+  由 5 个 invariant test (test_pipeline_robustness.py) 守护正确性.
+- 接入机制: ``core/config.py::_inline_external_prompts`` 在加载
+  ``config/prompts/*.txt`` 时自动解析首行 ``# version: <token>`` 并写入
+  ``<key>_version`` 配置字段; callsite 通过 ``cfg[...]['prompt_template_version']``
+  或模块内联常量 ``PEER_PROMPT_VERSION`` / ``EMBEDDING_CONFIG['text_pipeline_version']``
+  显式传给 ``LLMCache.get/put``.
+- 调用层面 (6 个生产 callsite):
 
-这意味着:
-- 当前生产场景下, prompts/sentiment_cot.txt 改写后, 旧 cache 仍会命中
-  (因为新旧调用都用 prompt_version="v0", 共用同一 namespace).
-- silent staleness 风险与 round 3 之前**没有任何改变**.
-- v3.0 PR 应让 5 个生产 callsite 显式传入 ``prompt_version=cfg['prompts']
-  ['version']`` (从 prompts.yaml 头部 ``# version: v6-...`` 解析), 才能
-  真正激活防御.
+    1. ``pipeline/sentiment/tone_llms.py``        — full/ctx track, PROMPT_VERSION
+    2. ``pipeline/sentiment/tone_llms.py``        — title track, TITLE_PROMPT_VERSION
+    3. ``pipeline/panel/llm_peer_iv.py``          — PEER_PROMPT_VERSION (模块内联常量)
+    4. ``pipeline/filtering/policy_alignment.py`` — text_pipeline_version (embedding)
+    5. ``pipeline/features/benefit_society.py``   — text_pipeline_version (embedding)
+    6. ``pipeline/features/strategic_diff.py``    — text_pipeline_version (embedding)
+    7. ``pipeline/panel/network_spillover.py``    — text_pipeline_version (embedding)
 
-为什么 round 3 不一并启用? 因为 (a) 启用需要 prompts/*.txt 加版本头部
-+ config 解析逻辑 + 5 个 callsite 同步, 是 BREAKING 场景的扩散; (b)
-启用后所有现有 cache 在版本号未指定 → "v0" 时仍命中, 必须配合 prompt
-模板的 v6 标识才有效, 是 v3.0 整体 prompt 治理的一环.
+  注: tone_llms 内有 2 个 caller (full/ctx 和 title), 共 6 个文件 / 7 处.
+  之前 (Plan-r3 round 3) 注释错记为 "5 个", 漏报 network_spillover.
+
+效果:
+- 修改 ``config/prompts/unified_cot.txt`` 或 ``title_sentiment.txt`` 时,
+  把首行 ``# version: vX-YYYY-MM-DD`` bump 即可触发 cache silent miss,
+  确保新提示词重新调 API.
+- 修改 ``llm_peer_iv.py::PEER_PROMPT`` 字符串时, 同步 bump
+  ``PEER_PROMPT_VERSION`` 模块常量.
+- 修改 embedding 模型 / 文本预处理 / 切片策略时, 在 ``config/features.yaml::
+  embedding_api.text_pipeline_version`` bump 版本号.
+
+SCHEMA_VERSION 保持 v1 (无需再 bump): 现有 LLMCache 中以 (v1, "v0", 0.0)
+为键的历史条目继续命中; 仅当 callsite 传入新版本号时才走新 namespace.
 
 线程安全
 ---------
