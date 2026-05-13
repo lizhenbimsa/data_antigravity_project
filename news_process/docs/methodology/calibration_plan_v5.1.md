@@ -29,7 +29,7 @@
 | # | 检查项 | 通过门槛 | 失败动作 |
 |---|---|---|---|
 | G1 | Stage 33 标注数据存在 | `32_human_samples.xlsx` 4 列 notna ≥ 1 | 暂停 / 补跑标注 |
-| G2 | full 标注样本量 | `human_sentiment_full` notna ≥ **1000** | 暂停 |
+| G2 | full 标注样本量 | `32_human_samples_merged.xlsx` 中 `最终_情感` notna ≥ **1000**（merge_annotations 产出的中文共识列；`fit_calibrators.py` 内部将其映射为数值标签供 sklearn fit；现行 pipeline 不产生 `human_sentiment_full` 这个英文列名） | 暂停 |
 | G3 | per-model 样本量 | 每模型子层 ≥ **200**（fallback 链 §3.5） | 自动降级粒度 |
 | G4 | target_bank 唯一数 | ≥ **10**（v4 C1 修订；StratifiedGroupKFold 5-fold 冗余） | 5-fold → 3-fold 或 LOO |
 | G4-bis | 年份覆盖（诊断） | ≥ 3 年（不强制） | Methods Limitations 声明 |
@@ -197,7 +197,7 @@ with open('models/calibrators/bank_to_fold.json', 'w') as f:
 
 | 操作 | 文件 |
 |---|---|
-| 新建 | `pipeline/sentiment/calibration.py`（temperature_scale / fit_temperature / fit_isotonic_ovr / apply_oof_calibrator / apply_prod_calibrator / load_calibrators / verify_manifest / find_human_labels_path，~450 LOC，**全部 sklearn/scipy 必须 function-local lazy import**） |
+| 新建 | `pipeline/sentiment/calibration.py`（temperature_scale / fit_temperature / fit_isotonic_ovr / apply_oof_calibrator / apply_prod_calibrator / load_calibrators / verify_manifest / **find_human_labels_xlsx**（搜 `32_human_samples_merged.xlsx`，非 parquet）/ **load_human_labels**（读 xlsx + 映射 `最终_情感` "正面/中性/负面" → {0, 1, 2} 数值标签），~500 LOC，**全部 sklearn/scipy 必须 function-local lazy import**） |
 | **不改** | `tone_llms.py` Stage 21（v5.1 N1：零行修改） |
 | 改 | `pipeline/panel/encode.py` Stage 45（**校准 apply 在此**） |
 | 新建 | `scripts/calibration/fit_calibrators.py`（CLI 入口：`python -m news_process.scripts.calibration.fit_calibrators [--seed 42] [--n-folds 5] [--target-banks-min 10]`；退出码：0 成功 / 1 G3 fail / 2 G4 fail） |
