@@ -6,14 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Always respond in Simplified Chinese.
 - Explain code changes in Chinese.
-- Keep code comments in English unless the file already uses Chinese comments.
+- Code comments: technical terms in English, explanations in Chinese where the file already mixes both (the de facto convention across `core/`, `pipeline/`, `papers/`).
 
 ## Project Overview
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v2.1.0 (phase-9-baseline)
-**Test baseline**: 814 passed / 2 skipped / 0 failed
+**Current version**: v2.1.0 + cleanup/2026-05-13 + Wave 0 (golden refresh + LLM snapshot metadata)
+**Test baseline**: 851 passed / 2 skipped / 0 failed (refreshed 2026-05-13 after `f3a0000` + `1448611` prompt_version cache key migration)
 
 ## Architecture
 
@@ -40,8 +40,9 @@ news_process/
 ├── validation/     # Robustness tests (threshold sensitivity, entity masking, etc.)
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
-├── tests/          # 814 passed / 2 skipped HEAD baseline (integration + unit)
-└── XX_*.py         # 26 thin shim scripts (≤30 lines each, delegate to pipeline/)
+├── tests/          # 851 passed / 2 skipped HEAD baseline (integration + unit)
+└── XX_*.py         # 23 thin shim scripts (≤30 lines each, delegate to pipeline/);
+                    # planned retirement: Plan-r3 P3-18 (see docs/guides/thin_shim_pattern.md §11)
 ```
 
 **Key invariant**: Root `XX_*.py` scripts are thin shims. All logic lives in `news_process.pipeline.*`. Never add business logic to root scripts.
