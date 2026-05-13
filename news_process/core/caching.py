@@ -152,6 +152,15 @@ class LLMCache:
         """
         self.db_path = db_path
         self._lock = threading.Lock()
+        # T0.0a: 进程级运行时计数器 (不落盘, 每次 LLMCache 实例化重置).
+        # 用于 stage 21 / embedding stage 结束时打 hit-rate 摘要, 帮助
+        # 诊断"为什么这次 run 比上次慢" / "新 prompt_version 让缓存全 miss"
+        # 之类问题. 多线程下 get()/put() 都已经持 self._lock, 计数器与 DB
+        # 读写在同一临界区内增改, 无额外同步开销.
+        self._hits = 0       # v1 命中
+        self._v0_hits = 0    # v0 fallback 命中 (老 cache 兼容路径)
+        self._misses = 0     # 两条路径都 miss
+        self._writes = 0     # put + put_batch 累计写入条数
         # 确保目录存在
         os.makedirs(os.path.dirname(db_path) or '.', exist_ok=True)
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
@@ -251,8 +260,10 @@ class LLMCache:
                 "SELECT response FROM llm_cache WHERE cache_key = ?", (key,)
             )
             row = cursor.fetchone()
-        if row:
-            return row[0]
+            if row:
+                # T0.0a: v1 命中, 在锁内增计数避免竞争
+                self._hits += 1
+                return row[0]
         # v1 miss → 仅当调用方未指定新维度时, 尝试 v0 fallback
         if prompt_version == "v0" and temperature == 0.0:
             v0_key = self._make_key_v0(model_id, prompt)
@@ -261,7 +272,14 @@ class LLMCache:
                     "SELECT response FROM llm_cache WHERE cache_key = ?", (v0_key,)
                 )
                 row = cursor.fetchone()
-            return row[0] if row else None
+                if row:
+                    # T0.0a: v0 fallback 命中
+                    self._v0_hits += 1
+                    return row[0]
+                self._misses += 1
+                return None
+        with self._lock:
+            self._misses += 1
         return None
 
     def put(self, model_id: str, prompt: str, response: str,
@@ -290,6 +308,7 @@ class LLMCache:
                 (key, m_id, r_str, time.time())
             )
             self._conn.commit()
+            self._writes += 1  # T0.0a
 
     def put_batch(self, model_id: str, prompts: list[str], responses: list[str],
                   *, prompt_version: str = "v0",
@@ -326,6 +345,39 @@ class LLMCache:
                 rows
             )
             self._conn.commit()
+            self._writes += len(rows)  # T0.0a
+
+    def stats(self) -> dict:
+        """返回运行时 hit/miss/write 计数 + 推导的 hit_rate (T0.0a).
+
+        Returns:
+            dict: 字段:
+                - hits:     v1 schema 命中数 (主路径)
+                - v0_hits:  v0 fallback 命中数 (老 cache 兼容路径)
+                - misses:   两条路径都 miss 的查询数
+                - writes:   put + put_batch 累计写入条数
+                - lookups:  hits + v0_hits + misses (所有 get 调用数)
+                - hit_rate: (hits + v0_hits) / lookups, 0.0 if lookups==0
+
+        计数器是 process-local in-memory, **不持久化**到 SQLite. 用途是
+        每次 run 末尾打一行摘要日志, 帮助定位"为什么这次比上次慢"等问题.
+        DB 总条数请用 size().
+        """
+        with self._lock:
+            hits = self._hits
+            v0_hits = self._v0_hits
+            misses = self._misses
+            writes = self._writes
+        lookups = hits + v0_hits + misses
+        hit_rate = (hits + v0_hits) / lookups if lookups else 0.0
+        return {
+            'hits': hits,
+            'v0_hits': v0_hits,
+            'misses': misses,
+            'writes': writes,
+            'lookups': lookups,
+            'hit_rate': hit_rate,
+        }
 
     def size(self) -> int:
         """返回缓存中的总条目数。
