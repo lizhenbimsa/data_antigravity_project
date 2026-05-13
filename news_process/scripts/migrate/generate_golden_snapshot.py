@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
+import yaml
 
 
 # 与 run_pipeline_function 管线阶段输出文件名对齐 (方案 §1)。
@@ -75,6 +76,28 @@ def hash_parquet(path: Path) -> dict:
     }
 
 
+def _read_sentiment_models(project_root: Path) -> list[str]:
+    """Return LLM model short names from ``config/sentiment.yaml``.
+
+    Reads ``tone_llm_processing.models`` directly (not via load_config) to keep
+    this migration script free of project-config side effects.
+    """
+    cfg_path = project_root / "config" / "sentiment.yaml"
+    if not cfg_path.exists():
+        return []
+    try:
+        with cfg_path.open(encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        models = cfg.get("tone_llm_processing", {}).get("models", []) or []
+        return [
+            m.get("short_name") or m.get("model_name")
+            for m in models
+            if isinstance(m, dict)
+        ]
+    except Exception:
+        return []
+
+
 def main() -> int:
     project_root = Path(__file__).resolve().parents[2]
     # Phase 8 (2026-05-04): data_processed → data/processed
@@ -87,11 +110,16 @@ def main() -> int:
         return 2
 
     snapshot: dict = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_utc": datetime.now(timezone.utc).isoformat(),
         "git_tag": "baseline-pre-restructure",
         "data_dir": str(data_dir.relative_to(project_root)),
         "hash_method": "pd.util.hash_pandas_object(s, index=False).sum() -> u64 hex",
+        # v2 additions: LLM snapshot metadata for cross-time reproducibility.
+        # Tracks the LLM model lineup at golden-generation time so future
+        # diff sessions can distinguish "data drift" from "LLM API endpoint drift".
+        "llm_snapshot_date": datetime.now(timezone.utc).date().isoformat(),
+        "llm_models": _read_sentiment_models(project_root),
         "stages": {},
     }
 
