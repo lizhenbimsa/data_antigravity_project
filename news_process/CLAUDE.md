@@ -12,8 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v2.1.0 + cleanup/2026-05-13 + Wave 0 (golden refresh + LLM snapshot metadata)
-**Test baseline**: 851 passed / 2 skipped / 0 failed (refreshed 2026-05-13 after `f3a0000` + `1448611` prompt_version cache key migration)
+**Current version**: v2.1.0 + cleanup/2026-05-13 + Wave 0/1 (golden refresh + LLM snapshot metadata + BERT determinism + ruff clean + pre-commit)
+**Test baseline**: 855 passed / 2 skipped / 0 failed (4 new BERT determinism tests added in Wave 1 T1.1a)
 
 ## Architecture
 
@@ -40,7 +40,7 @@ news_process/
 ├── validation/     # Robustness tests (threshold sensitivity, entity masking, etc.)
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
-├── tests/          # 851 passed / 2 skipped HEAD baseline (integration + unit)
+├── tests/          # 855 passed / 2 skipped HEAD baseline (integration + unit)
 └── XX_*.py         # 23 thin shim scripts (≤30 lines each, delegate to pipeline/);
                     # planned retirement: Plan-r3 P3-18 (see docs/guides/thin_shim_pattern.md §11)
 ```
