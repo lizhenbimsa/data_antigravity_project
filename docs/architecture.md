@@ -12,7 +12,7 @@ news_process/
 ├── requirements.txt           # 主流水线运行时依赖
 ├── requirements-docs.txt      # 文档构建依赖（Phase D 新增）
 │
-├── 26 × thin shim (≤30 LOC each)         # python NN_xxx.py 历史调用契约
+├── 23 × thin shim (≤30 LOC each)         # python news_process/NN_xxx.py 历史调用契约
 ├── run_pipeline_function.py   # 主流水线编排（消费 STAGES_MAIN）
 ├── run_pipeline_validation.py # 验证流水线编排（消费 STAGES_VALIDATION）
 ├── run_paper.py               # 多论文 CLI 调度器
@@ -35,7 +35,7 @@ news_process/
 ```{mermaid}
 graph TB
     subgraph "应用层（用户入口）"
-        RootShim[26 × thin shim<br/>NN_xxx.py]
+        RootShim[23 × thin shim<br/>news_process/NN_xxx.py]
         RunMain[run_pipeline_function.py]
         RunVal[run_pipeline_validation.py]
         RunPaper[run_paper.py]
