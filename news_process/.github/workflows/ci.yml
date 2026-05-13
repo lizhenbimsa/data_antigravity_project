@@ -77,6 +77,11 @@ jobs:
       - name: Run ruff format check
         run: ruff format --check .
 
+      - name: Check prompt template version headers (V4 T1.4)
+        # Independent of pre-commit so CI catches the failure even when
+        # contributors haven't run `pre-commit install` locally.
+        run: python news_process/scripts/lint/check_prompt_headers.py
+
   dependency-check:
     name: Dependency Security Check
     runs-on: ubuntu-latest

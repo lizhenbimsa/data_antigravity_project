@@ -84,6 +84,11 @@ pip install -r news_process/requirements.txt && pip install -e . --no-deps   # F
 # Configure environment
 cp news_process/.env.example news_process/.env
 # Edit .env: set YUNWU_API_KEY (required for LLM stages)
+
+# V4 T1.4: enable local pre-commit hooks (one-time per dev machine)
+pre-commit install
+# Now `git commit` auto-runs: check-prompt-headers + ruff check
+# Manual run against full repo: pre-commit run --all-files
 ```
 
 ### Running the Pipeline

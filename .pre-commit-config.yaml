@@ -1,0 +1,39 @@
+# V4 T1.4 (2026-05-13): pre-commit framework for local + CI gate enforcement.
+#
+# Local install (one-time per dev machine):
+#     pip install pre-commit
+#     pre-commit install
+#
+# After install, every `git commit` runs these hooks against staged files.
+# To run manually against all files: `pre-commit run --all-files`
+#
+# Scope decisions:
+#   - check-prompt-headers: enforces `# version:` header on all prompt
+#     templates so cache-key changes are visible (Plan-r3 P3-17).
+#   - ruff check: same rule set as pyproject [tool.ruff], baseline = 0 errors
+#     after V4 T1.4. Auto-fixes safe categories; manual review for others.
+#   - ruff format: NOT enabled here yet — 176 files need reformat sweep
+#     before this can be a no-op. Tracked as follow-up.
+#   - Other formatters (black/isort): NOT used; ruff handles both.
+
+repos:
+  - repo: local
+    hooks:
+      - id: check-prompt-headers
+        name: Check prompt template version headers
+        entry: python news_process/scripts/lint/check_prompt_headers.py
+        language: system
+        files: ^news_process/config/prompts/.*\.txt$
+        pass_filenames: false
+        # Script only uses stdlib (re/os/sys); 'system' python avoids
+        # pre-commit isolated-venv overhead for this trivial dependency-free check.
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Pin to a specific tag; ruff itself ships frequent breaking releases.
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        # Reuses [tool.ruff] config from pyproject.toml; do NOT pass --fix
+        # here because pre-commit may bail on auto-modified files; run
+        # `ruff check --fix` manually if needed.
+        args: []
