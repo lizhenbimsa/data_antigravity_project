@@ -124,6 +124,11 @@ pytest -v
 
 # Run tests matching pattern
 pytest -k "test_golden"
+
+# V4 T1.6: tiered runs (auto-tagged by tests/conftest.py)
+pytest -m fast              # 759 unit tests (~30s, run before every commit)
+pytest -m integration       # 94 integration tests (parquet IO, mocked LLM, ~5min)
+pytest                       # full sweep (851 + 2 skipped)
 ```
 
 ### Linting & Formatting

@@ -113,6 +113,14 @@ testpaths = ["news_process/tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
 asyncio_default_fixture_loop_scope = "function"
+# V4 T1.6: tiered test runs. NOT enforcing --strict-markers yet so that
+# legacy ad-hoc @pytest.mark.xxx usage in existing files doesn't break;
+# can tighten in a follow-up once all tests are audited.
+markers = [
+    "fast: quick unit tests (< 1s each); auto-applied to non-integration tests by tests/conftest.py",
+    "integration: integration tests (parquet IO, mocked LLM, 1-30s); auto-applied to tests/integration/*",
+    "e2e: end-to-end pipeline runs (explicit opt-in via -m e2e; none yet)",
+]
 filterwarnings = [
     "ignore:pkg_resources is deprecated as an API:DeprecationWarning:jieba\\._compat",
     "ignore:Deprecated call to `pkg_resources\\.declare_namespace\\('sphinxcontrib'\\)`:DeprecationWarning:pkg_resources",

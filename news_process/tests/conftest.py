@@ -26,6 +26,26 @@ if PROJECT_PARENT not in sys.path:
 
 
 # ============================================================================
+# V4 T1.6: 自动为测试分层打 marker (fast | integration)
+# ============================================================================
+# 按文件路径自动分配, 免人工给 48 个测试文件逐一加 pytestmark.
+# 单 test 需 override (如某 root-level 测试实际为 integration) 可用
+# ``@pytest.mark.integration`` 装饰器, pytest 会保留两个 marker.
+
+def pytest_collection_modifyitems(config, items):
+    """Auto-tag tests as 'integration' (under tests/integration/) or 'fast' (rest)."""
+    integration_marker = pytest.mark.integration
+    fast_marker = pytest.mark.fast
+    integration_segment = os.path.join("tests", "integration") + os.sep
+    for item in items:
+        path_str = str(item.fspath)
+        if integration_segment in path_str:
+            item.add_marker(integration_marker)
+        else:
+            item.add_marker(fast_marker)
+
+
+# ============================================================================
 # 基础 Fixtures
 # ============================================================================
 
