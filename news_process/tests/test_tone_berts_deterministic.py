@@ -18,9 +18,12 @@ from __future__ import annotations
 
 import importlib
 
-import numpy as np
 import pytest
-import torch
+
+# CI light matrix 不安装 torch (节约 ~4GB 下载); 没有 torch 时整个测试模块 skip。
+# 把模块级 import torch 移到 importorskip 之后, 让 CI light job 不再 collection-error。
+torch = pytest.importorskip("torch")
+import numpy as np
 
 
 @pytest.fixture(scope="module")
