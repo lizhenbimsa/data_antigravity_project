@@ -181,6 +181,19 @@ exclude = [
     "logs",
     "models",
     "papers_assets",
+    # V8 最终审计 (2026-05-13): 排除仓库根的外部/vendored 目录 — 它们
+    # 包含数百 Python 文件 (skill 仓库、文献 OCR 输出、年报转换), 不属于
+    # news_process 代码, 不应进入 ruff 范围.  `ruff check .` 之前误报 748
+    # 错误, 修复后只检查本项目源码.
+    ".gemini",
+    "Awesome-Agent-Skills-for-Empirical-Research",
+    "literature",
+    "annual_reports",
+    "build",
+    "FinBERT",
+    "fastText",
+    "LLMs_for_dic",
+    "LLMs_for_FinTech_dic",
 ]
 
 [tool.ruff.lint]
