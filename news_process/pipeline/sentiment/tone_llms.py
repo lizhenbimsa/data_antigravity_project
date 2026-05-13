@@ -582,6 +582,69 @@ def majority_vote_bool(bools: list) -> bool:
     if not bools: return False
     return sum(bools) > (len(bools) / 2.0)
 
+def majority_vote_categorical(
+    votes: list,
+    tie_strategy: str,
+    tie_default=None,
+    empty_fallback=None,
+):
+    """统一分类多数投票，参数化平局策略与空票回退。
+
+    本函数为 sentiment / fintech_category / text_type 三种分类投票的
+    统一入口；策略差异通过参数显式声明（而非分散在 inline Counter 中），
+    便于论文 Methods 章节直接 quote。
+
+    平局策略 (tie_strategy)
+    -----------------------
+    - 'undefined':    平局 → None
+                      适用 3-class 含独立中性类的场景（如 sentiment）。
+                      v6/F2 修订要求严格未定义而非污染独立中性类
+                      (docs/policy_llm_undefined.md)。
+    - 'conservative': 平局 → tie_default
+                      适用 2-class，归 modal class prior，等价于 uniform
+                      prior 下的 MAP (Maximum A Posteriori) decision。
+
+    Args:
+        votes:          标签列表（元素须 hashable；Counter 不支持 list/dict 元素）
+        tie_strategy:   'undefined' | 'conservative'
+        tie_default:    'conservative' 策略必需；'undefined' 时忽略
+        empty_fallback: votes 为空时返回值（默认 None）
+
+    Returns:
+        多数决结果；空票返回 empty_fallback；平局按 tie_strategy 处理
+
+    Raises:
+        ValueError: tie_strategy 未知；或 'conservative' 缺 tie_default
+                    （fail-fast: 入口即校验，不延迟到平局时）
+
+    学术依据:
+        Wang et al. (2023) ICLR. Self-consistency improves chain of
+          thought reasoning in language models.
+          DOI: https://doi.org/10.48550/arXiv.2203.11171
+        v6/F2 内部决策: 平局 → None 严格未定义，避免污染独立中性类
+          (news_process/docs/policy_llm_undefined.md)
+        Bayesian MAP rationale: Bishop, C.M. (2006). Pattern Recognition
+          and Machine Learning. Springer. §1.5 (Decision Theory).
+    """
+    # fail-fast 入口校验：比延迟到平局更易调试，且生产 callsite 全部 hardcoded
+    if tie_strategy not in ('undefined', 'conservative'):
+        raise ValueError(f"Unknown tie_strategy: {tie_strategy!r}")
+    if tie_strategy == 'conservative' and tie_default is None:
+        raise ValueError(
+            "tie_strategy='conservative' requires tie_default to be specified"
+        )
+
+    if not votes:
+        return empty_fallback
+    c = Counter(votes)
+    top = c.most_common(2)
+    if len(top) > 1 and top[0][1] == top[1][1]:
+        if tie_strategy == 'undefined':
+            return None
+        return tie_default  # 'conservative' 已 fail-fast 保证 tie_default 非 None
+    return top[0][0]
+
+
 def majority_vote_sentiment(sents: list, tie_strategy: str = 'undefined'):
     """多数决判断情感（v6/F2: 平局策略可配置）。
 
@@ -594,22 +657,24 @@ def majority_vote_sentiment(sents: list, tie_strategy: str = 'undefined'):
     新行为：默认平局返回 None，交由上层标记为 llm_undefined=1，与真实
             中性严格区分；保留 'neutral' 作 robustness 备选。
 
+    Implementation note:
+        2026-05-14 重构：内部委托给 majority_vote_categorical 以统一三处
+        分类投票实现；本函数签名与行为 100% 向后兼容（已 byte-level 边界验证）。
+
     Args:
         sents: list of "正面"/"中性"/"负面" labels
         tie_strategy: 'undefined' (返回 None) / 'neutral' (历史行为，返回"中性")
+                      其它值沿用历史"安全回退到 undefined"语义
 
     Returns:
         str | None: 多数决结果；None 表示空票或平局-undefined 策略
     """
-    if not sents:
-        return None
-    c = Counter(sents)
-    most_common = c.most_common()
-    if len(most_common) > 1 and most_common[0][1] == most_common[1][1]:
-        if tie_strategy == 'neutral':
-            return "中性"
-        return None
-    return most_common[0][0]
+    if tie_strategy == 'neutral':
+        return majority_vote_categorical(
+            sents, tie_strategy='conservative', tie_default='中性'
+        )
+    # 默认 'undefined'；其它未知策略沿用历史"安全回退到 undefined"语义
+    return majority_vote_categorical(sents, tie_strategy='undefined')
 
 
 def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
@@ -1191,14 +1256,16 @@ def main():
             combined_topic = ' '.join(topics_full) if topics_full else ''
             kw_category, kw_confidence = canonicalize_topic(combined_topic)
 
+            # 二分类多数投票：平局保守降为 '应用场景'（modal class prior, MAP under uniform prior）；
+            # 空票回退到关键词分类器结果 kw_category。统一委托给 majority_vote_categorical。
+            llm_majority_cat = majority_vote_categorical(
+                llm_cats_full,
+                tie_strategy='conservative',
+                tie_default='应用场景',
+                empty_fallback=kw_category,
+            )
             if llm_cats_full:
-                cat_votes = Counter(llm_cats_full)
-                top = cat_votes.most_common(2)
-                if len(top) >= 2 and top[0][1] == top[1][1]:
-                    # 二分类平局：保守降为应用场景
-                    llm_majority_cat = '应用场景'
-                else:
-                    llm_majority_cat = top[0][0] if top else kw_category
+                # LLM 投票与关键词分类器交叉验证：一致 → +0.2 boost；分歧 → ×0.5 penalty
                 if llm_majority_cat == kw_category:
                     final_confidence = min(kw_confidence + 0.2, 1.0)
                 else:
@@ -1210,15 +1277,14 @@ def main():
                 category_confidence_arr.append(kw_confidence)
 
             # ── 文本类型分类多数决（仅基于 full 轨道，二分类） ──
-            if text_types_full:
-                tt_votes = Counter(text_types_full)
-                tt_top = tt_votes.most_common(2)
-                if len(tt_top) >= 2 and tt_top[0][1] == tt_top[1][1]:
-                    text_type_arr.append('描述性')  # 二分类平局：保守降为描述性（方案A）
-                else:
-                    text_type_arr.append(tt_top[0][0])
-            else:
-                text_type_arr.append(None)
+            # 二分类多数投票：平局保守降为 '描述性'（modal class prior, MAP under uniform prior）；
+            # 空票返回 None。统一委托给 majority_vote_categorical。
+            text_type_arr.append(majority_vote_categorical(
+                text_types_full,
+                tie_strategy='conservative',
+                tie_default='描述性',
+                empty_fallback=None,
+            ))
 
 
 
