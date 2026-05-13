@@ -217,7 +217,7 @@ with open('models/calibrators/bank_to_fold.json', 'w') as f:
 数学不变量 8 项（T1=raw, T→0, T→∞, no overflow, argmax preserved, log-sum-exp, isotonic normalized, isotonic fallback）
 校准学 4 项（per-class ECE, ECE_temp_macro ≤ ECE_raw_macro, per-model NLL converges, minority class handling）
 OOF 安全 4 项（OOF for 33 rows, prod for non-33, StratifiedGroupKFold no bank leakage, seed=42 deterministic）
-数据契约 4 项（flag at audit parquet not panel, golden new cols added, golden old cols preserved, NaN propagates）
+数据契约 3 项（flag at audit parquet not panel, golden new cols added, golden old cols preserved）
 NaN 传播 2 项（undefined → NaN, verification fail → NaN）
 缓存 BC 3 项（v0 default preserves legacy hash, nondefault new namespace, legacy callsites unchanged）
 性能 / 复现 2 项（pkl loads < 1s, fit deterministic across runs）
