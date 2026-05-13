@@ -41,11 +41,12 @@ news_process/
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
 ├── tests/          # 855 passed / 2 skipped HEAD baseline (integration + unit)
-└── XX_*.py         # 23 thin shim scripts (≤30 lines each, delegate to pipeline/);
+└── NN_*.py         # 23 thin shim scripts under news_process/ (≤30 lines each,
+                    #                                          delegate to pipeline/);
                     # planned retirement: Plan-r3 P3-18 (see docs/guides/thin_shim_pattern.md §11)
 ```
 
-**Key invariant**: Root `XX_*.py` scripts are thin shims. All logic lives in `news_process.pipeline.*`. Never add business logic to root scripts.
+**Key invariant**: `news_process/NN_*.py` scripts are thin shims. All logic lives in `news_process.pipeline.*`. Never add business logic to shims.
 
 ### Single Sources of Truth
 
@@ -169,7 +170,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Code Modification Rules
 
-1. **Root scripts are frozen**: The 26 `XX_*.py` scripts are thin shims (≤30 lines). All logic belongs in `news_process.pipeline.*`.
+1. **Stage shims are frozen**: The 23 `news_process/NN_*.py` scripts are thin shims (≤30 lines). All logic belongs in `news_process.pipeline.*`.
 2. **DAG consistency**: Any stage added/removed must update:
    - `core/dag.py::STAGES_MAIN` or `STAGES_VALIDATION`
    - `core/schemas.py::OUTPUT_REGISTRY` (if it produces parquet)
@@ -191,7 +192,7 @@ pytest tests/integration/test_panel_reproducibility.py
 ### Adding a New Stage
 
 1. Create implementation in `news_process/pipeline/<module>/<stage>.py`
-2. Create thin shim `XX_<stage>.py` in project root (≤30 lines, imports and calls pipeline function)
+2. Create thin shim `NN_<stage>.py` under `news_process/` (≤30 lines, imports and calls pipeline function)
 3. Register in `core/dag.py::STAGES_MAIN` with `StageSpec(...)`
 4. If it produces parquet, add to `core/schemas.py::OUTPUT_REGISTRY`
 5. Add tests in `tests/test_XX_<stage>.py`
@@ -207,7 +208,7 @@ pytest tests/integration/test_panel_reproducibility.py
 ### Debugging Pipeline Failures
 
 1. Check `logs/runs/<run_id>/<stage>.log` for the failed stage
-2. Run the stage in isolation: `python XX_<stage>.py`
+2. Run the stage in isolation: `python news_process/NN_<stage>.py`
 3. Use `pytest tests/test_XX_<stage>.py -v` to reproduce in test environment
 4. Check `data/processed/` for intermediate outputs
 
@@ -232,7 +233,7 @@ Each paper has `analysis.py` (Stata runner), `figures.py`, and `tables.py`. Comm
 
 ## Known Issues & Workarounds
 
-1. **Windows line endings**: Git may warn about CRLF. This is expected on Windows; the project uses `.gitattributes` to normalize.
+1. **Windows line endings**: Git may warn about CRLF. This is expected on Windows. The repo-root `.gitattributes` marks `*.parquet`/`*.xlsx`/`*.db` as binary; source files keep their on-disk EOL (no forced normalization to avoid churning the existing mixed-CRLF history).
 2. **FinBERT2 model**: Stage 23 requires a private fine-tuned model. If `FINBERT2_MODEL_DIR` is unset or invalid, the stage gracefully skips that model (other BERT models still run).
 
 ## Phase History
@@ -244,4 +245,4 @@ The project underwent 9 restructuring phases (v1.x → v2.1.0):
 - **Phase 8**: Data layout normalization (`data_processed/` → `data/processed/`)
 - **Phase 9**: Cleanup of Phase 3/7a residue
 
-Current HEAD baseline: **814 passed / 2 skipped / 0 failed**.
+Current HEAD baseline tracked in line 16 (top of file).
