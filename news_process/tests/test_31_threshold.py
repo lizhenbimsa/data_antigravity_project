@@ -310,7 +310,8 @@ class TestGenerateSensitivityLatex:
         generate_sensitivity_latex(bank_results, fintech_results,
                                     output_path, logger)
         assert os.path.exists(output_path)
-        content = open(output_path, 'r', encoding='utf-8').read()
+        with open(output_path, 'r', encoding='utf-8') as f:
+            content = f.read()
         assert r'\begin{table}' in content
         assert r'\end{table}' in content
 
@@ -331,5 +332,6 @@ class TestGenerateSensitivityLatex:
         fintech_results = [{'threshold': 3, 'count': 100, 'ratio': 50.0}]
         generate_sensitivity_latex(bank_results, fintech_results,
                                     output_path, logger)
-        content = open(output_path, 'r', encoding='utf-8').read()
+        with open(output_path, 'r', encoding='utf-8') as f:
+            content = f.read()
         assert '50' in content
