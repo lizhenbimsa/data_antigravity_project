@@ -82,10 +82,14 @@ python-Levenshtein>=0.21.0,<1.0.0
 python-dotenv>=1.0.0,<2.0.0
 
 # 测试和覆盖率 (Plan P0-2, 2026-05-09)
+# V8 P-1 (2026-05-13): 也已迁至 pyproject.toml [project.optional-dependencies].dev;
+# pip-only 用户仍可从此处直接 install (双向同步).
 pytest>=7.0.0,<9.0.0
 pytest-cov>=4.0.0,<6.0.0
+pytest-asyncio>=0.20,<2.0
 
 # Pre-commit framework (V4 T1.4, 2026-05-13)
 # 本地 hook 入口: pre-commit install (一次性); 之后每次 git commit 自动跑
 # check-prompt-headers + ruff check (见 .pre-commit-config.yaml)
+# V8 P-1: 同上, 已迁入 pyproject [project.optional-dependencies].dev
 pre-commit>=3.0.0,<5.0.0

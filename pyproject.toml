@@ -76,6 +76,16 @@ docs = [
     "sphinx-copybutton>=0.5,<1.0",
     "sphinxcontrib-mermaid>=0.9,<2.0",
 ]
+# V8 P-1 (2026-05-13): 把 pre-commit / pytest / pytest-cov 从 requirements.txt 迁入此处.
+# 历史 requirements.txt 把 dev 工具混入 runtime 列表 → pip install -e . 装不到 pytest;
+# CLAUDE.md L55 声明 "pyproject 是 single source of truth" 与现实不一致 (P-1 修复).
+# 安装方式: pip install -e .[dev]
+dev = [
+    "pre-commit>=3.0.0,<5.0.0",
+    "pytest>=7.0.0,<9.0.0",
+    "pytest-cov>=4.0.0,<6.0.0",
+    "pytest-asyncio>=0.20,<2.0",
+]
 
 [tool.setuptools]
 include-package-data = true

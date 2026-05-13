@@ -79,7 +79,8 @@ venv\Scripts\activate
 venv\Scripts\Activate.ps1
 
 # Install dependencies (choose one)
-pip install -e .                                  # Development: range versions from pyproject.toml
+pip install -e .                                  # Development: runtime deps only
+pip install -e ".[dev]"                           # Development + dev tools (pytest, pre-commit, pytest-cov)
 pip install -r news_process/requirements.lock && pip install -e . --no-deps  # Exact deps + editable package
 pip install -r news_process/requirements.txt && pip install -e . --no-deps   # Fallback for pip-only users
 
