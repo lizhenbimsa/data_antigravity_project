@@ -6,6 +6,91 @@
 
 ---
 
+## post-v2.1.0 / 2026-05-13 — Wave 0/1 + Batch P0 + V8 (baseline 814 → 891)
+
+### 总览
+
+2026-05-13 一天内完成三轮"清理 → 加固 → 扩展"工作链, 把 v2.1.0 后的本地
+pytest baseline 从 814 推进到 891 (+77 tests), 同时把 CI 从 4 连红推回 6/6
+绿、修 7+9 处 CLAUDE.md/ci.yml 自相矛盾文档、补主论文 paper-critical
+模块 (bank_fintech_tone, iv_did) 的零测试覆盖.
+
+| Batch | passed delta | 核心交付 | commits |
+|---|---|---|---|
+| Wave 0/1 | 814 → 855 (+41) | golden 增 llm_snapshot_date 元数据; BERT cpu_strict 确定性 (4 unit + 1 implementation); ruff 409→0; pre-commit 框架 | eef7ed1 fa952ce 4687328 ea823dc |
+| Batch P0 | 855 → 863 (+8) | LLMCache hit/miss 计数 (T0.0a); Wave 4 BERT→panel fail-fast invariant (2 tests); CI threshold 780→820 | 6b3d52b 2afe44a 7275612 4d440e2 e6d99e1 |
+| V8 | 863 → 879 → 891 (+28) | pyproject `[project.optional-dependencies].dev`; logs/runs/ 按年龄修剪 (5 tests); main paper `bank_fintech_tone` smoke (11 tests); ruff exclude 9 外部目录; iv_did Wave 2 batch 1 (12 tests) | cd5ec08 0316712 79553a2 34b0b9e 4df9c68 0da42a9 bb6574a |
+
+### Wave 0/1 (golden + BERT determinism + ruff clean + pre-commit + CI fix)
+
+主要决策:
+- **golden 列入 llm_snapshot_date + llm_models**: 让 panel reproducibility 测试在 LLM 模型集变动时能感知到, 不再 silent regression.
+- **BERT cpu_strict 模式**: 在 tone_berts.py 顶部统一调用 torch.manual_seed +
+  np.random.seed + transformers.set_seed + torch.use_deterministic_algorithms(warn_only=True);
+  cuDNN benchmark=False, AMP=False (gpu_strict 也覆盖). 4 个 deterministic
+  test 防回归.
+- **CI 4 连红根因**: Wave 1 T1.1a 创建 test_tone_berts_deterministic.py 顶层
+  `import torch`, 但 CI light 矩阵 (win/linux × py3.11/3.13) 节省 4GB DL 依赖
+  不装 torch → ModuleNotFoundError, 4/5 job 全红. 修复 = 加 `pytest.importorskip("torch")`
+  在 module top, light job 干净 skip.
+- **CLAUDE.md 7 处自相矛盾修复**: shim path/count (XX_*.py→NN_*.py, 但数量
+  写错为 23 — V8 中再次修正回正确的 26), .gitattributes 声明 vs 文件实际
+  不存在, baseline 数字过期等.
+- **二级 CI 失败暴露**: 修了 torch import 后 test_25_audit 的
+  TestComputeStrategicDifferentiation 5 测试因 strategic_diff.py:235 lazy
+  `import sentence_transformers` 而 CI light 全失败, 用 class-fixture
+  importorskip 修复.
+- **.gitattributes binary-only 策略**: 不写 `* text=auto` 避免 git renormalize
+  现有混合 CRLF/LF 文件, 仅 mark binary 文件 (parquet/xlsx/db/pkl 等).
+- **死 workflow 清理**: news_process/.github/workflows/ci.yml 是 GitHub
+  Actions 不识别的子目录 workflow, 从未运行过 → 删除; PR 模板从 news_process/.github
+  移到根 .github/.
+
+### Batch P0 (collected: S1+S2+S3+S4+S5; T0.0a 落地)
+
+- **LLMCache.stats() 方法**: 暴露 hit/v0_hit/miss/writes/lookups/hit_rate 6 项
+  process-local 计数 (非持久化). 用于诊断 "为什么这次 run 比上次慢" 之类
+  问题. 6 单元测试 (test_caching_stats.py).
+- **Wave 4 invariant**: tests/integration/test_bert_panel_invariant.py 加 2
+  fail-fast 测试 — 对每个 config 列出的 BERT model 验证 stage 23 parquet
+  必含 {short_name}_label_{ctx,full,title} 3 列, 且不全 NaN. 触发场景:
+  hw2942 因 HF 不可达而 graceful skip 时 panel encode 会 KeyError, 本测试
+  在 <1s 内拦住, 不让等到 stage 45 才炸.
+- **CI threshold 收紧**: 实测 829 (full job post Batch P0) > 820, 把可容忍
+  回归从 43 测试压到 9.
+- **23 / 26 shim regex bug 自纠**: V7 把 `^\d{2}_` 数 shim 得 23, 漏 32a/38a/38b
+  字母后缀, 改 `^\d{2}[a-z]?_` 后真值是 26. CLAUDE.md + docs/architecture.md
+  从 26→23 又改回 26. memory/shim_inventory.md 记录这个教训.
+
+### V8 (P-1 + P-3 + P-4; Wave 2 batch 1 启动)
+
+- **pyproject `[project.optional-dependencies].dev`**: 解决 CLAUDE.md "pyproject
+  是 single source of truth" 与现实 (requirements.txt 才有 pytest/pre-commit/
+  pytest-cov) 不符问题. `pip install -e ".[dev]"` 现在能装齐 dev 工具.
+- **logs/runs/ 按年龄修剪**: `python -m news_process.scripts.cleanup prune-logs
+  --keep-days 30 [--dry-run]` 与既有 `clean-logs` (核选项 rmtree) 互补. 实测
+  本机 132 run 子目录, --keep-days 30 报告 0 需删 (全部 < 30 天).
+- **bank_fintech_tone main paper smoke**: 主论文 analysis.py/figures.py/
+  tables.py 三入口零测覆盖, 加 11 smoke (4 import × parametrized + main
+  callable + STAGES 契约 + --dry-run × 4 stages) 防 silent regression.
+- **ruff scope 修正**: `ruff check .` 在仓库根扫到 748 vendored 误报
+  (.gemini/ Awesome-Agent-Skills/ literature/ annual_reports/ FinBERT/ 等),
+  加 9 dirs 到 `[tool.ruff].exclude` 后 0 errors.
+- **CI workflow 9 处过期 baseline 同步**: 实测 845 → 阈值仍 820 (25 buffer),
+  panel_reproducibility 18→19, data-dep skip 32→33.
+- **Wave 2 batch 1 (paper-critical iv_did)**: 812 行 Bartik IV + DID + Rotemberg
+  实现, 此前 0 测试. 加 12 合成-mock 测试覆盖 5 个核心函数 (skip merge_policy_shocks
+  到后续 batch 因其需 JSON config + 复杂城市/省匹配). 不依赖网络 / 大数据,
+  执行 <0.5s.
+
+### Memory 系统新增 (跨会话持久化)
+
+- `ci_matrix.md`: CI 5-job 矩阵 + light/full 区分 + importorskip 规约
+- `shim_inventory.md`: shim 真实数量 26, regex `^\d{2}[a-z]?_` 才能数全
+- `hf_network.md`: 本机 huggingface.co 直连超时, hw2942 等未缓存模型不可下
+
+---
+
 ## post-v2.1.0 / HEAD baseline (2026-05-09 截止)
 
 ### 测试 baseline 漂移记录 (round 1 ~ round 3 全程)
