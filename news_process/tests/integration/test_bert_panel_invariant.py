@@ -29,7 +29,6 @@ import pandas as pd
 import pytest
 import yaml
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PARQUET = REPO_ROOT / "news_process" / "data" / "processed" / "23_bert_tone.parquet"
 SENTIMENT_YAML = REPO_ROOT / "news_process" / "config" / "sentiment.yaml"
