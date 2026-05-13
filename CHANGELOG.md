@@ -6,20 +6,21 @@
 
 ---
 
-## post-v2.1.0 / 2026-05-13 — Wave 0/1 + Batch P0 + V8 (baseline 814 → 891)
+## post-v2.1.0 / 2026-05-13 — Wave 0/1 + Batch P0 + V8 + Priority ABC (baseline 814 → 956)
 
 ### 总览
 
-2026-05-13 一天内完成三轮"清理 → 加固 → 扩展"工作链, 把 v2.1.0 后的本地
-pytest baseline 从 814 推进到 891 (+77 tests), 同时把 CI 从 4 连红推回 6/6
-绿、修 7+9 处 CLAUDE.md/ci.yml 自相矛盾文档、补主论文 paper-critical
-模块 (bank_fintech_tone, iv_did) 的零测试覆盖.
+2026-05-13 一天内完成五轮"清理 → 加固 → 扩展 → 覆盖"工作链, 把 v2.1.0
+后的本地 pytest baseline 从 814 推进到 956 (+142 tests, +18% 测试覆盖),
+同时把 CI 从 4 连红推回 6/6 绿、修 7+9 处 CLAUDE.md/ci.yml 自相矛盾文档、
+补主论文 + 4 衍生论文 + 6 个 panel 模块的零测试覆盖.
 
 | Batch | passed delta | 核心交付 | commits |
 |---|---|---|---|
 | Wave 0/1 | 814 → 855 (+41) | golden 增 llm_snapshot_date 元数据; BERT cpu_strict 确定性 (4 unit + 1 implementation); ruff 409→0; pre-commit 框架 | eef7ed1 fa952ce 4687328 ea823dc |
 | Batch P0 | 855 → 863 (+8) | LLMCache hit/miss 计数 (T0.0a); Wave 4 BERT→panel fail-fast invariant (2 tests); CI threshold 780→820 | 6b3d52b 2afe44a 7275612 4d440e2 e6d99e1 |
 | V8 | 863 → 879 → 891 (+28) | pyproject `[project.optional-dependencies].dev`; logs/runs/ 按年龄修剪 (5 tests); main paper `bank_fintech_tone` smoke (11 tests); ruff exclude 9 外部目录; iv_did Wave 2 batch 1 (12 tests) | cd5ec08 0316712 79553a2 34b0b9e 4df9c68 0da42a9 bb6574a |
+| Priority ABC | 891 → 956 (+65) | 4 衍生论文 parametrized smoke (40 tests); 6 panel 模块 import + math (17 tests); merge_policy_shocks DID Wave 2 b2 (8 tests) | d429834 5eec166 f37ae4f 04cc0ca |
 
 ### Wave 0/1 (golden + BERT determinism + ruff clean + pre-commit + CI fix)
 
@@ -61,6 +62,32 @@ pytest baseline 从 814 推进到 891 (+77 tests), 同时把 CI 从 4 连红推�
 - **23 / 26 shim regex bug 自纠**: V7 把 `^\d{2}_` 数 shim 得 23, 漏 32a/38a/38b
   字母后缀, 改 `^\d{2}[a-z]?_` 后真值是 26. CLAUDE.md + docs/architecture.md
   从 26→23 又改回 26. memory/shim_inventory.md 记录这个教训.
+
+### Priority ABC (paper-critical 覆盖批量, post V8 audit 发现)
+
+V8 收尾时的"再三验证"审计用 grep `panel\.{module}` 跨 6 个角度查到
+pipeline/panel/ 仍有 5 个零测试模块共 5300+ LOC, 加 4 个衍生论文模块
+共 620 LOC, 加 iv_did 中 merge_policy_shocks (Wave 2 b1 显式延后).
+
+- **Priority B — 4 衍生论文 smoke (d429834, +40 tests)**:
+  benefit_society / brokerage_network / llm_peer / strategic_diff 全部
+  零测试. 因 4 论文结构与 bank_fintech_tone 100% 同构 (analysis +
+  figures + tables + STAGES + main --dry-run), 用一个 parametrized
+  文件 (4 papers × {4 modules + main callable + STAGES + 4 dry-run
+  stages}) = 40 tests in 0.5s.
+- **Priority A — 6 panel modules smoke + 纯数学 (5eec166, +17 tests)**:
+  runner (1505 LOC) / network_spillover (1216) / attention_media (995) /
+  llm_peer_iv (723) / codebook (461) / network_brokerage (426).
+  parametrized import + callable-API 检查 (12 tests) + 纯函数数学验证
+  (5 tests: row_stochastic 行和=1, _gini 边界, codebook metadata
+  非空, _infer_track fallback, compute_industry_neg_shock 列契约).
+  关键决策: 大模块如 runner.main() 只做 import smoke (实跑会触发
+  panel build); 纯函数才做真数学验证.
+- **Priority C1 — merge_policy_shocks Wave 2 b2 (f37ae4f, +8 tests)**:
+  Wave 2 b1 (bb6574a) 已显式延后此函数 (因需 JSON config + 复杂城市/
+  省匹配). Priority C1 关闭 gap: tmp policy_shocks.json + 4 银行 × 4 年
+  panel, 8 测试覆盖 city/province/control/post/rel_year/lag-lead/
+  missing-file. iv_did.py 现 6 个核心函数全部测试覆盖 (b1 + b2 = 20 tests).
 
 ### V8 (P-1 + P-3 + P-4; Wave 2 batch 1 启动)
 

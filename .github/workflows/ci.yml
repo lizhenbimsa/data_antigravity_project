@@ -7,9 +7,9 @@ name: news_process CI
 # CI 安装会触发约 4 GB 下载, 故只在 ubuntu-3.13 单元里跑全套, 其余三
 # 个矩阵单元只跑非-DL 测试 (排除 test_23_tone_berts.py) 控制时长.
 #
-# 本地 baseline (权威值见 news_process/CLAUDE.md L16, 当前 891 passed / 2 skipped).
-# CI full 阈值 820: 远低于实测 (post Wave 2 b1 = 857, 见 run 25798445649) 以容忍
-# 噪声; 任何降低 CI baseline 的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
+# 本地 baseline 权威值见 news_process/CLAUDE.md L16 (随 batch 持续上升, 不在此 hard-code).
+# CI full 阈值 820: 远低于实测 (~870-900, 各 batch 增量后) 以容忍噪声.
+# 任何降低 CI baseline 的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
 # CI 上 data/processed/ 被 .gitignore 排除, ~35 个数据依赖测试 (panel_reproducibility
 # ×19 + dual_track ×14 + bert_panel_invariant ×2) 自动 skip.
 
