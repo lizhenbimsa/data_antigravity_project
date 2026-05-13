@@ -7,10 +7,11 @@ name: news_process CI
 # CI 安装会触发约 4 GB 下载, 故只在 ubuntu-3.13 单元里跑全套, 其余三
 # 个矩阵单元只跑非-DL 测试 (排除 test_23_tone_berts.py) 控制时长.
 #
-# 本地 baseline 814 passed / 2 skipped (含完整 data/processed/, 见 news_process/__init__.py:62).
-# CI baseline 780 (full job 阈值, 实测 782 - 2 buffer): CI 上 data/processed/ 被
-# .gitignore 排除, 32 个数据依赖测试 (panel_reproducibility ×18 + dual_track ×14)
-# 自动 skip. 任何降低 CI baseline 的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
+# 本地 baseline 879 passed / 2 skipped (post Wave 0/1 + Batch P0 + V8, 2026-05-13;
+#   含完整 data/processed/, 见 news_process/CLAUDE.md L16).
+# CI full 阈值 820 (实测 845 - 25 buffer): CI 上 data/processed/ 被 .gitignore 排除,
+# 33 个数据依赖测试 (panel_reproducibility ×19 + dual_track ×14) 自动 skip;
+# 任何降低 CI baseline 的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
 
 on:
   push:
@@ -104,10 +105,10 @@ jobs:
         working-directory: ./news_process
         run: |
           # 排除 test_23_tone_berts.py (依赖 torch + transformers).
-          # baseline (CI light): 768 passed / ~34 skipped (实测 2026-05-09).
-          # CI 上 news_process/data/processed/ 不在 (.gitignore 排除), 32 个数据依赖
-          # 测试 (test_panel_reproducibility ×18 + test_dual_track ×14) 自动 skip.
-          # 故 CI 实际 passed << 本地 baseline 814; 不校验数字, 仅依赖 pytest exit code.
+          # baseline (CI light, 实测 2026-05-13 post V8 / run 25796294606): ~829 passed / ~34 skipped.
+          # CI 上 news_process/data/processed/ 不在 (.gitignore 排除), 33 个数据依赖
+          # 测试 (test_panel_reproducibility ×19 + test_dual_track ×14) 自动 skip.
+          # 故 CI 实际 passed << 本地 baseline 879; 不校验数字, 仅依赖 pytest exit code.
           python -m pytest tests/ \
             --ignore=tests/test_23_tone_berts.py \
             -q --tb=short
