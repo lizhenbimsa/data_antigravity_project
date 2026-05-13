@@ -237,7 +237,13 @@ class TestComputeStrategicDifferentiation:
         即 raise. 直接 patch 该 async 函数返回 deterministic L2-normalized 单位向量,
         既绕过 config 校验, 又避免 outbound network, 还让上层 cosine 相似度计算可走通.
         向量 dim 取 8 (LLM 真实是 1536, mock 用 8 减小内存; 下游纯几何, dim 大小不影响通路).
+
+        Phase 2c: 此 fixture mocks 远程 API, 但 strategic_diff 在 fallback 路径
+        (`_encode_embeddings_local`, strategic_diff.py:235) 内会 lazy-import
+        ``sentence_transformers``. CI light 矩阵不安装该包 → 5 tests fail.
+        显式 importorskip 让 light job 干净 skip 本 class, 不阻塞其它 7 个 class.
         """
+        pytest.importorskip("sentence_transformers")
         async def _mock_api(texts, cache=None):
             texts = [] if texts is None else list(texts)
             if len(texts) == 0:
