@@ -115,8 +115,13 @@ class PipelineLock:
             if self.lock_file:
                 try:
                     self.lock_file.close()
-                except Exception:
-                    pass
+                except Exception as close_err:
+                    # __enter__ 失败路径上的关闭失败 — debug 记录,
+                    # 不能让 close 异常掩盖原始的获取锁失败 e.
+                    self.logger.debug(
+                        "lock file close failed during __enter__ cleanup: %s",
+                        close_err,
+                    )
                 self.lock_file = None
             raise RuntimeError(f"获取管道锁失败: {e}")
 
@@ -131,8 +136,13 @@ class PipelineLock:
         if self.lock_file:
             try:
                 self.lock_file.close()
-            except Exception:
-                pass
+            except Exception as close_err:
+                # 锁获取失败诊断路径上的关闭失败 — debug 记录;
+                # 即便 close 失败也要继续读 sidecar 给用户诊断信息.
+                self.logger.debug(
+                    "lock file close failed during _handle_lock_failure: %s",
+                    close_err,
+                )
             self.lock_file = None
 
         lock_info = "未知"
@@ -176,13 +186,13 @@ class PipelineLock:
                         msvcrt.locking(self.lock_file.fileno(),
                                        msvcrt.LK_UNLCK, 1)
                     except Exception:
-                        pass
+                        pass  # _cleanup 尾路径; 紧接的 close() 会兜底释放 fd
                 else:
                     import fcntl
                     try:
                         fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_UN)
                     except Exception:
-                        pass
+                        pass  # _cleanup 尾路径; 紧接的 close() 会兜底释放 fd
 
                 self.lock_file.close()
                 self.lock_file = None
