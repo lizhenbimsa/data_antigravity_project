@@ -54,7 +54,7 @@ _TABLE1_VARIABLES: list[str] = [
 ]
 
 
-def build_table1(paper_config: PaperConfig | None = None) -> 'pd.DataFrame':
+def build_table1(paper_config: PaperConfig | None = None) -> pd.DataFrame:
     """生成 Table 1: 主关键变量描述统计.
 
     Args:

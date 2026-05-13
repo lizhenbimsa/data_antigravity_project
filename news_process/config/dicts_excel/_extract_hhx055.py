@@ -2,13 +2,15 @@
 最终版：精确提取 hhx055_supp.pdf 中四个面板词汇，生成 Excel 并验证数量
 """
 import sys
+
 sys.stdout.reconfigure(encoding='utf-8')
 import re
-import pdfplumber
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+import pdfplumber
 from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 PDF_PATH = Path(__file__).parent / "hhx055_supp.pdf"
 OUT_PATH = Path(__file__).parent / "hhx055_supp_words.xlsx"

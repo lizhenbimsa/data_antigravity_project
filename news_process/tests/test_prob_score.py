@@ -16,15 +16,15 @@
   5. 边界条件: confidence=0, confidence=1, confidence=None
 """
 
-import sys
 import os
+import sys
+
 import pytest
 
 # 将 tests 目录加入 sys.path
 sys.path.insert(0, os.path.dirname(__file__))
 
 from twenty_one_tone_llms_import_helper import compute_prob_score
-
 
 # ============================================================================
 # 辅助函数

@@ -86,12 +86,12 @@ Plan-r3 P3-17 的 prompt_version 维度直接对应 §3.3.2 "version-aware
 provenance" 实践: 任何 prompt 改动必须导致 cache invalidate.
 """
 
+import hashlib
+import logging
 import os
 import sqlite3
-import hashlib
-import time
-import logging
 import threading
+import time
 
 logger = logging.getLogger(__name__)
 

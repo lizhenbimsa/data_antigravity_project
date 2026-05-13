@@ -44,11 +44,9 @@ news_process.validation.threshold — 阶段31：分类阈值敏感性分析
 import os
 import sys
 import time
-import json
+
 import numpy as np
 import pandas as pd
-import ahocorasick
-from collections import Counter, defaultdict
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 news_process/validation/threshold.py 出发, 上溯 2 层抵达项目父目录)
@@ -58,11 +56,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 from news_process.core.plotting import configure_matplotlib_chinese_fonts
 from news_process.core.text.ahocorasick import (
-    load_bank_names, load_exclusion_patterns, load_fintech_dict,
     analyze_bank_matches,
+    load_bank_names,
+    load_exclusion_patterns,
+    load_fintech_dict,
 )
 
 # ============================================================================

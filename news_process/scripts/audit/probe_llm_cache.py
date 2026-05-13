@@ -17,7 +17,6 @@ Output (stdout, also appended to docs/llm_cache_probe_<date>.log):
 
 from __future__ import annotations
 
-import os
 import sqlite3
 import sys
 from datetime import datetime, timezone

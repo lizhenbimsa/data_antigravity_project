@@ -10,8 +10,9 @@ pytest_run_pilot.py — 微缩沙盒测试 (200条合成数据)
   6. 网络溢出 (46_network_spillovers)
 """
 
-import sys
 import os
+import sys
+
 import numpy as np
 import pandas as pd
 
@@ -195,7 +196,6 @@ def test_network_spillover():
     print("TEST 5: 网络溢出模块验证")
     print("=" * 60)
 
-    from scipy.sparse import lil_matrix
 
     # 构造 3 家银行的共现矩阵
     # 工行-建行: 共现 10 次, 工行-农行: 共现 2 次, 建行-农行: 共现 5 次

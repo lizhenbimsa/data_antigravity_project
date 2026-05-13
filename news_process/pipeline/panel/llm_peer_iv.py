@@ -39,15 +39,14 @@
   llm_peer_count:        LLM-Peer 网络连通度 (诊断变量)
 """
 
+import asyncio
+import json
 import os
 import re
 import sys
-import json
-import asyncio
 from difflib import get_close_matches
 from typing import Dict, List, Optional, Set, Tuple
 
-import numpy as np
 import pandas as pd
 
 try:
@@ -62,9 +61,9 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
+from news_process.core.caching import LLMCache
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging
-from news_process.core.caching import LLMCache
 
 # ============================================================================
 # 1. 全局配置

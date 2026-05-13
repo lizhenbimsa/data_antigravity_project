@@ -15,16 +15,14 @@
   Callaway & Sant’Anna (2021, JoE) — Staggered DID
 """
 
-import os
 import json
-import re
+import os
 
 import numpy as np
 import pandas as pd
 
 # Phase 2a: 取代旧的 importlib.spec_from_file_location 反射,改为正规子包 import。
 from news_process.pipeline.panel.encode import CONFIG, logger
-
 
 # ============================================================================
 # 2b. 银行分组映射加载 (Bartik IV 前置依赖)

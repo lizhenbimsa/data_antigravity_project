@@ -43,13 +43,14 @@ if _PROJECT_PARENT not in sys.path:
 
 # Phase 6a: utils.* → news_process.core.*
 from news_process.core.config import load_config
-from news_process.core.locking import PipelineLock
-from news_process.core.logging import setup_logging, log_memory_usage
-from news_process.core.stage import run_stage
 
 # Phase 1: 导入验证 DAG 单一真源; STAGES 作为模块级常量供
 # tests/integration/test_dag_consistency.py 静态一致性校验。
-from news_process.core.dag import STAGES_VALIDATION as STAGES, filter_enabled
+from news_process.core.dag import STAGES_VALIDATION as STAGES
+from news_process.core.dag import filter_enabled
+from news_process.core.locking import PipelineLock
+from news_process.core.logging import log_memory_usage, setup_logging
+from news_process.core.stage import run_stage
 
 # ============================================================================
 # 配置与初始化  (Phase 1.5: NEWS_PROCESS_RUN_ID 生成与 env 注入)

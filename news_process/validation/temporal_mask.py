@@ -29,7 +29,7 @@ news_process.validation.temporal_mask — B2-1: 时间掩码前视偏误检验
 
 import os
 import sys
-import numpy as np
+
 import pandas as pd
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
@@ -41,7 +41,8 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.config import load_config
 from news_process.core.logging import (
-    setup_logging, log_memory_usage, log_stage_summary,
+    log_stage_summary,
+    setup_logging,
 )
 
 # ============================================================================

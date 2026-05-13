@@ -30,7 +30,7 @@ _TABLE1_VARIABLES: list[str] = [
 ]
 
 
-def build_table1(paper_config: PaperConfig | None = None) -> 'pd.DataFrame':
+def build_table1(paper_config: PaperConfig | None = None) -> pd.DataFrame:
     return build_summary_table('llm_peer', _TABLE1_VARIABLES, paper_config=paper_config)
 
 

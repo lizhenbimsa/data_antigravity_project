@@ -10,16 +10,15 @@ test_pipeline_lock.py — PipelineLock单元测试
     5. 边界条件和错误场景
 """
 
+import logging
 import os
 import sys
-import time
 import tempfile
-import unittest
-import logging
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-import subprocess
 import threading
+import time
+import unittest
+from pathlib import Path
+from unittest.mock import Mock, patch
 
 # Phase 5c-2: 添加项目父目录到 sys.path 解析 ``news_process.*``
 _PROJECT_PARENT = Path(__file__).resolve().parents[2]
@@ -147,7 +146,6 @@ class TestPipelineLock(unittest.TestCase):
     @unittest.skipIf(sys.platform != 'win32', "仅在Windows上测试")
     def test_windows_msvcrt_locking(self):
         """测试7: Windows平台msvcrt锁机制"""
-        import msvcrt
 
         with PipelineLock(self.logger, self.temp_dir) as lock:
             # 验证锁文件存在
@@ -159,7 +157,6 @@ class TestPipelineLock(unittest.TestCase):
     @unittest.skipIf(sys.platform == 'win32', "仅在Unix/Linux上测试")
     def test_unix_fcntl_locking(self):
         """测试8: Unix/Linux平台fcntl锁机制"""
-        import fcntl
 
         with PipelineLock(self.logger, self.temp_dir) as lock:
             # 验证锁文件存在

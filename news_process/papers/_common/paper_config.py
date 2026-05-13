@@ -14,7 +14,6 @@ from typing import Any
 
 from news_process.core.config import load_config
 
-
 # ----------------------------------------------------------------------------
 # 不可变记录 — 任何地方拿到 PaperConfig 后，可以信任其字段在生命周期内
 # 不被改写。frozen=True 让我们能把 PaperConfig 用作 dict key / set 元素。

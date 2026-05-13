@@ -25,63 +25,21 @@
   python 45_panel_export_main.py
 """
 
-import os
-import re
-import sys
 import json
+import os
+import sys
 import time
 
 import numpy as np
 import pandas as pd
 
-# Phase 2a: 全部 9 处 importlib.spec_from_file_location 反射已删除,
-# 改为正规子包 import (单源真值: news_process.pipeline.panel.encode 取代 41 号文件)。
-from news_process.pipeline.panel.encode import (
-    CONFIG, STAGE_NAME, logger, OUTPUT_DIR, FILENAMES, PANEL_CFG,
-    LLM_MODELS, DICT_NAMES, BERT_MODELS, THREE_CLASS_MODELS, SENTIMENT_MAP,
-    encode_sentiment, compute_media_authority_weights, parse_time,
-    build_aggregation_dict, aggregate_panel, balance_panel,
-)
 from news_process.core.logging import log_stage_summary
-from news_process.core.reporting import save_dataset
-
-# 从 panel.attention_media (原 42)
-from news_process.pipeline.panel.attention_media import (
-    compute_fintech_attention_index, compute_media_heterogeneity,
+from news_process.pipeline.features.benefit_society import (
+    compute_benefit_society_panel,
 )
-
-# 从 panel.geography (原 43)
-from news_process.pipeline.panel.geography import (
-    compute_composite_indicators, standardize_panel_variables,
-    merge_bank_geography, compute_leave_one_out_sentiment,
+from news_process.pipeline.features.policy_similarity import (
+    compute_authoritative_similarity,
 )
-# Phase 2a 扫尾：补全 _m43 模块别名，恢复地理距离缓冲 + 区域模仿渗透率两组特征
-# （commit 722bc0e 删除 importlib 反射时遗漏对 _m43.foo() 调用点的更新；
-# 详见 plan c1：runner.py 中 hasattr(_m43, ...) 调用点位于 ~L446 / ~L455）。
-from news_process.pipeline.panel import geography as _m43
-
-# 从 panel.iv_did (原 44)
-from news_process.pipeline.panel.iv_did import (
-    load_bank_group_maps, compute_bartik_iv, compute_bartik_iv_fintech,
-    PROVINCE_TO_ZONE, compute_zone_leave1out, merge_policy_shocks,
-)
-
-# P0-2 (cleanup/2026-05-13): 三组 getattr(_x, 'foo', None) 软依赖改为硬 import,
-# 与上方 strategic_diff / policy_similarity / benefit_society 的硬化策略对齐.
-# 实证: 8 个函数全部已定义, fallback 路径从未触发; 硬 import 让缺失立即在 import
-# 时 fail-loud, 而非延迟到调用点 silent skip 让 panel 缺列.
-from news_process.pipeline.panel.network_spillover import (
-    compute_network_spillovers,
-    compute_bank_network_centrality,
-    compute_cognitive_proximity,
-    compute_embedding_peer_network,
-)
-from news_process.pipeline.panel.network_brokerage import (
-    compute_brokerage_centrality,
-    compute_industry_neg_shock,
-    compute_fire_sale_interaction,
-)
-from news_process.pipeline.panel.llm_peer_iv import compute_llm_peer_iv
 
 # Step 4(d-i) 硬化 (致命问题 5 / 红队 v6): 三处 getattr(..., None) 软依赖
 # 改为硬 import。这三个特征 (战略差异度 / 权威政策对齐 / 经营效益投影) 是
@@ -92,11 +50,69 @@ from news_process.pipeline.panel.llm_peer_iv import compute_llm_peer_iv
 from news_process.pipeline.features.strategic_diff import (
     compute_strategic_differentiation,
 )
-from news_process.pipeline.features.policy_similarity import (
-    compute_authoritative_similarity,
+
+# Phase 2a 扫尾：补全 _m43 模块别名，恢复地理距离缓冲 + 区域模仿渗透率两组特征
+# （commit 722bc0e 删除 importlib 反射时遗漏对 _m43.foo() 调用点的更新；
+# 详见 plan c1：runner.py 中 hasattr(_m43, ...) 调用点位于 ~L446 / ~L455）。
+from news_process.pipeline.panel import geography as _m43
+
+# 从 panel.attention_media (原 42)
+from news_process.pipeline.panel.attention_media import (
+    compute_fintech_attention_index,
+    compute_media_heterogeneity,
 )
-from news_process.pipeline.features.benefit_society import (
-    compute_benefit_society_panel,
+
+# Phase 2a: 全部 9 处 importlib.spec_from_file_location 反射已删除,
+# 改为正规子包 import (单源真值: news_process.pipeline.panel.encode 取代 41 号文件)。
+from news_process.pipeline.panel.encode import (
+    BERT_MODELS,
+    CONFIG,
+    DICT_NAMES,
+    FILENAMES,
+    LLM_MODELS,
+    OUTPUT_DIR,
+    PANEL_CFG,
+    STAGE_NAME,
+    aggregate_panel,
+    balance_panel,
+    compute_media_authority_weights,
+    encode_sentiment,
+    logger,
+    parse_time,
+)
+
+# 从 panel.geography (原 43)
+from news_process.pipeline.panel.geography import (
+    compute_composite_indicators,
+    compute_leave_one_out_sentiment,
+    merge_bank_geography,
+    standardize_panel_variables,
+)
+
+# 从 panel.iv_did (原 44)
+from news_process.pipeline.panel.iv_did import (
+    compute_bartik_iv,
+    compute_bartik_iv_fintech,
+    compute_zone_leave1out,
+    load_bank_group_maps,
+    merge_policy_shocks,
+)
+from news_process.pipeline.panel.llm_peer_iv import compute_llm_peer_iv
+from news_process.pipeline.panel.network_brokerage import (
+    compute_brokerage_centrality,
+    compute_fire_sale_interaction,
+    compute_industry_neg_shock,
+)
+
+# P0-2 (cleanup/2026-05-13): 三组 getattr(_x, 'foo', None) 软依赖改为硬 import,
+# 与上方 strategic_diff / policy_similarity / benefit_society 的硬化策略对齐.
+# 实证: 8 个函数全部已定义, fallback 路径从未触发; 硬 import 让缺失立即在 import
+# 时 fail-loud, 而非延迟到调用点 silent skip 让 panel 缺列.
+from news_process.pipeline.panel.network_spillover import (
+    compute_bank_network_centrality,
+    compute_cognitive_proximity,
+    compute_embedding_peer_network,
+    compute_network_spillovers,
 )
 
 
@@ -112,9 +128,7 @@ def _append_columns(frame: pd.DataFrame, columns: dict) -> pd.DataFrame:
 # 8 + 9. Diagnostics + Export — extracted to export.py in Phase 2b for
 # single-responsibility separation.  Re-exported here for backwards compat.
 # ============================================================================
-from news_process.pipeline.panel.export import log_diagnostics, export_panel  # noqa: E402,F401
-
-
+from news_process.pipeline.panel.export import export_panel, log_diagnostics  # noqa: E402,F401
 
 # ============================================================================
 # 主流程
@@ -526,7 +540,7 @@ def main():
             T0 = max(_panel_min, 2010)
         else:
             T0 = int(_bartik_base_year_cfg)
-        if T0 >= _bartik_pre_cutoff:
+        if _bartik_pre_cutoff <= T0:
             raise RuntimeError(
                 f"Bartik 基期 T0={T0} ≥ 政策冲击里程碑 {_bartik_pre_cutoff}：share "
                 f"已在 post-treatment 区间，违反 Goldsmith-Pinkham et al. (2020) "

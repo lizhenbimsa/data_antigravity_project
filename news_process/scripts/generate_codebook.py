@@ -12,8 +12,8 @@ generate_codebook.py - 生成完整的变量代码手册（Variable Codebook）
     - data/processed/variable_codebook.json
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 # 添加项目根目录到 sys.path
@@ -26,8 +26,10 @@ parent_dir = project_root.parent
 if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
-import pandas as pd
 import logging
+
+import pandas as pd
+
 from news_process.core.config import load_config
 from news_process.pipeline.panel.codebook import generate_codebook
 

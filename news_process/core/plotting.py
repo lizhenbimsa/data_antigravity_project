@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-
 _CJK_FONT_CANDIDATES = [
     "Microsoft YaHei",
     "SimHei",

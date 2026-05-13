@@ -19,6 +19,7 @@ news_process.validation.llms_human — 阶段32：生成人工“金标准”双
 import os
 import sys
 import time
+
 import numpy as np
 import pandas as pd
 
@@ -30,7 +31,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -153,7 +154,6 @@ def main():
     logger.info(f"正在保存带有数据校验规则的 Excel: {output_path}")
     
     try:
-        import xlsxwriter
         with pd.ExcelWriter(output_path, engine='xlsxwriter') as writer:
             sample_df.to_excel(writer, sheet_name='验证数据', index=False)
             set_excel_data_validation(writer, '验证数据', sample_df)

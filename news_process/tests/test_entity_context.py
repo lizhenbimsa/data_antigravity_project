@@ -11,8 +11,6 @@ tests/test_entity_context.py — utils/entity_context.py 白盒测试
 """
 
 import json
-import pytest
-
 
 # ============================================================================
 # 1. 句子分割测试

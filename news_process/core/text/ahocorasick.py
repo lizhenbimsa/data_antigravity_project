@@ -30,11 +30,12 @@ AC 自动机 (Aho-Corasick) 算法原理:
       编译内存暴增
 """
 
-import os
 import json
 import logging
-import ahocorasick
+import os
 from collections import defaultdict
+
+import ahocorasick
 
 logger = logging.getLogger(__name__)
 

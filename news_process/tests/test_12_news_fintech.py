@@ -9,11 +9,11 @@ tests/test_12_news_fintech.py — 12_news_fintech.py 白盒测试
   - keyword_details JSON 序列化
 """
 
-import pytest
-import pandas as pd
 from collections import Counter
 from unittest.mock import MagicMock
 
+import pandas as pd
+import pytest
 
 # ============================================================================
 # Fixtures
@@ -25,7 +25,8 @@ def fintech_module():
     # Phase 7a-2: body 已迁至 news_process.pipeline.filtering.news_fintech,
     # 旧 ``importlib.import_module('12_news_fintech')`` 现仅返回 thin shim,
     # 直接走规范 import 即可拿到全部内部函数与模块级常量。
-    import os, sys
+    import os
+    import sys
     _PROJECT_PARENT = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )

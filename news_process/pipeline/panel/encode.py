@@ -15,11 +15,10 @@
 学术依据: Tetlock et al. (2008, JF) 先分后合范式
 """
 
+import json
 import os
 import re
 import sys
-import json
-import time
 import warnings
 
 # Phase 5c-1: 解析 ``news_process.core.*`` 需要项目根 (news_process/ 父目录)

@@ -22,7 +22,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
-
 # ----------------------------------------------------------------------------
 # enabled_when 谓词集。声明在模块作用域, 以使 ``is`` 身份比对跨 import 站点
 # 仍然成立 — DAG 一致性测试依赖此性质来确认两个 orchestrator 复用同一个

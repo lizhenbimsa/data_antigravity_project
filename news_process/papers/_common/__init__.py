@@ -26,33 +26,33 @@ Phase 3b 交付物 + Phase 9b 扩展。提供 6 个支柱:
    ``tests/test_papers_common.py`` 单元测试隔离。
 """
 
+from news_process.papers._common.figures import (
+    COLORBLIND_PALETTE,
+    FIGSIZE_SINGLE,
+    FIGSIZE_SQUARE,
+    FIGSIZE_WIDE,
+    apply_publication_style,
+)
+from news_process.papers._common.panel_loader import (
+    list_available_panels,
+    load_panel,
+)
 from news_process.papers._common.paper_config import (
     PaperConfig,
     get_paper_config,
     get_papers_assets_root,
 )
-from news_process.papers._common.panel_loader import (
-    load_panel,
-    list_available_panels,
-)
-from news_process.papers._common.tables import (
-    sanitize_stata_columns,
-    export_dta,
-    summary_stats,
-)
-from news_process.papers._common.figures import (
-    apply_publication_style,
-    COLORBLIND_PALETTE,
-    FIGSIZE_SINGLE,
-    FIGSIZE_WIDE,
-    FIGSIZE_SQUARE,
-)
-from news_process.papers._common.stata_runner import (
-    run_do,
-    StataNotFoundError,
-)
 from news_process.papers._common.pipeline_runner import (
     run_main_pipeline,
+)
+from news_process.papers._common.stata_runner import (
+    StataNotFoundError,
+    run_do,
+)
+from news_process.papers._common.tables import (
+    export_dta,
+    sanitize_stata_columns,
+    summary_stats,
 )
 
 __all__ = [

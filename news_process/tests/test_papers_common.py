@@ -14,7 +14,6 @@ tests/integration/test_panel_reproducibility.py 覆盖)。
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -28,21 +27,20 @@ if str(PROJECT_PARENT) not in sys.path:
     sys.path.insert(0, str(PROJECT_PARENT))
 
 from news_process.papers._common import (
+    COLORBLIND_PALETTE,
     PaperConfig,
+    StataNotFoundError,
+    apply_publication_style,
+    export_dta,
     get_paper_config,
     get_papers_assets_root,
     list_available_panels,
-    sanitize_stata_columns,
-    export_dta,
-    summary_stats,
-    apply_publication_style,
-    COLORBLIND_PALETTE,
-    StataNotFoundError,
     run_do,
+    sanitize_stata_columns,
+    summary_stats,
 )
 from news_process.papers._common.paper_config import is_valid_paper_id
 from news_process.papers._common.stata_runner import discover_stata_bin
-
 
 # ============================================================================
 # 1. paper_config

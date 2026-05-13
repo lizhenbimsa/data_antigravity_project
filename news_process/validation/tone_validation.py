@@ -55,13 +55,14 @@ news_process.validation.tone_validation — 阶段34：情感分析三角验证�
     验证报告（CSV + PNG + LaTeX）+ 人工验证样本 Excel
 """
 
+import json
 import os
 import sys
 import time
-import json
+from collections import Counter
+
 import numpy as np
 import pandas as pd
-from collections import Counter
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 news_process/validation/tone_validation.py 出发, 上溯 2 层抵达项目父目录)
@@ -71,7 +72,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 
 # ============================================================================
 # 1. 全局配置和初始化

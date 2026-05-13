@@ -12,9 +12,10 @@ test_51_falsification_test.py — 伪造检验单元测试
 
 import os
 import sys
-import pytest
+
 import numpy as np
 import pandas as pd
+import pytest
 
 # Phase 5a: 注入 news_process 父目录, 解析 ``news_process.*``
 _PROJECT_PARENT = os.path.dirname(
@@ -26,7 +27,6 @@ if _PROJECT_PARENT not in sys.path:
 # Phase 2c 拆分: 51_falsification_test.py 已变为 thin shim, body 迁到
 # pipeline/falsification/controls.py。Phase 5a 修复测试导入路径。
 from news_process.pipeline.falsification import controls as mod  # noqa: E402
-
 
 # ============================================================================
 # Fixtures: 合成数据

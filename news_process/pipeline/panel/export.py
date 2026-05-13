@@ -14,17 +14,18 @@ explicitly.  runner.py re-exports them for backwards compatibility.
 from __future__ import annotations
 
 import os
-import re
 
 import numpy as np
 import pandas as pd
 
-from news_process.pipeline.panel.encode import (
-    CONFIG, logger, OUTPUT_DIR, FILENAMES, PANEL_CFG,
-    LLM_MODELS, DICT_NAMES, BERT_MODELS, THREE_CLASS_MODELS,
-)
 from news_process.core.reporting import save_dataset
-
+from news_process.pipeline.panel.encode import (
+    CONFIG,
+    FILENAMES,
+    OUTPUT_DIR,
+    PANEL_CFG,
+    logger,
+)
 
 # ============================================================================
 # 8. 诊断统计量

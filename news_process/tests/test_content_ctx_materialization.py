@@ -13,9 +13,10 @@ tests/test_content_ctx_materialization.py — content_ctx 物化逻辑测试
 
 import os
 import sys
-import pytest
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+import pytest
 
 # Phase 5c-2: 注入项目父目录解析 ``news_process.*``
 _PROJECT_PARENT = os.path.dirname(
@@ -30,9 +31,8 @@ if _PROJECT_PARENT not in sys.path:
 # ============================================================================
 
 from news_process.core.text.entity_context import (
-    extract_entity_context, _split_sentences, _merge_intervals,
+    extract_entity_context,
 )
-
 
 # ============================================================================
 # 1. extract_entity_context 确定性验证
@@ -117,8 +117,10 @@ class TestMaterializeContentCtx:
     def _make_materialize_fn(self, bank_names_file):
         """构建一个可测试的 _materialize_content_ctx 函数。"""
         import logging
+
         from news_process.core.text.entity_context import (
-            extract_entity_context, get_target_aliases,
+            extract_entity_context,
+            get_target_aliases,
         )
 
         logger = logging.getLogger('test_materialize')

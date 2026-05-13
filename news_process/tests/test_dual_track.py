@@ -12,8 +12,8 @@ Phase 8 (2026-05-04): 路径从 ``data_processed`` 重命名为 ``data/processed
 """
 import os
 
-import pytest
 import pandas as pd
+import pytest
 
 # ============================================================================
 # Fixtures

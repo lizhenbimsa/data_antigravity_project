@@ -12,8 +12,8 @@ convert_parquet_to_stata.py - 将parquet面板数据转换为Stata dta格式
 日期: 2026-05-10
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
 
 import pandas as pd

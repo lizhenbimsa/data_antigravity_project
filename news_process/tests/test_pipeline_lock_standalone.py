@@ -7,12 +7,10 @@ test_pipeline_lock_standalone.py — PipelineLock独立单元测试
 
 import os
 import sys
-import time
 import tempfile
-import unittest
-import logging
-from pathlib import Path
 import threading
+import time
+import unittest
 
 
 class MockLogger:
@@ -60,14 +58,14 @@ class PipelineLock:
                 try:
                     msvcrt.locking(self.lock_file.fileno(), msvcrt.LK_NBLCK, 1)
                     self._locked = True
-                except IOError:
+                except OSError:
                     self._handle_lock_failure()
             else:
                 import fcntl
                 try:
                     fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     self._locked = True
-                except IOError:
+                except OSError:
                     self._handle_lock_failure()
 
             try:

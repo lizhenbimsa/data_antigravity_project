@@ -30,16 +30,15 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
     3. 控制台/日志完整统计输出
 """
 
+import json
+import logging
 import os
 import sys
-import json
 import time
-import logging
-from typing import Any
+from collections import Counter
 
 import numpy as np
 import pandas as pd
-from collections import Counter
 from scipy import stats as scipy_stats
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
@@ -50,7 +49,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 
 try:
     import jieba
@@ -273,7 +272,6 @@ def _inject_custom_dicts_to_jieba(dictionaries):
 # ============================================================================
 
 from news_process.core.text.entity_context import extract_entity_context, get_target_aliases
-
 
 # ============================================================================
 # 4. 敏感性分析核心引擎

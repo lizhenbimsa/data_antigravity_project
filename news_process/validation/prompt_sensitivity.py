@@ -31,20 +31,22 @@ news_process.validation.prompt_sensitivity — Prompt 措辞敏感度量化测�
     eval_reports/prompt_sensitivity_heatmap.png    — κ 热力图
 """
 
-import os
-import time
-import json
-
 import asyncio
+import json
+import os
+import sys
+import time
+
 import aiohttp
+import matplotlib
 import numpy as np
 import pandas as pd
-import sys
-import matplotlib
+
 matplotlib.use('Agg')
+from importlib import import_module
+
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
-from importlib import import_module
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 news_process/validation/prompt_sensitivity.py 出发, 上溯 2 层抵达项目父目录)
@@ -53,9 +55,9 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(_HERE))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from news_process.core.config import load_config
 from news_process.core.caching import LLMCache
-from news_process.core.logging import setup_logging, log_memory_usage
+from news_process.core.config import load_config
+from news_process.core.logging import log_memory_usage, setup_logging
 
 # ============================================================================
 # 1. 全局配置和初始化

@@ -5,7 +5,7 @@ tests/test_aho_corasick.py — utils/aho_corasick.py 单元测试
 
 import os
 import sys
-import json
+
 import pytest
 
 # Phase 5c-2: 注入项目父目录解析 ``news_process.*``
@@ -16,10 +16,13 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.text.ahocorasick import (
-    load_bank_names, load_exclusion_patterns, is_match_excluded,
-    analyze_bank_matches, load_fintech_dict, analyze_fintech_matches,
+    analyze_bank_matches,
+    analyze_fintech_matches,
+    is_match_excluded,
+    load_bank_names,
+    load_exclusion_patterns,
+    load_fintech_dict,
 )
-
 
 # ============================================================================
 # load_bank_names 测试

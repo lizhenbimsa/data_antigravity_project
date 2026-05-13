@@ -65,7 +65,7 @@ import numpy as np
 import pandas as pd
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_stage_summary
+from news_process.core.logging import log_stage_summary, setup_logging
 from news_process.core.reporting import save_dataset
 
 warnings.filterwarnings('ignore', category=FutureWarning)

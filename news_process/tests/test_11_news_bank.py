@@ -13,13 +13,11 @@ Mock 策略：
   - 不触发 load_config / setup_logging 的副作用
 """
 
-import json
-import pytest
-import pandas as pd
-import numpy as np
 from collections import Counter
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
+import pandas as pd
+import pytest
 
 # ============================================================================
 # Fixtures

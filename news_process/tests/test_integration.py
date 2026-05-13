@@ -5,12 +5,12 @@ tests/test_integration.py — 集成测试
 验证跨模块数据流和关键配置一致性。
 """
 
+import json
 import os
 import sys
-import json
-import pytest
+
 import pandas as pd
-import numpy as np
+import pytest
 
 # Phase 5c-2: 注入项目父目录解析 ``news_process.*``
 _PROJECT_PARENT = os.path.dirname(
@@ -20,7 +20,6 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-
 
 # ============================================================================
 # 配置一致性测试
@@ -225,7 +224,6 @@ class TestPipelineReportingIntegration:
     def test_generate_summary_with_parquets(self, tmp_path):
         """使用临时 parquet 文件测试管道报告摘要。"""
         from news_process.core.logging import setup_logging
-        from news_process.core.reporting import save_dataset
 
         logger = setup_logging('test_pipeline', str(tmp_path / 'logs'))
         output_dir = tmp_path / 'output'
@@ -280,8 +278,8 @@ class TestEnhancedIntegration:
 
     def test_pipeline_reporting_with_mock_stages(self, tmp_path):
         """管道报告集成测试：使用多阶段 mock 数据。"""
-        from news_process.core.reporting import generate_pipeline_summary
         from news_process.core.logging import setup_logging
+        from news_process.core.reporting import generate_pipeline_summary
 
         logger = setup_logging('test_enhanced_pipeline', str(tmp_path / 'logs'))
         output_dir = tmp_path / 'output'

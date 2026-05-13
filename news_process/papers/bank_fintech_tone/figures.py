@@ -12,15 +12,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 
 from news_process.papers._common import (
-    PaperConfig,
-    get_paper_config,
-    load_panel,
-    apply_publication_style,
     COLORBLIND_PALETTE,
     FIGSIZE_SINGLE,
+    PaperConfig,
+    apply_publication_style,
+    get_paper_config,
+    load_panel,
 )
 
 

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """最终审查脚本"""
-import pandas as pd
-import re
 import os
+import re
+
+import pandas as pd
 
 print('=' * 70)
 print('FINAL AUDIT - Stata Integration Review')
@@ -94,6 +95,7 @@ for f in do_files:
         all_labels.extend(matches)
 
 from collections import Counter
+
 label_counts_dict = Counter(all_labels)
 duplicates = {k: v for k, v in label_counts_dict.items() if v > 1}
 if duplicates:

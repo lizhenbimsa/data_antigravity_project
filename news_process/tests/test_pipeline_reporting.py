@@ -7,10 +7,9 @@ tests/test_pipeline_reporting.py — utils/pipeline_reporting.py 单元测试
 
 import os
 import sys
-import logging
-import pytest
+
 import pandas as pd
-import numpy as np
+import pytest
 
 # Phase 5c-2: 注入项目父目录解析 ``news_process.*``
 _PROJECT_PARENT = os.path.dirname(
@@ -19,9 +18,8 @@ _PROJECT_PARENT = os.path.dirname(
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from news_process.core.reporting import generate_pipeline_summary
 from news_process.core.logging import setup_logging
-
+from news_process.core.reporting import generate_pipeline_summary
 
 # ============================================================================
 # Fixture：构建测试用配置和 parquet 文件

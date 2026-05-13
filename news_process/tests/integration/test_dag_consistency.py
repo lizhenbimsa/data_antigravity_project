@@ -20,7 +20,6 @@ import sys
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # 测试夹具
 # ---------------------------------------------------------------------------
@@ -188,8 +187,8 @@ def test_validation_stages_explicitly_marked_no_output(core_dag):
     raise RuntimeError, 杜绝"忘了登记导致陈旧文件预清理静默失效"的反模式.
     """
     from news_process.core.schemas import (
-        OUTPUT_REGISTRY,
         EXPECTED_NO_OUTPUT_STAGES,
+        OUTPUT_REGISTRY,
     )
 
     unaccounted = [

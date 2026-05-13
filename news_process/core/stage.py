@@ -34,15 +34,14 @@ import sys
 import threading
 import time
 from collections import deque
-from typing import Deque, IO
+from typing import IO, Deque
 
 try:
     import psutil
 except ImportError:  # pragma: no cover - psutil is a runtime dependency
     psutil = None
 
-from .logging import log_memory_usage, get_run_id
-
+from .logging import get_run_id, log_memory_usage
 
 # 子进程 stdout/stderr 累积上限 (行数); 防止任意大日志撑爆父进程
 _TAIL_BUFFER_MAXLEN = 10000

@@ -35,7 +35,6 @@ import os
 import sys
 import time
 
-
 # Sidecar 文件名后缀常量, 与主锁文件后缀对齐 (.pipeline.lock + .info)
 _SIDECAR_SUFFIX = '.info'
 
@@ -80,7 +79,7 @@ class PipelineLock:
                 try:
                     msvcrt.locking(self.lock_file.fileno(), msvcrt.LK_NBLCK, 1)
                     self._locked = True
-                except IOError:
+                except OSError:
                     self._handle_lock_failure()
             else:
                 import fcntl
@@ -88,7 +87,7 @@ class PipelineLock:
                     fcntl.flock(self.lock_file.fileno(),
                                 fcntl.LOCK_EX | fcntl.LOCK_NB)
                     self._locked = True
-                except IOError:
+                except OSError:
                     self._handle_lock_failure()
 
             # 写入 sidecar 文件: PID + 启动时间.

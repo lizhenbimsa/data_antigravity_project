@@ -23,7 +23,6 @@ from logging.handlers import RotatingFileHandler
 import pandas as pd
 import psutil
 
-
 _RUN_ID_ENV = "NEWS_PROCESS_RUN_ID"
 
 

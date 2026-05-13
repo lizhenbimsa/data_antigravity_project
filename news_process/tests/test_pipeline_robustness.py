@@ -1,8 +1,9 @@
 import os
 import sys
+from unittest.mock import patch
+
 import numpy as np
 import pytest
-from unittest.mock import patch
 
 # Phase 5c-2: 注入项目父目录解析 ``news_process.*``
 _PROJECT_PARENT = os.path.dirname(
@@ -252,7 +253,8 @@ def test_cache_schema_version_invalidates_v0_keys(tmp_path):
     匹配 v1 算法生成的新键, 即等效 silent miss).
     """
     import hashlib
-    from news_process.core.caching import LLMCache, SCHEMA_VERSION
+
+    from news_process.core.caching import SCHEMA_VERSION, LLMCache
 
     assert SCHEMA_VERSION == "v1", \
         f"SCHEMA_VERSION 当前值 '{SCHEMA_VERSION}' 不是 Plan-r3 P3-17 的 'v1'"

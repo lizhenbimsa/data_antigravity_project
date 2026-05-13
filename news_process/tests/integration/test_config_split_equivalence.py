@@ -30,13 +30,12 @@ if str(PROJECT_PARENT) not in sys.path:
     sys.path.insert(0, str(PROJECT_PARENT))
 
 from news_process.core.config import (  # noqa: E402
+    _SPLIT_DOMAINS,
     _deep_merge,
     _detect_split_mode,
     _inline_external_prompts,
-    _SPLIT_DOMAINS,
     load_config,
 )
-
 
 # ============================================================================
 # 1. _deep_merge 单元行为
@@ -328,8 +327,8 @@ class TestEnvExampleIndirectReferenceValidation:
 
     def test_indirect_ref_to_unset_var_triggers_warning(self, tmp_path, caplog):
         """模拟一个含间接引用但目标 var 未在 os.environ 设置的 .env.example."""
-        import os
         import logging as _log
+        import os
         # 构造 minimal yaml + env.example 沙盒
         sandbox = tmp_path / "sandbox"
         cfg_dir = sandbox / "config"
@@ -363,8 +362,8 @@ class TestEnvExampleIndirectReferenceValidation:
 
     def test_indirect_ref_to_set_var_no_warning(self, tmp_path, caplog):
         """间接引用的目标 var 在 os.environ 中有值时, 不应误报 warning."""
-        import os
         import logging as _log
+        import os
         sandbox = tmp_path / "sandbox"
         cfg_dir = sandbox / "config"
         cfg_dir.mkdir(parents=True)

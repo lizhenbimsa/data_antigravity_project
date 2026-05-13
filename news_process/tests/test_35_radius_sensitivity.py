@@ -10,8 +10,6 @@ tests/test_35_radius_sensitivity.py — 35_radius_sensitivity.py 白盒测试
 """
 
 import pytest
-import numpy as np
-
 
 # ============================================================================
 # Fixtures
@@ -23,7 +21,8 @@ def sensitivity_module():
     # Phase 7b: body 已迁至 news_process.validation.radius_sensitivity,
     # 旧 ``importlib.import_module('35_radius_sensitivity')`` 现仅返回 thin shim,
     # 直接走规范 import 即可拿到全部内部函数与模块级常量。
-    import os, sys
+    import os
+    import sys
     _PROJECT_PARENT = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )

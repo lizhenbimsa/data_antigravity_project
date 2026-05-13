@@ -27,13 +27,11 @@ news_process.pipeline.sentiment.herd_decay — 跟风/抄袭新闻检测与衰�
 
 import os
 import sys
-import logging
+
 import numpy as np
 import pandas as pd
-
-from scipy.sparse import csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import pairwise_distances_chunked, pairwise_distances
+from sklearn.metrics import pairwise_distances, pairwise_distances_chunked
 
 # Phase 7a-7: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 pipeline/sentiment/herd_decay.py 出发, 上溯 3 层抵达 news_process/ 的父目录)

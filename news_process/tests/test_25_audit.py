@@ -9,7 +9,9 @@ test_25_audit.py — 25_strategic_differentiation.py 全面审计测试
   4. Fluidity 时间维度逻辑
   5. 与下游 Stata 导出的一致性
 """
-import sys, os
+import os
+import sys
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -23,11 +25,12 @@ if PROJECT_PARENT not in sys.path:
 # news_process.pipeline.features.strategic_diff. Phase 4e 同步 test 导入路径。
 from news_process.pipeline.features import strategic_diff as _m25
 from news_process.pipeline.features.strategic_diff import (
-    _l2_normalize,
-    _compute_nn_scores,
     _build_tfidf_sim_matrix,
     _compute_centroid_scores,
+    _compute_nn_scores,
+    _l2_normalize,
 )
+
 _aggregate_bank_year_texts = _m25._aggregate_bank_year_texts
 
 

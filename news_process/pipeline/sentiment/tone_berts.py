@@ -60,14 +60,15 @@ news_process.pipeline.sentiment.tone_berts — 阶段23：基于 BERT 系列预�
     追加各模型的情感标签和概率列（output_23_bert_tone）
 """
 
+import gc
 import os
 import sys
 import time
-import gc
 import warnings
-import pandas as pd
-import numpy as np
 from collections import Counter
+
+import numpy as np
+import pandas as pd
 
 # Phase 7a-6: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 pipeline/sentiment/tone_berts.py 出发, 上溯 3 层抵达 news_process/ 的父目录)
@@ -77,7 +78,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 from news_process.core.reporting import safe_save_preview_csv
 
 warnings.filterwarnings(
@@ -90,7 +91,7 @@ warnings.filterwarnings(
 try:
     import torch
     import torch.nn.functional as F
-    from transformers import AutoTokenizer, AutoModelForSequenceClassification
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
 except ImportError:
     raise ImportError(
         "请安装必要依赖：\n"
@@ -126,6 +127,7 @@ _SEED = int(BERT_PARAMS.get('random_seed', 42))
 
 # 设种子: 覆盖 random / numpy / torch / transformers 四个独立随机源
 import random as _stdlib_random
+
 _stdlib_random.seed(_SEED)
 np.random.seed(_SEED)
 torch.manual_seed(_SEED)

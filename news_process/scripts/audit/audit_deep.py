@@ -1,17 +1,19 @@
 """
 第四轮审核：极端边界 + 并发安全 + 配置回归深度测试
 """
-import sys, os
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import hashlib
 import json
+import threading
 import uuid
+
 import numpy as np
 import pandas as pd
-import threading
-import concurrent.futures
 
 passed = 0
 failed = 0
@@ -117,6 +119,7 @@ print()
 print("=== Test B: Config Hash Regression ===")
 # Phase 6a: utils.helpers → news_process.core.config
 from news_process.core.config import load_config
+
 CONFIG = load_config()
 PARAMS = CONFIG["preprocessing"]
 

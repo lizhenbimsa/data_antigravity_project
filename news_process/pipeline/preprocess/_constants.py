@@ -15,7 +15,6 @@ from __future__ import annotations
 import json
 import os
 import re
-
 import sys
 
 # Phase 4b: 解析 ``news_process.core.*`` 需要项目根 (news_process/ 的父目录)
@@ -28,7 +27,6 @@ if _project_parent not in sys.path:
 
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging
-
 
 # ============================================================================
 # 1. 配置 + logger

@@ -29,7 +29,6 @@ if str(PROJECT_PARENT) not in sys.path:
 
 from news_process.papers._common.paper_config import _VALID_PAPER_IDS
 
-
 # ============================================================================
 # 1. _common 内核
 # ============================================================================
@@ -66,7 +65,7 @@ def test_paper_package_importable(paper_id: str):
     mod = importlib.import_module(f"news_process.papers.{paper_id}")
     assert hasattr(mod, 'PAPER_ID'), \
         f"{paper_id} 包缺少 PAPER_ID 常量"
-    assert mod.PAPER_ID == paper_id, \
+    assert paper_id == mod.PAPER_ID, \
         f"{paper_id}.PAPER_ID = {mod.PAPER_ID!r}, 预期 {paper_id!r}"
 
 

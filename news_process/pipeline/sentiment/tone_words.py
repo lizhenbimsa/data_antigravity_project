@@ -51,21 +51,21 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
     追加各词典的得分、标签和匹配详情列
 """
 
+import json
+import logging
+import math
 import os
 import re
-import threading
-import json
-import math
-import time
 import string
 import sys
-import logging
-from typing import Any
-import pandas as pd
-import numpy as np
+import threading
+import time
 from collections import Counter
+from typing import Any
+
+import numpy as np
+import pandas as pd
 from joblib import Parallel, delayed
-import psutil
 
 # Phase 7a-5: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 pipeline/sentiment/tone_words.py 出发, 上溯 3 层抵达 news_process/ 的父目录)
@@ -75,7 +75,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 from news_process.core.reporting import safe_save_preview_csv
 
 try:
@@ -659,7 +659,7 @@ def _inject_custom_dicts_to_jieba():
         # 4. 注入否定词与程度词增强规则库
         for word in NEGATION_WORDS:
             jieba.add_word(word)
-        for word in DEGREE_WORDS.keys():
+        for word in DEGREE_WORDS:
             jieba.add_word(word)
         for word in ADVERSATIVE_WORDS:
             jieba.add_word(word)

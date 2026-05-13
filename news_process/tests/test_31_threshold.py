@@ -7,9 +7,6 @@ tests/test_31_threshold.py — 31_bank_fintech_threshold.py 纯函数测试
 
 import os
 import sys
-import pytest
-import numpy as np
-import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -112,7 +109,7 @@ def generate_sensitivity_latex(bank_results: list, fintech_results: list,
     try:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
-    except Exception as e:
+    except Exception:
         pass
 
 

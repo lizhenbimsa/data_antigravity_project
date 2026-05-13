@@ -3,9 +3,6 @@
 批量生成所有缺失变量的Stata标签
 """
 
-import pandas as pd
-import re
-import os
 
 # 读取未标注变量列表
 with open('unlabeled_vars_final.txt', 'r', encoding='utf-8') as f:

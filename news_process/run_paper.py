@@ -47,10 +47,9 @@ if __name__ == "__main__" and __package__ is None:
         sys.path.insert(0, _project_parent)
 
 from news_process.papers._common.paper_config import (  # noqa: E402
-    is_valid_paper_id,
     _VALID_PAPER_IDS,
+    is_valid_paper_id,
 )
-
 
 _LOGGER = logging.getLogger('run_paper')
 

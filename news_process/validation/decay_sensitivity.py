@@ -59,12 +59,12 @@ news_process.validation.decay_sensitivity — 距离衰减权重敏感性检验 
     2. eval_reports/38b_decay_sensitivity.csv
 """
 
-import os
-import math
 import json
+import logging
+import math
+import os
 import sys
 import time
-import logging
 
 import numpy as np
 import pandas as pd
@@ -77,7 +77,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_stage_summary
+from news_process.core.logging import log_stage_summary, setup_logging
 from news_process.core.text.entity_context import (
     extract_entity_context_with_distances,
     get_target_aliases,

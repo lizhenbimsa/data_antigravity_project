@@ -7,11 +7,10 @@ tests/test_32_news_llms_human.py — 32_news_llms_human.py 白盒测试
   - merge_annotations: 一致/分歧/空值处理、待仲裁标记、裁定备注列
 """
 
-import pytest
+
 import numpy as np
 import pandas as pd
-from unittest.mock import MagicMock
-
+import pytest
 
 # ============================================================================
 # Fixtures
@@ -23,7 +22,8 @@ def human_module():
     # Phase 7b: body 已迁至 news_process.validation.llms_human,
     # 旧 ``importlib.import_module('32_news_llms_human')`` 现仅返回 thin shim,
     # 直接走规范 import 即可拿到全部内部函数与模块级常量。
-    import os, sys
+    import os
+    import sys
     _PROJECT_PARENT = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )

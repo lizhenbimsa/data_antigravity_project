@@ -15,6 +15,8 @@ from __future__ import annotations
 import os
 import re
 
+# ftfy 是 normalize 专属依赖, 子模块顶部 import 一次即可
+import ftfy
 import opencc
 import pandas as pd
 from selectolax.parser import HTMLParser
@@ -32,10 +34,6 @@ from news_process.pipeline.preprocess._constants import (
     phone_pattern,
     url_pattern,
 )
-
-# ftfy 是 normalize 专属依赖, 子模块顶部 import 一次即可
-import ftfy
-
 
 # OpenCC 转换器 (延迟初始化)
 # 每个工作进程首次调用时创建, 避免 fork 不安全。

@@ -40,12 +40,12 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
     列: Threshold, Retained, Dropped, Retained_Ratio, Is_Production
 """
 
+import gc
 import os
 import sys
-import pandas as pd
 import time
-import importlib
-import gc
+
+import pandas as pd
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 news_process/validation/dedup_threshold.py 出发, 上溯 2 层抵达项目父目录)

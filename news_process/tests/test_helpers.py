@@ -3,13 +3,13 @@ tests/test_helpers.py — utils/helpers.py 单元测试
 ==================================================
 """
 
+import logging
 import os
 import sys
 import time
-import logging
-import pytest
+
 import pandas as pd
-import numpy as np
+import pytest
 
 # Phase 5c-2: 注入项目父目录, 让 ``news_process.core.*`` 在包模式下可解析
 _PROJECT_PARENT = os.path.dirname(
@@ -20,11 +20,13 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.config import load_config
 from news_process.core.logging import (
-    setup_logging, log_and_time, log_memory_usage, log_stage_summary,
+    log_and_time,
+    log_memory_usage,
+    log_stage_summary,
+    setup_logging,
 )
 from news_process.core.reporting import safe_save_preview_csv, save_dataset
 from news_process.core.stage import run_stage
-
 
 # ============================================================================
 # load_config 测试

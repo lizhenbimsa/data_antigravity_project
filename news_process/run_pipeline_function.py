@@ -61,9 +61,11 @@ if _PROJECT_PARENT not in sys.path:
 
 # Phase 6a: utils.* → news_process.core.*
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
-from news_process.core.stage import run_stage
-from news_process.core.locking import PipelineLock
+from news_process.core.dag import (
+    METHOD_TO_PREDICATE,
+    filter_enabled,
+    get_script_for_method,
+)
 
 # Phase 1: 自单一真源导入 DAG, 使本编排器与 core/dag.py 共用同一份阶段定义。
 # STAGES 作为模块级常量暴露, 供 tests/integration/test_dag_consistency.py 做静态一致性校验。
@@ -71,10 +73,10 @@ from news_process.core.locking import PipelineLock
 # orchestrator 仅消费 (取代历史的本地 _sentiment_method_to_script 字典).
 from news_process.core.dag import (
     STAGES_MAIN as STAGES,
-    filter_enabled,
-    METHOD_TO_PREDICATE,
-    get_script_for_method,
 )
+from news_process.core.locking import PipelineLock
+from news_process.core.logging import log_memory_usage, setup_logging
+from news_process.core.stage import run_stage
 
 # ============================================================================
 # 配置与初始化
@@ -129,9 +131,11 @@ def _get_stage_output_files(stage_script: str) -> list:
     ``paths.yaml::filenames`` 改名后预清理逻辑自动跟进.
     """
     from news_process.core.schemas import (
-        get_stage_outputs as _registry_outputs,
-        OUTPUT_REGISTRY,
         EXPECTED_NO_OUTPUT_STAGES,
+        OUTPUT_REGISTRY,
+    )
+    from news_process.core.schemas import (
+        get_stage_outputs as _registry_outputs,
     )
     files = _registry_outputs(stage_script, config=CONFIG)
     if not files:

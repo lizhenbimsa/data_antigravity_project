@@ -49,12 +49,13 @@
 ============================================================================
 """
 
+import asyncio
+import json
 import os
 import sys
-import asyncio
+
 import numpy as np
 import pandas as pd
-import json
 
 # Phase 5c-1: 注入项目根, 让 ``news_process.core.*`` 在包模式下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -67,7 +68,7 @@ from news_process.core.caching import LLMCache
 # ============================================================================
 # 1. 全局配置和初始化  (Phase 2a: 取代旧的 importlib 反射)
 # ============================================================================
-from news_process.pipeline.panel.encode import logger, CONFIG, FILENAMES, OUTPUT_DIR  # noqa: E402
+from news_process.pipeline.panel.encode import CONFIG, FILENAMES, OUTPUT_DIR, logger  # noqa: E402
 
 STAGE_NAME = "27_fintech_benefit_society"
 

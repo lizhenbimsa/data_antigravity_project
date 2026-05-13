@@ -8,10 +8,10 @@ generate_missing_labels.py - 自动生成缺失的变量标签
 输出: stata/15_label_supplementary_full.do
 """
 
-import pandas as pd
-import re
 import os
-from typing import Dict, List, Tuple
+import re
+
+import pandas as pd
 
 
 def get_labeled_vars() -> set:

@@ -34,9 +34,9 @@ utils/entity_context.py - 实体特异性上下文提取引擎
 而非全文混合情感。
 """
 
-import re
 import json
 import logging
+import re
 from typing import List, Tuple
 
 logger = logging.getLogger(__name__)

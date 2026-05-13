@@ -67,13 +67,14 @@
 ============================================================================
 """
 
+import asyncio
+import json
 import os
 import sys
-import asyncio
 import time
+
 import numpy as np
 import pandas as pd
-import json
 
 # Phase 5c-1: 注入项目根, 让 ``news_process.core.*`` 在包模式下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -86,7 +87,7 @@ from news_process.core.caching import LLMCache
 # ============================================================================
 # 1. 全局配置和初始化  (Phase 2a: 取代旧的 importlib 反射)
 # ============================================================================
-from news_process.pipeline.panel.encode import logger, CONFIG  # noqa: E402
+from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
@@ -521,8 +522,8 @@ def main():
         'output_15_article_alignment', '15_article_alignment.parquet')
     output_path = os.path.join(output_dir, output_filename)
 
-    from news_process.core.reporting import save_dataset
     from news_process.core.logging import log_stage_summary
+    from news_process.core.reporting import save_dataset
     # 使用数据版本控制保存
     input_file = os.path.join(CONFIG['paths']['output_dir'],
                               CONFIG['filenames']['output_14_fintech_intensity'])

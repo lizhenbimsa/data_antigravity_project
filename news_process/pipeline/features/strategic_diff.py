@@ -128,15 +128,23 @@
 #   - cosine_similarity: 计算两个向量的余弦相似度（0=方向完全不同, 1=方向完全相同）
 #   - LDA (Latent Dirichlet Allocation): 主题模型，自动发现文本中隐藏的"话题"
 #   - jensenshannon: Jensen-Shannon 散度，衡量两个概率分布有多不同
-import os, sys, logging, asyncio
-import numpy as np, pandas as pd, jieba
+import asyncio
+import logging
+import os
+import sys
+
+import jieba
+import numpy as np
+import pandas as pd
+
 jieba.setLogLevel(logging.WARNING)
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.decomposition import LatentDirichletAllocation
-from scipy.spatial.distance import jensenshannon
-import tiktoken
 import json
+
+import tiktoken
+from scipy.spatial.distance import jensenshannon
+from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Phase 5c-1: 注入项目根, 让 ``news_process.core.*`` 在包模式下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -197,7 +205,8 @@ def _split_text_for_embedding(text: str) -> list[str]:
 
 
 # --- 从 panel/encode 导入共享配置 (Phase 2a: 取代旧的 importlib 反射) ---
-from news_process.pipeline.panel.encode import logger, CONFIG  # noqa: E402
+from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
+
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
 _ALIGN_CFG = CONFIG.get('article_alignment', {})

@@ -56,8 +56,6 @@ from __future__ import annotations
 import concurrent.futures
 import gc
 import glob
-import hashlib
-import json
 import os
 import sys
 import time
@@ -76,10 +74,11 @@ if __name__ == "__main__":
         sys.path.insert(0, _project_parent)
 
 from news_process.core.logging import (
-    log_and_time, log_memory_usage, log_stage_summary,
+    log_and_time,
+    log_memory_usage,
+    log_stage_summary,
 )
 from news_process.core.reporting import safe_save_preview_csv
-
 from news_process.pipeline.preprocess._constants import (
     CONFIG,
     MEDIA_NAME_OVERRIDES,
@@ -89,7 +88,6 @@ from news_process.pipeline.preprocess._constants import (
 )
 from news_process.pipeline.preprocess.dedup import ArticleDeduplicator
 from news_process.pipeline.preprocess.load import _process_single_file
-
 
 # ============================================================================
 # 主处理函数 — XLSX 并行加载 + 增量缓存

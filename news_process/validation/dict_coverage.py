@@ -51,11 +51,11 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
     python 37_dict_coverage_audit.py --run-llm-check  # 追加 5b (LLM 交叉验证)
 """
 
+import argparse
+import json
 import os
 import sys
-import json
 import time
-import argparse
 import warnings
 from collections import Counter
 
@@ -70,7 +70,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_stage_summary
+from news_process.core.logging import setup_logging
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -659,8 +659,9 @@ def analysis_5b_llm_cross_validation(grey_zone_df: pd.DataFrame):
         # 延迟导入, 仅在 --run-llm-check 时加载
         # Phase 6a: utils.helpers → news_process.core.config (load_config 已在文件顶部 import,
         # 此处保留是历史 dead-code; utils.llm_clients 模块从未存在, 整个 try-block 必然走 except 分支)
-        from news_process.core.config import load_config  # noqa: F401  (re-import OK)
         from utils.llm_clients import call_llm_models_async  # noqa: F401 — known-broken; preserved verbatim
+
+        from news_process.core.config import load_config  # noqa: F401  (re-import OK)
 
         llm_config = CONFIG.get('tone_llm_processing', {})
         models = llm_config.get('models', [])

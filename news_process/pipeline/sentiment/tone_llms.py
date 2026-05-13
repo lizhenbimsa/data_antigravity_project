@@ -41,15 +41,15 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
     筛选后的合法新闻 `21_tone_llms.parquet`
 """
 
+import asyncio
+import json
 import os
 import sys
 import time
-import json
-import asyncio
+from collections import Counter
+
 import aiohttp
 import pandas as pd
-
-from collections import Counter
 
 # Phase 7a-4: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 pipeline/sentiment/tone_llms.py 出发, 上溯 3 层抵达 news_process/ 的父目录)
@@ -58,10 +58,10 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
-from news_process.core.reporting import save_dataset
 from news_process.core.caching import LLMCache
+from news_process.core.config import load_config
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
+from news_process.core.reporting import save_dataset
 from news_process.core.text.canonicalization import canonicalize_topic
 from news_process.core.text.entity_context import extract_entity_context, get_target_aliases
 
@@ -743,7 +743,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     for m in models:
         short = m['short_name']
         m_id = m['model_name']
-        raw_text = model_res_dict.get(m_id, None)
+        raw_text = model_res_dict.get(m_id)
 
         if raw_text is None:
             n_failures += 1
@@ -763,7 +763,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             v = v.strip().lower() in ('true', '1', 'yes')
         v = bool(v)
 
-        s_raw = jd.get('sentiment', None)
+        s_raw = jd.get('sentiment')
         if isinstance(s_raw, str):
             s = s_raw.strip()
             if s not in ('正面', '中性', '负面'):
@@ -789,10 +789,10 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         except (ValueError, TypeError):
             per_model_parsed[f"{short}_sentiment_confidence"] = 0.0
 
-        topic = jd.get('fintech_topic', None)
+        topic = jd.get('fintech_topic')
         if topic and str(topic).strip().lower() not in ('null', 'none', ''):
             topics.append(str(topic))
-        llm_cat = jd.get('fintech_category', None)
+        llm_cat = jd.get('fintech_category')
         if llm_cat:
             cat_str = str(llm_cat).strip().replace('；', ';')
             for part in cat_str.split(';'):
@@ -800,7 +800,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
                 if part in ('底层技术', '应用场景'):
                     llm_categories.append(part)
                     break
-        llm_tt = jd.get('text_type', None)
+        llm_tt = jd.get('text_type')
         if llm_tt:
             tt_str = str(llm_tt).strip()
             if tt_str in ('实质性', '描述性'):
@@ -1394,7 +1394,7 @@ def main():
 
                     parsed_list = []
                     for j in range(len(b_indices)):
-                        item = id_map.get(j + 1, None)
+                        item = id_map.get(j + 1)
                         if item:
                             try:
                                 conf_val = float(item.get('confidence', 0.0))

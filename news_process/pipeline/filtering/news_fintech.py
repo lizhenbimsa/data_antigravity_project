@@ -41,15 +41,16 @@ news_process.pipeline.filtering.news_fintech — 阶段12：金融科技新闻�
         python -m news_process.pipeline.filtering.news_fintech
 """
 
-import os
 import json
+import os
 import sys
 import time
-import pandas as pd
-import ahocorasick  # noqa: F401
 from collections import Counter
-from joblib import Parallel, delayed
+
+import ahocorasick  # noqa: F401
+import pandas as pd
 import psutil
+from joblib import Parallel, delayed
 
 # Phase 7a-2: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -58,9 +59,9 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 from news_process.core.reporting import safe_save_preview_csv
-from news_process.core.text.ahocorasick import load_fintech_dict, analyze_fintech_matches
+from news_process.core.text.ahocorasick import analyze_fintech_matches, load_fintech_dict
 
 # ============================================================================
 # 1. 全局配置和初始化

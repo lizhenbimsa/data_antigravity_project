@@ -5,9 +5,9 @@ tests/test_33_evaluation.py — diagnose_misclassification_bias 单元测试
 
 import os
 import sys
+
 import numpy as np
 import pandas as pd
-import pytest
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.*`` 在任意 cwd 解析
 _PROJECT_PARENT = os.path.dirname(
@@ -20,6 +20,7 @@ if _PROJECT_PARENT not in sys.path:
 # 旧 ``import_module('33_news_llms_evaluation')`` 现仅返回 thin shim,
 # 直接走规范 import 即可拿到全部内部函数与模块级常量。
 from news_process.validation import llms_evaluation as _mod
+
 diagnose_misclassification_bias = _mod.diagnose_misclassification_bias
 
 

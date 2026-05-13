@@ -1,9 +1,9 @@
+import math
 import os
 import sys
-import pytest
+
 import pandas as pd
-import numpy as np
-import math
+import pytest
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.*`` 在任意 cwd 解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -15,6 +15,7 @@ if _PROJECT_PARENT not in sys.path:
 # 旧 ``spec_from_file_location('decay_sensitivity_38b', '38b_decay_sensitivity.py')``
 # 现仅返回 thin shim, 直接走规范 import 即可拿到全部内部函数与模块级常量。
 from news_process.validation import decay_sensitivity as decay
+
 
 @pytest.fixture
 def mock_sentiment_dict():

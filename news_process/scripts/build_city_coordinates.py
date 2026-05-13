@@ -46,10 +46,10 @@ build_city_coordinates.py — 城市地理坐标构建脚本
   python scripts/build_city_coordinates.py
 """
 
+import json
 import os
 import re
 import sys
-import json
 
 sys.stdout.reconfigure(encoding='utf-8')
 

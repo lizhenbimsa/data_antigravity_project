@@ -26,8 +26,8 @@ import argparse
 import logging
 import sys
 
-from news_process.papers._common import get_paper_config, run_main_pipeline
 from news_process.core.dag import STAGES_MAIN
+from news_process.papers._common import get_paper_config, run_main_pipeline
 
 STAGES = list(STAGES_MAIN)  # Phase 9a: 原 papers.bank_fintech_tone.dag 已删, list() 保持原拷贝语义
 

@@ -44,18 +44,21 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
         python -m news_process.pipeline.filtering.fintech_intensity
 """
 
-import os
-import time
 import json
-import math
-import sys
 import logging
+import math
+import os
+import sys
+import time
+
+import jieba
 import numpy as np
 import pandas as pd
-import jieba
+
 jieba.setLogLevel(logging.WARNING)
 
 from collections import Counter
+
 from joblib import Parallel, delayed
 
 # Phase 7a-3: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
@@ -65,7 +68,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 from news_process.core.reporting import save_dataset
 from news_process.core.text.ahocorasick import load_fintech_dict
 

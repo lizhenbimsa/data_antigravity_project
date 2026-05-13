@@ -50,15 +50,16 @@ news_process.pipeline.filtering.news_bank — 阶段11：银行新闻判断
         python -m news_process.pipeline.filtering.news_bank
 """
 
-import os
 import json
+import os
 import sys
 import time
-import pandas as pd
-import ahocorasick  # noqa: F401  (原 body 中的 import, 部分被 AC 工具间接使用)
 from collections import Counter
-from joblib import Parallel, delayed
+
+import ahocorasick  # noqa: F401  (原 body 中的 import, 部分被 AC 工具间接使用)
+import pandas as pd
 import psutil
+from joblib import Parallel, delayed
 
 # Phase 7a-1: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (子进程通过 ``python -m news_process.pipeline.filtering.news_bank`` 启动时
@@ -69,11 +70,12 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 from news_process.core.reporting import safe_save_preview_csv
 from news_process.core.text.ahocorasick import (
-    load_bank_names, load_exclusion_patterns,
     analyze_bank_matches,
+    load_bank_names,
+    load_exclusion_patterns,
 )
 
 # ============================================================================

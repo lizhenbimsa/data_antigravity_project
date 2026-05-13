@@ -5,10 +5,8 @@ tests/test_reporting.py — utils/reporting.py 单元测试
 
 import os
 import sys
-import logging
-import pytest
+
 import pandas as pd
-import numpy as np
 
 # Phase 5c-2: 注入项目父目录解析 ``news_process.*``
 _PROJECT_PARENT = os.path.dirname(
@@ -17,11 +15,12 @@ _PROJECT_PARENT = os.path.dirname(
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from news_process.core.reporting import (
-    _format_stat, generate_dataframe_report, _is_categorical,
-)
 from news_process.core.logging import setup_logging
-
+from news_process.core.reporting import (
+    _format_stat,
+    _is_categorical,
+    generate_dataframe_report,
+)
 
 # ============================================================================
 # _format_stat 测试

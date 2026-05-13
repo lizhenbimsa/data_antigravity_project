@@ -9,10 +9,9 @@ tests/test_37_dict_coverage_audit.py — 37_dict_coverage_audit.py 白盒测试
   - analysis_1_marginal_distribution: 正常输入、空DataFrame
 """
 
-import pytest
 import numpy as np
 import pandas as pd
-
+import pytest
 
 # ============================================================================
 # Fixtures
@@ -24,7 +23,8 @@ def audit_module():
     # Phase 7b: body 已迁至 news_process.validation.dict_coverage,
     # 旧 ``importlib.import_module('37_dict_coverage_audit')`` 现仅返回 thin shim,
     # 直接走规范 import 即可拿到全部内部函数与模块级常量。
-    import os, sys
+    import os
+    import sys
     _PROJECT_PARENT = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )

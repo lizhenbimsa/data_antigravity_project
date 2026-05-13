@@ -79,8 +79,8 @@ news_process.validation.media_diversity — 媒体名称与地域多样性审计
     - 所有分析结果同时输出到 Excel 和日志
 """
 
-import os
 import json
+import os
 import sys
 import time
 from collections import Counter
@@ -96,7 +96,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_stage_summary
+from news_process.core.logging import log_stage_summary, setup_logging
 
 # ============================================================================
 # 1. 全局配置与初始化

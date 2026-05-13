@@ -29,7 +29,6 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-
 # 与 run_pipeline_function 管线阶段输出文件名对齐 (方案 §1)。
 # 磁盘上可能仅存在子集; 缺失项使 ``incomplete`` 为 true。
 EXPECTED_STAGES = [

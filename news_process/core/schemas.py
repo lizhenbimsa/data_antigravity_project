@@ -36,7 +36,6 @@ from __future__ import annotations
 
 from typing import Mapping, Optional
 
-
 # 阶段脚本名 (历史 root 文件名, 保留以做向后兼容) → 该阶段产出的 parquet
 # 文件名列表。runner main() 不写 parquet 的阶段 (例如只产 eval_reports/*.csv
 # 的验证类 runner) 故意不在此处登记; orchestrator 把缺失视为 "无需做预

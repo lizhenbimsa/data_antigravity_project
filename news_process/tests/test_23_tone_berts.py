@@ -12,11 +12,8 @@ Mock 策略：
   - 通过 monkeypatch 控制全局配置
 """
 
-import pytest
-import numpy as np
-from collections import Counter
-from unittest.mock import MagicMock, patch
 
+import pytest
 
 # ============================================================================
 # Fixtures
@@ -28,7 +25,8 @@ def berts_module():
     # Phase 7a-6: body 已迁至 news_process.pipeline.sentiment.tone_berts,
     # 旧 ``importlib.import_module('23_tone_berts')`` 现仅返回 thin shim,
     # 直接走规范 import 即可拿到全部内部函数与模块级常量。
-    import os, sys
+    import os
+    import sys
     _PROJECT_PARENT = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )

@@ -39,13 +39,14 @@ news_process.validation.llms_evaluation — 阶段33：新闻分类模型评估
     评估报告（日志 + CSV + PNG 图表 + LaTeX 表格）
 """
 
+import json
 import os
 import sys
 import time
-import json
+from collections import Counter
+
 import numpy as np
 import pandas as pd
-from collections import Counter
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 news_process/validation/llms_evaluation.py 出发, 上溯 2 层抵达项目父目录)
@@ -55,7 +56,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
-from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.logging import log_stage_summary, setup_logging
 from news_process.core.plotting import configure_matplotlib_chinese_fonts
 
 # ============================================================================
@@ -215,7 +216,7 @@ def compute_classification_metrics(y_true: np.ndarray, y_pred: np.ndarray, label
         dict: 包含宏平均、加权平均、以及每个类别的精确率、召回率、F1和混淆矩阵等。
     """
     try:
-        from sklearn.metrics import precision_recall_fscore_support, accuracy_score, confusion_matrix
+        from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
     except ImportError:
         logger.error("缺少 scikit-learn 依赖，请运行: pip install scikit-learn")
         raise ImportError("scikit-learn 未安装，无法执行评估指标计算。请运行: pip install scikit-learn")

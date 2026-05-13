@@ -30,20 +30,26 @@ Firm-Year 级别的结构化特征。通过汇总该年度单家企业的全部�
 """
 
 import os
-import sys
+
 import numpy as np
 import pandas as pd
 
-# --- Phase 2a: 取代旧的 importlib 反射 ---
-# 共享配置来自 panel/encode (原 41); Stage 25 算法底层来自 features/strategic_diff (原 25)。
-from news_process.pipeline.panel.encode import logger, CONFIG  # noqa: E402
 from news_process.pipeline.features.strategic_diff import (  # noqa: E402
     _aggregate_bank_year_texts as _aggregate,
-    _build_tfidf_sim_matrix as _build_tfidf,
-    _build_lda_jsd_matrix as _build_lda,
+)
+from news_process.pipeline.features.strategic_diff import (
     _build_embedding_sim_matrix as _build_emb,
 )
+from news_process.pipeline.features.strategic_diff import (
+    _build_lda_jsd_matrix as _build_lda,
+)
+from news_process.pipeline.features.strategic_diff import (
+    _build_tfidf_sim_matrix as _build_tfidf,
+)
 
+# --- Phase 2a: 取代旧的 importlib 反射 ---
+# 共享配置来自 panel/encode (原 41); Stage 25 算法底层来自 features/strategic_diff (原 25)。
+from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 
 # ============================================================================
 # 核心计算函数

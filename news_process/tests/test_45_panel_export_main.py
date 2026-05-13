@@ -4,12 +4,13 @@ test_45_panel_export_main.py — 面板构建模块 (41-45) 端到端单元测�
 用合成数据模拟上游 23_bert_tone.parquet 的完整列结构，
 验证 45_panel_export_main.py 各步骤的数据流正确性。
 """
+import json
 import os
 import sys
-import json
-import pytest
+
 import numpy as np
 import pandas as pd
+import pytest
 
 # Phase 5a: 注入 news_process 父目录, 解析 ``news_process.*``
 _PROJECT_PARENT = os.path.dirname(

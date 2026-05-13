@@ -35,7 +35,7 @@ news_process.validation.text2vec — 基于 text2vec 的稳健性检验模块与
 import os
 import sys
 import time
-import math
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity

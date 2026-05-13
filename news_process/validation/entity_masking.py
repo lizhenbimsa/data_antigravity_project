@@ -41,20 +41,21 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
     `eval_reports/entity_masking_confusion.png` — 混淆矩阵（full + ctx 并排）
 """
 
+import asyncio
+import json
 import os
 import sys
 import time
-import json
-import logging
-import asyncio
+
 import aiohttp
+import matplotlib
 import numpy as np
 import pandas as pd
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
+matplotlib.use('Agg')
 from importlib import import_module
+
+import matplotlib.pyplot as plt
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 news_process/validation/entity_masking.py 出发, 上溯 2 层抵达项目父目录)
@@ -63,11 +64,10 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(_HERE))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from news_process.core.config import load_config
 from news_process.core.caching import LLMCache
+from news_process.core.config import load_config
 from news_process.core.logging import setup_logging
 from news_process.core.plotting import configure_matplotlib_chinese_fonts
-from news_process.core.reporting import save_dataset
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -93,7 +93,7 @@ PROMPT_TEMPLATE  = _tone_llms.PROMPT_TEMPLATE
 MAX_CONCURRENCY  = _tone_llms.MAX_CONCURRENCY
 
 # get_target_aliases + extract_entity_context 在 utils.entity_context 中
-from news_process.core.text.entity_context import get_target_aliases, extract_entity_context
+from news_process.core.text.entity_context import get_target_aliases
 
 # 复用评估模块的 Cohen's Kappa
 _eval = import_module('news_process.validation.llms_evaluation')

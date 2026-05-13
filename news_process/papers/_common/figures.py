@@ -13,7 +13,6 @@ from __future__ import annotations
 
 from typing import Final
 
-
 # ----------------------------------------------------------------------------
 # 1. Paul Tol "muted" 8-色色盲友好调色板.
 #    https://personal.sron.nl/~pault/   (Tol 2018, "Colour schemes")

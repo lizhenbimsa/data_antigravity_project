@@ -9,16 +9,19 @@
 拆分自: 40_build_panel.py (L1207-1631)
 """
 
-import os
-import json
 import csv
+import json
+import os
 
 import numpy as np
 import pandas as pd
 
 # Phase 2a: 取代旧的 importlib.spec_from_file_location 反射,改为正规子包 import。
 from news_process.pipeline.panel.encode import (
-    CONFIG, logger, OUTPUT_DIR, FILENAMES, PANEL_CFG,
+    CONFIG,
+    FILENAMES,
+    OUTPUT_DIR,
+    logger,
 )
 
 # ── 停刊检测的情感列前缀（动态发现用） ──

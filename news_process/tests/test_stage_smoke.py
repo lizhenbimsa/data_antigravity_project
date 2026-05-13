@@ -29,7 +29,6 @@ v2.1.x 之前完全没有的保护.
 from __future__ import annotations
 
 import importlib
-import shutil
 import sys
 from pathlib import Path
 

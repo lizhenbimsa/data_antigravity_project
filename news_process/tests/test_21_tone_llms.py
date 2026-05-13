@@ -5,10 +5,9 @@ tests/test_21_tone_llms.py — 21_tone_llms.py 核心逻辑测试
 测试 LLM 语义精筛中的纯函数：JSON 解析、多数投票、批量 Prompt 构建。
 """
 
+import json
 import os
 import sys
-import json
-import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

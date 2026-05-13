@@ -12,9 +12,9 @@
   Cao et al. (2023, RFS); Cao et al. (2025, RAS)
 """
 import math
+
 import numpy as np
 import pandas as pd
-import pytest
 
 
 # ═══ A. disag 公式数学验证 ═══

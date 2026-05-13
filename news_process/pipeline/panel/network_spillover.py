@@ -44,14 +44,13 @@
 输出: 面板中追加 peer_tone_lag1_*、22 种中心度、bank_cogn_mean 列
 """
 
-import logging
+import json
 import os
 import sys
-import json
+
 import numpy as np
 import pandas as pd
-
-from scipy.sparse import csr_matrix, lil_matrix
+from scipy.sparse import lil_matrix
 
 try:
     from sklearn.feature_extraction.text import TfidfVectorizer
@@ -72,9 +71,9 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
+from news_process.core.caching import LLMCache
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging
-from news_process.core.caching import LLMCache
 
 # ============================================================================
 # 1. 全局配置

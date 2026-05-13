@@ -11,13 +11,12 @@ test_39_prompt_sensitivity.py — 阶段39 Prompt 措辞敏感度量化 单元�
   F. 端到端模拟测试（mock data → 报告生成）
   G. 深层逻辑验证
 """
-import os
 import json
+import os
 
-import pytest
 import numpy as np
 import pandas as pd
-import yaml
+import pytest
 
 # ── 导入被测模块 ──
 # Phase 7b: body 已迁至 news_process.validation.prompt_sensitivity,
