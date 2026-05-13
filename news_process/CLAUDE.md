@@ -41,9 +41,10 @@ news_process/
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
 ├── tests/          # 855 passed / 2 skipped HEAD baseline (integration + unit)
-└── NN_*.py         # 23 thin shim scripts under news_process/ (≤30 lines each,
-                    #                                          delegate to pipeline/);
-                    # planned retirement: Plan-r3 P3-18 (see docs/guides/thin_shim_pattern.md §11)
+└── NN_*.py         # 26 thin shim scripts under news_process/ (≤30 lines each,
+                    # NN ∈ {00, 11..15, 21..24, 30..39 incl. 32a/38a/38b, 45, 51..53};
+                    # delegate to pipeline/; planned retirement: Plan-r3 P3-18
+                    # (see docs/guides/thin_shim_pattern.md §11)
 ```
 
 **Key invariant**: `news_process/NN_*.py` scripts are thin shims. All logic lives in `news_process.pipeline.*`. Never add business logic to shims.
@@ -170,7 +171,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Code Modification Rules
 
-1. **Stage shims are frozen**: The 23 `news_process/NN_*.py` scripts are thin shims (≤30 lines). All logic belongs in `news_process.pipeline.*`.
+1. **Stage shims are frozen**: The 26 `news_process/NN_*.py` scripts are thin shims (≤30 lines; NN includes lettered variants 32a/38a/38b). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
 2. **DAG consistency**: Any stage added/removed must update:
    - `core/dag.py::STAGES_MAIN` or `STAGES_VALIDATION`
    - `core/schemas.py::OUTPUT_REGISTRY` (if it produces parquet)
