@@ -12,9 +12,9 @@
 针对国际顶级期刊（_JFE_ / _RFS_ / _JF_ / _QJE_）对 LLM verbalized confidence 加权连续分数的质疑（Q1-Q10 — 见 §10 反审稿弹药），构建 production-ready 校准与验证管线，使现有 `compute_prob_score()` 输出从"序数代理变量"升级为"具校准证据的连续指标"。
 
 **当前已实现的相关基础**（无需重做）：
-- 三模型多数投票 `majority_vote_sentiment` ([tone_llms.py:585](../../pipeline/sentiment/tone_llms.py#L585))
-- P2 概率映射 `compute_prob_score` ([tone_llms.py:615](../../pipeline/sentiment/tone_llms.py#L615))
-- 多家族 `avg_prob_score` 集成 ([tone_llms.py:829-839](../../pipeline/sentiment/tone_llms.py#L829-L839))
+- 三模型多数投票 `majority_vote_sentiment` ([tone_llms.py:648](../../pipeline/sentiment/tone_llms.py#L648))，2026-05-14 重构后内部委托给 `majority_vote_categorical` ([tone_llms.py:585](../../pipeline/sentiment/tone_llms.py#L585))
+- P2 概率映射 `compute_prob_score` ([tone_llms.py:680](../../pipeline/sentiment/tone_llms.py#L680))
+- 多家族 `avg_prob_score` 集成 ([tone_llms.py:894-912](../../pipeline/sentiment/tone_llms.py#L894-L912))
 - ECE 校准诊断 `diagnose_confidence_calibration` ([tone_validation.py:1174](../../validation/tone_validation.py#L1174))
 - Panel 列 `avg_llm_prob_score_{full,ctx,title}` + `_std_*` ([encode.py:582-583](../../pipeline/panel/encode.py#L582-L583))
 
@@ -303,7 +303,7 @@ raw_avg_prob_score = NaN ⟹ 所有 calibrated / 温度档列 = NaN
 - `llm_undefined = 1`（平局 → final_s=None）
 - `n_valid_votes = 0`
 
-实施位置：[`tone_llms.py:830`](../../pipeline/sentiment/tone_llms.py#L830) `_aggregate_track` 顶端短路。
+实施位置：[`tone_llms.py:894`](../../pipeline/sentiment/tone_llms.py#L894) `_aggregate_track` 中 `prob_scores = []` 聚合段顶端短路（2026-05-14 重构后行号；函数本身定义在 [tone_llms.py:773](../../pipeline/sentiment/tone_llms.py#L773)）。
 
 ### 5.4 Calibrator Manifest Fail-Fast（N3）
 
