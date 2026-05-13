@@ -66,25 +66,22 @@ from news_process.pipeline.panel.iv_did import (
     PROVINCE_TO_ZONE, compute_zone_leave1out, merge_policy_shocks,
 )
 
-# 从 panel.network_spillover (原 46) — getattr 守护可选符号
-from news_process.pipeline.panel import network_spillover as _ns
-compute_network_spillovers = getattr(_ns, 'compute_network_spillovers', None)
-compute_bank_network_centrality = getattr(_ns, 'compute_bank_network_centrality', None)
-compute_cognitive_proximity = getattr(_ns, 'compute_cognitive_proximity', None)
-compute_embedding_peer_network = getattr(_ns, 'compute_embedding_peer_network', None)
-del _ns
-
-# 从 panel.network_brokerage (原 47)
-from news_process.pipeline.panel import network_brokerage as _nb
-compute_brokerage_centrality = getattr(_nb, 'compute_brokerage_centrality', None)
-compute_industry_neg_shock = getattr(_nb, 'compute_industry_neg_shock', None)
-compute_fire_sale_interaction = getattr(_nb, 'compute_fire_sale_interaction', None)
-del _nb
-
-# 从 panel.llm_peer_iv (原 48)
-from news_process.pipeline.panel import llm_peer_iv as _lp
-compute_llm_peer_iv = getattr(_lp, 'compute_llm_peer_iv', None)
-del _lp
+# P0-2 (cleanup/2026-05-13): 三组 getattr(_x, 'foo', None) 软依赖改为硬 import,
+# 与上方 strategic_diff / policy_similarity / benefit_society 的硬化策略对齐.
+# 实证: 8 个函数全部已定义, fallback 路径从未触发; 硬 import 让缺失立即在 import
+# 时 fail-loud, 而非延迟到调用点 silent skip 让 panel 缺列.
+from news_process.pipeline.panel.network_spillover import (
+    compute_network_spillovers,
+    compute_bank_network_centrality,
+    compute_cognitive_proximity,
+    compute_embedding_peer_network,
+)
+from news_process.pipeline.panel.network_brokerage import (
+    compute_brokerage_centrality,
+    compute_industry_neg_shock,
+    compute_fire_sale_interaction,
+)
+from news_process.pipeline.panel.llm_peer_iv import compute_llm_peer_iv
 
 # Step 4(d-i) 硬化 (致命问题 5 / 红队 v6): 三处 getattr(..., None) 软依赖
 # 改为硬 import。这三个特征 (战略差异度 / 权威政策对齐 / 经营效益投影) 是
@@ -493,22 +490,13 @@ def main():
     panel = compute_leave_one_out_sentiment(panel)
 
     # --- 7d-geo. 四梯度地理距离缓冲 (Gurun & Butler 2012; Engelberg & Parsons 2011) ---
-    try:
-        if hasattr(_m43, 'compute_geo_proximity_buffers'):
-            panel = _m43.compute_geo_proximity_buffers(df_exploded, panel)
-        else:
-            logger.info("  compute_geo_proximity_buffers 不可用, 跳过")
-    except Exception as e:
-        logger.warning(f"  四梯度距离缓冲失败: {e}")
+    # P0-2 (cleanup/2026-05-13): try/hasattr/except 三明治改为直调.
+    # 实证: 两函数均在 geography.py 中定义 (line 749 / 974), fallback 路径从未触发.
+    # 计算异常应 propagate, 而非 silent warning 让 panel 缺地理列.
+    panel = _m43.compute_geo_proximity_buffers(df_exploded, panel)
 
     # --- 7d-imit. 区域 AI 模仿渗透率 (六层 LOO, Leary & Roberts 2014) ---
-    try:
-        if hasattr(_m43, 'compute_regional_imitation_pressure'):
-            panel = _m43.compute_regional_imitation_pressure(panel)
-        else:
-            logger.info("  compute_regional_imitation_pressure 不可用, 跳过")
-    except Exception as e:
-        logger.warning(f"  区域模仿渗透率失败: {e}")
+    panel = _m43.compute_regional_imitation_pressure(panel)
 
     # --- 7e. Bartik IV (v3: 修剪至 6 类核心维度) ---
     # v6/F4 修复 (Goldsmith-Pinkham, Sorkin & Swift 2020, AER):
@@ -1454,29 +1442,28 @@ def main():
             f"产出 30_text2vec_indicators.parquet 后再重试。"
         )
 
-    if os.path.exists(t2v_path):
-        logger.info(f"  合并 30_text2vec_indicators.parquet...")
-        t2v_df = pd.read_parquet(t2v_path)
-        panel = panel.merge(t2v_df, on=['target_bank', 'year'], how='left')
-        
-        # 正交保护 (Orthogonal Protection): 拒绝 0.0 填充
-        # 【学术机制】Listwise Deletion vs Sample Selection Bias
-        # 理论基石：Allison, P. D. (2001). Missing Data. SAGE Publications. DOI: 10.4135/9781412985079
-        # Heckman, J. J. (1979). Sample Selection Bias as a Specification Error. Econometrica, 47(1), 153-161. DOI: 10.2307/1912352
-        # 修正：此前试图对无新闻样本使用 0.0 补偿，但这在计量经济学上是致命的。
-        # 0.0 距离代表该银行完美贴合行业均值质心，0.0 相似度代表绝对正交。
-        # 强制将“无数据”转化为极端的“0值”，会导致 TWFE 回归中出现大量人造的人工断点 (Artificial Spikes)，
-        # 严重扭曲真实系数。因此，必须保留 NaN，交由 Stata 在固定效应面板回归中自动执行 Listwise Deletion，
-        # 维护样本空间的连续性，避免人为制造的伪稳健性。
-        # 【通俗应用】如果一家银行整年连一条新闻都没有，我们不能强行说它“和大家完全一样”或者“完全相反”，
-        # 最科学的做法就是留空 (NaN)，让 Stata 在跑回归的时候自动忽略没有数据的那几年，避免假数据捣乱。
-        t2v_cols = [
-            'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
-            'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx'
-        ]
-        logger.info(f"  ✅ 成功挂载双轨稳健性特征 (保留自然缺失值 NaN): {t2v_cols}")
-    else:
-        logger.warning(f"  未找到 {t2v_path}，跳过双轨特征挂载。")
+    # P0-1 (cleanup/2026-05-13): 删除原 ``if os.path.exists(t2v_path):`` 软分支.
+    # 上方 raise 已保证文件存在, ``else`` warning 永远不会触发, 是硬化时遗留的 dead code.
+    logger.info(f"  合并 30_text2vec_indicators.parquet...")
+    t2v_df = pd.read_parquet(t2v_path)
+    panel = panel.merge(t2v_df, on=['target_bank', 'year'], how='left')
+
+    # 正交保护 (Orthogonal Protection): 拒绝 0.0 填充
+    # 【学术机制】Listwise Deletion vs Sample Selection Bias
+    # 理论基石：Allison, P. D. (2001). Missing Data. SAGE Publications. DOI: 10.4135/9781412985079
+    # Heckman, J. J. (1979). Sample Selection Bias as a Specification Error. Econometrica, 47(1), 153-161. DOI: 10.2307/1912352
+    # 修正：此前试图对无新闻样本使用 0.0 补偿，但这在计量经济学上是致命的。
+    # 0.0 距离代表该银行完美贴合行业均值质心，0.0 相似度代表绝对正交。
+    # 强制将"无数据"转化为极端的"0值"，会导致 TWFE 回归中出现大量人造的人工断点 (Artificial Spikes)，
+    # 严重扭曲真实系数。因此，必须保留 NaN，交由 Stata 在固定效应面板回归中自动执行 Listwise Deletion，
+    # 维护样本空间的连续性，避免人为制造的伪稳健性。
+    # 【通俗应用】如果一家银行整年连一条新闻都没有，我们不能强行说它"和大家完全一样"或者"完全相反"，
+    # 最科学的做法就是留空 (NaN)，让 Stata 在跑回归的时候自动忽略没有数据的那几年，避免假数据捣乱。
+    t2v_cols = [
+        'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
+        'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx'
+    ]
+    logger.info(f"  ✅ 成功挂载双轨稳健性特征 (保留自然缺失值 NaN): {t2v_cols}")
 
     log_diagnostics(panel, df_exploded)
 

@@ -111,6 +111,21 @@ def _inline_external_prompts(config: dict, project_root: str) -> None:
                     content = content[m.end():]
                 else:
                     config[target_key + '_version'] = 'v0'
+                    # P1-1 (cleanup/2026-05-13): prompt 文件无 ``# version:`` 头
+                    # 时 fallback 到 'v0'. 这破坏 Plan-r3 P3-17 "改 prompt → cache
+                    # miss" 的可见性保证 — 编辑文件却忘 bump 版本时, 旧 cache 静默
+                    # 命中 (注: prompt 文本本身在 cache key 内, 仅当模板字符串渲
+                    # 染结果 byte-identical 时此 bug 才显现, 边角但真实).
+                    # 用 warning 提示 — 不改默认值 (改哈希反而引入不可控变量, 见
+                    # cleanup plan 审-1 的方向性逆转论证). lint 工具
+                    # ``scripts/lint/check_prompt_headers.py`` 在 CI / 本地强制.
+                    logging.getLogger(__name__).warning(
+                        f"Prompt 模板 {file_path} 缺 '# version: <token>' 首行头; "
+                        f"将 fallback 到 ``{target_key}_version='v0'``. "
+                        f"编辑该 prompt 但保留 byte-identical 渲染结果时, LLMCache "
+                        f"会静默命中旧条目. 建议在 prompt 文件首行加 "
+                        f"'# version: vX-YYYY-MM-DD' 以确保 cache 可控失效."
+                    )
                 config[target_key] = content
                 # 保留 *_file 元数据供可追溯性使用 (下游若忽略此键, 仍向后兼容)。
             except FileNotFoundError:
@@ -297,7 +312,70 @@ def load_config(config_path=None):
     # (落地 .env.example 头部第 7-12 行原本承诺但未实现的"Phase 1 校验").
     _validate_env_placeholders(project_root)
 
+    # P0-3 (cleanup/2026-05-13): cross-stage enabled_methods 一致性 warning.
+    # 早期暴露 stage 24 → 45 隐式硬依赖, 避免用户配错跑 8 小时才在 stage 45 崩.
+    # 真正解耦留待 v3.0 P2-2 (encode.py 让 herd_weight 可选).
+    _validate_enabled_methods_consistency(config)
+
+    # P1-2 (cleanup/2026-05-13): 三域 YAML schema 校验
+    # tone_llm_processing / panel_building / herd_detection
+    # 类型错误 raise; 未知字段 warning (防 typo silent fallback).
+    from .schemas_yaml import validate_config_schema
+    validate_config_schema(config)
+
     return config
+
+
+# P0-3 (cleanup/2026-05-13): 决定"panel 构建是否启用"的 compute_* 标识集合.
+# 任一为 True 即视为 panel_active. 加新 panel 主开关时必须扩本列表 (见
+# ``_validate_enabled_methods_consistency`` docstring R3-2 note).
+_PANEL_ACTIVE_KEYS: tuple[str, ...] = (
+    'compute_attention_index',
+    'compute_bartik_iv',
+    'compute_policy_shocks',
+)
+
+
+def _validate_enabled_methods_consistency(config: dict) -> None:
+    """warn 如果启用 panel 但 enabled_methods 缺 tone_berts.
+
+    背景: ``pipeline/panel/runner.py::main()`` 入口 (line 158-165) 硬读
+    ``24_herd_decay.parquet``; stage 24 谓词是 ``berts_method_enabled``
+    (见 ``core/dag.py:197-202``). 仅启用 tone_llms / tone_words 时 stage 24
+    会被正确跳过, 但 stage 45 会在加载 herd_decay 输入时 ``sys.exit(1)``.
+
+    本函数把这个隐式约束提升为 config-load-time warning, 不 raise — 因为:
+    - v3.0 计划的 P2-2 会解耦 stage 45 ← stage 24, 届时本 warning 移除;
+    - raise 会让现有 baseline 配置不变更但启动失败, 过严.
+
+    用户可通过补全 ``sentiment_analysis.enabled_methods`` 或显式禁用 panel
+    构建 (panel_building.compute_*=False 全套) 来消除 warning.
+
+    .. note:: maintenance
+       ``_PANEL_ACTIVE_KEYS`` 是 3 个 compute_* 标识的硬编码列表 (R3-2).
+       如果将来 ``panel_building`` 节加新 compute_* 主开关而该开关也能独立
+       触发 stage 45 运行, 必须扩本列表. 反之, 用户禁前 3 个但启用新的,
+       panel_active=False, warning 不触发, 但 stage 45 仍可能跑.
+    """
+    sentiment = config.get('sentiment_analysis', {}) or {}
+    enabled_methods = sentiment.get('enabled_methods', []) or []
+
+    panel_cfg = config.get('panel_building', {}) or {}
+    # 任一 panel 子步启用即视为 panel 构建启用; 全部禁用才视为 panel 关闭.
+    panel_active = any(
+        panel_cfg.get(k, True)
+        for k in _PANEL_ACTIVE_KEYS
+    )
+
+    if panel_active and 'tone_berts' not in enabled_methods:
+        logging.getLogger(__name__).warning(
+            "sentiment_analysis.enabled_methods 不含 'tone_berts', 但 panel "
+            "构建已启用; stage 45 main() 入口硬依赖 ``24_herd_decay.parquet`` "
+            "(stage 24 谓词亦是 tone_berts), 当前配置会在 stage 45 启动时 "
+            "``sys.exit(1)``. 建议: (a) 把 'tone_berts' 加入 enabled_methods; "
+            "或 (b) 暂时禁用 panel_building.compute_* 全套. 本约束将在 v3.0 "
+            "P2-2 解耦 stage 45 ← stage 24 后移除."
+        )
 
 
 def _validate_env_placeholders(project_root: str) -> None:
