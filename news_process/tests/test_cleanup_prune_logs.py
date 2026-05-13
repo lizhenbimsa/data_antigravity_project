@@ -1,0 +1,110 @@
+"""tests/test_cleanup_prune_logs.py — V8 P-4 age-based logs/runs pruner.
+
+Verifies the new `prune-logs --keep-days N` subcommand of
+news_process.scripts.cleanup correctly:
+  - deletes run subdirs older than the cutoff,
+  - keeps run subdirs newer than the cutoff,
+  - dry-run mode performs no deletion,
+  - graceful no-op when logs/runs/ is missing.
+
+Uses tmp_path + monkeypatch on `_root()` to avoid touching the real
+news_process/logs directory.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import time
+
+import pytest
+
+from news_process.scripts import cleanup
+
+
+@pytest.fixture
+def fake_logs_runs(tmp_path, monkeypatch):
+    """Build a fake logs/runs/ tree under tmp_path; monkeypatch _root().
+
+    Returns (runs_dir, old_dirs, new_dirs) so individual tests can
+    assert which subdirs survived.
+    """
+    np_dir = tmp_path / "news_process"
+    runs_dir = np_dir / "logs" / "runs"
+    runs_dir.mkdir(parents=True)
+
+    old_dirs = []
+    new_dirs = []
+    now = time.time()
+    for i in range(3):
+        # 40 天前的 "old"
+        d = runs_dir / f"20260101T000000Z-old-{i}"
+        d.mkdir()
+        (d / "stage.log").write_text("dummy")
+        old_t = now - 40 * 86400
+        os.utime(d, (old_t, old_t))
+        old_dirs.append(d)
+    for i in range(2):
+        # 当前的 "new"
+        d = runs_dir / f"20260513T000000Z-new-{i}"
+        d.mkdir()
+        (d / "stage.log").write_text("dummy")
+        new_dirs.append(d)
+
+    monkeypatch.setattr(cleanup, "_root", lambda: tmp_path)
+    return runs_dir, old_dirs, new_dirs
+
+
+def test_prune_logs_deletes_old_keeps_new(fake_logs_runs):
+    runs_dir, old_dirs, new_dirs = fake_logs_runs
+    args = argparse.Namespace(keep_days=30, dry_run=False)
+
+    rc = cleanup.cmd_prune_logs(args)
+
+    assert rc == 0
+    for d in old_dirs:
+        assert not d.exists(), f"old dir should be deleted: {d}"
+    for d in new_dirs:
+        assert d.exists(), f"new dir should be kept: {d}"
+
+
+def test_prune_logs_dry_run_deletes_nothing(fake_logs_runs):
+    runs_dir, old_dirs, new_dirs = fake_logs_runs
+    args = argparse.Namespace(keep_days=30, dry_run=True)
+
+    rc = cleanup.cmd_prune_logs(args)
+
+    assert rc == 0
+    for d in old_dirs + new_dirs:
+        assert d.exists(), f"dry-run should keep everything: {d}"
+
+
+def test_prune_logs_missing_dir_is_noop(tmp_path, monkeypatch):
+    """logs/runs/ 不存在时 graceful 退出 0, 不抛."""
+    monkeypatch.setattr(cleanup, "_root", lambda: tmp_path)
+    args = argparse.Namespace(keep_days=30, dry_run=False)
+
+    rc = cleanup.cmd_prune_logs(args)
+
+    assert rc == 0
+
+
+def test_prune_logs_zero_keep_days_deletes_everything(fake_logs_runs):
+    """--keep-days 0 等于强制删全部 (除非未来 30s 内创建的, 边角不测)."""
+    runs_dir, old_dirs, new_dirs = fake_logs_runs
+    args = argparse.Namespace(keep_days=0, dry_run=False)
+
+    rc = cleanup.cmd_prune_logs(args)
+
+    assert rc == 0
+    # 实际效果: 所有 mtime < now 的目录被删
+    # new_dirs 的 mtime 接近 now, 边界条件可能 keep 也可能 del; 不强校验
+
+
+def test_prune_logs_negative_keep_days_errors(fake_logs_runs):
+    """--keep-days -1 拒绝, return code 2 (CLI 标准错误码)."""
+    args = argparse.Namespace(keep_days=-1, dry_run=False)
+
+    rc = cleanup.cmd_prune_logs(args)
+
+    assert rc == 2

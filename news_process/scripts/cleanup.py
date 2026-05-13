@@ -9,6 +9,8 @@
     python -m news_process.scripts.cleanup clean-backup
     python -m news_process.scripts.cleanup clean-derived
     python -m news_process.scripts.cleanup clean-logs
+    python -m news_process.scripts.cleanup prune-logs --keep-days 30
+    python -m news_process.scripts.cleanup prune-logs --keep-days 7 --dry-run
     python -m news_process.scripts.cleanup purge-all  --yes
 
 文档: docs/guides/data_lifecycle.md.
@@ -149,6 +151,56 @@ def cmd_clean_logs(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_prune_logs(args: argparse.Namespace) -> int:
+    """V8 P-4: 按年龄删除 logs/runs/<run_id>/ 子目录, 不动 logs/*.log 顶层文件.
+
+    与 clean-logs (核选项, 整目录 rmtree) 互补: prune-logs 只删 run_id 子目录,
+    保留 logs/ 根的 stage.log 等运行时文件; 适合日常 cron / 手动 rotation.
+    """
+    import time
+
+    keep_days = int(args.keep_days)
+    if keep_days < 0:
+        print(f"  ✗ --keep-days 必须 >= 0, got {keep_days}", file=sys.stderr)
+        return 2
+    cutoff = time.time() - keep_days * 86400
+
+    runs_dir = _logs() / 'runs'
+    if not runs_dir.exists():
+        print(f"  · {runs_dir} 不存在, 无需修剪")
+        return 0
+
+    candidates = [p for p in runs_dir.iterdir() if p.is_dir()]
+    if not candidates:
+        print(f"  · {runs_dir} 无子目录, 无需修剪")
+        return 0
+
+    to_delete = [p for p in candidates if p.stat().st_mtime < cutoff]
+    kept = len(candidates) - len(to_delete)
+    print(f"  扫描 {runs_dir}: 共 {len(candidates)} 个 run 子目录, "
+          f"年龄阈值 {keep_days} 天, 计划删除 {len(to_delete)}, 保留 {kept}")
+    if not to_delete:
+        return 0
+
+    if args.dry_run:
+        print("  --dry-run 启用, 不实际删除. 候选:")
+        for p in sorted(to_delete)[:10]:
+            print(f"    - {p.name}")
+        if len(to_delete) > 10:
+            print(f"    (... {len(to_delete) - 10} more)")
+        return 0
+
+    deleted = 0
+    for p in to_delete:
+        try:
+            shutil.rmtree(p)
+            deleted += 1
+        except OSError as e:
+            print(f"  ! 删除 {p.name} 失败: {e}", file=sys.stderr)
+    print(f"  ✓ 已删 {deleted}/{len(to_delete)} 个 run 子目录")
+    return 0 if deleted == len(to_delete) else 1
+
+
 def cmd_purge_all(args: argparse.Namespace) -> int:
     if not args.yes:
         print("DANGER: purge-all 会删除全部派生数据 + 缓存 + 备份 + 日志.")
@@ -173,7 +225,15 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser('clean-cache', help='删除 _cache + _llm_cache.db').set_defaults(func=cmd_clean_cache)
     sub.add_parser('clean-backup', help='删除 _backup_*').set_defaults(func=cmd_clean_backup)
     sub.add_parser('clean-derived', help='删除 stage 14+ 派生 parquet/csv/dta').set_defaults(func=cmd_clean_derived)
-    sub.add_parser('clean-logs', help='清空 logs/').set_defaults(func=cmd_clean_logs)
+    sub.add_parser('clean-logs', help='清空 logs/ (核选项, 一切归零)').set_defaults(func=cmd_clean_logs)
+
+    p = sub.add_parser('prune-logs', help='V8 P-4: 按年龄删 logs/runs/<run_id>/ 子目录')
+    p.add_argument('--keep-days', type=int, default=30,
+                   help='保留 N 天内的 run 子目录 (默认 30); 旧于此值的删除')
+    p.add_argument('--dry-run', action='store_true',
+                   help='只打印计划, 不实际删除')
+    p.set_defaults(func=cmd_prune_logs)
+
     p = sub.add_parser('purge-all', help='全部 cleanup 并集 (DANGER)')
     p.add_argument('--yes', action='store_true', help='显式确认')
     p.set_defaults(func=cmd_purge_all)
