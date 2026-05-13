@@ -116,22 +116,25 @@ jobs:
         if: matrix.dl-suite == 'full'
         working-directory: ./news_process
         run: |
-          # baseline (CI full): 782 passed / 34 skipped (实测 2026-05-09 / commit 7027d5c+).
-          # 本地完整数据下 baseline 814 / 2 (见 news_process/__init__.py:62), 但 CI 上
+          # baseline (CI full, post-Wave-1 / 2026-05-13): 823 passed / 34 skipped.
+          # 演进: 782 (2026-05-09) -> 823 (本地 855 + Wave 1 T1.1a 新增 4 BERT 确定性 test
+          #                                 - CI 上 32 个数据依赖测试自动 skip).
+          # 本地完整数据下 baseline 855 / 2 (见 news_process/CLAUDE.md L16), CI 上
           # news_process/data/processed/ 被 .gitignore 排除, 32 个数据依赖测试自动 skip:
-          #   - test_panel_reproducibility ×18 (Phase 0 golden snapshot 比对, 需 *.parquet)
+          #   - test_panel_reproducibility ×19 (Phase 0 + Wave 0 +1 + Wave 1 +1 golden snapshot)
           #   - test_dual_track ×14 (BERT/LLM 双轨一致性, 需 21/22/23/40_*.parquet)
           # 加上 test_pipeline_lock::test_empty_lock_directory 永久 skip (input-validation
-          # 不属于 PipelineLock 职责) = 34 skipped (32 + 1 + 1 unix-only).
-          # baseline 校验阈值设 780 = 实测 782 - 2 buffer, 容忍极小波动而堵截真正回归.
+          # 不属于 PipelineLock 职责) = 34 skipped (33 + 1 unix-only).
+          # baseline 校验阈值: 820 = 实测 823 - 3 buffer (Wave 0/1 收尾后收紧 780 -> 820,
+          # 把可容忍回归从 43 测试压到 3, 见 PR <next>).
           # Plan-r3 round-3 review R2: 合并为一次 run 同时 stdout + tee 文件.
           # set -o pipefail 让 pytest 失败码能正确传播 (默认 tee 退出 0 会掩盖 pytest 失败).
           set -o pipefail
           python -m pytest tests/ -v --tb=short 2>&1 | tee /tmp/pytest_summary.txt
           PASSED=$(grep -oE '[0-9]+ passed' /tmp/pytest_summary.txt | head -1 | grep -oE '[0-9]+')
           echo "passed=$PASSED" >> $GITHUB_OUTPUT
-          if [ "$PASSED" -lt 780 ]; then
-            echo "::error::baseline 退化: passed=$PASSED < 780 (CI full baseline)"
+          if [ "$PASSED" -lt 820 ]; then
+            echo "::error::baseline 退化: passed=$PASSED < 820 (CI full baseline, post Wave 0/1)"
             exit 1
           fi
 
