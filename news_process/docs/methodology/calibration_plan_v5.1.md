@@ -76,7 +76,7 @@ Stage 32/33  +  scripts/calibration/fit_calibrators.py
 面板级 (panel)
 ────────────────────────────
 Stage 45  pipeline/panel/encode.py  [v5.1 N1: 校准 apply 在此]
-    读 21_*.parquet + human_labels (find_human_labels_path)
+    读 21_*.parquet + human_labels (find_human_labels_xlsx + load_human_labels)
     per article:
         is_in_human_label_full = (article_id ∈ human_labels)
         if is_in_human_label_full:
@@ -238,7 +238,7 @@ N3 manifest 校验 1 项（test_calibrator_manifest_mismatch_raises）
 | Cawley & Talbot (2010) JMLR | Q5 防御 — nested CV 框架 |
 | Sugiyama et al. (2012) | G7 enriched → importance reweighting（H.3） |
 | Athey & Imbens (2019) Annual Review of Economics | Q10 防御 — ML for causal |
-| Roberts et al. (2017) PNAS | Q9 Jensen 防御 |
+| Jensen (1906) Acta Mathematica 30:175-193 | Q9 Jensen 不等式经典出处；防御方式为 article-level calibration（与人工标注同粒度），panel 聚合层仅 mean，避免非线性 ⊆ E ≠ E ⊆ 非线性 |
 
 ---
 
