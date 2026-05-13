@@ -113,17 +113,63 @@ BERT_PARAMS = CONFIG.get('sentiment_analysis', {}).get('tone_berts', {})
 # 设备选择
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 logger.info(f"推理设备: {DEVICE}")
+
+# ===== V4 T1.1a: 严格确定性 (CPU 优先, GPU 走 backlog T1.1b) =====
+# 模式:
+#   cpu_strict — 在 CPU 上启用 use_deterministic_algorithms(warn_only=True);
+#                若也跑 GPU, 同时关 cuDNN benchmark + 关 AMP (保证位级一致).
+#   gpu_strict — 仅 GPU 严格; 与 cpu_strict 区别在保留 GPU 路径配置 hook
+#                (warn_only=False 在某些 op 上会抛错, 须 user 自行评估).
+#   off        — 历史行为, 含 AMP + cuDNN benchmark (性能优先, 不保证可重现).
+_DETERMINISTIC_MODE = BERT_PARAMS.get('deterministic_mode', 'cpu_strict')
+_SEED = int(BERT_PARAMS.get('random_seed', 42))
+
+# 设种子: 覆盖 random / numpy / torch / transformers 四个独立随机源
+import random as _stdlib_random
+_stdlib_random.seed(_SEED)
+np.random.seed(_SEED)
+torch.manual_seed(_SEED)
+try:
+    from transformers import set_seed as _hf_set_seed
+    _hf_set_seed(_SEED)
+except ImportError:
+    # transformers 旧版没有 set_seed; torch.manual_seed 已覆盖其大部分内部 RNG
+    pass
+if DEVICE.type == 'cuda':
+    torch.cuda.manual_seed_all(_SEED)
+
+logger.info(f"随机种子: {_SEED}; 确定性模式: {_DETERMINISTIC_MODE}")
+
+# 确定性算法 + cuDNN 策略
+if _DETERMINISTIC_MODE in ('cpu_strict', 'gpu_strict'):
+    # warn_only=True: CPU 上几乎不会抛错; GPU 上某些 op (如 scatter_add_, atomic_add)
+    # 会输出 warning 但继续运行. T1.1b backlog 评估是否升级 warn_only=False.
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
 if DEVICE.type == 'cuda':
     logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
     gpu_total_mem = torch.cuda.get_device_properties(0).total_memory
     logger.info(f"GPU 显存: {gpu_total_mem / 1e9:.1f} GB")
-    # cuDNN benchmark: 对固定输入尺寸自动选择最快的卷积实现
-    torch.backends.cudnn.benchmark = True
+    if _DETERMINISTIC_MODE in ('cpu_strict', 'gpu_strict'):
+        # cuDNN deterministic + 关 benchmark: 牺牲 ~10-30% 推理速度换位级一致
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        logger.info("cuDNN: deterministic=True, benchmark=False (严格模式)")
+    else:
+        torch.backends.cudnn.benchmark = True
+        logger.info("cuDNN: benchmark=True (性能模式, 未启用确定性)")
 
 # 是否启用 AMP (Automatic Mixed Precision) 加速
-USE_AMP = (DEVICE.type == 'cuda' and hasattr(torch, 'amp'))
+# 严格模式下关 AMP: fp16 mixed precision 在 reduction 时存在非确定性 (Nvidia docs).
+USE_AMP = (
+    DEVICE.type == 'cuda'
+    and hasattr(torch, 'amp')
+    and _DETERMINISTIC_MODE not in ('cpu_strict', 'gpu_strict')
+)
 if USE_AMP:
     logger.info("Mixed Precision (AMP) 推理加速: 已启用")
+elif DEVICE.type == 'cuda':
+    logger.info("Mixed Precision (AMP): 已禁用 (严格模式)")
 
 # 标签映射（从模型输出 id 到中文标签）
 DEFAULT_LABEL_MAP = {0: "负面", 1: "中性", 2: "正面"}

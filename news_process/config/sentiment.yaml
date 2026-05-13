@@ -248,6 +248,14 @@ sentiment_analysis:
     inference_batch_size: 128                       # GPU 推理批次大小（v5: 增大到128, FP16下显存充裕）
     articles_per_batch: 200                          # 每次 engine.run_all_models 处理的文章批次数
 
+    # V4 T1.1a 严格确定性 (2026-05-13 添加)
+    # cpu_strict: CPU 上 use_deterministic_algorithms(warn_only=True);
+    #             GPU 上同时关 cuDNN benchmark + 关 AMP (位级一致, 牺牲性能).
+    # gpu_strict: GPU 路径严格 (含 cpu_strict 全部行为); T1.1b backlog 验证.
+    # off:        历史性能优先模式 (AMP + cuDNN benchmark, 不保证可重现).
+    deterministic_mode: cpu_strict
+    random_seed: 42                                 # 设种子覆盖 random/numpy/torch/transformers
+
     # BERT 模型列表（从代码迁移至此，便于统一管理）
     models:
       - model_id: yiyanghkust/finbert-tone-chinese
