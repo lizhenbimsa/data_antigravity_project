@@ -319,3 +319,123 @@ def test_diagnose_rotemberg_weights_missing_iv_returns_empty():
     })
     result = iv_did.diagnose_rotemberg_weights(panel, group_prefix='x')
     assert result == {}
+
+
+# ============================================================================
+# 6. merge_policy_shocks (Wave 2 b2)
+#    DID 政策冲击 + Event Study (Callaway-Sant'Anna 2021, Sun-Abraham 2021)
+# ============================================================================
+
+@pytest.fixture
+def policy_shocks_json(tmp_path, monkeypatch) -> dict:
+    """构造 tmp policy_shocks.json + monkeypatch CONFIG path, 返回 schema."""
+    p = tmp_path / "policy_shocks.json"
+    schema = {
+        "_doc": "test fixture",
+        "policy_X": {
+            "prefix": "px",
+            "groups": [
+                {"year": 2020, "cities": ["北京", "上海"]},
+                {"year": 2021, "cities": ["深圳"], "full_province": ["浙江"]},
+            ],
+        },
+    }
+    p.write_text(json.dumps(schema, ensure_ascii=False), encoding='utf-8')
+    monkeypatch.setitem(iv_did.CONFIG['paths'], 'policy_shocks_file', str(p))
+    return schema
+
+
+@pytest.fixture
+def did_panel() -> pd.DataFrame:
+    """4 银行 × 3 年 bank-year panel, 含 bank_city + bank_province."""
+    rows = []
+    banks = [
+        ('工行', '北京', '北京'),         # 2020 city match
+        ('招行', '深圳', '广东'),         # 2021 city match
+        ('宁波银行', '宁波', '浙江'),     # 2021 province match
+        ('农行', '武汉', '湖北'),         # 未匹配, 控制组
+    ]
+    for bk, city, prov in banks:
+        for yr in (2019, 2020, 2021, 2022):
+            rows.append({
+                'target_bank': bk,
+                'year': yr,
+                'bank_city': city,
+                'bank_province': prov,
+            })
+    return pd.DataFrame(rows)
+
+
+def test_merge_policy_shocks_creates_treated_post_columns(policy_shocks_json, did_panel):
+    """创建 prefix_treated, prefix_post, prefix_treat_year 三个核心 DID 变量."""
+    out = iv_did.merge_policy_shocks(did_panel)
+    for col in ('px_treated', 'px_post', 'px_treat_year'):
+        assert col in out.columns, f"缺 DID 列 {col}"
+
+
+def test_merge_policy_shocks_city_match_assigns_treat_year(policy_shocks_json, did_panel):
+    """工行 (bank_city=北京) 在 policy.cities=['北京'], year=2020 -> treat_year=2020."""
+    out = iv_did.merge_policy_shocks(did_panel)
+    gh_treat_year = out.loc[out['target_bank'] == '工行', 'px_treat_year'].iloc[0]
+    assert gh_treat_year == 2020, f"工行 treat_year 应为 2020 (city match), got {gh_treat_year}"
+
+
+def test_merge_policy_shocks_province_match_assigns_treat_year(policy_shocks_json, did_panel):
+    """宁波银行 (bank_province=浙江) 在 full_province=['浙江'], year=2021 -> treat_year=2021."""
+    out = iv_did.merge_policy_shocks(did_panel)
+    nb_treat_year = out.loc[out['target_bank'] == '宁波银行', 'px_treat_year'].iloc[0]
+    assert nb_treat_year == 2021, f"宁波银行 treat_year 应为 2021 (province match), got {nb_treat_year}"
+
+
+def test_merge_policy_shocks_control_group_treat_year_zero(policy_shocks_json, did_panel):
+    """农行 (武汉/湖北) 不在任何 group -> treat_year=0, treated=0."""
+    out = iv_did.merge_policy_shocks(did_panel)
+    nh = out.loc[out['target_bank'] == '农行']
+    assert (nh['px_treat_year'] == 0).all(), f"农行 treat_year 应全 0"
+    assert (nh['px_treated'] == 0).all(), f"农行 treated 应全 0"
+
+
+def test_merge_policy_shocks_post_indicator_is_year_geq_treat(policy_shocks_json, did_panel):
+    """工行 (treat_year=2020): year>=2020 时 post=1, year<2020 时 post=0."""
+    out = iv_did.merge_policy_shocks(did_panel)
+    gh = out.loc[out['target_bank'] == '工行'].sort_values('year')
+    # year 2019 -> post=0; year 2020/2021/2022 -> post=1
+    assert gh[gh['year'] == 2019]['px_post'].iloc[0] == 0
+    assert gh[gh['year'] == 2020]['px_post'].iloc[0] == 1
+    assert gh[gh['year'] == 2022]['px_post'].iloc[0] == 1
+
+
+def test_merge_policy_shocks_rel_year_nan_for_control(policy_shocks_json, did_panel):
+    """控制组的 rel_year 应为 NaN (Stata 中 never-treated baseline)."""
+    out = iv_did.merge_policy_shocks(did_panel)
+    nh = out.loc[out['target_bank'] == '农行']
+    assert nh['px_rel_year'].isna().all(), f"农行 rel_year 应全 NaN"
+    # 处理组应有具体数字 (= year - treat_year)
+    gh_2022 = out.loc[(out['target_bank'] == '工行') & (out['year'] == 2022), 'px_rel_year'].iloc[0]
+    assert gh_2022 == 2, f"工行 2022 (treat 2020) rel_year 应 = 2, got {gh_2022}"
+
+
+def test_merge_policy_shocks_event_study_lag_lead_dummies_binary(policy_shocks_json, did_panel):
+    """Event Study lag/lead 虚拟变量应是 0/1 二值."""
+    out = iv_did.merge_policy_shocks(did_panel)
+    for col in out.columns:
+        if col.startswith('px_lag') or col.startswith('px_lead'):
+            assert set(out[col].unique()).issubset({0, 1}), (
+                f"{col} 含非 0/1 值: {out[col].unique()}"
+            )
+
+
+def test_merge_policy_shocks_missing_policy_file_returns_panel_unchanged(
+    tmp_path, monkeypatch, did_panel,
+):
+    """policy_shocks.json 路径不存在时, graceful 跳过 DID 变量, 不抛."""
+    # 不创建文件, 只 monkeypatch path
+    missing_path = tmp_path / "nonexistent.json"
+    monkeypatch.setitem(iv_did.CONFIG['paths'], 'policy_shocks_file', str(missing_path))
+
+    out = iv_did.merge_policy_shocks(did_panel.copy())
+    # 应返回原 panel (列数不变), 不抛
+    assert set(out.columns) >= set(did_panel.columns)
+    # 不应出现 DID 列
+    did_cols = [c for c in out.columns if c.startswith('px_')]
+    assert not did_cols, f"missing file 时不应生成 DID 列, got {did_cols}"
