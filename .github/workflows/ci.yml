@@ -7,11 +7,11 @@ name: news_process CI
 # CI 安装会触发约 4 GB 下载, 故只在 ubuntu-3.13 单元里跑全套, 其余三
 # 个矩阵单元只跑非-DL 测试 (排除 test_23_tone_berts.py) 控制时长.
 #
-# 本地 baseline 879 passed / 2 skipped (post Wave 0/1 + Batch P0 + V8, 2026-05-13;
-#   含完整 data/processed/, 见 news_process/CLAUDE.md L16).
-# CI full 阈值 820 (实测 845 - 25 buffer): CI 上 data/processed/ 被 .gitignore 排除,
-# 33 个数据依赖测试 (panel_reproducibility ×19 + dual_track ×14) 自动 skip;
-# 任何降低 CI baseline 的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
+# 本地 baseline (权威值见 news_process/CLAUDE.md L16, 当前 891 passed / 2 skipped).
+# CI full 阈值 820: 远低于实测 (post Wave 2 b1 = 857, 见 run 25798445649) 以容忍
+# 噪声; 任何降低 CI baseline 的 PR 必须在 CHANGELOG 显式说明并由 reviewer approve.
+# CI 上 data/processed/ 被 .gitignore 排除, ~35 个数据依赖测试 (panel_reproducibility
+# ×19 + dual_track ×14 + bert_panel_invariant ×2) 自动 skip.
 
 on:
   push:
@@ -105,10 +105,12 @@ jobs:
         working-directory: ./news_process
         run: |
           # 排除 test_23_tone_berts.py (依赖 torch + transformers).
-          # baseline (CI light, 实测 2026-05-13 post V8 / run 25796294606): ~829 passed / ~34 skipped.
-          # CI 上 news_process/data/processed/ 不在 (.gitignore 排除), 33 个数据依赖
-          # 测试 (test_panel_reproducibility ×19 + test_dual_track ×14) 自动 skip.
-          # 故 CI 实际 passed << 本地 baseline 879; 不校验数字, 仅依赖 pytest exit code.
+          # CI light: pytest exit code only (不校验具体 passed 数字).
+          # 实测数量级 ~830-850 passed / ~34-36 skipped (随 batch 而变);
+          # 本地权威 baseline 见 news_process/CLAUDE.md L16.
+          # CI 上 news_process/data/processed/ 不在 (.gitignore 排除),
+          # ~35 个数据依赖测试 (panel_reproducibility ×19 + dual_track ×14
+          # + bert_panel_invariant ×2) 自动 skip.
           python -m pytest tests/ \
             --ignore=tests/test_23_tone_berts.py \
             -q --tb=short
@@ -117,17 +119,17 @@ jobs:
         if: matrix.dl-suite == 'full'
         working-directory: ./news_process
         run: |
-          # baseline (CI full, post V8 / 2026-05-13 / run 25796294606): 845 passed / 34 skipped.
-          # 演进: 782 (2026-05-09) -> 823 (Wave 1 +4 BERT 确定性) -> 829 (Batch P0 +6 cache stats)
-          #      -> 845 (V8 +11 main-paper smoke + 5 log-prune; +0 BERT-invariant 因依赖 parquet 在 CI 上 skip).
-          # 本地完整数据下 baseline 879 / 2 (见 news_process/CLAUDE.md L16), CI 上
-          # news_process/data/processed/ 被 .gitignore 排除, 33 个数据依赖测试自动 skip:
-          #   - test_panel_reproducibility ×19 (Phase 0 + Wave 0 +1 + Wave 1 +1 golden snapshot)
+          # baseline (CI full, post Wave 2 b1 / 2026-05-13 / run 25798445649): 857 passed / 36 skipped.
+          # 演进: 782 (2026-05-09 v2.1.0) -> 823 (Wave 1 +4 BERT) -> 829 (Batch P0 +6 cache)
+          #      -> 845 (V8 +11 paper-smoke + 5 log-prune) -> 857 (Wave 2 b1 +12 iv_did).
+          # 本地完整数据下 baseline 891 / 2 (权威见 news_process/CLAUDE.md L16, 不再在此 hard-code).
+          # CI 上 news_process/data/processed/ 被 .gitignore 排除, ~35 数据依赖测试自动 skip:
+          #   - test_panel_reproducibility ×19 (Phase 0 + Wave 0/1 golden snapshot)
           #   - test_dual_track ×14 (BERT/LLM 双轨一致性, 需 21/22/23/40_*.parquet)
-          # 加上 test_pipeline_lock::test_empty_lock_directory 永久 skip (input-validation
-          # 不属于 PipelineLock 职责) = 34 skipped (33 + 1 unix-only fcntl).
-          # baseline 校验阈值: 820 = 845 - 25 buffer (V8 收尾后阈值保持; commit 7275612 已从
-          # 旧值 780 收紧到 820, 把可容忍回归窗口从 43 测试压到当前 25).
+          #   - test_bert_panel_invariant ×2 (Wave 4 fail-fast, 需 23_bert_tone.parquet)
+          # 加上 test_pipeline_lock 系列 2 个平台 skip = 36 total.
+          # baseline 校验阈值: 820 (= 857 - 37 buffer; commit 7275612 从旧 780 收紧;
+          # 此处阈值不随每个 batch 自动 bump, 仅当出现 silent regression 风险时再调).
           # Plan-r3 round-3 review R2: 合并为一次 run 同时 stdout + tee 文件.
           # set -o pipefail 让 pytest 失败码能正确传播 (默认 tee 退出 0 会掩盖 pytest 失败).
           set -o pipefail
