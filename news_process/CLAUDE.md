@@ -100,18 +100,23 @@ python 21_tone_llms.py
 
 ### Testing
 
+> **Must run pytest from the repository root** (`f:\WiseSearch\data_antigravity_project\`).
+> Running from `news_process/` subdir may bypass the parent `pyproject.toml::testpaths`
+> setting; the `news_process/conftest.py::collect_ignore_glob` covers the common case
+> (excluding `data/`), but root-level invocation gives consistent behavior.
+
 ```bash
-# Run all tests
+# Run all tests (from repo root)
 pytest
 
 # Run specific test file
-pytest tests/test_21_tone_llms.py
+pytest news_process/tests/test_21_tone_llms.py
 
 # Run specific test
-pytest tests/test_21_tone_llms.py::TestToneLLMs::test_basic_flow
+pytest news_process/tests/test_21_tone_llms.py::TestToneLLMs::test_basic_flow
 
 # Run integration tests only
-pytest tests/integration/
+pytest news_process/tests/integration/
 
 # Run with verbose output
 pytest -v
