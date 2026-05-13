@@ -85,7 +85,7 @@
 
 **典型未标注变量**:
 ```stata
-avg_gemini3_conf_ctx          // LLM置信度(上下文)
+avg_gemini3111_conf_ctx          // LLM置信度(上下文)
 avg_bian_2021_neg_ratio_full  // 词典负面占比
 bert_avg_neg_app_ctx          // BERT应用类负面
 avg_cpw_ctx                   // 每词字符数(上下文)

@@ -99,6 +99,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
     groups = sorted(set(v for v in bank_group_map.values() if v != 'other'))
     logger.info(f"  Bartik IV [{group_prefix}]: 基期 T0={T0}, "
                 f"组别={groups} ({len(groups)} 维)")
+    panel = panel.copy()
 
     # --- Step 1: 银行分组标签 ---
     panel[f'bank_{group_prefix}'] = (
@@ -162,8 +163,15 @@ def compute_bartik_iv(panel: pd.DataFrame,
         panel[col_name] = panel[col_name].fillna(0)
 
     # --- Step 3: 组别×年份 shift (关键: 自身组=LOO, 其他组=FULL) ---
-    df_exploded['_group'] = df_exploded['target_bank'].map(bank_group_map).fillna('other')
-    df_with_group = df_exploded
+    df_with_group = pd.concat(
+        [
+            df_exploded.copy(),
+            pd.DataFrame({
+                '_group': df_exploded['target_bank'].map(bank_group_map).fillna('other')
+            }, index=df_exploded.index),
+        ],
+        axis=1,
+    ).copy()
 
     for track in ['_full', '_ctx', '_title']:
         score_col = f'llm_vote_score{track}'
@@ -269,6 +277,7 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
     T0 = base_year if base_year is not None else panel['year'].min()
     # 修正5: 排除兜底类别 'other', 与 compute_bartik_iv 保持一致
     groups = sorted(set(v for v in category_map.values() if v != 'other'))
+    panel = panel.copy()
 
     # Step 1: 基期份额 (直接从文章的分类列计算)
     base = df_exploded[df_exploded['year'] == T0].copy()
@@ -287,8 +296,15 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
             panel[col_name] = 0.0
 
     # Step 2: shift (用 bank×category×year 的贡献做 LOO 减除)
-    df_exploded['_cat_short'] = df_exploded[category_col].map(category_map)
-    df_cat = df_exploded
+    df_cat = pd.concat(
+        [
+            df_exploded.copy(),
+            pd.DataFrame({
+                '_cat_short': df_exploded[category_col].map(category_map)
+            }, index=df_exploded.index),
+        ],
+        axis=1,
+    ).copy()
 
     for track in ['_full', '_ctx', '_title']:
         score_col = f'llm_vote_score{track}'
@@ -391,12 +407,23 @@ def compute_zone_leave1out(panel: pd.DataFrame,
         bank_zone (银行所属经济圈标签)
     """
     # Step 1: 为面板加上经济圈标签
-    panel['bank_zone'] = panel['bank_province'].map(PROVINCE_TO_ZONE).fillna('other')
+    bank_zone = panel['bank_province'].map(PROVINCE_TO_ZONE).fillna('other')
+    panel = pd.concat(
+        [panel.copy(), pd.DataFrame({'bank_zone': bank_zone}, index=panel.index)],
+        axis=1,
+    ).copy()
 
     # Step 2: 文章级数据也打上经济圈标签 (通过 target_bank merge)
     bank_zone_map = panel.drop_duplicates('target_bank').set_index('target_bank')['bank_zone']
-    df_exploded['_zone'] = df_exploded['target_bank'].map(bank_zone_map).fillna('other')
-    df_z = df_exploded
+    df_z = pd.concat(
+        [
+            df_exploded.copy(),
+            pd.DataFrame({
+                '_zone': df_exploded['target_bank'].map(bank_zone_map).fillna('other')
+            }, index=df_exploded.index),
+        ],
+        axis=1,
+    ).copy()
 
     for track in ['_full', '_ctx', '_title']:
         score_col = f'llm_vote_score{track}'
@@ -634,7 +661,7 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
                         chi2 += (obs - exp) ** 2 / exp
             cramers_v = (chi2 / max(n_obs, 1)) ** 0.5
             logger.info(f"  Cramér's V = {cramers_v:.4f}"
-                        f" {'✓ < 0.3 弱相关' if cramers_v < 0.3 else '⚠️ ≥ 0.3 中强相关'}")
+                        f" {'✓ < 0.3 弱相关' if cramers_v < 0.3 else '≥ 0.3 中强相关'}")
             if cramers_v >= 0.3:
                 logger.info(f"  → 建议: 在论文中讨论 {p1} 与 {p2} 的处理组重叠问题,")
                 logger.info(f"    或在稳健性检验中单独估计各政策效应")
@@ -752,7 +779,7 @@ def diagnose_rotemberg_weights(panel: pd.DataFrame,
     # --- 日志输出 ---
     lg.info(f"  ── Rotemberg 权重 α_k (共 {len(weights)} 个维度) ──")
     for g, alpha in sorted(weights.items(), key=lambda x: -abs(x[1])):
-        flag = " ⚠️ NEGATIVE" if alpha < 0 else ""
+        flag = " NEGATIVE" if alpha < 0 else ""
         lg.info(f"    {g:>15s}: α = {alpha:+.6f}, "
                 f"E[share] = {share_means.get(g, 0):.4f}{flag}")
 
@@ -760,11 +787,11 @@ def diagnose_rotemberg_weights(panel: pd.DataFrame,
     lg.info(f"    负权重维度: {n_negative}/{len(weights)}"
             f"{' → ' + str(neg_groups) if neg_groups else ''}")
     if n_negative > 0:
-        lg.info(f"    ⚠️ 负权重提示可能的排他性约束违背 "
+        lg.info(f"    负权重提示可能的排他性约束违背 "
                 f"(Goldsmith-Pinkham 2020, AER §5.2)")
         lg.info(f"    → 建议: 在论文稳健性检验中移除负权重维度后重新估计")
     lg.info(f"    HHI(|α|) = {hhi:.4f}"
-            f" {'✓ < 0.25 分散' if hhi < 0.25 else '⚠️ ≥ 0.25 集中'}")
+            f" {'✓ < 0.25 分散' if hhi < 0.25 else '≥ 0.25 集中'}")
     lg.info(f"    Top-5 权重维度: "
             f"{[(g, f'{a:+.4f}') for g, a in top5]}")
 

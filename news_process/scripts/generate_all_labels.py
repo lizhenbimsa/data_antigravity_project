@@ -29,9 +29,9 @@ def infer_label(var):
 
     # 模型映射
     models = {
-        'gpt5nano': 'GPT5nano',
-        'gemini3': 'Gemini3',
-        'grok41': 'Grok4.1',
+        'gpt54nano': 'GPT5nano',
+        'gemini31111': 'Gemini3',
+        'deepseekv4': 'Grok4.1',
         'jiang_2021': '江2021',
         'yao_2021': '姚2021',
         'bian_2021': '卞2021',
@@ -139,11 +139,11 @@ def infer_label(var):
 groups = {}
 for var in unlabeled_vars:
     # 确定分组
-    if any(x in var for x in ['gpt5nano', 'gemini3', 'grok41']) and 'conf' in var:
+    if any(x in var for x in ['gpt54nano', 'gemini31111', 'deepseekv4']) and 'conf' in var:
         group = 'LLM置信度指标'
-    elif any(x in var for x in ['gpt5nano', 'gemini3', 'grok41']) and 'prob' in var:
+    elif any(x in var for x in ['gpt54nano', 'gemini31111', 'deepseekv4']) and 'prob' in var:
         group = 'LLM概率指标'
-    elif any(x in var for x in ['gpt5nano', 'gemini3', 'grok41']):
+    elif any(x in var for x in ['gpt54nano', 'gemini31111', 'deepseekv4']):
         group = 'LLM情感指标'
     elif any(x in var for x in ['jiang', 'yao', 'bian', 'du_', 'you_']) and 'ratio' in var:
         group = '词典比率指标'

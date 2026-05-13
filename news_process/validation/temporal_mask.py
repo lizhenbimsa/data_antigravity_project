@@ -73,7 +73,7 @@ def _build_masked_panel_stats(df: pd.DataFrame, max_year: int,
     df_masked = df[df['year'] < cutoff_year].copy()
     
     if len(df_masked) == 0:
-        logger.warning(f"  掩码后无数据 (cutoff_year={cutoff_year})")
+        logger.info(f"  掩码后无数据 (cutoff_year={cutoff_year})")
         return {'n_articles': 0, 'n_years': 0}
     
     stats = {
@@ -165,8 +165,8 @@ def main():
             if baseline_mean is not None and masked_mean is not None and baseline_mean != 0:
                 pct_change = abs(masked_mean - baseline_mean) / abs(baseline_mean)
                 if pct_change > STABILITY_THRESHOLD:
-                    logger.warning(
-                        f"  ⚠ {track} 情感均值变动 {pct_change:.1%} > "
+                    logger.info(
+                        f"  {track} 情感均值变动 {pct_change:.1%} > "
                         f"阈值 {STABILITY_THRESHOLD:.0%} "
                         f"(baseline={baseline_mean:.4f}, masked={masked_mean:.4f})")
                 else:

@@ -52,9 +52,9 @@ PANEL_CFG = CONFIG.get("panel_building", {})
 
 # LLM 模型 short_name 列表(从 tone_llm_processing.models 读取)
 # 这些名称用于定位阶段 21 输出中各模型对应的情感结果列
-# v6 锁定: gpt5nano (OpenAI) / gemini3 (Google) / grok41 (xAI/Grok)
+# v3 锁定: gpt54nano (OpenAI) / gemini31111 (Google) / deepseekv4 (DeepSeek)
 _llm_cfg = CONFIG.get('tone_llm_processing', {}).get('models', [])
-LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt5nano', 'gemini3', 'grok41']
+LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt54nano', 'gemini31111', 'deepseekv4']
 
 # 词典名列表 — 对应阶段 22 中的五本中文金融情感词典
 DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
@@ -252,6 +252,13 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("步骤 3c: 媒体权威性加权 (Holzman et al. 2023, TAR)")
     logger.info("=" * 60)
 
+    df = df.copy()
+
+    if df.empty:
+        logger.info("  数据框为空, 跳过媒体权威性加权")
+        df['media_authority_weight'] = 1.0
+        return df
+
     # ── 加载 media_weights.json ──
     weights_path = CONFIG['paths'].get('media_weights_file', '')
     if not os.path.exists(weights_path):
@@ -327,6 +334,7 @@ def parse_time(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("步骤 4: 时间解析")
     logger.info("=" * 60)
 
+    df = df.copy()
     df['日期'] = pd.to_datetime(df['日期'], errors='coerce')
     df['year'] = df['日期'].dt.year
 
@@ -601,7 +609,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     #   DOI: 10.1111/1475-679X.12570
     #   → 必须在 groupby 前计算, 否则 mean(a/b) ≠ mean(a)/mean(b) (Jensen 不等式)
     if 'fintech_total_count' in df.columns and 'doc_length' in df.columns:
-        df['_ft_word_ratio'] = df['fintech_total_count'] / df['doc_length'].replace(0, np.nan)
+        _ft_word_ratio = df['fintech_total_count'] / df['doc_length'].replace(0, np.nan)
+        df = pd.concat(
+            [df, pd.DataFrame({'_ft_word_ratio': _ft_word_ratio}, index=df.index)],
+            axis=1,
+        ).copy()
         logger.info(f"  _ft_word_ratio 预计算完成: "
                     f"mean={df['_ft_word_ratio'].mean():.6f}, "
                     f"非空={df['_ft_word_ratio'].notna().sum()}")
@@ -828,7 +840,9 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
 
     # 新闻覆盖量对数
-    panel['ln_news_coverage'] = np.log1p(panel['n_articles'])
+    panel_new_cols = {
+        'ln_news_coverage': np.log1p(panel['n_articles']),
+    }
 
     # --- Value-weighted Tone 计算 (Hassan et al. 2019, QJE; 双轨) ---
     # 公式: VW_tone_i = Σ(mention_density_j × tone_j) / Σ(mention_density_j)
@@ -839,33 +853,33 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         denom = panel['sum_mention_density'].replace(0, np.nan)
         for track in ['_full', '_ctx', '_title']:
             if f'llm_vote_score_w_sum{track}' in panel.columns:
-                panel[f'llm_vote_tone_vw{track}'] = panel[f'llm_vote_score_w_sum{track}'] / denom
+                panel_new_cols[f'llm_vote_tone_vw{track}'] = panel[f'llm_vote_score_w_sum{track}'] / denom
             if f'llm_vote_cont_w_sum{track}' in panel.columns:
-                panel[f'llm_vote_cont_vw{track}'] = panel[f'llm_vote_cont_w_sum{track}'] / denom
+                panel_new_cols[f'llm_vote_cont_vw{track}'] = panel[f'llm_vote_cont_w_sum{track}'] / denom
             for short in LLM_MODELS:
                 w_col = f'{short}_score_w_sum{track}'
                 if w_col in panel.columns:
-                    panel[f'{short}_tone_vw{track}'] = panel[w_col] / denom
+                    panel_new_cols[f'{short}_tone_vw{track}'] = panel[w_col] / denom
             for d in DICT_NAMES:
                 w_col = f'{d}_score_w_sum{track}'
                 if w_col in panel.columns:
-                    panel[f'{d}_tone_vw{track}'] = panel[w_col] / denom
+                    panel_new_cols[f'{d}_tone_vw{track}'] = panel[w_col] / denom
             # IDF VW Tone (Gentzkow, Kelly & Taddy 2019, JEL)
             for d in DICT_NAMES:
                 w_col = f'{d}_idf_score_w_sum{track}'
                 if w_col in panel.columns:
-                    panel[f'{d}_idf_tone_vw{track}'] = panel[w_col] / denom
+                    panel_new_cols[f'{d}_idf_tone_vw{track}'] = panel[w_col] / denom
             for b in BERT_MODELS:
                 w_pos = f'{b}_正面_w_sum{track}'
                 w_neg = f'{b}_负面_w_sum{track}'
                 if w_pos in panel.columns:
-                    panel[f'{b}_pos_vw{track}'] = panel[w_pos] / denom
+                    panel_new_cols[f'{b}_pos_vw{track}'] = panel[w_pos] / denom
                 if w_neg in panel.columns:
-                    panel[f'{b}_neg_vw{track}'] = panel[w_neg] / denom
+                    panel_new_cols[f'{b}_neg_vw{track}'] = panel[w_neg] / denom
             # Logit-to-Score 概率分数 VW
             w_prob = f'llm_prob_score_w_sum{track}'
             if w_prob in panel.columns:
-                panel[f'llm_vote_tone_vw_prob{track}'] = panel[w_prob] / denom
+                panel_new_cols[f'llm_vote_tone_vw_prob{track}'] = panel[w_prob] / denom
         logger.info(f"  已计算 Value-weighted Tone 指标（双轨）")
 
     # --- MW Tone (媒体权威性加权, Holzman et al. 2023, TAR) ---
@@ -873,31 +887,31 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         mw_denom = panel['sum_media_authority_weight'].replace(0, np.nan)
         for track in ['_full', '_ctx', '_title']:
             if f'llm_vote_score_mw_sum{track}' in panel.columns:
-                panel[f'llm_vote_tone_mw{track}'] = (
+                panel_new_cols[f'llm_vote_tone_mw{track}'] = (
                     panel[f'llm_vote_score_mw_sum{track}'] / mw_denom)
             if f'llm_vote_cont_mw_sum{track}' in panel.columns:
-                panel[f'llm_vote_cont_mw{track}'] = (
+                panel_new_cols[f'llm_vote_cont_mw{track}'] = (
                     panel[f'llm_vote_cont_mw_sum{track}'] / mw_denom)
             for short in LLM_MODELS:
                 w_col = f'{short}_score_mw_sum{track}'
                 if w_col in panel.columns:
-                    panel[f'{short}_tone_mw{track}'] = panel[w_col] / mw_denom
+                    panel_new_cols[f'{short}_tone_mw{track}'] = panel[w_col] / mw_denom
             for d in DICT_NAMES:
                 w_col = f'{d}_score_mw_sum{track}'
                 if w_col in panel.columns:
-                    panel[f'{d}_tone_mw{track}'] = panel[w_col] / mw_denom
+                    panel_new_cols[f'{d}_tone_mw{track}'] = panel[w_col] / mw_denom
                 w_idf = f'{d}_idf_score_mw_sum{track}'
                 if w_idf in panel.columns:
-                    panel[f'{d}_idf_tone_mw{track}'] = panel[w_idf] / mw_denom
+                    panel_new_cols[f'{d}_idf_tone_mw{track}'] = panel[w_idf] / mw_denom
             for b in BERT_MODELS:
                 for label, sfx in [('_正面', '_pos'), ('_负面', '_neg')]:
                     w_col = f'{b}{label}_mw_sum{track}'
                     if w_col in panel.columns:
-                        panel[f'{b}{sfx}_mw{track}'] = panel[w_col] / mw_denom
+                        panel_new_cols[f'{b}{sfx}_mw{track}'] = panel[w_col] / mw_denom
             # Logit-to-Score 概率分数 MW
             w_prob = f'llm_prob_score_mw_sum{track}'
             if w_prob in panel.columns:
-                panel[f'llm_vote_tone_mw_prob{track}'] = panel[w_prob] / mw_denom
+                panel_new_cols[f'llm_vote_tone_mw_prob{track}'] = panel[w_prob] / mw_denom
         logger.info(f"  已计算 Media-Authority-weighted Tone 指标（双轨）")
 
     # --- HW Tone (跟风衰减加权, Tetlock 2011, JF) ---
@@ -905,47 +919,53 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         hw_denom = panel['sum_herd_weight'].replace(0, np.nan)
         for track in ['_full', '_ctx', '_title']:
             if f'llm_vote_score_hw_sum{track}' in panel.columns:
-                panel[f'llm_vote_tone_hw{track}'] = (
+                panel_new_cols[f'llm_vote_tone_hw{track}'] = (
                     panel[f'llm_vote_score_hw_sum{track}'] / hw_denom)
             if f'llm_vote_cont_hw_sum{track}' in panel.columns:
-                panel[f'llm_vote_cont_hw{track}'] = (
+                panel_new_cols[f'llm_vote_cont_hw{track}'] = (
                     panel[f'llm_vote_cont_hw_sum{track}'] / hw_denom)
             for short in LLM_MODELS:
                 w_col = f'{short}_score_hw_sum{track}'
                 if w_col in panel.columns:
-                    panel[f'{short}_tone_hw{track}'] = panel[w_col] / hw_denom
+                    panel_new_cols[f'{short}_tone_hw{track}'] = panel[w_col] / hw_denom
             for d in DICT_NAMES:
                 w_col = f'{d}_score_hw_sum{track}'
                 if w_col in panel.columns:
-                    panel[f'{d}_tone_hw{track}'] = panel[w_col] / hw_denom
+                    panel_new_cols[f'{d}_tone_hw{track}'] = panel[w_col] / hw_denom
                 w_idf = f'{d}_idf_score_hw_sum{track}'
                 if w_idf in panel.columns:
-                    panel[f'{d}_idf_tone_hw{track}'] = panel[w_idf] / hw_denom
+                    panel_new_cols[f'{d}_idf_tone_hw{track}'] = panel[w_idf] / hw_denom
             for b in BERT_MODELS:
                 for label, sfx in [('_正面', '_pos'), ('_负面', '_neg')]:
                     w_col = f'{b}{label}_hw_sum{track}'
                     if w_col in panel.columns:
-                        panel[f'{b}{sfx}_hw{track}'] = panel[w_col] / hw_denom
+                        panel_new_cols[f'{b}{sfx}_hw{track}'] = panel[w_col] / hw_denom
             # Logit-to-Score 概率分数 HW
             w_prob = f'llm_prob_score_hw_sum{track}'
             if w_prob in panel.columns:
-                panel[f'llm_vote_tone_hw_prob{track}'] = panel[w_prob] / hw_denom
+                panel_new_cols[f'llm_vote_tone_hw_prob{track}'] = panel[w_prob] / hw_denom
         logger.info(f"  已计算 Herd-Decay-weighted Tone 指标（双轨）")
 
     # --- 标题-全文情感缺口（B1-2 Step 4d） ---
     # 衡量"标题党/软文嫌疑": gap越大→标题情感偏离全文→投资者可能过度反应
     if 'llm_vote_tone_title' in panel.columns and 'llm_vote_tone_full' in panel.columns:
-        panel['tone_gap_title_full'] = (
+        panel_new_cols['tone_gap_title_full'] = (
             panel['llm_vote_tone_title'] - panel['llm_vote_tone_full']
         )
         logger.info("  已计算 tone_gap_title_full (标题-全文情感缺口)")
 
     # 标题-全文概率分数缺口（Logit-to-Score 稳健性检验）
     if 'avg_llm_prob_score_title' in panel.columns and 'avg_llm_prob_score_full' in panel.columns:
-        panel['prob_gap_title_full'] = (
+        panel_new_cols['prob_gap_title_full'] = (
             panel['avg_llm_prob_score_title'] - panel['avg_llm_prob_score_full']
         )
         logger.info("  已计算 prob_gap_title_full (概率分数标题-全文缺口)")
+
+    if panel_new_cols:
+        panel = pd.concat(
+            [panel, pd.DataFrame(panel_new_cols, index=panel.index)],
+            axis=1,
+        ).copy()
 
     logger.info(f"  聚合后面板行数: {panel.shape[0]:,}")
     logger.info(f"  唯一银行数: {panel['target_bank'].nunique()}")

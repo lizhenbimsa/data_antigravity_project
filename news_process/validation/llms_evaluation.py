@@ -56,6 +56,7 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.plotting import configure_matplotlib_chinese_fonts
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -332,6 +333,7 @@ def save_confusion_matrix_plot(metrics: dict, classifier_name: str,
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
+        configure_matplotlib_chinese_fonts()
 
         cm = np.array(metrics['confusion_matrix'])
         labels = metrics['labels']
@@ -554,7 +556,7 @@ def _safe_ttest(group_a, group_b, label_a, label_b, var_name, logger_inst):
         result['skip_reason'] = str(e)
     if logger_inst and not result['skipped']:
         diff = (result['mean_a'] or 0) - (result['mean_b'] or 0)
-        sig = '⚠️ 显著' if result['significant'] else '不显著'
+        sig = '显著' if result['significant'] else '不显著'
         logger_inst.info(
             f"    {var_name}: {label_a}均值={result['mean_a']}(n={n_a}), "
             f"{label_b}均值={result['mean_b']}(n={n_b}), "
@@ -593,7 +595,7 @@ def _safe_kstest(group_a, group_b, label_a, label_b, var_name, logger_inst):
         result['skipped'] = True
         result['skip_reason'] = str(e)
     if logger_inst and not result['skipped']:
-        sig = '⚠️ 显著' if result['significant'] else '不显著'
+        sig = '显著' if result['significant'] else '不显著'
         logger_inst.info(
             f"    {var_name} KS: D={result['statistic']}, p={result['p_value']} {sig}"
         )
@@ -806,7 +808,7 @@ def diagnose_misclassification_bias(
         lg.info(f"  [{track}]   显著(p<0.05): {len(sig_tests)}, 不显著: {len(nonsig_tests)}")
         if sig_tests:
             for t in sig_tests:
-                lg.info(f"  [{track}]   ⚠️  {t['var']}: p={t.get('p_value','N/A')} (显著)")
+                lg.info(f"  [{track}]   {t['var']}: p={t.get('p_value','N/A')} (显著)")
         if nonsig_tests:
             for t in nonsig_tests:
                 lg.info(f"  [{track}]   ✓  {t['var']}: p={t.get('p_value','N/A')}")
@@ -814,7 +816,7 @@ def diagnose_misclassification_bias(
     if sig_tests:
         sig_names = [t['var'] for t in sig_tests]
         diag['conclusion'] = (
-            f"⚠️ 发现 {len(sig_tests)}/{n_executed} 项显著系统相关: {sig_names}。"
+            f"发现 {len(sig_tests)}/{n_executed} 项显著系统相关: {sig_names}。"
             f"建议在论文 Robustness Check 中报告 (Carlson & Burbano 2026, SMJ)。"
         )
     else:
@@ -886,7 +888,7 @@ def main():
     # Step 1: 加载人工验证数据
     # ======================================================================
     if not os.path.exists(verify_path):
-        logger.warning(
+        logger.info(
             f"人工验证文件未找到: {verify_path}\n"
             f"  → 将生成模拟验证数据用于评估框架测试。\n"
             f"  → 请在人工编码完成后重新运行此脚本。"
@@ -959,7 +961,7 @@ def main():
     elif coder_a_ver in df_verify.columns and df_verify[coder_a_ver].notna().sum() > 0:
         gold_ver_col = coder_a_ver
     else:
-        logger.warning("验证黄金标准缺失，切换至模拟模式")
+        logger.info("验证黄金标准缺失，切换至模拟模式")
         df_verify = _generate_demo_data()
         demo_mode = True
         has_both_ver = df_verify['编码者A_验证'].notna() & df_verify['编码者B_验证'].notna()

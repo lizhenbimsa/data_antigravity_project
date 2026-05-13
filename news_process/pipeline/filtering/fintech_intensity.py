@@ -49,9 +49,11 @@ import time
 import json
 import math
 import sys
+import logging
 import numpy as np
 import pandas as pd
 import jieba
+jieba.setLogLevel(logging.WARNING)
 
 from collections import Counter
 from joblib import Parallel, delayed

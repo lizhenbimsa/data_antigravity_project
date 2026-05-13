@@ -112,6 +112,12 @@ namespaces = false
 testpaths = ["news_process/tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore:pkg_resources is deprecated as an API:DeprecationWarning:jieba\\._compat",
+    "ignore:Deprecated call to `pkg_resources\\.declare_namespace\\('sphinxcontrib'\\)`:DeprecationWarning:pkg_resources",
+    "ignore:Deprecated call to `pkg_resources\\.declare_namespace\\('zope'\\)`:DeprecationWarning:pkg_resources",
+]
 
 [tool.coverage.run]
 source = ["news_process"]

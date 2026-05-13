@@ -64,6 +64,7 @@ import os
 import sys
 import time
 import gc
+import warnings
 import pandas as pd
 import numpy as np
 from collections import Counter
@@ -78,6 +79,13 @@ if _PROJECT_PARENT not in sys.path:
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
 from news_process.core.reporting import safe_save_preview_csv
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"Failed to find CUDA\.",
+    category=UserWarning,
+    module=r"triton\.windows_utils",
+)
 
 try:
     import torch
@@ -355,6 +363,7 @@ class MultiModelSentimentEngine:
                     add_special_tokens=False,
                     return_attention_mask=False,
                     return_token_type_ids=False,
+                    verbose=False,
                 )
                 batch_token_ids = encoded['input_ids']
 

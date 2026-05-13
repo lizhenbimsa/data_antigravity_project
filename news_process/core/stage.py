@@ -36,11 +36,23 @@ import time
 from collections import deque
 from typing import Deque, IO
 
+try:
+    import psutil
+except ImportError:  # pragma: no cover - psutil is a runtime dependency
+    psutil = None
+
 from .logging import log_memory_usage, get_run_id
 
 
 # 子进程 stdout/stderr 累积上限 (行数); 防止任意大日志撑爆父进程
 _TAIL_BUFFER_MAXLEN = 10000
+
+
+def _stage_popen_isolation_kwargs() -> dict[str, object]:
+    """Return platform-specific Popen kwargs that isolate console signals."""
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {"start_new_session": True}
 
 
 def _reader_thread(stream: IO[str],
@@ -67,6 +79,66 @@ def _reader_thread(stream: IO[str],
             stream.close()
         except Exception:
             pass
+
+
+def _terminate_process_tree(proc: subprocess.Popen,
+                            logger: logging.Logger,
+                            reason: str,
+                            grace_seconds: float = 5.0) -> None:
+    """Best-effort terminate of a stage process and any descendants.
+
+    Deliberately avoids sending console control events. On Windows, Intel
+    Fortran runtime users can print ``forrtl: error (200)`` when they receive
+    Ctrl+C directly, so the orchestrator owns shutdown through process
+    termination after catching the user's interrupt.
+    """
+    if proc.poll() is not None:
+        return
+
+    logger.warning(f"  正在终止子进程 PID={proc.pid}（{reason}）...")
+
+    if psutil is not None:
+        try:
+            parent = psutil.Process(proc.pid)
+            processes = parent.children(recursive=True) + [parent]
+            for process in processes:
+                try:
+                    process.terminate()
+                except psutil.NoSuchProcess:
+                    pass
+                except psutil.Error as exc:
+                    logger.debug(f"  终止 PID={process.pid} 失败: {exc}")
+
+            _, alive = psutil.wait_procs(processes, timeout=grace_seconds)
+            if alive:
+                logger.warning(
+                    f"  {len(alive)} 个子进程未在 {grace_seconds:.0f}s 内退出，强制结束..."
+                )
+                for process in alive:
+                    try:
+                        process.kill()
+                    except psutil.NoSuchProcess:
+                        pass
+                    except psutil.Error as exc:
+                        logger.debug(f"  强制结束 PID={process.pid} 失败: {exc}")
+                psutil.wait_procs(alive, timeout=2)
+        except psutil.NoSuchProcess:
+            return
+        except psutil.Error as exc:
+            logger.debug(f"  枚举子进程树失败，将回退到 Popen 终止: {exc}")
+
+    if proc.poll() is None:
+        try:
+            proc.terminate()
+            proc.wait(timeout=grace_seconds)
+        except subprocess.TimeoutExpired:
+            try:
+                proc.kill()
+                proc.wait(timeout=2)
+            except Exception as exc:
+                logger.warning(f"  子进程 PID={proc.pid} 强制结束失败: {exc}")
+        except Exception as exc:
+            logger.debug(f"  Popen 终止子进程失败: {exc}")
 
 
 def run_stage(stage_script: str, stage_name: str, logger,
@@ -121,6 +193,8 @@ def run_stage(stage_script: str, stage_name: str, logger,
     # 不必等 Windows pipe chunk 满才看到行 (即使子进程 print 不主动 flush 也立即透传)。
     # 副作用: 子进程 stdio 性能轻微下降, 在 IO 远大于 stdio 的 ETL 中可忽略。
     env.setdefault("PYTHONUNBUFFERED", "1")
+    env.setdefault("PYTHONIOENCODING", "utf-8:replace")
+    env.setdefault("PYTHONUTF8", "1")
 
     start_time = time.time()
 
@@ -153,7 +227,7 @@ def run_stage(stage_script: str, stage_name: str, logger,
     )
     t_err = threading.Thread(
         target=_reader_thread,
-        args=(proc.stderr, logger, '│⚠', stderr_tail, logging.INFO),
+        args=(proc.stderr, logger, '│⚠', stderr_tail, logging.WARNING),
         name=f"stage-{stage_script}-stderr",
         daemon=True,
     )

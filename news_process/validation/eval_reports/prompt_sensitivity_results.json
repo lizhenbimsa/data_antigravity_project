@@ -1,0 +1,128 @@
+{
+  "stage": "39_prompt_sensitivity",
+  "methodology": "Carlson & Burbano (2026, SMJ §3.5)",
+  "sample_size": 1000,
+  "random_seed": 42,
+  "n_variants": 4,
+  "n_models": 3,
+  "model_names": [
+    "gpt-5.4-nano",
+    "gemini-3.1-flash-lite-preview",
+    "deepseek-v4-flash"
+  ],
+  "tracks": [
+    "full",
+    "ctx"
+  ],
+  "thresholds": {
+    "verification": 0.85,
+    "sentiment": 0.8,
+    "kappa": 0.7,
+    "alpha": 0.667
+  },
+  "passed": true,
+  "full_track": {
+    "pairwise": {
+      "V1_role": {
+        "verification_agreement": 0.914,
+        "sentiment_agreement": 0.904,
+        "cohens_kappa_verification": 0.7951,
+        "observed_agreement": 0.914,
+        "expected_agreement": 0.5802
+      },
+      "V2_structure": {
+        "verification_agreement": 0.889,
+        "sentiment_agreement": 0.884,
+        "cohens_kappa_verification": 0.7428,
+        "observed_agreement": 0.889,
+        "expected_agreement": 0.5684
+      },
+      "V3_concise": {
+        "verification_agreement": 0.913,
+        "sentiment_agreement": 0.9,
+        "cohens_kappa_verification": 0.7948,
+        "observed_agreement": 0.913,
+        "expected_agreement": 0.576
+      },
+      "V4_paraphrase": {
+        "verification_agreement": 0.901,
+        "sentiment_agreement": 0.886,
+        "cohens_kappa_verification": 0.7716,
+        "observed_agreement": 0.901,
+        "expected_agreement": 0.5666
+      }
+    },
+    "multi_variant": {
+      "krippendorffs_alpha": 0.8158,
+      "fleiss_kappa": 0.8158
+    },
+    "cross_variant_variance": {
+      "true_rate_mean": 0.6706,
+      "true_rate_std": 0.0344,
+      "true_rates": {
+        "V0_baseline": 0.736,
+        "V1_role": 0.67,
+        "V2_structure": 0.645,
+        "V3_concise": 0.661,
+        "V4_paraphrase": 0.641
+      },
+      "sentiment_std": {
+        "正面": 0.0083,
+        "中性": 0.0083,
+        "负面": 0.0007
+      }
+    }
+  },
+  "ctx_track": {
+    "pairwise": {
+      "V1_role": {
+        "verification_agreement": 0.922,
+        "sentiment_agreement": 0.904,
+        "cohens_kappa_verification": 0.8223,
+        "observed_agreement": 0.922,
+        "expected_agreement": 0.5611
+      },
+      "V2_structure": {
+        "verification_agreement": 0.904,
+        "sentiment_agreement": 0.892,
+        "cohens_kappa_verification": 0.7842,
+        "observed_agreement": 0.904,
+        "expected_agreement": 0.5551
+      },
+      "V3_concise": {
+        "verification_agreement": 0.91,
+        "sentiment_agreement": 0.889,
+        "cohens_kappa_verification": 0.7958,
+        "observed_agreement": 0.91,
+        "expected_agreement": 0.5594
+      },
+      "V4_paraphrase": {
+        "verification_agreement": 0.915,
+        "sentiment_agreement": 0.9,
+        "cohens_kappa_verification": 0.8065,
+        "observed_agreement": 0.915,
+        "expected_agreement": 0.5606
+      }
+    },
+    "multi_variant": {
+      "krippendorffs_alpha": 0.8317,
+      "fleiss_kappa": 0.8317
+    },
+    "cross_variant_variance": {
+      "true_rate_mean": 0.6538,
+      "true_rate_std": 0.0295,
+      "true_rates": {
+        "V0_baseline": 0.712,
+        "V1_role": 0.644,
+        "V2_structure": 0.63,
+        "V3_concise": 0.64,
+        "V4_paraphrase": 0.643
+      },
+      "sentiment_std": {
+        "正面": 0.0116,
+        "中性": 0.0107,
+        "负面": 0.0016
+      }
+    }
+  }
+}

@@ -70,16 +70,16 @@ reghdfe Y c.llm_vote_tone_full##c.fintech_share X, ///
 *
 * 注: 以下使用 M 作为通用占位符, 请替换为实际变量名 (DFIIC/SA_index/...)
 *
-* ⚠️ 技术要求 (Brambor, Clark & Golder 2006, PA):
+* 技术要求 (Brambor, Clark & Golder 2006, PA):
 *   交互项回归中, 主效应 tone 和 M 必须同时进入模型,
 *   否则交互项系数估计有偏。Stata 的 ## 语法自动满足此要求。
 *
-* ⚠️ 变量重复声明警告:
+* 变量重复声明说明:
 *   ## 语法会自动将 M 作为主效应纳入。如果 M 已在 X 中,
 *   须从 X 中移除 M, 否则因完美共线性导致估计失败。
 *   例: X 定义为 "Size Lev ROA" 而非 "Size Lev ROA M"
 *
-* ⚠️ 中心化建议: 当 M 的均值远离 0 时,
+* 中心化建议: 当 M 的均值远离 0 时,
 *   交互项可能产生 VIF 膨胀。建议先去均值:
 *   egen M_c = std(M)  // 标准化 (均值=0, 标准差=1)
 *   或 sum M → gen M_c = M - r(mean)  // 仅去均值
@@ -93,7 +93,7 @@ reghdfe Y c.llm_vote_tone_full##c.M X, ///
 * cap drop M_high
 * sum M, detail
 * gen M_high = (M >= r(p50)) if !missing(M)
-*   // ⚠️ if !missing(M) 防止缺失值被归入高组 (同 7b 缺失值陷阱)
+*   // if !missing(M) 防止缺失值被归入高组 (同 7b 缺失值陷阱)
 * reghdfe Y c.llm_vote_tone_full##i.M_high X, ///
 *   absorb(target_bank year) vce(cluster target_bank)
 *   est store moderate_dum
@@ -168,7 +168,7 @@ restore
 *   注: 使用 vce(cluster) 时, 两种方法的点估计相同,
 *   但标准误可能存在微小差异 (因子样本聚类数更少)
 *
-*   ⚠️ 分样本法的局限:
+*   分样本法的局限:
 *     两组 β₁ 可能均显著但数值不同, 而差异实际不显著
 *     → 必须配合 (b) 交互项法确认组间差异的统计显著性
 *
@@ -187,7 +187,7 @@ local med_Z = r(p50)
 * ── (7b-a) 分样本法 ──
 * 注: local 宏在 preserve/restore 内仍可访问 (不随数据恢复而丢失)
 *
-* ⚠️ Stata 缺失值陷阱:
+* Stata 缺失值陷阱:
 *   Stata 中 missing (.) 被视为正无穷大.
 *   因此 `Z >= med_Z` 在 Z 缺失时为 TRUE,
 *   会将缺失值观测错误归入高组.
@@ -228,7 +228,7 @@ reghdfe Y c.llm_vote_tone_full##i.Z_high X, ///
 * → 检验调节效应本身在不同银行类型间是否不同
 *   (直接对标 Qu & Yang 2025, Tables 8-9 的精确回归设定)
 * → 需同时拥有调节变量 M (检验 5b) 和分组变量 Z
-* ⚠️ 样本量要求: 三重交互产生 7 个系数 (3主效应 + 3二重 + 1三重),
+* 样本量要求: 三重交互产生 7 个系数 (3主效应 + 3二重 + 1三重),
 *   对于银行面板 (~40 家 × 15 年 ≈ 600 obs) 可能精度不足.
 *   建议: N > 1000 时再尝试, 或使用 7b-a/b 的分样本法替代.
 * reghdfe Y c.llm_vote_tone_full##c.M##i.Z_high X, ///
@@ -362,7 +362,7 @@ ivreghdfe Y (llm_vote_tone_full = ft_attn_prov ///
 * 对标: Luo & Li (2025, FRL, Table 4)
 * 前提: ssc install psacalc
 *
-* ⚠️ 技术注意: psacalc 包仅兼容 reg/areg/xtreg 等标准回归命令,
+* 技术注意: psacalc 包仅兼容 reg/areg/xtreg 等标准回归命令,
 *    不支持 reghdfe (因 e() 返回值结构不同)。
 *    等价替代: areg Y ... i.year, absorb(target_bank)
 *    ≡ reghdfe Y ..., absorb(target_bank year)
@@ -403,7 +403,7 @@ psacalc beta llm_vote_tone_full, rmax(`=1.3*`r2_long'') delta(1)
 *   通过逐级提升聚类层级, 可检验系数显著性是否稳健:
 *     银行级 (基准) → 城市级 (329 组) → 省级 (31 组)
 *
-*   ⚠️ 关键: 不能同时 absorb(target_bank bank_province)!
+*   关键: 不能同时 absorb(target_bank bank_province)!
 *   因为每家银行仅注册在一个省, bank_province 是 target_bank
 *   的确定性函数, 两者间存在完美共线性。
 *   正确做法: 保留原 FE 结构, 仅提升聚类层级。
@@ -418,7 +418,7 @@ reghdfe Y llm_vote_tone_full nf_ln_coverage nf_media_breadth X, ///
   est store robust_city_cluster
 
 * (10b) 省级聚类 — 31 个聚类, 低于 50 个门槛
-*   ⚠️ Cameron & Miller (2015, JHR, p.355) 指出:
+*   Cameron & Miller (2015, JHR, p.355) 指出:
 *   聚类数 < 50 时, 标准聚类 SE 通常偏小 (over-rejection),
 *   导致 Wald test 的实际拒绝率高于名义水平。
 *   如果系数在此设定下仍显著, 结论更令人信服;
@@ -471,7 +471,7 @@ esttab iv_attn_prov iv_attn_city ///
 *   → ✅ 两者各有独立信息 (可接受, 类似 Hassan Table 7 Panel A)
 *
 * β₁ 不再显著 + β₂ 显著
-*   → ⚠️ 金融科技情感可能仅代理一般媒体关注度 (需要进一步分析)
+*   → 金融科技情感可能仅代理一般媒体关注度 (需要进一步分析)
 *
 * β₁(tone) 在排除压力年份后仍显著
 *   → ✅ 金融科技情感非系统危机的副产品 (Dim et al. 2024, §3.5)
@@ -506,12 +506,12 @@ esttab iv_attn_prov iv_attn_city ///
 *   → ℹ️ 基本面部分混淆情感效应, 但独立媒体冲击仍存在
 *
 * β₁(residual_tone) 不显著
-*   → ⚠️ 情感效应主要反映基本面信息, 而非媒体报道本身
+*   → 情感效应主要反映基本面信息, 而非媒体报道本身
 *     (需结合 Oster δ 值和 IV 结果综合判断)
 *
 * ── 调节效应解读 (检验 5b, 对标 Qu & Yang 2025 Table 6) ──
 *
-* ⚠️ 解读前提 (Brambor et al. 2006):
+* 解读前提 (Brambor et al. 2006):
 *   在交互项模型中, β₁(tone) 的含义是 "当 M=0 时 tone 的效应".
 *   如果 M 未中心化, M=0 可能在数据范围外, β₁ 不可解读.
 *   建议: 先对 M 去均值 (egen M_c = std(M)), 此时
@@ -591,7 +591,7 @@ reghdfe Y dict_msent2_full X, absorb(target_bank year) vce(cluster target_bank)
 *   残差法: 直接操作 — 从情感中剔除基本面可预测的部分
 *   两者互补: Oster 检验不可观测变量, 残差法处理可观测变量
 *
-* ⚠️ FWL 注意: 步骤 1 故意不含银行 FE (仅 reg + i.year),
+* FWL 注意: 步骤 1 故意不含银行 FE (仅 reg + i.year),
 *   步骤 2 含银行 FE (reghdfe)。FE 结构差异避免 FWL 退化。
 *   进阶: 在步骤 1 的 X 中额外加入非标准控制变量
 *   (如 DI_dummy) 可增强残差法的独立信息量。
@@ -785,7 +785,7 @@ esttab lag_effect reversal ///
 *   Fama, E.F. & Jensen, M.C. (1983). Separation of Ownership and Control.
 *     JLE, 26(2), 301-325. DOI: 10.1086/467037
 *
-* ⚠️ 数据获取说明:
+* 数据获取说明:
 *   以下治理变量需用户从外部数据库 (CSMAR/Wind/CNRDS/银行年报) 获取后
 *   合并至面板数据中。变量命名均已按 Stata 32 字符限制设计。
 *
@@ -827,7 +827,7 @@ esttab lag_effect reversal ///
 *                         来源: CSMAR 高管信息数据库
 *                         长任期 → 长期主义, 抑制概念炒作
 *
-* ⚠️ 变量可用性说明:
+* 变量可用性说明:
 *   并非所有银行 (尤其非上市城商行/农商行) 均披露上述信息。
 *   建议先检查数据覆盖率 (参见 15-0 覆盖率诊断步骤), 对缺失严重的
 *   变量使用行业中位数填补或降低为次要控制变量。
@@ -841,7 +841,7 @@ esttab lag_effect reversal ///
 * 注: 取消上行注释后执行; nogenerate 避免 _merge 列污染
 
 * ── (15-0) 数据覆盖率诊断 ──
-* ⚠️ 关键步骤: 合并后必须检查治理变量的非缺失覆盖率
+* 关键步骤: 合并后必须检查治理变量的非缺失覆盖率
 *   如果覆盖率 < 50%, 该变量的回归结果可解释性受限
 *   → 建议: 以子样本稳健性形式报告, 而非主回归
 foreach gov_var of varlist GOV_* {
@@ -874,7 +874,7 @@ reghdfe Y llm_vote_tone_full ///
 *   GOV_equity_ratio 低 → 高管短期主义 → Tone 可能含"概念炒作"噪声
 *   → β₁(Tone|equity=0) 效应较弱或含偏误
 *
-* ⚠️ 中心化处理: GOV_equity_ratio 的均值远离 0,
+* 中心化处理: GOV_equity_ratio 的均值远离 0,
 *   须先标准化以获得可解读的主效应
 egen GOV_equity_z = std(GOV_equity_ratio)
 reghdfe Y c.llm_vote_tone_full##c.GOV_equity_z ///
@@ -908,7 +908,7 @@ reghdfe Y llm_vote_tone_full ///
   GOV_comp_committee GOV_ceo_tenure X, ///
   absorb(target_bank year) vce(cluster target_bank)
   est store gov_full
-* ⚠️ 如果 GOV_cash_ratio = 1 - GOV_equity_ratio (完美共线性),
+* 如果 GOV_cash_ratio = 1 - GOV_equity_ratio (完美共线性),
 *     须从模型中移除其一; 仅当两者独立计量时同时纳入
 
 * ── (15d-vif) 共线性诊断 ──
@@ -992,7 +992,7 @@ esttab gov_het_high_eq gov_het_low_eq gov_het_chow ///
 *   → 建议在主回归中始终控制 GOV_* 变量
 *
 * β₁(Tone) 不再显著
-*   → ⚠️ Tone 效应主要由治理结构驱动, 因果推断需审慎
+*   → Tone 效应主要由治理结构驱动, 因果推断需审慎
 *   → 结合 IV (检验 8) 和 Oster (检验 9/15f) 综合判断
 *
 * β₃(Tone × GOV_equity_z) 正显著

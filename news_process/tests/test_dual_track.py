@@ -224,9 +224,9 @@ class TestFallbackAxiom:
     _LLM_NAN_ALLOWED_PREFIXES = (
         'llm_sentiment',
         'llm_agreement_rate_s',  # 仅 verifying 子集上的 agree rate
-        'gpt5nano_sentiment', 'gemini3_sentiment', 'grok41_sentiment',
-        'gpt5nano_prob_score', 'gemini3_prob_score', 'grok41_prob_score',
-        'gpt5nano_prob_source', 'gemini3_prob_source', 'grok41_prob_source',
+        'gpt54nano_sentiment', 'gemini31111_sentiment', 'deepseekv4_sentiment',
+        'gpt54nano_prob_score', 'gemini31111_prob_score', 'deepseekv4_prob_score',
+        'gpt54nano_prob_source', 'gemini31111_prob_source', 'deepseekv4_prob_source',
     )
 
     def _is_llm_nan_allowed(self, col_name: str) -> bool:

@@ -54,6 +54,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
+from news_process.core.caching import LLMCache
 from news_process.core.logging import setup_logging, log_memory_usage
 
 # ============================================================================
@@ -69,6 +70,11 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 _tone_llms = import_module('news_process.pipeline.sentiment.tone_llms')
 fetch_llm_async        = _tone_llms.fetch_llm_async
 _aggregate_track       = _tone_llms._aggregate_track
+build_llm_connector    = _tone_llms.build_llm_connector
+build_llm_timeout      = _tone_llms.build_llm_timeout
+build_model_pacers     = _tone_llms.build_model_pacers
+AsyncModelAvailability = _tone_llms.AsyncModelAvailability
+preflight_model_availability = _tone_llms.preflight_model_availability
 # 注：parse_json_response, majority_vote_bool/sentiment 由 _aggregate_track 内部调用，无需显式导入
 MODELS                 = _tone_llms.MODELS
 MAX_CONCURRENCY        = _tone_llms.MAX_CONCURRENCY
@@ -86,10 +92,26 @@ compute_krippendorffs_alpha = _eval.compute_krippendorffs_alpha
 PS_CFG = CONFIG.get('prompt_sensitivity_test', {})
 SAMPLE_SIZE = PS_CFG.get('sample_size', 1000)
 RANDOM_SEED = PS_CFG.get('random_seed', 42)
+PROMPT_MAX_CONCURRENCY = max(1, min(MAX_CONCURRENCY, int(PS_CFG.get('max_concurrency', 20))))
+PROMPT_REQUEST_SPACING = float(PS_CFG.get('request_spacing_seconds', 0.0))
+PROMPT_REQUEST_TIMEOUT_SECONDS = float(
+    PS_CFG.get('request_timeout_seconds', min(60.0, _tone_llms.REQUEST_TIMEOUT_TOTAL))
+)
+PROMPT_MAX_RETRIES = max(1, min(_tone_llms.MAX_RETRIES, int(PS_CFG.get('max_retries', 1))))
 PASS_THRESHOLD_VERIFICATION = PS_CFG.get('pass_threshold_verification', 0.85)
 PASS_THRESHOLD_SENTIMENT    = PS_CFG.get('pass_threshold_sentiment', 0.80)
 PASS_THRESHOLD_KAPPA        = PS_CFG.get('pass_threshold_kappa', 0.70)
 PASS_THRESHOLD_ALPHA        = PS_CFG.get('pass_threshold_alpha', 0.667)
+
+
+def _build_prompt_llm_timeout() -> aiohttp.ClientTimeout:
+    timeout_s = max(1.0, PROMPT_REQUEST_TIMEOUT_SECONDS)
+    return aiohttp.ClientTimeout(
+        total=timeout_s,
+        connect=min(timeout_s, _tone_llms.REQUEST_TIMEOUT_CONNECT),
+        sock_connect=min(timeout_s, _tone_llms.REQUEST_TIMEOUT_SOCK_CONNECT),
+        sock_read=timeout_s,
+    )
 
 
 # ============================================================================
@@ -241,7 +263,7 @@ C. **银行与技术的因果关联**：存在可验证的证据表明该银行�
 **阶段二：情感倾向分析**（仅当阶段一判定为 true 时执行）
 
 聚焦新闻**仅对【{target_bank}】**的情感倾向。
-⚠️ 抗污染指令：文中可能同时提及同行（{co_mentioned_banks}），其利好或负面与【{target_bank}】无直接关联时，一律视为噪音，不影响评分。
+抗污染指令：文中可能同时提及同行（{co_mentioned_banks}），其利好或负面与【{target_bank}】无直接关联时，一律视为噪音，不影响评分。
 - `正面`：业绩增长、技术突破、创新合作、监管认可等积极事件。
 - `中性`：客观陈述事实或中立行业动态，无明显褒贬。
 - `负面`：风险暴露、监管处罚、安全事故、舆论危机等负面事件。
@@ -357,6 +379,8 @@ async def run_variant_llms(
     variant_prompt: str,
     models: list,
     variant_name: str,
+    cache: LLMCache | None = None,
+    model_availability: AsyncModelAvailability | None = None,
 ) -> dict:
     """对样本执行双轨 LLM 请求，使用指定的变体 prompt。
 
@@ -370,16 +394,24 @@ async def run_variant_llms(
     Returns:
         dict: {row_idx: {'full': {model_id: res_text}, 'ctx': {model_id: res_text}}}
     """
-    semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
+    semaphore = asyncio.Semaphore(PROMPT_MAX_CONCURRENCY)
     results_map = {i: {'full': {}, 'ctx': {}} for i in df.index}
 
     total_tasks = len(df) * len(models) * 2
-    logger.info(f"  [{variant_name}] 双轨请求: {len(df)} 条 × {len(models)} 模型 × 2 轨道 = {total_tasks} 请求")
-
-    connector = aiohttp.TCPConnector(
-        limit=MAX_CONCURRENCY, keepalive_timeout=30, enable_cleanup_closed=True,
+    logger.info(
+        f"  [{variant_name}] 双轨请求: {len(df)} 条 × {len(models)} 模型 × 2 轨道 = "
+        f"{total_tasks} 请求, concurrency={PROMPT_MAX_CONCURRENCY}, "
+        f"per_model_spacing={PROMPT_REQUEST_SPACING:.2f}s, "
+        f"timeout={PROMPT_REQUEST_TIMEOUT_SECONDS:.0f}s, retries={PROMPT_MAX_RETRIES}"
     )
-    async with aiohttp.ClientSession(connector=connector) as session:
+
+    connector = build_llm_connector(PROMPT_MAX_CONCURRENCY)
+    request_pacers = build_model_pacers(models, PROMPT_REQUEST_SPACING)
+    request_timeout = _build_prompt_llm_timeout()
+    if model_availability is None:
+        model_availability = AsyncModelAvailability()
+    async with aiohttp.ClientSession(connector=connector, timeout=request_timeout) as session:
+        await preflight_model_availability(session, models, model_availability)
         tasks = []
         for idx, row in df.iterrows():
             content_full = str(row.get('内容', ''))
@@ -396,7 +428,15 @@ async def run_variant_llms(
                     co_mentioned_banks=co_banks,
                 )
                 for m in models:
-                    tasks.append(fetch_llm_async(session, semaphore, prompt, m, idx, track))
+                    tasks.append(
+                        fetch_llm_async(
+                            session, semaphore, prompt, m, idx, track, cache=cache,
+                            request_pacer=request_pacers.get(m['model_name']),
+                            model_availability=model_availability,
+                            request_timeout=request_timeout,
+                            max_retries=PROMPT_MAX_RETRIES,
+                        )
+                    )
 
         completed = 0
         total = len(tasks)
@@ -447,7 +487,14 @@ def aggregate_variant_results(
 
         for idx in df.index:
             model_res = results_map.get(idx, {}).get(track_key, {})
-            final_v, final_s, _, _, _, _, _, _, n_fail, _ = _aggregate_track(model_res, models)
+            (
+                final_v, final_s,
+                _agree_rate_v, _agree_rate_s,
+                _n_valid_votes, _n_verifying_votes,
+                _call_failure, _undefined,
+                _parsed, _topics, _llm_categories, _text_types,
+                n_fail, _avg_prob_score,
+            ) = _aggregate_track(model_res, models)
             v_list.append(final_v)
             s_list.append(final_s)
             n_parse_fail += n_fail
@@ -458,7 +505,7 @@ def aggregate_variant_results(
 
     fail_rate = n_parse_fail / max(n_total, 1)
     if fail_rate > 0.20:
-        logger.warning(f"  [{variant_key}] API/解析失败率 {fail_rate:.1%} > 20%，该变体可能不可靠")
+        logger.info(f"  [{variant_key}] API/解析失败率 {fail_rate:.1%} > 20%，该变体可能不可靠")
 
     df[f'{variant_key}_parse_fail_rate'] = fail_rate
     return df
@@ -472,7 +519,7 @@ def random_sample(df: pd.DataFrame, sample_size: int, seed: int) -> pd.DataFrame
     """简单随机抽样（可复现）。"""
     n = min(sample_size, len(df))
     if n < sample_size:
-        logger.warning(f"可用数据 {len(df)} 条 < 请求抽样数 {sample_size}，取全部 {n} 条")
+        logger.info(f"可用数据 {len(df)} 条 < 请求抽样数 {sample_size}，取全部 {n} 条")
     return df.sample(n=n, random_state=seed)
 
 
@@ -849,6 +896,7 @@ def main():
     logger.info(f"     抽样数量: {SAMPLE_SIZE}，随机种子: {RANDOM_SEED}")
     logger.info(f"     模型数量: {len(MODELS)}")
     logger.info(f"     测试轨道: full + ctx（双轨）")
+    logger.info(f"     并发上限: {PROMPT_MAX_CONCURRENCY}")
     logger.info(f"     预计请求: {len(VARIANT_PROMPTS)} × {SAMPLE_SIZE} × {len(MODELS)} × 2 = "
                 f"{len(VARIANT_PROMPTS) * SAMPLE_SIZE * len(MODELS) * 2:,} 次")
     logger.info("")
@@ -903,19 +951,27 @@ def main():
     logger.info("Step 5: 执行变体 LLM 双轨请求 ...")
     variant_keys = list(VARIANT_PROMPTS.keys())
 
-    for vk in variant_keys:
-        logger.info(f"  ── 开始变体 {VARIANT_LABELS.get(vk, vk)} ──")
-        t0 = time.time()
+    cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
+    with LLMCache(cache_db) as cache:
+        logger.info(f"Prompt 敏感度 LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
+        model_availability = AsyncModelAvailability()
 
-        results_map = asyncio.run(
-            run_variant_llms(df_sample, VARIANT_PROMPTS[vk], MODELS, vk)
-        )
-        df_sample = aggregate_variant_results(df_sample, results_map, MODELS, vk)
+        for vk in variant_keys:
+            logger.info(f"  ── 开始变体 {VARIANT_LABELS.get(vk, vk)} ──")
+            t0 = time.time()
 
-        elapsed = time.time() - t0
-        true_rate = df_sample[f'{vk}_verified_full'].astype(int).mean()
-        logger.info(f"  ── {VARIANT_LABELS.get(vk, vk)} 完成 | "
-                    f"耗时 {elapsed:.0f}s | true_rate(full): {true_rate:.2%} ──")
+            results_map = asyncio.run(
+                run_variant_llms(
+                    df_sample, VARIANT_PROMPTS[vk], MODELS, vk, cache=cache,
+                    model_availability=model_availability,
+                )
+            )
+            df_sample = aggregate_variant_results(df_sample, results_map, MODELS, vk)
+
+            elapsed = time.time() - t0
+            true_rate = df_sample[f'{vk}_verified_full'].astype(int).mean()
+            logger.info(f"  ── {VARIANT_LABELS.get(vk, vk)} 完成 | "
+                        f"耗时 {elapsed:.0f}s | true_rate(full): {true_rate:.2%} ──")
 
     # ── Step 6: 分轨道计算全部一致性指标 ──
     logger.info("Step 6: 计算一致性指标（分轨道）...")

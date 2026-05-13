@@ -134,7 +134,7 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     if balance_ratio >= 0.95:
         logger.info(f"  ✅ 高度平衡面板 (≥95%)")
     elif balance_ratio >= 0.80:
-        logger.info(f"  ⚠️ 近似平衡面板 (80-95%)")
+        logger.info(f"  近似平衡面板 (80-95%)")
     else:
         logger.info(f"  🔴 不平衡面板 (<80%), 建议检查银行进入/退出")
 
@@ -602,12 +602,12 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_llm_conf_std_full':               'LLM Confidence Std Dev (Full)',
                 'avg_llm_conf_ctx':                    'LLM Avg Confidence (Ctx)',
                 'avg_llm_conf_std_ctx':                'LLM Confidence Std Dev (Ctx)',
-                'avg_gpt5nano_conf_full':              'GPT-5nano Confidence (Full)',
-                'avg_gpt5nano_conf_ctx':               'GPT-5nano Confidence (Ctx)',
-                'avg_gemini3_conf_full':               'Gemini-3 Confidence (Full)',
-                'avg_gemini3_conf_ctx':                'Gemini-3 Confidence (Ctx)',
-                'avg_grok41_conf_full':                'Grok-4.1 Confidence (Full)',
-                'avg_grok41_conf_ctx':                 'Grok-4.1 Confidence (Ctx)',
+                'avg_gpt54nano_conf_full':              'GPT-5nano Confidence (Full)',
+                'avg_gpt54nano_conf_ctx':               'GPT-5nano Confidence (Ctx)',
+                'avg_gemini31111_conf_full':               'Gemini-3 Confidence (Full)',
+                'avg_gemini31111_conf_ctx':                'Gemini-3 Confidence (Ctx)',
+                'avg_deepseekv4_conf_full':                'Grok-4.1 Confidence (Full)',
+                'avg_deepseekv4_conf_ctx':                 'Grok-4.1 Confidence (Ctx)',
                 # 其他
                 'has_coverage':                        'Has News Coverage (0/1)',
                 # ═══ 异质性分析变量 (Angrist & Pischke 2009; Brambor et al. 2006) ═══
@@ -727,7 +727,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'low_conf_flag':                    'Low Confidence Flag',
                 # 单模型洗稿率 — 双轨 (动态生成)
                 **{f'washing_ratio_{m}{s}': f'WR: {m} ({t})'
-                   for m in ['gpt5nano', 'gemini3', 'grok41',
+                   for m in ['gpt54nano', 'gemini31111', 'deepseekv4',
                              'jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
                              'finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
                    for s, t in [('', 'Full'), ('_ctx', 'Ctx')]},
@@ -877,7 +877,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'disag_llm{s}': f'Disagreement: LLM Vote ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'disag_{m}{s}': f'Disagreement: {m} ({t})'
-                   for m in ['gpt5nano', 'gemini3', 'grok41']
+                   for m in ['gpt54nano', 'gemini31111', 'deepseekv4']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'disag_bert{s}': f'Disagreement: BERT Avg ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
@@ -899,7 +899,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                    for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'cater_{m}{s}': f'Catering: Dict-{m} ({t})'
-                   for m in ['gpt5nano', 'gemini3', 'grok41']
+                   for m in ['gpt54nano', 'gemini31111', 'deepseekv4']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'cater_{b}{s}': f'Catering: Dict-{b} ({t})'
                    for b in ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
@@ -916,7 +916,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # override (Plan-r3 P0-2 修复, ruff F601).
                 # ═══ 前置中间变量: neg_count ═══
                 **{f'{m}_neg_count{s}': f'Neg Count: {m} ({t})'
-                   for m in ['gpt5nano', 'gemini3', 'grok41']
+                   for m in ['gpt54nano', 'gemini31111', 'deepseekv4']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'{d}_neg_count{s}': f'Neg Count: {d} ({t})'
                    for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']

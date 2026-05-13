@@ -32,6 +32,10 @@ entity_masking_test:
   enabled: true
   sample_size: 1000                                 # 随机抽样数量
   random_seed: 42                                   # 随机种子（保证可复现）
+  max_concurrency: 8                                # 阶段36单独限流，降低批量掩码复判的网络抖动
+  request_spacing_seconds: 0.75                     # 每个模型相邻真实请求的最小间隔，避免 429 限流
+  request_timeout_seconds: 60                       # 验证复判短超时；缓存优先，外部接口卡住时快速熔断
+  max_retries: 1                                    # 验证阶段不做长重试，避免外部 API 抖动拖垮整条流水线
   placeholder: "目标银行A"                           # 目标银行替换占位符
   peer_placeholder_template: "同业银行{}"             # 共提银行占位符模板（{} 填 B, C, D...）
   pass_threshold_verification: 0.90                 # 验证一致率通过阈值 (≥90%)
@@ -49,6 +53,10 @@ prompt_sensitivity_test:
   enabled: true
   sample_size: 1000                                 # 随机抽样数量
   random_seed: 42                                   # 随机种子（保证可复现）
+  max_concurrency: 8                                # 阶段39单独限流，避免 24k 请求触发聚合网关 429 雪崩
+  request_spacing_seconds: 0.10                     # Prompt 验证使用短重试熔断，可提高真实缺缓存请求放行速率
+  request_timeout_seconds: 60                       # Prompt 灵敏度以缓存为主，缺缓存请求超时后本轮熔断
+  max_retries: 1                                    # 避免单个变体因外部 API 长尾重试卡住数小时
   pass_threshold_verification: 0.85                 # 均值验证一致率通过阈值 (≥85%)
   pass_threshold_sentiment: 0.80                    # 均值情感一致率通过阈值 (≥80%)
   pass_threshold_kappa: 0.70                        # 最小 Cohen's κ 通过阈值 (≥0.70)

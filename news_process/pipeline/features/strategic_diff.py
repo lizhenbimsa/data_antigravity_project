@@ -130,6 +130,7 @@
 #   - jensenshannon: Jensen-Shannon 散度，衡量两个概率分布有多不同
 import os, sys, logging, asyncio
 import numpy as np, pandas as pd, jieba
+jieba.setLogLevel(logging.WARNING)
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import LatentDirichletAllocation
@@ -206,6 +207,38 @@ _EMB_MAX_TOKENS_PER_REQUEST = _coerce_positive_int(
     _ALIGN_CFG.get('max_tokens_per_request'), _EMB_MAX_TOKENS_PER_REQUEST)
 _EMB_MAX_TOKENS_PER_REQUEST = max(
     _EMB_MAX_TOKENS, _EMB_MAX_TOKENS_PER_REQUEST)
+_LOCAL_EMBEDDING_MODEL = None
+
+
+def _embedding_config_uses_local() -> bool:
+    base_url = str(EMBEDDING_CONFIG.get('base_url') or '').strip().lower()
+    return base_url in {
+        'local',
+        'local://',
+        'sentence-transformers',
+        'sentence_transformers',
+    }
+
+
+def _encode_embeddings_local(texts, *, log_prefix="Embedding") -> np.ndarray:
+    global _LOCAL_EMBEDDING_MODEL
+
+    from sentence_transformers import SentenceTransformer
+
+    local_model_id = (
+        EMBEDDING_CONFIG.get('model')
+        or 'shibing624/text2vec-base-chinese'
+    )
+    if _LOCAL_EMBEDDING_MODEL is None:
+        logger.info(f"    {log_prefix}: 使用本地模型 {local_model_id}")
+        _LOCAL_EMBEDDING_MODEL = SentenceTransformer(local_model_id)
+
+    emb_local = _LOCAL_EMBEDDING_MODEL.encode(
+        list(texts),
+        batch_size=int(EMBEDDING_CONFIG.get('batch_size', 32) or 32),
+        show_progress_bar=False,
+    )
+    return np.asarray(emb_local, dtype=np.float32)
 
 # 中文停用词表 (Stopwords) — 排除高频虚词以提高 TF-IDF 区分度
 # 【术语】停用词 (Stopwords) 是 NLP 中被过滤的高频无信息量词汇，
@@ -333,6 +366,7 @@ def _build_tfidf_sim_matrix(texts, mode='char'):
                    max_features=5000, min_df=_mdf, sublinear_tf=True)
     else:
         _kw = dict(tokenizer=_jieba_tokenizer,
+                   token_pattern=None,
                    max_features=5000, min_df=_mdf, sublinear_tf=True)
     try:
         vec = TfidfVectorizer(max_df=_max_df, **_kw)
@@ -381,6 +415,7 @@ def _build_lda_jsd_matrix(texts, n_banks):
     K = max(10, n_banks // 30)
     cv = CountVectorizer(
         tokenizer=_jieba_tokenizer,
+        token_pattern=None,
         max_features=5000, min_df=1, max_df=0.95)
     try:
         dtm = cv.fit_transform(texts)
@@ -389,6 +424,7 @@ def _build_lda_jsd_matrix(texts, n_banks):
         logger.warning("    LDA: max_df=0.95 词表清空, 降级为 max_df=1.0")
         cv = CountVectorizer(
             tokenizer=_jieba_tokenizer,
+            token_pattern=None,
             max_features=5000, min_df=1, max_df=1.0)
         dtm = cv.fit_transform(texts)
     lda = LatentDirichletAllocation(
@@ -560,11 +596,16 @@ def _embed_texts_with_chunk_pooling(texts, *, log_prefix="Embedding"):
         logger.info(f"    {log_prefix} 分段: {n_orig} 文本 → {n_chunks} 段 "
                     f"(含 {n_chunks - n_orig} 个超长文本扩展段)")
 
-    # 策略 1: API Embedding (死战不退机制，无需降级)
-    db_path = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
-    with LLMCache(db_path) as cache:
-        raw_emb = asyncio.run(_get_embeddings_api(all_chunks, cache))
-    logger.info(f"    {log_prefix}: API (text-embedding-3-small) 成功")
+    if _embedding_config_uses_local():
+        raw_emb = _encode_embeddings_local(all_chunks, log_prefix=log_prefix)
+    else:
+        db_path = CONFIG['paths'].get(
+            'llm_cache_db',
+            os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'),
+        )
+        with LLMCache(db_path) as cache:
+            raw_emb = asyncio.run(_get_embeddings_api(all_chunks, cache))
+        logger.info(f"    {log_prefix}: API (text-embedding-3-small) 成功")
 
     raw_emb = np.array(raw_emb) if not isinstance(raw_emb, np.ndarray) else raw_emb
     if raw_emb.ndim != 2 or raw_emb.shape[0] != n_chunks:
@@ -815,6 +856,7 @@ def _compute_fluidity(agg_df, mode='char'):
                    max_features=5000, min_df=_mdf_flu)
               if mode == 'char'
               else dict(tokenizer=_jieba_tokenizer,
+                        token_pattern=None,
                         max_features=5000, min_df=_mdf_flu))
         try:
             vec = TfidfVectorizer(max_df=0.95, **kw).fit(
@@ -901,6 +943,7 @@ def _compute_tfidf_coherence(agg_df, mode='char'):
                    max_features=5000, min_df=1, sublinear_tf=True)
     else:
         _kw = dict(tokenizer=_jieba_tokenizer,
+                   token_pattern=None,
                    max_features=5000, min_df=1, sublinear_tf=True)
 
     for year in sorted(agg_df['year'].unique()):
@@ -972,11 +1015,13 @@ def _compute_lda_coherence(agg_df):
         try:
             # CountVectorizer → DTM → LDA
             cv = CountVectorizer(tokenizer=_jieba_tokenizer,
+                                 token_pattern=None,
                                  max_features=5000, min_df=1, max_df=0.95)
             try:
                 dtm = cv.fit_transform(all_texts)
             except ValueError:
                 cv = CountVectorizer(tokenizer=_jieba_tokenizer,
+                                     token_pattern=None,
                                      max_features=5000, min_df=1, max_df=1.0)
                 dtm = cv.fit_transform(all_texts)
 
@@ -1080,7 +1125,7 @@ def _log_coherence_diagnostics(panel):
             if len(valid) > 5:
                 r = valid[cc].corr(valid[tone_col])
                 logger.info(f"    {cc} ↔ {tone_col}: r = {r:.3f} "
-                            f"({'✅ 正交' if abs(r) < 0.3 else '⚠️ 相关较高'})")
+                            f"({'✅ 正交' if abs(r) < 0.3 else '相关偏高'})")
 
     # 值域断言: 所有 coh_* 列 ∈ [0, 1] (含浮点误差容忍)
     for col in [c for c in panel.columns if c.startswith('coh_')]:
@@ -1234,7 +1279,7 @@ def compute_strategic_differentiation(df_exploded, panel):
         logger.info(f"  ✅ 战略差异度: 成功合并 {len(res)} 行, "
                     f"新增 {len(res.columns) - 2} 列")
     else:
-        logger.warning("  ⚠️ 无有效结果 (所有年度银行数不足 3)")
+        logger.warning("  无有效结果 (所有年度银行数不足 3)")
 
     # ══════════════════════════════════════════════════════════════════
     # 改进 B: 相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024)

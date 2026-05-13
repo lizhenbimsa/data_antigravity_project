@@ -59,6 +59,7 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging, log_memory_usage, log_stage_summary
+from news_process.core.plotting import configure_matplotlib_chinese_fonts
 from news_process.core.text.ahocorasick import (
     load_bank_names, load_exclusion_patterns, load_fintech_dict,
     analyze_bank_matches,
@@ -243,6 +244,7 @@ def _plot_threshold_sensitivity(threshold_results: list, param_name: str,
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
+        configure_matplotlib_chinese_fonts()
 
         thresholds = [r['threshold'] for r in threshold_results]
         counts = [r['count'] for r in threshold_results]
@@ -294,6 +296,7 @@ def _plot_pr_curve(threshold_results: list, param_name: str,
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
+        configure_matplotlib_chinese_fonts()
 
         thresholds = [r['threshold'] for r in threshold_results]
         precisions = [r['precision'] for r in threshold_results]

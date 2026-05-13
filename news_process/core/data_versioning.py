@@ -14,6 +14,7 @@ import hashlib
 import json
 import logging
 import subprocess
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -82,6 +83,12 @@ def get_python_version() -> str:
 def get_key_dependencies() -> dict[str, str]:
     """获取关键依赖的版本。"""
     try:
+        warnings.filterwarnings(
+            "ignore",
+            message=r"Failed to find CUDA\.",
+            category=UserWarning,
+            module=r"triton\.windows_utils",
+        )
         import numpy
         import pandas
         import torch

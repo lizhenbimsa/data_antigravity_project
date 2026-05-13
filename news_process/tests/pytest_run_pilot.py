@@ -89,9 +89,9 @@ def test_washing_ratio():
         # B
         'neg_count_full': [5, 0, 8], 'neg_count_ctx': [4, 0, 6],
         'neg_sub_count_full': [4, 0, 7], 'neg_sub_count_ctx': [3, 0, 5],
-        # A2 (gpt5nano)
-        'gpt5nano_pos_count_full': [12, 0, 6], 'gpt5nano_pos_count_ctx': [10, 0, 5],
-        'gpt5nano_pos_desc_count_full': [4, 0, 2], 'gpt5nano_pos_desc_count_ctx': [3, 0, 1],
+        # A2 (gpt54nano)
+        'gpt54nano_pos_count_full': [12, 0, 6], 'gpt54nano_pos_count_ctx': [10, 0, 5],
+        'gpt54nano_pos_desc_count_full': [4, 0, 2], 'gpt54nano_pos_desc_count_ctx': [3, 0, 1],
         # D
         'dict_pos_count_full': [8, 0, 6], 'dict_pos_count_ctx': [7, 0, 5],
         'dict_pos_desc_count_full': [2, 0, 2], 'dict_pos_desc_count_ctx': [1, 0, 1],
@@ -107,13 +107,13 @@ def test_washing_ratio():
     print("  方法 A 双轨: Full=0.30, Ctx=0.25 ✓")
 
     # --- A2 双轨 ---
-    panel['washing_ratio_gpt5nano'] = _safe_ratio(
-        panel['gpt5nano_pos_desc_count_full'], panel['gpt5nano_pos_count_full'])
-    panel['washing_ratio_gpt5nano_ctx'] = _safe_ratio(
-        panel['gpt5nano_pos_desc_count_ctx'], panel['gpt5nano_pos_count_ctx'])
-    assert abs(panel.loc[0, 'washing_ratio_gpt5nano'] - 4/12) < 1e-6
-    assert abs(panel.loc[0, 'washing_ratio_gpt5nano_ctx'] - 3/10) < 1e-6
-    print(f"  方法 A2 双轨 (gpt5nano): Full={4/12:.4f}, Ctx={3/10:.4f} ✓")
+    panel['washing_ratio_gpt54nano'] = _safe_ratio(
+        panel['gpt54nano_pos_desc_count_full'], panel['gpt54nano_pos_count_full'])
+    panel['washing_ratio_gpt54nano_ctx'] = _safe_ratio(
+        panel['gpt54nano_pos_desc_count_ctx'], panel['gpt54nano_pos_count_ctx'])
+    assert abs(panel.loc[0, 'washing_ratio_gpt54nano'] - 4/12) < 1e-6
+    assert abs(panel.loc[0, 'washing_ratio_gpt54nano_ctx'] - 3/10) < 1e-6
+    print(f"  方法 A2 双轨 (gpt54nano): Full={4/12:.4f}, Ctx={3/10:.4f} ✓")
 
     # --- B 双轨 ---
     panel['neg_sub_ratio_full'] = _safe_ratio(panel['neg_sub_count_full'], panel['neg_count_full'])

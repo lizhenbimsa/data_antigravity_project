@@ -396,28 +396,26 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # 【白话】政策文件可能远超模型单条输入上限 (8,191 tokens)，所以按实际 token
     #   数切成多段分别处理，最后取平均，5 份文件的内容都不会被丢弃。
     auth_chunks = _split_into_chunks(auth_text, _MAX_TOKENS_PER_INPUT)
-    auth_chunk_tok_counts = [_count_tokens(c) for c in auth_chunks]
-    auth_total_tokens = sum(auth_chunk_tok_counts)
-    logger.info(f"  政策文本: {auth_total_tokens:,} tokens → "
-                f"{len(auth_chunks)} 段 (Chunk-then-Pool)")
 
-    # ---- 4.5 获取 Embedding ----
-    # 【术语】新闻文章 + 政策分段共用同一 API 调用流 (动态批量调度)
-    #   政策分段放在列表末尾 (与 Stage 26 的 Ghost Anchor 策略一致)
-    # 【白话】把所有"考生答卷"和"切段后的标准答案"一起送去打分
+    # ---- 4.5 批量获取 Embedding 向量 ----
     all_texts = truncated_texts + auth_chunks
-    all_token_counts = token_counts + auth_chunk_tok_counts
-
-    with LLMCache(CACHE_DB_PATH) as cache:
+    auth_token_counts = [_count_tokens(c) for c in auth_chunks]
+    all_token_counts = token_counts + auth_token_counts
+    
+    if EMBEDDING_CONFIG.get("base_url") == "local":
+        logger.info(f"  使用本地模型 {EMBEDDING_CONFIG.get('model')} 提取 Embedding...")
+        from sentence_transformers import SentenceTransformer
+        # 使用配置指定的本地模型 (默认 shibing624/text2vec-base-chinese)
+        local_model_id = EMBEDDING_CONFIG.get("model", "shibing624/text2vec-base-chinese")
+        local_model = SentenceTransformer(local_model_id)
+        # text2vec 输出格式支持转换为 numpy 格式
+        emb_local = local_model.encode(all_texts, batch_size=32, show_progress_bar=False)
+        emb = np.array([list(e) for e in emb_local], dtype=np.float32) # 统一为 numpy 数组结构，保证 .mean() 可用
+    else:
+        cache = LLMCache(CACHE_DB_PATH) if CACHE_DB_PATH else None
         emb = asyncio.run(_get_embeddings_api_dynamic(all_texts, all_token_counts, cache))
 
-    # 死战不退机制保证了 emb 绝对不是 None 且不含 NaN，若 API 实在不可恢复，程序早就中断了
-    if emb is None or len(emb) == 0:
-        logger.error("  Embedding 获取失败或为空，终止计算。")
-        df['policy_cosine_sim'] = np.nan
-        return df
-
-    # ---- 4.6 计算余弦相似度 ----
+    # ---- 4.6 向量分离与相似度计算 ----
     # 【术语】
     #   article_embs: 所有文章的 Embedding 向量 (N × d)
     #   auth_emb: 权威政策的 Embedding 向量 (1 × d)

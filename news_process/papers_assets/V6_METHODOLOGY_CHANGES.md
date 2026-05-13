@@ -8,21 +8,21 @@
 
 ## 1. F1：LLM 三家族真三角验证（取代 v5 单家族 / v3 错位）
 
-**v5 之前的状态**：sentiment.yaml 中 `gpt5nano` / `gemini3` / `claude4h` 三个 slot 的 model_name 错位（claude4h 实际跑的是 GLM 或 DeepSeek）。
+**v5 之前的状态**：sentiment.yaml 中 `gpt54nano` / `gemini3111` / `claude4h` 三个 slot 的 model_name 错位（claude4h 实际跑的是 GLM 或 DeepSeek）。
 
-**v6 锁定**：基于 yunwu.ai/v1 实际授权清单，确认三个独立家族可用：
+**v3 锁定**：基于 yunwu.ai/v1 实际授权清单，确认三个独立家族可用：
 
 | Slot | model_name | 家族 |
 |---|---|---|
-| `gpt5nano` | `gpt-5-nano-2025-08-07` | OpenAI |
-| `gemini3` | `gemini-3-flash-preview-nothinking` | Google |
-| `grok41`（原 `claude4h`）| `grok-4-1-fast-non-reasoning` | xAI / Grok |
+| `gpt54nano` | `gpt-5.4-nano` | OpenAI |
+| `gemini3111` | `gemini-3.1-flash-lite-preview` | Google |
+| `deepseekv4`（原 `claude4h`）| `deepseek-v4-flash` | DeepSeek / Grok |
 
 **论文方法章节建议表述**：
 
 > "We employ three independent LLM families for sentiment annotation:
-> gpt-5-nano-2025-08-07 (OpenAI), gemini-3-flash-preview-nothinking (Google),
-> and grok-4-1-fast-non-reasoning (xAI / Grok). All three are routed through
+> gpt-5.4-nano (OpenAI), gemini-3.1-flash-lite-preview (Google),
+> and deepseek-v4-flash (DeepSeek / Grok). All three are routed through
 > the yunwu.ai aggregator using OpenAI-compatible /v1/chat/completions API
 > (single account, identical schema), with temperature=0 and seed=42 for
 > deterministic outputs. Inter-family agreement is reported as Cohen's κ
@@ -35,7 +35,7 @@
 
 **v5 之前的污染**：`verified=False ∩ sentiment="中性"` 行占所有"中性"标签的 81.7%（_full）/ 84.1%（_ctx）。这些"中性"标签实际是 verification 失败时的强制兜底，与真实中性新闻不可区分，导致下游 `is_neutral_*` / `pos_count_*` / `neg_count_*` 全部受污染。
 
-**v6 锁定**：
+**v3 锁定**：
 
 | 修复点 | 行为 |
 |---|---|
@@ -67,7 +67,7 @@
 - text2vec 同概念变量保留 NaN。
 - 两路在同一 panel 中产生**不可比样本量**：用 `auth_sim_full` 跑回归用全样本（含填零行），用 `policy_cosine_sim_t2v_full` 跑回归被 listwise 删除。
 
-**v6 锁定（主路径全 NaN）**：
+**v3 锁定（主路径全 NaN）**：
 
 | 列族 | n_articles==0 行 | 新行为 |
 |---|---|---|
@@ -100,7 +100,7 @@
 - 媒体二分变体冗余（mcentral / mfin / mcomp / mofficial / mmarket / mfreq / mdeep / mdaily）
 - 与已保留维度高度相关（mprov / breadth / pubfmt）
 
-**v6 锁定（仅保留 6 类核心）**：
+**v3 锁定（仅保留 6 类核心）**：
 
 | IV 类 | 列数 (× 3 tracks) | 文献依据 |
 |---|---|---|

@@ -284,6 +284,9 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段36: Entity Masking 稳健性测试",
         script="36_entity_masking_test.py",
         group="validation", kind="robustness",
+        # 双轨掩码复判最多 1,000 × 3 × 2 = 6,000 次 LLM 请求。
+        # 冷缓存 + 网关限流下会超过默认 3,600s, 必须显式放宽。
+        timeout=21600,
         enabled_when=_VALIDATION_PREDS['entity_masking'],
     ),
     StageSpec(
@@ -314,6 +317,9 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段39: Prompt措辞敏感度测试",
         script="39_prompt_sensitivity.py",
         group="validation", kind="robustness",
+        # 4 个 prompt 变体 × 1,000 样本 × 3 模型 × 2 轨道 = 24,000
+        # 次请求。该阶段有增量 LLM 缓存, 但冷缓存完整跑通需要长超时。
+        timeout=43200,
         enabled_when=_VALIDATION_PREDS['prompt_sensitivity'],
     ),
 ]

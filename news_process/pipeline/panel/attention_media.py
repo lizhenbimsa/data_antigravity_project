@@ -24,8 +24,8 @@ from news_process.pipeline.panel.encode import (
 # ── 停刊检测的情感列前缀（动态发现用） ──
 # 覆盖: LLM 投票 + 各大模型 + 词典法 + BERT
 _SCORE_PATTERNS = [
-    'llm_vote_score_', 'gpt5nano_score_', 'gemini3_score_',
-    'grok41_score_',  # v6: 从 claude4h_score_ 重命名 (反映真实身份: xAI Grok 4.1)
+    'llm_vote_score_', 'gpt54nano_score_', 'gemini31111_score_',
+    'deepseekv4_score_',  # v3: 从 claude4h_score_ 重命名 (反映真实身份: DeepSeek Grok 4.1)
     'jiang_2021_score_', 'yao_2021_score_', 'bian_2021_score_',
     'du_2022_score_', 'you_2018_score_',
     'finbert_cn_\u6b63\u9762_', 'fin_sent_zh_\u6b63\u9762_',
@@ -140,7 +140,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
         df_b = df_w[df_w['媒体(中文)'].isin(balanced)]
 
         if len(df_b) == 0:
-            logger.warning(f"  窗口 {suffix}: 无平衡媒体数据")
+            logger.info(f"  窗口 {suffix}: 无平衡媒体数据, 跳过该稳健性窗口")
             continue
 
         # (D.a) 三轨道全局情感均值 (平衡子集)
@@ -403,7 +403,7 @@ def _merge_geo_index_to_panel(df_all, panel, idx_geo,
       3. 按 (target_bank, year) 取均值
          → "报道该银行的全部媒体所在地区的平均金融科技关注度"
 
-    ⚠️ 权重基于 df_all (含 fintech + non-fintech 全量银行新闻),
+    注意: 权重基于 df_all (含 fintech + non-fintech 全量银行新闻),
        确保地理曝露反映银行的真实媒体环境, 而非仅金融科技新闻的分布。
 
     Returns:
@@ -439,7 +439,7 @@ def _validate_attention_index(panel):
             continue
         valid = panel[col].dropna()
         if len(valid) == 0:
-            logger.warning(f"  ⚠️ {col}: 全为 NaN")
+            logger.warning(f"  {col}: 全为 NaN")
             continue
         if not valid.between(0, 1).all():
             logger.error(f"  ✗ {col}: 含超出 [0,1] 的值!")
@@ -468,7 +468,7 @@ def _validate_attention_index(panel):
         if pd.isna(mean_std):
             logger.info(f"  ✓ {col}: 各年均仅 1 个银行, 无法计算年内 std")
         elif mean_std < 1e-6:
-            logger.warning(f"  ⚠️ {col}: 年内几乎无变异 (退化为 year-level)")
+            logger.warning(f"  {col}: 年内几乎无变异 (退化为 year-level)")
         else:
             logger.info(f"  ✓ {col}: 年内 std 均值={mean_std:.6f}")
 
@@ -506,6 +506,9 @@ def compute_media_heterogeneity(df, panel):
         logger.warning("  媒体列不存在, 跳过")
         return panel
 
+    df = df.copy()
+    panel = panel.copy()
+
     logger.info("=" * 60)
     logger.info("步骤 6c: 媒体信息中介异质性 - 四维度")
     logger.info("=" * 60)
@@ -535,7 +538,7 @@ def compute_media_heterogeneity(df, panel):
     # 防御性检查: 财经/综合不应重叠 (中央级与其正交, 允许重叠)
     overlap_fc = FIN & COMP
     if overlap_fc:
-        logger.warning(f"  ⚠️ FIN ∩ COMP 重叠: {overlap_fc} (将归类为 fin)")
+        logger.warning(f"  FIN ∩ COMP 重叠: {overlap_fc} (将归类为 fin)")
     # 信息性日志: 中央级与财经/综合的交叉
     fc_in_central = (FIN | COMP) & CENTRAL
     if fc_in_central:

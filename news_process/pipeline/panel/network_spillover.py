@@ -908,7 +908,40 @@ def compute_cognitive_proximity(
 
 # 读取 LLM 配置 (与 21_tone_llms.py 共享同一份 config.yaml 配置)
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
 _EMB_MODELS = LLM_CONFIG.get('models', [])
+_LOCAL_EMBEDDING_MODEL = None
+
+
+def _embedding_config_uses_local() -> bool:
+    base_url = str(EMBEDDING_CONFIG.get('base_url') or '').strip().lower()
+    return base_url in {
+        'local',
+        'local://',
+        'sentence-transformers',
+        'sentence_transformers',
+    }
+
+
+def _encode_embeddings_local(texts, *, log_prefix="Embedding") -> np.ndarray:
+    global _LOCAL_EMBEDDING_MODEL
+
+    from sentence_transformers import SentenceTransformer
+
+    local_model_id = (
+        EMBEDDING_CONFIG.get('model')
+        or 'shibing624/text2vec-base-chinese'
+    )
+    if _LOCAL_EMBEDDING_MODEL is None:
+        logger.info(f"    {log_prefix}: 使用本地模型 {local_model_id}")
+        _LOCAL_EMBEDDING_MODEL = SentenceTransformer(local_model_id)
+
+    emb_local = _LOCAL_EMBEDDING_MODEL.encode(
+        list(texts),
+        batch_size=int(EMBEDDING_CONFIG.get('batch_size', 32) or 32),
+        show_progress_bar=False,
+    )
+    return np.asarray(emb_local, dtype=np.float32)
 
 
 async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None):
@@ -930,12 +963,16 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None)
     """
     import aiohttp
 
-    if not _EMB_MODELS:
+    if EMBEDDING_CONFIG and not _embedding_config_uses_local():
+        base_url = EMBEDDING_CONFIG.get('base_url', '')
+        api_key = EMBEDDING_CONFIG.get('api_key', '')
+        model = EMBEDDING_CONFIG.get('model') or model
+    elif not _EMB_MODELS:
         raise RuntimeError("config.yaml 中无可用 LLM 模型配置")
-
-    model_cfg = _EMB_MODELS[0]  # 使用第一个模型的 API 端点
-    base_url = model_cfg.get('base_url', '')
-    api_key = model_cfg.get('api_key', '')
+    else:
+        model_cfg = _EMB_MODELS[0]  # 使用第一个模型的 API 端点
+        base_url = model_cfg.get('base_url', '')
+        api_key = model_cfg.get('api_key', '')
 
     headers = {"Content-Type": "application/json",
                "Authorization": f"Bearer {api_key}"}
@@ -992,6 +1029,49 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None)
     return np.array(final_embs)
 
 
+def _embed_peer_texts(texts, *, year) -> np.ndarray | None:
+    """Encode peer texts, respecting local embedding config before API fallback."""
+    import asyncio
+
+    if _embedding_config_uses_local():
+        try:
+            emb_matrix = _encode_embeddings_local(
+                texts,
+                log_prefix=f"年份 {year}: Embedding",
+            )
+            logger.info(f"  年份 {year}: 本地 Embedding 成功, "
+                        f"dim={emb_matrix.shape[1]}")
+            return emb_matrix
+        except Exception as exc:
+            logger.error(f"  年份 {year}: 本地 Embedding 失败 ({exc}), 跳过")
+            return None
+
+    cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
+    cache = LLMCache(cache_db)
+    try:
+        emb_matrix = asyncio.run(_get_embeddings_api(texts, cache=cache))
+        logger.info(f"  年份 {year}: API Embedding 成功, "
+                    f"dim={emb_matrix.shape[1]}")
+        return emb_matrix
+    except Exception as exc:
+        logger.warning(f"  年份 {year}: API embedding 失败 ({exc}), "
+                       f"回退 sentence-transformers")
+    finally:
+        cache.close()
+
+    try:
+        emb_matrix = _encode_embeddings_local(
+            texts,
+            log_prefix=f"年份 {year}: fallback embedding",
+        )
+        logger.info(f"  年份 {year}: sentence-transformers 成功, "
+                    f"dim={emb_matrix.shape[1]}")
+        return emb_matrix
+    except Exception as exc:
+        logger.error(f"  年份 {year}: Embedding 完全失败 ({exc}), 跳过")
+        return None
+
+
 def compute_embedding_peer_network(df_exploded: pd.DataFrame,
                                     panel: pd.DataFrame) -> pd.DataFrame:
     """基于 Embedding 向量相似度的同业网络控制变量。
@@ -1017,8 +1097,6 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         Reimers, N., & Gurevych, I. (2019). EMNLP-IJCNLP 2019.
         Manski, C. F. (1993). RES, 60(3), 531-542.
     """
-    import asyncio
-
     logger.info("=" * 60)
     logger.info("Embedding 同业网络控制变量 (Hoberg & Phillips 2016)")
     logger.info("=" * 60)
@@ -1063,29 +1141,10 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         # ── 2. 截断至 MAX_CHARS ──
         texts = [t[:MAX_CHARS] for t in bank_texts.values]
 
-        # ── 3. 获取 Embedding (API 优先, 降级 sentence-transformers) ──
-        # 初始化缓存
-        cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
-        cache = LLMCache(cache_db)
-
-        try:
-            emb_matrix = asyncio.run(_get_embeddings_api(texts, cache=cache))
-            logger.info(f"  年份 {year}: API Embedding 成功, "
-                        f"{n_banks} 银行, dim={emb_matrix.shape[1]}")
-        except Exception as e:
-            logger.warning(f"  年份 {year}: API embedding 失败 ({e}), "
-                           f"回退 sentence-transformers")
-        finally:
-            cache.close()
-            try:
-                from sentence_transformers import SentenceTransformer
-                st_model = SentenceTransformer('shibing624/text2vec-base-chinese')
-                emb_matrix = st_model.encode(texts, show_progress_bar=True)
-                logger.info(f"  年份 {year}: sentence-transformers 成功, "
-                            f"dim={emb_matrix.shape[1]}")
-            except Exception as e2:
-                logger.error(f"  年份 {year}: Embedding 完全失败 ({e2}), 跳过")
-                continue
+        # ── 3. 获取 Embedding (local 配置优先; 远端 API 失败再降级本地) ──
+        emb_matrix = _embed_peer_texts(texts, year=year)
+        if emb_matrix is None:
+            continue
 
         # ── 4. cosine_similarity → 对角线置零 → 行随机标准化 ──
         if HAS_SKLEARN:

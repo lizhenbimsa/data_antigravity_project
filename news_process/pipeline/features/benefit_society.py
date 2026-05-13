@@ -74,12 +74,15 @@ STAGE_NAME = "27_fintech_benefit_society"
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
+_LOCAL_EMBEDDING_MODEL = None
 
 # 模块专属配置
 _BENEFIT_CFG = CONFIG.get('benefit_society', {})
 _MAX_TOKENS_PER_INPUT = _BENEFIT_CFG.get('max_tokens_per_input', 8191)
 _MAX_TOKENS_PER_REQUEST = _BENEFIT_CFG.get('max_tokens_per_request', 250_000)
 _CACHE_EMBEDDINGS = _BENEFIT_CFG.get('cache_embeddings', True)
+_ANCHOR_SIGN_TOL = float(_BENEFIT_CFG.get('anchor_sign_tolerance', 0.03))
+_ANCHOR_PAIR_MIN_MARGIN = float(_BENEFIT_CFG.get('anchor_pair_min_margin', 0.02))
 
 RETRY_DELAY = 5
 MAX_RETRY_DELAY = 60
@@ -179,6 +182,48 @@ def _truncate_to_max_tokens(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) 
     """将文本精确截断至不超过 max_tokens 个 token (委托给 core.text.token_utils)。"""
     from news_process.core.text.token_utils import truncate_to_max_tokens
     return truncate_to_max_tokens(text, max_tokens)
+
+
+def _embedding_config_uses_local() -> bool:
+    base_url = str(EMBEDDING_CONFIG.get('base_url') or '').strip().lower()
+    return base_url in {
+        'local',
+        'local://',
+        'sentence-transformers',
+        'sentence_transformers',
+    }
+
+
+def _encode_embeddings_local(texts, *, log_prefix="Embedding") -> np.ndarray:
+    global _LOCAL_EMBEDDING_MODEL
+
+    from sentence_transformers import SentenceTransformer
+
+    local_model_id = (
+        EMBEDDING_CONFIG.get('model')
+        or 'shibing624/text2vec-base-chinese'
+    )
+    if _LOCAL_EMBEDDING_MODEL is None:
+        logger.info(f"    {log_prefix}: 使用本地模型 {local_model_id}")
+        _LOCAL_EMBEDDING_MODEL = SentenceTransformer(local_model_id)
+
+    emb_local = _LOCAL_EMBEDDING_MODEL.encode(
+        list(texts),
+        batch_size=int(EMBEDDING_CONFIG.get('batch_size', 32) or 32),
+        show_progress_bar=False,
+    )
+    return np.asarray(emb_local, dtype=np.float32)
+
+
+def _get_embeddings(texts: list[str],
+                    token_counts: list[int],
+                    *,
+                    log_prefix: str = "Embedding") -> np.ndarray:
+    if _embedding_config_uses_local():
+        return _encode_embeddings_local(texts, log_prefix=log_prefix)
+
+    with LLMCache(CACHE_DB_PATH) as cache:
+        return asyncio.run(_get_embeddings_api(texts, token_counts, cache))
 
 
 async def _get_embeddings_api(texts: list[str], token_counts: list[int], cache: LLMCache = None) -> np.ndarray:
@@ -285,8 +330,11 @@ async def _get_embeddings_api(texts: list[str], token_counts: list[int], cache: 
 def _compute_direction_vector() -> np.ndarray | None:
     all_anchors = POSITIVE_ANCHORS + NEGATIVE_ANCHORS
     token_counts = [_count_tokens(s) for s in all_anchors]
-    with LLMCache(CACHE_DB_PATH) as cache:
-        emb = asyncio.run(_get_embeddings_api(all_anchors, token_counts, cache))
+    emb = _get_embeddings(
+        all_anchors,
+        token_counts,
+        log_prefix="Benefit anchor embedding",
+    )
     if emb is None or len(emb) == 0:
         return None
 
@@ -301,20 +349,44 @@ def _compute_direction_vector() -> np.ndarray | None:
         return None
 
     dir_norm = direction / dir_norm_val
-    for i, s in enumerate(POSITIVE_ANCHORS):
-        emb_norm = np.linalg.norm(emb[i])
-        if emb_norm < 1e-10:
+    emb_norms = np.linalg.norm(emb, axis=1)
+    safe_norms = np.where(emb_norms < 1e-10, 1.0, emb_norms)
+    anchor_scores = (emb @ dir_norm) / safe_norms
+    pos_scores = anchor_scores[:n_pos]
+    neg_scores = anchor_scores[n_pos:]
+
+    for i, (pos_sentence, neg_sentence) in enumerate(
+        zip(POSITIVE_ANCHORS, NEGATIVE_ANCHORS)
+    ):
+        if emb_norms[i] < 1e-10 or emb_norms[n_pos + i] < 1e-10:
+            logger.warning(f"    锚点对 #{i+1} embedding 范数过小, 请检查锚句配置")
             continue
-        score = np.dot(emb[i], dir_norm) / emb_norm
-        if score <= 0:
-            logger.warning(f"    ⚠️ 正极句 #{i+1} 投影为负 ({score:.4f}): {s[:20]}...")
-    for i, s in enumerate(NEGATIVE_ANCHORS):
-        emb_norm = np.linalg.norm(emb[n_pos + i])
-        if emb_norm < 1e-10:
-            continue
-        score = np.dot(emb[n_pos + i], dir_norm) / emb_norm
-        if score >= 0:
-            logger.warning(f"    ⚠️ 负极句 #{i+1} 投影为正 ({score:.4f}): {s[:20]}...")
+
+        pos_score = float(pos_scores[i])
+        neg_score = float(neg_scores[i])
+        margin = pos_score - neg_score
+        if margin <= _ANCHOR_PAIR_MIN_MARGIN:
+            logger.warning(
+                f"    锚点对 #{i+1} 正负间隔异常 "
+                f"(pos={pos_score:.4f}, neg={neg_score:.4f}, margin={margin:.4f}): "
+                f"{pos_sentence[:18]}... / {neg_sentence[:18]}..."
+            )
+        elif pos_score <= -_ANCHOR_SIGN_TOL:
+            logger.warning(
+                f"    正极句 #{i+1} 明显投影为负 ({pos_score:.4f}): "
+                f"{pos_sentence[:20]}..."
+            )
+        elif neg_score >= _ANCHOR_SIGN_TOL:
+            logger.warning(
+                f"    负极句 #{i+1} 明显投影为正 ({neg_score:.4f}): "
+                f"{neg_sentence[:20]}..."
+            )
+        elif pos_score <= 0 or neg_score >= 0:
+            logger.info(
+                f"    锚点对 #{i+1} 存在近零边界符号 "
+                f"(pos={pos_score:.4f}, neg={neg_score:.4f}, margin={margin:.4f}), "
+                "正负间隔正常"
+            )
 
     logger.info(f"    方向向量: 维度 {direction.shape}, ||p|| = {dir_norm_val:.4f}")
     return direction
@@ -328,8 +400,11 @@ def _project_texts(texts: list[str], direction: np.ndarray, cache_path: str | No
     truncated = [_truncate_to_max_tokens(t) for t in texts]
     token_counts = [_count_tokens(t) for t in truncated]
 
-    with LLMCache(CACHE_DB_PATH) as cache:
-        emb = asyncio.run(_get_embeddings_api(truncated, token_counts, cache))
+    emb = _get_embeddings(
+        truncated,
+        token_counts,
+        log_prefix="Benefit text embedding",
+    )
 
     if emb is None or len(emb) == 0:
         return np.full(len(texts), np.nan)
@@ -368,6 +443,8 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
     logger.info("步骤 7h-benefit: 金融科技经营效益态度投影")
     logger.info("  (Jha, Liu & Manela 2026, RFS §1.3.2)")
     logger.info("=" * 60)
+
+    df_exploded = df_exploded.copy()
 
     # ---- 6.1 计算方向向量 ----
     direction = _compute_direction_vector()

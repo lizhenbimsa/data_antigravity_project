@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import multiprocessing
 import string
+import sys
 from functools import partial
 from typing import Any, Callable, Dict, Set
 
@@ -141,11 +142,11 @@ class ArticleDeduplicator:
     def _prepare_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """添加去重所需的辅助列 (媒体权重、内容长度、合并文本、日期)."""
         self.logger.info("添加辅助列...")
-        df[self.COL_WEIGHT] = (
-            df['媒体(中文)'].map(self.media_weights)
-            .fillna(self.default_weight)
-            .astype(int)
+        media_weight = pd.to_numeric(
+            df['媒体(中文)'].map(self.media_weights),
+            errors='coerce',
         )
+        df[self.COL_WEIGHT] = media_weight.fillna(self.default_weight).astype(int)
         df[self.COL_LENGTH] = df['内容'].str.len().fillna(0).astype(int)
         df[self.COL_COMBINED] = df['标题'].fillna('') + " " + df['内容'].fillna('')
 
@@ -222,7 +223,10 @@ class ArticleDeduplicator:
         lsh_data = list(minhashes.items())
         insert_errors = 0
 
-        lsh_iterator = tqdm(lsh_data, desc="构建LSH索引") if TQDM_AVAILABLE else lsh_data
+        lsh_iterator = (
+            tqdm(lsh_data, desc="构建LSH索引", file=sys.stdout)
+            if TQDM_AVAILABLE else lsh_data
+        )
         for index, m_hash in lsh_iterator:
             try:
                 lsh.insert(index, m_hash)
@@ -238,7 +242,7 @@ class ArticleDeduplicator:
         index_to_minhash = dict(lsh_data)
 
         iterator = (
-            tqdm(df.index, total=len(df), desc="查找重复簇")
+            tqdm(df.index, total=len(df), desc="查找重复簇", file=sys.stdout)
             if TQDM_AVAILABLE else df.index
         )
 

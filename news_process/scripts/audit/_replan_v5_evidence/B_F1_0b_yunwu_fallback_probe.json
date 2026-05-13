@@ -7,10 +7,10 @@
     "elapsed_ms": 636,
     "count": 4,
     "first_80_ids": [
-      "gemini-3-flash-preview-nothinking",
+      "gemini-3.1-flash-lite-preview",
       "text-embedding-3-small",
-      "gpt-5-nano-2025-08-07",
-      "grok-4-1-fast-non-reasoning"
+      "gpt-5.4-nano",
+      "deepseek-v4-flash"
     ]
   },
   "fallback_calls": [
@@ -87,12 +87,12 @@
       "content_preview": null
     },
     {
-      "model": "gpt-5-nano-2025-08-07",
+      "model": "gpt-5.4-nano",
       "http_status": 200,
       "elapsed_ms": 1492,
       "ok": true,
       "error_msg": null,
-      "model_field": "gpt-5-nano-2025-08-07",
+      "model_field": "gpt-5.4-nano",
       "content_preview": ""
     },
     {

@@ -2,9 +2,9 @@
     确定 B 方案下是否仍可保留真正的三家族三角验证。
 
 候选清单（来自 /v1/models 端点）:
-    - gemini-3-flash-preview-nothinking   (Google 候选)
-    - gpt-5-nano-2025-08-07                (已确认 200 OK)
-    - grok-4-1-fast-non-reasoning          (xAI 候选)
+    - gemini-3.1-flash-lite-preview   (Google 候选)
+    - gpt-5.4-nano                (已确认 200 OK)
+    - deepseek-v4-flash          (DeepSeek 候选)
 
 每个 model 测：
     1) 最小 chat 调用 (force_json=True)
@@ -33,9 +33,9 @@ API_KEY = os.environ.get("GPT5NANO_API_KEY") or os.environ.get("YUNWU_API_KEY")
 BASE_URL = "https://yunwu.ai/v1"
 
 CANDIDATES = [
-    "gpt-5-nano-2025-08-07",
-    "gemini-3-flash-preview-nothinking",
-    "grok-4-1-fast-non-reasoning",
+    "gpt-5.4-nano",
+    "gemini-3.1-flash-lite-preview",
+    "deepseek-v4-flash",
 ]
 
 REAL_PROMPT = """你是金融文本情感分析专家。请阅读以下文章片段，仅输出单行 JSON：

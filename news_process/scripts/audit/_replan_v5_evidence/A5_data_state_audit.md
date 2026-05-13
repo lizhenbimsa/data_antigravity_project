@@ -28,7 +28,7 @@ text-embedding-3-small|10
 ```
 
 **结论**：缓存中**仅含 embedding 条目**（10 条），没有任何 LLM 推理缓存条目。意味着：
-- 历史 `gpt-5-nano-2025-08-07` / `glm-4.5-flash` / `gpt-5.4-nano` 的旧响应**没有被持久化**（可能被早期清空过）
+- 历史 `gpt-5.4-nano` / `glm-4.5-flash` / `gpt-5.4-nano` 的旧响应**没有被持久化**（可能被早期清空过）
 - v5 §C.3 的「DELETE WHERE model_id IN (...)」步骤在本环境**实际为空操作**（无遗留条目可删）
 - 重跑 Stage 21 将从零生成全部 LLM 响应，token 成本最高路径
 
@@ -38,8 +38,8 @@ text-embedding-3-small|10
 
 ```
 === 列前缀计数 (62 总列数) ===
-gpt5nano: 8     # *_verified_full/ctx, *_sentiment_full/ctx, *_verification_confidence_full/ctx, *_sentiment_confidence_full/ctx
-gemini3: 8      # 同上
+gpt54nano: 8     # *_verified_full/ctx, *_sentiment_full/ctx, *_verification_confidence_full/ctx, *_sentiment_confidence_full/ctx
+gemini3111: 8      # 同上
 claude4h: 8     # 同上 ← v5 [E1] 必须重命名为 deepseek4f
 fintech: 7
 llm: 6
@@ -87,7 +87,7 @@ EMBEDDING_API_KEY=sk-djQ...C359  ← 同上
 |---|---|
 | 象限锁定 | **象限 ④（重跑 + 重命名）确认成立**：数据陈旧 + 命名清洁度优先 |
 | LLM 重跑 token 成本 | **最高估算**（缓存无任何 LLM 响应可命中） |
-| 缓存清理 | 实际为空操作（无 `gpt-5-nano-2025-08-07` / `glm-4.5-flash` 条目） |
+| 缓存清理 | 实际为空操作（无 `gpt-5.4-nano` / `glm-4.5-flash` 条目） |
 | 当前 schema 与 v5 [E1] 新增列差异 | 完全缺失 → 必须通过 [E1] 添加 |
 | .env 兼容路径 | 添加 `YUNWU_API_KEY` + `DEEPSEEK4F_API_KEY` 别名 |
 

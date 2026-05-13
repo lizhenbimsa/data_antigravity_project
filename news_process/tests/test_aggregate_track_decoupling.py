@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import asyncio
 import sys
 from pathlib import Path
 
@@ -37,9 +38,9 @@ def _build_response(verified: bool, sentiment: str, ver_conf: float = 0.9, sent_
 @pytest.fixture(scope="module")
 def models():
     return [
-        {"short_name": "gpt5nano", "model_name": "gpt-5-nano-2025-08-07"},
-        {"short_name": "gemini3", "model_name": "gemini-3-flash-preview-nothinking"},
-        {"short_name": "grok41", "model_name": "grok-4-1-fast-non-reasoning"},
+        {"short_name": "gpt54nano", "model_name": "gpt-5.4-nano"},
+        {"short_name": "gemini31111", "model_name": "gemini-3.1-flash-lite-preview"},
+        {"short_name": "deepseekv4", "model_name": "deepseek-v4-flash"},
     ]
 
 
@@ -60,19 +61,19 @@ def test_majority_vote_sentiment_tie_returns_none():
 def test_aggregate_track_no_forced_neutral(models):
     """单模型 verified=False 时，其 sentiment 应保持原值，不被强制改写为中性。"""
     from news_process.pipeline.sentiment.tone_llms import _aggregate_track
-    # gpt5nano 拒绝（verified=False, sentiment 标 "正面"）；gemini3/grok41 通过
+    # gpt54nano 拒绝（verified=False, sentiment 标 "正面"）；gemini31111/deepseekv4 通过
     res = {
-        "gpt-5-nano-2025-08-07": _build_response(False, "正面"),
-        "gemini-3-flash-preview-nothinking": _build_response(True, "正面"),
-        "grok-4-1-fast-non-reasoning": _build_response(True, "正面"),
+        "gpt-5.4-nano": _build_response(False, "正面"),
+        "gemini-3.1-flash-lite-preview": _build_response(True, "正面"),
+        "deepseek-v4-flash": _build_response(True, "正面"),
     }
     out = _aggregate_track(res, models)
     final_v, final_s, agree_v, agree_s, n_valid, n_verifying, call_fail, undefined, parsed, *_ = out
     assert final_v is True
     assert final_s == "正面"
-    # 关键: gpt5nano 的 sentiment 不再被强制改为 "中性"
-    assert parsed["gpt5nano_sentiment"] == "正面"
-    assert parsed["gpt5nano_verified"] is False
+    # 关键: gpt54nano 的 sentiment 不再被强制改为 "中性"
+    assert parsed["gpt54nano_sentiment"] == "正面"
+    assert parsed["gpt54nano_verified"] is False
     assert n_valid == 3
     assert n_verifying == 2
     assert call_fail == 0
@@ -83,9 +84,9 @@ def test_aggregate_track_three_way_disagreement_yields_undefined(models):
     """三方完全分歧（正面/中性/负面）且全部 verified → 平局 → final_s = None, undefined=1。"""
     from news_process.pipeline.sentiment.tone_llms import _aggregate_track
     res = {
-        "gpt-5-nano-2025-08-07": _build_response(True, "正面"),
-        "gemini-3-flash-preview-nothinking": _build_response(True, "中性"),
-        "grok-4-1-fast-non-reasoning": _build_response(True, "负面"),
+        "gpt-5.4-nano": _build_response(True, "正面"),
+        "gemini-3.1-flash-lite-preview": _build_response(True, "中性"),
+        "deepseek-v4-flash": _build_response(True, "负面"),
     }
     out = _aggregate_track(res, models)
     final_v, final_s, _, _, n_valid, n_verifying, _, undefined, *_ = out
@@ -100,9 +101,9 @@ def test_aggregate_track_call_failure(models):
     """全部模型 API 调用失败 → call_failure=1, final_s=None。"""
     from news_process.pipeline.sentiment.tone_llms import _aggregate_track
     res = {
-        "gpt-5-nano-2025-08-07": None,
-        "gemini-3-flash-preview-nothinking": None,
-        "grok-4-1-fast-non-reasoning": None,
+        "gpt-5.4-nano": None,
+        "gemini-3.1-flash-lite-preview": None,
+        "deepseek-v4-flash": None,
     }
     out = _aggregate_track(res, models)
     final_v, final_s, _, _, n_valid, n_verifying, call_fail, undefined, *_ = out
@@ -119,12 +120,12 @@ def test_aggregate_track_only_verifying_models_vote_sentiment(models):
     v6 行为：拒绝模型 sentiment 不计入 final_s 计算。
     """
     from news_process.pipeline.sentiment.tone_llms import _aggregate_track
-    # gpt5nano 拒绝且 sentiment="负面"（如果走旧逻辑会被改为"中性"再进投票）
-    # gemini3 + grok41 通过 + sentiment="正面" → 应得 final_s="正面"
+    # gpt54nano 拒绝且 sentiment="负面"（如果走旧逻辑会被改为"中性"再进投票）
+    # gemini31111 + deepseekv4 通过 + sentiment="正面" → 应得 final_s="正面"
     res = {
-        "gpt-5-nano-2025-08-07": _build_response(False, "负面"),
-        "gemini-3-flash-preview-nothinking": _build_response(True, "正面"),
-        "grok-4-1-fast-non-reasoning": _build_response(True, "正面"),
+        "gpt-5.4-nano": _build_response(False, "负面"),
+        "gemini-3.1-flash-lite-preview": _build_response(True, "正面"),
+        "deepseek-v4-flash": _build_response(True, "正面"),
     }
     out = _aggregate_track(res, models)
     final_v, final_s, *_ = out
@@ -174,9 +175,156 @@ def test_encode_sentiment_propagates_nan_for_invalid_rows(monkeypatch):
 
 
 def test_v6_llm_models_are_real_three_families():
-    """v6 锁定: LLM_MODELS 应为真三家族 (OpenAI + Google + xAI)，无 claude4h。"""
+    """v3 锁定: LLM_MODELS 应为真三家族 (OpenAI + Google + DeepSeek)，无 claude4h。"""
     from news_process.pipeline.panel.encode import LLM_MODELS
     assert "claude4h" not in LLM_MODELS
-    # short_name 顺序应反映 sentiment.yaml 配置（默认 fallback: gpt5nano/gemini3/grok41）
-    assert set(LLM_MODELS) == {"gpt5nano", "gemini3", "grok41"} or \
+    # short_name 顺序应反映 sentiment.yaml 配置（默认 fallback: gpt54nano/gemini31111/deepseekv4）
+    assert set(LLM_MODELS) == {"gpt54nano", "gemini31111", "deepseekv4"} or \
         len(LLM_MODELS) == 3  # 容许配置自定义但必须 3 slot
+
+
+class _FakeAuthFailureResponse:
+    status = 403
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def text(self):
+        return '{"error":{"message":"该用户已被禁用 (request id: test)"}}'
+
+
+class _FakeAuthFailureSession:
+    def __init__(self):
+        self.calls = 0
+
+    def post(self, *_args, **_kwargs):
+        self.calls += 1
+        return _FakeAuthFailureResponse()
+
+
+class _FakeTransientFailureResponse:
+    status = 503
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
+class _FakeTransientFailureSession:
+    def __init__(self):
+        self.calls = 0
+
+    def post(self, *_args, **_kwargs):
+        self.calls += 1
+        return _FakeTransientFailureResponse()
+
+
+class _FakePreflightOkResponse:
+    status = 200
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
+class _FakePreflightSession:
+    def __init__(self):
+        self.calls = 0
+
+    def post(self, *_args, **_kwargs):
+        self.calls += 1
+        return _FakePreflightOkResponse()
+
+
+@pytest.mark.asyncio
+async def test_fetch_llm_auth_failure_disables_model_without_retry_storm():
+    """401/403 属于永久授权失败：本轮停用模型，后续缺缓存请求不再访问网络。"""
+    from news_process.pipeline.sentiment.tone_llms import AsyncModelAvailability, fetch_llm_async
+
+    session = _FakeAuthFailureSession()
+    semaphore = asyncio.Semaphore(1)
+    availability = AsyncModelAvailability()
+    model_cfg = {
+        "model_name": "disabled-model",
+        "short_name": "disabled",
+        "base_url": "https://example.invalid/v1",
+        "api_key": "test-key",
+    }
+
+    first = await fetch_llm_async(
+        session, semaphore, "prompt", model_cfg, 1, "full",
+        model_availability=availability,
+    )
+    second = await fetch_llm_async(
+        session, semaphore, "another prompt", model_cfg, 2, "ctx",
+        model_availability=availability,
+    )
+
+    assert first == (1, "disabled-model", None, "full")
+    assert second == (2, "disabled-model", None, "ctx")
+    assert availability.is_disabled("disabled-model")
+    assert session.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_fetch_llm_transient_final_failure_keeps_model_available_without_warning(monkeypatch):
+    """瞬时故障耗尽重试后只丢弃本次结果，不能停用整轮模型或污染 WARNING 日志。"""
+    from news_process.pipeline.sentiment import tone_llms
+
+    def fail_on_warning(*_args, **_kwargs):
+        raise AssertionError("fetch_llm_async should not log final transient failures as WARNING")
+
+    monkeypatch.setattr(tone_llms, "MAX_RETRIES", 1)
+    monkeypatch.setattr(tone_llms.logger, "warning", fail_on_warning)
+
+    session = _FakeTransientFailureSession()
+    semaphore = asyncio.Semaphore(1)
+    availability = tone_llms.AsyncModelAvailability()
+    model_cfg = {
+        "model_name": "transient-model",
+        "short_name": "transient",
+        "base_url": "https://example.invalid/v1",
+        "api_key": "test-key",
+    }
+
+    first = await tone_llms.fetch_llm_async(
+        session, semaphore, "prompt", model_cfg, 1, "full",
+        model_availability=availability,
+    )
+    second = await tone_llms.fetch_llm_async(
+        session, semaphore, "another prompt", model_cfg, 2, "ctx",
+        model_availability=availability,
+    )
+
+    assert first == (1, "transient-model", None, "full")
+    assert second == (2, "transient-model", None, "ctx")
+    assert not availability.is_disabled("transient-model")
+    assert session.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_preflight_model_availability_runs_once_per_model():
+    """同一轮高容量任务里，模型预检只需执行一次，后续变体复用状态。"""
+    from news_process.pipeline.sentiment.tone_llms import AsyncModelAvailability, preflight_model_availability
+
+    session = _FakePreflightSession()
+    availability = AsyncModelAvailability()
+    models = [{
+        "model_name": "probe-model",
+        "short_name": "probe",
+        "base_url": "https://example.invalid/v1",
+        "api_key": "test-key",
+    }]
+
+    await preflight_model_availability(session, models, availability)
+    await preflight_model_availability(session, models, availability)
+
+    assert availability.is_preflighted("probe-model")
+    assert session.calls == 1

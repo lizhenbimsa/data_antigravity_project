@@ -5,38 +5,41 @@
 tone_llm_processing:
   enabled: true                                     # 是否启用统一 LLM 处理
   timeout: 600                                      # 请求超时时间（秒）
+  connect_timeout: 120                              # TCP/TLS 建连超时（秒）
+  sock_connect_timeout: 120                         # socket 建连超时（秒）
+  sock_read_timeout: 600                            # 响应读取超时（秒）
+  ttl_dns_cache: 300                                # DNS 缓存时间，减少高频验证重复解析
+  keepalive_timeout: 60                             # TCP keepalive，降低批量请求握手压力
   max_retries: 8                                    # v6/N4: 最大重试次数（指数退避配合下，8 次足够覆盖瞬时故障）
   retry_delay: 5                                    # v6/N4: 基础重试间隔（指数退避起点；秒）
   retry_backoff: exponential                        # v6/N4: 指数退避策略
   retry_backoff_cap: 600                            # v6/N4: 单次重试 sleep 上限（秒）
-  max_concurrency: 100                              # v6/N4: 单 yunwu 账户聚合上限，从 300 降至 100 避免雪崩
+  max_concurrency: 40                               # v6/N4: 单 yunwu 账户聚合上限，保守限流避免批量验证触发网关抖动
   temperature: 0.0                                  # 推理温度（0 = 确定性输出）
   random_seed: 42                                   # 随机种子（确保确定性输出）
   force_json: true                                  # 启用 response_format 强制 JSON 输出
   ensemble_method: majority_vote                    # 多模型聚合方法
 
-  # v6 LLM 模型列表 — 真三家族三角验证 (基于 yunwu /v1/models 实际授权清单)
-  # 历史轨迹:
-  #   v3 锁定:  gpt-5.4-nano / gemini-3.1-flash-lite-preview / deepseek-v4-flash  (全部 403)
-  #   v6 锁定:  gpt-5-nano-2025-08-07 / gemini-3-flash-preview-nothinking / grok-4-1-fast-non-reasoning
-  # 学术叙述: "Three independent LLM families: OpenAI + Google + xAI/Grok,
+  # v3 LLM 模型列表 — 真三家族三角验证 (基于 yunwu /v1/models 实际授权清单)
+  #   v3 锁定:  gpt-5.4-nano / gemini-3.1-flash-lite-preview / deepseek-v4-flash
+  # 学术叙述: "Three independent LLM families: OpenAI + Google + DeepSeek,
   #           routed via yunwu.ai aggregator (single account, OpenAI-compatible /v1/chat/completions)."
   models:
-    - model_name: gpt-5-nano-2025-08-07
-      short_name: gpt5nano
-      description: GPT-5 Nano (OpenAI dated 2025-08-07, via yunwu)
+    - model_name: gpt-5.4-nano
+      short_name: gpt54nano
+      description: GPT-5.4 Nano (OpenAI via yunwu)
       base_url: https://yunwu.ai/v1
       api_key: ${YUNWU_API_KEY}                     # v6/N7: 统一 yunwu key
-    - model_name: gemini-3-flash-preview-nothinking
-      short_name: gemini3
-      description: Gemini 3 Flash Preview (no-thinking variant, Google via yunwu)
+    - model_name: gemini-3.1-flash-lite-preview
+      short_name: gemini31111
+      description: Gemini 3.1 Flash Lite Preview (Google via yunwu)
       base_url: https://yunwu.ai/v1
       api_key: ${YUNWU_API_KEY}
-    - model_name: grok-4-1-fast-non-reasoning
-      short_name: grok41                            # v6: 从 claude4h 重命名 (反映真实身份)
-      description: Grok 4.1 Fast (non-reasoning variant, xAI via yunwu)
-      base_url: https://yunwu.ai/v1
-      api_key: ${YUNWU_API_KEY}
+    - model_name: deepseek-v4-flash
+      short_name: deepseekv4                            # v3: 从 claude4h 重命名 (反映真实身份)
+      description: DeepSeek V4 Flash (DeepSeek via yunwu)
+      base_url: https://api.deepseek.com
+      api_key: ${DEEPSEEK_API_KEY}
 
   # Unified CoT 提示词模板（精简版）
   # 学术依据 1: De Kok (2025) Appendix C - GLLMs Generate Text Left to Right. 

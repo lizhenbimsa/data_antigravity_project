@@ -408,6 +408,34 @@ class TestEndToEndSimulation:
         assert 'V0_baseline_verified_full' in mock_data.columns
         assert 'V0_baseline_sentiment_ctx' in mock_data.columns
 
+    def test_f2_aggregate_variant_contract(self, mod39, monkeypatch):
+        """F2: aggregate_variant_results 消费当前 14 字段聚合契约。"""
+        def fake_aggregate(_model_res, _models):
+            return (
+                True, '正面',
+                1.0, 1.0,
+                3, 3,
+                0, 0,
+                {}, [], [], [],
+                0, 0.75,
+            )
+
+        monkeypatch.setattr(mod39, '_aggregate_track', fake_aggregate)
+        df = pd.DataFrame(index=[101, 102])
+        results_map = {
+            idx: {'full': {}, 'ctx': {}}
+            for idx in df.index
+        }
+        models = [{'model_name': f'm{i}', 'short_name': f'm{i}'} for i in range(3)]
+
+        out = mod39.aggregate_variant_results(
+            df.copy(), results_map, models, 'V1_role'
+        )
+
+        assert out['V1_role_verified_full'].tolist() == [True, True]
+        assert out['V1_role_sentiment_ctx'].tolist() == ['正面', '正面']
+        assert out['V1_role_parse_fail_rate'].iloc[0] == 0.0
+
     def test_f3_metric_computation(self, mod39, mock_data):
         """F3: 全套指标计算无异常"""
         variant_keys = list(mod39.VARIANT_PROMPTS.keys())

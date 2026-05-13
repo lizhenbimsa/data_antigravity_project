@@ -190,14 +190,14 @@ class TestDiscoverSentimentColumns:
     def test_discover_llm_confidence_new_format(self):
         """应优先匹配新格式 _sentiment_confidence 列名（21_tone_llms.py 输出）。"""
         df = pd.DataFrame({
-            'gpt5nano_sentiment': ['正面'],
-            'gpt5nano_sentiment_confidence': [0.92],
-            'gemini3_sentiment': ['中性'],
-            'gemini3_sentiment_confidence': [0.78],
+            'gpt54nano_sentiment': ['正面'],
+            'gpt54nano_sentiment_confidence': [0.92],
+            'gemini31111_sentiment': ['中性'],
+            'gemini31111_sentiment_confidence': [0.78],
         })
         result = discover_sentiment_columns(df)
-        assert result['llm']['gpt5nano']['confidence'] == 'gpt5nano_sentiment_confidence'
-        assert result['llm']['gemini3']['confidence'] == 'gemini3_sentiment_confidence'
+        assert result['llm']['gpt54nano']['confidence'] == 'gpt54nano_sentiment_confidence'
+        assert result['llm']['gemini31111']['confidence'] == 'gemini31111_sentiment_confidence'
 
     def test_discover_llm_confidence_priority(self):
         """新旧格式共存时应优先选择新格式 _sentiment_confidence。"""

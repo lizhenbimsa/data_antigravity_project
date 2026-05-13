@@ -103,6 +103,13 @@ from news_process.pipeline.features.benefit_society import (
 )
 
 
+def _append_columns(frame: pd.DataFrame, columns: dict) -> pd.DataFrame:
+    """Append many columns at once and return a defragmented frame."""
+    if not columns:
+        return frame
+    return pd.concat([frame, pd.DataFrame(columns, index=frame.index)], axis=1).copy()
+
+
 
 # ============================================================================
 # 8 + 9. Diagnostics + Export — extracted to export.py in Phase 2b for
@@ -199,44 +206,45 @@ def main():
         logger.info("步骤 3b: 提及密度加权列预计算 (VW, 双轨)")
         logger.info("=" * 60)
         w = df['mention_density'].fillna(0)
+        weighted_cols = {}
         for track in ['_full', '_ctx', '_title']:
             # _title 轨道可能因未配置而不存在
             if f'llm_vote_score{track}' not in df.columns:
                 continue
             # 情感离散/连续
-            df[f'llm_vote_score_w{track}'] = df[f'llm_vote_score{track}'] * w
-            df[f'llm_vote_cont_w{track}'] = df[f'llm_vote_cont{track}'] * w
+            weighted_cols[f'llm_vote_score_w{track}'] = df[f'llm_vote_score{track}'] * w
+            weighted_cols[f'llm_vote_cont_w{track}'] = df[f'llm_vote_cont{track}'] * w
             # 频次
-            df[f'is_positive_w{track}'] = df[f'is_positive{track}'] * w
-            df[f'is_negative_w{track}'] = df[f'is_negative{track}'] * w
+            weighted_cols[f'is_positive_w{track}'] = df[f'is_positive{track}'] * w
+            weighted_cols[f'is_negative_w{track}'] = df[f'is_negative{track}'] * w
             # LLM 逐模型
             for short in LLM_MODELS:
                 for sfx in ['_score', '_cont']:
                     src = f'{short}{sfx}{track}'
                     if src in df.columns:
-                        df[f'{src}_w'] = df[src] * w
+                        weighted_cols[f'{short}{sfx}_w{track}'] = df[src] * w
             # 词典
             for d in DICT_NAMES:
                 src = f'{d}_score{track}'
                 if src in df.columns:
-                    df[f'{src}_w'] = df[src] * w
+                    weighted_cols[f'{d}_score_w{track}'] = df[src] * w
             # 词典 IDF (Gentzkow, Kelly & Taddy 2019, JEL)
             for d in DICT_NAMES:
                 src = f'{d}_idf_score{track}'
                 if src in df.columns:
-                    df[f'{src}_w'] = df[src] * w
+                    weighted_cols[f'{d}_idf_score_w{track}'] = df[src] * w
             # BERT
             for b in BERT_MODELS:
                 for label in ['_正面', '_负面']:
                     src = f'{b}{label}{track}'
                     if src in df.columns:
-                        df[f'{src}_w'] = df[src] * w
+                        weighted_cols[f'{b}{label}_w{track}'] = df[src] * w
             # Logit-to-Score 概率分数
             src_prob = f'llm_prob_score{track}'
             if src_prob in df.columns:
-                df[f'llm_prob_score_w{track}'] = df[src_prob] * w
-        vw_cols = [c for c in df.columns if c.endswith('_w')]
-        logger.info(f"  已生成 {len(vw_cols)} 个加权列")
+                weighted_cols[f'llm_prob_score_w{track}'] = df[src_prob] * w
+        df = _append_columns(df, weighted_cols)
+        logger.info(f"  已生成 {len(weighted_cols)} 个加权列")
     else:
         logger.info("  mention_density 列不存在, 跳过加权列预计算")
 
@@ -244,35 +252,36 @@ def main():
     if PANEL_CFG.get('compute_media_authority_weighting', False):
         df = compute_media_authority_weights(df)
         mw = df['media_authority_weight'].fillna(1.0)
+        weighted_cols = {}
         for track in ['_full', '_ctx', '_title']:
             # _title 轨道可能因未配置而不存在
             if f'llm_vote_score{track}' not in df.columns:
                 continue
-            df[f'llm_vote_score_mw{track}'] = df[f'llm_vote_score{track}'] * mw
-            df[f'llm_vote_cont_mw{track}'] = df[f'llm_vote_cont{track}'] * mw
+            weighted_cols[f'llm_vote_score_mw{track}'] = df[f'llm_vote_score{track}'] * mw
+            weighted_cols[f'llm_vote_cont_mw{track}'] = df[f'llm_vote_cont{track}'] * mw
             for short in LLM_MODELS:
                 for sfx in ['_score', '_cont']:
                     src = f'{short}{sfx}{track}'
                     if src in df.columns:
-                        df[f'{short}{sfx}_mw{track}'] = df[src] * mw
+                        weighted_cols[f'{short}{sfx}_mw{track}'] = df[src] * mw
             for d in DICT_NAMES:
                 src = f'{d}_score{track}'
                 if src in df.columns:
-                    df[f'{d}_score_mw{track}'] = df[src] * mw
+                    weighted_cols[f'{d}_score_mw{track}'] = df[src] * mw
                 src_idf = f'{d}_idf_score{track}'
                 if src_idf in df.columns:
-                    df[f'{d}_idf_score_mw{track}'] = df[src_idf] * mw
+                    weighted_cols[f'{d}_idf_score_mw{track}'] = df[src_idf] * mw
             for b in BERT_MODELS:
                 for label in ['_正面', '_负面']:
                     src = f'{b}{label}{track}'
                     if src in df.columns:
-                        df[f'{b}{label}_mw{track}'] = df[src] * mw
+                        weighted_cols[f'{b}{label}_mw{track}'] = df[src] * mw
             # Logit-to-Score 概率分数
             src_prob = f'llm_prob_score{track}'
             if src_prob in df.columns:
-                df[f'llm_prob_score_mw{track}'] = df[src_prob] * mw
-        mw_cols = [c for c in df.columns if '_mw' in c]
-        logger.info(f"  已生成 {len(mw_cols)} 个媒体权威性加权列")
+                weighted_cols[f'llm_prob_score_mw{track}'] = df[src_prob] * mw
+        df = _append_columns(df, weighted_cols)
+        logger.info(f"  已生成 {len(weighted_cols)} 个媒体权威性加权列")
 
     # --- 3d. 跟风衰减加权列预计算 (Tetlock 2011, JF) ---
     if 'herd_weight' in df.columns:
@@ -280,38 +289,39 @@ def main():
         logger.info("步骤 3d: 跟风衰减加权列预计算 (HW, 双轨)")
         logger.info("=" * 60)
         hw = df['herd_weight'].fillna(1.0)
+        weighted_cols = {}
         for track in ['_full', '_ctx', '_title']:
             if f'llm_vote_score{track}' not in df.columns:
                 continue
             # 情感离散/连续 (遵循 MW 命名模式: _hw 在 track 之前)
-            df[f'llm_vote_score_hw{track}'] = df[f'llm_vote_score{track}'] * hw
-            df[f'llm_vote_cont_hw{track}'] = df[f'llm_vote_cont{track}'] * hw
+            weighted_cols[f'llm_vote_score_hw{track}'] = df[f'llm_vote_score{track}'] * hw
+            weighted_cols[f'llm_vote_cont_hw{track}'] = df[f'llm_vote_cont{track}'] * hw
             # LLM 逐模型
             for short in LLM_MODELS:
                 for sfx in ['_score', '_cont']:
                     src = f'{short}{sfx}{track}'
                     if src in df.columns:
-                        df[f'{short}{sfx}_hw{track}'] = df[src] * hw
+                        weighted_cols[f'{short}{sfx}_hw{track}'] = df[src] * hw
             # 词典
             for d in DICT_NAMES:
                 src = f'{d}_score{track}'
                 if src in df.columns:
-                    df[f'{d}_score_hw{track}'] = df[src] * hw
+                    weighted_cols[f'{d}_score_hw{track}'] = df[src] * hw
                 src_idf = f'{d}_idf_score{track}'
                 if src_idf in df.columns:
-                    df[f'{d}_idf_score_hw{track}'] = df[src_idf] * hw
+                    weighted_cols[f'{d}_idf_score_hw{track}'] = df[src_idf] * hw
             # BERT
             for b in BERT_MODELS:
                 for label in ['_正面', '_负面']:
                     src = f'{b}{label}{track}'
                     if src in df.columns:
-                        df[f'{b}{label}_hw{track}'] = df[src] * hw
+                        weighted_cols[f'{b}{label}_hw{track}'] = df[src] * hw
             # Logit-to-Score 概率分数
             src_prob = f'llm_prob_score{track}'
             if src_prob in df.columns:
-                df[f'llm_prob_score_hw{track}'] = df[src_prob] * hw
-        hw_cols = [c for c in df.columns if '_hw' in c]
-        logger.info(f"  已生成 {len(hw_cols)} 个跟风衰减加权列")
+                weighted_cols[f'llm_prob_score_hw{track}'] = df[src_prob] * hw
+        df = _append_columns(df, weighted_cols)
+        logger.info(f"  已生成 {len(weighted_cols)} 个跟风衰减加权列")
 
     # --- 4. 时间解析 ---
     df = parse_time(df)
@@ -337,6 +347,7 @@ def main():
     _is_desc = (_tt == '描述性') if _tt is not None else None
     _is_sub  = (_tt == '实质性') if _tt is not None else None
 
+    washing_cols = {}
     for track in ['_full', '_ctx']:
         pos_col = f'is_positive{track}'
         neg_col = f'is_negative{track}'
@@ -346,7 +357,7 @@ def main():
         # --- 方法 A: LLM 投票 (正面 ∧ 描述性) ---
         # v6/F2: is_positive 现在是 nullable Int8 (NaN = 测量失败/平局/拒绝)。
         # NaN 行不应被视为"正面描述"，等价于 fillna(0) 后 == 1 比较为 False。
-        df[f'_is_pos_desc{track}'] = (
+        washing_cols[f'_is_pos_desc{track}'] = (
             (df[pos_col].fillna(0) == 1) & _is_desc
         ).astype(int)
 
@@ -355,7 +366,7 @@ def main():
         #   resource. Journal of Management, 26(6), 1091-1112.
         #   https://doi.org/10.1177/014920630002600602
         if neg_col in df.columns and _is_sub is not None:
-            df[f'_is_neg_sub{track}'] = (
+            washing_cols[f'_is_neg_sub{track}'] = (
                 (df[neg_col].fillna(0) == 1) & _is_sub
             ).astype(int)
 
@@ -366,63 +377,73 @@ def main():
                 # v6/F2: per-model score 是 nullable Int8，NaN 等价于"模型缺席"
                 _src = df[src_col].fillna(0)
                 _llm_pos = (_src > 0)
-                df[f'_is_{llm}_positive{track}'] = _llm_pos.astype(int)
-                df[f'_is_{llm}_pos_desc{track}'] = (_llm_pos & _is_desc).astype(int)
+                washing_cols[f'_is_{llm}_positive{track}'] = _llm_pos.astype(int)
+                washing_cols[f'_is_{llm}_pos_desc{track}'] = (
+                    _llm_pos & _is_desc).astype(int)
                 # negative 编码 (Garcia 2013, JF → disag 输入)
-                df[f'_is_{llm}_negative{track}'] = (_src < 0).astype(int)
+                washing_cols[f'_is_{llm}_negative{track}'] = (_src < 0).astype(int)
 
         # --- 方法 D: 词典均值 (Loughran & McDonald 2011, JF) ---
         _dict_cols = [f'{d}_score{track}' for d in DICT_NAMES
                       if f'{d}_score{track}' in df.columns]
         if _dict_cols:
-            df[f'_dict_avg_score{track}'] = df[_dict_cols].mean(axis=1)
-            df[f'_is_dict_positive{track}'] = (df[f'_dict_avg_score{track}'] > 0).astype(int)
-            df[f'_is_dict_pos_desc{track}'] = (
-                (df[f'_is_dict_positive{track}'] == 1) & _is_desc
-            ).astype(int)
+            _dict_avg = df[_dict_cols].mean(axis=1)
+            _dict_pos = (_dict_avg > 0)
+            washing_cols[f'_dict_avg_score{track}'] = _dict_avg
+            washing_cols[f'_is_dict_positive{track}'] = _dict_pos.astype(int)
+            washing_cols[f'_is_dict_pos_desc{track}'] = (
+                _dict_pos & _is_desc).astype(int)
 
         # --- 方法 D2: 单个词典 (Gentzkow et al. 2019, JEL) ---
         for d in DICT_NAMES:
             src_col = f'{d}_score{track}'
             if src_col in df.columns:
                 _d_pos = (df[src_col] > 0)
-                df[f'_is_{d}_positive{track}'] = _d_pos.astype(int)
-                df[f'_is_{d}_pos_desc{track}'] = (_d_pos & _is_desc).astype(int)
+                washing_cols[f'_is_{d}_positive{track}'] = _d_pos.astype(int)
+                washing_cols[f'_is_{d}_pos_desc{track}'] = (
+                    _d_pos & _is_desc).astype(int)
                 # negative 编码 (Garcia 2013, JF → disag 输入)
-                df[f'_is_{d}_negative{track}'] = (df[src_col] < 0).astype(int)
+                washing_cols[f'_is_{d}_negative{track}'] = (
+                    df[src_col] < 0).astype(int)
 
         # --- 方法 E: BERT 均值 (Huang et al. 2023, CAR) ---
         _bert_pos_cols = [f'{b}_正面{track}' for b in BERT_MODELS
                           if f'{b}_正面{track}' in df.columns]
         if _bert_pos_cols:
-            df[f'_bert_avg_pos{track}'] = df[_bert_pos_cols].mean(axis=1)
-            df[f'_is_bert_positive{track}'] = (df[f'_bert_avg_pos{track}'] > 0.5).astype(int)
-            df[f'_is_bert_pos_desc{track}'] = (
-                (df[f'_is_bert_positive{track}'] == 1) & _is_desc
-            ).astype(int)
+            _bert_avg = df[_bert_pos_cols].mean(axis=1)
+            _bert_pos = (_bert_avg > 0.5)
+            washing_cols[f'_bert_avg_pos{track}'] = _bert_avg
+            washing_cols[f'_is_bert_positive{track}'] = _bert_pos.astype(int)
+            washing_cols[f'_is_bert_pos_desc{track}'] = (
+                _bert_pos & _is_desc).astype(int)
 
         # --- 方法 E2: 单个 BERT ---
         for b in BERT_MODELS:
             src_col = f'{b}_正面{track}'
             if src_col in df.columns:
                 _b_pos = (df[src_col] > 0.5)
-                df[f'_is_{b}_positive{track}'] = _b_pos.astype(int)
-                df[f'_is_{b}_pos_desc{track}'] = (_b_pos & _is_desc).astype(int)
+                washing_cols[f'_is_{b}_positive{track}'] = _b_pos.astype(int)
+                washing_cols[f'_is_{b}_pos_desc{track}'] = (
+                    _b_pos & _is_desc).astype(int)
                 # negative 编码 (Garcia 2013, JF → disag 输入)
                 neg_src = f'{b}_负面{track}'
                 if neg_src in df.columns:
-                    df[f'_is_{b}_negative{track}'] = (df[neg_src] > 0.5).astype(int)
+                    washing_cols[f'_is_{b}_negative{track}'] = (
+                        df[neg_src] > 0.5).astype(int)
 
         # --- 方法 F: 高置信度子样本 (Shapiro et al. 2022, JoE) ---
         agr_col = f'llm_agreement_rate{track}'
         if agr_col in df.columns:
             _hc = df[agr_col].fillna(0) >= 0.67
             # v6/F2: pos_col nullable Int8 → fillna(0)
-            df[f'_is_pos_hc{track}'] = ((df[pos_col].fillna(0) == 1) & _hc).astype(int)
-            df[f'_is_pos_desc_hc{track}'] = (
+            washing_cols[f'_is_pos_hc{track}'] = (
+                (df[pos_col].fillna(0) == 1) & _hc).astype(int)
+            washing_cols[f'_is_pos_desc_hc{track}'] = (
                 (df[pos_col].fillna(0) == 1) & _is_desc & _hc
             ).astype(int)
 
+
+    df = _append_columns(df, washing_cols)
 
 
     _wr_flag_cols = [c for c in df.columns if c.startswith('_is_')]
@@ -489,7 +510,7 @@ def main():
     except Exception as e:
         logger.warning(f"  区域模仿渗透率失败: {e}")
 
-    # --- 7e. Bartik IV (v6: 修剪至 6 类核心维度) ---
+    # --- 7e. Bartik IV (v3: 修剪至 6 类核心维度) ---
     # v6/F4 修复 (Goldsmith-Pinkham, Sorkin & Swift 2020, AER):
     #   原 29 套 IV 中 28 类违反 share 在 pre-treatment 期固定外生性公理。
     #   v6 保留 6 类：
@@ -506,7 +527,7 @@ def main():
     #   若计算所得基期 ≥ 2019 (DCEP 沙盒里程碑) 强制抛错。
     if PANEL_CFG.get('compute_bartik_iv', True):
         logger.info("=" * 60)
-        logger.info("步骤 7e: Bartik Shift-Share IV (v6: 6 类核心)")
+        logger.info("步骤 7e: Bartik Shift-Share IV (v3: 6 类核心)")
         logger.info("=" * 60)
         type_map, scale_map = load_bank_group_maps()
         # v6/F4-3 基期参数化：取 panel 起始年与 2010 中较晚者；强制 < 2019
@@ -527,7 +548,7 @@ def main():
                     f"cfg={_bartik_base_year_cfg}, cutoff={_bartik_pre_cutoff})")
 
         # --- 主 Bartik: 银行类型 (6类, 5有效IV) ---
-        # v6: 显式传基期 T0
+        # v3: 显式传基期 T0
         panel = compute_bartik_iv(panel, df_exploded, type_map, 'type',
                                    base_year=T0)
         # 基期敏感性 (T0, T0+1, T0&T0+1) — 检验 IV 对基期选择的稳健性
@@ -557,7 +578,7 @@ def main():
                   'bartik_type_iv_ctx_t01']],
             on=['target_bank', 'year'], how='left')
 
-        # --- 稳健性 1: 银行规模 (4类, 3有效IV) — v6: 显式基期 T0 ---
+        # --- 稳健性 1: 银行规模 (4类, 3有效IV) — v3: 显式基期 T0 ---
         panel = compute_bartik_iv(panel, df_exploded, scale_map, 'scale',
                                    base_year=T0)
 
@@ -582,7 +603,7 @@ def main():
         else:
             logger.warning("  bank_type 不存在, 跳过 digital_frontier 构建")
 
-        # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) — v6: 显式基期 T0 ---
+        # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) — v3: 显式基期 T0 ---
         # 注意: fintech_category 由 LLM 决定，须配合论证（v6/F4-2 须论证清单）
         fintech_map = {'底层技术': 'tech', '应用场景': 'app'}
         panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech',
@@ -607,9 +628,11 @@ def main():
             media_col = '媒体(中文)'
 
             if '_media_type' not in df_exploded.columns:
-                df_exploded['_media_type'] = df_exploded[media_col].apply(
-                    lambda x: 'fin' if x in FIN else ('comp' if x in COMP else 'other')
-                )
+                df_exploded = _append_columns(df_exploded, {
+                    '_media_type': df_exploded[media_col].apply(
+                        lambda x: 'fin' if x in FIN else ('comp' if x in COMP else 'other')
+                    )
+                })
             media_map = {'fin': 'fin', 'comp': 'comp', 'other': 'other'}
             panel = compute_bartik_iv_fintech(
                 panel, df_exploded, media_map, 'media',
@@ -634,10 +657,14 @@ def main():
                 mw = json.load(f)
             mw = {k: v for k, v in mw.items() if not k.startswith('//')}
             media_col = '媒体(中文)'
-            df_exploded['_media_authority'] = df_exploded[media_col].apply(
-                lambda x: 'high' if mw.get(x, 10) >= 80
-                          else ('mid' if mw.get(x, 10) >= 60 else 'low')
-            )
+            if '_media_authority' in df_exploded.columns:
+                df_exploded = df_exploded.drop(columns=['_media_authority'])
+            df_exploded = _append_columns(df_exploded, {
+                '_media_authority': df_exploded[media_col].apply(
+                    lambda x: 'high' if mw.get(x, 10) >= 80
+                    else ('mid' if mw.get(x, 10) >= 60 else 'low')
+                )
+            })
             mauth_map = {'high': 'high', 'mid': 'mid', 'low': 'low'}
             panel = compute_bartik_iv_fintech(
                 panel, df_exploded, mauth_map, 'mauth',
@@ -661,11 +688,18 @@ def main():
                 with open(addr_path, 'r', encoding='utf-8') as f:
                     _addr = json.load(f)
                 _prov_map = {k: v.get('province', '') for k, v in _addr.items()}
-                df_exploded['_bank_prov'] = df_exploded['target_bank'].map(_prov_map)
-                df_exploded['_geo_proximity'] = np.where(
-                    df_exploded[media_prov_col] == df_exploded['_bank_prov'],
-                    'local', 'nonlocal'
+                _bank_prov = df_exploded['target_bank'].map(_prov_map)
+                df_exploded = df_exploded.drop(
+                    columns=[c for c in ['_bank_prov', '_geo_proximity']
+                             if c in df_exploded.columns]
                 )
+                df_exploded = _append_columns(df_exploded, {
+                    '_bank_prov': _bank_prov,
+                    '_geo_proximity': np.where(
+                        df_exploded[media_prov_col] == _bank_prov,
+                        'local', 'nonlocal'
+                    )
+                })
                 geoprox_map = {'local': 'local', 'nonlocal': 'nonlocal'}
                 panel = compute_bartik_iv_fintech(
                     panel, df_exploded, geoprox_map, 'geoprox',
@@ -1442,7 +1476,7 @@ def main():
         ]
         logger.info(f"  ✅ 成功挂载双轨稳健性特征 (保留自然缺失值 NaN): {t2v_cols}")
     else:
-        logger.warning(f"  ⚠️ 未找到 {t2v_path}，跳过双轨特征挂载。")
+        logger.warning(f"  未找到 {t2v_path}，跳过双轨特征挂载。")
 
     log_diagnostics(panel, df_exploded)
 

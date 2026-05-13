@@ -385,6 +385,25 @@ class TestEdgeCases:
         assert len(result) == 2
         assert result['herd_weight'].notna().all()
 
+    def test_default_df_threshold_small_groups_no_warning(self, monkeypatch, caplog):
+        """生产默认 df 阈值在小样本银行组上应自适应, 不应刷 warning。"""
+        monkeypatch.setattr(herd_module, 'MIN_DF', 5)
+        monkeypatch.setattr(herd_module, 'MAX_DF', 0.9)
+        caplog.set_level(logging.WARNING, logger='test_24_herd_decay')
+
+        text = '工商银行推出人工智能大数据风控系统技术创新服务升级' * 15
+        df = pd.DataFrame({
+            'target_bank': ['工商银行', '工商银行'],
+            '日期': ['2024-01-01', '2024-01-02'],
+            '内容': [text, text + '微小差异'],
+        })
+
+        result = compute_herd_weights(df)
+
+        assert len(result) == 2
+        assert result['herd_weight'].notna().all()
+        assert not [r for r in caplog.records if r.levelno >= logging.WARNING]
+
 
 # ============================================================================
 # 4. 阈值参数化测试

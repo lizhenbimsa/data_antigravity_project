@@ -219,12 +219,17 @@ def compute_brokerage_centrality(
         method_used = ""
 
         # Level 1: eigenvector_centrality_numpy (精确)
-        try:
-            ec = nx.eigenvector_centrality_numpy(G, weight='weight')
-            eigen_vals = {n: ec[n] for n in bank_nodes if n in ec}
-            method_used = "numpy"
-        except Exception as e:
-            logger.warning(f"  年份 {year}: eigenvector_numpy 失败 ({e})")
+        # networkx 的 numpy 实现在非连通图上会主动报
+        # AmbiguousSolution；这是网络结构属性，不是生产故障。
+        if nx.is_connected(G):
+            try:
+                ec = nx.eigenvector_centrality_numpy(G, weight='weight')
+                eigen_vals = {n: ec[n] for n in bank_nodes if n in ec}
+                method_used = "numpy"
+            except Exception as e:
+                logger.info(f"  年份 {year}: numpy 特征向量中心度不可用, 转迭代法 ({e})")
+        else:
+            logger.info(f"  年份 {year}: 图非连通, 使用迭代特征向量中心度")
 
         # Level 2: eigenvector_centrality (迭代)
         if eigen_vals is None:
@@ -234,11 +239,13 @@ def compute_brokerage_centrality(
                 eigen_vals = {n: ec[n] for n in bank_nodes if n in ec}
                 method_used = "iterative"
             except nx.PowerIterationFailedConvergence:
-                logger.warning(f"  年份 {year}: eigenvector 迭代不收敛")
+                logger.info(f"  年份 {year}: eigenvector 迭代不收敛, 转 degree 兜底")
+            except Exception as e:
+                logger.info(f"  年份 {year}: eigenvector 迭代法不可用, 转 degree 兜底 ({e})")
 
         # Level 3: degree_centrality (兜底)
         if eigen_vals is None:
-            logger.critical(f"  年份 {year}: 退化到 degree_centrality (兜底)")
+            logger.info(f"  年份 {year}: 使用 degree_centrality 兜底")
             dc = nx.degree_centrality(G)
             eigen_vals = {n: dc[n] for n in bank_nodes if n in dc}
             method_used = "degree_fallback"

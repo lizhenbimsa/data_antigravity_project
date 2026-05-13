@@ -69,6 +69,28 @@ CHUNK_SIZE = HERD_CFG.get('chunk_size', 1000)  # 仅用于日志显示; 实际�
 # 2. 核心算法: 分块相似度计算
 # ============================================================================
 
+def _build_tfidf_vectorizer(n_docs: int, *, relaxed: bool = False) -> TfidfVectorizer:
+    """Create a TF-IDF vectorizer whose df thresholds are valid for the group size."""
+    if relaxed or n_docs <= MIN_DF:
+        min_df = 1
+        max_df = 1.0
+    else:
+        min_df = min(MIN_DF, n_docs)
+        max_df = MAX_DF
+        if isinstance(max_df, float) and 0 < max_df < 1.0:
+            max_allowed_df = int(np.floor(max_df * n_docs))
+            if max_allowed_df < min_df:
+                min_df = max(1, max_allowed_df)
+
+    return TfidfVectorizer(
+        max_features=MAX_FEATURES,
+        min_df=min_df,
+        max_df=max_df,
+        analyzer='char_wb',  # 中文友好: 字符级 n-gram
+        ngram_range=(2, 4),
+        dtype=np.float32,  # 节省内存
+    )
+
 def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     """对同一银行在时间窗口内的新闻进行跟风检测。
 
@@ -138,18 +160,23 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
             continue
 
         try:
-            vectorizer = TfidfVectorizer(
-                max_features=MAX_FEATURES,
-                min_df=min(MIN_DF, len(texts)),
-                max_df=MAX_DF,
-                analyzer='char_wb',  # 中文友好: 字符级 n-gram
-                ngram_range=(2, 4),
-                dtype=np.float32  # 节省内存
-            )
-            tfidf_matrix = vectorizer.fit_transform(texts)
+            tfidf_matrix = _build_tfidf_vectorizer(len(texts)).fit_transform(texts)
         except ValueError as e:
-            logger.warning(f"  银行 '{bank_name}' TF-IDF 失败: {e}")
-            continue
+            logger.info(
+                f"  银行 '{bank_name}' 常规 TF-IDF 参数不适用, "
+                f"使用小样本宽松参数重试: {e}"
+            )
+            try:
+                tfidf_matrix = _build_tfidf_vectorizer(
+                    len(texts),
+                    relaxed=True,
+                ).fit_transform(texts)
+            except ValueError as retry_error:
+                logger.info(
+                    f"  银行 '{bank_name}' 文本不可向量化, "
+                    f"保持 herd_weight=1.0: {retry_error}"
+                )
+                continue
 
         # 获取日期序列
         dates = bank_df['日期'].tolist()

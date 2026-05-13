@@ -72,8 +72,8 @@
 
 **典型未标注变量示例**:
 ```
-- avg_gemini3_conf_ctx
-- avg_gpt5nano_conf_title
+- avg_gemini3111_conf_ctx
+- avg_gpt54nano_conf_title
 - avg_bian_2021_neg_ratio_full
 - bert_avg_neg_app_ctx
 - avg_cpw_ctx

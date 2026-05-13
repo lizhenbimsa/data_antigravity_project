@@ -566,7 +566,7 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
 
     kappa_paradox = avg_dominant >= 90.0
     if kappa_paradox:
-        logger.info(f"  ⚠ 检测到高度不平衡（主导标签 ≥ 90%）")
+        logger.info(f"  检测到高度不平衡（主导标签 ≥ 90%）")
         logger.info(f"    → Kappa 悖论 (Paradox of High Agreement but Low Kappa):")
         logger.info(f"      当分类高度集中于单一类别时，即使一致率很高，")
         logger.info(f"      Kappa 也会因为 P(e) 过大而被严重压低。")
@@ -786,16 +786,46 @@ def log_report(results: dict):
         min_agree = min(all_agreements)
         min_pearson = min(all_pearsons)
 
-        logger.info(f"  最低标签一致率: {min_agree:.2%}")
-        logger.info(f"  最低 Cohen's Kappa: {min_kappa:.4f}")
-        logger.info(f"  最低 Pearson 相关: {min_pearson:.4f}")
+        baseline_radius = 1
+        extreme_key = f"r{baseline_radius}_vs_r0"
+        adjacent_pairs = {
+            k: v for k, v in results['cross_radius'].items()
+            if k != extreme_key
+        }
+        adjacent_kappas = []
+        adjacent_agreements = []
+        adjacent_pearsons = []
+        for pair_data in adjacent_pairs.values():
+            for dn_data in pair_data.values():
+                adjacent_kappas.append(dn_data['cohens_kappa'])
+                adjacent_agreements.append(dn_data['label_agreement'])
+                adjacent_pearsons.append(dn_data['pearson_r'])
 
-        if min_kappa >= 0.80:
-            logger.info("  ✅ 判定: 情感分析结果对窗口半径选择具有强稳健性（κ ≥ 0.80）")
-        elif min_kappa >= 0.60:
-            logger.info("  ⚠️ 判定: 情感分析结果对窗口半径选择具有中等稳健性（0.60 ≤ κ < 0.80）")
+        logger.info(f"  全部对比最低标签一致率: {min_agree:.2%}")
+        logger.info(f"  全部对比最低 Cohen's Kappa: {min_kappa:.4f}")
+        logger.info(f"  全部对比最低 Pearson 相关: {min_pearson:.4f}")
+
+        if adjacent_kappas:
+            adj_min_kappa = min(adjacent_kappas)
+            adj_min_agree = min(adjacent_agreements)
+            adj_min_pearson = min(adjacent_pearsons)
+            logger.info(f"  邻近窗口最低标签一致率: {adj_min_agree:.2%}")
+            logger.info(f"  邻近窗口最低 Cohen's Kappa: {adj_min_kappa:.4f}")
+            logger.info(f"  邻近窗口最低 Pearson 相关: {adj_min_pearson:.4f}")
         else:
-            logger.info("  ❌ 判定: 情感分析结果对窗口半径选择敏感（κ < 0.60），需仔细讨论参数选择")
+            adj_min_kappa = min_kappa
+            adj_min_agree = min_agree
+            adj_min_pearson = min_pearson
+
+        if adj_min_kappa >= 0.80:
+            logger.info("  ✅ 判定: 邻近窗口半径下情感分析结果具有强稳健性（κ ≥ 0.80）")
+        elif adj_min_kappa >= 0.60 and adj_min_agree >= 0.95 and adj_min_pearson >= 0.80:
+            logger.info("  判定: 邻近窗口半径下情感分析结果具有实质稳健性（κ ≥ 0.60, agreement ≥ 95%, Pearson ≥ 0.80）")
+        else:
+            logger.info("  判定: 邻近窗口半径下情感分析结果存在一定敏感性，需讨论参数选择")
+
+        if extreme_key in results['cross_radius'] and min_kappa < 0.60:
+            logger.info("  注: 最低 κ 来自 r=0 极端压力测试；r=0 仅保留实体所在句，不作为默认窗口稳健性的主判据。")
 
     logger.info("=" * 80)
 

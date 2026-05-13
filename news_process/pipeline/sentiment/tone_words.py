@@ -876,40 +876,46 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
 
     results = df.apply(_dual_analyze, axis=1)
 
-    # 提取各列（双轨）
-    # ruff B023: lambda 显式默认参数绑定 (与同函数下方 894/897 风格一致).
-    # 当前 .apply() 同步执行不会出 bug, 但风格不统一, 且未来若改造为
-    # dask.delayed / asyncio 立即翻车. Plan-r3 P2-13 一次性收口.
+    # 提取各列（双轨）。先攒成一个列字典, 再一次性 concat, 避免大量
+    # ``df[col] = ...`` 造成 pandas block fragmentation。
+    new_columns = {}
     for dict_name, _ in ALL_DICTIONARIES:
         for track in ['_full', '_ctx', '_title']:
-            df[f'{dict_name}_score{track}'] = results.apply(
-                lambda r, k=f'{dict_name}_score{track}': r.get(k, 0.0))
-            df[f'{dict_name}_label{track}'] = results.apply(
-                lambda r, k=f'{dict_name}_label{track}': r.get(k, '中性'))
+            score_key = f'{dict_name}_score{track}'
+            label_key = f'{dict_name}_label{track}'
+            label_series = results.apply(lambda r, k=label_key: r.get(k, '中性'))
+            new_columns[score_key] = results.apply(
+                lambda r, k=score_key: r.get(k, 0.0))
+            new_columns[label_key] = label_series
 
-            label_counts = df[f'{dict_name}_label{track}'].value_counts()
+            label_counts = label_series.value_counts()
             stats[f'{dict_name}_正面{track}'] = int(label_counts.get('正面', 0))
             stats[f'{dict_name}_中性{track}'] = int(label_counts.get('中性', 0))
             stats[f'{dict_name}_负面{track}'] = int(label_counts.get('负面', 0))
 
             # 单词典 pos/neg ratio 提取 (Garcia 2013, JF)
-            df[f'{dict_name}_pos_ratio{track}'] = results.apply(
-                lambda r, k=f'{dict_name}_pos_ratio{track}': r.get(k, 0.0))
-            df[f'{dict_name}_neg_ratio{track}'] = results.apply(
-                lambda r, k=f'{dict_name}_neg_ratio{track}': r.get(k, 0.0))
+            pos_key = f'{dict_name}_pos_ratio{track}'
+            neg_key = f'{dict_name}_neg_ratio{track}'
+            new_columns[pos_key] = results.apply(lambda r, k=pos_key: r.get(k, 0.0))
+            new_columns[neg_key] = results.apply(lambda r, k=neg_key: r.get(k, 0.0))
 
-    df['sentiment_details_full'] = results.apply(lambda r: r.get('sentiment_details_full', ''))
-    df['sentiment_details_ctx'] = results.apply(lambda r: r.get('sentiment_details_ctx', ''))
-    df['sentiment_details_title'] = results.apply(lambda r: r.get('sentiment_details_title', ''))
+    new_columns['sentiment_details_full'] = results.apply(
+        lambda r: r.get('sentiment_details_full', ''))
+    new_columns['sentiment_details_ctx'] = results.apply(
+        lambda r: r.get('sentiment_details_ctx', ''))
+    new_columns['sentiment_details_title'] = results.apply(
+        lambda r: r.get('sentiment_details_title', ''))
 
     # ── 提取 IDF 加权列（双轨）──
     if IDF_DICTIONARIES is not None:
         for dict_name, _ in IDF_DICTIONARIES:
             for track in ['_full', '_ctx', '_title']:
-                df[f'{dict_name}_idf_score{track}'] = results.apply(
-                    lambda r, k=f'{dict_name}_idf_score{track}': r.get(k, 0.0))
-                df[f'{dict_name}_idf_label{track}'] = results.apply(
-                    lambda r, k=f'{dict_name}_idf_label{track}': r.get(k, '中性'))
+                score_key = f'{dict_name}_idf_score{track}'
+                label_key = f'{dict_name}_idf_label{track}'
+                new_columns[score_key] = results.apply(
+                    lambda r, k=score_key: r.get(k, 0.0))
+                new_columns[label_key] = results.apply(
+                    lambda r, k=label_key: r.get(k, '中性'))
 
     # ── 提取新增指标列（双轨）──
     new_metric_cols = [
@@ -920,7 +926,10 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     for col in new_metric_cols:
         for track in ['_full', '_ctx', '_title']:
             col_key = f'{col}{track}'
-            df[col_key] = results.apply(lambda r, k=col_key: r.get(k, 0.0))
+            new_columns[col_key] = results.apply(lambda r, k=col_key: r.get(k, 0.0))
+
+    if new_columns:
+        df = pd.concat([df, pd.DataFrame(new_columns, index=df.index)], axis=1).copy()
 
     return df, stats
 
@@ -1123,6 +1132,7 @@ def main():
     # P1-4: 为每个词典的得分列添加 Z-score 标准化列（双轨独立计算）
     # 解决跨词典量纲不一致问题，供 34_tone_validation.py 的 Cronbach's Alpha 分析使用
     # 注意：_full 和 _ctx 的 μ 和 σ 必须独立计算，因文本长度差异导致数值分布本质不同
+    zscore_columns = {}
     for dict_name, _ in ALL_DICTIONARIES:
         for track in ['_full', '_ctx', '_title']:
             score_col = f"{dict_name}_score{track}"
@@ -1131,9 +1141,11 @@ def main():
                 mean_val = processed_df[score_col].mean()
                 std_val = processed_df[score_col].std()
                 if std_val > 0:
-                    processed_df[zscore_col] = (processed_df[score_col] - mean_val) / std_val
+                    zscore_columns[zscore_col] = (
+                        processed_df[score_col] - mean_val) / std_val
                 else:
-                    processed_df[zscore_col] = 0.0
+                    zscore_columns[zscore_col] = pd.Series(
+                        0.0, index=processed_df.index)
                 logger.info(f"  {dict_name} [{track}]: Z-score 标准化完成 (μ={mean_val:.4f}, σ={std_val:.4f})")
 
     # IDF 列 Z-score 标准化
@@ -1146,12 +1158,19 @@ def main():
                     mean_val = processed_df[score_col].mean()
                     std_val = processed_df[score_col].std()
                     if std_val > 0:
-                        processed_df[zscore_col] = (
-                            (processed_df[score_col] - mean_val) / std_val)
+                        zscore_columns[zscore_col] = (
+                            processed_df[score_col] - mean_val) / std_val
                     else:
-                        processed_df[zscore_col] = 0.0
+                        zscore_columns[zscore_col] = pd.Series(
+                            0.0, index=processed_df.index)
                     logger.info(f"  {dict_name}_idf [{track}]: "
                                 f"Z-score (μ={mean_val:.4f}, σ={std_val:.4f})")
+
+    if zscore_columns:
+        processed_df = pd.concat(
+            [processed_df, pd.DataFrame(zscore_columns, index=processed_df.index)],
+            axis=1,
+        ).copy()
 
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata

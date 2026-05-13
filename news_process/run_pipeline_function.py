@@ -148,6 +148,133 @@ def _get_stage_output_files(stage_script: str) -> list:
             )
     return files
 
+
+_STAGE21_UPSTREAM_FINGERPRINT_COLUMNS = (
+    'docid',
+    'pubcode',
+    'target_bank',
+    'co_mentioned_banks',
+    '日期',
+    '标题',
+    '内容',
+    'fintech_intensity_score',
+    'intensity_verified',
+)
+
+_STAGE21_FILTERED_FINGERPRINT_COLUMNS = (
+    'docid',
+    'target_bank',
+    '日期',
+    '标题',
+    '内容',
+)
+
+
+def _fingerprint_dataframe_rows(df, columns: tuple[str, ...]) -> tuple[int, str]:
+    """Return a deterministic row-count + content digest for selected columns."""
+    import hashlib
+
+    missing = [col for col in columns if col not in df.columns]
+    if missing:
+        raise ValueError(f"missing columns for fingerprint: {missing}")
+
+    key_df = df.loc[:, list(columns)].copy()
+    key_df = key_df.astype("string").fillna("<NA>")
+    key_df = key_df.sort_values(list(columns), kind="mergesort").reset_index(drop=True)
+    payload = key_df.to_csv(index=False, lineterminator="\n").encode("utf-8")
+    return len(key_df), hashlib.sha256(payload).hexdigest()
+
+
+def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
+    """Check whether existing stage 21 outputs match the current stage 14 input.
+
+    ``--skip-21-if-exists`` is only safe if the full stage-21 output was produced
+    from the current stage-14 parquet. Otherwise downstream stages would silently
+    consume stale LLM labels after upstream stages were regenerated.
+    """
+    import pandas as pd
+
+    if len(stage21_outputs) < 2:
+        return False, "stage 21 output registry is incomplete"
+
+    output_dir = CONFIG['paths']['output_dir']
+    main_path = os.path.join(output_dir, stage21_outputs[0])
+    full_path = os.path.join(output_dir, stage21_outputs[1])
+    missing_outputs = [
+        path for path in (main_path, full_path)
+        if not os.path.exists(path)
+    ]
+    if missing_outputs:
+        return False, f"missing stage 21 outputs: {missing_outputs}"
+
+    upstream_name = CONFIG.get('filenames', {}).get(
+        'output_14_fintech_intensity',
+        '14_fintech_intensity.parquet',
+    )
+    upstream_path = os.path.join(output_dir, upstream_name)
+    if not os.path.exists(upstream_path):
+        return False, f"stage 21 upstream is missing: {upstream_path}"
+
+    try:
+        upstream_df = pd.read_parquet(
+            upstream_path,
+            columns=list(_STAGE21_UPSTREAM_FINGERPRINT_COLUMNS),
+        )
+        full_input_df = pd.read_parquet(
+            full_path,
+            columns=list(_STAGE21_UPSTREAM_FINGERPRINT_COLUMNS),
+        )
+        upstream_rows, upstream_digest = _fingerprint_dataframe_rows(
+            upstream_df,
+            _STAGE21_UPSTREAM_FINGERPRINT_COLUMNS,
+        )
+        full_rows, full_digest = _fingerprint_dataframe_rows(
+            full_input_df,
+            _STAGE21_UPSTREAM_FINGERPRINT_COLUMNS,
+        )
+    except Exception as exc:
+        return False, f"failed to compare stage 14 and stage 21 full output: {exc}"
+
+    if upstream_rows != full_rows:
+        return False, (
+            f"stage 14 row count ({upstream_rows}) != "
+            f"21_tone_llms_full row count ({full_rows})"
+        )
+    if upstream_digest != full_digest:
+        return False, "stage 14 fingerprint differs from 21_tone_llms_full"
+
+    try:
+        full_cols = list(_STAGE21_FILTERED_FINGERPRINT_COLUMNS) + ['llm_verified_full']
+        full_verify_df = pd.read_parquet(full_path, columns=full_cols)
+        expected_main_df = full_verify_df[
+            full_verify_df['llm_verified_full'] == True  # noqa: E712 - pandas boolean mask
+        ].drop(columns=['llm_verified_full'])
+        main_df = pd.read_parquet(
+            main_path,
+            columns=list(_STAGE21_FILTERED_FINGERPRINT_COLUMNS),
+        )
+        expected_rows, expected_digest = _fingerprint_dataframe_rows(
+            expected_main_df,
+            _STAGE21_FILTERED_FINGERPRINT_COLUMNS,
+        )
+        main_rows, main_digest = _fingerprint_dataframe_rows(
+            main_df,
+            _STAGE21_FILTERED_FINGERPRINT_COLUMNS,
+        )
+    except Exception as exc:
+        return False, f"failed to compare stage 21 filtered and full outputs: {exc}"
+
+    if expected_rows != main_rows:
+        return False, (
+            f"21_tone_llms row count ({main_rows}) != verified rows in "
+            f"21_tone_llms_full ({expected_rows})"
+        )
+    if expected_digest != main_digest:
+        return False, "21_tone_llms does not match verified rows in 21_tone_llms_full"
+
+    return True, f"stage 21 outputs match current stage 14 input ({upstream_rows} rows)"
+
+
 def _parse_cli_args(argv: list[str] | None = None) -> argparse.Namespace:
     """解析主流水线 CLI 参数。
 
@@ -281,22 +408,18 @@ def run_pipeline(args: argparse.Namespace | None = None):
             # 跳过预清理与 run_stage 调用 (视作 success+0s, 与已 skip 的阶段同状态符号)。
             if (args.skip_21_if_exists and script == '21_tone_llms.py'):
                 stage21_outputs = _get_stage_output_files(script)
-                stage21_paths = [
-                    os.path.join(CONFIG['paths']['output_dir'], f)
-                    for f in stage21_outputs
-                ]
-                if stage21_paths and all(os.path.exists(p) for p in stage21_paths):
+                can_skip_stage21, skip_reason = _stage21_skip_is_compatible(stage21_outputs)
+                if can_skip_stage21:
                     logger.info(
                         f"  ⏭ {name}: --skip-21-if-exists 命中, 已跳过 "
-                        f"(检测到 {len(stage21_paths)} 个输出: "
-                        f"{[os.path.basename(p) for p in stage21_paths]})"
+                        f"({skip_reason})"
                     )
                     stage_timings.append((name, 0.0, True))
                     continue
                 else:
-                    logger.info(
-                        f"  --skip-21-if-exists 已启用, 但 {name} 输出不全, "
-                        f"仍执行该阶段"
+                    logger.warning(
+                        f"  --skip-21-if-exists 已启用, 但 {name} 不能安全跳过: "
+                        f"{skip_reason}; 将重新执行该阶段"
                     )
 
             # ── 数据流防护：预清理阶段输出，防止陈旧数据污染 ──

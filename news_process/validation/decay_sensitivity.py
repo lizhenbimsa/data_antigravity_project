@@ -686,7 +686,7 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
             logger.info("  ✓ 结论: 主结果对权重选择基本不敏感 (min r ≥ 0.90)")
             logger.info("  → 论文建议: Appendix 中报告相关性表格")
         else:
-            logger.info("  ⚠️ 结论: 权重选择有一定影响 (min r < 0.90)")
+            logger.info("  结论: 权重选择有一定影响 (min r < 0.90)")
             logger.info("  → 论文建议: 在正文中讨论衰减函数的影响")
 
         # 论文建议用语 (英文, 供直接复制到论文中)

@@ -164,7 +164,7 @@ class LLMCache:
         """生成缓存键 (Plan-r3 P3-17 升级版).
 
         Args:
-            model_id:        模型标识符 (例如 "gpt-5-nano-2025-08-07").
+            model_id:        模型标识符 (例如 "gpt-5.4-nano").
             prompt:          请求的 prompt 文本.
             prompt_version:  prompt 模板版本字符串 (例如 "v6-2026-05-09").
                              默认 "v0" 表示调用方未指定 — 与新 prompt 改动后

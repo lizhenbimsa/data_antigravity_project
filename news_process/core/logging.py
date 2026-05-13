@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import time
+import warnings
 from functools import wraps
 from logging.handlers import RotatingFileHandler
 
@@ -25,9 +27,53 @@ import psutil
 _RUN_ID_ENV = "NEWS_PROCESS_RUN_ID"
 
 
+def _install_warning_filters() -> None:
+    """Suppress known optional-accelerator warnings that are harmless on CPU."""
+    warnings.filterwarnings(
+        "ignore",
+        message=r"Failed to find CUDA\.",
+        category=UserWarning,
+        module=r"triton\.windows_utils",
+    )
+
+
+def _configure_standard_streams() -> None:
+    """Make redirected Windows stdio tolerant of UTF-8 pipeline logs."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+def _configure_third_party_loggers() -> None:
+    """Keep recoverable dependency chatter out of stage stderr streams."""
+    for name in (
+        "huggingface_hub",
+        "huggingface_hub.utils._http",
+        "transformers",
+        "urllib3",
+        "sentence_transformers",
+    ):
+        logging.getLogger(name).setLevel(logging.ERROR)
+
+
 def get_run_id() -> str | None:
     """返回 NEWS_PROCESS_RUN_ID 环境变量的值, 不存在返回 None。"""
     return os.environ.get(_RUN_ID_ENV)
+
+
+class _MaxLevelFilter(logging.Filter):
+    """Allow records below ``max_level`` only."""
+
+    def __init__(self, max_level: int):
+        super().__init__()
+        self.max_level = max_level
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.levelno < self.max_level
 
 
 class _ColoredFormatter(logging.Formatter):
@@ -88,6 +134,10 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
         logging.Logger: 已配置好的 logger 实例 (幂等 — 重复调用会先清空
         现有 handler 再注册)。
     """
+    _install_warning_filters()
+    _configure_standard_streams()
+    _configure_third_party_loggers()
+
     # 解析实际的日志目录: 若 NEWS_PROCESS_RUN_ID 已设置, 用 per-run 子目录。
     run_id = get_run_id()
     if run_id and not console_only:
@@ -125,10 +175,18 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
         fh.setFormatter(file_formatter)
         logger.addHandler(fh)
 
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-    ch.setFormatter(_ColoredFormatter(datefmt='%Y-%m-%d %H:%M:%S'))
-    logger.addHandler(ch)
+    console_formatter = _ColoredFormatter(datefmt='%Y-%m-%d %H:%M:%S')
+
+    ch_out = logging.StreamHandler(sys.stdout)
+    ch_out.setLevel(level)
+    ch_out.addFilter(_MaxLevelFilter(logging.WARNING))
+    ch_out.setFormatter(console_formatter)
+    logger.addHandler(ch_out)
+
+    ch_err = logging.StreamHandler(sys.stderr)
+    ch_err.setLevel(max(level, logging.WARNING))
+    ch_err.setFormatter(console_formatter)
+    logger.addHandler(ch_err)
 
     logger.propagate = False
 

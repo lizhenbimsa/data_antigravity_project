@@ -36,7 +36,7 @@ FALLBACK_MODELS = [
     "gemini-1.5-flash",
     "gemini-2.0-flash",
     "gemini-2.0-flash-exp",
-    "gpt-5-nano-2025-08-07",
+    "gpt-5.4-nano",
     "glm-4.5-flash",
     "gpt-5-nano",
     "gpt-5",

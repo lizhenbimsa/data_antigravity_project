@@ -9,7 +9,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 功能：
     将早期的 `13_news_llms.py` (真伪精筛) 和 `23_tone_llms.py` (情感分析) 组合，
     使用同一个大模型 Prompt 构建思维链 (Chain-of-Thought)，单次请求获取"真伪"与"情感"。
-    采用多模型（如 gpt5nano, gemini3, grok41）逐条并发请求，并使用多数投票（Majority Vote）
+    采用多模型（如 gpt54nano, gemini31111, deepseekv4）逐条并发请求，并使用多数投票（Majority Vote）
     合成最终共识，满足顶级学术期刊的交叉验证和三角验证标准。
     每条新闻独立请求各模型，通过信号量控制并发。
 
@@ -141,6 +141,13 @@ RETRY_DELAY = LLM_CONFIG.get('retry_delay', 10)
 # v6/N4: 指数退避 — 单 yunwu 账户避免雪崩
 RETRY_BACKOFF = LLM_CONFIG.get('retry_backoff', 'linear')  # 'exponential' or 'linear'
 RETRY_BACKOFF_CAP = LLM_CONFIG.get('retry_backoff_cap', 600)
+REQUEST_TIMEOUT_TOTAL = float(LLM_CONFIG.get('timeout', 600))
+REQUEST_TIMEOUT_CONNECT = float(LLM_CONFIG.get('connect_timeout', min(120, REQUEST_TIMEOUT_TOTAL)))
+REQUEST_TIMEOUT_SOCK_CONNECT = float(LLM_CONFIG.get('sock_connect_timeout', REQUEST_TIMEOUT_CONNECT))
+REQUEST_TIMEOUT_SOCK_READ = float(LLM_CONFIG.get('sock_read_timeout', REQUEST_TIMEOUT_TOTAL))
+CONNECTOR_TTL_DNS_CACHE = int(LLM_CONFIG.get('ttl_dns_cache', 300))
+CONNECTOR_KEEPALIVE = float(LLM_CONFIG.get('keepalive_timeout', 60))
+AUTH_PROBE_TIMEOUT = float(LLM_CONFIG.get('auth_probe_timeout', min(30, REQUEST_TIMEOUT_TOTAL)))
 
 
 def _compute_retry_sleep(attempt: int) -> float:
@@ -152,6 +159,187 @@ def _compute_retry_sleep(attempt: int) -> float:
     if RETRY_BACKOFF == 'exponential':
         return min(RETRY_DELAY * (2 ** attempt), RETRY_BACKOFF_CAP)
     return RETRY_DELAY
+
+
+def build_llm_timeout() -> aiohttp.ClientTimeout:
+    """Create a conservative timeout profile for high-volume validation calls."""
+    return aiohttp.ClientTimeout(
+        total=REQUEST_TIMEOUT_TOTAL,
+        connect=REQUEST_TIMEOUT_CONNECT,
+        sock_connect=REQUEST_TIMEOUT_SOCK_CONNECT,
+        sock_read=REQUEST_TIMEOUT_SOCK_READ,
+    )
+
+
+def build_llm_connector(limit: int) -> aiohttp.TCPConnector:
+    """Build the shared LLM connector with an explicit per-host cap."""
+    safe_limit = max(1, int(limit))
+    return aiohttp.TCPConnector(
+        limit=safe_limit,
+        limit_per_host=safe_limit,
+        ttl_dns_cache=CONNECTOR_TTL_DNS_CACHE,
+        keepalive_timeout=CONNECTOR_KEEPALIVE,
+        enable_cleanup_closed=True,
+    )
+
+
+class AsyncRequestPacer:
+    """Serialize request starts so large validation batches do not burst."""
+
+    def __init__(self, spacing_seconds: float = 0.0):
+        self.spacing_seconds = max(0.0, float(spacing_seconds or 0.0))
+        self._lock = asyncio.Lock()
+        self._last_started_at = 0.0
+
+    async def wait(self) -> None:
+        if self.spacing_seconds <= 0:
+            return
+        async with self._lock:
+            now = time.monotonic()
+            sleep_s = self._last_started_at + self.spacing_seconds - now
+            if sleep_s > 0:
+                await asyncio.sleep(sleep_s)
+            self._last_started_at = time.monotonic()
+
+
+def build_model_pacers(models: list, spacing_seconds: float = 0.0) -> dict:
+    """Build one request-start pacer per model."""
+    spacing = max(0.0, float(spacing_seconds or 0.0))
+    return {m['model_name']: AsyncRequestPacer(spacing) for m in models} if spacing > 0 else {}
+
+
+class AsyncModelAvailability:
+    """Per-run circuit breaker for permanent model failures."""
+
+    def __init__(self):
+        self._disabled: dict[str, str] = {}
+        self._preflighted: set[str] = set()
+        self._lock = asyncio.Lock()
+
+    def is_disabled(self, model_id: str) -> bool:
+        return model_id in self._disabled
+
+    def is_preflighted(self, model_id: str) -> bool:
+        return model_id in self._preflighted
+
+    async def disable(self, model_id: str, reason: str) -> None:
+        async with self._lock:
+            if model_id in self._disabled:
+                return
+            self._disabled[model_id] = reason
+            logger.info(
+                f"[{model_id}] 模型本轮停用: {reason}; "
+                "后续缺缓存请求将跳过，已缓存响应仍会复用"
+            )
+
+    async def mark_preflighted(self, model_id: str) -> None:
+        async with self._lock:
+            self._preflighted.add(model_id)
+
+    async def note_transient_failure(self, model_id: str, reason: str, row_idx: int) -> None:
+        """Record a one-off transport/server failure without disabling the model."""
+        logger.info(f"[{model_id}] 行 {row_idx}: {reason}，该次结果将从投票中排除")
+
+
+AUTH_FAILURE_STATUSES = {401, 403}
+
+
+def _summarize_auth_failure(status: int, resp_text: str) -> str:
+    """Return a compact, secret-free authorization failure summary."""
+    message = ""
+    try:
+        payload = json.loads(resp_text or "{}")
+        err = payload.get("error", payload)
+        if isinstance(err, dict):
+            message = str(err.get("message") or err.get("type") or "").strip()
+    except (json.JSONDecodeError, TypeError):
+        message = str(resp_text or "").strip()
+    if "(request id:" in message:
+        message = message.split("(request id:", 1)[0].strip()
+    if len(message) > 120:
+        message = message[:117] + "..."
+    return f"状态码 {status} 授权失败" + (f" ({message})" if message else "")
+
+
+def _build_llm_request(model_id: str, api_key: str, prompt: str) -> tuple[dict, dict]:
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+    payload = {
+        "model": model_id,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": TEMPERATURE,
+        "seed": RANDOM_SEED,
+    }
+    if FORCE_JSON:
+        payload["response_format"] = {"type": "json_object"}
+    return headers, payload
+
+
+async def preflight_model_availability(
+    session: aiohttp.ClientSession,
+    models: list,
+    model_availability: AsyncModelAvailability,
+) -> None:
+    """Probe model authorization once before a high-volume batch starts."""
+    probe_timeout = aiohttp.ClientTimeout(
+        total=AUTH_PROBE_TIMEOUT,
+        connect=min(AUTH_PROBE_TIMEOUT, REQUEST_TIMEOUT_CONNECT),
+        sock_connect=min(AUTH_PROBE_TIMEOUT, REQUEST_TIMEOUT_SOCK_CONNECT),
+        sock_read=AUTH_PROBE_TIMEOUT,
+    )
+    prompt = '请只返回 JSON: {"ok": true}'
+
+    for m in models:
+        model_id = m['model_name']
+        if model_availability.is_disabled(model_id) or model_availability.is_preflighted(model_id):
+            continue
+        base_url = m.get('base_url', '')
+        api_key = m.get('api_key', '')
+        if not base_url or not api_key:
+            await model_availability.disable(model_id, "base_url 或 api_key 为空")
+            continue
+        headers, payload = _build_llm_request(model_id, api_key, prompt)
+        try:
+            async with session.post(
+                f"{base_url}/chat/completions",
+                json=payload,
+                headers=headers,
+                timeout=probe_timeout,
+            ) as resp:
+                if resp.status == 200:
+                    await model_availability.mark_preflighted(model_id)
+                    continue
+                resp_text = await resp.text()
+                if resp.status in AUTH_FAILURE_STATUSES:
+                    await model_availability.disable(
+                        model_id, _summarize_auth_failure(resp.status, resp_text)
+                    )
+                else:
+                    await model_availability.mark_preflighted(model_id)
+                    logger.info(
+                        f"[{model_id}] 模型预检返回状态码 {resp.status}; "
+                        "保留正式请求路径以复用重试策略"
+                    )
+        except asyncio.TimeoutError:
+            await model_availability.mark_preflighted(model_id)
+            logger.info(f"[{model_id}] 模型预检等待超过时限，保留正式请求路径")
+        except Exception:
+            await model_availability.mark_preflighted(model_id)
+            logger.info(f"[{model_id}] 模型预检暂不可达，保留正式请求路径")
+
+
+def _log_retryable_transport_issue(
+    model_id: str,
+    attempt: int,
+    sleep_s: float,
+    max_attempts: int = MAX_RETRIES,
+) -> None:
+    logger.debug(
+        f"[{model_id}] 连接暂不可用 "
+        f"(attempt {attempt + 1}/{max_attempts}) - 等待 {sleep_s:.1f}s 后重试..."
+    )
 
 # ── Logit-to-Score 概率映射法（稳健性检验指标）──────────────────────────
 # 将 LLM 三分类标签 + sentiment_confidence 转化为 [-1, +1] 连续分数。
@@ -169,7 +357,11 @@ logger.info(f"Logit-to-Score 概率映射: enabled={LOGIT_SCORE_ENABLED}")
 
 async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Semaphore, 
                           prompt: str, model_cfg: dict, row_idx: int, track: str,
-                          cache: LLMCache = None) -> tuple:
+                          cache: LLMCache = None,
+                          request_pacer: AsyncRequestPacer | None = None,
+                          model_availability: AsyncModelAvailability | None = None,
+                          request_timeout: aiohttp.ClientTimeout | None = None,
+                          max_retries: int | None = None) -> tuple:
     """异步请求单个模型的单篇文章，自带重试保护和缓存。
     
     model_cfg 结构示例：
@@ -193,26 +385,27 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
         if cached_response is not None:
             return row_idx, model_id, cached_response, track
 
-    # 准备请求
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-    payload = {
-        "model": model_id,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": TEMPERATURE,
-        "seed": RANDOM_SEED,
-    }
-    if FORCE_JSON:
-        payload["response_format"] = {"type": "json_object"}
+    if model_availability is not None and model_availability.is_disabled(model_id):
+        return row_idx, model_id, None, track
 
-    req_timeout = aiohttp.ClientTimeout(total=LLM_CONFIG.get('timeout', 600))
+    # 准备请求
+    headers, payload = _build_llm_request(model_id, api_key, prompt)
+
+    req_timeout = request_timeout or build_llm_timeout()
+    max_attempts = MAX_RETRIES if max_retries is None else max(1, int(max_retries))
+
+    last_failure_reason = f"连续 {max_attempts} 次请求未成功"
 
     async with semaphore:
-        for attempt in range(MAX_RETRIES):
+        for attempt in range(max_attempts):
+            if model_availability is not None and model_availability.is_disabled(model_id):
+                return row_idx, model_id, None, track
+
             sleep_s = _compute_retry_sleep(attempt)
+            has_more_attempts = attempt < max_attempts - 1
             try:
+                if request_pacer is not None:
+                    await request_pacer.wait()
                 async with session.post(f"{base_url}/chat/completions", json=payload, headers=headers, timeout=req_timeout) as resp:
                     if resp.status == 200:
                         data = await resp.json()
@@ -221,21 +414,48 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                             cache.put(model_id, prompt, result_text)
                         return row_idx, model_id, result_text, track
                     elif resp.status in (429, 500, 502, 503, 504):
-                        logger.warning(f"[{model_id}] API HTTP {resp.status} (attempt {attempt+1}/{MAX_RETRIES}) - 等待 {sleep_s:.1f}s 后重试...")
-                        await asyncio.sleep(sleep_s)
+                        last_failure_reason = f"连续 {max_attempts} 次请求未成功，最后状态码 {resp.status}"
+                        if has_more_attempts:
+                            logger.debug(
+                                f"[{model_id}] API 状态码 {resp.status} "
+                                f"(attempt {attempt+1}/{max_attempts}) - 等待 {sleep_s:.1f}s 后重试..."
+                            )
+                            await asyncio.sleep(sleep_s)
                     else:
                         resp_text = await resp.text()
+                        if resp.status in AUTH_FAILURE_STATUSES:
+                            reason = _summarize_auth_failure(resp.status, resp_text)
+                            if model_availability is not None:
+                                await model_availability.disable(model_id, reason)
+                            else:
+                                logger.info(
+                                    f"[{model_id}] 模型本轮停用: {reason}; "
+                                    "后续缺缓存请求将跳过，已缓存响应仍会复用"
+                                )
+                            return row_idx, model_id, None, track
                         logger.error(f"[{model_id}] API 错误 {resp.status}: {resp_text}")
                         break
             except asyncio.TimeoutError:
-                logger.warning(f"[{model_id}] 请求超时 (attempt {attempt+1}/{MAX_RETRIES}) - 等待 {sleep_s:.1f}s 后重试...")
-                await asyncio.sleep(sleep_s)
-            except Exception as e:
-                logger.warning(f"[{model_id}] 异常 ({type(e).__name__}): {e} (attempt {attempt+1}/{MAX_RETRIES}) - 等待 {sleep_s:.1f}s")
-                await asyncio.sleep(sleep_s)
+                last_failure_reason = f"连续 {max_attempts} 次请求等待超过时限"
+                if has_more_attempts:
+                    logger.debug(
+                        f"[{model_id}] 请求等待超过时限 "
+                        f"(attempt {attempt+1}/{max_attempts}) - 等待 {sleep_s:.1f}s 后重试..."
+                    )
+                    await asyncio.sleep(sleep_s)
+            except Exception:
+                last_failure_reason = f"连续 {max_attempts} 次连接暂不可用"
+                if has_more_attempts:
+                    _log_retryable_transport_issue(model_id, attempt, sleep_s, max_attempts)
+                    await asyncio.sleep(sleep_s)
 
-    # 所有重试均失败，返回 None 标记（区别于空 JSON，避免影响多数投票）
-    logger.warning(f"[{model_id}] 行 {row_idx}: 所有 {MAX_RETRIES} 次重试均失败，该模型结果将从投票中排除")
+    # 所有重试均失败，返回 None 标记（区别于空 JSON，避免影响多数投票）。
+    # 5xx/429/网络抖动通常是瞬时问题，不能因此停用整轮模型；否则大样本验证会
+    # 因单次故障跳过后续缺缓存请求，扭曲稳健性指标。
+    if model_availability is not None:
+        await model_availability.note_transient_failure(model_id, last_failure_reason, row_idx)
+    else:
+        logger.info(f"[{model_id}] 行 {row_idx}: {last_failure_reason}，该模型结果将从投票中排除")
     return row_idx, model_id, None, track
 
 async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -> dict:
@@ -254,12 +474,11 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
     logger.info(f"逐条请求: {len(df)} 条新闻 × {len(models)} 模型 × 2 轨道 = {total_tasks} 个请求")
     
     # 连接池优化：复用 TCP 连接 + keepalive，减少握手和 TLS 协商开销
-    connector = aiohttp.TCPConnector(
-        limit=MAX_CONCURRENCY,        # 连接池大小与并发数匹配
-        keepalive_timeout=30,         # 连接保活 30 秒
-        enable_cleanup_closed=True,   # 自动清理已关闭连接
-    )
-    async with aiohttp.ClientSession(connector=connector) as session:
+    connector = build_llm_connector(MAX_CONCURRENCY)
+    request_pacers = build_model_pacers(models, LLM_CONFIG.get('request_spacing_seconds', 0.0))
+    model_availability = AsyncModelAvailability()
+    async with aiohttp.ClientSession(connector=connector, timeout=build_llm_timeout()) as session:
+        await preflight_model_availability(session, models, model_availability)
         # 构建任务列表：每行 x 每轨道 x 每模型
         real_tasks = []
         for idx, row in df.iterrows():
@@ -275,7 +494,13 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
                     co_mentioned_banks=str(row.get('co_mentioned_banks', '无')),
                 )
                 for m in models:
-                    real_tasks.append(fetch_llm_async(session, semaphore, prompt, m, idx, track, cache=cache))
+                    real_tasks.append(
+                        fetch_llm_async(
+                            session, semaphore, prompt, m, idx, track, cache=cache,
+                            request_pacer=request_pacers.get(m['model_name']),
+                            model_availability=model_availability,
+                        )
+                    )
         
         completed = 0
         total = len(real_tasks)
@@ -307,7 +532,7 @@ def parse_json_response(res_text: str) -> dict:
     容错策略:
     1. 自动去除 markdown 代码块包围(```json ... ```),
        因为部分模型(如 GPT 系列)倾向于在 JSON 响应外添加代码块标记。
-    2. 若解析结果是 list (xAI Grok 偶尔返回 [{...}] 数组包裹形式),
+    2. 若解析结果是 list (DeepSeek Grok 偶尔返回 [{...}] 数组包裹形式),
        且首元素为 dict, 则解包返回首元素。
     3. 任何其他非 dict 解析结果统一返回 {}, 由上层视为"模型缺席"通道。
     """
@@ -728,7 +953,7 @@ def main():
         1. 加载 stage 12/14 上游 + schema 守护 (含 ``stage 14 fallback to 12``
            硬化反模式根除, 见 line 727-732 的 "Step 4(a) 硬化")
         2. 双轨数据准备 + content/ctx 物化
-        3. 三家族 LLM (gpt5nano / gemini3 / grok41) 并发请求 +
+        3. 三家族 LLM (gpt54nano / gemini31111 / deepseekv4) 并发请求 +
            majority-vote ensemble (logit-to-score)
         4. SQLite 缓存读写 (P3-17 拟升级缓存键含 prompt_version)
         5. N8 lineage 记录 + parquet 双轨输出
@@ -1088,18 +1313,25 @@ def main():
             async def _run_title_batches():
                 """批量调用LLM获取标题情感"""
                 semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
-                connector = aiohttp.TCPConnector(limit=MAX_CONCURRENCY * 2)
-                timeout = aiohttp.ClientTimeout(total=LLM_CONFIG.get('timeout', 600))
+                connector = build_llm_connector(MAX_CONCURRENCY)
+                timeout = build_llm_timeout()
+                request_pacers = build_model_pacers(MODELS, LLM_CONFIG.get('request_spacing_seconds', 0.0))
+                model_availability = AsyncModelAvailability()
 
                 # {batch_idx: {model_id: response_text}}
                 batch_results = {}
 
                 async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+                    await preflight_model_availability(session, MODELS, model_availability)
                     tasks = []
                     for b_idx, (b_indices, b_titles, prompt) in enumerate(batches):
                         for m in MODELS:
                             tasks.append(
-                                fetch_llm_async(session, semaphore, prompt, m, b_idx, 'title', cache=cache)
+                                fetch_llm_async(
+                                    session, semaphore, prompt, m, b_idx, 'title', cache=cache,
+                                    request_pacer=request_pacers.get(m['model_name']),
+                                    model_availability=model_availability,
+                                )
                             )
 
                     results = await asyncio.gather(*tasks, return_exceptions=True)

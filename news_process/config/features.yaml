@@ -3,9 +3,9 @@
 # Original section ownership preserved; comments may have been re-flowed during round-trip.
 
 embedding_api:
-  model: text-embedding-3-small
-  base_url: https://yunwu.ai/v1
-  api_key: ${EMBEDDING_API_KEY}
+  model: shibing624/text2vec-base-chinese
+  base_url: local
+  api_key: local
 
 benefit_society:
   max_tokens_per_input: 8191        # 单条输入 token 上限 (text-embedding-3-small 硬性上限)

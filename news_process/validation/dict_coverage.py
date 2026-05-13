@@ -219,7 +219,7 @@ def analysis_1_marginal_distribution(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  【边际通过率】: {marginal_rate:.1%} "
                  f"({marginal_count:,} / {total:,})")
     if marginal_rate > 0.15:
-        logger.info(f"    ⚠ 超过 15% 的安全阈值! 说明大量文章是'勉强通过'的,")
+        logger.info(f"    超过 15% 的安全阈值! 说明大量文章是'勉强通过'的,")
         logger.info(f"      词典可能不够丰富, 无法充分覆盖金融科技术语。")
     else:
         logger.info(f"    ✓ 在 15% 安全阈值以内, 词典在阈值区域表现健康。")
@@ -324,7 +324,7 @@ def analysis_2_monotonicity_test(df: pd.DataFrame,
         if abs(diff_pp) < 3.0:
             logger.info(f"    ✓ 差异不足 3 百分点, 可视为无实质差异 → 词典精度在各级别上保持稳定")
         else:
-            logger.info(f"    ⚠ 差异超过 3 百分点 → 边际组混入了更多噪声,")
+            logger.info(f"    差异超过 3 百分点 → 边际组混入了更多噪声,")
             logger.info(f"      即踩线文章中有较多'伪金融科技新闻'被关键词过滤放行")
     else:
         logger.warning("  边际组或高命中组为空, 无法计算效应量")
@@ -367,7 +367,7 @@ def analysis_2_monotonicity_test(df: pd.DataFrame,
             elif ca_result['p_value'] >= 0.05:
                 logger.info(f"    结果不显著 (p≥0.05): 验证率在各组之间没有明确的变化趋势。")
             else:
-                logger.info(f"    ⚠ {trend_msg}, 这是异常信号。")
+                logger.info(f"    {trend_msg}, 这是异常信号。")
 
             results_df.attrs['ca_statistic'] = ca_result['statistic']
             results_df.attrs['ca_p_value'] = ca_result['p_value']
@@ -463,7 +463,7 @@ def analysis_3_keyword_concentration(df: pd.DataFrame) -> tuple:
         logger.info(f"  【有效关键词数 ENK = 1/HHI】: {enk:.1f}")
         logger.info(f"    ENK 表示'如果所有关键词被均匀使用, 等效于有多少个词在工作'。")
         if enk < 50:
-            logger.info(f"    ⚠ ENK < 50, 说明词典虽然有 {len(keyword_counter)} 个命中词,")
+            logger.info(f"    ENK < 50, 说明词典虽然有 {len(keyword_counter)} 个命中词,")
             logger.info(f"      但实际上只有约 {enk:.0f} 个词在真正发挥作用。")
         else:
             logger.info(f"    ✓ ENK ≥ 50, 关键词使用相对分散, 词典有效覆盖面较好。")
@@ -483,7 +483,7 @@ def analysis_3_keyword_concentration(df: pd.DataFrame) -> tuple:
     logger.info(f"  【有效覆盖率】: {coverage_rate:.1%}")
     logger.info(f"    即词典中实际在语料中命中过的词占总词表的比例。")
     if coverage_rate < 0.50:
-        logger.info(f"    ⚠ 有效覆盖率低于 50%, 超过一半的词典词条是'死词',")
+        logger.info(f"    有效覆盖率低于 50%, 超过一半的词典词条是'死词',")
         logger.info(f"      建议清理这些无效词条, 或检查词典与语料的匹配度。")
     else:
         logger.info(f"    ✓ 有效覆盖率 ≥ 50%, 词典与语料匹配度尚可。")
@@ -556,9 +556,9 @@ def analysis_4_temporal_stability(df_full: pd.DataFrame) -> pd.DataFrame:
         overall_trend = np.polyfit(range(len(trend_df)),
                                     trend_df['overall_pass_rate'].values, 1)[0]
         if marginal_trend > 0.005 and overall_trend < -0.005:
-            logger.info("  ⚠ 趋势信号: 边际率↑ + 总体率↓ → 词典可能老化")
+            logger.info("  趋势信号: 边际率↑ + 总体率↓ → 词典可能老化")
         elif marginal_trend > 0.005:
-            logger.info("  ⚠ 趋势信号: 边际率有上升趋势")
+            logger.info("  趋势信号: 边际率有上升趋势")
         else:
             logger.info("  ✓ 边际率稳定, 无明显老化信号")
 
@@ -605,7 +605,7 @@ def analysis_5a_grey_zone_stats(df_full: pd.DataFrame) -> dict:
     logger.info(f"  被拒绝 (fintech=False): {n_rejected:,}")
     logger.info(f"    零命中 (distinct=0): {n_zero:,} ({pct_zero:.1%})")
     logger.info(f"    灰色地带 (1≤distinct<{T}): {n_grey:,} ({pct_grey:.1%})"
-                 f" {'⚠ > 10%' if pct_grey > 0.10 else '✓'}")
+                 f" {'> 10%' if pct_grey > 0.10 else '✓'}")
 
     if has_kw_col and n_grey > 0:
         grey_dist = grey_zone['fintech_distinct_keywords'].value_counts().sort_index()
@@ -757,7 +757,7 @@ def analysis_5b_llm_cross_validation(grey_zone_df: pd.DataFrame):
             lo, hi = wilson_ci(fnr_overall, len(valid))
             logger.info(f"  【总体 FNR】: {fnr_overall:.1%} "
                          f"95% CI [{lo:.1%}, {hi:.1%}]"
-                         f" ({'⚠ > 20%' if fnr_overall > 0.20 else '✓'})")
+                         f" ({'> 20%' if fnr_overall > 0.20 else '✓'})")
 
             # 分层报告
             for d_val in sorted(valid['distinct_keywords'].unique()):
@@ -823,7 +823,7 @@ def log_summary(marginal_rate: float, effect_size: float,
         logger.info("  ✓ 词典覆盖率审计通过, 未发现系统性缺陷。")
         logger.info("    当前静态词典的覆盖能力满足需求, 暂不需要引入 ML 关键词发现算法。")
     else:
-        logger.info(f"  ⚠ 发现 {len(issues)} 项需关注的问题:")
+        logger.info(f"  发现 {len(issues)} 项需关注的问题:")
         for i, issue in enumerate(issues, 1):
             logger.info(f"    {i}. {issue}")
         logger.info("")

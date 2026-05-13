@@ -751,7 +751,7 @@ def analyze_temporal_stability(df: pd.DataFrame, stage_name: str,
         elif avg_jac >= 0.5:
             logger.info(f"  ℹ️  平均 Jaccard={avg_jac:.3f}, 媒体构成有一定变动")
         else:
-            logger.info(f"  ⚠ 平均 Jaccard={avg_jac:.3f} < 0.50, 媒体构成跨年变动较大")
+            logger.info(f"  平均 Jaccard={avg_jac:.3f} < 0.50, 媒体构成跨年变动较大")
 
     return trend_df
 
@@ -868,7 +868,7 @@ def compute_cross_stage_delta(overview_rows: list,
         logger.info(f"    媒体存留率: {r['媒体存留率']:.2%} | "
                      f"Jaccard相似度: {r['Jaccard相似度']:.4f}")
         if abs(r['HHI变化率(%)']) > 20:
-            logger.info(f"    ⚠ HHI 变化超过 20%, 该阶段对媒体集中度影响显著")
+            logger.info(f"    HHI 变化超过 20%, 该阶段对媒体集中度影响显著")
 
     return delta_df
 
@@ -906,20 +906,20 @@ def log_comprehensive_summary(final_metrics: dict,
 
     logger.info(f"    · 最终唯一媒体数:       {n_media}")
     logger.info(f"    · HHI:                  {hhi:.6f}      "
-                 f"({'✓ <0.10 分散' if hhi < 0.10 else '⚠ ≥0.10 集中'})")
+                 f"({'✓ <0.10 分散' if hhi < 0.10 else '≥0.10 集中'})")
     logger.info(f"    · 等效媒体数 ENM:       {enm:.0f}          "
                  f"[Laakso1979]")
     logger.info(f"    · Pielou 均匀度 J':     {evenness:.4f}    "
-                 f"({'✓ ≥0.70' if evenness >= 0.70 else '⚠ <0.70'})")
+                 f"({'✓ ≥0.70' if evenness >= 0.70 else '<0.70'})")
     logger.info(f"    · Gini 系数:            {gini:.4f}    "
-                 f"({'✓ <0.80' if gini < 0.80 else '⚠ ≥0.80 高度不均'})")
+                 f"({'✓ <0.80' if gini < 0.80 else '≥0.80 高度不均'})")
     logger.info(f"    · Tier 1-5 报道占比:    {rated_pct:.1f}%    "
-                 f"({'✓ ≥40%' if rated_pct >= 40 else '⚠ <40%'})")
+                 f"({'✓ ≥40%' if rated_pct >= 40 else '<40%'})")
     logger.info(f"    · 唯一地域数:           {n_region}")
     logger.info(f"    · 地域 HHI:             {region_hhi:.6f}")
     logger.info(f"    · 地域均匀度:           {region_evenness:.4f}")
     logger.info(f"    · 省份覆盖率:           {coverage:.1%}    "
-                 f"({'✓ ≥80%' if coverage >= 0.80 else '⚠ <80%'})")
+                 f"({'✓ ≥80%' if coverage >= 0.80 else '<80%'})")
 
     # 自动化判定
     issues = []
@@ -940,7 +940,7 @@ def log_comprehensive_summary(final_metrics: dict,
     if issues:
         logger.info(f"  发现 {len(issues)} 项关注事项:")
         for i, issue in enumerate(issues, 1):
-            logger.info(f"    {i}. ⚠ {issue}")
+            logger.info(f"    {i}. {issue}")
     else:
         logger.info("  ✓ 所有指标均在健康范围内, 媒体多样性表现良好。")
 

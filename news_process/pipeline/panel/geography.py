@@ -310,7 +310,7 @@ def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
                       .groupby('year')[col].std())
         mean_std = within_std.mean()
         if pd.notna(mean_std):
-            ok = '✓' if abs(mean_std - 1.0) < 0.1 else '⚠️'
+            ok = '✓' if abs(mean_std - 1.0) < 0.1 else '需关注'
             logger.info(f"  校验 {col}: 年内 std 均值 = "
                         f"{mean_std:.4f} {ok}")
 
@@ -358,7 +358,7 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
         银行级 (N≈1768) → 城市级 (329) → 省级 (31)
       可检验系数显著性对聚类层级的稳健性。
 
-      ⚠️ Cameron & Miller (2015, JHR) 指出: 聚类数 < 50 时,
+      注意: Cameron & Miller (2015, JHR) 指出: 聚类数 < 50 时,
       渐近正态近似不准确, 标准聚类标准误可能偏小。
       31 个省级聚类低于此门槛, 建议在 Stata 中补充
       wild cluster bootstrap (boottest 命令) 进行确认。
@@ -452,9 +452,9 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
     n_prov = panel[panel['bank_province'] != '']['bank_province'].nunique()
     n_city = panel[panel['bank_city'] != '']['bank_city'].nunique()
     logger.info(f"  省份聚类数: {n_prov} "
-                f"{'⚠️ < 50, 建议补充 wild cluster bootstrap' if n_prov < 50 else '✓ ≥ 50'}")
+                f"{'< 50, 建议补充 wild cluster bootstrap' if n_prov < 50 else '✓ ≥ 50'}")
     logger.info(f"  城市聚类数: {n_city} "
-                f"{'⚠️ < 50' if n_city < 50 else '✓ ≥ 50'}")
+                f"{'< 50' if n_city < 50 else '✓ ≥ 50'}")
 
     # ── 分布摘要 (供审查地理覆盖合理性) ──
     prov_dist = panel[panel['bank_province'] != '']['bank_province'].value_counts()

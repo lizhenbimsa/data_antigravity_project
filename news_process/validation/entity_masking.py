@@ -64,7 +64,9 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.config import load_config
+from news_process.core.caching import LLMCache
 from news_process.core.logging import setup_logging
+from news_process.core.plotting import configure_matplotlib_chinese_fonts
 from news_process.core.reporting import save_dataset
 
 # ============================================================================
@@ -74,12 +76,18 @@ from news_process.core.reporting import save_dataset
 CONFIG = load_config()
 STAGE_NAME = "36_entity_masking_test"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
+configure_matplotlib_chinese_fonts()
 
 # Phase 7a-4: 21_tone_llms 已 thin shim 化, body 迁至 news_process.pipeline.sentiment.tone_llms
 # 直接从规范包路径取内部函数, 不再走数字前缀文件名 import_module
 _tone_llms = import_module('news_process.pipeline.sentiment.tone_llms')
 fetch_llm_async  = _tone_llms.fetch_llm_async
 _aggregate_track = _tone_llms._aggregate_track
+build_llm_connector = _tone_llms.build_llm_connector
+build_llm_timeout = _tone_llms.build_llm_timeout
+build_model_pacers = _tone_llms.build_model_pacers
+AsyncModelAvailability = _tone_llms.AsyncModelAvailability
+preflight_model_availability = _tone_llms.preflight_model_availability
 MODELS           = _tone_llms.MODELS
 PROMPT_TEMPLATE  = _tone_llms.PROMPT_TEMPLATE
 MAX_CONCURRENCY  = _tone_llms.MAX_CONCURRENCY
@@ -95,9 +103,25 @@ compute_cohens_kappa = _eval.compute_cohens_kappa
 EM_CFG = CONFIG.get('entity_masking_test', {})
 PLACEHOLDER = EM_CFG.get('placeholder', '目标银行A')
 PEER_TEMPLATE = EM_CFG.get('peer_placeholder_template', '同业银行{}')
+ENTITY_MASKING_MAX_CONCURRENCY = max(1, min(MAX_CONCURRENCY, int(EM_CFG.get('max_concurrency', 20))))
+ENTITY_MASKING_REQUEST_SPACING = float(EM_CFG.get('request_spacing_seconds', 0.0))
+ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS = float(
+    EM_CFG.get('request_timeout_seconds', min(60.0, _tone_llms.REQUEST_TIMEOUT_TOTAL))
+)
+ENTITY_MASKING_MAX_RETRIES = max(1, min(_tone_llms.MAX_RETRIES, int(EM_CFG.get('max_retries', 1))))
 
 # 双轨标识
 TRACKS = ['full', 'ctx']
+
+
+def _build_entity_masking_llm_timeout() -> aiohttp.ClientTimeout:
+    timeout_s = max(1.0, ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS)
+    return aiohttp.ClientTimeout(
+        total=timeout_s,
+        connect=min(timeout_s, _tone_llms.REQUEST_TIMEOUT_CONNECT),
+        sock_connect=min(timeout_s, _tone_llms.REQUEST_TIMEOUT_SOCK_CONNECT),
+        sock_read=timeout_s,
+    )
 
 
 # ============================================================================
@@ -201,7 +225,12 @@ def verify_masking_completeness(
 # 4. LLM 调用（掩码后文本，双轨）
 # ============================================================================
 
-async def run_masked_llms(df_masked: pd.DataFrame, models: list) -> dict:
+async def run_masked_llms(
+    df_masked: pd.DataFrame,
+    models: list,
+    cache: LLMCache | None = None,
+    model_availability: AsyncModelAvailability | None = None,
+) -> dict:
     """对掩码后数据执行 LLM 判定（full + ctx 双轨）。
 
     Args:
@@ -212,13 +241,16 @@ async def run_masked_llms(df_masked: pd.DataFrame, models: list) -> dict:
         dict: {row_idx: {'full': {model_id: response_text},
                          'ctx':  {model_id: response_text}}}
     """
-    semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
+    semaphore = asyncio.Semaphore(ENTITY_MASKING_MAX_CONCURRENCY)
     results_map = {i: {'full': {}, 'ctx': {}} for i in df_masked.index}
 
-    connector = aiohttp.TCPConnector(
-        limit=MAX_CONCURRENCY, keepalive_timeout=30, enable_cleanup_closed=True,
-    )
-    async with aiohttp.ClientSession(connector=connector) as session:
+    connector = build_llm_connector(ENTITY_MASKING_MAX_CONCURRENCY)
+    request_pacers = build_model_pacers(models, ENTITY_MASKING_REQUEST_SPACING)
+    request_timeout = _build_entity_masking_llm_timeout()
+    if model_availability is None:
+        model_availability = AsyncModelAvailability()
+    async with aiohttp.ClientSession(connector=connector, timeout=request_timeout) as session:
+        await preflight_model_availability(session, models, model_availability)
         tasks = []
         for idx, row in df_masked.iterrows():
             for track in TRACKS:
@@ -231,11 +263,21 @@ async def run_masked_llms(df_masked: pd.DataFrame, models: list) -> dict:
                 )
                 for m in models:
                     tasks.append(
-                        fetch_llm_async(session, semaphore, prompt, m, idx, track)
+                        fetch_llm_async(
+                            session, semaphore, prompt, m, idx, track, cache=cache,
+                            request_pacer=request_pacers.get(m['model_name']),
+                            model_availability=model_availability,
+                            request_timeout=request_timeout,
+                            max_retries=ENTITY_MASKING_MAX_RETRIES,
+                        )
                     )
 
         logger.info(f"🔬 Entity Masking LLM 双轨请求: "
-                    f"{len(df_masked)} 条 × {len(models)} 模型 × 2 轨道 = {len(tasks)} 请求")
+                    f"{len(df_masked)} 条 × {len(models)} 模型 × 2 轨道 = {len(tasks)} 请求, "
+                    f"concurrency={ENTITY_MASKING_MAX_CONCURRENCY}, "
+                    f"per_model_spacing={ENTITY_MASKING_REQUEST_SPACING:.2f}s, "
+                    f"timeout={ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS:.0f}s, "
+                    f"retries={ENTITY_MASKING_MAX_RETRIES}")
 
         completed = 0
         total = len(tasks)
@@ -597,18 +639,43 @@ def main():
                     f"零替换 {n_zero} 条")
 
     # ── Step 5: 调用 LLM（掩码后文本，双轨）──
-    masked_llm_results = asyncio.run(run_masked_llms(df_sample, MODELS))
+    cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
+    with LLMCache(cache_db) as cache:
+        logger.info(f"Entity Masking LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
+        masked_llm_results = asyncio.run(
+            run_masked_llms(
+                df_sample, MODELS, cache=cache,
+                model_availability=AsyncModelAvailability(),
+            )
+        )
 
     # ── Step 6: 解析 + 投票（双轨）──
     for idx in df_sample.index:
         row_res = masked_llm_results.get(idx, {'full': {}, 'ctx': {}})
 
         for track in TRACKS:
-            final_v, final_s, agree_rate, parsed, _, _, _, _, n_fail, _ = \
-                _aggregate_track(row_res.get(track, {}), MODELS)
+            (
+                final_v, final_s,
+                agree_rate_v, agree_rate_s,
+                n_valid_votes, n_verifying_votes,
+                call_failure, undefined,
+                parsed, topics, llm_categories, text_types,
+                n_fail, avg_prob_score,
+            ) = _aggregate_track(row_res.get(track, {}), MODELS)
 
             df_sample.at[idx, f'masked_verified_{track}'] = final_v
             df_sample.at[idx, f'masked_sentiment_{track}'] = final_s
+            df_sample.at[idx, f'masked_agreement_rate_v_{track}'] = agree_rate_v
+            df_sample.at[idx, f'masked_agreement_rate_s_{track}'] = agree_rate_s
+            df_sample.at[idx, f'masked_n_valid_votes_{track}'] = n_valid_votes
+            df_sample.at[idx, f'masked_n_verifying_votes_{track}'] = n_verifying_votes
+            df_sample.at[idx, f'masked_call_failure_{track}'] = call_failure
+            df_sample.at[idx, f'masked_undefined_{track}'] = undefined
+            df_sample.at[idx, f'masked_n_failures_{track}'] = n_fail
+            df_sample.at[idx, f'masked_avg_prob_score_{track}'] = avg_prob_score
+            df_sample.at[idx, f'masked_topics_{track}'] = ';'.join(topics)
+            df_sample.at[idx, f'masked_llm_categories_{track}'] = ';'.join(llm_categories)
+            df_sample.at[idx, f'masked_text_types_{track}'] = ';'.join(text_types)
 
             for m in MODELS:
                 short = m['short_name']
@@ -661,8 +728,8 @@ def main():
     delta_ver = abs(results['full']['verification_consistency'] - results['ctx']['verification_consistency'])
     delta_kappa = abs(results['full']['cohens_kappa']['kappa'] - results['ctx']['cohens_kappa']['kappa'])
     if delta_ver > 0.05 or delta_kappa > 0.05:
-        logger.warning(f"⚠️ 双轨差异较大: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
-        logger.warning("   提示: 文本输入粒度可能影响稳健性，建议检查 ctx 提取质量")
+        logger.info(f"   双轨差异较大: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
+        logger.info("   提示: 文本输入粒度可能影响稳健性，建议检查 ctx 提取质量")
     else:
         logger.info(f"   双轨差异正常: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
 

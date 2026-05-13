@@ -294,7 +294,7 @@ def build_non_fintech(df_full: pd.DataFrame,
     logger.info("    本脚本等价操作: Fintech 面板文章 + Non-Fintech 对照组 = 全量银行新闻")
     logger.info("")
     logger.info("  数据处理说明:")
-    logger.info("    ⚠️ 关键技术细节: 40_article_bank_level 中 '日期' 列已被")
+    logger.info("    关键技术细节: 40_article_bank_level 中 '日期' 列已被")
     logger.info("      41_panel_encode_aggregate.py parse_time() 转为 datetime64 类型,")
     logger.info("      而 12_fintech_news_full 中 '日期' 仍为原始 string 类型。")
     logger.info("      为避免类型不匹配导致 anti-join 静默失败,")
@@ -316,9 +316,9 @@ def build_non_fintech(df_full: pd.DataFrame,
     full_nat = df_full['_date_str'].isna().sum()
     art_nat = df_art['_date_str'].isna().sum()
     if full_nat > 0:
-        logger.warning(f"  ⚠️ 12_fintech_news_full 中 {full_nat:,} 条日期解析为 NaT")
+        logger.warning(f"  12_fintech_news_full 中 {full_nat:,} 条日期解析为 NaT")
     if art_nat > 0:
-        logger.warning(f"  ⚠️ 40_article_bank_level 中 {art_nat:,} 条日期解析为 NaT")
+        logger.warning(f"  40_article_bank_level 中 {art_nat:,} 条日期解析为 NaT")
 
     # 构建面板文章的复合键集合
     logger.info("")
@@ -406,7 +406,7 @@ def build_non_fintech(df_full: pd.DataFrame,
         # 双侧 drop_duplicates 后理论上必有 panel + nf == total; 仍不等说明
         # df_art 中存在 (target_bank, 标题, 日期) 落在 df_full 之外的"幽灵键"
         diff = n_panel + n_nf - n_total
-        logger.warning(f"  ⚠️ 去重后三分类不等式仍不成立! panel+nf-total = {diff:,} 条。")
+        logger.warning(f"  去重后三分类不等式仍不成立! panel+nf-total = {diff:,} 条。")
         logger.warning("     可能原因: df_art 中存在 df_full 未覆盖的 (target_bank, 标题, 日期) 组合,")
         logger.warning("              即上游 ETL 漏抓部分稿件; 请检查 12 与 40 的覆盖一致性。")
         logger.warning(f"     影响评估: 差异量占总量 {abs(diff) / n_total * 100:.4f}%, 通常可忽略。")
@@ -470,7 +470,7 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
 
     # 处理空输入
     if len(df_nf) == 0:
-        logger.warning("  ⚠️ Non-Fintech 组为空, 将返回空聚合结果")
+        logger.warning("  Non-Fintech 组为空, 将返回空聚合结果")
         return pd.DataFrame(columns=[
             'target_bank', 'year', 'nf_n_articles', 'nf_ln_coverage',
             'nf_media_breadth', 'nf_headline_frac'
@@ -489,7 +489,7 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     after_drop = len(df_nf)
     dropped = before_drop - after_drop
     if dropped > 0:
-        logger.warning(f"  ⚠️ 丢弃 {dropped:,} 条无效日期记录 "
+        logger.warning(f"  丢弃 {dropped:,} 条无效日期记录 "
                         f"({dropped / max(before_drop, 1) * 100:.2f}%)")
     logger.info(f"  有效记录: {after_drop:,} 条")
 
@@ -507,7 +507,7 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     has_headline = headline_col in df_nf.columns
     logger.info(f"  标题提及列 '{headline_col}' {'✓ 存在' if has_headline else '✗ 不存在'}")
     if has_headline:
-        logger.info(f"    ⚠️ 技术备注: 列名是 '{headline_col}' (来自 11_news_bank.py),")
+        logger.info(f"    技术备注: 列名是 '{headline_col}' (来自 11_news_bank.py),")
         logger.info(f"       而非 'in_title' (45_panel_export_main.py main() 中的重命名版本)")
 
     nf_agg = df_nf.groupby(['target_bank', '_year']).agg(
@@ -523,7 +523,7 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
         media_breadth.columns = ['target_bank', 'year', 'nf_media_breadth']
         nf_agg = nf_agg.merge(media_breadth, on=['target_bank', 'year'], how='left')
     else:
-        logger.warning(f"  ⚠️ 列 '{media_col}' 不存在, nf_media_breadth 将为 0")
+        logger.warning(f"  列 '{media_col}' 不存在, nf_media_breadth 将为 0")
         nf_agg['nf_media_breadth'] = 0
 
     # 标题提及率
@@ -534,7 +534,7 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
         headline_frac.columns = ['target_bank', 'year', 'nf_headline_frac']
         nf_agg = nf_agg.merge(headline_frac, on=['target_bank', 'year'], how='left')
     else:
-        logger.warning(f"  ⚠️ 列 '{headline_col}' 不存在, nf_headline_frac 将为 0")
+        logger.warning(f"  列 '{headline_col}' 不存在, nf_headline_frac 将为 0")
         nf_agg['nf_headline_frac'] = 0
 
     # 对数覆盖量 [Fang & Peress 2009]
@@ -642,7 +642,7 @@ def merge_to_panel(panel: pd.DataFrame,
     new_cols = set(panel.columns) - panel_before_cols
     conflict_cols = new_cols & panel_before_cols
     if conflict_cols:
-        logger.warning(f"  ⚠️ 变量名冲突 (已覆盖原面板列): {conflict_cols}")
+        logger.warning(f"  变量名冲突 (已覆盖原面板列): {conflict_cols}")
     else:
         logger.info(f"  变量名冲突检查: ✓ 无冲突 (所有新变量使用 nf_/all_/fintech_ 前缀)")
 
@@ -703,7 +703,7 @@ def run_diagnostics(panel: pd.DataFrame):
             diag_cols.append(c)
 
     if len(diag_cols) < 2:
-        logger.warning("  ⚠️ 可用诊断列不足, 跳过相关矩阵")
+        logger.warning("  可用诊断列不足, 跳过相关矩阵")
         return None
 
     # 仅保留有新闻的行
@@ -750,7 +750,7 @@ def run_diagnostics(panel: pd.DataFrame):
                 logger.info(f"     |r| = {r_abs:.4f} ∈ [0.30, 0.70) → 中等相关")
                 logger.info(f"     解读: 存在一定关联,Stata 回归中应同时控制 non-fintech 变量。")
             else:
-                logger.info(f"  ⚠️ r({tone_col}, {c}) = {r:.4f}")
+                logger.info(f"  r({tone_col}, {c}) = {r:.4f}")
                 logger.info(f"     |r| = {r_abs:.4f} ≥ 0.70 → 高度相关")
                 logger.info(f"     解读: 需警惕多重共线性,可能削弱赛马回归的区分效力。")
 
@@ -766,7 +766,7 @@ def run_diagnostics(panel: pd.DataFrame):
                 logger.error("  ✗ r < -0.95: 疑似机械关联, "
                              "百分比约束未被对数变换消除!")
             elif r_elast < -0.5:
-                logger.warning(f"  ⚠️ r ∈ (-0.95, -0.50): 中等负相关, "
+                logger.warning(f"  r ∈ (-0.95, -0.50): 中等负相关, "
                                f"回归中应注意共线性")
             else:
                 logger.info(f"  ✓ r > -0.50: 非机械关联, "
@@ -856,7 +856,7 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
         logger.info(f"  ✓ 已导出 Stata 文件: {dta_path}")
         logger.info(f"    Stata 列数: {len(clean_cols)}")
     except Exception as e:
-        logger.warning(f"  ⚠️ Stata 导出失败: {e}")
+        logger.warning(f"  Stata 导出失败: {e}")
 
     # 相关矩阵 CSV
     if pearson_corr is not None:
@@ -1048,7 +1048,7 @@ def diagnose_fintech_classification_consistency(panel: pd.DataFrame,
             corr = valid['tech_frac'].corr(valid['n_articles'])
             result['tech_frac_vs_n_articles'] = round(corr, 4)
             lg.info(f"  tech_frac × n_articles: r = {corr:.4f}"
-                    f" {'✓ 正相关' if corr > 0.1 else '⚠️ 低相关'}")
+                    f" {'✓ 正相关' if corr > 0.1 else '低相关'}")
 
     # (2) 年度均值趋势
     if 'tech_frac' in panel.columns and 'year' in panel.columns:
@@ -1066,7 +1066,7 @@ def diagnose_fintech_classification_consistency(panel: pd.DataFrame,
                 trend_corr = np.corrcoef(years, vals)[0, 1]
                 result['trend_correlation'] = round(trend_corr, 4)
                 lg.info(f"  时间趋势相关系数: r = {trend_corr:.4f}"
-                        f" {'✓ 上升趋势' if trend_corr > 0.3 else '⚠️ 无明显趋势'}")
+                        f" {'✓ 上升趋势' if trend_corr > 0.3 else '无明显趋势'}")
 
     # (3) 外部验证建议
     lg.info("  ── 外部验证建议 (如有数据可用) ──")
@@ -1129,7 +1129,7 @@ def diagnose_alias_matching_quality(panel: pd.DataFrame,
     outliers = bank_avg[bank_avg > threshold]
     if len(outliers) > 0:
         result['outlier_banks'] = list(outliers.index[:5])
-        lg.info(f"  ⚠️ 高匹配异常值 (>3σ={threshold:.0f}): "
+        lg.info(f"  高匹配异常值 (>3σ={threshold:.0f}): "
                 f"{list(outliers.index[:5])}")
     else:
         lg.info(f"  ✓ 无高匹配异常值 (3σ={threshold:.0f})")
@@ -1140,7 +1140,7 @@ def diagnose_alias_matching_quality(panel: pd.DataFrame,
     lg.info(f"  零匹配 Bank-Year: {(panel['n_articles']==0).sum()}/{len(panel)} "
             f"({zero_pct*100:.1f}%)")
     if zero_pct > 0.5:
-        lg.info(f"  ⚠️ 零匹配比例较高, 建议检查关键词阈值或银行名称覆盖度")
+        lg.info(f"  零匹配比例较高, 建议检查关键词阈值或银行名称覆盖度")
 
     return result
 

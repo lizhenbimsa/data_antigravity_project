@@ -601,7 +601,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
         - **时间段**: 按年度 / 按 DCEP 政策时点前后
         - **词典覆盖率**: 高 (>=10 词) / 中 / 低 / 零覆盖
 
-    每个 strata 内分别计算 LLM 三家族 (gpt5nano/gemini3/grok41) 与
+    每个 strata 内分别计算 LLM 三家族 (gpt54nano/gemini31111/deepseekv4) 与
     词典法 / BERT 的两两 Cohen Kappa + 多家族投票一致性.
 
     Args:
@@ -737,7 +737,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                         }
                         if p_val < 0.05 and rho < 0:
                             logger_inst.warning(
-                                f"  ⚠️ 年际一致性趋势: α 呈显著下降 "
+                                f"  年际一致性趋势: α 呈显著下降 "
                                 f"(ρ={rho:.3f}, p={p_val:.3f}, n={n_valid}年)"
                             )
                             logger_inst.warning(
@@ -886,7 +886,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
                     delta = alpha_high - alpha_low
                     if delta > 0.10:
                         logger_inst.warning(
-                            f"  ⚠️ 覆盖率依赖: Δα={delta:+.3f}，"
+                            f"  覆盖率依赖: Δα={delta:+.3f}，"
                             f"词典法锚点在低覆盖率文章中不可靠"
                         )
                     else:
@@ -1348,9 +1348,9 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
             if ece_value < 0.05:
                 quality = '✅ 校准良好 (< 0.05)'
             elif ece_value < 0.10:
-                quality = '⚠️ 校准一般 (0.05-0.10)'
+                quality = '校准一般 (0.05-0.10)'
             elif ece_value < 0.15:
-                quality = '⚠️ 校准偏差 (0.10-0.15)'
+                quality = '校准偏差 (0.10-0.15)'
             else:
                 quality = '🔴 校准不良 (≥ 0.15)'
 
