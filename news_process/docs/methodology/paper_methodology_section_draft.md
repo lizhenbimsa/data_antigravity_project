@@ -88,9 +88,6 @@ Cicchetti, D. V., & Feinstein, A. R. (1990). High agreement but low kappa: II. R
 
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. *Management Science*, *71*(9), 7888–7906.
 
-[PLACEHOLDER — User to verify and complete]:
-Erel, I., et al. (2024). [Title to be verified]. *Journal of Financial Economics*. **NOT in-text-cited in this draft; safe to remove if not used in main text.**
-
 Garcia, D. (2013). Sentiment during recessions. *The Journal of Finance*, *68*(3), 1267–1300. https://doi.org/10.1111/jofi.12027
 
 Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. *The Quarterly Journal of Economics*, *134*(4), 2135–2202. https://doi.org/10.1093/qje/qjz021
@@ -123,8 +120,8 @@ Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders:
 
 ## Drafting Notes (for paper authors)
 
-- **21 references total** (20 WebSearch-verified 2026-05-14 + 1 placeholder); DOIs / PubMed IDs / journal pages confirmed for verified ones
-- **Erel et al. (2024 JFE)** is marked PLACEHOLDER and NOT in-text-cited in this draft — safe to remove entirely if author cannot supply exact title; alternatively, the relevant citation may already be subsumed by Cao et al. (2024 JF) or similar (author judgment)
+- **20 references total**, all WebSearch-verified 2026-05-14 (DOIs / PubMed IDs / journal pages confirmed)
+- **Erel et al. (2024 JFE) — removed entirely** (post-final-audit): WebSearch 2026-05-14 could not locate a 2024 JFE paper by Erel/Stern/Tan/Weisbach with LLM/validation focus; the closest match (Erel, Stern, Tan, & Weisbach, 2021, RFS, "Selecting Directors Using Machine Learning") is on a different topic and is not in-text-cited in this draft. If author wishes to cite recent LLM-in-finance work in the paper's introduction or related-work section, candidates include de Kok (2025, already cited) or other recently published LLM-in-finance papers that author can locate
 - **Bybee et al. (2024 JF)** — fixed from earlier draft "RFS 2021"; topic modeling cite as supporting (not primary) for Stage 1
 - **Hassan et al. (2019 QJE)** — primary cite for Stage 1 entity-topic relevance (added during audit, replacing earlier mis-cite of Bybee 2024 as primary)
 - **De Kok (2025 Mgmt Sci 71(9):7888–7906)** — fixed from earlier draft "Generative AI and finance"
