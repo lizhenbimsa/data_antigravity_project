@@ -14,7 +14,7 @@ tone_llm_processing:
   retry_delay: 5                                    # v6/N4: 基础重试间隔（指数退避起点；秒）
   retry_backoff: exponential                        # v6/N4: 指数退避策略
   retry_backoff_cap: 600                            # v6/N4: 单次重试 sleep 上限（秒）
-  max_concurrency: 40                               # v6/N4: 单 yunwu 账户聚合上限，保守限流避免批量验证触发网关抖动
+  max_concurrency: 100                              # 2026-05-14 用户决策: 项目统一 100 并发 (原 v6/N4=40); 监控 yunwu 网关 429 抖动, 若雪崩回退至 40
   temperature: 0.0                                  # 推理温度（0 = 确定性输出）
   random_seed: 42                                   # 随机种子（确保确定性输出）
   force_json: true                                  # 启用 response_format 强制 JSON 输出
