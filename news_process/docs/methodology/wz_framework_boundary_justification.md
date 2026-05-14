@@ -54,23 +54,35 @@ Banks publicly announcing fintech initiatives face the same
 decoupling temptation: announcing AI/blockchain/cloud initiatives
 **without commensurate substantive resource commitment** generates
 the same legitimacy benefits as symbolically adopting LTIPs without
-substantively using them. Fiss and Zajac's (2006) finding that
-"announcements without implementation generate positive market
-responses to institutionally appropriate framings" directly predicts
-this pattern in bank-fintech news.
+substantively using them. Westphal and Zajac (1998) directly establish
+this in their 1998 ASQ paper: symbolic LTIP adoptions generated
+significant positive stockholder reactions and deterred substantive
+governance reforms, even when the plans were not actually implemented
+(`announcement-implementation decoupling`). Fiss and Zajac (2006)
+extend this insight to communicative acts about strategic change more
+broadly, showing that strategically framed announcements about
+strategic change generate positive market responses irrespective of
+implementation depth. Both mechanisms apply directly to news-mediated
+fintech announcements.
 
-### 2.3 Empirical Evidence of Decoupling in Bank-Fintech
+### 2.3 Empirical Plausibility in Bank-Fintech Domain
 
-The fintech revolution literature has documented exactly this
-decoupling pattern. Gomber et al. (2018, JMIS) distinguish "stated
-innovation strategy" from "operational delivery" and note that the
-fintech disruption discourse generates strong incentives for
-**symbolic adoption** in incumbent banks. This domain-specific
-finding affirms the relevance of the W&Z framework to our context.
+The fintech revolution literature, summarized by Gomber et al. (2018),
+characterizes the disruption of financial services through entry of
+specialized fintech firms and incumbents' responsive innovation. While
+Gomber et al. do not directly invoke the substantive-symbolic
+distinction, their characterization of incumbent banks facing
+institutional pressure to demonstrate digital transformation creates
+the structural conditions under which symbolic adoption is predicted
+by W&Z (1994) theory. The applicability of the substantive-symbolic
+distinction to this domain is therefore a theoretically motivated
+extension, to be empirically validated through our news classification
+and the planned manual validation study (Section 3.5 of the
+methodology section).
 
 ## 3. Boundary Conditions Considered
 
-We acknowledge three boundary conditions that distinguish our
+We acknowledge four boundary conditions that distinguish our
 context from W&Z's original setting:
 
 | W&Z (1994) original | This paper |
@@ -78,6 +90,20 @@ context from W&Z's original setting:
 | Annual filings (10-K, proxy) | News articles |
 | Single-event observation (LTIP adoption) | Recurring narrative content |
 | Direct firm communication | Third-party media reporting |
+| **Multivariate regression** (570 firms × 18 years) | **Per-article LLM classification** (qualitative coding) |
+
+The fourth boundary deserves explicit attention: W&Z (1994) tests
+substantive-vs-symbolic decoupling econometrically by regressing
+implementation indicators on adoption indicators with firm and time
+controls. Our setting differs in that we **classify** individual
+articles as substantive or symbolic via LLM, then aggregate at the
+bank-year panel level for downstream econometric use. The per-article
+classification step inherits W&Z's conceptual distinction but not
+their regression framework. This is a methodological adaptation rather
+than a framework redefinition; the published examples of similar
+adaptation include Loughran and McDonald (2011), who similarly adapt
+Harvard psychological dictionaries to financial text classification
+contexts.
 
 These boundary differences do not invalidate the framework; rather
 they refine its application:
@@ -106,10 +132,10 @@ fintech-specific "substantive innovation" measure)?
 
 **A1**: Three reasons: (a) The fintech literature has not yet
 developed a measurement framework with the methodological rigor of
-W&Z. (b) Using a published framework (cited in 8,000+ subsequent
-papers) provides external validity and methodological transparency.
-(c) Pre-registering W&Z criteria avoids post-hoc judgment calls
-that would compromise replicability.
+W&Z. (b) Using a widely cited published framework provides external
+validity and methodological transparency. (c) Pre-registering W&Z
+criteria avoids post-hoc judgment calls that would compromise
+replicability.
 
 **Q2**: Are these definitions consistent with the management
 literature's understanding of symbolic action?

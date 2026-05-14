@@ -143,18 +143,26 @@ def main():
         ]:
             out[stage_col] = ''
 
-    # Reorder: rater forms first, then v7 reference, then weights, then metadata
+    # Reorder: metadata → rater forms → v7 reference (v7 cols renamed with v7_
+    # prefix to make their "for reference only" status visually obvious to raters)
     rater_cols = [c for c in out.columns if c.startswith(('R1_', 'R2_', 'R3_'))]
-    v7_ref_cols = ['llm_verified_full', 'llm_sentiment_full',
-                   'innovation_substantiveness', 'innovation_locus']
+    v7_ref_cols_orig = ['llm_verified_full', 'llm_sentiment_full',
+                        'innovation_substantiveness', 'innovation_locus']
     metadata_cols = ['orig_index', 'docid', 'target_bank', '标题', '内容',
                      'stratum', 'population_weight']
-    v7_ref_cols = [c for c in v7_ref_cols if c in out.columns]
+    v7_ref_cols_orig = [c for c in v7_ref_cols_orig if c in out.columns]
     metadata_cols = [c for c in metadata_cols if c in out.columns]
-    other_cols = [c for c in out.columns if c not in metadata_cols + v7_ref_cols + rater_cols]
-    col_order = metadata_cols + rater_cols + ['---', '(v7_predictions_below_for_reference_only)', '---'] + v7_ref_cols
+
+    # 重命名 v7 cols 加 "v7ref_" 前缀, 提示这些列仅供参考 (不应锚定 rater 判断)
+    rename_map = {c: f'v7ref_{c}' for c in v7_ref_cols_orig}
+    out = out.rename(columns=rename_map)
+    v7_ref_cols = [rename_map[c] for c in v7_ref_cols_orig]
+    col_order = metadata_cols + rater_cols + v7_ref_cols
     col_order = [c for c in col_order if c in out.columns]
     out = out[col_order]
+
+    # D5 修复 (审核): random shuffle 避免 rater 在 stratum boundary anchoring bias
+    out = out.sample(frac=1, random_state=43).reset_index(drop=True)
 
     print(f'\nFinal sample size: {len(out)}')
     print(f'Stratum breakdown:')

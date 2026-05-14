@@ -55,20 +55,22 @@ PABAK alongside κ to characterize agreement under skewed base rates
 
 ### 2.2 Stratified Sampling
 
-To over-sample minority classes for stable κ estimation:
+To over-sample minority classes for stable κ estimation. Targets shown
+are original design; realized n constrained by v7 panel availability:
 
-| Stratum | v7 prediction | Target n | Rationale |
-|---|---|---|---|
-| A. is_bank_fintech_news = False | False | 100 | Validate rejection rate |
-| B. Substantive ∧ Application | substantive, application | 100 | Modal class, baseline |
-| C. **Symbolic** ∧ Application | symbolic, application | 100 | **Over-sample minority** |
-| D. Substantive ∧ Technology | substantive, technology | 100 | Over-sample minority |
-| E. **Symbolic** ∧ Technology | symbolic, technology | 100 | Over-sample double minority (likely <26 in full panel) |
+| Stratum | v7 prediction | Target n | Realized n | Status |
+|---|---|---|---|---|
+| A. is_bank_fintech_news = False | False | 100 | **100** | ✓ |
+| B. Substantive ∧ Application | substantive, application | 100 | **100** | ✓ |
+| C. **Symbolic** ∧ Application | symbolic, application | 100 | **22** | constraint (over-sampled from 2.5% panel rate to 22/248 = 8.9%) |
+| D. Substantive ∧ Technology | substantive, technology | 100 | **25** | constraint |
+| E. **Symbolic** ∧ Technology | symbolic, technology | 100 | **1** | constraint (only 1 in v7 panel) |
+| **Total** | — | 500 | **248** | base rate limit |
 
-For Stratum E, if v7 panel contains fewer than 100 such articles
-(likely, given 23 total symbolic articles), sample all available and
-backfill Strata C / D to reach 500. Document weighted sample design
-in Methodology.
+Per §2.1, Strata C/D/E cannot reach target n=100 due to v7 panel base-rate
+limits (97/3 substantive/symbolic; 97/3 application/technology). We
+sample all available from C/D/E and document the realized n=248
+weighted design in the methodology section.
 
 ### 2.3 Sampling Frame
 
@@ -87,15 +89,18 @@ sample.
 
 ### 3.1 Raters
 
-**Minimum 3 trained raters** (per顶刊 standard, e.g., Hansen, McMahon,
-& Prat, 2018 QJE). Each rater independently codes all 500 articles.
+**Three trained raters** (rationale: Tetlock 2007 JF uses 5 raters;
+Calomiris & Mamaysky 2019 JFE uses 2; we adopt 3 as a balanced design
+that supports both pairwise Cohen's κ and 3-rater Fleiss' κ /
+Krippendorff's α while keeping cost-per-rater hours below 50). Each
+rater independently codes all 248 articles.
 
 **Rater training**:
 1. 30-minute orientation: read methodology section + W&Z framework
    primer
 2. 30-minute calibration: code 20 pilot articles + group discuss
    disagreements
-3. Production: 500 articles × ~5 min/article = ~42 hours per rater
+3. Production: 248 articles × ~5 min/article = ~21 hours per rater
 
 Raters should be management/finance/economics graduate students or
 post-docs. Avoid involving the v7 prompt designers (anchoring bias).
@@ -143,7 +148,7 @@ article content.
 
 ### 3.3 Quality Controls
 
-- **Attention checks**: 5% (n = 25) of articles are duplicated to
+- **Attention checks**: ~5% (n = 13) of articles are duplicated to
   measure intra-rater reliability
 - **Adjudication**: articles with 3-rater disagreement are discussed
   in a calibration meeting; final code via consensus or majority
@@ -183,11 +188,13 @@ indicates LLM disagreement with human consensus. Report:
 
 ## 5. Cost and Timeline
 
-- 3 raters × 42 hours = 126 person-hours
-- At $25/hour for graduate-student annotators: $3,150
+- 3 raters × 21 hours = 63 person-hours (production)
+- At $25/hour for graduate-student annotators: $1,575
 - Plus 8 hours calibration + adjudication: $200
-- **Total: ~$3,400 for 3-rater design**
-- Timeline: 3 weeks (week 1 training, weeks 2–3 production)
+- **Total: ~$1,775 for 3-rater design (n=248 realized)**
+- Timeline: 2 weeks (week 1 training + calibration, week 2 production)
+- Cost reduction (~50% vs original $3,400 estimate) reflects n=248
+  actual rather than n=500 target, due to base-rate constraint.
 
 ## 6. Sampling Script
 

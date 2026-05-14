@@ -18,11 +18,11 @@ Our text classification protocol follows the chain-of-thought (CoT) framework re
 
 #### Stage 1: Entity-Topic Relevance Identification
 
-Following Bybee et al. (2024), we classify each article as either (i) substantively bank-fintech relevant or (ii) not relevant. An article is classified as relevant when three conditions are jointly satisfied: (a) the target bank is the subject of the article (not merely cited in attribution or disclaimer text); (b) the central topic is fintech (one of the dimensions enumerated above); and (c) the bank-fintech connection is verifiable through specific actions or partnerships. Articles failing any criterion or treating fintech as background rhetoric are classified as not relevant. This stage produces a binary indicator `is_bank_fintech_news ∈ {true, false}` with an associated `verification_confidence ∈ [0, 1]`.
+Following Hassan, Hollander, van Lent, and Tahoun (2019), who pioneered firm-level entity-topic identification through joint detection of firm references and topic-specific term patterns in 10-K filings, we classify each article as either (i) substantively bank-fintech relevant or (ii) not relevant. An article is classified as relevant when three conditions are jointly satisfied: (a) the target bank is the subject of the article (not merely cited in attribution or disclaimer text); (b) the central topic is fintech (one of the dimensions enumerated above); and (c) the bank-fintech connection is verifiable through specific actions or partnerships. Articles failing any criterion or treating fintech as background rhetoric are classified as not relevant. This stage produces a binary indicator `is_bank_fintech_news ∈ {true, false}` with an associated `verification_confidence ∈ [0, 1]`. The article-level news context is consistent with the topic-modeling approach of Bybee, Kelly, Manela, and Xiu (2024) on Wall Street Journal articles for macroeconomic forecasting.
 
 #### Stage 2: Sentiment Attribute Classification
 
-For articles classified as relevant in Stage 1, we apply the financial sentiment framework developed by Loughran and McDonald (2011) and Tetlock (2007), assigning each article to one of three polarity categories: positive (performance growth, technical breakthrough, regulatory recognition), neutral (objective fact-reporting or industry-level commentary), or negative (risk exposure, regulatory penalty, security incident, public-opinion crisis). The model is explicitly instructed to ignore sentiment signals about co-mentioned peer banks ("anti-contamination instruction"), focusing only on the target bank. This stage produces `sentiment ∈ {positive, neutral, negative}` and `sentiment_confidence ∈ [0, 1]`.
+For articles classified as relevant in Stage 1, we apply the financial sentiment framework developed by Loughran and McDonald (2011), Tetlock (2007), and Garcia (2013), assigning each article to one of three polarity categories: positive (performance growth, technical breakthrough, regulatory recognition), neutral (objective fact-reporting or industry-level commentary), or negative (risk exposure, regulatory penalty, security incident, public-opinion crisis). The model is explicitly instructed to ignore sentiment signals about co-mentioned peer banks ("anti-contamination instruction"), focusing only on the target bank. This stage produces `sentiment ∈ {positive, neutral, negative}` and `sentiment_confidence ∈ [0, 1]`.
 
 #### Stage 3: Innovation Attribute Classification
 
@@ -42,7 +42,7 @@ We implement the CoT protocol via three independent large language models access
 
 For each article we generate classifications on two parallel tracks: **full text track** uses the complete article body, and **entity-specific context track** extracts a localized text window (sentence-radius 1 plus character-radius 150 fallback) around target-bank mentions, addressing the practical challenge that long articles often discuss multiple banks. The two tracks provide complementary perspectives: the full track captures global narrative context, while the context track isolates target-specific signal.
 
-Final article-level classifications are obtained via majority voting across the three models, separately on each track. We follow the categorical voting framework of Wang et al. (2023) for self-consistency in chain-of-thought reasoning, with explicit tie-breaking strategies: for the three-class sentiment dimension we use "undefined-on-tie" (returning None) to avoid contaminating the genuine neutral category (Cohen, 1960 paradox extension); for the binary dimensions (relevance, substantiveness, locus) we use "conservative-on-tie" returning the modal class prior (equivalent to MAP decision under uniform prior; Bishop, 2006). LLM API failures, parse errors, or refusals are excluded from the vote rather than being filled with default values, preserving uncertainty in the aggregated classifications.
+Final article-level classifications are obtained via majority voting across the three models, separately on each track. Conceptually, this multi-model voting follows the same logic as within-model self-consistency in chain-of-thought reasoning (Wang et al., 2023), substituting independent model architectures for sampling within a single model. We employ explicit tie-breaking strategies: for the three-class sentiment dimension we use "undefined-on-tie" (returning missing) to avoid contaminating the genuine neutral category — a known issue when an independent neutral class coexists with a tie-default rule (Feinstein & Cicchetti, 1990); for the binary dimensions (relevance, substantiveness, locus) we use "conservative-on-tie" returning the modal class prior (equivalent to MAP decision under uniform prior; Bishop, 2006). LLM API failures, parse errors, or refusals are excluded from the vote rather than being filled with default values, preserving uncertainty in the aggregated classifications.
 
 ### 3.4 Validation: Prompt Sensitivity Analysis
 
@@ -64,7 +64,7 @@ Across all four variants, PABAK on innovation substantiveness ranges from 0.903 
 
 ### 3.5 Manual Validation [Future Work / Robustness]
 
-We acknowledge that the validation scope reported above (single-shot prompt-perturbation analysis) does not replace large-sample human-coded validation, which remains the gold standard for LLM-based classification in published management research (Carlson & Burbano, 2026, §3.7; de Kok, 2025; Erel et al., 2024). To this end, we plan to conduct a manual validation study with n ≥ 500 articles independently coded by [N_RATERS] trained annotators using the same three-stage framework, with inter-rater reliability reported via both Cohen's κ and PABAK to handle the predicted base-rate skew. This validation study is currently under design (see Appendix [X] for the sampling and annotation protocol).
+We acknowledge that the validation scope reported above (single-shot prompt-perturbation analysis) does not replace human-coded validation, which remains the gold standard for LLM-based classification in published management research (Carlson & Burbano, 2026; de Kok, 2025). To this end, we plan to conduct a manual validation study with n = 248 articles drawn via stratified sampling (over-sampling minority classes from 2.7% to 8.9% on the substantive-symbolic dimension) independently coded by three trained annotators using the same three-stage framework. The realized sample size (248 rather than the originally targeted 500) is limited by the v7 panel base-rate structure (97/3 modal split on both Stage 3 dimensions), which leaves only 48 articles in minority cells C/D/E even with full enumeration. Inter-rater reliability will be reported via Cohen's κ, Krippendorff's α, Fleiss' κ, and PABAK to handle the predicted base-rate skew. The sampling and annotation protocol are detailed in Appendix [X] (`manual_validation_study_plan.md`).
 
 ### 3.6 Computational Reproducibility
 
@@ -90,7 +90,12 @@ Cohen, J. (1960). A coefficient of agreement for nominal scales. *Educational an
 
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. *Management Science*, *71*(9), 7888–7906.
 
-Erel, I., Stern, L. H., Tan, C., & Weisbach, M. S. (2024). [Title placeholder — Erel et al. JFE 2024]. *Journal of Financial Economics*.
+[PLACEHOLDER — User to verify and complete]:
+Erel, I., et al. (2024). [Title to be verified]. *Journal of Financial Economics*. **NOT in-text-cited in this draft; safe to remove if not used in main text.**
+
+Garcia, D. (2013). Sentiment during recessions. *The Journal of Finance*, *68*(3), 1267–1300. https://doi.org/10.1111/jofi.12027
+
+Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. *The Quarterly Journal of Economics*, *134*(4), 2135–2202. https://doi.org/10.1093/qje/qjz021
 
 Feinstein, A. R., & Cicchetti, D. V. (1990). High agreement but low kappa: I. The problems of two paradoxes. *Journal of Clinical Epidemiology*, *43*(6), 543–549. https://doi.org/10.1016/0895-4356(90)90158-L
 
