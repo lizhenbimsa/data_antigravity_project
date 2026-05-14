@@ -10,7 +10,7 @@
 
 | Prompt 内部 (v7) | 论文英文术语 | 论文中文学术术语 | 文献锚定 |
 |---|---|---|---|
-| 阶段一：主体-议题关联识别 | Entity-Topic Relevance Identification | 主体-议题关联识别 | Bybee, Kelly, Manela, & Xiu (2021, RFS) |
+| 阶段一：主体-议题关联识别 | Entity-Topic Relevance Identification | 主体-议题关联识别 | Bybee, Kelly, Manela, & Xiu (2024, JF) |
 | 阶段二：情感属性分类 | Sentiment Attribute Classification | 情感属性分类 | Loughran & McDonald (2011, JF); Tetlock (2007, JF) |
 | 阶段三：创新属性分类 | Innovation Attribute Classification | 创新属性分类 | Westphal & Zajac (1994, 1998, ASQ); Fiss & Zajac (2006, ASQ); Gomber et al. (2018, JMIS) |
 
@@ -22,7 +22,7 @@
 |---|---|---|---|
 | `is_bank_fintech_news` | true/false | Article-Level Relevance Indicator | Loughran & McDonald (2011, JF) |
 | `confirmed_bank` | 银行名/null | Confirmed Entity Mention | Hassan, Hollander, van Lent, & Tahoun (2019, QJE) |
-| `fintech_topic` | free text | Topical Tag | Bybee et al. (2021, RFS) |
+| `fintech_topic` | free text | Topical Tag | Bybee et al. (2024, JF) |
 | `verification_confidence` | 0.0-1.0 | Classifier Confidence Score | LMD (2011, JF) |
 | `sentiment` | 正面 / 中性 / 负面 | Polarity: Positive / Neutral / Negative | LMD (2011, JF); Garcia (2013, JF) |
 | `sentiment_confidence` | 0.0-1.0 | Polarity Confidence | — |
@@ -189,11 +189,11 @@ Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement for c
 
 Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the structure of technological interdependence affects firm performance in new technology generations. *Strategic Management Journal*, *31*(3), 306–333. https://doi.org/10.1002/smj.821
 
-Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2021). The structure of economic news. *The Review of Financial Studies*, *34*(11), 5345–5404. https://doi.org/10.1093/rfs/hhab035
+Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2024). Business news and business cycles. *The Journal of Finance*. https://doi.org/10.1111/jofi.13377
 
 Carlson, K. D., & Burbano, V. C. (2026). Methodology for prompt design in organizational research using LLMs. *Strategic Management Journal*, *47*(3), 699–725.
 
-De Kok, T. (2025). *Generative AI and finance* [Appendix C: GLLMs generate text left to right] [Working paper]. SSRN.
+de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. *Management Science*, *71*(9), 7888–7906. (Earlier working paper version: SSRN abstract 4429658)
 
 Fiss, P. C., & Zajac, E. J. (2006). The symbolic management of strategic change: Sensegiving via framing and decoupling. *Academy of Management Journal*, *49*(6), 1173–1193. https://doi.org/10.5465/amj.2006.23478255
 
