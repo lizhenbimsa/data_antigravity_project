@@ -812,6 +812,19 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 if src_prob in df_tt.columns:
                     tt_agg[f'llm_prob_score{suffix}{track}'] = (src_prob, 'mean')
 
+                # v3.1.0: LLM 逐模型 _score 在 _full/_ctx 子集均值 (W&Z 1998 ASQ)
+                # 范围依据 (经六轮审核):
+                #   - 不补 _title: W&Z framework title-only 偏向 symbolic
+                #   - 不补 _cont: 二分类下与 _score 高度共线
+                #   - 不补 BERT/词典/IDF: 范围外
+                # 不对称说明: 现有 llm_vote_tone_{sub,symb}_title /
+                #            llm_prob_score_{sub,symb}_title 保留, 本次新增仅作用于逐模型新列.
+                if track in ('_full', '_ctx'):
+                    for short in LLM_MODELS:
+                        src_llm = f'{short}_score{track}'
+                        if src_llm in df_tt.columns:
+                            tt_agg[f'{short}_tone{suffix}{track}'] = (src_llm, 'mean')
+
             tt_panel = df_tt.groupby(['target_bank', 'year']).agg(**tt_agg).reset_index()
             panel = panel.merge(tt_panel, on=['target_bank', 'year'], how='left')
             logger.info(f"  innovation_substantiveness '{tt_label}' 聚合完成: {len(tt_panel):,} 个 Bank-Year, "

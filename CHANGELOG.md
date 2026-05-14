@@ -6,6 +6,53 @@
 
 ---
 
+## v3.1.0 / 2026-05-15 — feat: iss subset LLM score aggregation (baseline 986 → 988)
+
+### Added
+
+panel 新增 **12 列** innovation_substantiveness 子集 LLM 逐模型 sentiment 均值:
+- `{LLM}_tone_sub_{full,ctx}`   (3 LLM × 2 tracks = 6 列, 实质性子集 mean)
+- `{LLM}_tone_symb_{full,ctx}`  (3 LLM × 2 tracks = 6 列, 象征性子集 mean)
+- 其中 LLM ∈ {gpt54nano, gemini31111, deepseekv4}
+
+### Methodology
+
+- 依据: Westphal & Zajac (1998 ASQ) substantive-symbolic framework
+- 范围依据 (经六轮审核):
+  - 不补 `_title`: W&Z framework title-only 偏向 symbolic
+  - 不补 `_cont`: 二分类下与 `_score` 高度共线
+  - 不补 BERT/词典/IDF: 范围外
+  - 不补 VW/MW/HW: 公关稿件密度反向因果风险
+  - 不写 BH 校正: 多重比较校正属 papers/ 回归层职责
+
+### Changed
+
+- `news_process/pipeline/panel/encode.py`: substantiveness 子集循环新增 LLM 逐模型 _score 聚合
+- `news_process/pipeline/panel/codebook.py`: family-level register 块 (12 entries)
+- `news_process/tests/fixtures/golden_panel_v0.json`: 重生成
+
+### Added (tests)
+
+- `news_process/tests/test_iss_llm_score_subset.py`:
+  - `test_iss_llm_score_subset_aggregation`: 12 列存在性
+  - `test_iss_llm_score_subset_value_sanity`: 值范围 [-1,+1] + 非空校验
+
+### Test baseline
+
+- 986 → 988 passed / 2 skipped / 0 failed (+2 新测试)
+- ruff check: All passed
+
+### 前置约束
+
+12 新列不应进入正式论文回归矩阵, 直到 calibration_plan v5.1 G1
+(人工标注 baseline) 完成. BH FDR 校正应在 papers/bank_fintech_tone/analysis.py 实施.
+
+### 依赖
+
+v3.0.0 (commit 7666e2e) - 术语正名前置, 提供 _symb 后缀
+
+---
+
 ## v3.0.0 / 2026-05-15 — BREAKING: 翻译层废除 + 38 列 `_desc → _symb` 术语正名 (baseline 991 → 986)
 
 ### 总览

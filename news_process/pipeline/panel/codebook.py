@@ -220,6 +220,34 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='',
     )
 
+    # ═══ Innovation Substantiveness 子集 LLM Tone (v3.1.0, W&Z 1998 ASQ) ═══
+    # 12 列: 3 LLM × (_sub|_symb) × (_full|_ctx)
+    # 使用 encode.py 的 LLM_MODELS 避免硬编码不同步
+    from news_process.pipeline.panel.encode import LLM_MODELS as _ISS_LLM_MODELS
+    _ISS_SUBSETS = {
+        '_sub':  {'panel_value': '实质性', 'zh': '实质性', 'en': 'Substantive'},
+        '_symb': {'panel_value': '象征性', 'zh': '象征性', 'en': 'Symbolic'},
+    }
+    _ISS_TRACKS = {'_full': ('全文', 'Full-text'), '_ctx': ('上下文', 'Context')}
+    for _short in _ISS_LLM_MODELS:
+        for _suffix, _meta in _ISS_SUBSETS.items():
+            for _track, (_zh_t, _en_t) in _ISS_TRACKS.items():
+                _var = f'{_short}_tone{_suffix}{_track}'
+                metadata[_var] = VariableMetadata(
+                    var_name=_var,
+                    label=f'{_short} Tone in {_meta["en"]} subset ({_en_t})',
+                    description=f'{_short} 模型对【{_meta["zh"]}创新】新闻 sentiment 在{_zh_t}轨道的 bank-year 均值',
+                    data_type='float',
+                    unit='情感值',
+                    value_range='[-1, +1] ∪ NaN',
+                    formula=f'mean({_short}_score{_track} | innovation_substantiveness == "{_meta["panel_value"]}")',
+                    source_stage='Stage 45 (panel/encode aggregate_panel)',
+                    reference='Westphal & Zajac (1998) ASQ',
+                    notes=f'NaN 当 bank-year 在 {_meta["zh"]} 子集下无新闻',
+                    category='情感指标-substantiveness 子集',
+                    track=_track.lstrip('_'),
+                )
+
     return metadata
 
 
