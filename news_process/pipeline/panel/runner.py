@@ -1222,10 +1222,10 @@ def main():
 
         # --- 方法 C: 情感纯度缺口 (实质性 vs 象征性) ---
         sub_col = f'llm_vote_tone_sub{track}'
-        desc_col = f'llm_vote_tone_symb{track}'
-        if sub_col in panel.columns and desc_col in panel.columns:
+        symb_col = f'llm_vote_tone_symb{track}'
+        if sub_col in panel.columns and symb_col in panel.columns:
             vn = f'tone_gap_symb_sub{track}'
-            panel[vn] = panel[desc_col] - panel[sub_col]
+            panel[vn] = panel[symb_col] - panel[sub_col]
             wr_variants[vn] = f'C: 情感缺口{track}'
 
         # --- 方法 D: 词典均值 ---
@@ -1271,11 +1271,11 @@ def main():
             wr_variants[vn] = f'F: 高置信{track}'
 
         # --- 方法 G: 情感偏移 ---
-        desc_tone = f'llm_vote_tone_symb{track}'
+        symb_tone = f'llm_vote_tone_symb{track}'
         all_tone = f'llm_vote_tone{track}'
-        if desc_tone in panel.columns and all_tone in panel.columns:
+        if symb_tone in panel.columns and all_tone in panel.columns:
             vn = f'washing_tone_shift{track}'
-            panel[vn] = panel[desc_tone] - panel[all_tone]
+            panel[vn] = panel[symb_tone] - panel[all_tone]
             wr_variants[vn] = f'G: 情感偏移{track}'
 
     # --- Dummy: 全年无正面新闻 ---
