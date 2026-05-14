@@ -6,6 +6,71 @@
 
 ---
 
+## post-v2.1.0 / 2026-05-14 — Prompt v7: Westphal-Zajac substantive-symbolic + Gomber innovation locus (baseline 986 → 991)
+
+### 总览
+
+unified_cot.txt 从 v6 升级到 v7，对齐国际金融学 / 管理学顶刊方法学术语：
+- 三阶段命名升级为 Entity-Topic Relevance / Sentiment Attribute /
+  Innovation Attribute Classification（Bybee et al. 2021 RFS + Loughran &
+  McDonald 2011 JF + Westphal & Zajac 1994/1998 ASQ）。
+- `fintech_category` 从 stage 1 迁移到 stage 3 并重命名为 `innovation_locus`
+  （Gomber et al. 2018 JMIS enabling-technology-vs-business-function 框架）。
+- `text_type` 重命名为 `innovation_substantiveness`，判定标准从 descriptive
+  框架升级为 Westphal & Zajac substantive-vs-symbolic 框架，强调 decoupling
+  和 impression management（非"含可验证事实"）。
+- 新增两个 confidence 字段（innovation_*_confidence × 2 维度 × 2 轨道 = 4 panel 聚合列）
+  对齐 verification/sentiment 信心评分。
+
+### 主要决策
+
+- **W&Z 框架 prompt 文本完整重写**（R5-A）：阶段三判定标准从"含可验证事实
+  vs 无事实"切换为"实质经济后果 vs 合法性信号 / 印象管理 / decoupling"。审稿
+  人对照 replication 包时方法学声明与执行一致。
+- **翻译层设计 (方案 B)**：tone_llms.py `_aggregate_track` 内联翻译 LLM 输出
+  '象征性' → parquet '描述性'。保持 panel 列后缀 _sub/_desc/_tech/_app 稳定，
+  Stata 变量名 50+ 零改动，papers/ 5 模块零影响。Stata 中文标签 28 处升级到
+  symbolic 框架（变量名后缀不变；docs/methodology/prompt_terminology_mapping.md
+  显式说明 `_desc` 后缀在 v7 起的 W&Z symbolic 解读）。
+- **prompt_sensitivity.py 4 变体同步**（B 方案，R5-C）：4 变体（V1 角色/V2
+  结构/V3 精简/V4 改写）全面升级到 v7 三阶段 schema；新增
+  PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS=0.75 / _LOCUS=0.80 至 validation.yaml。
+- **方法学透明性兜底**：新建 docs/methodology/prompt_terminology_mapping.md
+  含 8 轮审查脚注 + Stata 标签说明 + 翻译层语义 + APA 7 References。
+- **9 轮严谨审查 + 26 项遗漏修复**：本变更经 8 轮事实查证 + 自评审 +
+  用户决策检查点 + 第 9 轮执行级深度评审，累计修复 N1-N7 (影响面遗漏) +
+  R5-A/C/G/H/K (方法学瑕疵 + W&Z 框架失真修正) + R6-B/E/J/M (执行细节) +
+  R7-A/B/C/D/E/F/G/H (commit 事务性 + entity_masking + logger + 灰度 + 缓存)
+  + R8-A/B (validation.yaml 配置层 + Stata 标签升级) 共 26 个潜在风险。
+
+### 与 calibration freeze 协同
+
+本 v7 升级**严格正交**于 git tag `calibration-plan-v5.1-frozen`：
+- tone_validation.py（ECE 校准模块）Grep 零命中 v7 schema 字段
+- v5.1 calibration Day 0 G1 fail 状态下，32_human_samples.xlsx 标注尚未启动
+  （用户决策检查点 G1 = a），v7 输出将作为标注新基线
+- v7 重跑 LLM (~$25, 1170 行 × 3 模型 × 2 轨道 = 7020 calls, 57 分钟) 已用户授权
+- 兼容: panel 列后缀 _desc 与 v6 同名，所有 papers/{paper}/analysis.py 零影响
+
+### Baseline 更新
+
+- pytest baseline: **986 passed → 991 passed**（+5 测试：test_translation_layer.py
+  含 R5-A 翻译层验证；+1 dual_track 测试扩展 W&Z confidence 字段断言）
+- prompt_template_version: `v6-2026-05-13` → `v7-2026-05-14`
+- 21_tone_llms.parquet 列变化:
+  - 删: text_type, fintech_category (从 stage 1)
+  - 加: innovation_substantiveness, innovation_locus, innovation_*_confidence × 2 dims × 2 tracks
+  - 行数: 849 (从 861, 翻译层后含 -12 因 API 失败排除)
+- 40_panel_yearly.parquet: 164 行 × 1989 列（v7 + R6-H 4 个 avg confidence 聚合）
+
+### Commit chain
+
+- `25a61d0` refactor(prompt): unified_cot v7 — atomic schema + code + tests + docs (18 files, 603+/138-)
+- (本提交) refactor(prompt): v7 golden refresh + parquet rerun + CHANGELOG + CLAUDE.md baseline
+- git tag `prompt-v7-released` (供单点回滚参照)
+
+---
+
 ## post-v2.1.0 / 2026-05-14 — Refactor: 统一 categorical voting (baseline 956 → ~971)
 
 ### 总览

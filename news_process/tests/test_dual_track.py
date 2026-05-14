@@ -48,12 +48,18 @@ class TestStage21LLMDualTrack:
         return _load_parquet_or_skip(output_dir, '21_tone_llms.parquet')
 
     def test_core_columns_exist(self, df21):
-        """核心双轨列存在"""
+        """核心双轨列存在 (v7: fintech_category → innovation_locus)"""
         core_cols = [
             'llm_verified_full', 'llm_verified_ctx',
             'llm_sentiment_full', 'llm_sentiment_ctx',
             'llm_agreement_rate_full', 'llm_agreement_rate_ctx',
-            'fintech_category', 'category_confidence',
+            'innovation_locus', 'category_confidence',
+            # v7 新增 stage 3 (W&Z 1994/1998 ASQ substantiveness + Gomber 2018 locus confidence)
+            'innovation_substantiveness',
+            'innovation_substantiveness_confidence_full',
+            'innovation_substantiveness_confidence_ctx',
+            'innovation_locus_confidence_full',
+            'innovation_locus_confidence_ctx',
         ]
         for col in core_cols:
             assert col in df21.columns, f"缺少核心列: {col}"
@@ -221,12 +227,16 @@ class TestFallbackAxiom:
         return _load_parquet_or_skip(output_dir, '23_bert_tone.parquet')
 
     # v6/F2 允许 NaN 的列前缀（LLM 衍生）
+    # v7 扩展: 含 per-model _verified 列 — API 失败时 (raw_text is None) 这些列填 None,
+    #          与 sentiment NaN 同语义 (LLM 衍生失败信号, 见 tone_llms.py 814-817)
     _LLM_NAN_ALLOWED_PREFIXES = (
         'llm_sentiment',
         'llm_agreement_rate_s',  # 仅 verifying 子集上的 agree rate
         'gpt54nano_sentiment', 'gemini31111_sentiment', 'deepseekv4_sentiment',
         'gpt54nano_prob_score', 'gemini31111_prob_score', 'deepseekv4_prob_score',
         'gpt54nano_prob_source', 'gemini31111_prob_source', 'deepseekv4_prob_source',
+        # v7: per-model verified API-failure NaN 容忍
+        'gpt54nano_verified', 'gemini31111_verified', 'deepseekv4_verified',
     )
 
     def _is_llm_nan_allowed(self, col_name: str) -> bool:
