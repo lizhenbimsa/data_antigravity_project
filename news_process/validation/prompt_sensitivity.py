@@ -87,6 +87,7 @@ preflight_model_availability = _tone_llms.preflight_model_availability
 MODELS                 = _tone_llms.MODELS
 MAX_CONCURRENCY        = _tone_llms.MAX_CONCURRENCY
 PROMPT_TEMPLATE        = _tone_llms.PROMPT_TEMPLATE  # V0 baseline（测试套件用于差异比对）
+majority_vote_categorical = _tone_llms.majority_vote_categorical  # v7 R7.2: innov 维度跨变体一致性所需
 
 # 复用评估模块的一致性指标
 _eval = import_module('news_process.validation.llms_evaluation')
@@ -572,6 +573,8 @@ def aggregate_variant_results(
         track_key = track.lstrip('_')  # 'full' 或 'ctx'
         v_list = []
         s_list = []
+        innov_subst_list = []   # v7 R7.2: 创新实质性 (W&Z 1994/1998 ASQ)
+        innov_locus_list = []   # v7 R7.2: 创新位点 (Gomber 2018 JMIS)
 
         for idx in df.index:
             model_res = results_map.get(idx, {}).get(track_key, {})
@@ -580,16 +583,27 @@ def aggregate_variant_results(
                 _agree_rate_v, _agree_rate_s,
                 _n_valid_votes, _n_verifying_votes,
                 _call_failure, _undefined,
-                _parsed, _topics, _llm_categories, _text_types,
+                _parsed, _topics, innov_loci, innov_substs,
                 n_fail, _avg_prob_score,
             ) = _aggregate_track(model_res, models)
             v_list.append(final_v)
             s_list.append(final_s)
+            # v7 R7.2: 对变体 LLM 多模型输出做 majority vote (二分类 conservative)
+            innov_subst_list.append(majority_vote_categorical(
+                innov_substs, tie_strategy='conservative',
+                tie_default='描述性', empty_fallback=None,
+            ))
+            innov_locus_list.append(majority_vote_categorical(
+                innov_loci, tie_strategy='conservative',
+                tie_default='应用场景', empty_fallback=None,
+            ))
             n_parse_fail += n_fail
             n_total += len(models)
 
         df[f'{variant_key}_verified{track}'] = v_list
         df[f'{variant_key}_sentiment{track}'] = s_list
+        df[f'{variant_key}_innovation_substantiveness{track}'] = innov_subst_list
+        df[f'{variant_key}_innovation_locus{track}'] = innov_locus_list
 
     fail_rate = n_parse_fail / max(n_total, 1)
     if fail_rate > 0.20:
@@ -620,6 +634,15 @@ def extract_baseline(df_sample: pd.DataFrame) -> pd.DataFrame:
     df['V0_baseline_verified_ctx'] = df['llm_verified_ctx']
     df['V0_baseline_sentiment_full'] = df['llm_sentiment_full']
     df['V0_baseline_sentiment_ctx'] = df['llm_sentiment_ctx']
+
+    # v7 R7.2: V0 baseline 含 innovation 维度
+    # 注: stage 21 输出 innovation_* 仅基于 full 轨道 (per tone_llms 设计),
+    # ctx 轨道借用 full 值（与 v7 LLM Rerun 行为一致）
+    for track in ['_full', '_ctx']:
+        if 'innovation_substantiveness' in df.columns:
+            df[f'V0_baseline_innovation_substantiveness{track}'] = df['innovation_substantiveness']
+        if 'innovation_locus' in df.columns:
+            df[f'V0_baseline_innovation_locus{track}'] = df['innovation_locus']
 
     # 逐模型结果（用于后续分析扩展）
     for m in MODELS:
@@ -667,13 +690,57 @@ def compute_pairwise_consistency(
     # Sentiment 一致率（三分类简单匹配率）
     s_agree = np.mean(base_s == var_s)
 
-    return {
+    result = {
         'verification_agreement': round(float(v_agree), 4),
         'sentiment_agreement': round(float(s_agree), 4),
         'cohens_kappa_verification': round(float(kappa_result['kappa']), 4),
         'observed_agreement': round(float(kappa_result['observed_agreement']), 4),
         'expected_agreement': round(float(kappa_result['expected_agreement']), 4),
     }
+
+    # v7 R7.2: innovation_substantiveness 维度 (仅 verified=True 子集; 二分类)
+    iss_col_base = f'V0_baseline_innovation_substantiveness{track}'
+    iss_col_var = f'{variant_key}_innovation_substantiveness{track}'
+    if iss_col_base in df.columns and iss_col_var in df.columns:
+        # 仅在 baseline + variant 都 verified=True 时比较 (innovation 在 false 时为 None)
+        mask = (base_v == 1) & (var_v == 1)
+        if mask.sum() >= 2:
+            base_iss = df.loc[mask, iss_col_base].astype(str).values
+            var_iss = df.loc[mask, iss_col_var].astype(str).values
+            iss_agree = float(np.mean(base_iss == var_iss))
+            # Cohen's κ for binary innovation_substantiveness (map to 0/1)
+            iss_b = np.array([1 if v == '实质性' else 0 for v in base_iss])
+            iss_v = np.array([1 if v == '实质性' else 0 for v in var_iss])
+            iss_kappa = compute_cohens_kappa(iss_b, iss_v)
+            result['innovation_substantiveness_agreement'] = round(iss_agree, 4)
+            result['cohens_kappa_innovation_substantiveness'] = round(float(iss_kappa['kappa']), 4)
+            result['innovation_substantiveness_n'] = int(mask.sum())
+        else:
+            result['innovation_substantiveness_agreement'] = float('nan')
+            result['cohens_kappa_innovation_substantiveness'] = float('nan')
+            result['innovation_substantiveness_n'] = int(mask.sum())
+
+    # v7 R7.2: innovation_locus 维度 (仅 verified=True 子集; 二分类)
+    il_col_base = f'V0_baseline_innovation_locus{track}'
+    il_col_var = f'{variant_key}_innovation_locus{track}'
+    if il_col_base in df.columns and il_col_var in df.columns:
+        mask = (base_v == 1) & (var_v == 1)
+        if mask.sum() >= 2:
+            base_il = df.loc[mask, il_col_base].astype(str).values
+            var_il = df.loc[mask, il_col_var].astype(str).values
+            il_agree = float(np.mean(base_il == var_il))
+            il_b = np.array([1 if v == '底层技术' else 0 for v in base_il])
+            il_v = np.array([1 if v == '底层技术' else 0 for v in var_il])
+            il_kappa = compute_cohens_kappa(il_b, il_v)
+            result['innovation_locus_agreement'] = round(il_agree, 4)
+            result['cohens_kappa_innovation_locus'] = round(float(il_kappa['kappa']), 4)
+            result['innovation_locus_n'] = int(mask.sum())
+        else:
+            result['innovation_locus_agreement'] = float('nan')
+            result['cohens_kappa_innovation_locus'] = float('nan')
+            result['innovation_locus_n'] = int(mask.sum())
+
+    return result
 
 
 def compute_multivariant_consistency(
@@ -782,6 +849,9 @@ def generate_reports(
             'sentiment': PASS_THRESHOLD_SENTIMENT,
             'kappa': PASS_THRESHOLD_KAPPA,
             'alpha': PASS_THRESHOLD_ALPHA,
+            # v7 R7.2 + W6: innovation κ thresholds
+            'innovation_substantiveness_kappa': PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS,
+            'innovation_locus_kappa': PASS_THRESHOLD_INNOVATION_LOCUS,
         },
         'passed': passed,
         'full_track': {
@@ -1103,11 +1173,29 @@ def main():
     min_kappa = min(full_pw[vk]['cohens_kappa_verification'] for vk in variant_keys)
     alpha_val = full_multi['krippendorffs_alpha']
 
+    # v7 R7.2 + W6: innovation 维度最小 Cohen's κ (skip NaN safely)
+    iss_kappas = [full_pw[vk].get('cohens_kappa_innovation_substantiveness')
+                  for vk in variant_keys
+                  if full_pw[vk].get('cohens_kappa_innovation_substantiveness') is not None
+                  and not (isinstance(full_pw[vk].get('cohens_kappa_innovation_substantiveness'), float)
+                           and np.isnan(full_pw[vk].get('cohens_kappa_innovation_substantiveness')))]
+    il_kappas = [full_pw[vk].get('cohens_kappa_innovation_locus')
+                 for vk in variant_keys
+                 if full_pw[vk].get('cohens_kappa_innovation_locus') is not None
+                 and not (isinstance(full_pw[vk].get('cohens_kappa_innovation_locus'), float)
+                          and np.isnan(full_pw[vk].get('cohens_kappa_innovation_locus')))]
+    min_iss_kappa = min(iss_kappas) if iss_kappas else float('nan')
+    min_il_kappa = min(il_kappas) if il_kappas else float('nan')
+
     criteria = {
         f'均值验证一致率 ≥ {PASS_THRESHOLD_VERIFICATION}': mean_v_agree >= PASS_THRESHOLD_VERIFICATION,
         f'均值情感一致率 ≥ {PASS_THRESHOLD_SENTIMENT}': mean_s_agree >= PASS_THRESHOLD_SENTIMENT,
-        f'最小 Cohen\'s κ ≥ {PASS_THRESHOLD_KAPPA}': min_kappa >= PASS_THRESHOLD_KAPPA,
+        f'最小 Cohen\'s κ (verification) ≥ {PASS_THRESHOLD_KAPPA}': min_kappa >= PASS_THRESHOLD_KAPPA,
         f'Krippendorff\'s α ≥ {PASS_THRESHOLD_ALPHA}': alpha_val >= PASS_THRESHOLD_ALPHA,
+        f'最小 Cohen\'s κ (innovation_substantiveness, W&Z 1994) ≥ {PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS}':
+            (not np.isnan(min_iss_kappa)) and (min_iss_kappa >= PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS),
+        f'最小 Cohen\'s κ (innovation_locus, Gomber 2018) ≥ {PASS_THRESHOLD_INNOVATION_LOCUS}':
+            (not np.isnan(min_il_kappa)) and (min_il_kappa >= PASS_THRESHOLD_INNOVATION_LOCUS),
     }
 
     passed = all(criteria.values())

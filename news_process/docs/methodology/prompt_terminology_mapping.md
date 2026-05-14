@@ -143,7 +143,49 @@ LLM 端           parquet 端             panel 列后缀
 
 ---
 
+## Robustness: Prompt Sensitivity (v7 B audit, 2026-05-14)
+
+We assess v7 prompt robustness via 4 systematic variants (V1 role / V2 structure / V3 concise / V4 paraphrase) on a random sample of n=1,000 articles (seed=42), following Carlson and Burbano (2026). Each variant generates 3-model × 2-track LLM responses (24,000 total API calls), aggregated by majority vote.
+
+**Results (full track, baseline = V0 = unified_cot.txt v7)**:
+
+| Metric | Threshold | Realized | Status |
+|---|---|---|---|
+| Mean verification agreement | ≥ 0.85 | 0.8990 | ✓ |
+| Mean sentiment agreement | ≥ 0.80 | 0.8798 | ✓ |
+| Min Cohen's κ (verification) | ≥ 0.70 | 0.7132 (V3) | ✓ |
+| Krippendorff's α (multi-variant) | ≥ 0.667 | 0.8088 | ✓ |
+| Min Cohen's κ (innovation_substantiveness, W&Z) | ≥ 0.70 | 0.1926 (V3) | ✗ |
+| Min Cohen's κ (innovation_locus, Gomber) | ≥ 0.70 | 0.6141 (V3) | ✗ |
+
+**κ Paradox Disclosure**. The two innovation dimensions fail the κ ≥ 0.70 threshold despite raw agreement of 95-99%. This reflects the well-documented Cohen's κ paradox under highly skewed base rates (Feinstein & Cicchetti 1990; Byrt et al. 1993): when one class is rare, chance-expected agreement P_e approaches observed agreement P_o, driving κ toward zero even with near-perfect classifier agreement. Our v7 sample exhibits exactly this condition: 97.3% substantive vs 2.7% symbolic; 96.9% application vs 3.1% technology layer.
+
+**Prevalence-Adjusted Bias-Adjusted Kappa (PABAK)** (Byrt et al. 1993, formula: PABAK = 2·P_o − 1) provides a skew-robust alternative:
+
+| Variant | iss PABAK | il PABAK |
+|---|---|---|
+| V1_role | 0.9402 | 0.9592 |
+| V2_structure | 0.9780 | 0.9280 |
+| V3_concise | 0.9026 | 0.9294 |
+| V4_paraphrase | 0.9532 | 0.9532 |
+
+All four variants achieve PABAK ≥ 0.90 on both innovation dimensions, which qualifies as "almost perfect" agreement under Landis and Koch (1977). We interpret this as evidence that v7's W&Z and Gomber framings are robust to prompt wording variation; the κ failure is a base-rate artifact of fintech news (where substantive innovation is the modal class), not a v7 prompt design deficiency.
+
+**Reproducibility**. Full per-variant results: `news_process/validation/eval_reports/prompt_sensitivity_results.json`. Per-article comparison: `prompt_sensitivity_detail.csv` (8,000 rows; .gitignored due to size, regeneratable via `python news_process/39_prompt_sensitivity.py`).
+
+---
+
 ## References (APA 7th)
+
+Byrt, T., Bishop, J., & Carlin, J. B. (1993). Bias, prevalence and kappa. *Journal of Clinical Epidemiology*, *46*(5), 423–429. https://doi.org/10.1016/0895-4356(93)90018-V
+
+Feinstein, A. R., & Cicchetti, D. V. (1990). High agreement but low kappa: I. The problems of two paradoxes. *Journal of Clinical Epidemiology*, *43*(6), 543–549. https://doi.org/10.1016/0895-4356(90)90158-L
+
+Landis, J. R., & Koch, G. G. (1977). The measurement of observer agreement for categorical data. *Biometrics*, *33*(1), 159–174. https://doi.org/10.2307/2529310
+
+---
+
+## Pre-existing References (APA 7th, retained from v6)
 
 Adner, R., & Kapoor, R. (2010). Value creation in innovation ecosystems: How the structure of technological interdependence affects firm performance in new technology generations. *Strategic Management Journal*, *31*(3), 306–333. https://doi.org/10.1002/smj.821
 
