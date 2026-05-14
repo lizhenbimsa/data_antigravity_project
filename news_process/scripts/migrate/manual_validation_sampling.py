@@ -62,7 +62,7 @@ def main():
         (verified['innovation_locus'] == '应用场景')
     ]
 
-    # C: 描述性 (= symbolic post-translation) ∧ 应用场景
+    # C: 象征性 (symbolic, W&Z 1998 ASQ) ∧ 应用场景
     strata['C_symbolic_app'] = verified[
         (verified['innovation_substantiveness'] == '象征性') &
         (verified['innovation_locus'] == '应用场景')
@@ -74,7 +74,7 @@ def main():
         (verified['innovation_locus'] == '底层技术')
     ]
 
-    # E: 描述性 ∧ 底层技术 (double minority)
+    # E: 象征性 ∧ 底层技术 (double minority)
     strata['E_symbolic_tech'] = verified[
         (verified['innovation_substantiveness'] == '象征性') &
         (verified['innovation_locus'] == '底层技术')
