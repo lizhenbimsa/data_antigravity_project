@@ -20,7 +20,7 @@
 | 同上 | [pipeline/sentiment/tone_llms.py:783](../pipeline/sentiment/tone_llms.py#L783) | 文档化：标记 `llm_undefined=1`；下游 panel 层把 None 映射为 NaN |
 | 写出标记列 | [pipeline/sentiment/tone_llms.py:1091-1092](../pipeline/sentiment/tone_llms.py#L1091) | 全样本初始化 `llm_undefined_full = 0` / `llm_undefined_ctx = 0` |
 | 同上 | [pipeline/sentiment/tone_llms.py:1310-1311](../pipeline/sentiment/tone_llms.py#L1310) | 实际填入 `undefined_full_arr` / `undefined_ctx_arr` |
-| panel 消费 | [pipeline/panel/runner.py:354-359](../pipeline/panel/runner.py#L354) | NaN 视为非正面：`(df[pos_col].fillna(0) == 1) & _is_desc` |
+| panel 消费 | [pipeline/panel/runner.py:354-359](../pipeline/panel/runner.py#L354) | NaN 视为非正面：`(df[pos_col].fillna(0) == 1) & _is_symb` |
 | 同上 (各方法) | [pipeline/panel/runner.py:361-440](../pipeline/panel/runner.py#L361) | 方法 A/A2/B/D/D2/E/E2/F 全部沿用 `fillna(0) == 1` 或 `> 0`/`< 0` 模式 |
 
 ## 3. 为什么不用 "neutral = 0" 或 "drop"

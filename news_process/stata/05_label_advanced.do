@@ -27,7 +27,7 @@ label variable llm_vote_cont_app_full "应用类LLM连续情感(全文)"
 label variable n_articles_sub "实质性新闻数量"
 label variable n_articles_symb "象征性新闻数量"
 label variable sub_frac "实质性新闻占比"
-label variable desc_frac "象征性新闻占比"
+label variable symb_frac "象征性新闻占比"
 
 label variable llm_vote_tone_sub_full "实质性新闻LLM情感(全文)"
 label variable llm_vote_tone_symb_full "象征性新闻LLM情感(全文)"
