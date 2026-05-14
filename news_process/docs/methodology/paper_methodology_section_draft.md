@@ -12,7 +12,7 @@
 
 We construct a panel dataset of Chinese banking-fintech news articles spanning [START_YEAR]–[END_YEAR], drawn from [DATA_SOURCE]. After deduplication and removal of articles below 200 Chinese characters, the corpus contains 4,054 bank-level news observations covering 87 commercial banks. We apply a series of relevance filters to identify articles substantively discussing bank-fintech innovation: subject-relevance screening (bank name appears in body, not only in source attribution), topical focus (article discusses one of [FINTECH_DIMENSIONS]: AI, blockchain, big data risk control, cloud computing, open banking, digital payments, digital currencies), and substantive linkage (verifiable bank-fintech connection: technology deployment, product launch, business partnership, strategic positioning, or application landing). This filtering yields 1,170 candidate articles for LLM-based classification.
 
-Our text classification protocol follows the chain-of-thought (CoT) framework recently established for LLM annotation in management research (Carlson & Burbano, 2026; de Kok, 2025). We adopt a three-stage CoT protocol that integrates four published frameworks: entity-topic relevance (Bybee, Kelly, Manela, & Xiu, 2024), sentiment polarity (Loughran & McDonald, 2011; Tetlock, 2007), substantive-vs-symbolic innovation (Westphal & Zajac, 1994, 1998; Fiss & Zajac, 2006), and innovation locus (Gomber, Kauffman, Parker, & Weber, 2018; Adner & Kapoor, 2010).
+Our text classification protocol adopts the chain-of-thought (CoT) prompting paradigm developed by Wei et al. (2022), following the implementation guidelines for LLM-based annotation in management research articulated by Carlson and Burbano (2026) and de Kok (2025). We integrate four published substantive frameworks: entity-topic relevance following Hassan, Hollander, van Lent, and Tahoun (2019), sentiment polarity (Loughran & McDonald, 2011; Tetlock, 2007), substantive-vs-symbolic innovation (Westphal & Zajac, 1994, 1998; Fiss & Zajac, 2006), and innovation locus (Gomber, Kauffman, Parker, & Weber, 2018; Adner & Kapoor, 2010).
 
 ### 3.2 Three-Stage Chain-of-Thought Classification Protocol
 
@@ -86,8 +86,6 @@ Carlson, N. A., & Burbano, V. (2026). The use of LLMs to annotate data in manage
 
 Cicchetti, D. V., & Feinstein, A. R. (1990). High agreement but low kappa: II. Resolving the paradoxes. *Journal of Clinical Epidemiology*, *43*(6), 551–558. https://doi.org/10.1016/0895-4356(90)90159-M
 
-Cohen, J. (1960). A coefficient of agreement for nominal scales. *Educational and Psychological Measurement*, *20*(1), 37–46.
-
 de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. *Management Science*, *71*(9), 7888–7906.
 
 [PLACEHOLDER — User to verify and complete]:
@@ -123,11 +121,17 @@ Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders:
 
 ## Drafting Notes (for paper authors)
 
-- All 18 references WebSearch-verified on 2026-05-14 (DOIs / PubMed IDs / journal pages confirmed)
-- Erel et al. (2024 JFE) is referenced but not WebSearch-verified — author should confirm exact title
-- Bybee et al. cited as 2024 JF (Wiley jofi.13377) — fix from earlier draft "RFS 2021"
-- De Kok cited as 2025 Mgmt Sci 71(9):7888–7906 — fix from earlier draft "Generative AI and finance"
-- W&Z boundary justification (Section 3.2 Stage 3a final paragraph): explicit transplant from CEO compensation context (1994) to fintech innovation context, citing Fiss & Zajac (2006) as theoretical bridge
-- κ paradox disclosure (Section 3.4 Results): turns apparent failure into transparent methodological contribution; cites canonical Feinstein/Byrt papers
-- PABAK formula 2P_o − 1 (Byrt 1993, equation 4) — verified
-- Manual validation deferred to Section 3.5 with explicit acknowledgement and forward reference
+- **21 references total** (20 WebSearch-verified 2026-05-14 + 1 placeholder); DOIs / PubMed IDs / journal pages confirmed for verified ones
+- **Erel et al. (2024 JFE)** is marked PLACEHOLDER and NOT in-text-cited in this draft — safe to remove entirely if author cannot supply exact title; alternatively, the relevant citation may already be subsumed by Cao et al. (2024 JF) or similar (author judgment)
+- **Bybee et al. (2024 JF)** — fixed from earlier draft "RFS 2021"; topic modeling cite as supporting (not primary) for Stage 1
+- **Hassan et al. (2019 QJE)** — primary cite for Stage 1 entity-topic relevance (added during audit, replacing earlier mis-cite of Bybee 2024 as primary)
+- **De Kok (2025 Mgmt Sci 71(9):7888–7906)** — fixed from earlier draft "Generative AI and finance"
+- **Wei et al. (2022 NeurIPS)** — primary cite for the chain-of-thought prompting paradigm (Section 3.1 first paragraph; added during audit, replacing Carlson & Burbano which is a methodological-guidelines cite, not the CoT paradigm origin)
+- **Wang et al. (2023 ICLR)** — cited as conceptual analog for multi-model majority voting; explicit caveat that Wang et al. is single-model self-consistency, ours is multi-model independent voting (paradigm differs but logic similar)
+- **Garcia (2013 JF)** — added cite for Stage 2 sentiment polarity (alongside LMD 2011 and Tetlock 2007)
+- **Cohen (1960)** — removed from References list as it was orphaned (in-text Cohen 1960 paradox cite reassigned to Feinstein & Cicchetti 1990, the actual paradox paper)
+- **W&Z boundary justification** (Section 3.2 Stage 3a final paragraph): explicit transplant from CEO compensation context (1994/1998) to fintech innovation context, citing Fiss & Zajac (2006) as theoretical bridge
+- **κ paradox disclosure** (Section 3.4 Results): turns apparent failure into transparent methodological contribution; cites canonical Feinstein/Cicchetti/Byrt papers
+- **PABAK formula** 2P_o − 1 (Byrt 1993, equation 4) — WebSearch-verified
+- **Manual validation** deferred to Section 3.5 with explicit acknowledgement; realized n=248 (not 500) due to base-rate constraint, forward-referenced to manual_validation_study_plan.md (appendix)
+- **Unverified in-text citation**: §3.5 cites Carlson & Burbano (2026) §3.7 acceptance criterion with ε=0.10 — the specific §3.7 content and ε threshold are inferred from the paper's described framework but not directly quoted; author should re-read C&B §3.7 to confirm exact phrasing before submission
