@@ -659,7 +659,7 @@ def main():
                 agree_rate_v, agree_rate_s,
                 n_valid_votes, n_verifying_votes,
                 call_failure, undefined,
-                parsed, topics, llm_categories, text_types,
+                parsed, topics, innov_loci, innov_substs,
                 n_fail, avg_prob_score,
             ) = _aggregate_track(row_res.get(track, {}), MODELS)
 
@@ -674,8 +674,9 @@ def main():
             df_sample.at[idx, f'masked_n_failures_{track}'] = n_fail
             df_sample.at[idx, f'masked_avg_prob_score_{track}'] = avg_prob_score
             df_sample.at[idx, f'masked_topics_{track}'] = ';'.join(topics)
-            df_sample.at[idx, f'masked_llm_categories_{track}'] = ';'.join(llm_categories)
-            df_sample.at[idx, f'masked_text_types_{track}'] = ';'.join(text_types)
+            # v7: 原 masked_llm_categories_* / masked_text_types_*; 列名后缀升级与 schema 同步
+            df_sample.at[idx, f'masked_innov_loci_{track}'] = ';'.join(innov_loci)
+            df_sample.at[idx, f'masked_innov_substs_{track}'] = ';'.join(innov_substs)
 
             for m in MODELS:
                 short = m['short_name']

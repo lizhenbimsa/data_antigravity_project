@@ -21,19 +21,19 @@ label variable llm_vote_tone_app_full "应用类LLM情感(全文)"
 label variable llm_vote_cont_app_full "应用类LLM连续情感(全文)"
 
 * ============================================================================
-* 11. 实质性vs描述性新闻 (Substantive vs Descriptive)
+* 11. 实质性vs象征性新闻 (Substantive vs Symbolic, Westphal & Zajac 1994 ASQ)
 * ============================================================================
 
 label variable n_articles_sub "实质性新闻数量"
-label variable n_articles_desc "描述性新闻数量"
+label variable n_articles_desc "象征性新闻数量"
 label variable sub_frac "实质性新闻占比"
-label variable desc_frac "描述性新闻占比"
+label variable desc_frac "象征性新闻占比"
 
 label variable llm_vote_tone_sub_full "实质性新闻LLM情感(全文)"
-label variable llm_vote_tone_desc_full "描述性新闻LLM情感(全文)"
-label variable tone_gap_sub_desc "实质性-描述性情感差"
+label variable llm_vote_tone_desc_full "象征性新闻LLM情感(全文)"
+label variable tone_gap_sub_desc "实质性-象征性情感差"
 
-label variable pos_desc_count_full "描述性正面新闻数(全文)"
+label variable pos_desc_count_full "象征性正面新闻数(全文)"
 label variable neg_sub_count_full "实质性负面新闻数(全文)"
 
 * ============================================================================

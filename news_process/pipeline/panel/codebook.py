@@ -6,8 +6,25 @@
 3. 支持导出为 Excel、CSV、Markdown、JSON 等多种格式
 4. 自动从面板数据中提取变量统计信息
 
+v7 schema 升级 (2026-05-14):
+    prompt v7 把 text_type → innovation_substantiveness (W&Z 1994/1998 ASQ
+    substantive-vs-symbolic 框架); fintech_category → innovation_locus (Gomber
+    et al. 2018 JMIS enabling-technology vs business-function 框架)。
+
+    panel 层为保持 v6 列名兼容 (Stata + papers/ 模块 + golden baseline),
+    采用 tone_llms.py 内联翻译层: LLM 输出 '象征性' 在落 parquet 前映射为 '描述性'。
+    因此变量名后缀 _desc/_sub/_tech/_app 在 v7 起的语义解读如下:
+
+      _desc -> 象征性 (symbolic)   ← Westphal & Zajac 1994 ASQ symbolic management
+      _sub  -> 实质性 (substantive)
+      _tech -> 底层技术 (enabling technology, Gomber 2018)
+      _app  -> 应用场景 (business function, Gomber 2018)
+
+    论文 replication 包中所有 _desc 命名变量应按 W&Z (1994) symbolic 解释。
+    详见 docs/methodology/prompt_terminology_mapping.md。
+
 作者: Claude Opus 4.7
-日期: 2026-05-10
+日期: 2026-05-10 (v6) / 2026-05-14 (v7 schema upgrade)
 """
 
 from __future__ import annotations

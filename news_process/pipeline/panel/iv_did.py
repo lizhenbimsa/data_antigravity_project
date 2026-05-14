@@ -254,7 +254,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
 
 # ============================================================================
 # 2d. 文章属性维度 Bartik IV (基于文章自身分类列, 而非 co_mentioned_banks)
-#     适用于 fintech_category, _media_type, _half_year 等维度
+#     适用于 innovation_locus, _media_type, _half_year 等维度
 # ============================================================================
 
 def compute_bartik_iv_fintech(panel: pd.DataFrame,
@@ -262,10 +262,10 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
                               category_map: dict,
                               group_prefix: str,
                               base_year: int = None,
-                              category_col: str = 'fintech_category') -> pd.DataFrame:
+                              category_col: str = 'innovation_locus') -> pd.DataFrame:
     """文章属性维度 Bartik IV (基于文章自身分类列, 而非 co_mentioned_banks)。
 
-    通用接口: 可接受任意文章级分类列 (fintech_category, _media_type,
+    通用接口: 可接受任意文章级分类列 (innovation_locus, _media_type,
     _half_year, _doclen_type 等), 将文章按 category_col 分组后计算
     Bartik Shift-Share IV。
 

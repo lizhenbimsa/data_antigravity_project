@@ -61,6 +61,8 @@ prompt_sensitivity_test:
   pass_threshold_sentiment: 0.80                    # 均值情感一致率通过阈值 (≥80%)
   pass_threshold_kappa: 0.70                        # 最小 Cohen's κ 通过阈值 (≥0.70)
   pass_threshold_alpha: 0.667                       # Krippendorff's α 通过阈值 (≥0.667)
+  pass_threshold_innovation_substantiveness: 0.75   # v7 新增: W&Z (1994/1998 ASQ) substantive-symbolic 一致率阈值
+  pass_threshold_innovation_locus: 0.80             # v7 新增: Gomber et al. (2018 JMIS) technology-application 一致率阈值
 
 # 阈值敏感性分析参数 (Threshold Sensitivity) - 阶段 31
 threshold_sensitivity:

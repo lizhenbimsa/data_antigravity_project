@@ -596,7 +596,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
       - n_articles: Bank-Year 下的新闻篇数 (Fang & Peress 2009, JF)
       - media_breadth: log(1 + 不同媒体来源数)(信息环境指标)
       - VW Tone: 提及密度加权情感 (Hassan et al. 2019, QJE)
-      - _tech / _app 分类指标: 按 fintech_category 分组的情感均值
+      - _tech / _app 分类指标: 按 innovation_locus 分组的情感均值
     """
     logger.info("=" * 60)
     logger.info("步骤 5: Bank-Year 聚合")
@@ -649,19 +649,19 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         logger.warning("  列 '媒体(中文)' 不存在, media_breadth 将为 NaN")
         panel['media_breadth'] = np.nan
 
-    # --- 按 fintech_category 分组聚合（底层技术 / 应用场景） ---
-    if 'fintech_category' in df.columns:
+    # --- 按 innovation_locus 分组聚合（底层技术 / 应用场景） ---
+    if 'innovation_locus' in df.columns:
         # 防御性校验：检查非预期值
         valid_cats = {'底层技术', '应用场景'}
-        actual_cats = set(df['fintech_category'].dropna().unique())
+        actual_cats = set(df['innovation_locus'].dropna().unique())
         unexpected = actual_cats - valid_cats
         if unexpected:
-            logger.warning(f"  fintech_category 含非预期值: {unexpected}，这些文章将不计入分类聚合")
+            logger.warning(f"  innovation_locus 含非预期值: {unexpected}，这些文章将不计入分类聚合")
 
         cat_mapping = [('底层技术', '_tech'), ('应用场景', '_app')]
 
         for cat_label, suffix in cat_mapping:
-            df_cat = df[df['fintech_category'] == cat_label]
+            df_cat = df[df['innovation_locus'] == cat_label]
             if df_cat.empty:
                 logger.warning(f"  分类 '{cat_label}' 无文章，跳过 {suffix} 聚合")
                 panel[f'n_articles{suffix}'] = 0
@@ -751,6 +751,20 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         else:
             panel['avg_category_confidence'] = np.nan
 
+        # v7 R6-H: 双轨 × 双维度的 row-level avg confidence 聚合
+        # (W&Z 1994/1998 substantiveness + Gomber 2018 locus 信号强度, 由 tone_llms 多模型 avg 而来)
+        for _dim_full, _short in [('innovation_substantiveness', 'iss'),
+                                   ('innovation_locus', 'il')]:
+            for _track in ['_full', '_ctx']:
+                _src = f'{_dim_full}_confidence{_track}'
+                _out = f'avg_{_short}_confidence{_track}'
+                if _src in df.columns:
+                    _agg = df.groupby(['target_bank', 'year'])[_src].mean().reset_index()
+                    _agg.columns = ['target_bank', 'year', _out]
+                    panel = panel.merge(_agg, on=['target_bank', 'year'], how='left')
+                else:
+                    panel[_out] = np.nan
+
         # 恒等式校验（二分类）
         if all(f'n_articles{s}' in panel.columns for s in ['_tech', '_app']):
             has_news = panel['n_articles'] > 0
@@ -763,25 +777,25 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 n_fail = (~identity_check).sum()
                 logger.warning(f"  ✗ 恒等式校验失败: {n_fail} 行不满足 n_articles == n_articles_tech + n_articles_app")
     else:
-        logger.info("  列 'fintech_category' 不存在, 分类聚合将跳过")
+        logger.info("  列 'innovation_locus' 不存在, 分类聚合将跳过")
         panel['tech_frac'] = np.nan
         panel['app_frac'] = np.nan
 
-    # --- 按 text_type 分组聚合（实质性 / 描述性，二分类） ---
-    if 'text_type' in df.columns:
+    # --- 按 innovation_substantiveness 分组聚合（实质性 / 描述性，二分类） ---
+    if 'innovation_substantiveness' in df.columns:
         valid_tts = {'实质性', '描述性'}
 
-        actual_tts = set(df['text_type'].dropna().unique())
+        actual_tts = set(df['innovation_substantiveness'].dropna().unique())
         unexpected_tt = actual_tts - valid_tts
         if unexpected_tt:
-            logger.warning(f"  text_type 含非预期值: {unexpected_tt}，这些文章将不计入分类聚合")
+            logger.warning(f"  innovation_substantiveness 含非预期值: {unexpected_tt}，这些文章将不计入分类聚合")
 
         tt_mapping = [('实质性', '_sub'), ('描述性', '_desc')]
 
         for tt_label, suffix in tt_mapping:
-            df_tt = df[df['text_type'] == tt_label]
+            df_tt = df[df['innovation_substantiveness'] == tt_label]
             if df_tt.empty:
-                logger.warning(f"  text_type '{tt_label}' 无文章，跳过 {suffix} 聚合")
+                logger.warning(f"  innovation_substantiveness '{tt_label}' 无文章，跳过 {suffix} 聚合")
                 panel[f'n_articles{suffix}'] = 0
                 continue
 
@@ -800,10 +814,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
             tt_panel = df_tt.groupby(['target_bank', 'year']).agg(**tt_agg).reset_index()
             panel = panel.merge(tt_panel, on=['target_bank', 'year'], how='left')
-            logger.info(f"  text_type '{tt_label}' 聚合完成: {len(tt_panel):,} 个 Bank-Year, "
+            logger.info(f"  innovation_substantiveness '{tt_label}' 聚合完成: {len(tt_panel):,} 个 Bank-Year, "
                         f"{len(tt_agg)} 个指标")
 
-        # text_type 计数列填充（二分类）
+        # innovation_substantiveness 计数列填充（二分类）
         for suffix in ['_sub', '_desc']:
             col = f'n_articles{suffix}'
             if col in panel.columns:
@@ -823,19 +837,19 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 panel['llm_vote_tone_sub_full'] - panel['llm_vote_tone_desc_full']
             )
 
-        # text_type 恒等式校验（二分类）
+        # innovation_substantiveness 恒等式校验（二分类）
         if all(f'n_articles{s}' in panel.columns for s in ['_sub', '_desc']):
             has_news = panel['n_articles'] > 0
             tt_identity = (panel.loc[has_news, 'n_articles'] ==
                            panel.loc[has_news, 'n_articles_sub'] +
                            panel.loc[has_news, 'n_articles_desc'])
             if tt_identity.all():
-                logger.info("  ✓ text_type 恒等式校验通过: n_articles == n_articles_sub + n_articles_desc")
+                logger.info("  ✓ innovation_substantiveness 恒等式校验通过: n_articles == n_articles_sub + n_articles_desc")
             else:
                 n_fail_tt = (~tt_identity).sum()
-                logger.warning(f"  ✗ text_type 恒等式校验失败: {n_fail_tt} 行")
+                logger.warning(f"  ✗ innovation_substantiveness 恒等式校验失败: {n_fail_tt} 行")
     else:
-        logger.info("  列 'text_type' 不存在, text_type 分组聚合将跳过")
+        logger.info("  列 'innovation_substantiveness' 不存在, innovation_substantiveness 分组聚合将跳过")
 
 
     # 新闻覆盖量对数
@@ -1023,7 +1037,7 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
         if col in panel.columns:
             panel[col] = panel[col].fillna(0).astype(int)
 
-    # --- text_type 分类维度计数列填充为 0（独立循环，不追加到 fintech_category） ---
+    # --- innovation_substantiveness 分类维度计数列填充为 0（独立循环，不追加到 innovation_locus） ---
     for suffix in ['_sub', '_desc']:
         col = f'n_articles{suffix}'
         if col in panel.columns:

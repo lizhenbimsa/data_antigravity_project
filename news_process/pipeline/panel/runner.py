@@ -354,7 +354,7 @@ def main():
     #   E/E2: BERT 均值 / 单 BERT ({bert}_正面{track} > 0.5)
     #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3)
     # 方法 C 和 G 无需篇章级标记, 直接使用面板级已有变量计算
-    _tt = df['text_type'].astype(str).str.strip() if 'text_type' in df.columns else None
+    _tt = df['innovation_substantiveness'].astype(str).str.strip() if 'innovation_substantiveness' in df.columns else None
     _is_desc = (_tt == '描述性') if _tt is not None else None
     _is_sub  = (_tt == '实质性') if _tt is not None else None
 
@@ -606,7 +606,7 @@ def main():
             logger.warning("  bank_type 不存在, 跳过 digital_frontier 构建")
 
         # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) — v3: 显式基期 T0 ---
-        # 注意: fintech_category 由 LLM 决定，须配合论证（v6/F4-2 须论证清单）
+        # 注意: innovation_locus (v7, 原 fintech_category) 由 LLM 决定，须配合论证（v6/F4-2 须论证清单）
         fintech_map = {'底层技术': 'tech', '应用场景': 'app'}
         panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech',
                                           base_year=T0)

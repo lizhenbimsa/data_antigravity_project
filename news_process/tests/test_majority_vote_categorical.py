@@ -69,8 +69,8 @@ def test_undefined_tie_returns_none(votes):
 @pytest.mark.parametrize(
     "votes,tie_default,expected",
     [
-        (["底层技术", "应用场景"], "应用场景", "应用场景"),       # 2-way binary, fintech
-        (["实质性", "描述性"], "描述性", "描述性"),               # 2-way binary, text_type
+        (["底层技术", "应用场景"], "应用场景", "应用场景"),       # 2-way binary, innovation_locus (v7)
+        (["实质性", "描述性"], "描述性", "描述性"),               # 2-way binary, innovation_substantiveness (v7; value 是翻译层后值域)
         (["A", "B", "C"], "DEFAULT", "DEFAULT"),                # 3-way（H1 覆盖）
         (["正面", "负面"], "中性", "中性"),                      # sentiment 历史 'neutral' 等效
     ],

@@ -21,6 +21,12 @@ news_process.validation.prompt_sensitivity — Prompt 措辞敏感度量化测�
     每个变体仅改变表述方式，不改变判定标准的实质内容，不改变输出
     JSON schema。一致性差异完全归因于措辞敏感度。
 
+v7 升级（2026-05-14）：
+    4 变体全面同步 v7 三阶段 schema（含 W&Z 1994/1998 ASQ substantiveness +
+    Gomber 2018 JMIS locus）。每变体在自身扰动维度（V1 角色 / V2 结构 /
+    V3 精简 / V4 改写）内保持 W&Z substantive-symbolic 与 Gomber
+    technology-application 判定标准的实质内容不变；仅改变表述方式。
+
 输入：
     阶段21输出 21_tone_llms_full.parquet（含双轨 LLM 判定列）
 
@@ -104,6 +110,9 @@ PASS_THRESHOLD_VERIFICATION = PS_CFG.get('pass_threshold_verification', 0.85)
 PASS_THRESHOLD_SENTIMENT    = PS_CFG.get('pass_threshold_sentiment', 0.80)
 PASS_THRESHOLD_KAPPA        = PS_CFG.get('pass_threshold_kappa', 0.70)
 PASS_THRESHOLD_ALPHA        = PS_CFG.get('pass_threshold_alpha', 0.667)
+# v7 R6-B + R8-A: stage 3 阈值 (Westphal & Zajac 1994/1998 + Gomber 2018 框架)
+PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS = PS_CFG.get('pass_threshold_innovation_substantiveness', 0.75)
+PASS_THRESHOLD_INNOVATION_LOCUS           = PS_CFG.get('pass_threshold_innovation_locus', 0.80)
 
 
 def _build_prompt_llm_timeout() -> aiohttp.ClientTimeout:
@@ -150,6 +159,21 @@ VARIANT_PROMPTS = {
 - 中性：客观陈述事实或中立行业动态，无明显褒贬。
 - 负面：风险暴露、监管处罚、安全事故、舆论危机等负面事件。
 
+【任务三：金融科技创新属性分类】（仅当任务一判定为 true 时执行）
+
+作为银行业数字化转型分析师，从两个并列维度刻画该报道的创新属性。
+
+(1) 创新实质性 (innovation_substantiveness)
+依据 Westphal & Zajac (1994, 1998 ASQ) substantive-vs-symbolic management 框架：该银行行动是否产生实际经济/运营后果？还是主要服务于合法性获取或印象管理而与实际行为脱钩？
+- 实质性：有可独立验证的资源投入、能力建设或业务影响（产品交付、数据披露、协议落地、专利获批等）。
+- 象征性：仅有战略口号、规划愿景、形式性发布、跟风式表态；或决策与行动脱钩 (decoupling)。
+注: 象征性 ≠ 缺乏事实；含具体数据但纯属公关包装的发布会报道仍应判象征性。
+
+(2) 创新位点 (innovation_locus)
+依据 Gomber et al. (2018 JMIS) enabling-technology vs business-function 框架：
+- 底层技术：AI、区块链、大数据、云计算等使能技术层。
+- 应用场景：数字支付、开放银行、智能风控等业务功能层。
+
 目标分析银行: {target_bank}
 同文提及的其他银行（仅供参考，不作为评分对象）: {co_mentioned_banks}
 标题: {title}
@@ -161,11 +185,16 @@ VARIANT_PROMPTS = {
   "is_bank_fintech_news": true/false,
   "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
   "fintech_topic": "核心金融科技主题简述（false 时填 null）",
-  "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
   "verification_confidence": 0.0~1.0,
   "sentiment_reason": "简明说明情感判定依据",
   "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
-  "sentiment_confidence": 0.0~1.0
+  "sentiment_confidence": 0.0~1.0,
+  "innovation_substantiveness_reason": "简明说明实质/象征判定依据（false 时填 null）",
+  "innovation_substantiveness": "实质性/象征性（false 时填 null）",
+  "innovation_substantiveness_confidence": 0.0~1.0,
+  "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
+  "innovation_locus": "底层技术/应用场景（false 时填 null）",
+  "innovation_locus_confidence": 0.0~1.0
 }}""",
 
     # ── V2: 结构重组 (Structural Variation) ──
@@ -192,6 +221,22 @@ VARIANT_PROMPTS = {
 不满足任一条件、或金融科技仅作背景修辞、或文章为纯宏观综述而无具体银行行动，均判定为 false。
 若判定为 false，则情感固定填"中性"。
 
+## 第三步：创新属性分类（仅当第二步判定为 true 时执行）
+
+分为两个并列的属性维度：
+
+3a. 创新实质性 (innovation_substantiveness)
+判定问题：该银行行动是否产生实际经济/运营后果，还是主要服务于合法性获取与印象管理？
+框架: Westphal & Zajac (1994, 1998 ASQ) substantive vs symbolic management。
+1. 实质性：真实资源投入 + 可独立验证的能力建设/业务影响（产品上线、数据披露、协议落地等）。
+2. 象征性：仅有战略口号 / 公关包装 / 跟风表态 / 决策行动脱钩 (decoupling)。
+原则：象征性不等于缺事实；含数据但纯营销的发布会也判象征性。
+
+3b. 创新位点 (innovation_locus)
+框架: Gomber et al. (2018 JMIS) enabling-technology vs business-function。
+1. 底层技术：AI、区块链、大数据、云计算等使能技术。
+2. 应用场景：数字支付、开放银行、智能风控等业务功能。
+
 ## 输入数据
 
 目标分析银行: {target_bank}
@@ -207,11 +252,16 @@ VARIANT_PROMPTS = {
   "is_bank_fintech_news": true/false,
   "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
   "fintech_topic": "核心金融科技主题简述（false 时填 null）",
-  "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
   "verification_confidence": 0.0~1.0,
   "sentiment_reason": "简明说明情感判定依据",
   "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
-  "sentiment_confidence": 0.0~1.0
+  "sentiment_confidence": 0.0~1.0,
+  "innovation_substantiveness_reason": "简明说明实质/象征判定依据（false 时填 null）",
+  "innovation_substantiveness": "实质性/象征性（false 时填 null）",
+  "innovation_substantiveness_confidence": 0.0~1.0,
+  "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
+  "innovation_locus": "底层技术/应用场景（false 时填 null）",
+  "innovation_locus_confidence": 0.0~1.0
 }}""",
 
     # ── V3: 精简压缩 (Complexity Reduction) ──
@@ -226,6 +276,10 @@ VARIANT_PROMPTS = {
 忽略同文提及的其他银行（{co_mentioned_banks}）的情感信号。
 若判定为 false，情感固定填"中性"。
 
+三、创新属性：仅当上述判定为 true 时，做两个二分类。
+3a. 实质性 vs 象征性 (Westphal & Zajac 1994/1998 ASQ): 行动有可独立验证的经济/运营后果判实质性；仅合法性信号 / 印象管理 / decoupling 判象征性。象征性 ≠ 缺事实，含数据但纯营销也归象征性。
+3b. 底层技术 vs 应用场景 (Gomber et al. 2018 JMIS): 使能技术层 (AI/区块链/大数据/云) vs 业务功能层 (数字支付/开放银行/智能风控)。
+
 目标分析银行: {target_bank}
 同文提及银行: {co_mentioned_banks}
 标题: {title}
@@ -237,11 +291,16 @@ VARIANT_PROMPTS = {
   "is_bank_fintech_news": true/false,
   "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
   "fintech_topic": "核心金融科技主题简述（false 时填 null）",
-  "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
   "verification_confidence": 0.0~1.0,
   "sentiment_reason": "简明说明情感判定依据",
   "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
-  "sentiment_confidence": 0.0~1.0
+  "sentiment_confidence": 0.0~1.0,
+  "innovation_substantiveness_reason": "简明说明实质/象征判定依据（false 时填 null）",
+  "innovation_substantiveness": "实质性/象征性（false 时填 null）",
+  "innovation_substantiveness_confidence": 0.0~1.0,
+  "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
+  "innovation_locus": "底层技术/应用场景（false 时填 null）",
+  "innovation_locus_confidence": 0.0~1.0
 }}""",
 
     # ── V4: 判定改写 (Paraphrase Variation) ──
@@ -271,6 +330,28 @@ C. **银行与技术的因果关联**：存在可验证的证据表明该银行�
 - `负面`：风险暴露、监管处罚、安全事故、舆论危机等负面事件。
 </step2_sentiment>
 
+<step3_innovation>
+**阶段三：金融科技创新属性评估**（仅当阶段一判定为 true 时执行）
+
+本阶段对该篇报道做两项并列的创新属性研判。
+
+**A. 实质性属性研判 (innovation_substantiveness)**
+
+理论依据：Westphal & Zajac (1994, 1998 ASQ) 关于 substance-symbolism 的二元分类。
+中心问题：该银行的金融科技行动究竟是产生**实际经济或运营后果**——抑或只是为满足合法性诉求与印象管理的表演性投射？
+
+- `实质性`：能查证的资源投入、能力建设或业务影响（如系统部署、产品上线、数据披露、协议执行、专利落地、技术资质等）；且与该行实际经营或战略路径有据可循。
+- `象征性`：仅有战略宣示、口号、目标承诺、形式性发布或跟风性表态；甚至含数据/产品却属公关包装；又或决策与实际行动相互脱钩（decoupling）。
+
+注: `象征性` 并不要求文本缺乏事实——其关键在于行动**实质后果的有无**，而非文本信息量。
+
+**B. 位点属性研判 (innovation_locus)**
+
+理论依据：Gomber, Kauffman, Parker, Weber (2018 JMIS) 关于 enabling-technology 与 business-function 的层级二分。
+- `底层技术`：使能技术栈层（AI、区块链、大数据、云计算、量子计算、生物识别等）。
+- `应用场景`：业务功能层（数字支付、开放银行、智能风控、智能投顾、数字信贷等）。
+</step3_innovation>
+
 <input_data>
 目标分析银行: {target_bank}
 同文提及的其他银行（仅供参考，不作为评分对象）: {co_mentioned_banks}
@@ -285,11 +366,16 @@ C. **银行与技术的因果关联**：存在可验证的证据表明该银行�
   "is_bank_fintech_news": true/false,
   "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
   "fintech_topic": "核心金融科技主题简述（false 时填 null）",
-  "fintech_category": "「底层技术」或「应用场景」（false 时填 null）",
   "verification_confidence": 0.0~1.0,
   "sentiment_reason": "简明说明情感判定依据",
   "sentiment": "正面/中性/负面（false 时固定填\\"中性\\"）",
-  "sentiment_confidence": 0.0~1.0
+  "sentiment_confidence": 0.0~1.0,
+  "innovation_substantiveness_reason": "简明说明实质/象征判定依据（false 时填 null）",
+  "innovation_substantiveness": "实质性/象征性（false 时填 null）",
+  "innovation_substantiveness_confidence": 0.0~1.0,
+  "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
+  "innovation_locus": "底层技术/应用场景（false 时填 null）",
+  "innovation_locus_confidence": 0.0~1.0
 }}
 </output_format>""",
 }

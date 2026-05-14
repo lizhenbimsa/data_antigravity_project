@@ -590,9 +590,9 @@ def majority_vote_categorical(
 ):
     """统一分类多数投票，参数化平局策略与空票回退。
 
-    本函数为 sentiment / fintech_category / text_type 三种分类投票的
-    统一入口；策略差异通过参数显式声明（而非分散在 inline Counter 中），
-    便于论文 Methods 章节直接 quote。
+    本函数为 sentiment / innovation_locus / innovation_substantiveness
+    三种分类投票的统一入口；策略差异通过参数显式声明（而非分散在 inline
+    Counter 中），便于论文 Methods 章节直接 quote。
 
     平局策略 (tie_strategy)
     -----------------------
@@ -790,17 +790,25 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         tuple: (final_v, final_s, agree_rate_v, agree_rate_s,
                 n_valid_votes, n_verifying_votes,
                 call_failure, undefined,
-                per_model_parsed, topics, llm_categories, text_types,
+                per_model_parsed, topics, innov_loci, innov_substs,
                 n_failures, avg_prob_score)
-            per_model_parsed: {f'{short}_verified': v, ...} 的字典
-            avg_prob_score: Logit-to-Score 多模型平均概率分数 ∈ [-1, +1]
+            per_model_parsed: {f'{short}_verified': v, ...} 的字典；v7 起亦含
+                              {short}_innovation_substantiveness_confidence /
+                              {short}_innovation_locus_confidence 每模型独立置信度
+            innov_loci:       LLM 创新位点投票列表 (底层技术 / 应用场景)
+            innov_substs:     LLM 创新实质性投票列表 (实质性 / 描述性)；v7 起
+                              通过 inline 翻译层把 LLM 输出 '象征性' 映射为 '描述性'，
+                              保持 panel 列后缀 _desc 与 Stata 变量名 v6 兼容
+                              (Westphal & Zajac 1994/1998 ASQ 框架; 见 docs/methodology/
+                              prompt_terminology_mapping.md)
+            avg_prob_score:   Logit-to-Score 多模型平均概率分数 ∈ [-1, +1]
     """
     v_votes = []
     s_votes_all = []           # 所有成功调用模型的 sentiment（含 verified=False 模型）
     s_votes_verified_only = [] # 仅含 verified=True 模型的 sentiment（v6/F2 新逻辑）
     topics = []
-    llm_categories = []
-    text_types = []
+    innov_loci = []            # v7: 原 llm_categories (Gomber 2018 JMIS 技术-应用层)
+    innov_substs = []          # v7: 原 text_types (W&Z 1994/1998 ASQ 实质-象征)
     per_model_parsed = {}
     n_failures = 0
 
@@ -856,19 +864,40 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         topic = jd.get('fintech_topic')
         if topic and str(topic).strip().lower() not in ('null', 'none', ''):
             topics.append(str(topic))
-        llm_cat = jd.get('fintech_category')
+
+        # v7: innovation_locus (原 fintech_category, Gomber 2018 JMIS technology-application 层)
+        llm_cat = jd.get('innovation_locus')
         if llm_cat:
             cat_str = str(llm_cat).strip().replace('；', ';')
             for part in cat_str.split(';'):
                 part = part.strip()
                 if part in ('底层技术', '应用场景'):
-                    llm_categories.append(part)
+                    innov_loci.append(part)
                     break
-        llm_tt = jd.get('text_type')
+
+        # v7: innovation_substantiveness (原 text_type, W&Z 1994/1998 ASQ substantive-symbolic)
+        # 内联翻译层 (R5-A + R8-B): LLM 输出 '象征性' → parquet '描述性' 兼容 _desc 后缀
+        llm_tt = jd.get('innovation_substantiveness')
         if llm_tt:
             tt_str = str(llm_tt).strip()
+            if tt_str == '象征性':
+                tt_str = '描述性'
             if tt_str in ('实质性', '描述性'):
-                text_types.append(tt_str)
+                innov_substs.append(tt_str)
+
+        # v7: per-model stage 3 confidence (用于 row-level avg 聚合, 对应论文 W&Z 框架信号强度)
+        try:
+            per_model_parsed[f"{short}_innovation_substantiveness_confidence"] = float(
+                jd.get('innovation_substantiveness_confidence', 0.0) or 0.0
+            )
+        except (ValueError, TypeError):
+            per_model_parsed[f"{short}_innovation_substantiveness_confidence"] = 0.0
+        try:
+            per_model_parsed[f"{short}_innovation_locus_confidence"] = float(
+                jd.get('innovation_locus_confidence', 0.0) or 0.0
+            )
+        except (ValueError, TypeError):
+            per_model_parsed[f"{short}_innovation_locus_confidence"] = 0.0
 
     final_v = majority_vote_bool(v_votes)
 
@@ -908,7 +937,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         agree_rate_v, agree_rate_s,
         n_valid_votes, n_verifying_votes,
         call_failure, undefined,
-        per_model_parsed, topics, llm_categories, text_types,
+        per_model_parsed, topics, innov_loci, innov_substs,
         n_failures, avg_prob_score,
     )
 
@@ -1090,9 +1119,14 @@ def main():
         df['llm_call_failure_ctx'] = 0
         df['llm_undefined_full'] = 0
         df['llm_undefined_ctx'] = 0
-        df['fintech_category'] = '应用场景'
+        # v7: verified=False 时 stage 3 字段统一填 None (与 prompt 'false 时填 null' 规则一致)
+        df['innovation_locus'] = None
         df['category_confidence'] = 0.0
-        df['text_type'] = None
+        df['innovation_substantiveness'] = None
+        df['innovation_substantiveness_confidence_full'] = 0.0
+        df['innovation_substantiveness_confidence_ctx'] = 0.0
+        df['innovation_locus_confidence_full'] = 0.0
+        df['innovation_locus_confidence_ctx'] = 0.0
         # 标题轨道虚拟列补全（与启用分支输出对齐）
         df['llm_verified_title'] = True
         df['llm_sentiment_title'] = '中性'
@@ -1168,9 +1202,14 @@ def main():
         call_failure_ctx_arr = []
         undefined_full_arr = []
         undefined_ctx_arr = []
-        fintech_category_arr = []
+        innovation_locus_arr = []          # v7: 原 fintech_category_arr (Gomber 2018 JMIS)
         category_confidence_arr = []
-        text_type_arr = []
+        innov_subst_arr = []               # v7: 原 text_type_arr (W&Z 1994/1998 ASQ)
+        # v7 新增: row-level avg confidence per track per dimension (R6-H 下游聚合源)
+        innov_subst_conf_full_arr = []
+        innov_subst_conf_ctx_arr = []
+        innov_locus_conf_full_arr = []
+        innov_locus_conf_ctx_arr = []
 
         # 预分配每个模型 × 每轨道的独立判断列表
         per_model_cols = {}
@@ -1194,12 +1233,12 @@ def main():
         for idx, row in df.iterrows():
             row_results = results_map.get(idx, {'full': {}, 'ctx': {}})
 
-            # ── Full 轨道聚合 (v6/F2: 14 元组返回) ──
+            # ── Full 轨道聚合 (v6/F2: 14 元组返回; v7 变量名升级) ──
             (final_v_full, final_s_full,
              agree_rate_full, agree_rate_s_full,
              n_valid_full, n_verifying_full,
              call_failure_full, undefined_full,
-             parsed_full, topics_full, llm_cats_full, text_types_full,
+             parsed_full, topics_full, innov_loci_full, innov_substs_full,
              n_fail_full, avg_prob_full) = _aggregate_track(row_results.get('full', {}), MODELS)
             n_api_failures += n_fail_full
 
@@ -1223,12 +1262,12 @@ def main():
                     per_model_cols[f"{short}_prob_source_full"].append(parsed_full.get(f"{short}_prob_source", 'P3'))
             prob_score_full_arr.append(avg_prob_full)
 
-            # ── Ctx 轨道聚合 (v6/F2: 14 元组返回) ──
+            # ── Ctx 轨道聚合 (v6/F2: 14 元组返回; v7 变量名升级) ──
             (final_v_ctx, final_s_ctx,
              agree_rate_ctx, agree_rate_s_ctx,
              n_valid_ctx, n_verifying_ctx,
              call_failure_ctx, undefined_ctx,
-             parsed_ctx, topics_ctx, llm_cats_ctx, text_types_ctx,
+             parsed_ctx, topics_ctx, innov_loci_ctx, innov_substs_ctx,
              n_fail_ctx, avg_prob_ctx) = _aggregate_track(row_results.get('ctx', {}), MODELS)
             n_api_failures += n_fail_ctx
 
@@ -1259,32 +1298,44 @@ def main():
             # 二分类多数投票：平局保守降为 '应用场景'（modal class prior, MAP under uniform prior）；
             # 空票回退到关键词分类器结果 kw_category。统一委托给 majority_vote_categorical。
             llm_majority_cat = majority_vote_categorical(
-                llm_cats_full,
+                innov_loci_full,
                 tie_strategy='conservative',
                 tie_default='应用场景',
                 empty_fallback=kw_category,
             )
-            if llm_cats_full:
+            if innov_loci_full:
                 # LLM 投票与关键词分类器交叉验证：一致 → +0.2 boost；分歧 → ×0.5 penalty
                 if llm_majority_cat == kw_category:
                     final_confidence = min(kw_confidence + 0.2, 1.0)
                 else:
                     final_confidence = round(kw_confidence * 0.5, 3)
-                fintech_category_arr.append(llm_majority_cat)
+                innovation_locus_arr.append(llm_majority_cat)
                 category_confidence_arr.append(final_confidence)
             else:
-                fintech_category_arr.append(kw_category)
+                innovation_locus_arr.append(kw_category)
                 category_confidence_arr.append(kw_confidence)
 
-            # ── 文本类型分类多数决（仅基于 full 轨道，二分类） ──
+            # ── 创新实质性分类多数决（v7: W&Z 1994/1998 ASQ; 仅基于 full 轨道，二分类） ──
             # 二分类多数投票：平局保守降为 '描述性'（modal class prior, MAP under uniform prior）；
             # 空票返回 None。统一委托给 majority_vote_categorical。
-            text_type_arr.append(majority_vote_categorical(
-                text_types_full,
+            # 注: '描述性' 是 v7 内联翻译层 (R5-A + R8-B) 后的 parquet 值域 (LLM '象征性' → '描述性')
+            innov_subst_arr.append(majority_vote_categorical(
+                innov_substs_full,
                 tie_strategy='conservative',
                 tie_default='描述性',
                 empty_fallback=None,
             ))
+
+            # v7 R6-H: row-level avg per-model confidence (W&Z + Gomber 维度), 双轨独立
+            def _avg_conf(parsed, suffix):
+                confs = [parsed.get(f"{m['short_name']}_{suffix}", 0.0) for m in MODELS]
+                valid = [c for c in confs if c and c > 0]
+                return sum(valid) / len(valid) if valid else 0.0
+
+            innov_subst_conf_full_arr.append(_avg_conf(parsed_full, 'innovation_substantiveness_confidence'))
+            innov_subst_conf_ctx_arr.append(_avg_conf(parsed_ctx, 'innovation_substantiveness_confidence'))
+            innov_locus_conf_full_arr.append(_avg_conf(parsed_full, 'innovation_locus_confidence'))
+            innov_locus_conf_ctx_arr.append(_avg_conf(parsed_ctx, 'innovation_locus_confidence'))
 
 
 
@@ -1309,9 +1360,14 @@ def main():
         df['llm_call_failure_ctx'] = call_failure_ctx_arr
         df['llm_undefined_full'] = undefined_full_arr
         df['llm_undefined_ctx'] = undefined_ctx_arr
-        df['fintech_category'] = fintech_category_arr
+        df['innovation_locus'] = innovation_locus_arr
         df['category_confidence'] = category_confidence_arr
-        df['text_type'] = text_type_arr
+        df['innovation_substantiveness'] = innov_subst_arr
+        # v7 R6-H: 双轨 × 双维度的 row-level avg confidence (encode.py 下游聚合源)
+        df['innovation_substantiveness_confidence_full'] = innov_subst_conf_full_arr
+        df['innovation_substantiveness_confidence_ctx'] = innov_subst_conf_ctx_arr
+        df['innovation_locus_confidence_full'] = innov_locus_conf_full_arr
+        df['innovation_locus_confidence_ctx'] = innov_locus_conf_ctx_arr
 
         # ── Logit-to-Score 概率分数写入 DataFrame ──
         if LOGIT_SCORE_ENABLED:
@@ -1327,12 +1383,12 @@ def main():
         if n_api_failures > 0:
             logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
 
-        # 统计分类分布（基于 full 轨道）
+        # 统计创新位点分布 (v7: Gomber 2018 JMIS technology-application 层; 基于 full 轨道)
         if df['llm_verified_full'].sum() > 0:
             verified_df = df[df['llm_verified_full']]
-            cat_counts = verified_df['fintech_category'].value_counts()
-            for cat, cnt in cat_counts.items():
-                logger.info(f"  金融科技分类 [{cat}]: {cnt}")
+            locus_counts = verified_df['innovation_locus'].value_counts()
+            for locus_label, cnt in locus_counts.items():
+                logger.info(f"  创新位点 [{locus_label}]: {cnt}")
 
         # 结果统计（双轨对比）
         total_len = len(df)

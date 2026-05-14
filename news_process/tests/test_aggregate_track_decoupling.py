@@ -24,14 +24,17 @@ if str(_PROJECT_PARENT) not in sys.path:
 
 
 def _build_response(verified: bool, sentiment: str, ver_conf: float = 0.9, sent_conf: float = 0.85) -> str:
+    # v7 schema (W&Z 1994/1998 substantiveness + Gomber 2018 locus)
     return json.dumps({
         "is_bank_fintech_news": verified,
         "sentiment": sentiment,
         "verification_confidence": ver_conf,
         "sentiment_confidence": sent_conf,
         "fintech_topic": "数字人民币",
-        "fintech_category": "应用场景",
-        "text_type": "实质性",
+        "innovation_locus": "应用场景",
+        "innovation_locus_confidence": 0.9,
+        "innovation_substantiveness": "实质性",
+        "innovation_substantiveness_confidence": 0.85,
     }, ensure_ascii=False)
 
 

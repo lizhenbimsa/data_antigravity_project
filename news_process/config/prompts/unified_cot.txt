@@ -1,10 +1,10 @@
-# version: v6-2026-05-13
+# version: v7-2026-05-14
 <role>
 你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格遵循思维链（Chain-of-Thought）完成以下三阶段序贯分析。
 </role>
 
-<step1_verification>
-**阶段一：语义真伪精筛**
+<step1_relevance>
+**阶段一：主体-议题关联识别**
 
 仅针对【目标分析银行: {target_bank}】进行验证。判定为 true 须**同时满足**：
 1. **主体关联**：正文实质性涉及【{target_bank}】（不含来源标注、免责声明、赞助冠名等边缘提及）。
@@ -12,10 +12,10 @@
 3. **实质关联**：该银行与金融科技主题存在可证实的实质联系（技术研发、产品发布、业务合作、战略部署、应用落地等）。
 
 不满足任一条件、或金融科技仅作背景修辞、或文章为纯宏观综述而无具体银行行动，均判定为 false。
-</step1_verification>
+</step1_relevance>
 
 <step2_sentiment>
-**阶段二：情感倾向分析**（仅当阶段一判定为 true 时执行）
+**阶段二：情感属性分类**（仅当阶段一判定为 true 时执行）
 
 聚焦新闻**仅对【{target_bank}】**的情感倾向。
 ⚠️ 抗污染指令：文中可能同时提及同行（{co_mentioned_banks}），其利好或负面与【{target_bank}】无直接关联时，一律视为噪音，不影响评分。
@@ -24,13 +24,41 @@
 - `负面`：风险暴露、监管处罚、安全事故、舆论危机等负面事件。
 </step2_sentiment>
 
-<step3_text_type>
-**阶段三：新闻文本类型分类**（仅当阶段一判定为 true 时执行）
+<step3_innovation>
+**阶段三：创新属性分类**（仅当阶段一判定为 true 时执行）
 
-判断新闻的金融科技内容类型（二分类，最低阈值原则）：
-- `实质性`：含至少一项可验证事实（技术部署、产品上线、数据披露、协议签署、专利获批等）。
-- `描述性`：完全不含可验证事实，仅有战略口号、规划愿景或趋势讨论。
-</step3_text_type>
+本阶段对相关新闻做两个并列的创新属性分类。
+
+### 维度 1：创新实质性 (innovation_substantiveness)
+
+**判定框架**：Westphal & Zajac (1994, 1998 ASQ) substantive vs symbolic management；Fiss & Zajac (2006 ASQ) 关于 decoupling 的论述。
+
+**核心判定问题**：该银行的金融科技行动是否产生**实际经济/运营后果**？还是主要服务于**合法性获取 (legitimacy)** 或**印象管理 (impression management)** 而与实际行为脱钩 (decoupling)？
+
+- `实质性`：行动具备**实际经济/运营后果**，符合以下任一特征：
+    (a) 真实资源投入（资金、人力、基础设施、技术栈）；
+    (b) 可独立验证的能力建设或业务影响（产品交付用户、数据/规模披露、关键协议落地执行、专利/资质获批、系统集成完成）；
+    (c) 与组织实际经营或战略路径有可追溯的对应关系。
+
+- `象征性`：行动主要服务于**合法性信号或印象管理**而**无对应的实质经济后果**，符合以下任一特征：
+    (a) 仅有战略口号、规划愿景、目标承诺，无具体投入或时间表；
+    (b) 含数据/产品提及但属于公关包装、形式性发布、仪式性活动（无独立证据表明产生实际业务影响）；
+    (c) 跟风式跟踪行业趋势但未表明自身实质行动；
+    (d) 重复宣布同一举措而无新增实质内容；
+    (e) **决策与行动脱钩 (decoupling)**——如宣称数字化战略但披露的业务投入与之不匹配。
+
+⚠️ **判定原则**：
+- `象征性` ≠ `缺乏事实陈述`
+- `象征性` = 即使含具体事实，其主要功能是合法性信号 / 印象管理 / 决策与行动脱钩，而**非实际改变组织行为或产生经济后果**
+- 含具体数据但纯属营销公关的发布会报道应判 `象征性` 而非 `实质性`
+
+### 维度 2：创新位点 (innovation_locus)
+
+**判定框架**：Gomber, Kauffman, Parker, Weber (2018 JMIS) enabling technology vs business function；Adner & Kapoor (2010 SMJ) 生态系统组件 vs 互补品视角。
+
+- `底层技术`：使能技术层——AI、区块链、大数据、云计算、量子计算、生物识别等基础技术能力建设。
+- `应用场景`：业务功能层——数字支付、开放银行、智能风控、智能投顾、数字信贷等具体业务应用。
+</step3_innovation>
 
 <input_data>
 目标分析银行: {target_bank}
@@ -46,12 +74,15 @@
   "is_bank_fintech_news": true/false,
   "confirmed_bank": "确认关联的匹配银行名称（false 时填 null）",
   "fintech_topic": "核心金融科技主题简述（false 时填 null）",
-  "fintech_category": "底层技术/应用场景（false 时填 null）",
   "verification_confidence": 0.0~1.0,
   "sentiment_reason": "简明说明情感判定依据",
-  "sentiment": "正面/中性/负面（false 时填'中性'）",  
+  "sentiment": "正面/中性/负面（false 时固定填\"中性\"）",
   "sentiment_confidence": 0.0~1.0,
-  "text_type_reason": "简明说明判定依据（false 时填 null）",
-  "text_type": "实质性/描述性（false 时填 null）"
+  "innovation_substantiveness_reason": "简明说明实质/象征判定依据，须引用文章具体内容（false 时填 null）",
+  "innovation_substantiveness": "实质性/象征性（false 时填 null）",
+  "innovation_substantiveness_confidence": 0.0~1.0,
+  "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
+  "innovation_locus": "底层技术/应用场景（false 时填 null）",
+  "innovation_locus_confidence": 0.0~1.0
 }}
 </output_format>

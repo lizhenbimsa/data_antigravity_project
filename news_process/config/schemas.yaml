@@ -56,8 +56,8 @@ stage_21_output:
     - llm_verified_ctx
     - llm_sentiment_full
     - llm_sentiment_ctx
-    - fintech_category
-    - text_type
+    - innovation_locus
+    - innovation_substantiveness
 
 stage_22_output:
   required_columns:

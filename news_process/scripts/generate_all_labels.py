@@ -76,11 +76,12 @@ def infer_label(var):
         '_w_': 'VW',
     }
 
-    # 分类映射
+    # 分类映射 (v7: 标签中文升级到 W&Z 1994/1998 substantive-symbolic 框架;
+    #          列名后缀 _desc/_sub 保留以兼容 v6 panel 与 Stata 变量名)
     cats = {
         '_tech': '技术类',
         '_app': '应用类',
-        '_desc': '描述性',
+        '_desc': '象征性',   # v7: 原 '描述性' (Westphal & Zajac 1994 ASQ substantive-symbolic)
         '_sub': '实质性',
     }
 
