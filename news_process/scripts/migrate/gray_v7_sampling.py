@@ -1,7 +1,15 @@
 """v7 灰度验证样本采样 (R8-K 5+3+2 分布)
 
-从 21_tone_llms.parquet v6 输出中抽取 10 行用于 v7 prompt 灰度验证。
-不进入 git commit (临时工具)。
+从 21_tone_llms.parquet 输出中抽取 10 行用于灰度验证。
+
+**Execution requirement**: 必须从项目根目录运行 (cwd = data_antigravity_project/):
+    python news_process/scripts/migrate/gray_v7_sampling.py
+
+输入/输出路径相对项目根硬编码 (与同目录 generate_golden_snapshot.py 等
+migrate 工具一致)。从其他目录运行会 FileNotFoundError。
+
+v7 上线后用途变化: v7 schema 已落地 21_tone_llms.parquet, 本脚本仅做
+v7 panel 子集抽样 (不再做 v6→v7 漂移对比, v6 baseline 在 .v6.bak 备份)。
 
 采样原则 (R8-K, 第 8 轮审查):
   A 组 (5 样本): v6 = '实质性' + 含具体数据
