@@ -355,21 +355,21 @@ def main():
     #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3)
     # 方法 C 和 G 无需篇章级标记, 直接使用面板级已有变量计算
     _tt = df['innovation_substantiveness'].astype(str).str.strip() if 'innovation_substantiveness' in df.columns else None
-    _is_desc = (_tt == '描述性') if _tt is not None else None
+    _is_symb = (_tt == '象征性') if _tt is not None else None
     _is_sub  = (_tt == '实质性') if _tt is not None else None
 
     washing_cols = {}
     for track in ['_full', '_ctx']:
         pos_col = f'is_positive{track}'
         neg_col = f'is_negative{track}'
-        if pos_col not in df.columns or _is_desc is None:
+        if pos_col not in df.columns or _is_symb is None:
             continue
 
-        # --- 方法 A: LLM 投票 (正面 ∧ 描述性) ---
+        # --- 方法 A: LLM 投票 (正面 ∧ 象征性) ---
         # v6/F2: is_positive 现在是 nullable Int8 (NaN = 测量失败/平局/拒绝)。
         # NaN 行不应被视为"正面描述"，等价于 fillna(0) 后 == 1 比较为 False。
-        washing_cols[f'_is_pos_desc{track}'] = (
-            (df[pos_col].fillna(0) == 1) & _is_desc
+        washing_cols[f'_is_pos_symb{track}'] = (
+            (df[pos_col].fillna(0) == 1) & _is_symb
         ).astype(int)
 
         # --- 方法 B: 反向验证 (负面 ∧ 实质性) ---
@@ -389,8 +389,8 @@ def main():
                 _src = df[src_col].fillna(0)
                 _llm_pos = (_src > 0)
                 washing_cols[f'_is_{llm}_positive{track}'] = _llm_pos.astype(int)
-                washing_cols[f'_is_{llm}_pos_desc{track}'] = (
-                    _llm_pos & _is_desc).astype(int)
+                washing_cols[f'_is_{llm}_pos_symb{track}'] = (
+                    _llm_pos & _is_symb).astype(int)
                 # negative 编码 (Garcia 2013, JF → disag 输入)
                 washing_cols[f'_is_{llm}_negative{track}'] = (_src < 0).astype(int)
 
@@ -402,8 +402,8 @@ def main():
             _dict_pos = (_dict_avg > 0)
             washing_cols[f'_dict_avg_score{track}'] = _dict_avg
             washing_cols[f'_is_dict_positive{track}'] = _dict_pos.astype(int)
-            washing_cols[f'_is_dict_pos_desc{track}'] = (
-                _dict_pos & _is_desc).astype(int)
+            washing_cols[f'_is_dict_pos_symb{track}'] = (
+                _dict_pos & _is_symb).astype(int)
 
         # --- 方法 D2: 单个词典 (Gentzkow et al. 2019, JEL) ---
         for d in DICT_NAMES:
@@ -411,8 +411,8 @@ def main():
             if src_col in df.columns:
                 _d_pos = (df[src_col] > 0)
                 washing_cols[f'_is_{d}_positive{track}'] = _d_pos.astype(int)
-                washing_cols[f'_is_{d}_pos_desc{track}'] = (
-                    _d_pos & _is_desc).astype(int)
+                washing_cols[f'_is_{d}_pos_symb{track}'] = (
+                    _d_pos & _is_symb).astype(int)
                 # negative 编码 (Garcia 2013, JF → disag 输入)
                 washing_cols[f'_is_{d}_negative{track}'] = (
                     df[src_col] < 0).astype(int)
@@ -425,8 +425,8 @@ def main():
             _bert_pos = (_bert_avg > 0.5)
             washing_cols[f'_bert_avg_pos{track}'] = _bert_avg
             washing_cols[f'_is_bert_positive{track}'] = _bert_pos.astype(int)
-            washing_cols[f'_is_bert_pos_desc{track}'] = (
-                _bert_pos & _is_desc).astype(int)
+            washing_cols[f'_is_bert_pos_symb{track}'] = (
+                _bert_pos & _is_symb).astype(int)
 
         # --- 方法 E2: 单个 BERT ---
         for b in BERT_MODELS:
@@ -434,8 +434,8 @@ def main():
             if src_col in df.columns:
                 _b_pos = (df[src_col] > 0.5)
                 washing_cols[f'_is_{b}_positive{track}'] = _b_pos.astype(int)
-                washing_cols[f'_is_{b}_pos_desc{track}'] = (
-                    _b_pos & _is_desc).astype(int)
+                washing_cols[f'_is_{b}_pos_symb{track}'] = (
+                    _b_pos & _is_symb).astype(int)
                 # negative 编码 (Garcia 2013, JF → disag 输入)
                 neg_src = f'{b}_负面{track}'
                 if neg_src in df.columns:
@@ -449,8 +449,8 @@ def main():
             # v6/F2: pos_col nullable Int8 → fillna(0)
             washing_cols[f'_is_pos_hc{track}'] = (
                 (df[pos_col].fillna(0) == 1) & _hc).astype(int)
-            washing_cols[f'_is_pos_desc_hc{track}'] = (
-                (df[pos_col].fillna(0) == 1) & _is_desc & _hc
+            washing_cols[f'_is_pos_symb_hc{track}'] = (
+                (df[pos_col].fillna(0) == 1) & _is_symb & _hc
             ).astype(int)
 
 
@@ -1171,7 +1171,7 @@ def main():
     #   D/D2: 词典均值 + 单词典 (5本) × 双轨
     #   E/E2: BERT 均值 + 单 BERT (5模型) × 双轨
     #   F:    高置信度子样本 × 双轨
-    #   G:    描述性文章情感偏移 × 双轨
+    #   G:    象征性文章情感偏移 × 双轨
     # =========================================================================
     logger.info("=" * 60)
     logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造 (40种)")
@@ -1191,7 +1191,7 @@ def main():
         pos_col = f'pos_count{track}'
 
         # --- 方法 A: LLM 投票极化条件法 ---
-        pd_col = f'pos_desc_count{track}'
+        pd_col = f'pos_symb_count{track}'
         vn = f'washing_ratio{_sfx}'
         if pos_col in panel.columns and pd_col in panel.columns:
             panel[vn] = _safe_ratio(panel[pd_col], panel[pos_col])
@@ -1200,7 +1200,7 @@ def main():
         # --- 方法 A2: 单个 LLM ---
         for llm in LLM_MODELS:
             pc = f'{llm}_pos_count{track}'
-            pdc = f'{llm}_pos_desc_count{track}'
+            pdc = f'{llm}_pos_symb_count{track}'
             vn = f'washing_ratio_{llm}{_sfx}'
             if pc in panel.columns and pdc in panel.columns:
                 panel[vn] = _safe_ratio(panel[pdc], panel[pc])
@@ -1220,17 +1220,17 @@ def main():
                 panel[vn_asym] = panel[vn_r] - (1 - panel[wr_a])
                 wr_variants[vn_asym] = f'B: 非对称性{track}'
 
-        # --- 方法 C: 情感纯度缺口 (实质性 vs 描述性) ---
+        # --- 方法 C: 情感纯度缺口 (实质性 vs 象征性) ---
         sub_col = f'llm_vote_tone_sub{track}'
-        desc_col = f'llm_vote_tone_desc{track}'
+        desc_col = f'llm_vote_tone_symb{track}'
         if sub_col in panel.columns and desc_col in panel.columns:
-            vn = f'tone_gap_desc_sub{track}'
+            vn = f'tone_gap_symb_sub{track}'
             panel[vn] = panel[desc_col] - panel[sub_col]
             wr_variants[vn] = f'C: 情感缺口{track}'
 
         # --- 方法 D: 词典均值 ---
         dpc = f'dict_pos_count{track}'
-        dpdc = f'dict_pos_desc_count{track}'
+        dpdc = f'dict_pos_symb_count{track}'
         if dpc in panel.columns and dpdc in panel.columns:
             vn = f'washing_ratio_dict{_sfx}'
             panel[vn] = _safe_ratio(panel[dpdc], panel[dpc])
@@ -1239,7 +1239,7 @@ def main():
         # --- 方法 D2: 单个词典 ---
         for d in DICT_NAMES:
             pc = f'{d}_pos_count{track}'
-            pdc = f'{d}_pos_desc_count{track}'
+            pdc = f'{d}_pos_symb_count{track}'
             vn = f'washing_ratio_{d}{_sfx}'
             if pc in panel.columns and pdc in panel.columns:
                 panel[vn] = _safe_ratio(panel[pdc], panel[pc])
@@ -1247,7 +1247,7 @@ def main():
 
         # --- 方法 E: BERT 均值 ---
         bpc = f'bert_pos_count{track}'
-        bpdc = f'bert_pos_desc_count{track}'
+        bpdc = f'bert_pos_symb_count{track}'
         if bpc in panel.columns and bpdc in panel.columns:
             vn = f'washing_ratio_bert{_sfx}'
             panel[vn] = _safe_ratio(panel[bpdc], panel[bpc])
@@ -1256,7 +1256,7 @@ def main():
         # --- 方法 E2: 单个 BERT ---
         for b in BERT_MODELS:
             pc = f'{b}_pos_count{track}'
-            pdc = f'{b}_pos_desc_count{track}'
+            pdc = f'{b}_pos_symb_count{track}'
             vn = f'washing_ratio_{b}{_sfx}'
             if pc in panel.columns and pdc in panel.columns:
                 panel[vn] = _safe_ratio(panel[pdc], panel[pc])
@@ -1264,14 +1264,14 @@ def main():
 
         # --- 方法 F: 高置信度子样本 ---
         hpc = f'pos_hc_count{track}'
-        hpdc = f'pos_desc_hc_count{track}'
+        hpdc = f'pos_symb_hc_count{track}'
         if hpc in panel.columns and hpdc in panel.columns:
             vn = f'washing_ratio_hc{_sfx}'
             panel[vn] = _safe_ratio(panel[hpdc], panel[hpc])
             wr_variants[vn] = f'F: 高置信{track}'
 
         # --- 方法 G: 情感偏移 ---
-        desc_tone = f'llm_vote_tone_desc{track}'
+        desc_tone = f'llm_vote_tone_symb{track}'
         all_tone = f'llm_vote_tone{track}'
         if desc_tone in panel.columns and all_tone in panel.columns:
             vn = f'washing_tone_shift{track}'

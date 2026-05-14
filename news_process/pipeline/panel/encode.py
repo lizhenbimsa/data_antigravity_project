@@ -513,30 +513,30 @@ def build_aggregation_dict() -> dict:
     # --- K. 洗稿率聚合: 多方法 × 双轨 (Bingler et al. 2022, FRL) ---
     for track in ['_full', '_ctx']:
         # A: LLM 投票
-        agg[f'pos_desc_count{track}'] = (f'_is_pos_desc{track}', 'sum')
+        agg[f'pos_symb_count{track}'] = (f'_is_pos_symb{track}', 'sum')
         # B: 反向验证
         agg[f'neg_sub_count{track}'] = (f'_is_neg_sub{track}', 'sum')
         # A2: 单个 LLM (Loughran & McDonald 2016, JAR)
         for llm in LLM_MODELS:
             agg[f'{llm}_pos_count{track}'] = (f'_is_{llm}_positive{track}', 'sum')
-            agg[f'{llm}_pos_desc_count{track}'] = (f'_is_{llm}_pos_desc{track}', 'sum')
+            agg[f'{llm}_pos_symb_count{track}'] = (f'_is_{llm}_pos_symb{track}', 'sum')
         # D: 词典均值
         agg[f'dict_pos_count{track}'] = (f'_is_dict_positive{track}', 'sum')
-        agg[f'dict_pos_desc_count{track}'] = (f'_is_dict_pos_desc{track}', 'sum')
+        agg[f'dict_pos_symb_count{track}'] = (f'_is_dict_pos_symb{track}', 'sum')
         # D2: 单个词典 (Gentzkow et al. 2019, JEL)
         for d in DICT_NAMES:
             agg[f'{d}_pos_count{track}'] = (f'_is_{d}_positive{track}', 'sum')
-            agg[f'{d}_pos_desc_count{track}'] = (f'_is_{d}_pos_desc{track}', 'sum')
+            agg[f'{d}_pos_symb_count{track}'] = (f'_is_{d}_pos_symb{track}', 'sum')
         # E: BERT 均值
         agg[f'bert_pos_count{track}'] = (f'_is_bert_positive{track}', 'sum')
-        agg[f'bert_pos_desc_count{track}'] = (f'_is_bert_pos_desc{track}', 'sum')
+        agg[f'bert_pos_symb_count{track}'] = (f'_is_bert_pos_symb{track}', 'sum')
         # E2: 单个 BERT (Huang et al. 2023, CAR)
         for b in BERT_MODELS:
             agg[f'{b}_pos_count{track}'] = (f'_is_{b}_positive{track}', 'sum')
-            agg[f'{b}_pos_desc_count{track}'] = (f'_is_{b}_pos_desc{track}', 'sum')
+            agg[f'{b}_pos_symb_count{track}'] = (f'_is_{b}_pos_symb{track}', 'sum')
         # F: 高置信度子样本
         agg[f'pos_hc_count{track}'] = (f'_is_pos_hc{track}', 'sum')
-        agg[f'pos_desc_hc_count{track}'] = (f'_is_pos_desc_hc{track}', 'sum')
+        agg[f'pos_symb_hc_count{track}'] = (f'_is_pos_symb_hc{track}', 'sum')
 
     # --- L. 单方法 neg_count (用于 disag 指标) ---
     # Garcia, D. (2013). Sentiment during recessions.
@@ -781,16 +781,16 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         panel['tech_frac'] = np.nan
         panel['app_frac'] = np.nan
 
-    # --- 按 innovation_substantiveness 分组聚合（实质性 / 描述性，二分类） ---
+    # --- 按 innovation_substantiveness 分组聚合（实质性 / 象征性，二分类） ---
     if 'innovation_substantiveness' in df.columns:
-        valid_tts = {'实质性', '描述性'}
+        valid_tts = {'实质性', '象征性'}
 
         actual_tts = set(df['innovation_substantiveness'].dropna().unique())
         unexpected_tt = actual_tts - valid_tts
         if unexpected_tt:
             logger.warning(f"  innovation_substantiveness 含非预期值: {unexpected_tt}，这些文章将不计入分类聚合")
 
-        tt_mapping = [('实质性', '_sub'), ('描述性', '_desc')]
+        tt_mapping = [('实质性', '_sub'), ('象征性', '_symb')]
 
         for tt_label, suffix in tt_mapping:
             df_tt = df[df['innovation_substantiveness'] == tt_label]
@@ -818,13 +818,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                         f"{len(tt_agg)} 个指标")
 
         # innovation_substantiveness 计数列填充（二分类）
-        for suffix in ['_sub', '_desc']:
+        for suffix in ['_sub', '_symb']:
             col = f'n_articles{suffix}'
             if col in panel.columns:
                 panel[col] = panel[col].fillna(0).astype(int)
 
-        # sub_frac / desc_frac（二分类）
-        for suffix in ['_sub', '_desc']:
+        # sub_frac / symb_frac（二分类）
+        for suffix in ['_sub', '_symb']:
             panel[f'{suffix[1:]}_frac'] = np.where(
                 panel['n_articles'] > 0,
                 panel[f'n_articles{suffix}'] / panel['n_articles'],
@@ -832,19 +832,19 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             )
 
         # 情感纯度差距指标
-        if 'llm_vote_tone_sub_full' in panel.columns and 'llm_vote_tone_desc_full' in panel.columns:
-            panel['tone_gap_sub_desc'] = (
-                panel['llm_vote_tone_sub_full'] - panel['llm_vote_tone_desc_full']
+        if 'llm_vote_tone_sub_full' in panel.columns and 'llm_vote_tone_symb_full' in panel.columns:
+            panel['tone_gap_sub_symb'] = (
+                panel['llm_vote_tone_sub_full'] - panel['llm_vote_tone_symb_full']
             )
 
         # innovation_substantiveness 恒等式校验（二分类）
-        if all(f'n_articles{s}' in panel.columns for s in ['_sub', '_desc']):
+        if all(f'n_articles{s}' in panel.columns for s in ['_sub', '_symb']):
             has_news = panel['n_articles'] > 0
             tt_identity = (panel.loc[has_news, 'n_articles'] ==
                            panel.loc[has_news, 'n_articles_sub'] +
-                           panel.loc[has_news, 'n_articles_desc'])
+                           panel.loc[has_news, 'n_articles_symb'])
             if tt_identity.all():
-                logger.info("  ✓ innovation_substantiveness 恒等式校验通过: n_articles == n_articles_sub + n_articles_desc")
+                logger.info("  ✓ innovation_substantiveness 恒等式校验通过: n_articles == n_articles_sub + n_articles_symb")
             else:
                 n_fail_tt = (~tt_identity).sum()
                 logger.warning(f"  ✗ innovation_substantiveness 恒等式校验失败: {n_fail_tt} 行")
@@ -1038,13 +1038,13 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
             panel[col] = panel[col].fillna(0).astype(int)
 
     # --- innovation_substantiveness 分类维度计数列填充为 0（独立循环，不追加到 innovation_locus） ---
-    for suffix in ['_sub', '_desc']:
+    for suffix in ['_sub', '_symb']:
         col = f'n_articles{suffix}'
         if col in panel.columns:
             panel[col] = panel[col].fillna(0).astype(int)
 
     # 其余 NaN 列保持不变（均值、比例、离散度等由 Stata 处理）
-    # tech_frac / app_frac / sub_frac / desc_frac / avg_category_confidence: 零新闻行保持 NaN
+    # tech_frac / app_frac / sub_frac / symb_frac / avg_category_confidence: 零新闻行保持 NaN
 
     logger.info(f"  完全笛卡尔积: {len(all_banks)} 银行 × {len(all_years)} 年 = {rows_after:,} 行")
     logger.info(f"  原有观测值: {rows_before:,} 行")

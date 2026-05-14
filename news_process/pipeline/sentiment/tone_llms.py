@@ -796,10 +796,10 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
                               {short}_innovation_substantiveness_confidence /
                               {short}_innovation_locus_confidence 每模型独立置信度
             innov_loci:       LLM 创新位点投票列表 (底层技术 / 应用场景)
-            innov_substs:     LLM 创新实质性投票列表 (实质性 / 描述性)；v7 起
-                              通过 inline 翻译层把 LLM 输出 '象征性' 映射为 '描述性'，
-                              保持 panel 列后缀 _desc 与 Stata 变量名 v6 兼容
-                              (Westphal & Zajac 1994/1998 ASQ 框架; 见 docs/methodology/
+            innov_substs:     LLM 创新实质性投票列表 (实质性 / 象征性)；v3.0.0
+                              (v8) 起翻译层已废除, panel 列值即 LLM 原始输出, 列后缀
+                              统一为 _sub / _symb (Westphal & Zajac 1994/1998 ASQ
+                              substantive-symbolic 框架; 详见 docs/methodology/
                               prompt_terminology_mapping.md)
             avg_prob_score:   Logit-to-Score 多模型平均概率分数 ∈ [-1, +1]
     """
@@ -875,14 +875,12 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
                     innov_loci.append(part)
                     break
 
-        # v7: innovation_substantiveness (原 text_type, W&Z 1994/1998 ASQ substantive-symbolic)
-        # 内联翻译层 (R5-A + R8-B): LLM 输出 '象征性' → parquet '描述性' 兼容 _desc 后缀
+        # v3.0.0 (v8): innovation_substantiveness 翻译层已废除, panel 列值即 LLM 原始输出
+        # (Westphal & Zajac 1994/1998 ASQ substantive-symbolic 框架). 列后缀 _sub / _symb.
         llm_tt = jd.get('innovation_substantiveness')
         if llm_tt:
             tt_str = str(llm_tt).strip()
-            if tt_str == '象征性':
-                tt_str = '描述性'
-            if tt_str in ('实质性', '描述性'):
+            if tt_str in ('实质性', '象征性'):
                 innov_substs.append(tt_str)
 
         # v7: per-model stage 3 confidence (用于 row-level avg 聚合, 对应论文 W&Z 框架信号强度)
@@ -1315,14 +1313,13 @@ def main():
                 innovation_locus_arr.append(kw_category)
                 category_confidence_arr.append(kw_confidence)
 
-            # ── 创新实质性分类多数决（v7: W&Z 1994/1998 ASQ; 仅基于 full 轨道，二分类） ──
-            # 二分类多数投票：平局保守降为 '描述性'（modal class prior, MAP under uniform prior）；
-            # 空票返回 None。统一委托给 majority_vote_categorical。
-            # 注: '描述性' 是 v7 内联翻译层 (R5-A + R8-B) 后的 parquet 值域 (LLM '象征性' → '描述性')
+            # ── 创新实质性分类多数决（v3.0.0/v8: W&Z 1994/1998 ASQ; 仅基于 full 轨道，二分类） ──
+            # 二分类多数投票：平局保守降为 '象征性'（W&Z framework 下实质性需充分证据,
+            # 平局倾向象征性是保守审慎判定; MAP under uniform prior）；空票返回 None.
             innov_subst_arr.append(majority_vote_categorical(
                 innov_substs_full,
                 tie_strategy='conservative',
-                tie_default='描述性',
+                tie_default='象征性',
                 empty_fallback=None,
             ))
 

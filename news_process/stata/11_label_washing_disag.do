@@ -17,7 +17,7 @@ label variable washing_ratio_deepseekv4 "洗绿比率Grok4.1(全文)"
 
 label variable neg_sub_ratio_full "负面实质性比率(全文)"
 label variable washing_asymmetry_full "洗绿不对称性(全文)"
-label variable tone_gap_desc_sub_full "象征性-实质性情感差(全文)"
+label variable tone_gap_symb_sub_full "象征性-实质性情感差(全文)"
 
 label variable washing_ratio_dict "洗绿比率词典平均(全文)"
 label variable washing_ratio_jiang_2021 "洗绿比率江2021(全文)"
@@ -43,7 +43,7 @@ label variable washing_ratio_deepseekv4_ctx "洗绿比率Grok4.1(上下文)"
 
 label variable neg_sub_ratio_ctx "负面实质性比率(上下文)"
 label variable washing_asymmetry_ctx "洗绿不对称性(上下文)"
-label variable tone_gap_desc_sub_ctx "象征性-实质性情感差(上下文)"
+label variable tone_gap_symb_sub_ctx "象征性-实质性情感差(上下文)"
 
 label variable washing_ratio_dict_ctx "洗绿比率词典平均(上下文)"
 label variable washing_ratio_jiang_2021_ctx "洗绿比率江2021(上下文)"

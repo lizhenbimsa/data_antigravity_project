@@ -12,8 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v2.2.0 (Prompt v7: Westphal-Zajac substantive-symbolic + Gomber innovation locus + Bybee entity-topic relevance; W&Z 1994/1998 ASQ + Fiss & Zajac 2006 + Gomber et al. 2018 JMIS; 翻译层兼容 v6 panel/Stata 列名 + 26 项 9 轮审查修复; 详见 docs/methodology/prompt_terminology_mapping.md 和 CHANGELOG.md)
-**Test baseline**: 991 passed / 2 skipped / 0 failed (v7 +5 translation layer + 1 dual_track v7 schema extension)
+**Current version**: v3.0.0 (Prompt v7 + v8 术语正名: substantive=_sub, symbolic=_symb; 翻译层已移除, panel 列值=LLM 原始输出 实质性/象征性; W&Z 1994/1998 ASQ + Fiss & Zajac 2006 + Gomber et al. 2018 JMIS; 详见 CHANGELOG.md v3.0.0)
+**Test baseline**: 986 passed / 2 skipped / 0 failed (v3.0.0 移除 translation_layer 测试 + 38 列 _desc → _symb 重命名)
 
 ## Architecture
 

@@ -591,7 +591,7 @@ def aggregate_variant_results(
             # v7 R7.2: 对变体 LLM 多模型输出做 majority vote (二分类 conservative)
             innov_subst_list.append(majority_vote_categorical(
                 innov_substs, tie_strategy='conservative',
-                tie_default='描述性', empty_fallback=None,
+                tie_default='象征性', empty_fallback=None,
             ))
             innov_locus_list.append(majority_vote_categorical(
                 innov_loci, tie_strategy='conservative',

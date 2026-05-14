@@ -69,7 +69,7 @@ xtset bank_id year
 * global controls "ln_news_coverage media_hhi bank_scale_ord"
 
 * =========================================================================
-* 1. 描述性统计
+* 1. 象征性统计
 * =========================================================================
 sum strat_diff_n* strat_sim_max* strat_fluidity*, detail
 
@@ -163,7 +163,7 @@ ivreghdfe Y (llm_vote_tone_full = bartik_type_iv_full) ///
 *      (本项目迁移至 TF-IDF/LDA/Embedding, 行业质心替代公共数据基准)
 * =========================================================================
 
-* ── 8a. 描述性统计 ──
+* ── 8a. 象征性统计 ──
 sum centroid_diff_tfidf_c centroid_diff_tfidf_w ///
     centroid_diff_lda centroid_diff_emb, detail
 
@@ -242,7 +242,7 @@ eststo horse_race
 *       endogenous product differentiation. JPE. https://doi.org/10.1086/688176
 * =========================================================================
 
-* ── 10a. 描述性统计与方法论收敛效度 (Convergent Validity) ──
+* ── 10a. 象征性统计与方法论收敛效度 (Convergent Validity) ──
 sum auth_sim_*_full, detail
 pwcorr auth_sim_tfidf_c_full auth_sim_tfidf_w_full ///
        auth_sim_lda_full auth_sim_emb_full, sig star(0.05)

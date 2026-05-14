@@ -81,7 +81,7 @@ def infer_label(var):
     cats = {
         '_tech': '技术类',
         '_app': '应用类',
-        '_desc': '象征性',   # v7: 原 '描述性' (Westphal & Zajac 1994 ASQ substantive-symbolic)
+        '_symb': '象征性',   # v7: 原 '描述性' (Westphal & Zajac 1994 ASQ substantive-symbolic)
         '_sub': '实质性',
     }
 

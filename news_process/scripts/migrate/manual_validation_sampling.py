@@ -64,7 +64,7 @@ def main():
 
     # C: 描述性 (= symbolic post-translation) ∧ 应用场景
     strata['C_symbolic_app'] = verified[
-        (verified['innovation_substantiveness'] == '描述性') &
+        (verified['innovation_substantiveness'] == '象征性') &
         (verified['innovation_locus'] == '应用场景')
     ]
 
@@ -76,7 +76,7 @@ def main():
 
     # E: 描述性 ∧ 底层技术 (double minority)
     strata['E_symbolic_tech'] = verified[
-        (verified['innovation_substantiveness'] == '描述性') &
+        (verified['innovation_substantiveness'] == '象征性') &
         (verified['innovation_locus'] == '底层技术')
     ]
 

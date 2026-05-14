@@ -57,7 +57,7 @@ xtset bank_id year
 * global controls "ln_news_coverage media_hhi bank_scale_ord"
 
 * =========================================================================
-* 1. 描述性统计
+* 1. 象征性统计
 * =========================================================================
 summarize coh_tfidf_c_full coh_tfidf_w_full coh_lda_full coh_emb_full, detail
 

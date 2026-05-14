@@ -68,7 +68,7 @@ We acknowledge that the validation scope reported above (single-shot prompt-pert
 
 ### 3.6 Computational Reproducibility
 
-All prompts (including the v7 production prompt and four sensitivity variants), API call logs (model identifier, prompt version, temperature, response), aggregation code, and validation scripts are available in the project repository at git tag `prompt-v7-released` (commit hash `7e227b5`, dated 2026-05-14). The release follows the AEA Data and Code Availability Policy (2019+) for replicability. Variable definitions, including the convention that panel columns suffixed `_desc` carry the symbolic interpretation per Westphal and Zajac (1994), are detailed in the project codebook (`news_process/pipeline/panel/codebook.py`).
+All prompts (including the v7 production prompt and four sensitivity variants), API call logs (model identifier, prompt version, temperature, response), aggregation code, and validation scripts are available in the project repository at git tags `prompt-v7-released` (commit hash `7e227b5`, dated 2026-05-14) and `v3.0.0` (terminology realignment, 2026-05-15). The release follows the AEA Data and Code Availability Policy (2019+) for replicability. Variable definitions, including the convention that panel columns suffixed `_symb` carry the symbolic interpretation per Westphal and Zajac (1994; v3.0.0 renamed from legacy `_desc`), are detailed in the project codebook (`news_process/pipeline/panel/codebook.py`).
 
 ---
 

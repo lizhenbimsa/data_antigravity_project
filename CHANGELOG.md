@@ -6,6 +6,74 @@
 
 ---
 
+## v3.0.0 / 2026-05-15 — BREAKING: 翻译层废除 + 38 列 `_desc → _symb` 术语正名 (baseline 991 → 986)
+
+### 总览
+
+W&Z (1998 ASQ) substantive-symbolic 框架术语对齐. v7 翻译层 (`tone_llms.py`
+将 LLM 输出 '象征性' 映射为 '描述性' 以兼容 v6 panel/Stata 列名) 已废除.
+panel 列值即 LLM 原始输出, 列名后缀由 `_desc` 重命名为 `_symb`.
+
+### BREAKING CHANGES (panel schema)
+
+**38 个 panel 列重命名** (panel parquet 不向后兼容):
+- 主列: `n_articles_desc → n_articles_symb`, `llm_vote_tone_desc_{full,ctx,title}
+  → llm_vote_tone_symb_{...}`, `tone_gap_sub_desc → tone_gap_sub_symb`,
+  `pos_desc_count_{full,ctx} → pos_symb_count_{...}`, `pos_desc_hc_count_{...}
+  → pos_symb_hc_count_{...}`
+- 衍生指标: `desc_frac → symb_frac`, `tone_gap_desc_sub_{...}
+  → tone_gap_symb_sub_{...}`
+- 中间列: `_is_pos_desc_{...} → _is_pos_symb_{...}`, `_is_{llm|dict|bert|
+  finbert_cn|fin_sent_zh|erlangshen|jiang_2021|yao_2021|bian_2021|du_2022|
+  you_2018|hw2942|finbert2}_pos_desc_{...} → _is_..._pos_symb_{...}`,
+  `_is_dict_pos_desc_{...}`, `_is_bert_pos_desc_{...}`, 等
+- panel 列值: innovation_substantiveness '描述性' → '象征性'
+- Stata 英文标签: 'Descriptive News' → 'Symbolic News (W&Z 1998)'
+
+### 改动文件 (12 个)
+
+- `news_process/pipeline/sentiment/tone_llms.py`: 删除翻译映射 + fallback '描述性'→'象征性'
+- `news_process/pipeline/panel/encode.py`: `tt_mapping` + 17 处列名
+- `news_process/pipeline/panel/runner.py`: 30+ 处列名 + 注释
+- `news_process/pipeline/panel/export.py`: 列名 + Stata 英文标签
+- `news_process/pipeline/panel/codebook.py`: 头部 docstring + entries
+- `news_process/stata/{05_label_advanced,11_label_washing_disag,15_label_complete}.do`: 42 行
+- `news_process/papers_assets/strategic_diff/do/{strategic_differentiation,text_coherence}.do`
+- `news_process/data/processed/{21_tone_llms,22_words_tone,23_bert_tone,24_herd_decay,40_article_bank_level}.parquet`: 数据值修正
+- `news_process/tests/fixtures/golden_panel_v0.json`: 重生成 (366 个 `_symb` 引用)
+- `news_process/tests/test_majority_vote_categorical.py`, `pytest_run_pilot.py`: 测试硬编码
+- `news_process/docs/methodology/prompt_terminology_mapping.md`: 重写为 v3.0.0 正名记录
+- `news_process/CLAUDE.md`: 版本号 + 测试基线
+
+### 删除
+
+- `news_process/tests/test_translation_layer.py` (5 个测试; 翻译层废除后无需)
+
+### 方法学动机
+
+- Westphal & Zajac (1998 ASQ) substantive-vs-symbolic framework 严格对齐
+- v7 翻译层为 v6 panel/Stata 兼容妥协, 但 `papers/` 模块已 0 引用 `_desc`,
+  移除时机成熟
+- W&Z framework 下 "象征性 (symbolic)" 是标准学术术语;
+  "描述性 (descriptive)" 是 v6 历史命名遗产, 易被误读为 descriptive
+
+### 测试基线
+
+- 991 passed (v7 baseline) → 986 passed / 2 skipped / 0 failed (-5 = 删除 test_translation_layer.py)
+- ruff check: All passed
+- pytest 全套: 0 fail
+
+### 回滚
+
+`baseline/pre-v6` tag 标记 v7 终态; `git switch main` 即可放弃本次重构.
+
+### 下游依赖
+
+- **paper-final-audit-4**: 论文表格 / 文本中所有 `_desc` 列名引用须迁移至 `_symb`;
+  论文方法节 "象征性" / "实质性" 术语已统一. 由用户单独启动.
+
+---
+
 ## post-v2.1.0 / 2026-05-14 — Prompt v7: Westphal-Zajac substantive-symbolic + Gomber innovation locus (baseline 986 → 991)
 
 ### 总览

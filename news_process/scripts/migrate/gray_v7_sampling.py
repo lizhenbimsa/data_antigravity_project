@@ -15,9 +15,9 @@ v7 panel 子集抽样 (不再做 v6→v7 漂移对比, v6 baseline 在 .v6.bak �
   A 组 (5 样本): v6 = '实质性' + 含具体数据
                   关键测试 - v7 W&Z 框架下含数据但 PR 包装的样本是否被重判为 'symbolic'?
                   期望: 1-3 样本翻 symbolic; 若 >4 说明 W&Z 过严
-  B 组 (3 样本): v6 = '描述性' + 含口号词
+  B 组 (3 样本): v6 = '象征性' + 含口号词
                   期望: 全部 v7 仍判 symbolic
-  C 组 (2 样本): v6 = '描述性' + 含具体数据
+  C 组 (2 样本): v6 = '象征性' + 含具体数据
                   期望: 边缘案例; 用作人工抽查核心
 
 输出: news_process/data/processed/gray_v7_samples.csv
@@ -56,8 +56,8 @@ def main():
 
     # R8-K 5+3+2 采样
     pool_a = verified[(verified[tt_col] == '实质性') & verified['has_data']]
-    pool_b = verified[(verified[tt_col] == '描述性') & verified['has_slogan']]
-    pool_c = verified[(verified[tt_col] == '描述性') & verified['has_data']]
+    pool_b = verified[(verified[tt_col] == '象征性') & verified['has_slogan']]
+    pool_c = verified[(verified[tt_col] == '象征性') & verified['has_data']]
     print(f"采样池 A (sub+data): {len(pool_a)} | B (desc+slogan): {len(pool_b)} | C (desc+data): {len(pool_c)}")
 
     g_a = pool_a.sample(n=min(5, len(pool_a)), random_state=42).assign(group='A_sub_data')
