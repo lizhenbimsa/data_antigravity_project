@@ -60,7 +60,9 @@ unified_cot.txt 从 v6 升级到 v7，对齐国际金融学 / 管理学顶刊方
 - 21_tone_llms.parquet 列变化:
   - 删: text_type, fintech_category (从 stage 1)
   - 加: innovation_substantiveness, innovation_locus, innovation_*_confidence × 2 dims × 2 tracks
-  - 行数: 849 (从 861, 翻译层后含 -12 因 API 失败排除)
+  - 行数: 849 (v6=861, v7 verification 通过率从 73.6% → 72.6%;
+            stage 21 输入 1170 不变; W&Z 框架略严让 12 个样本翻 false。
+            另有 134 次模型 API 调用失败影响 per-row 投票但不改变行数。)
 - 40_panel_yearly.parquet: 164 行 × 1989 列（v7 + R6-H 4 个 avg confidence 聚合）
 
 ### Commit chain

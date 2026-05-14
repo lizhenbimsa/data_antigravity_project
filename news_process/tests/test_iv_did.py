@@ -70,27 +70,27 @@ def mini_articles() -> pd.DataFrame:
         {'docid': 1, 'target_bank': '工行', 'year': 2020,
          'co_mentioned_banks': '招行', 'llm_vote_score_full': 1.0,
          'llm_vote_score_ctx': 1.0, 'llm_vote_score_title': 1.0,
-         'fintech_category': 'payment'},
+         'innovation_locus': 'payment'},
         # 招行: 基期 2020 提到工行
         {'docid': 2, 'target_bank': '招行', 'year': 2020,
          'co_mentioned_banks': '工行', 'llm_vote_score_full': -1.0,
          'llm_vote_score_ctx': -1.0, 'llm_vote_score_title': -1.0,
-         'fintech_category': 'payment'},
+         'innovation_locus': 'payment'},
         # 宁波: 基期 2020 提到工行
         {'docid': 3, 'target_bank': '宁波银行', 'year': 2020,
          'co_mentioned_banks': '工行', 'llm_vote_score_full': 0.0,
          'llm_vote_score_ctx': 0.0, 'llm_vote_score_title': 0.0,
-         'fintech_category': 'lending'},
+         'innovation_locus': 'lending'},
         # 2021: 工行评分提升
         {'docid': 4, 'target_bank': '工行', 'year': 2021,
          'co_mentioned_banks': '', 'llm_vote_score_full': 1.0,
          'llm_vote_score_ctx': 1.0, 'llm_vote_score_title': 1.0,
-         'fintech_category': 'payment'},
+         'innovation_locus': 'payment'},
         # 2022: 招行评分下降
         {'docid': 5, 'target_bank': '招行', 'year': 2022,
          'co_mentioned_banks': '', 'llm_vote_score_full': -1.0,
          'llm_vote_score_ctx': -1.0, 'llm_vote_score_title': -1.0,
-         'fintech_category': 'lending'},
+         'innovation_locus': 'lending'},
     ]
     return pd.DataFrame(rows)
 
@@ -193,12 +193,12 @@ def test_compute_bartik_iv_base_year_no_data_returns_nan(mini_panel, mini_articl
 # ============================================================================
 
 def test_compute_bartik_iv_fintech_uses_category_col(mini_panel, mini_articles):
-    """compute_bartik_iv_fintech 按 fintech_category 列分组, 不用 co_mention."""
+    """compute_bartik_iv_fintech 按 innovation_locus 列分组, 不用 co_mention."""
     cat_map = {'payment': 'pay', 'lending': 'lend'}
     out = iv_did.compute_bartik_iv_fintech(
         mini_panel, mini_articles, cat_map,
         group_prefix='ftcat', base_year=2020,
-        category_col='fintech_category',
+        category_col='innovation_locus',
     )
     # 应有 share + iv 列
     assert 'bartik_ftcat_share_pay' in out.columns
@@ -251,7 +251,7 @@ def test_compute_zone_leave1out_loo_math(mini_panel):
          'llm_vote_score_ctx': float(i + 1),
          'llm_vote_score_title': float(i + 1),
          'co_mentioned_banks': '',
-         'fintech_category': 'payment'}
+         'innovation_locus': 'payment'}
         for i in range(4)
     ])
 

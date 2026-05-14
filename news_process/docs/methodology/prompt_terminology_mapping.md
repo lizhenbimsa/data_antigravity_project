@@ -56,6 +56,17 @@ LLM 端           parquet 端             panel 列后缀
 | `_tech` | enabling technology layer | Gomber et al. (2018) |
 | `_app` | business function layer | Gomber et al. (2018) |
 
+### v7 新增 panel 列缩写 (R6-H)
+
+[`encode.py`](../../pipeline/panel/encode.py) 中按 Bank-Year 聚合 LLM per-row 信心评分（双轨 × 双维度 = 4 列）。列名缩写定义：
+
+| 缩写 | 全称 | 列名示例 | 含义 |
+|---|---|---|---|
+| `iss` | **i**nnovation_**s**ubstantiveness | `avg_iss_confidence_full`, `avg_iss_confidence_ctx` | Bank-Year 内 W&Z substantiveness 维度的平均置信度（按 full / ctx 双轨独立聚合） |
+| `il` | **i**nnovation_**l**ocus | `avg_il_confidence_full`, `avg_il_confidence_ctx` | Bank-Year 内 Gomber locus 维度的平均置信度 |
+
+聚合公式：对每条新闻取 LLM 多模型 confidence 算术均值（valid > 0 子集），再按 (target_bank, year) groupby mean。
+
 **论文 replication 包中所有 `_desc` 命名变量应按 W&Z (1994) symbolic 解释**，而非字面 descriptive (文本属性) 解释。
 
 ### 设计权衡
