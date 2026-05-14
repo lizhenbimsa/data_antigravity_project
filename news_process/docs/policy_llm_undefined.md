@@ -16,10 +16,10 @@
 
 | 阶段 | 位置 | 行为 |
 |---|---|---|
-| 产生 None | [pipeline/sentiment/tone_llms.py:594](../pipeline/sentiment/tone_llms.py#L594) | `majority_vote_sentiment()` 平局时返回 `None` 而非默认"中性" 0 |
-| 同上 | [pipeline/sentiment/tone_llms.py:718](../pipeline/sentiment/tone_llms.py#L718) | 文档化：标记 `llm_undefined=1`；下游 panel 层把 None 映射为 NaN |
-| 写出标记列 | [pipeline/sentiment/tone_llms.py:1027-1028](../pipeline/sentiment/tone_llms.py#L1027) | 全样本初始化 `llm_undefined_full = 0` / `llm_undefined_ctx = 0` |
-| 同上 | [pipeline/sentiment/tone_llms.py:1245-1246](../pipeline/sentiment/tone_llms.py#L1245) | 实际填入 `undefined_full_arr` / `undefined_ctx_arr` |
+| 产生 None | [pipeline/sentiment/tone_llms.py:648](../pipeline/sentiment/tone_llms.py#L648) | `majority_vote_sentiment()` 平局时返回 `None` 而非默认"中性" 0（2026-05-14 重构：内部委托给 `majority_vote_categorical` at [L585](../pipeline/sentiment/tone_llms.py#L585)，行为不变） |
+| 同上 | [pipeline/sentiment/tone_llms.py:783](../pipeline/sentiment/tone_llms.py#L783) | 文档化：标记 `llm_undefined=1`；下游 panel 层把 None 映射为 NaN |
+| 写出标记列 | [pipeline/sentiment/tone_llms.py:1091-1092](../pipeline/sentiment/tone_llms.py#L1091) | 全样本初始化 `llm_undefined_full = 0` / `llm_undefined_ctx = 0` |
+| 同上 | [pipeline/sentiment/tone_llms.py:1310-1311](../pipeline/sentiment/tone_llms.py#L1310) | 实际填入 `undefined_full_arr` / `undefined_ctx_arr` |
 | panel 消费 | [pipeline/panel/runner.py:354-359](../pipeline/panel/runner.py#L354) | NaN 视为非正面：`(df[pos_col].fillna(0) == 1) & _is_desc` |
 | 同上 (各方法) | [pipeline/panel/runner.py:361-440](../pipeline/panel/runner.py#L361) | 方法 A/A2/B/D/D2/E/E2/F 全部沿用 `fillna(0) == 1` 或 `> 0`/`< 0` 模式 |
 

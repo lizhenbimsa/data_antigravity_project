@@ -12,8 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v2.1.0 + cleanup/2026-05-13 + Wave 0/1 + Batch P0 + V8 + Priority ABC (golden refresh + LLM snapshot metadata + BERT determinism + ruff clean + pre-commit + CI fail-fast + LLMCache.stats() + pyproject dev extras + log prune + main-paper smoke + Wave 2 iv_did b1+b2 + 4 derived-paper smoke + 6 panel modules smoke)
-**Test baseline**: 956 passed / 2 skipped / 0 failed (Wave 1 +4 BERT determinism + Batch P0 +6 cache stats + 2 BERT->panel invariant + V8 +5 log-prune + 11 main-paper smoke + Wave 2 b1 +12 iv_did math + Priority B +40 derived-paper smoke + Priority A +17 panel modules smoke + Priority C1 +8 DID policy shocks)
+**Current version**: v2.1.0 + cleanup/2026-05-13 + Wave 0/1 + Batch P0 + V8 + Priority ABC + Refactor/2026-05-14 unified categorical voting (golden refresh + LLM snapshot metadata + BERT determinism + ruff clean + pre-commit + CI fail-fast + LLMCache.stats() + pyproject dev extras + log prune + main-paper smoke + Wave 2 iv_did b1+b2 + 4 derived-paper smoke + 6 panel modules smoke + majority_vote_categorical unification)
+**Test baseline**: 986 passed / 2 skipped / 0 failed (Wave 1 +4 BERT determinism + Batch P0 +6 cache stats + 2 BERT->panel invariant + V8 +5 log-prune + 11 main-paper smoke + Wave 2 b1 +12 iv_did math + Priority B +40 derived-paper smoke + Priority A +17 panel modules smoke + Priority C1 +8 DID policy shocks + Refactor/2026-05-14 +30 majority_vote_categorical parametrize subcases)
 
 ## Architecture
 

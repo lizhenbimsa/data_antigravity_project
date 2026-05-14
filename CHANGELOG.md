@@ -6,6 +6,42 @@
 
 ---
 
+## post-v2.1.0 / 2026-05-14 — Refactor: 统一 categorical voting (baseline 956 → ~971)
+
+### 总览
+
+把 `pipeline/sentiment/tone_llms.py` 中分散的 3 处分类多数投票实现（sentiment /
+fintech_category / text_type）统一为参数化函数 `majority_vote_categorical`。
+**0 行为变更**（已 byte-level 边界跟踪验证 case-by-case 等价性）；平局策略差异
+（`undefined` for sentiment 保留独立中性类；`conservative` for binary fields 归
+modal class prior, MAP under uniform prior）通过显式参数声明，便于论文 Methods
+章节直接 quote。
+
+### 主要决策
+
+- **统一抽象**：`majority_vote_sentiment` 改为对 `majority_vote_categorical` 的薄
+  包装（向后 100% 兼容；现有 3 处生产 callsite + 4 个测试 0 修改）；
+  `fintech_category` 与 `text_type` 内联 `Counter.most_common()` 改为统一调用。
+- **fail-fast 入口校验**：`majority_vote_categorical` 在函数入口立即校验
+  `tie_strategy` 与 `tie_default`，misuse 即时抛 ValueError 而非延迟到平局时。
+- **测试覆盖**：新增 `tests/test_majority_vote_categorical.py`，~15 个 parametrize
+  子用例（含 3-way tie 覆盖：[A, B, C] 各 1 票，避免 2-way tie 单一覆盖盲区）。
+- **学术依据 docstring**：引用 Wang et al. (2023) ICLR self-consistency + Bishop
+  (2006) PRML §1.5 Decision Theory（after Roberts 2017 PNAS 幻觉引用清理后，
+  本次学术引用已逐条 verify 真实性）。
+- **`majority_vote_bool` 未并入**：二值布尔投票用严格多数（>50%），与 plurality
+  语义不同，保持独立抽象（[tone_llms.py:569](news_process/pipeline/sentiment/tone_llms.py#L569)）。
+
+### 与 calibration freeze 协同
+
+本重构与 git tag `calibration-plan-v5.1-frozen` (→ commit `6c12ad4`) **完全正交**：
+- 不触碰 frozen tag
+- 落在 `tone_llms.py` 主投票函数；v5.1 calibration plan 的 Stage 45 校准 apply
+  独立路径，不依赖此函数
+- 未来 Day 1 calibration 实施时无影响
+
+---
+
 ## post-v2.1.0 / 2026-05-13 — Wave 0/1 + Batch P0 + V8 + Priority ABC (baseline 814 → 956)
 
 ### 总览
