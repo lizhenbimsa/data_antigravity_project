@@ -1,0 +1,73 @@
+* news_process v3.2.0 — Table A3: Bartik IV 双套对比 (plan v14 §3.4 / §9.2)
+*
+* Bartik Shift-Share IV (Goldsmith-Pinkham, Sorkin & Swift 2020 AER):
+*   share_{i,k,T0} = 银行 i 基期文章在 category k 中的占比
+*   shift_{k,t}    = 类别 k 中其他银行的 leave-one-out 情感均值
+*   IV = Σ share × shift
+*
+* 双套 IV (plan v14 §3.4):
+*   bartik_fintech_lf_iv_*: share = innovation_locus_full 基期占比
+*   bartik_fintech_lc_iv_*: share = innovation_locus_ctx 基期占比
+*   (Hassan 2019 QJE entity-proximity 同构)
+*
+* 必报: KP F (Kleibergen-Paap rk Wald F) + Hansen J + DWH (R32-G)
+*
+* Stata 必装包: ssc install ivreg2
+
+version 15
+
+local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
+local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
+
+capture which ivreg2
+if _rc {
+    display "  ⚠️ ivreg2 not installed (ssc install ivreg2); IV 部分跳过"
+    exit 0
+}
+
+* --- IV-A: bartik_fintech_lf_iv (locus_full share, plan v14 §3.4) ---
+local IV_LF_full   bartik_fintech_lf_iv_full
+local IV_LF_ctx    bartik_fintech_lf_iv_ctx
+capture confirm variable `IV_LF_full' `IV_LF_ctx'
+if !_rc {
+    * 主 spec sent 对应 IV
+    if "{{MAIN_SENT_TRACK}}" == "full" {
+        local IV_LF `IV_LF_full'
+    }
+    else {
+        local IV_LF `IV_LF_ctx'
+    }
+    eststo IV_LF: ivreg2 `DV' (`LOCUS' = `IV_LF') digital_frontier, ///
+        cluster(bank_id) first robust
+}
+
+* --- IV-B: bartik_fintech_lc_iv (locus_ctx share, Hassan 2019 QJE entity-proximity) ---
+capture confirm variable bartik_fintech_lc_iv_full bartik_fintech_lc_iv_ctx
+if !_rc {
+    if "{{MAIN_SENT_TRACK}}" == "full" {
+        local IV_LC bartik_fintech_lc_iv_full
+    }
+    else {
+        local IV_LC bartik_fintech_lc_iv_ctx
+    }
+    eststo IV_LC: ivreg2 `DV' (`LOCUS' = `IV_LC') digital_frontier, ///
+        cluster(bank_id) first robust
+}
+
+* --- OLS 对照 (用 estout 同表呈现) ---
+eststo OLS: reghdfe `DV' `LOCUS' digital_frontier, absorb(bank_id year) vce(cluster bank_id)
+
+* 输出 + 必报 KP F / Hansen J (R32-G)
+esttab OLS IV_LF IV_LC using "output/tables/tableA3_bartik_iv.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) ///
+    booktabs replace fragment ///
+    stats(N r2 widstat jp, ///
+          fmt(0 3 3 3) ///
+          labels("N" "R²" "KP F" "Hansen J p")) ///
+    title("Table A3: Bartik IV — Locus Share Switch (lf vs lc)") ///
+    mtitles("OLS" "IV: locus full share" "IV: locus ctx share") ///
+    note("Bartik IV (Goldsmith-Pinkham et al. 2020 AER). " ///
+         "KP F: Kleibergen-Paap rk Wald F (weak ID test, threshold 10). " ///
+         "Hassan 2019 QJE entity-proximity 同构 (lc share).")
+
+display "✅ Table A3 written to output/tables/tableA3_bartik_iv.tex"
