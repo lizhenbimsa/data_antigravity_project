@@ -233,6 +233,31 @@ def test_cli_command_main_callable():
     assert hasattr(mod, '_cli_build_replication')
 
 
+def test_cli_list_templates_callable():
+    """M4/7: list-templates 子命令 importable + 配置正确."""
+    import news_process.papers._common.stata_runner as mod
+    assert hasattr(mod, '_cli_list_templates')
+    assert callable(mod._cli_list_templates)
+
+
+def test_cli_list_templates_runs(capsys, monkeypatch):
+    """M4/7: list-templates --verbose 端到端 stdout 包含 14 模板 + 占位符 inventory."""
+    import news_process.papers._common.stata_runner as mod
+    from types import SimpleNamespace
+
+    # 模拟 args.verbose = True
+    args = SimpleNamespace(verbose=True)
+    rc = mod._cli_list_templates(args)
+    assert rc == 0
+    captured = capsys.readouterr()
+    # 14 模板全名出现
+    for tpl in EXPECTED_TEMPLATES_V14:
+        assert tpl in captured.out, f"list-templates 输出缺 {tpl}"
+    # 占位符 inventory section
+    assert 'Placeholders inventory' in captured.out
+    assert 'MAIN_LOCUS_TRACK' in captured.out
+
+
 def test_cli_subcommand_build_replication_args():
     """CLI build-replication 子命令 argparse 正确解析 --locus/--subst/--sent."""
     import argparse

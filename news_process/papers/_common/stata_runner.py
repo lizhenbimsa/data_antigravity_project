@@ -355,6 +355,47 @@ def _cli_build_replication(args) -> int:
     return 0
 
 
+def _cli_list_templates(args) -> int:
+    """CLI 子命令: list-templates — 列举 Stata 模板清单 (plan v14 §9.2)."""
+    template_dir = Path(__file__).resolve().parent / 'stata_templates'
+    if not template_dir.is_dir():
+        print(f"[ERROR] Template dir not found: {template_dir}")
+        return 1
+    try:
+        import sys
+        sys.stdout.reconfigure(encoding='utf-8')
+    except (AttributeError, OSError):
+        pass
+
+    templates = sorted(template_dir.glob('*.do.tmpl'))
+    print(f"news_process v3.2.0 Stata templates ({len(templates)}/14 plan v14 §9.2):")
+    print()
+    for tpl in templates:
+        # 读首 3 行注释作为 description
+        with open(tpl, encoding='utf-8') as f:
+            head = []
+            for line in f:
+                line = line.rstrip()
+                if line.startswith('*') and 'version' not in line.lower():
+                    head.append(line.lstrip('* '))
+                if len(head) >= 2:
+                    break
+        desc = head[0] if head else '(no description)'
+        print(f"  {tpl.name}")
+        print(f"     {desc}")
+    print()
+    if args.verbose:
+        # 加占位符使用情况
+        print("Placeholders inventory:")
+        for ph in sorted(_KNOWN_PLACEHOLDERS):
+            usage_count = sum(
+                ('{{' + ph + '}}') in tpl.read_text(encoding='utf-8')
+                for tpl in templates
+            )
+            print(f"  {{{{{ph}}}}}: used in {usage_count}/{len(templates)} templates")
+    return 0
+
+
 def main():
     """CLI 入口 (subcommand dispatch)."""
     import argparse
@@ -378,6 +419,15 @@ def main():
     bp.add_argument('--root', type=str, default='.',
                     help='Project root for replication package (default: cwd)')
     bp.set_defaults(func=_cli_build_replication)
+
+    # list-templates (M4/7 新增)
+    lt = subparsers.add_parser(
+        'list-templates',
+        help='List Stata templates inventory (plan v14 §9.2)',
+    )
+    lt.add_argument('--verbose', action='store_true',
+                    help='Show placeholder usage inventory across templates')
+    lt.set_defaults(func=_cli_list_templates)
 
     args = parser.parse_args()
     return args.func(args)
