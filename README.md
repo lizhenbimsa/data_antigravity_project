@@ -4,25 +4,32 @@
 从 ~37GB 原始 XLSX 媒体报道生成可用于计量经济学研究的银行—年面板数据，
 支持 5 个独立的研究产品（论文）共享同一处理内核。
 
-> **5 paper 成熟度梯度（Plan-r3 P1-6 显式化, 2026-05-09）**：
-> - **`bank_fintech_tone`**（主线）— Python 包 276 行 + Stata 1075 行（含 1016 行 falsification template）+ manuscript 已起草。
-> - **`benefit_society`** / **`brokerage_network`** / **`strategic_diff`**（半成熟）— Python `tables.py` 仅 Table 1 描述统计骨架（主回归 / 机制 / 异质性 表格全部在 `papers_assets/<id>/do/*.do` 中, 187 ~ 345 行 Stata 主回归脚本已落地）, manuscript 待起草。
-> - **`llm_peer`**（全骨架, Plan-r3 P1-5 刚补齐资产目录）— Python 165 行骨架 + Stata 0 行（main_regression.do 等待 v3.0 补齐）+ manuscript 未起草。
-> - 详见 `papers_assets/<id>/README.md`（仅 `llm_peer` 含, 其它 4 个 paper 在 `papers/<id>/__init__.py` 模块级 docstring）。
+> **5 paper 成熟度梯度（post-P4 / commit 8d33c46, 2026-05-15）**：
+> - **`bank_fintech_tone`**（主线）— Python 包 + Stata 14 主模板 (v3.2.0 M7) + 1016 行 falsification template + en/zh 双语 manuscript 骨架 (114 行/12 TODO)。
+> - **`benefit_society` / `brokerage_network` / `strategic_diff` / `llm_peer`**（4 衍生 paper, 全部 P0-P4 落地）—
+>     - Python `tables.py` 含 Table 1 + Table 2-5 (主回归 / 机制 / 异质性 / 稳健性, 读 Stata esttab CSV)
+>     - Python `figures.py` 含 Figure 1-3 (分布 + coefplot + forest)
+>     - Stata 模板 8 个 / paper @ `_common/stata_templates/<paper>/` (00_master ~ 30_figure1) + paper-specific override .do 保留
+>     - en/zh 双语 manuscript 骨架 (86 行/10 TODO 每语种) + refs.bib
+>     - 复现包: `python -c "from news_process.papers._common.derivative_replication import build_derivative_replication_package as b; b('<paper_id>')"`
+> - **详见**: 每个 paper 的 `papers_assets/<id>/README.md` (5 paper 全有) 与 `papers/<id>/__init__.py` 模块级 docstring。
+> - **仍待用户补充**: manuscript 内 `\NoteThis{...}` 占位实质内容 + 会计变量 (ROA/NPL/Z) 并入 panel。
 
-> **当前版本: v2.1.0 / phase-9-baseline (2026-05-08)**
-> 八期重构（Phase 0 → 8）已完成；Phase 9（v2.1.0）做了 4 个子任务的
-> post-restructure cleanup — 删除 5 个 broken audit/test 脚本、删除 5 个
-> 空壳 ``papers/<id>/dag.py``、净化 paper analysis 中 5 处反射 import、
-> 删除 orchestrator 的历史 OUTPUT_REGISTRY fallback dict（不引入新抽象，
-> 不动 26 个 thin shim）。pytest 814 passed / 2 skipped / 0 failed (post-recode round 3 / Plan-r3 P0-P3 17 单元 + 两轮 recode + 一轮 review 修 2 个真 bug + 7 项改进; round 2 sidecar 化 baseline 786; round 1+2 baseline 782; v2.1.0 release tag frozen baseline 772)。
+> **当前版本: post-v3.2.0 multi-paper extension / commit 8d33c46 (2026-05-15)**
+> 八期重构（Phase 0 → 8）已完成 + Phase 9 (v2.1.0) post-restructure cleanup
+> + v3.2.0 三轨化双轨核心 (Stage 3 dual-track + Stata 数据层 + 14 模板 + 4 CLIs)
+> + **post-v3.2.0 multi-paper extension** (4 衍生 paper 完整化, 8d33c46):
+> 3 个新 `_common` 模块 (derivative_replication / paper_figures_ext / stata_postprocess)
+> + 32 Stata templates (4 paper × 8) + 10 manuscripts (5 paper × en/zh) + 4 新测试文件。
+> **pytest baseline**: **1388 passed / 6 skipped / 0 failed** (v3.2.0 1144 + multi-paper +244;
+> 4 conditional skipped 等 pipeline 重跑后 unblock)。
 > 完整演进史见 [CHANGELOG.md](./CHANGELOG.md)，rollback tag 链：
 > `baseline-pre-restructure → phase-{1..6}-baseline → phase-7a-baseline →
 > phase-7b-baseline → phase-8-baseline → v2.0.0 → phase-9c-baseline →
 > phase-9d-baseline → phase-9a-baseline → phase-9b-baseline →
-> phase-9-baseline → v2.1.0`。
+> phase-9-baseline → v2.1.0 → v3.2.0 → 8d33c46`。
 
-## 1. 顶层架构（v2.1.0 / phase-9-baseline 终态）
+## 1. 顶层架构（post-v3.2.0 multi-paper extension / 8d33c46 终态）
 
 ```
 news_process/
@@ -90,7 +97,7 @@ news_process/
 │
 ├── data_excel/                 # 原始 XLSX 数据 (gitignored)
 ├── data/processed/             # 各阶段 parquet/dta/csv 输出 (gitignored, Phase 8 重命名)
-├── tests/                      # pytest 测试套件 (HEAD baseline: 814 passed / 2 skipped)
+├── tests/                      # pytest 测试套件 (HEAD baseline: 1388 passed / 6 skipped, 8d33c46)
 │   └── integration/            #   跨阶段集成测试 (含 Phase 0 可复现性门槛)
 ├── scripts/
 │   ├── audit/                  #   一次性审计脚本 (sys.exit-style)
@@ -151,7 +158,7 @@ python -m news_process.run_paper benefit_society --dry-run
 ### 2.4 跑测试
 
 ```bash
-# 全套 (~33 秒含 jieba warm cache; HEAD baseline = 814 passed / 2 skipped; v2.1.0 release tag = 772 passed)
+# 全套 (~60 秒含 jieba warm cache; HEAD baseline = 1388 passed / 6 skipped; v2.1.0 release tag = 772 passed; v3.2.0 = 1144; post-v3.2.0 multi-paper = 1388)
 python -m pytest news_process/tests/
 
 # 仅红线集成测试
@@ -165,7 +172,9 @@ python -m pytest news_process/tests/test_00_preprocessing.py -v
 - v2.1.0 release tag (frozen baseline): `772 passed, 6 skipped, 0 failed`
 - post-recode round 1+2 baseline: `782 passed, 6 skipped, 0 failed`
 - post-round 2 sidecar 化后 (P1-5 SKIP→PASS, Win 兼容): `786 passed, 2 skipped, 0 failed`
-- post-recode round 3 / 17 单元 + 两轮 recode + 一轮 review (HEAD): `814 passed, 2 skipped, 0 failed`
+- post-v3.2.0 multi-paper extension (HEAD = 8d33c46): `1388 passed, 6 skipped, 0 failed`
+- v3.2.0 release tag baseline: `1144 passed, 6 skipped, 0 failed`
+- post-recode round 3 / 17 单元 + 两轮 recode + 一轮 review (v2.1.0 frozen): `814 passed, 2 skipped, 0 failed`
   - 增量来源: 17 单元 +19 + 两轮 recode +5 + 一轮 review +6
   - 两轮 recode + 一轮 review 共发现 2 个真 bug + 7 项改进, 加 6 个新不变量测试:
     - bug 1 (recode): cache key `.4f` 让 1e-30 ≡ 0.0 碰撞 → `repr()` 修复
@@ -225,7 +234,9 @@ do <full path to .do>
 ## 6. 可回滚锚点
 
 ```
-v2.1.0 / phase-9-baseline   ← 当前 (recode follow-up: 见 HEAD)
+8d33c46                     ← 当前 (post-v3.2.0 multi-paper extension, 2026-05-15)
+v3.2.0                      v3.2.0 release: Stage 3 dual-track + Stata 数据层 + 14 模板 + 4 CLIs
+v2.1.0 / phase-9-baseline   v2.1.0 (recode follow-up: 见历史)
 phase-9b-baseline           Phase 9b: papers 反射 import 净化
 phase-9a-baseline           Phase 9a: papers DAG 空壳清理
 phase-9d-baseline           Phase 9d: OUTPUT_REGISTRY fallback 删除

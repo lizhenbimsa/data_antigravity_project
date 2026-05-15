@@ -15,18 +15,30 @@ LLM-Peer — 基于大语言模型构造的同业竞争 IV (LLM-Generated Peer C
 
 非代码资产
 ----------
-- ``papers_assets/llm_peer/{do,output,drafts}/`` (Plan-r3 P1-5 刚补齐目录契约)
-- Phase 4a 审计: ``stata/`` 5 个原始 .do 文件均归属其它 4 篇论文; 本论文目前
-  无独立 .do, 论文级回归预计在后续手稿写作阶段补齐。
+- ``papers_assets/llm_peer/{do,output,drafts/{en,zh}}/`` (P0 目录契约 + P4 双语手稿)
+- ``papers_assets/llm_peer/README.md`` (paper 主题 + 状态说明)
 
-骨架性提示 (Plan-r3 P1-6)
---------------------------
-本 paper 是 5 paper 中最不成熟的一个. tables.py 仅含 Table 1 描述统计;
-figures.py 仅含 Figure 1 分布图; do/ 为空 (.gitkeep). v3.0 计划补齐:
-1. main_regression.do  -- 用 llm_peer_tone_iv_full 跑 IV 双向 FE 回归
-2. tables.py 扩 Table 2 (主回归) / Table 3 (机制) / Table 4 (稳健性)
-3. figures.py 扩 Figure 2 (network 可视化)
-4. drafts/manuscript.tex
+P0-P4 落地状态 (commit 8d33c46, 2026-05-15)
+--------------------------------------------
+- **Stata 模板** (8 .do.tmpl):
+  ``_common/stata_templates/llm_peer/{00_master, 01_data_prep,
+  10_table1_descriptives, 11_table2_main_iv_2sls,
+  12_table3_cutoff_sensitivity, 13_table4_heterogeneity,
+  14_table5_robustness, 30_figure1_first_stage_F}.do.tmpl``
+  + README.md.
+- **Python tables**: build_table1 (描述统计) + build_table2_main / build_table3_cutoff /
+  build_table4_heterogeneity / build_table5_robustness (读 Stata esttab CSV).
+- **Python figures**: plot_cutoff_sensitivity (Figure 1) +
+  plot_main_iv_coefplot (Figure 2) + plot_heterogeneity_forest (Figure 3).
+- **Manuscripts**: ``papers_assets/llm_peer/drafts/{en,zh}/manuscript.tex``
+  (8 节标准结构 + V6 F1-F4 方法学声明) + refs.bib.
+- **复现包**: ``python -c "from news_process.papers._common.derivative_replication
+  import build_derivative_replication_package as b; b('llm_peer')"`` 一键生成.
+
+仍待用户补充 (manuscript 内容)
+------------------------------
+- 各 manuscript 内 ``\\NoteThis{...}`` 占位 (Intro / Lit / Results 等)
+- BibLaTeX 文献库扩展 (当前 ~6 条共享 + 2 条 LLM-Peer 专属)
 """
 
 PAPER_ID = 'llm_peer'

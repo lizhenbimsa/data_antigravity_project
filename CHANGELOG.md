@@ -6,6 +6,106 @@
 
 ---
 
+## [Unreleased / post-v3.2.0 multi-paper extension] — 2026-05-15 (commit 8d33c46)
+
+**Scope**: 把 4 个衍生论文 (benefit_society / brokerage_network / strategic_diff / llm_peer)
+从"Python 骨架 + 单文件 Stata"补齐到与主线 bank_fintech_tone 对称的成熟度：
+3 新 `_common` 模块 + 32 Stata templates + 10 双语 manuscript 骨架 + 4 新测试文件。
+
+### ✨ Added — _common 三个新模块
+
+- **`papers/_common/derivative_replication.py`** (245 LOC): 衍生论文复现包 orchestrator
+  - `build_derivative_replication_package(paper_id, overrides=None, ...)` 一键打包
+  - `_PAPER_DEFAULTS`: 4 衍生 paper 的 Tier 2/3 占位符默认 (PAPER_ID / MAIN_DV /
+    CONTROLS / CLUSTER_VAR / HET_VAR + 各 paper 专属如 ATTITUDE_VAR / MAIN_ENDOG /
+    BARTIK_IV / LLM_PEER_IV / CUTOFF_VARS 等)
+- **`papers/_common/stata_postprocess.py`** (340 LOC): Stata esttab 输出后处理
+  - `parse_esttab_csv()`: CSV → DataFrame[variable → model → Coefficient(value, se, stars)]
+  - `to_markdown_table()` / `to_latex_booktabs()`: 发表级渲染
+  - `read_paper_esttab(paper_id, csv_filename)`: paper-aware 路径解析
+- **`papers/_common/paper_figures_ext.py`** (279 LOC): 论文级 matplotlib 图表助手
+  - `coefplot_from_esttab_df()` (系数图 + 95% CI)
+  - `forest_plot_from_esttab_df()` (异质性 forest)
+  - `event_study_plot()` (TWFE 动态)
+
+### ✨ Added — stata_runner.py 占位符 3-tier 系统
+
+- **Tier 1 (universal, 已存在)**: `MAIN_LOCUS_TRACK` / `MAIN_SUBST_TRACK` /
+  `MAIN_SENT_TRACK` / `PROJECT_ROOT`
+- **Tier 2 (paper-level, 新)**: `PAPER_ID` / `MAIN_DV` / `CONTROLS` /
+  `CLUSTER_VAR` / `HET_VAR`
+- **Tier 3 (paper-specific, 新)**: paper-particular keys
+  (`ATTITUDE_VAR` for benefit_society, `MAIN_ENDOG`/`MAIN_IV` for
+  brokerage_network, `BARTIK_IV`/`COHERENCE_VAR` for strategic_diff,
+  `LLM_PEER_IV`/`CUTOFF_VARS` for llm_peer, etc.)
+- `build_replication_package(paper_id='bank_fintech_tone', ...)` 新 paper_id 参数
+  (backward-compat 默认值保持原行为)
+- `_VALID_PAPER_IDS_BUILD` 白名单 (5 paper)
+
+### ✨ Added — 32 Stata templates (4 paper × 8)
+
+- `_common/stata_templates/benefit_society/` (8 .do.tmpl + README)
+- `_common/stata_templates/brokerage_network/` (8 .do.tmpl + README)
+- `_common/stata_templates/strategic_diff/` (8 .do.tmpl + README)
+- `_common/stata_templates/llm_peer/` (8 .do.tmpl + README)
+- 每 paper 模板结构: `00_master / 01_data_prep / 10_table1_descriptives /
+  11_table2_main_* / 12_table3_* / 13_table4_heterogeneity /
+  14_table5_robustness / 30_figure1_*`
+
+### ✨ Added — 10 manuscript skeletons (5 paper × en/zh)
+
+- `papers_assets/<paper>/drafts/{en,zh}/manuscript.tex` × 10 (8 节标准结构 + V6 F1-F4 方法学注入)
+- `papers_assets/<paper>/drafts/{en,zh}/refs.bib` × 10
+- `papers_assets/_shared/preamble_{en,zh}.tex`: 共享 LaTeX 前置
+- `papers_assets/_shared/README.md`: 共享资产说明
+
+### ✨ Added — 4 paper-level README
+
+- `papers_assets/{bank_fintech_tone,benefit_society,brokerage_network,strategic_diff}/README.md`
+  (新建, 镜像 llm_peer/README.md 结构)
+- `papers_assets/llm_peer/README.md` 更新为 P0-P4 状态描述 (移除"骨架"自报)
+- `papers/llm_peer/__init__.py` 模块级 docstring 同步更新 (移除"骨架"残留)
+
+### ✨ Added — 4 新测试文件 (+242 tests)
+
+- `tests/test_derivative_replication.py` (+48 tests, 274 LOC)
+- `tests/test_stata_postprocess.py` (+41 tests, 312 LOC)
+- `tests/test_paper_figures_ext.py` (+20 tests, 221 LOC)
+- `tests/test_manuscripts_structure.py` (+126 tests, 253 LOC)
+
+### 📋 各 paper Python 包扩展
+
+- `papers/<paper>/tables.py` × 4 衍生 paper: 加 `build_table2_main` /
+  `build_table3_*` / `build_table4_heterogeneity` / `build_table5_robustness`
+  (读 Stata esttab CSV → DataFrame)
+- `papers/<paper>/figures.py` × 4 衍生 paper: 加 `plot_main_*_coefplot` /
+  `plot_*_forest` 或 `plot_n_sensitivity_coefplot`
+- `papers/<paper>/analysis.py` × 4 衍生 paper: `--stage tables/all` 阶段调度
+  Table 2-5 (含 FileNotFoundError skip pattern)
+
+### 🧪 测试基线演进
+
+| 版本 / commit | passed | skipped | 增量来源 |
+|---|---|---|---|
+| v2.1.0 frozen | 814 | 2 | (历史) |
+| v3.2.0 release | 1144 | 6 | +150 dual-track + Stata layer + 14 templates |
+| 8d33c46 (HEAD) | **1388** | 6 | +242: derivative_replication (+48) + stata_postprocess (+41) + paper_figures_ext (+20) + manuscripts_structure (+126) + 其它 (+7) |
+
+### 🛡 Backward compat
+
+- `bank_fintech_tone` 主线 (Tier 1 only) 路径完全未受影响
+- 既有 73 stata_templates tests 继续 pass
+- `build_replication_package(main_spec_choices)` 旧调用方式不变
+
+### 🚧 仍待用户补充
+
+- 10 manuscript 内 `\NoteThis{...}` 实质内容 (Intro / Lit Review / Results 等)
+- 会计变量 (ROA / NPL_ratio / Z_score / Tobin_Q) 并入 `40_panel_yearly.parquet`
+- 32 .do 端到端跑通 (依赖上一项)
+- LaTeX xelatex 真实编译 (Q1.1a/b CI 接管中)
+
+---
+
 ## v3.2.0 / 2026-05-15 — BREAKING: Stage 3 双轨化 + Stata 数据导出层 (62 轮 plan 审计 + 7 milestone 自动执行)
 
 **Plan v14**: 62 轮极致审计（v1-v14 累计）+ 68 项 finding 全部修复 + 9 项 Action Items 用户书面确认 → M0-M6 自动化执行 + 7 轮 M1 自审收敛。

@@ -30,8 +30,10 @@ import re
 from pathlib import Path
 from typing import Mapping
 
-# Re-use the existing commit-hash helper (private but stable since v3.2.0).
-from news_process.papers._common.stata_runner import _get_git_commit_hash_with_dirty
+# Q1.4 (2026-05-15): commit-hash helper extracted to _git_utils.py to break
+# the stata_runner ↔ derivative_replication import cycle introduced by the
+# _PAPER_DEFAULTS single-source-of-truth consolidation.
+from news_process.papers._common._git_utils import _get_git_commit_hash_with_dirty
 
 # ============================================================================
 # 4 derivative paper IDs — main paper bank_fintech_tone deliberately excluded.

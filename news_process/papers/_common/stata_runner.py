@@ -211,8 +211,14 @@ _VALID_PAPER_IDS_BUILD = frozenset({
 })
 
 # Paper 默认占位符值 (项目约定: 银行年度面板 + ROA + reghdfe + cluster bank_id).
-# P1: 这份字典是 build_replication_package(paper_id=...) 的默认源头;
-# 用户可在 main_spec_choices 里覆盖任意一项 (后者优先).
+# Q1.4 (2026-05-15) 单源化: 4 衍生 paper 的字典 import 自
+# derivative_replication._PAPER_DEFAULTS (single source of truth); 本字典只
+# 保留 bank_fintech_tone 主线条目, 再 ``**`` 展开衍生字典合并.
+# 修改任何衍生 paper 的 default 只需改 derivative_replication.py 一处.
+from news_process.papers._common.derivative_replication import (
+    _PAPER_DEFAULTS as _DERIVATIVE_PAPER_DEFAULTS,
+)
+
 _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     'bank_fintech_tone': {
         'PAPER_ID': 'bank_fintech_tone',
@@ -221,81 +227,15 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CLUSTER_VAR': 'bank_id',
         'HET_VAR': 'is_soe',
     },
-    'benefit_society': {
-        'PAPER_ID': 'benefit_society',
-        'MAIN_DV': 'ROA',
-        'CONTROLS': 'ln_news_coverage media_breadth n_articles',
-        'CLUSTER_VAR': 'bank_id',
-        'HET_VAR': 'is_soe',
-        'ATTITUDE_VAR': 'benefit_mean_full',
-        'MECHANISM_TOKEN': 'token_adopt_kw_p50',
-        'MECHANISM_HIDDEN': 'hidden_adopt_kw_p50',
-        'MECHANISM_SUBST': 'subst_adopt_kw_p50',
-        'ROBUSTNESS_DV': 'CAR',
-    },
-    'brokerage_network': {
-        'PAPER_ID': 'brokerage_network',
-        'MAIN_DV': 'ROA',
-        'CONTROLS': 'ln_news_coverage media_hhi bank_scale_ord',
-        'CLUSTER_VAR': 'prov_id',
-        'HET_VAR': 'is_soe',
-        'MAIN_ENDOG': 'peer_tone_lag1_full',
-        'MAIN_IV': 'peer_tone_2nd_lag1_full',
-        'TREATMENT_DCEP': 'dcep_post',
-        'TREATMENT_SANDBOX': 'sandbox_post',
-        'CENTRALITY_BTW': 'bank_between_cent',
-        'CENTRALITY_CONS': 'bank_constraint',
-        'CENTRALITY_BROKER': 'brokerage_eigen_cent',
-    },
-    'strategic_diff': {
-        'PAPER_ID': 'strategic_diff',
-        'MAIN_DV': 'ROA',
-        'CONTROLS': 'ln_news_coverage media_hhi bank_scale_ord',
-        'CLUSTER_VAR': 'bank_id',
-        'HET_VAR': 'is_soe',
-        'MAIN_DIFF_VAR': 'strat_diff_n5',
-        'FLUIDITY_VAR': 'strat_fluidity',
-        'SIM_MAX_VAR': 'strat_sim_max',
-        'BARTIK_IV': 'bartik_type_iv_full',
-        'TONE_VAR': 'llm_vote_tone_full',
-        'COHERENCE_VAR': 'coh_tfidf_c_full',
-    },
-    'llm_peer': {
-        'PAPER_ID': 'llm_peer',
-        'MAIN_DV': 'ROA',
-        'CONTROLS': 'ln_news_coverage media_hhi n_articles',
-        'CLUSTER_VAR': 'bank_id',
-        'HET_VAR': 'is_soe',
-        'TONE_VAR': 'llm_vote_tone_full',
-        'LLM_PEER_IV': 'llm_peer_tone_iv_full',
-        'LLM_PEER_COVERAGE_IV': 'llm_peer_coverage_iv',
-        'COMPETE_IDX': 'peer_compete_idx',
-        'CUTOFF_VARS': ('llm_peer_tone_iv_full_70 llm_peer_tone_iv_full_75 '
-                        'llm_peer_tone_iv_full_80 llm_peer_tone_iv_full_85 '
-                        'llm_peer_tone_iv_full_90'),
-    },
+    **_DERIVATIVE_PAPER_DEFAULTS,
 }
 
 
-def _get_git_commit_hash_with_dirty() -> str:
-    """Plan v14 §9.3 (R48-A + R49-A): git commit hash + dirty 检测.
-
-    Returns:
-        '<hash>' (clean) 或 '<hash>+dirty' (working tree dirty)
-    """
-    try:
-        repo_root = Path(__file__).resolve().parents[3]
-        h = subprocess.run(
-            ['git', 'rev-parse', 'HEAD'],
-            cwd=str(repo_root), capture_output=True, text=True, timeout=10,
-        ).stdout.strip()[:12]
-        dirty = subprocess.run(
-            ['git', 'status', '--porcelain'],
-            cwd=str(repo_root), capture_output=True, text=True, timeout=10,
-        ).stdout.strip()
-        return f'{h}+dirty' if dirty else h
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
-        return 'unknown'
+# Q1.4 (2026-05-15): commit-hash helper moved to _git_utils.py.
+# Re-export for any external callers that imported by old path.
+from news_process.papers._common._git_utils import (  # noqa: E402
+    _get_git_commit_hash_with_dirty,
+)
 
 
 def _validate_spec_choices(main_spec_choices: dict,

@@ -5,12 +5,39 @@
 
 \documentclass[12pt,a4paper]{article}
 
-% --- CJK Fonts (XeLaTeX) ---
+% --- CJK Fonts (XeLaTeX, cross-platform Q1.1b fallback) ---
 \usepackage{fontspec}
 \usepackage{xeCJK}
-\setCJKmainfont{SimSun}[BoldFont=SimHei]
-\setCJKsansfont{SimHei}
-\setCJKmonofont{FangSong}
+% Windows (local dev): SimSun/SimHei/FangSong
+% Linux/macOS (CI): Noto Serif CJK SC / Noto Sans CJK SC (fonts-noto-cjk apt package)
+% Last resort: AR PL UMing CN (fonts-arphic-uming) which is preinstalled in many texlive distros
+\IfFontExistsTF{SimSun}{%
+  \setCJKmainfont{SimSun}[BoldFont=SimHei]%
+}{%
+  \IfFontExistsTF{Noto Serif CJK SC}{%
+    \setCJKmainfont{Noto Serif CJK SC}[BoldFont=Noto Serif CJK SC]%
+  }{%
+    \setCJKmainfont{AR PL UMing CN}[AutoFakeBold=2]%
+  }%
+}
+\IfFontExistsTF{SimHei}{%
+  \setCJKsansfont{SimHei}%
+}{%
+  \IfFontExistsTF{Noto Sans CJK SC}{%
+    \setCJKsansfont{Noto Sans CJK SC}%
+  }{%
+    \setCJKsansfont{AR PL UKai CN}%
+  }%
+}
+\IfFontExistsTF{FangSong}{%
+  \setCJKmonofont{FangSong}%
+}{%
+  \IfFontExistsTF{Noto Sans Mono CJK SC}{%
+    \setCJKmonofont{Noto Sans Mono CJK SC}%
+  }{%
+    \setCJKmonofont{AR PL UMing CN}%
+  }%
+}
 \setmainfont{Times New Roman}[Ligatures=TeX]
 \xeCJKsetup{CJKecglue={\hskip 0.15em plus 0.05em minus 0.05em}}
 

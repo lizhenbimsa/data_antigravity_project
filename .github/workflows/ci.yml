@@ -141,6 +141,82 @@ jobs:
             exit 1
           fi
 
+  manuscript_compile_en:
+    # Q1.1a (post-v3.2.0 multi-paper extension, 2026-05-15):
+    # Verify 5 papers' English manuscripts compile with xelatex + biber.
+    # Chinese manuscripts (ZH) tracked by manuscript_compile_zh job (separate,
+    # requires Noto CJK font apt-install). EN job is dependency-light and acts
+    # as the primary "manuscript syntax" gate.
+    name: manuscript (xelatex EN, ${{ matrix.paper }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        paper: [bank_fintech_tone, benefit_society, brokerage_network, llm_peer, strategic_diff]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile EN manuscript
+        uses: xu-cheng/latex-action@v3
+        with:
+          working_directory: news_process/papers_assets/${{ matrix.paper }}/drafts/en/
+          root_file: manuscript.tex
+          latexmk_use_xelatex: true
+          latexmk_shell_escape: false
+          continue_on_error: false
+      - name: Upload EN PDF artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manuscript-en-${{ matrix.paper }}
+          path: news_process/papers_assets/${{ matrix.paper }}/drafts/en/manuscript.pdf
+          retention-days: 14
+
+  manuscript_compile_zh:
+    # Q1.1b (post-v3.2.0 multi-paper extension, 2026-05-15):
+    # Chinese manuscripts require CJK font support. Ubuntu doesn't ship SimSun
+    # (Windows font); preamble_zh.tex declares SimSun, but we apt-install
+    # fonts-noto-cjk and fontspec's fontconfig fallback substitutes Noto Serif
+    # CJK SC at compile time. If preamble fails on font lookup, the job
+    # surfaces the LaTeX log via the upload-artifact below.
+    name: manuscript (xelatex ZH, ${{ matrix.paper }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        paper: [bank_fintech_tone, benefit_society, brokerage_network, llm_peer, strategic_diff]
+    continue-on-error: true  # ZH gate is advisory until font fallback stabilized
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CJK fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fonts-noto-cjk fonts-noto-cjk-extra fonts-arphic-uming \
+            fonts-arphic-ukai fonts-wqy-zenhei fonts-wqy-microhei
+          fc-cache -fv
+      - name: Compile ZH manuscript
+        uses: xu-cheng/latex-action@v3
+        with:
+          working_directory: news_process/papers_assets/${{ matrix.paper }}/drafts/zh/
+          root_file: manuscript.tex
+          latexmk_use_xelatex: true
+          latexmk_shell_escape: false
+          continue_on_error: true
+      - name: Upload ZH log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manuscript-zh-log-${{ matrix.paper }}
+          path: news_process/papers_assets/${{ matrix.paper }}/drafts/zh/manuscript.log
+          retention-days: 14
+      - name: Upload ZH PDF artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manuscript-zh-${{ matrix.paper }}
+          path: news_process/papers_assets/${{ matrix.paper }}/drafts/zh/manuscript.pdf
+          retention-days: 14
+
   lint:
     name: lint (ruff)
     runs-on: ubuntu-latest
