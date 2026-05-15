@@ -354,7 +354,9 @@ def main():
     #   E/E2: BERT 均值 / 单 BERT ({bert}_正面{track} > 0.5)
     #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3)
     # 方法 C 和 G 无需篇章级标记, 直接使用面板级已有变量计算
-    _tt = df['innovation_substantiveness'].astype(str).str.strip() if 'innovation_substantiveness' in df.columns else None
+    # v3.2.0 BREAKING (plan v14 §3.3 P3): bare innovation_substantiveness 删除, 单独使用 _full 作 main spec
+    # M2 P3 后续展开 count 4-way (sentiment × subst 双轨乘积)
+    _tt = df['innovation_substantiveness_full'].astype(str).str.strip() if 'innovation_substantiveness_full' in df.columns else None
     _is_symb = (_tt == '象征性') if _tt is not None else None
     _is_sub  = (_tt == '实质性') if _tt is not None else None
 

@@ -1117,14 +1117,21 @@ def main():
         df['llm_call_failure_ctx'] = 0
         df['llm_undefined_full'] = 0
         df['llm_undefined_ctx'] = 0
-        # v7: verified=False 时 stage 3 字段统一填 None (与 prompt 'false 时填 null' 规则一致)
-        df['innovation_locus'] = None
-        df['category_confidence'] = 0.0
-        df['innovation_substantiveness'] = None
+        # v3.2.0: stage 3 双轨化 (W&Z 1998 ASQ + Gomber 2018 JMIS, plan v14 §3.1 P1)
+        df['innovation_locus_full'] = None
+        df['innovation_locus_ctx'] = None
+        df['category_confidence_full'] = 0.0
+        df['category_confidence_ctx'] = 0.0
+        df['innovation_substantiveness_full'] = None
+        df['innovation_substantiveness_ctx'] = None
         df['innovation_substantiveness_confidence_full'] = 0.0
         df['innovation_substantiveness_confidence_ctx'] = 0.0
         df['innovation_locus_confidence_full'] = 0.0
         df['innovation_locus_confidence_ctx'] = 0.0
+        # plan v14 §3.1: dual gate 三互斥指示列 (Action #6)
+        df['llm_verified_dual_full_only'] = False
+        df['llm_verified_dual_ctx_only'] = False
+        df['llm_verified_dual_both'] = True
         # 标题轨道虚拟列补全（与启用分支输出对齐）
         df['llm_verified_title'] = True
         df['llm_sentiment_title'] = '中性'
@@ -1200,10 +1207,14 @@ def main():
         call_failure_ctx_arr = []
         undefined_full_arr = []
         undefined_ctx_arr = []
-        innovation_locus_arr = []          # v7: 原 fintech_category_arr (Gomber 2018 JMIS)
-        category_confidence_arr = []
-        innov_subst_arr = []               # v7: 原 text_type_arr (W&Z 1994/1998 ASQ)
-        # v7 新增: row-level avg confidence per track per dimension (R6-H 下游聚合源)
+        # v3.2.0 双轨化 (plan v14 §3.1 P1): innovation_locus / substantiveness 各自双轨独立产出
+        innovation_locus_full_arr = []     # Gomber 2018 JMIS, full-text classification
+        innovation_locus_ctx_arr = []      # Gomber 2018 JMIS, entity-context classification (Hassan 2019 QJE)
+        category_confidence_full_arr = []  # LLM × keyword cross-validation, full track
+        category_confidence_ctx_arr = []   # LLM × keyword cross-validation, ctx track
+        innov_subst_full_arr = []          # W&Z 1994/1998 ASQ, full-text judgment
+        innov_subst_ctx_arr = []           # W&Z 1994/1998 ASQ, entity-context judgment
+        # v7 (保留): row-level avg confidence per track per dimension (R6-H 下游聚合源)
         innov_subst_conf_full_arr = []
         innov_subst_conf_ctx_arr = []
         innov_locus_conf_full_arr = []
@@ -1289,35 +1300,52 @@ def main():
                     per_model_cols[f"{short}_prob_source_ctx"].append(parsed_ctx.get(f"{short}_prob_source", 'P3'))
             prob_score_ctx_arr.append(avg_prob_ctx)
 
-            # ── 金融科技主题标准化分类（仅基于 full 轨道） ──
-            combined_topic = ' '.join(topics_full) if topics_full else ''
-            kw_category, kw_confidence = canonicalize_topic(combined_topic)
+            # ── 金融科技主题标准化分类（v3.2.0 双轨独立，plan v14 §3.1 P1）──
+            # 双轨平局策略对称：locus → 应用场景；substantiveness → 象征性（plan v14 §3.1 P1.5）
+            # 双轨各自独立运行关键词分类器 (canonicalize_topic) 交叉验证 (R3-B)
+            def _resolve_locus_track(innov_loci_track, topics_track):
+                """Resolve locus label + confidence for a single track (full or ctx).
 
-            # 二分类多数投票：平局保守降为 '应用场景'（modal class prior, MAP under uniform prior）；
-            # 空票回退到关键词分类器结果 kw_category。统一委托给 majority_vote_categorical。
-            llm_majority_cat = majority_vote_categorical(
-                innov_loci_full,
-                tie_strategy='conservative',
-                tie_default='应用场景',
-                empty_fallback=kw_category,
-            )
-            if innov_loci_full:
-                # LLM 投票与关键词分类器交叉验证：一致 → +0.2 boost；分歧 → ×0.5 penalty
-                if llm_majority_cat == kw_category:
-                    final_confidence = min(kw_confidence + 0.2, 1.0)
-                else:
-                    final_confidence = round(kw_confidence * 0.5, 3)
-                innovation_locus_arr.append(llm_majority_cat)
-                category_confidence_arr.append(final_confidence)
-            else:
-                innovation_locus_arr.append(kw_category)
-                category_confidence_arr.append(kw_confidence)
+                Returns (label, confidence). Plan v14 §3.1 P1.5: 双轨平局策略对称。
+                """
+                _combined_topic = ' '.join(topics_track) if topics_track else ''
+                _kw_cat, _kw_conf = canonicalize_topic(_combined_topic)
+                _majority = majority_vote_categorical(
+                    innov_loci_track,
+                    tie_strategy='conservative',
+                    tie_default='应用场景',
+                    empty_fallback=_kw_cat,
+                )
+                if innov_loci_track:
+                    # LLM × keyword 交叉验证：一致 → +0.2 boost；分歧 → ×0.5 penalty
+                    if _majority == _kw_cat:
+                        _final_conf = min(_kw_conf + 0.2, 1.0)
+                    else:
+                        _final_conf = round(_kw_conf * 0.5, 3)
+                    return _majority, _final_conf
+                return _kw_cat, _kw_conf
 
-            # ── 创新实质性分类多数决（v3.0.0/v8: W&Z 1994/1998 ASQ; 仅基于 full 轨道，二分类） ──
-            # 二分类多数投票：平局保守降为 '象征性'（W&Z framework 下实质性需充分证据,
-            # 平局倾向象征性是保守审慎判定; MAP under uniform prior）；空票返回 None.
-            innov_subst_arr.append(majority_vote_categorical(
+            # Full 轨 locus + confidence
+            _loc_full, _conf_full = _resolve_locus_track(innov_loci_full, topics_full)
+            innovation_locus_full_arr.append(_loc_full)
+            category_confidence_full_arr.append(_conf_full)
+
+            # Ctx 轨 locus + confidence (独立运行 canonicalize_topic(topics_ctx))
+            _loc_ctx, _conf_ctx = _resolve_locus_track(innov_loci_ctx, topics_ctx)
+            innovation_locus_ctx_arr.append(_loc_ctx)
+            category_confidence_ctx_arr.append(_conf_ctx)
+
+            # ── 创新实质性分类多数决（v3.2.0 双轨独立; W&Z 1994/1998 ASQ; 二分类） ──
+            # 双轨平局策略对称: 平局保守降为 '象征性' (W&Z framework 下实质性需充分证据,
+            # 平局倾向象征性是保守审慎判定; MAP under uniform prior); 空票返回 None.
+            innov_subst_full_arr.append(majority_vote_categorical(
                 innov_substs_full,
+                tie_strategy='conservative',
+                tie_default='象征性',
+                empty_fallback=None,
+            ))
+            innov_subst_ctx_arr.append(majority_vote_categorical(
+                innov_substs_ctx,
                 tie_strategy='conservative',
                 tie_default='象征性',
                 empty_fallback=None,
@@ -1357,9 +1385,23 @@ def main():
         df['llm_call_failure_ctx'] = call_failure_ctx_arr
         df['llm_undefined_full'] = undefined_full_arr
         df['llm_undefined_ctx'] = undefined_ctx_arr
-        df['innovation_locus'] = innovation_locus_arr
-        df['category_confidence'] = category_confidence_arr
-        df['innovation_substantiveness'] = innov_subst_arr
+        # v3.2.0 BREAKING (plan v14 §2.1 Action #2): bare innovation_locus / innovation_substantiveness 删除,
+        # 重命名为 _full / _ctx 双轨独立列 (W&Z 1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE)
+        df['innovation_locus_full'] = innovation_locus_full_arr
+        df['innovation_locus_ctx'] = innovation_locus_ctx_arr
+        df['category_confidence_full'] = category_confidence_full_arr
+        df['category_confidence_ctx'] = category_confidence_ctx_arr
+        df['innovation_substantiveness_full'] = innov_subst_full_arr
+        df['innovation_substantiveness_ctx'] = innov_subst_ctx_arr
+        # plan v14 §3.1 P1 (Action #6): dual gate 三互斥指示列
+        # llm_verified_dual_full_only: verified_full=True ∧ verified_ctx=False
+        # llm_verified_dual_ctx_only:  verified_full=False ∧ verified_ctx=True
+        # llm_verified_dual_both:      verified_full=True ∧ verified_ctx=True
+        _vf = pd.Series(llm_verified_full_arr).astype(bool)
+        _vc = pd.Series(llm_verified_ctx_arr).astype(bool)
+        df['llm_verified_dual_full_only'] = (_vf & ~_vc).values
+        df['llm_verified_dual_ctx_only']  = (~_vf & _vc).values
+        df['llm_verified_dual_both']      = (_vf & _vc).values
         # v7 R6-H: 双轨 × 双维度的 row-level avg confidence (encode.py 下游聚合源)
         df['innovation_substantiveness_confidence_full'] = innov_subst_conf_full_arr
         df['innovation_substantiveness_confidence_ctx'] = innov_subst_conf_ctx_arr
@@ -1380,12 +1422,16 @@ def main():
         if n_api_failures > 0:
             logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
 
-        # 统计创新位点分布 (v7: Gomber 2018 JMIS technology-application 层; 基于 full 轨道)
-        if df['llm_verified_full'].sum() > 0:
-            verified_df = df[df['llm_verified_full']]
-            locus_counts = verified_df['innovation_locus'].value_counts()
-            for locus_label, cnt in locus_counts.items():
-                logger.info(f"  创新位点 [{locus_label}]: {cnt}")
+        # 统计创新位点分布 (v3.2.0 双轨独立; Gomber 2018 JMIS + Hassan 2019 QJE)
+        for _track, _ver_col, _loc_col in [
+            ('full', 'llm_verified_full', 'innovation_locus_full'),
+            ('ctx',  'llm_verified_ctx',  'innovation_locus_ctx'),
+        ]:
+            if df[_ver_col].sum() > 0:
+                _vdf = df[df[_ver_col]]
+                _counts = _vdf[_loc_col].value_counts()
+                for _label, _cnt in _counts.items():
+                    logger.info(f"  创新位点 [{_track}] [{_label}]: {_cnt}")
 
         # 结果统计（双轨对比）
         total_len = len(df)
@@ -1412,8 +1458,17 @@ def main():
                     input_files=[input_file])
         logger.info(f"全量 LLM 结果已保存: {full_output_path} ({len(df)} 行)")
 
-        # 过滤丢弃不相关的假新闻（基于 full 轨道）
-        df_filtered = df[df['llm_verified_full'] == True].copy()
+        # v3.2.0 R1-A (致命修复, plan v14 §3.1 P1 Action #6):
+        # 改并集 verified_full | verified_ctx, 让 ctx 轨独立可作为 main spec
+        # (Hassan 2019 QJE entity-proximity 独立判定; 原单 full 轨过滤使 ctx 轨永远 conditional on full)
+        df_filtered = df[
+            (df['llm_verified_full'] == True) | (df['llm_verified_ctx'] == True)
+        ].copy()
+        _n_full_only = int(df['llm_verified_dual_full_only'].sum())
+        _n_ctx_only  = int(df['llm_verified_dual_ctx_only'].sum())
+        _n_both      = int(df['llm_verified_dual_both'].sum())
+        logger.info(f"  Dual gate: full-only={_n_full_only}, ctx-only={_n_ctx_only}, "
+                    f"both={_n_both}, union total={len(df_filtered)}")
 
         # ── B1-2: 标题轨道独立情感提取（仅已验证样本） ──
         # 学术依据: 姜富伟, 熊健, 朱林义 (2024). 大语言模型驱动的金融科技

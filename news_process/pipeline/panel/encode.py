@@ -667,10 +667,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         panel['media_breadth'] = np.nan
 
     # --- 按 innovation_locus 分组聚合（底层技术 / 应用场景） ---
-    if 'innovation_locus' in df.columns:
+    if 'innovation_locus_full' in df.columns:
         # 防御性校验：检查非预期值
         valid_cats = {'底层技术', '应用场景'}
-        actual_cats = set(df['innovation_locus'].dropna().unique())
+        actual_cats = set(df['innovation_locus_full'].dropna().unique())
         unexpected = actual_cats - valid_cats
         if unexpected:
             logger.warning(f"  innovation_locus 含非预期值: {unexpected}，这些文章将不计入分类聚合")
@@ -678,7 +678,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         cat_mapping = [('底层技术', '_tech'), ('应用场景', '_app')]
 
         for cat_label, suffix in cat_mapping:
-            df_cat = df[df['innovation_locus'] == cat_label]
+            df_cat = df[df['innovation_locus_full'] == cat_label]
             if df_cat.empty:
                 logger.warning(f"  分类 '{cat_label}' 无文章，跳过 {suffix} 聚合")
                 panel[f'n_articles{suffix}'] = 0
@@ -770,10 +770,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
         # v7 R6-H: 双轨 × 双维度的 row-level avg confidence 聚合
         # (W&Z 1994/1998 substantiveness + Gomber 2018 locus 信号强度, 由 tone_llms 多模型 avg 而来)
-        for _dim_full, _short in [('innovation_substantiveness', 'iss'),
-                                   ('innovation_locus', 'il')]:
+        # v3.2.0 修订: confidence 列名格式为 `<dim>_confidence_<track>`, 与分类列 `<dim>_<track>` 不同
+        for _dim_prefix, _short in [('innovation_substantiveness', 'iss'),
+                                     ('innovation_locus', 'il')]:
             for _track in ['_full', '_ctx']:
-                _src = f'{_dim_full}_confidence{_track}'
+                _src = f'{_dim_prefix}_confidence{_track}'
                 _out = f'avg_{_short}_confidence{_track}'
                 if _src in df.columns:
                     _agg = df.groupby(['target_bank', 'year'])[_src].mean().reset_index()
@@ -799,15 +800,15 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         if 'llm_vote_tone_tech_full' in panel.columns and 'llm_vote_tone_app_full' in panel.columns:
             panel['tone_gap_tech_app'] = _compute_tone_gap_tech_app(panel)
     else:
-        logger.info("  列 'innovation_locus' 不存在, 分类聚合将跳过")
+        logger.info("  列 'innovation_locus_full' 不存在, 分类聚合将跳过")
         panel['tech_frac'] = np.nan
         panel['app_frac'] = np.nan
 
     # --- 按 innovation_substantiveness 分组聚合（实质性 / 象征性，二分类） ---
-    if 'innovation_substantiveness' in df.columns:
+    if 'innovation_substantiveness_full' in df.columns:
         valid_tts = {'实质性', '象征性'}
 
-        actual_tts = set(df['innovation_substantiveness'].dropna().unique())
+        actual_tts = set(df['innovation_substantiveness_full'].dropna().unique())
         unexpected_tt = actual_tts - valid_tts
         if unexpected_tt:
             logger.warning(f"  innovation_substantiveness 含非预期值: {unexpected_tt}，这些文章将不计入分类聚合")
@@ -815,7 +816,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         tt_mapping = [('实质性', '_sub'), ('象征性', '_symb')]
 
         for tt_label, suffix in tt_mapping:
-            df_tt = df[df['innovation_substantiveness'] == tt_label]
+            df_tt = df[df['innovation_substantiveness_full'] == tt_label]
             if df_tt.empty:
                 logger.warning(f"  innovation_substantiveness '{tt_label}' 无文章，跳过 {suffix} 聚合")
                 panel[f'n_articles{suffix}'] = 0
@@ -884,7 +885,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 n_fail_tt = (~tt_identity).sum()
                 logger.warning(f"  ✗ innovation_substantiveness 恒等式校验失败: {n_fail_tt} 行")
     else:
-        logger.info("  列 'innovation_substantiveness' 不存在, innovation_substantiveness 分组聚合将跳过")
+        logger.info("  列 'innovation_substantiveness_full' 不存在, innovation_substantiveness 分组聚合将跳过")
 
 
     # 新闻覆盖量对数
