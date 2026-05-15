@@ -608,10 +608,21 @@ def main():
             logger.warning("  bank_type 不存在, 跳过 digital_frontier 构建")
 
         # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) — v3: 显式基期 T0 ---
-        # 注意: innovation_locus (v7, 原 fintech_category) 由 LLM 决定，须配合论证（v6/F4-2 须论证清单）
+        # 注意: innovation_locus_full (v7, 原 fintech_category) 由 LLM 决定，须配合论证 (v6/F4-2 须论证清单)
+        # v3.2.0 M3 P4 (plan v14 §3.4): Bartik IV 双套独立
+        #   - bartik_fintech_lf_*: share = innovation_locus_full 基期占比 (与 Sautner 2023 JF 不同框架)
+        #   - bartik_fintech_lc_*: share = innovation_locus_ctx 基期占比 (Hassan 2019 QJE entity-proximity)
+        # 论文用法: main spec 选 _lf 或 _lc 之一 (Methods §4 决定), 另一作 robustness
         fintech_map = {'底层技术': 'tech', '应用场景': 'app'}
-        panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech',
-                                          base_year=T0)
+        panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech_lf',
+                                          base_year=T0,
+                                          category_col='innovation_locus_full')
+        if 'innovation_locus_ctx' in df_exploded.columns:
+            panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech_lc',
+                                              base_year=T0,
+                                              category_col='innovation_locus_ctx')
+        else:
+            logger.warning("  innovation_locus_ctx 不存在, 跳过 lc Bartik IV (M2 P2 加性后应已存在)")
 
         # --- 稳健性 3: 媒体三方分类 Bartik (财经/综合/其他) ---
         # v6/F4: 仅保留 3a 三方分类。删除 3b/3c/3d/3e/3f/3g/3h/3i 等 8 类
