@@ -232,7 +232,6 @@ def test_cli_command_main_callable():
 def test_cli_subcommand_build_replication_args():
     """CLI build-replication 子命令 argparse 正确解析 --locus/--subst/--sent."""
     import argparse
-    import news_process.papers._common.stata_runner as mod
     # 用 mock argparse 触发 _cli_build_replication 解析检查
     # 不实际跑 build (会创建目录); 检查 parse error
     parser = argparse.ArgumentParser()
