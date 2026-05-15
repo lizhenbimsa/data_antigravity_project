@@ -666,7 +666,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         logger.warning("  列 '媒体(中文)' 不存在, media_breadth 将为 NaN")
         panel['media_breadth'] = np.nan
 
-    # --- 按 innovation_locus 分组聚合（底层技术 / 应用场景） ---
+    # --- 按 innovation_locus_full 分组聚合（M1 临时单轨; M2 P2 后续展开 _lf/_lc mean 对角线） ---
     if 'innovation_locus_full' in df.columns:
         # 防御性校验：检查非预期值
         valid_cats = {'底层技术', '应用场景'}
@@ -804,7 +804,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         panel['tech_frac'] = np.nan
         panel['app_frac'] = np.nan
 
-    # --- 按 innovation_substantiveness 分组聚合（实质性 / 象征性，二分类） ---
+    # --- 按 innovation_substantiveness_full 分组聚合（M1 临时单轨; M2 P2 后续展开 _sf/_sc mean 对角线） ---
     if 'innovation_substantiveness_full' in df.columns:
         valid_tts = {'实质性', '象征性'}
 
