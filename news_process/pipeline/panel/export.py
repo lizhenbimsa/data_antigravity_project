@@ -180,16 +180,16 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
 def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     """多格式导出面板数据。
 
-    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, 842 行 god function)
+    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
-        本函数已是 1020 行 ``export.py`` 的主体 (842 行单函数). 内部职责
-        高度异质, 至少应拆为 6 个独立子函数:
+        本函数是 ``export.py`` 的主体. 内部职责高度异质, 至少应拆为 6 个
+        独立子函数:
         1. ``_validate_panel_schema`` -- N1/N2 schema 守护与列必需性检查
         2. ``_export_parquet`` -- pyarrow 写 panel.parquet (流水线下游主格式)
         3. ``_export_csv`` -- pandas to_csv 写 panel.csv (人类可读)
-        4. ``_clean_stata_columns`` -- 32 字符截断 + 哈希碰撞防撞 (现 line 660-790)
+        4. ``_clean_stata_columns`` -- 32 字符截断 + 哈希碰撞防撞
         5. ``_build_stata_labels`` -- STATA_LABELS 字典 + 列存在性过滤
-           (line 301-995, 含 P0-2 修复后的 dedup 不变量)
+           (含 P0-2 修复后的 dedup 不变量)
         6. ``_export_dta`` -- pandas to_stata 写 .dta (raise on失败, B-2 修复)
 
         拆分后 STATA_LABELS dict 可移到模块级常量, 配合 P0-2 invariant test

@@ -1050,7 +1050,7 @@ def _write_run_lineage(stage_start: float):
 def main():
     """Stage 21 LLM 三模型 ensemble 情感分析主入口.
 
-    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, 505 行 god function)
+    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
         本函数是 stage 21 的双轨 (full + ctx) LLM 调用主流程, 内部职责:
         1. 加载 stage 12/14 上游 + schema 守护 (含 ``stage 14 fallback to 12``

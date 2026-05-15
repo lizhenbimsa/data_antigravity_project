@@ -59,7 +59,11 @@ Post-recode round 3 (Plan-r3 P0-P3, 2026-05-09): 第二轮 17 单元修复
       review R7: Makefile purge-all 加 CONFIRM=yes 守门 (与 cleanup.py 一致)
       review R8: cache _NONE_SENTINEL 由 \\x00 改 ASCII (避 sqlite 跨版本边角)
       M1 (rapidfuzz/thefuzz parity) + M2×2 (env indirect ref) + R8 limitation +6 不变量
-  - Full pytest: 814 passed / 2 skipped / 0 failed (HEAD baseline).
+  - Full pytest: 814 passed / 2 skipped / 0 failed (recode-3 baseline).
+
+后续 v3.0 / v3.1 / v3.2 版本基线见 CHANGELOG.md + CLAUDE.md (当前 v3.2.0,
+1153 passed / 6 skipped). 本 docstring 仅保留 Phase 0-9 + recode 历史记录,
+不再追加新版本节。
 """
 
-__version__ = "2.1.0"
+__version__ = "3.2.0"

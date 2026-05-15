@@ -54,11 +54,11 @@ news_process/
 ├── validation/     # Robustness tests (threshold sensitivity, entity masking, etc.)
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
-├── tests/          # 956 passed / 2 skipped HEAD baseline (integration + unit)
-└── NN_*.py         # 26 thin shim scripts under news_process/ (≤30 lines each,
-                    # NN ∈ {00, 11..15, 21..24, 30..39 incl. 32a/38a/38b, 45, 51..53};
+├── tests/          # 1153 passed / 6 skipped HEAD baseline (integration + unit)
+└── NN_*.py         # 27 thin shim scripts under news_process/ (≤30 lines each,
+                    # NN ∈ {00, 11, 12, 14, 15, 21..24, 30..39 incl. 32a/38a/38b, 45..46, 51..53};
                     # delegate to pipeline/; planned retirement: Plan-r3 P3-18
-                    # (see docs/guides/thin_shim_pattern.md §11)
+                    # (拆分约束见 pipeline/panel/runner.py:159)
 ```
 
 **Key invariant**: `news_process/NN_*.py` scripts are thin shims. All logic lives in `news_process.pipeline.*`. Never add business logic to shims.

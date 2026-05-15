@@ -483,7 +483,7 @@ def _validate_attention_index(panel):
 def compute_media_heterogeneity(df, panel):
     """计算媒体信息中介异质性变量 - 四维度分析。
 
-    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, 497 行 god function)
+    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
         本函数将四个独立维度的计算耦合在一个流程中. 学术上每维度的
         测度方法 / 引用文献 / 标准误聚类层级都不同, 拆分理由充分:

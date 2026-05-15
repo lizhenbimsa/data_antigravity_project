@@ -13,7 +13,7 @@
     python -m news_process.scripts.cleanup prune-logs --keep-days 7 --dry-run
     python -m news_process.scripts.cleanup purge-all  --yes
 
-文档: docs/guides/data_lifecycle.md.
+语义: clean-derived = 删 data/processed/ + 缓存; clean-logs = 删 logs/; prune-logs = 按时间保留. 详见 --help.
 """
 
 from __future__ import annotations

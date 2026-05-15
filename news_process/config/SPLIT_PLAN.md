@@ -1,8 +1,14 @@
-# Phase 2f — `config.yaml` Split Plan (deferred execution)
+# Phase 2f — `config.yaml` Split Plan (historical; **执行完成于 Phase 4d**)
 
-The Phase 2 restructuring blueprint mandates splitting the 788-line monolithic
+> **Status (post-v3.2.0)**: 本计划已落地。`config.yaml` 现为 stub, 7 个 split YAML
+> (`paths/preprocessing/filtering/sentiment/features/panel/validation.yaml`) +
+> 外部化 prompt 模板 + deep-merge loader 全部交付; 见
+> `core/config.py::load_config()::_SPLIT_DOMAINS`. 本文档保留作历史记录,
+> 实际运行时行为以代码为准。
+
+The Phase 2 restructuring blueprint mandated splitting the 788-line monolithic
 `config.yaml` into seven domain-specific YAML files plus externalized prompt
-templates.  This is a non-trivial refactor that requires:
+templates.  This was a non-trivial refactor that required:
 
 1. Implementing deep-merge YAML loading in `news_process/core/config.py`.
 2. Carefully mapping 20+ top-level sections to the 7 target files without

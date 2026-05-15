@@ -137,7 +137,7 @@ from news_process.pipeline.panel.export import export_panel, log_diagnostics  # 
 def main():
     """45_panel_export_main 主流程。
 
-    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, 1325 行 god function)
+    .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
         本函数当前是项目最大的 monolithic 主流程, 串行执行 7 个 stage 子步,
         与 ``core.dag.py:STAGES_MAIN`` 的"阶段45 (内含 41+42+43+44+46+47)"
