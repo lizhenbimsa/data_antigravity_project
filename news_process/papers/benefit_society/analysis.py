@@ -50,6 +50,17 @@ def main(argv: list[str] | None = None) -> int:
         from news_process.papers.benefit_society import tables
         out = tables.write_table1(pc)
         _LOGGER.info("  ✅ Table 1 → %s", out)
+        for label, builder in [
+            ('Table 2 (main)', tables.build_table2_main),
+            ('Table 3 (mechanism)', tables.build_table3_mechanism),
+            ('Table 4 (heterogeneity)', tables.build_table4_heterogeneity),
+            ('Table 5 (robustness)', tables.build_table5_robustness),
+        ]:
+            try:
+                df = builder(pc)
+                _LOGGER.info("  ✅ %s parsed: %d×%d", label, df.shape[0], df.shape[1])
+            except FileNotFoundError as e:
+                _LOGGER.warning("  ⚠ %s skip (run Stata first): %s", label, e)
 
     if args.stage in ('figures', 'all'):
         from news_process.papers.benefit_society import figures

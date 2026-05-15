@@ -46,4 +46,50 @@ def plot_benefit_distribution(paper_config: PaperConfig | None = None,
     return out
 
 
-__all__ = ['plot_benefit_distribution']
+def plot_main_coefplot(paper_config: PaperConfig | None = None,
+                       *, filename: str = 'fig2_main_coefplot.pdf') -> Path:
+    """Figure 2: main effects coefplot (Table 2 esttab)."""
+    from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
+    from news_process.papers.benefit_society.tables import build_table2_main
+
+    pc = paper_config or get_paper_config('benefit_society')
+    df = build_table2_main(pc)
+    out = pc.output_dir / 'figures' / filename
+    out.parent.mkdir(parents=True, exist_ok=True)
+    return coefplot_from_esttab_df(
+        df,
+        variables=[v for v in ['benefit_mean_full', 'article_sim_mean',
+                               'fintech_intensity_mean'] if v in df.index],
+        output_path=out,
+        title='Main Effects — benefit_society',
+        xlabel='Coefficient (95% CI)',
+    )
+
+
+def plot_mechanism_forest(paper_config: PaperConfig | None = None,
+                          *, filename: str = 'fig3_mechanism_forest.pdf') -> Path:
+    """Figure 3: Token/Hidden/Subst mechanism forest (Table 3 esttab)."""
+    from news_process.papers._common.paper_figures_ext import forest_plot_from_esttab_df
+    from news_process.papers.benefit_society.tables import build_table3_mechanism
+
+    pc = paper_config or get_paper_config('benefit_society')
+    df = build_table3_mechanism(pc)
+    out = pc.output_dir / 'figures' / filename
+    out.parent.mkdir(parents=True, exist_ok=True)
+    # Pick whichever mechanism variable is present in row index
+    var = next((v for v in ['token_adopt_kw_p50', 'hidden_adopt_kw_p50',
+                            'subst_adopt_kw_p50', 'benefit_mean_full']
+                if v in df.index), None)
+    if var is None:
+        raise KeyError("No recognized mechanism variable in df.index")
+    return forest_plot_from_esttab_df(
+        df, variable=var, output_path=out,
+        title='Mechanism: Token / Hidden / Subst — benefit_society',
+    )
+
+
+__all__ = [
+    'plot_benefit_distribution',
+    'plot_main_coefplot',
+    'plot_mechanism_forest',
+]

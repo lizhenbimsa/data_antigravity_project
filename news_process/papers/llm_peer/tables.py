@@ -43,4 +43,37 @@ def write_table1(paper_config: PaperConfig | None = None,
                                filename=filename, dta_filename=dta_filename)
 
 
-__all__ = ['build_table1', 'write_table1']
+# ============================================================================
+# P2.2 — Tables 2-5 from Stata esttab CSV output
+# ============================================================================
+
+
+def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 2: Main IV 2SLS (Cao et al. 2025) — reads esttab CSV."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('llm_peer', 'table2_main_iv_2sls.csv', paper_config)
+
+
+def build_table3_cutoff(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 3: Cutoff threshold sensitivity (τ ∈ {0.70,...,0.90})."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('llm_peer', 'table3_cutoff_sensitivity.csv', paper_config)
+
+
+def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 4: SOE heterogeneity (interaction + split-sample 2SLS)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('llm_peer', 'table4_heterogeneity.csv', paper_config)
+
+
+def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 5: Robustness battery (cov-IV / +compIdx / Ctx / Prov-cluster)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('llm_peer', 'table5_robustness.csv', paper_config)
+
+
+__all__ = [
+    'build_table1', 'write_table1',
+    'build_table2_main', 'build_table3_cutoff',
+    'build_table4_heterogeneity', 'build_table5_robustness',
+]

@@ -1,0 +1,49 @@
+* ============================================================================
+* 13_table4_heterogeneity.do — SOE × peer-tone (brokerage_network)
+* Paper: {{PAPER_ID}}
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture confirm variable {{HET_VAR}}
+if _rc {
+    display "[INFO] {{HET_VAR}} not in panel; Table 4 skipped."
+    exit 0
+}
+
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required"
+    exit 199
+}
+
+* H1: split-sample SOE=0
+preserve
+keep if {{HET_VAR}} == 0
+ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo H1_nonSOE
+restore
+
+* H2: split-sample SOE=1
+preserve
+keep if {{HET_VAR}} == 1
+ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo H2_SOE
+restore
+
+esttab H1_nonSOE H2_SOE using "$tables_dir/table4_heterogeneity.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Heterogeneity by {{HET_VAR}} --- brokerage_network 2SLS") ///
+    mtitles("Non-SOE" "SOE") ///
+    addnotes("Split-sample 2SLS; bank/year FE; SE clustered at province.")
+
+display "[OK] Table 4 → $tables_dir/table4_heterogeneity.tex"

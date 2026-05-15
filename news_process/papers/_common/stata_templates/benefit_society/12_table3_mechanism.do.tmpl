@@ -1,0 +1,53 @@
+* ============================================================================
+* 12_table3_mechanism.do — Token/Hidden/Subst mechanism (benefit_society)
+* Paper: {{PAPER_ID}}
+*
+* Methodology: Distel-Grimpe-Poetz (2026, Research Policy §3.2.1) —
+*   Token (symbolic adoption) vs Hidden (substantive adoption) decoupling.
+*   Westphal & Zajac (2001, ASQ) institutional theory base.
+*
+* M1: Token → short-term reaction (use ROBUSTNESS_DV = CAR)
+* M2: Hidden → long-term fundamentals (use MAIN_DV = ROA)
+* M3: Substantive (alignment) → fundamentals
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* M1: Token → CAR (short-term market reaction)
+capture confirm variable {{ROBUSTNESS_DV}}
+if !_rc {
+    reghdfe {{ROBUSTNESS_DV}} {{MECHANISM_TOKEN}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M1_token_CAR
+}
+
+* M2: Hidden → ROA (long-term fundamentals)
+reghdfe {{MAIN_DV}}_w {{MECHANISM_HIDDEN}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M2_hidden_ROA
+
+* M3: Substantive (consistency between token and hidden) → ROA
+reghdfe {{MAIN_DV}}_w {{MECHANISM_SUBST}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M3_subst_ROA
+
+* M4: Joint Token + Hidden + Subst
+reghdfe {{MAIN_DV}}_w {{MECHANISM_TOKEN}} {{MECHANISM_HIDDEN}} {{MECHANISM_SUBST}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M4_joint
+
+esttab M1_token_CAR M2_hidden_ROA M3_subst_ROA M4_joint ///
+    using "$tables_dir/table3_mechanism.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Mechanism --- Token vs Hidden Adoption (Distel 2026 + Westphal-Zajac 2001)") ///
+    mtitles("Token→CAR" "Hidden→ROA" "Subst→ROA" "Joint") ///
+    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}.")
+
+display "[OK] Table 3 → $tables_dir/table3_mechanism.tex"

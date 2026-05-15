@@ -52,4 +52,37 @@ def write_table1(paper_config: PaperConfig | None = None,
                                filename=filename, dta_filename=dta_filename)
 
 
-__all__ = ['build_table1', 'write_table1']
+# ============================================================================
+# P2.2 — Tables 2-5 from Stata esttab CSV output
+# ============================================================================
+
+
+def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 2: Main regression (Guzman-Li 2023 + Hoberg-Phillips 2016)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('strategic_diff', 'table2_main.csv', paper_config)
+
+
+def build_table3_mechanism(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 3: Bartik IV + multi-method comparison."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('strategic_diff', 'table3_mechanism.csv', paper_config)
+
+
+def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 4: SOE split heterogeneity."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('strategic_diff', 'table4_heterogeneity.csv', paper_config)
+
+
+def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 5: N-sensitivity / Centroid / Ctx-track."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('strategic_diff', 'table5a_n_sensitivity.csv', paper_config)
+
+
+__all__ = [
+    'build_table1', 'write_table1',
+    'build_table2_main', 'build_table3_mechanism',
+    'build_table4_heterogeneity', 'build_table5_robustness',
+]

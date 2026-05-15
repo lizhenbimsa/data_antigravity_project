@@ -41,4 +41,37 @@ def write_table1(paper_config: PaperConfig | None = None,
                                filename=filename, dta_filename=dta_filename)
 
 
-__all__ = ['build_table1', 'write_table1']
+# ============================================================================
+# P2.2 — Tables 2-5 from Stata esttab CSV output
+# ============================================================================
+
+
+def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 2: Main regression (Jha-Liu-Manela 2026)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('benefit_society', 'table2_main.csv', paper_config)
+
+
+def build_table3_mechanism(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 3: Token/Hidden/Subst mechanism (Distel 2026 + Westphal-Zajac 2001)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('benefit_society', 'table3_mechanism.csv', paper_config)
+
+
+def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 4: SOE × attitude heterogeneity."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('benefit_society', 'table4_heterogeneity.csv', paper_config)
+
+
+def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 5: Robustness battery (P25/P75/INT/Ctx/Pos-Neg)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('benefit_society', 'table5_robustness.csv', paper_config)
+
+
+__all__ = [
+    'build_table1', 'write_table1',
+    'build_table2_main', 'build_table3_mechanism',
+    'build_table4_heterogeneity', 'build_table5_robustness',
+]

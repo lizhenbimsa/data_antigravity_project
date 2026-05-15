@@ -1,0 +1,45 @@
+% papers_assets/_shared/preamble_zh.tex
+% Shared Chinese LaTeX preamble (XeLaTeX + CJKutf8).
+% P4.1 (plan-r3 derivative-paper extension, 2026-05-15)
+% Compile: xelatex + biber + xelatex × 2
+
+\documentclass[12pt,a4paper]{article}
+
+% --- CJK Fonts (XeLaTeX) ---
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setCJKmainfont{SimSun}[BoldFont=SimHei]
+\setCJKsansfont{SimHei}
+\setCJKmonofont{FangSong}
+\setmainfont{Times New Roman}[Ligatures=TeX]
+\xeCJKsetup{CJKecglue={\hskip 0.15em plus 0.05em minus 0.05em}}
+
+% --- Math ---
+\usepackage{amsmath, amssymb, amsthm}
+
+% --- Tables & Figures ---
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{rotating}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+
+% --- Layout ---
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+% --- Bibliography ---
+\usepackage[backend=biber,style=apa,natbib=true]{biblatex}
+
+% --- Macros ---
+\newcommand{\code}[1]{\texttt{#1}}
+\usepackage[dvipsnames]{xcolor}
+\newcommand{\NoteThis}[1]{\textbf{\textcolor{red}{[TODO: #1]}}}
+
+% --- Theorem environments ---
+\newtheorem{prop}{命题}
+\newtheorem{hyp}{假设}

@@ -1,0 +1,48 @@
+* ============================================================================
+* 11_table2_main.do — Main regression (benefit_society)
+* Paper: {{PAPER_ID}}
+*
+* Methodology: Jha, Liu & Manela (2026), RFS §1.3.2 — Bipolar anchor projection
+*   a_j = cos(s_j, p),  p = mean(pos_emb) - mean(neg_emb)
+* Westphal & Zajac (2001), ASQ — Token vs Hidden decoupling.
+*
+* M1: article-similarity main effect
+* M2: + intensity interaction (Brambor-Clark-Golder 2006)
+* M3: attitude main effect (Jha-Liu-Manela 2026 Eq. 1)
+* M4: + attitude × intensity interaction
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+reghdfe {{MAIN_DV}}_w article_sim_mean $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M1
+
+gen freq_x_sim = fintech_intensity_mean * article_sim_mean
+reghdfe {{MAIN_DV}}_w fintech_intensity_mean article_sim_mean freq_x_sim $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M2
+
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M3
+
+gen attitude_x_intensity = {{ATTITUDE_VAR}} * fintech_intensity_mean
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} fintech_intensity_mean attitude_x_intensity $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M4
+
+esttab M1 M2 M3 M4 using "$tables_dir/table2_main.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Main Results --- benefit_society (Jha-Liu-Manela 2026)") ///
+    mtitles("Sim" "Sim+Int" "Attitude" "Att+Int") ///
+    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}.")
+
+display "[OK] Table 2 → $tables_dir/table2_main.tex"

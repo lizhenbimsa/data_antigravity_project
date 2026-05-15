@@ -1,0 +1,51 @@
+* ============================================================================
+* 11_table2_main.do — Main regression (strategic_diff)
+* Paper: {{PAPER_ID}}
+*
+* Hoberg & Phillips (2016, JPE Table 3): text-based product differentiation.
+* Guzman & Li (2023, MS): founding strategy differentiation.
+*
+* M1: strat_diff_n5 only
+* M2: + fluidity (Hoberg-Phillips-Prabhala 2014 JF)
+* M3: + sim_max + fluidity (full specification)
+* M4: + tone interaction (added via project's tone × diff hypothesis)
+* M5: + coherence (text_coherence companion)
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+reghdfe {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M1
+
+reghdfe {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M2
+
+reghdfe {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} {{SIM_MAX_VAR}} {{FLUIDITY_VAR}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M3
+
+gen tone_x_diff = {{TONE_VAR}} * {{MAIN_DIFF_VAR}}
+reghdfe {{MAIN_DV}}_w {{TONE_VAR}} {{MAIN_DIFF_VAR}} tone_x_diff $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M4
+
+reghdfe {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} {{COHERENCE_VAR}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M5
+
+esttab M1 M2 M3 M4 M5 using "$tables_dir/table2_main.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Main Results --- strategic_diff") ///
+    mtitles("Base" "+Fluid" "+Sim" "+Tone-Int" "+Coh") ///
+    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}.")
+
+display "[OK] Table 2 → $tables_dir/table2_main.tex"

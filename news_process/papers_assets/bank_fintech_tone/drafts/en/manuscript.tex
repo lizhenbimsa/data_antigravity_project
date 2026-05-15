@@ -1,0 +1,114 @@
+% bank_fintech_tone/drafts/en/manuscript.tex
+% P4.2 manuscript skeleton (plan-r3 derivative-paper extension, 2026-05-15)
+% Compile: xelatex + biber + xelatex × 2
+
+\input{../../../_shared/preamble_en.tex}
+
+\addbibresource{refs.bib}
+
+\title{Media Tone, FinTech Strategy, and Bank Performance:\\
+       Evidence from Chinese Bank--Year News Coverage}
+\author{\NoteThis{Author names}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\NoteThis{Final abstract pending.}
+We construct a bank--year panel from approximately 37~GB of Chinese
+media reports on financial technology (FinTech) and study the
+relationship between media tone toward bank FinTech strategy and bank
+outcomes. Using a three-family large language model (LLM) ensemble for
+sentiment annotation, we measure both the locus (full-text vs.\
+entity-context) and the substantiveness (full-text vs.\ entity-context)
+of FinTech coverage. We find \NoteThis{key result placeholder}\@.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+\NoteThis{Motivate the puzzle: media coverage of bank FinTech strategy
+matters for institutional theory (Westphal \& Zajac 1994) and for digital
+transformation outcomes (Gomber et al.\ 2018, \emph{JMIS}). Reference
+Hassan et al.\ (2019, \emph{QJE}) firm-level political-risk methodology
+as our text-measurement template.}
+
+\section{Literature Review}\label{sec:lit}
+\NoteThis{Three strands: (1)~media-as-information-intermediary
+(Tetlock 2007); (2)~symbolic vs.\ substantive corporate response
+(Westphal--Zajac 1994/1998 \emph{ASQ}); (3)~Bartik instrument design
+(Goldsmith-Pinkham et al.\ 2020, \emph{AER}).}
+
+\section{Methodology}\label{sec:method}
+\subsection{Sample and Data}
+The bank--year panel covers \NoteThis{N=164 bank--years over the
+2017--2018 period (extend after additional vintages merged)}. Raw text
+inputs are XLSX media reports processed via the \code{news\_process}
+pipeline (Phase~9b baseline).
+
+\subsection{Tone Annotation (F1: Three-Family LLM Validation)}
+We employ three independent LLM families for sentiment annotation:
+\code{gpt-5.4-nano} (OpenAI), \code{gemini-3.1-flash-lite-preview}
+(Google), and \code{deepseek-v4-flash} (DeepSeek\,/\,Grok). All three are
+routed through the yunwu.ai aggregator using the OpenAI-compatible
+\code{/v1/chat/completions} API (single account, identical schema), with
+\code{temperature=0} and \code{seed=42} for deterministic outputs.
+Inter-family agreement is reported as Cohen's $\kappa$ and Krippendorff's
+$\alpha$; majority vote across families produces the final sentiment
+label, with ties marked as \code{undefined} (not \code{neutral}).
+
+\subsection{Article-Level Coding (F2: Decontamination)}
+Articles where (a)~all three LLM families fail to return a valid response
+(\code{llm\_call\_failure=1}) or (b)~the three sentiment votes split
+three ways with no majority (\code{llm\_undefined=1}) are coded as
+\emph{missing} rather than neutral. Articles where the bank--FinTech
+relevance fails majority verification (\code{llm\_verified=False})
+likewise have their sentiment treated as missing. This is a deliberate
+departure from prior versions of the panel which coerced these to
+``neutral'' and conflated 81.7\,\% of the neutral labels with measurement
+failure or verification rejection.
+
+\subsection{Zero-Observation Semantics (F3: NaN Main Path)}
+For bank--years with zero FinTech news coverage (\code{n\_articles=0}),
+cosine-similarity-based features (\code{auth\_sim\_*},
+\code{benefit\_*}, \code{article\_sim\_*}), ratios
+(\code{token\_adopt\_*}, \code{hidden\_adopt\_*},
+\code{subst\_adopt\_*}), and continuous intensity scores
+(\code{fintech\_intensity\_mean}) are coded as undefined (\code{NaN})
+rather than zero. We follow Allison (2001) and Heckman (1979) in treating
+these as missing-by-design and use listwise deletion in regressions.
+Count and sum-type variables remain at~$0$ as the mathematically correct
+zero-observation value.
+
+\subsection{Bartik IV Pruning (F4)}
+Of approximately 30 candidate Bartik instruments in earlier panel
+vintages, 28 are removed in v6 for violating Goldsmith-Pinkham et al.\
+(2020, AER) exogeneity. The retained instruments are
+\code{bartik\_type\_iv\_full} and \code{prov\_leave1out\_tone\_full}.
+
+\section{Data}\label{sec:data}
+\NoteThis{Descriptive statistics in Table~1
+(\code{news\_process/papers/bank\_fintech\_tone/tables.py:build\_table1}).}
+
+\section{Main Results}\label{sec:main}
+\NoteThis{Table 2 (M1--M6 progressive controls) and Figure 2 (coefplot)
+from \code{output/tables/table2\_main\_m1m6.csv}.}
+
+\section{Mechanism}\label{sec:mech}
+\NoteThis{Table 3 (mechanism: technology-application vs.\ substantive--
+symbolic gap) from \code{output/tables/table3\_mechanism.csv}.}
+
+\section{Heterogeneity}\label{sec:het}
+\NoteThis{Table 4 (bank size $\times$ frontier $\times$ geography) from
+\code{output/tables/table4\_heterogeneity.csv}.}
+
+\section{Robustness}\label{sec:robust}
+\NoteThis{Table 5 (placebo, leave-one-out, wild bootstrap) plus the
+1016-line falsification template
+(\code{papers\_assets/bank\_fintech\_tone/do/falsification\_template.do.tmpl}).}
+
+\section{Conclusion}\label{sec:concl}
+\NoteThis{Final discussion and policy implications.}
+
+\printbibliography
+
+\end{document}

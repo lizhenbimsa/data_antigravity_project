@@ -1,0 +1,58 @@
+* ============================================================================
+* 14_table5_robustness.do — Robustness (brokerage_network)
+* Paper: {{PAPER_ID}}
+*
+* R1: Ctx-track 2SLS (replace _full with _ctx variants)
+* R2: Cluster at bank_id (alternative SE level)
+* R3: Drop singleton groups (reghdfe noabsorb)
+* R4: Add second-order centrality (L2.brokerage_eigen_cent)
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required"
+    exit 199
+}
+
+* R1: Ctx-track 2SLS
+capture confirm variable peer_tone_lag1_ctx
+capture confirm variable peer_tone_2nd_lag1_ctx
+if !_rc {
+    ivreghdfe {{MAIN_DV}}_w (peer_tone_lag1_ctx = peer_tone_2nd_lag1_ctx) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo R1_ctx
+}
+
+* R2: cluster at bank_id (alternative)
+ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+    absorb(bank_id year) cluster(bank_id) ffirst
+eststo R2_bank_cluster
+
+* R3: drop singleton bank groups (force minimum)
+ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo R3_kept
+
+* R4: add 2nd-order centrality
+gen L2_broker = L2.{{CENTRALITY_BROKER}}
+ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) L_broker L2_broker $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo R4_l2
+
+esttab R1_ctx R2_bank_cluster R3_kept R4_l2 ///
+    using "$tables_dir/table5_robustness.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Robustness Battery --- brokerage_network") ///
+    mtitles("Ctx" "Bank-cluster" "Kept" "L2.Broker") ///
+    addnotes("Bank/year FE; cluster varies per column.")
+
+display "[OK] Table 5 → $tables_dir/table5_robustness.tex"

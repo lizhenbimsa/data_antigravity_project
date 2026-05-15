@@ -150,18 +150,130 @@ def run_do(do_path: str | Path,
 # v3.2.0 M7 (plan v14 §9.3): build_replication_package
 # ============================================================================
 
-# Plan v14 §9.2 已知占位符白名单 (与 test_stata_templates.py 同源)
-_KNOWN_PLACEHOLDERS = {
+# Plan v14 §9.2 已知占位符白名单 (与 test_stata_templates.py 同源).
+# P1 (2026-05-15) 扩展: 增加 Tier 2 (paper-level) + Tier 3 (paper-specific)
+# 占位符以支持 4 个衍生论文 (benefit_society / brokerage_network /
+# strategic_diff / llm_peer) 各自独立的 template 套件. 主线 bank_fintech_tone
+# 行为保持完全不变 — 仍只验证 MAIN_LOCUS_TRACK / MAIN_SUBST_TRACK /
+# MAIN_SENT_TRACK / PROJECT_ROOT 四项.
+_KNOWN_PLACEHOLDERS_MAIN = {
     'MAIN_LOCUS_TRACK',  # lf / lc
     'MAIN_SUBST_TRACK',  # sf / sc
     'MAIN_SENT_TRACK',   # full / ctx
     'PROJECT_ROOT',      # absolute path
 }
 
+# Tier 2: paper-level (5 paper 共用, 但每个 paper 取不同默认值)
+_KNOWN_PLACEHOLDERS_PAPER_LEVEL = {
+    'PAPER_ID',
+    'MAIN_DV',           # canonical dependent variable
+    'CONTROLS',           # standard control set (string)
+    'CLUSTER_VAR',        # vce(cluster <var>) target
+    'HET_VAR',            # heterogeneity interaction variable
+}
+
+# Tier 3: paper-specific (sparse, only the paper that needs it)
+_KNOWN_PLACEHOLDERS_PAPER_SPECIFIC = {
+    # benefit_society
+    'ATTITUDE_VAR', 'MECHANISM_TOKEN', 'MECHANISM_HIDDEN',
+    'MECHANISM_SUBST', 'ROBUSTNESS_DV',
+    # brokerage_network
+    'MAIN_ENDOG', 'MAIN_IV', 'TREATMENT_DCEP', 'TREATMENT_SANDBOX',
+    'CENTRALITY_BTW', 'CENTRALITY_CONS', 'CENTRALITY_BROKER',
+    # strategic_diff
+    'MAIN_DIFF_VAR', 'FLUIDITY_VAR', 'SIM_MAX_VAR',
+    'BARTIK_IV', 'TONE_VAR', 'COHERENCE_VAR',
+    # llm_peer
+    'LLM_PEER_IV', 'LLM_PEER_COVERAGE_IV', 'COMPETE_IDX', 'CUTOFF_VARS',
+    # (TONE_VAR shared with strategic_diff)
+}
+
+# Union — superset that any template may legally reference.
+_KNOWN_PLACEHOLDERS = (
+    _KNOWN_PLACEHOLDERS_MAIN
+    | _KNOWN_PLACEHOLDERS_PAPER_LEVEL
+    | _KNOWN_PLACEHOLDERS_PAPER_SPECIFIC
+)
+
 _VALID_SPEC_VALUES = {
     'MAIN_LOCUS_TRACK': {'lf', 'lc'},
     'MAIN_SUBST_TRACK': {'sf', 'sc'},
     'MAIN_SENT_TRACK':  {'full', 'ctx'},
+}
+
+# P1 (2026-05-15): paper_id 白名单 — 与 paper_config._VALID_PAPER_IDS 同步.
+_VALID_PAPER_IDS_BUILD = frozenset({
+    'bank_fintech_tone',
+    'benefit_society',
+    'brokerage_network',
+    'llm_peer',
+    'strategic_diff',
+})
+
+# Paper 默认占位符值 (项目约定: 银行年度面板 + ROA + reghdfe + cluster bank_id).
+# P1: 这份字典是 build_replication_package(paper_id=...) 的默认源头;
+# 用户可在 main_spec_choices 里覆盖任意一项 (后者优先).
+_PAPER_DEFAULTS: dict[str, dict[str, str]] = {
+    'bank_fintech_tone': {
+        'PAPER_ID': 'bank_fintech_tone',
+        'MAIN_DV': 'ROA',
+        'CONTROLS': 'ln_news_coverage media_breadth_z fin_media_frac central_media_frac',
+        'CLUSTER_VAR': 'bank_id',
+        'HET_VAR': 'is_soe',
+    },
+    'benefit_society': {
+        'PAPER_ID': 'benefit_society',
+        'MAIN_DV': 'ROA',
+        'CONTROLS': 'ln_news_coverage media_breadth n_articles',
+        'CLUSTER_VAR': 'bank_id',
+        'HET_VAR': 'is_soe',
+        'ATTITUDE_VAR': 'benefit_mean_full',
+        'MECHANISM_TOKEN': 'token_adopt_kw_p50',
+        'MECHANISM_HIDDEN': 'hidden_adopt_kw_p50',
+        'MECHANISM_SUBST': 'subst_adopt_kw_p50',
+        'ROBUSTNESS_DV': 'CAR',
+    },
+    'brokerage_network': {
+        'PAPER_ID': 'brokerage_network',
+        'MAIN_DV': 'ROA',
+        'CONTROLS': 'ln_news_coverage media_hhi bank_scale_ord',
+        'CLUSTER_VAR': 'prov_id',
+        'HET_VAR': 'is_soe',
+        'MAIN_ENDOG': 'peer_tone_lag1_full',
+        'MAIN_IV': 'peer_tone_2nd_lag1_full',
+        'TREATMENT_DCEP': 'dcep_post',
+        'TREATMENT_SANDBOX': 'sandbox_post',
+        'CENTRALITY_BTW': 'bank_between_cent',
+        'CENTRALITY_CONS': 'bank_constraint',
+        'CENTRALITY_BROKER': 'brokerage_eigen_cent',
+    },
+    'strategic_diff': {
+        'PAPER_ID': 'strategic_diff',
+        'MAIN_DV': 'ROA',
+        'CONTROLS': 'ln_news_coverage media_hhi bank_scale_ord',
+        'CLUSTER_VAR': 'bank_id',
+        'HET_VAR': 'is_soe',
+        'MAIN_DIFF_VAR': 'strat_diff_n5',
+        'FLUIDITY_VAR': 'strat_fluidity',
+        'SIM_MAX_VAR': 'strat_sim_max',
+        'BARTIK_IV': 'bartik_type_iv_full',
+        'TONE_VAR': 'llm_vote_tone_full',
+        'COHERENCE_VAR': 'coh_tfidf_c_full',
+    },
+    'llm_peer': {
+        'PAPER_ID': 'llm_peer',
+        'MAIN_DV': 'ROA',
+        'CONTROLS': 'ln_news_coverage media_hhi n_articles',
+        'CLUSTER_VAR': 'bank_id',
+        'HET_VAR': 'is_soe',
+        'TONE_VAR': 'llm_vote_tone_full',
+        'LLM_PEER_IV': 'llm_peer_tone_iv_full',
+        'LLM_PEER_COVERAGE_IV': 'llm_peer_coverage_iv',
+        'COMPETE_IDX': 'peer_compete_idx',
+        'CUTOFF_VARS': ('llm_peer_tone_iv_full_70 llm_peer_tone_iv_full_75 '
+                        'llm_peer_tone_iv_full_80 llm_peer_tone_iv_full_85 '
+                        'llm_peer_tone_iv_full_90'),
+    },
 }
 
 
@@ -186,8 +298,21 @@ def _get_git_commit_hash_with_dirty() -> str:
         return 'unknown'
 
 
-def _validate_spec_choices(main_spec_choices: dict) -> None:
-    """Plan v14 §9.3: 校验 main spec 选择合法 (避免静默错误占位符)."""
+def _validate_spec_choices(main_spec_choices: dict,
+                           paper_id: str = 'bank_fintech_tone') -> None:
+    """Plan v14 §9.3: 校验 main spec 选择合法 (避免静默错误占位符).
+
+    Args:
+        main_spec_choices: 用户提供的占位符字典 (paper defaults 已合并).
+        paper_id:          论文标识. 'bank_fintech_tone' (默认) 要求 main-paper
+                           三轨化必需占位符; 其它 paper 跳过该要求 (走自己的
+                           defaults).
+    """
+    if paper_id not in _VALID_PAPER_IDS_BUILD:
+        raise ValueError(
+            f"未知 paper_id={paper_id!r}. 合法值: {sorted(_VALID_PAPER_IDS_BUILD)}"
+        )
+
     for key, value in main_spec_choices.items():
         if key not in _KNOWN_PLACEHOLDERS:
             raise ValueError(
@@ -198,10 +323,12 @@ def _validate_spec_choices(main_spec_choices: dict) -> None:
                 f"占位符 {key}='{value}' 非法. 合法值: {sorted(_VALID_SPEC_VALUES[key])}"
             )
 
-    required = {'MAIN_LOCUS_TRACK', 'MAIN_SUBST_TRACK', 'MAIN_SENT_TRACK'}
-    missing = required - set(main_spec_choices.keys())
-    if missing:
-        raise ValueError(f"缺必需占位符: {sorted(missing)}")
+    # 主线论文必须提供三轨化 spec; 衍生 paper 无此要求 (走 _PAPER_DEFAULTS).
+    if paper_id == 'bank_fintech_tone':
+        required = {'MAIN_LOCUS_TRACK', 'MAIN_SUBST_TRACK', 'MAIN_SENT_TRACK'}
+        missing = required - set(main_spec_choices.keys())
+        if missing:
+            raise ValueError(f"缺必需占位符: {sorted(missing)}")
 
 
 def _substitute_placeholders(content: str, choices: dict) -> str:
@@ -228,36 +355,51 @@ def _substitute_placeholders(content: str, choices: dict) -> str:
 
 
 def build_replication_package(
-    main_spec_choices: dict,
+    main_spec_choices: dict | None = None,
     output_root: str | Path | None = None,
     template_dir: str | Path | None = None,
+    *,
+    paper_id: str = 'bank_fintech_tone',
 ) -> Path:
     """生成 v3.2.0 replication 包 (plan v14 §9.3, Action #9 Stata Recommended scope).
 
     Args:
-        main_spec_choices: {'MAIN_LOCUS_TRACK': 'lc', 'MAIN_SUBST_TRACK': 'sf',
-                            'MAIN_SENT_TRACK': 'ctx', 'PROJECT_ROOT': '/path/to/repl'}
-        output_root: replication 包父目录 (默认 repo_root)
-        template_dir: 模板目录 (默认 papers/_common/stata_templates)
+        main_spec_choices: 占位符覆盖字典. 主线论文 (paper_id='bank_fintech_tone')
+                           必须提供 MAIN_LOCUS_TRACK/MAIN_SUBST_TRACK/MAIN_SENT_TRACK;
+                           衍生 paper 可为空 dict / None (使用 _PAPER_DEFAULTS).
+                           PROJECT_ROOT 永远可被覆盖.
+        output_root:       replication 包父目录 (默认 repo_root).
+        template_dir:      模板目录. 默认按 paper_id 解析:
+                           - main: papers/_common/stata_templates/
+                           - 其它: papers/_common/stata_templates/<paper_id>/
+        paper_id:          论文标识. P1 (2026-05-15) 新增, default 主线论文保持
+                           历史行为不变.
 
     Returns:
-        生成的 replication 包目录路径
+        生成的 replication 包目录路径.
 
-    工作流 (plan v14 §9.3):
-        1. 校验 main_spec_choices (合法占位符 + 合法值)
-        2. 实例化目录 replication_v3.2.0_<locus>_<subst>_<sent>/
-        3. 复制 / 替换 .do.tmpl → .do
-        4. 复制 README.md
+    工作流:
+        1. 与 _PAPER_DEFAULTS[paper_id] 合并占位符 (user 覆盖默认)
+        2. 校验 main_spec_choices (paper-aware: 主线要求三轨, 衍生不要求)
+        3. 实例化目录 replication_v3.2.0_{<paper>_}<locus>_<subst>_<sent>/
+        4. 复制 / 替换 .do.tmpl → .do
         5. 写 README.md 含 git commit hash + dirty 检测
     """
-    _validate_spec_choices(main_spec_choices)
+    if paper_id not in _VALID_PAPER_IDS_BUILD:
+        raise ValueError(
+            f"未知 paper_id={paper_id!r}. 合法值: {sorted(_VALID_PAPER_IDS_BUILD)}"
+        )
 
-    locus = main_spec_choices['MAIN_LOCUS_TRACK']
-    subst = main_spec_choices['MAIN_SUBST_TRACK']
-    sent  = main_spec_choices['MAIN_SENT_TRACK']
+    # 合并: defaults → user overrides
+    user_choices = dict(main_spec_choices or {})
+    effective_choices: dict = dict(_PAPER_DEFAULTS.get(paper_id, {}))
+    effective_choices.update(user_choices)
+
+    _validate_spec_choices(effective_choices, paper_id=paper_id)
 
     if template_dir is None:
-        template_dir = Path(__file__).resolve().parent / 'stata_templates'
+        base = Path(__file__).resolve().parent / 'stata_templates'
+        template_dir = base if paper_id == 'bank_fintech_tone' else base / paper_id
     template_dir = Path(template_dir)
     if not template_dir.is_dir():
         raise FileNotFoundError(f"Template dir not found: {template_dir}")
@@ -266,7 +408,16 @@ def build_replication_package(
         output_root = Path(__file__).resolve().parents[3]
     output_root = Path(output_root)
 
-    pkg_dir = output_root / f'replication_v3.2.0_{locus}_{subst}_{sent}'
+    # 衍生 paper 没有 locus/subst/sent triad → package 名以 paper_id 命名.
+    if paper_id == 'bank_fintech_tone':
+        locus = effective_choices['MAIN_LOCUS_TRACK']
+        subst = effective_choices['MAIN_SUBST_TRACK']
+        sent  = effective_choices['MAIN_SENT_TRACK']
+        pkg_name = f'replication_v3.2.0_{locus}_{subst}_{sent}'
+    else:
+        pkg_name = f'replication_v3.2.0_{paper_id}'
+
+    pkg_dir = output_root / pkg_name
     pkg_dir.mkdir(parents=True, exist_ok=True)
     (pkg_dir / 'code').mkdir(exist_ok=True)
     (pkg_dir / 'data').mkdir(exist_ok=True)
@@ -279,7 +430,7 @@ def build_replication_package(
         out_name = tpl_path.stem  # 去掉 .tmpl 后缀, e.g., 11_table2_main_m1m6.do
         out_path = pkg_dir / 'code' / out_name
         content = tpl_path.read_text(encoding='utf-8')
-        substituted = _substitute_placeholders(content, main_spec_choices)
+        substituted = _substitute_placeholders(content, effective_choices)
         out_path.write_text(substituted, encoding='utf-8')
         n_templates += 1
 
@@ -288,7 +439,8 @@ def build_replication_package(
     commit_hash = _get_git_commit_hash_with_dirty()
     if readme_src.exists():
         readme_content = readme_src.read_text(encoding='utf-8')
-        appendix = f"""
+        if paper_id == 'bank_fintech_tone':
+            appendix = f"""
 
 ---
 
@@ -301,6 +453,24 @@ def build_replication_package(
   - sent track:  `{sent}` ({'Hassan 2019 QJE entity-proximity' if sent == 'ctx' else 'full-text'})
 - **Templates instantiated**: {n_templates}
 - **Plan version**: v14 (62 rounds audit; user confirmed 9 Action Items)
+"""
+        else:
+            # Derivative paper: no main-paper triad; report paper_id + key defaults.
+            keys_used = sorted(effective_choices.keys())
+            appendix = f"""
+
+---
+
+## This replication package / 本复现包
+
+- **Generated at**: {commit_hash}
+- **Paper**: `{paper_id}`
+- **MAIN_DV**: `{effective_choices.get('MAIN_DV', '?')}`
+- **CLUSTER_VAR**: `{effective_choices.get('CLUSTER_VAR', '?')}`
+- **CONTROLS**: `{effective_choices.get('CONTROLS', '?')}`
+- **Placeholders bound** ({len(keys_used)}): {', '.join(keys_used)}
+- **Templates instantiated**: {n_templates}
+- **Plan version**: v14 + P1 (2026-05-15 derivative-paper extension)
 """
         (pkg_dir / 'README.md').write_text(readme_content + appendix, encoding='utf-8')
 
@@ -322,21 +492,39 @@ __all__ = [
 # ============================================================================
 
 def _cli_build_replication(args) -> int:
-    """CLI 子命令: build-replication --locus lc --subst sf --sent ctx --root /path"""
+    """CLI 子命令: build-replication --locus lc --subst sf --sent ctx --root /path
+
+    P1 (2026-05-15): 增 --paper 选项. 默认 'bank_fintech_tone' 保持历史行为
+    完全不变. 其它 paper 时 --locus/--subst/--sent 可省 (取 _PAPER_DEFAULTS).
+    """
     import sys
-    choices = {
-        'MAIN_LOCUS_TRACK': args.locus,
-        'MAIN_SUBST_TRACK': args.subst,
-        'MAIN_SENT_TRACK':  args.sent,
-        'PROJECT_ROOT':     str(Path(args.root).resolve()),
+    paper_id = getattr(args, 'paper', None) or 'bank_fintech_tone'
+    choices: dict = {
+        'PROJECT_ROOT': str(Path(args.root).resolve()),
     }
+    # 主线必填 triad; 衍生 paper 可省 (用 defaults).
+    if paper_id == 'bank_fintech_tone':
+        if not (args.locus and args.subst and args.sent):
+            sys.stderr.write(
+                "[ERROR] paper=bank_fintech_tone requires --locus/--subst/--sent.\n"
+            )
+            return 1
+        choices['MAIN_LOCUS_TRACK'] = args.locus
+        choices['MAIN_SUBST_TRACK'] = args.subst
+        choices['MAIN_SENT_TRACK']  = args.sent
+    else:
+        # Optional override (rare for derivative papers; mostly unused).
+        if args.locus: choices['MAIN_LOCUS_TRACK'] = args.locus
+        if args.subst: choices['MAIN_SUBST_TRACK'] = args.subst
+        if args.sent:  choices['MAIN_SENT_TRACK']  = args.sent
     try:
         pkg = build_replication_package(
             main_spec_choices=choices,
             output_root=Path(args.root).parent if args.root != '.' else None,
+            paper_id=paper_id,
         )
     except (ValueError, FileNotFoundError) as e:
-        sys.stderr.write(f"❌ build_replication_package failed: {e}\n")
+        sys.stderr.write(f"[ERROR] build_replication_package failed: {e}\n")
         return 1
     # 用 ASCII 输出避免 Windows GBK 控制台 UnicodeError;
     # 中文与 emoji 仅出现在文件内容 (UTF-8), 不在 stdout
@@ -658,14 +846,17 @@ def main():
     # build-replication
     bp = subparsers.add_parser(
         'build-replication',
-        help='Generate v3.2.0 Stata replication package (plan v14 §9.3)',
+        help='Generate v3.2.0 Stata replication package (plan v14 §9.3; P1 +--paper)',
     )
-    bp.add_argument('--locus', choices=['lf', 'lc'], required=True,
-                    help='Main locus track (lf=full-text / lc=entity-context)')
-    bp.add_argument('--subst', choices=['sf', 'sc'], required=True,
-                    help='Main substantiveness track (sf / sc)')
-    bp.add_argument('--sent', choices=['full', 'ctx'], required=True,
-                    help='Main sentiment track')
+    bp.add_argument('--paper', choices=sorted(_VALID_PAPER_IDS_BUILD),
+                    default='bank_fintech_tone',
+                    help='Paper id (default: bank_fintech_tone, main paper). P1 added.')
+    bp.add_argument('--locus', choices=['lf', 'lc'], default=None,
+                    help='Main locus track (required for bank_fintech_tone; ignored else)')
+    bp.add_argument('--subst', choices=['sf', 'sc'], default=None,
+                    help='Main substantiveness track (required for bank_fintech_tone)')
+    bp.add_argument('--sent', choices=['full', 'ctx'], default=None,
+                    help='Main sentiment track (required for bank_fintech_tone)')
     bp.add_argument('--root', type=str, default='.',
                     help='Project root for replication package (default: cwd)')
     bp.set_defaults(func=_cli_build_replication)

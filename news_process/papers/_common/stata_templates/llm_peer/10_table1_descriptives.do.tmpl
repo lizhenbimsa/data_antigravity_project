@@ -1,0 +1,29 @@
+* ============================================================================
+* 10_table1_descriptives.do — Descriptive statistics (Table 1) for llm_peer
+* Paper: {{PAPER_ID}}
+* Output: $tables_dir/table1_descriptives.tex (booktabs)
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* Variables to summarize: MAIN_DV + main IV/endog + cutoff variants + controls.
+local desc_vars {{MAIN_DV}} {{TONE_VAR}} {{LLM_PEER_IV}} {{LLM_PEER_COVERAGE_IV}} {{COMPETE_IDX}} {{CUTOFF_VARS}} $controls
+
+* `estpost summarize` writes a results matrix esttab can format.
+estpost summarize `desc_vars', detail
+
+esttab using "$tables_dir/table1_descriptives.tex", replace ///
+    cells("count mean(fmt(3)) sd(fmt(3)) min(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) max(fmt(3))") ///
+    label nomtitle nonumber booktabs ///
+    title("Descriptive Statistics --- llm_peer panel") ///
+    addnotes("Bank-year panel. {{MAIN_DV}} winsorized at 1%/99% if winsor2 installed.")
+
+display "[OK] Table 1 written to $tables_dir/table1_descriptives.tex"

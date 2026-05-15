@@ -1,0 +1,87 @@
+* ============================================================================
+* 11_table2_main_iv_2sls.do — Main IV 2SLS (llm_peer)
+* Paper: {{PAPER_ID}}
+*
+* Methodology: Cao, Z., Li, W., Wang, Y., & Zhao, Y. (2025). Can generative AI
+*   help identify peer firms? Review of Asset Studies, forthcoming.
+*
+* Estimating equation:
+*   {{MAIN_DV}}_it = β · {{TONE_VAR}}_it + γ' Controls_it + α_i + δ_t + ε_it
+* Concern: {{TONE_VAR}} is endogenous (own coverage may reflect within-bank
+*   unobservables that also affect {{MAIN_DV}}).
+* Instrument: {{LLM_PEER_IV}} — LLM-generated peer leave-one-out tone, where the
+*   peer set is determined by LLM semantic similarity (cutoff=0.80 baseline) and
+*   the bank's own coverage is excluded from the average.
+* Identification: LLM-defined peers are exogenous to focal bank's own residuals
+*   conditional on bank/year FE, addressing both reflection (Manski 1993) and
+*   correlated-effects threats.
+*
+* Output: $tables_dir/table2_main_iv_2sls.tex (booktabs, 4 columns: OLS / 2SLS / +controls / Ctx-robust)
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* ----------------------------------------------------------------------------
+* M1: OLS baseline (no controls)
+* ----------------------------------------------------------------------------
+reghdfe {{MAIN_DV}}_w {{TONE_VAR}}, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M1
+
+* ----------------------------------------------------------------------------
+* M2: OLS + controls
+* ----------------------------------------------------------------------------
+reghdfe {{MAIN_DV}}_w {{TONE_VAR}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M2
+
+* ----------------------------------------------------------------------------
+* M3: IV 2SLS (Cao 2025 LLM-Peer instrument)
+* ----------------------------------------------------------------------------
+capture which ivreghdfe
+if !_rc {
+    ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo M3
+}
+else {
+    display "[WARN] ivreghdfe not installed (ssc install ivreghdfe). M3 skipped."
+    * Fallback: use ivreg2 without absorb (less efficient).
+    capture which ivreg2
+    if !_rc {
+        ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) ffirst
+        eststo M3
+    }
+}
+
+* ----------------------------------------------------------------------------
+* M4: IV 2SLS with competition-index control (extension)
+* ----------------------------------------------------------------------------
+capture which ivreghdfe
+if !_rc {
+    ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) {{COMPETE_IDX}} $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo M4
+}
+
+* ----------------------------------------------------------------------------
+* Output table
+* ----------------------------------------------------------------------------
+esttab M1 M2 M3 M4 using "$tables_dir/table2_main_iv_2sls.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
+    label compress b(3) ///
+    title("Main IV 2SLS Results --- llm_peer (Cao et al. 2025)") ///
+    mtitles("OLS" "OLS+X" "2SLS" "2SLS+CompIdx") ///
+    addnotes("Bank and year fixed effects in all columns. Cluster-robust SE at {{CLUSTER_VAR}} level." ///
+             "{{LLM_PEER_IV}} = LLM-defined peer leave-one-out tone (cutoff=0.80).")
+
+display "[OK] Table 2 written to $tables_dir/table2_main_iv_2sls.tex"

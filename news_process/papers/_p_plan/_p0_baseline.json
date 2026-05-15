@@ -1,0 +1,23 @@
+{
+  "captured_at": "2026-05-15",
+  "branch": "feature/stage3-dual-track-v3.2.0",
+  "pytest_baseline": {
+    "passed": 1146,
+    "skipped": 6,
+    "failed": 0,
+    "warnings": 3,
+    "duration_seconds": 83.02,
+    "command": "python -m pytest news_process/tests/"
+  },
+  "stata_bin": "C:\\Program Files\\StataNow19\\StataMP-64.exe",
+  "panel_dta_default": "news_process/data/processed/40_panel_yearly.dta",
+  "panel_parquet_default": "news_process/data/processed/40_panel_yearly.parquet",
+  "preexisting_modified_files": [
+    "news_process/pipeline/panel/stata_export.py"
+  ],
+  "notes": [
+    "README.md self-reported 814 passed is outdated; HEAD baseline is 1146 passed.",
+    "Stata binary confirmed at StataNow19; build_replication_package can locate it via discover_stata_bin() Windows fallback.",
+    "All P0~P4 work must keep pytest at >= 1146 passed (no regression)."
+  ]
+}

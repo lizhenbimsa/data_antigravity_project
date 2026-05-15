@@ -1,0 +1,69 @@
+* ============================================================================
+* 14_table5_robustness.do — Robustness battery (llm_peer)
+* Paper: {{PAPER_ID}}
+*
+* (R1) coverage-weighted IV substitution: {{LLM_PEER_COVERAGE_IV}}
+* (R2) competition-intensity control: {{COMPETE_IDX}}
+* (R3) Ctx-track tone (replace _full with _ctx)
+* (R4) leave-one-province-out (clusterboot) — diagnostic only, no eststo
+*
+* Output: $tables_dir/table5_robustness.tex
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required for Table 5"
+    exit 199
+}
+
+* R1: coverage-IV substitution
+ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_COVERAGE_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo R1
+
+* R2: + competition-intensity control
+ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) {{COMPETE_IDX}} $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo R2
+
+* R3: Ctx-track endogenous + IV (if _ctx variants exist)
+capture confirm variable llm_vote_tone_ctx
+capture confirm variable llm_peer_tone_iv_ctx
+if !_rc {
+    ivreghdfe {{MAIN_DV}}_w (llm_vote_tone_ctx = llm_peer_tone_iv_ctx) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo R3
+}
+else {
+    display "[INFO] Ctx-track IV variables not in panel; R3 skipped."
+}
+
+* R4: cluster at province (alternative SE) when CLUSTER_VAR != prov_id
+capture confirm variable prov_id
+if !_rc {
+    ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
+        absorb(bank_id year) cluster(prov_id) ffirst
+    eststo R4
+}
+
+esttab R1 R2 R3 R4 using "$tables_dir/table5_robustness.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
+    label compress b(3) ///
+    title("Robustness Battery --- llm_peer IV 2SLS") ///
+    mtitles("Cov-IV" "+CompIdx" "Ctx-track" "Prov-cluster") ///
+    addnotes("R1 swaps {{LLM_PEER_IV}}→{{LLM_PEER_COVERAGE_IV}}." ///
+             "R2 adds {{COMPETE_IDX}} as exogenous control." ///
+             "R3 replaces _full with _ctx tracks (if available)." ///
+             "R4 clusters SE at province (if prov_id available).")
+
+display "[OK] Table 5 written to $tables_dir/table5_robustness.tex"

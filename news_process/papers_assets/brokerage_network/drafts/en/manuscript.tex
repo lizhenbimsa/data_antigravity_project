@@ -1,0 +1,86 @@
+% brokerage_network/drafts/en/manuscript.tex
+% P4.2 manuscript skeleton (plan-r3 derivative-paper extension, 2026-05-15)
+% Compile: xelatex + biber + xelatex × 2
+
+\input{../../../_shared/preamble_en.tex}
+
+\addbibresource{refs.bib}
+
+\title{Network Brokerage and Bank Performance:\\Causal Identification via Second-Order Peer Tone}
+\author{\NoteThis{Author names}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\NoteThis{Final abstract pending.}
+Using bank-year media coverage of FinTech and network 2SLS (Bramoull\'e--Djebbari--Fortin 2009), we measure
+first-order peer tone (\code{peer\_tone\_lag1\_full}) instrumented by second-order peer tone for Chinese listed banks. We find \NoteThis{key result}\@.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+\NoteThis{Motivate the research question and contribution.}
+
+\section{Literature Review}\label{sec:lit}
+(1)~peer effects identification (Manski 1993 \emph{RES}); (2)~network 2SLS via intransitive triads (Bramoull\'e \emph{et~al.}\ 2009 \emph{JoE}); (3)~institutional brokerage networks (Han \emph{et~al.}\ 2024 \emph{RFS}).
+
+\section{Methodology}\label{sec:method}
+\subsection{Sample and Data}
+The bank--year panel covers approximately 164 bank--years
+(2017--2018). All bank--year observations are processed by the
+\code{news\_process} pipeline (Phase 9b baseline; see
+\code{papers\_assets/V6\_METHODOLOGY\_CHANGES.md}).
+
+\subsection{Tone Annotation (F1: Three-Family LLM Validation)}
+We employ three independent LLM families for sentiment annotation:
+\code{gpt-5.4-nano} (OpenAI), \code{gemini-3.1-flash-lite-preview}
+(Google), and \code{deepseek-v4-flash} (DeepSeek\,/\,Grok). All three
+routed through yunwu.ai (\code{/v1/chat/completions}, OpenAI-compatible),
+\code{temperature=0}, \code{seed=42}. Inter-family agreement reported as
+Cohen's $\kappa$ and Krippendorff's $\alpha$; majority vote with ties marked
+\code{undefined} (not \code{neutral}).
+
+\subsection{Article-Level Coding (F2: Decontamination)}
+Articles where all three families fail or split three ways are coded
+\emph{missing}, not \code{neutral}. Bank--FinTech relevance failing
+majority verification is also missing. This eliminates the 81.7\,\%
+contamination in pre-v6 ``neutral'' labels.
+
+\subsection{Zero-Observation Semantics (F3: NaN Main Path)}
+For bank--years with \code{n\_articles=0}, similarity-based features
+(\code{auth\_sim\_*}, \code{benefit\_*}, \code{article\_sim\_*}),
+ratios (\code{token\_adopt\_*}, \code{hidden\_adopt\_*},
+\code{subst\_adopt\_*}), and \code{fintech\_intensity\_mean} are coded
+as \code{NaN}. Counts remain at 0. Listwise deletion follows Allison
+(2001) / Heckman (1979).
+
+\subsection{Bartik IV Pruning (F4)}
+Of approximately 30 candidate Bartik instruments, 28 are removed in v6
+for violating Goldsmith-Pinkham \emph{et~al.}\ (2020, \emph{AER})
+exogeneity. Retained: \code{bartik\_type\_iv\_full} and
+\code{prov\_leave1out\_tone\_full}.
+
+\section{Data}\label{sec:data}
+\NoteThis{Descriptive statistics in Table 1 (see \code{papers/brokerage_network/tables.py:build\_table1}).}
+
+\section{Main Results}\label{sec:main}
+\NoteThis{Table 2 from \code{output/tables/table2\_*.csv}; Figure 2 coefplot.}
+
+\section{Mechanism}\label{sec:mech}
+\NoteThis{Table 3 from \code{output/tables/table3\_*.csv}; Figure 3.}
+
+\section{Heterogeneity}\label{sec:het}
+\NoteThis{Table 4 (SOE × paper-specific interactions) from
+\code{output/tables/table4\_heterogeneity.csv}.}
+
+\section{Robustness}\label{sec:robust}
+\NoteThis{Table 5 (paper-specific robustness battery) from
+\code{output/tables/table5\_*.csv}.}
+
+\section{Conclusion}\label{sec:concl}
+\NoteThis{Final discussion and policy implications.}
+
+\printbibliography
+
+\end{document}

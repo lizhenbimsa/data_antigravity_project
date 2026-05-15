@@ -1,0 +1,68 @@
+* ============================================================================
+* 14_table5_robustness.do — Robustness battery (benefit_society)
+* Paper: {{PAPER_ID}}
+*
+* R1: P25 threshold (relaxed)
+* R2: P75 threshold (strict)
+* R3: INT track (TF-IDF×SIF weighted)
+* R4: Ctx track (entity-context window)
+* R5: Pos/Neg fraction decomposition
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+local kw_p25 token_adopt_kw_p25 hidden_adopt_kw_p25
+local kw_p75 token_adopt_kw_p75 hidden_adopt_kw_p75
+local int_p50 token_adopt_int_p50 hidden_adopt_int_p50
+
+* R1: P25 threshold
+foreach v of local kw_p25 {
+    capture confirm variable `v'
+    if _rc continue
+}
+reghdfe {{MAIN_DV}}_w `kw_p25' $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo R1_p25
+
+* R2: P75 threshold
+reghdfe {{MAIN_DV}}_w `kw_p75' $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo R2_p75
+
+* R3: INT track
+reghdfe {{MAIN_DV}}_w `int_p50' $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo R3_int
+
+* R4: Ctx track attitude
+capture confirm variable benefit_mean_ctx
+if !_rc {
+    reghdfe {{MAIN_DV}}_w benefit_mean_ctx $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo R4_ctx
+}
+
+* R5: Pos/Neg fraction decomposition
+capture confirm variable benefit_pos_frac_full
+capture confirm variable benefit_neg_frac_full
+if !_rc {
+    reghdfe {{MAIN_DV}}_w benefit_pos_frac_full benefit_neg_frac_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo R5_frac
+}
+
+esttab R1_p25 R2_p75 R3_int R4_ctx R5_frac ///
+    using "$tables_dir/table5_robustness.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Robustness Battery --- benefit_society") ///
+    mtitles("P25" "P75" "INT" "Ctx" "Pos/Neg") ///
+    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}.")
+
+display "[OK] Table 5 → $tables_dir/table5_robustness.tex"

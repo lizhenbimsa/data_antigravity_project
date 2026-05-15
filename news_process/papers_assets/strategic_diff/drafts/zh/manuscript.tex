@@ -1,0 +1,81 @@
+% strategic_diff/drafts/zh/manuscript.tex
+% P4.2 中文 manuscript 骨架 (plan-r3 衍生论文扩展, 2026-05-15)
+% 编译: xelatex + biber + xelatex × 2
+
+\input{../../../_shared/preamble_zh.tex}
+
+\addbibresource{refs.bib}
+
+\title{银行金融科技报道中的战略差异度：\\多方法文本测度及其实证表现}
+\author{\NoteThis{作者姓名}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\NoteThis{最终摘要待定。}
+本文基于银行—年度金融科技媒体报道, 采用N-最近邻 TF-IDF (Guzman--Li 2023) + 产品市场流动性 (Hoberg--Phillips 2016),
+度量中国上市银行的战略差异度分数 (\code{strat\_diff\_n5})。我们发现 \NoteThis{核心结论}\@。
+\end{abstract}
+
+\section{引言}\label{sec:intro}
+\NoteThis{阐释研究问题与贡献。}
+
+\section{文献综述}\label{sec:lit}
+(1)~创业战略差异度 (Guzman--Li 2023 \emph{MS}); (2)~文本驱动产品市场行业 (Hoberg--Phillips 2016 \emph{JPE}); (3)~产品市场流动性 (Hoberg--Phillips--Prabhala 2014 \emph{JF}); (4)~行业重心法 (谢佳松--樊嘉诚--林建浩 2025 \emph{经济研究})。
+
+\section{方法}\label{sec:method}
+\subsection{样本与数据}
+银行—年度面板覆盖约 164 个银行—年观测 (2017--2018)。
+所有数据由 \code{news\_process} 管线 (Phase 9b 基线) 处理,
+详见 \code{papers\_assets/V6\_METHODOLOGY\_CHANGES.md}。
+
+\subsection{语调标注 (F1: 三家族 LLM 真三角验证)}
+采用三个独立 LLM 家族: \code{gpt-5.4-nano} (OpenAI)、
+\code{gemini-3.1-flash-lite-preview} (Google)、\code{deepseek-v4-flash}
+(DeepSeek\,/\,Grok)。统一通过 yunwu.ai (\code{/v1/chat/completions},
+OpenAI 兼容) 调用, \code{temperature=0}, \code{seed=42}。
+家族间一致性以 Cohen's $\kappa$ 与 Krippendorff's $\alpha$ 报告;
+多数投票得最终标签, 平局标 \code{undefined} (非 \code{neutral})。
+
+\subsection{篇章级编码 (F2: 去污染)}
+三家族全部失败 / 三方分裂者编为\emph{缺失} (非 \code{neutral});
+银行--金融科技相关性未通过多数验证者亦视为缺失。
+此举消除了 v6 之前 81.7\,\% ``中性'' 标签的污染。
+
+\subsection{零观测语义 (F3: NaN 主路径)}
+对 \code{n\_articles=0} 的银行—年, 相似度类特征
+(\code{auth\_sim\_*}、\code{benefit\_*}、\code{article\_sim\_*})、
+比例类 (\code{token\_adopt\_*}、\code{hidden\_adopt\_*}、
+\code{subst\_adopt\_*})、\code{fintech\_intensity\_mean} 均编为
+\code{NaN}; 计数类保持 0。回归采用列删除 (Allison 2001 / Heckman 1979)。
+
+\subsection{Bartik IV 修剪 (F4)}
+约 30 个候选 Bartik 工具变量中, 28 个在 v6 中因违反
+Goldsmith-Pinkham \emph{et~al.}\ (2020, \emph{AER}) 外生性被删除。
+保留: \code{bartik\_type\_iv\_full} 与 \code{prov\_leave1out\_tone\_full}。
+
+\section{数据描述}\label{sec:data}
+\NoteThis{Table 1 描述统计参见 \code{papers/strategic_diff/tables.py:build\_table1}。}
+
+\section{基准回归}\label{sec:main}
+\NoteThis{Table 2 源自 \code{output/tables/table2\_*.csv}; Figure 2 系数图。}
+
+\section{机制检验}\label{sec:mech}
+\NoteThis{Table 3 源自 \code{output/tables/table3\_*.csv}; Figure 3。}
+
+\section{异质性}\label{sec:het}
+\NoteThis{Table 4 (SOE × 论文专属交互) 源自
+\code{output/tables/table4\_heterogeneity.csv}。}
+
+\section{稳健性}\label{sec:robust}
+\NoteThis{Table 5 (论文专属稳健性矩阵) 源自
+\code{output/tables/table5\_*.csv}。}
+
+\section{结论}\label{sec:concl}
+\NoteThis{最终讨论与政策含义。}
+
+\printbibliography
+
+\end{document}

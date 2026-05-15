@@ -1,0 +1,46 @@
+* ============================================================================
+* 12_table3_mechanism.do — Bartik IV + multi-method comparison
+* Paper: {{PAPER_ID}}
+*
+* Bartik IV: Goldsmith-Pinkham-Sorkin-Swift (2020, AER) — instrument {{TONE_VAR}}
+* with {{BARTIK_IV}}, partial out via 2SLS, identify causal effect of differentiation.
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required for Table 3"
+    exit 199
+}
+
+* M1: Bartik IV — 2SLS of differentiation effect conditional on tone
+ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{BARTIK_IV}}) {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo M1_bartik
+
+* M2-M5: multi-method robustness (TF-IDF char vs jieba vs LDA vs Embedding)
+foreach v in strat_diff_n5_w strat_diff_n5_lda strat_diff_n5_emb {
+    capture confirm variable `v'
+    if !_rc {
+        reghdfe {{MAIN_DV}}_w `v' $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo M_`v'
+    }
+}
+
+esttab M1_bartik M_strat_diff_n5_w M_strat_diff_n5_lda M_strat_diff_n5_emb ///
+    using "$tables_dir/table3_mechanism.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Mechanism: Bartik IV + Multi-Method --- strategic_diff") ///
+    mtitles("Bartik-IV" "TFIDF-jieba" "LDA" "Embedding") ///
+    addnotes("Convergent validity across text representations.")
+
+display "[OK] Table 3 → $tables_dir/table3_mechanism.tex"

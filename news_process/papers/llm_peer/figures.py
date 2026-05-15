@@ -48,4 +48,48 @@ def plot_cutoff_sensitivity(paper_config: PaperConfig | None = None,
     return out
 
 
-__all__ = ['plot_cutoff_sensitivity']
+def plot_main_iv_coefplot(paper_config: PaperConfig | None = None,
+                          *, filename: str = 'fig2_main_iv_coefplot.pdf'
+                          ) -> Path:
+    """Figure 2: main IV 2SLS coefficient plot (reads Table 2 esttab CSV)."""
+    from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
+    from news_process.papers.llm_peer.tables import build_table2_main
+
+    pc = paper_config or get_paper_config('llm_peer')
+    df = build_table2_main(pc)
+    out = pc.output_dir / 'figures' / filename
+    out.parent.mkdir(parents=True, exist_ok=True)
+    return coefplot_from_esttab_df(
+        df,
+        variables=[v for v in ['llm_vote_tone_full', 'peer_compete_idx',
+                               'ln_news_coverage', 'media_hhi'] if v in df.index],
+        output_path=out,
+        title='Main IV 2SLS — llm_peer',
+        xlabel='Coefficient (95% CI)',
+    )
+
+
+def plot_heterogeneity_forest(paper_config: PaperConfig | None = None,
+                              *, filename: str = 'fig3_heterogeneity_forest.pdf'
+                              ) -> Path:
+    """Figure 3: SOE × LLM-Peer-IV heterogeneity forest (reads Table 4 esttab CSV)."""
+    from news_process.papers._common.paper_figures_ext import forest_plot_from_esttab_df
+    from news_process.papers.llm_peer.tables import build_table4_heterogeneity
+
+    pc = paper_config or get_paper_config('llm_peer')
+    df = build_table4_heterogeneity(pc)
+    out = pc.output_dir / 'figures' / filename
+    out.parent.mkdir(parents=True, exist_ok=True)
+    return forest_plot_from_esttab_df(
+        df, variable='llm_vote_tone_full',
+        output_path=out,
+        title='Heterogeneity by SOE — llm_peer 2SLS',
+        xlabel='Coefficient on llm_vote_tone_full (95% CI)',
+    )
+
+
+__all__ = [
+    'plot_cutoff_sensitivity',
+    'plot_main_iv_coefplot',
+    'plot_heterogeneity_forest',
+]

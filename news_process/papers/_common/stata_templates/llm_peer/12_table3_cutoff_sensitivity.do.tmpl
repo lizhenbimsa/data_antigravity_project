@@ -1,0 +1,49 @@
+* ============================================================================
+* 12_table3_cutoff_sensitivity.do — IV cutoff threshold sensitivity (llm_peer)
+* Paper: {{PAPER_ID}}
+*
+* Cao 2025 §3.4: LLM-defined peer set depends on a similarity cutoff τ ∈ {0.70,
+*   0.75, 0.80, 0.85, 0.90}. Lower cutoff → larger peer set; higher cutoff →
+*   narrower set. Robustness check: main 2SLS coefficient stable across τ.
+*
+* Output: $tables_dir/table3_cutoff_sensitivity.tex (5 columns, one per τ)
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+local cutoffs 70 75 80 85 90
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required for Table 3; install via ssc install ivreghdfe"
+    exit 199
+}
+
+foreach c of local cutoffs {
+    local iv_var llm_peer_tone_iv_full_`c'
+    capture confirm variable `iv_var'
+    if _rc {
+        display "[WARN] `iv_var' missing; skipping cutoff=`c'"
+        continue
+    }
+    ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = `iv_var') $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo C`c'
+}
+
+esttab C70 C75 C80 C85 C90 using "$tables_dir/table3_cutoff_sensitivity.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
+    label compress b(3) ///
+    title("Cutoff Threshold Sensitivity --- llm_peer IV 2SLS") ///
+    mtitles("τ=0.70" "τ=0.75" "τ=0.80" "τ=0.85" "τ=0.90") ///
+    addnotes("Each column re-instruments {{TONE_VAR}} with LLM-peer tone at the given τ." ///
+             "Bank and year FE; cluster-robust SE at {{CLUSTER_VAR}} level.")
+
+display "[OK] Table 3 written to $tables_dir/table3_cutoff_sensitivity.tex"

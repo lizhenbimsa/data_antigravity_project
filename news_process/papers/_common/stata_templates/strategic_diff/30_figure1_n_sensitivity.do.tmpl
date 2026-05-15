@@ -1,0 +1,38 @@
+* ============================================================================
+* 30_figure1_n_sensitivity.do — N=3..7 coefficient plot
+* Paper: {{PAPER_ID}}
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""     global data_dir "../data"
+if "$figures_dir" == ""  global figures_dir "../output/figures"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+forvalues n = 3/7 {
+    capture confirm variable strat_diff_n`n'
+    if !_rc {
+        reghdfe {{MAIN_DV}}_w strat_diff_n`n' $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo N`n'
+    }
+}
+
+capture which coefplot
+if !_rc {
+    coefplot (N3, label("N=3")) (N4, label("N=4")) (N5, label("N=5")) ///
+             (N6, label("N=6")) (N7, label("N=7")), ///
+        keep(strat_diff_n*) ///
+        xline(0, lcolor(black) lpattern(dash)) ///
+        title("Coefficient sensitivity to N choice (strategic_diff)") ///
+        scheme(s2color)
+    graph export "$figures_dir/figure1_n_sensitivity.pdf", replace
+}
+else {
+    display "[INFO] coefplot not installed; figure skipped"
+}
+
+display "[OK] Figure 1 → $figures_dir/figure1_n_sensitivity.pdf"

@@ -1,0 +1,67 @@
+* ============================================================================
+* 01_data_prep.do — Load panel + xtset + global controls (llm_peer)
+* Paper: {{PAPER_ID}}
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+* Data file: 40_panel_yearly.dta (copied into ../data/ before run).
+if "$data_dir" == "" {
+    global data_dir "../data"
+}
+if "$panel_dta" == "" {
+    global panel_dta "$data_dir/40_panel_yearly.dta"
+}
+
+use "$panel_dta", clear
+
+* Panel structure: target_bank × year
+encode target_bank, gen(bank_id)
+xtset bank_id year
+
+* Province ID for optional clustering (matches brokerage_network convention).
+capture confirm variable bank_province
+if !_rc {
+    capture confirm variable prov_id
+    if _rc {
+        encode bank_province, gen(prov_id)
+    }
+}
+
+* SOE indicator for heterogeneity (project convention, see V6 §F2/F3).
+capture confirm variable {{HET_VAR}}
+if _rc {
+    display "[WARN] {{HET_VAR}} not in panel; Table 4 heterogeneity will skip."
+}
+
+* Standard control set per _PAPER_DEFAULTS['llm_peer'].
+global controls "{{CONTROLS}}"
+
+* Sanity: verify required IV / endog variables exist before downstream tables.
+foreach v in {{LLM_PEER_IV}} {{LLM_PEER_COVERAGE_IV}} {{COMPETE_IDX}} {{TONE_VAR}} {{MAIN_DV}} {
+    capture confirm variable `v'
+    if _rc {
+        display as error "[ERROR] required variable `v' missing from $panel_dta"
+        exit 198
+    }
+}
+
+* Winsorize MAIN_DV at 1% / 99% (standard finance robustness).
+capture confirm variable {{MAIN_DV}}_w
+if _rc {
+    capture which winsor2
+    if !_rc {
+        winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
+    }
+    else {
+        display "[INFO] winsor2 not installed (ssc install winsor2). Skipping winsor."
+        gen {{MAIN_DV}}_w = {{MAIN_DV}}
+    }
+}
+
+display "[OK] 01_data_prep complete. N=" _N ", controls=$controls"
+
+* Save prepared panel for subsequent .do (avoids re-encoding).
+save "$data_dir/_prepared_panel.dta", replace

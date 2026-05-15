@@ -42,4 +42,50 @@ def plot_strategic_diff_n5_distribution(paper_config: PaperConfig | None = None,
     return out
 
 
-__all__ = ['plot_strategic_diff_n5_distribution']
+def plot_main_coefplot(paper_config: PaperConfig | None = None,
+                       *, filename: str = 'fig2_main_coefplot.pdf') -> Path:
+    """Figure 2: main differentiation effects coefplot (Table 2 esttab)."""
+    from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
+    from news_process.papers.strategic_diff.tables import build_table2_main
+
+    pc = paper_config or get_paper_config('strategic_diff')
+    df = build_table2_main(pc)
+    out = pc.output_dir / 'figures' / filename
+    out.parent.mkdir(parents=True, exist_ok=True)
+    return coefplot_from_esttab_df(
+        df,
+        variables=[v for v in ['strat_diff_n5', 'strat_fluidity', 'strat_sim_max',
+                               'llm_vote_tone_full', 'coh_tfidf_c_full']
+                   if v in df.index],
+        output_path=out,
+        title='Main Effects --- strategic_diff',
+        xlabel='Coefficient (95% CI)',
+    )
+
+
+def plot_n_sensitivity_coefplot(paper_config: PaperConfig | None = None,
+                                *, filename: str = 'fig3_n_sensitivity_coefplot.pdf') -> Path:
+    """Figure 3: N=3..7 sensitivity coefplot (Table 5a esttab)."""
+    from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
+    from news_process.papers.strategic_diff.tables import build_table5_robustness
+
+    pc = paper_config or get_paper_config('strategic_diff')
+    df = build_table5_robustness(pc)
+    out = pc.output_dir / 'figures' / filename
+    out.parent.mkdir(parents=True, exist_ok=True)
+    vars_present = [f'strat_diff_n{n}' for n in range(3, 8)
+                    if f'strat_diff_n{n}' in df.index]
+    if not vars_present:
+        raise KeyError("No strat_diff_n3..n7 found in df.index")
+    return coefplot_from_esttab_df(
+        df, variables=vars_present, output_path=out,
+        title='N-Neighbor Sensitivity --- strategic_diff (Bresnahan-Reiss 1991)',
+        xlabel='Coefficient (95% CI)',
+    )
+
+
+__all__ = [
+    'plot_strategic_diff_n5_distribution',
+    'plot_main_coefplot',
+    'plot_n_sensitivity_coefplot',
+]

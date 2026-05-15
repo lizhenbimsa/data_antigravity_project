@@ -1,0 +1,32 @@
+* ============================================================================
+* 01_data_prep.do — Load panel + xtset + globals (benefit_society)
+* Paper: {{PAPER_ID}}
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""  global data_dir "../data"
+if "$panel_dta" == "" global panel_dta "$data_dir/40_panel_yearly.dta"
+
+use "$panel_dta", clear
+encode target_bank, gen(bank_id)
+xtset bank_id year
+
+global controls "{{CONTROLS}}"
+
+foreach v in {{MAIN_DV}} {{ATTITUDE_VAR}} {{MECHANISM_TOKEN}} {{MECHANISM_HIDDEN}} {{MECHANISM_SUBST}} {
+    capture confirm variable `v'
+    if _rc {
+        display as error "[ERROR] required variable `v' missing"
+        exit 198
+    }
+}
+
+capture which winsor2
+if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
+else gen {{MAIN_DV}}_w = {{MAIN_DV}}
+
+save "$data_dir/_prepared_panel.dta", replace
+display "[OK] data prep N=" _N

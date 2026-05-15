@@ -1,0 +1,31 @@
+* ============================================================================
+* 10_table1_descriptives.do — Descriptive stats (strategic_diff)
+* Paper: {{PAPER_ID}}
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+estpost summarize {{MAIN_DV}} {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} {{SIM_MAX_VAR}} ///
+    strat_diff_n3 strat_diff_n4 strat_diff_n6 strat_diff_n7 ///
+    strat_diff_n5_lda strat_diff_n5_emb ///
+    {{COHERENCE_VAR}} {{TONE_VAR}} $controls, detail
+
+esttab using "$tables_dir/table1_descriptives.tex", replace ///
+    cells("count mean(fmt(3)) sd(fmt(3)) min(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) max(fmt(3))") ///
+    label nomtitle nonumber booktabs ///
+    title("Descriptive Statistics --- strategic_diff panel")
+
+* Multi-method correlation matrix (convergent validity).
+estpost correlate {{MAIN_DIFF_VAR}} strat_diff_n5_lda strat_diff_n5_emb, matrix
+esttab using "$tables_dir/table1b_method_correlation.tex", replace ///
+    not unstack compress booktabs ///
+    title("Multi-Method Correlation (TF-IDF vs LDA vs Embedding)")
+
+display "[OK] Table 1 → $tables_dir/table1_descriptives.tex + table1b_method_correlation.tex"

@@ -1,0 +1,64 @@
+* ============================================================================
+* 14_table5_robustness.do — Robustness (strategic_diff)
+* Paper: {{PAPER_ID}}
+*
+* R1-R5: N=3, 4, 5, 6, 7 sensitivity (Bresnahan-Reiss 1991)
+* R6: Centroid distance (谢佳松 2025, 经济研究)
+* R7: Ctx-track replacement
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* R1-R5: N=3..7 sensitivity
+forvalues n = 3/7 {
+    capture confirm variable strat_diff_n`n'
+    if !_rc {
+        reghdfe {{MAIN_DV}}_w strat_diff_n`n' $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo N`n'
+    }
+}
+
+esttab N3 N4 N5 N6 N7 using "$tables_dir/table5a_n_sensitivity.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("N-Neighbor Sensitivity --- strategic_diff") ///
+    mtitles("N=3" "N=4" "N=5" "N=6" "N=7") ///
+    addnotes("Bresnahan-Reiss (1991): robustness to N choice.")
+
+* R6: Centroid distance (4 methods)
+foreach m in tfidf_c tfidf_w lda emb {
+    capture confirm variable centroid_diff_`m'
+    if !_rc {
+        reghdfe {{MAIN_DV}}_w centroid_diff_`m' $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo CD_`m'
+    }
+}
+
+esttab CD_tfidf_c CD_tfidf_w CD_lda CD_emb ///
+    using "$tables_dir/table5b_centroid_robustness.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Centroid Distance Robustness (Xie 2025)") ///
+    mtitles("TFIDF-char" "TFIDF-jieba" "LDA" "Embedding")
+
+* R7: Ctx-track
+capture confirm variable strat_diff_n5_ctx
+if !_rc {
+    reghdfe {{MAIN_DV}}_w strat_diff_n5_ctx $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo R7_ctx
+}
+
+esttab N5 R7_ctx using "$tables_dir/table5c_ctx_track.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Full vs Ctx Track --- strategic_diff") ///
+    mtitles("Full" "Ctx")
+
+display "[OK] Table 5 → $tables_dir/{table5a,table5b,table5c}_*.tex"

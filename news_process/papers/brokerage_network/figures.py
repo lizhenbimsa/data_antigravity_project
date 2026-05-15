@@ -44,4 +44,50 @@ def plot_brokerage_centrality_distribution(paper_config: PaperConfig | None = No
     return out
 
 
-__all__ = ['plot_brokerage_centrality_distribution']
+def plot_main_iv_coefplot(paper_config: PaperConfig | None = None,
+                          *, filename: str = 'fig2_main_iv_coefplot.pdf') -> Path:
+    """Figure 2: Network 2SLS main coefplot (Table 2 esttab)."""
+    from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
+    from news_process.papers.brokerage_network.tables import build_table2_main
+
+    pc = paper_config or get_paper_config('brokerage_network')
+    df = build_table2_main(pc)
+    out = pc.output_dir / 'figures' / filename
+    out.parent.mkdir(parents=True, exist_ok=True)
+    return coefplot_from_esttab_df(
+        df,
+        variables=[v for v in ['peer_tone_lag1_full', 'L_btw', 'L_cons', 'L_broker']
+                   if v in df.index],
+        output_path=out,
+        title='Network 2SLS Main Effects --- brokerage_network',
+        xlabel='Coefficient (95% CI)',
+    )
+
+
+def plot_policy_centrality_forest(paper_config: PaperConfig | None = None,
+                                  *, filename: str = 'fig3_policy_centrality_forest.pdf') -> Path:
+    """Figure 3: DCEP/Sandbox × centrality forest (Table 3 esttab)."""
+    from news_process.papers._common.paper_figures_ext import forest_plot_from_esttab_df
+    from news_process.papers.brokerage_network.tables import build_table3_mechanism
+
+    pc = paper_config or get_paper_config('brokerage_network')
+    df = build_table3_mechanism(pc)
+    out = pc.output_dir / 'figures' / filename
+    out.parent.mkdir(parents=True, exist_ok=True)
+    # Pick the first interaction variable present
+    var = next((v for v in ['dcep_x_btw', 'dcep_x_cons', 'dcep_x_broker',
+                            'sb_x_btw', 'sb_x_cons', 'sb_x_broker']
+                if v in df.index), None)
+    if var is None:
+        raise KeyError("No recognized interaction variable in df.index")
+    return forest_plot_from_esttab_df(
+        df, variable=var, output_path=out,
+        title=f'Policy × Centrality ({var}) --- brokerage_network',
+    )
+
+
+__all__ = [
+    'plot_brokerage_centrality_distribution',
+    'plot_main_iv_coefplot',
+    'plot_policy_centrality_forest',
+]

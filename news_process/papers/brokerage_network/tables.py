@@ -45,4 +45,37 @@ def write_table1(paper_config: PaperConfig | None = None,
                                filename=filename, dta_filename=dta_filename)
 
 
-__all__ = ['build_table1', 'write_table1']
+# ============================================================================
+# P2.2 — Tables 2-5 from Stata esttab CSV output
+# ============================================================================
+
+
+def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 2: Network 2SLS (Bramoulle 2009)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('brokerage_network', 'table2_main_iv_2sls.csv', paper_config)
+
+
+def build_table3_mechanism(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 3: Centrality × DCEP/Sandbox policy."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('brokerage_network', 'table3_mechanism_policy.csv', paper_config)
+
+
+def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 4: SOE split-sample 2SLS."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('brokerage_network', 'table4_heterogeneity.csv', paper_config)
+
+
+def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 5: Robustness (Ctx / bank-cluster / L2 centrality)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('brokerage_network', 'table5_robustness.csv', paper_config)
+
+
+__all__ = [
+    'build_table1', 'write_table1',
+    'build_table2_main', 'build_table3_mechanism',
+    'build_table4_heterogeneity', 'build_table5_robustness',
+]

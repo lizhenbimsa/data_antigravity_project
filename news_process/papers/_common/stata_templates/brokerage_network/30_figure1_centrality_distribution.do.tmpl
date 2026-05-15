@@ -1,0 +1,21 @@
+* ============================================================================
+* 30_figure1_centrality_distribution.do — Network centrality distribution
+* Paper: {{PAPER_ID}}
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""     global data_dir "../data"
+if "$figures_dir" == ""  global figures_dir "../output/figures"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+hist {{CENTRALITY_BROKER}}, percent fcolor(navy%70) lcolor(white) ///
+    xtitle("Brokerage eigenvector centrality") ///
+    title("Distribution of {{CENTRALITY_BROKER}} (bank-year)") ///
+    scheme(s2color)
+graph export "$figures_dir/figure1_centrality_distribution.pdf", replace
+
+display "[OK] Figure 1 → $figures_dir/figure1_centrality_distribution.pdf"

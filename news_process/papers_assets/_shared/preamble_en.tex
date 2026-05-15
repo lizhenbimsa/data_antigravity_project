@@ -1,0 +1,40 @@
+% papers_assets/_shared/preamble_en.tex
+% Shared English LaTeX preamble for all 5 paper drafts.
+% P4.1 (plan-r3 derivative-paper extension, 2026-05-15)
+% Compile: xelatex + biber + xelatex × 2
+
+\documentclass[12pt,a4paper]{article}
+
+% --- Fonts & Encoding ---
+\usepackage{fontspec}
+\setmainfont{Times New Roman}[Ligatures=TeX]
+
+% --- Math ---
+\usepackage{amsmath, amssymb, amsthm}
+
+% --- Tables & Figures ---
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{rotating}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+
+% --- Layout ---
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+% --- Bibliography (biblatex + biber) ---
+\usepackage[backend=biber,style=apa,natbib=true]{biblatex}
+
+% --- Useful macros ---
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\NoteThis}[1]{\textbf{\textcolor{red}{[TODO: #1]}}}
+\usepackage[dvipsnames]{xcolor}
+
+% --- Theorem environments ---
+\newtheorem{prop}{Proposition}
+\newtheorem{hyp}{Hypothesis}

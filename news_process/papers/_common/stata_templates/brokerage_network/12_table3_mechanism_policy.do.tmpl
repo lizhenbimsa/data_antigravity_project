@@ -1,0 +1,58 @@
+* ============================================================================
+* 12_table3_mechanism_policy.do — Centrality × policy interactions
+* Paper: {{PAPER_ID}}
+*
+* DCEP / Sandbox post × L1.centrality. Brambor-Clark-Golder (2006).
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* B1-B3: DCEP × (betweenness / constraint / brokerage)
+gen dcep_x_btw    = {{TREATMENT_DCEP}} * L_btw
+gen dcep_x_cons   = {{TREATMENT_DCEP}} * L_cons
+gen dcep_x_broker = {{TREATMENT_DCEP}} * L_broker
+
+reghdfe {{MAIN_DV}}_w dcep_x_btw {{TREATMENT_DCEP}} L_btw $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo B1_btw
+
+reghdfe {{MAIN_DV}}_w dcep_x_cons {{TREATMENT_DCEP}} L_cons $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo B2_cons
+
+reghdfe {{MAIN_DV}}_w dcep_x_broker {{TREATMENT_DCEP}} L_broker $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo B3_broker
+
+* C1-C3: Sandbox × (same three)
+gen sb_x_btw    = {{TREATMENT_SANDBOX}} * L_btw
+gen sb_x_cons   = {{TREATMENT_SANDBOX}} * L_cons
+gen sb_x_broker = {{TREATMENT_SANDBOX}} * L_broker
+
+reghdfe {{MAIN_DV}}_w sb_x_btw {{TREATMENT_SANDBOX}} L_btw $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo C1_btw
+
+reghdfe {{MAIN_DV}}_w sb_x_cons {{TREATMENT_SANDBOX}} L_cons $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo C2_cons
+
+reghdfe {{MAIN_DV}}_w sb_x_broker {{TREATMENT_SANDBOX}} L_broker $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo C3_broker
+
+esttab B1_btw B2_cons B3_broker C1_btw C2_cons C3_broker ///
+    using "$tables_dir/table3_mechanism_policy.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Centrality × Policy --- brokerage_network") ///
+    mtitles("DCEP×Btw" "DCEP×Cons" "DCEP×Brkr" "SB×Btw" "SB×Cons" "SB×Brkr") ///
+    addnotes("Bank/year FE; SE clustered at province.")
+
+display "[OK] Table 3 → $tables_dir/table3_mechanism_policy.tex"

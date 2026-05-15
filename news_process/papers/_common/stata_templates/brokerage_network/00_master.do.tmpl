@@ -1,0 +1,29 @@
+* ============================================================================
+* 00_master.do — brokerage_network replication orchestrator
+* Paper: {{PAPER_ID}}  (Network 2SLS + centrality × policy heterogeneity)
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$repl_root" == "" {
+    global repl_root ".."
+}
+global data_dir   "$repl_root/data"
+global out_dir    "$repl_root/output"
+global tables_dir "$out_dir/tables"
+global figures_dir "$out_dir/figures"
+capture mkdir "$out_dir"
+capture mkdir "$tables_dir"
+capture mkdir "$figures_dir"
+
+do 01_data_prep.do
+do 10_table1_descriptives.do
+do 11_table2_main_iv_2sls.do
+do 12_table3_mechanism_policy.do
+do 13_table4_heterogeneity.do
+do 14_table5_robustness.do
+do 30_figure1_centrality_distribution.do
+
+display "[OK] brokerage_network master.do complete"

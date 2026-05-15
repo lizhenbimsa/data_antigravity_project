@@ -1,0 +1,75 @@
+* ============================================================================
+* 13_table4_heterogeneity.do — State-ownership heterogeneity (llm_peer)
+* Paper: {{PAPER_ID}}
+*
+* Tests whether the LLM-Peer IV effect on {{MAIN_DV}} differs by bank ownership
+* type ({{HET_VAR}} = is_soe by default). Brambor-Clark-Golder (2006) interaction
+* requires including both main effect of {{HET_VAR}} and the interaction.
+*
+* Output: $tables_dir/table4_heterogeneity.tex
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture confirm variable {{HET_VAR}}
+if _rc {
+    display "[INFO] {{HET_VAR}} not in panel; Table 4 skipped."
+    exit 0
+}
+
+* Interaction construction (must precede 2SLS so it can be added to RHS).
+gen tone_x_het = {{TONE_VAR}} * {{HET_VAR}}
+gen peer_x_het = {{LLM_PEER_IV}} * {{HET_VAR}}
+
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required for Table 4"
+    exit 199
+}
+
+* H1: OLS with interaction (no IV, for reference)
+reghdfe {{MAIN_DV}}_w {{TONE_VAR}} tone_x_het {{HET_VAR}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo H1
+
+* H2: Single-instrument 2SLS, interaction on the (single) endogenous.
+* Two endogenous regressors require two instruments; we add peer_x_het as a
+* second instrument for the interacted endogenous tone_x_het.
+ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} tone_x_het = {{LLM_PEER_IV}} peer_x_het) ///
+    {{HET_VAR}} $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo H2
+
+* H3: Split-sample 2SLS (SOE=0)
+preserve
+keep if {{HET_VAR}} == 0
+ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo H3_nonSOE
+restore
+
+* H4: Split-sample 2SLS (SOE=1)
+preserve
+keep if {{HET_VAR}} == 1
+ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo H4_SOE
+restore
+
+esttab H1 H2 H3_nonSOE H4_SOE using "$tables_dir/table4_heterogeneity.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
+    label compress b(3) ///
+    title("Heterogeneity by {{HET_VAR}} --- llm_peer IV 2SLS") ///
+    mtitles("OLS+Int" "2SLS+Int" "2SLS Non-SOE" "2SLS SOE") ///
+    addnotes("H1/H2 pool all banks with {{HET_VAR}} interactions; H3/H4 split sample." ///
+             "Bank and year FE; cluster-robust SE at {{CLUSTER_VAR}}.")
+
+display "[OK] Table 4 written to $tables_dir/table4_heterogeneity.tex"

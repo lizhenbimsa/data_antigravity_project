@@ -1,0 +1,67 @@
+* ============================================================================
+* 30_figure1_first_stage_F.do — First-stage F across cutoff thresholds
+* Paper: {{PAPER_ID}}
+*
+* Visualizes Kleibergen-Paap (or Cragg-Donald) F statistic for the LLM-Peer IV
+* across 5 cutoff thresholds. F > 10 (Stock-Yogo 2005) signals strong IV.
+*
+* Output: $figures_dir/figure1_first_stage_F.pdf
+* ============================================================================
+
+version 15
+clear all
+set more off
+
+if "$data_dir" == ""     global data_dir "../data"
+if "$figures_dir" == ""  global figures_dir "../output/figures"
+capture mkdir "$figures_dir"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required for figure1"
+    exit 199
+}
+
+* Collect first-stage F statistics manually because coefplot doesn't natively
+* support `r(weakid)`. Build a tiny 5-row dataset of (cutoff, F) and use
+* twoway/coefplot to draw.
+
+tempname F_mat
+matrix `F_mat' = J(5, 2, .)
+
+local i = 0
+foreach c in 70 75 80 85 90 {
+    local ++i
+    local iv_var llm_peer_tone_iv_full_`c'
+    capture confirm variable `iv_var'
+    if _rc continue
+
+    quietly ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = `iv_var') $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}})
+    local F_stat = e(widstat)
+    matrix `F_mat'[`i', 1] = `c' / 100
+    matrix `F_mat'[`i', 2] = `F_stat'
+}
+
+* Build mini dataset for plotting.
+preserve
+clear
+svmat `F_mat', names(col)
+rename c1 cutoff
+rename c2 F_stat
+list
+
+* Draw line + scatter with horizontal reference at F=10 (Stock-Yogo critical).
+twoway (line F_stat cutoff, lcolor(black) lwidth(medium)) ///
+       (scatter F_stat cutoff, msize(medium) mcolor(black)) ///
+       (function y = 10, range(0.65 0.95) lpattern(dash) lcolor(red)), ///
+    legend(order(1 "First-stage F" 3 "Stock-Yogo τ=10")) ///
+    xtitle("LLM-Peer cutoff threshold") ytitle("Kleibergen-Paap F") ///
+    title("First-stage F across cutoff thresholds (llm_peer)") ///
+    scheme(s2color)
+graph export "$figures_dir/figure1_first_stage_F.pdf", replace
+restore
+
+display "[OK] Figure 1 written to $figures_dir/figure1_first_stage_F.pdf"
