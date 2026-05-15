@@ -456,6 +456,49 @@ def main():
             ).astype(int)
 
 
+    # ── v3.2.0 M2 P3 (plan v14 §2.3 + Action #5 count 4-way) ──
+    # Sentiment × Substantiveness 笛卡尔积: 现有列 = sentiment{track} × subst_full (隐式 _sf),
+    # 此处追加 sentiment{track} × subst_ctx (_sc) 完成 4-way.
+    # 文献依据: Bingler et al. (2022 FRL) cheap talk 定义在 disclosure-segment 邻近;
+    # 4-way 让论文 Robustness Appendix 可呈现"main spec switch sensitivity" 4 specs.
+    _tt_ctx = df['innovation_substantiveness_ctx'].astype(str).str.strip() if 'innovation_substantiveness_ctx' in df.columns else None
+    _is_symb_ctx = (_tt_ctx == '象征性') if _tt_ctx is not None else None
+    _is_sub_ctx  = (_tt_ctx == '实质性') if _tt_ctx is not None else None
+
+    if _is_symb_ctx is not None:
+        for track in ['_full', '_ctx']:
+            pos_col = f'is_positive{track}'
+            neg_col = f'is_negative{track}'
+            if pos_col not in df.columns:
+                continue
+
+            # 方法 A (4-way): _is_pos_symb_<sent_track>_sc
+            washing_cols[f'_is_pos_symb{track}_sc'] = (
+                (df[pos_col].fillna(0) == 1) & _is_symb_ctx
+            ).astype(int)
+
+            # 方法 B (4-way): _is_neg_sub_<sent_track>_sc
+            if neg_col in df.columns and _is_sub_ctx is not None:
+                washing_cols[f'_is_neg_sub{track}_sc'] = (
+                    (df[neg_col].fillna(0) == 1) & _is_sub_ctx
+                ).astype(int)
+
+            # 方法 A2 逐 LLM (4-way) — 不重复 _is_{llm}_positive (已存在)
+            for llm in LLM_MODELS:
+                src_col = f'{llm}_score{track}'
+                if src_col in df.columns:
+                    _llm_pos = (df[src_col].fillna(0) > 0)
+                    washing_cols[f'_is_{llm}_pos_symb{track}_sc'] = (
+                        _llm_pos & _is_symb_ctx).astype(int)
+
+            # 方法 F (4-way): HC × subst_ctx
+            agr_col = f'llm_agreement_rate{track}'
+            if agr_col in df.columns:
+                _hc = df[agr_col].fillna(0) >= 0.67
+                washing_cols[f'_is_pos_symb_hc{track}_sc'] = (
+                    (df[pos_col].fillna(0) == 1) & _is_symb_ctx & _hc
+                ).astype(int)
+
     df = _append_columns(df, washing_cols)
 
 
