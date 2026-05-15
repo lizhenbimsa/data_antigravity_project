@@ -146,8 +146,172 @@ def run_do(do_path: str | Path,
     )
 
 
+# ============================================================================
+# v3.2.0 M7 (plan v14 §9.3): build_replication_package
+# ============================================================================
+
+# Plan v14 §9.2 已知占位符白名单 (与 test_stata_templates.py 同源)
+_KNOWN_PLACEHOLDERS = {
+    'MAIN_LOCUS_TRACK',  # lf / lc
+    'MAIN_SUBST_TRACK',  # sf / sc
+    'MAIN_SENT_TRACK',   # full / ctx
+    'PROJECT_ROOT',      # absolute path
+}
+
+_VALID_SPEC_VALUES = {
+    'MAIN_LOCUS_TRACK': {'lf', 'lc'},
+    'MAIN_SUBST_TRACK': {'sf', 'sc'},
+    'MAIN_SENT_TRACK':  {'full', 'ctx'},
+}
+
+
+def _get_git_commit_hash_with_dirty() -> str:
+    """Plan v14 §9.3 (R48-A + R49-A): git commit hash + dirty 检测.
+
+    Returns:
+        '<hash>' (clean) 或 '<hash>+dirty' (working tree dirty)
+    """
+    try:
+        repo_root = Path(__file__).resolve().parents[3]
+        h = subprocess.run(
+            ['git', 'rev-parse', 'HEAD'],
+            cwd=str(repo_root), capture_output=True, text=True, timeout=10,
+        ).stdout.strip()[:12]
+        dirty = subprocess.run(
+            ['git', 'status', '--porcelain'],
+            cwd=str(repo_root), capture_output=True, text=True, timeout=10,
+        ).stdout.strip()
+        return f'{h}+dirty' if dirty else h
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+        return 'unknown'
+
+
+def _validate_spec_choices(main_spec_choices: dict) -> None:
+    """Plan v14 §9.3: 校验 main spec 选择合法 (避免静默错误占位符)."""
+    for key, value in main_spec_choices.items():
+        if key not in _KNOWN_PLACEHOLDERS:
+            raise ValueError(
+                f"未知占位符 key='{key}'. 合法值: {sorted(_KNOWN_PLACEHOLDERS)}"
+            )
+        if key in _VALID_SPEC_VALUES and value not in _VALID_SPEC_VALUES[key]:
+            raise ValueError(
+                f"占位符 {key}='{value}' 非法. 合法值: {sorted(_VALID_SPEC_VALUES[key])}"
+            )
+
+    required = {'MAIN_LOCUS_TRACK', 'MAIN_SUBST_TRACK', 'MAIN_SENT_TRACK'}
+    missing = required - set(main_spec_choices.keys())
+    if missing:
+        raise ValueError(f"缺必需占位符: {sorted(missing)}")
+
+
+def _substitute_placeholders(content: str, choices: dict) -> str:
+    """{{KEY}} → value 直接替换.
+
+    Args:
+        content: 模板文件内容
+        choices: 占位符值字典
+    Returns:
+        替换后内容; 未替换的 {{...}} 抛 ValueError (fail-fast)
+    """
+    result = content
+    for key, value in choices.items():
+        result = result.replace(f'{{{{{key}}}}}', str(value))
+    # fail-fast: 检测残留未替换占位符
+    import re
+    leftover = re.findall(r'\{\{([A-Z_]+)\}\}', result)
+    if leftover:
+        raise ValueError(
+            f"占位符未替换完整, 残留: {set(leftover)}. "
+            f"检查 _KNOWN_PLACEHOLDERS 与 main_spec_choices 一致性."
+        )
+    return result
+
+
+def build_replication_package(
+    main_spec_choices: dict,
+    output_root: str | Path | None = None,
+    template_dir: str | Path | None = None,
+) -> Path:
+    """生成 v3.2.0 replication 包 (plan v14 §9.3, Action #9 Stata Recommended scope).
+
+    Args:
+        main_spec_choices: {'MAIN_LOCUS_TRACK': 'lc', 'MAIN_SUBST_TRACK': 'sf',
+                            'MAIN_SENT_TRACK': 'ctx', 'PROJECT_ROOT': '/path/to/repl'}
+        output_root: replication 包父目录 (默认 repo_root)
+        template_dir: 模板目录 (默认 papers/_common/stata_templates)
+
+    Returns:
+        生成的 replication 包目录路径
+
+    工作流 (plan v14 §9.3):
+        1. 校验 main_spec_choices (合法占位符 + 合法值)
+        2. 实例化目录 replication_v3.2.0_<locus>_<subst>_<sent>/
+        3. 复制 / 替换 .do.tmpl → .do
+        4. 复制 README.md
+        5. 写 README.md 含 git commit hash + dirty 检测
+    """
+    _validate_spec_choices(main_spec_choices)
+
+    locus = main_spec_choices['MAIN_LOCUS_TRACK']
+    subst = main_spec_choices['MAIN_SUBST_TRACK']
+    sent  = main_spec_choices['MAIN_SENT_TRACK']
+
+    if template_dir is None:
+        template_dir = Path(__file__).resolve().parent / 'stata_templates'
+    template_dir = Path(template_dir)
+    if not template_dir.is_dir():
+        raise FileNotFoundError(f"Template dir not found: {template_dir}")
+
+    if output_root is None:
+        output_root = Path(__file__).resolve().parents[3]
+    output_root = Path(output_root)
+
+    pkg_dir = output_root / f'replication_v3.2.0_{locus}_{subst}_{sent}'
+    pkg_dir.mkdir(parents=True, exist_ok=True)
+    (pkg_dir / 'code').mkdir(exist_ok=True)
+    (pkg_dir / 'data').mkdir(exist_ok=True)
+    (pkg_dir / 'output' / 'tables').mkdir(parents=True, exist_ok=True)
+    (pkg_dir / 'output' / 'figures').mkdir(parents=True, exist_ok=True)
+
+    # 实例化模板 .do.tmpl → .do
+    n_templates = 0
+    for tpl_path in sorted(template_dir.glob('*.do.tmpl')):
+        out_name = tpl_path.stem  # 去掉 .tmpl 后缀, e.g., 11_table2_main_m1m6.do
+        out_path = pkg_dir / 'code' / out_name
+        content = tpl_path.read_text(encoding='utf-8')
+        substituted = _substitute_placeholders(content, main_spec_choices)
+        out_path.write_text(substituted, encoding='utf-8')
+        n_templates += 1
+
+    # 复制 README.md (附加 spec choices + commit hash)
+    readme_src = template_dir / 'README.md'
+    commit_hash = _get_git_commit_hash_with_dirty()
+    if readme_src.exists():
+        readme_content = readme_src.read_text(encoding='utf-8')
+        appendix = f"""
+
+---
+
+## This replication package / 本复现包
+
+- **Generated at**: {commit_hash}
+- **Main spec choices** (locked at generation):
+  - locus track: `{locus}` ({'full-text' if locus == 'lf' else 'entity-context'} classification)
+  - subst track: `{subst}` ({'full-text' if subst == 'sf' else 'entity-context'} classification)
+  - sent track:  `{sent}` ({'Hassan 2019 QJE entity-proximity' if sent == 'ctx' else 'full-text'})
+- **Templates instantiated**: {n_templates}
+- **Plan version**: v14 (62 rounds audit; user confirmed 9 Action Items)
+"""
+        (pkg_dir / 'README.md').write_text(readme_content + appendix, encoding='utf-8')
+
+    return pkg_dir
+
+
 __all__ = [
     'StataNotFoundError',
     'discover_stata_bin',
     'run_do',
+    'build_replication_package',
+    '_validate_spec_choices',  # 测试可见
+    '_substitute_placeholders',
 ]
