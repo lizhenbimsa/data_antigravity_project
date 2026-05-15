@@ -135,12 +135,13 @@ def test_parse_cache_empty_articles_yields_empty_df(tmp_path):
 
 
 def test_parse_args_dry_run_default():
-    """M1/7: CLI --dry-run 是 default 行为."""
+    """M1/7: CLI --dry-run 是 default 行为 (launch=False 即 dry-run 路径)."""
     from news_process.validation.radius_sensitivity_llm import _parse_args
     args = _parse_args([])
     # 默认 launch=False (即 dry-run)
     assert args.launch is False
-    assert args.dry_run is False or True  # dry_run flag 可能未设, default 即 dry-run
+    # dry_run argparse store_true default False; main() 用 not args.launch 判断 dry-run 路径
+    assert args.dry_run is False
 
 
 def test_parse_args_launch_flag():

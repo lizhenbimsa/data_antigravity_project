@@ -300,8 +300,9 @@ def test_cli_doctor_callable():
 
 def test_cli_doctor_runs_with_no_args(capsys):
     """M2/7: doctor 端到端 stdout 含 5 检查段."""
-    import news_process.papers._common.stata_runner as mod
     from types import SimpleNamespace
+
+    import news_process.papers._common.stata_runner as mod
 
     args = SimpleNamespace(verbose=False)
     rc = mod._cli_doctor(args)
@@ -321,8 +322,9 @@ def test_cli_doctor_runs_with_no_args(capsys):
 
 def test_cli_doctor_verbose_shows_versions(capsys):
     """M2/7: --verbose 显示 package versions."""
-    import news_process.papers._common.stata_runner as mod
     from types import SimpleNamespace
+
+    import news_process.papers._common.stata_runner as mod
 
     args = SimpleNamespace(verbose=True)
     mod._cli_doctor(args)
