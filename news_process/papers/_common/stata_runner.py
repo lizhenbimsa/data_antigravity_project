@@ -396,6 +396,120 @@ def _cli_list_templates(args) -> int:
     return 0
 
 
+def _cli_verify_replication(args) -> int:
+    """CLI 子命令: verify-replication — 验证 replication 包结构完整性.
+
+    检查:
+        1. 目录结构 (code/ data/ output/{tables,figures}/)
+        2. 14 .do 文件全部存在
+        3. 各 .do 无占位符残留 ({{ / }})
+        4. README.md 含 spec 信息 + commit hash
+        5. master.do 引用所有子 .do
+    """
+    try:
+        import sys
+        sys.stdout.reconfigure(encoding='utf-8')
+    except (AttributeError, OSError):
+        pass
+
+    pkg_dir = Path(args.path).resolve()
+    if not pkg_dir.is_dir():
+        print(f"[ERROR] Not a directory: {pkg_dir}")
+        return 1
+
+    n_ok = 0
+    n_err = 0
+    print(f"news_process v3.2.0 verify-replication: {pkg_dir.name}")
+    print("=" * 60)
+
+    # 1. 目录结构
+    print("\n[1/5] 目录结构")
+    for sub in ['code', 'data', 'output/tables', 'output/figures']:
+        if (pkg_dir / sub).is_dir():
+            print(f"   [OK] {sub}/")
+            n_ok += 1
+        else:
+            print(f"   [ERR] {sub}/ 缺失")
+            n_err += 1
+
+    # 2. 14 .do 文件
+    print("\n[2/5] Stata .do 文件 (14 expected)")
+    code_dir = pkg_dir / 'code'
+    if code_dir.is_dir():
+        do_files = sorted(code_dir.glob('*.do'))
+        if len(do_files) == 14:
+            print(f"   [OK] {len(do_files)} .do files (14/14 完整)")
+            n_ok += 1
+        else:
+            print(f"   [ERR] {len(do_files)} .do files (expected 14)")
+            n_err += 1
+
+    # 3. 占位符残留检测
+    print("\n[3/5] 占位符 ({{...}}) 残留检测")
+    if code_dir.is_dir():
+        residue = []
+        for do_file in code_dir.glob('*.do'):
+            content = do_file.read_text(encoding='utf-8')
+            if '{{' in content or '}}' in content:
+                residue.append(do_file.name)
+        if not residue:
+            print("   [OK] 所有 .do 文件占位符零残留")
+            n_ok += 1
+        else:
+            print(f"   [ERR] 占位符残留: {residue}")
+            n_err += 1
+
+    # 4. README.md
+    print("\n[4/5] README.md")
+    readme = pkg_dir / 'README.md'
+    if readme.exists():
+        content = readme.read_text(encoding='utf-8')
+        has_spec = 'locus track' in content or 'Main spec' in content
+        has_hash = 'Generated at' in content
+        if has_spec and has_hash:
+            print("   [OK] README 含 spec choices + commit hash")
+            n_ok += 1
+        else:
+            print(f"   [ERR] README 缺关键 section (spec={has_spec}, hash={has_hash})")
+            n_err += 1
+    else:
+        print("   [ERR] README.md 不存在")
+        n_err += 1
+
+    # 5. master.do 引用 13 子 .do
+    print("\n[5/5] master.do 引用 13 子 .do")
+    master = code_dir / '00_master.do'
+    if master.exists():
+        content = master.read_text(encoding='utf-8')
+        expected = [
+            '01_data_prep.do', '10_table1_descriptives.do',
+            '11_table2_main_m1m6.do', '12_table3_mechanism.do',
+            '13_table4_heterogeneity.do', '14_table5_advanced_robustness.do',
+            '20_tableA1_inter_track_kappa.do', '21_tableA2_main_spec_switch.do',
+            '22_tableA3_bartik_iv.do', '23_tableA4_radius_sensitivity.do',
+            '24_tableA5_dictionary_method.do',
+            '30_figure1_event_study.do', '31_figure_coefplot_dual.do',
+        ]
+        missing = [s for s in expected if s not in content]
+        if not missing:
+            print(f"   [OK] master.do 引用 13/13 子 .do")
+            n_ok += 1
+        else:
+            print(f"   [ERR] master.do 缺引用: {missing}")
+            n_err += 1
+    else:
+        print("   [ERR] master.do 不存在")
+        n_err += 1
+
+    print("\n" + "=" * 60)
+    print(f"  Summary: {n_ok} OK / {n_err} ERR")
+    if n_err:
+        print(f"  Action: 重新跑 build-replication --locus ... --root {pkg_dir.name}")
+        return 1
+    print("  Replication package is valid and ready for Stata execution.")
+    return 0
+
+
 def _cli_doctor(args) -> int:
     """CLI 子命令: doctor — 诊断 v3.2.0 用户层依赖完整性 (plan v14 §6 风险表 R20-A)."""
     try:
@@ -542,6 +656,15 @@ def main():
     dr.add_argument('--verbose', action='store_true',
                     help='Show package versions + extra diagnostic info')
     dr.set_defaults(func=_cli_doctor)
+
+    # verify-replication (M4/7 新增, 验证 build-replication 产出)
+    vr = subparsers.add_parser(
+        'verify-replication',
+        help='Verify a replication_v3.2.0_* package structure (plan v14 §9.3 + §9.5)',
+    )
+    vr.add_argument('path', type=str,
+                    help='Path to replication package directory (e.g. replication_v3.2.0_lc_sf_ctx/)')
+    vr.set_defaults(func=_cli_verify_replication)
 
     args = parser.parse_args()
     return args.func(args)

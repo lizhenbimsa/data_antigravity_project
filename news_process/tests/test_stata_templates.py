@@ -233,6 +233,64 @@ def test_cli_command_main_callable():
     assert hasattr(mod, '_cli_build_replication')
 
 
+def test_cli_verify_replication_callable():
+    """M4/7: verify-replication 子命令 importable."""
+    import news_process.papers._common.stata_runner as mod
+    assert hasattr(mod, '_cli_verify_replication')
+    assert callable(mod._cli_verify_replication)
+
+
+def test_cli_verify_replication_on_valid_package(tmp_path, capsys):
+    """M4/7: verify-replication 在 build-replication 产出包上返回 0."""
+    from types import SimpleNamespace
+
+    import news_process.papers._common.stata_runner as mod
+    pkg = mod.build_replication_package({
+        'MAIN_LOCUS_TRACK': 'lc', 'MAIN_SUBST_TRACK': 'sf',
+        'MAIN_SENT_TRACK': 'ctx', 'PROJECT_ROOT': str(tmp_path),
+    }, output_root=tmp_path)
+    args = SimpleNamespace(path=str(pkg))
+    rc = mod._cli_verify_replication(args)
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert '[1/5] 目录结构' in out
+    assert '14/14 完整' in out  # 14 .do
+    assert 'Summary: 8 OK' in out
+
+
+def test_cli_verify_replication_on_nonexistent_dir(tmp_path, capsys):
+    """M4/7: verify-replication 对不存在目录返回 1 + stderr."""
+    from types import SimpleNamespace
+
+    import news_process.papers._common.stata_runner as mod
+    args = SimpleNamespace(path=str(tmp_path / "no_such_dir"))
+    rc = mod._cli_verify_replication(args)
+    assert rc == 1
+    out = capsys.readouterr().out
+    assert '[ERROR] Not a directory' in out
+
+
+def test_cli_verify_replication_on_incomplete_package(tmp_path, capsys):
+    """M4/7: verify-replication 对缺 .do 包返回 1."""
+    from types import SimpleNamespace
+
+    import news_process.papers._common.stata_runner as mod
+    # 模拟一个缺 .do 文件的包
+    bad_pkg = tmp_path / "bad_pkg"
+    (bad_pkg / "code").mkdir(parents=True)
+    (bad_pkg / "data").mkdir()
+    (bad_pkg / "output" / "tables").mkdir(parents=True)
+    (bad_pkg / "output" / "figures").mkdir()
+    # 只放 3 个 .do 而非 14
+    for n in ['00_master.do', '01_data_prep.do', '11_table2_main_m1m6.do']:
+        (bad_pkg / "code" / n).write_text("* dummy", encoding='utf-8')
+    args = SimpleNamespace(path=str(bad_pkg))
+    rc = mod._cli_verify_replication(args)
+    assert rc == 1  # ERR 出现
+    out = capsys.readouterr().out
+    assert '[ERR]' in out
+
+
 def test_cli_doctor_callable():
     """M2/7: doctor 子命令 importable."""
     import news_process.papers._common.stata_runner as mod
