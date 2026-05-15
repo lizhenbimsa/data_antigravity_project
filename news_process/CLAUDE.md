@@ -12,8 +12,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v3.1.1 (Prompt v7 + v8 术语正名: substantive=_sub, symbolic=_symb; 翻译层已移除; v3.1 新增 12 列 iss subset LLM tone aggregation; v3.1.1 新增 tone_gap_tech_app 反向对称借鉴 (Adner & Kapoor 2010 + Gomber 2018); W&Z 1994/1998 ASQ + Fiss & Zajac 2006 + Gomber et al. 2018 JMIS; 详见 CHANGELOG.md v3.0.0/v3.1.0/v3.1.1)
-**Test baseline**: 994 passed / 2 skipped / 0 failed (v3.1.1 +6 tone_gap_tech_app helper 测试)
+**Current version**: v3.2.0 (BREAKING — Stage 3 双轨化 + Stata 数据导出层; Prompt v7 + v8 术语正名;
+v3.2.0 引入 `innovation_locus_{full,ctx}` + `innovation_substantiveness_{full,ctx}` 双轨独立标签,
+ctx gate 改并集修复致命 R1-A, dual gate 三互斥指示列, encode.py `_lc × _ctx` + `_sc × _ctx` 对角线追加;
+新增 stage 46 Stata 数据导出 (pyreadstat → .dta + labels.do + codebook.xlsx, Stata IC ≤ 2048 兼容,
+value labels 双语 0=baseline / 1=对照);
+锚定: Hassan 2019 QJE + Sautner 2023 JF + Bingler 2022 FRL + W&Z 1994/1998 ASQ + Gomber 2018 JMIS;
+plan v14 经 62 轮审计 / 68 finding 修复 / 7 milestone M0-M6 自动执行; 详见 CHANGELOG.md v3.2.0)
+**Test baseline**: 1144 passed / 6 skipped / 0 failed (v3.2.0 +150 测试; 4 conditional skipped 等 pipeline 重跑后 unblock)
+
+**CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):
+- `build-replication`: 一键 instantiate 14 .do 模板 + spec 替换
+- `list-templates [--verbose]`: 14 模板清单 + 占位符 inventory
+- `doctor [--verbose]`: 5 段诊断 (deps + pipeline + LLM + Stata bin)
+- `verify-replication <path>`: 5 段验证 replication 包结构
+
+**v3.1.1 → v3.2.0 panel 迁移**: `python -m news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade`
 
 ## Architecture
 
@@ -21,11 +35,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The pipeline is a **declarative DAG** defined in `news_process/core/dag.py`. All stages are registered in `STAGES_MAIN` (production) or `STAGES_VALIDATION` (evaluation). The orchestrator (`run_pipeline_function.py`) executes stages as isolated subprocesses.
 
-**Stage flow**:
+**Stage flow** (v3.2.0):
 ```
 00_preprocessing → 11_news_bank → 12_news_fintech → 14_fintech_intensity 
 → 15_article_policy_alignment → 21_tone_llms / 22_tone_words / 23_tone_berts 
-→ 24_herd_decay_processor → 45_panel_export_main → 51_falsification_test
+→ 24_herd_decay_processor → 45_panel_export_main → 46_stata_export → 51_falsification_test
 ```
 
 Sentiment methods (21/22/23) are conditionally enabled via `config/sentiment.yaml::sentiment_analysis.enabled_methods`.

@@ -1,0 +1,53 @@
+* news_process v3.2.0 — Table A2: Main Spec Switch Sensitivity (plan v14 §5.3 / §9.2)
+*
+* 核心新价值 (Hassan 2019 QJE / Sautner 2023 JF / Bingler 2022 FRL):
+*   双轨化设计让 main spec 选择有 8 种 (2 locus × 2 subst × 2 sentiment).
+*   此表展示 main spec 在 8 种切换下的系数 / SE 稳健性 (robustness).
+*   论文 Methods §4 中 main spec 是 1 种, Robustness Appendix 展示其他 7 种.
+
+version 15
+use "data/processed/46_panel_yearly_core.dta", clear
+
+encode target_bank, gen(bank_id)
+xtset bank_id year
+capture do "data/processed/46_panel_yearly_labels.do"
+
+* 8-spec 笛卡尔 (2 locus × 2 subst × 2 sentiment)
+* loop 用 macro 替换:
+foreach loc in lf lc {
+    foreach sub in sf sc {
+        foreach sent in full ctx {
+            * 主变量 (注: tech_frac_lf 对应 _full 隐式; tech_frac_lc 对应 _ctx)
+            local LOCUS  tech_frac_`loc'
+            local SUBST  symb_frac_`sub'
+            local DV     llm_vote_tone_`sent'
+
+            * 跳过 spec 列不存在的情况 (M2 P2 加性, 部分 spec 仍未生成)
+            capture confirm variable `LOCUS' `SUBST' `DV'
+            if !_rc {
+                eststo spec_`loc'_`sub'_`sent': ///
+                    reghdfe `DV' digital_frontier `LOCUS' `SUBST', ///
+                    absorb(bank_id year) vce(cluster bank_id)
+            }
+            else {
+                display "  ⏭ spec_`loc'_`sub'_`sent' skipped (列不存在)"
+            }
+        }
+    }
+}
+
+* 输出 Table A2 (横 8 列)
+esttab spec_lf_sf_full spec_lf_sf_ctx ///
+       spec_lf_sc_full spec_lf_sc_ctx ///
+       spec_lc_sf_full spec_lc_sf_ctx ///
+       spec_lc_sc_full spec_lc_sc_ctx ///
+       using "output/tables/tableA2_main_spec_switch.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) ///
+    booktabs replace fragment ///
+    title("Table A2: Main Spec Switch Sensitivity (8 specs, plan v14 §5.3)") ///
+    mtitles("LF-SF-F" "LF-SF-C" "LF-SC-F" "LF-SC-C" ///
+            "LC-SF-F" "LC-SF-C" "LC-SC-F" "LC-SC-C") ///
+    note("Main spec choices: locus={lf=full / lc=ctx}, subst={sf=full / sc=ctx}, sent={full / ctx}. " ///
+         "Robust SEs clustered at bank. Hassan 2019 QJE + Sautner 2023 JF + Bingler 2022 FRL.")
+
+display "✅ Table A2 written to output/tables/tableA2_main_spec_switch.tex"

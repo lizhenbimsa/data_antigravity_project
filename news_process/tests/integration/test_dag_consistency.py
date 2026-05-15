@@ -83,11 +83,11 @@ def test_validation_orchestrator_uses_canonical_stages(rpv, core_dag):
 
 
 def test_main_stage_count(core_dag):
-    """``STAGES_MAIN`` 阶段数须等于 Phase 1 基线 + Step 7a/v6 (12)。"""
-    # 00 + 11 + 12 + 14 + 15 + 21 + 22 + 23 + 24 + 30 + 45 + 51 = 12
-    # (v6 红队修复: 显式纳入 stage 30 双轨稳健性指标 / Step 3a)
-    assert len(core_dag.STAGES_MAIN) == 12, (
-        f"STAGES_MAIN 数量漂移: 期望 12, 实际 {len(core_dag.STAGES_MAIN)}. "
+    """``STAGES_MAIN`` 阶段数须等于 v6 基线 + v3.2.0 stage 46 (13)。"""
+    # 00 + 11 + 12 + 14 + 15 + 21 + 22 + 23 + 24 + 30 + 45 + 46 + 51 = 13
+    # v3.2.0 M6 (plan v14 §9.1): 新增 stage 46 Stata 数据导出 (pyreadstat .dta + labels)
+    assert len(core_dag.STAGES_MAIN) == 13, (
+        f"STAGES_MAIN 数量漂移: 期望 13, 实际 {len(core_dag.STAGES_MAIN)}. "
         "若有意增删阶段, 请同步更新本测试。"
     )
 
@@ -133,29 +133,29 @@ def test_filter_enabled_respects_predicate(core_dag):
     ``enabled_when=berts_method_enabled`` 谓词, 与 stage 23 同步启停.
     因此 cfg_llm_only / cfg_no_sentiment 下被排除的 stage 数 +1.
     """
-    # 三种情感方法全开 -> 12 阶段 (v6 红队修复: 含 stage 30 / Step 3a)
+    # 三种情感方法全开 -> 13 阶段 (v3.2.0 M6: + stage 46 Stata 导出)
     cfg_full = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
         },
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 12
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 13
 
-    # 仅 LLM -> 12 - 2 (words+berts) - 1 (24 跟随 berts) = 9
+    # 仅 LLM -> 13 - 2 (words+berts) - 1 (24 跟随 berts) = 10
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 9
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 10
 
-    # 无情感方法 -> 12 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 8
+    # 无情感方法 -> 13 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 9
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 8
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 9
     )
 
 

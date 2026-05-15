@@ -1,0 +1,47 @@
+* news_process v3.2.0 — Table A4: Radius Sensitivity (plan v14 §3.5 P5.2 / §9.2)
+*
+* Stage 35 LLM 法升级输出 radius_sensitivity_results.json (10.5k API).
+* 此模板读 JSON → 转 .dta → 绘 heatmap κ × radius × dimension.
+*
+* 三轴 robustness (plan v14 §3.5 P5.2):
+*   sentiment × radius {0, 1, 2, 3}
+*   innovation_locus × radius
+*   innovation_substantiveness × radius
+*
+* 阈值: 全维度 radius κ ≥ 0.70 (Landis & Koch 1977 substantial, 应稳健)
+
+version 15
+
+local LLM_JSON  "data/processed/35_radius_sensitivity_llm_results.json"
+capture confirm file "`LLM_JSON'"
+if _rc {
+    display _newline "⏭ Table A4 跳过: `LLM_JSON' 不存在."
+    display "   先跑 stage 35 LLM 升级:"
+    display "     F:/Anaconda3/python.exe -m news_process.validation.radius_sensitivity_llm --launch"
+    display "   预算: 10.5k API 调用 (~2 min @100 并发)"
+    exit 0
+}
+
+* --- 用 insheet 或 Python helper 把 JSON → .dta ---
+* 占位实现: 用户层可用 jsonio (ssc install jsonio) 或 Python preprocess
+display "  (实施提示: 用 Python helper 或 jsonio 把 LLM_JSON → tableA4_radius.dta)"
+display "     pseudocode:"
+display "        radii   = [0, 2, 3]  // radius=1 是 baseline"
+display "        dims    = sentiment / locus / substantiveness"
+display "        rows    = radii × dims (9 行 × 4 列: dim, radius, kappa, n)"
+
+* 输出 (placeholder LaTeX 框架, 用户用 .json 数据填)
+file open f1 using "output/tables/tableA4_radius_sensitivity.tex", write replace
+file write f1 "\begin{table}[h]\centering" _newline
+file write f1 "\caption{Table A4: Radius Sensitivity (LLM ensemble, 10.5k API calls)}" _newline
+file write f1 "\begin{tabular}{lcccc}\toprule" _newline
+file write f1 "Dimension & κ (r=0) & κ (r=1*) & κ (r=2) & κ (r=3) \\\\\midrule" _newline
+file write f1 "Sentiment                & TBD & 1.00 & TBD & TBD \\\\" _newline
+file write f1 "Innovation Locus         & TBD & 1.00 & TBD & TBD \\\\" _newline
+file write f1 "Innovation Substantiveness & TBD & 1.00 & TBD & TBD \\\\" _newline
+file write f1 "\bottomrule\end{tabular}" _newline
+file write f1 "\caption*{*r=1 baseline, κ ≡ 1. Threshold: ≥ 0.70 (substantial).}" _newline
+file write f1 "\end{table}" _newline
+file close f1
+
+display "✅ Table A4 framework written (TBD cells 需 stage 35 LLM launch 后填充)"

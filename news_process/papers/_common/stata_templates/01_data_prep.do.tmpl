@@ -1,0 +1,52 @@
+* news_process v3.2.0 — Data prep (plan v14 §9.2)
+*
+* 加载 stage 46 .dta + xtset + winsor + apply labels.
+* Main spec choices: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
+
+version 15
+clear all
+set maxvar 32767
+
+* 1. 加载 core .dta (Stata IC ≤ 2048 兼容)
+use "data/processed/46_panel_yearly_core.dta", clear
+display "  Loaded: `=_N' bank-year obs × `=c(k)' variables"
+
+* 2. 加载 variable + value labels
+capture do "data/processed/46_panel_yearly_labels.do"
+
+* 3. 主键编码 + xtset
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+* 4. Winsor 关键连续变量 (1% / 99%, Loughran & McDonald 2011 JF 惯例)
+local main_dv      llm_vote_tone_{{MAIN_SENT_TRACK}}
+local main_locus   tech_frac_{{MAIN_LOCUS_TRACK}}
+local main_subst   symb_frac_{{MAIN_SUBST_TRACK}}
+
+* 检查 winsor2 是否可用 (ssc install winsor2)
+capture which winsor2
+if !_rc {
+    foreach var of varlist `main_dv' `main_locus' `main_subst' {
+        capture confirm variable `var'
+        if !_rc {
+            winsor2 `var', cuts(1 99) replace
+        }
+    }
+    display "  ✅ Winsorized 1%/99% on main DV + LOCUS + SUBST"
+}
+else {
+    display "  ⚠️ winsor2 not installed (ssc install winsor2); skip winsorization"
+}
+
+* 5. 派生交互项 (主回归用)
+capture confirm variable digital_frontier
+if !_rc {
+    gen byte _has_df = !missing(digital_frontier)
+    display "  digital_frontier 非缺失: `=_has_df'/`=_N' bank-year"
+    drop _has_df
+}
+
+display "✅ Data prep done. Ready for tables."

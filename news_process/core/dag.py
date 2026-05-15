@@ -226,6 +226,16 @@ STAGES_MAIN: list[StageSpec] = [
         timeout=7200,  # 阶段内含 Stage 25/26/27 Embedding 计算
     ),
 
+    # ── v3.2.0 M6 (plan v14 §9.1): Stata 数据导出层 ──
+    # parquet → .dta + variable/value labels + codebook .xlsx
+    # 依赖 stage 45 (panel parquet) 完成
+    StageSpec(
+        name="阶段46: Stata 数据导出 (pyreadstat .dta + labels)",
+        script="46_stata_export.py",
+        group="main", kind="export",
+        timeout=600,  # 跨平台 pyreadstat 写 .dta, 462 行 × 2254 列 < 1 分钟
+    ),
+
     # ── 模块六：伪造检验 ──
     StageSpec(
         name="阶段51: 伪造检验对照变量构建",

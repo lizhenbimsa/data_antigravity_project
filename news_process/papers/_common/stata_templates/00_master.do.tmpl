@@ -1,0 +1,43 @@
+* news_process v3.2.0 — Master orchestrator (plan v14 §9.2)
+* Generated from template by build_replication_package (plan v14 §9.3)
+* Plan version: v14 frozen at git tag plan-stage3-dual-track-frozen
+*
+* Main spec choices (由论文 Methods §4 决定, 模板替换占位符):
+*   LOCUS_TRACK:  {{MAIN_LOCUS_TRACK}}    (lf=full-text classification / lc=entity-context)
+*   SUBST_TRACK:  {{MAIN_SUBST_TRACK}}    (sf=full-text / sc=entity-context)
+*   SENT_TRACK:   {{MAIN_SENT_TRACK}}     (full / ctx)
+*
+* Stata 版本要求: ≥ 15 (reghdfe HDFE / coefplot 性能)
+* 必需包: ssc install reghdfe ivreg2 estout coefplot asdoc
+
+version 15
+clear all
+set maxvar 32767
+set linesize 120
+
+* Project root (用户运行前修改为本地路径)
+local project_root "{{PROJECT_ROOT}}"
+cd "`project_root'"
+
+* 0. 数据准备
+do "code/01_data_prep.do"
+
+* === Tables (论文主体) ===
+do "code/10_table1_descriptives.do"
+do "code/11_table2_main_m1m6.do"
+do "code/12_table3_mechanism.do"
+do "code/13_table4_heterogeneity.do"
+do "code/14_table5_advanced_robustness.do"
+
+* === Robustness Appendix (双轨化核心) ===
+do "code/20_tableA1_inter_track_kappa.do"
+do "code/21_tableA2_main_spec_switch.do"
+do "code/22_tableA3_bartik_iv.do"
+do "code/23_tableA4_radius_sensitivity.do"
+do "code/24_tableA5_dictionary_method.do"
+
+* === Figures ===
+do "code/30_figure1_event_study.do"
+do "code/31_figure_coefplot_dual.do"
+
+display "✅ All tables + figures generated. See output/tables/ + output/figures/"

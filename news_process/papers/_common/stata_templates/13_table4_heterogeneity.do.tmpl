@@ -1,0 +1,57 @@
+* news_process v3.2.0 — Table 4: Heterogeneity (plan v14 §9.2)
+*
+* 异质性维度:
+*   1. Bank type (大型 vs 中小型, by bank_size 中位数)
+*   2. Digital frontier (前沿 vs 跟随, by digital_frontier 二元)
+*   3. Geographic zone (沿海 vs 内陆, by bank_zone)
+*
+* Main spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
+
+version 15
+
+local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
+local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
+local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
+
+* --- Heterogeneity 1: Bank size (中位数 split) ---
+capture confirm variable bank_size
+if !_rc {
+    quietly summarize bank_size, detail
+    local med = r(p50)
+    gen byte _large_bank = bank_size > `med' if !missing(bank_size)
+
+    eststo HET1_large:  reghdfe `DV' digital_frontier `LOCUS' `SUBST' if _large_bank == 1, ///
+        absorb(bank_id year) vce(cluster bank_id)
+    eststo HET1_small:  reghdfe `DV' digital_frontier `LOCUS' `SUBST' if _large_bank == 0, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* --- Heterogeneity 2: Digital frontier (二元) ---
+capture confirm variable digital_frontier
+if !_rc {
+    eststo HET2_front:  reghdfe `DV' `LOCUS' `SUBST' if digital_frontier == 1, ///
+        absorb(bank_id year) vce(cluster bank_id)
+    eststo HET2_back:   reghdfe `DV' `LOCUS' `SUBST' if digital_frontier == 0, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* --- Heterogeneity 3: Geographic zone (Engelberg & Parsons 2011 JF 地理) ---
+capture confirm variable bank_zone
+if !_rc {
+    gen byte _coastal = inlist(bank_zone, "京津冀", "长三角", "珠三角", "东南", "环渤海")
+    eststo HET3_coast: reghdfe `DV' digital_frontier `LOCUS' `SUBST' if _coastal == 1, ///
+        absorb(bank_id year) vce(cluster bank_id)
+    eststo HET3_inland: reghdfe `DV' digital_frontier `LOCUS' `SUBST' if _coastal == 0, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* 输出 6 列对照 (3 异质维度 × 2 sub-samples)
+esttab HET1_large HET1_small HET2_front HET2_back HET3_coast HET3_inland ///
+    using "output/tables/table4_heterogeneity.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) ///
+    booktabs replace fragment ///
+    title("Table 4: Heterogeneity — Bank Size × Digital Frontier × Geography") ///
+    mtitles("Large" "Small" "Frontier" "Follower" "Coastal" "Inland") ///
+    note("Robust SEs clustered at bank. Bank size split by median. Coastal = {京津冀, 长三角, 珠三角, 东南, 环渤海}.")
+
+display "✅ Table 4 written to output/tables/table4_heterogeneity.tex"

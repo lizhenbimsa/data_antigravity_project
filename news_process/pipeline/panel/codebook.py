@@ -269,6 +269,172 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='full',
     )
 
+    # ═══ v3.2.0 Stage 3 双轨标签篇章级 (plan v14 §2.1, BREAKING) ═══
+    for _suffix, _track_zh, _track_en, _ref in [
+        ('_full', '全文', 'Full-text', 'Gomber 2018 JMIS'),
+        ('_ctx', '上下文', 'Entity-context', 'Hassan 2019 QJE entity-proximity'),
+    ]:
+        metadata[f'innovation_locus{_suffix}'] = VariableMetadata(
+            var_name=f'innovation_locus{_suffix}',
+            label=f'Innovation Locus ({_track_en}, {_ref})',
+            description=f'金融科技创新位点 ({_track_zh}判定): 0=底层技术 / 1=应用场景',
+            data_type='Int8 (encoded byte) or str',
+            unit='类别',
+            value_range='0 (底层技术) | 1 (应用场景) | NaN',
+            formula=f'majority_vote_3LLMs(innovation_locus | {_track_en} prompt) + canonicalize_topic crossvalidation',
+            source_stage='Stage 21',
+            reference=f'Gomber et al. (2018, JMIS); Adner & Kapoor (2010, SMJ); {_ref}',
+            notes=f'v3.2.0 BREAKING: 替代 v3.1.x bare innovation_locus. {_track_zh}轨独立判定.',
+            category='创新属性-locus',
+            track=_track_zh,
+        )
+        metadata[f'innovation_substantiveness{_suffix}'] = VariableMetadata(
+            var_name=f'innovation_substantiveness{_suffix}',
+            label=f'Innov. Substantiveness ({_track_en}, W&Z 1998 ASQ)',
+            description=f'金融科技创新实质性 ({_track_zh}判定): 0=实质性 / 1=象征性 (洗稿率框架)',
+            data_type='Int8 (encoded byte) or str',
+            unit='类别',
+            value_range='0 (实质性) | 1 (象征性) | NaN',
+            formula=f'majority_vote_3LLMs(innovation_substantiveness | {_track_en} prompt)',
+            source_stage='Stage 21',
+            reference=f'Westphal & Zajac (1994, 1998, ASQ); Fiss & Zajac (2006, ASQ); Bingler et al. (2022, FRL)',
+            notes=f'v3.2.0 BREAKING: 替代 v3.1.x bare innovation_substantiveness. {_track_zh}轨独立判定.',
+            category='创新属性-substantiveness',
+            track=_track_zh,
+        )
+        metadata[f'category_confidence{_suffix}'] = VariableMetadata(
+            var_name=f'category_confidence{_suffix}',
+            label=f'Locus Confidence ({_track_en}, LLM+kw hybrid)',
+            description=f'innovation_locus{_suffix} 置信度 (LLM × keyword crossvalidation, +0.2 boost / ×0.5 penalty)',
+            data_type='float',
+            unit='概率',
+            value_range='[0, 1]',
+            formula='LLM_majority_conf ± boost/penalty by canonicalize_topic agreement',
+            source_stage='Stage 21',
+            reference='Gilardi et al. (2023, PNAS) LLM-vs-rule crossvalidation',
+            notes='hybrid confidence; raw LLM confidence 在 innovation_locus_confidence_{full,ctx} 列',
+            category='置信度-locus',
+            track=_track_zh,
+        )
+
+    # ═══ v3.2.0 Dual gate 三互斥指示列 (plan v14 §3.1 Action #6) ═══
+    for _gate_var, _gate_zh, _gate_en in [
+        ('llm_verified_dual_full_only',  '只 full 通过',  'Full-track only'),
+        ('llm_verified_dual_ctx_only',   '只 ctx 通过',   'Ctx-track only'),
+        ('llm_verified_dual_both',       '双轨都通过',    'Both tracks'),
+    ]:
+        metadata[_gate_var] = VariableMetadata(
+            var_name=_gate_var,
+            label=f'Dual Gate: {_gate_en} verified',
+            description=f'三互斥指示 ({_gate_zh}): R1-A 致命修复, ctx 轨独立可作 main spec',
+            data_type='bool',
+            unit='二元',
+            value_range='True | False',
+            formula='derived from llm_verified_full / llm_verified_ctx',
+            source_stage='Stage 21',
+            reference='Hassan et al. (2019, QJE) entity-proximity independence',
+            notes='plan v14 §3.1 P1 R1-A: 改并集 verified_full | verified_ctx 修复',
+            category='Stage 1 gate',
+            track='dual',
+        )
+
+    # ═══ v3.2.0 M2 P2 子集对角线列 (_lc × _ctx, _sc × _ctx; plan v14 §2.2) ═══
+    for _cat_label, _suffix, _zh, _en in [
+        ('底层技术', '_tech_lc_ctx', '底层技术', 'Technology'),
+        ('应用场景', '_app_lc_ctx',  '应用场景', 'Application'),
+    ]:
+        metadata[f'n_articles{_suffix}'] = VariableMetadata(
+            var_name=f'n_articles{_suffix}',
+            label=f'N articles in {_en} subset (Loc=Ctx)',
+            description=f'innovation_locus_ctx="{_zh}" 子集篇章数 (entity-ctx classification)',
+            data_type='int',
+            unit='篇',
+            value_range='[0, n_articles]',
+            formula=f"count(*) where innovation_locus_ctx == '{_zh}'",
+            source_stage='Stage 45 (panel/encode aggregate_panel)',
+            reference='Hassan et al. (2019, QJE); Sautner et al. (2023, JF)',
+            notes='v3.2.0 M2 P2 加性追加; M8 BREAKING 后单轨 _tech/_app 重命名为 _lf 完成对角线对称',
+            category='计数-locus 子集 (ctx)',
+            track='ctx',
+        )
+        metadata[f'llm_vote_tone{_suffix}'] = VariableMetadata(
+            var_name=f'llm_vote_tone{_suffix}',
+            label=f'LLM Tone in {_en} subset (Loc=Ctx, ctx sent)',
+            description=f'LLM 投票情感 ({_zh} 子集, ctx 分类, ctx 情感) mean',
+            data_type='float',
+            unit='情感值',
+            value_range='[-1, 1] ∪ NaN',
+            formula=f"mean(llm_vote_score_ctx | innovation_locus_ctx == '{_zh}')",
+            source_stage='Stage 45',
+            reference='Hassan et al. (2019, QJE) entity-proximity sentiment',
+            notes='对角线列 _lc × _ctx (plan v14 §2.2 mean diagonal rule)',
+            category='情感指标-locus 子集 (ctx)',
+            track='ctx',
+        )
+
+    for _tt_label, _suffix, _zh, _en in [
+        ('实质性', '_sub_sc_ctx',  '实质性',  'Substantive'),
+        ('象征性', '_symb_sc_ctx', '象征性',  'Symbolic'),
+    ]:
+        metadata[f'n_articles{_suffix}'] = VariableMetadata(
+            var_name=f'n_articles{_suffix}',
+            label=f'N articles in {_en} subset (Subst=Ctx)',
+            description=f'innovation_substantiveness_ctx="{_zh}" 子集篇章数',
+            data_type='int',
+            unit='篇',
+            value_range='[0, n_articles]',
+            formula=f"count(*) where innovation_substantiveness_ctx == '{_zh}'",
+            source_stage='Stage 45',
+            reference='Bingler et al. (2022, FRL); W&Z (1998, ASQ)',
+            notes='对角线列 _sc × _ctx (plan v14 §2.2)',
+            category='计数-substantiveness 子集 (ctx)',
+            track='ctx',
+        )
+        metadata[f'llm_vote_tone{_suffix}'] = VariableMetadata(
+            var_name=f'llm_vote_tone{_suffix}',
+            label=f'LLM Tone in {_en} subset (Subst=Ctx)',
+            description=f'LLM 投票情感 ({_zh} 子集, ctx 分类, ctx 情感) mean',
+            data_type='float',
+            unit='情感值',
+            value_range='[-1, 1] ∪ NaN',
+            formula=f"mean(llm_vote_score_ctx | innovation_substantiveness_ctx == '{_zh}')",
+            source_stage='Stage 45',
+            reference='W&Z (1998, ASQ); Bingler et al. (2022, FRL)',
+            notes='对角线列 _sc × _ctx; 论文用作 entity-proximate substantiveness measure',
+            category='情感指标-substantiveness 子集 (ctx)',
+            track='ctx',
+        )
+
+    # ═══ tone_gap 双轨对角线 ═══
+    metadata['tone_gap_tech_app_lc_ctx'] = VariableMetadata(
+        var_name='tone_gap_tech_app_lc_ctx',
+        label='Tone Gap: Tech-App (Loc=Ctx, ctx sentiment)',
+        description='Tech 子集 LLM 投票情感 - App 子集 (entity-ctx classification + ctx sentiment)',
+        data_type='float',
+        unit='情感差值',
+        value_range='[-2, +2] ∪ NaN',
+        formula='llm_vote_tone_tech_lc_ctx - llm_vote_tone_app_lc_ctx if min(n_tech, n_app) >= 5 else NaN',
+        source_stage='Stage 45',
+        reference='Adner & Kapoor (2010, SMJ); Gomber et al. (2018, JMIS); Hassan et al. (2019, QJE)',
+        notes='ctx 轨同构 tone_gap_tech_app; min ≥ 5 防御 compositional confound (v3.1.1 R8 audit)',
+        category='情感指标-locus 子集 (ctx)',
+        track='ctx',
+    )
+    metadata['tone_gap_sub_symb_sc_ctx'] = VariableMetadata(
+        var_name='tone_gap_sub_symb_sc_ctx',
+        label='Tone Gap: Sub-Symb (Subst=Ctx, ctx sentiment)',
+        description='Substantive - Symbolic LLM 情感 (ctx 分类 + ctx 情感, 洗稿率 cheap talk 指标)',
+        data_type='float',
+        unit='情感差值',
+        value_range='[-2, +2] ∪ NaN',
+        formula='llm_vote_tone_sub_sc_ctx - llm_vote_tone_symb_sc_ctx',
+        source_stage='Stage 45',
+        reference='Westphal & Zajac (1998, ASQ); Bingler et al. (2022, FRL)',
+        notes='ctx 轨同构 tone_gap_sub_symb; 论文洗稿率指标核心 ctx 版本',
+        category='情感指标-substantiveness 子集 (ctx)',
+        track='ctx',
+    )
+
     return metadata
 
 

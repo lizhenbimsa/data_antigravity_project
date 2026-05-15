@@ -56,8 +56,17 @@ stage_21_output:
     - llm_verified_ctx
     - llm_sentiment_full
     - llm_sentiment_ctx
-    - innovation_locus
-    - innovation_substantiveness
+    # v3.2.0 BREAKING (plan v14 §2.1): bare innovation_locus / innovation_substantiveness 删除,
+    # 重命名为 _full / _ctx 双轨独立列 + dual gate 三互斥指示列
+    - innovation_locus_full
+    - innovation_locus_ctx
+    - innovation_substantiveness_full
+    - innovation_substantiveness_ctx
+    - category_confidence_full
+    - category_confidence_ctx
+    - llm_verified_dual_full_only
+    - llm_verified_dual_ctx_only
+    - llm_verified_dual_both
 
 stage_22_output:
   required_columns:

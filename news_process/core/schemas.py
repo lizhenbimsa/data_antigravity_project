@@ -69,6 +69,14 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
         "40_attn_index_province_year.parquet",
         "40_attn_index_city_year.parquet",
     ],
+    # v3.2.0 M6 (plan v14 §9.1): Stata 数据导出层
+    "46_stata_export.py": [
+        "46_panel_yearly_core.dta",
+        "46_panel_yearly_full.dta",
+        "46_panel_yearly_aux.dta",
+        "46_panel_yearly_labels.do",
+        "46_panel_yearly_codebook.xlsx",
+    ],
     # 模块六: falsification
     "51_falsification_test.py": ["51_panel_with_controls.parquet"],
 }
@@ -111,6 +119,12 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("45_panel_export_main.py", "40_attn_index_year.parquet"): None,
     ("45_panel_export_main.py", "40_attn_index_province_year.parquet"): None,
     ("45_panel_export_main.py", "40_attn_index_city_year.parquet"): None,
+    # v3.2.0 M6 (plan v14 §9.1): stage 46 Stata 数据导出层产出 5 文件
+    ("46_stata_export.py", "46_panel_yearly_core.dta"): None,
+    ("46_stata_export.py", "46_panel_yearly_full.dta"): None,
+    ("46_stata_export.py", "46_panel_yearly_aux.dta"): None,
+    ("46_stata_export.py", "46_panel_yearly_labels.do"): None,
+    ("46_stata_export.py", "46_panel_yearly_codebook.xlsx"): None,
     ("51_falsification_test.py", "51_panel_with_controls.parquet"): "output_51_panel_controls",
 }
 

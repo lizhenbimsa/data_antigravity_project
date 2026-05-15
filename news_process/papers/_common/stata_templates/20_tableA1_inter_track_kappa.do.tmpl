@@ -1,0 +1,78 @@
+* news_process v3.2.0 — Table A1: Inter-track κ (plan v14 §3.5 P5.1 / §9.2)
+*
+* 双轨化核心新价值: 篇章级 + bank-year 级 κ for stage 3 字段双轨
+* 阈值 (plan v14 §5.2 R5-B):
+*   篇章级 locus κ ≥ 0.50 (Landis & Koch 1977 moderate)
+*   篇章级 substantiveness κ ≥ 0.45 (fair-to-moderate)
+*   注: κ 不应过高 (>0.70 → 双轨设计冗余)
+*
+* Stata 必装包: ssc install kappa (或 kapci2 含 CI)
+
+version 15
+
+* --- Section 1: 篇章级 κ ---
+* 注: 需先把 stage 21 输出 (article-bank pair) 加载, 不是 bank-year panel.
+* 用户层 hookup: 实际复现包会加 stage 21 .parquet → .dta 桥接.
+* 此处模板假定一个 article-level .dta 存在 (路径: data/processed/21_tone_llms.dta).
+
+capture confirm file "data/processed/21_tone_llms.dta"
+if !_rc {
+    preserve
+        use "data/processed/21_tone_llms.dta", clear
+        * 仅 dual gate (双轨 verified=True) 子集计算 κ
+        keep if llm_verified_dual_both == 1
+
+        * 编码 stage 3 类别为 0/1 (与 stage 46 stata_export 编码一致)
+        gen byte _loc_full  = innovation_locus_full == "应用场景"
+        gen byte _loc_ctx   = innovation_locus_ctx  == "应用场景"
+        gen byte _sub_full  = innovation_substantiveness_full == "象征性"
+        gen byte _sub_ctx   = innovation_substantiveness_ctx  == "象征性"
+
+        display _newline "Article-level κ (篇章级 inter-track):"
+        capture which kappa
+        if !_rc {
+            kappa _loc_full _loc_ctx
+            kappa _sub_full _sub_ctx
+        }
+        else {
+            display "  ⚠️ kappa command 不可用 (Stata 内置 stat 模块); skip"
+        }
+    restore
+}
+else {
+    display "  ⏭ data/processed/21_tone_llms.dta 不存在, 篇章级 κ 跳过"
+}
+
+* --- Section 2: Bank-year 级一致性 ---
+* 用 frac 列做相关性 (Pearson + Spearman) 作 κ 的连续版本
+quietly {
+    capture confirm variable tech_frac_lf tech_frac_lc sub_frac_sf sub_frac_sc
+    if !_rc {
+        correlate tech_frac_lf tech_frac_lc, c
+        local corr_locus = r(rho)
+        correlate sub_frac_sf sub_frac_sc, c
+        local corr_subst = r(rho)
+    }
+    else {
+        local corr_locus  .
+        local corr_subst  .
+    }
+}
+
+display _newline "Bank-year level correlations:"
+display "  Locus full-ctx Pearson ρ = `corr_locus'"
+display "  Subst full-ctx Pearson ρ = `corr_subst'"
+
+* --- Section 3: 表输出 (placeholder) ---
+file open f1 using "output/tables/tableA1_inter_track_kappa.tex", write replace
+file write f1 "\begin{table}[h]\centering" _newline
+file write f1 "\caption{Table A1: Inter-track Agreement}" _newline
+file write f1 "\begin{tabular}{lccc}\toprule" _newline
+file write f1 "Field & Article-level κ & Bank-year ρ & N \\\\\midrule" _newline
+file write f1 "Innovation Locus      &  &  `corr_locus' &  \\\\" _newline
+file write f1 "Innovation Subst.     &  &  `corr_subst' &  \\\\" _newline
+file write f1 "\bottomrule\end{tabular}\end{table}" _newline
+file close f1
+
+display _newline "✅ Table A1 written to output/tables/tableA1_inter_track_kappa.tex"
+display "    (Article-level κ 见 log; bank-year correlations 入表)"

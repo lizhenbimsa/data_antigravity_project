@@ -354,7 +354,9 @@ def main():
     #   E/E2: BERT 均值 / 单 BERT ({bert}_正面{track} > 0.5)
     #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3)
     # 方法 C 和 G 无需篇章级标记, 直接使用面板级已有变量计算
-    _tt = df['innovation_substantiveness'].astype(str).str.strip() if 'innovation_substantiveness' in df.columns else None
+    # v3.2.0 BREAKING (plan v14 §3.3 P3): bare innovation_substantiveness 删除, 单独使用 _full 作 main spec
+    # M2 P3 后续展开 count 4-way (sentiment × subst 双轨乘积)
+    _tt = df['innovation_substantiveness_full'].astype(str).str.strip() if 'innovation_substantiveness_full' in df.columns else None
     _is_symb = (_tt == '象征性') if _tt is not None else None
     _is_sub  = (_tt == '实质性') if _tt is not None else None
 
@@ -453,6 +455,49 @@ def main():
                 (df[pos_col].fillna(0) == 1) & _is_symb & _hc
             ).astype(int)
 
+
+    # ── v3.2.0 M2 P3 (plan v14 §2.3 + Action #5 count 4-way) ──
+    # Sentiment × Substantiveness 笛卡尔积: 现有列 = sentiment{track} × subst_full (隐式 _sf),
+    # 此处追加 sentiment{track} × subst_ctx (_sc) 完成 4-way.
+    # 文献依据: Bingler et al. (2022 FRL) cheap talk 定义在 disclosure-segment 邻近;
+    # 4-way 让论文 Robustness Appendix 可呈现"main spec switch sensitivity" 4 specs.
+    _tt_ctx = df['innovation_substantiveness_ctx'].astype(str).str.strip() if 'innovation_substantiveness_ctx' in df.columns else None
+    _is_symb_ctx = (_tt_ctx == '象征性') if _tt_ctx is not None else None
+    _is_sub_ctx  = (_tt_ctx == '实质性') if _tt_ctx is not None else None
+
+    if _is_symb_ctx is not None:
+        for track in ['_full', '_ctx']:
+            pos_col = f'is_positive{track}'
+            neg_col = f'is_negative{track}'
+            if pos_col not in df.columns:
+                continue
+
+            # 方法 A (4-way): _is_pos_symb_<sent_track>_sc
+            washing_cols[f'_is_pos_symb{track}_sc'] = (
+                (df[pos_col].fillna(0) == 1) & _is_symb_ctx
+            ).astype(int)
+
+            # 方法 B (4-way): _is_neg_sub_<sent_track>_sc
+            if neg_col in df.columns and _is_sub_ctx is not None:
+                washing_cols[f'_is_neg_sub{track}_sc'] = (
+                    (df[neg_col].fillna(0) == 1) & _is_sub_ctx
+                ).astype(int)
+
+            # 方法 A2 逐 LLM (4-way) — 不重复 _is_{llm}_positive (已存在)
+            for llm in LLM_MODELS:
+                src_col = f'{llm}_score{track}'
+                if src_col in df.columns:
+                    _llm_pos = (df[src_col].fillna(0) > 0)
+                    washing_cols[f'_is_{llm}_pos_symb{track}_sc'] = (
+                        _llm_pos & _is_symb_ctx).astype(int)
+
+            # 方法 F (4-way): HC × subst_ctx
+            agr_col = f'llm_agreement_rate{track}'
+            if agr_col in df.columns:
+                _hc = df[agr_col].fillna(0) >= 0.67
+                washing_cols[f'_is_pos_symb_hc{track}_sc'] = (
+                    (df[pos_col].fillna(0) == 1) & _is_symb_ctx & _hc
+                ).astype(int)
 
     df = _append_columns(df, washing_cols)
 
@@ -606,10 +651,21 @@ def main():
             logger.warning("  bank_type 不存在, 跳过 digital_frontier 构建")
 
         # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) — v3: 显式基期 T0 ---
-        # 注意: innovation_locus (v7, 原 fintech_category) 由 LLM 决定，须配合论证（v6/F4-2 须论证清单）
+        # 注意: innovation_locus_full (v7, 原 fintech_category) 由 LLM 决定，须配合论证 (v6/F4-2 须论证清单)
+        # v3.2.0 M3 P4 (plan v14 §3.4): Bartik IV 双套独立
+        #   - bartik_fintech_lf_*: share = innovation_locus_full 基期占比 (与 Sautner 2023 JF 不同框架)
+        #   - bartik_fintech_lc_*: share = innovation_locus_ctx 基期占比 (Hassan 2019 QJE entity-proximity)
+        # 论文用法: main spec 选 _lf 或 _lc 之一 (Methods §4 决定), 另一作 robustness
         fintech_map = {'底层技术': 'tech', '应用场景': 'app'}
-        panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech',
-                                          base_year=T0)
+        panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech_lf',
+                                          base_year=T0,
+                                          category_col='innovation_locus_full')
+        if 'innovation_locus_ctx' in df_exploded.columns:
+            panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech_lc',
+                                              base_year=T0,
+                                              category_col='innovation_locus_ctx')
+        else:
+            logger.warning("  innovation_locus_ctx 不存在, 跳过 lc Bartik IV (M2 P2 加性后应已存在)")
 
         # --- 稳健性 3: 媒体三方分类 Bartik (财经/综合/其他) ---
         # v6/F4: 仅保留 3a 三方分类。删除 3b/3c/3d/3e/3f/3g/3h/3i 等 8 类

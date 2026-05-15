@@ -102,6 +102,8 @@ news_process/yback/
 # ============================================================
 FinBERT/**/*.safetensors
 !FinBERT/**/*.csv
+# v3.2.0 M4 P5.6 (plan v14 §3.5): 方法学迁移文档 CSV 允许入库
+!news_process/docs/methodology/migrations/*.csv
 
 # ============================================================
 # 论文 / 参考资料 (非代码, 二进制文件)
@@ -115,6 +117,8 @@ news_process/papers/**/*.doc
 news_process/papers/**/*.zip
 news_process/papers/**/*.epub
 news_process/papers/**/*.md
+# v3.2.0 M6/M7 (plan v14 §9.2): Stata 模板 README (双语) 允许入库
+!news_process/papers/_common/stata_templates/README.md
 *.pdf
 
 # ============================================================
@@ -157,3 +161,6 @@ git_sync.bat
 # ============================================================
 claude-scientific-skills/
 superpowers/
+
+# v3.2.0 M7: replication 包实例化产物 (build_replication_package 输出)
+replication_v3.2.0_*/

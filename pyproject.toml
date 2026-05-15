@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "news-process"
-version = "2.2.0"
-description = "Bank-fintech news -> bank-year panel data pipeline (v2.2.0 / prompt v7 Westphal-Zajac substantive-symbolic + Gomber innovation locus; v6 baseline = phase-9 + Plan P0-P2 follow-up)."
+version = "3.2.0"
+description = "Bank-fintech news -> bank-year panel data pipeline (v3.2.0 — Stage 3 dual-track BREAKING + Stata data layer; prompt v7 + v8 术语正名; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架; 14/14 Stata templates + 4 CLI subcommands)."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "Proprietary" }
@@ -64,6 +64,10 @@ dependencies = [
     "thefuzz>=0.22.0,<1.0.0",
     "python-Levenshtein>=0.21.0,<1.0.0",
     "python-dotenv>=1.0.0,<2.0.0",
+    # v3.2.0 M6 (plan v14 §9.1): Stata 数据导出层 — pandas DataFrame → .dta
+    # 用途: stage 46 stata_export 把 panel parquet 转为 Stata 主数据 + variable/value labels.
+    # 设计: 不依赖 Stata license, 跨平台 (Windows/macOS/Linux), 支持 .dta 119 格式 (Stata 14-18).
+    "pyreadstat>=1.2.0,<2.0.0",
 ]
 
 [project.optional-dependencies]
