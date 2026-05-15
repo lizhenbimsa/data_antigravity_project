@@ -770,6 +770,65 @@ def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
     }
 
 
+# 创新维度 binary 标签的 canonical 集合 (W&Z 1994/1998 ASQ + Gomber 2018 JMIS)
+VALID_BINARY_LABELS = {"实质性", "象征性", "底层技术", "应用场景"}
+
+
+def compute_prob_score_binary(label, confidence, positive_class) -> dict:
+    """Binary prob_score ∈ [0, 1] for innovation_substantiveness / innovation_locus.
+
+    Plan v1.37 P2 §5.2-5.3.1; mirrors the 3-class compute_prob_score
+    semantics for binary labels. Returns {prob_score, prob_source} with
+    prob_source ∈ {"P2_BIN", "P3_BIN"} (parallel to existing P2/P3 codes).
+
+    Academic anchors:
+      - Cover & Thomas (2006) §2 — Bernoulli/binary entropy.
+      - Jaynes (1957) — historical max-entropy framing; binary case
+        reduces to direct normalization (single linear constraint).
+      - Törnberg (2024) — LLM verbalized confidence → continuous indicator.
+      - Shapiro/Sudhof/Wilson (2022 J.Econometrics) — continuous LHS.
+      - Platt 1999 NOT used; De Kok 2025 NOT applicable (3-class only).
+
+    Derivation: LLM emits predicted label ℓ ∈ {0, 1} with verbalized
+    confidence c (interpretation P(ℓ|x) = c). Normalization gives
+    P(¬ℓ|x) = 1 − c. Downstream relabeling: prob_score = P(positive_class|x)
+    equals c if ℓ == positive_class, else 1 − c. The positive_class
+    assignment is downstream econometric encoding only.
+
+    Input domain validation (plan §5.3.1, R29A-01 / R20A-01):
+      - positive_class ∉ VALID_BINARY_LABELS → (NaN, "P3_BIN")  [Rule 0]
+      - label is None / confidence is None → (NaN, "P3_BIN")
+      - label ∉ VALID_BINARY_LABELS → (NaN, "P3_BIN")
+      - confidence outside [0, 1] (1.0001 / -0.0001 rounding) → (NaN, "P3_BIN")
+      - confidence == 0 → one-hot fallback (label==positive_class → 1.0;
+        else → 0.0), "P3_BIN".  Discontinuity intentional per plan §5.3.1
+        design clarification (parallel to 3-class P3 at L757-760).
+      - label == positive_class, 0 < c ≤ 1 → (c, "P2_BIN")
+      - label != positive_class, 0 < c ≤ 1 → (1 − c, "P2_BIN")
+    """
+    if positive_class not in VALID_BINARY_LABELS:
+        return {"prob_score": float("nan"), "prob_source": "P3_BIN"}
+    if label is None or confidence is None:
+        return {"prob_score": float("nan"), "prob_source": "P3_BIN"}
+    if label not in VALID_BINARY_LABELS:
+        return {"prob_score": float("nan"), "prob_source": "P3_BIN"}
+    try:
+        c = float(confidence)
+    except (TypeError, ValueError):
+        return {"prob_score": float("nan"), "prob_source": "P3_BIN"}
+    if c < 0.0 or c > 1.0:
+        return {"prob_score": float("nan"), "prob_source": "P3_BIN"}
+    if c == 0.0:
+        # One-hot fallback (intentional discontinuity per plan §5.3.1)
+        return {
+            "prob_score": 1.0 if label == positive_class else 0.0,
+            "prob_source": "P3_BIN",
+        }
+    if label == positive_class:
+        return {"prob_score": c, "prob_source": "P2_BIN"}
+    return {"prob_score": 1.0 - c, "prob_source": "P2_BIN"}
+
+
 def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     """对某一轨道的模型响应进行解析和多数投票聚合。
 
@@ -814,6 +873,16 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
 
     for m in models:
         short = m['short_name']
+        # Plan v1.37 P2 §5.3.1 Step A (R19B-01 + R20A-01): unconditional
+        # default-init for the 4 innovation keys at the top of each model
+        # iteration. Covers BOTH the L820-826 API-failure `continue`
+        # branch AND the normal parsing branch (overwritten at L874/L883
+        # for labels, L887-898 for confidences).
+        per_model_parsed[f"{short}_innovation_locus"] = None
+        per_model_parsed[f"{short}_innovation_substantiveness"] = None
+        per_model_parsed[f"{short}_innovation_locus_confidence"] = 0.0
+        per_model_parsed[f"{short}_innovation_substantiveness_confidence"] = 0.0
+
         m_id = m['model_name']
         raw_text = model_res_dict.get(m_id)
 
@@ -873,6 +942,9 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
                 part = part.strip()
                 if part in ('底层技术', '应用场景'):
                     innov_loci.append(part)
+                    # Plan v1.37 P2 §5.3.1 Step A: overwrite per-model
+                    # default-None label with the canonical accepted value.
+                    per_model_parsed[f"{short}_innovation_locus"] = part
                     break
 
         # v3.0.0 (v8): innovation_substantiveness 翻译层已废除, panel 列值即 LLM 原始输出
@@ -882,6 +954,9 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             tt_str = str(llm_tt).strip()
             if tt_str in ('实质性', '象征性'):
                 innov_substs.append(tt_str)
+                # Plan v1.37 P2 §5.3.1 Step A: overwrite per-model
+                # default-None label with the canonical accepted value.
+                per_model_parsed[f"{short}_innovation_substantiveness"] = tt_str
 
         # v7: per-model stage 3 confidence (用于 row-level avg 聚合, 对应论文 W&Z 框架信号强度)
         try:
@@ -919,6 +994,13 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     undefined = 1 if (final_v and final_s is None) else 0
 
     prob_scores = []
+    # Plan v1.37 P2 §5.3.1 Step B: per-model binary prob_score for
+    # substantiveness (positive_class="象征性") and locus
+    # (positive_class="应用场景"). Positive-class choice aligns with
+    # stata_export.py value_labels (1=对照 / 1=象征性 / 1=应用场景).
+    subst_prob_scores = []
+    locus_prob_scores = []
+    import numpy as _np  # local import to avoid top-level dependency conflict
     for m in models:
         short = m['short_name']
         s_label = per_model_parsed.get(f"{short}_sentiment")
@@ -928,7 +1010,28 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             per_model_parsed[f"{short}_prob_score"] = ps_result['prob_score']
             per_model_parsed[f"{short}_prob_source"] = ps_result['prob_source']
             prob_scores.append(ps_result['prob_score'])
+        # Binary prob_score for substantiveness
+        subst_label = per_model_parsed.get(f"{short}_innovation_substantiveness")
+        subst_conf = per_model_parsed.get(f"{short}_innovation_substantiveness_confidence", 0.0)
+        subst_bin = compute_prob_score_binary(subst_label, subst_conf, "象征性")
+        per_model_parsed[f"{short}_subst_prob_score"] = subst_bin["prob_score"]
+        per_model_parsed[f"{short}_subst_prob_source"] = subst_bin["prob_source"]
+        if not _np.isnan(subst_bin["prob_score"]):
+            subst_prob_scores.append(subst_bin["prob_score"])
+        # Binary prob_score for locus
+        locus_label = per_model_parsed.get(f"{short}_innovation_locus")
+        locus_conf = per_model_parsed.get(f"{short}_innovation_locus_confidence", 0.0)
+        locus_bin = compute_prob_score_binary(locus_label, locus_conf, "应用场景")
+        per_model_parsed[f"{short}_locus_prob_score"] = locus_bin["prob_score"]
+        per_model_parsed[f"{short}_locus_prob_source"] = locus_bin["prob_source"]
+        if not _np.isnan(locus_bin["prob_score"]):
+            locus_prob_scores.append(locus_bin["prob_score"])
+
     avg_prob_score = sum(prob_scores) / len(prob_scores) if prob_scores else float('nan')
+    avg_subst_prob_score = (sum(subst_prob_scores) / len(subst_prob_scores)
+                            if subst_prob_scores else float('nan'))
+    avg_locus_prob_score = (sum(locus_prob_scores) / len(locus_prob_scores)
+                            if locus_prob_scores else float('nan'))
 
     return (
         final_v, final_s,
@@ -937,6 +1040,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         call_failure, undefined,
         per_model_parsed, topics, innov_loci, innov_substs,
         n_failures, avg_prob_score,
+        avg_subst_prob_score, avg_locus_prob_score,
     )
 
 
@@ -1162,6 +1266,12 @@ def main():
                 # 标题轨道逐模型列（与 L620-621 对齐）
                 df[f'{short}_prob_score_title'] = 0.0
                 df[f'{short}_prob_source_title'] = 'P3'
+        # Plan v1.37 P2 (disabled-LLM fallback): 4 article-level binary
+        # prob_score columns default to NaN (downstream NaN-safe aggregation).
+        import numpy as _np
+        for track in ['_full', '_ctx']:
+            df[f'avg_subst_prob_score{track}'] = _np.nan
+            df[f'avg_locus_prob_score{track}'] = _np.nan
 
 
         output_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms', '21_tone_llms.parquet')
@@ -1236,19 +1346,26 @@ def main():
         # Logit-to-Score 轨道级数组
         prob_score_full_arr = []
         prob_score_ctx_arr = []
+        # Plan v1.37 P2: 4 new article-level binary prob_score arrays
+        # (avg_subst_prob_score_{full,ctx} + avg_locus_prob_score_{full,ctx}).
+        subst_prob_score_full_arr = []
+        subst_prob_score_ctx_arr = []
+        locus_prob_score_full_arr = []
+        locus_prob_score_ctx_arr = []
 
         n_api_failures = 0
 
         for idx, row in df.iterrows():
             row_results = results_map.get(idx, {'full': {}, 'ctx': {}})
 
-            # ── Full 轨道聚合 (v6/F2: 14 元组返回; v7 变量名升级) ──
+            # ── Full 轨道聚合 (v6/F2: 14 元组; plan v1.37 P2: 16 元组 + binary prob_scores) ──
             (final_v_full, final_s_full,
              agree_rate_full, agree_rate_s_full,
              n_valid_full, n_verifying_full,
              call_failure_full, undefined_full,
              parsed_full, topics_full, innov_loci_full, innov_substs_full,
-             n_fail_full, avg_prob_full) = _aggregate_track(row_results.get('full', {}), MODELS)
+             n_fail_full, avg_prob_full,
+             avg_subst_prob_full, avg_locus_prob_full) = _aggregate_track(row_results.get('full', {}), MODELS)
             n_api_failures += n_fail_full
 
             llm_verified_full_arr.append(final_v_full)
@@ -1270,14 +1387,17 @@ def main():
                     per_model_cols[f"{short}_prob_score_full"].append(parsed_full.get(f"{short}_prob_score", 0.0))
                     per_model_cols[f"{short}_prob_source_full"].append(parsed_full.get(f"{short}_prob_source", 'P3'))
             prob_score_full_arr.append(avg_prob_full)
+            subst_prob_score_full_arr.append(avg_subst_prob_full)
+            locus_prob_score_full_arr.append(avg_locus_prob_full)
 
-            # ── Ctx 轨道聚合 (v6/F2: 14 元组返回; v7 变量名升级) ──
+            # ── Ctx 轨道聚合 (v6/F2: 14 元组; plan v1.37 P2: 16 元组 + binary prob_scores) ──
             (final_v_ctx, final_s_ctx,
              agree_rate_ctx, agree_rate_s_ctx,
              n_valid_ctx, n_verifying_ctx,
              call_failure_ctx, undefined_ctx,
              parsed_ctx, topics_ctx, innov_loci_ctx, innov_substs_ctx,
-             n_fail_ctx, avg_prob_ctx) = _aggregate_track(row_results.get('ctx', {}), MODELS)
+             n_fail_ctx, avg_prob_ctx,
+             avg_subst_prob_ctx, avg_locus_prob_ctx) = _aggregate_track(row_results.get('ctx', {}), MODELS)
             n_api_failures += n_fail_ctx
 
             llm_verified_ctx_arr.append(final_v_ctx)
@@ -1299,6 +1419,8 @@ def main():
                     per_model_cols[f"{short}_prob_score_ctx"].append(parsed_ctx.get(f"{short}_prob_score", 0.0))
                     per_model_cols[f"{short}_prob_source_ctx"].append(parsed_ctx.get(f"{short}_prob_source", 'P3'))
             prob_score_ctx_arr.append(avg_prob_ctx)
+            subst_prob_score_ctx_arr.append(avg_subst_prob_ctx)
+            locus_prob_score_ctx_arr.append(avg_locus_prob_ctx)
 
             # ── 金融科技主题标准化分类（v3.2.0 双轨独立，plan v14 §3.1 P1）──
             # 双轨平局策略对称：locus → 应用场景；substantiveness → 象征性（plan v14 §3.1 P1.5）
@@ -1412,6 +1534,11 @@ def main():
         if LOGIT_SCORE_ENABLED:
             df['llm_prob_score_full'] = prob_score_full_arr
             df['llm_prob_score_ctx'] = prob_score_ctx_arr
+            # Plan v1.37 P2: 4 new article-level binary prob_score columns
+            df['avg_subst_prob_score_full'] = subst_prob_score_full_arr
+            df['avg_subst_prob_score_ctx'] = subst_prob_score_ctx_arr
+            df['avg_locus_prob_score_full'] = locus_prob_score_full_arr
+            df['avg_locus_prob_score_ctx'] = locus_prob_score_ctx_arr
             n_rows = len(prob_score_full_arr)
             mean_full = sum(prob_score_full_arr) / max(n_rows, 1)
             mean_ctx = sum(prob_score_ctx_arr) / max(n_rows, 1)

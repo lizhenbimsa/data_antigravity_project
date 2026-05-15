@@ -316,6 +316,63 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             category='置信度-locus',
             track=_track_zh,
         )
+        # ─── Plan v1.37 P2: 4 binary prob_score columns per track ───
+        metadata[f'avg_subst_prob_score{_suffix}'] = VariableMetadata(
+            var_name=f'avg_subst_prob_score{_suffix}',
+            label=f'Avg Subst P_BIN ({_track_en}, 1=symbolic)',
+            description=f'平均 binary prob_score for innovation_substantiveness {_track_zh}轨',
+            data_type='float',
+            unit='概率',
+            value_range='[0, 1]',
+            formula=f'mean(compute_prob_score_binary(label, conf, positive_class="象征性")) over models on innovation_substantiveness{_suffix}',
+            source_stage='Stage 21 (article-level) → Stage 45 (bank-year mean)',
+            reference='Cover & Thomas (2006) §2 Bernoulli entropy; Jaynes (1957); Törnberg (2024)',
+            notes=f'plan v1.37 P2; positive_class=象征性 aligns with stata_export 1=对照 encoding',
+            category='prob_score-substantiveness',
+            track=_track_zh,
+        )
+        metadata[f'avg_subst_prob_score_std{_suffix}'] = VariableMetadata(
+            var_name=f'avg_subst_prob_score_std{_suffix}',
+            label=f'Std Subst P_BIN ({_track_en}, bank-year SD)',
+            description=f'avg_subst_prob_score{_suffix} 的 bank-year 标准差',
+            data_type='float',
+            unit='概率SD',
+            value_range='[0, 0.5]',
+            formula=f'std(avg_subst_prob_score{_suffix}) over articles per (target_bank, year)',
+            source_stage='Stage 45 panel aggregation',
+            reference='Plan v1.37 P2 §5.3.2',
+            notes='zero-article bank-year → NaN per encode.py L1105 convention',
+            category='prob_score-substantiveness',
+            track=_track_zh,
+        )
+        metadata[f'avg_locus_prob_score{_suffix}'] = VariableMetadata(
+            var_name=f'avg_locus_prob_score{_suffix}',
+            label=f'Avg Locus P_BIN ({_track_en}, 1=application)',
+            description=f'平均 binary prob_score for innovation_locus {_track_zh}轨',
+            data_type='float',
+            unit='概率',
+            value_range='[0, 1]',
+            formula=f'mean(compute_prob_score_binary(label, conf, positive_class="应用场景")) over models on innovation_locus{_suffix}',
+            source_stage='Stage 21 (article-level) → Stage 45 (bank-year mean)',
+            reference='Cover & Thomas (2006) §2; Jaynes (1957); Törnberg (2024); Shapiro et al. (2022 J.Econometrics)',
+            notes=f'plan v1.37 P2; positive_class=应用场景 aligns with stata_export 1=对照 encoding',
+            category='prob_score-locus',
+            track=_track_zh,
+        )
+        metadata[f'avg_locus_prob_score_std{_suffix}'] = VariableMetadata(
+            var_name=f'avg_locus_prob_score_std{_suffix}',
+            label=f'Std Locus P_BIN ({_track_en}, bank-year SD)',
+            description=f'avg_locus_prob_score{_suffix} 的 bank-year 标准差',
+            data_type='float',
+            unit='概率SD',
+            value_range='[0, 0.5]',
+            formula=f'std(avg_locus_prob_score{_suffix}) over articles per (target_bank, year)',
+            source_stage='Stage 45 panel aggregation',
+            reference='Plan v1.37 P2 §5.3.2',
+            notes='zero-article bank-year → NaN per encode.py L1105 convention',
+            category='prob_score-locus',
+            track=_track_zh,
+        )
 
     # ═══ v3.2.0 Dual gate 三互斥指示列 (plan v14 §3.1 Action #6) ═══
     for _gate_var, _gate_zh, _gate_en in [

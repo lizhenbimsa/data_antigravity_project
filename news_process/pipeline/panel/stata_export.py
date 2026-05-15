@@ -121,6 +121,17 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
         'app_frac_lc':                      "Frac of App-locus articles (ctx classification)",
         'sub_frac_sc':                      "Frac of Substantive articles (ctx classification)",
         'symb_frac_sc':                     "Frac of Symbolic articles (ctx classification)",
+        # Plan v1.37 P2 §5.3.4: 8 binary prob_score columns (≤ 80 UTF-8 bytes;
+        # em-dash 3 bytes; positive_class = 象征性 / 应用场景 per stata_export
+        # encoding 1=对照).
+        'avg_subst_prob_score_full':        "Avg Subst P_BIN (full-track) — 1=symbolic, max-ent map",
+        'avg_subst_prob_score_std_full':    "Std Subst P_BIN (full-track, bank-year SD)",
+        'avg_subst_prob_score_ctx':         "Avg Subst P_BIN (ctx-track) — 1=symbolic, max-ent map",
+        'avg_subst_prob_score_std_ctx':     "Std Subst P_BIN (ctx-track, bank-year SD)",
+        'avg_locus_prob_score_full':        "Avg Locus P_BIN (full-track) — 1=application, max-ent map",
+        'avg_locus_prob_score_std_full':    "Std Locus P_BIN (full-track, bank-year SD)",
+        'avg_locus_prob_score_ctx':         "Avg Locus P_BIN (ctx-track) — 1=application, max-ent map",
+        'avg_locus_prob_score_std_ctx':     "Std Locus P_BIN (ctx-track, bank-year SD)",
     }
 
     for col in df.columns:
@@ -197,6 +208,11 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         # 主洗稿率 count (sentiment × _full)
         'pos_symb_count_full', 'pos_symb_count_ctx',
         'neg_sub_count_full', 'neg_sub_count_ctx',
+        # Plan v1.37 P2 §5.3.4: 8 binary prob_score columns (core; not aux).
+        'avg_subst_prob_score_full', 'avg_subst_prob_score_ctx',
+        'avg_subst_prob_score_std_full', 'avg_subst_prob_score_std_ctx',
+        'avg_locus_prob_score_full', 'avg_locus_prob_score_ctx',
+        'avg_locus_prob_score_std_full', 'avg_locus_prob_score_std_ctx',
     ]
 
     core = [c for c in core_patterns if c in df.columns]

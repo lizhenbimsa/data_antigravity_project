@@ -585,6 +585,7 @@ def aggregate_variant_results(
                 _call_failure, _undefined,
                 _parsed, _topics, innov_loci, innov_substs,
                 n_fail, _avg_prob_score,
+                _avg_subst_prob_score, _avg_locus_prob_score,  # plan v1.37 P2
             ) = _aggregate_track(model_res, models)
             v_list.append(final_v)
             s_list.append(final_s)

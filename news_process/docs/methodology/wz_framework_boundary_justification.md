@@ -125,6 +125,22 @@ they refine its application:
   domain-adapted criteria are pre-registered in `unified_cot.txt v7`
   and committed at git tag `prompt-v7-released`.
 
+**Footnote (added with P2 commit, tag `wz-boundary-positive-class-pinned`).**
+For quantitative downstream econometrics, the binary `prob_score`
+columns (`avg_subst_prob_score_*`, `avg_locus_prob_score_*`)
+anchor the 1 = 象征性 / 应用场景 positive pole. The encoding is
+consistent with `stata_export.py:40-50`
+(`SUBSTANTIVENESS_ENCODING = {实质性: 0, 象征性: 1}`;
+`LOCUS_ENCODING = {底层技术: 0, 应用场景: 1}`; comment `0 = baseline, 1 = 对照`)
+and with the Stata value labels at `stata_export.py:53-61`
+(`0: 实质性 (Substantive) / 1: 象征性 (Symbolic)`;
+`0: 底层技术 (Technology) / 1: 应用场景 (Application)`). This
+positive_class assignment is a downstream econometric encoding;
+it does NOT alter the pre-registered classification rules in
+`unified_cot.txt v7` (tag `prompt-v7-released`). All panel
+regressions consuming these columns are anchored to the
+1 = 象征性 / 应用场景 positive pole.
+
 ## 4. Anticipated Reviewer Questions and Responses
 
 **Q1**: Why not use a more domain-specific framework (e.g., a

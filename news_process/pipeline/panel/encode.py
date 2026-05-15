@@ -586,6 +586,16 @@ def build_aggregation_dict() -> dict:
         agg[f'llm_prob_score_mw_sum{track}'] = (f'llm_prob_score_mw{track}', 'sum')
         agg[f'llm_prob_score_hw_sum{track}'] = (f'llm_prob_score_hw{track}', 'sum')
 
+    # Plan v1.37 P2 §5.3.2: 8 new bank-year columns for binary prob_score
+    # (avg_{subst,locus}_prob_score_{full,ctx} mean + std). Positive class
+    # encoding: 1 = 象征性 / 应用场景 (stata_export.py:40-50). NaN-safe
+    # via pandas mean/std (ddof=1 default).
+    for track in ['_full', '_ctx']:
+        agg[f'avg_subst_prob_score{track}'] = (f'avg_subst_prob_score{track}', 'mean')
+        agg[f'avg_subst_prob_score_std{track}'] = (f'avg_subst_prob_score{track}', 'std')
+        agg[f'avg_locus_prob_score{track}'] = (f'avg_locus_prob_score{track}', 'mean')
+        agg[f'avg_locus_prob_score_std{track}'] = (f'avg_locus_prob_score{track}', 'std')
+
     return agg
 
 
