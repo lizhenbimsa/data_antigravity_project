@@ -528,10 +528,15 @@ def _cli_doctor(args) -> int:
         print(f"  verbose mode: showing version info + paths")
     print("=" * 60)
 
-    # 1. Python deps
+    # 1. Python deps (硬依赖 5 + optional 1)
     print("\n[1/5] Python 依赖")
-    deps = ['pandas', 'numpy', 'pyarrow', 'pyreadstat', 'pytest', 'yaml']
-    for d in deps:
+    REQUIRED_DEPS = ['pandas', 'numpy', 'pyarrow', 'pytest', 'yaml']
+    OPTIONAL_DEPS = {
+        # v3.2.0 M1/7: pyreadstat 改为 OPTIONAL (pandas to_stata fallback 可代)
+        'pyreadstat': 'stage 46 stata_export 全功能 (value labels + extended missing); '
+                      'fallback: pandas to_stata 基础 .dta',
+    }
+    for d in REQUIRED_DEPS:
         try:
             m = __import__(d if d != 'yaml' else 'yaml')
             version = getattr(m, '__version__', '?')
@@ -541,8 +546,21 @@ def _cli_doctor(args) -> int:
                 print(f"   [OK] {d}")
             n_ok += 1
         except ImportError:
-            print(f"   [ERR] {d} NOT installed")
+            print(f"   [ERR] {d} NOT installed (required)")
             n_err += 1
+    for d, reason in OPTIONAL_DEPS.items():
+        try:
+            m = __import__(d)
+            version = getattr(m, '__version__', '?')
+            if verbose:
+                print(f"   [OK] {d} ({version}) — optional")
+            else:
+                print(f"   [OK] {d} (optional)")
+            n_ok += 1
+        except ImportError:
+            print(f"   [WARN] {d} NOT installed (optional)")
+            print(f"          reason: {reason}")
+            n_warn += 1
 
     # 2. Stage 14 输入 (LLM launch 前置)
     print("\n[2/5] Pipeline 数据")
