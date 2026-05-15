@@ -45,23 +45,26 @@ This directory hosts `.do.tmpl` Stata script templates with placeholder substitu
 |---|---|---|
 | `21_tableA2_main_spec_switch.do.tmpl` | Table A2: Main Spec Switch (8 specs) | Hassan 2019 QJE + Sautner 2023 JF |
 
-### v3.2.0 Tables (论文主体, 4)
+### v3.2.0 Tables (论文主体, 5)
 
 | File | Title | Method |
 |---|---|---|
 | `01_data_prep.do.tmpl` | Data prep + xtset + winsor | base infrastructure |
 | `10_table1_descriptives.do.tmpl` | Table 1: Descriptive Stats | Loughran & McDonald 2011 JF |
+| `11_table2_main_m1m6.do.tmpl` | Table 2: 主回归 M1-M6 | reghdfe progressive controls/FE |
 | `12_table3_mechanism.do.tmpl` | Table 3: Mechanism | tone_gap_{tech_app, sub_symb} channels |
 | `13_table4_heterogeneity.do.tmpl` | Table 4: Heterogeneity | bank size × frontier × geography |
+| `14_table5_advanced_robustness.do.tmpl` | Table 5: Advanced Robustness | placebo + leave-one-out + wild bootstrap |
 
-### v3.2.0 Robustness Appendix (双轨化核心, 3 + 1 已存)
+### v3.2.0 Robustness Appendix (双轨化核心, 5)
 
 | File | Title | Method |
 |---|---|---|
 | `20_tableA1_inter_track_kappa.do.tmpl` | Table A1: Inter-track κ | plan v14 §3.5 P5.1 / §5.2 R5-B |
-| `21_tableA2_main_spec_switch.do.tmpl` (已存) | Table A2: Main Spec Switch | 8-spec robustness |
+| `21_tableA2_main_spec_switch.do.tmpl` | Table A2: Main Spec Switch | 8-spec robustness |
 | `22_tableA3_bartik_iv.do.tmpl` | Table A3: Bartik IV (lf vs lc) | Goldsmith-Pinkham 2020 AER + KP F |
 | `23_tableA4_radius_sensitivity.do.tmpl` | Table A4: Radius Sensitivity (LLM) | stage 35 LLM 升级输出 |
+| `24_tableA5_dictionary_method.do.tmpl` | Table A5: Dictionary Method | LLM vs 5 dict 对比 robustness |
 
 ### v3.2.0 Figures (2)
 
@@ -70,14 +73,26 @@ This directory hosts `.do.tmpl` Stata script templates with placeholder substitu
 | `30_figure1_event_study.do.tmpl` | Figure 1: Event Study | TWFE dynamic (Sun-Abraham 2021) |
 | `31_figure_coefplot_dual.do.tmpl` | Figure 2: Coefplot Dual | 8-spec coefficient visual |
 
-**总计**: 12/14 模板完成. 余 2 个低优先 (table5 advanced robustness / tableA5 dict method) 可后续添加.
+**总计**: **14/14 模板完整交付** ✓
 
-## CLI 一键打包 (v3.2.0 M7)
+## CLI 命令 (v3.2.0 M7 + M4/7)
+
+### 一键打包 (build-replication)
 
 ```bash
 python -m news_process.papers._common.stata_runner build-replication \
     --locus lc --subst sf --sent ctx \
     --root replication_v3.2.0_lc_sf_ctx
+```
+
+### 列举模板 (list-templates)
+
+```bash
+# 列举 14 模板 + 描述
+python -m news_process.papers._common.stata_runner list-templates
+
+# 含占位符 inventory (跨模板使用计数)
+python -m news_process.papers._common.stata_runner list-templates --verbose
 ```
 
 输出:
