@@ -53,6 +53,7 @@ def test_build_replication_8spec_matrix(tmp_path, locus, subst, sent):
 def test_table2_locals_match_spec(tmp_path, locus, subst, sent):
     """每 spec 下 11_table2 的 LOCUS/SUBST/DV locals 与 spec 严格一致."""
     import re
+
     from news_process.papers._common.stata_runner import build_replication_package
     pkg = build_replication_package({
         'MAIN_LOCUS_TRACK': locus, 'MAIN_SUBST_TRACK': subst,

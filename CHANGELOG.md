@@ -127,11 +127,14 @@
 - Golden baseline 重生成 (需完整 pipeline 跑通)
 - `git tag v3.2.0` (代码完整后)
 
-### 📊 累计统计 (v3.2.0 完整版)
+### 📊 累计统计 (v3.2.0 完整版, 含 30+ commit 二期推进)
 
-- **Test baseline**: 994 → **1087 passed** / 2 skipped / 0 failed (+93 测试)
-- **Code 改动**: ~1700+ 行 (含测试 / 文档 / 迁移 CSV / 12 Stata 模板)
-- **23 commits** in `feature/stage3-dual-track-v3.2.0` branch
+- **Test baseline**: 994 → **1122 passed** / 2 skipped / 0 failed (+128 测试)
+- **Code 改动**: ~2200+ 行 (含测试 / 文档 / 迁移 CSV / 14 Stata 模板 / CLI / 集成测试)
+- **30+ commits** in `feature/stage3-dual-track-v3.2.0` branch
+- **Stata 模板**: 14/14 完整交付 ✓ (Tables 5 + Robustness Appendix 5 + Figures 2 + master + data prep)
+- **CLI 子命令**: build-replication (M7) + list-templates (M4/7) + --verbose flag
+- **集成测试**: 8-spec × 14 模板 = 112 实例化, 占位符零残留 (R54-A 并存命名)
 
 ### 🆕 Stata 模板交付 (12/14, plan v14 §9.2)
 

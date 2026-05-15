@@ -242,8 +242,9 @@ def test_cli_list_templates_callable():
 
 def test_cli_list_templates_runs(capsys, monkeypatch):
     """M4/7: list-templates --verbose 端到端 stdout 包含 14 模板 + 占位符 inventory."""
-    import news_process.papers._common.stata_runner as mod
     from types import SimpleNamespace
+
+    import news_process.papers._common.stata_runner as mod
 
     # 模拟 args.verbose = True
     args = SimpleNamespace(verbose=True)
