@@ -1,0 +1,47 @@
+old_column_v3.1.1,new_column_v3.2.0,phase,notes
+innovation_locus,innovation_locus_full,M1,BREAKING rename; 新增 _ctx 并列
+innovation_locus,innovation_locus_ctx,M1,NEW; Hassan 2019 QJE entity-proximity
+innovation_substantiveness,innovation_substantiveness_full,M1,BREAKING rename
+innovation_substantiveness,innovation_substantiveness_ctx,M1,NEW
+category_confidence,category_confidence_full,M1,BREAKING rename (hybrid LLM+kw confidence)
+category_confidence,category_confidence_ctx,M1,NEW
+,llm_verified_dual_full_only,M1,NEW; dual gate 三互斥指示 (R1-A 致命修复)
+,llm_verified_dual_ctx_only,M1,NEW; dual gate
+,llm_verified_dual_both,M1,NEW; dual gate
+,n_articles_tech_lc_ctx,M2 P2,NEW; locus_ctx 子集计数
+,n_articles_app_lc_ctx,M2 P2,NEW
+,n_articles_sub_sc_ctx,M2 P2,NEW; subst_ctx 子集计数
+,n_articles_symb_sc_ctx,M2 P2,NEW
+,llm_vote_tone_tech_lc_ctx,M2 P2,NEW; 对角线 mean
+,llm_vote_tone_app_lc_ctx,M2 P2,NEW
+,llm_vote_tone_sub_sc_ctx,M2 P2,NEW
+,llm_vote_tone_symb_sc_ctx,M2 P2,NEW
+,llm_prob_score_tech_lc_ctx,M2 P2,NEW
+,llm_prob_score_app_lc_ctx,M2 P2,NEW
+,llm_prob_score_sub_sc_ctx,M2 P2,NEW
+,llm_prob_score_symb_sc_ctx,M2 P2,NEW
+,tech_frac_lc,M2 P2,NEW; ctx 占比
+,app_frac_lc,M2 P2,NEW
+,sub_frac_sc,M2 P2,NEW
+,symb_frac_sc,M2 P2,NEW
+,tone_gap_tech_app_lc_ctx,M2 P2,NEW; min ≥ 5 防御
+,tone_gap_sub_symb_sc_ctx,M2 P2,NEW; ctx 洗稿率 gap
+,_is_pos_symb_full_sc,M2 P3,NEW; 4-way 洗稿率
+,_is_pos_symb_ctx_sc,M2 P3,NEW
+,_is_neg_sub_full_sc,M2 P3,NEW
+,_is_neg_sub_ctx_sc,M2 P3,NEW
+,bartik_fintech_lc_share_tech,M3 P4,NEW; ctx 分组 Bartik share
+,bartik_fintech_lc_share_app,M3 P4,NEW
+,bartik_fintech_lc_iv_full,M3 P4,NEW
+,bartik_fintech_lc_iv_ctx,M3 P4,NEW
+,bartik_fintech_lc_iv_title,M3 P4,NEW
+bartik_fintech_share_tech,bartik_fintech_lf_share_tech,M3 P4,RENAME (隐式 lf -> 显式 lf)
+bartik_fintech_share_app,bartik_fintech_lf_share_app,M3 P4,RENAME
+bartik_fintech_iv_full,bartik_fintech_lf_iv_full,M3 P4,RENAME
+bartik_fintech_iv_ctx,bartik_fintech_lf_iv_ctx,M3 P4,RENAME
+bartik_fintech_iv_title,bartik_fintech_lf_iv_title,M3 P4,RENAME
+,46_panel_yearly_core.dta,M6,NEW; Stata IC ≤ 2048 兼容
+,46_panel_yearly_full.dta,M6,NEW; Stata SE/MP 全列
+,46_panel_yearly_aux.dta,M6,NEW; aux 子集 merge 后还原 full
+,46_panel_yearly_labels.do,M6,NEW; variable + value labels
+,46_panel_yearly_codebook.xlsx,M6,NEW; 人类可读字典

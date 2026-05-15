@@ -102,6 +102,8 @@ news_process/yback/
 # ============================================================
 FinBERT/**/*.safetensors
 !FinBERT/**/*.csv
+# v3.2.0 M4 P5.6 (plan v14 §3.5): 方法学迁移文档 CSV 允许入库
+!news_process/docs/methodology/migrations/*.csv
 
 # ============================================================
 # 论文 / 参考资料 (非代码, 二进制文件)
