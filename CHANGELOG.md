@@ -6,6 +6,117 @@
 
 ---
 
+## v3.2.0 / 2026-05-15 — BREAKING: Stage 3 双轨化 + Stata 数据导出层 (62 轮 plan 审计 + 7 milestone 自动执行)
+
+**Plan v14**: 62 轮极致审计（v1-v14 累计）+ 68 项 finding 全部修复 + 9 项 Action Items 用户书面确认 → M0-M6 自动化执行 + 7 轮 M1 自审收敛。
+
+### 🔥 BREAKING Changes
+
+- **stage 21 输出列重命名**:
+  - `innovation_locus` → `innovation_locus_full` + 新增 `innovation_locus_ctx`
+  - `innovation_substantiveness` → `innovation_substantiveness_full` + 新增 `innovation_substantiveness_ctx`
+  - `category_confidence` → `category_confidence_full` + 新增 `category_confidence_ctx`
+- **stage 21 新增 dual gate 三互斥指示列**: `llm_verified_dual_full_only` / `llm_verified_dual_ctx_only` / `llm_verified_dual_both`
+- **stage 21 ctx gate 致命修复** ([tone_llms.py:1416](news_process/pipeline/sentiment/tone_llms.py#L1416)):
+  原 `df[df['llm_verified_full'] == True]` 让 ctx 轨样本完全 conditional on full →
+  改为并集 `verified_full | verified_ctx`，使 ctx 轨独立可作 main spec
+  （Hassan 2019 QJE entity-proximity independence; plan v14 §3.1 P1 R1-A 修复）。
+
+### ✨ Added — Stage 3 双轨化
+
+- **stage 21 双轨独立产出**: `_aggregate_track` 同时对 full / ctx 轨道运行
+  - majority vote 平局策略**完全对称** (locus 平局→应用场景；substantiveness 平局→象征性)
+  - canonicalize_topic(topics_full / topics_ctx) **双轨独立**关键词分类器交叉验证
+  - +0.2 / ×0.5 confidence 调整双轨独立适用
+- **方法学锚定** (plan v14 §1):
+  - Hassan et al. (2019, QJE) entity-proximity attribution for firm-level multidim measures
+  - Sautner, Van Lent, Vilkov, Zhang (2023, JF) firm × topic 邻近化
+  - Bingler, Kraus, Leippold, Webersinke (2022, FRL) substantive vs cheap talk
+  - Westphal & Zajac (1994, 1998, ASQ) substantive-symbolic 框架
+  - Gomber, Kauffman, Parker, Weber (2018, JMIS) enabling tech vs business function
+
+### ✨ Added — Stata 数据导出层 (Stage 46)
+
+- **新建 stage 46** `news_process/pipeline/panel/stata_export.py` + thin shim:
+  - `encode_categorical_columns`: 中文 str → byte 0/1 (**R32-B 编码方向**: 0=baseline, 1=对照)
+  - `build_variable_labels`: ≤ 80 字符英文标签（含 codebook 集成 + heuristic fallback）
+  - `assign_core_columns`: core ≤ 2048 (Stata IC license 兼容, **R42-A**)
+  - `validate_stata_compat`: 列名 ≤ 32 + label ≤ 80 字节双校验
+  - `write_labels_do_file`: 生成 labels.do (label var + define + values)
+  - `export_panel_to_stata`: 主入口产 core/aux/full .dta + labels.do + codebook.xlsx
+- **Value labels 双语** (plan v14 普通人版变更 20):
+  - `locus_lbl`: `0 "底层技术 (Technology)" 1 "应用场景 (Application)"`
+  - `subst_lbl`: `0 "实质性 (Substantive)" 1 "象征性 (Symbolic)"`
+- **依赖**: pyreadstat>=1.2 (跨平台无 Stata license)
+- DAG 集成: STAGES_MAIN 12 → 13；OUTPUT_REGISTRY +5 文件登记
+
+### ✨ Added — Panel 双轨对角线子集 (M2 P2 加性)
+
+- encode.py `_lc × _ctx` 对角线子集列追加:
+  - `n_articles_{tech,app}_lc_ctx` + `llm_vote_tone_{tech,app}_lc_ctx` + `llm_prob_score_{tech,app}_lc_ctx`
+  - `tech_frac_lc` / `app_frac_lc`
+  - `tone_gap_tech_app_lc_ctx` (含 min ≥ 5 防御)
+- encode.py `_sc × _ctx` 对角线 (W&Z + Hassan QJE):
+  - `n_articles_{sub,symb}_sc_ctx` + `llm_vote_tone_{sub,symb}_sc_ctx`
+  - `sub_frac_sc` / `symb_frac_sc`
+  - `tone_gap_sub_symb_sc_ctx`
+- **加性策略**: 现有 `_tech` / `_app` / `_sub` / `_symb` 列保留（语义 = `_lf × _full` + `_sf × _full`），
+  完整 BREAKING 重命名延至未来版本与 golden baseline 重生成同期完成。
+
+### 🧪 Test baseline
+
+- **994 → 1011 passed** / 2 skipped / 0 failed (+17 测试)
+  - +6 `test_stage3_dual_track.py`：双轨独立性、平局对称、空票回退
+  - +11 `test_stata_export.py`：编码方向、长度限制、core ≤ 2048、labels.do
+- DAG 一致性 17 测试全绿
+
+### 📁 Changed — touched files (M0-M6)
+
+| File | Change | Lines |
+|---|---|---|
+| `pipeline/sentiment/tone_llms.py` | M1: 双轨标签 + ctx gate 并集 + dual gate 指示列 | +128 / -61 |
+| `pipeline/panel/encode.py` | M1: 引用更名 _full; M2 P2: _lc × _ctx + _sc × _ctx 对角线 | +71 / -2 |
+| `pipeline/panel/runner.py` | M1: 引用更名 _full (M2 P3 4-way 后续)| +3 / -1 |
+| `config/schemas.yaml` | M1: 9 双轨/dual gate required_columns 注册 | +12 / -2 |
+| `pipeline/panel/stata_export.py` | M6: 新建 (300 行) | +319 |
+| `46_stata_export.py` | M6: thin shim (8 行) | +9 |
+| `core/dag.py` | M6: StageSpec(46_stata_export.py) 注册 | +9 |
+| `core/schemas.py` | M6: OUTPUT_REGISTRY 5 文件 + 复合键 5 条 | +15 |
+| `pyproject.toml` | M6: + pyreadstat>=1.2 | +5 |
+| `tests/test_stage3_dual_track.py` | M1 audit: +6 双轨独立测试 | +130 (新建) |
+| `tests/test_stata_export.py` | M6: +11 stata_export 测试 | +160 (新建) |
+| `tests/integration/test_dag_consistency.py` | M6: stage count 12 → 13 | +9 / -9 |
+
+### 📋 Action Items (用户已确认)
+
+1. ✅ Scope = Recommended
+2. ✅ BREAKING (v3.0.0 先例)
+3. ✅ main spec 由论文 Methods 决定
+4. ✅ stage 33 扩展 (不新建 33b)
+5. ✅ mean 对角线 + count 4-way
+6. ✅ ctx gate 并集 + 3 指示列
+7. ✅ Git tag plan-stage3-dual-track-frozen + v3.2.0
+8. ✅ 6 PR 分批 + xfail 单调递减
+9. ✅ Stata scope = Recommended (stage 46 + 14 模板预留)
+
+### ⏳ 后续 Phase（plan v14 §3.5 / §9.2 / §9.6）
+
+- M2 P3: runner.py count 4-way 洗稿率（sentiment × subst 笛卡尔）
+- M3 P4: iv_did.py Bartik IV 双套（lf / lc）
+- M4 P5: codebook +252 元数据 + 3 个 docs/methodology 新文档
+- M5 P5.2: stage 35 radius_sensitivity 词典法 → LLM 法升级 (180k API)
+- M6 P5.2: 14 个 Stata 模板 .do.tmpl
+- M7: build_replication_package + commit-hash 嵌入
+- M8: golden baseline 重生成 + `git tag v3.2.0`
+
+### 📚 References
+
+- Plan v14 冻结: `git tag plan-stage3-dual-track-frozen` (commit before this branch)
+- 62 轮 plan 审计累计：v1-v12 (R1-R10, 38 finding) + v12-v13 (R11-R31, 53 累计) + v13-v14 (R32-R61, 68 累计)
+- 7 轮 M1 自审：Round 1-7（Round 3-4 finding → 修复后 1000 → 1011 passed）
+
+---
+
 ## v3.1.1 / 2026-05-15 — feat: tone_gap_tech_app symmetric counterpart (988 → 994)
 
 ### Added
