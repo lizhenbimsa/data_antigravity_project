@@ -127,11 +127,45 @@
 - Golden baseline 重生成 (需完整 pipeline 跑通)
 - `git tag v3.2.0` (代码完整后)
 
-### 📊 累计统计
+### 📊 累计统计 (v3.2.0 完整版)
 
-- **Test baseline**: 994 → **1046 passed** / 2 skipped / 0 failed (+52 测试)
-- **Code 改动**: ~1300+ 行 (含测试 / 文档 / 迁移 CSV)
-- **14 commits** in `feature/stage3-dual-track-v3.2.0` branch
+- **Test baseline**: 994 → **1087 passed** / 2 skipped / 0 failed (+93 测试)
+- **Code 改动**: ~1700+ 行 (含测试 / 文档 / 迁移 CSV / 12 Stata 模板)
+- **23 commits** in `feature/stage3-dual-track-v3.2.0` branch
+
+### 🆕 Stata 模板交付 (12/14, plan v14 §9.2)
+
+**Tables (论文主体, 4 模板)**:
+| File | Title | Reference |
+|---|---|---|
+| 01_data_prep.do.tmpl | Data prep + xtset + winsor | infrastructure |
+| 10_table1_descriptives.do.tmpl | Descriptive Statistics | Loughran & McDonald 2011 JF |
+| 12_table3_mechanism.do.tmpl | Mechanism (tone_gap channels) | Adner-Kapoor 2010 + Bingler 2022 |
+| 13_table4_heterogeneity.do.tmpl | Heterogeneity (size × frontier × geo) | Engelberg & Parsons 2011 JF |
+
+**Robustness Appendix (双轨核心, 4 模板)**:
+| File | Title | Reference |
+|---|---|---|
+| 20_tableA1_inter_track_kappa.do.tmpl | Inter-track κ | plan v14 §5.2 R5-B |
+| 21_tableA2_main_spec_switch.do.tmpl | 8-spec Switch Sensitivity | Hassan 2019 + Sautner 2023 |
+| 22_tableA3_bartik_iv.do.tmpl | Bartik IV (lf vs lc) | Goldsmith-Pinkham 2020 AER |
+| 23_tableA4_radius_sensitivity.do.tmpl | Radius Sensitivity (LLM) | plan v14 §3.5 P5.2 |
+
+**Figures (2 模板)**:
+| File | Title | Reference |
+|---|---|---|
+| 30_figure1_event_study.do.tmpl | Event Study TWFE | Sun & Abraham 2021 JoE |
+| 31_figure_coefplot_dual.do.tmpl | Coefplot 8-spec | 双轨核心可视化 |
+
+### 🎯 CLI 一键打包 (M7)
+
+```bash
+python -m news_process.papers._common.stata_runner build-replication \
+    --locus lc --subst sf --sent ctx \
+    --root replication_v3.2.0_lc_sf_ctx
+```
+
+输出: 12 Stata .do 文件实例化到 `code/`, 数据 / 输出目录预创建, README 含 commit hash + dirty 检测。
 
 ### 📚 References
 

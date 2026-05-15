@@ -117,6 +117,8 @@ news_process/papers/**/*.doc
 news_process/papers/**/*.zip
 news_process/papers/**/*.epub
 news_process/papers/**/*.md
+# v3.2.0 M6/M7 (plan v14 §9.2): Stata 模板 README (双语) 允许入库
+!news_process/papers/_common/stata_templates/README.md
 *.pdf
 
 # ============================================================
