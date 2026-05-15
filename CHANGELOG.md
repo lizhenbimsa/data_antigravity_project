@@ -136,6 +136,28 @@
 - **CLI 子命令**: build-replication (M7) + list-templates (M4/7) + --verbose flag
 - **集成测试**: 8-spec × 14 模板 = 112 实例化, 占位符零残留 (R54-A 并存命名)
 
+### 🆕 v3.2.0 CLI 子命令全景 (4 个)
+
+| CLI subcommand | 用途 | 添加于 |
+|---|---|---|
+| `build-replication --locus ... --subst ... --sent ... --root ...` | 一键打包 replication 包 (14 .do + README + commit hash) | M7 |
+| `list-templates [--verbose]` | 列举 14 模板 + 占位符使用 inventory | M4/7 |
+| `doctor [--verbose]` | 诊断 5 段: Python deps / pipeline 数据 / LLM cache / API key / Stata bin | M2/7 (第二批) |
+| `verify-replication <path>` | 验证 replication 包结构 (5 段检查) | M4/7 (第二批) |
+
+调用入口: `python -m news_process.papers._common.stata_runner <subcommand>`
+
+stage 35 LLM 升级独立 CLI: `python -m news_process.validation.radius_sensitivity_llm [--dry-run|--launch]`
+
+### 🆕 v3.1.1 → v3.2.0 迁移工具
+
+`python -m news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade <old.parquet> <new.parquet> [--verbose]`
+
+把旧 v3.1.1 panel parquet 升级到 v3.2.0 schema:
+- bare `innovation_locus` / `_substantiveness` / `category_confidence` → `_full` 后缀
+- 新加 `_ctx` 列 (NaN; 用户需重跑 stage 21 LLM 产实际值)
+- 派生 `llm_verified_dual_full_only/_ctx_only/_both` 三互斥指示
+
 ### 🆕 Stata 模板交付 (12/14, plan v14 §9.2)
 
 **Tables (论文主体, 4 模板)**:
