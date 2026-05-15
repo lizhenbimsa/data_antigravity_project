@@ -1,10 +1,11 @@
-# news_process 文档索引（v2.1.0）
+# news_process 文档索引（v3.2.0）
 
 ## 设计与实施指南
 
 - [配置文件拆分实施指南.md](配置文件拆分实施指南.md) — Phase 4d 七域 YAML split 设计
 - [错误处理和重试机制实施指南.md](错误处理和重试机制实施指南.md) — LLM retry / backoff 设计
 - [数据版本控制和血缘追踪实施指南.md](数据版本控制和血缘追踪实施指南.md) — caching SCHEMA_VERSION + prompt_version 设计
+- [policy_llm_undefined.md](policy_llm_undefined.md) — LLM 三模型平局/无效响应处理事实政策（NaN-as-not-positive）
 
 ## 数据与产物
 
@@ -20,8 +21,8 @@
 
 ## 测试
 
-- [测试覆盖率指南.md](测试覆盖率指南.md) — 814 baseline 测试结构
-- [测试验证报告.md](测试验证报告.md) — 最近一次回归记录
+- [测试覆盖率指南.md](测试覆盖率指南.md) — pytest --cov 本地与 CI 使用指南
+- [测试验证报告.md](测试验证报告.md) — v2.2.0 数据版本控制 + DAG 一致性历史快照（2026-05-09，非最新；当前 baseline 1153 见 CLAUDE.md L16）
 
 ## 运维
 
@@ -29,4 +30,4 @@
 
 ## 历史归档
 
-- [archive/](archive/) — v2.1.0 之前的审计与计划报告，仅供溯源，**不再维护**
+- [archive/](archive/) — v2.1.0 及更早的审计与计划报告，仅供溯源，**不再维护**
