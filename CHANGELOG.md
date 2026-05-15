@@ -99,18 +99,39 @@
 8. ✅ 6 PR 分批 + xfail 单调递减
 9. ✅ Stata scope = Recommended (stage 46 + 14 模板预留)
 
-### ⏳ 后续 Phase（plan v14 §3.5 / §9.2 / §9.6）
+### ✅ 累计完成 Phase (本次 14 commit 总览)
 
-- M2 P3: runner.py count 4-way 洗稿率（sentiment × subst 笛卡尔）
-- M3 P4: iv_did.py Bartik IV 双套（lf / lc）✅ 已完成 (commit e67cc66)
-- M4 P5: codebook +252 元数据 + 3 个 docs/methodology 新文档
-- M5 P5.2: stage 35 radius_sensitivity 词典法 → LLM 法升级 (**~10.5k API**, 当前 N=1170)
-  * 修订: 早前估算 180k 错误 (基于假定 N≈6700 + 错把 full 轨算重跑)
-  * 实测: 1170 文章 × 3 LLM × 1 ctx 轨 × 3 new radii (radius=1 已缓存) = 10,530
-  * 标度依赖: 未来 N 扩容到 20k 时上升至 180k, 当前不需要
-- M6 P5.2: 14 个 Stata 模板 .do.tmpl
-- M7: build_replication_package + commit-hash 嵌入
-- M8: golden baseline 重生成 + `git tag v3.2.0`
+| Milestone | 内容 | Commit |
+|---|---|---|
+| M0 | feature branch + plan-stage3-dual-track-frozen tag | (git op) |
+| M1 | tone_llms.py 双轨化 (BREAKING) + ctx gate 致命修复 (R1-A) | 2070e52 |
+| M1 audit | 双轨独立性测试 (+6) + 注释消歧 | f3d3cc9 |
+| M2 P2 | encode.py _lc × _ctx + _sc × _ctx 对角线追加 | 73c4d65 |
+| M6 stage 46 | stata_export 新建 (300 行) + 11 测试 | 5a21614 |
+| M6 DAG | stage 46 注册 + DAG 一致性测试更新 | 0d4a4cc |
+| docs init | CHANGELOG + CLAUDE.md baseline | 16bc60d |
+| M3 P4 | iv_did.py Bartik IV 双套独立 (lf / lc) | e67cc66 |
+| docs fix | 180k → 10.5k LLM 调用估算更正 (17× 高估) | b4c5245 |
+| M2 P3 | runner.py 洗稿率 count 4-way (+16 篇章列) | fdfc470 |
+| M4 codebook | +13 双轨 VariableMetadata 条目 | 116ba0e |
+| M5 P5.2 | stage 35 radius_sensitivity LLM 接口 + 10.5k 估算 (+9 测试) | (next) |
+| M6 templates | 3 核心 Stata .do.tmpl + README 双语 (+14 测试) | (next) |
+| M7 | build_replication_package 一键打包 (+12 测试) | (next) |
+| M4 docs | 3 方法学文档 + 列名迁移 CSV | (next) |
+
+### ⏳ 余下后续工作 (v3.2.1 或同 release)
+
+- M5 第 2 commit: stage 35 LLM 实际 10.5k API launch (需 yunwu API key)
+- M6 11 个剩余 .do.tmpl (01_data_prep, 10_table1, 12-13 mechanism/heterogeneity, 20-23 robustness, 30-31 figures)
+- 完整 BREAKING 重命名 (`_tech` → `_tech_lf` 等显式化, 现为加性策略保 baseline)
+- Golden baseline 重生成 (需完整 pipeline 跑通)
+- `git tag v3.2.0` (代码完整后)
+
+### 📊 累计统计
+
+- **Test baseline**: 994 → **1046 passed** / 2 skipped / 0 failed (+52 测试)
+- **Code 改动**: ~1300+ 行 (含测试 / 文档 / 迁移 CSV)
+- **14 commits** in `feature/stage3-dual-track-v3.2.0` branch
 
 ### 📚 References
 
