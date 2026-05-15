@@ -161,6 +161,59 @@ def test_validate_stata_compat_rejects_long_label():
         validate_stata_compat(df, {'col': long_label})
 
 
+def test_shorten_long_column_names_idf_score():
+    """v3.2.0 M3/7: idf_score → idfsc 缩写覆盖 33-char 列名."""
+    from news_process.pipeline.panel.stata_export import shorten_long_column_names
+    df = pd.DataFrame({
+        'jiang_2021_idf_score_hw_sum_title': [1.0, 2.0],
+        'target_bank': ['工行', '建行'],
+    })
+    df_new, rename_map = shorten_long_column_names(df)
+    # 应缩短到 ≤ 32 字符
+    for col in df_new.columns:
+        assert len(col) <= 32, f"col '{col}' still {len(col)} chars"
+    # rename_map 记录反向映射
+    assert 'jiang_2021_idf_score_hw_sum_title' in rename_map.values()
+
+
+def test_shorten_long_column_names_leave1out():
+    """v3.2.0 M3/7: leave1out → l1o 缩写覆盖 33+ char 列名."""
+    from news_process.pipeline.panel.stata_export import shorten_long_column_names
+    df = pd.DataFrame({
+        'prov_leave1out_dict_avg_tone_full': [1.0],  # 33 chars
+        'city_leave1out_dict_avg_tone_title': [2.0],  # 34 chars
+    })
+    df_new, rename_map = shorten_long_column_names(df)
+    for col in df_new.columns:
+        assert len(col) <= 32
+    assert len(rename_map) == 2
+
+
+def test_shorten_long_column_names_handles_conflicts(tmp_path):
+    """v3.2.0 M3/7: 截断后冲突自动加 _1/_2 后缀防覆盖."""
+    from news_process.pipeline.panel.stata_export import shorten_long_column_names
+    # 两个超长 col 在截断到 32 字符时会冲突
+    df = pd.DataFrame({
+        'a_very_long_column_name_that_will_be_truncatedX': [1],
+        'a_very_long_column_name_that_will_be_truncatedY': [2],
+    })
+    df_new, rename_map = shorten_long_column_names(df)
+    assert len(set(df_new.columns)) == len(df_new.columns), "冲突未防止"
+
+
+def test_shorten_long_column_names_short_unchanged():
+    """≤ 32 char 列名不改."""
+    from news_process.pipeline.panel.stata_export import shorten_long_column_names
+    df = pd.DataFrame({
+        'target_bank': [1],
+        'innovation_locus_full': [1],
+        'short_col': [1],
+    })
+    df_new, rename_map = shorten_long_column_names(df)
+    assert list(df_new.columns) == ['target_bank', 'innovation_locus_full', 'short_col']
+    assert rename_map == {}
+
+
 def test_select_dta_backend():
     """v3.2.0 M1/7: backend 探测 — pyreadstat 优先, pandas fallback."""
     from news_process.pipeline.panel.stata_export import _select_dta_backend

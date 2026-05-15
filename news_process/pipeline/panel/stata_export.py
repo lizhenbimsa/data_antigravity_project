@@ -211,6 +211,54 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
     return core
 
 
+def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, str]]:
+    """v3.2.0 M3/7: 自动缩短超 32 字符列名 (Stata 硬限).
+
+    缩写规则:
+        1. 常见模式替换 (idf_score → idfsc, leave1out → l1o, 等)
+        2. 若仍 > 32, 截断到 32 字符
+        3. 截断后冲突 → 后缀 _1, _2, ...
+        4. 返回 (df_renamed, mapping) 让 codebook 记录原名
+
+    Returns:
+        (renamed_df, {short_name: original_name}) — codebook 可反查
+    """
+    abbreviations = [
+        ('_idf_score_', '_idfsc_'),
+        ('_leave1out_', '_l1o_'),
+        ('_dict_avg_tone_', '_davg_t_'),
+        ('_bert_avg_pos_', '_bavg_p_'),
+    ]
+    rename_map: Dict[str, str] = {}  # short → original
+    new_cols: List[str] = []
+    used: set = set()
+    for col in df.columns:
+        new_col = col
+        if len(new_col) > STATA_VAR_NAME_MAXLEN:
+            for old, new in abbreviations:
+                if old in new_col:
+                    new_col = new_col.replace(old, new)
+                    if len(new_col) <= STATA_VAR_NAME_MAXLEN:
+                        break
+        # 仍超 → 截断
+        if len(new_col) > STATA_VAR_NAME_MAXLEN:
+            new_col = new_col[:STATA_VAR_NAME_MAXLEN]
+        # 冲突处理
+        base = new_col
+        suffix = 0
+        while new_col in used:
+            suffix += 1
+            new_col = (base[:STATA_VAR_NAME_MAXLEN - len(f"_{suffix}")] + f"_{suffix}")
+        used.add(new_col)
+        new_cols.append(new_col)
+        if new_col != col:
+            rename_map[new_col] = col
+
+    df_renamed = df.copy()
+    df_renamed.columns = new_cols
+    return df_renamed, rename_map
+
+
 def validate_stata_compat(df: pd.DataFrame, var_labels: Dict[str, str]) -> None:
     """plan v14 §9.5 验收门: 列名 ≤ 32 字符 + label ≤ 80 字符 + 编码方向."""
     issues: List[str] = []
@@ -353,10 +401,19 @@ def export_panel_to_stata(
     # 1. 类别变量编码 (中文 str → byte 0/1)
     df_encoded, value_labels = encode_categorical_columns(df)
 
-    # 2. 生成 variable labels
+    # 1b. v3.2.0 M3/7: 自动缩短超 32 字符列名 (Stata 硬限) + 记录 mapping
+    df_encoded, rename_map = shorten_long_column_names(df_encoded)
+    if rename_map:
+        logger.info(f"  Renamed {len(rename_map)} long columns (>32 chars) to Stata-compatible names")
+        for short, orig in list(rename_map.items())[:3]:
+            logger.info(f"    {orig} → {short}")
+        if len(rename_map) > 3:
+            logger.info(f"    ... +{len(rename_map) - 3} more (full mapping in codebook.xlsx)")
+
+    # 2. 生成 variable labels (基于新 (短) 列名)
     var_labels = build_variable_labels(df_encoded)
 
-    # 3. Stata 兼容性校验 (plan v14 §9.5)
+    # 3. Stata 兼容性校验 (plan v14 §9.5; 缩短后应全过)
     validate_stata_compat(df_encoded, var_labels)
 
     # 4. core/aux 拆分 (plan v14 §9.1 R42-A + R44-A)
@@ -388,7 +445,8 @@ def export_panel_to_stata(
     # 7. codebook .xlsx (依赖 codebook.py)
     codebook_path = os.path.join(output_dir, f'{output_prefix}_codebook.xlsx')
     try:
-        _write_codebook_xlsx(df_encoded, var_labels, value_labels, core_cols, codebook_path)
+        _write_codebook_xlsx(df_encoded, var_labels, value_labels, core_cols, codebook_path,
+                              rename_map=rename_map)
     except Exception as e:
         logger.warning(f"  codebook .xlsx 写入失败 (非阻塞): {e}")
 
@@ -408,13 +466,22 @@ def _write_codebook_xlsx(
     value_labels: Dict[str, Dict[int, str]],
     core_cols: List[str],
     out_path: str,
+    rename_map: Dict[str, str] = None,
 ) -> None:
-    """生成人类可读 codebook .xlsx."""
+    """生成人类可读 codebook .xlsx.
+
+    Args:
+        rename_map: v3.2.0 M3/7 新增: {short_stata_name: original_panel_name}
+                    用户可在 codebook 反查 Stata 短名对应的原 panel 列名.
+    """
+    if rename_map is None:
+        rename_map = {}
     rows = []
     core_set = set(core_cols)
     for col in df.columns:
         rows.append({
             'var_name': col,
+            'original_name': rename_map.get(col, col),  # M3/7: 缩短前原名 (用户反查)
             'label': var_labels.get(col, col),
             'data_type': str(df[col].dtype),
             'is_core': col in core_set,
@@ -424,7 +491,8 @@ def _write_codebook_xlsx(
         })
     codebook_df = pd.DataFrame(rows)
     codebook_df.to_excel(out_path, index=False, engine='xlsxwriter')
-    logger.info(f"  Codebook .xlsx 已写入: {out_path} ({len(rows)} 列条目)")
+    logger.info(f"  Codebook .xlsx 已写入: {out_path} ({len(rows)} 列条目; "
+                f"含 {len(rename_map)} 个 Stata-shortened names 反查映射)")
 
 
 def main():
