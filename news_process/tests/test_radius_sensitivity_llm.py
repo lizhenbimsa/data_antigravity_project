@@ -13,7 +13,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
 
 _PROJECT_PARENT = Path(__file__).resolve().parents[2]
 if str(_PROJECT_PARENT) not in sys.path:
@@ -85,11 +84,54 @@ def test_module_importable_without_launch():
     assert hasattr(mod, 'cohens_kappa_2cat')
 
 
-def test_parse_cache_not_implemented_until_launch():
-    """parse_track_results_from_cache 必须明确标注 launch 前 NotImplementedError."""
+def test_parse_cache_returns_empty_df_when_cache_missing(tmp_path):
+    """v3.2.0 M3/7: parse_track_results_from_cache 在 cache 不存在时返回空 DataFrame (graceful, 不 raise)."""
     from news_process.validation.radius_sensitivity_llm import parse_track_results_from_cache
-    with pytest.raises(NotImplementedError, match="第 2 commit 落地"):
-        parse_track_results_from_cache(radius=0, articles_df=pd.DataFrame())
+    fake_cache = tmp_path / "_no_such_cache.db"
+    df = parse_track_results_from_cache(
+        radius=0,
+        articles_df=pd.DataFrame({'article_idx': [], 'target_bank': []}),
+        cache_db_path=str(fake_cache),
+    )
+    assert isinstance(df, pd.DataFrame)
+    assert df.empty or len(df) == 0
+    # Schema 应含预期列 (即使为空)
+    expected_cols = {'article_idx'}
+    assert expected_cols.issubset(set(df.columns))
+
+
+def test_parse_cache_uses_radius_param(tmp_path, caplog):
+    """v3.2.0 M3/7: radius 参数被传入 logger.info, 不是死参数."""
+    import logging
+
+    from news_process.validation.radius_sensitivity_llm import parse_track_results_from_cache
+    fake_cache = tmp_path / "_no_cache.db"
+    with caplog.at_level(logging.INFO, logger='news_process.validation.radius_sensitivity_llm'):
+        parse_track_results_from_cache(
+            radius=2,
+            articles_df=pd.DataFrame({'article_idx': []}),
+            cache_db_path=str(fake_cache),
+        )
+    # radius=2 应出现在日志中
+    assert 'radius=2' in caplog.text
+
+
+def test_parse_cache_empty_articles_yields_empty_df(tmp_path):
+    """空 articles_df → 空结果."""
+    # 创建空 sqlite (cache 存在但无表)
+    import sqlite3
+
+    from news_process.validation.radius_sensitivity_llm import parse_track_results_from_cache
+    cache = tmp_path / "_empty.db"
+    conn = sqlite3.connect(str(cache))
+    conn.close()
+    df = parse_track_results_from_cache(
+        radius=0,
+        articles_df=pd.DataFrame({'article_idx': [], 'target_bank': []}),
+        cache_db_path=str(cache),
+    )
+    assert isinstance(df, pd.DataFrame)
+    assert df.empty or len(df) == 0
 
 
 def test_compute_radius_kappa_report_two_radii():
