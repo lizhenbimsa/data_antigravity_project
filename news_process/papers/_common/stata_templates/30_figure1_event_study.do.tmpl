@@ -1,0 +1,61 @@
+* news_process v3.2.0 — Figure 1: Event Study (plan v14 §9.2)
+*
+* DID 平行趋势 + 动态处理效应 (Sun & Abraham 2021 JoE):
+*   y_{i,t} = Σ_τ β_τ × D_{i, t=τ} + α_i + γ_t + ε_{i,t}
+*
+* 主 spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
+
+version 15
+
+local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
+
+* 检查 eventstudyinteract / did_imputation 可用性 (Sun-Abraham 2021 / Borusyak-Jaravel-Spiess 2024)
+capture which eventstudyinteract
+local has_es = !_rc
+
+* 处理时点 (假定 digital_frontier 作处理变量, 用户层可改)
+capture confirm variable digital_frontier
+if _rc {
+    display "  ⏭ digital_frontier 不存在, Event Study 跳过"
+    exit 0
+}
+
+* 处理时点 (绝对相对时间 = year - first_treat_year)
+preserve
+    bysort bank_id (year): gen byte _ever_treat = sum(digital_frontier) > 0
+    bysort bank_id (year): egen _first_treat = min(cond(digital_frontier == 1, year, .))
+    gen _rel_time = year - _first_treat if !missing(_first_treat)
+
+    * 截尾 ±3 (论文常见)
+    replace _rel_time = -3 if _rel_time < -3
+    replace _rel_time = 3 if _rel_time > 3 & !missing(_rel_time)
+
+    * 创建 lead/lag dummies
+    forvalues t = -3/3 {
+        if `t' != -1 {
+            local sign = cond(`t' < 0, "L", "F")
+            local absT = abs(`t')
+            gen byte _`sign'`absT' = _rel_time == `t'
+        }
+    }
+
+    * 标准 TWFE 估计
+    reghdfe `DV' _L3 _L2 _F0 _F1 _F2 _F3, absorb(bank_id year) vce(cluster bank_id)
+
+    * coefplot (ssc install coefplot)
+    capture which coefplot
+    if !_rc {
+        coefplot, ///
+            keep(_L3 _L2 _F0 _F1 _F2 _F3) ///
+            rename(_L3="-3" _L2="-2" _F0="0" _F1="+1" _F2="+2" _F3="+3") ///
+            vertical yline(0, lpattern(dash)) xtitle("Years from treatment") ///
+            ytitle("β (effect on Tone)") ///
+            title("Figure 1: Event Study — Digital Frontier Treatment") ///
+            note("TWFE dynamic effects. Reference: t=-1.")
+        graph export "output/figures/figure1_event_study.pdf", replace
+        display "✅ Figure 1 saved to output/figures/figure1_event_study.pdf"
+    }
+    else {
+        display "  ⚠️ coefplot not installed (ssc install coefplot); Figure 1 跳过"
+    }
+restore

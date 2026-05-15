@@ -1,0 +1,53 @@
+* news_process v3.2.0 — Figure 2: Coefplot Dual-Track Comparison (plan v14 §9.2)
+*
+* 核心新价值: 双轨化 main spec 切换的系数 + CI 视觉对比.
+* 论文 Methods §4 选 1 个 main spec, Figure 2 展示 8 specs 系数 + CI 一图呈现.
+
+version 15
+
+* Main spec local for label
+local main_spec  "{{MAIN_LOCUS_TRACK}}-{{MAIN_SUBST_TRACK}}-{{MAIN_SENT_TRACK}}"
+
+* 估 8 specs (与 tableA2 同 loop)
+foreach loc in lf lc {
+    foreach sub in sf sc {
+        foreach sent in full ctx {
+            local LOCUS  tech_frac_`loc'
+            local SUBST  symb_frac_`sub'
+            local DV     llm_vote_tone_`sent'
+
+            capture confirm variable `LOCUS' `SUBST' `DV'
+            if !_rc {
+                eststo spec_`loc'_`sub'_`sent': ///
+                    reghdfe `DV' digital_frontier `LOCUS' `SUBST', ///
+                    absorb(bank_id year) vce(cluster bank_id)
+            }
+        }
+    }
+}
+
+* coefplot: 8 specs × digital_frontier 系数
+capture which coefplot
+if !_rc {
+    coefplot (spec_lf_sf_full, label("Lf-Sf-Full")) ///
+             (spec_lf_sf_ctx,  label("Lf-Sf-Ctx"))  ///
+             (spec_lf_sc_full, label("Lf-Sc-Full")) ///
+             (spec_lf_sc_ctx,  label("Lf-Sc-Ctx"))  ///
+             (spec_lc_sf_full, label("Lc-Sf-Full")) ///
+             (spec_lc_sf_ctx,  label("Lc-Sf-Ctx"))  ///
+             (spec_lc_sc_full, label("Lc-Sc-Full")) ///
+             (spec_lc_sc_ctx,  label("Lc-Sc-Ctx")), ///
+             keep(digital_frontier) ///
+             vertical ///
+             ytitle("β (Main coefficient on digital_frontier)") ///
+             xtitle("Main spec (locus-subst-sent)") ///
+             title("Figure 2: Main Spec Switch Sensitivity") ///
+             subtitle("Highlighted main spec: `main_spec'") ///
+             note("Hassan 2019 QJE + Sautner 2023 JF: dual-track design. " ///
+                  "All specs report β on digital_frontier under TWFE absorb(bank_id year).")
+    graph export "output/figures/figure2_coefplot_dual.pdf", replace
+    display "✅ Figure 2 saved to output/figures/figure2_coefplot_dual.pdf"
+}
+else {
+    display "  ⚠️ coefplot not installed (ssc install coefplot); Figure 2 跳过"
+}
