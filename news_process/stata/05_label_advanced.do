@@ -32,6 +32,7 @@ label variable symb_frac "象征性新闻占比"
 label variable llm_vote_tone_sub_full "实质性新闻LLM情感(全文)"
 label variable llm_vote_tone_symb_full "象征性新闻LLM情感(全文)"
 label variable tone_gap_sub_symb "实质性-象征性情感差"
+label variable tone_gap_tech_app "底层技术-应用场景情感差"
 
 label variable pos_symb_count_full "象征性正面新闻数(全文)"
 label variable neg_sub_count_full "实质性负面新闻数(全文)"

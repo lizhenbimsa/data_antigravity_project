@@ -589,6 +589,23 @@ def build_aggregation_dict() -> dict:
     return agg
 
 
+def _compute_tone_gap_tech_app(panel: pd.DataFrame) -> pd.Series:
+    """Compute tone_gap_tech_app with min-n confound defense (v3.1.1).
+
+    反向借鉴 tone_gap_sub_symb (encode.py 中 substantiveness 块), 增加
+    min(n_tech, n_app) >= 5 过滤防 compositional confound (R8 audit).
+
+    Args:
+        panel: 必须含 n_articles_tech, n_articles_app,
+               llm_vote_tone_tech_full, llm_vote_tone_app_full
+    Returns:
+        Float64 Series: gap = tech - app, NaN 当 min < 5
+    """
+    both_qualified = (panel['n_articles_tech'] >= 5) & (panel['n_articles_app'] >= 5)
+    gap_raw = panel['llm_vote_tone_tech_full'] - panel['llm_vote_tone_app_full']
+    return gap_raw.where(both_qualified, np.nan)
+
+
 def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     """按 (target_bank, year) 聚合生成面板。
 
@@ -776,6 +793,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 n_fail = (~identity_check).sum()
                 logger.warning(f"  ✗ 恒等式校验失败: {n_fail} 行不满足 n_articles == n_articles_tech + n_articles_app")
+
+        # tone_gap_tech_app: 底层技术 vs 应用场景 LLM 投票情感差距 (v3.1.1)
+        # 文献: Adner & Kapoor (2010 SMJ); Gomber et al. (2018 JMIS)
+        if 'llm_vote_tone_tech_full' in panel.columns and 'llm_vote_tone_app_full' in panel.columns:
+            panel['tone_gap_tech_app'] = _compute_tone_gap_tech_app(panel)
     else:
         logger.info("  列 'innovation_locus' 不存在, 分类聚合将跳过")
         panel['tech_frac'] = np.nan

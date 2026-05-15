@@ -6,6 +6,74 @@
 
 ---
 
+## v3.1.1 / 2026-05-15 — feat: tone_gap_tech_app symmetric counterpart (988 → 994)
+
+### Added
+- panel 新增 1 列: `tone_gap_tech_app` (locus 维度对称借鉴 v3.0.0 tone_gap_sub_symb)
+- module-level helper `_compute_tone_gap_tech_app(panel)` (encode.py 顶层, hermetic 可测)
+- 公式: `(llm_vote_tone_tech_full - llm_vote_tone_app_full) if min(n_tech, n_app) >= 5 else NaN`
+
+### Methodology (三层文献锚定)
+- Adner & Kapoor (2010 SMJ) ecosystem components vs complements
+- Gomber et al. (2018 JMIS) enabling-tech vs business-function 双层框架
+- 与 v3.0.0 tone_gap_sub_symb (Westphal & Zajac 1994/1998 ASQ) 形成方法层对称
+- 设计来源: 15 轮审核 (8 自审 + 2 独立 Plan subagent 盲审 + 5 dry-run/dependency
+  /验证轮) 共 57 项修订收敛; 连续 R13/R14/R15 三轮 0 新问题
+- 修订声明: 修订 v3.1.0 commit 123da11 "刻意未实现"清单第 1 项
+  (理由: tone_gap 是派生指标层, 非聚合源层, 不构成 locus 块功能新增)
+- 探索性指标 (无预先理论符号), 实证用途仅作描述统计或交互项
+- min ≥ 5 过滤防 compositional confound (R8 audit P confound-S3)
+
+### Changed
+- encode.py: module-level helper +17 行 (含 docstring) + aggregate_panel 调用 +5 行
+- codebook.py: 新增 metadata['tone_gap_tech_app'] +21 行
+- stata/05_label_advanced.do: 新增 1 行标签 (UTF-8 + CRLF)
+- tests/fixtures/golden_panel_v0.json: 重生成 (40_panel_yearly + 51_panel_with_controls)
+- CLAUDE.md: 测试基线 988 → 994, 当前版本 v3.1.0 → v3.1.1
+
+### Added (tests)
+- tests/test_tone_gap_tech_app.py: 6 hermetic 测试, 直接调用 _compute_tone_gap_tech_app
+  (无 live parquet 依赖, 无 setup_logging 副作用)
+  覆盖 mutation kill: 阈值边界 (=5/<5)、min vs max、减法方向、Float64 dtype、value range
+
+### Test baseline
+- 988 → 994 passed / 2 skipped / 0 failed (+6 测试)
+
+### Caveat
+- papers/ 层暂无回归引用; calibration v5.1 G1 解锁前不进主回归矩阵
+- helper 与 sub_symb (无 min 过滤) 暂存设计不对称, 未来 v3.x.x 可统一
+- **当前数据集 (164 行 / 82 银行 / 2017-2018) 中**: n_articles_tech 极稀疏 (max=4),
+  无 bank-year 满足 min ≥ 5 → tone_gap_tech_app 全 NaN.
+  这是 confound 防御正常运作的证明, 非 bug; 未来扩展年份/媒体后列才有面板观测.
+
+### Pre-existing drift captured (golden snapshot)
+本次 golden 重生成额外捕获了 stage 45 的 pre-existing 非确定性:
+- 3 个 network 列 hash 漂移: bank_cfbetween_cent / bank_clustering / bank_harmonic_cent
+  (network centrality 算法浮点精度差异, 与 v3.1.1 无关)
+- 4 个 stage 45 副产物文件 size_bytes 微变 (article_bank, attn_index × 3)
+- 元数据时间戳 (generated_utc, llm_snapshot_date)
+- **R-impl-8 验证**: 跨连续两次跑 stage 45 + golden 重生成, 40_panel_yearly.parquet
+  size_bytes 在第二次跑时仍微变 (2477561 → 2477545, 16 字节差) — 证实
+  stage 45 存在 run-to-run 非确定性, 不只是跨 commit drift.
+  当前 commit 锁定 commit 时刻的 disk+golden, reproducibility test pass.
+建议作为 future work 单独修复 stage 45 确定性 (随机种子或浮点稳定算法).
+
+### Dependencies
+- v3.1.0 (commit 123da11) - 提供 _tech/_app 子集聚合
+- v3.0.0 (commit 7666e2e) - 术语正名前置 (tone_gap_sub_symb 设计原型)
+
+### Audit Trail (15 轮 + 5 轮实施后审核)
+- R1-R7 自审 (完备性 / contract / 方法学 / 测试 / 文档 / 风险 / 排序)
+- R8 Plan subagent 盲审 #1 (排序异议 + 3 method confound)
+- R9 dry-run (np.where → pandas .where + 测试基线 988→994 修正)
+- R10 跨文件依赖 (testpaths + .dta 自动同步)
+- R11 Plan subagent 盲审 #2 (FATAL: stage 51 重跑 + pre-regen guard)
+- R12 修复后自查 (CRITICAL: 抽 module-level helper 保 hermetic)
+- R13/R14/R15 连续 0 新问题验证 = 计划级收敛
+- R-impl-1 至 R-impl-5: 实施级 5 轮审核 (本 patch)
+
+---
+
 ## v3.1.0 / 2026-05-15 — feat: iss subset LLM score aggregation (baseline 986 → 988)
 
 ### Added

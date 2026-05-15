@@ -248,6 +248,27 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
                     track=_track.lstrip('_'),
                 )
 
+    # ═══ tone_gap_tech_app (v3.1.1, Adner & Kapoor 2010 + Gomber 2018) ═══
+    # 反向借鉴 tone_gap_sub_symb (v3.0.0); 增加 min(n_tech,n_app)>=5 confound 防御
+    metadata['tone_gap_tech_app'] = VariableMetadata(
+        var_name='tone_gap_tech_app',
+        label='Technology-Application Sentiment Gap',
+        description='同一 bank-year 内 底层技术类 LLM 投票情感 减去 应用场景类，'
+                    '反映该银行该年度技术层 vs 业务应用层的舆论温差。',
+        data_type='float',
+        unit='情感差值',
+        value_range='[-2, +2] ∪ NaN',
+        formula='(llm_vote_tone_tech_full - llm_vote_tone_app_full) '
+                'if min(n_articles_tech, n_articles_app) >= 5 else NaN',
+        source_stage='Stage 45 (panel/encode aggregate_panel)',
+        reference='Adner & Kapoor (2010) SMJ; Gomber et al. (2018) JMIS',
+        notes='探索性指标 - 无预先理论符号; 实证用途仅作描述统计或交互项. '
+              'min ≥ 5 过滤防 compositional confound (R8 audit). '
+              '对称于 tone_gap_sub_symb (v3.0.0) 但增加 min 过滤.',
+        category='情感指标-locus 子集',
+        track='full',
+    )
+
     return metadata
 
 
