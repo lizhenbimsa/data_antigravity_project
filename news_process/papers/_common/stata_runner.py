@@ -396,6 +396,111 @@ def _cli_list_templates(args) -> int:
     return 0
 
 
+def _cli_doctor(args) -> int:
+    """CLI 子命令: doctor — 诊断 v3.2.0 用户层依赖完整性 (plan v14 §6 风险表 R20-A)."""
+    try:
+        import sys
+        sys.stdout.reconfigure(encoding='utf-8')
+    except (AttributeError, OSError):
+        pass
+    import os
+
+    verbose = getattr(args, 'verbose', False)
+    n_ok = 0
+    n_warn = 0
+    n_err = 0
+    print("news_process v3.2.0 doctor (plan v14 §6 launch checklist)")
+    if verbose:
+        print(f"  verbose mode: showing version info + paths")
+    print("=" * 60)
+
+    # 1. Python deps
+    print("\n[1/5] Python 依赖")
+    deps = ['pandas', 'numpy', 'pyarrow', 'pyreadstat', 'pytest', 'yaml']
+    for d in deps:
+        try:
+            m = __import__(d if d != 'yaml' else 'yaml')
+            version = getattr(m, '__version__', '?')
+            if verbose:
+                print(f"   [OK] {d} ({version})")
+            else:
+                print(f"   [OK] {d}")
+            n_ok += 1
+        except ImportError:
+            print(f"   [ERR] {d} NOT installed")
+            n_err += 1
+
+    # 2. Stage 14 输入 (LLM launch 前置)
+    print("\n[2/5] Pipeline 数据")
+    try:
+        from news_process.core.config import load_config
+        CONFIG = load_config()
+        for stage, fname in [
+            ('14_fintech_intensity', 'output_14_fintech_intensity'),
+            ('21_tone_llms', 'output_21_tone_llms'),
+            ('40_panel_yearly', 'output_40_panel_yearly'),
+        ]:
+            f = CONFIG.get('filenames', {}).get(fname, f'{stage}.parquet')
+            p = os.path.join(CONFIG['paths']['output_dir'], f)
+            if os.path.exists(p):
+                print(f"   [OK] {f}")
+                n_ok += 1
+            else:
+                print(f"   [WARN] {f} not yet produced (run pipeline first)")
+                n_warn += 1
+    except Exception as e:
+        print(f"   [ERR] config load: {e}")
+        n_err += 1
+
+    # 3. LLM cache (stage 35 LLM 升级前置)
+    print("\n[3/5] LLM cache (stage 35 LLM 升级)")
+    try:
+        from news_process.core.config import load_config
+        cache_path = os.path.join(load_config()['paths']['output_dir'], '_llm_cache.db')
+        if os.path.exists(cache_path):
+            size_mb = os.path.getsize(cache_path) / 1024 / 1024
+            print(f"   [OK] _llm_cache.db ({size_mb:.1f} MB)")
+            n_ok += 1
+        else:
+            print("   [WARN] _llm_cache.db not yet created (run stage 21 first)")
+            n_warn += 1
+    except Exception:
+        n_warn += 1
+
+    # 4. YUNWU_API_KEY (LLM launch 前置)
+    print("\n[4/5] LLM API access")
+    if os.environ.get('YUNWU_API_KEY', '').strip():
+        print("   [OK] YUNWU_API_KEY set")
+        n_ok += 1
+    else:
+        print("   [WARN] YUNWU_API_KEY not set (stage 21 + stage 35 LLM 不可跑)")
+        n_warn += 1
+
+    # 5. Stata bin (CLI build-replication 后用)
+    print("\n[5/5] Stata 可执行")
+    try:
+        from news_process.papers._common.stata_runner import discover_stata_bin
+        bin_path = discover_stata_bin()
+        if bin_path:
+            print(f"   [OK] {bin_path}")
+            n_ok += 1
+        else:
+            print("   [WARN] Stata bin not detected; set NEWS_PROCESS_STATA_BIN env var")
+            n_warn += 1
+    except Exception as e:
+        print(f"   [WARN] Stata bin check failed: {e}")
+        n_warn += 1
+
+    print("\n" + "=" * 60)
+    print(f"  Summary: {n_ok} OK / {n_warn} WARN / {n_err} ERR")
+    if n_err:
+        print("  Action: 装缺失 Python 包 (pip install -e .)")
+        return 1
+    if n_warn:
+        print("  Action: 跑 run_pipeline_function.py 产数据; 设 YUNWU_API_KEY 为 LLM launch")
+    return 0
+
+
 def main():
     """CLI 入口 (subcommand dispatch)."""
     import argparse
@@ -428,6 +533,15 @@ def main():
     lt.add_argument('--verbose', action='store_true',
                     help='Show placeholder usage inventory across templates')
     lt.set_defaults(func=_cli_list_templates)
+
+    # doctor (M2/7 新增, plan v14 §6 风险表 launch 前置检查)
+    dr = subparsers.add_parser(
+        'doctor',
+        help='Diagnose v3.2.0 deps + pipeline + LLM + Stata (plan v14 launch checklist)',
+    )
+    dr.add_argument('--verbose', action='store_true',
+                    help='Show package versions + extra diagnostic info')
+    dr.set_defaults(func=_cli_doctor)
 
     args = parser.parse_args()
     return args.func(args)

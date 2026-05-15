@@ -233,6 +233,46 @@ def test_cli_command_main_callable():
     assert hasattr(mod, '_cli_build_replication')
 
 
+def test_cli_doctor_callable():
+    """M2/7: doctor 子命令 importable."""
+    import news_process.papers._common.stata_runner as mod
+    assert hasattr(mod, '_cli_doctor')
+    assert callable(mod._cli_doctor)
+
+
+def test_cli_doctor_runs_with_no_args(capsys):
+    """M2/7: doctor 端到端 stdout 含 5 检查段."""
+    import news_process.papers._common.stata_runner as mod
+    from types import SimpleNamespace
+
+    args = SimpleNamespace(verbose=False)
+    rc = mod._cli_doctor(args)
+    # 返回 0 (全 OK) 或 1 (有 ERR); doctor 不应 crash
+    assert rc in (0, 1)
+    out = capsys.readouterr().out
+    # 5 检查段标题出现
+    assert '[1/5] Python 依赖' in out
+    assert '[2/5] Pipeline 数据' in out
+    assert '[3/5] LLM cache' in out
+    assert '[4/5] LLM API access' in out
+    assert '[5/5] Stata' in out
+    # Summary 行
+    assert 'Summary:' in out
+    assert 'OK' in out
+
+
+def test_cli_doctor_verbose_shows_versions(capsys):
+    """M2/7: --verbose 显示 package versions."""
+    import news_process.papers._common.stata_runner as mod
+    from types import SimpleNamespace
+
+    args = SimpleNamespace(verbose=True)
+    mod._cli_doctor(args)
+    out = capsys.readouterr().out
+    # verbose mode banner
+    assert 'verbose mode' in out
+
+
 def test_cli_list_templates_callable():
     """M4/7: list-templates 子命令 importable + 配置正确."""
     import news_process.papers._common.stata_runner as mod
