@@ -1,9 +1,9 @@
 # Three-Dimension Borrowing Execution Plan
 
-> **Status**: v1.15 (post-Round-17 audit; 1 CRITICAL + 1 MAJOR fixes applied; 1 finding rejected as wrong)
+> **Status**: v1.37 (post-Round-44 audit; 2 MAJOR — §4.5/§5.5 parametrize-aware propagation + §8 phantom test enumeration)
 > **Scope**: Code-only changes; no manual annotation, no infra changes, no model retraining.
 > **Authoring date**: 2026-05-15
-> **Baseline**: news_process v3.2.0, pytest baseline 1153 passed / 6 skipped / 0 failed.
+> **Baseline**: news_process v3.2.0, pytest baseline 1388 passed / 6 skipped / 0 failed (re-anchored at v1.16 against current HEAD per Round-18 R18B-01; previous 1153 figure was a v3.2.0-era snapshot superseded by the multi-paper extension at commit 8d33c46).
 
 ## 0. Document Purpose
 
@@ -64,6 +64,7 @@ The three asymmetries:
 | Tie-strategy sensitivity | Binary + 3 raters → 2-1 or 3-0 only; 3-way ties impossible. |
 | Locus title-only track | Engineering cost dominates value. |
 | Calibration unblock / rater coordination | External resource. |
+| `manual_validation_sampling.py` v3.2.0 dual-track migration (Round-23 R23A-01) | Script at `news_process/scripts/migrate/manual_validation_sampling.py` (last touched at v3.0.0) references single-track columns `innovation_substantiveness` / `innovation_locus` (script L55, L61, L67, L73, L79); v3.2.0 `tone_llms.py` emits only dual-track `innovation_*_{full,ctx}`. The script must be migrated to dual-track BEFORE the sampling xlsx can be produced. Tracked as a separate prerequisite ticket; P0's data-path acceptance depends on this AND rater coordination. |
 | Stage 33 LLM-vs-human for innovation | Code path covered by P0; data path waits on rater coordination. |
 | Manuscript paper-draft gate | No existing manuscript build pipeline in the repo; would be aspirational. Instead, §8 documents the guideline: paper drafts MUST NOT cite Panels E/F by content until data-path acceptance holds. This is a process discipline rule, not enforced by CI. (Round-3 finding R3A-03/R3C-02; gate removed.) |
 | New sentiment dictionary work | Out of charter. |
@@ -129,7 +130,7 @@ R_COLUMNS_BY_RATER = {
 
 # Rater cells may be in English ("substantive" / "symbolic" /
 # "technology" / "application") per emitter
-# scripts/migrate/manual_validation_sampling.py L130-144; LLM predictions
+# news_process/scripts/migrate/manual_validation_sampling.py L130-144; LLM predictions
 # and Stata encoding use Chinese. Normalize to Chinese before κ /
 # confusion-matrix computation. (Round-3 R3C-01; Round-4 R4A-02
 # adds whitespace + case-insensitive handling for English keys.)
@@ -183,18 +184,16 @@ def normalize_rater_value(raw):
 
 #### 3.3.2 `news_process/validation/llms_evaluation.py`
 
-- **Generalize results dict** at L993-1004 to 4 task keys
-  (`verification`, `sentiment`, `innovation_substantiveness`,
-  `innovation_locus`). Task-driven loop.
+- **Generalize results dict** at L993-1004 (Round-27 R27B-02 ICR semantics): `classifier_metrics` extends to all 4 task keys (`verification`, `sentiment`, `innovation_substantiveness`, `innovation_locus`); each key holds LLM-vs-gold metrics produced by `_evaluate_classification_task`. `inter_coder_reliability` stays at the existing 2 keys (`verification`, `sentiment`) only — because `32_human_samples.xlsx` is a 2-rater design (coder_A / coder_B → Cohen κ + Krippendorff α) while `manual_validation_samples.xlsx` is 3-rater majority-voted into a single `gold_*` column (per-rater data merged away, multi-rater κ not computable from the merged output). Innovation reliability is reported separately via the manual-validation-study-plan κ/α workstream (out of this evaluation pipeline's scope). Task-driven loop.
 - **Gold sources**:
   - Verification + sentiment: `32_human_samples.xlsx` (existing).
   - Innovation: `manual_validation_samples.xlsx` per columns in
     `manual_validation_schema.R_COLUMNS_BY_RATER`. The `_rationale`
     columns exist but are NOT consumed.
-- **Pending semantics**:
+- **Pending semantics** (Round-31 R31A-01 — schema-mismatch detection path explicit):
   - File absent → Panels E/F with footnote "manual validation pending — file not present".
-  - File present, all R-cells NaN → "manual validation pending — n=0".
-  - File present, R-columns missing/misnamed → "manual validation pending — schema mismatch".
+  - File present, R-columns missing or misnamed → "manual validation pending — schema mismatch". **Detection (R31A-01)**: BEFORE invoking `_merge_manual_validation_raters(df_mv)`, the caller checks `all(c in df_mv.columns for c in R_COLUMNS_BY_RATER['substantiveness'] + R_COLUMNS_BY_RATER['locus'])`; if False, return pending-sentinel with `reason="schema mismatch"` and emit the footnote; do NOT invoke the merger (avoids KeyError on column indexing).
+  - File present, schema OK, all R-cells NaN → "manual validation pending — n=0".
 - **`_merge_manual_validation_raters(df_mv)` helper**, per row:
   1. Collect 3 substantiveness cells; **normalize each via `normalize_rater_value()`** (handles whitespace, case, Chinese pass-through; Round-3 R3C-01 + Round-4 R4A-02); drop None.
   2. If 0 remain → skip from gold.
@@ -207,7 +206,7 @@ def normalize_rater_value(raw):
   `class_labels`, `output_dir`, `bootstrap_when_n_below=50`. Factor out
   the current verification (L1068-1155) and sentiment (L1162-1247)
   blocks. CLI behavior preserved.
-- **`generate_latex_table()`** (L404-505): extend to Panels E (substantiveness) + F (locus). **Structural constraint (Round-12 R12C-01)**: Panels E/F MUST be emitted in a SEPARATE `\begin{tabular}` / `\end{tabular}` block, immediately after the existing Panels A-D block. This makes "first `\end{tabular}` in file" a stable truncation anchor for `test_panels_A_to_D_structural_equality` (§3.3.3 item 11). Pending case emits a single "manual validation pending" row inside the second `tabular`.
+- **`generate_latex_table()`** (L404-505): extend to Panels E (substantiveness) + F (locus). **Structural constraint (Round-12 R12C-01)**: Panels E/F MUST be emitted in a SEPARATE `\begin{tabular}` / `\end{tabular}` block, immediately after the existing Panels A-D block. This makes "first `\end{tabular}` in file" a stable truncation anchor for `test_panels_A_to_D_structural_equality` (§3.3.3 item 11). **Pending-case structure (Round-21 R21A-01 reconciliation with test 16)**: even in pending state, the second `tabular` MUST contain BOTH `\multicolumn` subheader rows with literals `Panel E (Innovation Substantiveness — binary)` and `Panel F (Innovation Locus — binary)`, each followed by a single "manual validation pending — <reason>" row instead of populated metrics. The Panel E/F headers are unconditional (always present in the second `tabular`); only the data rows differ between pending and populated. This makes test 16 (`test_panels_E_F_in_separate_tabular`)'s "always contains Panel E + Panel F" assertion compatible with tests 9/10's pending cases.
 - **Join logic**: prefer `docid` (production), fallback to `orig_index` (manual_validation xlsx). If neither resolves uniquely, raise with a clear message.
 
 #### 3.3.3 `news_process/tests/test_33_evaluation.py` (extend existing)
@@ -226,14 +225,45 @@ to be cwd-independent (Round-3 R3C-05).
 8. `test_panels_E_F_present_with_gold` — synthetic xlsx 30 valid rows; assert `Panel E`/`Panel F` (non-pending) in TeX + cm PNG + per_model CSV
 9. `test_panels_E_F_pending_when_empty` — 30 rows all R-cells NaN
 10. `test_panels_E_F_pending_when_file_absent`
-11. `test_panels_A_to_D_structural_equality` — Round-6 R6C-04 + Round-7 R7C-01 + Round-12 R12C-01 (truncation-rule revision): the pre-refactor `.tex` produced by `generate_latex_table` contains exactly ONE `\end{tabular}` (since all panels live inside a single `tabular` block). The previous byte-offset truncation rules collapse to the same byte position and provide no protection — the post-refactor will append Panels E/F BEFORE that single `\end{tabular}`, so any byte-offset truncation either (a) truncates BEFORE E/F in the post file, swallowing the new content, OR (b) truncates AT/AFTER `\end{tabular}` in both files, producing a non-empty filtered diff. **Structural constraint instead**: the P0 refactor MUST place Panels E/F in a SEPARATE `tabular` environment (a new `\begin{tabular}` / `\end{tabular}` block immediately after the existing one). This makes "first `\end{tabular}` in file" a stable anchor that occurs only once in the pre-refactor and remains the boundary between Panels A-D (1st block) and Panels E-F (2nd block) in the post-refactor.
+11. `test_panels_A_to_D_structural_equality` — Round-6 R6C-04 + Round-7 R7C-01 + Round-12 R12C-01 + Round-40 R40B-01 (fixture-sequencing fix)
+
+    **Round-40 R40B-01 + Round-41 R41C-01 setup requirement (per-test fixture scope)**: the test reads `eval_reports/classification_eval_table.tex`. Tests 8/9/10/11 each require MUTUALLY EXCLUSIVE xlsx states (populated / empty-cells / file-absent / demo-mode for A-D golden), so a single module-scoped autouse `main()` call CANNOT satisfy all of them. Instead, each affected test sets up its own xlsx state and invokes `main()` locally:
+    ```python
+    @pytest.fixture
+    def regenerated_eval_table(tmp_path, monkeypatch):
+        """Function-scoped: each test sets xlsx state, then this fixture runs main()."""
+        def _run():
+            from news_process.validation.llms_evaluation import main as eval_main
+            eval_main()
+        return _run
+    
+    def test_panels_A_to_D_structural_equality(regenerated_eval_table):
+        # No xlsx setup needed — pre-refactor golden was captured under demo-mode (L966 branch).
+        # Post-refactor must also run under demo-mode to be byte-comparable.
+        # Default config-pointed xlsx has empty gold cells → L966 demo-fallback triggers.
+        regenerated_eval_table()
+        pre = ...  # see truncation rule below
+    
+    def test_panels_E_F_present_with_gold(synthetic_xlsx_30valid, regenerated_eval_table):
+        # synthetic_xlsx_30valid fixture writes 30 valid rows to manual_validation_samples.xlsx
+        regenerated_eval_table()
+        ...
+    ```
+    Each test responsible for its own state + invocation. §10 P0 sequence reorders to run main() before pytest only for manual reproducibility; the fixture is normative.
+
+    Then continue with the truncation-rule revision:: the pre-refactor `.tex` produced by `generate_latex_table` contains exactly ONE `\end{tabular}` (since all panels live inside a single `tabular` block). The previous byte-offset truncation rules collapse to the same byte position and provide no protection — the post-refactor will append Panels E/F BEFORE that single `\end{tabular}`, so any byte-offset truncation either (a) truncates BEFORE E/F in the post file, swallowing the new content, OR (b) truncates AT/AFTER `\end{tabular}` in both files, producing a non-empty filtered diff. **Structural constraint instead**: the P0 refactor MUST place Panels E/F in a SEPARATE `tabular` environment (a new `\begin{tabular}` / `\end{tabular}` block immediately after the existing one). This makes "first `\end{tabular}` in file" a stable anchor that occurs only once in the pre-refactor and remains the boundary between Panels A-D (1st block) and Panels E-F (2nd block) in the post-refactor.
 
     With the structural constraint in place, the test is:
     ```python
     def test_panels_A_to_D_structural_equality():
         pre = Path(fixtures / "classification_eval_table_A_to_D_golden.tex").read_text("utf-8")
         post = Path(eval_reports / "classification_eval_table.tex").read_text("utf-8")
-        cut = lambda s: s[: s.find(r"\end{tabular}") + len(r"\end{tabular}")]
+        # Round-22 R22C-01: use .index() (raises ValueError if missing) instead of .find() (returns -1 silently)
+        assert r"\end{tabular}" in pre, "pre-refactor golden missing \\end{tabular}"
+        assert r"\end{tabular}" in post, "post-refactor output missing \\end{tabular}"
+        def cut(s):
+            idx = s.index(r"\end{tabular}")
+            return s[: idx + len(r"\end{tabular}")]
         meta = re.compile(r"^(?:% Generated:|% Timestamp:|% Run-ID:).*$", re.MULTILINE)
         assert meta.sub("", cut(pre)) == meta.sub("", cut(post))
     ```
@@ -241,11 +271,46 @@ to be cwd-independent (Round-3 R3C-05).
 12. `test_xlsx_with_wrong_columns_emits_pending` — pending footnote, no raise
 13. `test_join_falls_back_to_orig_index`
 14. `test_duplicate_docid_dedupe_with_warn` — dedupe keep-first; WARN logged
-15. `test_r_column_schema_coupling` — import both `R_COLUMNS_BY_RATER` and `manual_validation_sampling.py`; assert column-name lists and value-vocabulary mappings match (Round-3 R3C-01 closure)
-16. `test_panels_E_F_in_separate_tabular` (Round-12 R12C-01; replaces R7C-01's offset-file approach which was found vacuous): assert the post-refactor `classification_eval_table.tex` contains exactly TWO `\begin{tabular}` blocks; the first contains literals `Panel A` / `Panel B` / `Panel C` (and `Panel D` if bias-diagnostic gold present); the second contains literal `Panel E` (always) and `Panel F` (always). This enforces the structural-constraint that makes the truncation rule in test 11 valid.
+15. `test_r_column_schema_coupling` (Round-33 R33B-01 + Round-34 R34A/B/C-01 — corrected for f-string template structure): the rater-column names live INSIDE `main()` at `news_process/scripts/migrate/manual_validation_sampling.py:L130-144` as f-string template `f'{rater}_stage3a_substantiveness'` / `f'{rater}_stage3b_locus'` over `for rater in ['R1','R2','R3']`. **Literal strings like `R1_stage3a_substantiveness` never appear in the script source** — only the template components do. The test must therefore verify the TEMPLATE PIECES, not the assembled keys.
+
+    Implementation:
+    ```python
+    def test_r_column_schema_coupling():
+        from news_process.validation.manual_validation_schema import (
+            R_COLUMNS_BY_RATER,
+            _RATER_VALUE_TO_CANONICAL_LABEL_RAW as _vocab,
+        )
+        from pathlib import Path
+        src = (Path(news_process_root) / 'scripts/migrate/manual_validation_sampling.py').read_text('utf-8')
+
+        # (a) Template-piece presence: f-string suffixes + rater enumeration
+        assert 'stage3a_substantiveness' in src
+        assert 'stage3b_locus' in src
+        for rater in ('R1', 'R2', 'R3'):
+            assert rater in src
+
+        # (b) Reconstruct expected column names from template + verify they
+        # MATCH the schema constant (the script's output and R_COLUMNS_BY_RATER
+        # are derived from the same template grammar)
+        reconstructed_subst = [f'{r}_stage3a_substantiveness' for r in ('R1','R2','R3')]
+        reconstructed_locus = [f'{r}_stage3b_locus' for r in ('R1','R2','R3')]
+        assert R_COLUMNS_BY_RATER['substantiveness'] == reconstructed_subst
+        assert R_COLUMNS_BY_RATER['locus'] == reconstructed_locus
+
+        # (c) Value-vocabulary: English keys appear literally in script comments
+        # at L132-141, e.g. `# substantive / symbolic`
+        for token in ('substantive', 'symbolic', 'technology', 'application'):
+            assert token in src
+        # Round-trip check: every script token is in the canonical map
+        for token in ('substantive', 'symbolic', 'technology', 'application'):
+            assert token in _vocab
+    ```
+
+    This supersedes the prior `exec_module` / stdout-capture / dict-iteration approaches (R24B-01/R27B-01/R28B-01/R33B-01) entirely. The test does NOT import the sampling script — purely text-based coupling check plus a round-trip reconstruction proof that the schema constant equals what the template grammar would produce. Round-3 R3C-01 closure preserved.
+16. `test_panels_E_F_in_separate_tabular` (Round-12 R12C-01; replaces R7C-01's offset-file approach which was found vacuous; Round-21 R21A-01 reconciliation): assert the post-refactor `classification_eval_table.tex` contains exactly TWO `\begin{tabular}` blocks; the first contains literals `Panel A` / `Panel B` / `Panel C` (and `Panel D` if bias-diagnostic gold present); the second contains literal `Panel E` (always) and `Panel F` (always) — both populated and pending fixtures must satisfy this, with the pending fixtures adding a "manual validation pending" data row UNDER each Panel E/F header rather than omitting the headers. This enforces the structural-constraint that makes the truncation rule in test 11 valid and is compatible with tests 9/10's pending state.
 17. `test_sha_missing_is_auto_generated` (Round-7 R7C-02; Round-14 R14A-01 reverts dual-fixture extension) — single fixture `manual_validation_samples_synthetic.xlsx`: delete the `.sha` sidecar; invoke the fixture-loading helper; assert the `.sha` is regenerated from the existing xlsx (re-read + re-hash); existing xlsx is NOT modified.
 
-Note (Round-8 R8B-01 disambiguation): the tokenize-guard `test_no_orphan_twelve_in_validation_count` is P1-owned and lives in `tests/integration/test_dag_consistency.py`; it is enumerated as item 10 in §4.3.6 only. It is NOT counted in P0's +17 delta. See §4.3.5 for the function body.
+Note (Round-8 R8B-01 disambiguation): the tokenize-guard `test_no_orphan_twelve_in_validation_count` is P1-owned and lives in `tests/integration/test_dag_consistency.py`; it is enumerated as item 11 in §4.3.6 only. It is NOT counted in P0's +17 delta. See §4.3.5 for the function body.
 
 **P0 test delta: +17 (P0 total 17; was 15 in v1.6, +2 for new tests 16-17 per Round-7 R7C-01/R7C-02).**
 
@@ -270,7 +335,7 @@ Note (Round-8 R8B-01 disambiguation): the tokenize-guard `test_no_orphan_twelve_
 - `classification_eval_table_A_to_D_golden.tex`: pre-refactor snapshot. Round-12 R12C-01: sidecar `.offset` file is NOT needed (the offset-file rule was found vacuous when pre-refactor has only one `\end{tabular}`). Truncation uses the first `\end{tabular}` and the post-refactor structural constraint (Panels E/F in a separate `tabular` block).
 
 **P0 commit sequence** (single commit, atomic; Round-14 R14A-01 / R14B-01 simplification):
-1. Capture pre-refactor golden TeX. The configured filename per `config/paths.yaml:56` is `output_32_human_sample: 32_human_samples.xlsx` (NOT `32_news_llms_human_samples.xlsx` despite the variable name in the code). The file is **present** in `data/processed/` (3.18 MB, 1000 rows) but with all gold annotation columns empty (per memory `calibration_plan_v5_1_frozen`, Day 0 G1 FAIL). On a clean checkout running pre-refactor `main()`, the reachability path is: L891 `os.path.exists(verify_path) == True` (file is present) → load succeeds at L908 → L960-967 detects all-empty gold columns → L966 `df_verify = _generate_demo_data()` activates demo mode with 200 deterministic rows (`np.random.RandomState(42)`-seeded). This populates Panels A-D in the pre-refactor TeX. Inject `manual_validation_samples_synthetic.xlsx` for innovation R-columns. Capture output `classification_eval_table.tex` → `tests/fixtures/classification_eval_table_A_to_D_golden.tex`. (No code change to pre-refactor `main()` required; all three demo-fallback branches at L898/L913/L966 produce byte-identical synthesized data via `np.random.RandomState(42)`; the reachable branch under current repo state is L966.)
+1. Capture pre-refactor golden TeX. The configured filename per `config/paths.yaml:56` is `output_32_human_sample: 32_human_samples.xlsx` (NOT `32_news_llms_human_samples.xlsx` despite the variable name in the code). The file is **present** in `data/processed/` (3.18 MB, 1000 rows) but with all gold annotation columns empty (per memory `calibration_plan_v5_1_frozen`, Day 0 G1 FAIL). On a clean checkout running pre-refactor `main()`, the reachability path (Round-20 R20C-02 refined): L891 `os.path.exists(verify_path) == True` (file is present) → load succeeds at L908 → L960 `final_ver in df_verify.columns` is False (column `最终_验证` absent in current xlsx — verifiable via `pd.read_excel(...).columns`) → L962 elif `df_verify[coder_a_ver].notna().sum() == 0` (all gold cells empty) → L965 else → L966 `df_verify = _generate_demo_data()` activates demo mode with 200 deterministic rows (`np.random.RandomState(42)`-seeded). This populates Panels A-D in the pre-refactor TeX. Inject `manual_validation_samples_synthetic.xlsx` for innovation R-columns. Capture output `classification_eval_table.tex` → `tests/fixtures/classification_eval_table_A_to_D_golden.tex`. (No code change to pre-refactor `main()` required; all three demo-fallback branches at L898/L913/L966 produce byte-identical synthesized data via `np.random.RandomState(42)`; the reachable branch under current repo state is L966.)
 2. Apply the P0 refactor to `llms_evaluation.py`.
 3. Add the new tests in `test_33_evaluation.py` (fixture loading uses `Path(__file__).resolve().parent / 'fixtures'`).
 4. Commit all files together (manual_validation_samples_synthetic.xlsx + its `.sha` sidecar + golden TeX + refactor + new tests + schema module).
@@ -294,7 +359,7 @@ join on docid (preferred) or orig_index (fallback)
 ### 3.5 Test Plan
 
 - `"F:/Anaconda3/python.exe" -m pytest news_process/tests/test_33_evaluation.py -v`.
-- `"F:/Anaconda3/python.exe" -m pytest`. Falsifiable: `count == 1153 + Σ(deltas)` (R2C-08 formula).
+- `"F:/Anaconda3/python.exe" -m pytest`. Falsifiable per §8 **delta gate** (Round-40 R40A-01 + Round-42 R42A/B/C-01 parametrize-aware): pre-P0 passed-count `N2` minus post-P0 passed-count `N3`; assert `N3 - N2 == delta_P0_cases == 26` (parametrize-aware case count per §8 R41B-01 — test 7 has 10 cases; total P0 = 16 single-case tests + 10 cases from test 7 = 26 passed-count delta). Absolute counts are NOT gated due to data-dependent conditional skips (R39B-01 fix).
 - Lint: ruff on touched / new files.
 
 ### 3.6 Risks and Rollback
@@ -318,12 +383,12 @@ new schema module yet, so removal is safe.
 
 **Code-path** (achievable now):
 - All 17 new tests pass (`pytest tests/test_33_evaluation.py`).
-- `pytest` collected count satisfies the formula gate.
+- `pytest` passed-count DELTA satisfies the formula gate.
 - `classification_eval_table.tex` contains `"Panel E"` and `"Panel F"`.
 - Filtered diff pre/post is empty.
 - `ruff check` clean.
 
-**Data-path** (deferred):
+**Data-path** (deferred to BOTH (a) `manual_validation_sampling.py` v3.2.0 dual-track migration per §2 + (b) rater coordination; Round-23 R23A-01):
 - `cm_innovation_substantiveness_llm_{full,ctx}.png`, `cm_innovation_locus_llm_{full,ctx}.png` non-empty.
 - `per_model_innovation_substantiveness_comparison.csv`, `per_model_innovation_locus_comparison.csv` ≥ 1 data row.
 - Panels E/F populated (not pending).
@@ -351,10 +416,10 @@ existing 32a/38a/38b precedent).
 
 - `_compute_kappa_with_bootstrap(y1, y2, n_boot=1000, seed=42)`:
   1. **Short-circuit small n** (Round-3 R3C-04): if `n_obs < 3` → `(nan, nan, nan, n_obs)` immediately; do NOT bootstrap.
-  2. Call [cohens_kappa_2cat](../../validation/radius_sensitivity_llm.py#L54) for point κ.
-  3. Bootstrap via `rng = numpy.random.default_rng(seed)` for `n_obs ≥ 3`; resample indices with replacement n_boot times.
-  4. Return `(kappa_point, np.percentile(kappas, 2.5), np.percentile(kappas, 97.5), n_obs)`.
-  5. Edge: one column constant → `(nan, nan, nan, n_obs)`.
+  2. Call [cohens_kappa_2cat](../../validation/radius_sensitivity_llm.py#L54) for point κ. **Note (Round-29 R29C-01)**: `cohens_kappa_2cat` returns a dict `{kappa, observed_agreement, expected_agreement, n}`, NOT a scalar. Extract the scalar via `kappa_point = cohens_kappa_2cat(y1, y2)['kappa']`.
+  3. Bootstrap via `rng = numpy.random.default_rng(seed)` for `n_obs ≥ 3`; resample indices with replacement n_boot times. For each resample, append the dict's `['kappa']` value (NOT the dict): `kappas.append(cohens_kappa_2cat(y1_b, y2_b)['kappa'])`. **NaN handling (Round-30 R30A-01/R30B-01)**: at small n with high class imbalance (manual_validation_study_plan.md:34 documents minority-class n=1), some bootstrap resamples produce constant columns, causing `cohens_kappa_2cat` to return `kappa=NaN` (radius_sensitivity_llm.py:72-74 `p_e >= 1.0` branch). The bootstrap loop allows these NaNs into the `kappas` list.
+  4. Compute CI via **NaN-aware percentile**: `finite = [k for k in kappas if not np.isnan(k)]`; if `len(finite) < 0.5 * n_boot` (i.e., majority of resamples degenerate) → return `(kappa_point, nan, nan, n_obs)` with WARN log (CI not computable); else `(kappa_point, np.nanpercentile(kappas, 2.5), np.nanpercentile(kappas, 97.5), n_obs)`. Using `np.nanpercentile` instead of `np.percentile` prevents a single degenerate resample from collapsing both CI bounds.
+  5. Edge: one column constant in the original (non-resampled) input → `(nan, nan, nan, n_obs)`.
 - `compute_inter_track_kappa(df)` → DataFrame[7 cols]: `field`, `kappa_point`, `ci_95_low`, `ci_95_high`, `n_obs`, `threshold`, `passes_threshold` (`kappa_point >= threshold`; NaN → False).
 - `run_stage(config, logger)`:
   1. Read `21_tone_llms.parquet`.
@@ -411,14 +476,15 @@ existing 32a/38a/38b precedent).
 5. `test_kappa_small_n_short_circuit` (Round-3 R3C-04) — parametrize n ∈ {1, 2}; both return `(nan, nan, nan, n)` without invoking bootstrap.
 6. `test_outputs_emitted`.
 7. `test_dag_registration` — `"39a_inter_track_kappa.py"` in `EXPECTED_NO_OUTPUT_STAGES`; `len(STAGES_VALIDATION) == 13`.
-8. `test_kappa_bootstrap_reproducibility` (Round-3 R3C-03) — call `_compute_kappa_with_bootstrap` twice on identical inputs; assert via `numpy.testing.assert_array_equal` on the full 4-tuple `(kappa_point, ci_low, ci_high, n_obs)`.
-9. `test_missing_dual_both_column` — emit NaN row + WARN; no raise.
+8. `test_kappa_bootstrap_handles_degenerate_resamples` (Round-30 R30A-01/R30B-01): n_obs=3 with 2 disagreeing labels (constant-column resamples produce NaN kappa per `cohens_kappa_2cat`'s p_e≥1 branch); assert CI bounds finite when point-κ finite AND ≥50% of resamples finite; assert CI = `(nan, nan)` + WARN log when <50% of resamples finite.
+9. `test_kappa_bootstrap_reproducibility` (Round-3 R3C-03) — call `_compute_kappa_with_bootstrap` twice on identical inputs; assert via `numpy.testing.assert_array_equal` on the full 4-tuple `(kappa_point, ci_low, ci_high, n_obs)`.
+10. `test_missing_dual_both_column` — emit NaN row + WARN; no raise.
 
 P1 also adds **one additional test in a different file** (`tests/integration/test_dag_consistency.py`):
 
-10. `test_no_orphan_twelve_in_validation_count` (Round-7 R7C-03) — tokenize-based guard against future `12` literals in `test_validation_stage_count` source; function body specified at §4.3.5. Location: `tests/integration/test_dag_consistency.py` (NOT `tests/test_39a_inter_track_kappa.py`).
+11. `test_no_orphan_twelve_in_validation_count` (Round-7 R7C-03) — tokenize-based guard against future `12` literals in `test_validation_stage_count` source; function body specified at §4.3.5. Location: `tests/integration/test_dag_consistency.py` (NOT `tests/test_39a_inter_track_kappa.py`).
 
-**P1 test delta: +10 total (9 in test_39a_inter_track_kappa.py + 1 in test_dag_consistency.py; was 9 in v1.6, +1 for new test 10 per Round-7 R7C-03).**
+**P1 test delta: +11 total (10 in test_39a_inter_track_kappa.py + 1 in test_dag_consistency.py; was 10 in v1.25, +1 for new test 8 `test_kappa_bootstrap_handles_degenerate_resamples` per Round-30 R30A-01/R30B-01).**
 
 ### 4.4 Data Flow
 
@@ -431,7 +497,7 @@ P1 also adds **one additional test in a different file** (`tests/integration/tes
 
 ### 4.5 Test Plan
 
-- `pytest news_process/tests/test_39a_inter_track_kappa.py -v` (9 tests in this file; the 10th P1 test lives in `tests/integration/test_dag_consistency.py`).
+- `pytest news_process/tests/test_39a_inter_track_kappa.py -v` (10 tests in this file; the 11th P1 test lives in `tests/integration/test_dag_consistency.py`). Falsifiable per §8 delta gate (Round-44 R44B-01 symmetric propagation): assert `N1 - N0 == delta_P1_cases == 12` (parametrize-aware: test 5 has 2 cases, others 1 each; total 10 + 2 = 12 passed-count delta).
 - `pytest news_process/tests/integration/test_dag_consistency.py -v` (count = 13).
 - `pytest` formula gate.
 - Lint: ruff on new files.
@@ -442,7 +508,7 @@ P1 also adds **one additional test in a different file** (`tests/integration/tes
 |---|---|
 | Bootstrap non-determinism | seed=42; `test_kappa_bootstrap_reproducibility`. |
 | Constant column / empty / small n | Tests 3, 4, 5. |
-| Missing dual-both column | Test 9. |
+| Missing dual-both column | Test 10. |
 | Stage in wrong DAG list / suffix wrong | Test 7. |
 | `test_dag_consistency.py` count drift | P1 commit is single atomic commit including the L98 update (Round-3 R3C-06). |
 
@@ -487,13 +553,17 @@ Article-level `avg_subst_prob_score_{full,ctx}`,
 
 - **New function** `compute_prob_score_binary(label, confidence, positive_class)` placed adjacent to existing `compute_prob_score` at [L680](../../pipeline/sentiment/tone_llms.py#L680). Returns `{prob_score, prob_source}` with `prob_source ∈ {"P2_BIN", "P3_BIN"}`.
 
-  **Input domain validation** (Round-3 R3C-06):
+  **Input domain validation** (Round-3 R3C-06 + Round-29 R29A-01 positive_class guard):
+  - Define `VALID_BINARY_LABELS = {"实质性", "象征性", "底层技术", "应用场景"}` (canonical set; subst pair and locus pair).
+  - **Rule 0 (R29A-01)**: `positive_class not in VALID_BINARY_LABELS`: `(NaN, "P3_BIN")` — guards against typos like "不存在" and tests like `test_mismatched_positive_class`.
   - `label is None` or `confidence is None`: `(NaN, "P3_BIN")`.
-  - `label` not in valid binary labels: `(NaN, "P3_BIN")`.
+  - `label not in VALID_BINARY_LABELS`: `(NaN, "P3_BIN")`.
   - `confidence` outside `[0, 1]` (e.g., 1.0001 from rounding): `(NaN, "P3_BIN")`.
-  - `confidence == 0`: one-hot fallback (`label == positive_class` → 1.0; else → 0.0), `"P3_BIN"`.
+  - `confidence == 0`: one-hot fallback (`label == positive_class` → 1.0; else → 0.0), `"P3_BIN"`. **Discontinuity note (Round-33 R33A-01 design clarification)**: at c=0 the function returns the label's one-hot encoding (1.0 or 0.0), while at c=0+ε the P2_BIN rule returns ε (or 1−ε). This is a deliberate discontinuity inherited from the existing 3-class `compute_prob_score` ([tone_llms.py:752-760](../../pipeline/sentiment/tone_llms.py#L752-L760)) where `if confidence else 0.0` short-circuits to a P3 one-hot fallback at c=0. Strictly, a max-entropy completion at c=0 would assign 0.5, but we preserve the existing 3-class semantics for parallelism — the c=0 case represents a "missing/explicitly-zero confidence" signal where the LLM's label is taken as authoritative one-hot, not as a probability claim. Tests 6/7 encode this intentional behavior. The continuity violation is a known limitation of verbalized-confidence indicators (Törnberg 2024); the §5.2 Jaynes/Cover & Thomas anchor governs the c>0 P2_BIN branch only, NOT the c=0 P3_BIN fallback.
   - `label == positive_class` and `0 < confidence ≤ 1`: `(confidence, "P2_BIN")`.
   - `label != positive_class` and `0 < confidence ≤ 1`: `(1 − confidence, "P2_BIN")`.
+
+  Rule 0 must be checked BEFORE other label/confidence rules; this makes `test_mismatched_positive_class` (§5.3.5 item 9) reachable from the rule chain.
 
 - **Positive-class choice — Stata-encoding-consistent**:
   - Substantiveness: `positive_class = "象征性"`.
@@ -552,9 +622,22 @@ Article-level `avg_subst_prob_score_{full,ctx}`,
 
 - **`_aggregate_track`** ([L773-940](../../pipeline/sentiment/tone_llms.py#L773-L940)) — two-step extension (Round-17 R17A-02):
 
-  **Step A — store per-model innovation labels in `per_model_parsed`**: the existing parsing block at L868-885 appends valid locus labels to flat `innov_loci` and valid substantiveness labels to flat `innov_substs` lists but does NOT store per-model identity for those labels. Per-model *confidences* are stored at L887-898 as `{short}_innovation_substantiveness_confidence` / `{short}_innovation_locus_confidence`; the matching labels are not. P2 extends the parsing block to also write:
-  - `per_model_parsed[f"{short}_innovation_locus"] = part` (canonical `底层技术` / `应用场景`, set inside the L874 acceptance branch) or `None` (else branch).
-  - `per_model_parsed[f"{short}_innovation_substantiveness"] = tt_str` (set inside the L883 acceptance branch) or `None` (else).
+  **Step A — store per-model innovation labels in `per_model_parsed`** (Round-18 R18B-02 / R18C-01 unconditional-init refinement): the existing parsing block at L868-885 appends valid locus labels to flat `innov_loci` and valid substantiveness labels to flat `innov_substs` lists but does NOT store per-model identity for those labels. Per-model *confidences* are stored at L887-898 as `{short}_innovation_substantiveness_confidence` / `{short}_innovation_locus_confidence`; the matching labels are not. The L870 / L880 guards (`if llm_cat:` / `if llm_tt:`) short-circuit when the JSON field is missing, and the L874 / L883 acceptance branches are bare `if part in (...)` blocks with no `else` clause — so a naïve implementation that only writes inside the acceptance branch would leave the dict key absent for any model returning missing or invalid labels, KeyError-ing in Step B.
+
+  P2 extends the parsing block with **unconditional default-init** parallel to the existing L853-854 pattern (sentinel `None`), then **overwrites** inside the acceptance branch. The init must cover BOTH the normal path AND the API-failure early-continue path at L820-826 (Round-19 R19B-01 — without this, `raw_text is None` models skip past the post-L854 insertion point and leave the dict keys absent → KeyError in Step B):
+
+  - **Four new lines** (Round-20 R20A-01 extends labels-only init to include confidence-key init) inserted at the **top of each model iteration**, immediately after `short = m['short_name']` at L816 (before the L820 `if raw_text is None:` guard):
+    ```python
+    per_model_parsed[f"{short}_innovation_locus"] = None
+    per_model_parsed[f"{short}_innovation_substantiveness"] = None
+    per_model_parsed[f"{short}_innovation_locus_confidence"] = 0.0
+    per_model_parsed[f"{short}_innovation_substantiveness_confidence"] = 0.0
+    ```
+    Placing them at the top covers BOTH the API-failure `continue` branch (L825-826) AND the normal parsing branch (post-L854), guaranteeing all four keys are always present. The confidence keys still get overwritten at L887-898 in the normal path; the API-failure path inherits the `0.0` default which `compute_prob_score_binary` recognizes as the one-hot fallback branch (P3_BIN with prob_score = 0 or 1 based on label, but the label itself is None → falls to the `label is None` branch → `(NaN, "P3_BIN")`).
+  - In the L874 acceptance branch (after `innov_loci.append(part)`), add: `per_model_parsed[f"{short}_innovation_locus"] = part`.
+  - In the L883 acceptance branch (after `innov_substs.append(tt_str)`), add: `per_model_parsed[f"{short}_innovation_substantiveness"] = tt_str`.
+
+  This guarantees: keys are ALWAYS present for every model `short`, values are canonical-label or `None`. Step B's `compute_prob_score_binary(None, conf, positive_class)` returns `(NaN, "P3_BIN")` per §5.3.1 input-domain rule, propagating cleanly through `np.nanmean`.
 
   **Step B — compute per-model binary prob_score**: using the (label, confidence) pairs stored in Step A and `compute_prob_score_binary`, with positive_class `"象征性"` for substantiveness and `"应用场景"` for locus. NaN-safe `np.nanmean` across non-NaN per-model scores. Returns new fields `avg_subst_prob_score`, `avg_locus_prob_score`; if all per-model values are NaN, return NaN. P2 test 13 `test_per_model_innovation_labels_stored` (§5.3.5) enforces Step A's contract.
 
@@ -570,7 +653,7 @@ Article-level `avg_subst_prob_score_{full,ctx}`,
 
 #### 5.3.4 `news_process/pipeline/panel/stata_export.py`
 
-- Add 8 entries to `HEURISTIC_LABELS` dict (insertion point after [L124](../../pipeline/panel/stata_export.py#L124), within the function `build_variable_labels` defined at L108).
+- Add 8 entries to `HEURISTIC_LABELS` dict (Round-36 R36B-01 corrections: dict literal spans [L108-L124](../../pipeline/panel/stata_export.py#L108-L124) inside `build_variable_labels` defined at [L89](../../pipeline/panel/stata_export.py#L89); insertion lands BEFORE L124 within the dict literal, NOT after — inserting after L124 lands outside the dict, causing syntax error).
 - Add 8 column-name patterns to `core_patterns` in `assign_core_columns` ([L162-200](../../pipeline/panel/stata_export.py#L162-L200)) so they are tagged "core" under the 2048-var IC cap.
 - `validate_stata_compat` ([L268-269](../../pipeline/panel/stata_export.py#L268-L269)) enforces `len(label.encode('utf-8')) ≤ 80` (BYTES per [L37](../../pipeline/panel/stata_export.py#L37)).
 
@@ -579,17 +662,17 @@ Article-level `avg_subst_prob_score_{full,ctx}`,
 | Column | Label | Chars | Bytes |
 |---|---|---|---|
 | `avg_subst_prob_score_full` | `Avg Subst P_BIN (full-track) — 1=symbolic, max-ent map` | 54 | 56 |
-| `avg_subst_prob_score_full_std` | `Std Subst P_BIN (full-track, bank-year SD)` | 42 | 42 |
+| `avg_subst_prob_score_std_full` | `Std Subst P_BIN (full-track, bank-year SD)` | 42 | 42 |
 | `avg_subst_prob_score_ctx` | `Avg Subst P_BIN (ctx-track) — 1=symbolic, max-ent map` | 53 | 55 |
-| `avg_subst_prob_score_ctx_std` | `Std Subst P_BIN (ctx-track, bank-year SD)` | 41 | 41 |
+| `avg_subst_prob_score_std_ctx` | `Std Subst P_BIN (ctx-track, bank-year SD)` | 41 | 41 |
 | `avg_locus_prob_score_full` | `Avg Locus P_BIN (full-track) — 1=application, max-ent map` | 57 | 59 |
-| `avg_locus_prob_score_full_std` | `Std Locus P_BIN (full-track, bank-year SD)` | 42 | 42 |
+| `avg_locus_prob_score_std_full` | `Std Locus P_BIN (full-track, bank-year SD)` | 42 | 42 |
 | `avg_locus_prob_score_ctx` | `Avg Locus P_BIN (ctx-track) — 1=application, max-ent map` | 56 | 58 |
-| `avg_locus_prob_score_ctx_std` | `Std Locus P_BIN (ctx-track, bank-year SD)` | 41 | 41 |
+| `avg_locus_prob_score_std_ctx` | `Std Locus P_BIN (ctx-track, bank-year SD)` | 41 | 41 |
 
 Byte counts verified empirically (Round 3 confirmation: `len(s.encode('utf-8'))` matches the table).
 
-#### 5.3.5 `news_process/tests/test_compute_prob_score_binary.py` (new, items 1-12)
+#### 5.3.5 `news_process/tests/test_compute_prob_score_binary.py` (new, items 1-13)
 
 1. `test_positive_label_positive_class`: `("象征性", 1.0, "象征性") → (1.0, "P2_BIN")`.
 2. `test_negative_label_positive_class`: `("实质性", 1.0, "象征性") → (0.0, "P2_BIN")`.
@@ -603,7 +686,13 @@ Byte counts verified empirically (Round 3 confirmation: `len(s.encode('utf-8'))`
 10. `test_confidence_clamp_above_one`: `("象征性", 1.0001, "象征性") → (NaN, "P3_BIN")`.
 11. `test_confidence_clamp_below_zero`: `("象征性", -0.0001, "象征性") → (NaN, "P3_BIN")`.
 12. `test_three_class_compute_prob_score_unchanged_smoke` — **parametrized** for both P2 and P3 paths (Round-3 R3C-10 + Round-4 R4B-01 correction): for `("正面", 0.7)` assert P2 output `{prob_pos: 0.7, prob_neu: pytest.approx(0.15), prob_neg: pytest.approx(0.15), prob_score: 0.55, prob_source: "P2"}`; for `(None, 0.0)` assert P3 output `{prob_pos: 0.0, prob_neu: 1.0, prob_neg: 0.0, prob_score: 0.0, prob_source: "P3"}` (verified via `compute_prob_score(None, 0.0)` returning P3 because `c == 0` triggers the else-branch at tone_llms.py:757; `(None, 0.5)` is the wrong P3-trigger because c>0 → P2 with neutral cls).
-13. `test_per_model_innovation_labels_stored` (Round-17 R17A-02): construct a mock `_aggregate_track` invocation with 3 models each returning JSON containing valid `innovation_locus` + `innovation_substantiveness` labels; assert the returned `per_model_parsed` dict contains both `{short}_innovation_locus` and `{short}_innovation_substantiveness` keys for each of the 3 models (6 new keys total); assert their values match the model-emitted labels (NOT the majority-voted aggregate). This enforces the parsing-block extension specified in §5.3.1 Step A.
+13. `test_per_model_innovation_labels_stored` (Round-17 R17A-02 + Round-18 R18C-01 missing-key coverage + Round-19 R19B-01 API-failure coverage): parametrize over four model-output mixes:
+    - **All valid**: 3 models each emit valid `innovation_locus` + `innovation_substantiveness` labels; assert `per_model_parsed` contains both keys per model (6 keys) with values matching emitted labels.
+    - **One invalid label**: 3 models, one emits `{"innovation_locus": "其他"}` (unrecognized); assert keys are STILL present for ALL 3 models, with the unrecognized model's value = `None` (per the top-of-loop default-init pattern §5.3.1 Step A).
+    - **One missing field**: 3 models, one emits JSON without the `innovation_locus` key at all; assert keys still present for ALL 3 models, missing-field model's value = `None`.
+    - **One API failure** (Round-19 R19B-01 + Round-20 R20A-01 confidence-key coverage): `model_res_dict` has `raw_text = None` for one model (simulating API call failure path at L820-826); assert ALL 4 keys still present for ALL 3 models (`_innovation_locus`, `_innovation_substantiveness`, `_innovation_locus_confidence`, `_innovation_substantiveness_confidence`); API-failed model's label values = `None`, confidence values = `0.0`; downstream `avg_locus_prob_score` = `np.nanmean` over the 2 valid models, NOT NaN, NOT KeyError.
+
+    Also assert that downstream `avg_locus_prob_score` for the latter three mixes is `np.nanmean` over the valid models (2 of 3), NOT NaN. Per the majority-voted aggregate's distinctness, the per-model keys must NOT equal the aggregate.
 
 #### 5.3.6 `news_process/tests/test_panel_binary_prob_columns.py` (new, items 1-5)
 
@@ -611,7 +700,16 @@ Byte counts verified empirically (Round 3 confirmation: `len(s.encode('utf-8'))`
 2. `test_eight_new_columns_present`: 8 new columns in `40_panel_yearly.parquet`.
 3. `test_zero_article_bank_year_nan`: zero-article cell → all 8 NaN.
 4. `test_positive_class_encoding_assertion` — **parametrized for both dims** (Round-4 R4C-02): case (a) `("象征性", 1.0)` for substantiveness → `avg_subst_prob_score_full == 1.0`; case (b) `("应用场景", 1.0)` for locus → `avg_locus_prob_score_full == 1.0`. Both sign-flip guards.
-5. `test_golden_baseline_diff_scope` (Round-3 R3C-11 + Round-4 R4B-02/R4C-01): **exact integer equality** assertion: `n_added_21 == 4 and n_added_40 == 8 and n_added_51 == 8 and n_added_41 == 0 and other_stages_diff == 0`. Rationale: `41_panel_with_controls.parquet` exists in `data/processed/` (255 KB) and in `golden_panel_v0.json`, but has NO producer registered in `core/schemas.py::OUTPUT_REGISTRY` and no `to_parquet` / `save_dataset` writer for that filename anywhere in `news_process/pipeline/` (verified at v1.4 authoring). It is an orphan artifact from a defunct stage; P2 cannot propagate columns into it because no code rewrites it. The test asserts the 41 file is unchanged (count 0).
+5. `test_golden_baseline_diff_scope` (Round-3 R3C-11 + Round-4 R4B-02/R4C-01 + Round-27 R27C-01 expanded parquet coverage): **exact integer equality** assertions per affected stage:
+    - `n_added_21_tone_llms == 4` (article-level cols).
+    - `n_added_21_tone_llms_full == 4` (parallel output of same stage, inherits same article-level cols per `core/schemas.py:57,67`).
+    - `n_added_40_article_bank_level == 4` (parallel article-level export from stage 45 per `core/schemas.py:110,117`).
+    - `n_added_40_panel_yearly == 8` (bank-year aggregation).
+    - `n_added_51_panel_with_controls == 8` (left-join inheritance per controls.py:568).
+    - `n_added_41_panel_with_controls == 0` (orphan; no producer registered in OUTPUT_REGISTRY; verified by grep against `to_parquet`/`save_dataset` in `news_process/pipeline/`).
+    - All other stages: `n_added == 0`.
+
+    Rationale for the additional parquets: stage 21 writes both `21_tone_llms.parquet` (verified-only subset) and `21_tone_llms_full.parquet` (with verified=False rows); stage 45 panel orchestrator also emits `40_article_bank_level.parquet` alongside `40_panel_yearly.parquet`. Article-level innovation cols (4) propagate to both stage-21 parquets and to the article-level stage-45 parquet; the bank-year cols (8) only land in `40_panel_yearly.parquet` (and downstream via 51's left-join). The `41_panel_with_controls.parquet` orphan was not produced by P2 and stays at diff count 0.
 
 **P2 test delta: +18 (13 + 5; P2 total 18; was 17 in v1.14, +1 for test 13 `test_per_model_innovation_labels_stored` per Round-17 R17A-02).**
 
@@ -651,7 +749,7 @@ deferred here.
 
 ### 5.5 Test Plan
 
-- `pytest tests/test_compute_prob_score_binary.py -v` (12 tests).
+- `pytest tests/test_compute_prob_score_binary.py -v` (13 tests). Falsifiable per §8 delta gate (Round-44 R44B-01 symmetric propagation): assert `N2 - N1 == delta_P2_cases == 23` (parametrize-aware: §5.3.5 test 12 = 2 cases, test 13 = 4 cases; §5.3.6 test 4 = 2 cases; others 1 each; total 11 + 2 + 4 + 4 + 2 = 23 passed-count delta).
 - `pytest tests/test_panel_binary_prob_columns.py -v` (5 tests).
 - `pytest tests/test_prob_score.py -v` (existing 3-class non-regression).
 - `pytest tests/integration/test_panel_reproducibility.py -v`.
@@ -669,10 +767,12 @@ deferred here.
 | Out-of-domain confidence | Tests 10, 11. |
 | Git tag references stale commit on revert | Rollback adds explicit tag-delete commands; see below. |
 
-**Expected golden-snapshot diff scope**:
-- `21_tone_llms.parquet`: +4 article-level entries.
-- `40_panel_yearly.parquet`: +8 bank-year entries.
-- `51_panel_with_controls.parquet`: +8 entries (inherited via `pd.read_parquet` at `pipeline/falsification/controls.py:261`; preserved through `merge_to_panel` left-join at `pipeline/falsification/controls.py:568`; invocation site `pipeline/falsification/controls.py:1171` inside `main()` (`controls.py:1152`) — NOT `pipeline/panel/runner.py:1171` per Round-15 R15B-01 correction; Round-12 R12C-01 attribution + Round-14 R14C-01 path qualifier + Round-15 R15B-01 invocation-site).
+**Expected golden-snapshot diff scope** (Round-27 R27C-01 expanded coverage):
+- `21_tone_llms.parquet`: +4 article-level entries (verified subset).
+- `21_tone_llms_full.parquet`: +4 article-level entries (parallel output of stage 21 per `core/schemas.py:57,67`; inherits the same article-level cols).
+- `40_article_bank_level.parquet`: +4 article-level entries (parallel article-level export from stage 45 per `core/schemas.py:110,117`).
+- `40_panel_yearly.parquet`: +8 bank-year entries (mean + std aggregation).
+- `51_panel_with_controls.parquet`: +8 entries (inherited via `pd.read_parquet` at `pipeline/falsification/controls.py:261`; preserved through `merge_to_panel` left-join at `pipeline/falsification/controls.py:568`; invocation site `pipeline/falsification/controls.py:1171` inside `main()` (`controls.py:1152`)).
 - `41_panel_with_controls.parquet`: NO change (orphan; no producer per Round-4 R4B-02/R4C-01).
 - All other stages: no diff.
 
@@ -685,14 +785,14 @@ git push --delete origin wz-boundary-positive-class-pinned
 ```
 Forward compatibility: extra columns are ignored by old code paths. P0 does NOT depend on P2.
 
-At v1.3 authoring, `grep -rE 'avg_(subst|locus)_prob_score_' news_process/ papers/` returns 0 hits outside this plan and the audit log; no downstream artifact references the new columns yet.
+At v1.3 authoring, `grep -rE 'avg_(subst|locus)_prob_score_' news_process/` returns 0 hits outside this plan and the audit log; no downstream artifact references the new columns yet.
 
 ### 5.7 Acceptance Criteria
 
 - 8 new panel columns + 4 article-level columns present.
 - `codebook.xlsx` documents all 8 with `positive_class` in formula text.
 - `.dta` export includes all 8 with byte-valid labels per the §5.3.4 table.
-- All 17 new tests pass.
+- All 18 new tests pass (13 in test_compute_prob_score_binary.py + 5 in test_panel_binary_prob_columns.py; Round-18 R18A-01 count correction).
 - `tests/test_prob_score.py` remains green.
 - `compute_prob_score` source unchanged (verified by `git diff` against the function).
 - `wz_framework_boundary_justification.md` contains the 3 verbatim grep targets.
@@ -719,19 +819,25 @@ P0 (eval 4-task refactor) ← largest refactor; isolated to validation/
 **Independence vs reversibility — precise statements**:
 
 - **P1**: fully reversible at any time. Stata template `20_tableA1_inter_track_kappa.do.tmpl` is self-contained.
-- **P2**: reversible while no downstream artifact references the new columns. At v1.3 authoring, `grep -rE 'avg_(subst|locus)_prob_score_' news_process/ papers/` returns zero hits outside this plan and the audit log. Once a paper draft or replication pack cites these columns, P2 revert requires updating that artifact AND the destructive tag teardown.
+- **P2**: reversible while no downstream artifact references the new columns. At v1.3 authoring, `grep -rE 'avg_(subst|locus)_prob_score_' news_process/` returns zero hits outside this plan and the audit log. Once a paper draft or replication pack cites these columns, P2 revert requires updating that artifact AND the destructive tag teardown.
 - **P0**: fully reversible at any time.
 
 All three are independent of `calibration_plan_v5.1` G1 unblock for code landing.
 
 ## 8. End-to-end acceptance
 
-**Numeric gate** (formula): `pytest` collected count satisfies
-`count == 1153 + Σ(delta_P0, delta_P1, delta_P2)` per declared deltas
-(§3.5 = 17, §4.5 = 10, §5.5 = 18; sum 45; target 1198 after v1.15).
-The gate is the formula, not the constant. The v1.15 increment from
-44 → 45 reflects the new P2 test 13 (`test_per_model_innovation_labels_stored`)
-added by Round-17 R17A-02.
+**Numeric gate** (formula, Round-39 R39B-01 + Round-41 R41B-01 parametrize-aware accounting): Let `N0` be the `pytest` "passed" count captured **immediately before** the first P-work-item commit (P1 per §7 order); let `N3` be the count **after** all three P0/P1/P2 commits land. The gate is `N3 - N0 == Σ(delta_P0, delta_P1, delta_P2)`. **Important (R41B-01)**: pytest counts each `@pytest.mark.parametrize` case as a separate "passed" entry. The function-counts (P0=17 funcs, P1=11 funcs, P2=18 funcs) MUST be converted to parametrized-case counts before the formula gate is applied:
+  - **P0 parametrize-aware**: test 7 has 10 cases (substantive/Substantive/" SUBSTANTIVE "/"象征性 "/subtantive/True/1/np.nan/pd.NA/""); test 9 has 4 cases (all-valid/one-invalid/one-missing-field/one-api-failure — NB: this was moved to test 13 of P2 in v1.15; re-verify); tests 1-6, 8-17 have 1 case each. P0 cases = 16 + 10 = **26**.
+  - **P1 parametrize-aware**: test 5 has 2 cases (n=1, n=2); tests 1-4, 6-11 have 1 case each. P1 cases = 10 + 2 = **12**.
+  - **P2 parametrize-aware**: test 12 has 2 cases (P2 path, P3 path); test 13 has 4 cases (all-valid/invalid-label/missing-field/api-failure); test 4 (§5.3.6) has 2 cases (subst, locus dim). Other §5.3.5 tests 1-11 + §5.3.6 tests 1, 2, 3, 5 have 1 case each (Round-44 R44C-01 phantom-enum correction — there are no tests 14-17 in P2). P2 cases = 11 + 2 + 4 + 4 + 2 = **23**.
+  - **Total parametrized delta = 26 + 12 + 23 = 61**, NOT 46. The 46 figure counted functions, not test items; gate must use 61.
+
+Gate: `N3 - N0 == 61`. Absolute counts are NOT gated due to data-dependent conditional skips (R39B-01 fix). The gate is the DELTA formula, not any absolute constant — this immunizes against pytest-count drift from conditional skips (e.g., `test_iss_llm_score_subset` is gated on `21_tone_llms.parquet` presence; pre-flight collection count differs from post-flight passed count by 6-14 depending on data state). The historical "baseline 1388" anchor in §0 is approximate and serves only as a sanity reference; the falsifiable gate is the delta. Lineage: v1.16 anchored an approximate baseline (R18B-01); P0 delta solidified at 17 via v1.7 (R7C-01/R7C-02); P1 delta solidified at 11 via v1.26 (R7C-03 + R30A-01/R30B-01); P2 delta solidified at 18 via v1.15 (R17A-02).
+
+**Measurement protocol**: 
+1. On the branch starting point (before any P-commit), run `"F:/Anaconda3/python.exe" -m pytest news_process/tests/ --tb=no -q` and record the trailing `<N0> passed` figure.
+2. After each of the 3 commits, re-run and record N1, N2, N3.
+3. Assert (parametrize-aware case counts per Round-41 R41B-01): `N1 - N0 == delta_P1_cases == 12`, `N2 - N1 == delta_P2_cases == 23`, `N3 - N2 == delta_P0_cases == 26`, and `N3 - N0 == 61`.
 
 **File-existence gates** (all 3 commits in):
 
@@ -760,9 +866,11 @@ added by Round-17 R17A-02.
 ```bash
 # Repository root: f:\WiseSearch\data_antigravity_project\
 
-# P0
-"F:/Anaconda3/python.exe" -m pytest news_process/tests/test_33_evaluation.py -v
+# P0 (Round-40 R40B-01 sequence: regenerate eval_reports/*.tex BEFORE pytest reads it)
 "F:/Anaconda3/python.exe" -m news_process.validation.llms_evaluation
+"F:/Anaconda3/python.exe" -m pytest news_process/tests/test_33_evaluation.py -v
+# Note: the autouse fixture in §3.3.3 test 11 makes the order safe even if pytest runs first;
+# this CLI sequence is for manual reproducibility / log clarity.
 
 # P1
 "F:/Anaconda3/python.exe" -m pytest news_process/tests/test_39a_inter_track_kappa.py -v
