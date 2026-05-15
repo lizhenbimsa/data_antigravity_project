@@ -102,9 +102,12 @@
 ### ⏳ 后续 Phase（plan v14 §3.5 / §9.2 / §9.6）
 
 - M2 P3: runner.py count 4-way 洗稿率（sentiment × subst 笛卡尔）
-- M3 P4: iv_did.py Bartik IV 双套（lf / lc）
+- M3 P4: iv_did.py Bartik IV 双套（lf / lc）✅ 已完成 (commit e67cc66)
 - M4 P5: codebook +252 元数据 + 3 个 docs/methodology 新文档
-- M5 P5.2: stage 35 radius_sensitivity 词典法 → LLM 法升级 (180k API)
+- M5 P5.2: stage 35 radius_sensitivity 词典法 → LLM 法升级 (**~10.5k API**, 当前 N=1170)
+  * 修订: 早前估算 180k 错误 (基于假定 N≈6700 + 错把 full 轨算重跑)
+  * 实测: 1170 文章 × 3 LLM × 1 ctx 轨 × 3 new radii (radius=1 已缓存) = 10,530
+  * 标度依赖: 未来 N 扩容到 20k 时上升至 180k, 当前不需要
 - M6 P5.2: 14 个 Stata 模板 .do.tmpl
 - M7: build_replication_package + commit-hash 嵌入
 - M8: golden baseline 重生成 + `git tag v3.2.0`
