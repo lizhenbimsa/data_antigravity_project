@@ -80,6 +80,7 @@ _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'dict_coverage_audit': _validation_flag('dict_coverage_audit'),
     'media_diversity': _validation_flag('media_diversity'),
     'prompt_sensitivity': _validation_flag('prompt_sensitivity'),
+    'inter_track_kappa': _validation_flag('inter_track_kappa'),
 }
 
 
@@ -330,6 +331,13 @@ STAGES_VALIDATION: list[StageSpec] = [
         # 次请求。该阶段有增量 LLM 缓存, 但冷缓存完整跑通需要长超时。
         timeout=43200,
         enabled_when=_VALIDATION_PREDS['prompt_sensitivity'],
+    ),
+    StageSpec(
+        name="阶段39a: Inter-track Cohen's κ for innovation dimensions",
+        script="39a_inter_track_kappa.py",
+        group="validation", kind="audit",
+        # 仅 article-level κ + bootstrap CI; 一秒级运行
+        enabled_when=_VALIDATION_PREDS['inter_track_kappa'],
     ),
 ]
 

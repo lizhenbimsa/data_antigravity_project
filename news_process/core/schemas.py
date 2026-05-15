@@ -158,6 +158,7 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "38a_temporal_mask_test.py",
     "38b_decay_sensitivity.py",
     "39_prompt_sensitivity.py",
+    "39a_inter_track_kappa.py",
 })
 
 

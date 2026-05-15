@@ -93,10 +93,30 @@ def test_main_stage_count(core_dag):
 
 
 def test_validation_stage_count(core_dag):
-    """``STAGES_VALIDATION`` 阶段数须等于 Phase 1 验证基线 (12)。"""
-    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 = 12
-    assert len(core_dag.STAGES_VALIDATION) == 12, (
-        f"STAGES_VALIDATION drift: expected 12, got {len(core_dag.STAGES_VALIDATION)}."
+    """``STAGES_VALIDATION`` 阶段数须等于 Phase 1 验证基线 (13)。"""
+    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a = 13
+    assert len(core_dag.STAGES_VALIDATION) == 13, (
+        f"STAGES_VALIDATION drift: expected 13, got {len(core_dag.STAGES_VALIDATION)}."
+    )
+
+
+def test_no_orphan_twelve_in_validation_count():
+    """Guards against future maintainers leaving stale `12` references.
+
+    Uses ``\\b12\\b`` word-boundary regex across the entire function source
+    (covers docstring, comments, f-strings, and numeric tokens).
+    Plan v1.37 §4.3.5 + Round-12 R12B-01 + Round-36/v1.31 expected count = 13.
+    """
+    import inspect
+    import re
+
+    src = inspect.getsource(test_validation_stage_count)
+    hits = re.findall(r"\b12\b", src)
+    assert hits == [], (
+        f"Stale '12' references in test_validation_stage_count: "
+        f"{len(hits)} hit(s). Expected only '13' after P1 (39a) lands. "
+        f"Check docstring (L96), enumeration comment (L97), "
+        f"assertion (L98), error f-string (L99)."
     )
 
 
