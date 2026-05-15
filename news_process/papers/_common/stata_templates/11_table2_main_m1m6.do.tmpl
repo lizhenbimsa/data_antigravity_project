@@ -1,0 +1,68 @@
+* news_process v3.2.0 — Table 2: 主回归 M1-M6 progressive controls/FE (plan v14 §9.2)
+*
+* 主 spec (由 build_replication_package 替换占位符):
+*   DV   = llm_vote_tone_{{MAIN_SENT_TRACK}}
+*   LOCUS_TRACK = {{MAIN_LOCUS_TRACK}}  (lf / lc)
+*   SUBST_TRACK = {{MAIN_SUBST_TRACK}}  (sf / sc)
+*
+* M1-M6 progressive:
+*   M1: 主解释变量 only
+*   M2: + Bank FE
+*   M3: + Bank FE + Year FE
+*   M4: + locus / subst frac 控制
+*   M5: + bank size / age 控制
+*   M6: + 交互项 (LOCUS × SUBST)
+
+version 15
+use "data/processed/46_panel_yearly_core.dta", clear
+
+* xtset 声明 panel (target_bank 需先编码为数值 ID)
+encode target_bank, gen(bank_id)
+xtset bank_id year
+
+* 应用 value/variable labels (plan v14 §9.1)
+capture do "data/processed/46_panel_yearly_labels.do"
+
+* 主变量 local (替换占位符 → main spec)
+local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
+local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
+local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
+
+* M1: 仅 digital_frontier (主解释)
+eststo M1: reghdfe `DV' digital_frontier, noabsorb vce(cluster bank_id)
+
+* M2: + Bank FE
+eststo M2: reghdfe `DV' digital_frontier, absorb(bank_id) vce(cluster bank_id)
+
+* M3: + Bank FE + Year FE
+eststo M3: reghdfe `DV' digital_frontier, absorb(bank_id year) vce(cluster bank_id)
+
+* M4: + locus / subst 占比控制
+eststo M4: reghdfe `DV' digital_frontier `LOCUS' `SUBST', ///
+    absorb(bank_id year) vce(cluster bank_id)
+
+* M5: + bank 属性控制
+capture confirm variable bank_size bank_age
+if !_rc {
+    eststo M5: reghdfe `DV' digital_frontier `LOCUS' `SUBST' bank_size bank_age, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+else {
+    display "  ⚠️ bank_size/bank_age 不存在, M5 跳过"
+    eststo M5: reghdfe `DV' digital_frontier `LOCUS' `SUBST', ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* M6: + 交互项 (LOCUS × SUBST)
+eststo M6: reghdfe `DV' digital_frontier `LOCUS' `SUBST' c.`LOCUS'#c.`SUBST', ///
+    absorb(bank_id year) vce(cluster bank_id)
+
+* 输出 Table 2 (booktabs LaTeX)
+esttab M1 M2 M3 M4 M5 M6 using "output/tables/table2_main.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) ///
+    booktabs replace fragment ///
+    title("Table 2: Bank Fintech Tone — Main Results (M1-M6)") ///
+    mtitles("M1" "M2" "M3" "M4" "M5" "M6") ///
+    note("Robust SEs clustered at bank level. Main spec: locus={{MAIN_LOCUS_TRACK}}, subst={{MAIN_SUBST_TRACK}}, sent={{MAIN_SENT_TRACK}}")
+
+display "✅ Table 2 written to output/tables/table2_main.tex"
