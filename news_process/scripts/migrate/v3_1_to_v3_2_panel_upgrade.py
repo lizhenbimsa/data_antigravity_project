@@ -112,6 +112,13 @@ def upgrade_panel(old_parquet: str, new_parquet: str, verbose: bool = False) -> 
 
 
 def main(argv=None):
+    """CLI entry — argparse + upgrade_panel + stdout 报告 (plan v14 §3.6 utility).
+
+    Args:
+        argv: 可选 argv list (默认 sys.argv[1:]); 测试可注入 mock args.
+    Returns:
+        exit code (0 OK / 1 FileNotFoundError)
+    """
     parser = argparse.ArgumentParser(
         prog='python -m news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade',
         description='v3.1.1 → v3.2.0 panel parquet BREAKING rename migration',
