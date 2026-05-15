@@ -1,0 +1,65 @@
+* news_process v3.2.0 — Table 3: Mechanism (plan v14 §9.2)
+*
+* 机制变量: tone_gap_tech_app + tone_gap_sub_symb (双轨化对角线 + ctx 版本)
+* 经济直觉:
+*   tone_gap_tech_app 反映"技术层 vs 业务应用层"的舆论温差
+*   tone_gap_sub_symb 反映"实质性 vs 象征性"信号差 (洗稿率 cheap-talk 通道, Bingler 2022 FRL)
+*
+* Main spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
+
+version 15
+
+local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
+
+* Channel 1: tone_gap_tech_app (Adner & Kapoor 2010 SMJ + Gomber 2018 JMIS)
+*  - 主 spec 用 _lc_ctx 版本 (entity-proximate); robustness 用 _lf 版本
+local CH_TECH_APP   tone_gap_tech_app_lc_ctx
+capture confirm variable tone_gap_tech_app
+if !_rc {
+    local CH_TECH_APP_ALT  tone_gap_tech_app
+}
+
+* Channel 2: tone_gap_sub_symb (W&Z 1998 ASQ + Bingler 2022 FRL cheap talk)
+local CH_SUB_SYMB   tone_gap_sub_symb_sc_ctx
+capture confirm variable tone_gap_sub_symb
+if !_rc {
+    local CH_SUB_SYMB_ALT  tone_gap_sub_symb
+}
+
+* M1: only Tech-App channel
+capture confirm variable `CH_TECH_APP'
+if !_rc {
+    eststo M1: reghdfe `DV' digital_frontier `CH_TECH_APP', ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* M2: only Sub-Symb channel
+capture confirm variable `CH_SUB_SYMB'
+if !_rc {
+    eststo M2: reghdfe `DV' digital_frontier `CH_SUB_SYMB', ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* M3: 双通道并列
+capture confirm variable `CH_TECH_APP' `CH_SUB_SYMB'
+if !_rc {
+    eststo M3: reghdfe `DV' digital_frontier `CH_TECH_APP' `CH_SUB_SYMB', ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* M4: + bank 控制 (full mechanism spec)
+capture confirm variable bank_size bank_age
+if !_rc {
+    eststo M4: reghdfe `DV' digital_frontier `CH_TECH_APP' `CH_SUB_SYMB' bank_size bank_age, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* 输出 (esttab 部分缺失 spec 时仍输出可用列)
+esttab M1 M2 M3 M4 using "output/tables/table3_mechanism.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) ///
+    booktabs replace fragment ///
+    title("Table 3: Mechanism — Tone Gap Channels (Tech-App + Sub-Symb)") ///
+    mtitles("Tech-App only" "Sub-Symb only" "Both" "+ Controls") ///
+    note("Channels: tone_gap_tech_app (Adner-Kapoor 2010 + Gomber 2018), tone_gap_sub_symb (W&Z 1998 + Bingler 2022). Robust SEs clustered at bank.")
+
+display "✅ Table 3 written to output/tables/table3_mechanism.tex"
