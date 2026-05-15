@@ -19,7 +19,7 @@ ctx gate 改并集修复致命 R1-A, dual gate 三互斥指示列, encode.py `_l
 value labels 双语 0=baseline / 1=对照);
 锚定: Hassan 2019 QJE + Sautner 2023 JF + Bingler 2022 FRL + W&Z 1994/1998 ASQ + Gomber 2018 JMIS;
 plan v14 经 62 轮审计 / 68 finding 修复 / 7 milestone M0-M6 自动执行; 详见 CHANGELOG.md v3.2.0)
-**Test baseline**: 1144 passed / 6 skipped / 0 failed (v3.2.0 +150 测试; 4 conditional skipped 等 pipeline 重跑后 unblock)
+**Test baseline**: 1153 passed / 6 skipped / 0 failed (v3.2.0 +159 测试; 4 conditional skipped 等 pipeline 重跑后 unblock)
 
 **CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):
 - `build-replication`: 一键 instantiate 14 .do 模板 + spec 替换
