@@ -136,17 +136,19 @@ EXPECTED_TEMPLATES_V14 = [
     '11_table2_main_m1m6.do.tmpl',
     '12_table3_mechanism.do.tmpl',
     '13_table4_heterogeneity.do.tmpl',
+    '14_table5_advanced_robustness.do.tmpl',
     '20_tableA1_inter_track_kappa.do.tmpl',
     '21_tableA2_main_spec_switch.do.tmpl',
     '22_tableA3_bartik_iv.do.tmpl',
     '23_tableA4_radius_sensitivity.do.tmpl',
+    '24_tableA5_dictionary_method.do.tmpl',
     '30_figure1_event_study.do.tmpl',
     '31_figure_coefplot_dual.do.tmpl',
 ]
 
 
-def test_all_12_templates_exist():
-    """plan v14 §9.2: 12 模板全部存在 (剩 2/14 = table5 + tableA5 低优先)."""
+def test_all_14_templates_exist():
+    """plan v14 §9.2: 14/14 模板全部交付 (table5 + tableA5 现已补全)."""
     missing = []
     for tpl in EXPECTED_TEMPLATES_V14:
         if not (TEMPLATE_DIR / tpl).exists():
@@ -173,9 +175,11 @@ def test_template_no_unknown_placeholders_full(template_name):
     ('11_table2_main_m1m6.do.tmpl',          'reghdfe'),
     ('12_table3_mechanism.do.tmpl',          'reghdfe'),
     ('13_table4_heterogeneity.do.tmpl',      'reghdfe'),
+    ('14_table5_advanced_robustness.do.tmpl', 'reghdfe'),
     ('20_tableA1_inter_track_kappa.do.tmpl', 'kappa'),
     ('21_tableA2_main_spec_switch.do.tmpl',  'reghdfe'),
     ('22_tableA3_bartik_iv.do.tmpl',         'ivreg2'),
+    ('24_tableA5_dictionary_method.do.tmpl', 'reghdfe'),
     ('30_figure1_event_study.do.tmpl',       'coefplot'),
     ('31_figure_coefplot_dual.do.tmpl',      'coefplot'),
 ])

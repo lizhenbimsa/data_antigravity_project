@@ -1,0 +1,60 @@
+* news_process v3.2.0 — Table A5: Dictionary Method Comparison (plan v14 §9.2)
+*
+* 词典法 vs LLM 法 robustness:
+*   主 spec 用 LLM ensemble; 此表展示 5 个金融情感词典的同 spec 结果.
+*   读者可对比 LLM vs Loughran-McDonald-style 词典法的 β 一致性.
+*
+* 词典清单 (Loughran & McDonald 2011 JF + 中文金融词典):
+*   jiang_2021, yao_2021, bian_2021, du_2022, you_2018
+*
+* Main spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
+
+version 15
+
+local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
+local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
+local EXPL   digital_frontier
+
+* --- Main LLM (主对照) ---
+local LLM_DV  llm_vote_tone_{{MAIN_SENT_TRACK}}
+capture confirm variable `LLM_DV'
+if !_rc {
+    eststo LLM_main: reghdfe `LLM_DV' `EXPL' `LOCUS' `SUBST', ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* --- Dictionary methods (5 个词典) ---
+local dicts jiang_2021 yao_2021 bian_2021 du_2022 you_2018
+foreach d of local dicts {
+    local DICT_DV `d'_tone_{{MAIN_SENT_TRACK}}
+    capture confirm variable `DICT_DV'
+    if !_rc {
+        eststo DICT_`d': reghdfe `DICT_DV' `EXPL' `LOCUS' `SUBST', ///
+            absorb(bank_id year) vce(cluster bank_id)
+    }
+    else {
+        display "  Skip dict `d': var `DICT_DV' not in panel"
+    }
+}
+
+* --- BERT methods (对照) ---
+local berts finbert2_pos hw2942_pos
+foreach b of local berts {
+    local BERT_DV `b'_{{MAIN_SENT_TRACK}}
+    capture confirm variable `BERT_DV'
+    if !_rc {
+        eststo BERT_`b': reghdfe `BERT_DV' `EXPL' `LOCUS' `SUBST', ///
+            absorb(bank_id year) vce(cluster bank_id)
+    }
+}
+
+* 输出 (esttab 部分缺失 spec 时仍输出可用列)
+esttab LLM_main DICT_jiang_2021 DICT_yao_2021 DICT_bian_2021 DICT_du_2022 DICT_you_2018 ///
+    using "output/tables/tableA5_dictionary_method.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) ///
+    booktabs replace fragment ///
+    title("Table A5: LLM vs Dictionary-Based Sentiment (Robustness)") ///
+    mtitles("LLM ensemble" "Jiang 2021" "Yao 2021" "Bian 2021" "Du 2022" "You 2018") ///
+    note("DV: 情感分数. LLM = 3 模型多数投票. Dict = 5 个中文金融词典 (Loughran & McDonald 2011 JF 同框架).")
+
+display "✅ Table A5 written to output/tables/tableA5_dictionary_method.tex"
