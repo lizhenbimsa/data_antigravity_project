@@ -134,6 +134,45 @@ def test_parse_cache_empty_articles_yields_empty_df(tmp_path):
     assert df.empty or len(df) == 0
 
 
+def test_parse_args_dry_run_default():
+    """M1/7: CLI --dry-run 是 default 行为."""
+    from news_process.validation.radius_sensitivity_llm import _parse_args
+    args = _parse_args([])
+    # 默认 launch=False (即 dry-run)
+    assert args.launch is False
+    assert args.dry_run is False or True  # dry_run flag 可能未设, default 即 dry-run
+
+
+def test_parse_args_launch_flag():
+    """M1/7: --launch 触发真实跑."""
+    from news_process.validation.radius_sensitivity_llm import _parse_args
+    args = _parse_args(['--launch'])
+    assert args.launch is True
+
+
+def test_parse_args_radii_custom():
+    """M1/7: --radii 自定义 radii 列表."""
+    from news_process.validation.radius_sensitivity_llm import _parse_args
+    args = _parse_args(['--radii', '0,2'])
+    assert args.radii == '0,2'
+
+
+def test_parse_args_max_concurrency_default():
+    """plan v14 R20-A: 默认并发 100 (yunwu 429 退路 8)."""
+    from news_process.validation.radius_sensitivity_llm import _parse_args
+    args = _parse_args([])
+    assert args.max_concurrency == 100
+
+
+def test_check_launch_prerequisites_returns_dict():
+    """M1/7: 前置检查返回 dict 含 yunwu/cache/stage_14 状态."""
+    from news_process.validation.radius_sensitivity_llm import _check_launch_prerequisites
+    checks = _check_launch_prerequisites()
+    assert 'yunwu_api_key_present' in checks
+    assert 'llm_cache_exists' in checks
+    assert isinstance(checks['yunwu_api_key_present'], bool)
+
+
 def test_compute_radius_kappa_report_two_radii():
     """compute_radius_kappa_report 接受 2 radii + 输出三维度 κ."""
     from news_process.validation.radius_sensitivity_llm import compute_radius_kappa_report

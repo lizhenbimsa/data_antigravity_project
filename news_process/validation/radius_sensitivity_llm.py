@@ -253,24 +253,89 @@ def write_radius_llm_report(report: Dict, output_path: str,
     logger.info(f"Stage 35 LLM 法报告已写入: {output_path}")
 
 
+def _parse_args(argv=None):
+    """v3.2.0 M1/7 CLI argparse (plan v14 §3.5 P5.2 launch path)."""
+    import argparse
+    parser = argparse.ArgumentParser(
+        prog='python -m news_process.validation.radius_sensitivity_llm',
+        description='Stage 35 LLM-based radius sensitivity (plan v14 §3.5 P5.2)',
+    )
+    parser.add_argument(
+        '--dry-run', action='store_true',
+        help='Estimate-only mode: 不实际跑 LLM, 仅输出调用量估算 (default)',
+    )
+    parser.add_argument(
+        '--launch', action='store_true',
+        help='实际 launch 10.5k LLM 调用 (需 YUNWU_API_KEY 环境变量)',
+    )
+    parser.add_argument(
+        '--radii', type=str, default='0,2,3',
+        help='New radii to test (comma-separated; default 0,2,3; radius=1 已缓存)',
+    )
+    parser.add_argument(
+        '--max-concurrency', type=int, default=100,
+        help='LLM 并发上限 (default 100, 雪崩时降至 8 per stage 32a/39 先例)',
+    )
+    return parser.parse_args(argv)
+
+
+def _check_launch_prerequisites() -> dict:
+    """Plan v14 §3.5 P5.2 R20-A: launch 前置检查 (yunwu key + cache + N)."""
+    checks = {}
+    # 1. YUNWU_API_KEY
+    api_key = os.environ.get('YUNWU_API_KEY', '').strip()
+    checks['yunwu_api_key_present'] = bool(api_key)
+
+    # 2. LLMCache 存在
+    try:
+        CONFIG = load_config()
+        cache_path = os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db')
+        checks['llm_cache_exists'] = os.path.exists(cache_path)
+        checks['llm_cache_path'] = cache_path
+    except Exception as e:
+        checks['llm_cache_exists'] = False
+        checks['llm_cache_error'] = str(e)
+
+    # 3. Stage 14 输入 N
+    try:
+        stage_14 = os.path.join(CONFIG['paths']['output_dir'], '14_fintech_intensity.parquet')
+        checks['stage_14_exists'] = os.path.exists(stage_14)
+        if checks['stage_14_exists']:
+            df = pd.read_parquet(stage_14)
+            checks['n_articles'] = len(df)
+    except Exception as e:
+        checks['stage_14_exists'] = False
+        checks['stage_14_error'] = str(e)
+
+    return checks
+
+
 def main():
-    """Stage 35 LLM 法主入口 (复用 stage 35 thin shim, --llm flag 触发).
+    """Stage 35 LLM 法主入口 (plan v14 §3.5 P5.2 + R20-A).
 
     工作流:
-        1. estimate_llm_calls: 给用户看实际预算
-        2. 对每个 new radius ∈ {0, 2, 3}: 重抽 ctx → 调 LLM → cache
-        3. parse_track_results_from_cache 收集双轨标签
-        4. compute_radius_kappa_report
-        5. write_radius_llm_report
+        1. CLI argparse + estimate_llm_calls (给用户看实际预算)
+        2. --dry-run (default): 只输出 estimate + prerequisites 检查
+        3. --launch: 真实跑 (need YUNWU_API_KEY)
+           对每个 new radius ∈ {0, 2, 3}: 重抽 ctx → 调 LLM → cache
+           parse_track_results_from_cache 收集双轨标签
+           compute_radius_kappa_report + write_radius_llm_report
     """
+    args = _parse_args()
     CONFIG = load_config()
     stage_14_filename = CONFIG.get('filenames', {}).get(
         'output_14_fintech_intensity', '14_fintech_intensity.parquet')
     stage_14_path = os.path.join(CONFIG['paths']['output_dir'], stage_14_filename)
 
-    logger.info(f"=== Stage 35 LLM 法升级 (plan v14 §3.5 P5.2) ===")
+    logger.info("=== Stage 35 LLM 法升级 (plan v14 §3.5 P5.2) ===")
+    logger.info(f"  Mode: {'LAUNCH (real LLM)' if args.launch else 'DRY-RUN (estimate-only)'}")
 
     # 1. 估算 LLM 调用量 (替代 plan v13/v14 早期 180k 误估)
+    if not os.path.exists(stage_14_path):
+        logger.error(f"  stage 14 输入不存在: {stage_14_path}")
+        logger.error("  先跑 pipeline (run_pipeline_function.py) 产 stage 14 输出.")
+        return 1
+
     df_stage14 = pd.read_parquet(stage_14_path)
     n_articles = len(df_stage14)
     estimates = estimate_llm_calls(n_articles=n_articles)
@@ -280,10 +345,37 @@ def main():
     logger.info(f"  早前错估 (含 full 轨重跑): {estimates['naive_full_track_count']:,} "
                 f"({estimates['savings_factor']}× 节省)")
 
-    # 2-5: 实际 LLM 调用 + κ 报告 (launch-ready 占位)
-    logger.info("  M5 第 2 commit 落地: 调 tone_llms._aggregate_track + LLMCache + κ 报告")
-    logger.info("  CLI: F:/Anaconda3/python.exe -m news_process.validation.radius_sensitivity_llm --launch")
+    # 2. 前置检查
+    checks = _check_launch_prerequisites()
+    logger.info("  Pre-flight checks:")
+    for k, v in checks.items():
+        logger.info(f"    {k}: {v}")
+
+    # 3. dry-run / launch 分支
+    if not args.launch:
+        logger.info("  [DRY-RUN] 不实际调用 LLM. 加 --launch flag 触发真实 launch.")
+        logger.info(f"  Required: env YUNWU_API_KEY (current: {'set' if checks['yunwu_api_key_present'] else 'NOT SET'})")
+        return 0
+
+    # --launch 真实路径
+    if not checks['yunwu_api_key_present']:
+        logger.error("  [LAUNCH] YUNWU_API_KEY 未设置, 不能跑真实 LLM.")
+        logger.error("  $env:YUNWU_API_KEY = '<your-key>'; 然后重试.")
+        return 1
+
+    # 实际 LLM 重抽 ctx + 调用 + cache 写入 (复用 tone_llms.py 异步 LLM 框架)
+    # 实施细节: 此处需调 stage 21 的 _aggregate_track 等异步 LLM 框架.
+    # 由于 stage 21 LLM 调用层在 tone_llms.py main() 中, 复用其异步框架需要:
+    #   a) 临时修改 sentence_radius 配置
+    #   b) 重抽 content_ctx
+    #   c) 调 run_all_llms (复用 LLMCache)
+    #   d) 解析新 cache 条目
+    # 完整实施留作 future commit (需要 yunwu API key + 实际跑 4 小时).
+    logger.warning("  [LAUNCH] 实施细节留作 future commit (需 yunwu API + 跑 ~2 min/radius).")
+    logger.warning("  当前 CLI 是 scaffold; 真实 launch 需要再扩展 ~150 行 (异步 LLM 复用 tone_llms.py).")
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+    sys.exit(main() or 0)
