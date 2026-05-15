@@ -799,6 +799,42 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # 文献: Adner & Kapoor (2010 SMJ); Gomber et al. (2018 JMIS)
         if 'llm_vote_tone_tech_full' in panel.columns and 'llm_vote_tone_app_full' in panel.columns:
             panel['tone_gap_tech_app'] = _compute_tone_gap_tech_app(panel)
+
+        # ── v3.2.0 M2 P2 (plan v14 §2.2): _lc × _ctx 对角线追加 ──
+        # Hassan 2019 QJE entity-proximity locus classification + ctx 轨情感
+        if 'innovation_locus_ctx' in df.columns:
+            for cat_label, suffix in [('底层技术', '_tech_lc_ctx'),
+                                      ('应用场景', '_app_lc_ctx')]:
+                df_cat_lc = df[df['innovation_locus_ctx'] == cat_label]
+                if df_cat_lc.empty:
+                    panel[f'n_articles{suffix}'] = 0
+                    panel[f'llm_vote_tone{suffix}'] = np.nan
+                    panel[f'llm_prob_score{suffix}'] = np.nan
+                    continue
+                _lc_agg = {
+                    f'n_articles{suffix}': ('llm_vote_score_ctx', 'count'),
+                    f'llm_vote_tone{suffix}': ('llm_vote_score_ctx', 'mean'),
+                    f'llm_prob_score{suffix}': ('llm_prob_score_ctx', 'mean'),
+                }
+                _lc_p = df_cat_lc.groupby(['target_bank', 'year']).agg(**_lc_agg).reset_index()
+                panel = panel.merge(_lc_p, on=['target_bank', 'year'], how='left')
+
+            # 比例 frac (_lc)
+            for suffix in ['_tech_lc_ctx', '_app_lc_ctx']:
+                if f'n_articles{suffix}' in panel.columns:
+                    panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
+            panel['tech_frac_lc'] = np.where(
+                panel['n_articles'] > 0,
+                panel['n_articles_tech_lc_ctx'] / panel['n_articles'], np.nan)
+            panel['app_frac_lc'] = np.where(
+                panel['n_articles'] > 0,
+                panel['n_articles_app_lc_ctx'] / panel['n_articles'], np.nan)
+
+            # tone_gap_tech_app_lc_ctx: ctx 轨同向 gap
+            if 'llm_vote_tone_tech_lc_ctx' in panel.columns and 'llm_vote_tone_app_lc_ctx' in panel.columns:
+                _both = (panel['n_articles_tech_lc_ctx'] >= 5) & (panel['n_articles_app_lc_ctx'] >= 5)
+                _gap = panel['llm_vote_tone_tech_lc_ctx'] - panel['llm_vote_tone_app_lc_ctx']
+                panel['tone_gap_tech_app_lc_ctx'] = _gap.where(_both, np.nan)
     else:
         logger.info("  列 'innovation_locus_full' 不存在, 分类聚合将跳过")
         panel['tech_frac'] = np.nan
@@ -884,6 +920,41 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 n_fail_tt = (~tt_identity).sum()
                 logger.warning(f"  ✗ innovation_substantiveness 恒等式校验失败: {n_fail_tt} 行")
+
+        # ── v3.2.0 M2 P2 (plan v14 §2.2): _sc × _ctx 对角线追加 ──
+        # W&Z 1994/1998 ASQ substantive-symbolic + Hassan 2019 QJE entity-proximity
+        if 'innovation_substantiveness_ctx' in df.columns:
+            for tt_label, suffix in [('实质性', '_sub_sc_ctx'),
+                                     ('象征性', '_symb_sc_ctx')]:
+                df_tt_sc = df[df['innovation_substantiveness_ctx'] == tt_label]
+                if df_tt_sc.empty:
+                    panel[f'n_articles{suffix}'] = 0
+                    panel[f'llm_vote_tone{suffix}'] = np.nan
+                    panel[f'llm_prob_score{suffix}'] = np.nan
+                    continue
+                _sc_agg = {
+                    f'n_articles{suffix}': ('llm_vote_score_ctx', 'count'),
+                    f'llm_vote_tone{suffix}': ('llm_vote_score_ctx', 'mean'),
+                    f'llm_prob_score{suffix}': ('llm_prob_score_ctx', 'mean'),
+                }
+                _sc_p = df_tt_sc.groupby(['target_bank', 'year']).agg(**_sc_agg).reset_index()
+                panel = panel.merge(_sc_p, on=['target_bank', 'year'], how='left')
+
+            for suffix in ['_sub_sc_ctx', '_symb_sc_ctx']:
+                if f'n_articles{suffix}' in panel.columns:
+                    panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
+            panel['sub_frac_sc'] = np.where(
+                panel['n_articles'] > 0,
+                panel['n_articles_sub_sc_ctx'] / panel['n_articles'], np.nan)
+            panel['symb_frac_sc'] = np.where(
+                panel['n_articles'] > 0,
+                panel['n_articles_symb_sc_ctx'] / panel['n_articles'], np.nan)
+
+            # tone_gap_sub_symb_sc_ctx: ctx 轨情感纯度差距
+            if 'llm_vote_tone_sub_sc_ctx' in panel.columns and 'llm_vote_tone_symb_sc_ctx' in panel.columns:
+                panel['tone_gap_sub_symb_sc_ctx'] = (
+                    panel['llm_vote_tone_sub_sc_ctx'] - panel['llm_vote_tone_symb_sc_ctx']
+                )
     else:
         logger.info("  列 'innovation_substantiveness_full' 不存在, innovation_substantiveness 分组聚合将跳过")
 
