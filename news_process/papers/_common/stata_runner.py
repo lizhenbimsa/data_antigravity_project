@@ -633,12 +633,25 @@ def _cli_doctor(args) -> int:
     return 0
 
 
+def _get_version_string() -> str:
+    """v3.2.0 M4/7: 返回 "news_process v3.2.0 (commit=<hash>+dirty)" 字符串."""
+    commit = _get_git_commit_hash_with_dirty()
+    return f"news_process v3.2.0 (commit={commit})"
+
+
 def main():
     """CLI 入口 (subcommand dispatch)."""
     import argparse
     parser = argparse.ArgumentParser(
         prog='python -m news_process.papers._common.stata_runner',
-        description='news_process v3.2.0 Stata orchestration CLI (plan v14 §9).',
+        description='news_process v3.2.0 Stata orchestration CLI (plan v14 §9). '
+                    'Subcommands: build-replication / list-templates / doctor / verify-replication.',
+        epilog='Full docs: news_process/papers/_common/stata_templates/README.md',
+    )
+    parser.add_argument(
+        '--version', action='version',
+        version=_get_version_string(),
+        help='Show news_process version + git commit hash + dirty flag',
     )
     subparsers = parser.add_subparsers(dest='command', required=True)
 

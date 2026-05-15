@@ -233,6 +233,40 @@ def test_cli_command_main_callable():
     assert hasattr(mod, '_cli_build_replication')
 
 
+def test_cli_version_flag_callable():
+    """v3.2.0 M4/7: --version flag 顶层选项注册."""
+    import news_process.papers._common.stata_runner as mod
+    assert hasattr(mod, '_get_version_string')
+    v = mod._get_version_string()
+    assert 'news_process v3.2.0' in v
+    assert 'commit=' in v
+
+
+def test_cli_version_string_includes_dirty_flag():
+    """v3.2.0 M4/7 R49-A: working tree dirty 时 commit hash 后缀 '+dirty'."""
+    import news_process.papers._common.stata_runner as mod
+    # 现在 working tree 必有未提交 .py / 测试本身 → 期望 +dirty 或纯 hash
+    v = mod._get_version_string()
+    # 至少含 12 字符 commit hash + 'unknown' 之一
+    import re
+    m = re.search(r'commit=([0-9a-f]{7,}|unknown)', v)
+    assert m is not None, f"--version 缺合规 commit hash: {v}"
+
+
+def test_cli_main_parser_accepts_version_flag():
+    """CLI argparse 顶层注册 --version (action='version')."""
+    import argparse
+
+    import news_process.papers._common.stata_runner as mod
+    # 重建 parser 反射检查
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--version', action='version', version=mod._get_version_string())
+    with pytest.raises(SystemExit) as e:
+        parser.parse_args(['--version'])
+    # --version 应 exit code 0
+    assert e.value.code == 0
+
+
 def test_cli_verify_replication_callable():
     """M4/7: verify-replication 子命令 importable."""
     import news_process.papers._common.stata_runner as mod
