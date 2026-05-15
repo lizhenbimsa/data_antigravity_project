@@ -159,3 +159,6 @@ git_sync.bat
 # ============================================================
 claude-scientific-skills/
 superpowers/
+
+# v3.2.0 M7: replication 包实例化产物 (build_replication_package 输出)
+replication_v3.2.0_*/

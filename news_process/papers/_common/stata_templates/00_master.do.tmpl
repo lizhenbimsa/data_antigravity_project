@@ -19,17 +19,23 @@ set linesize 120
 local project_root "{{PROJECT_ROOT}}"
 cd "`project_root'"
 
-* 数据加载 + xtset
-do "stata/01_data_prep.do"
+* 0. 数据准备
+do "code/01_data_prep.do"
 
-* Tables (论文主体)
-do "stata/10_table1_descriptives.do"
-do "stata/11_table2_main_m1m6.do"
+* === Tables (论文主体) ===
+do "code/10_table1_descriptives.do"
+do "code/11_table2_main_m1m6.do"
+do "code/12_table3_mechanism.do"
+do "code/13_table4_heterogeneity.do"
 
-* Robustness Appendix (双轨核心新价值)
-do "stata/21_tableA2_main_spec_switch.do"
+* === Robustness Appendix (双轨化核心) ===
+do "code/20_tableA1_inter_track_kappa.do"
+do "code/21_tableA2_main_spec_switch.do"
+do "code/22_tableA3_bartik_iv.do"
+do "code/23_tableA4_radius_sensitivity.do"
 
-* Figures (可选)
-* do "stata/30_figure1_event_study.do"
+* === Figures ===
+do "code/30_figure1_event_study.do"
+do "code/31_figure_coefplot_dual.do"
 
-display "✅ All tables generated. Output: output/tables/"
+display "✅ All tables + figures generated. See output/tables/ + output/figures/"

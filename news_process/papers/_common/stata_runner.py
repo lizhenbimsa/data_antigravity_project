@@ -315,3 +315,74 @@ __all__ = [
     '_validate_spec_choices',  # 测试可见
     '_substitute_placeholders',
 ]
+
+
+# ============================================================================
+# v3.2.0 M7 CLI: python -m news_process.papers._common.stata_runner build-replication
+# ============================================================================
+
+def _cli_build_replication(args) -> int:
+    """CLI 子命令: build-replication --locus lc --subst sf --sent ctx --root /path"""
+    import sys
+    choices = {
+        'MAIN_LOCUS_TRACK': args.locus,
+        'MAIN_SUBST_TRACK': args.subst,
+        'MAIN_SENT_TRACK':  args.sent,
+        'PROJECT_ROOT':     str(Path(args.root).resolve()),
+    }
+    try:
+        pkg = build_replication_package(
+            main_spec_choices=choices,
+            output_root=Path(args.root).parent if args.root != '.' else None,
+        )
+    except (ValueError, FileNotFoundError) as e:
+        sys.stderr.write(f"❌ build_replication_package failed: {e}\n")
+        return 1
+    # 用 ASCII 输出避免 Windows GBK 控制台 UnicodeError;
+    # 中文与 emoji 仅出现在文件内容 (UTF-8), 不在 stdout
+    import sys
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except (AttributeError, OSError):
+        pass  # python 3.7+ 才有 reconfigure; 失败则 fallback
+    print(f"[OK] Replication package: {pkg}")
+    print(f"   - code/: {len(list((pkg / 'code').glob('*.do')))} Stata .do files")
+    print(f"   - data/: copy 46_panel_yearly_*.dta from data/processed/ here")
+    print(f"   - output/: tables/ + figures/ (generated after Stata run)")
+    print(f"\nNext steps:")
+    print(f"   cd {pkg}")
+    print(f"   stata -b do code/00_master.do")
+    return 0
+
+
+def main():
+    """CLI 入口 (subcommand dispatch)."""
+    import argparse
+    parser = argparse.ArgumentParser(
+        prog='python -m news_process.papers._common.stata_runner',
+        description='news_process v3.2.0 Stata orchestration CLI (plan v14 §9).',
+    )
+    subparsers = parser.add_subparsers(dest='command', required=True)
+
+    # build-replication
+    bp = subparsers.add_parser(
+        'build-replication',
+        help='Generate v3.2.0 Stata replication package (plan v14 §9.3)',
+    )
+    bp.add_argument('--locus', choices=['lf', 'lc'], required=True,
+                    help='Main locus track (lf=full-text / lc=entity-context)')
+    bp.add_argument('--subst', choices=['sf', 'sc'], required=True,
+                    help='Main substantiveness track (sf / sc)')
+    bp.add_argument('--sent', choices=['full', 'ctx'], required=True,
+                    help='Main sentiment track')
+    bp.add_argument('--root', type=str, default='.',
+                    help='Project root for replication package (default: cwd)')
+    bp.set_defaults(func=_cli_build_replication)
+
+    args = parser.parse_args()
+    return args.func(args)
+
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(main())
