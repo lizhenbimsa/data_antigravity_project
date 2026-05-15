@@ -1,0 +1,57 @@
+* news_process v3.2.0 — Table 1: Descriptive Statistics (plan v14 §9.2)
+*
+* Loughran & McDonald 2011 JF 惯例: Table 1 报告 N / Mean / SD / Min / P25 / P50 / P75 / Max.
+* Main spec choices: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
+
+version 15
+* (假定已 use 46_panel_yearly_core.dta + xtset)
+
+* 1. 关键变量清单 (按论文议题分组)
+local sentiment_vars   llm_vote_tone_{{MAIN_SENT_TRACK}}     ///
+                       llm_prob_score_{{MAIN_SENT_TRACK}}
+
+local locus_vars       tech_frac_{{MAIN_LOCUS_TRACK}}       ///
+                       app_frac_{{MAIN_LOCUS_TRACK}}
+
+local subst_vars       sub_frac_{{MAIN_SUBST_TRACK}}        ///
+                       symb_frac_{{MAIN_SUBST_TRACK}}
+
+local gap_vars         tone_gap_tech_app_lc_ctx             ///
+                       tone_gap_sub_symb_sc_ctx
+
+local bank_controls    bank_size bank_age digital_frontier
+local coverage         n_articles media_breadth ln_news_coverage
+
+* 2. tabstat 输出 (顶刊 standards)
+local all_vars `sentiment_vars' `locus_vars' `subst_vars' `gap_vars' `bank_controls' `coverage'
+
+* 过滤实际存在的列, 缺失列警告但不报错
+local existing_vars
+foreach v of local all_vars {
+    capture confirm variable `v'
+    if !_rc {
+        local existing_vars `existing_vars' `v'
+    }
+    else {
+        display "  ⚠️ Var `v' 不存在, Table 1 跳过"
+    }
+}
+
+* 3. esttab 输出 (booktabs LaTeX, plan v14 §9.5)
+capture which estpost
+if !_rc {
+    estpost tabstat `existing_vars', ///
+        statistics(N mean sd min p25 p50 p75 max) ///
+        columns(statistics)
+
+    esttab using "output/tables/table1_descriptives.tex", ///
+        cells("count(fmt(0)) mean(fmt(3)) sd(fmt(3)) min(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) max(fmt(3))") ///
+        nonumber booktabs replace ///
+        title("Table 1: Descriptive Statistics") ///
+        note("Main spec: locus={{MAIN_LOCUS_TRACK}}, subst={{MAIN_SUBST_TRACK}}, sent={{MAIN_SENT_TRACK}}. N = bank-year observations.")
+
+    display "✅ Table 1 written to output/tables/table1_descriptives.tex"
+}
+else {
+    display "  ⚠️ estpost not installed (ssc install estout); Table 1 跳过"
+}
