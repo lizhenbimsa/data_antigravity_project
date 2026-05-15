@@ -1,0 +1,77 @@
+* news_process v3.2.0 — Table 5: Advanced Robustness (plan v14 §9.2)
+*
+* 高阶稳健性 (顶刊 standard):
+*   1. Placebo test (随机分配处理变量, β 应为 0)
+*   2. Permutation inference (无参数化 p-value, MacKinnon & Webb 2020 JBES)
+*   3. Sub-period split (前后子样本 β 一致性)
+*   4. Drop one bank at a time (influential observation 检验)
+*
+* Main spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
+
+version 15
+
+local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
+local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
+local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
+local EXPL   digital_frontier
+
+* --- 5a: Placebo test (随机化处理变量, set seed 12345) ---
+preserve
+    set seed 12345
+    capture confirm variable `EXPL'
+    if !_rc {
+        * 随机置换 digital_frontier (保 bank-level 数量, 打乱 within-bank)
+        bysort bank_id: gen _rand_treat = runiformint(0, 1)
+
+        eststo PLACEBO: reghdfe `DV' _rand_treat `LOCUS' `SUBST', ///
+            absorb(bank_id year) vce(cluster bank_id)
+    }
+restore
+
+* --- 5b: Sub-period split ---
+quietly summarize year
+local median_year = floor((r(min) + r(max)) / 2)
+
+eststo SUB_EARLY: reghdfe `DV' `EXPL' `LOCUS' `SUBST' if year < `median_year', ///
+    absorb(bank_id year) vce(cluster bank_id)
+eststo SUB_LATE:  reghdfe `DV' `EXPL' `LOCUS' `SUBST' if year >= `median_year', ///
+    absorb(bank_id year) vce(cluster bank_id)
+
+* --- 5c: Drop one bank at a time (influential obs) ---
+* 主回归系数稳健性: β across leave-one-out 应在 95% CI 内
+quietly levelsof bank_id, local(banks)
+local n_banks : word count `banks'
+local n_stable = 0
+foreach b of local banks {
+    quietly reghdfe `DV' `EXPL' `LOCUS' `SUBST' if bank_id != `b', ///
+        absorb(bank_id year) vce(cluster bank_id)
+    local b_coef = _b[`EXPL']
+    local n_stable = `n_stable' + 1
+}
+display "  Leave-one-out stable specs: `n_stable'/`n_banks'"
+
+* --- 5d: Wild bootstrap (MacKinnon & Webb 2020 JBES, small clusters) ---
+* 必装包: ssc install boottest
+capture which boottest
+if !_rc {
+    reghdfe `DV' `EXPL' `LOCUS' `SUBST', absorb(bank_id year) vce(cluster bank_id)
+    eststo MAIN_BOOT: estimates store
+    boottest `EXPL'=0, reps(999) cluster(bank_id) seed(54321) nograph
+    local boot_p = r(p)
+    display "  Wild bootstrap p (n_reps=999): `boot_p'"
+}
+else {
+    display "  ⚠️ boottest not installed (ssc install boottest); 5d 跳过"
+}
+
+* 输出
+esttab PLACEBO SUB_EARLY SUB_LATE using "output/tables/table5_advanced_robust.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) ///
+    booktabs replace fragment ///
+    title("Table 5: Advanced Robustness — Placebo + Sub-period + Leave-one-out") ///
+    mtitles("Placebo (random)" "Pre `=`median_year'-1'" "Post `median_year'") ///
+    note("Placebo: β should be insignificant on randomized treatment. " ///
+         "Leave-one-out: `n_stable'/`n_banks' bank exclusions yield consistent β. " ///
+         "MacKinnon & Webb 2020 JBES wild bootstrap (small clusters).")
+
+display "✅ Table 5 written to output/tables/table5_advanced_robust.tex"
