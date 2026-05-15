@@ -278,6 +278,48 @@ def write_labels_do_file(
     logger.info(f"  Stata labels .do 已写入: {out_path} ({len(lines)} 行)")
 
 
+def _write_dta_pyreadstat(df, path, value_labels, var_labels):
+    """Backend 1 (推荐): pyreadstat 全功能写入 (value labels + 中文 + extended missing)."""
+    import pyreadstat
+    pyreadstat.write_dta(
+        df, path,
+        variable_value_labels=value_labels,
+        column_labels=[var_labels.get(c, c) for c in df.columns],
+    )
+
+
+def _write_dta_pandas_fallback(df, path, value_labels, var_labels):
+    """Backend 2 (fallback): pandas 原生 .to_stata().
+
+    限制 (相比 pyreadstat):
+        - 无 value labels (需用 labels.do 手动 apply)
+        - 无 extended missing (.a/.b/.c)
+        - 仅 variable label 通过 variable_labels 参数支持
+    但不需要额外安装 pyreadstat, 让用户在 minimal install 下也能跑 stage 46.
+    """
+    # pandas to_stata 接受 dict-form variable_labels
+    df.to_stata(
+        path,
+        write_index=False,
+        variable_labels={k: v for k, v in var_labels.items() if k in df.columns},
+        version=118,  # Stata 14+ format (与 pyreadstat write_dta 默认对齐)
+    )
+
+
+def _select_dta_backend():
+    """探测可用 .dta 写入 backend; 优先 pyreadstat (功能更全)."""
+    try:
+        import pyreadstat  # noqa: F401
+        return 'pyreadstat', _write_dta_pyreadstat
+    except ImportError:
+        logger.warning(
+            "  pyreadstat 未装, fallback 到 pandas to_stata. "
+            "限制: value labels 需用 labels.do 手动 apply; extended missing 不支持. "
+            "推荐: pip install pyreadstat>=1.2 启用全功能."
+        )
+        return 'pandas', _write_dta_pandas_fallback
+
+
 def export_panel_to_stata(
     panel_path: str,
     output_dir: str,
@@ -285,24 +327,21 @@ def export_panel_to_stata(
 ) -> Dict[str, str]:
     """主导出函数: 从 panel parquet 产出 .dta + labels.do + codebook.xlsx.
 
+    v3.2.0 M1/7 (此 commit): pyreadstat 改为 OPTIONAL, fallback 到 pandas to_stata.
+    解除 plan v14 §9.4 的"硬依赖"约束, 让用户在 minimal install 下也能产 .dta.
+
     Args:
         panel_path: 输入 40_panel_yearly.parquet 路径
         output_dir: 输出目录 (data/processed/)
         output_prefix: 文件名前缀 (默认 46_panel_yearly)
     Returns:
-        dict 含产出文件路径: {'core_dta': '...', 'aux_dta': '...', 'full_dta': '...',
-                             'labels_do': '...', 'codebook_xlsx': '...'}
+        dict 含产出文件路径: {'core_dta', 'aux_dta', 'full_dta',
+                             'labels_do', 'codebook_xlsx', 'backend'}
     """
-    try:
-        import pyreadstat  # noqa: F401
-    except ImportError as e:
-        raise ImportError(
-            "pyreadstat 未装. 请运行 `pip install pyreadstat>=1.2`. "
-            "v3.2.0 stage 46 stata_export 硬依赖 pyreadstat (plan v14 §9.4)."
-        ) from e
-    import pyreadstat
+    backend_name, write_dta = _select_dta_backend()
 
-    logger.info(f"=== Stage 46 Stata Export (plan v14 §9.1) ===")
+    logger.info("=== Stage 46 Stata Export (plan v14 §9.1) ===")
+    logger.info(f"  Backend: {backend_name}")
     logger.info(f"  输入: {panel_path}")
 
     if not os.path.exists(panel_path):
@@ -324,36 +363,22 @@ def export_panel_to_stata(
     core_cols = assign_core_columns(df_encoded)
     aux_cols = [c for c in df_encoded.columns if c not in core_cols]
 
-    # 5. 写 .dta 三件套
+    # 5. 写 .dta 三件套 (经 backend 抽象, 兼容 pyreadstat / pandas)
     core_path = os.path.join(output_dir, f'{output_prefix}_core.dta')
     full_path = os.path.join(output_dir, f'{output_prefix}_full.dta')
     aux_path  = os.path.join(output_dir, f'{output_prefix}_aux.dta')
 
-    pyreadstat.write_dta(
-        df_encoded[core_cols],
-        core_path,
-        variable_value_labels=value_labels,
-        column_labels=[var_labels.get(c, c) for c in core_cols],
-    )
+    write_dta(df_encoded[core_cols], core_path, value_labels, var_labels)
     logger.info(f"  Core .dta 已写入: {core_path} ({len(core_cols)} 列, ≤ {STATA_IC_MAX_VARS})")
 
-    pyreadstat.write_dta(
-        df_encoded,
-        full_path,
-        variable_value_labels=value_labels,
-        column_labels=[var_labels.get(c, c) for c in df_encoded.columns],
-    )
+    write_dta(df_encoded, full_path, value_labels, var_labels)
     logger.info(f"  Full .dta 已写入: {full_path} ({len(df_encoded.columns)} 列)")
 
     if aux_cols:
         # aux 含主键 + aux 列, 用户可 merge 1:1 到 core
         aux_with_keys = ['target_bank', 'year'] + [c for c in aux_cols if c not in ('target_bank', 'year')]
-        pyreadstat.write_dta(
-            df_encoded[aux_with_keys],
-            aux_path,
-            variable_value_labels={k: v for k, v in value_labels.items() if k in aux_with_keys},
-            column_labels=[var_labels.get(c, c) for c in aux_with_keys],
-        )
+        aux_value_labels = {k: v for k, v in value_labels.items() if k in aux_with_keys}
+        write_dta(df_encoded[aux_with_keys], aux_path, aux_value_labels, var_labels)
         logger.info(f"  Aux .dta 已写入: {aux_path} ({len(aux_with_keys)} 列)")
 
     # 6. labels .do
@@ -373,6 +398,7 @@ def export_panel_to_stata(
         'aux_dta':  aux_path if aux_cols else '',
         'labels_do': labels_path,
         'codebook_xlsx': codebook_path,
+        'backend': backend_name,  # v3.2.0 M1/7: 'pyreadstat' | 'pandas'
     }
 
 

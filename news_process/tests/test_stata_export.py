@@ -161,15 +161,39 @@ def test_validate_stata_compat_rejects_long_label():
         validate_stata_compat(df, {'col': long_label})
 
 
-def test_export_requires_pyreadstat(tmp_path, mock_panel):
-    """plan v14 §9.7 风险 4: pyreadstat 未装时给出明确 ImportError 含安装建议."""
+def test_select_dta_backend():
+    """v3.2.0 M1/7: backend 探测 — pyreadstat 优先, pandas fallback."""
+    from news_process.pipeline.panel.stata_export import _select_dta_backend
+    name, writer = _select_dta_backend()
+    assert name in ('pyreadstat', 'pandas')
+    assert callable(writer)
+
+
+def test_export_panel_pandas_fallback_when_no_pyreadstat(tmp_path, mock_panel, monkeypatch):
+    """v3.2.0 M1/7: pyreadstat 未装时 fallback 到 pandas to_stata (graceful)."""
+    panel_path = tmp_path / "panel.parquet"
+    mock_panel.to_parquet(panel_path)
+
+    # Simulate "no pyreadstat" by patching _select_dta_backend
+    from news_process.pipeline.panel import stata_export
+    monkeypatch.setattr(stata_export, '_select_dta_backend',
+                        lambda: ('pandas', stata_export._write_dta_pandas_fallback))
+
+    result = stata_export.export_panel_to_stata(str(panel_path), str(tmp_path))
+
+    # 验证产出文件存在
+    import os
+    assert os.path.exists(result['core_dta'])
+    assert os.path.exists(result['full_dta'])
+    assert os.path.exists(result['labels_do'])
+    assert result['backend'] == 'pandas'
+
+
+def test_export_panel_returns_backend_info(tmp_path, mock_panel):
+    """v3.2.0 M1/7: export_panel_to_stata 返回 dict 含 backend 字段."""
     panel_path = tmp_path / "panel.parquet"
     mock_panel.to_parquet(panel_path)
     from news_process.pipeline.panel.stata_export import export_panel_to_stata
-    try:
-        import pyreadstat  # noqa: F401
-        pytest.skip("pyreadstat 已装, skip 此 ImportError 路径测试")
-    except ImportError:
-        pass
-    with pytest.raises(ImportError, match="pyreadstat"):
-        export_panel_to_stata(str(panel_path), str(tmp_path))
+    result = export_panel_to_stata(str(panel_path), str(tmp_path))
+    assert 'backend' in result
+    assert result['backend'] in ('pyreadstat', 'pandas')
