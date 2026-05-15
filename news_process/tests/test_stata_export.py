@@ -99,7 +99,7 @@ def test_encoded_none_becomes_nan(mock_panel):
 
 def test_variable_label_length_under_80(mock_panel):
     """plan v14 §9.5: 全部 variable label ≤ 80 字节 (UTF-8)."""
-    from news_process.pipeline.panel.stata_export import build_variable_labels, STATA_VAR_LABEL_MAXLEN
+    from news_process.pipeline.panel.stata_export import STATA_VAR_LABEL_MAXLEN, build_variable_labels
     labels = build_variable_labels(mock_panel)
     too_long = [(c, l, len(l.encode('utf-8'))) for c, l in labels.items()
                 if len(l.encode('utf-8')) > STATA_VAR_LABEL_MAXLEN]
@@ -115,7 +115,7 @@ def test_column_name_length_under_32(mock_panel):
 
 def test_core_columns_fit_ic(mock_panel):
     """plan v14 §9.1 + §9.5 (R42-A): core 列 ≤ 2048 (Stata IC 兼容)."""
-    from news_process.pipeline.panel.stata_export import assign_core_columns, STATA_IC_MAX_VARS
+    from news_process.pipeline.panel.stata_export import STATA_IC_MAX_VARS, assign_core_columns
     core = assign_core_columns(mock_panel)
     assert len(core) <= STATA_IC_MAX_VARS, f"Core 列数 {len(core)} 超 IC 限 {STATA_IC_MAX_VARS}"
 
@@ -123,7 +123,9 @@ def test_core_columns_fit_ic(mock_panel):
 def test_labels_do_file_generated(mock_panel, tmp_path):
     """plan v14 §9.1: labels .do 含 label var + label define + label values."""
     from news_process.pipeline.panel.stata_export import (
-        build_variable_labels, encode_categorical_columns, write_labels_do_file,
+        build_variable_labels,
+        encode_categorical_columns,
+        write_labels_do_file,
     )
     encoded, value_labels = encode_categorical_columns(mock_panel)
     var_labels = build_variable_labels(encoded)

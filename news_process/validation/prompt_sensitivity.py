@@ -635,14 +635,15 @@ def extract_baseline(df_sample: pd.DataFrame) -> pd.DataFrame:
     df['V0_baseline_sentiment_full'] = df['llm_sentiment_full']
     df['V0_baseline_sentiment_ctx'] = df['llm_sentiment_ctx']
 
-    # v7 R7.2: V0 baseline 含 innovation 维度
-    # 注: stage 21 输出 innovation_* 仅基于 full 轨道 (per tone_llms 设计),
-    # ctx 轨道借用 full 值（与 v7 LLM Rerun 行为一致）
-    for track in ['_full', '_ctx']:
-        if 'innovation_substantiveness' in df.columns:
-            df[f'V0_baseline_innovation_substantiveness{track}'] = df['innovation_substantiveness']
-        if 'innovation_locus' in df.columns:
-            df[f'V0_baseline_innovation_locus{track}'] = df['innovation_locus']
+    # v7 R7.2 / v3.2.0 (plan v14 §3.5 P5.7): V0 baseline 含 innovation 双轨独立
+    # v3.2.0 BREAKING: bare innovation_* 已重命名为 _full / _ctx, 此处对应轨道独立 baseline
+    for _track, _suffix in [('_full', '_full'), ('_ctx', '_ctx')]:
+        src_subst = f'innovation_substantiveness{_suffix}'
+        src_locus = f'innovation_locus{_suffix}'
+        if src_subst in df.columns:
+            df[f'V0_baseline_innovation_substantiveness{_track}'] = df[src_subst]
+        if src_locus in df.columns:
+            df[f'V0_baseline_innovation_locus{_track}'] = df[src_locus]
 
     # 逐模型结果（用于后续分析扩展）
     for m in MODELS:
