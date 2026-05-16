@@ -1014,3 +1014,664 @@ esttab gov_het_high_eq gov_het_low_eq gov_het_chow ///
 *   → ✅ 治理变量作为遗漏变量控制有效
 *   → 如果 |δ(含治理)| >> 1, 结论极其稳健
 * ============================================================
+
+* ============================================================
+* 检验 16: 外部专利质量交叉确证 (Text-Patent Validity Check)
+* ============================================================
+*
+* 理论背景:
+*   Bellstam, G., Bhagat, S. & Cookson, J.A. (2021). A Text-Based
+*     Analysis of Corporate Innovation. Management Science, 67(7),
+*     4004-4031. DOI: 10.1287/mnsc.2020.3682
+*   §4 核心论点 (具体表号请以论文出版版本为准):
+*     "高质量文本测度应同时正向预测引用加权专利 (citation-weighted
+*     patents), 而非仅预测普通的专利申请数量。仅预测数量的指标可能
+*     只是概念炒作 (hype) 的代理变量, 而非真实创新的捕获器。"
+*
+*   核心区分:
+*     PAT_count       — 申请数量 (数量, "水量"维度)
+*     PAT_citations   — 引用次数 (质量, "价值"维度)
+*     PAT_cite_per_pat — 平均引用率 = citations/count (质量浓度)
+*
+* 学术依据 (专利引用作为创新经济价值代理):
+*   Trajtenberg, M. (1990). A Penny for Your Quotes: Patent Citations
+*     and the Value of Innovations. RAND, 21(1), 172-187.
+*     DOI: 10.2307/2555502
+*   Hall, B.H., Jaffe, A.B. & Trajtenberg, M. (2005). Market Value
+*     and Patent Citations. RAND, 36(1), 16-38. [JSTOR: 1593752]
+*   Kogan, L., Papanikolaou, D., Seru, A. & Stoffman, N. (2017).
+*     Technological Innovation, Resource Allocation, and Growth.
+*     QJE, 132(2), 665-712. DOI: 10.1093/qje/qjw040
+*   Aghion, P., Van Reenen, J. & Zingales, L. (2013). Innovation and
+*     Institutional Ownership. AER, 103(1), 277-304.
+*     DOI: 10.1257/aer.103.1.277
+*
+* 改进目标:
+*   构建"文本有效性确证检验 (Validity Check)", 迎合 MS / RFS / JF
+*   等顶刊关于"交叉盲测 (out-of-domain cross validation)"的规范.
+*   与现有伪造检验 (检验 1-15) 形成三角验证体系:
+*     检验 1-7  → 信度 (Reliability): tone 是否预测 Y
+*     检验 8-9  → 内生性 (Endogeneity): tone 是否因果驱动 Y
+*     检验 16  → 效度 (Validity): tone 是否捕获真实创新质量
+*
+* 数据获取 (用户须从外部数据库合并):
+*   (a) 国家知识产权局 (CNIPA) → 银行主体年度专利清单
+*   (b) CSMAR 中国上市公司专利数据库 (含被引数据)
+*   (c) Wind 金融机构创新指标库 (含产品发布事件)
+*   (d) CNRDS 中国研究数据服务平台 (含 IPC 分类)
+*
+*   金融科技专利 IPC 识别 (Chen, Wu & Yang 2019, RFS):
+*     G06Q 20/* — 支付架构 / 移动支付
+*     G06Q 40/* — 金融数据处理 / 风控
+*     G06F 21/* — 数据安全 (区块链应用)
+*     G06N      — 机器学习 / AI 风控
+*     Chen, M.A., Wu, Q. & Yang, B. (2019). How Valuable Is FinTech
+*       Innovation? RFS, 32(5), 2062-2106. DOI: 10.1093/rfs/hhy130
+*
+*   引用窗口:
+*     建议申请后 5 年累计被引 (Hall et al. 2005),
+*     避免新近专利的"截断偏误 (truncation bias)".
+*     截断校正参考: Hall, Jaffe & Trajtenberg (2001), NBER WP 8498.
+*     DOI: 10.3386/w8498
+*
+* 变量定义 (合并后入面板, 须按 Stata 32 字符限制命名):
+*   PAT_count            — 当年专利申请总数
+*   PAT_grant            — 当年发明专利授权数 (质量初筛)
+*   PAT_fintech_count    — 金融科技 IPC 类专利申请数
+*   PAT_citations        — 累计被引次数 (5 年窗口)
+*   PAT_cite_per_pat     — 平均引用率 = citations/count
+*   PAT_cite_weighted    — 引用加权专利数 (Trajtenberg 1990; Hall et al. 2005)
+*                          注: Kogan et al. (2017) 度量的是 stock-market-based
+*                              专利经济价值, 与本变量 cite-weighted 概念不同
+*   PAT_top10_pct        — 是否进入 IPC 分类前 10% 高被引 (0/1)
+*   PROD_launch_count    — 当年金融科技产品/服务发布事件数
+*   PROD_press_count     — 当年技术发布相关新闻通稿数
+*
+* 变量可用性说明:
+*   非上市城商行/农商行的专利覆盖率偏低 (常 < 60%).
+*   建议先运行 (16-0) 覆盖率诊断, 必要时仅在上市银行子样本中
+*   实施核心确证检验, 全样本作为稳健性补充.
+* ============================================================
+
+* ── 数据准备: 合并外部专利与产品发布数据 ──
+* 假设用户已将专利变量整理为 patent_panel.dta
+* 结构: target_bank (string) × year (int) × PAT_* / PROD_* 变量
+
+* merge 1:1 target_bank year using "patent_panel.dta", ///
+*   nogenerate keepusing(PAT_* PROD_*)
+* 注: 取消上行注释后执行; nogenerate 避免 _merge 列污染
+
+* ── (16-0a) 前置守卫: 关键变量存在性检查 ──
+* 用户若忘记合并 patent_panel.dta, 此守卫早退并给出明确提示
+* 避免后续循环抛出晦涩的 "variable X not found" 错误
+*
+* 设计: 分变量 capture confirm + 分别报错, 用户可精确定位缺失项
+*       (capture confirm variable A B 在任一缺失时 _rc 不为 0,
+*       但无法区分是 A 还是 B 缺失)
+capture confirm variable PAT_count
+local rc_count = _rc
+capture confirm variable PAT_citations
+local rc_cite = _rc
+if `rc_count' != 0 | `rc_cite' != 0 {
+  display as error "[检验16] 核心专利变量缺失:"
+  if `rc_count' != 0 display as error "         - PAT_count       不存在"
+  if `rc_cite'  != 0 display as error "         - PAT_citations   不存在"
+  display as error "         请先合并 patent_panel.dta (见上方 merge 注释)."
+  display as error "         如暂无专利数据, 注释整段检验 16 即可."
+  exit 111
+}
+
+* ── (16-0a-bis) 面板唯一性校验 (防 (16-5) lead 算子误算) ──
+* 若 (target_bank, year) 不唯一, bysort `var[_n+k]` 会基于物理
+* 顺序错配同银行同年的两条记录, lead 值随后被赋错
+capture isid target_bank year
+if _rc != 0 {
+  display as error "[检验16] (target_bank, year) 不唯一 —"
+  display as error "         检验 16-5 (lead) 要求面板对唯一."
+  display as error "         请先诊断: duplicates report target_bank year"
+  display as error "         然后处理: duplicates drop target_bank year, force"
+  display as error "                   (谨慎使用 — 会丢失重复行的信息)"
+  exit 109
+}
+
+* ── (16-0b) 数据覆盖率诊断 ──
+* 覆盖率 < 50% 的变量须降级为子样本稳健性检验
+*
+* 设计: 用 ds 安全收集通配符匹配的变量, 容许 PAT_*/PROD_*
+*       中任一前缀整组缺失 (foreach of varlist 在通配符匹配
+*       0 变量时会报错, ds + capture 不会).
+foreach prefix in PAT PROD {
+  capture ds `prefix'_*
+  if _rc == 0 & "`r(varlist)'" != "" {
+    foreach pat_var of varlist `r(varlist)' {
+      quietly count if !missing(`pat_var')
+      local n_valid = r(N)
+      quietly count
+      local n_total = r(N)
+      if `n_total' > 0 {
+        local pct = `n_valid' / `n_total' * 100
+        display "  `pat_var': `n_valid'/`n_total' (`pct'% 非缺失)"
+      }
+      else {
+        display "  `pat_var': 面板为空 (N = 0), 无法诊断"
+      }
+    }
+  }
+  else {
+    display as text "  [提示] `prefix'_* 前缀下无变量, 跳过"
+  }
+}
+
+* ── (16-0c) 偏态诊断与计数变量对数化 ──
+* 银行专利计数严重右偏 (大行 vs 小行差异极大), 须取 ln(1+x)
+* 对标: Hall et al. (2005, RAND) — 引用次数 ln(1+x) 处理零值
+*
+* 设计: 用 foreach in (非 of varlist) + 单变量 capture confirm,
+*       容许用户仅合并部分指标 (与 (16-0a) 守卫的"宽松降级"一致).
+*       foreach of varlist 会在任一变量缺失时整体报错, 不适用.
+foreach pat_var in PAT_count PAT_grant PAT_fintech_count ///
+  PAT_citations PAT_cite_weighted PROD_launch_count PROD_press_count {
+  capture confirm variable `pat_var'
+  if _rc == 0 {
+    cap drop ln_`pat_var'
+    gen ln_`pat_var' = ln(1 + `pat_var')
+  }
+  else {
+    display as text "  [跳过] `pat_var' 不存在, ln_`pat_var' 未生成"
+  }
+}
+
+* ── (16-0d) 描述性统计 (论文 Table N 数据来源) ──
+* 报告专利与文本变量的均值、中位数、SD、极值与样本量
+* 学术规范: 关联矩阵之前先给出描述性统计 — Wooldridge (2010,
+*   Econometric Analysis of Cross Section and Panel Data, MIT Press,
+*   2nd ed., §10.1) 关于面板实证报告基本规范
+*
+* 设计: 动态构造存在变量列表, 容许部分专利/产品指标缺失
+local stat_vars
+foreach v in ln_PAT_count ln_PAT_grant ln_PAT_fintech_count ///
+  ln_PAT_citations ln_PAT_cite_weighted PAT_cite_per_pat ///
+  PAT_top10_pct ln_PROD_launch_count ln_PROD_press_count ///
+  llm_vote_tone_full llm_vote_tone_ctx avg_llm_prob_score_full {
+  capture confirm variable `v'
+  if _rc == 0 local stat_vars `stat_vars' `v'
+}
+if "`stat_vars'" != "" {
+  tabstat `stat_vars', stats(mean p50 sd min max n) columns(statistics)
+}
+else {
+  display as text "  [警告] 描述统计变量列表为空, 跳过 tabstat"
+}
+
+* ── (16-1) 先导关联矩阵 (核心 Validity 信号) ──
+*
+* 目的: 在多元回归之前, 先以双变量相关矩阵观察
+*       LLM 文本指数 与 专利质量指标 的方向与强度,
+*       直接落地论文要求的"先导关联矩阵 (preliminary correlation
+*       matrix)".
+*
+* 方法论:
+*   (a) Pearson 相关 — 线性关系强度 (假设连续 + 近正态)
+*   (b) Spearman 秩相关 — 鲁棒于离群值和非线性单调关系
+*       银行专利数据严重右偏, 秩相关为推荐主报告指标
+*
+* 关键预期 (Bellstam, Bhagat & Cookson 2021, §4):
+*   |ρ(tone, ln_PAT_citations)|  >>  |ρ(tone, ln_PAT_count)|
+*   → 文本指标对"质量"的预测力 >> 对"数量"的预测力
+*   → 此为"有效文本测度"的关键标志
+*
+* 双轨对齐 v3.2.0:
+*   两轨独立标签 (full/ctx) 应均与专利质量正相关, 验证
+*   双轨架构 (innovation_locus_full / innovation_locus_ctx) 的
+*   外部一致性.
+
+* 设计: 动态构造存在的变量列表, 容许部分专利/产品指标缺失
+local tone_vars
+foreach v in llm_vote_tone_full llm_vote_tone_ctx avg_llm_prob_score_full {
+  capture confirm variable `v'
+  if _rc == 0 local tone_vars `tone_vars' `v'
+}
+local patent_vars
+foreach v in ln_PAT_count ln_PAT_grant ln_PAT_fintech_count ///
+  ln_PAT_citations ln_PAT_cite_weighted PAT_cite_per_pat ///
+  PAT_top10_pct ln_PROD_launch_count {
+  capture confirm variable `v'
+  if _rc == 0 local patent_vars `patent_vars' `v'
+}
+
+* (16-1a) Pearson 相关 + 显著性标记
+if "`tone_vars'" != "" & "`patent_vars'" != "" {
+  pwcorr `tone_vars' `patent_vars', sig star(0.05)
+}
+
+* (16-1b) Spearman 秩相关 (推荐主报告)
+if "`tone_vars'" != "" & "`patent_vars'" != "" {
+  spearman `tone_vars' `patent_vars', stats(rho p) star(0.05)
+}
+
+* (16-1c) 导出相关矩阵到 LaTeX
+* 推荐方案: estpost + esttab — 与表 9/10/11 工具链一致, 无需额外包
+* if "`tone_vars'" != "" & "`patent_vars'" != "" {
+*   estpost correlate `tone_vars' `patent_vars', matrix
+*   esttab . using "table_validity_corr_matrix.tex", ///
+*     replace not unstack compress noobs ///
+*     star(* 0.10 ** 0.05 *** 0.01)
+* }
+*
+* 备选方案 (需 ssc install corrtex, 含双星显著性 + 三角矩阵):
+* corrtex `tone_vars' `patent_vars', ///
+*   file("table_validity_corr_matrix.tex") replace
+
+* ── (16-2) 基准回归: tone → 引用质量 ──
+*
+* 对标: Bellstam, Bhagat & Cookson (2021), §4 — 文本测度的专利质量验证
+*       文本测度对引用加权专利的预测系数应正显著
+*       (具体表号请以论文出版版本为准)
+*
+* 模型:
+*   ln(1+PAT_citations)_{i,t} = β·tone_{i,t} + γ·X_{i,t} + α_i + α_t + ε
+*
+* 三种 DV 反映不同质量维度:
+*   ln_PAT_citations    — 总引用 (社会认可度)
+*   ln_PAT_cite_weighted — 引用加权 (Trajtenberg 1990 度量, 强度版)
+*   PAT_cite_per_pat    — 单位引用率 (质量浓度)
+
+reghdfe ln_PAT_citations llm_vote_tone_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store valid_cite_full
+
+reghdfe ln_PAT_cite_weighted llm_vote_tone_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store valid_citewgt
+* → Trajtenberg (1990) / Hall et al. (2005) 引用加权专利度量
+*   反映创新的社会与经济强度 (而非仅平均影响力)
+
+reghdfe PAT_cite_per_pat llm_vote_tone_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store valid_citerate
+* → 单位专利的平均引用率, 衡量质量浓度而非总量
+
+* ── (16-3) 安慰剂对比: tone → 数量 (Bellstam §4 关键设计) ──
+*
+* 关键方法论 (Bellstam, Bhagat & Cookson 2021, §4):
+*   优质文本指标对"质量"的预测应显著强于对"数量"的预测.
+*   若 β(tone → ln_PAT_count) 与 β(tone → ln_PAT_citations)
+*   接近, 则文本指标可能仅反映普通媒体关注度, 而非真正的
+*   创新实质内容. → 这是 Validity Fail 的关键警告信号.
+*
+* 预期:
+*   ✅ Pass:  β(citations) 显著大于 β(count), 文本捕获"质量"
+*   ⚠ Fail:  两者接近, 文本可能仅是"水量/概念炒作"代理
+
+reghdfe ln_PAT_count llm_vote_tone_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store placebo_count
+
+reghdfe ln_PAT_grant llm_vote_tone_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store placebo_grant
+
+reghdfe ln_PAT_fintech_count llm_vote_tone_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store placebo_ft_count
+
+* ── (16-3b) 系数差异正式检验 (Quality - Quantity Gap) ──
+*
+* 方法: 在两个 DV 都非缺失的子集上估计两个模型, 比较
+*       β(quality) vs β(quantity).
+* 严格性说明: reghdfe + suest 不兼容 — suest 要求 e(b) 中含
+*   全部参数, 但 reghdfe 的 absorbed FE 不进入 e(b).
+*   因此严格的系数差异显著性检验须 program-based bootstrap.
+*   下方给出"严格同样本点估计"作主输出, bootstrap 作可选扩展.
+
+* 步骤 1: 显式构造两个 DV + IV 都非缺失的样本指示
+*   单独依赖 e(sample) 在 reghdfe 中无法保证两次回归严格同样本
+*   (DV 量缺失模式可能不同, 仅基于 quality 模型的 e(sample)
+*   会包含 ln_PAT_count 缺失的行, 在第二步被自动排除 → 样本缩小)
+*
+* 剩余风险: reghdfe 默认 drop singletons (单观测的 bank-year cells),
+*   两次回归基于同 sample_qc 但 singleton drop 模式可能不同, e(sample)
+*   严格相等不保证. 严格做法:
+*     option A: 加 `keepsingletons` 选项 (代价: cluster SE 略偏小,
+*               需在 vce(cluster ...) 下手动校正)
+*     option B: 用 quality 模型的 e(sample) 作 quantity 模型的 if
+*               条件再跑一次, 取交集 (二阶段 union)
+*   实务: 若下方 display 报告的两次 e(N) 差异 < 1%, 视为可忽略.
+cap drop sample_qc
+gen sample_qc = !missing(ln_PAT_citations, ln_PAT_count, llm_vote_tone_full)
+
+* 步骤 2: 同样本下估计 quality 模型, 输出关键统计
+quietly reghdfe ln_PAT_citations llm_vote_tone_full X if sample_qc, ///
+  absorb(target_bank year) vce(cluster target_bank)
+estimates store m_quality
+display "Quality (cite):  b = " %9.4f _b[llm_vote_tone_full] ///
+  "  se = " %9.4f _se[llm_vote_tone_full] "  N = " e(N)
+
+* 步骤 3: 同样本下估计 quantity 模型
+quietly reghdfe ln_PAT_count llm_vote_tone_full X if sample_qc, ///
+  absorb(target_bank year) vce(cluster target_bank)
+estimates store m_quantity
+display "Quantity (cnt):  b = " %9.4f _b[llm_vote_tone_full] ///
+  "  se = " %9.4f _se[llm_vote_tone_full] "  N = " e(N)
+
+* 步骤 4: program-based bootstrap β(quality) - β(quantity)  (可选)
+*   H0: β(quality) = β(quantity)  ⇒ 文本无质量增量信号
+*   若 bootstrap 95% CI 不含 0 ⇒ 文本捕获"质量"维度的特异性信号
+*   reghdfe + suest 不兼容 (见上方"严格性说明"), program 范式
+*   是差异显著性的唯一严格估计途径
+*
+* 设计: program 内部用 tempvar 自管理 sample 指示, 不依赖外部
+*       sample_qc — 后者已在本步骤后 cap drop, 若 program 引用
+*       会因变量不存在而 fatal. tempvar 在 program 退出自动清理.
+*
+* capture program drop _qq_gap
+* program define _qq_gap, rclass
+*   tempvar smp
+*   gen `smp' = !missing(ln_PAT_citations, ln_PAT_count, llm_vote_tone_full)
+*   reghdfe ln_PAT_citations llm_vote_tone_full X if `smp', ///
+*     absorb(target_bank year)
+*   scalar b1 = _b[llm_vote_tone_full]
+*   reghdfe ln_PAT_count      llm_vote_tone_full X if `smp', ///
+*     absorb(target_bank year)
+*   scalar b2 = _b[llm_vote_tone_full]
+*   return scalar diff = b1 - b2
+* end
+* bootstrap r(diff), reps(1000) seed(42) cluster(target_bank): _qq_gap
+
+cap drop sample_qc
+
+* ── (16-4) 双轨独立确证 (v3.2.0 双轨架构外部验证) ──
+*
+* v3.2.0 引入 full/ctx 双轨独立标签:
+*   full — 全文轨, 反映宏观情感
+*   ctx  — 上下文轨, 反映针对目标银行的精准情感
+*
+* 优质双轨架构应满足:
+*   (i)  两轨均独立预测专利质量;
+*   (ii) ctx 因捕获更精准的目标主体信号, 预测力不应低于 full;
+*   (iii) 两轨同时进入仍均显著, 说明各有独立信息.
+
+* 注: full 轨结果已在 (16-2) 估计并存为 valid_cite_full,
+*     此处不重复计算; 16-8 表 10 直接以 valid_cite_full 出列
+
+* 双轨变量存在性守卫 — 若 panel 是单轨 (无 _ctx 列), 跳过整段 (16-4)
+capture confirm variable llm_vote_tone_ctx
+if _rc != 0 {
+  display as text "  [跳过] llm_vote_tone_ctx 不存在, 跳过 (16-4) 双轨段"
+  display as text "         (表 10 第 2、3 列 dual_ctx/dual_both 不会被产出)"
+}
+else {
+  * 双轨共线性诊断 — 两轨设计上同源, 可能高度共线
+  * 若 |ρ| > 0.9 → dual_both 的 SE 膨胀, 解读须谨慎
+  * (Brambor, Clark & Golder 2006, PA — 同源协变量模型规范)
+  quietly correlate llm_vote_tone_full llm_vote_tone_ctx
+  if !missing(r(rho)) {
+    display "  corr(tone_full, tone_ctx) = " %9.4f r(rho)
+  }
+  else {
+    display "  [警告] corr(tone_full, tone_ctx) 计算失败 (变量缺失模式互斥?)"
+  }
+
+  reghdfe ln_PAT_citations llm_vote_tone_ctx X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+    est store dual_ctx
+
+  reghdfe ln_PAT_citations llm_vote_tone_full llm_vote_tone_ctx X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+    est store dual_both
+  * → 两轨同时进入: 系数均显著 → 各轨有独立信息含量
+}
+
+* ── (16-5) 创新孕育期 (Innovation Gestation Lag) ──
+*
+* 方法论:
+*   Aghion, Van Reenen & Zingales (2013, AER) 指出:
+*     专利从立项到申请、到被引用, 存在 1-3 年时滞.
+*   若文本指标在 t 期预测 t+k 期 (k=1,2,3) 的引用质量,
+*   反映文本捕获了"前瞻性 (forward-looking) 创新信号",
+*   而非仅同期 (contemporaneous) 相关.
+*
+* 模型:
+*   ln(1+PAT_citations)_{i,t+k} = β_k·tone_{i,t} + controls + FE
+*   核心: 因变量取未来期, 自变量取当期 → 单向时序排除反向因果
+
+* 生成前置 (lead) 专利质量变量
+* 设计: 使用 bysort 显式构造, 不依赖 xtset / encode bank_id
+* 原因: 本模板顶部仅有 use 51_panel_with_controls.dta, 既未
+*       encode 出 bank_id 也未 xtset, 若直接用 F. 时序算子
+*       会报 "must specify panelvar". bysort 写法与模板其余段
+*       (仅依赖 target_bank 字符串作为 cluster/absorb) 同构.
+* 前置依赖: (16-0a-bis) 已 isid 校验 (target_bank, year) 唯一,
+*           本段 _n+k 不会因重复行误算.
+foreach k in 1 2 3 {
+  cap drop lead`k'_PAT_cite
+  bysort target_bank (year): gen lead`k'_PAT_cite = ///
+    ln_PAT_citations[_n + `k'] if year[_n + `k'] == year + `k'
+}
+* 注 1: bysort target_bank (year) 限制 _n+k 在同一银行内,
+*       越界自动返回缺失值 (Stata 默认行为, 安全)
+* 注 2: if year[_n+k] == year+k 校验年份连续性,
+*       防止某银行某年缺数据时把 t+2 错认为 t+1
+
+reghdfe lead1_PAT_cite llm_vote_tone_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store lead1_cite
+local n_lead1 = e(N)
+
+reghdfe lead2_PAT_cite llm_vote_tone_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store lead2_cite
+local n_lead2 = e(N)
+
+reghdfe lead3_PAT_cite llm_vote_tone_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store lead3_cite
+local n_lead3 = e(N)
+
+* lead 样本量悬崖诊断: 末期年份在 lead_k 全缺失 → 样本逐期递减
+* 若 lead3 样本 < lead1 的 50%, 表 10 末三列 SE 可能膨胀, 不稳定
+display "  lead 样本量: lead1 N = `n_lead1', lead2 N = `n_lead2', lead3 N = `n_lead3'"
+if `n_lead3' < `n_lead1' / 2 {
+  display as text "  [警告] lead3 样本量 < lead1 的 50%, 系数标准误可能膨胀"
+}
+* → 预期: 系数在 t+1, t+2 期显著, t+3 期开始衰减
+*   (Aghion et al. 2013 — 创新效应通常 2-3 年达峰)
+
+* ── (16-6) 产品发布事件 (Real-World Outcome) ──
+*
+* 论文要求"相关技术高质量落地事件 (产品发布量)" — 比专利申请
+* 更贴近实质产出, 反映文本指标是否预测真实业务落地.
+*
+* 对标: Chen, Wu & Yang (2019, RFS) — FinTech 产品事件研究框架
+
+* PROD_* 变量存在性守卫 (前置守卫 (16-0a) 只检查 PAT_*)
+* 若用户未合并 PROD_* 整组, 此段静默跳过, 表 10 后两列不产出
+capture confirm variable ln_PROD_launch_count
+local has_launch = (_rc == 0)
+capture confirm variable ln_PROD_press_count
+local has_press = (_rc == 0)
+
+if `has_launch' {
+  reghdfe ln_PROD_launch_count llm_vote_tone_full X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+    est store prod_launch
+}
+else {
+  display as text "  [跳过] ln_PROD_launch_count 不存在, prod_launch 未估计"
+}
+
+if `has_press' {
+  reghdfe ln_PROD_press_count llm_vote_tone_full X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+    est store prod_press
+}
+else {
+  display as text "  [跳过] ln_PROD_press_count 不存在, prod_press 未估计"
+}
+
+* ── (16-7) 概率分数稳健性 (替代离散投票) ──
+*
+* v3.2.0 引入 avg_llm_prob_score_full ∈ [-1, +1] 连续分数,
+* 用其替换离散 llm_vote_tone_full, 验证度量方法对确证结果稳健.
+* 对标: Törnberg, P. (2024). arXiv:2307.13106 — LLM 概率映射
+
+reghdfe ln_PAT_citations avg_llm_prob_score_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store prob_cite
+
+reghdfe ln_PAT_cite_weighted avg_llm_prob_score_full X, ///
+  absorb(target_bank year) vce(cluster target_bank)
+  est store prob_citewgt
+
+* ── (16-8) 高质量分位事件 (Top-10% Logit) ──
+*
+* 顶刊偏好"高被引专利占比"作为质量的极端尾部度量:
+*   PAT_top10_pct = 1 若该年银行专利进入 IPC 分类前 10% 高被引
+* 对标: Aghion, Van Reenen & Zingales (2013, AER) — Top-citation share
+*       quality measure 风格 (具体表号请以论文出版版本为准)
+
+* 推荐使用 conditional logit / FE-logit 而非 OLS (二元 DV)
+* 此处给出 reghdfe 的 LPM 估计 (线性概率模型) 作为基线
+*
+* LPM 偏误注意:
+*   (a) 预测值可能 < 0 或 > 1, 不可直接作概率解读
+*   (b) 系数 = 概率的边际效应, 仅在 Pr(Y=1) 均值附近有效
+*   (c) Top-10% DV 均值 ≈ 0.1 (尾部稀疏), LPM 在尾部偏误不可忽略
+* 论文实务: 主表用 LPM (估计稳健 + 易解读), 稳健性补 FE-logit
+
+* PAT_top10_pct 存在性守卫 — 该变量构造较复杂 (需 IPC 分类内
+*   被引分布), 部分用户可能未构造. 缺失时静默跳过, 表 11 第 3 列不产出.
+capture confirm variable PAT_top10_pct
+if _rc == 0 {
+  reghdfe PAT_top10_pct llm_vote_tone_full X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+    est store top10_lpm
+}
+else {
+  display as text "  [跳过] PAT_top10_pct 不存在, top10_lpm 未估计"
+}
+
+* 完整 FE-logit (可选, 注释默认状态):
+*
+* incidental parameters problem (Neyman & Scott 1948, Econometrica):
+*   T 较短的 panel (T < 10) 下, xtlogit fe 系数估计有偏 (T → ∞ 才一致).
+*   银行年度 panel 通常 T ≈ 8-15, 处于临界, 解读须审慎.
+*   Hahn & Newey (2004, Econometrica, 72(4)) jackknife 偏误校正可改善,
+*   但 Stata 内置 xtlogit, fe 不实现该校正.
+*
+* xtlogit PAT_top10_pct llm_vote_tone_full X i.year, fe vce(cluster target_bank)
+* est store top10_felogit
+
+* ── 输出格式化表格 ──
+
+* 表 9: 文本有效性确证主表 — 质量 vs 数量对照
+* (直接对标 Bellstam, Bhagat & Cookson 2021, §4 — 文本测度的专利质量验证)
+esttab valid_cite_full valid_citewgt valid_citerate ///
+  placebo_count placebo_grant placebo_ft_count ///
+  using "table_validity_main.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace ///
+  mtitles("Cite" "Cite-Wgt" "Cite/Pat" ///
+          "Count" "Grant" "FT-Count")
+
+* 表 10: 双轨 + 时滞 + 产品发布 (动态与机制)
+esttab valid_cite_full dual_ctx dual_both ///
+  lead1_cite lead2_cite lead3_cite ///
+  prod_launch prod_press ///
+  using "table_validity_dynamic.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace ///
+  mtitles("Full" "Ctx" "Both" "t+1" "t+2" "t+3" ///
+          "Launch" "Press")
+* 注: 第 1 列 "Full" 复用 (16-2) 的 valid_cite_full,
+*     避免与 (16-4) 重复估计 (该回归与 dual 设定完全相同)
+
+* 表 11: 概率分数 + 顶部尾部稳健性
+esttab prob_cite prob_citewgt top10_lpm ///
+  using "table_validity_robust.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace ///
+  mtitles("Cite(Prob)" "Cite-Wgt(Prob)" "Top10%")
+
+* ============================================================
+* 检验 16 结果解读指南:
+* ────────────────────────────────────────────────────────────
+*
+* β(tone → ln_PAT_citations) 显著正且 >> β(tone → ln_PAT_count)
+*   → ✅ 文本指标捕获创新"质量"而非"水量" (Validity Pass)
+*   → 直接对标 Bellstam et al. (2021, MS) §4 核心结论
+*
+* β(tone → ln_PAT_cite_weighted) 显著正 (Trajtenberg 1990 引用加权)
+*   → ✅ 文本指标预测创新的社会与经济强度 (而非仅平均影响力)
+*
+* β(tone → PAT_cite_per_pat) 显著正 (质量浓度)
+*   → ✅ 不仅总量, 单位专利的影响力也提升 → 强 Validity
+*
+* β(tone → ln_PAT_count) ≈ β(tone → ln_PAT_citations)
+*   → ⚠ 文本指标可能仅捕获普通媒体关注度 (Validity Fail 警告)
+*   → 须查看 §16-3b 的 bootstrap 系数差异检验
+*
+* 双轨 (full + ctx) 同时进入仍均显著
+*   → ✅ 两轨各有独立信号, v3.2.0 双轨架构得到外部验证
+*
+* β_k (lead_k_PAT_cite) 在 k=1,2 显著, k=3 衰减
+*   → ✅ 文本捕获"前瞻性"创新信号 (Aghion et al. 2013 时滞)
+*   → 同时缓解反向因果担忧 (未来引用不会影响当期 tone)
+*
+* β(tone → ln_PROD_launch_count) 显著正
+*   → ✅ 文本指标预测真实业务落地, 而非纸面叙事
+*
+* β(tone → PAT_top10_pct) 显著正
+*   → ✅ 文本不仅预测平均质量, 也预测极端尾部的高影响力专利
+*     (Aghion et al. 2013, AER — Top-citation share quality measure 风格)
+*
+* β(avg_llm_prob_score_full → ...) 与离散投票同号同强
+*   → ✅ 度量方法稳健 (Törnberg 2024)
+*
+* β_q (引用) 和 β_n (数量) 都显著正
+*   → ℹ️ tone 同时反映质量与数量, Validity 强弱取决于
+*     quality-quantity gap (β_q - β_n) 的 bootstrap CI 是否
+*     排除 0 (见 §16-3b 步骤 4 的 program-based bootstrap)
+*   → 经济意义: 即使数量端也有响应, 只要 β_q 的相对量级显著
+*     占优, 仍能主张文本捕获"质量"维度的特异性信号
+*
+* 量纲注意:
+*   系数大小比较仅在对数 DV (ln_PAT_*) 之间适用; PAT_cite_per_pat
+*   是比率 (citations / count), 与对数变量量纲不同, 不可直接比较
+*   系数数值大小. 推荐改看:
+*     (a) 相对效应 β / SD(Y)
+*     (b) 标准化效应 β · SD(X) / SD(Y)
+*   配合 (16-0d) tabstat 输出的各变量 SD 完成尺度归一化.
+*
+* 多重检验校正:
+*   表 9/10/11 共报告约 16 个核心系数. 假设各检验独立,
+*   p < 0.05 阈值下 family-wise error rate ≈ 1 - 0.95^16 ≈ 0.56,
+*   即纯随机情况下也大概率出现"显著"系数 → 假发现风险高.
+*   严格做法:
+*     (a) Bonferroni: α' = 0.05 / 16 = 0.003 (保守, 偏 II 类错误)
+*     (b) Romano & Wolf (2005, Econometrica, 73(4)) stepdown 校正
+*         (推荐 — 控制 FWER 同时保留功效)
+*     (c) Benjamini-Hochberg FDR (容忍少量假发现)
+*   实务规范: 主表用 0.05 阈值, 解读时强调系数符号一致性 + 经济
+*   意义量级 + 跨子样本/方法的稳健性, 而非依赖单一 p 值.
+*
+* 双轨共线性 (dual_both 解读, 检验 16-4):
+*   (16-4) 前置 corr 诊断已输出 corr(tone_full, tone_ctx).
+*   若 |ρ| > 0.9, dual_both 的 SE 膨胀, 两个系数虽点估计接近真值
+*   但单系数显著性受损 → 推荐看 joint F-test:
+*     test llm_vote_tone_full llm_vote_tone_ctx
+*   若联合检验显著, 即使单系数边际不显著, 仍可主张双轨信号存在.
+*
+* 经济意义量化标准 (建议; 论文实证规范):
+*   标准化效应 = β · SD(X) / Mean(Y)  (率变化, 适用对数 DV)
+*   或          = β · SD(X) / SD(Y)    (SD 单位, 适用比率 DV)
+*   实务阈值 (参考):
+*     标准化效应 > 1%   → 弱经济意义 (足以发表但不抢眼)
+*     标准化效应 > 5%   → 中等经济意义 (主流顶刊预期下限)
+*     标准化效应 > 10%  → 强经济意义 (核心发现可主张实质性影响)
+*   注: 此阈值是经验法则, 具体应根据 (a) 学科常例 (银行/创新研究
+*   通常要求 > 3-5%), (b) 文献基准 (与 Bellstam 2021, Hassan 2019,
+*   Kogan 2017 报告的可比效应对照), (c) 审稿人期望 调整.
+*
+* 与检验 8 (IV) 的协同诊断:
+*   IV-2SLS 显著 + 检验 16 Validity Pass
+*   → 双重证据: tone 既反映真实创新质量, 又因果驱动 Y
+*   → 论文可主张文本指标已通过"有效性 × 内生性"两道顶刊关卡
+* ============================================================
