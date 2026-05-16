@@ -173,6 +173,16 @@ _STAGE21_FILTERED_FINGERPRINT_COLUMNS = (
     '内容',
 )
 
+# v3.2.0 双轨独立标签 — 下游 stage 45 (panel build) 强依赖. 若 --skip-21-if-exists
+# 命中旧 (v3.1.x) 产物且这些列缺失, 下游会抛 KeyError. 见 CLAUDE.md / CHANGELOG.md
+# v3.2.0 节: innovation_locus_{full,ctx} + innovation_substantiveness_{full,ctx}.
+_STAGE21_REQUIRED_OUTPUT_COLUMNS = (
+    'innovation_locus_full',
+    'innovation_locus_ctx',
+    'innovation_substantiveness_full',
+    'innovation_substantiveness_ctx',
+)
+
 
 def _fingerprint_dataframe_rows(df, columns: tuple[str, ...]) -> tuple[int, str]:
     """Return a deterministic row-count + content digest for selected columns."""
@@ -275,6 +285,25 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
         )
     if expected_digest != main_digest:
         return False, "21_tone_llms does not match verified rows in 21_tone_llms_full"
+
+    # v3.2.0 schema 漂移防护: fingerprint 一致也未必意味着旧产物含 v3.2.0 双轨列.
+    # 若任一必需列缺失, reject skip → 触发 stage 21 重跑刷新 schema.
+    try:
+        import pyarrow.parquet as pq
+        full_schema_names = set(pq.read_schema(full_path).names)
+        main_schema_names = set(pq.read_schema(main_path).names)
+    except Exception as exc:
+        return False, f"failed to read stage 21 parquet schema: {exc}"
+
+    missing_required = [
+        col for col in _STAGE21_REQUIRED_OUTPUT_COLUMNS
+        if col not in full_schema_names or col not in main_schema_names
+    ]
+    if missing_required:
+        return False, (
+            f"stage 21 outputs missing v3.2.0 required columns: {missing_required}; "
+            f"prompt/aggregator schema has changed, must re-run"
+        )
 
     return True, f"stage 21 outputs match current stage 14 input ({upstream_rows} rows)"
 
