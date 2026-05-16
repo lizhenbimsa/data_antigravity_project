@@ -485,6 +485,53 @@ def generate_latex_table(results: dict, output_path: str, logger_inst):
         r"\end{tabular}",
     ])
 
+    # Plan v1.37 P0 §3.3.2 + R12C-01 + R21A-01: Panels E (substantiveness)
+    # + F (locus) in a SEPARATE \begin{tabular}...\end{tabular} block.
+    # Per R21A-01 pending-case reconciliation, Panel E/F subheaders are
+    # ALWAYS present; only data rows differ between populated and pending.
+    pending_reason = results.get('innovation_pending_reason')
+    lines.extend([
+        "",
+        r"\bigskip",
+        r"\begin{tabular}{lcccc}",
+        r"\hline",
+        r"\multicolumn{5}{l}{\textbf{Panel E: Innovation Substantiveness (binary, W\&Z 1994/1998 ASQ)}} \\",
+        r"\hline",
+    ])
+    subst_metrics = results.get('classifier_metrics', {}).get('innovation_substantiveness', {})
+    if pending_reason or not subst_metrics:
+        reason_text = pending_reason or 'n=0'
+        lines.append(rf"\multicolumn{{5}}{{l}}{{manual validation pending --- {reason_text}}} \\")
+    else:
+        for name, metrics in subst_metrics.items():
+            macro = metrics.get('macro', {})
+            lines.append(
+                rf"  {name} & {macro.get('precision', 0):.3f} & "
+                rf"{macro.get('recall', 0):.3f} & {macro.get('f1', 0):.3f} & "
+                rf"{metrics.get('accuracy', 0):.3f} \\"
+            )
+    lines.extend([
+        r"\hline",
+        r"\multicolumn{5}{l}{\textbf{Panel F: Innovation Locus (binary, Gomber 2018 JMIS)}} \\",
+        r"\hline",
+    ])
+    locus_metrics = results.get('classifier_metrics', {}).get('innovation_locus', {})
+    if pending_reason or not locus_metrics:
+        reason_text = pending_reason or 'n=0'
+        lines.append(rf"\multicolumn{{5}}{{l}}{{manual validation pending --- {reason_text}}} \\")
+    else:
+        for name, metrics in locus_metrics.items():
+            macro = metrics.get('macro', {})
+            lines.append(
+                rf"  {name} & {macro.get('precision', 0):.3f} & "
+                rf"{macro.get('recall', 0):.3f} & {macro.get('f1', 0):.3f} & "
+                rf"{metrics.get('accuracy', 0):.3f} \\"
+            )
+    lines.extend([
+        r"\hline",
+        r"\end{tabular}",
+    ])
+
     # 编码者间一致性注脚 (Verification)
     icr_v = results.get('inter_coder_reliability', {}).get('verification', {})
     if icr_v:
@@ -601,6 +648,162 @@ def _safe_kstest(group_a, group_b, label_a, label_b, var_name, logger_inst):
             f"    {var_name} KS: D={result['statistic']}, p={result['p_value']} {sig}"
         )
     return result
+
+
+def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> None:
+    """Plan v1.37 P0 §3.3.1: populate Panel E (substantiveness) + Panel F (locus).
+
+    Reads manual_validation_samples.xlsx (3-rater R1/R2/R3 stage3a/3b cols),
+    merges via majority-vote into single gold column, joins to LLM predictions
+    from 21_tone_llms.parquet, computes per-model + aggregate classification
+    metrics. Sets results['innovation_pending_reason'] to one of:
+      None (data available), 'file not present', 'schema mismatch', 'n=0'.
+
+    Outputs (when gold data present):
+      - eval_reports/cm_innovation_{substantiveness,locus}_llm_{full,ctx}.png
+      - eval_reports/per_model_innovation_{substantiveness,locus}_comparison.csv
+    """
+    from news_process.core.config import load_config
+    from news_process.validation.manual_validation_schema import (
+        R_COLUMNS_BY_RATER,
+        merge_three_rater_majority,
+    )
+
+    config = load_config()
+    output_dir_cfg = config.get('paths', {}).get('output_dir', output_dir)
+    mv_path = os.path.join(output_dir_cfg, 'manual_validation_samples.xlsx')
+
+    # Reachability check 1: file absent
+    if not os.path.exists(mv_path):
+        results['innovation_pending_reason'] = 'file not present'
+        logger_inst.info(
+            f"  manual_validation_samples.xlsx absent at {mv_path}; "
+            f"Panels E/F → pending."
+        )
+        return
+
+    # Load xlsx
+    try:
+        xl = pd.ExcelFile(mv_path)
+        sheet = xl.sheet_names[0]
+        df_mv = pd.read_excel(xl, sheet_name=sheet)
+    except Exception as exc:
+        results['innovation_pending_reason'] = 'file not present'
+        logger_inst.warning(
+            f"  failed to read manual_validation_samples.xlsx: {exc}; pending."
+        )
+        return
+
+    # Reachability check 2: schema mismatch
+    all_r_cols = R_COLUMNS_BY_RATER['substantiveness'] + R_COLUMNS_BY_RATER['locus']
+    missing = [c for c in all_r_cols if c not in df_mv.columns]
+    if missing:
+        results['innovation_pending_reason'] = 'schema mismatch'
+        logger_inst.warning(
+            f"  manual_validation_samples.xlsx missing R-columns: {missing}; "
+            f"Panels E/F → pending (schema mismatch)."
+        )
+        return
+
+    # Merge raters → gold (per-row majority vote on 3 raters)
+    df_mv = df_mv.copy()
+    df_mv['gold_substantiveness'] = df_mv.apply(
+        lambda r: merge_three_rater_majority(r, R_COLUMNS_BY_RATER['substantiveness']),
+        axis=1,
+    )
+    df_mv['gold_locus'] = df_mv.apply(
+        lambda r: merge_three_rater_majority(r, R_COLUMNS_BY_RATER['locus']),
+        axis=1,
+    )
+
+    n_gold_subst = df_mv['gold_substantiveness'].notna().sum()
+    n_gold_locus = df_mv['gold_locus'].notna().sum()
+
+    # Reachability check 3: all R-cells NaN
+    if n_gold_subst == 0 and n_gold_locus == 0:
+        results['innovation_pending_reason'] = 'n=0'
+        logger_inst.warning(
+            f"  manual_validation_samples.xlsx present but all R-cells NaN; "
+            f"Panels E/F → pending (n=0)."
+        )
+        return
+
+    # Join with 21_tone_llms predictions
+    llms_path = os.path.join(output_dir_cfg, '21_tone_llms.parquet')
+    if not os.path.exists(llms_path):
+        results['innovation_pending_reason'] = 'file not present'
+        logger_inst.warning(
+            f"  21_tone_llms.parquet absent at {llms_path}; Panels E/F → pending."
+        )
+        return
+    df_pred = pd.read_parquet(llms_path)
+
+    # Determine join key: prefer docid (production), fallback orig_index
+    join_key = 'docid' if 'docid' in df_mv.columns and 'docid' in df_pred.columns else None
+    if join_key is None:
+        if 'orig_index' in df_mv.columns:
+            join_key = None  # would need positional join; skip for now
+            logger_inst.warning("  no docid join key; Panels E/F join skipped.")
+            results['innovation_pending_reason'] = 'schema mismatch'
+            return
+
+    # Deduplicate join key (R2C-04 + plan §3.3.3 test 14)
+    df_mv = df_mv.drop_duplicates(subset=[join_key], keep='first')
+    df_pred = df_pred.drop_duplicates(subset=[join_key], keep='first')
+
+    df_joined = df_mv.merge(df_pred, on=join_key, how='inner', suffixes=('_mv', ''))
+
+    # Evaluate each innovation dim + each track
+    for task_name, gold_col, pred_template, class_labels in [
+        ('innovation_substantiveness', 'gold_substantiveness',
+         'innovation_substantiveness{track}', ['实质性', '象征性']),
+        ('innovation_locus', 'gold_locus',
+         'innovation_locus{track}', ['底层技术', '应用场景']),
+    ]:
+        for track in ['_full', '_ctx']:
+            pred_col = pred_template.format(track=track)
+            if pred_col not in df_joined.columns:
+                logger_inst.info(f"  pred col {pred_col} absent; skip.")
+                continue
+            mask = df_joined[gold_col].notna() & df_joined[pred_col].notna()
+            if mask.sum() < 2:
+                logger_inst.info(
+                    f"  {task_name}{track}: only {mask.sum()} paired rows; "
+                    f"skip metrics."
+                )
+                continue
+            y_true = df_joined.loc[mask, gold_col].astype(str).to_numpy()
+            y_pred = df_joined.loc[mask, pred_col].astype(str).to_numpy()
+            metrics = compute_classification_metrics(y_true, y_pred, labels=class_labels)
+            results['classifier_metrics'][task_name][f'LLM ({track})'] = metrics
+            try:
+                save_confusion_matrix_plot(
+                    metrics,
+                    f"LLM {task_name}{track}",
+                    os.path.join(output_dir, f'cm_{task_name}_llm{track}.png'),
+                    logger_inst,
+                )
+            except Exception as exc:
+                logger_inst.warning(f"  cm plot {task_name}{track} failed: {exc}")
+        # Per-model comparison CSV
+        rows = []
+        for k, m in results['classifier_metrics'][task_name].items():
+            rows.append({
+                '模型': k,
+                'Precision': m.get('macro', {}).get('precision', float('nan')),
+                'Recall': m.get('macro', {}).get('recall', float('nan')),
+                'F1-Score': m.get('macro', {}).get('f1', float('nan')),
+                'Accuracy': m.get('accuracy', float('nan')),
+            })
+        if rows:
+            comp_df = pd.DataFrame(rows)
+            comp_path = os.path.join(output_dir, f'per_model_{task_name}_comparison.csv')
+            comp_df.to_csv(comp_path, index=False, encoding='utf-8-sig')
+            logger_inst.info(f"  {task_name} per-model CSV: {comp_path}")
+
+    logger_inst.info(
+        f"  Panels E/F populated: n_gold_subst={n_gold_subst}, n_gold_locus={n_gold_locus}"
+    )
 
 
 def diagnose_misclassification_bias(
@@ -997,12 +1200,23 @@ def main():
         'inter_coder_reliability': {
             'verification': {},
             'sentiment': {}
+            # Plan v1.37 P0 §3.3.2 R27B-02: ICR stays at 2 keys.
+            # 32_human_samples.xlsx uses 2-rater (coder_A/coder_B) suited
+            # to Cohen κ. manual_validation_samples.xlsx uses 3-rater
+            # majority-voted into a single gold column (per-rater data
+            # merged away). Innovation reliability is reported separately
+            # via the manual-validation-study-plan κ/α workstream.
         },
         'classifier_metrics': {
             'verification': {},
-            'sentiment': {}
+            'sentiment': {},
+            # Plan v1.37 P0 §3.3.2: 4-task extension for Panels E (substantiveness) + F (locus).
+            'innovation_substantiveness': {},
+            'innovation_locus': {},
         },
         'mcnemar_test': {},
+        # Plan v1.37 P0 §3.3.1 pending semantics
+        'innovation_pending_reason': None,
     }
 
     # ======================================================================
@@ -1249,6 +1463,17 @@ def main():
             logger.info(f"  模型间情感对比 CSV 已保存: {sen_comp_path}")
     else:
         logger.info("  未找到有效的情感分类黄金标准。")
+
+    # ======================================================================
+    # Step 4c: Plan v1.37 P0 §3.3.1 — Panels E (substantiveness) + F (locus)
+    # Innovation-dimension classifier metrics from manual_validation_samples.xlsx.
+    # Code path lands regardless of annotation state; pending footnote used
+    # when xlsx absent / schema mismatch / all cells NaN.
+    # ======================================================================
+    logger.info("=" * 70)
+    logger.info("===    Step 4c: Panels E/F (innovation dimensions)    ===")
+    logger.info("=" * 70)
+    _evaluate_innovation_panels(results, output_dir, logger)
 
     # ======================================================================
     # Step 4b: 误分类系统相关性诊断 (Carlson & Burbano 2026, SMJ 47(3))
