@@ -1,0 +1,54 @@
+* ============================================================================
+* 17_table8_shrinkage_robustness.do — R5 Bayesian shrinkage robustness
+* Paper: {{PAPER_ID}}
+*
+* Compare main regression using:
+*   (a) Raw benefit_mean_full
+*   (b) Shrunk benefit_mean_full_shrunk (output of papers/benefit_society/shrinkage.py)
+*
+* Acceptance: beta sign unchanged; |beta_shrunk - beta_raw| / |beta_raw| < 30%.
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* Raw
+reghdfe {{MAIN_DV}}_w benefit_mean_full $controls, ///
+    absorb(bank_type year) vce(cluster bank_id)
+eststo S_raw
+
+* Shrunk
+capture confirm variable benefit_mean_full_shrunk
+if _rc != 0 {
+    display "Error: benefit_mean_full_shrunk not in panel. " ///
+            "Run: python -m news_process.papers.benefit_society.shrinkage --panel <path> --output <path>"
+    exit 198
+}
+reghdfe {{MAIN_DV}}_w benefit_mean_full_shrunk $controls, ///
+    absorb(bank_type year) vce(cluster bank_id)
+eststo S_shrunk
+
+* Inverse-weight regression (heteroskedasticity correction)
+capture confirm variable benefit_mean_full_shrunk_weight
+if _rc == 0 {
+    gen analytic_weight = 1 - benefit_mean_full_shrunk_weight
+    reghdfe {{MAIN_DV}}_w benefit_mean_full $controls ///
+        [aweight=analytic_weight], ///
+        absorb(bank_type year) vce(cluster bank_id)
+    eststo S_aweighted
+}
+
+esttab S_* using "$tables_dir/table8_shrinkage_robust.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("R5 Robustness: Bayesian Shrinkage") ///
+    mtitles("Raw" "Shrunk" "Inv-Weight") ///
+    addnotes("Shrinkage: empirical Bayes, group = bank_type x province. " ///
+             "Acceptance: same sign; |beta_diff/beta_raw| < 30\%.")
+
+display "[OK] Table 8 shrinkage --> $tables_dir/table8_shrinkage_robust.tex"

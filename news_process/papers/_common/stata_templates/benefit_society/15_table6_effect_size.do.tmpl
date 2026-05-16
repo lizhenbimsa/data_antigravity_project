@@ -1,0 +1,49 @@
+* ============================================================================
+* 15_table6_effect_size.do — Effect size + 95% CI reporting (MVP)
+* Paper: {{PAPER_ID}}
+*
+* Rationale: MVP power is limited (n≈116, MDE≈0.27-0.30 SD per
+* docs/papers/benefit_society/03_power_analysis.md). To avoid over-claiming on
+* significance alone, this table reports:
+*   (a) raw β with 95% CI
+*   (b) standardized β (1 SD X → β SD Y)
+*   (c) effect size relative to literature benchmarks (Jha-Liu-Manela 2026,
+*       Hassan 2019 QJE, Tetlock 2007 JF)
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* Cross-sectional + bank-type FE specification (MVP)
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+    absorb(bank_type year) vce(cluster bank_id)
+eststo MVP1
+
+* Standardized coefficient
+egen std_dv  = std({{MAIN_DV}}_w)
+egen std_att = std({{ATTITUDE_VAR}})
+reghdfe std_dv std_att $controls, ///
+    absorb(bank_type year) vce(cluster bank_id)
+eststo MVP2
+
+* 1-year change design (Δbenefit → ΔY)
+sort bank_id year
+bysort bank_id: gen d_dv  = {{MAIN_DV}}_w - L1.{{MAIN_DV}}_w
+bysort bank_id: gen d_att = {{ATTITUDE_VAR}} - L1.{{ATTITUDE_VAR}}
+reg d_dv d_att $controls, vce(cluster bank_id)
+eststo MVP3
+
+esttab MVP1 MVP2 MVP3 using "$tables_dir/table6_effect_size.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se ci booktabs label compress b(3) ///
+    title("Effect Size with 95\% CI --- MVP Power-Conscious Report") ///
+    mtitles("Raw" "Standardized" "1-yr Change") ///
+    addnotes("MVP n=116. Standardized: 1 SD X --> beta SD Y." ///
+             "Reference: Jha 2026 RFS 0.15-0.25 SD; Hassan 2019 QJE 0.10-0.20 SD.")
+
+display "[OK] Table 6 effect size --> $tables_dir/table6_effect_size.tex"

@@ -1,0 +1,48 @@
+* ============================================================================
+* 16_table7_robustness_loo_anchor.do — R1 Leave-one-pair-out anchor robustness
+* Paper: {{PAPER_ID}}
+*
+* For each of 10 anchor pairs, drop pair i and recompute benefit_mean_full_loo_i;
+* report main β for each leave-one-out specification. 10 β values + 95% CI.
+*
+* Acceptance: All 10 LOO β must lie within ±50% of full-anchor β AND share sign.
+*
+* Prerequisite: papers/benefit_society/dimension_analysis.py + LOO variant must
+* produce benefit_mean_loo_1 ... benefit_mean_loo_10 columns in the panel.
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* Full-anchor baseline
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+    absorb(bank_type year) vce(cluster bank_id)
+eststo R_full
+scalar beta_full = _b[{{ATTITUDE_VAR}}]
+
+* 10 leave-one-out specifications
+forvalues i = 1/10 {
+    capture confirm variable benefit_mean_loo_`i'
+    if _rc == 0 {
+        reghdfe {{MAIN_DV}}_w benefit_mean_loo_`i' $controls, ///
+            absorb(bank_type year) vce(cluster bank_id)
+        eststo R_loo_`i'
+    }
+    else {
+        display "Warning: benefit_mean_loo_`i' not found; skipping"
+    }
+}
+
+esttab R_full R_loo_* using "$tables_dir/table7_robust_loo_anchor.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("R1 Robustness: Leave-One-Pair-Out Anchor (10 specifications)") ///
+    addnotes("Each LOO column drops one of 10 anchor pairs. " ///
+             "Acceptance: all LOO beta within +/-50\% of full-anchor and same sign.")
+
+display "[OK] Table 7 LOO --> $tables_dir/table7_robust_loo_anchor.tex"

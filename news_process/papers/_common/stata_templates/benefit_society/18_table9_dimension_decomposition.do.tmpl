@@ -1,0 +1,56 @@
+* ============================================================================
+* 18_table9_dimension_decomposition.do — H4 Mechanism: 4-dimension decomposition
+* Paper: {{PAPER_ID}}
+*
+* Decompose main beta into 4 dimensional sub-indices (core_op / growth /
+* resource / compliance) per dimension_analysis.py output.
+*
+* Prerequisite: panel must contain:
+*   benefit_core_op, benefit_growth, benefit_resource, benefit_compliance
+* (built by papers/benefit_society/dimension_analysis.py)
+*
+* H4 acceptance: at least 2 of 4 sub-indices share sign with main beta at p<0.10.
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* Main effect (reference)
+reghdfe {{MAIN_DV}}_w benefit_mean_full $controls, ///
+    absorb(bank_type year) vce(cluster bank_id)
+eststo D_main
+
+* Sub-dimensions (individually)
+foreach dim in core_op growth resource compliance {
+    capture confirm variable benefit_`dim'
+    if _rc == 0 {
+        reghdfe {{MAIN_DV}}_w benefit_`dim' $controls, ///
+            absorb(bank_type year) vce(cluster bank_id)
+        eststo D_`dim'
+    }
+    else {
+        display "Warning: benefit_`dim' not in panel; run dimension_analysis.py first"
+    }
+}
+
+* Joint specification (all 4 sub-dimensions)
+capture {
+    reghdfe {{MAIN_DV}}_w benefit_core_op benefit_growth benefit_resource benefit_compliance $controls, ///
+        absorb(bank_type year) vce(cluster bank_id)
+    eststo D_joint
+}
+
+esttab D_* using "$tables_dir/table9_dimension.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Mechanism: 4-Dimension Decomposition") ///
+    mtitles("Main" "Core-Op" "Growth" "Resource" "Compliance" "Joint") ///
+    addnotes("Dimensions per Stage 27 anchor labels (POSITIVE_ANCHORS comments). " ///
+             "H4 acceptance: >=2 of 4 sub-indices share sign at p<0.10.")
+
+display "[OK] Table 9 dimension --> $tables_dir/table9_dimension.tex"
