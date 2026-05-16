@@ -5,7 +5,7 @@
 *               (paper_id='benefit_society', P1 2026-05-15)
 * ============================================================================
 
-version 15
+version 19
 clear all
 set more off
 
@@ -26,6 +26,10 @@ do 11_table2_main.do
 do 12_table3_mechanism.do
 do 13_table4_heterogeneity.do
 do 14_table5_robustness.do
+do 15_table6_effect_size.do
+capture do 16_table7_robustness_loo_anchor.do
+capture do 17_table8_shrinkage_robustness.do
+capture do 18_table9_dimension_decomposition.do
 do 30_figure1_attitude_distribution.do
 
 display "[OK] benefit_society master.do complete"

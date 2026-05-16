@@ -11,7 +11,7 @@
 | **Pipeline 数据** | ✓ | stage 14 / 21 / 40_panel parquet 已生成 (v3.1.1 baseline) |
 | **LLM cache** | ✓ | `_llm_cache.db` 120.9 MB 已存 (stage 21 全量缓存) |
 | **YUNWU_API_KEY** | ✓ | env var 已设 (stage 21 + stage 35 LLM 可跑) |
-| **Stata bin** | ✓ | Stata MP 19 at `C:\Program Files\StataNow19\StataMP-64.exe` |
+| **Stata bin** | ✓ | StataNow/MP 19.5 (Rev 14 Jan 2026, 64-core) at `C:\Program Files\StataNow19\StataMP-64.exe` |
 
 ## Stage 46 Stata Export 实测
 

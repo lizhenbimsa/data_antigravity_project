@@ -247,6 +247,90 @@ The `papers/` directory contains 5 paper-specific analysis modules:
 
 Each paper has `analysis.py` (Stata runner), `figures.py`, and `tables.py`. Common utilities are in `papers/_common/`.
 
+## Stata Environment
+
+**本机 Stata：StataNow/MP 19.5**（2026-05-16 通过 `about` 命令实测确认）。
+- 安装路径：`C:\Program Files\StataNow19\StataMP-64.exe`（115 MB）
+- Build：Revision **14 Jan 2026**（StataNow 滚动通道；非年度主版 19.0）
+- 平台：Windows 64-bit x86-64
+- 许可：**64-core lab perpetual**（MP 并行核心数 = 64）
+- 硬件：物理内存 128 GB，可用 98 GB
+- 默认 `set maxvar = 5,000`（已高于 IC 上限 2,048，可一直上调到 MP 上限 120,000）
+- License note：Unicode 支持开启，>2 billion observations 允许
+
+所有 `.do` 模板、replication 脚本与下游回归（reghdfe / ivreg2 / csdid / sdid /
+synth / coefplot 等）以 MP 上限为天花板编写。
+
+### Stata/MP vs SE vs BE 技术上限（Stata 19 官方文档，2026-05 抓取；19 vs 18 硬上限未变）
+
+| 限制项 | Stata/BE | Stata/SE | **Stata/MP（本机）** |
+|---|---:|---:|---:|
+| Max observations | 2,147,483,619 | 2,147,483,619 | **1,099,511,627,775** (≈1.1 兆) |
+| Max variables (`maxvar`) | 2,048 | 32,767 | **120,000** |
+| Max RHS variables in model | 798 | 10,998 | **65,532** |
+| matrix dimension (`matsize`) | 800 × 800 | 11,000 × 11,000 | **65,534 × 65,534** |
+| String var `str#` | 2,045 bytes | 2,045 bytes | 2,045 bytes |
+| String var `strL` | 2 GB | 2 GB | 2 GB |
+| Variable name length | 32 chars | 32 chars | 32 chars |
+| Variable label length | 80 chars | 80 chars | 80 chars |
+| Value label string | 32,000 bytes | 32,000 bytes | 32,000 bytes |
+| Characters in command | 264,408 | 4,227,159 | 4,227,159 |
+| Characters in macro | 264,392 | 4,227,143 | **15,480,200** |
+
+来源：https://www.stata.com/products/detailed-size-limits/ +
+https://www.stata.com/products/which-stata-is-right-for-me/
+
+### 对本项目（v3.2.0）的含义
+
+1. **当前列数全部在 MP 上限内、远未触顶**：
+   - `46_panel_yearly_full.dta` / `40_panel_yearly.dta`：2024 列
+   - `46_panel_yearly_core.dta`：49 列（IC 兼容入口）
+   - `46_panel_yearly_aux.dta`：1977 列（与 core 互补，merge 1:1 可还原 full）
+   - `51_panel_with_controls.dta`：**2033 列（当前最大）**
+   - **裕度**：MP 上限 120,000 − 2033 ≈ **117,967 列**，可放心继续加稳健性 / BERT 变体特征。
+2. **`pipeline/panel/stata_export.py::STATA_IC_MAX_VARS = 2048` 是 IC 兼容性保留**，
+   不是本机限制。`core / aux` 双切分是为外部协作者用 IC 跑通预留的；本机 MP 可
+   直接读 `*_full.dta` 或 `51_panel_with_controls.dta` 跳过切分。
+3. **matsize 在 Stata 19 已自动管理（Stata 16+ 起 deprecated）**：MP 19.5
+   下 `set matsize` 仍可设但被 Stata 内部统一处理，`reghdfe` / `ivreg2`
+   等主流命令走 Mata 矩阵不受 matsize 约束。仅在使用 `regress` 原生命令 +
+   极多 RHS 时才需要显式 `set matsize 11000`（SE 上限）或更高。
+4. **行数维度**：当前 panel 168 行（84 banks × 2 years, 2017–2018）远低于
+   MP 上限 1.1 兆，受限的是**面板深度（T=2）**而非 Stata 容量；任何 panel
+   扩展瓶颈都在上游数据来源 / stage 41，不在 Stata。
+5. **64 核并行**：MP 19.5 license 是 64-core，跑 `bootstrap`、`permute`、
+   `rwolf`、`ritest`、`csdid` 多重 placebo / wild bootstrap 时可拉满
+   `set processors 64`（默认按 license 上限走，无需手动）；这是当前 v3.2.0
+   稳健性矩阵性能上的关键资源。
+
+### 修改 Stata 配置时的注意
+
+- **不要在通用模板中硬编码 BE/IC 才有意义的列截断逻辑**：若发现 .do 模板里
+  写了 "前 2048 列" 之类的截断，那是 IC 兼容遗留，本机 MP 应改读 full 版本。
+- **新增列时优先扩 `aux.dta`，保持 `core.dta` ≤ 2048**：保留 IC 协作者的
+  入口契约，不要因为本机是 MP 就把 core 撑爆。
+- **项目策略 (2026-05-16 起): Stata 19+ only, 无需向下兼容**。
+  `papers/_common/stata_templates/*.do.tmpl` 全部 46 个模板已统一 bump 为
+  `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120`
+  （见 `00_master.do.tmpl:13-16`）。新增模板直接复用此头部。
+- **可放心使用 v17+ / v19 独有命令**: `xtdidregress` (v17)、`frames` 增强
+  (v16/v18)、`bayesmh` GPU、`pystata` 集成、新版 `meta` suite 等无需任何
+  `version` 守卫；`version 19` 已锁定最低要求。
+- **设置 `version 19` 的副作用**: Stata 18 及更老版本会直接报
+  "version 19 is not a valid version" 拒跑 — 这正是 "19+ only" 策略的
+  执行机制。外部协作者若仍在 Stata 18，需先升级再跑 replication 包。
+- **`set maxvar 32767` 仍是防御性保留**: 本机 MP 19.5 默认 5,000 对当前
+  2033 列已够用，但 stage 46 输出可能继续向 IC 上限 2048 逼近；这一行让
+  模板独立于 maxvar 默认值（不论用户是 MP / SE）都能装下 full .dta。
+  ⚠ `maxvar 32767` 是 SE 上限；如果未来 panel 列数突破 32,767（远期），
+  需上调到 `set maxvar 120000`（MP 上限）。
+- **pyreadstat 写出的 `.dta` 仍用 format version 118**（见
+  `pipeline/panel/stata_export.py:369`、`papers/_common/tables.py:102`）。
+  这是 **.dta 文件格式版本**（spec 编号），不是 Stata 应用程序版本；
+  118 是 pyreadstat 当前能稳定写出的最高 .dta spec，Stata 19 读取无任何
+  限制（变量名 32 字符 / value label 32K bytes 等都满足）。不要把它和
+  `version 19` 混为一谈。
+
 ## Known Issues & Workarounds
 
 1. **Windows line endings**: Git may warn about CRLF. This is expected on Windows. The repo-root `.gitattributes` marks `*.parquet`/`*.xlsx`/`*.db` as binary; source files keep their on-disk EOL (no forced normalization to avoid churning the existing mixed-CRLF history).

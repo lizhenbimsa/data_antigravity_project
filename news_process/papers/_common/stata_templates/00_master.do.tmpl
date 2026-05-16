@@ -7,10 +7,10 @@
 *   SUBST_TRACK:  {{MAIN_SUBST_TRACK}}    (sf=full-text / sc=entity-context)
 *   SENT_TRACK:   {{MAIN_SENT_TRACK}}     (full / ctx)
 *
-* Stata 版本要求: ≥ 15 (reghdfe HDFE / coefplot 性能)
+* Stata 版本要求: ≥ 19 (项目策略 2026-05-16: Stata 19+ only, 无需向下兼容)
 * 必需包: ssc install reghdfe ivreg2 estout coefplot asdoc
 
-version 15
+version 19
 clear all
 set maxvar 32767
 set linesize 120

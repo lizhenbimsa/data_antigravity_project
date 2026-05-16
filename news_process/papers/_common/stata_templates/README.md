@@ -11,7 +11,7 @@ This directory hosts `.do.tmpl` Stata script templates with placeholder substitu
 
 ## Stata version & packages required / Stata 版本与包依赖
 
-- **Stata ≥ 15** (reghdfe absorb 性能稳定 / coefplot)
+- **Stata ≥ 19** (项目策略 2026-05-16: Stata 19+ only, 无需向下兼容; reghdfe / coefplot / xtdidregress / frames 全功能可用)
 - **必装包**:
   ```stata
   ssc install reghdfe

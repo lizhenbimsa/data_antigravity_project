@@ -117,12 +117,15 @@ def test_templates_use_esttab():
         assert 'booktabs' in content  # 顶刊 standard
 
 
-def test_templates_version_stata_15():
-    """plan v14 §9.7: 全部模板要求 version 15 (reghdfe / coefplot 性能稳定)."""
+def test_templates_version_stata_19():
+    """项目策略 (2026-05-16 起): Stata 19+ only, 无需向下兼容.
+    plan v14 §9.7 原约束 version 15 已废止; 全部模板已 bump 到 version 19,
+    可放心使用 v17+ / v19 独有命令 (xtdidregress / frames 增强 / bayesmh GPU 等).
+    """
     for tpl in ['00_master.do.tmpl', '11_table2_main_m1m6.do.tmpl',
                 '21_tableA2_main_spec_switch.do.tmpl']:
         content = _load_template(tpl)
-        assert 'version 15' in content, f"{tpl} 缺 version 15 声明"
+        assert 'version 19' in content, f"{tpl} 缺 version 19 声明"
 
 
 # ============================================================================
@@ -157,10 +160,10 @@ def test_all_14_templates_exist():
 
 
 @pytest.mark.parametrize("template_name", EXPECTED_TEMPLATES_V14)
-def test_template_version_15_required(template_name):
-    """全部 12 模板必含 version 15 (Stata 兼容性 hard floor)."""
+def test_template_version_19_required(template_name):
+    """全部 14 模板必含 version 19 (项目策略 2026-05-16: Stata 19+ only)."""
     content = _load_template(template_name)
-    assert 'version 15' in content, f"{template_name} 缺 version 15"
+    assert 'version 19' in content, f"{template_name} 缺 version 19"
 
 
 @pytest.mark.parametrize("template_name", EXPECTED_TEMPLATES_V14)
