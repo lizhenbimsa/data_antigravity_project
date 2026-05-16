@@ -661,6 +661,7 @@ def main():
                 call_failure, undefined,
                 parsed, topics, innov_loci, innov_substs,
                 n_fail, avg_prob_score,
+                _avg_subst_prob_score, _avg_locus_prob_score,  # plan v1.37 P2: 16-tuple
             ) = _aggregate_track(row_res.get(track, {}), MODELS)
 
             df_sample.at[idx, f'masked_verified_{track}'] = final_v
