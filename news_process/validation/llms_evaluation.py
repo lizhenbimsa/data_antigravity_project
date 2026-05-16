@@ -738,14 +738,18 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         return
     df_pred = pd.read_parquet(llms_path)
 
-    # Determine join key: prefer docid (production), fallback orig_index
-    join_key = 'docid' if 'docid' in df_mv.columns and 'docid' in df_pred.columns else None
-    if join_key is None:
-        if 'orig_index' in df_mv.columns:
-            join_key = None  # would need positional join; skip for now
-            logger_inst.warning("  no docid join key; Panels E/F join skipped.")
-            results['innovation_pending_reason'] = 'schema mismatch'
-            return
+    # Determine join key: prefer docid (production). If absent in either df,
+    # mark schema mismatch and bail (positional/orig_index fallback would
+    # require careful column-name disambiguation; deferred).
+    # Rα3-01 fix: unconditional return when no usable key (previously dead-coded).
+    if 'docid' not in df_mv.columns or 'docid' not in df_pred.columns:
+        logger_inst.warning(
+            "  no shared docid join key between manual_validation_samples.xlsx "
+            "and 21_tone_llms.parquet; Panels E/F → pending (schema mismatch)."
+        )
+        results['innovation_pending_reason'] = 'schema mismatch'
+        return
+    join_key = 'docid'
 
     # Deduplicate join key (R2C-04 + plan §3.3.3 test 14)
     df_mv = df_mv.drop_duplicates(subset=[join_key], keep='first')
