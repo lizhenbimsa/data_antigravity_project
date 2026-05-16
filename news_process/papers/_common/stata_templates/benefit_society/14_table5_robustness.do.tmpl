@@ -2,11 +2,12 @@
 * 14_table5_robustness.do — Robustness battery (benefit_society)
 * Paper: {{PAPER_ID}}
 *
-* R1: P25 threshold (relaxed)
-* R2: P75 threshold (strict)
-* R3: INT track (TF-IDF×SIF weighted)
-* R4: Ctx track (entity-context window)
-* R5: Pos/Neg fraction decomposition
+* PAP v1.0-final §5 (R8 + R11 removed per F-R3-H1):
+*   R1: P25 threshold (relaxed)
+*   R2: P75 threshold (strict)
+*   R3: INT track (TF-IDF×SIF weighted)
+*   R4: Ctx track attitude (dual-track; full main comparison in Table A2)
+*   R5: Pos/Neg fraction decomposition (now dual-track, F-H3)
 * ============================================================================
 
 version 19
@@ -18,6 +19,8 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
+set seed {{RANDOM_SEED}}
+
 local kw_p25 token_adopt_kw_p25 hidden_adopt_kw_p25
 local kw_p75 token_adopt_kw_p75 hidden_adopt_kw_p75
 local int_p50 token_adopt_int_p50 hidden_adopt_int_p50
@@ -28,41 +31,47 @@ foreach v of local kw_p25 {
     if _rc continue
 }
 reghdfe {{MAIN_DV}}_w `kw_p25' $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo R1_p25
 
 * R2: P75 threshold
 reghdfe {{MAIN_DV}}_w `kw_p75' $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo R2_p75
 
 * R3: INT track
 reghdfe {{MAIN_DV}}_w `int_p50' $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo R3_int
 
-* R4: Ctx track attitude
-capture confirm variable benefit_mean_ctx
+* R4: Ctx track attitude (dual-track main comparison; full vs ctx)
+capture confirm variable {{ATTITUDE_CTX}}
 if !_rc {
-    reghdfe {{MAIN_DV}}_w benefit_mean_ctx $controls, ///
-        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
     eststo R4_ctx
 }
 
-* R5: Pos/Neg fraction decomposition
-capture confirm variable benefit_pos_frac_full
-capture confirm variable benefit_neg_frac_full
+* R5 (dual-track Pos/Neg fraction): full + ctx side-by-side, F-H3
+capture confirm variable {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_NEG_FRAC_FULL}}
 if !_rc {
-    reghdfe {{MAIN_DV}}_w benefit_pos_frac_full benefit_neg_frac_full $controls, ///
-        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-    eststo R5_frac
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_NEG_FRAC_FULL}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo R5_frac_full
+}
+capture confirm variable {{BENEFIT_POS_FRAC_CTX}} {{BENEFIT_NEG_FRAC_CTX}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_CTX}} {{BENEFIT_NEG_FRAC_CTX}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo R5_frac_ctx
 }
 
-esttab R1_p25 R2_p75 R3_int R4_ctx R5_frac ///
+esttab R1_p25 R2_p75 R3_int R4_ctx R5_frac_full R5_frac_ctx ///
     using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Robustness Battery --- benefit_society") ///
-    mtitles("P25" "P75" "INT" "Ctx" "Pos/Neg") ///
-    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}.")
+    title("Robustness Battery (PAP §5, R8/R11 removed) --- benefit_society") ///
+    mtitles("P25" "P75" "INT" "Ctx" "Pos/Neg-Full" "Pos/Neg-Ctx") ///
+    addnotes("bank_type/year FE; SE clustered at {{CLUSTER_VAR}}." ///
+             "R8 (1y-change) + R11 (NCD spread) removed per audit F-R3-H1.")
 
 display "[OK] Table 5 → $tables_dir/table5_robustness.tex"

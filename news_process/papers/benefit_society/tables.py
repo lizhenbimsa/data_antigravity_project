@@ -70,8 +70,34 @@ def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataF
     return read_paper_esttab('benefit_society', 'table5_robustness.csv', paper_config)
 
 
+# ============================================================================
+# Plan v2.12 — Tier-A dual-track tables (PAP v1.0-final §2 H3 evidence)
+# ============================================================================
+
+
+def build_table_a1_inter_track_kappa(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table A1: Inter-track agreement (article-level rho + bank-year rho)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('benefit_society', 'tableA1_inter_track_kappa.csv', paper_config)
+
+
+def build_table_a2_attitude_track_switch(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table A2: Dual-track switch sensitivity (6 specs: 2 tracks x 3 dimensions)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('benefit_society', 'tableA2_attitude_track_switch.csv', paper_config)
+
+
+def build_table_8b_shrinkage_dual(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table 8b: Bayesian shrinkage ctx-track companion."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab('benefit_society', 'table8b_shrinkage_dual.csv', paper_config)
+
+
 __all__ = [
     'build_table1', 'write_table1',
     'build_table2_main', 'build_table3_mechanism',
     'build_table4_heterogeneity', 'build_table5_robustness',
+    'build_table_a1_inter_track_kappa',
+    'build_table_a2_attitude_track_switch',
+    'build_table_8b_shrinkage_dual',
 ]

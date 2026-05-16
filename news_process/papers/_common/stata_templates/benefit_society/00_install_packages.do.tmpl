@@ -1,0 +1,56 @@
+* ============================================================================
+* 00_install_packages.do — One-shot ssc install for benefit_society
+* Paper: {{PAPER_ID}}
+*
+* Per audit F-R10-L2 / F-R6-L1, install all third-party Stata packages
+* required by the dual-track replication battery.
+*
+* Run ONCE per Stata installation:
+*   . do 00_install_packages.do
+* ============================================================================
+
+version 19
+clear all
+
+display _newline "[ssc install] benefit_society dual-track dependencies"
+display      "================================================================"
+
+* Core regression / fixed effects
+capture which reghdfe
+if _rc ssc install reghdfe, replace
+capture which ftools
+if _rc ssc install ftools, replace
+
+* IV / 2SLS
+capture which ivreg2
+if _rc ssc install ivreg2, replace
+capture which ranktest
+if _rc ssc install ranktest, replace
+
+* esttab / estout
+capture which estout
+if _rc ssc install estout, replace
+
+* coefplot
+capture which coefplot
+if _rc ssc install coefplot, replace
+
+* Winsorization
+capture which winsor2
+if _rc ssc install winsor2, replace
+
+* Wild cluster bootstrap (F-R5-H1 / F-H4)
+capture which boottest
+if _rc ssc install boottest, replace
+
+* Family-wise Romano-Wolf (F-R5-M2)
+capture which rwolf
+if _rc ssc install rwolf, replace
+
+* Kappa with CI (article-level inter-track agreement, F-M2)
+capture which kapci2
+if _rc ssc install kapci2, replace
+
+display _newline "[OK] ssc install complete. Cross-platform note: macOS / Linux users " ///
+                 "may need separate `net install` for kapci2 if SSC mirror differs." ///
+                 " See README.md (F-R11-L1)."

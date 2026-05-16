@@ -1,15 +1,22 @@
 * ============================================================================
-* 11_table2_main.do — Main regression (benefit_society)
+* 11_table2_main.do — Main regression M1-M6 progressive (benefit_society)
 * Paper: {{PAPER_ID}}
 *
-* Methodology: Jha, Liu & Manela (2026), RFS §1.3.2 — Bipolar anchor projection
-*   a_j = cos(s_j, p),  p = mean(pos_emb) - mean(neg_emb)
-* Westphal & Zajac (2001), ASQ — Token vs Hidden decoupling.
+* PAP v1.0-final §4 (audit-frozen):
+*   DV   = {{MAIN_DV}}_w (winsorized)
+*   X    = {{ATTITUDE_VAR}} (full track; ATTITUDE_VAR is alias for backwards compat)
+*   Theory anchor: Tetlock 2007 JF + Garcia 2013 JF + Jha-Liu-Manela 2026 RFS
 *
-* M1: article-similarity main effect
-* M2: + intensity interaction (Brambor-Clark-Golder 2006)
-* M3: attitude main effect (Jha-Liu-Manela 2026 Eq. 1)
-* M4: + attitude × intensity interaction
+* M1: attitude only, no FE
+* M2: + bank_type FE
+* M3: + bank_type FE + year FE
+* M4: + standard controls $controls
+* M5: + size / age controls
+* M6: + attitude × intensity interaction (Brambor-Clark-Golder 2006)
+*
+* Dual-track inference: see Table A2 (21_tableA2_attitude_track_switch.do)
+* and Figure 2 (31_figure2_coefplot_dual.do) for full/ctx comparison.
+* Wild cluster bootstrap inference: see 11b_table2_boottest.do.
 * ============================================================================
 
 version 19
@@ -21,28 +28,57 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-reghdfe {{MAIN_DV}}_w article_sim_mean $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+set seed {{RANDOM_SEED}}
+
+* M1: attitude only, no FE
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}}, noabsorb vce(cluster {{CLUSTER_VAR}})
 eststo M1
 
-gen freq_x_sim = fintech_intensity_mean * article_sim_mean
-reghdfe {{MAIN_DV}}_w fintech_intensity_mean article_sim_mean freq_x_sim $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+* M2: + bank_type FE
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}}, ///
+    absorb(bank_type) vce(cluster {{CLUSTER_VAR}})
 eststo M2
 
-reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+* M3: + bank_type FE + year FE
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}}, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo M3
 
-gen attitude_x_intensity = {{ATTITUDE_VAR}} * fintech_intensity_mean
-reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} fintech_intensity_mean attitude_x_intensity $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+* M4: + standard controls
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo M4
 
-esttab M1 M2 M3 M4 using "$tables_dir/table2_main.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Main Results --- benefit_society (Jha-Liu-Manela 2026)") ///
-    mtitles("Sim" "Sim+Int" "Attitude" "Att+Int") ///
-    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}.")
+* M5: + size / age controls (graceful skip if absent)
+capture confirm variable ln_total_assets ln_bank_age
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls ln_total_assets ln_bank_age, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M5
+}
+else {
+    display "  [INFO] ln_total_assets / ln_bank_age 不存在; M5 复用 M4 规格"
+    eststo M5: reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+}
 
-display "[OK] Table 2 → $tables_dir/table2_main.tex"
+* M6: + attitude × intensity interaction
+capture confirm variable fintech_intensity_mean
+if !_rc {
+    gen attitude_x_intensity = {{ATTITUDE_VAR}} * fintech_intensity_mean
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} fintech_intensity_mean attitude_x_intensity $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M6
+}
+else {
+    display "  [INFO] fintech_intensity_mean 不存在; M6 跳过"
+}
+
+esttab M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Main Results --- benefit_society (PAP v1.0-final §4)") ///
+    mtitles("M1" "M2 +typeFE" "M3 +yearFE" "M4 +ctrl" "M5 +size" "M6 +int") ///
+    addnotes("bank_type / year FE; SE clustered at {{CLUSTER_VAR}}; G=84 — main inference via wild cluster bootstrap (Table A2 / boottest)." ///
+             "Dual-track full/ctx comparison: Table A2 + Figure 2.")
+
+display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex"

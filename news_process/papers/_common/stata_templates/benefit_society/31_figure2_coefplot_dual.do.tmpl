@@ -1,0 +1,78 @@
+* ============================================================================
+* 31_figure2_coefplot_dual.do — Coefplot dual-track visual (benefit_society)
+* Paper: {{PAPER_ID}}
+*
+* PAP v1.0-final §2 H3 visual evidence:
+*   6 coefficient × CI bars across 2 tracks × 3 dimensions.
+* Output: PDF + PNG (F-R10-L1).
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""     global data_dir "../data"
+if "$figures_dir" == ""  global figures_dir "../output/figures"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+eststo M_mean_full
+capture confirm variable {{ATTITUDE_CTX}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_mean_ctx
+}
+capture confirm variable {{BENEFIT_POS_FRAC_FULL}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_FULL}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_pos_full
+}
+capture confirm variable {{BENEFIT_POS_FRAC_CTX}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_CTX}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_pos_ctx
+}
+capture confirm variable {{BENEFIT_NEG_FRAC_FULL}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_NEG_FRAC_FULL}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_neg_full
+}
+capture confirm variable {{BENEFIT_NEG_FRAC_CTX}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_NEG_FRAC_CTX}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_neg_ctx
+}
+
+capture which coefplot
+if !_rc {
+    coefplot ///
+        (M_mean_full, label("benefit_mean Full") keep({{ATTITUDE_FULL}})) ///
+        (M_mean_ctx,  label("benefit_mean Ctx")  keep({{ATTITUDE_CTX}})) ///
+        (M_pos_full,  label("pos_frac Full")     keep({{BENEFIT_POS_FRAC_FULL}})) ///
+        (M_pos_ctx,   label("pos_frac Ctx")      keep({{BENEFIT_POS_FRAC_CTX}})) ///
+        (M_neg_full,  label("neg_frac Full")     keep({{BENEFIT_NEG_FRAC_FULL}})) ///
+        (M_neg_ctx,   label("neg_frac Ctx")      keep({{BENEFIT_NEG_FRAC_CTX}})), ///
+        vertical xline(0) ///
+        ytitle("beta on {{MAIN_DV}}_w") ///
+        title("Figure 2: Dual-Track Coefficient Comparison") ///
+        subtitle("benefit_society --- PAP v1.0-final {section}2 H3 evidence") ///
+        note("Wild cluster bootstrap inference (B={{BOOTSTRAP_REPS}}); cluster {{CLUSTER_VAR}}." ///
+             "H3 acceptance: sign match + min/max ratio > 0.5 across >=2/3 dimensions.")
+
+    * Dual-format output per F-R10-L1
+    graph export "$figures_dir/figure2_coefplot_dual.pdf", replace
+    graph export "$figures_dir/figure2_coefplot_dual.png", replace width(1200)
+    display "[OK] Figure 2 saved (PDF + PNG) to $figures_dir/"
+}
+else {
+    display "[WARN] coefplot not installed; run 00_install_packages.do. Figure 2 skipped."
+}

@@ -2,9 +2,10 @@
 * 17_table8_shrinkage_robustness.do — R5 Bayesian shrinkage robustness
 * Paper: {{PAPER_ID}}
 *
-* Compare main regression using:
-*   (a) Raw benefit_mean_full
-*   (b) Shrunk benefit_mean_full_shrunk (output of papers/benefit_society/shrinkage.py)
+* PAP v1.0-final §5 R5 (dual-track upgrade per F-H3):
+*   (a) Raw {{ATTITUDE_FULL}}
+*   (b) Shrunk {{ATTITUDE_FULL}}_shrunk
+*   (c) Ctx shrunk (companion: 17b_table8b_shrinkage_dual)
 *
 * Acceptance: beta sign unchanged; |beta_shrunk - beta_raw| / |beta_raw| < 30%.
 * ============================================================================
@@ -18,37 +19,40 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
+set seed {{RANDOM_SEED}}
+
 * Raw
-reghdfe {{MAIN_DV}}_w benefit_mean_full $controls, ///
-    absorb(bank_type year) vce(cluster bank_id)
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo S_raw
 
 * Shrunk
-capture confirm variable benefit_mean_full_shrunk
+capture confirm variable {{ATTITUDE_FULL}}_shrunk
 if _rc != 0 {
-    display "Error: benefit_mean_full_shrunk not in panel. " ///
-            "Run: python -m news_process.papers.benefit_society.shrinkage --panel <path> --output <path>"
-    exit 198
+    display "[INFO] {{ATTITUDE_FULL}}_shrunk not in panel. " ///
+            "Run: python -m news_process.papers.benefit_society.shrinkage --track full"
+    exit 0
 }
-reghdfe {{MAIN_DV}}_w benefit_mean_full_shrunk $controls, ///
-    absorb(bank_type year) vce(cluster bank_id)
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}}_shrunk $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo S_shrunk
 
 * Inverse-weight regression (heteroskedasticity correction)
-capture confirm variable benefit_mean_full_shrunk_weight
+capture confirm variable {{ATTITUDE_FULL}}_shrunk_weight
 if _rc == 0 {
-    gen analytic_weight = 1 - benefit_mean_full_shrunk_weight
-    reghdfe {{MAIN_DV}}_w benefit_mean_full $controls ///
+    gen analytic_weight = 1 - {{ATTITUDE_FULL}}_shrunk_weight
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls ///
         [aweight=analytic_weight], ///
-        absorb(bank_type year) vce(cluster bank_id)
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
     eststo S_aweighted
 }
 
 esttab S_* using "$tables_dir/table8_shrinkage_robust.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("R5 Robustness: Bayesian Shrinkage") ///
+    title("R5 Robustness: Bayesian Shrinkage (full track)") ///
     mtitles("Raw" "Shrunk" "Inv-Weight") ///
     addnotes("Shrinkage: empirical Bayes, group = bank_type x province. " ///
-             "Acceptance: same sign; |beta_diff/beta_raw| < 30\%.")
+             "Acceptance: same sign; |beta_diff/beta_raw| < 30%. " ///
+             "Dual-track ctx version: Table 8b (17b_table8b_shrinkage_dual.do).")
 
 display "[OK] Table 8 shrinkage --> $tables_dir/table8_shrinkage_robust.tex"

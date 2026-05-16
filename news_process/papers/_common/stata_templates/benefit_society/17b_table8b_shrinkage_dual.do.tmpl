@@ -1,0 +1,63 @@
+* ============================================================================
+* 17b_table8b_shrinkage_dual.do — Bayesian shrinkage dual-track companion
+* Paper: {{PAPER_ID}}
+*
+* PAP v1.0-final §5 R5 dual-track extension (F-H3 / F-R3-H1):
+*   Panel A (full): Raw  / Shrunk / Inv-weight (= Table 8 already)
+*   Panel B (ctx) : Raw  / Shrunk / Inv-weight (this template)
+*
+* Prerequisite columns (set by papers/benefit_society/shrinkage.py --track ctx):
+*   {{ATTITUDE_CTX}}_shrunk, {{ATTITUDE_CTX}}_shrunk_weight
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+capture confirm variable {{ATTITUDE_CTX}}
+if _rc {
+    display "[INFO] {{ATTITUDE_CTX}} absent; Table 8b skipped."
+    exit 0
+}
+
+* Raw ctx
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+eststo Sc_raw
+
+* Shrunk ctx
+capture confirm variable {{ATTITUDE_CTX}}_shrunk
+if _rc != 0 {
+    display "[INFO] {{ATTITUDE_CTX}}_shrunk absent. " ///
+            "Run: python -m news_process.papers.benefit_society.shrinkage --track ctx"
+    exit 0
+}
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}}_shrunk $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+eststo Sc_shrunk
+
+* Inverse-weight
+capture confirm variable {{ATTITUDE_CTX}}_shrunk_weight
+if _rc == 0 {
+    gen analytic_weight_ctx = 1 - {{ATTITUDE_CTX}}_shrunk_weight
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls ///
+        [aweight=analytic_weight_ctx], ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo Sc_aweighted
+}
+
+esttab Sc_* using "$tables_dir/table8b_shrinkage_dual.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("R5 Robustness: Bayesian Shrinkage (ctx track companion)") ///
+    mtitles("Raw" "Shrunk" "Inv-Weight") ///
+    addnotes("Companion to Table 8 (full track). Joint acceptance: " ///
+             "(a) full + ctx both same-sign; (b) |beta_diff|/|beta_raw| < 30%.")
+
+display "[OK] Table 8b shrinkage ctx --> $tables_dir/table8b_shrinkage_dual.tex"

@@ -174,9 +174,13 @@ _KNOWN_PLACEHOLDERS_PAPER_LEVEL = {
 
 # Tier 3: paper-specific (sparse, only the paper that needs it)
 _KNOWN_PLACEHOLDERS_PAPER_SPECIFIC = {
-    # benefit_society
-    'ATTITUDE_VAR', 'MECHANISM_TOKEN', 'MECHANISM_HIDDEN',
-    'MECHANISM_SUBST', 'ROBUSTNESS_DV',
+    # benefit_society (v3.2.1 dual-track expansion — plan v2.12)
+    'ATTITUDE_VAR',      # alias = ATTITUDE_FULL (backwards compat)
+    'ATTITUDE_FULL', 'ATTITUDE_CTX',
+    'BENEFIT_POS_FRAC_FULL', 'BENEFIT_POS_FRAC_CTX',
+    'BENEFIT_NEG_FRAC_FULL', 'BENEFIT_NEG_FRAC_CTX',
+    'MECHANISM_TOKEN', 'MECHANISM_HIDDEN', 'MECHANISM_SUBST',
+    'ROBUSTNESS_DV', 'BOOTSTRAP_REPS', 'RANDOM_SEED',
     # brokerage_network
     'MAIN_ENDOG', 'MAIN_IV', 'TREATMENT_DCEP', 'TREATMENT_SANDBOX',
     'CENTRALITY_BTW', 'CENTRALITY_CONS', 'CENTRALITY_BROKER',

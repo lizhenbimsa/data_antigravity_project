@@ -20,6 +20,9 @@ capture mkdir "$out_dir"
 capture mkdir "$tables_dir"
 capture mkdir "$figures_dir"
 
+* Optional one-shot ssc install (F-R10-L2 / F-R6-L1) — run ONCE per Stata install.
+* capture do 00_install_packages.do
+
 do 01_data_prep.do
 do 10_table1_descriptives.do
 do 11_table2_main.do
@@ -29,7 +32,11 @@ do 14_table5_robustness.do
 do 15_table6_effect_size.do
 capture do 16_table7_robustness_loo_anchor.do
 capture do 17_table8_shrinkage_robustness.do
+capture do 17b_table8b_shrinkage_dual.do
 capture do 18_table9_dimension_decomposition.do
+capture do 20_tableA1_inter_track_kappa.do
+capture do 21_tableA2_attitude_track_switch.do
 do 30_figure1_attitude_distribution.do
+capture do 31_figure2_coefplot_dual.do
 
-display "[OK] benefit_society master.do complete"
+display "[OK] benefit_society master.do complete (plan v2.12 dual-track)"

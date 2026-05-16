@@ -195,14 +195,24 @@ def main(argv: list[str] | None = None) -> int:
     """
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.shrinkage",
-        description="Hierarchical empirical Bayes shrinkage for benefit_mean",
+        description="Hierarchical empirical Bayes shrinkage for benefit_mean (dual-track)",
     )
     parser.add_argument(
         "--panel",
         type=str,
         default="news_process/data/processed/40_panel_yearly.parquet",
     )
-    parser.add_argument("--value-col", type=str, default="benefit_mean_full")
+    # Plan v2.12 dual-track (F-H3): default 'both' produces shrunk columns
+    # for benefit_mean_full + benefit_mean_ctx. Legacy --value-col still
+    # supported for backwards compat with a single column.
+    parser.add_argument(
+        "--track",
+        choices=["full", "ctx", "both"],
+        default="both",
+        help="Dual-track selection (plan v2.12); overrides --value-col when set to non-legacy values",
+    )
+    parser.add_argument("--value-col", type=str, default=None,
+                        help="Legacy single-column override (e.g., benefit_mean_full)")
     parser.add_argument("--n-obs-col", type=str, default="n_articles")
     parser.add_argument(
         "--group-cols",
@@ -221,32 +231,50 @@ def main(argv: list[str] | None = None) -> int:
     panel = pd.read_parquet(args.panel)
     logger.info(f"Loaded panel: {panel.shape}")
 
+    # Resolve value columns from --track / --value-col (--value-col wins if set)
+    if args.value_col is not None:
+        value_cols = [args.value_col]
+    elif args.track == "both":
+        value_cols = ["benefit_mean_full", "benefit_mean_ctx"]
+    else:
+        value_cols = [f"benefit_mean_{args.track}"]
+
     group_cols = tuple(c.strip() for c in args.group_cols.split(","))
-    missing = [c for c in (args.value_col, args.n_obs_col, *group_cols) if c not in panel.columns]
-    if missing:
+
+    # Validate required columns once
+    base_required = [args.n_obs_col, *group_cols]
+    missing_base = [c for c in base_required if c not in panel.columns]
+    if missing_base:
         logger.error(
-            f"Required columns missing: {missing}. "
+            f"Required base columns missing: {missing_base}. "
             "Build the auxiliary panel with bank_type, province, n_articles first."
         )
         return 1
 
-    result = apply_shrinkage_to_panel(
-        panel,
-        value_col=args.value_col,
-        n_obs_col=args.n_obs_col,
-        group_cols=group_cols,
-    )
-
-    sanity = mixedlm_sanity_check(panel, args.value_col, group_cols[0])
-    if sanity:
-        logger.info(f"MixedLM sanity: ICC={sanity['icc']:.3f}")
+    result = panel.copy()
+    for value_col in value_cols:
+        if value_col not in panel.columns:
+            logger.warning(f"  [skip] track value column missing: {value_col}")
+            continue
+        result = apply_shrinkage_to_panel(
+            result,
+            value_col=value_col,
+            n_obs_col=args.n_obs_col,
+            group_cols=group_cols,
+        )
+        sanity = mixedlm_sanity_check(panel, value_col, group_cols[0])
+        if sanity:
+            logger.info(f"  [{value_col}] MixedLM sanity: ICC={sanity['icc']:.3f}")
+        weight_col = f"{value_col}_shrunk_weight"
+        logger.info(
+            f"  [{value_col}] mean shrinkage weight = {result[weight_col].mean():.3f}"
+        )
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     result.to_parquet(output_path, index=False)
     logger.info(
-        f"Wrote shrunk panel to {output_path}: "
-        f"mean shrinkage weight = {result[f'{args.value_col}_shrunk_weight'].mean():.3f}"
+        f"Wrote shrunk panel to {output_path}: tracks={value_cols}"
     )
 
     return 0

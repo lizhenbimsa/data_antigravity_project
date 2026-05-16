@@ -266,22 +266,90 @@ def aggregate_to_bank_year(
 
 
 # ---------------------------------------------------------------------------
-# 7. CLI 入口
+# 7. Dual-track helpers (plan v2.12, F-B2 / F-M3 / F-V2-B2 — write back to
+#    pipeline/features layer rather than the shared panel runner)
+# ---------------------------------------------------------------------------
+
+_DEFAULT_EMBEDDINGS = {
+    "full": "news_process/data/processed/27_benefit_embeddings_full.npy",
+    "ctx":  "news_process/data/processed/27_benefit_embeddings_ctx.npy",
+}
+
+
+def compute_dual_track_dimensions(
+    df_exploded: pd.DataFrame,
+    track_to_embedding: dict[str, np.ndarray],
+    directions: dict[str, np.ndarray],
+    *,
+    bank_col: str = "target_bank",
+    year_col: str = "year",
+) -> pd.DataFrame:
+    """Aggregate sub-index scores into a single bank-year panel covering all tracks.
+
+    For each track key in ``track_to_embedding`` (typically ``{'full', 'ctx'}``),
+    produces columns ``benefit_<dim>_<track>`` keyed on (bank_col, year_col).
+
+    Returns a merged bank-year DataFrame.
+    """
+    merged: pd.DataFrame | None = None
+    for track, text_emb in track_to_embedding.items():
+        if len(df_exploded) != len(text_emb):
+            raise ValueError(
+                f"df_exploded ({len(df_exploded)}) and text_embeddings[{track!r}] "
+                f"({len(text_emb)}) length mismatch"
+            )
+        track_panel = aggregate_to_bank_year(
+            df_exploded, text_emb, directions, bank_col=bank_col, year_col=year_col,
+        )
+        track_panel = track_panel.rename(columns={
+            f"benefit_{dim}": f"benefit_{dim}_{track}" for dim in directions
+        })
+        merged = (
+            track_panel if merged is None
+            else merged.merge(track_panel, on=[bank_col, year_col], how="outer")
+        )
+    assert merged is not None
+    return merged
+
+
+# ---------------------------------------------------------------------------
+# 8. CLI 入口
 # ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> int:
     """CLI entry: compute 4-dimensional sub-indices and optionally aggregate to bank-year panel.
+
+    Plan v2.12: ``--track {full,ctx,both}`` (default both) produces dual-track
+    output ``benefit_{core_op,growth,resource,compliance}_{full,ctx}``.
 
     Returns 0 on success or graceful skip (missing optional inputs); raises on hard errors.
     """
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.dimension_analysis",
-        description="4 维度子指数计算 (core_op / growth / resource / compliance)",
+        description="4 维度子指数计算 (core_op / growth / resource / compliance, 双轨)",
+        # F-V2-H2 backwards-compat: disable abbrev so legacy --text-embeddings
+        # (Phase 0) and new --text-embeddings-full (v2.12) are unambiguous.
+        allow_abbrev=False,
     )
     parser.add_argument(
-        "--text-embeddings",
+        "--track",
+        choices=["full", "ctx", "both"],
+        default="both",
+        help="Sentiment track(s) to compute (plan v2.12)",
+    )
+    parser.add_argument(
+        "--text-embeddings-full",
+        "--text-embeddings",  # legacy alias (Phase 0 scaffolding default)
         type=str,
-        default="news_process/data/processed/27_benefit_embeddings_full.npy",
-        help="Path to Stage 27 pre-computed text embeddings (.npy)",
+        default=_DEFAULT_EMBEDDINGS["full"],
+        dest="text_embeddings_full",
+        help="Path to Stage 27 full-track text embeddings (.npy). "
+             "Legacy alias: --text-embeddings",
+    )
+    parser.add_argument(
+        "--text-embeddings-ctx",
+        type=str,
+        default=_DEFAULT_EMBEDDINGS["ctx"],
+        help="Path to Stage 27 ctx-track text embeddings (.npy)",
     )
     parser.add_argument(
         "--df-exploded",
@@ -311,22 +379,36 @@ def main(argv: list[str] | None = None) -> int:
     directions = compute_direction_vectors(pos, neg, cache_db_path=args.cache_db)
     logger.info(f"Computed {len(directions)} dimensional direction vectors: {list(directions)}")
 
-    if args.df_exploded is None or not Path(args.text_embeddings).exists():
-        logger.warning(
-            "Skipping panel aggregation (df_exploded not provided or text embeddings missing)"
-        )
+    tracks = ["full", "ctx"] if args.track == "both" else [args.track]
+    track_paths = {
+        "full": Path(args.text_embeddings_full),
+        "ctx":  Path(args.text_embeddings_ctx),
+    }
+
+    if args.df_exploded is None:
+        logger.warning("Skipping panel aggregation (df_exploded not provided)")
         return 0
 
-    text_emb = np.load(args.text_embeddings)
-    logger.info(f"Loaded text embeddings: shape {text_emb.shape}")
+    missing = [t for t in tracks if not track_paths[t].exists()]
+    if missing:
+        logger.warning(f"Skipping tracks (embedding files missing): {missing}")
+        tracks = [t for t in tracks if t not in missing]
+    if not tracks:
+        logger.warning("No tracks available; aborting panel aggregation")
+        return 0
+
+    track_emb = {t: np.load(str(track_paths[t])) for t in tracks}
+    for t, emb in track_emb.items():
+        logger.info(f"  [{t}] embeddings shape: {emb.shape}")
 
     df_exploded = pd.read_parquet(args.df_exploded)
-    panel = aggregate_to_bank_year(df_exploded, text_emb, directions)
+    panel = compute_dual_track_dimensions(df_exploded, track_emb, directions)
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     panel.to_parquet(output_path, index=False)
-    logger.info(f"Wrote dimensional panel to {output_path}: {panel.shape}")
+    logger.info(f"Wrote dual-track dimensional panel to {output_path}: {panel.shape}")
+    logger.info(f"  Columns: {sorted(panel.columns)}")
 
     return 0
 

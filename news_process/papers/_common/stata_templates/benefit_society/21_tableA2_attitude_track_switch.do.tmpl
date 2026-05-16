@@ -1,0 +1,124 @@
+* ============================================================================
+* 21_tableA2_attitude_track_switch.do — Dual-track main spec comparison
+* Paper: {{PAPER_ID}}
+*
+* PAP v1.0-final §2 H3 evidence (audit-frozen):
+*   2-spec switch: full vs ctx
+*   H3 acceptance:
+*     (1) sign(beta_full) == sign(beta_ctx)
+*     (2) min(|beta_full|, |beta_ctx|) / max(|beta_full|, |beta_ctx|) > 0.5
+*   3 dimensions evaluated jointly (mean / pos_frac / neg_frac, F-H3).
+*
+* Wild cluster bootstrap inference (F-H4 / F-R5-H1) via boottest:
+*   boottest does NOT directly accept reghdfe e-class; we partial out FE
+*   first into residual, then run regress + boottest. Implementation: rely
+*   on boottest's built-in reghdfe support (boottest >= 4.0).
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* ----- 2-spec main regression: full vs ctx, 3 dimensions = 6 specs total -----
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+eststo M_mean_full
+scalar b_mean_full = _b[{{ATTITUDE_FULL}}]
+scalar se_mean_full = _se[{{ATTITUDE_FULL}}]
+
+capture confirm variable {{ATTITUDE_CTX}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_mean_ctx
+    scalar b_mean_ctx = _b[{{ATTITUDE_CTX}}]
+    scalar se_mean_ctx = _se[{{ATTITUDE_CTX}}]
+}
+
+capture confirm variable {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_POS_FRAC_CTX}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_FULL}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_pos_full
+    scalar b_pos_full = _b[{{BENEFIT_POS_FRAC_FULL}}]
+
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_CTX}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_pos_ctx
+    scalar b_pos_ctx = _b[{{BENEFIT_POS_FRAC_CTX}}]
+}
+
+capture confirm variable {{BENEFIT_NEG_FRAC_FULL}} {{BENEFIT_NEG_FRAC_CTX}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_NEG_FRAC_FULL}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_neg_full
+    scalar b_neg_full = _b[{{BENEFIT_NEG_FRAC_FULL}}]
+
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_NEG_FRAC_CTX}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_neg_ctx
+    scalar b_neg_ctx = _b[{{BENEFIT_NEG_FRAC_CTX}}]
+}
+
+* ----- H3 sign + min/max ratio check (3 dimensions) -----
+quietly {
+    foreach dim in mean pos neg {
+        capture {
+            scalar b_full = b_`dim'_full
+            scalar b_ctx  = b_`dim'_ctx
+            scalar sign_match_`dim' = sign(b_full) == sign(b_ctx)
+            scalar ratio_`dim' = ///
+                min(abs(b_full), abs(b_ctx)) / max(abs(b_full), abs(b_ctx))
+            scalar h3_pass_`dim' = sign_match_`dim' & ratio_`dim' > 0.5
+        }
+        if _rc {
+            scalar sign_match_`dim' = .
+            scalar ratio_`dim' = .
+            scalar h3_pass_`dim' = .
+        }
+    }
+}
+
+display _newline "H3 dual-track consistency (PAP v1.0-final §2):"
+display "  mean   : sign_match=" sign_match_mean ", ratio=" ratio_mean ", pass=" h3_pass_mean
+display "  pos    : sign_match=" sign_match_pos  ", ratio=" ratio_pos  ", pass=" h3_pass_pos
+display "  neg    : sign_match=" sign_match_neg  ", ratio=" ratio_neg  ", pass=" h3_pass_neg
+
+scalar h3_total_pass = (h3_pass_mean == 1) + (h3_pass_pos == 1) + (h3_pass_neg == 1)
+display "  TOTAL  : " h3_total_pass " / 3 dimensions pass (>=2 required)"
+
+* ----- Wild cluster bootstrap (boottest) for primary inference -----
+* boottest weight(reghdfe) requires the LAST e-class result to be reghdfe.
+quietly reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+capture which boottest
+if !_rc {
+    boottest {{ATTITUDE_FULL}}=0, reps({{BOOTSTRAP_REPS}}) cluster({{CLUSTER_VAR}}) ///
+        seed({{RANDOM_SEED}}) nograph
+    display "  Wild bootstrap p-value (full): " r(p)
+}
+else {
+    display "  [WARN] boottest not installed; skip wild bootstrap. " ///
+            "Run: do 00_install_packages.do"
+}
+
+* ----- Output Table A2 -----
+esttab M_mean_full M_mean_ctx M_pos_full M_pos_ctx M_neg_full M_neg_ctx ///
+    using "$tables_dir/tableA2_attitude_track_switch.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Table A2: Dual-Track Switch Sensitivity (full vs ctx, 3 dimensions)") ///
+    mgroups("benefit_mean" "benefit_pos_frac" "benefit_neg_frac", ///
+            pattern(1 0 1 0 1 0)) ///
+    mtitles("Full" "Ctx" "Full" "Ctx" "Full" "Ctx") ///
+    addnotes("PAP v1.0-final §2 H3: sign_match AND min/max ratio > 0.5 across >=2/3 dimensions." ///
+             "Wild cluster bootstrap (boottest, B={{BOOTSTRAP_REPS}}) for small-G inference (F-R5-H1).")
+
+display _newline "[OK] Table A2 written to $tables_dir/tableA2_attitude_track_switch.tex"

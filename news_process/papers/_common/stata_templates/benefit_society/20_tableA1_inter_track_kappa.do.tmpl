@@ -1,0 +1,107 @@
+* ============================================================================
+* 20_tableA1_inter_track_kappa.do — Inter-track agreement (benefit_society)
+* Paper: {{PAPER_ID}}
+*
+* PAP v1.0-final §2 H3 evidence supporting table.
+* benefit_society specialization (F-M2): stage 21 does NOT emit article-level
+* benefit_label_{full,ctx} discrete labels; this template falls back to
+* score-level Pearson/Spearman rho on llm_prob_score_{full,ctx} (closest
+* article-level proxy available) plus bank-year level correlations on
+* benefit_{mean,pos_frac,neg_frac}_{full,ctx}.
+*
+* Threshold (audit-frozen):
+*   rho >= 0.50: convergent validity acceptable
+*   rho <= 0.85: dual-track NOT redundant (F-H2 disclosure)
+*
+* PAP v1.0-final §9 deviation disclosure: benefit_mean rho = 0.761 already
+* approaches redundancy threshold; pos/neg_frac rho = 0.459 carries real
+* dual-track information.
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+* ----- Section 1: article-level score-level rho (proxy for kappa) -----
+* Falls back to score-level rho since benefit-domain article-level discrete
+* labels do not exist (per audit F-M2 empirical check).
+capture confirm file "$data_dir/21_tone_llms.dta"
+if !_rc {
+    preserve
+        use "$data_dir/21_tone_llms.dta", clear
+        capture confirm variable llm_prob_score_full llm_prob_score_ctx
+        if !_rc {
+            display _newline "Article-level score rho (proxy for kappa):"
+            correlate llm_prob_score_full llm_prob_score_ctx
+            local article_rho_pearson  = r(rho)
+            spearman llm_prob_score_full llm_prob_score_ctx
+            local article_rho_spearman = r(rho)
+        }
+        else {
+            display "  [INFO] llm_prob_score_{full,ctx} not in stage 21; skip"
+            local article_rho_pearson  .
+            local article_rho_spearman .
+        }
+    restore
+}
+else {
+    display "  [INFO] 21_tone_llms.dta absent; article-level rho skipped"
+    local article_rho_pearson  .
+    local article_rho_spearman .
+}
+
+* ----- Section 2: bank-year level rho (3 dimensions, PAP §2 H3) -----
+use "$data_dir/_prepared_panel.dta", clear
+
+quietly {
+    capture confirm variable {{ATTITUDE_FULL}} {{ATTITUDE_CTX}}
+    if !_rc {
+        correlate {{ATTITUDE_FULL}} {{ATTITUDE_CTX}}
+        local rho_mean = r(rho)
+    }
+    else local rho_mean .
+
+    capture confirm variable {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_POS_FRAC_CTX}}
+    if !_rc {
+        correlate {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_POS_FRAC_CTX}}
+        local rho_pos = r(rho)
+    }
+    else local rho_pos .
+
+    capture confirm variable {{BENEFIT_NEG_FRAC_FULL}} {{BENEFIT_NEG_FRAC_CTX}}
+    if !_rc {
+        correlate {{BENEFIT_NEG_FRAC_FULL}} {{BENEFIT_NEG_FRAC_CTX}}
+        local rho_neg = r(rho)
+    }
+    else local rho_neg .
+}
+
+display _newline "Bank-year inter-track rho (PAP v1.0-final §2 H3 evidence):"
+display "  benefit_mean       full vs ctx Pearson rho = `rho_mean'"
+display "  benefit_pos_frac   full vs ctx Pearson rho = `rho_pos'"
+display "  benefit_neg_frac   full vs ctx Pearson rho = `rho_neg'"
+
+* ----- Section 3: LaTeX output -----
+file open f1 using "$tables_dir/tableA1_inter_track_kappa.tex", write replace
+file write f1 "\begin{table}[h]\centering" _newline
+file write f1 "\caption{Table A1: Inter-track Agreement (benefit_society dual-track)}" _newline
+file write f1 "\label{tab:A1_inter_track_kappa}" _newline
+file write f1 "\begin{tabular}{lcccc}\toprule" _newline
+file write f1 "Field & Article-rho Pearson & Article-rho Spearman & Bank-year Pearson rho & Threshold \\\\\midrule" _newline
+file write f1 "llm_prob_score (proxy) & `article_rho_pearson' & `article_rho_spearman' & --- & 0.50--0.85 \\\\" _newline
+file write f1 "benefit_mean       & --- & --- & `rho_mean' & 0.50--0.85 (rho=0.76 disclosed) \\\\" _newline
+file write f1 "benefit_pos_frac   & --- & --- & `rho_pos'  & 0.50--0.85 \\\\" _newline
+file write f1 "benefit_neg_frac   & --- & --- & `rho_neg'  & 0.50--0.85 \\\\" _newline
+file write f1 "\bottomrule\end{tabular}" _newline
+file write f1 "\begin{tablenotes}\footnotesize\item " _newline
+file write f1 "F-M2: stage 21 lacks article-level benefit-domain discrete labels; " _newline
+file write f1 "falls back to llm_prob_score_full vs llm_prob_score_ctx as closest proxy. " _newline
+file write f1 "F-H2 / F-R4-M1: rho=0.761 on benefit_mean approaches redundancy threshold; " _newline
+file write f1 "discriminative info concentrates in pos/neg_frac (rho=0.459)." _newline
+file write f1 "\end{tablenotes}\end{table}" _newline
+file close f1
+
+display _newline "[OK] Table A1 written to $tables_dir/tableA1_inter_track_kappa.tex"

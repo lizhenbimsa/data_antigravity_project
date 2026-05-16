@@ -62,12 +62,25 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'MAIN_DV': 'ROA',
         'CONTROLS': 'ln_news_coverage media_breadth n_articles',
         'CLUSTER_VAR': 'bank_id',
-        'HET_VAR': 'is_soe',
+        'HET_VAR': 'is_listed',  # PAP v1.0-final DP-9: replaces is_soe (F-R3-H2)
+        # v3.2.1 dual-track (plan v2.12, F-M1 / F-H3): ATTITUDE_VAR retained as
+        # backwards-compat alias = full track; ATTITUDE_FULL / ATTITUDE_CTX are
+        # the canonical dual-track placeholders used by new templates
+        # (20_tableA1_inter_track_kappa, 21_tableA2_attitude_track_switch,
+        # 31_figure2_coefplot_dual, 17b_table8b_shrinkage_dual).
         'ATTITUDE_VAR': 'benefit_mean_full',
+        'ATTITUDE_FULL': 'benefit_mean_full',
+        'ATTITUDE_CTX': 'benefit_mean_ctx',
+        'BENEFIT_POS_FRAC_FULL': 'benefit_pos_frac_full',
+        'BENEFIT_POS_FRAC_CTX': 'benefit_pos_frac_ctx',
+        'BENEFIT_NEG_FRAC_FULL': 'benefit_neg_frac_full',
+        'BENEFIT_NEG_FRAC_CTX': 'benefit_neg_frac_ctx',
         'MECHANISM_TOKEN': 'token_adopt_kw_p50',
         'MECHANISM_HIDDEN': 'hidden_adopt_kw_p50',
         'MECHANISM_SUBST': 'subst_adopt_kw_p50',
         'ROBUSTNESS_DV': 'CAR',
+        'BOOTSTRAP_REPS': '999',  # F-R5-H1 wild cluster bootstrap
+        'RANDOM_SEED': '20260516',  # F-R6-M2
     },
     'brokerage_network': {
         'PAPER_ID': 'brokerage_network',
