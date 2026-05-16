@@ -1,0 +1,174 @@
+# Pipeline v3.4 全量重跑配置 — M0.5 阶段使用 (per plan v2.x §5.2.2 M0.5 + §5.3).
+#
+# 该 config 描述 M0.5 把 raw 40 万语料推到 46_panel_yearly_v34.dta 的全部参数。
+# **当前状态: skeleton placeholder**。
+# M-1 数据现状审计 (G-1) pass 后 + D1 决策点用户确认数据源后, 由 Claude
+# (per §14 RACI M0.5 Responsible) 填写 raw 路径 / API endpoint / 凭证 引用,
+# 然后才能 invoke ``run_pipeline_v34`` (M0.5 全量重跑 12 wk wall-time, $4,062 LLM cost cap).
+#
+# Schema 设计原则 (与现有 config/{paths,preprocessing,filtering,sentiment,...}.yaml 兼容):
+#   - 顶层 key = pipeline 阶段 (raw_ingest / preprocessing / sentiment / panel_build / output);
+#   - 各阶段下 sub-key 描述 输入路径 / 处理参数 / 输出路径 / cost-cap;
+#   - 与 core/dag.py STAGES_MAIN 一一对应。
+
+version: 1.0.0  # config schema version (not pipeline version)
+plan_anchor: "B_route_master_plan_v2 §5.3"
+target_panel: "46_panel_yearly_v34.dta"
+status: skeleton  # placeholder until G-1 pass + D1 confirms raw access
+
+# ----------------------------------------------------------------------------
+# M0.5.1 Raw 入库 + 00_preprocessing
+# ----------------------------------------------------------------------------
+raw_ingest:
+  # **TODO (M-1.1 + D1)**: 填写实际 raw 数据物理位置 / API endpoint / DB 连接串.
+  #   候选: CNRDS / Wind / 巨灵财经 / 自建爬虫
+  source_type: TBD  # one of: filesystem / database / api / multi
+  source_path: null  # absolute path or connection string
+  credentials_ref: null  # env var name (e.g. RAW_DATA_API_KEY), never inline credentials
+  schema_doc: null  # path to original schema documentation
+  cutoff_date: 2024-12-31  # raw 抓取截止日 (per plan §1 "2007-2024 (18 年)")
+  expected_record_count: 400000
+  expected_bank_count: 500
+  expected_year_range: [2007, 2024]
+
+# ----------------------------------------------------------------------------
+# M0.5.2 - M0.5.7 sentiment / panel build (referencing existing config/*.yaml)
+# ----------------------------------------------------------------------------
+stages:
+  - id: "00_preprocessing"
+    duration_wk: 1   # M0.5.1
+    resource: cpu
+  - id: "11_news_bank"
+    duration_wk: 1   # M0.5.2 part 1
+    resource: cpu
+  - id: "12_news_fintech"
+    duration_wk: 0   # M0.5.2 part 2 (chained with 11)
+    resource: cpu
+  - id: "14_fintech_intensity"
+    duration_wk: 1   # M0.5.3
+    resource: "cpu + embedding_api"
+  - id: "15_article_policy_alignment"
+    duration_wk: 0   # M0.5.3 chained
+    resource: cpu
+  - id: "21_tone_llms"
+    duration_wk: 4   # M0.5.4 — LLM API critical path bottleneck
+    resource: "llm_api"
+    cost_estimate_usd: 2400
+    families: [gpt54nano, gemini31111, deepseekv4]
+    temperature: 0
+    cache_strategy: "hot_first"
+  - id: "22_words_tone"
+    duration_wk: 1   # M0.5.5
+    resource: cpu
+  - id: "23_bert_tone"
+    duration_wk: 2   # M0.5.6 — GPU 64-core 全量推理
+    resource: "gpu_64core"
+  - id: "24_herd_decay"
+    duration_wk: 1   # M0.5.7
+    resource: cpu
+
+# ----------------------------------------------------------------------------
+# M0.5.8 sentiment + innovation tracks (32a / 33-39)
+# ----------------------------------------------------------------------------
+innovation_tracks:
+  duration_wk: 2
+  resource: "llm_api + gpu"
+  cost_estimate_usd: 300
+  tracks:
+    - "32a_innovation_locus_full"
+    - "32a_innovation_locus_ctx"
+    - "32a_innovation_substantiveness_full"
+    - "32a_innovation_substantiveness_ctx"
+
+# ----------------------------------------------------------------------------
+# M0.5.9 40-46 panel + Stata export (含 v34 column expansion ≤ 5000 cols)
+# ----------------------------------------------------------------------------
+panel_build:
+  duration_wk: 1
+  resource: cpu
+  output_layout:
+    - "data/processed/v34/46_panel_yearly_full.parquet"
+    - "data/processed/v34/46_panel_yearly_full.dta"
+    - "data/processed/v34/46_panel_yearly_core.dta"      # ≤ 2048 cols (IC 兼容)
+    - "data/processed/v34/46_panel_yearly_aux.dta"       # 互补
+    - "data/processed/v34/46_panel_yearly_v34_balanced.dta"
+    - "data/processed/v34/46_panel_yearly_v34_unbalanced.dta"
+    - "data/processed/v34/46_codebook_v34.xlsx"
+  panel_col_budget: 5000          # plan §5.3.1 ≤ 5000 cols
+  panel_row_budget: [3000, 9000]  # plan §5.3.1 obs range
+
+# ----------------------------------------------------------------------------
+# M0.5.10 cross-era prompt 稳健性 (并行 with M0.5.4)
+# ----------------------------------------------------------------------------
+cross_era_kappa_test:
+  duration_wk: 1
+  parallel_with: "21_tone_llms"
+  cost_estimate_usd: 0  # cache hit (subset of 21_tone)
+  segments:
+    - { period: "2007-2010", n_sample: 100 }
+    - { period: "2011-2014", n_sample: 100 }
+    - { period: "2015-2018", n_sample: 100 }
+    - { period: "2019-2024", n_sample: 100 }
+  acceptance_kappa_min: 0.7
+  output: "eval_reports/cross_era_kappa_v34.json"
+
+# ----------------------------------------------------------------------------
+# M0.5.11 Financial / market / patent enrichment (并行 with M0.5.4)
+# ----------------------------------------------------------------------------
+financial_enrichment:
+  duration_wk: 2
+  parallel_with: "21_tone_llms"
+  resource: "cpu + database_query"
+  sources:
+    - { name: CSMAR, modules: [bank_annual_report, daily_stock_returns, executive_turnover, executive_compensation, capex_it] }
+    - { name: Wind, modules: [non_listed_bank_quarterly, daily_market_data] }
+    - { name: IncoPat, modules: [fintech_patent_count, patent_citations] }
+    - { name: Tonghuashun, modules: [m_and_a_events] }
+  outputs:
+    - "data/processed/v34/47_financial_outcomes_panel.parquet"
+    - "data/processed/v34/48_daily_returns_panel.parquet"
+  derived_columns:
+    - "ln_fintech_investment"           # P2 outcome.primary
+    - "m_and_a_fintech"                 # P2 outcome.secondary
+    - "patent_fintech_count"            # P2 outcome.secondary / P4 outcome.secondary
+    - "citation_weighted_patent"        # P4 outcome.secondary (Kogan 2017 algo)
+    - "long_run_roa_change_3yr"         # P3 outcome.primary (t+3 forward change)
+    - "ceo_turnover_2yr"
+    - "executive_pay_change"
+    - "board_change"
+    - "capex_it"                        # P4 mediator.primary
+    - "r_and_d_intensity"               # P4 mediator.secondary
+    - "ln_fintech_mdna_length"          # P2 mediator.primary (年报 MD&A 章节文本长度)
+    - "car_3day_window_tone_shock"      # P1 primary (R10-M01)
+    - "car_3day_window_fintech_announcement"   # P3 short_run
+    - "car_5day_window"                 # P4 primary
+  car_construction:
+    benchmark: 中证银行指数
+    model: market_adjusted
+    estimation_window: "[-250, -10] trading days"
+    event_windows:
+      - {name: car_3day, range: "[-1, +1]"}
+      - {name: car_5day, range: "[-2, +2]"}
+
+# ----------------------------------------------------------------------------
+# Acceptance gate G0.5 — cost / quality budget
+# ----------------------------------------------------------------------------
+acceptance:
+  llm_cost_cap_usd: 4200      # plan §10.1 + §6 G0.5 R46-M03
+  llm_cost_estimate_usd: 4062
+  panel_reproducibility:
+    cache_hot: "panel-hash identical"
+    cache_cold: "row diff ≤ 0.1%"
+  cross_era_kappa_min: 0.7
+  v3_3_0_subset_invariance:
+    bank_filter: "target_bank ∈ v3.3.0 84 banks"
+    year_filter: "year ∈ {2017, 2018}"
+    float_tolerance: 1e-9
+    categorical_tolerance: 0
+
+# ----------------------------------------------------------------------------
+# Critical path note (per §5.3 R9-M02):
+#   sub-task sequential sum = 1+1+1+4+1+2+1+2+1 = 14 wk
+#   minus M0.5.10/M0.5.11 parallel savings (2 wk during M0.5.4 wait)
+#   = 12 wk critical path
+# ----------------------------------------------------------------------------

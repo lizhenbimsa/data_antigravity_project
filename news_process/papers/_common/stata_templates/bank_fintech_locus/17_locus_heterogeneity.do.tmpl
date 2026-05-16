@@ -1,0 +1,92 @@
+* ============================================================================
+* 17_locus_heterogeneity.do — Table 4 heterogeneity (P4 bank_fintech_locus)
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 P4 heterogeneity (R6-M03/M04 + R4-M03 三波严格对称)
+*
+* Heterogeneity dimensions:
+*   (a) 三波 fintech 浪潮 (wave_1 2013-2015 / wave_2 2016-2018 / wave_3 2022-2024)
+*       + consolidation period (2019-2021, 对照组)
+*   (b) SOE × non-SOE
+*   (c) 4 bank types
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* ============================================================================
+* (a) 三波 fintech 浪潮 + consolidation
+* ============================================================================
+foreach w in pre_period wave_1 wave_2 consolidation wave_3 {
+    capture confirm variable `w'
+    if !_rc {
+        count if `w' == 1 & !missing(locus_layer_full, {{MAIN_DV}})
+        if r(N) >= 10 {
+            reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if `w' == 1, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            eststo wave_`w'
+        }
+        else {
+            display "  [SKIP] wave `w' has " r(N) " obs (< 10; R7-m01)"
+        }
+    }
+}
+
+* Layer × wave interaction (main spec per R10-m03)
+capture confirm variable wave_1 wave_2 consolidation wave_3
+if !_rc {
+    foreach w in wave_1 wave_2 consolidation wave_3 {
+        gen layer_x_`w' = locus_layer_full * `w'
+    }
+    reghdfe {{MAIN_DV}} locus_layer_full wave_1 wave_2 consolidation wave_3 ///
+        layer_x_wave_1 layer_x_wave_2 layer_x_consolidation layer_x_wave_3 ///
+        $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo layer_x_wave_interact
+}
+
+* ============================================================================
+* (b) SOE × non-SOE split
+* ============================================================================
+capture confirm variable soe
+if !_rc {
+    reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if soe == 1, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo soe_1
+    reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if soe == 0, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo soe_0
+}
+
+* ============================================================================
+* (c) 4 bank types
+* ============================================================================
+capture confirm variable bank_type
+if !_rc {
+    levelsof bank_type, local(types)
+    foreach t of local types {
+        count if bank_type == `t' & !missing(locus_layer_full, {{MAIN_DV}})
+        if r(N) >= 10 {
+            reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if bank_type == `t', ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            eststo type_`t'
+        }
+    }
+}
+
+esttab wave_* layer_x_wave_interact soe_* type_* ///
+    using "$tables_dir/table4_heterogeneity.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Table 4 — Heterogeneity (P4 locus; 三波 fintech 浪潮 × SOE × 4 bank types)") ///
+    addnotes("Wave definition (R4-M03 三波严格对称): pre/wave_1/wave_2/consolidation/wave_3." ///
+             "Small-cell warning (R7-m01): cell N<10 skipped.")
+
+display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex"

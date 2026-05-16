@@ -1,0 +1,78 @@
+* ============================================================================
+* 15_locus_main_regression.do — Table 2 M1→M6 progressive (P4 bank_fintech_locus)
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 + §B.4 P4 spec
+*
+*   DV  = {{MAIN_DV}}          (car_5day_window per spec.outcome.primary)
+*   X   = locus_layer_full / locus_scenario_full  (primary_pair, R35-M02 derived)
+*
+*   Theory anchor: Gomber 2018 JMIS (taxonomy: technology vs business function) +
+*                  Kogan 2017 QJE (market-value weighted innovation).
+*
+* M1-M6: layer × event study baseline (per spec.identification.baseline).
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* M1: bare (locus pair only)
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full, ///
+    noabsorb vce(cluster {{CLUSTER_VAR}})
+eststo M1
+
+* M2: + bank FE
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full, ///
+    absorb(bank_id) vce(cluster {{CLUSTER_VAR}})
+eststo M2
+
+* M3: + bank FE + year FE
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M3
+
+* M4: + bank-level controls
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M4
+
+* M5: + macro
+capture confirm variable gdp_growth m2_growth
+if !_rc {
+    reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls gdp_growth m2_growth, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M5
+}
+else {
+    eststo M5: reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+}
+
+* M6: locus_gap (∈ {-1, +1}) as compact alternative
+capture confirm variable locus_gap
+if !_rc {
+    reghdfe {{MAIN_DV}} locus_gap $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M6_gap
+}
+
+* Test layer ≠ scenario coefficient (formal layer-vs-scenario differential)
+test locus_layer_full = locus_scenario_full
+
+esttab M1 M2 M3 M4 M5 M6_gap using "$tables_dir/table2_main.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Main Results --- bank_fintech_locus (P4)") ///
+    mtitles("M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 locus_gap") ///
+    addnotes("bank / year FE; SE clustered at {{CLUSTER_VAR}}; layer × event study baseline (per spec)." ///
+             "Wald test layer = scenario in log.")
+
+display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex"

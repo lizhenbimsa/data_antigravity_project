@@ -1,0 +1,68 @@
+* ============================================================================
+* 16_attention_mechanism.do — Table 3 mediation (bank_fintech_attention / P2)
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 P2 mechanism — Baron-Kenny 1986 mediation + Imai-Keele-Tingley 2010 sensitivity
+*
+*   X       = {{MAIN_TREAT}}      (attention_index_full)
+*   M       = ln_fintech_mdna_length  (P2 mediator.primary, MD&A 章节文本长度)
+*   Y       = {{MAIN_DV}}           (ln_fintech_investment)
+*
+* Baron-Kenny 4 steps:
+*   (1) Y ~ X     (total effect, c)
+*   (2) M ~ X     (a path)
+*   (3) Y ~ X + M (c' direct + b indirect)
+*   (4) Sobel z = a*b / sqrt(b²σ²_a + a²σ²_b)
+* + Imai-Keele-Tingley 2010 sensitivity: medsens (varies ρ between residuals).
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* Step 1: total effect Y ~ X
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo total
+
+* Step 2: a path M ~ X
+capture confirm variable ln_fintech_mdna_length
+if !_rc {
+    reghdfe ln_fintech_mdna_length {{MAIN_TREAT}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo apath
+}
+else {
+    display "  [WARN] ln_fintech_mdna_length not in panel (M0.5.11 enrichment pending)"
+}
+
+* Step 3: c' direct + b indirect: Y ~ X + M
+capture confirm variable ln_fintech_mdna_length
+if !_rc {
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} ln_fintech_mdna_length $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo direct
+}
+
+* Step 4: Sobel z + Imai-Keele 2010 sensitivity
+* NoteThis: medsens command requires Imai's `medsens` SSC package; install per
+* §5.7.3 SSC prerequisites at M2 onboarding.
+* ssc install medsens, replace
+* medsens, sims(1000) rho(-0.5 0.5)
+
+esttab total apath direct using "$tables_dir/table3_mechanism.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Table 3 — Mechanism (Baron-Kenny mediation; P2 attention → MD&A → investment)") ///
+    mtitles("Total Y~X" "a-path M~X" "Direct Y~X+M") ///
+    addnotes("Mediator = ln\_fintech\_mdna\_length (per spec mediator.primary R8-M01)." ///
+             "Sobel z + Imai-Keele 2010 sensitivity (rho ∈ [-0.5, +0.5]) in medsens.log.")
+
+display "[OK] Table 3 (mechanism) → $tables_dir/table3_mechanism.tex"

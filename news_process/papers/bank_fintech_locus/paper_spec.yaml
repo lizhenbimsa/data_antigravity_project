@@ -1,0 +1,75 @@
+# Paper spec for P4 — bank_fintech_locus (new, per plan §B.4)
+# Authoritative source of truth at M0 G0 acceptance.
+# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+
+paper_id: bank_fintech_locus
+spec_version: 2.0.0
+status: new
+differentiation_claim: |
+  P4 区分银行 fintech 媒体话语中的"底层技术 (区块链 / AI / 云)"与"应用场景 (支付 / 信贷 / 理财)"，
+  检验差异化的市场反应与创新产出 (Gomber 2018 JMIS + Goldstein-Jiang-Karolyi 2019 RFS)。
+  R17-m01 + R21 跨 paper 区分 (B-route 3 + existing 4 paper, 共 7 对照):
+  - 与 P1 (tone): P4 区分公告的 locus 二元属性 (底层/应用); P1 度量连续 tone
+  - 与 P2 (attention): P4 度量 locus 二元对照 (1 paper 2 treatment indicators); P2 度量曝光强度 (单一 scalar)
+  - 与 P3 (substance): P4 关注 locus (技术维度); P3 关注 substantiveness (实质 vs 象征维度) — 二维交叉但独立
+  - 与现有 llm_peer: P4 用 leave-one-out peer locus IV (4 银行类型分类同业), llm_peer 用 LLM-determined 语义同业; 命名 surface-相似但 peer 定义机制完全不同
+  - 与现有 brokerage_network: P4 不构造网络中心性 / 二阶语调 IV, 仅 firm-level locus 二元对照
+  - 与现有 benefit_society: P4 度量 locus (二元层属性), benefit_society 度量态度 (LLM-Embedding 投影强度), 维度完全不同
+  - 与现有 strategic_diff: P4 度量 locus 自身属性, strategic_diff 度量 firm 在 N-邻群中的战略差异度
+
+outcome:
+  primary: car_5day_window
+  secondary: [patent_fintech_count, citation_weighted_patent]  # R7-M04/M05: capex_it 移到 mediator 角色
+  enrichment_source: M0.5.11 (CSMAR/Wind daily returns for car_5day + IncoPat / 国家专利局 patent count + Kogan 2017 algorithm for citation_weighted; derived event-window CAR construction per §5.3.2 M0.5.11)
+  patent_quality_measure: kogan_2017_market_value  # R2-M12: Kogan 2017 是 outcome 度量, 不是 IV
+
+mediator:  # R7-M04 + R9-m02 + R9-m04
+  primary: capex_it
+  secondary: r_and_d_intensity
+  source: M0.5.11 CSMAR (capex_it) + 国家专利局衍生 R&D investment intensity (r_and_d_intensity); 用于 16_mechanism.do.tmpl 的 Baron-Kenny mediation
+
+treatment:
+  primary_pair: [locus_layer_full, locus_scenario_full]  # R35-M02 derived from `innovation_locus_full`
+  primary_pair_construction:  # R35-M02 explicit derivation
+    locus_layer_full: 1 if innovation_locus_full == 1 else 0  # 底层 (区块链/AI/云) indicator
+    locus_scenario_full: 1 if innovation_locus_full == 0 else 0  # 应用 (支付/信贷/理财) indicator
+  secondary: [locus_gap]
+  secondary_construction:
+    locus_gap: locus_layer_full - locus_scenario_full  # ∈ {-1, +1}
+
+controls:
+  bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
+  year_level: [gdp_growth, m2_growth]
+  fixed_effects: [bank_fe, year_fe]
+
+identification:
+  baseline: layer_x_event_study  # E1/E4 events × 2 locus class
+  iv:  # R2-M12: Kogan 2017 不是 IV; locus IV 用 peer-based
+    primary: leave_one_out_peer_locus_iv  # Cao 2025 RAS 风格
+    fallback: layer_scenario_industry_event_iv  # E1/E4 events 作为 instrument for locus
+
+event_studies:  # P4 applicable events
+  - E1   # 2013-06-13 yuebao_launch
+  - E4   # 2020-11-03 ant_ipo_pause
+  - E5a  # 2022-09-01 data_export_assessment_rules
+  - E5b  # 2023-09-30 data_export_management_rules
+
+heterogeneity_wave:  # R4-M03 重定义: 三波严格对称 (各 3 年) + consolidation 独立段
+  pre_period:    2007_2012  # pre-fintech baseline
+  wave_1:        2013_2015  # 互联网金融 wave (余额宝)
+  wave_2:        2016_2018  # 区块链 / 早期 AI wave
+  consolidation: 2019_2021  # 蚂蚁叫停后期 monetary tightening + 监管收紧 transition period
+  wave_3:        2022_2024  # 大模型 wave
+
+targets:
+  primary_outlet: RFS
+  ambitious_outlet: JF
+  backup_outlet: JFE
+  submission_window: 2027-03-15
+
+sample:
+  n_bank_min: 200
+  t_year: 18
+  obs_target_min: 3000
+
+audit_rounds_target_min: 8

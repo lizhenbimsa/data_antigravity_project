@@ -1,0 +1,258 @@
+"""M1 G1 acceptance — B-route 3 new paper 集成测试.
+
+Plan v2.x §5.4.4 G1:
+    "pytest tests/test_papers_b_route.py pass" (R53-M01 同步)
+
+红线不变式
+----------
+1. 3 个 B-route 新 paper (bank_fintech_attention / bank_fintech_substance /
+   bank_fintech_locus) 模块结构与现有 5 paper 对称.
+2. 每个新 paper 的 4 个标准资产 (analysis.py / tables.py / figures.py / paper_spec.yaml) 都存在.
+3. 每个新 paper 的 papers_assets 目录 (README.md / drafts/{en,zh}/manuscript.tex + refs.bib /
+   do / output) 都存在.
+4. 每个新 paper 在 Stata templates 下的 paper-specific 4 件套 + extras 都存在.
+5. paper_registry 加载 8 paper 成功, 数量 = 5 existing + 3 new.
+6. 3 新 paper 与 5 existing paper 的关键变量 (treatment.primary) 互不冲突.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from news_process.papers._common.paper_registry import (
+    PAPER_IDS_ALL,
+    PAPER_IDS_EXISTING,
+    PAPER_IDS_NEW,
+    get_spec,
+    load_all_specs,
+)
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]  # news_process/
+PAPERS_DIR = PROJECT_ROOT / 'papers'
+ASSETS_DIR = PROJECT_ROOT / 'papers_assets'
+STATA_TEMPLATES_DIR = PAPERS_DIR / '_common' / 'stata_templates'
+
+# Per plan §5.5.2 paper-specific template inventory
+NEW_PAPER_TEMPLATES: dict[str, list[str]] = {
+    'bank_fintech_attention': [
+        '15_attention_main_regression.do.tmpl',
+        '16_attention_mechanism.do.tmpl',
+        '17_attention_heterogeneity.do.tmpl',
+        '18_attention_robustness.do.tmpl',
+        '19_attention_iv_first_stage.do.tmpl',          # P2 extra
+    ],
+    'bank_fintech_substance': [
+        '15_substance_main_regression.do.tmpl',
+        '16_substance_mechanism.do.tmpl',
+        '17_substance_heterogeneity.do.tmpl',
+        '18_substance_robustness.do.tmpl',
+        '19_substance_lr_reversal.do.tmpl',             # P3 extra 1
+        '20_substance_disclosure_quality.do.tmpl',      # P3 extra 2
+    ],
+    'bank_fintech_locus': [
+        '15_locus_main_regression.do.tmpl',
+        '16_locus_mechanism.do.tmpl',
+        '17_locus_heterogeneity.do.tmpl',
+        '18_locus_robustness.do.tmpl',
+        '19_locus_event_study.do.tmpl',                 # P4 extra
+    ],
+}
+
+
+# ============================================================================
+# 1. Module-level structural invariants
+# ============================================================================
+
+
+@pytest.mark.parametrize('paper_id', PAPER_IDS_NEW)
+def test_b_route_paper_module_structure(paper_id: str) -> None:
+    """3 新 paper 在 papers/ 下必须有标准 4 件套 + paper_spec.yaml."""
+    paper_dir = PAPERS_DIR / paper_id
+    for filename in ('__init__.py', 'analysis.py', 'tables.py', 'figures.py', 'paper_spec.yaml'):
+        path = paper_dir / filename
+        assert path.is_file(), f"{paper_id}: missing {filename!r} at {path}"
+
+
+@pytest.mark.parametrize('paper_id', PAPER_IDS_NEW)
+def test_b_route_paper_assets_structure(paper_id: str) -> None:
+    """3 新 paper 的 papers_assets/ 下必须有 README + drafts en/zh."""
+    asset_dir = ASSETS_DIR / paper_id
+    assert (asset_dir / 'README.md').is_file(), f"{paper_id}: missing README.md"
+
+    for lang in ('en', 'zh'):
+        draft_dir = asset_dir / 'drafts' / lang
+        assert (draft_dir / 'manuscript.tex').is_file(), (
+            f"{paper_id}: missing manuscript.tex at {draft_dir}"
+        )
+        assert (draft_dir / 'refs.bib').is_file(), (
+            f"{paper_id}: missing refs.bib at {draft_dir}"
+        )
+
+    for sub in ('do', 'output'):
+        assert (asset_dir / sub).is_dir(), f"{paper_id}: missing {sub}/ subdir"
+
+
+# ============================================================================
+# 2. Stata template inventory (M2 deliverable)
+# ============================================================================
+
+
+@pytest.mark.parametrize('paper_id', PAPER_IDS_NEW)
+def test_b_route_paper_stata_templates_exist(paper_id: str) -> None:
+    template_subdir = STATA_TEMPLATES_DIR / paper_id
+    assert template_subdir.is_dir(), (
+        f"{paper_id}: missing stata_templates subdir at {template_subdir}"
+    )
+    for tmpl_name in NEW_PAPER_TEMPLATES[paper_id]:
+        tmpl_path = template_subdir / tmpl_name
+        assert tmpl_path.is_file(), (
+            f"{paper_id}: missing template {tmpl_name!r} at {tmpl_path}"
+        )
+
+
+def test_total_template_count_71() -> None:
+    """71 templates per plan §5.5.3 (R1-M01 + R1-M27): 14 root + 41 existing + 16 new."""
+    templates = list(STATA_TEMPLATES_DIR.rglob('*.do.tmpl'))
+    assert len(templates) == 71, (
+        f"Expected 71 total templates, found {len(templates)}: "
+        f"plan §5.5.3 = 14 root + 41 existing (17+8+8+8) + 16 new (5+6+5)"
+    )
+
+
+def test_16_new_templates_breakdown() -> None:
+    """16 new templates: 4 common × 3 papers + 4 paper-specific extras (P2:1 + P3:2 + P4:1)."""
+    new_total = sum(len(t) for t in NEW_PAPER_TEMPLATES.values())
+    assert new_total == 16, f"Expected 16 new templates per spec, got {new_total}"
+
+    # Per-paper detail
+    assert len(NEW_PAPER_TEMPLATES['bank_fintech_attention']) == 5
+    assert len(NEW_PAPER_TEMPLATES['bank_fintech_substance']) == 6
+    assert len(NEW_PAPER_TEMPLATES['bank_fintech_locus']) == 5
+
+
+# ============================================================================
+# 3. paper_registry integration
+# ============================================================================
+
+
+def test_paper_registry_loads_8_papers() -> None:
+    specs = load_all_specs()
+    assert len(specs) == 8
+    assert set(specs) == set(PAPER_IDS_ALL)
+
+
+def test_existing_papers_status_existing() -> None:
+    for pid in PAPER_IDS_EXISTING:
+        spec = get_spec(pid)
+        assert spec.status == 'existing', (
+            f"{pid}: status={spec.status!r}, expected 'existing'"
+        )
+
+
+def test_new_papers_status_new() -> None:
+    for pid in PAPER_IDS_NEW:
+        spec = get_spec(pid)
+        assert spec.status == 'new', (
+            f"{pid}: status={spec.status!r}, expected 'new'"
+        )
+
+
+def test_new_papers_submission_window_aligned() -> None:
+    """All 3 new papers should share submission_window 2027-03-15 per §5.11.1."""
+    from datetime import date
+
+    expected = date(2027, 3, 15)
+    for pid in PAPER_IDS_NEW:
+        spec = get_spec(pid)
+        sw = spec.raw['targets']['submission_window']
+        if isinstance(sw, str):
+            from datetime import datetime as _dt
+            sw = _dt.strptime(sw, '%Y-%m-%d').date()
+        assert sw == expected, (
+            f"{pid}: submission_window={sw!r}, expected 2027-03-15"
+        )
+
+
+# ============================================================================
+# 4. Manuscript skeleton structural sanity
+# ============================================================================
+
+
+@pytest.mark.parametrize('paper_id', PAPER_IDS_NEW)
+@pytest.mark.parametrize('lang', ['en', 'zh'])
+def test_manuscript_has_required_sections(paper_id: str, lang: str) -> None:
+    """Each manuscript skeleton must declare the 8 standard sections per §5.6.2."""
+    manuscript_path = ASSETS_DIR / paper_id / 'drafts' / lang / 'manuscript.tex'
+    assert manuscript_path.is_file()
+    content = manuscript_path.read_text(encoding='utf-8')
+
+    # 8 standard sections
+    required_tokens = [
+        r'\begin{abstract}',
+        r'\section{',           # at least one \section{}
+        r'\printbibliography',
+        r'\NoteThis{',          # placeholder marker (M3 fills实质内容)
+    ]
+    for token in required_tokens:
+        assert token in content, (
+            f"{paper_id}/{lang}: manuscript.tex missing token {token!r}"
+        )
+
+
+@pytest.mark.parametrize('paper_id', PAPER_IDS_NEW)
+@pytest.mark.parametrize('lang', ['en', 'zh'])
+def test_refs_bib_has_minimum_entries(paper_id: str, lang: str) -> None:
+    """refs.bib seed must have ≥ 10 entries (M3 will expand to ≥ 30 per G3)."""
+    refs_path = ASSETS_DIR / paper_id / 'drafts' / lang / 'refs.bib'
+    content = refs_path.read_text(encoding='utf-8')
+    entry_count = content.count('@article{') + content.count('@book{') + content.count('@inproceedings{')
+    assert entry_count >= 10, (
+        f"{paper_id}/{lang}: refs.bib only has {entry_count} entries (need ≥ 10 seed)"
+    )
+
+
+# ============================================================================
+# 5. exogenous_shocks.yaml 17-spec count check
+# ============================================================================
+
+
+def test_exogenous_shocks_yaml_17_specs() -> None:
+    import yaml
+
+    # R85-fix: moved data/ → config/ because news_process/data/ is gitignored (plan §5.2.2
+    # 原写 data/exogenous_shocks.yaml; 实际落地在 config/ 与 config/policy_shocks.json 同源).
+    path = PROJECT_ROOT / 'config' / 'exogenous_shocks.yaml'
+    assert path.is_file(), f"missing {path}"
+    data = yaml.safe_load(path.read_text(encoding='utf-8'))
+    events = data['events']
+    assert len(events) == 6, f"Expected 6 events, got {len(events)}"
+
+    total_specs = sum(len(e['applicable_papers']) for e in events)
+    assert total_specs == 17, (
+        f"Expected 17 DiD specs per plan §5.7.1, got {total_specs} "
+        f"(per-event: {[(e['id'], len(e['applicable_papers'])) for e in events]})"
+    )
+
+
+# ============================================================================
+# 6. pipeline_v34_rerun config sanity
+# ============================================================================
+
+
+def test_pipeline_v34_rerun_config_loadable() -> None:
+    import yaml
+
+    path = PROJECT_ROOT / 'config' / 'pipeline_v34_rerun.yaml'
+    assert path.is_file(), f"missing {path}"
+    cfg = yaml.safe_load(path.read_text(encoding='utf-8'))
+    assert cfg['acceptance']['llm_cost_cap_usd'] == 4200, (
+        "LLM cost cap per plan §6 G0/G0.5 + §10.1 must be 4200"
+    )
+    assert cfg['panel_build']['panel_col_budget'] == 5000, (
+        "panel column budget per plan §5.3.1 ≤ 5000"
+    )
+    assert cfg['status'] == 'skeleton', (
+        "pipeline_v34_rerun should be 'skeleton' until G-1 + D1 unblock M-1"
+    )

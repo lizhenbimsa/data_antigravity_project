@@ -1,0 +1,75 @@
+% bank_fintech_substance/drafts/en/manuscript.tex
+% P3 manuscript skeleton — M0 G0 scaffolded per B-route plan v2.55 (2026-05-17)
+% Compile: xelatex + biber + xelatex × 2
+
+\input{../../../_shared/preamble_en.tex}
+
+\addbibresource{refs.bib}
+
+\title{Substantive vs Symbolic Fintech Strategies:\\Long-Run ROA Reversal Evidence from Chinese Banking}
+\author{\NoteThis{Author names}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\NoteThis{Final abstract pending — target $\approx$ 200 English words.}
+This paper applies Westphal--Zajac's (1994, 1998 \emph{ASQ}) substantive vs symbolic
+management framework to bank fintech strategic announcements during 2007--2024. We
+classify each bank-year fintech announcement using a binary substantiveness measure
+(\code{innovation\_substantiveness\_full}) derived from large-language-model annotation,
+and test the dual-outcome prediction: symbolic announcements should produce positive
+short-run market reactions but long-run ROA reversal (within-bank 3-year forward change),
+whereas substantive announcements should not. Identification leverages four exogenous
+policy shocks (余额宝 launch, P2P regulation, asset-management reform, Ant IPO pause) for
+cross-sectional intensity DiD. We find \NoteThis{key result}\@.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+\NoteThis{Motivate the research question.}
+
+This study makes three contributions. First, we operationalize Westphal--Zajac's
+substantive/symbolic dichotomy in the fintech-strategy context using large-scale media
+text and LLM annotation, complementing prior survey-based and case-based evidence.
+Second, we exploit an 18-year Chinese banking panel that contains complete short-run
+event windows and long-run ROA evolution, allowing dual-outcome testing of the W\&Z
+implicit mechanism. Third, we differentiate measurement constructs from concurrent
+fintech-tone and fintech-attention studies, with explicit anti-salami-slicing audit
+(per replication package).
+
+\section{Literature Review}\label{sec:lit}
+\NoteThis{Three strands: (1) Westphal--Zajac substantive/symbolic
+\autocite{westphal1994substance,westphal1998sym,westphal2001decoupling};
+(2) Symbolic management of strategic change \autocite{fisszajac2006symbolic};
+(3) Practice-based view of strategy \autocite{bromiley2014practice}.}
+
+\section{Methodology}\label{sec:method}
+\subsection{Sample and Data}
+Bank--year panel covers $N \times T \approx 3000\text{--}9000$ bank--years across
+2007--2024 (per spec.sample). All bank--year observations are processed through the
+\code{news\_process} pipeline (stage 32a innovation\_substantiveness).
+
+\subsection{Substantiveness Measurement}
+\NoteThis{Describe LLM annotation pipeline producing innovation\_substantiveness\_full
+binary indicator (W\&Z substantive vs symbolic); cross-validate with full vs ctx tracks.}
+
+\subsection{Dual-Outcome Identification}
+\NoteThis{Long\_run\_roa\_change\_3yr (within-bank 3-year forward) + car\_3day\_window
+\_fintech\_announcement (short-run); within-bank within-year FE; cluster at bank level.}
+
+\section{Data}\label{sec:data}
+\NoteThis{Data sources, sample selection, descriptive statistics (Table 1).}
+
+\section{Results}\label{sec:results}
+\NoteThis{Table 2 (M1$\to$M6 progressive main regression); Table 3 (dual outcome:
+short-run CAR + long-run ROA reversal jointly); Table 4 (heterogeneity 4 bank types
+$\times$ SOE $\times$ fintech wave $\times$ capital\_ratio quartile); Table 5
+(robustness: alternative substantiveness track full vs ctx).}
+
+\section{Conclusion}\label{sec:conclusion}
+\NoteThis{Summarize findings and implications for strategic management theory.}
+
+\printbibliography
+
+\end{document}

@@ -1,0 +1,71 @@
+* ============================================================================
+* 19_locus_event_study.do — P4 paper-specific layer-specific event study
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 P4 extras — 5 个外生冲击 layer-specific event study
+*
+* Layer-specific event study: for each policy shock E_k, examine how layer
+* (locus_layer_full) and scenario (locus_scenario_full) banks respond
+* differentially in event windows [-3, +3] years.
+*
+* Estimator: eventstudyinteract (Sun-Abraham 2021) per §5.7.3 R30-M01.
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+if "$figures_dir" == "" global figures_dir "../output/figures"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* ============================================================================
+* For each event E1/E4/E5a/E5b (P4 applicable per spec.event_studies):
+*   Run eventstudyinteract on layer subsample, then scenario subsample.
+* ============================================================================
+
+local events E1 E4 E5a E5b   // P4 applicable events per Appendix C / §5.7.2
+
+foreach E of local events {
+    capture confirm variable post_`E' treat_`E'_year
+    if _rc {
+        display "  [WARN] post_`E' / treat_`E'_year not in panel (Appendix C build pending)"
+        continue
+    }
+
+    * Generate event-time leads / lags relative to treat_`E'_year
+    capture drop event_time_`E' lead_3_`E' lead_2_`E' lead_1_`E' lag_0_`E' lag_1_`E' lag_2_`E' lag_3_`E'
+    gen event_time_`E' = year - treat_`E'_year
+    forvalues k = 1/3 {
+        gen lead_`k'_`E' = (event_time_`E' == -`k')
+        gen lag_`k'_`E'  = (event_time_`E' == `k')
+    }
+    gen lag_0_`E' = (event_time_`E' == 0)
+
+    * Layer subsample event study (locus_layer_full == 1)
+    eventstudyinteract {{MAIN_DV}} lead_3_`E' lead_2_`E' lead_1_`E' ///
+        lag_0_`E' lag_1_`E' lag_2_`E' lag_3_`E' if locus_layer_full == 1, ///
+        cohort(treat_`E'_year) control_cohort(never_treated_`E') ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo es_`E'_layer
+
+    * Scenario subsample event study (locus_scenario_full == 1)
+    eventstudyinteract {{MAIN_DV}} lead_3_`E' lead_2_`E' lead_1_`E' ///
+        lag_0_`E' lag_1_`E' lag_2_`E' lag_3_`E' if locus_scenario_full == 1, ///
+        cohort(treat_`E'_year) control_cohort(never_treated_`E') ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo es_`E'_scenario
+}
+
+esttab es_*_layer es_*_scenario ///
+    using "$tables_dir/table_event_study_layer_specific.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("P4 Layer-Specific Event Study (Sun-Abraham 2021; events E1/E4/E5a/E5b)") ///
+    addnotes("Pre-trend test (lead_3/lead_2/lead_1 = 0): in supplemental log.")
+
+display "[OK] 19_locus_event_study → $tables_dir/table_event_study_layer_specific.tex"

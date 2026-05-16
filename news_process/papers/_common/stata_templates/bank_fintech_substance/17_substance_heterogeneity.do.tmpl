@@ -1,0 +1,89 @@
+* ============================================================================
+* 17_substance_heterogeneity.do — Table 4 heterogeneity (P3 bank_fintech_substance)
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 P3 heterogeneity (R6-M03/M04 + R7-m01)
+*
+* Heterogeneity dimensions (NOT full Cartesian per R7-m01):
+*   (a) 4 bank types × SOE
+*   (b) fintech wave segments (pre/wave_1/wave_2/consolidation/wave_3)
+*   (c) Capital ratio quartile (capital_ratio quartiles)
+*   (d) pre-2013 fintech exposure (continuous interaction)
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* ============================================================================
+* (a) 4 bank types × SOE
+* ============================================================================
+capture confirm variable bank_type soe
+if !_rc {
+    levelsof bank_type, local(types)
+    foreach t of local types {
+        forval s = 0/1 {
+            count if bank_type == `t' & soe == `s' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+            if r(N) >= 10 {
+                reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_type == `t' & soe == `s', ///
+                    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+                eststo type_`t'_soe_`s'
+            }
+            else {
+                display "  [SKIP] bank_type=`t' soe=`s' has " r(N) " obs (< 10; R7-m01)"
+            }
+        }
+    }
+}
+
+* ============================================================================
+* (b) Fintech wave segments
+* ============================================================================
+foreach w in wave_1 wave_2 consolidation wave_3 {
+    capture confirm variable `w'
+    if !_rc {
+        reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if `w' == 1, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo wave_`w'
+    }
+}
+
+* ============================================================================
+* (c) Capital ratio quartile
+* ============================================================================
+capture confirm variable capital_ratio
+if !_rc {
+    xtile cap_q = capital_ratio, n(4)
+    forval q = 1/4 {
+        reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if cap_q == `q', ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo cap_q_`q'
+    }
+}
+
+* ============================================================================
+* (d) Pre-2013 fintech exposure × treatment (continuous)
+* ============================================================================
+capture confirm variable pre_2013_fintech_exposure
+if !_rc {
+    gen treat_x_pre2013 = {{MAIN_TREAT}} * pre_2013_fintech_exposure
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} pre_2013_fintech_exposure treat_x_pre2013 $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo pre2013_interact
+}
+
+esttab type_* wave_* cap_q_* pre2013_interact ///
+    using "$tables_dir/table4_heterogeneity.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Table 4 — Heterogeneity (P3 substance; bank type × SOE × wave × capital quartile)") ///
+    addnotes("Small-cell warning (R7-m01): cell N<10 skipped.")
+
+display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex"

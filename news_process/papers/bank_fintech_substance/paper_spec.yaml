@@ -1,0 +1,67 @@
+# Paper spec for P3 — bank_fintech_substance (new, per plan §B.3)
+# Authoritative source of truth at M0 G0 acceptance.
+# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+
+paper_id: bank_fintech_substance
+spec_version: 2.0.0
+status: new
+differentiation_claim: |
+  P3 度量银行 fintech 战略宣告的"实质性 vs 象征性"差异 (W&Z 1994/1998 ASQ)。
+  R17-m01 + R21-m02 跨 paper 区分 (B-route 3 + existing 4 paper, 共 7 对照):
+  - 与 P1 (tone): P3 度量 W&Z 二元 substantiveness; P1 度量连续 tone — 性质不同 (实质 vs 情感)
+  - 与 P2 (attention): P3 关注公告的 substantive vs symbolic 属性; P2 关注媒体对银行的 attention exposure 量
+  - 与 P4 (locus): P3 度量公告的 W&Z 二元属性 (实质/象征); P4 区分公告的 locus 二元属性 (底层/应用); 二维交叉但独立
+  - 与现有 llm_peer: P3 不构造 LLM peer 网络 IV, 仅 firm-level substantiveness; llm_peer 用语义同业网络
+  - 与现有 brokerage_network: P3 不用网络中心性, 仅 firm-level W&Z 二元标签; brokerage 用网络位置异质性
+  - 与现有 benefit_society: P3 不做态度投影 (LLM-Embedding 双极锚点), 仅用 W&Z substantiveness 二元标签
+  - 与现有 strategic_diff: P3 度量 firm 自身 公告属性 (binary); strategic_diff 度量 firm 在 N-邻群中的战略差异度 (distinctness, distance)
+
+outcome:
+  primary: long_run_roa_change_3yr  # 长期 ROA 反转检验
+  construction: |
+    long_run_roa_change_3yr[bank_b, year_t] = ROA[bank_b, year_t+3] - ROA[bank_b, year_t]
+    (within-bank 3-year forward change; 用于检验 W&Z 1994 框架下
+    象征性 fintech 宣告 → 短期股价正反应 → 长期 ROA 反转 (negative);
+    在 T=18 panel 上, t ∈ {2007, ..., 2021} 各有对应 t+3 outcome)
+  short_run: car_3day_window_fintech_announcement  # R7-M03 + R10-M01: dual outcome (fintech 公告事件窗口, 与 P1 tone shock 窗口区分)
+  secondary: [ceo_turnover_2yr, executive_pay_change, board_change]
+  enrichment_source: M0.5.11 (CSMAR 年报 ROA + 高管离职 + 高管薪酬 + CSMAR daily returns; derived event-window CAR construction per §5.3.2 M0.5.11)
+
+treatment:
+  primary: innovation_substantiveness_full  # R35-M01 同步 CLAUDE.md v3.2.0 pipeline 实际列名
+  alternative: [innovation_substantiveness_ctx, substantive_minus_symbolic_gap]
+  alternative_construction:  # R29-m01 + R35-M01 derived 字段说明
+    substantive_minus_symbolic_gap: innovation_substantiveness_full - (1 - innovation_substantiveness_full)  # M0.5.X / stage 24-40 panel construct 阶段衍生
+
+controls:
+  bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
+  year_level: [gdp_growth, m2_growth]
+  fixed_effects: [bank_fe, year_fe]
+
+identification:
+  baseline: long_panel_within_bank_within_year
+  # P3 无 IV (per R15-M01: schema 允许 optional; cross-sectional intensity DiD 替代 IV 用于 E3)
+
+event_studies:  # P3 applicable events
+  - E1  # 2013-06-13 yuebao_launch
+  - E2  # 2016-08-24 p2p_regulation
+  - E3  # 2017-04-27 asset_management_rules — cross-sectional intensity DiD
+  - E4  # 2020-11-03 ant_ipo_pause
+
+targets:
+  primary_outlet: SMJ
+  secondary_outlet: AMJ  # R3-M06: cascade intermediate (SMJ → AMJ → ASQ)
+  ambitious_outlet: ASQ  # cascade 终点
+  sequential_resubmission: |  # R1-M07 + R3-M02 顺序投稿 (不是 dual submission)
+    SMJ → AMJ → ASQ cascade (Primary path, 完整 W&Z 框架); 任一阶段 reject 后:
+    改写为 disclosure quality 框架的独立论文投 JFE corp finance track (Salvage path)
+    (重新表述研究问题 / 切换理论 anchor / 仅保留 long_run_roa_change_3yr outcome /
+    删除组织学叙事 — 是两篇论文, 不是 dual submission)
+  submission_window: 2027-03-15
+
+sample:
+  n_bank_min: 200
+  t_year: 18
+  obs_target_min: 3000
+
+audit_rounds_target_min: 8

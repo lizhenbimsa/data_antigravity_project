@@ -1,0 +1,59 @@
+* ============================================================================
+* 20_substance_disclosure_quality.do — P3 disclosure quality covariance
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 P3 extras (R7-M03) — substantiveness × disclosure quality framework
+*
+* Used as salvage path foundation (per §B.3 sequential_resubmission JFE corp finance
+* track). If SMJ/AMJ/ASQ cascade reject, P3 改写为独立 disclosure quality paper.
+*
+* Test structure:
+*   (1) Disclosure quality measure: ln_fintech_mdna_length (P2 mediator reused) OR
+*       custom W&Z disclosure index from spec.
+*   (2) substantiveness × disclosure quality interaction → effect on long_run ROA.
+*   (3) Show substantive announcements with HIGH disclosure quality have positive
+*       long-run effect; symbolic with LOW disclosure quality have reversal.
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* (1) Baseline: long-run ROA ~ substantiveness × disclosure_quality
+capture confirm variable ln_fintech_mdna_length
+if !_rc {
+    gen subst_x_disclose = {{MAIN_TREAT}} * ln_fintech_mdna_length
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} ln_fintech_mdna_length subst_x_disclose $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo subst_x_disclose
+}
+else {
+    display "  [WARN] ln_fintech_mdna_length not in panel (M0.5.11 enrichment pending)"
+}
+
+* (2) Disclosure quality quartile
+capture confirm variable ln_fintech_mdna_length
+if !_rc {
+    xtile disclose_q = ln_fintech_mdna_length, n(4)
+    forval q = 1/4 {
+        reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if disclose_q == `q', ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo disclose_q_`q'
+    }
+}
+
+esttab subst_x_disclose disclose_q_* ///
+    using "$tables_dir/table_disclosure_quality.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("P3 Substantiveness × Disclosure Quality (JFE salvage path foundation)") ///
+    addnotes("Disclosure quality = ln\_fintech\_mdna\_length; 4 quartiles ranked Q1=low Q4=high.")
+
+display "[OK] 20_substance_disclosure_quality → $tables_dir/table_disclosure_quality.tex"

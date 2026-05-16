@@ -1,0 +1,88 @@
+* ============================================================================
+* 15_attention_main_regression.do — Table 2 M1→M6 progressive (bank_fintech_attention / P2)
+* Paper: {{PAPER_ID}}
+* Plan: B_route_master_plan_v2 §5.5.2 + §B.2 P2 spec
+*
+*   DV   = {{MAIN_DV}}    (default ln_fintech_investment per spec.outcome.primary)
+*   X    = {{MAIN_TREAT}} (default attention_index_full per spec.treatment.primary)
+*   Theory anchor: Hassan-Hollander-van Lent-Tahoun 2019 QJE 134(4) — firm-level
+*                  political risk exposure (intensity DiD).
+*
+* M1: bare (treat only, no controls, no FE)
+* M2: + bank FE
+* M3: + bank FE + year FE
+* M4: + standard bank-level controls
+* M5: + macro controls (gdp_growth / m2_growth)
+* M6: + attention × post-event interaction (for event study spec.event_studies)
+*
+* Identification: staggered DiD baseline (Callaway-Sant'Anna 2021) per spec.identification;
+*                IV via leave-one-out peer attention (15-shared 22_tableA3_bartik_iv handles
+*                Bartik fallback).
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* M1: bare
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}}, noabsorb vce(cluster {{CLUSTER_VAR}})
+eststo M1
+
+* M2: + bank FE
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}}, ///
+    absorb(bank_id) vce(cluster {{CLUSTER_VAR}})
+eststo M2
+
+* M3: + bank FE + year FE (within-bank within-year baseline)
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}}, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M3
+
+* M4: + bank-level controls
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M4
+
+* M5: + macro controls
+capture confirm variable gdp_growth m2_growth
+if !_rc {
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls gdp_growth m2_growth, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M5
+}
+else {
+    display "  [INFO] gdp_growth / m2_growth 不存在; M5 复用 M4 规格"
+    eststo M5: reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+}
+
+* M6: + attention × event-post interaction (per spec.event_studies E1/E2/E4/E5a/E5b)
+* Detailed event study via 16-shared 30_figure1_event_study or paper 17_heterogeneity.
+capture confirm variable post_E1
+if !_rc {
+    gen treat_x_postE1 = {{MAIN_TREAT}} * post_E1
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} post_E1 treat_x_postE1 $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M6
+}
+else {
+    display "  [INFO] post_E1 indicator 不存在 (build via data/exogenous_shocks.yaml); M6 跳过"
+}
+
+esttab M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Main Results --- bank_fintech_attention (P2)") ///
+    mtitles("M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 +E1×treat") ///
+    addnotes("bank / year FE; SE clustered at {{CLUSTER_VAR}}; identification = staggered DiD (Callaway-Sant'Anna 2021)." ///
+             "IV first stage in 19_attention_iv_first_stage.do; Bartik fallback in 22_tableA3_bartik_iv.")
+
+display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex"

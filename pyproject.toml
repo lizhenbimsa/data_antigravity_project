@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "news-process"
-version = "3.2.0"
-description = "Bank-fintech news -> bank-year panel data pipeline (v3.2.0 — Stage 3 dual-track BREAKING + Stata data layer; prompt v7 + v8 术语正名; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架; 14/14 Stata templates + 4 CLI subcommands)."
+version = "3.3.0"
+description = "Bank-fintech news -> bank-year panel data pipeline (v3.3.0 — multi-paper extension: 4 derivative papers + 55 Stata templates + 10 bilingual manuscripts; package_data globs fixed (F-42); inherits v3.2.0 Stage 3 dual-track BREAKING + Stata data layer; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架)."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "Proprietary" }
@@ -105,7 +105,17 @@ news_process = [
     "papers_assets/**/*.do",
     "papers_assets/**/*.do.tmpl",
     "papers_assets/**/*.md",
+    "papers_assets/**/*.tex",
+    "papers_assets/**/*.bib",
     "stata/**/*.do",
+    # F-42 (2026-05-16): 55 个 Stata 模板的真实位置 (R10/R6 实测).
+    # 之前 papers_assets/**/*.do.tmpl 仅 1 match; 真模板在 papers/_common/.
+    "papers/_common/stata_templates/**/*.tmpl",
+    "papers/_common/stata_templates/**/*.md",
+    "papers/_common/stata_templates/**/*.do",
+    # F-43 (2026-05-16): docs/ 51 files — replication 包查询场景下需要可访问.
+    "docs/**/*.md",
+    "docs/**/*.tex",
 ]
 
 [tool.setuptools.packages.find]

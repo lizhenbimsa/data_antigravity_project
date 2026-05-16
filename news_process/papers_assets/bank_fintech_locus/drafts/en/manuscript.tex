@@ -1,0 +1,64 @@
+% bank_fintech_locus/drafts/en/manuscript.tex
+% P4 manuscript skeleton — M0 G0 scaffolded per B-route plan v2.55 (2026-05-17)
+% Compile: xelatex + biber + xelatex × 2
+
+\input{../../../_shared/preamble_en.tex}
+
+\addbibresource{refs.bib}
+
+\title{Bank Fintech Locus:\\Layer (Underlying Technology) vs Scenario (Business Function) Market Reactions across Three Waves}
+\author{\NoteThis{Author names}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\NoteThis{Final abstract pending — target $\approx$ 200 English words.}
+We classify bank fintech announcements into two locus categories — underlying technology
+(blockchain / AI / cloud) versus business-function scenario (payments / lending / wealth
+management) — following Gomber et al.'s (2018, \emph{JMIS}) fintech taxonomy. Using an
+18-year Chinese banking panel (2007--2024), we test how this binary locus shapes
+event-window CAR (5-day), patent output (Kogan et al.\ 2017 market-value weighted), and
+IT capex / R\&D mediation channels. Identification leverages four exogenous policy shocks
+(余额宝, Ant IPO pause, two data-export rules) and three fintech waves (互联网金融 /
+区块链 / 大模型) with consolidation period as control. We find \NoteThis{key result}\@.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+\NoteThis{Motivate the research question and contribution.}
+
+\section{Literature Review}\label{sec:lit}
+\NoteThis{Three strands: (1) Fintech taxonomy and locus \autocite{gomber2018fintech,goldstein2019fintech};
+(2) Innovation market-value weighting \autocite{kogan2017technological};
+(3) Blockchain and tokenization \autocite{conghe2019blockchain,cong2021tokenomics}.}
+
+\section{Methodology}\label{sec:method}
+\subsection{Sample and Data}
+$N \times T \approx 3000\text{--}9000$ bank--years, 2007--2024.
+
+\subsection{Locus Measurement (Stage 32a)}
+\NoteThis{innovation\_locus\_full binary indicator $\to$ derived primary\_pair
+(locus\_layer\_full, locus\_scenario\_full) and locus\_gap.}
+
+\subsection{Identification Strategy}
+\NoteThis{Layer $\times$ event study with leave-one-out peer-locus IV;
+4 events $\times$ 5-day CAR + patent + Kogan 2017 market-value weighted.}
+
+\section{Data}\label{sec:data}
+\NoteThis{Data sources (CSMAR daily returns, IncoPat patents, Kogan 2017 algorithm);
+descriptive statistics (Table 1).}
+
+\section{Results}\label{sec:results}
+\NoteThis{Table 2 (main: layer $\times$ event study); Table 3 (Baron-Kenny mediation
+locus $\to$ R\&D / IT capex $\to$ patent + CAR); Table 4 (heterogeneity 三波 fintech
+浪潮 wave\_1/2/3 + consolidation + SOE); Table 5 (robustness: alternative locus
+classifier + Borusyak DiD).}
+
+\section{Conclusion}\label{sec:conclusion}
+\NoteThis{Summarize findings; implications for fintech regulation and bank innovation
+strategy.}
+
+\printbibliography
+
+\end{document}

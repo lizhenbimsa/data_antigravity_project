@@ -1,0 +1,68 @@
+% bank_fintech_attention/drafts/en/manuscript.tex
+% P2 manuscript skeleton — M0 G0 scaffolded per B-route plan v2.55 (2026-05-17)
+% Compile: xelatex + biber + xelatex × 2
+
+\input{../../../_shared/preamble_en.tex}
+
+\addbibresource{refs.bib}
+
+\title{Bank-Level Fintech Attention Intensity:\\A Firm-Level Exposure Approach}
+\author{\NoteThis{Author names}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\NoteThis{Final abstract pending — target $\approx$ 200 English words.}
+Using bank-year media coverage of Chinese fintech and a firm-level attention-intensity
+construct (\code{attention\_index\_full}) analogous to Hassan et~al.\ (2019, \emph{QJE}) on
+political risk exposure, we study how cumulative fintech-topic exposure shapes bank-level
+fintech investment, M\&A, patent output, and IT-staff growth across 18 years (2007--2024)
+covering 500 Chinese commercial banks. We exploit five exogenous policy shocks (余额宝
+launch / P2P regulation / Ant IPO pause / two data-export rules) for staggered DiD
+identification, and instrument firm-level attention with a leave-one-out peer mean within
+bank-type strata (with Bartik shift-share as fallback). We find \NoteThis{key result}\@.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+\NoteThis{Motivate the research question and contribution.}
+
+This paper differs from concurrent text-in-banking work along three margins.
+First, attention is measured without polarity sign (cumulative exposure intensity
+rather than tone direction). Second, identification exploits five China-specific
+fintech policy shocks at high resolution. Third, the mediator is observable
+(\code{ln\_fintech\_mdna\_length}, MD\&A textual length on fintech) rather than latent.
+
+\section{Literature Review}\label{sec:lit}
+Three strands: (1)~firm-level text-based exposure measurement
+\autocite{hassan2019firm,florackis2023cybersecurity};
+(2)~fintech taxonomy and innovation \autocite{gomber2018fintech,goldstein2019fintech};
+(3)~text-in-banking exemplar \autocite{engelberg2018short}.
+
+\section{Methodology}\label{sec:method}
+\subsection{Sample and Data}
+The bank--year panel covers $N \times T \approx 3000\text{--}9000$ bank--years
+across 2007--2024 (per spec.sample). All bank--year observations are processed
+through the \code{news\_process} pipeline.
+
+\subsection{Attention Measurement (Stage 14)}
+\NoteThis{Describe the four attention measures: index\_full / index\_ctx / disp / pct.}
+
+\subsection{Identification Strategy}
+\NoteThis{Staggered DiD (Callaway--Sant'Anna 2021) with leave-one-out peer-attention IV;
+Bartik shift-share fallback.}
+
+\section{Data}\label{sec:data}
+\NoteThis{Data sources, sample selection, descriptive statistics (Table 1).}
+
+\section{Results}\label{sec:results}
+\NoteThis{Table 2 (M1$\to$M6 progressive main regression); Table 3 (mediation);
+Table 4 (heterogeneity 4 bank types $\times$ fintech wave); Table 5 (robustness battery).}
+
+\section{Conclusion}\label{sec:conclusion}
+\NoteThis{Summarize findings and policy implications.}
+
+\printbibliography
+
+\end{document}

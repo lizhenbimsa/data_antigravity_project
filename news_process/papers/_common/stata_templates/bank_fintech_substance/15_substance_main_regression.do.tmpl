@@ -1,0 +1,77 @@
+* ============================================================================
+* 15_substance_main_regression.do — Table 2 M1→M6 progressive (P3 bank_fintech_substance)
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 + §B.3 P3 spec
+*
+*   DV (long-run)  = {{MAIN_DV}}                                (long_run_roa_change_3yr)
+*   DV (short-run) = car_3day_window_fintech_announcement      (P3 outcome.short_run)
+*   X              = {{MAIN_TREAT}}                             (innovation_substantiveness_full)
+*   Theory anchor: Westphal-Zajac 1994/1998 ASQ — substance vs symbolism
+*
+* M1-M6: within-bank within-year FE (long_panel_within_bank_within_year baseline,
+*        per spec.identification — no IV; cross-sectional intensity DiD 替代 IV for E3).
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* M1: bare (treat only)
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}}, noabsorb vce(cluster {{CLUSTER_VAR}})
+eststo M1
+
+* M2: + bank FE
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}}, ///
+    absorb(bank_id) vce(cluster {{CLUSTER_VAR}})
+eststo M2
+
+* M3: + bank FE + year FE (long_panel within-bank within-year baseline)
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}}, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M3
+
+* M4: + bank-level controls
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M4
+
+* M5: + macro controls
+capture confirm variable gdp_growth m2_growth
+if !_rc {
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls gdp_growth m2_growth, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M5
+}
+else {
+    eststo M5: reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+}
+
+* M6: short-run dual outcome (car_3day_window_fintech_announcement)
+capture confirm variable car_3day_window_fintech_announcement
+if !_rc {
+    reghdfe car_3day_window_fintech_announcement {{MAIN_TREAT}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M6_short
+}
+else {
+    display "  [WARN] car_3day_window_fintech_announcement not in panel (M0.5.11 enrichment pending)"
+}
+
+esttab M1 M2 M3 M4 M5 M6_short using "$tables_dir/table2_main.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Main Results --- bank_fintech_substance (P3)") ///
+    mtitles("M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 short-run CAR") ///
+    addnotes("bank / year FE; SE clustered at {{CLUSTER_VAR}}; baseline = long_panel within-bank within-year (no IV per spec)." ///
+             "Dual outcome (short-run CAR + long-run ROA reversal) detail in 16_substance_mechanism.do.")
+
+display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex"

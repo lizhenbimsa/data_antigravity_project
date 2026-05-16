@@ -1,0 +1,81 @@
+* ============================================================================
+* 16_locus_mechanism.do — Table 3 Baron-Kenny mediation (P4 bank_fintech_locus)
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 P4 mechanism — Baron-Kenny 1986 + Imai-Keele-Tingley 2010
+*
+*   X (locus pair) = locus_layer_full / locus_scenario_full
+*   M (mediator)   = capex_it (primary) / r_and_d_intensity (secondary, R9-m02)
+*   Y (outcome)    = {{MAIN_DV}}    (car_5day_window 主) + patent_fintech_count (secondary)
+*
+* Mediation hypothesis: locus_layer → higher capex_it / R&D → higher patent + CAR.
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* Step 1: total effect Y ~ X (layer)
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo total_layer
+
+* Step 2: a path capex_it ~ locus
+capture confirm variable capex_it
+if !_rc {
+    reghdfe capex_it locus_layer_full locus_scenario_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo apath_capex
+}
+else {
+    display "  [WARN] capex_it not in panel (M0.5.11 CSMAR enrichment pending)"
+}
+
+* Step 3: direct path Y ~ locus + capex_it
+capture confirm variable capex_it
+if !_rc {
+    reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full capex_it $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo direct_capex
+}
+
+* Step 4: secondary mediator r_and_d_intensity
+capture confirm variable r_and_d_intensity
+if !_rc {
+    reghdfe r_and_d_intensity locus_layer_full locus_scenario_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo apath_rd
+
+    reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full r_and_d_intensity $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo direct_rd
+}
+
+* Step 5: Patent outcome alternative
+capture confirm variable patent_fintech_count
+if !_rc {
+    reghdfe patent_fintech_count locus_layer_full locus_scenario_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo total_patent
+}
+
+* Imai-Keele-Tingley 2010 sensitivity: medsens (per §5.7.3 SSC install)
+* ssc install medsens, replace
+* medsens, sims(1000) rho(-0.5 0.5)
+
+esttab total_layer apath_capex direct_capex apath_rd direct_rd total_patent ///
+    using "$tables_dir/table3_mechanism.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Table 3 — Mechanism (P4 locus → R&D / IT capex → patent + CAR)") ///
+    addnotes("Mediator pair: capex_it (primary, CSMAR) + r_and_d_intensity (secondary, 国家专利局)." ///
+             "Sobel z + Imai-Keele 2010 sensitivity in medsens.log.")
+
+display "[OK] Table 3 (mechanism) → $tables_dir/table3_mechanism.tex"

@@ -1,8 +1,8 @@
 # B Route Master Plan v2 — 四篇独立 Bank-FinTech 论文
 
-> **Status**: v2.48 **AUDIT-FROZEN** (post 72-round self-audit; **198 cumulative findings fixed**; **streak 3/3 ACHIEVED at R70-R71-R72** per 用户"连续 3 次独立交叉对账"指令; see [audit log](B_route_master_plan_v2_audit_log.md))
+> **Status**: v2.55 **EPOCH 3 AUDIT-STABILIZED** (post 84-round self-audit; **207 plan-doc cumulative findings + 3 audit-log meta findings = 210 total**; epoch 2 streak 3/3 ACHIEVED at R70-R72 closed by 用户 R73 重启指令 "连续 3 次每轮独立交叉对账完美"; **epoch 3 streak 3/3 ACHIEVED at R82-R83-R84 (closing) per 用户 R73 重启指令**; see [audit log](B_route_master_plan_v2_audit_log.md))
 > **Authoring date**: 2026-05-16
-> **Revision date**: 2026-05-16
+> **Revision date**: 2026-05-17
 > **Author**: Claude Opus 4.7 (1M context), authored per user directive
 > **Baseline**: news_process v3.3.0 (head commit `e815237` dated 2026-05-16; v3.3.0 涵盖 `8d33c46` 4-paper extension + `e815237` benefit_society v2.12 dual-track + F-11/F-12/F-15/F-42/F-46/F-62 fixes; 共 55 Stata templates + 10 双语 manuscripts per CLAUDE.md L15; R45-m01 clarification)
 > **Test baseline**: 1153 passed / 6 skipped / 0 failed
@@ -139,7 +139,7 @@
 | **P1** | `bank_fintech_tone` | 媒体语调（情感）| Tetlock 2007 + Loughran-McDonald 2011 + 自有 llm_peer disagreement | **JFQA** | JCF / JBF |
 | **P2** | `bank_fintech_attention` (新建) | 关注度 / fintech exposure | Hassan 2019 QJE + Florackis 2023 RFS | **JCF** | JBF / JFI |
 | **P3** | `bank_fintech_substance` (新建) | 实质性 vs 象征性 | W&Z 1994/1998/2001 ASQ + Fiss-Zajac 2006 AMJ | **SMJ** | AMJ → ASQ (cascade resubmission); JFE corp finance (改写 salvage path, R3-M02) |
-| **P4** | `bank_fintech_locus` (新建) | 底层技术 vs 应用场景 | Gomber 2018 JMIS + Kogan 2017 QJE + Goldstein-Jiang-Karolyi 2019 RFS | **RFS** | JFE / JF |
+| **P4** | `bank_fintech_locus` (新建) | 底层技术 vs 应用场景 | Gomber 2018 JMIS + Kogan 2017 QJE + Goldstein-Jiang-Karolyi 2019 RFS | **RFS** | JFE (per §B.4 backup_outlet; JF 是 §B.4 ambitious_outlet, 见 §3.2 P4 v2 ambitious "JF (顶配)", 不重复列入 backup; R76-m01) |
 
 ### 3.2 v1 → v2 顶刊预期对照
 
@@ -323,7 +323,7 @@ M-1 启动前必须由用户 (经 D1) 明确提供:
 | M0.1b | Retrofit 5 现有 paper 的 `paper_spec.yaml` | `papers/{bank_fintech_tone,benefit_society,brokerage_network,llm_peer,strategic_diff}/paper_spec.yaml` (从 README + 现有代码反推 spec) |
 | M0.2 | 扩展 `paper_registry.py` | 8 paper 注册（现 5 paper auto-registered + 3 new）|
 | M0.3 | 8 paper 列名冲突扫描 | `tests/integration/test_paper_namespace_isolation.py` |
-| M0.4 | 锁定外生冲击事件库 | `data/exogenous_shocks.yaml`（含 5 个事件 + 时间窗 + identification strategy per event, 见 §5.7.2）|
+| M0.4 | 锁定外生冲击事件库 | `config/exogenous_shocks.yaml`（含 5 个事件 + 时间窗 + identification strategy per event, 见 §5.7.2）|
 | M0.5 | M0.5 Pipeline 重跑配置 | `config/pipeline_v34_rerun.yaml` |
 | M0.6 | Git tag `B-route-v2-frozen` | 锁定本 plan v2.x + 8 spec |
 
@@ -449,7 +449,7 @@ heterogeneity_wave: dict                   # optional, P4-specific (R57-m01 移�
 targets:
   primary_outlet: str
   secondary_outlet: list | str  # optional
-  ambitious_outlet: str
+  ambitious_outlet: list | str             # R75-m01: list 形式与 backup_outlet (R50-M01) schema parallel, 容纳 multi-tier ambitious (如 P1 [RFS, JFE]); 单 outlet 可继续用 str
   backup_outlet: list | str                # optional (R50-M01: 支持 list 与 secondary_outlet schema 一致, 容纳 cascade alternatives)
   sequential_resubmission: multiline str   # optional, P3-specific (R49-m01 explicit)
   submission_window: date
@@ -470,6 +470,7 @@ M0 G0 acceptance 包含 "8 paper × spec.yaml 全部 conform 此 schema" 检查 
 | `paper_registry.py` | 8 paper 注册 + 唯一性约束 |
 | 列名冲突 | 0 冲突 (跨 8 paper) |
 | 5 existing paper 兼容性 | 5 existing 的 build-replication CLI 在 v3.3.0 panel 上跑通 (M0.5 重跑前的 regression test) |
+| LLM cost cap | $4,200 锁定 per §10.1 budget + §8 R10 mitigation (R19-m01 + R78-m01 fan-out 同步 §6 G0 row) |
 | Git tag | `B-route-v2-frozen` 已打 |
 
 #### 5.2.5 Audit 轮次：3 轮 (R46-m01 列举)
@@ -531,7 +532,7 @@ M0 G0 acceptance 包含 "8 paper × spec.yaml 全部 conform 此 schema" 检查 
 | `tests/integration/test_panel_reproducibility_v34.py` | pass |
 | 跨期 LLM κ | ≥ 0.7 (按 4 段分别) |
 | 4 类银行 × 18 年覆盖热力图 | 无系统空洞（每 cell 至少 1 报道或显式标注 0）|
-| LLM cost | ≤ $4,200 (R2-M17 修订: $2,400 21_tone + $300 M0.5.8 + $50 M-1.4 + $500 M5/M6 + 25% buffer = $4,062, cap $4,200) |
+| LLM cost | ≤ $4,200 (R2-M17 + R73-M01 修订: $2,400 21_tone + $300 M0.5.8 + $50 M-1.5 + $500 M5/M6 + 25% buffer = $4,062, cap $4,200; R73-M01 子任务 ID 校正 — scale test 1% sample 属 M-1.5 per §5.1.2 canonical, 不是 M-1.4) |
 | Pipeline 健壮性 | LLM cache HOT 时: panel content hash identical (排除 parquet metadata 时间戳); LLM cache COLD (重抓全量) 时: panel content hash 差异 ≤ 0.1% rows (温和 stochasticity 容差) |
 | v3.3.0 兼容 (R1-M05 + R4-M06 完整化) | `tests/integration/test_v34_v33_subset_invariance.py` pass (v34 panel subset to **target_bank ∈ v3.3.0 84 银行 AND year ∈ {2017, 2018}** 与 v3.3.0 panel 在共同列上数值一致: float 差异 ≤ 1e-9, categoricals exact) |
 
@@ -808,7 +809,7 @@ did_imputation <outcome> bank_id year treat_year, ///
 | 17 DiD spec (R2-M02 + R2-M04 + R3-M07 修订: 按 §5.7.2 applicable_papers 总和: 4+3+2+4+2+2 = 17) | 全部本机 Stata 19.5 跑通 |
 | 平行趋势 (R1-M11 + R8-M03 重写: 所有 events 统一 intensity slope 检验) | 所有 6 events 适用 intensity × event_time pre-trend slope ≈ 0 (90% CI 不显著); 6 events 中 ≥ 5 events pass 即满足 G4 |
 | Cluster-robust SE | 全部 bank-level cluster |
-| `data/exogenous_shocks.yaml` | 6 events (E1-E5b) 完整定义 + identification 策略 + 文献依据 |
+| `config/exogenous_shocks.yaml` | 6 events (E1-E5b) 完整定义 + identification 策略 + 文献依据 |
 
 #### 5.7.5 Audit 轮次：4 轮 (R46-m01 列举)
 
@@ -817,7 +818,7 @@ did_imputation <outcome> bank_id year treat_year, ///
 | A4.1 | 17 DiD spec 全部 Stata 跑通 + SSC 包齐全 (§5.7.4 G4 一致) |
 | A4.2 | 平行趋势 intensity slope ≈ 0 (6 events ≥ 5 pass) |
 | A4.3 | Cluster-robust SE 全部 bank-level cluster |
-| A4.4 | `data/exogenous_shocks.yaml` 6 events 完整 (id + date + name + treatment_logic + identification + applicable_papers + reference) |
+| A4.4 | `config/exogenous_shocks.yaml` 6 events 完整 (id + date + name + treatment_logic + identification + applicable_papers + reference) |
 
 ### 5.8 M5 主回归 / 机制 / 异质性 (2026-11-16 → 2027-01-10, 8 weeks)
 
@@ -962,12 +963,14 @@ did_imputation <outcome> bank_id year treat_year, ///
 
 #### 5.11.1 投稿计划
 
-| Paper | 主推 | 投稿 window | Backup |
+| Paper | 主推 | 投稿 window | Backup cascade (R73-m01 完整化) |
 |---|---|---|---|
-| P1 tone | JFQA | 2027-03-15 | JCF (2027-09 if reject) |
-| P2 attention | JCF | 2027-03-15 | JBF (2027-09 if reject) |
-| P3 substance | SMJ | 2027-03-15 | AMJ (2027-09 if reject) |
-| P4 locus | RFS | 2027-03-15 | JFE (2027-09 if reject) |
+| P1 tone | JFQA | 2027-03-15 | JCF → JBF (per §B.1 backup_outlet=[JCF, JBF]; 2027-09 first cascade / 2028-03+ if successive reject) |
+| P2 attention | JCF | 2027-03-15 | JBF → JFI (per §B.2 backup_outlet=[JBF, JFI]; 2027-09 / 2028-03+) |
+| P3 substance | SMJ | 2027-03-15 | AMJ → ASQ → JFE salvage (per §B.3 sequential_resubmission cascade; 2027-09+ for AMJ, 后续 cascade 按 §3.2 / §3.1 注 2) |
+| P4 locus | RFS | 2027-03-15 | JFE (per §B.4 backup_outlet=JFE; 2027-09 if reject) |
+
+**Backup 列含义说明 (R73-m01 + R1-m11 同步)**: 上表 Backup 列展示首次 decision reject 后的完整 cascade outlet sequence (与 §3.1 / §B specs backup_outlet / sequential_resubmission 一致)。注 §5.11.2 R1-m11 scope: B-route v2 plan 持续到**首次 decision** (accept / R&R / desk reject / reject); cascade 第二段及以后实际投稿 (2027-09+) 由 academic-paper skill 的 revision mode 独立处理, 超出本 plan scope, 上表 cascade timeline 仅作 forward visibility。
 
 #### 5.11.2 Post-submission (R1-m11 scope boundary)
 
@@ -981,13 +984,13 @@ did_imputation <outcome> bank_id year treat_year, ///
 
 | Gate | 时点 | 关键指标 | 失败后果 |
 |---|---|---|---|
-| G-1 | M-1 完 | N_eff × T_eff 区间 + raw 完整性 ≥ 95% (Yellow band [50%, 95%) → C1-c 软 fallback, R59-M01) + **时间覆盖完整性: 无 > 2 年系统性时间断层** (R60-m01 新增, per M-1.3 覆盖热力图) + 财务匹配率 ≥ 60% (Yellow band [40%, 60%) → C2-lite) + 跨期 LLM valid_rate ≥ 80% + 法律合规 | raw < 50%: C1-a (hard); raw [50%, 95%): C1-c (软); **时间断层 > 2 年: C1-b**; 财务 < 40%: C2; scale test 失稳: C3; LLM 跨期失效: C4 |
+| G-1 | M-1 完 | N_eff × T_eff 区间 + raw 完整性 ≥ 95% (Yellow band [50%, 95%) → C1-c 软 fallback, R59-M01) + **时间覆盖完整性: 无 > 2 年系统性时间断层** (R60-m01 新增, per M-1.3 覆盖热力图) + 财务匹配率 ≥ 60% (Yellow band [40%, 60%) → C2-lite) + **Pipeline scale test 1% 样本完整跑通 21→46 stage** (R77-m01 同步 §5.1.4 row 4, 对应 C3 fail-consequence trigger) + 跨期 LLM valid_rate ≥ 80% + 法律合规 | raw < 50%: C1-a (hard); raw [50%, 95%): C1-c (软); **时间断层 > 2 年: C1-b**; 财务 < 40%: C2; scale test 失稳: C3; LLM 跨期失效: C4; **法律合规失败: 暂停 M0 直至 cleared** (R79-m01 同步 §5.1.4 row 6) |
 | G0 | M0 完 | **8 份 spec.yaml** (3 new + 5 retrofit; R1-M10 修订) + paper_registry 8 paper + 0 列名冲突 + 5 existing paper build-replication 在 v3.3.0 panel pass + **LLM cost cap = $4,200 锁定** (R19-m01 per §8 R10 mitigation + §10.1) + git tag | M0.5 暂停 |
 | G0.5 | M0.5 完 | panel v34 reproducibility (panel-hash identical with LLM cache HOT; cache COLD 差异 ≤ 0.1% rows) + 跨期 κ ≥ 0.7 (按 4 段分别) + 4 类银行 × 18 年覆盖热力图无空洞 + LLM cost ≤ $4,200 (R46-M03 同步 §10.1 budget cap) + v3.3.0 兼容 (R46-M04 完整化): subset to **target_bank ∈ v3.3.0 84 银行 AND year ∈ {2017, 2018}** 与 v3.3.0 panel float 差异 ≤ 1e-9, categoricals exact | M1 暂停 |
 | G1 | M1 完 | **6 new manuscript skeleton** (3 new × en/zh, M1 实际产出) + **10 existing manuscript regression test pass** (compile state 未被 panel 升级或 M1 改动 break; 总 16 visible) + 8 paper analysis CLI 跑通 (`python -m news_process.papers.bank_fintech_attention.analysis --stage tables`) + **pytest tests/test_papers_b_route.py pass** (R53-M01 同步 §5.4.4) | M2 暂停 |
 | G2 | M2 完 | 71 Stata templates 实际总数 (55 + 16 新增) + SSC 包齐全 + 16 个新模板 Stata 19.5 跑通 + 4 paper replication 包齐 + **Macro/var 截断: 无 `set maxvar` 触顶 (panel 列数 ≤ 5000 < MP 上限 120,000)** (R49-m02) + **pytest tests/test_stata_templates.py pass** (R53-M02 同步 §5.5.4) | M3 暂停 |
 | G3 | M3 完 | **6 new manuscript pdflatex pass** (3 new × en/zh, M3 实际产出) + **10 existing manuscript regression test pass** (R46-M06 同步 §5.6.4) + `tests/test_manuscript_compilation.py` pass + bibtex ≥30/paper + IRON RULE 0 violations + Bilingual abstract 完整 | M4 暂停 |
-| G4 | M4 完 | **17 DiD spec** pass (R3-M01/M07: 4+3+2+4+2+2 = 17) + 平行趋势检验统一为 intensity slope ≈ 0 (R8-M03: 6 events intensity-based); 6 events 中 ≥ 5 通过 + **SSC 包齐全** (csdid/csdid_plot/did_imputation/eventstudyinteract/boottest/rwolf/ritest/honestdid) + **Cluster-robust SE 全部 bank-level cluster** + **`data/exogenous_shocks.yaml` 6 events 完整定义 + identification 策略 + 文献依据** (R53-M03 同步 §5.7.4) | M5 暂停 |
+| G4 | M4 完 | **17 DiD spec** pass (R3-M01/M07: 4+3+2+4+2+2 = 17) + 平行趋势检验统一为 intensity slope ≈ 0 (R8-M03: 6 events intensity-based); 6 events 中 ≥ 5 通过 + **SSC 包齐全** (csdid/csdid_plot/did_imputation/eventstudyinteract/boottest/rwolf/ritest/honestdid) + **Cluster-robust SE 全部 bank-level cluster** + **`config/exogenous_shocks.yaml` 6 events 完整定义 + identification 策略 + 文献依据** (R53-M03 同步 §5.7.4) | M5 暂停 |
 | G5 | M5 完 | 4 paper × 主+机制+异质 + 8 轮 audit/paper + **每 paper 4 张表 (Table 2 主回归 + Table 3 机制 + Table 4 异质 + Table 5 advanced)** + **3 图 (event study + coefplot + time trend) 完整 .tex / .png** + **主回归系数符号与 paper_spec.yaml 预设一致** (或方向 puzzle 文档化) + **Stata log 累计 ≥ 40 文件归档 `output/<paper>/logs/`** + **Pre-registration deviation 文档化 (触发 D5 决策点)** (R53-M04 同步 §5.8.3) | M6 暂停 |
 | G6 | M6 完 | 5 稳健性表/paper + Oster δ ≥ 0.5 + **Wild bootstrap p < 0.10 for main coef (boottest)** (R53-M05 同步 §5.9.4) + Devil's Advocate fatal flaw = 0 (unresolved) + Honest DiD: 主 spec M = 1× max\|∆̂_pre\| robust CI 不跨 0; sensitivity 表展示 M ∈ {0, 0.5, 1, 2}× 全部 4 档 (R5-m06) | M7 暂停 |
 | G7 | M7 完 | 互引矩阵 16 cell + **Salami slicing 4 条 criteria pass** (per §5.10.3 R1-M19: (1) differentiation_claim 一致; (2) 每 paper ≥ 1 unique outcome; (3) 每 paper ≥ 1 unique identification; (4) Methods Jaccard ≤ 0.3) + 5-视角 pre-submission (EIC+3 reviewer+Devil's Advocate) fatal = 0 + replication 包 + cover letter (R49-m03 同步 §5.10.3) | M8 暂停 |
@@ -1059,7 +1062,7 @@ B 路线 4 paper 总 audit 规模 ≈ 1.5× plan v14。
 |---|---|---|
 | LLM API M0.5.4 (21_tone_llms 全量) | $2,400 | 400K × 3 family × $0.002/call |
 | LLM API M0.5.8 (32a / 33-39 验证 + audit, R2-M17 补) | $300 | validation 子样本 ~10% × 3 family + audit 抽样, cache hit 较高 |
-| LLM API M-1.4 (scale test 1% sample) | $50 | – |
+| LLM API M-1.5 (pipeline scale test 1% sample, per §5.1.2 canonical) | $50 | R73-M01 修订: 此 LLM cost 来自 M-1.5 Pipeline scale test (抽 1% raw 全程跑 pipeline 含 21_tone_llms LLM API), 不是 M-1.4 (后者是 lexicon clustering 无 LLM cost) |
 | LLM API M5/M6 (ad hoc 稳健性变体) | $500 | – |
 | 缓冲 25% | $812 | 25% × ($2,400 + $300 + $50 + $500) |
 | **小计 LLM cost** | **~$4,062** | budget cap $4,200 |
@@ -1209,7 +1212,7 @@ overhead 在 M5/M6/M7 显著)。
 
 | Milestone | Responsible | Accountable | Consulted | Informed |
 |---|---|---|---|---|
-| M-1 数据现状审计 | **Claude (audit ops) + 用户 (prerequisite delivery per §5.1.1.bis)** (R3-m03) | Claude | 用户 (D1 数据来源决策) | 用户 (G-1 报告) |
+| M-1 数据现状审计 | **Claude (audit ops) + 用户 (prerequisite delivery per §5.1.1.bis)** (R3-m03) | Claude | 用户 (D1 数据来源决策 + D6 数据来源类型决策 per §9 R5-m01: 含 working paper / 内部数据 / 第三方授权 影响投稿 replication policy; R73-m02 补 D6; + D2 G-1 失败后 C-fallback 选择 per §9: conditional trigger 仅 G-1 fail 时, 用户 + Claude 共同决策; R80-m01 补 D2) | 用户 (G-1 报告) |
 | M0 设计契约 | Claude | Claude | 用户 (4 paper 边界确认) | 用户 (G0 报告) |
 | M0.5 Pipeline 重跑 | Claude (LLM 调用 + 监控) | Claude | – | 用户 (LLM cost / wall-time 周报) |
 | M1 目录骨架 | Claude | Claude | – | 用户 (G1 报告) |
@@ -1288,7 +1291,7 @@ event_studies:  # R2-M11 + R45-m03 修订: 引用 Appendix C events by id (与 y
   - E4  # 2020-11-03 ant_ipo_pause
 targets:
   primary_outlet: JFQA
-  ambitious_outlet: RFS
+  ambitious_outlet: [RFS, JFE]  # R75-m01: 2-tier ambitious list 与 §3.2 P1 v2 ambitious "RFS / JFE" 一致; schema R75-m01 允许 list 形式
   backup_outlet: [JCF, JBF]  # R48-M01 + R50-M01: list 形式与 §3.1 P1 backup 列 "JCF / JBF" 完整对齐
   submission_window: 2027-03-15  # R47-M03 增 (per §5.11.1 投稿计划)
 sample:  # R14-M02 增 sample section per schema
@@ -1490,7 +1493,7 @@ audit_rounds_target_min: 8
 
 ## Appendix C: Exogenous Shock Event Library
 
-(M0.4 阶段写入 `data/exogenous_shocks.yaml`)
+(M0.4 阶段写入 `config/exogenous_shocks.yaml`)
 
 ```yaml
 events:
@@ -1694,3 +1697,11 @@ M1 完成后扩展到 **16 双语** (8 paper × 2)。
 | v2.46 | 2026-05-16 | Claude Opus 4.7 | Round 65 fresh-eye — 1 MAJOR. R65-M01: schema event_studies 缩进 (嵌套在 identification 块内) vs 4 §B specs top-level event_studies. Fix: schema event_studies 去缩进, 提升到 top level (与 4 §B specs 一致) |
 | v2.47 | 2026-05-16 | Claude Opus 4.7 | Round 66 fresh-eye — 1 MAJOR. R66-M01: R65-M01 fix 未传播到 §5.2.3 example (example event_studies 仍 nested under identification). Fix: §5.2.3 example event_studies 去缩进, 提升到 top level (与 schema/4 §B specs 一致) |
 | v2.48 | 2026-05-16 | Claude Opus 4.7 | Round 67-68 = 0 finding (streak 2/3). Round 69 fresh-eye — 1 MINOR. R69-m01: §10.3 总 Claude time range "80-128 d" 与 individual milestone ranges sum (76-126) 不对齐. Fix: 改为 "76-126 d" 显示具体加法 |
+| v2.49 | 2026-05-17 | Claude Opus 4.7 | Round 70-72 = 0 finding (streak 3/3 closed at R72); 用户再次发起 "自动化执行 / 连续 3 次每轮独立交叉对账完美" 指令 → streak reset, R73 启动. Round 73 self-audit fixes (3 findings: 1 MAJOR + 2 MINOR). R73-M01: §10.1 + §5.3.5 LLM cost breakdown "$50 M-1.4 (scale test)" 子任务 ID 错位 — §5.1.2 canonical M-1.4 是 lexicon clustering (无 LLM cost), M-1.5 才是 Pipeline scale test (含 LLM API); §8 R10 mitigation 正确 reference M-1.5, §10.1/§5.3.5 错位. Fix: §10.1 + §5.3.5 改 M-1.4 → M-1.5; R73-m01: §5.11.1 投稿计划 Backup 列每 paper 仅单 outlet, 与 §3.1 / §B specs backup_outlet 列 list/cascade 不完整对账. Fix: §5.11.1 Backup 列扩展显示完整 cascade (P1 JCF→JBF / P2 JBF→JFI / P3 AMJ→ASQ→JFE salvage / P4 JFE) + 加 §5.11.2 scope 注; R73-m02: §14 RACI matrix M-1 行 Consulted 列只列 D1, 缺 D6 (D6 trigger 时点 = M-1 期 per §9). Fix: §14 M-1 Consulted 增 "+ D6 数据来源类型决策 per §9 R5-m01" |
+| (no plan bump) | 2026-05-17 | Claude Opus 4.7 | Round 74 audit-log-only fixes (2 MINOR; 不涉及 plan-doc, 无 version bump). R74-m01: audit log top-level Stop condition (line 4) 仍 epoch 1 "连续 7 轮", 与 epoch 2/3 当前 target "连续 3 轮" 不同步. Fix: line 4-5 epoch 1/2/3 boundary 显式; R74-m02: line 2487 Final Cross-Validation Campaign Summary 状态 "达成 / audit-frozen" 在 R73 重启后失效, 缺 epoch boundary 注. Fix: section heading 改 "Epoch 2 Final ... frozen at R72; superseded by R73" + section 内 epoch boundary 注 |
+| v2.50 | 2026-05-17 | Claude Opus 4.7 | Round 75 self-audit fixes (1 MINOR). R75-m01: §3.2 P1 v2 ambitious "RFS / JFE" 2-outlet vs §B.1 ambitious_outlet=RFS (单) + schema ambitious_outlet=str (单) 三向不一致 — JFE 在 §B.1 spec 任何 outlet 字段 (primary/backup/ambitious) 都不存在. Fix (与 R50-M01 backup_outlet 处理一致): schema line 452 ambitious_outlet 改为 "list \| str"; §B.1 ambitious_outlet 改为 [RFS, JFE]. P2/P3/P4 现有 single ambitious 保持 str 形式 |
+| v2.51 | 2026-05-17 | Claude Opus 4.7 | Round 76 self-audit fixes (1 MINOR). R76-m01: §3.1 P4 backup 列 "JFE / JF" 把 §B.4 ambitious_outlet JF 错误列入 backup 列 — JF 在 §B.4 是 ambitious_outlet ("顶配", §3.2 P4 v2 ambitious), 不是 backup. R50-M01 时漏 fan-out P4. Fix: §3.1 P4 backup 改为 "JFE (per §B.4 backup_outlet)" 单 outlet; JF 仍在 §3.2 P4 ambitious 表达 |
+| v2.52 | 2026-05-17 | Claude Opus 4.7 | Round 77 self-audit fixes (1 MINOR). R77-m01: §6 G-1 row 关键指标 column 缺 "Pipeline scale test 跑通", 与 §5.1.4 G-1 row 4 不对账; §6 fail-consequence column 含 "scale test 失稳: C3" 但 关键指标 column 无对应 entry — table asymmetric. Fix: §6 G-1 关键指标 column 增 "Pipeline scale test 1% 样本完整跑通 21→46 stage (R77-m01 同步 §5.1.4 row 4, 对应 C3 fail-consequence trigger)" |
+| v2.53 | 2026-05-17 | Claude Opus 4.7 | Round 78 self-audit fixes (1 MINOR). R78-m01: §5.2.4 G0 acceptance 表 5 rows 缺 "LLM cost cap = $4,200 锁定" 检查项, 与 §6 G0 row 含 LLM cost cap 不对账. R19-m01 (plan v2.18→v2.19) 添加该 item 仅 fan-out 到 §6 G0 row, 未 propagate 到 §5.2.4 G0 subsection. Fix: §5.2.4 G0 表加新 row "LLM cost cap | $4,200 锁定 per §10.1 + §8 R10 (R78-m01 fan-out)" |
+| v2.54 | 2026-05-17 | Claude Opus 4.7 | Round 79 self-audit fixes (1 MINOR). R79-m01: §6 G-1 fail-consequence column 6 triggers (C1-a/c/b + C2/C3/C4) 全是 C-fallback, 缺 "法律合规失败 → 暂停 M0" trigger, 与 §5.1.4 G-1 row 6 fail-consequence "暂停 M0, 先解决合规" 不对账; §6 G-1 关键指标 column 含 "法律合规" 但 fail-consequence column 无对应 entry. Fix: §6 G-1 fail-consequence column 增 "; 法律合规失败: 暂停 M0 直至 cleared (R79-m01 同步 §5.1.4 row 6)" 作为第 7 trigger |
+| v2.55 | 2026-05-17 | Claude Opus 4.7 | Round 80 self-audit fixes (1 MINOR). R80-m01: §14 RACI matrix M-1 行 Consulted 列缺 D2 (G-1 fail 后 C-fallback 选择 conditional trigger), 与 §9 D2 trigger "M-1 完" 不对账. R73-m02 补 D6 时遗漏 D2; §14 已含 D3/D4/D5/D6 conditional triggers, 仅 D2 缺. Fix: §14 M-1 Consulted 增 "+ D2 G-1 失败后 C-fallback 选择 per §9: conditional trigger 仅 G-1 fail 时, 用户 + Claude 共同决策; R80-m01" |

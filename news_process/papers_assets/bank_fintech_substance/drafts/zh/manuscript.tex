@@ -1,0 +1,62 @@
+% bank_fintech_substance/drafts/zh/manuscript.tex
+% P3 中文 manuscript 骨架 — M0 G0 scaffolded per B-route plan v2.55 (2026-05-17)
+% 编译: xelatex + biber + xelatex × 2
+
+\input{../../../_shared/preamble_zh.tex}
+
+\addbibresource{refs.bib}
+
+\title{实质性 vs 象征性金融科技战略：\\来自中国银行业长期 ROA 反转的证据}
+\author{\NoteThis{作者姓名}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\NoteThis{最终摘要待定 — 目标约 300 中文字。}
+本文将 Westphal--Zajac (1994, 1998 \emph{ASQ}) 的实质性 vs 象征性管理框架应用于
+2007--2024 年间的银行 fintech 战略宣告。通过大语言模型对每个银行—年度的 fintech
+公告进行二元 substantiveness 分类 (\code{innovation\_substantiveness\_full}), 检验
+W\&Z 隐含的 dual outcome 预测: 象征性宣告应产生正向短期市场反应但长期 ROA 反转
+(within-bank 3 年前向变化), 实质性宣告则不应。识别策略利用 4 个外生政策冲击
+(余额宝上线 / 网络借贷整顿 / 资管新规 / 蚂蚁 IPO 暂停) 做截面强度 DiD。研究发现
+\NoteThis{核心结论}\@。
+\end{abstract}
+
+\section{引言}\label{sec:intro}
+\NoteThis{研究问题动机与贡献。}
+
+\section{文献综述}\label{sec:lit}
+\NoteThis{三条文献: (1) Westphal--Zajac 实质性/象征性
+\autocite{westphal1994substance,westphal1998sym,westphal2001decoupling};
+(2) 战略变革的象征管理 \autocite{fisszajac2006symbolic};
+(3) Practice-based view \autocite{bromiley2014practice}。}
+
+\section{方法}\label{sec:method}
+\subsection{样本与数据}
+银行—年度面板覆盖 $N \times T \approx 3000\text{--}9000$ 银行—年, 2007--2024
+(per spec.sample), 经 \code{news\_process} 流水线 (stage 32a innovation\_substantiveness)。
+
+\subsection{实质性度量}
+\NoteThis{LLM 标注流水线 (innovation\_substantiveness\_full 二元指示); full vs ctx
+双轨交叉验证。}
+
+\subsection{Dual Outcome 识别策略}
+\NoteThis{Long\_run\_roa\_change\_3yr (within-bank 3 年前向) + car\_3day\_window
+\_fintech\_announcement (短期 CAR); within-bank within-year FE; bank-level cluster。}
+
+\section{数据}\label{sec:data}
+\NoteThis{数据来源、样本选择、描述统计 (Table 1)。}
+
+\section{实证结果}\label{sec:results}
+\NoteThis{Table 2 (M1$\to$M6 渐进主回归); Table 3 (dual outcome 短期 CAR + 长期 ROA
+反转联合); Table 4 (异质性 4 银行类型 $\times$ SOE $\times$ wave $\times$ 资本充足率
+quartile); Table 5 (稳健性 alternative substantiveness track full vs ctx)。}
+
+\section{结论}\label{sec:conclusion}
+\NoteThis{总结发现与战略管理理论启示。}
+
+\printbibliography
+
+\end{document}

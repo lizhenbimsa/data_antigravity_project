@@ -1,0 +1,58 @@
+# Paper spec for brokerage_network (existing, retrofit per plan §5.2.2 M0.1b)
+# Derived from papers_assets/brokerage_network/README.md.
+# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+
+paper_id: brokerage_network
+spec_version: 2.0.0
+status: existing
+differentiation_claim: |
+  brokerage_network 利用银行在金融科技报道共现网络中的中心性
+  (betweenness / constraint / brokerage eigenvector), 通过二阶同业语调 (W²·tone)
+  作为一阶溢出 (W·tone) 的工具变量, 识别同业情感溢出对银行绩效的因果效应;
+  检验 DCEP / Sandbox 政策冲击下网络位置异质性。
+  锚定: Han et al. 2024 RFS + Bramoullé-Djebbari-Fortin 2009 JoE + Manski 1993 RES + Burt 1992。
+  跨 paper 区分:
+  - 与 P1 (tone): brokerage 用网络中心性 + 二阶 IV; P1 仅 firm-level tone
+  - 与 P2 (attention): brokerage 度量同业溢出 + 网络位置; P2 度量 firm-level 曝光
+  - 与 P3 (substance): brokerage 不做 W&Z 实质性; 用 tone 溢出
+  - 与 P4 (locus): brokerage 不区分 locus
+  - 与 benefit_society: brokerage 用网络位置; benefit_society 用 firm-level 态度投影
+  - 与 llm_peer: brokerage 用共现网络中心性 (banks 在 fintech 报道中是否共同出现); llm_peer 用 LLM 判定的语义同业关系
+  - 与 strategic_diff: brokerage 用网络位置; strategic_diff 用多文本表征差异
+
+outcome:
+  primary: roa
+  secondary: [car_3day, loan_growth]
+  enrichment_source: pipeline + CSMAR ROA/CAR
+
+treatment:
+  primary: peer_tone_lag1_full   # 一阶同业溢出 (endogenous)
+  alternative: [peer_tone_lag1_ctx]
+
+controls:
+  bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth, bank_between_cent, bank_constraint, brokerage_eigen_cent]
+  year_level: [gdp_growth, m2_growth]
+  fixed_effects: [bank_fe, year_fe]
+
+identification:
+  baseline: network_2sls_with_centrality
+  iv:
+    primary: peer_tone_2nd_lag1_full   # 二阶溢出 (Bramoullé 排他性约束)
+    fallback: peer_tone_2nd_lag1_ctx
+
+event_studies:  # DCEP / Sandbox policy shocks (paper-specific)
+  - dcep_post   # 数字人民币 (DCEP) 试点扩围
+  - sandbox_post  # 金融科技创新监管沙盒
+
+targets:
+  primary_outlet: RFS  # Han et al. 2024 RFS 类比
+  ambitious_outlet: RFS
+  backup_outlet: [JFE, JF, JCF]
+  submission_window: 2027-03-15
+
+sample:
+  n_bank_min: 84
+  t_year: 2
+  obs_target_min: 168
+
+audit_rounds_target_min: 8

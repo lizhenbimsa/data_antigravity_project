@@ -1,0 +1,64 @@
+* ============================================================================
+* 19_substance_lr_reversal.do — P3 paper-specific long-run ROA reversal检验
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 P3 extras + W&Z 1994 ASQ long-run reversal mechanism
+*
+* W&Z 1994 prediction (focal hypothesis):
+*   symbolic fintech 宣告 (substantiveness 低) → 短期 CAR 正反应 →
+*   3 年后 ROA 反转 (negative long_run_roa_change_3yr).
+*
+* Test structure:
+*   (1) Baseline: long_run_roa_change_3yr ~ substantiveness + controls
+*   (2) Triple-difference: long_run_roa_change ~ subst × short_run_car × post
+*   (3) Quintile by short-run CAR:
+*       within high-CAR subset, low substantiveness → most reversal.
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* (1) Baseline long-run reversal
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo baseline
+
+* (2) Triple-difference: subst × short_run_CAR × post
+capture confirm variable car_3day_window_fintech_announcement
+if !_rc {
+    gen subst_x_car  = {{MAIN_TREAT}} * car_3day_window_fintech_announcement
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} car_3day_window_fintech_announcement subst_x_car $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo triple_diff
+}
+else {
+    display "  [WARN] car_3day_window_fintech_announcement not in panel (M0.5.11 enrichment pending)"
+}
+
+* (3) Quintile-by-short-run-CAR
+capture confirm variable car_3day_window_fintech_announcement
+if !_rc {
+    xtile car_q = car_3day_window_fintech_announcement, n(5)
+    forval q = 1/5 {
+        reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if car_q == `q', ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo car_q_`q'
+    }
+}
+
+esttab baseline triple_diff car_q_* ///
+    using "$tables_dir/table_lr_reversal.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("P3 Long-Run ROA Reversal (W&Z 1994 焦点检验)") ///
+    addnotes("Focal hypothesis: high short-run CAR + low substantiveness → strongest long-run ROA reversal.")
+
+display "[OK] 19_substance_lr_reversal → $tables_dir/table_lr_reversal.tex"

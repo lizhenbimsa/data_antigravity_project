@@ -42,6 +42,15 @@ from news_process.papers._common.paper_config import (
     get_paper_config,
     get_papers_assets_root,
 )
+from news_process.papers._common.paper_registry import (
+    PAPER_IDS_ALL,
+    PAPER_IDS_EXISTING,
+    PAPER_IDS_NEW,
+    PaperSpec,
+    get_spec,
+    list_paper_ids,
+    load_all_specs,
+)
 from news_process.papers._common.pipeline_runner import (
     run_main_pipeline,
 )
@@ -72,4 +81,12 @@ __all__ = [
     "run_do",
     "StataNotFoundError",
     "run_main_pipeline",
+    # M0.2 paper_registry (8 paper spec.yaml 统一入口):
+    "PAPER_IDS_ALL",
+    "PAPER_IDS_EXISTING",
+    "PAPER_IDS_NEW",
+    "PaperSpec",
+    "get_spec",
+    "list_paper_ids",
+    "load_all_specs",
 ]

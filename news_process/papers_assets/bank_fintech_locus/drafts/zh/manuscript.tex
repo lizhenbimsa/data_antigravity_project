@@ -1,0 +1,60 @@
+% bank_fintech_locus/drafts/zh/manuscript.tex
+% P4 中文 manuscript 骨架 — M0 G0 scaffolded per B-route plan v2.55 (2026-05-17)
+% 编译: xelatex + biber + xelatex × 2
+
+\input{../../../_shared/preamble_zh.tex}
+
+\addbibresource{refs.bib}
+
+\title{银行 fintech 公告之 Locus：\\三波浪潮下底层技术 vs 应用场景的市场反应差异}
+\author{\NoteThis{作者姓名}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\NoteThis{最终摘要待定 — 目标约 300 中文字。}
+本文遵循 Gomber 等 (2018, \emph{JMIS}) 的 fintech 分类学, 把银行 fintech 公告区分为
+底层技术 (区块链 / AI / 云) 与应用场景 (支付 / 信贷 / 理财) 两类 locus 属性。基于
+2007--2024 (18 年) 的中国银行业面板, 检验此二元 locus 如何影响事件窗口 5 日 CAR、
+专利产出 (Kogan 等 2017 市值加权) 及 IT capex / R\&D 中介通道。识别策略利用 4 个外生
+政策冲击 (余额宝、蚂蚁 IPO 暂停、两项数据出境管理办法) 与三波 fintech 浪潮 (互联网
+金融 / 区块链 / 大模型, 以 consolidation period 作对照)。研究发现 \NoteThis{核心结论}\@。
+\end{abstract}
+
+\section{引言}\label{sec:intro}
+\NoteThis{研究问题动机与贡献。}
+
+\section{文献综述}\label{sec:lit}
+\NoteThis{三条文献: (1) Fintech 分类与 locus \autocite{gomber2018fintech,goldstein2019fintech};
+(2) 创新市值加权 \autocite{kogan2017technological};
+(3) 区块链与代币化 \autocite{conghe2019blockchain,cong2021tokenomics}。}
+
+\section{方法}\label{sec:method}
+\subsection{样本与数据}
+$N \times T \approx 3000\text{--}9000$ 银行—年, 2007--2024。
+
+\subsection{Locus 度量 (stage 32a)}
+\NoteThis{innovation\_locus\_full 二元指示 → derived primary\_pair
+(locus\_layer\_full, locus\_scenario\_full) 与 locus\_gap.}
+
+\subsection{识别策略}
+\NoteThis{Layer $\times$ event study + leave-one-out peer-locus 工具变量;
+4 events $\times$ 5 日 CAR + 专利 + Kogan 2017 市值加权。}
+
+\section{数据}\label{sec:data}
+\NoteThis{数据来源 (CSMAR 日行情, IncoPat 专利, Kogan 2017 算法); 描述统计 (Table 1)。}
+
+\section{实证结果}\label{sec:results}
+\NoteThis{Table 2 (主回归: layer $\times$ event study); Table 3 (Baron-Kenny 中介:
+locus $\to$ R\&D / IT capex $\to$ patent + CAR); Table 4 (异质性 三波 fintech 浪潮
+wave\_1/2/3 + consolidation + SOE); Table 5 (稳健性: alternative locus classifier +
+Borusyak DiD)。}
+
+\section{结论}\label{sec:conclusion}
+\NoteThis{总结发现; fintech 监管与银行创新战略启示。}
+
+\printbibliography
+
+\end{document}

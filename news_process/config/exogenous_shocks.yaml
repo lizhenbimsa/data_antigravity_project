@@ -1,0 +1,90 @@
+# Exogenous shock event library — M4 DiD design upstream.
+# Plan v2.x §5.7.2 + Appendix C.
+# Each event: id / date / name / name_zh / description / treatment_logic /
+# identification / applicable_papers / reference.
+# All E1-E5b are intensity-based DiD (R8-M03), not staggered timing DiD —
+# policy 同步生效, treatment = bank-level pre-event exposure × post_dummy.
+
+events:
+  - id: E1
+    date: 2013-06-13
+    name: yuebao_launch
+    name_zh: 余额宝上线
+    description: |
+      支付宝余额宝产品上线，标志中国互联网金融元年。
+      首日规模 1 亿，1 年达 5,000 亿；触发银行业整体 fintech 战略响应。
+    treatment_logic: "post dummy × bank pre-2012 fintech-exposure (Hassan-style intensity)"
+    identification: "cross-sectional intensity DiD (基于 pre-2012 fintech 暴露度 × post-event dummy + bank FE)"
+    applicable_papers: [P1, P2, P3, P4]   # R28-M01: E1 加 P3 per R2-M04
+    reference: "谢平 (2014) 经济研究, 49(2)"
+
+  - id: E2
+    date: 2016-08-24
+    name: p2p_regulation
+    name_zh: 网络借贷整顿
+    description: |
+      银监会等四部委发布《网络借贷信息中介机构业务活动管理暂行办法》,
+      P2P 平台密集出清; 银行 fintech 战略由对抗转为合作。
+    treatment_logic: "与 P2P 业务有交集的银行 = treated (bank-level continuous exposure)"
+    identification: "bank-level continuous exposure (与 P2P 业务 pre-2016 媒体共现强度 × post-event dummy)"
+    applicable_papers: [P1, P2, P3]
+    reference: "银保监会 (2016) 〔2016〕1 号文"
+
+  - id: E3
+    date: 2017-04-27
+    name: asset_management_rules
+    name_zh: 资管新规
+    description: |
+      央行等四部委《关于规范金融机构资产管理业务的指导意见》征求意见稿;
+      正式稿 2018-04-27 发布; 银行理财业务彻底变革。
+    treatment_logic: "理财业务占比高的银行 = treated (连续 treatment)"
+    identification: "cross-sectional intensity DiD (pre-2017 银行理财业务占比 × post 2017 dummy; 不是 staggered DiD, 因为政策对所有银行同时生效)"
+    applicable_papers: [P1, P3]
+    reference: "央行 (2018) 银发〔2018〕106 号"
+
+  - id: E4
+    date: 2020-11-03
+    name: ant_ipo_pause
+    name_zh: 蚂蚁集团 IPO 暂停
+    description: |
+      上交所、港交所同日暂停蚂蚁集团 IPO; 标志监管对 fintech 巨头态度反转。
+      触发银行 fintech 战略从"拥抱 BigTech"转向"自建"。
+    treatment_logic: "与蚂蚁有股权 / 合作关系的银行 = treated"
+    identification: "bank-level continuous exposure (与蚂蚁 / 网商银行 / 余额宝 pre-2020 关联强度 × post-event dummy)"
+    applicable_papers: [P1, P2, P3, P4]
+    reference: "经济研究多篇 2021-2022"
+
+  - id: E5a
+    date: 2022-09-01
+    name: data_export_assessment_rules
+    name_zh: 数据出境安全评估办法 (实施)
+    description: |
+      国家网信办《数据出境安全评估办法》正式实施 (2022-07-07 公布, 2022-09-01 实施);
+      银行跨境 fintech 业务首批受限。
+    treatment_logic: "跨境业务银行 = treated (binary)"
+    identification: "binary treated × post-event dummy + bank FE"
+    applicable_papers: [P2, P4]   # R28-M01 + R3-M07: P2 加 (跨境 attention intensity)
+    reference: "网信办 (2022) 第 11 号令"
+
+  - id: E5b
+    date: 2023-09-30
+    name: data_export_management_rules
+    name_zh: 数据出境管理办法 (规范促进)
+    description: |
+      国家网信办《促进和规范数据跨境流动规定》;
+      底层技术 (云 / 数据中心) 跨境合规要求进一步明确, 与 E5a 复合 treatment。
+    treatment_logic: "跨境业务银行 = treated (binary); 可与 E5a 联合 DiD"
+    identification: "binary treated × post-event dummy; 或与 E5a 复合 (双 event)"
+    applicable_papers: [P2, P4]
+    reference: "网信办 (2023) 第 16 号令"
+
+# ----------------------------------------------------------------------------
+# Plan §5.7.1 spec count check (17 DiD specs):
+#   E1 × {P1,P2,P3,P4} = 4
+#   E2 × {P1,P2,P3}    = 3
+#   E3 × {P1,P3}       = 2
+#   E4 × {P1,P2,P3,P4} = 4
+#   E5a × {P2,P4}      = 2
+#   E5b × {P2,P4}      = 2
+#   Total              = 17
+# ----------------------------------------------------------------------------

@@ -1,0 +1,101 @@
+* ============================================================================
+* 18_attention_robustness.do — Table 5 advanced robustness (bank_fintech_attention / P2)
+* Paper: {{PAPER_ID}}
+* Plan: §5.9.2 + R6-M02 — 7 通用维度 + paper-specific alternative measure
+*
+* 7 通用维度:
+*   (1) Oster (2019) δ stability (target δ ≥ 0.5)
+*   (2) Romano-Wolf stepdown (rwolf)
+*   (3) Honest DiD (Rambachan-Roth 2023) M ∈ {0, 0.5, 1, 2}×∆̂
+*   (4) Wild cluster bootstrap (boottest)
+*   (5) Placebo / randomization (ritest)
+*   (6) Spillover SUTVA check
+*   (7) Sample cuts (excl 国有 6 / excl 农商行 / excl 上市子样本 / excl pre_period 2007-2012)
+* + Paper-specific alternative measure: attention_index_full vs ctx vs disp vs pct
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* ============================================================================
+* (1) Oster (2019) δ stability — requires `psacalc` (SSC)
+* ============================================================================
+* ssc install psacalc, replace
+* psacalc delta {{MAIN_TREAT}}, rmax(1.3 r²) mcontrol($controls)
+
+* ============================================================================
+* (2) Romano-Wolf stepdown
+* ============================================================================
+* rwolf {{MAIN_DV}}, indepvar({{MAIN_TREAT}}) controls($controls) reps(1000) ///
+*       method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
+
+* ============================================================================
+* (3) Honest DiD (Rambachan-Roth 2023) — 4 M-bands
+* ============================================================================
+* honestdid, l_vec(...) m_grid(0 0.5 1 2)
+* Main spec: M = 1 × max|∆̂_pre|; sensitivity table shows all 4 bands (R5-m06).
+
+* ============================================================================
+* (4) Wild cluster bootstrap (boottest)
+* ============================================================================
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+boottest {{MAIN_TREAT}}, reps(9999) seed({{RANDOM_SEED}})
+eststo wild_boot
+
+* ============================================================================
+* (5) Placebo / randomization inference (ritest)
+* ============================================================================
+* ritest {{MAIN_TREAT}} _b[{{MAIN_TREAT}}], reps(1000): ///
+*     reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+
+* ============================================================================
+* (6) Spillover SUTVA — peer-attention placebo
+* ============================================================================
+* capture confirm variable peer_attention_placebo
+* if !_rc {
+*     reghdfe {{MAIN_DV}} peer_attention_placebo $controls, ///
+*         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+* }
+
+* ============================================================================
+* (7) Sample cuts
+* ============================================================================
+* excl 国有 6 (bank_type == 1)
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_type != 1, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo excl_soe6
+
+* excl pre_period (2007-2012)
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if year >= 2013, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo excl_pre
+
+* ============================================================================
+* (8) Paper-specific: alternative attention measure (ctx / disp / pct)
+* ============================================================================
+foreach alt in attention_index_ctx attention_disp_full attention_pct_full {
+    capture confirm variable `alt'
+    if !_rc {
+        reghdfe {{MAIN_DV}} `alt' $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo alt_`alt'
+    }
+}
+
+esttab wild_boot excl_soe6 excl_pre alt_* using "$tables_dir/table5_robustness.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Table 5 — Advanced Robustness (P2 attention)") ///
+    addnotes("Oster δ / rwolf / Honest DiD / ritest output in supplemental log; Honest DiD M-grid figure in 30_figure1_event_study.do.")
+
+display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"

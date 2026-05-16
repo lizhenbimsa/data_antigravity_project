@@ -92,12 +92,19 @@ def get_papers_assets_root(project_config: dict[str, Any] | None = None) -> Path
 
 # 论文 ID 白名单 — 与 papers/<paper_id>/ 目录一一对应。
 # Phase 3c/3d 实际建包后逐项启用；Phase 3e 的 run_paper.py CLI 也复用这份集合。
+# Plan v2.x M0.2 (paper_registry): 扩展到 8 paper (5 existing + 3 new B-route 2/3/4)。
+# 真正 spec 来源 = papers/<paper_id>/paper_spec.yaml (paper_registry.py 加载);
+# 这里保留 frozenset 作为快速 ID 校验入口, 与 paper_registry.PAPER_IDS_ALL 保持一致。
 _VALID_PAPER_IDS: frozenset[str] = frozenset({
     'bank_fintech_tone',
     'benefit_society',
     'brokerage_network',
     'llm_peer',
     'strategic_diff',
+    # M0.2 B-route additions (per plan §B.2-B.4):
+    'bank_fintech_attention',
+    'bank_fintech_substance',
+    'bank_fintech_locus',
 })
 
 

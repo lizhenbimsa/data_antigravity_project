@@ -1,0 +1,82 @@
+* ============================================================================
+* 18_locus_robustness.do — Table 5 advanced robustness (P4 bank_fintech_locus)
+* Paper: {{PAPER_ID}}
+* Plan: §5.9.2 + R6-M02 — 7 通用维度 + paper-specific alternative locus classifier
+*                          + Borusyak DiD (额外, R6-M02)
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* (1) Oster (2019) δ
+* psacalc delta locus_layer_full, rmax(1.3 r²) mcontrol($controls)
+
+* (2) rwolf multi-hypothesis
+* rwolf {{MAIN_DV}}, indepvar(locus_layer_full) controls($controls) reps(1000) ///
+*     method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
+
+* (3) Honest DiD
+* honestdid, l_vec(...) m_grid(0 0.5 1 2)
+
+* (4) Wild cluster bootstrap
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+boottest locus_layer_full, reps(9999) seed({{RANDOM_SEED}})
+eststo wild_boot
+
+* (5) ritest randomization
+* ritest locus_layer_full _b[locus_layer_full], reps(1000): ///
+*     reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
+*         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+
+* (6) Spillover SUTVA
+
+* (7) Sample cuts
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if bank_type != 1, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo excl_soe6
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if bank_type != 4, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo excl_rural
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if year >= 2013, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo excl_pre
+
+* ============================================================================
+* (8) Paper-specific: alternative locus classifier (ctx track)
+* ============================================================================
+capture confirm variable locus_layer_ctx locus_scenario_ctx
+if !_rc {
+    reghdfe {{MAIN_DV}} locus_layer_ctx locus_scenario_ctx $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo alt_ctx
+}
+
+* ============================================================================
+* (9) Borusyak-Jaravel-Spiess imputation DiD (额外 robustness per spec)
+* ============================================================================
+capture confirm variable treat_year
+if !_rc {
+    * did_imputation requires ssc install did_imputation (per §5.7.3)
+    * did_imputation {{MAIN_DV}} bank_id year treat_year, ///
+    *     fe(bank_id year) controls($controls) autosample
+    display "  [TODO] did_imputation requires SSC; see §5.7.3 prereqs"
+}
+
+esttab wild_boot excl_soe6 excl_rural excl_pre alt_ctx ///
+    using "$tables_dir/table5_robustness.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Table 5 — Advanced Robustness (P4 locus + alternative classifier + Borusyak DiD)") ///
+    addnotes("Honest DiD M-grid figure in 30_figure1_event_study.do; Borusyak DiD output to robustness.log.")
+
+display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"

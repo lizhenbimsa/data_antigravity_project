@@ -1,0 +1,72 @@
+* ============================================================================
+* 18_substance_robustness.do — Table 5 advanced robustness (P3 bank_fintech_substance)
+* Paper: {{PAPER_ID}}
+* Plan: §5.9.2 + R6-M02 — 7 通用维度 + paper-specific alternative substantiveness track
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* (1) Oster (2019) δ
+* psacalc delta {{MAIN_TREAT}}, rmax(1.3 r²) mcontrol($controls)
+
+* (2) rwolf multi-hypothesis
+* rwolf {{MAIN_DV}}, indepvar({{MAIN_TREAT}}) controls($controls) reps(1000) ///
+*     method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
+
+* (3) Honest DiD
+* honestdid, l_vec(...) m_grid(0 0.5 1 2)
+
+* (4) Wild cluster bootstrap
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+boottest {{MAIN_TREAT}}, reps(9999) seed({{RANDOM_SEED}})
+eststo wild_boot
+
+* (5) ritest
+* ritest {{MAIN_TREAT}} _b[{{MAIN_TREAT}}], reps(1000): ///
+*     reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+
+* (6) Spillover SUTVA
+* (paper-specific: bank fintech announcement spillover via共现 network)
+
+* (7) Sample cuts — excl 国有 6 / excl 农商行 / excl pre_period
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_type != 1, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo excl_soe6
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_type != 4, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo excl_rural
+reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if year >= 2013, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo excl_pre
+
+* ============================================================================
+* (8) Paper-specific: alternative substantiveness track (ctx + gap)
+* ============================================================================
+foreach alt in innovation_substantiveness_ctx substantive_minus_symbolic_gap {
+    capture confirm variable `alt'
+    if !_rc {
+        reghdfe {{MAIN_DV}} `alt' $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo alt_`alt'
+    }
+}
+
+esttab wild_boot excl_soe6 excl_rural excl_pre alt_* ///
+    using "$tables_dir/table5_robustness.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Table 5 — Advanced Robustness (P3 substance)") ///
+    addnotes("Honest DiD M-grid figure in 30_figure1_event_study.do.")
+
+display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"

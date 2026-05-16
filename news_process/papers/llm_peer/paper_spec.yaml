@@ -1,0 +1,54 @@
+# Paper spec for llm_peer (existing, retrofit per plan §5.2.2 M0.1b)
+# Derived from papers_assets/llm_peer/README.md.
+# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+
+paper_id: llm_peer
+spec_version: 2.0.0
+status: existing
+differentiation_claim: |
+  llm_peer 用 LLM 判定的语义同业关系 (vs 传统 SIC 行业代码) 构造 leave-one-out
+  工具变量, 估计同业语调溢出对银行 fintech 战略响应的因果效应。
+  锚定: Cao, Li, Wang & Zhao 2025 RAS + Stock-Yogo 2005 + Kleibergen-Paap 2006 + Manski 1993 RES。
+  跨 paper 区分:
+  - 与 P1 (tone): llm_peer 用 LLM peer 网络 IV; P1 仅 firm-level tone
+  - 与 P2 (attention): llm_peer 用 LLM peer IV (语义同业); P2 fallback Bartik (银行类型分类)
+  - 与 P3 (substance): llm_peer 不做 W&Z 实质性
+  - 与 P4 (locus): llm_peer 用 LLM 语义同业; P4 用 4 银行类型分类同业 — 命名 surface-相似但 peer 定义机制完全不同
+  - 与 benefit_society: llm_peer 用 LLM peer IV; benefit_society 用 firm-level 态度
+  - 与 brokerage_network: llm_peer 用 LLM-determined 语义同业; brokerage 用共现网络中心性
+  - 与 strategic_diff: llm_peer 用 LLM 同业 IV; strategic_diff 用文本表征差异
+
+outcome:
+  primary: roa
+  secondary: [car_3day, tobin_q]
+  enrichment_source: pipeline + CSMAR ROA/CAR/Tobin_Q
+
+treatment:
+  primary: llm_peer_tone_iv_full   # endogenous: 同业语调溢出
+  alternative: [llm_peer_tone_iv_ctx]
+
+controls:
+  bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth, llm_peer_count, peer_compete_idx]
+  year_level: [gdp_growth, m2_growth]
+  fixed_effects: [bank_fe, year_fe]
+
+identification:
+  baseline: llm_peer_2sls
+  iv:
+    primary: llm_peer_tone_loo_full   # leave-one-out 语义同业均值 (instrument for endogenous peer_tone)
+    fallback: llm_peer_tone_loo_ctx
+
+event_studies: []  # cross-sectional IV identification; no policy shocks
+
+targets:
+  primary_outlet: RAS  # Cao et al. 2025 RAS 类比
+  ambitious_outlet: RFS
+  backup_outlet: [JFE, JF, JCF]
+  submission_window: 2027-03-15
+
+sample:
+  n_bank_min: 84
+  t_year: 2
+  obs_target_min: 168
+
+audit_rounds_target_min: 8

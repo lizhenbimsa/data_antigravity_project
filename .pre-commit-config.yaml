@@ -30,7 +30,10 @@ repos:
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Pin to a specific tag; ruff itself ships frequent breaking releases.
-    rev: v0.8.0
+    # F-62 (2026-05-16): bumped v0.8.0 → v0.15.12 because pyproject.toml uses
+    # UP045 selector (added in ruff > 0.8) — old pin caused immediate hook
+    # failure on every commit. v0.15.12 matches the local env ruff version.
+    rev: v0.15.12
     hooks:
       - id: ruff
         # Reuses [tool.ruff] config from pyproject.toml; do NOT pass --fix

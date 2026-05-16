@@ -1,0 +1,81 @@
+* ============================================================================
+* 17_attention_heterogeneity.do — Table 4 heterogeneity (bank_fintech_attention / P2)
+* Paper: {{PAPER_ID}}
+* Plan: §5.5.2 P2 heterogeneity per R6-M03/M04 + R7-m01 small-cell warning
+*
+* Heterogeneity dimensions (NOT full Cartesian per R7-m01; cell N<10 → skip/caveat):
+*   (a) 4 bank types (国有 6 / 股份制 12 / 城商行 ~130 / 农商行 ~350)
+*   (b) Fintech wave segments (pre/wave_1/wave_2/consolidation/wave_3, R10-m03 main spec
+*       = treatment × wave_dummies interaction)
+*   (c) SOE × non-SOE
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* ============================================================================
+* (a) Heterogeneity by 4 bank_type categories
+* ============================================================================
+capture confirm variable bank_type
+if !_rc {
+    levelsof bank_type, local(types)
+    foreach t of local types {
+        count if bank_type == `t' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_type == `t', ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            eststo type_`t'
+        }
+        else {
+            display "  [SKIP] bank_type=`t' has only " r(N) " obs (< 10; per R7-m01 small-cell warning)"
+        }
+    }
+}
+
+* ============================================================================
+* (b) Fintech wave × treatment interaction (R10-m03 main spec)
+* ============================================================================
+capture confirm variable wave_1 wave_2 consolidation wave_3
+if !_rc {
+    foreach w in wave_1 wave_2 consolidation wave_3 {
+        gen treat_x_`w' = {{MAIN_TREAT}} * `w'
+    }
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} wave_1 wave_2 consolidation wave_3 ///
+        treat_x_wave_1 treat_x_wave_2 treat_x_consolidation treat_x_wave_3 ///
+        $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo wave_interact
+}
+else {
+    display "  [WARN] wave indicators 不在 panel (per spec.event_studies E1/E2/E4/E5a/E5b)"
+}
+
+* ============================================================================
+* (c) SOE × non-SOE split
+* ============================================================================
+capture confirm variable soe
+if !_rc {
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if soe == 1, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo soe_1
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if soe == 0, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo soe_0
+}
+
+esttab type_* wave_interact soe_* using "$tables_dir/table4_heterogeneity.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Table 4 — Heterogeneity (P2 attention; bank type × wave × SOE)") ///
+    addnotes("Small-cell warning (R7-m01): cell N<10 skipped; report ≥ 10 only." ///
+             "Wave segments per spec.heterogeneity_wave (R10-m03 main spec = interaction).")
+
+display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex"

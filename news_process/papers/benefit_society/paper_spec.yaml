@@ -1,0 +1,51 @@
+# Paper spec for benefit_society (existing, retrofit per plan §5.2.2 M0.1b)
+# Derived from papers_assets/benefit_society/README.md + analysis/tables/figures.
+# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+
+paper_id: benefit_society
+spec_version: 2.0.0
+status: existing
+differentiation_claim: |
+  benefit_society 用 LLM-Embedding 双极锚点投影 (a_j = cos(s_j, pos-neg)) 测度
+  银行 FinTech 报道的"经营效益态度", 检验对银行绩效与 Token/Hidden 采纳行为的影响。
+  锚定: Jha-Liu-Manela 2026 RFS §1.3.2 + Westphal-Zajac 2001 ASQ + Distel et al. 2026 RP。
+  跨 paper 区分:
+  - 与 P1 (tone): benefit_society 度量态度 (双极锚点投影强度, 不是情感方向); P1 度量 sign + magnitude tone
+  - 与 P2 (attention): benefit_society 度量态度; P2 度量曝光强度 (count)
+  - 与 P3 (substance): benefit_society 不做 W&Z 二元 substantive 标签; 只做态度投影
+  - 与 P4 (locus): benefit_society 不区分 locus; 只做态度投影
+  - 与 brokerage_network: benefit_society 不构造网络中心性, 仅 firm-level 态度投影
+  - 与 llm_peer: benefit_society 不构造 LLM peer 网络 IV, 仅 firm-level 态度
+  - 与 strategic_diff: benefit_society 不做多文本表征比较, 仅 firm-level 态度
+
+outcome:
+  primary: roa
+  secondary: [car_3day, token_adopt_kw_p50, hidden_adopt_kw_p50, subst_adopt_kw_p50]
+  enrichment_source: pipeline stage 21_tone_llms + 24_herd_decay + 40_panel_yearly (benefit_mean_full 字段); ROA / CAR 从 CSMAR 补充
+
+treatment:
+  primary: benefit_mean_full   # 双极锚点投影态度均值
+  alternative: [benefit_pos_frac_full]
+
+controls:
+  bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
+  year_level: [gdp_growth, m2_growth]
+  fixed_effects: [bank_fe, year_fe]
+
+identification:
+  baseline: long_panel_within_bank_within_year
+
+event_studies: []  # benefit_society 主回归不依赖外生 shock; cross-sectional within-bank within-year
+
+targets:
+  primary_outlet: RFS  # Jha-Liu-Manela 2026 RFS 类比
+  ambitious_outlet: RFS
+  backup_outlet: [JFE, JF, JBF]
+  submission_window: 2027-03-15
+
+sample:
+  n_bank_min: 84  # v3.3.0 baseline
+  t_year: 2
+  obs_target_min: 168
+
+audit_rounds_target_min: 8  # benefit_society v2.12 实测 14 轮

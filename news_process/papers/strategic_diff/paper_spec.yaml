@@ -1,0 +1,55 @@
+# Paper spec for strategic_diff (existing, retrofit per plan §5.2.2 M0.1b)
+# Derived from papers_assets/strategic_diff/README.md.
+# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+
+paper_id: strategic_diff
+spec_version: 2.0.0
+status: existing
+differentiation_claim: |
+  strategic_diff 用多文本表征方法 (TF-IDF char / TF-IDF jieba / LDA+JSD /
+  Embedding / Centroid) 测度银行金融科技战略差异度, 检验 N-邻 (N=3..7) 敏感性、
+  与产品市场流动性的关系、SOE 异质性、Bartik IV 因果识别。
+  锚定: Guzman-Li 2023 MS + Hoberg-Phillips 2016 JPE + Hoberg-Phillips-Prabhala 2014 JF + 谢佳松 2025 经济研究。
+  跨 paper 区分:
+  - 与 P1 (tone): strategic_diff 度量 N-邻文本差异度 (distinctness); P1 度量 firm tone
+  - 与 P2 (attention): strategic_diff 度量 distinctness; P2 度量 exposure 强度
+  - 与 P3 (substance): strategic_diff 不做 W&Z 二元 substantive 标签
+  - 与 P4 (locus): strategic_diff 不区分 locus
+  - 与 benefit_society: strategic_diff 用多文本表征差异; benefit_society 用单一态度投影
+  - 与 brokerage_network: strategic_diff 用文本表征差异; brokerage 用网络位置
+  - 与 llm_peer: strategic_diff 用 N-邻文本距离; llm_peer 用 LLM 语义同业 IV
+
+outcome:
+  primary: roa
+  secondary: [strat_fluidity, car_3day]
+  enrichment_source: pipeline strat_diff_n{3..7} + CSMAR ROA
+
+treatment:
+  primary: strat_diff_n5   # N=5 TF-IDF char 默认
+  alternative: [strat_diff_n3, strat_diff_n4, strat_diff_n6, strat_diff_n7, strat_sim_max, centroid_diff_full, coh_tfidf_c_full]
+
+controls:
+  bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
+  year_level: [gdp_growth, m2_growth]
+  fixed_effects: [bank_fe, year_fe]
+
+identification:
+  baseline: long_panel_within_bank_within_year
+  iv:
+    primary: bartik_type_iv_full   # Bartik IV (instrument for llm_vote_tone_full per README)
+    fallback: bartik_type_iv_ctx
+
+event_studies: []  # strategic_diff 主回归是 cross-sectional + Bartik IV; 无 paper-specific event
+
+targets:
+  primary_outlet: MS  # Guzman-Li 2023 MS 类比
+  ambitious_outlet: MS
+  backup_outlet: [SMJ, AMJ, JFQA]
+  submission_window: 2027-03-15
+
+sample:
+  n_bank_min: 84
+  t_year: 2
+  obs_target_min: 168
+
+audit_rounds_target_min: 8

@@ -1,0 +1,66 @@
+# Paper spec for P2 — bank_fintech_attention (new, per plan §B.2)
+# Authoritative source of truth at M0 G0 acceptance.
+# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+
+paper_id: bank_fintech_attention
+spec_version: 2.0.0
+status: new
+differentiation_claim: |
+  P2 度量银行被 fintech 媒体话题"曝光"的强度，独立于情感方向。
+  方法对标 Hassan et al. 2019 QJE 的 firm-level political risk exposure。
+  R17-m01 + R21-m01 跨 paper 区分 (B-route 3 + existing 4 paper, 共 7 对照):
+  - 与 P1 (tone): P2 度量曝光强度 (cumulative attention without sign); P1 度量情感方向 (sign + magnitude); 二者独立 channel
+  - 与 P3 (substance): P2 度量媒体对银行的曝光强度 (cumulative attention from media); P3 度量银行 fintech 公告的 W&Z 实质性 vs 象征性
+  - 与 P4 (locus): P2 度量曝光强度 (1D scalar); P4 区分底层 vs 应用场景 (2D treatment pair)
+  - 与现有 llm_peer: P2 不构造 LLM-determined peer 网络 IV; llm_peer 用 leave-one-out semantic peer; 二者 IV 机制不同 (P2 fallback Bartik shift-share; llm_peer 语义同业)
+  - 与现有 brokerage_network: P2 不构造网络中心性, 仅用 firm-level attention; brokerage 用 betweenness/constraint/eigenvector + 二阶语调 IV
+  - 与现有 benefit_society: P2 度量曝光强度 (count); benefit_society 度量态度 (LLM-Embedding 投影强度), 性质不同
+  - 与现有 strategic_diff: P2 度量 firm 自身 attention 量; strategic_diff 度量 firm 在 N-邻群中的战略差异度 (distinctness)
+
+outcome:
+  primary: ln_fintech_investment  # 银行年报 fintech 投入披露
+  secondary: [m_and_a_fintech, patent_fintech_count, employee_growth_it]
+  enrichment_source: M0.5.11 (CSMAR 年报 ln_fintech_investment / Tonghuashun M&A / IncoPat patent / CSMAR employee)
+
+mediator:  # R8-M01 + R47-M01 + R63-M01: mediator 紧跟 outcome (与 §B.4 + schema 顺序一致)
+  primary: ln_fintech_mdna_length
+  source: 银行年报 MD&A 章节文本长度 (enrichment M0.5.11; observable proxy 对应 §5.5.2 P2 16_mechanism)
+
+treatment:
+  primary: attention_index_full
+  secondary: [attention_index_ctx, attention_disp_full, attention_pct_full]
+  source: "stage 14_fintech_intensity 衍生 (R36-m01 - 4 attention 度量 index_full/index_ctx/disp/pct; M0 G0 时按 14_fintech_intensity.parquet schema 对齐 actual column names)"
+
+controls:
+  bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
+  year_level: [gdp_growth, m2_growth]
+  fixed_effects: [bank_fe, year_fe]
+
+identification:
+  baseline: staggered_did_callaway_santanna  # 适用 E1/E4 (timing variation events)
+  iv:
+    primary: leave_one_out_peer_attention_iv  # firm-level 兼容
+    fallback: bartik_attention_iv             # 需要 pre-2007 bank fintech-lending share
+    # R5-m03 与 llm_peer paper 区别: P2 leave-one-out peer = 银行类型 (国有 / 股份制 / 城商 / 农商)
+    # 子样本内同类银行 attention 均值, 不依赖 LLM 语义判定; llm_peer paper 用 LLM-determined
+    # semantic peer (Cao 2025 RAS 风格的语义相似度), 与 P2 的 4 类银行分类完全不同。
+
+event_studies:  # P2 applicable events 引用 Appendix C event id
+  - E1   # 2013-06-13 yuebao_launch
+  - E2   # 2016-08-24 p2p_regulation
+  - E4   # 2020-11-03 ant_ipo_pause
+  - E5a  # 2022-09-01 data_export_assessment_rules
+  - E5b  # 2023-09-30 data_export_management_rules
+
+targets:
+  primary_outlet: JCF
+  ambitious_outlet: JFE
+  backup_outlet: [JBF, JFI]
+  submission_window: 2027-03-15
+
+sample:
+  n_bank_min: 200
+  t_year: 18
+  obs_target_min: 3000
+
+audit_rounds_target_min: 8
