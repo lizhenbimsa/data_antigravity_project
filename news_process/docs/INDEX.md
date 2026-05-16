@@ -1,5 +1,9 @@
 # news_process 文档索引（v3.2.0）
 
+## 项目级执行计划
+
+- [plan/B_route_master_plan_v2.md](plan/B_route_master_plan_v2.md) — 4 篇独立 Bank-FinTech 论文端到端执行计划 v2.0（含 M-1 数据现状审计 → M8 投稿；G-1..G8 acceptance gates；R1-R12 风险登记表；C1-C4 应急方案）
+
 ## 设计与实施指南
 
 - [配置文件拆分实施指南.md](配置文件拆分实施指南.md) — Phase 4d 七域 YAML split 设计
