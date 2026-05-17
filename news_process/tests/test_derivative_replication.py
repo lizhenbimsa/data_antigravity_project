@@ -50,12 +50,22 @@ from news_process.papers._common.derivative_replication import (  # noqa: E402
 # Constants — invariant for derivative papers
 # ============================================================================
 
-EXPECTED_DERIVATIVE_PAPERS = frozenset({
+# RR9-1: split into legacy 4 + B-route 3 — legacy-specific invariants
+# (ROA outcome, 11_table2 filename) only apply to the legacy 4.
+EXPECTED_DERIVATIVE_PAPERS_LEGACY = frozenset({
     'benefit_society',
     'brokerage_network',
     'strategic_diff',
     'llm_peer',
 })
+
+EXPECTED_DERIVATIVE_PAPERS_B_ROUTE = frozenset({
+    'bank_fintech_attention',
+    'bank_fintech_substance',
+    'bank_fintech_locus',
+})
+
+EXPECTED_DERIVATIVE_PAPERS = EXPECTED_DERIVATIVE_PAPERS_LEGACY | EXPECTED_DERIVATIVE_PAPERS_B_ROUTE
 
 REQUIRED_TIER2_KEYS = frozenset({
     'PAPER_ID', 'MAIN_DV', 'CONTROLS', 'CLUSTER_VAR', 'HET_VAR',
@@ -94,10 +104,26 @@ def test_paper_defaults_paper_id_self_consistent(paper_id):
     assert _PAPER_DEFAULTS[paper_id]['PAPER_ID'] == paper_id
 
 
-@pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS))
+@pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_LEGACY))
 def test_paper_defaults_main_dv_is_roa(paper_id):
-    """Project convention: ROA is the canonical DV across derivative papers."""
+    """Legacy 4 衍生 paper convention: ROA is the canonical DV.
+
+    RR9-1: B-route 3 new papers use paper-specific outcome.primary
+    (ln_fintech_investment / long_run_roa_change_3yr / car_5day_window) per spec
+    and are excluded from this legacy invariant."""
     assert _PAPER_DEFAULTS[paper_id]['MAIN_DV'] == 'ROA'
+
+
+@pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_B_ROUTE))
+def test_b_route_paper_defaults_main_dv_from_spec(paper_id):
+    """RR9-1: 3 new B-route paper defaults align with paper_spec.yaml outcome.primary."""
+    from news_process.papers._common.paper_registry import get_spec
+    spec = get_spec(paper_id)
+    expected_dv = spec.raw['outcome']['primary']
+    assert _PAPER_DEFAULTS[paper_id]['MAIN_DV'] == expected_dv, (
+        f"{paper_id}: defaults MAIN_DV={_PAPER_DEFAULTS[paper_id]['MAIN_DV']!r} "
+        f"differs from spec.outcome.primary={expected_dv!r} — drift detected"
+    )
 
 
 def test_brokerage_network_clusters_at_province():
@@ -183,13 +209,24 @@ def test_build_readme_contains_paper_id(paper_id, tmp_path):
 
 @pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS))
 def test_build_templates_use_reghdfe(paper_id, tmp_path):
-    """All derivative papers use reghdfe for the main regression (project convention)."""
+    """All derivative papers use reghdfe for the main regression.
+
+    RR9-1: legacy 4 papers name main regression as 11_table2*.do;
+    B-route 3 new papers use 15_<paper>_main_regression.do (per plan §5.5.2)."""
     pkg = build_derivative_replication_package(paper_id, output_root=tmp_path)
     code_dir = pkg / 'code'
-    main_table_files = list(code_dir.glob('11_table2*.do'))
-    assert main_table_files, f"{paper_id}: no 11_table2*.do file"
+    main_table_files = (
+        list(code_dir.glob('11_table2*.do'))                   # legacy 衍生
+        + list(code_dir.glob('15_*_main_regression.do'))        # B-route new
+    )
+    assert main_table_files, (
+        f"{paper_id}: no main regression file matching 11_table2*.do "
+        f"or 15_*_main_regression.do"
+    )
     content = main_table_files[0].read_text(encoding='utf-8')
-    assert 'reghdfe' in content, f"{paper_id}: 11_table2 lacks reghdfe"
+    assert 'reghdfe' in content, (
+        f"{paper_id}: {main_table_files[0].name} lacks reghdfe"
+    )
 
 
 @pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS))
