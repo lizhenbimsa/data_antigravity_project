@@ -58,10 +58,18 @@ stage_21_output:
     - llm_sentiment_ctx
     # v3.2.0 BREAKING (plan v14 §2.1): bare innovation_locus / innovation_substantiveness 删除,
     # 重命名为 _full / _ctx 双轨独立列 + dual gate 三互斥指示列
+    # v3.4.0 BREAKING (2026-05-17): Stage 3 第三维度对称扩张 (additive supplementation
+    # per Nosek 2018 PNAS) — 新增 innovation_collab_mode_{full,ctx} +
+    # innovation_collab_mode_confidence_{full,ctx} (Chesbrough 2003 + L&S 2006 SMJ).
+    # v7 列语义不变 (prompt-v7-released git tag preserved); v8 = v7 严格超集.
     - innovation_locus_full
     - innovation_locus_ctx
     - innovation_substantiveness_full
     - innovation_substantiveness_ctx
+    - innovation_collab_mode_full
+    - innovation_collab_mode_ctx
+    - innovation_collab_mode_confidence_full
+    - innovation_collab_mode_confidence_ctx
     - category_confidence_full
     - category_confidence_ctx
     - llm_verified_dual_full_only

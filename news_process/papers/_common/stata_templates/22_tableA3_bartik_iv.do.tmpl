@@ -5,9 +5,10 @@
 *   shift_{k,t}    = 类别 k 中其他银行的 leave-one-out 情感均值
 *   IV = Σ share × shift
 *
-* 双套 IV (plan v14 §3.4):
+* 双套 IV (plan v14 §3.4; v3.4.0 三套):
 *   bartik_fintech_lf_iv_*: share = innovation_locus_full 基期占比
 *   bartik_fintech_lc_iv_*: share = innovation_locus_ctx 基期占比
+*   bartik_collab_*       : share = innovation_collab_mode 基期占比 (v3.4.0, Chesbrough 2003)
 *   (Hassan 2019 QJE entity-proximity 同构)
 *
 * 必报: KP F (Kleibergen-Paap rk Wald F) + Hansen J + DWH (R32-G)

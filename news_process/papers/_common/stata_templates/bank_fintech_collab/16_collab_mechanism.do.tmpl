@@ -1,0 +1,48 @@
+* ============================================================================
+* 16_collab_mechanism.do — Mechanism: collab → R&D intensity / capex_it (P5)
+* Paper: {{PAPER_ID}}
+* v3.4.0: Chesbrough 2003 open innovation → 资源配置 → outcome 因果链
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* Mechanism A: collab → R&D intensity (自主研发强度信号; Cohen & Levinthal 1990 absorptive capacity)
+capture confirm variable r_and_d_intensity
+if !_rc {
+    reghdfe r_and_d_intensity collab_open_full collab_closed_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo Mech_RD
+}
+
+* Mechanism B: collab → capex_it (IT 资本投入)
+capture confirm variable capex_it
+if !_rc {
+    reghdfe capex_it collab_open_full collab_closed_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo Mech_CAPEX
+}
+
+* Mechanism C: collab → patent_fintech_count (创新产出)
+capture confirm variable patent_fintech_count
+if !_rc {
+    reghdfe patent_fintech_count collab_open_full collab_closed_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo Mech_PAT
+}
+
+esttab Mech_RD Mech_CAPEX Mech_PAT using "$tables_dir/table3_mechanism.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Mechanism --- bank_fintech_collab (P5)") ///
+    mtitles("R&D Intensity" "IT CapEx" "Patent Count")
+
+display "[OK] Table 3 (mechanism) → $tables_dir/table3_mechanism.tex"

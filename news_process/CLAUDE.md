@@ -12,17 +12,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v3.3.0 (multi-paper extension closed + 工程性审计执行;
-继承 v3.2.0 BREAKING — Stage 3 双轨化 + Stata 数据导出层; Prompt v7 + v8 术语正名;
-v3.2.0 引入 `innovation_locus_{full,ctx}` + `innovation_substantiveness_{full,ctx}` 双轨独立标签,
-ctx gate 改并集修复致命 R1-A, dual gate 三互斥指示列, encode.py `_lc × _ctx` + `_sc × _ctx` 对角线追加;
-新增 stage 46 Stata 数据导出 (pyreadstat → .dta + labels.do + codebook.xlsx, Stata IC ≤ 2048 兼容,
-value labels 双语 0=baseline / 1=对照);
-v3.3.0 收尾 (2026-05-16): 4 衍生论文骨架对称 + 55 Stata templates + 10 双语 manuscripts;
-F-11/F-12/F-15/F-42/F-46/F-62 工程性 finding 修复 (package_data 含 55 模板; pre-commit hook 激活);
-锚定: Hassan 2019 QJE + Sautner 2023 JF + Bingler 2022 FRL + W&Z 1994/1998 ASQ + Gomber 2018 JMIS;
-plan v14 经 62 轮审计 / 68 finding 修复 / 7 milestone M0-M6 自动执行; 详见 CHANGELOG.md v3.3.0)
-**Test baseline**: 1153 passed / 6 skipped / 0 failed (v3.2.0 +159 测试; 4 conditional skipped 等 pipeline 重跑后 unblock)
+**Current version**: v3.4.0 (Stage 3 第三维度对称扩张 + P5 立项 + epoch 5 audit;
+继承 v3.3.0 multi-paper extension closed + v3.2.0 BREAKING Stage 3 双轨化 + Stata 数据导出层;
+Prompt v7 → v8 (additive supplementation per Nosek 2018 PNAS; v7 严格超集);
+v3.4.0 BREAKING (2026-05-17): 新增 `innovation_collab_mode_{full,ctx}` + confidence_{full,ctx}
+4 LLM 列 (Chesbrough 2003 Open Innovation + Laursen & Salter 2006 SMJ 27:131-150;
+positive_class=外部协同; Stata byte 编码 0=自主研发 / 1=外部协同);
+面板聚合新增 ~30 列 (_indep / _collab 后缀; encode.py 第三维度 if-block);
+codebook + stata_export 同步; v3_3_to_v3_4 panel migration script + 11 tests;
+P5 立项 `bank_fintech_collab` (Master plan v2.55 → v2.56 epoch 5 audit, streak 3/3 pending);
+61 Stata templates (P5 6 个新增 + bank_fintech_collab/ 子目录); 12 双语 manuscripts (P5 zh + en 新增);
+git tag `prompt-v8-supplementation-released` 锚定 v3.4.0 baseline,
+`prompt-v7-released` 永不删除作 pre-registration anchor;
+LLM cost cap 4200 → 5000 (10% 裕度); calibration v5.2 delta 9 strata × 450 obs × 3 raters 文档化;
+锚定: 继承 v3.3.0 anchors + Chesbrough 2003 + Laursen & Salter 2006 SMJ + Cohen-Levinthal 1990 ASQ;
+详见 CHANGELOG.md v3.4.0)
+**Test baseline**: 1153 → ~1175 passed / 6 skipped / 0 failed (v3.4.0 +25 测试: 11 migration + 14 panel/stata/integration; 3 stale baseline failures from v3.3.0 main 不属于 v3.4.0 引入)
 
 **CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):
 - `build-replication`: 一键 instantiate 14 .do 模板 + spec 替换

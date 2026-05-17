@@ -1,0 +1,44 @@
+* ============================================================================
+* 01_data_prep.do — Load panel + xtset + globals (bank_fintech_collab / P5)
+* Paper: {{PAPER_ID}}
+* v3.4.0: 第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ)
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""  global data_dir "../data"
+if "$panel_dta" == "" global panel_dta "$data_dir/40_panel_yearly.dta"
+
+use "$panel_dta", clear
+
+capture confirm variable bank_id
+if _rc encode target_bank, gen(bank_id)
+xtset bank_id year
+
+global controls "{{CONTROLS}}"
+
+* P5 required variables: m_and_a_fintech outcome + innovation_collab_mode_full source
+foreach v in {{MAIN_DV}} innovation_collab_mode_full {
+    capture confirm variable `v'
+    if _rc {
+        display as error "[ERROR] required P5 variable `v' missing — run M0.5.11 enrichment + v3.4.0 prompt v8 stage 21 first"
+        exit 198
+    }
+}
+
+* v3.4.0: derive binary indicators (open vs closed innovation, parallel to P4 locus_layer pattern)
+* Convention: 1 = 外部协同 (external collab / open innovation), 0 = 自主研发 (in-house R&D / closed)
+capture drop collab_open_full collab_closed_full collab_gap
+gen collab_open_full   = (innovation_collab_mode_full == 1)
+gen collab_closed_full = (innovation_collab_mode_full == 0)
+gen collab_gap = collab_open_full - collab_closed_full   // ∈ {-1, +1}
+
+* Winsorize outcome
+capture which winsor2
+if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
+else gen {{MAIN_DV}}_w = {{MAIN_DV}}
+
+save "$data_dir/_prepared_panel.dta", replace
+display "[OK] P5 data prep N=" _N "; collab_open / collab_closed derived from innovation_collab_mode_full"

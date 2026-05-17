@@ -302,6 +302,40 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             category='创新属性-substantiveness',
             track=_track_zh,
         )
+        # v3.4.0 BREAKING: 第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ;
+        # additive supplementation per Nosek 2018 PNAS, v7 双维语义不变)
+        metadata[f'innovation_collab_mode{_suffix}'] = VariableMetadata(
+            var_name=f'innovation_collab_mode{_suffix}',
+            label=f'Innov. Collab Mode ({_track_en}, Chesbrough 2003)',
+            description=(f'金融科技创新协作模式 ({_track_zh}判定): '
+                         '0=自主研发 (closed innovation) / 1=外部协同 (open innovation)'),
+            data_type='Int8 (encoded byte) or str',
+            unit='类别',
+            value_range='0 (自主研发) | 1 (外部协同) | NaN',
+            formula=f'majority_vote_3LLMs(innovation_collab_mode | {_track_en} prompt)',
+            source_stage='Stage 21',
+            reference=('Chesbrough (2003) Open Innovation; '
+                       'Laursen & Salter (2006, SMJ 27:131-150); '
+                       'Hagedoorn (2002, Research Policy)'),
+            notes=(f'v3.4.0 BREAKING: 第三维度对称扩张. {_track_zh}轨独立判定. '
+                   'tie→"自主研发" (MAP under uniform prior).'),
+            category='创新属性-collab_mode',
+            track=_track_zh,
+        )
+        metadata[f'innovation_collab_mode_confidence{_suffix}'] = VariableMetadata(
+            var_name=f'innovation_collab_mode_confidence{_suffix}',
+            label=f'Collab Mode Confidence ({_track_en}, raw LLM)',
+            description=f'innovation_collab_mode{_suffix} 原始 LLM 置信度 (跨模型 row-level 平均)',
+            data_type='float',
+            unit='概率',
+            value_range='[0, 1]',
+            formula=f'mean(per_model innovation_collab_mode_confidence | {_track_en} prompt) over verifying models',
+            source_stage='Stage 21',
+            reference='Törnberg (2024) LLM verbalized confidence',
+            notes='v3.4.0: pure LLM confidence (no keyword fallback, mirrors substantiveness pattern)',
+            category='置信度-collab_mode',
+            track=_track_zh,
+        )
         metadata[f'category_confidence{_suffix}'] = VariableMetadata(
             var_name=f'category_confidence{_suffix}',
             label=f'Locus Confidence ({_track_en}, LLM+kw hybrid)',

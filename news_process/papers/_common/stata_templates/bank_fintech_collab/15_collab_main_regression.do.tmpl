@@ -1,0 +1,78 @@
+* ============================================================================
+* 15_collab_main_regression.do — Table 2 M1→M6 progressive (P5 bank_fintech_collab)
+* Paper: {{PAPER_ID}}
+* v3.4.0: 第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ)
+*
+*   DV  = {{MAIN_DV}}                  (m_and_a_fintech per spec.outcome.primary)
+*   X   = collab_open_full / collab_closed_full   (binary pair, derived in 01_data_prep)
+*
+*   Theory anchor: Chesbrough (2003) Open Innovation; Laursen & Salter (2006 SMJ 27:131-150)
+*                  search breadth & depth; Hagedoorn (2002 RP) inter-firm R&D partnerships.
+*
+* M1-M6: open vs closed innovation × M&A activity baseline.
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* M1: bare (collab open/closed pair only)
+reghdfe {{MAIN_DV}} collab_open_full collab_closed_full, ///
+    noabsorb vce(cluster {{CLUSTER_VAR}})
+eststo M1
+
+* M2: + bank FE
+reghdfe {{MAIN_DV}} collab_open_full collab_closed_full, ///
+    absorb(bank_id) vce(cluster {{CLUSTER_VAR}})
+eststo M2
+
+* M3: + bank FE + year FE
+reghdfe {{MAIN_DV}} collab_open_full collab_closed_full, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M3
+
+* M4: + bank-level controls
+reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo M4
+
+* M5: + macro
+capture confirm variable gdp_growth m2_growth
+if !_rc {
+    reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls gdp_growth m2_growth, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M5
+}
+else {
+    eststo M5: reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+}
+
+* M6: collab_gap (∈ {-1, +1}) as compact alternative (mirrors P4 locus_gap)
+capture confirm variable collab_gap
+if !_rc {
+    reghdfe {{MAIN_DV}} collab_gap $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M6_gap
+}
+
+* Test open ≠ closed coefficient (formal open-vs-closed innovation differential)
+test collab_open_full = collab_closed_full
+
+esttab M1 M2 M3 M4 M5 M6_gap using "$tables_dir/table2_main.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Main Results --- bank_fintech_collab (P5)") ///
+    mtitles("M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 collab_gap") ///
+    addnotes("bank / year FE; SE clustered at {{CLUSTER_VAR}}; open vs closed innovation baseline (Chesbrough 2003)." ///
+             "Wald test open = closed in log.")
+
+display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex (P5 Chesbrough 2003 framework)"

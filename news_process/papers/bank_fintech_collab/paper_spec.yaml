@@ -1,0 +1,84 @@
+# Paper spec for P5 — bank_fintech_collab (NEW, v3.4.0 epoch 5)
+# Authoritative source of truth at M0 G0 acceptance (epoch 5 streak 3/3 pending).
+# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+
+paper_id: bank_fintech_collab
+spec_version: 1.0.0
+status: new
+differentiation_claim: |
+  P5 度量银行 fintech 创新的"自主研发 vs 外部协同"二元属性 (Chesbrough 2003 Open Innovation
+  + Laursen & Salter 2006 SMJ search breadth & depth + Hagedoorn 2002 RP inter-firm R&D).
+  与现有 8 paper (B-route 4 + retrofit 4) 区分原则:
+  - 与 P1 (tone): P5 度量公告的组织来源属性 (二元), 与 P1 度量连续 tone 性质不同;
+    P1 主回归 tone 作 treatment, P5 主回归 collab_mode 作 treatment.
+  - 与 P2 (attention): P5 度量公告本身, P2 度量媒体对银行的 attention exposure 量.
+  - 与 P3 (substance): P3 度量 W&Z 二元 substantiveness, P5 度量 Chesbrough open
+    innovation 二元 collab_mode; 二维交叉但独立 (2³=8 cross-tab cells 论证见
+    docs/methodology/innovation_collab_mode_framework.md §2).
+  - 与 P4 (locus): P4 度量 Gomber 二元 locus (底层/应用), P5 度量 Chesbrough
+    二元 collab_mode (自主/外部); 不同框架 (Open Innovation vs Enabling Technology).
+  - 与 llm_peer: P5 不构造 LLM peer 网络 IV, 仅 firm-level collab_mode binary.
+  - 与 brokerage_network: P5 不用网络中心性, 仅 firm-level 二元标签.
+  - 与 benefit_society: P5 不做态度投影, 仅用 collab_mode 二元标签.
+  - 与 strategic_diff: P5 度量 firm 自身公告属性 (binary), strategic_diff 度量
+    N-邻群中的战略差异度.
+
+theory:
+  primary_anchors:
+    - Chesbrough (2003) Open Innovation
+    - Laursen & Salter (2006 SMJ 27:131-150)
+  secondary_anchors:
+    - Hagedoorn (2002 Research Policy 31:477-492)
+    - Cohen & Levinthal (1990 ASQ 35:128-152)
+
+outcome:
+  primary: m_and_a_fintech                # 外部协同的直接 outcome (M&A 事件计数, R&D collab 落地证据)
+  short_run: car_5day_window              # 短期市场反应 (与 P4 同窗口)
+  secondary:
+    - r_and_d_intensity                   # 自主研发的强度信号 (alternative anchor)
+    - patent_fintech_count                # 创新产出 (与 P4 共用)
+    - capex_it                            # IT 资本投入
+  construction: |
+    m_and_a_fintech[bank_b, year_t] = count(M&A events targeting fintech 标的)
+    数据源: M0.5.11 Tonghuashun m_and_a_events 模块.
+  enrichment_source: M0.5.11 (Tonghuashun M&A events + CSMAR R&D intensity + IncoPat patents)
+
+treatment:
+  primary: innovation_collab_mode_full    # v3.4.0 pipeline 实测列名 (positive_class=外部协同)
+  alternative:
+    - innovation_collab_mode_ctx          # context-conditional 轨 (Hassan 2019 QJE 同构)
+    - independent_minus_collab_gap        # derived = full - (1 - full) ∈ {-1, +1}
+  alternative_construction:
+    independent_minus_collab_gap: innovation_collab_mode_full - (1 - innovation_collab_mode_full)
+  source: pipeline/sentiment/tone_llms.py stage 21 (Chesbrough 2003 framework, v3.4.0)
+
+controls:
+  bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
+  year_level: [gdp_growth, m2_growth]
+  fixed_effects: [bank_fe, year_fe]
+
+identification:
+  baseline: long_panel_within_bank_within_year
+  # P5 无 IV (mirrors P3 spec; cross-sectional intensity DiD 替代 IV for E3 / E4 events)
+
+event_studies:
+  - E1   # 2013-06-13 yuebao_launch (fintech ecosystem 开启, 与 P4 locus 同 events)
+  - E3   # 2017-04-27 asset_management_rules
+  - E4   # 2020-11-03 ant_ipo_pause
+
+targets:
+  primary_outlet: SMJ
+  secondary_outlet: AMJ                   # cascade intermediate (mirrors P3)
+  ambitious_outlet: ASQ                   # cascade 终点
+  sequential_resubmission: |
+    SMJ → AMJ → ASQ cascade (Primary path, 完整 Chesbrough Open Innovation 框架);
+    任一阶段 reject 后改写为 absorptive capacity 框架 (Cohen & Levinthal 1990 ASQ)
+    投 Research Policy 作 Salvage path (替代锚定 + 替代 outcome 框架, 不构成 dual submission).
+  submission_window: 2027-04-09           # 较 P3 推迟 ~3.5wk (per plan R6-13 timeline shift)
+
+sample:
+  n_bank_min: 200
+  t_year: 18
+  obs_target_min: 3000
+
+audit_rounds_target_min: 8                # 与 P3/P4 同 rigor (epoch 5 streak 3/3 standard)

@@ -73,12 +73,15 @@ stages:
 innovation_tracks:
   duration_wk: 2
   resource: "llm_api + gpu"
-  cost_estimate_usd: 300
+  cost_estimate_usd: 380   # v3.4.0: +$80 for 第三维度 collab_mode (≈+27% per dim)
   tracks:
     - "32a_innovation_locus_full"
     - "32a_innovation_locus_ctx"
     - "32a_innovation_substantiveness_full"
     - "32a_innovation_substantiveness_ctx"
+    # v3.4.0: 第三维度 (Chesbrough 2003 + L&S 2006 SMJ)
+    - "32a_innovation_collab_mode_full"
+    - "32a_innovation_collab_mode_ctx"
 
 # ----------------------------------------------------------------------------
 # M0.5.9 40-46 panel + Stata export (含 v34 column expansion ≤ 5000 cols)
@@ -154,8 +157,8 @@ financial_enrichment:
 # Acceptance gate G0.5 — cost / quality budget
 # ----------------------------------------------------------------------------
 acceptance:
-  llm_cost_cap_usd: 4200      # plan §10.1 + §6 G0.5 R46-M03
-  llm_cost_estimate_usd: 4062
+  llm_cost_cap_usd: 5000      # v3.4.0 Q-B (2026-05-17): 4200 → 5000 (10% 裕度, 第三维度 collab_mode 推升预估总成本 ~$4,420-4,540; cap 上调到 5000 整数留 ~$460 裕度)
+  llm_cost_estimate_usd: 4480 # v3.4.0: 4062 → 4480 (≈+10% per prompt 扩展 + collab_mode 解析)
   panel_reproducibility:
     cache_hot: "panel-hash identical"
     cache_cold: "row diff ≤ 0.1%"

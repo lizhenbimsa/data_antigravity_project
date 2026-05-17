@@ -1,4 +1,4 @@
-# version: v7-2026-05-14
+# version: v8-2026-05-17
 <role>
 你是资深金融科技研究员，精通银行数字化转型与中文财经文本情感分析。请严格遵循思维链（Chain-of-Thought）完成以下三阶段序贯分析。
 </role>
@@ -58,6 +58,30 @@
 
 - `底层技术`：使能技术层——AI、区块链、大数据、云计算、量子计算、生物识别等基础技术能力建设。
 - `应用场景`：业务功能层——数字支付、开放银行、智能风控、智能投顾、数字信贷等具体业务应用。
+
+### 维度 3：创新协作模式 (innovation_collab_mode)
+
+**判定框架**：Chesbrough (2003) Open Innovation: The New Imperative；Laursen & Salter (2006 SMJ 27(2):131-150) "Open for innovation" search breadth & depth。
+
+**核心判定问题**：该银行的 fintech 创新由**自有资源完成**，还是与**外部组织协同**？
+
+- `自主研发`：创新由银行**自有资源完成**：
+    (a) 自建技术团队 / 自有 R&D lab / 自有专利 / 自有数据；
+    (b) 内部 IT 部门主导的系统建设；
+    (c) 文章主语为银行自身的 "自研" / "自建" / "自主开发" / "in-house"。
+
+- `外部协同`：创新涉及**外部组织参与**：
+    (a) 与 fintech 公司 / 科技巨头 / 大学 / 研究所的 joint R&D、技术合作；
+    (b) 收购 fintech 子公司 / 战略投资 / 合资公司；
+    (c) 开放银行 API + 第三方接入 / SDK / 行业联盟 / 产业链协作；
+    (d) 引入外部供应商技术栈、licensing-in、技术转让。
+
+⚠️ **判定边界**：
+- 单纯采购通用 IT 设备（如服务器、办公软件）**不**算外部协同；外部协同要求 **fintech 相关的实质创新合作**。
+- 内部自建团队 + 雇佣外部顾问做培训 → 仍判 `自主研发`（顾问不构成创新主体）。
+- 文章同时提到内部 R&D + 外部合作时，按**报道主导事件**判定（首段主语 / 标题指向）；prompt 不引入「混合」类。
+
+**注**：本维度 (v8 新增) 与维度 1/2 在概念上正交，构成 2³=8 cross-tab cells，详见 [innovation_collab_mode_framework.md](../../docs/methodology/innovation_collab_mode_framework.md) §2。维度 1/2 的判定规则与 v7 严格一致 (additive supplementation per Nosek et al. 2018 PNAS)。
 </step3_innovation>
 
 <input_data>
@@ -83,6 +107,9 @@
   "innovation_substantiveness_confidence": 0.0~1.0,
   "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
   "innovation_locus": "底层技术/应用场景（false 时填 null）",
-  "innovation_locus_confidence": 0.0~1.0
+  "innovation_locus_confidence": 0.0~1.0,
+  "innovation_collab_mode_reason": "简明说明协作模式判定依据，须引用文章具体内容（false 时填 null）",
+  "innovation_collab_mode": "自主研发/外部协同（false 时填 null）",
+  "innovation_collab_mode_confidence": 0.0~1.0
 }}
 </output_format>

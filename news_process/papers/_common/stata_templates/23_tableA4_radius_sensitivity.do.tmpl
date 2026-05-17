@@ -3,10 +3,11 @@
 * Stage 35 LLM 法升级输出 radius_sensitivity_results.json (10.5k API).
 * 此模板读 JSON → 转 .dta → 绘 heatmap κ × radius × dimension.
 *
-* 三轴 robustness (plan v14 §3.5 P5.2):
+* 四轴 robustness (plan v14 §3.5 P5.2; v3.4.0: +collab_mode 第四轴):
 *   sentiment × radius {0, 1, 2, 3}
 *   innovation_locus × radius
 *   innovation_substantiveness × radius
+*   innovation_collab_mode × radius (v3.4.0, Chesbrough 2003 + L&S 2006 SMJ)
 *
 * 阈值: 全维度 radius κ ≥ 0.70 (Landis & Koch 1977 substantial, 应稳健)
 

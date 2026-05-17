@@ -10,9 +10,10 @@
     46_panel_yearly_labels.do   # variable/value labels Stata 脚本
     46_panel_yearly_codebook.xlsx  # 人类可读变量字典
 
-关键转换 (plan v14 §9.1):
+关键转换 (plan v14 §9.1; v3.4.0 +collab_mode):
     - innovation_locus_{full,ctx} (中文 str) → byte 0=底层技术, 1=应用场景 + value label
     - innovation_substantiveness_{full,ctx} (中文 str) → byte 0=实质性, 1=象征性 + value label
+    - innovation_collab_mode_{full,ctx} (中文 str) → byte 0=自主研发, 1=外部协同 + value label  [v3.4.0]
     - NaN → . / .a / .b (extended missing for distinguishable causes)
     - 列名 ≤ 32 字符 (Stata 硬限)
     - variable label ≤ 80 字符 (Stata 硬限)
@@ -20,6 +21,7 @@
 锚定文献:
     Westphal & Zajac (1994, 1998, ASQ) substantive-symbolic
     Gomber, Kauffman, Parker, Weber (2018, JMIS) enabling tech vs business function
+    Chesbrough (2003) Open Innovation; Laursen & Salter (2006, SMJ) [v3.4.0 第三维度]
     Hassan, Hollander, van Lent, Tahoun (2019, QJE) entity-proximity attribution
 """
 from __future__ import annotations
@@ -49,6 +51,14 @@ SUBSTANTIVENESS_ENCODING: Dict[str, int] = {
     '象征性': 1,
 }
 
+# v3.4.0: 第三维度 collab_mode (Chesbrough 2003 + L&S 2006 SMJ; positive_class=外部协同)
+# 关键: 0=自主研发 (closed innovation / baseline), 1=外部协同 (open innovation / 对照)
+# 与 substantiveness/locus 同模式: 0=baseline, 1=对照 (paper 主回归 treatment 焦点)
+COLLAB_MODE_ENCODING: Dict[str, int] = {
+    '自主研发': 0,
+    '外部协同': 1,
+}
+
 # Value labels (双语 zh + EN, plan v14 §9.1 普通人版变更 20)
 LOCUS_VALUE_LABELS: Dict[int, str] = {
     0: "底层技术 (Technology)",
@@ -58,6 +68,11 @@ LOCUS_VALUE_LABELS: Dict[int, str] = {
 SUBSTANTIVENESS_VALUE_LABELS: Dict[int, str] = {
     0: "实质性 (Substantive)",
     1: "象征性 (Symbolic)",
+}
+
+COLLAB_MODE_VALUE_LABELS: Dict[int, str] = {
+    0: "自主研发 (Independent R&D / Closed Innovation)",
+    1: "外部协同 (External Collaboration / Open Innovation)",
 }
 
 
@@ -82,6 +97,12 @@ def encode_categorical_columns(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str
         if col in df.columns:
             df[col] = df[col].map(SUBSTANTIVENESS_ENCODING).astype('Int8')
             value_labels[col] = SUBSTANTIVENESS_VALUE_LABELS
+
+    # v3.4.0: 第三维度 collab_mode encoding (Chesbrough 2003)
+    for col in ['innovation_collab_mode_full', 'innovation_collab_mode_ctx']:
+        if col in df.columns:
+            df[col] = df[col].map(COLLAB_MODE_ENCODING).astype('Int8')
+            value_labels[col] = COLLAB_MODE_VALUE_LABELS
 
     return df, value_labels
 
@@ -110,6 +131,10 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
         'innovation_locus_ctx':             "Innovation Locus (Entity-context, Hassan 2019 QJE)",
         'innovation_substantiveness_full':  "Innov. Substantiveness (Full-text, W&Z 1998 ASQ)",
         'innovation_substantiveness_ctx':   "Innov. Substantiveness (Entity-ctx, Hassan 2019 QJE)",
+        'innovation_collab_mode_full':      "Innov. Collab Mode (Full-text, Chesbrough 2003)",
+        'innovation_collab_mode_ctx':       "Innov. Collab Mode (Entity-ctx, Hassan 2019 QJE)",
+        'innovation_collab_mode_confidence_full': "Collab Mode Confidence (Full-text, raw LLM)",
+        'innovation_collab_mode_confidence_ctx':  "Collab Mode Confidence (Entity-ctx, raw LLM)",
         'category_confidence_full':         "Locus Confidence (Full-text, hybrid LLM+keyword)",
         'category_confidence_ctx':          "Locus Confidence (Entity-ctx, hybrid LLM+keyword)",
         'llm_verified_dual_full_only':      "Dual Gate: Full-track only verified",
@@ -182,12 +207,15 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         'llm_vote_tone_full', 'llm_vote_tone_ctx',
         'llm_prob_score_full', 'llm_prob_score_ctx',
         'avg_llm_prob_score_full', 'avg_llm_prob_score_ctx',
-        # stage 3 双轨标签 + confidence
+        # stage 3 双轨标签 + confidence (v3.4.0: 加 collab_mode 第三维度)
         'innovation_locus_full', 'innovation_locus_ctx',
         'innovation_substantiveness_full', 'innovation_substantiveness_ctx',
+        'innovation_collab_mode_full', 'innovation_collab_mode_ctx',
+        'innovation_collab_mode_confidence_full', 'innovation_collab_mode_confidence_ctx',
         'category_confidence_full', 'category_confidence_ctx',
         'avg_il_confidence_full', 'avg_il_confidence_ctx',
         'avg_iss_confidence_full', 'avg_iss_confidence_ctx',
+        'avg_icm_confidence_full', 'avg_icm_confidence_ctx',
         # dual gate
         'llm_verified_dual_full_only', 'llm_verified_dual_ctx_only', 'llm_verified_dual_both',
         # 主子集对角线 (_lf × _full 隐式 + _lc × _ctx 显式)
@@ -328,14 +356,23 @@ def write_labels_do_file(
     lines.append('capture label drop subst_lbl')
     lines.append('label define subst_lbl 0 "实质性 (Substantive)" 1 "象征性 (Symbolic)"')
 
+    # v3.4.0: collab_mode_lbl (Chesbrough 2003 + L&S 2006 SMJ; 第三维度)
+    lines.append('capture label drop collab_mode_lbl')
+    lines.append('label define collab_mode_lbl 0 "自主研发 (Independent R&D)" 1 "外部协同 (External Collab)"')
+
     lines.append('')
     lines.append('* Apply value labels to encoded columns')
+    # v3.4.0 ordering: collab_mode 必须先于 substantiveness 检测, 避免子串误匹配
+    # ('innovation_substantiveness' 与 'innovation_collab_mode' 互不包含, 但保留显式过滤)
     locus_cols = [c for c in value_labels if 'innovation_locus' in c]
     subst_cols = [c for c in value_labels if 'innovation_substantiveness' in c]
+    collab_cols = [c for c in value_labels if 'innovation_collab_mode' in c]
     if locus_cols:
         lines.append(f'capture label values {" ".join(locus_cols)} locus_lbl')
     if subst_cols:
         lines.append(f'capture label values {" ".join(subst_cols)} subst_lbl')
+    if collab_cols:
+        lines.append(f'capture label values {" ".join(collab_cols)} collab_mode_lbl')
 
     with open(out_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')

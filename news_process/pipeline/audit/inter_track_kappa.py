@@ -29,9 +29,12 @@ from news_process.validation.radius_sensitivity_llm import cohens_kappa_2cat
 STAGE_NAME = "39a_inter_track_kappa"
 
 # Plan v1.37 §4.3.1 thresholds (from inter_track_agreement_interpretation.md).
+# v3.4.0 §J.4: 第三维度 collab_mode κ ≥ 0.45 (mirrors substantiveness fair-to-moderate
+# 标准; Chesbrough 2003 + L&S 2006 SMJ; additive supplementation per Nosek 2018 PNAS).
 _THRESHOLDS = {
     'innovation_locus': 0.50,
     'innovation_substantiveness': 0.45,
+    'innovation_collab_mode': 0.45,
 }
 
 
@@ -84,7 +87,7 @@ def compute_inter_track_kappa(df):
     """Return DataFrame with 7 columns: field, kappa_point, ci_95_low,
     ci_95_high, n_obs, threshold, passes_threshold.
 
-    One row per innovation dimension (locus, substantiveness)."""
+    One row per innovation dimension (locus, substantiveness, collab_mode [v3.4.0])."""
     rows = []
     for field, threshold in _THRESHOLDS.items():
         col_full = f"{field}_full"
@@ -171,6 +174,7 @@ def run_stage(config=None, logger=None):
         df_subset = pd.DataFrame(columns=[
             'innovation_locus_full', 'innovation_locus_ctx',
             'innovation_substantiveness_full', 'innovation_substantiveness_ctx',
+            'innovation_collab_mode_full', 'innovation_collab_mode_ctx',
             'llm_verified_dual_both',
         ])
     else:

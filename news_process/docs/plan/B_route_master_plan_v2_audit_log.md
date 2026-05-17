@@ -1,8 +1,9 @@
 # B Route Master Plan v2 — Audit Log
 
 > **Audit campaign**: Multi-round systematic audit against [`B_route_master_plan_v2.md`](B_route_master_plan_v2.md)
-> **Stop condition (current epoch 3, R73+; R74-m01 同步)**: 连续 3 轮完美 (0 finding) 独立交叉对账 (per 用户 R73 重启指令 2026-05-17)
-> **Historical stop conditions**: epoch 1 (R1-R44) 连续 7 轮 (R38-R44 achieved; reset by R45 用户 "最后一次审核" 系列); epoch 2 (R45-R72) 连续 3 轮 (R70-R72 achieved; reset by R73 用户重启指令)
+> **Current epoch**: epoch 5 IN-PROGRESS (R89+; F-211 起编; 触发原因: user 2026-05-17 决策 P5 `bank_fintech_collab` 立项 per news_process v3.4.0 PR-A; master plan v2.55→v2.56 升级)
+> **Stop condition (current epoch 5)**: 连续 3 轮完美 (0 finding) 独立交叉对账 (沿用 epoch 3/4 streak 3/3 标准)
+> **Historical stop conditions**: epoch 1 (R1-R44) 连续 7 轮 (R38-R44 achieved); epoch 2 (R45-R72) 连续 3 轮 (R70-R72 achieved); epoch 3 (R73-R84) 连续 3 轮 (R82-R84 achieved); epoch 4 (R85-R88) 连续 3 轮 (R86-R88 achieved, M0-M2 execution audit); epoch 5 (R89+) 启动 by news_process v3.4.0 P5 立项 (Chesbrough 2003 Open Innovation 第三维度)
 > **Mode**: No human in the loop; Claude self-audits and self-fixes
 > **Code-modification policy**: 不修改任何项目代码 (papers/, pipeline/, core/, tests/, CLAUDE.md, .py, .yaml, .do, .tex); 仅修改 plan 文档与本 audit log
 > **Finding severity**:
@@ -126,6 +127,31 @@
 | R86 | **0** | 0 | 0 | 0 | 0 | **clean** (epoch 4 streak 1/3; Stata template + bibliography 双视角) |
 | R87 | **0** | 0 | 0 | 0 | 0 | **clean** (epoch 4 streak 2/3; git state + registry runtime 双视角) |
 | R88 | **0** | 0 | 0 | 0 | 0 | **clean** (epoch 4 streak **3/3 — CLOSED** at R86-R87-R88; 8×12 field matrix + IV cross-ref 双视角) |
+| R89 | 1 | 0 | 1 | 0 | 0 | **fixed** (epoch 5 launch: F-211 v3.4.0 P5 立项 plan v2.55→v2.56 升级 同步 ~40 处 4-paper / 8-paper / 11-portfolio 硬编码 + DiD spec 17→20 + LLM cap 4200→5000 + Stata templates 77→84 + manuscripts 16→18); streak reset 0/3 |
+
+### Epoch 5 R89 Finding F-211 [MAJOR] — v3.4.0 P5 立项 master plan 升级
+
+**问题**: news_process v3.4.0 PR-A 锁定 8 个 user 决策 gate (Q-1/2/3/A/B/C/D/E), 其中 Q-A 立项 P5 `bank_fintech_collab` (Chesbrough 2003 + Laursen & Salter 2006 SMJ 第三 innovation 维度), Q-B 上调 LLM cost cap 4200→5000, Q-C 标注样本 n=450 / 9 strata, Q-D 全部 9 paper 完全传播 collab_mode, Q-E β documented supplementation (v8 = v7 严格超集 per Nosek 2018 PNAS). 触发 master plan v2.55 epoch 3 stabilized → v2.56 epoch 5 升级 (跳过 epoch 4 因 R85-R88 已用作 M0-M2 execution audit, 现已 CLOSED).
+
+**实测**: master plan v2.55 全文 grep 命中 ~40 处 `4 paper` / `8 paper` / `4 篇` 等硬编码引用; §2.3 academic anchors 缺 Chesbrough/L&S/Hagedoorn/Cohen-Levinthal/Nosek 5 个新 anchor; §5.7.2 / §5.7.4 / §6 G4 DiD spec 数字 17 需扩到 20 (P5 加 E1/E3/E4); §10.1 / §6 G0/G0.5 LLM cost cap $4,200 需上调 $5,000.
+
+**Fix** (本 round F-211 + plan v3.4.0 PR-A 全链工程实施同步):
+1. master plan header: v2.55 EPOCH 3 AUDIT-STABILIZED → v2.56 EPOCH 5 IN-PROGRESS
+2. §0 decision context + §2.1 scope: 4 paper → 5 paper (v2.55 4 + v2.56 P5)
+3. §2.3 academic anchors 增 5 个 v3.4.0 锚定 (Chesbrough 2003 / L&S 2006 SMJ / Hagedoorn 2002 RP / Cohen-Levinthal 1990 ASQ / Nosek 2018 PNAS)
+4. §3.x cross-paper differentiation: 4/8 paper → 5/9 paper
+5. §5.2 M0: 8 spec → 9 spec; paper_registry 8 → 9
+6. §5.5.3 Stata templates: 77 → 84 (v2.55 77 + P5 7 子目录)
+7. §5.7.2 / §5.7.4 / §6 G4: 17 DiD spec → 20 DiD spec
+8. §6 G0/G0.5 + §10.1: LLM cost cap $4,200 → $5,000; estimate $4,062 → $4,480
+9. §5.6 manuscripts: 6 new → 8 new (v2.55 3 + P5 zh/en)
+10. §5.8 audit: 4 paper × 8 轮 → 5 paper × 8 轮 = 40 轮
+11. G8 投稿 window: 2027-03-15 → 2027-04-09 (P5 加入推迟 +3.5wk)
+12. R6-13 timeline shift 显式记录
+
+**影响**: 触发 epoch 5 streak (R89 reset 0/3); 后续 R90-R91-R92 三轮独立交叉对账完美则 epoch 5 CLOSED. P1-P4 论文 limitations 段需追加 β supplementation 标准声明 (M5/M6 阶段执行; 本 PR 仅在 P5 manuscript 占位中含模板). 
+
+**Pre-registration 完整性**: `prompt-v7-released` git tag 永不删除 (P1-P4 anchor); `prompt-v8-supplementation-released` 待 PR-A 合并后创建 (v8 严格超集 anchor); `calibration-plan-v5.2-released` 同步创建. wz_framework_boundary_justification.md §4 已记录 additive vs revisionary adjustment 区分 (per Nosek et al. 2018 PNAS 115(11):2600-2606).
 
 ---
 

@@ -141,7 +141,35 @@ it does NOT alter the pre-registered classification rules in
 regressions consuming these columns are anchored to the
 1 = 象征性 / 应用场景 positive pole.
 
-## 4. Anticipated Reviewer Questions and Responses
+## §4 v3.4.0 Pre-registration β supplementation 声明 (2026-05-17)
+
+**触发事件**: 本研究在 v3.3.0 → v3.4.0 BREAKING 升级中新增第三个创新维度 `innovation_collab_mode` ∈ {自主研发, 外部协同}，锚定 Chesbrough (2003) Open Innovation + Laursen & Salter (2006 SMJ 27:131-150) framework。
+
+**Pre-registration adjustment 性质**: 根据 Nosek et al. (2018, PNAS 115(11):2600-2606) "The preregistration revolution" 第 4 节关于 pre-registration adjustment 的 "additive vs revisionary" 区分:
+
+- **additive (additive supplementation)**: 添加新的、独立的、不修改已注册元素的内容 → 允许，不构成 pre-registration violation。
+- **revisionary**: 修改已注册的判定规则 / 操作化定义 / outcome → 等同于 protocol breach，需重新注册。
+
+本研究采用 **β additive supplementation** 路径:
+
+1. **v7 的 5 个 substantive features + 5 个 symbolic mechanisms (per §3 above) 完全保留，字符级不变** (`unified_cot.txt v7` git tag `prompt-v7-released`)。
+2. **v7 的 innovation_locus 判定规则 (Gomber 2018 JMIS technology vs application) 完全保留**。
+3. **新增 innovation_collab_mode 第三维度** 作为并行 (parallel)、概念正交的判定，不修改任何 v7 已注册元素。
+4. **新 git tag `prompt-v8-supplementation-released`** 锚定 v3.4.0 baseline。`prompt-v7-released` tag **永不删除**，保留作为 v7 subset 的历史 baseline (v8 是 v7 严格超集)。
+
+**正交性论证**: 三维度 (substantiveness × locus × collab_mode) 构成 2³ = 8 cross-tab cells，每 cell 在概念上独立可识别 (详见 `innovation_collab_mode_framework.md` §2)。collab_mode 与 substantiveness 的正交性: 自主研发可以是象征性 (e.g., 内部研发声明但无落地)，外部协同也可以是实质性 (e.g., 真实并购 fintech)。collab_mode 与 locus 的正交性: 自主研发 + 底层技术 / 自主研发 + 应用场景 / 外部协同 + 底层技术 / 外部协同 + 应用场景 4 种组合均有真实案例。
+
+**审稿应对**: P1-P4 论文的 limitations 段需追加 1 段标准声明:
+
+> "Innovation collaboration mode (Chesbrough 2003) was added to the prompt schema in a v8 release subsequent to the v7 pre-registration (committed at `prompt-v7-released`). Per Nosek et al. (2018) classification of pre-registration adjustments, the v8 update constitutes an *additive supplementation* (not a revision): the v7 verification, sentiment, substantiveness, and locus criteria are preserved verbatim, character-for-character. The new collab_mode field is parallel to and conceptually orthogonal to the v7 dimensions. The v8 baseline is independently anchored at git tag `prompt-v8-supplementation-released`."
+
+**测试 gate**: `tests/integration/test_prompt_version_wired.py::test_production_prompts_have_version_header` 已拦截"未更新版本号"; bump v7→v8 通过该 gate。Cache schema (`core/caching.py` SCHEMA_VERSION=v1) 包含 prompt_version 维度，v8 prompt 自动 cache silent miss，强制重新调 API (零污染历史 v7 标注)。
+
+**长期约束**: 任何未来对 v7 已 pre-registered 元素的修改 (substantiveness / locus 判定规则、5 个 substantive features、5 个 symbolic mechanisms) 都构成 revisionary breach，须 (a) 创建新的 pre-registration commit，(b) 在所有下游论文 limitations 中显式声明，(c) 不可声称与 v7 baseline 可比。`prompt-v7-released` tag 不可删除。
+
+---
+
+## 5. Anticipated Reviewer Questions and Responses
 
 **Q1**: Why not use a more domain-specific framework (e.g., a
 fintech-specific "substantive innovation" measure)?

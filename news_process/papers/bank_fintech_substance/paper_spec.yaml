@@ -7,10 +7,13 @@ spec_version: 2.0.0
 status: new
 differentiation_claim: |
   P3 度量银行 fintech 战略宣告的"实质性 vs 象征性"差异 (W&Z 1994/1998 ASQ)。
-  R17-m01 + R21-m02 跨 paper 区分 (B-route 3 + existing 4 paper, 共 7 对照):
+  R17-m01 + R21-m02 跨 paper 区分 (B-route 4 + existing 4 paper, 共 8 对照; v3.4.0 + P5 = 9 paper):
   - 与 P1 (tone): P3 度量 W&Z 二元 substantiveness; P1 度量连续 tone — 性质不同 (实质 vs 情感)
   - 与 P2 (attention): P3 关注公告的 substantive vs symbolic 属性; P2 关注媒体对银行的 attention exposure 量
   - 与 P4 (locus): P3 度量公告的 W&Z 二元属性 (实质/象征); P4 区分公告的 locus 二元属性 (底层/应用); 二维交叉但独立
+  - 与 P5 (collab_mode, v3.4.0 epoch 4): P3 度量 W&Z 二元 substantiveness (实质/象征); P5 度量 Chesbrough
+    2003 Open Innovation 二元 collab_mode (自主研发/外部协同); 二维概念正交 (2² cross-tab cells); P3 主回归
+    保持 substantiveness 作 treatment, collab_mode 仅作 robustness control (Table 5 alternative spec).
   - 与现有 llm_peer: P3 不构造 LLM peer 网络 IV, 仅 firm-level substantiveness; llm_peer 用语义同业网络
   - 与现有 brokerage_network: P3 不用网络中心性, 仅 firm-level W&Z 二元标签; brokerage 用网络位置异质性
   - 与现有 benefit_society: P3 不做态度投影 (LLM-Embedding 双极锚点), 仅用 W&Z substantiveness 二元标签

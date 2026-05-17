@@ -1,0 +1,33 @@
+* ============================================================================
+* 17_collab_heterogeneity.do — Heterogeneity by bank type / size / location (P5)
+* Paper: {{PAPER_ID}}
+* HET_VAR per derivative_replication: bank_type (与 P2 attention 同 cut)
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* Heterogeneity by {{HET_VAR}} (per spec)
+capture confirm variable {{HET_VAR}}
+if !_rc {
+    levelsof {{HET_VAR}}, local(het_levels)
+    foreach lvl of local het_levels {
+        reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls if {{HET_VAR}} == `lvl', ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo HET_`lvl'
+    }
+    esttab HET_* using "$tables_dir/table4_heterogeneity.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("Heterogeneity by {{HET_VAR}} --- bank_fintech_collab (P5)")
+}
+
+display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex"

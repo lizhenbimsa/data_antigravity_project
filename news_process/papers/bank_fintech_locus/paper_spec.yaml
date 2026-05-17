@@ -8,10 +8,14 @@ status: new
 differentiation_claim: |
   P4 区分银行 fintech 媒体话语中的"底层技术 (区块链 / AI / 云)"与"应用场景 (支付 / 信贷 / 理财)"，
   检验差异化的市场反应与创新产出 (Gomber 2018 JMIS + Goldstein-Jiang-Karolyi 2019 RFS)。
-  R17-m01 + R21 跨 paper 区分 (B-route 3 + existing 4 paper, 共 7 对照):
+  R17-m01 + R21 跨 paper 区分 (B-route 4 + existing 4 paper, 共 8 对照; v3.4.0 + P5 = 9 paper):
   - 与 P1 (tone): P4 区分公告的 locus 二元属性 (底层/应用); P1 度量连续 tone
   - 与 P2 (attention): P4 度量 locus 二元对照 (1 paper 2 treatment indicators); P2 度量曝光强度 (单一 scalar)
   - 与 P3 (substance): P4 关注 locus (技术维度); P3 关注 substantiveness (实质 vs 象征维度) — 二维交叉但独立
+  - 与 P5 (collab_mode, v3.4.0 epoch 4): P4 度量 Gomber 2018 二元 locus (底层/应用; enabling technology
+    vs business function); P5 度量 Chesbrough 2003 二元 collab_mode (自主/外部; closed vs open innovation);
+    不同框架 (technology layer vs organization source); 二维交叉但独立 (2² cross-tab cells);
+    P4 主回归保持 locus pair 作 treatment, collab_mode 仅作 robustness control (Table 5 alternative spec).
   - 与现有 llm_peer: P4 用 leave-one-out peer locus IV (4 银行类型分类同业), llm_peer 用 LLM-determined 语义同业; 命名 surface-相似但 peer 定义机制完全不同
   - 与现有 brokerage_network: P4 不构造网络中心性 / 二阶语调 IV, 仅 firm-level locus 二元对照
   - 与现有 benefit_society: P4 度量 locus (二元层属性), benefit_society 度量态度 (LLM-Embedding 投影强度), 维度完全不同

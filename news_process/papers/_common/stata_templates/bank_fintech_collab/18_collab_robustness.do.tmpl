@@ -1,0 +1,60 @@
+* ============================================================================
+* 18_collab_robustness.do — Robustness battery (P5)
+* Paper: {{PAPER_ID}}
+* v3.4.0: Chesbrough 2003 framework robustness checks
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* R1: ctx track alternative spec (collab_open_cm vs collab_closed_cm; Hassan 2019 QJE entity-proximity)
+capture confirm variable indep_frac_cm collab_frac_cm
+if !_rc {
+    reghdfe {{MAIN_DV}} collab_frac_cm $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo R_CTX
+}
+
+* R2: alternative treatment = innovation_collab_mode_full average (continuous fraction)
+capture confirm variable collab_frac
+if !_rc {
+    reghdfe {{MAIN_DV}} collab_frac $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo R_FRAC
+}
+
+* R3: winsorized DV
+capture confirm variable {{MAIN_DV}}_w
+if !_rc {
+    reghdfe {{MAIN_DV}}_w collab_open_full collab_closed_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo R_WIN
+}
+
+* R4: drop top/bottom 1% by bank size
+capture confirm variable ln_assets
+if !_rc {
+    quietly summarize ln_assets, detail
+    local p01 = r(p1)
+    local p99 = r(p99)
+    reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls ///
+        if ln_assets > `p01' & ln_assets < `p99', ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo R_TRIM
+}
+
+esttab R_CTX R_FRAC R_WIN R_TRIM using "$tables_dir/table5_robustness.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Robustness --- bank_fintech_collab (P5)") ///
+    mtitles("Ctx track" "Frac (cont.)" "Winsor DV" "Trim 1%-99%")
+
+display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"

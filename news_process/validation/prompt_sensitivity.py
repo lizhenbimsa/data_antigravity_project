@@ -114,6 +114,8 @@ PASS_THRESHOLD_ALPHA        = PS_CFG.get('pass_threshold_alpha', 0.667)
 # v7 R6-B + R8-A: stage 3 阈值 (Westphal & Zajac 1994/1998 + Gomber 2018 框架)
 PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS = PS_CFG.get('pass_threshold_innovation_substantiveness', 0.75)
 PASS_THRESHOLD_INNOVATION_LOCUS           = PS_CFG.get('pass_threshold_innovation_locus', 0.80)
+# v3.4.0: 第三维度 collab_mode 阈值 (Chesbrough 2003 + L&S 2006 SMJ)
+PASS_THRESHOLD_INNOVATION_COLLAB_MODE     = PS_CFG.get('pass_threshold_innovation_collab_mode', 0.70)
 
 
 def _build_prompt_llm_timeout() -> aiohttp.ClientTimeout:

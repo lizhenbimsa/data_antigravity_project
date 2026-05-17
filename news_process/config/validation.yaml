@@ -63,6 +63,7 @@ prompt_sensitivity_test:
   pass_threshold_alpha: 0.667                       # Krippendorff's α 通过阈值 (≥0.667)
   pass_threshold_innovation_substantiveness: 0.70   # W6 修正: 最小 Cohen's κ ≥ 0.70 (substantial per Landis & Koch 1977); W&Z (1994/1998 ASQ) substantive-symbolic 跨变体一致性
   pass_threshold_innovation_locus: 0.70             # W6 修正: 最小 Cohen's κ ≥ 0.70 (substantial); Gomber et al. (2018 JMIS) technology-application 跨变体一致性
+  pass_threshold_innovation_collab_mode: 0.70       # v3.4.0: 最小 Cohen's κ ≥ 0.70 (mirrors substantiveness/locus); Chesbrough (2003) Open Innovation + Laursen & Salter (2006 SMJ) independent-collaborative 跨变体一致性
 
 # 阈值敏感性分析参数 (Threshold Sensitivity) - 阶段 31
 threshold_sensitivity:

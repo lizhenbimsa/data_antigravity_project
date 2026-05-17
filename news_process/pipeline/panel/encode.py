@@ -781,8 +781,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # v7 R6-H: 双轨 × 双维度的 row-level avg confidence 聚合
         # (W&Z 1994/1998 substantiveness + Gomber 2018 locus 信号强度, 由 tone_llms 多模型 avg 而来)
         # v3.2.0 修订: confidence 列名格式为 `<dim>_confidence_<track>`, 与分类列 `<dim>_<track>` 不同
+        # v3.4.0: 第三维度 collab_mode (Chesbrough 2003 Open Innovation) 加入
         for _dim_prefix, _short in [('innovation_substantiveness', 'iss'),
-                                     ('innovation_locus', 'il')]:
+                                     ('innovation_locus', 'il'),
+                                     ('innovation_collab_mode', 'icm')]:
             for _track in ['_full', '_ctx']:
                 _src = f'{_dim_prefix}_confidence{_track}'
                 _out = f'avg_{_short}_confidence{_track}'
@@ -967,6 +969,119 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 )
     else:
         logger.info("  列 'innovation_substantiveness_full' 不存在, innovation_substantiveness 分组聚合将跳过")
+
+    # --- v3.4.0: 按 innovation_collab_mode_full 分组聚合 ---
+    # 第三维度 (Chesbrough 2003 Open Innovation + Laursen & Salter 2006 SMJ;
+    # additive supplementation per Nosek 2018 PNAS, v7 substantiveness/locus 语义不变).
+    # 后缀: _indep (自主研发) / _collab (外部协同), 平行于 _sub/_symb 与 _tech/_app.
+    if 'innovation_collab_mode_full' in df.columns:
+        valid_cms = {'自主研发', '外部协同'}
+
+        actual_cms = set(df['innovation_collab_mode_full'].dropna().unique())
+        unexpected_cm = actual_cms - valid_cms
+        if unexpected_cm:
+            logger.warning(f"  innovation_collab_mode 含非预期值: {unexpected_cm}，这些文章将不计入分类聚合")
+
+        cm_mapping = [('自主研发', '_indep'), ('外部协同', '_collab')]
+
+        for cm_label, suffix in cm_mapping:
+            df_cm = df[df['innovation_collab_mode_full'] == cm_label]
+            if df_cm.empty:
+                logger.warning(f"  innovation_collab_mode '{cm_label}' 无文章，跳过 {suffix} 聚合")
+                panel[f'n_articles{suffix}'] = 0
+                continue
+
+            cm_agg = {}
+            cm_agg[f'n_articles{suffix}'] = ('llm_vote_score_full', 'count')
+
+            for track in ['_full', '_ctx', '_title']:
+                src_vote = f'llm_vote_score{track}'
+                if src_vote in df_cm.columns:
+                    cm_agg[f'llm_vote_tone{suffix}{track}'] = (src_vote, 'mean')
+
+                src_prob = f'llm_prob_score{track}'
+                if src_prob in df_cm.columns:
+                    cm_agg[f'llm_prob_score{suffix}{track}'] = (src_prob, 'mean')
+
+                if track in ('_full', '_ctx'):
+                    for short in LLM_MODELS:
+                        src_llm = f'{short}_score{track}'
+                        if src_llm in df_cm.columns:
+                            cm_agg[f'{short}_tone{suffix}{track}'] = (src_llm, 'mean')
+
+            cm_panel = df_cm.groupby(['target_bank', 'year']).agg(**cm_agg).reset_index()
+            panel = panel.merge(cm_panel, on=['target_bank', 'year'], how='left')
+            logger.info(f"  innovation_collab_mode '{cm_label}' 聚合完成: {len(cm_panel):,} 个 Bank-Year, "
+                        f"{len(cm_agg)} 个指标")
+
+        # innovation_collab_mode 计数列填充（二分类）
+        for suffix in ['_indep', '_collab']:
+            col = f'n_articles{suffix}'
+            if col in panel.columns:
+                panel[col] = panel[col].fillna(0).astype(int)
+
+        # indep_frac / collab_frac（二分类）
+        for suffix in ['_indep', '_collab']:
+            panel[f'{suffix[1:]}_frac'] = np.where(
+                panel['n_articles'] > 0,
+                panel[f'n_articles{suffix}'] / panel['n_articles'],
+                np.nan
+            )
+
+        # 情感纯度差距指标 (自主 vs 外部协同 LLM 投票情感差)
+        if 'llm_vote_tone_indep_full' in panel.columns and 'llm_vote_tone_collab_full' in panel.columns:
+            panel['tone_gap_indep_collab'] = (
+                panel['llm_vote_tone_indep_full'] - panel['llm_vote_tone_collab_full']
+            )
+
+        # innovation_collab_mode 恒等式校验（二分类）
+        if all(f'n_articles{s}' in panel.columns for s in ['_indep', '_collab']):
+            has_news = panel['n_articles'] > 0
+            cm_identity = (panel.loc[has_news, 'n_articles'] ==
+                           panel.loc[has_news, 'n_articles_indep'] +
+                           panel.loc[has_news, 'n_articles_collab'])
+            if cm_identity.all():
+                logger.info("  ✓ innovation_collab_mode 恒等式校验通过: "
+                            "n_articles == n_articles_indep + n_articles_collab")
+            else:
+                n_fail_cm = (~cm_identity).sum()
+                logger.warning(f"  ✗ innovation_collab_mode 恒等式校验失败: {n_fail_cm} 行")
+
+        # ── ctx 轨对角线追加 (与 substantiveness _sc / locus _lc 同模式) ──
+        # Chesbrough 2003 + Hassan 2019 QJE entity-proximity
+        if 'innovation_collab_mode_ctx' in df.columns:
+            for cm_label, suffix in [('自主研发', '_indep_cm_ctx'),
+                                     ('外部协同', '_collab_cm_ctx')]:
+                df_cm_cm = df[df['innovation_collab_mode_ctx'] == cm_label]
+                if df_cm_cm.empty:
+                    panel[f'n_articles{suffix}'] = 0
+                    panel[f'llm_vote_tone{suffix}'] = np.nan
+                    panel[f'llm_prob_score{suffix}'] = np.nan
+                    continue
+                _cm_agg = {
+                    f'n_articles{suffix}': ('llm_vote_score_ctx', 'count'),
+                    f'llm_vote_tone{suffix}': ('llm_vote_score_ctx', 'mean'),
+                    f'llm_prob_score{suffix}': ('llm_prob_score_ctx', 'mean'),
+                }
+                _cm_p = df_cm_cm.groupby(['target_bank', 'year']).agg(**_cm_agg).reset_index()
+                panel = panel.merge(_cm_p, on=['target_bank', 'year'], how='left')
+
+            for suffix in ['_indep_cm_ctx', '_collab_cm_ctx']:
+                if f'n_articles{suffix}' in panel.columns:
+                    panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
+            panel['indep_frac_cm'] = np.where(
+                panel['n_articles'] > 0,
+                panel['n_articles_indep_cm_ctx'] / panel['n_articles'], np.nan)
+            panel['collab_frac_cm'] = np.where(
+                panel['n_articles'] > 0,
+                panel['n_articles_collab_cm_ctx'] / panel['n_articles'], np.nan)
+
+            if 'llm_vote_tone_indep_cm_ctx' in panel.columns and 'llm_vote_tone_collab_cm_ctx' in panel.columns:
+                panel['tone_gap_indep_collab_cm_ctx'] = (
+                    panel['llm_vote_tone_indep_cm_ctx'] - panel['llm_vote_tone_collab_cm_ctx']
+                )
+    else:
+        logger.info("  列 'innovation_collab_mode_full' 不存在, innovation_collab_mode 分组聚合将跳过")
 
 
     # 新闻覆盖量对数
@@ -1160,8 +1275,15 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
         if col in panel.columns:
             panel[col] = panel[col].fillna(0).astype(int)
 
+    # --- v3.4.0: innovation_collab_mode 分类维度计数列填充为 0 (Chesbrough 2003) ---
+    for suffix in ['_indep', '_collab']:
+        col = f'n_articles{suffix}'
+        if col in panel.columns:
+            panel[col] = panel[col].fillna(0).astype(int)
+
     # 其余 NaN 列保持不变（均值、比例、离散度等由 Stata 处理）
-    # tech_frac / app_frac / sub_frac / symb_frac / avg_category_confidence: 零新闻行保持 NaN
+    # tech_frac / app_frac / sub_frac / symb_frac / indep_frac / collab_frac / avg_category_confidence:
+    # 零新闻行保持 NaN
 
     logger.info(f"  完全笛卡尔积: {len(all_banks)} 银行 × {len(all_years)} 年 = {rows_after:,} 行")
     logger.info(f"  原有观测值: {rows_before:,} 行")

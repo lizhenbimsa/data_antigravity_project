@@ -6,6 +6,106 @@
 
 ---
 
+## v3.4.0 / 2026-05-17 — feat: Stage 3 第三维度对称扩张 + P5 立项 + epoch 5 audit 启动
+
+**BREAKING**: 新增 LLM 创新属性维度 `innovation_collab_mode` ∈ {自主研发, 外部协同}, 锚定 Chesbrough (2003) Open Innovation + Laursen & Salter (2006 SMJ 27:131-150). Prompt v7 → v8 (additive supplementation per Nosek et al. 2018 PNAS; v7 严格超集). Master plan v2.55 → v2.56 触发 epoch 5 audit (streak 3/3 pending).
+
+**Scope**: 工程契约层 + P5 paper 立项骨架 + 方法学文档骨架. 实际 LLM 重跑 stage 21 (M0.5 12wk wall-time) + 人工 calibration v5.2 标注 (1,350 obs) 不在本 PR 范围.
+
+**用户决策 gate (8 个)**:
+- Q-1: 单字段二元 (与现有 dimensions 完全对称)
+- Q-2: 全链对称完整实现
+- Q-3: Chesbrough 2003 + L&S 2006 SMJ 锚定
+- Q-A: P5 立项独立论文 (paper portfolio 11 → 12)
+- Q-B: LLM cap 4200 → 5000 (10% 裕度)
+- Q-C: 人工标注 n=450 / 9 strata / 3 raters
+- Q-D: 全部 9 paper 完全传播 collab_mode
+- Q-E: β documented supplementation (v8 = v7 严格超集 + 新 git tag)
+
+### ✨ Added — 6 新文件
+
+- **`news_process/papers/bank_fintech_collab/__init__.py`** (P5 paper module 注册)
+- **`news_process/papers/bank_fintech_collab/paper_spec.yaml`** (P5 spec, schema-conform per §5.2.3.bis)
+- **`news_process/papers/bank_fintech_collab/figures.py` + `tables.py`** (M5/M6 占位)
+- **`news_process/papers/_common/stata_templates/bank_fintech_collab/`** 子目录 6 模板
+  (00_master + 01_data_prep + 15-19_collab_*; 镜像 P4 locus 结构)
+- **`news_process/papers_assets/bank_fintech_collab/`** 双语 manuscript 骨架
+  (README + manuscript_en.md + manuscript_zh.md; 8 section M3 阶段填实)
+- **`news_process/scripts/migrate/v3_3_to_v3_4_panel_upgrade.py`** 迁移脚本
+  + 配套测试 `news_process/tests/test_v3_3_to_v3_4_migration.py` (11 tests)
+- **方法学文档** 3 新建:
+  - `docs/methodology/innovation_collab_mode_framework.md` (Chesbrough 框架 + 三维度正交性论证 + Stata 编码)
+  - `docs/methodology/stage3_third_dim_plan_v3.4.0.md` (增量 plan, v3.2.0 frozen 不动)
+  - `docs/methodology/calibration_plan_v5.2_delta.md` (9 strata × 450 obs × 3 raters; v5.1 frozen 保留)
+
+### 🔧 Changed — 工程契约层
+
+- **`news_process/config/prompts/unified_cot.txt`**: v7 → v8 (additive supplementation; v7 段落字符级保留)
+  - 加入 `### 维度 3：创新协作模式 (innovation_collab_mode)` 段 (~25 行)
+  - JSON output_format 加 3 字段 (`_reason` / `_value` / `_confidence`)
+- **`news_process/config/schemas.yaml`**: `stage_21_output.required_columns` +4 列 + v3.4.0 BREAKING 注释
+- **`news_process/pipeline/sentiment/tone_llms.py`**:
+  - `VALID_BINARY_LABELS` 扩 (+ 自主研发, 外部协同)
+  - `_aggregate_track()` 16-tuple → 18-tuple (+ `innov_collab_modes` + `avg_collab_prob_score`)
+  - 解析块 + prob_score + 元组扩展 + 主循环 append + dataframe 写回 + fallback 路径
+  - `compute_prob_score_binary` docstring 更新 (3 dimensions)
+- **`news_process/pipeline/panel/encode.py`**: 第三维度聚合 if-block (~120 行, 镜像 substantiveness)
+  - confidence aggregation prefix-short 表 加 (`innovation_collab_mode`, `icm`)
+  - n_articles 0-fill 加 (`_indep`, `_collab`)
+- **`news_process/pipeline/panel/codebook.py`**: VariableMetadata for innovation_collab_mode + confidence
+- **`news_process/pipeline/panel/stata_export.py`**:
+  - `COLLAB_MODE_ENCODING` + `COLLAB_MODE_VALUE_LABELS` 新增
+  - `encode_categorical_columns` 加 collab_mode 编码
+  - `HEURISTIC_LABELS` + `core_cols` + value labels .do 切片更新
+- **`news_process/pipeline/audit/inter_track_kappa.py`**: `_THRESHOLDS` 加 `innovation_collab_mode: 0.45`
+- **`news_process/validation/prompt_sensitivity.py`**: `PASS_THRESHOLD_INNOVATION_COLLAB_MODE = 0.70`
+- **`news_process/config/validation.yaml`**: `pass_threshold_innovation_collab_mode: 0.70`
+- **`news_process/config/pipeline_v34_rerun.yaml`**:
+  - `innovation_tracks.tracks` +2 (`32a_innovation_collab_mode_{full,ctx}`)
+  - `innovation_tracks.cost_estimate_usd` 300 → 380
+  - `acceptance.llm_cost_cap_usd` 4200 → 5000 (Q-B)
+  - `acceptance.llm_cost_estimate_usd` 4062 → 4480
+- **Stata 通用模板**:
+  - `20_tableA1_inter_track_kappa.do.tmpl`: 加 `_cm_full` / `_cm_ctx` byte + κ 第 3 行 + bank-year ρ
+  - `22_tableA3_bartik_iv.do.tmpl`: 注释 `bartik_collab_*` 第 3 套 IV
+  - `23_tableA4_radius_sensitivity.do.tmpl`: 三轴 → 四轴 (含 collab_mode)
+- **`news_process/papers/bank_fintech_substance/paper_spec.yaml`**: differentiation_claim 追加 P5 段
+- **`news_process/papers/bank_fintech_locus/paper_spec.yaml`**: differentiation_claim 追加 P5 段
+- **`news_process/papers/_common/derivative_replication.py`**: 注册 `bank_fintech_collab` paper_id
+- **`news_process/docs/methodology/wz_framework_boundary_justification.md`**: 新增 §4 v3.4.0 β supplementation 声明 (Nosek 2018 PNAS additive vs revisionary)
+- **`news_process/tests/test_stage3_dual_track.py`**: 2 测试元组解包宽度 16 → 18
+
+### 📊 Test baseline
+
+- v3.3.0 baseline: 1153 passed / 6 skipped / 0 failed (per CLAUDE.md)
+- v3.4.0 baseline: ~1175 passed (+22-25 测试: 11 migration + 8 panel/codebook + 6 stata_replication)
+- 已验证 87 核心测试 (compute_prob_score_binary, majority_vote_categorical, prompt_version_wired, stage3_dual_track, stata_export, v3_3_to_v3_4_migration, panel reproducibility) + 138 + 163 integration tests 全过
+
+### ⚠️ Pre-registration
+
+- Git tag `prompt-v7-released` (existing, **永不删除**) — v7 baseline anchor for P1-P4
+- Git tag `prompt-v8-supplementation-released` (新, **PR-A 合并后创建**) — v8 = v7 严格超集 anchor
+- Git tag `calibration-plan-v5.2-released` (新, **同步创建**) — v5.2 delta anchor
+- Per Nosek et al. (2018, PNAS 115(11):2600-2606) "additive supplementation" 分类, v8 不构成 pre-registration violation; P1-P4 论文 limitations 段需追加 1 段标准声明
+
+### 📅 Master plan v2.55 → v2.56 (epoch 5)
+
+- Status: **EPOCH 4 IN-PROGRESS** (streak 3/3 pending; F-211 起编)
+- Scope: 8 paper → 9 paper (新增 P5 bank_fintech_collab)
+- Submission timeline: M8 投稿 2027-03-15 → 2027-04-09 (推迟 +3.5wk per P5 加入)
+- Audit log 见 `docs/plan/B_route_master_plan_v2_audit_log.md` (Step I 待实施, 本 PR 仅启动 round 1)
+
+### 📋 Follow-up (本 PR 不覆盖)
+
+- **Master plan v2.56 全文 修订** (~30 处 4-paper / 8-paper / 11-portfolio 硬编码): Step I 延后
+- **M0.5 stage 21 全量重跑** (12 wk wall-time, $5,000 LLM cap): user 决策 gate
+- **M3 manuscript 8 section 填实** (P5 + 8 paper limitations 声明)
+- **M5 主回归** (P5 Table 2 + P3/P4 robustness Table 5 加 collab_mode)
+- **Calibration v5.2 标注** (1,350 obs): 待 v5.1 G1 解封 + user 同意成本
+- **Memory update** (user 主动 `/remember`): `paper_portfolio_target` 11 → 12
+
+---
+
 ## v3.3.0 / 2026-05-16 — feat: multi-paper extension closed; package_data + tooling hygiene
 
 **Scope**: 把 4 个衍生论文 (benefit_society / brokerage_network / strategic_diff / llm_peer)

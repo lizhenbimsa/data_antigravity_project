@@ -122,12 +122,14 @@ def test_b_route_paper_stata_templates_exist(paper_id: str) -> None:
 
 
 def test_total_template_count_77() -> None:
-    """77 templates after RR6-1 (was 71 per plan §5.5.3 R1-M01 + R1-M27):
-    14 root + 41 existing + 22 new (16 paper-specific 15-20 + 6 orchestrator 00/01)."""
+    """v3.4.0: 84 templates (77 + 7 new bank_fintech_collab subdir per P5 立项).
+
+    v3.3.0 baseline: 77 (14 root + 41 existing + 22 new per plan §5.5.3 R1-M01 + R1-M27).
+    v3.4.0 P5 epoch 4: +7 (00_master + 01_data_prep + 15-19_collab_*) = 84 total."""
     templates = list(STATA_TEMPLATES_DIR.rglob('*.do.tmpl'))
-    assert len(templates) == 77, (
-        f"Expected 77 total templates after RR6-1, found {len(templates)}: "
-        f"= 14 root + 41 existing (17+8+8+8) + 22 new (7+8+7)"
+    assert len(templates) == 84, (
+        f"Expected 84 total templates after v3.4.0 P5 立项, found {len(templates)}: "
+        f"= 77 (v3.3.0 baseline) + 7 (bank_fintech_collab/ subdir per P5)"
     )
 
 
@@ -258,8 +260,9 @@ def test_pipeline_v34_rerun_config_loadable() -> None:
     path = PROJECT_ROOT / 'config' / 'pipeline_v34_rerun.yaml'
     assert path.is_file(), f"missing {path}"
     cfg = yaml.safe_load(path.read_text(encoding='utf-8'))
-    assert cfg['acceptance']['llm_cost_cap_usd'] == 4200, (
-        "LLM cost cap per plan §6 G0/G0.5 + §10.1 must be 4200"
+    # v3.4.0 Q-B (2026-05-17): cap 上调 4200 → 5000 (10% 裕度, collab_mode 第三维度推升预估)
+    assert cfg['acceptance']['llm_cost_cap_usd'] == 5000, (
+        "LLM cost cap per v3.4.0 Q-B must be 5000 (was 4200 in v3.3.0)"
     )
     assert cfg['panel_build']['panel_col_budget'] == 5000, (
         "panel column budget per plan §5.3.1 ≤ 5000"

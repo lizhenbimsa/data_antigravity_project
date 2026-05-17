@@ -168,6 +168,17 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'RANDOM_SEED': '20260516',
         'HET_VAR': 'is_soe',                           # per §B.4 heterogeneity (wave + SOE)
     },
+    # v3.4.0 epoch 4: P5 bank_fintech_collab (Chesbrough 2003 + L&S 2006 SMJ)
+    'bank_fintech_collab': {
+        'PAPER_ID': 'bank_fintech_collab',
+        'MAIN_DV': 'm_and_a_fintech',                  # spec.outcome.primary (P5, M&A 直接 outcome)
+        'MAIN_TREAT': 'innovation_collab_mode_full',   # spec.treatment.primary (P5, positive_class=外部协同)
+        'CONTROLS': ('ln_assets leverage capital_ratio npl_ratio deposit_growth '
+                     'gdp_growth m2_growth'),
+        'CLUSTER_VAR': 'bank_id',
+        'RANDOM_SEED': '20260516',
+        'HET_VAR': 'bank_type',                        # 按银行类型异质性 (与 P2 一致)
+    },
 }
 
 

@@ -1,30 +1,34 @@
-# B Route Master Plan v2 — 四篇独立 Bank-FinTech 论文
+# B Route Master Plan v2 — 五篇独立 Bank-FinTech 论文 (v3.4.0 P5 epoch 5)
 
-> **Status**: v2.55 **EPOCH 3 AUDIT-STABILIZED** (post 84-round self-audit; **207 plan-doc cumulative findings + 3 audit-log meta findings = 210 total**; epoch 2 streak 3/3 ACHIEVED at R70-R72 closed by 用户 R73 重启指令 "连续 3 次每轮独立交叉对账完美"; **epoch 3 streak 3/3 ACHIEVED at R82-R83-R84 (closing) per 用户 R73 重启指令**; see [audit log](B_route_master_plan_v2_audit_log.md))
+> **Status**: v2.56 **EPOCH 4 IN-PROGRESS** (streak 3/3 pending; F-211 起编; 触发原因: user 2026-05-17 决策 P5 `bank_fintech_collab` 立项 per plan v3.4.0 §I)
+> **Previous Status**: v2.55 EPOCH 3 AUDIT-STABILIZED (post 84-round self-audit; **207 plan-doc cumulative findings + 3 audit-log meta findings = 210 total**; epoch 2 streak 3/3 ACHIEVED at R70-R72; epoch 3 streak 3/3 ACHIEVED at R82-R83-R84; see [audit log](B_route_master_plan_v2_audit_log.md))
 > **Authoring date**: 2026-05-16
-> **Revision date**: 2026-05-17
+> **Revision date**: 2026-05-17 (v2.56 epoch 5 launch)
 > **Author**: Claude Opus 4.7 (1M context), authored per user directive
-> **Baseline**: news_process v3.3.0 (head commit `e815237` dated 2026-05-16; v3.3.0 涵盖 `8d33c46` 4-paper extension + `e815237` benefit_society v2.12 dual-track + F-11/F-12/F-15/F-42/F-46/F-62 fixes; 共 55 Stata templates + 10 双语 manuscripts per CLAUDE.md L15; R45-m01 clarification)
-> **Test baseline**: 1153 passed / 6 skipped / 0 failed
+> **Baseline**: news_process v3.4.0 (BREAKING upgrade from v3.3.0 `e815237`; v3.4.0 (2026-05-17) Stage 3 第三维度对称扩张 — 新增 `innovation_collab_mode_{full,ctx}` (Chesbrough 2003 + Laursen & Salter 2006 SMJ); prompt v7→v8 additive supplementation per Nosek 2018 PNAS; git tag `prompt-v8-supplementation-released`; **61 Stata templates** (= 55 v3.3.0 + 6 bank_fintech_collab/ P5 子目录) + **12 双语 manuscripts** (v3.3.0 10 + P5 zh/en); LLM cost cap 4200 → 5000)
+> **Test baseline**: 1718 passed / 5 baseline-existing failures (v3.3.0 main 即 fail, 非 v3.4.0 引入) / 2 skipped
 > **Decision context**:
-> - 用户在 A/B/C 三条路线评审后明确选定 **B 路线**（4 篇独立 paper）；
+> - 用户在 A/B/C 三条路线评审后明确选定 **B 路线**（v2.55 4 paper, **v2.56 epoch 5 加 P5 → 5 paper**）；
 > - 用户报告 raw 数据规模 = 400,000 篇媒体报道 × 500 家中国商业银行 × 2007-2024 (18 年)；
 > - **当前 pipeline ingested 仅为 9,427 → 168 obs 子集**（v1 plan 误以为这是全量）；
-> - v2 修正核心：M-1 数据现状审计 + M0.5 Pipeline 全量重跑两项前置工作。
+> - v2 修正核心：M-1 数据现状审计 + M0.5 Pipeline 全量重跑两项前置工作；
+> - **v2.56 epoch 5 触发**: 2026-05-17 P5 `bank_fintech_collab` 立项 (Chesbrough 2003 Open Innovation 第三维度); paper portfolio 11 接收 → 12 接收; LLM cap 4200 → 5000 (Q-B); 人工 calibration v5.2 9 strata × 450 obs × 3 raters (Q-C).
 > **Anchor commits**:
 > - v3.3.0 closing: `e815237` (2026-05-16)
-> - benefit_society v2.12: prior anchor for "14 rounds / 59 findings" rigor benchmark (R10-m02 commit e815237 message 实测)
+> - v3.4.0 BREAKING: (pending PR-A commit, 2026-05-17)
+> - benefit_society v2.12: prior anchor for "14 rounds / 59 findings" rigor benchmark
 > - three_dim_borrowing v1.37: prior anchor for plan-doc format standard
+> - 关联文档: [innovation_collab_mode_framework.md](../methodology/innovation_collab_mode_framework.md) / [stage3_third_dim_plan_v3.4.0.md](../methodology/stage3_third_dim_plan_v3.4.0.md) / [calibration_plan_v5.2_delta.md](../methodology/calibration_plan_v5.2_delta.md) / [wz_framework_boundary_justification.md](../methodology/wz_framework_boundary_justification.md) §4
 
 ---
 
 ## 0. Document Purpose
 
-本文档是 B 路线（4 篇独立 Bank-FinTech 论文）的端到端**项目执行计划**，不是方法学
+本文档是 B 路线（v2.55 4 篇 + v2.56 P5 = 5 篇独立 Bank-FinTech 论文）的端到端**项目执行计划**，不是方法学
 设计文档。它定义：
 
 1. **四篇论文的最终学术定位**（包括投稿目标期刊与现实顶板）；
-2. **从当前 v3.3.0 状态到 4 篇 submission-ready manuscript 的完整工程路径**；
+2. **从当前 v3.4.0 状态到 5 篇 submission-ready manuscript 的完整工程路径** (v2.55 4 + v2.56 P5)；
 3. **关键决策点 D1-D6** 与 **应急方案 C1-C4**；
 4. **风险登记表 R1-R12** 与 **acceptance gates G-1 → G8**；
 5. **资源预算**（LLM cost / GPU / 人时 / 数据成本）；
@@ -65,12 +69,12 @@
 | 工作项 | 含义 |
 |---|---|
 | **M-1** | 数据现状审计：从 raw (40 万条 / 500 银行 / 18 年) 推算实际 N_eff × T_eff，决定 Go/No-go |
-| **M0** | 设计契约冻结：8 份 paper_spec.yaml (3 新 + 5 retrofit; R2-M08) + paper_registry 扩到 8 paper |
+| **M0** | 设计契约冻结：v2.55 8 份 paper_spec.yaml (3 新 + 5 retrofit; R2-M08) **+ v2.56 epoch 5 第 9 份 P5 bank_fintech_collab** = 9 份 + paper_registry 扩到 9 paper |
 | **M0.5** | Pipeline 全量重跑：把 raw 推到 `46_panel_yearly_v34.dta` |
 | **M1** | 目录骨架镜像：在 `papers/` 和 `papers_assets/` 下新增 3 个 paper 子模块 |
 | **M2** | Stata 模板差异化：3 个新 paper 各自的"主回归+机制+异质性+稳健性"四件套 |
 | **M3** | Manuscript 骨架冻结：3 篇新 paper × en/zh × 8 section = 48 sections (5 existing manuscript 不在 M3 scope, 但 M3 G3 含 5 existing regression test) |
-| **M4** | 外生冲击 DiD 设计 (R2-M10 + R3-M07 修订): 6 events (E1-E5b) × applicable papers (per §5.7.2) = **17 DiD spec** 设计 + 平行趋势检验 + treatment 定义 |
+| **M4** | 外生冲击 DiD 设计 (R2-M10 + R3-M07 修订; v2.56 epoch 5 +P5): 6 events (E1-E5b) × applicable papers (per §5.7.2) = v2.55 **17** + v2.56 epoch 5 P5 (E1/E3/E4 applicable) **+3** = **20 DiD spec** 设计 + 平行趋势检验 + treatment 定义 |
 | **M5** | 主回归 + 机制 + 异质性章实证内容 |
 | **M6** | 稳健性 + Devil's Advocate 审稿模拟 |
 | **M7** | 内审 + 互引校准 + 投稿包 |
@@ -82,7 +86,7 @@
 |---|---|
 | 跨国 fintech 媒体数据（v1 plan 的 B2 路径）| N×T = 500 × 18 = 9,000 obs 已足够进入 top 5 银行实证下沿；跨国扩展边际收益不抵成本（3-6 月、$5K+ 数据采购）|
 | 新增 BERT 模型 fine-tune | 现有 4 BERT (FinBERT, FinBERT2, hw2942, 加上 prompt v7 三 LLM) 三角验证足够；扩展属 future work |
-| LLM 同业竞争网络 IV (`llm_peer/`) 重新设计 | 已在 v3.3.0 落地，M0 仅做 8 paper registry 注册，不重新设计 |
+| LLM 同业竞争网络 IV (`llm_peer/`) 重新设计 | 已在 v3.3.0 落地，M0 仅做 9 paper registry 注册 (v2.56 epoch 5 含 P5)，不重新设计 |
 | 新建 stage（如 stage 17/27/47）| 4 个新 paper 全部消费 `46_panel_yearly_v34.dta`，不向 DAG 注入新 stage |
 | Manual annotation 等级扩展 | 由 [calibration_plan_v5.1](../methodology/calibration_plan_v5.1.md) 单独跟踪 |
 | Manuscript 实质内容生成 | 工程基线 plan，paper 实质内容由 academic-paper skill 在 M5/M6 阶段产出 |
@@ -120,10 +124,15 @@
 - **Bromiley & Rau (2014)** SMJ 35(8), 1249–1256 — practice-based view of strategy (P3 SMJ-style exemplar)
 - **Baron & Kenny (1986)** Journal of Personality and Social Psychology 51(6), 1173–1182 — canonical mediation analysis framework (P2/P4 16_mechanism, R32-M01 增引)
 - **Imai, Keele, Tingley (2010)** Psychological Methods 15(4), 309–334 — causal mediation analysis sensitivity (P2/P4 16_mechanism, R32-M01 增引)
+- **Chesbrough (2003)** *Open Innovation: The New Imperative for Creating and Profiting from Technology* HBS Press — P5 主框架 (v3.4.0 epoch 5 增引; closed vs open innovation paradigm)
+- **Laursen & Salter (2006)** SMJ 27(2), 131–150 — "Open for innovation: The role of openness in explaining innovation performance among UK manufacturing firms" (P5 search breadth & depth canonical, v3.4.0 epoch 5 增引)
+- **Hagedoorn (2002)** Research Policy 31(4), 477–492 — inter-firm R&D partnerships 1960-1990 (P5 secondary anchor, v3.4.0 epoch 5 增引)
+- **Cohen & Levinthal (1990)** ASQ 35(1), 128–152 — absorptive capacity (P5 salvage path anchor: Research Policy submission; v3.4.0 epoch 5 增引)
+- **Nosek, Ebersole, DeHaven, Mellor (2018)** PNAS 115(11), 2600–2606 — "The preregistration revolution" (additive vs revisionary adjustment; v3.4.0 β supplementation 锚定 per wz_framework §4 增引)
 
 ### 2.4 Citations explicitly NOT invoked (避免与现有 paper 冲突)
 
-- **Han et al. (2024)** RFS — 已锚定 `brokerage_network/` paper，不在 B 路线 4 paper 内重用
+- **Han et al. (2024)** RFS — 已锚定 `brokerage_network/` paper，不在 B 路线 5 paper 内重用 (v2.56 epoch 5 含 P5)
 - **Cao, Li, Wang, Zhao (2025)** RAS — 已锚定 `llm_peer/`
 - **Jha, Liu & Manela (2026)** RFS §1.3.2 — 已锚定 `benefit_society/`
 - **Guzman & Li (2023)** MS — 已锚定 `strategic_diff/`
@@ -165,14 +174,14 @@ C1-C4 触发, 顶刊预期降一档 (见 §11); 如果实际 N_eff × T_eff < 1,
 
 ### 3.3 与现有 4 衍生 paper 的区分原则
 
-| 现有 paper (v3.3.0) | 核心方法 | 与 B 路线 4 paper 是否冲突 |
+| 现有 paper (v3.3.0) | 核心方法 | 与 B 路线 5 paper 是否冲突 (v2.56 epoch 5 含 P5) |
 |---|---|---|
 | `benefit_society` | LLM-Embedding 双极锚点投影 | ✗ 不冲突，方法学完全不同 |
 | `brokerage_network` | 共现网络中心性 + 二阶语调 IV | ✗ 不冲突 |
 | `llm_peer` | LLM 同业竞争网络 IV | ✗ 不冲突；P1 可调用其 disagreement 框架 |
 | `strategic_diff` | 多文本表征 + Bartik IV | ✗ 不冲突 |
 
-8 paper 共用底层 `46_panel_yearly_v34.dta`，但 outcome / 识别 / 度量完全异质。
+9 paper 共用底层 `46_panel_yearly_v34.dta` (v2.56 epoch 5 含 P5 bank_fintech_collab)，但 outcome / 识别 / 度量完全异质。
 M0 设计契约时强制每 paper 在 spec.yaml 声明"差异化主张"。
 
 ### 3.4 v3.3.0 panel → v34 panel 迁移路径 (R1-M05 补)
@@ -313,7 +322,7 @@ M-1 启动前必须由用户 (经 D1) 明确提供:
 
 #### 5.2.1 目标
 
-基于 G-1 通过的 N_eff × T_eff 区间，冻结 8 paper 的工程契约 (3 新 + 5 现有 retrofit)。
+基于 G-1 通过的 N_eff × T_eff 区间，冻结 v2.55 8 paper (3 新 + 5 现有 retrofit) + v2.56 epoch 5 第 9 paper P5 = 9 paper 的工程契约。
 
 #### 5.2.2 子任务 (R1-M10 修订)
 
@@ -321,15 +330,15 @@ M-1 启动前必须由用户 (经 D1) 明确提供:
 |---|---|---|
 | M0.1a | 起草 3 新 paper 的 `paper_spec.yaml` | `papers/bank_fintech_{attention,substance,locus}/paper_spec.yaml` |
 | M0.1b | Retrofit 5 现有 paper 的 `paper_spec.yaml` | `papers/{bank_fintech_tone,benefit_society,brokerage_network,llm_peer,strategic_diff}/paper_spec.yaml` (从 README + 现有代码反推 spec) |
-| M0.2 | 扩展 `paper_registry.py` | 8 paper 注册（现 5 paper auto-registered + 3 new）|
-| M0.3 | 8 paper 列名冲突扫描 | `tests/integration/test_paper_namespace_isolation.py` |
+| M0.2 | 扩展 `paper_registry.py` | 9 paper 注册（v2.55: 5 paper auto-registered + 3 new + v2.56 epoch 5: P5 bank_fintech_collab）|
+| M0.3 | 9 paper 列名冲突扫描 | `tests/integration/test_paper_namespace_isolation.py` |
 | M0.4 | 锁定外生冲击事件库 | `config/exogenous_shocks.yaml`（含 5 个事件 + 时间窗 + identification strategy per event, 见 §5.7.2）|
 | M0.5 | M0.5 Pipeline 重跑配置 | `config/pipeline_v34_rerun.yaml` |
 | M0.6 | Git tag `B-route-v2-frozen` | 锁定本 plan v2.x + 8 spec |
 
 #### 5.2.3 `paper_spec.yaml` 模板
 
-**注 (R16-m01)**: 下方 example 为 schema demonstration template; 最终 8 paper 各自 spec
+**注 (R16-m01)**: 下方 example 为 schema demonstration template; 最终 9 paper (v2.56 epoch 5 含 P5) 各自 spec
 见 Appendix B; status `skeleton` 仅用于 schema 演示, 实际 spec status 为 `existing`
 (5 现有 paper) 或 `new` (3 新 paper)。
 
@@ -404,7 +413,7 @@ audit_rounds_target_min: 8  # R1-m06 + R24-m01: M5 阶段每 paper ≥ 8 轮 (§
 完整 allowed fields 与 optionality 参考 (每 paper spec 必须 conform):
 
 ```yaml
-# Required fields (all 8 papers)
+# Required fields (all 9 papers; v2.56 epoch 5 含 P5 bank_fintech_collab)
 paper_id: str
 spec_version: semver (e.g. 2.0.0)
 status: enum [existing, new, skeleton]
@@ -460,17 +469,17 @@ sample:
 audit_rounds_target_min: int   # ≥ 8 per memory `prefers_rigorous_multi_round_audits`
 ```
 
-M0 G0 acceptance 包含 "8 paper × spec.yaml 全部 conform 此 schema" 检查 (新增 `tests/integration/test_paper_spec_schema.py`)。
+M0 G0 acceptance 包含 "9 paper × spec.yaml 全部 conform 此 schema" 检查 (v2.56 epoch 5 含 P5; 新增 `tests/integration/test_paper_spec_schema.py`)。
 
 #### 5.2.4 Acceptance gate G0
 
 | 检查项 | 通过条件 |
 |---|---|
-| 8 份 spec.yaml (3 新 + 5 retrofit) | schema 校验 pass + 字段完整 + differentiation_claim 互不冲突 |
-| `paper_registry.py` | 8 paper 注册 + 唯一性约束 |
-| 列名冲突 | 0 冲突 (跨 8 paper) |
+| 9 份 spec.yaml (3 新 + 5 retrofit + v2.56 epoch 5 P5) | schema 校验 pass + 字段完整 + differentiation_claim 互不冲突 |
+| `paper_registry.py` | 9 paper 注册 + 唯一性约束 (v2.56 epoch 5 含 P5) |
+| 列名冲突 | 0 冲突 (跨 9 paper) |
 | 5 existing paper 兼容性 | 5 existing 的 build-replication CLI 在 v3.3.0 panel 上跑通 (M0.5 重跑前的 regression test) |
-| LLM cost cap | $4,200 锁定 per §10.1 budget + §8 R10 mitigation (R19-m01 + R78-m01 fan-out 同步 §6 G0 row) |
+| LLM cost cap | **$5,000 锁定** per §10.1 budget + §8 R10 mitigation (v3.4.0 Q-B 2026-05-17: 4200→5000; R19-m01 + R78-m01 + F-211 epoch 5 同步 §6 G0 row) |
 | Git tag | `B-route-v2-frozen` 已打 |
 
 #### 5.2.5 Audit 轮次：3 轮 (R46-m01 列举)
@@ -532,7 +541,7 @@ M0 G0 acceptance 包含 "8 paper × spec.yaml 全部 conform 此 schema" 检查 
 | `tests/integration/test_panel_reproducibility_v34.py` | pass |
 | 跨期 LLM κ | ≥ 0.7 (按 4 段分别) |
 | 4 类银行 × 18 年覆盖热力图 | 无系统空洞（每 cell 至少 1 报道或显式标注 0）|
-| LLM cost | ≤ $4,200 (R2-M17 + R73-M01 修订: $2,400 21_tone + $300 M0.5.8 + $50 M-1.5 + $500 M5/M6 + 25% buffer = $4,062, cap $4,200; R73-M01 子任务 ID 校正 — scale test 1% sample 属 M-1.5 per §5.1.2 canonical, 不是 M-1.4) |
+| LLM cost | **≤ $5,000** (v3.4.0 Q-B: 4200→5000; v3.4.0 estimate $2,400 21_tone × (1 + 15%) collab_mode + $380 M0.5.8 + $50 M-1.5 + $500 M5/M6 + 25% buffer ≈ $4,480, cap $5,000 留 ~$520 裕度; v2.55 baseline $4,062 → v2.56 $4,480) |
 | Pipeline 健壮性 | LLM cache HOT 时: panel content hash identical (排除 parquet metadata 时间戳); LLM cache COLD (重抓全量) 时: panel content hash 差异 ≤ 0.1% rows (温和 stochasticity 容差) |
 | v3.3.0 兼容 (R1-M05 + R4-M06 完整化) | `tests/integration/test_v34_v33_subset_invariance.py` pass (v34 panel subset to **target_bank ∈ v3.3.0 84 银行 AND year ∈ {2017, 2018}** 与 v3.3.0 panel 在共同列上数值一致: float 差异 ≤ 1e-9, categoricals exact) |
 
@@ -646,7 +655,7 @@ Paper-specific 第 5 件:
 | P3 substance | `19_substance_lr_reversal.do.tmpl` + `20_substance_disclosure_quality.do.tmpl` | 长短期 ROA 反转 + 与 disclosure 协方差 |
 | P4 locus | `19_locus_event_study.do.tmpl` | layer-specific event study (5 个外生冲击) |
 
-#### 5.5.3 Stata templates 总数预测 (R1-M01 + R1-M27 + RR6-1 修订)
+#### 5.5.3 Stata templates 总数预测 (R1-M01 + R1-M27 + RR6-1 修订; v2.56 epoch 5: +P5 7)
 
 ```
 v3.3.0 实测:  55 templates = 14 root shared + 41 paper-specific
@@ -655,7 +664,9 @@ M2 新增:      3 paper × 4 common templates (15-18) = 12
             + P2 extras (1: 19_iv_first_stage) + P3 extras (2: 19_lr_reversal + 20_disclosure) + P4 extras (1: 19_event_study) = 4
             + 3 paper × 2 orchestrator (00_master + 01_data_prep, RR6-1: 与 4 existing 衍生 paper 同模式) = 6
             合计新增 22
-M2 完成预测: 55 + 22 = 77 templates (本机 Stata MP 19.5 maxvar 120,000 余量充足)
+M2 v2.55 完成预测: 55 + 22 = 77 templates
+v3.4.0 (v2.56 epoch 5): + P5 bank_fintech_collab/ 子目录 7 个 (00_master + 01_data_prep + 15-19_collab_*) = 7
+M2 v2.56 完成实测: 77 + 7 = 84 templates (本机 Stata MP 19.5 maxvar 120,000 余量充足; v2.56 实测验证 pytest test_total_template_count_77 已升级到 84)
 ```
 
 #### 5.5.4 Acceptance gate G2 (R1-M20 修订)
@@ -725,10 +736,10 @@ M2 完成预测: 55 + 22 = 77 templates (本机 Stata MP 19.5 maxvar 120,000 余
 
 #### 5.7.1 目标 (R2-M02 修订)
 
-6 外生冲击事件 (E1-E5b, 见 §5.7.2) × applicable papers (per §5.7.2 applicable_papers 列) = **17 DiD spec** 设计 + 平行趋势检验 + treatment 定义。
+6 外生冲击事件 (E1-E5b, 见 §5.7.2) × applicable papers (per §5.7.2 applicable_papers 列) = v2.55 **17** + v2.56 epoch 5 P5 (E1/E3/E4 applicable per [P5 paper_spec.yaml](../../papers/bank_fintech_collab/paper_spec.yaml)) **+3** = **20 DiD spec** 设计 + 平行趋势检验 + treatment 定义。
 
 实际 spec 计数 (R2-M04 + R3-M07 修订后):
-- E1: P1, P2, P3, P4 (4 papers; R2-M04: P3 加 E1)
+- E1: P1, P2, P3, P4, **P5** (5 papers; R2-M04: P3 加 E1; v2.56 epoch 5: P5 加 E1 per P5 paper_spec event_studies)
 - E2: P1, P2, P3 (3)
 - E3: P1, P3 (2)
 - E4: P1, P2, P3, P4 (4)
@@ -814,7 +825,7 @@ did_imputation <outcome> bank_id year treat_year, ///
 | 检查项 | 通过条件 |
 |---|---|
 | SSC 包齐全 (R1-M06) | csdid + csdid_plot + did_imputation + eventstudyinteract + boottest + rwolf + ritest + honestdid 全部 installed |
-| 17 DiD spec (R2-M02 + R2-M04 + R3-M07 修订: 按 §5.7.2 applicable_papers 总和: 4+3+2+4+2+2 = 17) | 全部本机 Stata 19.5 跑通 |
+| **20 DiD spec** (v2.55 17 = 4+3+2+4+2+2; v2.56 epoch 5 P5 +3 = E1/E3/E4 applicable per P5 paper_spec; R2-M02 + R2-M04 + R3-M07 + F-211) | 全部本机 Stata 19.5 跑通 |
 | 平行趋势 (R1-M11 + R8-M03 重写: 所有 events 统一 intensity slope 检验) | 所有 6 events 适用 intensity × event_time pre-trend slope ≈ 0 (90% CI 不显著); 6 events 中 ≥ 5 events pass 即满足 G4 |
 | Cluster-robust SE | 全部 bank-level cluster |
 | `config/exogenous_shocks.yaml` | 6 events (E1-E5b) 完整定义 + identification 策略 + 文献依据 |
@@ -823,7 +834,7 @@ did_imputation <outcome> bank_id year treat_year, ///
 
 | 轮 | 焦点 |
 |---|---|
-| A4.1 | 17 DiD spec 全部 Stata 跑通 + SSC 包齐全 (§5.7.4 G4 一致) |
+| A4.1 | 20 DiD spec (v2.55 17 + v2.56 P5 +3) 全部 Stata 跑通 + SSC 包齐全 (§5.7.4 G4 一致) |
 | A4.2 | 平行趋势 intensity slope ≈ 0 (6 events ≥ 5 pass) |
 | A4.3 | Cluster-robust SE 全部 bank-level cluster |
 | A4.4 | `config/exogenous_shocks.yaml` 6 events 完整 (id + date + name + treatment_logic + identification + applicable_papers + reference) |
@@ -863,7 +874,7 @@ did_imputation <outcome> bank_id year treat_year, ///
 | A5.7 | Pre-registration 一致 |
 | A5.8 | 与现有 5 paper 互不重复 |
 
-> 4 paper × 8 轮 = 32 轮 audit 总计，对标 benefit_society v2.12 (14 轮 / 59 finding) × 4 paper ≈ 56 轮规模
+> v2.55: 4 paper × 8 轮 = 32 轮 audit. v2.56 epoch 5: 5 paper × 8 轮 = 40 轮 audit 总计，对标 benefit_society v2.12 (14 轮 / 59 finding) × 5 paper ≈ 70 轮规模 (epoch 5 含 P5)
 
 ### 5.9 M6 稳健性 + Devil's Advocate (2027-01-11 → 2027-02-21, 6 weeks)
 
@@ -993,16 +1004,16 @@ did_imputation <outcome> bank_id year treat_year, ///
 | Gate | 时点 | 关键指标 | 失败后果 |
 |---|---|---|---|
 | G-1 | M-1 完 | N_eff × T_eff 区间 + raw 完整性 ≥ 95% (Yellow band [50%, 95%) → C1-c 软 fallback, R59-M01) + **时间覆盖完整性: 无 > 2 年系统性时间断层** (R60-m01 新增, per M-1.3 覆盖热力图) + 财务匹配率 ≥ 60% (Yellow band [40%, 60%) → C2-lite) + **Pipeline scale test 1% 样本完整跑通 21→46 stage** (R77-m01 同步 §5.1.4 row 4, 对应 C3 fail-consequence trigger) + 跨期 LLM valid_rate ≥ 80% + 法律合规 | raw < 50%: C1-a (hard); raw [50%, 95%): C1-c (软); **时间断层 > 2 年: C1-b**; 财务 < 40%: C2; scale test 失稳: C3; LLM 跨期失效: C4; **法律合规失败: 暂停 M0 直至 cleared** (R79-m01 同步 §5.1.4 row 6) |
-| G0 | M0 完 | **8 份 spec.yaml** (3 new + 5 retrofit; R1-M10 修订) + paper_registry 8 paper + 0 列名冲突 + 5 existing paper build-replication 在 v3.3.0 panel pass + **LLM cost cap = $4,200 锁定** (R19-m01 per §8 R10 mitigation + §10.1) + git tag | M0.5 暂停 |
-| G0.5 | M0.5 完 | panel v34 reproducibility (panel-hash identical with LLM cache HOT; cache COLD 差异 ≤ 0.1% rows) + 跨期 κ ≥ 0.7 (按 4 段分别) + 4 类银行 × 18 年覆盖热力图无空洞 + LLM cost ≤ $4,200 (R46-M03 同步 §10.1 budget cap) + v3.3.0 兼容 (R46-M04 完整化): subset to **target_bank ∈ v3.3.0 84 银行 AND year ∈ {2017, 2018}** 与 v3.3.0 panel float 差异 ≤ 1e-9, categoricals exact | M1 暂停 |
-| G1 | M1 完 | **6 new manuscript skeleton** (3 new × en/zh, M1 实际产出) + **10 existing manuscript regression test pass** (compile state 未被 panel 升级或 M1 改动 break; 总 16 visible) + 8 paper analysis CLI 跑通 (`python -m news_process.papers.bank_fintech_attention.analysis --stage tables`) + **pytest tests/test_papers_b_route.py pass** (R53-M01 同步 §5.4.4) | M2 暂停 |
-| G2 | M2 完 | 77 Stata templates 实际总数 (55 + 22 新增, RR6-1 加 6 orchestrator) + SSC 包齐全 + 22 个新模板 Stata 19.5 跑通 + 4 paper replication 包齐 + **Macro/var 截断: 无 `set maxvar` 触顶 (panel 列数 ≤ 5000 < MP 上限 120,000)** (R49-m02) + **pytest tests/test_stata_templates.py pass** (R53-M02 同步 §5.5.4) | M3 暂停 |
-| G3 | M3 完 | **6 new manuscript pdflatex pass** (3 new × en/zh, M3 实际产出) + **10 existing manuscript regression test pass** (R46-M06 同步 §5.6.4) + `tests/test_manuscript_compilation.py` pass + bibtex ≥30/paper + IRON RULE 0 violations + Bilingual abstract 完整 | M4 暂停 |
-| G4 | M4 完 | **17 DiD spec** pass (R3-M01/M07: 4+3+2+4+2+2 = 17) + 平行趋势检验统一为 intensity slope ≈ 0 (R8-M03: 6 events intensity-based); 6 events 中 ≥ 5 通过 + **SSC 包齐全** (csdid/csdid_plot/did_imputation/eventstudyinteract/boottest/rwolf/ritest/honestdid) + **Cluster-robust SE 全部 bank-level cluster** + **`config/exogenous_shocks.yaml` 6 events 完整定义 + identification 策略 + 文献依据** (R53-M03 同步 §5.7.4) | M5 暂停 |
-| G5 | M5 完 | 4 paper × 主+机制+异质 + 8 轮 audit/paper + **每 paper 4 张表 (Table 2 主回归 + Table 3 机制 + Table 4 异质 + Table 5 advanced)** + **3 图 (event study + coefplot + time trend) 完整 .tex / .png** + **主回归系数符号与 paper_spec.yaml 预设一致** (或方向 puzzle 文档化) + **Stata log 累计 ≥ 40 文件归档 `output/<paper>/logs/`** + **Pre-registration deviation 文档化 (触发 D5 决策点)** (R53-M04 同步 §5.8.3) | M6 暂停 |
+| G0 | M0 完 | **9 份 spec.yaml** (v2.55: 3 new + 5 retrofit + v2.56 epoch 5: P5 = 9; R1-M10 修订) + paper_registry 9 paper + 0 列名冲突 + 5 existing paper build-replication 在 v3.3.0 panel pass + **LLM cost cap = $5,000 锁定** (v3.4.0 Q-B 2026-05-17, 4200→5000; R19-m01 per §8 R10 mitigation + §10.1) + git tag | M0.5 暂停 |
+| G0.5 | M0.5 完 | panel v34 reproducibility (panel-hash identical with LLM cache HOT; cache COLD 差异 ≤ 0.1% rows) + 跨期 κ ≥ 0.7 (按 4 段分别) + 4 类银行 × 18 年覆盖热力图无空洞 + LLM cost ≤ $5,000 (v3.4.0 Q-B, R46-M03 同步 §10.1 budget cap) + v3.3.0 兼容 (R46-M04 完整化): subset to **target_bank ∈ v3.3.0 84 银行 AND year ∈ {2017, 2018}** 与 v3.3.0 panel float 差异 ≤ 1e-9, categoricals exact | M1 暂停 |
+| G1 | M1 完 | **8 new manuscript skeleton** (v2.55 3 new × en/zh + v2.56 epoch 5 P5 × en/zh = 8, M1 实际产出) + **10 existing manuscript regression test pass** (compile state 未被 panel 升级或 M1 改动 break; v2.55 总 16 visible, v2.56 总 18 visible) + 9 paper analysis CLI 跑通 + **pytest tests/test_papers_b_route.py pass** (R53-M01 同步 §5.4.4) | M2 暂停 |
+| G2 | M2 完 | **84 Stata templates 实际总数** (v2.55 77 + v2.56 epoch 5 P5 7 = 84; RR6-1 加 6 orchestrator) + SSC 包齐全 + 22 + 7 = 29 个新模板 Stata 19.5 跑通 + 5 paper replication 包齐 (v2.56 含 P5) + **Macro/var 截断: 无 `set maxvar` 触顶 (panel 列数 ≤ 5000 < MP 上限 120,000)** (R49-m02) + **pytest tests/test_stata_templates.py pass** (R53-M02 同步 §5.5.4) | M3 暂停 |
+| G3 | M3 完 | **8 new manuscript pdflatex pass** (v2.55 3 new × en/zh + v2.56 epoch 5 P5 × en/zh, M3 实际产出) + **10 existing manuscript regression test pass** (R46-M06 同步 §5.6.4) + `tests/test_manuscript_compilation.py` pass + bibtex ≥30/paper + IRON RULE 0 violations + Bilingual abstract 完整 | M4 暂停 |
+| G4 | M4 完 | **20 DiD spec** pass (v2.55: 17 = 4+3+2+4+2+2; v2.56 epoch 5: +3 P5 applicable E1/E3/E4 = 20; R3-M01/M07) + 平行趋势检验统一为 intensity slope ≈ 0 (R8-M03: 6 events intensity-based); 6 events 中 ≥ 5 通过 + **SSC 包齐全** (csdid/csdid_plot/did_imputation/eventstudyinteract/boottest/rwolf/ritest/honestdid) + **Cluster-robust SE 全部 bank-level cluster** + **`config/exogenous_shocks.yaml` 6 events 完整定义 + identification 策略 + 文献依据** (R53-M03 同步 §5.7.4) | M5 暂停 |
+| G5 | M5 完 | 5 paper × 主+机制+异质 + 8 轮 audit/paper (v2.56 epoch 5 含 P5) + **每 paper 4 张表 (Table 2 主回归 + Table 3 机制 + Table 4 异质 + Table 5 advanced)** + **3 图 (event study + coefplot + time trend) 完整 .tex / .png** + **主回归系数符号与 paper_spec.yaml 预设一致** (或方向 puzzle 文档化) + **Stata log 累计 ≥ 50 文件归档 `output/<paper>/logs/`** (v2.55 40 + P5 10) + **Pre-registration deviation 文档化** (触发 D5; **v3.4.0 β supplementation 已记录 prompt-v7→v8 additive** per wz_framework §4) | M6 暂停 |
 | G6 | M6 完 | 5 稳健性表/paper + Oster δ ≥ 0.5 + **Wild bootstrap p < 0.10 for main coef (boottest)** (R53-M05 同步 §5.9.4) + Devil's Advocate fatal flaw = 0 (unresolved) + Honest DiD: 主 spec M = 1× max\|∆̂_pre\| robust CI 不跨 0; sensitivity 表展示 M ∈ {0, 0.5, 1, 2}× 全部 4 档 (R5-m06) | M7 暂停 |
 | G7 | M7 完 | 互引矩阵 16 cell + **Salami slicing 4 条 criteria pass** (per §5.10.3 R1-M19: (1) differentiation_claim 一致; (2) 每 paper ≥ 1 unique outcome; (3) 每 paper ≥ 1 unique identification; (4) Methods Jaccard ≤ 0.3) + 5-视角 pre-submission (EIC+3 reviewer+Devil's Advocate) fatal = 0 + replication 包 + cover letter (R49-m03 同步 §5.10.3) | M8 暂停 |
-| G8 | M8 投稿 | 4 paper submitted | – |
+| G8 | M8 投稿 | 5 paper submitted (v2.56 epoch 5 含 P5; submission window 2027-03-15 → 2027-04-09 per R6-13 timeline shift) | – |
 
 ---
 
@@ -1073,7 +1084,8 @@ B 路线 4 paper 总 audit 规模 ≈ 1.5× plan v14。
 | LLM API M-1.5 (pipeline scale test 1% sample, per §5.1.2 canonical) | $50 | R73-M01 修订: 此 LLM cost 来自 M-1.5 Pipeline scale test (抽 1% raw 全程跑 pipeline 含 21_tone_llms LLM API), 不是 M-1.4 (后者是 lexicon clustering 无 LLM cost) |
 | LLM API M5/M6 (ad hoc 稳健性变体) | $500 | – |
 | 缓冲 25% | $812 | 25% × ($2,400 + $300 + $50 + $500) |
-| **小计 LLM cost** | **~$4,062** | budget cap $4,200 |
+| **小计 LLM cost (v2.55)** | **~$4,062** | budget cap $4,200 (历史 v2.55 数字) |
+| **小计 LLM cost (v2.56 epoch 5)** | **~$4,480** | budget cap **$5,000** (v3.4.0 Q-B 上调; collab_mode 第三维度 +$418 ≈ +10% 总成本) |
 | Stata MP 19.5 license | $0 | 本机 lab perpetual 64-core 已覆盖 4 paper × 16 templates × 5 events × all robustness (R2-m02) |
 | GPU (M0.5.6 BERT 全量推理) | $0 | 本机 |
 | 数据库订阅 (CSMAR / Wind) | $0 | 已有 |

@@ -62,8 +62,8 @@ def test_ctx_locus_independent_of_full(models):
         m["model_name"]: _build_dual(locus="底层技术") for m in models
     }
     out_full = _aggregate_track(full, models)
-    # Plan v1.37 P2: 16-tuple (added avg_subst_prob_score, avg_locus_prob_score)
-    _, _, _, _, _, _, _, _, _, _, innov_loci_full, _, _, _, _, _ = out_full
+    # v3.4.0: 18-tuple (added innov_collab_modes + avg_collab_prob_score for Chesbrough 2003)
+    _, _, _, _, _, _, _, _, _, _, innov_loci_full, _, _, _, _, _, _, _ = out_full
     assert innov_loci_full == ["底层技术", "底层技术", "底层技术"], innov_loci_full
 
     # ctx 轨独立: 全部标 "应用场景"
@@ -71,7 +71,7 @@ def test_ctx_locus_independent_of_full(models):
         m["model_name"]: _build_dual(locus="应用场景") for m in models
     }
     out_ctx = _aggregate_track(ctx, models)
-    _, _, _, _, _, _, _, _, _, _, innov_loci_ctx, _, _, _, _, _ = out_ctx
+    _, _, _, _, _, _, _, _, _, _, innov_loci_ctx, _, _, _, _, _, _, _ = out_ctx
     assert innov_loci_ctx == ["应用场景", "应用场景", "应用场景"], innov_loci_ctx
 
 
@@ -81,9 +81,9 @@ def test_ctx_substantiveness_independent_of_full(models):
     full = {m["model_name"]: _build_dual(subst="实质性") for m in models}
     ctx = {m["model_name"]: _build_dual(subst="象征性") for m in models}
 
-    # Plan v1.37 P2: 16-tuple (added avg_subst_prob_score, avg_locus_prob_score)
-    _, _, _, _, _, _, _, _, _, _, _, innov_substs_full, _, _, _, _ = _aggregate_track(full, models)
-    _, _, _, _, _, _, _, _, _, _, _, innov_substs_ctx, _, _, _, _ = _aggregate_track(ctx, models)
+    # v3.4.0: 18-tuple (added innov_collab_modes + avg_collab_prob_score for Chesbrough 2003)
+    _, _, _, _, _, _, _, _, _, _, _, innov_substs_full, _, _, _, _, _, _ = _aggregate_track(full, models)
+    _, _, _, _, _, _, _, _, _, _, _, innov_substs_ctx, _, _, _, _, _, _ = _aggregate_track(ctx, models)
 
     assert innov_substs_full == ["实质性"] * 3
     assert innov_substs_ctx == ["象征性"] * 3

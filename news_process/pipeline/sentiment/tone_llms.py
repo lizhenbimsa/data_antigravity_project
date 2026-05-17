@@ -770,12 +770,19 @@ def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
     }
 
 
-# 创新维度 binary 标签的 canonical 集合 (W&Z 1994/1998 ASQ + Gomber 2018 JMIS)
-VALID_BINARY_LABELS = {"实质性", "象征性", "底层技术", "应用场景"}
+# 创新维度 binary 标签的 canonical 集合
+# - W&Z 1994/1998 ASQ: 实质性 / 象征性 (innovation_substantiveness)
+# - Gomber 2018 JMIS: 底层技术 / 应用场景 (innovation_locus)
+# - v3.4.0 新增 Chesbrough 2003 + L&S 2006 SMJ: 自主研发 / 外部协同 (innovation_collab_mode)
+VALID_BINARY_LABELS = {
+    "实质性", "象征性",
+    "底层技术", "应用场景",
+    "自主研发", "外部协同",
+}
 
 
 def compute_prob_score_binary(label, confidence, positive_class) -> dict:
-    """Binary prob_score ∈ [0, 1] for innovation_substantiveness / innovation_locus.
+    """Binary prob_score ∈ [0, 1] for innovation_substantiveness / innovation_locus / innovation_collab_mode.
 
     Plan v1.37 P2 §5.2-5.3.1; mirrors the 3-class compute_prob_score
     semantics for binary labels. Returns {prob_score, prob_source} with
@@ -846,21 +853,33 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
        agree_rate_s (情感投票一致率，仅在 verifying 子集上计算)。
 
     Returns:
-        tuple: (final_v, final_s, agree_rate_v, agree_rate_s,
-                n_valid_votes, n_verifying_votes,
-                call_failure, undefined,
-                per_model_parsed, topics, innov_loci, innov_substs,
-                n_failures, avg_prob_score)
+        tuple (18 elements, v3.4.0 BREAKING from v1.37 P2 16-tuple):
+                (final_v, final_s, agree_rate_v, agree_rate_s,
+                 n_valid_votes, n_verifying_votes,
+                 call_failure, undefined,
+                 per_model_parsed, topics, innov_loci, innov_substs,
+                 n_failures, avg_prob_score,
+                 avg_subst_prob_score, avg_locus_prob_score,
+                 innov_collab_modes, avg_collab_prob_score)
             per_model_parsed: {f'{short}_verified': v, ...} 的字典；v7 起亦含
                               {short}_innovation_substantiveness_confidence /
-                              {short}_innovation_locus_confidence 每模型独立置信度
+                              {short}_innovation_locus_confidence 每模型独立置信度;
+                              v3.4.0 起追加 {short}_innovation_collab_mode +
+                              {short}_innovation_collab_mode_confidence (Chesbrough 2003).
             innov_loci:       LLM 创新位点投票列表 (底层技术 / 应用场景)
             innov_substs:     LLM 创新实质性投票列表 (实质性 / 象征性)；v3.0.0
                               (v8) 起翻译层已废除, panel 列值即 LLM 原始输出, 列后缀
                               统一为 _sub / _symb (Westphal & Zajac 1994/1998 ASQ
                               substantive-symbolic 框架; 详见 docs/methodology/
                               prompt_terminology_mapping.md)
-            avg_prob_score:   Logit-to-Score 多模型平均概率分数 ∈ [-1, +1]
+            innov_collab_modes (v3.4.0): LLM 创新协作模式投票列表 (自主研发 / 外部协同);
+                              Chesbrough 2003 Open Innovation + Laursen & Salter 2006 SMJ;
+                              additive supplementation per Nosek 2018 PNAS, v7 双维语义不变.
+            avg_prob_score:   Logit-to-Score 多模型平均概率分数 (sentiment, 3-class) ∈ [-1, +1]
+            avg_subst_prob_score: Binary prob_score for substantiveness (positive_class=象征性) ∈ [0, 1]
+            avg_locus_prob_score: Binary prob_score for locus (positive_class=应用场景) ∈ [0, 1]
+            avg_collab_prob_score (v3.4.0): Binary prob_score for collab_mode
+                                            (positive_class=外部协同) ∈ [0, 1]
     """
     v_votes = []
     s_votes_all = []           # 所有成功调用模型的 sentiment（含 verified=False 模型）
@@ -868,20 +887,24 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     topics = []
     innov_loci = []            # v7: 原 llm_categories (Gomber 2018 JMIS 技术-应用层)
     innov_substs = []          # v7: 原 text_types (W&Z 1994/1998 ASQ 实质-象征)
+    innov_collab_modes = []    # v8 新增 (Chesbrough 2003 + L&S 2006 SMJ 自主-外部协同)
     per_model_parsed = {}
     n_failures = 0
 
     for m in models:
         short = m['short_name']
         # Plan v1.37 P2 §5.3.1 Step A (R19B-01 + R20A-01): unconditional
-        # default-init for the 4 innovation keys at the top of each model
-        # iteration. Covers BOTH the L820-826 API-failure `continue`
-        # branch AND the normal parsing branch (overwritten at L874/L883
-        # for labels, L887-898 for confidences).
+        # default-init for the innovation keys at the top of each model
+        # iteration. Covers BOTH the API-failure `continue` branch AND
+        # the normal parsing branch (overwritten below for valid labels).
+        # v3.4.0 BREAKING: 第三维度 innovation_collab_mode 加入 (additive supplementation
+        # per Nosek 2018 PNAS; v7 substantiveness/locus 语义不变).
         per_model_parsed[f"{short}_innovation_locus"] = None
         per_model_parsed[f"{short}_innovation_substantiveness"] = None
+        per_model_parsed[f"{short}_innovation_collab_mode"] = None
         per_model_parsed[f"{short}_innovation_locus_confidence"] = 0.0
         per_model_parsed[f"{short}_innovation_substantiveness_confidence"] = 0.0
+        per_model_parsed[f"{short}_innovation_collab_mode_confidence"] = 0.0
 
         m_id = m['model_name']
         raw_text = model_res_dict.get(m_id)
@@ -958,6 +981,16 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
                 # default-None label with the canonical accepted value.
                 per_model_parsed[f"{short}_innovation_substantiveness"] = tt_str
 
+        # v3.4.0: innovation_collab_mode (Chesbrough 2003 Open Innovation + L&S 2006 SMJ
+        # search breadth & depth; additive supplementation 第三维度, v7 双维语义不变).
+        # 列后缀 _indep (自主研发) / _collab (外部协同), Stata byte 编码 0=自主研发 / 1=外部协同.
+        llm_cm = jd.get('innovation_collab_mode')
+        if llm_cm:
+            cm_str = str(llm_cm).strip()
+            if cm_str in ('自主研发', '外部协同'):
+                innov_collab_modes.append(cm_str)
+                per_model_parsed[f"{short}_innovation_collab_mode"] = cm_str
+
         # v7: per-model stage 3 confidence (用于 row-level avg 聚合, 对应论文 W&Z 框架信号强度)
         try:
             per_model_parsed[f"{short}_innovation_substantiveness_confidence"] = float(
@@ -971,6 +1004,13 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             )
         except (ValueError, TypeError):
             per_model_parsed[f"{short}_innovation_locus_confidence"] = 0.0
+        # v3.4.0: innovation_collab_mode 第三维度置信度
+        try:
+            per_model_parsed[f"{short}_innovation_collab_mode_confidence"] = float(
+                jd.get('innovation_collab_mode_confidence', 0.0) or 0.0
+            )
+        except (ValueError, TypeError):
+            per_model_parsed[f"{short}_innovation_collab_mode_confidence"] = 0.0
 
     final_v = majority_vote_bool(v_votes)
 
@@ -995,11 +1035,13 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
 
     prob_scores = []
     # Plan v1.37 P2 §5.3.1 Step B: per-model binary prob_score for
-    # substantiveness (positive_class="象征性") and locus
-    # (positive_class="应用场景"). Positive-class choice aligns with
-    # stata_export.py value_labels (1=对照 / 1=象征性 / 1=应用场景).
+    # substantiveness (positive_class="象征性"), locus
+    # (positive_class="应用场景"), and v3.4.0 collab_mode
+    # (positive_class="外部协同"). Positive-class choice aligns with
+    # stata_export.py value_labels (1=对照 / 1=象征性 / 1=应用场景 / 1=外部协同).
     subst_prob_scores = []
     locus_prob_scores = []
+    collab_prob_scores = []
     import numpy as _np  # local import to avoid top-level dependency conflict
     for m in models:
         short = m['short_name']
@@ -1026,12 +1068,22 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         per_model_parsed[f"{short}_locus_prob_source"] = locus_bin["prob_source"]
         if not _np.isnan(locus_bin["prob_score"]):
             locus_prob_scores.append(locus_bin["prob_score"])
+        # v3.4.0: Binary prob_score for collab_mode (positive_class="外部协同")
+        collab_label = per_model_parsed.get(f"{short}_innovation_collab_mode")
+        collab_conf = per_model_parsed.get(f"{short}_innovation_collab_mode_confidence", 0.0)
+        collab_bin = compute_prob_score_binary(collab_label, collab_conf, "外部协同")
+        per_model_parsed[f"{short}_collab_prob_score"] = collab_bin["prob_score"]
+        per_model_parsed[f"{short}_collab_prob_source"] = collab_bin["prob_source"]
+        if not _np.isnan(collab_bin["prob_score"]):
+            collab_prob_scores.append(collab_bin["prob_score"])
 
     avg_prob_score = sum(prob_scores) / len(prob_scores) if prob_scores else float('nan')
     avg_subst_prob_score = (sum(subst_prob_scores) / len(subst_prob_scores)
                             if subst_prob_scores else float('nan'))
     avg_locus_prob_score = (sum(locus_prob_scores) / len(locus_prob_scores)
                             if locus_prob_scores else float('nan'))
+    avg_collab_prob_score = (sum(collab_prob_scores) / len(collab_prob_scores)
+                             if collab_prob_scores else float('nan'))
 
     return (
         final_v, final_s,
@@ -1041,6 +1093,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         per_model_parsed, topics, innov_loci, innov_substs,
         n_failures, avg_prob_score,
         avg_subst_prob_score, avg_locus_prob_score,
+        innov_collab_modes, avg_collab_prob_score,
     )
 
 
@@ -1232,6 +1285,11 @@ def main():
         df['innovation_substantiveness_confidence_ctx'] = 0.0
         df['innovation_locus_confidence_full'] = 0.0
         df['innovation_locus_confidence_ctx'] = 0.0
+        # v3.4.0: 第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ)
+        df['innovation_collab_mode_full'] = None
+        df['innovation_collab_mode_ctx'] = None
+        df['innovation_collab_mode_confidence_full'] = 0.0
+        df['innovation_collab_mode_confidence_ctx'] = 0.0
         # plan v14 §3.1: dual gate 三互斥指示列 (Action #6)
         df['llm_verified_dual_full_only'] = False
         df['llm_verified_dual_ctx_only'] = False
@@ -1324,11 +1382,17 @@ def main():
         category_confidence_ctx_arr = []   # LLM × keyword cross-validation, ctx track
         innov_subst_full_arr = []          # W&Z 1994/1998 ASQ, full-text judgment
         innov_subst_ctx_arr = []           # W&Z 1994/1998 ASQ, entity-context judgment
+        # v3.4.0 第三维度 (Chesbrough 2003 + L&S 2006 SMJ, additive supplementation):
+        innov_collab_full_arr = []         # 自主研发 / 外部协同 (full track)
+        innov_collab_ctx_arr = []          # 自主研发 / 外部协同 (ctx track)
         # v7 (保留): row-level avg confidence per track per dimension (R6-H 下游聚合源)
         innov_subst_conf_full_arr = []
         innov_subst_conf_ctx_arr = []
         innov_locus_conf_full_arr = []
         innov_locus_conf_ctx_arr = []
+        # v3.4.0 第三维度 row-level avg confidence
+        innov_collab_conf_full_arr = []
+        innov_collab_conf_ctx_arr = []
 
         # 预分配每个模型 × 每轨道的独立判断列表
         per_model_cols = {}
@@ -1346,26 +1410,30 @@ def main():
         # Logit-to-Score 轨道级数组
         prob_score_full_arr = []
         prob_score_ctx_arr = []
-        # Plan v1.37 P2: 4 new article-level binary prob_score arrays
+        # Plan v1.37 P2: 4 article-level binary prob_score arrays
         # (avg_subst_prob_score_{full,ctx} + avg_locus_prob_score_{full,ctx}).
+        # v3.4.0: 2 additional collab_prob_score arrays (Chesbrough 2003)
         subst_prob_score_full_arr = []
         subst_prob_score_ctx_arr = []
         locus_prob_score_full_arr = []
         locus_prob_score_ctx_arr = []
+        collab_prob_score_full_arr = []
+        collab_prob_score_ctx_arr = []
 
         n_api_failures = 0
 
         for idx, row in df.iterrows():
             row_results = results_map.get(idx, {'full': {}, 'ctx': {}})
 
-            # ── Full 轨道聚合 (v6/F2: 14 元组; plan v1.37 P2: 16 元组 + binary prob_scores) ──
+            # ── Full 轨道聚合 (v6/F2: 14 元组; plan v1.37 P2: 16 元组; v3.4.0: 18 元组 + collab_mode) ──
             (final_v_full, final_s_full,
              agree_rate_full, agree_rate_s_full,
              n_valid_full, n_verifying_full,
              call_failure_full, undefined_full,
              parsed_full, topics_full, innov_loci_full, innov_substs_full,
              n_fail_full, avg_prob_full,
-             avg_subst_prob_full, avg_locus_prob_full) = _aggregate_track(row_results.get('full', {}), MODELS)
+             avg_subst_prob_full, avg_locus_prob_full,
+             innov_collab_modes_full, avg_collab_prob_full) = _aggregate_track(row_results.get('full', {}), MODELS)
             n_api_failures += n_fail_full
 
             llm_verified_full_arr.append(final_v_full)
@@ -1389,15 +1457,17 @@ def main():
             prob_score_full_arr.append(avg_prob_full)
             subst_prob_score_full_arr.append(avg_subst_prob_full)
             locus_prob_score_full_arr.append(avg_locus_prob_full)
+            collab_prob_score_full_arr.append(avg_collab_prob_full)
 
-            # ── Ctx 轨道聚合 (v6/F2: 14 元组; plan v1.37 P2: 16 元组 + binary prob_scores) ──
+            # ── Ctx 轨道聚合 (v6/F2: 14 元组; plan v1.37 P2: 16 元组; v3.4.0: 18 元组 + collab_mode) ──
             (final_v_ctx, final_s_ctx,
              agree_rate_ctx, agree_rate_s_ctx,
              n_valid_ctx, n_verifying_ctx,
              call_failure_ctx, undefined_ctx,
              parsed_ctx, topics_ctx, innov_loci_ctx, innov_substs_ctx,
              n_fail_ctx, avg_prob_ctx,
-             avg_subst_prob_ctx, avg_locus_prob_ctx) = _aggregate_track(row_results.get('ctx', {}), MODELS)
+             avg_subst_prob_ctx, avg_locus_prob_ctx,
+             innov_collab_modes_ctx, avg_collab_prob_ctx) = _aggregate_track(row_results.get('ctx', {}), MODELS)
             n_api_failures += n_fail_ctx
 
             llm_verified_ctx_arr.append(final_v_ctx)
@@ -1421,6 +1491,7 @@ def main():
             prob_score_ctx_arr.append(avg_prob_ctx)
             subst_prob_score_ctx_arr.append(avg_subst_prob_ctx)
             locus_prob_score_ctx_arr.append(avg_locus_prob_ctx)
+            collab_prob_score_ctx_arr.append(avg_collab_prob_ctx)
 
             # ── 金融科技主题标准化分类（v3.2.0 双轨独立，plan v14 §3.1 P1）──
             # 双轨平局策略对称：locus → 应用场景；substantiveness → 象征性（plan v14 §3.1 P1.5）
@@ -1484,6 +1555,25 @@ def main():
             innov_locus_conf_full_arr.append(_avg_conf(parsed_full, 'innovation_locus_confidence'))
             innov_locus_conf_ctx_arr.append(_avg_conf(parsed_ctx, 'innovation_locus_confidence'))
 
+            # v3.4.0: 第三维度 innovation_collab_mode 多数决 + confidence (Chesbrough 2003)
+            # tie_strategy: 保守 fallback 至 "自主研发" (与 W&Z substantiveness tie→"象征性" 同样
+            # 是 MAP under uniform prior; 自主研发是 fintech 银行的默认归因状态, 外部协同需充分
+            # 证据). empty_fallback=None 与 substantiveness 对齐.
+            innov_collab_full_arr.append(majority_vote_categorical(
+                innov_collab_modes_full,
+                tie_strategy='conservative',
+                tie_default='自主研发',
+                empty_fallback=None,
+            ))
+            innov_collab_ctx_arr.append(majority_vote_categorical(
+                innov_collab_modes_ctx,
+                tie_strategy='conservative',
+                tie_default='自主研发',
+                empty_fallback=None,
+            ))
+            innov_collab_conf_full_arr.append(_avg_conf(parsed_full, 'innovation_collab_mode_confidence'))
+            innov_collab_conf_ctx_arr.append(_avg_conf(parsed_ctx, 'innovation_collab_mode_confidence'))
+
 
 
         # 批量赋值各模型独立判断列
@@ -1529,16 +1619,25 @@ def main():
         df['innovation_substantiveness_confidence_ctx'] = innov_subst_conf_ctx_arr
         df['innovation_locus_confidence_full'] = innov_locus_conf_full_arr
         df['innovation_locus_confidence_ctx'] = innov_locus_conf_ctx_arr
+        # v3.4.0: 第三维度 innovation_collab_mode 双轨写回 (additive supplementation,
+        # Chesbrough 2003 + L&S 2006 SMJ; v7 dual gate (locus 闸门) 语义不变)
+        df['innovation_collab_mode_full'] = innov_collab_full_arr
+        df['innovation_collab_mode_ctx'] = innov_collab_ctx_arr
+        df['innovation_collab_mode_confidence_full'] = innov_collab_conf_full_arr
+        df['innovation_collab_mode_confidence_ctx'] = innov_collab_conf_ctx_arr
 
         # ── Logit-to-Score 概率分数写入 DataFrame ──
         if LOGIT_SCORE_ENABLED:
             df['llm_prob_score_full'] = prob_score_full_arr
             df['llm_prob_score_ctx'] = prob_score_ctx_arr
-            # Plan v1.37 P2: 4 new article-level binary prob_score columns
+            # Plan v1.37 P2: 4 article-level binary prob_score columns
+            # v3.4.0: + 2 collab_mode prob_score columns (Chesbrough 2003 + L&S 2006)
             df['avg_subst_prob_score_full'] = subst_prob_score_full_arr
             df['avg_subst_prob_score_ctx'] = subst_prob_score_ctx_arr
             df['avg_locus_prob_score_full'] = locus_prob_score_full_arr
             df['avg_locus_prob_score_ctx'] = locus_prob_score_ctx_arr
+            df['avg_collab_prob_score_full'] = collab_prob_score_full_arr
+            df['avg_collab_prob_score_ctx'] = collab_prob_score_ctx_arr
             n_rows = len(prob_score_full_arr)
             mean_full = sum(prob_score_full_arr) / max(n_rows, 1)
             mean_ctx = sum(prob_score_ctx_arr) / max(n_rows, 1)

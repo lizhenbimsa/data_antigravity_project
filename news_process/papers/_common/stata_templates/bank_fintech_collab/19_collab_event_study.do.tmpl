@@ -1,0 +1,57 @@
+* ============================================================================
+* 19_collab_event_study.do — Event study E1/E3/E4 (P5)
+* Paper: {{PAPER_ID}}
+* v3.4.0: 与 P4 locus 同 events (per spec event_studies)
+*   E1: 2013-06-13 yuebao_launch (fintech ecosystem 开启)
+*   E3: 2017-04-27 asset_management_rules
+*   E4: 2020-11-03 ant_ipo_pause
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$figures_dir" == "" global figures_dir "../output/figures"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* Event flags (依赖 panel 中已有的 event_year 标记列; 若无则跳过)
+local events  E1 E3 E4
+local years   2013 2017 2020
+local n_ev: word count `events'
+
+forvalues i = 1/`n_ev' {
+    local ev: word `i' of `events'
+    local yr: word `i' of `years'
+
+    * 相对事件年的 lead/lag (-3 ~ +3)
+    capture drop event_t_*
+    forvalues lag = -3/3 {
+        gen byte event_t_`ev'_`=`lag'+3' = (year == `yr' + `lag')
+    }
+
+    * Treatment = collab_open_full × event flag (cross-sectional intensity DiD)
+    capture confirm variable collab_open_full
+    if !_rc {
+        reghdfe {{MAIN_DV}} c.collab_open_full#i.event_t_`ev'_3 ///
+                            c.collab_open_full#i.event_t_`ev'_4 ///
+                            c.collab_open_full#i.event_t_`ev'_5 ///
+                            c.collab_open_full#i.event_t_`ev'_6 ///
+                            $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+
+        * Coefplot
+        capture which coefplot
+        if !_rc {
+            coefplot, vertical drop(_cons $controls) ///
+                title("Event Study `ev' (`yr') --- bank_fintech_collab") ///
+                yline(0) saving("$figures_dir/event_`ev'.gph", replace)
+        }
+    }
+}
+
+display "[OK] Event study (E1/E3/E4) → $figures_dir/event_*.gph"
