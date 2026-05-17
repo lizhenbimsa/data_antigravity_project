@@ -399,6 +399,10 @@ class TestEdgeCases:
             '内容': [text, text + '微小差异'],
         })
 
+        # v3.6.0 在 df 没 content_ctx 时会发"内容 ctx 缺失"WARN — 该 WARN 与本测试无关
+        # (本测试关注 df 阈值参数, 非双轨化). 加 content_ctx 列消除 v3.6.0 引入的噪音 WARN.
+        df['content_ctx'] = df['内容']
+
         result = compute_herd_weights(df)
 
         assert len(result) == 2

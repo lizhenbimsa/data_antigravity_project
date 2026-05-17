@@ -1,6 +1,12 @@
 """
 news_process.validation.decay_sensitivity — 距离衰减权重敏感性检验 (G-14)
 
+v3.6.0 (Plan E P7 C4 stub):
+    当前单轨实现. 双轨稳健性应对 full / ctx 各跑一遍 3 种 decay 函数,
+    输出 Pearson/Spearman 相关度矩阵 (3 decay × 2 track = 6×6 matrix).
+    后续实施方案见 docs/methodology/plan_e_p7_dual_track_validation.md (TODO).
+    当前模块不阻塞 Plan E 主线; 推迟到 P7.b 单独 PR 实施。
+
 迁移说明 (Phase 7b)：
     本模块由原 root script ``38b_decay_sensitivity.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.decay_sensitivity``

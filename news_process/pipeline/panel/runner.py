@@ -294,16 +294,37 @@ def main():
         df = _append_columns(df, weighted_cols)
         logger.info(f"  已生成 {len(weighted_cols)} 个媒体权威性加权列")
 
-    # --- 3d. 跟风衰减加权列预计算 (Tetlock 2011, JF) ---
-    if 'herd_weight' in df.columns:
+    # --- 3d. 跟风衰减加权列预计算 (Tetlock 2011, JF; Edwards 2001 ORM) ---
+    # v3.6.0 (Plan E P1 B3): 双轨权重独立施加
+    #   _full track  → herd_weight_full
+    #   _ctx  track  → herd_weight_ctx
+    #   _title track → herd_weight_full (fallback; 标题无独立 ctx 概念)
+    # 向后兼容: 若仅存在历史的 herd_weight 单列 (v3.5.0 及更早), 退化为
+    # 旧行为 (全部三轨用同一权重), 但记 WARN 提示用户重跑 stage 24。
+    has_dual_hw = ('herd_weight_full' in df.columns and
+                   'herd_weight_ctx' in df.columns)
+    has_legacy_hw = 'herd_weight' in df.columns
+    if has_dual_hw or has_legacy_hw:
         logger.info("=" * 60)
-        logger.info("步骤 3d: 跟风衰减加权列预计算 (HW, 双轨)")
+        if has_dual_hw:
+            logger.info("步骤 3d: 跟风衰减加权列预计算 (HW, 双轨独立 v3.6.0)")
+            hw_full = df['herd_weight_full'].fillna(1.0)
+            hw_ctx = df['herd_weight_ctx'].fillna(1.0)
+            hw_title = hw_full  # 标题轨复用 full 权重
+        else:
+            logger.warning(
+                "步骤 3d: 检测到 v3.5.0 legacy herd_weight 单列, "
+                "退化为单轨加权 — 建议重跑 stage 24 (herd_decay) 升级到双轨")
+            hw_full = df['herd_weight'].fillna(1.0)
+            hw_ctx = hw_full
+            hw_title = hw_full
         logger.info("=" * 60)
-        hw = df['herd_weight'].fillna(1.0)
+        hw_by_track = {'_full': hw_full, '_ctx': hw_ctx, '_title': hw_title}
         weighted_cols = {}
         for track in ['_full', '_ctx', '_title']:
             if f'llm_vote_score{track}' not in df.columns:
                 continue
+            hw = hw_by_track[track]
             # 情感离散/连续 (遵循 MW 命名模式: _hw 在 track 之前)
             weighted_cols[f'llm_vote_score_hw{track}'] = df[f'llm_vote_score{track}'] * hw
             weighted_cols[f'llm_vote_cont_hw{track}'] = df[f'llm_vote_cont{track}'] * hw
@@ -332,7 +353,8 @@ def main():
             if src_prob in df.columns:
                 weighted_cols[f'llm_prob_score_hw{track}'] = df[src_prob] * hw
         df = _append_columns(df, weighted_cols)
-        logger.info(f"  已生成 {len(weighted_cols)} 个跟风衰减加权列")
+        logger.info(f"  已生成 {len(weighted_cols)} 个跟风衰减加权列 "
+                    f"({'双轨独立权重' if has_dual_hw else '单轨 legacy 权重'})")
 
     # --- 4. 时间解析 ---
     df = parse_time(df)

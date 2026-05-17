@@ -1,0 +1,43 @@
+* ============================================================================
+* 27_tableA9_num_intensity.do — v3.5.1 A3 Numerical Intensity (P1 bank_fintech_tone Table A9)
+* Paper: {{PAPER_ID}}
+* Anchor: Hales, Kuang & Venkataraman (2011, CAR 28:1); 真双轨.
+* Located in v3_5_1/ subdirectory per build_replication_package glob isolation
+* (P1 bank_fintech_tone 用 _common/ root template_dir, 无 paper-specific 子目录).
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+set seed {{RANDOM_SEED}}
+
+* Panel A: P1 tone × num_intensity 交互 (量化披露强度 vs LLM tone)
+capture confirm variable mean_num_intensity_full
+if !_rc {
+    reghdfe {{MAIN_DV}} c.mean_num_intensity_full##c.{{MAIN_TREAT}} $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo p1_num_intensity_interact
+}
+else {
+    display "  [WARN] mean_num_intensity_full not in panel"
+}
+
+* Panel B: dual-track main
+capture confirm variable mean_num_intensity_full
+if !_rc {
+    reghdfe {{MAIN_DV}} mean_num_intensity_full mean_num_intensity_ctx $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo p1_num_intensity_dual
+}
+
+esttab p1_num_intensity_interact p1_num_intensity_dual ///
+    using "$tables_dir/tableA9_num_intensity.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) replace ///
+    title("Table A9: Numerical Intensity (Hales 2011 CAR) Robustness — P1 {{PAPER_ID}}")

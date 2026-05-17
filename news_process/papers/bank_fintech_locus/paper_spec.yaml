@@ -82,3 +82,12 @@ audit_rounds_target_min: 8
 tables:
   t6:
     template: 19_table6_cell_decomposition
+  tA7:
+    template: 19_locus_clarity_robustness
+    clarity_robustness:
+      anchor: "Loughran & McDonald (2011) JF 66(1); You et al. (2018) hhx055"
+      dual_track: true
+  tA8:
+    template: null
+  tA9:
+    template: null

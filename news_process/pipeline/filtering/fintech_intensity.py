@@ -238,15 +238,25 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
 # 4. 逐文档得分计算 (Module C)
 # ============================================================================
 
-def _compute_intensity_scores(df: pd.DataFrame, combined_weights: dict) -> tuple:
-    """计算每篇文档的技术重度得分。
+def _compute_intensity_scores(
+    df: pd.DataFrame,
+    combined_weights: dict,
+    text_col: str = '内容',
+) -> tuple:
+    """计算每篇文档的技术重度得分 (v3.6.0 Plan E P4 B1: 支持双轨)。
 
     核函数（双重对数方程）:
       Score_d = Σ_{i: TF>0} [ (1 + ln(TF_{d,i})) / (1 + ln(L_d)) ] × W_i
 
+    v3.6.0 升级:
+      text_col 参数让同一函数可对 '内容' 或 'content_ctx' 两种输入计算,
+      实现 fintech_intensity_score_{full,ctx} 双轨。doc_length 仍按
+      text_col 实际长度推算 (避免用全文长度归一化 ctx 短文本)。
+
     Args:
-        df: 金融科技子集 DataFrame（含 doc_length 列）。
+        df: 金融科技子集 DataFrame。
         combined_weights: {关键词: 综合权重}。
+        text_col: 文本列名 — '内容' (full 轨) 或 'content_ctx' (ctx 轨)。
 
     Returns:
         tuple: (scores: list[float], verified_flags: list[bool])
@@ -254,7 +264,11 @@ def _compute_intensity_scores(df: pd.DataFrame, combined_weights: dict) -> tuple
     for kw in FINTECH_KEYWORDS:
         jieba.add_word(kw)
 
-    contents = df['内容'].fillna('').astype(str).tolist()
+    if text_col not in df.columns:
+        # 缺失时回退到 '内容' (保证 ctx 轨在 stage 13 未跑时不崩)
+        logger.warning(f"  '{text_col}' 列不存在, 回退至 '内容' (单轨退化)")
+        text_col = '内容'
+    contents = df[text_col].fillna('').astype(str).tolist()
     kw_set = set(FINTECH_KEYWORDS)
 
     def _tokenize_chunk(chunk_texts):
@@ -282,8 +296,11 @@ def _compute_intensity_scores(df: pd.DataFrame, combined_weights: dict) -> tuple
     scores = []
     verified_flags = []
 
-    doc_lengths = df['doc_length'].values if 'doc_length' in df.columns else \
-        df['内容'].fillna('').str.len().clip(lower=1).values
+    # v3.6.0 P4 B1: doc_length 按 text_col 实际长度推算 (ctx 短文本不能用全文长度)
+    if text_col == '内容' and 'doc_length' in df.columns:
+        doc_lengths = df['doc_length'].values
+    else:
+        doc_lengths = df[text_col].fillna('').str.len().clip(lower=1).values
 
     n_fused = 0
 
@@ -358,17 +375,54 @@ def main():
         logger.error(f"金融科技子集文件未找到: {filtered_path}")
         raise SystemExit(1)
 
-    logger.info(f"加载金融科技子集: {filtered_path}")
-    df = pd.read_parquet(filtered_path)
+    # v3.6.0 (Plan E P4 A1/B1): 优先读 stage 13 输出 (含 content_ctx 列),
+    # 缺失则 fallback 到 stage 12 输出 (无 ctx, 触发 _ctx 轨回退)
+    ctx_filename = CONFIG['filenames'].get(
+        'output_13_news_with_ctx', '13_news_with_ctx.parquet')
+    ctx_path = os.path.join(output_dir, ctx_filename)
+    if os.path.exists(ctx_path):
+        logger.info(f"加载 stage 13 输出 (含 content_ctx): {ctx_path}")
+        df = pd.read_parquet(ctx_path)
+        # stage 13 输出是 stage 12 全集 + ctx 列, 但 stage 14 需要金融科技子集
+        if 'is_fintech_news' in df.columns:
+            df = df[df['is_fintech_news'].astype(bool)].reset_index(drop=True)
+            logger.info(f"  筛选 is_fintech_news=True: {len(df)} 篇")
+    else:
+        logger.warning(f"  stage 13 输出未找到 ({ctx_path}), fallback 至 stage 12 "
+                       f"(ctx 轨将退化为 full)")
+        logger.info(f"加载金融科技子集: {filtered_path}")
+        df = pd.read_parquet(filtered_path)
     logger.info(f"金融科技子集: {len(df)} 篇文档")
 
-    scores, verified_flags = _compute_intensity_scores(df, combined_weights)
+    # v3.6.0 (Plan E P4 B1): 双轨计算 — full 用 '内容', ctx 用 'content_ctx'
+    # 输出列: fintech_intensity_score_{full,ctx} + intensity_verified_{full,ctx}
+    # 向后兼容: 同时保留无后缀 fintech_intensity_score = _full alias
+    scores_full, verified_full = _compute_intensity_scores(df, combined_weights, text_col='内容')
+    df['fintech_intensity_score_full'] = scores_full
+    df['intensity_verified_full'] = verified_full
+    # legacy alias (deprecate after 9 paper migration)
+    df['fintech_intensity_score'] = scores_full
+    df['intensity_verified'] = verified_full
 
-    df['fintech_intensity_score'] = scores
-    df['intensity_verified'] = verified_flags
+    if 'content_ctx' in df.columns:
+        logger.info("=" * 60)
+        logger.info("v3.6.0 双轨: 对 content_ctx 计算 fintech_intensity_score_ctx")
+        logger.info("=" * 60)
+        scores_ctx, verified_ctx = _compute_intensity_scores(
+            df, combined_weights, text_col='content_ctx')
+        df['fintech_intensity_score_ctx'] = scores_ctx
+        df['intensity_verified_ctx'] = verified_ctx
+    else:
+        logger.warning(
+            "  content_ctx 列缺失 (stage 13 _materialize_ctx 未跑?), "
+            "ctx 轨回退 = full — 此时 fintech_intensity_score_ctx ≡ _full")
+        df['fintech_intensity_score_ctx'] = scores_full
+        df['intensity_verified_ctx'] = verified_full
 
     assert 'is_fintech_news' in df.columns, "原有列 is_fintech_news 丢失!"
     assert 'fintech_intensity_score' in df.columns
+    assert 'fintech_intensity_score_full' in df.columns
+    assert 'fintech_intensity_score_ctx' in df.columns
     assert 'intensity_verified' in df.columns
 
     output_filename = CONFIG['filenames'].get(
@@ -386,10 +440,13 @@ def main():
         input_files=[full_path, input_file],
     )
 
-    n_verified = sum(verified_flags)
+    n_verified_full = sum(verified_full)
+    n_verified_ctx = sum(df['intensity_verified_ctx'])
     n_total = len(df)
-    logger.info(f"intensity_verified=True: {n_verified}/{n_total} "
-                f"({n_verified / max(n_total, 1) * 100:.1f}%)")
+    logger.info(f"intensity_verified_full=True: {n_verified_full}/{n_total} "
+                f"({n_verified_full / max(n_total, 1) * 100:.1f}%)")
+    logger.info(f"intensity_verified_ctx=True:  {n_verified_ctx}/{n_total} "
+                f"({n_verified_ctx / max(n_total, 1) * 100:.1f}%)")
 
     log_stage_summary(logger, STAGE_NAME, stage_start, n_total, n_total)
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")

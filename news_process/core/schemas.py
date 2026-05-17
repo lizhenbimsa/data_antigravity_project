@@ -49,6 +49,8 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
         "12_fintech_news.parquet",
         "12_fintech_news_full.parquet",
     ],
+    # v3.6.0 (Plan E P4 A1): stage 13 = 12 + content_ctx 列, 供 stage 14/15 双轨化
+    "13_materialize_ctx.py": ["13_news_with_ctx.parquet"],
     "14_fintech_intensity.py": ["14_fintech_intensity.parquet"],
     "15_article_policy_alignment.py": ["15_article_alignment.parquet"],
     # 模块三: sentiment
@@ -104,6 +106,8 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("11_news_bank.py", "11_bank_news.parquet"): "output_11_bank_news",
     ("12_news_fintech.py", "12_fintech_news.parquet"): "output_12_fintech_news",
     ("12_news_fintech.py", "12_fintech_news_full.parquet"): "output_12_fintech_full",
+    # v3.6.0 (Plan E P4 A1)
+    ("13_materialize_ctx.py", "13_news_with_ctx.parquet"): "output_13_news_with_ctx",
     ("14_fintech_intensity.py", "14_fintech_intensity.parquet"): "output_14_fintech_intensity",
     ("15_article_policy_alignment.py", "15_article_alignment.parquet"): "output_15_article_alignment",
     ("21_tone_llms.py", "21_tone_llms.parquet"): "output_21_tone_llms",
@@ -160,6 +164,7 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "39_prompt_sensitivity.py",
     "39a_inter_track_kappa.py",
     "39c_construct_orthogonality.py",  # v3.5.0 D3 NMI: 写 data/processed/39c_*.parquet 但走 validation 约定 (per schemas.py:134 historical)
+    "39d_lexical_discriminant_validity.py",  # v3.5.1 A1/A3 HTMT+κ+α: 写 data/processed/39d_*.parquet + 39d_htmt_matrix.json, validation 不进 OUTPUT_REGISTRY
 })
 
 

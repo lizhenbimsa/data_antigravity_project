@@ -6,6 +6,52 @@
 
 ---
 
+## v3.5.1 / 2026-05-17 — feat: Stage 3 supplementation — A1 Lexical Clarity + A3 Numerical Intensity (真双轨)
+
+**Scope**: 在 v3.5.0 panel 之上**纯文本指标补强层**, 不改 prompt / 不重跑 stage 21 / $0 LLM 成本。**真双轨** (与项目 `_dual_analyze` 三轨契约一致):
+
+- **A1 Lexical Clarity** (LM 2011 JF + You 2018 hhx055 Panel C/D 激活):
+  - 新 `_compute_clarity_for_text(text, def_set, amb_set)` helper: 对任意单一文本独立扫描派生 clarity (修 R3-C1 真双轨假化)
+  - `tone_words.py::_dual_analyze` 内嵌对 content_full + content_ctx **独立调用** (title 轨不纳入, 修 R3-H1)
+  - panel 加 6 列: `mean_clarity_score_{full,ctx}` + `mean_frac_definite_{full,ctx}` + `frac_amb_articles_{full,ctx}` (D0 frozen median, n_articles≥2 mask)
+- **A3 Numerical Intensity** (Hales 2011 CAR 28:1 真双轨):
+  - 新模块 `pipeline/sentiment/numerical_intensity.py` (~250 行): `_cn2arab` 自实现 + 5 标准样例 frozen at D0 + 不定数排除 (修 R7-M2)
+  - `enrich_with_num_intensity_dual_track` post-processor 对 content_full + content_ctx 独立扫描 (修 R3-C2)
+  - panel 加 2 列: `mean_num_intensity_{full,ctx}`
+- **Stage 39d** Lexical Discriminant Validity (HTMT + AVE + κ + α):
+  - 新 `pipeline/audit/lexical_discriminant_validity.py` (~280 行) + shim `39d_lexical_discriminant_validity.py`
+  - HTMT 双 cutoff strict 0.85 / lenient 0.90 (修 R4-M2); Cohen κ 方向锁定 (修 M2'); Cronbach α across 3 indicators (修 R9-M2)
+  - Permutation null seed=42 (与 inter_track_kappa.py:41 一致, 修 R9-H3); ctx-fallback HTMT mask (修 R8-H1); pairwise on-disk < 1GB (修 R7-H3 + R8-H3 OOM)
+- **Stata 层** (修 plan v0.1 漏 + H2' 单 SoT 精神):
+  - `stata_export.py::HEURISTIC_LABELS` +8 entries (每条 ≤ 80 UTF-8 bytes 已验证)
+  - `stata_export.py::core_patterns` +8 (核心 ~95→103 远低于 IC 2048)
+  - `export.py::STATA_LABELS` +8 entries (与 HEURISTIC_LABELS 同步; test 验证一致性)
+- **Sidecar JSON** (修 C1' panel.attrs 序列化丢失):
+  - `data/processed/v3_5_1_constants.json` 持久化 median_amb_d0 + prompt_v8_sha256 + stage21_last_run_timestamp 双 anchor (修 R7-H1)
+
+**用户决策 gate (8 个)**:
+- G-A0: D-1 prerequisite 全部完成 (含 v3.5.0-augmentation tag 补打, 修 R5-B1)
+- G-A1: D0 plan v0.3 freeze + sidecar JSON 计算 (SHA256 anchor)
+- G-A2: 39d HTMT report (strict/lenient/fail 三档决策)
+- G-A3: golden v1 重生后样例审 (8 新列合理性)
+- G-A4: Stata 模板路径决策 (paper-specific vs v3_5_1/ root, P1 例外用 v3_5_1/ 修 R11)
+- G-A5: master plan §5.2.3.bis schema 扩 tA7/tA9/tA8 epoch 7 audit (修 R6-C1)
+- G-A6: release tag (CHANGELOG + paper_spec × 9 + Stata × 4-5 + codebook 同步完整)
+- G-A7 (optional): Bartik IV 重跑 (默认 skip; v3.5.2 补做)
+
+**契约不变量**:
+- Prompt v8 字节级冻结不变 / jieba==0.42.1 frozen at D0 (修 R9-H4)
+- 9 paper_spec.yaml × `tables.tA7/A8/A9` schema 兼容 (5 active: P3/P4/P5 tA7 + P1 tA9 + benefit_society tA8; 其余 4 paper explicit null)
+- panel schema 加列 idempotent; OUTPUT_REGISTRY 不触动 (39d validation stage)
+- shim 29→**30** (实测 ls; +39d shim, 修 R9-H1)
+- 文献锚定: LM 2011 JF + You 2018 + Bonsall 2017 JAE + Hales 2011 CAR + Henseler 2015 JAMS + Fornell-Larcker 1981 JMR + Cohen 1960 EPM + Cronbach 1951 Psychometrika + Nosek 2018 PNAS (修 R6-H2)
+
+**Audit 历史**: plan v0.1 → v0.2 → v0.3, 共 **10 轮** V1-V15 + 同行 P1/P2/P3 + D-day 压力 + 完备性 + 对抗性 + 边缘 case + EiC + v0.3 真闭环复证; **97 finding 闭环** (2 BLOCKER + 5 CRITICAL + 24 HIGH + 41 MED + 25 LOW); 已超 `paper_spec.yaml::audit_rounds_target_min: 8` 项目标准.
+
+**Plan**: [stage3_v3_5_1_a1_a3_supplementation_plan.md](news_process/docs/methodology/stage3_v3_5_1_a1_a3_supplementation_plan.md) (v0.3) + [audit log](news_process/docs/methodology/stage3_v3_5_1_a1_a3_supplementation_plan_audit_log.md).
+
+---
+
 ## v3.5.0 / 2026-05-17 — feat: Stage 3 augmentation — Cell Decomposition + NMI Orthogonality + Dual-track Residual
 
 **Scope**: 在 v3.4.0 panel 之上**纯方法学加工层**增量, 不改 prompt / 不重跑 stage 21 / $0 LLM 成本。三大模块:

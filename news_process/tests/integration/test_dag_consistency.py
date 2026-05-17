@@ -83,25 +83,47 @@ def test_validation_orchestrator_uses_canonical_stages(rpv, core_dag):
 
 
 def test_main_stage_count(core_dag):
-    """``STAGES_MAIN`` 阶段数须等于 v6 基线 + v3.2.0 stage 46 (13)。"""
-    # 00 + 11 + 12 + 14 + 15 + 21 + 22 + 23 + 24 + 30 + 45 + 46 + 51 = 13
-    # v3.2.0 M6 (plan v14 §9.1): 新增 stage 46 Stata 数据导出 (pyreadstat .dta + labels)
-    assert len(core_dag.STAGES_MAIN) == 13, (
-        f"STAGES_MAIN 数量漂移: 期望 13, 实际 {len(core_dag.STAGES_MAIN)}. "
+    """``STAGES_MAIN`` 阶段数须等于 v3.6.0 基线 (14)。"""
+    # 00 + 11 + 12 + 13 + 14 + 15 + 21 + 22 + 23 + 24 + 30 + 45 + 46 + 51 = 14
+    # v3.2.0 M6: + stage 46 Stata 导出
+    # v3.6.0 (Plan E P4 A1): + stage 13 content_ctx 物化, 让 14/15 双轨化前置可用
+    assert len(core_dag.STAGES_MAIN) == 14, (
+        f"STAGES_MAIN 数量漂移: 期望 14 (v3.6.0), 实际 {len(core_dag.STAGES_MAIN)}. "
         "若有意增删阶段, 请同步更新本测试。"
     )
 
 
 def test_validation_stage_count(core_dag):
-    """``STAGES_VALIDATION`` 阶段数须等于当前验证基线 (14, v3.5.0)。
+    """``STAGES_VALIDATION`` 阶段数须等于当前验证基线 (15, v3.5.1)。
 
     v3.4.0 baseline = 13 (含 39a inter_track_kappa).
     v3.5.0 +1 = 14: 加 39c construct_orthogonality (NMI 正交性 D3 stage)
-    per stage3_v3_5_0_augmentation_plan.md §2.2.1 + F-B-NEW-5.
+    v3.5.1 +1 = 15: 加 39d lexical_discriminant_validity (A1+A3 HTMT/AVE/κ/α)
+    per stage3_v3_5_1_a1_a3_supplementation_plan.md §2.3 + §3.1.
     """
-    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c = 14
-    assert len(core_dag.STAGES_VALIDATION) == 14, (
-        f"STAGES_VALIDATION drift: expected 14, got {len(core_dag.STAGES_VALIDATION)}."
+    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c + 39d = 15
+    assert len(core_dag.STAGES_VALIDATION) == 15, (
+        f"STAGES_VALIDATION drift: expected 15 (v3.5.1 +39d), got {len(core_dag.STAGES_VALIDATION)}."
+    )
+
+
+def test_v3_5_1_stage_39d_registered(core_dag):
+    """v3.5.1 stage 39d 必须在 STAGES_VALIDATION 中且 not in OUTPUT_REGISTRY.
+
+    Per plan v0.3 §3.1: 39d 是 validation stage, dependencies=["22_tone_words.py",
+    "46_panel_export_main.py"] 双依赖 (修 R7-M4); 不进 OUTPUT_REGISTRY (与 39a/39c 一致).
+    """
+    scripts = {stage.script for stage in core_dag.STAGES_VALIDATION}
+    assert '39d_lexical_discriminant_validity.py' in scripts, (
+        "39d_lexical_discriminant_validity.py 未在 STAGES_VALIDATION 中 (v3.5.1 plan §3.1)"
+    )
+
+
+def test_v3_5_1_stage_39d_not_in_output_registry(core_dag):
+    """v3.5.1 stage 39d 不进 OUTPUT_REGISTRY (与 39a/39c 历史约定一致, 修 plan v0.3 §3)."""
+    from news_process.core.schemas import OUTPUT_REGISTRY
+    assert '39d_lexical_discriminant_validity.py' not in OUTPUT_REGISTRY, (
+        "39d 应作 validation stage, 不进 OUTPUT_REGISTRY (per schemas.py:134 历史约定)"
     )
 
 
@@ -158,29 +180,29 @@ def test_filter_enabled_respects_predicate(core_dag):
     ``enabled_when=berts_method_enabled`` 谓词, 与 stage 23 同步启停.
     因此 cfg_llm_only / cfg_no_sentiment 下被排除的 stage 数 +1.
     """
-    # 三种情感方法全开 -> 13 阶段 (v3.2.0 M6: + stage 46 Stata 导出)
+    # v3.6.0: 三种情感方法全开 -> 14 阶段 (+ stage 13 ctx 物化)
     cfg_full = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
         },
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 13
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 14
 
-    # 仅 LLM -> 13 - 2 (words+berts) - 1 (24 跟随 berts) = 10
+    # 仅 LLM -> 14 - 2 (words+berts) - 1 (24 跟随 berts) = 11
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 10
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 11
 
-    # 无情感方法 -> 13 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 9
+    # 无情感方法 -> 14 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 10
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 9
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 10
     )
 
 

@@ -46,6 +46,7 @@ filenames:
   output_11_bank_news: 11_bank_news.parquet               # 11_news_bank.py → 银行新闻分类
   output_12_fintech_news: 12_fintech_news.parquet         # 12_news_fintech.py → 金融科技新闻分类（仅保留金融科技新闻）
   output_12_fintech_full: 12_fintech_news_full.parquet    # 12_news_fintech.py → 全量分类结果（含非金融科技，用于人工验证抽样）
+  output_13_news_with_ctx: 13_news_with_ctx.parquet       # 13_materialize_ctx.py → stage 12 子集 + content_ctx 物化 (v3.6.0 Plan E P4 A1)
   output_14_fintech_intensity: 14_fintech_intensity.parquet  # 14_fintech_intensity.py → TF-IDF 技术重度评分（在 12 基础上追加 intensity 列）
   output_15_article_alignment: 15_article_alignment.parquet  # 15_article_policy_alignment.py → 文章级政策语义对齐度 (Distel et al. 2026)
   output_21_tone_llms: 21_tone_llms.parquet               # 21_tone_llms.py → LLM 语义精筛与情感分析（仅 llm_verified=True）

@@ -174,6 +174,17 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
         'avg_locus_prob_score_std_full':    "Std Locus P_BIN (full-track, bank-year SD)",
         'avg_locus_prob_score_ctx':         "Avg Locus P_BIN (ctx-track) — 1=application, max-ent map",
         'avg_locus_prob_score_std_ctx':     "Std Locus P_BIN (ctx-track, bank-year SD)",
+        # v3.5.1 A1 Lexical Clarity (LM 2011 JF 66:1; You 2018 hhx055 Panel C/D)
+        # 真双轨独立扫描; 每条 ≤ 80 UTF-8 bytes (per plan v0.3 §2.4.1 frozen at D0).
+        'mean_clarity_score_full':          "Mean Clarity Score from indep Full-text scan (LM 2011 JF; You 2018)",
+        'mean_clarity_score_ctx':           "Mean Clarity Score from indep Ctx-text scan (LM 2011 JF; You 2018)",
+        'mean_frac_definite_full':          "Mean Frac Definite from indep Full scan (You 2018 Panel C 388 words)",
+        'mean_frac_definite_ctx':           "Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)",
+        'frac_amb_articles_full':           "Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)",
+        'frac_amb_articles_ctx':            "Frac Articles Ambiguous Ctx (>=D0 median, You 2018 Panel D)",
+        # v3.5.1 A3 Numerical Intensity (Hales-Kuang-Venkataraman 2011 CAR 28:1) 真双轨
+        'mean_num_intensity_full':          "Mean Numerical Intensity Full (Hales 2011 CAR, dual-track)",
+        'mean_num_intensity_ctx':           "Mean Numerical Intensity Ctx (Hales 2011 CAR, dual-track)",
     }
 
     for col in df.columns:
@@ -258,6 +269,13 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         'avg_subst_prob_score_std_full', 'avg_subst_prob_score_std_ctx',
         'avg_locus_prob_score_full', 'avg_locus_prob_score_ctx',
         'avg_locus_prob_score_std_full', 'avg_locus_prob_score_std_ctx',
+        # v3.5.1 A1 Lexical Clarity (LM 2011 JF; You 2018) — 6 列全进 core
+        # (per plan v0.3 §1.3 invariant + §2.4.1; core 当前 ~95+8=103 远低于 IC 2048).
+        'mean_clarity_score_full', 'mean_clarity_score_ctx',
+        'mean_frac_definite_full', 'mean_frac_definite_ctx',
+        'frac_amb_articles_full', 'frac_amb_articles_ctx',
+        # v3.5.1 A3 Numerical Intensity (Hales 2011 CAR) — 2 列全进 core
+        'mean_num_intensity_full', 'mean_num_intensity_ctx',
     ]
 
     core = [c for c in core_patterns if c in df.columns]

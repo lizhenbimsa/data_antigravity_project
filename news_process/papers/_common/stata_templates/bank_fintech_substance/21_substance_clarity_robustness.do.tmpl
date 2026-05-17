@@ -1,0 +1,72 @@
+* ============================================================================
+* 21_substance_clarity_robustness.do — v3.5.1 A1 Lexical Clarity Robustness (P3 Table A7)
+* Paper: {{PAPER_ID}}
+* Anchor: Loughran & McDonald (2011, JF 66:1) uncertain dictionary;
+*         You et al. (2018) hhx055 Panel C/D Chinese adaptation;
+*         真双轨 (full + ctx 独立扫描, 修 R3-C1).
+*
+* Plan: stage3_v3_5_1_a1_a3_supplementation_plan.md §2.5 (per R6-C1 schema 扩 tA7).
+* 三角化: Panel C 将 A1 与 ln_fintech_mdna_length (P2 mediator) 联合, 修 §2.5.3.
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* Panel A: Main DV on dual-track clarity (full + ctx 独立扫描)
+capture confirm variable mean_clarity_score_full
+if !_rc {
+    reghdfe {{MAIN_DV}} mean_clarity_score_full mean_clarity_score_ctx $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo subst_clarity_main
+}
+else {
+    display "  [WARN] mean_clarity_score_full not in panel (v3.5.1 D5 enrichment pending)"
+}
+
+* Panel B: LLM substance × clarity_full interaction (HTMT discriminant validation)
+capture confirm variable mean_clarity_score_full
+if !_rc {
+    reghdfe {{MAIN_DV}} c.mean_clarity_score_full##c.{{MAIN_TREAT}} $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo subst_clarity_interact
+}
+
+* Panel C: 三角化 (A1 clarity + ln_fintech_mdna_length, 修 §2.5.3)
+capture confirm variable ln_fintech_mdna_length
+if !_rc {
+    reghdfe {{MAIN_DV}} mean_clarity_score_full ln_fintech_mdna_length {{MAIN_TREAT}} $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo subst_clarity_triangulate
+}
+
+* Panel D: frac_amb_articles 二值化版 (binarize at D0 median, 修 R9-M3 备份)
+capture confirm variable frac_amb_articles_full
+if !_rc {
+    reghdfe {{MAIN_DV}} frac_amb_articles_full $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo subst_clarity_binary
+}
+
+* HTMT diagnostic (stage 39d 运行时填充, 修 R9-H3 seed=42).
+* Replication 包用户应先跑 stage 39d 生成 data/processed/39d_htmt_matrix.json,
+* 然后人工填入 local; 或 batch 模式由 stata_runner pre-render 注入.
+local htmt_subst_clarity = "<run 39d first>"
+display "v3.5.1 39d HTMT(substance, clarity) = `htmt_subst_clarity'"
+display "  双 cutoff: strict < 0.85 / lenient < 0.90 (修 R4-M2)"
+
+* 输出
+esttab subst_clarity_main subst_clarity_interact subst_clarity_triangulate subst_clarity_binary ///
+    using "$tables_dir/tableA7_clarity_robustness.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) replace ///
+    title("Table A7: Lexical Clarity Robustness (LM 2011 JF; You 2018) — {{PAPER_ID}}") ///
+    note("Dual-track independent dictionary scan over content_full and content_ctx.")

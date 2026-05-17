@@ -12,20 +12,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v3.5.0 (Stage 3 augmentation — Cell Decomposition + NMI Orthogonality + Dual-track Residual;
-继承 v3.4.0 P5 立项 + epoch 5 audit + v3.3.0 multi-paper extension + v3.2.0 BREAKING Stage 3 双轨化;
-**Prompt v8 字节级冻结** (不重跑 stage 21, $0 LLM 成本);
-v3.5.0 NON-BREAKING (2026-05-17): D2 cell_id_{full,ctx} ∈ {1..8} (8-cell categorical, Angrist-Pischke 2009 saturated regression + Sun-Abraham 2021 JOE 225) +
-D3 stage 39c construct_orthogonality (NMI matrix 3×3 / 6×6 + permutation null, Vinh-Epps-Bailey 2010 JMLR + Fred-Jain 2003) +
-D4 article 9 residual signals + panel 18 cols + d4_data_quality_flag (作者自创 + Loughran-McDonald 2011 + W&Z 2001 类比借用);
-encode_collab.py 新模块 (240 行, D2 + D4 + apply_v3_5_0 entry); encode.py +20 hook delegate (hybrid path);
-stata_export.py CELL_ID_VALUE_LABEL + D4 flag; 86 Stata templates (v3.4.0 84 + v3.5.0 2 in v3_5_0/ subdir per F45 legacy build glob 隔离);
-9 paper_spec.yaml × tables.t6 同步 (P3/P4/P5 template / 其余 6 paper null explicit); P5 alternative.cell_id_full;
-git tag `v3.5.0-augmentation` (planned, post-merge); `prompt-v8-supplementation-released` 不变 anchor;
-49 finding 经 5 组 35 轮 multi-perspective audit (V1-V7 七视角 × 5 epochs) closed; plan v12 SHA256 = `ef917f97...`;
-锚定: 继承 v3.4.0 anchors + Angrist-Pischke 2009 + Sun-Abraham 2021 JOE + Vinh 2010 JMLR + Fred-Jain 2003 CVPR + Bagozzi-Yi 1988 JAMS + Loughran-McDonald 2011 JF + W&Z 2001 ASQ;
-详见 CHANGELOG.md v3.5.0 + [stage3_v3_5_0_augmentation_plan.md](docs/methodology/stage3_v3_5_0_augmentation_plan.md))
-**Test baseline**: 1175 → ~1527 fast tests passing / 2 skipped (v3.5.0 +58 tests: 8 cell_id_derivation + 6 cell_id_panel + 14 construct_orthogonality + 12 residual_signals + 6 v3_4_to_v3_5_migration + 12 paper_spec_schema extension; 4 pre-existing v3.4.0 baseline failures test_dual_track ×3 + test_stage21_skip ×1 不属于 v3.5.0 引入)
+**Current version**: v3.6.0 (Plan E execution: 上游单轨缺口闭合 + main treatment 切 _ctx, 2026-05-18);
+v3.6.0 NON-BREAKING + 1 BREAKING (停用 herd_weight 单列): **P1 B3** herd_decay 双轨 (`herd_weight_{full,ctx}` 替代 v3.5.x 单列, Edwards 2001 ORM measurement-treatment matching, runner.py hw 加权 + encode.py agg/hw_denom 双轨独立); **P3 B2** policy_alignment 双轨 (`policy_cosine_sim_{full,ctx}`, cache key `-dual` 局部 namespace 隔离, ~$4 OpenAI 成本, 不动 features.yaml::text_pipeline_version 避免波及 benefit_society/strategic_diff/network_spillover 3 callsite); **P4 A1** 新 stage **13_materialize_ctx** 前置 `content_ctx` 物化 (新 `pipeline/text/ctx_materializer.py` + thin shim `13_materialize_ctx.py`, DAG 12→13→14→15, shim 数 30 → **31**, test_dag_consistency 14 stage); **P4 B1** fintech_intensity 双轨 (`fintech_intensity_score_{full,ctx}` + `intensity_verified_{full,ctx}`, main() 优先读 stage 13 输出, legacy alias 保留); **P4 D2** panel `avg_ft_intensity_{full,ctx}` (encode.py 双轨 agg); **P4 G3** P1 bank_fintech_tone spec main = `llm_vote_tone_ctx` (No SSRN preprint + 单作者 + 数据授权 三治理解锁, Tetlock 2007 JF 现代标准), batch migration script `scripts/migrate/plan_e_g3_paper_spec_ctx_switch.py` user-run 其余 8 paper; **P7 C1/C3/C4** stage 35/38a/38b 加 v3.6.0 双轨 stub marker (深度实施 follow-up P7.b); **P2** brokerage_network REPLICATION_README + 9 paper AI_DISCLOSURE_TEMPLATES.md (Nature/AER/JF/ASQ/RP/CSSCI 6 系列); ATT 漂移监控 `scripts/audit/att_drift_simulation.py` (user-run gate). Test baseline +14: test_24_herd_decay_dual 12/12 + test_15_policy_alignment_dual 14/14 + test_dag_consistency 14 stage count. git tag `plan-e-pre-execution` 锚定 v3.5.x 回滚点. **9 paper portfolio EV** (修正 Plan E §3 治理解锁后): brokerage/llm_peer/strategic_diff 立投 + B3/B2 killer fix + G3 main switch ≈ 3-5 paper 接收 (KPI 11 需治理重审).
+**v3.5.1 (历史 baseline)**: Stage 3 supplementation — A1 Lexical Clarity + A3 Numerical Intensity 真双轨;
+继承 v3.5.0 D2/D3/D4 + v3.4.0 P5 立项 + v3.3.0 multi-paper + v3.2.0 BREAKING Stage 3 双轨化;
+**Prompt v8 字节级冻结** + **jieba == 0.42.1 frozen at D0** (不重跑 stage 21, $0 LLM 成本);
+v3.5.1 NON-BREAKING (2026-05-17): A1 激活 you_2018 hhx055 Panel C 388 + Panel D 178 词 (LM 2011 JF + Bonsall 2017 JAE)
+通过新 `_compute_clarity_for_text` 在 `_dual_analyze` 内对 content_full + content_ctx 真独立扫描 (修双轨假化);
+A3 新模块 `pipeline/sentiment/numerical_intensity.py` (~250 行, Hales 2011 CAR Eq.1 + cn2arab 5 标准样例 frozen + 不定数排除);
+panel +8 列 (A1 6 + A3 2): mean_clarity_score_{full,ctx} / mean_frac_definite_{full,ctx} / frac_amb_articles_{full,ctx} / mean_num_intensity_{full,ctx};
+全 8 列进 stata_export.py core_patterns (core ~95→103 远低于 IC 2048) + 8 HEURISTIC_LABELS ≤ 80 UTF-8 bytes;
+stage 39d 新 validation: HTMT 双 cutoff 0.85/0.90 + Cohen κ + Cronbach α across 3 indicators + permutation seed=42 + pairwise on-disk < 1GB + ctx-fallback mask;
+sidecar JSON `data/processed/v3_5_1_constants.json` 双 anchor (median_amb_d0 + prompt_v8_sha256 + stage21_last_run_timestamp, 修 panel.attrs 序列化丢失);
+encode_collab.py +apply_v3_5_1 (~200 行, 与 apply_v3_5_0 并存; v3.6.0 合并方案预留);
+9 paper_spec.yaml × tables.tA7/A8/A9 同步 (5 active: P3/P4/P5 tA7 + P1 tA9 + benefit_society tA8 / 其余 4 paper null explicit);
+4 paper-specific Stata 模板 + 1 v3_5_1/ root 模板 (P1 例外); master plan §5.2.3.bis schema 扩 tA7/tA9/tA8 (epoch 7 audit cycle);
+git tag `v3.5.0-augmentation` 补打 ✓ + `v3.5.1-plan-frozen` (planned) + `v3.5.1-supplementation` (planned, post-merge);
+**97 finding 经 10 轮 audit closed** (V1-V15 + 同行 P1/P2/P3 + D-day 压力 + 完备性 + 对抗性 + 边缘 case + EiC + v0.3 复证);
+plan v0.3 SHA256 (D-1.8 计算后填); 锚定: 继承 v3.5.0 + LM 2011 JF + You 2018 + Hales 2011 CAR + Bonsall 2017 JAE + Cohen 1960 + Cronbach 1951 + Nosek 2018 PNAS;
+详见 CHANGELOG.md v3.5.1 + [stage3_v3_5_1_a1_a3_supplementation_plan.md](docs/methodology/stage3_v3_5_1_a1_a3_supplementation_plan.md) + audit log)
+**Test baseline**: 1175 → ~1527 → **~1590** fast tests passing (v3.5.1 +63 tests: 12 clarity_score + 10 numerical_intensity + 8 a1_a3_panel_aggregation + 12 lexical_discriminant + 8 stata_export_v3_5_1 + 6 v3_5_to_v3_5_1_migration + 3 forward_compat + 4 dag_consistency/paper_spec_schema 扩 + 等)
 
 **CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):
 - `build-replication`: 一键 instantiate 14 .do 模板 + spec 替换

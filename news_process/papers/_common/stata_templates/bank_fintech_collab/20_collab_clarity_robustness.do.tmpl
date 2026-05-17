@@ -1,0 +1,41 @@
+* ============================================================================
+* 20_collab_clarity_robustness.do — v3.5.1 A1 Lexical Clarity Robustness (P5 Table A7)
+* Paper: {{PAPER_ID}}
+* Anchor: Loughran & McDonald (2011, JF 66:1); You et al. (2018) hhx055; 真双轨.
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+set seed {{RANDOM_SEED}}
+
+* Panel A: clarity × collab_mode interaction
+capture confirm variable mean_clarity_score_full
+if !_rc {
+    reghdfe {{MAIN_DV}} c.mean_clarity_score_full##c.{{MAIN_TREAT}} $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo collab_clarity_interact
+}
+else {
+    display "  [WARN] mean_clarity_score_full not in panel (v3.5.1 D5 pending)"
+}
+
+* Panel B: dual-track main effect
+capture confirm variable mean_clarity_score_full
+if !_rc {
+    reghdfe {{MAIN_DV}} mean_clarity_score_full mean_clarity_score_ctx $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo collab_clarity_dual
+}
+
+esttab collab_clarity_interact collab_clarity_dual ///
+    using "$tables_dir/tableA7_clarity_robustness.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) replace ///
+    title("Table A7: Lexical Clarity × Collab Mode — {{PAPER_ID}}")

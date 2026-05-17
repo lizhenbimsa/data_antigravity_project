@@ -51,5 +51,15 @@ sample:  # RR5-1: post-M0.5 v34 panel target (per §3.4 8 paper共用 v34); v3.3
 audit_rounds_target_min: 8  # benefit_society v2.12 实测 14 轮
 
 # v3.5.0 D2 8-cell decomposition Table 6 — benefit_society 不用 D2 主回归 (per plan §2.1.6)
+# v3.5.1 A3 Numerical Intensity Robustness Table A8 (per stage3_v3_5_1_a1_a3_supplementation_plan.md §2.5.2)
 tables:
   t6: null
+  tA7:
+    template: null
+  tA8:
+    template: 19_bs_num_intensity_robustness
+    num_intensity_robustness:
+      anchor: "Hales, Kuang & Venkataraman (2011) CAR 28(1)"
+      dual_track: true  # 真双轨 (修 R3-C2)
+  tA9:
+    template: null

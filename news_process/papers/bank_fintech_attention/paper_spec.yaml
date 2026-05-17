@@ -72,5 +72,12 @@ sample:
 audit_rounds_target_min: 8
 
 # v3.5.0 D2 8-cell decomposition Table 6 — P2 不用 D2 主回归 (per plan §2.1.6)
+# v3.5.1 A1/A3 explicit null (P2 attention 不引用 clarity / num_intensity, per plan v0.3 §1.3)
 tables:
   t6: null
+  tA7:
+    template: null
+  tA8:
+    template: null
+  tA9:
+    template: null

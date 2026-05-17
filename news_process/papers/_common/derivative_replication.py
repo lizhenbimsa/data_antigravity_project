@@ -52,6 +52,11 @@ _DERIVATIVE_PAPER_IDS: frozenset[str] = frozenset({
     'bank_fintech_attention',
     'bank_fintech_substance',
     'bank_fintech_locus',
+    # v3.5.1 final-audit finding (R3): P5 'bank_fintech_collab' (v3.4.0 立项) onboarding
+    # 未完整 — 缺 en/zh manuscript + refs.bib (v3.4.0 epoch 4 遗留). 加入会引发
+    # test_papers_b_route 4 项 baseline regression (manuscript / refs.bib 缺失). 故 v3.5.1
+    # 保持 v3.4.0 现状, P5 完整 onboarding 由独立 PR (P5 follow-up) 处理. 暂留
+    # 20_collab_clarity_robustness.do.tmpl 为 "dormant template" 等待启用.
 })
 
 

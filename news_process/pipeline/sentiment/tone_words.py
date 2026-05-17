@@ -169,6 +169,116 @@ NEGATION_WINDOW = SENTIMENT_PARAMS.get('negation_window', 2)
 # 3. 词典加载
 # ============================================================================
 
+# v3.5.1 A1: Lexical Clarity 词典 lazy cache
+# 锚定: Loughran & McDonald (2011 JF 66:1) uncertain dictionary;
+#       You et al. (2018) hhx055 Chinese adaptation Panel C 388 词 / Panel D 178 词
+# 与现有 5 词典 (positive/negative score) 并存; clarity 走独立 frozenset 路径以 O(1) 查找
+_CLARITY_DICTS: tuple[frozenset, frozenset] | None = None
+
+
+def load_clarity_dictionaries() -> tuple[frozenset, frozenset]:
+    """加载 you_2018 Panel C (definite) + Panel D (ambiguous) 词典 (v3.5.1 A1 真双轨激活).
+
+    Returns:
+        tuple[frozenset, frozenset]: ``(definite_set, ambiguous_set)``
+            definite_set = 388 词 (Panel C, You 2018);
+            ambiguous_set = 178 词 (Panel D, You 2018).
+
+    锚定文献:
+        - Loughran & McDonald (2011) JF 66(1) uncertain dictionary
+        - You et al. (2018) hhx055 中文金融情感词典 Panel C/D
+        - Bonsall et al. (2017) JAE 63(2-3) 信息环境模糊度框架
+
+    与 v3.4.0 及之前差异: 此前 you_2018.definite/ambiguous "仅存档" (tone_dicts.json
+    含 keys 但无消费); v3.5.1 激活为真双轨独立扫描指标.
+    """
+    global _CLARITY_DICTS
+    if _CLARITY_DICTS is not None:
+        return _CLARITY_DICTS
+
+    def_set: frozenset = frozenset()
+    amb_set: frozenset = frozenset()
+    if os.path.exists(TONE_DICTS_FILE):
+        try:
+            with open(TONE_DICTS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            you = data.get('you_2018', {})
+            if isinstance(you, dict):
+                def_set = frozenset(w.strip() for w in you.get('definite', []) if w and isinstance(w, str))
+                amb_set = frozenset(w.strip() for w in you.get('ambiguous', []) if w and isinstance(w, str))
+        except Exception as e:
+            logger.error(f"v3.5.1 A1 clarity 词典加载失败: {e}")
+
+    if def_set or amb_set:
+        logger.info(f"v3.5.1 A1 clarity 词典加载: definite={len(def_set)} 词, ambiguous={len(amb_set)} 词")
+    else:
+        logger.warning("v3.5.1 A1 clarity 词典空 (you_2018 Panel C/D 未找到)")
+
+    _CLARITY_DICTS = (def_set, amb_set)
+    return _CLARITY_DICTS
+
+
+def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset) -> dict[str, float]:
+    """对**单一文本**独立扫描派生 clarity 指标 (v3.5.1 A1 真双轨核心).
+
+    此函数是真双轨的关键: ``_dual_analyze`` 对 content_full 和 content_ctx 各调用一次,
+    得到独立的 clarity_score_full_i 和 clarity_score_ctx_i — 与项目现有 ``_analyze_single_article``
+    的双轨契约一致 (per stage3_v3_5_1 plan v0.3 §2.1.1 修 R3-C1).
+
+    分词流: ``list(jieba.cut(text))`` + 去空字符 token (与 ``_analyze_single_article:707-710`` 一致).
+    分母 = 否定词翻转**前**的 jieba token count (D-1.2 实测验证; 与 LM 2011 JF §3 相比为
+    "未去停用词" 版, 写入 paper §3.4 disclosure).
+
+    Args:
+        text: 任意单一文本 (典型为 content_full 或 content_ctx).
+        def_set: frozenset of definite words (388, You 2018 Panel C).
+        amb_set: frozenset of ambiguous words (178, You 2018 Panel D).
+
+    Returns:
+        dict: {
+            'n_definite': int,
+            'n_ambiguous': int,
+            'n_tokens_clarity_base': int (= len(tokens) 去空字符后),
+            'frac_definite': float | None (分母=0 时 NA via float('nan')),
+            'frac_ambiguous': float | None,
+            'clarity_score': float | None (∈ [-1, +1] = frac_definite - frac_ambiguous),
+        }
+    """
+    if not isinstance(text, str) or not text.strip():
+        return {
+            'n_definite': 0,
+            'n_ambiguous': 0,
+            'n_tokens_clarity_base': 0,
+            'frac_definite': float('nan'),
+            'frac_ambiguous': float('nan'),
+            'clarity_score': float('nan'),
+        }
+
+    tokens = list(jieba.cut(text))
+    tokens = [t for t in tokens if t.strip()]
+    n_tokens = len(tokens)
+
+    if n_tokens == 0:
+        return {
+            'n_definite': 0, 'n_ambiguous': 0, 'n_tokens_clarity_base': 0,
+            'frac_definite': float('nan'), 'frac_ambiguous': float('nan'),
+            'clarity_score': float('nan'),
+        }
+
+    n_def = sum(1 for t in tokens if t in def_set)
+    n_amb = sum(1 for t in tokens if t in amb_set)
+    frac_def = n_def / n_tokens
+    frac_amb = n_amb / n_tokens
+    return {
+        'n_definite': n_def,
+        'n_ambiguous': n_amb,
+        'n_tokens_clarity_base': n_tokens,
+        'frac_definite': round(frac_def, 6),
+        'frac_ambiguous': round(frac_amb, 6),
+        'clarity_score': round(frac_def - frac_amb, 6),
+    }
+
+
 def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
     """从统一的 tone_dicts.json 加载所有情感词典。
 
@@ -855,6 +965,9 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
 
     # 对每篇文章执行双轨情感分析
     # content_ctx 由阶段 21 预计算并物化为列，直接读取以确保三种方法输入一致
+    # v3.5.1 A1: 加载 clarity 词典 (lazy, batch 内 1 次)
+    _def_set, _amb_set = load_clarity_dictionaries()
+
     def _dual_analyze(row):
         content_full = str(row.get('内容', ''))
         content_ctx = str(row.get('content_ctx', content_full))
@@ -872,6 +985,16 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             merged[f'{k}_ctx'] = v
         for k, v in res_title.items():
             merged[f'{k}_title'] = v
+
+        # v3.5.1 A1 真双轨 clarity (per plan v0.3 §2.1.1 修 R3-C1):
+        # 对 content_full + content_ctx **独立扫描** (title 轨不纳入, 修 R3-H1
+        # 锁定排除 — title 文本 < 50 字符分母不稳).
+        clarity_full = _compute_clarity_for_text(content_full, _def_set, _amb_set)
+        clarity_ctx = _compute_clarity_for_text(content_ctx, _def_set, _amb_set)
+        for k, v in clarity_full.items():
+            merged[f'clarity_{k}_full'] = v
+        for k, v in clarity_ctx.items():
+            merged[f'clarity_{k}_ctx'] = v
         return merged
 
     results = df.apply(_dual_analyze, axis=1)
@@ -927,6 +1050,17 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         for track in ['_full', '_ctx', '_title']:
             col_key = f'{col}{track}'
             new_columns[col_key] = results.apply(lambda r, k=col_key: r.get(k, 0.0))
+
+    # ── v3.5.1 A1 真双轨 clarity 列提取 (per plan v0.3 §2.1.1 + §2.1.3) ──
+    # title 轨不纳入 (R3-H1 锁定); 仅 full + ctx 双轨独立扫描.
+    clarity_metric_cols = [
+        'n_definite', 'n_ambiguous', 'n_tokens_clarity_base',
+        'frac_definite', 'frac_ambiguous', 'clarity_score',
+    ]
+    for col in clarity_metric_cols:
+        for track in ['_full', '_ctx']:
+            col_key = f'clarity_{col}{track}'
+            new_columns[col_key] = results.apply(lambda r, k=col_key: r.get(k, float('nan')))
 
     if new_columns:
         df = pd.concat([df, pd.DataFrame(new_columns, index=df.index)], axis=1).copy()
@@ -1171,6 +1305,19 @@ def main():
             [processed_df, pd.DataFrame(zscore_columns, index=processed_df.index)],
             axis=1,
         ).copy()
+
+    # v3.5.1 A3: Numerical Intensity 真双轨 post-processor (per plan v0.3 §2.2.3 修 R3-C2 + H4).
+    # 对 content_full + content_ctx 各调用 compute_num_intensity 一次, 写入
+    # num_intensity_full / num_intensity_ctx 两 article 列. 锚定: Hales-Kuang-
+    # Venkataraman (2011 CAR 28:1). 依赖方向: tone_words → numerical_intensity (单向).
+    try:
+        from news_process.pipeline.sentiment.numerical_intensity import (
+            enrich_with_num_intensity_dual_track,
+        )
+        processed_df = enrich_with_num_intensity_dual_track(processed_df)
+        logger.info("v3.5.1 A3: num_intensity 真双轨派生完成 (full + ctx 独立扫描)")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"v3.5.1 A3 num_intensity enrich 失败 (graceful skip): {e}")
 
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata

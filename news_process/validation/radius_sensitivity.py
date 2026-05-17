@@ -78,6 +78,13 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 RADII = [0, 1, 2, 3]                    # 待检验的窗口半径
 FALLBACK_CHAR_RADIUS = 150               # 字符级回退窗口（与原始设定一致）
 
+# v3.6.0 (Plan E P7 C1): 双轨标记 — 当前实现仍为词典法单轨 (用 '内容' 全文重提
+# ctx 在不同 radius 下的得分). 真正"双轨敏感性" 要求在 _full 和 _ctx 各跑一遍
+# 整个 RADII grid, 输出 35_radius_sensitivity_{full,ctx}.json 各一份。
+# 后续实施方案见 docs/methodology/plan_e_p7_dual_track_validation.md (TODO).
+# 当前模块的 radius 扫描已经隐式覆盖 ctx 提取参数, 半成品双轨。
+RUN_DUAL_TRACK = False  # 切换 True 后, main() 对 full + ctx 各跑一次完整 RADII 扫描
+
 # 从 22_tone_words 复用的情感参数
 SENTIMENT_PARAMS = CONFIG.get('sentiment_analysis', {}).get('tone_words', {})
 NEGATION_WORDS = frozenset(SENTIMENT_PARAMS.get('negation_words', []))

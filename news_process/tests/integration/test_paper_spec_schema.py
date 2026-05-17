@@ -257,3 +257,69 @@ def test_v3_5_0_p5_alternative_construction_cell_id_formula() -> None:
         f"P5 alternative_construction 缺 cell_id_full formula; "
         f"got = {list(construction)!r}"
     )
+
+
+# ----------------------------------------------------------------------------
+# v3.5.1 A1 + A3 tables.tA7 / tA8 / tA9 schema 扩展 (per plan v0.3 §5 修 R6-C1)
+# 5 active paper + 4 explicit null, 全 9 paper 必须 explicit declare 各 tA* 字段.
+# ----------------------------------------------------------------------------
+
+# A1 clarity_robustness 主用 paper (3): P3 substance / P4 locus / P5 collab
+V3_5_1_TA7_USING = ('bank_fintech_substance', 'bank_fintech_locus', 'bank_fintech_collab')
+V3_5_1_TA7_TEMPLATES = {
+    'bank_fintech_substance': '21_substance_clarity_robustness',
+    'bank_fintech_locus': '19_locus_clarity_robustness',
+    'bank_fintech_collab': '20_collab_clarity_robustness',
+}
+# A3 num_intensity 主用 paper (2): P1 tone (tA9) + benefit_society (tA8)
+V3_5_1_TA9_USING = 'bank_fintech_tone'
+V3_5_1_TA9_TEMPLATE = '27_tableA9_num_intensity'
+V3_5_1_TA8_USING = 'benefit_society'
+V3_5_1_TA8_TEMPLATE = '19_bs_num_intensity_robustness'
+
+
+@pytest.mark.parametrize('paper_id', V3_5_0_ALL_9)
+def test_v3_5_1_tables_tA7_tA8_tA9_explicit(paper_id: str) -> None:
+    """v3.5.1: 全 9 paper 必须 explicit declare tA7/tA8/tA9 字段 (修 R6-C1 schema 授权).
+
+    Per plan v0.3 §5 + master plan §5.2.3.bis 扩 schema 已加入 tA*. 全 9 paper 必须
+    explicit declare (template 或 null) 以防止 schema drift.
+    """
+    spec = _load_spec_yaml_v3_5_0(paper_id)
+    tables = spec.get('tables', {})
+    for ta_field in ('tA7', 'tA8', 'tA9'):
+        assert ta_field in tables, (
+            f"{paper_id}.tables 缺 '{ta_field}' (v3.5.1 explicit declare per plan v0.3 §5)"
+        )
+
+
+@pytest.mark.parametrize('paper_id', V3_5_1_TA7_USING)
+def test_v3_5_1_tA7_using_papers_have_template(paper_id: str) -> None:
+    """P3/P4/P5: tables.tA7.template 应为对应 A1 clarity_robustness 模板名 (修 R3-C1)."""
+    spec = _load_spec_yaml_v3_5_0(paper_id)
+    ta7 = spec['tables']['tA7']
+    assert ta7 is not None, f"{paper_id} (A1-using) tables.tA7 不应为 null"
+    expected = V3_5_1_TA7_TEMPLATES[paper_id]
+    assert ta7.get('template') == expected, (
+        f"{paper_id}.tables.tA7.template = {ta7.get('template')!r}, expected {expected!r}"
+    )
+
+
+def test_v3_5_1_p1_tone_has_tA9_template() -> None:
+    """P1 bank_fintech_tone: tables.tA9.template == '27_tableA9_num_intensity' (A3 真双轨)."""
+    spec = _load_spec_yaml_v3_5_0(V3_5_1_TA9_USING)
+    ta9 = spec['tables']['tA9']
+    assert ta9 is not None, "P1 (A3-using) tables.tA9 不应为 null"
+    assert ta9.get('template') == V3_5_1_TA9_TEMPLATE, (
+        f"P1.tables.tA9.template = {ta9.get('template')!r}, expected {V3_5_1_TA9_TEMPLATE!r}"
+    )
+
+
+def test_v3_5_1_benefit_society_has_tA8_template() -> None:
+    """benefit_society: tables.tA8.template == '19_bs_num_intensity_robustness' (A3 真双轨)."""
+    spec = _load_spec_yaml_v3_5_0(V3_5_1_TA8_USING)
+    ta8 = spec['tables']['tA8']
+    assert ta8 is not None, "benefit_society (A3-using) tables.tA8 不应为 null"
+    assert ta8.get('template') == V3_5_1_TA8_TEMPLATE, (
+        f"benefit_society.tables.tA8.template = {ta8.get('template')!r}, expected {V3_5_1_TA8_TEMPLATE!r}"
+    )

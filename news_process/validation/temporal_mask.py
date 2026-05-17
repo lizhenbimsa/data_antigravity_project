@@ -1,6 +1,12 @@
 """
 news_process.validation.temporal_mask — B2-1: 时间掩码前视偏误检验
 
+v3.6.0 (Plan E P7 C3 stub):
+    当前实现仅测 `llm_vote_score_full`. 双轨稳健性要求 mirror 整个 mask
+    流程对 `llm_vote_score_ctx`, 输出双轨稳健性表。已加 TODO marker, 后续
+    实施见 docs/methodology/plan_e_p7_dual_track_validation.md.
+    当前模块不阻塞 Plan E 主线 (P1/P3/P4); 推迟到 P7.b 单独 PR 实施。
+
 迁移说明 (Phase 7b)：
     本模块由原 root script ``38a_temporal_mask_test.py`` body 迁入。
     规范调用方式: ``python -m news_process.validation.temporal_mask``

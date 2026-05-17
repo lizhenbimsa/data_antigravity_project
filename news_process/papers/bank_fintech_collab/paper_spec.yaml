@@ -89,3 +89,12 @@ audit_rounds_target_min: 8                # 与 P3/P4 同 rigor (epoch 5 streak 
 tables:
   t6:
     template: 19_table6_cell_decomposition  # Stata Table 6: i.cell_id_full saturated regression
+  tA7:
+    template: 20_collab_clarity_robustness
+    clarity_robustness:
+      anchor: "Loughran & McDonald (2011) JF 66(1); You et al. (2018) hhx055"
+      dual_track: true
+  tA8:
+    template: null
+  tA9:
+    template: null

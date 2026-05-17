@@ -122,17 +122,20 @@ def test_b_route_paper_stata_templates_exist(paper_id: str) -> None:
 
 
 def test_total_template_count_77() -> None:
-    """v3.5.0: 86 templates (84 v3.4.0 + 2 v3.5.0 D2/D4).
+    """v3.5.1: 91 templates (86 v3.5.0 + 5 v3.5.1 A1/A3 robustness).
 
     v3.3.0 baseline: 77 (14 root + 41 existing + 22 new per plan §5.5.3 R1-M01 + R1-M27).
     v3.4.0 P5 epoch 4: +7 (00_master + 01_data_prep + 15-19_collab_*) = 84 total.
-    v3.5.0 D2/D4: +2 (19_table6_cell_decomposition + 25_tableA6_dual_track_residual)
-    per stage3_v3_5_0_augmentation_plan.md §2.1.5 + §2.3.5 (D-NEW-1 dual-cohort 口径).
+    v3.5.0 D2/D4: +2 (19_table6_cell_decomposition + 25_tableA6_dual_track_residual) = 86.
+    v3.5.1 A1/A3: +5 (21_substance_clarity_robustness + 19_locus_clarity_robustness
+                       + 20_collab_clarity_robustness + 19_bs_num_intensity_robustness
+                       + v3_5_1/27_tableA9_num_intensity) = 91 total
+    per stage3_v3_5_1_a1_a3_supplementation_plan.md §2.5.
     """
     templates = list(STATA_TEMPLATES_DIR.rglob('*.do.tmpl'))
-    assert len(templates) == 86, (
-        f"Expected 86 total templates after v3.5.0 D2/D4, found {len(templates)}: "
-        f"= 84 (v3.4.0 baseline) + 2 (19_table6_cell_decomposition + 25_tableA6_dual_track_residual)"
+    assert len(templates) == 91, (
+        f"Expected 91 total templates after v3.5.1 A1/A3, found {len(templates)}: "
+        f"= 86 (v3.5.0 baseline) + 5 (v3.5.1 A1 substance/locus/collab + A3 BS/P1)"
     )
 
 

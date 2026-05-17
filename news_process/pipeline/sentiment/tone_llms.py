@@ -1251,7 +1251,12 @@ def main():
     log_memory_usage(logger, "数据加载完成")
     
     # 物化 content_ctx 列（供 LLM 双轨请求 + 下游阶段 22/23 直接复用）
-    df = _materialize_content_ctx(df)
+    # v3.6.0 (Plan E P4 A1): idempotent — 若 stage 13 已物化, 跳过重复计算
+    # (避免 stage 13/21 用不同参数算两次 ctx 造成下游 _ctx 列内部不一致)
+    if 'content_ctx' in df.columns:
+        logger.info("  'content_ctx' 已存在 (v3.6.0 stage 13 上游已物化), 跳过重复物化")
+    else:
+        df = _materialize_content_ctx(df)
     
     if not LLM_CONFIG.get('enabled', False):
         logger.info("统一 LLM 处理已在 config.yaml 中禁用。将透传输入数据并填入默认值。")

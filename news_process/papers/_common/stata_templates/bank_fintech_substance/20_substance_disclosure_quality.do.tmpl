@@ -50,10 +50,34 @@ if !_rc {
     }
 }
 
-esttab subst_x_disclose disclose_q_* ///
+* (3) v3.5.1 A1 三角化扩展 (per stage3_v3_5_1 plan v0.3 §2.5.3 R3-补遗):
+* mean_clarity_score_full (A1 lexical clarity) + ln_fintech_mdna_length (P2 mediator)
+* 双代理 disclosure quality 三角化, 检验 substantive 行动是否同时具备
+* (a) 高披露长度 (P2 既有 mediator) 和 (b) 高 lexical clarity (LM 2011 JF 风格).
+* 锚定: Loughran & McDonald (2011) JF 66(1) + You et al. (2018) hhx055.
+capture confirm variable mean_clarity_score_full
+if !_rc {
+    capture confirm variable ln_fintech_mdna_length
+    if !_rc {
+        * Panel C: 双代理三角化 (A1 + ln_fintech_mdna_length 联合)
+        reghdfe {{MAIN_DV}} {{MAIN_TREAT}} mean_clarity_score_full ln_fintech_mdna_length $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo subst_triangulate
+        * Panel D: A1 × {{MAIN_TREAT}} 交互
+        reghdfe {{MAIN_DV}} c.mean_clarity_score_full##c.{{MAIN_TREAT}} $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        eststo subst_clarity_interact
+        display "  [OK] v3.5.1 A1 三角化扩展 (plan v0.3 §2.5.3)"
+    }
+}
+else {
+    display "  [WARN] mean_clarity_score_full not in panel (v3.5.1 D5 enrichment pending)"
+}
+
+esttab subst_x_disclose disclose_q_* subst_triangulate subst_clarity_interact ///
     using "$tables_dir/table_disclosure_quality.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("P3 Substantiveness × Disclosure Quality (JFE salvage path foundation)") ///
-    addnotes("Disclosure quality = ln\_fintech\_mdna\_length; 4 quartiles ranked Q1=low Q4=high.")
+    title("P3 Substantiveness × Disclosure Quality (JFE salvage; v3.5.1 A1 triangulation)") ///
+    addnotes("Disclosure quality = ln\_fintech\_mdna\_length; 4 quartiles ranked Q1=low Q4=high. v3.5.1: + A1 lexical clarity triangulation per LM 2011 JF.")
 
 display "[OK] 20_substance_disclosure_quality → $tables_dir/table_disclosure_quality.tex"

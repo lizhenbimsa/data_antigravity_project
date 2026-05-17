@@ -102,15 +102,17 @@ def test_dag_registration():
     """'39a_inter_track_kappa.py' in EXPECTED_NO_OUTPUT_STAGES and STAGES_VALIDATION.
 
     v3.5.0 update: STAGES_VALIDATION 14 (was 13 in v3.4.0); +1 = 39c_construct_orthogonality.py
-    per stage3_v3_5_0_augmentation_plan.md §2.2.1 / B-NEW-5.
+    v3.5.1 update: STAGES_VALIDATION 15; +1 = 39d_lexical_discriminant_validity.py
+    per stage3_v3_5_1_a1_a3_supplementation_plan.md §3.1.
     """
     from news_process.core import dag, schemas
     assert "39a_inter_track_kappa.py" in schemas.EXPECTED_NO_OUTPUT_STAGES
     scripts = {s.script for s in dag.STAGES_VALIDATION}
     assert "39a_inter_track_kappa.py" in scripts
     assert "39c_construct_orthogonality.py" in scripts, "v3.5.0 D3 stage missing"
-    assert len(dag.STAGES_VALIDATION) == 14, (
-        f"v3.5.0 expects 14 validation stages (13 v3.4.0 + 1 stage 39c D3); "
+    assert "39d_lexical_discriminant_validity.py" in scripts, "v3.5.1 stage 39d missing"
+    assert len(dag.STAGES_VALIDATION) == 15, (
+        f"v3.5.1 expects 15 validation stages (13 v3.4.0 + 39c v3.5.0 + 39d v3.5.1); "
         f"got {len(dag.STAGES_VALIDATION)}"
     )
 

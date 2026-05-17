@@ -70,6 +70,16 @@ sample:
 audit_rounds_target_min: 8
 
 # v3.5.0 D2 8-cell decomposition Table 6 (per stage3_v3_5_0_augmentation_plan.md §2.1.5)
+# v3.5.1 A1 Lexical Clarity Robustness Table A7 (per stage3_v3_5_1_a1_a3_supplementation_plan.md §2.5)
 tables:
   t6:
     template: 19_table6_cell_decomposition
+  tA7:
+    template: 21_substance_clarity_robustness
+    clarity_robustness:
+      anchor: "Loughran & McDonald (2011) JF 66(1); You et al. (2018) hhx055"
+      dual_track: true  # 真双轨 (修 R3-C1)
+  tA8:
+    template: null  # 不渲染 (A3 num_intensity 主用 P1 + benefit_society)
+  tA9:
+    template: null

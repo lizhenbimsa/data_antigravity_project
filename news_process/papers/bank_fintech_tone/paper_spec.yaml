@@ -23,8 +23,20 @@ outcome:
   enrichment_source: M0.5.11 (CSMAR/Wind daily returns + 年报 ROA + Wind 季报 ln_market_cap; derived event-window CAR construction per §5.3.2 M0.5.11)
 
 treatment:
-  primary: llm_vote_tone_full
-  alternative: [gpt54nano_tone_full, gemini31111_tone_full, deepseekv4_tone_full]
+  # v3.6.0 (Plan E P4 G3): main treatment 切换至 _ctx
+  # 学术依据: Tetlock 2007 JF / Loughran-McDonald 2016 JAR 现代标准要求
+  # entity-attributed sentiment 作 main, 因为 P1 度量"对该银行"的报道情感而非全文情感
+  primary: llm_vote_tone_ctx
+  alternative:
+    # _full 路径降级为 alternative (保留 v3.5.0 既有结果作 robustness 对照)
+    - llm_vote_tone_full
+    # 双轨 robustness battery (per Tetlock 2007 / L&M 2016 Table III 标准)
+    - gpt54nano_tone_ctx
+    - gemini31111_tone_ctx
+    - deepseekv4_tone_ctx
+    - gpt54nano_tone_full
+    - gemini31111_tone_full
+    - deepseekv4_tone_full
 
 controls:
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
@@ -56,5 +68,15 @@ sample:
 audit_rounds_target_min: 8  # M5 ≥ 8 / M6 ≥ 5 per §5.8.4 / §5.9.5
 
 # v3.5.0 D2 8-cell decomposition Table 6 — P1 不用 D2 主回归 (per plan §2.1.6)
+# v3.5.1 A3 Numerical Intensity Robustness Table A9 (per stage3_v3_5_1_a1_a3_supplementation_plan.md §2.5.2)
 tables:
   t6: null
+  tA7:
+    template: null  # A1 主用 P3/P4/P5
+  tA8:
+    template: null
+  tA9:
+    template: 27_tableA9_num_intensity
+    num_intensity_robustness:
+      anchor: "Hales, Kuang & Venkataraman (2011) CAR 28(1)"
+      dual_track: true  # 真双轨 (修 R3-C2)

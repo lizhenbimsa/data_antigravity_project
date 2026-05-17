@@ -984,6 +984,17 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'token_adopt_int_p75':    'Token Adoption (INT, P75)',
                 'hidden_adopt_int_p75':   'Hidden Adoption (INT, P75)',
                 'subst_adopt_int_p75':    'Substantive Adoption (INT, P75)',
+                # v3.5.1 A1 Lexical Clarity (LM 2011 JF; You 2018 hhx055) — 真双轨独立扫描
+                # 与 stata_export.py::HEURISTIC_LABELS 同步 (test_stata_export_v3_5_1 验证一致性).
+                'mean_clarity_score_full':   'Mean Clarity Score from indep Full-text scan (LM 2011 JF; You 2018)',
+                'mean_clarity_score_ctx':    'Mean Clarity Score from indep Ctx-text scan (LM 2011 JF; You 2018)',
+                'mean_frac_definite_full':   'Mean Frac Definite from indep Full scan (You 2018 Panel C 388 words)',
+                'mean_frac_definite_ctx':    'Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)',
+                'frac_amb_articles_full':    'Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)',
+                'frac_amb_articles_ctx':     'Frac Articles Ambiguous Ctx (>=D0 median, You 2018 Panel D)',
+                # v3.5.1 A3 Numerical Intensity (Hales 2011 CAR) — 真双轨
+                'mean_num_intensity_full':   'Mean Numerical Intensity Full (Hales 2011 CAR, dual-track)',
+                'mean_num_intensity_ctx':    'Mean Numerical Intensity Ctx (Hales 2011 CAR, dual-track)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()

@@ -526,6 +526,133 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='ctx',
     )
 
+    # ═══ v3.5.1 A1 Lexical Clarity (真双轨, LM 2011 JF + You 2018 hhx055) ═══
+    # 锚定: Loughran & McDonald (2011) JF 66(1) uncertain dictionary;
+    #       You et al. (2018) hhx055 Panel C (388 definite) / Panel D (178 ambiguous);
+    #       Bonsall, Leone, Miller, Rennekamp (2017) JAE 63(2-3).
+    # 真双轨: _compute_clarity_for_text 对 content_full + content_ctx 独立扫描;
+    # title 轨不纳入 (修 R3-H1: title 文本 < 50 字符分母不稳).
+    metadata['mean_clarity_score_full'] = VariableMetadata(
+        var_name='mean_clarity_score_full',
+        label='Mean Clarity Score from indep Full-text scan (LM 2011 JF; You 2018)',
+        description='Bank-year 加权平均 clarity_score; 基于 content_full 独立词典扫描',
+        data_type='float',
+        unit='clarity ratio',
+        value_range='[-1, +1]',
+        formula='Σ w_i × clarity_score_full_i / Σ w_i; clarity_score = frac_definite − frac_ambiguous',
+        source_stage='Stage 22 (tone_words) + Stage 45 (encode_collab apply_v3_5_1)',
+        reference='Loughran & McDonald (2011) JF 66(1); You et al. (2018) hhx055',
+        notes='v3.5.1 A1 真双轨独立扫描; 与 LLM substance 做 HTMT discriminant validity (stage 39d)',
+        category='Lexical Clarity (v3.5.1 A1)',
+        track='full',
+    )
+
+    metadata['mean_clarity_score_ctx'] = VariableMetadata(
+        var_name='mean_clarity_score_ctx',
+        label='Mean Clarity Score from indep Ctx-text scan (LM 2011 JF; You 2018)',
+        description='Bank-year 加权平均 clarity_score; 基于 content_ctx 独立词典扫描',
+        data_type='float',
+        unit='clarity ratio',
+        value_range='[-1, +1]',
+        formula='Σ w_i × clarity_score_ctx_i / Σ w_i',
+        source_stage='Stage 22 + Stage 45',
+        reference='Loughran & McDonald (2011) JF 66(1); You et al. (2018) hhx055',
+        notes='ctx 轨与 full 轨分母不直接可比 (ctx 文本短约 50-80%, paper §3.4 disclosure)',
+        category='Lexical Clarity (v3.5.1 A1)',
+        track='ctx',
+    )
+
+    metadata['mean_frac_definite_full'] = VariableMetadata(
+        var_name='mean_frac_definite_full',
+        label='Mean Frac Definite from indep Full scan (You 2018 Panel C 388 words)',
+        description='Bank-year 加权平均 frac_definite (备份连续指标, 修 R9-M3 不损失信息)',
+        data_type='float',
+        unit='token fraction',
+        value_range='[0, 1]',
+        formula='Σ w_i × (n_definite_full_i / n_tokens_clarity_base_full_i) / Σ w_i',
+        source_stage='Stage 22 + Stage 45',
+        reference='You et al. (2018) hhx055 Panel C',
+        notes='clarity 双轨连续备份; 与 frac_amb_articles 二值化指标互补',
+        category='Lexical Clarity (v3.5.1 A1)',
+        track='full',
+    )
+
+    metadata['mean_frac_definite_ctx'] = VariableMetadata(
+        var_name='mean_frac_definite_ctx',
+        label='Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)',
+        description='Bank-year 加权平均 frac_definite (ctx 轨)',
+        data_type='float',
+        unit='token fraction',
+        value_range='[0, 1]',
+        formula='Σ w_i × (n_definite_ctx_i / n_tokens_clarity_base_ctx_i) / Σ w_i',
+        source_stage='Stage 22 + Stage 45',
+        reference='You et al. (2018) hhx055 Panel C',
+        notes='ctx 轨连续 frac_definite',
+        category='Lexical Clarity (v3.5.1 A1)',
+        track='ctx',
+    )
+
+    metadata['frac_amb_articles_full'] = VariableMetadata(
+        var_name='frac_amb_articles_full',
+        label='Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)',
+        description='Bank-year 中 frac_ambiguous_full ≥ D0 frozen 全样本中位数的 article 占比',
+        data_type='float',
+        unit='article fraction',
+        value_range='[0, 1] ∪ NaN',
+        formula='#{i: frac_ambiguous_full_i ≥ median_amb_d0 ∧ n_articles ≥ 2} / n_articles',
+        source_stage='Stage 22 + Stage 45',
+        reference='You et al. (2018) hhx055 Panel D; LM 2011 JF binarized version',
+        notes='二值化指标 (修 R9-M3); n_articles<2 cell → NaN (修 R8-H2); median anchored to prompt v8 + stage 21 (修 R7-H1)',
+        category='Lexical Clarity (v3.5.1 A1)',
+        track='full',
+    )
+
+    metadata['frac_amb_articles_ctx'] = VariableMetadata(
+        var_name='frac_amb_articles_ctx',
+        label='Frac Articles Ambiguous Ctx (>=D0 median, You 2018 Panel D)',
+        description='Bank-year 中 frac_ambiguous_ctx ≥ D0 frozen 中位数的 article 占比 (ctx 轨)',
+        data_type='float',
+        unit='article fraction',
+        value_range='[0, 1] ∪ NaN',
+        formula='#{i: frac_ambiguous_ctx_i ≥ median_amb_d0 ∧ n_articles ≥ 2} / n_articles',
+        source_stage='Stage 22 + Stage 45',
+        reference='You et al. (2018) hhx055 Panel D',
+        notes='ctx 双轨二值化; 与 frac_amb_articles_full 配对',
+        category='Lexical Clarity (v3.5.1 A1)',
+        track='ctx',
+    )
+
+    # ═══ v3.5.1 A3 Numerical Intensity (真双轨, Hales 2011 CAR Eq.1) ═══
+    metadata['mean_num_intensity_full'] = VariableMetadata(
+        var_name='mean_num_intensity_full',
+        label='Mean Numerical Intensity Full (Hales 2011 CAR, dual-track)',
+        description='Bank-year 加权平均量化披露强度; 基于 content_full + cn2arab + 正则独立扫描',
+        data_type='float',
+        unit='digits per sentence',
+        value_range='[0, +∞) ∪ NaN',
+        formula='Σ w_i × (n_digits_full_i / n_sentences_full_i) / Σ w_i; n_sentences lookahead/behind 排除小数点',
+        source_stage='Stage 22 (tone_words post-processor enrich_with_num_intensity_dual_track) + Stage 45',
+        reference='Hales, Kuang & Venkataraman (2011) CAR 28(1); Davis & Tama-Sweet (2012) CAR 29(3)',
+        notes='v3.5.1 A3 真双轨; cn2arab 5 标准样例 frozen at D0; 不定数 (几千/数十亿) 不计为 token (修 R7-M2); 中文 sentence 分母与英文 Hales 2011 不直接可比 (paper §3.4 disclosure 修 R7-M1)',
+        category='Numerical Intensity (v3.5.1 A3)',
+        track='full',
+    )
+
+    metadata['mean_num_intensity_ctx'] = VariableMetadata(
+        var_name='mean_num_intensity_ctx',
+        label='Mean Numerical Intensity Ctx (Hales 2011 CAR, dual-track)',
+        description='Bank-year 加权平均 num_intensity; ctx 轨独立扫描',
+        data_type='float',
+        unit='digits per sentence',
+        value_range='[0, +∞) ∪ NaN',
+        formula='Σ w_i × (n_digits_ctx_i / n_sentences_ctx_i) / Σ w_i',
+        source_stage='Stage 22 + Stage 45',
+        reference='Hales, Kuang & Venkataraman (2011) CAR 28(1)',
+        notes='ctx 残半句已被 entity_context 完整句号过滤 (修 R3-H3)',
+        category='Numerical Intensity (v3.5.1 A3)',
+        track='ctx',
+    )
+
     return metadata
 
 

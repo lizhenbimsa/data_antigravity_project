@@ -163,7 +163,13 @@ def _split_into_chunks(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> li
 #   短新闻多的批次可能装 200+ 篇，长新闻多的批次可能只装 30 篇
 #   这样确保每次调用 API 都不会超过它的容量上限
 
-async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int], cache: LLMCache = None) -> np.ndarray:
+async def _get_embeddings_api_dynamic(
+    texts: list[str],
+    token_counts: list[int],
+    cache: LLMCache = None,
+    *,
+    prompt_version_override: str | None = None,
+) -> np.ndarray:
     """通过 API 获取文本 Embedding 向量 — 穿透式缓存与死战不退容错。
 
     【术语】
@@ -200,7 +206,14 @@ async def _get_embeddings_api_dynamic(texts: list[str], token_counts: list[int],
     base_url = str(base_url).rstrip("/")
     # Plan-r3 P3-17 接入: embedding 缓存键的 prompt_version 维度,
     # 防止改 embedding model / 文本预处理后旧 cache silent 命中.
-    text_pipeline_version = EMBEDDING_CONFIG.get('text_pipeline_version', 'v0')
+    # Round 4 M8 修: 用参数 prompt_version_override 替代全局 mutation, 避免污染其他 callsite
+    # 默认走 EMBEDDING_CONFIG 的 base version (full+auth 命中 v3.5.x 旧 cache);
+    # ctx 轨调用方传 base+'-ctx' 显式隔离 namespace, 不再 mutate 全局 dict.
+    text_pipeline_version = (
+        prompt_version_override
+        if prompt_version_override is not None
+        else EMBEDDING_CONFIG.get('text_pipeline_version', 'v0')
+    )
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
@@ -364,15 +377,28 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
 
     logger.info(f"  权威政策语料: {len(auth_text)} 字符")
 
-    # ---- 4.2 构建文章输入文本 ----
-    # 【术语】输入文本 = 标题 + 全文正文，不做字数截断
-    #   仅在 token 层面进行精确截断 (8191 tokens 硬性上限)
-    #   列名已验证: '标题' (12_news_fintech.py L134), '内容' (L133)
-    # 【白话】把每篇新闻的标题和正文拼在一起，作为这篇新闻的完整代表
+    # ---- 4.2 构建文章输入文本 (v3.6.0 Plan E P3 B2: 双轨) ----
+    # 【术语】full 轨 = 标题 + 全文; ctx 轨 = 'content_ctx' (实体局部上下文)
+    #   ctx 轨不拼标题 — ctx 本身已是目标银行局部窗口, 加标题会污染语义
+    # 【白话】两条轨道分别打分:
+    #   - full: 整篇新闻 vs 政策 (措施层 — Hassan 2019 macro 类比)
+    #   - ctx:  目标银行那段 vs 政策 (实体特异性 — Tetlock 2007 / L&M 2016)
     titles = df['标题'].fillna('').astype(str)
     contents = df['内容'].fillna('').astype(str)
-    raw_texts = (titles + ' ' + contents).tolist()
+    full_texts = (titles + ' ' + contents).tolist()
 
+    has_ctx = 'content_ctx' in df.columns
+    if has_ctx:
+        ctx_texts = df['content_ctx'].fillna('').astype(str).tolist()
+        logger.info(f"  双轨输入: full={len(full_texts)} | ctx={len(ctx_texts)}")
+    else:
+        logger.warning(
+            "  content_ctx 列缺失 (stage 13 未跑?), ctx 轨回退至 full — "
+            "此时 policy_cosine_sim_ctx ≡ _full, 不构成真双轨")
+        ctx_texts = full_texts
+
+    # 处理 full 轨 raw_texts (与下游保持兼容名)
+    raw_texts = full_texts
     logger.info(f"  文章总数: {len(raw_texts)}")
 
     # ---- 4.3 Token 精确截断 ----
@@ -406,10 +432,27 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     #   数切成多段分别处理，最后取平均，5 份文件的内容都不会被丢弃。
     auth_chunks = _split_into_chunks(auth_text, _MAX_TOKENS_PER_INPUT)
 
-    # ---- 4.5 批量获取 Embedding 向量 ----
-    all_texts = truncated_texts + auth_chunks
+    # ---- 4.4b ctx 轨 token 截断 (v3.6.0 P3 B2) ----
+    truncated_ctx_texts = []
+    ctx_token_counts = []
+    n_truncated_ctx = 0
+    for text in ctx_texts:
+        n_tok = _count_tokens(text)
+        if n_tok > _MAX_TOKENS_PER_INPUT:
+            text = _truncate_to_max_tokens(text, _MAX_TOKENS_PER_INPUT)
+            n_tok = _MAX_TOKENS_PER_INPUT
+            n_truncated_ctx += 1
+        truncated_ctx_texts.append(text)
+        ctx_token_counts.append(n_tok)
+    logger.info(f"  ctx 轨 token: 截断 {n_truncated_ctx}/{len(ctx_texts)} 篇")
+
+    # ---- 4.5 批量获取 Embedding 向量 (Round 3 M6 修: 分轨拆调以命中旧 cache) ----
+    # full + auth: 用 base prompt_version, 命中 v3.5.x 旧 cache (N + K 大部分 hit)
+    # ctx:         用 base+'-ctx' prompt_version, 新 namespace (全部 miss, ~N 次新 API)
+    # 总 cost: 仅 ctx 部分 ~N 次 API ≈ $4 (而非旧实现 2N+K 全 miss 的 ~$8)
     auth_token_counts = [_count_tokens(c) for c in auth_chunks]
-    all_token_counts = token_counts + auth_token_counts
+    # 兼容 local 模型分支 all_texts (一次性 encode); API 分支已拆调不需要这个
+    all_texts = truncated_texts + truncated_ctx_texts + auth_chunks
     
     if EMBEDDING_CONFIG.get("base_url") == "local":
         logger.info(f"  使用本地模型 {EMBEDDING_CONFIG.get('model')} 提取 Embedding...")
@@ -421,8 +464,25 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         emb_local = local_model.encode(all_texts, batch_size=32, show_progress_bar=False)
         emb = np.array([list(e) for e in emb_local], dtype=np.float32) # 统一为 numpy 数组结构，保证 .mean() 可用
     else:
+        # Round 3 M6 + Round 4 M8 修: 分轨拆调让 full + auth 命中 v3.5.x 旧 cache;
+        # 用 prompt_version_override 参数显式隔离 ctx namespace, 不 mutate 全局
         cache = LLMCache(CACHE_DB_PATH) if CACHE_DB_PATH else None
-        emb = asyncio.run(_get_embeddings_api_dynamic(all_texts, all_token_counts, cache))
+        N = len(truncated_texts)
+        K = len(auth_chunks)
+        full_and_auth = truncated_texts + auth_chunks
+        full_and_auth_tokens = token_counts + auth_token_counts
+        # full + auth 用 base prompt_version (override=None → 走 EMBEDDING_CONFIG)
+        emb_fa = asyncio.run(_get_embeddings_api_dynamic(
+            full_and_auth, full_and_auth_tokens, cache))
+        # ctx 用 base+'-ctx' 显式 override (M8 修: 零全局副作用)
+        _ctx_pv = EMBEDDING_CONFIG.get('text_pipeline_version', 'v0') + '-ctx'
+        emb_ctx = asyncio.run(_get_embeddings_api_dynamic(
+            truncated_ctx_texts, ctx_token_counts, cache,
+            prompt_version_override=_ctx_pv))
+        # 重组为 [full(N), ctx(N), auth(K)] 与下游 emb[:N], emb[N:2N], emb[2N:] 一致
+        emb = np.concatenate([emb_fa[:N], emb_ctx, emb_fa[N:N+K]], axis=0)
+        logger.info(f"  Round 4 M8: full+auth=base cache, ctx={_ctx_pv} (无全局 mutation); "
+                    f"emb shape={emb.shape} ({N}+{N}+{K})")
 
     # ---- 4.6 向量分离与相似度计算 ----
     # 【术语】
@@ -438,10 +498,11 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     #   说明这篇新闻跟政策越像
     from sklearn.metrics.pairwise import cosine_similarity
 
-    # 分离: 前 N 个 = 文章, 后 K 个 = 政策分段
+    # 分离: [0:N] full | [N:2N] ctx | [2N:] auth chunks (v3.6.0 双轨)
     n_articles = len(truncated_texts)
-    article_embs = emb[:n_articles]        # N × 1536
-    auth_chunk_embs = emb[n_articles:]     # K × 1536
+    article_embs_full = emb[:n_articles]                  # N × 1536 (full 轨)
+    article_embs_ctx = emb[n_articles:2 * n_articles]     # N × 1536 (ctx  轨)
+    auth_chunk_embs = emb[2 * n_articles:]                # K × 1536
 
     # 均值池化 + L2 归一化 → 单个政策锚点向量
     # 【术语】Mean Pooling (Reimers & Gurevych, 2019, EMNLP,
@@ -460,22 +521,38 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
                 f"Mean Pooling → 1 个 {auth_emb.shape[1]}D 向量")
 
     # cosine_similarity 返回 (N, 1)，取 [:, 0] 展平为 (N,)
-    sim_scores = cosine_similarity(article_embs, auth_emb)[:, 0]
+    # v3.6.0 (Plan E P3 B2): 双轨 — full 与 ctx 各计算一次, 共享同一政策锚点
+    sim_scores_full = cosine_similarity(article_embs_full, auth_emb)[:, 0]
+    sim_scores_ctx = cosine_similarity(article_embs_ctx, auth_emb)[:, 0]
 
     df = df.copy()
-    df['policy_cosine_sim'] = sim_scores.astype(np.float32)
+    df['policy_cosine_sim_full'] = sim_scores_full.astype(np.float32)
+    df['policy_cosine_sim_ctx'] = sim_scores_ctx.astype(np.float32)
+    # legacy alias = _full (v3.5.0 schemas.py 契约保留, 9 paper 迁移后可弃)
+    df['policy_cosine_sim'] = df['policy_cosine_sim_full']
 
     # ---- 4.7 统计报告 ----
-    logger.info(f"  ✅ policy_cosine_sim 计算完成:")
-    logger.info(f"     范围: [{sim_scores.min():.4f}, {sim_scores.max():.4f}]")
-    logger.info(f"     均值: {sim_scores.mean():.4f}, 标准差: {sim_scores.std():.4f}")
-    logger.info(f"     中位数: {np.median(sim_scores):.4f}")
+    logger.info(f"  ✅ policy_cosine_sim 双轨计算完成:")
+    logger.info(f"     full 范围: [{sim_scores_full.min():.4f}, {sim_scores_full.max():.4f}], "
+                f"均值={sim_scores_full.mean():.4f}, σ={sim_scores_full.std():.4f}")
+    logger.info(f"     ctx  范围: [{sim_scores_ctx.min():.4f}, {sim_scores_ctx.max():.4f}], "
+                f"均值={sim_scores_ctx.mean():.4f}, σ={sim_scores_ctx.std():.4f}")
 
-    # 值域断言
-    assert sim_scores.min() >= -1.0 - 1e-6, \
-        f"policy_cosine_sim 下界异常: {sim_scores.min()}"
-    assert sim_scores.max() <= 1.0 + 1e-6, \
-        f"policy_cosine_sim 上界异常: {sim_scores.max()}"
+    # 双轨独立性诊断 (Plan E 验收门)
+    try:
+        from scipy.stats import spearmanr
+        rho, _ = spearmanr(sim_scores_full, sim_scores_ctx)
+        logger.info(f"     双轨独立性诊断: Spearman ρ = {rho:.4f} "
+                    f"({'真双轨' if abs(rho) < 0.95 else '⚠ 高度相关'})")
+    except ImportError:
+        pass
+
+    # 值域断言 (双轨同时检)
+    for name, scores in [('full', sim_scores_full), ('ctx', sim_scores_ctx)]:
+        assert scores.min() >= -1.0 - 1e-6, \
+            f"policy_cosine_sim_{name} 下界异常: {scores.min()}"
+        assert scores.max() <= 1.0 + 1e-6, \
+            f"policy_cosine_sim_{name} 上界异常: {scores.max()}"
 
     return df
 

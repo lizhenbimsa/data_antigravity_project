@@ -36,6 +36,21 @@ if !_rc {
         }
     }
     display "  ✅ Winsorized 1%/99% on main DV + LOCUS + SUBST"
+
+    * v3.5.1 A1+A3: winsorize 8 新列 (per plan v0.3 §2.5.3 修 M4' guard).
+    * `capture confirm variable` guard 保证不引用 A1/A3 的 paper 跳过, 不抛错.
+    * 同 winsor 阈值 1%/99% (Loughran-McDonald 2011 JF 惯例) + Hales 2011 CAR 量化披露
+    * 饱和度 fallback (修 R7-M1 + R8-M4 num_intensity / clarity 同 winsorize).
+    foreach v3_5_1_var in mean_clarity_score_full mean_clarity_score_ctx ///
+                          mean_frac_definite_full mean_frac_definite_ctx ///
+                          frac_amb_articles_full frac_amb_articles_ctx ///
+                          mean_num_intensity_full mean_num_intensity_ctx {
+        capture confirm variable `v3_5_1_var'
+        if !_rc {
+            winsor2 `v3_5_1_var', cuts(1 99) replace
+        }
+    }
+    display "  ✅ v3.5.1: A1+A3 8 cols winsorized (graceful via capture confirm)"
 }
 else {
     display "  ⚠️ winsor2 not installed (ssc install winsor2); skip winsorization"

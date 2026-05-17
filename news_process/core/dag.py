@@ -82,6 +82,7 @@ _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'prompt_sensitivity': _validation_flag('prompt_sensitivity'),
     'inter_track_kappa': _validation_flag('inter_track_kappa'),
     'construct_orthogonality': _validation_flag('construct_orthogonality'),  # v3.5.0 D3 stage 39c
+    'lexical_discriminant_validity': _validation_flag('lexical_discriminant_validity'),  # v3.5.1 stage 39d
 }
 
 
@@ -142,8 +143,15 @@ STAGES_MAIN: list[StageSpec] = [
         script="12_news_fintech.py",
         group="main", kind="filter",
     ),
+    # v3.6.0 (Plan E P4 A1): stage 13 物化 content_ctx 列, 让下游 14/15
+    # 在 stage 21 之前即可消费 ctx, 实现真双轨化 (B1 + B2 闭合)。
     StageSpec(
-        name="阶段14: 金融科技技术重度评分 (TF-IDF)",
+        name="阶段13: 实体特异性上下文物化 (content_ctx)",
+        script="13_materialize_ctx.py",
+        group="main", kind="filter",
+    ),
+    StageSpec(
+        name="阶段14: 金融科技技术重度评分 (TF-IDF, 双轨)",
         script="14_fintech_intensity.py",
         group="main", kind="filter",
     ),
@@ -349,6 +357,16 @@ STAGES_VALIDATION: list[StageSpec] = [
         # (per plan §2.2.2 Performance estimate + F31 recommended default).
         timeout=10800,  # 3 hour ceiling — allow worst-case + some margin
         enabled_when=_VALIDATION_PREDS['construct_orthogonality'],
+    ),
+    StageSpec(
+        name="阶段39d: A1/A3 lexical discriminant validity (HTMT + AVE + κ + α; v3.5.1)",
+        script="39d_lexical_discriminant_validity.py",
+        group="validation", kind="audit",
+        # pairwise on-disk HTMT on N≈9000 bank-year panel obs;
+        # single-thread < 1 min light job (per plan v0.3 §2.3 修 R7-H3 + R8-H3).
+        # Permutation 1000 with seed=42 (修 R9-H3).
+        timeout=900,  # 15 min ceiling
+        enabled_when=_VALIDATION_PREDS['lexical_discriminant_validity'],
     ),
 ]
 

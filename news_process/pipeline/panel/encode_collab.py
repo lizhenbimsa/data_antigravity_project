@@ -383,3 +383,214 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
         'd2_identity': d2_diag,
         'd4_quality': d4_diag,
     }
+
+
+# ============================================================================
+# v3.5.1 A1 + A3 真双轨补强 (per stage3_v3_5_1 plan v0.3 §2.1.2 + §2.2.2).
+# `apply_v3_5_1` 与 `apply_v3_5_0` **并存** (修 C2); v3.6.0 合并方案: 新建
+# `apply_supplementation` 统一入口, v3.5.0 entry 保留 deprecation alias 至 v3.7.0.
+# ============================================================================
+
+
+def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
+                            median_amb_d0: Optional[float] = None) -> dict:
+    """v3.5.1 A1: 聚合 article 层 clarity 列到 bank-year panel (6 列).
+
+    Per plan v0.3 §2.1.4 公式 (修 H2 + R8-H2 + R9-M3):
+        mean_clarity_score_full[b,t] = Σ w_i × clarity_score_full_i / Σ w_i
+        mean_frac_definite_full[b,t] = Σ w_i × frac_definite_full_i / Σ w_i
+        frac_amb_articles_full[b,t]  = #{i: frac_ambiguous_full_i ≥ median_amb_d0
+                                          ∧ n_articles ≥ 2} / n_articles
+        (同 ctx 双轨)
+
+    Args:
+        df: article-level DataFrame (含 clarity_* 双轨 article 列, 来自 stage 22).
+        panel: bank-year panel DataFrame (含 target_bank + year).
+        median_amb_d0: D0 frozen 全样本中位数; if None, in-sample 计算 (仅用于测试).
+
+    Returns:
+        dict: diagnostics + median_amb_d0 actual used.
+    """
+    for required_col in ('target_bank', 'year'):
+        if required_col not in panel.columns or required_col not in df.columns:
+            logger.warning(f"v3.5.1 A1: 缺 '{required_col}' 列, clarity panel 聚合跳过")
+            return {'v3_5_1_clarity_added': [], 'median_amb_d0': float('nan')}
+
+    # 检查 article 层 clarity 列存在性 (graceful)
+    required_article_cols = [
+        'clarity_frac_ambiguous_full', 'clarity_frac_definite_full',
+        'clarity_clarity_score_full',
+        'clarity_frac_ambiguous_ctx', 'clarity_frac_definite_ctx',
+        'clarity_clarity_score_ctx',
+    ]
+    missing = [c for c in required_article_cols if c not in df.columns]
+    if missing:
+        logger.info(f"v3.5.1 A1: article 层 clarity 列缺 {missing}, 跳过 panel 聚合 (graceful)")
+        return {'v3_5_1_clarity_added': [], 'median_amb_d0': float('nan')}
+
+    # D0 frozen median (修 H2 + R7-H1): 若未给, in-sample 算; 实际生产应从 sidecar JSON 读
+    if median_amb_d0 is None:
+        median_amb_d0 = float(df['clarity_frac_ambiguous_full'].dropna().median())
+        logger.info(f"v3.5.1 A1: D0 median_amb 实测 = {median_amb_d0:.6f}")
+
+    # weight = stage21 media_authority × herd_decay (与 llm_vote_tone 同权重)
+    w = pd.Series(1.0, index=df.index)
+    for w_col in ('media_authority_weight', 'herd_decay_weight'):
+        if w_col in df.columns:
+            w = w * df[w_col].fillna(1.0)
+
+    added_cols = []
+    # 加 weighted columns 给 article level
+    df['_w_clarity_full'] = df['clarity_clarity_score_full'] * w
+    df['_w_clarity_ctx'] = df['clarity_clarity_score_ctx'] * w
+    df['_w_def_full'] = df['clarity_frac_definite_full'] * w
+    df['_w_def_ctx'] = df['clarity_frac_definite_ctx'] * w
+    df['_w'] = w
+
+    agg = df.groupby(['target_bank', 'year']).agg(
+        _sum_w_clarity_full=('_w_clarity_full', 'sum'),
+        _sum_w_clarity_ctx=('_w_clarity_ctx', 'sum'),
+        _sum_w_def_full=('_w_def_full', 'sum'),
+        _sum_w_def_ctx=('_w_def_ctx', 'sum'),
+        _sum_w=('_w', 'sum'),
+        _n_articles=('_w', 'count'),
+        _n_amb_full=('clarity_frac_ambiguous_full',
+                     lambda s: int((s >= median_amb_d0).sum())),
+        _n_amb_ctx=('clarity_frac_ambiguous_ctx',
+                    lambda s: int((s >= median_amb_d0).sum())),
+    ).reset_index()
+
+    # 派生 panel 列
+    sw = agg['_sum_w'].replace(0, float('nan'))
+    agg['mean_clarity_score_full'] = agg['_sum_w_clarity_full'] / sw
+    agg['mean_clarity_score_ctx'] = agg['_sum_w_clarity_ctx'] / sw
+    agg['mean_frac_definite_full'] = agg['_sum_w_def_full'] / sw
+    agg['mean_frac_definite_ctx'] = agg['_sum_w_def_ctx'] / sw
+
+    # n_articles ≥ 2 mask (修 R8-H2)
+    mask = agg['_n_articles'] >= 2
+    n_safe = agg['_n_articles'].where(mask)
+    agg['frac_amb_articles_full'] = (agg['_n_amb_full'] / n_safe).where(mask)
+    agg['frac_amb_articles_ctx'] = (agg['_n_amb_ctx'] / n_safe).where(mask)
+
+    out_cols = ['mean_clarity_score_full', 'mean_clarity_score_ctx',
+                'mean_frac_definite_full', 'mean_frac_definite_ctx',
+                'frac_amb_articles_full', 'frac_amb_articles_ctx']
+
+    # idempotent: 先 drop panel 已有的 out_cols (避免 merge 后 _x/_y 后缀冲突)
+    for c in out_cols:
+        if c in panel.columns:
+            del panel[c]
+
+    # merge 回 panel
+    keep = ['target_bank', 'year'] + out_cols
+    panel_merged = panel.merge(agg[keep], on=['target_bank', 'year'], how='left')
+    for c in out_cols:
+        panel[c] = panel_merged[c].values
+        added_cols.append(c)
+
+    # cleanup
+    for tmp in ('_w_clarity_full', '_w_clarity_ctx', '_w_def_full', '_w_def_ctx', '_w'):
+        if tmp in df.columns:
+            del df[tmp]
+
+    return {'v3_5_1_clarity_added': added_cols, 'median_amb_d0': median_amb_d0}
+
+
+def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
+    """v3.5.1 A3: 聚合 article 层 num_intensity 列到 bank-year panel (2 列).
+
+    Per plan v0.3 §2.2.4 公式: weighted mean by stage21 weights.
+    """
+    for required_col in ('target_bank', 'year'):
+        if required_col not in panel.columns or required_col not in df.columns:
+            return {'v3_5_1_num_intensity_added': []}
+
+    if 'num_intensity_full' not in df.columns or 'num_intensity_ctx' not in df.columns:
+        logger.info("v3.5.1 A3: num_intensity article 列缺, 跳过 panel 聚合 (graceful)")
+        return {'v3_5_1_num_intensity_added': []}
+
+    w = pd.Series(1.0, index=df.index)
+    for w_col in ('media_authority_weight', 'herd_decay_weight'):
+        if w_col in df.columns:
+            w = w * df[w_col].fillna(1.0)
+
+    df['_w_ni_full'] = df['num_intensity_full'] * w
+    df['_w_ni_ctx'] = df['num_intensity_ctx'] * w
+    df['_w'] = w
+
+    agg = df.groupby(['target_bank', 'year']).agg(
+        _sum_w_ni_full=('_w_ni_full', 'sum'),
+        _sum_w_ni_ctx=('_w_ni_ctx', 'sum'),
+        _sum_w=('_w', 'sum'),
+    ).reset_index()
+    sw = agg['_sum_w'].replace(0, float('nan'))
+    agg['mean_num_intensity_full'] = agg['_sum_w_ni_full'] / sw
+    agg['mean_num_intensity_ctx'] = agg['_sum_w_ni_ctx'] / sw
+
+    out_cols = ['mean_num_intensity_full', 'mean_num_intensity_ctx']
+    # idempotent: 先 drop panel 已有的 out_cols (避免 merge _x/_y 后缀冲突)
+    for c in out_cols:
+        if c in panel.columns:
+            del panel[c]
+    keep = ['target_bank', 'year'] + out_cols
+    panel_merged = panel.merge(agg[keep], on=['target_bank', 'year'], how='left')
+    for c in out_cols:
+        panel[c] = panel_merged[c].values
+
+    for tmp in ('_w_ni_full', '_w_ni_ctx', '_w'):
+        if tmp in df.columns:
+            del df[tmp]
+
+    return {'v3_5_1_num_intensity_added': out_cols}
+
+
+def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
+                 prompt_v8_sha256: Optional[str] = None) -> dict:
+    """v3.5.1 A1 + A3 panel 聚合一站入口 (与 apply_v3_5_0 并存, 修 C2).
+
+    顺序: A1 clarity → A3 num_intensity → 写 sidecar JSON.
+
+    Sidecar JSON path: ``data/processed/v3_5_1_constants.json`` (修 C1' + R7-H1
+    双 anchor: prompt_v8_sha256 + stage21_last_run_timestamp).
+
+    Args:
+        df: article-level DataFrame (含 clarity_* 6 双轨列 + num_intensity 双轨列).
+        panel: bank-year panel DataFrame.
+        prompt_v8_sha256: optional anchor (写入 sidecar).
+
+    Returns:
+        dict: {v3_5_1_clarity_added, v3_5_1_num_intensity_added, median_amb_d0, sidecar_path}.
+    """
+    import os
+    from datetime import datetime, timezone
+
+    # A1 clarity panel 聚合 (D0 frozen median 写入 sidecar)
+    clarity_diag = aggregate_clarity_panel(df, panel, median_amb_d0=None)
+
+    # A3 num_intensity panel 聚合
+    ni_diag = aggregate_num_intensity_panel(df, panel)
+
+    # 写 sidecar JSON (修 C1' 序列化丢失 -> parquet/.dta 不保留 attrs)
+    sidecar_path = 'data/processed/v3_5_1_constants.json'
+    try:
+        os.makedirs(os.path.dirname(sidecar_path), exist_ok=True)
+        sidecar = {
+            'plan_version': 'v3.5.1',
+            'median_amb_d0': clarity_diag.get('median_amb_d0', float('nan')),
+            'prompt_v8_sha256': prompt_v8_sha256,
+            'stage21_last_run_timestamp': datetime.now(timezone.utc).isoformat(),
+            'a1_clarity_panel_cols': clarity_diag.get('v3_5_1_clarity_added', []),
+            'a3_num_intensity_panel_cols': ni_diag.get('v3_5_1_num_intensity_added', []),
+        }
+        with open(sidecar_path, 'w', encoding='utf-8') as f:
+            json.dump(sidecar, f, ensure_ascii=False, indent=2)
+        logger.info(f"v3.5.1: sidecar JSON 写入 {sidecar_path}")
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"v3.5.1: sidecar JSON 写入失败 (graceful): {e}")
+
+    return {
+        **clarity_diag,
+        **ni_diag,
+        'sidecar_path': sidecar_path,
+    }

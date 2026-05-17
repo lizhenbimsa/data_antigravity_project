@@ -355,7 +355,7 @@ def parse_time(df: pd.DataFrame) -> pd.DataFrame:
 # 5. Bank-Year 聚合
 # ============================================================================
 
-def build_aggregation_dict() -> dict:
+def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     """构建 GroupBy 聚合字典(双轨)。
 
     聚合策略遵循 Tetlock et al. (2008, JF) 范式:
@@ -366,6 +366,10 @@ def build_aggregation_dict() -> dict:
 
     双轨(_full + _ctx)确保全文和上下文片段两种输入分别聚合,
     供下游消融研究和稳健性检验使用。
+
+    Args:
+        df: 可选, 用于 herd_weight 双轨/单轨 schema 检测 (Plan E P1 B3).
+            v3.6.0+ 推荐传入; None 时默认假设双轨列存在 (与新 stage 24 一致)。
     """
     agg = {}
 
@@ -481,10 +485,46 @@ def build_aggregation_dict() -> dict:
     # --- F3. 媒体权威性加权聚合 (Holzman et al. 2023, TAR) ---
     agg['sum_media_authority_weight'] = ('media_authority_weight', 'sum')
     # --- F4. 跟风衰减权重 (Tetlock 2011, JF) — 作为面板控制变量 ---
-    agg['avg_herd_weight'] = ('herd_weight', 'mean')
-    agg['min_herd_weight'] = ('herd_weight', 'min')
+    # v3.6.0 (Plan E P1 B3): herd_weight 双轨独立 (Edwards 2001 ORM)
+    # 兼容: 若仅存在 v3.5.0 legacy herd_weight 单列, 双轨均映射到该列
+    # (退化为单轨, 但保持下游引用稳定)
+    # df=None 时默认新双轨 schema (v3.6.0+); 否则按列存在性 fallback
+    # ⚠ Round 1 M1 修复: legacy fallback (仅 herd_weight 单列) 会让 _hw_full_src
+    # 与 _hw_ctx_src 都指向同一列 → panel 出 sum_herd_weight_full == _ctx,
+    # 下游误判为真双轨. 这是 silent fake-dual-track 风险, 必须 logger.warning
+    # 让用户知道. 真双轨要求重跑 v3.6.0 stage 24.
+    if df is not None:
+        _has_dual = ('herd_weight_full' in df.columns and
+                     'herd_weight_ctx' in df.columns)
+        _has_legacy = 'herd_weight' in df.columns
+        if _has_dual:
+            _hw_full_src = 'herd_weight_full'
+            _hw_ctx_src = 'herd_weight_ctx'
+        elif _has_legacy:
+            _hw_full_src = 'herd_weight'
+            _hw_ctx_src = 'herd_weight'  # 显式同源 (fake 双轨)
+            logger.warning(
+                "build_aggregation_dict 检测到 legacy 'herd_weight' 单列 "
+                "(v3.5.x schema), 双轨聚合将退化为单源 — panel 中 "
+                "sum_herd_weight_full == sum_herd_weight_ctx (fake 双轨). "
+                "如需真双轨, 请重跑 stage 24 (v3.6.0 双轨 herd_decay)."
+            )
+        else:
+            # 无任何 herd 列 — agg dict 仍注册以保持 schema 稳定,
+            # valid_agg 过滤后会自动跳过
+            _hw_full_src = 'herd_weight_full'
+            _hw_ctx_src = 'herd_weight_ctx'
+    else:
+        _hw_full_src = 'herd_weight_full'
+        _hw_ctx_src = 'herd_weight_ctx'
+    agg['avg_herd_weight_full'] = (_hw_full_src, 'mean')
+    agg['min_herd_weight_full'] = (_hw_full_src, 'min')
+    agg['avg_herd_weight_ctx'] = (_hw_ctx_src, 'mean')
+    agg['min_herd_weight_ctx'] = (_hw_ctx_src, 'min')
     # --- F5. 跟风衰减加权聚合 (Tetlock 2011, JF) ---
-    agg['sum_herd_weight'] = ('herd_weight', 'sum')
+    # 双轨 sum 用于下游 hw_denom 除法 (encode.py:1200-1214)
+    agg['sum_herd_weight_full'] = (_hw_full_src, 'sum')
+    agg['sum_herd_weight_ctx'] = (_hw_ctx_src, 'sum')
     for track in ['_full', '_ctx', '_title']:
         agg[f'llm_vote_score_hw_sum{track}'] = (f'llm_vote_score_hw{track}', 'sum')
         agg[f'llm_vote_cont_hw_sum{track}'] = (f'llm_vote_cont_hw{track}', 'sum')
@@ -568,10 +608,15 @@ def build_aggregation_dict() -> dict:
     # --- O. 技术重度 (14_fintech_intensity.py, Li et al. 2021, RFS) ---
     # DOI: 10.1093/rfs/hhaa079
     #   → TF-IDF + SIF 质心连续型技术强度得分, Bank-Year 均值聚合
-    #   → 防御: 若跳过阶段 14, fintech_intensity_score 列不存在,
-    #     valid_agg (L520-534) 自动跳过, 不引发 KeyError
-    agg['avg_ft_intensity'] = ('fintech_intensity_score', 'mean')
+    #   → v3.6.0 (Plan E P4 B1 + D2): 双轨化 — fintech_intensity_score_{full,ctx}
+    #     legacy 单列 fintech_intensity_score 由 stage 14 保留为 _full alias
+    #   → 防御: 若跳过阶段 14, 任一列不存在, valid_agg 自动跳过, 不引发 KeyError
+    agg['avg_ft_intensity'] = ('fintech_intensity_score', 'mean')  # legacy alias
     agg['avg_ft_intensity_std'] = ('fintech_intensity_score', 'std')
+    agg['avg_ft_intensity_full'] = ('fintech_intensity_score_full', 'mean')
+    agg['avg_ft_intensity_full_std'] = ('fintech_intensity_score_full', 'std')
+    agg['avg_ft_intensity_ctx'] = ('fintech_intensity_score_ctx', 'mean')
+    agg['avg_ft_intensity_ctx_std'] = ('fintech_intensity_score_ctx', 'std')
 
     # --- P. Logit-to-Score 概率映射情感（稳健性检验）---
     # Törnberg (2024). arXiv:2307.13106. DOI: 10.48550/arXiv.2307.13106
@@ -644,7 +689,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     f"mean={df['_ft_word_ratio'].mean():.6f}, "
                     f"非空={df['_ft_word_ratio'].notna().sum()}")
 
-    agg_dict = build_aggregation_dict()
+    agg_dict = build_aggregation_dict(df)
 
     # 验证源列存在性, 过滤不存在的聚合
     valid_agg = {}
@@ -1101,6 +1146,20 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             f"  ✓ v3.5.0 D2+D4 派生完成: cell_id ✓ + residual cols "
             f"{len(_v3_5_diag.get('v3_5_0_residual_articles_added', []))}"
         )
+
+        # v3.5.1 A1 + A3 supplementation (与 apply_v3_5_0 并存, 修 C2).
+        # idempotent panel schema 加列; 失败 graceful (不 raise, 保证 v3.5.0 baseline 不破).
+        try:
+            _v3_5_1_diag = _ec.apply_v3_5_1(df, panel, prompt_v8_sha256=None)
+            panel.attrs['v3_5_1_diagnostics'] = _v3_5_1_diag
+            n_clarity = len(_v3_5_1_diag.get('v3_5_1_clarity_added', []))
+            n_ni = len(_v3_5_1_diag.get('v3_5_1_num_intensity_added', []))
+            logger.info(
+                f"  ✓ v3.5.1 A1+A3 派生完成: clarity {n_clarity} cols + num_intensity {n_ni} cols; "
+                f"sidecar: {_v3_5_1_diag.get('sidecar_path', '?')}"
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"  ⚠ v3.5.1 A1+A3 派生 graceful skip: {e}")
     except Exception:  # noqa: BLE001
         # CR-16: logger.exception 自动 attach traceback, 比 logger.error + 手工 raise 标准
         logger.exception("  ✗ v3.5.0 D2+D4 派生失败")
@@ -1183,9 +1242,27 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         logger.info(f"  已计算 Media-Authority-weighted Tone 指标（双轨）")
 
     # --- HW Tone (跟风衰减加权, Tetlock 2011, JF) ---
-    if 'sum_herd_weight' in panel.columns:
-        hw_denom = panel['sum_herd_weight'].replace(0, np.nan)
+    # v3.6.0 (Plan E P1 B3): hw_denom 按 track 双轨独立 (Edwards 2001 ORM
+    # measurement-treatment matching) — 修正 v3.5.0 错配 (全文 sum 当分母,
+    # 同时除给 _full / _ctx / _title 三轨)。
+    # 轨道映射:
+    #   _full  → sum_herd_weight_full  (新双轨列)
+    #   _ctx   → sum_herd_weight_ctx   (新双轨列)
+    #   _title → sum_herd_weight_full  (fallback; 标题轨无独立 ctx 概念)
+    # Round 1 M1 清理 dead code: build_aggregation_dict 永远生成 sum_herd_weight_full
+    # + _ctx (legacy 单列 silently 映射到双轨 key, 由 build_aggregation_dict 内打 WARN).
+    # 故 _has_legacy_sum 永远 False, 删除该分支.
+    if ('sum_herd_weight_full' in panel.columns and
+            'sum_herd_weight_ctx' in panel.columns):
+        hw_denom_full = panel['sum_herd_weight_full'].replace(0, np.nan)
+        hw_denom_ctx = panel['sum_herd_weight_ctx'].replace(0, np.nan)
+        hw_denom_by_track = {
+            '_full': hw_denom_full,
+            '_ctx': hw_denom_ctx,
+            '_title': hw_denom_full,
+        }
         for track in ['_full', '_ctx', '_title']:
+            hw_denom = hw_denom_by_track[track]
             if f'llm_vote_score_hw_sum{track}' in panel.columns:
                 panel_new_cols[f'llm_vote_tone_hw{track}'] = (
                     panel[f'llm_vote_score_hw_sum{track}'] / hw_denom)
@@ -1212,7 +1289,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             w_prob = f'llm_prob_score_hw_sum{track}'
             if w_prob in panel.columns:
                 panel_new_cols[f'llm_vote_tone_hw_prob{track}'] = panel[w_prob] / hw_denom
-        logger.info(f"  已计算 Herd-Decay-weighted Tone 指标（双轨）")
+        logger.info("  已计算 Herd-Decay-weighted Tone 指标 (双轨独立分母)")
 
     # --- 标题-全文情感缺口（B1-2 Step 4d） ---
     # 衡量"标题党/软文嫌疑": gap越大→标题情感偏离全文→投资者可能过度反应

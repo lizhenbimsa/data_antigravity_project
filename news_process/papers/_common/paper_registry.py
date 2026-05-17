@@ -44,6 +44,11 @@ PAPER_IDS_NEW: tuple[str, ...] = (
     'bank_fintech_attention',   # P2 (per §B.2)
     'bank_fintech_substance',   # P3 (per §B.3)
     'bank_fintech_locus',       # P4 (per §B.4)
+    # P5 'bank_fintech_collab' (v3.4.0 立项) 暂未加入 paper_registry — v3.5.1 final-audit
+    # finding R3: P5 缺 en/zh manuscript + refs.bib + derivative_replication 注册;
+    # 加入会引发 v3.4.0 baseline regression. 故保留 v3.4.0 现状, 由 P5 onboarding follow-up
+    # 单独 PR 处理. v3.5.1 加的 20_collab_clarity_robustness.do.tmpl 暂为 "dormant template"
+    # (paper_spec.yaml 已配 tA7.template 字段, 但 CLI 渲染路径需 P5 完整 onboarding 后启用).
 )
 
 PAPER_IDS_ALL: tuple[str, ...] = PAPER_IDS_EXISTING + PAPER_IDS_NEW

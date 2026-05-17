@@ -1,0 +1,42 @@
+* ============================================================================
+* 19_bs_num_intensity_robustness.do — v3.5.1 A3 Numerical Intensity (benefit_society Table A8)
+* Paper: {{PAPER_ID}}
+* Anchor: Hales, Kuang & Venkataraman (2011, CAR 28:1); 真双轨 (修 R3-C2).
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+set seed {{RANDOM_SEED}}
+
+* Panel A: 量化披露强度 (Hales 2011 Eq.1, 真双轨)
+capture confirm variable mean_num_intensity_full
+if !_rc {
+    reghdfe {{MAIN_DV}} mean_num_intensity_full mean_num_intensity_ctx $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo bs_num_intensity_dual
+}
+else {
+    display "  [WARN] mean_num_intensity_full not in panel"
+}
+
+* Panel B: 与 LLM substance 交互 (discriminant: 量化披露 ↔ 实质性)
+capture confirm variable mean_num_intensity_full
+if !_rc {
+    reghdfe {{MAIN_DV}} c.mean_num_intensity_full##c.{{ATTITUDE_VAR}} $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo bs_num_intensity_interact
+}
+
+esttab bs_num_intensity_dual bs_num_intensity_interact ///
+    using "$tables_dir/tableA8_num_intensity.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) replace ///
+    title("Table A8: Numerical Intensity (Hales 2011 CAR) Robustness — {{PAPER_ID}}") ///
+    note("Dual-track independent regex+cn2arab scan. Chinese sentence denominator caveat per paper §3.4.")
