@@ -1,0 +1,40 @@
+* ============================================================================
+* 01_data_prep.do — Load panel + xtset + globals (bank_fintech_substance / P3)
+* Paper: {{PAPER_ID}}
+* RR6-1: paper-specific globals + P3 dual-outcome variable existence check
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""  global data_dir "../data"
+if "$panel_dta" == "" global panel_dta "$data_dir/40_panel_yearly.dta"
+
+use "$panel_dta", clear
+
+capture confirm variable bank_id
+if _rc encode target_bank, gen(bank_id)
+xtset bank_id year
+
+global controls "{{CONTROLS}}"
+
+* P3 required variables: long-run outcome + treatment (innovation_substantiveness_full)
+foreach v in {{MAIN_DV}} {{MAIN_TREAT}} {
+    capture confirm variable `v'
+    if _rc {
+        display as error "[ERROR] required P3 variable `v' missing — run M0.5.11 enrichment + stage 32a substantiveness first"
+        exit 198
+    }
+}
+
+* Short-run outcome optional check (per spec.outcome.short_run; may be NaN pre-enrichment)
+capture confirm variable car_3day_window_fintech_announcement
+if _rc display "  [WARN] car_3day_window_fintech_announcement not in panel; dual-outcome (Table 3) will be skipped"
+
+capture which winsor2
+if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
+else gen {{MAIN_DV}}_w = {{MAIN_DV}}
+
+save "$data_dir/_prepared_panel.dta", replace
+display "[OK] P3 data prep N=" _N

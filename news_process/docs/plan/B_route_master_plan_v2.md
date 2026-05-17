@@ -614,6 +614,13 @@ news_process/papers_assets/<name>/
 位置约定: 全部新增 paper-specific 模板放在 `papers/_common/stata_templates/<paper_id>/`, 与
 现有 benefit_society (17) / brokerage_network (8) / llm_peer (8) / strategic_diff (8) 同。
 
+通用 orchestrator 对 (RR7-2 补; 与 4 existing 衍生 paper 同模式):
+
+| 模板 (位于 `papers/_common/stata_templates/<paper_id>/`) | 作用 |
+|---|---|
+| `00_master.do.tmpl` | replication 入口; 设置 `$repl_root` / `$data_dir` / `$tables_dir` / `$figures_dir` globals + 链式 do 01-19 (per benefit_society/00_master.do.tmpl L26 pattern) |
+| `01_data_prep.do.tmpl` | load panel.dta + `xtset bank_id year` + 设置 `$controls` global + required-variable existence check + winsor2 |
+
 通用四件套：
 
 | 模板 (位于 `papers/_common/stata_templates/<paper_id>/`) | P2 attention | P3 substance | P4 locus |
@@ -639,15 +646,16 @@ Paper-specific 第 5 件:
 | P3 substance | `19_substance_lr_reversal.do.tmpl` + `20_substance_disclosure_quality.do.tmpl` | 长短期 ROA 反转 + 与 disclosure 协方差 |
 | P4 locus | `19_locus_event_study.do.tmpl` | layer-specific event study (5 个外生冲击) |
 
-#### 5.5.3 Stata templates 总数预测 (R1-M01 + R1-M27 修订)
+#### 5.5.3 Stata templates 总数预测 (R1-M01 + R1-M27 + RR6-1 修订)
 
 ```
 v3.3.0 实测:  55 templates = 14 root shared + 41 paper-specific
               (benefit_society 17 + brokerage_network 8 + llm_peer 8 + strategic_diff 8)
-M2 新增:      3 paper × 4 common templates = 12
-            + P2 extras (1) + P3 extras (2) + P4 extras (1) = 4
-            合计新增 16
-M2 完成预测: 55 + 16 = 71 templates (本机 Stata MP 19.5 maxvar 120,000 余量充足)
+M2 新增:      3 paper × 4 common templates (15-18) = 12
+            + P2 extras (1: 19_iv_first_stage) + P3 extras (2: 19_lr_reversal + 20_disclosure) + P4 extras (1: 19_event_study) = 4
+            + 3 paper × 2 orchestrator (00_master + 01_data_prep, RR6-1: 与 4 existing 衍生 paper 同模式) = 6
+            合计新增 22
+M2 完成预测: 55 + 22 = 77 templates (本机 Stata MP 19.5 maxvar 120,000 余量充足)
 ```
 
 #### 5.5.4 Acceptance gate G2 (R1-M20 修订)
@@ -655,7 +663,7 @@ M2 完成预测: 55 + 16 = 71 templates (本机 Stata MP 19.5 maxvar 120,000 余
 | 检查项 | 通过条件 |
 |---|---|
 | 每 paper `build-replication` 命令 | 产出完整 replication 包 |
-| 本机 Stata 19.5 跑通 | **16 个新模板** (4 common × 3 papers + 4 paper-specific extras: P2 1 + P3 2 + P4 1) 全 pass |
+| 本机 Stata 19.5 跑通 | **22 个新模板** (4 common × 3 papers + 4 paper-specific extras: P2 1 + P3 2 + P4 1 + 6 orchestrator pairs RR6-1) 全 pass |
 | `pytest tests/test_stata_templates.py` | pass（已有，需 extend）|
 | Macro/var 截断 | 无 `set maxvar` 触顶（panel 新列数 ≤ 5000 vs MP 上限 120,000）|
 | SSC 包齐全 (R1-M06) | `csdid`, `csdid_plot`, `did_imputation`, `eventstudyinteract`, `boottest`, `rwolf`, `ritest`, `honestdid` 已 installed (见 §5.7.3 SSC prerequisites) |
@@ -988,7 +996,7 @@ did_imputation <outcome> bank_id year treat_year, ///
 | G0 | M0 完 | **8 份 spec.yaml** (3 new + 5 retrofit; R1-M10 修订) + paper_registry 8 paper + 0 列名冲突 + 5 existing paper build-replication 在 v3.3.0 panel pass + **LLM cost cap = $4,200 锁定** (R19-m01 per §8 R10 mitigation + §10.1) + git tag | M0.5 暂停 |
 | G0.5 | M0.5 完 | panel v34 reproducibility (panel-hash identical with LLM cache HOT; cache COLD 差异 ≤ 0.1% rows) + 跨期 κ ≥ 0.7 (按 4 段分别) + 4 类银行 × 18 年覆盖热力图无空洞 + LLM cost ≤ $4,200 (R46-M03 同步 §10.1 budget cap) + v3.3.0 兼容 (R46-M04 完整化): subset to **target_bank ∈ v3.3.0 84 银行 AND year ∈ {2017, 2018}** 与 v3.3.0 panel float 差异 ≤ 1e-9, categoricals exact | M1 暂停 |
 | G1 | M1 完 | **6 new manuscript skeleton** (3 new × en/zh, M1 实际产出) + **10 existing manuscript regression test pass** (compile state 未被 panel 升级或 M1 改动 break; 总 16 visible) + 8 paper analysis CLI 跑通 (`python -m news_process.papers.bank_fintech_attention.analysis --stage tables`) + **pytest tests/test_papers_b_route.py pass** (R53-M01 同步 §5.4.4) | M2 暂停 |
-| G2 | M2 完 | 71 Stata templates 实际总数 (55 + 16 新增) + SSC 包齐全 + 16 个新模板 Stata 19.5 跑通 + 4 paper replication 包齐 + **Macro/var 截断: 无 `set maxvar` 触顶 (panel 列数 ≤ 5000 < MP 上限 120,000)** (R49-m02) + **pytest tests/test_stata_templates.py pass** (R53-M02 同步 §5.5.4) | M3 暂停 |
+| G2 | M2 完 | 77 Stata templates 实际总数 (55 + 22 新增, RR6-1 加 6 orchestrator) + SSC 包齐全 + 22 个新模板 Stata 19.5 跑通 + 4 paper replication 包齐 + **Macro/var 截断: 无 `set maxvar` 触顶 (panel 列数 ≤ 5000 < MP 上限 120,000)** (R49-m02) + **pytest tests/test_stata_templates.py pass** (R53-M02 同步 §5.5.4) | M3 暂停 |
 | G3 | M3 完 | **6 new manuscript pdflatex pass** (3 new × en/zh, M3 实际产出) + **10 existing manuscript regression test pass** (R46-M06 同步 §5.6.4) + `tests/test_manuscript_compilation.py` pass + bibtex ≥30/paper + IRON RULE 0 violations + Bilingual abstract 完整 | M4 暂停 |
 | G4 | M4 完 | **17 DiD spec** pass (R3-M01/M07: 4+3+2+4+2+2 = 17) + 平行趋势检验统一为 intensity slope ≈ 0 (R8-M03: 6 events intensity-based); 6 events 中 ≥ 5 通过 + **SSC 包齐全** (csdid/csdid_plot/did_imputation/eventstudyinteract/boottest/rwolf/ritest/honestdid) + **Cluster-robust SE 全部 bank-level cluster** + **`config/exogenous_shocks.yaml` 6 events 完整定义 + identification 策略 + 文献依据** (R53-M03 同步 §5.7.4) | M5 暂停 |
 | G5 | M5 完 | 4 paper × 主+机制+异质 + 8 轮 audit/paper + **每 paper 4 张表 (Table 2 主回归 + Table 3 机制 + Table 4 异质 + Table 5 advanced)** + **3 图 (event study + coefplot + time trend) 完整 .tex / .png** + **主回归系数符号与 paper_spec.yaml 预设一致** (或方向 puzzle 文档化) + **Stata log 累计 ≥ 40 文件归档 `output/<paper>/logs/`** + **Pre-registration deviation 文档化 (触发 D5 决策点)** (R53-M04 同步 §5.8.3) | M6 暂停 |

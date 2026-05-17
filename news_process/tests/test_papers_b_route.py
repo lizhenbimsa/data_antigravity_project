@@ -34,9 +34,14 @@ PAPERS_DIR = PROJECT_ROOT / 'papers'
 ASSETS_DIR = PROJECT_ROOT / 'papers_assets'
 STATA_TEMPLATES_DIR = PAPERS_DIR / '_common' / 'stata_templates'
 
-# Per plan §5.5.2 paper-specific template inventory
+# Per plan §5.5.2 paper-specific template inventory + RR6-1 orchestrator pair.
+# RR6-1 (Review-only audit): plan §5.5.3 原 16 new templates 不含 paper-specific
+# 00_master + 01_data_prep orchestrator, 但 4 existing 衍生 paper 都有此模式;
+# 3 new paper 同步补齐 → 16 + 6 = 22 new templates, total 77 (was 71).
 NEW_PAPER_TEMPLATES: dict[str, list[str]] = {
     'bank_fintech_attention': [
+        '00_master.do.tmpl',                            # RR6-1 orchestrator
+        '01_data_prep.do.tmpl',                         # RR6-1 data prep + globals
         '15_attention_main_regression.do.tmpl',
         '16_attention_mechanism.do.tmpl',
         '17_attention_heterogeneity.do.tmpl',
@@ -44,6 +49,8 @@ NEW_PAPER_TEMPLATES: dict[str, list[str]] = {
         '19_attention_iv_first_stage.do.tmpl',          # P2 extra
     ],
     'bank_fintech_substance': [
+        '00_master.do.tmpl',                            # RR6-1 orchestrator
+        '01_data_prep.do.tmpl',                         # RR6-1 data prep + globals
         '15_substance_main_regression.do.tmpl',
         '16_substance_mechanism.do.tmpl',
         '17_substance_heterogeneity.do.tmpl',
@@ -52,6 +59,8 @@ NEW_PAPER_TEMPLATES: dict[str, list[str]] = {
         '20_substance_disclosure_quality.do.tmpl',      # P3 extra 2
     ],
     'bank_fintech_locus': [
+        '00_master.do.tmpl',                            # RR6-1 orchestrator
+        '01_data_prep.do.tmpl',                         # RR6-1 data prep + globals
         '15_locus_main_regression.do.tmpl',
         '16_locus_mechanism.do.tmpl',
         '17_locus_heterogeneity.do.tmpl',
@@ -112,24 +121,26 @@ def test_b_route_paper_stata_templates_exist(paper_id: str) -> None:
         )
 
 
-def test_total_template_count_71() -> None:
-    """71 templates per plan §5.5.3 (R1-M01 + R1-M27): 14 root + 41 existing + 16 new."""
+def test_total_template_count_77() -> None:
+    """77 templates after RR6-1 (was 71 per plan §5.5.3 R1-M01 + R1-M27):
+    14 root + 41 existing + 22 new (16 paper-specific 15-20 + 6 orchestrator 00/01)."""
     templates = list(STATA_TEMPLATES_DIR.rglob('*.do.tmpl'))
-    assert len(templates) == 71, (
-        f"Expected 71 total templates, found {len(templates)}: "
-        f"plan §5.5.3 = 14 root + 41 existing (17+8+8+8) + 16 new (5+6+5)"
+    assert len(templates) == 77, (
+        f"Expected 77 total templates after RR6-1, found {len(templates)}: "
+        f"= 14 root + 41 existing (17+8+8+8) + 22 new (7+8+7)"
     )
 
 
-def test_16_new_templates_breakdown() -> None:
-    """16 new templates: 4 common × 3 papers + 4 paper-specific extras (P2:1 + P3:2 + P4:1)."""
+def test_22_new_templates_breakdown() -> None:
+    """22 new templates after RR6-1: P2 7 (5 templates + 00_master + 01_data_prep)
+    + P3 8 (6 + orchestrator pair) + P4 7 (5 + orchestrator pair) = 22."""
     new_total = sum(len(t) for t in NEW_PAPER_TEMPLATES.values())
-    assert new_total == 16, f"Expected 16 new templates per spec, got {new_total}"
+    assert new_total == 22, f"Expected 22 new templates after RR6-1, got {new_total}"
 
-    # Per-paper detail
-    assert len(NEW_PAPER_TEMPLATES['bank_fintech_attention']) == 5
-    assert len(NEW_PAPER_TEMPLATES['bank_fintech_substance']) == 6
-    assert len(NEW_PAPER_TEMPLATES['bank_fintech_locus']) == 5
+    # Per-paper detail (5/6/5 paper-specific + 2 orchestrator each)
+    assert len(NEW_PAPER_TEMPLATES['bank_fintech_attention']) == 7
+    assert len(NEW_PAPER_TEMPLATES['bank_fintech_substance']) == 8
+    assert len(NEW_PAPER_TEMPLATES['bank_fintech_locus']) == 7
 
 
 # ============================================================================

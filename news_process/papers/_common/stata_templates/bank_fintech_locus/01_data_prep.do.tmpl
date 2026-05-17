@@ -1,0 +1,43 @@
+* ============================================================================
+* 01_data_prep.do — Load panel + xtset + globals (bank_fintech_locus / P4)
+* Paper: {{PAPER_ID}}
+* RR6-1: paper-specific globals + P4 primary_pair derivation (R35-M02)
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""  global data_dir "../data"
+if "$panel_dta" == "" global panel_dta "$data_dir/40_panel_yearly.dta"
+
+use "$panel_dta", clear
+
+capture confirm variable bank_id
+if _rc encode target_bank, gen(bank_id)
+xtset bank_id year
+
+global controls "{{CONTROLS}}"
+
+* P4 required variables: car_5day_window outcome + innovation_locus_full source
+foreach v in {{MAIN_DV}} innovation_locus_full {
+    capture confirm variable `v'
+    if _rc {
+        display as error "[ERROR] required P4 variable `v' missing — run M0.5.11 enrichment + stage 32a locus first"
+        exit 198
+    }
+}
+
+* R35-M02: derive primary_pair (locus_layer_full, locus_scenario_full) from innovation_locus_full
+capture drop locus_layer_full locus_scenario_full locus_gap
+gen locus_layer_full    = (innovation_locus_full == 1)
+gen locus_scenario_full = (innovation_locus_full == 0)
+gen locus_gap = locus_layer_full - locus_scenario_full   // ∈ {-1, +1}
+
+* Winsorize outcome
+capture which winsor2
+if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
+else gen {{MAIN_DV}}_w = {{MAIN_DV}}
+
+save "$data_dir/_prepared_panel.dta", replace
+display "[OK] P4 data prep N=" _N "; locus_layer / locus_scenario derived from innovation_locus_full"

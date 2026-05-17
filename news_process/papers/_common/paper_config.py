@@ -14,6 +14,9 @@ from typing import Any
 
 from news_process.core.config import load_config
 
+# RR1-1: single source of truth for 8 paper id whitelist (was hardcoded duplicate).
+from news_process.papers._common.paper_registry import PAPER_IDS_ALL as _PAPER_IDS_ALL
+
 # ----------------------------------------------------------------------------
 # 不可变记录 — 任何地方拿到 PaperConfig 后，可以信任其字段在生命周期内
 # 不被改写。frozen=True 让我们能把 PaperConfig 用作 dict key / set 元素。
@@ -92,20 +95,10 @@ def get_papers_assets_root(project_config: dict[str, Any] | None = None) -> Path
 
 # 论文 ID 白名单 — 与 papers/<paper_id>/ 目录一一对应。
 # Phase 3c/3d 实际建包后逐项启用；Phase 3e 的 run_paper.py CLI 也复用这份集合。
-# Plan v2.x M0.2 (paper_registry): 扩展到 8 paper (5 existing + 3 new B-route 2/3/4)。
-# 真正 spec 来源 = papers/<paper_id>/paper_spec.yaml (paper_registry.py 加载);
-# 这里保留 frozenset 作为快速 ID 校验入口, 与 paper_registry.PAPER_IDS_ALL 保持一致。
-_VALID_PAPER_IDS: frozenset[str] = frozenset({
-    'bank_fintech_tone',
-    'benefit_society',
-    'brokerage_network',
-    'llm_peer',
-    'strategic_diff',
-    # M0.2 B-route additions (per plan §B.2-B.4):
-    'bank_fintech_attention',
-    'bank_fintech_substance',
-    'bank_fintech_locus',
-})
+# Plan v2.x M0.2 + RR1-1 (Review-only audit): 单一可信源 = paper_registry.PAPER_IDS_ALL;
+# 这里仅做 frozenset 包装供快速 ID 校验入口, 消除原双源 drift risk (历史 5→8 升级时
+# 曾在两处分别 hardcode, 现统一从 paper_registry import; import 在文件顶部).
+_VALID_PAPER_IDS: frozenset[str] = frozenset(_PAPER_IDS_ALL)
 
 
 def is_valid_paper_id(paper_id: str) -> bool:

@@ -206,13 +206,15 @@ _VALID_SPEC_VALUES = {
 }
 
 # P1 (2026-05-15): paper_id 白名单 — 与 paper_config._VALID_PAPER_IDS 同步.
-_VALID_PAPER_IDS_BUILD = frozenset({
-    'bank_fintech_tone',
-    'benefit_society',
-    'brokerage_network',
-    'llm_peer',
-    'strategic_diff',
-})
+# RR8-1 (Review-only audit): 单一可信源 = paper_registry.PAPER_IDS_ALL; 修复
+# 原 hardcoded 5-paper drift (RR1-1 fix paper_config + RR7-1 fix
+# derivative_replication, 此处是第 3 处 drift). 任何 paper 增删只需改
+# paper_registry.PAPER_IDS_ALL 一处.
+from news_process.papers._common.paper_registry import (
+    PAPER_IDS_ALL as _STATA_RUNNER_PAPER_IDS_ALL,
+)
+
+_VALID_PAPER_IDS_BUILD = frozenset(_STATA_RUNNER_PAPER_IDS_ALL)
 
 # Paper 默认占位符值 (项目约定: 银行年度面板 + ROA + reghdfe + cluster bank_id).
 # Q1.4 (2026-05-15) 单源化: 4 衍生 paper 的字典 import 自

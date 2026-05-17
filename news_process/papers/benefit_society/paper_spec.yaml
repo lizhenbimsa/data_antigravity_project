@@ -43,9 +43,9 @@ targets:
   backup_outlet: [JFE, JF, JBF]
   submission_window: 2027-03-15
 
-sample:
-  n_bank_min: 84  # v3.3.0 baseline
-  t_year: 2
-  obs_target_min: 168
+sample:  # RR5-1: post-M0.5 v34 panel target (per §3.4 8 paper共用 v34); v3.3.0 baseline = 84 banks × 2 yr × 168 obs
+  n_bank_min: 200
+  t_year: 18
+  obs_target_min: 3000
 
 audit_rounds_target_min: 8  # benefit_society v2.12 实测 14 轮

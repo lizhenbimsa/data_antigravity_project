@@ -49,8 +49,9 @@ PAPER_IDS_NEW: tuple[str, ...] = (
 PAPER_IDS_ALL: tuple[str, ...] = PAPER_IDS_EXISTING + PAPER_IDS_NEW
 
 
-# Schema-required fields per plan §5.2.3.bis
-_REQUIRED_FIELDS: frozenset[str] = frozenset({
+# Schema-required fields per plan §5.2.3.bis.
+# Public per RR1-2 (M0.3 test_paper_spec_schema 跨模块直接 import 此集合验证 schema).
+REQUIRED_FIELDS: frozenset[str] = frozenset({
     'paper_id',
     'spec_version',
     'status',
@@ -64,6 +65,9 @@ _REQUIRED_FIELDS: frozenset[str] = frozenset({
     'sample',
     'audit_rounds_target_min',
 })
+
+# Backwards-compat alias for the previous private name (delete in v3.0 plan major).
+_REQUIRED_FIELDS = REQUIRED_FIELDS
 
 
 @dataclass(frozen=True)
@@ -93,7 +97,12 @@ class PaperSpec:
 
     @property
     def primary_outlet(self) -> str:
-        return self.raw.get('targets', {}).get('primary_outlet', '')
+        # RR2-1: defensive — yaml schema 偶尔可能把 targets 误解析为 list (e.g. 缩进
+        # 异常), .get() on list 会 raise AttributeError. 安全 fallback 返回空 str.
+        targets = self.raw.get('targets')
+        if not isinstance(targets, dict):
+            return ''
+        return str(targets.get('primary_outlet', '') or '')
 
     @property
     def event_study_ids(self) -> list[str]:
@@ -144,7 +153,7 @@ def _load_one(paper_id: str) -> PaperSpec:
         )
 
     # Light schema validation (required fields presence; type checks 留给 M0.3 test)
-    missing = _REQUIRED_FIELDS - set(raw.keys())
+    missing = REQUIRED_FIELDS - set(raw.keys())
     if missing:
         raise ValueError(
             f"paper_spec.yaml for {paper_id!r} missing required fields: "
@@ -205,6 +214,7 @@ __all__ = [
     'PAPER_IDS_EXISTING',
     'PAPER_IDS_NEW',
     'PaperSpec',
+    'REQUIRED_FIELDS',
     'clear_cache',
     'get_spec',
     'list_paper_ids',

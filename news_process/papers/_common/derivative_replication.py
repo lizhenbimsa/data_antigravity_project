@@ -44,6 +44,14 @@ _DERIVATIVE_PAPER_IDS: frozenset[str] = frozenset({
     'brokerage_network',
     'strategic_diff',
     'llm_peer',
+    # RR7-1 (Review-only audit): B-route 3 new papers use same per-paper replication
+    # path as the 4 derivative papers. Naming kept as "_DERIVATIVE_*" for backwards-
+    # compat (semantically it means "non-main-paper IDs handled by per-paper template
+    # instantiation"; the historical "derivative of bank_fintech_tone" framing is
+    # superseded by the B-route plan).
+    'bank_fintech_attention',
+    'bank_fintech_substance',
+    'bank_fintech_locus',
 })
 
 
@@ -122,6 +130,43 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CUTOFF_VARS': ('llm_peer_tone_iv_full_70 llm_peer_tone_iv_full_75 '
                         'llm_peer_tone_iv_full_80 llm_peer_tone_iv_full_85 '
                         'llm_peer_tone_iv_full_90'),
+    },
+    # ========================================================================
+    # RR7-1 (Review-only audit): B-route 3 new paper defaults.
+    # Source: paper_spec.yaml outcome.primary / treatment.primary / controls.
+    # ========================================================================
+    'bank_fintech_attention': {
+        'PAPER_ID': 'bank_fintech_attention',
+        'MAIN_DV': 'ln_fintech_investment',          # spec.outcome.primary (P2)
+        'MAIN_TREAT': 'attention_index_full',        # spec.treatment.primary (P2)
+        'CONTROLS': ('ln_assets leverage capital_ratio npl_ratio deposit_growth '
+                     'gdp_growth m2_growth'),
+        'CLUSTER_VAR': 'bank_id',
+        'RANDOM_SEED': '20260516',
+        'HET_VAR': 'bank_type',                       # per §B.2 heterogeneity (4 bank types)
+    },
+    'bank_fintech_substance': {
+        'PAPER_ID': 'bank_fintech_substance',
+        'MAIN_DV': 'long_run_roa_change_3yr',         # spec.outcome.primary (P3 long-run)
+        'MAIN_TREAT': 'innovation_substantiveness_full',  # spec.treatment.primary (P3)
+        'CONTROLS': ('ln_assets leverage capital_ratio npl_ratio deposit_growth '
+                     'gdp_growth m2_growth'),
+        'CLUSTER_VAR': 'bank_id',
+        'RANDOM_SEED': '20260516',
+        'HET_VAR': 'is_soe',                           # per §B.3 heterogeneity
+    },
+    'bank_fintech_locus': {
+        'PAPER_ID': 'bank_fintech_locus',
+        'MAIN_DV': 'car_5day_window',                 # spec.outcome.primary (P4)
+        # P4 用 primary_pair = (locus_layer_full, locus_scenario_full), 15_locus_main
+        # 直接 hardcode pair; MAIN_TREAT 留 locus_layer_full 作单 placeholder fallback
+        # 给 16_mechanism 等用 single treatment 的 paper-specific templates.
+        'MAIN_TREAT': 'locus_layer_full',
+        'CONTROLS': ('ln_assets leverage capital_ratio npl_ratio deposit_growth '
+                     'gdp_growth m2_growth'),
+        'CLUSTER_VAR': 'bank_id',
+        'RANDOM_SEED': '20260516',
+        'HET_VAR': 'is_soe',                           # per §B.4 heterogeneity (wave + SOE)
     },
 }
 

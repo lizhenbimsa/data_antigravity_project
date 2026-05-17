@@ -25,8 +25,8 @@ from datetime import date
 import pytest
 
 from news_process.papers._common.paper_registry import (
-    _REQUIRED_FIELDS,
     PAPER_IDS_ALL,
+    REQUIRED_FIELDS,
     get_spec,
     load_all_specs,
 )
@@ -55,7 +55,7 @@ def test_all_8_specs_loadable() -> None:
 @pytest.mark.parametrize('paper_id', PAPER_IDS_ALL)
 def test_spec_has_all_required_fields(paper_id: str) -> None:
     spec = get_spec(paper_id)
-    missing = _REQUIRED_FIELDS - set(spec.raw)
+    missing = REQUIRED_FIELDS - set(spec.raw)
     assert not missing, f"{paper_id} missing required fields: {sorted(missing)}"
 
 

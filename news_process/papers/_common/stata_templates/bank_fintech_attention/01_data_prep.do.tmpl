@@ -1,0 +1,39 @@
+* ============================================================================
+* 01_data_prep.do — Load panel + xtset + globals (bank_fintech_attention / P2)
+* Paper: {{PAPER_ID}}
+* RR6-1: paper-specific globals + variable existence check (per benefit_society pattern)
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""  global data_dir "../data"
+if "$panel_dta" == "" global panel_dta "$data_dir/40_panel_yearly.dta"
+
+use "$panel_dta", clear
+
+* xtset (bank_id × year) — required by reghdfe, csdid, eventstudyinteract
+capture confirm variable bank_id
+if _rc encode target_bank, gen(bank_id)
+xtset bank_id year
+
+* Standard bank-level + macro controls (per spec.controls)
+global controls "{{CONTROLS}}"
+
+* Required-variable presence check (P2 outcome + treatment + mediator)
+foreach v in {{MAIN_DV}} {{MAIN_TREAT}} {
+    capture confirm variable `v'
+    if _rc {
+        display as error "[ERROR] required P2 variable `v' missing — run M0.5.11 enrichment + 14_fintech_intensity first"
+        exit 198
+    }
+}
+
+* Optional winsor2 trimming (1%/99%) for outcome variable
+capture which winsor2
+if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
+else gen {{MAIN_DV}}_w = {{MAIN_DV}}
+
+save "$data_dir/_prepared_panel.dta", replace
+display "[OK] P2 data prep N=" _N
