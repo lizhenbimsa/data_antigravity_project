@@ -57,6 +57,23 @@ Cohen, W. M., & Levinthal, D. A. (1990). Absorptive capacity: A new perspective 
 
 **实证可分离性**: 在 400k 文章语料中，每个 cell 在概念上独立可识别 (M5 阶段需验证 cell 计数 ≥ 50 obs，否则 power 不足)。若某 cell 实证为空 (e.g., 实质性 × 底层技术 × 外部协同 0 obs)，则需在 limitations 中说明 trade-off 决策。
 
+### §2.bis Sparse cell pre-registered merge decision tree (v3.5.0 升级, per [stage3_v3_5_0_augmentation_plan.md §2.1.4](stage3_v3_5_0_augmentation_plan.md#L196))
+
+v3.4.0 版仅说"在 limitations 中说明"。**v3.5.0 升级**: 引入 article-level 8-cell decomposition (D2) 后, panel 输出 8 个 `n_articles_cell_{1..8}_full` 列**不变**, cell 合并发生在 **Stata pre-regression decision 层**——单 paper Table 6 跑回归前由 .do 模板判定。
+
+**主回归阶段 单 paper 决策树** (pre-registered, 每 paper Table 6 启动前 frozen; per Nosek 2018 PNAS additive supplementation):
+
+| 条件 | 行动 |
+|---|---|
+| cell n ≥ 50 obs (rule of thumb for OLS cell-level fixed-effect estimation, NOT Cohen 1988) | 独立 estimate, 入 Table 6 |
+| cell 30 ≤ n < 50 | **Priority A**: 与同 collab + 同 locus、相反 substantiveness 的 cell 合并 |
+| 合并后仍 n < 50 | **Priority B**: 与同 collab、相反 locus 的合并 |
+| 仍 n < 50 | **Priority C**: 该 cell 标 `merged_into_other`, 主回归 omit, Appendix 报描述统计 |
+
+**合并记录义务**: 每次合并发生前后**必须**记录到 [stage3_v3_5_0_augmentation_plan_audit_log.md §B.cell_merge_history](stage3_v3_5_0_augmentation_plan_audit_log.md)。审稿人 replication 重现需引用 stage 21 输出 + 该 audit log row。
+
+**Cross-paper 一致性**: 若 P3/P4/P5 中两个或以上 paper 都触发 cell merge, 不同 paper 的 merge 决策 (Priority A/B/C) 必须独立基于该 paper 的样本统计; **不要求** cross-paper merge 决策一致。但 audit log §B.cell_merge_history 必须每 paper 单独记录 (含 cell, n_obs, priority used, paper_id) 以让 cross-paper Table 6 比较时审稿人能看见每 paper 的 merge structure 差异。Paper-level Table 6 主结果**禁止**跨 paper 直接合并 cell, 仅允许 within-paper merge。
+
 ---
 
 ## §3. fintech 银行场景的边界规则

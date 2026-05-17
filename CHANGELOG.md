@@ -6,6 +6,74 @@
 
 ---
 
+## v3.5.0 / 2026-05-17 — feat: Stage 3 augmentation — Cell Decomposition + NMI Orthogonality + Dual-track Residual
+
+**Scope**: 在 v3.4.0 panel 之上**纯方法学加工层**增量, 不改 prompt / 不重跑 stage 21 / $0 LLM 成本。三大模块:
+
+- **D2 8-cell Decomposition**: 派生 `cell_id_{full,ctx}` ∈ {1..8} = subst*4 + locus*2 + collab + 1; baseline cell 1 = (实质性·底层技术·自主研发), contrast cell 8 = (象征性·应用场景·外部协同). 锚定 Angrist & Pischke (2009) saturated regression + Sun & Abraham (2021 JOE 225) cohort decomposition。
+- **D3 NMI 正交性测度**: stage 39c 新 validation stage 计算 NMI matrix (full 3×3 + ctx 3×3 + cross 6×6) + permutation null distribution (Z-score 三档解读 strong/moderate/weak)。锚定 Vinh, Epps & Bailey (2010 JMLR 11) + Fred & Jain (2003 CVPR) arithmetic averaging + Bagozzi & Yi (1988 JAMS 16) discriminant validity。
+- **D4 Dual-track Residual**: 派生 9 article-level + 18 panel-level signals (3 dim × 3 signal: disagree/freerider/quietworker). 作者自创 measure, 类比借用 Loughran & McDonald (2011 JF) tone-vs-context + Westphal & Zajac (2001 ASQ) decoupling。
+
+**用户决策 gate (3 个)**:
+- Q-Plan: 走 hybrid path (encode.py +20 hook + encode_collab.py 240 行 全量 derive) 而非 plan 原 §7 R10 拆分; 接受为 v3.6.0 实际拆分时的 fallback path
+- Q-Subdir: v3.5.0 Stata templates 放 `v3_5_0/` 子目录隔离 legacy `build_replication_package` 的 jinja 占位符冲突
+- Q-Tests: 5 v3.4.0 hardcoded count tests 维护更新 (test_dag_registration 13→14, test_total_template_count 84→86, paper_spec_schema +12 cases)
+
+### ✨ Added — 11 新文件
+
+- **`news_process/pipeline/panel/encode_collab.py`** (250 行) — D2 cell_id 派生 + D4 residual signals + apply_v3_5_0 entry point; graceful skip defenses (F27/F28/F32/F46/F47/F49)
+- **`news_process/pipeline/audit/construct_orthogonality.py`** (290 行) — NMI matrix + permutation null + classify_orthogonality + run_stage; C1 bootstrap row-pair fix + F40 both-constant guard + H-NEW-2 SeedSequence reproducibility
+- **`news_process/39c_construct_orthogonality.py`** (≤30 行 shim) — stage 39c thin shim delegating to pipeline.audit module
+- **`news_process/papers/_common/stata_templates/v3_5_0/19_table6_cell_decomposition.do.tmpl`** — Table 6 D2 8-cell i.cell_id_full saturated regression
+- **`news_process/papers/_common/stata_templates/v3_5_0/25_tableA6_dual_track_residual.do.tmpl`** — Table A6 D4 dual-track residual robustness
+- **`news_process/docs/methodology/stage3_v3_5_0_augmentation_plan.md`** (v0.2 → v12, 958 行, 49 finding closed) — 完整执行计划 + §11 audit trail + §12 non-technical summary
+- **`news_process/docs/methodology/stage3_v3_5_0_augmentation_plan_audit_log.md`** — 9 节 audit log skeleton (§A scan / §B cell_merge_history / §C-§I)
+- **`news_process/tests/test_cell_id_derivation.py`** (8 tests) — D2 cell_id 编号公式 + dirty label 防御 + NaN propagation + missing column guard
+- **`news_process/tests/test_cell_id_panel.py`** (6 tests) — Panel 8-cell aggregation + cross-identity check (vs v3.4.0 _indep/_collab)
+- **`news_process/tests/test_construct_orthogonality.py`** (14 tests) — NMI / bootstrap / permutation / extreme values / SeedSequence reproducibility
+- **`news_process/tests/test_residual_signals.py`** (12 tests) — Invariants (i)/(ii)/(iii) + small-sample restriction + ctx coverage adaptive warning
+- **`news_process/tests/integration/test_v3_4_to_v3_5_migration.py`** (6 tests) — encode_collab.py refactor surface + shim + dag.py + CELL_ID_VALUE_LABEL + v3_5_0/ subdir
+
+### ✏️ Modified — 5 现有文件
+
+- **`news_process/pipeline/panel/encode.py`** (+20 行 hook block @ L1085) — `apply_v3_5_0(df, panel)` delegate at panel aggregation boundary (hybrid path per §7 R10 F48)
+- **`news_process/pipeline/panel/stata_export.py`** (+18 行) — CELL_ID_VALUE_LABEL 字典 (8 entries) + D4_DATA_QUALITY_FLAG_VALUES tuple
+- **`news_process/core/dag.py`** (+10 行) — stage 39c StageSpec entry + construct_orthogonality predicate in _VALIDATION_PREDS
+- **`news_process/docs/methodology/innovation_collab_mode_framework.md`** — §2.bis pre-registered cell merge decision tree (Priority A/B/C + cross-paper 一致性 per F26)
+- **`news_process/docs/plan/B_route_master_plan_v2.md`** §5.2.3.bis — schema 扩展 `tables.t6.template` 字段定义
+
+### 📊 9 paper_spec.yaml sync
+
+- P3 (bank_fintech_substance) / P4 (bank_fintech_locus) / P5 (bank_fintech_collab): `tables.t6.template: 19_table6_cell_decomposition`
+- P5 only: `treatment.alternative` 加 `cell_id_full` + `alternative_construction.cell_id_full` 公式
+- P1 / P2 + benefit_society / brokerage_network / llm_peer / strategic_diff: `tables.t6: null` (explicit 防 schema drift)
+
+### 🧪 Tests
+
+- 新增 ~58 unit/integration tests (test_cell_id_derivation × 8 + test_cell_id_panel × 6 + test_construct_orthogonality × 14 + test_residual_signals × 12 + test_v3_4_to_v3_5_migration × 6 + test_paper_spec_schema +12 cases)
+- 维护更新 2 hardcoded-count tests (test_dag_registration 13→14 stages, test_total_template_count 84→86 templates)
+- **Test baseline**: 1487 (v3.4.0) → **1527 fast tests passing** / 2 skipped / 0 v3.5.0-caused regression
+- 4 pre-existing v3.4.0 baseline failures (test_dual_track ×3 reading stage 21 parquet from 2026-05-16; test_stage21_skip_is_compatible_accepts_current_outputs ×1) 不属于 v3.5.0 引入
+
+### 🔧 Bug Fixes (实施中发现)
+
+- `pipeline/audit/construct_orthogonality.py` pairwise sample strategy: 当 d1==d2 时 `df[[d1,d2]]` 创建重名列, `clean[d1]` 返回 DataFrame 而非 Series → `.nunique()` 调用触发 `ValueError`. 修复为 `cols = [d1] if d1==d2 else [d1, d2]` 去重.
+
+### 📋 Audit 历程
+
+49 findings 经 5 组 35 轮 multi-perspective audit (V1-V7 七视角 × 5 epochs) closed; plan v12 SHA256 = `ef917f973b6f475184398a4e07f73756dcf4326fb7d6dbe7756933327f0bb978`. Audit framework's 严格 "7-PERFECT-at-same-version" 条件因 V1 lens 在每个 epoch 都能发现新角度 (G1/G3/G4/G5 R1 模式), 在 5 组上限内未达成; 49 findings 实质 closed。
+
+### ⏳ Pending (user-side prereq, 不在 v3.5.0 PR scope)
+
+- §9.6 epoch 5 streak 3/3 close (R90-R92 三轮 audit)
+- §9.7 framework §2 cell merge Q-gate authorization
+- §9.10 `v3_4_0_ctx_coverage_baseline.json` 测定 + git-tag
+- §9.11 stage 10.5 PII scrubbing lineage 验证
+- §9.12 `v3.4.0-baseline-frozen` immutable git tag
+- Golden baseline regen (`tests/fixtures/golden_panel_v0.json` v3.4.0 backup + v3.5.0 overwrite)
+
+---
+
 ## v3.4.0 / 2026-05-17 — feat: Stage 3 第三维度对称扩张 + P5 立项 + epoch 5 audit 启动
 
 **BREAKING**: 新增 LLM 创新属性维度 `innovation_collab_mode` ∈ {自主研发, 外部协同}, 锚定 Chesbrough (2003) Open Innovation + Laursen & Salter (2006 SMJ 27:131-150). Prompt v7 → v8 (additive supplementation per Nosek et al. 2018 PNAS; v7 严格超集). Master plan v2.55 → v2.56 触发 epoch 5 audit (streak 3/3 pending).

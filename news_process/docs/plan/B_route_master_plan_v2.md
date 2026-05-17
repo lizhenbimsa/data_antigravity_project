@@ -466,10 +466,15 @@ sample:
   n_bank_min: int              # 数据审计 G-1 后填
   t_year: int
   obs_target_min: int
+tables:                        # v3.5.0 新增 (per stage3_v3_5_0_augmentation_plan §5 B-NEW-4 + F2): 显式声明各 paper Table 渲染配置, 防 schema test fail
+  t1: dict | null              # optional, Table 1 descriptives (复用 10_table1_descriptives.do.tmpl 默认; spec 可 override)
+  t6:                          # v3.5.0 D2 cell decomposition Table 6 字段 (P3/P4/P5 主用; 其余 6 paper 必须 explicit null)
+    template: str | null       # 模板名 (e.g., '19_table6_cell_decomposition'); null 表示该 paper 不渲染 Table 6
+  # 其它 t* 字段保留未来扩展, schema 不强制
 audit_rounds_target_min: int   # ≥ 8 per memory `prefers_rigorous_multi_round_audits`
 ```
 
-M0 G0 acceptance 包含 "9 paper × spec.yaml 全部 conform 此 schema" 检查 (v2.56 epoch 5 含 P5; 新增 `tests/integration/test_paper_spec_schema.py`)。
+M0 G0 acceptance 包含 "9 paper × spec.yaml 全部 conform 此 schema" 检查 (v2.56 epoch 5 含 P5; v3.5.0 新增 `tests/integration/test_paper_spec_schema.py` 覆盖 9 paper × `tables.t6` 字段 — P3/P4/P5 模板存在性 + 其余 6 paper null 显式声明)。
 
 #### 5.2.4 Acceptance gate G0
 

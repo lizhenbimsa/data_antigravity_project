@@ -48,8 +48,10 @@ treatment:
   alternative:
     - innovation_collab_mode_ctx          # context-conditional 轨 (Hassan 2019 QJE 同构)
     - independent_minus_collab_gap        # derived = full - (1 - full) ∈ {-1, +1}
+    - cell_id_full                        # v3.5.0 D2 8-cell decomposition treatment
   alternative_construction:
     independent_minus_collab_gap: innovation_collab_mode_full - (1 - innovation_collab_mode_full)
+    cell_id_full: subst*4 + locus*2 + collab + 1  # v3.5.0 D2; see plan §2.1.1
   source: pipeline/sentiment/tone_llms.py stage 21 (Chesbrough 2003 framework, v3.4.0)
 
 controls:
@@ -82,3 +84,8 @@ sample:
   obs_target_min: 3000
 
 audit_rounds_target_min: 8                # 与 P3/P4 同 rigor (epoch 5 streak 3/3 standard)
+
+# v3.5.0 D2 8-cell decomposition Table 6 (per stage3_v3_5_0_augmentation_plan.md §2.1.5)
+tables:
+  t6:
+    template: 19_table6_cell_decomposition  # Stata Table 6: i.cell_id_full saturated regression

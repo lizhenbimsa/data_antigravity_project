@@ -1,0 +1,336 @@
+"""v3.5.0 D3 stage 39c construct_orthogonality unit tests.
+
+Per [stage3_v3_5_0_augmentation_plan.md §2.2 / §4.1](../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+    14 tests covering:
+        - NMI arithmetic averaging (Vinh 2010 / Fred-Jain 2003)
+        - Bootstrap row-pair correctness (修 C1, 两列同步)
+        - Permutation null distribution
+        - 3×3 + 6×6 matrix shape
+        - listwise vs pairwise complete sample strategy (修 C-NEW-1)
+        - Extreme values (all-same constant pair → skip per F40)
+        - Degenerate dim-pair (both H=0) guard
+        - SeedSequence reproducibility cross numpy version (修 H-NEW-2)
+        - 3-档 classify_orthogonality (Z ≤ 1.96 / ≤ 2.58 / > 2.58)
+        - n_pair_matrix dim-pair sample size tracking (修 C-NEW-1)
+        - sample size < 100 → skip (graceful)
+        - run_stage smoke (single small synthetic fixture)
+
+依赖: synthetic small fixture (N=200) replacing real 400k stage 21 output;
+bootstrap_n=50 replacing production 1000 (per plan §4.1 F36 test fixture 策略).
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from news_process.pipeline.audit.construct_orthogonality import (
+    ALL_DIMS,
+    DIMS_FULL,
+    Z_MODERATE,
+    Z_STRONG,
+    classify_orthogonality,
+    compute_nmi_matrix,
+    compute_permutation_null,
+    run_stage,
+)
+
+# Synthetic helpers ----------------------------------------------------------
+
+def _make_synthetic_df(n: int = 200, seed: int = 0) -> pd.DataFrame:
+    """N rows × 6 dim columns (3 full + 3 ctx) with random binary labels."""
+    rng = np.random.default_rng(seed)
+    return pd.DataFrame({
+        'innovation_substantiveness_full': rng.choice(['实质性', '象征性'], size=n),
+        'innovation_locus_full':           rng.choice(['底层技术', '应用场景'], size=n),
+        'innovation_collab_mode_full':     rng.choice(['自主研发', '外部协同'], size=n),
+        'innovation_substantiveness_ctx':  rng.choice(['实质性', '象征性'], size=n),
+        'innovation_locus_ctx':            rng.choice(['底层技术', '应用场景'], size=n),
+        'innovation_collab_mode_ctx':      rng.choice(['自主研发', '外部协同'], size=n),
+    })
+
+
+# ----------------------------------------------------------------------------
+# Test 1-2: 3×3 / 6×6 matrix shape + dtype
+# ----------------------------------------------------------------------------
+
+def test_nmi_full_3x3_matrix_shape():
+    df = _make_synthetic_df(n=200, seed=1)
+    point, lo, hi, n_pair = compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=50, seed=42)
+    assert point.shape == (3, 3)
+    assert lo.shape == (3, 3)
+    assert hi.shape == (3, 3)
+    assert n_pair.shape == (3, 3)
+    # diagonals should be 1.0 (perfect dependence with self)
+    for d in DIMS_FULL:
+        assert point.loc[d, d] == pytest.approx(1.0, abs=1e-10)
+
+
+def test_nmi_cross_6x6_matrix_shape():
+    df = _make_synthetic_df(n=300, seed=2)
+    point, _, _, n_pair = compute_nmi_matrix(df, ALL_DIMS, bootstrap_n=30, seed=42)
+    assert point.shape == (6, 6)
+    assert n_pair.shape == (6, 6)
+
+
+# ----------------------------------------------------------------------------
+# Test 3: Bootstrap row-pair correctness (修 C1) — 两列同步 resample
+# ----------------------------------------------------------------------------
+
+def test_bootstrap_resamples_two_columns_together():
+    """Bootstrap CI must come from joint (d1, d2) resample, not independent shuffles.
+
+    Critical regression test for C1 (plan §2.2.2): if we resampled d1 and d2
+    independently, bootstrap distribution would collapse to permutation null (~0),
+    giving falsely tight CI around 0. Joint resample preserves correlation structure.
+    """
+    # Create df with PERFECT correlation between d1 and d2 (identical labels)
+    n = 100
+    labels = np.array(['A', 'B'] * 50)
+    df = pd.DataFrame({
+        'd1': labels.copy(),
+        'd2': labels.copy(),
+    })
+    point, lo, hi, _ = compute_nmi_matrix(df, ['d1', 'd2'], bootstrap_n=100, seed=42)
+    # Point estimate should be ~1.0 (perfect dependence)
+    assert point.loc['d1', 'd2'] > 0.9
+    # Bootstrap CI lower bound should also be > 0.5 (would collapse to ~0 if broken)
+    assert lo.loc['d1', 'd2'] > 0.5, (
+        f"Bootstrap CI lower {lo.loc['d1','d2']:.4f} too low; "
+        "row-pair resample correctness broken?"
+    )
+
+
+# ----------------------------------------------------------------------------
+# Test 4: Permutation null returns 2 matrices (p95, p99)
+# ----------------------------------------------------------------------------
+
+def test_permutation_null_returns_2_matrices():
+    df = _make_synthetic_df(n=200, seed=3)
+    p95, p99 = compute_permutation_null(df, DIMS_FULL, n_permutations=50, seed=42)
+    assert p95.shape == (3, 3)
+    assert p99.shape == (3, 3)
+    # Off-diagonal cells should have finite null thresholds
+    for d1 in DIMS_FULL:
+        for d2 in DIMS_FULL:
+            if d1 == d2:
+                continue
+            assert not pd.isna(p95.loc[d1, d2])
+            assert not pd.isna(p99.loc[d1, d2])
+            # p99 >= p95 (higher percentile of same null distribution)
+            assert p99.loc[d1, d2] >= p95.loc[d1, d2] - 1e-10
+
+
+# ----------------------------------------------------------------------------
+# Test 5: Sample strategy listwise vs pairwise (修 C-NEW-1)
+# ----------------------------------------------------------------------------
+
+def test_listwise_vs_pairwise_sample_strategies():
+    """Listwise complete: all dims valid jointly; pairwise: each pair drops own NaN."""
+    df = _make_synthetic_df(n=200, seed=4)
+    # Inject NaN into one dim
+    df.loc[df.index[:50], 'innovation_locus_full'] = None
+
+    _, _, _, n_listwise = compute_nmi_matrix(
+        df, DIMS_FULL, sample_strategy='listwise_complete', bootstrap_n=20, seed=42
+    )
+    _, _, _, n_pairwise = compute_nmi_matrix(
+        df, DIMS_FULL, sample_strategy='pairwise_complete', bootstrap_n=20, seed=42
+    )
+    # listwise: all cells share same n (intersect of valid)
+    listwise_ns = set(n_listwise.values.flatten().tolist())
+    listwise_ns.discard(0)
+    assert len(listwise_ns) == 1, f"listwise n_pair not uniform: {listwise_ns}"
+
+    # pairwise: cells with locus involved have smaller n (50 NaN removed only for those pairs)
+    # cells with no locus = 200; cells with locus = 150
+    n_subst_collab_pw = n_pairwise.loc['innovation_substantiveness_full',
+                                       'innovation_collab_mode_full']
+    n_subst_locus_pw = n_pairwise.loc['innovation_substantiveness_full',
+                                      'innovation_locus_full']
+    assert n_subst_collab_pw > n_subst_locus_pw, (
+        f"pairwise should have larger n for non-locus pairs: "
+        f"{n_subst_collab_pw} vs {n_subst_locus_pw}"
+    )
+
+
+# ----------------------------------------------------------------------------
+# Test 6: Degenerate both-constant pair → skip (修 F40)
+# ----------------------------------------------------------------------------
+
+def test_degenerate_dim_pair_both_constant_skipped():
+    """If both d1 and d2 are constant (nunique < 2), skip + n_pair = 0 (修 F40)."""
+    n = 200
+    df = pd.DataFrame({
+        'd1': ['constant'] * n,
+        'd2': ['also_constant'] * n,
+    })
+    point, _, _, n_pair = compute_nmi_matrix(df, ['d1', 'd2'], bootstrap_n=20, seed=42)
+    # Off-diagonal cells skipped
+    assert pd.isna(point.loc['d1', 'd2'])
+    assert n_pair.loc['d1', 'd2'] == 0
+
+
+# ----------------------------------------------------------------------------
+# Test 7: Sample size < 100 → skip (graceful)
+# ----------------------------------------------------------------------------
+
+def test_sample_size_below_100_skipped():
+    """Pairs with clean sample < 100 → skip, n_pair = 0."""
+    df = _make_synthetic_df(n=50, seed=5)  # too small
+    point, _, _, n_pair = compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=20, seed=42)
+    # All off-diagonals should be skipped (NaN point, 0 n_pair)
+    for d1 in DIMS_FULL:
+        for d2 in DIMS_FULL:
+            if d1 != d2:
+                assert pd.isna(point.loc[d1, d2])
+                assert n_pair.loc[d1, d2] == 0
+
+
+# ----------------------------------------------------------------------------
+# Test 8: SeedSequence reproducibility (修 H-NEW-2)
+# ----------------------------------------------------------------------------
+
+def test_seed_sequence_reproducibility():
+    """Same seed → identical bootstrap CI across runs (cross numpy 1.x/2.x stable)."""
+    df = _make_synthetic_df(n=200, seed=6)
+    _, lo1, hi1, _ = compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=30, seed=42)
+    _, lo2, hi2, _ = compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=30, seed=42)
+    pd.testing.assert_frame_equal(lo1, lo2)
+    pd.testing.assert_frame_equal(hi1, hi2)
+
+
+# ----------------------------------------------------------------------------
+# Test 9: classify_orthogonality 3-档 thresholds (Z_STRONG / Z_MODERATE)
+# ----------------------------------------------------------------------------
+
+def test_classify_orthogonality_three_thresholds():
+    """Z ≤ 1.96 strong; 1.96 < Z ≤ 2.58 moderate; Z > 2.58 weak."""
+    assert Z_STRONG == 1.96
+    assert Z_MODERATE == 2.58
+
+    # Build a fake point matrix + null thresholds for classify
+    dims = ['a', 'b']
+    point = pd.DataFrame([[1.0, 0.05], [0.05, 1.0]], index=dims, columns=dims)
+    null_p95 = pd.DataFrame([[np.nan, 0.10], [0.10, np.nan]], index=dims, columns=dims)
+    null_p99 = pd.DataFrame([[np.nan, 0.20], [0.20, np.nan]], index=dims, columns=dims)
+    result = classify_orthogonality(point, null_p95, null_p99)
+    # obs=0.05 ≤ p95=0.10 → strong
+    assert result['a__b'] == 'strong'
+    assert result['b__a'] == 'strong'
+
+    # Test moderate: obs > p95 but ≤ p99
+    point_mod = pd.DataFrame([[1.0, 0.15], [0.15, 1.0]], index=dims, columns=dims)
+    result_mod = classify_orthogonality(point_mod, null_p95, null_p99)
+    assert result_mod['a__b'] == 'moderate'
+
+    # Test weak: obs > p99
+    point_weak = pd.DataFrame([[1.0, 0.30], [0.30, 1.0]], index=dims, columns=dims)
+    result_weak = classify_orthogonality(point_weak, null_p95, null_p99)
+    assert result_weak['a__b'] == 'weak'
+
+
+# ----------------------------------------------------------------------------
+# Test 10: n_pair_matrix dim-pair size tracking (修 C-NEW-1)
+# ----------------------------------------------------------------------------
+
+def test_n_pair_matrix_records_sample_sizes():
+    """n_pair[d1, d2] equals clean sample size for that pair."""
+    df = _make_synthetic_df(n=200, seed=7)
+    _, _, _, n_pair = compute_nmi_matrix(
+        df, DIMS_FULL, sample_strategy='listwise_complete', bootstrap_n=10, seed=42,
+    )
+    # All listwise n_pair entries equal (200 rows fully valid since synthetic no NaN)
+    for d1 in DIMS_FULL:
+        for d2 in DIMS_FULL:
+            assert n_pair.loc[d1, d2] == 200
+
+
+# ----------------------------------------------------------------------------
+# Test 11: Bootstrap CI vs naive σ sanity check
+# ----------------------------------------------------------------------------
+
+def test_bootstrap_ci_within_reasonable_range():
+    """CI low ≤ point ≤ CI high for off-diagonal cells (basic sanity)."""
+    df = _make_synthetic_df(n=200, seed=8)
+    point, lo, hi, _ = compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=100, seed=42)
+    for d1 in DIMS_FULL:
+        for d2 in DIMS_FULL:
+            if d1 == d2:
+                continue
+            p, l, h = point.loc[d1, d2], lo.loc[d1, d2], hi.loc[d1, d2]
+            assert l <= p <= h + 0.01, (
+                f"({d1}, {d2}): CI=[{l:.4f}, {h:.4f}] doesn't contain point={p:.4f}"
+            )
+
+
+# ----------------------------------------------------------------------------
+# Test 12: NMI arithmetic averaging algorithm correctness
+# ----------------------------------------------------------------------------
+
+def test_nmi_arithmetic_averaging():
+    """Sanity: NMI of perfectly identical columns = 1.0 (arithmetic average mode)."""
+    n = 100
+    df = pd.DataFrame({'d1': ['A'] * 50 + ['B'] * 50, 'd2': ['A'] * 50 + ['B'] * 50})
+    point, _, _, _ = compute_nmi_matrix(df, ['d1', 'd2'], bootstrap_n=10, seed=42)
+    assert point.loc['d1', 'd2'] == pytest.approx(1.0, abs=1e-10)
+
+
+# ----------------------------------------------------------------------------
+# Test 13: Independent random labels → NMI close to 0
+# ----------------------------------------------------------------------------
+
+def test_independent_labels_low_nmi():
+    """Two independently randomly assigned binary labels → NMI < 0.1 on N=200."""
+    rng = np.random.default_rng(9)
+    n = 200
+    df = pd.DataFrame({
+        'd1': rng.choice(['A', 'B'], size=n),
+        'd2': rng.choice(['X', 'Y'], size=n),
+    })
+    point, _, _, _ = compute_nmi_matrix(df, ['d1', 'd2'], bootstrap_n=20, seed=42)
+    assert point.loc['d1', 'd2'] < 0.1, (
+        f"Independent labels NMI {point.loc['d1','d2']:.4f} unexpectedly high"
+    )
+
+
+# ----------------------------------------------------------------------------
+# Test 14: run_stage smoke (synthetic parquet → outputs in tmp dir)
+# ----------------------------------------------------------------------------
+
+def test_run_stage_smoke(tmp_path: Path):
+    """End-to-end run_stage on synthetic 200-article parquet, verify 6 outputs written."""
+    df = _make_synthetic_df(n=200, seed=10)
+    stage_21 = tmp_path / 'stage21.parquet'
+    df.to_parquet(stage_21)
+
+    summary = run_stage(
+        stage_21_parquet=str(stage_21),
+        out_dir=str(tmp_path),
+        bootstrap_n=20,
+        n_permutations=20,
+        seed=42,
+    )
+
+    # Verify 6 outputs (5 parquet + 1 json)
+    expected_files = [
+        '39c_nmi_matrix_full.parquet',
+        '39c_nmi_matrix_ctx.parquet',
+        '39c_nmi_matrix_cross.parquet',
+        '39c_nmi_null_p95.parquet',
+        '39c_nmi_null_p99.parquet',
+        '39c_nmi_summary.json',
+    ]
+    for f in expected_files:
+        assert (tmp_path / f).exists(), f"Missing output: {f}"
+
+    # Summary JSON shape
+    summary_disk = json.loads((tmp_path / '39c_nmi_summary.json').read_text(encoding='utf-8'))
+    assert 'max_off_diag_nmi' in summary_disk
+    assert 'classify_full_3x3' in summary_disk
+    assert summary_disk['interpretation'] in ('strong', 'moderate', 'mixed')
+    assert 'reproducibility' in summary_disk
+    assert summary['interpretation'] == summary_disk['interpretation']

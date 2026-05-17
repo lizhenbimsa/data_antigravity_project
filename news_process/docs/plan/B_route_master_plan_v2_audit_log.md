@@ -3560,3 +3560,51 @@ event_studies:  # 引用 Appendix C events by id
 (Fixing in progress; plan v2.30 FINAL → v2.31 FINAL-revised)
 
 注: R45 的 3 个 finding 都是 MINOR cosmetic/clarification, 不影响 plan 实质内容; v2.31 仍标记 FINAL。
+
+---
+
+## Round 89 (2026-05-17) — Epoch 5 launch: v3.4.0 P5 `bank_fintech_collab` 立项
+
+**触发**: news_process v3.4.0 PR-A 完成 (Stage 3 第三维度对称扩张 + P5 立项); master plan v2.55 → v2.56 升级。
+
+**Scope**: ~40 处 4-paper / 8-paper / 11-portfolio 硬编码扫描 + DiD spec 17→20 + LLM cap 4200→5000 + Stata templates 77→84 + manuscripts 16→18.
+
+**Streak 状态**: R89 reset 0/3; 后续 R90/R91/R92 三轮 0-finding 独立交叉对账完美则 epoch 5 CLOSED (per epoch 3/4 standard)。
+
+**Status**: ⏳ R90-R92 streak audit 待启动 (user-side action); epoch 5 close 是 v3.5.0 D0 day 启动 hard prereq (per [stage3_v3_5_0_augmentation_plan.md §9.6](../methodology/stage3_v3_5_0_augmentation_plan.md))。
+
+---
+
+## Round 93 (2026-05-17) — Epoch 6 launch: v3.5.0 augmentation §5.2.3.bis schema 扩展
+
+**触发**: news_process v3.5.0 PR (Cell Decomposition + NMI Orthogonality + Dual-track Residual) 扩展 [B_route_master_plan_v2.md §5.2.3.bis paper_spec.yaml schema](B_route_master_plan_v2.md#L411): 新增 `tables` 字段 + `tables.t6` 子字段 (template str | null) 用于 paper-level Table 6 D2 cell decomposition 渲染配置。
+
+**Scope (master plan v2 视角)**:
+- §5.2.3.bis schema 加 `tables: {t1: dict | null, t6: {template: str | null}}` block
+- G0 acceptance "9 paper × spec.yaml schema conformance" 检查范围扩张 (含 tables.t6 explicit declaration)
+- `tests/integration/test_paper_spec_schema.py` 新增 12 v3.5.0 测试覆盖 9 paper × tables.t6 字段 (P3/P4/P5 template 存在; 其余 6 paper null explicit)
+
+**v3.5.0 plan-level 详细 audit 历程** (49 finding 跨 5 组 35 轮, F1-F49 全 closed): 详见**独立 audit log** [stage3_v3_5_0_augmentation_plan_audit_log.md](../methodology/stage3_v3_5_0_augmentation_plan_audit_log.md) — **不在本 master plan log 内重复**, 仅 cross-reference.
+
+**与 epoch 5 R89-R92 streak 关系**:
+- R93 启动**逻辑上依赖** R89-R92 epoch 5 close (per stage3 plan §9.6 hot-sync 约定)
+- R89 streak 期间若有任意 finding 涉及 (a) prompt v8 字节级变更 / (b) panel schema breaking / (c) paper_spec.yaml schema breaking / (d) `pipeline/panel/encode.py::_aggregate_by_collab_mode` 函数签名 breaking → v3.5.0 R93+ **暂停**等 reaudit (per stage3 §9.6 F8 + F41)
+- 实际 R93 开 epoch 6 streak 1/3 attempt; R94-R95 streak 2/3 + 3/3 期望 0-finding 后 epoch 6 CLOSED
+
+**Findings (本 R93 master plan 视角)**: 0 (master plan §5.2.3.bis schema 扩展是 schema-additive, 不破坏现有 8 paper 字段; 9 paper_spec.yaml 全部 conformance 通过新版 schema test)
+
+**Streak 状态**: R93 = epoch 6 streak 1/3 attempt; 待 R94/R95 0-finding 完成则 epoch 6 CLOSED.
+
+**Plan 版本**: v2.56 (post-R89 epoch 5 launch) → v2.56.1 (post-R93 schema extension; minor version reflecting field addition not breaking).
+
+**Cross-reference**: [stage3_v3_5_0_augmentation_plan.md v12](../methodology/stage3_v3_5_0_augmentation_plan.md) SHA256 `ef917f97...`; CHANGELOG.md v3.5.0 entry; news_process CLAUDE.md v3.4.0 → v3.5.0 bump; memory/v3_5_0_landmarks.md.
+
+---
+
+**Epoch tracker (cumulative as of R93)**:
+- Epoch 1 (R1-R44): closed at streak 7 (R38-R44)
+- Epoch 2 (R45-R72): closed at streak 3 (R70-R72)
+- Epoch 3 (R73-R84): closed at streak 3 (R82-R84)
+- Epoch 4 (R85-R88): closed at streak 3 (R86-R88) — M0-M2 execution audit
+- **Epoch 5 (R89, R90-R92 ⏳)**: launch R89 (v3.4.0); streak 0/3 pending (user-side prereq for v3.5.0 D0)
+- **Epoch 6 (R93, R94-R95 ⏳)**: launch R93 (v3.5.0 schema extension); streak 0/3 pending

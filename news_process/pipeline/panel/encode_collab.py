@@ -1,0 +1,385 @@
+"""news_process.pipeline.panel.encode_collab — v3.5.0 D2 cell decomposition + D4 dual-track residual.
+
+Per [stage3_v3_5_0_augmentation_plan.md §2.1 / §2.3](../../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+    D2 8-cell encoding: cell_id = subst*4 + locus*2 + collab + 1 ∈ {1..8}
+        baseline (cell 1) = (0, 0, 0) = 实质性 × 底层技术 × 自主研发
+    D4 cross-track residual signals (9 article-level + 18 panel-level)
+
+锚定文献:
+    Angrist & Pischke (2009) Mostly Harmless Econometrics Ch.5 saturated regression (D2)
+    Sun & Abraham (2021 JOE 225) cohort decomposition 类比 (D2)
+    Loughran & McDonald (2011 JF) tone-vs-context differential 类比借用 (D4)
+    Westphal & Zajac (2001 ASQ) decoupling 类比借用 narrative-context layer (D4)
+
+v3.7.0 breaking note: 当 collab_mode 升级到 6-class (multi-class A1), CELL_LABEL_MAP
+必须重写为 24 项. Backward-compat: v3.7.0 panel 同时保留 cell_id_v3_5_full + cell_id_v3_7_full,
+旧列可在 v3.8.0 deprecate.
+"""
+from __future__ import annotations
+
+import json
+import logging
+import os
+from typing import Optional
+
+import pandas as pd
+
+logger = logging.getLogger(__name__)
+
+# v3.5.0 D2: 8-cell encoding (baseline=cell 1 三维全 0)
+VALID_SUBST = {'实质性', '象征性'}
+VALID_LOCUS = {'底层技术', '应用场景'}
+VALID_COLLAB = {'自主研发', '外部协同'}
+
+CELL_LABEL_MAP = {
+    1: '实质性·底层技术·自主研发',
+    2: '实质性·底层技术·外部协同',
+    3: '实质性·应用场景·自主研发',
+    4: '实质性·应用场景·外部协同',
+    5: '象征性·底层技术·自主研发',
+    6: '象征性·底层技术·外部协同',
+    7: '象征性·应用场景·自主研发',
+    8: '象征性·应用场景·外部协同',
+}
+
+# v3.5.0 D4: 9 article-level residual signals (3 dim × 3 signal)
+DIMS_D4 = [
+    ('subst',  'innovation_substantiveness', '实质性',   '象征性'),
+    ('locus',  'innovation_locus',           '底层技术', '应用场景'),
+    ('collab', 'innovation_collab_mode',     '自主研发', '外部协同'),
+]
+
+
+def _normalize_label(series: pd.Series) -> pd.Series:
+    """Pre-normalize LLM label: strip whitespace + 全角空格 + all internal \\s.
+
+    Per plan §2.1.1 F32: defense against trailing space / U+3000 / newline noise
+    from stage 21 LLM output. NaN values preserve NaN through .str accessors.
+    """
+    if series.dtype == object:
+        return (series.str.strip()
+                      .str.replace('　', '', regex=False)
+                      .str.replace(r'\s+', '', regex=True))
+    return series
+
+
+def compute_cell_id(df: pd.DataFrame, track: str) -> pd.Series:
+    """Compute article-level cell_id ∈ {1..8} for given track ('full' or 'ctx').
+
+    Returns Int8 nullable Series:
+        - Valid value 1..8 when all 3 dims have valid labels (per VALID_* sets, post-normalize)
+        - pd.NA when any dim is NaN, dirty label, or column missing
+
+    Per plan §2.1.1 (F27/F28/F32/B-NEW-2/m3):
+        - Missing column guard returns all-NA Int8 (no KeyError)
+        - Dirty label defense via _normalize_label + isin
+        - .where(valid, pd.NA).astype('Int8') universal pandas/numpy compat
+    """
+    s_col = f'innovation_substantiveness_{track}'
+    l_col = f'innovation_locus_{track}'
+    c_col = f'innovation_collab_mode_{track}'
+
+    missing = [c for c in (s_col, l_col, c_col) if c not in df.columns]
+    if missing:
+        logger.warning(
+            f"v3.5.0 D2 cell_id_{track}: missing columns {missing}, returning all-NA Int8"
+        )
+        return pd.Series([pd.NA] * len(df), dtype='Int8', index=df.index)
+
+    s_norm = _normalize_label(df[s_col])
+    l_norm = _normalize_label(df[l_col])
+    c_norm = _normalize_label(df[c_col])
+
+    valid = (s_norm.isin(VALID_SUBST) &
+             l_norm.isin(VALID_LOCUS) &
+             c_norm.isin(VALID_COLLAB))
+
+    s_bit = (s_norm == '象征性').astype('int8')
+    l_bit = (l_norm == '应用场景').astype('int8')
+    c_bit = (c_norm == '外部协同').astype('int8')
+
+    cell = (s_bit * 4 + l_bit * 2 + c_bit + 1).where(valid, pd.NA).astype('Int8')
+    return cell
+
+
+def derive_residual_signals(df: pd.DataFrame) -> list[str]:
+    """In-place add 9 article-level D4 residual indicators.
+
+    **WARNING (CR-2)**: This function modifies ``df`` IN-PLACE. If columns
+    ``{dim}_disagree`` / ``{dim}_freerider`` / ``{dim}_quietworker`` already exist
+    (e.g., function called twice in dev workflow), they are **silently overwritten**.
+
+    Per plan §2.3.2 (F C-NEW-4 invariants i/ii/iii):
+        For each dim ∈ {subst, locus, collab}:
+            {dim}_disagree    = (full != ctx) ∧ both_valid           [boolean]
+            {dim}_freerider   = (full == baseline) ∧ (ctx == contrast) [boolean]
+            {dim}_quietworker = (full == contrast) ∧ (ctx == baseline) [boolean]
+
+    Invariants (provable by construction):
+        (i)  freerider + quietworker ≤ 1 (mutually exclusive)
+        (ii) freerider + quietworker == disagree (definitionally)
+        (iii) NaN propagation: NaN on either track ⇒ all three False (not NaN)
+
+    Returns: list of column names added (for downstream panel aggregation registry).
+    """
+    added_cols: list[str] = []
+    for short, base, baseline, contrast in DIMS_D4:
+        full_col = f'{base}_full'
+        ctx_col = f'{base}_ctx'
+        if full_col not in df.columns or ctx_col not in df.columns:
+            logger.warning(
+                f"v3.5.0 D4: missing track column(s) for {base}, "
+                f"skipping {short}_(disagree|freerider|quietworker)"
+            )
+            continue
+
+        full_norm = _normalize_label(df[full_col])
+        ctx_norm = _normalize_label(df[ctx_col])
+        both_valid = df[full_col].notna() & df[ctx_col].notna()
+
+        df[f'{short}_disagree'] = ((full_norm != ctx_norm) & both_valid)
+        df[f'{short}_freerider'] = ((full_norm == baseline) & (ctx_norm == contrast))
+        df[f'{short}_quietworker'] = ((full_norm == contrast) & (ctx_norm == baseline))
+        added_cols.extend([
+            f'{short}_disagree', f'{short}_freerider', f'{short}_quietworker'
+        ])
+    return added_cols
+
+
+def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
+    """Aggregate D2 8-cell counts onto bank-year panel.
+
+    Per plan §2.1.2:
+        - 8 cell-count columns: n_articles_cell_{1..8}_full
+        - main identity: n_articles == Σ n_articles_cell_{1..8}_full
+        - cross identities (vs v3.4.0 _indep/_collab):
+            n_articles_indep  == n_articles_cell_{1,3,5,7}_full
+            n_articles_collab == n_articles_cell_{2,4,6,8}_full
+
+    Returns dict with identity check failure counts (per plan §2.1.2 F27/C-NEW-2).
+    """
+    # CR-3 / CR-4 (CRITICAL fix): 与 production encode.py 对齐 — panel 是 flat
+    # DataFrame, target_bank + year 是**列**而非 MultiIndex (参 encode.py:666
+    # `panel = df.groupby(['target_bank', 'year']).agg(...).reset_index()`).
+    # df 也用 'target_bank' (encode.py:221 注释). 之前用 ['bank', 'year'] 是错误,
+    # 单元测试 fixture 与 production 不一致 — 通过 real-data smoke test (CR-20) 发现.
+    for required_col in ('target_bank', 'year'):
+        if required_col not in panel.columns:
+            raise KeyError(
+                f"aggregate_d2_panel 要求 panel 含 '{required_col}' 列 "
+                f"(production encode.py:666 约定 flat panel with target_bank/year columns); "
+                f"got panel.columns starts with {list(panel.columns[:5])}"
+            )
+        if required_col not in df.columns:
+            raise KeyError(
+                f"aggregate_d2_panel 要求 df 含 '{required_col}' 列; "
+                f"got df.columns starts with {list(df.columns[:5])}"
+            )
+
+    if 'cell_id_full' not in df.columns:
+        logger.info("  v3.5.0 D2: cell_id_full not in df, skipping panel aggregation")
+        # F-52: skip 路径返回 None 而非 0, 避免 "0 = validation passed" 误读
+        return {'main_fail': None, 'indep_cross_fail': None, 'collab_cross_fail': None,
+                'cell_aggregation_skipped': True,
+                'skip_reason': 'cell_id_col_absent'}
+
+    # 边界 F27 (修正): graceful skip 而非 raise — 测试 fixtures / 缺 LLM 列 / 极小 panel 安全
+    # 仅当 cell_id_full 全 NA (LLM 输入列缺失或全 dirty label) 时跳过整 D2 panel 派生.
+    if df['cell_id_full'].isna().all():
+        # F-51 + F-50: 升级为 warning level, 提示 upstream stage 21 数据缺失第三维度
+        # 这通常意味 stage 21 未在 v3.4.0+ 重跑 (innovation_collab_mode_* 列缺失).
+        # 调用方应检查 cell_aggregation_skipped + skip_reason 而非依赖 main_fail.
+        logger.warning(
+            "  ⚠ v3.5.0 D2: cell_id_full 全 NA (LLM 输入列缺失或 dirty 全失败); "
+            "通常源于 stage 21 未 post-v3.4.0 重跑产出 innovation_collab_mode_* 列. "
+            "v3.5.0 D2 主 deliverable (8-cell decomposition) 在此条件下**不可用**. "
+            "解决方案: 重跑 stage 21 with prompt v8 (含 collab_mode 维度)."
+        )
+        return {'main_fail': None, 'indep_cross_fail': None, 'collab_cross_fail': None,
+                'cell_aggregation_skipped': True,
+                'skip_reason': 'all_na_cell_id'}
+
+    if panel.shape[0] == 0:
+        logger.warning("  v3.5.0 D2: panel 空 (0 rows), 跳过 panel 8-cell 聚合")
+        return {'main_fail': None, 'indep_cross_fail': None, 'collab_cross_fail': None,
+                'cell_aggregation_skipped': True,
+                'skip_reason': 'empty_panel'}
+
+    if df.shape[0] < 1000:
+        panel.attrs['D2_small_sample_warning'] = True
+        logger.info(
+            f"  v3.5.0 D2: small sample (df={df.shape[0]} articles < 1000); "
+            "panel.attrs['D2_small_sample_warning'] = True; 继续聚合 (production threshold ≥ 100k)"
+        )
+
+    # Align groupby results to panel row order via MultiIndex (panel itself stays flat)
+    panel_idx = pd.MultiIndex.from_frame(panel[['target_bank', 'year']])
+
+    for cell_id in range(1, 9):
+        df_cell = df[df['cell_id_full'] == cell_id]
+        col = f'n_articles_cell_{cell_id}_full'
+        counts = (df_cell.groupby(['target_bank', 'year']).size()
+                         .reindex(panel_idx, fill_value=0).astype('Int32'))
+        panel[col] = counts.values
+
+    # Main identity (panel rows with articles)
+    main_sum = sum(panel[f'n_articles_cell_{i}_full'] for i in range(1, 9))
+    has_news = panel['n_articles'] > 0
+    main_fail = int((~(panel.loc[has_news, 'n_articles'] == main_sum.loc[has_news])).sum())
+
+    # Cross identities (only if v3.4.0 二元后缀列存在)
+    indep_cross_fail = 0
+    collab_cross_fail = 0
+    if 'n_articles_indep' in panel.columns:
+        indep_sum = sum(panel[f'n_articles_cell_{i}_full'] for i in [1, 3, 5, 7])
+        has_indep = panel['n_articles_indep'] > 0
+        indep_cross_fail = int((~(panel.loc[has_indep, 'n_articles_indep']
+                                  == indep_sum.loc[has_indep])).sum())
+    if 'n_articles_collab' in panel.columns:
+        collab_sum = sum(panel[f'n_articles_cell_{i}_full'] for i in [2, 4, 6, 8])
+        has_collab = panel['n_articles_collab'] > 0
+        collab_cross_fail = int((~(panel.loc[has_collab, 'n_articles_collab']
+                                   == collab_sum.loc[has_collab])).sum())
+
+    if main_fail > 0 or indep_cross_fail > 0 or collab_cross_fail > 0:
+        logger.warning(
+            f"  ✗ cell_id identity 失败: main={main_fail}, "
+            f"indep_cross={indep_cross_fail}, collab_cross={collab_cross_fail}"
+        )
+    else:
+        logger.info("  ✓ cell_id 8-cell + cross-identity 校验通过")
+
+    return {
+        'main_fail': main_fail,
+        'indep_cross_fail': indep_cross_fail,
+        'collab_cross_fail': collab_cross_fail,
+        'cell_aggregation_skipped': False,
+    }
+
+
+def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
+                       ctx_baseline_path: Optional[str] = None) -> dict:
+    """Aggregate D4 residual signals onto bank-year panel.
+
+    Per plan §2.3.3 + §2.3.4:
+        18 panel columns: {dim}_{signal}_frac + n_articles_{dim}_{signal}
+            (3 dim × 3 signal × 2 metric)
+        Small-sample restriction: panel['n_articles'] < 5 → *_frac forced to pd.NA
+        ctx coverage adaptive warning + d4_data_quality_flag str column (F6 + C-NEW-3)
+
+    ctx_baseline_path: path to v3_4_0_ctx_coverage_baseline.json (per §9.10).
+                       If None or missing, fallback to fixed 0.5 threshold with caveat.
+
+    CR-6 note: coverage check uses `innovation_collab_mode_ctx` as canonical proxy
+    (assumed lowest-coverage of 3 ctx dims because Hassan-2019 entity-context
+    extraction is most variable on the most-recently-added v3.4.0 dim). For symmetric
+    treatment, future versions could average across 3 ctx dims.
+
+    CR-4 (CRITICAL fix): 与 aggregate_d2_panel 同样要求 panel 含 target_bank + year **列**
+    (production flat panel, 非 MultiIndex; 参 encode.py:666 约定).
+    """
+    # CR-4: column invariant (与 aggregate_d2_panel 对称 — flat panel with target_bank/year cols)
+    for required_col in ('target_bank', 'year'):
+        if required_col not in panel.columns:
+            raise KeyError(
+                f"aggregate_d4_panel 要求 panel 含 '{required_col}' 列; "
+                f"got panel.columns starts with {list(panel.columns[:5])}"
+            )
+        if required_col not in df.columns:
+            raise KeyError(
+                f"aggregate_d4_panel 要求 df 含 '{required_col}' 列"
+            )
+
+    panel_idx = pd.MultiIndex.from_frame(panel[['target_bank', 'year']])
+
+    residual_frac_cols: list[str] = []
+    has_residual = False
+    for short, _, _, _ in DIMS_D4:
+        for signal in ['disagree', 'freerider', 'quietworker']:
+            col = f'{short}_{signal}'
+            if col not in df.columns:
+                continue
+            has_residual = True
+            frac_col = f'{col}_frac'
+            count_col = f'n_articles_{col}'
+            # Use target_bank (production convention) + reindex to panel_idx for row alignment
+            mean_series = (df.groupby(['target_bank', 'year'])[col]
+                             .mean().reindex(panel_idx))
+            count_series = (df.groupby(['target_bank', 'year'])[col]
+                              .sum().reindex(panel_idx, fill_value=0).astype('Int32'))
+            panel[frac_col] = mean_series.values
+            panel[count_col] = count_series.values
+            residual_frac_cols.append(frac_col)
+
+    if not has_residual:
+        logger.info("  v3.5.0 D4: residual signal columns absent, skipping panel aggregation")
+        return {'residual_skipped': True}
+
+    # Small-sample restriction (修 m5 + C-NEW-3)
+    small_mask = panel['n_articles'] < 5
+    for col in residual_frac_cols:
+        panel.loc[small_mask, col] = pd.NA
+
+    # ctx coverage 自适应警告 (修 C-NEW-3 + F6)
+    quality_flag = 'ok'
+    ctx_check_col = 'innovation_collab_mode_ctx'
+    if ctx_check_col in df.columns:
+        current_coverage = float(df[ctx_check_col].notna().mean())
+        threshold_low = 0.5  # fallback
+        baseline_loaded = False
+        if ctx_baseline_path and os.path.exists(ctx_baseline_path):
+            try:
+                with open(ctx_baseline_path) as f:
+                    baseline = json.load(f)
+                threshold_low = float(baseline['mean']) - 2.0 * float(baseline['std'])
+                baseline_loaded = True
+            except (KeyError, ValueError, OSError) as e:
+                logger.warning(
+                    f"  v3.5.0 D4: failed to load ctx baseline {ctx_baseline_path}: {e}; "
+                    "fallback threshold = 0.5"
+                )
+        if current_coverage < threshold_low:
+            quality_flag = 'insufficient'
+            logger.warning(
+                f"  ⚠ ctx coverage {current_coverage:.2%} < "
+                f"{'baseline-2σ' if baseline_loaded else 'fallback'} threshold "
+                f"{threshold_low:.2%}; panel.attrs['D4_data_quality'] marked"
+            )
+            panel.attrs['D4_data_quality'] = 'insufficient_ctx_coverage'
+
+    # F6: str column 持久化到 parquet/.dta, Stata 用户可见
+    panel['d4_data_quality_flag'] = quality_flag
+
+    return {
+        'residual_skipped': False,
+        'd4_data_quality_flag': quality_flag,
+        'residual_frac_cols': residual_frac_cols,
+    }
+
+
+def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
+                 ctx_baseline_path: Optional[str] = None) -> dict:
+    """One-shot entry point: apply all v3.5.0 D2 + D4 derivations to df + panel.
+
+    Called by encode.py::aggregate_panel after v3.4.0 collab_mode aggregation block.
+    Returns aggregated diagnostics dict for audit log §A.
+    """
+    # article-level D2
+    df['cell_id_full'] = compute_cell_id(df, 'full')
+    df['cell_id_ctx'] = compute_cell_id(df, 'ctx')
+
+    # article-level D4
+    residual_cols = derive_residual_signals(df)
+
+    # panel-level D2 8-cell + identities
+    d2_diag = aggregate_d2_panel(df, panel)
+
+    # panel-level D4 frac/count + d4_data_quality_flag
+    d4_diag = aggregate_d4_panel(df, panel, ctx_baseline_path)
+
+    return {
+        'v3_5_0_cell_id_added': ['cell_id_full', 'cell_id_ctx'],
+        'v3_5_0_residual_articles_added': residual_cols,
+        'd2_identity': d2_diag,
+        'd4_quality': d4_diag,
+    }

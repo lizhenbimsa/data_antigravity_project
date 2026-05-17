@@ -99,12 +99,20 @@ def test_outputs_emitted(tmp_path, monkeypatch):
 
 
 def test_dag_registration():
-    """'39a_inter_track_kappa.py' in EXPECTED_NO_OUTPUT_STAGES and STAGES_VALIDATION."""
+    """'39a_inter_track_kappa.py' in EXPECTED_NO_OUTPUT_STAGES and STAGES_VALIDATION.
+
+    v3.5.0 update: STAGES_VALIDATION 14 (was 13 in v3.4.0); +1 = 39c_construct_orthogonality.py
+    per stage3_v3_5_0_augmentation_plan.md §2.2.1 / B-NEW-5.
+    """
     from news_process.core import dag, schemas
     assert "39a_inter_track_kappa.py" in schemas.EXPECTED_NO_OUTPUT_STAGES
     scripts = {s.script for s in dag.STAGES_VALIDATION}
     assert "39a_inter_track_kappa.py" in scripts
-    assert len(dag.STAGES_VALIDATION) == 13
+    assert "39c_construct_orthogonality.py" in scripts, "v3.5.0 D3 stage missing"
+    assert len(dag.STAGES_VALIDATION) == 14, (
+        f"v3.5.0 expects 14 validation stages (13 v3.4.0 + 1 stage 39c D3); "
+        f"got {len(dag.STAGES_VALIDATION)}"
+    )
 
 
 def test_kappa_bootstrap_handles_degenerate_resamples():

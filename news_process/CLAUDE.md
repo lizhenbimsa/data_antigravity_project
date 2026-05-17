@@ -12,22 +12,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v3.4.0 (Stage 3 第三维度对称扩张 + P5 立项 + epoch 5 audit;
-继承 v3.3.0 multi-paper extension closed + v3.2.0 BREAKING Stage 3 双轨化 + Stata 数据导出层;
-Prompt v7 → v8 (additive supplementation per Nosek 2018 PNAS; v7 严格超集);
-v3.4.0 BREAKING (2026-05-17): 新增 `innovation_collab_mode_{full,ctx}` + confidence_{full,ctx}
-4 LLM 列 (Chesbrough 2003 Open Innovation + Laursen & Salter 2006 SMJ 27:131-150;
-positive_class=外部协同; Stata byte 编码 0=自主研发 / 1=外部协同);
-面板聚合新增 ~30 列 (_indep / _collab 后缀; encode.py 第三维度 if-block);
-codebook + stata_export 同步; v3_3_to_v3_4 panel migration script + 11 tests;
-P5 立项 `bank_fintech_collab` (Master plan v2.55 → v2.56 epoch 5 audit, streak 3/3 pending);
-61 Stata templates (P5 6 个新增 + bank_fintech_collab/ 子目录); 12 双语 manuscripts (P5 zh + en 新增);
-git tag `prompt-v8-supplementation-released` 锚定 v3.4.0 baseline,
-`prompt-v7-released` 永不删除作 pre-registration anchor;
-LLM cost cap 4200 → 5000 (10% 裕度); calibration v5.2 delta 9 strata × 450 obs × 3 raters 文档化;
-锚定: 继承 v3.3.0 anchors + Chesbrough 2003 + Laursen & Salter 2006 SMJ + Cohen-Levinthal 1990 ASQ;
-详见 CHANGELOG.md v3.4.0)
-**Test baseline**: 1153 → ~1175 passed / 6 skipped / 0 failed (v3.4.0 +25 测试: 11 migration + 14 panel/stata/integration; 3 stale baseline failures from v3.3.0 main 不属于 v3.4.0 引入)
+**Current version**: v3.5.0 (Stage 3 augmentation — Cell Decomposition + NMI Orthogonality + Dual-track Residual;
+继承 v3.4.0 P5 立项 + epoch 5 audit + v3.3.0 multi-paper extension + v3.2.0 BREAKING Stage 3 双轨化;
+**Prompt v8 字节级冻结** (不重跑 stage 21, $0 LLM 成本);
+v3.5.0 NON-BREAKING (2026-05-17): D2 cell_id_{full,ctx} ∈ {1..8} (8-cell categorical, Angrist-Pischke 2009 saturated regression + Sun-Abraham 2021 JOE 225) +
+D3 stage 39c construct_orthogonality (NMI matrix 3×3 / 6×6 + permutation null, Vinh-Epps-Bailey 2010 JMLR + Fred-Jain 2003) +
+D4 article 9 residual signals + panel 18 cols + d4_data_quality_flag (作者自创 + Loughran-McDonald 2011 + W&Z 2001 类比借用);
+encode_collab.py 新模块 (240 行, D2 + D4 + apply_v3_5_0 entry); encode.py +20 hook delegate (hybrid path);
+stata_export.py CELL_ID_VALUE_LABEL + D4 flag; 86 Stata templates (v3.4.0 84 + v3.5.0 2 in v3_5_0/ subdir per F45 legacy build glob 隔离);
+9 paper_spec.yaml × tables.t6 同步 (P3/P4/P5 template / 其余 6 paper null explicit); P5 alternative.cell_id_full;
+git tag `v3.5.0-augmentation` (planned, post-merge); `prompt-v8-supplementation-released` 不变 anchor;
+49 finding 经 5 组 35 轮 multi-perspective audit (V1-V7 七视角 × 5 epochs) closed; plan v12 SHA256 = `ef917f97...`;
+锚定: 继承 v3.4.0 anchors + Angrist-Pischke 2009 + Sun-Abraham 2021 JOE + Vinh 2010 JMLR + Fred-Jain 2003 CVPR + Bagozzi-Yi 1988 JAMS + Loughran-McDonald 2011 JF + W&Z 2001 ASQ;
+详见 CHANGELOG.md v3.5.0 + [stage3_v3_5_0_augmentation_plan.md](docs/methodology/stage3_v3_5_0_augmentation_plan.md))
+**Test baseline**: 1175 → ~1527 fast tests passing / 2 skipped (v3.5.0 +58 tests: 8 cell_id_derivation + 6 cell_id_panel + 14 construct_orthogonality + 12 residual_signals + 6 v3_4_to_v3_5_migration + 12 paper_spec_schema extension; 4 pre-existing v3.4.0 baseline failures test_dual_track ×3 + test_stage21_skip ×1 不属于 v3.5.0 引入)
 
 **CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):
 - `build-replication`: 一键 instantiate 14 .do 模板 + spec 替换
@@ -63,8 +61,8 @@ news_process/
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
 ├── tests/          # 1153 passed / 6 skipped HEAD baseline (integration + unit)
-└── NN_*.py         # 27 thin shim scripts under news_process/ (≤30 lines each,
-                    # NN ∈ {00, 11, 12, 14, 15, 21..24, 30..39 incl. 32a/38a/38b, 45..46, 51..53};
+└── NN_*.py         # 29 thin shim scripts under news_process/ (≤30 lines each,
+                    # NN ∈ {00, 11, 12, 14, 15, 21..24, 30..39 incl. 32a/38a/38b/39a/39c, 45..46, 51..53};
                     # delegate to pipeline/; planned retirement: Plan-r3 P3-18
                     # (拆分约束见 pipeline/panel/runner.py:159)
 ```
@@ -194,7 +192,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Code Modification Rules
 
-1. **Stage shims are frozen**: The 26 `news_process/NN_*.py` scripts are thin shims (≤30 lines; NN includes lettered variants 32a/38a/38b). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
+1. **Stage shims are frozen**: The 29 `news_process/NN_*.py` scripts are thin shims (≤30 lines; NN includes lettered variants 32a/38a/38b/39a/39c). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
 2. **DAG consistency**: Any stage added/removed must update:
    - `core/dag.py::STAGES_MAIN` or `STAGES_VALIDATION`
    - `core/schemas.py::OUTPUT_REGISTRY` (if it produces parquet)

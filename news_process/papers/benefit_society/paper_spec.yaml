@@ -49,3 +49,7 @@ sample:  # RR5-1: post-M0.5 v34 panel target (per §3.4 8 paper共用 v34); v3.3
   obs_target_min: 3000
 
 audit_rounds_target_min: 8  # benefit_society v2.12 实测 14 轮
+
+# v3.5.0 D2 8-cell decomposition Table 6 — benefit_society 不用 D2 主回归 (per plan §2.1.6)
+tables:
+  t6: null

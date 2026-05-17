@@ -93,10 +93,15 @@ def test_main_stage_count(core_dag):
 
 
 def test_validation_stage_count(core_dag):
-    """``STAGES_VALIDATION`` 阶段数须等于 Phase 1 验证基线 (13)。"""
-    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a = 13
-    assert len(core_dag.STAGES_VALIDATION) == 13, (
-        f"STAGES_VALIDATION drift: expected 13, got {len(core_dag.STAGES_VALIDATION)}."
+    """``STAGES_VALIDATION`` 阶段数须等于当前验证基线 (14, v3.5.0)。
+
+    v3.4.0 baseline = 13 (含 39a inter_track_kappa).
+    v3.5.0 +1 = 14: 加 39c construct_orthogonality (NMI 正交性 D3 stage)
+    per stage3_v3_5_0_augmentation_plan.md §2.2.1 + F-B-NEW-5.
+    """
+    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c = 14
+    assert len(core_dag.STAGES_VALIDATION) == 14, (
+        f"STAGES_VALIDATION drift: expected 14, got {len(core_dag.STAGES_VALIDATION)}."
     )
 
 

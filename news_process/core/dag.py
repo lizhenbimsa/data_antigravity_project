@@ -81,6 +81,7 @@ _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'media_diversity': _validation_flag('media_diversity'),
     'prompt_sensitivity': _validation_flag('prompt_sensitivity'),
     'inter_track_kappa': _validation_flag('inter_track_kappa'),
+    'construct_orthogonality': _validation_flag('construct_orthogonality'),  # v3.5.0 D3 stage 39c
 }
 
 
@@ -338,6 +339,16 @@ STAGES_VALIDATION: list[StageSpec] = [
         group="validation", kind="audit",
         # 仅 article-level κ + bootstrap CI; 一秒级运行
         enabled_when=_VALIDATION_PREDS['inter_track_kappa'],
+    ),
+    StageSpec(
+        name="阶段39c: NMI 三 construct 正交性测度 + permutation null (v3.5.0 D3)",
+        script="39c_construct_orthogonality.py",
+        group="validation", kind="audit",
+        # bootstrap 1000 + permutation 1000 on N≈400k labels;
+        # single-thread ≈ 70 min, n_jobs=16 ≈ 5 min on 64-core MP
+        # (per plan §2.2.2 Performance estimate + F31 recommended default).
+        timeout=10800,  # 3 hour ceiling — allow worst-case + some margin
+        enabled_when=_VALIDATION_PREDS['construct_orthogonality'],
     ),
 ]
 

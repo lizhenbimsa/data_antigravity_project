@@ -59,6 +59,23 @@ COLLAB_MODE_ENCODING: Dict[str, int] = {
     '外部协同': 1,
 }
 
+# v3.5.0 D2: cell_id 1..8 value label (per stage3_v3_5_0_augmentation_plan.md §2.1.3)
+# cell_id = subst*4 + locus*2 + collab + 1
+# cell 1 = (0, 0, 0) = 实质性·底层技术·自主研发 (三维全 baseline)
+# cell 8 = (1, 1, 1) = 象征性·应用场景·外部协同 (三维全 contrast)
+# ASCII-only labels for Stata value label compat (32K bytes 软上限).
+CELL_ID_VALUE_LABEL: Dict[int, str] = {
+    1: 'sub.tech.indep',  2: 'sub.tech.collab',
+    3: 'sub.app.indep',   4: 'sub.app.collab',
+    5: 'symb.tech.indep', 6: 'symb.tech.collab',
+    7: 'symb.app.indep',  8: 'symb.app.collab',
+}
+
+# v3.5.0 D4: d4_data_quality_flag str column value mapping (per plan §2.3.4 F6).
+# Persisted via str column (not byte encoding) for Stata user visibility.
+# Stata 端典型用法: `keep if d4_data_quality_flag == "ok"` 过滤不可信 ctx coverage.
+D4_DATA_QUALITY_FLAG_VALUES = ('ok', 'insufficient')
+
 # Value labels (双语 zh + EN, plan v14 §9.1 普通人版变更 20)
 LOCUS_VALUE_LABELS: Dict[int, str] = {
     0: "底层技术 (Technology)",

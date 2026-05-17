@@ -1083,6 +1083,29 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     else:
         logger.info("  列 'innovation_collab_mode_full' 不存在, innovation_collab_mode 分组聚合将跳过")
 
+    # --- v3.5.0 D2 + D4 派生 (per stage3_v3_5_0_augmentation_plan.md §2.1 / §2.3) ---
+    # D2 8-cell decomposition: cell_id_{full,ctx} + 8 cell-count + cross-identity checks
+    # D4 cross-track residual: 9 article-level + 18 panel-level + d4_data_quality_flag
+    # 走 §7 R10 rollback path: 不拆分 encode.py, 接受 ≈1470 行临时膨胀直至 v3.6.0 refactor.
+    try:
+        from news_process.pipeline.panel import encode_collab as _ec  # noqa: WPS433
+        # CR-17: 默认 baseline 路径从 tests/fixtures/ 改到 data/processed/ (production
+        # 不应依赖测试目录; production data 路径与其他 pipeline 输出一致)
+        _ctx_baseline_path = os.environ.get(
+            'V3_4_0_CTX_COVERAGE_BASELINE',
+            'data/processed/v3_4_0_ctx_coverage_baseline.json',
+        )
+        _v3_5_diag = _ec.apply_v3_5_0(df, panel, ctx_baseline_path=_ctx_baseline_path)
+        panel.attrs['v3_5_0_diagnostics'] = _v3_5_diag
+        logger.info(
+            f"  ✓ v3.5.0 D2+D4 派生完成: cell_id ✓ + residual cols "
+            f"{len(_v3_5_diag.get('v3_5_0_residual_articles_added', []))}"
+        )
+    except Exception:  # noqa: BLE001
+        # CR-16: logger.exception 自动 attach traceback, 比 logger.error + 手工 raise 标准
+        logger.exception("  ✗ v3.5.0 D2+D4 派生失败")
+        raise
+
 
     # 新闻覆盖量对数
     panel_new_cols = {

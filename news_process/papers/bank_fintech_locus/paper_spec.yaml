@@ -77,3 +77,8 @@ sample:
   obs_target_min: 3000
 
 audit_rounds_target_min: 8
+
+# v3.5.0 D2 8-cell decomposition Table 6 (per stage3_v3_5_0_augmentation_plan.md §2.1.5)
+tables:
+  t6:
+    template: 19_table6_cell_decomposition

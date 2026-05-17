@@ -1,0 +1,61 @@
+* news_process v3.5.0 — Table A6: Dual-track Residual Robustness (D4)
+*
+* Per [stage3_v3_5_0_augmentation_plan.md §2.3](../../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+*   全文判定 (full) 与 entity-context 判定 (ctx) 的 differential signals:
+*     - disagree: full ≠ ctx 的文章占比
+*     - freerider: full=baseline ∧ ctx=contrast (文章宏观叙事强但目标银行只是边角)
+*     - quietworker: full=contrast ∧ ctx=baseline (PR fluff 包装但目标银行实质动作)
+*
+* 文献锚 (per plan §10):
+*   作者自创 measure (v3.5.0 新增, no prior literature)
+*   Loughran & McDonald (2011 JF) tone-vs-context differential 类比借用
+*   Westphal & Zajac (2001 ASQ) decoupling 类比借用到 narrative-context 层面
+*
+* Small-sample restriction (per plan §2.3.3): panel n_articles < 5 → *_frac forced NA.
+* ctx coverage 自适应警告 (per plan §2.3.4): d4_data_quality_flag str column 标 'ok' / 'insufficient'.
+*
+* 三种用法 (per plan §2.3.6):
+*   1. 作 robustness control: 主回归加 *_disagree_frac 控制变量, 洗 PR-only 噪音
+*   2. 作 outcome: 测政策冲击是否让 freerider 报道占比变多
+*   3. 作 moderator: het cut by quietworker_frac 中位数
+
+version 19
+clear all
+set linesize 120
+
+use "{{ panel_path }}", clear
+
+* --- D4 data quality filter (per plan §2.3.4 F6) ---
+* Stata 端可见 d4_data_quality_flag (str col); 不可信 ctx coverage 时排除
+capture confirm variable d4_data_quality_flag
+if !_rc {
+    display as text "d4_data_quality_flag levels:"
+    tab d4_data_quality_flag, missing
+    * Default: keep only 'ok' samples (insufficient ctx coverage 排除).
+    * Paper authors 可在 paper_spec.yaml 配置 disable-filter 来用全部样本.
+    keep if d4_data_quality_flag == "ok" | d4_data_quality_flag == ""
+}
+
+* --- Robustness Spec 1: 主回归加 disagree_frac 控制 ---
+eststo M_disagree: reghdfe {{ outcome }} {{ treatment }} ///
+    subst_disagree_frac locus_disagree_frac collab_disagree_frac ///
+    {{ controls }} [aw={{ weight }}], ///
+    absorb(i.{{ bank_fe }} i.{{ year_fe }}) cluster({{ cluster_var }})
+
+* --- Robustness Spec 2: 主回归加 freerider + quietworker 4 列 (3 dim × 2 dir, drop 1 ref) ---
+eststo M_residual: reghdfe {{ outcome }} {{ treatment }} ///
+    subst_freerider_frac subst_quietworker_frac ///
+    locus_freerider_frac locus_quietworker_frac ///
+    collab_freerider_frac collab_quietworker_frac ///
+    {{ controls }} [aw={{ weight }}], ///
+    absorb(i.{{ bank_fe }} i.{{ year_fe }}) cluster({{ cluster_var }})
+
+* --- Output combined table ---
+esttab M_disagree M_residual using "{{ output_dir }}/table_A6_residual.tex", ///
+    cells(b(star fmt(3)) se(par fmt(3))) ///
+    label nogaps ///
+    title("Table A6: Dual-track Residual Robustness (D4)") ///
+    mtitle("+ disagree control" "+ freerider/quietworker") ///
+    addnotes("D4 measure 作者自创; 类比借用 Loughran-McDonald 2011 + W&Z 2001 decoupling." ///
+             "small-sample restriction: panel n_articles < 5 → *_frac forced NA." ///
+             "d4_data_quality_flag='ok' samples only.")

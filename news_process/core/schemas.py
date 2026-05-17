@@ -159,6 +159,7 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "38b_decay_sensitivity.py",
     "39_prompt_sensitivity.py",
     "39a_inter_track_kappa.py",
+    "39c_construct_orthogonality.py",  # v3.5.0 D3 NMI: 写 data/processed/39c_*.parquet 但走 validation 约定 (per schemas.py:134 historical)
 })
 
 

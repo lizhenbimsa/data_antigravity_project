@@ -147,3 +147,113 @@ def test_sample_block_complete(paper_id: str) -> None:
         assert isinstance(sample[key], int) and sample[key] > 0, (
             f"{paper_id}: sample.{key} not positive int"
         )
+
+
+# ----------------------------------------------------------------------------
+# v3.5.0 D2 8-cell decomposition: tables.t6 field schema
+# Per stage3_v3_5_0_augmentation_plan.md §2.1.6 + master plan v2 §5.2.3.bis.
+# (修 E-NEW-2 + F2: v3.5.0 D6 day 扩展 schema 测试)
+#
+# 注: 这些测试用直接 YAML load (绕过 paper_registry.get_spec) 因为 v3.4.0 PAPER_IDS_NEW
+# 不含 P5 bank_fintech_collab (epoch 5 立项 baseline gap, 非 v3.5.0 问题).
+# Filesystem-based load 让 v3.5.0 schema 测试独立于 v3.4.0 baseline registry.
+# ----------------------------------------------------------------------------
+
+from pathlib import Path  # noqa: E402
+
+import yaml as _yaml  # noqa: E402
+
+_PAPERS_DIR_V3_5_0 = Path(__file__).resolve().parents[2] / 'papers'
+
+# 9 paper portfolio split per plan §2.1.6:
+#   - D2 main regression users (Table 6 i.cell_id_full): P3/P4/P5
+#   - D2 not used (explicit null to prevent schema drift): P1/P2 + 4 retrofit
+V3_5_0_D2_USING = (
+    'bank_fintech_substance',
+    'bank_fintech_locus',
+    'bank_fintech_collab',
+)
+V3_5_0_D2_NULL = (
+    'bank_fintech_tone',
+    'bank_fintech_attention',
+    'benefit_society',
+    'brokerage_network',
+    'llm_peer',
+    'strategic_diff',
+)
+V3_5_0_ALL_9 = V3_5_0_D2_USING + V3_5_0_D2_NULL
+V3_5_0_D2_TEMPLATE = '19_table6_cell_decomposition'
+
+
+def _load_spec_yaml_v3_5_0(paper_id: str) -> dict:
+    """Filesystem YAML load bypassing v3.4.0 paper_registry (which misses P5)."""
+    path = _PAPERS_DIR_V3_5_0 / paper_id / 'paper_spec.yaml'
+    if not path.exists():
+        pytest.skip(f"paper_spec.yaml missing for {paper_id}")
+    return _yaml.safe_load(path.read_text(encoding='utf-8'))
+
+
+@pytest.mark.parametrize('paper_id', V3_5_0_ALL_9)
+def test_v3_5_0_tables_t6_field_explicit(paper_id: str) -> None:
+    """v3.5.0 D2: tables.t6 必须 explicit declare (防 schema drift).
+
+    Per plan §2.1.6: 全 9 paper_spec.yaml 强制声明 tables.t6 (template or null).
+    """
+    spec = _load_spec_yaml_v3_5_0(paper_id)
+    tables = spec.get('tables')
+    assert tables is not None, (
+        f"{paper_id}: 缺少 'tables' 字段 "
+        "(v3.5.0 新增 per plan §5 + master plan v2 §5.2.3.bis)"
+    )
+    assert 't6' in tables, f"{paper_id}.tables 缺少 t6 字段 (v3.5.0 D2 explicit declare)"
+
+
+@pytest.mark.parametrize('paper_id', V3_5_0_D2_USING)
+def test_v3_5_0_d2_using_papers_template(paper_id: str) -> None:
+    """P3/P4/P5: tables.t6.template == '19_table6_cell_decomposition'."""
+    spec = _load_spec_yaml_v3_5_0(paper_id)
+    t6 = spec['tables']['t6']
+    assert t6 is not None, f"{paper_id} (D2-using) tables.t6 不应为 null"
+    assert t6.get('template') == V3_5_0_D2_TEMPLATE, (
+        f"{paper_id}.tables.t6.template = {t6.get('template')!r}, "
+        f"expected {V3_5_0_D2_TEMPLATE!r}"
+    )
+
+
+@pytest.mark.parametrize('paper_id', V3_5_0_D2_NULL)
+def test_v3_5_0_d2_null_papers_explicit(paper_id: str) -> None:
+    """P1/P2 + 4 retrofit: tables.t6 == None (explicit null 防 schema test fail).
+
+    Per plan §2.1.6: 不用 D2 主回归的 paper 也必须 explicit null declaration,
+    避免 future audit 把缺 t6 当作 schema breaking. 这是 F2 / E-NEW-2 finding 修复.
+    """
+    spec = _load_spec_yaml_v3_5_0(paper_id)
+    t6 = spec['tables']['t6']
+    assert t6 is None, (
+        f"{paper_id} (non-D2-using) tables.t6 应为 null (explicit declaration), got {t6!r}"
+    )
+
+
+# ----------------------------------------------------------------------------
+# v3.5.0 D2 P5-specific: treatment.alternative + alternative_construction extensions
+# Per plan §2.1.7 (修 A-NEW-2 P5 treatment.alternative 同步)
+# ----------------------------------------------------------------------------
+
+def test_v3_5_0_p5_treatment_alternative_includes_cell_id_full() -> None:
+    """P5 (bank_fintech_collab): treatment.alternative 必含 'cell_id_full' (v3.5.0 D2)."""
+    spec = _load_spec_yaml_v3_5_0('bank_fintech_collab')
+    alts = spec['treatment'].get('alternative', [])
+    assert 'cell_id_full' in alts, (
+        f"P5 treatment.alternative 缺 cell_id_full (v3.5.0 D2 alt 见 plan §2.1.7); "
+        f"actual = {alts!r}"
+    )
+
+
+def test_v3_5_0_p5_alternative_construction_cell_id_formula() -> None:
+    """P5: alternative_construction 必含 cell_id_full 公式 (v3.5.0 D2 derivation rule)."""
+    spec = _load_spec_yaml_v3_5_0('bank_fintech_collab')
+    construction = spec['treatment'].get('alternative_construction', {})
+    assert 'cell_id_full' in construction, (
+        f"P5 alternative_construction 缺 cell_id_full formula; "
+        f"got = {list(construction)!r}"
+    )

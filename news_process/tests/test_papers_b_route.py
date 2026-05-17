@@ -122,14 +122,17 @@ def test_b_route_paper_stata_templates_exist(paper_id: str) -> None:
 
 
 def test_total_template_count_77() -> None:
-    """v3.4.0: 84 templates (77 + 7 new bank_fintech_collab subdir per P5 立项).
+    """v3.5.0: 86 templates (84 v3.4.0 + 2 v3.5.0 D2/D4).
 
     v3.3.0 baseline: 77 (14 root + 41 existing + 22 new per plan §5.5.3 R1-M01 + R1-M27).
-    v3.4.0 P5 epoch 4: +7 (00_master + 01_data_prep + 15-19_collab_*) = 84 total."""
+    v3.4.0 P5 epoch 4: +7 (00_master + 01_data_prep + 15-19_collab_*) = 84 total.
+    v3.5.0 D2/D4: +2 (19_table6_cell_decomposition + 25_tableA6_dual_track_residual)
+    per stage3_v3_5_0_augmentation_plan.md §2.1.5 + §2.3.5 (D-NEW-1 dual-cohort 口径).
+    """
     templates = list(STATA_TEMPLATES_DIR.rglob('*.do.tmpl'))
-    assert len(templates) == 84, (
-        f"Expected 84 total templates after v3.4.0 P5 立项, found {len(templates)}: "
-        f"= 77 (v3.3.0 baseline) + 7 (bank_fintech_collab/ subdir per P5)"
+    assert len(templates) == 86, (
+        f"Expected 86 total templates after v3.5.0 D2/D4, found {len(templates)}: "
+        f"= 84 (v3.4.0 baseline) + 2 (19_table6_cell_decomposition + 25_tableA6_dual_track_residual)"
     )
 
 

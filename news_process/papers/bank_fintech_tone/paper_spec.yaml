@@ -54,3 +54,7 @@ sample:
   obs_target_min: 3000
 
 audit_rounds_target_min: 8  # M5 ≥ 8 / M6 ≥ 5 per §5.8.4 / §5.9.5
+
+# v3.5.0 D2 8-cell decomposition Table 6 — P1 不用 D2 主回归 (per plan §2.1.6)
+tables:
+  t6: null
