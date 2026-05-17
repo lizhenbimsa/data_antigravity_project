@@ -1342,7 +1342,7 @@ controls:  # R9-M01 + R47-M01: 之前 fix 仅 §B.3/B.4, 未到 §B.2, R47 正�
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]
 identification:
-  baseline: staggered_did_callaway_santanna  # 适用 E1/E4 (timing variation events)
+  baseline: cross_sectional_intensity_did  # RR15-1 (Review-only audit): R8-M03 同步 — all 6 events intensity-based (政策同步生效, treatment = pre-event exposure × post). 历史 label `staggered_did_callaway_santanna` 在 §5.7.3 csdid 仅 robustness sub-cohort 使用
   iv:
     primary: leave_one_out_peer_attention_iv  # firm-level 兼容
     fallback: bartik_attention_iv             # 需要 pre-2007 bank fintech-lending share

@@ -37,7 +37,13 @@ controls:
   fixed_effects: [bank_fe, year_fe]
 
 identification:
-  baseline: staggered_did_callaway_santanna  # 适用 E1/E4 (timing variation events)
+  # RR15-1 (Review-only audit): R8-M03 updated all 6 events (E1-E5b) to cross-sectional
+  # intensity DiD baseline (政策对所有银行同步生效, treatment = pre-event exposure ×
+  # post dummy). Plan §B.2 historical wording "staggered_did_callaway_santanna" was a
+  # pre-R8-M03 label; actual Stata estimator (per §5.7.3 main spec) uses intensity DiD;
+  # csdid (Callaway-Sant'Anna) retained as robustness for sub-cohort scenarios only.
+  baseline: cross_sectional_intensity_did  # main spec per §5.7.3 R8-M03
+  baseline_legacy_label: staggered_did_callaway_santanna  # §B.2 historical label retained for traceability
   iv:
     primary: leave_one_out_peer_attention_iv  # firm-level 兼容
     fallback: bartik_attention_iv             # 需要 pre-2007 bank fintech-lending share

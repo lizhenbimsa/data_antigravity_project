@@ -132,11 +132,35 @@ def test_brokerage_network_clusters_at_province():
 
 
 def test_other_papers_cluster_at_bank():
-    """Non-brokerage_network derivative papers cluster at bank_id."""
-    for pid in ('benefit_society', 'strategic_diff', 'llm_peer'):
+    """Non-brokerage_network papers cluster at bank_id.
+
+    RR12-1: extended to include 3 new B-route papers; brokerage_network excluded
+    (uses prov_id per Cameron-Miller 2015)."""
+    expected_bank_cluster = sorted(EXPECTED_DERIVATIVE_PAPERS - {'brokerage_network'})
+    for pid in expected_bank_cluster:
         assert _PAPER_DEFAULTS[pid]['CLUSTER_VAR'] == 'bank_id', (
             f"{pid} expected CLUSTER_VAR='bank_id'"
         )
+
+
+@pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_B_ROUTE))
+def test_b_route_paper_defaults_main_treat_from_spec(paper_id):
+    """RR12-2: drift detection — defaults[MAIN_TREAT] vs spec.treatment.primary
+    (or primary_pair[0] for P4)."""
+    from news_process.papers._common.paper_registry import get_spec
+    spec = get_spec(paper_id)
+    t = spec.raw.get('treatment', {})
+    expected_treat = t.get('primary') or (t.get('primary_pair', [''])[0] if t.get('primary_pair') else '')
+    assert _PAPER_DEFAULTS[paper_id]['MAIN_TREAT'] == expected_treat, (
+        f"{paper_id}: defaults MAIN_TREAT={_PAPER_DEFAULTS[paper_id]['MAIN_TREAT']!r} "
+        f"differs from spec.treatment={expected_treat!r} — drift detected"
+    )
+
+
+@pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_B_ROUTE))
+def test_b_route_paper_defaults_cluster_var_bank_id(paper_id):
+    """RR12-2: 3 new B-route papers all cluster at bank_id (per spec design)."""
+    assert _PAPER_DEFAULTS[paper_id]['CLUSTER_VAR'] == 'bank_id'
 
 
 # ============================================================================
