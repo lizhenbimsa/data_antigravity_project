@@ -12,13 +12,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v3.2.0 (BREAKING — Stage 3 双轨化 + Stata 数据导出层; Prompt v7 + v8 术语正名;
+**Current version**: v3.3.0 (multi-paper extension closed + 工程性审计执行;
+继承 v3.2.0 BREAKING — Stage 3 双轨化 + Stata 数据导出层; Prompt v7 + v8 术语正名;
 v3.2.0 引入 `innovation_locus_{full,ctx}` + `innovation_substantiveness_{full,ctx}` 双轨独立标签,
 ctx gate 改并集修复致命 R1-A, dual gate 三互斥指示列, encode.py `_lc × _ctx` + `_sc × _ctx` 对角线追加;
 新增 stage 46 Stata 数据导出 (pyreadstat → .dta + labels.do + codebook.xlsx, Stata IC ≤ 2048 兼容,
 value labels 双语 0=baseline / 1=对照);
+v3.3.0 收尾 (2026-05-16): 4 衍生论文骨架对称 + 55 Stata templates + 10 双语 manuscripts;
+F-11/F-12/F-15/F-42/F-46/F-62 工程性 finding 修复 (package_data 含 55 模板; pre-commit hook 激活);
 锚定: Hassan 2019 QJE + Sautner 2023 JF + Bingler 2022 FRL + W&Z 1994/1998 ASQ + Gomber 2018 JMIS;
-plan v14 经 62 轮审计 / 68 finding 修复 / 7 milestone M0-M6 自动执行; 详见 CHANGELOG.md v3.2.0)
+plan v14 经 62 轮审计 / 68 finding 修复 / 7 milestone M0-M6 自动执行; 详见 CHANGELOG.md v3.3.0)
 **Test baseline**: 1153 passed / 6 skipped / 0 failed (v3.2.0 +159 测试; 4 conditional skipped 等 pipeline 重跑后 unblock)
 
 **CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):

@@ -16,6 +16,13 @@ build/
 news_process/.pytest_cache/
 news_process/.test_tmp/
 
+# Scratch / coverage artifacts (F-12, 2026-05-16):
+# Root-level scratch files (e.g. .tmp_round3.py during audit/debug sessions)
+# and coverage outputs must not leak via `git add -A`.
+/.tmp_*
+/.coverage
+/.coverage.*
+
 # ============================================================
 # 虚拟环境
 # ============================================================

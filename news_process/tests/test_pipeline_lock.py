@@ -287,17 +287,18 @@ class TestPipelineLock(unittest.TestCase):
     def test_lock_file_corruption_handling(self):
         """测试15: 损坏的锁文件处理"""
         # 创建一个损坏的锁文件（只有一行）
-        with open(self.lock_file_path, 'w') as f:
+        # F-13 (2026-05-16): encoding='utf-8' 与生产 locking.py 一致
+        with open(self.lock_file_path, 'w', encoding='utf-8') as f:
             f.write("12345\n")
 
         # 手动锁定文件
         if sys.platform == 'win32':
             import msvcrt
-            lock_file = open(self.lock_file_path, 'r+')
+            lock_file = open(self.lock_file_path, 'r+', encoding='utf-8')
             msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
         else:
             import fcntl
-            lock_file = open(self.lock_file_path, 'r+')
+            lock_file = open(self.lock_file_path, 'r+', encoding='utf-8')
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         try:

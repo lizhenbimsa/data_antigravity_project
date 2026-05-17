@@ -71,7 +71,8 @@ class PipelineLock:
         """获取锁。"""
         try:
             # 创建或打开锁文件 (仅承载 OS 级锁; 不再写入诊断信息)
-            self.lock_file = open(self.lock_file_path, 'w')
+            # F-13 (2026-05-16): encoding='utf-8' 显式锁定, 防 Windows cp936 默认
+            self.lock_file = open(self.lock_file_path, 'w', encoding='utf-8')
 
             # 根据平台选择锁机制
             if sys.platform == 'win32':

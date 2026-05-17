@@ -51,7 +51,8 @@ class PipelineLock:
 
     def __enter__(self):
         try:
-            self.lock_file = open(self.lock_file_path, 'w')
+            # F-13 (2026-05-16): encoding='utf-8' 与生产 core/locking.py 一致
+            self.lock_file = open(self.lock_file_path, 'w', encoding='utf-8')
 
             if sys.platform == 'win32':
                 import msvcrt

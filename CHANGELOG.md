@@ -6,11 +6,21 @@
 
 ---
 
-## [Unreleased / post-v3.2.0 multi-paper extension] — 2026-05-15 (commit 8d33c46)
+## v3.3.0 / 2026-05-16 — feat: multi-paper extension closed; package_data + tooling hygiene
 
 **Scope**: 把 4 个衍生论文 (benefit_society / brokerage_network / strategic_diff / llm_peer)
 从"Python 骨架 + 单文件 Stata"补齐到与主线 bank_fintech_tone 对称的成熟度：
 3 新 `_common` 模块 + 32 Stata templates + 10 双语 manuscript 骨架 + 4 新测试文件。
+
+**v3.3.0 收尾(2026-05-16 工程性审计执行)**:
+- F-11 / F-62: `pre-commit install` 注册 hook + `.pre-commit-config.yaml` ruff rev
+  从 `v0.8.0` 升至 `v0.15.12`(解决 `UP045` 选择器不被识别的 hook 失败)
+- F-12: 父级 `.gitignore` 加 `/.tmp_*` 与 `/.coverage` 阻断根目录 scratch 文件泄漏
+- F-15: `core/data_versioning.py:125` 由 naive `datetime.now()` 改为
+  `datetime.now(timezone.utc)`,与 `core/run_id.py:27` pattern 一致
+- F-42 / F-43: `pyproject.toml::package-data` 加入 `papers/_common/stata_templates/**/*.tmpl`
+  (此前 0 模板入 wheel,**修复后 55 模板全部进 wheel**)+ `docs/**/*.md` (51)
+- F-46: `.env.example` 新增 `HF_ENDPOINT` 占位符,与 `.env` 同步
 
 ### ✨ Added — _common 三个新模块
 

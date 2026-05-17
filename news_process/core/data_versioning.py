@@ -15,7 +15,7 @@ import json
 import logging
 import subprocess
 import warnings
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -122,7 +122,10 @@ class DataVersionMetadata:
         self.git_commit = get_git_commit_hash()
         self.git_branch = get_git_branch()
         self.config_hash = compute_config_hash(config)
-        self.timestamp = datetime.now().isoformat()
+        # F-15 (2026-05-16): tz-aware UTC for cross-server lineage comparability.
+        # Naive datetime ambiguity was the only F-15 hit project-wide (R25 sweep);
+        # sibling pattern in core/run_id.py:27 uses the same idiom.
+        self.timestamp = datetime.now(timezone.utc).isoformat()
         self.python_version = get_python_version()
         self.dependencies = get_key_dependencies()
 

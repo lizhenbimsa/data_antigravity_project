@@ -26,71 +26,71 @@
   "full_track": {
     "pairwise": {
       "V1_role": {
-        "verification_agreement": 0.907,
-        "sentiment_agreement": 0.887,
-        "cohens_kappa_verification": 0.7872,
-        "observed_agreement": 0.907,
-        "expected_agreement": 0.563,
-        "innovation_substantiveness_agreement": 0.9701,
-        "cohens_kappa_innovation_substantiveness": 0.3726,
+        "verification_agreement": 0.906,
+        "sentiment_agreement": 0.886,
+        "cohens_kappa_verification": 0.7848,
+        "observed_agreement": 0.906,
+        "expected_agreement": 0.5633,
+        "innovation_substantiveness_agreement": 0.9717,
+        "cohens_kappa_innovation_substantiveness": 0.4235,
         "innovation_substantiveness_n": 636,
         "innovation_locus_agreement": 0.9796,
         "cohens_kappa_innovation_locus": 0.6871,
         "innovation_locus_n": 636
       },
       "V2_structure": {
-        "verification_agreement": 0.91,
-        "sentiment_agreement": 0.894,
-        "cohens_kappa_verification": 0.7934,
-        "observed_agreement": 0.91,
-        "expected_agreement": 0.5644,
-        "innovation_substantiveness_agreement": 0.989,
-        "cohens_kappa_innovation_substantiveness": 0.5827,
-        "innovation_substantiveness_n": 639,
-        "innovation_locus_agreement": 0.964,
-        "cohens_kappa_innovation_locus": 0.6168,
-        "innovation_locus_n": 639
+        "verification_agreement": 0.907,
+        "sentiment_agreement": 0.891,
+        "cohens_kappa_verification": 0.7868,
+        "observed_agreement": 0.907,
+        "expected_agreement": 0.5637,
+        "innovation_substantiveness_agreement": 0.9874,
+        "cohens_kappa_innovation_substantiveness": 0.5492,
+        "innovation_substantiveness_n": 637,
+        "innovation_locus_agreement": 0.9623,
+        "cohens_kappa_innovation_locus": 0.6059,
+        "innovation_locus_n": 637
       },
       "V3_concise": {
         "verification_agreement": 0.869,
-        "sentiment_agreement": 0.847,
-        "cohens_kappa_verification": 0.7132,
+        "sentiment_agreement": 0.848,
+        "cohens_kappa_verification": 0.7128,
         "observed_agreement": 0.869,
-        "expected_agreement": 0.5432,
-        "innovation_substantiveness_agreement": 0.9513,
-        "cohens_kappa_innovation_substantiveness": 0.1926,
-        "innovation_substantiveness_n": 595,
-        "innovation_locus_agreement": 0.9647,
-        "cohens_kappa_innovation_locus": 0.6141,
-        "innovation_locus_n": 595
+        "expected_agreement": 0.5438,
+        "innovation_substantiveness_agreement": 0.9547,
+        "cohens_kappa_innovation_substantiveness": 0.2057,
+        "innovation_substantiveness_n": 596,
+        "innovation_locus_agreement": 0.9631,
+        "cohens_kappa_innovation_locus": 0.6022,
+        "innovation_locus_n": 596
       },
       "V4_paraphrase": {
         "verification_agreement": 0.91,
-        "sentiment_agreement": 0.891,
-        "cohens_kappa_verification": 0.7926,
+        "sentiment_agreement": 0.89,
+        "cohens_kappa_verification": 0.7922,
         "observed_agreement": 0.91,
-        "expected_agreement": 0.5662,
-        "innovation_substantiveness_agreement": 0.9766,
-        "cohens_kappa_innovation_substantiveness": 0.389,
-        "innovation_substantiveness_n": 641,
-        "innovation_locus_agreement": 0.9766,
-        "cohens_kappa_innovation_locus": 0.6391,
-        "innovation_locus_n": 641
+        "expected_agreement": 0.5669,
+        "innovation_substantiveness_agreement": 0.9751,
+        "cohens_kappa_innovation_substantiveness": 0.3726,
+        "innovation_substantiveness_n": 642,
+        "innovation_locus_agreement": 0.9751,
+        "cohens_kappa_innovation_locus": 0.6236,
+        "innovation_locus_n": 642
       }
     },
     "multi_variant": {
-      "krippendorffs_alpha": 0.8088,
-      "fleiss_kappa": 0.8087
+      "krippendorffs_alpha": 0.8074,
+      "fleiss_kappa": 0.8074
     },
     "cross_variant_variance": {
-      "true_rate_mean": 0.6502,
-      "true_rate_std": 0.0417,
+      "true_rate_mean": 0.6504,
+      "true_rate_std": 0.0419,
       "true_rates": {
-        "V0_baseline": 0.725,
+        "V0_baseline": 0.726,
         "V1_role": 0.64,
-        "V2_structure": 0.643,
-        "V3_concise": 0.596,
-        "V4_paraphrase": 0.647
+        "V2_structure": 0.641,
+        "V3_concise": 0.597,
+        "V4_paraphrase": 0.648
       },
       "sentiment_std": {
         "正面": 0.0095,
@@ -102,43 +102,43 @@
   "ctx_track": {
     "pairwise": {
       "V1_role": {
-        "verification_agreement": 0.902,
-        "sentiment_agreement": 0.88,
-        "cohens_kappa_verification": 0.7863,
-        "observed_agreement": 0.902,
-        "expected_agreement": 0.5414,
-        "innovation_substantiveness_agreement": 0.9801,
-        "cohens_kappa_innovation_substantiveness": 0.4447,
-        "innovation_substantiveness_n": 602,
-        "innovation_locus_agreement": 0.9784,
-        "cohens_kappa_innovation_locus": 0.6999,
-        "innovation_locus_n": 602
+        "verification_agreement": 0.901,
+        "sentiment_agreement": 0.881,
+        "cohens_kappa_verification": 0.7843,
+        "observed_agreement": 0.901,
+        "expected_agreement": 0.541,
+        "innovation_substantiveness_agreement": 0.9867,
+        "cohens_kappa_innovation_substantiveness": 0.6599,
+        "innovation_substantiveness_n": 601,
+        "innovation_locus_agreement": 0.9867,
+        "cohens_kappa_innovation_locus": 0.8027,
+        "innovation_locus_n": 601
       },
       "V2_structure": {
-        "verification_agreement": 0.915,
-        "sentiment_agreement": 0.9,
-        "cohens_kappa_verification": 0.8116,
-        "observed_agreement": 0.915,
-        "expected_agreement": 0.5489,
+        "verification_agreement": 0.914,
+        "sentiment_agreement": 0.899,
+        "cohens_kappa_verification": 0.8095,
+        "observed_agreement": 0.914,
+        "expected_agreement": 0.5485,
         "innovation_substantiveness_agreement": 0.9822,
-        "cohens_kappa_innovation_substantiveness": 0.4673,
-        "innovation_substantiveness_n": 618,
-        "innovation_locus_agreement": 0.9725,
-        "cohens_kappa_innovation_locus": 0.6877,
-        "innovation_locus_n": 618
+        "cohens_kappa_innovation_substantiveness": 0.4122,
+        "innovation_substantiveness_n": 617,
+        "innovation_locus_agreement": 0.9724,
+        "cohens_kappa_innovation_locus": 0.6977,
+        "innovation_locus_n": 617
       },
       "V3_concise": {
-        "verification_agreement": 0.875,
-        "sentiment_agreement": 0.858,
-        "cohens_kappa_verification": 0.7323,
-        "observed_agreement": 0.875,
-        "expected_agreement": 0.5331,
-        "innovation_substantiveness_agreement": 0.9637,
-        "cohens_kappa_innovation_substantiveness": 0.2574,
-        "innovation_substantiveness_n": 578,
-        "innovation_locus_agreement": 0.9516,
-        "cohens_kappa_innovation_locus": 0.5395,
-        "innovation_locus_n": 578
+        "verification_agreement": 0.874,
+        "sentiment_agreement": 0.857,
+        "cohens_kappa_verification": 0.7304,
+        "observed_agreement": 0.874,
+        "expected_agreement": 0.5327,
+        "innovation_substantiveness_agreement": 0.9688,
+        "cohens_kappa_innovation_substantiveness": 0.3841,
+        "innovation_substantiveness_n": 577,
+        "innovation_locus_agreement": 0.9497,
+        "cohens_kappa_innovation_locus": 0.5301,
+        "innovation_locus_n": 577
       },
       "V4_paraphrase": {
         "verification_agreement": 0.917,
@@ -146,26 +146,26 @@
         "cohens_kappa_verification": 0.816,
         "observed_agreement": 0.917,
         "expected_agreement": 0.5489,
-        "innovation_substantiveness_agreement": 0.9758,
-        "cohens_kappa_innovation_substantiveness": 0.3366,
+        "innovation_substantiveness_agreement": 0.9774,
+        "cohens_kappa_innovation_substantiveness": 0.4885,
         "innovation_substantiveness_n": 619,
-        "innovation_locus_agreement": 0.9774,
-        "cohens_kappa_innovation_locus": 0.6966,
+        "innovation_locus_agreement": 0.979,
+        "cohens_kappa_innovation_locus": 0.7238,
         "innovation_locus_n": 619
       }
     },
     "multi_variant": {
-      "krippendorffs_alpha": 0.826,
-      "fleiss_kappa": 0.826
+      "krippendorffs_alpha": 0.8249,
+      "fleiss_kappa": 0.8248
     },
     "cross_variant_variance": {
-      "true_rate_mean": 0.6268,
-      "true_rate_std": 0.0381,
+      "true_rate_mean": 0.6262,
+      "true_rate_std": 0.0384,
       "true_rates": {
         "V0_baseline": 0.697,
-        "V1_role": 0.605,
-        "V2_structure": 0.624,
-        "V3_concise": 0.584,
+        "V1_role": 0.604,
+        "V2_structure": 0.623,
+        "V3_concise": 0.583,
         "V4_paraphrase": 0.624
       },
       "sentiment_std": {

@@ -161,7 +161,8 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
         log_file = os.path.join(actual_log_dir, f"{stage_name}.log")
         if file_mode == 'w' and os.path.exists(log_file):
             try:
-                open(log_file, 'w').close()
+                # F-13 (2026-05-16): encoding='utf-8' 显式; 跨平台日志一致
+                open(log_file, 'w', encoding='utf-8').close()
             except OSError:
                 pass
         fh = RotatingFileHandler(
