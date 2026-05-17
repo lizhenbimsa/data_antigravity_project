@@ -123,6 +123,9 @@
 | R83 | **0** | 0 | 0 | 0 | 0 | **clean** (streak 2/3) |
 | R84 | **0** | 0 | 0 | 0 | 0 | **clean** (streak **3/3 — CLOSED** at R82-R83-R84; epoch 3 final) |
 | R85 | 1 | 0 | 0 | 1 | 0 | **fixed** (epoch 4 M0-M2 execution; R85-m01 data/→config/ path); streak reset 0/3 |
+| R86 | **0** | 0 | 0 | 0 | 0 | **clean** (epoch 4 streak 1/3; Stata template + bibliography 双视角) |
+| R87 | **0** | 0 | 0 | 0 | 0 | **clean** (epoch 4 streak 2/3; git state + registry runtime 双视角) |
+| R88 | **0** | 0 | 0 | 0 | 0 | **clean** (epoch 4 streak **3/3 — CLOSED** at R86-R87-R88; 8×12 field matrix + IV cross-ref 双视角) |
 
 ---
 
@@ -3243,6 +3246,166 @@ streak counter (epoch 4): **0/3** (reset by R85)。
 Perspective A (spec-compliance) 验证 (post R85-m01 fix): 全部 12 交付项 conform 到 plan §5.2-§5.6 inventory; 167 acceptance tests 全 pass。
 
 Perspective B (counterfactual stress test) 验证: 9 反事实读者场景全部找到 artifact (本 finding 即 perspective B 发现的 spec-vs-reality 路径 mismatch)。
+
+---
+
+## Round 86 (2026-05-17) — Epoch 4 R86 (streak 1/3 attempt; post R85 fix + commit 2952bc72)
+
+### 独立交叉对账维度 (新视角, 不沿用 R85 结论)
+
+**Perspective A (Stata template placeholder substitution sanity)**: 71 templates 全部 `{{...}}` 占位符语法正确, 与 build-replication CLI 兼容。
+
+| 检查项 | 结果 |
+|---|---|
+| Total templates | 71 (matches plan §5.5.3 = 14 root + 41 existing + 16 new) ✓ |
+| Balanced `{{...}}` pairs | 71/71 templates pass ✓ |
+| Standard placeholders used in 16 new | PAPER_ID (57 templates total) / MAIN_DV (49) / MAIN_TREAT (11) / CLUSTER_VAR (40) / RANDOM_SEED (24) — 16 new 全部 conform ✓ |
+| New paper-specific placeholders | 无 stray non-standard placeholders (没引入 typo 如 `{{PAPRE_ID}}`) ✓ |
+
+**Perspective B (Cross-paper bibliography dedup math)**: 3 new paper refs.bib 30 raw entries → 22 unique (after dedup).
+
+| 检查项 | 结果 |
+|---|---|
+| Per-paper seed | P2 EN: 10 / P3 EN: 10 / P4 EN: 10 (zh = en copy per plan) ✓ |
+| Shared anchors across new papers | 5 (baron1986moderator, callaway2021difference, imai2010general 三处通用; goldstein2019fintech, gomber2018fintech 两处通用) ✓ |
+| Paper-specific entries | 17 (P2: 7, P3: 5, P4: 5) ✓ |
+| M7 target progress | 22 unique now / M7 target ≥ 80-100 unique after M3/M5 expansion + dedup; on track ✓ |
+
+### R86 Findings: **0 finding (FATAL=0 / MAJOR=0 / MINOR=0)**
+
+streak counter (epoch 4): **1/3**.
+
+### Round 86 Resolution Status
+
+无 finding, plan v2.55 + 已 committed M0-M2 交付物保持不变。streak **1/3** (R86 clean)。
+
+---
+
+## Round 87 (2026-05-17) — Epoch 4 R87 (streak 2/3 attempt; 新视角)
+
+### 独立交叉对账维度 (post-commit 视角, 不沿用 R85/R86 结论)
+
+**Perspective A (post-commit git state verification)**: commit 2952bc72 file integrity vs M0-M2 deliverable inventory。
+
+| 检查项 | 对账方法 | 结果 |
+|---|---|---|
+| Commit changeset size | `git show --stat HEAD` 62 files changed, 5409 insertions, 30 deletions | ✓ matches expected scope |
+| 8 paper_spec.yaml committed | `git ls-tree -r HEAD --name-only \| grep paper_spec.yaml \| wc -l` = 8 | ✓ |
+| paper_registry.py committed | `git ls-tree -r HEAD news_process/papers/_common/paper_registry.py` exists | ✓ |
+| 16 new Stata templates committed | `git ls-tree -r HEAD news_process/papers/_common/stata_templates/bank_fintech_*` = 16 | ✓ |
+| 3 new paper Python modules committed | 12 .py files (3 paper × 4 modules) | ✓ |
+| 6 manuscripts + 6 refs.bib committed | 12 LaTeX files in papers_assets | ✓ |
+| 3 README.md committed | papers_assets/{attention,substance,locus}/README.md | ✓ |
+| config/exogenous_shocks.yaml committed | data/→config/ R85-m01 fix landed | ✓ |
+| config/pipeline_v34_rerun.yaml committed | M0.5 skeleton config landed | ✓ |
+| 3 test files committed | test_paper_spec_schema (149 lines) + test_paper_namespace_isolation (172) + test_papers_b_route (258) | ✓ |
+| Bundled pyproject.toml + .pre-commit-config.yaml | F-62 ruff bump v0.8.0→v0.15.12 (necessary to pass pre-commit hook) | ✓ documented in commit message |
+
+**Perspective B (paper_registry runtime API behavior verification)**: registry singleton pattern + cache + error paths。
+
+| 检查项 | 验证方法 | 结果 |
+|---|---|---|
+| `list_paper_ids()` 返回 8 tuple | call directly | ✓ 8 entries |
+| `load_all_specs()` 8 PaperSpec | dict[str, PaperSpec] with 8 keys | ✓ |
+| Cache hit on second call | get_spec(id) twice — second call O(1) (no yaml.safe_load) | ✓ _CACHE 命中 |
+| Error path: unknown paper_id | `get_spec('not_a_paper')` raises ValueError | ✓ rejected by PAPER_IDS_ALL check |
+| Error path: missing yaml file | rename + clear_cache + get_spec → FileNotFoundError | ✓ raised before yaml load |
+| `clear_cache()` resets state | _CACHE before clear vs after clear | ✓ empty after |
+| PaperSpec frozen dataclass | attempt `spec.paper_id = 'x'` raises FrozenInstanceError | ✓ (per @dataclass(frozen=True)) |
+
+### R87 Findings: **0 finding (FATAL=0 / MAJOR=0 / MINOR=0)**
+
+streak counter (epoch 4): **2/3**.
+
+### Round 87 Resolution Status
+
+无 finding, M0-M2 交付物在 git + runtime 两个层面均一致。streak **2/3** (R87 clean)。
+
+---
+
+## Round 88 (2026-05-17) — Epoch 4 R88 (streak 3 attempt — **CLOSING**)
+
+### 独立交叉对账维度 (closing 视角, 不沿用 R85-R87 结论)
+
+**Perspective A (8 paper × 12 required fields matrix)**: 完整 schema 字段覆盖矩阵。
+
+| 字段 | bank_fintech_tone | benefit_society | brokerage_network | llm_peer | strategic_diff | bank_fintech_attention | bank_fintech_substance | bank_fintech_locus | 全 8 paper |
+|---|---|---|---|---|---|---|---|---|---|
+| paper_id | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 8/8 |
+| spec_version | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 8/8 |
+| status | existing | existing | existing | existing | existing | new | new | new | 5+3 |
+| differentiation_claim | ✓ (7 cross-ref) | ✓ (7 cross-ref) | ✓ (7 cross-ref) | ✓ (7 cross-ref) | ✓ (7 cross-ref) | ✓ (7 cross-ref) | ✓ (7 cross-ref) | ✓ (7 cross-ref) | 8/8 symmetric |
+| outcome | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 8/8 |
+| treatment | ✓ alt | ✓ alt | ✓ alt | ✓ alt | ✓ alt | ✓ sec+source | ✓ alt+construction | ✓ pair+pair_construction+sec+sec_construction | polymorphic per R15-m01 |
+| controls | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 8/8 |
+| identification | ✓ + iv | ✓ (no iv) | ✓ + iv | ✓ + iv | ✓ + iv | ✓ + iv | ✓ (no iv) | ✓ + iv | 6 with IV / 2 without (per R15-M01 optional) |
+| event_studies | ✓ [E1-E4] | ✓ [] | ✓ [dcep, sandbox] | ✓ [] | ✓ [] | ✓ [E1,E2,E4,E5a,E5b] | ✓ [E1-E4] | ✓ [E1,E4,E5a,E5b] | 8/8 |
+| targets | ✓ submission_window 2027-03-15 | ✓ same | ✓ same | ✓ same | ✓ same | ✓ same | ✓ same | ✓ same | 8/8 同期 |
+| sample | ✓ t_year=18 | ✓ t_year=2 (existing baseline) | ✓ t_year=2 | ✓ t_year=2 | ✓ t_year=2 | ✓ t_year=18 | ✓ t_year=18 | ✓ t_year=18 | 5+3 (existing baseline T=2 vs new T=18) |
+| audit_rounds_target_min | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8/8 |
+
+**Perspective B (Stata template `15_<paper>_main_regression` IV vs paper_spec identification.iv 一致性)**: 3 new papers main regression 引用的 IV vs spec.identification.iv 字段:
+
+| Paper | 15_main_regression IV reference | spec.identification.iv.primary | Match |
+|---|---|---|---|
+| bank_fintech_attention | "IV first stage in 19_attention_iv_first_stage.do; Bartik fallback in 22_tableA3_bartik_iv" | leave_one_out_peer_attention_iv (primary) + bartik_attention_iv (fallback) | ✓ 与 spec 一致 |
+| bank_fintech_substance | (no IV section per spec.identification 无 iv 字段) — 15_substance line "no IV per spec" 显式注释 | (no iv field per R15-M01 + §B.3) | ✓ 与 spec 一致 (P3 不需 IV) |
+| bank_fintech_locus | (IV 在 19_locus_event_study + 22-shared bartik 调用; 15_locus 无独立 IV section) | leave_one_out_peer_locus_iv (primary) + layer_scenario_industry_event_iv (fallback) | ✓ 一致 (15_locus baseline 不引 IV; IV 集中在 19_locus_event_study + 23-shared) |
+
+### R88 Findings: **0 finding (FATAL=0 / MAJOR=0 / MINOR=0)**
+
+streak counter (epoch 4): **3/3 — CLOSED**.
+
+### Round 88 Resolution Status
+
+无 finding. **Epoch 4 streak 3/3 ACHIEVED at R86-R87-R88** (closing); plan v2.55 + commit 2952bc72 M0-M2 交付物 audit-stabilized 状态确认。
+
+### Epoch 4 Final Cross-Validation Campaign Summary (closed at R88)
+
+用户 "直接执行计划" 指令下的 M0-M2 执行 + 4 轮独立交叉对账 (R85-R88) — **达成**:
+
+| 指标 | 值 |
+|---|---|
+| Epoch 4 audit rounds | R85-R88 = 4 rounds |
+| Epoch 4 findings fixed | 1 MINOR (R85-m01: data/→config/ path) |
+| Plan version progression | v2.55 unchanged (R85-m01 仅文件移动 + 5 处 plan reference 同步 update); 不需 plan major bump |
+| Commit | `2952bc72` (62 files, 5409 ins / 30 del; 115 new tests; 1548 baseline tests intact) |
+| 连续 3 轮 0-finding streak | **R86-R87-R88 (streak 3/3) ✓** |
+| Epoch 4 独立交叉对账维度 (8 views) | R85 A spec-compliance + B counterfactual stress test; R86 A template placeholder + B bibliography dedup; R87 A git state + B registry runtime; R88 A 8×12 field matrix + B IV cross-ref |
+| 最终 plan version | **v2.55** (audit-stabilized through M0-M2 execution); 等待 user prerequisites 解锁 M-1 |
+| Total cumulative findings (all epochs R1-R88) | **211** (R1-R72 198 + R73-R81 12 + R82-R88 1) |
+
+### [Reporting] per 用户 goal 格式 — Epoch 4 总结
+
+**本轮 epoch 4 变更摘要 (vs epoch 3 closing v2.55)**:
+- 新增工程交付物 (commit 2952bc72): 62 files, 115 passing tests
+- 8 paper × paper_spec.yaml (3 new + 5 retrofit) + paper_registry.py + 16 Stata templates + 3 paper modules + 6 manuscripts + 2 config yaml + 3 test files
+- Plan-doc 修订: data/exogenous_shocks.yaml → config/exogenous_shocks.yaml (5 处 reference, R85-m01)
+- Audit log: 新增 R85-R88 4 entries + 1 epoch boundary 注
+
+**问题清单 (增/减/未决)**:
+- 增: 1 MINOR (R85-m01) → 已修复
+- 减: 0
+- 未决:
+  - M-1 / M0.5 / M4-M8 实际执行 (blocked by §5.1.1.bis user prerequisites + D1-D6 决策点)
+  - 5 pipeline test failures (innovation_locus 等) 是 v3.3.0 baseline 上游问题, 不在 B-route epoch 4 scope
+  - M3 manuscript 实质内容 \NoteThis 占位待 M5/M6 stage 填 (per plan)
+
+**收敛指标**:
+- Epoch 4 streak: 3/3 ACHIEVED (R86-R87-R88 全 clean)
+- Acceptance tests: 167/167 pass (M0 G0 + M1 G1)
+- Full pytest: 1663 passed (+115 from this epoch) / 2 skipped / 5 pre-existing failed (unchanged)
+- 工程数学对账: 71 templates / 17 DiD specs / 8 paper specs 三向完全一致
+- 9 plan §5.2-§5.6 deliverable inventory 与实际 artifact 100% 对账
+
+**下一轮计划 (post-epoch 4)**:
+- Epoch 4 audit campaign closed; B-route M0-M2 工程骨架 audit-stabilized
+- Plan execution 下一阶段 (M-1 数据现状审计 + M0.5 pipeline 全量重跑 + M4+ 实证) **依赖 user prerequisites**, 不在 "无人工参与" 自动化范围内
+- 若 user 提供 §5.1.1.bis 5 项 prerequisites + D1 决策点确认, 即可启动 M-1 → M0.5 → M4+ 实际数据驱动 milestone
+- 当前 plan + 工程骨架可立即响应该解锁
+
+---
+
 
 ### Round 85 Resolution Status
 
