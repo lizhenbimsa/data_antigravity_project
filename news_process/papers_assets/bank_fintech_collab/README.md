@@ -35,7 +35,7 @@
 
 ## Pre-registration
 
-本 paper 锚定 `prompt-v8-supplementation-released` git tag（v8 = v7 严格超集，additive supplementation per Nosek et al. 2018 PNAS）。详见 [wz_framework_boundary_justification.md](../../docs/methodology/wz_framework_boundary_justification.md) §4。
+本 paper 锚定 prompt v8 字节级冻结（v8 = v7 严格超集，additive supplementation per Nosek et al. 2018 PNAS；v8 SHA256 详见 CLAUDE.md L19/L25 与 `data/processed/v3_5_1_constants.json::prompt_v8_sha256`。专属 git tag `prompt-v8-supplementation-released` 尚未打，唯一已打的 prompt tag 是 `prompt-v7-released`）。详见 [wz_framework_boundary_justification.md](../../docs/methodology/wz_framework_boundary_justification.md) §4。
 
 ## 投稿路径
 

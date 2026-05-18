@@ -27,11 +27,11 @@ sidecar JSON `data/processed/v3_5_1_constants.json` 双 anchor (median_amb_d0 + 
 encode_collab.py +apply_v3_5_1 (~200 行, 与 apply_v3_5_0 并存; v3.6.0 合并方案预留);
 9 paper_spec.yaml × tables.tA7/A8/A9 同步 (5 active: P3/P4/P5 tA7 + P1 tA9 + benefit_society tA8 / 其余 4 paper null explicit);
 4 paper-specific Stata 模板 + 1 v3_5_1/ root 模板 (P1 例外); master plan §5.2.3.bis schema 扩 tA7/tA9/tA8 (epoch 7 audit cycle);
-git tag `v3.5.0-augmentation` 补打 ✓ + `v3.5.1-plan-frozen` (planned) + `v3.5.1-supplementation` (planned, post-merge);
+git tag `v3.5.0-augmentation` ✓ + `v3.5.1-plan-frozen` ✓ + `v3.6.0` ✓ (2026-05-18, 当前 HEAD) + `v3.5.1-supplementation` (planned, post-merge);
 **97 finding 经 10 轮 audit closed** (V1-V15 + 同行 P1/P2/P3 + D-day 压力 + 完备性 + 对抗性 + 边缘 case + EiC + v0.3 复证);
 plan v0.3 SHA256 (D-1.8 计算后填); 锚定: 继承 v3.5.0 + LM 2011 JF + You 2018 + Hales 2011 CAR + Bonsall 2017 JAE + Cohen 1960 + Cronbach 1951 + Nosek 2018 PNAS;
-详见 CHANGELOG.md v3.5.1 + [stage3_v3_5_1_a1_a3_supplementation_plan.md](docs/methodology/stage3_v3_5_1_a1_a3_supplementation_plan.md) + audit log)
-**Test baseline**: 1175 → ~1527 → **~1590** fast tests passing (v3.5.1 +63 tests: 12 clarity_score + 10 numerical_intensity + 8 a1_a3_panel_aggregation + 12 lexical_discriminant + 8 stata_export_v3_5_1 + 6 v3_5_to_v3_5_1_migration + 3 forward_compat + 4 dag_consistency/paper_spec_schema 扩 + 等)
+详见 [stage3_v3_5_1_a1_a3_supplementation_plan.md](docs/methodology/stage3_v3_5_1_a1_a3_supplementation_plan.md) + audit log；CHANGELOG.md 暂未维护，版本变更以本文件顶部 "Current version" 段为准)
+**Test baseline (v3.6.0 实测 2026-05-18)**: **1615** fast / **284** integration / **1899** total tests collected (`pytest --collect-only`); 历史轨迹: v3.3.0 ~1175 → v3.4.0 ~1527 → v3.5.1 ~1590 → v3.6.0 1615 fast. v3.6.0 Plan E +14 fast tests: test_24_herd_decay_dual 12 + test_15_policy_alignment_dual 14 + test_dag_consistency 14-stage count；继承 v3.5.1 +63: 12 clarity_score + 10 numerical_intensity + 8 a1_a3_panel_aggregation + 12 lexical_discriminant + 8 stata_export_v3_5_1 + 6 v3_5_to_v3_5_1_migration + 3 forward_compat + 4 dag_consistency/paper_spec_schema 扩 + 等)
 
 **CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):
 - `build-replication`: 一键 instantiate 14 .do 模板 + spec 替换
@@ -47,12 +47,14 @@ plan v0.3 SHA256 (D-1.8 计算后填); 锚定: 继承 v3.5.0 + LM 2011 JF + You 
 
 The pipeline is a **declarative DAG** defined in `news_process/core/dag.py`. All stages are registered in `STAGES_MAIN` (production) or `STAGES_VALIDATION` (evaluation). The orchestrator (`run_pipeline_function.py`) executes stages as isolated subprocesses.
 
-**Stage flow** (v3.2.0):
+**Stage flow** (v3.6.0):
 ```
-00_preprocessing → 11_news_bank → 12_news_fintech → 14_fintech_intensity 
-→ 15_article_policy_alignment → 21_tone_llms / 22_tone_words / 23_tone_berts 
-→ 24_herd_decay_processor → 45_panel_export_main → 46_stata_export → 51_falsification_test
+00_preprocessing → 11_news_bank → 12_news_fintech → 13_materialize_ctx
+→ 14_fintech_intensity → 15_article_policy_alignment
+→ 21_tone_llms / 22_tone_words / 23_tone_berts → 24_herd_decay_processor
+→ 30_robustness_text2vec → 45_panel_export_main → 46_stata_export → 51_falsification_test
 ```
+v3.6.0 Plan E P4 A1 新增 `13_materialize_ctx` 物化 `content_ctx` 列, 让下游 14/15 在 stage 21 之前即可消费 ctx, 实现 B1 fintech_intensity + B2 policy_alignment 真双轨化 (`*_full` / `*_ctx`).
 
 Sentiment methods (21/22/23) are conditionally enabled via `config/sentiment.yaml::sentiment_analysis.enabled_methods`.
 
@@ -62,13 +64,13 @@ Sentiment methods (21/22/23) are conditionally enabled via `config/sentiment.yam
 news_process/
 ├── core/           # Kernel: config, logging, caching, DAG, stage runner
 ├── pipeline/       # Stage implementations (filtering, sentiment, panel, etc.)
-├── papers/         # Multi-paper analysis modules (5 papers supported)
+├── papers/         # Multi-paper analysis modules (9 papers supported)
 ├── validation/     # Robustness tests (threshold sensitivity, entity masking, etc.)
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
-├── tests/          # 1153 passed / 6 skipped HEAD baseline (integration + unit)
-└── NN_*.py         # 29 thin shim scripts under news_process/ (≤30 lines each,
-                    # NN ∈ {00, 11, 12, 14, 15, 21..24, 30..39 incl. 32a/38a/38b/39a/39c, 45..46, 51..53};
+├── tests/          # 1615 fast / 284 integration / 1899 total (v3.6.0 实测 collect-only)
+└── NN_*.py         # 31 thin shim scripts under news_process/ (≤30 lines each,
+                    # NN ∈ {00, 11..15 incl. 13, 21..24, 30..39 incl. 32a/38a/38b/39a/39c/39d, 45..46, 51..53};
                     # delegate to pipeline/; planned retirement: Plan-r3 P3-18
                     # (拆分约束见 pipeline/panel/runner.py:159)
 ```
@@ -160,9 +162,9 @@ pytest -v
 pytest -k "test_golden"
 
 # V4 T1.6: tiered runs (auto-tagged by tests/conftest.py)
-pytest -m fast              # 759 unit tests (~30s, run before every commit)
-pytest -m integration       # 94 integration tests (parquet IO, mocked LLM, ~5min)
-pytest                       # full sweep (851 + 2 skipped)
+pytest -m fast              # 1615 fast tests (~30s, run before every commit; v3.6.0 实测)
+pytest -m integration       # 284 integration tests (parquet IO, mocked LLM, ~5min)
+pytest                       # full sweep (1899 tests collected)
 ```
 
 ### Linting & Formatting
@@ -198,7 +200,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Code Modification Rules
 
-1. **Stage shims are frozen**: The 29 `news_process/NN_*.py` scripts are thin shims (≤30 lines; NN includes lettered variants 32a/38a/38b/39a/39c). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
+1. **Stage shims are frozen**: The 31 `news_process/NN_*.py` scripts are thin shims (≤30 lines; NN includes new stage 13 from v3.6.0 Plan E and lettered variants 32a/38a/38b/39a/39c/39d). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
 2. **DAG consistency**: Any stage added/removed must update:
    - `core/dag.py::STAGES_MAIN` or `STAGES_VALIDATION`
    - `core/schemas.py::OUTPUT_REGISTRY` (if it produces parquet)
@@ -250,14 +252,24 @@ Required in `.env`:
 
 ## Multi-Paper Support
 
-The `papers/` directory contains 5 paper-specific analysis modules:
-- `bank_fintech_tone/`: Main paper (bank-fintech sentiment)
+The `papers/` directory contains 9 paper-specific analysis modules (v3.4+ multi-paper portfolio)。
+
+**P1–P5 Bank-FinTech 主线五篇**（统一 `bank_fintech_*` 命名；paper-level ID 引自 `docs/plan/B_route_master_plan_v2.md`，各 paper README 顶部标记格式不统一：P2/P3/P4 用 `(Px)`、P5 用 `P5 —` 前缀、P1 在 README L1 标"主线论文"未显式写 P1）：
+- `bank_fintech_tone/` (P1, master plan 主线): bank-fintech 媒体语调；P1 三轨化 spec `locus × subst × sent = 2³`（v3.6.0 G3: main = `llm_vote_tone_ctx`）
+- `bank_fintech_attention/` (P2): firm-level fintech attention intensity (Hassan 2019 QJE 框架)
+- `bank_fintech_substance/` (P3): W&Z 实质/象征二元属性
+- `bank_fintech_locus/` (P4): Gomber 底层/应用二元属性
+- `bank_fintech_collab/` (P5, v3.4.0 epoch 5 立项): Chesbrough 自主研发 vs 外部协同
+
+**衍生四篇**（非 Bank-FinTech 主线，独立 paper id）：
 - `benefit_society/`: Social benefit analysis
-- `brokerage_network/`: Network brokerage effects
-- `llm_peer/`: LLM peer review
+- `brokerage_network/`: Network brokerage effects（v3.6.0 已加 `REPLICATION_README.md`）
+- `llm_peer/`: LLM peer review (方法学)
 - `strategic_diff/`: Strategic differentiation
 
-Each paper has `analysis.py` (Stata runner), `figures.py`, and `tables.py`. Common utilities are in `papers/_common/`.
+> 注: CLAUDE.md 顶部 "Current version" 段中的 `P1/P2/P3/P4/P7` 标号指 **Plan E 内部步骤**, 与本段 paper-portfolio 的 `P1..P5` paper ID 是两个独立编号空间。
+
+Each paper has `analysis.py` (Stata runner), `figures.py`, and `tables.py`. Common utilities are in `papers/_common/` (含 v3.6.0 新增 `AI_DISCLOSURE_TEMPLATES.md` 6 系列：Nature/AER/JF/ASQ/RP/CSSCI).
 
 ## Stata Environment
 
@@ -292,7 +304,7 @@ synth / coefplot 等）以 MP 上限为天花板编写。
 来源：https://www.stata.com/products/detailed-size-limits/ +
 https://www.stata.com/products/which-stata-is-right-for-me/
 
-### 对本项目（v3.2.0）的含义
+### 对本项目（v3.6.0）的含义
 
 1. **当前列数全部在 MP 上限内、远未触顶**：
    - `46_panel_yearly_full.dta` / `40_panel_yearly.dta`：2024 列
@@ -312,7 +324,7 @@ https://www.stata.com/products/which-stata-is-right-for-me/
    扩展瓶颈都在上游数据来源 / stage 41，不在 Stata。
 5. **64 核并行**：MP 19.5 license 是 64-core，跑 `bootstrap`、`permute`、
    `rwolf`、`ritest`、`csdid` 多重 placebo / wild bootstrap 时可拉满
-   `set processors 64`（默认按 license 上限走，无需手动）；这是当前 v3.2.0
+   `set processors 64`（默认按 license 上限走，无需手动）；这是当前 v3.6.0
    稳健性矩阵性能上的关键资源。
 
 ### 修改 Stata 配置时的注意
@@ -322,7 +334,10 @@ https://www.stata.com/products/which-stata-is-right-for-me/
 - **新增列时优先扩 `aux.dta`，保持 `core.dta` ≤ 2048**：保留 IC 协作者的
   入口契约，不要因为本机是 MP 就把 core 撑爆。
 - **项目策略 (2026-05-16 起): Stata 19+ only, 无需向下兼容**。
-  `papers/_common/stata_templates/*.do.tmpl` 全部 46 个模板已统一 bump 为
+  `papers/_common/stata_templates/**/*.do.tmpl` 全部 **91 个模板** = 主线 14 (直接位于
+  `stata_templates/` 下) + 8 个 paper-specific 子目录 74 (attention 7 / collab 8 /
+  locus 8 / substance 9 / benefit_society 18 / brokerage_network 8 / llm_peer 8 /
+  strategic_diff 8) + 历史归档 `v3_5_0/` 2 + `v3_5_1/` 1。全部已统一 bump 为
   `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120`
   （见 `00_master.do.tmpl:13-16`）。新增模板直接复用此头部。
 - **可放心使用 v17+ / v19 独有命令**: `xtdidregress` (v17)、`frames` 增强

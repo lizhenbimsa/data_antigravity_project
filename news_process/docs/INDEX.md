@@ -1,8 +1,8 @@
-# news_process 文档索引（v3.2.0）
+# news_process 文档索引（v3.6.0）
 
 ## 项目级执行计划
 
-- [plan/B_route_master_plan_v2.md](plan/B_route_master_plan_v2.md) — 4 篇独立 Bank-FinTech 论文端到端执行计划 v2.0（含 M-1 数据现状审计 → M8 投稿；G-1..G8 acceptance gates；R1-R12 风险登记表；C1-C4 应急方案）
+- [plan/B_route_master_plan_v2.md](plan/B_route_master_plan_v2.md) — 主线 Bank-FinTech 论文端到端执行计划 v2.56（含 M-1 数据现状审计 → M8 投稿；G-1..G8 acceptance gates；R1-R12 风险登记表；C1-C4 应急方案）。注：v3.4 之后多论文 portfolio 已扩展至 9 paper，本 master plan 锚定 epoch 4，9 paper 完整分布详见 CLAUDE.md §Multi-Paper Support。
 
 ## 设计与实施指南
 
@@ -26,7 +26,7 @@
 ## 测试
 
 - [测试覆盖率指南.md](测试覆盖率指南.md) — pytest --cov 本地与 CI 使用指南
-- [测试验证报告.md](测试验证报告.md) — v2.2.0 数据版本控制 + DAG 一致性历史快照（2026-05-09，非最新；当前 baseline 1153 见 CLAUDE.md L16）
+- [测试验证报告.md](测试验证报告.md) — v2.2.0 数据版本控制 + DAG 一致性历史快照（2026-05-09，非最新；当前 baseline 1615 fast / 284 integration / 1899 total (v3.6.0 实测 collect-only) 见 CLAUDE.md 顶部 "Test baseline" 段）
 
 ## 运维
 
