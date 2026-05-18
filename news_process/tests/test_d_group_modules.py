@@ -1,0 +1,261 @@
+"""Tests for v3.7.0 D 组: PR #11 (staleness) + #12 (α) + #13 (LLM NER).
+
+覆盖:
+- pipeline.text.article_staleness.compute_surface_staleness (P0.3 算法验证)
+- pipeline.audit.cross_media_alpha.compute_outlet_tone_aggregates (P1.6 修复)
+- pipeline.sentiment.executive_ner.extract_ner_features
+- pipeline.sentiment.executive_ner.call_llm_for_ner (P0.4 修复 + graceful fallback)
+"""
+from __future__ import annotations
+
+import math
+import os
+import time
+
+import numpy as np
+import pandas as pd
+import pytest
+
+pytestmark = pytest.mark.fast
+
+
+# ── PR #11 D2.a surface staleness (P0.3 重写后) ───────────────────────
+class TestSurfaceStaleness:
+    def test_empty_df(self):
+        from news_process.pipeline.text.article_staleness import (
+            compute_surface_staleness,
+        )
+        df = pd.DataFrame({'日期': [], '内容': []})
+        stale = compute_surface_staleness(df, content_col='内容', num_perm=32)
+        assert len(stale) == 0
+
+    def test_all_nan_dates_returns_nan(self):
+        from news_process.pipeline.text.article_staleness import (
+            compute_surface_staleness,
+        )
+        df = pd.DataFrame({
+            '日期': pd.to_datetime([None] * 3),
+            '内容': ['银行 fintech 公告 A', '银行 fintech 公告 B', '银行 fintech 公告 C'],
+        })
+        stale = compute_surface_staleness(df, content_col='内容', num_perm=32)
+        assert np.isnan(stale).all()
+
+    def test_first_day_articles_are_nan(self):
+        # 第 1 天的文章前面无邻居 (cutoff = day - 7d 内无 article)
+        from news_process.pipeline.text.article_staleness import (
+            compute_surface_staleness,
+        )
+        df = pd.DataFrame({
+            '日期': pd.to_datetime(['2020-01-01', '2020-01-15']),
+            '内容': ['银行 fintech A', '银行 fintech A'],  # 文本相同
+        })
+        stale = compute_surface_staleness(df, content_col='内容', num_perm=32)
+        assert np.isnan(stale[0])  # 第 1 篇无 cutoff 前邻居
+        assert np.isnan(stale[1])  # 第 2 篇距第 1 篇 14d > 7d window → 也 NaN
+
+    def test_within_window_high_staleness_for_duplicates(self):
+        from news_process.pipeline.text.article_staleness import (
+            compute_surface_staleness,
+        )
+        df = pd.DataFrame({
+            '日期': pd.to_datetime(['2020-01-01', '2020-01-05']),  # 4d apart
+            '内容': ['完全相同的银行新闻'] * 2,
+        })
+        stale = compute_surface_staleness(df, content_col='内容', num_perm=64)
+        assert np.isnan(stale[0])
+        assert stale[1] >= 0.95, f"重复文本应 jaccard ≈ 1, 实际 {stale[1]}"
+
+    def test_window_boundary_exact_7d_excluded(self):
+        # WINDOW_DAYS=7, 第 8 天前的文章不应被算 (cutoff = day - 7d, < cutoff 才排除)
+        from news_process.pipeline.text.article_staleness import (
+            compute_surface_staleness,
+        )
+        df = pd.DataFrame({
+            '日期': pd.to_datetime(['2020-01-01', '2020-01-09']),  # 8d apart
+            '内容': ['银行 fintech 业务'] * 2,
+        })
+        stale = compute_surface_staleness(df, content_col='内容', num_perm=32)
+        # 8d 距离恰超 WINDOW_DAYS=7, 第 2 篇看不到第 1 篇
+        # 实测预期 NaN (window 空) 或 0.0 (无 candidate)
+        assert np.isnan(stale[1]) or stale[1] == 0.0
+
+    def test_algorithm_complexity_subquadratic(self):
+        """P0.3 关键: 200 篇 × 30 天 surface staleness 必须 < 5s (原 O(N²) 1+ min)."""
+        from news_process.pipeline.text.article_staleness import (
+            compute_surface_staleness,
+        )
+        np.random.seed(42)
+        n = 200
+        dates = pd.to_datetime('2020-01-01') + pd.to_timedelta(
+            np.sort(np.random.randint(0, 30, n)), unit='D'
+        )
+        contents = [f'银行业务 fintech 战略 {i}' for i in range(n)]
+        df = pd.DataFrame({'日期': dates, '内容': contents})
+        t0 = time.time()
+        compute_surface_staleness(df, content_col='内容', num_perm=64)
+        elapsed = time.time() - t0
+        assert elapsed < 5.0, f"P0.3 算法回归: 200 articles took {elapsed:.2f}s (期望 < 5s)"
+
+
+# ── PR #12 D3 Krippendorff α (P1.6 修复后 outlet × day matrix) ──────
+class TestCrossMediaAlphaAggregates:
+    def test_returns_dict_with_outlet_tones_and_matrix(self):
+        from news_process.pipeline.audit.cross_media_alpha import (
+            compute_outlet_tone_aggregates,
+        )
+        article_df = pd.DataFrame({
+            'target_bank': ['A'] * 6,
+            '媒体(中文)': ['M1', 'M1', 'M2', 'M2', 'M3', 'M3'],
+            '日期': pd.to_datetime([
+                '2020-06-01', '2020-06-02',
+                '2020-06-01', '2020-06-03',
+                '2020-06-02', '2020-06-04',
+            ]),
+            'llm_vote_tone_full': [0.5, 0.4, -0.3, -0.2, 0.1, 0.2],
+        })
+        events = pd.DataFrame({
+            'target_bank': ['A'],
+            'event_date': ['2020-06-02'],
+        })
+        out = compute_outlet_tone_aggregates(
+            article_df, events, tone_col='llm_vote_tone_full',
+        )
+        assert len(out) == 1
+        key = ('A', '2020-06-02')
+        assert key in out
+        v = out[key]
+        assert 'outlet_tones' in v and 'daily_matrix' in v
+        assert v['outlet_tones'].shape == (3,)  # 3 outlets
+        # daily_matrix shape (n_outlets, n_days within ±3d window)
+        assert v['daily_matrix'].shape[0] == 3
+
+    def test_min_outlets_threshold(self):
+        # 只 1 个 outlet 报道 → 跳过 (MIN_OUTLETS_PER_EVENT=2)
+        from news_process.pipeline.audit.cross_media_alpha import (
+            compute_outlet_tone_aggregates,
+        )
+        article_df = pd.DataFrame({
+            'target_bank': ['A'],
+            '媒体(中文)': ['只此一家'],
+            '日期': pd.to_datetime(['2020-06-02']),
+            'llm_vote_tone_full': [0.5],
+        })
+        events = pd.DataFrame({
+            'target_bank': ['A'],
+            'event_date': ['2020-06-02'],
+        })
+        out = compute_outlet_tone_aggregates(
+            article_df, events, tone_col='llm_vote_tone_full',
+        )
+        assert len(out) == 0  # 跳过
+
+    def test_variance_computation(self):
+        """variance (第 10 篇 main 指标) 应可在无 krippendorff 包时也算出."""
+        from news_process.pipeline.audit.cross_media_alpha import (
+            compute_outlet_tone_aggregates,
+            compute_variance_and_alpha,
+        )
+        article_df = pd.DataFrame({
+            'target_bank': ['A'] * 4,
+            '媒体(中文)': ['M1', 'M2', 'M3', 'M4'],
+            '日期': pd.to_datetime(['2020-06-02'] * 4),
+            'llm_vote_tone_full': [0.5, -0.5, 0.3, -0.3],
+        })
+        events = pd.DataFrame({
+            'target_bank': ['A'],
+            'event_date': ['2020-06-02'],
+        })
+        out = compute_outlet_tone_aggregates(
+            article_df, events, tone_col='llm_vote_tone_full',
+        )
+        m = compute_variance_and_alpha(out)
+        assert len(m) == 1
+        assert m['n_outlets'].iloc[0] == 4
+        assert m['variance'].iloc[0] > 0  # 4 outlets tone 分散, 必有方差
+
+
+# ── PR #13 D4 LLM CEO NER (P0.4 修复后) ─────────────────────────────
+class TestExecutiveNER:
+    def test_extract_features_empty(self):
+        from news_process.pipeline.sentiment.executive_ner import (
+            extract_ner_features,
+        )
+        f = extract_ner_features([])
+        assert f['n_ceo_mentions'] == 0
+        assert f['n_unique_execs'] == 0
+        assert math.isnan(f['exec_hhi'])
+
+    def test_extract_features_single_exec(self):
+        from news_process.pipeline.sentiment.executive_ner import (
+            extract_ner_features,
+        )
+        execs = [{'name': '张三', 'title': '行长', 'mention_count': 5}]
+        f = extract_ner_features(execs)
+        assert f['n_ceo_mentions'] == 5
+        assert f['n_unique_execs'] == 1
+        assert f['exec_hhi'] == 1.0  # 单高管 → HHI = 1
+
+    def test_extract_features_balanced_mentions(self):
+        from news_process.pipeline.sentiment.executive_ner import (
+            extract_ner_features,
+        )
+        execs = [
+            {'name': '张三', 'title': '行长', 'mention_count': 2},
+            {'name': '李四', 'title': '副行长', 'mention_count': 2},
+        ]
+        f = extract_ner_features(execs)
+        assert f['n_ceo_mentions'] == 4
+        assert f['n_unique_execs'] == 2
+        # HHI = 0.5^2 + 0.5^2 = 0.5
+        assert abs(f['exec_hhi'] - 0.5) < 0.001
+
+    def test_extract_features_concentrated_mentions(self):
+        from news_process.pipeline.sentiment.executive_ner import (
+            extract_ner_features,
+        )
+        execs = [
+            {'name': '张三', 'title': '行长', 'mention_count': 9},
+            {'name': '李四', 'title': '副行长', 'mention_count': 1},
+        ]
+        f = extract_ner_features(execs)
+        # HHI = 0.9^2 + 0.1^2 = 0.82
+        assert abs(f['exec_hhi'] - 0.82) < 0.001
+
+    def test_extract_features_default_count(self):
+        # 缺 'mention_count' 字段, 默认 1
+        from news_process.pipeline.sentiment.executive_ner import (
+            extract_ner_features,
+        )
+        execs = [{'name': '张三', 'title': '行长'}]
+        f = extract_ner_features(execs)
+        assert f['n_ceo_mentions'] == 1
+
+    def test_call_llm_no_api_key_graceful(self):
+        """P0.4 关键: 无 YUNWU_API_KEY 时返回空列表, 不 crash."""
+        from news_process.pipeline.sentiment.executive_ner import call_llm_for_ner
+        if 'YUNWU_API_KEY' in os.environ:
+            del os.environ['YUNWU_API_KEY']
+        out = call_llm_for_ner('test content', 'TestBank')
+        assert out == []
+
+    def test_call_llm_empty_content(self):
+        from news_process.pipeline.sentiment.executive_ner import call_llm_for_ner
+        out = call_llm_for_ner('', 'TestBank')
+        assert out == []
+
+    def test_prompt_template_has_bank_name_and_content_slots(self):
+        from news_process.pipeline.sentiment.executive_ner import (
+            PROMPT_TEMPLATE,
+        )
+        assert '{bank_name}' in PROMPT_TEMPLATE
+        assert '{content}' in PROMPT_TEMPLATE
+
+    def test_yunwu_sync_no_key_returns_empty(self):
+        """P0.4 _yunwu_chat_sync 无 key 时返回 '' (graceful)."""
+        if 'YUNWU_API_KEY' in os.environ:
+            del os.environ['YUNWU_API_KEY']
+        from news_process.pipeline.sentiment.executive_ner import (
+            _yunwu_chat_sync,
+        )
+        out = _yunwu_chat_sync(prompt='hi', model='gpt-5.4-nano', timeout=5)
+        assert out == ''

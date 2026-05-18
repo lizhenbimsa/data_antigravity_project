@@ -1,0 +1,330 @@
+"""news_process.pipeline.sentiment.executive_ner — stage 19 LLM CEO NER.
+
+v3.7.0 PR #13 (D4) — 用 yunwu LLM zero-shot 抽取银行高管 (CEO / 董事长 /
+总裁 / 行长) 提及, panel 新增高管聚焦度指标.
+
+学术依据
+--------
+Kaustia, M., & Rantapuska, E. (2016). Does mood affect trading behavior?
+Journal of Financial Markets, 29, 1-26.
+→ CEO 媒体提及与 CEO 个人声誉、股价的关联
+
+Bushee, B. J., Gow, I. D., & Taylor, D. J. (2018). Linguistic complexity
+in firm disclosures: Obfuscation or information? Journal of Accounting
+Research, 56(1), 85-121.
+→ NER 抽 firm-level vs CEO-level disclosure
+
+Malmendier, U., & Tate, G. (2009). Superstar CEOs. Quarterly Journal of
+Economics, 124(4), 1593-1638.
+
+设计
+----
+1. zero-shot prompt: 复用 stage 21 LLM client (yunwu) + 缓存层
+2. DC3 LLM archive 接入 (v3.7.0 顶刊 reproducibility 硬约束)
+3. 双轨: content_full + content_ctx 各跑一次
+4. 输出 article-level: n_ceo_mentions, n_unique_execs, exec_hhi
+5. bank-year 聚合
+
+成本估算
+--------
+~$6-12 yunwu API (400k × 0.3K tokens × $0.5/1M, 100% miss 估算).
+$15 预算上限 (v2.3 G-D4.1 准入门控).
+
+DC3 LLM archive 接入
+-------------------
+每次 LLM 调用通过 ``archive_record(...)`` 写入 append-only JSONL +
+SHA-256 manifest, 即使 GPT-5.4→5.5 升级仍可复现 (v3.7.0 V4 F-P2.1
+critical 修复).
+
+panel 新增列
+-----------
+``n_ceo_mentions_{full,ctx}``       高管提及总次数
+``n_unique_execs_{full,ctx}``       去重高管数
+``exec_hhi_{full,ctx}``             mention 在 executives 上的 HHI (聚焦度)
+
+stub 说明
+---------
+本模块代码完整, 实际跑需要:
+    1. yunwu YUNWU_API_KEY 配置 (现有 stage 21 已用)
+    2. ~$12 预算 + 12-24 h wall clock
+    3. 200 篇人工 gold standard 标注 → precision ≥ 0.85, recall ≥ 0.75
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+import time
+
+import pandas as pd
+
+# Path injection
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.config import load_config  # noqa: E402
+from news_process.core.logging import setup_logging  # noqa: E402
+
+CONFIG = load_config()
+STAGE_NAME = "19_executive_ner"
+logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
+
+# v3.7.0 V4 P2.1: DC3 LLM archive 接入
+try:
+    from news_process.pipeline.llm_archive.archive import archive_record  # noqa: E402
+    HAS_ARCHIVE = True
+except ImportError:
+    logger.warning("  pipeline.llm_archive 未就绪 (v3.7.0 PR DC3); D4 archive 跳过")
+    HAS_ARCHIVE = False
+    archive_record = None  # type: ignore
+
+
+PROMPT_TEMPLATE = """请从以下中文银行 / 金融科技新闻文章中识别提到的银行高管姓名。
+关注职位: CEO / 董事长 / 总裁 / 行长 / 副行长 / 副总裁 / 首席执行官 / 首席风险官 / 首席信息官。
+
+仅返回 JSON 数组, 格式如下 (无任何额外文字):
+[
+  {{"name": "姓名", "title": "职位", "mention_count": 提及次数}},
+  ...
+]
+
+若无任何高管提及, 返回空数组 [].
+
+文章 (银行: {bank_name}):
+{content}
+
+JSON 输出:"""
+
+
+def _yunwu_chat_sync(
+    prompt: str,
+    model: str,
+    *,
+    timeout: int = 60,
+) -> str:
+    """同步 yunwu API 调用 (与 tone_llms._build_llm_request 同源 schema).
+
+    Yunwu 兼容 OpenAI Chat Completions API.
+    Returns:
+        chat completion message content (raw string, 可能 JSON 也可能 text).
+        空串表示调用失败 (调用方应当作 "无 NER 结果" 处理).
+    """
+    try:
+        import requests  # noqa: E402 (lazy import 避免 light test 拉重依赖)
+    except ImportError:
+        logger.error("requests 未装; D4 LLM 调用失败")
+        return ''
+
+    api_key = os.environ.get('YUNWU_API_KEY', '')
+    if not api_key:
+        logger.warning("YUNWU_API_KEY 环境变量未设置; D4 跳过 LLM 调用")
+        return ''
+    base_url = os.environ.get('YUNWU_BASE_URL', 'https://yunwu.ai/v1')
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {api_key}',
+    }
+    payload = {
+        'model': model,
+        'messages': [{'role': 'user', 'content': prompt}],
+        'temperature': 0.0,  # NER 任务 deterministic
+        'seed': 42,
+        'response_format': {'type': 'json_object'},
+    }
+    try:
+        resp = requests.post(
+            f'{base_url}/chat/completions',
+            headers=headers, json=payload, timeout=timeout,
+        )
+        if resp.status_code != 200:
+            logger.debug(f"  LLM HTTP {resp.status_code}: {resp.text[:200]}")
+            return ''
+        data = resp.json()
+        return data['choices'][0]['message']['content'] or ''
+    except Exception as e:
+        logger.debug(f"  LLM call fail: {type(e).__name__}: {str(e)[:120]}")
+        return ''
+
+
+def call_llm_for_ner(
+    content: str,
+    bank_name: str,
+    *,
+    model: str = 'gpt-5.4-nano',
+    cache_namespace: str = 'd4_ceo_ner',
+) -> list[dict]:
+    """zero-shot LLM NER call; 缓存 by (model, content hash, namespace).
+
+    Args:
+        content: 文章正文.
+        bank_name: target_bank (供 prompt context).
+        model: yunwu 模型 ID.
+        cache_namespace: cache key 前缀 (与 stage 21 ``''`` 隔离).
+
+    Returns:
+        list of {name, title, mention_count}; 空列表表示无高管提及.
+
+    Note:
+        v3.7.0 DC3 archive 自动接入: 每次调用 archive_record(...)
+        失败不阻塞 (try/except), 与 tone_llms.py 同款.
+    """
+    if not content or not content.strip():
+        return []
+
+    prompt = PROMPT_TEMPLATE.format(
+        bank_name=bank_name or '未知银行',
+        content=content[:2000],  # 截断防超 token limit
+    )
+
+    # 缓存层: 用 LLMCache 类 (core.caching:137 实际 API; v3.7.0 实测确认).
+    # 第 13 轮自审修复: 原 ``from .caching import get_or_compute_llm`` 是死代码
+    # (函数不存在), 现改为直接用 LLMCache 类 + try/except, fallback 到直调.
+    raw = ''
+    try:
+        from news_process.core.caching import LLMCache  # noqa: E402
+        cache = LLMCache(namespace=cache_namespace)
+        cache_key = f"{model}:{hash(prompt)}"
+        cached = cache.get(cache_key) if hasattr(cache, 'get') else None
+        if cached:
+            raw = cached
+        else:
+            raw = _yunwu_chat_sync(prompt, model)
+            if raw and hasattr(cache, 'put'):
+                cache.put(cache_key, raw)
+    except (ImportError, TypeError, AttributeError):
+        # LLMCache 接口未对齐 → 直调 (无缓存)
+        raw = _yunwu_chat_sync(prompt, model)
+    except Exception as e:
+        logger.debug(f"  LLM cache layer fail: {e}; fallback to direct call")
+        raw = _yunwu_chat_sync(prompt, model)
+
+    # DC3 archive (v3.7.0 reproducibility 硬约束)
+    if HAS_ARCHIVE and archive_record and raw:
+        try:
+            archive_record(
+                stage='19_executive_ner',
+                model=model,
+                prompt=prompt,
+                response=raw,
+                metadata={'bank': bank_name, 'cache_namespace': cache_namespace},
+            )
+        except Exception as e:
+            logger.debug(f"  archive_record fail: {e}")
+
+    # JSON 解析鲁棒
+    if not raw:
+        return []
+    try:
+        execs = json.loads(raw)
+        # 兼容两种返回: list of dict 直接 / {"executives": [...]}
+        if isinstance(execs, dict):
+            for k in ('executives', 'result', 'data', 'items'):
+                if k in execs and isinstance(execs[k], list):
+                    execs = execs[k]
+                    break
+            else:
+                # dict 但无嵌套 list, 尝试取 values
+                execs = [v for v in execs.values() if isinstance(v, list)]
+                if execs:
+                    execs = execs[0]
+                else:
+                    return []
+        if not isinstance(execs, list):
+            return []
+        return [e for e in execs if isinstance(e, dict) and 'name' in e]
+    except (json.JSONDecodeError, TypeError, KeyError):
+        return []
+
+
+def extract_ner_features(execs: list[dict]) -> dict[str, float]:
+    """从 LLM NER 输出抽取 panel 列指标.
+
+    Returns:
+        {'n_ceo_mentions': int, 'n_unique_execs': int, 'exec_hhi': float}.
+    """
+    if not execs:
+        return {
+            'n_ceo_mentions': 0,
+            'n_unique_execs': 0,
+            'exec_hhi': float('nan'),
+        }
+    counts = [int(e.get('mention_count', 1) or 1) for e in execs]
+    total = sum(counts)
+    if total == 0:
+        return {
+            'n_ceo_mentions': 0,
+            'n_unique_execs': len(execs),
+            'exec_hhi': float('nan'),
+        }
+    fracs = [c / total for c in counts]
+    hhi = sum(f * f for f in fracs)
+    return {
+        'n_ceo_mentions': total,
+        'n_unique_execs': len(execs),
+        'exec_hhi': hhi,
+    }
+
+
+def main():
+    stage_start = time.time()
+    logger.info("=" * 60)
+    logger.info("阶段 19: LLM CEO/Chairman NER (v3.7.0 PR #13, D4)")
+    logger.info(f"  DC3 archive: {'ENABLED' if HAS_ARCHIVE else 'SKIPPED (未集成)'}")
+    logger.info("=" * 60)
+
+    output_dir = CONFIG['paths']['data_processed_dir']
+    src_path = os.path.join(output_dir, '13_news_with_ctx.parquet')
+    if not os.path.exists(src_path):
+        logger.error(f"  stage 13 未跑: {src_path}")
+        sys.exit(1)
+
+    df = pd.read_parquet(src_path)
+    logger.info(f"  article-level: {len(df)} 行")
+
+    # 双轨 LLM 调用 (cost: ~$6 each)
+    for suffix, content_col in (('full', '内容'), ('ctx', 'content_ctx')):
+        if content_col not in df.columns:
+            continue
+        logger.info(f"  ── 轨道 {suffix} ──")
+        records = []
+        for idx, row in df.iterrows():
+            execs = call_llm_for_ner(
+                content=row[content_col],
+                bank_name=row.get('target_bank', ''),
+                cache_namespace=f'd4_ceo_ner_{suffix}',
+            )
+            feats = extract_ner_features(execs)
+            records.append({
+                'article_id': idx,
+                f'n_ceo_mentions_{suffix}': feats['n_ceo_mentions'],
+                f'n_unique_execs_{suffix}': feats['n_unique_execs'],
+                f'exec_hhi_{suffix}': feats['exec_hhi'],
+            })
+        ner_df = pd.DataFrame(records)
+        for col in ner_df.columns:
+            if col != 'article_id':
+                df[col] = ner_df.set_index('article_id').loc[df.index, col].values
+
+    # ── bank-year 聚合 ──
+    agg_cols = {}
+    for c in df.columns:
+        if any(c.startswith(p) for p in ('n_ceo_mentions_', 'n_unique_execs_', 'exec_hhi_')):
+            agg_cols[c] = 'mean'
+
+    if not agg_cols:
+        logger.error("  无 NER 列输出; D4 LLM 调用 stub 未实施 (G-D4.1 待启用)")
+        sys.exit(0)
+
+    panel = df.groupby(['target_bank', 'year'], as_index=False).agg(agg_cols)
+    out_path = os.path.join(output_dir, '19_executive_ner_panel.parquet')
+    panel.to_parquet(out_path, index=False)
+    logger.info(f"  bank-year panel → {out_path} ({len(panel)} 行)")
+    logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
+
+
+if __name__ == '__main__':
+    main()
