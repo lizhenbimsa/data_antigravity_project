@@ -323,6 +323,125 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
+# ============================================================================
+# 3c.bis 媒体声誉 3 级分类权重 (v3.6.1 PR #6, C1)
+# ============================================================================
+# 与 compute_media_authority_weights 并行存在 (不覆盖原列), 仅作 robustness:
+#   - main spec 仍用 'media_authority_weight' (raw_series / raw_mean, continuous)
+#   - 'media_authority_weight_tier' 新列作 paper Table A8 sensitivity
+# 学术依据:
+#   Solomon (2012). The Review of Financial Studies, 25(8), 3306-3322.
+#     → IR 选择高 prestige 媒体投放; outlet effect 显著
+#   Engelberg & Parsons (2011). Journal of Finance, 66(1), 67-97.
+#     → 局部报纸覆盖的因果识别 (地理 IV)
+#   Hillert, Jacobs & Müller (2014). Journal of Finance, 69(5), 2095-2143.
+# 数据源:
+#   config/media_classification.json (3 级名录, central 171 / financial 15 /
+#   comprehensive 27).
+# 设计:
+#   tier 权重组合 (2.5, 2.0, 1.5) baseline + (3, 2, 1.5) high spread +
+#   (1, 1, 1) ablation 三组 sensitivity. main 仍走 continuous, 不破坏
+#   9 paper 已发布 SSRN 草稿契约.
+
+_TIER_WEIGHTS_DEFAULT = {
+    'central': 2.5,
+    'financial': 2.0,
+    'comprehensive': 1.5,
+    'other': 1.0,
+}
+
+
+def compute_media_tier_weights(
+    df: pd.DataFrame,
+    weights: dict[str, float] | None = None,
+) -> pd.DataFrame:
+    """v3.6.1 C1: 基于 media_classification.json 3 级分类的离散权重.
+
+    与 compute_media_authority_weights 并行 (不覆盖). 输出列:
+        'media_authority_weight_tier'  (paper Table A8 sensitivity 用)
+        'media_tier_label'             ('central'/'financial'/'comprehensive'/'other')
+
+    Args:
+        df: 必含 '媒体(中文)' 列.
+        weights: 4 类 tier → 权重 dict; ``None`` 用 _TIER_WEIGHTS_DEFAULT.
+
+    Returns:
+        附加 2 列的 DataFrame.
+
+    Note:
+        若 config/media_classification.json 不存在或解析失败, 全部归 'other'
+        权重 1.0 (退化为 ablation case, 不破坏下游).
+    """
+    logger.info("=" * 60)
+    logger.info("步骤 3c.bis: 媒体声誉 3 级 tier 权重 (v3.6.1 C1)")
+    logger.info("=" * 60)
+
+    weights = weights or _TIER_WEIGHTS_DEFAULT
+    df = df.copy()
+
+    if df.empty or '媒体(中文)' not in df.columns:
+        df['media_authority_weight_tier'] = 1.0
+        df['media_tier_label'] = 'other'
+        return df
+
+    cls_path = CONFIG['paths'].get(
+        'media_classification_file',
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__)))), 'config', 'media_classification.json'),
+    )
+    if not os.path.exists(cls_path):
+        logger.warning(f"  media_classification.json 不存在: {cls_path}; "
+                       f"全 'other' 权重 1.0 (ablation 退化)")
+        df['media_authority_weight_tier'] = 1.0
+        df['media_tier_label'] = 'other'
+        return df
+
+    with open(cls_path, 'r', encoding='utf-8') as f:
+        cls = json.load(f)
+
+    central = frozenset(cls.get('central_media', []))
+    financial = frozenset(cls.get('financial_media', []))
+    comprehensive = frozenset(cls.get('comprehensive_media', []))
+
+    # 3 集互斥假设: financial / comprehensive 优先级 > central (避免人民日报
+    # 等同时在 central + comprehensive 的双归属); 由 paper-author 判定的
+    # 专业性 > 政治权威性.
+    def _classify(name: str) -> str:
+        name_str = str(name).strip()
+        if name_str in financial:
+            return 'financial'
+        if name_str in comprehensive:
+            return 'comprehensive'
+        if name_str in central:
+            return 'central'
+        # 去括号 fuzzy 匹配 (与 compute_media_authority_weights 对齐)
+        norm = re.sub(r'[（(][^)）]*[)）]', '', name_str).strip()
+        if norm in financial:
+            return 'financial'
+        if norm in comprehensive:
+            return 'comprehensive'
+        if norm in central:
+            return 'central'
+        return 'other'
+
+    labels = df['媒体(中文)'].apply(_classify)
+    df['media_tier_label'] = labels
+    df['media_authority_weight_tier'] = labels.map(weights).astype(float)
+
+    # ── 诊断日志 ──
+    counts = labels.value_counts()
+    total = len(df)
+    for tier in ('central', 'financial', 'comprehensive', 'other'):
+        n = int(counts.get(tier, 0))
+        logger.info(f"  tier={tier:<14} n={n:>7} ({n/total:.1%}) "
+                    f"weight={weights[tier]}")
+    logger.info(f"  权重列: mean={df['media_authority_weight_tier'].mean():.4f}, "
+                f"std={df['media_authority_weight_tier'].std():.4f}")
+
+    return df
+
+
 # ============================================================================
 # 4. 时间解析
 # ============================================================================

@@ -76,6 +76,7 @@ from news_process.pipeline.panel.encode import (
     aggregate_panel,
     balance_panel,
     compute_media_authority_weights,
+    compute_media_tier_weights,
     encode_sentiment,
     logger,
     parse_time,
@@ -262,6 +263,11 @@ def main():
     # --- 3c. 媒体权威性加权列预计算 (Holzman et al. 2023, TAR) ---
     if PANEL_CFG.get('compute_media_authority_weighting', False):
         df = compute_media_authority_weights(df)
+        # v3.6.1 PR #6 (C1): 媒体 3 级 tier 权重并行列 (Solomon 2012 RFS;
+        # Engelberg-Parsons 2011 JF). 不替换 'media_authority_weight' main,
+        # 仅追加 'media_authority_weight_tier' + 'media_tier_label' 作
+        # paper Table A8 sensitivity. Append-only 不破坏现契约.
+        df = compute_media_tier_weights(df)
         mw = df['media_authority_weight'].fillna(1.0)
         weighted_cols = {}
         for track in ['_full', '_ctx', '_title']:
