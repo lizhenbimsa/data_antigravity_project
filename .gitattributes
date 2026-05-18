@@ -19,3 +19,19 @@
 *.7z      binary
 *.tar     binary
 *.gz      binary
+
+# v3.7.0 (2026-05-18): LLM raw response archive — 永久归档 (V4 F-P2.1 critical)
+# 顶刊 reproducibility 硬约束: 即使 LLM 模型升级 (GPT-5.4→5.5),
+# 审稿人 fresh API call 时仍能从归档复现实验结果.
+# 预估总量 20-25 GB (v3.7.0 m12 校准, embedding 12KB/条 占大头).
+# 需要 GitHub LFS data pack × 1-2 ($5-10/月 含 50-100GB), 见
+# news_process/docs/methodology/llm_response_archive_design.md §四
+#
+# m12 cross-check: 与 .gitignore 协调 — .gitignore 含 `news_process/data/`
+# 但本 LFS 路径是 *repo root* 下的 `data/llm_archive/`, 两者不冲突.
+# pipeline/llm_archive/archive.py::_resolve_archive_root 默认解析到 repo root
+# /data/llm_archive/, 与 .gitignore 排除的 news_process/data/ 不重叠.
+# 若用户用 LLM_ARCHIVE_ROOT env var 重定向到 news_process/data/llm_archive/,
+# 文件将被 .gitignore 排除 (LFS 规则也失效). 不推荐此配置.
+data/llm_archive/responses/*.jsonl filter=lfs diff=lfs merge=lfs -text
+data/llm_archive/manifest.json -text

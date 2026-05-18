@@ -53,6 +53,23 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
     "13_materialize_ctx.py": ["13_news_with_ctx.parquet"],
     "14_fintech_intensity.py": ["14_fintech_intensity.parquet"],
     "15_article_policy_alignment.py": ["15_article_alignment.parquet"],
+    # v3.6.1 PR #5 (B1): EPU 中国版 merge
+    "16_epu_merge.py": ["16_epu_panel.parquet"],
+    # v3.7.0 PR #10 (D1): article-level BERTopic narrative topic
+    "17_article_topic.py": [
+        "17_article_topics.parquet",
+        "17_topic_info.parquet",
+        "17_topic_panel.parquet",
+    ],
+    # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标
+    "18_article_staleness.py": [
+        "18_article_staleness.parquet",
+        "18_staleness_panel.parquet",
+    ],
+    # v3.7.0 PR #13 (D4): LLM CEO/Chairman NER
+    "19_executive_ner.py": ["19_executive_ner_panel.parquet"],
+    # v3.7.0 PR #9 (D 组前置): article-level SBERT 持久化
+    "30a_article_sbert.py": ["30a_article_embeddings.parquet"],
     # 模块三: sentiment
     "21_tone_llms.py": [
         "21_tone_llms.parquet",
@@ -79,6 +96,8 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
         "46_panel_yearly_labels.do",
         "46_panel_yearly_codebook.xlsx",
     ],
+    # v3.7.0 (DC2 + C2): 第 10/11 篇 risk-taking outcomes 三件套
+    "49_risk_taking_outcomes.py": ["49_risk_taking_outcomes.parquet"],
     # 模块六: falsification
     "51_falsification_test.py": ["51_panel_with_controls.parquet"],
 }
@@ -110,6 +129,17 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("13_materialize_ctx.py", "13_news_with_ctx.parquet"): "output_13_news_with_ctx",
     ("14_fintech_intensity.py", "14_fintech_intensity.parquet"): "output_14_fintech_intensity",
     ("15_article_policy_alignment.py", "15_article_alignment.parquet"): "output_15_article_alignment",
+    # v3.6.1 PR #5 (B1)
+    ("16_epu_merge.py", "16_epu_panel.parquet"): "output_16_epu_panel",
+    # v3.7.0 PR #10 (D1)
+    ("17_article_topic.py", "17_article_topics.parquet"): "output_17_article_topics",
+    ("17_article_topic.py", "17_topic_info.parquet"): "output_17_topic_info",
+    ("17_article_topic.py", "17_topic_panel.parquet"): "output_17_topic_panel",
+    # v3.7.0 PR #11+#11.5 (D2)
+    ("18_article_staleness.py", "18_article_staleness.parquet"): "output_18_article_staleness",
+    ("18_article_staleness.py", "18_staleness_panel.parquet"): "output_18_staleness_panel",
+    # v3.7.0 PR #13 (D4)
+    ("19_executive_ner.py", "19_executive_ner_panel.parquet"): "output_19_executive_ner_panel",
     ("21_tone_llms.py", "21_tone_llms.parquet"): "output_21_tone_llms",
     ("21_tone_llms.py", "21_tone_llms_full.parquet"): "output_21_tone_llms_full",
     ("22_tone_words.py", "22_words_tone.parquet"): "output_22_words_tone",
@@ -117,6 +147,8 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("24_herd_decay_processor.py", "24_herd_decay.parquet"): "output_24_herd_decay",
     # 30_text2vec_indicators 输出文件名硬编码在 validation/text2vec.py, 无 config key
     ("30_robustness_text2vec.py", "30_text2vec_indicators.parquet"): None,
+    # v3.7.0 PR #9 (D 组前置): article-level SBERT 持久化
+    ("30a_article_sbert.py", "30a_article_embeddings.parquet"): None,
     ("45_panel_export_main.py", "40_panel_yearly.parquet"): "output_40_panel_yearly",
     ("45_panel_export_main.py", "40_article_bank_level.parquet"): "output_40_article_bank",
     # 40_attn_index_* 三个 — stage 内部副输出, 无 config key
@@ -129,6 +161,8 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("46_stata_export.py", "46_panel_yearly_aux.dta"): None,
     ("46_stata_export.py", "46_panel_yearly_labels.do"): None,
     ("46_stata_export.py", "46_panel_yearly_codebook.xlsx"): None,
+    # v3.7.0 (DC2 + C2): stage 49 第 10/11 篇 outcome 三件套
+    ("49_risk_taking_outcomes.py", "49_risk_taking_outcomes.parquet"): "output_49_risk_taking_outcomes",
     ("51_falsification_test.py", "51_panel_with_controls.parquet"): "output_51_panel_controls",
 }
 
@@ -165,6 +199,8 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "39a_inter_track_kappa.py",
     "39c_construct_orthogonality.py",  # v3.5.0 D3 NMI: 写 data/processed/39c_*.parquet 但走 validation 约定 (per schemas.py:134 historical)
     "39d_lexical_discriminant_validity.py",  # v3.5.1 A1/A3 HTMT+κ+α: 写 data/processed/39d_*.parquet + 39d_htmt_matrix.json, validation 不进 OUTPUT_REGISTRY
+    "39e_lm_discriminant_validity.py",  # v3.5.2 PR #4 (A1 LM 4 子词典 HTMT): 仅写 eval_reports/*.csv
+    "39f_cross_media_alpha.py",  # v3.7.0 PR #12 (D3 Krippendorff α): 写 data/processed/39f_*.parquet, 但 validation 类不进 OUTPUT_REGISTRY (与 39c/39d 约定一致)
 })
 
 

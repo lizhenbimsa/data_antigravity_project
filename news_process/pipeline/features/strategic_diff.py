@@ -154,6 +154,21 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.caching import LLMCache
 
+# v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
+try:
+    from news_process.pipeline.llm_archive import archive_record as _llm_archive_record
+    from news_process.pipeline.llm_archive.archive import _get_default_archive as _get_archive
+    _LLM_ARCHIVE_AVAILABLE = True
+except ImportError as _archive_import_exc:
+    _llm_archive_record = None
+    _get_archive = None
+    _LLM_ARCHIVE_AVAILABLE = False
+    import logging as _logging_for_archive_error
+    _logging_for_archive_error.getLogger(__name__).error(
+        "CRITICAL v3.7.0: llm_archive 不可用 (%s). strategic_diff embedding "
+        "将无归档 — V4 F-P2.1 violation.", _archive_import_exc,
+    )
+
 # Embedding Token 级精确截断与分段 (统一 Stage 15 标准)
 # 【术语】text-embedding-3-small 使用 cl100k_base 编码，单条上限 8,191 tokens
 #   对超过上限的文本 (如权威政策语料)，采用 Early Chunking + Mean Pooling
@@ -550,6 +565,39 @@ async def _get_embeddings_api(texts, cache=None):
                                         [json.dumps(emb) for emb in batch_embs],
                                         prompt_version=text_pipeline_version,
                                     )
+                                # v3.7.0 (C1 + M15 修复): LLM archive batch API
+                                if _LLM_ARCHIVE_AVAILABLE:
+                                    try:
+                                        actual_version = data.get('model', embedding_model)
+                                        api_endpoint = f"{base_url}/embeddings"
+                                        records = [
+                                            {
+                                                'cache_key': LLMCache.make_key(
+                                                    embedding_model, text,
+                                                    prompt_version=text_pipeline_version,
+                                                ),
+                                                'model_id': embedding_model,
+                                                'model_version': actual_version,
+                                                'prompt': text,
+                                                'response_raw': json.dumps({
+                                                    'embedding': emb,
+                                                    'batch_index': i,
+                                                    'batch_total': len(batch_embs),
+                                                    'batch_id': batch_idx,
+                                                }, ensure_ascii=False),
+                                                'prompt_version': text_pipeline_version,
+                                                'temperature': 0.0,
+                                                'api_endpoint': api_endpoint,
+                                                'http_status': status,
+                                            }
+                                            for i, (text, emb) in enumerate(zip(batch, batch_embs))
+                                        ]
+                                        _get_archive().append_batch(records)
+                                    except Exception as _arch_exc:
+                                        logger.warning(
+                                            f"    LLM archive (strategic_diff batch {batch_idx+1}) "
+                                            f"失败 (不阻塞): {_arch_exc!r}"
+                                        )
                                 break
                             elif status in (429, 500, 502, 503, 504):
                                 err_text = await resp.text()

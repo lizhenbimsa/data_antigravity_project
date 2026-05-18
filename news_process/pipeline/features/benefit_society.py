@@ -65,6 +65,21 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.caching import LLMCache
 
+# v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
+try:
+    from news_process.pipeline.llm_archive import archive_record as _llm_archive_record
+    from news_process.pipeline.llm_archive.archive import _get_default_archive as _get_archive
+    _LLM_ARCHIVE_AVAILABLE = True
+except ImportError as _archive_import_exc:
+    _llm_archive_record = None
+    _get_archive = None
+    _LLM_ARCHIVE_AVAILABLE = False
+    import logging as _logging_for_archive_error
+    _logging_for_archive_error.getLogger(__name__).error(
+        "CRITICAL v3.7.0: llm_archive 不可用 (%s). Stage 27 (benefit_society "
+        "embedding) 将无归档 — V4 F-P2.1 violation.", _archive_import_exc,
+    )
+
 # ============================================================================
 # 1. 全局配置和初始化  (Phase 2a: 取代旧的 importlib 反射)
 # ============================================================================
@@ -300,6 +315,40 @@ async def _get_embeddings_api(texts: list[str], token_counts: list[int], cache: 
                                         [json.dumps(emb) for emb in batch_embs],
                                         prompt_version=text_pipeline_version,
                                     )
+                                # v3.7.0 (C1 + M15 修复): LLM archive batch API
+                                # 单次 lock + 单次 file open (vs N 条 lock contention)
+                                if _LLM_ARCHIVE_AVAILABLE:
+                                    try:
+                                        actual_version = data.get('model', embedding_model)
+                                        api_endpoint = f"{base_url}/embeddings"
+                                        records = [
+                                            {
+                                                'cache_key': LLMCache.make_key(
+                                                    embedding_model, text,
+                                                    prompt_version=text_pipeline_version,
+                                                ),
+                                                'model_id': embedding_model,
+                                                'model_version': actual_version,
+                                                'prompt': text,
+                                                'response_raw': json.dumps({
+                                                    'embedding': emb,
+                                                    'batch_index': i,
+                                                    'batch_total': len(batch_embs),
+                                                    'batch_id': batch_idx,
+                                                }, ensure_ascii=False),
+                                                'prompt_version': text_pipeline_version,
+                                                'temperature': 0.0,  # embedding API 无 temperature
+                                                'api_endpoint': api_endpoint,
+                                                'http_status': status,
+                                            }
+                                            for i, (text, emb) in enumerate(zip(batch, batch_embs))
+                                        ]
+                                        _get_archive().append_batch(records)
+                                    except Exception as _arch_exc:
+                                        logger.warning(
+                                            f"    LLM archive (benefit_society batch {batch_idx+1}) "
+                                            f"失败 (不阻塞): {_arch_exc!r}"
+                                        )
                                 break
                             elif status in (429, 500, 502, 503, 504):
                                 err_text = await resp.text()

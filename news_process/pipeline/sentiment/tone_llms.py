@@ -65,6 +65,28 @@ from news_process.core.reporting import save_dataset
 from news_process.core.text.canonicalization import canonicalize_topic
 from news_process.core.text.entity_context import extract_entity_context, get_target_aliases
 
+# v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成
+# V4 audit F-P2.1 critical + V6 verification 必修.
+# 顶刊 reproducibility 硬约束: 即使 LLM 模型升级 (GPT-5.4→5.5),
+# 审稿人 fresh API call 时仍能从归档完整复现实验.
+# ImportError 时 logger.error (M13 修复): silent skip 会让顶刊复现 fail 但
+# 用户不知道. 必须 loud signal.
+try:
+    from news_process.pipeline.llm_archive import archive_record as _llm_archive_record
+    _LLM_ARCHIVE_AVAILABLE = True
+except ImportError as _archive_import_exc:
+    _llm_archive_record = None
+    _LLM_ARCHIVE_AVAILABLE = False
+    # 模块 logger 在 line ~94 才 setup_logging() 初始化, 此处用 stdlib 直接拿
+    import logging as _logging_for_archive_error
+    _logging_for_archive_error.getLogger(__name__).error(
+        "CRITICAL v3.7.0: news_process.pipeline.llm_archive 不可用 (%s). "
+        "顶刊 reproducibility 受损 — V4 F-P2.1 violation. "
+        "Stage 21 (sentiment) / 34/36/39 (3-dim 分类) 将无 raw response 归档. "
+        "用户必须修复 import 错误后重跑 pipeline.",
+        _archive_import_exc,
+    )
+
 # ============================================================================
 # 1. 全局配置和初始化
 # ============================================================================
@@ -423,6 +445,33 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                         if cache is not None:
                             cache.put(model_id, prompt, result_text,
                                       prompt_version=prompt_version)
+                        # v3.7.0 (C1): LLM raw response archive (V4 F-P2.1 critical)
+                        # 失败不阻塞 pipeline: try/except + warning
+                        if _LLM_ARCHIVE_AVAILABLE:
+                            try:
+                                # data['model'] 字段为 API 返回的 actual version
+                                # (e.g. "gpt-5.4-nano-2026-01"), 与配置 model_id
+                                # ("gpt-5.4-nano") 分离 — 顶刊复现关键 critical.
+                                actual_version = data.get('model', model_id)
+                                cache_key = LLMCache.make_key(
+                                    model_id, prompt,
+                                    prompt_version=prompt_version,
+                                )
+                                _llm_archive_record(
+                                    cache_key=cache_key,
+                                    model_id=model_id,
+                                    model_version=actual_version,
+                                    prompt=prompt,
+                                    response_raw=json.dumps(data, ensure_ascii=False),
+                                    prompt_version=prompt_version,
+                                    temperature=0.0,
+                                    api_endpoint=f"{base_url}/chat/completions",
+                                    http_status=resp.status,
+                                )
+                            except Exception as _arch_exc:
+                                logger.warning(
+                                    f"LLM archive 失败 (不阻塞 pipeline): {_arch_exc!r}"
+                                )
                         return row_idx, model_id, result_text, track
                     elif resp.status in (429, 500, 502, 503, 504):
                         last_failure_reason = f"连续 {max_attempts} 次请求未成功，最后状态码 {resp.status}"

@@ -62,6 +62,19 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.caching import LLMCache
+
+# v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
+try:
+    from news_process.pipeline.llm_archive import archive_record as _llm_archive_record
+    _LLM_ARCHIVE_AVAILABLE = True
+except ImportError as _archive_import_exc:
+    _llm_archive_record = None
+    _LLM_ARCHIVE_AVAILABLE = False
+    import logging as _logging_for_archive_error
+    _logging_for_archive_error.getLogger(__name__).error(
+        "CRITICAL v3.7.0: llm_archive 不可用 (%s). Stage 48 (LLM peer IV) "
+        "将无归档 — 顶刊复现性 (V4 F-P2.1) 受损.", _archive_import_exc,
+    )
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging
 
@@ -334,6 +347,27 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
                         if cache is not None:
                             cache.put(model_id, prompt, result,
                                       prompt_version=PEER_PROMPT_VERSION)
+                        # v3.7.0 (C1): LLM raw response archive (V4 F-P2.1)
+                        if _LLM_ARCHIVE_AVAILABLE:
+                            try:
+                                _llm_archive_record(
+                                    cache_key=LLMCache.make_key(
+                                        model_id, prompt,
+                                        prompt_version=PEER_PROMPT_VERSION,
+                                    ),
+                                    model_id=model_id,
+                                    model_version=data.get('model', model_id),
+                                    prompt=prompt,
+                                    response_raw=json.dumps(data, ensure_ascii=False),
+                                    prompt_version=PEER_PROMPT_VERSION,
+                                    temperature=TEMPERATURE,
+                                    api_endpoint=f"{model_cfg['base_url']}/chat/completions",
+                                    http_status=resp.status,
+                                )
+                            except Exception as _arch_exc:
+                                logger.warning(
+                                    f"LLM archive 失败 (不阻塞 pipeline): {_arch_exc!r}"
+                                )
                         return bank, year, result
                     elif resp.status in (429, 500, 502, 503, 504):
                         logger.warning(f"[Peer-IV] {bank}_{year} HTTP {resp.status}, "

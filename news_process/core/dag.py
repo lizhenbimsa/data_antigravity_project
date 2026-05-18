@@ -67,6 +67,20 @@ def temporal_mask_enabled(cfg: dict[str, Any]) -> bool:
     return cfg.get('temporal_mask_test', {}).get('enabled', False)
 
 
+def risk_taking_outcomes_enabled(cfg: dict[str, Any]) -> bool:
+    """v3.7.0 (C4 修复): stage 49 仅在 DC2 dry-run / full acquisition 输出存在时启用.
+
+    设计原因: stage 49 (risk_taking_outcomes) 读取 banking outcome 三件套数据
+    (Z-score / NPL formation / RWA ratio), 来源是 DC2 banking_outcome_dry_run.py
+    抓取脚本输出. 在用户实际跑 DC2 之前, input 文件不存在, stage 49 会 fail-loud.
+    本谓词通过 config flag 让用户显式 opt-in (避免无 input 时阻塞 pipeline).
+
+    用户启用方式:
+        config/panel.yaml::risk_taking_outcomes::enabled: true
+    """
+    return cfg.get('risk_taking_outcomes', {}).get('enabled', False)
+
+
 # 验证模块谓词句柄集 — 仅在模块作用域声明一次, 以使
 # core/dag.STAGES_VALIDATION 与 run_pipeline_validation.STAGES 复用同一
 # 个 callable 对象。
@@ -83,6 +97,8 @@ _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'inter_track_kappa': _validation_flag('inter_track_kappa'),
     'construct_orthogonality': _validation_flag('construct_orthogonality'),  # v3.5.0 D3 stage 39c
     'lexical_discriminant_validity': _validation_flag('lexical_discriminant_validity'),  # v3.5.1 stage 39d
+    'lm_discriminant_validity': _validation_flag('lm_discriminant_validity'),  # v3.5.2 PR #4 stage 39e (LM 4 子词典 HTMT)
+    'cross_media_alpha': _validation_flag('cross_media_alpha'),  # v3.7.0 PR #12 stage 39f (Krippendorff α + variance)
 }
 
 
@@ -161,6 +177,26 @@ STAGES_MAIN: list[StageSpec] = [
         group="main", kind="filter",
         timeout=7200,  # 阶段内含 Embedding API 调用
     ),
+    # v3.6.1 PR #5 (B1): EPU 中国版宏观控制 merge.
+    # 学术依据: Baker, Bloom & Davis (2016) QJE 131(4):1593-1636.
+    # 数据 fallback: 若 data/external/epu_china_*.csv 缺失, stage 输出全 NaN
+    # (不阻塞下游, 退化为时变 macro control 缺失).
+    StageSpec(
+        name="阶段16: EPU 中国版宏观控制 merge (Baker-Bloom-Davis 2016 QJE)",
+        script="16_epu_merge.py",
+        group="main", kind="external",
+        timeout=600,  # CSV merge, 小数据量
+    ),
+    # v3.7.0 PR #13 (D4): LLM CEO/Chairman zero-shot NER.
+    # 学术依据: Kaustia & Rantapuska (2016) JFM; Bushee-Gow-Taylor (2018) JAR.
+    # 启用前置: yunwu API + ~$12 预算 + DC3 LLM archive (v3.7.0 已就绪).
+    # always_enabled (与 stage 21 同 LLM 类, 但 cache namespace 隔离).
+    StageSpec(
+        name="阶段19: LLM CEO/Chairman zero-shot NER (v3.7.0 D4)",
+        script="19_executive_ner.py",
+        group="main", kind="sentiment",
+        timeout=21600,  # 与 stage 21 同 6 h 上限
+    ),
 
     # ── 模块三：新闻情感模块 (由 sentiment_analysis.enabled_methods 配置条件性启停) ──
     StageSpec(
@@ -217,6 +253,32 @@ STAGES_MAIN: list[StageSpec] = [
         group="main", kind="robustness",
         timeout=7200,  # 含 sentence-transformers 本地 GPU 编码 (双轨)
     ),
+    # v3.7.0 PR #9 (D 组前置): article-level SBERT 持久化.
+    # 把 stage 30 内部计算后即丢的 article embeddings 持久化, 让 D1/D2/D3
+    # 三 stage 直接复用 (节省 ~12-15 h 计算).
+    StageSpec(
+        name="阶段30a: Article-level SBERT 持久化 (D 组前置)",
+        script="30a_article_sbert.py",
+        group="main", kind="robustness",
+        timeout=21600,  # 4-6 h on GPU, 12-24 h on CPU for 400k articles
+    ),
+    # v3.7.0 PR #10 (D1): article-level BERTopic narrative topic labeling.
+    # 学术依据: Bybee et al. (2024) RFS 37(3); Hansen-McMahon-Prat (2018) QJE.
+    # 启用前置: 5 个 v3.7.0 包 (bertopic/umap-learn/hdbscan), 见 requirements.txt 注释行.
+    StageSpec(
+        name="阶段17: Article-level BERTopic narrative topic (D1)",
+        script="17_article_topic.py",
+        group="main", kind="robustness",
+        timeout=21600,  # BERTopic 在 400k 文章上 4-6 h
+    ),
+    # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标.
+    # 学术依据: Tetlock (2011) JF 66(5):1481; Gentzkow-Shapiro-Taddy (2019) JEL.
+    StageSpec(
+        name="阶段18: Article-level staleness 双指标 (surface MinHash + semantic Faiss)",
+        script="18_article_staleness.py",
+        group="main", kind="robustness",
+        timeout=21600,  # MinHash + Faiss 在 400k 文章上 4 h
+    ),
 
     # ── 模块五：面板数据构建 (单文件入口, 内部串行执行 7 个子步) ──
     # Plan P1-6 (保守版): StageSpec.name 显式列出 panel runner 内部
@@ -244,6 +306,27 @@ STAGES_MAIN: list[StageSpec] = [
         script="46_stata_export.py",
         group="main", kind="export",
         timeout=600,  # 跨平台 pyreadstat 写 .dta, 462 行 × 2254 列 < 1 分钟
+    ),
+
+    # ── 模块五b: v3.7.0 risk-taking outcomes (第 10/11 篇 outcome 三件套) ──
+    # V4 audit DC2 + C2 deliverable (2026-05-18).
+    # 输入: data/dry_run/<period>_outcome.parquet (DC2 dry-run 输出) +
+    #       news_process/config/bank_list.yaml (bank metadata)
+    # 输出: data/processed/49_risk_taking_outcomes.parquet
+    #       schema: target_bank × year × {z_score, npl_formation_rate,
+    #       rwa_to_ta_ratio, sigma_roa_5y_rolling, llp_discretion,
+    #       is_soe, bank_type_id, implicit_guarantee_tier}
+    # 锚定: Laeven-Levine (2009 JFE) Z-score + Bushman-Williams (2015 JAR)
+    #       NPL formation + Acharya 2016 RFS implicit guarantee 框架.
+    # 注: M0 当前 bank_list.yaml frozen 39 行 (~10%), 完整 panel 待 M1 补全.
+    #     在 outcome dry-run 文件不存在时 stage 49 会 fail-loud (SystemExit 1),
+    #     用户应在跑 DC2 dry-run 后再启用本 stage 入流水线.
+    StageSpec(
+        name="阶段49: Risk-Taking Outcomes 三件套 (Z-score/NPL/RWA)",
+        script="49_risk_taking_outcomes.py",
+        group="main", kind="panel",
+        timeout=600,  # 纯 pandas 计算, 9000 obs panel < 1 分钟
+        enabled_when=risk_taking_outcomes_enabled,  # C4 修复: opt-in 谓词
     ),
 
     # ── 模块六：伪造检验 ──
@@ -367,6 +450,25 @@ STAGES_VALIDATION: list[StageSpec] = [
         # Permutation 1000 with seed=42 (修 R9-H3).
         timeout=900,  # 15 min ceiling
         enabled_when=_VALIDATION_PREDS['lexical_discriminant_validity'],
+    ),
+    # v3.5.2 PR #4: LM 4 子词典 (uncert/litig/constr/modal_strong) HTMT.
+    # Henseler-Ringle-Sarstedt (2015) JAMS 43(1) 双 cutoff 0.85/0.90.
+    StageSpec(
+        name="阶段39e: LM 4 子词典 discriminant validity (HTMT + Cronbach α + permutation)",
+        script="39e_lm_discriminant_validity.py",
+        group="validation", kind="audit",
+        timeout=900,  # 15 min ceiling, 仿 39d
+        enabled_when=_VALIDATION_PREDS['lm_discriminant_validity'],
+    ),
+    # v3.7.0 PR #12 (D3): Cross-media tone variance + Krippendorff α.
+    # ⚠ 与第 10 篇 bank_media_disagreement 重叠; 同时输出 variance (main 候选)
+    # + α (robustness), 启用前对齐 spec.
+    StageSpec(
+        name="阶段39f: Cross-media tone variance + Krippendorff α (v3.7.0 D3)",
+        script="39f_cross_media_alpha.py",
+        group="validation", kind="audit",
+        timeout=3600,  # 60 min ceiling, event detection + outlet aggregation
+        enabled_when=_VALIDATION_PREDS['cross_media_alpha'],
     ),
 ]
 

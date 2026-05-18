@@ -1,0 +1,347 @@
+# news_process/config/bank_list.yaml
+# ──────────────────────────────────────────────────────────────────────────
+# Bank panel master list with SOE / tier / wind_code metadata.
+# V4 audit DC5 + C3 deliverable.
+# Created: 2026-05-18
+# Frozen at: 2024-Q4 (银保监会银行业金融机构法人名单 + D-SIB list 2024)
+#
+# 用途
+# ----
+# - 第 10 + 11 篇 outcome panel 主键源 (target_bank)
+# - implicit_guarantee_tier 异质性回归 (V4 F-P1.1 修复)
+# - SOE × treatment 交互项 (Acharya 2016 RFS 框架)
+# - Wind API 调用 bank_code 映射 (DC2 dry-run)
+#
+# Schema
+# ------
+# 每条记录:
+#   target_bank: 中文全称 (与 news_process/config/bank_names.json `bank_name` 一致)
+#   is_soe: bool — 国务院/财政部/汇金/地方政府控股 (≥ 50% 或一致行动)
+#   bank_type_id: int 1-8 (见 implicit_guarantee_framework.md §三)
+#                 1=国有大行 2=股份制 3=城商 4=农商 5=民营/互联网
+#                 6=外资 7=政策性 8=其他
+#   implicit_guarantee_tier: int 1-5 (5=绝对 TBTF / 1=无 implicit guarantee)
+#   wind_code: 上市行 Wind ticker (例 "601398.SH"), 非上市 null
+#   listed: bool (是否上市, A/H/U 任一)
+#
+# 数据源
+# ------
+# - 国有 6 大 + 政策性 3 家: 财政部公开
+# - D-SIB list: 银保监会 2024-Q4 list
+# - Wind ticker: Wind 银行库
+# - 非上市行: 银保监会银行业金融机构法人名单 (按月更新)
+#
+# 当前状态 (M0)
+# -------------
+# - frozen 39 行 (国有 + 政策性 + 系统重要性股份制 + 其他股份制 + 上市城商行代表)
+# - 余 ~460 行: M1 期间用户用 Wind + 银保监会数据补全 (城商 / 农商 / 民营 / 外资 / 村镇)
+# - 不在此 yaml 内 fabricate 数据 (避免错误分类风险)
+#
+# 维护原则
+# --------
+# 1. 仅在 banks 列表内 *append* 新条目, 不修改已 frozen 的字段
+# 2. 任何 tier 升级/降级需 git commit 单独提交 + 银保监会 D-SIB list 引用
+# 3. 与 bank_names.json 主键 (`bank_name`) 严格保持一致 (本 yaml 是子集)
+# ──────────────────────────────────────────────────────────────────────────
+
+metadata:
+  version: "1.0.0"
+  frozen_date: "2024-Q4"
+  total_banks_target: 500       # 完整 panel 目标
+  total_banks_frozen: 39        # 当前已分类
+  source_d_sib_list: "银保监会 2024-Q4 D-SIB list"
+  source_bank_universe: "news_process/config/bank_names.json (1767 行总样本)"
+
+# ─────────────────────────────────────────────────────────────────────────
+# Tier 定义 (与 implicit_guarantee_framework.md §三 一致)
+# ─────────────────────────────────────────────────────────────────────────
+tier_definitions:
+  5: "绝对 TBTF — 国有大行 + 政策性银行"
+  4: "系统重要性股份制 — D-SIB list 入选"
+  3: "其他股份制 + 上市城商行"
+  2: "非上市城商行 (有地方政府背书)"
+  1: "农商行 + 民营 + 互联网 + 外资"
+
+bank_type_definitions:
+  1: "国有大行 (state_owned)"
+  2: "股份制商业银行 (joint_stock)"
+  3: "城市商业银行 (city_commercial)"
+  4: "农村商业银行 (rural_commercial)"
+  5: "民营银行 / 互联网银行 (private_internet)"
+  6: "外资银行 (foreign_owned)"
+  7: "政策性银行 (policy_bank)"
+  8: "其他 / 待分类 (other)"
+
+# ─────────────────────────────────────────────────────────────────────────
+# Frozen banks (M0 已分类, 不再修改)
+# ─────────────────────────────────────────────────────────────────────────
+banks:
+
+  # ─── Tier 5: 国有大行 (6 家) ────────────────────────────────────────────
+  - target_bank: "中国工商银行"
+    is_soe: true
+    bank_type_id: 1
+    implicit_guarantee_tier: 5
+    wind_code: "601398.SH"
+    listed: true
+  - target_bank: "中国农业银行"
+    is_soe: true
+    bank_type_id: 1
+    implicit_guarantee_tier: 5
+    wind_code: "601288.SH"
+    listed: true
+  - target_bank: "中国银行"
+    is_soe: true
+    bank_type_id: 1
+    implicit_guarantee_tier: 5
+    wind_code: "601988.SH"
+    listed: true
+  - target_bank: "中国建设银行"
+    is_soe: true
+    bank_type_id: 1
+    implicit_guarantee_tier: 5
+    wind_code: "601939.SH"
+    listed: true
+  - target_bank: "交通银行"
+    is_soe: true
+    bank_type_id: 1
+    implicit_guarantee_tier: 5
+    wind_code: "601328.SH"
+    listed: true
+  - target_bank: "中国邮政储蓄银行"
+    is_soe: true
+    bank_type_id: 1
+    implicit_guarantee_tier: 5
+    wind_code: "601658.SH"
+    listed: true
+
+  # ─── Tier 5: 政策性银行 (3 家) ──────────────────────────────────────────
+  - target_bank: "国家开发银行"
+    is_soe: true
+    bank_type_id: 7
+    implicit_guarantee_tier: 5
+    wind_code: null
+    listed: false
+  - target_bank: "中国进出口银行"
+    is_soe: true
+    bank_type_id: 7
+    implicit_guarantee_tier: 5
+    wind_code: null
+    listed: false
+  - target_bank: "中国农业发展银行"
+    is_soe: true
+    bank_type_id: 7
+    implicit_guarantee_tier: 5
+    wind_code: null
+    listed: false
+
+  # ─── Tier 4: 系统重要性股份制 (D-SIB 2024-Q4 list, 5 家) ────────────────
+  - target_bank: "招商银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 4
+    wind_code: "600036.SH"
+    listed: true
+  - target_bank: "兴业银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 4
+    wind_code: "601166.SH"
+    listed: true
+  - target_bank: "浦发银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 4
+    wind_code: "600000.SH"
+    listed: true
+  - target_bank: "中信银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 4
+    wind_code: "601998.SH"
+    listed: true
+  - target_bank: "民生银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 4
+    wind_code: "600016.SH"
+    listed: true
+
+  # ─── Tier 3: 其他股份制 (7 家) ──────────────────────────────────────────
+  - target_bank: "中国光大银行"
+    is_soe: true                   # 中央汇金 + 财政部背景, 但非 D-SIB
+    bank_type_id: 2
+    implicit_guarantee_tier: 3
+    wind_code: "601818.SH"
+    listed: true
+  - target_bank: "华夏银行"
+    is_soe: false  # m9: 边界争议 — 首钢 21% + 国网英大 19% = 40%+ SOE 背景,
+                   # 但单一第一大股东未过 50% (无 implicit majority control).
+                   # 项目惯例: is_soe = true 当 (a) 单一国资股东 ≥ 50% 或
+                   # (b) 一致行动人协议 + 国务院 / 财政部 / 汇金背书.
+                   # 华夏不满足 (b), 故 is_soe = false; SOE 背景在 tier 体现.
+    bank_type_id: 2
+    implicit_guarantee_tier: 3
+    wind_code: "600015.SH"
+    listed: true
+  - target_bank: "广发银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 3
+    wind_code: null    # 广发 A 股长期 IPO 中, 截至 2024-Q4 未在 A 股 / H 股上市
+    listed: false      # m8: 事实校验 — 广发银行尚未上市 (与早期审稿误标修正)
+  - target_bank: "平安银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 3
+    wind_code: "000001.SZ"
+    listed: true
+  - target_bank: "恒丰银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 3
+    wind_code: null
+    listed: false
+  - target_bank: "渤海银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 3
+    wind_code: "9668.HK"
+    listed: true
+  - target_bank: "浙商银行"
+    is_soe: false
+    bank_type_id: 2
+    implicit_guarantee_tier: 3
+    wind_code: "601916.SH"
+    listed: true
+
+  # ─── Tier 3: 上市城商行 (代表, 18 家) ───────────────────────────────────
+  - target_bank: "北京银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "601169.SH"
+    listed: true
+  - target_bank: "上海银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "601229.SH"
+    listed: true
+  - target_bank: "江苏银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "600919.SH"
+    listed: true
+  - target_bank: "南京银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "601009.SH"
+    listed: true
+  - target_bank: "宁波银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "002142.SZ"
+    listed: true
+  - target_bank: "杭州银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "600926.SH"
+    listed: true
+  - target_bank: "成都银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "601838.SH"
+    listed: true
+  - target_bank: "长沙银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "601577.SH"
+    listed: true
+  - target_bank: "贵阳银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "601997.SH"
+    listed: true
+  - target_bank: "郑州银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "002936.SZ"
+    listed: true
+  - target_bank: "重庆银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "601963.SH"
+    listed: true
+  - target_bank: "齐鲁银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "601665.SH"
+    listed: true
+  - target_bank: "西安银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "600928.SH"
+    listed: true
+  - target_bank: "厦门银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "601187.SH"
+    listed: true
+  - target_bank: "苏州银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "002966.SZ"
+    listed: true
+  - target_bank: "青岛银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "002948.SZ"
+    listed: true
+  - target_bank: "兰州银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "001227.SZ"
+    listed: true
+  - target_bank: "天津银行"
+    is_soe: false
+    bank_type_id: 3
+    implicit_guarantee_tier: 3
+    wind_code: "1578.HK"
+    listed: true
+
+# ─────────────────────────────────────────────────────────────────────────
+# M1 待补全清单 (~460 行, 用户用 Wind + 银保监会 list 补)
+# ─────────────────────────────────────────────────────────────────────────
+to_be_added_categories:
+  - "非上市城商行 (~80 家) → tier 2"
+  - "农村商业银行 (~100 家上规模, ~1500 家全国) → tier 1"
+  - "民营银行 (~19 家) → tier 1, bank_type_id=5"
+  - "互联网银行 (网商银行 / 微众银行 / 新网银行 / 等) → tier 1, bank_type_id=5"
+  - "外资法人银行 (~40 家) → tier 1, bank_type_id=6"
+  - "村镇银行 (代表性 ~50 家) → tier 1, bank_type_id=8"
+  - "其他股份制 (港资 / 中外合资 等少数) → tier 3"
+
+acquisition_protocol:
+  step_1: "从 news_process/config/bank_names.json 提取所有 bank_name (1767 行总集)"
+  step_2: "排除非中国大陆 + 已退市 + 子公司 → 估 ~700-900 行候选"
+  step_3: "按 bank_names.json `variants` 字段 fuzzy match 到 news_process panel target_bank"
+  step_4: "按银保监会银行业金融机构法人名单 2024-Q4 frozen 分类 bank_type_id"
+  step_5: "is_soe / tier 校准: Wind 股权穿透 + 实控人查询"
+  step_6: "wind_code 填入: 上市行 Wind ticker; 非上市 null"
+  step_7: "本 yaml append (不覆盖 frozen 39 行)"

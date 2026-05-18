@@ -223,6 +223,22 @@ class LLMCache:
         )
         return hashlib.sha256(raw.encode('utf-8')).hexdigest()
 
+    # v3.7.0 (C3 修复): 公开 API alias 供 pipeline.llm_archive 反向 lookup 使用.
+    # 与 _make_key 完全等价, 但名字无下划线表示公开 contract — 未来 LLMCache 重构
+    # 时必须保持此别名行为不变 (顶刊 reproducibility 强约束, V4 F-P2.1).
+    @staticmethod
+    def make_key(model_id: str, prompt: str,
+                 *, prompt_version: str = "v0",
+                 temperature: float = 0.0) -> str:
+        """Public alias for ``_make_key`` (v3.7.0+, stable API).
+
+        Use this from ``pipeline/llm_archive/`` callsites to maintain
+        reverse lookup compatibility across LLMCache schema migrations.
+        """
+        return LLMCache._make_key(model_id, prompt,
+                                  prompt_version=prompt_version,
+                                  temperature=temperature)
+
     @staticmethod
     def _make_key_v0(model_id: str, prompt: str) -> str:
         """生成 v0 旧 schema 键 (Plan-r3 P3-17 平滑迁移用).
