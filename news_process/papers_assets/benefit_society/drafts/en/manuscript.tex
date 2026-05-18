@@ -78,6 +78,90 @@ exogeneity. Retained: \code{bartik\_type\_iv\_full} and
 \NoteThis{Table 5 (paper-specific robustness battery) from
 \code{output/tables/table5\_*.csv}.}
 
+% ====================================================================
+% V2.0 J-L-M 2026 RFS robustness alignment (Round 9 implementation)
+% ====================================================================
+
+\subsection{External Validation Against Firm-Level Third-Party Indicators}\label{sec:robust:g4}
+\NoteThis{Following Jha-Liu-Manela (2026, \emph{RFS}) Section~3 methodology,
+we validate \texttt{benefit\_mean\_full} against firm-level external indicators.
+Where J-L-M project country-year credit-stock-Gini, we transpose the same
+methodology to bank-year external Y: NCD spread, regulatory penalty frequency,
+and SOA rating. Expected signs: NCD spread $\downarrow$, penalty $\downarrow$,
+rating $\uparrow$ as benefit-attitude rises. Table A9 from
+\code{output/tables/tableA9\_external\_validation.csv}.}
+
+\subsection{Placebo Industries: Within-Bank Business-Line Filtering}\label{sec:robust:s1}
+\NoteThis{Per J-L-M (2026) Section~4.2 placebo industries methodology, we keep
+the main 10-pair fintech-specific anchor direction \emph{fixed} and instead vary
+the \emph{article filter}: housing loans, credit cards, intermediate business,
+branch channel, plus one neutral baseline. If the main signal is genuinely
+fintech-domain-specific, placebo projections on non-fintech subsets should
+\emph{not} predict ROA. Acceptance: $|\beta_{\text{placebo}}/\beta_{\text{main}}|<0.3$
+for at least 4 of 5 placebos. Table A10 from
+\code{output/tables/tableA10\_placebo\_business\_lines.csv}.}
+
+\subsection{Alternative Anchor Family: J-L-M Canonical 5-Pair}\label{sec:robust:a2}
+\NoteThis{We replicate the analysis using the J-L-M (2026) Internet Appendix~A
+Chinese 5-pair canonical anchors (Kozlowski-Taddy-Evans 2019, \emph{ASR}
+framework). \emph{These are different research questions sharing one
+methodology}: our 10-pair anchors target fintech-specific operational benefit;
+J-L-M 5-pair target broad finance sentiment. We expect sign-match across
+specifications but magnitude attenuation, since J-L-M's broad-finance anchors
+are by design less sensitive to fintech-specific signal. Acceptance: sign-match
+hard requirement; magnitude ratio informative only. Table A11 from
+\code{output/tables/tableA11\_anchor\_family\_alternative.csv}.}
+
+\section{Discussion}\label{sec:discussion}
+
+\subsection{Limitations of Measurement and Identification}\label{sec:disc:limit}
+\NoteThis{Following Jha-Liu-Manela (2026) Section~6.1 narrative convention,
+we acknowledge five limitations:
+\begin{enumerate}
+  \item \textbf{Panel temporal span}: the current 84-bank, 2-year panel
+        ($T=2$, 2017--2018) limits time-series tests; event-study around
+        fintech regulatory shocks and local-projection impulse responses are
+        deferred until panel expansion to $T\geq10$ (M0.5 milestone).
+  \item \textbf{Article-level vs sentence-level projection}: where J-L-M
+        project sentence embeddings (Google Books Ngram corpus is
+        sentence-level), our news corpus is article-level. The bipolar
+        projection method is unchanged; the unit of measurement differs.
+        \code{core/text/cn\_text\_utils.py} (v3.5.2) provides sentence
+        splitter infrastructure for future sentence-level robustness.
+  \item \textbf{Embedding model capacity}: we use
+        \texttt{shibing624/text2vec-base-chinese} (768-d HuggingFace
+        sentence-transformer), publicly reproducible. Sensitivity to
+        embedding model choice is acknowledged but not exhausted in current
+        version.
+  \item \textbf{Cohort scope}: analysis restricted to the PAP v1.0-final
+        84-bank cohort (Big-5 + joint-stock + city-commercial); full
+        1839-bank universe is not analyzed. Generalization to non-cohort
+        institutions requires separate empirical test.
+  \item \textbf{Cross-corpus comparison}: J-L-M analyze Google Books Ngram
+        (multi-language, 1870--2009); we analyze Chinese financial news
+        (single-language, 2017--2018). Corpus genre, publication lag, and
+        editorial filtering differ. Bank fixed effects absorb stable
+        cross-bank measurement error.
+\end{enumerate}
+}
+
+\subsection{Contribution Statement}\label{sec:disc:contrib}
+\NoteThis{Our contribution beyond Jha-Liu-Manela (2026) is three-fold,
+distinguishing this paper from a China-replication of J-L-M:
+\begin{enumerate}
+  \item \textbf{Unit of observation}: bank-year firm-level (vs country-year
+        macro), enabling within-bank within-year identification with
+        finer-grained fixed effects.
+  \item \textbf{Outcome variables}: Token/Hidden adoption mechanism
+        (Distel-Grimpe-Poetz 2026, Westphal-Zajac 2001 decoupling framework),
+        rather than J-L-M's macroeconomic GDP/credit/Gini outcomes.
+  \item \textbf{Measurement design}: 10-pair fintech-specific anchor set
+        with dual-track full/ctx projection (entity-context masking), versus
+        J-L-M's 5-pair broad-finance canonical anchors. Section~\ref{sec:robust:a2}
+        provides cross-validation between the two anchor families.
+\end{enumerate}
+}
+
 \section{Conclusion}\label{sec:concl}
 \NoteThis{Final discussion and policy implications.}
 

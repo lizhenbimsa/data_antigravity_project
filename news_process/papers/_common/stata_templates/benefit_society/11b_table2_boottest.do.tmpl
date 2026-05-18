@@ -1,0 +1,65 @@
+* ============================================================================
+* 11b_table2_boottest.do — Wild cluster bootstrap inference (A1)
+* Paper: {{PAPER_ID}}
+*
+* V2.0 J-L-M 2026 robustness alignment plan §3 Phase 2 P2.A1:
+*   Wild cluster bootstrap on bank_id (G_bank=84) for main regression.
+*   Per MacKinnon-Webb 2017 (J. Econometrics), G≥30 satisfies wild cluster
+*   bootstrap regularity. G_year=2 in current panel → cannot cluster on year
+*   (deferred to Stage B trigger T≥30).
+*
+* References:
+*   - Cameron, Gelbach & Miller (2008, REStat) wild cluster bootstrap
+*   - MacKinnon-Webb 2017 (J. Econometrics) small-G aspects
+*   - Baron & Muir 2022 (RFS) narrow-panel SE practices
+*
+* Replaces conventional cluster SE p-value with wild bootstrap p-value
+* for the main regression coefficient on {{ATTITUDE_VAR}}.
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* Re-run main regression to set e() context for boottest
+quietly reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+display "Main β: " _b[{{ATTITUDE_VAR}}] "  SE (cluster): " _se[{{ATTITUDE_VAR}}]
+
+* Wild cluster bootstrap inference (boottest >=4.0)
+capture which boottest
+if _rc == 0 {
+    boottest {{ATTITUDE_VAR}}=0, ///
+        reps({{BOOTSTRAP_REPS}}) ///
+        cluster(bank_id) ///
+        seed({{RANDOM_SEED}}) ///
+        nograph
+    display _newline "Wild bootstrap p-value (cluster=bank_id, G=84, reps={{BOOTSTRAP_REPS}}): " r(p)
+
+    * Acceptance (AC-A1, plan §4): |p_wild - p_cluster| < 0.05
+    scalar p_wild = r(p)
+    quietly reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    scalar p_cluster = 2 * (1 - normal(abs(_b[{{ATTITUDE_VAR}}] / _se[{{ATTITUDE_VAR}}])))
+    scalar p_diff = abs(p_wild - p_cluster)
+    display "p_cluster (asymptotic): " p_cluster
+    display "p_diff = " p_diff " (AC-A1: <0.05 required)"
+    display "AC-A1 passes: " (p_diff < 0.05)
+}
+else {
+    display "[WARN] boottest not installed. Run: ssc install boottest, replace"
+    display "Wild bootstrap p-value unavailable; reverting to cluster SE only."
+}
+
+* Output appendix table with both SE methods side-by-side
+* (Actual esttab output deferred to Phase 5 integration once boottest result
+* is captured; this template runs as standalone diagnostic.)
+
+display "[OK] 11b boottest diagnostic complete"

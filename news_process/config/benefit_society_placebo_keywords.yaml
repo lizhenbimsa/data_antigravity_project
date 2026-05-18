@@ -1,0 +1,102 @@
+# benefit_society — Business-line placebo keyword set
+# ============================================================================
+# V2.0 J-L-M 2026 RFS robustness alignment plan §3 Phase 1 P1.1 + P1.2:
+#
+# Per J-L-M 2026 §4.2 placebo industries methodology, this yaml defines
+# 4 BANK BUSINESS LINES (non-fintech) + 1 NEUTRAL baseline. For each line,
+# article-level filtering uses these keywords; the SAME main fintech-specific
+# 10-anchor direction vector is then projected onto the filtered subset.
+#
+# Acceptance logic (AC-S1, plan §4):
+#   If `|β_placebo / β_fintech_main| < 0.3` for ≥4/5 placebo specs, the main
+#   fintech-specific signal is not driven by general reporting tone — main
+#   measurement is robust.
+#
+# These are BASE keyword sets; user may extend via jieba TF-IDF expansion
+# (out of scope for V2.0 plan §3 Phase 1 P1.1; see [R1.A] in plan §5).
+# ============================================================================
+
+schema_version: "1.0"
+
+# 4 business-line filters (non-fintech) — used to construct placebo
+# 该业务线新闻文章应当**不**强烈响应 fintech 经营效益锚点投影
+business_lines:
+  housing_loans:
+    label_en: "Housing Loans"
+    label_zh: "住房贷款"
+    keywords:
+      - "房贷"
+      - "按揭"
+      - "个人住房贷款"
+      - "个人房贷"
+      - "住房按揭"
+      - "个人住房按揭贷款"
+      - "个贷"
+      - "商业性个人住房贷款"
+      - "公积金贷款"
+  credit_cards:
+    label_en: "Credit Cards"
+    label_zh: "信用卡"
+    keywords:
+      - "信用卡"
+      - "透支"
+      - "信用消费"
+      - "信用卡分期"
+      - "信用卡贷款"
+      - "信用卡账单"
+      - "信用卡发卡"
+      - "联名卡"
+      - "账单分期"
+  intermediate_business:
+    label_en: "Intermediate Business"
+    label_zh: "中间业务"
+    keywords:
+      - "中间业务"
+      - "手续费收入"
+      - "财富管理"
+      - "资产管理"
+      - "投行业务"
+      - "咨询服务"
+      - "代理业务"
+      - "托管业务"
+      - "委外业务"
+  branch_channel:
+    label_en: "Branch Channel"
+    label_zh: "网点渠道"
+    keywords:
+      - "营业网点"
+      - "营业部"
+      - "支行"
+      - "智能柜员机"
+      - "自助银行"
+      - "网点改造"
+      - "网点转型"
+      - "物理网点"
+      - "城市分行"
+
+# 1 neutral baseline — general bank news with no business-specific topic
+# 该过滤应当与 fintech 锚点投影完全无关 (sanity 中性词 placebo)
+neutral_baseline:
+  general_corporate:
+    label_en: "General Corporate"
+    label_zh: "通用公司事务"
+    keywords:
+      - "周年庆典"
+      - "新春茶话"
+      - "记者会"
+      - "新闻发布会"
+      - "行长会议"
+      - "党委会议"
+      - "干部任命"
+      - "组织架构调整"
+
+# Filter logic (per plan §3 P1.2):
+#   For each business line `bl`:
+#     1. Article matches if ANY keyword in `keywords` appears in 标题 OR 内容
+#     2. Construct filtered DataFrame
+#     3. Project filtered articles using MAIN 10-anchor fintech direction
+#     4. Aggregate to bank-year → `benefit_placebo_<bl>_mean` column
+#
+# Match-rate validation (per plan §5 R1.A):
+#   If any business line has < 500 matched articles, log warning and proceed;
+#   fallback to <=3 business lines + neutral if 2+ lines fail threshold.

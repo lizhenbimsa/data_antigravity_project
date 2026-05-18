@@ -1,0 +1,93 @@
+# J-L-M 2026 RFS Internet Appendix A — Chinese alternative anchor family
+# ============================================================================
+# Source:
+#   Jha, M., Liu, H., & Manela, A. (2026). Does Finance Benefit Society?
+#   A Language Embedding Approach. Review of Financial Studies, 39(5),
+#   1227-1266. https://doi.org/10.1093/rfs/hhaf012
+#   Internet Appendix Table IA.1 (b) Chinese
+#
+# Provenance:
+#   - Authors' draft date: 2025-02-19 (PDF cover)
+#   - Obtained by user from OUP RFS website: 2026-05-18
+#   - Transcribed verbatim into yaml: 2026-05-18
+#
+# Methodology context (per Appendix A footnote + §1.3.2):
+#   J-L-M follow Kozlowski, Taddy & Evans (2019, ASR) and define **5 pairs**
+#   of sentences encoding semantic dimensions:
+#     (positive − negative), (benefit − damage), (good − bad),
+#     (good − corrupt), (help − hurt)
+#   The same 5 pairs are translated into 7 languages (en/zh/fr/de/it/ru/es).
+#
+# Relationship to benefit_society project anchors (Round 9 V2.E37 clarification):
+#   benefit_society and J-L-M 2026 study **different research questions**:
+#     - benefit_society: bank fintech operational-benefit attitudes (China,
+#       firm-year, fintech-specific). 10 paper-specific anchor pairs in
+#       pipeline/features/benefit_society.py.
+#     - J-L-M 2026: broad finance sentiment across 7 languages (country-year,
+#       broad-finance). 5 K-T-E canonical anchor pairs per language.
+#   The two share the bipolar-projection METHOD (Kozlowski-Taddy-Evans 2019 ASR
+#   geometry-of-culture framework) but NOT the anchor design. Anchor counts
+#   (10 vs 5) reflect different research questions, NOT one being an
+#   extension/correction of the other.
+#
+#   This yaml is the J-L-M canonical 5-pair anchor set, used in benefit_society
+#   plan v2.0 §3 P1.3 / P2.A2 / AC-A2 as an **alternative anchor family** for
+#   robustness — to test whether benefit_society main story holds when using
+#   broad-finance (rather than fintech-specific) anchors. Expected behavior:
+#   sign-match with main 10-pair projection, but magnitude attenuated because
+#   J-L-M broad-finance anchors are less sensitive to fintech-specific signal.
+#
+# Reproducibility note (V2.E37):
+#   Pair 5 negative phrase reads "金融系统有害金融" in the published Appendix.
+#   This appears to be a translation typo (expected: "金融系统有害经济" to mirror
+#   the positive "金融系统帮助经济"). PRESERVED VERBATIM per J-L-M source for
+#   reproducibility; do not "correct" without separate decision documentation.
+# ============================================================================
+
+schema_version: "1.0"
+
+source:
+  paper: "Jha, M., Liu, H., & Manela, A. (2026). Does Finance Benefit Society? A Language Embedding Approach."
+  journal: "Review of Financial Studies"
+  volume: 39
+  issue: 5
+  pages: "1227-1266"
+  doi: "10.1093/rfs/hhaf012"
+  appendix_table: "Internet Appendix Table IA.1 (b) Chinese"
+  author_draft_date: "2025-02-19"
+  obtained_date: "2026-05-18"
+
+anchor_family: "jlm_zh_v1"
+language: "zh"
+n_pairs: 5
+methodology_reference: "Kozlowski, Taddy & Evans (2019). The Geometry of Culture. American Sociological Review 84(5), 905-949."
+
+pairs:
+  - id: 1
+    positive: "金融服务有益社会"
+    negative: "金融服务损害社会"
+    semantic_dimension: "benefit_damage"
+  - id: 2
+    positive: "金融对社会好"
+    negative: "金融对社会不好"
+    semantic_dimension: "good_bad"
+  - id: 3
+    positive: "财务专业人员大多很好"
+    negative: "财务专业人员大多邪恶"
+    semantic_dimension: "good_corrupt"
+  - id: 4
+    positive: "金融对世界产生积极影响"
+    negative: "金融对世界产生消极影响"
+    semantic_dimension: "positive_negative"
+  - id: 5
+    positive: "金融系统帮助经济"
+    negative: "金融系统有害金融"  # Appendix typo preserved verbatim (V2.E37)
+    semantic_dimension: "help_hurt"
+
+# Notes for downstream consumption:
+# - All sentences are simplified Chinese, no preprocessing applied
+# - Encoding: UTF-8
+# - For embedding via shibing624/text2vec-base-chinese (768-d): no tokenization needed
+# - Direction vector: p = (1/N) Σ_i [emb(pos_i) − emb(neg_i)],
+#   mathematically equivalent to mean(pos_embs) − mean(neg_embs)
+#   per linear additivity (see V2.0 plan §0 V1.E4 撤回)

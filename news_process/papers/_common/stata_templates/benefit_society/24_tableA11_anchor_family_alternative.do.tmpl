@@ -1,0 +1,71 @@
+* ============================================================================
+* 24_tableA11_anchor_family_alternative.do — A2 alternative anchor family
+* Paper: {{PAPER_ID}}
+*
+* V2.0 J-L-M 2026 robustness alignment plan §3 Phase 2 P2.A2 (Round 9 修正版):
+*   Compare benefit_mean (10 fintech-specific anchors, project main) vs
+*   benefit_jlm_zh (5 J-L-M canonical broad-finance anchors, K-T-E framework).
+*
+* Acceptance (AC-A2, Round 9 修正):
+*   - HARD: sign-match (β × β_main > 0)
+*   - SOFT (informative only): magnitude ratio
+*     ! Do NOT enforce ratio > 0.5 — broad-finance anchors are fintech-
+*       agnostic; magnitude attenuation is expected and not a failure.
+*
+* Anchor family identities:
+*   benefit_mean    = pipeline/features/benefit_society.py 10-pair fintech (main)
+*   benefit_jlm_zh  = config/jlm2026_chinese_anchors.yaml 5-pair J-L-M
+*                     Appendix A (broad finance, K-T-E 2019 ASR canonical)
+*
+* Data dependency: merge audit panel column benefit_jlm_zh_mean from
+*   data/processed/27c_alt_anchor_and_placebo_panel.parquet
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* ----- Spec 1: main (10-pair fintech-specific) -----
+reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+eststo A_main
+scalar b_main = _b[{{ATTITUDE_VAR}}]
+
+* ----- Spec 2: J-L-M alternative (5-pair broad-finance) -----
+capture confirm variable benefit_jlm_zh_mean
+if _rc == 0 {
+    reghdfe {{MAIN_DV}}_w benefit_jlm_zh_mean $controls, ///
+        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    eststo A_jlm
+    scalar b_jlm = _b[benefit_jlm_zh_mean]
+
+    * ----- AC-A2 sign-match acceptance -----
+    scalar sign_match = (sign(b_main) == sign(b_jlm))
+    scalar ratio_info = abs(b_jlm) / abs(b_main)  // informative only
+    display _newline "AC-A2 (Round 9 修正):"
+    display "  β_main (10-pair fintech) = " b_main
+    display "  β_jlm (5-pair broad)      = " b_jlm
+    display "  sign-match               = " sign_match " (HARD requirement)"
+    display "  magnitude ratio           = " ratio_info " (informative; magnitude attenuation expected)"
+}
+else {
+    display "[INFO] benefit_jlm_zh_mean not in panel; run 27c_placebo_and_alt_anchor.py first"
+    scalar sign_match = .
+}
+
+esttab A_* using "$tables_dir/tableA11_anchor_family_alternative.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Anchor Family Alternative (V2.0 plan A2; J-L-M 2026 Internet Appendix A)") ///
+    mtitles("Main: 10-pair fintech" "Alt: 5-pair J-L-M") ///
+    addnotes("Round 9 V2.E37 modi: benefit_society and J-L-M study DIFFERENT research questions." ///
+             "Both share K-T-E 2019 ASR bipolar-projection method, NOT anchor design." ///
+             "AC-A2: sign-match HARD; ratio informative only.")
+
+display _newline "[OK] Table A11 anchor alternative --> $tables_dir/tableA11_anchor_family_alternative.tex"

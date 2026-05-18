@@ -122,20 +122,23 @@ def test_b_route_paper_stata_templates_exist(paper_id: str) -> None:
 
 
 def test_total_template_count_77() -> None:
-    """v3.5.1: 91 templates (86 v3.5.0 + 5 v3.5.1 A1/A3 robustness).
+    """v3.5.1 + V2.0 J-L-M alignment Round 9: 95 templates (91 v3.5.1 + 4 V2.0 jlm2026).
 
     v3.3.0 baseline: 77 (14 root + 41 existing + 22 new per plan §5.5.3 R1-M01 + R1-M27).
     v3.4.0 P5 epoch 4: +7 (00_master + 01_data_prep + 15-19_collab_*) = 84 total.
     v3.5.0 D2/D4: +2 (19_table6_cell_decomposition + 25_tableA6_dual_track_residual) = 86.
     v3.5.1 A1/A3: +5 (21_substance_clarity_robustness + 19_locus_clarity_robustness
                        + 20_collab_clarity_robustness + 19_bs_num_intensity_robustness
-                       + v3_5_1/27_tableA9_num_intensity) = 91 total
-    per stage3_v3_5_1_a1_a3_supplementation_plan.md §2.5.
+                       + v3_5_1/27_tableA9_num_intensity) = 91 total.
+    V2.0 J-L-M 2026 alignment Round 9: +4 in benefit_society/
+        (22_tableA9_external_validation + 23_tableA10_placebo_business_lines
+         + 24_tableA11_anchor_family_alternative + 11b_table2_boottest) = **95 total**
+    per benefit_society_jlm2026_robustness_alignment_plan.md §3 Phase 2.
     """
     templates = list(STATA_TEMPLATES_DIR.rglob('*.do.tmpl'))
-    assert len(templates) == 91, (
-        f"Expected 91 total templates after v3.5.1 A1/A3, found {len(templates)}: "
-        f"= 86 (v3.5.0 baseline) + 5 (v3.5.1 A1 substance/locus/collab + A3 BS/P1)"
+    assert len(templates) == 95, (
+        f"Expected 95 total templates after V2.0 J-L-M alignment Round 9, found {len(templates)}: "
+        f"= 91 (v3.5.1 baseline) + 4 (V2.0 jlm2026 G4/S1/A2/A1 in benefit_society/)"
     )
 
 

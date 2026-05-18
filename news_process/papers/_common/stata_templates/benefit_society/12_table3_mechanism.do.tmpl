@@ -9,6 +9,13 @@
 * M1: Token → short-term reaction (use ROBUSTNESS_DV = CAR)
 * M2: Hidden → long-term fundamentals (use MAIN_DV = ROA)
 * M3: Substantive (alignment) → fundamentals
+* M4: Joint Token + Hidden + Subst
+*
+* V2.0 plan §3 P2.B2 (Round 9 fracreg + LPM dual model):
+*   M5/M6: Fractional logit (Papke-Wooldridge 1996 J. Applied Econometrics)
+*          + OLS LPM for fraction-bounded Y (token_adopt ∈ [0, 1]).
+*   Note: fracreg does NOT support absorb(); use bank_id dummies
+*   (Greene 2004 incidental-parameter problem caveat in §6.1 Limitations).
 * ============================================================================
 
 version 19
@@ -43,11 +50,47 @@ reghdfe {{MAIN_DV}}_w {{MECHANISM_TOKEN}} {{MECHANISM_HIDDEN}} {{MECHANISM_SUBST
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M4_joint
 
-esttab M1_token_CAR M2_hidden_ROA M3_subst_ROA M4_joint ///
+* ============================================================================
+* V2.0 plan §3 P2.B2 dual-model columns (Round 9): fractional logit + LPM
+* for fraction Y (token_adopt_kw_p50 ∈ [0,1]; verified via panel inspection).
+* ============================================================================
+
+* M5: Fractional logit (Papke-Wooldridge 1996) for Token adoption fraction
+capture confirm variable {{MECHANISM_TOKEN}}
+if !_rc {
+    quietly summarize {{MECHANISM_TOKEN}}, detail
+    if r(min) >= 0 & r(max) <= 1 {
+        * fracreg requires Y in [0, 1]; bank_id as dummy due to no absorb() support
+        capture fracreg logit {{MECHANISM_TOKEN}} {{ATTITUDE_VAR}} $controls i.bank_id i.year, ///
+            vce(cluster {{CLUSTER_VAR}})
+        if _rc == 0 {
+            eststo M5_token_fracreg
+            display "[OK] M5 fracreg logit converged"
+        }
+        else {
+            display "[WARN] M5 fracreg did not converge (rc=" _rc "); see Limitations §6.1"
+        }
+    }
+    else {
+        display "[INFO] {{MECHANISM_TOKEN}} not in [0,1]; skipping fracreg"
+    }
+}
+
+* M6: OLS LPM for same Y (sanity check; standard panel FE)
+capture confirm variable {{MECHANISM_TOKEN}}
+if !_rc {
+    reghdfe {{MECHANISM_TOKEN}} {{ATTITUDE_VAR}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M6_token_lpm
+}
+
+esttab M1_token_CAR M2_hidden_ROA M3_subst_ROA M4_joint M5_token_fracreg M6_token_lpm ///
     using "$tables_dir/table3_mechanism.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Mechanism --- Token vs Hidden Adoption (Distel 2026 + Westphal-Zajac 2001)") ///
-    mtitles("Token→CAR" "Hidden→ROA" "Subst→ROA" "Joint") ///
-    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}.")
+    mtitles("Token→CAR" "Hidden→ROA" "Subst→ROA" "Joint" "Token-FracReg" "Token-LPM") ///
+    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}." ///
+             "FracReg: Papke-Wooldridge 1996 for fraction Y in [0,1] (V2.0 plan P2.B2)." ///
+             "LPM: standard FE OLS sanity check.")
 
 display "[OK] Table 3 → $tables_dir/table3_mechanism.tex"

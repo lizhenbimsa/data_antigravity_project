@@ -73,6 +73,79 @@ Goldsmith-Pinkham \emph{et~al.}\ (2020, \emph{AER}) 外生性被删除。
 \NoteThis{Table 5 (论文专属稳健性矩阵) 源自
 \code{output/tables/table5\_*.csv}。}
 
+% ====================================================================
+% V2.0 J-L-M 2026 RFS 稳健性对齐 (Round 9 实施)
+% ====================================================================
+
+\subsection{第三方外部指标的外部验证}\label{sec:robust:g4}
+\NoteThis{依照 Jha-Liu-Manela (2026, \emph{RFS}) 第3节方法学, 我们将
+\texttt{benefit\_mean\_full} 与银行级第三方外部指标进行交叉验证。J-L-M 使用
+国家级 credit/GDP/Gini 指标; 我们将\emph{相同}方法学转用到银行级外部 Y:
+同业存单 (NCD) 利差、监管处罚频次、SOA 评级。预期方向: NCD 利差 $\downarrow$、
+处罚 $\downarrow$、评级 $\uparrow$ (随 benefit-attitude 上升)。Table A9 来自
+\code{output/tables/tableA9\_external\_validation.csv}。}
+
+\subsection{安慰剂行业: 银行内部业务线过滤}\label{sec:robust:s1}
+\NoteThis{依照 J-L-M (2026) §4.2 placebo industries 方法学, 我们\emph{固定}
+主 10 对 fintech 专属锚点方向, 转而变化\emph{文章过滤}范围: 住房贷款、信用卡、
+中间业务、网点渠道, 加 1 个中性词基线。如果主信号确为 fintech 领域专属, 投影到
+非 fintech 子集上不应预测 ROA。验收阈值: 5 个 placebo 中至少 4 个满足
+$|\beta_{\text{placebo}}/\beta_{\text{main}}|<0.3$。Table A10 来自
+\code{output/tables/tableA10\_placebo\_business\_lines.csv}。}
+
+\subsection{替代锚点 family: J-L-M canonical 5 对}\label{sec:robust:a2}
+\NoteThis{我们使用 J-L-M (2026) Internet Appendix A 中文 5 对 canonical
+锚点 (Kozlowski-Taddy-Evans 2019, \emph{ASR} 框架) 重做投影。\emph{这是两个
+不同的研究问题, 共享同一方法学}: 我们 10 对锚点针对 fintech 经营效益态度,
+J-L-M 5 对针对广义金融情绪。预期 sign-match 一致但 magnitude 会衰减,
+因为 J-L-M 广义金融锚点设计上对 fintech 信号不敏感。验收: sign-match 硬要求,
+magnitude ratio 仅作 informative 报告。Table A11 来自
+\code{output/tables/tableA11\_anchor\_family\_alternative.csv}。}
+
+\section{讨论}\label{sec:discussion}
+
+\subsection{测量与识别的局限性}\label{sec:disc:limit}
+\NoteThis{依照 Jha-Liu-Manela (2026) §6.1 议事录传统, 我们公开承认五类局限:
+\begin{enumerate}
+  \item \textbf{面板时间跨度}: 当前 84 银行、2 年 ($T=2$, 2017--2018) panel
+        限制了时间序列检验; fintech 监管事件 event-study 与
+        local-projection 脉冲响应推迟到 panel 扩展到 $T\geq10$ (M0.5 里程碑)
+        之后。
+  \item \textbf{article-level vs sentence-level 投影}: J-L-M 投影 sentence
+        embedding (Google Books Ngram corpus 是句子级); 我们的新闻 corpus 是
+        文章级。双极投影方法不变, 测量单元有差异。
+        \code{core/text/cn\_text\_utils.py} (v3.5.2) 已具备中文 sentence
+        splitter 基础设施供后续 sentence-level 稳健性使用。
+  \item \textbf{Embedding 模型容量}: 使用
+        \texttt{shibing624/text2vec-base-chinese} (768 维 HuggingFace
+        sentence-transformer), 公开可复现。Embedding 模型选择的稳健性已被
+        承认, 但当前版本未穷尽对比。
+  \item \textbf{Cohort 范围}: 分析限于 PAP v1.0-final 84 银行 cohort
+        (五大国有 + 股份制 + 城商), 完整 1839 银行 universe 未被分析。
+        对非 cohort 机构的推广需要单独的实证检验。
+  \item \textbf{跨 corpus 比较}: J-L-M 分析 Google Books Ngram (多语种,
+        1870--2009); 我们分析中文金融新闻 (单语种, 2017--2018)。Corpus
+        体裁、出版滞后、编辑过滤都存在差异。银行固定效应吸收稳定的
+        跨银行测量误差。
+\end{enumerate}
+}
+
+\subsection{贡献声明}\label{sec:disc:contrib}
+\NoteThis{我们相对 Jha-Liu-Manela (2026) 的贡献有三, 这使本文区别于 J-L-M
+的"中国版 replication":
+\begin{enumerate}
+  \item \textbf{观测单元}: 银行年度 firm-level (而非国家年度 macro), 借助
+        细粒度固定效应实现 within-bank within-year 识别。
+  \item \textbf{outcome 变量}: Token/Hidden 采纳机制
+        (Distel-Grimpe-Poetz 2026, Westphal-Zajac 2001 decoupling 框架),
+        而非 J-L-M 的宏观 GDP/credit/Gini outcomes。
+  \item \textbf{测量设计}: 10 对 fintech-specific 锚点集 + 双轨 full/ctx
+        投影 (entity-context masking), 区别于 J-L-M 5 对广义 finance
+        canonical 锚点。第\ref{sec:robust:a2}节提供两个锚点 family 的
+        交叉验证。
+\end{enumerate}
+}
+
 \section{结论}\label{sec:concl}
 \NoteThis{最终讨论与政策含义。}
 

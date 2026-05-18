@@ -94,6 +94,13 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'ROBUSTNESS_DV': 'CAR',
         'BOOTSTRAP_REPS': '999',  # F-R5-H1 wild cluster bootstrap
         'RANDOM_SEED': '20260516',  # F-R6-M2
+        # V2.0 J-L-M 2026 alignment Round 9: P2.G4 external Y placeholders.
+        # Actual column names depend on UA-2 data acquisition (Wind / 银保监 /
+        # CSMAR); defaults below are sentinel names that allow template build to
+        # succeed; Stata `capture confirm variable` falls through if absent.
+        'EXT_Y1': 'ncd_spread_3m',           # NCD spread (predicted ↓)
+        'EXT_Y2': 'regulatory_penalty_n',    # 监管处罚频次 (predicted ↓)
+        'EXT_Y3': 'soa_rating_score',        # SOA / Wind rating (predicted ↑)
     },
     'brokerage_network': {
         'PAPER_ID': 'brokerage_network',

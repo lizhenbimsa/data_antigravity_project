@@ -93,6 +93,35 @@ def build_table_8b_shrinkage_dual(paper_config: PaperConfig | None = None) -> pd
     return read_paper_esttab('benefit_society', 'table8b_shrinkage_dual.csv', paper_config)
 
 
+# ============================================================================
+# V2.0 J-L-M 2026 robustness alignment (Round 9 implementation)
+# ============================================================================
+
+
+def build_table_a9_external_validation(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table A9: External validation against firm-level third-party indicators (G4)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab(
+        'benefit_society', 'tableA9_external_validation.csv', paper_config
+    )
+
+
+def build_table_a10_placebo(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table A10: Placebo business-line robustness (S1, J-L-M §4.2 transposed)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab(
+        'benefit_society', 'tableA10_placebo_business_lines.csv', paper_config
+    )
+
+
+def build_table_a11_anchor_alt(paper_config: PaperConfig | None = None) -> pd.DataFrame:
+    """Table A11: Alternative anchor family (A2, J-L-M canonical 5-pair vs main 10-pair)."""
+    from news_process.papers._common.stata_postprocess import read_paper_esttab
+    return read_paper_esttab(
+        'benefit_society', 'tableA11_anchor_family_alternative.csv', paper_config
+    )
+
+
 __all__ = [
     'build_table1', 'write_table1',
     'build_table2_main', 'build_table3_mechanism',
@@ -100,4 +129,8 @@ __all__ = [
     'build_table_a1_inter_track_kappa',
     'build_table_a2_attitude_track_switch',
     'build_table_8b_shrinkage_dual',
+    # V2.0 J-L-M 2026 alignment (Round 9)
+    'build_table_a9_external_validation',
+    'build_table_a10_placebo',
+    'build_table_a11_anchor_alt',
 ]

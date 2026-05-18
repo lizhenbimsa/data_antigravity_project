@@ -3,7 +3,7 @@
 # Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
 
 paper_id: benefit_society
-spec_version: 2.0.0
+spec_version: 2.1.0  # bumped per V2.0 jlm2026-alignment plan §3 P3.6 (Round 9: add jlm2026 robustness table refs)
 status: existing
 differentiation_claim: |
   benefit_society 用 LLM-Embedding 双极锚点投影 (a_j = cos(s_j, pos-neg)) 测度
@@ -63,3 +63,24 @@ tables:
       dual_track: true  # 真双轨 (修 R3-C2)
   tA9:
     template: null
+
+# v2.1.0 (Round 9 V2.0 jlm2026-alignment) — paper-specific extension tables.
+# These are NOT in master plan §5.2.3.bis schema (test_paper_spec_schema.py
+# does not strict-enforce extra keys); kept in benefit_society spec for
+# downstream stata_runner / tables.py builders to locate templates.
+jlm2026_robustness_tables:
+  external_validation:   # G4 — §3 J-L-M External Validation
+    template: 22_tableA9_external_validation
+    note: "≥2 firm-level external Y vs benefit_mean (sign-match acceptance)"
+  placebo_business_lines:  # S1 — §4.2 placebo industries (business-line variant)
+    template: 23_tableA10_placebo_business_lines
+    note: "4 business-line + 1 neutral; AC: |β_placebo/β_main|<0.3 for ≥4/5"
+  anchor_family_alternative:  # A2 — alternative anchor family
+    template: 24_tableA11_anchor_family_alternative
+    note: "J-L-M 5-pair canonical (broad-finance) vs 10-pair fintech-specific; sign-match"
+  mechanism_dual_model:  # B2 — fracreg + LPM dual model
+    template_update: 12_table3_mechanism  # updates existing template
+    note: "fractional logit (Papke-Wooldridge 1996) + OLS LPM with bank FE"
+  wild_bootstrap_se:  # A1 — wild cluster bootstrap on G_bank=84
+    note: "Side-column annotation in tables 11/12/13/14 main regression .do.tmpl"
+
