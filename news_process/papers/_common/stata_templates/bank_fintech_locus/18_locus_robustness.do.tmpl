@@ -34,10 +34,23 @@ reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
 boottest locus_layer_full, reps(9999) seed({{RANDOM_SEED}})
 eststo wild_boot
 
-* (5) ritest randomization
-* ritest locus_layer_full _b[locus_layer_full], reps(1000): ///
-*     reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
-*         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+* (5) ritest randomization inference (Young 2019 QJE; MacKinnon-Webb 2020 JBES)
+* v3.6.1 PR #7 启用; SSC 自动检测, 装不上则跳过 (G-C2.0 准入门控由 v2.3).
+capture which ritest
+if _rc != 0 {
+    capture ssc install ritest, replace
+}
+capture which ritest
+if _rc == 0 {
+    ritest locus_layer_full _b[locus_layer_full], reps(1000) seed({{RANDOM_SEED}}) ///
+        cluster(bank_id) strata(year): ///
+        reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo ritest_ri
+}
+else {
+    display "  ⚠️ ritest not installed (ssc install ritest); randomization inference 跳过"
+}
 
 * (6) Spillover SUTVA
 

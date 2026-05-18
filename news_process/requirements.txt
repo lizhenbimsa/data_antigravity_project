@@ -48,6 +48,9 @@ PyYAML>=6.0,<7.0
 
 # HTTP 异步请求 (LLM API)
 aiohttp>=3.8.0,<4.0.0
+# v3.7.0 PR #13 (D4 LLM CEO NER): 同步 yunwu 调用 (与 stage 21 async 共存);
+# anaconda 默认装, 但显式 declare 以保 pip-only 用户兼容性.
+requests>=2.31.0,<3.0.0
 
 # Tokenization for OpenAI-compatible embedding limits
 tiktoken>=0.7.0,<1.0.0
@@ -93,3 +96,24 @@ pytest-asyncio>=0.20,<2.0
 # check-prompt-headers + ruff check (见 .pre-commit-config.yaml)
 # V8 P-1: 同上, 已迁入 pyproject [project.optional-dependencies].dev
 pre-commit>=3.0.0,<5.0.0
+
+# ─────────────────────────────────────────────────────────────────────
+# v3.7.0 待启用依赖 (PR #8.5, 默认注释化, 实施 D 组前由用户 uncomment)
+# 设计动机:
+#   D1 BERTopic + UMAP + HDBSCAN: article-level narrative topic
+#   D2 Faiss: semantic staleness LSH (cosine, 与 datasketch MinHash 互补)
+#   D3 krippendorff: 跨媒体一致性 α (与 stage 39a Cohen κ 同 family)
+# 启用步骤:
+#   1. 取消下方 5 行注释
+#   2. pip install -r news_process/requirements.txt
+#   3. pip-compile pyproject.toml → 同步 requirements.lock
+# HF 网络限制:
+#   按 CLAUDE.md memory `hf_network`, BERTopic 默认 all-MiniLM-L6-v2 不可下;
+#   D1 实施时必须 ``BERTopic(embedding_model=None)`` + 传入项目已用的
+#   shibing624/text2vec-base-chinese (已在本机 HF cache).
+# ─────────────────────────────────────────────────────────────────────
+# bertopic>=0.16.0,<1.0.0
+# umap-learn>=0.5.0,<1.0.0
+# hdbscan>=0.8.30,<1.0.0
+# faiss-cpu>=1.7.4,<2.0.0
+# krippendorff>=0.5.0,<1.0.0
