@@ -276,6 +276,42 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         'frac_amb_articles_full', 'frac_amb_articles_ctx',
         # v3.5.1 A3 Numerical Intensity (Hales 2011 CAR) — 2 列全进 core
         'mean_num_intensity_full', 'mean_num_intensity_ctx',
+        # ─────────────────────────────────────────────────────────────
+        # v3.5.2 PR #14 集成 — A1 LM 4 子词典 + A2 FLS (本批列在 v3.5.2
+        # PR #3 panel 集成完成前会被 ``if c in df.columns`` 过滤; append-only
+        # 不破坏 v3.6.0 已 frozen 契约).
+        # ─────────────────────────────────────────────────────────────
+        # A1 LM 2011 JF non-sentiment 4 子词典 (8 列双轨)
+        'uncert_frac_full', 'uncert_frac_ctx',
+        'litig_frac_full', 'litig_frac_ctx',
+        'constr_frac_full', 'constr_frac_ctx',
+        'modal_strong_frac_full', 'modal_strong_frac_ctx',
+        # A2 Forward-Looking Statements (Li 2010 JAR) — 2 列双轨
+        'frac_fls_full', 'frac_fls_ctx',
+        # ─────────────────────────────────────────────────────────────
+        # v3.6.1 PR #14 集成 — C1 媒体 3 级 tier + B1 EPU 中国版
+        # ─────────────────────────────────────────────────────────────
+        # C1 媒体 tier 加权 (sensitivity, 不替换原 media_authority_weight)
+        'media_authority_weight_tier', 'media_tier_label',
+        # B1 EPU 中国版 (Baker-Bloom-Davis 2016 QJE)
+        'epu_mean_year', 'epu_year_end', 'epu_std_year', 'epu_data_complete',
+        # ─────────────────────────────────────────────────────────────
+        # v3.7.0 PR #14 集成 — D 组 (BERTopic / staleness / α / CEO NER)
+        # 详细列名见 sidecar JSON ``17_topic_metadata.json``;
+        # frac_topic_k_{full,ctx} × K 在 K 确定后由集成 PR 补全.
+        # ─────────────────────────────────────────────────────────────
+        # D1 BERTopic 主题聚焦度
+        'topic_hhi_full', 'topic_hhi_ctx',
+        # D2 staleness 双指标
+        'surface_staleness_full', 'surface_staleness_ctx',
+        'semantic_staleness_full', 'semantic_staleness_ctx',
+        # D3 Krippendorff α (与第 10 篇 bank_media_disagreement 对齐)
+        'cross_outlet_tone_variance_full', 'cross_outlet_tone_variance_ctx',
+        'cross_media_alpha_full', 'cross_media_alpha_ctx',
+        # D4 LLM CEO NER
+        'n_ceo_mentions_full', 'n_ceo_mentions_ctx',
+        'n_unique_execs_full', 'n_unique_execs_ctx',
+        'exec_hhi_full', 'exec_hhi_ctx',
     ]
 
     core = [c for c in core_patterns if c in df.columns]

@@ -111,8 +111,9 @@ def test_dag_registration():
     assert "39a_inter_track_kappa.py" in scripts
     assert "39c_construct_orthogonality.py" in scripts, "v3.5.0 D3 stage missing"
     assert "39d_lexical_discriminant_validity.py" in scripts, "v3.5.1 stage 39d missing"
-    assert len(dag.STAGES_VALIDATION) == 15, (
-        f"v3.5.1 expects 15 validation stages (13 v3.4.0 + 39c v3.5.0 + 39d v3.5.1); "
+    assert len(dag.STAGES_VALIDATION) == 17, (
+        f"v3.5.1 + v2.3 expects 17 validation stages "
+        f"(13 v3.4.0 + 39c v3.5.0 + 39d v3.5.1 + 39e v2.3 PR-A + 39f v2.3 PR-D); "
         f"got {len(dag.STAGES_VALIDATION)}"
     )
 
