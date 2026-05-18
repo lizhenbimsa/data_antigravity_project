@@ -15,14 +15,14 @@ local project_root "F:/WiseSearch/data_antigravity_project"
 cd "`project_root'"
 
 * 检查必要包安装
-do "papers/bank_media_disagreement/replication/code/00_install_packages.do"
+do "news_process/papers/bank_media_disagreement/replication/code/00_install_packages.do"
 
 * 数据准备
-do "papers/bank_media_disagreement/replication/code/01_data_prep.do"
+do "news_process/papers/bank_media_disagreement/replication/code/01_data_prep.do"
 
 * === Tables (论文主体) ===
-do "papers/bank_media_disagreement/replication/code/11_table2_main_disagreement_risk.do"
-do "papers/bank_media_disagreement/replication/code/13_table4_heterogeneity.do"
+do "news_process/papers/bank_media_disagreement/replication/code/11_table2_main_disagreement_risk.do"
+do "news_process/papers/bank_media_disagreement/replication/code/13_table4_heterogeneity.do"
 
 display ""
 display "=========================================="

@@ -13,12 +13,12 @@ set more off
 local project_root "F:/WiseSearch/data_antigravity_project"
 cd "`project_root'"
 
-do "papers/bank_news_clarity/replication/code/00_install_packages.do"
-do "papers/bank_news_clarity/replication/code/01_data_prep.do"
+do "news_process/papers/bank_news_clarity/replication/code/00_install_packages.do"
+do "news_process/papers/bank_news_clarity/replication/code/01_data_prep.do"
 
 * === Tables ===
-do "papers/bank_news_clarity/replication/code/11_table2_main_clarity_risk.do"
-do "papers/bank_news_clarity/replication/code/13_table4_heterogeneity.do"
+do "news_process/papers/bank_news_clarity/replication/code/11_table2_main_clarity_risk.do"
+do "news_process/papers/bank_news_clarity/replication/code/13_table4_heterogeneity.do"
 
 display ""
 display "=========================================="
