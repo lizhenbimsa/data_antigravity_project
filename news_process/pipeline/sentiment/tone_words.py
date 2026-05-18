@@ -74,9 +74,18 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
+# v3.5.2 PR #3 集成: A1 LM 4 子词典 (uncert/litig/constr/modal_strong) + A2 FLS.
+# 复用 v3.5.1 真双轨架构 (_dual_analyze 内对 content_full + content_ctx 各扫一次).
 from news_process.core.config import load_config
 from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 from news_process.core.reporting import safe_save_preview_csv
+from news_process.pipeline.sentiment.forward_looking import (  # noqa: E402
+    compute_fls_for_text,
+)
+from news_process.pipeline.sentiment.lm_non_sentiment import (  # noqa: E402
+    _compute_lm_non_sentiment_for_text,
+    load_lm_non_sentiment_dicts,
+)
 
 try:
     import jieba
@@ -967,6 +976,8 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     # content_ctx 由阶段 21 预计算并物化为列，直接读取以确保三种方法输入一致
     # v3.5.1 A1: 加载 clarity 词典 (lazy, batch 内 1 次)
     _def_set, _amb_set = load_clarity_dictionaries()
+    # v3.5.2 PR #3: 加载 LM 4 子词典 (lru_cache 全局单例; 第 2 次调用 O(1))
+    _lm_dicts = load_lm_non_sentiment_dicts()
 
     def _dual_analyze(row):
         content_full = str(row.get('内容', ''))
@@ -995,6 +1006,22 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             merged[f'clarity_{k}_full'] = v
         for k, v in clarity_ctx.items():
             merged[f'clarity_{k}_ctx'] = v
+
+        # v3.5.2 PR #3 (A1): LM 4 non-sentiment 子词典真双轨扫描.
+        # 关键 4 panel 列: uncert_frac_{full,ctx} / litig_frac_{full,ctx} /
+        # constr_frac_{full,ctx} / modal_strong_frac_{full,ctx}.
+        lm_full = _compute_lm_non_sentiment_for_text(content_full, _lm_dicts)
+        lm_ctx = _compute_lm_non_sentiment_for_text(content_ctx, _lm_dicts)
+        for k in ('uncert', 'litig', 'constr', 'modal_strong'):
+            merged[f'{k}_frac_full'] = lm_full.get(f'frac_{k}', float('nan'))
+            merged[f'{k}_frac_ctx'] = lm_ctx.get(f'frac_{k}', float('nan'))
+
+        # v3.5.2 PR #3 (A2): Forward-Looking Statements 比例真双轨.
+        fls_full = compute_fls_for_text(content_full)
+        fls_ctx = compute_fls_for_text(content_ctx)
+        merged['frac_fls_full'] = fls_full.get('frac_fls', float('nan'))
+        merged['frac_fls_ctx'] = fls_ctx.get('frac_fls', float('nan'))
+
         return merged
 
     results = df.apply(_dual_analyze, axis=1)
@@ -1061,6 +1088,22 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         for track in ['_full', '_ctx']:
             col_key = f'clarity_{col}{track}'
             new_columns[col_key] = results.apply(lambda r, k=col_key: r.get(k, float('nan')))
+
+    # ── v3.5.2 PR #3 (A1 LM 4 子词典 + A2 FLS) 真双轨列提取 ──
+    # A1: uncert_frac_{full,ctx} / litig_frac_{full,ctx} / constr_frac_{full,ctx}
+    #     / modal_strong_frac_{full,ctx}
+    # A2: frac_fls_{full,ctx}
+    # title 轨不纳入 (与 clarity 同款决策, R3-H1 锁定 — title 文本 < 50 字符).
+    lm_a2_metric_cols = [
+        'uncert_frac', 'litig_frac', 'constr_frac', 'modal_strong_frac',
+        'frac_fls',
+    ]
+    for col in lm_a2_metric_cols:
+        for track in ['_full', '_ctx']:
+            col_key = f'{col}{track}'
+            new_columns[col_key] = results.apply(
+                lambda r, k=col_key: r.get(k, float('nan'))
+            )
 
     if new_columns:
         df = pd.concat([df, pd.DataFrame(new_columns, index=df.index)], axis=1).copy()
