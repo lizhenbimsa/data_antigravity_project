@@ -142,8 +142,11 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
         return pd.DataFrame()
     np.fill_diagonal(obs_htmt.values, np.nan)
     obs_max = obs_htmt.max().max()
+    # Layer 8.1 (v2.3-followup-v2 第 17 轮 user-request): perm 100 stub → n_perm reps.
+    # 与 stage 39c/39d v3.5.0/v3.5.1 1000-rep 基线对齐 (Henseler-Ringle-
+    # Sarstedt 2015 JAMS 建议 ≥ 500; 项目 stage 39d 用 1000 seed=42).
     perm_max = []
-    for _ in range(min(n_perm, 100)):  # stub: 100 reps 而非 1000
+    for _ in range(n_perm):
         shuffled = panel[present].apply(lambda c: rng.permutation(c.values))
         h = shuffled.corr().abs()
         np.fill_diagonal(h.values, np.nan)
@@ -155,7 +158,7 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
         'perm_htmt_max_p95': float(np.percentile(perm_max, 95)),
         'p_empirical': p_emp,
         'n_perm': len(perm_max),
-        'note': 'stub: 100 reps; 完整 1000 reps 由 PR #14 启用',
+        'note': f'{n_perm} reps (与 stage 39d 1000-rep 基线对齐); seed={seed}',
     }])
 
 

@@ -35,14 +35,17 @@ class TestLmNonSentimentLoad:
             assert isinstance(v, frozenset)
             assert len(v) > 0, f"{k} 词典为空"
 
-    def test_v01_stub_size_within_range(self):
-        # v0.1 stub: 25-50 词/类 (LM 2011 原版的 12-23% 覆盖)
+    def test_v01_5_stub_size_within_range(self):
+        # v0.1.5 (v2.3-followup-v2 第 17 轮 user-request 扩展):
+        # uncertainty 85 / litigious 105 / constraining 77 / modal_strong 52
+        # USER_ACTION_REQUIRED v0.2: 上限 500 预留中文金融专家审定后扩容
         from news_process.pipeline.sentiment.lm_non_sentiment import (
             load_lm_non_sentiment_dicts,
         )
         d = load_lm_non_sentiment_dicts()
         for k, v in d.items():
-            assert 20 <= len(v) <= 100, f"{k} 词数 {len(v)} 超出 v0.1 stub 预期范围"
+            assert 20 <= len(v) <= 500, \
+                f"{k} 词数 {len(v)} 超出 v0.1.5/v0.2 预期范围"
 
     def test_lru_cache_idempotent(self):
         from news_process.pipeline.sentiment.lm_non_sentiment import (

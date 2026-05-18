@@ -1,0 +1,213 @@
+{
+  "_meta": {
+    "name": "v2.3 implementation sidecar constants",
+    "purpose": "Append-only frozen constants for v2.3 PR #1-#14 reproducibility",
+    "version": "v2.3-followup-v2 (2026-05-18, 第 17 轮 user-request 重建)",
+    "modeled_after": "data/processed/v3_5_1_constants.json (v3.5.1 真双轨 sidecar)",
+    "why_sidecar": "parquet.attrs 在 pyarrow round-trip 中不持久 (v3.5.1 R3-H4 修复经验); v2.3 frozen 常量持久化为独立 JSON 防止序列化丢失"
+  },
+  "v3_5_2_pr_1_cn_text_utils": {
+    "module": "news_process.core.text.cn_text_utils",
+    "jieba_version": "0.42.1 (frozen at D0, CLAUDE.md memory)",
+    "stopwords_size_target": "100-300",
+    "sentence_splitter_accuracy_target": "≥ 95% on 1000 句人工分句 (G-S4)",
+    "test_count": 50
+  },
+  "v3_5_2_pr_2_3_lm_fls": {
+    "lm_dict_path": "config/lm_non_sentiment_dicts.json",
+    "lm_version": "v0.1.5 (实测词数)",
+    "lm_status": "AWAITING_EXPERT_AUDIT_FOR_V0_2",
+    "lm_actual_word_counts_v0_1_5": {
+      "uncertainty": 83,
+      "litigious": 104,
+      "constraining": 76,
+      "modal_strong": 51,
+      "total": 314
+    },
+    "lm_coverage_lm_2011": {
+      "uncertainty": "83/285 ≈ 29%",
+      "litigious": "104/731 ≈ 14%",
+      "constraining": "76/184 ≈ 41%",
+      "modal_strong": "51/19 ≈ 268% (中文表达比英文丰富)"
+    },
+    "fls_future_words_count": 72,
+    "fls_time_markers_count": 59,
+    "fls_double_gate": "句子级 future 词 AND time 词 双门控判定",
+    "stage_22_integration_verified": true,
+    "panel_columns_added": [
+      "uncert_frac_full", "uncert_frac_ctx",
+      "litig_frac_full", "litig_frac_ctx",
+      "constr_frac_full", "constr_frac_ctx",
+      "modal_strong_frac_full", "modal_strong_frac_ctx",
+      "frac_fls_full", "frac_fls_ctx"
+    ],
+    "anchor_papers": [
+      "Loughran & McDonald (2011) JF 66(1):35-65",
+      "Li (2010) JAR 48(5):1049-1102",
+      "Bochkay et al. (2020) TAR 95(2):31-60"
+    ],
+    "user_action_required_v0_2": "中文金融专家审定 1 人·周 + LM 2011 原版完整 1219 词覆盖 + 500 句 FLS 人工标注 precision ≥ 0.80"
+  },
+  "v3_5_2_pr_4_stage_39e": {
+    "module": "news_process.pipeline.audit.lm_discriminant_validity",
+    "shim": "39e_lm_discriminant_validity.py",
+    "htmt_strict_cutoff": 0.85,
+    "htmt_lenient_cutoff": 0.90,
+    "permutation_n_reps": 1000,
+    "permutation_seed": 42,
+    "indicators_6_dim_ctx": [
+      "uncert_frac_ctx", "litig_frac_ctx", "constr_frac_ctx",
+      "modal_strong_frac_ctx", "mean_clarity_score_ctx", "mean_num_intensity_ctx"
+    ],
+    "g_a1_2_gate": "panel-level HTMT < 0.85 on ~9000 bank-year obs",
+    "user_action_required": "依赖 M0 panel 扩展 (Layer 4.1, 见 v2_3_remaining_user_work.md) + 启用 5 v3.7.0 包"
+  },
+  "v3_6_1_pr_5_epu": {
+    "module": "news_process.pipeline.external.epu_merge",
+    "shim": "16_epu_merge.py",
+    "expected_csv_path": "data/external/epu_china_monthly_2007_2024.csv",
+    "expected_csv_schema": "year,month,epu",
+    "g_b1_1_gate": "实测覆盖 2007-2024",
+    "g_b1_2_gate": "corr(epu, gdp_growth) < 0.7",
+    "fallback_sources": [
+      "Davis-Liu-Sheng (2019) NBER 中国本土版",
+      "Huang & Luk (2020) 中国 mainland-paper EPU"
+    ],
+    "anchor_paper": "Baker, Bloom & Davis (2016) QJE 131(4):1593-1636",
+    "user_action_required": "policyuncertainty.com 下载 EPU 中国 CSV → data/external/ (Layer 2.2)"
+  },
+  "v3_6_1_pr_6_media_tier": {
+    "function": "compute_media_tier_weights",
+    "module": "news_process.pipeline.panel.encode",
+    "caller": "pipeline.panel.runner:267 (P0.1 修复后真接入)",
+    "weights_default": {"central": 2.5, "financial": 2.0, "comprehensive": 1.5, "other": 1.0},
+    "priority": "financial > comprehensive > central (双归属优先 comprehensive)",
+    "classification_source": "config/media_classification.json (central 171 + financial 15 + comprehensive 27)",
+    "append_only": true,
+    "main_spec_unchanged": "media_authority_weight 列保持 v3.6.0 连续值, _tier 列仅 sensitivity",
+    "anchor_papers": [
+      "Solomon (2012) RFS 25(8):3306-3322",
+      "Engelberg & Parsons (2011) JF 66(1):67-97"
+    ]
+  },
+  "v3_6_1_pr_7_ritest": {
+    "stata_packages_required": ["ritest", "boottest"],
+    "ssc_install_commands": ["ssc install ritest, replace", "ssc install boottest, replace"],
+    "reps_per_paper": 1000,
+    "seed": 42,
+    "papers_updated": [
+      "bank_fintech_locus/18_locus_robustness.do.tmpl",
+      "bank_fintech_substance/18_substance_robustness.do.tmpl",
+      "bank_fintech_attention/18_attention_robustness.do.tmpl",
+      "bank_fintech_collab/18_collab_robustness.do.tmpl"
+    ],
+    "anchor_papers": [
+      "Young (2019) QJE 134(2):557-598",
+      "MacKinnon & Webb (2020) JBES 38(3):695-708"
+    ],
+    "user_action_required": "本地 Stata MP 19.5 `ssc install ritest, replace` (Layer 2.3)"
+  },
+  "v3_6_1_pr_8_5_requirements": {
+    "added_packages": ["requests>=2.31.0,<3.0.0"],
+    "commented_v3_7_0_packages": [
+      "bertopic>=0.16.0,<1.0.0",
+      "umap-learn>=0.5.0,<1.0.0",
+      "hdbscan>=0.8.30,<1.0.0",
+      "faiss-cpu>=1.7.4,<2.0.0",
+      "krippendorff>=0.5.0,<1.0.0"
+    ],
+    "enabling_steps": "取消注释 + pip install -r requirements.txt",
+    "user_action_required": "Layer 2.1 — 用户命令行启用 5 包"
+  },
+  "v3_7_0_pr_9_sbert_persist": {
+    "shim": "30a_article_sbert.py",
+    "sbert_model": "shibing624/text2vec-base-chinese",
+    "truncation_strategy": "Bybee 2024 风格: 标题 100 字 + 首段 300 字",
+    "embedding_dim": 768,
+    "storage_estimate_400k": "~2.5 GB",
+    "anchor_paper": "Bybee, Kelly, Manela & Xiu (2024) RFS 37(3):887-936",
+    "user_action_required": "Layer 4.2 — 400k articles × 768 dim × 2 轨编码 (GPU 2 h / CPU 4-6 h)"
+  },
+  "v3_7_0_pr_10_bertopic": {
+    "shim": "17_article_topic.py",
+    "umap_params": {"n_neighbors": 15, "n_components": 5, "min_dist": 0.0, "metric": "cosine", "random_state": 42},
+    "hdbscan_params": {"min_cluster_size": 5000, "metric": "euclidean", "cluster_selection_method": "eom"},
+    "vectorizer_tokenizer": "cn_tokenize (jieba + CN_FIN_STOPWORDS)",
+    "embedding_model_none": "绕过 BERTopic 默认 all-MiniLM 下载 (HF 网络限制)",
+    "g_d1_2_gate": "K ≥ 10 + c-TF-IDF top-10 词 ≥ 80% 中文金融专家可解读",
+    "user_action_required": "Layer 4.3 — UMAP+HDBSCAN 4-6 h MP 64-core + 专家解读"
+  },
+  "v3_7_0_pr_11_staleness": {
+    "shim": "18_article_staleness.py",
+    "window_days": 7,
+    "shingle_size": 3,
+    "minhash_num_perm": 128,
+    "algorithm_complexity": "O(N × WINDOW_DAYS) (修第 11 轮自审 S1.3 O(N²) 灾难)",
+    "speedup_400k": "~50000× (原 10+ 天 → 现 20 min)",
+    "duals": {"surface": "MinHash + datasketch jaccard", "semantic": "Faiss + SBERT cosine"},
+    "g_d2_1_gate": "surface vs semantic corr ∈ [0.3, 0.7]",
+    "anchor_papers": ["Tetlock (2011) JF 66(5):1481-1512", "Gentzkow et al. (2019) JEL 57(3)"]
+  },
+  "v3_7_0_pr_12_alpha": {
+    "shim": "39f_cross_media_alpha.py",
+    "event_window_days": 3,
+    "min_outlets_per_event": 2,
+    "matrix_design": "outlet × day (raters × items); NaN 填充无报道 (修第 11 轮自审 S2.3)",
+    "outputs": ["cross_outlet_tone_variance", "cross_media_alpha"],
+    "overlap_warning": "与 v3.7.0 第 10 篇 bank_media_disagreement 直接重叠",
+    "anchor_papers": ["Krippendorff (2004) SAGE", "Tetlock (2007) JF 62(3):1139-1168"],
+    "user_action_required": "Layer 6.1 — 与第 10 篇作者协调 spec 后启用"
+  },
+  "v3_7_0_pr_13_ceo_ner": {
+    "shim": "19_executive_ner.py",
+    "llm_model": "gpt-5.4-nano (yunwu compatible)",
+    "api_endpoint_env": "YUNWU_BASE_URL (默认 https://yunwu.ai/v1)",
+    "api_key_env": "YUNWU_API_KEY",
+    "cost_estimate_400k": "~$12 USD (100% miss; LLMCache 命中后降至 $4-6)",
+    "g_d4_1_gate": "200 篇 gold standard precision ≥ 0.85, recall ≥ 0.75",
+    "dc3_archive_integration": "pipeline.llm_archive.archive.archive_record",
+    "anchor_papers": [
+      "Kaustia & Rantapuska (2016) JFM 29:1-26",
+      "Bushee, Gow & Taylor (2018) JAR 56(1):85-121",
+      "Malmendier & Tate (2009) QJE 124(4):1593-1638"
+    ],
+    "user_action_required": "Layer 4.5 — yunwu API key + $12 预算 + 200 篇人工标注 gold standard"
+  },
+  "v2_3_pr_14_integration": {
+    "schemas_output_registry_added_stages": [
+      "16_epu_merge.py", "17_article_topic.py", "18_article_staleness.py",
+      "19_executive_ner.py", "30a_article_sbert.py"
+    ],
+    "schemas_expected_no_output_added_stages": [
+      "39e_lm_discriminant_validity.py", "39f_cross_media_alpha.py"
+    ],
+    "dag_stages_main_count": "15 → 20 (+5 stages)",
+    "dag_stages_validation_count": "15 → 17 (+2 stages)",
+    "validation_preds_added": ["lm_discriminant_validity", "cross_media_alpha"],
+    "stata_export_core_patterns_added_cols": 28,
+    "shim_count": "32 → 39 (v3.7.0 baseline 32 含 stage 49; v2.3 +7)"
+  },
+  "audit_summary_17_rounds": {
+    "total_audit_rounds": 17,
+    "virtual_implementation_5": ["Fog 可读性", "时点 Placebo", "bank-level LDA", "LM sentiment 中文", "Hedging"],
+    "execution_bug_fixes_10": [
+      "S1.1 PR #6 caller 接入",
+      "S1.2 PR #3 stage 22 集成",
+      "S1.3 PR #11 O(N²) → O(N·k) 720×",
+      "S1.4 PR #13 NotImpl → 真接入",
+      "S2.2 PR #10 merge type bug",
+      "S2.3 PR #12 α 二维 matrix",
+      "B1 requests 加 requirements",
+      "B2 get_or_compute_llm 死代码",
+      "C1 epu_merge path 退化",
+      "C2 媒体双归属优先级"
+    ],
+    "gates_total": 17,
+    "d0_remaining_uncertainty_items": [
+      "policyuncertainty.com 中国 EPU 实际覆盖年份",
+      "Stata ssc install ritest 跑通",
+      "BERTopic K 在中文金融 corpus 实际值",
+      "LLM CEO NER 200 篇 gold P/R"
+    ]
+  }
+}
