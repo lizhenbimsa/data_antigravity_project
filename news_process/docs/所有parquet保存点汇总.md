@@ -1,5 +1,9 @@
 # 所有Parquet保存点汇总
 
+> **⚠ 历史快照（Stale Snapshot, 2026-05-09）** — 本文按 `to_parquet` / `save_dataset` 两类 API 列出 18 个保存点；当前主流已统一封装到 `core.data_versioning.save_parquet_with_metadata`，活跃保存点为 17 文件 / 31 处。文件清单结构仍可参考，但 API 名 / 行号已漂移。
+> **当前权威**：[`core/schemas.py::OUTPUT_REGISTRY`](../core/schemas.py)（CLAUDE.md §"Single Sources of Truth" 第 2 条）。
+> **保留原因**：[`项目说明书_简明版.md`](项目说明书_简明版.md) L485 endorse 作为 parquet 输出 quick-index。
+
 基于代码搜索，找到以下保存点：
 
 ## 方式1：直接使用 `.to_parquet()`（7个调用点）

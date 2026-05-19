@@ -1,5 +1,9 @@
 # 变量代码手册（Codebook）功能审查报告
 
+> **⚠ 历史快照（Stale Snapshot, 2026-05-10 / v1.0.0 epoch）** — 描述初代 Codebook 自动生成功能审查: 1,725 变量 / 25 属性 / 4 导出格式。v3.x 已迁移到 `pipeline/panel/codebook.py`; 当前 panel 列数 2,033 (v3.6.0) + v3.7.0 新增 8 列 = 2,041。
+> **当前权威**：[`STATA_INDICATORS_CATALOG.md`](STATA_INDICATORS_CATALOG.md)（v1.5 / 3,085 行 / 5 轮评审终版 = 当前 Stata 列指标穷尽分类）；[`pipeline/panel/codebook.py`](../pipeline/panel/codebook.py) (学术元数据 + 双语 label)。
+> **保留原因**：[`项目说明书_简明版.md`](项目说明书_简明版.md) L490 endorse；记录初代 codebook 25-属性 schema 与 13-统计字段设计动机。
+
 **审查日期**: 2026-05-10  
 **审查人**: Claude Opus 4.7  
 **功能版本**: v1.0.0

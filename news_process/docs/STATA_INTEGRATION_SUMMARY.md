@@ -1,5 +1,9 @@
 # 媒体报道文本指标聚合到Stata面板数据 - 完成总结
 
+> **⚠ 历史快照（Stale Snapshot, 2026-05-10 / v1.0 epoch）** — 描述初代 Stata 集成: 16 .do / 1725 indicators / 4,608 rows / 288 banks。v3.x 已迁移到 stage 46 (`pipeline/panel/stata_export.py`)；当前 panel 2,033 列、84×2 实际/目标 500×18。
+> **当前权威**：[`STATA_INDICATORS_CATALOG.md`](STATA_INDICATORS_CATALOG.md)（v1.5 / 3,085 行 / 5 轮评审终版，2026-05-19 起为 Stata 列指标穷尽分类说明）。
+> **保留原因**：[`项目说明书_简明版.md`](项目说明书_简明版.md) L486 endorse；记录初代 16 .do 实施过程与命名约定来源。
+
 ## 项目概述
 
 已成功创建完整的Stata do文件体系，将所有1725个利用媒体报道文本生成计算的指标聚合到Stata面板数据中。

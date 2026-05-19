@@ -1,5 +1,10 @@
 # 面板数据详细信息
 
+> **⚠ 历史快照（Stale Snapshot, 2026-05-10）** — 描述的 panel: 4,608 行 × 1,725 列 × 288 银行 × 2008-2023 (16 年)；与当前任一 epoch 均不一致。
+> **当前实际**：84 银行 × 2 年 × 2,033 列（v3.6.0 / `51_panel_with_controls.dta`，详见 [`STATA_INDICATORS_CATALOG.md`](STATA_INDICATORS_CATALOG.md) L9）。**目标**：500 银行 × 18 年 (2007-2024)，受 M0 9 项 prereq 解锁后扩展（参见 [`CLAUDE.md`](../CLAUDE.md) 顶部 "Current version"）。
+> **当前权威**：`data/processed/46_panel_yearly.parquet` + `core/schemas.py::OUTPUT_REGISTRY`。
+> **保留原因**：[`项目说明书_简明版.md`](项目说明书_简明版.md) L487 endorse；288-bank 列表仍可作中国银行业分类参考。
+
 ## 数据维度
 
 ### 基本信息
