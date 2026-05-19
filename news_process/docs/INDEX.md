@@ -1,5 +1,11 @@
 # news_process 文档索引（v3.6.0）
 
+## 项目说明（三层）
+
+- [项目说明_顶刊版.md](项目说明_顶刊版.md) — 顶刊投稿版（722 行；面向 editor / referee，20-90 分钟阅读）
+- [项目说明书_简明版.md](项目说明书_简明版.md) — 简明导览（面向合作者 / 复现协作者）
+- [PROJECT_DESCRIPTION.md](PROJECT_DESCRIPTION.md) — 综合白皮书（6,543 行 / ≥ 50,000 字；面向内部博士生 / co-author / 长期维护者）
+
 ## 项目级执行计划
 
 - [plan/B_route_master_plan_v2.md](plan/B_route_master_plan_v2.md) — 主线 Bank-FinTech 论文端到端执行计划 v2.56（含 M-1 数据现状审计 → M8 投稿；G-1..G8 acceptance gates；R1-R12 风险登记表；C1-C4 应急方案）。注：v3.4 之后多论文 portfolio 已扩展至 9 paper，本 master plan 锚定 epoch 4，9 paper 完整分布详见 CLAUDE.md §Multi-Paper Support。
@@ -19,6 +25,7 @@
 
 ## Stata 集成
 
+- [STATA_INDICATORS_CATALOG.md](STATA_INDICATORS_CATALOG.md) — Stata 列指标完整分类说明（v1.5 / 3,085 行 / 5 轮评审终版，2026-05-19 起为当前权威）
 - [STATA_INTEGRATION_SUMMARY.md](STATA_INTEGRATION_SUMMARY.md) — Stata 集成总览
 
 ## 测试
