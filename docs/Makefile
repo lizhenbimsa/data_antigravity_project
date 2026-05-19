@@ -1,4 +1,4 @@
-# Makefile — news_process v2.1.0 文档站
+# Makefile — news_process Sphinx 文档站 (v2.1.0 起持续维护; v3.7.x 当前)
 # ======================================
 #
 # 标准目标:

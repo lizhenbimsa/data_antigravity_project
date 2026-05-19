@@ -1,8 +1,10 @@
-# Rollback 锚点 — 17 个 git tag
+# Rollback 锚点 — v2.0 重构 17 tag + v3.x epoch chain
 
 `news_process` 重构期间在每个 phase 末打 git tag，提供**单点回滚
-颗粒度**。本参考列出全部 17 个 tag (v2.0.0 八期重构 11 个 + Phase 9 系列
-6 个)、各自的 commit hash、关键变更、以及回滚的具体场景。
+颗粒度**。v2.0 八期重构 + Phase 9 cleanup 共 17 个 tag；v3.x 演进
+增加 `v3.2.0` 与 `v3.6.0` 两个独立 tag (v3.5.2 / v3.6.1 / v3.7.0 /
+v3.7.1 / v2.3 系列已合入 main 但未独立 tag，详见 CLAUDE.md "Current
+version" 段)。本参考列出全部 git tag、commit hash、关键变更、回滚场景。
 
 ## 1. Tag 链总览
 
@@ -40,10 +42,20 @@ phase-9b-baseline  (papers 反射 import 净化)
 phase-9-baseline   (Phase 9 收官)
   ↓
 v2.1.0             (release tag — post-restructure cleanup)
+  ↓
+v3.2.0             (release tag — Stage 3 dual-track + Stata 数据层 + 14 模板 + 4 CLIs)
+  ↓
+v3.6.0             (release tag, 2026-05-18 — Plan E 双轨闭合 + stage 13 ctx 物化)
+  ↓
+HEAD = v3.7.0 + v2.3 (无独立 tag)
 ```
 
-每个 tag 都对应一个完整 + 通过 pytest 的稳定状态 (v2.0 段为 778 测试,
-v2.1 段为 772 测试).
+每个 tag 都对应一个完整 + 通过 pytest 的稳定状态:
+- v2.0 段 = 778 测试
+- v2.1 段 = 772 测试
+- v3.2.0 = 1144 测试
+- v3.6.0 = 1615 fast 测试
+- v3.7.0 HEAD = 1629 fast / 284 integration / 1913 total
 
 ## 2. 每个 tag 的关键信息
 
@@ -66,6 +78,11 @@ v2.1 段为 772 测试).
 | `phase-9b-baseline` | `9d003c6` | +44 / -104 | papers 反射 import 净化 (pipeline_runner 桥接) |
 | `phase-9-baseline` | `98be76a` | +107 / -5 | Phase 9 收官 + v2.1.0 release |
 | `v2.1.0` | `98be76a` | (= phase-9-baseline) | minor bump release tag |
+| `v3.2.0` | (无独立 hash 记录) | — | Stage 3 三轨化 BREAKING + Stata 数据层 + 14 模板 + 4 CLIs |
+| `v3.6.0` | (2026-05-18) | — | Plan E 双轨闭合 + stage 13 ctx 物化 + B1/B2/B3 双轨化 + G3 P1 main = `_ctx` |
+
+> v3.5.2 / v3.6.1 / v3.7.0 / v3.7.1 / v2.3 系列已 PR 合入 main 但未独立 tag；
+> 详见 [`news_process/CLAUDE.md`](../../news_process/CLAUDE.md) 顶部 "Current version" 段。
 
 ## 3. Rollback 场景与命令
 
@@ -185,5 +202,5 @@ git checkout main  # 切回最新
 ## 6. 见也
 
 * [CHANGELOG](../changelog.md) — 完整 commit 演进史
-* [架构总览](../architecture.md) — v2.1.0 终态架构
+* [架构总览](../architecture.md) — v3.7.0 当前态 (v2.1.0 baseline 上演进)
 * [新增 Stage 指南](../guides/adding_stage.md)

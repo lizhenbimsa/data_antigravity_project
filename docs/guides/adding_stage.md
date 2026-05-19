@@ -1,6 +1,6 @@
 # 新增 Stage（流水线阶段）开发指南
 
-本指南演示如何为 v2.1.0 主流水线 / 验证矩阵添加一个新的处理阶段。
+本指南演示如何为 v3.7.x 主流水线 / 验证矩阵添加一个新的处理阶段（v2.1.0 起的 thin shim + 声明式 DAG 契约不变）。
 
 ## 1. 决策树：放在哪？
 
@@ -11,7 +11,7 @@ graph TD
     Q1 -->|稳健性 / 验证| V[news_process/validation/]
     Q1 -->|纯审计 / 一次性| A[news_process/scripts/audit/]
 
-    P -->|是哪个子包| P1[preprocess / filtering / sentiment /<br/>features / panel / falsification / audit]
+    P -->|是哪个子包| P1[preprocess / filtering / text / sentiment /<br/>features / panel / falsification / audit / external / llm_archive]
     V -->|是否需要 enabled_when 谓词| Vy[加 _VALIDATION_PREDS 键]
     V -->|总是跑| Vn[直接 always_enabled]
 ```

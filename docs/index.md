@@ -2,15 +2,17 @@
 
 **银行金融科技舆情面板分析流水线** — 一套端到端的中文新闻文本处理系统，
 从 ~37 GB 原始 XLSX 媒体报道生成可用于计量经济学研究的银行—年面板数据，
-支持 5 个独立的研究产品（论文）共享同一处理内核。
+支持 **11 个独立的研究产品（论文）** 共享同一处理内核（Bank-FinTech 主线 5 篇 P1-P5 + 衍生 4 篇 + v3.7.0 立项 2 篇）。
 
 ```{admonition} 当前版本
 :class: tip
 
-**v2.1.0 / phase-9-baseline (2026-05-08)**：八期重构（Phase 0 → 8）已完成,
-Phase 9 又做了 4 个 post-restructure cleanup 子任务 (scripts dead code 清扫 /
-OUTPUT_REGISTRY fallback 删除 / papers DAG 空壳清理 / papers 反射 import 净化).
-完整演进史见 [CHANGELOG](changelog.md)。
+**v3.7.0 + v2.3 implementation (2026-05-18; 最近 git tag: v3.6.0)**：
+v2.1.0 八期重构 + Phase 9 cleanup 后，主线持续演进至 v3.7.x 多 epoch:
+v3.2.0 三轨化双轨 + v3.4.0 第三维度 collab_mode + v3.5.0/v3.5.1 Stage 3
+augmentation + v3.6.0 Plan E 双轨闭合 + v3.7.0 D 组 (BERTopic / staleness
+/ α / NER) + v2.3 集成层. 完整演进史见 [CHANGELOG](changelog.md) 与
+[news_process/CLAUDE.md](https://github.com/example/news_process/blob/main/news_process/CLAUDE.md) 顶部 "Current version" 段。
 ```
 
 ## 30 秒导航
@@ -27,7 +29,7 @@ OUTPUT_REGISTRY fallback 删除 / papers DAG 空壳清理 / papers 反射 import
 | 理解声明式 DAG | [`StageSpec` 参考](reference/dag.md) |
 | 找具体函数 / 类的文档 | [API 参考](api/core.md) |
 
-## 核心特性（v2.1.0 / phase-9-baseline）
+## 核心特性（v3.7.0 当前态 / 下方 mermaid 仍反映 v2.1.0 epoch 阶段命名）
 
 ```{mermaid}
 graph LR
@@ -48,9 +50,10 @@ graph LR
 * **声明式 DAG 单源真值**：`news_process.core.dag.STAGES_MAIN` /
   `STAGES_VALIDATION` 是流水线编排的**唯一**事实来源；两个 orchestrator
   均通过 `filter_enabled(STAGES, CONFIG)` 消费，无内联 if-append 链。
-* **Thin shim 调用契约**：26 个数字前缀 root script 全部统一为 ≤30 行
-  thin shim，保留 `python NN_xxx.py` 历史 subprocess 调用契约，body 全部
-  迁入 `news_process.{pipeline,validation}` 子包。
+* **Thin shim 调用契约**：v2.1.0 共 26 个数字前缀 root script，v3.x 演进
+  到 **39 个**（含字母后缀 32a/38a/38b/39a/39c/39d/39e/39f/30a），全部
+  统一为 ≤30 行 thin shim，保留 `python NN_xxx.py` 历史 subprocess
+  调用契约，body 全部迁入 `news_process.{pipeline,validation}` 子包。
 * **7 域配置拆分**：`config/{paths,preprocessing,filtering,sentiment,
   features,panel,validation}.yaml` + 外部化 prompt 模板，避免单文件巨石
   化。`load_config()` 自动 deep-merge + prompt 内联，对消费方 API 完全
@@ -60,8 +63,9 @@ graph LR
   output）。共享 `_common` 内核（`PaperConfig`、`load_panel`、tables/
   figures helpers、`stata_runner`）。
 * **完整 rollback 锚点链**：从 `baseline-pre-restructure` 到
-  `phase-9-baseline` / `v2.1.0` 共 17 个 git tag (含 v2.0.0 与 v2.1.0
-  两个 release tag), 单点 `git revert <hash>` 可回滚任意子阶段。详见
+  `phase-9-baseline` / `v2.1.0` / `v3.2.0` / `v3.6.0` (2026-05-18 最近 tag),
+  单点 `git revert <hash>` 可回滚任意子阶段。v3.5.2 / v3.6.1 / v3.7.0
+  / v3.7.1 / v2.3 已合入 main 但未独立 tag。详见
   [Rollback 指南](reference/rollback_anchors.md)。
 
 ## 文档导航

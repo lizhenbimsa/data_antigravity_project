@@ -275,14 +275,22 @@ import classify_batch`。
 
 ## 9. 历史背景
 
-26 个 thin shim 是分两批完成的：
+v2.1.0 的 26 thin shim 是分三批完成的：
 
 * **Phase 1.4b - Phase 2c**（5 个 pilot）: `00`, `15`, `45`, `51`, `53`
 * **Phase 7a**（8 个 pipeline）: `11`, `12`, `14`, `21`, `22`, `23`, `24`, `52`
 * **Phase 7b**（13 个 validation）: `30`, `31`, `32`, `32a`, `33`, `34`,
   `35`, `36`, `37`, `38`, `38a`, `38b`, `39`
 
-每批的 commit / tag 见 [CHANGELOG](../changelog.md)。
+v2.1.0 之后 v3.x 又增加了 13 个 shim（总数 26 → **39**），新加项：
+* `13` (v3.6.0 ctx_materializer)
+* `16` (v3.6.1 epu_merge), `17` (v3.7.0 article_topic), `18` (article_staleness), `19` (executive_ner)
+* `27c` (placebo_and_alt_anchor), `30a` (article_sbert)
+* `39a` (inter_track_kappa), `39c` (construct_orthogonality), `39d` (lexical_discriminant_validity),
+  `39e` (lm_discriminant_validity), `39f` (cross_media_alpha)
+* `49` (risk_taking_outcomes, v3.7.0 DC2)
+
+每批的 commit / tag 见 [CHANGELOG](../changelog.md) + [`news_process/CLAUDE.md`](../../news_process/CLAUDE.md) 顶部 "Current version" 段。
 
 ## 10. 见也
 
@@ -292,11 +300,16 @@ import classify_batch`。
 
 ---
 
-## 11. v3.0 退役计划 (Plan-r3 P3-18 落地)
+## 11. v4.0 退役计划 (原 Plan-r3 P3-18; v3.7.0 实测 shim 数 26 → 39)
 
-二轮诊断把 26 thin shim 列为长期债：每加新 stage 都需要双源同步（shim
-文件 + pipeline 子模块），papers 5 个 analysis.py 也都重复实现 argparse
-+ run_pipeline 桥接。本节明确退役步骤与契约边界，避免 v3.0 启动时再做
+> **状态更新 (v3.7.0)**：本节原写于 v2.1.0 时代，预期 v3.0 一并清退 26 shim。
+> 实际 v3.x epoch chain 走的是 *additive*（不重构 shim 契约），shim 数从 26 增至 39。
+> 退役动作推迟到 v4.0 major release（与 god function 拆分同期）；
+> 退役步骤、映射表（§11.3）仍是规范，只需把"26"读作"39"，新增的 13 个 shim 映射可由现有 `core.dag.STAGES_MAIN` 自动推导。
+
+二轮诊断把 thin shim 列为长期债：每加新 stage 都需要双源同步（shim
+文件 + pipeline 子模块），papers 多 paper 的 analysis.py 也都重复实现 argparse
++ run_pipeline 桥接。本节明确退役步骤与契约边界，避免 v4.0 启动时再做
 现状评估。
 
 ### 11.1 退役动机（再陈述）
@@ -317,10 +330,10 @@ import classify_batch`。
 |---|---|---|
 | **(1)** 引入 `[project.scripts]` console-scripts | `pyproject.toml` 加 `news_process_stage_NN = "news_process.pipeline.X.Y:main"` 26 条 | 安装后获得 `news_process_stage_11` 等 console 命令 |
 | **(2)** 改 orchestrator 调用方式 | `core.stage.run_stage()` 内 `subprocess.run([python, "-m", "news_process.pipeline.X.Y"])` 取代 `subprocess.run([python, "NN_xxx.py"])`；StageSpec.script 字段从 "11_news_bank.py" 改为 "news_process.pipeline.filtering.news_bank" | `core/stage.py` 一处 + `core/dag.py` 26 个 StageSpec 修订 |
-| **(3)** 删 26 thin shim | `git rm news_process/[0-9]*.py` 一次性 | 仓库根目录从 26 + N 个 .py 减至 N 个非 stage 入口（如 `run_pipeline_function.py`、`run_paper.py`） |
+| **(3)** 删 v3.7.0 实测 39 个 thin shim | `git rm news_process/[0-9]*[a-z]?_*.py` 一次性 | 仓库根目录从 39 + N 个 .py 减至 N 个非 stage 入口（如 `run_pipeline_function.py`、`run_paper.py`） |
 | **(4)** 删 6 个 smoke test 中的 shim 引用 | P1-8 新加的 `test_stage_smoke.py` 改为只测 `python -m` 调用方式，不再 mention `NN_xxx.py` | tests baseline -3 (12 → 9, 因 import 测试与 main-callable 测试在 console-scripts 模式下合二为一) |
 
-### 11.3 26 thin shim 退役映射表
+### 11.3 thin shim 退役映射表（下表为 v2.1.0 26 项；v3.x 新增 13 项由 `core.dag.STAGES_MAIN` 自动推导，模式相同）
 
 | Shim | 替换路径（v3.0） |
 |---|---|

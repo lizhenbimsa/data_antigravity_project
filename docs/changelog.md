@@ -1,12 +1,15 @@
 # 变更日志
 
 完整变更记录见项目根的 [`CHANGELOG.md`](https://github.com/example/news_process/blob/main/CHANGELOG.md)
-（本地文件路径：`<repo_root>/CHANGELOG.md`）。
+（本地文件路径：`<repo_root>/CHANGELOG.md`，截至 v3.5.1 cumulative；v3.5.2 / v3.6.x / v3.7.x / v2.3 系列以 [`news_process/CLAUDE.md`](https://github.com/example/news_process/blob/main/news_process/CLAUDE.md) 顶部 "Current version" 段为权威）。
 
-文档站这里仅做高层 phase summary 速查与 rollback 锚点导航。
+文档站这里仅做**高层 phase summary 速查 + rollback 锚点导航**。
 完整 commit hash + LOC 净改动 + 子任务说明请翻原始 CHANGELOG。
 
-## 重构演进总览（Phase 0 → Phase 9）
+## 重构演进总览（Phase 0-9 baseline + v3.x epoch chain）
+
+下表 v2.1.0 之前为 Phase 0-9 八期重构；v2.1.0 后进入 minor-version epoch chain，
+不再以 phase 编号，改按主题命名（v3.2.0 三轨化 / v3.4.0 第三维度 / 等）。
 
 | Phase | Tag | Commit | 主交付 |
 |---|---|---|---|
@@ -25,7 +28,25 @@
 | **9d** | `phase-9d-baseline` | `5f768f0` | orchestrator OUTPUT_REGISTRY fallback 删除 + 一致性测试守护 |
 | **9a** | `phase-9a-baseline` | `69ee2de` | papers DAG 空壳清理（5 dag.py 删 + 公开 API 缩减） |
 | **9b** | `phase-9b-baseline` | `9d003c6` | papers 反射 import 净化（pipeline_runner 桥接） |
-| **v2.1.0** | `v2.1.0` / `phase-9-baseline` | (本 commit) | 收官：v2.0.0 → v2.1.0 minor bump + CHANGELOG / docs 同步 |
+| **v2.1.0** | `v2.1.0` / `phase-9-baseline` | (Phase 9 终态) | 收官：v2.0.0 → v2.1.0 minor bump + CHANGELOG / docs 同步 |
+
+## v2.1.0 → v3.7.x epoch 链（v2.1.0 baseline 后的演进，详见 CHANGELOG.md + CLAUDE.md）
+
+| Epoch | Tag | 主交付 |
+|---|---|---|
+| v3.2.0 三轨化 | `v3.2.0` | Stage 3 dual-track (`_full` / `_ctx`) BREAKING + Stata 数据层 + 14 模板 + 4 CLIs |
+| post-v3.2.0 multi-paper | `8d33c46` (无 tag) | 4 衍生 paper 完整化 (benefit_society / brokerage_network / strategic_diff / llm_peer) |
+| v3.3.0 multi-paper | (无 tag) | papers portfolio 第二轮扩展 |
+| v3.4.0 collab_mode | (无 tag) | 第三维度 `innovation_collab_mode`，分层抽样 5 → 9 strata |
+| v3.5.0/v3.5.1 Stage 3 aug | (无 tag) | D2/D3/D4 augmentation + A1 lexical clarity + A3 numerical intensity 真双轨 |
+| v3.5.2 LM 4 子词典 | (无 tag) | uncert / litig / constr / modal_strong, 314 词 (LM 2011 JF) |
+| v3.6.0 Plan E | `v3.6.0` (2026-05-18) | B3 herd_decay 双轨 + B2 policy 双轨 + 新 stage 13 ctx 物化 + B1 fintech_intensity 双轨 + G3 P1 main = `_ctx` |
+| v3.6.1 集成层 | (无 tag) | EPU merge + 媒体 3 级 tier (Solomon 2012 RFS) + Stata ritest |
+| v3.7.0 D 组 | (无 tag) | D1 BERTopic + D2 staleness 双指标 (720× speedup) + D3 Krippendorff α + D4 CEO NER |
+| v3.7.1 bank_list | (无 tag) | bank_list.yaml 1771 行派生 + Stata 路径修复 (V4 audit closure) |
+| v2.3 集成 | (无 tag) | 8 顶刊指标 + 集成层 + 127 fast tests + Layer 7+8 文档 (2026-05-18) |
+
+> **HEAD = v3.7.0 + v2.3 implementation (2026-05-18)**；最近独立 git tag `v3.6.0`。
 
 ## 关键架构决策（按主题归类）
 

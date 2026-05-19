@@ -1,41 +1,49 @@
-# 架构总览（v2.1.0 / phase-9-baseline）
+# 架构总览（v3.7.0 当前态 / v2.1.0 baseline 起 6 次 minor bump）
 
-本页是 `news_process` v2.1.0 包结构、依赖关系与设计决策的**最高层视图**。
+本页是 `news_process` 包结构、依赖关系与设计决策的**最高层视图**。
 为细节实现请进入对应 [API 参考](api/core.md) 或 [开发指南](guides/adding_stage.md)。
+
+> v2.1.0 baseline 完成 8 期重构 + Phase 9 cleanup（详见 [changelog](changelog.md)）；
+> 此后 v3.x 在该 baseline 上做的演进**不改变**本页描述的三层依赖架构与 thin shim 契约，
+> 仅在 shim 数（26 → 39）、papers 数（5 → 11）、tests baseline（778 → 1629 fast）、
+> 子包构成（pipeline 6 子包 → 9 子包，加 text / external / llm_archive）等
+> 数量维度上演进，不构成架构性变更。
 
 ## 1. 顶层包结构
 
 ```
 news_process/
-├── __init__.py                # __version__ = "2.0.0"
+├── __init__.py                # __version__ = "2.0.0" (未随 v3.x 演进 bump; 见 §1 注)
 ├── pyproject.toml             # setuptools.packages.find = ["news_process*"]
 ├── requirements.txt           # 主流水线运行时依赖
 ├── requirements-docs.txt      # 文档构建依赖（Phase D 新增）
 │
-├── 26 × thin shim (≤30 LOC each)         # python news_process/NN_xxx.py 历史调用契约 (含 32a/38a/38b)
+├── 39 × thin shim (≤30 LOC each)         # python news_process/NN_xxx.py 历史调用契约 (含 32a/38a/38b/39a/39c/39d/39e/39f/30a 字母后缀; v2.1.0 26 → v3.7.0 39)
 ├── run_pipeline_function.py   # 主流水线编排（消费 STAGES_MAIN）
 ├── run_pipeline_validation.py # 验证流水线编排（消费 STAGES_VALIDATION）
 ├── run_paper.py               # 多论文 CLI 调度器
 │
-├── core/                      # 共享内核（v2.0 重构核心）
-├── pipeline/                  # 业务流水线（6 子包）
-├── validation/                # 验证模块（13 扁平文件）
-├── papers/                    # 多论文代码层（5 papers + _common）
+├── core/                      # 共享内核 (v3.x: 13 模块, v2.1.0: ~10)
+├── pipeline/                  # 业务流水线 (v3.7.0: 9 子包, +text/external/llm_archive)
+├── validation/                # 验证模块 (15 扁平文件, v2.1.0: 13)
+├── papers/                    # 多论文代码层 (11 papers + _common; v2.1.0: 5)
 ├── papers_assets/             # 多论文非代码资产
 ├── config/                    # 7 域配置 + prompts/
-├── data/processed/            # 各阶段输出 (gitignored, 22 GB)
+├── data/processed/            # 各阶段输出 (gitignored)
 ├── data_excel/                # 原始 XLSX 数据 (gitignored)
-├── tests/                     # pytest 778 测试套件
+├── tests/                     # pytest 1,913 测试 (1,629 fast + 284 integration; v2.1.0: 778)
 ├── scripts/                   # CLI 工具 + 迁移辅助 + 审计
-└── stata/                     # README only（5 .do 已迁至 papers_assets/）
+└── stata/                     # 17 .do 文件 (label / master) + README; v2.1.0 README 仅称已迁，实际 v1.0 labelling 文件仍在
 ```
+
+> §1 注：`__init__.py::__version__` 仍为 v2.0 reset 后的 `"2.0.0"`，未随 v3.x 演进 bump（保留作 Python package 元数据语义；权威版本以 `news_process/CLAUDE.md` 顶部 "Current version" 段为准）。
 
 ## 2. 三层依赖（自上而下）
 
 ```{mermaid}
 graph TB
     subgraph "应用层（用户入口）"
-        RootShim[26 × thin shim<br/>news_process/NN_xxx.py]
+        RootShim[39 × thin shim<br/>news_process/NN_xxx.py]
         RunMain[run_pipeline_function.py]
         RunVal[run_pipeline_validation.py]
         RunPaper[run_paper.py]
@@ -93,7 +101,7 @@ graph LR
 
 ## 4. v2.0 关键设计模式
 
-### 4.1 Thin shim 模式（26 处应用）
+### 4.1 Thin shim 模式（v2.1.0 26 处 → v3.7.0 39 处）
 
 **问题**：原 root 脚本以 `NN_xxx.py` 命名（数字前缀），无法用合法 Python
 identifier import；外部脚本/orchestrator 通过 `subprocess.run([python,

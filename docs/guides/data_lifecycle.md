@@ -16,7 +16,7 @@
 | `data_excel/wisers_*.xlsx` | ~MB,3 个文件 | **生产输入** | 人工从 Wisers 平台下载 | 永久保留(stage 00 唯一输入源) | 永不清理(版本由文件名时间戳隐式表达) |
 | `data_excel/back/` | 43 GB,176 个文件 | **历史输入备份** | 人工归档(每次 Wisers 重抓时主目录搬入) | 截止一篇 paper 提交且接收后, 至少保留至下一次 *主目录* 数据冻结 | 主目录新一批数据通过 stage 00 + sanity check 后,可整目录搬走/删除(见 §3) |
 | `data/processed/00_*.parquet` ~ `45_*.parquet` 等主输出 | ~9.4 GB | **管线产出** | stage 00-51 的 parquet/dta/csv 输出 | 滚动覆盖(每次 `run_pipeline_function.py` 重写) | 上游 stage 重跑时由 OUTPUT_REGISTRY 驱动的预清理自动清掉 |
-| `data/processed/_backup_pre_issue5_fix_v6/` | 99 MB | **数据修复回滚锚点** | issue #5 调查阶段人工 `cp -r data/processed → _backup_*` 保留旧结果以便对照 | 修复 commit merge 后保留 1 个 release 周期 | issue #5 在 v2.1.0 已修复, 可在 v3.0 release 一并清除 |
+| `data/processed/_backup_pre_issue5_fix_v6/` | 99 MB | **数据修复回滚锚点** | issue #5 调查阶段人工 `cp -r data/processed → _backup_*` 保留旧结果以便对照 | 修复 commit merge 后保留 1 个 release 周期 | issue #5 在 v2.1.0 已修复; v3.7.0 仍保留作历史快照, 待 v4.0 major release 一并清除 |
 | `data/processed/_cache/` | 由 stage 21/15/27 LLM/Embedding API 产生 | **缓存** | LLM 与 Embedding API 调用的批量缓冲(batch processing 中间态) | 滚动覆盖,不参与 reproducibility 契约 | 任意时刻可整目录删除,下次跑会重建(代价:重新调 API) |
 | `data/processed/_llm_cache.db` | SQLite,容量随调用次数增长 | **LLM 请求级缓存** | `news_process.core.caching.LLMCache`(prompt+model_id → response) | 跨 release 保留,因为 prompt 改动会自动失效 cache key(prompt 文本变 → SHA256 变) | 仅在 `temperature` / `force_json` 等非-prompt 参数变更时手动整库清空 |
 

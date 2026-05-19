@@ -1,8 +1,8 @@
 # 快速上手（5 分钟）
 
 本教程帮助你在 5 分钟内：装好环境、加载配置、跑一次 import smoke test，
-确认 v2.1.0 包可以正常工作。**不会**实际跑流水线（那需要 22 GB 数据 +
-LLM API 配额，见 [主流水线教程](02_main_pipeline.md)）。
+确认 v3.7.x 包可以正常工作（v2.1.0 起的 thin shim + 声明式 DAG + 多论文产品契约不变）。
+**不会**实际跑流水线（那需要 22 GB 数据 + LLM API 配额，见 [主流水线教程](02_main_pipeline.md)）。
 
 ## 1. 系统要求
 
@@ -98,10 +98,10 @@ print(f"Papers loaded: {[p.PAPER_ID for p in [bank_fintech_tone, benefit_society
 news_process version: 2.0.0
 output_dir: F:/.../news_process/data/processed
 配置域: ['article_alignment', 'bank_news_classification', 'benefit_society', ...]
-主线 DAG: 11 stages
-验证 DAG: 12 stages
+主线 DAG: 20 stages   # v3.7.0 实测 (v2.1.0 = 11)
+验证 DAG: 17 stages   # v3.7.0 实测 (v2.1.0 = 12)
 All canonical imports OK.
-Papers loaded: ['bank_fintech_tone', 'benefit_society', 'brokerage_network', 'llm_peer', 'strategic_diff']
+Papers loaded: ['bank_fintech_tone', 'bank_fintech_attention', 'bank_fintech_substance', 'bank_fintech_locus', 'bank_fintech_collab', 'benefit_society', 'brokerage_network', 'llm_peer', 'strategic_diff', 'bank_media_disagreement', 'bank_news_clarity']
 ```
 
 ## 5. 跑全套测试（可选，~4 min）
@@ -110,15 +110,13 @@ Papers loaded: ['bank_fintech_tone', 'benefit_society', 'brokerage_network', 'll
 .venv/Scripts/python.exe -m pytest news_process/tests/
 ```
 
-期望（post-Wave 0/1 + Batch P0 + V8 + Wave 2 + Priority ABC, 2026-05-13）：
+期望（v3.7.0 + v2.3, 2026-05-18）：
 
 ```
-956 passed, 2 skipped, 33 warnings in ~33s   # HEAD baseline (权威值见 news_process/CLAUDE.md L16)
-                                             # 演进: v2.1.0=772 -> round 3 review=814 -> Wave 1 (+ BERT determinism)=855
-                                             #      -> Batch P0 (+ cache stats + BERT invariant)=863
-                                             #      -> V8 (+ log-prune + main-paper smoke)=879
-                                             #      -> Wave 2 b1 (+ iv_did paper-critical math)=891
-                                             #      -> Priority ABC (+ 4 derived papers + 6 panel modules + DID)=956
+1629 fast / 284 integration / 1913 total   # v3.7.0 HEAD baseline (权威值见 news_process/CLAUDE.md L16)
+                                            # v2.1.0 epoch chain:
+                                            #   v2.1.0=772 -> v3.2.0=1144 -> post-v3.2.0=1388
+                                            #   -> v3.5.1≈1590 -> v3.6.0=1615 -> v3.7.0=1629
 ```
 
 ```{warning}

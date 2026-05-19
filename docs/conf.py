@@ -1,6 +1,9 @@
-"""news_process v2.1.0 文档站 Sphinx 配置文件。
+"""news_process Sphinx 文档站配置 (v2.1.0 起持续维护; v3.7.x 当前)。
 
 Phase D — 文档生产化 (2026-05-04)。
+v3.7.0 (2026-05-18): Tier Y1 (b) bump — 修 api/ broken refs + 全站 v2.1.0
+  → v3.7.x 文案同步; Sphinx 基础设施 (autodoc / autosummary / Napoleon)
+  保持不变.
 
 架构选型
 ---------
@@ -53,9 +56,12 @@ os.environ.setdefault("EMBEDDING_API_KEY", "docs-build-placeholder")
 
 project = "news_process"
 author = "data_antigravity_project / news_process team"
-copyright = "2026, news_process v2.1.0"  # noqa: A001 — Sphinx 约定字段名
+copyright = "2026, news_process project"  # noqa: A001 — Sphinx 约定字段名
 
 # 动态从包 ``__version__`` 拉取版本号
+# 注: news_process/__init__.py::__version__ 自 v2.0.0 起未 bump (保留作
+# Python package 元数据); 实际版本以 news_process/CLAUDE.md "Current
+# version" 段为权威 (当前 v3.7.0 + v2.3, 最近 git tag v3.6.0).
 try:
     import news_process  # noqa: E402
 
