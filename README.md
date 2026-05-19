@@ -2,7 +2,9 @@
 
 **银行金融科技舆情面板分析流水线** — 一套端到端的中文新闻文本处理系统，
 从 ~37GB 原始 XLSX 媒体报道生成可用于计量经济学研究的银行—年面板数据，
-支持 5 个独立的研究产品（论文）共享同一处理内核。
+支持 9 个独立的研究产品（论文）共享同一处理内核（Bank-FinTech 主线 5 篇 P1-P5 + 衍生 4 篇）。
+
+> **下方"5 paper 成熟度梯度"快照定格在 v3.2.0 / 2026-05-15 commit 8d33c46；v3.4.0+ 已扩为 9 paper portfolio，完整分布见 [CLAUDE.md §Multi-Paper Support](news_process/CLAUDE.md) 与 [docs/plan/B_route_master_plan_v2.md](news_process/docs/plan/B_route_master_plan_v2.md)。**
 
 > **5 paper 成熟度梯度（post-P4 / commit 8d33c46, 2026-05-15）**：
 > - **`bank_fintech_tone`**（主线）— Python 包 + Stata 14 主模板 (v3.2.0 M7) + 1016 行 falsification template + en/zh 双语 manuscript 骨架 (114 行/12 TODO)。
@@ -15,21 +17,23 @@
 > - **详见**: 每个 paper 的 `papers_assets/<id>/README.md` (5 paper 全有) 与 `papers/<id>/__init__.py` 模块级 docstring。
 > - **仍待用户补充**: manuscript 内 `\NoteThis{...}` 占位实质内容 + 会计变量 (ROA/NPL/Z) 并入 panel。
 
-> **当前版本: post-v3.2.0 multi-paper extension / commit 8d33c46 (2026-05-15)**
-> 八期重构（Phase 0 → 8）已完成 + Phase 9 (v2.1.0) post-restructure cleanup
-> + v3.2.0 三轨化双轨核心 (Stage 3 dual-track + Stata 数据层 + 14 模板 + 4 CLIs)
-> + **post-v3.2.0 multi-paper extension** (4 衍生 paper 完整化, 8d33c46):
-> 3 个新 `_common` 模块 (derivative_replication / paper_figures_ext / stata_postprocess)
-> + 32 Stata templates (4 paper × 8) + 10 manuscripts (5 paper × en/zh) + 4 新测试文件。
-> **pytest baseline**: **1388 passed / 6 skipped / 0 failed** (v3.2.0 1144 + multi-paper +244;
-> 4 conditional skipped 等 pipeline 重跑后 unblock)。
-> 完整演进史见 [CHANGELOG.md](./CHANGELOG.md)，rollback tag 链：
+> **当前版本: v3.7.0 + v2.3 implementation (2026-05-18; 最近 git tag: v3.6.0)**
+> 八期重构（Phase 0 → 8）+ Phase 9 (v2.1.0) post-restructure cleanup + v3.2.0
+> 三轨化双轨核心 + post-v3.2.0 multi-paper extension (8d33c46, 4 衍生 paper) +
+> v3.4.0 第三维度 collab_mode + v3.5.0/v3.5.1 Stage 3 augmentation +
+> v3.6.0 Plan E 双轨闭合 + v3.7.0 D 组 (BERTopic / staleness / α / NER) +
+> v2.3 集成层 (LM 4 子词典 + FLS + 媒体 tier + EPU + DC3 LLM archive).
+> **pytest baseline (v3.7.0)**: **1629 fast / 284 integration / 1913 total**
+> (`pytest --collect-only` 实测; 历史: v2.1.0 release = 772 / v3.2.0 = 1144 /
+> post-v3.2.0 = 1388 / v3.5.1 ≈ 1590 / v3.6.0 = 1615 / v3.7.0 = 1629).
+> 完整演进史见 [CHANGELOG.md](./CHANGELOG.md) 与 [news_process/CLAUDE.md](news_process/CLAUDE.md) 顶部 "Current version" 段，rollback tag 链：
 > `baseline-pre-restructure → phase-{1..6}-baseline → phase-7a-baseline →
 > phase-7b-baseline → phase-8-baseline → v2.0.0 → phase-9c-baseline →
 > phase-9d-baseline → phase-9a-baseline → phase-9b-baseline →
-> phase-9-baseline → v2.1.0 → v3.2.0 → 8d33c46`。
+> phase-9-baseline → v2.1.0 → v3.2.0 → 8d33c46 → v3.6.0 (2026-05-18)`。
+> v3.5.2 / v3.6.1 / v3.7.0 / v3.7.1 / v2.3 系列已合入 main 但未独立 tag。
 
-## 1. 顶层架构（post-v3.2.0 multi-paper extension / 8d33c46 终态）
+## 1. 顶层架构（v3.7.x 当前态 / 下表 tree 仍反映 v3.2.0 epoch 命名）
 
 ```
 news_process/
@@ -97,14 +101,14 @@ news_process/
 │
 ├── data_excel/                 # 原始 XLSX 数据 (gitignored)
 ├── data/processed/             # 各阶段 parquet/dta/csv 输出 (gitignored, Phase 8 重命名)
-├── tests/                      # pytest 测试套件 (HEAD baseline: 1388 passed / 6 skipped, 8d33c46)
+├── tests/                      # pytest 测试套件 (HEAD baseline: 1629 fast / 284 integration, v3.7.0)
 │   └── integration/            #   跨阶段集成测试 (含 Phase 0 可复现性门槛)
 ├── scripts/
 │   ├── audit/                  #   一次性审计脚本 (sys.exit-style)
 │   ├── legacy/                 #   归档的孤立模块
 │   └── migrate/                #   迁移辅助脚本
 ├── stata/README.md             # 历史标记: 5 个 .do 已迁至 papers_assets/<paper>/do/
-├── 00_preprocessing.py … 53_export_stats_excel.py   # 26 个极薄 CLI 适配层 (≤30 行/个, 保留历史 ``python NN_xxx.py`` 契约)
+├── 00_preprocessing.py … 53_export_stats_excel.py   # 39 个极薄 CLI 适配层 (≤30 行/个, 保留历史 ``python NN_xxx.py`` 契约; 含字母后缀 32a/38a/38b/39a/39c/39d/39e/39f/30a)
 ├── run_pipeline_function.py    # 主管线编排 (消费 core.dag.STAGES_MAIN)
 ├── run_pipeline_validation.py  # 验证管线编排 (消费 core.dag.STAGES_VALIDATION)
 ├── run_paper.py                # 多论文 CLI 调度器
@@ -158,7 +162,7 @@ python -m news_process.run_paper benefit_society --dry-run
 ### 2.4 跑测试
 
 ```bash
-# 全套 (~60 秒含 jieba warm cache; HEAD baseline = 1388 passed / 6 skipped; v2.1.0 release tag = 772 passed; v3.2.0 = 1144; post-v3.2.0 multi-paper = 1388)
+# 全套 (HEAD baseline = 1629 fast + 284 integration = 1913 total; v2.1.0 = 772; v3.2.0 = 1144; post-v3.2.0 = 1388; v3.7.0 = 1629 fast)
 python -m pytest news_process/tests/
 
 # 仅红线集成测试
@@ -172,7 +176,10 @@ python -m pytest news_process/tests/test_00_preprocessing.py -v
 - v2.1.0 release tag (frozen baseline): `772 passed, 6 skipped, 0 failed`
 - post-recode round 1+2 baseline: `782 passed, 6 skipped, 0 failed`
 - post-round 2 sidecar 化后 (P1-5 SKIP→PASS, Win 兼容): `786 passed, 2 skipped, 0 failed`
-- post-v3.2.0 multi-paper extension (HEAD = 8d33c46): `1388 passed, 6 skipped, 0 failed`
+- **HEAD (v3.7.0, 2026-05-18)**: `1629 fast / 284 integration / 1913 total` (实测 `pytest --collect-only`)
+- v3.6.0 (Plan E 双轨闭合): `1615 fast`
+- v3.5.1 supplementation: `~1590 fast`
+- post-v3.2.0 multi-paper extension (8d33c46, 2026-05-15): `1388 passed, 6 skipped`
 - v3.2.0 release tag baseline: `1144 passed, 6 skipped, 0 failed`
 - post-recode round 3 / 17 单元 + 两轮 recode + 一轮 review (v2.1.0 frozen): `814 passed, 2 skipped, 0 failed`
   - 增量来源: 17 单元 +19 + 两轮 recode +5 + 一轮 review +6
@@ -234,7 +241,12 @@ do <full path to .do>
 ## 6. 可回滚锚点
 
 ```
-8d33c46                     ← 当前 (post-v3.2.0 multi-paper extension, 2026-05-15)
+v3.7.1 + v2.3 (HEAD)        ← 当前 (2026-05-18; bank_list 1771 行 + Stata 路径修复 + v2.3 集成层; 未独立 tag)
+v3.7.0 (PR #9-#13)          D 组 BERTopic + staleness + α + LLM CEO NER (未独立 tag)
+v3.6.0                      Plan E 双轨闭合 + 新 stage 13 ctx 物化 (2026-05-18 锁定)
+v3.5.x (v3.5.0/v3.5.1)      Stage 3 D2/D3/D4 augmentation + A1/A3 supplementation (未独立 tag)
+v3.4.0                      第三维度 collab_mode (未独立 tag)
+8d33c46                     post-v3.2.0 multi-paper extension (2026-05-15)
 v3.2.0                      v3.2.0 release: Stage 3 dual-track + Stata 数据层 + 14 模板 + 4 CLIs
 v2.1.0 / phase-9-baseline   v2.1.0 (recode follow-up: 见历史)
 phase-9b-baseline           Phase 9b: papers 反射 import 净化
@@ -264,7 +276,7 @@ baseline-pre-restructure    重整起点
 
 ## 7. 已知 deferred 项 (Phase 9 之后还可选的进一步优化)
 
-- **v3.0 主迁移 (留待真正的 major bump)**: 删除 26 个数字前缀 thin shim,
+- **v3.0 主迁移 (留待真正的 major bump; shim 数已从 v2.1.0 的 26 增长到 v3.7.0 的 39)**: 删除全部数字前缀 thin shim,
   把 `core/dag.py:StageSpec.script` 从文件名改为 module path
   (`"news_process.pipeline.filtering.news_bank"`),
   把 `core/stage.py:run_stage` 从 `subprocess.Popen([python, script_path])`
