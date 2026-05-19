@@ -20,13 +20,10 @@
 ## Stata 集成
 
 - [STATA_INTEGRATION_SUMMARY.md](STATA_INTEGRATION_SUMMARY.md) — Stata 集成总览
-- [STATA_REVIEW_REPORT.md](STATA_REVIEW_REPORT.md) — Stata 代码评审详情
-- [STATA_REVIEW_SUMMARY.md](STATA_REVIEW_SUMMARY.md) — Stata 评审摘要
 
 ## 测试
 
 - [测试覆盖率指南.md](测试覆盖率指南.md) — pytest --cov 本地与 CI 使用指南
-- [测试验证报告.md](测试验证报告.md) — v2.2.0 数据版本控制 + DAG 一致性历史快照（2026-05-09，非最新；当前 baseline 1615 fast / 284 integration / 1899 total (v3.6.0 实测 collect-only) 见 CLAUDE.md 顶部 "Test baseline" 段）
 
 ## 运维
 
