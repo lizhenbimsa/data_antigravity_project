@@ -9,21 +9,33 @@
 
    news_process.papers._common
    news_process.papers.bank_fintech_tone
+   news_process.papers.bank_fintech_attention
+   news_process.papers.bank_fintech_substance
+   news_process.papers.bank_fintech_locus
+   news_process.papers.bank_fintech_collab
    news_process.papers.benefit_society
    news_process.papers.brokerage_network
    news_process.papers.llm_peer
    news_process.papers.strategic_diff
+   news_process.papers.bank_media_disagreement
+   news_process.papers.bank_news_clarity
 ```
 
-## 论文产品速查
+## 论文产品速查（v3.7.0：5 Bank-FinTech 主线 + 4 衍生 + 2 立项 = 11 paper）
 
 | paper_id | 主题 | 核心方法 | 状态 |
 |---|---|---|---|
-| `news_process` | 主线：银行金融科技语调 | LLM 三角验证 + 词典/BERT 对照 | 主线 |
+| `bank_fintech_tone` | P1 主线：bank-fintech 媒体语调 | LLM 三角验证 + 词典/BERT 对照; v3.6.0 G3 main=`_ctx` | 主线 |
+| `bank_fintech_attention` | P2: firm-level fintech attention intensity | Hassan 2019 QJE 框架 | 主线 |
+| `bank_fintech_substance` | P3: 实质/象征二元属性 | Westphal & Zajac 1998 ASQ | 主线 |
+| `bank_fintech_locus` | P4: 底层/应用二元属性 | Gomber 2018 JMIS | 主线 |
+| `bank_fintech_collab` | P5: 自主研发 vs 外部协同 | Chesbrough open innovation；v3.4.0 立项 | 主线 |
 | `benefit_society` | 经营态度 → 社会福祉投影 | Jha-Liu-Manela (2026, RFS) embedding | 衍生 |
 | `brokerage_network` | 信息经纪网络 | Han et al. (2024) 网络中心度 | 衍生 |
 | `llm_peer` | LLM 同业工具变量 | Cao et al. (2025) LLM-IV | 衍生 |
 | `strategic_diff` | 战略差异度 | Guzman-Li (2023) + Hoberg-Phillips (2016) | 衍生 |
+| `bank_media_disagreement` | 第 10 篇：跨媒体语调分歧 | path B = SSRN + `_full` main; v3.7.0 立项 | 立项 |
+| `bank_news_clarity` | 第 11 篇：外部信息环境质量 | path C = No-SSRN + `_ctx` G3 解锁; v3.7.0 立项 | 立项 |
 
 ## `_common` 共享内核
 

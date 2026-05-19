@@ -1,7 +1,7 @@
 # `news_process.validation` — 验证模块 API
 
 `validation` 是 v2.0 重构（Phase 7b）从根级数字前缀脚本迁入的扁平包，
-包含 13 个独立的稳健性检验 / 三角验证 / 敏感性分析模块，由
+包含 **15 个** 独立的稳健性检验 / 三角验证 / 敏感性分析模块（v3.x 加 `manual_validation_schema` + `radius_sensitivity_llm`），由
 ``run_pipeline_validation.py`` 编排。
 
 设计原则：**扁平布局**而非按子分类再划分子包。理由是 12 个验证模块彼此**独立、关系平行**，
@@ -18,12 +18,14 @@
    news_process.validation.llms_evaluation
    news_process.validation.tone_validation
    news_process.validation.radius_sensitivity
+   news_process.validation.radius_sensitivity_llm
    news_process.validation.entity_masking
    news_process.validation.dict_coverage
    news_process.validation.media_diversity
    news_process.validation.temporal_mask
    news_process.validation.decay_sensitivity
    news_process.validation.prompt_sensitivity
+   news_process.validation.manual_validation_schema
 ```
 
 ## 验证矩阵速查
