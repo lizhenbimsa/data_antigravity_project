@@ -114,8 +114,6 @@ print('-' * 70)
 docs = [
     'stata/README.md',
     'STATA_INTEGRATION_SUMMARY.md',
-    'STATA_REVIEW_REPORT.md',
-    'STATA_REVIEW_SUMMARY.md',
     'PROBLEM_RESOLUTION_REPORT.md',
     'FINAL_COMPLETION_REPORT.md',
 ]
