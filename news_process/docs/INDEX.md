@@ -1,4 +1,4 @@
-# news_process 文档索引（v3.6.0）
+# news_process 文档索引（v3.7.0 + v2.3 / 最近 git tag v3.6.0, 2026-05-18）
 
 ## 项目说明（三层）
 
