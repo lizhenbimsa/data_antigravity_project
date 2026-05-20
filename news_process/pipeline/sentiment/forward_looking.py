@@ -38,7 +38,14 @@ G-A2.1 准入门控
 
 from __future__ import annotations
 
+import jieba
+
 from news_process.core.text.cn_text_utils import cn_split_sentence
+
+# P-038 修复 (v3.7.1): single-char "望"/"盼"/"将" substring 匹配会命中
+# "希望"/"绝望"/"瞭望"/"将其"/"将该" 等非 forward-looking 上下文. 改用
+# jieba.cut() 精确 token 匹配, 避免 substring false positives.
+# Performance: jieba 单例 cache, ~0.1ms/sentence.
 
 # ── FLS 双门控词表 (v0.1.5, future ~72 词 + time ~59 词 = 双门控 ≥ 100 词总) ──
 # v2.3-followup-v2 第 17 轮 user-request 扩展 (基于 Li 2010 JAR + 中文金融
@@ -96,20 +103,15 @@ _TIME_FUTURE_MARKERS = frozenset([
 def _is_fls_sentence(sentence: str) -> bool:
     """双门控判定: 句中同时含 future 词与 time 词.
 
-    Note:
-        v0.1 实现: 简单子串匹配 (sentence 中包含某词); 注意 "将" 单字
-        高频, 但只有 + time marker 才触发, 双门控控制 false-positive.
-
-        v0.2 优化方向: jieba 分词后精确 token 匹配 (避免"将其/将该" 的
-        副词误判); regex 增强日期模式 "到 20XX / X 年内".
+    P-038 修复 (v3.7.1): 改 jieba 精确 token 匹配, 避免单字 "望/盼/将"
+    substring 误命中 "希望/绝望/瞭望/将其/将该" 等非 forward-looking 上下文.
     """
     if not sentence:
         return False
-    has_future = any(fw in sentence for fw in _FUTURE_WORDS)
-    if not has_future:
+    tokens = set(jieba.cut(sentence))
+    if not (tokens & _FUTURE_WORDS):
         return False
-    has_time = any(tm in sentence for tm in _TIME_FUTURE_MARKERS)
-    return has_time
+    return bool(tokens & _TIME_FUTURE_MARKERS)
 
 
 def compute_fls_for_text(text: str) -> dict[str, float]:

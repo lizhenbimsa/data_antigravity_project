@@ -347,6 +347,11 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
     rename_map: Dict[str, str] = {}  # short → original
     new_cols: List[str] = []
     used: set = set()
+    # P-063 修复 (v3.7.1): 旧 dedup 用 _1/_2 numeric suffix 截断 base
+    # (`base[:MAX-2] + '_1'`), 把 32-char 区间内的关键 suffix (_full/_ctx/
+    # _t0/_t1) 吃掉, 破坏 track 语义. 改用 6-char md5 hash suffix 保留尽量
+    # 多的 discriminating chars + 跨 run 确定性 (同 col 总产同 hash).
+    import hashlib as _hashlib  # 局部 import 避免 module-level 污染
     for col in df.columns:
         new_col = col
         if len(new_col) > STATA_VAR_NAME_MAXLEN:
@@ -358,12 +363,11 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
         # 仍超 → 截断
         if len(new_col) > STATA_VAR_NAME_MAXLEN:
             new_col = new_col[:STATA_VAR_NAME_MAXLEN]
-        # 冲突处理
-        base = new_col
-        suffix = 0
-        while new_col in used:
-            suffix += 1
-            new_col = (base[:STATA_VAR_NAME_MAXLEN - len(f"_{suffix}")] + f"_{suffix}")
+        # 冲突处理: 用 md5 hash suffix 保 discriminating chars
+        if new_col in used:
+            base = new_col[:STATA_VAR_NAME_MAXLEN - 7]
+            h = _hashlib.md5(col.encode('utf-8')).hexdigest()[:6]
+            new_col = f"{base}_{h}"
         used.add(new_col)
         new_cols.append(new_col)
         if new_col != col:

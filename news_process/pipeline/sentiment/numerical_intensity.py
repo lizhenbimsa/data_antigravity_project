@@ -89,6 +89,21 @@ def _cn_number_to_arabic(cn_str: str) -> Optional[int]:
     if not any(c in _pure_digits for c in cn_str):
         return None
 
+    # P-042 修复 (v3.7.1): "万亿" 复合单位 = 10^12 (万 × 亿). 旧实现把它当
+    # 两个独立单位累加 (total = X*1e4 + 1*1e8), 对 "两万亿" 给出 100020000
+    # 而非真值 2*10^12 (差 20000×). 预处理: "X万亿" → "X·10^12 + 后缀".
+    if '万亿' in cn_str:
+        idx = cn_str.index('万亿')
+        prefix_str = cn_str[:idx]
+        suffix_str = cn_str[idx + 2:]
+        prefix_val = _cn_number_to_arabic(prefix_str) if prefix_str else 1
+        if prefix_val is None:
+            prefix_val = 1
+        suffix_val = _cn_number_to_arabic(suffix_str) if suffix_str else 0
+        if suffix_val is None:
+            suffix_val = 0
+        return prefix_val * 10**12 + suffix_val
+
     total = 0
     section = 0  # 当前 section (累计 < 万)
     number = 0   # 当前数字 (累计 < 十)

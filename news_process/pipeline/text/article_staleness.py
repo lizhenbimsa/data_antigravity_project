@@ -220,8 +220,12 @@ def compute_semantic_staleness(
         if pd.isna(dates.iloc[i]):
             continue
         cutoff = dates.iloc[i] - timedelta(days=WINDOW_DAYS)
-        # 移除窗外
-        while window_start_idx < i and dates.iloc[window_start_idx] < cutoff:
+        # 移除窗外 (P-013 修复: 镜像 compute_surface_staleness L144-147 的 NaT 守卫.
+        # 不加 pd.isna 守卫时, NaT < cutoff 返 False, 窗口起点冻结在 NaT 行.)
+        while window_start_idx < i and (
+            pd.isna(dates.iloc[window_start_idx])
+            or dates.iloc[window_start_idx] < cutoff
+        ):
             window_start_idx += 1
         # 重建 index (滚动重建; FlatIP 重建成本与 size 线性)
         index.reset()
@@ -241,23 +245,37 @@ def compute_semantic_staleness(
 
 # ── bank-year 聚合 ───────────────────────────────────────────────────
 def aggregate_to_bank_year(article_df: pd.DataFrame) -> pd.DataFrame:
-    """article-level staleness → bank-year mean + frac_high (>0.9)."""
-    agg_cols = {}
-    for col in ['surface_staleness_full', 'surface_staleness_ctx',
-                'semantic_staleness_full', 'semantic_staleness_ctx']:
-        if col in article_df.columns:
-            agg_cols[col] = lambda s: s.dropna().mean() if len(s.dropna()) else np.nan
-            agg_cols[col.replace('staleness', 'highstale')] = (
-                lambda s, c=col: (article_df[c] > 0.9).mean()
-            )
+    """article-level staleness → bank-year mean + frac_high (>0.9).
 
-    panel = (
-        article_df.groupby(['target_bank', 'year'], as_index=False)
-        .agg({col: 'mean' for col in agg_cols})
-    )
-    # frac_high_stale 列重命名 (待 v3.7.1 集成时启用)
-    # rename = {c: c.replace('staleness', 'highstale')
-    #           for c in panel.columns if 'staleness' in c}
+    P-012 修复 (v3.7.1): 旧实现两个 bug:
+    1. lambda `c=col: (article_df[c] > 0.9).mean()` 引用外层 article_df
+       而非 group slice → 永远是全局均值, 不是 bank-year mean.
+    2. `.agg({col: 'mean' for col in agg_cols})` 丢弃 lambdas + 把
+       'surface_highstale_full' 等 article_df 中不存在的 key 传给 groupby.agg
+       → KeyError 崩溃, 函数 dead-on-arrival.
+
+    新实现: 先在 article_df 添加 binary highstale 列 (vectorized), 再用
+    标准 `.agg('mean')` 一次 groupby 算出 staleness 均值 + highstale 比例.
+    """
+    if article_df.empty:
+        return pd.DataFrame(columns=['target_bank', 'year'])
+
+    df = article_df.copy()
+    agg_cols = {}
+    for stale_col in ['surface_staleness_full', 'surface_staleness_ctx',
+                      'semantic_staleness_full', 'semantic_staleness_ctx']:
+        if stale_col in df.columns:
+            agg_cols[stale_col] = (stale_col, 'mean')
+            # 加 binary high-stale 列 (NaN propagates, mean 自动 skip NA)
+            high_col = stale_col.replace('staleness', 'highstale')
+            df[high_col] = (df[stale_col] > 0.9).astype('float64')
+            df.loc[df[stale_col].isna(), high_col] = np.nan
+            agg_cols[high_col] = (high_col, 'mean')
+
+    if not agg_cols:
+        return df.groupby(['target_bank', 'year'], as_index=False).size().drop(columns='size')
+
+    panel = df.groupby(['target_bank', 'year'], as_index=False).agg(**agg_cols)
     return panel
 
 

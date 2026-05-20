@@ -251,11 +251,19 @@ class TestExecutiveNER:
         assert '{content}' in PROMPT_TEMPLATE
 
     def test_yunwu_sync_no_key_returns_empty(self):
-        """P0.4 _yunwu_chat_sync 无 key 时返回 '' (graceful)."""
+        """P0.4 _yunwu_chat_sync 无 key 时返回 ('', meta) (graceful).
+
+        v3.7.1 (P-022 修复) API 变更: 现返回 tuple[str, dict] (content + meta
+        for archive_record). 无 key 时 content='' 表示失败.
+        """
         if 'YUNWU_API_KEY' in os.environ:
             del os.environ['YUNWU_API_KEY']
         from news_process.pipeline.sentiment.executive_ner import (
             _yunwu_chat_sync,
         )
         out = _yunwu_chat_sync(prompt='hi', model='gpt-5.4-nano', timeout=5)
-        assert out == ''
+        # 新 API: (content, meta_dict)
+        assert isinstance(out, tuple) and len(out) == 2
+        content, meta = out
+        assert content == ''
+        assert isinstance(meta, dict)

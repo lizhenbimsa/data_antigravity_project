@@ -81,6 +81,21 @@ def risk_taking_outcomes_enabled(cfg: dict[str, Any]) -> bool:
     return cfg.get('risk_taking_outcomes', {}).get('enabled', False)
 
 
+def executive_ner_enabled(cfg: dict[str, Any]) -> bool:
+    """P-016 修复 (v3.7.1): stage 19 (LLM CEO/Chairman zero-shot NER) 改为 opt-in.
+
+    设计原因: stage 19 调用 yunwu API 跑 ~40 万文章, 单次 run ~$6-12 + 12-24h
+    wall-clock (见 executive_ner.py:30 docstring). 旧版 always_enabled 默认导致
+    fresh checkout `python run_pipeline_function.py` 直接触发 $12 LLM 预算无任何
+    confirmation gate, 与 peer stage 49 (risk_taking_outcomes_enabled) 的 opt-in
+    pattern 不对称.
+
+    用户启用方式:
+        config/sentiment.yaml::executive_ner::enabled: true
+    """
+    return cfg.get('executive_ner', {}).get('enabled', False)
+
+
 # 验证模块谓词句柄集 — 仅在模块作用域声明一次, 以使
 # core/dag.STAGES_VALIDATION 与 run_pipeline_validation.STAGES 复用同一
 # 个 callable 对象。
@@ -128,7 +143,10 @@ class StageSpec:
     script: str
     group: str
     kind: str = "stage"
-    timeout: int = 3600
+    # P-072 修复 (v3.7.1): 默认 3600s 在长 stage (22/23/24/51 全语料) 上会被父端 SIGKILL,
+    # 留下 partial parquet (见旧 stage 21 注释 L208-212 自承). 提至 7200s 给非 LLM 类
+    # stage 留 buffer; LLM/embedding 类继续显式设 21600.
+    timeout: int = 7200
     enabled_when: Callable[[dict[str, Any]], bool] = always_enabled
 
 
@@ -190,12 +208,17 @@ STAGES_MAIN: list[StageSpec] = [
     # v3.7.0 PR #13 (D4): LLM CEO/Chairman zero-shot NER.
     # 学术依据: Kaustia & Rantapuska (2016) JFM; Bushee-Gow-Taylor (2018) JAR.
     # 启用前置: yunwu API + ~$12 预算 + DC3 LLM archive (v3.7.0 已就绪).
-    # always_enabled (与 stage 21 同 LLM 类, 但 cache namespace 隔离).
+    # P-016 修复 (v3.7.1): 改 opt-in 与 stage 49 / stage 21 LLM 类对齐, 防 fresh
+    # checkout 误触 $12 LLM 预算无 gate. 启用: config/sentiment.yaml::executive_ner::enabled: true
+    # P-016 配套 (v3.7.1): kind 由 "sentiment" 改 "feature" — stage 19 是 NER 任务
+    # (非 tone classification), 与 METHOD_TO_PREDICATE = {llm/words/berts} sentiment
+    # 三方法的 invariant 不冲突.
     StageSpec(
         name="阶段19: LLM CEO/Chairman zero-shot NER (v3.7.0 D4)",
         script="19_executive_ner.py",
-        group="main", kind="sentiment",
+        group="main", kind="feature",
         timeout=21600,  # 与 stage 21 同 6 h 上限
+        enabled_when=executive_ner_enabled,
     ),
 
     # ── 模块三：新闻情感模块 (由 sentiment_analysis.enabled_methods 配置条件性启停) ──

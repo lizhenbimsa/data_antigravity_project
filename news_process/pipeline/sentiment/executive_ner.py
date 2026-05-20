@@ -72,6 +72,22 @@ CONFIG = load_config()
 STAGE_NAME = "19_executive_ner"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
+# P-006 修复 (v3.7.1): LLMCache API 对齐 — 使用与 stage 21 / benefit_society
+# / policy_alignment 同款 db_path 模式 (不是 namespace=...).
+CACHE_DB_PATH = CONFIG['paths'].get(
+    'llm_cache_db',
+    os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'),
+)
+
+# P-022 修复 (v3.7.1): retry/backoff 参数 (从 sentiment.yaml::executive_ner 读取).
+_NER_CONFIG = CONFIG.get('executive_ner', {})
+MAX_RETRIES = int(_NER_CONFIG.get('max_retries', 5))
+TIMEOUT_PER_REQUEST = int(_NER_CONFIG.get('timeout_per_request', 60))
+RETRY_DELAY = 2.0       # 起始 sleep 秒
+RETRY_BACKOFF_CAP = 60  # 单次 sleep 上限
+
+PROMPT_VERSION = 'd4_v0_20260518'  # 与 prompt 内容绑定; 改 PROMPT_TEMPLATE 必须 bump
+
 # v3.7.0 V4 P2.1: DC3 LLM archive 接入
 try:
     from news_process.pipeline.llm_archive.archive import archive_record  # noqa: E402
@@ -103,26 +119,39 @@ def _yunwu_chat_sync(
     prompt: str,
     model: str,
     *,
-    timeout: int = 60,
-) -> str:
+    timeout: int = TIMEOUT_PER_REQUEST,
+    max_retries: int = MAX_RETRIES,
+) -> tuple[str, dict]:
     """同步 yunwu API 调用 (与 tone_llms._build_llm_request 同源 schema).
 
     Yunwu 兼容 OpenAI Chat Completions API.
+
+    P-022 修复 (v3.7.1): 加 retry + 指数退避; 旧版单次 POST 任何 429/5xx
+    都静默 return '' → 系统性 NER 数据丢失. 现在 max_retries 内重试,
+    最终失败才返空.
+
     Returns:
-        chat completion message content (raw string, 可能 JSON 也可能 text).
-        空串表示调用失败 (调用方应当作 "无 NER 结果" 处理).
+        (content, meta): content 是 message content (空串=失败); meta 含
+        ``http_status`` / ``model_version`` / ``api_endpoint`` / ``response_raw``
+        / ``attempts`` 供 archive_record 调用 (P-007).
     """
+    meta = {
+        'http_status': 0, 'model_version': model,
+        'api_endpoint': '', 'response_raw': '', 'attempts': 0,
+    }
     try:
         import requests  # noqa: E402 (lazy import 避免 light test 拉重依赖)
     except ImportError:
         logger.error("requests 未装; D4 LLM 调用失败")
-        return ''
+        return '', meta
 
     api_key = os.environ.get('YUNWU_API_KEY', '')
     if not api_key:
         logger.warning("YUNWU_API_KEY 环境变量未设置; D4 跳过 LLM 调用")
-        return ''
+        return '', meta
     base_url = os.environ.get('YUNWU_BASE_URL', 'https://yunwu.ai/v1')
+    endpoint = f'{base_url}/chat/completions'
+    meta['api_endpoint'] = endpoint
 
     headers = {
         'Content-Type': 'application/json',
@@ -135,19 +164,52 @@ def _yunwu_chat_sync(
         'seed': 42,
         'response_format': {'type': 'json_object'},
     }
-    try:
-        resp = requests.post(
-            f'{base_url}/chat/completions',
-            headers=headers, json=payload, timeout=timeout,
-        )
-        if resp.status_code != 200:
-            logger.debug(f"  LLM HTTP {resp.status_code}: {resp.text[:200]}")
-            return ''
-        data = resp.json()
-        return data['choices'][0]['message']['content'] or ''
-    except Exception as e:
-        logger.debug(f"  LLM call fail: {type(e).__name__}: {str(e)[:120]}")
-        return ''
+    delay = RETRY_DELAY
+    for attempt in range(max_retries):
+        meta['attempts'] = attempt + 1
+        try:
+            resp = requests.post(endpoint, headers=headers, json=payload,
+                                 timeout=timeout)
+            meta['http_status'] = resp.status_code
+            if resp.status_code == 200:
+                try:
+                    data = resp.json()
+                except Exception:
+                    data = {}
+                meta['response_raw'] = resp.text
+                meta['model_version'] = data.get('model', model)
+                try:
+                    return data['choices'][0]['message']['content'] or '', meta
+                except (KeyError, IndexError, TypeError):
+                    return '', meta
+            if resp.status_code in (429, 500, 502, 503, 504):
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        f"  LLM HTTP {resp.status_code} attempt "
+                        f"{attempt + 1}/{max_retries}, sleep {delay:.1f}s"
+                    )
+                    time.sleep(delay)
+                    delay = min(delay * 2, RETRY_BACKOFF_CAP)
+                    continue
+            # 非 retry 类 4xx (e.g. 400/401/404) 立即放弃
+            logger.warning(f"  LLM HTTP {resp.status_code} (non-retry); abort")
+            meta['response_raw'] = resp.text[:500]
+            return '', meta
+        except requests.RequestException as e:
+            if attempt < max_retries - 1:
+                logger.warning(
+                    f"  LLM RequestException {type(e).__name__} attempt "
+                    f"{attempt + 1}/{max_retries}, sleep {delay:.1f}s"
+                )
+                time.sleep(delay)
+                delay = min(delay * 2, RETRY_BACKOFF_CAP)
+                continue
+            logger.warning(f"  LLM 重试耗尽: {type(e).__name__}: {str(e)[:120]}")
+            return '', meta
+        except Exception as e:
+            logger.warning(f"  LLM unexpected: {type(e).__name__}: {str(e)[:120]}")
+            return '', meta
+    return '', meta
 
 
 def call_llm_for_ner(
@@ -180,40 +242,76 @@ def call_llm_for_ner(
         content=content[:2000],  # 截断防超 token limit
     )
 
-    # 缓存层: 用 LLMCache 类 (core.caching:137 实际 API; v3.7.0 实测确认).
-    # 第 13 轮自审修复: 原 ``from .caching import get_or_compute_llm`` 是死代码
-    # (函数不存在), 现改为直接用 LLMCache 类 + try/except, fallback 到直调.
+    # P-006 修复 (v3.7.1): LLMCache 真 API 是 `LLMCache(db_path)` 不是
+    # `LLMCache(namespace=)`; cache.get/put 也是 (model_id, prompt, prompt_version=)
+    # 不是单参版本. 旧实现 TypeError 被宽 except 吞掉 → 永不命中 cache.
+    # 现在使用与 tone_llms / benefit_society / policy_alignment 一致的 API.
+    # P-007 修复 (v3.7.1): archive_record 真签名是 keyword-only
+    # (cache_key, model_id, model_version, prompt, response_raw, prompt_version,
+    #  temperature, api_endpoint, http_status, ...) — 不是 (stage=, model=, response=, metadata=).
     raw = ''
+    meta: dict = {
+        'http_status': 0, 'model_version': model,
+        'api_endpoint': '', 'response_raw': '', 'attempts': 0,
+    }
+    cache_obj = None
+    cache_key = ''
     try:
         from news_process.core.caching import LLMCache  # noqa: E402
-        cache = LLMCache(namespace=cache_namespace)
-        cache_key = f"{model}:{hash(prompt)}"
-        cached = cache.get(cache_key) if hasattr(cache, 'get') else None
-        if cached:
+        cache_obj = LLMCache(CACHE_DB_PATH)
+        cache_key = LLMCache.make_key(
+            model, prompt, prompt_version=PROMPT_VERSION, temperature=0.0,
+        )
+        cached = cache_obj.get(
+            model, prompt, prompt_version=PROMPT_VERSION, temperature=0.0,
+        )
+        if cached is not None:
             raw = cached
-        else:
-            raw = _yunwu_chat_sync(prompt, model)
-            if raw and hasattr(cache, 'put'):
-                cache.put(cache_key, raw)
-    except (ImportError, TypeError, AttributeError):
-        # LLMCache 接口未对齐 → 直调 (无缓存)
-        raw = _yunwu_chat_sync(prompt, model)
+            meta['http_status'] = 200
+            meta['response_raw'] = cached
+    except ImportError:
+        # core.caching 不可用 → 直调 (无缓存)
+        pass
     except Exception as e:
-        logger.debug(f"  LLM cache layer fail: {e}; fallback to direct call")
-        raw = _yunwu_chat_sync(prompt, model)
+        logger.warning(f"  LLM cache layer fail: {type(e).__name__}: {e}; "
+                       "fallback to direct call")
+        cache_obj = None
 
-    # DC3 archive (v3.7.0 reproducibility 硬约束)
+    cache_hit = bool(raw)
+    if not raw:
+        raw, meta = _yunwu_chat_sync(prompt, model)
+        if raw and cache_obj is not None:
+            try:
+                cache_obj.put(
+                    model, prompt, raw,
+                    prompt_version=PROMPT_VERSION, temperature=0.0,
+                )
+            except Exception as e:
+                logger.debug(f"  LLM cache put fail: {e}")
+
+    # DC3 archive (v3.7.0 reproducibility 硬约束) — P-007 修复: 正确 kwargs
+    # + cache-hit 也归档 (P-045-relevant), 让 archive 真正成为 source of truth.
     if HAS_ARCHIVE and archive_record and raw:
         try:
+            if not cache_key:
+                # cache 路径不可用时仍生成 key (与 tone_llms.py 一致)
+                from news_process.core.caching import LLMCache  # noqa: E402
+                cache_key = LLMCache.make_key(
+                    model, prompt, prompt_version=PROMPT_VERSION, temperature=0.0,
+                )
             archive_record(
-                stage='19_executive_ner',
-                model=model,
+                cache_key=cache_key,
+                model_id=model,
+                model_version=meta.get('model_version') or model,
                 prompt=prompt,
-                response=raw,
-                metadata={'bank': bank_name, 'cache_namespace': cache_namespace},
+                response_raw=meta.get('response_raw') or raw,
+                prompt_version=PROMPT_VERSION,
+                temperature=0.0,
+                api_endpoint=meta.get('api_endpoint', ''),
+                http_status=meta.get('http_status') or (200 if cache_hit else 0),
             )
         except Exception as e:
-            logger.debug(f"  archive_record fail: {e}")
+            logger.debug(f"  archive_record fail: {type(e).__name__}: {e}")
 
     # JSON 解析鲁棒
     if not raw:

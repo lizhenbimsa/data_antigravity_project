@@ -43,6 +43,8 @@ news_process/.test_tmp/
 .idea/
 .vscode/
 .claude/
+.gemini/
+.cursor/
 *.swp
 *.swo
 *~

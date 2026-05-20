@@ -292,6 +292,18 @@ sentiment_analysis:
 # ------------------------------------------------------------------------------
 # [模块四：面板数据构建] Bank-Year 面板构建 - 阶段 41-45
 # ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# [模块二 D-group] Stage 19 LLM CEO/Chairman zero-shot NER
+# ------------------------------------------------------------------------------
+# P-016 修复 (v3.7.1): stage 19 改 opt-in. 启用前确认 yunwu API key 配置 +
+# ~$6-12 LLM 预算 + 12-24h wall-clock. 详见 pipeline/sentiment/executive_ner.py
+# docstring L28-32 + AUDIT_REPORT_ULTIMATE.md::P-016.
+executive_ner:
+  enabled: false               # 默认 opt-in; 用户显式 true 才启用
+  model: gpt-5.4-nano          # 与 stage 21 同 OpenAI-compat
+  timeout_per_request: 60      # 单请求超时 (秒)
+  max_retries: 5               # P-022 配套: 重试上限
+
 herd_detection:
   similarity_threshold: 0.35   # 余弦相似度阈值, 高于此值视为跟风
   time_window_days: 7          # 时间窗口(天), 仅比较窗口内的文章

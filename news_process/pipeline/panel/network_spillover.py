@@ -958,8 +958,10 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None)
         np.ndarray, shape=(len(texts), dim), 归一化后的嵌入向量矩阵
 
     Raises:
-        RuntimeError: API 返回非 200 状态码
+        RuntimeError: API 返回非 200 状态码 (重试耗尽后)
     """
+    import asyncio
+
     import aiohttp
 
     if EMBEDDING_CONFIG and not _embedding_config_uses_local():
@@ -995,33 +997,82 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None)
         logger.info(f"    缓存拦截: 命中 {len(texts) - len(missing_texts)} 条, 缺失 {len(missing_texts)} 条")
 
     # 调用 API 获取缺失的 embeddings
+    # P-023 修复 (v3.7.1): 旧实现单次 POST, 任何 !=200 即 RuntimeError 抹除
+    # in-flight batch + 已 cache 的前序 batch 写入. 现加 retry + 指数退避,
+    # 镜像 strategic_diff.py:542 的 pattern. 非 retry 类 4xx 仍立即 raise.
     missing_embs = []
     if missing_texts:
         BATCH = 100  # OpenAI embeddings API 单次最多 2048 个输入
+        MAX_RETRIES = 5
+        RETRY_DELAY = 2.0
+        MAX_RETRY_DELAY = 60.0
         async with aiohttp.ClientSession() as session:
             for i in range(0, len(missing_texts), BATCH):
                 batch_texts = missing_texts[i:i + BATCH]
                 payload = {"model": model, "input": batch_texts}
-                async with session.post(f"{base_url}/embeddings",
-                                         json=payload, headers=headers,
-                                         timeout=aiohttp.ClientTimeout(total=120)
-                                         ) as resp:
-                    if resp.status != 200:
-                        body = await resp.text()
-                        raise RuntimeError(
-                            f"Embedding API HTTP {resp.status}: {body[:200]}")
-                    data = await resp.json()
-                    batch_embs = [item['embedding'] for item in sorted(data['data'], key=lambda x: x['index'])]
-                    missing_embs.extend(batch_embs)
+                delay = RETRY_DELAY
+                batch_embs = None
+                for attempt in range(MAX_RETRIES):
+                    try:
+                        async with session.post(
+                            f"{base_url}/embeddings",
+                            json=payload, headers=headers,
+                            timeout=aiohttp.ClientTimeout(total=120),
+                        ) as resp:
+                            if resp.status == 200:
+                                data = await resp.json()
+                                batch_embs = [
+                                    item['embedding']
+                                    for item in sorted(data['data'],
+                                                       key=lambda x: x['index'])
+                                ]
+                                break
+                            if resp.status in (429, 500, 502, 503, 504):
+                                body = await resp.text()
+                                if attempt < MAX_RETRIES - 1:
+                                    logger.warning(
+                                        f"    Embedding HTTP {resp.status} "
+                                        f"attempt {attempt + 1}/{MAX_RETRIES}, "
+                                        f"sleep {delay:.1f}s"
+                                    )
+                                    await asyncio.sleep(delay)
+                                    delay = min(delay * 2, MAX_RETRY_DELAY)
+                                    continue
+                                raise RuntimeError(
+                                    f"Embedding API HTTP {resp.status} "
+                                    f"(重试 {MAX_RETRIES} 次耗尽): {body[:200]}"
+                                )
+                            # 非 retry 类 (400/401/404 等) 立即 raise
+                            body = await resp.text()
+                            raise RuntimeError(
+                                f"Embedding API HTTP {resp.status}: {body[:200]}"
+                            )
+                    except aiohttp.ClientError as e:
+                        if attempt < MAX_RETRIES - 1:
+                            logger.warning(
+                                f"    Embedding ClientError {type(e).__name__} "
+                                f"attempt {attempt + 1}/{MAX_RETRIES}, "
+                                f"sleep {delay:.1f}s"
+                            )
+                            await asyncio.sleep(delay)
+                            delay = min(delay * 2, MAX_RETRY_DELAY)
+                            continue
+                        raise
 
-                    # 批量写入缓存
-                    if cache:
-                        cache.put_batch(
-                            model,
-                            batch_texts,
-                            [json.dumps(emb) for emb in batch_embs],
-                            prompt_version=text_pipeline_version,
-                        )
+                if batch_embs is None:
+                    raise RuntimeError(
+                        f"Embedding batch {i // BATCH + 1} 重试耗尽未拿到结果"
+                    )
+                missing_embs.extend(batch_embs)
+
+                # 批量写入缓存
+                if cache:
+                    cache.put_batch(
+                        model,
+                        batch_texts,
+                        [json.dumps(emb) for emb in batch_embs],
+                        prompt_version=text_pipeline_version,
+                    )
 
                 logger.info(f"    Embedding batch {i // BATCH + 1}/"
                             f"{(len(missing_texts) - 1) // BATCH + 1} 完成")

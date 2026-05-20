@@ -163,6 +163,7 @@ def test_predicate_identity_module_scope(core_dag):
         core_dag.berts_method_enabled,
         core_dag.temporal_mask_enabled,
         core_dag.risk_taking_outcomes_enabled,  # v3.7.0 C4 修复
+        core_dag.executive_ner_enabled,         # v3.7.1 P-016 修复
     }
     expected_predicates.update(core_dag._VALIDATION_PREDS.values())
 
@@ -188,33 +189,33 @@ def test_filter_enabled_respects_predicate(core_dag):
     # v3.7.0 (C4 修复): stage 49 默认 disabled (opt-in), 故下面 enabled count
     # 与 v3.6.0 保持一致 — stage 49 通过单独 cfg_risk_taking 测试.
 
-    # 三种情感方法全开 -> v3.7.0 14 + v2.3 增量 5 (16/17/18/19/30a 全 always_enabled) = 19
-    # (stage 49 默认 disabled)
+    # 三种情感方法全开 -> v3.7.1: stage 19 改 opt-in (P-016), 默认 disabled
+    # 故全开 count = 19 - 1 = 18 (stage 49 同样 opt-in 默认 disabled, 已计在外).
     cfg_full = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
         },
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 19
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 18
 
-    # 仅 LLM -> 19 - 2 (words+berts) - 1 (24 跟随 berts) = 16
+    # 仅 LLM -> 18 - 2 (words+berts) - 1 (24 跟随 berts) = 15
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 16
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 15
 
-    # 无情感方法 -> 19 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 15
+    # 无情感方法 -> 18 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 14
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 15
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 14
     )
 
-    # v3.7.0 NEW: risk_taking_outcomes opt-in 启用 stage 49 → 19 + 1 = 20
+    # v3.7.0 NEW: risk_taking_outcomes opt-in 启用 stage 49 → 18 + 1 = 19
     cfg_with_risk_taking = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -222,7 +223,17 @@ def test_filter_enabled_respects_predicate(core_dag):
         "validation": {},
         "risk_taking_outcomes": {"enabled": True},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_risk_taking)) == 20
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_risk_taking)) == 19
+
+    # v3.7.1 NEW: P-016 修复 — executive_ner opt-in 启用 stage 19 → 18 + 1 = 19
+    cfg_with_ner = {
+        "sentiment_analysis": {
+            "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
+        },
+        "validation": {},
+        "executive_ner": {"enabled": True},
+    }
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_ner)) == 19
 
 
 def test_stages_main_all_registered_in_output_registry(core_dag):

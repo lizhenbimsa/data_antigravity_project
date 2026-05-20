@@ -43,8 +43,13 @@ def test_stage21_skip_is_compatible_accepts_current_outputs(monkeypatch, tmp_pat
     stage14.to_parquet(tmp_path / "14_fintech_intensity.parquet", index=False)
     full = stage14.copy()
     full["llm_verified_full"] = [True, False]
+    # v3.7.1 (test drift fix): v3.2.0 dual-track BREAKING 后, _stage21_skip_is_compatible
+    # 加 schema 漂移防护 (run_pipeline_function.py:289-306) — _STAGE21_REQUIRED_OUTPUT_COLUMNS
+    # 缺失即 reject skip. test 必须 mock 这些 v3.2.0 双轨列才能 KEEP 兼容性.
+    for col in rpf._STAGE21_REQUIRED_OUTPUT_COLUMNS:
+        full[col] = "symbolic"
     full.to_parquet(tmp_path / "21_tone_llms_full.parquet", index=False)
-    full.loc[[0], list(rpf._STAGE21_FILTERED_FINGERPRINT_COLUMNS)].to_parquet(
+    full.loc[[0], list(rpf._STAGE21_FILTERED_FINGERPRINT_COLUMNS) + list(rpf._STAGE21_REQUIRED_OUTPUT_COLUMNS)].to_parquet(
         tmp_path / "21_tone_llms.parquet",
         index=False,
     )

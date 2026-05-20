@@ -48,14 +48,20 @@ class TestStage21LLMDualTrack:
         return _load_parquet_or_skip(output_dir, '21_tone_llms.parquet')
 
     def test_core_columns_exist(self, df21):
-        """核心双轨列存在 (v7: fintech_category → innovation_locus)"""
+        """核心双轨列存在.
+
+        v3.2.0 BREAKING (dual-track 化) 后: innovation_locus / innovation_substantiveness
+        / category_confidence 被拆分为 _full / _ctx 双轨. 本测试同步至 v3.2.0+ schema.
+        """
         core_cols = [
             'llm_verified_full', 'llm_verified_ctx',
             'llm_sentiment_full', 'llm_sentiment_ctx',
             'llm_agreement_rate_full', 'llm_agreement_rate_ctx',
-            'innovation_locus', 'category_confidence',
+            # v3.2.0 dual-track 后 → _full/_ctx 双轨; 原非双轨列不再产出
+            'innovation_locus_full', 'innovation_locus_ctx',
+            'category_confidence_full', 'category_confidence_ctx',
             # v7 新增 stage 3 (W&Z 1994/1998 ASQ substantiveness + Gomber 2018 locus confidence)
-            'innovation_substantiveness',
+            'innovation_substantiveness_full', 'innovation_substantiveness_ctx',
             'innovation_substantiveness_confidence_full',
             'innovation_substantiveness_confidence_ctx',
             'innovation_locus_confidence_full',
@@ -237,6 +243,12 @@ class TestFallbackAxiom:
         'gpt54nano_prob_source', 'gemini31111_prob_source', 'deepseekv4_prob_source',
         # v7: per-model verified API-failure NaN 容忍
         'gpt54nano_verified', 'gemini31111_verified', 'deepseekv4_verified',
+        # v3.7.1 (test drift fix): v3.2.0 dual-track BREAKING 后, stage 21 LLM
+        # 也产 innovation_locus / innovation_substantiveness / category_confidence /
+        # ...confidence 列 — 这些与 sentiment 同源, LLM 失败时 NaN 是预期信号.
+        'innovation_locus',         # *_full / *_ctx
+        'innovation_substantiveness',
+        'category_confidence',
     )
 
     def _is_llm_nan_allowed(self, col_name: str) -> bool:

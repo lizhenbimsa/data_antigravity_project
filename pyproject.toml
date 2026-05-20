@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "news-process"
-version = "3.3.0"
-description = "Bank-fintech news -> bank-year panel data pipeline (v3.3.0 — multi-paper extension: 4 derivative papers + 55 Stata templates + 10 bilingual manuscripts; package_data globs fixed (F-42); inherits v3.2.0 Stage 3 dual-track BREAKING + Stata data layer; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架)."
+version = "3.7.1"
+description = "Bank-fintech news -> bank-year panel data pipeline (v3.7.1 — v3.7.0 D-group + v2.3 implementation: 9 papers + Layer 7+8 + 127 fast tests + DC3 LLM archive + BERTopic/staleness/CEO-NER stages; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架)."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "Proprietary" }
