@@ -285,7 +285,7 @@ def main():
     logger.info("阶段 18: Article-level staleness 双指标 (v3.7.0 PR #11+#11.5, D2)")
     logger.info("=" * 60)
 
-    output_dir = CONFIG['paths']['data_processed_dir']
+    output_dir = CONFIG['paths']['output_dir']
     src_path = os.path.join(output_dir, '13_news_with_ctx.parquet')
     if not os.path.exists(src_path):
         logger.error(f"  stage 13 未跑: {src_path}")

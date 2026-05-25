@@ -96,6 +96,36 @@ def executive_ner_enabled(cfg: dict[str, Any]) -> bool:
     return cfg.get('executive_ner', {}).get('enabled', False)
 
 
+def article_topic_enabled(cfg: dict[str, Any]) -> bool:
+    """O2 sample-run finding (2026-05-25): stage 17 (BERTopic D1) 改为 opt-in.
+
+    设计原因: BERTopic + HDBSCAN clustering 在小样本 (~1170 articles) 上触发
+    `ValueError: k must be less than or equal to the number of training points`
+    (HDBSCAN.generate_prediction_data 内 sklearn k-NN tree query). 这印证 memory
+    `v3_7_0_landmarks` 标 "BERTopic K" 为 D-0 实测项, sample-scale limit 未实测.
+    Mirror P-016 (stage 19) opt-in pattern, production gate 启动时 user 显式启用.
+
+    用户启用方式:
+        config/sentiment.yaml::article_topic::enabled: true
+    """
+    return cfg.get('article_topic', {}).get('enabled', False)
+
+
+def article_staleness_enabled(cfg: dict[str, Any]) -> bool:
+    """O2 sample-run finding (2026-05-25): stage 18 (staleness D2) 改为 opt-in.
+
+    设计原因: stage 18 (semantic Faiss + surface MinHash 双指标) 依赖 faiss-cpu
+    + datasketch 两个 v3.7.0 启用前置包. requirements.txt 中这些行被注释,
+    用户须先 pip install 才能启用. Mirror P-016 (stage 19) / article_topic_enabled
+    opt-in pattern.
+
+    用户启用方式:
+        1. pip install faiss-cpu>=1.7.4 datasketch>=1.6.0
+        2. config/sentiment.yaml::article_staleness::enabled: true
+    """
+    return cfg.get('article_staleness', {}).get('enabled', False)
+
+
 # 验证模块谓词句柄集 — 仅在模块作用域声明一次, 以使
 # core/dag.STAGES_VALIDATION 与 run_pipeline_validation.STAGES 复用同一
 # 个 callable 对象。
@@ -293,6 +323,7 @@ STAGES_MAIN: list[StageSpec] = [
         script="17_article_topic.py",
         group="main", kind="robustness",
         timeout=21600,  # BERTopic 在 400k 文章上 4-6 h
+        enabled_when=article_topic_enabled,  # O2 finding 2026-05-25: opt-in (HDBSCAN k-NN sample-scale limit)
     ),
     # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标.
     # 学术依据: Tetlock (2011) JF 66(5):1481; Gentzkow-Shapiro-Taddy (2019) JEL.
@@ -301,6 +332,7 @@ STAGES_MAIN: list[StageSpec] = [
         script="18_article_staleness.py",
         group="main", kind="robustness",
         timeout=21600,  # MinHash + Faiss 在 400k 文章上 4 h
+        enabled_when=article_staleness_enabled,  # O2 finding 2026-05-25: opt-in (faiss-cpu + datasketch 依赖未装)
     ),
 
     # ── 模块五：面板数据构建 (单文件入口, 内部串行执行 7 个子步) ──

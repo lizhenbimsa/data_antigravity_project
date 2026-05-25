@@ -164,6 +164,8 @@ def test_predicate_identity_module_scope(core_dag):
         core_dag.temporal_mask_enabled,
         core_dag.risk_taking_outcomes_enabled,  # v3.7.0 C4 修复
         core_dag.executive_ner_enabled,         # v3.7.1 P-016 修复
+        core_dag.article_topic_enabled,         # O2 sample-run finding 2026-05-25
+        core_dag.article_staleness_enabled,     # O2 sample-run finding 2026-05-25
     }
     expected_predicates.update(core_dag._VALIDATION_PREDS.values())
 
@@ -189,33 +191,35 @@ def test_filter_enabled_respects_predicate(core_dag):
     # v3.7.0 (C4 修复): stage 49 默认 disabled (opt-in), 故下面 enabled count
     # 与 v3.6.0 保持一致 — stage 49 通过单独 cfg_risk_taking 测试.
 
-    # 三种情感方法全开 -> v3.7.1: stage 19 改 opt-in (P-016), 默认 disabled
-    # 故全开 count = 19 - 1 = 18 (stage 49 同样 opt-in 默认 disabled, 已计在外).
+    # 三种情感方法全开 -> v3.7.1: stage 19 改 opt-in (P-016), 默认 disabled.
+    # O2 2026-05-25: stage 17/18 也改 opt-in, 默认 disabled.
+    # 故全开 count = 20 - 1 (stage 19) - 2 (stage 17/18) = 17 — 但 v3.7.0 加 stage 49 (opt-in)
+    # 已计在外, v3.7.1 计 20 stages total → enabled count = 20 - 4 (19/17/18/49 opt-in) = 16.
     cfg_full = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
         },
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 18
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 16
 
-    # 仅 LLM -> 18 - 2 (words+berts) - 1 (24 跟随 berts) = 15
+    # 仅 LLM -> 16 - 2 (words+berts) - 1 (24 跟随 berts) = 13
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 15
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 13
 
-    # 无情感方法 -> 18 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 14
+    # 无情感方法 -> 16 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 12
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 14
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 12
     )
 
-    # v3.7.0 NEW: risk_taking_outcomes opt-in 启用 stage 49 → 18 + 1 = 19
+    # v3.7.0 NEW: risk_taking_outcomes opt-in 启用 stage 49 → 16 + 1 = 17
     cfg_with_risk_taking = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -223,9 +227,20 @@ def test_filter_enabled_respects_predicate(core_dag):
         "validation": {},
         "risk_taking_outcomes": {"enabled": True},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_risk_taking)) == 19
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_risk_taking)) == 17
 
-    # v3.7.1 NEW: P-016 修复 — executive_ner opt-in 启用 stage 19 → 18 + 1 = 19
+    # O2 NEW 2026-05-25: article_topic + article_staleness opt-in 启用 → 16 + 2 = 18
+    cfg_with_d_group = {
+        "sentiment_analysis": {
+            "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
+        },
+        "validation": {},
+        "article_topic": {"enabled": True},
+        "article_staleness": {"enabled": True},
+    }
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_d_group)) == 18
+
+    # v3.7.1 NEW: P-016 修复 — executive_ner opt-in 启用 stage 19 → 16 + 1 = 17
     cfg_with_ner = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -233,7 +248,7 @@ def test_filter_enabled_respects_predicate(core_dag):
         "validation": {},
         "executive_ner": {"enabled": True},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_ner)) == 19
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_ner)) == 17
 
 
 def test_stages_main_all_registered_in_output_registry(core_dag):

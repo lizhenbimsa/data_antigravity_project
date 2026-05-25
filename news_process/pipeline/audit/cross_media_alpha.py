@@ -239,7 +239,7 @@ def main():
     logger.info("⚠️  与第 10 篇 bank_media_disagreement 重叠; spec 对齐前仅 validation")
     logger.info("=" * 60)
 
-    output_dir = CONFIG['paths']['data_processed_dir']
+    output_dir = CONFIG['paths']['output_dir']
     src_path = os.path.join(output_dir, '21_tone_llms_full.parquet')
     if not os.path.exists(src_path):
         src_path = os.path.join(output_dir, '21_tone_llms.parquet')

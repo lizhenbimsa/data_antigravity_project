@@ -184,7 +184,7 @@ def main():
     logger.info("阶段 16: EPU 中国版 merge (v3.6.1 PR #5, B1)")
     logger.info("=" * 60)
 
-    output_dir = CONFIG['paths']['data_processed_dir']
+    output_dir = CONFIG['paths']['output_dir']
     out_path = os.path.join(output_dir, '16_epu_panel.parquet')
 
     # ── 加载上游 article-level (stage 13 物化后) ──

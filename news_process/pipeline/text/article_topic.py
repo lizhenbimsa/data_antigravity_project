@@ -216,7 +216,7 @@ def main():
     logger.info("阶段 17: Article-level BERTopic narrative topic (v3.7.0 PR #10, D1)")
     logger.info("=" * 60)
 
-    output_dir = CONFIG['paths']['data_processed_dir']
+    output_dir = CONFIG['paths']['output_dir']
 
     # ── 加载 stage 30a article embeddings ──
     emb_path = os.path.join(output_dir, '30a_article_embeddings.parquet')

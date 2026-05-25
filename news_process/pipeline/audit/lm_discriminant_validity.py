@@ -168,7 +168,7 @@ def main():
     logger.info("阶段 39e: LM Non-Sentiment 判别效度 (v3.5.2 PR #4)")
     logger.info("=" * 60)
 
-    output_dir = CONFIG['paths']['data_processed_dir']
+    output_dir = CONFIG['paths']['output_dir']
     eval_dir = os.path.join(output_dir, '..', 'eval_reports')
     os.makedirs(eval_dir, exist_ok=True)
 
