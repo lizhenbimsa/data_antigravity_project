@@ -1279,6 +1279,24 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             )
         except Exception as e:  # noqa: BLE001
             logger.warning(f"  ⚠ v3.5.1 A1+A3 派生 graceful skip: {e}")
+
+        # v3.5.2 PR #2/#3 LM 4 subdicts + FLS panel-level aggregation
+        # (O2 sample-run finding 2026-05-25: 关闭 CLAUDE.md 顶部声明 "stage 22
+        # +10 panel 列" 与 disk 实际 0 panel 列的 gap; article-level 8 LM + 2 FLS
+        # 已在 stage 22 _dual_analyze 产出, 缺 panel-agg).
+        try:
+            _v3_5_2_diag = _ec.apply_v3_5_2(df, panel)
+            panel.attrs['v3_5_2_diagnostics'] = _v3_5_2_diag
+            if _v3_5_2_diag.get('v3_5_2_skipped_reason'):
+                logger.warning(f"  ⚠ v3.5.2 LM+FLS panel-agg skip: {_v3_5_2_diag['v3_5_2_skipped_reason']}")
+            else:
+                logger.info(
+                    f"  ✓ v3.5.2 LM+FLS panel-agg 完成: "
+                    f"LM {len(_v3_5_2_diag.get('v3_5_2_lm_added', []))} cols + "
+                    f"FLS {len(_v3_5_2_diag.get('v3_5_2_fls_added', []))} cols"
+                )
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"  ⚠ v3.5.2 LM+FLS panel-agg graceful skip: {e}")
     except Exception:  # noqa: BLE001
         # CR-16: logger.exception 自动 attach traceback, 比 logger.error + 手工 raise 标准
         logger.exception("  ✗ v3.5.0 D2+D4 派生失败")

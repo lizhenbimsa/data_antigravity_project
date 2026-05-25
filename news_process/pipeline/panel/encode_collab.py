@@ -605,3 +605,101 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
         **ni_diag,
         'sidecar_path': sidecar_path,
     }
+
+
+def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
+    """v3.5.2 PR #2/#3 panel-level aggregation for LM 4 subdicts + FLS.
+
+    Closes CLAUDE.md 顶部声明 "Stage 22 _dual_analyze 真集成 LM+FLS → panel +10 列"
+    在 panel 层实现 gap: stage 22 article-level 产出 8 LM cols + 2 FLS cols,
+    但 encode.py 仅 apply_v3_5_0/v3_5_1, 无对应 v3_5_2 panel-agg → panel-level
+    0 cols (O2 sample-run 实测发现).
+
+    Aggregates 10 article-level columns to bank-year panel by simple mean:
+        LM 4 subdicts × 2 tracks (full, ctx) = 8 panel cols:
+            uncert_frac_{full,ctx} → uncert_frac_{full,ctx}_panel  (mean)
+            litig_frac_{full,ctx}  → litig_frac_{full,ctx}_panel  (mean)
+            constr_frac_{full,ctx} → constr_frac_{full,ctx}_panel (mean)
+            modal_strong_frac_{full,ctx} → modal_strong_frac_{full,ctx}_panel (mean)
+        FLS × 2 tracks = 2 panel cols:
+            frac_fls_{full,ctx} → frac_fls_{full,ctx}_panel (mean)
+
+    Per stata_export.py L285-290 这 10 panel col 已注册 core_patterns
+    (即下游 Stata 已期待这些列存在).
+
+    Args:
+        df: article-level DataFrame (含 8 LM + 2 FLS article cols).
+        panel: bank-year panel DataFrame (in-place add 10 cols).
+
+    Returns:
+        dict: {v3_5_2_lm_added, v3_5_2_fls_added, v3_5_2_skipped_reason}.
+    """
+    LM_KEYS = ('uncert', 'litig', 'constr', 'modal_strong')
+    TRACKS = ('full', 'ctx')
+
+    added_cols: list[str] = []
+    skipped_cols: list[str] = []
+
+    # Sanity check upstream columns
+    needed = ['target_bank', 'year']
+    for col in needed:
+        if col not in df.columns:
+            return {
+                'v3_5_2_lm_added': [],
+                'v3_5_2_fls_added': [],
+                'v3_5_2_skipped_reason': f"article df 缺 '{col}' 列, 跳过 v3.5.2 panel-agg",
+            }
+
+    agg_dict: dict[str, tuple[str, str]] = {}
+
+    # LM 4 subdicts × 2 tracks
+    for k in LM_KEYS:
+        for track in TRACKS:
+            src_col = f'{k}_frac_{track}'
+            dst_col = src_col  # 与 stata_export.py core_patterns 一致
+            if src_col in df.columns:
+                agg_dict[dst_col] = (src_col, 'mean')
+                added_cols.append(dst_col)
+            else:
+                skipped_cols.append(src_col)
+
+    # FLS × 2 tracks
+    for track in TRACKS:
+        src_col = f'frac_fls_{track}'
+        dst_col = src_col
+        if src_col in df.columns:
+            agg_dict[dst_col] = (src_col, 'mean')
+            added_cols.append(dst_col)
+        else:
+            skipped_cols.append(src_col)
+
+    if not agg_dict:
+        return {
+            'v3_5_2_lm_added': [],
+            'v3_5_2_fls_added': [],
+            'v3_5_2_skipped_reason': f"article df 缺所有 LM/FLS 源列 ({skipped_cols[:3]}...), 跳过",
+        }
+
+    # Aggregate to bank-year (simple mean of article-level frac)
+    agg_panel = (
+        df.groupby(['target_bank', 'year'], as_index=False)
+        .agg(**agg_dict)
+    )
+
+    # Merge into existing panel (append cols on key match)
+    panel_pre_cols = set(panel.columns)
+    merged = panel.merge(agg_panel, on=['target_bank', 'year'], how='left')
+    new_cols = [c for c in merged.columns if c not in panel_pre_cols]
+
+    # In-place column add on panel (caller-passed DataFrame)
+    for c in new_cols:
+        panel[c] = merged[c].values
+
+    lm_added = [c for c in added_cols if any(c.startswith(k) for k in LM_KEYS)]
+    fls_added = [c for c in added_cols if 'fls' in c]
+
+    return {
+        'v3_5_2_lm_added': lm_added,
+        'v3_5_2_fls_added': fls_added,
+        'v3_5_2_skipped_reason': None,
+    }

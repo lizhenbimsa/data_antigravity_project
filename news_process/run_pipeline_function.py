@@ -258,11 +258,20 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
         return False, "stage 14 fingerprint differs from 21_tone_llms_full"
 
     try:
-        full_cols = list(_STAGE21_FILTERED_FINGERPRINT_COLUMNS) + ['llm_verified_full']
+        # O2.5 修复 (2026-05-25): orchestrator skip-check 与实际 stage 21 OR-filter
+        # 语义对齐. 自 v3.2.0 R1-A 致命修复 (tone_llms.py:1744-1746) 起,
+        # stage 21 main parquet filter = (verified_full == True) | (verified_ctx == True),
+        # 让 ctx 轨独立可作 main spec (Hassan 2019 QJE entity-proximity). 旧 skip-check
+        # 用 AND-only (verified_full=True) 会把 ctx-only 行排除 → fingerprint mismatch
+        # (实测 ctx-only 15 行覆盖 2 cohort 银行 → n_banks 82 vs 84 test fail).
+        full_cols = list(_STAGE21_FILTERED_FINGERPRINT_COLUMNS) + [
+            'llm_verified_full', 'llm_verified_ctx',
+        ]
         full_verify_df = pd.read_parquet(full_path, columns=full_cols)
         expected_main_df = full_verify_df[
-            full_verify_df['llm_verified_full'] == True  # noqa: E712 - pandas boolean mask
-        ].drop(columns=['llm_verified_full'])
+            (full_verify_df['llm_verified_full'] == True)  # noqa: E712 - pandas boolean mask
+            | (full_verify_df['llm_verified_ctx'] == True)
+        ].drop(columns=['llm_verified_full', 'llm_verified_ctx'])
         main_df = pd.read_parquet(
             main_path,
             columns=list(_STAGE21_FILTERED_FINGERPRINT_COLUMNS),
