@@ -573,12 +573,23 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
 
     # 写 sidecar JSON (修 C1' 序列化丢失 -> parquet/.dta 不保留 attrs)
     sidecar_path = 'data/processed/v3_5_1_constants.json'
+    # P0-B (2026-05-25): preserve-if-set — 若 caller 未显式传 prompt_v8_sha256
+    # 但已有 sidecar 含非 null SHA, 保留旧值 (避免 stage 21 重跑无声 wipe
+    # 已手动锚定的 SHA). 仅当 caller 显式传 SHA 时覆盖.
+    existing_sha = None
+    if prompt_v8_sha256 is None and os.path.exists(sidecar_path):
+        try:
+            with open(sidecar_path, 'r', encoding='utf-8') as _f:
+                existing_sha = json.load(_f).get('prompt_v8_sha256')
+        except Exception:  # noqa: BLE001
+            pass
+    effective_sha = prompt_v8_sha256 if prompt_v8_sha256 is not None else existing_sha
     try:
         os.makedirs(os.path.dirname(sidecar_path), exist_ok=True)
         sidecar = {
             'plan_version': 'v3.5.1',
             'median_amb_d0': clarity_diag.get('median_amb_d0', float('nan')),
-            'prompt_v8_sha256': prompt_v8_sha256,
+            'prompt_v8_sha256': effective_sha,
             'stage21_last_run_timestamp': datetime.now(timezone.utc).isoformat(),
             'a1_clarity_panel_cols': clarity_diag.get('v3_5_1_clarity_added', []),
             'a3_num_intensity_panel_cols': ni_diag.get('v3_5_1_num_intensity_added', []),
