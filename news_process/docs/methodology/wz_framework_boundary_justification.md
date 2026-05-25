@@ -155,7 +155,7 @@ regressions consuming these columns are anchored to the
 1. **v7 的 5 个 substantive features + 5 个 symbolic mechanisms (per §3 above) 完全保留，字符级不变** (`unified_cot.txt v7` git tag `prompt-v7-released`)。
 2. **v7 的 innovation_locus 判定规则 (Gomber 2018 JMIS technology vs application) 完全保留**。
 3. **新增 innovation_collab_mode 第三维度** 作为并行 (parallel)、概念正交的判定，不修改任何 v7 已注册元素。
-4. **新 git tag `prompt-v8-supplementation-released`** 锚定 v3.4.0 baseline。`prompt-v7-released` tag **永不删除**，保留作为 v7 subset 的历史 baseline (v8 是 v7 严格超集)。
+4. **v8 prompt 字节级冻结由 sidecar JSON `prompt_v8_sha256` 锚定** (per PROJECT_DESCRIPTION.md L3888;不依赖 git tag)。`prompt-v7-released` tag **永不删除**，保留作为 v7 subset 的历史 baseline (v8 是 v7 严格超集)。
 
 **正交性论证**: 三维度 (substantiveness × locus × collab_mode) 构成 2³ = 8 cross-tab cells，每 cell 在概念上独立可识别 (详见 `innovation_collab_mode_framework.md` §2)。collab_mode 与 substantiveness 的正交性: 自主研发可以是象征性 (e.g., 内部研发声明但无落地)，外部协同也可以是实质性 (e.g., 真实并购 fintech)。collab_mode 与 locus 的正交性: 自主研发 + 底层技术 / 自主研发 + 应用场景 / 外部协同 + 底层技术 / 外部协同 + 应用场景 4 种组合均有真实案例。
 

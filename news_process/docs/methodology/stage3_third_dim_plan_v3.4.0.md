@@ -1,6 +1,6 @@
 # Stage 3 Third Dimension Plan v3.4.0 (Incremental over v3.2.0)
 
-> **状态**: 已实施 (2026-05-17, prompt v8 + git tag `prompt-v8-supplementation-released`)
+> **状态**: 已实施 (2026-05-17, prompt v8 字节级冻结由 sidecar JSON `prompt_v8_sha256` 锚定 per PROJECT_DESCRIPTION.md L3888;无 git tag)
 > **不动**: [stage3_dual_track_plan_v3.2.0.md](stage3_dual_track_plan_v3.2.0.md) 保持 frozen, 本文档为增量
 > **关联**: [innovation_collab_mode_framework.md](innovation_collab_mode_framework.md) / [wz_framework_boundary_justification.md](wz_framework_boundary_justification.md) §4
 

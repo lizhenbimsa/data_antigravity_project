@@ -5,7 +5,7 @@
 > **Authoring date**: 2026-05-16
 > **Revision date**: 2026-05-17 (v2.56 epoch 5 launch)
 > **Author**: Claude Opus 4.7 (1M context), authored per user directive
-> **Baseline**: news_process v3.4.0 (BREAKING upgrade from v3.3.0 `e815237`; v3.4.0 (2026-05-17) Stage 3 第三维度对称扩张 — 新增 `innovation_collab_mode_{full,ctx}` (Chesbrough 2003 + Laursen & Salter 2006 SMJ); prompt v7→v8 additive supplementation per Nosek 2018 PNAS; git tag `prompt-v8-supplementation-released`; **61 Stata templates** (= 55 v3.3.0 + 6 bank_fintech_collab/ P5 子目录) + **12 双语 manuscripts** (v3.3.0 10 + P5 zh/en); LLM cost cap 4200 → 5000)
+> **Baseline**: news_process v3.4.0 (BREAKING upgrade from v3.3.0 `e815237`; v3.4.0 (2026-05-17) Stage 3 第三维度对称扩张 — 新增 `innovation_collab_mode_{full,ctx}` (Chesbrough 2003 + Laursen & Salter 2006 SMJ); prompt v7→v8 additive supplementation per Nosek 2018 PNAS; v8 字节级锚定 = sidecar JSON `prompt_v8_sha256` (PROJECT_DESCRIPTION.md L3888;无 git tag); **61 Stata templates** (= 55 v3.3.0 + 6 bank_fintech_collab/ P5 子目录) + **12 双语 manuscripts** (v3.3.0 10 + P5 zh/en); LLM cost cap 4200 → 5000)
 > **Test baseline**: 1718 passed / 5 baseline-existing failures (v3.3.0 main 即 fail, 非 v3.4.0 引入) / 2 skipped
 > **Decision context**:
 > - 用户在 A/B/C 三条路线评审后明确选定 **B 路线**（v2.55 4 paper, **v2.56 epoch 5 加 P5 → 5 paper**）；

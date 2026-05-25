@@ -1,6 +1,6 @@
 # Innovation Collaboration Mode Framework (v3.4.0)
 
-> **版本**: v1.0 (2026-05-17, 与 prompt v8 + git tag `prompt-v8-supplementation-released` 同步发布)
+> **版本**: v1.0 (2026-05-17, 与 prompt v8 同步发布;v8 字节级锚定 = sidecar JSON `prompt_v8_sha256` per PROJECT_DESCRIPTION.md L3888;无 git tag)
 > **关联**: [wz_framework_boundary_justification.md](wz_framework_boundary_justification.md) §4 / [stage3_dual_track_plan_v3.2.0.md](stage3_dual_track_plan_v3.2.0.md) / [stage3_third_dim_plan_v3.4.0.md](stage3_third_dim_plan_v3.4.0.md)
 
 ---
