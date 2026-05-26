@@ -224,3 +224,74 @@ class TestCLIValidate:
 
         rc = benefit_society_placebo.main(["--validate-only"])
         assert rc == 0
+
+    # quality-hardening Round 32 (2026-05-27): benefit_society_placebo 93.33%→100%
+    # missing 73 / 77 / 81 (config schema errors) + 273-277 (CLI no-validate path)
+
+    def test_main_default_run_returns_zero_with_warning(self, caplog) -> None:
+        """main() 无 --validate-only → warning + return 0 (lines 273-277)."""
+        import logging
+
+        from news_process.pipeline.features import benefit_society_placebo
+
+        caplog.set_level(
+            logging.WARNING,
+            logger='news_process.pipeline.features.benefit_society_placebo',
+        )
+        rc = benefit_society_placebo.main([])
+        assert rc == 0
+
+
+class TestLoadConfigSchemaErrors:
+    """load_placebo_keywords YAML schema 校验."""
+
+    def test_business_line_empty_keywords_raises(self, tmp_path):
+        """business_line keywords 为空 → ValueError (line 73)."""
+        import yaml
+        bad_yaml = tmp_path / 'bad.yaml'
+        bad_yaml.write_text(yaml.dump({
+            'business_lines': {
+                'auto': {'keywords': ['汽车']},
+                'real_estate': {'keywords': []},  # 空 keywords → raise
+                'food': {'keywords': ['食品']},
+                'energy': {'keywords': ['能源']},
+            },
+            'neutral_baseline': {'baseline_a': {'keywords': ['基线词']}},
+        }), encoding='utf-8')
+        with pytest.raises(ValueError, match="no keywords"):
+            load_placebo_keywords(yaml_path=bad_yaml)
+
+    def test_neutral_baseline_count_not_one_raises(self, tmp_path):
+        """neutral_baseline 不是 1 个 → ValueError (line 77)."""
+        import yaml
+        bad_yaml = tmp_path / 'bad.yaml'
+        bad_yaml.write_text(yaml.dump({
+            'business_lines': {
+                'auto': {'keywords': ['汽车']},
+                'real_estate': {'keywords': ['房地产']},
+                'food': {'keywords': ['食品']},
+                'energy': {'keywords': ['能源']},
+            },
+            'neutral_baseline': {
+                'baseline_a': {'keywords': ['基线词']},
+                'baseline_b': {'keywords': ['另一基线']},  # 2 个 → raise
+            },
+        }), encoding='utf-8')
+        with pytest.raises(ValueError, match="Expected 1 neutral baseline"):
+            load_placebo_keywords(yaml_path=bad_yaml)
+
+    def test_neutral_baseline_empty_keywords_raises(self, tmp_path):
+        """neutral_baseline keywords 为空 → ValueError (line 81)."""
+        import yaml
+        bad_yaml = tmp_path / 'bad.yaml'
+        bad_yaml.write_text(yaml.dump({
+            'business_lines': {
+                'auto': {'keywords': ['汽车']},
+                'real_estate': {'keywords': ['房地产']},
+                'food': {'keywords': ['食品']},
+                'energy': {'keywords': ['能源']},
+            },
+            'neutral_baseline': {'baseline_a': {'keywords': []}},  # 空
+        }), encoding='utf-8')
+        with pytest.raises(ValueError, match="no keywords"):
+            load_placebo_keywords(yaml_path=bad_yaml)
