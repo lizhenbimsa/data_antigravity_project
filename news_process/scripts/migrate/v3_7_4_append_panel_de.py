@@ -149,6 +149,7 @@ def append_to_template(template_path: Path) -> str:
 
 
 def main() -> int:
+    """Walk TARGETS and append Panel D + Panel E blocks. Returns 0 on success."""
     print(f"v3.7.4 Panel D + E propagator: walking {len(TARGETS)} templates")
     print(f"Templates root: {_TEMPLATES_ROOT}")
     print("-" * 60)

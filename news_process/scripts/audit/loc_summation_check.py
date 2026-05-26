@@ -28,8 +28,8 @@ import sys
 from pathlib import Path
 
 # 8R-B2 self-check anchor: this script's declared LOC in plan v1.7 §0.2
-DECLARED_LOC = 136  # actual after Write (100 spec + docstring/imports/blank overhead);
-                    # was 115 in v1.7 plan — self-check correctly flagged divergence,
+DECLARED_LOC = 147  # actual after Round 57 docstring additions for 3 public funcs;
+                    # was 136 pre-Round-57; self-check correctly tripped on diff>5,
                     # confirming 4.D mechanical enforcement is functional.
 TOLERANCE = 5
 
