@@ -179,6 +179,24 @@ class TestPanelLoader:
         out = load_panel('cols.parquet', project_config=cfg, columns=['a'])
         assert list(out.columns) == ['a']
 
+    def test_load_panel_with_paper_id_uses_paper_panel_dir(self):
+        """paper_id 参数 → 通过 get_paper_config 取 panel_dir (lines 62-63)."""
+        from news_process.papers._common.panel_loader import load_panel
+        # 调用会失败 (panel file 不存在), 但应走 paper_config 解析路径
+        # 而不是 _resolve_panel_dir
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_panel('nonexistent.parquet', paper_id='bank_fintech_tone')
+        # 错误消息含 panel dir 路径
+        assert 'nonexistent.parquet' in str(exc_info.value)
+
+    def test_list_available_panels_uses_config_when_panel_dir_none(self, tmp_path):
+        """panel_dir=None 时走 _resolve_panel_dir(cfg) (line 92)."""
+        from news_process.papers._common.panel_loader import list_available_panels
+        cfg = {'paths': {'output_dir': str(tmp_path)}}
+        # tmp_path 是空目录, 应返回 {}
+        result = list_available_panels(project_config=cfg, panel_dir=None)
+        assert result == {}
+
 
 # ============================================================================
 # 3. tables
