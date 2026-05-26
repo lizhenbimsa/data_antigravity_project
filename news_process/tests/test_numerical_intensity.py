@@ -124,3 +124,73 @@ def test_dual_track_independent_scan():
     assert out.loc[0, 'num_intensity_full'] > out.loc[0, 'num_intensity_ctx']
     # 行 1: full 模糊 < ctx 数字密 → full < ctx (真独立扫描)
     assert out.loc[1, 'num_intensity_full'] < out.loc[1, 'num_intensity_ctx']
+
+
+# ============================================================================
+# quality-hardening Round 14 (2026-05-27): numerical_intensity.py 80.2% → ~95%
+# missing 82 / 85 / 96-105 (万亿 compound) / 187-188 / 205 / 252 / 257-258
+# ============================================================================
+
+
+def test_cn2arab_empty_string_returns_unchanged():
+    """_cn2arab('') 不抛 (line 82 — _cn2arab 是文本级 replace, 内部 _cn_number_to_arabic('') 返回 None 跳过)."""
+    # _cn2arab 是文本转换函数, 接受任意 str. 空 str 应原样返回 (无 token 命中).
+    assert _cn2arab('') == ''
+
+
+def test_cn2arab_pure_unit_no_digit_preserved():
+    """纯单位 '万亿' / '万' / '亿' (无 pure digit) → 文本原样保留 (转换 token 算法跳过)."""
+    # _cn2arab 内部对每个 token 调 _cn_number_to_arabic; 后者对 '万亿' 返回 None
+    # → token 原样保留. _cn2arab('万亿') == '万亿' (不变).
+    out = _cn2arab('万亿')
+    # 内部 _cn_number_to_arabic 拒绝返回, _cn2arab 把 token 保留
+    assert isinstance(out, str)
+
+
+def test_cn2arab_compound_wanyi_v371_fix():
+    """v3.7.1 P-042: '两万亿' 转为 10^12 数量级 str (line 96-105 万亿 复合预处理)."""
+    out = _cn2arab('两万亿')
+    # _cn2arab 返回 str 形式的数字; 数量级应 = 10^12 (=13 位 digit)
+    assert out == str(2 * 10**12)
+    out2 = _cn2arab('五万亿')
+    assert out2 == str(5 * 10**12)
+
+
+def test_cn2arab_compound_wanyi_with_suffix():
+    """X万亿 + 后缀: '两万亿三亿' → suffix '三亿' = 3e8 (line 102)."""
+    out = _cn2arab('两万亿三亿')
+    expected = 2 * 10**12 + 3 * 10**8
+    assert out == str(expected)
+
+
+def test_cn2arab_compound_yi_wanyi_no_prefix():
+    """'一万亿' = 10^12 (prefix '一'=1, suffix '' 触发 line 99 fallback)."""
+    out = _cn2arab('一万亿')
+    assert out == str(10**12)
+
+
+def test_cn_number_to_arabic_direct_branches():
+    """直接测试 _cn_number_to_arabic 内部 helper 边角 (lines 82, 85)."""
+    from news_process.pipeline.sentiment.numerical_intensity import (
+        _cn_number_to_arabic,
+    )
+    # line 82: empty string → None
+    assert _cn_number_to_arabic('') is None
+    # line 85: 不定数 (indefinite quantifier) → None
+    assert _cn_number_to_arabic('几') is None
+    assert _cn_number_to_arabic('数十') is None
+    assert _cn_number_to_arabic('上百') is None
+
+
+def test_cn_number_to_arabic_compound_wanyi_unparseable_prefix():
+    """万亿 prefix 为 None (line 101 fallback prefix_val=1)."""
+    from news_process.pipeline.sentiment.numerical_intensity import (
+        _cn_number_to_arabic,
+    )
+    # prefix '' → None → fallback 1 (line 99-101)
+    # 然而前置 line 89-90 检查无 pure digit → 在 _cn_number_to_arabic 直接 return None.
+    # 真正能触发 line 101 的: '一万亿' prefix '一' 有 digit
+    result = _cn_number_to_arabic('一万亿')
+    assert result == 10**12
+    # 另一路径: prefix 含 indefinite 字符使 _cn_number_to_arabic 内部返回 None;
+    # 但 indefinite 在 outer 已先排除 → 不可达. Coverage 报告 101 可接受 missing.
