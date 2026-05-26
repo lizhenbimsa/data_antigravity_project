@@ -1203,13 +1203,22 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
         ctx_list.append(content_ctx)
 
     df['content_ctx'] = ctx_list
+    # v3.7.2 R8-H1 全管道延伸: 与 ctx_materializer.py:101 同源 (R8 audit 锚定)
+    # 双路径必须产同名同语义列, 防止"跳过 stage 13 直接跑 stage 21"导致列缺失
+    df['ctx_is_fallback'] = (
+        df['content_ctx'].astype(str) == df['内容'].astype(str)
+    ).astype('bool')
     n_fallback = sum(1 for ctx, full in zip(ctx_list, df['内容'].astype(str)) if ctx == full)
+    assert int(df['ctx_is_fallback'].sum()) == n_fallback, \
+        "ctx_is_fallback 列计数与 batch 统计不一致 (stage 21 fallback path)"
     # 统计逻辑与 L404 的 NaN 防御保持一致：排除 'nan'/'None'/空字符串
     _bank_strs = df['target_bank'].astype(str).str.strip()
     n_with_bank = ((_bank_strs != '') & (_bank_strs != 'nan') & (_bank_strs != 'None')).sum()
     logger.info(f"  content_ctx 列物化完成: {len(df)} 行, "
                 f"回退至全文: {n_fallback}/{n_with_bank} 条"
                 f"（{n_fallback/max(n_with_bank,1)*100:.1f}%）")
+    logger.info(f"  ctx_is_fallback 列已写入 (bool, fallback path): "
+                f"{int(df['ctx_is_fallback'].sum())}/{len(df)} True")
     return df
 
 

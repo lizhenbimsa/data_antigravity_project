@@ -579,6 +579,19 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     agg['avg_agreement_rate_ctx'] = ('llm_agreement_rate_ctx', 'mean')
     agg['avg_agreement_rate_title'] = ('llm_agreement_rate_title', 'mean')
 
+    # --- E2. v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 ---
+    # ctx_is_fallback (article, bool): True iff content_ctx ≡ content_full (entity-miss)
+    # → frac_ctx_fallback (bank-year, mean): 高值=ctx 轨等价于 full 轨, 双轨退化为单轨
+    # → n_articles_for_ctx_independence (bank-year, count): 真双轨文章绝对数,
+    #    避免按比例 filter 时的银行规模偏差 (大行总通过, 小行总被剔)
+    # 论文用途: P1 (llm_vote_tone_ctx) / P11 (mean_clarity_score_ctx) 的 robustness
+    # 锚定: lexical_discriminant_validity.py:20 (R8-H1) + Hassan 2019 QJE proximity
+    if df is not None and 'ctx_is_fallback' in df.columns:
+        agg['frac_ctx_fallback'] = ('ctx_is_fallback', 'mean')
+        # n_articles_for_ctx_independence = sum(~ctx_is_fallback)
+        # 用 size-then-subtract 而非 lambda 以兼容 pandas groupby.agg 的 NamedAgg 协议
+        agg['_ctx_fallback_count'] = ('ctx_is_fallback', 'sum')
+
     # --- F. Value-weighted 辅助列 (Hassan et al. 2019, QJE; Sautner et al. 2023, JF) ---
     agg['sum_mention_density'] = ('mention_density', 'sum')
     agg['sum_doc_length'] = ('doc_length', 'sum')
@@ -808,6 +821,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     f"mean={df['_ft_word_ratio'].mean():.6f}, "
                     f"非空={df['_ft_word_ratio'].notna().sum()}")
 
+    # v3.7.2 R8-H1: bool dtype 防御 (防 parquet round-trip 漂移为 object → mean() 退化)
+    if 'ctx_is_fallback' in df.columns and df['ctx_is_fallback'].dtype != bool:
+        df = df.copy()
+        df['ctx_is_fallback'] = df['ctx_is_fallback'].astype('bool')
+
     agg_dict = build_aggregation_dict(df)
 
     # 验证源列存在性, 过滤不存在的聚合
@@ -828,6 +846,18 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
     # 执行聚合
     panel = df.groupby(['target_bank', 'year']).agg(**valid_agg).reset_index()
+
+    # v3.7.2 R8-H1: 由 _ctx_fallback_count (sum) 派生 n_articles_for_ctx_independence
+    # 之所以不在 agg_dict 用 lambda: pandas.groupby.NamedAgg 协议不支持闭包稳定 hash
+    if '_ctx_fallback_count' in panel.columns:
+        if 'n_articles' in panel.columns:
+            panel['n_articles_for_ctx_independence'] = (
+                panel['n_articles'].fillna(0).astype(int)
+                - panel['_ctx_fallback_count'].fillna(0).astype(int)
+            ).astype('int32')
+        # 无论是否派生成功, 都必须 drop 内部命名列, 避免下游 underscore-prefix
+        # 过滤逻辑 (iv_did.py:634 等) 被干扰
+        panel.drop(columns=['_ctx_fallback_count'], inplace=True)
 
     # --- 媒体广度 ---
     if '媒体(中文)' in df.columns:

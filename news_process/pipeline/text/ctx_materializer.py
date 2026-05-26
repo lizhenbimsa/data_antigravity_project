@@ -65,8 +65,17 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         df: 新增 'content_ctx' 列 (若已存在则不变)。
     """
-    if 'content_ctx' in df.columns:
-        logger.info("  'content_ctx' 已存在, 跳过物化 (idempotent)")
+    if 'content_ctx' in df.columns and 'ctx_is_fallback' in df.columns:
+        logger.info("  'content_ctx' + 'ctx_is_fallback' 已存在, 跳过物化 (idempotent)")
+        return df
+    if 'content_ctx' in df.columns and 'ctx_is_fallback' not in df.columns:
+        # v3.7.2 旧 schema 兼容: content_ctx 已物化但缺 ctx_is_fallback, 补算 1 列
+        df = df.copy()
+        df['ctx_is_fallback'] = (
+            df['content_ctx'].astype(str) == df['内容'].astype(str)
+        ).astype('bool')
+        logger.info(f"  旧 schema: content_ctx 已存在, 补算 ctx_is_fallback "
+                    f"({int(df['ctx_is_fallback'].sum())}/{len(df)} True)")
         return df
 
     _ctx_cfg = CONFIG.get('context_window', {})
@@ -98,14 +107,25 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.copy()
     df['content_ctx'] = ctx_list
+    # v3.7.2 R8-H1 全管道延伸: ctx_is_fallback 作为公共列暴露 entity-miss 信号
+    # 锚定: lexical_discriminant_validity.py:20 (R8-H1 audit anchor)
+    # 用途: P1/P11 main=_ctx 论文的 measurement-error robustness; 见 stata_export.py
+    df['ctx_is_fallback'] = (
+        df['content_ctx'].astype(str) == df['内容'].astype(str)
+    ).astype('bool')
     n_fallback = sum(1 for ctx, full in zip(ctx_list, df['内容'].astype(str))
                      if ctx == full)
+    assert int(df['ctx_is_fallback'].sum()) == n_fallback, \
+        f"ctx_is_fallback 列计数 ({int(df['ctx_is_fallback'].sum())}) " \
+        f"与 batch 统计 ({n_fallback}) 不一致"
     _bank_strs = df['target_bank'].astype(str).str.strip()
     n_with_bank = ((_bank_strs != '') & (_bank_strs != 'nan') &
                    (_bank_strs != 'None')).sum()
     logger.info(f"  content_ctx 物化完成: {len(df)} 行, "
                 f"回退至全文: {n_fallback}/{n_with_bank} 条 "
                 f"({n_fallback/max(n_with_bank,1)*100:.1f}%)")
+    logger.info(f"  ctx_is_fallback 列已写入 (bool): "
+                f"{int(df['ctx_is_fallback'].sum())}/{len(df)} True")
     return df
 
 

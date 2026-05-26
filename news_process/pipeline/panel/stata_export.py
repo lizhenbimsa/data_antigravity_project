@@ -276,6 +276,13 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         'frac_amb_articles_full', 'frac_amb_articles_ctx',
         # v3.5.1 A3 Numerical Intensity (Hales 2011 CAR) — 2 列全进 core
         'mean_num_intensity_full', 'mean_num_intensity_ctx',
+        # v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 (entity-miss → ctx ≡ full → 双轨退化)
+        # ⚠ 与 intensity_verified_{full,ctx} 不同义:
+        #    - frac_ctx_fallback: 上游 entity_context 提取失败 (Hassan 2019 QJE proximity)
+        #    - intensity_verified_*: stage 14 fintech 关键词 IDF 验证失败
+        # n_articles_for_ctx_independence: 绝对独立文章数, 避免按比例 filter 时的银行规模偏差
+        # 论文用途: P1 (llm_vote_tone_ctx) / P11 (mean_clarity_score_ctx) measurement-error robustness
+        'frac_ctx_fallback', 'n_articles_for_ctx_independence',
         # ─────────────────────────────────────────────────────────────
         # v3.5.2 PR #14 集成 — A1 LM 4 子词典 + A2 FLS (本批列在 v3.5.2
         # PR #3 panel 集成完成前会被 ``if c in df.columns`` 过滤; append-only

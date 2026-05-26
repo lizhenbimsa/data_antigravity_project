@@ -12,13 +12,18 @@ A1/A3 vs LLM substance 的 discriminant validity 检验 — 3 × 3 矩阵:
     - Cohen (1960) EPM 20(1): 37-46 — κ for nominal agreement
     - Cronbach (1951) Psychometrika 16(3): 297-334 — α reliability
 
-实现锁定 (per plan v0.3 §2.3):
+实施状态 (per plan v0.3 §2.3, 8 项中 7 已实施, 第 4 项 R8-H1 mask 在 v3.7.2 推迟):
     1. Algorithm path: **pairwise on-disk** (修 R7-H3 + R8-H3 OOM): 每对 indicator
        单独读 parquet 计算 cross-correlation; 内存 < 1GB; CI heavy 4GB ceiling 安全.
     2. Permutation seed = **42** (与 pipeline/audit/inter_track_kappa.py:41 一致, 修 R9-H3).
     3. HTMT 双 cutoff (修 R4-M2): strict < 0.85 / lenient < 0.90.
-    4. ctx-fallback HTMT mask (修 R8-H1): 计算前剔除 content_ctx == content_full 子集
-       (约 10-30%) 以避免假 disagree = 0 信号.
+    4. ctx-fallback HTMT mask (R8-H1 audit anchor): 文档锁定但**当前未在 39d 内实施**.
+       实测 fallback 率 10.43% (v3.7.2 R4-1 测于 disk 13_news_with_ctx.parquet, 1170 行).
+       公共信号 `ctx_is_fallback` (article) + `frac_ctx_fallback` (panel) 已由 v3.7.2
+       全管道延伸暴露; 39d 是 validation-only stage (EXPECTED_NO_OUTPUT, 不进 paper main
+       analysis), 在此实施 mask 的 ROI 远低于 panel 列推广, 因此本 stage 推迟实施.
+       论文层若需 R8-H1 等价 robustness, 直接在 Stata 用
+       ``if frac_ctx_fallback < 0.30`` 或 ``if n_articles_for_ctx_independence >= 5``.
     5. Cronbach α **across all 3 indicators** (修 R9-M2): 而非 within track (within
        single-item 数学退化).
     6. Cohen κ 方向锁定 (修 M2'): 象征性 (1) ↔ clarity_score < median (1); 预期正 κ.
