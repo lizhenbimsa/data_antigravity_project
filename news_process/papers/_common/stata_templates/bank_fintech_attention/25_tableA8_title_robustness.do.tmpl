@@ -1,0 +1,68 @@
+* news_process v3.7.3 — Table A8: Headline-Only Sentiment Robustness (P2 {{PAPER_ID}})
+* ============================================================================
+* 25_tableA8_title_robustness.do — v3.7.3 Plan A v1.0
+* Paper: {{PAPER_ID}} (P2 bank_fintech_attention)
+* Purpose: _title 切片轨稳健性 (headline-only attention robustness).
+*
+* Anchor:
+*   - Heston & Sinha (2017) FAJ 73(3): 67-83
+*   - Loughran & McDonald (2016) JAR 54(4) §6 text subset robustness
+*   - Boudoukh et al. (2019) JFE 133(1) §III headline-based identification
+*   - Da-Engelberg-Gao (2011) JF — attention measure salience (P2 specific)
+*   - Barber & Odean (2008) RFS — attention-grabbing news (title role, P2 specific)
+*   - Campbell & Fiske (1959) — MTMM 矩阵
+* P2 specific: attention measure 与 title salience 直接相关 (titles drive
+* retail attention; Da-Engelberg-Gao 2011), 故 _title robustness 对 P2 价值最高.
+* Compatible with v3.5.1 R3-H1.
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+set seed {{RANDOM_SEED}}
+
+local title_var = subinstr("{{MAIN_TREAT}}", "_ctx", "_title", .)
+local title_var = subinstr("`title_var'", "_full", "_title", .)
+
+display "  [P2] {{PAPER_ID}}: title_var = `title_var'"
+
+capture confirm variable `title_var'
+if !_rc {
+    reghdfe {{MAIN_DV}} `title_var' $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo m_title_only
+
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} `title_var' $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo m_main_plus_title
+    test {{MAIN_TREAT}} = `title_var'
+    display "  Wald test: p = " r(p)
+}
+else {
+    display "  [WARN] `title_var' not in panel"
+}
+
+capture confirm variable tone_gap_title_full
+if !_rc {
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} tone_gap_title_full $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo m_with_gap
+}
+
+esttab m_title_only m_main_plus_title m_with_gap ///
+    using "$tables_dir/tableA8_title_robustness.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) replace ///
+    mtitles("Title-only" "Main+Title" "+Gap control") ///
+    title("Table A8: Headline Robustness — {{PAPER_ID}} (P2 attention)") ///
+    nonotes ///
+    addnote("Anchors: Heston-Sinha (2017 FAJ); LM (2016 JAR §6); Boudoukh (2019 JFE); " ///
+            "Da-Engelberg-Gao (2011 JF) — title-attention link is P2-specific motivation.")
+
+display "  [done] Table A8 written for P2"

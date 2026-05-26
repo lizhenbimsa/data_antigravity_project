@@ -97,17 +97,18 @@ def test_main_stage_count(core_dag):
 
 
 def test_validation_stage_count(core_dag):
-    """``STAGES_VALIDATION`` 阶段数须等于 v3.5.1 + v2.3 计划增量 (17)。
+    """``STAGES_VALIDATION`` 阶段数须等于 v3.7.3 计划累计 (18)。
 
     v3.4.0 baseline = 13 (含 39a inter_track_kappa).
     v3.5.0 +1 = 14: 加 39c construct_orthogonality (NMI 正交性 D3 stage)
     v3.5.1 +1 = 15: 加 39d lexical_discriminant_validity (A1+A3 HTMT/AVE/κ/α)
     v2.3 PR-#4 +1 = 16: 加 39e lm_discriminant_validity (LM 4 子词典 HTMT)
     v2.3 PR-D3 +1 = 17: 加 39f cross_media_alpha (Krippendorff α + variance)
+    v3.7.3 +1 = 18: 加 39g track_discriminant_validity (_full/_ctx/_title HTMT 3×3)
     """
-    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c + 39d + 39e + 39f = 17
-    assert len(core_dag.STAGES_VALIDATION) == 17, (
-        f"STAGES_VALIDATION drift: expected 17 (v3.5.1 +39d, v2.3 +39e/39f), got {len(core_dag.STAGES_VALIDATION)}."
+    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c + 39d + 39e + 39f + 39g = 18
+    assert len(core_dag.STAGES_VALIDATION) == 18, (
+        f"STAGES_VALIDATION drift: expected 18 (v3.7.3 +39g), got {len(core_dag.STAGES_VALIDATION)}."
     )
 
 

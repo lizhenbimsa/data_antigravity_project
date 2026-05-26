@@ -55,11 +55,16 @@ audit_rounds_target_min: 8
 
 # v3.5.0 D2 8-cell decomposition Table 6 — llm_peer 不用 D2 主回归 (per plan §2.1.6)
 # v3.5.1 A1/A3 explicit null (per plan v0.3 §1.3)
+# v3.7.3 (Plan A v1.0): tA8 = _title track robustness
 tables:
   t6: null
   tA7:
     template: null
   tA8:
-    template: null
+    template: 25_tableA8_title_robustness
+    title_robustness:
+      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al. (2019) JFE"
+      track_substitute: true
+      r3_h1_compatible: true
   tA9:
     template: null

@@ -291,7 +291,9 @@ def test_cli_verify_replication_on_valid_package(tmp_path, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert '[1/5] 目录结构' in out
-    assert '14/14 完整' in out  # 14 .do
+    # v3.7.3 Plan A v1.0: P1 主线模板 +1 (25_tableA8_title_robustness.do.tmpl) → 15
+    assert '15/15 完整' in out  # 15 .do (was 14, +1 from v3.7.3)
+    assert '14/14 子 .do' in out  # master.do references 14 (was 13, +1 from v3.7.3)
     assert 'Summary: 8 OK' in out
 
 

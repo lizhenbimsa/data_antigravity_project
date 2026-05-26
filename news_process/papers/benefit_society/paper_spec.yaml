@@ -64,6 +64,17 @@ tables:
   tA9:
     template: null
 
+# v3.7.3 (Plan A v1.0): benefit_society tA8 已被 v3.5.1 A3 num_intensity 占用,
+# 故 _title 轨稳健性使用 paper-specific extension key (root-level, 与
+# jlm2026_robustness_tables 同 root-extension pattern; v1.0.1 执行期纠正).
+title_robustness_table:
+  template: 26_bs_title_robustness
+  title_robustness:
+    anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al. (2019) JFE"
+    track_substitute: true
+    r3_h1_compatible: true
+    note: "benefit_society main = LLM-Embedding 双极锚点投影; _title 仅作 sentiment robustness"
+
 # v2.1.0 (Round 9 V2.0 jlm2026-alignment) — paper-specific extension tables.
 # These are NOT in master plan §5.2.3.bis schema (test_paper_spec_schema.py
 # does not strict-enforce extra keys); kept in benefit_society spec for

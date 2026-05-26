@@ -1,0 +1,102 @@
+* news_process v3.7.3 — Table A8: Headline-Only Sentiment Robustness (P1 {{PAPER_ID}})
+* ============================================================================
+* 25_tableA8_title_robustness.do — v3.7.3 Plan A v1.0
+* Paper: {{PAPER_ID}} (P1 bank_fintech_tone uses _common/ root template_dir)
+* Purpose: _title 切片轨稳健性 (headline-only sentiment robustness).
+*
+* Anchor:
+*   - Heston & Sinha (2017) FAJ 73(3): 67-83 — headline vs body sentiment 对照
+*   - Loughran & McDonald (2016) JAR 54(4): 1187-1230 §6 text subset robustness
+*   - Boudoukh et al. (2019) JFE 133(1): 85-104 §III headline-based identification
+*   - Campbell & Fiske (1959) Psych Bull 56(2) — MTMM 矩阵 (track triangulation)
+*   - Engelberg (2008) — hard-soft information asymmetry (title-body gap)
+*
+* Compatible with v3.5.1 R3-H1: A1/A3 (clarity/num_intensity) NOT computed on
+* _title (text < 50 char unstable jieba denominator); this table only uses
+* sentiment-family indicators (LLM tone / dict tone / BERT pos).
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+set seed {{RANDOM_SEED}}
+
+* Auto-derive _title variant of MAIN_TREAT by replacing _ctx/_full suffix
+local title_var = subinstr("{{MAIN_TREAT}}", "_ctx", "_title", .)
+local title_var = subinstr("`title_var'", "_full", "_title", .)
+
+display ""
+display "============================================================"
+display "Table A8: _title 轨稳健性 — {{PAPER_ID}}"
+display "  Main treatment : {{MAIN_TREAT}}"
+display "  Title variant  : `title_var'"
+display "============================================================"
+
+* ---------------------------------------------------------------------------
+* Panel A: replace main treatment with _title variant (full substitution)
+* ---------------------------------------------------------------------------
+capture confirm variable `title_var'
+if !_rc {
+    reghdfe {{MAIN_DV}} `title_var' $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo m_title_only
+}
+else {
+    display "  [WARN] `title_var' not in panel; Table A8 Panel A skipped"
+}
+
+* ---------------------------------------------------------------------------
+* Panel B: joint specification with main + title (incremental information test)
+* H0: title carries no marginal info beyond main → title coef = 0
+* ---------------------------------------------------------------------------
+capture confirm variable `title_var'
+if !_rc {
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} `title_var' $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo m_main_plus_title
+
+    * Wald test: main vs title coef equality (informational redundancy test)
+    test {{MAIN_TREAT}} = `title_var'
+    local diff_pval = r(p)
+    display "  Wald test {{MAIN_TREAT}} = `title_var': p = `diff_pval'"
+}
+
+* ---------------------------------------------------------------------------
+* Panel C: title-body divergence as Engelberg (2008) hard-soft asymmetry control
+* tone_gap_title_full is a panel-level pre-computed column (see panel encode.py)
+* ---------------------------------------------------------------------------
+capture confirm variable tone_gap_title_full
+if !_rc {
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} tone_gap_title_full $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo m_with_gap
+}
+else {
+    display "  [WARN] tone_gap_title_full not in panel; Table A8 Panel C skipped"
+}
+
+* ---------------------------------------------------------------------------
+* Output combined table
+* ---------------------------------------------------------------------------
+esttab m_title_only m_main_plus_title m_with_gap ///
+    using "$tables_dir/tableA8_title_robustness.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) replace ///
+    mtitles("Title-only" "Main+Title" "+Gap control") ///
+    title("Table A8: Headline-Only Sentiment Robustness — {{PAPER_ID}}") ///
+    nonotes ///
+    addnote("Panel A: replace main treatment ({{MAIN_TREAT}}) with _title variant. " ///
+            "Panel B: joint specification (Wald test of coef equality). " ///
+            "Panel C: add tone_gap_title_full (Engelberg 2008 hard-soft asymmetry). " ///
+            "Anchors: Heston-Sinha (2017 FAJ); Loughran-McDonald (2016 JAR §6); " ///
+            "Boudoukh et al. (2019 JFE §III); Campbell-Fiske (1959) MTMM.")
+
+display ""
+display "  [done] Table A8 written: $tables_dir/tableA8_title_robustness.tex"
+display "============================================================"

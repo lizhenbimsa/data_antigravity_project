@@ -95,6 +95,18 @@ tables:
       anchor: "Loughran & McDonald (2011) JF 66(1); You et al. (2018) hhx055"
       dual_track: true
   tA8:
-    template: null
+    # v3.7.3 (Plan A v1.0): _title 轨稳健性
+    # ⚠ P5 deferred status: bank_fintech_collab 未在 derivative_replication._DERIVATIVE_PAPER_IDS
+    #   frozenset 内 (v3.5.1 R3 known issue: P5 manuscript/refs.bib onboarding 未完成).
+    #   25_tableA8_title_robustness.do.tmpl 文件已在 stata_templates/bank_fintech_collab/
+    #   就位, 待 P5 完整 onboarding (独立 PR) 后即可通过 build_derivative_replication_package
+    #   自动 instantiate. 当前 spec 字段为声明性元数据, 不阻塞 P5 onboarding 路径.
+    template: 25_tableA8_title_robustness
+    deferred_until: "P5 derivative onboarding complete (v3.5.1 R3 known issue)"
+    title_robustness:
+      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al. (2019) JFE"
+      track_substitute: true
+      r3_h1_compatible: true
+      caveat: "P5 Chesbrough 自主/协同 二元构念在标题级 LLM 判断 confidence 可能 < 0.6 (text 过短); Panel A 若结果不显著, 解读应为 measurement limitation 而非 H0 not rejected. stage 39g 输出 HTMT track-discriminant 矩阵, 非 LLM confidence audit"
   tA9:
     template: null

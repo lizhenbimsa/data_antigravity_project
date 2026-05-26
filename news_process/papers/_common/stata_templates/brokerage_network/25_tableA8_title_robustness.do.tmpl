@@ -1,0 +1,61 @@
+* news_process v3.7.3 — Table A8: Headline-Only Sentiment Robustness ({{PAPER_ID}})
+* ============================================================================
+* 25_tableA8_title_robustness.do — v3.7.3 Plan A v1.0
+* Paper: {{PAPER_ID}} (brokerage_network)
+* Purpose: _title 切片轨稳健性 (网络中心性 × _title tone).
+*
+* Anchor:
+*   - Heston & Sinha (2017) FAJ; LM (2016) JAR §6; Boudoukh (2019) JFE
+*   - Burt (1992) Structural Holes (P origin)
+*   - Campbell & Fiske (1959) — MTMM
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+set seed {{RANDOM_SEED}}
+
+local title_var = subinstr("{{MAIN_TREAT}}", "_ctx", "_title", .)
+local title_var = subinstr("`title_var'", "_full", "_title", .)
+
+display "  [brokerage] {{PAPER_ID}}: title_var = `title_var'"
+
+capture confirm variable `title_var'
+if !_rc {
+    reghdfe {{MAIN_DV}} `title_var' $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo m_title_only
+
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} `title_var' $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo m_main_plus_title
+    test {{MAIN_TREAT}} = `title_var'
+    display "  Wald test: p = " r(p)
+}
+else {
+    display "  [WARN] `title_var' not in panel"
+}
+
+capture confirm variable tone_gap_title_full
+if !_rc {
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} tone_gap_title_full $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id year)
+    eststo m_with_gap
+}
+
+esttab m_title_only m_main_plus_title m_with_gap ///
+    using "$tables_dir/tableA8_title_robustness.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) replace ///
+    mtitles("Title-only" "Main+Title" "+Gap control") ///
+    title("Table A8: Headline Robustness — {{PAPER_ID}} (brokerage_network)") ///
+    nonotes ///
+    addnote("Anchors: Heston-Sinha (2017 FAJ); LM (2016 JAR §6); Burt (1992).")
+
+display "  [done] Table A8 written for brokerage_network"

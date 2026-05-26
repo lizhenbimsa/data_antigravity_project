@@ -101,6 +101,9 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'EXT_Y1': 'ncd_spread_3m',           # NCD spread (predicted ↓)
         'EXT_Y2': 'regulatory_penalty_n',    # 监管处罚频次 (predicted ↓)
         'EXT_Y3': 'soa_rating_score',        # SOA / Wind rating (predicted ↑)
+        # v3.7.3 Plan A v1.0: MAIN_TREAT alias for _title robustness template
+        # (26_bs_title_robustness.do.tmpl). benefit_society main attitude = ATTITUDE_VAR.
+        'MAIN_TREAT': 'benefit_mean_full',
     },
     'brokerage_network': {
         'PAPER_ID': 'brokerage_network',
@@ -115,6 +118,9 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CENTRALITY_BTW': 'bank_between_cent',
         'CENTRALITY_CONS': 'bank_constraint',
         'CENTRALITY_BROKER': 'brokerage_eigen_cent',
+        # v3.7.3 Plan A v1.0: MAIN_TREAT + RANDOM_SEED for _title robustness template.
+        'MAIN_TREAT': 'peer_tone_lag1_full',  # alias of MAIN_ENDOG
+        'RANDOM_SEED': '20260516',
     },
     'strategic_diff': {
         'PAPER_ID': 'strategic_diff',
@@ -128,6 +134,9 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'BARTIK_IV': 'bartik_type_iv_full',
         'TONE_VAR': 'llm_vote_tone_full',
         'COHERENCE_VAR': 'coh_tfidf_c_full',
+        # v3.7.3 Plan A v1.0: MAIN_TREAT + RANDOM_SEED for _title robustness template.
+        'MAIN_TREAT': 'strat_diff_n5',  # alias of MAIN_DIFF_VAR
+        'RANDOM_SEED': '20260516',
     },
     'llm_peer': {
         'PAPER_ID': 'llm_peer',
@@ -142,6 +151,9 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CUTOFF_VARS': ('llm_peer_tone_iv_full_70 llm_peer_tone_iv_full_75 '
                         'llm_peer_tone_iv_full_80 llm_peer_tone_iv_full_85 '
                         'llm_peer_tone_iv_full_90'),
+        # v3.7.3 Plan A v1.0: MAIN_TREAT + RANDOM_SEED for _title robustness template.
+        'MAIN_TREAT': 'llm_vote_tone_full',  # alias of TONE_VAR
+        'RANDOM_SEED': '20260516',
     },
     # ========================================================================
     # RR7-1 (Review-only audit): B-route 3 new paper defaults.
