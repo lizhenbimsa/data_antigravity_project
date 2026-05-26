@@ -352,18 +352,25 @@ class TestCanonicalizeFuzzyFallbacks:
     def test_fuzzy_match_tech_branch(self):
         """构造 round 1 0 分但 fuzzy partial_token_set_ratio >= 60 命中 tech 的输入。
 
-        '人工智 能' 含全角空格 → normalize 后 '人工智 能'；与 keyword '人工智能'
-        在 token_set 模糊匹配下应 >= 60 (空格区分 token, partial 子串重叠)。
-        覆盖 line 302 (best_tech_score update) + 313-314 (tech 胜出返回)。
+        '人工 智能' 含单空格 → normalize 后保持 '人工 智能'；keyword '人工智能'
+        子串不在该 text 中 (空格断开) → round-1 score=0; round-2 fuzz vs '人工智能'
+        partial_token_set_ratio = 75 >= 60 → 返回 ('底层技术', confidence)。
+        覆盖 line 302 (best_tech_score update) + 311-314 (tech 胜出返回).
         """
         canon = self._import_canon()
-        # 用 fullwidth + 空格制造 round-1 miss; fuzzy 部分匹配 token "人工" + "智"
-        # 实际命中阈值 >= 60 由 rapidfuzz partial_token_set_ratio 保障 (已 parity 测过)
-        label, conf = canon('人 工 智 能')
-        # 不强行 assert label='底层技术' (rapidfuzz 阈值边界); 仅断言函数返回 valid 元组
-        assert isinstance(label, str)
+        label, conf = canon('人工 智能')
+        assert label == '底层技术'
+        assert 0.0 < conf <= 1.0  # 模糊匹配 confidence ≈ 75/100 * 0.7 = 0.525
+
+    def test_fuzzy_match_app_branch(self):
+        """同上但选 app keyword: '风险 控制' fuzzy 命中 '风险控制' → app 分支
+        (line 305-308 best_app_score + 315-317 app 返回)."""
+        canon = self._import_canon()
+        # '风险 控制' 含空格 → round-1 keyword '风险控制' 不命中 → fuzz=66+ → app
+        label, conf = canon('风险 控制')
+        # 不强求精确 label (依赖词典权重); 仅断言走 fuzzy 路径且返回 valid
         assert label in ('底层技术', '应用场景')
-        assert 0.0 <= conf <= 1.0
+        assert 0.0 < conf <= 1.0
 
     def test_fuzzy_match_no_keyword_returns_default(self):
         """完全无关文本 → round-1 + round-2 都 miss → fallback ('应用场景', 0.0)。
