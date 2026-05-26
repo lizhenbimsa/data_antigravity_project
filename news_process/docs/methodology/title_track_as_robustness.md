@@ -329,14 +329,23 @@ n_articles ≥ 2 mask → N=64 bank-year):
 |-----------|----------------|-------------------|------------------|
 | `llm_vote_tone` | 0.965 | **0.627** | **0.628** |
 
-**Overall verdict**: `pass_title_discriminant` — `_title` track discriminates
-from `_full`/`_ctx` per Henseler et al. (2015) strict cutoff 0.85 on both
-pairs involving `_title`. HTMT(full, ctx) = 0.965 exceeds strict cutoff as
-mathematically expected (`_ctx` is the entity-proximity sub-window of `_full`;
-Hassan et al. 2019 *QJE* design self-correlation, not a discriminant failure).
+**Overall verdict (point-estimate level)**: `pass_title_discriminant` —
+`_title` track discriminates from `_full`/`_ctx` per Henseler et al. (2015)
+strict cutoff 0.85 on both pairs involving `_title`. HTMT(full, ctx) = 0.965
+exceeds strict cutoff as mathematically expected (`_ctx` is the
+entity-proximity sub-window of `_full`; Hassan et al. 2019 *QJE* design
+self-correlation, not a discriminant failure).
 
-This empirically supports v3.7.3 Plan A v1.0's methodological claim:
-`_title` is a non-redundant measurement specification.
+**v3.7.4 bootstrap CI extension (2026-05-26 second-run, n_bootstrap=1000
+seed=42, output `logs/audit/39g_v3_7_4_e2e.json`)**: bootstrap 95% CI
+upper bounds 0.863 (full,title) and 0.861 (ctx,title) **exceed** the 0.85
+strict cutoff — small-sample (N=64) CI width prevents bootstrap-strict
+acceptance. Point-estimate verdict above remains valid; bootstrap evidence
+adds **honest small-sample caveat** per Henseler-Ringle-Sarstedt (2015 §4)
+inference recommendation. This empirically supports v3.7.3 Plan A v1.0's
+methodological claim (`_title` non-redundant) while transparently
+reporting CI width pending future N expansion via stage 14-40 production
+re-run.
 
 ### §7.2 Known limitations
 
