@@ -408,8 +408,9 @@ class TestEndToEndSimulation:
         assert 'V0_baseline_sentiment_ctx' in mock_data.columns
 
     def test_f2_aggregate_variant_contract(self, mod39, monkeypatch):
-        """F2: aggregate_variant_results 消费当前 16 字段聚合契约
-        (plan v1.37 P2 §5.3.1 Step B 扩展: avg_subst_prob_score, avg_locus_prob_score)."""
+        """F2: aggregate_variant_results 消费当前 18 字段聚合契约
+        (plan v1.37 P2 §5.3.1 Step B: avg_subst/locus_prob_score;
+        v3.4.0 BREAKING +innov_collab_modes +avg_collab_prob_score)."""
         def fake_aggregate(_model_res, _models):
             return (
                 True, '正面',
@@ -419,6 +420,7 @@ class TestEndToEndSimulation:
                 {}, [], [], [],
                 0, 0.75,
                 0.5, 0.5,  # avg_subst_prob_score, avg_locus_prob_score (P2)
+                [], 0.5,   # v3.4.0: innov_collab_modes, avg_collab_prob_score
             )
 
         monkeypatch.setattr(mod39, '_aggregate_track', fake_aggregate)
