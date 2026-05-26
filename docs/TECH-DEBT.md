@@ -107,8 +107,12 @@
   - `pipeline/sentiment/forward_looking.py` 91.67% → 95.83% (+1 test)
   - `papers/_common/paper_registry.py` 95.59% → **100%** (+1 test; list_paper_ids)
   - `pipeline/features/benefit_society_placebo.py` 93.33% → **98.89%** (+4 tests)
-  合计 **+218 tests, 全套 1889 → 2107 passed**。Ruff 始终 0 warn 跨 32 轮。
-  ≥90% 文件数 38 → **57+/195 (≈29%)**, core/ → 85% / papers/ → ~72%。
+  - **P2/P3/P4 tables.py × 3**: 54.5% → **90.91%** (+12 mock tests; build_table2-5
+    delegate to read_paper_esttab verified per actual function names per paper)
+  合计 **+230 tests, 全套 1889 → 2119 passed**。Ruff 始终 0 warn 跨 33 轮。
+  最终: TOTAL 40.09% → **42.61%**; ≥90% 文件 38 → **55/195 (28.2%)**;
+  at 100% files: **31/195 (15.9%)**; core/ 85.00% / papers/ 72.22% /
+  scripts/ 64.76% / <root> 26.97%。
 - **未闭合**：剩余 ~155 文件 < 90% 多为 LLM / Stata 依赖类（需真服务 mock 数千行)，
   或 module-level init failure 路径（除非分文件 refactor 难单测）。
 - **解锁条件**：(a) 多月 mock 撰写工作；或 (b) 调整 95% 目标到现实的渐进里程碑
