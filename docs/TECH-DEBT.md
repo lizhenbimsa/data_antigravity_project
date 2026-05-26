@@ -103,7 +103,12 @@
   - `pipeline/external/epu_merge.py` 66.28% → **73.26%** (+2 tests)
   - `papers/_common/stata_postprocess.py` 95.04% → **97.16%** (+4 tests)
   - `papers/_common/paper_figures_ext.py` 94.92% → **~99%** (+4 tests)
-  合计 **+210 tests, 全套 1889 → 2099 passed**。Ruff 始终 0 warn 跨 28 轮。
+  - `papers/_common/panel_loader.py` 92.50% → 100% (+2 tests; paper_id branch)
+  - `pipeline/sentiment/forward_looking.py` 91.67% → 95.83% (+1 test)
+  - `papers/_common/paper_registry.py` 95.59% → **100%** (+1 test; list_paper_ids)
+  - `pipeline/features/benefit_society_placebo.py` 93.33% → **98.89%** (+4 tests)
+  合计 **+218 tests, 全套 1889 → 2107 passed**。Ruff 始终 0 warn 跨 32 轮。
+  ≥90% 文件数 38 → **57+/195 (≈29%)**, core/ → 85% / papers/ → ~72%。
 - **未闭合**：剩余 ~155 文件 < 90% 多为 LLM / Stata 依赖类（需真服务 mock 数千行)，
   或 module-level init failure 路径（除非分文件 refactor 难单测）。
 - **解锁条件**：(a) 多月 mock 撰写工作；或 (b) 调整 95% 目标到现实的渐进里程碑
