@@ -333,3 +333,21 @@ def test_all_four_papers_have_winsor_in_data_prep(tmp_path):
         assert data_prep.exists(), f"{paper_id}: 01_data_prep.do missing"
         content = data_prep.read_text(encoding='utf-8')
         assert 'winsor' in content.lower(), f"{paper_id}: 01_data_prep.do missing winsorize"
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 17 (2026-05-27): derivative_replication 96.67% → 100%
+# missing lines 233 (residue ValueError) + 290 (output_root None fallback)
+# ---------------------------------------------------------------------------
+
+
+def test_substitute_raises_value_error_on_residue():
+    """_substitute 检测残留 {{UNFILLED_KEY}} → ValueError (line 233)."""
+    from news_process.papers._common.derivative_replication import _substitute
+    # 注意: _PLACEHOLDER_RE = \{\{([A-Z_]+)\}\} — 只匹配 大写字母+下划线,
+    # 不含数字 (e.g. "KEY2" 不会被识别为 placeholder).
+    with pytest.raises(ValueError, match="unsubstituted placeholders"):
+        _substitute(
+            content="hello {{KEY_A}} {{KEY_B}} world",
+            choices={"KEY_A": "filled"},  # KEY_B 残留 → ValueError
+        )
