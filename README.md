@@ -176,7 +176,8 @@ python -m pytest news_process/tests/test_00_preprocessing.py -v
 - v2.1.0 release tag (frozen baseline): `772 passed, 6 skipped, 0 failed`
 - post-recode round 1+2 baseline: `782 passed, 6 skipped, 0 failed`
 - post-round 2 sidecar 化后 (P1-5 SKIP→PASS, Win 兼容): `786 passed, 2 skipped, 0 failed`
-- **HEAD (v3.7.0, 2026-05-18)**: `1629 fast / 284 integration / 1913 total` (实测 `pytest --collect-only`)
+- **HEAD (v3.7.4 + quality-hardening 2026-05-27)**: `2200 total` (`--collect-only`); fast: `1892 passed, 0 failed, 2 skipped`; integration: 8 fail blocked by stale disk panel parquet (M0 gate, 见 docs/TECH-DEBT.md §[1-B][1-C])
+- v3.7.0 (2026-05-18): `1629 fast / 284 integration / 1913 total`
 - v3.6.0 (Plan E 双轨闭合): `1615 fast`
 - v3.5.1 supplementation: `~1590 fast`
 - post-v3.2.0 multi-paper extension (8d33c46, 2026-05-15): `1388 passed, 6 skipped`
