@@ -53,6 +53,40 @@ class TestTitleIndicatorsLib:
     def test_bank_alias_strip_suffix(self):
         assert detect_bank_alias_in_title("工商银行新规", "工商银行股份有限公司") is True
 
+    # quality-hardening Round 2 (2026-05-27): missing-branch coverage
+    # title_indicators.py 80% -> 100% (lines 48, 59, 70, 74, 76, 83)
+    def test_length_bucket_none_title_returns_zero(self):
+        """title is None branch (title_indicators.py:48)."""
+        assert compute_title_length_bucket(None, 20) == 0
+
+    def test_sentiment_word_empty_title_short_circuit(self):
+        """empty/None title short-circuits before scanning (title_indicators.py:59)."""
+        assert detect_title_sentiment_word("") is False
+        assert detect_title_sentiment_word(None) is False
+
+    @pytest.mark.parametrize("title,target", [
+        ("", "工商银行"),         # empty title
+        ("某新闻", ""),           # empty target
+        ("某新闻", "nan"),        # "nan" sentinel
+        ("某新闻", "None"),       # "None" sentinel
+    ])
+    def test_bank_alias_short_circuit_branches(self, title, target):
+        """empty / sentinel inputs → False (title_indicators.py:70)."""
+        assert detect_bank_alias_in_title(title, target) is False
+
+    def test_bank_alias_whitespace_only_target_returns_false(self):
+        """target_bank 是纯空白 → strip() 后空串 → False (title_indicators.py:74)."""
+        assert detect_bank_alias_in_title("工商银行新规", "   ") is False
+
+    def test_bank_alias_direct_match_no_suffix_stripping(self):
+        """target 不含后缀，直接 substring 命中 (title_indicators.py:76)."""
+        assert detect_bank_alias_in_title("招商银行公告", "招商银行") is True
+
+    def test_bank_alias_no_match_after_stripping_returns_false(self):
+        """target 含后缀但 stem 不在 title 中 → 走完 for 循环 return False (title_indicators.py:83)."""
+        # target='平安银行股份有限公司' → stem='平安' 不在 '建设新规' 中
+        assert detect_bank_alias_in_title("建设新规", "平安银行股份有限公司") is False
+
 
 # --- P3.6.a paper_spec_schema tests ---
 
@@ -114,6 +148,52 @@ class TestPaperSpecSchema:
             }
         }
         assert validate_paper_spec(spec) == []
+
+    # quality-hardening Round 2 (2026-05-27): 补 missing branch
+    # paper_spec_schema.py 84.21% -> ~100% (lines 49 / 70-71 / 85 / 95 / 101)
+    @pytest.mark.parametrize("not_str", [None, 123, ["list"], {"k": "v"}])
+    def test_is_valid_audit_response_ref_rejects_non_str(self, not_str):
+        """is_valid_audit_response_ref(non-str) -> False (paper_spec_schema.py:49)."""
+        from news_process.papers._common.paper_spec_schema import (
+            is_valid_audit_response_ref,
+        )
+        assert is_valid_audit_response_ref(not_str) is False
+
+    @pytest.mark.parametrize("not_dict", ["a string", 42, ["a", "b"], None])
+    def test_validate_paper_spec_rejects_non_dict_root(self, not_dict):
+        """top-level spec 非 dict 时返回单条 type error (paper_spec_schema.py:70-71)."""
+        from news_process.papers._common.paper_spec_schema import validate_paper_spec
+        errs = validate_paper_spec(not_dict)
+        assert len(errs) == 1
+        assert "must be a dict" in errs[0]
+
+    @pytest.mark.parametrize("bad_caveat", [123, ["list"], {"k": "v"}, 4.2])
+    def test_validate_paper_spec_tA8_caveat_must_be_str(self, bad_caveat):
+        """tables.tA8.title_robustness.panel_{d,e}_caveat 必须 str (paper_spec_schema.py:85)."""
+        from news_process.papers._common.paper_spec_schema import validate_paper_spec
+        spec = {"tables": {"tA8": {"title_robustness": {
+            "panel_d_caveat": bad_caveat,
+        }}}}
+        errs = validate_paper_spec(spec)
+        assert any("panel_d_caveat must be str" in e for e in errs)
+
+    def test_validate_paper_spec_bs_alt_key_invalid_ref(self):
+        """title_robustness_table.audit_response_ref 走 alt-key 校验 (paper_spec_schema.py:95)."""
+        from news_process.papers._common.paper_spec_schema import validate_paper_spec
+        spec = {"title_robustness_table": {"audit_response_ref": "wrong"}}
+        errs = validate_paper_spec(spec)
+        assert any("title_robustness_table.audit_response_ref invalid" in e
+                   for e in errs)
+
+    def test_validate_paper_spec_bs_alt_key_caveat_must_be_str(self):
+        """title_robustness_table.panel_{d,e}_caveat 必须 str (paper_spec_schema.py:101)."""
+        from news_process.papers._common.paper_spec_schema import validate_paper_spec
+        spec = {"title_robustness_table": {
+            "panel_e_caveat": 999,  # int instead of str
+        }}
+        errs = validate_paper_spec(spec)
+        assert any("title_robustness_table.panel_e_caveat must be str" in e
+                   for e in errs)
 
 
 # --- P3.1.5 panel encode aggregation key tests ---
