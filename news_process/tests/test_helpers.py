@@ -173,6 +173,49 @@ class TestLogAndTime:
         result = process(sample_df)
         assert len(result) == 5
 
+    # quality-hardening Round 20 (2026-05-27): logging.py 94.97% → ~100%
+    # missing 237-243 (__len__ + arbitrary object 分支) + 260 (_format_bytes MB)
+
+    def test_log_and_time_result_with_len_branch(self, tmp_dir):
+        """result 是 list/dict (有 __len__ 但非 DataFrame/int) → 走 line 237-241."""
+        log_dir = str(tmp_dir / 'logs_len')
+        logger = setup_logging('test_len', log_dir)
+
+        @log_and_time(logger)
+        def returns_list():
+            return [1, 2, 3, 4, 5]
+
+        result = returns_list()
+        assert result == [1, 2, 3, 4, 5]
+
+    def test_log_and_time_result_arbitrary_object_branch(self, tmp_dir):
+        """result 无 __len__ → 走 else line 242-243."""
+        log_dir = str(tmp_dir / 'logs_obj')
+        logger = setup_logging('test_obj', log_dir)
+
+        class Foo:
+            pass
+
+        @log_and_time(logger)
+        def returns_obj():
+            return Foo()
+
+        result = returns_obj()
+        assert isinstance(result, Foo)
+
+
+def test_format_bytes_mb_branch():
+    """_format_bytes b < 1 GB → MB 格式 (logging.py:260)."""
+    from news_process.core.logging import _format_bytes
+    assert _format_bytes(500 * 1024 * 1024) == "500.0 MB"
+    assert _format_bytes(1024 * 1024) == "1.0 MB"
+
+
+def test_format_bytes_gb_branch():
+    """_format_bytes b >= 1 GB → GB 格式 (logging.py:258-259)."""
+    from news_process.core.logging import _format_bytes
+    assert "GB" in _format_bytes(2 * 1024 ** 3)
+
 
 # ============================================================================
 # log_memory_usage 测试
