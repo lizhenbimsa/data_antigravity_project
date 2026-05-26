@@ -43,6 +43,10 @@ CHAIN_RE = re.compile(
 
 
 def extract_marked_sections(text: str) -> list[str]:
+    """Return list of content slices between MARKER_OPEN and MARKER_CLOSE pairs.
+
+    An unclosed opening marker captures from MARKER_OPEN to end of file.
+    """
     sections: list[str] = []
     idx = 0
     while True:
@@ -60,6 +64,7 @@ def extract_marked_sections(text: str) -> list[str]:
 
 
 def evaluate_chain(lhs: str) -> int:
+    """Evaluate an integer expression of the form 'A+B-C+D' (Unicode minus OK)."""
     # Normalize Unicode minus to ASCII
     norm = lhs.replace("−", "-")
     # Tokenize into +/- terms; first term has implicit + sign
@@ -104,6 +109,10 @@ def self_check() -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entrypoint: parse args, run checks, return exit code.
+
+    Exit 0 = clean; 1 = at least one summation violation; 2 = self-check failure.
+    """
     p = argparse.ArgumentParser(description="LOC summation chain checker (v3.7.4 4.D)")
     p.add_argument("paths", nargs="*", help="Markdown files to check")
     p.add_argument("--from-stdin", action="store_true", help="read content from stdin")

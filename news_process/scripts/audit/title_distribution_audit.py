@@ -61,6 +61,7 @@ def _git_head() -> str:
 
 
 def main() -> int:
+    """CLI entrypoint: compute Q1-Q5 and emit JSON. Returns 0 on success."""
     p = argparse.ArgumentParser()
     p.add_argument("--in", dest="inp", required=True)
     p.add_argument("--out", dest="out", required=True)
@@ -104,7 +105,8 @@ def main() -> int:
 
     q5_joint = (q3_hits & q4_hits & q5_sentiment_hits)
 
-    def pct(s, p):
+    def pct(s: pd.Series, p: float) -> float:
+        """Return the p-th quantile of series s as a float."""
         return float(s.quantile(p))
 
     result = {

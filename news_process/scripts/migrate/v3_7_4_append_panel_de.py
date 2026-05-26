@@ -122,6 +122,10 @@ else {
 
 
 def append_to_template(template_path: Path) -> str:
+    """Append Panel D + Panel E blocks to a Stata template. Idempotent.
+
+    Returns a status string: '[APPENDED] ...', '[SKIP idempotent] ...', or '[MISS] ...'.
+    """
     if not template_path.exists():
         return f"[MISS] {template_path.name}"
     content = template_path.read_text(encoding="utf-8")

@@ -94,6 +94,10 @@ def _nav_create(d: dict, path: list[str]) -> dict:
 
 
 def patch_one(spec_dir: Path, parent_path: str) -> str:
+    """Patch a single paper_spec.yaml under spec_dir at parent_path. Idempotent.
+
+    Returns a status string: '[PATCHED] ...', '[SKIP idempotent] ...', or '[MISS] ...'.
+    """
     yaml_path = spec_dir / "paper_spec.yaml"
     if not yaml_path.exists():
         return f"[MISS] {yaml_path}"
@@ -121,6 +125,7 @@ def patch_one(spec_dir: Path, parent_path: str) -> str:
 
 
 def main() -> int:
+    """Walk TARGETS and patch v3.7.4 fields in each paper_spec.yaml. Returns 0."""
     print(f"v3.7.4 paper_spec.yaml patcher: walking {len(TARGETS)} specs")
     print("-" * 60)
     for paper_id, parent_path in TARGETS:
