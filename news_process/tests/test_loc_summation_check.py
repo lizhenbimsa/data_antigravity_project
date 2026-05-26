@@ -90,3 +90,58 @@ def test_main_self_check_within_tolerance():
     rc = M.main(["--self-check"])
     # Self-check should pass (0) — if it fails (2), declared LOC needs updating
     assert rc in (0, 2)
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 3 (2026-05-27): missing-branch coverage
+# loc_summation_check.py 85% -> 100% (lines 59-60 / 104-106 / 129-134 / 141-143)
+# ---------------------------------------------------------------------------
+
+
+def test_unclosed_open_marker_includes_rest_of_file():
+    """unclosed OPEN marker → captures from OPEN to EOF (lines 59-60)."""
+    doc = (
+        f"{M.MARKER_OPEN}\n"
+        "Tail with bad chain: 1 + 1 = 99\n"
+        # no MARKER_CLOSE
+    )
+    violations = M.check_text(doc, src="unclosed.md")
+    assert len(violations) == 1
+    assert violations[0][2] == 2 and violations[0][3] == 99
+
+
+def test_self_check_fails_when_declared_loc_off(monkeypatch, capsys):
+    """self-check FAIL path — DECLARED_LOC perturbed > TOLERANCE (lines 104-106)."""
+    monkeypatch.setattr(M, 'DECLARED_LOC', M.DECLARED_LOC + 100)
+    rc = M.self_check()
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "[self-check FAIL]" in err
+
+
+def test_main_skips_missing_path_and_continues(tmp_path, capsys):
+    """CLI: 不存在 path 跳过并继续 (lines 129-134)."""
+    real = tmp_path / "real.md"
+    real.write_text(
+        f"{M.MARKER_OPEN}\n10 + 10 = 20\n{M.MARKER_CLOSE}\n",
+        encoding='utf-8',
+    )
+    missing = tmp_path / "nope.md"
+    rc = M.main([str(missing), str(real)])
+    # OK exit because real file passes, missing file skipped (no violation)
+    assert rc == 0
+    err = capsys.readouterr().err
+    assert "not found" in err
+
+
+def test_main_clean_exit_message(tmp_path, capsys):
+    """CLI happy path 输出 [OK] 消息 (lines 141-143)."""
+    p = tmp_path / "ok.md"
+    p.write_text(
+        f"{M.MARKER_OPEN}\nClean: 7 + 3 = 10\n{M.MARKER_CLOSE}\n",
+        encoding='utf-8',
+    )
+    rc = M.main([str(p)])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "[OK]" in out
