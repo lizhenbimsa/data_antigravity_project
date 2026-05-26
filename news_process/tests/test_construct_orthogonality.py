@@ -334,3 +334,89 @@ def test_run_stage_smoke(tmp_path: Path):
     assert summary_disk['interpretation'] in ('strong', 'moderate', 'mixed')
     assert 'reproducibility' in summary_disk
     assert summary['interpretation'] == summary_disk['interpretation']
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 8 (2026-05-27): missing-branch coverage
+# construct_orthogonality.py 87.80% → ~95% (lines 109-115 / 122 / 175-176 /
+# 183-185 / 221-225 / 230-233 / 277-278 / 308 / 313)
+# ---------------------------------------------------------------------------
+
+
+def test_compute_nmi_matrix_missing_cols_returns_all_nan():
+    """缺 dim 列 → warning + 全 NaN matrix (lines 109-115)."""
+    from news_process.pipeline.audit.construct_orthogonality import compute_nmi_matrix
+    df = pd.DataFrame({'foo': [1, 2, 3], 'bar': [4, 5, 6]})  # 不含 dims
+    point, lo, hi, n = compute_nmi_matrix(
+        df, dims=['nonexistent_a', 'nonexistent_b'], bootstrap_n=5,
+    )
+    assert point.isna().all().all()
+    assert (n == 0).all().all()
+
+
+def test_compute_nmi_matrix_invalid_sample_strategy_raises():
+    """未知 sample_strategy → ValueError (line 122)."""
+    from news_process.pipeline.audit.construct_orthogonality import compute_nmi_matrix
+    df = pd.DataFrame({
+        'innovation_substantiveness_full': ['实质性'] * 10,
+        'innovation_locus_full': ['底层技术'] * 10,
+        'innovation_collab_mode_full': ['自主'] * 10,
+    })
+    with pytest.raises(ValueError, match="Unknown sample_strategy"):
+        compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=5, sample_strategy='bogus')
+
+
+def test_compute_permutation_null_missing_cols_returns_all_nan():
+    """permutation null 缺列 → warning + 全 NaN (lines 221-225)."""
+    from news_process.pipeline.audit.construct_orthogonality import compute_permutation_null
+    df = pd.DataFrame({'foo': [1, 2, 3], 'bar': [4, 5, 6]})
+    p95, p99 = compute_permutation_null(
+        df, dims=['nonexistent_x', 'nonexistent_y'], n_permutations=5,
+    )
+    assert p95.isna().all().all()
+    assert p99.isna().all().all()
+
+
+def test_compute_permutation_null_sample_below_100_returns_all_nan():
+    """clean sample < 100 → warning + 全 NaN (lines 230-233)."""
+    from news_process.pipeline.audit.construct_orthogonality import compute_permutation_null
+    # 50 行 < 100 阈值
+    rng = np.random.default_rng(7)
+    df = pd.DataFrame({
+        'innovation_substantiveness_full': rng.choice(['实质性', '象征性'], 50),
+        'innovation_locus_full':           rng.choice(['底层技术', '应用场景'], 50),
+        'innovation_collab_mode_full':     rng.choice(['自主', '协同'], 50),
+    })
+    p95, p99 = compute_permutation_null(df, DIMS_FULL, n_permutations=5)
+    assert p95.isna().all().all()
+    assert p99.isna().all().all()
+
+
+def test_classify_orthogonality_undefined_when_nulls_nan():
+    """obs / p95 / p99 含 NaN → result='undefined' (lines 277-278)."""
+    from news_process.pipeline.audit.construct_orthogonality import (
+        classify_orthogonality,
+    )
+    point = pd.DataFrame(
+        np.eye(2) * np.nan,  # 全 NaN
+        index=['A', 'B'], columns=['A', 'B'],
+    )
+    null_p95 = point.copy()
+    null_p99 = point.copy()
+    result = classify_orthogonality(point, null_p95, null_p99)
+    # 至少 1 个 off-diag pair → 'undefined' (skip diag)
+    assert all(v == 'undefined' for v in result.values())
+
+
+def test_run_stage_uses_env_var_defaults(tmp_path, monkeypatch):
+    """STAGE_21_PARQUET + OUT_DIR env vars 作为 fallback (lines 308, 313)."""
+    from news_process.pipeline.audit.construct_orthogonality import run_stage
+    df = _make_synthetic_df(n=200, seed=10)
+    stage21 = tmp_path / 'env_stage21.parquet'
+    df.to_parquet(stage21)
+    monkeypatch.setenv('STAGE_21_PARQUET', str(stage21))
+    monkeypatch.setenv('OUT_DIR', str(tmp_path))
+    # 调用时不传 args, 让 env var fallback 生效
+    summary = run_stage(bootstrap_n=10, n_permutations=10, seed=42)
+    assert 'max_off_diag_nmi' in summary
+    assert (tmp_path / '39c_nmi_summary.json').exists()
