@@ -219,3 +219,56 @@ def test_paper_figure_raises_when_csv_missing(paper_id, fig_module, fn_name, tmp
     fn = getattr(mod, fn_name)
     with pytest.raises(FileNotFoundError):
         fn(pc)
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 28 (2026-05-27): paper_figures_ext 94.92% → ~100%
+# missing 70-73 (_to_value_se numeric scalar + TypeError fallback) + 265 (title)
+# ---------------------------------------------------------------------------
+
+
+def test_to_value_se_handles_numeric_scalar():
+    """_to_value_se 接受 int/float scalar → (float, None) (lines 70-71)."""
+    from news_process.papers._common.paper_figures_ext import _to_value_se
+    v, se = _to_value_se(3.14)
+    assert v == 3.14
+    assert se is None
+    v2, se2 = _to_value_se(42)
+    assert v2 == 42.0
+    assert se2 is None
+
+
+def test_to_value_se_handles_unconvertible_input():
+    """_to_value_se 对 string/list 等不可 float-cast → (nan, None) (lines 72-73)."""
+    import math
+
+    from news_process.papers._common.paper_figures_ext import _to_value_se
+    v, se = _to_value_se("not_a_number")
+    assert math.isnan(v)
+    assert se is None
+    v2, se2 = _to_value_se([1, 2, 3])
+    assert math.isnan(v2)
+
+
+def test_to_value_se_handles_none():
+    """_to_value_se(None) → (nan, None) (lines 66-67)."""
+    import math
+
+    from news_process.papers._common.paper_figures_ext import _to_value_se
+    v, se = _to_value_se(None)
+    assert math.isnan(v)
+    assert se is None
+
+
+def test_event_study_plot_with_explicit_title(tmp_path):
+    """event_study_plot title 非空 → ax.set_title (line 265)."""
+    from news_process.papers._common.paper_figures_ext import event_study_plot
+    out = tmp_path / 'event_study_titled.pdf'
+    result = event_study_plot(
+        periods=[-2, -1, 0, 1, 2],
+        coefficients=[0.0, 0.05, 0.1, 0.2, 0.15],
+        standard_errors=[0.02, 0.02, 0.02, 0.03, 0.025],
+        output_path=out,
+        title='Event Study Test Title',  # 触发 line 264-265
+    )
+    assert result.exists()
