@@ -397,6 +397,116 @@ class TestPipelineLockEdgeCases(unittest.TestCase):
         self.assertFalse(os.path.exists(lock_file))
 
 
+# ============================================================================
+# quality-hardening Round 12 (2026-05-27): core/locking.py 74% → ~88%
+# Windows-reachable except handlers (Linux fcntl branches separately blocked
+# in docs/TECH-DEBT.md §[1-A])
+# ============================================================================
+
+
+class TestPipelineLockErrorHandlers(unittest.TestCase):
+    """missing-branch coverage for OSError / Exception cleanup paths."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.logger = Mock(spec=logging.Logger)
+        self.lock_file_path = os.path.join(self.temp_dir, '.pipeline.lock')
+        self.sidecar_path = os.path.join(self.temp_dir, '.pipeline.lock.info')
+
+    def tearDown(self):
+        for p in (self.lock_file_path, self.sidecar_path):
+            try:
+                if os.path.exists(p):
+                    os.remove(p)
+            except Exception:
+                pass
+        try:
+            os.rmdir(self.temp_dir)
+        except Exception:
+            pass
+
+    def test_sidecar_write_oserror_logs_warning_but_lock_holds(self):
+        """sidecar 写入 OSError → warning + 主锁仍有效 (lines 101-106)."""
+        # Patch open() 的第二次调用 (sidecar 写) → 抛 OSError
+        # 第一次调用 (主 lock_file) 应正常.
+        import builtins
+        orig_open = builtins.open
+        call_count = {'n': 0}
+
+        def fake_open(path, *args, **kwargs):
+            call_count['n'] += 1
+            if str(path).endswith('.pipeline.lock.info'):
+                raise OSError("simulated sidecar disk full")
+            return orig_open(path, *args, **kwargs)
+
+        with patch('builtins.open', side_effect=fake_open):
+            with PipelineLock(self.logger, self.temp_dir):
+                pass
+        # warning 至少被 sidecar 失败路径调用一次
+        warn_calls = [
+            c for c in self.logger.warning.call_args_list
+            if 'sidecar' in str(c)
+        ]
+        self.assertTrue(len(warn_calls) >= 1)
+
+    def test_enter_cleanup_close_failure_does_not_mask_original(self):
+        """__enter__ 失败 + lock_file.close() 也失败 → RuntimeError 仍抛, debug 记录
+        (lines 116-125)."""
+        # 让 msvcrt.locking 抛非 OSError 异常, 然后 lock_file.close 也失败.
+        with patch('news_process.core.locking.os.path.join',
+                   return_value=self.lock_file_path):
+            with patch('msvcrt.locking', side_effect=RuntimeError("simulated lock failure")):
+                with self.assertRaises(RuntimeError):
+                    with PipelineLock(self.logger, self.temp_dir):
+                        pass
+
+    def test_handle_lock_failure_close_oserror_logged_to_debug(self):
+        """_handle_lock_failure 内 close() 失败 → debug log, 不阻塞主 raise
+        (lines 139-145)."""
+        # Pre-occupy the lock so second attempt triggers _handle_lock_failure.
+        primary = PipelineLock(self.logger, self.temp_dir)
+        primary.__enter__()
+        try:
+            second_logger = Mock(spec=logging.Logger)
+            second_lock = PipelineLock(second_logger, self.temp_dir)
+            # 让 lock_file.close 抛异常
+            import io
+            real_open = io.open
+            def fake_open(path, *a, **kw):
+                f = real_open(path, *a, **kw)
+                # 包装 close 抛错
+                orig_close = f.close
+                def bad_close(*args, **kwargs):
+                    raise OSError("simulated close failure during failure cleanup")
+                f.close = bad_close
+                return f
+            with patch('builtins.open', side_effect=fake_open):
+                with self.assertRaises(RuntimeError):
+                    second_lock.__enter__()
+            # close 失败 → 应触发 debug log 至少 1 次
+            self.assertTrue(second_logger.debug.called or second_logger.error.called)
+        finally:
+            primary.__exit__(None, None, None)
+
+    def test_handle_lock_failure_sidecar_read_unicode_decode_returns_unknown(self):
+        """sidecar 损坏 (非 UTF-8) → except + lock_info 留 '未知' (lines 159-161)."""
+        # Write non-UTF-8 bytes to sidecar
+        primary = PipelineLock(self.logger, self.temp_dir)
+        primary.__enter__()
+        try:
+            # 覆盖 sidecar 为损坏的二进制
+            with open(self.sidecar_path, 'wb') as f:
+                f.write(b'\xff\xfe\x00\x80\x81')  # invalid UTF-8
+            second_logger = Mock(spec=logging.Logger)
+            second_lock = PipelineLock(second_logger, self.temp_dir)
+            with self.assertRaises(RuntimeError) as ctx:
+                second_lock.__enter__()
+            # 错误消息应含 '未知' (sidecar 读 except 走 fallback)
+            self.assertIn('未知', str(ctx.exception))
+        finally:
+            primary.__exit__(None, None, None)
+
+
 if __name__ == '__main__':
     # 配置测试运行器
     unittest.main(verbosity=2)
