@@ -51,7 +51,7 @@
 
 ## (2) 覆盖率 ≥ 95%
 
-### [2-A] 仓库基线 40.09%，95% 目标在 8h 内不可达
+### [2-A] 仓库基线 40.09%，95% 全仓目标在 8h 内不可达；已对 11 个高 ROI 文件完成 ≥90% 闭合
 
 - **位置**：`news_process/` 全量；coverage report 见 `coverage_baseline.json`。
 - **原因**：本仓库 23,115 statements；从 40.09% → 95% 需补 ~12,700 行覆盖。
@@ -61,9 +61,25 @@
   `dict_coverage.py` 16.11% / 540 行；`temporal_mask.py` 18.39% / 87 行）—
   这些是科研一次性 audit 脚本，集成测试需要真实 LLM/embedding/Stata 出，单元
   测试需要 mock 700+ 函数。8h 内不可能完成。
+- **本会话闭合记录** (Round 1-6, 2026-05-27 by quality-hardening /goal)：
+  对 11 个 ROI 较高的 small/medium 模块完成 per-file ≥90% 目标：
+  - `papers/_common/_git_utils.py` 84.62% → **100%** (+9 tests)
+  - `papers/_common/paper_spec_schema.py` 84.21% → **100%** (+15 tests)
+  - `core/text/title_indicators.py` 80.00% → **100%** (+10 tests)
+  - `core/text/canonicalization.py` 86.11% → **94.44%** (+3 tests)
+  - `core/data_versioning.py` 84.76% → **100%** (+7 tests)
+  - `scripts/audit/loc_summation_check.py` 85.00% → **100%** (+4 tests)
+  - `pipeline/sentiment/lm_non_sentiment.py` 93.94% → **96.97%** (+2 tests)
+  - `papers/benefit_society/cohort.py` 71.05% → **100%** (+2 tests)
+  - `pipeline/llm_archive/manifest.py` 91.25% → **100%** (+5 tests)
+  - `papers/_common/panel_loader.py` 50.00% → **~95%** (+5 tests)
+  - `scripts/migrate/v3_1_to_v3_2_panel_upgrade.py` 79.37% → **98.41%** (+3 tests)
+  合计 +63 tests, 全套 1889 → 1952 passed。Ruff 始终 0 warn。
+- **未闭合**：剩余 ~155 文件 < 90% 多为 LLM / Stata 依赖类（需真服务 mock 数千行)，
+  或 module-level init failure 路径（除非分文件 refactor 难单测）。
 - **解锁条件**：(a) 多月 mock 撰写工作；或 (b) 调整 95% 目标到现实的渐进里程碑
   （e.g. core/ ≥ 90% 已基本满足，validation/ 单独 deferral）。
-- **影响**：/goal 第 (2) 项无法满足。本次会话仅做基线测量并保持不回退。
+- **影响**：/goal 第 (2) 项无法在单次 session 满足；已交付可累加的渐进基线。
 
 ## (4) 类型检查 mypy 全绿
 
@@ -92,7 +108,7 @@
 
 ## (7) 文档
 
-### [7-A] ~108 个 public function 缺 docstring（集中在 `scripts/` 与 `scripts/audit/`）
+### [7-A] ~113 个 public function 缺 docstring（集中在 `scripts/` 与 `scripts/audit/`）
 
 - **位置**：v3.7.4 + quality-hardening 2026-05-27 实测后 — modules 250/250 ✓，
   classes 20/20 ✓，public functions 113/659 missing。本次会话已补 5 个 dag.py
