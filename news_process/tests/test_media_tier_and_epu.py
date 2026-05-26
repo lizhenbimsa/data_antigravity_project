@@ -215,3 +215,32 @@ class TestEpuAggregateBankYear:
         panel = aggregate_epu_to_bank_year(article, epu)
         assert panel['epu_data_complete'].iloc[0] == 1
         assert abs(panel['epu_mean_year'].iloc[0] - 65.0) < 0.01  # mean(10..120)
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 26 (2026-05-27): epu_merge._resolve_epu_path coverage
+# lines 65-71 — config path + default path fallback + None when missing
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_epu_path_returns_config_path_when_exists(tmp_path, monkeypatch):
+    """cfg['paths']['epu_china_csv'] 存在 → 返回 (line 65-67)."""
+    import news_process.pipeline.external.epu_merge as M
+    fake_csv = tmp_path / 'epu_real.csv'
+    fake_csv.write_text('year,month,epu\n2020,1,100\n', encoding='utf-8')
+    monkeypatch.setitem(M.CONFIG['paths'], 'epu_china_csv', str(fake_csv))
+    result = M._resolve_epu_path()
+    assert result == fake_csv
+
+
+def test_resolve_epu_path_returns_none_when_both_missing(tmp_path, monkeypatch):
+    """cfg 路径不存在 + default 不存在 → None (line 71).
+
+    通过 monkeypatch _PROJECT_PARENT 指向 tmp_path 让 default fallback 不存在.
+    """
+    import news_process.pipeline.external.epu_merge as M
+    monkeypatch.setitem(M.CONFIG['paths'], 'epu_china_csv',
+                        str(tmp_path / 'nonexistent.csv'))
+    monkeypatch.setattr(M, '_PROJECT_PARENT', str(tmp_path))
+    result = M._resolve_epu_path()
+    assert result is None
