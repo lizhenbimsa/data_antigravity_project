@@ -234,6 +234,139 @@ class TestSha256OfFile:
         # SHA-256("hello world") 已知值
         assert h1 == 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'
 
+    def test_sha256_raises_oserror_on_missing_file(self, tmp_path):
+        """v3.7.0 m2: file disappeared → OSError with context (archive.py:295-296)."""
+        with pytest.raises(OSError, match="文件不存在"):
+            sha256_of_file(tmp_path / 'no_such.txt')
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 11 (2026-05-27): archive.py 61.11% → ~90%
+# missing 33-52 (_resolve_archive_root) / 172-185 (append_batch) /
+# 193-195 (stats) / 248 + 275-280 (singleton init) / 295-298 (sha256 errors)
+# ---------------------------------------------------------------------------
+
+
+class TestResolveArchiveRoot:
+    """archive._resolve_archive_root path 3 级 fallback."""
+
+    def test_env_var_takes_precedence(self, tmp_path, monkeypatch):
+        """LLM_ARCHIVE_ROOT env var → 直接 resolve, 优先级最高 (lines 33-35)."""
+        from news_process.pipeline.llm_archive.archive import _resolve_archive_root
+        monkeypatch.setenv('LLM_ARCHIVE_ROOT', str(tmp_path / 'env_root'))
+        result = _resolve_archive_root()
+        assert result == (tmp_path / 'env_root').resolve()
+
+    def test_config_path_used_when_no_env(self, tmp_path, monkeypatch):
+        """无 env var → 走 config.paths.llm_archive (lines 37-42)."""
+        monkeypatch.delenv('LLM_ARCHIVE_ROOT', raising=False)
+        fake_root = tmp_path / 'cfg_root'
+
+        def fake_load_config():
+            return {'paths': {'llm_archive': str(fake_root)}}
+
+        # Patch the load_config import inside the function
+        import news_process.core.config as cfg_mod
+        monkeypatch.setattr(cfg_mod, 'load_config', fake_load_config)
+        result = _resolve_archive_root_via_helper()
+        assert result.resolve() == fake_root.resolve()
+
+    def test_fallback_to_data_processed_parent(self, tmp_path, monkeypatch):
+        """无 llm_archive 但有 data_processed → fallback parent / llm_archive."""
+        monkeypatch.delenv('LLM_ARCHIVE_ROOT', raising=False)
+        fake_dp = tmp_path / 'data' / 'processed'
+
+        def fake_load_config():
+            return {'paths': {'data_processed': str(fake_dp)}}
+
+        import news_process.core.config as cfg_mod
+        monkeypatch.setattr(cfg_mod, 'load_config', fake_load_config)
+        result = _resolve_archive_root_via_helper()
+        assert 'llm_archive' in str(result)
+
+    def test_final_fallback_relative(self, tmp_path, monkeypatch):
+        """config 加载异常 → 走最终 fallback Path('data/llm_archive')."""
+        from news_process.pipeline.llm_archive.archive import _resolve_archive_root
+        monkeypatch.delenv('LLM_ARCHIVE_ROOT', raising=False)
+        import news_process.core.config as cfg_mod
+
+        def raise_load():
+            raise RuntimeError("config 不可用")
+        monkeypatch.setattr(cfg_mod, 'load_config', raise_load)
+        result = _resolve_archive_root()
+        # 含 'llm_archive' 子目录路径
+        assert 'llm_archive' in str(result)
+
+
+def _resolve_archive_root_via_helper():
+    """Helper to call _resolve_archive_root with monkeypatch'd config."""
+    from news_process.pipeline.llm_archive.archive import _resolve_archive_root
+    return _resolve_archive_root()
+
+
+class TestAppendBatch:
+    """LLMArchive.append_batch 批量路径 (v3.7.0 M15)."""
+
+    def test_empty_batch_returns_empty(self, tmp_archive):
+        """[] input → [] return, no file written (line 173)."""
+        assert tmp_archive.append_batch([]) == []
+        assert tmp_archive.stats()['writes'] == 0
+
+    def test_batch_writes_all_records_single_open(self, tmp_archive):
+        """5 records → 5 rids, 单文件单 open, stats 累加正确 (lines 174-185)."""
+        records = [_valid_record() for _ in range(5)]
+        # 让每条 cache_key 唯一 (否则 _prepare_record 可能用同一 request_id)
+        for i, r in enumerate(records):
+            r['cache_key'] = f'batch_key_{i}_' + 'a' * 50
+        rids = tmp_archive.append_batch(records)
+        assert len(rids) == 5
+        assert len(set(rids)) == 5  # 全 unique uuid
+        s = tmp_archive.stats()
+        assert s['writes'] == 5
+        assert s['bytes_written'] > 0
+
+
+class TestStats:
+    """LLMArchive.stats 返回快照."""
+
+    def test_stats_after_writes_returns_counts(self, tmp_archive):
+        """stats 反映 writes + bytes + current_file (lines 193-195)."""
+        tmp_archive.append(_valid_record())
+        s = tmp_archive.stats()
+        assert s['writes'] == 1
+        assert s['bytes_written'] > 0
+        assert 'current_file' in s
+
+
+class TestArchiveRecordSingleton:
+    """archive_record 在 archive=None 时 lazy-init 默认 singleton."""
+
+    def test_archive_record_uses_default_singleton(self, monkeypatch, tmp_path):
+        """archive=None → _get_default_archive() 调用 (lines 247-248 + 275-280)."""
+        # Reset singleton + 用 env var 指向 tmp
+        from news_process.pipeline.llm_archive import archive as A
+        monkeypatch.setattr(A, '_DEFAULT_ARCHIVE', None)
+        monkeypatch.setenv('LLM_ARCHIVE_ROOT', str(tmp_path / 'singleton_test'))
+        rid = archive_record(
+            cache_key='singleton_test_' + 'k' * 40,
+            model_id='gpt-5.4-nano',
+            model_version='gpt-5.4-nano-2026-01',
+            prompt='test',
+            response_raw='{"r":1}',
+            api_endpoint='https://api.test',
+            http_status=200,
+        )
+        assert len(rid) == 36  # UUID v4 长度
+
+    def test_get_default_archive_returns_same_instance(self, monkeypatch, tmp_path):
+        """singleton 第二次调用走早 return (line 275-276)."""
+        from news_process.pipeline.llm_archive import archive as A
+        monkeypatch.setattr(A, '_DEFAULT_ARCHIVE', None)
+        monkeypatch.setenv('LLM_ARCHIVE_ROOT', str(tmp_path / 'singleton2'))
+        a1 = A._get_default_archive()
+        a2 = A._get_default_archive()
+        assert a1 is a2
+
 
 # pytest 标记 (CI light tier, 与 v3.5.1 测试矩阵兼容)
 pytestmark = [pytest.mark.fast]
