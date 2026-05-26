@@ -272,3 +272,16 @@ class TestStage22Integration:
         # 提取阶段必须包含 LM + FLS 5 个 metric base names
         assert 'uncert_frac' in src and 'litig_frac' in src, \
             "tone_words new_columns 列提取段缺 LM frac 列"
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 30 (2026-05-27): forward_looking 91.67% → ~100%
+# missing lines 110 (_is_fls_sentence empty short-circuit) + 148 (n_sents==0)
+# ---------------------------------------------------------------------------
+
+
+def test_is_fls_sentence_empty_returns_false():
+    """_is_fls_sentence 接受空字符串 → False (line 109-110)."""
+    from news_process.pipeline.sentiment.forward_looking import _is_fls_sentence
+    assert _is_fls_sentence('') is False
+    assert _is_fls_sentence(None) is False
