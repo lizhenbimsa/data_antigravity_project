@@ -181,3 +181,40 @@ def test_event_study_ids_returns_copy_not_reference() -> None:
     ids = spec.event_study_ids
     ids.append('E_INJECTED')
     assert 'E_INJECTED' not in spec.raw['event_studies']
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 19 (2026-05-27): PaperSpec.get + differentiation_claim
+# paper_registry.py 95.59% → ~100% (lines 98, 103, 193)
+# ---------------------------------------------------------------------------
+
+
+def test_paper_spec_get_method_delegates_to_raw_dict():
+    """PaperSpec.get 透传到 raw.get (paper_registry.py:98)."""
+    from pathlib import Path
+    spec = PaperSpec(
+        paper_id='x', spec_version='0.0.0', status='skeleton',
+        spec_path=Path('/tmp/x'),
+        raw={'arbitrary_key': 'arbitrary_val', 'nested': {'a': 1}},
+    )
+    assert spec.get('arbitrary_key') == 'arbitrary_val'
+    assert spec.get('nonexistent_field') is None  # 默认 default=None
+    assert spec.get('nonexistent_field', 'my_default') == 'my_default'
+    assert spec.get('nested') == {'a': 1}
+
+
+def test_paper_spec_differentiation_claim_property():
+    """differentiation_claim property: 有值 + 缺失 fallback '' (paper_registry.py:103)."""
+    from pathlib import Path
+    spec_with = PaperSpec(
+        paper_id='x', spec_version='0.0.0', status='skeleton',
+        spec_path=Path('/tmp/x'),
+        raw={'differentiation_claim': 'our claim is unique'},
+    )
+    assert spec_with.differentiation_claim == 'our claim is unique'
+    spec_without = PaperSpec(
+        paper_id='y', spec_version='0.0.0', status='skeleton',
+        spec_path=Path('/tmp/y'),
+        raw={},
+    )
+    assert spec_without.differentiation_claim == ''

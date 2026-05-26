@@ -85,6 +85,24 @@ class TestPaperConfig:
         assert isinstance(assets, Path)
         assert assets.name == 'papers_assets'
 
+    # quality-hardening Round 19 (2026-05-27): paper_config.py 95.56% → ~100%
+    # missing 79 (resolve fallback) + 93 (assets root no-explicit fallback)
+
+    def test_resolve_project_root_fallback_when_output_dir_missing(self):
+        """cfg 无 paths.output_dir → fallback Path(__file__).parents[2] (line 79)."""
+        from news_process.papers._common.paper_config import _resolve_project_root
+        result = _resolve_project_root({})  # cfg 完全空
+        assert isinstance(result, Path)
+        # fallback 路径应解析到 news_process 包目录 (parents[2] of paper_config.py)
+        assert result.name == 'news_process'
+
+    def test_papers_assets_root_uses_fallback_when_no_explicit(self):
+        """cfg 无 paths.papers_assets_root → fallback project_root / papers_assets (line 93)."""
+        result = get_papers_assets_root({'paths': {'output_dir': '/some/output/dir'}})
+        assert result.name == 'papers_assets'
+        # 应位于 output_dir 的父目录 (即 project_root) 下 — Path.parent 跨平台
+        assert result.parent == Path('/some/output')
+
 
 # ============================================================================
 # 2. panel_loader
