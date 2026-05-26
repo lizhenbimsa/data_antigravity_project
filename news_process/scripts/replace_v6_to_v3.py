@@ -1,3 +1,9 @@
+"""一次性脚本：对 `news_process/**/*.py` 中遗留的旧模型名做幂等字符串替换。
+
+`replacements` 字典上下值多为 1:1（保留为兼容回滚记录），实际有效条目见短名映射
+段（如 `gemini31111 → gemini311111`）。运行前先 `git diff` 预览。
+"""
+
 import glob
 
 replacements = {

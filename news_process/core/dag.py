@@ -30,10 +30,12 @@ from typing import Any, Callable, Optional
 
 
 def always_enabled(_cfg: dict[str, Any]) -> bool:
+    """``enabled_when`` 谓词：始终启用（无配置依赖）。"""
     return True
 
 
 def llm_method_enabled(cfg: dict[str, Any]) -> bool:
+    """``enabled_when`` 谓词：当 ``sentiment_analysis.enabled_methods`` 含 ``tone_llms`` 时启用。"""
     methods = (
         cfg.get('sentiment_analysis', {}).get('enabled_methods', []) or []
     )
@@ -41,6 +43,7 @@ def llm_method_enabled(cfg: dict[str, Any]) -> bool:
 
 
 def words_method_enabled(cfg: dict[str, Any]) -> bool:
+    """``enabled_when`` 谓词：当 ``sentiment_analysis.enabled_methods`` 含 ``tone_words`` 时启用。"""
     methods = (
         cfg.get('sentiment_analysis', {}).get('enabled_methods', []) or []
     )
@@ -48,6 +51,7 @@ def words_method_enabled(cfg: dict[str, Any]) -> bool:
 
 
 def berts_method_enabled(cfg: dict[str, Any]) -> bool:
+    """``enabled_when`` 谓词：当 ``sentiment_analysis.enabled_methods`` 含 ``tone_berts`` 时启用。"""
     methods = (
         cfg.get('sentiment_analysis', {}).get('enabled_methods', []) or []
     )
@@ -64,6 +68,7 @@ def _validation_flag(key: str, default: bool = True
 
 
 def temporal_mask_enabled(cfg: dict[str, Any]) -> bool:
+    """``enabled_when`` 谓词：当 ``temporal_mask_test.enabled = true`` 时启用 stage 38a。"""
     return cfg.get('temporal_mask_test', {}).get('enabled', False)
 
 

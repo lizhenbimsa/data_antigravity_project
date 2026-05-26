@@ -94,14 +94,17 @@ class PaperSpec:
     raw: dict[str, Any] = field(repr=False)
 
     def get(self, key: str, default: Any = None) -> Any:
+        """从 ``raw`` spec dict 取顶层字段 (dict.get 透传)。"""
         return self.raw.get(key, default)
 
     @property
     def differentiation_claim(self) -> str:
+        """spec 的 ``differentiation_claim`` 字段（plan §5.2.3.bis 必填），缺失时返回空串。"""
         return self.raw.get('differentiation_claim', '')
 
     @property
     def primary_outlet(self) -> str:
+        """spec 的 ``targets.primary_outlet`` 字段；若 targets 非 dict（yaml 缩进异常）安全 fallback 空串。"""
         # RR2-1: defensive — yaml schema 偶尔可能把 targets 误解析为 list (e.g. 缩进
         # 异常), .get() on list 会 raise AttributeError. 安全 fallback 返回空 str.
         targets = self.raw.get('targets')
@@ -111,6 +114,7 @@ class PaperSpec:
 
     @property
     def event_study_ids(self) -> list[str]:
+        """spec 的 ``event_studies`` 字段；非 list 时返回 ``[]``。"""
         ev = self.raw.get('event_studies') or []
         return list(ev) if isinstance(ev, list) else []
 

@@ -89,6 +89,8 @@ class ToneLLMSchema:
 
 @dataclass(frozen=True)
 class PanelBuildingSchema:
+    """``panel.yaml::panel_building`` 节的不可变 schema 与默认值锚点。"""
+
     aggregation_frequency: str = "yearly"
     export_stata: bool = True
     compute_attention_index: bool = True
@@ -107,6 +109,8 @@ class PanelBuildingSchema:
 
 @dataclass(frozen=True)
 class HerdDetectionSchema:
+    """``sentiment.yaml::herd_detection`` 节的不可变 schema 与默认值锚点。"""
+
     similarity_threshold: float = 0.35
     time_window_days: int = 7
     max_features: int = 10000

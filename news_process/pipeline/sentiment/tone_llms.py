@@ -219,6 +219,7 @@ class AsyncRequestPacer:
         self._last_started_at = 0.0
 
     async def wait(self) -> None:
+        """阻塞直到距离上一次 ``wait()`` 至少 ``spacing_seconds`` 秒；零间距时立即返回。"""
         if self.spacing_seconds <= 0:
             return
         async with self._lock:
@@ -244,12 +245,15 @@ class AsyncModelAvailability:
         self._lock = asyncio.Lock()
 
     def is_disabled(self, model_id: str) -> bool:
+        """True iff ``model_id`` 已被 ``disable()`` 标记为本轮永久失败。"""
         return model_id in self._disabled
 
     def is_preflighted(self, model_id: str) -> bool:
+        """True iff ``model_id`` 已通过预飞行（preflight）健康检查。"""
         return model_id in self._preflighted
 
     async def disable(self, model_id: str, reason: str) -> None:
+        """断路器：把 ``model_id`` 标记为本轮永久失败；幂等，重复调用不重复日志。"""
         async with self._lock:
             if model_id in self._disabled:
                 return
@@ -260,6 +264,7 @@ class AsyncModelAvailability:
             )
 
     async def mark_preflighted(self, model_id: str) -> None:
+        """记录 ``model_id`` 已通过 preflight；后续 worker 可跳过冷启动健康检查。"""
         async with self._lock:
             self._preflighted.add(model_id)
 
