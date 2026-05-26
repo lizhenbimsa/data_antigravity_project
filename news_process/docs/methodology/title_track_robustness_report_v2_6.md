@@ -182,7 +182,8 @@ already done via clone script + lint 2h + remaining 16-21h).
 
 ## §9 Audit history
 
-9 rounds of pre-execution audit; 22 findings identified, all P0 closed:
+**Pre-execution rounds (9 rounds, 53 findings identified, all P0 closed
+across iterative plan revisions v1.0 → v1.7)**:
 
 - Round 1 (v2.0 report): 7 finding (3 P0)
 - Round 2 (v1.0 plan): 8 finding (3 P0)
@@ -192,7 +193,28 @@ already done via clone script + lint 2h + remaining 16-21h).
 - Round 6 (v1.4): 5 finding (2 P0; introduced summation chain protocol)
 - Round 7 (v1.5): 5 finding (2 P0; identified lint catch-22 + ±10→±20% band)
 - Round 8 (v1.6): 4 finding (2 P0; mechanical lint enforcement design)
-- Round 9 (v1.7): 1 finding (0 P0; convergence point reached)
+- Round 9 (v1.7): 1 finding (0 P0; pre-exec convergence point reached)
 
-Rounds 10-20 (post-execution): condensed in v3.7.4 execution log
-following plan §4.6.
+**Post-execution rounds (20+ rounds, condensed audit + targeted fix cycle)**:
+
+- Rounds 10-29 (post-exec batch): 5 residual (3 P1 + 2 deferred reminder
+  + 1 execution-time P0 = fintech_lexicon path bug fixed in initial
+  v3.7.4 commit `13964101`)
+- Round 30 (post-commit verify): 1 P1 (Bybee 2024 still in methodology
+  §2.2 + §8 inherited from v1.0; fixed in commit `001d6fd7`)
+- Round 31 (References completeness): 1 P0 (§8 References missing
+  Tetlock 2007 / TSM 2008 / LM 2011 / Garcia 2013 / Solomon 2012 — 5
+  body-cited papers; fixed in commit `682f9424` adding 5 citations
+  + bumping document version v1.0 → v1.1)
+- Round 32 (data integrity): 0 finding (stage 13 re-run produced clean
+  schema 1170×33; v3.7.4 columns no nulls; backwards-compat preserved)
+- Round 33 (Stata template integrity): 0 finding (9/9 templates Panel
+  D + E placeholders + foreach loop + count if intact; stata_runner
+  doctor 12 OK / 0 WARN / 0 ERR)
+- Round 34 (Stata header version sync + audit history doc): 2 P1
+  (Stata template header still v3.7.3 despite Panel D/E added; this
+  audit history incomplete past Round 9 — both fixed in commit covering
+  this expansion)
+
+**Cumulative audit budget**: 9 pre-exec + 25 post-exec ≈ 34 rounds; **53 + 9
+findings** identified; all P0 closed at this commit.
