@@ -205,6 +205,16 @@ def test_merge_value_normalization(raw, expected):
     assert normalize_rater_value(raw) == expected
 
 
+def test_normalize_rater_value_pd_isna_raises_caught_silently():
+    """quality-hardening Round 13: pd.isna 对 list/dict 抛 → except 静默 → 走非 str → None
+    (manual_validation_schema.py:63-64)."""
+    # pd.isna 对 list/dict 抛 TypeError → caught + pass → 非 str check return None
+    assert normalize_rater_value([1, 2, 3]) is None
+    assert normalize_rater_value({'k': 'v'}) is None
+    # 复杂对象: pd.isna 也会抛 → 不要把 except 路径吞掉真正的异常
+    assert normalize_rater_value(object()) is None
+
+
 def test_panels_E_F_present_with_gold(tmp_path, monkeypatch):
     """Item 8: synthesize manual_validation_samples.xlsx with 30 valid rows;
     invoke _evaluate_innovation_panels; assert pending_reason None + Panels E/F populated."""
