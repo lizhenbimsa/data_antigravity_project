@@ -218,3 +218,15 @@ def test_paper_spec_differentiation_claim_property():
         raw={},
     )
     assert spec_without.differentiation_claim == ''
+
+
+def test_list_paper_ids_returns_8_element_tuple():
+    """list_paper_ids 返回 PAPER_IDS_ALL (paper_registry.py:193)."""
+    from news_process.papers._common.paper_registry import (
+        PAPER_IDS_ALL,
+        list_paper_ids,
+    )
+    result = list_paper_ids()
+    assert result == PAPER_IDS_ALL
+    # 8 paper id (5 existing + 3 new)
+    assert len(result) == 8
