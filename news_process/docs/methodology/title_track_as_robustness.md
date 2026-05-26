@@ -17,14 +17,39 @@ sentiment panels (LLM / dictionary / BERT) compute `_title`-suffixed columns
 but **no paper has used these columns as a main treatment or formal robustness
 specification** in the 11-paper portfolio.
 
-**v3.7.3 promotes `_title` from audit-only → Tier-B supplementary robustness**
-for 9 of the 11 papers (P10/P11 deferred to v3.7.4 pending paper-spec stabilization).
-The promotion is implemented via:
+**v3.7.3 promoted `_title` from audit-only → Tier-B supplementary robustness**
+for 9 of the 11 papers (P10/P11 still deferred to v3.7.5+ pending paper-spec
+stabilization). **v3.7.4 then extended Tier-B with Panel D / Panel E stratified
+robustness + bootstrap CI** (see §4.4 joint-occurrence resolution, §4.5
+acceptance criteria, §5 v1.1 audit response template).
+
+The v3.7.3 baseline implementation:
 
 1. **`tables.tA8.template` slot** filled in 8 paper_spec.yaml files (P1-P5 + brokerage_network + llm_peer + strategic_diff) — each pointing to a Stata `.do.tmpl` template that runs Table A8.
 2. **`title_robustness_table` paper-specific extension** in benefit_society (its `tables.tA8` slot is already occupied by `19_bs_num_intensity_robustness` from v3.5.1 A3 — execution-period v1.0.1 correction).
 3. **stage 39g (`track_discriminant_validity.py`)** new validation audit producing HTMT 3×3 matrix across `_full` / `_ctx` / `_title` tracks for each tested sentiment indicator (LLM tone / dict tone / BERT pos).
 4. **NEW-B1 mojibake sanity test** (`tests/integration/test_panel_no_mojibake.py`) detecting panel column-name encoding pollution discovered during execution-period verification.
+
+The v3.7.4 extensions (this doc upgrade, 2026-05-26):
+
+5. **Panel D + Panel E** appended to all 9 Stata templates: Panel D stratifies
+   the title-only sentiment by `frac_title_mentions_fintech` across thresholds
+   {0.3, 0.5, 0.7} per Antweiler-Frank (2004 *JF*); Panel E stratifies by
+   `frac_title_long` per Da-Engelberg-Gao (2011 *JF*) attention channel.
+6. **stage 39g bootstrap CI** (Henseler-Ringle-Sarstedt 2015 *JAMS* §4)
+   with n_bootstrap=1000, seed=42, plus 4-cell strata HTMT with per-cell
+   graceful skip if N < 30.
+7. **9 paper_spec.yaml × `audit_response_ref` + 2 caveats**: pointers to
+   methodology §5 (MA-4 SoT design, not inline).
+8. **New shared lib `core/text/title_indicators.py`** (EP-B3) consolidating
+   indicator computation across stage 13 production and L2 audit script.
+9. **L4 lint script `scripts/audit/loc_summation_check.py`** with opt-in
+   marker, stdin support, self-check — mechanical enforcement of LOC
+   summation chain protocol.
+10. **Q1-Q5 empirical first-run** (2026-05-26, N=1170 fintech-filtered
+    articles): Q5 joint-occurrence rate = 0.68% (vs Q3 × Q4 = 7.6%
+    independence assumption), decisively supporting the conditioned-
+    sentiment paradigm.
 
 ---
 
@@ -378,11 +403,21 @@ re-run.
 
 ### §7.3 Forward path
 
-- **v3.7.4 candidate**: extend to P10 (`bank_media_disagreement`) and P11
+- **v3.7.5+ candidate**: extend to P10 (`bank_media_disagreement`) and P11
   (`bank_news_clarity`) once paper-spec stabilizes (P10 SSRN-route + P11 G3
-  unlock conditional on coauthor governance).
+  unlock conditional on coauthor governance). v3.7.4 covers the 9-paper
+  portfolio; P10/P11 remain deferred per v3.7.4 Out of Scope §7.
+- **stage 14-40 production re-run**: required to propagate v3.7.4
+  article-level title indicators (`title_mentions_fintech`,
+  `title_length_bucket`) into bank-year panel columns
+  (`frac_title_mentions_fintech`, `frac_title_long`). Until this completes,
+  Stata Panel D + E will graceful-skip; Panel A/B/C continue normally.
+  See §4.5 "Current panel state caveat" for the full graceful-fallback
+  behavior.
 - **stage 39g production deployment**: HTMT 3×3 default-enabled (matching
-  39d/39e/39f pattern); first empirical result documented above.
+  39d/39e/39f pattern); first empirical result documented above; v3.7.4
+  bootstrap CI extension verified by Round 40 end-to-end re-run
+  (`logs/audit/39g_v3_7_4_e2e.json`).
 
 ---
 
