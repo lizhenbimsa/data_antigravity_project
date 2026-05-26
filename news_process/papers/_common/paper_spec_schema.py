@@ -28,20 +28,26 @@ Usage:
 """
 from __future__ import annotations
 
-import re
 from typing import Any
 
-_EXPECTED_REF_PATTERN = re.compile(
-    r"^docs/methodology/title_track_as_robustness\.md"
-    r"#\d+-[a-z][a-z0-9\-]*$"
-)
+# Round 62 audit (62-A1): use explicit allowlist instead of wildcard regex
+# to prevent stale or typo'd anchors (e.g. '#999-bogus') from passing.
+_VALID_AUDIT_RESPONSE_REFS: frozenset[str] = frozenset({
+    "docs/methodology/title_track_as_robustness.md"
+    "#5-audit-response-template-for-peer-review",
+})
 
 
 def is_valid_audit_response_ref(s: Any) -> bool:
-    """True iff s is a well-formed anchor reference to methodology v1.1 §5."""
+    """True iff s is one of the explicitly allow-listed anchors to methodology §5.
+
+    Future v3.7.5+ audit response variants must be added to
+    `_VALID_AUDIT_RESPONSE_REFS` explicitly — wildcard match is rejected
+    to keep the SoT pointer set under deliberate version control.
+    """
     if not isinstance(s, str):
         return False
-    return bool(_EXPECTED_REF_PATTERN.match(s))
+    return s in _VALID_AUDIT_RESPONSE_REFS
 
 
 def _get_path(d: dict, path: list[str]) -> Any:
@@ -71,7 +77,7 @@ def validate_paper_spec(spec: dict) -> list[str]:
         if ref is not None and not is_valid_audit_response_ref(ref):
             errs.append(
                 f"tables.tA8.title_robustness.audit_response_ref invalid: {ref!r}; "
-                f"expected anchor like '{_EXPECTED_REF_PATTERN.pattern}'"
+                f"expected one of {sorted(_VALID_AUDIT_RESPONSE_REFS)}"
             )
         for caveat_key in ("panel_d_caveat", "panel_e_caveat"):
             v = tA8_tr.get(caveat_key)
