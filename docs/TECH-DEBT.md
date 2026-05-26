@@ -61,11 +61,11 @@
   `dict_coverage.py` 16.11% / 540 行；`temporal_mask.py` 18.39% / 87 行）—
   这些是科研一次性 audit 脚本，集成测试需要真实 LLM/embedding/Stata 出，单元
   测试需要 mock 700+ 函数。8h 内不可能完成。
-- **本会话闭合记录** (Round 1-24, 2026-05-27 by quality-hardening /goal)：
-  对 25+ ROI 较高的 small/medium 模块完成 per-file ≥90% 目标 (TOTAL
-  40.09% → **42.22%** = +2.13 pp +493 covered lines; Files ≥90% 38 →
-  **52/195 = 26.7%**; core/ 79.13% → **85.00%**, papers/ 64.22% → **70.82%**,
-  scripts/ 57.53% → **64.76%**, <root> 16.23% → **26.97%**)：
+- **本会话闭合记录** (Round 1-28, 2026-05-27 by quality-hardening /goal)：
+  对 30+ ROI 较高的 small/medium 模块完成 per-file ≥90% 目标 (TOTAL
+  40.09% → **~42.5%** = +2.4 pp ~+550 covered lines; Files ≥90% 38 →
+  **55+/195 ≈ 28%**; core/ 79.13% → **85.00%**, papers/ 64.22% → **~72%**,
+  scripts/ 57.53% → **64.76%**, <root> 16.23% → **~27%**)：
   - `papers/_common/_git_utils.py` 84.62% → **100%** (+9 tests)
   - `papers/_common/paper_spec_schema.py` 84.21% → **100%** (+15 tests)
   - `core/text/title_indicators.py` 80.00% → **100%** (+10 tests)
@@ -98,7 +98,12 @@
     57.14% analysis + 100% __init__ + 54.55% tables (+30 parametrized tests)
   - `news_process/run_paper.py` **0% → 92.45%** (+13 tests; greenfield)
   - `pipeline/preprocess/normalize.py` **0% → 96.55%** (+11 tests; greenfield)
-  合计 **+193 tests, 全套 1889 → 2082 passed**。Ruff 始终 0 warn。
+  - `pipeline/preprocess/load.py` **0% → 49.28%** (+7 tests; greenfield, main()
+    happy path 需 xlsx fixture defer)
+  - `pipeline/external/epu_merge.py` 66.28% → **73.26%** (+2 tests)
+  - `papers/_common/stata_postprocess.py` 95.04% → **97.16%** (+4 tests)
+  - `papers/_common/paper_figures_ext.py` 94.92% → **~99%** (+4 tests)
+  合计 **+210 tests, 全套 1889 → 2099 passed**。Ruff 始终 0 warn 跨 28 轮。
 - **未闭合**：剩余 ~155 文件 < 90% 多为 LLM / Stata 依赖类（需真服务 mock 数千行)，
   或 module-level init failure 路径（除非分文件 refactor 难单测）。
 - **解锁条件**：(a) 多月 mock 撰写工作；或 (b) 调整 95% 目标到现实的渐进里程碑
