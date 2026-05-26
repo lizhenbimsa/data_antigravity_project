@@ -107,6 +107,60 @@ class TestPanelLoader:
         assert '11_news_bank.py' in result
         assert '11_bank_news.parquet' in result['11_news_bank.py']
 
+    # quality-hardening Round 5 (2026-05-27): panel_loader.py 50% → ~100%
+    # cover load_panel (40-79), _resolve_panel_dir (30-37), _find_producer_stage (104-109)
+    # 复用 module-level pd / pytest 已 import, 避免局部重 import 触发
+    # pytest-cov 下 numpy reload 警告 + TypeError (umr_sum vs _NoValueType).
+
+    def test_load_panel_raises_filenotfound_with_producer_hint(self, tmp_path):
+        """缺失文件 → FileNotFoundError 错误信息含 producer stage 提示
+        (panel_loader.py:68-77 + _find_producer_stage:104-109)."""
+        from news_process.papers._common.panel_loader import load_panel
+
+        cfg = {'paths': {'output_dir': str(tmp_path)}}
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_panel('40_panel_yearly.parquet', project_config=cfg)
+        msg = str(exc_info.value)
+        assert '面板文件不存在' in msg
+        # 提示应含 producer stage 名 (45_panel_export_main.py per OUTPUT_REGISTRY)
+        assert '45_panel_export_main' in msg
+
+    def test_load_panel_raises_filenotfound_unknown_filename_no_hint(self, tmp_path):
+        """未知文件名 (OUTPUT_REGISTRY 反查无结果) 仍 raise 但无 hint
+        (panel_loader.py:108-109 return None branch)."""
+        from news_process.papers._common.panel_loader import load_panel
+
+        cfg = {'paths': {'output_dir': str(tmp_path)}}
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_panel('unknown_stage_xyz.parquet', project_config=cfg)
+        # 仍含 path, 但 hint 空
+        assert 'unknown_stage_xyz.parquet' in str(exc_info.value)
+
+    def test_resolve_panel_dir_raises_keyerror_when_output_dir_missing(self):
+        """cfg 缺 paths.output_dir → KeyError (panel_loader.py:33-36)."""
+        from news_process.papers._common.panel_loader import _resolve_panel_dir
+        with pytest.raises(KeyError, match="output_dir"):
+            _resolve_panel_dir({'paths': {}})
+
+    def test_load_panel_happy_path_returns_dataframe(self, tmp_path):
+        """正常路径: 文件存在 → 返回 DataFrame (panel_loader.py:79)."""
+        from news_process.papers._common.panel_loader import load_panel
+        df_in = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        df_in.to_parquet(tmp_path / 'test.parquet')
+        cfg = {'paths': {'output_dir': str(tmp_path)}}
+        out = load_panel('test.parquet', project_config=cfg)
+        assert len(out) == 3
+        assert list(out.columns) == ['a', 'b']
+
+    def test_load_panel_column_filter_applied(self, tmp_path):
+        """columns 参数被透传给 read_parquet (panel_loader.py:79)."""
+        from news_process.papers._common.panel_loader import load_panel
+        df_in = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+        df_in.to_parquet(tmp_path / 'cols.parquet')
+        cfg = {'paths': {'output_dir': str(tmp_path)}}
+        out = load_panel('cols.parquet', project_config=cfg, columns=['a'])
+        assert list(out.columns) == ['a']
+
 
 # ============================================================================
 # 3. tables
