@@ -170,6 +170,57 @@ class TestManifest:
         assert not ok
         assert any('文件缺失' in e for e in errors)
 
+    # quality-hardening Round 4 (2026-05-27): manifest.py 91.25% -> ~100%
+    # missing 78-79 / 109 / 114-115 / 162 / 195
+    def test_compute_when_responses_dir_missing_returns_empty_files(self, tmp_path, caplog):
+        """compute_manifest 在 root/responses 不存在时 → files={} + warning (lines 78-79)."""
+        from news_process.pipeline.llm_archive.manifest import compute_manifest
+        root = tmp_path / 'archive_no_resp'
+        root.mkdir()  # root 存在但 responses 子目录不存在
+        import logging
+        caplog.set_level(logging.WARNING, logger='news_process.pipeline.llm_archive.manifest')
+        m = compute_manifest(root)
+        assert m['files'] == {}
+        assert m['total_records'] == 0
+
+    def test_read_prompt_version_anchor_sidecar_missing_returns_none(self, tmp_path, monkeypatch):
+        """sidecar 不存在 → None (manifest.py:109)."""
+        from news_process.pipeline.llm_archive import manifest as M
+        monkeypatch.chdir(tmp_path)  # cwd 切到无 data/processed/v3_5_1_constants.json 的临时目录
+        assert M._read_prompt_version_anchor_from_sidecar() is None
+
+    def test_read_prompt_version_anchor_corrupt_json_returns_none(self, tmp_path, monkeypatch):
+        """sidecar JSON 损坏 → except → None (manifest.py:114-115)."""
+        from news_process.pipeline.llm_archive import manifest as M
+        sidecar_dir = tmp_path / 'data' / 'processed'
+        sidecar_dir.mkdir(parents=True)
+        (sidecar_dir / 'v3_5_1_constants.json').write_text(
+            'NOT JSON {{{{', encoding='utf-8')
+        monkeypatch.chdir(tmp_path)
+        assert M._read_prompt_version_anchor_from_sidecar() is None
+
+    def test_verify_manifest_missing_returns_false(self, tmp_path):
+        """manifest.json 本身不存在 → False + 单条错误 (manifest.py:162)."""
+        from news_process.pipeline.llm_archive.manifest import verify_manifest
+        root = tmp_path / 'archive_no_manifest'
+        root.mkdir()
+        ok, errors = verify_manifest(root)
+        assert ok is False
+        assert len(errors) == 1
+        assert 'manifest 不存在' in errors[0]
+
+    def test_verify_detects_unregistered_extra_jsonl(self, tmp_archive):
+        """manifest 外的 jsonl 文件 → 报错 '未登记文件' (manifest.py:195)."""
+        from news_process.pipeline.llm_archive.manifest import verify_manifest
+        tmp_archive.append(_valid_record())
+        write_manifest(tmp_archive.root)
+        # 注入一个 manifest 外的 rogue jsonl
+        rogue = tmp_archive.responses_dir / 'rogue_2099-12-31.jsonl'
+        rogue.write_text('{"rogue":true}\n', encoding='utf-8')
+        ok, errors = verify_manifest(tmp_archive.root)
+        assert not ok
+        assert any('未登记文件' in e for e in errors)
+
 
 class TestSha256OfFile:
     """sha256_of_file 工具函数."""
