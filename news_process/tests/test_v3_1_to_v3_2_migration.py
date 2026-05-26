@@ -135,3 +135,50 @@ def test_cli_returns_nonzero_on_missing_input(tmp_path, capsys):
     assert rc == 1
     captured = capsys.readouterr()
     assert '[ERROR]' in captured.err
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 6 (2026-05-27): v3_1_to_v3_2 79.37% → ~100%
+# missing 65 / 71-72 / 81 / 97 / 102 (verbose prints) + 137-142 (CLI happy path)
+# ---------------------------------------------------------------------------
+
+
+def test_upgrade_verbose_prints_all_steps(mock_v3_1_panel, tmp_path, capsys):
+    """verbose=True 触发 5 处 print: Loaded / RENAMED / ADDED / DERIVED / Saved
+    (lines 65, 71-72, 81, 97, 102)."""
+    from news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade import upgrade_panel
+    out = tmp_path / "v_verbose.parquet"
+    upgrade_panel(str(mock_v3_1_panel), str(out), verbose=True)
+    captured = capsys.readouterr().out
+    assert "Loaded:" in captured
+    assert "RENAMED:" in captured
+    assert "ADDED (NaN):" in captured
+    assert "DERIVED:" in captured
+    assert "Saved:" in captured
+
+
+def test_cli_happy_path_prints_summary(mock_v3_1_panel, tmp_path, capsys):
+    """CLI happy path: 输出文件 + 4 行 stdout summary (lines 137-142)."""
+    from news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade import main
+    out = tmp_path / "v3_2.parquet"
+    rc = main([str(mock_v3_1_panel), str(out)])
+    assert rc == 0
+    assert out.exists()
+    summary = capsys.readouterr().out
+    assert "v3.2.0 panel upgrade complete:" in summary
+    assert "Renamed 3 bare" in summary  # 3 renames
+    assert "Added 3 _ctx columns" in summary  # 3 added
+    assert "Derived 3 dual gate" in summary
+    assert "Shape:" in summary
+
+
+def test_cli_verbose_flag_propagates(mock_v3_1_panel, tmp_path, capsys):
+    """CLI --verbose flag 触发 per-column print 与 happy path 同时执行."""
+    from news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade import main
+    out = tmp_path / "v3_2_verbose.parquet"
+    rc = main([str(mock_v3_1_panel), str(out), '--verbose'])
+    assert rc == 0
+    output = capsys.readouterr().out
+    # Both verbose per-column and summary should be present
+    assert "RENAMED:" in output
+    assert "v3.2.0 panel upgrade complete:" in output
