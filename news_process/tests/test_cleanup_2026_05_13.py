@@ -198,3 +198,68 @@ class TestSchemaSelfConsistency:
         tone_fields = {f.name for f in fields(ToneLLMSchema)}
         assert "prompt_template_version" in tone_fields
         assert "title_sentiment_prompt_template_version" in tone_fields
+
+
+# ----------------------------------------------------------------------------
+# quality-hardening Round 18 (2026-05-27): schemas_yaml 94.1% → ~100%
+# missing 148 (str mismatch) / 152 (list mismatch) / 156 (dict mismatch) /
+# 162 (unknown expected_type) / 175 (non-Mapping section) / 195 (non-str hint)
+# ----------------------------------------------------------------------------
+
+
+class TestSchemaTypeCheckEdgeCases:
+    """Per-type mismatch branches of _type_check."""
+
+    def test_str_field_int_raises(self):
+        """str 期望 + int 实际 → TypeError (schemas_yaml.py:148)."""
+        with pytest.raises(TypeError, match=r"prompt_template_version.*int"):
+            validate_config_schema({"tone_llm_processing": {
+                "prompt_template_version": 42,  # 期望 str
+            }})
+
+    def test_list_field_dict_raises(self):
+        """list 期望 + dict 实际 → TypeError (schemas_yaml.py:152).
+
+        sentiment_analysis.enabled_methods 是 list[str].
+        """
+        from news_process.core.schemas_yaml import _type_check
+        with pytest.raises(TypeError, match=r"enabled_methods.*list"):
+            _type_check("enabled_methods", {"k": 1}, list, "sentiment_analysis")
+
+    def test_dict_field_list_raises(self):
+        """dict 期望 + list 实际 → TypeError (schemas_yaml.py:156)."""
+        from news_process.core.schemas_yaml import _type_check
+        with pytest.raises(TypeError, match=r"some_dict.*list"):
+            _type_check("some_dict", ["a", "b"], dict, "test_domain")
+
+    def test_unknown_expected_type_returns_silently(self):
+        """未知 expected type (非 str/int/float/list/dict/bool/Any) → 静默 return
+        (schemas_yaml.py:162)."""
+        from news_process.core.schemas_yaml import _type_check
+        # 自定义 type — schemas_yaml 不识别, 应不 raise
+        class CustomType:
+            pass
+        # 不抛即可
+        _type_check("foo", CustomType(), CustomType, "domain")
+
+    def test_validate_domain_handles_non_mapping_section(self):
+        """cfg_section 非 Mapping → silently return (schemas_yaml.py:173-175)."""
+        from news_process.core.schemas_yaml import (
+            PanelBuildingSchema,
+            _validate_domain,
+        )
+        # 传入 list 而非 dict — 应不 raise (上游应已 fail)
+        _validate_domain(["not", "a", "dict"], PanelBuildingSchema, "panel_building")
+        # 传入 None
+        _validate_domain(None, PanelBuildingSchema, "panel_building")
+
+    def test_list_field_valid_list_passes_silently(self):
+        """list 期望 + list 实际 → 走完 return (schemas_yaml.py:153)."""
+        from news_process.core.schemas_yaml import _type_check
+        # 不抛即可
+        _type_check("enabled_methods", ["a", "b"], list, "domain")
+
+    def test_dict_field_valid_dict_passes_silently(self):
+        """dict 期望 + dict 实际 → 走完 return (schemas_yaml.py:157)."""
+        from news_process.core.schemas_yaml import _type_check
+        _type_check("some_dict", {"k": "v"}, dict, "domain")
