@@ -9,8 +9,8 @@ tone_llm_processing:
   sock_connect_timeout: 120                         # socket 建连超时（秒）
   sock_read_timeout: 600                            # 响应读取超时（秒）
   ttl_dns_cache: 300                                # DNS 缓存时间，减少高频验证重复解析
-  keepalive_timeout: 60                             # TCP keepalive，降低批量请求握手压力
-  max_retries: 8                                    # v6/N4: 最大重试次数（指数退避配合下，8 次足够覆盖瞬时故障）
+  keepalive_timeout: 600                            # TCP keepalive，降低批量请求握手压力
+  max_retries: 80                                   # v6/N4: 最大重试次数（指数退避配合下，80 次足够覆盖瞬时故障）
   retry_delay: 5                                    # v6/N4: 基础重试间隔（指数退避起点；秒）
   retry_backoff: exponential                        # v6/N4: 指数退避策略
   retry_backoff_cap: 600                            # v6/N4: 单次重试 sleep 上限（秒）
