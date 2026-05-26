@@ -587,7 +587,8 @@ def aggregate_variant_results(
                 _call_failure, _undefined,
                 _parsed, _topics, innov_loci, innov_substs,
                 n_fail, _avg_prob_score,
-                _avg_subst_prob_score, _avg_locus_prob_score,  # plan v1.37 P2
+                _avg_subst_prob_score, _avg_locus_prob_score,
+                _innov_collab_modes, _avg_collab_prob_score,  # v3.4.0 BREAKING: 18-tuple
             ) = _aggregate_track(model_res, models)
             v_list.append(final_v)
             s_list.append(final_s)
@@ -1233,7 +1234,7 @@ def main():
     logger.info(f"    最小 Cohen's κ: {min_kappa:.4f}")
     logger.info(f"    Krippendorff's α: {alpha_val:.4f}")
     logger.info(f"    Fleiss' κ: {full_multi['fleiss_kappa']:.4f}")
-    logger.info(f"  判定: {'✅ PASSED' if passed else '❌ FAILED'}")
+    logger.info(f"  判定: {'✅ 通过' if passed else '❌ 未通过'}")
     logger.info("=" * 70)
     log_memory_usage(logger, "模块完成")
 

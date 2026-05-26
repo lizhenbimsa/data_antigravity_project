@@ -1362,7 +1362,7 @@ display "Quantity (cnt):  b = " %9.4f _b[llm_vote_tone_full] ///
 *
 * 设计: program 内部用 tempvar 自管理 sample 指示, 不依赖外部
 *       sample_qc — 后者已在本步骤后 cap drop, 若 program 引用
-*       会因变量不存在而 fatal. tempvar 在 program 退出自动清理.
+*       会因变量不存在而中止. tempvar 在 program 退出自动清理.
 *
 * capture program drop _qq_gap
 * program define _qq_gap, rclass

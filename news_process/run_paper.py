@@ -107,10 +107,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.paper_id is None:
-        parser.print_help()
-        print("\nERROR: 必须提供 paper_id (或使用 --list 查看可选值)。",
-              file=sys.stderr)
-        return 2
+        # 无参数时默认列出所有可调度论文 (帮助用户发现可用 paper_id)
+        _print_paper_list()
+        return 0
 
     if not is_valid_paper_id(args.paper_id):
         valid = sorted(_VALID_PAPER_IDS)

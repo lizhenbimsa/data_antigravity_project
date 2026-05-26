@@ -305,8 +305,8 @@ def main():
 
     from news_process.core.config import load_config
     config = load_config()
-    panel_path = os.path.join(config['paths']['data_processed'], '40_panel_yearly.parquet')
-    out_dir = Path(config['paths']['data_processed'])
+    panel_path = os.path.join(config['paths']['output_dir'], '40_panel_yearly.parquet')
+    out_dir = Path(config['paths']['output_dir'])
 
     if not os.path.exists(panel_path):
         logger.warning(f"v3.5.1 39d: panel 缺 ({panel_path}), graceful skip")
@@ -314,6 +314,12 @@ def main():
 
     panel = pd.read_parquet(panel_path)
     report = run_discriminant_validity(panel)
+
+    # graceful skip 路径: run_discriminant_validity 在缺列 / 样本不足时
+    # 返回 {'status': ..., ...} 而非完整 metric 字典. 此时不写文件 + 简短日志.
+    if isinstance(report, dict) and report.get('status') in ('missing_columns', 'insufficient_obs'):
+        logger.info(f"v3.5.1 stage 39d 跳过: {report}")
+        return
 
     # 输出 1: parquet (主表)
     out_parquet = out_dir / '39d_lexical_discriminant.parquet'
@@ -328,9 +334,12 @@ def main():
     with open(out_json, 'w', encoding='utf-8') as f:
         json.dump(report, f, ensure_ascii=False, indent=2, default=str)
 
+    alpha_val = report.get('cronbach_alpha_across')
+    alpha_str = f"{alpha_val:.4f}" if isinstance(alpha_val, (int, float)) else 'N/A'
+    kappa_val = report.get('cohen_kappa_substance_clarity', {}).get('kappa', float('nan'))
+    kappa_str = f"{kappa_val:.4f}" if isinstance(kappa_val, (int, float)) else 'N/A'
     logger.info(f"v3.5.1 stage 39d 完成: HTMT verdict={report.get('htmt_verdict')}, "
-                f"α_across={report.get('cronbach_alpha_across'):.4f}, "
-                f"κ_subst_clarity={report.get('cohen_kappa_substance_clarity',{}).get('kappa',float('nan')):.4f}")
+                f"α_across={alpha_str}, κ_subst_clarity={kappa_str}")
 
 
 if __name__ == '__main__':

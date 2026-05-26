@@ -279,8 +279,11 @@ def main():
         )
 
     if not panels:
-        logger.error("  双轨均无有效输出")
-        sys.exit(1)
+        # graceful skip: stage 21 article-level parquet 早期版本 schema 缺
+        # llm_vote_tone_full / ctx (该列名为 panel 聚合阶段加上). 此时双轨
+        # 都无法计算 cross-media variance, 返回 exit 0 而非中断 validation.
+        logger.warning("  双轨均无有效输出 (article-level tone 列缺失); 跳过 stage 39f")
+        return
 
     panel = panels[0]
     for p in panels[1:]:
