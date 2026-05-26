@@ -592,6 +592,17 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         # 用 size-then-subtract 而非 lambda 以兼容 pandas groupby.agg 的 NamedAgg 协议
         agg['_ctx_fallback_count'] = ('ctx_is_fallback', 'sum')
 
+    # --- E3. v3.7.4 P3.1.5: title indicators bank-year aggregation ---
+    # title_mentions_fintech (article bool) → frac_title_mentions_fintech (bank-year mean)
+    # title_length_bucket (article {0,1}) → frac_title_long (bank-year mean of bucket==1)
+    # 用途: Panel D/E stratified robustness (v3.7.4 Plan A v1.0)
+    # 锚定: Antweiler-Frank (2004) JF subject-relevance threshold;
+    #        Da-Engelberg-Gao (2011) JF attention-channel separation
+    if df is not None and 'title_mentions_fintech' in df.columns:
+        agg['frac_title_mentions_fintech'] = ('title_mentions_fintech', 'mean')
+    if df is not None and 'title_length_bucket' in df.columns:
+        agg['frac_title_long'] = ('title_length_bucket', 'mean')
+
     # --- F. Value-weighted 辅助列 (Hassan et al. 2019, QJE; Sautner et al. 2023, JF) ---
     agg['sum_mention_density'] = ('mention_density', 'sum')
     agg['sum_doc_length'] = ('doc_length', 'sum')

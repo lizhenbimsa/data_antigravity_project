@@ -53,6 +53,83 @@ if !_rc {
     eststo m_with_gap
 }
 
+
+* ---------------------------------------------------------------------------
+* Panel D (v3.7.4): stratify by frac_title_mentions_fintech across 3 thresholds
+* {0.3, 0.5, 0.7} — Antweiler-Frank (2004) JF 59(3) subject-relevance
+* threshold sensitivity convention. Hassan et al. (2019) QJE §IV.A
+* sub-window analysis. Per-cell graceful skip if N < 30.
+* ---------------------------------------------------------------------------
+capture confirm variable frac_title_mentions_fintech
+if !_rc {
+    foreach tau in 0.3 0.5 0.7 {
+        local thr_str = subinstr("`tau'", ".", "p", .)
+        quietly count if frac_title_mentions_fintech > `tau'
+        local n_above = r(N)
+        quietly count if frac_title_mentions_fintech <= `tau'
+        local n_below = r(N)
+        display "  Panel D τ=`tau': N above=`n_above', N below=`n_below'"
+        if `n_above' >= 30 {
+            reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $bank_controls ///
+                if frac_title_mentions_fintech > `tau', ///
+                absorb(bank_id year) vce(cluster bank_id year)
+            eststo m_panelD_above_`thr_str'
+        }
+        else {
+            display "    [WARN] Panel D τ=`tau' above: N=`n_above' < 30, skip"
+        }
+        if `n_below' >= 30 {
+            reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $bank_controls ///
+                if frac_title_mentions_fintech <= `tau', ///
+                absorb(bank_id year) vce(cluster bank_id year)
+            eststo m_panelD_below_`thr_str'
+        }
+        else {
+            display "    [WARN] Panel D τ=`tau' below: N=`n_below' < 30, skip"
+        }
+    }
+}
+else {
+    display "  [WARN] frac_title_mentions_fintech not in panel; Panel D skipped"
+}
+
+* ---------------------------------------------------------------------------
+* Panel E (v3.7.4): stratify by frac_title_long (bank-year median title length)
+* Anchor: Da-Engelberg-Gao (2011) JF 66(5) attention-channel separation
+* (short titles → attention channel; long titles → substance channel);
+* Tetlock (2007) JF 62(3) length-based information content.
+* Per-cell graceful skip if N < 30.
+* ---------------------------------------------------------------------------
+capture confirm variable frac_title_long
+if !_rc {
+    quietly count if frac_title_long > 0.5
+    local n_long = r(N)
+    quietly count if frac_title_long <= 0.5
+    local n_short = r(N)
+    display "  Panel E: N long-title=`n_long', N short-title=`n_short'"
+    if `n_long' >= 30 {
+        reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $bank_controls ///
+            if frac_title_long > 0.5, ///
+            absorb(bank_id year) vce(cluster bank_id year)
+        eststo m_panelE_long
+    }
+    else {
+        display "    [WARN] Panel E long: N=`n_long' < 30, skip"
+    }
+    if `n_short' >= 30 {
+        reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $bank_controls ///
+            if frac_title_long <= 0.5, ///
+            absorb(bank_id year) vce(cluster bank_id year)
+        eststo m_panelE_short
+    }
+    else {
+        display "    [WARN] Panel E short: N=`n_short' < 30, skip"
+    }
+}
+else {
+    display "  [WARN] frac_title_long not in panel; Panel E skipped"
+}
+
 esttab m_title_only m_main_plus_title m_with_gap ///
     using "$tables_dir/tableA8_title_robustness.tex", ///
     se star(* 0.10 ** 0.05 *** 0.01) replace ///

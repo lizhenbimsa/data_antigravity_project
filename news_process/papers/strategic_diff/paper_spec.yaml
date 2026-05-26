@@ -26,7 +26,8 @@ outcome:
 
 treatment:
   primary: strat_diff_n5   # N=5 TF-IDF char 默认
-  alternative: [strat_diff_n3, strat_diff_n4, strat_diff_n6, strat_diff_n7, strat_sim_max, centroid_diff_full, coh_tfidf_c_full]
+  alternative: [strat_diff_n3, strat_diff_n4, strat_diff_n6, strat_diff_n7, strat_sim_max,
+    centroid_diff_full, coh_tfidf_c_full]
 
 controls:
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
@@ -58,14 +59,23 @@ audit_rounds_target_min: 8
 # v3.5.1 A1/A3 explicit null (text_coherence 互补 A1 clarity defer 到 v3.5.2, per plan v0.3 §1.2 修 M5')
 # v3.7.3 (Plan A v1.0): tA8 = _title track robustness
 tables:
-  t6: null
+  t6:
   tA7:
-    template: null
+    template:
   tA8:
     template: 25_tableA8_title_robustness
     title_robustness:
-      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al. (2019) JFE"
+      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al.
+        (2019) JFE"
       track_substitute: true
       r3_h1_compatible: true
+      audit_response_ref: 
+        docs/methodology/title_track_as_robustness.md#5-audit-response-template-for-peer-review
+      panel_d_caveat: Stratification by frac_title_mentions_fintech across thresholds
+        {0.3, 0.5, 0.7} per Antweiler-Frank (2004) JF 59(3) subject-relevance convention.
+        Per-cell graceful skip if N < 30 bank-year.
+      panel_e_caveat: Stratification by frac_title_long (above/below bank-year median
+        title length) per Da-Engelberg-Gao (2011) JF 66(5) attention-channel separation.
+        Per-cell graceful skip if N < 30.
   tA9:
-    template: null
+    template:

@@ -129,6 +129,65 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _add_title_indicators(df: pd.DataFrame) -> pd.DataFrame:
+    """v3.7.4 P3.1: 在 stage 13 输出中补 2 列 article-level title indicators.
+
+    - title_mentions_fintech: bool   (Q3 / Panel D stratify by content)
+    - title_length_bucket: int8 {0=≤median, 1=>median}  (Panel E stratify)
+
+    Idempotent: 若两列已在 df.columns 则跳过.
+
+    锚定: core/text/title_indicators.py (EP-B3 共享 lib, L2 audit ≡ L3 prod).
+    """
+    from news_process.core.text.title_indicators import (
+        compute_title_length_bucket,
+        compute_title_mentions_fintech,
+    )
+    if 'title_mentions_fintech' in df.columns and 'title_length_bucket' in df.columns:
+        logger.info("  v3.7.4 title indicators 已存在, 跳过 (idempotent)")
+        return df
+
+    title_col = '标题' if '标题' in df.columns else 'title'
+    if title_col not in df.columns:
+        logger.warning(f"  [WARN] {title_col} 列缺失, 跳过 v3.7.4 title indicators")
+        df['title_mentions_fintech'] = False
+        df['title_length_bucket'] = pd.array([0]*len(df), dtype='Int8')
+        return df
+
+    # v3.7.4 execution-time fix (rounds 10-29 audit): fintech lexicon lives
+    # at CONFIG['paths']['fintech_dict_file'] (= config/fintech_dict.json, 1506
+    # keywords), NOT under cfg['filtering' or 'preprocessing']. Load via
+    # core.text.ahocorasick.load_fintech_dict() to match stage 12 (news_fintech).
+    try:
+        from news_process.core.text.ahocorasick import load_fintech_dict
+        fintech_lex, _ac = load_fintech_dict(
+            CONFIG.get('paths', {}).get('fintech_dict_file', '')
+        )
+        if not isinstance(fintech_lex, list):
+            fintech_lex = list(fintech_lex) if fintech_lex else []
+    except Exception as _e:
+        logger.warning(f"  [WARN] load_fintech_dict failed: {_e}; fallback to empty lexicon")
+        fintech_lex = []
+    logger.info(f"  v3.7.4 fintech_lex loaded: {len(fintech_lex)} keywords")
+    titles = df[title_col].fillna('').astype(str)
+
+    df['title_mentions_fintech'] = titles.apply(
+        lambda t: compute_title_mentions_fintech(t, fintech_lex)
+    )
+    title_lens = titles.str.len()
+    median_len = int(title_lens.median())
+    df['title_length_bucket'] = pd.array(
+        [compute_title_length_bucket(t, median_len) for t in titles], dtype='Int8'
+    )
+    logger.info(
+        f"  v3.7.4 title indicators: title_mentions_fintech "
+        f"{int(df['title_mentions_fintech'].sum())}/{len(df)} True; "
+        f"title_length_bucket median={median_len}, "
+        f"long_frac={float(df['title_length_bucket'].astype(float).mean()):.3f}"
+    )
+    return df
+
+
 def main():
     """Stage 13 入口: 读 12_fintech_news.parquet → 写 13_news_with_ctx.parquet."""
     stage_start = time.time()
@@ -148,6 +207,9 @@ def main():
     logger.info(f"加载 stage 12 输出: {len(df)} 行")
     df = materialize_content_ctx(df)
     assert 'content_ctx' in df.columns
+
+    # v3.7.4 P3.1: title-level indicators (article-level, Panel D/E 分层用)
+    df = _add_title_indicators(df)
 
     from news_process.core.reporting import save_dataset
     save_dataset(df=df, output_path=out_path, logger=logger,

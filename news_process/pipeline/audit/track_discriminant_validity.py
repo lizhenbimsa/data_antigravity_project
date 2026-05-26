@@ -306,9 +306,184 @@ def main(panel_path: Optional[Path] = None,
 
     report = run_track_discriminant_validity(panel)
 
+    # v3.7.4 P3.3: bootstrap CI + strata HTMT (MA-2 + 5R-B2 + 7R-A1)
+    report["v3_7_4_extensions"] = _v374_bootstrap_and_strata(panel)
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False, default=str)
     logger.info(f"v3.7.3 39g: report saved to {output_path}")
 
     return report
+
+
+# ============================================================================
+# v3.7.4 P3.3 extensions: bootstrap CI + 4-cell strata HTMT
+# ============================================================================
+
+BOOTSTRAP_N_DEFAULT = 1000
+BOOTSTRAP_SEED = 42  # 与 39d permutation seed 一致 (独立 numpy RNG state)
+HTMT_STRICT_CUTOFF_V374 = 0.85
+MIN_CELL_N = 30  # 5R-B2 per-cell graceful skip threshold
+
+
+def _bootstrap_htmt_ci(indicators: dict, n_bootstrap: int = BOOTSTRAP_N_DEFAULT,
+                       seed: int = BOOTSTRAP_SEED) -> dict:
+    """Bootstrap 95% CI for HTMT (Henseler-Ringle-Sarstedt 2015 JAMS §4).
+
+    Case-resample with replacement; compute HTMT for each resample;
+    return percentile-based CI per pair.
+
+    Returns:
+        {'htmt_full_ctx': {'point': float, 'ci_lower': float, 'ci_upper': float,
+                            'upper_below_085': bool}, ...}
+    """
+    rng = np.random.default_rng(seed)
+    n = len(next(iter(indicators.values())))
+    if n < 10:
+        return {"status": "insufficient_n", "n": int(n)}
+
+    point = compute_htmt(indicators)
+
+    boot_results: dict[str, list[float]] = {k: [] for k in point.keys()}
+    for _ in range(n_bootstrap):
+        idx = rng.integers(0, n, size=n)
+        resampled = {k: v[idx] for k, v in indicators.items()}
+        try:
+            h = compute_htmt(resampled)
+            for k in boot_results:
+                if k in h and not np.isnan(h[k]):
+                    boot_results[k].append(float(h[k]))
+        except Exception:
+            continue
+
+    ci_summary: dict[str, dict] = {}
+    for k, vals in boot_results.items():
+        if len(vals) < 100:
+            ci_summary[k] = {"status": "bootstrap_failed", "n_valid": len(vals)}
+            continue
+        lower = float(np.percentile(vals, 2.5))
+        upper = float(np.percentile(vals, 97.5))
+        ci_summary[k] = {
+            "point": float(point[k]) if not np.isnan(point[k]) else None,
+            "ci_lower": lower,
+            "ci_upper": upper,
+            "upper_below_085_strict": upper < HTMT_STRICT_CUTOFF_V374,
+            "n_bootstrap_valid": len(vals),
+        }
+    return ci_summary
+
+
+def _strata_htmt_per_cell(panel: pd.DataFrame, stem: str = "llm_vote_tone") -> dict:
+    """5R-B2: 4-cell strata HTMT with per-cell graceful skip (N ≥ 30).
+
+    Strata = title_mentions_fintech ∈ {0,1} × title_length_bucket ∈ {0,1}.
+    For each cell with N ≥ 30: compute HTMT 3×3 + bootstrap CI.
+    For cells with N < 30: emit insufficient_power flag.
+
+    If ALL 4 cells fail N ≥ 30: emit `all_cells_insufficient_power` flag.
+    """
+    triple = _find_track_triple(panel, stem)
+    if triple is None:
+        return {"status": "no_track_triple", "stem": stem}
+
+    col_full, col_ctx, col_title = triple
+    needed = {"frac_title_mentions_fintech", "frac_title_long"}
+    if not needed.issubset(panel.columns):
+        return {"status": "strata_columns_missing",
+                "needed": list(needed),
+                "available": [c for c in needed if c in panel.columns]}
+
+    # Bank-year level — binarize using > 0.5 threshold (mid-point convention;
+    # Antweiler-Frank 2004 JF sensitivity tested in Stata Panel D at {0.3, 0.5, 0.7})
+    cells = {
+        "tmf0_tlb0": ((panel["frac_title_mentions_fintech"] <= 0.5) &
+                      (panel["frac_title_long"] <= 0.5)),
+        "tmf0_tlb1": ((panel["frac_title_mentions_fintech"] <= 0.5) &
+                      (panel["frac_title_long"] > 0.5)),
+        "tmf1_tlb0": ((panel["frac_title_mentions_fintech"] > 0.5) &
+                      (panel["frac_title_long"] <= 0.5)),
+        "tmf1_tlb1": ((panel["frac_title_mentions_fintech"] > 0.5) &
+                      (panel["frac_title_long"] > 0.5)),
+    }
+
+    per_cell: dict[str, dict] = {}
+    valid_cell_count = 0
+    for cell_name, mask in cells.items():
+        n_cell = int(mask.sum())
+        if n_cell < MIN_CELL_N:
+            per_cell[cell_name] = {"status": "insufficient_power",
+                                   "n": n_cell, "min_required": MIN_CELL_N}
+            continue
+        sub = panel.loc[mask]
+        indicators = {
+            "full": sub[col_full].to_numpy(),
+            "ctx": sub[col_ctx].to_numpy(),
+            "title": sub[col_title].to_numpy(),
+        }
+        per_cell[cell_name] = {
+            "status": "ok",
+            "n": n_cell,
+            "htmt": compute_htmt(indicators),
+            "bootstrap_ci": _bootstrap_htmt_ci(
+                indicators, n_bootstrap=BOOTSTRAP_N_DEFAULT, seed=BOOTSTRAP_SEED),
+        }
+        valid_cell_count += 1
+
+    return {
+        "status": "ok" if valid_cell_count > 0 else "all_cells_insufficient_power",
+        "stem": stem,
+        "valid_cell_count": valid_cell_count,
+        "min_cell_n": MIN_CELL_N,
+        "per_cell": per_cell,
+    }
+
+
+def _v374_bootstrap_and_strata(panel: pd.DataFrame) -> dict:
+    """MA-2 + 5R-B2 + 7R-A1: bootstrap CI + strata for default stem.
+
+    Returns dict with keys:
+        - panel_level_bootstrap: bootstrap CI on full N panel
+        - strata_per_cell: 4-cell strata HTMT (5R-B2 per-cell graceful)
+        - acceptance_strict: True iff
+              (i) bootstrap upper < 0.85 for (full,title) and (ctx,title) AND
+              (ii) ≥ 1 valid cell with same property
+    """
+    default_stem = "llm_vote_tone"
+    triple = _find_track_triple(panel, default_stem)
+    if triple is None:
+        return {"status": "no_track_triple", "stem": default_stem}
+
+    n_articles_col = "n_articles"
+    if n_articles_col in panel.columns:
+        panel_f = panel.loc[panel[n_articles_col] >= 2].copy()
+    else:
+        panel_f = panel
+
+    col_full, col_ctx, col_title = triple
+    indicators = {
+        "full": panel_f[col_full].to_numpy(),
+        "ctx": panel_f[col_ctx].to_numpy(),
+        "title": panel_f[col_title].to_numpy(),
+    }
+    panel_bootstrap = _bootstrap_htmt_ci(indicators)
+    strata = _strata_htmt_per_cell(panel_f, stem=default_stem)
+
+    # Strict acceptance (MA-2 + 5R-B2)
+    bs_ft = panel_bootstrap.get("htmt_full_title", {}) if isinstance(
+        panel_bootstrap, dict) else {}
+    bs_ct = panel_bootstrap.get("htmt_ctx_title", {}) if isinstance(
+        panel_bootstrap, dict) else {}
+    panel_strict = (bs_ft.get("upper_below_085_strict") is True and
+                    bs_ct.get("upper_below_085_strict") is True)
+    strata_strict = (strata.get("status") == "ok" and
+                     strata.get("valid_cell_count", 0) >= 1)
+
+    return {
+        "panel_level_bootstrap": panel_bootstrap,
+        "strata_per_cell": strata,
+        "acceptance_strict": panel_strict and strata_strict,
+        "n_obs_panel": int(len(panel_f)),
+        "bootstrap_seed": BOOTSTRAP_SEED,
+        "bootstrap_n": BOOTSTRAP_N_DEFAULT,
+    }

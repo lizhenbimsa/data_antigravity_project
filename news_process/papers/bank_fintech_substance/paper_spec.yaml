@@ -28,7 +28,8 @@ outcome:
     在 T=18 panel 上, t ∈ {2007, ..., 2021} 各有对应 t+3 outcome)
   short_run: car_3day_window_fintech_announcement  # R7-M03 + R10-M01: dual outcome (fintech 公告事件窗口, 与 P1 tone shock 窗口区分)
   secondary: [ceo_turnover_2yr, executive_pay_change, board_change]
-  enrichment_source: M0.5.11 (CSMAR 年报 ROA + 高管离职 + 高管薪酬 + CSMAR daily returns; derived event-window CAR construction per §5.3.2 M0.5.11)
+  enrichment_source: M0.5.11 (CSMAR 年报 ROA + 高管离职 + 高管薪酬 + CSMAR daily returns; derived
+    event-window CAR construction per §5.3.2 M0.5.11)
 
 treatment:
   primary: innovation_substantiveness_full  # R35-M01 同步 CLAUDE.md v3.2.0 pipeline 实际列名
@@ -83,9 +84,20 @@ tables:
     # v3.7.3 (Plan A v1.0): _title 轨稳健性
     template: 25_tableA8_title_robustness
     title_robustness:
-      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al. (2019) JFE"
+      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al.
+        (2019) JFE"
       track_substitute: true
       r3_h1_compatible: true
-      caveat: "P3 W&Z substantive/symbolic 二元构念在标题级 LLM 判断 confidence 可能 < 0.6 (text 过短); Panel A 若结果不显著, 解读应为 measurement limitation 而非 H0 not rejected. stage 39g 输出 HTMT track-discriminant 矩阵, 非 LLM confidence audit"
+      caveat: "P3 W&Z substantive/symbolic 二元构念在标题级 LLM 判断 confidence 可能 < 0.6 (text
+        过短); Panel A 若结果不显著, 解读应为 measurement limitation 而非 H0 not rejected. stage
+        39g 输出 HTMT track-discriminant 矩阵, 非 LLM confidence audit"
+      audit_response_ref: 
+        docs/methodology/title_track_as_robustness.md#5-audit-response-template-for-peer-review
+      panel_d_caveat: Stratification by frac_title_mentions_fintech across thresholds
+        {0.3, 0.5, 0.7} per Antweiler-Frank (2004) JF 59(3) subject-relevance convention.
+        Per-cell graceful skip if N < 30 bank-year.
+      panel_e_caveat: Stratification by frac_title_long (above/below bank-year median
+        title length) per Da-Engelberg-Gao (2011) JF 66(5) attention-channel separation.
+        Per-cell graceful skip if N < 30.
   tA9:
-    template: null
+    template:

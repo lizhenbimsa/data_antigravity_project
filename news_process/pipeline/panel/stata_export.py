@@ -185,6 +185,9 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
         # v3.5.1 A3 Numerical Intensity (Hales-Kuang-Venkataraman 2011 CAR 28:1) 真双轨
         'mean_num_intensity_full':          "Mean Numerical Intensity Full (Hales 2011 CAR, dual-track)",
         'mean_num_intensity_ctx':           "Mean Numerical Intensity Ctx (Hales 2011 CAR, dual-track)",
+        # v3.7.4 P3.1.6: title-level indicators for Panel D/E robustness
+        'frac_title_mentions_fintech':      "Frac titles mentioning fintech (Antweiler-Frank 2004 JF)",
+        'frac_title_long':                  "Frac titles above median length (Da-Engelberg-Gao 2011 JF)",
     }
 
     for col in df.columns:
@@ -283,6 +286,10 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         # n_articles_for_ctx_independence: 绝对独立文章数, 避免按比例 filter 时的银行规模偏差
         # 论文用途: P1 (llm_vote_tone_ctx) / P11 (mean_clarity_score_ctx) measurement-error robustness
         'frac_ctx_fallback', 'n_articles_for_ctx_independence',
+        # v3.7.4 P3.1.6: title indicators for Panel D/E stratified robustness
+        # Anchor: Antweiler-Frank (2004) JF subject-relevance threshold;
+        #          Da-Engelberg-Gao (2011) JF attention-channel separation.
+        'frac_title_mentions_fintech', 'frac_title_long',
         # ─────────────────────────────────────────────────────────────
         # v3.5.2 PR #14 集成 — A1 LM 4 子词典 + A2 FLS (本批列在 v3.5.2
         # PR #3 panel 集成完成前会被 ``if c in df.columns`` 过滤; append-only

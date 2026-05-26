@@ -24,13 +24,16 @@ differentiation_claim: |
 outcome:
   primary: car_5day_window
   secondary: [patent_fintech_count, citation_weighted_patent]  # R7-M04/M05: capex_it 移到 mediator 角色
-  enrichment_source: M0.5.11 (CSMAR/Wind daily returns for car_5day + IncoPat / 国家专利局 patent count + Kogan 2017 algorithm for citation_weighted; derived event-window CAR construction per §5.3.2 M0.5.11)
+  enrichment_source: M0.5.11 (CSMAR/Wind daily returns for car_5day + IncoPat / 国家专利局
+    patent count + Kogan 2017 algorithm for citation_weighted; derived event-window
+    CAR construction per §5.3.2 M0.5.11)
   patent_quality_measure: kogan_2017_market_value  # R2-M12: Kogan 2017 是 outcome 度量, 不是 IV
 
 mediator:  # R7-M04 + R9-m02 + R9-m04
   primary: capex_it
   secondary: r_and_d_intensity
-  source: M0.5.11 CSMAR (capex_it) + 国家专利局衍生 R&D investment intensity (r_and_d_intensity); 用于 16_mechanism.do.tmpl 的 Baron-Kenny mediation
+  source: M0.5.11 CSMAR (capex_it) + 国家专利局衍生 R&D investment intensity (r_and_d_intensity);
+    用于 16_mechanism.do.tmpl 的 Baron-Kenny mediation
 
 treatment:
   primary_pair: [locus_layer_full, locus_scenario_full]  # R35-M02 derived from `innovation_locus_full`
@@ -59,11 +62,11 @@ event_studies:  # P4 applicable events
   - E5b  # 2023-09-30 data_export_management_rules
 
 heterogeneity_wave:  # R4-M03 重定义: 三波严格对称 (各 3 年) + consolidation 独立段
-  pre_period:    2007_2012  # pre-fintech baseline
-  wave_1:        2013_2015  # 互联网金融 wave (余额宝)
-  wave_2:        2016_2018  # 区块链 / 早期 AI wave
+  pre_period: 2007_2012     # pre-fintech baseline
+  wave_1: 2013_2015         # 互联网金融 wave (余额宝)
+  wave_2: 2016_2018         # 区块链 / 早期 AI wave
   consolidation: 2019_2021  # 蚂蚁叫停后期 monetary tightening + 监管收紧 transition period
-  wave_3:        2022_2024  # 大模型 wave
+  wave_3: 2022_2024         # 大模型 wave
 
 targets:
   primary_outlet: RFS
@@ -91,9 +94,20 @@ tables:
     # v3.7.3 (Plan A v1.0): _title 轨稳健性
     template: 25_tableA8_title_robustness
     title_robustness:
-      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al. (2019) JFE"
+      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al.
+        (2019) JFE"
       track_substitute: true
       r3_h1_compatible: true
-      caveat: "P4 Gomber 底层/应用 二元构念在标题级 LLM 判断 confidence 可能 < 0.6 (text 过短); Panel A 若结果不显著, 解读应为 measurement limitation 而非 H0 not rejected. stage 39g 输出 HTMT track-discriminant 矩阵, 非 LLM confidence audit"
+      caveat: "P4 Gomber 底层/应用 二元构念在标题级 LLM 判断 confidence 可能 < 0.6 (text 过短); Panel
+        A 若结果不显著, 解读应为 measurement limitation 而非 H0 not rejected. stage 39g 输出 HTMT
+        track-discriminant 矩阵, 非 LLM confidence audit"
+      audit_response_ref: 
+        docs/methodology/title_track_as_robustness.md#5-audit-response-template-for-peer-review
+      panel_d_caveat: Stratification by frac_title_mentions_fintech across thresholds
+        {0.3, 0.5, 0.7} per Antweiler-Frank (2004) JF 59(3) subject-relevance convention.
+        Per-cell graceful skip if N < 30 bank-year.
+      panel_e_caveat: Stratification by frac_title_long (above/below bank-year median
+        title length) per Da-Engelberg-Gao (2011) JF 66(5) attention-channel separation.
+        Per-cell graceful skip if N < 30.
   tA9:
-    template: null
+    template:
