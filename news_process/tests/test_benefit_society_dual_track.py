@@ -197,6 +197,67 @@ def test_cohort_csv_is_committed_in_repo():
     assert set(df.columns) >= {"target_bank", "bank_type", "is_listed_proxy", "cohort_lineage"}
 
 
+# ---------------------------------------------------------------------------
+# quality-hardening Round 3 (2026-05-27): cohort.main() CLI dry-run coverage
+# cohort.py 71.05% -> ~100% (lines 74-92: main() body)
+# ---------------------------------------------------------------------------
+
+
+def test_cohort_main_dry_run_uses_real_panel_and_returns_zero(monkeypatch, tmp_path):
+    """`python -m ...cohort --dry-run` 跑 happy path 不写盘 (cohort.py:73-92)。"""
+    import pandas as pd
+
+    from news_process.papers.benefit_society import cohort as cohort_mod
+
+    # Fake parquet input (避免依赖磁盘 panel)
+    fake_panel = tmp_path / "fake_panel.parquet"
+    pd.DataFrame({
+        "target_bank": ["工商银行", "中国银行", "招商银行"],
+        "bank_type": ["soe", "soe", "joint"],
+    }).to_parquet(fake_panel)
+
+    fake_out = tmp_path / "cohort_dryrun.csv"
+
+    # 把 export_cohort_manifest 默认路径替换为我们的 fake 输入
+    orig_export = cohort_mod.export_cohort_manifest
+
+    def patched_export(panel_path=None, output_path=None, *, dry_run=False):
+        return orig_export(panel_path=fake_panel, output_path=fake_out,
+                           dry_run=dry_run)
+
+    monkeypatch.setattr(cohort_mod, "export_cohort_manifest", patched_export)
+    rc = cohort_mod.main(["--dry-run"])
+    assert rc == 0
+    # dry-run 不写盘
+    assert not fake_out.exists()
+
+
+def test_cohort_main_real_write_creates_csv(monkeypatch, tmp_path):
+    """`python -m ...cohort` (无 --dry-run) 写 CSV 且 logger 行 89-91 都执行。"""
+    import pandas as pd
+
+    from news_process.papers.benefit_society import cohort as cohort_mod
+
+    fake_panel = tmp_path / "fake_panel.parquet"
+    pd.DataFrame({
+        "target_bank": ["A行", "B行"],
+        "bank_type": ["soe", "city"],
+    }).to_parquet(fake_panel)
+
+    fake_out = tmp_path / "real.csv"
+
+    orig_export = cohort_mod.export_cohort_manifest
+
+    def patched_export(panel_path=None, output_path=None, *, dry_run=False):
+        return orig_export(panel_path=fake_panel, output_path=fake_out,
+                           dry_run=dry_run)
+
+    monkeypatch.setattr(cohort_mod, "export_cohort_manifest", patched_export)
+    rc = cohort_mod.main([])
+    assert rc == 0
+    assert fake_out.exists()
+
+
 # ============================================================================
 # Phase G: dimension_analysis + shrinkage dual-track CLI
 # ============================================================================

@@ -55,6 +55,23 @@ class TestLmNonSentimentLoad:
         d2 = load_lm_non_sentiment_dicts()
         assert d1 is d2, "lru_cache 应返回同一对象"
 
+    def test_load_returns_empty_subsets_when_dict_file_missing(self, monkeypatch, tmp_path):
+        """词典文件不存在 → 返回 {subset: frozenset()} 4 个空集 (lm_non_sentiment.py:71)."""
+        from news_process.pipeline.sentiment import lm_non_sentiment as M
+        # 清缓存避免 lru_cache hit
+        M.load_lm_non_sentiment_dicts.cache_clear()
+        monkeypatch.setattr(M, '_LM_DICT_PATH', tmp_path / 'nonexistent.json')
+        try:
+            d = M.load_lm_non_sentiment_dicts()
+            assert set(d.keys()) == {
+                'uncertainty', 'litigious', 'constraining', 'modal_strong'
+            }
+            assert all(len(v) == 0 for v in d.values())
+            assert all(isinstance(v, frozenset) for v in d.values())
+        finally:
+            # 恢复后再次清缓存, 让后续测试重新加载真词典
+            M.load_lm_non_sentiment_dicts.cache_clear()
+
 
 class TestLmNonSentimentScan:
     def test_empty_text_returns_nan_fracs(self):
@@ -65,6 +82,24 @@ class TestLmNonSentimentScan:
         assert r['n_tokens'] == 0
         for subset in ('uncert', 'litig', 'constr', 'modal_strong'):
             assert math.isnan(r[f'frac_{subset}'])
+
+    def test_whitespace_only_after_jieba_returns_empty(self):
+        """jieba 切空白产生的全 whitespace token 应被 filter → n_tokens=0 → empty
+        (lm_non_sentiment.py:119, post-jieba n_tokens==0 branch)."""
+        from news_process.pipeline.sentiment.lm_non_sentiment import (
+            _compute_lm_non_sentiment_for_text,
+        )
+        # 纯空白多字符: bool(text)=True, text.strip()=='' → 走早 return (line 113-114)
+        # 而要触发 line 119 需要 text 非空白但 jieba 切完后 token 全空: 例如全标点
+        # 实测 jieba 对 '   ' 会保留空 token; 用单字符空格保证 line 119 触发
+        r = _compute_lm_non_sentiment_for_text(" ")  # bool True, strip 空 → line 113
+        assert r['n_tokens'] == 0
+        import math
+        assert math.isnan(r['frac_uncert'])
+        # 真正触发 line 119 (jieba 切了但 n_tokens=0): 用全空白 + 制表符组合
+        r2 = _compute_lm_non_sentiment_for_text("\t ")  # NBSP + tab
+        assert r2['n_tokens'] == 0
+        assert math.isnan(r2['frac_litig'])
 
     def test_uncertainty_detected(self):
         from news_process.pipeline.sentiment.lm_non_sentiment import (
