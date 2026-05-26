@@ -273,3 +273,127 @@ class TestGetTargetAliases:
         from news_process.core.text import entity_context as ec
         ec._ALIASES_CACHE.clear()
         ec._BANK_DATA = None
+
+
+# ============================================================================
+# quality-hardening Round 9 (2026-05-27): extract_entity_context_with_distances
+# entity_context.py 74.77% → ~100% (lines 227-269, 300-302)
+# ============================================================================
+
+
+class TestExtractEntityContextWithDistances:
+    """extract_entity_context_with_distances Engelberg/Sautner 距离衰减接口."""
+
+    def test_empty_text_returns_empty_list(self):
+        from news_process.core.text.entity_context import (
+            extract_entity_context_with_distances,
+        )
+        # 覆盖 line 227-228: not text branch
+        assert extract_entity_context_with_distances("", ["工商银行"]) == []
+        # not target_aliases branch
+        assert extract_entity_context_with_distances("文本", []) == []
+
+    def test_short_text_with_hit_returns_all_zero_distance(self):
+        """文本 < 3 句且命中目标 → 所有句子 distance=0 (lines 230-241)."""
+        from news_process.core.text.entity_context import (
+            extract_entity_context_with_distances,
+        )
+        text = "工商银行发布公告。今日股价上涨。"
+        result = extract_entity_context_with_distances(text, ["工商银行"])
+        assert len(result) >= 1
+        # 短文本退化路径: 所有句子 distance=0
+        assert all(dist == 0 for _, dist in result)
+
+    def test_short_text_no_hit_returns_empty(self):
+        """文本 < 3 句但无命中 → 空列表 (line 241 return [])."""
+        from news_process.core.text.entity_context import (
+            extract_entity_context_with_distances,
+        )
+        text = "今日天气晴朗。无关新闻。"
+        result = extract_entity_context_with_distances(text, ["工商银行"])
+        assert result == []
+
+    def test_long_text_no_hit_returns_empty(self):
+        """文本 >= 3 句但无命中 → 空列表 (line 252)."""
+        from news_process.core.text.entity_context import (
+            extract_entity_context_with_distances,
+        )
+        text = "今日天气晴朗。明日多云。后日大雨。再后日转晴。"
+        result = extract_entity_context_with_distances(text, ["工商银行"])
+        assert result == []
+
+    def test_long_text_with_hits_computes_distances(self):
+        """长文本: 多窗口合并 + 距离正确 (lines 253-269)."""
+        from news_process.core.text.entity_context import (
+            extract_entity_context_with_distances,
+        )
+        text = (
+            "无关句一。"  # idx 0
+            "工商银行公告。"  # idx 1 (hit)
+            "中间无关句。"  # idx 2
+            "招商银行发布。"  # idx 3
+            "结尾无关句。"  # idx 4
+            "再一句无关。"  # idx 5
+        )
+        result = extract_entity_context_with_distances(
+            text, ["工商银行"], sentence_radius=1,
+        )
+        # 命中句 idx=1 + radius=1 → 窗口 [0, 2]
+        assert len(result) >= 1
+        # 命中句本身 distance=0
+        zero_dist = [s for s, d in result if d == 0]
+        assert any("工商银行" in s for s in zero_dist)
+
+    def test_multi_hits_merge_intervals(self):
+        """多个命中 → intervals 合并 + 每句到最近 hit 的距离."""
+        from news_process.core.text.entity_context import (
+            extract_entity_context_with_distances,
+        )
+        text = (
+            "句0无关。"
+            "句1工商银行命中。"
+            "句2无关。"
+            "句3工商银行再次命中。"
+            "句4无关。"
+        )
+        result = extract_entity_context_with_distances(
+            text, ["工商银行"], sentence_radius=1,
+        )
+        # 多次命中 + radius 应合并为连续窗口
+        distances = [d for _, d in result]
+        assert 0 in distances  # 至少一个 hit 距离 0
+
+
+# ============================================================================
+# quality-hardening Round 9: get_target_aliases JSON load failure
+# entity_context.py:300-302
+# ============================================================================
+
+
+class TestGetTargetAliasesLoadFailure:
+    """JSON 文件读取失败 → logger.warning + 空别名 fallback."""
+
+    def test_get_target_aliases_handles_missing_file(self, tmp_path):
+        """文件不存在 → except + _BANK_DATA=[] → 返回 target_bank 单元素 list (300-302)."""
+        from news_process.core.text import entity_context as ec
+        ec._ALIASES_CACHE.clear()
+        ec._BANK_DATA = None
+        missing = tmp_path / 'no_such_banks.json'
+        aliases = ec.get_target_aliases("工商银行", str(missing))
+        # 加载失败 → 找不到任何 bank → fallback 只返回 target_bank 本身
+        assert aliases == ["工商银行"]
+        # 清理后续测试用的全局状态
+        ec._ALIASES_CACHE.clear()
+        ec._BANK_DATA = None
+
+    def test_get_target_aliases_handles_corrupt_json(self, tmp_path):
+        """JSON 解析失败 → except + 空 fallback (line 300-302)."""
+        from news_process.core.text import entity_context as ec
+        ec._ALIASES_CACHE.clear()
+        ec._BANK_DATA = None
+        bad = tmp_path / 'corrupt.json'
+        bad.write_text('NOT JSON {{', encoding='utf-8')
+        aliases = ec.get_target_aliases("建设银行", str(bad))
+        assert aliases == ["建设银行"]
+        ec._ALIASES_CACHE.clear()
+        ec._BANK_DATA = None
