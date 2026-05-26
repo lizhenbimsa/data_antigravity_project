@@ -56,7 +56,7 @@ headline-level text only.
 | Chen-De-Hu-Hwang (2014) | *RFS* | Seeking Alpha titles + bodies analyzed separately |
 | Heston & Sinha (2017) | *FAJ* | **Direct headline vs full-article sentiment comparison** |
 | Boudoukh-Feldman-Kogan-Richardson (2019) | *JFE* | Headline-based identification §III + headline sentiment as robustness §IV.B |
-| Bybee-Kelly-Manela-Xiu (2024) | *RFS* | WSJ full-text main; headline subset as robustness |
+| Tetlock-Saar-Tsechansky-Macskassy (2008) | *JF* 63(3) | "More Than Words" — direct firm news headline vs body sentiment comparison (DOI verified v3.7.4) |
 
 **No top-journal paper uses title sentiment as the sole main treatment**, but
 multiple top-journal papers use title sentiment as **either a robustness check
@@ -359,7 +359,6 @@ This empirically supports v3.7.3 Plan A v1.0's methodological claim:
 - Antweiler, W., & Frank, M. Z. (2004). Is all that talk just noise? *JF*, 59(3), 1259-1294.
 - Barber, B. M., & Odean, T. (2008). All that glitters. *RFS*, 21(2), 785-818.
 - Boudoukh, J., Feldman, R., Kogan, S., & Richardson, M. (2019). Information, trading, and volatility. *JFE*, 133(1), 85-104.
-- Bybee, L., Kelly, B., Manela, A., & Xiu, D. (2024). Business news and business cycles. *RFS*, forthcoming.
 - Campbell, D. T., & Fiske, D. W. (1959). Convergent and discriminant validation by the multitrait-multimethod matrix. *Psychological Bulletin*, 56(2), 81-105.
 - Chen, H., De, P., Hu, Y., & Hwang, B.-H. (2014). Wisdom of crowds. *RFS*, 27(5), 1367-1403.
 - Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. *JF*, 66(5), 1461-1499.
