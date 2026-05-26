@@ -88,8 +88,15 @@ graceful-fallback policy.
 | A | Title-only sentiment replaces main treatment | Heston-Sinha 2017 *FAJ*; Tetlock-SS-M 2008 *JF* | v3.7.3 done |
 | B | Main + Title joint regression + Wald informational redundancy test | Engelberg 2008; Boudoukh 2019 *JFE* §IV.B | v3.7.3 done |
 | C | Add `tone_gap_title_full` (Engelberg hard-soft asymmetry control) | Engelberg 2008; LM 2016 *JAR* §6 | v3.7.3 done |
-| **D** | **Stratify by `frac_title_mentions_fintech` across thresholds {0.3, 0.5, 0.7}** | **Antweiler-Frank 2004 *JF* §III (subject-relevance threshold sensitivity); Hassan 2019 *QJE* §IV.A (Q&A vs presentation sub-window)** | **v3.7.4** |
-| **E** | **Stratify by `frac_title_long` (above/below bank-year median)** | **Antweiler-Frank 2004 *JF* (length stratification); Da-Engelberg-Gao 2011 *JF* (attention channel)** | **v3.7.4** |
+| **D** | **Stratify by `frac_title_mentions_fintech` across thresholds {0.3, 0.5, 0.7}** | **Antweiler-Frank 2004 *JF* §III (subject-relevance threshold sensitivity); Hassan 2019 *QJE* §IV.A (Q&A vs presentation sub-window)** | **v3.7.4** ✅ code; ⏳ panel pending stage 14-40 re-run |
+| **E** | **Stratify by `frac_title_long` (above/below bank-year median)** | **Antweiler-Frank 2004 *JF* (length stratification); Da-Engelberg-Gao 2011 *JF* (attention channel)** | **v3.7.4** ✅ code; ⏳ panel pending stage 14-40 re-run |
+
+**Current panel state caveat**: panel `40_panel_yearly.parquet` (168 × 2060,
+frozen at 2026-05-16) does NOT yet contain `frac_title_mentions_fintech` /
+`frac_title_long` aggregated columns. Until stage 14-40 production re-run
+completes, Panel D + E will graceful-skip in all 9 paper Table A8 outputs
+(emitting `[WARN] ... not in panel; Panel D skipped`). Panels A/B/C
+(v3.7.3 baseline) continue normally. See methodology §4.5 for full caveat.
 
 ---
 

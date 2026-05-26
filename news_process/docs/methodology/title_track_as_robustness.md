@@ -207,6 +207,21 @@ outputs only panel-level HTMT (N=64) + per-cell N report +
 `all_cells_insufficient_power` flag; Stata Panel D/E templates fall back to
 full-sample regression + caveat.
 
+**Current panel state caveat (Round 49 audit)**: The disk panel
+`40_panel_yearly.parquet` (168 × 2060, frozen at 2026-05-16) does NOT yet
+contain `frac_title_mentions_fintech` / `frac_title_long` columns — these
+require a stage 14-40 production re-run to propagate the v3.7.4
+article-level indicators (now present in `13_news_with_ctx.parquet` after
+the v3.7.4 stage 13 re-execution, 2026-05-26) through `panel/encode.py`
+aggregation. **Until that production re-run completes, all 9 Stata
+Panel D + Panel E sections will graceful-skip** (the `capture confirm
+variable frac_title_mentions_fintech` / `frac_title_long` guards trip,
+emitting `[WARN] frac_title_mentions_fintech not in panel; Panel D skipped`).
+Panels A/B/C (the v3.7.3 baseline robustness slot) continue to operate
+normally on existing panel columns. This is **expected behavior, not a
+bug** — it preserves disk freeze discipline while keeping the code
+fully ready for the next production batch.
+
 **Aggregation policy (MA-3 anchor)**: Per-paper coefficient + 95% CI +
 caveat in each paper's Table A8. **NO portfolio-level pass/fail aggregation**
 across the 9-paper portfolio, following Hassan (2019 *QJE*) and
