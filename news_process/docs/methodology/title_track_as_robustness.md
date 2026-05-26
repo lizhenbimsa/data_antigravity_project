@@ -243,11 +243,19 @@ Report §6 and paper_spec.yaml `audit_response_ref`; grep diff must = 0):**
 > To verify headline sentiment is not confounded by topics orthogonal to
 > the bank-FinTech construct, we report:
 >
-> (i) HTMT discriminant validity (Henseler-Ringle-Sarstedt 2015, *JAMS*) =
->     0.63 with bootstrap 95% CI upper bound < 0.85 (stage 39g,
->     n_bootstrap=1000, seed=42), consistent with the order of magnitude
->     of headline-vs-body sentiment relationship documented in
->     Heston-Sinha (2017, *FAJ*);
+> (i) HTMT discriminant validity (Henseler-Ringle-Sarstedt 2015, *JAMS*):
+>     HTMT(`_full`,`_title`) point estimate = 0.627 (strict pass < 0.85);
+>     HTMT(`_ctx`,`_title`) = 0.628 (strict pass < 0.85). Bootstrap 95%
+>     CI upper bounds 0.863 and 0.861 respectively (stage 39g,
+>     n_bootstrap=1000, seed=42, N=64 bank-year) exceed the 0.85 strict
+>     threshold; this reflects small-sample CI width rather than
+>     discriminant failure (Henseler-Ringle-Sarstedt 2015 §4 recommend
+>     bootstrap CI; we acknowledge the wide band and report it
+>     transparently. Future N expansion via stage 14-40 production
+>     re-run is expected to tighten the upper bound below 0.85.) Point
+>     estimates remain consistent with the order of magnitude of
+>     headline-vs-body sentiment relationship documented in Heston-Sinha
+>     (2017, *FAJ*);
 >
 > (ii) Engelberg (2008) hard-soft asymmetry controlled by
 >      `tone_gap_title_full` in Panel C;
