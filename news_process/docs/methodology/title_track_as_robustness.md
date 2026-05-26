@@ -364,17 +364,22 @@ This empirically supports v3.7.3 Plan A v1.0's methodological claim:
 - Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. *JF*, 66(5), 1461-1499.
 - Engelberg, J. (2008). Costly information processing: Evidence from earnings announcements. Working paper.
 - Engelberg, J. E., & Parsons, C. A. (2011). The causal impact of media. *JF*, 66(1), 67-97.
+- Garcia, D. (2013). Sentiment during recessions. *JF*, 68(3), 1267-1300.
 - Gentzkow, M., & Shapiro, J. M. (2010). What drives media slant? *Econometrica*, 78(1), 35-71.
 - Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk. *QJE*, 134(4), 2135-2202.
 - Henseler, J., Ringle, C. M., & Sarstedt, M. (2015). A new criterion for assessing discriminant validity. *JAMS*, 43(1), 115-135.
 - Heston, S. L., & Sinha, N. R. (2017). News vs. sentiment. *FAJ*, 73(3), 67-83.
 - Hillert, A., Jacobs, H., & Müller, S. (2014). Media makes momentum. *RFS*, 27(12), 3467-3501.
 - Hirshleifer, D., Lim, S. S., & Teoh, S. H. (2009). Driven to distraction. *JF*, 64(5), 2289-2325.
+- Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. *JF*, 66(1), 35-65.
 - Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. *JAR*, 54(4), 1187-1230.
 - Mullainathan, S., & Shleifer, A. (2005). The market for news. *AER*, 95(4), 1031-1053.
+- Solomon, D. H. (2012). Selective publicity and stock prices. *RFS*, 25(7), 2009-2049.
+- Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. *JF*, 62(3), 1139-1168.
 - Tetlock, P. C. (2011). All the news that's fit to reprint. *RFS*, 24(5), 1481-1512.
+- Tetlock, P. C., Saar-Tsechansky, M., & Macskassy, S. (2008). More than words: Quantifying language to measure firms' fundamentals. *JF*, 63(3), 1437-1467. DOI: 10.1111/j.1540-6261.2008.01362.x (verified via CrossRef, v3.7.4 P0.0).
 
 ---
 
-**Document version**: v1.0 (2026-05-26, plan A execution-period v1.0.1 reflected)
+**Document version**: v1.1 (2026-05-26, v3.7.4 upgrade — joint-occurrence problem framework + Panel D/E acceptance + 7-precedent audit response). Earlier v1.0 (Plan A execution-period v1.0.1) lineage preserved.
 **Authored alongside**: stage 39g implementation, 9 paper_spec.yaml updates, 9 Stata templates.
