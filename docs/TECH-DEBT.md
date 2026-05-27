@@ -113,6 +113,26 @@
   最终: TOTAL 40.09% → **42.61%**; ≥90% 文件 38 → **55/195 (28.2%)**;
   at 100% files: **31/195 (15.9%)**; core/ 85.00% / papers/ 72.22% /
   scripts/ 64.76% / <root> 26.97%。
+- **本会话续推 Round 34-49** (2026-05-27 by quality-hardening /goal continuation)：
+  - `papers/bank_fintech_tone/tables.py` 81.82% → **100%** (+6 tests; thin wrapper mock)
+  - `core/dag.py` 84.31% → **100%** (+6 tests; filter_enabled + get_script_for_method)
+  - `papers/benefit_society/ncd_field_parser.py` 85.71% → **99.16%** (+9 tests; CLI 全路径)
+  - `papers/benefit_society/ncd_pdf_downloader.py` 83.33% → **100%** (+3 tests; session 重试)
+  - `pipeline/audit/lexical_discriminant_validity.py` 83.44% → **100%** (+4 tests + 1 bug fix:
+    parquet value 列混合类型 → unify str 修 ArrowTypeError)
+  - `pipeline/audit/track_discriminant_validity.py` 82.66% → **98.84%** (+15 tests)
+  - `core/reporting.py` 84.57% → **99.47%** (+10 tests; panel_stages + 多 exception 处理)
+  - `pipeline/panel/stata_export.py` 81.00% → **99.00%** (+12 tests; collab_mode + CLI)
+  - `papers/benefit_society/tables.py` 65.85% → **100%** (+14 tests; 12 wrapper)
+  - `papers/bank_fintech_tone/analysis.py` 59.52% → **100%** (+5 tests; non-dry-run)
+  - **P2/P3/P4 analysis.py × 3**: 57.14% → **100%** (+15 parametrized tests)
+  - **衍生三篇 analysis.py × 3** (brokerage_network/llm_peer/strategic_diff):
+    53.49% → **100%** (+33 parametrized tests)
+  - `papers/llm_peer/figures.py` 52.50% → **100%** (+2 tests; plot_cutoff_sensitivity)
+  - `scripts/migrate/v3_3_to_v3_4_panel_upgrade.py` 51.35% → **97.30%** (+2 tests; CLI)
+  合计 Round 34-49 **+140 tests, 全套 2142 → 2282 passed**。Ruff 始终 0 warn (49 轮累计)。
+  最终: TOTAL 42.61% → **44.07%**; ≥90% 文件 55 → **88/211 (41.7%)**;
+  at 100% files: 31 → **60/211 (28.4%)**。
 - **未闭合**：剩余 ~155 文件 < 90% 多为 LLM / Stata 依赖类（需真服务 mock 数千行)，
   或 module-level init failure 路径（除非分文件 refactor 难单测）。
 - **解锁条件**：(a) 多月 mock 撰写工作；或 (b) 调整 95% 目标到现实的渐进里程碑
