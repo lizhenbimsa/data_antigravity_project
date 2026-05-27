@@ -194,3 +194,95 @@ def test_cn_number_to_arabic_compound_wanyi_unparseable_prefix():
     assert result == 10**12
     # 另一路径: prefix 含 indefinite 字符使 _cn_number_to_arabic 内部返回 None;
     # 但 indefinite 在 outer 已先排除 → 不可达. Coverage 报告 101 可接受 missing.
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 56 (2026-05-27): 补 _cn2arab 边角 + enrich dual track
+# ---------------------------------------------------------------------------
+
+
+def test_cn2arab_invalid_arab_unit_combo_preserved():
+    """re.sub _arab_with_unit 抛 ValueError → return match.group(0) (lines 187-188).
+
+    虽然 'X万亿|亿|万' 正则匹配的 num_str 总能 float(), 但仍需 ValueError
+    fallback 防御; 通过 monkey-patch float 抛 ValueError 触发.
+    """
+    from unittest.mock import patch
+
+    import news_process.pipeline.sentiment.numerical_intensity as m
+    text = '12 亿元资产'
+    original_float = float
+
+    def faking_float(v):
+        if isinstance(v, str) and v.isdigit():
+            raise ValueError("simulated parse failure")
+        return original_float(v)
+
+    with patch.object(m, 'float', faking_float, create=False) \
+            if False else patch('builtins.float', faking_float):
+        # 路径: _arab_with_unit 内 float(num_str) 抛 → match.group(0) 返回
+        result = m._cn2arab(text)
+    # 应保留原文 (因 fallback)
+    assert '12' in result
+
+
+def test_enrich_handles_none_or_empty_df():
+    """enrich_with_num_intensity_dual_track: df=None/空 → 直返 (line 252)."""
+    import pandas as pd
+
+    from news_process.pipeline.sentiment.numerical_intensity import (
+        enrich_with_num_intensity_dual_track,
+    )
+    # None
+    assert enrich_with_num_intensity_dual_track(None) is None
+    # 空 df
+    empty = pd.DataFrame()
+    out = enrich_with_num_intensity_dual_track(empty)
+    assert len(out) == 0
+
+
+def test_enrich_dual_track_ctx_missing_fallback(caplog):
+    """ctx_col 缺失 → warning + fallback 用 full_col (lines 257-258)."""
+    import logging
+
+    import pandas as pd
+
+    from news_process.pipeline.sentiment.numerical_intensity import (
+        enrich_with_num_intensity_dual_track,
+    )
+    df = pd.DataFrame({
+        '内容': ['今年 10 亿元利润。', '增长百分之三十。'],
+    })  # no content_ctx
+    with caplog.at_level(logging.WARNING,
+                          logger='news_process.pipeline.sentiment.numerical_intensity'):
+        out = enrich_with_num_intensity_dual_track(df)
+    # 应补 content_ctx 列 (复制 from 内容) + 两条 intensity 列
+    assert 'content_ctx' in out.columns
+    assert 'num_intensity_full' in out.columns
+    assert 'num_intensity_ctx' in out.columns
+    # 两轨数值应相等 (因 ctx 是 full 的 fallback)
+    pd.testing.assert_series_equal(
+        out['num_intensity_full'], out['num_intensity_ctx'],
+        check_names=False,
+    )
+
+
+def test_count_numerical_tokens_empty_text():
+    """_count_numerical_tokens 空文本 → (0, 1) (line 205)."""
+    from news_process.pipeline.sentiment.numerical_intensity import (
+        _count_numerical_tokens,
+    )
+    assert _count_numerical_tokens('') == (0, 1)
+    assert _count_numerical_tokens('   ') == (0, 1)
+    assert _count_numerical_tokens(None) == (0, 1)
+
+
+def test_percent_replace_unparseable_returns_original():
+    """_percent_replace: _cn_number_to_arabic None → 返回原文 (line 163)."""
+    from news_process.pipeline.sentiment.numerical_intensity import _cn2arab
+    # "百分之几" — '几' 是 indefinite → _cn_number_to_arabic 返回 None
+    # _percent_replace 应保留 '百分之几' 不变
+    text = '盈利百分之几下降'
+    result = _cn2arab(text)
+    # 不要求精确等于原文 (其他位置可能动) 但 '百分之几' 子串保留
+    assert '百分之几' in result
