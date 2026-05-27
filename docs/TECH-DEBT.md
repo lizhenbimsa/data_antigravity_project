@@ -113,7 +113,7 @@
   最终: TOTAL 40.09% → **42.61%**; ≥90% 文件 38 → **55/195 (28.2%)**;
   at 100% files: **31/195 (15.9%)**; core/ 85.00% / papers/ 72.22% /
   scripts/ 64.76% / <root> 26.97%。
-- **本会话续推 Round 34-53** (2026-05-27 by quality-hardening /goal continuation)：
+- **本会话续推 Round 34-57** (2026-05-27 by quality-hardening /goal continuation)：
   - `papers/bank_fintech_tone/tables.py` 81.82% → **100%** (+6 tests; thin wrapper mock)
   - `core/dag.py` 84.31% → **100%** (+6 tests; filter_enabled + get_script_for_method)
   - `papers/benefit_society/ncd_field_parser.py` 85.71% → **99.16%** (+9 tests; CLI 全路径)
@@ -137,9 +137,15 @@
     yaml validation 边界 + sidecar + main full projection)
   - `papers/benefit_society/shrinkage.py` 65.38% → **95.19%** (+8 tests; MixedLM 4 路径 +
     CLI --value-col/--track full/both 三分支)
-  合计 Round 34-53 **+162 tests, 全套 2142 → 2304 passed**。Ruff 始终 0 warn (53 轮累计)。
-  最终: TOTAL 42.61% → **~44.5%**; ≥90% 文件 55 → **~93/211 (~44%)**;
-  at 100% files: 31 → **~65/211 (~31%)**。
+  - **6 篇 paper-level tables.py** (P2/P3/P4 + brokerage_network/llm_peer/strategic_diff)
+    90.91-91.30% → **100%** (+30 tests; build_table1/write_table1 + tableN 透传 12 个 wrapper)
+  - `core/run_id.py` 92.86% → **100%** (+4 tests; generate_run_id 双路径)
+  - `pipeline/sentiment/numerical_intensity.py` 90.57% → **96.23%** (+5 tests)
+  - `pipeline/audit/construct_orthogonality.py` 94.51% → **98.17%** (+4 tests; bootstrap
+    degenerate + permutation skip + classify interpretation 分支)
+  合计 Round 34-57 **+205 tests, 全套 2142 → 2347 passed**。Ruff 始终 0 warn (57 轮累计)。
+  最终: TOTAL 42.61% → **~44.7%**; ≥90% 文件 55 → **~99/211 (~47%)**;
+  at 100% files: 31 → **~68/211 (~32%)**。
 - **未闭合**：剩余 ~155 文件 < 90% 多为 LLM / Stata 依赖类（需真服务 mock 数千行)，
   或 module-level init failure 路径（除非分文件 refactor 难单测）。
 - **解锁条件**：(a) 多月 mock 撰写工作；或 (b) 调整 95% 目标到现实的渐进里程碑
