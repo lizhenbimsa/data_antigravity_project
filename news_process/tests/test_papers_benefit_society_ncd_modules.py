@@ -98,6 +98,88 @@ def test_downloader_batch_skips_existing(downloader, tmp_path):
     assert len(skip_records) == 1
 
 
+# ---------------------------------------------------------------------------
+# quality-hardening Round 39 (2026-05-27): ncd_pdf_downloader 83.33% → ≥90%
+# 补漏行 131-151: download_one 真 session 路径 + 重试 + sha256 + 失败终态
+# ---------------------------------------------------------------------------
+
+
+def test_downloader_download_one_with_session_writes_file(downloader, tmp_path):
+    """session 提供 + URL 解析成功 → 真 IO 路径 (lines 131-144)."""
+    from unittest.mock import MagicMock
+
+    rec = downloader._build_record(
+        "BID-1", "Test Bank", 2018, "ccxr",
+        url="https://example.com/x.pdf",
+    )
+    # mock session.get(...).content = PDF bytes
+    fake_pdf_bytes = b"%PDF-1.4 fake bytes"
+    fake_resp = MagicMock()
+    fake_resp.content = fake_pdf_bytes
+    fake_resp.raise_for_status = MagicMock()  # success
+    fake_session = MagicMock()
+    fake_session.get.return_value = fake_resp
+
+    out = downloader.download_one(
+        rec, tmp_path, session=fake_session, delay_sec=0.0,
+    )
+    assert out.status == "ok"
+    assert out.local_path is not None
+    written = tmp_path / "BID-1_2018_ccxr.pdf"
+    assert written.exists()
+    assert written.read_bytes() == fake_pdf_bytes
+    # sha256 应该是真 hash, 不是 None
+    assert out.sha256 is not None
+    assert len(out.sha256) == 64  # SHA-256 hex digest
+
+
+def test_downloader_download_one_retries_on_exception_then_fails(downloader, tmp_path):
+    """session.get 全部抛异常 max_retries 次 → status='failed' (lines 145-151)."""
+    from unittest.mock import MagicMock
+
+    rec = downloader._build_record(
+        "BID-1", "Test Bank", 2018, "ccxr",
+        url="https://example.com/x.pdf",
+    )
+    fake_session = MagicMock()
+    fake_session.get.side_effect = ConnectionError("simulated network down")
+
+    out = downloader.download_one(
+        rec, tmp_path,
+        session=fake_session,
+        delay_sec=0.0,
+        max_retries=2,  # 控制循环次数, 加速测试
+    )
+    assert out.status == "failed"
+    assert "ConnectionError" in (out.error or "")
+    # max_retries=2 → session.get 被调 2 次
+    assert fake_session.get.call_count == 2
+
+
+def test_downloader_download_one_retries_then_succeeds(downloader, tmp_path):
+    """前 N-1 次抛, 最后一次成功 → status='ok'."""
+    from unittest.mock import MagicMock
+
+    rec = downloader._build_record(
+        "BID-1", "Test Bank", 2018, "ccxr",
+        url="https://example.com/x.pdf",
+    )
+    fake_pdf_bytes = b"%PDF-retry-success"
+    fake_resp = MagicMock()
+    fake_resp.content = fake_pdf_bytes
+    fake_resp.raise_for_status = MagicMock()
+    fake_session = MagicMock()
+    # 第一次抛, 第二次成功
+    fake_session.get.side_effect = [TimeoutError("first fail"), fake_resp]
+
+    out = downloader.download_one(
+        rec, tmp_path, session=fake_session,
+        delay_sec=0.0, max_retries=3,
+    )
+    assert out.status == "ok"
+    assert fake_session.get.call_count == 2
+
+
 # =============================================================================
 # Text Extractor Tests
 # =============================================================================
@@ -286,3 +368,167 @@ def test_parser_triangulation_inconsistency_flag(parser):
     out = parser.triangulate_with_annual_report(ncd, ar, tolerance_pct=5.0)
     assert out["inconsistent_total_assets"].iloc[0] == True
     assert out["inconsistent_npl"].iloc[0] == False
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 38 (2026-05-27): ncd_field_parser 85.71% → ≥90%
+# 补漏行: 67 (float→int coerce), 126 (parsed=None skip), 130-132 (warns log),
+#         136 (bank_name None skip), 187-188 (mad=0 outlier branch),
+#         220 (triangulate field missing skip), 272-274 (CLI bank_id_map),
+#         284-288 (CLI annual_report path)
+# ---------------------------------------------------------------------------
+
+
+def test_parser_validate_field_float_to_int_coercion(parser):
+    """float (whole number) → int 自动转换 (line 67): report_year 是 int 类型."""
+    # 2018.0 是 float 但 is_integer() 为 True
+    ok, _ = parser.validate_field("report_year", 2018.0)
+    assert ok
+    # 非整数 float 应 fail
+    ok2, msg = parser.validate_field("report_year", 2018.5)
+    assert not ok2
+    assert "type mismatch" in msg
+
+
+def test_parser_records_to_panel_skips_none_parsed(parser):
+    """response_parsed=None 的 record 直接跳过 (line 126)."""
+    records = [
+        {"pdf_path": "/null.pdf", "response_parsed": None},
+        {"pdf_path": "/ok.pdf", "response_parsed": {
+            "bank_name": "B", "report_year": 2019,
+            "total_assets_billion_rmb": 80.0,
+        }},
+    ]
+    panel = parser.records_to_panel(records)
+    assert len(panel) == 1
+    assert panel.iloc[0]["bank_name"] == "B"
+
+
+def test_parser_records_to_panel_logs_warnings_for_invalid_field(parser, caplog):
+    """invalid 字段触发 logger.warning 路径 (lines 130-132)."""
+    import logging
+    records = [
+        {"pdf_path": "/bad.pdf", "response_parsed": {
+            "bank_name": "X",
+            "report_year": 2018,
+            "npl_ratio_pct": 99.0,  # out of [0, 50] → warning
+            "car_ratio_pct": 12.0,
+        }},
+    ]
+    with caplog.at_level(logging.WARNING, logger="news_process.papers.benefit_society.ncd_field_parser"):
+        panel = parser.records_to_panel(records)
+    # 至少一条警告含 'bad.pdf' 路径
+    msgs = [r.getMessage() for r in caplog.records]
+    assert any("bad.pdf" in m for m in msgs)
+    # panel 行仍生成 (npl 被清为 None)
+    assert len(panel) == 1
+    assert pd.isna(panel.iloc[0]["npl"])
+
+
+def test_parser_records_to_panel_skips_missing_bank_name(parser):
+    """bank_name=None 时跳过该 record (line 136)."""
+    records = [
+        {"pdf_path": "/nobank.pdf", "response_parsed": {
+            "report_year": 2018,  # bank_name 缺失
+            "total_assets_billion_rmb": 100.0,
+        }},
+        {"pdf_path": "/ok.pdf", "response_parsed": {
+            "bank_name": "Valid", "report_year": 2018,
+            "total_assets_billion_rmb": 50.0,
+        }},
+    ]
+    panel = parser.records_to_panel(records)
+    assert len(panel) == 1
+    assert panel.iloc[0]["bank_name"] == "Valid"
+
+
+def test_parser_records_to_panel_uses_bank_id_lookup(parser):
+    """bank_id_lookup 命中时 bank_id 取 canonical ID."""
+    records = [
+        {"pdf_path": "/x.pdf", "response_parsed": {
+            "bank_name": "工商银行", "report_year": 2018,
+            "total_assets_billion_rmb": 30000.0,
+        }},
+    ]
+    panel = parser.records_to_panel(records, bank_id_lookup={"工商银行": "ICBC"})
+    assert panel.iloc[0]["bank_id"] == "ICBC"
+    assert panel.iloc[0]["bank_name"] == "工商银行"
+
+
+def test_parser_flag_outliers_zero_mad_sets_all_false(parser):
+    """robust_sd=0 (所有值相同) → outlier 列全 False (lines 187-188)."""
+    df = pd.DataFrame({
+        "total_assets": [100.0, 100.0, 100.0, 100.0],
+        "npl": [1.0, 1.0, 1.0, 1.0],
+    })
+    flagged = parser.flag_outliers(df)
+    assert flagged["outlier_total_assets"].sum() == 0
+    assert (flagged["outlier_total_assets"] == False).all()
+
+
+def test_parser_triangulate_skips_missing_fields(parser):
+    """compare 字段在 merge 后缺失 → skip (line 220)."""
+    ncd = pd.DataFrame({"bank_id": ["A"], "year": [2018], "total_assets": [100.0]})
+    ar = pd.DataFrame({"bank_id": ["A"], "year": [2018]})  # 缺 total_assets
+    out = parser.triangulate_with_annual_report(
+        ncd, ar, fields_to_compare=("total_assets", "npl"),
+    )
+    # 没有 inconsistent_ 列被加 (两个字段都缺其一)
+    inc_cols = [c for c in out.columns if c.startswith("inconsistent_")]
+    assert inc_cols == []
+
+
+def test_parser_main_returns_1_when_extracted_missing(parser, tmp_path):
+    """CLI: --extracted-json 不存在 → return 1."""
+    rc = parser.main(["--extracted-json", str(tmp_path / "nope.json")])
+    assert rc == 1
+
+
+def test_parser_main_with_bank_id_map_and_annual_report(parser, tmp_path):
+    """CLI: 完整路径覆盖 lines 272-274 (bank_id_map) + 284-288 (annual_report 三角化)."""
+    # 1. 准备 extracted JSON
+    extracted = {
+        "records": [
+            {
+                "pdf_path": "/fake/x.pdf",
+                "response_parsed": {
+                    "bank_name": "BankX",
+                    "report_year": 2018,
+                    "total_assets_billion_rmb": 100.0,
+                    "npl_ratio_pct": 1.5,
+                    "car_ratio_pct": 12.0,
+                    "net_profit_million_rmb": 500.0,
+                    "retail_deposit_billion_rmb": 50.0,
+                    "info_tech_invest_million_rmb": 20.0,
+                },
+            },
+        ],
+    }
+    extracted_path = tmp_path / "extracted.json"
+    extracted_path.write_text(json.dumps(extracted), encoding="utf-8")
+
+    # 2. 准备 bank_id_map CSV
+    bid_map_path = tmp_path / "bid_map.csv"
+    bid_map_path.write_text("bank_name,bank_id\nBankX,BX-001\n", encoding="utf-8")
+
+    # 3. 准备 annual_report parquet (bank_id 用映射后的 'BX-001')
+    ar_panel = pd.DataFrame({
+        "bank_id": ["BX-001"],
+        "year": [2018],
+        "total_assets": [100.0],
+    })
+    ar_path = tmp_path / "ar.parquet"
+    ar_panel.to_parquet(ar_path, index=False)
+
+    out_path = tmp_path / "out.parquet"
+    rc = parser.main([
+        "--extracted-json", str(extracted_path),
+        "--bank-id-map", str(bid_map_path),
+        "--annual-report", str(ar_path),
+        "--output", str(out_path),
+    ])
+    assert rc == 0
+    assert out_path.exists()
+    result = pd.read_parquet(out_path)
+    # bank_id 走 lookup
+    assert result.iloc[0]["bank_id"] == "BX-001"
