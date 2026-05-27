@@ -70,3 +70,74 @@ def test_analysis_dry_run_accepts_all_stage_choices(stage):
     from news_process.papers.bank_fintech_tone import analysis
     rc = analysis.main(['--dry-run', '--stage', stage])
     assert rc == 0
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 45 (2026-05-27): bank_fintech_tone/analysis.py
+# 59.52% → ~95%; 补 lines 74-95 = 非 dry-run 路径
+# ---------------------------------------------------------------------------
+
+
+def test_analysis_main_pipeline_stage_calls_run_main_pipeline(tmp_path):
+    """--stage pipeline 非 dry-run 调 run_main_pipeline (lines 74-76)."""
+    from unittest.mock import patch
+
+    from news_process.papers.bank_fintech_tone import analysis
+    with patch('news_process.papers.bank_fintech_tone.analysis.run_main_pipeline') as mock_pipe:
+        rc = analysis.main(['--stage', 'pipeline'])
+    assert rc == 0
+    assert mock_pipe.called
+
+
+def test_analysis_main_tables_stage_writes_table1(tmp_path):
+    """--stage tables 非 dry-run 调 tables.write_table1 (lines 78-82)."""
+    from unittest.mock import patch
+
+    from news_process.papers.bank_fintech_tone import analysis, tables
+    with patch.object(tables, 'write_table1',
+                       return_value=tmp_path / 'fake.csv') as mock_write:
+        rc = analysis.main(['--stage', 'tables'])
+    assert rc == 0
+    assert mock_write.called
+
+
+def test_analysis_main_figures_stage_calls_plot(tmp_path):
+    """--stage figures 非 dry-run 调 figures.plot_news_coverage_distribution
+    (lines 84-89)."""
+    from unittest.mock import patch
+
+    from news_process.papers.bank_fintech_tone import analysis, figures
+    with patch.object(figures, 'plot_news_coverage_distribution',
+                       return_value=tmp_path / 'fake.png') as mock_plot:
+        rc = analysis.main(['--stage', 'figures'])
+    assert rc == 0
+    assert mock_plot.called
+
+
+def test_analysis_main_figures_handles_filenotfound(tmp_path):
+    """plot_news_coverage_distribution 抛 FileNotFoundError → warning 不传播
+    (lines 90-93)."""
+    from unittest.mock import patch
+
+    from news_process.papers.bank_fintech_tone import analysis, figures
+    with patch.object(
+            figures, 'plot_news_coverage_distribution',
+            side_effect=FileNotFoundError("pipeline 输出缺失")):
+        # 不应抛, return 0
+        rc = analysis.main(['--stage', 'figures'])
+    assert rc == 0
+
+
+def test_analysis_main_all_stage_runs_everything(tmp_path):
+    """--stage all 同时调 pipeline + tables + figures."""
+    from unittest.mock import patch
+
+    from news_process.papers.bank_fintech_tone import analysis, figures, tables
+    with patch('news_process.papers.bank_fintech_tone.analysis.run_main_pipeline') as mp:
+        with patch.object(tables, 'write_table1',
+                           return_value=tmp_path / 'a.csv') as mt:
+            with patch.object(figures, 'plot_news_coverage_distribution',
+                               return_value=tmp_path / 'b.png') as mf:
+                rc = analysis.main(['--stage', 'all'])
+    assert rc == 0
+    assert mp.called and mt.called and mf.called
