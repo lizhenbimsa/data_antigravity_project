@@ -250,3 +250,245 @@ def test_export_panel_returns_backend_info(tmp_path, mock_panel):
     result = export_panel_to_stata(str(panel_path), str(tmp_path))
     assert 'backend' in result
     assert result['backend'] in ('pyreadstat', 'pandas')
+
+
+# ============================================================================
+# quality-hardening Round 43 (2026-05-27): stata_export.py 81% → ≥90%
+# 补漏: collab_mode encoding (121-122) + codebook fallback (141-143) +
+# HEURISTIC label hit (198) + label truncation (205) + collab label values
+# (464) + pyreadstat ImportError fallback (504-510) + panel-not-found (538) +
+# rename_map > 3 logging (549-553) + aux dta write (578-581) +
+# codebook xlsx exception (592-593) + rename_map None fallback (620) +
+# main() CLI entry (642-657)
+# ============================================================================
+
+
+def test_encode_categorical_columns_with_collab_mode():
+    """innovation_collab_mode 编码: 0=自主研发, 1=外部协同 (lines 121-122 + 464)."""
+    from news_process.pipeline.panel.stata_export import (
+        COLLAB_MODE_ENCODING,
+        COLLAB_MODE_VALUE_LABELS,
+        encode_categorical_columns,
+    )
+    df = pd.DataFrame({
+        'target_bank': ['A'] * 4,
+        'year': [2020, 2021, 2022, 2023],
+        'innovation_collab_mode_full': ['自主研发', '外部协同', '自主研发', None],
+        'innovation_collab_mode_ctx':  ['外部协同', '外部协同', '自主研发', '自主研发'],
+    })
+    encoded, value_labels = encode_categorical_columns(df)
+    assert encoded['innovation_collab_mode_full'].dtype.name == 'Int8'
+    assert encoded.loc[0, 'innovation_collab_mode_full'] == 0
+    assert encoded.loc[1, 'innovation_collab_mode_full'] == 1
+    assert value_labels['innovation_collab_mode_full'] == COLLAB_MODE_VALUE_LABELS
+    # Encoding direction sanity check
+    assert COLLAB_MODE_ENCODING['自主研发'] == 0
+    assert COLLAB_MODE_ENCODING['外部协同'] == 1
+
+
+def test_build_variable_labels_codebook_fallback_when_unavailable(monkeypatch):
+    """codebook get_variable_metadata_dict 抛 → fallback HEURISTIC (lines 141-143)."""
+    import news_process.pipeline.panel.stata_export as se
+
+    # 让 codebook import 路径抛 → 走 except
+    def raising_import():
+        raise ImportError("simulated codebook unavailable")
+    monkeypatch.setattr(
+        'news_process.pipeline.panel.codebook.get_variable_metadata_dict',
+        raising_import,
+    )
+    df = pd.DataFrame({'target_bank': [1], 'year': [2020]})
+    labels = se.build_variable_labels(df)
+    # fallback 仍能生成 labels
+    assert 'target_bank' in labels
+    assert 'year' in labels
+
+
+def test_build_variable_labels_heuristic_hit():
+    """HEURISTIC_LABELS 命中走 line 198."""
+    from news_process.pipeline.panel.stata_export import build_variable_labels
+    df = pd.DataFrame({
+        'innovation_locus_full': [1, 2],
+        'mean_clarity_score_full': [0.1, 0.2],
+    })
+    labels = build_variable_labels(df)
+    assert 'Innovation Locus' in labels['innovation_locus_full']
+    assert 'Clarity Score' in labels['mean_clarity_score_full']
+
+
+def test_build_variable_labels_truncates_long_label():
+    """label > 80 UTF-8 bytes → 截断 + '...' (line 205)."""
+    from news_process.pipeline.panel.stata_export import (
+        STATA_VAR_LABEL_MAXLEN,
+        build_variable_labels,
+    )
+    # fallback 路径 (列名既不在 codebook 也不在 HEURISTIC): label = col_name 本身
+    super_long_name = 'a' * 100  # 100 字符 > 80, 触发截断
+    # 注: shorten_long_column_names 会让真实流水线先缩短列名; 但 build_variable_labels
+    # 独立调用时不缩短, 直接走 truncation 逻辑.
+    df = pd.DataFrame({super_long_name: [1, 2]})
+    labels = build_variable_labels(df)
+    assert len(labels[super_long_name].encode('utf-8')) <= STATA_VAR_LABEL_MAXLEN
+    assert labels[super_long_name].endswith('...')
+
+
+def test_select_dta_backend_falls_back_when_pyreadstat_missing(monkeypatch):
+    """pyreadstat ImportError → fallback (lines 504-510)."""
+    import builtins
+
+    import news_process.pipeline.panel.stata_export as se
+
+    orig_import = builtins.__import__
+
+    def faking_import(name, *args, **kwargs):
+        if name == 'pyreadstat':
+            raise ImportError("simulated missing pyreadstat")
+        return orig_import(name, *args, **kwargs)
+    monkeypatch.setattr(builtins, '__import__', faking_import)
+
+    name, writer = se._select_dta_backend()
+    assert name == 'pandas'
+    assert writer is se._write_dta_pandas_fallback
+
+
+def test_export_panel_raises_when_parquet_missing(tmp_path):
+    """panel parquet 不存在 → FileNotFoundError (line 538)."""
+    from news_process.pipeline.panel.stata_export import export_panel_to_stata
+    nonexistent = tmp_path / "no_such.parquet"
+    with pytest.raises(FileNotFoundError, match="panel parquet 不存在"):
+        export_panel_to_stata(str(nonexistent), str(tmp_path))
+
+
+def test_export_panel_rename_map_more_than_three_logged(tmp_path, monkeypatch, caplog):
+    """rename_map > 3 项时走 549-553 (only first 3 logged + total)."""
+    import logging
+
+    from news_process.pipeline.panel import stata_export as se
+
+    # 构造 panel 含 4 个超长列名 → rename_map 有 4 项
+    panel = pd.DataFrame({
+        'target_bank': ['A', 'B'],
+        'year': [2020, 2021],
+        # 4 个 > 32 字符的列, shorten_long_column_names 都会改名
+        'a_very_long_column_one_xxxxxxxxxxxx': [1, 2],
+        'a_very_long_column_two_xxxxxxxxxxxx': [3, 4],
+        'a_very_long_column_three_xxxxxxxxxxxx': [5, 6],
+        'a_very_long_column_four_xxxxxxxxxxxx': [7, 8],
+    })
+    panel_path = tmp_path / "p.parquet"
+    panel.to_parquet(panel_path)
+
+    # 强制 pandas backend (避免 pyreadstat 写入需 numeric 唯一列等额外约束)
+    monkeypatch.setattr(se, '_select_dta_backend',
+                        lambda: ('pandas', se._write_dta_pandas_fallback))
+
+    with caplog.at_level(logging.INFO,
+                          logger='news_process.pipeline.panel.stata_export'):
+        se.export_panel_to_stata(str(panel_path), str(tmp_path))
+    msgs = ' | '.join(r.getMessage() for r in caplog.records)
+    assert 'more' in msgs.lower() or 'Renamed' in msgs
+
+
+def test_export_panel_aux_dta_written_when_aux_cols_present(tmp_path,
+                                                              monkeypatch,
+                                                              mock_panel):
+    """mock_panel 含 category_confidence_full/ctx etc. (aux cols);
+    应生成 aux .dta (lines 578-581)."""
+    from news_process.pipeline.panel import stata_export as se
+
+    # 在 mock_panel 上加些 aux-only 列
+    panel = mock_panel.copy()
+    panel['some_aux_metric_1'] = 1.0
+    panel['another_aux_metric'] = 2.0
+    panel_path = tmp_path / 'panel.parquet'
+    panel.to_parquet(panel_path)
+
+    monkeypatch.setattr(se, '_select_dta_backend',
+                        lambda: ('pandas', se._write_dta_pandas_fallback))
+    result = se.export_panel_to_stata(str(panel_path), str(tmp_path))
+    # aux_dta 路径非空且文件存在
+    assert result['aux_dta'] != ''
+    import os
+    assert os.path.exists(result['aux_dta'])
+
+
+def test_export_panel_codebook_write_failure_non_blocking(tmp_path, monkeypatch,
+                                                           mock_panel):
+    """codebook xlsx 写入失败应记 warning 不阻塞导出 (lines 592-593)."""
+    from news_process.pipeline.panel import stata_export as se
+    panel_path = tmp_path / 'panel.parquet'
+    mock_panel.to_parquet(panel_path)
+
+    monkeypatch.setattr(se, '_select_dta_backend',
+                        lambda: ('pandas', se._write_dta_pandas_fallback))
+
+    def raising_codebook(*args, **kwargs):
+        raise RuntimeError("simulated codebook write failure")
+    monkeypatch.setattr(se, '_write_codebook_xlsx', raising_codebook)
+
+    # 不应抛
+    result = se.export_panel_to_stata(str(panel_path), str(tmp_path))
+    assert result['backend'] == 'pandas'
+
+
+def test_write_codebook_rename_map_none_default(tmp_path, mock_panel):
+    """_write_codebook_xlsx rename_map=None 默认值 (line 620)."""
+    from news_process.pipeline.panel.stata_export import (
+        _write_codebook_xlsx,
+        build_variable_labels,
+    )
+    var_labels = build_variable_labels(mock_panel)
+    out = tmp_path / 'codebook.xlsx'
+    # 不传 rename_map → 走 None 默认值 + line 619-620 fallback
+    _write_codebook_xlsx(mock_panel, var_labels, {}, list(mock_panel.columns),
+                          str(out), rename_map=None)
+    assert out.exists()
+
+
+def test_write_labels_do_includes_collab_mode(tmp_path):
+    """collab_cols 触发 'label values ... collab_mode_lbl' 输出 (line 464)."""
+    from news_process.pipeline.panel.stata_export import (
+        COLLAB_MODE_VALUE_LABELS,
+        write_labels_do_file,
+    )
+    value_labels = {
+        'innovation_collab_mode_full': COLLAB_MODE_VALUE_LABELS,
+        'innovation_collab_mode_ctx': COLLAB_MODE_VALUE_LABELS,
+    }
+    var_labels = {
+        'innovation_collab_mode_full': 'Innov. Collab Mode (Full-text)',
+        'innovation_collab_mode_ctx': 'Innov. Collab Mode (Ctx)',
+    }
+    out_do = tmp_path / 'collab_labels.do'
+    write_labels_do_file(str(out_do), var_labels, value_labels)
+    content = out_do.read_text(encoding='utf-8')
+    assert 'collab_mode_lbl' in content
+    assert 'innovation_collab_mode_full' in content
+    assert 'innovation_collab_mode_ctx' in content
+
+
+def test_main_cli_entry(tmp_path, monkeypatch, mock_panel):
+    """main() CLI 入口走 load_config → export_panel_to_stata 全链路 (642-657)."""
+    from news_process.pipeline.panel import stata_export as se
+    output_dir = tmp_path / 'out'
+    output_dir.mkdir()
+    log_dir = tmp_path / 'logs'
+    log_dir.mkdir()
+    panel_path = output_dir / '40_panel_yearly.parquet'
+    mock_panel.to_parquet(panel_path)
+
+    fake_cfg = {
+        'paths': {
+            'output_dir': str(output_dir),
+            'log_dir': str(log_dir),
+        },
+        'filenames': {'output_45_panel_main': '40_panel_yearly.parquet'},
+    }
+    monkeypatch.setattr('news_process.core.config.load_config', lambda: fake_cfg)
+    monkeypatch.setattr(se, '_select_dta_backend',
+                        lambda: ('pandas', se._write_dta_pandas_fallback))
+
+    se.main()
+    # 应产出文件
+    assert (output_dir / '46_panel_yearly_core.dta').exists()
+    assert (output_dir / '46_panel_yearly_full.dta').exists()
