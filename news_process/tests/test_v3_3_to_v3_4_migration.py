@@ -115,3 +115,40 @@ def test_new_confidence_columns_dtype_numeric(conf_col: str):
     """新增 confidence 列应是 numeric dtype."""
     df_v34 = upgrade_panel_v3_3_to_v3_4(_build_v33_panel())
     assert pd.api.types.is_numeric_dtype(df_v34[conf_col])
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 49 (2026-05-27): main() CLI 入口 (lines 73-96)
+# ---------------------------------------------------------------------------
+
+
+def test_main_cli_missing_input_returns_1(tmp_path, capsys):
+    """main(): 输入文件不存在 → 退出码 1 + stderr 提示 (lines 81-83)."""
+    from news_process.scripts.migrate.v3_3_to_v3_4_panel_upgrade import main
+    rc = main([
+        str(tmp_path / 'no_such.parquet'),
+        str(tmp_path / 'out.parquet'),
+    ])
+    assert rc == 1
+    captured = capsys.readouterr()
+    assert '不存在' in captured.err
+
+
+def test_main_cli_happy_path_writes_v34(tmp_path, capsys):
+    """main(): 完整迁移 happy path (lines 85-95)."""
+    from news_process.scripts.migrate.v3_3_to_v3_4_panel_upgrade import main
+
+    # 准备 v3.3.0 panel
+    input_path = tmp_path / 'v33.parquet'
+    output_path = tmp_path / 'sub' / 'v34.parquet'  # 子目录强制 mkdir(parents=True)
+    df_v33 = _build_v33_panel()
+    df_v33.to_parquet(input_path)
+
+    rc = main([str(input_path), str(output_path)])
+    assert rc == 0
+    assert output_path.exists()
+    # 验证写出的 panel 含新增 4 列
+    df_v34 = pd.read_parquet(output_path)
+    assert df_v34.shape[1] == df_v33.shape[1] + 4
+    for col in NEW_LABEL_COLUMNS + NEW_CONFIDENCE_COLUMNS:
+        assert col in df_v34.columns
