@@ -18,6 +18,8 @@ if _rc encode target_bank, gen(bank_id)
 xtset bank_id year
 
 global controls "{{CONTROLS}}"
+* R1-R5 audit follow-up (Agent 2 Bug-2): 25_tableA8 ref $bank_controls; reuse $controls
+global bank_controls "$controls"
 
 * P3 required variables: long-run outcome + treatment (innovation_substantiveness_full)
 foreach v in {{MAIN_DV}} {{MAIN_TREAT}} {

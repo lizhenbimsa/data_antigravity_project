@@ -75,6 +75,13 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     # 4. 关键字段缺失值过滤(标题、内容、媒体名、日期任一为空则移除)
     rows_before = len(df)
     df = df.dropna(subset=KEY_COLUMNS)
+    # R1-R5 audit fix A8 (2026-05-27): 修 R4-A8 finding —— dropna 仅 drop None/NaN,
+    # 不 drop literal empty string ''. OCR / Wisers 数据库 NULL → '' 映射时关键
+    # 字段保留, 导致 pd.to_datetime 后 NaT silent 进 panel. 此处对每个关键列做
+    # ne('') strip 过滤.
+    for _col in KEY_COLUMNS:
+        if _col in df.columns:
+            df = df[df[_col].astype(str).str.strip() != '']
     logger.info(f"  [4/6 缺失值过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
     # 5. 广告关键词过滤(检查标题、版面、栏名三个字段)

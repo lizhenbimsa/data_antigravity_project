@@ -29,6 +29,8 @@ if _rc {
 }
 
 global controls "{{CONTROLS}}"
+* R1-R5 audit follow-up (Agent 2 Bug-2): 25_tableA8 ref $bank_controls; reuse $controls
+global bank_controls "$controls"
 
 * Required: endog tone, IV (2nd-order), centrality vars, treatment dummies.
 foreach v in {{MAIN_DV}} {{MAIN_ENDOG}} {{MAIN_IV}} {{CENTRALITY_BTW}} {{CENTRALITY_CONS}} {{CENTRALITY_BROKER}} {{TREATMENT_DCEP}} {{TREATMENT_SANDBOX}} {

@@ -26,6 +26,12 @@ local main_dv      llm_vote_tone_{{MAIN_SENT_TRACK}}
 local main_locus   tech_frac_{{MAIN_LOCUS_TRACK}}
 local main_subst   symb_frac_{{MAIN_SUBST_TRACK}}
 
+* 4.bis (R1-R5 audit fix A1): 定义 $bank_controls 全局 macro 供 25_tableA8 / 26_bs /
+* 19_*_clarity_robustness 等下游模板使用. 此前 18 个模板引用 $bank_controls 但
+* 全 codebase 0 定义, Stata 静默展开为空字符串 -> 主表系数 silent omitted-variable
+* bias. 此处统一定义, 与 spec.controls.bank_level 对齐.
+global bank_controls "ln_assets leverage capital_ratio npl_ratio deposit_growth"
+
 * 检查 winsor2 是否可用 (ssc install winsor2)
 capture which winsor2
 if !_rc {
@@ -62,6 +68,18 @@ if !_rc {
     gen byte _has_df = !missing(digital_frontier)
     display "  digital_frontier 非缺失: `=_has_df'/`=_N' bank-year"
     drop _has_df
+}
+
+* 6. (R1-R5 audit fix A3): 保存 _prepared_panel.dta 供 25_tableA8 / 26_bs 等
+* 下游模板使用. 25_tableA8.do.tmpl:28 `use "$data_dir/_prepared_panel.dta"` 此前
+* 在主线 run 链 (00 -> 01 -> ... -> 25) 下 file-not-found, 因主线 01_data_prep
+* 加载 core.dta 后无 save.
+capture mkdir "data/processed"
+if "$data_dir" == "" {
+    save "data/processed/_prepared_panel.dta", replace
+}
+else {
+    save "$data_dir/_prepared_panel.dta", replace
 }
 
 display "✅ Data prep done. Ready for tables."

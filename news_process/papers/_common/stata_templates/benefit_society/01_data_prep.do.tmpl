@@ -15,6 +15,8 @@ encode target_bank, gen(bank_id)
 xtset bank_id year
 
 global controls "{{CONTROLS}}"
+* R1-R5 audit follow-up (Agent 2 Bug-2): 26_bs ref $bank_controls; reuse $controls
+global bank_controls "$controls"
 
 foreach v in {{MAIN_DV}} {{ATTITUDE_VAR}} {{MECHANISM_TOKEN}} {{MECHANISM_HIDDEN}} {{MECHANISM_SUBST}} {
     capture confirm variable `v'

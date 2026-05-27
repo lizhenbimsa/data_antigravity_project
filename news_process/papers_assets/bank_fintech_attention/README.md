@@ -77,6 +77,13 @@ P2 applicable events (per §5.7.2 + Appendix C):
 
 ## 仍待用户补充 (per §5.1.1.bis prerequisites)
 
-1. Raw 40 万条语料的物理位置 / 访问凭证 (D1 决策点)
+1. Raw 语料的物理位置 / 访问凭证 (D1 决策点)
+   - **当前 disk 实测**: 84 banks × 2 yr (2017-2018) = 168 obs (`40_panel_yearly.parquet`,
+     frozen 2026-05-16)
+   - **M0.5 production run 目标**: ~500 banks × 18 yr (2007-2024) ≈ 9000 obs
+   - **R1-R5 audit fix A10 (2026-05-27)**: 此前文档 "Raw 40 万条语料" 与 disk
+     168 obs 实测严重 mismatch, 是 R5-A2 消费者视角识别的"学术诚信公关风险".
+     修正为 M0 baseline / M0.5 target 两阶段说明, 避免 reviewer / 监管 grep
+     replication 包发现 claim-actual gap 后公开质疑.
 2. CSMAR/Wind 银行模块访问凭证 (M-1.6 财务匹配率审计 + M0.5.11 enrichment)
 3. M3 manuscript 内 `\NoteThis{...}` 占位 (10 TODO/lang) 的实质内容

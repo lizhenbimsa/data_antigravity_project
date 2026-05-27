@@ -223,8 +223,27 @@ def compute_num_intensity(content: str) -> float:
 
     Returns:
         float: n_numeric / n_sentences; 空/单字符文本 → float('nan').
+
+    R1-R5 audit fix A7 (2026-05-27):
+        修 silent NaN→0 propagation. 下游 enrich_with_num_intensity_dual_track 用
+        ``df[col].astype(str).apply(...)`` 调用时, pandas 把 ``NaN/None`` 转成
+        字符串 ``'nan'`` / ``'None'`` / ``'<NA>'`` (长度 ≥ 3, 通过 isinstance(str)
+        与 strip 检查), 返回 0.0 而非 NaN, 让 panel mean_num_intensity_* 系统性
+        偏低 (R4-A8 实测). 本 fix 在 isinstance check 后**显式拦截字符串化 NaN
+        哨兵值**, 返回 float('nan') 保证 NaN propagate 到 panel 聚合层.
+
+        cn2arab 修饰词误转 (R4-A10 / R5-A1 BUG-1) 是已知 P1 known issue:
+        ``_cn2arab('第三季度')='第3季度'`` → num_intensity false-positive. 修复
+        需要 jieba POS-tag (NR/NT) 排除 ordinal/quantifier 修饰词, 工作量超 1 行
+        范围, deferred 到 v3.7.5; 当前 audit_log fix A7 仅做 NaN 保护, 影响 5-15
+        article / 1170 (R4-A10 量化 ≈ 1%).
     """
     if not isinstance(content, str) or not content.strip():
+        return float('nan')
+
+    # 拦截 pandas astype(str) 产生的字符串化 NaN 哨兵值 (R1-R5 audit fix A7)
+    # NB: 这些是字符串字面值, isinstance(str) 与 strip() 都过, 必须显式检测.
+    if content.strip() in ('nan', 'NaN', 'None', '<NA>', 'NaT'):
         return float('nan')
 
     # cn2arab 后计数

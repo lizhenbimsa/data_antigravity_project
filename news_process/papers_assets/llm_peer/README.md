@@ -44,7 +44,14 @@ papers_assets/llm_peer/
 
 ## 学术依据
 
-- Cao, Z., Li, W., Wang, Y., & Zhao, Y. (2025). Can generative AI help identify peer firms? *Review of Asset Studies*, forthcoming.
+> **R1-R5 audit follow-up (2026-05-27) — Cao 引用已 unify 到 canonical source**:
+> 此前仓库内有 3 个不一致 Cao 引用版本 (R3-A2 / R4-A8 / R5-A1 实测), 已统一
+> 到 `pipeline/panel/llm_peer_iv.py:16-18` 内部存证版本. 投稿前 user 需在线
+> CrossRef DOI `10.1007/s11142-025-09892-6` 二次验证.
+
+- **Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI help
+  identify peer firms? *Review of Accounting Studies*, 30(4), 3344-3386.
+  https://doi.org/10.1007/s11142-025-09892-6**
 - Stock, J. H., & Yogo, M. (2005). Testing for weak instruments. In Andrews & Stock (Eds.).
 - Kleibergen, F., & Paap, R. (2006). Generalized reduced rank tests. *JoE*, 133(1).
 - Manski, C. F. (1993). Identification of endogenous social effects. *RES*, 60(3).

@@ -36,6 +36,15 @@ paths:
   # output_dir / do_dir。Phase 2f 拆 paths.yaml 时随段迁入。
   papers_assets_root: ./papers_assets
 
+  # ── R1-R5 audit fix A4 (2026-05-27): LLM raw response archive 路径锚定 ──
+  # 修正 R2-Agent4 + R4-Agent5 finding: pipeline/llm_archive/archive.py 的
+  # _resolve_archive_root() fallback 解析与 .gitattributes:36 LFS rule 不一致,
+  # 导致 jsonl 写到 news_process/data/llm_archive/ 但被 .gitignore (news_process/data/)
+  # 排除. 此 key 显式锚定 archive root, archive.py 优先读此配置.
+  # 注意: 同步需在 repo-root .gitignore 加例外 `!news_process/data/llm_archive/`
+  # 或将 archive 物理路径迁出 news_process/data/ (推荐后者, 与 LFS rule 对齐).
+  llm_archive: ./data/llm_archive
+
 # ------------------------------------------------------------------------------
 # 输出文件名配置 (Output Filenames)
 # ------------------------------------------------------------------------------

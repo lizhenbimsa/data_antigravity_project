@@ -2642,7 +2642,13 @@ washing_ratio_{bert}{_ctx}              5 × 2 = 10 列
 - Brambor, T., Clark, W. R., & Golder, M. (2006). Understanding interaction models. *PA*, 14(1), 63-82. *(§39)*
 
 **C**
-- Cao, S., Jiang, W., Wang, J., & Yang, B. (2025). [LLM voting for financial sentiment]. Working Paper. *(§7 §52)*
+- Cao et al. (2025). [LLM voting for financial sentiment]. *(§7 §52)*
+  > **R1-R5 audit fix A11 (2026-05-27)**: 此 entry 此前用 "Cao S., Jiang W.,
+  > Wang J., Yang B." 与 `pipeline/panel/llm_peer_iv.py:16-18` (Cao Y./Chen L./
+  > Tucker J.W./Wan C., RAS 30(4):3344-3386 DOI 10.1007/s11142-025-09892-6) +
+  > `papers_assets/llm_peer/README.md:47` (Cao Z./Li/Wang/Zhao, Review of Asset
+  > Studies) 作者列表 + 期刊名全不一致 (>=3 处). 投稿前必须 CrossRef 验证唯一
+  > 真实引用. 当前 canonical source: `llm_peer_iv.py:16-18`.
 - Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk when a machine is listening. *RFS*, 36(9), 3603-3642. *(§44)*
 - Chesbrough, H. W. (2003). *Open Innovation*. Harvard Business School Press. *(§16)*
 - Cover, T. M., & Thomas, J. A. (2006). *Elements of Information Theory* (2nd ed.). Wiley. *(§10)*

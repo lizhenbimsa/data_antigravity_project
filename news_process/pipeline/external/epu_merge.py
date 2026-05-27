@@ -213,6 +213,23 @@ def main():
     logger.info(f"  输出: {out_path}")
     logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
 
+    # R1-R5 audit fix A9 (2026-05-27): 修 R4-A8 silent failure ——
+    # 若 panel 为 (0, 6) 空骨架, 显式打 ERROR 级日志而非 silent OK exit.
+    # 下游 Stata `merge 1:1 epu_*` 在空表上是 no-op, 主回归 silent 缺 EPU
+    # control. 此处不 raise (保留 graceful by-design behavior, 与 CLAUDE.md
+    # v3.6.1 PR #5 声明一致), 但显式 ERROR 让 user/CI catch 状态.
+    if len(panel) == 0:
+        logger.error(
+            "  ⚠ EPU panel shape=(0,6) — 检查 data/external/"
+            "epu_china_monthly_2007_2024.csv 是否存在. 下游 Stata merge 将"
+            "silent 缺 EPU control, 影响所有 paper macro control 路径."
+        )
+    elif panel['epu_mean_year'].isna().all():
+        logger.error(
+            "  ⚠ EPU panel 全 NaN — 上游 article-level merge 失败 (可能日期 "
+            "parse 出错或时间窗未覆盖). 下游 macro control 失效."
+        )
+
 
 if __name__ == '__main__':
     main()

@@ -155,18 +155,26 @@ if _PROJECT_PARENT not in sys.path:
 from news_process.core.caching import LLMCache
 
 # v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
+# R1-R5 audit fix A5 (2026-05-27): V4 F-P2.1 仅承诺 stage 21 (tone_llms) + stage 48
+# (llm_peer_iv) 接入, 此 import 是 strategic_diff stage 27c embedding LLM 调用的
+# **前瞻性留位**, 当前 0 call site 是已知设计 (并非虚假声明). 未来若 stage 27c
+# 真接入 LLM-based embedding (vs 当前 sentence-transformers 本地) 时再补 call.
+# 保留 import 而非删除, 以维持模块层 archive 可用性检测稳定接口.
 try:
-    from news_process.pipeline.llm_archive import archive_record as _llm_archive_record
-    from news_process.pipeline.llm_archive.archive import _get_default_archive as _get_archive
+    from news_process.pipeline.llm_archive import (
+        archive_record as _llm_archive_record,  # noqa: F401  # TODO: stage 27c embedding archive
+    )
+    from news_process.pipeline.llm_archive.archive import _get_default_archive as _get_archive  # noqa: F401
     _LLM_ARCHIVE_AVAILABLE = True
 except ImportError as _archive_import_exc:
     _llm_archive_record = None
     _get_archive = None
     _LLM_ARCHIVE_AVAILABLE = False
     import logging as _logging_for_archive_error
-    _logging_for_archive_error.getLogger(__name__).error(
-        "CRITICAL v3.7.0: llm_archive 不可用 (%s). strategic_diff embedding "
-        "将无归档 — V4 F-P2.1 violation.", _archive_import_exc,
+    _logging_for_archive_error.getLogger(__name__).warning(
+        "v3.7.0: llm_archive 不可用 (%s). strategic_diff 当前未调用 archive_record "
+        "(stage 27c 使用本地 sentence-transformers, 无 LLM raw response 需归档).",
+        _archive_import_exc,
     )
 
 # Embedding Token 级精确截断与分段 (统一 Stage 15 标准)

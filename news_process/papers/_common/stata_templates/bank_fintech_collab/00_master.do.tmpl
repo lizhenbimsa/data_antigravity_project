@@ -30,4 +30,9 @@ capture do 17_collab_heterogeneity.do
 capture do 18_collab_robustness.do
 capture do 19_collab_event_study.do
 
+* R1-R5 audit fix A2: v3.7.3 Plan A title-track robustness (Table A8)
+* (v3.7.3 paper_spec.yaml 标 P5 tA8 deferred_until P5 derivative onboarding;
+* capture do 在 model 缺失时 graceful skip, 不阻塞 master 链)
+capture do 25_tableA8_title_robustness.do
+
 display "[OK] bank_fintech_collab master.do complete (B-route P5, v3.4.0)"

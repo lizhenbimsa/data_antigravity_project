@@ -66,18 +66,27 @@ if _PROJECT_PARENT not in sys.path:
 from news_process.core.caching import LLMCache
 
 # v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
+# R1-R5 audit fix A5 (2026-05-27): V4 F-P2.1 仅承诺 stage 21 (tone_llms) + stage 48
+# (llm_peer_iv) 接入, 此 import 是 stage 27 embedding (Jha et al. 2026) 的
+# **前瞻性留位**, 当前 embedding 路径走本地 model 缓存或 OpenAI embedding API
+# 已写 LLMCache (cache 即 reproducibility ledger), 无独立 archive_record 调用.
+# 保留 import 维持模块层接口稳定; 未来若 embedding 切换为 LLM-generated 双极锚点
+# (vs 当前固定 anchor) 再补 archive_record(...) 调用.
 try:
-    from news_process.pipeline.llm_archive import archive_record as _llm_archive_record
-    from news_process.pipeline.llm_archive.archive import _get_default_archive as _get_archive
+    from news_process.pipeline.llm_archive import (
+        archive_record as _llm_archive_record,  # noqa: F401  # TODO: stage 27 embedding archive
+    )
+    from news_process.pipeline.llm_archive.archive import _get_default_archive as _get_archive  # noqa: F401
     _LLM_ARCHIVE_AVAILABLE = True
 except ImportError as _archive_import_exc:
     _llm_archive_record = None
     _get_archive = None
     _LLM_ARCHIVE_AVAILABLE = False
     import logging as _logging_for_archive_error
-    _logging_for_archive_error.getLogger(__name__).error(
-        "CRITICAL v3.7.0: llm_archive 不可用 (%s). Stage 27 (benefit_society "
-        "embedding) 将无归档 — V4 F-P2.1 violation.", _archive_import_exc,
+    _logging_for_archive_error.getLogger(__name__).warning(
+        "v3.7.0: llm_archive 不可用 (%s). Stage 27 embedding 仍依赖 LLMCache "
+        "作为 reproducibility ledger (cache hit/miss 完整记录).",
+        _archive_import_exc,
     )
 
 # ============================================================================
