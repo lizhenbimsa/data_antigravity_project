@@ -113,7 +113,7 @@
   最终: TOTAL 40.09% → **42.61%**; ≥90% 文件 38 → **55/195 (28.2%)**;
   at 100% files: **31/195 (15.9%)**; core/ 85.00% / papers/ 72.22% /
   scripts/ 64.76% / <root> 26.97%。
-- **本会话续推 Round 34-49** (2026-05-27 by quality-hardening /goal continuation)：
+- **本会话续推 Round 34-53** (2026-05-27 by quality-hardening /goal continuation)：
   - `papers/bank_fintech_tone/tables.py` 81.82% → **100%** (+6 tests; thin wrapper mock)
   - `core/dag.py` 84.31% → **100%** (+6 tests; filter_enabled + get_script_for_method)
   - `papers/benefit_society/ncd_field_parser.py` 85.71% → **99.16%** (+9 tests; CLI 全路径)
@@ -130,9 +130,16 @@
     53.49% → **100%** (+33 parametrized tests)
   - `papers/llm_peer/figures.py` 52.50% → **100%** (+2 tests; plot_cutoff_sensitivity)
   - `scripts/migrate/v3_3_to_v3_4_panel_upgrade.py` 51.35% → **97.30%** (+2 tests; CLI)
-  合计 Round 34-49 **+140 tests, 全套 2142 → 2282 passed**。Ruff 始终 0 warn (49 轮累计)。
-  最终: TOTAL 42.61% → **44.07%**; ≥90% 文件 55 → **88/211 (41.7%)**;
-  at 100% files: 31 → **60/211 (28.4%)**。
+  - `pipeline/features/benefit_society_audit_combined.py` 61.19% → **100%** (+3 tests;
+    build_audit_panel mock SentenceTransformer + main 全输入路径)
+  - `pipeline/external/epu_merge.py` 73.26% → **98.84%** (+3 tests; default path + main happy)
+  - `pipeline/features/benefit_society_alt_anchor.py` 73.21% → **100%** (+9 tests;
+    yaml validation 边界 + sidecar + main full projection)
+  - `papers/benefit_society/shrinkage.py` 65.38% → **95.19%** (+8 tests; MixedLM 4 路径 +
+    CLI --value-col/--track full/both 三分支)
+  合计 Round 34-53 **+162 tests, 全套 2142 → 2304 passed**。Ruff 始终 0 warn (53 轮累计)。
+  最终: TOTAL 42.61% → **~44.5%**; ≥90% 文件 55 → **~93/211 (~44%)**;
+  at 100% files: 31 → **~65/211 (~31%)**。
 - **未闭合**：剩余 ~155 文件 < 90% 多为 LLM / Stata 依赖类（需真服务 mock 数千行)，
   或 module-level init failure 路径（除非分文件 refactor 难单测）。
 - **解锁条件**：(a) 多月 mock 撰写工作；或 (b) 调整 95% 目标到现实的渐进里程碑
