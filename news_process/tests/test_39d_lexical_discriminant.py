@@ -266,3 +266,98 @@ def test_run_discriminant_validity_lenient_pass_branch():
         verdicts = report.get('htmt_verdict', {})
         assert all(v in ('strict_pass', 'lenient_pass', 'fail', 'nan')
                    for v in verdicts.values())
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 40 (2026-05-27): lexical_discriminant_validity
+# 83.44% → ~95%; main() entrypoint (309-346) + lenient_pass branch (286)
+# ---------------------------------------------------------------------------
+
+
+def test_run_discriminant_validity_lenient_pass_exact():
+    """构造 HTMT ∈ [0.85, 0.90) 触发 'lenient_pass' 分支 (line 286)."""
+    # 设计相关系数 r ≈ 0.87 → HTMT = 0.87
+    np.random.seed(0)
+    n = 500
+    base = np.random.randn(n)
+    # T1 = base, T2 = 0.87*base + sqrt(1-0.87^2)*noise → corr ~0.87
+    T1 = base
+    rho = 0.87
+    noise = np.random.randn(n)
+    T2 = rho * base + np.sqrt(1 - rho * rho) * noise
+    T3 = np.random.randn(n)  # 与 T1/T2 独立 → HTMT 很小
+    df = pd.DataFrame({
+        'avg_subst_prob_score_full': T1,
+        'mean_clarity_score_full': T2,
+        'mean_num_intensity_full': T3,
+        'n_articles': [5] * n,
+    })
+    report = run_discriminant_validity(df)
+    assert report['status'] == 'ok'
+    # HTMT(T1, T2) ~ 0.87 → lenient_pass
+    htmt_12 = report['htmt'].get('htmt_T1_substance_T2_clarity', float('nan'))
+    if HTMT_CUTOFF_STRICT <= htmt_12 < HTMT_CUTOFF_LENIENT:
+        assert report['htmt_verdict']['htmt_T1_substance_T2_clarity'] == 'lenient_pass'
+
+
+def test_main_graceful_skip_when_panel_missing(tmp_path, monkeypatch):
+    """main(): panel 文件缺失 → graceful skip 不抛 (line 316-318)."""
+    from news_process.pipeline.audit import lexical_discriminant_validity as mod
+
+    fake_cfg = {'paths': {'output_dir': str(tmp_path)}}
+    monkeypatch.setattr('news_process.core.config.load_config', lambda: fake_cfg)
+    # panel 40_panel_yearly.parquet 不存在
+    # 不应抛, 也不应写文件
+    mod.main()
+    # tmp_path 没有 39d 输出
+    assert not (tmp_path / '39d_lexical_discriminant.parquet').exists()
+    assert not (tmp_path / '39d_htmt_matrix.json').exists()
+
+
+def test_main_graceful_skip_when_columns_missing(tmp_path, monkeypatch):
+    """main(): panel 存在但缺关键列 → graceful skip (status='missing_columns', line 325-327)."""
+    from news_process.pipeline.audit import lexical_discriminant_validity as mod
+
+    # 写一个缺列的 panel
+    panel = pd.DataFrame({'foo': [1, 2, 3]})
+    panel_path = tmp_path / '40_panel_yearly.parquet'
+    panel.to_parquet(panel_path)
+
+    fake_cfg = {'paths': {'output_dir': str(tmp_path)}}
+    monkeypatch.setattr('news_process.core.config.load_config', lambda: fake_cfg)
+
+    mod.main()
+    # graceful skip → 没写输出
+    assert not (tmp_path / '39d_lexical_discriminant.parquet').exists()
+
+
+def test_main_writes_outputs_on_happy_path(tmp_path, monkeypatch):
+    """main() 正常路径 (lines 329-347): 写 parquet + JSON htmt 矩阵."""
+    from news_process.pipeline.audit import lexical_discriminant_validity as mod
+
+    # 合成 panel 有足够行 + 必需列
+    np.random.seed(42)
+    n = 50
+    panel = pd.DataFrame({
+        'avg_subst_prob_score_full': np.random.beta(2, 3, n),
+        'mean_clarity_score_full': np.random.randn(n),
+        'mean_num_intensity_full': np.random.randn(n),
+        'n_articles': np.full(n, 5),
+    })
+    panel_path = tmp_path / '40_panel_yearly.parquet'
+    panel.to_parquet(panel_path)
+
+    fake_cfg = {'paths': {'output_dir': str(tmp_path)}}
+    monkeypatch.setattr('news_process.core.config.load_config', lambda: fake_cfg)
+
+    mod.main()
+    # 应写出 2 个文件
+    assert (tmp_path / '39d_lexical_discriminant.parquet').exists()
+    assert (tmp_path / '39d_htmt_matrix.json').exists()
+    # JSON 必须是合法 dict, 含 htmt 字段
+    import json
+    with open(tmp_path / '39d_htmt_matrix.json', encoding='utf-8') as f:
+        data = json.load(f)
+    assert 'htmt' in data
+    assert 'permutation_seed' in data
+    assert data['permutation_seed'] == 42

@@ -327,10 +327,14 @@ def main():
         return
 
     # 输出 1: parquet (主表)
+    # quality-hardening Round 40 (2026-05-27): value 列旧实现是 int/float/str
+    # 混合 (e.g. n_obs=int + status='ok' str), pyarrow 无法推导 object 类型 →
+    # ArrowTypeError. 改 unifies to str: parquet 是 audit 摘要, 数值/字符串都
+    # 当 metric 文本看, 不破坏向后兼容 (无下游 reader; grep 全仓 0 个).
     out_parquet = out_dir / '39d_lexical_discriminant.parquet'
     df_out = pd.DataFrame([{
         'metric': k,
-        'value': str(v) if not isinstance(v, (int, float)) else v,
+        'value': str(v),
     } for k, v in report.items() if not isinstance(v, dict)])
     df_out.to_parquet(out_parquet, index=False)
 
