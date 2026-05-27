@@ -244,3 +244,69 @@ def test_resolve_epu_path_returns_none_when_both_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(M, '_PROJECT_PARENT', str(tmp_path))
     result = M._resolve_epu_path()
     assert result is None
+
+
+# ---------------------------------------------------------------------------
+# quality-hardening Round 51 (2026-05-27): _resolve_epu_path default + main()
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_epu_path_returns_default_when_config_missing(tmp_path, monkeypatch):
+    """cfg 路径不存在 但 default 存在 → 返回 default (line 70)."""
+    import news_process.pipeline.external.epu_merge as M
+    # cfg 路径设为不存在 fake
+    monkeypatch.setitem(M.CONFIG['paths'], 'epu_china_csv',
+                        str(tmp_path / 'nonexistent.csv'))
+    # 构造 default fallback 路径
+    default_root = tmp_path / 'fake_root'
+    default_csv = default_root / 'news_process' / 'data' / 'external' / 'epu_china_monthly_2007_2024.csv'
+    default_csv.parent.mkdir(parents=True)
+    default_csv.write_text('year,month,epu\n2020,1,100\n', encoding='utf-8')
+    monkeypatch.setattr(M, '_PROJECT_PARENT', str(default_root))
+    result = M._resolve_epu_path()
+    assert result == default_csv
+
+
+def test_epu_main_missing_upstream_exits_cleanly(tmp_path, monkeypatch):
+    """main(): 上游 article-level parquet 缺失 → sys.exit(0) graceful (lines 192-197)."""
+    import news_process.pipeline.external.epu_merge as M
+    monkeypatch.setitem(M.CONFIG['paths'], 'output_dir', str(tmp_path))
+    with pytest.raises(SystemExit) as exc_info:
+        M.main()
+    assert exc_info.value.code == 0
+
+
+def test_epu_main_happy_path(tmp_path, monkeypatch):
+    """main(): 上游 article-level + EPU csv 存在 → 写 16_epu_panel.parquet
+    (lines 199-214)."""
+    import news_process.pipeline.external.epu_merge as M
+    # 准备 article-level 13_news_with_ctx
+    article_df = pd.DataFrame({
+        'target_bank': ['A', 'A', 'B'],
+        'year': [2018, 2018, 2018],
+        '日期': pd.to_datetime(['2018-01-15', '2018-02-15', '2018-03-15']),
+        '标题': ['x', 'y', 'z'],
+    })
+    article_path = tmp_path / '13_news_with_ctx.parquet'
+    article_df.to_parquet(article_path)
+
+    # 准备 EPU csv 全年完整 (12 个月)
+    epu_csv = tmp_path / 'epu.csv'
+    epu_data = pd.DataFrame({
+        'year': [2018] * 12,
+        'month': list(range(1, 13)),
+        'epu': [100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210],
+    })
+    epu_data.to_csv(epu_csv, index=False)
+
+    monkeypatch.setitem(M.CONFIG['paths'], 'output_dir', str(tmp_path))
+    monkeypatch.setitem(M.CONFIG['paths'], 'epu_china_csv', str(epu_csv))
+
+    M.main()
+    out_path = tmp_path / '16_epu_panel.parquet'
+    assert out_path.exists()
+    panel = pd.read_parquet(out_path)
+    # 应含 2 银行 × 1 年 = 2 行
+    assert len(panel) == 2
+    assert {'target_bank', 'year', 'epu_mean_year', 'epu_year_end',
+            'epu_std_year', 'epu_data_complete'}.issubset(panel.columns)
