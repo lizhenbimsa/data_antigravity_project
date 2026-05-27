@@ -232,3 +232,143 @@ class TestCLIValidate:
 
         rc = benefit_society_alt_anchor.main(["--validate-only"])
         assert rc == 0
+
+
+# ============================================================================
+# quality-hardening Round 52 (2026-05-27): alt_anchor 73.21% → ≥90%
+# 补 yaml validation 边界 (82/85/90) + embedding shape (137) + project 2D (167) +
+# write_sidecar_json (227-243) + main() full projection branch (307-343)
+# ============================================================================
+
+
+class TestLoadAnchorsValidation:
+    def test_pairs_count_not_5_raises(self, tmp_path):
+        """pairs 实际长度 != 5 但 n_pairs==5 仍触发 line 82."""
+        bad_yaml = tmp_path / "bad.yaml"
+        bad_yaml.write_text(
+            "schema_version: '1.0'\nanchor_family: 'bad'\nn_pairs: 5\n"
+            "pairs:\n"
+            "  - {id: 1, positive: 'a', negative: 'b'}\n"
+            "  - {id: 2, positive: 'c', negative: 'd'}\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(ValueError, match="Expected 5 pairs"):
+            load_jlm_zh_anchors(bad_yaml)
+
+    def test_duplicate_ids_raise(self, tmp_path):
+        """重复 id → ValueError (line 85)."""
+        bad_yaml = tmp_path / "dup.yaml"
+        bad_yaml.write_text(
+            "schema_version: '1.0'\nanchor_family: 'bad'\nn_pairs: 5\n"
+            "pairs:\n"
+            "  - {id: 1, positive: 'a', negative: 'b'}\n"
+            "  - {id: 1, positive: 'c', negative: 'd'}\n"
+            "  - {id: 3, positive: 'e', negative: 'f'}\n"
+            "  - {id: 4, positive: 'g', negative: 'h'}\n"
+            "  - {id: 5, positive: 'i', negative: 'j'}\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(ValueError, match="Duplicate pair ids"):
+            load_jlm_zh_anchors(bad_yaml)
+
+    def test_empty_sentence_raises(self, tmp_path):
+        """positive 或 negative 为空 → ValueError (line 90)."""
+        bad_yaml = tmp_path / "empty.yaml"
+        bad_yaml.write_text(
+            "schema_version: '1.0'\nanchor_family: 'bad'\nn_pairs: 5\n"
+            "pairs:\n"
+            "  - {id: 1, positive: 'a', negative: ''}\n"  # empty negative
+            "  - {id: 2, positive: 'c', negative: 'd'}\n"
+            "  - {id: 3, positive: 'e', negative: 'f'}\n"
+            "  - {id: 4, positive: 'g', negative: 'h'}\n"
+            "  - {id: 5, positive: 'i', negative: 'j'}\n",
+            encoding="utf-8",
+        )
+        with pytest.raises(ValueError, match="Empty sentence"):
+            load_jlm_zh_anchors(bad_yaml)
+
+
+def test_compute_direction_embedding_shape_mismatch_raises():
+    """embedding_fn 返回错形 shape → ValueError (line 137-139)."""
+    def bad_fn(texts):
+        # 返回 1D 数组而非 2D
+        return np.zeros(len(texts))
+    with pytest.raises(ValueError, match="returned shape"):
+        compute_direction_vector(["a", "b"], ["c", "d"], bad_fn)
+
+
+def test_project_texts_requires_2d_embeddings():
+    """text_embeddings 是 1D → ValueError (line 167-168)."""
+    embeddings = np.zeros(10)  # 1D
+    direction = np.zeros(8)
+    with pytest.raises(ValueError, match="must be 2D"):
+        project_texts(embeddings, direction)
+
+
+def test_write_sidecar_json(tmp_path):
+    """write_sidecar_json 写完整 sidecar (lines 227-243)."""
+    from news_process.pipeline.features.benefit_society_alt_anchor import (
+        write_sidecar_json,
+    )
+    panel_path = tmp_path / 'panel.parquet'
+    fake_meta = {'yaml_sha256': 'abc', 'anchor_family': 'jlm_zh_v1'}
+    out = write_sidecar_json(
+        panel_path, fake_meta,
+        direction_sha='dir_sha_xyz',
+        n_articles=100,
+        n_bank_years=50,
+    )
+    assert out.exists()
+    assert out.name == 'panel.sidecar.json'
+    import json
+    data = json.loads(out.read_text(encoding='utf-8'))
+    assert data['anchor_metadata']['yaml_sha256'] == 'abc'
+    assert data['direction_vector_sha256'] == 'dir_sha_xyz'
+    assert data['n_articles_scored'] == 100
+    assert data['n_bank_year_obs'] == 50
+    assert data['embedding_dim'] == 768
+
+
+def test_main_missing_inputs_warns_and_exits_clean():
+    """main() 仅有部分 input → warn + return 0 (lines 307-312)."""
+    from news_process.pipeline.features import benefit_society_alt_anchor as mod
+    # 既没传 text-embeddings 也没传 df-exploded → warning branch
+    rc = mod.main([])
+    assert rc == 0
+
+
+def test_main_full_projection_path(tmp_path, monkeypatch):
+    """main() 全输入路径 (lines 307-343): mock SentenceTransformer + 走完整 projection."""
+    from unittest.mock import MagicMock, patch
+
+    from news_process.pipeline.features import benefit_society_alt_anchor as mod
+
+    # 准备 fixture 文件
+    n = 4
+    emb_dim = 768  # match embedding_dim in main
+    emb = np.random.RandomState(0).randn(n, emb_dim).astype(np.float32)
+    df = pd.DataFrame({
+        'target_bank': ['A'] * n,
+        'year': [2018] * n,
+    })
+    emb_path = tmp_path / 'emb.npy'
+    df_path = tmp_path / 'df.parquet'
+    output_path = tmp_path / 'out' / 'panel.parquet'
+    np.save(emb_path, emb)
+    df.to_parquet(df_path)
+
+    # Mock sentence_transformers to avoid heavy load
+    fake_st = MagicMock()
+    fake_st.encode = lambda texts, show_progress_bar=False: np.random.RandomState(
+        1).randn(len(texts), emb_dim).astype(np.float32)
+    with patch('sentence_transformers.SentenceTransformer',
+               return_value=fake_st):
+        rc = mod.main([
+            '--text-embeddings-full', str(emb_path),
+            '--df-exploded', str(df_path),
+            '--output', str(output_path),
+        ])
+    assert rc == 0
+    assert output_path.exists()
+    sidecar = output_path.with_suffix('.sidecar.json')
+    assert sidecar.exists()
