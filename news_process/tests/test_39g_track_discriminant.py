@@ -242,6 +242,7 @@ def test_run_insufficient_obs_after_mask():
     assert report["n_obs"] == 0
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in divide:RuntimeWarning")
 def test_run_nan_verdict_branch():
     """HTMT pair 出 nan (e.g. zero variance 一轨) → verdict='nan' (line 202)."""
     n = 30

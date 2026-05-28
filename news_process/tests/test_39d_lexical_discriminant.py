@@ -152,6 +152,7 @@ def test_htmt_dual_cutoff(synthetic_panel):
         assert v in ('strict_pass', 'lenient_pass', 'fail', 'nan')
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in divide:RuntimeWarning")
 def test_nan_safe_propagation():
     """全 NaN 列不抛 (graceful)."""
     df = pd.DataFrame({

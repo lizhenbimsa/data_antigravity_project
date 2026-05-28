@@ -183,7 +183,10 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
 # STAGES_VALIDATION 中, orchestrator 永远不会调 _get_stage_output_files()
 # 查它们, 故不列入此集合 (避免无效条目误导维护者)。
 EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
-    # validation stages (31-39): 只写 eval_reports/*.csv, 不写 parquet
+    # validation stages (31-39): orchestrator 预清理跳过的集合。
+    # 注意: 多数 stage 只写 eval_reports/*.csv, 但 39c/39d/39f/39g 仍会写
+    # data/processed/39*_*.parquet|json — 这些 parquet/json 走 validation
+    # 约定不进 OUTPUT_REGISTRY (按 per-stage 行内注释), orchestrator 不预清理。
     "31_bank_fintech_threshold.py",
     "32_news_llms_human.py",
     "32a_dedup_threshold_sensitivity.py",

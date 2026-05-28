@@ -11,13 +11,17 @@ CLI 用法
     python -m news_process.run_paper <paper_id> [...]
 
 可选 paper_id (与 ``papers/<paper_id>/`` 一一对应):
-    news_process   — 主线: 银行金融科技语调 → 银行行为
-    benefit_society     — 衍生 1: 经营效益态度投影 (Jha-Liu-Manela 2026)
-    brokerage_network   — 衍生 2: 信息经纪网络 (Han et al. 2024)
-    llm_peer            — 衍生 3: LLM 同业 IV (Cao et al. 2025)
-    strategic_diff      — 衍生 4: 战略差异度 (Guzman-Li 2023)
+    bank_fintech_tone       — 主线: 银行金融科技语调 → 银行行为
+    bank_fintech_attention  — Bank-FinTech 衍生: firm-level attention (Hassan 2019)
+    bank_fintech_substance  — Bank-FinTech 衍生: W&Z 实质/象征
+    bank_fintech_locus      — Bank-FinTech 衍生: Gomber 底层/应用
+    benefit_society         — 衍生 1: 经营效益态度投影 (Jha-Liu-Manela 2026)
+    brokerage_network       — 衍生 2: 信息经纪网络 (Han et al. 2024)
+    llm_peer                — 衍生 3: LLM 同业 IV (Cao et al. 2025)
+    strategic_diff          — 衍生 4: 战略差异度 (Guzman-Li 2023)
 
-    --list              列出全部白名单 paper_id 及简介, 不执行其它动作。
+    实际白名单以 ``papers/_common/paper_config._VALID_PAPER_IDS`` 为准
+    (``--list`` 列出全部白名单 paper_id 及简介, 不执行其它动作)。
 
 设计约束
 --------

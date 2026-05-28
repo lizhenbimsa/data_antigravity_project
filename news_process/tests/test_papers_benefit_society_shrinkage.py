@@ -117,6 +117,7 @@ def test_apply_shrinkage_custom_output_col(shrink):
 # ============================================================================
 
 
+@pytest.mark.filterwarnings("ignore:Random effects covariance is singular:UserWarning")
 def test_mixedlm_returns_dict_when_statsmodels_available(shrink):
     """mixedlm_sanity_check 在 statsmodels 装好时返回 dict (lines 127-143)."""
     # 合成 panel 含足够 groups + samples

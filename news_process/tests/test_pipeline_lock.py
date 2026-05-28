@@ -469,22 +469,34 @@ class TestPipelineLockErrorHandlers(unittest.TestCase):
         try:
             second_logger = Mock(spec=logging.Logger)
             second_lock = PipelineLock(second_logger, self.temp_dir)
-            # 让 lock_file.close 抛异常
+            # 让 lock_file.close 抛异常 — 必须跟踪 wrapped file 在测试结束后
+            # 还原其 close, 否则 GC 时触发的 OSError 会被 Python 上报为
+            # PytestUnraisableExceptionWarning 污染后续 test 的 warning summary。
             import io
             real_open = io.open
+            wrapped_files = []
             def fake_open(path, *a, **kw):
                 f = real_open(path, *a, **kw)
-                # 包装 close 抛错
                 orig_close = f.close
                 def bad_close(*args, **kwargs):
                     raise OSError("simulated close failure during failure cleanup")
                 f.close = bad_close
+                wrapped_files.append((f, orig_close))
                 return f
-            with patch('builtins.open', side_effect=fake_open):
-                with self.assertRaises(RuntimeError):
-                    second_lock.__enter__()
-            # close 失败 → 应触发 debug log 至少 1 次
-            self.assertTrue(second_logger.debug.called or second_logger.error.called)
+            try:
+                with patch('builtins.open', side_effect=fake_open):
+                    with self.assertRaises(RuntimeError):
+                        second_lock.__enter__()
+                # close 失败 → 应触发 debug log 至少 1 次
+                self.assertTrue(second_logger.debug.called or second_logger.error.called)
+            finally:
+                # 还原所有 wrapped file 的 close 并真关闭, 避免 GC 触发 OSError
+                for f, orig_close in wrapped_files:
+                    f.close = orig_close
+                    try:
+                        f.close()
+                    except OSError:
+                        pass  # 文件可能已被 _handle_lock_failure 释放
         finally:
             primary.__exit__(None, None, None)
 

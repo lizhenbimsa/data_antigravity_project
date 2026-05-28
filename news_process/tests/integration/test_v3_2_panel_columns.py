@@ -109,18 +109,50 @@ def test_panel_bartik_iv_dual_set(panel_or_skip):
 
 
 def test_panel_dual_subset_identity(panel_or_skip):
-    """plan v14 §3.2 R3-C 恒等式: n_articles_tech_lc + n_articles_app_lc 应 ≤ n_articles
-    (注: ctx 轨可能丢 some verified_ctx=False, 故 ≤ 而非 ==)
+    """plan v14 §3.2 R3-C 恒等式: tech_lc + app_lc 应是 ctx-verified 子集划分.
+
+    v3.7.2 R8-H1 之后 ctx 轨与 full 轨独立 (OR-filter, 见 tone_llms.py:1744),
+    `n_articles`(=count of llm_vote_score_full) 不再是 ctx-locus 计数的上界 ——
+    ctx 可验证 full 未验证的文章 (实测 fallback 率 10.4%, 见 CLAUDE.md v3.7.2)。
+
+    新不变式: tech_lc/app_lc 桶互斥 (locus 字段 1-of-K), 故 tech_lc + app_lc 是
+    ctx-verified 中 locus∈{底层技术,应用场景} 的总数。从 13_news_with_ctx.parquet
+    动态推导 ctx-verified-with-locus 计数作为参照。
     """
     if not _panel_is_v3_2(panel_or_skip):
         pytest.skip("Panel by v3.1.1; rerun pipeline for v3.2.0 identity check")
+    import os
+
+    import pandas as pd
+
+    from news_process.core.config import load_config
+    CONFIG = load_config()
+    ctx_path = os.path.join(CONFIG['paths']['output_dir'], '21_tone_llms.parquet')
+    if not os.path.exists(ctx_path):
+        pytest.skip(f"上游 stage 21 parquet 缺失 ({ctx_path}); 跳过 ctx-side 恒等式校验")
+
+    art = pd.read_parquet(ctx_path, columns=['target_bank', 'innovation_locus_ctx'])
+    # ctx-verified 文章中 locus∈{底层技术,应用场景} 的计数, 按 target_bank 汇总
+    expected_per_bank = (
+        art[art['innovation_locus_ctx'].isin(['底层技术', '应用场景'])]
+        .groupby('target_bank').size().rename('expected_sum_lc_ctx')
+    )
+
     df = panel_or_skip
     has_news = df['n_articles'] > 0
-    sum_lc = (df.loc[has_news, 'n_articles_tech_lc_ctx'] +
-              df.loc[has_news, 'n_articles_app_lc_ctx'])
-    # ≤ n_articles (ctx 轨可能未全覆盖)
-    assert (sum_lc <= df.loc[has_news, 'n_articles']).all(), \
-        "M2 P2 _lc 子集恒等式违反: tech_lc + app_lc > n_articles"
+    panel_sum = (df.loc[has_news, 'n_articles_tech_lc_ctx'] +
+                 df.loc[has_news, 'n_articles_app_lc_ctx'])
+    # 不变式 1: 桶互斥 → tech_lc + app_lc 不超过 ctx-verified-with-locus 总数 (per bank)
+    by_bank = pd.DataFrame({
+        'target_bank': df.loc[has_news, 'target_bank'].values,
+        'panel_sum': panel_sum.values,
+    }).groupby('target_bank')['panel_sum'].sum()
+    merged = by_bank.to_frame('panel').join(expected_per_bank, how='left').fillna(0)
+    over = merged[merged['panel'] > merged['expected_sum_lc_ctx']]
+    assert over.empty, (
+        f"M2 P2 _lc 子集恒等式违反 (per bank): tech_lc+app_lc > ctx-verified-with-locus\n"
+        f"{over.head(10)}"
+    )
 
 
 def test_panel_column_count_lower_bound(panel_or_skip):

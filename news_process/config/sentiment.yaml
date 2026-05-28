@@ -21,7 +21,7 @@ tone_llm_processing:
   ensemble_method: majority_vote                    # 多模型聚合方法
 
   # v3 LLM 模型列表 — 真三家族三角验证 (基于 yunwu /v1/models 实际授权清单)
-  #   v3 锁定:  gpt-5.4-nano / gemini-3.1-flash-lite-preview / deepseek-v4-flash
+  #   v3 锁定:  gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash
   # 学术叙述: "Three independent LLM families: OpenAI + Google + DeepSeek,
   #           routed via yunwu.ai aggregator (single account, OpenAI-compatible /v1/chat/completions)."
   models:
@@ -30,9 +30,9 @@ tone_llm_processing:
       description: GPT-5.4 Nano (OpenAI via yunwu)
       base_url: https://yunwu.ai/v1
       api_key: ${YUNWU_API_KEY}                     # v6/N7: 统一 yunwu key
-    - model_name: gemini-3.1-flash-lite-preview
+    - model_name: gemini-3.1-flash-lite
       short_name: gemini31111
-      description: Gemini 3.1 Flash Lite Preview (Google via yunwu)
+      description: gemini-3.1-flash-lite (Google via yunwu)
       base_url: https://yunwu.ai/v1
       api_key: ${YUNWU_API_KEY}
     - model_name: deepseek-v4-flash

@@ -8,6 +8,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import pytest
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.*`` 在任意 cwd 解析
 _PROJECT_PARENT = os.path.dirname(
@@ -44,6 +45,9 @@ def _make_df(n=100, fp_bias=None, seed=42):
     })
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Precision loss occurred in moment calculation:RuntimeWarning"
+)
 class TestDiagnoseMisclassificationBias:
 
     def test_basic_structure(self):
@@ -120,8 +124,6 @@ class TestDiagnoseMisclassificationBias:
 # Plan v1.37 P0 §3.3.3 — 17 new tests for 4-task extension
 # 26 parametrize-aware cases (test 7: 10 cases; tests 1-6, 8-17: 1 case each)
 # =============================================================================
-import pytest
-
 from news_process.validation.manual_validation_schema import (
     R_COLUMNS_BY_RATER,
     merge_three_rater_majority,
