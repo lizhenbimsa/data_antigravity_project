@@ -1,12 +1,10 @@
-"""22_tone_words.py — 已弃用的 CLI 极薄适配层 (Phase 7a-5).
+"""22_tone_words.py — CLI 适配层 shim (Phase 7a-5).
 
 实现正文已迁至 ``news_process.pipeline.sentiment.tone_words:main``。
 历史约定 ``python 22_tone_words.py`` 由本文件保留；编排器仍以子进程方式调用该脚本文件名。
 
 建议外部工具改用:
     python -m news_process.pipeline.sentiment.tone_words
-
-计划于 v3.0 移除。
 """
 
 import pathlib

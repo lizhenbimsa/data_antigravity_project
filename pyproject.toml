@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "news-process"
-version = "3.7.1"
-description = "Bank-fintech news -> bank-year panel data pipeline (v3.7.1 — v3.7.0 D-group + v2.3 implementation: 9 papers + Layer 7+8 + 127 fast tests + DC3 LLM archive + BERTopic/staleness/CEO-NER stages; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架)."
+version = "3.7.4"
+description = "Bank-fintech news -> bank-year panel data pipeline (v3.7.4 — Panel D/E stratified robustness + bootstrap CI + Q1-Q5 empirical anchor; built on v3.7.3 _title-track Tier-B robustness, v3.7.0 D-group + v2.3 implementation: 9 papers + DC3 LLM archive + BERTopic/staleness/CEO-NER stages; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架)."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "Proprietary" }

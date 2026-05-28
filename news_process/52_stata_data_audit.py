@@ -1,12 +1,12 @@
-"""52_stata_data_audit.py — 已弃用的 CLI 极薄适配层 (Phase 7a-8).
+"""52_stata_data_audit.py — CLI 适配层 shim (Phase 7a-8 迁移后).
 
 实现正文已迁至 ``news_process.pipeline.audit.stata_audit:main``。
-历史约定 ``python 52_stata_data_audit.py`` 由本文件保留；编排器仍以子进程方式调用该脚本文件名。
+为向后兼容 ``python news_process/52_stata_data_audit.py`` 外部 CLI 契约保留;
+**不在 STAGES_MAIN/STAGES_VALIDATION 中, 编排器不会触发**
+(见 ``news_process/core/schemas.py:182`` 显式排除注释)。
 
-建议外部工具改用:
+由用户按需手动调用 (Stata 导出后数据审计); 推荐入口:
     python -m news_process.pipeline.audit.stata_audit
-
-计划于 v3.0 移除。
 """
 
 import pathlib
