@@ -149,14 +149,22 @@ def derive_residual_signals(df: pd.DataFrame) -> list[str]:
 def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     """Aggregate D2 8-cell counts onto bank-year panel.
 
-    Per plan §2.1.2:
+    Per plan §2.1.2 + F-CR-cell-NA (R6 fix):
         - 8 cell-count columns: n_articles_cell_{1..8}_full
-        - main identity: n_articles == Σ n_articles_cell_{1..8}_full
+        - 1 NA bucket column: n_articles_cell_NA_full
+          (articles 在 cell_id_full = NA, 通常 LLM 对 substantiveness/locus/
+           collab_mode 三维之一失败)
+        - main identity: ``n_articles >= Σ n_articles_cell_{1..8}_full``
+          (逻辑必然性, n_articles 包含 cell_NA bucket; main_fail 仅在 n_articles
+          < sum 时 > 0, 那才是真不一致 bug 而非 LLM 部分失败)
+        - stricter completeness: ``n_articles == Σ cells_1..8 + n_articles_cell_NA_full``
+          (na_bucket_fail > 0 → 上游 race condition)
         - cross identities (vs v3.4.0 _indep/_collab):
-            n_articles_indep  == n_articles_cell_{1,3,5,7}_full
-            n_articles_collab == n_articles_cell_{2,4,6,8}_full
+            n_articles_indep  >= n_articles_cell_{1,3,5,7}_full
+            n_articles_collab >= n_articles_cell_{2,4,6,8}_full
 
-    Returns dict with identity check failure counts (per plan §2.1.2 F27/C-NEW-2).
+    Returns dict with identity check failure counts (per plan §2.1.2 F27/C-NEW-2
+    + R6 F-CR-cell-NA: na_bucket_fail / n_articles_cell_NA_total / na_bucket_pct).
     """
     # CR-3 / CR-4 (CRITICAL fix): 与 production encode.py 对齐 — panel 是 flat
     # DataFrame, target_bank + year 是**列**而非 MultiIndex (参 encode.py:666
@@ -215,45 +223,102 @@ def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     # Align groupby results to panel row order via MultiIndex (panel itself stays flat)
     panel_idx = pd.MultiIndex.from_frame(panel[['target_bank', 'year']])
 
+    # F-CR-cell-NA (R6 fix): cell 聚合需与 panel.n_articles 同源 subset 计数。
+    # encode.py:573 `n_articles = ('llm_vote_score_full', 'count')` 只数 LLM 总分
+    # 非 NaN 的 articles. 直接 `df['cell_id_full'] == cell_id` 会把 LLM 总分失败但
+    # cell_id 三维都合法的 articles 也计入 cells → Σ cells > n_articles → 假阳性
+    # main_fail (实测 13/87 bank-years). 解决: cell aggregation 限定在与 n_articles
+    # 同源 subset 上. 优先用 llm_vote_score_full (encode.py 计算后状态); 退化时复刻
+    # encode.py:113-137 完整 invalid_mask 公式 (verified=False ∨ call_failure ∨
+    # undefined ∨ sentiment_full 缺失 → invalid).
+    if 'llm_vote_score_full' in df.columns:
+        df_scored = df[df['llm_vote_score_full'].notna()].copy()
+    elif 'llm_sentiment_full' in df.columns:
+        invalid = pd.Series(False, index=df.index)
+        if 'llm_call_failure_full' in df.columns:
+            invalid = invalid | df['llm_call_failure_full'].fillna(0).astype(bool)
+        if 'llm_undefined_full' in df.columns:
+            invalid = invalid | df['llm_undefined_full'].fillna(0).astype(bool)
+        if 'llm_verified_full' in df.columns:
+            invalid = invalid | (~df['llm_verified_full'].fillna(False).astype(bool))
+        invalid = invalid | df['llm_sentiment_full'].isna()
+        df_scored = df[~invalid].copy()
+    else:
+        # 退化: 上游列全缺失时退回全 df (保留旧语义)
+        df_scored = df
+
     for cell_id in range(1, 9):
-        df_cell = df[df['cell_id_full'] == cell_id]
+        df_cell = df_scored[df_scored['cell_id_full'] == cell_id]
         col = f'n_articles_cell_{cell_id}_full'
         counts = (df_cell.groupby(['target_bank', 'year']).size()
                          .reindex(panel_idx, fill_value=0).astype('Int32'))
         panel[col] = counts.values
 
-    # Main identity (panel rows with articles)
+    # F-CR-cell-NA: 显式追踪 cell_id_full = NA 的 (LLM-scored) article 数 per (bank, year).
+    # 该 bucket = LLM 总分成功 (在 n_articles 中) 但 substantiveness/locus/collab_mode
+    # 任一维度失败的 articles. identity: n_articles = Σ cells_1..8 + n_articles_cell_NA_full.
+    df_cell_na = df_scored[df_scored['cell_id_full'].isna()]
+    na_counts = (df_cell_na.groupby(['target_bank', 'year']).size()
+                           .reindex(panel_idx, fill_value=0).astype('Int32'))
+    panel['n_articles_cell_NA_full'] = na_counts.values
+
+    # F-CR-cell-NA: identity 改为 "逻辑必然性" 检查 `n_articles >= Σ cells 1..8`,
+    # main_fail = 数 of rows where `n_articles < Σ cells` (才是真不一致 bug). 同时新增
+    # 严格完整性公式 `n_articles == Σ cells + n_articles_cell_NA_full` 作为 stronger
+    # check (na_bucket_fail), 任何时候都应 = 0 — 若不为 0 则上游 LLM 输出有 race condition.
     main_sum = sum(panel[f'n_articles_cell_{i}_full'] for i in range(1, 9))
     has_news = panel['n_articles'] > 0
-    main_fail = int((~(panel.loc[has_news, 'n_articles'] == main_sum.loc[has_news])).sum())
+    main_fail = int((panel.loc[has_news, 'n_articles']
+                     < main_sum.loc[has_news]).sum())
+    na_bucket_fail = int((panel.loc[has_news, 'n_articles']
+                          != main_sum.loc[has_news]
+                          + panel.loc[has_news, 'n_articles_cell_NA_full']).sum())
 
-    # Cross identities (only if v3.4.0 二元后缀列存在)
+    # Cross identities (only if v3.4.0 二元后缀列存在); 改用 ">=" 同 main_fail 一致
     indep_cross_fail = 0
     collab_cross_fail = 0
     if 'n_articles_indep' in panel.columns:
         indep_sum = sum(panel[f'n_articles_cell_{i}_full'] for i in [1, 3, 5, 7])
         has_indep = panel['n_articles_indep'] > 0
-        indep_cross_fail = int((~(panel.loc[has_indep, 'n_articles_indep']
-                                  == indep_sum.loc[has_indep])).sum())
+        indep_cross_fail = int((panel.loc[has_indep, 'n_articles_indep']
+                                < indep_sum.loc[has_indep]).sum())
     if 'n_articles_collab' in panel.columns:
         collab_sum = sum(panel[f'n_articles_cell_{i}_full'] for i in [2, 4, 6, 8])
         has_collab = panel['n_articles_collab'] > 0
-        collab_cross_fail = int((~(panel.loc[has_collab, 'n_articles_collab']
-                                   == collab_sum.loc[has_collab])).sum())
+        collab_cross_fail = int((panel.loc[has_collab, 'n_articles_collab']
+                                 < collab_sum.loc[has_collab]).sum())
+
+    # F-CR-cell-NA: 即便 main_fail / cross_fail 都 = 0, 仍报告 NA bucket 占比 (诊断信息)
+    na_total = int(panel['n_articles_cell_NA_full'].sum())
+    n_articles_total = int(panel.loc[has_news, 'n_articles'].sum())
+    na_pct = (na_total / n_articles_total * 100) if n_articles_total > 0 else 0.0
 
     if main_fail > 0 or indep_cross_fail > 0 or collab_cross_fail > 0:
         logger.warning(
-            f"  ✗ cell_id identity 失败: main={main_fail}, "
-            f"indep_cross={indep_cross_fail}, collab_cross={collab_cross_fail}"
+            f"  ✗ cell_id identity 失败 (n_articles < Σ cells 不可能成立): "
+            f"main={main_fail}, indep_cross={indep_cross_fail}, "
+            f"collab_cross={collab_cross_fail}"
+        )
+    elif na_bucket_fail > 0:
+        logger.warning(
+            f"  ⚠ cell_id NA bucket identity 失败 (上游数据 race condition?): "
+            f"na_bucket_fail={na_bucket_fail}"
         )
     else:
-        logger.info("  ✓ cell_id 8-cell + cross-identity 校验通过")
+        # 把 LLM partial failure 的诊断信息从 WARNING 降为 INFO (设计性预期)
+        logger.info(
+            f"  ✓ cell_id identity 通过 (n_articles_cell_NA_full bucket = "
+            f"{na_total}/{n_articles_total} = {na_pct:.1f}% LLM 部分失败 articles)"
+        )
 
     return {
         'main_fail': main_fail,
         'indep_cross_fail': indep_cross_fail,
         'collab_cross_fail': collab_cross_fail,
         'cell_aggregation_skipped': False,
+        'na_bucket_fail': na_bucket_fail,
+        'n_articles_cell_NA_total': na_total,
+        'na_bucket_pct': na_pct,
     }
 
 
@@ -441,11 +506,15 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
 
     added_cols = []
     # 加 weighted columns 给 article level
-    df['_w_clarity_full'] = df['clarity_clarity_score_full'] * w
-    df['_w_clarity_ctx'] = df['clarity_clarity_score_ctx'] * w
-    df['_w_def_full'] = df['clarity_frac_definite_full'] * w
-    df['_w_def_ctx'] = df['clarity_frac_definite_ctx'] * w
-    df['_w'] = w
+    # 单次 assign 写入 5 个临时列, 避免逐列 insert 触发 pandas
+    # PerformanceWarning (DataFrame is highly fragmented)
+    df = df.assign(
+        _w_clarity_full=df['clarity_clarity_score_full'] * w,
+        _w_clarity_ctx=df['clarity_clarity_score_ctx'] * w,
+        _w_def_full=df['clarity_frac_definite_full'] * w,
+        _w_def_ctx=df['clarity_frac_definite_ctx'] * w,
+        _w=w,
+    )
 
     agg = df.groupby(['target_bank', 'year']).agg(
         _sum_w_clarity_full=('_w_clarity_full', 'sum'),
@@ -515,9 +584,13 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
         if w_col in df.columns:
             w = w * df[w_col].fillna(1.0)
 
-    df['_w_ni_full'] = df['num_intensity_full'] * w
-    df['_w_ni_ctx'] = df['num_intensity_ctx'] * w
-    df['_w'] = w
+    # 单次 assign 写入 3 个临时列, 避免逐列 insert 触发 pandas
+    # PerformanceWarning (DataFrame is highly fragmented)
+    df = df.assign(
+        _w_ni_full=df['num_intensity_full'] * w,
+        _w_ni_ctx=df['num_intensity_ctx'] * w,
+        _w=w,
+    )
 
     agg = df.groupby(['target_bank', 'year']).agg(
         _sum_w_ni_full=('_w_ni_full', 'sum'),

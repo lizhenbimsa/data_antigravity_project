@@ -72,11 +72,15 @@ class TestStage21LLMDualTrack:
 
     def test_per_model_dual_track_columns(self, df21):
         """逐模型双轨列完整"""
+        # 非模型来源的 *_verified_full 列 (需排除):
+        #   - 'llm':       v3.2.0 聚合 verification flag (跨模型 OR)
+        #   - 'intensity': v3.6.0 stage 14 fintech intensity 验证标志 (上游列)
+        _NON_MODEL_VERIFIED_PREFIXES = {'llm', 'intensity'}
         model_shorts = []
         for c in df21.columns:
             if c.endswith('_verified_full'):
                 sn = c.replace('_verified_full', '')
-                if sn != 'llm':
+                if sn not in _NON_MODEL_VERIFIED_PREFIXES:
                     model_shorts.append(sn)
 
         assert len(model_shorts) > 0, "未发现逐模型列"
@@ -249,6 +253,13 @@ class TestFallbackAxiom:
         'innovation_locus',         # *_full / *_ctx
         'innovation_substantiveness',
         'category_confidence',
+        # v3.4.0+ (P5 collab + ensemble aggregation): innovation_collab_mode 及
+        # avg_subst_prob_score / avg_locus_prob_score / avg_collab_prob_score 是
+        # 跨模型聚合 LLM 衍生列, 任何 LLM 失败的样本上聚合为 NaN 是预期信号.
+        'innovation_collab_mode',
+        'avg_subst_prob_score',
+        'avg_locus_prob_score',
+        'avg_collab_prob_score',
     )
 
     def _is_llm_nan_allowed(self, col_name: str) -> bool:

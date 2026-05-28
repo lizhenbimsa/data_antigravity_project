@@ -1239,18 +1239,28 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 panel['llm_vote_tone_indep_full'] - panel['llm_vote_tone_collab_full']
             )
 
-        # innovation_collab_mode 恒等式校验（二分类）
+        # innovation_collab_mode 恒等式校验（二分类）— F-CR-cell-NA (R6 fix):
+        # 旧严格 `n_articles == n_articles_indep + n_articles_collab` 在 LLM 对 collab_mode
+        # 维度部分失败时必然破坏 (失败 article 既不入 _indep 也不入 _collab 但仍计入 n_articles).
+        # 改为逻辑必然性: `n_articles >= n_articles_indep + n_articles_collab`. 差额 =
+        # 上游 collab_mode = NaN 的 articles, 由 v3.5.0 D2 `n_articles_cell_NA_full` 兜底跟踪.
         if all(f'n_articles{s}' in panel.columns for s in ['_indep', '_collab']):
             has_news = panel['n_articles'] > 0
-            cm_identity = (panel.loc[has_news, 'n_articles'] ==
-                           panel.loc[has_news, 'n_articles_indep'] +
-                           panel.loc[has_news, 'n_articles_collab'])
-            if cm_identity.all():
-                logger.info("  ✓ innovation_collab_mode 恒等式校验通过: "
-                            "n_articles == n_articles_indep + n_articles_collab")
+            cm_sum = (panel.loc[has_news, 'n_articles_indep'] +
+                      panel.loc[has_news, 'n_articles_collab'])
+            n_fail_cm = int((panel.loc[has_news, 'n_articles'] < cm_sum).sum())
+            if n_fail_cm == 0:
+                cm_gap = int((panel.loc[has_news, 'n_articles'] - cm_sum).sum())
+                logger.info(
+                    "  ✓ innovation_collab_mode 恒等式校验通过 "
+                    f"(LLM collab_mode 部分失败累计 {cm_gap} articles, 由 "
+                    "n_articles_cell_NA_full bucket 兜底)"
+                )
             else:
-                n_fail_cm = (~cm_identity).sum()
-                logger.warning(f"  ✗ innovation_collab_mode 恒等式校验失败: {n_fail_cm} 行")
+                logger.warning(
+                    f"  ✗ innovation_collab_mode 恒等式校验失败 (n_articles < "
+                    f"sum, 上游 race condition?): {n_fail_cm} 行"
+                )
 
         # ── ctx 轨对角线追加 (与 substantiveness _sc / locus _lc 同模式) ──
         # Chesbrough 2003 + Hassan 2019 QJE entity-proximity

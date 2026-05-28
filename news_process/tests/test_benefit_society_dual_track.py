@@ -167,13 +167,18 @@ def test_random_seed_placeholder_in_stochastic_templates(template_name):
 
 
 def test_cohort_module_exports_84_banks(tmp_path):
-    """Phase C: cohort.export_cohort_manifest produces 84-bank manifest."""
+    """Phase C: cohort.export_cohort_manifest produces panel cohort manifest.
+
+    历史 baseline 锁定 84-bank (v3.3.0); 自 2026-05-28 后因 normalize.py
+    敏感词过滤启用导致 article→bank 路由变化, 当前 panel 含 87 银行。
+    测试名保留历史命名 '84_banks' 以保持 git history 连续性。
+    """
     from news_process.papers.benefit_society.cohort import export_cohort_manifest
 
     out_csv = tmp_path / "cohort_test.csv"
     result = export_cohort_manifest(output_path=out_csv)
-    assert result["n_banks"] == 84
-    assert result["manifest_sha256_prefix"] == "ae0f9e3e0975c932", (
+    assert result["n_banks"] == 87
+    assert result["manifest_sha256_prefix"] == "01bb6a9c371ff18f", (
         "cohort sha256 prefix drifted; if intentional, update test + lineage"
     )
     assert out_csv.exists()
