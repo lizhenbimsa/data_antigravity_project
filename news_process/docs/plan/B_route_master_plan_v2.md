@@ -285,7 +285,7 @@ M-1 启动前必须由用户 (经 D1) 明确提供:
 
 #### 5.1.3 交付
 
-- [`docs/audit/M-1_data_reality_check.md`](../audit/M-1_data_reality_check.md)（待创建）
+- `docs/audit/M-1_data_reality_check.md`（待创建; 文件尚未存在, 链接为 placeholder）
   - 7 张数据表
   - 5 张图（含 bank × year 覆盖热力图、年度报道量趋势、银行类型分布等）
   - N_eff × T_eff **95% 置信区间**（如 "3,200 ± 1,500 obs"）

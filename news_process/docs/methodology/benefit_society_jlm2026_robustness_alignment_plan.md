@@ -309,7 +309,7 @@ P-1.A 补充 ROA/CAR/NPL → panel。详见 §2 P-1 PREREQUISITE。
 | R-B2.A | fracreg 在某 spec 不收敛 | L | M | Fallback OLS + heteroskedasticity-robust SE; Limitations 说明 |
 | R-1.A | shibing624 本地推理在大文本上 OOM (24GB GPU 可能 borderline) | L | L | batch_size 降到 8; CPU fallback |
 | R-1.B | placebo audit panel parquet 写出失败 (路径) | L | L | mkdir -p data/processed/ |
-| R-Stage-B | Stage B trigger (M0.5 panel expansion) 何时 ready 未知 | H | L | Stage A 不依赖 Stage B；Stage B trigger 由 [decision_queue.yaml](../../config/decision_queue.yaml) 单独 gate |
+| R-Stage-B | Stage B trigger (M0.5 panel expansion) 何时 ready 未知 | H | L | Stage A 不依赖 Stage B；Stage B trigger 由 `config/decision_queue.yaml` (M0 hard prerequisite, 文件待创建) 单独 gate |
 | ~~R-A2.B~~ | ~~jlm_zh 锚点 cosine sim > 0.95~~ → **Round 9 V2.E37 修正版重新定性**: J-L-M 5 对 broad-finance 与项目 10 对 fintech-specific 是**不同研究问题的锚点**, 不预期 cosine sim 高; 预期 sign-match 但 magnitude 不同。R-A2.B 论据失效, 划线作 obsolete | L | L | N/A (风险条目已 obsolete) |
 | ~~R-shibing624.cache~~ | ~~shibing624/text2vec-base-chinese 本地 HF cache 未 verified~~ — **Round 8 V2.E33 验证**: 实测 `~/.cache/huggingface/hub` 含 shibing624, cache 已存在 → 风险降级 | L | L | P0.5 保留为 idempotent verify; 风险条目作为历史记录保留 (划线表示已 obsolete) |
 
@@ -381,7 +381,7 @@ V4 audit 4 critical bugs 已闭合 ([B_route_master_plan_v2_audit_log.md](../pla
 
 Stage B 触发条件: `assert pd.read_parquet('40_panel_yearly.parquet')['year'].nunique() >= 10`。
 
-当前 panel T=2017-2018; M0.5 target T=2007-2024。何时 ready 取决于上游 raw data ingestion + filtering pipeline。本计划 Stage A 完成后, Stage B 进入 [decision_queue.yaml](../../config/decision_queue.yaml) 排队 (memory [paper_portfolio_decision_gates](C:/Users/lizhe/.claude/projects/f--WiseSearch-data-antigravity-project/memory/paper_portfolio_decision_gates.md) 43-73 gates).
+当前 panel T=2017-2018; M0.5 target T=2007-2024。何时 ready 取决于上游 raw data ingestion + filtering pipeline。本计划 Stage A 完成后, Stage B 进入 `config/decision_queue.yaml` (M0 hard prerequisite, 文件待创建) 排队 (memory [paper_portfolio_decision_gates](C:/Users/lizhe/.claude/projects/f--WiseSearch-data-antigravity-project/memory/paper_portfolio_decision_gates.md) 43-73 gates).
 
 ### 8.5 V2.0 vs V1.0 supersession
 

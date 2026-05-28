@@ -37,7 +37,7 @@
 `fillna(0) <` 模式：
 
 - [pipeline/panel/runner.py](../pipeline/panel/runner.py)（约 20+ 处洗稿率前置标记）
-- [pipeline/panel/aggregation.py](../pipeline/panel/aggregation.py)（bank-year 聚合）
+- [pipeline/panel/encode.py](../pipeline/panel/encode.py)（bank-year 聚合; aggregation 模块在 v3.x 重构中合并入 encode.py）
 - [pipeline/audit/stata_audit.py:305](../pipeline/audit/stata_audit.py#L305), [:320-321](../pipeline/audit/stata_audit.py#L320)
 - [pipeline/falsification/controls.py:600](../pipeline/falsification/controls.py#L600)
 

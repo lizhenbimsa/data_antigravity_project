@@ -15,7 +15,6 @@ from __future__ import annotations
 import logging
 import os
 
-import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
@@ -196,7 +195,7 @@ def generate_dataframe_report(df: pd.DataFrame, logger: logging.Logger):
             if col_series.isnull().all():
                 logger.info("    - 该字段所有值均为空。")
 
-            elif np.issubdtype(dtype, np.number):
+            elif pd.api.types.is_numeric_dtype(dtype):
                 stats = col_series.describe()
                 logger.info("    - 数值统计 (Numeric Stats):")
                 logger.info(

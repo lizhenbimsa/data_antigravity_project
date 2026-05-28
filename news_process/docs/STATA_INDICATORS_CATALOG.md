@@ -2432,7 +2432,7 @@ Panel = "方法学中立"的 data warehouse（Hassan 2019 QJE 风格）；论文
 | `bank_fintech_attention` (P2) | [analysis.py](../papers/bank_fintech_attention/analysis.py) | 同上 |
 | `bank_fintech_substance` (P3) | [analysis.py](../papers/bank_fintech_substance/analysis.py) | 同上 |
 | `bank_fintech_locus` (P4) | [analysis.py](../papers/bank_fintech_locus/analysis.py) | 同上 |
-| `bank_fintech_collab` (P5) | [analysis.py](../papers/bank_fintech_collab/analysis.py) | 同上 |
+| `bank_fintech_collab` (P5) | analysis.py — **deferred**, 见 v3.7.3 known issue | manuscript/refs.bib onboarding 未完成; figures.py + tables.py + paper_spec.yaml 已就位, analysis.py 待补 |
 | `benefit_society` | [analysis.py](../papers/benefit_society/analysis.py) | 同上 + `--stage robustness_stage_a` 触发 27c sibling pipeline |
 | `brokerage_network` | [analysis.py](../papers/brokerage_network/analysis.py) | 同上 |
 | `llm_peer` | [analysis.py](../papers/llm_peer/analysis.py) | 同上 |

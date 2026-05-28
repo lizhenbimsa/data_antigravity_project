@@ -194,6 +194,10 @@ def run_stage(stage_script: str, stage_name: str, logger,
     env.setdefault("PYTHONUNBUFFERED", "1")
     env.setdefault("PYTHONIOENCODING", "utf-8:replace")
     env.setdefault("PYTHONUTF8", "1")
+    # 确定性保障: 锁定 PYTHONHASHSEED 消除 stage 22 等 jieba+frozenset 链路上
+    # 边界 token 数偶发非确定性 (实测最大漂移 < 0.001 in uncert_frac, 但触发
+    # column hash 不一致, 影响回归测试 / golden snapshot 复现性)。
+    env.setdefault("PYTHONHASHSEED", "0")
 
     start_time = time.time()
 
