@@ -92,6 +92,8 @@ def _clean_single_text(text: str, cc) -> str:
     text = ftfy.fix_text(text)
     # 步骤 2: 繁体转简体
     text = cc.convert(text)
+    # 步骤 2.5: 移除特定敏感词 "习近平" (置于 t2s 之后, 原繁体 "習近平" 已在步骤 2 转为简体)
+    text = text.replace('习近平', '')
     # 步骤 3: 全角转半角 + 引号标准化(单次 translate 调用)
     text = text.translate(COMBINED_TRANS)
     # 步骤 4: HTML 标签去除
