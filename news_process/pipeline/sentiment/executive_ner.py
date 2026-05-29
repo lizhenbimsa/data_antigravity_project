@@ -218,7 +218,8 @@ def call_llm_for_ner(
     *,
     model: str = 'gpt-5.4-nano',
     cache_namespace: str = 'd4_ceo_ner',
-) -> list[dict]:
+    return_status: bool = False,
+):
     """zero-shot LLM NER call; 缓存 by (model, content hash, namespace).
 
     Args:
@@ -234,8 +235,16 @@ def call_llm_for_ner(
         v3.7.0 DC3 archive 自动接入: 每次调用 archive_record(...)
         失败不阻塞 (try/except), 与 tone_llms.py 同款.
     """
+    # audit-fixes 2026-05-29 (M4): return_status=True 时返回 (execs, call_failed);
+    # call_failed 仅在 LLM 调用真失败 (空响应/无 key/重试耗尽) 时为 True, 与
+    # "确无高管" (有响应但 execs 为空) 区分, 供 main() 把失败行置 NaN 而非 0,
+    # 并在失败率过高时 abort, 避免静默产出全零面板。默认 False → 返回 list
+    # (向后兼容既有调用方/测试)。
+    def _ret(execs, call_failed):
+        return (execs, call_failed) if return_status else execs
+
     if not content or not content.strip():
-        return []
+        return _ret([], False)  # 空输入 — 非调用失败
 
     prompt = PROMPT_TEMPLATE.format(
         bank_name=bank_name or '未知银行',
@@ -314,8 +323,11 @@ def call_llm_for_ner(
             logger.debug(f"  archive_record fail: {type(e).__name__}: {e}")
 
     # JSON 解析鲁棒
+    # audit-fixes 2026-05-29 (M4): 空 raw = LLM 调用失败 (无响应/无 key/重试
+    # 耗尽) → call_failed=True; 有响应但解析为空 = 确无高管 → call_failed=False.
+    call_failed = not raw
     if not raw:
-        return []
+        return _ret([], call_failed)
     try:
         execs = json.loads(raw)
         # 兼容两种返回: list of dict 直接 / {"executives": [...]}
@@ -330,12 +342,12 @@ def call_llm_for_ner(
                 if execs:
                     execs = execs[0]
                 else:
-                    return []
+                    return _ret([], call_failed)
         if not isinstance(execs, list):
-            return []
-        return [e for e in execs if isinstance(e, dict) and 'name' in e]
+            return _ret([], call_failed)
+        return _ret([e for e in execs if isinstance(e, dict) and 'name' in e], call_failed)
     except (json.JSONDecodeError, TypeError, KeyError):
-        return []
+        return _ret([], call_failed)
 
 
 def extract_ner_features(execs: list[dict]) -> dict[str, float]:
@@ -389,19 +401,38 @@ def main():
             continue
         logger.info(f"  ── 轨道 {suffix} ──")
         records = []
+        n_failed = 0
         for idx, row in df.iterrows():
-            execs = call_llm_for_ner(
+            execs, call_failed = call_llm_for_ner(
                 content=row[content_col],
                 bank_name=row.get('target_bank', ''),
                 cache_namespace=f'd4_ceo_ner_{suffix}',
+                return_status=True,
             )
-            feats = extract_ner_features(execs)
+            if call_failed:
+                # audit-fixes 2026-05-29 (M4): LLM 调用失败 → NaN (不当作 0 高管)
+                n_failed += 1
+                feats = {'n_ceo_mentions': float('nan'),
+                         'n_unique_execs': float('nan'),
+                         'exec_hhi': float('nan')}
+            else:
+                feats = extract_ner_features(execs)
             records.append({
                 'article_id': idx,
                 f'n_ceo_mentions_{suffix}': feats['n_ceo_mentions'],
                 f'n_unique_execs_{suffix}': feats['n_unique_execs'],
                 f'exec_hhi_{suffix}': feats['exec_hhi'],
             })
+        # audit-fixes 2026-05-29 (M4): 失败率 > 50% = LLM 整体宕机, 拒绝写出
+        # 退化面板 (此前 100% 失败会静默产出全零面板并 exit 0, 与"确无高管"不可
+        # 区分)。与 tone_llms 的 call_failure→NaN 约定一致。
+        if len(df) > 0 and n_failed / len(df) > 0.5:
+            logger.error(
+                f"  轨道 {suffix}: LLM NER 调用失败率 {n_failed}/{len(df)} "
+                f"({100 * n_failed / len(df):.0f}%) > 50%, 疑似 API 整体宕机; "
+                f"拒绝写出退化面板。请检查 YUNWU_API_KEY / 网络后重跑。"
+            )
+            sys.exit(1)
         ner_df = pd.DataFrame(records)
         for col in ner_df.columns:
             if col != 'article_id':

@@ -74,7 +74,7 @@ Sentiment methods (21/22/23) are conditionally enabled via `config/sentiment.yam
 news_process/
 ├── core/           # Kernel: config, logging, caching, DAG, stage runner
 ├── pipeline/       # Stage implementations (filtering, sentiment, panel, etc.)
-├── papers/         # Multi-paper analysis modules (9 papers supported)
+├── papers/         # Multi-paper module dirs (11: 9 fully-coded + 2 立项 v3.7.0)
 ├── validation/     # Robustness tests (threshold sensitivity, entity masking, etc.)
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
@@ -267,7 +267,7 @@ Required in `.env`:
 
 ## Multi-Paper Support
 
-The `papers/` directory contains 9 paper-specific analysis modules (v3.4+ multi-paper portfolio)。
+The `papers/` directory contains 11 paper-specific module directories (v3.4+ multi-paper portfolio; 9 fully-coded + 2 立项 v3.7.0 — `bank_media_disagreement` / `bank_news_clarity` — which currently ship only `paper_spec.yaml` + `stata_templates/` + `replication/`, pending M5/M7 module creation)。
 
 **P1–P5 Bank-FinTech 主线五篇**（统一 `bank_fintech_*` 命名；paper-level ID 引自 `docs/plan/B_route_master_plan_v2.md`，各 paper README 顶部标记格式不统一：P2/P3/P4 用 `(Px)`、P5 用 `P5 —` 前缀、P1 在 README L1 标"主线论文"未显式写 P1）：
 - `bank_fintech_tone/` (P1, master plan 主线): bank-fintech 媒体语调；P1 三轨化 spec `locus × subst × sent = 2³`（v3.6.0 G3: main = `llm_vote_tone_ctx`）
@@ -284,7 +284,7 @@ The `papers/` directory contains 9 paper-specific analysis modules (v3.4+ multi-
 
 > 注: CLAUDE.md 顶部 "Current version" 段中的 `P1/P2/P3/P4/P7` 标号指 **Plan E 内部步骤**, 与本段 paper-portfolio 的 `P1..P5` paper ID 是两个独立编号空间。
 
-Each paper has `analysis.py` (Stata runner), `figures.py`, and `tables.py`. Common utilities are in `papers/_common/` (含 v3.6.0 新增 `AI_DISCLOSURE_TEMPLATES.md` 6 系列：Nature/AER/JF/ASQ/RP/CSSCI).
+Most papers have `analysis.py` (Stata runner), `figures.py`, and `tables.py` (exceptions: `bank_media_disagreement` / `bank_news_clarity` ship spec + templates only, pending M5/M7; `bank_fintech_collab` lacks `analysis.py`). Common utilities are in `papers/_common/` (含 v3.6.0 新增 `AI_DISCLOSURE_TEMPLATES.md` 6 系列：Nature/AER/JF/ASQ/RP/CSSCI).
 
 ## Stata Environment
 

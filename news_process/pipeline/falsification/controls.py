@@ -790,18 +790,33 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
         'output_51_panel_controls', '51_panel_with_controls.parquet'
     )
     output_path = os.path.join(OUTPUT_DIR, output_filename)
-    input_file = os.path.join(CONFIG['paths']['output_dir'],
-                              CONFIG['filenames']['output_40_panel_yearly'])
+    # 血缘修复 (audit-fixes 2026-05-29): stage 51 是 3-way fan-in, load_data()
+    # 硬读三个文件 (12_fintech_full / 40_article_bank / 40_panel_yearly, 各
+    # sys.exit(1) on missing), 故 input_files 须记全部三者, 否则
+    # verify_data_integrity 对前两者 (定义对照组的 anti-join 源) 的篡改/陈旧
+    # 检测不到 (与 test_lineage_input_contract.py 强制的 fan-in 全记约定一致).
+    _od = CONFIG['paths']['output_dir']
+    _fn = CONFIG['filenames']
+    input_files = [
+        os.path.join(_od, _fn['output_40_panel_yearly']),
+        os.path.join(_od, _fn.get('output_12_fintech_full', '12_fintech_news_full.parquet')),
+        os.path.join(_od, _fn.get('output_40_article_bank', '40_article_bank_level.parquet')),
+    ]
     save_dataset(panel, output_path, logger,
                 stage_name="51_falsification_test",
                 config=CONFIG,
-                input_files=[input_file])
+                input_files=input_files)
 
     # Stata .dta
     dta_path = os.path.splitext(output_path)[0] + '.dta'
     logger.info(f"  正在生成 Stata .dta 文件...")
     logger.info(f"    说明: Stata 列名不支持中文和特殊字符,")
     logger.info(f"          将自动清理列名 (去除中文、替换括号、截断32字符)。")
+    # B-3 同精神 (audit-fixes 2026-05-29): 先删旧 .dta, 避免本次写出失败时
+    # 陈旧 .dta 与新 .parquet 错位被 falsification_template.do 当新数据消费.
+    if os.path.exists(dta_path):
+        os.remove(dta_path)
+        logger.info(f"  已删除旧 .dta (避免与新 .parquet 错位): {dta_path}")
     try:
         panel_stata = panel.copy()
         # v6/F2 Stata 兼容: pandas Int*/boolean nullable → Float64 (NaN 保留)
@@ -856,7 +871,19 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
         logger.info(f"  ✓ 已导出 Stata 文件: {dta_path}")
         logger.info(f"    Stata 列数: {len(clean_cols)}")
     except Exception as e:
-        logger.warning(f"  Stata 导出失败: {e}")
+        # B-2 同精神 (audit-fixes 2026-05-29): 根除 swallow-errors 反模式.
+        # 旧代码仅 logger.warning 让 stage 51 退出码假装 0, 但 .dta 未写出 (或
+        # 残留陈旧版), 与 .parquet 形成"语义错位"灾难 —
+        # falsification_template.do `use "51_panel_with_controls.dta"` 会静默
+        # 消费陈旧数据. 改为 raise 让 orchestrator 立即停止 (与 export.py:1013
+        # stage 45 同精神; 注册输出是先写成功的 .parquet, orchestrator 存在性
+        # 检查无法捕获 .dta 失败, 故 swallow 在此尤其危险). 上方已先删旧 .dta,
+        # 故 raise 后不会残留语义错位的半成品.
+        raise RuntimeError(
+            f"[export_results] Stage 51 Stata 导出失败: {e}; "
+            f"已删除旧 .dta 避免与新 .parquet 错位; "
+            f"请检查 panel 中是否有 to_stata 不兼容的 dtype/数据."
+        ) from e
 
     # 相关矩阵 CSV
     if pearson_corr is not None:

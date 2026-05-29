@@ -383,8 +383,13 @@ def _save_attn_index(df, basename):
     csv_path = os.path.join(OUTPUT_DIR, f'{basename}.csv')
     # 使用数据版本控制保存
     from news_process.core.data_versioning import save_parquet_with_metadata
+    # 血缘修复 (audit-fixes 2026-05-29): 注意力指数的唯一数据源是
+    # 12_fintech_news_full.parquet (本模块 :254 唯一 read_parquet); 此前误记
+    # 24_herd_decay 属 mis-attribution — 校正为真实源, 否则完整性校验验的是
+    # 一个无关文件而真实源无保护.
     input_file = os.path.join(CONFIG['paths']['output_dir'],
-                              CONFIG['filenames']['output_24_herd_decay'])
+                              CONFIG['filenames'].get('output_12_fintech_full',
+                                                      '12_fintech_news_full.parquet'))
     save_parquet_with_metadata(
         df=df,
         output_path=parquet_path,

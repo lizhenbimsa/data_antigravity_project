@@ -147,6 +147,19 @@ def _compute_similar_counts_for_track(
         herd_mask = (sim_matrix >= SIMILARITY_THRESHOLD) & valid_mask
         return herd_mask.sum(axis=1).astype(int)
 
+    # ⚠ PERF / SCALABILITY (audit-fixes 2026-05-29, M5 — documented, deferred):
+    # 下方 >2000 篇分支是 O(N²): pairwise_distances_chunked 计算全 N×N 余弦,
+    # 内层 `for j in range(global_i)` 是纯 Python 双循环, 7 天窗在循环内判断而非
+    # 用来缩候选集。在 400k-article 生产规模 (M0 gate 之后) 头部银行 ~20k 篇 →
+    # ~2e8 次内循环 + 20k×20k 余弦, 是 stage 24 主 wall-clock cliff。
+    # 修复配方 (须 byte 级数值等价, 不改 herd_weight): 先按日期排序并按 7 天滚动
+    # 窗预分桶 (仿 article_staleness.compute_surface_staleness 的 day-bucketing,
+    # ~50000× 提速 precedent), 仅对同窗候选算相似度, 把 per-bank 成本从 O(N²)
+    # 降到 O(N·window)。等价要求: 保持"j 按 index < global_i 且
+    # |date_i-date_j|<=window 且 sim>=threshold"的计数语义不变。
+    # 暂不实施: dev panel (≤2000 篇/bank) 全走上方 dense 分支, 本分支无 >2000 篇
+    # 测试夹具可验证数值等价, 贸然重写有 herd_weight 静默回归风险 → defer 到
+    # M0 规模放大时连同 >2000 篇 fixture 一起做。
     similar_counts = np.zeros(n_articles, dtype=int)
     row_start = 0
     for chunk in pairwise_distances_chunked(

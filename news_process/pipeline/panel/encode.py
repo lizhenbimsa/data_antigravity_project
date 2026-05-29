@@ -1540,11 +1540,16 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     # 填充为 0 的列: 计数类和流量类
     zero_fill_patterns = ['n_articles', 'ln_news_coverage', 'media_breadth']
     sum_cols = [c for c in panel.columns if c.endswith('_sum')]
-    count_cols = ['pos_count', 'neg_count',
-                  'pos_count_vw', 'neg_count_vw',
-                  'sum_mention_density', 'sum_doc_length', 'sum_target_mentions',
+    count_cols = ['sum_mention_density', 'sum_doc_length', 'sum_target_mentions',
                   'sum_media_authority_weight']
-    zero_fill_cols = zero_fill_patterns + sum_cols + count_cols
+    # audit-fixes 2026-05-29 (L1): 此前列出 bare 名 'pos_count'/'neg_count'/
+    # 'pos_count_vw'/'neg_count_vw', 但聚合只产出带轨道后缀的名
+    # (pos_count_full / pos_count_vw_full / ...), bare 名永不匹配 →
+    # 零新闻 bank-year 的计数列残留 NaN 而非 0 (与本段"计数类填 0"的契约相悖,
+    # 导出的 .dta 计数列在无覆盖行显示 . 而非 0)。改用 regex 匹配实际后缀名。
+    _count_pat = re.compile(r'^(pos|neg)_count(_vw)?(_full|_ctx|_title)$')
+    suffixed_count_cols = [c for c in panel.columns if _count_pat.match(c)]
+    zero_fill_cols = zero_fill_patterns + sum_cols + count_cols + suffixed_count_cols
 
     for col in zero_fill_cols:
         if col in panel.columns:

@@ -738,8 +738,14 @@ def main():
 
     # ── 步骤 3: 加载数据 (阶段 21 输出) ──
     # 路径查找策略: config → fallback 搜索 output 目录中以 21_ 开头的 parquet 文件
-    input_key = CONFIG['paths'].get('output_21_tone_llm',
-                 CONFIG['paths'].get('stage_21_output', ''))
+    # audit-fixes 2026-05-29: 此前查 CONFIG['paths'] (仅含目录, 无文件名键) 且
+    # 键名 'output_21_tone_llm' 漏 's'、'stage_21_output' 是 schemas.yaml 列约束
+    # (不在 load_config merge 范围), 二者皆 dead → 始终退化为 glob sorted()[-1]
+    # (靠字典序巧合选中 _full)。改为与同级 validation 模块一致, 直接读
+    # CONFIG['filenames'] 的 _full 键 (验证模块用全量 llm_verified=True/False
+    # 数据, paths.yaml:62); 下方 glob 仍作为安全网保留。
+    input_key = CONFIG['filenames'].get('output_21_tone_llms_full',
+                                        '21_tone_llms_full.parquet')
     input_path = os.path.join(OUTPUT_DIR, input_key) if input_key else ''
     if not input_path or not os.path.exists(input_path):
         # 回退: 搜索 output 目录中以 21_ 开头的 parquet 文件

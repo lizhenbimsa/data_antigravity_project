@@ -25,10 +25,12 @@ v0.1 已知 limitation
 1. HTMT(_full, _ctx) 预期 > 0.85 (同 content 不同 slice, 数学必然), 因此
    acceptance criterion 修订为: HTMT(_full, _title) AND HTMT(_ctx, _title)
    < 0.85; HTMT(_full, _ctx) 通过 lenient 0.90 即可 (实测后再决定).
-2. NEW-B1 mojibake 过滤: panel 已知含 `����` 乱码列名 (~30+ 列, 例
-   `finbert_cn_����_w_sum_title`); 本 stage 显式 skip 含 mojibake 的列以
-   防 UnicodeDecodeError 或 silent NaN. 详见 tests/integration/
-   test_panel_no_mojibake.py.
+2. NEW-B1 (v1.0.2 已纠正): panel 的中文后缀列名 (例
+   `finbert_cn_正面_w_sum_title`) 是合法 UTF-8 中文 (正/面/负), 并非 GBK/UTF-8
+   双重编码乱码 — 此前在 GBK 终端下 `����` 的渲染是显示假象。
+   `_is_mojibake_column` 保留为前瞻性守卫, 仅 skip 真正含 U+FFFD 的列 (当前
+   panel 实测 0 个)。详见 tests/integration/test_panel_no_mojibake.py 的
+   v1.0.2 retraction.
 3. 与 v3.5.1 R3-H1 兼容: A1/A3 (mean_clarity_score / mean_num_intensity)
    在 _title 上不计算; 本 stage 仅用 sentiment-family 指标 (llm_vote_tone /
    dict_avg_tone / bert_avg_pos).
@@ -69,18 +71,18 @@ TRACK_INDICATOR_CANDIDATES: list[tuple[str, str]] = [
 
 
 def _is_mojibake_column(col_name: str) -> bool:
-    """NEW-B1 BLOCKER 检测: panel 已知含 GBK/UTF-8 双重编码错误的列名.
+    """前瞻性 mojibake 守卫 (v1.0.2 已纠正 NEW-B1 误判).
 
-    Examples (实测):
-        finbert_cn_����_w_sum_title  # 正面/负面 中文标签被串改
-        hw2942_����_hw_sum_title
-        erlangshen_����_mw_sum_title
+    panel 的中文后缀列名实为合法 UTF-8 (正/面/负), 并非双重编码乱码; 此前在
+    GBK 终端下 `����` 的渲染只是显示假象 (codepoint 实测 0x6b63 正 / 0x9762 面
+    / 0x8d1f 负, panel 内 0 个 U+FFFD)。本函数因此对当前 panel 全部返回 False,
+    仅作为防止未来出现真 U+FFFD 的前瞻性守卫保留。
 
     Args:
         col_name: panel column name.
 
     Returns:
-        True iff column name contains U+FFFD replacement char or `����` mojibake.
+        True iff column name contains a U+FFFD replacement char (real mojibake).
     """
     # "����" sequence implies "�" U+FFFD; single check suffices but
     # we keep explicit `or` to document both detection patterns.

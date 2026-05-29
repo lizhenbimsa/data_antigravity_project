@@ -186,8 +186,16 @@ SENTIMENT_MAP_REVERSE = {1: '正面', 0: '中性', -1: '负面'}
 
 
 def label_to_numeric(series: pd.Series) -> pd.Series:
-    """将情感标签转为数值：正面=+1, 中性=0, 负面=-1。"""
-    return series.map(SENTIMENT_MAP).fillna(0).astype(float)
+    """将情感标签转为数值：正面=+1, 中性=0, 负面=-1。
+
+    audit-fixes 2026-05-29: 未映射/缺失 (LLM 调用失败或未定义) 保留为 NaN, 不再
+    silently fillna(0) 当作真实"中性"。否则失败行会作为人造中性观测污染
+    Cronbach α / 跨方法 Spearman / 加权共识 (实测 α 0.8156→0.7677 虚高 0.048)。
+    下游 compute_cronbachs_alpha 的 dropna()、pandas .corr()、weighted_average_score
+    的 mean/加权分支均 NaN-aware, 会正确排除这些行, 与 label 路径
+    compute_label_agreement_rate 的 dropna(how='any') 保持同一 n。
+    """
+    return series.map(SENTIMENT_MAP).astype(float)
 
 
 # ============================================================================
@@ -259,9 +267,10 @@ def compute_label_agreement_rate(labels_df: pd.DataFrame) -> dict:
     nunique_per_row = valid.nunique(axis=1)
     full_agree = int((nunique_per_row == 1).sum())
 
-    # 多数一致：每行最高频标签的频次 >= 列数 / 2
+    # 多数一致 (audit-fixes 2026-05-29): 严格多数 > 列数/2, 不再用 >= (后者把
+    # 偶数方法数的 k/2-k/2 平局误判为多数, 且 2 方法时退化为恒等 1.0)。
     mode_counts = valid.apply(lambda row: row.value_counts().iloc[0], axis=1)
-    majority_agree = int((mode_counts >= n_methods / 2).sum())
+    majority_agree = int((mode_counts > n_methods / 2).sum())
 
     return {
         'full_agreement_rate': round(full_agree / n, 4),
@@ -602,8 +611,10 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
         - **时间段**: 按年度 / 按 DCEP 政策时点前后
         - **词典覆盖率**: 高 (>=10 词) / 中 / 低 / 零覆盖
 
-    每个 strata 内分别计算 LLM 三家族 (gpt54nano/gemini31111/deepseekv4) 与
-    词典法 / BERT 的两两 Cohen Kappa + 多家族投票一致性.
+    每个 strata 内分别计算各方法的 Cronbach α (内部一致性) 与
+    full-agreement-rate (未校正的观测一致率)。注 (audit-fixes 2026-05-29):
+    本函数并不计算 Cohen κ (chance-corrected) — 修正此前 docstring 误称
+    "两两 Cohen Kappa" (全模块无 κ 实现)。
 
     Args:
         df:              主面板 (含 sentiment_*_score / label 列)
@@ -613,8 +624,9 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
         track:           '_full' (全文) / '_ctx' (上下文) / '_title' (标题)
 
     Returns:
-        dict: 三层嵌套 ``{strata_kind: {strata_value: {pair: kappa}}}``
-              用于 stage 34 报告渲染.
+        dict: ``{strata_kind: {strata_value: {n_samples, cronbach_alpha,
+              full_agreement_rate}}}`` 用于 stage 34 报告渲染 (audit-fixes
+              2026-05-29: 修正此前误标的 ``{pair: kappa}`` 返回形状)。
     """
     results = {}
 
@@ -1558,7 +1570,9 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     track 跑完 6 步:
 
         1. discover_sentiment_columns -- 自动发现 LLM/dict/BERT 情感列
-        2. compute_pairwise_kappa     -- 全部 model 两两 Cohen kappa
+        2. 相关/一致性矩阵            -- Spearman/Pearson 相关 + Cronbach α +
+           观测一致率 (audit-fixes 2026-05-29: 此前误标 compute_pairwise_kappa /
+           Cohen kappa, 实际全模块无 κ 实现)
         3. stratified_analysis        -- 按 length/time/dict-coverage 分层
         4. diagnose_llm_category_bias -- LLM 偏向"中性"等分类偏倚检测
         5. diagnose_confidence_calibration -- 置信度校准 ECE

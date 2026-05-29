@@ -30,3 +30,37 @@ def test_text2vec_lineage_uses_stage14_input():
 def test_fintech_intensity_lineage_records_both_stage12_inputs():
     fintech_intensity = _source("pipeline/filtering/fintech_intensity.py")
     assert "input_files=[full_path, input_file]" in fintech_intensity
+
+
+# ── audit-fixes 2026-05-29: 守卫本次新增/修正的三处 fan-in 血缘记录 ──
+# (final sign-off 发现: 这三处是最新改动却无回归测试, 静默 revert 不可察)
+
+def test_stage45_panel_lineage_records_full_fanin():
+    """Stage 45 面板导出须记硬上游闭包 24+15+30 (panel 级 fan-in)。"""
+    export = _source("pipeline/panel/export.py")
+    assert "_fn['output_24_herd_decay']" in export
+    assert "_fn.get('output_15_article_alignment'" in export
+    assert "'30_text2vec_indicators.parquet'" in export
+    # panel save 用 list 闭包变量
+    assert "input_files=input_files)" in export
+
+
+def test_stage45_article_lineage_is_stage24_only():
+    """文章级 df_exploded 仅依赖 stage 24; 不得过度归因 15/30 (panel 级 merge)。"""
+    export = _source("pipeline/panel/export.py")
+    # article save 用单输入 [input_file] (revert 到 list 闭包会使此断言失败)
+    assert "input_files=[input_file])" in export
+
+
+def test_stage51_falsification_lineage_records_three_inputs():
+    """Stage 51 是 3-way fan-in (12_fintech_full + 40_article_bank + 40_panel)。"""
+    controls = _source("pipeline/falsification/controls.py")
+    assert "_fn['output_40_panel_yearly']" in controls
+    assert "_fn.get('output_12_fintech_full'" in controls
+    assert "_fn.get('output_40_article_bank'" in controls
+
+
+def test_attention_media_lineage_uses_real_source():
+    """注意力指数源是 12_fintech_news_full (此前误记 24_herd_decay, mis-attribution)。"""
+    attn = _source("pipeline/panel/attention_media.py")
+    assert "CONFIG['filenames'].get('output_12_fintech_full'" in attn

@@ -25,8 +25,13 @@ SENTIMENT_MAP_REVERSE = {1: '正面', 0: '中性', -1: '负面'}
 
 
 def label_to_numeric(series: pd.Series) -> pd.Series:
-    """将情感标签转为数值：正面=+1, 中性=0, 负面=-1。"""
-    return series.map(SENTIMENT_MAP).fillna(0).astype(float)
+    """将情感标签转为数值：正面=+1, 中性=0, 负面=-1。
+
+    audit-fixes 2026-05-29 (M-tv): 与生产 validation/tone_validation.py 对齐 —
+    未映射/缺失保留 NaN, 不再 fillna(0) (失败≠中性)。生产行为另由
+    test_audit_fixes_20260529.py 直接 import 守卫。
+    """
+    return series.map(SENTIMENT_MAP).astype(float)
 
 
 def discover_sentiment_columns(df: pd.DataFrame) -> dict:
@@ -116,7 +121,9 @@ def compute_label_agreement_rate(labels_df: pd.DataFrame) -> dict:
     nunique_per_row = valid.nunique(axis=1)
     full_agree = int((nunique_per_row == 1).sum())
     mode_counts = valid.apply(lambda row: row.value_counts().iloc[0], axis=1)
-    majority_agree = int((mode_counts >= n_methods / 2).sum())
+    # audit-fixes 2026-05-29 (M-tv): 严格多数 > n/2 (与生产对齐; 旧 >= 把偶数
+    # 方法数的 k/2-k/2 平局误算为多数)
+    majority_agree = int((mode_counts > n_methods / 2).sum())
 
     return {
         'full_agreement_rate': round(full_agree / n, 4),
@@ -271,10 +278,12 @@ class TestLabelToNumeric:
         assert list(result) == [1.0, 0.0, -1.0]
 
     def test_unknown_label(self):
-        """未知标签应映射为 0（fillna）。"""
+        """audit-fixes 2026-05-29 (M-tv): 未知/缺失标签 → NaN (非 0), 不当作中性。"""
         s = pd.Series(['正面', '未知', None])
         result = label_to_numeric(s)
-        assert list(result) == [1.0, 0.0, 0.0]
+        assert result.iloc[0] == 1.0
+        assert pd.isna(result.iloc[1])
+        assert pd.isna(result.iloc[2])
 
     def test_all_positive(self):
         s = pd.Series(['正面', '正面', '正面'])

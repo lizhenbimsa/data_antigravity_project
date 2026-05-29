@@ -1268,6 +1268,20 @@ def _write_run_lineage(stage_start: float):
         logger.warning(f"  [N8 lineage] 写入失败 (非阻塞): {e}")
 
 
+def _avg_valid_title_prob_score(data: dict, models: list) -> float:
+    """audit-fixes 2026-05-29 (H1): article-level 平均标题 prob_score, 仅对
+    sentiment 非 None (LLM 调用成功) 的模型取均值; 全失败 → NaN (非 0.0)。
+
+    与 H1 离散路径 (空票 final_s=None) 及 full/ctx 轨 _aggregate_track 的
+    avg_prob_score=nan 一致 —— "失败≠中性"。提取为模块级以便 import-based 回归
+    测试 (test_audit_fixes_20260529.py); 此前为 main() 内嵌闭包, 不可单测。
+    失败模型的 stale _prob_score_title=0.0 被 sentiment-not-None 过滤排除, 不污染均值。
+    """
+    scores = [data.get(f'{m["short_name"]}_prob_score_title', 0.0) for m in models
+              if data.get(f'{m["short_name"]}_sentiment_title') is not None]
+    return sum(scores) / len(scores) if scores else float('nan')
+
+
 def main():
     """Stage 21 LLM 三模型 ensemble 情感分析主入口.
 
@@ -1899,14 +1913,20 @@ def main():
                                 per_model_data[f'{short}_prob_score_title'] = 0.0
                                 per_model_data[f'{short}_prob_source_title'] = 'P3'
 
-                    # 多数决（统一使用 majority_vote_sentiment，确保平局处理
-                    # 与 full/ctx 轨道一致：平局时降级为中性）
+                    # 多数决（统一使用 majority_vote_sentiment）
+                    # audit-fixes 2026-05-29 (H1): 空 s_votes = 该文章所有模型的
+                    # 标题 LLM 调用失败/缺失, 不是真实"中性"。改为 final_s=None,
+                    # 让下游 encode 的 df[sent_col].isna() → <NA> 逻辑
+                    # (encode.py:135-137) 把它排除, 与 full/ctx 轨道 v6/F2
+                    # "失败≠中性" 契约一致。此前误置 '中性'(=0) 会把整体调用失败
+                    # 当作真实中性, 污染 llm_vote_tone_title / tone_gap_title_full,
+                    # 进而污染 9 个 25_tableA8 标题稳健性表。
                     if s_votes:
                         final_s = majority_vote_sentiment(s_votes)
                         agree_count = sum(1 for v in s_votes if v == final_s)
                         agree_rate = agree_count / len(s_votes)
                     else:
-                        final_s = '中性'
+                        final_s = None
                         agree_rate = 0.0
 
                     title_sentiment_map[df_idx] = {
@@ -1932,13 +1952,11 @@ def main():
 
             # Logit-to-Score 标题轨道概率分数
             if LOGIT_SCORE_ENABLED:
-                # 计算每篇文章的多模型平均 prob_score
-                def _calc_title_prob(idx):
-                    data = title_sentiment_map.get(idx, {})
-                    scores = [data.get(f'{m["short_name"]}_prob_score_title', 0.0) for m in MODELS
-                              if data.get(f'{m["short_name"]}_sentiment_title') is not None]
-                    return sum(scores) / len(scores) if scores else 0.0
-                df_filtered['llm_prob_score_title'] = df_filtered.index.map(_calc_title_prob)
+                # audit-fixes 2026-05-29 (H1): 委托模块级 _avg_valid_title_prob_score
+                # (可 import 单测; 全失败→NaN 非 0.0, 失败模型 stale 0.0 被过滤)
+                df_filtered['llm_prob_score_title'] = df_filtered.index.map(
+                    lambda idx: _avg_valid_title_prob_score(
+                        title_sentiment_map.get(idx, {}), MODELS))
 
                 for m in MODELS:
                     short = m['short_name']

@@ -164,7 +164,15 @@ def compute_sigma_roa_rolling(
 
 
 def compute_z_score(df: pd.DataFrame) -> pd.Series:
-    """Z_score = (ROA + CAR) / sigma_roa_5y_rolling (Laeven-Levine 2009 JFE).
+    """Bank stability Z-score = (ROA + CAR) / sigma_roa_5y_rolling.
+
+    ⚠ 构念说明 (audit-fixes 2026-05-29, M2): 此处资本项用监管 Basel 资本充足率
+    (capital_adequacy_ratio, RWA 加权), 而 Laeven-Levine (2009 JFE) 原版 Z-score
+    的资本项是账面 equity/total-assets (book leverage)。二者经济含义不同 (监管
+    CAR 系统性更大、行为不同), 故本实现是 *CAR-based* 稳定性变体, 不应直接归因于
+    L&L 2009。USER DECISION 待定: (a) 若可获取 total_equity, 应另算 equity/assets
+    版并保留 CAR 版作 robustness; (b) 否则论文中明确标注为 CAR-based 变体而非
+    直引 L&L。量纲无碍 (ROA 与 CAR 同为 %, 与 sigma 约掉)。
 
     v3.7.0 (M6 修复): NaN 处理 explicit, 不依赖 NaN.abs() < eps 行为隐含.
     """

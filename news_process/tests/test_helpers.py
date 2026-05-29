@@ -353,3 +353,34 @@ class TestRunStage:
         )
         assert success is False
         assert elapsed > 0
+
+    def test_pythonhashseed_forced_to_zero(self, tmp_dir):
+        """audit-fixes 2026-05-29 (L2/L3): run_stage 必须把子进程的
+        PYTHONHASHSEED 强制为 '0' (确定性契约), 即使父环境已 export 了非零值。
+
+        守卫 L2 (env.setdefault → env[...] = '0' force) 与 L3 (该契约此前无测试
+        保护, 重构可静默回退)。jieba+frozenset 边界 token 的确定性依赖此 seed。
+        """
+        import os as _os
+        out_file = tmp_dir / 'seed.txt'
+        script_path = tmp_dir / 'seed_script.py'
+        script_path.write_text(
+            'import os\n'
+            'open(' + repr(str(out_file)) + ', "w", encoding="utf-8")'
+            '.write(os.environ.get("PYTHONHASHSEED", "MISSING"))\n',
+            encoding='utf-8',
+        )
+        logger = setup_logging('stage_seed', str(tmp_dir / 'logs'))
+        # 故意在父环境设非零值, 验证子进程仍被强制为 '0' (force, 非 setdefault)
+        old = _os.environ.get('PYTHONHASHSEED')
+        _os.environ['PYTHONHASHSEED'] = '12345'
+        try:
+            success, _ = run_stage('seed_script.py', '种子脚本', logger,
+                                   base_dir=str(tmp_dir))
+        finally:
+            if old is None:
+                _os.environ.pop('PYTHONHASHSEED', None)
+            else:
+                _os.environ['PYTHONHASHSEED'] = old
+        assert success is True
+        assert out_file.read_text(encoding='utf-8').strip() == '0'

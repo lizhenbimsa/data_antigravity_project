@@ -241,12 +241,23 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 年度面板 Parquet
     panel_filename = FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet')
     panel_path = os.path.join(OUTPUT_DIR, panel_filename)
-    input_file = os.path.join(CONFIG['paths']['output_dir'],
-                              CONFIG['filenames']['output_24_herd_decay'])
+    # 血缘修复 (audit-fixes 2026-05-29): stage 45 是 fan-in, runner 硬读
+    # 24_herd_decay (主) + 15_article_alignment (RuntimeError if absent,
+    # runner.py:1077) + 30_text2vec_indicators (RuntimeError if absent,
+    # runner.py:1534). 记全部硬上游闭包, 否则 verify_data_integrity 对 15/30 的
+    # 篡改/陈旧检测不到 (与 stage 14 fintech_intensity 记双输入的受测约定一致).
+    # 缺失文件由 data_versioning 的 exists 守卫优雅跳过.
+    _od = CONFIG['paths']['output_dir']
+    _fn = CONFIG['filenames']
+    input_files = [
+        os.path.join(_od, _fn['output_24_herd_decay']),
+        os.path.join(_od, _fn.get('output_15_article_alignment', '15_article_alignment.parquet')),
+        os.path.join(_od, '30_text2vec_indicators.parquet'),  # 无 config key (硬编码于 validation/text2vec.py)
+    ]
     save_dataset(panel, panel_path, logger,
                 stage_name="45_panel_export_main",
                 config=CONFIG,
-                input_files=[input_file])
+                input_files=input_files)
 
     # 年度面板 Stata .dta
     if PANEL_CFG.get('export_stata', True):
@@ -1020,6 +1031,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 文章-银行级数据
     article_filename = FILENAMES.get('output_40_article_bank', '40_article_bank_level.parquet')
     article_path = os.path.join(OUTPUT_DIR, article_filename)
+    # 血缘 (audit-fixes 2026-05-29, 10 轮审核 r4 修正): 文章级 df_exploded 仅派生自
+    # stage 24 (article×bank 级 herd_decay 输出); stage 15/30 是 PANEL 级 (bank-year)
+    # merge, 不进 article-level 输出 (实测 40_article_bank_level 无 policy_cosine/t2v
+    # 列)。故此处只记 24, 避免过度归因 (panel 级 40_panel_yearly 才记 24+15+30)。
     input_file = os.path.join(CONFIG['paths']['output_dir'],
                               CONFIG['filenames']['output_24_herd_decay'])
     save_dataset(df_exploded, article_path, logger,

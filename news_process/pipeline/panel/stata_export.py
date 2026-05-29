@@ -392,12 +392,74 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
     return df_renamed, rename_map
 
 
+# 中文情感标签 → ASCII 确定性映射 (与既有 fin_sent_zh_pos/neg 命名约定一致)
+_CN_LABEL_ASCII = {
+    '正面': 'pos', '负面': 'neg', '中性': 'neu',
+    '积极': 'pos', '消极': 'neg', '中立': 'neu',
+}
+
+
+def asciify_non_ascii_columns(
+    df: pd.DataFrame,
+) -> Tuple[pd.DataFrame, Dict[str, str]]:
+    """H3 (audit-fixes 2026-05-29): 把含非 ASCII 字符的列名转写为合法 Stata 变量名.
+
+    Stata 变量名即使在 Unicode 版 (14+/19) 也必须匹配
+    ``^[A-Za-z_][A-Za-z0-9_]{0,31}$`` (Unicode 仅允许出现在值/标签, 不允许在
+    变量名)。此前 ``shorten_long_column_names`` 仅按长度截断、不处理非 ASCII,
+    导致 117 个中文后缀列 (如 ``finbert_cn_正面_w_sum_full``) 以非法名写入
+    full/aux .dta, 且 labels.do 的 ``capture label var <中文>`` 静默 no-op 丢标签.
+
+    sentiment-label 段 (正面/负面/中性) 用确定性映射 → pos/neg/neu (不丢信息,
+    与既有 ASCII 变体 fin_sent_zh_pos/neg 一致); 残留非 ASCII 字符移除;
+    清理重复下划线 + 保证合法首字符 + 截断 32 + md5 后缀去重 (跨 run 确定性).
+
+    Returns:
+        (df_renamed, {new_name: original_name}) — 供 codebook 反查.
+    """
+    import hashlib as _hashlib
+    import re as _re
+
+    mapping: Dict[str, str] = {}
+    new_cols: List[str] = []
+    used = {c for c in df.columns if c.isascii()}
+    for col in df.columns:
+        if col.isascii():
+            new_cols.append(col)
+            continue
+        new = col
+        for cn, asc in _CN_LABEL_ASCII.items():
+            new = new.replace(cn, asc)
+        # 残留非 ASCII → 移除
+        new = ''.join(ch for ch in new if ord(ch) < 128)
+        new = _re.sub(r'_+', '_', new).strip('_')
+        if not new or not (new[0].isalpha() or new[0] == '_'):
+            new = 'v_' + new
+        new = new[:STATA_VAR_NAME_MAXLEN]
+        if new in used:
+            base = new[:STATA_VAR_NAME_MAXLEN - 7]
+            h = _hashlib.md5(col.encode('utf-8')).hexdigest()[:6]
+            new = f"{base}_{h}"
+        used.add(new)
+        new_cols.append(new)
+        mapping[new] = col
+    df_renamed = df.copy()
+    df_renamed.columns = new_cols
+    return df_renamed, mapping
+
+
 def validate_stata_compat(df: pd.DataFrame, var_labels: Dict[str, str]) -> None:
-    """plan v14 §9.5 验收门: 列名 ≤ 32 字符 + label ≤ 80 字符 + 编码方向."""
+    """plan v14 §9.5 验收门: 列名 ≤ 32 字符 + 合法 Stata 标识符 + label ≤ 80 字符."""
+    import re as _re
+    _ident_re = _re.compile(r'^[A-Za-z_][A-Za-z0-9_]{0,31}$')
     issues: List[str] = []
     for col in df.columns:
         if len(col) > STATA_VAR_NAME_MAXLEN:
             issues.append(f"列名超 32 字符: '{col}' ({len(col)} chars)")
+        elif not _ident_re.match(col):
+            # H3 (audit-fixes 2026-05-29): 非 ASCII / 非法字符 / 非字母下划线起始
+            # 都是 Stata 拒绝的变量名 — 此前仅查长度, 放过了 117 个中文列名。
+            issues.append(f"非法 Stata 变量名 (非 ASCII 或含非法字符): '{col}'")
         if col in var_labels:
             label_bytes = len(var_labels[col].encode('utf-8'))
             if label_bytes > STATA_VAR_LABEL_MAXLEN:
@@ -552,7 +614,22 @@ def export_panel_to_stata(
         if len(rename_map) > 3:
             logger.info(f"    ... +{len(rename_map) - 3} more (full mapping in codebook.xlsx)")
 
-    # 2. 生成 variable labels (基于新 (短) 列名)
+    # 1c. H3 (audit-fixes 2026-05-29): 把残留非 ASCII (中文) 列名转写为合法
+    # Stata 变量名 (正面/负面/中性 → pos/neg/neu)。此前缺该步, 117 个中文列名
+    # 以非法 Stata 标识符写入 full/aux .dta, labels.do 静默丢标签。
+    df_encoded, ascii_map = asciify_non_ascii_columns(df_encoded)
+    if ascii_map:
+        logger.info(
+            f"  Transliterated {len(ascii_map)} non-ASCII (中文) column names "
+            f"to Stata-legal ASCII"
+        )
+        # 同步 value_labels 键 (若被改名的列恰有 value label)
+        if value_labels:
+            _orig2new = {orig: new for new, orig in ascii_map.items()}
+            value_labels = {_orig2new.get(k, k): v for k, v in value_labels.items()}
+        rename_map.update(ascii_map)
+
+    # 2. 生成 variable labels (基于新 (短/ASCII) 列名)
     var_labels = build_variable_labels(df_encoded)
 
     # 3. Stata 兼容性校验 (plan v14 §9.5; 缩短后应全过)

@@ -197,7 +197,12 @@ def run_stage(stage_script: str, stage_name: str, logger,
     # 确定性保障: 锁定 PYTHONHASHSEED 消除 stage 22 等 jieba+frozenset 链路上
     # 边界 token 数偶发非确定性 (实测最大漂移 < 0.001 in uncert_frac, 但触发
     # column hash 不一致, 影响回归测试 / golden snapshot 复现性)。
-    env.setdefault("PYTHONHASHSEED", "0")
+    # 确定性契约 (audit-fixes 2026-05-29): 强制 "0" 而非 setdefault — 后者会
+    # 沿用父 shell 继承的非零值, 静默击穿 commit a4526731 "lock PYTHONHASHSEED"
+    # 的本意 (CI/dev 若 export 了随机/非零 seed 会传播到每个 stage 子进程,
+    # 重新引入 jieba+frozenset 边界 token 的非确定性). 此处子进程的 seed 不应
+    # 由调用方意外覆盖, 故强制赋值.
+    env["PYTHONHASHSEED"] = "0"
 
     start_time = time.time()
 
