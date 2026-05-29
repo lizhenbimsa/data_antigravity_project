@@ -510,7 +510,7 @@ def _cli_list_templates(args) -> int:
         pass
 
     templates = sorted(template_dir.glob('*.do.tmpl'))
-    print(f"news_process v3.2.0 Stata templates ({len(templates)}/14 plan v14 §9.2):")
+    print(f"news_process v3.2.0 Stata templates ({len(templates)} 个, plan v14 §9.2):")
     print()
     for tpl in templates:
         # 读首 3 行注释作为 description

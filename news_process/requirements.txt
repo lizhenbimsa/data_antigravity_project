@@ -84,6 +84,10 @@ python-Levenshtein>=0.21.0,<1.0.0
 # 环境变量加载 (helpers.py _load_dotenv 回退)
 python-dotenv>=1.0.0,<2.0.0
 
+# Stata .dta 导出 (stage 46 stata_export; pandas DataFrame → .dta, 不依赖 Stata license)
+# 与 pyproject.toml [project].dependencies 双向同步.
+pyreadstat>=1.2.0,<2.0.0
+
 # 测试和覆盖率 (Plan P0-2, 2026-05-09)
 # V8 P-1 (2026-05-13): 也已迁至 pyproject.toml [project.optional-dependencies].dev;
 # pip-only 用户仍可从此处直接 install (双向同步).

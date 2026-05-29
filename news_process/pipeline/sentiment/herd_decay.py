@@ -31,9 +31,10 @@ v3.6.0 (Plan E P1 B3) 双轨化升级:
   - **双轨**: full 用 '内容', ctx 用 'content_ctx' (后者由 stage 21 物化)
 
 输入: 23_bert_tone.parquet (含 content_ctx 列, 由 stage 21 物化后下传)
-输出: 24_herd_decay.parquet (追加 herd_weight_full + herd_weight_ctx +
-      n_similar_articles_full + n_similar_articles_ctx 四列;
-      v3.5.0 之前的 herd_weight 单列已删除, 下游必须显式指定轨道)
+输出: 24_herd_decay.parquet (追加 6 列: 4 双轨列 herd_weight_full + herd_weight_ctx
+      + n_similar_articles_full + n_similar_articles_ctx, 外加 herd_weight +
+      n_similar_articles 两个单列 —— 后者作为 _full 轨的 NON-BREAKING 别名保留
+      (v3.6.0 F-B 修, 见下方主路径), 供 v3.5.x 既有调用方继续读取, 不强制下游显式指定轨道)
 """
 
 import os

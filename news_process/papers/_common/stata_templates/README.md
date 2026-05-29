@@ -57,7 +57,7 @@ This directory hosts `.do.tmpl` Stata script templates with placeholder substitu
 | `13_table4_heterogeneity.do.tmpl` | Table 4: Heterogeneity | bank size × frontier × geography |
 | `14_table5_advanced_robustness.do.tmpl` | Table 5: Advanced Robustness | placebo + leave-one-out + wild bootstrap |
 
-### v3.2.0 Robustness Appendix (双轨化核心, 5)
+### v3.2.0 Robustness Appendix (双轨化核心, 5 + v3.7.3 新增 1)
 
 | File | Title | Method |
 |---|---|---|
@@ -66,6 +66,7 @@ This directory hosts `.do.tmpl` Stata script templates with placeholder substitu
 | `22_tableA3_bartik_iv.do.tmpl` | Table A3: Bartik IV (lf vs lc) | Goldsmith-Pinkham 2020 AER + KP F |
 | `23_tableA4_radius_sensitivity.do.tmpl` | Table A4: Radius Sensitivity (LLM) | stage 35 LLM 升级输出 |
 | `24_tableA5_dictionary_method.do.tmpl` | Table A5: Dictionary Method | LLM vs 5 dict 对比 robustness |
+| `25_tableA8_title_robustness.do.tmpl` | Table A8: Title-track Tier-B robustness (v3.7.3) | `_title` 切片轨 sentiment-family 稳健性 |
 
 ### v3.2.0 Figures (2)
 
@@ -74,7 +75,7 @@ This directory hosts `.do.tmpl` Stata script templates with placeholder substitu
 | `30_figure1_event_study.do.tmpl` | Figure 1: Event Study | TWFE dynamic (Sun-Abraham 2021) |
 | `31_figure_coefplot_dual.do.tmpl` | Figure 2: Coefplot Dual | 8-spec coefficient visual |
 
-**总计**: **14/14 模板完整交付** ✓
+**总计**: **15/15 模板完整交付** ✓ (v3.2.0 基线 14 + v3.7.3 新增 `25_tableA8_title_robustness` = 15)
 
 ## CLI 命令 (v3.2.0 M7 + M4/7)
 
@@ -89,7 +90,7 @@ python -m news_process.papers._common.stata_runner build-replication \
 ### 列举模板 (list-templates)
 
 ```bash
-# 列举 14 模板 + 描述
+# 列举 15 模板 + 描述
 python -m news_process.papers._common.stata_runner list-templates
 
 # 含占位符 inventory (跨模板使用计数)

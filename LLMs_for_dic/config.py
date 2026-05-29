@@ -26,9 +26,7 @@ JUDGE_CHECKPOINT_FILE = DATA_DIR / "judge_checkpoint.json"
 BASE_URL: str = os.environ.get(
     "YUNWU_BASE_URL", "https://yunwu.ai/v1"
 )
-API_KEY: str = os.environ.get(
-    "YUNWU_API_KEY", "sk-bxKmTvBf5WrJwZ0r474eBfC2De404a38931216Ed79548f05"
-)
+API_KEY: str = os.environ.get("YUNWU_API_KEY", "")
 
 # ════════════════════════════════════════════════════════════════
 # 任务参数

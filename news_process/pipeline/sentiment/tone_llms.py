@@ -29,8 +29,9 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
       to sociological methods. Routledge. DOI: https://doi.org/10.4324/9781315134543
     LLM 金融文本分析可复现性:
       Bybee, L. (2024). The ghost in the machine: Generating beliefs with
-      large language models. Journal of Finance, 79(5), 3345-3395.
-      DOI: https://doi.org/10.1111/jofi.13366
+      large language models. Working paper (未正式发表于 JF; 原引 DOI
+      10.1111/jofi.13366 系误植 — 该 DOI 实指 Bhattacharya et al. (2024)
+      "Do Women Receive Worse Financial Advice?" JF 79(5) — 已移除)。
 
 输入：
     模块二前置输出的 `14_fintech_intensity.parquet`

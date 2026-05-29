@@ -69,16 +69,18 @@ LFS quota: GitHub 默认 1GB 免费 + $5/月 50GB → 充裕
 -------
 审稿人复现步骤:
 1. git lfs pull 拉取 archive
-2. python -m news_process.pipeline.llm_archive.verify (manifest checksum 验证)
-3. python -m news_process.pipeline.llm_archive.replay (从 archive 重建 LLMCache)
-4. python run_pipeline_function.py (无 API 调用, 全 cache hit)
+2. manifest checksum 验证 (调用 verify_manifest, 暂无独立 CLI 子命令):
+   python -c "from news_process.pipeline.llm_archive import verify_manifest; ok, errs = verify_manifest(); print('PASS' if ok else f'FAIL: {errs}')"
+3. python run_pipeline_function.py (LLMCache 命中时无 API 调用)
+   注: 从 archive 直接重建 LLMCache 的 "replay-to-cache" 工具尚未实现 (roadmap 项);
+       当前复现依赖既有的 _llm_cache.db 缓存命中。
 
-接口
+接口 (与 __all__ 一致)
 ----
 - LLMArchive: 主类, append-only 归档
 - archive_record: 单次写入函数
-- compute_manifest: 生成 / 验证 manifest
-- replay_to_cache: 从 archive 重建 LLMCache 用于复现
+- compute_manifest: 生成 manifest
+- verify_manifest: 验证 manifest checksum (SHA-256)
 """
 
 from .archive import LLMArchive, archive_record

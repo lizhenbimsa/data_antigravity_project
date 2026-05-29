@@ -12,7 +12,8 @@ news_process.pipeline.filtering.news_bank — 阶段11：银行新闻判断
        前置条件) 该银行的任一名称变体在标题或全文中合计出现 ≥ MIN_NAME_OCCURRENCES 次
        a) 上半合计出现 ≥ MIN_UPPER 次 AND 下半合计出现 ≥ MIN_LOWER 次
        b) 该银行的任一名称变体出现在"标题"中 AND 全文合计出现 ≥ MIN_UPPER 次
-    4. 记录每家银行的匹配详情（各变体出现次数、上下半分布、标题出现情况）
+    4. 记录每家银行的匹配详情（各变体出现次数、上下半分布、标题出现情况），
+       并按 firm-document 级展开：每家合格银行生成一条独立物理行
 
     假阳性排除（基于国际顶刊标准）：
     5. 否定模式排除：如"务农行列""交通行业"等完整短语匹配到银行简称时排除
@@ -42,7 +43,12 @@ news_process.pipeline.filtering.news_bank — 阶段11：银行新闻判断
     阶段1输出的 Parquet 文件（``00_preprocessing.parquet``）
 
 输出：
-    仅保留判定为银行新闻的记录，追加 ``is_bank_news`` 和 ``matched_banks_info`` 列
+    仅保留判定为银行新闻的记录，并展开为 firm-document 级（每家合格银行生成一条
+    独立物理行，故输出行数可多于输入）。每行追加 9 列：``is_bank_news``、
+    ``target_bank``、``co_mentioned_banks``、``target_bank_in_title``、
+    ``matched_banks_info``、``matched_bank_names``、``doc_length``、
+    ``target_bank_mention_count``、``mention_density``
+    （仅当某批次无任何银行新闻的空回退路径才退化为 is_bank_news / matched_banks_info 两列）
 
 迁移说明 (Phase 7a-1)：
     本模块由原 root script ``11_news_bank.py`` body 迁入。原 root 现为 thin

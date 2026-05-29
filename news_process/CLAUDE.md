@@ -215,7 +215,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Code Modification Rules
 
-1. **Stage shims are frozen**: The 31 `news_process/NN_*.py` scripts are thin shims (≤30 lines; NN includes new stage 13 from v3.6.0 Plan E and lettered variants 32a/38a/38b/39a/39c/39d). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
+1. **Stage shims are frozen**: The 41 `news_process/NN_*.py` scripts are thin shims (≤30 lines; NN includes stage 13 from v3.6.0 Plan E, lettered variants 32a/38a/38b/39a/39c/39d/39e/39f/39g, plus stages 49/52/53). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
 2. **DAG consistency**: Any stage added/removed must update:
    - `core/dag.py::STAGES_MAIN` or `STAGES_VALIDATION`
    - `core/schemas.py::OUTPUT_REGISTRY` (if it produces parquet)
@@ -349,10 +349,10 @@ https://www.stata.com/products/which-stata-is-right-for-me/
 - **新增列时优先扩 `aux.dta`，保持 `core.dta` ≤ 2048**：保留 IC 协作者的
   入口契约，不要因为本机是 MP 就把 core 撑爆。
 - **项目策略 (2026-05-16 起): Stata 19+ only, 无需向下兼容**。
-  `papers/_common/stata_templates/**/*.do.tmpl` 全部 **91 个模板** = 主线 14 (直接位于
-  `stata_templates/` 下) + 8 个 paper-specific 子目录 74 (attention 7 / collab 8 /
-  locus 8 / substance 9 / benefit_society 18 / brokerage_network 8 / llm_peer 8 /
-  strategic_diff 8) + 历史归档 `v3_5_0/` 2 + `v3_5_1/` 1。全部已统一 bump 为
+  `papers/_common/stata_templates/**/*.do.tmpl` 全部 **104 个模板** = 主线 15 (直接位于
+  `stata_templates/` 下) + 8 个 paper-specific 子目录 86 (attention 8 / collab 9 /
+  locus 9 / substance 10 / benefit_society 23 / brokerage_network 9 / llm_peer 9 /
+  strategic_diff 9) + 历史归档 `v3_5_0/` 2 + `v3_5_1/` 1。全部已统一 bump 为
   `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120`
   （见 `00_master.do.tmpl:13-16`）。新增模板直接复用此头部。
 - **可放心使用 v17+ / v19 独有命令**: `xtdidregress` (v17)、`frames` 增强

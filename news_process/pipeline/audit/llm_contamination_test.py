@@ -29,7 +29,8 @@ contamination_report.json 含:
   - pre_correlation / post_correlation (LLM 输出 vs 真实 outcome)
   - fisher_z_test: difference test (z statistic + p-value)
   - bayes_factor: 强证据 / 弱证据 / 无证据
-  - verdict: 'contamination_detected' / 'no_contamination' / 'inconclusive'
+  - verdict: 'contamination_detected' / 'no_contamination_evidence' /
+             'reverse_pattern_anomaly' / 'inconclusive'
 
 学术锚定
 --------

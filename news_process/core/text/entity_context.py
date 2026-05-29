@@ -197,7 +197,7 @@ def _char_level_fallback(
 # 学术依据:
 #   Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023).
 #   Firm-level climate change exposure. The Journal of Finance, 78(3),
-#   1449–1498. DOI: 10.1111/jofi.13228 (§2.2):
+#   1449–1498. DOI: 10.1111/jofi.13219 (§2.2):
 #     "We weight each bigram token by its inverse distance to the
 #      nearest climate change keyword."
 #   本函数返回句子+距离对, 供下游词典法做距离加权情感计算。

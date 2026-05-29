@@ -649,23 +649,48 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
     # P0-B (2026-05-25): preserve-if-set — 若 caller 未显式传 prompt_v8_sha256
     # 但已有 sidecar 含非 null SHA, 保留旧值 (避免 stage 21 重跑无声 wipe
     # 已手动锚定的 SHA). 仅当 caller 显式传 SHA 时覆盖.
+    # 审计扩展 (2026-05-29): median_amb_d0 同为 "D0 frozen 全样本中位数" 手动锚点
+    # (CLAUDE.md 双 anchor); 与 SHA 同理, 当 in-sample 重算得 NaN / 空列表 (默认
+    # median_amb_d0=None 走"仅用于测试"的 in-sample 路径, 且文章级 clarity 列缺失时
+    # 早退) 时须保留既有锚值, 否则 run_pipeline_function 每次重跑都会把受跟踪的
+    # frozen anchor 清成 NaN/空 (见 aggregate_clarity_panel 文档串)。
     existing_sha = None
-    if prompt_v8_sha256 is None and os.path.exists(sidecar_path):
+    existing_median = None
+    existing_clarity_cols = None
+    existing_ni_cols = None
+    if os.path.exists(sidecar_path):
         try:
             with open(sidecar_path, 'r', encoding='utf-8') as _f:
-                existing_sha = json.load(_f).get('prompt_v8_sha256')
+                _prev = json.load(_f)
+            existing_sha = _prev.get('prompt_v8_sha256')
+            existing_median = _prev.get('median_amb_d0')
+            existing_clarity_cols = _prev.get('a1_clarity_panel_cols')
+            existing_ni_cols = _prev.get('a3_num_intensity_panel_cols')
         except Exception:  # noqa: BLE001
             pass
     effective_sha = prompt_v8_sha256 if prompt_v8_sha256 is not None else existing_sha
+
+    def _is_nan(v):
+        return v is None or (isinstance(v, float) and v != v)
+
+    _recomputed_median = clarity_diag.get('median_amb_d0', float('nan'))
+    effective_median = (
+        _recomputed_median if not _is_nan(_recomputed_median)
+        else (existing_median if not _is_nan(existing_median) else _recomputed_median)
+    )
+    _recomputed_clarity = clarity_diag.get('v3_5_1_clarity_added', []) or []
+    effective_clarity_cols = _recomputed_clarity or (existing_clarity_cols or [])
+    _recomputed_ni = ni_diag.get('v3_5_1_num_intensity_added', []) or []
+    effective_ni_cols = _recomputed_ni or (existing_ni_cols or [])
     try:
         os.makedirs(os.path.dirname(sidecar_path), exist_ok=True)
         sidecar = {
             'plan_version': 'v3.5.1',
-            'median_amb_d0': clarity_diag.get('median_amb_d0', float('nan')),
+            'median_amb_d0': effective_median,
             'prompt_v8_sha256': effective_sha,
             'stage21_last_run_timestamp': datetime.now(timezone.utc).isoformat(),
-            'a1_clarity_panel_cols': clarity_diag.get('v3_5_1_clarity_added', []),
-            'a3_num_intensity_panel_cols': ni_diag.get('v3_5_1_num_intensity_added', []),
+            'a1_clarity_panel_cols': effective_clarity_cols,
+            'a3_num_intensity_panel_cols': effective_ni_cols,
         }
         with open(sidecar_path, 'w', encoding='utf-8') as f:
             json.dump(sidecar, f, ensure_ascii=False, indent=2)

@@ -115,7 +115,9 @@ def encode_articles(
     embs = model.encode(
         docs,
         batch_size=batch_size,
-        show_progress_bar=True,
+        # 仅在交互式 (stderr 为 TTY) 时显示 tqdm 进度条; 在 run_pipeline_function
+        # 子进程 (stderr 为管道) 下静默, 避免向 stderr 输出进度条噪声 (不影响编码结果)。
+        show_progress_bar=sys.stderr.isatty(),
         normalize_embeddings=True,  # D2 cosine 友好 + D1 UMAP cosine metric 等价欧式
         convert_to_numpy=True,
     )

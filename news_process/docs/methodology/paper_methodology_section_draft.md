@@ -114,7 +114,7 @@ Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., Chi, E. H., L
 
 Westphal, J. D., & Zajac, E. J. (1994). Substance and symbolism in CEOs' long-term incentive plans. *Administrative Science Quarterly*, *39*(3), 367–390. https://doi.org/10.2307/2393295
 
-Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders: Corporate governance reforms and shareholder reactions. *Administrative Science Quarterly*, *43*(1), 127–153. https://doi.org/10.2307/2393592
+Westphal, J. D., & Zajac, E. J. (1998). The symbolic management of stockholders: Corporate governance reforms and shareholder reactions. *Administrative Science Quarterly*, *43*(1), 127–153. https://doi.org/10.2307/2393593
 
 ---
 

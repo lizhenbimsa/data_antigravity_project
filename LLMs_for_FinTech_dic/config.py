@@ -27,17 +27,13 @@ GEN_CHECKPOINT_FILE = DATA_DIR / "gen_checkpoint.json"
 BASE_URL: str = os.environ.get(
     "YUNWU_BASE_URL", "https://yunwu.ai/v1"
 )
-API_KEY: str = os.environ.get(
-    "YUNWU_API_KEY", "sk-bxKmTvBf5WrJwZ0r474eBfC2De404a38931216Ed79548f05"
-)
+API_KEY: str = os.environ.get("YUNWU_API_KEY", "")
 
 # 豆包模型专用 API 配置（火山引擎）
 DOUBAO_BASE_URL: str = os.environ.get(
     "DOUBAO_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3"
 )
-DOUBAO_API_KEY: str = os.environ.get(
-    "DOUBAO_API_KEY", "0bfef660-19b7-4fb8-9623-83df55730ad6"
-)
+DOUBAO_API_KEY: str = os.environ.get("DOUBAO_API_KEY", "")
 
 # ════════════════════════════════════════════════════════════════
 # 任务参数

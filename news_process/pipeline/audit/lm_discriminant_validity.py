@@ -32,18 +32,17 @@ HTMT < 0.85 (判别效度通过).
 输入 / 输出
 -----------
 输入: ``data/processed/40_panel_yearly.parquet`` (含 v3.5.1 + v3.5.2 全部列)
-输出:
-    ``eval_reports/39e_lm_htmt_matrix.csv``     6×6 HTMT 矩阵
-    ``eval_reports/39e_lm_kappa.csv``           pairwise Cohen κ
-    ``eval_reports/39e_lm_cronbach_alpha.csv``  6 indicator Cronbach α
-    ``eval_reports/39e_lm_permutation.csv``     1000-rep permutation null
-    ``data/processed/39e_lm_htmt.parquet``      machine-readable HTMT
+输出 (按 _full / _ctx 双轨各写一份):
+    ``eval_reports/39e_lm_htmt_matrix_{ctx,full}.csv``   6×6 HTMT 矩阵
+    ``eval_reports/39e_lm_permutation_{ctx,full}.csv``   1000-rep permutation null (seed=42)
+    (仅产上述 CSV — 与 core/schemas.py 登记的契约一致; 不单独落盘 Cohen κ /
+     Cronbach α CSV, 亦不产 parquet)
 
-stub 说明
----------
-当前是 PR #4 stub: ``main()`` 入口 + key 函数骨架, 实际 HTMT 计算依赖
-v3.5.2 PR #3 (lm_non_sentiment) 输出 panel 列存在; G-A1.2 准入门控
-(panel HTMT < 0.85 on 9000 bank-year) 验证由 PR #14 集成完成.
+实现状态
+--------
+``main()`` 与 ``permutation_null`` 已由 PR #14 集成完成 (非 stub): 依赖 v3.5.2
+PR #3 (lm_non_sentiment) 输出的 panel 列存在; G-A1.2 准入门控
+(panel HTMT < 0.85) 在该集成中验证。
 """
 
 from __future__ import annotations
@@ -130,13 +129,14 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
                      n_perm: int = 1000, seed: int = 42) -> pd.DataFrame:
     """Permutation null distribution for HTMT (random column shuffles).
 
-    Stub: 完整实现仿 stage 39c::permutation_null (n_jobs=16 on MP 64-core).
+    实现仿 stage 39c::permutation_null: 对每个 indicator 列独立随机置换 n_perm 次,
+    统计 HTMT 上限的 null 分布 (当前为串行循环, 非 n_jobs 并行)。
     """
     rng = np.random.default_rng(seed)
     present = [c for c in indicators if c in panel.columns]
     if len(present) < 2:
         return pd.DataFrame()
-    # Stub: 仅返回观测 HTMT 上限均值 (实际跑由 PR #14 完整化).
+    # 观测 HTMT 上限 (对角置 NaN 后取全矩阵最大值), 作为下方 permutation null 的对比基准.
     obs_htmt = compute_htmt_matrix(panel, present)
     if obs_htmt.empty:
         return pd.DataFrame()
