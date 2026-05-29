@@ -30,6 +30,10 @@ capture do 18_substance_robustness.do
 capture do 19_substance_lr_reversal.do
 capture do 20_substance_disclosure_quality.do
 
+* audit S12 修复 (2026-05-30): v3.5.1 A1 lexical clarity robustness (Table A7)。
+* 此前模板随复现包发布但 master 从不调用; 与 tableA8 同 capture-graceful 模式接入。
+capture do 21_substance_clarity_robustness.do
+
 * R1-R5 audit fix A2: v3.7.3 Plan A title-track robustness (Table A8)
 capture do 25_tableA8_title_robustness.do
 

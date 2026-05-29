@@ -315,8 +315,10 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
     )
 
     # 查询 LLMCache (SQLite 持久化缓存)
+    # audit S2 修复: 缓存键纳入 temperature/random_seed 维度 (temp=0.0 时不变)。
     if cache is not None:
-        cached = cache.get(model_id, prompt, prompt_version=PEER_PROMPT_VERSION)
+        cached = cache.get(model_id, prompt, prompt_version=PEER_PROMPT_VERSION,
+                           temperature=TEMPERATURE, random_seed=RANDOM_SEED)
         if cached:
             return bank, year, cached
 
@@ -346,7 +348,9 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
                         # 写入 LLMCache (SQLite 持久化缓存)
                         if cache is not None:
                             cache.put(model_id, prompt, result,
-                                      prompt_version=PEER_PROMPT_VERSION)
+                                      prompt_version=PEER_PROMPT_VERSION,
+                                      temperature=TEMPERATURE,
+                                      random_seed=RANDOM_SEED)
                         # v3.7.0 (C1): LLM raw response archive (V4 F-P2.1)
                         if _LLM_ARCHIVE_AVAILABLE:
                             try:
@@ -354,6 +358,8 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
                                     cache_key=LLMCache.make_key(
                                         model_id, prompt,
                                         prompt_version=PEER_PROMPT_VERSION,
+                                        temperature=TEMPERATURE,
+                                        random_seed=RANDOM_SEED,
                                     ),
                                     model_id=model_id,
                                     model_version=data.get('model', model_id),

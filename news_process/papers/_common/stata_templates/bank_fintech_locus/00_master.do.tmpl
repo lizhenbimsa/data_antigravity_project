@@ -29,6 +29,11 @@ capture do 17_locus_heterogeneity.do
 capture do 18_locus_robustness.do
 capture do 19_locus_event_study.do
 
+* audit S12 修复 (2026-05-30): v3.5.1 A1 lexical clarity robustness (Table A7)。
+* 此前模板随复现包发布 (derivative_replication glob 实例化) 但 master 从不调用,
+* 复现者跑 master 不生成该表。与 tableA8 同 capture-graceful 模式接入。
+capture do 19_locus_clarity_robustness.do
+
 * R1-R5 audit fix A2: v3.7.3 Plan A title-track robustness (Table A8)
 capture do 25_tableA8_title_robustness.do
 

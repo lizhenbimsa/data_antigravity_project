@@ -302,12 +302,19 @@ def main():
     from news_process.core.data_versioning import save_parquet_with_metadata
     input_file = os.path.join(CONFIG['paths']['output_dir'],
                               CONFIG['filenames']['output_11_bank_news'])
+    # audit S10/B 修复 (2026-05-30): fintech 分类由 fintech_dict.json (1506 关键词)
+    # 决定; 把它纳入血缘 input_files, 否则编辑词典内容 (路径不变) 后 input_hashes
+    # 不变 → verify_data_integrity 对词典篡改失明。
+    _fintech_dict = CONFIG['paths'].get('fintech_dict_file')
+    input_files = [input_file] + (
+        [_fintech_dict] if _fintech_dict and os.path.exists(_fintech_dict) else []
+    )
     save_parquet_with_metadata(
         df=processed_df,
         output_path=full_output_path,
         stage_name="12_news_fintech",
         config=CONFIG,
-        input_files=[input_file],
+        input_files=input_files,
     )
     full_preview_path = full_output_path.replace('.parquet', '.csv')
     safe_save_preview_csv(processed_df, full_preview_path, logger)
@@ -327,12 +334,17 @@ def main():
     from news_process.core.data_versioning import save_parquet_with_metadata
     input_file = os.path.join(CONFIG['paths']['output_dir'],
                               CONFIG['filenames']['output_11_bank_news'])
+    # audit S10/B 修复 (2026-05-30): 同 full 版本, fintech_dict 纳入血缘。
+    _fintech_dict = CONFIG['paths'].get('fintech_dict_file')
+    input_files = [input_file] + (
+        [_fintech_dict] if _fintech_dict and os.path.exists(_fintech_dict) else []
+    )
     save_parquet_with_metadata(
         df=processed_df,
         output_path=output_path,
         stage_name="12_news_fintech",
         config=CONFIG,
-        input_files=[input_file],
+        input_files=input_files,
     )
 
     preview_path = output_path.replace('.parquet', '.csv')

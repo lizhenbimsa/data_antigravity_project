@@ -217,6 +217,11 @@ def run_stage(stage_script: str, stage_name: str, logger,
             errors='replace',
             env=env,
             bufsize=1,  # 行缓冲: 让 reader 线程能尽早拿到完整行
+            # audit S7 修复 (2026-05-30): 接线进程组隔离 — 此前 _stage_popen_isolation_kwargs
+            # 定义却从未被调用 (dead function), 导致 orchestrator 捕获 Ctrl+C 时控制台信号
+            # 会直接传给子进程 (Windows Intel Fortran runtime 打 forrtl: error 200)。隔离后
+            # orchestrator 经 _terminate_process_tree 主动关停, 独占 shutdown 控制。
+            **_stage_popen_isolation_kwargs(),
         )
     except Exception as e:
         elapsed = time.time() - start_time
@@ -249,26 +254,32 @@ def run_stage(stage_script: str, stage_name: str, logger,
         logger.error(
             f"✗ {stage_name} 执行超时（超过 {timeout}s），强制终止子进程..."
         )
-        try:
-            proc.kill()
-        except Exception:
-            pass
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            logger.error(f"  子进程 PID={proc.pid} 在 10s 内未响应 SIGKILL")
+        # audit S7 修复: 用进程树终止替代裸 proc.kill() — 杀掉子进程及其衍生的
+        # joblib/ProcessPool 工作进程 (stage 00/11/12), 避免孤儿进程残留。
+        _terminate_process_tree(proc, logger, f"执行超时 > {timeout}s")
         # 等 reader 线程把已缓冲的剩余行排空 (管道关闭后自然 EOF)
         t_out.join(timeout=5)
         t_err.join(timeout=5)
         return False, elapsed
+    except KeyboardInterrupt:
+        # audit S7 复核闭环 (2026-05-30): 进程组隔离 (CREATE_NEW_PROCESS_GROUP /
+        # start_new_session) 后, 子进程不再随控制台 Ctrl+C 终止 — orchestrator 必须
+        # 显式终止进程树, 否则用户中断时子进程 (含 joblib/ProcessPool 工作进程) 成
+        # 孤儿存活 (尤其 stage 21 7200s LLM 长跑被手动中断时)。KeyboardInterrupt 是
+        # BaseException 子类, 不被下方 `except Exception` 捕获, 故必须独立分支。
+        # 终止后 re-raise, 让上层 orchestrator 照常停止整个 pipeline (兑现隔离注释
+        # 声称的 "orchestrator 经 _terminate_process_tree 主动关停" 闭环)。
+        elapsed = time.time() - start_time
+        logger.error(f"✗ {stage_name} 被用户中断 (Ctrl+C)，终止子进程树...")
+        _terminate_process_tree(proc, logger, "用户中断 (Ctrl+C)")
+        t_out.join(timeout=5)
+        t_err.join(timeout=5)
+        raise
     except Exception as e:
         elapsed = time.time() - start_time
         logger.error(f"✗ {stage_name} 等待子进程异常: {e}")
-        try:
-            proc.kill()
-            proc.wait(timeout=5)
-        except Exception:
-            pass
+        # audit S7 修复: 同上, 进程树终止替代裸 proc.kill()。
+        _terminate_process_tree(proc, logger, f"等待子进程异常: {e}")
         t_out.join(timeout=5)
         t_err.join(timeout=5)
         return False, elapsed

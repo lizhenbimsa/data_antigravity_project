@@ -31,27 +31,38 @@ import yaml
 
 # 与 run_pipeline_function 管线阶段输出文件名对齐 (方案 §1)。
 # 磁盘上可能仅存在子集; 缺失项使 ``incomplete`` 为 true。
-EXPECTED_STAGES = [
-    "00_preprocessing.parquet",
-    "11_bank_news.parquet",
-    "12_fintech_news.parquet",
-    "12_fintech_news_full.parquet",
-    "14_fintech_intensity.parquet",
-    "15_article_alignment.parquet",
-    "21_tone_llms.parquet",
-    "21_tone_llms_full.parquet",
-    "22_words_tone.parquet",
-    "23_bert_tone.parquet",
-    "24_herd_decay.parquet",
-    "30_text2vec_indicators.parquet",
-    "40_panel_yearly.parquet",
-    "40_article_bank_level.parquet",
-    "40_attn_index_year.parquet",
-    "40_attn_index_province_year.parquet",
-    "40_attn_index_city_year.parquet",
-    "41_panel_with_controls.parquet",
-    "51_panel_with_controls.parquet",
+#
+# audit S9 修复 (2026-05-30): 从 core/schemas.py::OUTPUT_REGISTRY 单源派生, 消除
+# 三份手抄 stage 清单 (OUTPUT_REGISTRY / 本 EXPECTED_STAGES / test_panel_reproducibility
+# parametrize) 两两漂移。早期硬编码列表漏掉 v3.6-v3.7 新增 stage (13/16/17/18/19/30a/49),
+# 下次 golden 重生 (deferred 到 production run) 时本派生自动覆盖之。
+from news_process.core.schemas import OUTPUT_REGISTRY  # noqa: E402
+
+# 无生产 stage 的 orphan 产物: golden 历史追踪但 OUTPUT_REGISTRY 无登记。
+# 待正式处置 (确认废弃 → 从 golden 移除 / 否则补回生产 stage)。
+_ORPHAN_WHITELIST = [
+    "30_text2vec_indicators.parquet",  # stage 30 已退役 (2026-05-29 双模型重构, 内联到 15/25)
+    "41_panel_with_controls.parquet",  # 无生产者 (OUTPUT_REGISTRY 仅 51_panel_with_controls)
 ]
+
+
+def _derive_expected_stages() -> list[str]:
+    """从 OUTPUT_REGISTRY 派生期望 .parquet 列表 + orphan 白名单 (去重保序)。"""
+    seen: set[str] = set()
+    result: list[str] = []
+    for files in OUTPUT_REGISTRY.values():
+        for fname in files:
+            if fname.endswith('.parquet') and fname not in seen:
+                seen.add(fname)
+                result.append(fname)
+    for fname in _ORPHAN_WHITELIST:
+        if fname not in seen:
+            seen.add(fname)
+            result.append(fname)
+    return result
+
+
+EXPECTED_STAGES = _derive_expected_stages()
 
 
 def column_hash(s: pd.Series) -> str:

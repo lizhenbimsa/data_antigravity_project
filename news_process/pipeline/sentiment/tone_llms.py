@@ -418,8 +418,12 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     api_key  = model_cfg.get('api_key', '')
 
     # 缓存查询（sqlite3 同步调用为微秒级，不阻塞事件循环）
+    # audit S2 修复: 传入 temperature/random_seed, 让缓存键反映实际推理参数。
+    # temperature=0.0 时键与历史一致 (seed 不进键), 改 config 做温度/种子稳健性
+    # 扫描时键随之变化, 避免静默命中旧响应。
     if cache is not None:
-        cached_response = cache.get(model_id, prompt, prompt_version=prompt_version)
+        cached_response = cache.get(model_id, prompt, prompt_version=prompt_version,
+                                    temperature=TEMPERATURE, random_seed=RANDOM_SEED)
         if cached_response is not None:
             return row_idx, model_id, cached_response, track
 
@@ -450,7 +454,9 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                         result_text = data['choices'][0]['message']['content']
                         if cache is not None:
                             cache.put(model_id, prompt, result_text,
-                                      prompt_version=prompt_version)
+                                      prompt_version=prompt_version,
+                                      temperature=TEMPERATURE,
+                                      random_seed=RANDOM_SEED)
                         # v3.7.0 (C1): LLM raw response archive (V4 F-P2.1 critical)
                         # 失败不阻塞 pipeline: try/except + warning
                         if _LLM_ARCHIVE_AVAILABLE:
@@ -459,9 +465,13 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                                 # (e.g. "gpt-5.4-nano-2026-01"), 与配置 model_id
                                 # ("gpt-5.4-nano") 分离 — 顶刊复现关键 critical.
                                 actual_version = data.get('model', model_id)
+                                # audit S2 修复: cache_key 与上面 get/put 同参,
+                                # 保证 archive 反查键与缓存键一致 (temp=0.0 时不变)。
                                 cache_key = LLMCache.make_key(
                                     model_id, prompt,
                                     prompt_version=prompt_version,
+                                    temperature=TEMPERATURE,
+                                    random_seed=RANDOM_SEED,
                                 )
                                 _llm_archive_record(
                                     cache_key=cache_key,
@@ -470,7 +480,9 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                                     prompt=prompt,
                                     response_raw=json.dumps(data, ensure_ascii=False),
                                     prompt_version=prompt_version,
-                                    temperature=0.0,
+                                    # audit S2 修复: 记录真实 config 温度而非硬编码
+                                    # 0.0 — 顶刊复现账本不得对推理参数撒谎。
+                                    temperature=TEMPERATURE,
                                     api_endpoint=f"{base_url}/chat/completions",
                                     http_status=resp.status,
                                 )

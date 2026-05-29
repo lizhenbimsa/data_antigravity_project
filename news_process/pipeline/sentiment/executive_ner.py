@@ -219,6 +219,7 @@ def call_llm_for_ner(
     model: str = 'gpt-5.4-nano',
     cache_namespace: str = 'd4_ceo_ner',
     return_status: bool = False,
+    cache=None,
 ):
     """zero-shot LLM NER call; 缓存 by (model, content hash, namespace).
 
@@ -267,7 +268,11 @@ def call_llm_for_ner(
     cache_key = ''
     try:
         from news_process.core.caching import LLMCache  # noqa: E402
-        cache_obj = LLMCache(CACHE_DB_PATH)
+        # audit S11 修复 (2026-05-30): 优先复用调用方传入的共享 cache; 仅在未传入
+        # 时 (向后兼容既有调用方/测试) 本地新建。main() 现传入单一共享 cache, 消除
+        # 此前每篇文章 ×双轨 = 2N 次新建 SQLite 连接 (production 40 万规模 = 80 万次
+        # 开关 + WAL 句柄, Windows 易触句柄上限) 的连接 churn。
+        cache_obj = cache if cache is not None else LLMCache(CACHE_DB_PATH)
         cache_key = LLMCache.make_key(
             model, prompt, prompt_version=PROMPT_VERSION, temperature=0.0,
         )
@@ -395,6 +400,16 @@ def main():
     df = pd.read_parquet(src_path)
     logger.info(f"  article-level: {len(df)} 行")
 
+    # audit S11 修复 (2026-05-30): 全 run 共用单一 LLMCache 连接, 传入每次
+    # call_llm_for_ner, 替代此前每篇文章 ×双轨 = 2N 次新建连接不关闭 (production
+    # 40 万规模 = 80 万次 SQLite/WAL 句柄开关, Windows 易触上限)。正常路径在末尾
+    # 显式 close; sys.exit 路径由进程退出回收 (单一连接, 不累积)。
+    try:
+        from news_process.core.caching import LLMCache
+        _ner_cache = LLMCache(CACHE_DB_PATH)
+    except Exception:
+        _ner_cache = None
+
     # 双轨 LLM 调用 (cost: ~$6 each)
     for suffix, content_col in (('full', '内容'), ('ctx', 'content_ctx')):
         if content_col not in df.columns:
@@ -408,6 +423,7 @@ def main():
                 bank_name=row.get('target_bank', ''),
                 cache_namespace=f'd4_ceo_ner_{suffix}',
                 return_status=True,
+                cache=_ner_cache,  # audit S11: 复用共享连接, 不每篇新建
             )
             if call_failed:
                 # audit-fixes 2026-05-29 (M4): LLM 调用失败 → NaN (不当作 0 高管)
@@ -453,6 +469,9 @@ def main():
     panel.to_parquet(out_path, index=False)
     logger.info(f"  bank-year panel → {out_path} ({len(panel)} 行)")
     logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
+    # audit S11 修复: 正常路径显式关闭共享 cache 连接。
+    if _ner_cache is not None:
+        _ner_cache.close()
 
 
 if __name__ == '__main__':

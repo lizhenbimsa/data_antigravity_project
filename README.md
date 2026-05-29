@@ -17,7 +17,10 @@
 > - **详见**: 每个 paper 的 `papers_assets/<id>/README.md` (5 paper 全有) 与 `papers/<id>/__init__.py` 模块级 docstring。
 > - **仍待用户补充**: manuscript 内 `\NoteThis{...}` 占位实质内容 + 会计变量 (ROA/NPL/Z) 并入 panel。
 
-> **当前版本: v3.7.0 + v2.3 implementation (2026-05-18; 最近 git tag: v3.6.0)**
+> **当前版本: v3.7.4 (2026-05-30; 权威以 [news_process/CLAUDE.md](news_process/CLAUDE.md) 顶部 "Current version" 段为准; 最近独立 git tag: v3.6.0)**
+> <!-- audit S5 (2026-05-30): 单一版本指针, 避免本 README 内 v3.7.0/v3.7.4/v3.7.1 三处横幅互相矛盾 -->
+> <!-- 旧横幅曾写 v3.7.0; 实际 HEAD 已到 v3.7.4 (见下方 §6 演进表与 README L179) -->
+> _注: 下文部分版本号/测试计数为历史快照, 可能滞后于 CLAUDE.md 权威值。_
 > 八期重构（Phase 0 → 8）+ Phase 9 (v2.1.0) post-restructure cleanup + v3.2.0
 > 三轨化双轨核心 + post-v3.2.0 multi-paper extension (8d33c46, 4 衍生 paper) +
 > v3.4.0 第三维度 collab_mode + v3.5.0/v3.5.1 Stage 3 augmentation +
@@ -176,7 +179,8 @@ python -m pytest news_process/tests/test_00_preprocessing.py -v
 - v2.1.0 release tag (frozen baseline): `772 passed, 6 skipped, 0 failed`
 - post-recode round 1+2 baseline: `782 passed, 6 skipped, 0 failed`
 - post-round 2 sidecar 化后 (P1-5 SKIP→PASS, Win 兼容): `786 passed, 2 skipped, 0 failed`
-- **HEAD (v3.7.4 + quality-hardening 2026-05-27)**: `2200 total` (`--collect-only`); fast: `1892 passed, 0 failed, 2 skipped`; integration: 8 fail blocked by stale disk panel parquet (M0 gate, 见 docs/TECH-DEBT.md §[1-B][1-C])
+- **HEAD (2026-05-30 实测, repo 根)**: fast `~2384 collected / ~2382 passed / 0 failed / 2 skipped` (`pytest -m fast`, exit 0); integration: 8 fail blocked by stale disk panel parquet (M0 gate, 见 docs/TECH-DEBT.md §[1-B][1-C])。<!-- audit S4: 旧记 "1892 passed" 已滞后, 以本次实跑为准; 0 failed 为硬不变式 -->
+- **(历史 2026-05-27 quality-hardening 快照)**: `2200 total` (`--collect-only`); fast `1892 passed, 0 failed, 2 skipped`
 - v3.7.0 (2026-05-18): `1629 fast / 284 integration / 1913 total`
 - v3.6.0 (Plan E 双轨闭合): `1615 fast`
 - v3.5.1 supplementation: `~1590 fast`
@@ -242,7 +246,8 @@ do <full path to .do>
 ## 6. 可回滚锚点
 
 ```
-v3.7.1 + v2.3 (HEAD)        ← 当前 (2026-05-18; bank_list 1771 行 + Stata 路径修复 + v2.3 集成层; 未独立 tag)
+v3.7.4 + v2.3 (HEAD)        ← 当前 (2026-05-30; Plan A title-track + Panel D/E + audit-verified 修复; 权威见 CLAUDE.md; 未独立 tag)
+v3.7.1/3.7.2/3.7.3          中间增量 (ctx_fallback / title-track robustness; 未独立 tag)
 v3.7.0 (PR #9-#13)          D 组 BERTopic + staleness + α + LLM CEO NER (未独立 tag)
 v3.6.0                      Plan E 双轨闭合 + 新 stage 13 ctx 物化 (2026-05-18 锁定)
 v3.5.x (v3.5.0/v3.5.1)      Stage 3 D2/D3/D4 augmentation + A1/A3 supplementation (未独立 tag)

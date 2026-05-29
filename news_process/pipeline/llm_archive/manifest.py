@@ -29,11 +29,23 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from .archive import DEFAULT_ARCHIVE_ROOT, sha256_of_file
+from .archive import _resolve_archive_root, sha256_of_file
 
 logger = logging.getLogger(__name__)
 
 MANIFEST_FILENAME = 'manifest.json'
+
+
+def _default_root() -> Path:
+    """audit S3 修复 (2026-05-30): 写入与校验共用同一 archive root 解析。
+
+    早期 manifest 三函数 (compute/write/verify) 在 ``root=None`` 时回落
+    ``DEFAULT_ARCHIVE_ROOT=Path('data/llm_archive')`` (cwd 相对), 而写入端
+    archive.py 走 ``_resolve_archive_root()`` (config 解析的绝对路径)。两者从
+    repo 根运行时锚定到不同目录, 致 ``verify_manifest()`` 扫错目录假阴性。
+    此处统一改用 ``_resolve_archive_root()``, 保证写/验同源。
+    """
+    return _resolve_archive_root()
 
 
 def _sha_and_count_in_one_pass(path: Path) -> tuple[str, int, int]:
@@ -58,6 +70,7 @@ def compute_manifest(
     root: Optional[Path] = None,
     *,
     prompt_version_anchor: str = 'v8',
+    prompt_sha256: Optional[str] = None,
     archive_frozen_date: str = '2026-05-18',
 ) -> dict:
     """扫描 archive 目录, 生成 manifest dict.
@@ -65,14 +78,16 @@ def compute_manifest(
     v3.7.0 (M5 修复): 单次 IO 同时算 sha256 + bytes + line count.
 
     Args:
-        root: archive 根目录 (默认 data/llm_archive/).
-        prompt_version_anchor: 锚定的 prompt version (v3.5.1 = "v8").
+        root: archive 根目录 (默认走 _resolve_archive_root, 见 _default_root)。
+        prompt_version_anchor: 锚定的 prompt version token (v3.5.1 = "v8").
+        prompt_sha256: audit S1 修复 — frozen prompt 的 SHA-256 指纹 (来自
+            v3.5.1 sidecar, 比 token 'v8' 更强的复现锚点); None 表示 sidecar 不可读。
         archive_frozen_date: 归档 frozen 日期.
 
     Returns:
         dict: manifest 内容 (未写入文件).
     """
-    root = Path(root) if root else DEFAULT_ARCHIVE_ROOT
+    root = Path(root) if root else _default_root()
     responses_dir = root / 'responses'
     if not responses_dir.exists():
         logger.warning(f"responses dir 不存在: {responses_dir}")
@@ -92,6 +107,7 @@ def compute_manifest(
         'archive_frozen_date': archive_frozen_date,
         'generated_at_utc': dt.datetime.now(dt.timezone.utc).isoformat(),
         'prompt_version_anchor': prompt_version_anchor,
+        'prompt_sha256': prompt_sha256,  # audit S1: 密码学指纹 (None=sidecar 不可读)
         'files': files,
         'total_records': sum(f['record_count'] for f in files.values()),
         'total_bytes': sum(f['bytes'] for f in files.values()),
@@ -99,10 +115,17 @@ def compute_manifest(
     return manifest
 
 
-def _read_prompt_version_anchor_from_sidecar() -> Optional[str]:
-    """v3.7.0 (m5 修复): 从 v3.5.1 sidecar JSON 读 frozen prompt version.
+def _read_prompt_sha256_from_sidecar() -> Optional[str]:
+    """v3.7.0 (m5) + audit S1 修复 (2026-05-30): 从 v3.5.1 sidecar JSON 读
+    frozen prompt 的 SHA-256 指纹。
 
-    避免 hardcoded 'v8' 在 sidecar 升级时漂移.
+    早期实现误读两个 *不存在* 的键 (``prompt_v8_sha256_anchor`` /
+    ``prompt_version``), 致此函数对真值 sidecar 永远返回 None — 一个永不生效
+    的 dead branch (write_manifest 因此永久落回硬编码)。真值 sidecar
+    (``data/processed/v3_5_1_constants.json``) 实际存的是 prompt 内容的
+    SHA-256 哈希 (键 ``prompt_v8_sha256``), 而非版本 token 字符串。本修复读对
+    真值键, 让 manifest 能记录密码学指纹 (比版本 token 'v8' 更强的复现锚点);
+    sidecar 缺失 / 损坏时返回 None。
     """
     sidecar = Path('data/processed/v3_5_1_constants.json')
     if not sidecar.exists():
@@ -110,28 +133,36 @@ def _read_prompt_version_anchor_from_sidecar() -> Optional[str]:
     try:
         with sidecar.open('r', encoding='utf-8') as f:
             data = json.load(f)
-        return data.get('prompt_v8_sha256_anchor') or data.get('prompt_version')
+        return data.get('prompt_v8_sha256')
     except Exception:
         return None
+
+
+# 向后兼容别名: 历史测试 (test_llm_archive.py) 与早期引用按旧名调用。
+# audit S1 修复后语义 = 读 prompt 的 SHA256 指纹 (而非不存在的 version token)。
+_read_prompt_version_anchor_from_sidecar = _read_prompt_sha256_from_sidecar
 
 
 def write_manifest(
     root: Optional[Path] = None,
     *,
-    prompt_version_anchor: Optional[str] = None,
+    prompt_version_anchor: str = 'v8',
     archive_frozen_date: str = '2026-05-18',
 ) -> Path:
     """生成并写入 manifest.json 到 archive 根目录.
 
-    v3.7.0 (m5 修复): prompt_version_anchor=None 时从 sidecar JSON 读 (避免硬编码).
+    v3.7.0 (m5) + audit S1/S3 修复 (2026-05-30):
+    - root=None 时走 _default_root() (= _resolve_archive_root), 与写入端同源
+      (修早期 cwd-相对 DEFAULT_ARCHIVE_ROOT 致 verify 扫错目录的路径漂移)。
+    - prompt 的 SHA-256 指纹从 v3.5.1 sidecar 读 (修早期读错 key 的 dead branch),
+      记入 manifest['prompt_sha256']; prompt_version_anchor 保留人读 token 'v8'。
     """
-    if prompt_version_anchor is None:
-        anchor_from_sidecar = _read_prompt_version_anchor_from_sidecar()
-        prompt_version_anchor = anchor_from_sidecar or 'v8'
-    root = Path(root) if root else DEFAULT_ARCHIVE_ROOT
+    prompt_sha256 = _read_prompt_sha256_from_sidecar()
+    root = Path(root) if root else _default_root()
     manifest = compute_manifest(
         root,
         prompt_version_anchor=prompt_version_anchor,
+        prompt_sha256=prompt_sha256,
         archive_frozen_date=archive_frozen_date,
     )
     manifest_path = root / MANIFEST_FILENAME
@@ -156,7 +187,7 @@ def verify_manifest(root: Optional[Path] = None) -> tuple[bool, list[str]]:
         (ok, errors): ok=True 表示完整一致.
                       errors 列出每个不一致 / 多余文件的诊断.
     """
-    root = Path(root) if root else DEFAULT_ARCHIVE_ROOT
+    root = Path(root) if root else _default_root()  # audit S3: 与写入同源
     manifest_path = root / MANIFEST_FILENAME
     if not manifest_path.exists():
         return False, [f"manifest 不存在: {manifest_path}"]

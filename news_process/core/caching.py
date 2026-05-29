@@ -179,7 +179,8 @@ class LLMCache:
     @staticmethod
     def _make_key(model_id: str, prompt: str,
                   *, prompt_version: str = "v0",
-                  temperature: float = 0.0) -> str:
+                  temperature: float = 0.0,
+                  random_seed: int | None = None) -> str:
         """生成缓存键 (Plan-r3 P3-17 升级版).
 
         Args:
@@ -214,12 +215,25 @@ class LLMCache:
         #   - nan: repr(nan)='nan', 两次 nan 调用键相等 (避免 cache 无穷失效); 生产不传
         #   - -0.0: repr(-0.0)='-0.0' 与 0.0 区分; 生产不传; 严格学术正确
         temp_str = repr(float(temperature))
-        # SCHEMA|len:model|len:prompt|len:pv|temp_repr
+        # audit S2 修复 (2026-05-30): seed 维度按需进键, 避免静默 stale-hit。
+        # 设计: seed 仅在 temperature != 0.0 时拼入 key。理由 —
+        #   (1) temperature=0.0 (贪心解码) 下 random_seed 对 LLM 输出无影响,
+        #       省略它使 key 与历史 P3-17 schema (无 seed 维度) 字节级一致 →
+        #       零缓存失效, 无需 bump SCHEMA_VERSION (现存 _llm_cache.db 全命中)。
+        #   (2) temperature>0 时 seed 决定采样路径, 必须进 key, 让温度/种子
+        #       稳健性扫描得到正确的 cache miss, 而非静默命中按 temp=0.0 算出
+        #       的旧响应 (后者会污染稳健性表)。
+        seed_part = (
+            f"|seed:{int(random_seed)}"
+            if (random_seed is not None and float(temperature) != 0.0)
+            else ""
+        )
+        # SCHEMA|len:model|len:prompt|len:pv|temp_repr[|seed:N]
         raw = (
             f"{SCHEMA_VERSION}|"
             f"{len(m_id)}:{m_id}|"
             f"{len(p_str)}:{p_str}|"
-            f"{len(pv)}:{pv}|{temp_str}"
+            f"{len(pv)}:{pv}|{temp_str}{seed_part}"
         )
         return hashlib.sha256(raw.encode('utf-8')).hexdigest()
 
@@ -229,7 +243,8 @@ class LLMCache:
     @staticmethod
     def make_key(model_id: str, prompt: str,
                  *, prompt_version: str = "v0",
-                 temperature: float = 0.0) -> str:
+                 temperature: float = 0.0,
+                 random_seed: int | None = None) -> str:
         """Public alias for ``_make_key`` (v3.7.0+, stable API).
 
         Use this from ``pipeline/llm_archive/`` callsites to maintain
@@ -237,7 +252,8 @@ class LLMCache:
         """
         return LLMCache._make_key(model_id, prompt,
                                   prompt_version=prompt_version,
-                                  temperature=temperature)
+                                  temperature=temperature,
+                                  random_seed=random_seed)
 
     @staticmethod
     def _make_key_v0(model_id: str, prompt: str) -> str:
@@ -252,7 +268,8 @@ class LLMCache:
 
     def get(self, model_id: str, prompt: str,
             *, prompt_version: str = "v0",
-            temperature: float = 0.0) -> str | None:
+            temperature: float = 0.0,
+            random_seed: int | None = None) -> str | None:
         """查询缓存 (Plan-r3 P3-17: 加 prompt_version + temperature 维度)。
 
         平滑迁移: 新键 (v1) miss 后, 当 ``prompt_version='v0'`` 且
@@ -270,7 +287,8 @@ class LLMCache:
         """
         key = self._make_key(model_id, prompt,
                              prompt_version=prompt_version,
-                             temperature=temperature)
+                             temperature=temperature,
+                             random_seed=random_seed)
         with self._lock:
             cursor = self._conn.execute(
                 "SELECT response FROM llm_cache WHERE cache_key = ?", (key,)
@@ -300,7 +318,8 @@ class LLMCache:
 
     def put(self, model_id: str, prompt: str, response: str,
             *, prompt_version: str = "v0",
-            temperature: float = 0.0) -> None:
+            temperature: float = 0.0,
+            random_seed: int | None = None) -> None:
         """写入缓存 (Plan-r3 P3-17: 加 prompt_version + temperature 维度)。
 
         仅在 HTTP 200 成功响应时调用. 使用 INSERT OR REPLACE 确保幂等性.
@@ -314,7 +333,8 @@ class LLMCache:
         """
         key = self._make_key(model_id, prompt,
                              prompt_version=prompt_version,
-                             temperature=temperature)
+                             temperature=temperature,
+                             random_seed=random_seed)
         m_id = str(model_id) if model_id is not None else ""
         r_str = str(response) if response is not None else ""
         with self._lock:
@@ -328,7 +348,8 @@ class LLMCache:
 
     def put_batch(self, model_id: str, prompts: list[str], responses: list[str],
                   *, prompt_version: str = "v0",
-                  temperature: float = 0.0) -> None:
+                  temperature: float = 0.0,
+                  random_seed: int | None = None) -> None:
         """批量原子写入缓存 (Plan-r3 P3-17: 加 prompt_version + temperature 维度)。
 
         使用 executemany 配合事务大幅提升高并发环境下的写入吞吐量。
@@ -350,7 +371,8 @@ class LLMCache:
         for p, r in zip(prompts, responses):
             key = self._make_key(model_id, p,
                                  prompt_version=prompt_version,
-                                 temperature=temperature)
+                                 temperature=temperature,
+                                 random_seed=random_seed)
             r_str = str(r) if r is not None else ""
             rows.append((key, m_id, r_str, now))
 

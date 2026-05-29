@@ -80,6 +80,34 @@ def test_golden_snapshot_has_content(golden):
     assert indexed > 0, "golden 快照中没有任何阶段含 column_hashes"
 
 
+def test_golden_stages_subset_of_registry_or_orphan_whitelist(golden):
+    """audit S9 漂移闸门 (2026-05-30): golden 追踪的每个 stage 必须 ∈
+    OUTPUT_REGISTRY 的 .parquet 产物 ∪ 已知 orphan 白名单。
+
+    防止 OUTPUT_REGISTRY / golden EXPECTED_STAGES / 本文件 parametrize 三份手抄
+    stage 清单再次漂移到无人发现。orphan 白名单为已知无生产者产物 (待正式处置:
+    确认废弃→从 golden 移除 / 否则补回生产 stage)。
+    """
+    from news_process.core.schemas import OUTPUT_REGISTRY
+    registry_parquets = {
+        f for files in OUTPUT_REGISTRY.values() for f in files
+        if f.endswith('.parquet')
+    }
+    # 与 generate_golden_snapshot._ORPHAN_WHITELIST 保持同步
+    known_orphans = {
+        "30_text2vec_indicators.parquet",
+        "41_panel_with_controls.parquet",
+    }
+    allowed = registry_parquets | known_orphans
+    golden_stages = set(golden.get("stages", {}).keys())
+    drift = golden_stages - allowed
+    assert not drift, (
+        f"golden_panel_v0.json 追踪了 OUTPUT_REGISTRY/orphan 白名单外的 stage: "
+        f"{sorted(drift)} — 三份清单漂移, 见 audit S9。新增产物请登记 OUTPUT_REGISTRY; "
+        f"确认 orphan 请加入白名单并注明处置计划。"
+    )
+
+
 @pytest.mark.parametrize("stage_filename", [
     "00_preprocessing.parquet",
     "11_bank_news.parquet",

@@ -447,12 +447,24 @@ def main():
     from news_process.core.data_versioning import save_parquet_with_metadata
     input_file = os.path.join(CONFIG['paths']['output_dir'],
                               CONFIG['filenames']['output_00_preprocessing'])
+    # audit S10/B 修复 (2026-05-30): 把决定银行分类结果的词典文件纳入血缘
+    # input_files。否则编辑 bank_names.json / bank_name_exclusions.json (路径不变、
+    # 内容变) 后, input_hashes 不变 → verify_data_integrity 假阳性 PASS, 对词典
+    # 篡改完全失明。compute_config_hash 只哈希 config dict (含路径字符串), 不读
+    # 词典内容, 故必须把词典文件本身纳入 input_hashes。
+    _lexicon_inputs = [
+        CONFIG['paths'].get('bank_names_file'),
+        CONFIG['paths'].get('bank_name_exclusions_file'),
+    ]
+    input_files = [input_file] + [
+        p for p in _lexicon_inputs if p and os.path.exists(p)
+    ]
     save_parquet_with_metadata(
         df=processed_df,
         output_path=output_path,
         stage_name="11_news_bank",
         config=CONFIG,
-        input_files=[input_file],
+        input_files=input_files,
     )
 
     preview_path = output_path.replace('.parquet', '.csv')

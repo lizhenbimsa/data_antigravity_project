@@ -199,6 +199,40 @@ class TestManifest:
         monkeypatch.chdir(tmp_path)
         assert M._read_prompt_version_anchor_from_sidecar() is None
 
+    def test_read_prompt_sha256_happy_path_returns_value(self, tmp_path, monkeypatch):
+        """audit S1 回归: sidecar 含真值键 'prompt_v8_sha256' → 返回该 SHA (非 None)。
+
+        早期实现误读 'prompt_v8_sha256_anchor'/'prompt_version' 两个不存在的键,
+        对真值 sidecar 永远返回 None (dead branch), 而旧测试只覆盖 missing/corrupt
+        两条 None 分支故无法暴露。本 happy-path 测试锁定修复: 真值键能被读到。
+        """
+        from news_process.pipeline.llm_archive import manifest as M
+        sidecar_dir = tmp_path / 'data' / 'processed'
+        sidecar_dir.mkdir(parents=True)
+        sha = '0430ba3c1b2a289e5f022081953e7748f35dfa9e3e1ac9303f6d0f1871cc858c'
+        (sidecar_dir / 'v3_5_1_constants.json').write_text(
+            json.dumps({'prompt_v8_sha256': sha, 'plan_version': 'v3.5.1'}),
+            encoding='utf-8')
+        monkeypatch.chdir(tmp_path)
+        assert M._read_prompt_sha256_from_sidecar() == sha
+        # 向后兼容别名同样生效
+        assert M._read_prompt_version_anchor_from_sidecar() == sha
+
+    def test_write_manifest_records_prompt_sha256_from_sidecar(self, tmp_archive, tmp_path, monkeypatch):
+        """audit S1 回归: write_manifest 把 sidecar 的 prompt SHA 写入 manifest['prompt_sha256']。"""
+        sidecar_dir = tmp_path / 'data' / 'processed'
+        sidecar_dir.mkdir(parents=True)
+        sha = 'a' * 64
+        (sidecar_dir / 'v3_5_1_constants.json').write_text(
+            json.dumps({'prompt_v8_sha256': sha}), encoding='utf-8')
+        monkeypatch.chdir(tmp_path)
+        tmp_archive.append(_valid_record())
+        write_manifest(tmp_archive.root)
+        manifest = json.loads(
+            (tmp_archive.root / 'manifest.json').read_text(encoding='utf-8'))
+        assert manifest['prompt_sha256'] == sha
+        assert manifest['prompt_version_anchor'] == 'v8'  # 人读 token 仍保留
+
     def test_verify_manifest_missing_returns_false(self, tmp_path):
         """manifest.json 本身不存在 → False + 单条错误 (manifest.py:162)."""
         from news_process.pipeline.llm_archive.manifest import verify_manifest

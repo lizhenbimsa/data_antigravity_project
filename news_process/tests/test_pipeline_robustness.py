@@ -113,6 +113,49 @@ def test_cache_temperature_precision_no_collision(tmp_path):
         assert cache.get("m1", "p2", temperature=0.0500001) is None
 
 
+def test_cache_key_seed_dimension_backward_compatible_at_temp_zero():
+    """audit S2 修复: random_seed 仅在 temperature != 0.0 时进键。
+
+    关键不变量 (零缓存失效): temperature=0.0 (贪心解码) 下 seed 对输出无影响,
+    故带 seed 与不带 seed 的 key 必须字节级一致 — 这保证现存 _llm_cache.db
+    (332MB, 历史无 seed 维度) 在本次修复后仍全部命中, 无需 bump SCHEMA_VERSION
+    / 重跑 stage 21。
+    """
+    k_no_seed = LLMCache._make_key("m1", "p1", prompt_version="v8", temperature=0.0)
+    k_seed42 = LLMCache._make_key("m1", "p1", prompt_version="v8",
+                                  temperature=0.0, random_seed=42)
+    k_seed99 = LLMCache._make_key("m1", "p1", prompt_version="v8",
+                                  temperature=0.0, random_seed=99)
+    # temp=0.0: seed 不进键 → 三者完全相同 (向后兼容历史 P3-17 schema)
+    assert k_no_seed == k_seed42 == k_seed99
+
+
+def test_cache_key_seed_matters_at_nonzero_temperature():
+    """audit S2 修复: temperature>0 时 seed 决定采样路径, 必须进键。
+
+    防止温度/种子稳健性扫描在 temp>0 下静默命中按错误 seed 算出的旧响应。
+    """
+    base = LLMCache._make_key("m1", "p1", prompt_version="v8", temperature=0.7)
+    seed42 = LLMCache._make_key("m1", "p1", prompt_version="v8",
+                                temperature=0.7, random_seed=42)
+    seed99 = LLMCache._make_key("m1", "p1", prompt_version="v8",
+                                temperature=0.7, random_seed=99)
+    # temp>0 且传 seed: 不同 seed → 不同键; 且与"不传 seed"也不同
+    assert seed42 != seed99
+    assert base != seed42
+    assert base != seed99
+
+
+def test_cache_get_put_seed_roundtrip_at_nonzero_temp(tmp_path):
+    """audit S2 修复: get/put 透传 random_seed, temp>0 下不同 seed 各自命名空间。"""
+    db_path = str(tmp_path / "test_cache_seed.db")
+    with LLMCache(db_path) as cache:
+        cache.put("m1", "pA", "resp-s42", temperature=0.7, random_seed=42)
+        cache.put("m1", "pA", "resp-s99", temperature=0.7, random_seed=99)
+        assert cache.get("m1", "pA", temperature=0.7, random_seed=42) == "resp-s42"
+        assert cache.get("m1", "pA", temperature=0.7, random_seed=99) == "resp-s99"
+
+
 def test_cache_pipe_in_prompt_version_no_collision(tmp_path):
     """Plan-r3 P3-17 recode 审查: prompt_version 含 '|' 字符不引发键碰撞.
 

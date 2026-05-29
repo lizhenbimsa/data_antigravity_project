@@ -1,5 +1,14 @@
 # Schema定义文件 - 各阶段输出的列Schema
-# 用于在运行时验证数据完整性，防止列缺失导致的KeyError
+#
+# ⚠ DEPRECATED / 未被加载 (audit S8, 2026-05-30):
+#   本文件**不在** core/config.py 的 _SPLIT_DOMAINS 列表内, load_config() 的任何
+#   路径都不会加载它; 全仓也无任何 loader open() 它。头部原称"运行时验证列完整性
+#   防 KeyError"实为从未生效的契约。内容亦已 stale (如 stage_24_output 仍列裸
+#   herd_weight, 而 v3.6.0 已 BREAKING 改为 herd_weight_{full,ctx} 双轨)。
+#   真正生效的列契约单源真值是 core/schemas.py::OUTPUT_REGISTRY + golden baseline
+#   (tests/fixtures/golden_panel_v0.json), 两者由 test_dag_consistency /
+#   test_panel_reproducibility 强制。本文件仅作历史列参考保留, 勿当权威; 新增/修改
+#   列契约请改 OUTPUT_REGISTRY, 不要改这里。
 
 stage_00_output:
   required_columns:

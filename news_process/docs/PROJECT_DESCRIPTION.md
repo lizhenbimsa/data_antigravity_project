@@ -713,9 +713,9 @@ v3.6.0 Plan E 的核心贡献是把双轨化从 "下游 stage 3 增强" 扩展�
 
 **原则一：声明式 DAG（declarative DAG）**
 
-`core/dag.py` 是项目唯一的"工作流定义"。所有 stage 通过 `StageSpec(...)` 声明式注册，编排器 `run_pipeline_function.py` 仅负责按依赖顺序执行。这意味着：
+`core/dag.py` 是项目唯一的"工作流定义"。所有 stage 通过 `StageSpec(...)` 声明式注册，编排器 `run_pipeline_function.py` 按 `STAGES_MAIN` 列表声明顺序执行。这意味着：
 - 任何新 stage 的添加，只需在 `STAGES_MAIN` 列表中增加一行 `StageSpec(...)`，不需要修改编排逻辑。
-- 任何 stage 的依赖关系（"我依赖谁的 parquet"）由 `StageSpec.inputs` 与 `StageSpec.outputs` 声明，编排器自动构建拓扑序。
+- stage 的执行顺序由 `STAGES_MAIN` 列表的**物理位置**决定（编排器线性迭代该列表）。**当前并无声明式依赖边 / 自动拓扑排序**：`StageSpec` dataclass 不含 `inputs`/`outputs`/`depends_on` 字段（见 `core/dag.py`，Phase 1 刻意留空待未来 phase）。"生产者排在消费者之前"是人工维护的**隐式契约**，由 `test_dag_consistency.py` 部分守护（校验对象同一性 / 阶段计数 / 谓词身份，**不**校验执行顺序）。
 - 任何 stage 都可独立运行（`python NN_*.py`）也可成组运行（`python run_pipeline_function.py --stages 21,22,23`）。
 
 > **决策记录（DAG 单一真理源）**：v2.0 之前，项目曾在 `run_pipeline.py` 中硬编码 stage 顺序，导致两次"加了 stage 但忘了改顺序"的复现失败事故。Phase 1 重构将 DAG 提升为单一真理源，并加入 `test_dag_consistency.py` 作为防御。
@@ -825,9 +825,10 @@ def main(config_path: Path = "config/", stages: list[str] | None = None):
     logger = setup_logging(run_id)
 
     stages_to_run = filter_stages(STAGES_MAIN, requested=stages)
-    topo_order = toposort(stages_to_run)         # DAG dependency
+    # 注: 当前按 STAGES_MAIN 静态列表顺序执行, 无 toposort (StageSpec 无依赖边字段)
+    ordered = stages_to_run
 
-    for stage in topo_order:
+    for stage in ordered:
         cache_key = compute_cache_key(stage, cfg)
         if cache_hit(stage, cache_key):
             logger.info(f"[{stage.name}] cache HIT, skip")
