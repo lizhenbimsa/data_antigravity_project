@@ -1035,7 +1035,7 @@ pipeline/panel/ 仍有 5 个零测试模块共 5300+ LOC, 加 4 个衍生论文�
 | P1-5 | PipelineLock sidecar 化: PID/启动时间存独立 `.pipeline.lock.info`, 跨平台 (Win/Unix) 一致可读; 6 个 SKIP → 2 个 (剩余为平台天然差异) | [`core/locking.py`](news_process/core/locking.py), `tests/test_pipeline_lock*.py` |
 | P1-6 | stage 45 StageSpec.name 显式列出 41+42+43+44+46+47 子步执行顺序 | [`core/dag.py`](news_process/core/dag.py) |
 | P2-7 | `tests/test_39_prompt_sensitivity.py` 改用 pytest `tmp_path` fixture, 消除 `.test_tmp/` 累积 (历史累积 56 个 UUID) | `tests/test_39_prompt_sensitivity.py` |
-| P2-8 | `requirements.txt` 内容迁入 `pyproject.toml [project] dependencies`; `transformers <6 → <5`, `pyarrow <24 → <22`, `psutil <8 → <7` | [`pyproject.toml`](news_process/pyproject.toml), [`requirements.txt`](news_process/requirements.txt) |
+| P2-8 | `requirements.txt` 内容迁入 `pyproject.toml [project] dependencies`; `transformers <6 → <5`, `pyarrow <24 → <22`, `psutil <8 → <7` | [`pyproject.toml`](pyproject.toml), [`requirements.txt`](news_process/requirements.txt) |
 | P2-9 | 新增 GitHub Actions CI: ubuntu+windows × py 3.11+3.13 矩阵, baseline 锁定 786 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | P2-10 | 新增 [`docs/guides/data_lifecycle.md`](docs/guides/data_lifecycle.md): 阐明 `data/processed/_backup_*` (99MB) 与 `data_excel/back/` (43GB) 的保留与清理策略 | docs/guides/, README §6.5 |
 | P2-11 | CHANGELOG.md v2.0.0 章节顶部补登 2 段 BREAKING CHANGES (`data_processed/` 重命名 + 真包化) | CHANGELOG.md |
