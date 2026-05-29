@@ -57,9 +57,15 @@ def test_golden_v0_archived_path_documented():
     assert expected_archived.parent.is_dir()
 
 
-def test_apply_v3_5_1_idempotent():
+def test_apply_v3_5_1_idempotent(tmp_path, monkeypatch):
     """双 idempotent: 重复调用 apply_v3_5_1 panel 结果不变."""
     from news_process.pipeline.panel.encode_collab import apply_v3_5_1
+    # 测试隔离 (audit/goal-2026-05-29 R1): apply_v3_5_1 把 sidecar JSON 写到相对路径
+    # 'data/processed/v3_5_1_constants.json' (含 datetime.now() 时间戳)。pytest 从仓库根
+    # 运行时该相对路径解析到受 git 跟踪的 sidecar, 每次跑都会刷新时间戳 → 污染工作树
+    # (非确定性 + dirty tree)。本测试只断言 panel 聚合列的幂等性, 与 sidecar 内容无关,
+    # 故 chdir 到 tmp_path 把副作用写入重定向到临时目录, 不改动生产逻辑/断言。
+    monkeypatch.chdir(tmp_path)
     df = pd.DataFrame([
         {'target_bank': 'A', 'year': 2020,
          'clarity_frac_ambiguous_full': 0.05, 'clarity_frac_definite_full': 0.10,
