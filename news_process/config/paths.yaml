@@ -42,10 +42,16 @@ paths:
   # 修复 ("搬到对的地方"): 改为 `./../data/llm_archive` — `./` 前缀仍触发 join, `../`
   # 上climb 到 repo 根 → 解析为 <repo>/data/llm_archive (绝对路径, CWD 无关)。该位置已
   # 有 .gitignore negation + .gitattributes:36 LFS rule, 新归档天然可经 git LFS 交付。
-  # ⚠ 现有 332MB 旧归档仍在 news_process/data/llm_archive/, 需用户一次性手动迁移
-  #   (repo 根执行): mkdir -p data/llm_archive
-  #                  mv news_process/data/llm_archive/responses data/llm_archive/
-  #                  mv news_process/data/llm_archive/manifest.json data/llm_archive/ 2>/dev/null || true
+  # ⚠ 迁移必须【先于任何新 LLM run】: 否则新 run 写到空的新位置, 而 332MB 旧数据
+  #   滞留旧位置成孤儿, 且可能出现同名 jsonl (如又一个 2026-MM-DD.jsonl) 分处两地,
+  #   手动 mv 会撞名丢数据。现有 332MB 旧归档一次性手动迁移 (repo 根执行):
+  #     mkdir -p data/llm_archive
+  #     mv news_process/data/llm_archive/responses data/llm_archive/
+  #     mv news_process/data/llm_archive/manifest.json data/llm_archive/ 2>/dev/null || true
+  #   迁移后重建 manifest (旧位置当前连 manifest.json 都没有, 新位置也不会自动有):
+  #     python -c "from news_process.pipeline.llm_archive import write_manifest; write_manifest()"
+  #   迁移前 verify_manifest() 会因新位置为空而返回 False (假阴性) — 属预期, 迁移+
+  #   重建 manifest 后即恢复正常。
   llm_archive: ./../data/llm_archive
 
 # ------------------------------------------------------------------------------

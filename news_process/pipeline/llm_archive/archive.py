@@ -94,9 +94,14 @@ class LLMArchive:
         """初始化归档.
 
         Args:
-            root: 归档根目录. 默认 data/llm_archive/.
+            root: 归档根目录. 默认走 _resolve_archive_root()
+                (= config paths.llm_archive 解析后的 repo-root data/llm_archive,
+                绝对路径, CWD 无关)。
         """
-        self.root = Path(root) if root else DEFAULT_ARCHIVE_ROOT
+        # audit A 评审修复 (2026-05-30): 默认 root 走 _resolve_archive_root() 而非
+        # cwd 相对的 DEFAULT_ARCHIVE_ROOT — 后者会让从 news_process/ 子目录直接
+        # new LLMArchive() 时落到被 .gitignore 排除的旧位置 (路径漂移残留)。
+        self.root = Path(root) if root else _resolve_archive_root()
         self.responses_dir = self.root / 'responses'
         self.responses_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
