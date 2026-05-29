@@ -33,14 +33,20 @@ paths:
   # output_dir / do_dir。Phase 2f 拆 paths.yaml 时随段迁入。
   papers_assets_root: ./papers_assets
 
-  # ── R1-R5 audit fix A4 (2026-05-27): LLM raw response archive 路径锚定 ──
-  # 修正 R2-Agent4 + R4-Agent5 finding: pipeline/llm_archive/archive.py 的
-  # _resolve_archive_root() fallback 解析与 .gitattributes:36 LFS rule 不一致,
-  # 导致 jsonl 写到 news_process/data/llm_archive/ 但被 .gitignore (news_process/data/)
-  # 排除. 此 key 显式锚定 archive root, archive.py 优先读此配置.
-  # 注意: 同步需在 repo-root .gitignore 加例外 `!news_process/data/llm_archive/`
-  # 或将 archive 物理路径迁出 news_process/data/ (推荐后者, 与 LFS rule 对齐).
-  llm_archive: ./data/llm_archive
+  # ── R1-R5 audit fix A4 (2026-05-27) + audit A 修复 (2026-05-30, option 1): LLM 归档路径锚定 ──
+  # archive.py::_resolve_archive_root() 读此 key; load_config 的 _resolve_paths_in_place
+  # 把 `./` 前缀路径 join 到 project_root = <repo>/news_process。
+  # 旧值 `./data/llm_archive` → <repo>/news_process/data/llm_archive, 被 .gitignore:92
+  # (news_process/data/) 排除且不匹配 .gitattributes:36 的 repo-root LFS rule → 332MB
+  # 归档进不了 git/LFS, 审稿人 git lfs pull 拿不到 (顶刊复现性硬约束落空)。
+  # 修复 ("搬到对的地方"): 改为 `./../data/llm_archive` — `./` 前缀仍触发 join, `../`
+  # 上climb 到 repo 根 → 解析为 <repo>/data/llm_archive (绝对路径, CWD 无关)。该位置已
+  # 有 .gitignore negation + .gitattributes:36 LFS rule, 新归档天然可经 git LFS 交付。
+  # ⚠ 现有 332MB 旧归档仍在 news_process/data/llm_archive/, 需用户一次性手动迁移
+  #   (repo 根执行): mkdir -p data/llm_archive
+  #                  mv news_process/data/llm_archive/responses data/llm_archive/
+  #                  mv news_process/data/llm_archive/manifest.json data/llm_archive/ 2>/dev/null || true
+  llm_archive: ./../data/llm_archive
 
 # ------------------------------------------------------------------------------
 # 输出文件名配置 (Output Filenames)

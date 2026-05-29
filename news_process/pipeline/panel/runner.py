@@ -1117,6 +1117,22 @@ def main():
             logger.info(f"  连续聚合: article_sim_mean/std, "
                         f"fintech_intensity_mean 已合并")
 
+            # 双模型稳健轨 (2026-05-29): stage 15 现额外产出 article 级
+            # policy_cosine_sim_t2v_{full,ctx} (text2vec)。此处按 (bank, year)
+            # 取均值聚合为 bank-year 同名列, 取代已退役的 stage 30 (30_text2vec_indicators)
+            # 的 policy_cosine_sim_t2v_* 来源 (REQUIRED_PANEL_COLUMNS 契约名不变)。
+            _t2v_src = [c for c in ('policy_cosine_sim_t2v_full',
+                                    'policy_cosine_sim_t2v_ctx')
+                        if c in df_align.columns]
+            if _t2v_src:
+                _t2v_agg = (df_align.groupby(['target_bank', 'year'])[_t2v_src]
+                            .mean().reset_index())
+                panel = panel.merge(_t2v_agg, on=['target_bank', 'year'], how='left')
+                logger.info(f"  双模型: policy_cosine_sim_t2v 聚合 {_t2v_src} 已合并")
+            else:
+                logger.warning("  双模型: stage 15 未含 policy_cosine_sim_t2v_* 列, "
+                               "稳健轨政策对齐缺失 (检查 embedding_robustness 配置)")
+
             # --- 逻辑 B: 四象限离散分类 (机制检验 / 稳健性) ---
             # 【术语】
             #   双轨词频维度:
@@ -1522,46 +1538,59 @@ def main():
                     _cater_count += 1
     logger.info(f"  algo_cater 指标计算完成 ({_cater_count} 变量)")
 
-    # ═══ 8e. 数据双轨 (Data Dual-Track) 稳健性特征融合 (Stage 30) ═══
-    # 【学术机制】稳健性联合检验 (Robustness Joint Testing)
-    # 通过将本地特征矩阵与面板数据合并，应对大语言模型潜在的“幻觉偏移”(Hallucination Bias)。
-    t2v_path = os.path.join(OUTPUT_DIR, '30_text2vec_indicators.parquet')
-    # Step 4(c) 硬化 (致命问题 5 / 红队 v6): 删除原"文件不存在则 warning skip"
-    # 的容错。Stage 30 是双轨稳健性 (Data Dual-Track) 的核心，缺失会让 panel
-    # 失去 strat_diff_t2v_full/_ctx + policy_cosine_sim_t2v_full/_ctx 共 4 列,
-    # 直接拆毁 v6/F2-F4 方法论防火墙 (LLM 主轨 vs Text2Vec 辅轨对照)。
-    # 必须 fail-loud 让 orchestrator 立即停止, 而非生产无法解释的部分 panel.
-    if not os.path.exists(t2v_path):
-        raise RuntimeError(
-            f"[stage 45/8e-t2v] 上游输入缺失: {t2v_path} 不存在。"
-            f" Stage 45 的 8e 数据双轨融合硬依赖 stage 30 输出的 "
-            f"strat_diff_t2v_* / policy_cosine_sim_t2v_* 共 4 列。请先运行 "
-            f"`python -m news_process.validation.text2vec` "
-            f"产出 30_text2vec_indicators.parquet 后再重试。"
-        )
-
-    # P0-1 (cleanup/2026-05-13): 删除原 ``if os.path.exists(t2v_path):`` 软分支.
-    # 上方 raise 已保证文件存在, ``else`` warning 永远不会触发, 是硬化时遗留的 dead code.
-    logger.info(f"  合并 30_text2vec_indicators.parquet...")
-    t2v_df = pd.read_parquet(t2v_path)
-    panel = panel.merge(t2v_df, on=['target_bank', 'year'], how='left')
-
-    # 正交保护 (Orthogonal Protection): 拒绝 0.0 填充
-    # 【学术机制】Listwise Deletion vs Sample Selection Bias
-    # 理论基石：Allison, P. D. (2001). Missing Data. SAGE Publications. DOI: 10.4135/9781412985079
-    # Heckman, J. J. (1979). Sample Selection Bias as a Specification Error. Econometrica, 47(1), 153-161. DOI: 10.2307/1912352
-    # 修正：此前试图对无新闻样本使用 0.0 补偿，但这在计量经济学上是致命的。
-    # 0.0 距离代表该银行完美贴合行业均值质心，0.0 相似度代表绝对正交。
-    # 强制将"无数据"转化为极端的"0值"，会导致 TWFE 回归中出现大量人造的人工断点 (Artificial Spikes)，
-    # 严重扭曲真实系数。因此，必须保留 NaN，交由 Stata 在固定效应面板回归中自动执行 Listwise Deletion，
-    # 维护样本空间的连续性，避免人为制造的伪稳健性。
-    # 【通俗应用】如果一家银行整年连一条新闻都没有，我们不能强行说它"和大家完全一样"或者"完全相反"，
-    # 最科学的做法就是留空 (NaN)，让 Stata 在跑回归的时候自动忽略没有数据的那几年，避免假数据捣乱。
+    # ═══ 8e. 数据双轨 (Data Dual-Track) 稳健性特征 — 内联双模型 (2026-05-29) ═══
+    # 【学术机制】稳健性联合检验 (Robustness Joint Testing): LLM/API 主轨 (text-embedding-3-small)
+    # 对照 text2vec 本地稳健轨, 应对单一嵌入模型潜在的"幻觉偏移"(Hallucination Bias)。
+    #
+    # 架构变更: 原 stage 30 (30_text2vec_indicators.parquet) 已退役。其 4 列稳健 twin 改由
+    # 主阶段内联双模型计算直接产出 (Plan 2026-05-29 in-feature dual compute):
+    #   - strat_diff_t2v_{full,ctx}        ← stage 25 strategic_diff (centroid_diff_emb_t2v 别名)
+    #   - policy_cosine_sim_t2v_{full,ctx} ← stage 15 article 级 → 上方 _t2v_agg 聚合 bank-year
+    # 因此此处不再读取/merge 外部 parquet; 仅做存在性诊断 (保留自然缺失 NaN, 不 0 填充 —
+    # Allison 2001 / Heckman 1979 listwise deletion 原则)。
     t2v_cols = [
         'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
         'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx'
     ]
-    logger.info(f"  ✅ 成功挂载双轨稳健性特征 (保留自然缺失值 NaN): {t2v_cols}")
+    _present = [c for c in t2v_cols if c in panel.columns]
+    _missing = [c for c in t2v_cols if c not in panel.columns]
+    if _missing:
+        logger.warning(
+            f"  ⚠️ 双轨稳健性: 以下内联 t2v 列缺失 {_missing} "
+            f"(检查 stage 15/25 embedding_robustness 配置与运行); "
+            f"export.py::REQUIRED_PANEL_COLUMNS 将据此 fail-loud。"
+        )
+    logger.info(f"  ✅ 内联双模型稳健性特征 (保留自然缺失值 NaN): present={_present}")
+
+    # --- 8b. EPU 宏观控制 merge (S2 fix 2026-05-30) ---
+    # stage 16 (16_epu_merge.py, 默认运行/无 enabled_when) 产出 bank-year 级 EPU 面板,
+    # 但此前无任何代码把它并回主面板 → epu_* 列从未进入 40_panel_yearly / 46_*.dta / 回归
+    # (导出层 stata_export.py core_patterns 列了 epu_* 却因列缺失被 `if c in df.columns`
+    # 静默跳过)。此处按 (target_bank, year) 左连接补回 (Baker-Bloom-Davis 2016 QJE
+    # 时变宏观控制)。自然缺失保留 NaN (Allison 2001 listwise), 仅 epu_data_complete 还原 int。
+    _epu_path = os.path.join(OUTPUT_DIR, '16_epu_panel.parquet')
+    if os.path.exists(_epu_path):
+        _epu = pd.read_parquet(_epu_path)
+        _epu_cols = ['epu_mean_year', 'epu_year_end', 'epu_std_year', 'epu_data_complete']
+        _epu_keep = ['target_bank', 'year'] + [c for c in _epu_cols if c in _epu.columns]
+        _n_before = len(panel)
+        panel = panel.merge(
+            _epu[_epu_keep].drop_duplicates(['target_bank', 'year']),
+            on=['target_bank', 'year'], how='left')
+        if len(panel) != _n_before:
+            # raise (not assert): assert 在 python -O 下被剥离 (export.py:215 同约定)
+            raise RuntimeError(
+                f"EPU merge 改变面板行数 {_n_before}->{len(panel)} "
+                f"(16_epu_panel (target_bank,year) 键非 1:1; drop_duplicates 后不应发生)")
+        if 'epu_data_complete' in panel.columns:
+            panel['epu_data_complete'] = panel['epu_data_complete'].fillna(0).astype(int)
+        _matched = (int(panel['epu_mean_year'].notna().sum())
+                    if 'epu_mean_year' in panel.columns else 0)
+        logger.info(f"  ✅ EPU 宏观控制已合并: {_matched}/{len(panel)} bank-year 匹配 "
+                    f"(Baker-Bloom-Davis 2016 QJE)")
+    else:
+        logger.warning(f"  ⚠️ EPU 面板不存在 ({_epu_path}); 跳过 EPU merge "
+                       f"(stage 16 未运行?)")
 
     log_diagnostics(panel, df_exploded)
 

@@ -305,13 +305,12 @@ STAGES_MAIN: list[StageSpec] = [
         enabled_when=berts_method_enabled,
     ),
 
-    # ── 模块四c：text2vec 双轨稳健性指标 (战略差异 + 政策对齐 _full/_ctx) ──
-    StageSpec(
-        name="阶段30: text2vec 双轨稳健性指标",
-        script="30_robustness_text2vec.py",
-        group="main", kind="robustness",
-        timeout=7200,  # 含 sentence-transformers 本地 GPU 编码 (双轨)
-    ),
+    # ── 模块四c：text2vec 双轨稳健性指标 — 已退役 (2026-05-29 双模型重构) ──
+    # 原 stage 30 (30_robustness_text2vec) 单独用 text2vec 计算 strat_diff_t2v /
+    # policy_cosine_sim_t2v 4 列稳健 twin。改为"主阶段内联双模型计算"后, 这些 _t2v
+    # 列由 stage 15 (policy_alignment) + stage 25 (strategic_diff) 在主流程内直接产出
+    # (main=text-embedding-3-small / robustness=text2vec 同源同算法), stage 30 因此
+    # 完全冗余而退役。详见 config/features.yaml embedding_robustness + runner.py 8e 段。
     # v3.7.0 PR #9 (D 组前置): article-level SBERT 持久化.
     # 把 stage 30 内部计算后即丢的 article embeddings 持久化, 让 D1/D2/D3
     # 三 stage 直接复用 (节省 ~12-15 h 计算).

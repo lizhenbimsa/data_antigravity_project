@@ -78,8 +78,8 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
     "22_tone_words.py": ["22_words_tone.parquet"],
     "23_tone_berts.py": ["23_bert_tone.parquet"],
     "24_herd_decay_processor.py": ["24_herd_decay.parquet"],
-    # 模块四c: text2vec 双轨稳健性指标 (战略差异 + 政策对齐 _full/_ctx)
-    "30_robustness_text2vec.py": ["30_text2vec_indicators.parquet"],
+    # 模块四c: text2vec 双轨稳健性 stage 30 已退役 (2026-05-29 双模型重构);
+    # strat_diff_t2v / policy_cosine_sim_t2v 改由 stage 15/25 内联双模型产出。
     # 模块五: panel construction (阶段 45 产出 bank-year + article-bank 两类面板)
     "45_panel_export_main.py": [
         "40_panel_yearly.parquet",
@@ -145,8 +145,7 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("22_tone_words.py", "22_words_tone.parquet"): "output_22_words_tone",
     ("23_tone_berts.py", "23_bert_tone.parquet"): "output_23_bert_tone",
     ("24_herd_decay_processor.py", "24_herd_decay.parquet"): "output_24_herd_decay",
-    # 30_text2vec_indicators 输出文件名硬编码在 validation/text2vec.py, 无 config key
-    ("30_robustness_text2vec.py", "30_text2vec_indicators.parquet"): None,
+    # 30_robustness_text2vec 已退役 (2026-05-29 双模型重构), 不再登记。
     # v3.7.0 PR #9 (D 组前置): article-level SBERT 持久化
     ("30a_article_sbert.py", "30a_article_embeddings.parquet"): None,
     ("45_panel_export_main.py", "40_panel_yearly.parquet"): "output_40_panel_yearly",

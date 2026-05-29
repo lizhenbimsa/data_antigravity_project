@@ -188,6 +188,40 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
         # v3.7.4 P3.1.6: title-level indicators for Panel D/E robustness
         'frac_title_mentions_fintech':      "Frac titles mentioning fintech (Antweiler-Frank 2004 JF)",
         'frac_title_long':                  "Frac titles above median length (Da-Engelberg-Gao 2011 JF)",
+        # ─────────────────────────────────────────────────────────────
+        # 2026-05-29 双模型嵌入: text2vec 稳健 twin (主轨=text-embedding-3-small,
+        # 这些 _t2v 列=shibing624/text2vec-base-chinese 同算法只换模型)。落 aux。
+        # ─────────────────────────────────────────────────────────────
+        'strat_diff_t2v_full':              "Strat Diff (T2V robust=text2vec, full)",
+        'strat_diff_t2v_ctx':               "Strat Diff (T2V robust=text2vec, ctx)",
+        'strat_diff_n5_emb_t2v':            "Strat Diff N5 Emb (T2V robust, full)",
+        'strat_diff_n5_emb_t2v_ctx':        "Strat Diff N5 Emb (T2V robust, ctx)",
+        'strat_sim_max_emb_t2v':            "Strat Max Sim Emb (T2V robust, full)",
+        'strat_sim_max_emb_t2v_ctx':        "Strat Max Sim Emb (T2V robust, ctx)",
+        'centroid_diff_emb_t2v':            "Centroid Diff Emb (T2V robust, full)",
+        'centroid_diff_emb_t2v_ctx':        "Centroid Diff Emb (T2V robust, ctx)",
+        'coh_emb_t2v_full':                 "Temporal Coherence Emb (T2V robust, full)",
+        'coh_emb_t2v_ctx':                  "Temporal Coherence Emb (T2V robust, ctx)",
+        'policy_cosine_sim_t2v_full':       "Policy Cosine Sim (T2V robust, full)",
+        'policy_cosine_sim_t2v_ctx':        "Policy Cosine Sim (T2V robust, ctx)",
+        'auth_sim_emb_t2v_full':            "Auth Policy Sim Emb (T2V robust, full)",
+        'auth_sim_emb_t2v_ctx':             "Auth Policy Sim Emb (T2V robust, ctx)",
+        'benefit_mean_t2v_full':            "Benefit Attitude Mean (T2V robust, full)",
+        'benefit_mean_t2v_ctx':             "Benefit Attitude Mean (T2V robust, ctx)",
+        'benefit_std_t2v_full':             "Benefit Attitude SD (T2V robust, full)",
+        'benefit_std_t2v_ctx':              "Benefit Attitude SD (T2V robust, ctx)",
+        'benefit_pos_frac_t2v_full':        "Benefit Pos Frac (T2V robust, full)",
+        'benefit_pos_frac_t2v_ctx':         "Benefit Pos Frac (T2V robust, ctx)",
+        'benefit_neg_frac_t2v_full':        "Benefit Neg Frac (T2V robust, full)",
+        'benefit_neg_frac_t2v_ctx':         "Benefit Neg Frac (T2V robust, ctx)",
+        'emb_peer_tone_lag1_t2v_full':      "Emb Peer Tone Lag1 (T2V robust, full)",
+        'bank_emb_sim_mean_t2v':            "Bank Emb Sim Mean (T2V robust)",
+        # S2 fix (2026-05-30): EPU 中国版宏观控制 (Baker-Bloom-Davis 2016 QJE),
+        # stage 16 经 runner.py 8b 左连接并入面板后导出 (每条 ≤ 80 UTF-8 bytes)。
+        'epu_mean_year':                    "Econ Policy Uncertainty, article-month wtd mean (BBD 2016 QJE)",
+        'epu_year_end':                     "Econ Policy Uncertainty, year-end month (BBD 2016 QJE)",
+        'epu_std_year':                     "Econ Policy Uncertainty, within-year SD (BBD 2016 QJE)",
+        'epu_data_complete':                "EPU coverage flag: 1=all 12 months present that year",
     }
 
     for col in df.columns:

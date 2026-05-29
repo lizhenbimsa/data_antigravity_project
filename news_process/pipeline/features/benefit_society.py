@@ -64,6 +64,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.caching import LLMCache
+from news_process.pipeline.text import embedding_engine as _eng
 
 # v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
 # R1-R5 audit fix A5 (2026-05-27): V4 F-P2.1 仅承诺 stage 21 (tone_llms) + stage 48
@@ -98,7 +99,9 @@ STAGE_NAME = "27_fintech_benefit_society"
 
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})           # MAIN spec → canonical 列
+# v3.7.x 双模型嵌入: ROBUSTNESS twin (shibing624/text2vec, local) → '_t2v' 列
+_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
 _LOCAL_EMBEDDING_MODEL = None
 
 # 模块专属配置
@@ -241,14 +244,21 @@ def _encode_embeddings_local(texts, *, log_prefix="Embedding") -> np.ndarray:
 
 
 def _get_embeddings(texts: list[str],
-                    token_counts: list[int],
+                    token_counts: list[int] = None,
                     *,
+                    spec: dict | None = None,
                     log_prefix: str = "Embedding") -> np.ndarray:
-    if _embedding_config_uses_local():
-        return _encode_embeddings_local(texts, log_prefix=log_prefix)
+    """文本 → Embedding 向量, 委托给统一引擎 _eng.embed_texts。
 
-    with LLMCache(CACHE_DB_PATH) as cache:
-        return asyncio.run(_get_embeddings_api(texts, token_counts, cache))
+    spec 决定模型与路径 (MAIN=text-embedding-3-small / ROBUSTNESS=text2vec)。
+    token_counts 已不再需要 (引擎内部按 token 自行分批), 保留参数仅为签名兼容。
+    """
+    return _eng.embed_texts(
+        texts,
+        spec or EMBEDDING_CONFIG,
+        cache_db_path=CACHE_DB_PATH,
+        log_prefix=log_prefix,
+    )
 
 
 async def _get_embeddings_api(texts: list[str], token_counts: list[int], cache: LLMCache = None) -> np.ndarray:
@@ -393,12 +403,13 @@ async def _get_embeddings_api(texts: list[str], token_counts: list[int], cache: 
 # 4. 方向向量计算
 # ============================================================================
 
-def _compute_direction_vector() -> np.ndarray | None:
+def _compute_direction_vector(spec: dict | None = None) -> np.ndarray | None:
     all_anchors = POSITIVE_ANCHORS + NEGATIVE_ANCHORS
     token_counts = [_count_tokens(s) for s in all_anchors]
     emb = _get_embeddings(
         all_anchors,
         token_counts,
+        spec=spec or EMBEDDING_CONFIG,
         log_prefix="Benefit anchor embedding",
     )
     if emb is None or len(emb) == 0:
@@ -462,13 +473,16 @@ def _compute_direction_vector() -> np.ndarray | None:
 # 5. 文章级投影计算
 # ============================================================================
 
-def _project_texts(texts: list[str], direction: np.ndarray, cache_path: str | None = None) -> np.ndarray:
+def _project_texts(texts: list[str], direction: np.ndarray,
+                   cache_path: str | None = None,
+                   *, spec: dict | None = None) -> np.ndarray:
     truncated = [_truncate_to_max_tokens(t) for t in texts]
     token_counts = [_count_tokens(t) for t in truncated]
 
     emb = _get_embeddings(
         truncated,
         token_counts,
+        spec=spec or EMBEDDING_CONFIG,
         log_prefix="Benefit text embedding",
     )
 
@@ -512,112 +526,128 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
 
     df_exploded = df_exploded.copy()
 
-    # ---- 6.1 计算方向向量 ----
-    direction = _compute_direction_vector()
-    if direction is None:
-        logger.warning("  方向向量计算失败, 跳过 Stage 27")
-        return panel
-
-    # ---- 6.2 缓存路径 ----
+    # ---- 6.0 缓存路径 ----
     cache_filename = FILENAMES.get('output_27_benefit_cache',
                                    '27_benefit_embeddings.npy')
 
-    # ---- 6.3 双轨投影 ----
-    # 【术语】双轨投影 (Dual-Track Projection):
-    #   - Full 轨: 标题 + 全文正文，完整语义信号
-    #   - Ctx  轨: 实体上下文 (entity_context.py 提取)，消除非目标实体的情感污染
-    #   与 Stage 25/26 的双轨设计同构
-    # 【白话】Full 轨 = 整篇新闻; Ctx 轨 = 只看提到这家银行的段落
-    for track in ['full', 'ctx']:
-        col_score = f'benefit_score_{track}'
+    # ---- 6.1 双模型外层循环 (Dual-Model Embedding) ----
+    # suffix='' → MAIN spec (text-embedding-3-small, API) → 既有 canonical 列
+    #             (benefit_mean_full / benefit_std_full / ... 字节级不变)
+    # suffix='_t2v' → ROBUSTNESS spec (shibing624/text2vec, local) → 平行稳健列
+    #             (benefit_mean_t2v_full / ...; 768 维独立计算, 绝不与 API 1536 维混算)
+    # 每个 spec 用自己的锚点 + 文本 + 方向向量, 全程维度无关 (emb.shape[1] 驱动)。
+    for suffix, spec in [('', EMBEDDING_CONFIG), ('_t2v', _ROBUSTNESS_SPEC)]:
+        spec_tag = "MAIN" if suffix == '' else "ROBUSTNESS(_t2v)"
 
-        # 检查 Ctx 轨数据是否存在
-        if track == 'ctx' and 'content_ctx' not in df_exploded.columns:
-            logger.info(f"  {track.upper()} 轨: content_ctx 列不存在, 跳过")
+        # ---- 6.2 计算方向向量 (per spec) ----
+        direction = _compute_direction_vector(spec=spec)
+        if direction is None:
+            logger.warning(
+                f"  [{spec_tag}] 方向向量计算失败, 跳过该 spec "
+                f"(model={_eng.spec_model(spec)})"
+            )
             continue
 
-        # 向量化文本构建（避免 iterrows 性能瓶颈）
-        if track == 'full':
-            texts = (df_exploded.get('标题', pd.Series('', index=df_exploded.index))
-                     .fillna('').astype(str)
-                     + ' '
-                     + df_exploded.get('内容', pd.Series('', index=df_exploded.index))
-                     .fillna('').astype(str)).str.strip().tolist()
-        else:
-            texts = df_exploded['content_ctx'].fillna('').astype(str).str.strip().tolist()
+        # ---- 6.3 双轨投影 ----
+        # 【术语】双轨投影 (Dual-Track Projection):
+        #   - Full 轨: 标题 + 全文正文，完整语义信号
+        #   - Ctx  轨: 实体上下文 (entity_context.py 提取)，消除非目标实体的情感污染
+        #   与 Stage 25/26 的双轨设计同构
+        # 【白话】Full 轨 = 整篇新闻; Ctx 轨 = 只看提到这家银行的段落
+        for track in ['full', 'ctx']:
+            col_score = f'benefit_score{suffix}_{track}'
 
-        # 过滤空文本
-        valid_mask = np.array([bool(t) for t in texts])
-        valid_texts = [t for t, m in zip(texts, valid_mask) if m]
+            # 检查 Ctx 轨数据是否存在
+            if track == 'ctx' and 'content_ctx' not in df_exploded.columns:
+                logger.info(f"  [{spec_tag}] {track.upper()} 轨: content_ctx 列不存在, 跳过")
+                continue
 
-        if not valid_texts:
-            logger.info(f"  {track.upper()} 轨: 无有效文本, 跳过")
-            continue
+            # 向量化文本构建（避免 iterrows 性能瓶颈）
+            if track == 'full':
+                texts = (df_exploded.get('标题', pd.Series('', index=df_exploded.index))
+                         .fillna('').astype(str)
+                         + ' '
+                         + df_exploded.get('内容', pd.Series('', index=df_exploded.index))
+                         .fillna('').astype(str)).str.strip().tolist()
+            else:
+                texts = df_exploded['content_ctx'].fillna('').astype(str).str.strip().tolist()
 
-        logger.info(f"  {track.upper()} 轨: {len(valid_texts)}/{len(texts)} 篇有效文本")
+            # 过滤空文本
+            valid_mask = np.array([bool(t) for t in texts])
+            valid_texts = [t for t, m in zip(texts, valid_mask) if m]
 
-        # 缓存路径 (Full 和 Ctx 分开)
-        cache_path = os.path.join(OUTPUT_DIR,
-                                  cache_filename.replace('.npy', f'_{track}.npy'))
+            if not valid_texts:
+                logger.info(f"  [{spec_tag}] {track.upper()} 轨: 无有效文本, 跳过")
+                continue
 
-        # 投影计算
-        valid_scores = _project_texts(valid_texts, direction, cache_path)
+            logger.info(f"  [{spec_tag}] {track.upper()} 轨: "
+                        f"{len(valid_texts)}/{len(texts)} 篇有效文本")
 
-        # 向量化回填至 df_exploded (in-place 副作用)
-        # ⚠️ 此处向 df_exploded 添加了 benefit_score_{track} 中间列。
-        #   该列仅用于下方 Bank-Year 聚合，不影响后续模块
-        #   (compute_brokerage_centrality 等只读取自身所需列)。
-        scores = np.full(len(texts), np.nan)
-        scores[valid_mask] = valid_scores
-        df_exploded[col_score] = scores
+            # 缓存路径 (spec × track 分开)
+            cache_path = os.path.join(
+                OUTPUT_DIR,
+                cache_filename.replace('.npy', f'{suffix}_{track}.npy'))
 
-        # ---- 6.4 Bank-Year 聚合 ----
-        # 【学术依据】Jha et al. (2026, RFS Eq. 2): 等权算术均值
-        # 【白话】算每家银行每年所有新闻的"经营效益态度平均分"
-        agg = (df_exploded
-               .dropna(subset=[col_score])
-               .groupby(['target_bank', 'year'])[col_score]
-               .agg(
-                   benefit_mean=('mean'),
-                   benefit_std=('std'),
-               )
-               .reset_index())
+            # 投影计算 (用本 spec 嵌入并投影到本 spec 的方向向量)
+            valid_scores = _project_texts(valid_texts, direction, cache_path, spec=spec)
 
-        # 正/负态度占比
-        frac = (df_exploded
-                .dropna(subset=[col_score])
-                .groupby(['target_bank', 'year'])[col_score]
-                .agg(
-                    benefit_pos_frac=lambda x: (x > 0).mean(),
-                    benefit_neg_frac=lambda x: (x < 0).mean(),
-                )
-                .reset_index())
+            # 向量化回填至 df_exploded (in-place 副作用)
+            # ⚠️ 此处向 df_exploded 添加了 benefit_score{suffix}_{track} 中间列。
+            #   该列仅用于下方 Bank-Year 聚合，不影响后续模块
+            #   (compute_brokerage_centrality 等只读取自身所需列)。
+            scores = np.full(len(texts), np.nan)
+            scores[valid_mask] = valid_scores
+            df_exploded[col_score] = scores
 
-        agg = agg.merge(frac, on=['target_bank', 'year'], how='left')
+            # ---- 6.4 Bank-Year 聚合 ----
+            # 【学术依据】Jha et al. (2026, RFS Eq. 2): 等权算术均值
+            # 【白话】算每家银行每年所有新闻的"经营效益态度平均分"
+            agg = (df_exploded
+                   .dropna(subset=[col_score])
+                   .groupby(['target_bank', 'year'])[col_score]
+                   .agg(
+                       benefit_mean=('mean'),
+                       benefit_std=('std'),
+                   )
+                   .reset_index())
 
-        # std 的 NaN (单观测) → 0
-        agg['benefit_std'] = agg['benefit_std'].fillna(0)
+            # 正/负态度占比
+            frac = (df_exploded
+                    .dropna(subset=[col_score])
+                    .groupby(['target_bank', 'year'])[col_score]
+                    .agg(
+                        benefit_pos_frac=lambda x: (x > 0).mean(),
+                        benefit_neg_frac=lambda x: (x < 0).mean(),
+                    )
+                    .reset_index())
 
-        # 重命名: 添加轨后缀
-        rename_map = {
-            'benefit_mean': f'benefit_mean_{track}',
-            'benefit_std': f'benefit_std_{track}',
-            'benefit_pos_frac': f'benefit_pos_frac_{track}',
-            'benefit_neg_frac': f'benefit_neg_frac_{track}',
-        }
-        agg = agg.rename(columns=rename_map)
+            agg = agg.merge(frac, on=['target_bank', 'year'], how='left')
 
-        # ---- 6.5 合并至面板 ----
-        new_cols = list(rename_map.values())
-        panel = panel.merge(
-            agg[['target_bank', 'year'] + new_cols],
-            on=['target_bank', 'year'],
-            how='left'
-        )
+            # std 的 NaN (单观测) → 0
+            agg['benefit_std'] = agg['benefit_std'].fillna(0)
 
-        logger.info(f"  {track.upper()} 轨聚合完成: "
-                    f"benefit_mean_{track} 非空率 "
-                    f"{panel[f'benefit_mean_{track}'].notna().mean():.1%}")
+            # 重命名: 添加 (模型 suffix +) 轨后缀
+            #   suffix='' → benefit_mean_full 等 (canonical, 字节级不变)
+            #   suffix='_t2v' → benefit_mean_t2v_full 等 (robustness twin)
+            rename_map = {
+                'benefit_mean': f'benefit_mean{suffix}_{track}',
+                'benefit_std': f'benefit_std{suffix}_{track}',
+                'benefit_pos_frac': f'benefit_pos_frac{suffix}_{track}',
+                'benefit_neg_frac': f'benefit_neg_frac{suffix}_{track}',
+            }
+            agg = agg.rename(columns=rename_map)
+
+            # ---- 6.5 合并至面板 ----
+            new_cols = list(rename_map.values())
+            panel = panel.merge(
+                agg[['target_bank', 'year'] + new_cols],
+                on=['target_bank', 'year'],
+                how='left'
+            )
+
+            logger.info(f"  [{spec_tag}] {track.upper()} 轨聚合完成: "
+                        f"benefit_mean{suffix}_{track} 非空率 "
+                        f"{panel[f'benefit_mean{suffix}_{track}'].notna().mean():.1%}")
 
     logger.info("=" * 60)
     return panel

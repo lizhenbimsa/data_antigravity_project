@@ -71,9 +71,9 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from news_process.core.caching import LLMCache
 from news_process.core.config import load_config
 from news_process.core.logging import setup_logging
+from news_process.pipeline.text import embedding_engine as _eng
 
 # ============================================================================
 # 1. 全局配置
@@ -907,7 +907,9 @@ def compute_cognitive_proximity(
 
 # 读取 LLM 配置 (与 21_tone_llms.py 共享同一份 config.yaml 配置)
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})          # MAIN spec → canonical 列
+# v3.7.x 双模型嵌入: ROBUSTNESS twin (shibing624/text2vec, local) → '_t2v' 列
+_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
 _EMB_MODELS = LLM_CONFIG.get('models', [])
 _LOCAL_EMBEDDING_MODEL = None
 
@@ -1090,86 +1092,55 @@ async def _get_embeddings_api(texts, model='text-embedding-3-small', cache=None)
     return np.array(final_embs)
 
 
-def _embed_peer_texts(texts, *, year) -> np.ndarray | None:
-    """Encode peer texts, respecting local embedding config before API fallback."""
-    import asyncio
+def _embed_peer_texts(texts, *, year, spec=None) -> np.ndarray | None:
+    """Encode peer texts via the shared dual-model engine (_eng.embed_texts).
 
-    if _embedding_config_uses_local():
-        try:
-            emb_matrix = _encode_embeddings_local(
-                texts,
-                log_prefix=f"年份 {year}: Embedding",
-            )
-            logger.info(f"  年份 {year}: 本地 Embedding 成功, "
-                        f"dim={emb_matrix.shape[1]}")
-            return emb_matrix
-        except Exception as exc:
-            logger.error(f"  年份 {year}: 本地 Embedding 失败 ({exc}), 跳过")
-            return None
-
+    spec 决定模型与路径 (MAIN=text-embedding-3-small / ROBUSTNESS=text2vec);
+    默认 EMBEDDING_CONFIG (canonical 主轨)。本地 spec 走 sentence-transformers,
+    API spec 经 LLMCache 穿透 (cache db 路径与历史实现一致)。失败/形状异常 → None。
+    """
     cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
-    cache = LLMCache(cache_db)
     try:
-        emb_matrix = asyncio.run(_get_embeddings_api(texts, cache=cache))
-        logger.info(f"  年份 {year}: API Embedding 成功, "
-                    f"dim={emb_matrix.shape[1]}")
-        return emb_matrix
-    except Exception as exc:
-        logger.warning(f"  年份 {year}: API embedding 失败 ({exc}), "
-                       f"回退 sentence-transformers")
-    finally:
-        cache.close()
-
-    try:
-        emb_matrix = _encode_embeddings_local(
+        emb_matrix = _eng.embed_texts(
             texts,
-            log_prefix=f"年份 {year}: fallback embedding",
+            spec or EMBEDDING_CONFIG,
+            cache_db_path=cache_db,
+            log_prefix=f"年份 {year}: Embedding",
         )
-        logger.info(f"  年份 {year}: sentence-transformers 成功, "
-                    f"dim={emb_matrix.shape[1]}")
-        return emb_matrix
     except Exception as exc:
-        logger.error(f"  年份 {year}: Embedding 完全失败 ({exc}), 跳过")
+        logger.error(f"  年份 {year}: Embedding 失败 ({exc}), 跳过")
         return None
 
+    if emb_matrix is None:
+        logger.warning(f"  年份 {year}: Embedding 返回 None, 跳过")
+        return None
 
-def compute_embedding_peer_network(df_exploded: pd.DataFrame,
-                                    panel: pd.DataFrame) -> pd.DataFrame:
-    """基于 Embedding 向量相似度的同业网络控制变量。
+    logger.info(f"  年份 {year}: Embedding 成功, dim={emb_matrix.shape[1]}")
+    return emb_matrix
 
-    使用 Sentence Embedding 将每家银行每年的新闻文本编码为向量,
-    通过余弦相似度构建动态同业网络权重矩阵, 计算加权同行情感
-    作为内生性处理的控制变量。
 
-    方法论:
-      - 权重矩阵 W_emb 基于 Embedding 余弦相似度, 非二值共现
-      - 滞后一期 (t-1) 避免 Manski (1993) 反射问题
-      - API 优先, sentence-transformers 降级保护
+def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
+                                         panel: pd.DataFrame,
+                                         *,
+                                         spec=None,
+                                         suffix: str = "") -> dict:
+    """单 spec 的 Embedding 同业网络构建 (一遍), 返回 (bank, year) → 指标 dict。
 
-    Args:
-        df_exploded: 文章级 DataFrame, 含 target_bank/year/标题/内容
-        panel: 银行-年份面板 DataFrame
+    suffix 在指标名上注入轨道标识 (canonical 主轨 = ""; ROBUSTNESS 稳健轨 = "_t2v"),
+    插在 ``_full``/``_ctx`` 之类的轨道后缀之前 (无轨道后缀时直接追加在末尾):
+      emb_peer_tone_lag1_full  →  emb_peer_tone_lag1{suffix}_full
+      bank_emb_sim_mean        →  bank_emb_sim_mean{suffix}
 
-    Returns:
-        panel: 追加 emb_peer_tone_lag1_full, bank_emb_sim_mean 列的面板
-
-    References:
-        Hoberg, G., & Phillips, G. (2016). JPE, 124(5), 1423-1465.
-        Reimers, N., & Gurevych, I. (2019). EMNLP-IJCNLP 2019.
-        Manski, C. F. (1993). RES, 60(3), 531-542.
+    每遍用 **自己的 spec 独立嵌入** 自己的文本, 绝不混用 API(1536d)/text2vec(768d) 向量。
+    维度无关 (cosine 在任意维度上都成立)。
     """
-    logger.info("=" * 60)
-    logger.info("Embedding 同业网络控制变量 (Hoberg & Phillips 2016)")
-    logger.info("=" * 60)
-
     text_col = '内容'
     title_col = '标题'
     tone_col = 'llm_vote_tone_full'
     MAX_CHARS = 8000  # 截断阈值: ~4000 中文字 ≈ 5000 tokens
 
-    if tone_col not in panel.columns:
-        logger.warning(f"  {tone_col} 不存在, 跳过 Embedding 同业网络")
-        return panel
+    tone_key = f'emb_peer_tone_lag1{suffix}_full'
+    sim_key = f'bank_emb_sim_mean{suffix}'
 
     years = sorted(panel['year'].unique())
     emb_results = {}  # key: (bank, year), value: dict
@@ -1202,8 +1173,8 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         # ── 2. 截断至 MAX_CHARS ──
         texts = [t[:MAX_CHARS] for t in bank_texts.values]
 
-        # ── 3. 获取 Embedding (local 配置优先; 远端 API 失败再降级本地) ──
-        emb_matrix = _embed_peer_texts(texts, year=year)
+        # ── 3. 获取 Embedding (本 spec 独立嵌入; 经统一引擎 _eng) ──
+        emb_matrix = _embed_peer_texts(texts, year=year, spec=spec)
         if emb_matrix is None:
             continue
 
@@ -1239,14 +1210,61 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
             sim_mean = float(np.mean(sim_row[sim_row > 0])) if (sim_row > 0).any() else np.nan
 
             emb_results[(bank, year)] = {
-                'emb_peer_tone_lag1_full': emb_peer_tone[idx],
-                'bank_emb_sim_mean': sim_mean,
+                tone_key: emb_peer_tone[idx],
+                sim_key: sim_mean,
             }
 
         logger.info(f"  年份 {year}: {n_banks} 家银行, "
                     f"Embedding 同行情感均值={np.nanmean(emb_peer_tone):.4f}")
 
-    # 合并至面板
+    return emb_results
+
+
+def compute_embedding_peer_network(df_exploded: pd.DataFrame,
+                                    panel: pd.DataFrame) -> pd.DataFrame:
+    """基于 Embedding 向量相似度的同业网络控制变量 (双模型嵌入)。
+
+    使用 Sentence Embedding 将每家银行每年的新闻文本编码为向量,
+    通过余弦相似度构建动态同业网络权重矩阵, 计算加权同行情感
+    作为内生性处理的控制变量。
+
+    双轨 (v3.7.x): 主轨 (MAIN spec = text-embedding-3-small) 写 canonical 列
+    (emb_peer_tone_lag1_full / bank_emb_sim_mean); 稳健轨 (ROBUSTNESS spec =
+    shibing624/text2vec) 用 **各自独立的 spec 嵌入各自的文本** 写同名 + '_t2v' 列
+    (emb_peer_tone_lag1_t2v_full / bank_emb_sim_mean_t2v)。稳健轨失败时其 '_t2v'
+    列填 NaN 并记日志, 不影响 canonical 主轨。
+
+    方法论:
+      - 权重矩阵 W_emb 基于 Embedding 余弦相似度, 非二值共现
+      - 滞后一期 (t-1) 避免 Manski (1993) 反射问题
+      - 双模型独立嵌入 (API 1536d / text2vec 768d 绝不混用; 维度无关)
+
+    Args:
+        df_exploded: 文章级 DataFrame, 含 target_bank/year/标题/内容
+        panel: 银行-年份面板 DataFrame
+
+    Returns:
+        panel: 追加 emb_peer_tone_lag1_full, bank_emb_sim_mean
+               + 稳健 twin emb_peer_tone_lag1_t2v_full, bank_emb_sim_mean_t2v 列的面板
+
+    References:
+        Hoberg, G., & Phillips, G. (2016). JPE, 124(5), 1423-1465.
+        Reimers, N., & Gurevych, I. (2019). EMNLP-IJCNLP 2019.
+        Manski, C. F. (1993). RES, 60(3), 531-542.
+    """
+    logger.info("=" * 60)
+    logger.info("Embedding 同业网络控制变量 (Hoberg & Phillips 2016)")
+    logger.info("=" * 60)
+
+    tone_col = 'llm_vote_tone_full'
+    if tone_col not in panel.columns:
+        logger.warning(f"  {tone_col} 不存在, 跳过 Embedding 同业网络")
+        return panel
+
+    # ── 主轨 (canonical): MAIN spec → emb_peer_tone_lag1_full / bank_emb_sim_mean ──
+    emb_results = _compute_embedding_peer_network_pass(
+        df_exploded, panel, spec=EMBEDDING_CONFIG, suffix="")
+
     if emb_results:
         emb_df = pd.DataFrame([
             {'target_bank': k[0], 'year': k[1], **v}
@@ -1263,5 +1281,42 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
                         f"sim_mean={valid_sim.mean():.4f}")
     else:
         logger.warning("  未生成任何 Embedding 同业网络变量")
+
+    # ── 稳健轨 (ROBUSTNESS twin): text2vec → *_t2v* 列 (失败仅填 NaN, 不阻塞主轨) ──
+    t2v_tone_col = 'emb_peer_tone_lag1_t2v_full'
+    t2v_sim_col = 'bank_emb_sim_mean_t2v'
+    if not _ROBUSTNESS_SPEC:
+        logger.info("  无 embedding_robustness spec, 跳过 _t2v 稳健轨")
+        panel[t2v_tone_col] = np.nan
+        panel[t2v_sim_col] = np.nan
+        return panel
+
+    logger.info("-" * 60)
+    logger.info("  稳健 twin: text2vec (shibing624) → _t2v 列")
+    try:
+        t2v_results = _compute_embedding_peer_network_pass(
+            df_exploded, panel, spec=_ROBUSTNESS_SPEC, suffix="_t2v")
+    except Exception as exc:
+        logger.warning(f"  _t2v 稳健轨整体失败 ({exc}), 相关列填 NaN")
+        t2v_results = {}
+
+    if t2v_results:
+        t2v_df = pd.DataFrame([
+            {'target_bank': k[0], 'year': k[1], **v}
+            for k, v in t2v_results.items()
+        ])
+        panel = panel.merge(t2v_df, on=['target_bank', 'year'], how='left')
+        # 缺失轨道列补齐 (graceful: 某些 (bank, year) 未生成时)
+        for col in (t2v_tone_col, t2v_sim_col):
+            if col not in panel.columns:
+                panel[col] = np.nan
+        valid_t2v_sim = panel[t2v_sim_col].dropna()
+        if len(valid_t2v_sim) > 0:
+            logger.info(f"  _t2v 稳健轨已合并: {len(valid_t2v_sim):,} 有效值, "
+                        f"sim_mean={valid_t2v_sim.mean():.4f}")
+    else:
+        logger.warning("  _t2v 稳健轨未生成任何变量, 相关列填 NaN")
+        panel[t2v_tone_col] = np.nan
+        panel[t2v_sim_col] = np.nan
 
     return panel

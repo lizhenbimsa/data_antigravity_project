@@ -253,6 +253,20 @@ def main():
     events = detect_bank_events(art_df)
     logger.info(f"  检测到 {len(events)} 个 bank-level events")
 
+    # 39f fix (2026-05-30): panel 级 llm_vote_tone_{full,ctx} 是 bank-year 聚合阶段
+    # 才产生的列, article 级 parquet 没有 (只有 llm_sentiment_{full,ctx})。此前
+    # 双轨都因列缺失而 graceful-skip, stage 39f 永不产出。这里按 encode_sentiment
+    # 同款映射 (正面=+1 / 中性=0 / 负面=-1) 派生 article 级数值 tone, 让 cross-media
+    # variance + Krippendorff α 真正计算。
+    # 与 encode.py SENTIMENT_MAP 一致 (LLM 仅产 正面/中性/负面; 其它标签 → NaN)
+    _SENT_TO_TONE = {'正面': 1.0, '中性': 0.0, '负面': -1.0}
+    for _trk in ('full', 'ctx'):
+        _tcol, _scol = f'llm_vote_tone_{_trk}', f'llm_sentiment_{_trk}'
+        if _tcol not in art_df.columns and _scol in art_df.columns:
+            art_df[_tcol] = art_df[_scol].map(_SENT_TO_TONE)
+            logger.info(f"  派生 article 级 {_tcol} ← {_scol} "
+                        f"(非空 {int(art_df[_tcol].notna().sum())}/{len(art_df)})")
+
     panels = []
     for suffix, tone_col in (
         ('full', 'llm_vote_tone_full'),

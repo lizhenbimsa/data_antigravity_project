@@ -88,10 +88,14 @@ from news_process.core.caching import LLMCache
 # 1. 全局配置和初始化  (Phase 2a: 取代旧的 importlib 反射)
 # ============================================================================
 from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
+from news_process.pipeline.text import embedding_engine as _eng
 
 # LLM API 配置（复用 tone_llm_processing 节中的 base_url 和 api_key）
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
+# MAIN spec = text-embedding-3-small (API) → canonical policy_cosine_sim* 列
 EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
+# ROBUSTNESS spec = shibing624/text2vec (local) → _t2v 后缀稳健 twin 列
+_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
 RETRY_DELAY = 5
 MAX_RETRY_DELAY = 60
 CACHE_DB_PATH = CONFIG['paths'].get('llm_cache_db', os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'))
@@ -309,6 +313,71 @@ async def _get_embeddings_api_dynamic(
 
 
 # ============================================================================
+# 3b. 双轨嵌入 + 余弦相似度公共算子 (v3.7.5: 双模型 dual-model)
+# ============================================================================
+
+def _cosine_for_spec(
+    full_texts: list[str],
+    ctx_texts: list[str],
+    auth_chunks: list[str],
+    spec: dict,
+) -> tuple[np.ndarray | None, np.ndarray | None]:
+    """用单一 spec 嵌入 (full / ctx / auth) 并返回 (cos_full, cos_ctx)。
+
+    【关键约束】每个 spec 用**自己的**模型独立嵌入自己的 anchors/texts,
+    绝不复用另一 spec 的向量 (API 1536 维 vs text2vec 768 维, 严禁混算)。
+
+    流程:
+      1. 用 spec 经 _eng.embed_texts 分别嵌入 full_texts / ctx_texts / auth_chunks
+         (text-level, 内部已处理 chunk 切分 + mean pooling + local/API 分派)。
+      2. 对 auth-chunk 嵌入做 mean pooling + L2 归一化 → 单个政策锚点向量
+         (保留原 zero-norm 守卫: 范数为零时返回 NaN series)。
+      3. cosine_similarity(full, anchor) / cosine_similarity(ctx, anchor)。
+
+    Args:
+        full_texts: 已截断的 full 轨文本
+        ctx_texts:  已截断的 ctx 轨文本
+        auth_chunks: 权威政策语料分段
+        spec: embedding spec (MAIN=API / ROBUSTNESS=local)
+
+    Returns:
+        (cos_full_array, cos_ctx_array): 各为 (N,) np.ndarray;
+        嵌入失败 (embed_texts 返回 None) 或锚点范数为零 → (None, None)。
+    """
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    model_id = _eng.spec_model(spec)
+    log_prefix = f"Embedding[{model_id}]"
+
+    article_embs_full = _eng.embed_texts(
+        full_texts, spec, cache_db_path=CACHE_DB_PATH, log_prefix=log_prefix)
+    article_embs_ctx = _eng.embed_texts(
+        ctx_texts, spec, cache_db_path=CACHE_DB_PATH, log_prefix=log_prefix)
+    auth_chunk_embs = _eng.embed_texts(
+        auth_chunks, spec, cache_db_path=CACHE_DB_PATH, log_prefix=log_prefix)
+
+    if (article_embs_full is None or article_embs_ctx is None
+            or auth_chunk_embs is None):
+        logger.warning(f"  {log_prefix}: 嵌入返回 None, 该 spec 轨置 NaN")
+        return None, None
+
+    # 均值池化 + L2 归一化 → 单个政策锚点向量 (维度无关)
+    auth_emb = auth_chunk_embs.mean(axis=0, keepdims=True)
+    auth_norm = np.linalg.norm(auth_emb, axis=1, keepdims=True)
+    if auth_norm.item() > 0:
+        auth_emb = auth_emb / auth_norm
+    else:
+        logger.error(f"  ⚠️ {log_prefix}: 政策锚点均值池化后范数为零!")
+        return None, None
+    logger.info(f"  {log_prefix} 政策锚点: {len(auth_chunk_embs)} 段 → "
+                f"Mean Pooling → 1 个 {auth_emb.shape[1]}D 向量")
+
+    cos_full = cosine_similarity(article_embs_full, auth_emb)[:, 0]
+    cos_ctx = cosine_similarity(article_embs_ctx, auth_emb)[:, 0]
+    return cos_full, cos_ctx
+
+
+# ============================================================================
 # 4. 主流程函数
 # ============================================================================
 
@@ -321,7 +390,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         policy_cosine_sim_i = cos(emb(article_i), emb(auth_text))
 
     其中:
-      - emb() 为 text-embedding-3-small 的稠密语义编码 (1536 维)
+      - emb() 为 text-embedding-3-small 的稠密语义编码 (1536 (API main) / 768 (text2vec robustness) 维)
       - auth_text 为权威政策语料库的拼接文本 (config/authoritative_corpus.txt)
       - cos(A,B) = (A·B) / (||A|| × ||B||)，值域 [-1, 1]
 
@@ -360,10 +429,19 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         'authoritative_corpus_file',
         os.path.join(os.path.dirname(__file__), 'config', 'authoritative_corpus.txt'),
     )
+    # 双模型双轨列契约 (2026-05-29): 早退路径也须产出全部 5 列 (全 NaN), 否则
+    # 下游 runner 聚合缺 policy_cosine_sim_t2v_* → export.py REQUIRED_PANEL_COLUMNS
+    # 抛 RuntimeError (原 stage 30 退役后 stage 15 是 _t2v 唯一来源)。
+    _ALIGN_NAN_COLS = (
+        'policy_cosine_sim', 'policy_cosine_sim_full', 'policy_cosine_sim_ctx',
+        'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx',
+    )
+
     if not os.path.exists(auth_path):
         logger.warning(f"  找不到权威政策语料: {auth_path}。"
                        f"跳过 Stage 15 计算。")
-        df['policy_cosine_sim'] = np.nan
+        for _c in _ALIGN_NAN_COLS:
+            df[_c] = np.nan
         return df
 
     with open(auth_path, 'r', encoding='utf-8') as f:
@@ -372,7 +450,8 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
 
     if not auth_text:
         logger.warning("  权威政策语料为空。跳过 Stage 15 计算。")
-        df['policy_cosine_sim'] = np.nan
+        for _c in _ALIGN_NAN_COLS:
+            df[_c] = np.nan
         return df
 
     logger.info(f"  权威政策语料: {len(auth_text)} 字符")
@@ -446,90 +525,48 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         ctx_token_counts.append(n_tok)
     logger.info(f"  ctx 轨 token: 截断 {n_truncated_ctx}/{len(ctx_texts)} 篇")
 
-    # ---- 4.5 批量获取 Embedding 向量 (Round 3 M6 修: 分轨拆调以命中旧 cache) ----
-    # full + auth: 用 base prompt_version, 命中 v3.5.x 旧 cache (N + K 大部分 hit)
-    # ctx:         用 base+'-ctx' prompt_version, 新 namespace (全部 miss, ~N 次新 API)
-    # 总 cost: 仅 ctx 部分 ~N 次 API ≈ $4 (而非旧实现 2N+K 全 miss 的 ~$8)
-    auth_token_counts = [_count_tokens(c) for c in auth_chunks]
-    # 兼容 local 模型分支 all_texts (一次性 encode); API 分支已拆调不需要这个
-    all_texts = truncated_texts + truncated_ctx_texts + auth_chunks
-    
-    if EMBEDDING_CONFIG.get("base_url") == "local":
-        logger.info(f"  使用本地模型 {EMBEDDING_CONFIG.get('model')} 提取 Embedding...")
-        from sentence_transformers import SentenceTransformer
-        # 使用配置指定的本地模型 (默认 shibing624/text2vec-base-chinese)
-        local_model_id = EMBEDDING_CONFIG.get("model", "shibing624/text2vec-base-chinese")
-        local_model = SentenceTransformer(local_model_id)
-        # text2vec 输出格式支持转换为 numpy 格式
-        emb_local = local_model.encode(all_texts, batch_size=32, show_progress_bar=False)
-        emb = np.array([list(e) for e in emb_local], dtype=np.float32) # 统一为 numpy 数组结构，保证 .mean() 可用
-    else:
-        # Round 3 M6 + Round 4 M8 修: 分轨拆调让 full + auth 命中 v3.5.x 旧 cache;
-        # 用 prompt_version_override 参数显式隔离 ctx namespace, 不 mutate 全局
-        cache = LLMCache(CACHE_DB_PATH) if CACHE_DB_PATH else None
-        N = len(truncated_texts)
-        K = len(auth_chunks)
-        full_and_auth = truncated_texts + auth_chunks
-        full_and_auth_tokens = token_counts + auth_token_counts
-        # full + auth 用 base prompt_version (override=None → 走 EMBEDDING_CONFIG)
-        emb_fa = asyncio.run(_get_embeddings_api_dynamic(
-            full_and_auth, full_and_auth_tokens, cache))
-        # ctx 用 base+'-ctx' 显式 override (M8 修: 零全局副作用)
-        _ctx_pv = EMBEDDING_CONFIG.get('text_pipeline_version', 'v0') + '-ctx'
-        emb_ctx = asyncio.run(_get_embeddings_api_dynamic(
-            truncated_ctx_texts, ctx_token_counts, cache,
-            prompt_version_override=_ctx_pv))
-        # 重组为 [full(N), ctx(N), auth(K)] 与下游 emb[:N], emb[N:2N], emb[2N:] 一致
-        emb = np.concatenate([emb_fa[:N], emb_ctx, emb_fa[N:N+K]], axis=0)
-        logger.info(f"  Round 4 M8: full+auth=base cache, ctx={_ctx_pv} (无全局 mutation); "
-                    f"emb shape={emb.shape} ({N}+{N}+{K})")
-
-    # ---- 4.6 向量分离与相似度计算 ----
-    # 【术语】
-    #   article_embs: 所有文章的 Embedding 向量 (N × d)
-    #   auth_emb: 权威政策的 Embedding 向量 (1 × d)
-    #   policy_cosine_sim = cos(article_embs, auth_emb)
-    #   公式: cos(A,B) = (A·B) / (||A|| × ||B||)，值域 [-1, 1]
-    #
-    #   参考: Hoberg & Phillips (2016, JPE, §III) — 余弦相似度作为
-    #   文本语义距离的标准度量
-    #
-    # 【白话】计算每篇新闻跟政策的"方向夹角"——角度越小（分数越高），
-    #   说明这篇新闻跟政策越像
-    from sklearn.metrics.pairwise import cosine_similarity
-
-    # 分离: [0:N] full | [N:2N] ctx | [2N:] auth chunks (v3.6.0 双轨)
-    n_articles = len(truncated_texts)
-    article_embs_full = emb[:n_articles]                  # N × 1536 (full 轨)
-    article_embs_ctx = emb[n_articles:2 * n_articles]     # N × 1536 (ctx  轨)
-    auth_chunk_embs = emb[2 * n_articles:]                # K × 1536
-
-    # 均值池化 + L2 归一化 → 单个政策锚点向量
-    # 【术语】Mean Pooling (Reimers & Gurevych, 2019, EMNLP,
-    #   DOI: 10.18653/v1/D19-1410): 对 K 个分段向量取算术均值后
-    #   L2 归一化，生成文档级语义表示。
-    # 【白话】把 K 段的向量取平均，得到一个代表全部政策的"标准答案向量"
-    auth_emb = auth_chunk_embs.mean(axis=0, keepdims=True)  # (1, 1536)
-    auth_norm = np.linalg.norm(auth_emb, axis=1, keepdims=True)
-    if auth_norm.item() > 0:
-        auth_emb = auth_emb / auth_norm
-    else:
-        logger.error("  ⚠️ 政策锚点均值池化后范数为零!")
-        df['policy_cosine_sim'] = np.nan
-        return df
-    logger.info(f"  政策锚点: {len(auth_chunk_embs)} 段 → "
-                f"Mean Pooling → 1 个 {auth_emb.shape[1]}D 向量")
-
-    # cosine_similarity 返回 (N, 1)，取 [:, 0] 展平为 (N,)
-    # v3.6.0 (Plan E P3 B2): 双轨 — full 与 ctx 各计算一次, 共享同一政策锚点
-    sim_scores_full = cosine_similarity(article_embs_full, auth_emb)[:, 0]
-    sim_scores_ctx = cosine_similarity(article_embs_ctx, auth_emb)[:, 0]
-
+    # ---- 4.5 双模型嵌入 + 余弦相似度 (v3.7.5: dual-model) ----
+    # 【术语】Hoberg & Phillips (2016, JPE, §III) 余弦相似度;
+    #   v3.6.0 Plan E P3 B2 full/ctx 双轨; v3.7.5 在其上叠加 MAIN/ROBUSTNESS
+    #   双模型: MAIN = text-embedding-3-small (API, 1536 维) → canonical 列,
+    #   ROBUSTNESS = shibing624/text2vec (local, 768 维) → _t2v 列。
+    # 【关键】两个模型各嵌各的 anchors/texts, 绝不混算 (维度不同 + 语义空间不同)。
+    #   embedding 取得统一经 _eng (本地 vs API 由 spec 内部分派, 不再 inline if)。
+    # 【白话】同一批新闻用两个不同模型各算一遍政策对齐分, text2vec 那遍是
+    #   稳健性对照, 列名加 _t2v 后缀; 主轨 (API) 列名保持不变。
     df = df.copy()
+
+    # --- MAIN (canonical) 轨: 列名 byte-for-byte 不变 ---
+    sim_scores_full, sim_scores_ctx = _cosine_for_spec(
+        truncated_texts, truncated_ctx_texts, auth_chunks, EMBEDDING_CONFIG)
+    if sim_scores_full is None or sim_scores_ctx is None:
+        # F1 fix (2026-05-30): MAIN 失败也须产出全部 5 列 (含 _t2v, 全 NaN), 与
+        # 上面两个 auth 早退路径对称。否则缺 policy_cosine_sim_t2v_* → 下游
+        # export.py::REQUIRED_PANEL_COLUMNS 抛 RuntimeError (stage 30 退役后
+        # stage 15 是 policy_cosine_sim_t2v 的唯一来源)。
+        logger.error("  ⚠️ MAIN spec 嵌入失败, canonical + _t2v 全 5 列置 NaN "
+                     "(保持双模型 5 列契约)")
+        for _c in _ALIGN_NAN_COLS:
+            df[_c] = np.nan
+        return df
+
     df['policy_cosine_sim_full'] = sim_scores_full.astype(np.float32)
     df['policy_cosine_sim_ctx'] = sim_scores_ctx.astype(np.float32)
     # legacy alias = _full (v3.5.0 schemas.py 契约保留, 9 paper 迁移后可弃)
     df['policy_cosine_sim'] = df['policy_cosine_sim_full']
+
+    # --- ROBUSTNESS (_t2v) 轨: 失败不破坏 canonical, 仅 _t2v 列置 NaN ---
+    t2v_full, t2v_ctx = _cosine_for_spec(
+        truncated_texts, truncated_ctx_texts, auth_chunks, _ROBUSTNESS_SPEC)
+    if t2v_full is None or t2v_ctx is None:
+        logger.warning(
+            "  ROBUSTNESS (text2vec) 嵌入失败, "
+            "policy_cosine_sim_t2v_{full,ctx} 置 NaN (canonical 不受影响)")
+        df['policy_cosine_sim_t2v_full'] = np.nan
+        df['policy_cosine_sim_t2v_ctx'] = np.nan
+    else:
+        df['policy_cosine_sim_t2v_full'] = t2v_full.astype(np.float32)
+        df['policy_cosine_sim_t2v_ctx'] = t2v_ctx.astype(np.float32)
 
     # ---- 4.7 统计报告 ----
     logger.info(f"  ✅ policy_cosine_sim 双轨计算完成:")

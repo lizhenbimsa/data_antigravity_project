@@ -17,25 +17,26 @@ def test_policy_alignment_module_imports():
     assert hasattr(pa, 'main')
 
 
-def test_ctx_track_has_ctx_suffix_full_keeps_base():
-    """Round 3 M6 + Round 4 M8 修后: full+auth 用 base prompt_version (命中
-    v3.5.x 旧 cache), ctx 轨用 base+'-ctx' override 参数显式隔离 (无全局 mutation)."""
+def test_dual_model_cosine_for_spec_main_and_robustness():
+    """2026-05-29 双模型重构: compute 用 _cosine_for_spec 对主 spec (text-embedding-3-small)
+    与稳健 spec (_ROBUSTNESS_SPEC=text2vec) 各算一遍, 缓存命名空间由 model_id (engine) 隔离,
+    不再 mutate 全局 EMBEDDING_CONFIG (旧 '-ctx' 微优化已随版本 bump 退役)。"""
     import inspect
 
     from news_process.pipeline.filtering import policy_alignment as pa
     src_compute = inspect.getsource(pa.compute_article_policy_alignment)
-    # ctx namespace 隔离 (-ctx 后缀, M8 用 override 参数实现)
-    assert "+ '-ctx'" in src_compute or '+ "-ctx"' in src_compute, \
-        "M6 修: ctx 轨应用 base+'-ctx' namespace"
-    assert 'prompt_version_override' in src_compute, \
-        "M8 修: 必须用 override 参数, 不再 mutate 全局 EMBEDDING_CONFIG"
-    # 显式断言不再 mutate 全局
+    # 双 spec 双算: 主 + 稳健
+    assert '_cosine_for_spec' in src_compute, "compute 应用 _cosine_for_spec 助手"
+    assert '_ROBUSTNESS_SPEC' in src_compute, "compute 应对稳健 spec 再算一遍"
+    # 产出稳健 twin 列
+    assert 'policy_cosine_sim_t2v_full' in src_compute
+    assert 'policy_cosine_sim_t2v_ctx' in src_compute
+    # 仍不 mutate 全局 EMBEDDING_CONFIG (无全局副作用)
     assert "EMBEDDING_CONFIG['text_pipeline_version'] = " not in src_compute, \
-        "M8 修: 禁止 mutate EMBEDDING_CONFIG"
-    # _get_embeddings_api_dynamic 内部不再加 -dual
-    src_get = inspect.getsource(pa._get_embeddings_api_dynamic)
-    assert "'-dual'" not in src_get and '"-dual"' not in src_get, \
-        "M6 修: 去掉 -dual 后缀以保 full+auth cache 命中"
+        "禁止 mutate EMBEDDING_CONFIG (cache 命名空间由 model_id 隔离)"
+    # _cosine_for_spec 经 engine 嵌入 (主/稳健共用同算法只换 spec)
+    src_spec = inspect.getsource(pa._cosine_for_spec)
+    assert '_eng.embed_texts' in src_spec, "_cosine_for_spec 应经 embedding_engine 嵌入"
 
 
 def test_cache_isolation_from_other_callsites():
@@ -56,7 +57,7 @@ def test_cache_isolation_from_other_callsites():
 
 # ── Cases 4-7: 双轨列输出 ──
 def test_dual_track_columns_present_after_run(monkeypatch):
-    """模拟 emb API 返回固定向量, 验证输出含双轨列."""
+    """模拟 engine 嵌入返回固定单位向量, 验证输出含双模型双轨列 (主 + _t2v)."""
     from news_process.pipeline.filtering import policy_alignment as pa
 
     # 构造 3 篇 mock 文章
@@ -66,15 +67,12 @@ def test_dual_track_columns_present_after_run(monkeypatch):
         'content_ctx': ['工行 ctx1', '建行 ctx2', '中行 ctx3'],
     })
 
-    # Mock embedding 返回: 全部为 [1,0,0,...] 单位向量 → cosine = 1.0
-    def mock_run(*args, **kwargs):
-        n_texts = len(args[0]) if args else len(kwargs['texts'])
-        return np.array([[1.0] + [0.0] * 1535] * n_texts, dtype=np.float32)
+    # Mock embedding_engine.embed_texts: 任意 spec 都返回 [1,0,0,...] 单位向量 → cosine = 1.0
+    # (主 spec 与稳健 spec 各调一遍, 均走此 mock → canonical 与 _t2v 列都满列。)
+    def _fake_embed(texts, spec, **kwargs):
+        return np.array([[1.0] + [0.0] * 1535] * len(list(texts)), dtype=np.float32)
 
-    monkeypatch.setattr(pa, '_get_embeddings_api_dynamic',
-                        lambda *a, **k: mock_run(a[0] if a else k.get('texts', [])))
-    # asyncio.run 包装
-    monkeypatch.setattr(pa.asyncio, 'run', lambda coro: mock_run([None] * 8))
+    monkeypatch.setattr(pa._eng, 'embed_texts', _fake_embed)
     # 关掉 token 截断的真实计算 (避免 tiktoken 加载)
     monkeypatch.setattr(pa, '_count_tokens', lambda t: 100)
     monkeypatch.setattr(pa, '_truncate_to_max_tokens', lambda t, m=None: t)
@@ -87,10 +85,33 @@ def test_dual_track_columns_present_after_run(monkeypatch):
         pytest.skip(f"auth corpus not found: {auth_path}")
 
     out = pa.compute_article_policy_alignment(df)
-    for col in ['policy_cosine_sim_full', 'policy_cosine_sim_ctx', 'policy_cosine_sim']:
-        assert col in out.columns, f"缺双轨列 {col}"
+    for col in ['policy_cosine_sim_full', 'policy_cosine_sim_ctx', 'policy_cosine_sim',
+                'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx']:
+        assert col in out.columns, f"缺双模型双轨列 {col}"
     # legacy alias = full
     assert (out['policy_cosine_sim'] == out['policy_cosine_sim_full']).all()
+    # 稳健 twin 应满列 (mock 单位向量 → cosine=1.0)
+    assert out['policy_cosine_sim_t2v_full'].notna().all()
+
+
+def test_early_exit_missing_auth_corpus_emits_full_t2v_contract(monkeypatch, tmp_path):
+    """auth 语料缺失/为空的早退路径仍须产出双模型双轨 5 列契约 (全 NaN)。
+
+    回归门 (audit 2026-05-29 P1): 否则 stage 30 退役后, runner 聚合缺
+    policy_cosine_sim_t2v_* → export.py REQUIRED_PANEL_COLUMNS 抛 RuntimeError。
+    """
+    from news_process.pipeline.filtering import policy_alignment as pa
+    df = pd.DataFrame({
+        '标题': ['t1', 't2'], '内容': ['c1', 'c2'], 'content_ctx': ['x1', 'x2'],
+    })
+    # 指向不存在的 auth 路径 → 触发 'not os.path.exists' 早退
+    monkeypatch.setitem(pa.CONFIG['paths'], 'authoritative_corpus_file',
+                        str(tmp_path / 'nonexistent_auth_corpus.txt'))
+    out = pa.compute_article_policy_alignment(df)
+    for col in ['policy_cosine_sim', 'policy_cosine_sim_full', 'policy_cosine_sim_ctx',
+                'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx']:
+        assert col in out.columns, f"早退路径缺双模型双轨列 {col}"
+        assert out[col].isna().all(), f"{col} 早退应全 NaN"
 
 
 def test_ctx_missing_fallback_warns(caplog):

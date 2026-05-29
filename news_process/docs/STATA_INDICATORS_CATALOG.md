@@ -1863,12 +1863,12 @@ reghdfe Y dcep_placebo2_did controls, absorb(target_bank year) cluster(bank_prov
 
 ## 45. AR Text2Vec 双轨稳健性
 
-**整体说明**：stage 30 用 text2vec 模型独立产出 strategic differentiation + policy alignment 指标，作为 LLM "幻觉偏移"（hallucination bias）的方法学对照。文件 `30_text2vec_indicators.parquet` 缺失会 fail-loud（runner.py:1534-1541）。
+**整体说明**：text2vec（shibing624/text2vec-base-chinese）作为主轨嵌入（text-embedding-3-small）的稳健 twin，产出 strategic differentiation + policy alignment 指标，作为 LLM "幻觉偏移"（hallucination bias）的方法学对照。**2026-05-29 双模型重构**后，原独立 stage 30（`30_text2vec_indicators.parquet`）已退役，这些 `_t2v` 列改由 stage 25（strategic_diff，战略差异）与 stage 15（policy_alignment，经 runner.py 聚合，政策对齐）在主流程内联双模型产出；缺列由 `export.py::REQUIRED_PANEL_COLUMNS` fail-loud 守卫（export.py:216-232）。
 
 | 变量 | 来源 | 含义 |
 |---|---|---|
-| `strat_diff_t2v_full` / `strat_diff_t2v_ctx` | stage 30 | text2vec 战略差异度（vs LLM 版） |
-| `policy_cosine_sim_t2v_full` / `policy_cosine_sim_t2v_ctx` | stage 30 | text2vec 政策对齐（vs LLM 版） |
+| `strat_diff_t2v_full` / `strat_diff_t2v_ctx` | stage 25（内联） | text2vec 战略差异度（vs LLM 版） |
+| `policy_cosine_sim_t2v_full` / `policy_cosine_sim_t2v_ctx` | stage 15（内联，runner 聚合） | text2vec 政策对齐（vs LLM 版） |
 
 **保留 NaN**（无新闻 bank-year）—— 修 v6/F3 fillna(0) 反模式。
 
@@ -2159,7 +2159,7 @@ reghdfe Y dcep_placebo2_did controls, absorb(target_bank year) cluster(bank_prov
 ### 50.6 Text2Vec 双轨稳健性别名（§45）
 | 变量 | 含义 |
 |---|---|
-| `strat_diff_t2v_full` / `strat_diff_t2v_ctx` | text2vec stage 30 的战略差异度 |
+| `strat_diff_t2v_full` / `strat_diff_t2v_ctx` | text2vec 战略差异度（stage 25 内联，详见 §45；原 stage 30 已退役） |
 
 ---
 

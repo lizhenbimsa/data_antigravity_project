@@ -1539,7 +1539,12 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     # --- 科学填充 ---
     # 填充为 0 的列: 计数类和流量类
     zero_fill_patterns = ['n_articles', 'ln_news_coverage', 'media_breadth']
-    sum_cols = [c for c in panel.columns if c.endswith('_sum')]
+    # F5 fix (2026-05-30): 旧 `endswith('_sum')` 匹配 0 列 — 每个加权和分子都带
+    # 轨道后缀 (_sum_full / _sum_ctx / _sum_title), 末尾是轨道而非裸 '_sum'。
+    # 零新闻 bank-year 的和是 Σ over ∅ = 0, 故这些分子列应填 0 (符合"计数/和类填 0"
+    # 契约); 被消费的均值/比例列不在此匹配内, 正确保持 NaN。
+    sum_cols = [c for c in panel.columns
+                if re.search(r'_sum_(full|ctx|title)$', c)]
     count_cols = ['sum_mention_density', 'sum_doc_length', 'sum_target_mentions',
                   'sum_media_authority_weight']
     # audit-fixes 2026-05-29 (L1): 此前列出 bare 名 'pos_count'/'neg_count'/
@@ -1547,8 +1552,15 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     # (pos_count_full / pos_count_vw_full / ...), bare 名永不匹配 →
     # 零新闻 bank-year 的计数列残留 NaN 而非 0 (与本段"计数类填 0"的契约相悖,
     # 导出的 .dta 计数列在无覆盖行显示 . 而非 0)。改用 regex 匹配实际后缀名。
-    _count_pat = re.compile(r'^(pos|neg)_count(_vw)?(_full|_ctx|_title)$')
-    suffixed_count_cols = [c for c in panel.columns if _count_pat.match(c)]
+    # F4 fix (2026-05-30): 旧锚定式 ^(pos|neg)_count... 只覆盖 12 个 bare-family
+    # 计数列; 逐模型/逐词典/逐 BERT/symb-sub 等新闻计数
+    # (gpt54nano_pos_count_full / jiang_2021_neg_count_ctx / pos_symb_count_full /
+    # neg_sub_count_full / *_hc_count* ...) 永不匹配 → 零新闻格残留 NaN 而非 0。
+    # 改为匹配任意 *_count(_vw)?_<track>; 排除 peer-group 计数 (llm_peer_count*,
+    # 在零自有新闻时合法非零) 与实体属性均值 (avg/max_bank_count, 无轨道后缀, 正确保持 NaN)。
+    _count_pat = re.compile(r'_count(_vw)?_(full|ctx|title)$')
+    suffixed_count_cols = [c for c in panel.columns
+                           if _count_pat.search(c) and 'peer' not in c]
     zero_fill_cols = zero_fill_patterns + sum_cols + count_cols + suffixed_count_cols
 
     for col in zero_fill_cols:

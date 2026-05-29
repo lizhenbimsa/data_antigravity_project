@@ -208,15 +208,17 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     # 在写出任何 .parquet / .dta / .csv 之前先验列, 缺列即 raise RuntimeError,
     # 杜绝"新 .parquet 写成功但 .dta 异常"导致 .parquet 与 .dta 语义错位的隐性
     # 灾难 (此前 40_panel_yearly.parquet=5月5日 而 .dta=5月1日 的真实事故).
-    # 校验集对应 Step 4 硬化保证存在的 4 个上游契约:
-    #   stage 15 (政策对齐)  → 7h-token 四象限分类列
-    #   stage 30 (双轨稳健)  → strat_diff_t2v_*/policy_cosine_sim_t2v_*
+    # 校验集对应 Step 4 硬化保证存在的 4 个上游契约 (2026-05-29 双模型重构后,
+    # 原独立 stage 30 已退役, _t2v 契约列改由 stage 15/25 主流程内联双模型产出):
+    #   stage 15 (政策对齐)  → 7h-token 四象限分类列 + policy_cosine_sim_t2v_* (runner 聚合)
+    #   stage 25 (战略差异)  → strat_diff_t2v_* (内联 text2vec twin)
     #   stage 25/26/27 (硬import) → strat_diff_full / auth_sim_* / benefit_sim_*
     # 使用 raise 而非 assert (assert 在 python -O 优化模式下会被剥离).
     REQUIRED_PANEL_COLUMNS = [
         # bank-year 主键
         'target_bank', 'year',
-        # stage 30 双轨稳健性 (4 列, 由 8e 步骤 merge)
+        # 双轨稳健性 (4 列) — 2026-05-29 双模型重构后由 stage 15/25 内联双模型产出
+        # (原 stage 30 已退役): strat_diff_t2v_* ← stage 25; policy_cosine_sim_t2v_* ← stage 15 聚合
         'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
         'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx',
     ]
@@ -226,7 +228,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             f"[export_panel] panel 缺失必填列 {_missing}; "
             f"现有 {len(panel.columns)} 列前 30 个: {list(panel.columns)[:30]}; "
             f"拒绝写出避免 .parquet/.dta 语义错位。"
-            f" 请检查上游 stage 15/30 输出是否存在 + Step 4 硬化是否生效."
+            f" 请检查上游 stage 15 (policy_cosine_sim_t2v) + stage 25 (strat_diff_t2v) "
+            f"内联双模型输出是否存在 (stage 30 已于 2026-05-29 退役)."
         )
     logger.info(
         f"[export_panel] REQUIRED_PANEL_COLUMNS 校验通过 "
@@ -242,17 +245,17 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     panel_filename = FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet')
     panel_path = os.path.join(OUTPUT_DIR, panel_filename)
     # 血缘修复 (audit-fixes 2026-05-29): stage 45 是 fan-in, runner 硬读
-    # 24_herd_decay (主) + 15_article_alignment (RuntimeError if absent,
-    # runner.py:1077) + 30_text2vec_indicators (RuntimeError if absent,
-    # runner.py:1534). 记全部硬上游闭包, 否则 verify_data_integrity 对 15/30 的
-    # 篡改/陈旧检测不到 (与 stage 14 fintech_intensity 记双输入的受测约定一致).
+    # 24_herd_decay (主) + 15_article_alignment (RuntimeError if absent, runner.py:1077).
+    # 记全部硬上游闭包, 否则 verify_data_integrity 对 15 的篡改/陈旧检测不到
+    # (与 stage 14 fintech_intensity 记双输入的受测约定一致).
+    # 2026-05-29 双模型重构: 原 stage 30 (30_text2vec_indicators) 已退役 — 其 t2v 列改由
+    # stage 15/25 内联双模型产出, 不再是独立上游 parquet, 故从血缘闭包中移除。
     # 缺失文件由 data_versioning 的 exists 守卫优雅跳过.
     _od = CONFIG['paths']['output_dir']
     _fn = CONFIG['filenames']
     input_files = [
         os.path.join(_od, _fn['output_24_herd_decay']),
         os.path.join(_od, _fn.get('output_15_article_alignment', '15_article_alignment.parquet')),
-        os.path.join(_od, '30_text2vec_indicators.parquet'),  # 无 config key (硬编码于 validation/text2vec.py)
     ]
     save_dataset(panel, panel_path, logger,
                 stage_name="45_panel_export_main",
@@ -585,11 +588,35 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'auth_sim_tfidf_w_ctx':                'Auth Alignment TF-IDF word (Ctx)',
                 'auth_sim_lda_ctx':                    'Auth Alignment LDA (Ctx)',
                 'auth_sim_emb_ctx':                    'Auth Alignment Embedding (Ctx)',
-                # 文本张量双轨稳健性 (Stage 30)
+                # 双模型嵌入: text2vec 稳健 twin (2026-05-29 双模型重构; 主轨=
+                # text-embedding-3-small, _t2v=shibing624/text2vec 同算法只换模型)。
+                # 原 stage 30 退役后, 这 24 列由 stage 15/25/26/27/network 内联产出;
+                # 标签与 stata_export.py::HEURISTIC_LABELS 同源, 保证 40_*.dta 与
+                # 46_*.dta 双导出口径一致 (F3 fix 2026-05-30: 原仅 4 列, 补齐 24 列)。
                 'strat_diff_t2v_full':                 'Strategic Diff (T2V, Full)',
                 'strat_diff_t2v_ctx':                  'Strategic Diff (T2V, Ctx)',
                 'policy_cosine_sim_t2v_full':          'Policy Auth Sim (T2V, Full)',
                 'policy_cosine_sim_t2v_ctx':           'Policy Auth Sim (T2V, Ctx)',
+                'strat_diff_n5_emb_t2v':               'Strat Diff N5 Emb (T2V robust, full)',
+                'strat_diff_n5_emb_t2v_ctx':           'Strat Diff N5 Emb (T2V robust, ctx)',
+                'strat_sim_max_emb_t2v':               'Strat Max Sim Emb (T2V robust, full)',
+                'strat_sim_max_emb_t2v_ctx':           'Strat Max Sim Emb (T2V robust, ctx)',
+                'centroid_diff_emb_t2v':               'Centroid Diff Emb (T2V robust, full)',
+                'centroid_diff_emb_t2v_ctx':           'Centroid Diff Emb (T2V robust, ctx)',
+                'coh_emb_t2v_full':                    'Temporal Coherence Emb (T2V robust, full)',
+                'coh_emb_t2v_ctx':                     'Temporal Coherence Emb (T2V robust, ctx)',
+                'auth_sim_emb_t2v_full':               'Auth Policy Sim Emb (T2V robust, full)',
+                'auth_sim_emb_t2v_ctx':                'Auth Policy Sim Emb (T2V robust, ctx)',
+                'benefit_mean_t2v_full':               'Benefit Attitude Mean (T2V robust, full)',
+                'benefit_mean_t2v_ctx':                'Benefit Attitude Mean (T2V robust, ctx)',
+                'benefit_std_t2v_full':                'Benefit Attitude SD (T2V robust, full)',
+                'benefit_std_t2v_ctx':                 'Benefit Attitude SD (T2V robust, ctx)',
+                'benefit_pos_frac_t2v_full':           'Benefit Pos Frac (T2V robust, full)',
+                'benefit_pos_frac_t2v_ctx':            'Benefit Pos Frac (T2V robust, ctx)',
+                'benefit_neg_frac_t2v_full':           'Benefit Neg Frac (T2V robust, full)',
+                'benefit_neg_frac_t2v_ctx':            'Benefit Neg Frac (T2V robust, ctx)',
+                'emb_peer_tone_lag1_t2v_full':         'Emb Peer Tone Lag1 (T2V robust, full)',
+                'bank_emb_sim_mean_t2v':               'Bank Emb Sim Mean (T2V robust)',
                 # Event Study 动态效应 (Callaway & Sant'Anna 2021, JoE)
                 'dcep_rel_year':                       'DCEP Relative Year to Treatment',
                 'dcep_lead3':                          'DCEP Lead 3 Periods (k=-3)',

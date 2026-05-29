@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import os
-import re
 from pathlib import Path
 from typing import Mapping, Sequence
 
@@ -50,27 +49,51 @@ def sanitize_stata_columns(columns: Sequence[str],
     Returns:
         长度等于 ``len(columns)`` 的清洗后列名列表。
     """
-    base_len = max_len - 4  # leave 4 chars for "_999" disambiguator
-    cleaned: list[str] = []
-    seen: set[str] = set()
+    # S3 fix v2 (2026-05-30): delegate to the canonical 46-path sanitizer
+    # (stata_export.shorten_long_column_names → asciify_non_ascii_columns, IN THAT
+    # ORDER, exactly as stage 46 applies them at stata_export.py:643/654) so the
+    # 40-path (pipeline/panel/export.py calls THIS function) and the 46-path emit
+    # BYTE-IDENTICAL Stata names — eliminating the two-divergent-name-sets defect
+    # entirely. The earlier fix only removed pos/neg collisions but still diverged
+    # at 125/2129 cols (base_len=28 vs the 46-path's 32-char truncation/abbrev).
+    # Single source of truth = stata_export; lazy import keeps it leaf-safe
+    # (stata_export imports neither tables nor export → no cycle).
+    # max_len is honored as the 46-path's 32-char Stata-14+ cap.
+    import pandas as _pd
 
-    for raw in columns:
-        c = raw.replace('(', '_').replace(')', '_')
+    from news_process.pipeline.panel.stata_export import (
+        asciify_non_ascii_columns as _asciify,
+    )
+    from news_process.pipeline.panel.stata_export import (
+        shorten_long_column_names as _shorten,
+    )
+
+    # Pre-process the two things the 46-path does NOT do: ()/（）→ _ and
+    # empty / all-underscore → col_<i> (panel & derivative-paper columns may carry
+    # parens; the 46-path assumes already-paren-free names).
+    pre: list[str] = []
+    _seen_pre: dict[str, int] = {}
+    for i, raw in enumerate(columns):
+        c = str(raw).replace('(', '_').replace(')', '_')
         c = c.replace('（', '_').replace('）', '_')
-        c = re.sub(r'[^\x00-\x7F]+', '', c)
         if not c or not c.strip('_'):
-            c = f'col_{len(cleaned)}'
+            c = f'col_{i}'
+        # Disambiguate genuine DUPLICATE input names: the 46-path md5 collision
+        # suffix hashes the (original) string, so identical inputs would hash to
+        # the same name and stay collided. Real DataFrame columns are unique, so
+        # this is a no-op on the panel (byte-identity with the 46-path preserved)
+        # — it only hardens the general-purpose utility against duplicate inputs.
+        if c in _seen_pre:
+            _seen_pre[c] += 1
+            c = f'{c}_{_seen_pre[c]}'
+        else:
+            _seen_pre[c] = 0
+        pre.append(c)
 
-        c_base = c[:base_len]
-        final_c = c_base
-        counter = 1
-        while final_c in seen:
-            final_c = f'{c_base}_{counter}'
-            counter += 1
-
-        seen.add(final_c)
-        cleaned.append(final_c)
-    return cleaned
+    _df = _pd.DataFrame(columns=pre)
+    _df, _ = _shorten(_df)
+    _df, _ = _asciify(_df)
+    return list(_df.columns)
 
 
 # ----------------------------------------------------------------------------

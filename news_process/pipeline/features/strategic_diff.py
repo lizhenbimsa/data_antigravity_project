@@ -153,6 +153,7 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.caching import LLMCache
+from news_process.pipeline.text import embedding_engine as _eng
 
 # v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
 # R1-R5 audit fix A5 (2026-05-27): V4 F-P2.1 仅承诺 stage 21 (tone_llms) + stage 48
@@ -231,7 +232,8 @@ def _split_text_for_embedding(text: str) -> list[str]:
 from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 
 LLM_CONFIG = CONFIG.get('tone_llm_processing', {})
-EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})
+EMBEDDING_CONFIG = CONFIG.get('embedding_api', {})            # MAIN spec (text-embedding-3-small)
+_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})    # 稳健 twin spec (text2vec, 2026-05-29 双模型)
 _ALIGN_CFG = CONFIG.get('article_alignment', {})
 _EMB_MAX_TOKENS = _coerce_positive_int(
     _ALIGN_CFG.get('max_tokens_per_input'), _EMB_MAX_TOKENS)
@@ -242,35 +244,15 @@ _EMB_MAX_TOKENS_PER_REQUEST = max(
 _LOCAL_EMBEDDING_MODEL = None
 
 
-def _embedding_config_uses_local() -> bool:
-    base_url = str(EMBEDDING_CONFIG.get('base_url') or '').strip().lower()
-    return base_url in {
-        'local',
-        'local://',
-        'sentence-transformers',
-        'sentence_transformers',
-    }
+def _embedding_config_uses_local(spec=None) -> bool:
+    """spec 是否指向本地模型 (默认主 spec)。委托给 embedding_engine。"""
+    return _eng.spec_uses_local(spec if spec is not None else EMBEDDING_CONFIG)
 
 
-def _encode_embeddings_local(texts, *, log_prefix="Embedding") -> np.ndarray:
-    global _LOCAL_EMBEDDING_MODEL
-
-    from sentence_transformers import SentenceTransformer
-
-    local_model_id = (
-        EMBEDDING_CONFIG.get('model')
-        or 'shibing624/text2vec-base-chinese'
-    )
-    if _LOCAL_EMBEDDING_MODEL is None:
-        logger.info(f"    {log_prefix}: 使用本地模型 {local_model_id}")
-        _LOCAL_EMBEDDING_MODEL = SentenceTransformer(local_model_id)
-
-    emb_local = _LOCAL_EMBEDDING_MODEL.encode(
-        list(texts),
-        batch_size=int(EMBEDDING_CONFIG.get('batch_size', 32) or 32),
-        show_progress_bar=False,
-    )
-    return np.asarray(emb_local, dtype=np.float32)
+def _encode_embeddings_local(texts, *, spec=None, log_prefix="Embedding") -> np.ndarray:
+    """本地 sentence-transformers 编码 (默认主 spec)。委托给 embedding_engine。"""
+    return _eng.encode_local(
+        texts, spec if spec is not None else EMBEDDING_CONFIG, log_prefix=log_prefix)
 
 # 中文停用词表 (Stopwords) — 排除高频虚词以提高 TF-IDF 区分度
 # 【术语】停用词 (Stopwords) 是 NLP 中被过滤的高频无信息量词汇，
@@ -635,72 +617,29 @@ async def _get_embeddings_api(texts, cache=None):
     return np.array(final_embs, dtype=np.float32)
 
 
-def _embed_texts_with_chunk_pooling(texts, *, log_prefix="Embedding"):
-    """将任意长度文本嵌入为文本级向量。
+def _embed_texts_with_chunk_pooling(texts, *, spec=None, log_prefix="Embedding"):
+    """将任意长度文本嵌入为文本级向量 (2026-05-29: 委托 embedding_engine, spec 参数化)。
 
-    对超过 8,191 token 上限的文本 (如权威政策语料)，采用 Early Chunking
-    + Mean Pooling: 分段嵌入后均值池化为单个文本级向量。普通 Bank-Year
-    聚合文本通常不超限，会退化为原有单段行为。
-
-    降级顺序:
-      1. API (text-embedding-3-small) — 首选, 质量最高
-      2. sentence-transformers (shibing624/text2vec-base-chinese) — 本地备选
-      3. None — 跳过 Embedding 方法
+    超长文本走 Early Chunking + Mean Pooling。spec 默认主轨 (text-embedding-3-small);
+    传 _ROBUSTNESS_SPEC 则走 text2vec 本地稳健轨。失败/形状异常 → None。
 
     Returns:
         np.ndarray | None: 文本级 Embedding 向量 (n_texts, dim)
     """
-    texts = [] if texts is None else list(texts)
-    if len(texts) == 0:
-        return None
-
-    all_chunks = []
-    chunk_map = []
-    for text in texts:
-        chunks = _split_text_for_embedding(text)
-        start = len(all_chunks)
-        all_chunks.extend(chunks)
-        chunk_map.append((start, len(all_chunks)))
-
-    n_orig = len(texts)
-    n_chunks = len(all_chunks)
-    if n_chunks > n_orig:
-        logger.info(f"    {log_prefix} 分段: {n_orig} 文本 → {n_chunks} 段 "
-                    f"(含 {n_chunks - n_orig} 个超长文本扩展段)")
-
-    if _embedding_config_uses_local():
-        raw_emb = _encode_embeddings_local(all_chunks, log_prefix=log_prefix)
-    else:
-        db_path = CONFIG['paths'].get(
-            'llm_cache_db',
-            os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'),
-        )
-        with LLMCache(db_path) as cache:
-            raw_emb = asyncio.run(_get_embeddings_api(all_chunks, cache))
-        logger.info(f"    {log_prefix}: API (text-embedding-3-small) 成功")
-
-    raw_emb = np.array(raw_emb) if not isinstance(raw_emb, np.ndarray) else raw_emb
-    if raw_emb.ndim != 2 or raw_emb.shape[0] != n_chunks:
-        logger.warning(f"    {log_prefix}: 向量形状异常 "
-                       f"(expected {n_chunks}×D, got {raw_emb.shape})")
-        return None
-
-    # Mean Pooling: chunk embeddings -> original text embeddings.
-    emb = np.zeros((n_orig, raw_emb.shape[1]), dtype=raw_emb.dtype)
-    for i, (start, end) in enumerate(chunk_map):
-        if end - start == 1:
-            emb[i] = raw_emb[start]
-            continue
-
-        pooled = raw_emb[start:end].mean(axis=0)
-        norm = np.linalg.norm(pooled)
-        emb[i] = pooled / norm if norm > 0 else pooled
-
-    return emb
+    db_path = CONFIG['paths'].get(
+        'llm_cache_db',
+        os.path.join(CONFIG['paths']['output_dir'], '_llm_cache.db'),
+    )
+    return _eng.embed_texts(
+        texts,
+        spec if spec is not None else EMBEDDING_CONFIG,
+        cache_db_path=db_path,
+        log_prefix=log_prefix,
+    )
 
 
-def _build_embedding_sim_matrix(texts):
-    """构建 Embedding cosine 相似度矩阵, 三层降级 + 长文本分段池化。
+def _build_embedding_sim_matrix(texts, spec=None):
+    """构建 Embedding cosine 相似度矩阵, 长文本分段池化 (spec 参数化双轨)。
 
     Returns:
         tuple: (sim, emb)
@@ -708,7 +647,7 @@ def _build_embedding_sim_matrix(texts):
           - emb: np.ndarray | None, 文本级 Embedding 向量 (n_banks, dim)
             (供 centroid 计算复用)
     """
-    emb = _embed_texts_with_chunk_pooling(texts, log_prefix="Embedding")
+    emb = _embed_texts_with_chunk_pooling(texts, spec=spec, log_prefix="Embedding")
     if emb is None:
         return None, None
 
@@ -1118,8 +1057,8 @@ def _compute_lda_coherence(agg_df):
     return coherence
 
 
-def _compute_emb_coherence(agg_df):
-    """稠密语义嵌入的相邻期文本连贯性。
+def _compute_emb_coherence(agg_df, spec=None):
+    """稠密语义嵌入的相邻期文本连贯性 (spec 参数化双轨; 默认主轨)。
 
     【学术】使用预训练语言模型 (text2vec / OpenAI Embedding) 将文本映射到
     高维语义空间, 计算 cosine similarity。与 TF-IDF 的词袋假设不同,
@@ -1146,7 +1085,8 @@ def _compute_emb_coherence(agg_df):
     if not all_texts:
         return coherence
 
-    emb = _embed_texts_with_chunk_pooling(all_texts, log_prefix="Embedding 连贯性")
+    emb = _embed_texts_with_chunk_pooling(
+        all_texts, spec=spec, log_prefix="Embedding 连贯性")
     if emb is None:
         return coherence
 
@@ -1295,13 +1235,21 @@ def compute_strategic_differentiation(df_exploded, panel):
             logger.warning(f"    LDA+JSD 失败 ({type(e).__name__}), 跳过")
             sl = None
             cd_lda = None
-        # 方法 D: Embedding — 用 AI 理解语义后比较（稳健性检验）
+        # 方法 D: Embedding (主轨) — text-embedding-3-small 语义距离
         se_mat, se_emb = _build_embedding_sim_matrix(texts)
         if se_mat is not None:
             se = _compute_nn_scores(se_mat, banks, [5])
             cd_emb = _compute_centroid_scores(se_emb, banks)
         else:
             se, cd_emb = None, None
+        # 方法 D-t2v: 稳健 twin — text2vec 本地模型 (2026-05-29 双模型, 同算法只换模型)
+        se_mat_t2v, se_emb_t2v = _build_embedding_sim_matrix(
+            texts, spec=_ROBUSTNESS_SPEC)
+        if se_mat_t2v is not None:
+            se_t2v = _compute_nn_scores(se_mat_t2v, banks, [5])
+            cd_emb_t2v = _compute_centroid_scores(se_emb_t2v, banks)
+        else:
+            se_t2v, cd_emb_t2v = None, None
 
         # 【白话】把这一年每家银行的计算结果打包成一行行数据
         #   每一行 = 一家银行在这一年的所有差异度分数
@@ -1321,6 +1269,9 @@ def compute_strategic_differentiation(df_exploded, panel):
             if se:  # Embedding 方法成功时才有
                 row['strat_diff_n5_emb'] = se['n5'].get(bank, np.nan)
                 row['strat_sim_max_emb'] = se['sim_max'].get(bank, np.nan)
+            if se_t2v:  # 稳健 twin (text2vec)
+                row['strat_diff_n5_emb_t2v'] = se_t2v['n5'].get(bank, np.nan)
+                row['strat_sim_max_emb_t2v'] = se_t2v['sim_max'].get(bank, np.nan)
             # 全行业向量法 Full 轨 (谢佳松 2025, 经济研究, 图1/表2)
             row['centroid_diff_tfidf_c'] = cd_c[bank]
             row['centroid_diff_tfidf_w'] = cd_w[bank]
@@ -1328,6 +1279,9 @@ def compute_strategic_differentiation(df_exploded, panel):
                 row['centroid_diff_lda'] = cd_lda.get(bank, np.nan)
             if cd_emb:
                 row['centroid_diff_emb'] = cd_emb.get(bank, np.nan)
+            if cd_emb_t2v:  # 稳健 twin + 契约别名 strat_diff_t2v_full (保留 stage 30 旧列名)
+                row['centroid_diff_emb_t2v'] = cd_emb_t2v.get(bank, np.nan)
+                row['strat_diff_t2v_full'] = cd_emb_t2v.get(bank, np.nan)
             all_results.append(row)
 
     # 【白话】Fluidity: 衡量竞争者是否在向你的"领地"移动
@@ -1381,12 +1335,14 @@ def compute_strategic_differentiation(df_exploded, panel):
         coh_tw  = _compute_tfidf_coherence(agg_track, 'word')
         coh_lda = _compute_lda_coherence(agg_track)
         coh_emb = _compute_emb_coherence(agg_track)
+        coh_emb_t2v = _compute_emb_coherence(agg_track, spec=_ROBUSTNESS_SPEC)  # 稳健 twin
 
         for name, coh_dict in [
             (f'coh_tfidf_c{track_suffix}', coh_tc),
             (f'coh_tfidf_w{track_suffix}', coh_tw),
             (f'coh_lda{track_suffix}',     coh_lda),
             (f'coh_emb{track_suffix}',     coh_emb),
+            (f'coh_emb_t2v{track_suffix}', coh_emb_t2v),
         ]:
             # d=coh_dict: 默认参数绑定避免 Python 闭包延迟绑定陷阱 (审阅问题 9)
             panel[name] = panel.apply(
@@ -1445,6 +1401,14 @@ def compute_strategic_differentiation(df_exploded, panel):
                 cd_emb = _compute_centroid_scores(se_emb, banks)
             else:
                 se, cd_emb = None, None
+            # 稳健 twin (text2vec, 2026-05-29 双模型)
+            se_mat_t2v, se_emb_t2v = _build_embedding_sim_matrix(
+                texts, spec=_ROBUSTNESS_SPEC)
+            if se_mat_t2v is not None:
+                se_t2v = _compute_nn_scores(se_mat_t2v, banks, [5])
+                cd_emb_t2v = _compute_centroid_scores(se_emb_t2v, banks)
+            else:
+                se_t2v, cd_emb_t2v = None, None
 
             for bank in banks:
                 row = {'target_bank': bank, 'year': year}
@@ -1459,6 +1423,9 @@ def compute_strategic_differentiation(df_exploded, panel):
                 if se:
                     row['strat_diff_n5_emb_ctx'] = se['n5'].get(bank, np.nan)
                     row['strat_sim_max_emb_ctx'] = se['sim_max'].get(bank, np.nan)
+                if se_t2v:  # 稳健 twin (text2vec)
+                    row['strat_diff_n5_emb_t2v_ctx'] = se_t2v['n5'].get(bank, np.nan)
+                    row['strat_sim_max_emb_t2v_ctx'] = se_t2v['sim_max'].get(bank, np.nan)
                 # Centroid Ctx 轨
                 row['centroid_diff_tfidf_c_ctx'] = cd_c[bank]
                 row['centroid_diff_tfidf_w_ctx'] = cd_w[bank]
@@ -1466,6 +1433,9 @@ def compute_strategic_differentiation(df_exploded, panel):
                     row['centroid_diff_lda_ctx'] = cd_lda.get(bank, np.nan)
                 if cd_emb:
                     row['centroid_diff_emb_ctx'] = cd_emb.get(bank, np.nan)
+                if cd_emb_t2v:  # 稳健 twin + 契约别名 strat_diff_t2v_ctx
+                    row['centroid_diff_emb_t2v_ctx'] = cd_emb_t2v.get(bank, np.nan)
+                    row['strat_diff_t2v_ctx'] = cd_emb_t2v.get(bank, np.nan)
                 ctx_results.append(row)
 
         if ctx_results:
@@ -1478,6 +1448,17 @@ def compute_strategic_differentiation(df_exploded, panel):
             logger.warning("  Ctx 轨: 无有效结果")
     else:
         logger.warning("  Ctx 轨: 列 'content_ctx' 不存在, 跳过")
+
+    # ── 双模型契约保证 (F2 fix 2026-05-30) ──
+    # strat_diff_t2v_{full,ctx} 是 export.py::REQUIRED_PANEL_COLUMNS 硬要求列
+    # (stage 30 退役后 stage 25 是其唯一来源)。上面 `if cd_emb_t2v` 仅在
+    # ROBUSTNESS (text2vec) 嵌入成功时建列; 若本地模型加载失败 / 某年银行不足 /
+    # content_ctx 缺失, 该列不会出现 → 下游 export_panel 抛 RuntimeError。与
+    # stage 15 (policy_alignment) / stage 26 (policy_similarity) 的 NaN 降级对称,
+    # 这里兜底保证两列恒存在 (失败即全 NaN, 不破坏 canonical 主轨)。
+    for _contract_col in ('strat_diff_t2v_full', 'strat_diff_t2v_ctx'):
+        if _contract_col not in panel.columns:
+            panel[_contract_col] = np.nan
 
     return panel
 

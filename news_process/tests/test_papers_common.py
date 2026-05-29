@@ -208,11 +208,17 @@ class TestSanitizeStataColumns:
         cols = ['firm_id', 'year', 'profit']
         assert sanitize_stata_columns(cols) == cols
 
-    def test_remove_chinese(self):
+    def test_chinese_asciified_to_valid_identifier(self):
+        # S3 v2 (2026-05-30): non-ASCII now handled by the canonical 46-path
+        # asciify (was: stripped to empty in the old divergent scheme). A
+        # non-sentiment Chinese name yields a VALID ASCII Stata identifier
+        # ('v_' fallback when nothing ASCII survives); 'year' passes through.
+        import re as _re
         cols = ['银行名称', 'year']
         result = sanitize_stata_columns(cols)
         assert result[1] == 'year'
-        assert result[0].startswith('col_') or result[0] == ''
+        assert result[0].isascii()
+        assert _re.match(r'^[A-Za-z_][A-Za-z0-9_]{0,31}$', result[0])
 
     def test_replace_parentheses(self):
         cols = ['ratio_(usd)', 'cnt_（中）_value']
@@ -220,10 +226,12 @@ class TestSanitizeStataColumns:
         assert all('(' not in c and ')' not in c for c in result)
         assert all('（' not in c and '）' not in c for c in result)
 
-    def test_max_len_28_base(self):
+    def test_max_len_32(self):
+        # S3 v2 (2026-05-30): canonical Stata-14+ limit is 32, matching the 46-path
+        # (the old divergent tables.py reserved 4 chars and capped at 28).
         long_name = 'a' * 50
         result = sanitize_stata_columns([long_name])
-        assert len(result[0]) <= 28
+        assert len(result[0]) <= 32
 
     def test_collision_disambiguation(self):
         cols = ['a' * 30, 'a' * 30, 'a' * 30]
@@ -239,9 +247,12 @@ class TestSanitizeStataColumns:
         assert result[2] == 'valid'
 
     def test_equivalence_with_pipeline_panel_export_algorithm(self):
-        # Phase 3b 设计核心: sanitize_stata_columns 必须与
-        # pipeline/panel/export.py:export_panel 内嵌的算法逐位等价。
-        # 用一组覆盖陷阱的输入做交叉验证。
+        # S3 v2 (2026-05-30): sanitize_stata_columns now DELEGATES to the canonical
+        # 46-path (stata_export.shorten_long_column_names → asciify_non_ascii_columns),
+        # so it is byte-identical to the stage-46 export BY CONSTRUCTION. The actual
+        # byte-level cross-path equivalence (40-path ≡ 46-path) is pinned in
+        # tests/test_dta_name_sanitizer_consistency.py. Here we only assert the
+        # invariants (uniqueness / ≤32 / no parens) on a trap-input set.
         cols = [
             'plain', 'with_(usd)', 'mixed_（中文）', '银行', '___',
             'a' * 50, 'b' * 30, 'b' * 30,  # 第三个 collision

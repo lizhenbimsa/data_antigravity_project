@@ -83,16 +83,18 @@ def test_validation_orchestrator_uses_canonical_stages(rpv, core_dag):
 
 
 def test_main_stage_count(core_dag):
-    """``STAGES_MAIN`` 阶段数须等于 v3.7.0 + v2.3 计划增量 (20)。"""
-    # v3.7.0 baseline 15: 00 + 11 + 12 + 13 + 14 + 15 + 21 + 22 + 23 + 24 + 30 + 45 + 46 + 49 + 51 = 15
+    """``STAGES_MAIN`` 阶段数须等于 v3.7.0 + v2.3 计划增量 − stage 30 退役 (19)。"""
+    # v3.7.0 baseline 15: 00 + 11 + 12 + 13 + 14 + 15 + 21 + 22 + 23 + 24 + 45 + 46 + 49 + 51 (+30 历史)
     # v3.2.0 M6: + stage 46 Stata 导出
     # v3.6.0 (Plan E P4 A1): + stage 13 content_ctx 物化, 让 14/15 双轨化前置可用
     # v3.7.0 (DC2 + C2, 2026-05-18): + stage 49 risk_taking_outcomes (第 10/11 篇)
-    # v2.3 计划增量 +5 = 20: 16/17/18/19/30a (B1 EPU / D1 BERTopic / D2 staleness /
-    #   D4 LLM CEO NER / D 组前置 SBERT 持久化)
-    assert len(core_dag.STAGES_MAIN) == 20, (
-        f"STAGES_MAIN 数量漂移: 期望 20 (v3.7.0 + v2.3), 实际 {len(core_dag.STAGES_MAIN)}. "
-        "若有意增删阶段, 请同步更新本测试。"
+    # v2.3 计划增量 +5: 16/17/18/19/30a (B1 EPU / D1 BERTopic / D2 staleness /
+    #   D4 LLM CEO NER / D 组前置 SBERT 持久化) → 曾达 20
+    # 2026-05-29 双模型重构: stage 30 (robustness_text2vec) 退役 (其 _t2v 列改由
+    #   stage 15/25 内联双模型产出) → 20 − 1 = 19
+    assert len(core_dag.STAGES_MAIN) == 19, (
+        f"STAGES_MAIN 数量漂移: 期望 19 (v3.7.0 + v2.3 − stage 30 退役), "
+        f"实际 {len(core_dag.STAGES_MAIN)}. 若有意增删阶段, 请同步更新本测试。"
     )
 
 
@@ -194,33 +196,33 @@ def test_filter_enabled_respects_predicate(core_dag):
 
     # 三种情感方法全开 -> v3.7.1: stage 19 改 opt-in (P-016), 默认 disabled.
     # O2 2026-05-25: stage 17/18 也改 opt-in, 默认 disabled.
-    # 故全开 count = 20 - 1 (stage 19) - 2 (stage 17/18) = 17 — 但 v3.7.0 加 stage 49 (opt-in)
-    # 已计在外, v3.7.1 计 20 stages total → enabled count = 20 - 4 (19/17/18/49 opt-in) = 16.
+    # 2026-05-29: stage 30 (always_enabled) 退役 → total 20 → 19.
+    # 故全开 enabled count = 19 - 4 (19/17/18/49 opt-in) = 15.
     cfg_full = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
         },
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 16
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 15
 
-    # 仅 LLM -> 16 - 2 (words+berts) - 1 (24 跟随 berts) = 13
+    # 仅 LLM -> 15 - 2 (words+berts) - 1 (24 跟随 berts) = 12
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 13
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 12
 
-    # 无情感方法 -> 16 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 12
+    # 无情感方法 -> 15 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 11
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 12
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 11
     )
 
-    # v3.7.0 NEW: risk_taking_outcomes opt-in 启用 stage 49 → 16 + 1 = 17
+    # v3.7.0 NEW: risk_taking_outcomes opt-in 启用 stage 49 → 15 + 1 = 16
     cfg_with_risk_taking = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -228,9 +230,9 @@ def test_filter_enabled_respects_predicate(core_dag):
         "validation": {},
         "risk_taking_outcomes": {"enabled": True},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_risk_taking)) == 17
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_risk_taking)) == 16
 
-    # O2 NEW 2026-05-25: article_topic + article_staleness opt-in 启用 → 16 + 2 = 18
+    # O2 NEW 2026-05-25: article_topic + article_staleness opt-in 启用 → 15 + 2 = 17
     cfg_with_d_group = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -239,9 +241,9 @@ def test_filter_enabled_respects_predicate(core_dag):
         "article_topic": {"enabled": True},
         "article_staleness": {"enabled": True},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_d_group)) == 18
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_d_group)) == 17
 
-    # v3.7.1 NEW: P-016 修复 — executive_ner opt-in 启用 stage 19 → 16 + 1 = 17
+    # v3.7.1 NEW: P-016 修复 — executive_ner opt-in 启用 stage 19 → 15 + 1 = 16
     cfg_with_ner = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -249,7 +251,7 @@ def test_filter_enabled_respects_predicate(core_dag):
         "validation": {},
         "executive_ner": {"enabled": True},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_ner)) == 17
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_ner)) == 16
 
 
 def test_stages_main_all_registered_in_output_registry(core_dag):
@@ -445,8 +447,9 @@ def test_recode_invariant_detects_filename_key_collision(monkeypatch):
 def test_recode_invariant_allows_multiple_none_filename_keys(monkeypatch):
     """recode round 2 校验 5 边界: 多个 None filename_key 必须被允许 (不参与唯一性校验).
 
-    现状已有 4 个 None 条目 (30_text2vec + 3 个 40_attn_index_*); 必须正常通过.
-    本测试用未污染的 schemas 直接调用, 不抛即过.
+    现状有多个 None 条目 (30a_article_sbert + 3 个 40_attn_index_* + 5 个 stage46 .dta);
+    必须正常通过 (stage 30 已于 2026-05-29 退役, 不再计入). 本测试用未污染的 schemas
+    直接调用, 不抛即过.
     """
     from news_process.core import schemas
     schemas._validate_registry_invariant()  # 真实数据, 不抛 = 通过

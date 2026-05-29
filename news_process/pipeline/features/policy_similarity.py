@@ -51,6 +51,9 @@ from news_process.pipeline.features.strategic_diff import (
 # 共享配置来自 panel/encode (原 41); Stage 25 算法底层来自 features/strategic_diff (原 25)。
 from news_process.pipeline.panel.encode import CONFIG, logger  # noqa: E402
 
+# 2026-05-29 双模型: 稳健 twin spec (text2vec local), 经 _build_emb(spec=...) 复用 stage 25 同算法
+_ROBUSTNESS_SPEC = CONFIG.get('embedding_robustness', {})
+
 # ============================================================================
 # 核心计算函数
 # ============================================================================
@@ -158,13 +161,20 @@ def compute_authoritative_similarity(df_exploded, panel):
                 logger.warning(f"    LDA ({year}) 失败: {type(e).__name__}")
                 auth_lda = [np.nan] * n_banks
                 
-            # --- 方法 D: Semantic Embedding (Dense Vector) ---
+            # --- 方法 D: Semantic Embedding (主轨, text-embedding-3-small) ---
             se_mat, _ = _build_emb(texts_with_auth)
             if se_mat is not None:
                 auth_emb = se_mat[:-1, -1]
             else:
                 auth_emb = [np.nan] * n_banks
-                
+
+            # --- 方法 D-t2v: 稳健 twin (text2vec, 同 ghost-anchor 算法只换模型) ---
+            se_mat_t2v, _ = _build_emb(texts_with_auth, spec=_ROBUSTNESS_SPEC)
+            if se_mat_t2v is not None:
+                auth_emb_t2v = se_mat_t2v[:-1, -1]
+            else:
+                auth_emb_t2v = [np.nan] * n_banks
+
             # 打包记录
             for i, bank in enumerate(banks):
                 all_results.append({
@@ -173,7 +183,8 @@ def compute_authoritative_similarity(df_exploded, panel):
                     f'auth_sim_tfidf_c{track_suffix}': float(auth_c[i]),
                     f'auth_sim_tfidf_w{track_suffix}': float(auth_w[i]),
                     f'auth_sim_lda{track_suffix}': float(auth_lda[i]),
-                    f'auth_sim_emb{track_suffix}': float(auth_emb[i])
+                    f'auth_sim_emb{track_suffix}': float(auth_emb[i]),
+                    f'auth_sim_emb_t2v{track_suffix}': float(auth_emb_t2v[i]),
                 })
 
     # 4. 汇总挂载至 Panel

@@ -36,11 +36,16 @@ def test_fintech_intensity_lineage_records_both_stage12_inputs():
 # (final sign-off 发现: 这三处是最新改动却无回归测试, 静默 revert 不可察)
 
 def test_stage45_panel_lineage_records_full_fanin():
-    """Stage 45 面板导出须记硬上游闭包 24+15+30 (panel 级 fan-in)。"""
+    """Stage 45 面板导出须记硬上游闭包 24+15 (panel 级 fan-in)。
+
+    2026-05-29 双模型重构: 原 stage 30 (30_text2vec_indicators) 已退役, 其 t2v 列
+    改由 stage 15/25 内联双模型产出, 不再是独立上游 parquet, 故从血缘闭包移除。
+    """
     export = _source("pipeline/panel/export.py")
     assert "_fn['output_24_herd_decay']" in export
     assert "_fn.get('output_15_article_alignment'" in export
-    assert "'30_text2vec_indicators.parquet'" in export
+    # stage 30 已退役: 不再作为 panel 上游 parquet 出现在 input_files 闭包
+    assert "os.path.join(_od, '30_text2vec_indicators.parquet')" not in export
     # panel save 用 list 闭包变量
     assert "input_files=input_files)" in export
 

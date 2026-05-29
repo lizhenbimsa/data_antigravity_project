@@ -48,7 +48,6 @@
 """
 
 import os
-import re
 import sys
 import time
 import warnings
@@ -822,22 +821,14 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
         # v6/F2 Stata 兼容: pandas Int*/boolean nullable → Float64 (NaN 保留)
         for _col in panel_stata.select_dtypes(include=['Int8','Int16','Int32','Int64','boolean']).columns:
             panel_stata[_col] = panel_stata[_col].astype('Float64')
-        clean_cols = []
-        seen = {}
-        for c in panel_stata.columns:
-            c_clean = c.replace('(', '_').replace(')', '_')
-            c_clean = c_clean.replace('（', '_').replace('）', '_')
-            c_clean = re.sub(r'[^\x00-\x7F]+', '', c_clean)
-            if not c_clean or not c_clean.strip('_'):
-                c_clean = f'col_{len(clean_cols)}'
-            c_clean = c_clean[:32]
-            if c_clean in seen:
-                seen[c_clean] += 1
-                c_clean = f'{c_clean[:29]}_{seen[c_clean]}'
-            else:
-                seen[c_clean] = 1
-            clean_cols.append(c_clean)
-        panel_stata.columns = clean_cols
+        # S3 fix v2 (2026-05-30): route stage-51 .dta column names through the SAME
+        # canonical sanitizer as stages 45/46 (export.py uses sanitize_stata_columns,
+        # which delegates to stata_export.shorten→asciify). Single source of truth →
+        # 51_panel_with_controls.dta names match 40/46 byte-for-byte. The prior inline
+        # loop only got the CN-map and still diverged on >32-char names (track-suffix
+        # destruction the moment a CN-mapped name exceeded 32 chars).
+        from news_process.papers._common.tables import sanitize_stata_columns
+        panel_stata.columns = sanitize_stata_columns(panel_stata.columns, max_len=32)
         for col in panel_stata.select_dtypes(include=['Float64', 'Int64']).columns:
             panel_stata[col] = panel_stata[col].astype(float)
         # 挤出弹性与总量变量标签
@@ -869,7 +860,7 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
         panel_stata.to_stata(dta_path, write_index=False, version=118,
                              variable_labels=labels_41)
         logger.info(f"  ✓ 已导出 Stata 文件: {dta_path}")
-        logger.info(f"    Stata 列数: {len(clean_cols)}")
+        logger.info(f"    Stata 列数: {len(panel_stata.columns)}")
     except Exception as e:
         # B-2 同精神 (audit-fixes 2026-05-29): 根除 swallow-errors 反模式.
         # 旧代码仅 logger.warning 让 stage 51 退出码假装 0, 但 .dta 未写出 (或

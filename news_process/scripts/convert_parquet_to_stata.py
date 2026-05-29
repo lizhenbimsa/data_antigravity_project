@@ -116,6 +116,20 @@ def convert_parquet_to_stata(
         print("[INFO] 建议: 在Stata中使用 rename 命令缩短变量名")
         print()
 
+    # S3 sibling fix (2026-05-30): 用与 stage 45/46/51 同一规范清洗器规整列名,
+    # 让非 ASCII/中文标签 (正面/负面) 与 >32 字符名产出合法、无碰撞、pos/neg 可区分的
+    # .dta, 而非 raw to_stata() 写出非法/混淆变量名。此前本脚本仅 WARN 长名。
+    try:
+        from news_process.papers._common.tables import sanitize_stata_columns
+        _orig = list(df.columns)
+        df.columns = sanitize_stata_columns(df.columns, max_len=32)
+        _renamed = sum(1 for a, b in zip(_orig, df.columns) if a != b)
+        print(f"[OK] 列名已规整 (canonical sanitizer): {_renamed} 列重命名")
+        print()
+    except Exception as _e:
+        print(f"[WARNING] 列名规整失败, 沿用原始列名: {_e}")
+        print()
+
     # 转换为Stata格式
     print("正在转换为Stata格式...")
     try:
