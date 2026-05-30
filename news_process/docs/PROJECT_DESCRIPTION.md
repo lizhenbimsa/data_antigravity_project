@@ -18,19 +18,20 @@
 ## 项目规模一览（Project Scale Dashboard，v3.7.1 实测）
 
 > 本节数据均来自仓库实测命令，每项均可一行 reproduce；与 CLAUDE.md "Current version" 段、`git log`、`pytest --collect-only`、`core/dag.py` 实时对齐。
+> **同步说明**：shim / STAGES_MAIN / STAGES_VALIDATION / OUTPUT_REGISTRY / 主索引等 DAG 维度已于 2026-05-30 同步至当前态（物理 shim = 40 / STAGES_MAIN = 19 / STAGES_VALIDATION = 18 / OUTPUT_REGISTRY = 19 / 主索引 = 31）；其余维度（测试数 / 代码行数 / paper 数等）仍为 v3.7.1 基线。
 
 ### 代码与配置规模
 
 | 类别 | 文件数 | 行数 | 实测来源 |
 | --- | ---: | ---: | --- |
 | **Python 总计**（`*.py`，含 tests / scripts / validation） | **344** | **85,435** | `find news_process -name "*.py" \| wc -l` |
-| ├─ `core/`（DAG / config / caching / schemas / logging / stage_runner / **text 子模块 6 文件**：ahocorasick 536L + canonicalization 324L + cn_text_utils 172L + entity_context 314L + token_utils 77L） | 19 | 5,044 | `find news_process/core -name "*.py"` |
+| ├─ `core/`（DAG / config / caching / schemas / logging / stage / **text 子模块 6 文件**：ahocorasick 536L + canonicalization 324L + cn_text_utils 172L + entity_context 314L + token_utils 77L） | 19 | 5,044 | `find news_process/core -name "*.py"` |
 | ├─ `pipeline/`（22 stage 业务实现，含 sentiment 9 / text 5 / audit 9 / panel / filtering / preprocess / external 2 / llm_archive 3 等子模块） | 61 | 29,097 | `find news_process/pipeline -name "*.py"` |
 | ├─ `papers/`（11 paper analysis 模块） | 56 | 6,831 | `find news_process/papers -name "*.py"` |
 | ├─ `validation/`（16 验证模块；含 1,941 L tone_validation / 1,752 L llms_evaluation） | 16 | 11,967 | `find news_process/validation -name "*.py"` |
 | ├─ `tests/`（含 integration/）| **110** | 24,211 | `find news_process/tests -name "*.py"` |
 | ├─ `scripts/`（migrate / audit / data_acquisition / generate_bank_list 等） | 37 | 6,360 | `find news_process/scripts -name "*.py"` |
-| ├─ thin shim 入口（`news_process/NN_*.py`，≤ 30 行 / 个） | **39** | ~ 800 | `ls news_process/*.py` |
+| ├─ thin shim 入口（`news_process/NN_*.py`，≤ 30 行 / 个） | **40** | ~ 800 | `ls news_process/*.py` |
 | **YAML 总计** | **23** | **4,273** | `find news_process -name "*.yaml"` |
 | ├─ `config/`（7 主域 split + 3 辅助 + 1 legacy + `bank_list.yaml`） | 12 | 3,006 | `ls news_process/config/*.yaml` |
 | ├─ `papers/<id>/paper_spec.yaml`（每篇 paper 1 份） | 11 | 1,267 | `find news_process/papers -name "paper_spec.yaml"` |
@@ -45,12 +46,12 @@
 
 | 项 | 数值 | 实测来源 |
 | --- | ---: | --- |
-| `STAGES_MAIN`（生产流水线 stage 数） | **20** | `core/dag.py::STAGES_MAIN`；`tests/integration/test_dag_consistency.py::test_main_stage_count` 锁定 |
-| `STAGES_VALIDATION`（验证流水线 stage 数） | **17** | `core/dag.py::STAGES_VALIDATION`；`test_validation_stage_count` 锁定 |
-| `OUTPUT_REGISTRY`（注册 parquet 产物）entry 数 | **20** | `core/schemas.py::OUTPUT_REGISTRY` |
-| 物理 shim 文件（`news_process/NN_*.py`） | **39** | 含字母变体 30a / 32a / 38a / 38b / 39a / 39c / 39d / 39e / 39f |
-| 主索引 stage 整数编号（去字母变体后去重） | 24 | 00 / 11-19 / 21-24 / 30 / 31 / 32 / 33-39 / 45 / 46 / 49 / 51-53 |
-| 单 stage 子进程隔离（subprocess） | 100% | `core/stage_runner.py` |
+| `STAGES_MAIN`（生产流水线 stage 数） | **19** | `core/dag.py::STAGES_MAIN`；`tests/integration/test_dag_consistency.py::test_main_stage_count` 锁定 |
+| `STAGES_VALIDATION`（验证流水线 stage 数） | **18** | `core/dag.py::STAGES_VALIDATION`；`test_validation_stage_count` 锁定 |
+| `OUTPUT_REGISTRY`（注册 parquet 产物）entry 数 | **19** | `core/schemas.py::OUTPUT_REGISTRY` |
+| 物理 shim 文件（`news_process/NN_*.py`） | **40** | 含字母变体 27c / 30a / 32a / 38a / 38b / 39a / 39c / 39d / 39e / 39f / 39g |
+| 主索引 stage 整数编号（去字母变体后去重） | 31 | 00 / 11-19 / 21-24 / 27 / 30 / 31 / 32 / 33-39 / 45 / 46 / 49 / 51-53 |
+| 单 stage 子进程隔离（subprocess） | 100% | `core/stage.py` |
 
 ### 测试矩阵规模（`pytest --collect-only` v3.7.0 + v2.3 implementation 实测）
 
@@ -155,7 +156,7 @@
 - 第二章　学术定位与理论基础
 - 第三章　数据资产、样本框架与边界
 - 第四章　系统架构哲学：声明式 DAG 与 thin shim 契约
-- 第五章　流水线阶段全景（STAGES_MAIN 20 / STAGES_VALIDATION 17 / 39 NN 物理 shim）
+- 第五章　流水线阶段全景（STAGES_MAIN 19 / STAGES_VALIDATION 18 / 40 NN 物理 shim）
 
 **第二部分　方法学核心（第 6-10 章）**
 
@@ -256,8 +257,8 @@
 | **最近 git tag** | `v3.6.0`（2026-05-18 锁定的最后一个 v3.x 主线 tag；v3.5.2/v3.6.1/v3.7.0 通过 PR #1-#14 合入 main，但未单独 tag） |
 | **历史可回滚锚点** | `v3.6.0` / `v3.5.1-plan-frozen` / `v3.5.0-augmentation` / `plan-e-pre-execution` / `prompt-v7-released` |
 | **测试 baseline** | **1,747 fast / 284 integration / 2,031 total**（`pytest --collect-only` v3.7.1 实测；CLAUDE.md L36 的 "1,629 / 284 / 1,913" 为 v3.7.0 baseline，已被 v2.3 PR #14 + v3.7.1 +118 fast 覆盖） |
-| **DAG 阶段数** | `STAGES_MAIN` = **20**、`STAGES_VALIDATION` = **17**（`core/dag.py` 实测；`tests/integration/test_dag_consistency.py::test_main_stage_count` 锁定为 20） |
-| **物理 shim 数** | **39 个** `news_process/NN_*.py`（00 / 11–19 / 21–24 / 30 / 30a / 31 / 32 / 32a / 33–37 / 38 / 38a / 38b / 39 / 39a / 39c / 39d / 39e / 39f / 45 / 46 / 49 / 51 / 52 / 53；每个 ≤ 30 行） |
+| **DAG 阶段数** | `STAGES_MAIN` = **19**、`STAGES_VALIDATION` = **18**（`core/dag.py` 实测；`tests/integration/test_dag_consistency.py::test_main_stage_count` 锁定为 19） |
+| **物理 shim 数** | **40 个** `news_process/NN_*.py`（00 / 11–19 / 21–24 / 27c / 30a / 31 / 32 / 32a / 33–37 / 38 / 38a / 38b / 39 / 39a / 39c / 39d / 39e / 39f / 39g / 45 / 46 / 49 / 51 / 52 / 53；每个 ≤ 30 行；bare `30_robustness_text2vec` 已于 2026-05-29 退役，整数前缀 30 由 30a 保留） |
 | **多论文支持** | **11 篇论文**（P1–P5 Bank-FinTech 主线 + 4 篇衍生 `benefit_society / brokerage_network / llm_peer / strategic_diff` + v3.7.0 新立项 2 篇 `bank_media_disagreement`（第 10 篇 / RFS·JFE / path B = SSRN + `_full` main）与 `bank_news_clarity`（第 11 篇 / JAE·JAR / path C = No-SSRN + `_ctx` G3 解锁）） |
 | **目标接收数** | **11 篇接收**（3 SSCI 二档 + 4 CSSCI + 2 方法学 + 2 NLP），见 MEMORY 中 `paper_portfolio_target` |
 | **数据规模** | **40 万条新闻 / 500 银行 / 2007-2024（N=500, T=18）**；effective panel cell 3000-4500（受重尾分布约束） |
@@ -275,9 +276,9 @@
 │  HEAD commit b091f033 (2026-05-18 17:54)  ·  最近 tag = v3.6.0        │
 ├──────────────────────────────────────────────────────────────────────┤
 │                                                                        │
-│   📐  DAG STAGES_MAIN   20（v2.3 PR #14 后；含新增 49 + 16/17/18/19/30a）│
-│   📐  DAG STAGES_VALID  17（含 v3.5.2 新增 39e + v3.7.0 新增 39f）     │
-│   📁  Thin shim 文件    39 个 `NN_*.py`（≤ 30 行 / 个；v2.3 +7）       │
+│   📐  DAG STAGES_MAIN   19（含 49 + 16/17/18/19/30a；2026-05-30 实测）│
+│   📐  DAG STAGES_VALID  18（含 39e/39f/39g 等 validation stage）       │
+│   📁  Thin shim 文件    40 个 `NN_*.py`（≤ 30 行 / 个；含 27c/39g）     │
 │   📦  Paper portfolio  11 篇（5 主线 + 4 衍生 + 2 新立项 P10/P11）     │
 │   🎯  接收目标          11 篇（3 SSCI-2 + 4 CSSCI + 2 方法学 + 2 NLP）│
 │   🏦  银行 universe    v3.7.1 frozen = 1,771 家 (NFRA 1768+政策 3)   │
@@ -410,7 +411,7 @@ v7.0  ┄ 实时 pipeline + dashboard（远期）
 | 维度 | 典型单论文项目 | `news_process`（多论文研究基础设施） |
 | --- | --- | --- |
 | 产出 | 1 篇论文 + 1 份 replication zip | 11 篇论文 + 11 份 replication 包 + 1 份共享面板 + 1 份方法学论文（llm_peer） |
-| 代码组织 | 1 个 Stata do-file + 1 个 Python notebook | `STAGES_MAIN`=20 / `STAGES_VALIDATION`=17 / 39 物理 thin shim / **2,031** 测试（v3.7.1 实测）/ 7 主域 config split + 3 辅助 + 1 legacy |
+| 代码组织 | 1 个 Stata do-file + 1 个 Python notebook | `STAGES_MAIN`=19 / `STAGES_VALIDATION`=18 / 40 物理 thin shim / **2,031** 测试（v3.7.1 实测）/ 7 主域 config split + 3 辅助 + 1 legacy |
 | 数据流 | input.dta → output.dta | 40+ parquet checkpoint，含 sidecar 元数据；v3.7.0 起 LLM 原始响应入 `data/llm_archive/responses/*.jsonl`（Git LFS，~5 GB 预估） |
 | 版本治理 | 文件名加日期后缀 | 语义版本（SemVer-ish）+ git tag + CLAUDE.md 顶段 + sidecar JSON |
 | 复现性 | "请联系作者" | 双入口（IC 协作者 + MP 本机）+ replication CLI + prompt 字节级冻结哈希 + DC3 LLM archive append-only JSONL + SHA-256 manifest |
@@ -472,7 +473,7 @@ Westphal & Zajac（W&Z，自 1994 ASQ 起至 2013 *AMR* 综述）在公司治理
 | 网络中介 brokerage | Burt 1992 | 共同出现网络 + structural hole | `brokerage_*`（衍生 paper） | 38a/38b |
 | 跨媒体语调离散 disagreement | Antweiler-Frank 2004 JF；v3.7.0 第 10 篇 | 同事件多媒体语调方差 + Krippendorff α | `cross_outlet_tone_variance_full`（P10 main） | 39f |
 | 文本叙事主题 narrative topic | Bybee 2024 RFS；Hansen-McMahon-Prat 2018 QJE | BERTopic（article-level，supervised on 22 prior themes） | `topic_*`（v3.7.0 D1） | 17（前置 30a SBERT 持久化） |
-| 文本新鲜度 staleness | Tetlock 2011 JF；Gentzkow-Shapiro-Taddy 2019 JEL | MinHash（表层）+ Faiss 语义双指标 | `staleness_surface / staleness_semantic`（v3.7.0 D2） | 18 |
+| 文本新鲜度 staleness | Tetlock 2011 RFS；Gentzkow-Shapiro-Taddy 2019 JEL | MinHash（表层）+ Faiss 语义双指标 | `staleness_surface / staleness_semantic`（v3.7.0 D2） | 18 |
 | 高管个体 executive identity | Kaustia-Rantapuska 2016 JFM；Bushee-Gow-Taylor 2018 JAR | LLM zero-shot CEO/Chairman NER + DC3 archive | `exec_*`（v3.7.0 D4） | 19 |
 | LM 4 子词典稳健性 | Loughran-McDonald 2011 JF | uncert / litig / constr / modal_strong 4 子词典 + HTMT | LM 子词典 ratio（v3.5.2 PR #4） | 22 / 39e |
 | EPU 宏观控制 | Baker-Bloom-Davis 2016 QJE | 中国 EPU 月度指数 merge | `epu_china_*`（v3.6.1 PR #5 stage 16 时变宏观控制） | 16 |
@@ -657,7 +658,7 @@ v3.6.0 Plan E 的核心贡献是把双轨化从 "下游 stage 3 增强" 扩展�
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                       │
 │   ┌────────────────────────────────────────────────────────────┐    │
-│   │  Layer 1: Thin Shim 层 (39 files in news_process/NN_*.py)  │    │
+│   │  Layer 1: Thin Shim 层 (40 files in news_process/NN_*.py)  │    │
 │   │  纯入口，≤30 行，禁止业务逻辑                                  │    │
 │   └────────────────────────────────────────────────────────────┘    │
 │                              ↓ import & delegate                      │
@@ -693,7 +694,7 @@ v3.6.0 Plan E 的核心贡献是把双轨化从 "下游 stage 3 增强" 扩展�
 │   │  ├─ schemas.py       OUTPUT_REGISTRY + SCHEMA_VERSION       │    │
 │   │  ├─ logging.py       run_id + per-stage log                 │    │
 │   │  ├─ caching.py       cache_key + sidecar JSON               │    │
-│   │  └─ stage_runner.py  subprocess isolation + retry           │    │
+│   │  └─ stage.py  subprocess isolation + retry           │    │
 │   └────────────────────────────────────────────────────────────┘    │
 │                              ↓ uses                                   │
 │   ┌────────────────────────────────────────────────────────────┐    │
@@ -852,12 +853,12 @@ def main(config_path: Path = "config/", stages: list[str] | None = None):
 
 ## 第五章　流水线阶段全景（00 → 51）
 
-### 5.1 总览：STAGES_MAIN = 20 / STAGES_VALIDATION = 17 / 39 物理 shim 一图速览
+### 5.1 总览：STAGES_MAIN = 19 / STAGES_VALIDATION = 18 / 40 物理 shim 一图速览
 
 > **口径定义**：
-> - `STAGES_MAIN`（生产流水线）：`core/dag.py::STAGES_MAIN` 列表长度 = **20**（v3.7.0 + v2.3 期增量；`tests/integration/test_dag_consistency.py::test_main_stage_count` 锁定为 20）。
-> - `STAGES_VALIDATION`（验证流水线）：长度 = **17**。
-> - **物理 shim**：仓库根 `news_process/NN_*.py` 总文件数 = **39**（含字母变体 30a / 32a / 38a / 38b / 39a / 39c / 39d / 39e / 39f；以及 v3.5.2 之后陆续加入的 16 / 17 / 18 / 19 / 30a / 39e / 39f / 49 共 8 个新文件）。
+> - `STAGES_MAIN`（生产流水线）：`core/dag.py::STAGES_MAIN` 列表长度 = **19**（2026-05-30 实测；`tests/integration/test_dag_consistency.py::test_main_stage_count` 锁定为 19）。
+> - `STAGES_VALIDATION`（验证流水线）：长度 = **18**。
+> - **物理 shim**：仓库根 `news_process/NN_*.py` 总文件数 = **40**（含字母变体 27c / 30a / 32a / 38a / 38b / 39a / 39c / 39d / 39e / 39f / 39g；以及 v3.5.2 之后陆续加入的 16 / 17 / 18 / 19 / 30a / 39e / 39f / 49 等新文件；bare `30_robustness_text2vec` 已于 2026-05-29 退役）。
 > - 历史口径对照：v3.6.0 baseline 为 14 stage 主索引 / 31 shim；v3.7.0 因 v3.5.2 PR #1-#4、v3.6.1 PR #5-#8.5、v3.7.0 PR #9-#13 及 v2.3 PR #14 滚动合入，STAGES_MAIN +6 / STAGES_VALIDATION +2 / 物理 shim +8。
 
 ```
@@ -1016,7 +1017,7 @@ intensity = Σ_{w∈fintech_dict} ( count(w in text) × IDF(w) ) / length(text)
 
 **实现路径**：`pipeline/text/article_staleness.py`（332 行；v2.3 implementation 中算法从 O(N²) 重写为 O(N·k)，**720× speedup**，让 40 万文章上可行）
 **入口 shim**：`18_article_staleness.py`
-**学术依据**：Tetlock (2011, *JF* 66(5):1481)；Gentzkow, Shapiro & Taddy (2019, *JEL*)。
+**学术依据**：Tetlock (2011, *RFS* 24(5):1481)；Gentzkow, Shapiro & Taddy (2019, *JEL*)。
 
 **职责**：对每篇文章计算两个新鲜度指标——
 - `staleness_surface`：MinHash Jaccard 近似（与近期文章的表层重复度）
@@ -3319,7 +3320,7 @@ Online appendix 结构：
 **目标**：开发期 `pytest -m fast` 30 秒内反馈；commit 前 `pytest -m fast` 通过；PR review `pytest`（全部 **2,031**）通过。
 
 **测试增量轨迹**：v3.3.0 ~1175 → v3.4.0 ~1527 → v3.5.1 ~1590 → v3.6.0 = 1,615 → v3.7.0 = 1,629（+14 含 `test_llm_archive` 14 个）→ v2.3 PR #14 集成 + v3.7.1 ≈ **1,747**（+118 含 bank_list 派生 / stage 49 outcome / 17/18/19/30a/39e/39f 多 stage 测试 / DAG 一致性扩展子断言）。
-**`test_dag_consistency` stage count 锁定**：`test_main_stage_count == 20` / `test_validation_stage_count == 17`（v2.3 PR #14 后定型）。
+**`test_dag_consistency` stage count 锁定**：`test_main_stage_count == 19` / `test_validation_stage_count == 18`（2026-05-30 `core/dag.py` 实测）。
 
 ### 15.2 fast / integration 自动标记
 
@@ -3357,7 +3358,7 @@ Online appendix 结构：
 | `tests/test_media_tier_and_epu.py`（v2.3 PR #5/#6） | **17** | Solomon 3 级 tier + EPU graceful fallback（实测；CLAUDE.md L15 标 14 与实测 17 不一致——以实测为准） |
 | `tests/test_d_group_modules.py`（v2.3 PR #9-#13） | **18** | stage 17/18/19/30a/39f（实测） |
 | `tests/test_stata_templates.py` | **73** | 91 主线 + 10 P10/P11 + 历史归档模板渲染（实测） |
-| `tests/integration/test_dag_consistency.py` | **20** | DAG + OUTPUT_REGISTRY（含 test_main_stage_count=20 / test_validation_stage_count=17 / OUTPUT_REGISTRY=20，实测） |
+| `tests/integration/test_dag_consistency.py` | **20** | DAG + OUTPUT_REGISTRY（含 test_main_stage_count=19 / test_validation_stage_count=18 / OUTPUT_REGISTRY=19，2026-05-30 实测） |
 | `tests/integration/test_panel_reproducibility.py` | **19** | golden hash + 列哈希逐项对照（实测） |
 | `tests/integration/test_paper_spec_schema.py` | **115** | 11 paper spec × schema 字段对齐（实测；分布于 integration/ 而非顶层） |
 | 其他（含 lm_discriminant_validity / risk_taking / cross_media_alpha 等以 pipeline module 名而非 stage 号命名的测试） | ~1,420 | 各 stage / paper / util（v2.3 PR #14 集成 + v3.7.1 bank_list 派生测试 + v2.3-followup-v2 permutation 1000-rep 等） |
@@ -3483,7 +3484,7 @@ Windows subprocess 默认 GBK 编码，需 `encoding="utf-8"` 强制：
 result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
 ```
 
-这一约定在 `core/stage_runner.py` 强制，避免 Stage shim subprocess 输出中文乱码。
+这一约定在 `core/stage.py` 强制，避免 Stage shim subprocess 输出中文乱码。
 
 ### 15.13 日志体系
 
@@ -4113,7 +4114,7 @@ v3.6.0 后下一个 major 版本预计 v4.0.0，主要演化方向：
 - `schemas.py`：OUTPUT_REGISTRY + SCHEMA_VERSION
 - `logging.py`：run_id + per-stage log
 - `caching.py`：cache_key + sidecar JSON
-- `stage_runner.py`：subprocess isolation
+- `stage.py`：subprocess isolation
 - `dicts/`：bank_aliases.yaml + fintech_keywords.yaml + lm_dict_zh/
 
 ### E.5 Pipeline 目录（`pipeline/`）
@@ -4153,15 +4154,17 @@ v3.6.0 后下一个 major 版本预计 v4.0.0，主要演化方向：
 
 ### E.9 Shim 文件（仓库根目录）
 
-31 个 `news_process/NN_*.py`，每个 ≤ 30 行，仅 import + delegate。
-- `00_preprocessing.py` ~ `15_article_policy_alignment.py`：上游 7 stage
+40 个 `news_process/NN_*.py`，每个 ≤ 30 行，仅 import + delegate。
+- `00_preprocessing.py` ~ `19_executive_ner.py`：上游 11 stage（含 13/16/17/18/19）
 - `21_tone_llms.py` ~ `24_herd_decay_processor.py`：情感与 herd 4 stage
-- `30_robustness_text2vec.py`：稳健性 1 stage
-- `32a/33/34/36/38a/38b/39a/39c/39d`：paper-specific 9 stage
+- `27c_placebo_and_alt_anchor.py`：placebo / alt-anchor audit-only sibling
+- `30a_article_sbert.py`：SBERT 持久化（bare `30_robustness_text2vec` 已于 2026-05-29 退役）
+- `31/32/32a/33/34/35/36/37/38/38a/38b/39/39a/39c/39d/39e/39f/39g`：paper-specific / 稳健性 18 stage
 - `45_panel_export_main.py` ~ `46_stata_export.py`：面板 2 stage
+- `49_risk_taking_outcomes.py`：risk-taking outcomes 三件套
 - `51_falsification_test.py` ~ `53_*.py`：稳健性 3 stage
 
-合计 31 个 shim（v3.6.0 起，含新 13 与 lettered 变体）。
+合计 40 个 shim（2026-05-30 实测，含 lettered 变体 27c/30a/32a/38a/38b/39a/39c/39d/39e/39f/39g）。
 
 ### E.10 数据目录（`data/`，不在 git 中）
 
@@ -5472,7 +5475,7 @@ foreach p in reghdfe ivreg2 csdid did_imputation eventstudyinteract sdid ///
 **代码备份**：git remote（GitHub / 内网 GitLab 双 remote）+ 本地 NAS。
 **数据备份**：data/raw 每月增量到 NAS；data/processed 每个 SCHEMA_VERSION bump 时全量备份。
 **MEMORY 备份**：自动同步到云盘（OneDrive / 七牛云）。
-**灾难恢复 RTO**：< 4 小时（git clone + venv 重建 + pipeline 重跑 STAGES_MAIN 20 阶段（含 LLM 阶段约 2-3 小时；v3.7.0 起 DC3 LLM archive 可避免 LLM 重调，RTO 可压至 < 2 小时））。
+**灾难恢复 RTO**：< 4 小时（git clone + venv 重建 + pipeline 重跑 STAGES_MAIN 19 阶段（含 LLM 阶段约 2-3 小时；v3.7.0 起 DC3 LLM archive 可避免 LLM 重调，RTO 可压至 < 2 小时））。
 
 ### 27.22 性能基准
 
@@ -5522,7 +5525,7 @@ v4 路线图涉及的技术栈调整：
 **A**：stage 21 是三 LLM vote，正常耗时 6 小时（8 万 article × 3 model）。可用 `--stages` 参数跳过：`python run_pipeline_function.py --stages 00,11,12,13,14,15` 仅跑上游。
 
 **Q**：能并行跑多 stage 吗？
-**A**：DAG 中独立 branch（如 21/22/23）理论上可并行，当前默认串行以简化调试。要并行需自行修改 `core/stage_runner.py`。
+**A**：DAG 中独立 branch（如 21/22/23）理论上可并行，当前默认串行以简化调试。要并行需自行修改 `core/stage.py`。
 
 **Q**：cache hit 不工作，每次都重跑？
 **A**：检查 `cache_key.json` 是否存在 + input/config/prompt/code hash 是否一致。可能原因：git checkout 不同 branch 后 code_version hash 变化。
@@ -6431,7 +6434,7 @@ calibration set 当前规划仅 500 条人工标注。这个规模对 inter-rate
 
 **反对声音 B：项目的工程复杂度让外部研究者望而却步。**
 
-回应：我们承认这一批评。STAGES_MAIN 20 / STAGES_VALIDATION 17（39 物理 shim 含字母变体） + 2,031 测试（v3.7.1 `pytest --collect-only` 实测） + 7 主域 config split 对外部复现者确实有学习成本。我们的缓解措施是 (a) 提供 IC 兼容入口（49 列 core.dta）让外部用最简方式复现，(b) 提供 replication CLI 一键验证，(c) 提供详细的 onboarding 文档（本说明书）。
+回应：我们承认这一批评。STAGES_MAIN 19 / STAGES_VALIDATION 18（40 物理 shim 含字母变体） + 2,031 测试（v3.7.1 `pytest --collect-only` 实测） + 7 主域 config split 对外部复现者确实有学习成本。我们的缓解措施是 (a) 提供 IC 兼容入口（49 列 core.dta）让外部用最简方式复现，(b) 提供 replication CLI 一键验证，(c) 提供详细的 onboarding 文档（本说明书）。
 
 **反对声音 C：项目的双轨化看起来像 "robustness theater"。**
 
