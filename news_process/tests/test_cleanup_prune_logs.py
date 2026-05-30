@@ -108,3 +108,24 @@ def test_prune_logs_negative_keep_days_errors(fake_logs_runs):
     rc = cleanup.cmd_prune_logs(args)
 
     assert rc == 2
+
+
+def test_prune_logs_cli_default_keep_days_is_one(monkeypatch):
+    """2026-05-30: prune-logs 不带 --keep-days 时默认值锁定为 1 (旧值 30).
+
+    现有测试都直接构造 argparse.Namespace, 不经过 parser, 因此默认值无人守护;
+    本测试经 main() 真正解析 CLI, 用 spy 捕获 parsed args, 锁死默认 == 1。
+    """
+    captured = {}
+
+    def _spy(args):
+        captured["keep_days"] = args.keep_days
+        captured["dry_run"] = args.dry_run
+        return 0
+
+    monkeypatch.setattr(cleanup, "cmd_prune_logs", _spy)
+    rc = cleanup.main(["prune-logs"])
+
+    assert rc == 0
+    assert captured["keep_days"] == 1, "prune-logs 默认应保留最近 1 天"
+    assert captured["dry_run"] is False

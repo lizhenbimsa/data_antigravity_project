@@ -9,7 +9,7 @@
     python -m news_process.scripts.cleanup clean-backup
     python -m news_process.scripts.cleanup clean-derived
     python -m news_process.scripts.cleanup clean-logs
-    python -m news_process.scripts.cleanup prune-logs --keep-days 30
+    python -m news_process.scripts.cleanup prune-logs                       # 默认保留最近 1 天
     python -m news_process.scripts.cleanup prune-logs --keep-days 7 --dry-run
     python -m news_process.scripts.cleanup purge-all  --yes
 
@@ -228,8 +228,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser('clean-logs', help='清空 logs/ (核选项, 一切归零)').set_defaults(func=cmd_clean_logs)
 
     p = sub.add_parser('prune-logs', help='V8 P-4: 按年龄删 logs/runs/<run_id>/ 子目录')
-    p.add_argument('--keep-days', type=int, default=30,
-                   help='保留 N 天内的 run 子目录 (默认 30); 旧于此值的删除')
+    p.add_argument('--keep-days', type=int, default=1,
+                   help='保留 N 天内的 run 子目录 (默认 1); 旧于此值的删除')
     p.add_argument('--dry-run', action='store_true',
                    help='只打印计划, 不实际删除')
     p.set_defaults(func=cmd_prune_logs)
