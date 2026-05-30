@@ -33,21 +33,27 @@ def sanitize_stata_columns(columns: Sequence[str],
                            max_len: int = 32) -> list[str]:
     """把 pandas 列名规整为 Stata 合法标识符.
 
-    复制自 ``pipeline/panel/export.py:export_panel`` 的列名清洗算法
-    (Phase 3b 提取通用化), 保持完全等价 (单测覆盖):
+    S3 fix v2 (2026-05-30) 起, 本函数 **委托** 给 stage 46 的规范清洗器
+    (``stata_export.shorten_long_column_names`` → ``asciify_non_ascii_columns``),
+    确保 40-path (stage 45/51 经本函数) 与 46-path 产出**字节级一致**的 Stata 名:
 
-    1. 中英文括号 ``()``/``（）`` 替换为 ``_``。
-    2. 移除所有非 ASCII 字符 (中文等)。
-    3. 空字符串或全为 ``_`` 的列名替换为 ``col_<i>`` 占位。
-    4. 截断到 ``max_len-4`` 字符 (默认 28), 为防碰撞后缀 ``_<digit>`` 预留。
-    5. 严格去重: 已见名字加 ``_1, _2, ...`` 后缀。
+    1. 中英文括号 ``()``/``（）`` 替换为 ``_`` (本函数 pre-process; 46-path 不做)。
+    2. 空字符串或全为 ``_`` 的列名替换为 ``col_<i>`` 占位 (同上 pre-process)。
+    3. 重复的**输入**名追加 ``_<n>`` 消歧 (DataFrame 列本就唯一, 对真实面板为 no-op;
+       仅加固通用工具对重复输入的鲁棒性)。
+    4. 缩写 + 截断到 **32 字符** (``stata_export.STATA_VAR_NAME_MAXLEN`` 硬编码),
+       保留 ``_full``/``_ctx``/``_title`` 等判别后缀。
+    5. 残留非 ASCII (中文 正面/负面/中性 → pos/neg/neu); 截断后冲突用 6-char md5
+       后缀去重 (跨 run 确定性)。
 
     Args:
         columns:   原始列名列表。
-        max_len:   Stata 列名长度上限 (默认 32, Stata 14+)。
+        max_len:   **历史兼容形参, 已不参与截断**。委托后统一走 46-path 的
+                   32-字符上限 (``STATA_VAR_NAME_MAXLEN``); 传入非 32 不改变行为。
+                   保留仅为不破坏现有 4 处 ``max_len=32`` 调用签名。
 
     Returns:
-        长度等于 ``len(columns)`` 的清洗后列名列表。
+        长度等于 ``len(columns)`` 的清洗后列名列表 (全部 ≤32 字符、唯一、合法)。
     """
     # S3 fix v2 (2026-05-30): delegate to the canonical 46-path sanitizer
     # (stata_export.shorten_long_column_names → asciify_non_ascii_columns, IN THAT
@@ -113,9 +119,14 @@ def export_dta(df: pd.DataFrame,
     1. 列名通过 ``sanitize_stata_columns`` 清洗 (ASCII + 防碰撞)。
     2. ``Float64``/``Int64`` (pandas nullable) 降级为 ``float`` (Stata 不支持)。
     3. 若提供 ``label_map``, 仅保留实际存在于 (清洗后) 列名中的条目。
-    4. ``version=118`` 默认对应 Stata 14+ (32-字符列名上限);
-       如需 13 兼容请传 ``version=117`` (但列名上限变 30 字符, 需配合
-       ``max_col_len=30``)。
+    4. ``version=118`` 默认对应 Stata 14+ (32-字符列名上限)。
+
+    .. warning::
+       S3 fix v2 起 ``sanitize_stata_columns`` 委托 46-path, **硬编码 32-字符**
+       列名上限, 不再尊重 ``max_col_len``。因此 **不支持 Stata 13 (version=117,
+       30-字符上限)**: 传 ``version=117, max_col_len=30`` 仍会产出 32-字符名,
+       写入 v117 .dta 后这些名在 Stata 13 中非法。这与项目 "Stata 19+ only,
+       无需向下兼容" 策略 (见 CLAUDE.md) 一致 — 请使用默认 ``version=118``。
 
     Args:
         df:           待导出的 DataFrame (函数内部 .copy(), 不修改源数据)。
@@ -123,7 +134,7 @@ def export_dta(df: pd.DataFrame,
         label_map:    可选 — ``{cleaned_col_name: variable_label}``,
                       标签 ≤80 字符。
         version:      Stata 文件版本号 (默认 118 = Stata 14+)。
-        max_col_len:  列名长度上限, 与 version 协调。
+        max_col_len:  **已废弃形参, 不参与截断** (委托后固定 32 字符)。
 
     Returns:
         实际写入的绝对路径 (Path)。

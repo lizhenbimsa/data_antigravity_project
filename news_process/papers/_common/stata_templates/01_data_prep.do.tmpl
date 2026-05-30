@@ -12,8 +12,8 @@ set maxvar 32767
 * llm_vote_tone_title / tone_gap_title_full 等), 使保存的 _prepared_panel.dta 让
 * 25_tableA8 Panel A/B/C 真正运行, 而非经 `capture confirm` 静默跳过整块回归
 * (主表 Table2 仅用 core 列, 不受影响)。
-* 注: master 链的 22_tableA3 Bartik 跑在 21_tableA2 的 in-memory core 上 (不经本
-* _prepared_panel), 故 Bartik lf/lc-IV 不在本修范围 — 需另让 21_tableA2 改读 full (后续)。
+* 注: 21_tableA2 现已改读本 _prepared_panel.dta (2026-05-30 fix + set maxvar 32767),
+* 故 master 链的 22_tableA3 Bartik lf/lc-IV 在其 in-memory full 状态上可正常 run (不再静默跳过)。
 * CLAUDE.md: 本机 MP (set maxvar 32767) 应直读 full; 仅 IC 协作者回退 core+aux merge。
 capture confirm file "data/processed/46_panel_yearly_full.dta"
 if !_rc {

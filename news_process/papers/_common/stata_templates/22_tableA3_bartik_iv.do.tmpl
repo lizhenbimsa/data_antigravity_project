@@ -20,6 +20,17 @@ version 19
 local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
 local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
 
+* 2026-05-30 fix (FIX 1 完整化): 顶层 guard 内生 LOCUS 变量。若所选 locus 轨的
+* tech_frac_{lf/lc} 未物化 (如 lf 轨 tech_frac_lf 全管道从未产出, 仅 _lc/_sc 物化),
+* 整张 Table A3 (OLS + 双 IV + esttab) 优雅跳过, 而非在 OLS reghdfe / esttab 处 r(111)
+* 硬中断整个 replication 构建。canonical lc 轨 tech_frac_lc 存在 → 正常执行。
+* (下方 per-block IV confirm 仍保留: 处理 LOCUS 在但某 Bartik IV 缺失的独立情形。)
+capture confirm variable `LOCUS'
+if _rc {
+    display "  ⚠️ 内生 LOCUS 变量 `LOCUS' 未物化 (该 locus 轨无数据); 跳过 Table A3 Bartik"
+    exit 0
+}
+
 capture which ivreg2
 if _rc {
     display "  ⚠️ ivreg2 not installed (ssc install ivreg2); IV 部分跳过"
@@ -29,7 +40,10 @@ if _rc {
 * --- IV-A: bartik_fintech_lf_iv (locus_full share, plan v14 §3.4) ---
 local IV_LF_full   bartik_fintech_lf_iv_full
 local IV_LF_ctx    bartik_fintech_lf_iv_ctx
-capture confirm variable `IV_LF_full' `IV_LF_ctx'
+* 2026-05-30 fix: 同时 guard 内生 LOCUS 变量。21_tableA2 改读 full 后 Bartik IV 已存在
+* (本块会运行), 但 tech_frac_lf (裸 `tech_frac` 的 _lf 轨, 仅 _lc 被物化) 可能缺失 —
+* 把 `LOCUS' 也纳入 confirm, 使缺内生变量时优雅跳过, 而非 r(111) 硬中断 ivreg2。
+capture confirm variable `IV_LF_full' `IV_LF_ctx' `LOCUS'
 if !_rc {
     * 主 spec sent 对应 IV
     if "{{MAIN_SENT_TRACK}}" == "full" {
@@ -43,7 +57,7 @@ if !_rc {
 }
 
 * --- IV-B: bartik_fintech_lc_iv (locus_ctx share, Hassan 2019 QJE entity-proximity) ---
-capture confirm variable bartik_fintech_lc_iv_full bartik_fintech_lc_iv_ctx
+capture confirm variable bartik_fintech_lc_iv_full bartik_fintech_lc_iv_ctx `LOCUS'
 if !_rc {
     if "{{MAIN_SENT_TRACK}}" == "full" {
         local IV_LC bartik_fintech_lc_iv_full

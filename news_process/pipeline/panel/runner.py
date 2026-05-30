@@ -1592,6 +1592,42 @@ def main():
         logger.warning(f"  ⚠️ EPU 面板不存在 ({_epu_path}); 跳过 EPU merge "
                        f"(stage 16 未运行?)")
 
+    # --- 8c. Opt-in 特征面板 merge (stage 17/18/19; orphan-panel fix 2026-05-30) ---
+    # 与 EPU (8b) 同一孤儿类: 这些 opt-in stage 产出 bank-year FEATURE 面板, 其列
+    # stata_export.py core_patterns 已声明期待 (topic_hhi / *_staleness / n_ceo_mentions
+    # 等), 但此前无任何代码把它们并入 40_panel_yearly。条件左连接 (opt-in stage 未运行
+    # → 文件缺失 → graceful no-op)。带全列 (topic K 动态, frac_topic_* 列名运行时才定)。
+    # ⚠ stage 49 (risk-taking OUTCOMES) 刻意不在此: 它是 DV master 数据集, paper 10/11
+    # 直接 `use` 它再并入 treatment; 反向并入 40_panel 会颠倒 DV/feature 方向 (范畴错误)。
+    # 39f (cross_media_alpha) 同属此孤儿类 (bank-year; cross_outlet_tone_variance_* 是
+    # paper 10 主处理且在 stata_export core_patterns), 但它是 validation-class
+    # (run_pipeline_validation 中, 排在 stage 45 之后)。故正常单趟主链运行时其文件尚不
+    # 存在 → graceful skip; 仅当 validation 已先产出 39f 后再 (重)建面板时才并入。
+    for _ofile, _otag in [('17_topic_panel.parquet', 'topic'),
+                          ('18_staleness_panel.parquet', 'staleness'),
+                          ('19_executive_ner_panel.parquet', 'NER'),
+                          ('39f_cross_media_alpha.parquet', 'cross_media')]:
+        _opath = os.path.join(OUTPUT_DIR, _ofile)
+        if not os.path.exists(_opath):
+            continue
+        _odf = pd.read_parquet(_opath)
+        if not {'target_bank', 'year'}.issubset(_odf.columns):
+            logger.warning(f"  ⚠️ {_ofile} 缺 target_bank/year 键, 跳过 {_otag} merge")
+            continue
+        _odf = _odf.drop_duplicates(['target_bank', 'year'])
+        # 只并入面板尚无的新列 (防同名列覆盖; 键除外)
+        _bring = ['target_bank', 'year'] + [
+            c for c in _odf.columns
+            if c not in ('target_bank', 'year') and c not in panel.columns]
+        _nb = len(panel)
+        panel = panel.merge(_odf[_bring], on=['target_bank', 'year'], how='left')
+        if len(panel) != _nb:
+            raise RuntimeError(
+                f"{_otag} feature merge 改变面板行数 {_nb}->{len(panel)} "
+                f"({_ofile} (target_bank,year) 键非 1:1)")
+        logger.info(f"  ✅ stage-{_otag} 特征面板已合并: +{len(_bring) - 2} 列 "
+                    f"({_ofile}; opt-in, 缺失则 graceful skip)")
+
     log_diagnostics(panel, df_exploded)
 
     # --- 9. 导出 ---
