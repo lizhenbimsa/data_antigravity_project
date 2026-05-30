@@ -33,5 +33,11 @@
 # /data/llm_archive/, 与 .gitignore 排除的 news_process/data/ 不重叠.
 # 若用户用 LLM_ARCHIVE_ROOT env var 重定向到 news_process/data/llm_archive/,
 # 文件将被 .gitignore 排除 (LFS 规则也失效). 不推荐此配置.
+#
+# ⚠ decision A 修订 (2026-05-30): 归档实体改走 **Zenodo** 交付
+#   (DOI 10.5281/zenodo.20453766, record "Bank FinTech")。responses/*.jsonl 现已被
+#   repo 根 .gitignore 排除、不进 git; git 只追踪 manifest.json (SHA-256 索引) +
+#   data/llm_archive/README.md。下方 LFS 规则保留为历史/fallback (仅当有人
+#   `git add -f` 强制纳入 jsonl 时才触发), 常态不生效。
 data/llm_archive/responses/*.jsonl filter=lfs diff=lfs merge=lfs -text
 data/llm_archive/manifest.json -text

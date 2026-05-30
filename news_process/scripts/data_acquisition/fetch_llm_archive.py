@@ -21,9 +21,10 @@ from __future__ import annotations
 import argparse
 import sys
 
-# Zenodo record "Bank FinTech" v1 (2026-05-30); 实体归档 responses/*.jsonl 托管于此 DOI。
-# ⚠ 该记录文件当前为受限访问 (Restricted): 若直接下载提示需权限, 请在 Zenodo 记录页
-#   点 "Request access" 向作者申请, 审批后即可下载 (若作者已改为 Open 则可直接下载)。
+# Zenodo record "Bank FinTech" (Open access / CC-BY-4.0); 实体归档 responses.zip 托管于此 DOI。
+# 下载 responses.zip 后解压到 data/llm_archive/ (zip 内含 responses/ 子目录, 勿解压到
+# responses/ 否则嵌套成 responses/responses/)。
+# 2026-05-30 实测: zip 内 5 个 jsonl 与 manifest SHA-256 byte-for-byte 一致 (复现性成立)。
 ZENODO_DOI = "10.5281/zenodo.20453766"
 
 
@@ -54,7 +55,8 @@ def main() -> int:
         doi = args.doi or ZENODO_DOI
         print("=" * 64)
         print("归档实体未就位 (data/llm_archive/responses/ 为空 / 不存在)。")
-        print(f"请从 Zenodo 下载归档, 解压到: {responses}")
+        print(f"请从 Zenodo 下载 responses.zip, 解压到: {root}")
+        print("  (zip 内已含 responses/ 子目录, 勿解压到 responses/ 否则嵌套)")
         print(f"  DOI : {doi}")
         print(f"  URL : https://doi.org/{doi}")
         print("解压后重跑本脚本以校验 SHA-256 完整性。")
