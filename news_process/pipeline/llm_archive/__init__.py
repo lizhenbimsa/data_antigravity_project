@@ -79,17 +79,19 @@ LFS quota: GitHub 默认 1GB 免费 + $5/月 50GB → 充裕
 ----
 - LLMArchive: 主类, append-only 归档
 - archive_record: 单次写入函数
-- compute_manifest: 生成 manifest
+- compute_manifest: 生成 manifest dict
+- write_manifest: 生成并写入 manifest.json (顶层公开 API, 迁移/复现脚本调用)
 - verify_manifest: 验证 manifest checksum (SHA-256)
 """
 
 from .archive import LLMArchive, archive_record
-from .manifest import compute_manifest, verify_manifest
+from .manifest import compute_manifest, verify_manifest, write_manifest
 
 __all__ = [
     'LLMArchive',
     'archive_record',
     'compute_manifest',
+    'write_manifest',
     'verify_manifest',
 ]
 
