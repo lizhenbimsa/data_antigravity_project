@@ -112,6 +112,40 @@ class _ColoredFormatter(logging.Formatter):
         return super().format(record)
 
 
+class _DelayedTruncatingRotatingHandler(RotatingFileHandler):
+    """RotatingFileHandler 变体, 同时满足两个目标:
+
+    1. ``delay=True``: 仅在第一条日志真正写入时才创建文件, 因此"只 import 模块"
+       或"阶段在产出任何日志前就退出"都不会留下 0 字节空 log。
+    2. ``file_mode='w'`` 语义: 本进程"首次"打开 base 文件时以 ``'w'`` 截断
+       (实现"每次运行从头"), 其后 (含 rollover 重开) 以 ``'a'`` 追加。
+
+    为何需要自定义 (LOG-1 audit 2026-05-30): stdlib ``RotatingFileHandler.__init__``
+    在 ``maxBytes > 0`` 时会把构造参数 ``mode`` 强制改成 ``'a'`` (防止多次运行因
+    ``'w'`` 截断而丢历史日志), 因此无法用 ``mode='w'`` 表达"每次运行从头"。本类
+    在 ``_open()`` 层面对"本进程首次打开"强制 ``'w'`` 截断, 既不依赖被覆盖的
+    ``mode`` 参数, 又与 ``delay`` 兼容 (truncate 推迟到首次写入)。
+    """
+
+    def __init__(self, *args, truncate_on_first_open: bool = False, **kwargs):
+        # 在 super().__init__ 之前置位: delay=False 时父类构造期即会调用 _open()。
+        self._truncate_on_first_open = truncate_on_first_open
+        self._has_opened = False
+        super().__init__(*args, **kwargs)
+
+    def _open(self):
+        if self._truncate_on_first_open and not self._has_opened:
+            self._has_opened = True
+            saved_mode = self.mode
+            self.mode = 'w'  # 本进程首次写入: 截断上一次运行遗留的内容
+            try:
+                return super()._open()
+            finally:
+                self.mode = saved_mode  # 其后 (rollover 重开) 回到 append
+        self._has_opened = True
+        return super()._open()
+
+
 def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
                   level=logging.INFO, max_bytes=50*1024*1024, backup_count=3):
     """配置一个集成了 rotating 文件输出 + 着色 console 输出的 logger。
@@ -122,7 +156,8 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
                        设置时, 实际写入路径为
                        ``<log_dir>/runs/<run_id>/<stage_name>.log``;
                        否则为 ``<log_dir>/<stage_name>.log``。
-        file_mode:     ``'w'`` (启动时截断) 或 ``'a'`` (追加)。
+        file_mode:     ``'w'`` (首次写入日志时截断, 见下方 delay 说明) 或
+                       ``'a'`` (追加)。
         console_only:  若为 True, 不创建文件 handler。用于子进程, 避免
                        多进程并发写同一文件造成日志错乱。
         level:         默认日志级别。
@@ -159,17 +194,20 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
 
     if not console_only:
         log_file = os.path.join(actual_log_dir, f"{stage_name}.log")
-        if file_mode == 'w' and os.path.exists(log_file):
-            try:
-                # F-13 (2026-05-16): encoding='utf-8' 显式; 跨平台日志一致
-                open(log_file, 'w', encoding='utf-8').close()
-            except OSError:
-                pass
-        fh = RotatingFileHandler(
+        # delay=True (2026-05-30 根因修复): 不在 setup 时急切创建/截断文件,
+        # 推迟到第一条日志真正 emit 时才 open。仅 import 模块 (pytest 收集 /
+        # 单独 import 一个顶层调 setup_logging() 的 stage 模块), 或阶段在产出
+        # 任何日志前就退出时, 不会再留下 0 字节空 log (logs/ 顶层历史空 log 根因)。
+        # file_mode='w' 的 "每次运行从头" 截断语义由 _DelayedTruncatingRotatingHandler
+        # 在本进程首次写入时实现 —— 不能直接靠 mode='w', 因为 stdlib 在 maxBytes>0
+        # 时会把它强制改 'a' (LOG-1 audit 2026-05-30), 必须在 _open() 层截断。
+        fh = _DelayedTruncatingRotatingHandler(
             log_file, mode='a',
             maxBytes=max_bytes,
             backupCount=backup_count,
             encoding='utf-8',
+            delay=True,
+            truncate_on_first_open=(file_mode == 'w'),
         )
         fh.setLevel(level)
         fh.setFormatter(file_formatter)

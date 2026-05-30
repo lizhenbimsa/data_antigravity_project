@@ -118,6 +118,74 @@ class TestSetupLogging:
         logger = setup_logging('my_stage_name', log_dir)
         assert logger.name == 'my_stage_name'
 
+    # ------------------------------------------------------------------
+    # 2026-05-30 audit (delay=True 根因修复 + LOG-1 截断回归):
+    #   C3-1 守护 "未写日志则不建文件" (delay 的核心目的);
+    #   LOG-1 守护 file_mode='w' 跨运行截断 (stdlib 把 mode='w' 强制改 'a',
+    #   故由 _DelayedTruncatingRotatingHandler 在 _open() 层截断)。
+    # ------------------------------------------------------------------
+
+    def test_delay_no_file_until_first_log(self, tmp_dir, monkeypatch):
+        """delay=True: setup 后、首条日志写入前不应创建文件 (C3-1; 空 log 根因守护)。
+
+        与 test_creates_log_file 互补: 后者验证"写后有文件", 本测试验证
+        "未写则无文件", 正面锁死 delay=True 的目的 (仅 import / 早退不留空 log)。
+        """
+        monkeypatch.delenv("NEWS_PROCESS_RUN_ID", raising=False)
+        log_dir = str(tmp_dir / 'logs_delay')
+        logger = setup_logging('delay_probe', log_dir)
+        log_file = os.path.join(log_dir, 'delay_probe.log')
+        assert not os.path.exists(log_file), (
+            "setup 后未写日志即创建了文件, delay=True 失效 (空 log 会回归)"
+        )
+        logger.info("现在才有内容")
+        for h in logger.handlers:
+            h.flush()
+        assert os.path.exists(log_file)
+        assert os.path.getsize(log_file) > 0
+
+    def test_file_mode_w_truncates_stale_file(self, tmp_dir, monkeypatch):
+        """file_mode='w': 首次写入应截断上一次运行遗留的内容 (LOG-1 回归守护)。
+
+        模拟"上一次运行遗留非空日志", 断言本次 'w' 运行将其截断 —— 防止
+        stdlib 把 mode='w' 强制改 'a' 导致同名日志跨运行累积。
+        """
+        monkeypatch.delenv("NEWS_PROCESS_RUN_ID", raising=False)
+        log_dir = str(tmp_dir / 'logs_trunc')
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, 'trunc_probe.log')
+        with open(log_file, 'w', encoding='utf-8') as f:
+            f.write("STALE_FROM_PREVIOUS_RUN\n")
+
+        logger = setup_logging('trunc_probe', log_dir, file_mode='w')
+        logger.info("FRESH_RUN_LINE")
+        for h in logger.handlers:
+            h.flush()
+
+        content = open(log_file, encoding='utf-8').read()
+        assert "FRESH_RUN_LINE" in content
+        assert "STALE_FROM_PREVIOUS_RUN" not in content, (
+            "file_mode='w' 首次写入应截断遗留内容 (LOG-1: stdlib 把 mode 改 'a' 致截断失效)"
+        )
+
+    def test_file_mode_a_appends_to_stale_file(self, tmp_dir, monkeypatch):
+        """file_mode='a': 应保留遗留内容并追加, 不截断 (LOG-1 反向守护)。"""
+        monkeypatch.delenv("NEWS_PROCESS_RUN_ID", raising=False)
+        log_dir = str(tmp_dir / 'logs_append')
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, 'append_probe.log')
+        with open(log_file, 'w', encoding='utf-8') as f:
+            f.write("PRESERVED_PRIOR\n")
+
+        logger = setup_logging('append_probe', log_dir, file_mode='a')
+        logger.info("APPENDED_LINE")
+        for h in logger.handlers:
+            h.flush()
+
+        content = open(log_file, encoding='utf-8').read()
+        assert "PRESERVED_PRIOR" in content, "file_mode='a' 不应截断遗留内容"
+        assert "APPENDED_LINE" in content
+
 
 # ============================================================================
 # log_and_time 装饰器测试
