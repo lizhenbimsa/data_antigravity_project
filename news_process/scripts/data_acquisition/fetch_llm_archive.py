@@ -21,8 +21,10 @@ from __future__ import annotations
 import argparse
 import sys
 
-# TODO(作者): 上传 data/llm_archive/responses/ 到 Zenodo 后填真实 DOI。
-ZENODO_DOI = "10.5281/zenodo.PLACEHOLDER"
+# Zenodo record "Bank FinTech" v1 (2026-05-30); 实体归档 responses/*.jsonl 托管于此 DOI。
+# ⚠ 该记录文件当前为受限访问 (Restricted): 若直接下载提示需权限, 请在 Zenodo 记录页
+#   点 "Request access" 向作者申请, 审批后即可下载 (若作者已改为 Open 则可直接下载)。
+ZENODO_DOI = "10.5281/zenodo.20453766"
 
 
 def main() -> int:

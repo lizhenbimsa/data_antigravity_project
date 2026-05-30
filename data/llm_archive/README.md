@@ -11,7 +11,10 @@
 ## 复现者：取回 + 校验
 1. clone 本仓库（自带 `manifest.json` 与取回脚本）。
 2. 从 Zenodo 下载归档，解压到 `data/llm_archive/responses/`：
-   - **DOI: `10.5281/zenodo.PLACEHOLDER`** ← 上传后由作者填实
+   - **DOI: `10.5281/zenodo.20453766`**（Zenodo record "Bank FinTech" v1）
+   - ⚠ **该记录文件当前为受限访问（Restricted）**：若直接下载提示需权限，请在
+     Zenodo 记录页点 **"Request access"** 向作者申请，审批后即可下载。
+     （若作者已将文件改为 Open，可直接下载。）
 3. 校验完整性（repo 根运行）：
    ```bash
    python news_process/scripts/data_acquisition/fetch_llm_archive.py
