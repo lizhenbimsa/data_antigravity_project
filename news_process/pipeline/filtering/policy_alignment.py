@@ -578,9 +578,18 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # 双轨独立性诊断 (Plan E 验收门)
     try:
         from scipy.stats import spearmanr
-        rho, _ = spearmanr(sim_scores_full, sim_scores_ctx)
-        logger.info(f"     双轨独立性诊断: Spearman ρ = {rho:.4f} "
-                    f"({'真双轨' if abs(rho) < 0.95 else '⚠ 高度相关'})")
+        # 常量输入 (min == max, 零方差) 时 Spearman ρ 无定义, scipy 会发
+        # ConstantInputWarning。退化场景 (如双轨完全一致或样本极小) 下该诊断无
+        # 意义, 显式跳过避免未预期告警, 并防止 rho=nan 误判为 "⚠ 高度相关"。
+        full_constant = sim_scores_full.min() == sim_scores_full.max()
+        ctx_constant = sim_scores_ctx.min() == sim_scores_ctx.max()
+        if full_constant or ctx_constant:
+            logger.info("     双轨独立性诊断: 输入为常量 (零方差), "
+                        "Spearman ρ 无定义, 跳过")
+        else:
+            rho, _ = spearmanr(sim_scores_full, sim_scores_ctx)
+            logger.info(f"     双轨独立性诊断: Spearman ρ = {rho:.4f} "
+                        f"({'真双轨' if abs(rho) < 0.95 else '⚠ 高度相关'})")
     except ImportError:
         pass
 

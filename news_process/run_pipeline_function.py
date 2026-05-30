@@ -16,8 +16,9 @@ run_pipeline_function.py — 新闻处理流水线调度器
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块二：新闻筛选模块 ──────────────────────────────┐
-    │ 11_news_bank → 12_news_fintech → 14_fintech_intensity      │
-    │ → 15_article_policy_alignment                              │
+    │ 11_news_bank → 12_news_fintech → 13_materialize_ctx        │
+    │ → 14_fintech_intensity → 15_article_policy_alignment       │
+    │ → 16_epu_merge → 19_executive_ner                          │
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块三：新闻情感模块 ──────────────────────────────┐
@@ -26,7 +27,8 @@ run_pipeline_function.py — 新闻处理流水线调度器
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块五：面板数据构建 ──────────────────────────────┐
-    │ 41→42→43→44→45 (面板数据构建)                              │
+    │ 45_panel_export_main (内含 41-44) → 46_stata_export →      │
+    │ 49_risk_taking_outcomes                                    │
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块六：伪造检验 ────────────────────────────────┐
@@ -35,8 +37,12 @@ run_pipeline_function.py — 新闻处理流水线调度器
                       ↓
                 pipeline_summary
 
-    情感分析的三个变体（words/BERT/LLM）由 config.yaml 中
+    情感分析的三个变体（words/BERT/LLM）由 config/sentiment.yaml 中
     sentiment_analysis.enabled_methods 控制启用。
+    文本嵌入与新颖度 (D 组: 30a_article_sbert / 17_article_topic /
+    18_article_staleness) 在情感模块后、面板构建前执行。
+
+    注：本图为高层概览；权威阶段清单以 core/dag.py::STAGES_MAIN 为准。
 
     模块四（评估验证）可单独运行：
       python run_pipeline_validation.py

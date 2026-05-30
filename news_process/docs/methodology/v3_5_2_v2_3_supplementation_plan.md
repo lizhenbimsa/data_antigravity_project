@@ -34,7 +34,7 @@ v2.3 (2026-05-18) 实施 — 8 项国际顶刊指标 + 集成层 + 测试 baseli
 | #7 ritest | Randomization Inference | Young (2019) QJE 134(2):557-598 + MacKinnon-Webb (2020) JBES 38(3) | 84-cluster 小, RI 必需 |
 | #9 SBERT | shibing624/text2vec | Bybee 2024 标题+首段策略 | 512 token 截断避坑 |
 | #10 BERTopic | Narrative topic | Bybee et al. (2024) RFS; Hansen et al. (2018) QJE 133(2) | 中文 fintech topic 与美国 corpus 结构不同 |
-| #11 staleness | Article 新颖度 | Tetlock (2011) JF 66(5):1481-1512 | 中文洗稿严重 → 分布右偏 |
+| #11 staleness | Article 新颖度 | Tetlock (2011) RFS 24(5):1481-1512 | 中文洗稿严重 → 分布右偏 |
 | #12 α | Krippendorff α | Krippendorff (2004) SAGE | 与第 10 篇 bank_media_disagreement 重叠 |
 | #13 D4 NER | CEO 媒体提及 | Kaustia-Rantapuska (2016) JFM 29:1-26 | 国企管理层任命路径与美国 superstar CEO 不同 |
 

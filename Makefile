@@ -36,22 +36,7 @@ help:
 	@echo "对应文档: docs/guides/data_lifecycle.md"
 
 sizes:
-	@echo "Plan-r3 P3-15: 可清理体积 (HEAD 实测, 单位 MiB)"
-	@$(PYTHON) -c "import pathlib; \
-		def s(p): \
-			p = pathlib.Path(p); \
-			return sum(f.stat().st_size for f in p.rglob('*') if f.is_file()) / 1024 / 1024 if p.exists() else 0; \
-		import sys; \
-		print(f'  _cache/             : {s(\"$(PROCESSED)/_cache\"):.1f} MiB'); \
-		print(f'  _llm_cache.db       : {s(\"$(PROCESSED)/_llm_cache.db\"):.1f} MiB'); \
-		import glob; \
-		bk = sum(s(p) for p in glob.glob('$(PROCESSED)/_backup_*')); \
-		print(f'  _backup_* (合计)    : {bk:.1f} MiB'); \
-		import re, os; \
-		ds = [f for f in glob.glob('$(PROCESSED)/*') if os.path.isfile(f) and re.match(r'.*[/\\\\]([1-9][4-9]|[2-9][0-9]|[34][0-9]|5[0-3])_', f)]; \
-		print(f'  stage 14+ derived  : {sum(os.path.getsize(f) for f in ds)/1024/1024:.1f} MiB ({len(ds)} files)'); \
-		print(f'  logs/               : {s(\"$(LOGS)\"):.1f} MiB'); \
-		"
+	@$(PYTHON) -m news_process.scripts.cleanup sizes
 
 clean-cache:
 	@echo "Plan-r3 P3-15: clean-cache -- 删除 LLM/Embedding API 缓冲 + SQLite cache"

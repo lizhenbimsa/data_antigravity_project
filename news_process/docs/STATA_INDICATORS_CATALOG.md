@@ -151,7 +151,7 @@
 |---|---|---|---|
 | Value-weighted | `_vw` / `_w` | `mention_density` 单篇提及密度 | Hassan et al. (2019, QJE) entity-proximity |
 | Media-Authority-weighted | `_mw` | `media_authority_weight`（10–100 媒体权威度归一化） | Holzman, Miller & Twedt (2023, TAR) |
-| Herd-Decay-weighted | `_hw` | `herd_weight_full/ctx`（双轨独立衰减权重） | Tetlock (2011, JF); Edwards (2001, ORM) |
+| Herd-Decay-weighted | `_hw` | `herd_weight_full/ctx`（双轨独立衰减权重） | Tetlock (2011, RFS); Edwards (2001, ORM) |
 
 每个 tone 主指标都派生 3 套加权版（mean、sum、vw、mw、hw），构成"3 方法 × 3 加权 × 3 轨"的庞大笛卡尔。
 
@@ -181,7 +181,7 @@
 
 | 变量 | 类型 | 取值/范围 | 含义 / 来源 |
 |---|---|---|---|
-| `target_bank` | str | 288 家中国商业银行（6 国有 + 12 全国股份 + ~130 城商 + ~140 农商） | 标准化银行全称；stage 11 通过 `core/bank_list.yaml` 1771 行匹配派生 |
+| `target_bank` | str | 288 家中国商业银行（6 国有 + 12 全国股份 + ~130 城商 + ~140 农商） | 标准化银行全称；stage 11 通过 `config/bank_list.yaml` 1771 行匹配派生 |
 | `year` | int | 2008–2023（实际可用通常 2013–2023） | parse_time() 从 `日期` 列派生 |
 
 ---
@@ -1036,7 +1036,7 @@ stage 22 `22_words_tone.parquet` 包含若干**篇章级**计数列，它们仅�
 
 **整体说明**：媒体扎堆衰减权重——当多家媒体在短时窗内复述同一事件，权重指数衰减。v3.6.0 BREAKING：替换 v3.5.x 单列 `herd_weight`，强制 measurement-treatment matching（Edwards 2001 ORM）——全文相似度 ≠ 对目标银行的报道相似度。
 
-锚定：Tetlock (2011, JF) 媒体新闻冗余 + return reversal；Sautner et al. (2023, JF) 文本相似度曝光度；Edwards (2001, ORM) measurement-treatment matching。
+锚定：Tetlock (2011, RFS) 媒体新闻冗余 + return reversal；Sautner et al. (2023, JF) 文本相似度曝光度；Edwards (2001, ORM) measurement-treatment matching。
 
 ### 27.1 算法参数（[herd_decay.py:66-74](../pipeline/sentiment/herd_decay.py#L66-L74)）
 
@@ -1218,7 +1218,7 @@ BERTopic K 自动发现实际值 + c-TF-IDF top-10 词中文金融专家解读�
 **整体说明**：[`article_staleness.py`](../pipeline/text/article_staleness.py)（332 行）。双指标互补——surface（字面层）+ semantic（语义层）。v3.7.0 PR #11.5（S1.3 修复）把 surface 算法从 O(N²) 灾难重写为按 unique-day 分组的滚动 LSH，**约 50000× 加速**（400k 文章从 10+ 天 → 5–15 分钟）。
 
 锚定：
-- Tetlock (2011, JF 24(5), 1481-1512) "All the news that's fit to reprint" — 主指标用 cosine staleness + return reversal 实证
+- Tetlock (2011, RFS 24(5), 1481-1512) "All the news that's fit to reprint" — 主指标用 cosine staleness + return reversal 实证
 - Gentzkow, Shapiro & Taddy (2019, JEL 57(3), 535-574) Text as data
 
 ### 32.1 算法参数（[article_staleness.py:65-66](../pipeline/text/article_staleness.py#L65-L66)）

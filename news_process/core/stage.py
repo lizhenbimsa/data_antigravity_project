@@ -162,7 +162,9 @@ def run_stage(stage_script: str, stage_name: str, logger,
     实现说明 (plan c4):
     子进程 stdout/stderr 由两个 daemon reader 线程逐行抽取 → 实时转发到父 logger,
     同时累积末尾 ``_TAIL_BUFFER_MAXLEN`` 行供失败诊断。timeout 路径下用
-    ``proc.kill()`` 终止子进程, reader 线程在管道关闭后自然退出。
+    ``_terminate_process_tree()`` (best-effort 进程树终止: terminate() 后 kill()
+    兜底) 杀掉子进程及其衍生的 joblib/ProcessPool 工作进程, reader 线程在管道
+    关闭后自然退出 (audit S7 修复 2026-05-30, 替代历史的裸 ``proc.kill()``)。
     """
     if base_dir is None:
         # core/stage.py -> core/ -> news_process/  (上溯一层到项目根)

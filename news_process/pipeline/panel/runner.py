@@ -543,6 +543,11 @@ def main():
     # --- 6. 面板平衡 ---
     panel = balance_panel(panel)
 
+    # 去碎片化: aggregate_panel + balance_panel 经多次单列插入后 DataFrame 高度碎片化,
+    # 下方 has_coverage 等单列赋值会触发 pandas PerformanceWarning。copy() 合并内存块,
+    # 不改数据/列序/取值, 仅消除非预期告警 (audit 2026-05-30)。
+    panel = panel.copy()
+
     # --- 6a. has_coverage 哑变量 ---
     panel['has_coverage'] = (panel['n_articles'] > 0).astype(int)
     logger.info(f"  has_coverage: 有报道={panel['has_coverage'].sum()}, "

@@ -10,7 +10,8 @@ dedup.py:94 的 jaccard 布尔决策互补.
     与现有 dedup.py jaccard_similarity_threshold=0.85 同源, 升级为连续 score.
 
 **semantic_staleness** (D2.b, PR #11.5):
-    Faiss IVFFlat + SBERT cosine (stage 30a article embeddings).
+    Faiss IndexFlatIP (normalized inner-product = cosine) + SBERT cosine
+    (stage 30a article embeddings); 大样本可换 IVFFlat (见实现 _compute_semantic).
     捕捉语义相似度 (词面不同但含义近似), 与 surface 互补.
 
 双指标 panel 列 (G-S7 设计):
@@ -31,7 +32,8 @@ Economic Literature, 57(3), 535-574.
 ----
 - 滚动窗口 7d 内 pairwise 相似度 → max
 - N²: 400k 文章 × 7d 窗口典型 ~5000 candidates = 2×10^9 pair 不可行
-  → 必须 LSH (MinHashLSHForest for jaccard) + Faiss (HNSW for cosine)
+  → 必须 LSH (MinHashLSHForest for jaccard) + Faiss (rolling-window
+    IndexFlatIP for cosine; 大样本升级路径为 IVFFlat / HNSW)
 - 双轨独立 (full + ctx 各算一次), 与 v3.5.1 真双轨对齐
 
 D-0 实测项 (v2.3 G-D2.1)
