@@ -62,6 +62,12 @@ _LOGGER = logging.getLogger('run_paper')
 _PAPER_SUMMARIES: Final[dict[str, str]] = {
     'bank_fintech_tone':
         '主线: 媒体银行金融科技语调 → 银行行为 (整条 pipeline 的产品化封装)',
+    'bank_fintech_attention':
+        'Bank-FinTech 衍生: firm-level fintech 曝光强度 (Hassan et al. 2019 QJE)',
+    'bank_fintech_substance':
+        'Bank-FinTech 衍生: W&Z 实质/象征二元属性 (W&Z 1994/1998 ASQ)',
+    'bank_fintech_locus':
+        'Bank-FinTech 衍生: 底层/应用 locus 二元属性 (Gomber 2018 JMIS)',
     'benefit_society':
         '衍生 1: 经营效益态度投影 (Jha, Liu & Manela 2026, RFS §1.3.2)',
     'brokerage_network':

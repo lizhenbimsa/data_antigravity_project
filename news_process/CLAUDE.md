@@ -79,13 +79,13 @@ news_process/
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
 ├── tests/          # 1615 fast / 284 integration / 1899 total (v3.6.0 实测 collect-only)
-└── NN_*.py         # 41 thin shim scripts under news_process/ (≤30 lines each,
-                    # NN ∈ {00, 11..19 (incl. 13/16/17/18/19), 21..24, 27c, 30, 30a,
+└── NN_*.py         # 40 thin shim scripts under news_process/ (≤30 lines each,
+                    # NN ∈ {00, 11..19 (incl. 13/16/17/18/19), 21..24, 27c, 30a,
                     #       31..39 (incl. 32a/38a/38b/39a/39c/39d/39e/39f/39g),
                     #       45, 46, 49, 51..53};
                     # delegate to pipeline/; planned retirement: Plan-r3 P3-18
                     # (拆分约束见 pipeline/panel/runner.py:159).
-                    # 38 registered in core/dag.py (20 STAGES_MAIN + 18 STAGES_VALIDATION);
+                    # 37 registered in core/dag.py (19 STAGES_MAIN + 18 STAGES_VALIDATION);
                     # 3 unregistered by design: 27c (audit-only sibling, jlm2026 plan §P1.6),
                     # 52/53 (user-CLI wrappers, schemas.py:182 显式排除).
 ```
@@ -215,7 +215,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Code Modification Rules
 
-1. **Stage shims are frozen**: The 41 `news_process/NN_*.py` scripts are thin shims (≤30 lines; NN includes stage 13 from v3.6.0 Plan E, lettered variants 32a/38a/38b/39a/39c/39d/39e/39f/39g, plus stages 49/52/53). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
+1. **Stage shims are frozen**: The 40 `news_process/NN_*.py` scripts are thin shims (≤30 lines; NN includes stage 13 from v3.6.0 Plan E, lettered variants 32a/38a/38b/39a/39c/39d/39e/39f/39g, plus stages 49/52/53). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
 2. **DAG consistency**: Any stage added/removed must update:
    - `core/dag.py::STAGES_MAIN` or `STAGES_VALIDATION`
    - `core/schemas.py::OUTPUT_REGISTRY` (if it produces parquet)

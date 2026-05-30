@@ -124,3 +124,18 @@ def test_dispatch_stage_choices_forwarded(stage):
         run_paper.main(['bank_fintech_tone', '--stage', stage])
         called_args = mock_main.call_args[0][0]
         assert called_args[called_args.index('--stage') + 1] == stage
+
+
+def test_paper_summaries_cover_all_dispatchable_ids():
+    """_PAPER_SUMMARIES 必须与 _VALID_PAPER_IDS 精确相等 — 防 --list 出 '(no summary)'。
+
+    回归锁: 白名单 5→8 扩容 (paper_registry.PAPER_IDS_NEW) 时漏补 summary 即红。
+    精确相等而非子集: P5 bank_fintech_collab 刻意不在白名单, summary 也不应含它, 双向守护。
+    """
+    from news_process.papers._common.paper_config import _VALID_PAPER_IDS
+    from news_process.run_paper import _PAPER_SUMMARIES
+    keys = set(_PAPER_SUMMARIES)
+    valid = set(_VALID_PAPER_IDS)
+    assert keys == valid, (
+        f"summary↔白名单漂移: 缺={valid - keys}, 多={keys - valid}"
+    )
