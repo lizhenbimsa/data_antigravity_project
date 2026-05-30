@@ -1,0 +1,36 @@
+{
+  "archive_frozen_date": "2026-05-18",
+  "files": {
+    "2026-05-25.jsonl": {
+      "bytes": 132391387,
+      "record_count": 8755,
+      "sha256": "b16334b6677ad0f8391e7bca8d6740465bfc180267ed7220f0885f75ad6f6970"
+    },
+    "2026-05-26.jsonl": {
+      "bytes": 2629920,
+      "record_count": 187,
+      "sha256": "c6bb147c11a6879d9dda8c826bd2a45768d311a4994917fbd42108e31a776034"
+    },
+    "2026-05-27.jsonl": {
+      "bytes": 78939145,
+      "record_count": 5305,
+      "sha256": "3f1252b6be282bfaefe8b72c5fafb80774be55a1b73508de02dafb5bc71427ee"
+    },
+    "2026-05-28.jsonl": {
+      "bytes": 133721493,
+      "record_count": 11377,
+      "sha256": "b0c4b6aa4c6be6e0143ab2370b76fb5f62f3d2eb4d7621a915369f289fb58fd2"
+    },
+    "2026-05-29.jsonl": {
+      "bytes": 327591,
+      "record_count": 14,
+      "sha256": "4c1ed3bd8450f6a6cc91319b60cfa04778e0e8d3a6b84ab6b1e02efbcf86d997"
+    }
+  },
+  "generated_at_utc": "2026-05-30T00:03:19.068334+00:00",
+  "prompt_sha256": "0430ba3c1b2a289e5f022081953e7748f35dfa9e3e1ac9303f6d0f1871cc858c",
+  "prompt_version_anchor": "v8",
+  "schema_version": "v1",
+  "total_bytes": 348009536,
+  "total_records": 25638
+}

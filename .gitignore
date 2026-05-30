@@ -173,3 +173,9 @@ superpowers/
 
 # v3.2.0 M7: replication 包实例化产物 (build_replication_package 输出)
 replication_v3.2.0_*/
+
+# decision A (2026-05-30, Zenodo 交付): LLM 复现归档实体 (每日 responses/*.jsonl,
+# ~332MB→25GB) 托管 Zenodo 并凭 DOI 引用, 不进 git。git 只留 SHA-256 索引
+# data/llm_archive/manifest.json + 取回脚本 scripts/data_acquisition/fetch_llm_archive.py。
+# (manifest.json 不在 responses/ 下, 故仍可被 git 追踪。)
+data/llm_archive/responses/
