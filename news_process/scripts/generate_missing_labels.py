@@ -68,8 +68,6 @@ def infer_label(var_name: str) -> str:
         'you_2018': '尤2018',
         'finbert_cn': 'FinBERT-CN',
         'fin_sent_zh': 'FinSent-ZH',
-        'erlangshen': 'Erlangshen',
-        'hw2942': 'HW2942',
         'finbert2': 'FinBERT2',
         'bert': 'BERT',
     }
@@ -198,7 +196,7 @@ def generate_label_file():
             groups['BERT技术应用'].append(var)
         elif var.startswith('bert_avg'):
             groups['BERT聚合'].append(var)
-        elif 'bert' in var.lower() or 'erlangshen' in var.lower():
+        elif 'bert' in var.lower():
             groups['BERT其他'].append(var)
         elif any(x in var for x in ['sent_len', 'ttr', 'cpw', 'msent']):
             groups['文本特征'].append(var)

@@ -88,7 +88,7 @@ def panel_with_mojibake():
         "llm_vote_tone_ctx": rng.normal(0, 1, n),
         "llm_vote_tone_title": rng.normal(0, 1, n),
         "finbert_cn_����_w_sum_title": rng.normal(0, 1, n),
-        "hw2942_����_hw_sum_title": rng.normal(0, 1, n),
+        "finbert_cn_����_hw_sum_title": rng.normal(0, 1, n),
         "n_articles": np.full(n, 4),
     })
 
@@ -100,7 +100,7 @@ def panel_with_mojibake():
 def test_mojibake_detection_replacement_char():
     """U+FFFD replacement char 触发 mojibake detection."""
     assert _is_mojibake_column("finbert_cn_����_w_sum_title")
-    assert _is_mojibake_column("hw2942_�_hw_sum_title")
+    assert _is_mojibake_column("finbert_cn_�_hw_sum_title")
 
 
 def test_mojibake_detection_normal_columns_pass():

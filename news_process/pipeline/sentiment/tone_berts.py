@@ -13,9 +13,7 @@ news_process.pipeline.sentiment.tone_berts — 阶段23：基于 BERT 系列预�
 模型列表（由 config.yaml 中 sentiment_analysis.tone_berts.models 配置）：
     1. yiyanghkust/finbert-tone-chinese — FinBERT 中文金融情感
     2. bardsai/finance-sentiment-zh-base — 中文金融短语级情感
-    3. IDEA-CCNL/Erlangshen-Roberta-110M-Sentiment — 二郎神 Roberta 情感
-    4. hw2942/bert-base-chinese-finetuning-financial-news-sentiment-v2 — 金融新闻情感
-    5. FinBERT2-base — 本地微调金融分类模型
+    3. FinBERT2-base — 本地微调金融分类模型
 
 核心算法：
     滑动窗口文本切片 + 置信度加权池化聚合
@@ -742,7 +740,7 @@ def main():
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
     logger.info("")
     logger.info("  📌 阶段目的")
-    logger.info("     使用 5 个 BERT 系列预训练模型对每篇新闻进行情感分类。")
+    logger.info("     使用 3 个 BERT 系列预训练模型对每篇新闻进行情感分类。")
     logger.info("     采用双轨模式: 全文(_full)和上下文片段(_ctx)分别推理。")
     logger.info("     超长文本使用滑动窗口切片 + 置信度加权池化聚合。")
     logger.info("")

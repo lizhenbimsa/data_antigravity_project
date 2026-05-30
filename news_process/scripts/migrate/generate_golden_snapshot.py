@@ -42,7 +42,8 @@ from news_process.core.schemas import OUTPUT_REGISTRY  # noqa: E402
 # 待正式处置 (确认废弃 → 从 golden 移除 / 否则补回生产 stage)。
 _ORPHAN_WHITELIST = [
     "30_text2vec_indicators.parquet",  # stage 30 已退役 (2026-05-29 双模型重构, 内联到 15/25)
-    "41_panel_with_controls.parquet",  # 无生产者 (OUTPUT_REGISTRY 仅 51_panel_with_controls)
+    # 41_panel_with_controls.parquet 已删除 (2026-05-30): 无生产者孤儿, 且仍含已移除的
+    # erlangshen/hw2942 列; 删除文件并移出白名单, OUTPUT_REGISTRY 仅 51_panel_with_controls。
 ]
 
 

@@ -561,7 +561,7 @@ v3.6.0 Plan E 的核心贡献是把双轨化从 "下游 stage 3 增强" 扩展�
 | 15 | policy alignment cosine（双轨） | `data/processed/15_article_policy_alignment.parquet` | ~200 MB | 政策一致性 |
 | 21 | 三 LLM 投票 tone | `data/processed/21_tone_llms.parquet` | ~300 MB | 主线情感测度 |
 | 22 | 词典法 tone | `data/processed/22_tone_words.parquet` | ~100 MB | 情感稳健性 |
-| 23 | 4 BERT 模型 tone | `data/processed/23_tone_berts.parquet` | ~200 MB | 情感稳健性 |
+| 23 | 3 BERT 模型 tone | `data/processed/23_tone_berts.parquet` | ~200 MB | 情感稳健性 |
 | 24 | herd_decay（v3.6.0 双轨） | `data/processed/24_herd_decay.parquet` | ~120 MB | 同行效应衰减加权 |
 | 30 | text2vec embedding 稳健性 | `data/processed/30_robustness_text2vec.parquet` | ~400 MB | 文本相似度稳健性 |
 | 32a-39d | 多 paper 专属 stage | `data/processed/3*_*.parquet` | 各 50-300 MB | P3/P4/P5 + 衍生论文 |
@@ -1065,8 +1065,8 @@ intensity = Σ_{w∈fintech_dict} ( count(w in text) × IDF(w) ) / length(text)
 - 输出：`tone_words_score`（连续值 -1 到 1）。
 
 **Stage 23 `23_tone_berts`**：
-- 模型列表：4 个本地 / HuggingFace 微调 BERT（FinBERT2、ChineseFinBERT 等）。
-- **网络注意**：`hw2942` 模型在本机直连超时无法下载，需走 transformers cache 或本地路径（详见 MEMORY `hf_network`）。
+- 模型列表：3 个本地 / HuggingFace 微调 BERT（finbert_cn、fin_sent_zh、FinBERT2）。
+- **历史**：早期曾集成 erlangshen / hw2942，因 HuggingFace 直连下载不稳定已移除（已移除 erlangshen/hw2942, 2026-05）。
 - FinBERT2 私有微调模型需 `FINBERT2_MODEL_DIR` 环境变量，缺失时 gracefully skip。
 
 ### 5.9 Stage 24：herd_decay（v3.6.0 双轨）
@@ -1394,20 +1394,21 @@ def lm_dict_score(text: str, dict_zh: dict[str, list[str]]) -> dict[str, float]:
 - `(positive_count - negative_count) / (positive_count + negative_count + 1)`
 - 加 1 在分母防 zero division，且对低密度文本有平滑作用。
 
-### 7.5 Stage 23：4 BERT 模型的实现细节
+### 7.5 Stage 23：3 BERT 模型的实现细节
 
 **模型清单**：
-1. **ChineseFinBERT**（HuggingFace 公开）：通用中文金融 BERT。
-2. **FinBERT2**（私有微调）：项目团队基于上市公司年报微调。
-3. **hw2942**（HuggingFace）：另一个中文金融 BERT。本机直连超时无法下载，需 transformers cache 或本地路径（MEMORY `hf_network`）。
-4. **mengzi-bert-finance**（HuggingFace）：基于 Mengzi 基座的金融领域微调。
+1. **finbert_cn**（HuggingFace 公开）：通用中文金融 BERT。
+2. **fin_sent_zh**（HuggingFace 公开）：中文金融句子情感 BERT。
+3. **FinBERT2**（私有微调）：项目团队基于上市公司年报微调。
+
+> 历史：早期曾集成 erlangshen / hw2942，因 HuggingFace 直连下载不稳定已移除（已移除 erlangshen/hw2942, 2026-05）。
 
 **推理 batch 设计**：
 - batch_size = 16（GPU）/ 4（CPU fallback）
 - max_length = 512（超长文本截断为 head + tail 拼接）
 - 推理结果：每个 BERT 输出 `bert_<model>_tone`（positive/neutral/negative）+ `bert_<model>_confidence`
 
-**4 BERT 聚合**：
+**3 BERT 聚合**：
 - 多数票 → `bert_majority_tone`
 - 一致性 → `bert_agreement_rate`
 
@@ -4401,9 +4402,9 @@ stage 39d 实测：
 **预期质询语言**："你们用了 FinBERT2 私有模型，外部研究者怎么复现？"
 
 **项目回应**：
-- FinBERT2 是 4 个 BERT 模型之一。即使该模型不可用，其他 3 个 HuggingFace 公开模型仍可跑。
+- FinBERT2 是 3 个 BERT 模型之一。即使该模型不可用，其他 2 个 HuggingFace 公开模型仍可跑。
 - stage 23 的 FINBERT2_MODEL_DIR fallback 机制保证缺模型不阻塞 pipeline。
-- 4 BERT 的多数票（`bert_majority_tone`）即使少 1 模型仍能算（3 模型多数票）。
+- 3 BERT 的多数票（`bert_majority_tone`）即使少 1 模型仍能算（2 模型多数票）。
 - 如果未来 FinBERT2 author 同意，我们将公开 finetuned weights。
 
 ### 19.11 Q10-Q25：进一步的预期质询
@@ -4785,9 +4786,9 @@ P5 `bank_fintech_collab` 在 v3.4.0 立项时，stage 36 的 LLM 多元分类（
 
 **教训**：**版本兼容声明若长期未更新，会变成隐藏的功能限制器**。每次大型升级后，环境声明（version / maxvar / linesize）都要审查。
 
-### 23.8 失败案例 7：HF 网络不稳与 hw2942 模型下载超时
+### 23.8 失败案例 7：HF 网络不稳与外部 BERT 模型下载超时（历史）
 
-stage 23 的 4 BERT 模型之一 `hw2942` 在本机 HuggingFace 直连超时无法下载。早期项目的 CI 矩阵未做 graceful skip，导致 light job 全部失败（详见 MEMORY `ci_matrix`）。
+早期 stage 23 曾集成 erlangshen / hw2942，其中 `hw2942` 在本机 HuggingFace 直连超时无法下载；当时 CI 矩阵未做 graceful skip，导致 light job 全部失败（详见 MEMORY `ci_matrix`）。这两个模型已移除（已移除 erlangshen/hw2942, 2026-05），现 stage 23 仅保留 finbert_cn / fin_sent_zh / finbert2 三个 BERT。
 
 **事后修正**：
 - 所有 BERT 测试加 `pytest.importorskip("torch")` 与 model_dir 存在性检查。
@@ -5309,7 +5310,7 @@ SOP-10 ~ SOP-13 内容相对程式化，本章不展开。
 **用途**：stage 23 BERT 推理 + stage 30 text2vec 稳健性 embedding。
 **版本**：transformers ≥ 4.40（支持 ChineseFinBERT、Mengzi 等主流中文 BERT）。
 **FinBERT2 私有模型**：通过 `FINBERT2_MODEL_DIR` 环境变量指定本地路径，加载 `from_pretrained(local_dir)`。
-**HF 网络问题**：hw2942 等模型 HuggingFace Hub 直连超时（详见 MEMORY `hf_network`），需走 transformers cache 或 mirror（项目当前用本地路径 fallback）。
+**HF 网络问题**：早期 erlangshen / hw2942 等模型 HuggingFace Hub 直连超时（详见 MEMORY `hf_network`），曾需走 transformers cache 或 mirror；这两个模型已移除（已移除 erlangshen/hw2942, 2026-05）。
 
 ### 27.9 pytest 与生态
 
@@ -5485,7 +5486,7 @@ foreach p in reghdfe ivreg2 csdid did_imputation eventstudyinteract sdid ///
 | stage 11/12 filtering | 40 万 article | ~5 min |
 | stage 13 ctx materialization | 8 万 fintech article | ~3 min |
 | stage 21 三 LLM vote | 8 万 article × 3 model | ~6 hour (含 API 网络) |
-| stage 23 4 BERT 推理 | 8 万 article × 4 model | ~2 hour (GPU) / 8 hour (CPU) |
+| stage 23 3 BERT 推理 | 8 万 article × 3 model | ~2 hour (GPU) / 8 hour (CPU) |
 | stage 45/46 面板构造 + Stata 输出 | full panel | ~5 min |
 | **1,747** fast test（v3.7.1） | — | ~30 s |
 | 全 2,031 测试（v3.7.1 `pytest --collect-only` 实测） | — | ~5 min |
@@ -6350,7 +6351,7 @@ v3.7.0 + v4.0.0 完成后的可达 paper 数（已含 v3.7.0 新立项 P10/P11�
 
 **第一阶段：词典法时代**（约二零零零至二零一二年）。研究者使用 Harvard-IV、LIWC、Loughran-McDonald 等通用或领域词典做情感分类。这一时代的优点是可解释性高、可重复性强；缺点是覆盖率有限、对上下文敏感性低。本项目在 stage 22 仍保留词典法作为对照测度，承认这一传统方法的方法学价值。
 
-**第二阶段：监督学习时代**（约二零一二至二零二零年）。研究者使用 SVM、随机森林、再到 BERT 等监督学习模型做文本分类。这一时代的优点是准确率提升、对上下文敏感；缺点是需要大量人工标注、模型可解释性下降。本项目在 stage 23 使用 4 个 BERT 模型作为这一时代的代表方法。
+**第二阶段：监督学习时代**（约二零一二至二零二零年）。研究者使用 SVM、随机森林、再到 BERT 等监督学习模型做文本分类。这一时代的优点是准确率提升、对上下文敏感；缺点是需要大量人工标注、模型可解释性下降。本项目在 stage 23 使用 3 个 BERT 模型作为这一时代的代表方法。
 
 **第三阶段：大语言模型时代**（约二零二零年至今）。研究者使用 GPT、Claude、Gemini 等大语言模型做零样本分类。这一时代的优点是免微调、对新议题适应性强、可处理复杂指令；缺点是 reproducibility 脆弱、成本高、模型偏差不可控。本项目在 stage 21 使用三大语言模型作为这一时代的代表方法，并通过三 LLM 投票部分对冲单模型偏差。
 

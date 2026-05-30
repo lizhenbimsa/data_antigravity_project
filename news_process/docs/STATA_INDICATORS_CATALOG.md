@@ -38,7 +38,7 @@
 9. [H LLM 置信度](#9-h-llm-置信度)
 10. [I prob_score（Logit-to-Score 最大熵映射）](#10-i-prob_scorelogit-to-score-最大熵映射)
 11. [J 词典法情感（五本 × 三轨 × 三统计）](#11-j-词典法情感五本--三轨--三统计)
-12. [K BERT 情感（五模型 × 三轨）](#12-k-bert-情感五模型--三轨)
+12. [K BERT 情感（三模型 × 三轨）](#12-k-bert-情感三模型--三轨)
 13. [L Value-Weighted (VW) 加权聚合](#13-l-value-weighted-vw-加权聚合)
 14. [M Media-Authority-Weighted (MW) 加权聚合](#14-m-media-authority-weighted-mw-加权聚合)
 15. [N Herd-Decay-Weighted (HW) 加权聚合](#15-n-herd-decay-weighted-hw-加权聚合)
@@ -138,8 +138,6 @@
 | | `you_2018` | You 等（2018, hhx055） |
 | **BERT 系列** (stage 23) | `finbert_cn` | 中文 finbert 通用（3-class，含中性） |
 | | `fin_sent_zh` | 中文金融句子 BERT（3-class） |
-| | `erlangshen` | 二郎神 finance 微调（2-class） |
-| | `hw2942` | HW 2942 财经 BERT（3-class，未缓存 → offline fallback） |
 | | `finbert2` | 私有 finbert2 微调（2-class，env `FINBERT2_MODEL_DIR`，缺失 graceful skip） |
 
 源代码引用：[news_process/config/sentiment.yaml L29-L39 (LLM) + L262-L286 (BERT)](../config/sentiment.yaml)。
@@ -484,16 +482,14 @@ ivreghdfe Y (llm_vote_tone_ctx = llm_prob_score_ctx) controls, absorb(target_ban
 
 ---
 
-## 12. K BERT 情感（五模型 × 三轨）
+## 12. K BERT 情感（三模型 × 三轨）
 
-**整体说明**：5 个中文 BERT 模型在 stage 23 输出 `{model}_{正面/负面/中性}{track}` 篇章级概率，bank-year 聚合。模型集合在 [encode.py:62-72](../pipeline/panel/encode.py#L62-L72) 由 `config['sentiment_analysis']['tone_berts']['models']` 注入：
+**整体说明**：3 个中文 BERT 模型在 stage 23 输出 `{model}_{正面/负面/中性}{track}` 篇章级概率，bank-year 聚合。模型集合在 [encode.py:62-72](../pipeline/panel/encode.py#L62-L72) 由 `config['sentiment_analysis']['tone_berts']['models']` 注入：
 
 | 短名 | 模型 | 分类数 |
 |---|---|---|
 | `finbert_cn` | 中文 finbert 通用 | 3-class（含中性） |
 | `fin_sent_zh` | 中文金融句子 BERT | 3-class |
-| `erlangshen` | 二郎神 finance 微调 | 2-class |
-| `hw2942` | HW 2942 财经 BERT（未缓存，offline fallback） | 3-class |
 | `finbert2` | 私有 finbert2 微调（env `FINBERT2_MODEL_DIR`，缺失 graceful skip） | 2-class |
 
 ### 12.1 等权聚合
@@ -505,10 +501,10 @@ ivreghdfe Y (llm_vote_tone_ctx = llm_prob_score_ctx) controls, absorb(target_ban
 | `{bert}_pos_std_{full,ctx,title}` | `std({bert}_正面{track})` |
 | `{bert}_neg_{full,ctx,title}` | `mean({bert}_负面{track})` |
 | `{bert}_neg_sum_{full,ctx,title}` | `sum({bert}_负面{track})` |
-| `{bert}_neu_{full,ctx,title}` | `mean({bert}_中性{track})`（仅 3-class 模型有：`finbert_cn` / `fin_sent_zh` / `hw2942`） |
+| `{bert}_neu_{full,ctx,title}` | `mean({bert}_中性{track})`（仅 3-class 模型有：`finbert_cn` / `fin_sent_zh`） |
 | `{bert}_neu_sum_{full,ctx,title}` | `sum({bert}_中性{track})` |
 
-5 BERT × 3 轨 × (5 共通 + 2 三分类专属) ≈ **~60 列**。
+3 BERT × 3 轨 × (5 共通 + 2 三分类专属) ≈ **~36 列**。
 
 ### 12.2 BERT 综合
 
@@ -893,7 +889,7 @@ reghdfe Y c.tone_gap_sub_symb_sc_ctx##i.is_soe controls, absorb(target_bank year
 | D | `washing_ratio_dict` / `washing_ratio_dict_ctx` | `dict_pos_symb_count / dict_pos_count`（词典综合） |
 | D2 | `washing_ratio_{jiang_2021,yao_2021,bian_2021,du_2022,you_2018}` (+ `_ctx`) | 5 词典 × 2 轨 = 10 列 |
 | E | `washing_ratio_bert` / `washing_ratio_bert_ctx` | `bert_pos_symb_count / bert_pos_count` |
-| E2 | `washing_ratio_{finbert_cn,fin_sent_zh,erlangshen,hw2942,finbert2}` (+ `_ctx`) | 5 BERT × 2 轨 = 10 列 |
+| E2 | `washing_ratio_{finbert_cn,fin_sent_zh,finbert2}` (+ `_ctx`) | 3 BERT × 2 轨 = 6 列 |
 | F | `washing_ratio_hc` / `washing_ratio_hc_ctx` | `pos_symb_hc_count / pos_hc_count`（高置信度） |
 | G | `washing_tone_shift_{full,ctx}` | `llm_vote_tone_symb − llm_vote_tone`（象征性篇章情感偏移） |
 
@@ -919,7 +915,7 @@ reghdfe Y c.tone_gap_sub_symb_sc_ctx##i.is_soe controls, absorb(target_bank year
 - 方法 A（LLM 投票）→ main；
 - 方法 A2（3 个单模型）→ inter-rater reliability 稳健性；
 - 方法 D2（5 个单词典）→ method-source robustness；
-- 方法 E2（5 个 BERT）→ deep-model robustness；
+- 方法 E2（3 个 BERT）→ deep-model robustness；
 - 方法 F（高置信子样本）→ measurement-quality robustness；
 - 方法 G（情感偏移 tone_shift）→ continuous version (vs binary ratio)。
 
@@ -2516,8 +2512,8 @@ data/processed/
 ```python
 LLM_MODELS  = ['gpt54nano', 'gemini31111', 'deepseekv4']                          # 3 个
 DICT_NAMES  = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']      # 5 个
-BERT_MODELS = ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']   # 5 个
-THREE_CLASS_BERT = {'finbert_cn', 'fin_sent_zh', 'hw2942'}                         # 3 个含中性
+BERT_MODELS = ['finbert_cn', 'fin_sent_zh', 'finbert2']   # 3 个
+THREE_CLASS_BERT = {'finbert_cn', 'fin_sent_zh'}          # 2 个含中性
 TRACKS      = ['_full', '_ctx', '_title']                                          # 3 轨
 TRACKS_DUAL = ['_full', '_ctx']                                                    # 2 轨 (无 title)
 SUBSETS_LOCUS   = ['_tech', '_app', '_tech_lc_ctx', '_app_lc_ctx']
@@ -2757,7 +2753,7 @@ washing_ratio_{bert}{_ctx}              5 × 2 = 10 列
 |---|---|---|
 | 阈值敏感性 | 31, 32a, 35, 38b | 验证 production 阈值（计数/jaccard/radius/decay 半衰期）的选择不影响结论 |
 | LLM vs 人工 | 32, 33 | LLM 标注质量 + 三模型一致率 + 与人工 gold standard 比较 |
-| Tone 三角验证 | 34 | 5 词典 × 5 BERT × LLM 的 cross-method 收敛/区分效度 |
+| Tone 三角验证 | 34 | 5 词典 × 3 BERT × LLM 的 cross-method 收敛/区分效度 |
 | Placebo | 36, 38a, 39 | 实体屏蔽 / 时间错位 / prompt 改写 → 平行趋势 + 测量稳健性 |
 | 字典覆盖 | 37 | 5 词典 precision / coverage / stability 三维诊断 |
 | 媒体多样性 | 38 | 11 维度 HHI / Shannon / Gini 跨 stage 媒体集中度 |
@@ -2796,7 +2792,7 @@ washing_ratio_{bert}{_ctx}              5 × 2 = 10 列
 
 ### 62.6 Stage 34: Tone 三角验证（词典 / BERT / LLM）
 - **入口**：[news_process/34_tone_validation.py](../34_tone_validation.py) → `validation/tone_validation.py`（1930+ 行）
-- **学术目的**：Loughran & McDonald (2016 JAR 54(4)) 5 词典 + 5 BERT + LLM 的 Spearman ρ 相关矩阵 + Cronbach α ≥ 0.70 + 标签多数投票一致性 + Chiu & Hung (2025) Dirichlet 不确定性。
+- **学术目的**：Loughran & McDonald (2016 JAR 54(4)) 5 词典 + 3 BERT + LLM 的 Spearman ρ 相关矩阵 + Cronbach α ≥ 0.70 + 标签多数投票一致性 + Chiu & Hung (2025) Dirichlet 不确定性。
 - **输出**：`34_tone_validation_cross_method.csv` + `34_tone_labels_consistency.csv` + `34_cronbach_alpha.csv`
 - **核心列**：`method_pair` / `spearman_rho` / `pval` / `cronbach_alpha` / `agreement_rate` / `locus`
 - **gate**：P1/P3 paper Appendix §B.1 tone validation；stage 40 panel 列验收门控
@@ -2889,7 +2885,7 @@ Methods §3.4  Discriminant validity → §62.16 stage 39d + §62.17 39e (HTMT <
 Methods §3.5  Construct validity  → §62.15 stage 39c (NMI Z < 2.58)
 Methods §3.6  Inter-track κ      → §62.14 stage 39a (κ ∈ [0.50, 0.70])
 
-Appendix §B.1  Tone 三角验证     → §62.6 stage 34 (5 dict × 5 BERT × LLM)
+Appendix §B.1  Tone 三角验证     → §62.6 stage 34 (5 dict × 3 BERT × LLM)
 Appendix §C.1  阈值敏感性        → §62.2 stage 31
 Appendix §D.1  词典覆盖率        → §62.9 stage 37
 Appendix §D.2  Dedup 阈值        → §62.4 stage 32a
@@ -3039,7 +3035,7 @@ Appendix §E.3  Prompt 改写       → §62.13 stage 39
 第一轮主要修了 panel 后端聚合 + IV/网络。第二轮 focus 上游 stage 数据生产模块（17/18/19/24/30/33/51 等）的真实输出列字面：
 
 **重大补全**：
-1. **§7/§8/§12 方法学三套模型名实证**（§1.2(d)）：从 `config/sentiment.yaml` 实证 LLM `{gpt54nano (GPT-5.4-nano), gemini31111 (Gemini-3.1.1.1.1), deepseekv4 (DeepSeek V4，原 claude4h 重命名)}` + 5 BERT 模型分类数（3-class / 2-class 区分）。
+1. **§7/§8/§12 方法学三套模型名实证**（§1.2(d)）：从 `config/sentiment.yaml` 实证 LLM `{gpt54nano (GPT-5.4-nano), gemini31111 (Gemini-3.1.1.1.1), deepseekv4 (DeepSeek V4，原 claude4h 重命名)}` + 3 BERT 模型分类数（3-class / 2-class 区分）。
 2. **§27 Herd Decay**：补全算法参数（`SIMILARITY_THRESHOLD=0.35` / `TIME_WINDOW_DAYS=7` / `max_features=10000` / `char_wb ngram(2,4)`）；补 `n_similar_articles_{full,ctx}` 篇章列；明确 v3.5.x legacy `herd_weight` 已删除 + 触发 WARN 机制。
 3. **§30 EPU**：补完整 schema（`year:int, month:int, epu:float`）+ 数据源路径 `data/external/epu_china_monthly_2007_2024.csv`；3 级 graceful fallback（文件缺失 → 全 NaN；schema 缺列 → error + 全 NaN；缺 date 列 → year-only fallback）；D-0 实测项（policyuncertainty.com 实际止于 2022？）。
 4. **§31 BERTopic 主题**：实证 **K 是 HDBSCAN 自动发现**（`min_cluster_size=5000`，400k 文章 → 预期 K ≈ 15-30，runtime 决定，写入 `17_topic_metadata.json`）；明确 `frac_topic_{0..K-1}_{full,ctx}` 命名（不是占位 `frac_topic_k_*`）；补**双轨零 K-drift 机制**（ctx 用 `.transform()` 复用 full 已 fit 的 topic_model）；补 UMAP 固定 `random_state=42` + CountVectorizer `cn_tokenize`；补 3 个 parquet（`17_article_topics` / `17_topic_info` / `17_topic_panel`）；学术锚定 Bybee 2024 RFS + Hansen 2018 QJE + Grootendorst 2022。

@@ -38,7 +38,7 @@ foreach d of local dicts {
 }
 
 * --- BERT methods (对照) ---
-local berts finbert2_pos hw2942_pos
+local berts finbert2_pos fin_sent_zh_pos
 foreach b of local berts {
     local BERT_DV `b'_{{MAIN_SENT_TRACK}}
     capture confirm variable `BERT_DV'

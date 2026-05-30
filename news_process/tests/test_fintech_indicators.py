@@ -186,7 +186,7 @@ class TestStataVarNames:
         *[f'disag_{m}{s}' for m in ['gpt54nano','gemini31111','deepseekv4']
           for s in ['_full','_ctx']],
         'disag_bert_full','disag_bert_ctx',
-        *[f'disag_{b}{s}' for b in ['finbert_cn','fin_sent_zh','erlangshen','hw2942','finbert2']
+        *[f'disag_{b}{s}' for b in ['finbert_cn','fin_sent_zh','finbert2']
           for s in ['_full','_ctx']],
         'log_sent_full','log_sent_ctx',
         'algo_cater_full','algo_cater_ctx','algo_cater_b_full','algo_cater_b_ctx',
@@ -196,14 +196,14 @@ class TestStataVarNames:
           for s in ['_full','_ctx']],
         *[f'cater_{m}{s}' for m in ['gpt54nano','gemini31111','deepseekv4']
           for s in ['_full','_ctx']],
-        *[f'cater_{b}{s}' for b in ['finbert_cn','fin_sent_zh','erlangshen','hw2942','finbert2']
+        *[f'cater_{b}{s}' for b in ['finbert_cn','fin_sent_zh','finbert2']
           for s in ['_full','_ctx']],
         'avg_ft_word_ratio','avg_ft_word_ratio_std','peer_compete_idx',
         *[f'{m}_neg_count{s}' for m in ['gpt54nano','gemini31111','deepseekv4']
           for s in ['_full','_ctx']],
         *[f'{d}_neg_count{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
           for s in ['_full','_ctx']],
-        *[f'{b}_neg_count{s}' for b in ['finbert_cn','fin_sent_zh','erlangshen','hw2942','finbert2']
+        *[f'{b}_neg_count{s}' for b in ['finbert_cn','fin_sent_zh','finbert2']
           for s in ['_full','_ctx']],
         *[f'avg_{d}_pos_ratio{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
           for s in ['_full','_ctx']],
@@ -212,7 +212,7 @@ class TestStataVarNames:
     ]
 
     def test_total_count(self):
-        assert len(self.ALL_VARS) == 123
+        assert len(self.ALL_VARS) == 111
 
     def test_all_under_32_chars(self):
         for v in self.ALL_VARS:

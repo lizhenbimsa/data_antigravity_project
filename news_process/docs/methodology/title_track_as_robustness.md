@@ -116,7 +116,7 @@ indicators.
 |------------------|--------------------------|------------|
 | LLM tone (3-model vote) | ✅ Computed | Table A8 Panel A/B |
 | Dictionary tone (jiang/yao/bian/du/you 5) | ✅ Computed | Table A8 Panel A/B (per-paper choice) |
-| BERT pos/neg (5 BERT) | ✅ Computed | Table A8 Panel A/B (per-paper choice) |
+| BERT pos/neg (3 BERT) | ✅ Computed | Table A8 Panel A/B (per-paper choice) |
 | A1 mean_clarity_score | ❌ Excluded (R3-H1) | Not used |
 | A3 mean_num_intensity | ❌ Excluded (R3-H1) | Not used |
 | `tone_gap_title_full` (Engelberg gap) | ✅ Pre-computed (panel) | Table A8 Panel C control |

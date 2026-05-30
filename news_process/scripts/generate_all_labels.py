@@ -36,8 +36,6 @@ def infer_label(var):
         'you_2018': '尤2018',
         'finbert_cn': 'FinBERT-CN',
         'fin_sent_zh': 'FinSent-ZH',
-        'erlangshen': 'Erlangshen',
-        'hw2942': 'HW2942',
     }
 
     # 指标映射

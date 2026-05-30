@@ -61,17 +61,3 @@ label variable fin_sent_zh_neg_sum_full "FinSent-ZH负面概率总和(全文)"
 label variable fin_sent_zh_neu_full "FinSent-ZH中性概率(全文)"
 label variable fin_sent_zh_neu_sum_full "FinSent-ZH中性概率总和(全文)"
 
-* 4.3 Erlangshen (二分类)
-label variable erlangshen_pos_full "Erlangshen正面概率(全文)"
-label variable erlangshen_pos_sum_full "Erlangshen正面概率总和(全文)"
-label variable erlangshen_neg_full "Erlangshen负面概率(全文)"
-label variable erlangshen_neg_sum_full "Erlangshen负面概率总和(全文)"
-
-* 4.4 HW2942 (三分类)
-label variable hw2942_pos_full "HW2942正面概率(全文)"
-label variable hw2942_pos_sum_full "HW2942正面概率总和(全文)"
-label variable hw2942_neg_full "HW2942负面概率(全文)"
-label variable hw2942_neg_sum_full "HW2942负面概率总和(全文)"
-label variable hw2942_neu_full "HW2942中性概率(全文)"
-label variable hw2942_neu_sum_full "HW2942中性概率总和(全文)"
-

@@ -455,7 +455,7 @@ h4:hover .headerlink, h5:hover .headerlink, h6:hover .headerlink {
 </tr>
 <tr>
 <td><strong><code>23_tone_berts</code></strong></td>
-<td>5 种 BERT 模型（含 FinBERT2、IDEA-CCNL 等）</td>
+<td>3 种 BERT 模型（FinBERT-CN、FinSent-ZH、FinBERT2）</td>
 <td>语义+复现性折中</td>
 <td>需 GPU、模型黑盒</td>
 <td><strong>方法学稳健性</strong></td>
@@ -840,7 +840,7 @@ h4:hover .headerlink, h5:hover .headerlink, h6:hover .headerlink {
 <li>词典版（stage 22）和 BERT 版（stage 23）<strong>零成本</strong>，是 LLM 不可用时的 fallback</li>
 </ul>
 <h3 id="q5finbert2">Q5：FinBERT2 模型本地没有怎么办？<a class="headerlink" href="#q5finbert2" title="Permalink to this section">¶</a></h3>
-<p><code>stage 23</code> 会自动跳过——其他 4 个 BERT 模型仍跑。不阻塞流水线。</p>
+<p><code>stage 23</code> 会自动跳过——其他 2 个 BERT 模型仍跑。不阻塞流水线。</p>
 <h3 id="q6import-torch">Q6：测试报错"<code>import torch</code> 失败"怎么办？<a class="headerlink" href="#q6import-torch" title="Permalink to this section">¶</a></h3>
 <p><strong>这是已知问题</strong>。CI 有 5 个 job 矩阵，其中 4 个 light job 没装 torch。新加的测试如果用了 torch，必须在文件顶加：</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>

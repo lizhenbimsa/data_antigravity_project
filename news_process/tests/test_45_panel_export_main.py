@@ -60,8 +60,8 @@ def _isolate_cwd_relative_writes(tmp_path, monkeypatch):
 
 LLM_SHORTS = ['gpt54nano', 'gemini31111', 'deepseekv4']  # v3: 真三家族
 DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
-BERT_SHORTS = ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
-THREE_CLASS = {'finbert_cn', 'fin_sent_zh', 'hw2942'}
+BERT_SHORTS = ['finbert_cn', 'fin_sent_zh', 'finbert2']
+THREE_CLASS = {'finbert_cn', 'fin_sent_zh'}
 
 
 def _build_banks_info(bank_names, title_banks=None):
@@ -313,7 +313,7 @@ class TestConfigReading:
         assert bp.LLM_MODELS == ['gpt54nano', 'gemini31111', 'deepseekv4']  # v6
 
     def test_bert_models_from_config(self):
-        assert bp.BERT_MODELS == ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+        assert bp.BERT_MODELS == ['finbert_cn', 'fin_sent_zh', 'finbert2']
 
     def test_three_class_models(self):
         assert 'finbert_cn' in bp.THREE_CLASS_MODELS

@@ -85,7 +85,7 @@
 | 工作项 | 排除理由 |
 |---|---|
 | 跨国 fintech 媒体数据（v1 plan 的 B2 路径）| N×T = 500 × 18 = 9,000 obs 已足够进入 top 5 银行实证下沿；跨国扩展边际收益不抵成本（3-6 月、$5K+ 数据采购）|
-| 新增 BERT 模型 fine-tune | 现有 4 BERT (FinBERT, FinBERT2, hw2942, 加上 prompt v7 三 LLM) 三角验证足够；扩展属 future work |
+| 新增 BERT 模型 fine-tune | 现有 3 BERT (FinBERT-CN, FinSent-ZH, FinBERT2, 加上 prompt v7 三 LLM) 三角验证足够；扩展属 future work |
 | LLM 同业竞争网络 IV (`llm_peer/`) 重新设计 | 已在 v3.3.0 落地，M0 仅做 9 paper registry 注册 (v2.56 epoch 5 含 P5)，不重新设计 |
 | 新建 stage（如 stage 17/27/47）| 4 个新 paper 全部消费 `46_panel_yearly_v34.dta`，不向 DAG 注入新 stage |
 | Manual annotation 等级扩展 | 由 [calibration_plan_v5.1](../methodology/calibration_plan_v5.1.md) 单独跟踪 |

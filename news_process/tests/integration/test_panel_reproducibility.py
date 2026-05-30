@@ -96,7 +96,7 @@ def test_golden_stages_subset_of_registry_or_orphan_whitelist(golden):
     # 与 generate_golden_snapshot._ORPHAN_WHITELIST 保持同步
     known_orphans = {
         "30_text2vec_indicators.parquet",
-        "41_panel_with_controls.parquet",
+        # 41_panel_with_controls.parquet 已删除 (2026-05-30): 无生产者孤儿 + 含已移除模型列。
     }
     allowed = registry_parquets | known_orphans
     golden_stages = set(golden.get("stages", {}).keys())
@@ -125,7 +125,6 @@ def test_golden_stages_subset_of_registry_or_orphan_whitelist(golden):
     "40_attn_index_year.parquet",
     "40_attn_index_province_year.parquet",
     "40_attn_index_city_year.parquet",
-    "41_panel_with_controls.parquet",
     "51_panel_with_controls.parquet",
 ])
 def test_column_hashes_match_golden(stage_filename, golden, data_dir):

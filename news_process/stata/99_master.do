@@ -192,7 +192,7 @@ foreach var of varlist * {
     local lab : variable label `var'
     if regexm("`lab'", "LLM|GPT|Gemini|Grok") local ++llm_vars
     if regexm("`lab'", "词典|江|姚|卞|杜|尤") local ++dict_vars
-    if regexm("`lab'", "BERT|FinBERT|FinSent|Erlangshen|HW2942") local ++bert_vars
+    if regexm("`lab'", "BERT|FinBERT|FinSent") local ++bert_vars
     if regexm("`lab'", "媒体|Media") local ++media_vars
     if regexm("`lab'", "地理|缓冲|LOO|km") local ++geo_vars
     if regexm("`lab'", "网络|同行|中心度|Peer") local ++network_vars

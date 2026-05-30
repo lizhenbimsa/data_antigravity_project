@@ -52,7 +52,7 @@
 - 包含IDF加权版本
 
 **BERT情感分析**（阶段23）
-- 5个模型：FinBERT-CN、FinSent-ZH、Erlangshen、HW2942、FinBERT2
+- 3个模型：FinBERT-CN、FinSent-ZH、FinBERT2
 - 输出：正面/负面/中性概率
 
 ### 文本特征指标（约100个）

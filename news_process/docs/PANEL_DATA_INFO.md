@@ -132,8 +132,6 @@
 **BERT情感分析** (298个)
 - FinBERT-CN
 - FinSent-ZH
-- Erlangshen
-- HW2942
 - FinBERT2
 - 输出正面/负面/中性概率
 

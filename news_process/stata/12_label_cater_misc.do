@@ -36,8 +36,6 @@ label variable cater_gemini311_full "Gemini3迎合指数(全文)"
 label variable cater_deepseekv4_full "Grok4.1迎合指数(全文)"
 label variable cater_finbert_cn_full "FinBERT-CN迎合指数(全文)"
 label variable cater_fin_sent_zh_full "FinSent-ZH迎合指数(全文)"
-label variable cater_erlangshen_full "Erlangshen迎合指数(全文)"
-label variable cater_hw2942_full "HW2942迎合指数(全文)"
 
 * 34.2 上下文轨道迎合指标
 label variable algo_cater_ctx "算法迎合指数(上下文)"
@@ -59,8 +57,6 @@ label variable cater_gemini311_ctx "Gemini3迎合指数(上下文)"
 label variable cater_deepseekv4_ctx "Grok4.1迎合指数(上下文)"
 label variable cater_finbert_cn_ctx "FinBERT-CN迎合指数(上下文)"
 label variable cater_fin_sent_zh_ctx "FinSent-ZH迎合指数(上下文)"
-label variable cater_erlangshen_ctx "Erlangshen迎合指数(上下文)"
-label variable cater_hw2942_ctx "HW2942迎合指数(上下文)"
 
 * ============================================================================
 * 35. 情感反转指标 (Tone Reversal)

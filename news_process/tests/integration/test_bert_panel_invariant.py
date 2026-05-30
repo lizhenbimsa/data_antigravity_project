@@ -3,16 +3,16 @@
 Catches the "stage 23 silently drops a BERT model" failure mode at test time
 rather than at panel construction time.
 
-Concrete failure mode (observed 2026-05-13 in Wave 0/1 finalization):
-  - config/sentiment.yaml lists 5 BERT models (finbert_cn / fin_sent_zh /
-    erlangshen / hw2942 / finbert2).
-  - HuggingFace huggingface.co was unreachable from the dev machine, so
-    hw2942 (uncached locally) graceful-skipped while the other 4 (cached)
-    succeeded.
-  - Stage 23 produced 291 cols instead of 303 - a 12-column silent drop.
+Concrete failure mode (originally observed 2026-05-13 in Wave 0/1 finalization):
+  - config/sentiment.yaml lists 3 BERT models (finbert_cn / fin_sent_zh /
+    finbert2).
+  - If HuggingFace huggingface.co is unreachable from the dev machine, a
+    model whose weights are uncached locally graceful-skips while the
+    cached ones succeed.
+  - Such a silent skip drops that model's columns from the stage 23 output.
   - Downstream panel encode (pipeline/panel/encode.py:63) reads BERT_MODELS
-    from the SAME config; trying to read `hw2942_label_ctx` would have
-    KeyError'd ~30 min later. This test catches it in <1s.
+    from the SAME config; trying to read a dropped `<model>_label_ctx` would
+    KeyError ~30 min later. This test catches it in <1s.
 
 The invariant: for every model declared in `tone_berts.models`, the stage 23
 parquet must contain its 3 label columns: `{short_name}_label_{ctx,full,title}`.
@@ -56,7 +56,7 @@ def bert_parquet() -> pd.DataFrame:
 def test_every_configured_bert_model_has_label_columns(bert_parquet):
     """每个 config 列出的 BERT model 必须在 stage 23 输出里有 label_{ctx,full,title}.
 
-    若 hw2942 因 HF 不可达 graceful skip, 此 test 立刻报错; 不会让缺失
+    若某个 model 因 HF 不可达 graceful skip, 此 test 立刻报错; 不会让缺失
     传到 stage 45 才以 KeyError 形式炸 ~30min 后。
     """
     expected = _configured_bert_short_names()

@@ -768,7 +768,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'washing_ratio_{m}{s}': f'WR: {m} ({t})'
                    for m in ['gpt54nano', 'gemini31111', 'deepseekv4',
                              'jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
-                             'finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+                             'finbert_cn', 'fin_sent_zh', 'finbert2']
                    for s, t in [('', 'Full'), ('_ctx', 'Ctx')]},
                 # ═══ 停刊稳健性 (Heese et al. 2022, JFE) ═══
                 'ceased_media_frac':             'Ceased Media Article Share',
@@ -921,7 +921,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'disag_bert{s}': f'Disagreement: BERT Avg ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'disag_{b}{s}': f'Disagreement: {b} ({t})'
-                   for b in ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+                   for b in ['finbert_cn', 'fin_sent_zh', 'finbert2']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 # ═══ 对数降噪情感 (Angelico et al. 2022) ═══
                 **{f'log_sent{s}': f'Log Sentiment ({t})'
@@ -941,7 +941,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                    for m in ['gpt54nano', 'gemini31111', 'deepseekv4']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'cater_{b}{s}': f'Catering: Dict-{b} ({t})'
-                   for b in ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+                   for b in ['finbert_cn', 'fin_sent_zh', 'finbert2']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 # ═══ 披露密度 (Abraham et al. 2024) ═══
                 'avg_ft_word_ratio':     'Avg Fintech Word Ratio',
@@ -961,7 +961,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                    for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'{b}_neg_count{s}': f'Neg Count: {b} ({t})'
-                   for b in ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+                   for b in ['finbert_cn', 'fin_sent_zh', 'finbert2']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 # ═══ 前置中间变量: 单词典 pos/neg ratio ═══
                 **{f'avg_{d}_pos_ratio{s}': f'Avg Pos Ratio: {d} ({t})'

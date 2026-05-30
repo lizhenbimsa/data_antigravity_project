@@ -435,7 +435,7 @@ h4:hover .headerlink, h5:hover .headerlink, h6:hover .headerlink {
 <p>然而，<strong>针对中国银行业</strong>且能同时满足以下五项条件的文本计量基础设施，迄今<strong>没有公开可复现的实现</strong>：</p>
 <ol>
 <li><strong>样本覆盖</strong>：覆盖全部三类商业银行（国有 / 政策性 / 股份制 / 城商 / 农商 / 民营 / 外资 / 直销 / 央行）共 1,771 家，而非常见的 16 家上市银行或 30–40 家系统重要性银行；</li>
-<li><strong>测度多元</strong>：同时实现 Loughran-McDonald 词典体系（含 uncertainty / litigation / constraining / modal strong 四子词典 v0.1.5）、LLM 三家厂商投票（GPT-4o + Claude 3.5 Sonnet + Gemini 1.5 Pro，三家模型 snapshot 字节级冻结）与 5 种 BERT 模型（含私有 FinBERT2）三套<strong>独立路径</strong>；</li>
+<li><strong>测度多元</strong>：同时实现 Loughran-McDonald 词典体系（含 uncertainty / litigation / constraining / modal strong 四子词典 v0.1.5）、LLM 三家厂商投票（GPT-4o + Claude 3.5 Sonnet + Gemini 1.5 Pro，三家模型 snapshot 字节级冻结）与 3 种 BERT 模型（含私有 FinBERT2）三套<strong>独立路径</strong>；</li>
 <li><strong>构念—测度匹配</strong>：在每一个核心情感构念上同时提供 <code>_full</code>（全文）与 <code>_ctx</code>（银行提及上下文窗口）双轨，以契合 Tetlock 2007 / L&amp;M 2016 <em>JAR</em> 关于"entity-attributed sentiment"的现代标准；</li>
 <li><strong>判别效度可审计</strong>：以 Cohen κ（39a inter-track）、Krippendorff α（39f cross-media）、Cronbach α + HTMT 双 cutoff 0.85/0.90 + 1000-rep permutation（39c construct orthogonality、39d/39e discriminant validity）四道独立闸门系统化检验所有指标之间的判别性；</li>
 <li><strong>LLM 时代的 reproducibility 硬约束</strong>：以 append-only JSONL + SHA-256 manifest 持久化每一次 LLM 响应（v3.7.0 DC3），并以 Git LFS 与冻结的 prompt v8 字节哈希联合保证"即使 OpenAI 把 GPT-5.4 弃用、Anthropic 把 Claude 4 弃用，主表也可被独立重建"。</li>
@@ -746,7 +746,7 @@ Stata 三入口 .dta（core 49 列 / aux 1,977 列 / full 2,024 列）
 <tr>
 <td><strong>第三幕</strong>：情感测量</td>
 <td><code>21 / 22 / 23 / 24</code></td>
-<td>LLM 三模型投票（OpenAI + Anthropic + Google）/ LM 2011 <em>JF</em> 词典（含 v3.5.2 新加 4 子词典）/ 5 种 BERT 模型 / 同业从众与时间衰减加权（双轨）</td>
+<td>LLM 三模型投票（OpenAI + Anthropic + Google）/ LM 2011 <em>JF</em> 词典（含 v3.5.2 新加 4 子词典）/ 3 种 BERT 模型 / 同业从众与时间衰减加权（双轨）</td>
 </tr>
 <tr>
 <td><strong>第四幕</strong>：稳健性变体</td>
@@ -888,7 +888,7 @@ Stata 三入口 .dta（core 49 列 / aux 1,977 列 / full 2,024 列）
 <tr>
 <td><strong><code>23_tone_berts</code></strong></td>
 <td><code>pipeline/sentiment/tone_berts.py</code></td>
-<td>FinBERT2（私有）+ IDEA-CCNL Erlangshen + hfl/Chinese-BERT-wwm + 等 5 个</td>
+<td>FinBERT-CN + FinSent-ZH + FinBERT2（私有）共 3 个</td>
 <td><code>bert_*_tone_{full,ctx}</code></td>
 <td><code>models/</code> 模型权重 / <code>FINBERT2_MODEL_DIR</code> env</td>
 </tr>

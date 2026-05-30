@@ -60,7 +60,7 @@ DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
 
 # BERT 模型 short_name 列表与分类数（从 sentiment_analysis.tone_berts.models 读取）
 _bert_cfg = CONFIG.get('sentiment_analysis', {}).get('tone_berts', {}).get('models', [])
-BERT_MODELS = [m['short_name'] for m in _bert_cfg] if _bert_cfg else ['finbert_cn', 'fin_sent_zh', 'erlangshen', 'hw2942', 'finbert2']
+BERT_MODELS = [m['short_name'] for m in _bert_cfg] if _bert_cfg else ['finbert_cn', 'fin_sent_zh', 'finbert2']
 
 # 三分类模型（有 _中性 列）
 THREE_CLASS_MODELS = set()
@@ -69,7 +69,7 @@ for m in _bert_cfg:
     if '中性' in lm.values():
         THREE_CLASS_MODELS.add(m['short_name'])
 if not THREE_CLASS_MODELS:
-    THREE_CLASS_MODELS = {'finbert_cn', 'fin_sent_zh', 'hw2942'}
+    THREE_CLASS_MODELS = {'finbert_cn', 'fin_sent_zh'}
 
 
 # ============================================================================
