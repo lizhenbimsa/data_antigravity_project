@@ -169,10 +169,11 @@ def test_codebook_infer_track_recognizes_suffix():
     from news_process.pipeline.panel import codebook as cb
     assert cb._infer_track('llm_sentiment_full') == 'full'
     assert cb._infer_track('llm_sentiment_ctx') == 'ctx'
-    assert cb._infer_track('llm_sentiment_title') == 'title'
-    # 无 track 后缀 -> 任意非 {full,ctx,title} 的 fallback (允许 None / 'none')
+    # remove-title-track: _title 不再是已知轨道, 归为 '' (与未知列同)
+    assert cb._infer_track('llm_sentiment_title') == ''
+    # 无 track 后缀 -> 任意非 {full,ctx} 的 fallback (允许 None / 'none')
     no_track = cb._infer_track('bank_zone')
-    assert no_track not in ('full', 'ctx', 'title'), (
+    assert no_track not in ('full', 'ctx'), (
         f"非 track 列被误判为 track: {no_track!r}"
     )
 

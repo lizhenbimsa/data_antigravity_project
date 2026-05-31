@@ -156,9 +156,18 @@ def test_panel_dual_subset_identity(panel_or_skip):
 
 
 def test_panel_column_count_lower_bound(panel_or_skip):
-    """v3.2.0 panel 列数应 ≥ v3.1.1 baseline (994 测试) panel 列 (2002).
+    """panel 列数下界回归 guard (remove-title-track 后下调阈值).
 
-    v3.2.0 加性策略 (M2 P2 P3) 新增 ~50-80 列, panel 应至少有 ~2050 列.
+    历史: v3.2.0 三轨 (full/ctx/title) 期望 ≥ 2002 列 (v3.1.1 baseline 994 的 2 倍).
+    remove-title-track: 取消标题情感轨后 panel 从 3 轨收缩为 2 轨 (full/ctx),
+    sentiment 各族少约 1/3 列 — 冻结 disk panel 1998 列中含 427 个 `_title` 列
+    + 4 个标题派生列 (tone_gap_title_full / prob_gap_title_full / frac_title_* /
+    avg_agreement_rate_title), 重跑后约剩 ~1567 列。阈值下调到 1400:
+    既高于 v3.1.1 baseline 994 (仍是有意义的"宽表未坍缩"守卫), 又同时容纳
+    冻结 panel (1998, production 重跑前) 与重跑后的 2 轨 panel (~1567)。
     """
     n_cols = len(panel_or_skip.columns)
-    assert n_cols >= 2002, f"Panel 列数 {n_cols} < v3.1.1 baseline 2002 (regression?)"
+    assert n_cols >= 1400, (
+        f"Panel 列数 {n_cols} < 1400 下界 (remove-title-track 后 2 轨 panel "
+        f"应 ~1567 列; 低于 1400 疑似宽表坍缩 regression)"
+    )

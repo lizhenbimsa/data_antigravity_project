@@ -712,11 +712,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # ═══ 银行共现网络: Part D-1 一阶溢出 (3) ═══
                 'peer_tone_lag1_full':      '1st-Order Peer Sentiment (Full)',
                 'peer_tone_lag1_ctx':       '1st-Order Peer Sentiment (Ctx)',
-                'peer_tone_lag1_title':     '1st-Order Peer Sentiment (Title)',
                 # ═══ 银行共现网络: Part D-2 二阶溢出 (3) ═══
                 'peer_tone_2nd_lag1_full':  '2nd-Order Peer Sentiment Spillover (Full)',
                 'peer_tone_2nd_lag1_ctx':   '2nd-Order Peer Sentiment Spillover (Ctx)',
-                'peer_tone_2nd_lag1_title': '2nd-Order Peer Sentiment Spillover (Title)',
                 # ═══ 地理邻近性: 维度⑨ (Gurun & Butler 2012, JF) ═══
                 'homeprov_media_frac':              'Home-Province Media Fraction',
                 'homecity_media_frac':              'Home-City Media Fraction',
@@ -733,7 +731,6 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # 姜富伟系数 (Jiang et al. 2019)
                 'jf_coefficient_full':              'JF Coefficient (Full-text)',
                 'jf_coefficient_ctx':               'JF Coefficient (Context)',
-                'jf_coefficient_title':             'JF Coefficient (Title)',
                 # 媒体质量指标 — 洗稿率 44 种 (Bingler et al. 2022, FRL)
                 'washing_ratio':                    'Washing Ratio: LLM Vote (Full)',
                 'washing_ratio_ctx':                'Washing Ratio: LLM Vote (Ctx)',
@@ -775,17 +772,13 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'n_articles_exc':                'N Articles Excl Ceased Media',
                 'exc_tone_full':                 'Tone Excl Ceased (LLM Vote, Full)',
                 'exc_tone_ctx':                  'Tone Excl Ceased (LLM Vote, Ctx)',
-                'exc_tone_title':                'Tone Excl Ceased (LLM Vote, Title)',
                 # ═══ 平衡媒体面板 (Wooldridge 2010, §19.9) ═══
                 'bal_w0724_tone_full':           'Balanced W07-24 Tone (Full)',
                 'bal_w0724_tone_ctx':            'Balanced W07-24 Tone (Ctx)',
-                'bal_w0724_tone_title':          'Balanced W07-24 Tone (Title)',
                 'bal_w1024_tone_full':           'Balanced W10-24 Tone (Full)',
                 'bal_w1024_tone_ctx':            'Balanced W10-24 Tone (Ctx)',
-                'bal_w1024_tone_title':          'Balanced W10-24 Tone (Title)',
                 'bal_w1124_tone_full':           'Balanced W11-24 Tone (Full)',
                 'bal_w1124_tone_ctx':            'Balanced W11-24 Tone (Ctx)',
-                'bal_w1124_tone_title':          'Balanced W11-24 Tone (Title)',
                 'n_media_bal_w0724':             'N Media Balanced W07-24',
                 'n_media_bal_w1024':             'N Media Balanced W10-24',
                 'n_media_bal_w1124':             'N Media Balanced W11-24',
@@ -972,18 +965,17 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 # ═══ Logit-to-Score 概率映射情感 (Törnberg 2024 / Shapiro 2022) ═══
                 **{f'avg_llm_prob_score{s}': f'Avg Prob Score ({t})'
-                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'avg_llm_prob_score_std{s}': f'Std Prob Score ({t})'
-                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'llm_prob_score_sum{s}': f'Sum Prob Score ({t})'
-                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'llm_vote_tone_vw_prob{s}': f'VW Prob Tone ({t})'
-                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'llm_vote_tone_mw_prob{s}': f'MW Prob Tone ({t})'
-                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'llm_vote_tone_hw_prob{s}': f'HW Prob Tone ({t})'
-                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx'), ('_title', 'Title')]},
-                'prob_gap_title_full': 'Prob Score Gap: Title - Full',
+                   for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 # === 权威政策战略响应度 (Stage 26; Hassan et al. 2019) ===
                 # 注: 8 个 'auth_sim_*' key 已在 line 573-580 声明 (字符串完全相同),
                 # 此处不再重复以保持 dict-key 唯一性 (Plan-r3 P0-2 修复, ruff F601).

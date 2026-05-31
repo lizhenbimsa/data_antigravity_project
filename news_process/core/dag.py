@@ -149,7 +149,6 @@ _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'lexical_discriminant_validity': _validation_flag('lexical_discriminant_validity'),  # v3.5.1 stage 39d
     'lm_discriminant_validity': _validation_flag('lm_discriminant_validity'),  # v3.5.2 PR #4 stage 39e (LM 4 子词典 HTMT)
     'cross_media_alpha': _validation_flag('cross_media_alpha'),  # v3.7.0 PR #12 stage 39f (Krippendorff α + variance)
-    'track_discriminant_validity': _validation_flag('track_discriminant_validity'),  # v3.7.3 stage 39g (_full/_ctx/_title HTMT 3×3)
 }
 
 
@@ -529,17 +528,6 @@ STAGES_VALIDATION: list[StageSpec] = [
         group="validation", kind="audit",
         timeout=3600,  # 60 min ceiling, event detection + outlet aggregation
         enabled_when=_VALIDATION_PREDS['cross_media_alpha'],
-    ),
-    # v3.7.3 Plan A v1.0: Track-discriminant validity (HTMT 3×3 across
-    # _full / _ctx / _title 切片轨). 锚定 Heston & Sinha (2017) FAJ +
-    # Loughran-McDonald (2016) JAR survey §6 + Boudoukh et al. (2019) RFS +
-    # Campbell-Fiske (1959) MTMM 框架. 与 39d (indicator 维度) 正交.
-    StageSpec(
-        name="阶段39g: Track-discriminant validity (_full/_ctx/_title HTMT 3×3; v3.7.3)",
-        script="39g_track_discriminant_validity.py",
-        group="validation", kind="audit",
-        timeout=900,  # 15 min ceiling, 仿 39d
-        enabled_when=_VALIDATION_PREDS['track_discriminant_validity'],
     ),
 ]
 

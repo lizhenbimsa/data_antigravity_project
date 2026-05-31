@@ -790,13 +790,18 @@ def main():
         raise SystemExit(1)
     log_memory_usage(logger, "全部模型加载后")
 
-    # ── Step 1b: 构建双轨文本列表 ──
-    # content_ctx 由阶段 21 预计算并物化为列，直接读取以确保三种方法输入一致
-    content_full_list = df['内容'].fillna('').astype(str).tolist()
-    content_ctx_list = df['content_ctx'].fillna(df['内容']).astype(str).tolist()
-    content_title_list = df['标题'].fillna('').astype(str).tolist()
+    # ── Step 1b: 构建双轨文本列表 (remove-title-track) ──
+    # full 轨 = 标题 + 内容; ctx 轨 = 标题 + 实体窗口。标题轨已取消; 两轨文本
+    # 均经 prepend_title 注入标题 (与 stage 13 / 词典法对齐)。
+    from news_process.core.text.entity_context import prepend_title
+    _titles = (df['标题'].fillna('').astype(str).tolist()
+               if '标题' in df.columns else [''] * len(df))
+    _bodies = df['内容'].fillna('').astype(str).tolist()
+    _ctx_bodies = df['content_ctx'].fillna(df['内容']).astype(str).tolist()
+    content_full_list = [prepend_title(t, b) for t, b in zip(_titles, _bodies)]
+    content_ctx_list = [prepend_title(t, c) for t, c in zip(_titles, _ctx_bodies)]
 
-    logger.info(f"三轨文本列表构建完成: full={len(content_full_list)}, ctx={len(content_ctx_list)}, title={len(content_title_list)}")
+    logger.info(f"双轨文本列表构建完成 (含标题注入): full={len(content_full_list)}, ctx={len(content_ctx_list)}")
 
     # ── Step 2: 双轨批量推理（物理隔离，防止 OOM） ──
     logger.info("=" * 50)
@@ -808,11 +813,8 @@ def main():
     logger.info("启动 [_full] 轨道推理...")
     output_full = process_all_models(df, engine, content_full_list)
 
-    logger.info("启动 [_title] 轨道推理...")
-    output_title = process_all_models(df, engine, content_title_list)
-
     # ── Step 3: 将双轨结果写回 DataFrame（带后缀） ──
-    for out_dict, suffix in [(output_ctx, '_ctx'), (output_full, '_full'), (output_title, '_title')]:
+    for out_dict, suffix in [(output_ctx, '_ctx'), (output_full, '_full')]:
         for mc in MODEL_CONFIGS:
             sn = mc['short_name']
             if sn in out_dict:
@@ -829,9 +831,6 @@ def main():
         if _first_sn in output_full and 'num_windows_list' in output_full[_first_sn]:
             df['bert_num_windows_full'] = output_full[_first_sn]['num_windows_list']
             logger.info(f"  已写入 bert_num_windows_full 列 (基于模型: {_first_sn})")
-        if _first_sn in output_title and 'num_windows_list' in output_title[_first_sn]:
-            df['bert_num_windows_title'] = output_title[_first_sn]['num_windows_list']
-            logger.info(f"  已写入 bert_num_windows_title 列 (基于模型: {_first_sn})")
 
     # ── Step 4: 保存输出 ──
     # 使用数据版本控制保存
@@ -849,13 +848,11 @@ def main():
     engine.unload_all()
     log_memory_usage(logger, "模型释放后")
 
-    # ── 打印统计报告（三轨分别打印） ──
+    # ── 打印统计报告（双轨分别打印） ──
     logger.info("=== [_ctx] 轨道统计 ===")
     log_classification_report(output_ctx, len(df))
     logger.info("=== [_full] 轨道统计 ===")
     log_classification_report(output_full, len(df))
-    logger.info("=== [_title] 轨道统计 ===")
-    log_classification_report(output_title, len(df))
 
     # ── 生成预览 CSV ──
     preview_path = output_path.replace('.parquet', '.csv')

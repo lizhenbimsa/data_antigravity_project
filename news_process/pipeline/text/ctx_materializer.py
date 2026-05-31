@@ -65,56 +65,91 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         df: 新增 'content_ctx' 列 (若已存在则不变)。
     """
-    if 'content_ctx' in df.columns and 'ctx_is_fallback' in df.columns:
-        logger.info("  'content_ctx' + 'ctx_is_fallback' 已存在, 跳过物化 (idempotent)")
+    # remove-title-track: 两轨文本均需"包含标题"。content_full (= 标题 + 内容)
+    # 与 content_ctx (= 标题 + 实体窗口) 都经 prepend_title 注入标题。原始 '内容'
+    # 列保持不变 (仍供 doc_length / 去重 / 上下半切分 / fintech 强度分母 / topic /
+    # staleness 等非情感复用)。下游 full 轨情感消费者改读 content_full。
+    from news_process.core.text.entity_context import prepend_title
+
+    if ('content_full' in df.columns and 'content_ctx' in df.columns
+            and 'ctx_is_fallback' in df.columns):
+        logger.info("  'content_full' + 'content_ctx' + 'ctx_is_fallback' 已存在, "
+                    "跳过物化 (idempotent)")
         return df
-    if 'content_ctx' in df.columns and 'ctx_is_fallback' not in df.columns:
-        # v3.7.2 旧 schema 兼容: content_ctx 已物化但缺 ctx_is_fallback, 补算 1 列
+
+    # 旧 schema 兼容 (remove-title-track): content_ctx 已被上游物化, 但缺
+    # content_full / ctx_is_fallback。**不重算 content_ctx** (尊重既有物化值),
+    # 仅补算缺列: content_full = 标题 + 内容; ctx_is_fallback = (content_ctx ≡ 内容)。
+    # content_ctx 此处保持原值不再注入标题 (上游已定; 与 prepend_title 的 startswith
+    # 去重不冲突)。
+    if 'content_ctx' in df.columns and not (
+            'content_full' in df.columns and 'ctx_is_fallback' in df.columns):
         df = df.copy()
-        df['ctx_is_fallback'] = (
-            df['content_ctx'].astype(str) == df['内容'].astype(str)
-        ).astype('bool')
-        logger.info(f"  旧 schema: content_ctx 已存在, 补算 ctx_is_fallback "
-                    f"({int(df['ctx_is_fallback'].sum())}/{len(df)} True)")
+        _bodies_old = df['内容'].astype(str).tolist()
+        _ctx_old = df['content_ctx'].astype(str).tolist()
+        if 'ctx_is_fallback' not in df.columns:
+            df['ctx_is_fallback'] = pd.Series(
+                [c == b for c, b in zip(_ctx_old, _bodies_old)],
+                index=df.index,
+            ).astype('bool')
+        if 'content_full' in df.columns:
+            pass
+        elif '标题' in df.columns:
+            _titles_old = df['标题'].fillna('').astype(str).tolist()
+            df['content_full'] = [prepend_title(t, b)
+                                  for t, b in zip(_titles_old, _bodies_old)]
+        else:
+            df['content_full'] = _bodies_old
+        logger.info(f"  旧 schema: content_ctx 已存在, 补算 content_full + "
+                    f"ctx_is_fallback ({int(df['ctx_is_fallback'].sum())}/{len(df)} True)")
         return df
 
     _ctx_cfg = CONFIG.get('context_window', {})
     _sentence_radius = _ctx_cfg.get('sentence_radius', 1)
     _fallback_char_radius = _ctx_cfg.get('fallback_char_radius', 150)
 
-    logger.info(f"物化 content_ctx 列 — sentence_radius={_sentence_radius}, "
+    logger.info(f"物化 content_full + content_ctx 列 (含标题注入) — "
+                f"sentence_radius={_sentence_radius}, "
                 f"fallback_char_radius={_fallback_char_radius}")
     _bnf = CONFIG['paths'].get('bank_names_file', '')
     _alias_cache: dict = {}
 
-    ctx_list = []
+    full_list = []       # full 轨: 标题 + 内容
+    ctx_list = []        # ctx 轨: 标题 + 实体窗口 (或 fallback)
+    ctx_body_list = []   # ctx 的纯 body 部分 (无标题前缀), 仅用于 fallback 判定
     for _, row in df.iterrows():
-        content_full = str(row.get('内容', ''))
+        body_full = str(row.get('内容', ''))
+        title = str(row.get('标题', '') or '')
         target_bank = str(row.get('target_bank', ''))
         if target_bank and target_bank not in ('nan', 'None'):
             if target_bank not in _alias_cache:
                 _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
-            content_ctx = extract_entity_context(
-                content_full, _alias_cache[target_bank],
+            ctx_body = extract_entity_context(
+                body_full, _alias_cache[target_bank],
                 sentence_radius=_sentence_radius,
                 fallback_char_radius=_fallback_char_radius,
             )
-            if not content_ctx:
-                content_ctx = content_full
+            if not ctx_body:
+                ctx_body = body_full  # 回退公理: 无匹配时保留全文 body
         else:
-            content_ctx = content_full
-        ctx_list.append(content_ctx)
+            ctx_body = body_full
+        ctx_body_list.append(ctx_body)
+        full_list.append(prepend_title(title, body_full))
+        ctx_list.append(prepend_title(title, ctx_body))
 
     df = df.copy()
+    df['content_full'] = full_list
     df['content_ctx'] = ctx_list
-    # v3.7.2 R8-H1 全管道延伸: ctx_is_fallback 作为公共列暴露 entity-miss 信号
+    # v3.7.2 R8-H1 全管道延伸: ctx_is_fallback 暴露 entity-miss 信号。
+    # remove-title-track: 因两轨都前置了同一标题, 判定改为比较"去标题后的 body"
+    # (ctx_body vs 全文 body), 标题前缀对两轨同样, 不影响 entity-miss 语义。
     # 锚定: lexical_discriminant_validity.py:20 (R8-H1 audit anchor)
-    # 用途: P1/P11 main=_ctx 论文的 measurement-error robustness; 见 stata_export.py
-    df['ctx_is_fallback'] = (
-        df['content_ctx'].astype(str) == df['内容'].astype(str)
+    _bodies = df['内容'].astype(str).tolist()
+    df['ctx_is_fallback'] = pd.Series(
+        [cb == fb for cb, fb in zip(ctx_body_list, _bodies)],
+        index=df.index,
     ).astype('bool')
-    n_fallback = sum(1 for ctx, full in zip(ctx_list, df['内容'].astype(str))
-                     if ctx == full)
+    n_fallback = sum(1 for cb, fb in zip(ctx_body_list, _bodies) if cb == fb)
     assert int(df['ctx_is_fallback'].sum()) == n_fallback, \
         f"ctx_is_fallback 列计数 ({int(df['ctx_is_fallback'].sum())}) " \
         f"与 batch 统计 ({n_fallback}) 不一致"
@@ -126,65 +161,6 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
                 f"({n_fallback/max(n_with_bank,1)*100:.1f}%)")
     logger.info(f"  ctx_is_fallback 列已写入 (bool): "
                 f"{int(df['ctx_is_fallback'].sum())}/{len(df)} True")
-    return df
-
-
-def _add_title_indicators(df: pd.DataFrame) -> pd.DataFrame:
-    """v3.7.4 P3.1: 在 stage 13 输出中补 2 列 article-level title indicators.
-
-    - title_mentions_fintech: bool   (Q3 / Panel D stratify by content)
-    - title_length_bucket: int8 {0=≤median, 1=>median}  (Panel E stratify)
-
-    Idempotent: 若两列已在 df.columns 则跳过.
-
-    锚定: core/text/title_indicators.py (EP-B3 共享 lib, L2 audit ≡ L3 prod).
-    """
-    from news_process.core.text.title_indicators import (
-        compute_title_length_bucket,
-        compute_title_mentions_fintech,
-    )
-    if 'title_mentions_fintech' in df.columns and 'title_length_bucket' in df.columns:
-        logger.info("  v3.7.4 title indicators 已存在, 跳过 (idempotent)")
-        return df
-
-    title_col = '标题' if '标题' in df.columns else 'title'
-    if title_col not in df.columns:
-        logger.warning(f"  [WARN] {title_col} 列缺失, 跳过 v3.7.4 title indicators")
-        df['title_mentions_fintech'] = False
-        df['title_length_bucket'] = pd.array([0]*len(df), dtype='Int8')
-        return df
-
-    # v3.7.4 execution-time fix (rounds 10-29 audit): fintech lexicon lives
-    # at CONFIG['paths']['fintech_dict_file'] (= config/fintech_dict.json, 1506
-    # keywords), NOT under cfg['filtering' or 'preprocessing']. Load via
-    # core.text.ahocorasick.load_fintech_dict() to match stage 12 (news_fintech).
-    try:
-        from news_process.core.text.ahocorasick import load_fintech_dict
-        fintech_lex, _ac = load_fintech_dict(
-            CONFIG.get('paths', {}).get('fintech_dict_file', '')
-        )
-        if not isinstance(fintech_lex, list):
-            fintech_lex = list(fintech_lex) if fintech_lex else []
-    except Exception as _e:
-        logger.warning(f"  [WARN] load_fintech_dict failed: {_e}; fallback to empty lexicon")
-        fintech_lex = []
-    logger.info(f"  v3.7.4 fintech_lex loaded: {len(fintech_lex)} keywords")
-    titles = df[title_col].fillna('').astype(str)
-
-    df['title_mentions_fintech'] = titles.apply(
-        lambda t: compute_title_mentions_fintech(t, fintech_lex)
-    )
-    title_lens = titles.str.len()
-    median_len = int(title_lens.median())
-    df['title_length_bucket'] = pd.array(
-        [compute_title_length_bucket(t, median_len) for t in titles], dtype='Int8'
-    )
-    logger.info(
-        f"  v3.7.4 title indicators: title_mentions_fintech "
-        f"{int(df['title_mentions_fintech'].sum())}/{len(df)} True; "
-        f"title_length_bucket median={median_len}, "
-        f"long_frac={float(df['title_length_bucket'].astype(float).mean()):.3f}"
-    )
     return df
 
 
@@ -206,10 +182,8 @@ def main():
     df = pd.read_parquet(in_path)
     logger.info(f"加载 stage 12 输出: {len(df)} 行")
     df = materialize_content_ctx(df)
+    assert 'content_full' in df.columns
     assert 'content_ctx' in df.columns
-
-    # v3.7.4 P3.1: title-level indicators (article-level, Panel D/E 分层用)
-    df = _add_title_indicators(df)
 
     from news_process.core.reporting import save_dataset
     save_dataset(df=df, output_path=out_path, logger=logger,

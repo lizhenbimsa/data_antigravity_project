@@ -16,7 +16,7 @@
 # And 2 prompt templates externalized to:
 #
 #     prompts/unified_cot.txt        — tone_llm_processing.prompt_template
-#     prompts/title_sentiment.txt    — tone_llm_processing.title_sentiment_prompt_template
+#     (remove-title-track: prompts/title_sentiment.txt 已删除)
 #
 # news_process.core.config.load_config() detects the split-mode setup and
 # deep-merges all 7 YAMLs into a single dict semantically equivalent to the

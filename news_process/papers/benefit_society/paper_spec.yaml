@@ -65,29 +65,12 @@ tables:
   tA9:
     template:
 
-# v3.7.3 (Plan A v1.0): benefit_society tA8 已被 v3.5.1 A3 num_intensity 占用,
-# 故 _title 轨稳健性使用 paper-specific extension key (root-level, 与
-# jlm2026_robustness_tables 同 root-extension pattern; v1.0.1 执行期纠正).
-title_robustness_table:
-  template: 26_bs_title_robustness
-  title_robustness:
-    anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al. (2019) RFS"
-    track_substitute: true
-    r3_h1_compatible: true
-    note: "benefit_society main = LLM-Embedding 双极锚点投影; _title 仅作 sentiment robustness"
+# remove-title-track: title_robustness_table (26_bs_title_robustness) 已取消
 
 # v2.1.0 (Round 9 V2.0 jlm2026-alignment) — paper-specific extension tables.
 # These are NOT in master plan §5.2.3.bis schema (test_paper_spec_schema.py
 # does not strict-enforce extra keys); kept in benefit_society spec for
 # downstream stata_runner / tables.py builders to locate templates.
-  audit_response_ref: 
-    docs/methodology/title_track_as_robustness.md#5-audit-response-template-for-peer-review
-  panel_d_caveat: Stratification by frac_title_mentions_fintech across thresholds
-    {0.3, 0.5, 0.7} per Antweiler-Frank (2004) JF 59(3) subject-relevance convention.
-    Per-cell graceful skip if N < 30 bank-year.
-  panel_e_caveat: Stratification by frac_title_long (above/below bank-year median
-    title length) per Da-Engelberg-Gao (2011) JF 66(5) attention-channel separation.
-    Per-cell graceful skip if N < 30.
 jlm2026_robustness_tables:
   external_validation:   # G4 — §3 J-L-M External Validation
     template: 22_tableA9_external_validation

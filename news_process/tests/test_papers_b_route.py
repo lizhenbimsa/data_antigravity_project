@@ -136,12 +136,12 @@ def test_total_template_count_77() -> None:
     per benefit_society_jlm2026_robustness_alignment_plan.md §3 Phase 2.
     """
     templates = list(STATA_TEMPLATES_DIR.rglob('*.do.tmpl'))
-    # v3.7.3 Plan A v1.0: +9 templates (8 _title robustness across 8 papers + 1 bs ext.)
-    expected_count = 95 + 9  # 95 (v2.0 jlm2026) + 9 (v3.7.3 Plan A title robustness)
+    # remove-title-track: 删除 9 个标题稳健性模板 (8 _title across papers + 1 bs ext.)
+    # → 回到 V2.0 J-L-M baseline 95.
+    expected_count = 95  # 104 (v3.7.3 Plan A) − 9 (取消标题轨)
     assert len(templates) == expected_count, (
-        f"Expected {expected_count} total templates after v3.7.3 Plan A v1.0, found {len(templates)}: "
-        f"= 95 (V2.0 J-L-M baseline) + 9 (v3.7.3 Plan A: 1 main P1 25_tableA8_title_robustness "
-        f"+ 7 paper subdir 25_tableA8 + 1 bs 26_bs_title_robustness)"
+        f"Expected {expected_count} total templates after remove-title-track, found {len(templates)}: "
+        f"= 95 (V2.0 J-L-M baseline); 9 title-robustness 模板已删除"
     )
 
 

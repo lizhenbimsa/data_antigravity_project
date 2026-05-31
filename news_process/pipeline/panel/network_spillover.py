@@ -220,7 +220,7 @@ def compute_network_spillovers(
 
     # 情感列: 使用 llm_vote_tone_full 作为核心情感指标
     tone_cols = []
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         col = f'llm_vote_tone{track}'
         if col in panel.columns:
             tone_cols.append(col)

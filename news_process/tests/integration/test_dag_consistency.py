@@ -109,8 +109,8 @@ def test_validation_stage_count(core_dag):
     v3.7.3 +1 = 18: 加 39g track_discriminant_validity (_full/_ctx/_title HTMT 3×3)
     """
     # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c + 39d + 39e + 39f + 39g = 18
-    assert len(core_dag.STAGES_VALIDATION) == 18, (
-        f"STAGES_VALIDATION drift: expected 18 (v3.7.3 +39g), got {len(core_dag.STAGES_VALIDATION)}."
+    assert len(core_dag.STAGES_VALIDATION) == 17, (
+        f"STAGES_VALIDATION drift: expected 17 (39g track-discriminant removed), got {len(core_dag.STAGES_VALIDATION)}."
     )
 
 

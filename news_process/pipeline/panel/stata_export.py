@@ -185,9 +185,7 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
         # v3.5.1 A3 Numerical Intensity (Hales-Kuang-Venkataraman 2011 CAR 28:1) 真双轨
         'mean_num_intensity_full':          "Mean Numerical Intensity Full (Hales 2011 CAR, dual-track)",
         'mean_num_intensity_ctx':           "Mean Numerical Intensity Ctx (Hales 2011 CAR, dual-track)",
-        # v3.7.4 P3.1.6: title-level indicators for Panel D/E robustness
-        'frac_title_mentions_fintech':      "Frac titles mentioning fintech (Antweiler-Frank 2004 JF)",
-        'frac_title_long':                  "Frac titles above median length (Da-Engelberg-Gao 2011 JF)",
+        # remove-title-track: title-indicator labels 已移除
         # ─────────────────────────────────────────────────────────────
         # 2026-05-29 双模型嵌入: text2vec 稳健 twin (主轨=text-embedding-3-small,
         # 这些 _t2v 列=shibing624/text2vec-base-chinese 同算法只换模型)。落 aux。
@@ -297,7 +295,7 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         'tone_gap_tech_app', 'tone_gap_tech_app_lc_ctx',
         'tone_gap_sub_symb', 'tone_gap_sub_symb_sc_ctx',
         # 主 Bartik IV (lf + lc 各一套, 共 6 列含 full/ctx/title)
-        'bartik_fintech_iv_full', 'bartik_fintech_iv_ctx', 'bartik_fintech_iv_title',
+        'bartik_fintech_iv_full', 'bartik_fintech_iv_ctx',  # remove-title-track
         # 主洗稿率 count (sentiment × _full)
         'pos_symb_count_full', 'pos_symb_count_ctx',
         'neg_sub_count_full', 'neg_sub_count_ctx',
@@ -323,7 +321,6 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         # v3.7.4 P3.1.6: title indicators for Panel D/E stratified robustness
         # Anchor: Antweiler-Frank (2004) JF subject-relevance threshold;
         #          Da-Engelberg-Gao (2011) JF attention-channel separation.
-        'frac_title_mentions_fintech', 'frac_title_long',
         # ─────────────────────────────────────────────────────────────
         # v3.5.2 PR #14 集成 — A1 LM 4 子词典 + A2 FLS (本批列在 v3.5.2
         # PR #3 panel 集成完成前会被 ``if c in df.columns`` 过滤; append-only

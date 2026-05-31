@@ -8,10 +8,11 @@ clear all
 set maxvar 32767
 
 * 1. 加载面板 .dta
-* M2 fix (2026-05-30): 优先加载 full (含 aux-only 的 _title 稳健性情感变量
-* llm_vote_tone_title / tone_gap_title_full 等), 使保存的 _prepared_panel.dta 让
-* 25_tableA8 Panel A/B/C 真正运行, 而非经 `capture confirm` 静默跳过整块回归
-* (主表 Table2 仅用 core 列, 不受影响)。
+* M2 fix (2026-05-30): 优先加载 full (含 aux-only 的稳健性情感变量), 使保存的
+* _prepared_panel.dta 让下游稳健性表真正运行, 而非经 `capture confirm` 静默跳过
+* 整块回归 (主表 Table2 仅用 core 列, 不受影响)。
+* remove-title-track: 原 _title 轨稳健性 (25_tableA8 / llm_vote_tone_title /
+* tone_gap_title_full) 已取消, 不再加载/回归。
 * 注: 21_tableA2 现已改读本 _prepared_panel.dta (2026-05-30 fix + set maxvar 32767),
 * 故 master 链的 22_tableA3 Bartik lf/lc-IV 在其 in-memory full 状态上可正常 run (不再静默跳过)。
 * CLAUDE.md: 本机 MP (set maxvar 32767) 应直读 full; 仅 IC 协作者回退 core+aux merge。
@@ -41,10 +42,10 @@ local main_locus   tech_frac_{{MAIN_LOCUS_TRACK}}
 local main_subst   symb_frac_{{MAIN_SUBST_TRACK}}
 
 * 4.bis (R1-R5 audit fix A1 + M2-regression fix 2026-05-30): 定义 $bank_controls 全局 macro
-* 供 25_tableA8 / 26_bs / 19_*_clarity_robustness 等下游模板使用。
+* 供 19_*_clarity_robustness 等下游稳健性模板使用 (remove-title-track: 25_tableA8 已删)。
 * 银行财务控制 (ln_assets/leverage/...) 需 Wind/CSMAR merge, 当前 dev 面板尚未含。
-* M2 改读 full 后 _title 回归块会真正运行 -- 若 $bank_controls 硬列入不存在的变量,
-* `reghdfe DV title_var $bank_controls ...` 会 r(111) 硬崩溃 (从静默跳过恶化为中断)。
+* 若 $bank_controls 硬列入不存在的变量, `reghdfe DV ... $bank_controls` 会 r(111)
+* 硬崩溃 (从静默跳过恶化为中断)。
 * 自校验: 逐个 capture confirm, 只把面板中实际存在的财务控制拼入 $bank_controls。
 local _bc ""
 foreach v in ln_assets leverage capital_ratio npl_ratio deposit_growth {
@@ -94,10 +95,10 @@ if !_rc {
     drop _has_df
 }
 
-* 6. (R1-R5 audit fix A3): 保存 _prepared_panel.dta 供 25_tableA8 / 26_bs 等
-* 下游模板使用. 25_tableA8.do.tmpl:28 `use "$data_dir/_prepared_panel.dta"` 此前
-* 在主线 run 链 (00 -> 01 -> ... -> 25) 下 file-not-found, 因主线 01_data_prep
-* 加载 core.dta 后无 save.
+* 6. (R1-R5 audit fix A3): 保存 _prepared_panel.dta 供下游稳健性模板
+* (19_*_clarity_robustness 等) 使用. 此前在主线 run 链下 file-not-found, 因主线
+* 01_data_prep 加载 core.dta 后无 save。(remove-title-track: 原 25_tableA8/26_bs
+* 标题轨表已删, 不再是消费方。)
 capture mkdir "data/processed"
 if "$data_dir" == "" {
     save "data/processed/_prepared_panel.dta", replace

@@ -219,7 +219,7 @@ def main():
         logger.info("=" * 60)
         w = df['mention_density'].fillna(0)
         weighted_cols = {}
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             # _title 轨道可能因未配置而不存在
             if f'llm_vote_score{track}' not in df.columns:
                 continue
@@ -270,7 +270,7 @@ def main():
         df = compute_media_tier_weights(df)
         mw = df['media_authority_weight'].fillna(1.0)
         weighted_cols = {}
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             # _title 轨道可能因未配置而不存在
             if f'llm_vote_score{track}' not in df.columns:
                 continue
@@ -316,18 +316,16 @@ def main():
             logger.info("步骤 3d: 跟风衰减加权列预计算 (HW, 双轨独立 v3.6.0)")
             hw_full = df['herd_weight_full'].fillna(1.0)
             hw_ctx = df['herd_weight_ctx'].fillna(1.0)
-            hw_title = hw_full  # 标题轨复用 full 权重
         else:
             logger.warning(
                 "步骤 3d: 检测到 v3.5.0 legacy herd_weight 单列, "
                 "退化为单轨加权 — 建议重跑 stage 24 (herd_decay) 升级到双轨")
             hw_full = df['herd_weight'].fillna(1.0)
             hw_ctx = hw_full
-            hw_title = hw_full
         logger.info("=" * 60)
-        hw_by_track = {'_full': hw_full, '_ctx': hw_ctx, '_title': hw_title}
+        hw_by_track = {'_full': hw_full, '_ctx': hw_ctx}  # remove-title-track
         weighted_cols = {}
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             if f'llm_vote_score{track}' not in df.columns:
                 continue
             hw = hw_by_track[track]
@@ -637,7 +635,7 @@ def main():
             ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
                                      df_exploded, type_map, 'type',
                                      base_year=base_yr)
-            for track in ['_full', '_ctx', '_title']:
+            for track in ['_full', '_ctx']:
                 src_col = f'bartik_type_iv{track}'
                 dst_col = f'bartik_type_iv{track}{suffix}'
                 ptmp = ptmp.rename(columns={src_col: dst_col})
@@ -649,7 +647,7 @@ def main():
         base_t01 = df_exploded[df_exploded['year'].isin([T0, T0+1])]
         ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
                                  base_t01, type_map, 'type', base_year=T0)
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             src_col = f'bartik_type_iv{track}'
             ptmp = ptmp.rename(columns={src_col: f'bartik_type_iv{track}_t01'})
         panel = panel.merge(
@@ -1415,7 +1413,7 @@ def main():
     logger.info("步骤 7i: Janis-Fadner (J-F) 情绪系数")
     logger.info("=" * 60)
 
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         pos_col = f'pos_count{track}'
         neg_col = f'neg_count{track}'
         if pos_col in panel.columns and neg_col in panel.columns:

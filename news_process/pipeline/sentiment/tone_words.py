@@ -961,7 +961,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     """
     stats = {'total': 0}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             stats[f'{dict_name}_正面{track}'] = 0
             stats[f'{dict_name}_中性{track}'] = 0
             stats[f'{dict_name}_负面{track}'] = 0
@@ -980,13 +980,14 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     _lm_dicts = load_lm_non_sentiment_dicts()
 
     def _dual_analyze(row):
-        content_full = str(row.get('内容', ''))
-        content_ctx = str(row.get('content_ctx', content_full))
-        content_title = str(row.get('标题', ''))
+        # remove-title-track: full / ctx 两轨文本均注入标题 (prepend_title); title 轨已取消
+        from news_process.core.text.entity_context import prepend_title
+        _title = str(row.get('标题', '') or '')
+        content_full = prepend_title(_title, str(row.get('内容', '')))
+        content_ctx = prepend_title(_title, str(row.get('content_ctx', str(row.get('内容', '')))))
 
         res_full = _analyze_single_article(content_full)
         res_ctx = _analyze_single_article(content_ctx)
-        res_title = _analyze_single_article(content_title)
 
         # 合并：为每个键追加轨道后缀
         merged = {}
@@ -994,8 +995,6 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             merged[f'{k}_full'] = v
         for k, v in res_ctx.items():
             merged[f'{k}_ctx'] = v
-        for k, v in res_title.items():
-            merged[f'{k}_title'] = v
 
         # v3.5.1 A1 真双轨 clarity (per plan v0.3 §2.1.1 修 R3-C1):
         # 对 content_full + content_ctx **独立扫描** (title 轨不纳入, 修 R3-H1
@@ -1030,7 +1029,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     # ``df[col] = ...`` 造成 pandas block fragmentation。
     new_columns = {}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             score_key = f'{dict_name}_score{track}'
             label_key = f'{dict_name}_label{track}'
             label_series = results.apply(lambda r, k=label_key: r.get(k, '中性'))
@@ -1053,13 +1052,11 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         lambda r: r.get('sentiment_details_full', ''))
     new_columns['sentiment_details_ctx'] = results.apply(
         lambda r: r.get('sentiment_details_ctx', ''))
-    new_columns['sentiment_details_title'] = results.apply(
-        lambda r: r.get('sentiment_details_title', ''))
 
     # ── 提取 IDF 加权列（双轨）──
     if IDF_DICTIONARIES is not None:
         for dict_name, _ in IDF_DICTIONARIES:
-            for track in ['_full', '_ctx', '_title']:
+            for track in ['_full', '_ctx']:
                 score_key = f'{dict_name}_idf_score{track}'
                 label_key = f'{dict_name}_idf_label{track}'
                 new_columns[score_key] = results.apply(
@@ -1074,7 +1071,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         'msent_score',  # He et al. (2024, IRFA), Eq. 1
     ]
     for col in new_metric_cols:
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             col_key = f'{col}{track}'
             new_columns[col_key] = results.apply(lambda r, k=col_key: r.get(k, 0.0))
 
@@ -1122,7 +1119,7 @@ def merge_stats(stats_list: list) -> dict:
     """
     merged = {'total': 0}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             merged[f'{dict_name}_正面{track}'] = 0
             merged[f'{dict_name}_中性{track}'] = 0
             merged[f'{dict_name}_负面{track}'] = 0
@@ -1130,7 +1127,7 @@ def merge_stats(stats_list: list) -> dict:
     for s in stats_list:
         merged['total'] += s['total']
         for dict_name, _ in ALL_DICTIONARIES:
-            for track in ['_full', '_ctx', '_title']:
+            for track in ['_full', '_ctx']:
                 merged[f'{dict_name}_正面{track}'] += s.get(f'{dict_name}_正面{track}', 0)
                 merged[f'{dict_name}_中性{track}'] += s.get(f'{dict_name}_中性{track}', 0)
                 merged[f'{dict_name}_负面{track}'] += s.get(f'{dict_name}_负面{track}', 0)
@@ -1311,7 +1308,7 @@ def main():
     # 注意：_full 和 _ctx 的 μ 和 σ 必须独立计算，因文本长度差异导致数值分布本质不同
     zscore_columns = {}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             score_col = f"{dict_name}_score{track}"
             zscore_col = f"{dict_name}_zscore{track}"
             if score_col in processed_df.columns:
@@ -1328,7 +1325,7 @@ def main():
     # IDF 列 Z-score 标准化
     if IDF_DICTIONARIES is not None:
         for dict_name, _ in IDF_DICTIONARIES:
-            for track in ['_full', '_ctx', '_title']:
+            for track in ['_full', '_ctx']:
                 score_col = f"{dict_name}_idf_score{track}"
                 zscore_col = f"{dict_name}_idf_zscore{track}"
                 if score_col in processed_df.columns:

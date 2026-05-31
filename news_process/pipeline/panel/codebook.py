@@ -841,8 +841,6 @@ def _infer_label(var_name: str) -> str:
         track_suffix = ' (Full)'
     elif var_name.endswith('_ctx'):
         track_suffix = ' (Ctx)'
-    elif var_name.endswith('_title'):
-        track_suffix = ' (Title)'
 
     # 基础标签推断
     if 'tone' in var_name:
@@ -904,8 +902,6 @@ def _infer_track(var_name: str) -> str:
         return 'full'
     elif var_name.endswith('_ctx'):
         return 'ctx'
-    elif var_name.endswith('_title'):
-        return 'title'
     else:
         return ''
 

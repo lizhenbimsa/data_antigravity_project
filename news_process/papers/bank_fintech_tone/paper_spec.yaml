@@ -75,24 +75,7 @@ tables:
   tA7:
     template:       # A1 主用 P3/P4/P5
   tA8:
-    # v3.7.3 (Plan A v1.0 实施): _title 轨稳健性
-    # Anchor: Heston & Sinha (2017) FAJ; Loughran & McDonald (2016) JAR survey;
-    #          Boudoukh et al. (2019) RFS; Campbell & Fiske (1959) MTMM.
-    # 本计划将 _title 轨从 audit-only 提升为 9 paper Tier-B 稳健性测度.
-    template: 25_tableA8_title_robustness
-    title_robustness:
-      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al.
-        (2019) RFS"
-      track_substitute: true  # main = _ctx → 替换为 _title 跑同 spec
-      r3_h1_compatible: true  # A1/A3 不在 _title 上 (per v3.5.1 R3-H1), 仅 sentiment robustness
-      audit_response_ref: 
-        docs/methodology/title_track_as_robustness.md#5-audit-response-template-for-peer-review
-      panel_d_caveat: Stratification by frac_title_mentions_fintech across thresholds
-        {0.3, 0.5, 0.7} per Antweiler-Frank (2004) JF 59(3) subject-relevance convention.
-        Per-cell graceful skip if N < 30 bank-year.
-      panel_e_caveat: Stratification by frac_title_long (above/below bank-year median
-        title length) per Da-Engelberg-Gao (2011) JF 66(5) attention-channel separation.
-        Per-cell graceful skip if N < 30.
+    template: null  # remove-title-track: 标题轨稳健性表已取消
   tA9:
     template: 27_tableA9_num_intensity
     num_intensity_robustness:

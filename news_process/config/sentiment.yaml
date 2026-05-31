@@ -54,7 +54,7 @@ tone_llm_processing:
 # ------------------------------------------------------------------------------
 # 根据国际顶级期刊标准，生成人工编码验证样本。
   prompt_template_file: ./config/prompts/unified_cot.txt
-  title_sentiment_prompt_template_file: ./config/prompts/title_sentiment.txt
+  # remove-title-track: title_sentiment_prompt_template_file 已移除 (标题轨取消)
 sentiment_analysis:
   # 启用的情感分析方法（可选: tone_llms, tone_words, tone_berts）
   enabled_methods:

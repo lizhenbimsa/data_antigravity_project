@@ -66,19 +66,6 @@ tables:
   tA7:
     template:
   tA8:
-    template: 25_tableA8_title_robustness
-    title_robustness:
-      anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al.
-        (2019) RFS"
-      track_substitute: true
-      r3_h1_compatible: true
-      audit_response_ref: 
-        docs/methodology/title_track_as_robustness.md#5-audit-response-template-for-peer-review
-      panel_d_caveat: Stratification by frac_title_mentions_fintech across thresholds
-        {0.3, 0.5, 0.7} per Antweiler-Frank (2004) JF 59(3) subject-relevance convention.
-        Per-cell graceful skip if N < 30 bank-year.
-      panel_e_caveat: Stratification by frac_title_long (above/below bank-year median
-        title length) per Da-Engelberg-Gao (2011) JF 66(5) attention-channel separation.
-        Per-cell graceful skip if N < 30.
+    template: null  # remove-title-track: 标题轨稳健性表已取消
   tA9:
     template:

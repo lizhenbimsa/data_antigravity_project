@@ -90,7 +90,7 @@ def _build_masked_panel_stats(df: pd.DataFrame, max_year: int,
     }
     
     # 核心情感变量统计
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         score_col = f'llm_vote_score{track}'
         if score_col in df_masked.columns:
             panel = df_masked.groupby(['target_bank', 'year']).agg(
@@ -165,7 +165,7 @@ def main():
         all_results.append(masked_stats)
         
         # 稳定性检查
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             baseline_mean = baseline_stats.get(f'panel_tone_mean{track}', None)
             masked_mean = masked_stats.get(f'panel_tone_mean{track}', None)
             

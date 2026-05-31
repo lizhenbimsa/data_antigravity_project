@@ -104,7 +104,7 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
 
     encoded_cols = []
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         # _title 轨道可能因未配置 title_sentiment_prompt_template 而不存在
         if f'llm_sentiment{track}' not in df.columns:
             logger.info(f"  跳过 {track} 轨道编码（列 llm_sentiment{track} 不存在）")
@@ -193,7 +193,7 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     #   DOI: 10.1016/j.jeconom.2020.07.053
     #   → 情感度量噪声导致回归系数衰减偏误(attenuation bias)
     #   → LLM 置信度低 = 信号噪声大 → 情感效应被低估
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         conf_cols = [f'{s}_sentiment_confidence{track}' for s in LLM_MODELS
                      if f'{s}_sentiment_confidence{track}' in df.columns]
         if conf_cols:
@@ -207,7 +207,7 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  连续编码: direction × confidence ∈ [-1, +1]")
 
     # Logit-to-Score 概率分数诊断（如果 21_tone_llms 已生成）
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         src = f'llm_prob_score{track}'
         if src in df.columns:
             valid = df[src].notna()
@@ -492,7 +492,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     """
     agg = {}
 
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         # --- A. LLM 逐模型 ---
         for short in LLM_MODELS:
             agg[f'{short}_tone{track}'] = (f'{short}_score{track}', 'mean')
@@ -559,7 +559,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     # 学术依据: 情感度量的信噪比直接影响回归系数的估计精度
     # (Shapiro et al. 2022, Section 4: attenuation bias correction)
     # 置信度越低 → 测量误差越大 → Tone 对因变量的估计系数向零衰减
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         # 三模型宏平均置信度 → Bank-Year 均值 & 标准差
         agg[f'avg_llm_conf{track}'] = (f'avg_llm_conf{track}', 'mean')
         agg[f'avg_llm_conf_std{track}'] = (f'avg_llm_conf{track}', 'std')
@@ -577,7 +577,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     agg['max_bank_count'] = ('bank_count', 'max')
     agg['avg_agreement_rate_full'] = ('llm_agreement_rate_full', 'mean')
     agg['avg_agreement_rate_ctx'] = ('llm_agreement_rate_ctx', 'mean')
-    agg['avg_agreement_rate_title'] = ('llm_agreement_rate_title', 'mean')
+    # remove-title-track: avg_agreement_rate_title 已取消
 
     # --- E2. v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 ---
     # ctx_is_fallback (article, bool): True iff content_ctx ≡ content_full (entity-miss)
@@ -598,17 +598,14 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     # 用途: Panel D/E stratified robustness (v3.7.4 Plan A v1.0)
     # 锚定: Antweiler-Frank (2004) JF subject-relevance threshold;
     #        Da-Engelberg-Gao (2011) JF attention-channel separation
-    if df is not None and 'title_mentions_fintech' in df.columns:
-        agg['frac_title_mentions_fintech'] = ('title_mentions_fintech', 'mean')
-    if df is not None and 'title_length_bucket' in df.columns:
-        agg['frac_title_long'] = ('title_length_bucket', 'mean')
+    # remove-title-track: frac_title_mentions_fintech / frac_title_long 已取消
 
     # --- F. Value-weighted 辅助列 (Hassan et al. 2019, QJE; Sautner et al. 2023, JF) ---
     agg['sum_mention_density'] = ('mention_density', 'sum')
     agg['sum_doc_length'] = ('doc_length', 'sum')
     agg['avg_doc_length'] = ('doc_length', 'mean')
     agg['sum_target_mentions'] = ('target_bank_mention_count', 'sum')
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         agg[f'llm_vote_score_w_sum{track}'] = (f'llm_vote_score_w{track}', 'sum')
         agg[f'llm_vote_cont_w_sum{track}'] = (f'llm_vote_cont_w{track}', 'sum')
         agg[f'pos_count_vw{track}'] = (f'is_positive_w{track}', 'sum')
@@ -668,7 +665,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     # 双轨 sum 用于下游 hw_denom 除法 (encode.py:1200-1214)
     agg['sum_herd_weight_full'] = (_hw_full_src, 'sum')
     agg['sum_herd_weight_ctx'] = (_hw_ctx_src, 'sum')
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         agg[f'llm_vote_score_hw_sum{track}'] = (f'llm_vote_score_hw{track}', 'sum')
         agg[f'llm_vote_cont_hw_sum{track}'] = (f'llm_vote_cont_hw{track}', 'sum')
         for short in LLM_MODELS:
@@ -680,7 +677,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         for b in BERT_MODELS:
             agg[f'{b}_正面_hw_sum{track}'] = (f'{b}_正面_hw{track}', 'sum')
             agg[f'{b}_负面_hw_sum{track}'] = (f'{b}_负面_hw{track}', 'sum')
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         agg[f'llm_vote_score_mw_sum{track}'] = (f'llm_vote_score_mw{track}', 'sum')
         agg[f'llm_vote_cont_mw_sum{track}'] = (f'llm_vote_cont_mw{track}', 'sum')
         for short in LLM_MODELS:
@@ -766,7 +763,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     # Shapiro et al. (2022). JoE, 228(2). DOI: 10.1016/j.jeconom.2020.07.053
     #   → Score = P(正面) - P(负面) ∈ [-1, +1]
     #   → 等权 mean/std/sum + VW/HW/MW 加权辅助 sum
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         agg[f'avg_llm_prob_score{track}'] = (f'llm_prob_score{track}', 'mean')
         agg[f'avg_llm_prob_score_std{track}'] = (f'llm_prob_score{track}', 'std')
         agg[f'llm_prob_score_sum{track}'] = (f'llm_prob_score{track}', 'sum')
@@ -903,7 +900,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             cat_agg = {}
             cat_agg[f'n_articles{suffix}'] = ('llm_vote_score_full', 'count')
 
-            for track in ['_full', '_ctx', '_title']:
+            for track in ['_full', '_ctx']:
                 # A. LLM 逐模型（离散 + 连续）
                 for short in LLM_MODELS:
                     src_score = f'{short}_score{track}'
@@ -1078,7 +1075,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             tt_agg = {}
             tt_agg[f'n_articles{suffix}'] = ('llm_vote_score_full', 'count')
 
-            for track in ['_full', '_ctx', '_title']:
+            for track in ['_full', '_ctx']:
                 src_vote = f'llm_vote_score{track}'
                 if src_vote in df_tt.columns:
                     tt_agg[f'llm_vote_tone{suffix}{track}'] = (src_vote, 'mean')
@@ -1199,7 +1196,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             cm_agg = {}
             cm_agg[f'n_articles{suffix}'] = ('llm_vote_score_full', 'count')
 
-            for track in ['_full', '_ctx', '_title']:
+            for track in ['_full', '_ctx']:
                 src_vote = f'llm_vote_score{track}'
                 if src_vote in df_cm.columns:
                     cm_agg[f'llm_vote_tone{suffix}{track}'] = (src_vote, 'mean')
@@ -1366,7 +1363,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # 这反映了"银行作为核心主题的文章应有更大权重"的直觉。
     if 'sum_mention_density' in panel.columns:
         denom = panel['sum_mention_density'].replace(0, np.nan)
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             if f'llm_vote_score_w_sum{track}' in panel.columns:
                 panel_new_cols[f'llm_vote_tone_vw{track}'] = panel[f'llm_vote_score_w_sum{track}'] / denom
             if f'llm_vote_cont_w_sum{track}' in panel.columns:
@@ -1400,7 +1397,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # --- MW Tone (媒体权威性加权, Holzman et al. 2023, TAR) ---
     if 'sum_media_authority_weight' in panel.columns:
         mw_denom = panel['sum_media_authority_weight'].replace(0, np.nan)
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             if f'llm_vote_score_mw_sum{track}' in panel.columns:
                 panel_new_cols[f'llm_vote_tone_mw{track}'] = (
                     panel[f'llm_vote_score_mw_sum{track}'] / mw_denom)
@@ -1447,9 +1444,8 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         hw_denom_by_track = {
             '_full': hw_denom_full,
             '_ctx': hw_denom_ctx,
-            '_title': hw_denom_full,
         }
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             hw_denom = hw_denom_by_track[track]
             if f'llm_vote_score_hw_sum{track}' in panel.columns:
                 panel_new_cols[f'llm_vote_tone_hw{track}'] = (
@@ -1479,20 +1475,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 panel_new_cols[f'llm_vote_tone_hw_prob{track}'] = panel[w_prob] / hw_denom
         logger.info("  已计算 Herd-Decay-weighted Tone 指标 (双轨独立分母)")
 
-    # --- 标题-全文情感缺口（B1-2 Step 4d） ---
-    # 衡量"标题党/软文嫌疑": gap越大→标题情感偏离全文→投资者可能过度反应
-    if 'llm_vote_tone_title' in panel.columns and 'llm_vote_tone_full' in panel.columns:
-        panel_new_cols['tone_gap_title_full'] = (
-            panel['llm_vote_tone_title'] - panel['llm_vote_tone_full']
-        )
-        logger.info("  已计算 tone_gap_title_full (标题-全文情感缺口)")
-
-    # 标题-全文概率分数缺口（Logit-to-Score 稳健性检验）
-    if 'avg_llm_prob_score_title' in panel.columns and 'avg_llm_prob_score_full' in panel.columns:
-        panel_new_cols['prob_gap_title_full'] = (
-            panel['avg_llm_prob_score_title'] - panel['avg_llm_prob_score_full']
-        )
-        logger.info("  已计算 prob_gap_title_full (概率分数标题-全文缺口)")
+    # remove-title-track: tone_gap_title_full / prob_gap_title_full 已取消 (标题轨停产)
 
     if panel_new_cols:
         panel = pd.concat(

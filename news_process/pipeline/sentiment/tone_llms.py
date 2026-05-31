@@ -1389,11 +1389,8 @@ def main():
         df['llm_verified_dual_full_only'] = False
         df['llm_verified_dual_ctx_only'] = False
         df['llm_verified_dual_both'] = True
-        # 标题轨道虚拟列补全（与启用分支输出对齐）
-        df['llm_verified_title'] = True
-        df['llm_sentiment_title'] = '中性'
-        df['llm_agreement_rate_title'] = 0.0
-        # 逐模型虚拟列补全（双轨 + 标题轨道）
+        # remove-title-track: 标题轨虚拟列已取消
+        # 逐模型虚拟列补全（双轨）
         for m in MODELS:
             short = m['short_name']
             for track in ['_full', '_ctx']:
@@ -1401,14 +1398,11 @@ def main():
                 df[f'{short}_sentiment{track}'] = '中性'
                 df[f'{short}_verification_confidence{track}'] = 0.0
                 df[f'{short}_sentiment_confidence{track}'] = 0.0
-            # 标题轨道逐模型列
-            df[f'{short}_sentiment_title'] = '中性'
-            df[f'{short}_sentiment_confidence_title'] = 0.0
 
         # Logit-to-Score 禁用分支虚拟列（与启用分支输出列对齐）
         if LOGIT_SCORE_ENABLED:
             # 聚合级概率分数（三轨道）
-            for track in ['_full', '_ctx', '_title']:
+            for track in ['_full', '_ctx']:
                 df[f'llm_prob_score{track}'] = 0.0
             # 逐模型概率分数（三轨道）
             for m in MODELS:
@@ -1416,9 +1410,6 @@ def main():
                 for track in ['_full', '_ctx']:
                     df[f'{short}_prob_score{track}'] = 0.0
                     df[f'{short}_prob_source{track}'] = 'P3'
-                # 标题轨道逐模型列（与 L620-621 对齐）
-                df[f'{short}_prob_score_title'] = 0.0
-                df[f'{short}_prob_source_title'] = 'P3'
         # Plan v1.37 P2 (disabled-LLM fallback): 4 article-level binary
         # prob_score columns default to NaN (downstream NaN-safe aggregation).
         import numpy as _np
@@ -1796,7 +1787,7 @@ def main():
         #           情感分析: 方法与实证. 管理世界, (8), 58-72.
         #           该文证明: 标题短文本LLM情感与全文情感的交叉验证可有效
         #           识别"标题党"偏差并提升情感度量的鲁棒性。
-        TITLE_PROMPT_TEMPLATE = LLM_CONFIG.get('title_sentiment_prompt_template', '')
+        TITLE_PROMPT_TEMPLATE = ''  # remove-title-track: 标题轨永久禁用
         # Plan-r3 P3-17 接入: 与 PROMPT_VERSION 同源, 由 core/config.py
         # 自动从 config/prompts/title_sentiment.txt 的 ``# version:`` 头解析.
         TITLE_PROMPT_VERSION = LLM_CONFIG.get(

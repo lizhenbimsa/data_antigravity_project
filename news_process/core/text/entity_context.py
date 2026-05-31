@@ -41,6 +41,36 @@ from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
+# remove-title-track: 标题注入辅助。取消"标题轨"后, full / ctx 两轨用于情感
+# 分析的文本都必须"包含标题"。词典法 (tone_words) 与 BERT (tone_berts) 在构建
+# 轨文本时调用本函数把标题拼到正文/上下文前。
+# 注意:
+#   - LLM (tone_llms) 不调用 — 其 prompt 模板已用独立 title 字段把标题喂给模型
+#     (frozen prompt v8), 再拼会重复标题。
+#   - 实体窗口类特征 (fintech_intensity / policy_alignment 等) 也不调用, 因 ctx
+#     本身是目标银行局部窗口, 加标题会污染语义/分母。
+_TITLE_SEP = "。"
+_TITLE_END_PUNCT = ("。", "！", "？", "!", "?", "；", ";", "…")
+
+
+def prepend_title(title: str, body: str) -> str:
+    """把标题拼接到正文/上下文前 (full / ctx 两轨共用)。
+
+    - 标题为空 → 原样返回 body。
+    - body 已以标题开头 → 不重复拼接 (防"双标题")。
+    - 标题末尾已是句末标点 → 直接相连; 否则插入中文句号分隔。
+    """
+    title = str(title or "").strip()
+    body = str(body or "")
+    if not title:
+        return body
+    if body.startswith(title):
+        return body
+    if title.endswith(_TITLE_END_PUNCT):
+        return f"{title}{body}"
+    return f"{title}{_TITLE_SEP}{body}"
+
+
 # 中文句号边界正则:
 # 句号(。)、问号(？?)、感叹号(！!)、分号(；;) 作为硬分割点。
 # 不使用逗号/顿号作为分割点, 因为它们在中文中常用于句内停顿,

@@ -182,7 +182,7 @@ def test_compute_bartik_iv_base_year_no_data_returns_nan(mini_panel, mini_articl
     group_map = {'工行': 'soe', '招行': 'joint', '宁波银行': 'city'}
     out = iv_did.compute_bartik_iv(mini_panel, mini_articles, group_map,
                                     group_prefix='type', base_year=2099)
-    for track in ('_full', '_ctx', '_title'):
+    for track in ('_full', '_ctx'):
         col = f'bartik_type_iv{track}'
         assert col in out.columns
         assert out[col].isna().all(), f"{col} 应在缺基期时全 NaN"

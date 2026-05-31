@@ -574,16 +574,16 @@ def _cli_verify_replication(args) -> int:
             print(f"   [ERR] {sub}/ 缺失")
             n_err += 1
 
-    # 2. 15 .do 文件 (v3.7.3 Plan A v1.0: +1 from 25_tableA8_title_robustness)
-    print("\n[2/5] Stata .do 文件 (15 expected)")
+    # 2. 14 .do 文件 (remove-title-track: 删除 25_tableA8_title_robustness 后回到 14)
+    print("\n[2/5] Stata .do 文件 (14 expected)")
     code_dir = pkg_dir / 'code'
     if code_dir.is_dir():
         do_files = sorted(code_dir.glob('*.do'))
-        if len(do_files) == 15:
-            print(f"   [OK] {len(do_files)} .do files (15/15 完整)")
+        if len(do_files) == 14:
+            print(f"   [OK] {len(do_files)} .do files (14/14 完整)")
             n_ok += 1
         else:
-            print(f"   [ERR] {len(do_files)} .do files (expected 15)")
+            print(f"   [ERR] {len(do_files)} .do files (expected 14)")
             n_err += 1
 
     # 3. 占位符残留检测
@@ -618,8 +618,8 @@ def _cli_verify_replication(args) -> int:
         print("   [ERR] README.md 不存在")
         n_err += 1
 
-    # 5. master.do 引用 14 子 .do (v3.7.3 Plan A v1.0: +1 from 25_tableA8_title_robustness)
-    print("\n[5/5] master.do 引用 14 子 .do")
+    # 5. master.do 引用 13 子 .do (remove-title-track: 删除 25_tableA8_title_robustness)
+    print("\n[5/5] master.do 引用 13 子 .do")
     master = code_dir / '00_master.do'
     if master.exists():
         content = master.read_text(encoding='utf-8')
@@ -630,12 +630,11 @@ def _cli_verify_replication(args) -> int:
             '20_tableA1_inter_track_kappa.do', '21_tableA2_main_spec_switch.do',
             '22_tableA3_bartik_iv.do', '23_tableA4_radius_sensitivity.do',
             '24_tableA5_dictionary_method.do',
-            '25_tableA8_title_robustness.do',  # v3.7.3 Plan A v1.0
             '30_figure1_event_study.do', '31_figure_coefplot_dual.do',
         ]
         missing = [s for s in expected if s not in content]
         if not missing:
-            print(f"   [OK] master.do 引用 14/14 子 .do")
+            print(f"   [OK] master.do 引用 13/13 子 .do")
             n_ok += 1
         else:
             print(f"   [ERR] master.do 缺引用: {missing}")

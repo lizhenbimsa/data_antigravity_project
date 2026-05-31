@@ -147,7 +147,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
             continue
 
         # (D.a) 三轨道全局情感均值 (平衡子集)
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             src = f'llm_vote_score{track}'
             col = f'bal_{suffix}_tone{track}'
             if src in df_b.columns:
@@ -577,7 +577,7 @@ def compute_media_heterogeneity(df, panel):
         panel = panel.merge(frac, on=['target_bank', 'year'], how='left')
 
     # (2) 三类型情感均值 + 三维度缺口 - 维度①②③
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -609,7 +609,7 @@ def compute_media_heterogeneity(df, panel):
     panel = panel.merge(frac_c, on=['target_bank', 'year'], how='left')
 
     # (4) 中央/地方情感均值 + 缺口
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -638,7 +638,7 @@ def compute_media_heterogeneity(df, panel):
                 .mean().reset_index(name='official_media_frac'))
     panel = panel.merge(frac_off, on=['target_bank', 'year'], how='left')
 
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -667,7 +667,7 @@ def compute_media_heterogeneity(df, panel):
                 .mean().reset_index(name='market_media_frac'))
     panel = panel.merge(frac_mkt, on=['target_bank', 'year'], how='left')
 
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -696,7 +696,7 @@ def compute_media_heterogeneity(df, panel):
                .mean().reset_index(name='deepdive_media_frac'))
     panel = panel.merge(frac_dd, on=['target_bank', 'year'], how='left')
 
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -725,7 +725,7 @@ def compute_media_heterogeneity(df, panel):
                .mean().reset_index(name='daily_media_frac'))
     panel = panel.merge(frac_dl, on=['target_bank', 'year'], how='left')
 
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -840,7 +840,7 @@ def compute_media_heterogeneity(df, panel):
             panel = panel.merge(frac, on=['target_bank', 'year'], how='left')
 
             # ── 指标1: 偏袒度 + 指标3: 负面过滤 ──
-            for track in ['_full', '_ctx', '_title']:
+            for track in ['_full', '_ctx']:
                 src_tone = f'llm_vote_score{track}'
                 src_neg = f'is_negative{track}'
                 if src_tone not in df.columns:
@@ -920,7 +920,7 @@ def compute_media_heterogeneity(df, panel):
 
     # (C.3) bank-year 三轨道全局情感均值（排除停刊）
     df_alive = df[df['_is_ceased_media'] == 0]
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         src = f'llm_vote_score{track}'
         col = f'exc_tone{track}'
         if src in df_alive.columns:

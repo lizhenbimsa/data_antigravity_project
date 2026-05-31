@@ -91,7 +91,7 @@ def test_validation_preds_contain_expected_keys():
         'dict_coverage_audit', 'media_diversity', 'prompt_sensitivity',
         'inter_track_kappa', 'construct_orthogonality',
         'lexical_discriminant_validity', 'lm_discriminant_validity',
-        'cross_media_alpha', 'track_discriminant_validity',
+        'cross_media_alpha',
     }
     assert expected.issubset(set(_VALIDATION_PREDS.keys()))
 

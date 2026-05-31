@@ -108,7 +108,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
     base = df_exploded[df_exploded['year'] == T0].copy()
     if len(base) == 0:
         logger.warning(f"  基期 T0={T0} 无数据, Bartik IV [{group_prefix}] 跳过")
-        for track in ['_full', '_ctx', '_title']:
+        for track in ['_full', '_ctx']:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
         return panel
 
@@ -171,7 +171,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
         axis=1,
     ).copy()
 
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         score_col = f'llm_vote_score{track}'
         if score_col not in df_with_group.columns:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
@@ -304,7 +304,7 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
         axis=1,
     ).copy()
 
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         score_col = f'llm_vote_score{track}'
         if score_col not in df_cat.columns:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
@@ -361,7 +361,7 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
                             on=['target_bank', 'year'], how='left')
 
     # 诊断日志
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         iv_col = f'bartik_{group_prefix}_iv{track}'
         if iv_col in panel.columns:
             n_valid = panel[iv_col].notna().sum()
@@ -423,7 +423,7 @@ def compute_zone_leave1out(panel: pd.DataFrame,
         axis=1,
     ).copy()
 
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         score_col = f'llm_vote_score{track}'
         out_col = f'zone_leave1out_tone{track}'
         if score_col not in df_z.columns:
@@ -463,7 +463,7 @@ def compute_zone_leave1out(panel: pd.DataFrame,
     # 诊断
     zone_dist = panel.drop_duplicates('target_bank')['bank_zone'].value_counts()
     logger.info(f"  经济圈分布: {dict(zone_dist)}")
-    for track in ['_full', '_ctx', '_title']:
+    for track in ['_full', '_ctx']:
         out_col = f'zone_leave1out_tone{track}'
         if out_col in panel.columns:
             n_valid = panel[out_col].notna().sum()

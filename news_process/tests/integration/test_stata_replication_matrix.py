@@ -41,7 +41,7 @@ def test_build_replication_8spec_matrix(tmp_path, locus, subst, sent):
         assert (pkg / sub).exists(), f"spec {locus}_{subst}_{sent}: 缺 {sub}/"
     # 15 个 .do 文件全部实例化 (v3.7.3 Plan A v1.0: +1 from 25_tableA8_title_robustness)
     do_files = list((pkg / 'code').glob('*.do'))
-    assert len(do_files) == 15, f"spec {locus}_{subst}_{sent}: 应 15 .do, 实际 {len(do_files)}"
+    assert len(do_files) == 14, f"spec {locus}_{subst}_{sent}: 应 15 .do, 实际 {len(do_files)}"
     # README.md 含 spec 信息
     readme = (pkg / 'README.md').read_text(encoding='utf-8')
     assert locus in readme

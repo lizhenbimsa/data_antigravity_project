@@ -124,9 +124,9 @@ def test_cache_isolates_versions(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("name", ["unified_cot.txt", "title_sentiment.txt"])
+@pytest.mark.parametrize("name", ["unified_cot.txt"])
 def test_production_prompts_have_version_header(name: str) -> None:
-    """unified_cot.txt 与 title_sentiment.txt 首行必含 # version: ...
+    """unified_cot.txt 首行必含 # version: ... (remove-title-track: title_sentiment.txt 已删)
 
     一旦未来有人改 prompt 文件忘了 bump 版本号 (或误删头部), 本测试拦截。
     回归: caching.py round-3 之前 silent staleness 风险即"虽接入但版本号
