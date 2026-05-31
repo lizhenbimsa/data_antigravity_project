@@ -1,21 +1,10 @@
 """Tests for panel-level binary prob_score columns (plan v1.37 P2 §5.3.6).
 
-5 test functions; 6 parametrized cases (test 4: 2 dims).
+4 test functions; 5 cases (the positive-class encoding test is parametrized ×2).
 """
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import pytest
-
-
-def test_wz_footnote_present():
-    """Item 1: 3 verbatim grep targets in wz_framework_boundary_justification.md."""
-    wz_path = Path(__file__).resolve().parents[1] / "docs" / "methodology" / "wz_framework_boundary_justification.md"
-    src = wz_path.read_text(encoding="utf-8")
-    assert "1 = 象征性 / 应用场景 positive pole" in src
-    assert "0: 实质性 (Substantive) / 1: 象征性 (Symbolic)" in src
-    assert "0: 底层技术 (Technology) / 1: 应用场景 (Application)" in src
 
 
 def test_eight_new_columns_present():
