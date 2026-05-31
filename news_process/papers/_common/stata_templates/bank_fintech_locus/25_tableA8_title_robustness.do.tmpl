@@ -5,7 +5,7 @@
 * Purpose: _title 切片轨稳健性 (Gomber 底层/应用二元 in headline).
 *
 * Anchor:
-*   - Heston & Sinha (2017) FAJ; LM (2016) JAR §6; Boudoukh (2019) JFE
+*   - Heston & Sinha (2017) FAJ; LM (2016) JAR §6; Boudoukh et al. (2019) RFS
 *   - Gomber et al. (2017) — fintech locus layer/scenario dimension (P4 origin)
 *   - Campbell & Fiske (1959) — MTMM
 *
@@ -28,17 +28,37 @@ set seed {{RANDOM_SEED}}
 local title_var = subinstr("{{MAIN_TREAT}}", "_ctx", "_title", .)
 local title_var = subinstr("`title_var'", "_full", "_title", .)
 
+* ==== v3.7.5 Table A8 hardening (Item 4 no-op fix + F2 reghdfe gating + F5 dynamic esttab) ====
+* (a) title_applicable=0 when MAIN_TREAT lacks a _full/_ctx suffix (subinstr no-op -> title_var==MAIN_TREAT);
+*     prevents the degenerate Panel A/B that silently re-runs the main regression (e.g. strategic_diff strat_diff_n5).
+* (b) has_dv/has_treat gate every reghdfe so an absent MAIN_DV/MAIN_TREAT does not r(111)-abort the .do.
+* (c) a8_models/a8_titles drive a dynamic, scoped esttab (3 A/B/C estimates only) so a skipped panel never crashes the table.
+local title_applicable = ("`title_var'" != "{{MAIN_TREAT}}")
+if !`title_applicable' display "  [WARN] {{MAIN_TREAT}} has no _full/_ctx suffix; no genuine _title variant -> Panels A/B N/A."
+capture confirm variable {{MAIN_DV}}
+local has_dv = (_rc == 0)
+capture confirm variable {{MAIN_TREAT}}
+local has_treat = (_rc == 0)
+local a8_models ""
+local a8_titles ""
+* v3.7.6: separate accumulator for Panel D/E stratified models (own table)
+local de_models ""
+
 display "  [P4] {{PAPER_ID}}: title_var = `title_var'"
 
 capture confirm variable `title_var'
-if !_rc {
+if `title_applicable' & `has_dv' & `has_treat' & !_rc {
     reghdfe {{MAIN_DV}} `title_var' $bank_controls, ///
         absorb(bank_id year) vce(cluster bank_id year)
     eststo m_title_only
+    local a8_models "`a8_models' m_title_only"
+    local a8_titles `"`a8_titles' "Title-only""'
 
     reghdfe {{MAIN_DV}} {{MAIN_TREAT}} `title_var' $bank_controls, ///
         absorb(bank_id year) vce(cluster bank_id year)
     eststo m_main_plus_title
+    local a8_models "`a8_models' m_main_plus_title"
+    local a8_titles `"`a8_titles' "Main+Title""'
     test {{MAIN_TREAT}} = `title_var'
     display "  Wald test: p = " r(p)
 }
@@ -47,10 +67,12 @@ else {
 }
 
 capture confirm variable tone_gap_title_full
-if !_rc {
+if `has_dv' & `has_treat' & !_rc {
     reghdfe {{MAIN_DV}} {{MAIN_TREAT}} tone_gap_title_full $bank_controls, ///
         absorb(bank_id year) vce(cluster bank_id year)
     eststo m_with_gap
+    local a8_models "`a8_models' m_with_gap"
+    local a8_titles `"`a8_titles' "+Gap control""'
 }
 
 
@@ -61,28 +83,30 @@ if !_rc {
 * sub-window analysis. Per-cell graceful skip if N < 30.
 * ---------------------------------------------------------------------------
 capture confirm variable frac_title_mentions_fintech
-if !_rc {
+if `has_dv' & `has_treat' & !_rc {
     foreach tau in 0.3 0.5 0.7 {
         local thr_str = subinstr("`tau'", ".", "p", .)
-        quietly count if frac_title_mentions_fintech > `tau'
+        quietly count if frac_title_mentions_fintech > `tau' & !missing(frac_title_mentions_fintech)
         local n_above = r(N)
-        quietly count if frac_title_mentions_fintech <= `tau'
+        quietly count if frac_title_mentions_fintech <= `tau' & !missing(frac_title_mentions_fintech)
         local n_below = r(N)
         display "  Panel D τ=`tau': N above=`n_above', N below=`n_below'"
         if `n_above' >= 30 {
             reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $bank_controls ///
-                if frac_title_mentions_fintech > `tau', ///
+                if frac_title_mentions_fintech > `tau' & !missing(frac_title_mentions_fintech), ///
                 absorb(bank_id year) vce(cluster bank_id year)
             eststo m_panelD_above_`thr_str'
+        local de_models "`de_models' m_panelD_above_`thr_str'"
         }
         else {
             display "    [WARN] Panel D τ=`tau' above: N=`n_above' < 30, skip"
         }
         if `n_below' >= 30 {
             reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $bank_controls ///
-                if frac_title_mentions_fintech <= `tau', ///
+                if frac_title_mentions_fintech <= `tau' & !missing(frac_title_mentions_fintech), ///
                 absorb(bank_id year) vce(cluster bank_id year)
             eststo m_panelD_below_`thr_str'
+        local de_models "`de_models' m_panelD_below_`thr_str'"
         }
         else {
             display "    [WARN] Panel D τ=`tau' below: N=`n_below' < 30, skip"
@@ -101,26 +125,30 @@ else {
 * Per-cell graceful skip if N < 30.
 * ---------------------------------------------------------------------------
 capture confirm variable frac_title_long
-if !_rc {
-    quietly count if frac_title_long > 0.5
+if `has_dv' & `has_treat' & !_rc {
+    quietly summarize frac_title_long if !missing(frac_title_long), detail
+    local med_ftl = r(p50)
+    quietly count if frac_title_long > `med_ftl' & !missing(frac_title_long)
     local n_long = r(N)
-    quietly count if frac_title_long <= 0.5
+    quietly count if frac_title_long <= `med_ftl' & !missing(frac_title_long)
     local n_short = r(N)
     display "  Panel E: N long-title=`n_long', N short-title=`n_short'"
     if `n_long' >= 30 {
         reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $bank_controls ///
-            if frac_title_long > 0.5, ///
+            if frac_title_long > `med_ftl' & !missing(frac_title_long), ///
             absorb(bank_id year) vce(cluster bank_id year)
         eststo m_panelE_long
+        local de_models "`de_models' m_panelE_long"
     }
     else {
         display "    [WARN] Panel E long: N=`n_long' < 30, skip"
     }
     if `n_short' >= 30 {
         reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $bank_controls ///
-            if frac_title_long <= 0.5, ///
+            if frac_title_long <= `med_ftl' & !missing(frac_title_long), ///
             absorb(bank_id year) vce(cluster bank_id year)
         eststo m_panelE_short
+        local de_models "`de_models' m_panelE_short"
     }
     else {
         display "    [WARN] Panel E short: N=`n_short' < 30, skip"
@@ -130,10 +158,35 @@ else {
     display "  [WARN] frac_title_long not in panel; Panel E skipped"
 }
 
-esttab m_title_only m_main_plus_title m_with_gap ///
+* ==== v3.7.6 Panel D/E export ====
+* The Panel D/E stratified models were eststo-only (never tabulated) before
+* v3.7.6. Write them to a SEPARATE skip-safe table so the subsample columns
+* are not conflated with the A/B/C substitution columns.
+if "`de_models'" != "" {
+    esttab `de_models' ///
+        using "$tables_dir/tableA8_panelDE_strat.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) replace ///
+        title("Table A8 (Panel D/E): Stratified Headline Robustness — {{PAPER_ID}}") ///
+        nonotes ///
+        addnote("Panel D: subsample by frac_title_mentions_fintech vs tau in {0.3,0.5,0.7} " ///
+                "(Antweiler-Frank 2004 JF subject-relevance threshold sensitivity). " ///
+                "Panel E: above/below bank-year MEDIAN frac_title_long " ///
+                "(attention-channel motivation, Da-Engelberg-Gao 2011 JF). " ///
+                "Per-cell N>=30 graceful skip; rows with missing frac excluded.")
+    display "  [done] Panel D/E stratified table: $tables_dir/tableA8_panelDE_strat.tex"
+}
+else display "  [WARN] Panel D/E: no subsample cell with N>=30; stratified table skipped."
+
+if "`a8_models'" == "" {
+    display "  [WARN] Table A8: no estimable panel for {{PAPER_ID}}; writing stub .tex."
+    file open _a8stub using "$tables_dir/tableA8_title_robustness.tex", write replace
+    file write _a8stub "% Table A8 N/A for {{PAPER_ID}}: no usable _title panel (MAIN cols or _title variant absent)." _n
+    file close _a8stub
+}
+else esttab `a8_models' ///
     using "$tables_dir/tableA8_title_robustness.tex", ///
     se star(* 0.10 ** 0.05 *** 0.01) replace ///
-    mtitles("Title-only" "Main+Title" "+Gap control") ///
+    mtitles(`a8_titles') ///
     title("Table A8: Headline Robustness — {{PAPER_ID}} (P4 locus)") ///
     nonotes ///
     addnote("Anchors: Heston-Sinha (2017 FAJ); LM (2016 JAR §6); Gomber et al. (2017).")

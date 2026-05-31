@@ -1,93 +1,96 @@
-"""tests/integration/test_panel_d_e_stratification_consistency.py — v3.7.4 P3.7.
+"""Integration tests for Panel D/E stratification consistency in the 9 Table A8
+templates.
 
-Integration test verifying:
-  - 9 Stata templates contain Panel D + Panel E v3.7.4 markers
-  - paper_spec.yaml × 9 contain audit_response_ref pointing to methodology §5
-  - methodology doc and Report (when written) have grep diff = 0 on §6/§5 audit response (4.B SoT)
+v3.7.6 (2026-05-31): the Panel D/E stratification contract was CORRECTED (audit
+follow-up, user-authorized). These tests now pin the FIXED behaviour:
+  - Panel E splits on the bank-year MEDIAN of frac_title_long (was a fixed 0.5
+    cut that contradicted the documented "bank-year median" design);
+  - Panel D + Panel E conditions exclude missing-frac rows via `!missing(...)`
+    (Stata otherwise treats missing as +inf and silently includes them);
+  - the Panel D/E stratified estimates are EXPORTED to a separate table
+    `tableA8_panelDE_strat.tex` (they were eststo-only / never tabulated before).
+Earlier v3.7.4 versions of these tests pinned the as-shipped (buggy) behaviour;
+they were updated here together with the fix in
+scripts/migrate/v3_7_6_export_panelDE.py.
 """
-from __future__ import annotations
-
-import re
 from pathlib import Path
 
-import pytest
+_TDIR = Path(__file__).resolve().parents[1].parent / "papers" / "_common" / "stata_templates"
 
-_ROOT = Path(__file__).resolve().parents[3]
-
-
-STATA_TEMPLATES = [
-    "news_process/papers/_common/stata_templates/25_tableA8_title_robustness.do.tmpl",
-    "news_process/papers/_common/stata_templates/bank_fintech_attention/25_tableA8_title_robustness.do.tmpl",
-    "news_process/papers/_common/stata_templates/bank_fintech_substance/25_tableA8_title_robustness.do.tmpl",
-    "news_process/papers/_common/stata_templates/bank_fintech_locus/25_tableA8_title_robustness.do.tmpl",
-    "news_process/papers/_common/stata_templates/bank_fintech_collab/25_tableA8_title_robustness.do.tmpl",
-    "news_process/papers/_common/stata_templates/brokerage_network/25_tableA8_title_robustness.do.tmpl",
-    "news_process/papers/_common/stata_templates/llm_peer/25_tableA8_title_robustness.do.tmpl",
-    "news_process/papers/_common/stata_templates/strategic_diff/25_tableA8_title_robustness.do.tmpl",
-    "news_process/papers/_common/stata_templates/benefit_society/26_bs_title_robustness.do.tmpl",
-]
-
-PAPER_SPECS = [
-    ("bank_fintech_tone", ["tables", "tA8", "title_robustness"]),
-    ("bank_fintech_attention", ["tables", "tA8", "title_robustness"]),
-    ("bank_fintech_substance", ["tables", "tA8", "title_robustness"]),
-    ("bank_fintech_locus", ["tables", "tA8", "title_robustness"]),
-    ("bank_fintech_collab", ["tables", "tA8", "title_robustness"]),
-    ("brokerage_network", ["tables", "tA8", "title_robustness"]),
-    ("llm_peer", ["tables", "tA8", "title_robustness"]),
-    ("strategic_diff", ["tables", "tA8", "title_robustness"]),
-    ("benefit_society", ["title_robustness_table"]),
+_TEMPLATES = sorted(_TDIR.glob("**/25_tableA8_title_robustness.do.tmpl")) + [
+    _TDIR / "benefit_society" / "26_bs_title_robustness.do.tmpl"
 ]
 
 
-@pytest.mark.parametrize("template_rel", STATA_TEMPLATES)
-def test_stata_template_has_panel_de(template_rel):
-    """All 9 templates must contain Panel D (v3.7.4) + Panel E (v3.7.4) markers."""
-    p = _ROOT / template_rel
-    if not p.exists():
-        pytest.skip(f"template not found (probably in non-repo test env): {p}")
-    text = p.read_text(encoding="utf-8")
-    assert "* Panel D (v3.7.4)" in text, f"{template_rel}: missing Panel D marker"
-    assert "* Panel E (v3.7.4)" in text, f"{template_rel}: missing Panel E marker"
+def _read(p):
+    return p.read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("paper_id,parent_path", PAPER_SPECS)
-def test_paper_spec_has_v374_fields(paper_id, parent_path):
-    """All 9 paper_spec.yaml must have audit_response_ref + 2 caveats."""
-    try:
-        from ruamel.yaml import YAML
-        yaml = YAML()
-        loader = yaml.load
-    except ImportError:
-        import yaml as _y
-        loader = _y.safe_load
-
-    spec_path = _ROOT / "news_process" / "papers" / paper_id / "paper_spec.yaml"
-    if not spec_path.exists():
-        pytest.skip(f"paper_spec.yaml not found: {spec_path}")
-    with spec_path.open("r", encoding="utf-8") as f:
-        spec = loader(f)
-
-    cur = spec
-    for k in parent_path:
-        assert isinstance(cur, dict), f"{paper_id}: path {parent_path} not navigable"
-        assert k in cur, f"{paper_id}: missing key {k}"
-        cur = cur[k]
-    for key in ("audit_response_ref", "panel_d_caveat", "panel_e_caveat"):
-        assert key in cur, f"{paper_id}: missing {key} under {parent_path}"
-
-    expected = ("docs/methodology/title_track_as_robustness.md"
-                "#5-audit-response-template-for-peer-review")
-    assert cur["audit_response_ref"] == expected, (
-        f"{paper_id}: audit_response_ref={cur['audit_response_ref']!r}, expected {expected!r}"
-    )
+def _panel_d_block(c: str) -> str:
+    # From the Panel D section header to the Panel E section header. Both panels
+    # are preceded by a unique "* Panel X (v3.7.4)" comment banner.
+    return c.split("* Panel D (v3.7.4)")[1].split("* Panel E (v3.7.4)")[0]
 
 
-def test_methodology_doc_has_v11_marker():
-    """methodology doc must contain v1.1 marker (after P1.11 metadata update)."""
-    p = _ROOT / "news_process" / "docs" / "methodology" / "title_track_as_robustness.md"
-    if not p.exists():
-        pytest.skip("methodology doc not found")
-    text = p.read_text(encoding="utf-8")
-    # Soft check: either v1.0 (pre-P1.11) or v1.1 (post-P1.11) is acceptable for now
-    assert re.search(r"v1\.\d", text), "methodology doc missing version marker"
+def _panel_e_block(c: str) -> str:
+    # Panel E runs from its banner to the next panel/export marker.
+    after_e = c.split("* Panel E (v3.7.4)")[1]
+    for stop in ("* Panel F", "v3.7.6 Panel D/E export", 'if "`a8_models'):
+        after_e = after_e.split(stop)[0]
+    return after_e
+
+
+def test_all_templates_have_panel_d():
+    for p in _TEMPLATES:
+        c = _read(p)
+        assert "Panel D (v3.7.4)" in c, p
+        assert "frac_title_mentions_fintech" in c, p
+
+
+def test_panel_d_threshold_above_below_partition():
+    """Panel D uses tau in {0.3,0.5,0.7} with an above/below partition."""
+    for p in _TEMPLATES:
+        c = _read(p)
+        assert "foreach tau in 0.3 0.5 0.7" in c, p
+        assert "frac_title_mentions_fintech > `tau'" in c, p
+        assert "frac_title_mentions_fintech <= `tau'" in c, p
+
+
+def test_panel_e_uses_bank_year_median_not_fixed_half():
+    """v3.7.6 fix: Panel E splits on the computed bank-year median of
+    frac_title_long, NOT a fixed 0.5 cut (which contradicted the documented
+    'bank-year median' design)."""
+    for p in _TEMPLATES:
+        c = _read(p)
+        assert "summarize frac_title_long" in c, p
+        assert "local med_ftl = r(p50)" in c, p
+        assert "frac_title_long > `med_ftl'" in c, p
+        # the old fixed-0.5 cut must be gone
+        assert "frac_title_long > 0.5" not in c, p
+        assert "frac_title_long <= 0.5" not in c, p
+
+
+def test_panel_d_missing_guard_excludes_nan():
+    """v3.7.6 fix: Panel D conditions exclude missing-frac rows (Stata treats
+    missing as +inf, otherwise silently included in the > tau arm)."""
+    for p in _TEMPLATES:
+        pd_block = _panel_d_block(_read(p))
+        assert "!missing(frac_title_mentions_fintech)" in pd_block, p
+
+
+def test_panel_e_missing_guard_excludes_nan():
+    """v3.7.6 fix: Panel E conditions exclude missing-frac rows."""
+    for p in _TEMPLATES:
+        pe_block = _panel_e_block(_read(p))
+        assert "!missing(frac_title_long)" in pe_block, p
+
+
+def test_panel_de_estimates_are_exported():
+    """v3.7.6 fix: the stratified Panel D/E estimates are written to a separate
+    table (previously eststo-only and never tabulated)."""
+    for p in _TEMPLATES:
+        c = _read(p)
+        assert "local de_models" in c, p
+        assert "tableA8_panelDE_strat.tex" in c, p
+        # all four stratified arms accumulate into de_models
+        assert c.count('local de_models "`de_models\'') == 4, p

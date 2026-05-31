@@ -86,9 +86,9 @@ cd "F:/WiseSearch/data_antigravity_project"
 do "news_process/papers/{paper_id}/replication/code/00_master.do"
 ```
 
-或命令行批处理 (Windows):
+或命令行批处理 (Windows, /b = 后台批处理, 跑完自动退出不弹「已完成」框):
 ```
-"C:\\Program Files\\StataNow19\\StataMP-64.exe" /e do "news_process/papers/{paper_id}/replication/code/00_master.do"
+"C:\\Program Files\\StataNow19\\StataMP-64.exe" /b do "news_process/papers/{paper_id}/replication/code/00_master.do"
 ```
 
 ### 输出

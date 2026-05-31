@@ -532,7 +532,7 @@ STAGES_VALIDATION: list[StageSpec] = [
     ),
     # v3.7.3 Plan A v1.0: Track-discriminant validity (HTMT 3×3 across
     # _full / _ctx / _title 切片轨). 锚定 Heston & Sinha (2017) FAJ +
-    # Loughran-McDonald (2016) JAR survey §6 + Boudoukh et al. (2019) JFE +
+    # Loughran-McDonald (2016) JAR survey §6 + Boudoukh et al. (2019) RFS +
     # Campbell-Fiske (1959) MTMM 框架. 与 39d (indicator 维度) 正交.
     StageSpec(
         name="阶段39g: Track-discriminant validity (_full/_ctx/_title HTMT 3×3; v3.7.3)",

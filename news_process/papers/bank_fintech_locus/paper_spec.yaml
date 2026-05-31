@@ -95,7 +95,7 @@ tables:
     template: 25_tableA8_title_robustness
     title_robustness:
       anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al.
-        (2019) JFE"
+        (2019) RFS"
       track_substitute: true
       r3_h1_compatible: true
       caveat: "P4 Gomber 底层/应用 二元构念在标题级 LLM 判断 confidence 可能 < 0.6 (text 过短); Panel

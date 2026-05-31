@@ -324,7 +324,7 @@ def read_paper_esttab(paper_id: str,
         raise FileNotFoundError(
             f"esttab CSV not found: {csv_path}. "
             f"Run the Stata .do for paper={paper_id!r} first "
-            f"(e.g. via build_derivative_replication_package + StataMP-64 -b do <do_file>)."
+            f"(e.g. via build_derivative_replication_package + StataMP-64.exe /b do <do_file>)."
         )
     return parse_esttab_csv(csv_path)
 

@@ -24,8 +24,13 @@ outcome:
   enrichment_source: pipeline + CSMAR ROA/CAR/Tobin_Q
 
 treatment:
-  primary: llm_peer_tone_iv_full   # endogenous: 同业语调溢出
-  alternative: [llm_peer_tone_iv_ctx]
+  # v3.7.5 integrity fix (F3): the operative 2SLS in 11_table2_main_iv_2sls.do.tmpl is
+  #   ivreghdfe ROA (llm_vote_tone_full = llm_peer_tone_iv_full)
+  # The ENDOGENOUS 2nd-stage regressor whose coefficient IS the headline result is the
+  # bank's own tone llm_vote_tone_full, instrumented by the LLM-peer leave-one-out tone.
+  # The earlier `primary: llm_peer_tone_iv_full` mislabeled the INSTRUMENT as the treatment.
+  primary: llm_vote_tone_full   # endogenous own-firm tone (instrumented by peer IV)
+  alternative: [llm_vote_tone_ctx]
 
 controls:
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth, llm_peer_count,
@@ -36,8 +41,12 @@ controls:
 identification:
   baseline: llm_peer_2sls
   iv:
-    primary: llm_peer_tone_loo_full   # leave-one-out 语义同业均值 (instrument for endogenous peer_tone)
-    fallback: llm_peer_tone_loo_ctx
+    # v3.7.5 integrity fix (F3): the excluded instrument actually built by the pipeline is
+    # llm_peer_tone_iv_full (pipeline/panel/llm_peer_iv.py:677) — a leave-one-out mean of
+    # peers' llm_vote_tone over the LLM-identified peer network. The previous
+    # `llm_peer_tone_loo_full` / `_loo_ctx` were PHANTOM columns built nowhere in the pipeline.
+    primary: llm_peer_tone_iv_full   # LLM-peer leave-one-out tone (instrument; built by stage 7h-llmpeer)
+    fallback: llm_peer_tone_iv_full_75   # TNIC cutoff=0.75 robustness instrument (real, on panel)
 
 event_studies: []  # cross-sectional IV identification; no policy shocks
 
@@ -65,7 +74,7 @@ tables:
     template: 25_tableA8_title_robustness
     title_robustness:
       anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al.
-        (2019) JFE"
+        (2019) RFS"
       track_substitute: true
       r3_h1_compatible: true
       audit_response_ref: 

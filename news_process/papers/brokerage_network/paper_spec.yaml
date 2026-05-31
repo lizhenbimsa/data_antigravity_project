@@ -69,7 +69,7 @@ tables:
     template: 25_tableA8_title_robustness
     title_robustness:
       anchor: "Heston & Sinha (2017) FAJ; LM (2016) JAR survey §6; Boudoukh et al.
-        (2019) JFE"
+        (2019) RFS"
       track_substitute: true
       r3_h1_compatible: true
       audit_response_ref: 

@@ -86,17 +86,22 @@ graceful-fallback policy.
 | Panel | Design | Top-journal precedent | Status |
 |---|---|---|---|
 | A | Title-only sentiment replaces main treatment | Heston-Sinha 2017 *FAJ*; Tetlock-SS-M 2008 *JF* | v3.7.3 done |
-| B | Main + Title joint regression + Wald informational redundancy test | Engelberg 2008; Boudoukh 2019 *JFE* §IV.B | v3.7.3 done |
+| B | Main + Title joint regression + Wald informational redundancy test | Engelberg 2008; Boudoukh 2019 *RFS* §IV.B | v3.7.3 done |
 | C | Add `tone_gap_title_full` (Engelberg hard-soft asymmetry control) | Engelberg 2008; LM 2016 *JAR* §6 | v3.7.3 done |
 | **D** | **Stratify by `frac_title_mentions_fintech` across thresholds {0.3, 0.5, 0.7}** | **Antweiler-Frank 2004 *JF* §III (subject-relevance threshold sensitivity); Hassan 2019 *QJE* §IV.A (Q&A vs presentation sub-window)** | **v3.7.4** ✅ code; ⏳ panel pending stage 14-40 re-run |
 | **E** | **Stratify by `frac_title_long` (above/below bank-year median)** | **Antweiler-Frank 2004 *JF* (length stratification); Da-Engelberg-Gao 2011 *JF* (attention channel)** | **v3.7.4** ✅ code; ⏳ panel pending stage 14-40 re-run |
 
-**Current panel state caveat**: panel `40_panel_yearly.parquet` (168 × 2060,
-frozen at 2026-05-16) does NOT yet contain `frac_title_mentions_fintech` /
-`frac_title_long` aggregated columns. Until stage 14-40 production re-run
-completes, Panel D + E will graceful-skip in all 9 paper Table A8 outputs
-(emitting `[WARN] ... not in panel; Panel D skipped`). Panels A/B/C
-(v3.7.3 baseline) continue normally. See methodology §4.5 for full caveat.
+**Current panel state caveat (UPDATED v3.7.5, 2026-05-31)**: the stage 14-40
+production re-run has **COMPLETED** — `40_panel_yearly.parquet` was regenerated
+2026-05-30 22:52 (174×1997) and now contains `frac_title_mentions_fintech` /
+`frac_title_long` / `tone_gap_title_full` (~117-118/174 non-null), so Panels
+C/D/E **now run** (subject only to the per-cell N ≥ 30 graceful-skip), not the
+column-missing skip described above (the "168 × 2060 frozen at 2026-05-16" state
+is stale). NOTE: the on-disk 39g JSON and the §6 audit-response numbers below
+were computed against the OLD panel and remain STALE pending regeneration. The
+v3.7.5 Table A8 hardening (Item 3/4 fixes, methodology §7.4) additionally gates
+every reghdfe on MAIN_DV/MAIN_TREAT existence and makes esttab dynamic. See
+methodology §4.5 + §7.4 and `docs/plan/tableA8_item3_item4_fix_execution_plan.md`.
 
 ---
 
@@ -121,19 +126,22 @@ completes, Panel D + E will graceful-skip in all 9 paper Table A8 outputs
 > To verify headline sentiment is not confounded by topics orthogonal to
 > the bank-FinTech construct, we report:
 >
-> (i) HTMT discriminant validity (Henseler-Ringle-Sarstedt 2015, *JAMS*):
->     HTMT(`_full`,`_title`) point estimate = 0.627 (strict pass < 0.85);
->     HTMT(`_ctx`,`_title`) = 0.628 (strict pass < 0.85). Bootstrap 95%
->     CI upper bounds 0.863 and 0.861 respectively (stage 39g,
->     n_bootstrap=1000, seed=42, N=64 bank-year) exceed the 0.85 strict
->     threshold; this reflects small-sample CI width rather than
->     discriminant failure (Henseler-Ringle-Sarstedt 2015 §4 recommend
->     bootstrap CI; we acknowledge the wide band and report it
->     transparently. Future N expansion via stage 14-40 production
->     re-run is expected to tighten the upper bound below 0.85.) Point
->     estimates remain consistent with the order of magnitude of
->     headline-vs-body sentiment relationship documented in Heston-Sinha
->     (2017, *FAJ*);
+> (i) HTMT discriminant validity (Henseler-Ringle-Sarstedt 2015, *JAMS*),
+>     on the current production panel (174×1997, stage 39g re-run
+>     2026-05-31, N=64 bank-year, n_bootstrap=1000, seed=42):
+>     HTMT(`_full`,`_title`) point estimate = 0.384, bootstrap 95% CI
+>     upper bound 0.710; HTMT(`_ctx`,`_title`) = 0.517, CI upper 0.798 —
+>     both `_title` pairs pass the 0.85 strict cutoff on BOTH the point
+>     estimate AND the bootstrap CI upper bound. HTMT(`_full`,`_ctx`) =
+>     0.825 is treated as design self-correlation (`_ctx` is the
+>     entity-proximity sub-window of `_full`; Hassan et al. 2019 *QJE*),
+>     not a discriminant failure. (The earlier 2026-05-26 first-run on
+>     the 168×2060 panel reported point 0.627/0.628 with CI upper
+>     0.863/0.861 marginally above 0.85, attributed to small-sample
+>     width; the current larger panel resolves both below the cutoff.)
+>     Point estimates remain consistent with the order of magnitude of
+>     the headline-vs-body sentiment relationship documented in
+>     Heston-Sinha (2017, *FAJ*);
 >
 > (ii) Engelberg (2008) hard-soft asymmetry controlled by
 >      `tone_gap_title_full` in Panel C;

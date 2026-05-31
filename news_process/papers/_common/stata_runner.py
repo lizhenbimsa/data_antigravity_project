@@ -493,7 +493,7 @@ def _cli_build_replication(args) -> int:
     print(f"   - output/: tables/ + figures/ (generated after Stata run)")
     print(f"\nNext steps:")
     print(f"   cd {pkg}")
-    print(f"   stata -b do code/00_master.do")
+    print(f"   {'StataMP-64.exe /b' if _is_windows() else 'stata-mp -b'} do code/00_master.do")
     return 0
 
 

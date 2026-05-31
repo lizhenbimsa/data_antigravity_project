@@ -4,7 +4,7 @@ Thin shim per CLAUDE.md 约定 (v3.7.2 后 39 个; v3.7.3 Plan A v1.0 加 stage 
 实现位于 news_process.pipeline.audit.track_discriminant_validity.
 
 锚定: Heston & Sinha (2017) FAJ; Loughran & McDonald (2016) JAR survey §6;
-      Boudoukh et al. (2019) JFE; Campbell & Fiske (1959) MTMM;
+      Boudoukh et al. (2019) RFS; Campbell & Fiske (1959) MTMM;
       Henseler-Ringle-Sarstedt (2015) JAMS HTMT 双 cutoff.
 """
 import pathlib

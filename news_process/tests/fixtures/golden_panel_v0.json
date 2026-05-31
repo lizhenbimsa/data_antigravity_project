@@ -4469,9 +4469,9 @@
     },
     "40_panel_yearly.parquet": {
       "file": "40_panel_yearly.parquet",
-      "size_bytes": 2488265,
+      "size_bytes": 2486166,
       "n_rows": 174,
-      "n_columns": 1997,
+      "n_columns": 1998,
       "columns_order": [
         "target_bank",
         "year",
@@ -6469,7 +6469,8 @@
         "n_events_full",
         "cross_outlet_tone_variance_ctx",
         "cross_media_alpha_ctx",
-        "n_events_ctx"
+        "n_events_ctx",
+        "llm_peer_tone_iv_title"
       ],
       "dtypes": {
         "target_bank": "object",
@@ -8468,7 +8469,8 @@
         "n_events_full": "float64",
         "cross_outlet_tone_variance_ctx": "float64",
         "cross_media_alpha_ctx": "float64",
-        "n_events_ctx": "float64"
+        "n_events_ctx": "float64",
+        "llm_peer_tone_iv_title": "float64"
       },
       "column_hashes": {
         "target_bank": "d212f052b46c4856",
@@ -10467,7 +10469,8 @@
         "n_events_full": "f0cf826a5b71f226",
         "cross_outlet_tone_variance_ctx": "959e0f4ab6a04479",
         "cross_media_alpha_ctx": "fdff120ba19c0b5a",
-        "n_events_ctx": "080f189818184b87"
+        "n_events_ctx": "080f189818184b87",
+        "llm_peer_tone_iv_title": "dc1c0e0e38d6cd1e"
       }
     },
     "40_article_bank_level.parquet": {

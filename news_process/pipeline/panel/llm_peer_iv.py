@@ -527,6 +527,11 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         return panel
 
     tone_col = 'llm_vote_tone_full'
+    # v3.7.5 Tier-2: title-tone column for a genuine 2SLS title robustness (llm_peer
+    # Table A8 Panel G). The peer NETWORK is identical to the _full IV (same LLM-cached
+    # peer map); only the averaged tone column differs, so _iv_title is faithful by
+    # construction and costs $0 incremental LLM. Skipped silently if absent.
+    title_tone_col = 'llm_vote_tone_title'
     coverage_col = 'ln_news_coverage'
 
     if tone_col not in panel.columns:
@@ -675,7 +680,13 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                 # 防止当所有匹配到的 peer 情感值全为 NaN 时，触发均值计算污染面板数据
                 if tone_vals.notna().any():
                     iv_entry[f'llm_peer_tone_iv_full_{c_str}'] = tone_vals.mean()
-                
+
+                # v3.7.5 Tier-2: same peer_mask, title-tone -> faithful 2SLS title instrument.
+                if title_tone_col in panel.columns:
+                    title_vals = panel.loc[peer_mask, title_tone_col]
+                    if title_vals.notna().any():
+                        iv_entry[f'llm_peer_tone_iv_title_{c_str}'] = title_vals.mean()
+
                 if coverage_col in panel.columns:
                     cov_vals = panel.loc[peer_mask, coverage_col]
                     if cov_vals.notna().any():
@@ -685,6 +696,7 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
             for primary_col, suffixed_col in [
                 ('llm_peer_count', 'llm_peer_count_80'),
                 ('llm_peer_tone_iv_full', 'llm_peer_tone_iv_full_80'),
+                ('llm_peer_tone_iv_title', 'llm_peer_tone_iv_title_80'),  # v3.7.5 Tier-2
                 ('llm_peer_coverage_iv', 'llm_peer_coverage_iv_80'),
             ]:
                 if suffixed_col in iv_entry:

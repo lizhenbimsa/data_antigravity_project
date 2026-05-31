@@ -106,7 +106,7 @@ python -m news_process.papers._common.stata_runner list-templates --verbose
 
 Next steps:
    cd replication_v3.2.0_lc_sf_ctx
-   stata -b do code/00_master.do
+   StataMP-64.exe /b do code/00_master.do     # Windows: /b=批处理不弹框; Unix/Mac: stata-mp -b do ...
 ```
 
 ## Master.do execution order / 执行顺序

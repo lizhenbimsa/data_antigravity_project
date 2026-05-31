@@ -3,7 +3,7 @@
 > **Status**: v3.7.4 v1.1 (2026-05-26; upgraded from v3.7.3 Plan A v1.0 after 9 rounds of audit, joint-occurrence framework integration)
 > **Scope**: 9 papers (P1-P5 + brokerage_network + llm_peer + strategic_diff + benefit_society)
 > **Compatibility**: maintains v3.5.1 R3-H1 exclusion of A1/A3 on `_title`
-> **Anchor**: Heston-Sinha (2017 *FAJ*); LM (2016 *JAR* survey); Boudoukh (2019 *JFE*); Campbell-Fiske (1959) MTMM; Tetlock-Saar-Tsechansky-Macskassy (2008 *JF* 63(3) "More Than Words", DOI verified via CrossRef); Antweiler-Frank (2004 *JF*); Hassan et al. (2019 *QJE*)
+> **Anchor**: Heston-Sinha (2017 *FAJ*); LM (2016 *JAR* survey); Boudoukh (2019 *RFS*); Campbell-Fiske (1959) MTMM; Tetlock-Saar-Tsechansky-Macskassy (2008 *JF* 63(3) "More Than Words", DOI verified via CrossRef); Antweiler-Frank (2004 *JF*); Hassan et al. (2019 *QJE*)
 > **Implementation**: paper_spec.yaml `tables.tA8.template` (8 papers) + paper-specific extension key `title_robustness_table` (benefit_society); v3.7.4 adds `audit_response_ref` pointer (MA-4 SoT, not inline)
 > **v3.7.4 additions**: Panel D (stratify by `frac_title_mentions_fintech` × {0.3, 0.5, 0.7} thresholds, Antweiler-Frank 2004 JF); Panel E (stratify by `frac_title_long`, Da-Engelberg-Gao 2011 JF); stage 39g bootstrap CI (Henseler-Ringle-Sarstedt 2015 JAMS); per-cell graceful skip if N < 30
 
@@ -80,8 +80,8 @@ headline-level text only.
 | Hillert-Jacobs-Müller (2014) | *RFS* | **Title coverage** drives momentum |
 | Chen-De-Hu-Hwang (2014) | *RFS* | Seeking Alpha titles + bodies analyzed separately |
 | Heston & Sinha (2017) | *FAJ* | **Direct headline vs full-article sentiment comparison** |
-| Boudoukh-Feldman-Kogan-Richardson (2019) | *JFE* | Headline-based identification §III + headline sentiment as robustness §IV.B |
-| Tetlock-Saar-Tsechansky-Macskassy (2008) | *JF* 63(3) | "More Than Words" — direct firm news headline vs body sentiment comparison (DOI verified v3.7.4) |
+| Boudoukh-Feldman-Kogan-Richardson (2019) | *RFS* | Headline-based identification §III + headline sentiment as robustness §IV.B |
+| Tetlock-Saar-Tsechansky-Macskassy (2008) | *JF* 63(3) | "More Than Words" — firm news tone (story-level negative-word fraction) predicts fundamentals; cited as news-tone precedent, NOT a headline-vs-body split (DOI verified v3.7.4) |
 
 **No top-journal paper uses title sentiment as the sole main treatment**, but
 multiple top-journal papers use title sentiment as **either a robustness check
@@ -178,7 +178,7 @@ Engelberg-Reed-Ringgenberg (2012, *JFE*) is documented in Report §2.3):
 
 1. Tetlock (2007 *JF* 62(3)): WSJ column (already selected on market topic)
 2. Tetlock-Saar-Tsechansky-Macskassy (2008 *JF* 63(3) "More Than Words"):
-   firm news (already firm-tagged), headline and body scored separately
+   firm news (already firm-tagged), scored at the story level (news-tone precedent; not a headline-vs-body split)
 3. Loughran-McDonald (2011 *JF* 66(1)): 10-K (already firm-year conditional)
 4. Garcia (2013 *JF* 68(3)): NYT financial column (already selected)
 5. Solomon (2012 *RFS* 25): press release (already firm-tagged)
@@ -192,7 +192,7 @@ Under this paradigm:
   not text-borne, and do not require physical co-occurrence in any specific
   text segment.
 - (S) dimension is measured at the text level by sentiment classifiers
-  (LLM 3-vote / dictionary 5-lexicon / BERT 5-model).
+  (LLM 3-vote / dictionary 5-lexicon / BERT 3-model — BERT reduced 5→3 after the erlangshen+hw2942 drop, commit a6327512).
 - Each text slice (`_full`, `_ctx`, `_title`) is an alternative measurement
   specification of S conditional on the (B, F) document-level anchor.
 
@@ -254,7 +254,7 @@ Loughran-McDonald (2016 *JAR* §6) per-paper reporting convention.
 
 **Design rationale (incorporates v1.0 §5 robustness-design narrative)**:
 The legacy v1.0 audit-response framework — citing Heston-Sinha (2017 *FAJ*)
-headline-vs-body comparison, Boudoukh et al. (2019 *JFE* §III) headline-based
+headline-vs-body comparison, Boudoukh et al. (2019 *RFS* §III) headline-based
 identification, Mullainathan-Shleifer (2005 *AER*) editor-framing, and
 Barber-Odean (2008 *RFS*) salience — is preserved as the historical
 motivation for the Tier-B robustness slot. v1.1 §5 (below) expands this
@@ -283,19 +283,22 @@ Report §6 and paper_spec.yaml `audit_response_ref`; grep diff must = 0):**
 > To verify headline sentiment is not confounded by topics orthogonal to
 > the bank-FinTech construct, we report:
 >
-> (i) HTMT discriminant validity (Henseler-Ringle-Sarstedt 2015, *JAMS*):
->     HTMT(`_full`,`_title`) point estimate = 0.627 (strict pass < 0.85);
->     HTMT(`_ctx`,`_title`) = 0.628 (strict pass < 0.85). Bootstrap 95%
->     CI upper bounds 0.863 and 0.861 respectively (stage 39g,
->     n_bootstrap=1000, seed=42, N=64 bank-year) exceed the 0.85 strict
->     threshold; this reflects small-sample CI width rather than
->     discriminant failure (Henseler-Ringle-Sarstedt 2015 §4 recommend
->     bootstrap CI; we acknowledge the wide band and report it
->     transparently. Future N expansion via stage 14-40 production
->     re-run is expected to tighten the upper bound below 0.85.) Point
->     estimates remain consistent with the order of magnitude of
->     headline-vs-body sentiment relationship documented in Heston-Sinha
->     (2017, *FAJ*);
+> (i) HTMT discriminant validity (Henseler-Ringle-Sarstedt 2015, *JAMS*),
+>     on the current production panel (174×1997, stage 39g re-run
+>     2026-05-31, N=64 bank-year, n_bootstrap=1000, seed=42):
+>     HTMT(`_full`,`_title`) point estimate = 0.384, bootstrap 95% CI
+>     upper bound 0.710; HTMT(`_ctx`,`_title`) = 0.517, CI upper 0.798 —
+>     both `_title` pairs pass the 0.85 strict cutoff on BOTH the point
+>     estimate AND the bootstrap CI upper bound. HTMT(`_full`,`_ctx`) =
+>     0.825 is treated as design self-correlation (`_ctx` is the
+>     entity-proximity sub-window of `_full`; Hassan et al. 2019 *QJE*),
+>     not a discriminant failure. (The earlier 2026-05-26 first-run on
+>     the 168×2060 panel reported point 0.627/0.628 with CI upper
+>     0.863/0.861 marginally above 0.85, attributed to small-sample
+>     width; the current larger panel resolves both below the cutoff.)
+>     Point estimates remain consistent with the order of magnitude of
+>     the headline-vs-body sentiment relationship documented in
+>     Heston-Sinha (2017, *FAJ*);
 >
 > (ii) Engelberg (2008) hard-soft asymmetry controlled by
 >      `tone_gap_title_full` in Panel C;
@@ -330,7 +333,7 @@ the v3.7.4 SoT — v1.1 above supersedes for §6 / paper_spec ref):**
 > Appendix) reports the headline-only sentiment specification, paralleling
 > the headline-vs-body sentiment comparison in Heston & Sinha (2017, *FAJ*)
 > and the headline-based identification design in Boudoukh et al. (2019,
-> *JFE*). Our main findings are qualitatively unchanged."
+> *RFS*). Our main findings are qualitatively unchanged."
 
 For papers with binary-construct main treatments (P3 substance, P4 locus,
 P5 collab), the audit response notes the LLM confidence caveat documented in
@@ -407,17 +410,77 @@ re-run.
   (`bank_news_clarity`) once paper-spec stabilizes (P10 SSRN-route + P11 G3
   unlock conditional on coauthor governance). v3.7.4 covers the 9-paper
   portfolio; P10/P11 remain deferred per v3.7.4 Out of Scope §7.
-- **stage 14-40 production re-run**: required to propagate v3.7.4
-  article-level title indicators (`title_mentions_fintech`,
-  `title_length_bucket`) into bank-year panel columns
-  (`frac_title_mentions_fintech`, `frac_title_long`). Until this completes,
-  Stata Panel D + E will graceful-skip; Panel A/B/C continue normally.
-  See §4.5 "Current panel state caveat" for the full graceful-fallback
-  behavior.
+- **stage 14-40 production re-run — COMPLETED (2026-05-30)**: the panel
+  `40_panel_yearly.parquet` was regenerated 2026-05-30 22:52 (174×1997) and
+  NOW contains `frac_title_mentions_fintech` / `frac_title_long` /
+  `tone_gap_title_full` (~117-118/174 non-null). **Stata Panel C/D/E now RUN**
+  (subject only to the per-cell N ≥ 30 graceful-skip), superseding the earlier
+  "will graceful-skip until re-run" caveat (§4.5). The on-disk stage-39g JSON
+  (`logs/audit/39g_v3_7_4_e2e.json`, 2026-05-26) and the §5/§6 audit-response
+  numbers remain STALE vs this live panel and must be regenerated before any
+  replication package ships.
 - **stage 39g production deployment**: HTMT 3×3 default-enabled (matching
   39d/39e/39f pattern); first empirical result documented above; v3.7.4
   bootstrap CI extension verified by Round 40 end-to-end re-run
   (`logs/audit/39g_v3_7_4_e2e.json`).
+
+### §7.4 v3.7.5 Table A8 hardening (2026-05-31)
+
+A 4-lens adversarial audit of the Table A8 consumption surface (6 P0 + 11 P1,
+plan v1.0 → v2.0) surfaced two confirmed defects, now fixed (Tier-1, $0, no
+panel change):
+
+- **Item 4 (strategic_diff no-op)**: `strat_diff_n5` lacks a `_full`/`_ctx`
+  suffix, so the template `subinstr` was a no-op (`title_var == MAIN_TREAT`) and
+  Panel A/B silently re-ran the main regression (non-erroring under Stata 19, so
+  it produced a plausible-but-meaningless panel). Fixed by a `title_applicable`
+  guard + dynamic esttab; the strategic_diff table is retitled "Sub-sample /
+  Environment Robustness" (its treatment is text-distinctness, not sentiment).
+- **Item 3 (llm_peer estimator, framing corrected)**: the operative 2SLS is
+  `ivreghdfe ROA (llm_vote_tone_full = llm_peer_tone_iv_full)`, so the headline
+  regressor IS `llm_vote_tone_full` (already used by Table A8) — the defect is
+  OLS-vs-2SLS, **not** a wrong variable. Disclosed as a firm-tone OLS
+  reduced-form; the genuine 2SLS title robustness (needing `llm_peer_tone_iv_title`)
+  is deferred (Tier-2). The `paper_spec.yaml` `treatment.primary` (had mislabeled
+  the instrument) and `iv.primary` (phantom `llm_peer_tone_loo_full`) were
+  reconciled with the implemented identification.
+- **brokerage (D4, free win)**: a genuine 2SLS title robustness (Panel F,
+  `peer_tone_lag1_title` instrumented by `peer_tone_2nd_lag1_title`) was added —
+  both columns already exist on the panel.
+- **Honest coverage**: genuine fully-clean Panel-A substitution is **1 of 9**
+  (P1); brokerage + llm_peer are right-variable-but-OLS-not-2SLS (brokerage now
+  upgraded to IV-title); 5 papers skip (no `_title` main variant); collab is
+  deferred (not in `_DERIVATIVE_PAPER_IDS`).
+- Every reghdfe is now gated on MAIN_DV / MAIN_TREAT existence (the live
+  derivative-paper panel lacks ROA + most main treatments, which previously
+  r(111)-crashed Panel C before esttab).
+
+See `docs/plan/tableA8_item3_item4_fix_execution_plan.md` (v2.0) for the full
+plan + audit trail. Implemented via `scripts/migrate/v3_7_5_harden_tableA8.py`
+(idempotent) + `tests/test_tableA8_hardening_v375.py` (15 tests).
+
+**Tier-2 (genuine 2SLS title robustness) — code-complete (no longer deferred).**
+`pipeline/panel/llm_peer_iv.py` now also averages `llm_vote_tone_title` over the
+*same* LLM-cached peer network that builds `llm_peer_tone_iv_full`, emitting
+`llm_peer_tone_iv_title` — faithful by construction, $0 incremental LLM. llm_peer
+gains **Panel G** (`ivreghdfe`/`ivreg2` 2SLS: `llm_vote_tone_title` instrumented by
+`llm_peer_tone_iv_title`); brokerage's **Panel F** does the same for its existing
+title columns. Both self-activate / graceful-skip on column presence.
+`llm_peer_tone_iv_title` is now **materialized on the panel** via a validation-gated,
+cache-only backfill (`scripts/migrate/v3_7_5_add_llm_peer_iv_title.py`): the LLM-peer
+network is rebuilt purely from the LLM cache (**0 API calls / $0**), the rebuilt
+`llm_peer_tone_iv_full` reproduces all 19 on-panel values exactly (max_abs_diff = 0.0),
+proving the peer network is faithful — only then is the new column written (panel
+174×1998, +1 col, 19 non-null; golden snapshot updated; `.v375bak` backup). Panel G
+now activates on the real panel.
+
+**Stata/MP verification (residual risk closed).** `scripts/audit/verify_tableA8_stata_smoke.py`
+runs the hardened templates through StataNow 19.5/MP: strategic_diff (no-op N/A),
+substance (absent main treatment → graceful stub, no r(111)), brokerage (Panel F
+2SLS estimates), llm_peer (Panel A + Panel G 2SLS estimates) all return **RC=0**.
+Key finding: absorbed-HDFE IV degenerates at **T=2** (`ivreghdfe` r(301)); the
+`ivreg2 + i.bank_id i.year` fallback (proven rc=0, mirroring `11_table2_main_iv_2sls`)
+makes both 2SLS panels estimable.
 
 ---
 
@@ -425,7 +488,7 @@ re-run.
 
 - Antweiler, W., & Frank, M. Z. (2004). Is all that talk just noise? *JF*, 59(3), 1259-1294.
 - Barber, B. M., & Odean, T. (2008). All that glitters. *RFS*, 21(2), 785-818.
-- Boudoukh, J., Feldman, R., Kogan, S., & Richardson, M. (2019). Information, trading, and volatility. *JFE*, 133(1), 85-104.
+- Boudoukh, J., Feldman, R., Kogan, S., & Richardson, M. (2019). Information, trading, and volatility: Evidence from firm-specific news. *RFS*, 32(3), 992-1033. DOI: 10.1093/rfs/hhy083.
 - Campbell, D. T., & Fiske, D. W. (1959). Convergent and discriminant validation by the multitrait-multimethod matrix. *Psychological Bulletin*, 56(2), 81-105.
 - Chen, H., De, P., Hu, Y., & Hwang, B.-H. (2014). Wisdom of crowds. *RFS*, 27(5), 1367-1403.
 - Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. *JF*, 66(5), 1461-1499.

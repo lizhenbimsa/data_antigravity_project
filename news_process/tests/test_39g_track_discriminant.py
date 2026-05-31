@@ -2,7 +2,7 @@
 
 锚定:
     - Heston & Sinha (2017) FAJ; Loughran & McDonald (2016) JAR §6;
-      Boudoukh et al. (2019) JFE; Campbell & Fiske (1959) MTMM;
+      Boudoukh et al. (2019) RFS; Campbell & Fiske (1959) MTMM;
       Henseler-Ringle-Sarstedt (2015) JAMS HTMT 双 cutoff.
 
 测试覆盖 (15 tests):

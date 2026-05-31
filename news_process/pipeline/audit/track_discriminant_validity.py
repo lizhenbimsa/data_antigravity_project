@@ -18,7 +18,7 @@ T2 = _ctx / T3 = _title — 回答"3 条切片轨在同一 sentiment 指标上�
 - Henseler, Ringle, Sarstedt (2015) JAMS 43: 115-135 — HTMT (双 cutoff)
 - Heston & Sinha (2017) FAJ 73(3): 67-83 — headline vs body sentiment 对照
 - Loughran & McDonald (2016) JAR 54(4): 1187-1230 — text subset robustness §6
-- Boudoukh et al. (2019) JFE 133(1): 85-104 — headline-based identification §III
+- Boudoukh et al. (2019) RFS 32(3): 992-1033 — headline-based identification §III
 
 v0.1 已知 limitation
 ====================
