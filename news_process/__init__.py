@@ -65,4 +65,4 @@ Post-recode round 3 (Plan-r3 P0-P3, 2026-05-09): 第二轮 17 单元修复
 本 docstring 仅保留 Phase 0-9 + recode 历史记录, 不再追加新版本节。
 """
 
-__version__ = "3.7.1"
+__version__ = "3.8.0"

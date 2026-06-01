@@ -28,18 +28,19 @@ media in the stock market. Journal of Finance, 62(3), 1139-1168.
 
 事件窗口定义
 -----------
-- bank-level shock 自动检测: bank-year 内 ``n_articles`` > p90 of bank history
-  OR ``tone_volatility_within_day`` > p90
+- bank-level shock 自动检测: bank-day 内 ``n_per_day`` >= 该 bank 日计数 p90
+  (注: 当前实现仅按日计数 p90; 设计中的 ``tone_volatility_within_day`` p90 OR 分支尚未实现)
 - 窗口 ±3d (与 v2.3 G-D3.1 一致)
 
-panel 新增 4 列
+panel 新增 6 列
 ---------------
 ``cross_outlet_tone_variance_{full,ctx}``  第 10 篇 main treatment
 ``cross_media_alpha_{full,ctx}``           α 度量, robustness
+``n_events_{full,ctx}``                     event 计数 (加权诊断用)
 
 依赖
 ----
-pip install krippendorff>=0.5.0 (默认注释化, 见 requirements.txt:107).
+pip install krippendorff>=0.5.0 (默认注释化, 见 requirements.txt:123).
 
 D-0 实测项 (v2.3 G-D3.1)
 ------------------------

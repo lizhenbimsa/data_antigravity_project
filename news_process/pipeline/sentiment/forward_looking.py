@@ -33,7 +33,7 @@ panel 新增 2 列
 
 G-A2.1 准入门控
 ---------------
-词表 ≥ 100 词 + 500 句人工标注 precision ≥ 0.80; 当前是 v0.1 ~50 词种子集.
+词表 ≥ 100 词 + 500 句人工标注 precision ≥ 0.80; 当前是 v0.1.5 双门控 (future ~72 词 + time ~59 词 ≈ 131 词).
 """
 
 from __future__ import annotations

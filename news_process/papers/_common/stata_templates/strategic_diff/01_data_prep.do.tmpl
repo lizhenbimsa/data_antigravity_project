@@ -15,7 +15,7 @@ encode target_bank, gen(bank_id)
 xtset bank_id year
 
 global controls "{{CONTROLS}}"
-* R1-R5 audit follow-up (Agent 2 Bug-2): 25_tableA8 ref $bank_controls; reuse $controls
+* $bank_controls 保留为 $controls 的兼容性 alias (跨篇共享 boilerplate; strategic_diff 本篇原引用它的 25_tableA8_title 模板已删, 现为无害 dead alias)
 global bank_controls "$controls"
 
 foreach v in {{MAIN_DV}} {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} {{SIM_MAX_VAR}} {{TONE_VAR}} {{BARTIK_IV}} {

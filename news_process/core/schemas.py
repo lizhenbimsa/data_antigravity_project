@@ -183,7 +183,7 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
 # 查它们, 故不列入此集合 (避免无效条目误导维护者)。
 EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     # validation stages (31-39): orchestrator 预清理跳过的集合。
-    # 注意: 多数 stage 只写 eval_reports/*.csv, 但 39c/39d/39f/39g 仍会写
+    # 注意: 多数 stage 只写 eval_reports/*.csv, 但 39c/39d/39f 仍会写
     # data/processed/39*_*.parquet|json — 这些 parquet/json 走 validation
     # 约定不进 OUTPUT_REGISTRY (按 per-stage 行内注释), orchestrator 不预清理。
     "31_bank_fintech_threshold.py",
@@ -261,7 +261,7 @@ def _validate_registry_invariant() -> None:
         )
 
     # ── 校验 4: 跨 stage 文件名唯一性 (recode round 2) ──
-    # 现状: 18 个 parquet 文件名两两不同; 校验防御未来 copy-paste 笔误.
+    # 现状: 27 个 parquet + 5 个 stage46 导出 = 32 个文件名两两不同; 校验防御未来 copy-paste 笔误.
     all_files = [f for files in OUTPUT_REGISTRY.values() for f in files]
     if len(all_files) != len(set(all_files)):
         from collections import Counter as _Counter

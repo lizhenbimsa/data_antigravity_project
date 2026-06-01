@@ -1,6 +1,8 @@
 """F1-0 yunwu.ai/v1 透传探针（强制前置门）
 
-对当前 sentiment.yaml 中 3 个 model_name 各发 1 条最小 prompt，记录：
+对 3 个候选 model_name 各发 1 条最小 prompt（探测期候选名，非 config 锁定名；
+其中 gemini-3.1-flash-lite-preview 为带 -preview 后缀的候选，与 config 中
+gemini-3.1-flash-lite 不同），记录：
 - HTTP 状态
 - 响应 JSON 结构（是否含 choices[0].message.content）
 - model / system_fingerprint 等元数据

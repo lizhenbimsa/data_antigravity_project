@@ -15,7 +15,7 @@ news_process.validation.tone_validation — 阶段34：情感分析三角验证�
     ┌────────────────────────────────────────────────────────────┐
     │ 一、内部一致性 (Within-Method Consistency)                   │
     │    1.1 五词典间 Spearman 相关矩阵                            │
-    │    1.2 五 BERT 模型间 Spearman 相关矩阵                      │
+    │    1.2 三 BERT 模型间 Spearman 相关矩阵                      │
     │    1.3 Cronbach's Alpha 内部一致性系数                       │
     │                                                            │
     │ 二、跨方法一致性 (Cross-Method Consistency)                  │
@@ -621,7 +621,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
         all_scores_df:   同 df, 但只保留情感分数列, 与 all_labels_df 1:1 对齐
         all_labels_df:   同 df, 只保留 LLM/词典/BERT label 列
         logger_inst:     注入的 logger (避免顶层 logger 多进程串扰)
-        track:           '_full' (全文) / '_ctx' (上下文) / '_title' (标题)
+        track:           '_full' (全文) / '_ctx' (上下文)
 
     Returns:
         dict: ``{strata_kind: {strata_value: {n_samples, cronbach_alpha,
@@ -1580,7 +1580,7 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
 
     Args:
         df:         track 已过滤的双轨 panel
-        track:      '_full' / '_ctx' / '_title' (匹配双轨命名约定)
+        track:      '_full' / '_ctx' (匹配双轨命名约定)
         output_dir: 报告输出目录 (一般 ``data/processed/eval_reports/``)
         logger:     注入 logger
         CONFIG:     已加载的项目 cfg

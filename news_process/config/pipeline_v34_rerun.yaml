@@ -4,12 +4,13 @@
 # **当前状态: skeleton placeholder**。
 # M-1 数据现状审计 (G-1) pass 后 + D1 决策点用户确认数据源后, 由 Claude
 # (per §14 RACI M0.5 Responsible) 填写 raw 路径 / API endpoint / 凭证 引用,
-# 然后才能 invoke ``run_pipeline_v34`` (M0.5 全量重跑 12 wk wall-time, $4,062 LLM cost cap).
+# 然后才能 invoke ``run_pipeline_v34`` (M0.5 全量重跑 12 wk wall-time, $5,000 LLM cost cap, 见 acceptance.llm_cost_cap_usd).
 #
 # Schema 设计原则 (与现有 config/{paths,preprocessing,filtering,sentiment,...}.yaml 兼容):
 #   - 顶层 key = pipeline 阶段 (raw_ingest / preprocessing / sentiment / panel_build / output);
 #   - 各阶段下 sub-key 描述 输入路径 / 处理参数 / 输出路径 / cost-cap;
-#   - 与 core/dag.py STAGES_MAIN 一一对应。
+#   - id 用 core/dag.py STAGES_MAIN 的脚本 stem (此处列举核心生产阶段子集, 非全量;
+#     skeleton 占位, 无代码按 id 解析)。
 
 version: 1.0.0  # config schema version (not pipeline version)
 plan_anchor: "B_route_master_plan_v2 §5.3"
@@ -57,13 +58,13 @@ stages:
     families: [gpt54nano, gemini31111, deepseekv4]
     temperature: 0
     cache_strategy: "hot_first"
-  - id: "22_words_tone"
+  - id: "22_tone_words"
     duration_wk: 1   # M0.5.5
     resource: cpu
-  - id: "23_bert_tone"
+  - id: "23_tone_berts"
     duration_wk: 2   # M0.5.6 — GPU 64-core 全量推理
     resource: "gpu_64core"
-  - id: "24_herd_decay"
+  - id: "24_herd_decay_processor"
     duration_wk: 1   # M0.5.7
     resource: cpu
 

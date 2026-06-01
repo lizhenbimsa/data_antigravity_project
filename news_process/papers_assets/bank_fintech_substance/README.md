@@ -17,7 +17,7 @@ P3 = Bank Fintech Substance: 度量银行 fintech 战略宣告的"实质性 vs �
 
 | 子模块 | 行数 | 责任 |
 |---|---|---|
-| `news_process.pipeline.features.innovation_substantiveness` (v3.2.0 stage 32a) | ~ | 计算 `innovation_substantiveness_full` / `_ctx` 二元 W&Z 标签 |
+| `news_process.pipeline.sentiment.tone_llms` (v3.2.0 stage 21) | ~ | 计算 `innovation_substantiveness_full` / `_ctx` 二元 W&Z 标签 |
 | `news_process.papers.bank_fintech_substance.analysis` | ~60 | CLI 入口 |
 | `news_process.papers.bank_fintech_substance.tables` | ~80 | Table 1-5 (descriptive + main + dual_outcome + heterogeneity + robustness) |
 | `news_process.papers.bank_fintech_substance.figures` | ~45 | Figure 1 (substantiveness 分布) |
@@ -27,7 +27,7 @@ P3 = Bank Fintech Substance: 度量银行 fintech 战略宣告的"实质性 vs �
 ```
 papers/bank_fintech_substance/
 ├── __init__.py        ← PAPER_ID = 'bank_fintech_substance'
-├── paper_spec.yaml    ← M0 G0 frozen spec (per plan §B.3)
+├── paper_spec.yaml    ← M0 G0 frozen spec (原 B-route master plan §B.3 已随 docs/ 目录整体删除)
 ├── analysis.py        ← CLI 入口
 ├── tables.py
 └── figures.py
@@ -43,10 +43,10 @@ papers_assets/bank_fintech_substance/
 
 | 层 | 交付 |
 |---|---|
-| Spec | `paper_spec.yaml` per plan §B.3 (status: new) |
+| Spec | `paper_spec.yaml` (status: new; 原 B-route master plan §B.3 已随 docs/ 目录整体删除) |
 | Python | `analysis.py` / `tables.py` / `figures.py` 骨架 |
 | Manuscript | en + zh manuscript.tex 骨架 (M3 实质填充) |
-| Stata | (M2: 6 templates = 4 common + 19_substance_lr_reversal + 20_substance_disclosure_quality extras) |
+| Stata | 9 templates = 00_master + 01_data_prep + 15_substance_main_regression + 16_substance_mechanism + 17_substance_heterogeneity + 18_substance_robustness + 19_substance_lr_reversal + 20_substance_disclosure_quality + 21_substance_clarity_robustness (已生成于 papers/_common/stata_templates/bank_fintech_substance/) |
 
 ## 关键变量 (Dual Outcome)
 

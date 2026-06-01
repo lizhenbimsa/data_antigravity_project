@@ -10,7 +10,7 @@
     _constants.py  — 模块级常量 / CONFIG / logger / 已编译正则
     load.py        — Aho-Corasick 自动机 + 单文件并行入口
     normalize.py   — OpenCC 繁简、HTML 清洗、噪声去除、尾部规范化
-    filter.py      — 7 步初步过滤 + 媒体名称归并
+    filter.py      — 8 步初步过滤 (含 Schema 统一 + 媒体名称清理)
     dedup.py       — 精确去重 + MinHash LSH 近似去重
 
 本文件保留:
@@ -289,7 +289,7 @@ def main() -> None:
     logger.info("")
     logger.info("  📊 关键指标解读")
     logger.info("     · 去重保留率: 85%-95% 为健康范围, <80% 需排查数据源质量")
-    logger.info("     · Jaccard 阈值: 由 config.yaml 控制 (默认 0.85), 越高 → 去重越保守")
+    logger.info("     · Jaccard 阈值: 由 config.yaml 控制 (config 默认 0.8), 越高 → 去重越保守")
     logger.info("       [学术支持]: The informational content of key audit matters 及 胡俊(2021)")
     logger.info("       均印证 ≥ 0.8/0.85 为合理的文本高度相似/冗余判别门槛")
     logger.info("     · MinHash 签名: 128 个置换 = 精度与速度的工业级平衡点")

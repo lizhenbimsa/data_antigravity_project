@@ -8,7 +8,7 @@
 # 每个嵌入特征 (stage 15/25/26/27/network) 在一次运行内用两个 spec 各算一遍,
 # 并排产出 canonical 列 (主, API) + `_t2v` 列 (稳健, text2vec)。
 # 历史: v1 起 base_url=local 让"主"轨退化为 text2vec; 本次恢复"主=API"原始设计
-# 意图并补全稳健 twin (详见 docs / CLAUDE.md 双模型嵌入节)。
+# 意图并补全稳健 twin。
 # ──────────────────────────────────────────────────────────────────────────
 embedding_api:                                   # MAIN (canonical) — text-embedding-3-small
   model: text-embedding-3-small

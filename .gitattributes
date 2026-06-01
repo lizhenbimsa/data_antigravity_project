@@ -25,7 +25,7 @@
 # 审稿人 fresh API call 时仍能从归档复现实验结果.
 # 预估总量 20-25 GB (v3.7.0 m12 校准, embedding 12KB/条 占大头).
 # 需要 GitHub LFS data pack × 1-2 ($5-10/月 含 50-100GB), 见
-# news_process/docs/methodology/llm_response_archive_design.md §四
+# data/llm_archive/README.md (原 docs/methodology/llm_response_archive_design.md 已随 docs/ 删除)
 #
 # m12 cross-check: 与 .gitignore 协调 — .gitignore 含 `news_process/data/`
 # 但本 LFS 路径是 *repo root* 下的 `data/llm_archive/`, 两者不冲突.

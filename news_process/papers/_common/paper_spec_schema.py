@@ -1,18 +1,10 @@
-"""papers/_common/paper_spec_schema.py — v3.7.4 P3.6.a.
+"""papers/_common/paper_spec_schema.py — Lightweight paper_spec.yaml validator.
 
-Lightweight schema validator for `papers/*/paper_spec.yaml`.
-
-P0.7 真实状态 (2026-05-26 verify): 此前 9 轮 audit 假设此文件已存在 — false.
-v3.7.4 NEW file (not extension).
-
-Validates that v3.7.4 NEW fields are well-formed when present:
-  - tables.tA8.title_robustness.audit_response_ref       (str, anchor format)
-  - tables.tA8.title_robustness.panel_d_caveat           (str, optional)
-  - tables.tA8.title_robustness.panel_e_caveat           (str, optional)
-  - title_robustness_table.audit_response_ref            (str; benefit_society alt-key)
-
-Anchor format expected:
-    "docs/methodology/title_track_as_robustness.md#5-audit-response-template-for-peer-review"
+remove-title-track: 此模块原为校验已删除的「标题情感稳健性轨」字段而建
+(tables.tA8.title_robustness.* / title_robustness_table.*)。这些字段已从所有
+papers/*/paper_spec.yaml 移除, 故本模块的检查在当前 spec 上恒为 no-op (字段缺失时
+直接通过)。模块予以保留仅因 11 份 paper_spec.yaml 顶部以注释方式引用其路径
+(`# Schema reference: papers/_common/paper_spec_schema.py`)。
 
 Public API:
     validate_paper_spec(spec_dict) -> list[str]   # returns violations, empty = ok
@@ -39,11 +31,11 @@ _VALID_AUDIT_RESPONSE_REFS: frozenset[str] = frozenset({
 
 
 def is_valid_audit_response_ref(s: Any) -> bool:
-    """True iff s is one of the explicitly allow-listed anchors to methodology §5.
+    """True iff s is one of the explicitly allow-listed audit-response anchors.
 
-    Future v3.7.5+ audit response variants must be added to
-    `_VALID_AUDIT_RESPONSE_REFS` explicitly — wildcard match is rejected
-    to keep the SoT pointer set under deliberate version control.
+    remove-title-track: 该 audit-response 体系随标题情感稳健性轨一并停产, 不再
+    新增 variant; 此函数在当前 spec 上恒返回 False 对缺失字段无影响 (调用方仅在
+    audit_response_ref 存在时才检查)。
     """
     if not isinstance(s, str):
         return False

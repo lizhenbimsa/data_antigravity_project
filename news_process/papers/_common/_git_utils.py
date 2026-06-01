@@ -35,7 +35,7 @@ def get_git_commit_hash_with_dirty() -> str:
         'unknown' (no git / no repo / timeout / etc.)
     """
     try:
-        # Three levels up: this file → _common → papers → news_process → repo_root.
+        # Four levels up: this file → _common → papers → news_process → repo_root.
         repo_root = Path(__file__).resolve().parents[3]
         h = subprocess.run(
             ['git', 'rev-parse', 'HEAD'],

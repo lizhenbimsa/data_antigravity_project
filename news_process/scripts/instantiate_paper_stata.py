@@ -1,6 +1,6 @@
-"""scripts/instantiate_paper_stata.py — v3.7.0 第 10/11 篇 Stata 模板实例化.
+"""scripts/instantiate_paper_stata.py — 第 10/11 篇 Stata 模板实例化.
 
-V3 audit closure C task: 把 papers/<paper_id>/stata_templates/*.do.tmpl 复制到
+把 papers/<paper_id>/stata_templates/*.do.tmpl 复制到
 papers/<paper_id>/replication/code/*.do (无 {{}} 占位符的情况下等价于 copy).
 
 设计:
@@ -64,7 +64,7 @@ def _make_readme(paper_id: str, n_files: int) -> str:
 
     return f"""# {title_zh} Stata Replication Package
 
-> v3.7.0 (2026-05-18) — instantiated from `news_process/papers/{paper_id}/stata_templates/`
+> instantiated from `news_process/papers/{paper_id}/stata_templates/`
 > Stata 19+ required ({n_files} .do files).
 
 ## 运行步骤
@@ -99,12 +99,10 @@ do "news_process/papers/{paper_id}/replication/code/00_master.do"
 
 ## 输出文件清单
 
-包含 .do 文件:
-1. `00_master.do` — orchestrator (跑所有)
-2. `00_install_packages.do` — 必需包 ssc install (幂等)
-3. `01_data_prep.do` — 数据加载 + merge bank metadata
-4. `11_table2_*.do` — 主回归 M1-M6 (progressive controls)
-5. `13_table4_heterogeneity.do` — 异质性 5-panel (tier + 上市 + period + drop top 6)
+本包共实例化 {n_files} 个 .do 文件, 内容来自 `news_process/papers/{paper_id}/stata_templates/`
+下实际存在的 *.do.tmpl (各 paper 模板集不同)。完整清单请直接查看 `code/` 目录,
+或运行 `papers/_common/stata_runner.py` 的 `list-templates` 子命令。一般包含
+orchestrator (`00_master.do`) + 包安装 + 数据准备 + 各表格/图脚本。
 
 ## 故障排除
 
@@ -117,10 +115,10 @@ do "news_process/papers/{paper_id}/replication/code/00_master.do"
 - {paper_id == 'bank_media_disagreement' and 'Diether-Malloy-Scherbina (2002) JF + Cookson-Niessner (2020) RFS + Bushman-Williams (2012) JAE + Acharya 2016 RFS' or 'Bushman-Williams (2012) JAE + Bushee (2010) JAR + Loughran-McDonald (2014) JF + Acharya 2016 RFS'}
 - Risk-taking outcome: Laeven-Levine (2009) JFE Z-score framework
 
-## V3 audit closure (2026-05-18)
+## 维护说明
 
 本 replication 包由 `scripts/instantiate_paper_stata.py` 实例化.
-未来若 paper_spec.yaml::treatment 变更, 重新跑此脚本即可.
+未来若 paper_spec.yaml::treatment 变更或模板增删, 重新跑此脚本即可.
 """
 
 

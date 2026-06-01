@@ -1,6 +1,6 @@
 # Paper spec for P5 — bank_fintech_collab (NEW, v3.4.0 epoch 5)
 # Authoritative source of truth at M0 G0 acceptance (epoch 5 streak 3/3 pending).
-# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+# Schema reference: papers/_common/paper_spec_schema.py
 
 paper_id: bank_fintech_collab
 spec_version: 1.0.0
@@ -13,8 +13,7 @@ differentiation_claim: |
     P1 主回归 tone 作 treatment, P5 主回归 collab_mode 作 treatment.
   - 与 P2 (attention): P5 度量公告本身, P2 度量媒体对银行的 attention exposure 量.
   - 与 P3 (substance): P3 度量 W&Z 二元 substantiveness, P5 度量 Chesbrough open
-    innovation 二元 collab_mode; 二维交叉但独立 (2³=8 cross-tab cells 论证见
-    docs/methodology/innovation_collab_mode_framework.md §2).
+    innovation 二元 collab_mode; 二维概念正交, 与 P4 locus 共同构成 2³=8 cross-tab cells.
   - 与 P4 (locus): P4 度量 Gomber 二元 locus (底层/应用), P5 度量 Chesbrough
     二元 collab_mode (自主/外部); 不同框架 (Open Innovation vs Enabling Technology).
   - 与 llm_peer: P5 不构造 LLM peer 网络 IV, 仅 firm-level collab_mode binary.
@@ -86,7 +85,7 @@ sample:
 
 audit_rounds_target_min: 8                # 与 P3/P4 同 rigor (epoch 5 streak 3/3 standard)
 
-# v3.5.0 D2 8-cell decomposition Table 6 (per stage3_v3_5_0_augmentation_plan.md §2.1.5)
+# v3.5.0 D2 8-cell decomposition Table 6
 tables:
   t6:
     template: 19_table6_cell_decomposition  # Stata Table 6: i.cell_id_full saturated regression

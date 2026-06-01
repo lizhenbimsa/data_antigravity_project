@@ -1,5 +1,8 @@
 """把 PROJECT_DESCRIPTION.md 转换为带样式与 MathJax 的 HTML。
 
+⚠ 暂不可用: docs/ 目录已整体删除 (commit 1698bda5), 源文件 PROJECT_DESCRIPTION.md 不存在,
+main() 会在 SRC.exists() 检查处 SystemExit。待 PROJECT_DESCRIPTION.md 重建后方可启用。
+
 输入：news_process/docs/PROJECT_DESCRIPTION.md
 输出：news_process/docs/PROJECT_DESCRIPTION.html
 
@@ -378,12 +381,13 @@ def build_html(md_text: str) -> str:
     body_html = post_process_html(body_html)
 
     # 顶部文档头（meta info）
+    # 版本/commit 不再硬编码 (旧值 v3.6.0/1cd99574 早已过期且易失真);
+    # 以源 MD 顶部声明为准, 此处仅标注来源与生成方式。
     header_html = (
         '<div class="doc-header">\n'
-        '  <strong>news_process 项目说明书</strong>'
-        ' · v3.6.0 · 2026-05-18 commit <code>1cd99574</code>\n'
+        '  <strong>news_process 项目说明书</strong>\n'
         '  <div class="meta">'
-        'Markdown 源文件：<code>docs/PROJECT_DESCRIPTION.md</code> · '
+        'Markdown 源文件：<code>PROJECT_DESCRIPTION.md</code> · '
         '本 HTML 由 <code>scripts/convert_project_description_to_html.py</code> 自动生成'
         '</div>\n'
         '</div>\n'
@@ -394,9 +398,9 @@ def build_html(md_text: str) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>news_process 项目说明书（v3.6.0）</title>
+<title>news_process 项目说明书</title>
 <meta name="description"
-      content="基于中文财经新闻的银行-金融科技互动效应面板数据流水线（v3.6.0 Plan E）">
+      content="基于中文财经新闻的银行-金融科技互动效应面板数据流水线">
 <meta name="generator" content="Python markdown 3.8 + MathJax v3">
 <style>{CSS}</style>
 {MATHJAX_CONFIG}

@@ -30,7 +30,8 @@ LLM response archive: required (DC3)
 
 包结构 (M7+ 创建)
 ----------------
-- ``paper_spec.yaml`` : 立项 spec (此模块当前唯一已存在文件)
+- ``paper_spec.yaml`` : 立项 spec
+- ``stata_templates/`` + ``replication/`` : 已就位
 - ``analysis.py``     : 待 M7 创建
 - ``tables.py``       : 待 M7 创建
 - ``figures.py``      : 待 M7 创建

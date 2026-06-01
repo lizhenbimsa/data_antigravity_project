@@ -88,8 +88,8 @@ OUTCOME_SCHEMA = {
     'acquisition_timestamp': 'string',
 }
 
-# 500 行 panel 银行清单 (frozen at v3.6.0)
-# 实际位置: news_process/config/bank_list.yaml (M1 待生成)
+# 银行 panel 主清单 (frozen at v3.6.0; 实际见下方 bank_list.yaml)
+# 实际位置: news_process/config/bank_list.yaml (已生成, 1771 行)
 # 这里仅 dry-run 用前 20 家作 demonstration
 SAMPLE_BANK_LIST = [
     # 国有 6 大
@@ -565,13 +565,14 @@ def main():
     parser.add_argument('--wind-key', default=None,
                         help='Wind API key (or set WIND_API_KEY env var)')
     parser.add_argument('--full-bank-list', action='store_true',
-                        help='Use full 500 bank list (M1+ only)')
+                        help='Use full bank list from config/bank_list.yaml (~1771 banks; loader 尚未接入)')
     args = parser.parse_args()
 
     bank_list = SAMPLE_BANK_LIST
     if args.full_bank_list:
-        # TODO: 加载 news_process/config/bank_list.yaml (M1 deliverable)
-        logger.warning("full bank list 未实施, fallback to sample 20 banks")
+        # bank_list.yaml 已生成 (news_process/config/bank_list.yaml, 1771 行);
+        # TODO: 接入加载逻辑 — 读取已存在的 bank_list.yaml::banks (加载器尚未实施)
+        logger.warning("full bank list 加载器尚未接入, fallback to sample 20 banks")
 
     df = dry_run(
         year_quarter=args.year_quarter,

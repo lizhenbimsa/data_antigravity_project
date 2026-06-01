@@ -28,7 +28,7 @@ events:
     treatment_logic: "与 P2P 业务有交集的银行 = treated (bank-level continuous exposure)"
     identification: "bank-level continuous exposure (与 P2P 业务 pre-2016 媒体共现强度 × post-event dummy)"
     applicable_papers: [P1, P2, P3]
-    reference: "银保监会 (2016) 〔2016〕1 号文"
+    reference: "银监会 (2016) 〔2016〕1 号文"
 
   - id: E3
     date: 2017-04-27

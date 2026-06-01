@@ -4,7 +4,7 @@ Stage 39c: 在 article 层算 substantiveness × locus × collab_mode 三 constr
 normalized mutual information (NMI) matrix + permutation null distribution,
 作 paper Appendix A.2 "Construct Validity Evidence" 的实证证据.
 
-Per [stage3_v3_5_0_augmentation_plan.md §2.2](../../../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+学术锚点 (v3.5.0 D3):
     - Vinh, Epps & Bailey (2010 JMLR 11:2837-2854) NMI arithmetic averaging
     - Fred & Jain (2003 CVPR) NMI for clustering comparison
     - Bagozzi & Yi (1988 JAMS 16:74-94) discriminant validity in CFA

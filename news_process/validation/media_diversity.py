@@ -1055,8 +1055,9 @@ def main():
         7. Bushee et al. (2010, JAR) media breadth
         8. Laakso 1979 effective N media
 
-    输入: ``data/processed/12_fintech_news.parquet``
-    输出: ``data/processed/eval_reports/38_media_diversity_audit.{parquet,xlsx}``
+    输入: 跨 6 阶段遍历 (00_preprocessing / 11_bank_news / 12_fintech_news /
+          21_tone_llms / 23_bert_tone / 40_article_bank_level 的 parquet)
+    输出: ``data/processed/eval_reports/38_media_diversity.xlsx``
     """
     start_time = time.time()
     logger.info("=" * 70)

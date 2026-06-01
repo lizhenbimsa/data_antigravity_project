@@ -112,9 +112,9 @@ def test_dag_registration():
     assert "39c_construct_orthogonality.py" in scripts, "v3.5.0 D3 stage missing"
     assert "39d_lexical_discriminant_validity.py" in scripts, "v3.5.1 stage 39d missing"
     assert len(dag.STAGES_VALIDATION) == 17, (
-        f"v3.7.3 Plan A v1.0 expects 18 validation stages "
-        f"(13 v3.4.0 + 39c v3.5.0 + 39d v3.5.1 + 39e v2.3 PR-A + 39f v2.3 PR-D "
-        f"+ 39g v3.7.3 Plan A); got {len(dag.STAGES_VALIDATION)}"
+        f"expects 17 validation stages "
+        f"(13 v3.4.0 + 39c v3.5.0 + 39d v3.5.1 + 39e v2.3 PR-A + 39f v2.3 PR-D; "
+        f"39g title 轨已删); got {len(dag.STAGES_VALIDATION)}"
     )
 
 

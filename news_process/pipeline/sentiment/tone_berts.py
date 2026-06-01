@@ -193,7 +193,7 @@ def _build_model_configs() -> list:
         现在 sentiment.yaml 缺失或 models 段为空时直接 raise, 提示明确.
         finbert2 这类本地私有模型通过 ${FINBERT2_MODEL_DIR} env var 解析,
         缺该 env 时 sentiment.yaml 解析为空字符串, 模型加载阶段 (L298 try/except)
-        graceful skip 而不影响其它 4 个 huggingface 模型.
+        graceful skip 而不影响其它 2 个 huggingface 模型 (finbert_cn / fin_sent_zh).
 
     Returns:
         list: 模型配置字典列表，每项包含 model_id、short_name、description、
@@ -210,7 +210,7 @@ def _build_model_configs() -> list:
         raise RuntimeError(
             "config/sentiment.yaml::sentiment_analysis.tone_berts.models "
             "段缺失或为空. 该段是 stage 23 BERT 情感分析的模型清单单一真值, "
-            "请按既有格式补齐 (参考 v2.1.0 baseline 的 5 模型配置). "
+            "请按既有格式补齐 (参考当前 3 模型配置 (finbert_cn / fin_sent_zh / finbert2)). "
             "Plan P0-2 已删除代码内 fallback 双源以避免静默漂移."
         )
 

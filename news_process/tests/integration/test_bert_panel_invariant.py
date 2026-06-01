@@ -15,7 +15,8 @@ Concrete failure mode (originally observed 2026-05-13 in Wave 0/1 finalization):
     KeyError ~30 min later. This test catches it in <1s.
 
 The invariant: for every model declared in `tone_berts.models`, the stage 23
-parquet must contain its 3 label columns: `{short_name}_label_{ctx,full,title}`.
+parquet must contain its 2 label columns: `{short_name}_label_{ctx,full}`
+(remove-title-track 后 BERT 收为 _full/_ctx 双轨).
 
 The test auto-skips when 23_bert_tone.parquet is absent (CI light/CI full
 both have `data/processed/` .gitignored) and is auto-marked `integration`.
@@ -54,7 +55,7 @@ def bert_parquet() -> pd.DataFrame:
 
 
 def test_every_configured_bert_model_has_label_columns(bert_parquet):
-    """每个 config 列出的 BERT model 必须在 stage 23 输出里有 label_{ctx,full,title}.
+    """每个 config 列出的 BERT model 必须在 stage 23 输出里有 label_{ctx,full} (remove-title-track 后双轨).
 
     若某个 model 因 HF 不可达 graceful skip, 此 test 立刻报错; 不会让缺失
     传到 stage 45 才以 KeyError 形式炸 ~30min 后。

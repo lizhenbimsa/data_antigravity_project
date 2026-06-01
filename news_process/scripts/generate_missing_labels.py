@@ -33,6 +33,8 @@ def infer_label(var_name: str) -> str:
     """根据变量名推断中文标签"""
 
     # 基础映射
+    # 注: _title 情感轨已废 (remove-title-track); 面板不再产出 _title 后缀情感列,
+    # 此 '_title' 映射仅作旧 panel 兼容。
     track_map = {
         '_full': '(全文)',
         '_ctx': '(上下文)',
@@ -59,7 +61,7 @@ def infer_label(var_name: str) -> str:
     model_map = {
         'gpt54nano': 'GPT5nano',
         'gemini31111': 'Gemini3',
-        'deepseekv4': 'Grok4.1',
+        'deepseekv4': 'DeepSeekV4',
         'llm': 'LLM',
         'jiang_2021': '江2021',
         'yao_2021': '姚2021',

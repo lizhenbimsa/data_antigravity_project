@@ -1,6 +1,6 @@
 # Paper spec for P3 — bank_fintech_substance (new, per plan §B.3)
 # Authoritative source of truth at M0 G0 acceptance.
-# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+# Schema reference: papers/_common/paper_spec_schema.py
 
 paper_id: bank_fintech_substance
 spec_version: 2.0.0
@@ -70,8 +70,8 @@ sample:
 
 audit_rounds_target_min: 8
 
-# v3.5.0 D2 8-cell decomposition Table 6 (per stage3_v3_5_0_augmentation_plan.md §2.1.5)
-# v3.5.1 A1 Lexical Clarity Robustness Table A7 (per stage3_v3_5_1_a1_a3_supplementation_plan.md §2.5)
+# v3.5.0 D2 8-cell decomposition Table 6
+# v3.5.1 A1 Lexical Clarity Robustness Table A7
 tables:
   t6:
     template: 19_table6_cell_decomposition

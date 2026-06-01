@@ -2,7 +2,7 @@
 
 **Paper ID**: `bank_fintech_collab` (P5)
 **状态**: M3 骨架 (M0 G0 spec 已冻结 2026-05-17, manuscript 实施延后到 M5/M6)
-**总规划**: [B_route_master_plan_v2.md](../../docs/plan/B_route_master_plan_v2.md) v2.56
+**总规划**: B-route 主规划文档 (原 docs/plan/B_route_master_plan_v2.md) 已随 docs/ 目录整体删除 (commit 1698bda5); 当前版本/特性真值以仓库根 CLAUDE.md 顶部 "Current version" 段为准。
 
 ---
 
@@ -33,11 +33,11 @@
 ### 2.3 企业间 R&D 伙伴关系 (Hagedoorn 2002)
 ### 2.4 与 P3 (substantiveness) / P4 (locus) 的概念正交性
 
-三维交叉 2³ = 8 cells（详见 [innovation_collab_mode_framework.md](../../docs/methodology/innovation_collab_mode_framework.md) §2）：
+三维交叉 2³ = 8 cells（详见本节内联框架说明，M3 阶段补实）：
 - 实质性 × 底层技术 × 自主研发 → 真实内部技术能力建设
 - 实质性 × 应用场景 × 外部协同 → 生态系统协作（开放 API + 业务侧）
 - 象征性 × 外部协同 → 战略合作签署但未执行 (decoupling, Fiss & Zajac 2006 延伸)
-- ... [详见 framework doc]
+- ...（其余 cells 见 §2 内联说明）
 
 ---
 
@@ -51,9 +51,9 @@
 
 ### 3.2 度量：创新协作模式
 - LLM 三模型集成（gpt-5.4-nano + gemini-3.1-flash-lite + deepseek-v4-flash）多数投票
-- Prompt v8（v7 的 additive supplementation；预注册 git tag `prompt-v8-supplementation-released`）
+- Prompt v8（v7 的 additive supplementation；专属 git tag prompt-v8-supplementation-released 尚未打，当前唯一已打的 prompt tag 是 prompt-v7-released）
 - 二元编码: 0 = 自主研发, 1 = 外部协同
-- 双轨内 κ ≥ 0.45（与 P3 实质性同阈值；详见 [inter_track_agreement_interpretation.md](../../docs/methodology/inter_track_agreement_interpretation.md)）
+- 双轨内 κ ≥ 0.45（与 P3 实质性同阈值，fair-to-moderate；阈值定义见 `pipeline/audit/inter_track_kappa.py::_THRESHOLDS`，依据 Landis & Koch 1977）
 
 ### 3.3 被解释变量
 - 主: `m_and_a_fintech` (Tonghuashun 数据库金融科技 M&A 事件计数)
@@ -84,7 +84,7 @@
 
 - 机制解释: 开放式创新对 fintech 银行的边际收益取决于业务侧 vs 技术侧
 - 管理实务启示
-- 局限: 二元 proxy 的信息损失（Chesbrough/L&S spectrum nature; 见 framework §3）
+- 局限: 二元 proxy 的信息损失（Chesbrough/L&S spectrum nature；详见本稿末局限性声明）
 
 ---
 
@@ -110,4 +110,4 @@
 
 本研究采用二元分类（自主研发 vs 外部协同）作为 Chesbrough 开放式创新连续 spectrum 与 Laursen & Salter 连续搜索广度-深度的离散 proxy。二元度量压缩了关于伙伴强度、伙伴类型、合作范围的信息，未来研究可拓展为多类（如 M&A vs 战略投资 vs 开放 API vs 行业联盟）。
 
-本研究使用的 LLM 分类 prompt 模板（prompt v8）是预注册的 v7 prompt（git tag `prompt-v7-released`）的**纯增量补充（additive supplementation）**；v7 中的验证、情感、实质性、位点判定规则完全保留（additive non-revisionary adjustment per Nosek et al. 2018 PNAS）。新增的创新协作模式维度通过 git tag `prompt-v8-supplementation-released` 锚定。
+本研究使用的 LLM 分类 prompt 模板（prompt v8）是预注册的 v7 prompt（git tag `prompt-v7-released`）的**纯增量补充（additive supplementation）**；v7 中的验证、情感、实质性、位点判定规则完全保留（additive non-revisionary adjustment per Nosek et al. 2018 PNAS）。新增的创新协作模式维度计划在最终 production 重跑后通过 git tag `prompt-v8-supplementation-released` 锚定（该 tag 尚未创建）。

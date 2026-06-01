@@ -1,6 +1,6 @@
 """Tests for benefit_society plan v2.12 dual-track upgrade.
 
-Covers (see news_process/docs/papers/benefit_society/07_audit_log.md):
+Covers (benefit_society plan v2.12 审计 finding 编号; 审计日志已随 docs/ 删除):
 - F-M1: ATTITUDE_VAR alias backwards-compat
 - F-H3 / F-V2-H5: new dual-track placeholders (ATTITUDE_FULL/CTX, frac_*)
 - F-V2-B1 / DP-8: cohort manifest sha256 stability

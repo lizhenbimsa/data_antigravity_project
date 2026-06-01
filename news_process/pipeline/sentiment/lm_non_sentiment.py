@@ -29,9 +29,9 @@ panel 新增 8 列 (双轨 × 4 子集)
 
 stub 说明
 ---------
-词表 v0.1 仅 ~30 词/类, status=AWAITING_EXPERT_AUDIT (见
-config/lm_non_sentiment_dicts.json::_meta). v0.2 由中文金融专家扩至 LM
-2011 原版 1219 词覆盖 (G-A1.1 准入门控).
+词表 v0.1.5 共 314 词 (uncert 83 / litig 104 / constr 76 / modal_strong 51),
+status=AWAITING_EXPERT_AUDIT (见 config/lm_non_sentiment_dicts.json::_meta).
+v0.2 由中文金融专家扩至 LM 2011 原版 1219 词覆盖 (G-A1.1 准入门控).
 """
 
 from __future__ import annotations
@@ -65,7 +65,8 @@ def load_lm_non_sentiment_dicts() -> dict[str, frozenset[str]]:
         {subset_name: frozenset(words)} for 4 subsets.
 
     Note:
-        当前是 v0.1 stub (~30 词/类); G-A1.1 门控通过后由专家扩展.
+        当前是 v0.1.5 (共 314 词: uncert 83 / litig 104 / constr 76 / modal_strong 51);
+        G-A1.1 门控通过后由专家扩展.
     """
     if not _LM_DICT_PATH.exists():
         return {s: frozenset() for s in _SUBSETS}
@@ -83,7 +84,7 @@ def _compute_lm_non_sentiment_for_text(
 ) -> dict[str, float]:
     """单文本 LM 4 子集词频; 仿 v3.5.1 ``_compute_clarity_for_text`` 接口.
 
-    与 ``_dual_analyze`` (tone_words.py:971) 在 content_full / content_ctx
+    与 ``_dual_analyze`` (tone_words.py:982) 在 content_full / content_ctx
     各调用一次, 实现真双轨 (修双轨假化, 参见 v3.5.1 plan §2.1).
 
     Args:

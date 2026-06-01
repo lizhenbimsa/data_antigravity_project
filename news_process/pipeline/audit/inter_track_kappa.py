@@ -1,7 +1,7 @@
 """news_process.pipeline.audit.inter_track_kappa — Stage 39a (P1 of three-dim borrowing plan v1.37).
 
-Compute article-level Cohen's κ between full and ctx tracks for the two
-innovation dimensions (locus and substantiveness) on the
+Compute article-level Cohen's κ between full and ctx tracks for the three
+innovation dimensions (locus, substantiveness, collab_mode) on the
 ``llm_verified_dual_both == True`` subset; emit machine-readable CSV +
 paper-ready TeX to ``eval_reports/``.
 
@@ -10,9 +10,9 @@ Mirrors the Stata template ``20_tableA1_inter_track_kappa.do.tmpl``.
 Academic anchors:
   - Cohen (1960) — κ formula.
   - Landis & Koch (1977) — κ interpretation thresholds.
-  - docs/methodology/inter_track_agreement_interpretation.md §2:
-    κ ∈ [0.50, 0.70] expected (not "higher is better"); κ > 0.70 flags
-    redundant dual-track; κ < 0.30 flags noise.
+  - κ ∈ [0.50, 0.70] expected (not "higher is better"); κ > 0.70 flags
+    redundant dual-track; κ < 0.30 flags noise (Landis & Koch 1977 区间 +
+    项目内部约定; 原解释文档随 docs/ 目录于 commit 1698bda5 删除).
   - Plan v1.37 §4.3.1: bootstrap CI with NaN-aware percentile + 50%
     finite-fraction guard (R30A-01/R30B-01).
 """
@@ -28,7 +28,7 @@ from news_process.validation.radius_sensitivity_llm import cohens_kappa_2cat
 
 STAGE_NAME = "39a_inter_track_kappa"
 
-# Plan v1.37 §4.3.1 thresholds (from inter_track_agreement_interpretation.md).
+# Plan v1.37 §4.3.1 thresholds (Landis & Koch 1977 区间 + 项目内部约定; 原 docs/ 解释文档已删).
 # v3.4.0 §J.4: 第三维度 collab_mode κ ≥ 0.45 (mirrors substantiveness fair-to-moderate
 # 标准; Chesbrough 2003 + L&S 2006 SMJ; additive supplementation per Nosek 2018 PNAS).
 _THRESHOLDS = {
@@ -158,7 +158,7 @@ def run_stage(config=None, logger=None):
     """Stage 39a entry point.
 
     Reads ``21_tone_llms.parquet`` from configured output dir, filters on
-    ``llm_verified_dual_both == True``, computes inter-track κ for both
+    ``llm_verified_dual_both == True``, computes inter-track κ for all three
     innovation dimensions, writes CSV + TeX to ``eval_reports/``.
     """
     if config is None:

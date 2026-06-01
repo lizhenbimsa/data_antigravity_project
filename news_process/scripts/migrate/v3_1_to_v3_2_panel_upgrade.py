@@ -28,7 +28,7 @@ if str(_PROJECT_PARENT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_PARENT))
 
 
-# v3.1.1 → v3.2.0 列名映射 (与 docs/methodology/migrations/v3.1.1_to_v3.2.0_column_map.csv 同源)
+# v3.1.1 → v3.2.0 列名映射 (本字典即权威单源; 原 docs/ CSV 已随 docs/ 目录整体删除, commit 1698bda5)
 COLUMN_RENAME_MAP = {
     # bare → _full (BREAKING; ctx 列另起新加)
     'innovation_locus': 'innovation_locus_full',

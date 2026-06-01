@@ -1,7 +1,7 @@
 # Paper spec for 第 10 篇 — bank_media_disagreement (NEW, M0 立项中).
 # Authoritative source of truth — pending M0 G0 acceptance.
 # Created: 2026-05-18 (DC1 决策: path B — SSRN + _full 影响力路线)
-# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+# Schema reference: papers/_common/paper_spec_schema.py
 # Audit history: V1 (58 finding) + V2 (90 finding) + V3 (5 DC) + V4 (白话回归 reframe)
 # YAML 风格 (v3.7.0 m10 校准): 含 markdown / special char (`/`, ` / `, `|`)
 # 的 string 用 double quote; 简单 identifier (paper_id, 列名) 不 quote;

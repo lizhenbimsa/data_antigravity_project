@@ -20,7 +20,7 @@ report: list[str] = []
 
 
 def _read(p: pathlib.Path) -> str:
-    # newline="" → 保留原始 \r\n / \n 不做翻译 (避免 churn EOL); 需 Py3.13+
+    # newline="" → 保留原始 \r\n / \n 不做翻译 (避免 churn EOL)
     with open(p, "r", encoding="utf-8", newline="") as f:
         return f.read()
 
@@ -58,7 +58,10 @@ def collapse_track_loops() -> None:
     """把 ['_full', '_ctx', '_title'] 收缩为 ['_full', '_ctx'] (全仓机械替换)。
 
     下游 _title 列消费者均有 `if col in df.columns` 守卫, 故生产端收缩后
-    优雅退化为双轨 (见 encode.py tone_gap_title_full 等的存在性守卫)。
+    优雅退化为双轨 (本 Phase-1 结构脚本运行时, encode.py 中 tone_gap_title_full 等
+    存在性守卫确实存在)。注: 该守卫已在后续语义阶段一并移除, encode.py 现为
+    'remove-title-track: tone_gap_title_full / prob_gap_title_full 已取消' 注释,
+    勿再去 encode.py 找已不存在的守卫。
     """
     variants = [
         "['_full', '_ctx', '_title']",

@@ -10,10 +10,11 @@ Brokerage-Network (Han et al. 2024 RFS + Bramoullé--Djebbari--Fortin 2009 JoE +
 
 | 子模块 | 行数 | 责任 |
 |---|---|---|
-| `news_process.pipeline.panel.network_brokerage` | ~ | 计算 `brokerage_eigen_cent` / `bank_between_cent` / `peer_tone_*_lag1_*` |
-| `news_process.papers.brokerage_network.analysis` | 71 | CLI 入口 |
-| `news_process.papers.brokerage_network.tables` | 76 | Table 1-5 (描述 + Network 2SLS + DCEP/Sandbox 交互 + SOE 异质性 + 稳健性) |
-| `news_process.papers.brokerage_network.figures` | 91 | Figure 1 (centrality 分布) + Figure 2 (Network 2SLS coefplot) + Figure 3 (policy forest) |
+| `news_process.pipeline.panel.network_brokerage` | ~ | 计算 `brokerage_eigen_cent` |
+| `news_process.pipeline.panel.network_spillover` | ~ | 计算 `bank_between_cent` / `bank_constraint` / `peer_tone_lag1_*` / `peer_tone_2nd_lag1_*` |
+| `news_process.papers.brokerage_network.analysis` | 68 | CLI 入口 |
+| `news_process.papers.brokerage_network.tables` | 81 | Table 1-5 (描述 + Network 2SLS + DCEP/Sandbox 交互 + SOE 异质性 + 稳健性) |
+| `news_process.papers.brokerage_network.figures` | 93 | Figure 1 (centrality 分布) + Figure 2 (Network 2SLS coefplot) + Figure 3 (policy forest) |
 
 ## 资产目录约定
 

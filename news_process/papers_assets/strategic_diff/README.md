@@ -11,9 +11,9 @@ Strategic-Diff (Guzman & Li 2023 MS + Hoberg & Phillips 2016 JPE + Hoberg-Philli
 | 子模块 | 行数 | 责任 |
 |---|---|---|
 | `news_process.pipeline.features.strategic_diff` | ~ | 计算 `strat_diff_n{3..7}` / `strat_fluidity` / `centroid_diff_*` 等 |
-| `news_process.papers.strategic_diff.analysis` | 71 | CLI 入口 |
-| `news_process.papers.strategic_diff.tables` | 76 | Table 1-5 (描述 + 主回归 + Bartik IV + SOE 异质性 + N/方法/Ctx 稳健性) |
-| `news_process.papers.strategic_diff.figures` | 89 | Figure 1 (n5 分布) + Figure 2 (main coefplot) + Figure 3 (N-sens coefplot) |
+| `news_process.papers.strategic_diff.analysis` | 68 | CLI 入口 |
+| `news_process.papers.strategic_diff.tables` | 88 | Table 1-5 (描述 + 主回归 + Bartik IV + SOE 异质性 + N/方法/Ctx 稳健性) |
+| `news_process.papers.strategic_diff.figures` | 91 | Figure 1 (n5 分布) + Figure 2 (main coefplot) + Figure 3 (N-sens coefplot) |
 
 ## 资产目录约定
 

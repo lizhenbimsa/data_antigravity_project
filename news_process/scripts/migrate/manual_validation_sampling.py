@@ -3,7 +3,8 @@
 Output: news_process/data/processed/manual_validation_samples.xlsx
 含 5 strata + 后置 weighting columns, 供 ≥3 raters 独立标注。
 
-Strata (per docs/methodology/manual_validation_study_plan.md §2.2):
+Strata (4-cell substantive×symbolic × application×technology design + rejection cell A;
+原 docs/methodology/manual_validation_study_plan.md 已随 docs/ 目录整体删除, commit 1698bda5):
   A: is_bank_fintech_news = False  → 100 articles (validate rejection)
   B: substantive ∧ application      → 100 articles (modal baseline)
   C: symbolic    ∧ application      → 100 articles (over-sample minority)

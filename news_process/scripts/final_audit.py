@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""最终审查脚本"""
+"""最终审查脚本.
+
+注意 (历史遗留): 本脚本是早期 (2026-05-10 前) Stata 集成期的一次性审计遗留,
+审计目标指向已退役的 stata/ 单目录 .do 体系与根级文档
+(STATA_INTEGRATION_SUMMARY.md / PROBLEM_RESOLUTION_REPORT.md /
+FINAL_COMPLETION_REPORT.md / stata/README.md)。当前项目已迁移到
+papers/<id>/replication 多 paper 模板化体系 (replication 包 14 个 .do),
+故脚本内的文档清单、do_files >= 17 阈值等断言与当前事实已无关联。
+保留仅作历史参考, 不应用于当前态校验; 如需当前态审计请改用
+papers/_common/stata_runner.py 的 verify-replication 子命令。
+"""
 import os
 import re
 

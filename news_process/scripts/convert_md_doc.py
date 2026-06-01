@@ -12,8 +12,7 @@ PDF 通过 Microsoft Edge headless 渲染（与 `convert_catalog_to_pdf.py` 同
 
 用法（仓库根目录）：
     F:/Anaconda3/python.exe news_process/scripts/convert_md_doc.py \\
-        news_process/docs/项目说明_顶刊版.md \\
-        news_process/docs/项目说明书_简明版.md
+        <path-to-md> [<path-to-md> ...]
 """
 from __future__ import annotations
 

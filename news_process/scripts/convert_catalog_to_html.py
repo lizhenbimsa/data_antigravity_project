@@ -1,5 +1,8 @@
 """把 STATA_INDICATORS_CATALOG.md 转换为带样式与 MathJax 的 HTML。
 
+⚠ 暂不可用: docs/STATA_INDICATORS_CATALOG.md 已删 (commit af80749b/1698bda5), 源文件不存在,
+main() 会在 SRC.exists() 检查处 SystemExit。待 catalog 源文件重建后方可启用。
+
 输入：news_process/docs/STATA_INDICATORS_CATALOG.md
 输出：news_process/docs/STATA_INDICATORS_CATALOG.html
 
@@ -370,16 +373,14 @@ def build_html(md_text: str) -> str:
     body_html = md.convert(md_text)
     body_html = post_process_html(body_html)
 
+    # 版本/行数/commit/列数等不再硬编码 (旧值 v1.5/3085 行/31737cd8/1700+ 列/16 stage
+    # 早已过期且易失真; STAGES_VALIDATION 实为 17 非 16); 以源 catalog 顶部声明为准。
     header_html = (
         '<div class="doc-header">\n'
-        '  <strong>news_process — Stata 指标完整分类说明书</strong>'
-        ' · v1.5 · 2026-05-19 · 3085 行 · commit <code>31737cd8</code>\n'
+        '  <strong>news_process — Stata 指标完整分类说明书</strong>\n'
         '  <div class="meta">'
-        'Markdown 源文件：<code>docs/STATA_INDICATORS_CATALOG.md</code> · '
-        '本 HTML 由 <code>scripts/convert_catalog_to_html.py</code> 自动生成 · '
-        '5 轮评审 / 0 critical bug / 覆盖 stage 46 .dta 全部 1700+ 列 + '
-        '上下游所有 pipeline 来源 + 8 核心指标内在含义解读 + '
-        '16 audit/validation stage 复现支撑'
+        'Markdown 源文件：<code>STATA_INDICATORS_CATALOG.md</code> · '
+        '本 HTML 由 <code>scripts/convert_catalog_to_html.py</code> 自动生成'
         '</div>\n'
         '</div>\n'
     )
@@ -389,10 +390,10 @@ def build_html(md_text: str) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>news_process Stata 指标说明书 (v1.5, 3085 行)</title>
+<title>news_process Stata 指标说明书</title>
 <meta name="description"
-      content="news_process v3.7.0 stage 46 导出的 Stata .dta 三件套
-+ 51_panel_with_controls.dta (~2033 列) 的零遗漏指标分类说明书">
+      content="news_process stage 46 导出的 Stata .dta 三件套
++ 51_panel_with_controls.dta 的零遗漏指标分类说明书">
 <meta name="generator" content="Python markdown 3.8 + MathJax v3">
 <style>{CSS}</style>
 {MATHJAX_CONFIG}

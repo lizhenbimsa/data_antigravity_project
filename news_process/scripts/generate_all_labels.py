@@ -15,6 +15,11 @@ def infer_label(var):
     """根据变量名推断中文标签"""
 
     # 轨道映射
+    # 注: _title 情感轨已废 (remove-title-track); 面板三轨循环已收为 [_full, _ctx],
+    # 不再产出 _title 后缀情感列。下方 _title 分支仅作旧 panel 兼容兜底。
+    # (保留的显著性信号 in_title / target_bank_in_title / fintech_in_title 虽以 _title 结尾,
+    #  但属 salience 而非情感轨; in_title 在面板层通常已聚合为 headline_frac, 一般不以原名作 panel 列;
+    #  若以原名进入本函数会被打 '(标题)' 标签, 属旧 panel 兼容行为。)
     if var.endswith('_full'):
         track = '(全文)'
     elif var.endswith('_ctx'):
@@ -28,7 +33,7 @@ def infer_label(var):
     models = {
         'gpt54nano': 'GPT5nano',
         'gemini31111': 'Gemini3',
-        'deepseekv4': 'Grok4.1',
+        'deepseekv4': 'DeepSeekV4',
         'jiang_2021': '江2021',
         'yao_2021': '姚2021',
         'bian_2021': '卞2021',

@@ -105,7 +105,8 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
 
     encoded_cols = []
     for track in ['_full', '_ctx']:
-        # _title 轨道可能因未配置 title_sentiment_prompt_template 而不存在
+        # remove-title-track: 标题情感轨已永久停产, 仅遍历 _full / _ctx 双轨;
+        # 此守卫只防上游 stage 21 未产出对应轨道列 (llm_sentiment{track}) 时优雅跳过。
         if f'llm_sentiment{track}' not in df.columns:
             logger.info(f"  跳过 {track} 轨道编码（列 llm_sentiment{track} 不存在）")
             continue
@@ -113,7 +114,7 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
         # ── v6/F2: 准备掩码 ──
         sent_col = f'llm_sentiment{track}'
         ver_col = f'llm_verified{track}'
-        # title 轨道无 verification 步骤；ctx/full 含 verification
+        # _full / _ctx 双轨均含 verification 步骤 (标题情感轨已停产)
         has_verification = ver_col in df.columns
 
         # 测量失败掩码（call_failure / undefined）：仅 _full / _ctx 有
@@ -1087,11 +1088,8 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
                 # v3.1.0: LLM 逐模型 _score 在 _full/_ctx 子集均值 (W&Z 1998 ASQ)
                 # 范围依据 (经六轮审核):
-                #   - 不补 _title: W&Z framework title-only 偏向 symbolic
                 #   - 不补 _cont: 二分类下与 _score 高度共线
                 #   - 不补 BERT/词典/IDF: 范围外
-                # 不对称说明: 现有 llm_vote_tone_{sub,symb}_title /
-                #            llm_prob_score_{sub,symb}_title 保留, 本次新增仅作用于逐模型新列.
                 if track in ('_full', '_ctx'):
                     for short in LLM_MODELS:
                         src_llm = f'{short}_score{track}'
@@ -1429,11 +1427,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # --- HW Tone (跟风衰减加权, Tetlock 2011, JF) ---
     # v3.6.0 (Plan E P1 B3): hw_denom 按 track 双轨独立 (Edwards 2001 ORM
     # measurement-treatment matching) — 修正 v3.5.0 错配 (全文 sum 当分母,
-    # 同时除给 _full / _ctx / _title 三轨)。
+    # 同时除给 _full / _ctx 两轨)。
+    # remove-title-track: 原 _title HW fallback 轨已取消 (标题轨停产)。
     # 轨道映射:
-    #   _full  → sum_herd_weight_full  (新双轨列)
-    #   _ctx   → sum_herd_weight_ctx   (新双轨列)
-    #   _title → sum_herd_weight_full  (fallback; 标题轨无独立 ctx 概念)
+    #   _full  → sum_herd_weight_full  (双轨列)
+    #   _ctx   → sum_herd_weight_ctx   (双轨列)
     # Round 1 M1 清理 dead code: build_aggregation_dict 永远生成 sum_herd_weight_full
     # + _ctx (legacy 单列 silently 映射到双轨 key, 由 build_aggregation_dict 内打 WARN).
     # 故 _has_legacy_sum 永远 False, 删除该分支.
@@ -1523,7 +1521,7 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     # 填充为 0 的列: 计数类和流量类
     zero_fill_patterns = ['n_articles', 'ln_news_coverage', 'media_breadth']
     # F5 fix (2026-05-30): 旧 `endswith('_sum')` 匹配 0 列 — 每个加权和分子都带
-    # 轨道后缀 (_sum_full / _sum_ctx / _sum_title), 末尾是轨道而非裸 '_sum'。
+    # 轨道后缀 (_sum_full / _sum_ctx), 末尾是轨道而非裸 '_sum'。
     # 零新闻 bank-year 的和是 Σ over ∅ = 0, 故这些分子列应填 0 (符合"计数/和类填 0"
     # 契约); 被消费的均值/比例列不在此匹配内, 正确保持 NaN。
     sum_cols = [c for c in panel.columns

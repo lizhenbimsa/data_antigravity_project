@@ -1,5 +1,5 @@
 """
-utils/aho_corasick.py - AC 自动机构建与匹配的公共模块
+core/text/ahocorasick.py - AC 自动机构建与匹配的公共模块
 ====================================================
 
 提供银行名称和金融科技关键词的 AC 自动机构建、加载与匹配功能。
@@ -23,7 +23,7 @@ AC 自动机 (Aho-Corasick) 算法原理:
     failure(): 失败指针函数, 当匹配失败时跳转到最长后缀(BFS 构建)
     output():  输出函数, 记录每个状态可以输出的匹配模式
   - pyahocorasick 库封装了这些实现, 提供 .add_word() 和 .iter() API
-  - 对比暿代方案:
+  - 对比替代方案:
     · 逐个模式 re.search(): O(n * k), k=模式数, 当 k=500 时慢 500 倍
     · str.find() 循环:    同上, 且无法处理重叠匹配
     · 正则合并 re.compile('|'.join(patterns)): O(n * k), 且模式过多时

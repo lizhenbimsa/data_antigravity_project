@@ -1,5 +1,11 @@
 """scripts/migrate/v3_7_6_refresh_title_docs.py — refresh stale numbers/claims in
-the two _title-track methodology docs (audit follow-up, 2026-05-31).
+the two _title-track methodology docs (audit follow-up, 2026-05-31). [OBSOLETE — 历史/已废]
+
+⚠ 已废 (标题情感轨 + 其方法学文档已删): 本脚本就地编辑的两个文档
+docs/methodology/title_track_as_robustness.md 与 title_track_robustness_report_v2_6.md 已随
+docs/ 目录整体删除 (commit 1698bda5), main() 的 METH.read_text 会立即抛 FileNotFoundError; 且
+FIX A 描述的 stage 39g HTMT(_full,_title)/(_ctx,_title) 标题判别效度 stage 已删除
+(shim/dag/schemas/模块均移除, STAGES_VALIDATION 18→17), 不再产出。仅作历史留存。下方为历史描述。
 
 Fixes, each asserted (exact expected hit-count; raises on drift), idempotent:
 

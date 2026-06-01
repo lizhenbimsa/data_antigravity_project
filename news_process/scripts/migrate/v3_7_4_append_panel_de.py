@@ -1,4 +1,10 @@
-"""scripts/migrate/v3_7_4_append_panel_de.py — v3.7.4 P3.4 + P3.5 propagator.
+"""scripts/migrate/v3_7_4_append_panel_de.py — v3.7.4 P3.4 + P3.5 propagator. [OBSOLETE — 历史/已废]
+
+⚠ 已废 (标题情感轨已删): 本脚本的 9 个目标模板 (8 × 25_tableA8_title_robustness.do.tmpl +
+benefit_society × 26_bs_title_robustness.do.tmpl) 已在 remove-title-track 改造中全部删除;
+注入的 Panel D/E 代码块引用的列 frac_title_mentions_fintech / frac_title_long 亦已取消
+(encode.py 三轨循环收为 [_full, _ctx])。该脚本若再运行将对全部 9 个目标报 [MISS]。仅作历史留存,
+请勿当作活体迁移工具。下方为历史描述。
 
 One-shot migration: append Panel D + Panel E sections to each of 9 Stata
 templates (8 paper × `25_tableA8_title_robustness.do.tmpl` + benefit_society

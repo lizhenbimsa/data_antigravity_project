@@ -22,8 +22,9 @@ tone_llm_processing:
 
   # v3 LLM 模型列表 — 真三家族三角验证 (基于 yunwu /v1/models 实际授权清单)
   #   v3 锁定:  gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash
-  # 学术叙述: "Three independent LLM families: OpenAI + Google + DeepSeek,
-  #           routed via yunwu.ai aggregator (single account, OpenAI-compatible /v1/chat/completions)."
+  # 学术叙述: "Three independent LLM families: OpenAI + Google + DeepSeek.
+  #           OpenAI + Google 经 yunwu.ai aggregator (OpenAI-compatible /v1/chat/completions, YUNWU_API_KEY);
+  #           DeepSeek 经其自有直连端点 (api.deepseek.com, 独立 DEEPSEEK_API_KEY)。"
   models:
     - model_name: gpt-5.4-nano
       short_name: gpt54nano
@@ -37,7 +38,7 @@ tone_llm_processing:
       api_key: ${YUNWU_API_KEY}
     - model_name: deepseek-v4-flash
       short_name: deepseekv4                            # v3: 从 claude4h 重命名 (反映真实身份)
-      description: DeepSeek V4 Flash (DeepSeek via yunwu)
+      description: DeepSeek V4 Flash (DeepSeek 直连 api.deepseek.com)
       base_url: https://api.deepseek.com
       api_key: ${DEEPSEEK_API_KEY}
 
@@ -290,7 +291,7 @@ sentiment_analysis:
 # docstring L28-32 + AUDIT_REPORT_ULTIMATE.md::P-016.
 executive_ner:
   enabled: false               # 默认 opt-in; 用户显式 true 才启用
-  model: gpt-5.4-nano          # 与 stage 21 同 OpenAI-compat
+  model: gpt-5.4-nano          # 与 stage 21 同 OpenAI-compat (注: 当前未接线; NER 模型硬编码于 executive_ner.py, 改此键无效)
   timeout_per_request: 60      # 单请求超时 (秒)
   max_retries: 5               # P-022 配套: 重试上限
 

@@ -38,7 +38,7 @@ if _rc {
 
 * Standard control set per _PAPER_DEFAULTS['llm_peer'].
 global controls "{{CONTROLS}}"
-* R1-R5 audit follow-up (Agent 2 Bug-2): 25_tableA8 ref $bank_controls; reuse $controls
+* $bank_controls 保留为 $controls 的兼容性 alias (部分 robustness 模板引用)
 global bank_controls "$controls"
 
 * Sanity: verify required IV / endog variables exist before downstream tables.

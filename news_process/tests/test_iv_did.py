@@ -63,33 +63,33 @@ def mini_articles() -> pd.DataFrame:
 
     评分设计:
       llm_vote_score_full ∈ {-1, 0, 1} 代表负/中/正情感
-      所有 track (_full, _ctx, _title) 同值简化校验
+      _full / _ctx 同值简化校验 (remove-title-track: _title 情感轨已删, iv_did 仅消费/产出 _full/_ctx)
     """
     rows = [
         # 工行: 基期 2020 提到招行
         {'docid': 1, 'target_bank': '工行', 'year': 2020,
          'co_mentioned_banks': '招行', 'llm_vote_score_full': 1.0,
-         'llm_vote_score_ctx': 1.0, 'llm_vote_score_title': 1.0,
+         'llm_vote_score_ctx': 1.0,
          'innovation_locus': 'payment'},
         # 招行: 基期 2020 提到工行
         {'docid': 2, 'target_bank': '招行', 'year': 2020,
          'co_mentioned_banks': '工行', 'llm_vote_score_full': -1.0,
-         'llm_vote_score_ctx': -1.0, 'llm_vote_score_title': -1.0,
+         'llm_vote_score_ctx': -1.0,
          'innovation_locus': 'payment'},
         # 宁波: 基期 2020 提到工行
         {'docid': 3, 'target_bank': '宁波银行', 'year': 2020,
          'co_mentioned_banks': '工行', 'llm_vote_score_full': 0.0,
-         'llm_vote_score_ctx': 0.0, 'llm_vote_score_title': 0.0,
+         'llm_vote_score_ctx': 0.0,
          'innovation_locus': 'lending'},
         # 2021: 工行评分提升
         {'docid': 4, 'target_bank': '工行', 'year': 2021,
          'co_mentioned_banks': '', 'llm_vote_score_full': 1.0,
-         'llm_vote_score_ctx': 1.0, 'llm_vote_score_title': 1.0,
+         'llm_vote_score_ctx': 1.0,
          'innovation_locus': 'payment'},
         # 2022: 招行评分下降
         {'docid': 5, 'target_bank': '招行', 'year': 2022,
          'co_mentioned_banks': '', 'llm_vote_score_full': -1.0,
-         'llm_vote_score_ctx': -1.0, 'llm_vote_score_title': -1.0,
+         'llm_vote_score_ctx': -1.0,
          'innovation_locus': 'lending'},
     ]
     return pd.DataFrame(rows)
@@ -226,7 +226,7 @@ def test_compute_zone_leave1out_returns_zone_column(mini_panel, mini_articles):
 def test_compute_zone_leave1out_min_group_size_threshold(mini_panel, mini_articles):
     """min_group_size=10 (高于实际经济圈样本量) 让 LOO 全 NaN."""
     out = iv_did.compute_zone_leave1out(mini_panel, mini_articles, min_group_size=10)
-    for track in ('_full', '_ctx', '_title'):
+    for track in ('_full', '_ctx'):
         col = f'zone_leave1out_tone{track}'
         if col in out.columns:
             assert out[col].isna().all(), (
@@ -249,7 +249,6 @@ def test_compute_zone_leave1out_loo_math(mini_panel):
         {'docid': i, 'target_bank': f'bank_{i}', 'year': 2020,
          'llm_vote_score_full': float(i + 1),
          'llm_vote_score_ctx': float(i + 1),
-         'llm_vote_score_title': float(i + 1),
          'co_mentioned_banks': '',
          'innovation_locus': 'payment'}
         for i in range(4)

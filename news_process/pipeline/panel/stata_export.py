@@ -294,7 +294,7 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         # tone gap
         'tone_gap_tech_app', 'tone_gap_tech_app_lc_ctx',
         'tone_gap_sub_symb', 'tone_gap_sub_symb_sc_ctx',
-        # 主 Bartik IV (lf + lc 各一套, 共 6 列含 full/ctx/title)
+        # 主 Bartik IV (full/ctx 2 列; _title 列已随标题情感轨删除)
         'bartik_fintech_iv_full', 'bartik_fintech_iv_ctx',  # remove-title-track
         # 主洗稿率 count (sentiment × _full)
         'pos_symb_count_full', 'pos_symb_count_ctx',

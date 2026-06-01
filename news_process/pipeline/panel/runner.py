@@ -220,7 +220,6 @@ def main():
         w = df['mention_density'].fillna(0)
         weighted_cols = {}
         for track in ['_full', '_ctx']:
-            # _title 轨道可能因未配置而不存在
             if f'llm_vote_score{track}' not in df.columns:
                 continue
             # 情感离散/连续
@@ -271,7 +270,6 @@ def main():
         mw = df['media_authority_weight'].fillna(1.0)
         weighted_cols = {}
         for track in ['_full', '_ctx']:
-            # _title 轨道可能因未配置而不存在
             if f'llm_vote_score{track}' not in df.columns:
                 continue
             weighted_cols[f'llm_vote_score_mw{track}'] = df[f'llm_vote_score{track}'] * mw
@@ -301,12 +299,11 @@ def main():
         logger.info(f"  已生成 {len(weighted_cols)} 个媒体权威性加权列")
 
     # --- 3d. 跟风衰减加权列预计算 (Tetlock 2011, JF; Edwards 2001 ORM) ---
-    # v3.6.0 (Plan E P1 B3): 双轨权重独立施加
-    #   _full track  → herd_weight_full
-    #   _ctx  track  → herd_weight_ctx
-    #   _title track → herd_weight_full (fallback; 标题无独立 ctx 概念)
+    # v3.6.0 (Plan E P1 B3): 双轨权重独立施加 (remove-title-track 后收为 _full / _ctx)
+    #   _full track → herd_weight_full
+    #   _ctx  track → herd_weight_ctx
     # 向后兼容: 若仅存在历史的 herd_weight 单列 (v3.5.0 及更早), 退化为
-    # 旧行为 (全部三轨用同一权重), 但记 WARN 提示用户重跑 stage 24。
+    # 旧行为 (_full / _ctx 双轨用同一权重), 但记 WARN 提示用户重跑 stage 24。
     has_dual_hw = ('herd_weight_full' in df.columns and
                    'herd_weight_ctx' in df.columns)
     has_legacy_hw = 'herd_weight' in df.columns

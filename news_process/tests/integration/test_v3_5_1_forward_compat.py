@@ -47,7 +47,7 @@ def test_clarity_dict_namespace_isolation():
         data = json.load(f)
     you = data.get('you_2018', {})
     assert isinstance(you, dict)
-    # you_2018 仅含 5 keys (name/_description/references/positive/negative/definite/ambiguous);
+    # you_2018 仅含 7 keys (name/_description/references/positive/negative/definite/ambiguous);
     # 不应含 forward-looking-related keys
     forward_looking_pollutants = ['forward_looking', 'fls', 'future_oriented']
     for pollutant in forward_looking_pollutants:

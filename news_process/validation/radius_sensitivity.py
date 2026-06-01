@@ -81,9 +81,9 @@ FALLBACK_CHAR_RADIUS = 150               # 字符级回退窗口（与原始设�
 # v3.6.0 (Plan E P7 C1): 双轨标记 — 当前实现仍为词典法单轨 (用 '内容' 全文重提
 # ctx 在不同 radius 下的得分). 真正"双轨敏感性" 要求在 _full 和 _ctx 各跑一遍
 # 整个 RADII grid, 输出 35_radius_sensitivity_{full,ctx}.json 各一份。
-# 后续实施方案见 docs/methodology/plan_e_p7_dual_track_validation.md (TODO).
+# 双轨敏感性扫描 (full + ctx 各跑一遍 RADII grid) 为待实施项 (TODO; 由 RUN_DUAL_TRACK 开关控制)。
 # 当前模块的 radius 扫描已经隐式覆盖 ctx 提取参数, 半成品双轨。
-RUN_DUAL_TRACK = False  # 切换 True 后, main() 对 full + ctx 各跑一次完整 RADII 扫描
+RUN_DUAL_TRACK = False  # 占位开关, 尚未接线 (main() 未分支于此); 双轨扫描见上方 TODO, 翻 True 暂不生效
 
 # 从 22_tone_words 复用的情感参数
 SENTIMENT_PARAMS = CONFIG.get('sentiment_analysis', {}).get('tone_words', {})

@@ -1,6 +1,6 @@
 """v3.5.0 D2 panel-level 8-cell aggregation unit tests.
 
-Per [stage3_v3_5_0_augmentation_plan.md §2.1.2 / §4.1](../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+Per v3.5.0 D2 panel 8-cell 聚合 §2.1.2 / §4.1 (文档已随 docs/ 删除):
     6 tests covering:
         - 8 cell-count columns (n_articles_cell_1..8_full) on bank-year panel
         - Main identity: n_articles == Σ_{i=1..8} n_articles_cell_i_full

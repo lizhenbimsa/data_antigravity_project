@@ -2,7 +2,7 @@
 
 红线不变式
 ----------
-1. ``news_process.papers._common`` 与 5 个 paper 包都必须可 import 不报错。
+1. ``news_process.papers._common`` 与 8 个 paper 包都必须可 import 不报错。
 2. 每个 paper 包必须暴露 ``PAPER_ID`` 字符串。
 3. 每个 paper 的 ``analysis`` 子模块必须暴露 ``main(argv)`` 函数 +
    ``STAGES`` 列表 (Phase 9a: STAGES 守护从 ``papers.<id>.dag`` 子模块
@@ -50,7 +50,7 @@ def test_common_kernel_importable():
 
 
 # ============================================================================
-# 2-4. 5 个 paper 包
+# 2-4. 8 个 paper 包
 # ============================================================================
 
 

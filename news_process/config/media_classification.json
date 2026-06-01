@@ -5648,7 +5648,7 @@
     "齐鲁晚报",
     "齐齐哈尔日报"
   ],
-  "_comment_ceased": "NPPA 确认停刊（注销/停办/休刊）。用于 detect_defacto_cessation() 交叉验证。",
+  "_comment_ceased": "NPPA 确认停刊（注销/停办/休刊）报纸离线快照（供人工核对参考；运行期停刊判定实走 nppa_newspapers_all.csv，本 _ceased_newspapers 数组当前未被代码消费）。",
   "_ceased_newspapers": [
     "新疆师范大学报（维文版）", "河北大学校报", "唐山广播电视报",
     "安徽地市广播电视报芜湖广播电视", "安徽地市广播电视报安庆广播电视",

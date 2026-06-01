@@ -16,7 +16,7 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* R1: ctx track alternative spec (collab_open_cm vs collab_closed_cm; Hassan 2019 QJE entity-proximity)
+* R1: ctx track alternative spec (indep_frac_cm / collab_frac_cm; Hassan 2019 QJE entity-proximity)
 capture confirm variable indep_frac_cm collab_frac_cm
 if !_rc {
     reghdfe {{MAIN_DV}} collab_frac_cm $controls, ///

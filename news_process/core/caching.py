@@ -53,18 +53,17 @@
 - 调用层面 (6 个生产 callsite):
 
     1. ``pipeline/sentiment/tone_llms.py``        — full/ctx track, PROMPT_VERSION
-    2. ``pipeline/sentiment/tone_llms.py``        — title track, TITLE_PROMPT_VERSION
-    3. ``pipeline/panel/llm_peer_iv.py``          — PEER_PROMPT_VERSION (模块内联常量)
-    4. ``pipeline/filtering/policy_alignment.py`` — text_pipeline_version (embedding)
-    5. ``pipeline/features/benefit_society.py``   — text_pipeline_version (embedding)
-    6. ``pipeline/features/strategic_diff.py``    — text_pipeline_version (embedding)
-    7. ``pipeline/panel/network_spillover.py``    — text_pipeline_version (embedding)
+    2. ``pipeline/panel/llm_peer_iv.py``          — PEER_PROMPT_VERSION (模块内联常量)
+    3. ``pipeline/filtering/policy_alignment.py`` — text_pipeline_version (embedding)
+    4. ``pipeline/features/benefit_society.py``   — text_pipeline_version (embedding)
+    5. ``pipeline/features/strategic_diff.py``    — text_pipeline_version (embedding)
+    6. ``pipeline/panel/network_spillover.py``    — text_pipeline_version (embedding)
 
-  注: tone_llms 内有 2 个 caller (full/ctx 和 title), 共 6 个文件 / 7 处.
+  注: 共 6 个文件 / 6 处 callsite.
   之前 (Plan-r3 round 3) 注释错记为 "5 个", 漏报 network_spillover.
 
 效果:
-- 修改 ``config/prompts/unified_cot.txt`` 或 ``title_sentiment.txt`` 时,
+- 修改 ``config/prompts/unified_cot.txt`` 时,
   把首行 ``# version: vX-YYYY-MM-DD`` bump 即可触发 cache silent miss,
   确保新提示词重新调 API.
 - 修改 ``llm_peer_iv.py::PEER_PROMPT`` 字符串时, 同步 bump

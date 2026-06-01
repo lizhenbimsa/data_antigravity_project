@@ -1,6 +1,6 @@
 # Paper spec for P1 — bank_fintech_tone (existing, retrofit per plan §B.1)
 # Authoritative source of truth at M0 G0 acceptance.
-# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+# Schema reference: papers/_common/paper_spec_schema.py
 # Plan v2.x: spec_version ≤ 2.x per §13 R1-m07/R6-m02
 
 paper_id: bank_fintech_tone
@@ -69,7 +69,7 @@ sample:
 audit_rounds_target_min: 8  # M5 ≥ 8 / M6 ≥ 5 per §5.8.4 / §5.9.5
 
 # v3.5.0 D2 8-cell decomposition Table 6 — P1 不用 D2 主回归 (per plan §2.1.6)
-# v3.5.1 A3 Numerical Intensity Robustness Table A9 (per stage3_v3_5_1_a1_a3_supplementation_plan.md §2.5.2)
+# v3.5.1 A3 Numerical Intensity Robustness Table A9
 tables:
   t6:
   tA7:

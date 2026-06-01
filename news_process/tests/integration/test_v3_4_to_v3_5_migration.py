@@ -1,6 +1,6 @@
 """v3.5.0 D7 integration: v3.4.0 → v3.5.0 migration & forward-compat tests.
 
-Per [stage3_v3_5_0_augmentation_plan.md §4.1 + §4.2](../../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+Per 原 stage3_v3_5_0_augmentation_plan §4.1 + §4.2 (文档已随 docs/ 删除):
     6 integration tests covering:
         - encode_collab.py refactor surface (apply_v3_5_0 entry point exists)
         - shim 39c_construct_orthogonality.py existence + module delegation

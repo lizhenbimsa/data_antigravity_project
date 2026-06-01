@@ -364,7 +364,7 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段46: Stata 数据导出 (pyreadstat .dta + labels)",
         script="46_stata_export.py",
         group="main", kind="export",
-        timeout=600,  # 跨平台 pyreadstat 写 .dta, 462 行 × 2254 列 < 1 分钟
+        timeout=600,  # 跨平台 pyreadstat 写 .dta, 小面板 (~168 行) < 1 分钟
     ),
 
     # ── 模块五b: v3.7.0 risk-taking outcomes (第 10/11 篇 outcome 三件套) ──

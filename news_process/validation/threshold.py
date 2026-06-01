@@ -424,9 +424,10 @@ def main():
 
     输入:
         ``data/processed/00_preprocessing.parquet`` (人民日报 + Wisers 全量)
-    输出:
-        ``data/processed/31_threshold_sensitivity.{parquet,csv}``
-        ``data/processed/eval_reports/31_threshold_grid.png``
+    输出 (均位于 ``data/processed/eval_reports/``):
+        ``threshold_sensitivity_bank.csv`` / ``threshold_sensitivity_fintech.csv``
+        ``sensitivity_bank_threshold.png`` / ``sensitivity_fintech_threshold.png``
+        ``threshold_sensitivity_table.tex``
 
     学术依据: Loughran & McDonald (2011, JF) 阈值稳健性范式;
               Tetlock (2007, JF) 媒体语调阈值敏感性.

@@ -2,7 +2,7 @@
 tests/test_content_ctx_materialization.py — content_ctx 物化逻辑测试
 ====================================================================
 
-验证 content_ctx 列在阶段 21 中被正确物化，且阶段 22/23 正确消费该列。
+验证 content_ctx 列被正确物化（规范物化在 stage 13 ctx_materializer，stage 21 保留 idempotent fallback），且阶段 22/23 正确消费该列。
 
 测试策略：
   1. 直接测试 _materialize_content_ctx 函数（核心逻辑）

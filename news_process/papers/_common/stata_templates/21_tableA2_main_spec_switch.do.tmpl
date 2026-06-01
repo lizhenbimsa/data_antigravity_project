@@ -15,7 +15,7 @@ set maxvar 32767
 * set maxvar 32767 必需 (2129 > IC 默认 2048; core 81 列时无需而掩盖了此要求)。
 * 副作用: 22/23/24 均无自己的 use, 现继承本 full in-memory 状态 — 23 不碰数据,
 * 24 为 full⊇core 严格超集 (所需列仍在), 均安全。
-* 路径: honor $data_dir (镜像 25_tableA8:30 约定), 主链 $data_dir="" → data/processed;
+* 路径: honor $data_dir; 主链 $data_dir="" → data/processed;
 * _prepared_panel 缺失时回退 core (防御)。
 if "$data_dir" == "" global data_dir "data/processed"
 capture confirm file "$data_dir/_prepared_panel.dta"

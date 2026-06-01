@@ -4,16 +4,16 @@
 
 ## 主题
 
-LLM-Peer (Cao, Li, Wang & Zhao 2025, RAS) 同业竞争网络 IV: 用 LLM 判定的语义同业关系 (vs 传统 SIC 行业代码) 构造 leave-one-out 工具变量，估计同业语调溢出对银行 fintech 战略响应的因果效应。
+LLM-Peer (Cao, Chen, Tucker & Wan 2025, Review of Accounting Studies) 同业竞争网络 IV: 用 LLM 判定的语义同业关系 (vs 传统 SIC 行业代码) 构造 leave-one-out 工具变量，估计同业语调溢出对银行 fintech 战略响应的因果效应。
 
 ## 与 pipeline 的对应关系
 
 | 子模块 | 行数 | 责任 |
 |---|---|---|
-| `news_process.pipeline.panel.llm_peer_iv` | 714 | 计算 `llm_peer_tone_iv_full` / `llm_peer_count` / `peer_compete_idx` 等 panel 列 |
-| `news_process.papers.llm_peer.analysis` | 71 | CLI 入口 (`--stage pipeline\|tables\|figures\|all`) |
-| `news_process.papers.llm_peer.tables` | 75 | Table 1-5 (描述 + IV 2SLS + cutoff + heterogeneity + robustness) |
-| `news_process.papers.llm_peer.figures` | 96 | Figure 1 (cutoff dist) + Figure 2 (main IV coefplot) + Figure 3 (het forest) |
+| `news_process.pipeline.panel.llm_peer_iv` | 763 | 计算 `llm_peer_tone_iv_full` / `llm_peer_count` / `peer_compete_idx` 等 panel 列 |
+| `news_process.papers.llm_peer.analysis` | 68 | CLI 入口 (`--stage pipeline\|tables\|figures\|all`) |
+| `news_process.papers.llm_peer.tables` | 79 | Table 1-5 (描述 + IV 2SLS + cutoff + heterogeneity + robustness) |
+| `news_process.papers.llm_peer.figures` | 95 | Figure 1 (cutoff dist) + Figure 2 (main IV coefplot) + Figure 3 (het forest) |
 
 ## 资产目录约定
 
@@ -39,8 +39,8 @@ papers_assets/llm_peer/
 ## 仍待用户补充
 
 1. Manuscript 内 `\\NoteThis{...}` 占位 (Intro / Lit Review / Results / Conclusion 等实质内容)
-2. BibLaTeX 文献库扩展 (当前 6 条共享 + 2 条 LLM-Peer 专属, 需扩到 ~30-50 条)
-3. 实际 ROA / Tobin_Q 等会计变量并入 panel 后, 跑通 32 .do 端到端验证
+2. BibLaTeX 文献库扩展 (当前 5 条共享 + 1 条 LLM-Peer 专属 = 共 6 条, 需扩到 ~30-50 条)
+3. 实际 ROA / Tobin_Q 等会计变量并入 panel 后, 跑通 8 .do (llm_peer 衍生复现包, 与 L34 模板表一致) 端到端验证
 
 ## 学术依据
 

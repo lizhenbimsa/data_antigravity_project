@@ -527,10 +527,6 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         return panel
 
     tone_col = 'llm_vote_tone_full'
-    # v3.7.5 Tier-2: title-tone column for a genuine 2SLS title robustness (llm_peer
-    # Table A8 Panel G). The peer NETWORK is identical to the _full IV (same LLM-cached
-    # peer map); only the averaged tone column differs, so _iv_title is faithful by
-    # construction and costs $0 incremental LLM. Skipped silently if absent.
     coverage_col = 'ln_news_coverage'
 
     if tone_col not in panel.columns:

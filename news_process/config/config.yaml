@@ -13,7 +13,7 @@
 #     panel.yaml          — panel_building + temporal_mask_test
 #     validation.yaml     — human_validation + validation + *_test + *_sensitivity
 #
-# And 2 prompt templates externalized to:
+# And 1 active prompt template externalized to (was 2 before title-track removal):
 #
 #     prompts/unified_cot.txt        — tone_llm_processing.prompt_template
 #     (remove-title-track: prompts/title_sentiment.txt 已删除)

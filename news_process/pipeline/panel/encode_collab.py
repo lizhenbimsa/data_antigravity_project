@@ -1,6 +1,6 @@
 """news_process.pipeline.panel.encode_collab — v3.5.0 D2 cell decomposition + D4 dual-track residual.
 
-Per [stage3_v3_5_0_augmentation_plan.md §2.1 / §2.3](../../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+Per the v3.5.0 Stage-3 augmentation plan §2.1 / §2.3 (历史方法学文档, 已随 docs/ 目录删除):
     D2 8-cell encoding: cell_id = subst*4 + locus*2 + collab + 1 ∈ {1..8}
         baseline (cell 1) = (0, 0, 0) = 实质性 × 底层技术 × 自主研发
     D4 cross-track residual signals (9 article-level + 18 panel-level)

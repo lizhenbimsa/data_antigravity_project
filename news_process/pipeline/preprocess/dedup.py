@@ -89,8 +89,9 @@ class ArticleDeduplicator:
         self.default_weight = self.media_weights.get("其他媒体", 10)
 
         self.num_perm = self.params.get('minhash_permutations', 128)
-        # 默认阈值 0.85, 允许配置。文献支持: 相似度 ≥ 0.8/0.85 是学术界
-        # (胡俊 2021 等) 公认的去重与信息冗余剔除标准。
+        # 生产默认阈值 = 0.8 (config/preprocessing.yaml: jaccard_similarity_threshold);
+        # 下方 0.85 仅是 config 缺失时的保守 fallback, 非生产默认。
+        # 文献支持: 相似度 ≥ 0.8/0.85 是学术界 (胡俊 2021 等) 公认的去重与信息冗余剔除标准。
         self.threshold = self.params.get('jaccard_similarity_threshold', 0.85)
         self.ngram_size = self.params.get('ngram_size', 3)
 

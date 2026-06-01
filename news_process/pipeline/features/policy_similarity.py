@@ -89,7 +89,7 @@ def compute_authoritative_similarity(df_exploded, panel):
         panel (pd.DataFrame): 准备挂载结果的 Bank-Year 面板数据
 
     Returns:
-        pd.DataFrame: 合并了 8 列权威政策相似度指标的最新 panel
+        pd.DataFrame: 合并了 10 列权威政策相似度指标的最新 panel (5 指标 × Full/Ctx 双轨)
     """
     logger.info("=" * 60)
     logger.info("开始计算: 权威政策战略响应度 (Stage 26)")

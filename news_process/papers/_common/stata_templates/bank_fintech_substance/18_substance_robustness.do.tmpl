@@ -81,6 +81,6 @@ esttab wild_boot excl_soe6 excl_rural excl_pre alt_* ///
     using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Table 5 — Advanced Robustness (P3 substance)") ///
-    addnotes("Honest DiD M-grid figure in 30_figure1_event_study.do.")
+    addnotes("Honest DiD M-grid sensitivity output in supplemental log.")
 
 display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"

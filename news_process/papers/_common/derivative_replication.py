@@ -101,8 +101,11 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'EXT_Y1': 'ncd_spread_3m',           # NCD spread (predicted ↓)
         'EXT_Y2': 'regulatory_penalty_n',    # 监管处罚频次 (predicted ↓)
         'EXT_Y3': 'soa_rating_score',        # SOA / Wind rating (predicted ↑)
-        # v3.7.3 Plan A v1.0: MAIN_TREAT alias for _title robustness template
-        # (26_bs_title_robustness.do.tmpl). benefit_society main attitude = ATTITUDE_VAR.
+        # MAIN_TREAT alias retained as benefit_society main attitude = ATTITUDE_VAR
+        # (benefit_mean_full). NOTE: benefit_society .do templates consume the
+        # ATTITUDE_* namespace, not {{MAIN_TREAT}}; this alias is now unused here
+        # since its sole consumer (the _title robustness template) was removed in
+        # the remove-title-track refactor.
         'MAIN_TREAT': 'benefit_mean_full',
     },
     'brokerage_network': {
@@ -118,7 +121,9 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CENTRALITY_BTW': 'bank_between_cent',
         'CENTRALITY_CONS': 'bank_constraint',
         'CENTRALITY_BROKER': 'brokerage_eigen_cent',
-        # v3.7.3 Plan A v1.0: MAIN_TREAT + RANDOM_SEED for _title robustness template.
+        # 残留默认值: MAIN_TREAT/RANDOM_SEED 原供已删的 _title robustness 模板
+        # (25_tableA8_title_robustness, remove-title-track 已删) 使用; 现
+        # brokerage_network 无存活模板消费此二 placeholder, 保留为无害默认值。
         'MAIN_TREAT': 'peer_tone_lag1_full',  # alias of MAIN_ENDOG
         'RANDOM_SEED': '20260516',
     },
@@ -134,7 +139,10 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'BARTIK_IV': 'bartik_type_iv_full',
         'TONE_VAR': 'llm_vote_tone_full',
         'COHERENCE_VAR': 'coh_tfidf_c_full',
-        # v3.7.3 Plan A v1.0: MAIN_TREAT + RANDOM_SEED for _title robustness template.
+        # MAIN_TREAT/RANDOM_SEED: 原为 v3.7.3 Plan A _title robustness 模板
+        # (strategic_diff/25_tableA8_title_robustness.do.tmpl) 而加; 该 _title 情感轨
+        # 模板已随 remove-title-track 删除, 现 strategic_diff 无模板引用这两个
+        # placeholder, 保留为无害 unused default (无测试依赖, _substitute 不报错)。
         'MAIN_TREAT': 'strat_diff_n5',  # alias of MAIN_DIFF_VAR
         'RANDOM_SEED': '20260516',
     },
@@ -151,7 +159,9 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CUTOFF_VARS': ('llm_peer_tone_iv_full_70 llm_peer_tone_iv_full_75 '
                         'llm_peer_tone_iv_full_80 llm_peer_tone_iv_full_85 '
                         'llm_peer_tone_iv_full_90'),
-        # v3.7.3 Plan A v1.0: MAIN_TREAT + RANDOM_SEED for _title robustness template.
+        # MAIN_TREAT (alias of TONE_VAR) + RANDOM_SEED: 原供已删的 _title robustness
+        # 模板 (llm_peer/25_tableA8_title_robustness.do.tmpl, remove-title-track 已删)
+        # 使用; 现 llm_peer 无存活模板消费此二 placeholder, 保留为无害默认值。
         'MAIN_TREAT': 'llm_vote_tone_full',  # alias of TONE_VAR
         'RANDOM_SEED': '20260516',
     },

@@ -1,5 +1,11 @@
 """Fix the Boudoukh-2019 venue mislabel everywhere it appears as the _title-track
-anchor (audit follow-up part 2, 2026-05-31).
+anchor (audit follow-up part 2, 2026-05-31). [OBSOLETE — 历史/已废一次性脚本]
+
+⚠ 已废: 本脚本 TARGETS / TEMPLATE_TARGETS 列出的多个修复目标现已删除 — docs/ 目录整体删除
+(commit 1698bda5, 0 文件); 39g shim (39g_track_discriminant_validity.py)、
+pipeline/audit/track_discriminant_validity.py、9 个 Table A8 标题稳健性模板均随 remove-title-track
+改造删除。脚本有 `if not p.exists(): MISSING` 兜底故不崩, 但 docstring 把它们列为"携带真锚点的
+clean 文件"已与活体不符。仅作历史留存。下方为历史描述。
 
 Boudoukh, Feldman, Kogan & Richardson (2019), "Information, Trading, and
 Volatility: Evidence from Firm-Specific News" is **Review of Financial Studies
@@ -17,9 +23,8 @@ NEVER touch the false-positive JFE refs in these files:
   - Engelberg-Reed-Ringgenberg (2018) JFE  (year 2018, no Boudoukh)
 
 Idempotent: after the fix the venue reads RFS, so re-running matches nothing.
-EXCLUDES the two concurrently-edited (dirty) files
-(docs/methodology/title_track_as_robustness.md, tests/test_39g_track_discriminant.py)
-— those are deferred to a coordinated pass to avoid clobbering live edits.
+(历史: 此前 EXCLUDES 两个并发编辑文件 docs/methodology/title_track_as_robustness.md 与
+tests/test_39g_track_discriminant.py; 两者现均已删除, 该排除说明已失效。)
 
 Run:  F:\\Anaconda3\\python.exe scripts/migrate/fix_boudoukh_venue_v2.py
 """

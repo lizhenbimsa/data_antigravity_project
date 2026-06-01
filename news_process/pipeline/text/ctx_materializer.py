@@ -21,7 +21,7 @@ Plan E P4 A1 (v3.6.0):
     → §III.B "proximity-based attribution" — 实体特异性上下文窗口
 
 向后兼容:
-    若 stage 13 未跑, stage 21 仍会自己物化 content_ctx (tone_llms.py:1100
+    若 stage 13 未跑, stage 21 仍会自己物化 content_ctx (tone_llms.py
     的 _materialize_content_ctx 不删, 改为 idempotent: 检测列存在则跳过).
     这保证 v3.5.0 既有 pipeline 行为不变。
 """

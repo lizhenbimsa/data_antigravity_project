@@ -28,7 +28,7 @@ text-embedding-3-small|10
 ```
 
 **结论**：缓存中**仅含 embedding 条目**（10 条），没有任何 LLM 推理缓存条目。意味着：
-- 历史 `gpt-5.4-nano` / `glm-4.5-flash` / `gpt-5.4-nano` 的旧响应**没有被持久化**（可能被早期清空过）
+- 历史 `gpt-5.4-nano` / `glm-4.5-flash` / `claude4h` 的旧响应**没有被持久化**（可能被早期清空过）
 - v5 §C.3 的「DELETE WHERE model_id IN (...)」步骤在本环境**实际为空操作**（无遗留条目可删）
 - 重跑 Stage 21 将从零生成全部 LLM 响应，token 成本最高路径
 

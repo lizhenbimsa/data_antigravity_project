@@ -1,8 +1,7 @@
 """news_process.pipeline.preprocess.filter — DataFrame 初步过滤层.
 
 Phase 4b 从 ``runner.py`` 提取。包含:
-- ``_clean_and_filter_dataframe`` — 7 步过滤(地域/类型/黑名单/缺失/广告/银行词/Schema)
-                                     + 媒体名称归并
+- ``_clean_and_filter_dataframe`` — 8 步过滤(地域/类型/黑名单/缺失/广告/银行词/Schema/媒体名称清理)
 
 依赖:
     filter.py ← _constants.py
@@ -43,6 +42,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
       5. 广告关键词过滤 (~1-3%)
       6. 银行关键词保留过滤 (Aho-Corasick, ~30-50%)
       7. Schema 统一 (object → string, 不改变行数)
+      8. 媒体名称清理 (去除报纸名称修饰后缀/版面/无效字符, 不改变行数)
 
     Args:
         df: 从 Excel 文件读取的原始 DataFrame。
@@ -58,19 +58,19 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         rows_before = len(df)
         region_cleaned = df['国家地区/省份'].astype(str).str.replace(r'\s+', '', regex=True)
         df = df[region_cleaned.str.contains(REGION_PATTERN, na=False, regex=True)]
-        logger.info(f"  [1/6 地域过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+        logger.info(f"  [1/8 地域过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
     # 2. 媒体类型过滤: 仅保留指定类型(如"报纸")
     rows_before = len(df)
     df = df[df['媒体类型(中文)'].isin(MEDIA_TYPES_INCLUDE_SET)]
-    logger.info(f"  [2/6 类型过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+    logger.info(f"  [2/8 类型过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
     # 3. 媒体名称黑名单过滤: 排除剪报服务机构等非原始新闻来源
     if MEDIA_NAMES_TO_EXCLUDE:
         rows_before = len(df)
         df = df[~df['媒体(中文)'].astype(str).isin(MEDIA_NAMES_TO_EXCLUDE)]
         if rows_before - len(df) > 0:
-            logger.info(f"  [3/6 媒体名称黑名单] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+            logger.info(f"  [3/8 媒体名称黑名单] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
     # 4. 关键字段缺失值过滤(标题、内容、媒体名、日期任一为空则移除)
     rows_before = len(df)
@@ -82,7 +82,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     for _col in KEY_COLUMNS:
         if _col in df.columns:
             df = df[df[_col].astype(str).str.strip() != '']
-    logger.info(f"  [4/6 缺失值过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+    logger.info(f"  [4/8 缺失值过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
     # 5. 广告关键词过滤(检查标题、版面、栏名三个字段)
     if AD_PATTERN is not None:
@@ -91,7 +91,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             df = df[~df[col_name].astype(str).str.contains(AD_PATTERN, na=False, regex=True)]
             if rows_before - len(df) > 0:
                 logger.info(
-                    f"  [5/6 广告过滤-{field_name}] "
+                    f"  [5/8 广告过滤-{field_name}] "
                     f"移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}"
                 )
 
@@ -107,7 +107,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             count=len(content_values)
         )
         df = df[mask]
-        logger.info(f"  [6/6 银行关键词过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
+        logger.info(f"  [6/8 银行关键词过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
     # 7. Schema 统一: object 列 → string, 确保后续 Parquet 序列化安全
     for col in df.columns:

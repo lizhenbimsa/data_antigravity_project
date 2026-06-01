@@ -31,7 +31,7 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 │                                                            │
 │ 5. you_2018   You et al.(2018) 中文金融情感词典               │
 │    ├─ positive(1,425)  / negative(1,583)                   │
-│    ├─ definite(388)  / ambiguous(178, 仅存档)                │
+│    ├─ definite(388)  / ambiguous(178, v3.5.1 起用于 clarity) │
 └────────────────────────────────────────────────────────────┘
 
 语言学规则增强：

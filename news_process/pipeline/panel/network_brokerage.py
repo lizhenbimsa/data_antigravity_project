@@ -68,7 +68,7 @@ from news_process.core.logging import setup_logging
 # ============================================================================
 # 全局配置
 # ============================================================================
-# CONFIG: 从 config/config.json 加载, 包含路径、模型列表等全局参数
+# CONFIG: 由 core/config.py::load_config 从 config/ 下 split YAML (回退 config.yaml) 加载, 包含路径、模型列表等全局参数
 # logger: 日志输出至 logs/47_network_brokerage.log, 便于生产环境排查
 
 CONFIG = load_config()

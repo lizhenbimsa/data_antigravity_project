@@ -399,8 +399,9 @@ class TestPipelineLockEdgeCases(unittest.TestCase):
 
 # ============================================================================
 # quality-hardening Round 12 (2026-05-27): core/locking.py 74% → ~88%
-# Windows-reachable except handlers (Linux fcntl branches separately blocked
-# in docs/TECH-DEBT.md §[1-A])
+# Windows-reachable except handlers (Linux fcntl branches are excluded on
+# Windows because fcntl is unavailable there, so those code paths cannot be
+# exercised on this platform)
 # ============================================================================
 
 

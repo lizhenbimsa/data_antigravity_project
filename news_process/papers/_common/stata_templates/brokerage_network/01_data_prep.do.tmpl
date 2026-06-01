@@ -29,7 +29,7 @@ if _rc {
 }
 
 global controls "{{CONTROLS}}"
-* R1-R5 audit follow-up (Agent 2 Bug-2): 25_tableA8 ref $bank_controls; reuse $controls
+* $bank_controls 保留为 $controls 的兼容性 alias (部分 robustness 模板引用)
 global bank_controls "$controls"
 
 * Required: endog tone, IV (2nd-order), centrality vars, treatment dummies.

@@ -2,7 +2,7 @@
 
 **Paper ID**: `bank_fintech_collab` (P5)
 **Status**: M3 skeleton (M0 G0 spec frozen 2026-05-17, manuscript implementation M5/M6)
-**Master plan**: [B_route_master_plan_v2.md](../../docs/plan/B_route_master_plan_v2.md) v2.56
+**Master plan**: B_route_master_plan_v2 (内部规划文档; docs/ 目录已于 commit 1698bda5 整体删除, 无存留副本)
 
 ---
 
@@ -33,11 +33,11 @@ How does a bank's mode of fintech innovation — independent in-house R&D versus
 ### 2.3 Inter-firm R&D Partnerships (Hagedoorn 2002)
 ### 2.4 Orthogonality to P3 (substantiveness) and P4 (locus)
 
-Cross-tab 2³ = 8 cells (详见 [innovation_collab_mode_framework.md](../../docs/methodology/innovation_collab_mode_framework.md) §2):
+Cross-tab 2³ = 8 cells (collaboration mode × P3 substantiveness × P4 locus):
 - Substantive × Tech × Independent → 真实能力建设 (internal-tech 路径)
 - Substantive × App × External → ecosystem play (open-API + 业务侧)
 - Symbolic × External → strategic alliance signaling (decoupling per Fiss & Zajac 2006)
-- ... [详见 framework doc]
+- ... (完整 8-cell 枚举待 M3 阶段在本稿 §2.4 inline 补全)
 
 ---
 
@@ -51,9 +51,9 @@ Cross-tab 2³ = 8 cells (详见 [innovation_collab_mode_framework.md](../../docs
 
 ### 3.2 Measurement: Innovation Collaboration Mode
 - LLM ensemble (gpt-5.4-nano + gemini-3.1-flash-lite + deepseek-v4-flash) majority vote
-- Prompt v8 (additive supplementation over v7; pre-registration via `prompt-v8-supplementation-released` git tag)
+- Prompt v8 (additive supplementation over v7; dedicated git tag `prompt-v8-supplementation-released` not yet created; only `prompt-v7-released` currently exists)
 - Binary encoding: 0 = 自主研发 (independent R&D), 1 = 外部协同 (external collaboration)
-- Inter-track κ ≥ 0.45 (mirrors P3 substantiveness threshold; per [inter_track_agreement_interpretation.md](../../docs/methodology/inter_track_agreement_interpretation.md))
+- Inter-track κ ≥ 0.45 (mirrors the P3 substantiveness fair-to-moderate threshold; threshold defined in `pipeline/audit/inter_track_kappa.py::_THRESHOLDS` per Landis & Koch 1977)
 
 ### 3.3 Outcome Variables
 - Primary: `m_and_a_fintech` (M&A event count from Tonghuashun)
@@ -84,7 +84,7 @@ Cross-tab 2³ = 8 cells (详见 [innovation_collab_mode_framework.md](../../docs
 
 - Mechanism: open innovation 是否优于 closed innovation 取决于 fintech 业务侧 vs 技术侧
 - Practical implication for 银行管理者
-- Limitations: binary proxy 限制（spectrum nature of Chesbrough/L&S; 见 framework §3）
+- Limitations: binary proxy 限制（spectrum nature of Chesbrough/L&S; 详见本稿末 Limitations Statement）
 
 ---
 
@@ -110,4 +110,4 @@ Cross-tab 2³ = 8 cells (详见 [innovation_collab_mode_framework.md](../../docs
 
 This paper measures innovation collaboration mode using a binary classification (independent R&D vs. external collaboration) as a discrete proxy for Chesbrough's open innovation spectrum and Laursen & Salter's continuous search breadth–depth dimensions. The binary measure compresses information about partnership intensity, partner type, and collaborative scope, which future research can extend to multi-class formulations (e.g., M&A vs. strategic investment vs. API openness vs. industry alliance).
 
-The prompt template used for LLM classification (prompt v8) is an *additive supplementation* of the pre-registered v7 prompt (anchored at git tag `prompt-v7-released`); v7's verification, sentiment, substantiveness, and locus criteria are preserved verbatim (additive non-revisionary adjustment per Nosek et al. 2018 PNAS). The new collaboration mode dimension is committed at git tag `prompt-v8-supplementation-released`.
+The prompt template used for LLM classification (prompt v8) is an *additive supplementation* of the pre-registered v7 prompt (anchored at git tag `prompt-v7-released`); v7's verification, sentiment, substantiveness, and locus criteria are preserved verbatim (additive non-revisionary adjustment per Nosek et al. 2018 PNAS). The new collaboration mode dimension is to be committed at git tag `prompt-v8-supplementation-released` upon M5 finalization (this tag is not yet created).

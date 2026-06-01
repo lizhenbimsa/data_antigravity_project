@@ -16,7 +16,7 @@ P4 = Bank Fintech Locus: 区分银行 fintech 公告中的"底层技术 (区块�
 
 | 子模块 | 行数 | 责任 |
 |---|---|---|
-| `news_process.pipeline.features.innovation_locus` (v3.2.0 stage 32a) | ~ | 计算 `innovation_locus_full` 二元 indicator (0=应用 / 1=底层) |
+| `news_process.pipeline.sentiment.tone_llms` (v3.2.0 stage 21) | ~ | LLM 分类产出 `innovation_locus_full` (底层技术 / 应用场景 中文类别列; Gomber 2018 JMIS); Stata 导出时按 `stata_export.py::LOCUS_ENCODING` 编码 底层技术=0 / 应用场景=1 (见 tone_llms.py:1686 赋值) |
 | `news_process.papers.bank_fintech_locus.analysis` | ~60 | CLI 入口 |
 | `news_process.papers.bank_fintech_locus.tables` | ~80 | Table 1-5 (descriptive + main + mechanism + heterogeneity + robustness) |
 | `news_process.papers.bank_fintech_locus.figures` | ~50 | Figure 1 (layer vs scenario 双柱) |
@@ -26,14 +26,14 @@ P4 = Bank Fintech Locus: 区分银行 fintech 公告中的"底层技术 (区块�
 ```
 papers/bank_fintech_locus/
 ├── __init__.py        ← PAPER_ID = 'bank_fintech_locus'
-├── paper_spec.yaml    ← M0 G0 frozen spec (per plan §B.4)
+├── paper_spec.yaml    ← M0 G0 frozen spec (原 B-route master plan §B.4 已随 docs/ 目录整体删除)
 ├── analysis.py        ← CLI 入口
 ├── tables.py
 └── figures.py
 
 papers_assets/bank_fintech_locus/
 ├── README.md
-├── do/                ← (M2 阶段填: 5 templates = 4 common + 19_locus_event_study extra)
+├── do/                ← (当前仅 .gitkeep; 共享模板 8 个已生成于 papers/_common/stata_templates/bank_fintech_locus/: 00_master / 01_data_prep / 15_locus_main_regression / 16_locus_mechanism / 17_locus_heterogeneity / 18_locus_robustness / 19_locus_clarity_robustness / 19_locus_event_study)
 ├── output/
 └── drafts/{en,zh}/manuscript.tex + refs.bib
 ```
@@ -41,8 +41,8 @@ papers_assets/bank_fintech_locus/
 ## 关键变量
 
 ### Treatment (primary_pair, R35-M02 derived from `innovation_locus_full`):
-- `locus_layer_full`     = 1 if `innovation_locus_full == 1` else 0  ← 底层 (区块链 / AI / 云)
-- `locus_scenario_full`  = 1 if `innovation_locus_full == 0` else 0  ← 应用 (支付 / 信贷 / 理财)
+- `locus_layer_full`     = 1 if `innovation_locus_full == '底层技术'` else 0  ← 底层 (区块链 / AI / 云)
+- `locus_scenario_full`  = 1 if `innovation_locus_full == '应用场景'` else 0  ← 应用 (支付 / 信贷 / 理财)
 - `locus_gap`            = `locus_layer_full - locus_scenario_full` ∈ {-1, +1}
 
 ### Outcome:
@@ -73,7 +73,7 @@ NB: "三波 fintech 浪潮"严格指 wave_1 / wave_2 / wave_3 各 3 年; consoli
 
 - Primary: **RFS** (Review of Financial Studies)
 - Ambitious: **JF** (Journal of Finance, 顶配)
-- Backup: **JFE** (per §B.4 backup_outlet, 2027-09 if reject)
+- Backup: **JFE** (backup_outlet, 2027-09 if reject; 原 B-route master plan §B.4 已随 docs/ 目录整体删除)
 - Submission window: **2027-03-15**
 
 ## DiD 设计

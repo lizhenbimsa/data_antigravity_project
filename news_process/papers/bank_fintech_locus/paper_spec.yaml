@@ -1,6 +1,6 @@
 # Paper spec for P4 — bank_fintech_locus (new, per plan §B.4)
 # Authoritative source of truth at M0 G0 acceptance.
-# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+# Schema reference: papers/_common/paper_spec_schema.py
 
 paper_id: bank_fintech_locus
 spec_version: 2.0.0
@@ -38,8 +38,8 @@ mediator:  # R7-M04 + R9-m02 + R9-m04
 treatment:
   primary_pair: [locus_layer_full, locus_scenario_full]  # R35-M02 derived from `innovation_locus_full`
   primary_pair_construction:  # R35-M02 explicit derivation
-    locus_layer_full: 1 if innovation_locus_full == 1 else 0  # 底层 (区块链/AI/云) indicator
-    locus_scenario_full: 1 if innovation_locus_full == 0 else 0  # 应用 (支付/信贷/理财) indicator
+    locus_layer_full: 1 if innovation_locus_full == '底层技术' else 0  # 底层 (区块链/AI/云) indicator
+    locus_scenario_full: 1 if innovation_locus_full == '应用场景' else 0  # 应用 (支付/信贷/理财) indicator
   secondary: [locus_gap]
   secondary_construction:
     locus_gap: locus_layer_full - locus_scenario_full  # ∈ {-1, +1}
@@ -81,7 +81,7 @@ sample:
 
 audit_rounds_target_min: 8
 
-# v3.5.0 D2 8-cell decomposition Table 6 (per stage3_v3_5_0_augmentation_plan.md §2.1.5)
+# v3.5.0 D2 8-cell decomposition Table 6
 tables:
   t6:
     template: 19_table6_cell_decomposition

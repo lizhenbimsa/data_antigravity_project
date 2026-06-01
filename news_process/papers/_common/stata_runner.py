@@ -171,7 +171,7 @@ _KNOWN_PLACEHOLDERS_PAPER_LEVEL = {
     'CLUSTER_VAR',        # vce(cluster <var>) target
     'HET_VAR',            # heterogeneity interaction variable
     # v3.7.3 Plan A v1.0: paper-level main treatment placeholder (used by
-    # 25_tableA8_title_robustness.do.tmpl + B-route paper-specific templates).
+    # B-route paper-specific templates).
     'MAIN_TREAT',         # main treatment variable (per paper, e.g. P1 = llm_vote_tone_ctx)
 }
 
@@ -235,8 +235,10 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CONTROLS': 'ln_news_coverage media_breadth_z fin_media_frac central_media_frac',
         'CLUSTER_VAR': 'bank_id',
         'HET_VAR': 'is_soe',
-        # v3.7.3 Plan A v1.0: MAIN_TREAT + RANDOM_SEED for _title robustness template
-        # (25_tableA8_title_robustness.do.tmpl, P1 共用主线根目录).
+        # MAIN_TREAT/RANDOM_SEED: paper-level placeholder 默认值。P1 主线用根目录模板,
+        # 不引用这两个 placeholder (原引用它们的根级 _title 稳健性模板 25_tableA8_title_robustness.do.tmpl
+        # 已随 remove-title-track 删除), 故对 P1 为无害默认值; 该 placeholder 机制仍被
+        # attention/locus/substance/collab 等子目录模板消费。
         # P1 G3 main = _ctx (v3.6.0 Plan E P4 G3 锁定).
         'MAIN_TREAT': 'llm_vote_tone_ctx',
         'RANDOM_SEED': '20260516',

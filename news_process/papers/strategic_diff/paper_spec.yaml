@@ -1,6 +1,6 @@
 # Paper spec for strategic_diff (existing, retrofit per plan §5.2.2 M0.1b)
 # Derived from papers_assets/strategic_diff/README.md.
-# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+# Schema reference: papers/_common/paper_spec_schema.py
 
 paper_id: strategic_diff
 spec_version: 2.0.0
@@ -27,7 +27,7 @@ outcome:
 treatment:
   primary: strat_diff_n5   # N=5 TF-IDF char 默认
   alternative: [strat_diff_n3, strat_diff_n4, strat_diff_n6, strat_diff_n7, strat_sim_max,
-    centroid_diff_full, coh_tfidf_c_full]
+    centroid_diff_tfidf_c, coh_tfidf_c_full]
 
 controls:
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
@@ -57,7 +57,6 @@ audit_rounds_target_min: 8
 
 # v3.5.0 D2 8-cell decomposition Table 6 — strategic_diff 不用 D2 主回归 (per plan §2.1.6)
 # v3.5.1 A1/A3 explicit null (text_coherence 互补 A1 clarity defer 到 v3.5.2, per plan v0.3 §1.2 修 M5')
-# v3.7.3 (Plan A v1.0): tA8 = _title track robustness
 tables:
   t6:
   tA7:

@@ -146,7 +146,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
             logger.info(f"  窗口 {suffix}: 无平衡媒体数据, 跳过该稳健性窗口")
             continue
 
-        # (D.a) 三轨道全局情感均值 (平衡子集)
+        # (D.a) 双轨道全局情感均值 (平衡子集; full/ctx)
         for track in ['_full', '_ctx']:
             src = f'llm_vote_score{track}'
             col = f'bal_{suffix}_tone{track}'
@@ -182,7 +182,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
             panel = panel.drop(columns=[col_n])
         panel[col_n] = len(balanced)
         logger.info(f"  窗口 {suffix}: {len(balanced)} 家平衡媒体, "
-                    f"3 轨道 + {len(_bal_cols)} 全方法列")
+                    f"2 轨道 + {len(_bal_cols)} 全方法列")
 
     return panel
 
@@ -918,7 +918,7 @@ def compute_media_heterogeneity(df, panel):
             .reset_index(name='n_articles_exc'))
     panel = panel.merge(n_ex, on=['target_bank', 'year'], how='left')
 
-    # (C.3) bank-year 三轨道全局情感均值（排除停刊）
+    # (C.3) bank-year 双轨道全局情感均值（排除停刊; full/ctx）
     df_alive = df[df['_is_ceased_media'] == 0]
     for track in ['_full', '_ctx']:
         src = f'llm_vote_score{track}'
@@ -949,7 +949,7 @@ def compute_media_heterogeneity(df, panel):
             panel = panel.merge(tone, on=['target_bank', 'year'], how='left')
             _exc_cols.append(col)
     logger.info(f"  停刊稳健性: ceased_media_frac, n_articles_exc, "
-                f"exc_tone_{{full/ctx/title}}, {len(_exc_cols)} 个 exc_* 列")
+                f"exc_tone_{{full/ctx}}, {len(_exc_cols)} 个 exc_* 列")
 
     # ── 平衡媒体面板 ──
     # 参考 Wooldridge (2010, §19.9): 比较平衡/非平衡面板系数稳定性

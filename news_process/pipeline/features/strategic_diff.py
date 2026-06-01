@@ -79,7 +79,7 @@
     与企业创新边界. 经济研究, (11).
     → 图 1: BERTopic 余弦相似度 → 技术布局引导, 本模块迁移为行业质心距离
 
-输出列 (42 列, 值域均为 [0, 1]):
+输出列 (~50 列, 值域均为 [0, 1]; 含 2026-05-29 双模型新增的 text2vec 稳健 twin 列):
   --- N-最近邻 Full 轨 (18 列) ---
   strat_diff_n{3..7}       TF-IDF char N-近邻差异度 (Ŝ_i, N=3~7)
   strat_diff_n{3..7}_w     TF-IDF jieba 词级 N-近邻差异度 (稳健性检验)
@@ -108,6 +108,12 @@
   coh_tfidf_w_{full|ctx}   TF-IDF jieba 相邻期文本连贯性 (稳健性检验)
   coh_lda_{full|ctx}       LDA+JSD 相邻期文本连贯性 (稳健性检验)
   coh_emb_{full|ctx}       Embedding 相邻期文本连贯性 (稳健性检验)
+  --- text2vec 稳健 twin 列 (2026-05-29 双模型重构; stage 30 退役后由本 stage 内联产出) ---
+  strat_diff_n5_emb_t2v{,_ctx}    text2vec N=5 Embedding 差异度
+  strat_sim_max_emb_t2v{,_ctx}    text2vec Embedding 最大同行相似度
+  centroid_diff_emb_t2v{,_ctx}    text2vec Embedding centroid 距离
+  strat_diff_t2v_{full,ctx}       契约别名 (export REQUIRED_PANEL_COLUMNS 硬要求)
+  coh_emb_t2v_{full,ctx}          text2vec Embedding 相邻期连贯性
 
 注意: 连贯性变量 (coh_*) 对首年及年份间隙返回 NaN (与 strat_fluidity 一致),
       严格定义"相邻期"为连续年度 (year_t 与 year_{t-1})。
@@ -1191,8 +1197,9 @@ def compute_strategic_differentiation(df_exploded, panel):
         panel: 银行-年面板 DataFrame
 
     Returns:
-        panel: 新增 ~42 列战略差异度指标的面板 DataFrame
-          (含 N-NN Full/Ctx, centroid Full/Ctx, fluidity, 连贯性)
+        panel: 新增 ~50 列战略差异度指标的面板 DataFrame
+          (含 N-NN Full/Ctx, centroid Full/Ctx, fluidity, 连贯性,
+           及 text2vec 稳健 twin 列 strat_diff_*_t2v / centroid_diff_emb_t2v / coh_emb_t2v / strat_diff_t2v_{full,ctx})
     """
     logger.info("=" * 60)
     logger.info("战略差异度指数 (Guzman & Li 2023; Hoberg & Phillips 2016)")

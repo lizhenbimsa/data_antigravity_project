@@ -1,7 +1,6 @@
 """39d_lexical_discriminant_validity.py — v3.5.1 A1/A3 discriminant validity (HTMT + AVE + κ + α).
 
-Thin shim per CLAUDE.md 约定 (v3.5.1 后 30 个; v3.6.0 Plan E P4 A1 加 stage 13 后 31 个).
-实现位于 news_process.pipeline.audit.lexical_discriminant_validity.
+≤30 行 thin shim, 实现位于 news_process.pipeline.audit.lexical_discriminant_validity.
 
 锚定: Henseler-Ringle-Sarstedt 2015 JAMS; Fornell-Larcker 1981 JMR;
       Cohen 1960 EPM; Cronbach 1951 Psychometrika.

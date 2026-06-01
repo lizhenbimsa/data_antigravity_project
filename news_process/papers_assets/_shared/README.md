@@ -1,6 +1,6 @@
 # `papers_assets/_shared/` — Shared LaTeX preambles for paper drafts
 
-> P4.1 (plan-r3 derivative-paper extension, 2026-05-15)
+> P4.1 (plan-r3 derivative-paper extension, 2026-05-15; 当前组合共 9 篇 = 5 主线 + 4 衍生，其中 8 篇产出 .tex 草稿并消费本 preamble，bank_fintech_collab 用 Markdown 草稿不引用)
 
 ## Files
 
@@ -11,7 +11,7 @@
 
 ## Why a shared preamble
 
-Five papers × two languages = 10 manuscript drafts. Each one shares ~30 lines
+Eight papers × two languages = 16 manuscript drafts (the 8 of 9 portfolio papers that ship LaTeX; bank_fintech_collab uses Markdown drafts and does not consume this preamble). Each one shares ~30 lines
 of package imports (booktabs, biblatex, hyperref, etc.). Centralizing in
 `_shared/` keeps the diff focused on actual content when revising the
 manuscript layer.
@@ -22,7 +22,7 @@ manuscript layer.
 papers_assets/<paper_id>/drafts/
 ├── en/
 │   ├── manuscript.tex   # \input{../../../_shared/preamble_en.tex} + paper body
-│   ├── refs.bib         # Paper-specific BibLaTeX entries (TODO: populate)
+│   ├── refs.bib         # Paper-specific BibLaTeX entries (partially populated; TODO: complete bibliography)
 │   └── (output PDF after compile)
 └── zh/
     ├── manuscript.tex

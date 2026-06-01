@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "news-process"
-version = "3.7.4"
-description = "Bank-fintech news -> bank-year panel data pipeline (v3.7.4 — Panel D/E stratified robustness + bootstrap CI + Q1-Q5 empirical anchor; built on v3.7.3 _title-track Tier-B robustness, v3.7.0 D-group + v2.3 implementation: 9 papers + DC3 LLM archive + BERTopic/staleness/CEO-NER stages; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架)."
+version = "3.8.0"
+description = "Bank-fintech news -> bank-year panel data pipeline (v3.8.0 — 取消标题情感轨, 标题并入 full/ctx 两轨; built on v3.7.0 D-group + v2.3 implementation: 9 papers + DC3 LLM archive + BERTopic/staleness/CEO-NER stages; W&Z 1994/1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE 双框架)."
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "Proprietary" }
@@ -69,7 +69,7 @@ dependencies = [
     "python-dotenv>=1.0.0,<2.0.0",
     # v3.2.0 M6 (plan v14 §9.1): Stata 数据导出层 — pandas DataFrame → .dta
     # 用途: stage 46 stata_export 把 panel parquet 转为 Stata 主数据 + variable/value labels.
-    # 设计: 不依赖 Stata license, 跨平台 (Windows/macOS/Linux), 支持 .dta 119 格式 (Stata 14-18).
+    # 设计: 不依赖 Stata license, 跨平台 (Windows/macOS/Linux), 支持 .dta 118 格式 (Stata 14+).
     "pyreadstat>=1.2.0,<2.0.0",
 ]
 
@@ -111,14 +111,12 @@ news_process = [
     "papers_assets/**/*.tex",
     "papers_assets/**/*.bib",
     "stata/**/*.do",
-    # F-42 (2026-05-16): 55 个 Stata 模板的真实位置 (R10/R6 实测).
+    # F-42 (2026-05-16): 95 个 Stata 模板的真实位置 (R10/R6 实测; remove-title-track 后 104→95).
     # 之前 papers_assets/**/*.do.tmpl 仅 1 match; 真模板在 papers/_common/.
     "papers/_common/stata_templates/**/*.tmpl",
     "papers/_common/stata_templates/**/*.md",
     "papers/_common/stata_templates/**/*.do",
-    # F-43 (2026-05-16): docs/ 51 files — replication 包查询场景下需要可访问.
-    "docs/**/*.md",
-    "docs/**/*.tex",
+    # (F-43 原 docs/**/*.md|tex globs 已移除: docs/ 目录于 commit 1698bda5 整体删除, glob 匹配 0 文件.)
 ]
 
 [tool.setuptools.packages.find]

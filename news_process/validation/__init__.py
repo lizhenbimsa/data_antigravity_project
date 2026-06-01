@@ -1,24 +1,23 @@
-"""news_process.validation — placeholder package for future Phase 5+ scope.
+"""news_process.validation — robustness / validation stage implementations.
 
-Current status (Phase 4g, 2026-05-04)
--------------------------------------
-This package is intentionally **empty**.  It exists as a namespace anchor
-for a future phase that may relocate stages 31-39
-(``31_bank_fintech_threshold.py`` … ``39_prompt_sensitivity.py``) here from
-the news_process root.
+Current status (Phase 7b migration completed)
+----------------------------------------------
+The Phase 7b migration is done: the canonical bodies of the validation
+stages now live in this package (e.g. ``temporal_mask.py``,
+``decay_sensitivity.py``, ``radius_sensitivity.py``, ``threshold.py``,
+``tone_validation.py``, ``media_diversity.py``, ``dedup_threshold.py``,
+``entity_masking.py``, ``prompt_sensitivity.py`` 等)。每个模块顶部均带有
+"本模块由原 root script ... 迁入 (Phase 7b)" 的迁移说明。
 
-As of Phase 4 those stages remain at the project root as thin
-``importlib`` shims; the canonical bodies live under
-``news_process/`` (still named with the legacy 31-39 prefix) and are
-discovered via ``run_pipeline_validation.py`` consuming
+The project-root ``NN_*.py`` files for these stages are thin ``importlib``
+shims that delegate to the modules here; the validation pipeline discovers
+them via ``run_pipeline_validation.py`` consuming
 ``news_process.core.dag.STAGES_VALIDATION``.
 
-Why preserve the empty package?
--------------------------------
-1. ``import news_process.validation`` resolves immediately, so any future
-   stage migration into this package is non-breaking.
+Notes
+-----
+1. ``import news_process.validation`` resolves immediately; the modules are
+   importable directly (e.g. ``python -m news_process.validation.temporal_mask``).
 2. The directory is a contract marker — changes to it are localised to a
    single sub-tree, not the project root.
-3. Phase 4g audit confirmed there are zero external imports of this
-   package, so reserving it costs nothing.
 """

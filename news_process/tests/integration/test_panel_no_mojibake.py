@@ -6,7 +6,7 @@ Original concern (refuted)
 ==========================
 During Plan A initial verification, ``data/processed/40_panel_yearly.parquet``
 column names viewed via PowerShell appeared to contain ``����`` mojibake
-sequences (e.g. ``finbert_cn_����_w_sum_title``). This was incorrectly
+sequences (e.g. ``finbert_cn_����_w_sum_full``). This was incorrectly
 interpreted as GBK/UTF-8 double-encoding pollution.
 
 Actual finding (verified by Unicode codepoint scan)
@@ -22,10 +22,10 @@ etc. PowerShell's GBK-default code page cannot render these UTF-8 Chinese
 characters and displays them as ``����``. This is a **terminal rendering
 artifact, not a data pollution**.
 
-The defensive ``_is_mojibake_column`` filter in stage 39g remains in place to
-guard against **real** future U+FFFD mojibake; this is a separate concern
-from the Chinese column names which are valid UTF-8 and handled correctly by
-``stata_export.py`` rename layer (v3.5.2+) for downstream .dta export.
+This test's own ``_detect_mojibake_columns`` helper guards against **real**
+future U+FFFD mojibake; that is a separate concern from the Chinese column
+names which are valid UTF-8 and handled correctly by the ``stata_export.py``
+rename layer (v3.5.2+) for downstream .dta export.
 
 This test verifies:
 1. Panel has zero U+FFFD mojibake columns (the original suspicion).

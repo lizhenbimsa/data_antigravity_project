@@ -15,14 +15,14 @@
 | Slot | model_name | 家族 |
 |---|---|---|
 | `gpt54nano` | `gpt-5.4-nano` | OpenAI |
-| `gemini3111` | `gemini-3.1-flash-lite-preview` | Google |
-| `deepseekv4`（原 `claude4h`）| `deepseek-v4-flash` | DeepSeek / Grok |
+| `gemini31111` | `gemini-3.1-flash-lite` | Google |
+| `deepseekv4`（原 `claude4h`）| `deepseek-v4-flash` | DeepSeek |
 
 **论文方法章节建议表述**：
 
 > "We employ three independent LLM families for sentiment annotation:
-> gpt-5.4-nano (OpenAI), gemini-3.1-flash-lite-preview (Google),
-> and deepseek-v4-flash (DeepSeek / Grok). All three are routed through
+> gpt-5.4-nano (OpenAI), gemini-3.1-flash-lite (Google),
+> and deepseek-v4-flash (DeepSeek). All three are routed through
 > the yunwu.ai aggregator using OpenAI-compatible /v1/chat/completions API
 > (single account, identical schema), with temperature=0 and seed=42 for
 > deterministic outputs. Inter-family agreement is reported as Cohen's κ
@@ -42,7 +42,7 @@
 | `_aggregate_track`：单模型 verified=False 不再强制改 sentiment | 每个模型独立保留自己的 sentiment 判定 |
 | `majority_vote_sentiment`：平局返回 None | 不再降级到"中性"；平局行标记 `llm_undefined=1` |
 | `encode_sentiment`：使用 nullable Int8 + 4 类掩码 | `is_neutral` 仅在 verified=True ∧ undefined=0 ∧ call_failure=0 ∧ sentiment="中性" 时为 1 |
-| 21 输出新增 8 列元数据 | `n_valid_votes_*` / `n_verifying_votes_*` / `llm_call_failure_*` / `llm_undefined_*` / `agreement_rate_s_*` |
+| 21 输出新增 10 列元数据 (5 类状态指标 × 2 轨 _full/_ctx) | `n_valid_votes_*` / `n_verifying_votes_*` / `llm_call_failure_*` / `llm_undefined_*` / `agreement_rate_s_*` |
 
 **论文方法章节建议表述**：
 
@@ -55,7 +55,8 @@
 > coerced these to 'neutral' and conflated 81.7% of the neutral labels with
 > measurement failure / verification rejection. Under listwise deletion, this
 > reclassification removes a non-trivial number of bank-year × track
-> observations from regressions; counts before/after are reported in
+> observations (track ∈ {full, ctx}; 标题情感轨已于 remove-title-track 移除)
+> from regressions; counts before/after are reported in
 > Table A.X (sample composition diagnostics)."
 
 ---
@@ -87,7 +88,8 @@
 > these as missing-by-design and use listwise deletion in regressions.
 > Count and sum-type variables (n_articles, pos_count, *_sum) remain at 0
 > as the mathematically correct zero-observation value. The number of
-> bank-year × track observations dropped is reported in Table A.X."
+> bank-year × track observations (track ∈ {full, ctx}; 标题情感轨已于
+> remove-title-track 移除) dropped is reported in Table A.X."
 
 ---
 
@@ -102,7 +104,7 @@
 
 **v3 锁定（仅保留 6 类核心）**：
 
-| IV 类 | 列数 (× 3 tracks) | 文献依据 |
+| IV 类 | 列数 (× 2 tracks: _full / _ctx) | 文献依据 |
 |---|---|---|
 | `bartik_type_*` | type/scale 已 pre-treatment 固定 | Goldsmith-Pinkham, Sorkin & Swift (2020, AER) |
 | `bartik_scale_*` | 同 | 同 |
@@ -113,7 +115,7 @@
 
 **基期约束**：`bartik_base_year = max(panel.year.min(), 2010)`，强制 `< 2019`（DCEP 沙盒里程碑）。
 
-**panel 列变化**：bartik_* 列从 ~214 列降至 33 列（6 类 × 含 share / iv × 3 tracks）。
+**panel 列变化**：bartik_* 列从 ~214 列降至约 29 列（6 类核心 × 含 share / iv × 2 tracks（_full / _ctx）；remove-title-track 后已无 _title 情感轨）。逐类列数随各类 share 分组数不同：type=8（iv×2 + 6 share）/ scale=6（iv×2 + 4 share）/ fintech=4（iv×2 + 2 share）/ media=4（iv×2 + 2 share）/ geoprox=2（仅 iv×2）/ mauth=5（iv×2 + 3 share），合计 ≈ 29 列。
 
 **强制 Romano-Wolf 校正**：IV ≥ 6 类（按类计数），主表必须使用 step-down p 值（`rwolf` Stata 包）。
 
@@ -140,10 +142,10 @@
 
 | 变更 | 行为 | 文档位置 |
 |---|---|---|
-| **N4** 并发降级 | `max_concurrency: 300 → 100` + 指数退避（cap 600s） | `config/sentiment.yaml` |
+| **N4** 并发降级 | `max_concurrency: 300 → 40 (v6/N4)`（后于 2026-05-14 用户决策统一调至 100）+ 指数退避（cap 600s） | `config/sentiment.yaml` |
 | **N7** 统一 API key | 新增 `YUNWU_API_KEY`，三 slot 全部引用 | `.env` + `sentiment.yaml` |
 | **N8** lineage 元数据 | 每次 stage 21 重跑写入 `21_tone_llms_lineage_<ts>.json` | `data/processed/` |
-| Stata 兼容 | `_stata_safe_cast` 把 nullable Int8 转 Float64（NaN 保留），Stata 端用 `mvdecode` 处理 | `pipeline/panel/export.py`、`falsification/controls.py` |
+| Stata 兼容 | export.py / controls.py 内联把 pandas nullable Int*/boolean dtypes 转 Float64（NaN 保留），Stata 端用 `mvdecode` 处理 | `pipeline/panel/export.py`、`pipeline/falsification/controls.py` |
 
 ---
 

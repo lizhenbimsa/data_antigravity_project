@@ -15,9 +15,8 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
     【双轨输入】每条新闻同时以全文 (_full) 和上下文片段 (_ctx) 两种输入分别请求模型，
     生成两套完整的验证与情感判定结果，供下游消融研究和三角验证使用。
-
-    【标题轨道】对已通过 full 轨道验证的样本，批量提取标题短文本 LLM 情感，
-    供三角验证使用。
+    标题已在上游 (ctx_materializer / prepend_title) 拼接进 full 与 ctx 两轨，
+    不再存在独立的标题情感轨道 (remove-title-track 终态)。
 
 方法论依据：
     多模型投票共识机制:
@@ -36,7 +35,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 输入：
     模块二前置输出的 `14_fintech_intensity.parquet`
     (该文件在 12_fintech_news.parquet 基础上追加了 fintech_intensity_score 和 intensity_verified 列)
-    (向下兼容: 若跳过阶段14, 自动回退读取 12_fintech_news.parquet)
+    (硬依赖: 阶段14 缺失即报错终止, 不再静默回退 12; 见 main() 的 "Step 4(a) 硬化")
     
 输出：
     筛选后的合法新闻 `21_tone_llms.parquet`
@@ -403,12 +402,11 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     每个模型可独立指定 base_url 和 api_key。
 
     Args:
-        track: 'full'、'ctx' 或 'title'，标识本次请求使用的文本轨道。
+        track: 'full' 或 'ctx'，标识本次请求使用的文本轨道。
         cache: LLMCache 实例，用于查询/写入缓存。
         prompt_version: prompt 模板版本字符串 (例如 ``"v6-2026-05-13"``),
-            传给 ``LLMCache.get/put`` 用作缓存键命名空间。caller 根据
-            track 选择对应模板的版本号 (full/ctx → PROMPT_VERSION,
-            title → TITLE_PROMPT_VERSION)。
+            传给 ``LLMCache.get/put`` 用作缓存键命名空间。full/ctx 轨
+            统一使用 PROMPT_VERSION。
 
     Returns:
         tuple: (row_idx, model_id, result_text, track)
@@ -665,8 +663,7 @@ def majority_vote_categorical(
     -----------------------
     - 'undefined':    平局 → None
                       适用 3-class 含独立中性类的场景（如 sentiment）。
-                      v6/F2 修订要求严格未定义而非污染独立中性类
-                      (docs/policy_llm_undefined.md)。
+                      v6/F2 修订要求严格未定义而非污染独立中性类。
     - 'conservative': 平局 → tie_default
                       适用 2-class，归 modal class prior，等价于 uniform
                       prior 下的 MAP (Maximum A Posteriori) decision。
@@ -688,8 +685,7 @@ def majority_vote_categorical(
         Wang et al. (2023) ICLR. Self-consistency improves chain of
           thought reasoning in language models.
           DOI: https://doi.org/10.48550/arXiv.2203.11171
-        v6/F2 内部决策: 平局 → None 严格未定义，避免污染独立中性类
-          (news_process/docs/policy_llm_undefined.md)
+        v6/F2 内部决策: 平局 → None 严格未定义，避免污染独立中性类。
         Bayesian MAP rationale: Bishop, C.M. (2006). Pattern Recognition
           and Machine Learning. Springer. §1.5 (Decision Theory).
     """
@@ -937,8 +933,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             innov_substs:     LLM 创新实质性投票列表 (实质性 / 象征性)；v3.0.0
                               (v8) 起翻译层已废除, panel 列值即 LLM 原始输出, 列后缀
                               统一为 _sub / _symb (Westphal & Zajac 1994/1998 ASQ
-                              substantive-symbolic 框架; 详见 docs/methodology/
-                              prompt_terminology_mapping.md)
+                              substantive-symbolic 框架)
             innov_collab_modes (v3.4.0): LLM 创新协作模式投票列表 (自主研发 / 外部协同);
                               Chesbrough 2003 Open Innovation + Laursen & Salter 2006 SMJ;
                               additive supplementation per Nosek 2018 PNAS, v7 双维语义不变.
@@ -1281,7 +1276,10 @@ def _write_run_lineage(stage_start: float):
 
 
 def _avg_valid_title_prob_score(data: dict, models: list) -> float:
-    """audit-fixes 2026-05-29 (H1): article-level 平均标题 prob_score, 仅对
+    """已废弃 (remove-title-track): 标题情感轨已删, 本函数无活跃调用 (仅被
+    TITLE_PROMPT_TEMPLATE='' 守卫下的死代码引用), 待后续连同标题批量块一并清理。
+
+    audit-fixes 2026-05-29 (H1): article-level 平均标题 prob_score, 仅对
     sentiment 非 None (LLM 调用成功) 的模型取均值; 全失败 → NaN (非 0.0)。
 
     与 H1 离散路径 (空票 final_s=None) 及 full/ctx 轨 _aggregate_track 的
@@ -1301,11 +1299,11 @@ def main():
 
         本函数是 stage 21 的双轨 (full + ctx) LLM 调用主流程, 内部职责:
         1. 加载 stage 12/14 上游 + schema 守护 (含 ``stage 14 fallback to 12``
-           硬化反模式根除, 见 line 727-732 的 "Step 4(a) 硬化")
+           硬化反模式根除, 见下方 "Step 4(a) 硬化" 注释)
         2. 双轨数据准备 + content/ctx 物化
         3. 三家族 LLM (gpt54nano / gemini31111 / deepseekv4) 并发请求 +
            majority-vote ensemble (logit-to-score)
-        4. SQLite 缓存读写 (P3-17 拟升级缓存键含 prompt_version)
+        4. SQLite 缓存读写 (缓存键含 prompt_version 命名空间, 已实现于 fetch_llm_async)
         5. N8 lineage 记录 + parquet 双轨输出
 
         v3.0 拆分应让 LLM 调用层独立可测 (mock yunwu API), 与上下游
@@ -1401,10 +1399,10 @@ def main():
 
         # Logit-to-Score 禁用分支虚拟列（与启用分支输出列对齐）
         if LOGIT_SCORE_ENABLED:
-            # 聚合级概率分数（三轨道）
+            # 聚合级概率分数（双轨道）
             for track in ['_full', '_ctx']:
                 df[f'llm_prob_score{track}'] = 0.0
-            # 逐模型概率分数（三轨道）
+            # 逐模型概率分数（双轨道）
             for m in MODELS:
                 short = m['short_name']
                 for track in ['_full', '_ctx']:
@@ -1788,8 +1786,8 @@ def main():
         #           该文证明: 标题短文本LLM情感与全文情感的交叉验证可有效
         #           识别"标题党"偏差并提升情感度量的鲁棒性。
         TITLE_PROMPT_TEMPLATE = ''  # remove-title-track: 标题轨永久禁用
-        # Plan-r3 P3-17 接入: 与 PROMPT_VERSION 同源, 由 core/config.py
-        # 自动从 config/prompts/title_sentiment.txt 的 ``# version:`` 头解析.
+        # remove-title-track: 标题情感轨已删, config/prompts/title_sentiment.txt
+        # 已移除, 该解析路径失效; 下方赋值仅为死代码块的占位 default ('v0')。
         TITLE_PROMPT_VERSION = LLM_CONFIG.get(
             'title_sentiment_prompt_template_version', 'v0'
         )
@@ -1922,8 +1920,9 @@ def main():
                     # 让下游 encode 的 df[sent_col].isna() → <NA> 逻辑
                     # (encode.py:135-137) 把它排除, 与 full/ctx 轨道 v6/F2
                     # "失败≠中性" 契约一致。此前误置 '中性'(=0) 会把整体调用失败
-                    # 当作真实中性, 污染 llm_vote_tone_title / tone_gap_title_full,
-                    # 进而污染 9 个 25_tableA8 标题稳健性表。
+                    # 当作真实中性。
+                    # 注 (remove-title-track): 本标题情感批量块已随标题情感轨移除而废弃,
+                    # 在 TITLE_PROMPT_TEMPLATE='' 守卫下永不执行 (死代码, 待后续清理)。
                     if s_votes:
                         final_s = majority_vote_sentiment(s_votes)
                         agree_count = sum(1 for v in s_votes if v == final_s)

@@ -1,6 +1,6 @@
 """v3.5.0 D4 dual-track residual signals unit tests.
 
-Per [stage3_v3_5_0_augmentation_plan.md §2.3 / §4.1](../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+Per v3.5.0 D4 dual-track residual signals §2.3 / §4.1 (文档已随 docs/ 删除):
     12 tests covering:
         - 9 article-level boolean cols (3 dim × 3 signal: disagree/freerider/quietworker)
         - Invariants (i)(ii)(iii) per plan §2.3.2:

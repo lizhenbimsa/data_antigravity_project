@@ -1,6 +1,6 @@
 """v3.5.0 D2 article-level cell_id derivation unit tests.
 
-Per [stage3_v3_5_0_augmentation_plan.md §2.1.1 / §4.1](../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+Per v3.5.0 D2 article-level cell_id derivation §2.1.1 / §4.1 (文档已随 docs/ 删除):
     8 tests covering:
         - 编号公式 (cell_id = subst*4 + locus*2 + collab + 1 ∈ {1..8})
         - dirty label 防御 (whitespace / 全角 / newline normalize, 修 F32)

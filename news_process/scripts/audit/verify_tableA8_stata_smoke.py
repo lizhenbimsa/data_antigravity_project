@@ -1,8 +1,13 @@
-"""v3.7.5 — Stata/MP smoke verification harness for the hardened Table A8 templates.
+"""DEPRECATED — title 情感轨已于 remove-title-track 分支移除; 所依赖的
+25_tableA8_title_robustness.do.tmpl 模板及 *_title 情感列均已删除, 本脚本不可运行,
+仅作历史留存。(_render() 的 read_text 会立即抛 FileNotFoundError; fixture 引用的
+llm_peer_tone_iv_title / peer_tone_2nd_lag1_title / tone_gap_title_full /
+frac_title_mentions_fintech / frac_title_long 均已停产。)
 
-Resolves the plan's only residual risk (Stata not executed). Renders 4 representative
-templates, builds a synthetic _prepared_panel.dta, and writes a master verify.do that
-runs each under `capture` and asserts the post-hardening behavior:
+历史描述 (Stata/MP smoke verification harness for the now-deleted Table A8 templates):
+
+Renders 4 representative templates, builds a synthetic _prepared_panel.dta, and writes a
+master verify.do that runs each under `capture` and asserts the post-hardening behavior:
 
   - strategic_diff : title_applicable=0 (strat_diff_n5 no suffix) -> Panel A/B N/A,
                      Panel C runs; NO degenerate m_title_only; rc==0.

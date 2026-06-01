@@ -294,7 +294,7 @@ def build_non_fintech(df_full: pd.DataFrame,
     logger.info("")
     logger.info("  数据处理说明:")
     logger.info("    关键技术细节: 40_article_bank_level 中 '日期' 列已被")
-    logger.info("      41_panel_encode_aggregate.py parse_time() 转为 datetime64 类型,")
+    logger.info("      pipeline/panel/encode.py parse_time() 转为 datetime64 类型,")
     logger.info("      而 12_fintech_news_full 中 '日期' 仍为原始 string 类型。")
     logger.info("      为避免类型不匹配导致 anti-join 静默失败,")
     logger.info("      统一转为 YYYY-MM-DD 格式字符串后再匹配。")
@@ -599,7 +599,7 @@ def merge_to_panel(panel: pd.DataFrame,
             panel[c] = panel[c].fillna(0)
     logger.info(f"  NaN 填充: {filled_count:,} 个单元格填为 0")
     logger.info(f"    说明: 某些 Bank-Year 在非金融科技组中没有新闻报道,")
-    logger.info(f"          与 41_panel_encode_aggregate.py balance_panel 的零新闻处理一致。")
+    logger.info(f"          与 pipeline/panel/encode.py balance_panel 的零新闻处理一致。")
 
     # --- 总量变量 ---
     logger.info("")

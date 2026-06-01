@@ -21,11 +21,10 @@ xtset bank_id year
 * Standard bank-level + macro controls (per spec.controls)
 global controls "{{CONTROLS}}"
 
-* R1-R5 audit follow-up (Agent 2 Bug-2 fix): 25_tableA8 / 26_bs 引用 $bank_controls
-* 但 paper-specific 01_data_prep 此前只设 $controls. Stata silent expand undefined
-* global -> 空字符串, robustness table bank controls 全丢. 复用 paper-specific
-* $controls 让 Table A8 与 main Table 2/3 用同一 controls 集合 (避免 reviewer
-* 问 "为什么 robustness 控制变量与 main 不一致").
+* $bank_controls 保留为 $controls 的兼容性 alias: 部分 robustness 模板引用
+* $bank_controls, 而 paper-specific 01_data_prep 只设 $controls. Stata 对未定义
+* global 静默展开为空字符串, 会丢掉 bank controls; 故复用 paper-specific $controls,
+* 让 robustness 与 main Table 2/3 用同一 controls 集合.
 global bank_controls "$controls"
 
 * Required-variable presence check (P2 outcome + treatment + mediator)

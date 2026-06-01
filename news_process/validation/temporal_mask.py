@@ -1,11 +1,11 @@
 """
 news_process.validation.temporal_mask — B2-1: 时间掩码前视偏误检验
 
-v3.6.0 (Plan E P7 C3 stub):
-    当前实现仅测 `llm_vote_score_full`. 双轨稳健性要求 mirror 整个 mask
-    流程对 `llm_vote_score_ctx`, 输出双轨稳健性表。已加 TODO marker, 后续
-    实施见 docs/methodology/plan_e_p7_dual_track_validation.md.
-    当前模块不阻塞 Plan E 主线 (P1/P3/P4); 推迟到 P7.b 单独 PR 实施。
+双轨实现 (Plan E P7):
+    当前已对 `llm_vote_score_full` 与 `llm_vote_score_ctx` 双轨计算掩码
+    前后的面板统计量与稳定性诊断 (见 _build_masked_panel_stats() 中
+    `for track in ['_full', '_ctx']` 循环及 main() 内同构的稳定性检查),
+    输出统一的双轨稳健性表 temporal_mask_diagnostics.csv。
 
 迁移说明 (Phase 7b)：
     本模块由原 root script ``38a_temporal_mask_test.py`` body 迁入。
@@ -30,7 +30,7 @@ v3.6.0 (Plan E P7 C3 stub):
     21_tone_llms.parquet (已验证文章级数据)
     
 输出:
-    temporal_mask_diagnostics.csv (掩码前后系数对比)
+    temporal_mask_diagnostics*.csv (文件名含 output_dir_suffix; 掩码前后面板统计量对比)
 """
 
 import os

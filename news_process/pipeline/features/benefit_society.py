@@ -46,6 +46,8 @@
   benefit_std_full/ctx:       态度离散度 ∈ [0, 1]
   benefit_pos_frac_full/ctx:  正态度文章占比 ∈ [0, 1]
   benefit_neg_frac_full/ctx:  负态度文章占比 ∈ [0, 1]
+  (上述 4 指标 × full/ctx 双轨另各有 _t2v 稳健 twin 列:
+   benefit_mean_t2v_full/ctx 等; MAIN=API 1536 维 / ROBUSTNESS=text2vec 768 维, 共 16 列)
 ============================================================================
 """
 
@@ -517,7 +519,7 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
         df_exploded: 包含新闻原文的文章-银行级数据集
 
     Returns:
-        pd.DataFrame: 合并了 8 列 benefit_* 指标的面板
+        pd.DataFrame: 合并了 16 列 benefit_* 指标的面板 (MAIN + _t2v 双模型 × Full/Ctx 双轨 × 4 指标)
     """
     logger.info("=" * 60)
     logger.info("步骤 7h-benefit: 金融科技经营效益态度投影")

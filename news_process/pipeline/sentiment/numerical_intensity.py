@@ -10,7 +10,7 @@
 设计要点 (per stage3_v3_5_1 plan v0.3 §2.2):
     1. 真双轨 (修 R3-C2): `enrich_with_num_intensity_dual_track` 对 content_full
        和 content_ctx **各独立调用** compute_num_intensity 一次; 与项目现有
-       _dual_analyze 三轨契约一致.
+       _dual_analyze 双轨契约 (full + ctx) 一致.
     2. cn2arab 5 标准样例锁定 (修 H1, frozen at D0):
         - "两千万" → "20000000" (1 token)
         - "三亿五千万" → "350000000" (1 token, 不拆 3 + 5)
@@ -257,7 +257,7 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
                                          ctx_col: str = 'content_ctx') -> pd.DataFrame:
     """真双轨 post-processor: 对 content_full + content_ctx 各调用一次 compute_num_intensity.
 
-    与项目现有 _dual_analyze 三轨契约一致 (per plan v0.3 §2.2.3 修 R3-C2 + H4).
+    与项目现有 _dual_analyze 双轨契约 (full + ctx) 一致 (per plan v0.3 §2.2.3 修 R3-C2 + H4).
 
     Args:
         df: 含 full_col + ctx_col 列的 DataFrame (典型来自 stage 22 batch 处理后).

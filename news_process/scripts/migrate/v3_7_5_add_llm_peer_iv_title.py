@@ -1,4 +1,7 @@
-"""v3.7.5 Tier-2 — validation-gated, cache-only backfill of llm_peer_tone_iv_title.
+"""v3.7.5 Tier-2 — validation-gated, cache-only backfill of llm_peer_tone_iv_title. [OBSOLETE — 历史/已废]
+
+⚠ 已废 (标题情感轨已删): 本脚本物化的列 llm_peer_tone_iv_title (2SLS 标题工具变量) 是标题情感轨
+产物, 已随 remove-title-track 标题轨取消。请勿再对 panel 写入该已废列。仅作历史留存。下方为历史描述。
 
 Materializes the genuine 2SLS title instrument on the EXISTING frozen panel WITHOUT a
 full stage 14-40 re-run, with two hard safety gates:

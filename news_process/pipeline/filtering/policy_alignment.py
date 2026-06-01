@@ -457,8 +457,9 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  权威政策语料: {len(auth_text)} 字符")
 
     # ---- 4.2 构建文章输入文本 (v3.6.0 Plan E P3 B2: 双轨) ----
-    # 【术语】full 轨 = 标题 + 全文; ctx 轨 = 'content_ctx' (实体局部上下文)
-    #   ctx 轨不拼标题 — ctx 本身已是目标银行局部窗口, 加标题会污染语义
+    # 【术语】full 轨 = 标题 + 全文; ctx 轨 = content_ctx (= 标题 + 实体局部窗口,
+    #   上游 stage 13 ctx_materializer 已 prepend 标题, remove-title-track 终态:
+    #   full/ctx 两轨均含同一标题前缀)
     # 【白话】两条轨道分别打分:
     #   - full: 整篇新闻 vs 政策 (措施层 — Hassan 2019 macro 类比)
     #   - ctx:  目标银行那段 vs 政策 (实体特异性 — Tetlock 2007 / L&M 2016)

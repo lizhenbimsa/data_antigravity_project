@@ -1,7 +1,7 @@
 # Paper spec for 第 11 篇 — bank_news_clarity (NEW, M0 立项中).
 # Authoritative source of truth — pending M0 G0 acceptance.
 # Created: 2026-05-18 (DC1 决策: path C — No-SSRN + _ctx G3 严谨路线)
-# Schema reference: docs/plan/B_route_master_plan_v2.md §5.2.3.bis
+# Schema reference: papers/_common/paper_spec_schema.py
 # Audit history: V1 (58 finding) + V2 (90 finding) + V3 (5 DC) + V4 (白话回归 + reframe)
 # YAML 风格 (v3.7.0 m10 校准): 见第 10 篇 spec 头部说明.
 
@@ -38,7 +38,7 @@ differentiation_claim: |
     *single-text clarity* (词典扫描) — 不同 textual feature, channel 互补可同时跑
 
   V4 audit 既有 paper 注解:
-  - P5 (bank_fintech_collab) 已用 mean_clarity_score 作 Table A8 robustness;
+  - P5 (bank_fintech_collab) 已用 mean_clarity_score 作 Table A7 robustness;
     本 paper 翻转为 *main treatment*, outcome 完全不同 (P5: m_and_a_fintech;
     本: z_score), 研究问题完全不同 (P5: 战略实施; 本: 信息环境 → 风险承担).
 

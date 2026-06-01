@@ -1,5 +1,9 @@
 """把 STATA_INDICATORS_CATALOG.html 渲染为 PDF。
 
+⚠ 暂不可用: 源 catalog docs/STATA_INDICATORS_CATALOG.md 已删 (commit af80749b/1698bda5),
+且依赖的 convert_catalog_to_html.py 同样失效; refresh_html_if_needed() 会在 MD.exists() 检查处
+SystemExit。待 catalog 源文件重建后方可启用。
+
 依赖 Microsoft Edge headless（Windows 自带），不引入 LaTeX / weasyprint /
 wkhtmltopdf 等额外重型依赖。如果 HTML 缺失或比 MD 旧，会先调用
 `convert_catalog_to_html.py` 刷新。

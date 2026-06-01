@@ -99,16 +99,15 @@ def test_main_stage_count(core_dag):
 
 
 def test_validation_stage_count(core_dag):
-    """``STAGES_VALIDATION`` 阶段数须等于 v3.7.3 计划累计 (18)。
+    """``STAGES_VALIDATION`` 阶段数须等于 17 (39g track-discriminant 已随 remove-title-track 删除)。
 
     v3.4.0 baseline = 13 (含 39a inter_track_kappa).
     v3.5.0 +1 = 14: 加 39c construct_orthogonality (NMI 正交性 D3 stage)
     v3.5.1 +1 = 15: 加 39d lexical_discriminant_validity (A1+A3 HTMT/AVE/κ/α)
     v2.3 PR-#4 +1 = 16: 加 39e lm_discriminant_validity (LM 4 子词典 HTMT)
     v2.3 PR-D3 +1 = 17: 加 39f cross_media_alpha (Krippendorff α + variance)
-    v3.7.3 +1 = 18: 加 39g track_discriminant_validity (_full/_ctx/_title HTMT 3×3)
     """
-    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c + 39d + 39e + 39f + 39g = 18
+    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c + 39d + 39e + 39f = 17
     assert len(core_dag.STAGES_VALIDATION) == 17, (
         f"STAGES_VALIDATION drift: expected 17 (39g track-discriminant removed), got {len(core_dag.STAGES_VALIDATION)}."
     )
@@ -139,7 +138,7 @@ def test_no_orphan_twelve_in_validation_count():
 
     Uses ``\\b12\\b`` word-boundary regex across the entire function source
     (covers docstring, comments, f-strings, and numeric tokens).
-    Plan v1.37 §4.3.5 + Round-12 R12B-01 + Round-36/v1.31 expected count = 13.
+    Plan v1.37 §4.3.5 + Round-12 R12B-01 + Round-36/v1.31 expected count = 17 (39g removed).
     """
     import inspect
     import re
@@ -148,9 +147,9 @@ def test_no_orphan_twelve_in_validation_count():
     hits = re.findall(r"\b12\b", src)
     assert hits == [], (
         f"Stale '12' references in test_validation_stage_count: "
-        f"{len(hits)} hit(s). Expected only '13' after P1 (39a) lands. "
-        f"Check docstring (L96), enumeration comment (L97), "
-        f"assertion (L98), error f-string (L99)."
+        f"{len(hits)} hit(s). Expected count = 17 (39g removed). "
+        f"Check docstring, enumeration comment, assertion, and "
+        f"error f-string in test_validation_stage_count."
     )
 
 

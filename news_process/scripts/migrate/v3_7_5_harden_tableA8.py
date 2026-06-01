@@ -1,4 +1,10 @@
-"""v3.7.5 — Harden the 9 Table A8 _title-robustness templates (Item 4 + F2/F5 fixes).
+"""v3.7.5 — Harden the 9 Table A8 _title-robustness templates (Item 4 + F2/F5 fixes). [OBSOLETE — 历史/已废]
+
+⚠ 已废 (标题情感轨已删): 本脚本硬化的 9 个 Table A8 标题稳健性模板 (root + 7 paper copies ×
+25_tableA8_title_robustness.do.tmpl + benefit_society × 26_bs_title_robustness.do.tmpl) 已在
+remove-title-track 改造中全部删除; docstring 与 repls 描述的 _title 变体 / title_applicable /
+tone_gap_title_full / frac_title_* 守卫均属已取消的标题情感轨。当前 .do 模板总数 95 (旧 104)。
+仅作历史留存, 请勿当作活体迁移工具运行。下方为历史描述。
 
 Applies three defensive changes, idempotently, to every `25_tableA8_title_robustness.do.tmpl`
 (root + 7 paper copies) and `26_bs_title_robustness.do.tmpl`:

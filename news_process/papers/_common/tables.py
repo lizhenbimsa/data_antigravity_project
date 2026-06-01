@@ -42,7 +42,7 @@ def sanitize_stata_columns(columns: Sequence[str],
     3. 重复的**输入**名追加 ``_<n>`` 消歧 (DataFrame 列本就唯一, 对真实面板为 no-op;
        仅加固通用工具对重复输入的鲁棒性)。
     4. 缩写 + 截断到 **32 字符** (``stata_export.STATA_VAR_NAME_MAXLEN`` 硬编码),
-       保留 ``_full``/``_ctx``/``_title`` 等判别后缀。
+       保留 ``_full``/``_ctx`` 等判别后缀。
     5. 残留非 ASCII (中文 正面/负面/中性 → pos/neg/neu); 截断后冲突用 6-char md5
        后缀去重 (跨 run 确定性)。
 

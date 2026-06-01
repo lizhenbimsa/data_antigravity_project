@@ -1,6 +1,6 @@
 # F1-0 强制门失败报告 — 致命阻塞
 
-**生成时间**：2026-05-05 ~01:11 (UTC+8)
+**生成时间**：强制门触发 2026-05-05 ~01:11；报告含 F1-0b 备援探针后定稿 2026-05-11 09:22 (UTC+8)
 **触发动作**：[E1] / 全量执行被强制中止（按 v5 计划 §F1-0 强制门规则）
 
 ---
@@ -19,14 +19,14 @@
 
 | Model | HTTP | 错误信息 |
 |---|---|---|
-| gpt-5.4-nano (force_json=true) | **403** | "无访问该模型权限 gpt-5.4-nano" |
+| gpt-5.4-nano (force_json=true) | **403** | "该令牌无权访问模型 gpt-5.4-nano" |
 | gpt-5.4-nano (force_json=false) | **403** | 同上 |
-| gemini-3.1-flash-lite-preview (force_json=true) | **403** | "无访问该模型权限 gemini-3.1-flash-lite-preview" |
+| gemini-3.1-flash-lite-preview (force_json=true) | **403** | "该令牌无权访问模型 gemini-3.1-flash-lite-preview" |
 | gemini-3.1-flash-lite-preview (force_json=false) | **403** | 同上 |
-| deepseek-v4-flash (force_json=true) | **403** | "无访问该模型权限 deepseek-v4-flash" |
+| deepseek-v4-flash (force_json=true) | **403** | "该令牌无权访问模型 deepseek-v4-flash" |
 | deepseek-v4-flash (force_json=false) | **403** | 同上 |
 
-> 错误消息原文为中文 "无访问该模型权限 \<model\>"，工具显示为 GBK 编码乱码 `��������Ȩ����ģ��`，可在 `B_F1_0_yunwu_probe.json` 查看 raw 内容。
+> 错误消息原文为中文 "该令牌无权访问模型 \<model\> (request id: ...)"，工具显示为 GBK 编码乱码 `��������ģ��`，可在 `B_F1_0_yunwu_probe.json` 查看 raw 内容（每条 error.message 字段）。
 
 ### 1.3 F1-0b 备援探针（12 个候选 model 的全谱测试）
 
@@ -76,7 +76,7 @@
 
 ### 选项 A：恢复 yunwu 模型权限（推荐 — 修复源头）
 - 联系 yunwu 客服或自助充值/续期，开通至少以下三个 model 中的所有：
-  - `gpt-5.4-nano`（或回退 `gpt-5.4-nano`）
+  - `gpt-5.4-nano`（或回退到任一其他可用 OpenAI 模型）
   - `gemini-3.1-flash-lite-preview`（或回退到任一可用 Gemini）
   - `deepseek-v4-flash`（或回退到 `deepseek-chat` / `deepseek-v3` 等）
 - 恢复后重新运行 `news_process/scripts/audit/_replan_v5_evidence/B_F1_0_yunwu_probe.py`，强制门通过即可恢复 [E1]

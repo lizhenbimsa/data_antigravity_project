@@ -1,5 +1,10 @@
 """scripts/migrate/v3_7_6_export_panelDE.py — Table A8 Panel D/E export + true
-median + missing-guards (audit follow-up, 2026-05-31).
+median + missing-guards (audit follow-up, 2026-05-31). [OBSOLETE — 历史/已废]
+
+⚠ 已废 (标题情感轨 + Table A8 已删): 本脚本的 9 个 Table A8 标题稳健性模板已在 remove-title-track
+改造中全部删除; 注入代码引用的列 frac_title_mentions_fintech / frac_title_long 已取消; docstring
+声称保持 green 的两个测试文件 tests/test_tableA8_hardening_v375.py 与 test_paper_spec_tA8_filled.py
+亦均已删除。该脚本若再运行将对全部目标报 [MISS] / 测试已不存在。仅作历史留存。下方为历史描述。
 
 Runs AFTER v3.7.5 hardening (title_applicable guard + dynamic a8_models esttab +
 brokerage Panel F + llm_peer disclosure). It is strictly ADDITIVE to that work:

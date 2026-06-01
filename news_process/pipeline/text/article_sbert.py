@@ -6,7 +6,7 @@ embeddings 持久化, 让 D1 (BERTopic) / D2 (staleness) / D3 (Krippendorff α)
 
 学术依据
 --------
-Bybee, J., Kelly, B., Manela, A., & Xiu, D. (2024). Business news and
+Bybee, L., Kelly, B., Manela, A., & Xiu, D. (2024). Business news and
 business cycles. Review of Financial Studies, 37(3), 887-936.
 → 标题 + 首段 300 字策略 (避免 SBERT 512-token 截断丢尾段)
 
@@ -16,7 +16,7 @@ business cycles. Review of Financial Studies, 37(3), 887-936.
    strategic_diff 4 callsite 完全一致, 零下载 + 零双轨配置漂移)
 2. **输入策略**: 标题 + 首段 300 字 (实际新闻中位 800 字 ≈ 1200 token, SBERT
    max_seq_len=512 截断会丢失末段)
-3. **双轨**: content_full + content_ctx 各编码一次 (与 v3.5.1 真双轨对齐)
+3. **双轨**: '内容' (full 轨, 标题经 Bybee 截断单独前置) + content_ctx 各编码一次 (与 v3.5.1 真双轨对齐)
 4. **存储**: parquet (article_id, target_bank, year, emb_full[768], emb_ctx[768])
    预估 400k × 768 × 4 byte × 2 轨 = ~2.5 GB
 

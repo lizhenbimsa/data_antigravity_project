@@ -21,7 +21,7 @@ v3.0.0 (v8) schema 升级 (2026-05-15):
     历史: v6 panel 用 _desc 命名 (Stata + papers/ + golden baseline 兼容);
     v7 引入 inline 翻译层 (tone_llms.py: 象征性→描述性); v8 (v3.0.0) 翻译层
     废除, 全局重命名 _desc → _symb 与 W&Z framework 对齐.
-    详见 CHANGELOG.md v3.0.0 + docs/methodology/prompt_terminology_mapping.md.
+    详见仓库根 CHANGELOG.md 的 v3.0.0 章节.
 
 作者: Claude Opus 4.7
 日期: 2026-05-10 (v6) / 2026-05-14 (v7 schema) / 2026-05-15 (v3.0.0/v8 术语正名)
@@ -79,7 +79,7 @@ class VariableMetadata:
             reference: 学术文献引用
             notes: 额外说明
             category: 变量类别（如：情感指标、网络指标等）
-            track: 文本轨道（full/ctx/title）
+            track: 文本轨道（full/ctx）
         """
         self.var_name = var_name
         self.label = label

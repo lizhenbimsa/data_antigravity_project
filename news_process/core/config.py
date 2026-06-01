@@ -338,9 +338,9 @@ _PANEL_ACTIVE_KEYS: tuple[str, ...] = (
 def _validate_enabled_methods_consistency(config: dict) -> None:
     """warn 如果启用 panel 但 enabled_methods 缺 tone_berts.
 
-    背景: ``pipeline/panel/runner.py::main()`` 入口 (line 158-165) 硬读
+    背景: ``pipeline/panel/runner.py::main()`` 入口 (加载 herd_decay 处, ~L173) 硬读
     ``24_herd_decay.parquet``; stage 24 谓词是 ``berts_method_enabled``
-    (见 ``core/dag.py:197-202``). 仅启用 tone_llms / tone_words 时 stage 24
+    (stage 24 StageSpec 见 ``core/dag.py`` L302; 谓词定义 L53). 仅启用 tone_llms / tone_words 时 stage 24
     会被正确跳过, 但 stage 45 会在加载 herd_decay 输入时 ``sys.exit(1)``.
 
     本函数把这个隐式约束提升为 config-load-time warning, 不 raise — 因为:

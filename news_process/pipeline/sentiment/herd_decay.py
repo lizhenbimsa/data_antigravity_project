@@ -8,7 +8,7 @@ news_process.pipeline.sentiment.herd_decay — 跟风/抄袭新闻检测与衰�
 
 v3.6.0 (Plan E P1 B3) 双轨化升级:
     原实现仅对 '内容' 全文做 TF-IDF 相似度判定, 算出单列 herd_weight,
-    被下游同时施加到 _full / _ctx / _title 三轨。这是 measurement-treatment
+    被下游同时施加到 _full / _ctx 两轨。这是 measurement-treatment
     错配 (Edwards 2001 ORM): 全文相似度 ≠ 对目标银行的报道相似度。
     本版本改为对 '内容' 和 'content_ctx' 分别做 TF-IDF, 输出双轨权重
     herd_weight_full + herd_weight_ctx, 下游按 track 各自施加。
@@ -195,7 +195,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     v3.6.0 修复 (Edwards 2001 ORM measurement-treatment matching):
       原 v3.5.0 仅对全文计算 herd_weight 单列, 被下游同时施加到
-      _full / _ctx / _title 三轨, 造成 _ctx 路径被"全文相似度"惩罚。
+      _full / _ctx 两轨, 造成 _ctx 路径被"全文相似度"惩罚。
       本版本输出 herd_weight_full + herd_weight_ctx 两列, 下游按轨匹配。
 
     Args:

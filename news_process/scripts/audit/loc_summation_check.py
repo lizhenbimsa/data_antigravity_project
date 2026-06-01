@@ -2,8 +2,9 @@
 
 LOC summation chain checker.
 
-Enforces §0.4 4.D protocol from `docs/plan/v3_7_4_title_robustness_closure_plan.md`:
-any "N+N+...+N = M" sum chain in marked sections must satisfy LHS sum == M.
+Enforces the LOC-summation lint protocol: within marked sections, any
+"N+N+...+N = M" sum chain must satisfy LHS sum == M (i.e. the declared total M
+must equal the sum of the addends on the left-hand side).
 
 Marker:
     <!-- loc-summation-check -->
@@ -27,7 +28,7 @@ import re
 import sys
 from pathlib import Path
 
-# 8R-B2 self-check anchor: this script's declared LOC in plan v1.7 §0.2
+# 8R-B2 self-check anchor: self-referential LOC anchor (no external plan; docs/ removed)
 DECLARED_LOC = 147  # actual after Round 57 docstring additions for 3 public funcs;
                     # was 136 pre-Round-57; self-check correctly tripped on diff>5,
                     # confirming 4.D mechanical enforcement is functional.

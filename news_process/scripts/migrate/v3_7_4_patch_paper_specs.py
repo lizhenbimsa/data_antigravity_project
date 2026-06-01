@@ -1,4 +1,10 @@
-"""scripts/migrate/v3_7_4_patch_paper_specs.py — v3.7.4 P3.6.b.
+"""scripts/migrate/v3_7_4_patch_paper_specs.py — v3.7.4 P3.6.b. [OBSOLETE — 历史/已废]
+
+⚠ 已废: 本脚本针对的标题情感轨稳健性 (Table A8 Panel D/E, frac_title_mentions_fintech /
+frac_title_long 分层) 已于 remove-title-track 分支整体取消 (encode.py 三轨循环收为
+[_full, _ctx]); 其写入的 NEW_AUDIT_REF 指向的 docs/methodology/title_track_as_robustness.md
+亦随 docs/ 目录整体删除 (commit 1698bda5) → 该 SoT 指针已断链。请勿再把本脚本当作活体
+迁移工具运行 (会向 paper_spec.yaml 注入失效引用与已取消特性的 caveat)。下方为历史描述。
 
 One-shot YAML patcher: add 3 new keys to each of 9 paper_spec.yaml files
 under the appropriate parent (8 paper × `tables.tA8.title_robustness.*` +

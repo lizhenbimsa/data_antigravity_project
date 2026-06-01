@@ -1,6 +1,6 @@
 """v3.5.0 D3 stage 39c construct_orthogonality unit tests.
 
-Per [stage3_v3_5_0_augmentation_plan.md §2.2 / §4.1](../docs/methodology/stage3_v3_5_0_augmentation_plan.md):
+Per v3.5.0 D3 stage 39c 计划 §2.2 / §4.1 (文档已随 docs/ 删除):
     14 tests covering:
         - NMI arithmetic averaging (Vinh 2010 / Fred-Jain 2003)
         - Bootstrap row-pair correctness (修 C1, 两列同步)
