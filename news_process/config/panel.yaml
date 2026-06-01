@@ -42,6 +42,16 @@ temporal_mask_test:
   coefficient_stability_threshold: 0.20
 
 # ------------------------------------------------------------------------------
+# [模块五b] Stage 49 Risk-Taking Outcomes 三件套 (Z-score / NPL formation / RWA)
+# ------------------------------------------------------------------------------
+# C4 修复 (v3.7.0): stage 49 改 opt-in. 2026-06-01 全功能打开 → enabled: true.
+# ⚠ 输入 data/dry_run/<period>_outcome.parquet 由 DC2 banking_outcome_dry_run.py 生成;
+# 数据缺失时 stage 49 已加'优雅跳过'守卫 (写 schema 合法空 panel + 警告, 不再 fail-fast
+# 中断主流水线; 见 pipeline/panel/risk_taking_outcomes.py::main)。
+risk_taking_outcomes:
+  enabled: true                # opt-in 显式启用 (2026-06-01 全功能打开)
+
+# ------------------------------------------------------------------------------
 # 跟风/抄袭新闻检测配置 (Herd Detection)
 # ------------------------------------------------------------------------------
 # 学术依据: Tetlock (2011, JF) — 媒体新闻信息冗余与重复效应

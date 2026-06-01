@@ -163,8 +163,9 @@ def test_22_new_templates_breakdown() -> None:
 
 
 def test_paper_registry_loads_8_papers() -> None:
+    # 2026-06-01: PAPER_IDS_ALL 扩为 11 (5 existing + 3 new + 3 provisional).
     specs = load_all_specs()
-    assert len(specs) == 8
+    assert len(specs) == 11
     assert set(specs) == set(PAPER_IDS_ALL)
 
 

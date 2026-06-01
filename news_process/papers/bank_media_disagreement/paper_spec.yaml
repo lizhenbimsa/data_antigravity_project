@@ -159,6 +159,10 @@ identification:
     rationale: "V4 reframe identification, 双向反馈作 paper finding 而非问题"
 
 sample:
+  # 2026-06-01 provisional wiring: 补 canonical 键 n_bank_min / t_year (= target_min),
+  # 与其余 10 篇 paper_spec 及 schema 测试 (test_sample_block_complete) 对齐。
+  n_bank_min: 200                # = n_bank_target_min (canonical schema 键)
+  t_year: 13                     # = t_year_target (canonical schema 键)
   n_bank_target_min: 200         # V4 F5.4 现实校准
   n_bank_target_max: 500         # DC2 dry-run 后确定
   t_year_target: 13              # σ(ROA) 5y rolling 损失 5 年 (V4 F5.2)
@@ -214,7 +218,7 @@ targets:
   ambitious_outlet: [RFS, JFE]
   backup_outlet: [JFI, JBF]
   cascade_path: "RFS → JFI → JBF → JFS (V4 F8.1 修复, 降一档而非平级)"
-  submission_window: 2028-Q1  # 28-32 月 timeline from M0 2026-05-18
+  submission_window: 2028-03-31  # 28-32 月 timeline from M0 2026-05-18 (原 2028-Q1, 规整为 YYYY-MM-DD 以符合 schema)
   desk_review_5q_test:  # V4 EiC 测试
     why_this_paper_now: "中国 fintech 政策周期 + banking 转型, disagreement 信号在 banking 监管 sweet spot"
     punchline: "Granger 双向反馈 + 三 channel 异质性, 不依赖单方向预测"

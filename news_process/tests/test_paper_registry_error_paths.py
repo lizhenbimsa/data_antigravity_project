@@ -228,5 +228,5 @@ def test_list_paper_ids_returns_8_element_tuple():
     )
     result = list_paper_ids()
     assert result == PAPER_IDS_ALL
-    # 8 paper id (5 existing + 3 new)
-    assert len(result) == 8
+    # 11 paper id (5 existing + 3 new + 3 provisional, 2026-06-01)
+    assert len(result) == 11

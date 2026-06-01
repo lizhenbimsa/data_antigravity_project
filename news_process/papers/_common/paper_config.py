@@ -14,7 +14,8 @@ from typing import Any
 
 from news_process.core.config import load_config
 
-# RR1-1: single source of truth for 8 paper id whitelist (was hardcoded duplicate).
+# RR1-1: single source of truth for the 11 paper id whitelist (5 existing + 3 new
+# + 3 provisional, 2026-06-01; was hardcoded duplicate).
 from news_process.papers._common.paper_registry import PAPER_IDS_ALL as _PAPER_IDS_ALL
 
 # ----------------------------------------------------------------------------

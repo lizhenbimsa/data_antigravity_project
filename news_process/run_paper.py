@@ -76,6 +76,14 @@ _PAPER_SUMMARIES: Final[dict[str, str]] = {
         '衍生 3: LLM 生成同业竞争 IV (Cao, Li, Wang & Zhao 2025)',
     'strategic_diff':
         '衍生 4: 银行金融科技战略差异度 (Guzman-Li 2023; Hoberg-Phillips 2016)',
+    # Provisional (2026-06-01 wiring): 可调度但 tables/figures 为 Phase-3 契约占位骨架,
+    # 完整 B-route 交付物 (manuscript/refs.bib/Stata 全集) 待 P5 / M5 / M7 onboarding。
+    'bank_fintech_collab':
+        '衍生/P5 (provisional): 自主研发 vs 外部协同 (Chesbrough 2003; 表/图占位待 M5/M6)',
+    'bank_media_disagreement':
+        '第10篇 (provisional): 跨媒体语调分歧 → 风险承担 (Cookson-Niessner 2020 RFS; 待 M5)',
+    'bank_news_clarity':
+        '第11篇 (provisional): 新闻清晰度 → 外部信息环境质量 (Bushman-Williams 2012 JAE; 待 M7)',
 }
 
 

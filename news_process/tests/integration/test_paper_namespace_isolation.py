@@ -40,6 +40,11 @@ SHARED_CONTROLS: frozenset[str] = frozenset({
     'car_3day',
     'tobin_q',
     'strat_fluidity',  # strategic_diff secondary
+    # z_score = Laeven-Levine (2009 JFE) bank-stability outcome, 由第10篇
+    # (bank_media_disagreement) 与第11篇 (bank_news_clarity) *刻意共享* 作 outcome.primary
+    # (两篇 spec 均注明 "与第 10/11 篇共享, Laeven-Levine 2009 标准"; provisional 2026-06-01)。
+    'z_score',
+    'sigma_roa_5y_rolling',  # z_score 分母, 同属共享 risk-taking 量
 })
 
 
@@ -159,10 +164,10 @@ def test_paper_specific_signal_columns_no_unexpected_overlap() -> None:
 
 
 def test_8_paper_treatment_primary_count_equals_paper_count() -> None:
-    """Each of 8 papers must declare exactly one primary treatment 'spec' (could be
-    primary str or primary_pair list)."""
+    """Each of 11 papers (5 existing + 3 new + 3 provisional, 2026-06-01) must declare
+    exactly one primary treatment 'spec' (could be primary str or primary_pair list)."""
     specs = load_all_specs()
-    assert len(specs) == 8
+    assert len(specs) == 11
 
     for paper_id, spec in specs.items():
         t = spec.raw.get('treatment', {}) or {}

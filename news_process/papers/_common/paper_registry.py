@@ -1,6 +1,6 @@
-"""news_process.papers._common.paper_registry — 8 paper spec.yaml 注册中心.
+"""news_process.papers._common.paper_registry — 11 paper spec.yaml 注册中心.
 
-Plan v2.x §5.2 M0.2: 把 8 篇论文 (5 existing + 3 new) 的 ``paper_spec.yaml``
+Plan v2.x §5.2 M0.2: 把 11 篇论文 (5 existing + 3 new + 3 provisional) 的 ``paper_spec.yaml``
 集中加载并验证。下游 (analysis CLI / tables / figures / Stata template
 substitution / replication packaging / paper_config 白名单) 通过这里的
 ``list_paper_ids()`` / ``get_spec(paper_id)`` 拿到结构化 spec。
@@ -44,14 +44,24 @@ PAPER_IDS_NEW: tuple[str, ...] = (
     'bank_fintech_attention',   # P2 (per §B.2)
     'bank_fintech_substance',   # P3 (per §B.3)
     'bank_fintech_locus',       # P4 (per §B.4)
-    # P5 'bank_fintech_collab' (v3.4.0 立项) 暂未加入 paper_registry — v3.5.1 final-audit
-    # finding R3: P5 缺 en/zh manuscript + refs.bib + derivative_replication 注册;
-    # 加入会引发 v3.4.0 baseline regression. 故保留 v3.4.0 现状, 由 P5 onboarding follow-up
-    # 单独 PR 处理. v3.5.1 加的 20_collab_clarity_robustness.do.tmpl 暂为 "dormant template"
-    # (paper_spec.yaml 已配 tA7.template 字段, 但 CLI 渲染路径需 P5 完整 onboarding 后启用).
 )
 
-PAPER_IDS_ALL: tuple[str, ...] = PAPER_IDS_EXISTING + PAPER_IDS_NEW
+# Provisional / onboarding-incomplete papers (2026-06-01 wiring).
+# 这 3 篇 paper_spec.yaml 已 frozen 且通过 REQUIRED_FIELDS + schema 校验, 故纳入
+# PAPER_IDS_ALL 使其经 run_paper.py 可调度 (analysis.py 已建, 表/图为 Phase-3 契约
+# 占位骨架)。它们刻意 *不* 进 PAPER_IDS_NEW — 因为 B-route NEW 契约 (test_papers_b_route)
+# 还要求 en/zh manuscript + refs.bib + derivative_replication 注册 + Stata 四件套全集,
+# 这些待 P5 / M5 / M7 完整 onboarding 后补齐。PROVISIONAL 这一层精确表达
+# "可调度但尚未完成全部 B-route 交付物" 的状态, 避免谎称其为完整 NEW paper。
+PAPER_IDS_PROVISIONAL: tuple[str, ...] = (
+    'bank_fintech_collab',        # P5 (v3.4.0 立项; 缺 manuscript/refs.bib/derivative 注册)
+    'bank_media_disagreement',    # 第 10 篇 (M0 立项; analysis/tables/figures 待 M5 填实)
+    'bank_news_clarity',          # 第 11 篇 (M0 立项; analysis/tables/figures 待 M7 填实)
+)
+
+PAPER_IDS_ALL: tuple[str, ...] = (
+    PAPER_IDS_EXISTING + PAPER_IDS_NEW + PAPER_IDS_PROVISIONAL
+)
 
 
 # Schema-required fields per plan §5.2.3.bis.
@@ -177,6 +187,20 @@ def _load_one(paper_id: str) -> PaperSpec:
             f"directory={paper_id!r} vs declared={declared_id!r}"
         )
 
+    # 2026-06-01: 接入 paper_spec_schema 轻量校验 (原为纯文档引用的 sleeping asset)。
+    # validate_paper_spec 校验 v3.7.4 title_robustness.* 字段; remove-title-track 后对
+    # 当前 8+3 spec 恒返回 [] (字段已移除 → no-op), 但保留为未来字段的防御性门控。
+    # 非致命: 仅 logger.warning, 不 raise (schema 是 design contract, real specs 允许多态;
+    # 见 RR1-2 / R12-M01)。
+    from news_process.papers._common.paper_spec_schema import validate_paper_spec
+    _schema_warnings = validate_paper_spec(raw)
+    if _schema_warnings:
+        import logging
+        logging.getLogger(__name__).warning(
+            "paper_spec.yaml %r schema 校验警告 (非致命): %s",
+            paper_id, _schema_warnings,
+        )
+
     spec = PaperSpec(
         paper_id=paper_id,
         spec_version=str(raw['spec_version']),
@@ -189,7 +213,7 @@ def _load_one(paper_id: str) -> PaperSpec:
 
 
 def list_paper_ids() -> tuple[str, ...]:
-    """返回 8 paper id 元组 (existing 5 + new 3, order preserved)."""
+    """返回 11 paper id 元组 (existing 5 + new 3 + provisional 3, order preserved)."""
     return PAPER_IDS_ALL
 
 
@@ -204,7 +228,7 @@ def get_spec(paper_id: str) -> PaperSpec:
 
 
 def load_all_specs() -> dict[str, PaperSpec]:
-    """加载全部 8 paper specs (M0 G0 acceptance 用)."""
+    """加载全部 11 paper specs (5 existing + 3 new + 3 provisional)."""
     return {pid: get_spec(pid) for pid in PAPER_IDS_ALL}
 
 
@@ -222,6 +246,7 @@ __all__ = [
     'PAPER_IDS_ALL',
     'PAPER_IDS_EXISTING',
     'PAPER_IDS_NEW',
+    'PAPER_IDS_PROVISIONAL',
     'PaperSpec',
     'REQUIRED_FIELDS',
     'clear_cache',

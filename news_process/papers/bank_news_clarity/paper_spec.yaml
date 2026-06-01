@@ -176,6 +176,10 @@ identification:
     caveat: "V4 R1 警告: 此 placebo 同时验证两 construct (透明度 vs 记者水平), 解释需谨慎"
 
 sample:
+  # 2026-06-01 provisional wiring: 补 canonical 键 n_bank_min / t_year (= target_min),
+  # 与其余 10 篇 paper_spec 及 schema 测试 (test_sample_block_complete) 对齐。
+  n_bank_min: 200                # = n_bank_target_min (canonical schema 键)
+  t_year: 13                     # = t_year_target (canonical schema 键)
   n_bank_target_min: 200
   n_bank_target_max: 500
   t_year_target: 13
@@ -231,7 +235,7 @@ targets:
   ambitious_outlet: [JAE, JAR]
   backup_outlet: [RAS, CAR, JCF]
   cascade_path: "JAE → RAS → CAR → JCF (V4 F8.1 修复, 降一档而非平级)"
-  submission_window: 2028-Q3  # 30-34 月 timeline (比第 10 篇晚, reframe 写作更复杂)
+  submission_window: 2028-09-30  # 30-34 月 timeline (比第 10 篇晚, reframe 写作更复杂; 原 2028-Q3, 规整为 YYYY-MM-DD 以符合 schema)
   desk_review_5q_test:
     why_this_paper_now: "中国非上市银行占主体, external info environment 数据稀缺供给, banking + accounting 交叉"
     punchline: "clarity 作 external info environment proxy → bank risk-taking, 三 channel 异质性"

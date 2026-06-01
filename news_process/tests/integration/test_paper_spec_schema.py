@@ -44,12 +44,12 @@ PLAN_MAJOR_VERSION = 2
 
 
 def test_all_8_specs_loadable() -> None:
-    """8 spec.yaml 全部能被 yaml.safe_load 解析."""
+    """11 spec.yaml 全部能被 yaml.safe_load 解析 (5 existing + 3 new + 3 provisional, 2026-06-01)."""
     specs = load_all_specs()
     assert set(specs) == set(PAPER_IDS_ALL), (
         f"loaded specs {sorted(specs)} != PAPER_IDS_ALL {sorted(PAPER_IDS_ALL)}"
     )
-    assert len(specs) == 8, f"expected 8 papers, got {len(specs)}"
+    assert len(specs) == 11, f"expected 11 papers, got {len(specs)}"
 
 
 @pytest.mark.parametrize('paper_id', PAPER_IDS_ALL)

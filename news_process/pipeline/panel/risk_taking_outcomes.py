@@ -392,11 +392,30 @@ v3.7.0 (m7) 用法场景:
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
     if not args.input.exists():
-        logger.error(
-            f"输入文件不存在: {args.input}. "
-            f"先运行 scripts/data_acquisition/banking_outcome_dry_run.py 生成."
+        # 优雅跳过守卫 (2026-06-01, config/panel.yaml::risk_taking_outcomes 全功能打开后):
+        # stage 49 现默认入主流水线, 但 DC2 dry-run outcome 数据需用户先用
+        # scripts/data_acquisition/banking_outcome_dry_run.py 抓取. 数据缺失时
+        # *不再* fail-loud 中断整条 fail-fast 流水线 (旧 raise SystemExit(1)),
+        # 改为写出 schema 合法的空 outcome panel + 醒目 WARNING, 让 orchestrator
+        # 的 "registered output 存在" 检查通过, 后续 stage 照常推进。下游论文 10/11
+        # 的 outcome 分析在数据就绪后重跑本 stage 即可填实。
+        logger.warning(
+            "⚠ Stage 49 输入缺失: %s (DC2 dry-run outcome 数据未生成)。"
+            " 按 opt-in 优雅跳过: 写出 0 行 schema 合法空 panel, 不中断主流水线。"
+            " 需真实 outcome 时先运行 scripts/data_acquisition/banking_outcome_dry_run.py"
+            " 生成 %s 后重跑本 stage。",
+            args.input, args.input,
         )
-        raise SystemExit(1)
+        empty = pd.DataFrame({c: pd.Series(dtype='float64') for c in OUTPUT_OUTCOME_COLS})
+        # 标识列保留 object dtype (target_bank 是字符串, *_id / tier 可空)
+        for _c in ('target_bank', 'bank_type_id', 'implicit_guarantee_tier'):
+            if _c in empty.columns:
+                empty[_c] = pd.Series(dtype='object')
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        empty.to_parquet(args.output, engine='pyarrow')
+        logger.warning("  已写空 outcome panel (0 行, %d 列) → %s",
+                       len(OUTPUT_OUTCOME_COLS), args.output)
+        return
 
     df_in = pd.read_parquet(args.input)
     logger.info(f"加载 {len(df_in)} 行 outcome raw data from {args.input}")
