@@ -30,7 +30,7 @@ def test_old_panel_without_a1_a3_graceful():
     df_old = pd.DataFrame({
         'target_bank': ['A', 'B'], 'year': [2020, 2020],
         'media_authority_weight': [1.0, 1.0],
-        'herd_decay_weight': [1.0, 1.0],
+        'herd_weight_full': [1.0, 1.0],
     })
     panel_old = pd.DataFrame({'target_bank': ['A', 'B'], 'year': [2020, 2020]})
     # graceful: 不抛, 返回空 added_cols
@@ -73,14 +73,14 @@ def test_apply_v3_5_1_idempotent(tmp_path, monkeypatch):
          'clarity_frac_ambiguous_ctx': 0.04, 'clarity_frac_definite_ctx': 0.08,
          'clarity_clarity_score_ctx': 0.04,
          'num_intensity_full': 1.5, 'num_intensity_ctx': 1.2,
-         'media_authority_weight': 1.0, 'herd_decay_weight': 1.0},
+         'media_authority_weight': 1.0, 'herd_weight_full': 1.0},
         {'target_bank': 'A', 'year': 2020,
          'clarity_frac_ambiguous_full': 0.08, 'clarity_frac_definite_full': 0.05,
          'clarity_clarity_score_full': -0.03,
          'clarity_frac_ambiguous_ctx': 0.09, 'clarity_frac_definite_ctx': 0.04,
          'clarity_clarity_score_ctx': -0.05,
          'num_intensity_full': 2.0, 'num_intensity_ctx': 1.8,
-         'media_authority_weight': 1.0, 'herd_decay_weight': 1.0},
+         'media_authority_weight': 1.0, 'herd_weight_full': 1.0},
     ])
     panel1 = pd.DataFrame([{'target_bank': 'A', 'year': 2020}])
     panel2 = pd.DataFrame([{'target_bank': 'A', 'year': 2020}])

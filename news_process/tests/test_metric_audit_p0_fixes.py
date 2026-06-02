@@ -195,3 +195,39 @@ class TestCohenKappaConstantAxisGuard:
             substance=rs.rand(80), clarity=rs.rand(80),
         )
         assert np.isfinite(out['kappa']), '有变异时 κ 应正常算出有限值'
+
+
+class TestHerdWeightActuallyApplies:
+    """P0/P1: encode_collab 此前按幽灵列 herd_decay_weight 加权 → herd 静默失效.
+
+    修复后改读真列 herd_weight_full. 本测试用 herd_weight_full≠1.0 证明权重真生效
+    (审计要求的非平凡守卫: bug 复活则加权均值回到等权值 → 必挂).
+    """
+
+    def test_herd_weight_changes_weighted_clarity_mean(self):
+        from news_process.pipeline.panel.encode_collab import (
+            aggregate_clarity_panel,
+        )
+        # bank A 2 篇: 第 2 篇 herd_weight_full=0 (跟风稿被剔除).
+        df = pd.DataFrame([
+            {'target_bank': 'A', 'year': 2020,
+             'clarity_frac_ambiguous_full': 0.05, 'clarity_frac_definite_full': 0.05,
+             'clarity_clarity_score_full': 1.0,
+             'clarity_frac_ambiguous_ctx': 0.05, 'clarity_frac_definite_ctx': 0.05,
+             'clarity_clarity_score_ctx': 1.0,
+             'media_authority_weight': 1.0, 'herd_weight_full': 1.0},
+            {'target_bank': 'A', 'year': 2020,
+             'clarity_frac_ambiguous_full': 0.05, 'clarity_frac_definite_full': 0.05,
+             'clarity_clarity_score_full': 0.0,
+             'clarity_frac_ambiguous_ctx': 0.05, 'clarity_frac_definite_ctx': 0.05,
+             'clarity_clarity_score_ctx': 0.0,
+             'media_authority_weight': 1.0, 'herd_weight_full': 0.0},
+        ])
+        panel = pd.DataFrame([{'target_bank': 'A', 'year': 2020}])
+        aggregate_clarity_panel(df, panel, median_amb_d0=0.05)
+        mean_full = panel[panel['target_bank'] == 'A'].iloc[0]['mean_clarity_score_full']
+        # herd 生效: (1.0*1.0 + 0.0*0.0)/(1.0+0.0)=1.0; herd 失效(bug): 0.5.
+        assert abs(mean_full - 1.0) < 1e-6, (
+            f'herd_weight_full 应真生效 → 加权均值=1.0; 实得 {mean_full} '
+            f'(=0.5 说明 herd 列被忽略, bug 复活)'
+        )

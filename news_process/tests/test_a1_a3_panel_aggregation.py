@@ -34,7 +34,7 @@ def sample_df_panel():
          'clarity_frac_ambiguous_ctx': 0.03, 'clarity_frac_definite_ctx': 0.05,
          'clarity_clarity_score_ctx': 0.02,
          'num_intensity_full': 2.5, 'num_intensity_ctx': 1.5,
-         'media_authority_weight': 1.0, 'herd_decay_weight': 1.0},
+         'media_authority_weight': 1.0, 'herd_weight_full': 1.0},
         # bank A, year 2020, article 2: 低 clarity
         {'target_bank': 'A', 'year': 2020,
          'clarity_frac_ambiguous_full': 0.10, 'clarity_frac_definite_full': 0.02,
@@ -42,7 +42,7 @@ def sample_df_panel():
          'clarity_frac_ambiguous_ctx': 0.12, 'clarity_frac_definite_ctx': 0.01,
          'clarity_clarity_score_ctx': -0.11,
          'num_intensity_full': 0.5, 'num_intensity_ctx': 0.3,
-         'media_authority_weight': 1.0, 'herd_decay_weight': 1.0},
+         'media_authority_weight': 1.0, 'herd_weight_full': 1.0},
         # bank B, year 2020, article 3: 单一 (n_articles=1, R8-H2 mask 触发)
         {'target_bank': 'B', 'year': 2020,
          'clarity_frac_ambiguous_full': 0.05, 'clarity_frac_definite_full': 0.05,
@@ -50,7 +50,7 @@ def sample_df_panel():
          'clarity_frac_ambiguous_ctx': 0.05, 'clarity_frac_definite_ctx': 0.05,
          'clarity_clarity_score_ctx': 0.00,
          'num_intensity_full': 1.0, 'num_intensity_ctx': 1.0,
-         'media_authority_weight': 1.0, 'herd_decay_weight': 1.0},
+         'media_authority_weight': 1.0, 'herd_weight_full': 1.0},
     ])
     panel = pd.DataFrame([
         {'target_bank': 'A', 'year': 2020},
@@ -98,7 +98,7 @@ def test_nan_propagation_in_aggregation():
          'clarity_frac_ambiguous_ctx': 0.05, 'clarity_frac_definite_ctx': 0.05,
          'clarity_clarity_score_ctx': 0.00,
          'num_intensity_full': 1.0, 'num_intensity_ctx': 1.0,
-         'media_authority_weight': 1.0, 'herd_decay_weight': 1.0},
+         'media_authority_weight': 1.0, 'herd_weight_full': 1.0},
         {'target_bank': 'A', 'year': 2020,
          'clarity_frac_ambiguous_full': float('nan'),
          'clarity_frac_definite_full': float('nan'),
@@ -107,7 +107,7 @@ def test_nan_propagation_in_aggregation():
          'clarity_frac_definite_ctx': float('nan'),
          'clarity_clarity_score_ctx': float('nan'),
          'num_intensity_full': float('nan'), 'num_intensity_ctx': float('nan'),
-         'media_authority_weight': 1.0, 'herd_decay_weight': 1.0},
+         'media_authority_weight': 1.0, 'herd_weight_full': 1.0},
     ])
     panel = pd.DataFrame([{'target_bank': 'A', 'year': 2020}])
     # 不抛

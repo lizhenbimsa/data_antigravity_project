@@ -500,7 +500,7 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
 
     # weight = stage21 media_authority × herd_decay (与 llm_vote_tone 同权重)
     w = pd.Series(1.0, index=df.index)
-    for w_col in ('media_authority_weight', 'herd_decay_weight'):
+    for w_col in ('media_authority_weight', 'herd_weight_full'):
         if w_col in df.columns:
             w = w * df[w_col].fillna(1.0)
 
@@ -580,7 +580,7 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
         return {'v3_5_1_num_intensity_added': []}
 
     w = pd.Series(1.0, index=df.index)
-    for w_col in ('media_authority_weight', 'herd_decay_weight'):
+    for w_col in ('media_authority_weight', 'herd_weight_full'):
         if w_col in df.columns:
             w = w * df[w_col].fillna(1.0)
 
