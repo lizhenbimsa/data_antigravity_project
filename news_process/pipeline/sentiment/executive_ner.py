@@ -400,6 +400,16 @@ def main():
     df = pd.read_parquet(src_path)
     logger.info(f"  article-level: {len(df)} 行")
 
+    # P0 修复 (metric-audit 2026-06-02): 13_news_with_ctx 仅有 str 型 '日期',
+    # 无 'year' 列; 此前 line ~467 直接 groupby(['target_bank','year']) →
+    # KeyError: 'year' (active crash, stage 19 自 2026-06-01 已 enabled). 镜像
+    # runner.py:1094-1100 / attention_media.py:255-257 的 year 派生.
+    if 'year' not in df.columns:
+        if '日期' not in df.columns:
+            logger.error("  缺 'year' 与 '日期' 列, 无法做 bank-year 聚合")
+            sys.exit(1)
+        df['year'] = pd.to_datetime(df['日期'], errors='coerce').dt.year
+
     # audit S11 修复 (2026-05-30): 全 run 共用单一 LLMCache 连接, 传入每次
     # call_llm_for_ner, 替代此前每篇文章 ×双轨 = 2N 次新建连接不关闭 (production
     # 40 万规模 = 80 万次 SQLite/WAL 句柄开关, Windows 易触上限)。正常路径在末尾

@@ -100,7 +100,13 @@ def compute_surface_staleness(
         logger.error("datasketch 未装 (requirements.txt:36 应有)")
         raise
 
-    df = df.sort_values(date_col).reset_index(drop=True)
+    # P0 修复 (metric-audit 2026-06-02): 此前 sort_values 后在"日期排序序"上计算
+    # stale 并直接 return; 但 main() 用 `art_df['surface_*'] = compute_surface_*(...)`
+    # 按位置赋回"未排序"的 art_df → 整列行错位 (盘上 99.8% 行错配, 且与已做逆置换的
+    # semantic 轨不一致). 改为捕获排序置换 _sort_idx, 返回前逆置换还原原始行序
+    # (与 compute_semantic_staleness:207-208,244-245 一致).
+    _sort_idx = pd.to_datetime(df[date_col], errors='coerce').argsort(kind='stable').values
+    df = df.iloc[_sort_idx].reset_index(drop=True)
     dates = pd.to_datetime(df[date_col], errors='coerce')
 
     # ── 预计算 MinHash for each article ──
@@ -127,7 +133,7 @@ def compute_surface_staleness(
     # 实测预估: 单线程 5-15 min (原 10+ 天)
     stale = np.full(len(df), np.nan)
     if dates.isna().all():
-        return stale
+        return stale[np.argsort(_sort_idx)]  # 逆置换还原原始行序 (P0 修复)
 
     # day-level 索引 (剥离时分秒)
     day = pd.to_datetime(dates.dt.date)
@@ -176,7 +182,8 @@ def compute_surface_staleness(
 
     logger.info(f"  surface staleness 完成: {time.time() - t0:.1f}s "
                 f"({len(unique_days_sorted)} day-buckets)")
-    return stale
+    # P0 修复 (metric-audit 2026-06-02): 逆置换还原原始行序, 与 main() 的位置赋值对齐.
+    return stale[np.argsort(_sort_idx)]
 
 
 # ── D2.b Semantic staleness (Faiss + SBERT cosine) ───────────────────
@@ -295,6 +302,15 @@ def main():
 
     art_df = pd.read_parquet(src_path)
     logger.info(f"  article-level: {len(art_df)} 行")
+
+    # P0 修复 (metric-audit 2026-06-02): 13_news_with_ctx 仅有 str 型 '日期', 无
+    # 'year' 列; 此前 line ~331 (keep_cols 含 'year') 与 ~335 (groupby year) 必崩
+    # KeyError: 'year' (stage 18 dead-on-arrival). 镜像 attention_media.py:255 派生.
+    if 'year' not in art_df.columns:
+        if '日期' not in art_df.columns:
+            logger.error("  缺 'year' 与 '日期' 列, 无法做 bank-year 聚合")
+            sys.exit(1)
+        art_df['year'] = pd.to_datetime(art_df['日期'], errors='coerce').dt.year
 
     # ── D2.a Surface staleness (双轨) ──
     art_df['surface_staleness_full'] = compute_surface_staleness(
