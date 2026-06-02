@@ -144,38 +144,39 @@ def aggregate_epu_to_bank_year(
         )
         return out
 
-    dt = pd.to_datetime(article_df[date_col], errors='coerce')
-    article_df = article_df.assign(
-        _epu_year=dt.dt.year.astype('Int64'),
-        _epu_month=dt.dt.month.astype('Int64'),
+    # ── bank-year aggregate (P1 修复 metric-audit 2026-06-02) ──
+    # EPU 是国家级月度宏观序列, 某年内对所有银行相同 (Baker-Bloom-Davis 2016 QJE).
+    # 旧实现在 article-level merged 上取 mean/std → 被各银行各月发稿量加权 (epu-01/03,
+    # 高 EPU 月发稿多的 bank-year 系统性偏移, 引入机械内生性); n_months 用 EPU 值
+    # nunique 且仅覆盖该 bank-year 文章所在月 (≤2) → epu_data_complete 恒 0 (epu-04);
+    # year_end 用 .last() 取最后可得月而非 12 月 (epu-02). 改为直接从 epu_df 算月度
+    # 等权年度聚合, 按 year broadcast 到 bank-year (与下方 year-only fallback 同口径,
+    # 消除主/备路径系统性分叉). date_col 仅用于上方 fallback 触发判断, 主路径不再需要.
+    year_epu = epu_df.groupby('year', as_index=False).agg(
+        epu_mean_year=('epu', 'mean'),    # 月度等权年均
+        epu_std_year=('epu', 'std'),      # 月度等权年内 SD
     )
-    merged = article_df.merge(
-        epu_df,
-        left_on=['_epu_year', '_epu_month'],
-        right_on=['year', 'month'],
-        how='left',
-        suffixes=('', '_epu'),
-    )
-
-    # ── bank-year aggregate ──
-    by = (
-        merged.groupby(['target_bank', 'year'], as_index=False)
-        .agg(
-            epu_mean_year=('epu', 'mean'),
-            epu_std_year=('epu', 'std'),
-            n_months_with_epu=('epu', lambda s: s.dropna().nunique()),
-        )
-    )
-    # epu_year_end: 该 bank-year 内最后 1 个月的 EPU
+    # epu_year_end: 显式取 12 月观测 (缺则 NaN), 不回退到"最后可得月"
     year_end = (
-        epu_df.sort_values(['year', 'month']).groupby('year').last().reset_index()
-        [['year', 'epu']].rename(columns={'epu': 'epu_year_end'})
+        epu_df[epu_df['month'] == 12][['year', 'epu']]
+        .rename(columns={'epu': 'epu_year_end'})
     )
-    by = by.merge(year_end, on='year', how='left')
-    by['epu_data_complete'] = (by['n_months_with_epu'] >= 12).astype(int)
-    by = by.drop(columns=['n_months_with_epu'])
+    year_epu = year_epu.merge(year_end, on='year', how='left')
+    # epu_data_complete: 该年覆盖的 distinct 月份数 ≥ 12 (对月份去重, 非对 EPU 取值)
+    n_months = (
+        epu_df.dropna(subset=['epu']).groupby('year')['month'].nunique()
+        .rename('_n_months').reset_index()
+    )
+    year_epu = year_epu.merge(n_months, on='year', how='left')
+    year_epu['epu_data_complete'] = (year_epu['_n_months'].fillna(0) >= 12).astype(int)
+    year_epu = year_epu.drop(columns=['_n_months'])
 
-    return by
+    # broadcast 到 bank-year (EPU 在年内对所有银行相同)
+    out = (
+        article_df[['target_bank', 'year']].drop_duplicates()
+        .merge(year_epu, on='year', how='left')
+    )
+    return out
 
 
 def main():

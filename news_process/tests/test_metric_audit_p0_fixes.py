@@ -231,3 +231,36 @@ class TestHerdWeightActuallyApplies:
             f'herd_weight_full 应真生效 → 加权均值=1.0; 实得 {mean_full} '
             f'(=0.5 说明 herd 列被忽略, bug 复活)'
         )
+
+
+class TestEpuMonthEqualWeighting:
+    """P1: EPU 年度暴露须月度等权 (BBD 2016 QJE), 非 article-count 加权."""
+
+    def _epu_df(self):
+        rows = []
+        for y in (2017, 2018):
+            for m in range(1, 13):
+                rows.append({'year': y, 'month': m,
+                             'epu': float(m * 10 + (0 if y == 2017 else 100))})
+        return pd.DataFrame(rows)
+
+    def test_month_equal_not_article_weighted(self):
+        from news_process.pipeline.external.epu_merge import (
+            aggregate_epu_to_bank_year,
+        )
+        # bank A 在 1 月发 100 篇 (高发稿月), bank B 各月各 1 篇.
+        arts = ([{'target_bank': 'A', '日期': '2017-01-15'}] * 100
+                + [{'target_bank': 'A', '日期': f'2017-{m:02d}-15'} for m in range(2, 13)]
+                + [{'target_bank': 'B', '日期': f'2017-{m:02d}-15'} for m in range(1, 13)])
+        art = pd.DataFrame(arts)
+        art['year'] = 2017
+        out = aggregate_epu_to_bank_year(art, self._epu_df())
+        a = out[out.target_bank == 'A'].iloc[0]
+        b = out[out.target_bank == 'B'].iloc[0]
+        simple_mean = float(self._epu_df().query('year==2017')['epu'].mean())
+        # 银行间相同(年内 EPU 不随发稿量变) + 等于月度等权均值 (旧实现 A 会被拉偏)
+        assert abs(a.epu_mean_year - b.epu_mean_year) < 1e-9
+        assert abs(a.epu_mean_year - simple_mean) < 1e-9
+        # year_end = 12 月值; complete=1 (12 月齐, 旧实现恒 0)
+        assert abs(a.epu_year_end - 120.0) < 1e-9
+        assert int(a.epu_data_complete) == 1
