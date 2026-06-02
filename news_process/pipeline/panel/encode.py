@@ -571,7 +571,13 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
 
     # --- E. 新闻覆盖量 & 稳健性辅助（无需双轨） ---
 
-    agg['n_articles'] = ('llm_vote_score_full', 'count')
+    # P1 修复 (metric-audit 2026-06-02, encode-02 正确重构): n_articles = 物理新闻
+    # 篇数 (Fang-Peress 2009 JF media coverage, 'size' 计全组行数含 NA), 供
+    # ln_news_coverage / falsification 等 coverage 消费者. 分类组成型比率
+    # (tech/app/sub/symb/indep/collab_frac) 与其恒等式改用 n_articles_llm_valid
+    # (LLM 有效投票篇数 = 分类定义域, 'count' 跳 NA), 保持分子分母同口径、值不变.
+    agg['n_articles'] = ('llm_vote_score_full', 'size')
+    agg['n_articles_llm_valid'] = ('llm_vote_score_full', 'count')
     agg['headline_frac'] = ('in_title', 'mean')
     agg['multi_bank_frac'] = ('is_multi_bank', 'mean')
     agg['avg_bank_count'] = ('bank_count', 'mean')
@@ -963,13 +969,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
         # tech_frac / app_frac
         panel['tech_frac'] = np.where(
-            panel['n_articles'] > 0,
-            panel['n_articles_tech'] / panel['n_articles'],
+            panel['n_articles_llm_valid'] > 0,
+            panel['n_articles_tech'] / panel['n_articles_llm_valid'],
             np.nan
         )
         panel['app_frac'] = np.where(
-            panel['n_articles'] > 0,
-            panel['n_articles_app'] / panel['n_articles'],
+            panel['n_articles_llm_valid'] > 0,
+            panel['n_articles_app'] / panel['n_articles_llm_valid'],
             np.nan
         )
 
@@ -1000,8 +1006,8 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
         # 恒等式校验（二分类）
         if all(f'n_articles{s}' in panel.columns for s in ['_tech', '_app']):
-            has_news = panel['n_articles'] > 0
-            identity_check = (panel.loc[has_news, 'n_articles'] ==
+            has_news = panel['n_articles_llm_valid'] > 0
+            identity_check = (panel.loc[has_news, 'n_articles_llm_valid'] ==
                               panel.loc[has_news, 'n_articles_tech'] +
                               panel.loc[has_news, 'n_articles_app'])
             if identity_check.all():
@@ -1039,11 +1045,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 if f'n_articles{suffix}' in panel.columns:
                     panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
             panel['tech_frac_lc'] = np.where(
-                panel['n_articles'] > 0,
-                panel['n_articles_tech_lc_ctx'] / panel['n_articles'], np.nan)
+                panel['n_articles_llm_valid'] > 0,
+                panel['n_articles_tech_lc_ctx'] / panel['n_articles_llm_valid'], np.nan)
             panel['app_frac_lc'] = np.where(
-                panel['n_articles'] > 0,
-                panel['n_articles_app_lc_ctx'] / panel['n_articles'], np.nan)
+                panel['n_articles_llm_valid'] > 0,
+                panel['n_articles_app_lc_ctx'] / panel['n_articles_llm_valid'], np.nan)
 
             # tone_gap_tech_app_lc_ctx: ctx 轨同向 gap
             if 'llm_vote_tone_tech_lc_ctx' in panel.columns and 'llm_vote_tone_app_lc_ctx' in panel.columns:
@@ -1110,8 +1116,8 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # sub_frac / symb_frac（二分类）
         for suffix in ['_sub', '_symb']:
             panel[f'{suffix[1:]}_frac'] = np.where(
-                panel['n_articles'] > 0,
-                panel[f'n_articles{suffix}'] / panel['n_articles'],
+                panel['n_articles_llm_valid'] > 0,
+                panel[f'n_articles{suffix}'] / panel['n_articles_llm_valid'],
                 np.nan
             )
 
@@ -1123,8 +1129,8 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
         # innovation_substantiveness 恒等式校验（二分类）
         if all(f'n_articles{s}' in panel.columns for s in ['_sub', '_symb']):
-            has_news = panel['n_articles'] > 0
-            tt_identity = (panel.loc[has_news, 'n_articles'] ==
+            has_news = panel['n_articles_llm_valid'] > 0
+            tt_identity = (panel.loc[has_news, 'n_articles_llm_valid'] ==
                            panel.loc[has_news, 'n_articles_sub'] +
                            panel.loc[has_news, 'n_articles_symb'])
             if tt_identity.all():
@@ -1156,11 +1162,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 if f'n_articles{suffix}' in panel.columns:
                     panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
             panel['sub_frac_sc'] = np.where(
-                panel['n_articles'] > 0,
-                panel['n_articles_sub_sc_ctx'] / panel['n_articles'], np.nan)
+                panel['n_articles_llm_valid'] > 0,
+                panel['n_articles_sub_sc_ctx'] / panel['n_articles_llm_valid'], np.nan)
             panel['symb_frac_sc'] = np.where(
-                panel['n_articles'] > 0,
-                panel['n_articles_symb_sc_ctx'] / panel['n_articles'], np.nan)
+                panel['n_articles_llm_valid'] > 0,
+                panel['n_articles_symb_sc_ctx'] / panel['n_articles_llm_valid'], np.nan)
 
             # tone_gap_sub_symb_sc_ctx: ctx 轨情感纯度差距
             if 'llm_vote_tone_sub_sc_ctx' in panel.columns and 'llm_vote_tone_symb_sc_ctx' in panel.columns:
@@ -1223,8 +1229,8 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # indep_frac / collab_frac（二分类）
         for suffix in ['_indep', '_collab']:
             panel[f'{suffix[1:]}_frac'] = np.where(
-                panel['n_articles'] > 0,
-                panel[f'n_articles{suffix}'] / panel['n_articles'],
+                panel['n_articles_llm_valid'] > 0,
+                panel[f'n_articles{suffix}'] / panel['n_articles_llm_valid'],
                 np.nan
             )
 
@@ -1240,12 +1246,12 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # 改为逻辑必然性: `n_articles >= n_articles_indep + n_articles_collab`. 差额 =
         # 上游 collab_mode = NaN 的 articles, 由 v3.5.0 D2 `n_articles_cell_NA_full` 兜底跟踪.
         if all(f'n_articles{s}' in panel.columns for s in ['_indep', '_collab']):
-            has_news = panel['n_articles'] > 0
+            has_news = panel['n_articles_llm_valid'] > 0
             cm_sum = (panel.loc[has_news, 'n_articles_indep'] +
                       panel.loc[has_news, 'n_articles_collab'])
-            n_fail_cm = int((panel.loc[has_news, 'n_articles'] < cm_sum).sum())
+            n_fail_cm = int((panel.loc[has_news, 'n_articles_llm_valid'] < cm_sum).sum())
             if n_fail_cm == 0:
-                cm_gap = int((panel.loc[has_news, 'n_articles'] - cm_sum).sum())
+                cm_gap = int((panel.loc[has_news, 'n_articles_llm_valid'] - cm_sum).sum())
                 logger.info(
                     "  ✓ innovation_collab_mode 恒等式校验通过 "
                     f"(LLM collab_mode 部分失败累计 {cm_gap} articles, 由 "
@@ -1280,11 +1286,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 if f'n_articles{suffix}' in panel.columns:
                     panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
             panel['indep_frac_cm'] = np.where(
-                panel['n_articles'] > 0,
-                panel['n_articles_indep_cm_ctx'] / panel['n_articles'], np.nan)
+                panel['n_articles_llm_valid'] > 0,
+                panel['n_articles_indep_cm_ctx'] / panel['n_articles_llm_valid'], np.nan)
             panel['collab_frac_cm'] = np.where(
-                panel['n_articles'] > 0,
-                panel['n_articles_collab_cm_ctx'] / panel['n_articles'], np.nan)
+                panel['n_articles_llm_valid'] > 0,
+                panel['n_articles_collab_cm_ctx'] / panel['n_articles_llm_valid'], np.nan)
 
             if 'llm_vote_tone_indep_cm_ctx' in panel.columns and 'llm_vote_tone_collab_cm_ctx' in panel.columns:
                 panel['tone_gap_indep_collab_cm_ctx'] = (

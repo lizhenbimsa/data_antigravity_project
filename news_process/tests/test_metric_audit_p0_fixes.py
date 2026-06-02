@@ -281,3 +281,38 @@ class TestEpuMonthEqualWeighting:
         assert int(m.epu_data_complete) == int(f.epu_data_complete)
         # 且 fallback 也取 12 月值(非旧 .last())
         assert abs(f.epu_year_end - 120.0) < 1e-9
+
+
+class TestNArticlesPhysicalRefactor:
+    """encode-02 正确重构: n_articles=物理篇数(coverage), 分类 frac 分母=n_articles_llm_valid.
+
+    端到端跑真实 aggregate_panel, 钉住: (1) n_articles=物理(含LLM失败行);
+    (2) n_articles_llm_valid=有效计数; (3) tech_frac+app_frac==1 (分子分母同口径);
+    (4) ln_news_coverage 用物理. bug 复活(分母错配)则 frac 和≠1 → 必挂.
+    """
+
+    def test_n_articles_physical_and_frac_consistent(self):
+        from news_process.pipeline.panel.encode import aggregate_panel
+        # 物理 20 篇: 18 LLM-valid (10 底层技术 / 8 应用场景), 2 LLM-fail(NA, 无 locus).
+        score = [1, -1, 0, 1, -1, 0, 1, -1, 0, 1, -1, 0, 1, -1, 0, 1, -1, 0, None, None]
+        locus = ['底层技术'] * 10 + ['应用场景'] * 8 + [None, None]
+        df = pd.DataFrame({
+            'target_bank': ['A'] * 20, 'year': [2018] * 20,
+            'llm_vote_score_full': pd.array(score, dtype='Int8'),
+            'llm_vote_score_ctx': pd.array(score, dtype='Int8'),
+            'innovation_locus_full': locus,
+            'is_positive_full': pd.array([1 if s == 1 else 0 for s in score], dtype='Int8'),
+            'is_negative_full': pd.array([1 if s == -1 else 0 for s in score], dtype='Int8'),
+            'in_title': [0] * 20, 'is_multi_bank': [0] * 20, 'bank_count': [1] * 20,
+        })
+        out = aggregate_panel(df).iloc[0]
+        assert out['n_articles'] == 20, "n_articles 应为物理篇数(含 LLM 失败行)"
+        assert out['n_articles_llm_valid'] == 18, "n_articles_llm_valid 应为 LLM 有效计数"
+        assert abs(out['tech_frac'] - 10 / 18) < 1e-9, "tech_frac 分母应为 valid 计数"
+        assert abs(out['app_frac'] - 8 / 18) < 1e-9
+        # 关键不变式: 分子分母同口径 → tech_frac+app_frac==1 (bug 复活则 <1)
+        assert abs((out['tech_frac'] + out['app_frac']) - 1.0) < 1e-9, (
+            "tech_frac+app_frac 应==1; <1 说明分母用了物理篇数(口径破坏 bug 复活)"
+        )
+        # ln_news_coverage 用物理篇数
+        assert abs(out['ln_news_coverage'] - np.log1p(20)) < 1e-9

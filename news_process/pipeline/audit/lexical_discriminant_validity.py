@@ -260,10 +260,15 @@ def run_discriminant_validity(
         return {'status': 'missing_columns', 'missing': missing}
 
     # 修 R8-H2: n_articles ≥ 2 mask
-    if n_articles_col in panel.columns:
-        mask = panel[n_articles_col] >= min_n_articles
+    # metric-audit 2026-06-02: 判别效度 metric (substance/clarity) 建立在 LLM-valid
+    # 文章上, mask 应用 LLM-valid 计数; encode-02 重构后 n_articles=物理篇数,
+    # 故优先 n_articles_llm_valid (重生 panel 后存在), 旧冻结 panel 缺列则回退 n_articles.
+    _mask_col = ('n_articles_llm_valid'
+                 if 'n_articles_llm_valid' in panel.columns else n_articles_col)
+    if _mask_col in panel.columns:
+        mask = panel[_mask_col] >= min_n_articles
         panel = panel.loc[mask].copy()
-        logger.info(f"v3.5.1 39d: n_articles ≥ {min_n_articles} mask 后 {len(panel)} obs")
+        logger.info(f"v3.5.1 39d: {_mask_col} ≥ {min_n_articles} mask 后 {len(panel)} obs")
 
     if len(panel) < 10:
         return {'status': 'insufficient_obs', 'n_obs': len(panel)}
