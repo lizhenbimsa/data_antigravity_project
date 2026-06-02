@@ -331,8 +331,16 @@ def _aggregate_bank_year_texts(df_exploded, text_col='内容'):
     def _concat(group):
         # 闭包引用外层 text_col (而非硬编码 '内容'), 支持双轨聚合
         bodies = group[text_col].fillna('').astype(str)
-        titles = group['标题'].fillna('').astype(str) if '标题' in group.columns else bodies
-        return ' '.join(titles + ' ' + bodies)
+        if '标题' not in group.columns:
+            return ' '.join(bodies)
+        titles = group['标题'].fillna('').astype(str)
+        # P1 修复 (metric-audit 2026-06-02): 去重防双标题. ctx 轨 text_col=content_ctx
+        # 已由 stage 13 prepend_title 注入标题, 旧 'titles + 内容' 对 ctx 二次注入标题
+        # → auth_sim_*_ctx / strat_*_ctx 全列受污 (full 轨 text_col=内容 无标题, 不受影响).
+        # body 已以标题开头(ctx 轨) → 不再重复拼接标题; 否则按原 '标题 正文' 拼接.
+        parts = [b if (t and b.startswith(t)) else (f"{t} {b}" if t else b)
+                 for t, b in zip(titles, bodies)]
+        return ' '.join(parts)
 
     agg = df_exploded.groupby(['target_bank', 'year']).apply(
         _concat, include_groups=False).reset_index(name='agg_text')

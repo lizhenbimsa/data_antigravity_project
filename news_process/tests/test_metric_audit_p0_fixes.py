@@ -316,3 +316,25 @@ class TestNArticlesPhysicalRefactor:
         )
         # ln_news_coverage 用物理篇数
         assert abs(out['ln_news_coverage'] - np.log1p(20)) < 1e-9
+
+
+class TestStrategicDiffNoDoubleTitle:
+    """P1 (漏报): strategic_diff/policy_similarity 共享 _aggregate 对 ctx 轨双标题."""
+
+    def test_ctx_track_title_not_doubled(self):
+        from news_process.core.text.entity_context import prepend_title
+        from news_process.pipeline.features.strategic_diff import (
+            _aggregate_bank_year_texts,
+        )
+        T = '某银行金融科技战略'
+        df = pd.DataFrame({
+            'target_bank': ['A', 'A'], 'year': [2018, 2018],
+            '标题': [T, T], '内容': ['正文数字化转型布局推进', '正文数字化转型布局推进'],
+            'content_ctx': [prepend_title(T, '实体窗口附近几句'),
+                            prepend_title(T, '实体窗口附近几句')],
+        })
+        full = _aggregate_bank_year_texts(df, text_col='内容').iloc[0]['agg_text']
+        ctx = _aggregate_bank_year_texts(df, text_col='content_ctx').iloc[0]['agg_text']
+        # 2 篇文章, 每篇标题应恰 1 次 → 共 2 次 (旧 ctx bug 为 4)
+        assert full.count(T) == 2, f"full 标题次数={full.count(T)}"
+        assert ctx.count(T) == 2, f"ctx 双标题未修复: {ctx.count(T)} (应 2, 旧 bug=4)"
