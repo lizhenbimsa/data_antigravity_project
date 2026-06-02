@@ -618,13 +618,19 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
                    )
                    .reset_index())
 
-            # 正/负态度占比
+            # 正/负态度占比 (P1 修复 metric-audit 2026-06-02): 余弦投影受嵌入空间
+            # 各向异性影响, 绝对 sign-at-0 阈值使 benefit_pos_frac 近饱和退化 (实测
+            # ~96.9% 文章投影>0, 作回归自变量信息量趋零). 改以全样本投影均值为中心做
+            # 各向异性校正 (Mu & Viswanath 2018 All-but-the-Top; Ethayarajh 2019),
+            # 使 pos/neg_frac 围绕 ~50% 基线且保留跨 bank-year 变异. benefit_mean
+            # (连续主测度) 不变, 其绝对偏移由 bank/year FE 吸收.
+            _center = float(df_exploded[col_score].dropna().mean())
             frac = (df_exploded
                     .dropna(subset=[col_score])
                     .groupby(['target_bank', 'year'])[col_score]
                     .agg(
-                        benefit_pos_frac=lambda x: (x > 0).mean(),
-                        benefit_neg_frac=lambda x: (x < 0).mean(),
+                        benefit_pos_frac=lambda x, c=_center: (x > c).mean(),
+                        benefit_neg_frac=lambda x, c=_center: (x < c).mean(),
                     )
                     .reset_index())
 
