@@ -389,3 +389,47 @@ class TestNArticlesCrossFileConsumers:
         })
         sa.audit_results.clear()
         sa.audit_sentiment_consistency(panel, 'test')  # 不得 KeyError
+
+
+class TestCtxCountOverflowSanity:
+    """_ctx 计数越界缺陷修复: 情感计数 sanity 以物理 n_articles 为上界.
+
+    根因: n_articles=full轨有效篇数, pos_count_ctx=ctx轨有效篇数; full失败但ctx成功
+    的文章使 ctx-valid > full-valid (合法两轨差异, 非双计). 修复: 3b 用物理
+    n_articles(≥任一轨); 旧冻结panel(full-valid)越界降WARN, 重生panel(物理)PASS,
+    真双计(物理<pos+neg)仍FAIL.
+    """
+
+    def _ctx(self, panel):
+        import news_process.pipeline.audit.stata_audit as sa
+        sa.audit_results.clear()
+        sa.audit_sentiment_consistency(panel, 'test')
+        return {r['check']: r['status'] for r in sa.audit_results
+                if '情感计数恒等式' in r['check']}
+
+    def test_regen_panel_physical_ge_ctx_pass(self):
+        # 重生型: 物理14 ≥ ctx pos13 → PASS (有 n_articles_llm_valid 标记物理)
+        p = pd.DataFrame({'target_bank': ['A'], 'year': [2017],
+                          'n_articles': [14], 'n_articles_llm_valid': [12],
+                          'pos_count_full': [12], 'neg_count_full': [0],
+                          'pos_count_ctx': [13], 'neg_count_ctx': [0],
+                          'pos_frac_full': [1.0], 'neg_frac_full': [0.0]})
+        assert self._ctx(p).get('情感计数恒等式 (_ctx)') == 'PASS'
+
+    def test_frozen_panel_overflow_warn_not_fail(self):
+        # 旧冻结型: n_articles=full-valid 12 < ctx 13, 无 n_articles_llm_valid → WARN(非FAIL)
+        p = pd.DataFrame({'target_bank': ['A'], 'year': [2017], 'n_articles': [12],
+                          'pos_count_full': [12], 'neg_count_full': [0],
+                          'pos_count_ctx': [13], 'neg_count_ctx': [0],
+                          'pos_frac_full': [1.0], 'neg_frac_full': [0.0]})
+        st = self._ctx(p)
+        assert st.get('情感计数恒等式 (_ctx)') == 'WARN', "旧 panel 越界应降 WARN(非 FAIL)"
+
+    def test_real_double_count_still_fail(self):
+        # 重生型 + 真双计: 物理12 < ctx pos13 → FAIL (sanity 仍守)
+        p = pd.DataFrame({'target_bank': ['A'], 'year': [2017],
+                          'n_articles': [12], 'n_articles_llm_valid': [12],
+                          'pos_count_full': [12], 'neg_count_full': [0],
+                          'pos_count_ctx': [13], 'neg_count_ctx': [0],
+                          'pos_frac_full': [1.0], 'neg_frac_full': [0.0]})
+        assert self._ctx(p).get('情感计数恒等式 (_ctx)') == 'FAIL'

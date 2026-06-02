@@ -320,7 +320,17 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
                 record(cat, f'pos+neg<=1 ({track})', 'PASS',
                        f'所有行满足约束, max_sum={row_sum.max():.4f}')
 
-    # 3b. n_articles == pos_count + neg_count + neutral_count
+    # 3b. 情感非中性计数 ≤ 物理篇数 (pos+neg ≤ n_articles, 隐含 neutral ≥ 0)
+    # metric-audit 2026-06-02 终验复核 (_ctx 越界缺陷根因修复): 本 sanity check 的
+    # 上界应是"物理篇数"(物理 ≥ 任一轨有效篇数 ≥ 该轨 pos+neg), 故用 n_articles
+    # (重构后 = 物理 size) 而非 _nac (= full 轨 LLM 有效计数). 否则 _ctx 轨在
+    # "full 失败但 ctx 成功"的文章上 ctx-valid > full-valid → 拿 full 计数当上界会
+    # 误报 (实测冻结 panel 4/176 行 pos_count_ctx+neg_count_ctx > n_articles; 但其
+    # 物理篇数 14/4/1/2 ≥ ctx pos+neg 13/2/1/2, 是合法两轨独立成功率差异, 非双计 bug).
+    # 旧冻结 panel (无 n_articles_llm_valid → n_articles 实为 full-valid 非物理) 下该
+    # 上界本身偏小, _ctx 越界为已知口径限制 → WARN; 重生 panel (n_articles=物理) 上
+    # 仍越界才是真双重计数 → FAIL.
+    _is_physical_count = 'n_articles_llm_valid' in panel.columns
     for track in ['_full', '_ctx']:
         pos_col = f'pos_count{track}'
         neg_col = f'neg_count{track}'
@@ -328,13 +338,17 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
             pos = p[pos_col].fillna(0)
             neg = p[neg_col].fillna(0)
             total_sentiment = pos + neg
-            neutral_implied = p[_nac] - total_sentiment
+            neutral_implied = p['n_articles'] - total_sentiment
             neg_neutral = (neutral_implied < -0.5).sum()
             if neg_neutral > 0:
-                record(cat, f'情感计数恒等式 ({track})', 'FAIL',
-                       f'{neg_neutral} 行隐含中性计数 < 0')
+                _status = 'FAIL' if _is_physical_count else 'WARN'
+                _note = ('' if _is_physical_count
+                         else ' (旧 panel n_articles=full-valid 非物理, 两轨独立成功率差异已知, 降 WARN; 重生后复测)')
+                record(cat, f'情感计数恒等式 ({track})', _status,
+                       f'{neg_neutral} 行 pos+neg > n_articles{_note}')
             else:
-                record(cat, f'情感计数恒等式 ({track})', 'PASS', '所有行满足恒等式')
+                record(cat, f'情感计数恒等式 ({track})', 'PASS',
+                       '所有行满足 pos+neg ≤ n_articles')
 
     # 3c. 跨轨道相关性 (full vs ctx)
     if 'llm_vote_tone_full' in p.columns and 'llm_vote_tone_ctx' in p.columns:
