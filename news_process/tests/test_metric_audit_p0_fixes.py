@@ -378,3 +378,14 @@ class TestNArticlesCrossFileConsumers:
             'pos_frac_full': [0.5, 0.55], 'neg_frac_full': [0.25, 0.22],
         })
         assert self._run_identity(panel) == [], "旧 panel fallback 应正常 PASS"
+
+    def test_no_count_column_panel_graceful(self):
+        # 终验复核回归守卫: 无任何 count 列 (n_articles/llm_valid 都缺) 的 panel
+        # 不得抛 KeyError (须保留 graceful 兜底, 与 audit_variable_quality 对称).
+        import news_process.pipeline.audit.stata_audit as sa
+        panel = pd.DataFrame({
+            'target_bank': ['A'], 'year': [2018],
+            'pos_frac_full': [0.5], 'neg_frac_full': [0.2],
+        })
+        sa.audit_results.clear()
+        sa.audit_sentiment_consistency(panel, 'test')  # 不得 KeyError

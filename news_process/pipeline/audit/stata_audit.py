@@ -300,7 +300,9 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
     # 缺列回退 n_articles, 其即 count). 否则含 LLM 失败行的 bank-year 令 size != tech+app
     # → 误 FAIL, 而 audit_sentiment_consistency 的 FAIL 会使 stage 52 退出码=1.
     _nac = 'n_articles_llm_valid' if 'n_articles_llm_valid' in panel.columns else 'n_articles'
-    has_news = panel[_nac] > 0
+    # 缺列兜底 (与 audit_variable_quality:198 对称; 终验复核修: _nac 改写不得丢失
+    # 原 graceful 守卫, 否则无 count 列的 panel 抛 KeyError).
+    has_news = panel[_nac] > 0 if _nac in panel.columns else pd.Series(True, index=panel.index)
     p = panel[has_news]
 
     # 3a. pos_frac + neg_frac + neutral_frac 恒等式
