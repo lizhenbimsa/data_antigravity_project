@@ -14,10 +14,25 @@
 *   M6: + 交互项 (LOCUS × SUBST)
 
 version 19
-use "data/processed/46_panel_yearly_core.dta", clear
+* metric-audit 2026-06-02 (stata_vars-01): 改读 01_data_prep 保存的缩尾面板
+* _prepared_panel.dta, 使 Table 2 主回归与 Table 1 描述统计同口径 (均 1%/99%
+* winsorized, Loughran-McDonald 2011 JF). 旧 `use core.dta, clear` 重载原始未缩尾
+* 数据 → 同论文内 Table1(缩尾)/Table2(原始) 样本口径互反、审稿人可对账识破.
+* _prepared 缺失 (未先跑 01_data_prep) 则回退 core.dta 并告警 (此时未缩尾).
+capture confirm file "data/processed/_prepared_panel.dta"
+if !_rc {
+    use "data/processed/_prepared_panel.dta", clear
+}
+else {
+    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep 缩尾); 回退未缩尾 core.dta"
+    use "data/processed/46_panel_yearly_core.dta", clear
+}
 
-* xtset 声明 panel (target_bank 需先编码为数值 ID)
-encode target_bank, gen(bank_id)
+* xtset 声明 panel (bank_id 可能已由 01_data_prep 编码, guard 防重复 encode 报错)
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
 xtset bank_id year
 
 * 应用 value/variable labels (plan v14 §9.1)

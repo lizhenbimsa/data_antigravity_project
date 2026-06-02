@@ -13,6 +13,24 @@
 学术依据:
   Goldsmith-Pinkham, Sorkin & Swift (2020, AER) — Bartik IV
   Callaway & Sant’Anna (2021, JoE) — Staggered DID
+
+识别设计披露 (metric-audit 2026-06-02, 论文须如实声明, 勿过度宣称):
+  1. **shift 是内生 LOO 情感均值, 非准随机外生冲击**: compute_bartik_iv 的
+     shift_g = 组 g 内其他银行的 leave-one-out 年度 llm_vote_score 均值
+     (L210-218), 与被解释变量(本行情感/绩效)同源、存在 Manski(1993) 反射与共同
+     冲击. 故识别**仅依赖 GPSS(2020) "基期 share 外生性"视角**, **不**满足
+     Borusyak-Hull-Jaravel(2022) "shift 准随机"视角 — 论文勿主张双重识别;
+     诊断走 Rotemberg(share)而非 shift 平衡性. (本模块各函数注释中对 BHJ 的引用
+     仅作对比, 非声称满足其前提.)
+  2. **diagnose_rotemberg_weights 是近似, 非 GPSS α_k**: 用 Cov(share,BIV)/
+     Var(BIV) 的单变量 OLS 投影代替真正的两阶段 Rotemberg 分解; 其"负权重/HHI"
+     仅作快速集中度提示, **正式论文的 Rotemberg 权重须走 Stata bartik_weight 包**
+     (函数内已给命令), 不得以本近似冒充 GPSS §5 诊断.
+  3. **T=2 面板结构退化**: 当前面板仅 2017-2018 (84 banks × 2y). Bartik share
+     在 64%(112/176) bank-year 退化为 own-type one-hot (基期 co-mention 跨组为
+     0 → L137-143 兜底 share=1.0), fintech 基期类别 96.7% app vs 3.3% tech →
+     工具近共线于 bank-type FE、一阶段 F 弱; DiD(dcep/sandbox) 处理年份 ≤2018 致
+     _post 恒 0、不可识别. 论文须报告一阶段有效 N/F、披露退化并相应降权这些 spec.
 """
 
 import json
