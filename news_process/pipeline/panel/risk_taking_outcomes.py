@@ -56,6 +56,13 @@ logger = logging.getLogger(__name__)
 # v3.7.0 (m6 修复): eps 提取为 module 常量, 避免 3 处重复硬编码
 _DIV_EPS = 1e-6  # 除法分母最小绝对值, 低于此视为 0
 
+# P1 修复 (metric-audit 2026-06-02): 默认 bank_list 路径此前写死相对字符串
+# 'news_process/config/bank_list.yaml'; 主 cwd=news_process/ 下解析为
+# news_process/news_process/config/... (不存在) → merge_bank_metadata 静默跳过 →
+# is_soe / bank_type_id / implicit_guarantee_tier 全 NaN 但回归仍跑. 改为相对本
+# 模块文件解析 (本模块在 pipeline/panel/, config 在 parents[2]/config).
+_DEFAULT_BANK_LIST = Path(__file__).resolve().parents[2] / 'config' / 'bank_list.yaml'
+
 # 与 banking_outcome_dry_run.py::OUTCOME_SCHEMA 一致的原始字段名
 INPUT_OUTCOME_COLS = [
     'target_bank', 'year', 'quarter',
@@ -235,7 +242,7 @@ def compute_llp_discretion(df_yearly: pd.DataFrame) -> pd.Series:
 
 def merge_bank_metadata(
     df: pd.DataFrame,
-    bank_list_path: Path = Path('news_process/config/bank_list.yaml'),
+    bank_list_path: Path = _DEFAULT_BANK_LIST,
 ) -> pd.DataFrame:
     """从 bank_list.yaml 合并 is_soe / bank_type_id / tier 列.
 
@@ -322,7 +329,7 @@ def build_risk_taking_outcomes(
     df_y['loan_loss_provision_discretion'] = compute_llp_discretion(df_y)
 
     # Step 7: Merge bank metadata
-    bp = bank_list_path if bank_list_path else Path('news_process/config/bank_list.yaml')
+    bp = bank_list_path if bank_list_path else _DEFAULT_BANK_LIST
     df_y = merge_bank_metadata(df_y, bp)
 
     # Step 8: 选 OUTPUT_OUTCOME_COLS, 缺失列补 NaN
@@ -382,7 +389,7 @@ v3.7.0 (m7) 用法场景:
     )
     parser.add_argument(
         '--bank-list',
-        default='news_process/config/bank_list.yaml',
+        default=_DEFAULT_BANK_LIST,
         type=Path,
     )
     parser.add_argument('--rolling-window', type=int, default=5)

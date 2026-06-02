@@ -166,6 +166,14 @@ def compute_cohen_kappa_substance_vs_clarity(
     s_bin = (s >= 0.5).astype(int)
     c_bin = (c < clarity_median).astype(int)
 
+    # P1 修复 (metric-audit 2026-06-02): 常量轴守卫. 若任一二分轴无变异 (全 0 / 全 1
+    # — 真实数据上 substance 概率经 n_articles≥2 mask 后恒 < 0.5 → s_bin 全 0),
+    # Cohen κ 数学上未定义却会退化为貌似合法的 0.0 (p_o == p_e), 被误读为"零一致".
+    # 显式返回 NaN, 避免 vacuous κ=0 进报告.
+    if s_bin.min() == s_bin.max() or c_bin.min() == c_bin.max():
+        return {'kappa': float('nan'), 'n_obs': len(s_bin),
+                'median_used': clarity_median}
+
     # Cohen κ
     n = len(s_bin)
     p_o = float((s_bin == c_bin).mean())  # observed agreement

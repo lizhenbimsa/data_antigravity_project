@@ -143,3 +143,55 @@ class TestDiscriminant39eCoWSafe:
         out = permutation_null(panel, INDICATORS_FULL, n_perm=20, seed=42)
         assert not out.empty
         assert out['obs_htmt_max'].iloc[0] < 1.0  # off-diag, 非对角 1.0
+
+
+class TestRiskBankListPath:
+    """P1 (漏报): bank_list.yaml 默认路径从 cwd=news_process/ 解析失败 → metadata 全 NaN."""
+
+    def test_default_path_resolves_to_real_file(self):
+        from news_process.pipeline.panel.risk_taking_outcomes import (
+            _DEFAULT_BANK_LIST,
+        )
+        # 相对模块解析的默认路径必须指向真实存在的 config/bank_list.yaml
+        assert _DEFAULT_BANK_LIST.exists(), f"默认 bank_list 路径不存在: {_DEFAULT_BANK_LIST}"
+        assert _DEFAULT_BANK_LIST.name == 'bank_list.yaml'
+
+    def test_merge_loads_metadata_not_all_nan(self):
+        import yaml
+
+        from news_process.pipeline.panel.risk_taking_outcomes import (
+            _DEFAULT_BANK_LIST,
+            merge_bank_metadata,
+        )
+        banks = yaml.safe_load(_DEFAULT_BANK_LIST.open(encoding='utf-8')).get('banks', [])
+        if not banks:
+            pytest.skip('bank_list.yaml banks 为空')
+        tb = banks[0]['target_bank']
+        df = pd.DataFrame({'target_bank': [tb], 'year': [2018]})
+        merged = merge_bank_metadata(df)  # 用默认路径 (修复前从 cwd 解析失败→全 NaN)
+        assert merged['is_soe'].notna().all(), '默认路径应能加载 metadata, 不应全 NaN'
+
+
+class TestCohenKappaConstantAxisGuard:
+    """P1 (漏报): 39d Cohen κ 在常量轴下 vacuous 退化为 0.0, 应返回 NaN."""
+
+    def test_constant_substance_axis_returns_nan(self):
+        from news_process.pipeline.audit.lexical_discriminant_validity import (
+            compute_cohen_kappa_substance_vs_clarity,
+        )
+        # substance 全 < 0.5 → s_bin 全 0 (常量轴); 旧代码 vacuous κ=0.0, 修复后 NaN
+        out = compute_cohen_kappa_substance_vs_clarity(
+            substance=np.full(50, 0.2),
+            clarity=np.random.RandomState(0).rand(50),
+        )
+        assert np.isnan(out['kappa']), f"常量轴 κ 应为 NaN(未定义), 实得 {out['kappa']}"
+
+    def test_varying_axes_still_compute_finite_kappa(self):
+        from news_process.pipeline.audit.lexical_discriminant_validity import (
+            compute_cohen_kappa_substance_vs_clarity,
+        )
+        rs = np.random.RandomState(1)
+        out = compute_cohen_kappa_substance_vs_clarity(
+            substance=rs.rand(80), clarity=rs.rand(80),
+        )
+        assert np.isfinite(out['kappa']), '有变异时 κ 应正常算出有限值'
