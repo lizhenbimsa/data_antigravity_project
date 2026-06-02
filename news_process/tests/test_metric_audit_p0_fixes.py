@@ -108,6 +108,25 @@ class TestStaleAndNerYearSchemaContract:
         # 工商银行: 2017 + 2018 两行; 建设银行: 2018 一行 → 3 bank-year
         assert len(panel) == 3
 
+    def test_article_topic_derives_year_before_groupby(self):
+        """metric-audit final (终验逮到): stage 17 article_topic 同型 latent KeyError.
+
+        article_topic.main 从 13_news_with_ctx (无 year) 读 art_df, 在
+        out_article['year']=art_df['year'] + 聚合 groupby(['target_bank','year']) 前
+        必须从 '日期' 派生 year (与 stage 18/19 同口径). 源契约钉死, 防同型回归.
+        """
+        import inspect
+
+        from news_process.pipeline.text import article_topic
+        src = inspect.getsource(article_topic)
+        derive_pos = src.find("art_df['year'] = pd.to_datetime")
+        use_pos = src.find("'year': art_df['year']")
+        assert derive_pos != -1, (
+            "article_topic 缺 art_df['year']=pd.to_datetime(日期).dt.year 派生 → "
+            "stage 17 enabled 时 KeyError('year')"
+        )
+        assert use_pos != -1 and derive_pos < use_pos, "year 派生须在第一次使用前"
+
 
 class TestDiscriminant39eCoWSafe:
     """P0 (漏报): stage 39e np.fill_diagonal(df.values) 在 pandas 3.0 CoW 下崩溃."""
@@ -306,6 +325,25 @@ class TestEpuMonthEqualWeighting:
         assert abs(out['epu_mean_year'].iloc[0] - simple_mean) < 1e-9
         assert int(out['epu_data_complete'].iloc[0]) == 1
 
+    def test_empty_and_fallback_branches_derive_year_no_crash(self):
+        """metric-audit final [5]: 三分支 (empty/fallback/main) 统一 _bank_year_frame,
+        消除"只有 main 派生 year, empty 静默吐空 / fallback 崩"的不对称.
+        """
+        from news_process.pipeline.external.epu_merge import (
+            _bank_year_frame,
+            aggregate_epu_to_bank_year,
+        )
+        # has-date-no-year (真实 13 schema)
+        art = pd.DataFrame({'target_bank': ['A', 'B'],
+                            '日期': ['2017-05-01', '2018-05-01']})
+        # empty-epu 分支: 旧版静默返回 (0,6); 修复后从 日期 派生 → 2 行全-NaN 骨架
+        o_empty = aggregate_epu_to_bank_year(art, pd.DataFrame())
+        assert len(o_empty) == 2, "empty-epu 须从 日期 派生 bank-year, 非静默 0 行"
+        assert set(o_empty['year']) == {2017, 2018}
+        assert o_empty['epu_mean_year'].isna().all()
+        # helper 直接: 缺 target_bank 时返回空 (不崩)
+        assert len(_bank_year_frame(pd.DataFrame({'x': [1]}))) == 0
+
 
 class TestNArticlesPhysicalRefactor:
     """encode-02 正确重构: n_articles=物理篇数(coverage), 分类 frac 分母=n_articles_llm_valid.
@@ -340,6 +378,45 @@ class TestNArticlesPhysicalRefactor:
         )
         # ln_news_coverage 用物理篇数
         assert abs(out['ln_news_coverage'] - np.log1p(20)) < 1e-9
+
+
+class TestCtxDiagonalFracTrackSymmetry:
+    """metric-audit final: ctx 对角线分类 frac 须用 ctx 轨分母 (n_articles_llm_valid_ctx).
+
+    病灶: app_frac_lc/sub_frac_sc/collab_frac_cm 分子=ctx 轨计数, 分母却=full 轨
+    n_articles_llm_valid → "full 失败但 ctx 成功"的文章使 ctx_valid>full_valid →
+    frac 越界至 3.0 (终验工作流逮到 41/117 行对子和≠1). 修复: 配 ctx 分母, 数学保证
+    分子≤分母 → frac∈[0,1]. bug 复活 (分母回退 full) 则 frac>1 → 必挂.
+    """
+
+    def test_ctx_frac_uses_ctx_denominator_not_full(self):
+        from news_process.pipeline.panel.encode import aggregate_panel
+        # 5 篇全 '应用场景' locus: full 轨仅 1 篇有效投票 (4 篇 LLM-fail NA),
+        # ctx 轨 5 篇全有效 → n_articles_llm_valid=1, n_articles_llm_valid_ctx=5,
+        # n_articles_app_lc_ctx=5. 旧 bug: app_frac_lc=5/1=5.0; 修复后=5/5=1.0.
+        df = pd.DataFrame({
+            'target_bank': ['A'] * 5, 'year': [2018] * 5,
+            'llm_vote_score_full': pd.array([1, None, None, None, None], dtype='Int8'),
+            'llm_vote_score_ctx': pd.array([1, 1, 1, 1, 1], dtype='Int8'),
+            'llm_prob_score_ctx': [0.9] * 5,
+            'innovation_locus_full': ['应用场景', None, None, None, None],
+            'innovation_locus_ctx': ['应用场景'] * 5,
+            'is_positive_full': pd.array([1, 0, 0, 0, 0], dtype='Int8'),
+            'is_negative_full': pd.array([0, 0, 0, 0, 0], dtype='Int8'),
+            'in_title': [0] * 5, 'is_multi_bank': [0] * 5, 'bank_count': [1] * 5,
+        })
+        out = aggregate_panel(df).iloc[0]
+        # 新增 ctx 轨有效计数列
+        assert 'n_articles_llm_valid_ctx' in out.index
+        assert out['n_articles_llm_valid'] == 1, "full 轨有效 = 1"
+        assert out['n_articles_llm_valid_ctx'] == 5, "ctx 轨有效 = 5"
+        assert out['n_articles_app_lc_ctx'] == 5, "应用场景 ctx 计数 = 5"
+        # 关键: 分母用 ctx (5) 非 full (1) → frac=1.0 (旧 bug=5.0)
+        assert abs(out['app_frac_lc'] - 1.0) < 1e-9, (
+            f"app_frac_lc={out['app_frac_lc']}; 旧 bug (ctx分子/full分母)=5.0, "
+            f"修复 (ctx分子/ctx分母)=1.0"
+        )
+        assert out['app_frac_lc'] <= 1.0 + 1e-9, "frac 不得越界 [0,1]"
 
 
 class TestStrategicDiffNoDoubleTitle:

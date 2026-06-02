@@ -145,6 +145,7 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
     # 启发式映射 (覆盖 v3.2.0 新增双轨列, codebook 未及时同步时的 fallback)
     HEURISTIC_LABELS: Dict[str, str] = {
         'n_articles_llm_valid':             "News count, LLM-valid (category-frac denominator)",
+        'n_articles_llm_valid_ctx':         "News count, ctx-track LLM-valid (ctx category-frac denom)",
         'innovation_locus_full':            "Innovation Locus (Full-text, Gomber 2018 JMIS)",
         'innovation_locus_ctx':             "Innovation Locus (Entity-context, Hassan 2019 QJE)",
         'innovation_substantiveness_full':  "Innov. Substantiveness (Full-text, W&Z 1998 ASQ)",
@@ -263,7 +264,7 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         # 主键
         'target_bank', 'year',
         # 基础统计 + bank 属性
-        'n_articles', 'n_articles_llm_valid', 'media_breadth', 'ln_news_coverage', 'bank_type',
+        'n_articles', 'n_articles_llm_valid', 'n_articles_llm_valid_ctx', 'media_breadth', 'ln_news_coverage', 'bank_type',
         'bank_size', 'bank_age', 'bank_province', 'bank_zone',
         'digital_frontier',
         # sentiment 双轨主指标

@@ -320,6 +320,25 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
                 record(cat, f'pos+neg<=1 ({track})', 'PASS',
                        f'所有行满足约束, max_sum={row_sum.max():.4f}')
 
+    # 3a-bis. 全 *_frac 列值域 ∈ [0,1] (metric-audit 2026-06-02 final 补盲区):
+    # 旧 audit 只检 pos/neg_frac 与 full 轨 n_tech+n_app 计数恒等, 不扫 ctx 对角线
+    # 分类 frac 值域 → app_frac_lc/sub_frac_sc/collab_frac_cm 轨道不对称除法越界至
+    # 3.0 完全逃检 (ctx 分子/full 分母). 现全列扫描 (排除 _z 标准化列), 任一 frac>1 即 FAIL.
+    _frac_cols = [c for c in p.columns
+                  if (c.endswith('_frac') or '_frac_' in c) and not c.endswith('_z')]
+    _oob_frac = []
+    for c in _frac_cols:
+        s = pd.to_numeric(p[c], errors='coerce').dropna()
+        if len(s) and (s.max() > 1.001 or s.min() < -0.001):
+            _oob_frac.append(f'{c}[{s.min():.3f},{s.max():.3f}]')
+    if _oob_frac:
+        record(cat, '分类 frac 值域 ∈[0,1]', 'FAIL',
+               f'{len(_oob_frac)}/{len(_frac_cols)} 个 frac 列越界 (轨道不对称除法?): '
+               + '; '.join(_oob_frac[:8]))
+    elif _frac_cols:
+        record(cat, '分类 frac 值域 ∈[0,1]', 'PASS',
+               f'{len(_frac_cols)} 个 *_frac 列全部 ∈[0,1]')
+
     # 3b. 情感非中性计数 ≤ 物理篇数 (pos+neg ≤ n_articles, 隐含 neutral ≥ 0)
     # metric-audit 2026-06-02 终验复核 (_ctx 越界缺陷根因修复): 本 sanity check 的
     # 上界应是"物理篇数"(物理 ≥ 任一轨有效篇数 ≥ 该轨 pos+neg), 故用 n_articles

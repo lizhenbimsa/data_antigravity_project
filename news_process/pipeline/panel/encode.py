@@ -578,6 +578,14 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     # (LLM 有效投票篇数 = 分类定义域, 'count' 跳 NA), 保持分子分母同口径、值不变.
     agg['n_articles'] = ('llm_vote_score_full', 'size')
     agg['n_articles_llm_valid'] = ('llm_vote_score_full', 'count')
+    # metric-audit 2026-06-02 final: ctx 轨独立有效投票篇数 (= ctx 分类 frac 的正确分母).
+    # ctx 对角线分类 frac (tech/app_lc, sub/symb_sc, indep/collab_cm) 分子用 ctx 轨计数
+    # (llm_vote_score_ctx 'count'), 但旧实现分母错用 full 轨 n_articles_llm_valid → 轨道
+    # 不对称除法 (ctx_valid>full_valid 时 frac 越界至 3.0, ctx_valid<full_valid 时低估).
+    # 两轨独立 LLM 成功率不同 (同 c8a70ac5 _ctx 计数 sanity), ctx frac 须用 ctx 分母:
+    # 分子(类内 ctx-valid) ≤ 分母(全 ctx-valid) 数学保证 frac∈[0,1], 对子和≤1 (残余=ctx
+    # -valid 但无 locus/subst/collab 标签, 正确语义).
+    agg['n_articles_llm_valid_ctx'] = ('llm_vote_score_ctx', 'count')
     agg['headline_frac'] = ('in_title', 'mean')
     agg['multi_bank_frac'] = ('is_multi_bank', 'mean')
     agg['avg_bank_count'] = ('bank_count', 'mean')
@@ -1044,12 +1052,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             for suffix in ['_tech_lc_ctx', '_app_lc_ctx']:
                 if f'n_articles{suffix}' in panel.columns:
                     panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
+            # metric-audit 2026-06-02 final: ctx 分子须配 ctx 分母 n_articles_llm_valid_ctx
+            # (旧用 full 轨 n_articles_llm_valid → 轨道不对称, frac 越界至 3.0).
             panel['tech_frac_lc'] = np.where(
-                panel['n_articles_llm_valid'] > 0,
-                panel['n_articles_tech_lc_ctx'] / panel['n_articles_llm_valid'], np.nan)
+                panel['n_articles_llm_valid_ctx'] > 0,
+                panel['n_articles_tech_lc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
             panel['app_frac_lc'] = np.where(
-                panel['n_articles_llm_valid'] > 0,
-                panel['n_articles_app_lc_ctx'] / panel['n_articles_llm_valid'], np.nan)
+                panel['n_articles_llm_valid_ctx'] > 0,
+                panel['n_articles_app_lc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
 
             # tone_gap_tech_app_lc_ctx: ctx 轨同向 gap
             if 'llm_vote_tone_tech_lc_ctx' in panel.columns and 'llm_vote_tone_app_lc_ctx' in panel.columns:
@@ -1161,12 +1171,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             for suffix in ['_sub_sc_ctx', '_symb_sc_ctx']:
                 if f'n_articles{suffix}' in panel.columns:
                     panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
+            # metric-audit 2026-06-02 final: ctx 分子配 ctx 分母 (修轨道不对称 frac>1)
             panel['sub_frac_sc'] = np.where(
-                panel['n_articles_llm_valid'] > 0,
-                panel['n_articles_sub_sc_ctx'] / panel['n_articles_llm_valid'], np.nan)
+                panel['n_articles_llm_valid_ctx'] > 0,
+                panel['n_articles_sub_sc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
             panel['symb_frac_sc'] = np.where(
-                panel['n_articles_llm_valid'] > 0,
-                panel['n_articles_symb_sc_ctx'] / panel['n_articles_llm_valid'], np.nan)
+                panel['n_articles_llm_valid_ctx'] > 0,
+                panel['n_articles_symb_sc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
 
             # tone_gap_sub_symb_sc_ctx: ctx 轨情感纯度差距
             if 'llm_vote_tone_sub_sc_ctx' in panel.columns and 'llm_vote_tone_symb_sc_ctx' in panel.columns:
@@ -1285,12 +1296,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             for suffix in ['_indep_cm_ctx', '_collab_cm_ctx']:
                 if f'n_articles{suffix}' in panel.columns:
                     panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
+            # metric-audit 2026-06-02 final: ctx 分子配 ctx 分母 (修轨道不对称 frac>1)
             panel['indep_frac_cm'] = np.where(
-                panel['n_articles_llm_valid'] > 0,
-                panel['n_articles_indep_cm_ctx'] / panel['n_articles_llm_valid'], np.nan)
+                panel['n_articles_llm_valid_ctx'] > 0,
+                panel['n_articles_indep_cm_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
             panel['collab_frac_cm'] = np.where(
-                panel['n_articles_llm_valid'] > 0,
-                panel['n_articles_collab_cm_ctx'] / panel['n_articles_llm_valid'], np.nan)
+                panel['n_articles_llm_valid_ctx'] > 0,
+                panel['n_articles_collab_cm_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
 
             if 'llm_vote_tone_indep_cm_ctx' in panel.columns and 'llm_vote_tone_collab_cm_ctx' in panel.columns:
                 panel['tone_gap_indep_collab_cm_ctx'] = (

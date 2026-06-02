@@ -102,6 +102,31 @@ def load_epu_china(path: Optional[Path] = None) -> pd.DataFrame:
     return df[['year', 'month', 'epu']]
 
 
+def _bank_year_frame(article_df: pd.DataFrame) -> pd.DataFrame:
+    """提取唯一 (target_bank, year); 'year' 缺则从 '日期'/'publish_date' 派生.
+
+    metric-audit 2026-06-02 final: 三处调用 (empty-epu / year-only fallback / main)
+    统一走本 helper, 消除"只有 main 分支派生 year、另两分支对 has-date-no-year 崩或
+    静默吐空"的不对称 (真实上游 13_news_with_ctx 仅有 str '日期' 无 year). 与
+    executive_ner / article_staleness / article_topic 的 to_datetime(日期).dt.year 同口径.
+    """
+    if 'target_bank' not in article_df.columns:
+        return pd.DataFrame(columns=['target_bank', 'year'])
+    if 'year' in article_df.columns:
+        by = article_df[['target_bank', 'year']].dropna(subset=['year']).copy()
+    else:
+        dc = '日期' if '日期' in article_df.columns else 'publish_date'
+        if dc not in article_df.columns:
+            return pd.DataFrame(columns=['target_bank', 'year'])
+        by = pd.DataFrame({
+            'target_bank': article_df['target_bank'].values,
+            'year': pd.to_datetime(article_df[dc], errors='coerce').dt.year,
+        }).dropna(subset=['year'])
+    if len(by):
+        by['year'] = by['year'].astype(int)
+    return by.drop_duplicates()
+
+
 def aggregate_epu_to_bank_year(
     article_df: pd.DataFrame,
     epu_df: pd.DataFrame,
@@ -109,19 +134,17 @@ def aggregate_epu_to_bank_year(
     """article-level merge → bank-year aggregate.
 
     Args:
-        article_df: 必含 ['target_bank', 'year', '日期' or 'publish_date'] 列.
+        article_df: 含 'target_bank' + ('year' 或 '日期'/'publish_date' 之一).
+            'year' 缺失时由 date 列派生 (见 _bank_year_frame).
         epu_df: load_epu_china() 输出.
 
     Returns:
-        bank-year panel with EPU 3 列 + completeness flag.
+        bank-year panel: target_bank, year + EPU 4 列
+        (epu_mean_year / epu_std_year / epu_year_end / epu_data_complete).
     """
     if epu_df.empty:
-        # 退化: 返回 target_bank × year 空骨架
-        out = (
-            article_df[['target_bank', 'year']].drop_duplicates().copy()
-            if 'target_bank' in article_df.columns and 'year' in article_df.columns
-            else pd.DataFrame(columns=['target_bank', 'year'])
-        )
+        # 退化: 返回 target_bank × year 全-NaN 骨架 (year 缺则从 date 派生, 不再静默吐空)
+        out = _bank_year_frame(article_df).copy()
         out['epu_mean_year'] = float('nan')
         out['epu_year_end'] = float('nan')
         out['epu_std_year'] = float('nan')
@@ -147,9 +170,8 @@ def aggregate_epu_to_bank_year(
         year_epu = year_epu.merge(_nm, on='year', how='left')
         year_epu['epu_data_complete'] = (year_epu['_n_months'].fillna(0) >= 12).astype(int)
         year_epu = year_epu.drop(columns=['_n_months'])
-        out = article_df[['target_bank', 'year']].drop_duplicates().merge(
-            year_epu, on='year', how='left',
-        )
+        # no date 列时 'year' 必须已存在 (否则 _bank_year_frame 返回空 → 空 panel, 不崩)
+        out = _bank_year_frame(article_df).merge(year_epu, on='year', how='left')
         return out
 
     # ── bank-year aggregate (P1 修复 metric-audit 2026-06-02) ──
@@ -179,23 +201,8 @@ def aggregate_epu_to_bank_year(
     year_epu['epu_data_complete'] = (year_epu['_n_months'].fillna(0) >= 12).astype(int)
     year_epu = year_epu.drop(columns=['_n_months'])
 
-    # broadcast 到 bank-year (EPU 在年内对所有银行相同)
-    # P1 修复回归补丁 (metric-audit 2026-06-02): 函数契约 (docstring) 声明 article_df
-    # 含 'year', 但实际上游 13_news_with_ctx.parquet 仅有 date_col ('日期') 无派生 year;
-    # 旧主路径自行从 date 派生, 本批重写主路径时漏带. 此处显式派生 (与 executive_ner /
-    # article_staleness 的 pd.to_datetime(日期).dt.year 同口径), 避免 KeyError.
-    if 'year' in article_df.columns:
-        bank_year = article_df[['target_bank', 'year']].dropna(subset=['year']).copy()
-    else:
-        bank_year = pd.DataFrame({
-            'target_bank': article_df['target_bank'].values,
-            'year': pd.to_datetime(article_df[date_col], errors='coerce').dt.year,
-        }).dropna(subset=['year'])
-    bank_year['year'] = bank_year['year'].astype(int)
-    out = (
-        bank_year.drop_duplicates()
-        .merge(year_epu, on='year', how='left')
-    )
+    # broadcast 到 bank-year (EPU 在年内对所有银行相同); year 缺则从 date 派生 (统一 helper)
+    out = _bank_year_frame(article_df).merge(year_epu, on='year', how='left')
     return out
 
 

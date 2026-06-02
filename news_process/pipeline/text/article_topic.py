@@ -233,6 +233,14 @@ def main():
     src_path = os.path.join(output_dir, '13_news_with_ctx.parquet')
     art_df = pd.read_parquet(src_path)
 
+    # metric-audit 2026-06-02 final (病根A 同型 latent crash): 13_news_with_ctx 仅有
+    # str '日期' 无 'year' 列, 而 out_article['year']=art_df['year'] (下方) + 聚合
+    # groupby(['target_bank','year']) 会 KeyError('year'). 与 epu_merge / executive_ner /
+    # article_staleness 同口径从 '日期' 派生 year (在 emb merge 前, 使 year 随 art_df 保留).
+    if 'year' not in art_df.columns:
+        _date_col = '日期' if '日期' in art_df.columns else 'publish_date'
+        art_df['year'] = pd.to_datetime(art_df[_date_col], errors='coerce').dt.year
+
     # 修 S2.2 merge bug: 拆 if/else 三路分支, 避免 left_index 参数类型混合 (pandas TypeError).
     if 'article_id' in emb_df.columns and 'article_id' in art_df.columns:
         art_df = art_df.merge(

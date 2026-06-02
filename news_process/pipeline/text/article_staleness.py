@@ -211,7 +211,10 @@ def compute_semantic_staleness(
         )
         raise
 
-    sort_idx = pd.to_datetime(df[date_col], errors='coerce').argsort().values
+    # metric-audit 2026-06-02 final: kind='stable' 与 surface 轨 (L108) 对齐 — 大量
+    # 同时间戳 ties 下非 stable argsort 的 tie 顺序依赖输入行序 → semantic staleness
+    # 值随任意输入序漂移 (实测 27% 行/max 0.75), 破坏可复现性. stable 使其确定.
+    sort_idx = pd.to_datetime(df[date_col], errors='coerce').argsort(kind='stable').values
     df_sorted = df.iloc[sort_idx].reset_index(drop=True)
     embs_sorted = embeddings[sort_idx]
     dates = pd.to_datetime(df_sorted[date_col], errors='coerce')
