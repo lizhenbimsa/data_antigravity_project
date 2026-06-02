@@ -30,7 +30,7 @@ D-0 实测项 (v2.3 G-B1.1)
 ``data/processed/16_epu_panel.parquet`` 列契约:
     target_bank: str (主键)
     year: int (主键)
-    epu_mean_year: float (年内月度 EPU 均值, 按文章发布月份加权)
+    epu_mean_year: float (年内月度 EPU 均值, 月度等权 BBD 2016 QJE; 非文章数加权)
     epu_year_end: float (该年 12 月 EPU)
     epu_std_year: float (年内月度 EPU 标准差)
     epu_data_complete: int (0/1; 该年是否所有月份都有 EPU 数据)
@@ -132,13 +132,21 @@ def aggregate_epu_to_bank_year(
     date_col = '日期' if '日期' in article_df.columns else 'publish_date'
     if date_col not in article_df.columns:
         logger.warning(f"  article_df 缺 date 列, 仅按 year merge")
-        # year-only fallback: 用该年所有月度的均值
+        # year-only fallback: 月度等权年均 (P1 修复 metric-audit 2026-06-02: 与主路径
+        # 口径统一 — year_end 取 month==12, complete 用 distinct 月份数; 旧 .last()/
+        # size()==12 在缺月或重复行 CSV 上偏离主路径).
         year_epu = epu_df.groupby('year', as_index=False).agg(
             epu_mean_year=('epu', 'mean'),
-            epu_year_end=('epu', 'last'),
             epu_std_year=('epu', 'std'),
         )
-        year_epu['epu_data_complete'] = (epu_df.groupby('year').size() == 12).astype(int).values
+        _ye = (epu_df[epu_df['month'] == 12][['year', 'epu']]
+               .rename(columns={'epu': 'epu_year_end'}))
+        year_epu = year_epu.merge(_ye, on='year', how='left')
+        _nm = (epu_df.dropna(subset=['epu']).groupby('year')['month'].nunique()
+               .rename('_n_months').reset_index())
+        year_epu = year_epu.merge(_nm, on='year', how='left')
+        year_epu['epu_data_complete'] = (year_epu['_n_months'].fillna(0) >= 12).astype(int)
+        year_epu = year_epu.drop(columns=['_n_months'])
         out = article_df[['target_bank', 'year']].drop_duplicates().merge(
             year_epu, on='year', how='left',
         )

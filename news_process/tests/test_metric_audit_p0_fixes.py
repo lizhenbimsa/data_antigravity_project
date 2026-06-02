@@ -264,3 +264,20 @@ class TestEpuMonthEqualWeighting:
         # year_end = 12 月值; complete=1 (12 月齐, 旧实现恒 0)
         assert abs(a.epu_year_end - 120.0) < 1e-9
         assert int(a.epu_data_complete) == 1
+
+    def test_main_and_fallback_paths_consistent(self):
+        # 验证工作流残留项: year-only fallback(无 date 列) 须与主路径(有 日期)同口径.
+        from news_process.pipeline.external.epu_merge import (
+            aggregate_epu_to_bank_year,
+        )
+        epu = self._epu_df()
+        main_in = pd.DataFrame({'target_bank': ['A'] * 12, 'year': [2017] * 12,
+                                '日期': [f'2017-{m:02d}-15' for m in range(1, 13)]})
+        fb_in = pd.DataFrame({'target_bank': ['A'], 'year': [2017]})  # 无 date 列 → fallback
+        m = aggregate_epu_to_bank_year(main_in, epu).iloc[0]
+        f = aggregate_epu_to_bank_year(fb_in, epu).iloc[0]
+        assert abs(m.epu_mean_year - f.epu_mean_year) < 1e-9
+        assert abs(m.epu_year_end - f.epu_year_end) < 1e-9
+        assert int(m.epu_data_complete) == int(f.epu_data_complete)
+        # 且 fallback 也取 12 月值(非旧 .last())
+        assert abs(f.epu_year_end - 120.0) < 1e-9

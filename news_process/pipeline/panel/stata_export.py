@@ -216,7 +216,7 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
         'bank_emb_sim_mean_t2v':            "Bank Emb Sim Mean (T2V robust)",
         # S2 fix (2026-05-30): EPU 中国版宏观控制 (Baker-Bloom-Davis 2016 QJE),
         # stage 16 经 runner.py 8b 左连接并入面板后导出 (每条 ≤ 80 UTF-8 bytes)。
-        'epu_mean_year':                    "Econ Policy Uncertainty, article-month wtd mean (BBD 2016 QJE)",
+        'epu_mean_year':                    "Econ Policy Uncertainty, month-equal annual mean (BBD 2016 QJE)",
         'epu_year_end':                     "Econ Policy Uncertainty, year-end month (BBD 2016 QJE)",
         'epu_std_year':                     "Econ Policy Uncertainty, within-year SD (BBD 2016 QJE)",
         'epu_data_complete':                "EPU coverage flag: 1=all 12 months present that year",
