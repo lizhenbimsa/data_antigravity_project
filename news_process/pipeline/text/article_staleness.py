@@ -313,8 +313,11 @@ def main():
         art_df['year'] = pd.to_datetime(art_df['日期'], errors='coerce').dt.year
 
     # ── D2.a Surface staleness (双轨) ──
+    # P1 修复 (metric-audit 2026-06-02, 病根A): surface_full 改读 content_full (含标题),
+    # 与 semantic_full (emb 含标题) / ctx 轨对称; 缺列回退 '内容'.
+    _full_col = 'content_full' if 'content_full' in art_df.columns else '内容'
     art_df['surface_staleness_full'] = compute_surface_staleness(
-        art_df, content_col='内容',
+        art_df, content_col=_full_col,
     )
     if 'content_ctx' in art_df.columns:
         art_df['surface_staleness_ctx'] = compute_surface_staleness(

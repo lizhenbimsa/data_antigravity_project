@@ -421,7 +421,10 @@ def main():
         _ner_cache = None
 
     # 双轨 LLM 调用 (cost: ~$6 each)
-    for suffix, content_col in (('full', '内容'), ('ctx', 'content_ctx')):
+    # P1 修复 (metric-audit 2026-06-02, 病根A 标题不对称): full 轨改读 content_full
+    # (=标题+正文, stage 13 物化), 与 ctx 轨 (content_ctx 含标题) 对称; 缺列回退 '内容'.
+    _full_col = 'content_full' if 'content_full' in df.columns else '内容'
+    for suffix, content_col in (('full', _full_col), ('ctx', 'content_ctx')):
         if content_col not in df.columns:
             continue
         logger.info(f"  ── 轨道 {suffix} ──")

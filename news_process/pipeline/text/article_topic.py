@@ -258,7 +258,8 @@ def main():
             emb_ctx=list(emb_df['emb_ctx']),
         )
 
-    docs_full = art_df['内容'].fillna('').tolist()
+    # P1 修复 (metric-audit 2026-06-02, 病根A): full 轨改读 content_full (含标题).
+    docs_full = art_df['content_full' if 'content_full' in art_df.columns else '内容'].fillna('').tolist()
     docs_ctx = art_df['content_ctx'].fillna('').tolist() if 'content_ctx' in art_df.columns else docs_full
     embs_full = np.stack(art_df['emb_full'].tolist())
     embs_ctx = np.stack(art_df['emb_ctx'].tolist())

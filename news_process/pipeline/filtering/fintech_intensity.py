@@ -397,7 +397,10 @@ def main():
     # v3.6.0 (Plan E P4 B1): 双轨计算 — full 用 '内容', ctx 用 'content_ctx'
     # 输出列: fintech_intensity_score_{full,ctx} + intensity_verified_{full,ctx}
     # 向后兼容: 同时保留无后缀 fintech_intensity_score = _full alias
-    scores_full, verified_full = _compute_intensity_scores(df, combined_weights, text_col='内容')
+    # P1 修复 (metric-audit 2026-06-02, 病根A): full 轨改读 content_full (含标题), 与
+    # ctx 轨 (content_ctx) 对称; 缺列回退 '内容' (_compute_intensity_scores 内亦有兜底).
+    _full_col = 'content_full' if 'content_full' in df.columns else '内容'
+    scores_full, verified_full = _compute_intensity_scores(df, combined_weights, text_col=_full_col)
     df['fintech_intensity_score_full'] = scores_full
     df['intensity_verified_full'] = verified_full
     # legacy alias (deprecate after 9 paper migration)

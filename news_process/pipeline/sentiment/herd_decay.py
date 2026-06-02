@@ -218,8 +218,11 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     # 双轨文本列解析
     # full 轨: 优先 '内容', 兼容 '正文' / 'content'
-    full_col = '内容' if '内容' in df.columns else (
-        '正文' if '正文' in df.columns else 'content')
+    # P1 修复 (metric-audit 2026-06-02, 病根A): full 轨优先 content_full (含标题, 与
+    # 加权对象 _full 情感同源), 缺列回退 '内容'/'正文'/'content'.
+    full_col = 'content_full' if 'content_full' in df.columns else (
+        '内容' if '内容' in df.columns else (
+            '正文' if '正文' in df.columns else 'content'))
     has_full = full_col in df.columns
     # ctx 轨: 来自 stage 21 _materialize_content_ctx; 缺失则回退 full
     has_ctx = 'content_ctx' in df.columns

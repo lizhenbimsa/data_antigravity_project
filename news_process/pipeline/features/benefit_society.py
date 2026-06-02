@@ -566,11 +566,16 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
 
             # 向量化文本构建（避免 iterrows 性能瓶颈）
             if track == 'full':
-                texts = (df_exploded.get('标题', pd.Series('', index=df_exploded.index))
-                         .fillna('').astype(str)
-                         + ' '
-                         + df_exploded.get('内容', pd.Series('', index=df_exploded.index))
-                         .fillna('').astype(str)).str.strip().tolist()
+                # P1 修复 (metric-audit 2026-06-02, 病根A): 改读 content_full (= stage13
+                # prepend_title(标题,内容), 与 tone_words/tone_berts/ctx 轨同源), 替代裸
+                # 空格拼接; 缺列回退 prepend_title 内联构建.
+                if 'content_full' in df_exploded.columns:
+                    texts = df_exploded['content_full'].fillna('').astype(str).str.strip().tolist()
+                else:
+                    from news_process.core.text.entity_context import prepend_title
+                    _t = df_exploded.get('标题', pd.Series('', index=df_exploded.index)).fillna('').astype(str)
+                    _b = df_exploded.get('内容', pd.Series('', index=df_exploded.index)).fillna('').astype(str)
+                    texts = [prepend_title(t, b).strip() for t, b in zip(_t, _b)]
             else:
                 texts = df_exploded['content_ctx'].fillna('').astype(str).str.strip().tolist()
 
