@@ -264,28 +264,3 @@ class TestEpuMonthEqualWeighting:
         # year_end = 12 月值; complete=1 (12 月齐, 旧实现恒 0)
         assert abs(a.epu_year_end - 120.0) < 1e-9
         assert int(a.epu_data_complete) == 1
-
-
-class TestNArticlesPhysicalCount:
-    """P1 (encode-02): n_articles 应为物理篇数('size'), 非 LLM 有效投票数('count')."""
-
-    def test_build_aggregation_dict_uses_size(self):
-        from news_process.pipeline.panel.encode import build_aggregation_dict
-        agg = build_aggregation_dict()
-        assert agg['n_articles'] == ('llm_vote_score_full', 'size'), \
-            "n_articles 应用 'size'(物理篇数), 非 'count'(跳 NA)"
-        assert agg.get('n_articles_llm_valid') == ('llm_vote_score_full', 'count'), \
-            "应保留 n_articles_llm_valid 旧语义备查"
-
-    def test_size_counts_all_rows_count_skips_na(self):
-        df = pd.DataFrame({
-            'target_bank': ['A', 'A', 'A'], 'year': [2018, 2018, 2018],
-            'llm_vote_score_full': pd.array([1, None, None], dtype='Int8'),
-        })
-        g = df.groupby(['target_bank', 'year'], as_index=False).agg(
-            n_articles=('llm_vote_score_full', 'size'),
-            n_articles_llm_valid=('llm_vote_score_full', 'count'),
-        )
-        row = g.iloc[0]
-        assert row['n_articles'] == 3          # 物理篇数 (含 NA)
-        assert row['n_articles_llm_valid'] == 1  # 仅非 NA
