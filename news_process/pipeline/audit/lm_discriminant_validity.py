@@ -89,6 +89,20 @@ HTMT_STRICT = 0.85
 HTMT_LENIENT = 0.90
 
 
+def _offdiag_max(corr: pd.DataFrame) -> float:
+    """对称矩阵的非对角最大值 (P0 修复 metric-audit 2026-06-02; CoW 安全).
+
+    pandas 3.0 Copy-on-Write 下 DataFrame.values / corr().abs().values 返回**只读**
+    数组, 此前 `np.fill_diagonal(df.values, np.nan)` 抛
+    ``ValueError: assignment destination is read-only`` → stage 39e (默认启用的
+    validation stage) 运行期崩溃. 改为在可写副本上置对角为 NaN 后取 nanmax,
+    语义与旧 ``fill_diagonal + df.max().max()`` 完全一致 (off-diagonal 最大值).
+    """
+    arr = corr.to_numpy(copy=True)
+    np.fill_diagonal(arr, np.nan)
+    return float(np.nanmax(arr))
+
+
 def compute_htmt_matrix(panel: pd.DataFrame, indicators: list[str]) -> pd.DataFrame:
     """k×k HTMT 矩阵 (Henseler et al. 2015 JAMS).
 
@@ -140,8 +154,7 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
     obs_htmt = compute_htmt_matrix(panel, present)
     if obs_htmt.empty:
         return pd.DataFrame()
-    np.fill_diagonal(obs_htmt.values, np.nan)
-    obs_max = obs_htmt.max().max()
+    obs_max = _offdiag_max(obs_htmt)  # P0 修复: CoW 安全 (不写只读 .values)
     # Layer 8.1 (v2.3-followup-v2 第 17 轮 user-request): perm 100 stub → n_perm reps.
     # 与 stage 39c/39d v3.5.0/v3.5.1 1000-rep 基线对齐 (Henseler-Ringle-
     # Sarstedt 2015 JAMS 建议 ≥ 500; 项目 stage 39d 用 1000 seed=42).
@@ -149,11 +162,10 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
     for _ in range(n_perm):
         shuffled = panel[present].apply(lambda c: rng.permutation(c.values))
         h = shuffled.corr().abs()
-        np.fill_diagonal(h.values, np.nan)
-        perm_max.append(h.max().max())
+        perm_max.append(_offdiag_max(h))  # P0 修复: CoW 安全
     p_emp = float((np.array(perm_max) >= obs_max).mean())
     return pd.DataFrame([{
-        'obs_htmt_max': obs_htmt.max().max(),
+        'obs_htmt_max': obs_max,  # P0 修复: off-diag max (obs_htmt 不再 in-place 改)
         'perm_htmt_max_mean': float(np.mean(perm_max)),
         'perm_htmt_max_p95': float(np.percentile(perm_max, 95)),
         'p_empirical': p_emp,
@@ -201,8 +213,7 @@ def main():
             logger.info(f"    Permutation → {perm_path}")
 
         # G-A1.2 准入门控判定
-        np.fill_diagonal(htmt.values, np.nan)
-        max_htmt = htmt.max().max()
+        max_htmt = _offdiag_max(htmt)  # P0 修复: CoW 安全
         logger.info(
             f"    G-A1.2 判定: max HTMT = {max_htmt:.4f} "
             f"({'PASS' if max_htmt < HTMT_STRICT else 'FAIL (need expert audit)'})"

@@ -107,3 +107,39 @@ class TestStaleAndNerYearSchemaContract:
         assert 'surface_staleness_full' in panel.columns
         # 工商银行: 2017 + 2018 两行; 建设银行: 2018 一行 → 3 bank-year
         assert len(panel) == 3
+
+
+class TestDiscriminant39eCoWSafe:
+    """P0 (漏报): stage 39e np.fill_diagonal(df.values) 在 pandas 3.0 CoW 下崩溃."""
+
+    def test_corr_values_is_readonly_under_cow(self):
+        # 文档化崩溃前提: pandas 3.0 CoW 下 corr().abs().values 为只读.
+        m = pd.DataFrame(np.random.RandomState(0).rand(6, 6))
+        v = m.corr().abs().values
+        if not v.flags.writeable:
+            with pytest.raises(ValueError):
+                np.fill_diagonal(v, np.nan)  # 旧代码在此崩
+
+    def test_offdiag_max_no_crash_and_matches_legacy(self):
+        from news_process.pipeline.audit.lm_discriminant_validity import (
+            _offdiag_max,
+        )
+        corr = pd.DataFrame(np.random.RandomState(1).rand(6, 6)).corr().abs()
+        od = _offdiag_max(corr)  # 不得崩
+        # 语义=非对角最大值 (旧 fill_diagonal+max().max() 在可写副本上的结果)
+        a = corr.to_numpy(copy=True)
+        np.fill_diagonal(a, np.nan)
+        legacy = float(np.nanmax(a))
+        assert abs(od - legacy) < 1e-12
+        assert od < 1.0, "必须排除对角自相关(=1.0)"
+
+    def test_permutation_null_runs(self):
+        from news_process.pipeline.audit.lm_discriminant_validity import (
+            INDICATORS_FULL,
+            permutation_null,
+        )
+        rng = np.random.default_rng(0)
+        panel = pd.DataFrame({c: rng.random(60) for c in INDICATORS_FULL})
+        out = permutation_null(panel, INDICATORS_FULL, n_perm=20, seed=42)
+        assert not out.empty
+        assert out['obs_htmt_max'].iloc[0] < 1.0  # off-diag, 非对角 1.0
