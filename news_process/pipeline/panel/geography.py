@@ -277,12 +277,23 @@ def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
     z_count = 0
     new_cols = {}
 
+    # nullable dtype 加固 (metric-audit 2026-06-02): pandas 3.0 下, 把 nullable
+    # Float64/Int64 (ExtensionArray) 的算术结果赋值进 numpy float64 Series 会触发
+    # LossySetitemError (旧 pandas silent up-cast). 下方逐列先 to_numeric→float64
+    # 归一, 既消除崩溃又使 z-score 对上游列 dtype-agnostic (NA→NaN, 零新闻行仍 NaN).
+    _nullable = [c for c in valid_cols
+                 if pd.api.types.is_extension_array_dtype(panel[c])]
+    if _nullable:
+        logger.info(f"    nullable(ExtensionArray) 白名单列 (已 float64 归一): {_nullable}")
+
     for col in valid_cols:
         z_col = f'{col}_z'
         z_series = pd.Series(np.nan, index=panel.index)
+        # nullable→numpy float64 归一, 使后续算术与 .loc 赋值在统一 dtype 下进行
+        col_numeric = pd.to_numeric(panel[col], errors='coerce').astype('float64')
 
         for year, grp in panel[has_news].groupby('year'):
-            vals = grp[col].dropna()
+            vals = col_numeric.loc[grp.index].dropna()
             if len(vals) < 3:
                 continue
             mu = vals.mean()
@@ -290,7 +301,7 @@ def standardize_panel_variables(panel: pd.DataFrame) -> pd.DataFrame:
             if sigma < 1e-10:
                 continue
             idx = grp.index
-            z_series.loc[idx] = (panel.loc[idx, col] - mu) / sigma
+            z_series.loc[idx] = (col_numeric.loc[idx] - mu) / sigma
 
         new_cols[z_col] = z_series
         z_count += 1

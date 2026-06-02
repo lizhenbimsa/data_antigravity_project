@@ -180,8 +180,20 @@ def aggregate_epu_to_bank_year(
     year_epu = year_epu.drop(columns=['_n_months'])
 
     # broadcast 到 bank-year (EPU 在年内对所有银行相同)
+    # P1 修复回归补丁 (metric-audit 2026-06-02): 函数契约 (docstring) 声明 article_df
+    # 含 'year', 但实际上游 13_news_with_ctx.parquet 仅有 date_col ('日期') 无派生 year;
+    # 旧主路径自行从 date 派生, 本批重写主路径时漏带. 此处显式派生 (与 executive_ner /
+    # article_staleness 的 pd.to_datetime(日期).dt.year 同口径), 避免 KeyError.
+    if 'year' in article_df.columns:
+        bank_year = article_df[['target_bank', 'year']].dropna(subset=['year']).copy()
+    else:
+        bank_year = pd.DataFrame({
+            'target_bank': article_df['target_bank'].values,
+            'year': pd.to_datetime(article_df[date_col], errors='coerce').dt.year,
+        }).dropna(subset=['year'])
+    bank_year['year'] = bank_year['year'].astype(int)
     out = (
-        article_df[['target_bank', 'year']].drop_duplicates()
+        bank_year.drop_duplicates()
         .merge(year_epu, on='year', how='left')
     )
     return out

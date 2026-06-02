@@ -282,6 +282,30 @@ class TestEpuMonthEqualWeighting:
         # 且 fallback 也取 12 月值(非旧 .last())
         assert abs(f.epu_year_end - 120.0) < 1e-9
 
+    def test_main_path_derives_year_from_date_when_no_year_col(self):
+        """回归: 真实 13_news_with_ctx 仅有 str '日期' 无 'year' 列.
+
+        旧上面两个测试都给 article_df 塞了 year 列, 漏掉真实 schema. 本批主路径
+        重写一度直接 article_df[['target_bank','year']] → KeyError(year). 本测试钉住
+        '主路径在 article_df 缺 year 时须从 日期 派生' 的契约 (与 stage 16 实跑一致).
+        """
+        from news_process.pipeline.external.epu_merge import (
+            aggregate_epu_to_bank_year,
+        )
+        epu = self._epu_df()
+        # 注意: 无 'year' 列, 仅 str '日期' (镜像真实 13_news_with_ctx.parquet)
+        art = pd.DataFrame({
+            'target_bank': ['A'] * 12 + ['B'] * 12,
+            '日期': [f'2017-{m:02d}-15 00:00:00' for m in range(1, 13)] * 2,
+        })
+        assert 'year' not in art.columns
+        out = aggregate_epu_to_bank_year(art, epu)  # 不得 KeyError
+        assert set(out['year'].unique()) == {2017}
+        assert out['target_bank'].nunique() == 2
+        simple_mean = float(epu.query('year==2017')['epu'].mean())
+        assert abs(out['epu_mean_year'].iloc[0] - simple_mean) < 1e-9
+        assert int(out['epu_data_complete'].iloc[0]) == 1
+
 
 class TestNArticlesPhysicalRefactor:
     """encode-02 正确重构: n_articles=物理篇数(coverage), 分类 frac 分母=n_articles_llm_valid.

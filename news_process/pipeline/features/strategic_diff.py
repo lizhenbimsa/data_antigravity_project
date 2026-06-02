@@ -723,14 +723,18 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
         if is_distance:
             # 距离矩阵: 升序排列, 取最小 N 个 (LDA+JSD 路径)
             idx = np.argsort(valid)
-            results['sim_max'][bank] = float(1.0 - valid[idx[0]])
+            # float 误差容忍: 距离可微负 / sim=1-dist 可微超 1 → clip [0,1] (镜像 L839)
+            results['sim_max'][bank] = float(np.clip(1.0 - valid[idx[0]], 0.0, 1.0))
             for N in N_list:
                 k = min(N, len(valid))
                 # Ŝ_i = mean(dist_topK), K = min(N, |peers|)
-                results[f'n{N}'][bank] = float(np.mean(valid[idx[:k]]))
+                results[f'n{N}'][bank] = float(np.clip(np.mean(valid[idx[:k]]), 0.0, 1.0))
         else:
             # 相似度矩阵: 降序排列, 取最大 N 个
             # Guzman & Li (2023, §3): δ_ij = 1 - sim_ij → Ŝ_i = mean(δ_topN)
+            # metric-audit 2026-06-02: float32 cosine 点积可溢出 [0,1] ~1e-7
+            # (归一化向量内积舍入); clip sim 防 sim_max>1+1e-10 断言崩 / 距离(1-sim)<0.
+            valid = np.clip(valid, 0.0, 1.0)
             idx = np.argsort(valid)[::-1]
             results['sim_max'][bank] = float(valid[idx[0]])
             for N in N_list:
