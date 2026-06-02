@@ -338,3 +338,43 @@ class TestStrategicDiffNoDoubleTitle:
         # 2 篇文章, 每篇标题应恰 1 次 → 共 2 次 (旧 ctx bug 为 4)
         assert full.count(T) == 2, f"full 标题次数={full.count(T)}"
         assert ctx.count(T) == 2, f"ctx 双标题未修复: {ctx.count(T)} (应 2, 旧 bug=4)"
+
+
+class TestNArticlesCrossFileConsumers:
+    """n_articles 重构跨文件消费者对齐: stata_audit 恒等式须用 LLM-valid 口径.
+
+    终验工作流发现: encode.py 内重构正确, 但 stata_audit/encode_collab/network_brokerage
+    等下游仍硬编码旧 n_articles=count 假设. stata_audit 恒等式是 P1 阻断
+    (FAIL → stage 52 退出码 1). 本测试钉住: 物理 n_articles 的 panel 不再误 FAIL.
+    """
+
+    def _run_identity(self, panel):
+        import news_process.pipeline.audit.stata_audit as sa
+        sa.audit_results.clear()
+        sa.audit_sentiment_consistency(panel, 'test')
+        ids = [r for r in sa.audit_results if '恒等式' in r['check']]
+        return [r for r in ids if r['status'] == 'FAIL']
+
+    def test_new_panel_physical_n_articles_no_false_fail(self):
+        # 新 panel: n_articles=物理(含 LLM 失败行), llm_valid=count, tech+app=llm_valid.
+        panel = pd.DataFrame({
+            'target_bank': ['A', 'B'], 'year': [2018, 2018],
+            'n_articles': [10, 12],            # 物理 (2/3 篇 LLM 失败)
+            'n_articles_llm_valid': [8, 9],    # 有效
+            'n_articles_tech': [5, 6], 'n_articles_app': [3, 3],
+            'pos_count_full': [4, 5], 'neg_count_full': [2, 2],
+            'pos_frac_full': [0.5, 0.55], 'neg_frac_full': [0.25, 0.22],
+        })
+        # 修复前: n_articles(10) != tech+app(8) → FAIL; 修复后 _nac=llm_valid → PASS
+        assert self._run_identity(panel) == [], "物理 n_articles 不应令恒等式误 FAIL"
+
+    def test_old_frozen_panel_fallback(self):
+        # 旧冻结 panel: 无 n_articles_llm_valid, n_articles=count → fallback 用 n_articles.
+        panel = pd.DataFrame({
+            'target_bank': ['A', 'B'], 'year': [2018, 2018],
+            'n_articles': [8, 9],              # 旧口径 = count
+            'n_articles_tech': [5, 6], 'n_articles_app': [3, 3],
+            'pos_count_full': [4, 5], 'neg_count_full': [2, 2],
+            'pos_frac_full': [0.5, 0.55], 'neg_frac_full': [0.25, 0.22],
+        })
+        assert self._run_identity(panel) == [], "旧 panel fallback 应正常 PASS"

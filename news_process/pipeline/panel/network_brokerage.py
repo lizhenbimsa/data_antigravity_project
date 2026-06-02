@@ -331,8 +331,12 @@ def compute_industry_neg_shock(panel: pd.DataFrame) -> pd.DataFrame:
 
     # 第一步: 计算每家银行的负面报道比例
     # replace(0, np.nan) 确保零文章银行不产生 Inf, 而是 NaN
+    # metric-audit 2026-06-02 (encode-02 重构对齐): neg_count_full 是 LLM-count
+    # (encode.py is_negative_full sum), 分母须同口径 = LLM-valid 篇数; 重构后
+    # n_articles=物理 size, 用 n_articles_llm_valid (旧 panel 缺列回退 n_articles, 其即 count).
+    _nac = 'n_articles_llm_valid' if 'n_articles_llm_valid' in panel.columns else 'n_articles'
     panel['_neg_ratio'] = (panel['neg_count_full']
-                           / panel['n_articles'].replace(0, np.nan))
+                           / panel[_nac].replace(0, np.nan))
 
     # 第二步: 逐年 Leave-One-Out 计算
     # 对于年份 t 中的银行 i: shock_i = (Σ_{j≠i} ratio_j) / (N_valid - 1)

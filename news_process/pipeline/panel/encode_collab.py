@@ -267,10 +267,15 @@ def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     # 严格完整性公式 `n_articles == Σ cells + n_articles_cell_NA_full` 作为 stronger
     # check (na_bucket_fail), 任何时候都应 = 0 — 若不为 0 则上游 LLM 输出有 race condition.
     main_sum = sum(panel[f'n_articles_cell_{i}_full'] for i in range(1, 9))
-    has_news = panel['n_articles'] > 0
-    main_fail = int((panel.loc[has_news, 'n_articles']
+    # metric-audit 2026-06-02 (encode-02 重构对齐): cells + NA 桶建在 LLM-valid 子集
+    # (count 口径), 故恒等式 LHS 须同口径; 重构后 n_articles=物理 size → 用
+    # n_articles_llm_valid (旧 panel 缺列回退 n_articles, 其即 count). 否则含 LLM 失败行
+    # 的 bank-year 令 size != Σcells+NA → 误报"上游 race condition".
+    _nac = 'n_articles_llm_valid' if 'n_articles_llm_valid' in panel.columns else 'n_articles'
+    has_news = panel[_nac] > 0
+    main_fail = int((panel.loc[has_news, _nac]
                      < main_sum.loc[has_news]).sum())
-    na_bucket_fail = int((panel.loc[has_news, 'n_articles']
+    na_bucket_fail = int((panel.loc[has_news, _nac]
                           != main_sum.loc[has_news]
                           + panel.loc[has_news, 'n_articles_cell_NA_full']).sum())
 
@@ -290,7 +295,7 @@ def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
 
     # F-CR-cell-NA: 即便 main_fail / cross_fail 都 = 0, 仍报告 NA bucket 占比 (诊断信息)
     na_total = int(panel['n_articles_cell_NA_full'].sum())
-    n_articles_total = int(panel.loc[has_news, 'n_articles'].sum())
+    n_articles_total = int(panel.loc[has_news, _nac].sum())
     na_pct = (na_total / n_articles_total * 100) if n_articles_total > 0 else 0.0
 
     if main_fail > 0 or indep_cross_fail > 0 or collab_cross_fail > 0:

@@ -192,7 +192,10 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
                                f'{var} 缺失率={miss_pct:.1%}')
                 else:
                     # 情感变量: 在有新闻的行应非缺失
-                    has_news = panel['n_articles'] > 0 if 'n_articles' in panel.columns else pd.Series(True, index=panel.index)
+                    # metric-audit 2026-06-02: 用 LLM-valid 篇数(重构后 n_articles=物理),
+                    # 缺列回退 n_articles, 保旧行为(不对 LLM 全失败行误 WARN).
+                    _nac_mv = 'n_articles_llm_valid' if 'n_articles_llm_valid' in panel.columns else 'n_articles'
+                    has_news = panel[_nac_mv] > 0 if _nac_mv in panel.columns else pd.Series(True, index=panel.index)
                     miss_in_news = panel.loc[has_news, var].isna().mean() if has_news.sum() > 0 else 0
                     if miss_in_news > 0.05:
                         record(cat, f'关键变量缺失-{label}', 'WARN',
@@ -292,7 +295,12 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
     logger.info("=" * 70)
     cat = f"{name}/情感一致性"
 
-    has_news = panel['n_articles'] > 0 if 'n_articles' in panel.columns else pd.Series(True, index=panel.index)
+    # metric-audit 2026-06-02 (encode-02 重构对齐): 情感/分类计数恒等式须用 LLM-valid
+    # 篇数 (count 口径); 重构后 n_articles=物理 size → 用 n_articles_llm_valid (旧 panel
+    # 缺列回退 n_articles, 其即 count). 否则含 LLM 失败行的 bank-year 令 size != tech+app
+    # → 误 FAIL, 而 audit_sentiment_consistency 的 FAIL 会使 stage 52 退出码=1.
+    _nac = 'n_articles_llm_valid' if 'n_articles_llm_valid' in panel.columns else 'n_articles'
+    has_news = panel[_nac] > 0
     p = panel[has_news]
 
     # 3a. pos_frac + neg_frac + neutral_frac 恒等式
@@ -318,7 +326,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
             pos = p[pos_col].fillna(0)
             neg = p[neg_col].fillna(0)
             total_sentiment = pos + neg
-            neutral_implied = p['n_articles'] - total_sentiment
+            neutral_implied = p[_nac] - total_sentiment
             neg_neutral = (neutral_implied < -0.5).sum()
             if neg_neutral > 0:
                 record(cat, f'情感计数恒等式 ({track})', 'FAIL',
@@ -382,7 +390,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
     # 3f. 分类恒等式 n = tech + app
     if all(c in panel.columns for c in ['n_articles', 'n_articles_tech', 'n_articles_app']):
         check = panel.loc[has_news]
-        identity = (check['n_articles'] ==
+        identity = (check[_nac] ==
                     check['n_articles_tech'] + check['n_articles_app'])
         failures = (~identity).sum()
         if failures > 0:
