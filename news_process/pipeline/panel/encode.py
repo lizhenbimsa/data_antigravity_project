@@ -571,7 +571,13 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
 
     # --- E. 新闻覆盖量 & 稳健性辅助（无需双轨） ---
 
-    agg['n_articles'] = ('llm_vote_score_full', 'count')
+    # P1 修复 (metric-audit 2026-06-02, encode-02): n_articles 应为物理新闻篇数
+    # (Fang-Peress 2009 JF media coverage), 与 LLM 解析成功率正交. 旧
+    # ('llm_vote_score_full','count') 跳过 NA → 实为"LLM 有效投票篇数" ≤ 物理篇数
+    # (~17.6% bank-year 低估), 污染 ln_news_coverage / 各 frac 分母 / digital_frontier
+    # DDD 分组. 'size' 计全组行数 (含 NA = 物理篇数); 旧语义另存 n_articles_llm_valid.
+    agg['n_articles'] = ('llm_vote_score_full', 'size')
+    agg['n_articles_llm_valid'] = ('llm_vote_score_full', 'count')
     agg['headline_frac'] = ('in_title', 'mean')
     agg['multi_bank_frac'] = ('is_multi_bank', 'mean')
     agg['avg_bank_count'] = ('bank_count', 'mean')
