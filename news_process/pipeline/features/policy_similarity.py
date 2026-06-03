@@ -113,7 +113,10 @@ def compute_authoritative_similarity(df_exploded, panel):
         return panel
 
     # 2. 准备 Full 轨与 Ctx 轨池化数据
-    tracks = [('_full', _aggregate(df_exploded, text_col='内容'))]
+    # fix(completeness-04): full 轨读 content_full(含标题, v3.8.0 两轨契约), 与 ctx 轨
+    # (content_ctx 含标题) 对称; 原读裸 '内容'(无标题) 致 full↔ctx 不对称 (病根A 同型)。
+    _full_text_col = 'content_full' if 'content_full' in df_exploded.columns else '内容'
+    tracks = [('_full', _aggregate(df_exploded, text_col=_full_text_col))]
     if 'content_ctx' in df_exploded.columns:
         tracks.append(('_ctx', _aggregate(df_exploded, text_col='content_ctx')))
     else:

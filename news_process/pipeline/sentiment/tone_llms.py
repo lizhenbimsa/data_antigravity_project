@@ -293,6 +293,22 @@ def _summarize_auth_failure(status: int, resp_text: str) -> str:
     return f"状态码 {status} 授权失败" + (f" ({message})" if message else "")
 
 
+def _strip_prepended_title(text: str, title: str) -> str:
+    """剥离 prepend_title 拼接的标题前缀 (entity_context.prepend_title 的逆操作)。
+
+    fix(tonellms-01): content_ctx 由 stage13 prepend_title 拼成 ``title + [。] + body``;
+    喂 LLM prompt 前需还原为去标题 body, 避免与 {title} 字段重复注入标题。
+    """
+    from news_process.core.text.entity_context import _TITLE_SEP
+    title = str(title or '').strip()
+    if not title or not text.startswith(title):
+        return text
+    rest = text[len(title):]
+    if rest.startswith(_TITLE_SEP):
+        rest = rest[len(_TITLE_SEP):]
+    return rest
+
+
 def _build_llm_request(model_id: str, api_key: str, prompt: str) -> tuple[dict, dict]:
     headers = {
         "Content-Type": "application/json",
@@ -561,10 +577,17 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
             content_full = str(row.get('内容', ''))
             content_ctx = str(row.get('content_ctx', content_full))
             target_bank = str(row.get('target_bank', ''))
-            
-            for track, content in [('full', content_full), ('ctx', content_ctx)]:
+            title = str(row.get('标题', ''))
+            # fix(tonellms-01): content_ctx 已由 stage13 prepend 标题, 若再把 {title} 作独立
+            # 字段注入会致 ctx 轨标题双重注入 (full 轨 1 次 / ctx 轨 2 次), 污染 full↔ctx
+            # 对照 — 而 llm_vote_tone_ctx 是 P1 G3 主处理。剥离 content_ctx 的标题前缀, 使
+            # 两轨对称: 均由 {title} 字段提供标题 1 次 + content 提供去标题正文/窗口。
+            # full 轨 (内容 无标题) 不变 → 缓存命中、$0。
+            content_ctx_body = _strip_prepended_title(content_ctx, title)
+
+            for track, content in [('full', content_full), ('ctx', content_ctx_body)]:
                 prompt = PROMPT_TEMPLATE.format(
-                    title=str(row.get('标题', '')),
+                    title=title,
                     content=content,
                     target_bank=target_bank,
                     co_mentioned_banks=str(row.get('co_mentioned_banks', '无')),

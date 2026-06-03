@@ -1221,7 +1221,10 @@ def compute_strategic_differentiation(df_exploded, panel):
     #   N=5 是论文推荐的基准值，其他是"换个数字看结果是否稳定"
     N_LIST = [3, 4, 5, 6, 7]
     # 第一步: 把所有新闻按 (银行, 年) 合并成"年度总结"大文档
-    agg_df = _aggregate_bank_year_texts(df_exploded)
+    # fix(completeness-04): full 轨读 content_full(含标题), 与 ctx 轨(content_ctx)对称;
+    # 原默认裸 '内容'(无标题) 致 full↔ctx 不对称 (病根A 同型, 见 :339 注释)。
+    _full_text_col = 'content_full' if 'content_full' in df_exploded.columns else '内容'
+    agg_df = _aggregate_bank_year_texts(df_exploded, text_col=_full_text_col)
     all_results = []  # 用来收集所有年度、所有银行的计算结果
 
     # 【白话】逐年计算 — 每一年独立建模，不跨年混合

@@ -149,3 +149,19 @@ class TestNetworkSpilloverEndToEnd:
         # network-01: W² 去对角 → A 的二阶溢出 = 0.5*tone_C = -0.5 (含对角则为 0)
         v = get('Abank', 'peer_tone_2nd_lag1_full')
         assert abs(v - (-0.5)) < 1e-9, f'peer_tone_2nd[A]={v}, 期望 -0.5 (去对角)'
+
+
+class TestTonellmsCtxTitleStrip:
+    """tonellms-01: ctx 轨 prompt 剥离 prepend 的标题前缀 (prepend_title 逆操作),
+    避免与 {title} 字段双重注入 (full 1 次 / ctx 原 2 次)。"""
+
+    def test_strip_prepended_title(self):
+        from news_process.pipeline.sentiment.tone_llms import _strip_prepended_title
+        # title 不以句末标点结尾 → prepend 为 title + 。 + body
+        assert _strip_prepended_title('标题文本。正文内容', '标题文本') == '正文内容'
+        # title 已以句末标点结尾 → prepend 为 title + body (无额外分隔)
+        assert _strip_prepended_title('标题！正文', '标题！') == '正文'
+        # body 不以 title 开头 → 原样返回 (不误删)
+        assert _strip_prepended_title('其他正文', '标题') == '其他正文'
+        # 空标题 → 原样
+        assert _strip_prepended_title('正文', '') == '正文'

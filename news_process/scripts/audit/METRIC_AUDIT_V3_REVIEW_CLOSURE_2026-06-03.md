@@ -40,3 +40,12 @@
 test_panel_reproducibility **19 绿** · stata_audit **FAIL=0** · metric-audit 回归 **54 passed** (含新 network e2e) · Stata 模板 + 触及模块 **252 passed** · ruff clean。预存失败 (ftfy/xlsxwriter/statsmodels 缺依赖 + 87→88 漂移) 与本批无关。备份 data/processed_v3fix_bak2/。
 
 **结论**: 首轮修复经终审揪出 6 个同型漏改兄弟 + 4 个 Stata 兄弟 + 1 over-claim, batch-2 已全部闭合 (cost-gated 2 项明确 defer)。当前 PR#6 (f0babf46 + batch-2 commit) 在已审范围内**无 blocker/major 残留**, 可 merge。
+
+## 6. batch-3: 两个 cost-gated 项处置 (user "授权付费")
+
+- **completeness-04 (policy_similarity auth_sim + strategic_diff) — 已修+已落盘**: 两者 full 轨改读 content_full(含标题), 与 ctx 对称(病根A 兄弟)。经 stage45 重 embedding(付费, 已授权)+ 46/51/golden: full 轨 7/12 auth_sim/strat 列改变(auth_sim_tfidf_c_full 119行 mean|Δ|0.0007 / strat_diff_t2v_full 119行 mean|Δ|0.0023, 量级小因标题占比小, 正确性向)。**澄清**: stage15 `policy_alignment.py:468` 的 policy_cosine full 轨**已是** `titles + ' ' + contents`(含标题), 非病根A 兄弟, 无需改(实测重跑 policy_cosine 0 变化)。
+- **tonellms-01 (ctx LLM 标题双注入) — 代码已修, 落盘 defer 至 production run**: 代码已改(content_ctx 喂 prompt 前剥离 prepend 标题, 逆 prepend_title; full 轨不变缓存命中; +`_strip_prepended_title` helper + 单测 4 case)。**但落盘不经 piecemeal stage-21 重跑**: 实测重跑 stage21 暴露**预存的行组成非确定性**(857 vs 859 行, docid 集不等, 与 V3 B3 的 content_ctx run-to-run 漂移同源, 与本改无关), piecemeal 落盘会向 panel/golden 注入不可控行噪声(比所修的标题双注入更糟)。故 revert stage21 回 859 干净态, 保留代码修复, 待**下次确定性全 production run**(从头跑全链)自然落盘。3510 次 ctx LLM 调用已执行(已授权)但产物因行噪声丢弃, 不污染 panel。
+
+**batch-3 验证**: stage45 重 embed exit0 / 46/51/golden exit0 / stata_audit FAIL=0 / metric-audit 含新 strip 单测 54 passed / batch-2 不变式保持(jf∈[-1,1], peer_cov 0 越界, frac OOB 0)。备份 processed_v3fix_bak3/。
+
+**最终 defer 清单(已无可在当前环境干净落盘的项)**: tonellms-01 落盘(待 production run, 代码已就位)。其余全闭合。**核心教训追加**: 个别上游 stage(21)在本环境 run-to-run 行组成非确定, piecemeal 重跑会引噪 — 改值落盘须分清"可干净重跑的 stage(15/45 确定性)"vs"须整链 production run 的 stage(21 非确定)"。
