@@ -113,3 +113,39 @@ class TestJanisFadnerNoInt8Overflow:
                 assert -1.0 <= jf <= 1.0, f"P={P},N={N} → jf={jf} 越界"
         # 平安银行 2017 真实案例: P=14,N=1 → 0.8089 (非溢出的 2.387)
         assert abs(self._jf(14, 1) - 0.8089) < 1e-3
+
+
+class TestNetworkSpilloverEndToEnd:
+    """network-01/-03 端到端: 生产函数 compute_network_spillovers 在含孤立银行的
+    小面板上, 孤立行 peer_tone→NaN 且 peer_tone_2nd 去对角(不含本行自反馈)."""
+
+    def test_isolated_nan_and_w2_no_self_feedback(self):
+        from news_process.pipeline.panel.network_spillover import (
+            compute_network_spillovers,
+        )
+        banks = ['Abank', 'Bbank', 'Cbank', 'Dbank']
+        tones = {'Abank': 1.0, 'Bbank': 0.0, 'Cbank': -1.0, 'Dbank': 0.0}
+        rows = []
+        for y in (2017, 2018):
+            for b in banks:
+                rows.append({'target_bank': b, 'year': y,
+                             'llm_vote_tone_full': tones[b] if y == 2017 else np.nan})
+        panel = pd.DataFrame(rows)
+        # 2017 共现链 A-B, B-C; D 孤立
+        df_ex = pd.DataFrame([
+            {'year': 2017, 'target_bank': 'Abank', 'co_mentioned_banks': 'Bbank'},
+            {'year': 2017, 'target_bank': 'Bbank', 'co_mentioned_banks': 'Abank;Cbank'},
+            {'year': 2017, 'target_bank': 'Cbank', 'co_mentioned_banks': 'Bbank'},
+            {'year': 2017, 'target_bank': 'Dbank', 'co_mentioned_banks': ''},
+        ])
+        out = compute_network_spillovers(panel.copy(), df_ex)
+
+        def get(bank, col):
+            m = (out['target_bank'] == bank) & (out['year'] == 2018)
+            return out.loc[m, col].iloc[0]
+
+        # network-03: 孤立银行 D 的 peer_tone 应 NaN (非结构性 0)
+        assert pd.isna(get('Dbank', 'peer_tone_lag1_full'))
+        # network-01: W² 去对角 → A 的二阶溢出 = 0.5*tone_C = -0.5 (含对角则为 0)
+        v = get('Abank', 'peer_tone_2nd_lag1_full')
+        assert abs(v - (-0.5)) < 1e-9, f'peer_tone_2nd[A]={v}, 期望 -0.5 (去对角)'

@@ -42,6 +42,13 @@
 
 输入: 41_panel_encode_aggregate 生成的面板 + 篇章级 df_exploded
 输出: 面板中追加 peer_tone_lag1_*、22 种中心度、bank_cogn_mean 列
+
+T=2 样本披露 (metric-audit V3 data-02): fix(network-03) 后, 孤立银行(无共现同行)
+的 peer_tone/peer_tone_2nd/peer_cov 正确置 NaN(而非伪零)。当前 T=2(2017-2018)
+corpus 下, 去伪零后一阶 peer 网仅约 32 bank-year 有值、且全部落 2018 单截面;
+brokerage 2SLS 有效 N≈22(含 DV), 在 absorb(bank_id year) 下 bank FE 饱和、
+**不足以识别**。须待 production run 扩 T≥3 + 结局变量(ROA 等)取数后重估; 论文勿在
+当前样本上声称因果。
 """
 
 import json
@@ -305,6 +312,11 @@ def compute_network_spillovers(
                         val = val.iloc[0]
                     cov_vec[bank] = val
             peer_cov = W.values @ cov_vec.fillna(0).values
+            # fix(completeness-01): 孤立银行(W 行全 0, 无共现同行)的 peer_cov 应为 NaN,
+            # 与 peer_tone/peer_tone_2nd 同口径(否则 41 个结构性 0 混入 brokerage Table1
+            # 描述统计, 把"无同行"伪装成"同行覆盖度=0")。
+            _has_peers_cov = (W.values.sum(axis=1) > 0)
+            peer_cov = np.where(_has_peers_cov, peer_cov, np.nan)
             for idx_b, bank in enumerate(bank_list):
                 key = (bank, year)
                 if key not in peer_dict:
@@ -1215,6 +1227,10 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
                 tone_vec[bank] = val
 
         emb_peer_tone = W_emb.values @ tone_vec.fillna(0).values
+        # fix(completeness-06): 与 peer_tone 同口径 — 嵌入网中孤立行(W_emb 行全 0)→ NaN
+        # 而非结构性 0(当前嵌入矩阵稠密, 0 个孤立行, 故无当前数值影响, 仅防御性对齐)。
+        _has_emb_peers = (W_emb.values.sum(axis=1) > 0)
+        emb_peer_tone = np.where(_has_emb_peers, emb_peer_tone, np.nan)
 
         for idx, bank in enumerate(bank_list):
             # 平均相似度: 该银行与所有其他银行的 Embedding 余弦相似度均值

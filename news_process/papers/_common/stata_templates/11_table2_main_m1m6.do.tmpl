@@ -40,23 +40,40 @@ capture do "data/processed/46_panel_yearly_labels.do"
 
 * 主变量 local (替换占位符 → main spec)
 * ============================================================================
-* V5 / st-table2-main-04 fix (2026-06-03): full-text track 在面板中是裸名
-*   tech_frac / symb_frac (无 _lf / _sf 后缀); ctx track 才是 tech_frac_lc /
-*   symb_frac_sc. 当 main spec 选 full 轨 (MAIN_LOCUS_TRACK=lf / MAIN_SUBST_TRACK=sf,
-*   见 stata_runner.py:206 _VALID_SPEC_VALUES) 时, 下面 local 会展开成
+* V5 / st-table2-main-04 fix (2026-06-03); correctness-04 升级 (2026-06-03):
+*   full-text track 在面板中是裸名 tech_frac / symb_frac (无 _lf / _sf 后缀);
+*   ctx track 才是 tech_frac_lc / symb_frac_sc. 当 main spec 选 full 轨
+*   (MAIN_LOCUS_TRACK=lf / MAIN_SUBST_TRACK=sf, 见 stata_runner.py:206
+*   _VALID_SPEC_VALUES = {lf,lc} × {sf,sc}) 时, 早期 `tech_frac_<track>` 直拼会展开成
 *   tech_frac_lf / symb_frac_sf — 这两列在面板中不存在 (幻影列), M4/M6 的 reghdfe
-*   引用它们会 r(111) 整张 Table 2 崩. 选 lf/sf 时须确保对应列已物化, 否则改用
-*   lc/sc (ctx 轨) 或裸名. 下方对 LOCUS/SUBST 加 capture confirm 守卫: 缺列时
-*   degrade 为不含 LOCUS/SUBST 的回归 (digital_frontier 仍为主解释), 而非硬崩.
+*   引用它们会 r(111) 整张 Table 2 崩 (full 轨数据其实以裸名存在, 只是无 _lf/_sf 后缀).
+*   correctness-04: 不再丢控制 degrade, 而是把幻影 _lf/_sf 重映射到真实存在的裸名 —
+*   lf → 裸名 tech_frac, sf → 裸名 symb_frac; lc → tech_frac_lc, sc → symb_frac_sc.
+*   占位符在 instantiate 时被替换成字面量 lf/lc/sf/sc, 下面用字符串比较选列名.
+*   保留 capture confirm 作二次兜底: 即使映射后列仍缺 (面板未物化) 也 degrade 不崩.
 * ============================================================================
 local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
-local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
-local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
 
-* LOCUS/SUBST 存在性守卫 (V5 防 r(111))
+* LOCUS: lf (full) → 裸名 tech_frac; lc (ctx) → tech_frac_lc
+if "{{MAIN_LOCUS_TRACK}}" == "lf" {
+    local LOCUS tech_frac
+}
+else {
+    local LOCUS tech_frac_{{MAIN_LOCUS_TRACK}}
+}
+
+* SUBST: sf (full) → 裸名 symb_frac; sc (ctx) → symb_frac_sc
+if "{{MAIN_SUBST_TRACK}}" == "sf" {
+    local SUBST symb_frac
+}
+else {
+    local SUBST symb_frac_{{MAIN_SUBST_TRACK}}
+}
+
+* LOCUS/SUBST 存在性守卫 (V5 防 r(111); 重映射后的二次兜底)
 capture confirm variable `LOCUS' `SUBST'
 if _rc {
-    display "  ⚠️ LOCUS/SUBST 列缺 (`LOCUS' / `SUBST'): full 轨须用裸名 tech_frac/symb_frac, 见 stata_runner; M4-M6 degrade 为不含 LOCUS/SUBST 的回归"
+    display "  ⚠️ LOCUS/SUBST 列缺 (`LOCUS' / `SUBST'): 重映射后仍未物化, M4-M6 degrade 为不含 LOCUS/SUBST 的回归"
     local LOCUS
     local SUBST
 }

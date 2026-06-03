@@ -625,6 +625,9 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
             # 原 mean-center 在左偏分布 (skew≈-1.23) 下仅得 P(>mean)=0.5634≠0.5, 未达声称的
             # ~50% 平衡基线; median-center 由构造保证 P(>median)≈0.5, 对投影偏态稳健。
             # benefit_mean (连续主测度) 不变, 其绝对偏移由 bank/year FE 吸收.
+            # 注 (correctness-01): "P(>median)≈0.5" 指文章级 pooled 分布 (_center 由
+            # df_exploded 算出); 面板列 benefit_pos_frac 因 mean-of-fractions 聚合 (各
+            # bank-year 文章数不均的 Jensen 效应) 实测 bank-year 简单均值 ~0.45, 非 0.5。
             _center = float(df_exploded[col_score].dropna().median())
             frac = (df_exploded
                     .dropna(subset=[col_score])

@@ -26,19 +26,25 @@ set seed {{RANDOM_SEED}}
 * ============================================================================
 * (a) 4 bank types × SOE
 * ============================================================================
-capture confirm variable bank_type soe
+* st-did-05 fix (2026-06-03): (1) bank_type 是字符串列 (str), levelsof 产出字符串 token
+* ('soe'/'joint'/'city'/'rural'/...; 见 iv_did.py::load_bank_group_maps + runner.py:857).
+* 旧 `bank_type == `t'` 宏未加引号 → StataNow 19.5 触发 r(198) invalid syntax. 改为
+* `bank_type == "`t'"` (宏外加双引号, 对齐 attention/17:37,39). (2) SOE 二元列在面板中
+* 实名 `is_soe` (int64), 非 `soe`; 旧 `confirm variable ... soe` 会缺列致整个 (a) 块静默跳过,
+* 旧 `soe == `s'` 引用幻影列. 改为 `is_soe` (数值比较, == `s' 正确无需引号).
+capture confirm variable bank_type is_soe
 if !_rc {
     levelsof bank_type, local(types)
     foreach t of local types {
         forval s = 0/1 {
-            count if bank_type == `t' & soe == `s' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+            count if bank_type == "`t'" & is_soe == `s' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
             if r(N) >= 10 {
-                reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_type == `t' & soe == `s', ///
+                reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_type == "`t'" & is_soe == `s', ///
                     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
                 eststo type_`t'_soe_`s'
             }
             else {
-                display "  [SKIP] bank_type=`t' soe=`s' has " r(N) " obs (< 10; R7-m01)"
+                display "  [SKIP] bank_type=`t' is_soe=`s' has " r(N) " obs (< 10; R7-m01)"
             }
         }
     }

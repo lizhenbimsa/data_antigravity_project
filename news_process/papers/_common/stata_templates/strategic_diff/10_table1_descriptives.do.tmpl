@@ -12,6 +12,9 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
+* st-descriptives-01 fix (2026-06-03): 本表独立 use 全面板后直接 estpost summarize,
+* 无先行回归留下 e(sample), 故描述统计覆盖全面板 (含零新闻 bank-year), 与主回归
+* if e(sample) 样本 N 不一致 — 在表注如实披露 (顶刊复现包诚实度; 对齐 benefit_society/10).
 estpost summarize {{MAIN_DV}} {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} {{SIM_MAX_VAR}} ///
     strat_diff_n3 strat_diff_n4 strat_diff_n6 strat_diff_n7 ///
     strat_diff_n5_lda strat_diff_n5_emb ///
@@ -20,7 +23,8 @@ estpost summarize {{MAIN_DV}} {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} {{SIM_MAX_VAR}}
 esttab using "$tables_dir/table1_descriptives.tex", replace ///
     cells("count mean(fmt(3)) sd(fmt(3)) min(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) max(fmt(3))") ///
     label nomtitle nonumber booktabs ///
-    title("Descriptive Statistics --- strategic_diff panel")
+    title("Descriptive Statistics --- strategic_diff panel") ///
+    note("Descriptives over the full panel (incl. zero-news bank-years); regression sample (if e(sample)) differs in N.")
 
 * Multi-method correlation matrix (convergent validity).
 estpost correlate {{MAIN_DIFF_VAR}} strat_diff_n5_lda strat_diff_n5_emb, matrix

@@ -1315,9 +1315,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 panel['n_articles_collab_cm_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
 
             if 'llm_vote_tone_indep_cm_ctx' in panel.columns and 'llm_vote_tone_collab_cm_ctx' in panel.columns:
+                # fix(completeness-05): 第 6 个 tone_gap 此前漏补 min-n>=5 守门 (对齐其余 5 个),
+                # 否则单篇 cell 伪差距进 ctx 轨机制回归。
+                _indep_collab_cm_qual = (
+                    (panel['n_articles_indep_cm_ctx'] >= 5) & (panel['n_articles_collab_cm_ctx'] >= 5)
+                )
                 panel['tone_gap_indep_collab_cm_ctx'] = (
                     panel['llm_vote_tone_indep_cm_ctx'] - panel['llm_vote_tone_collab_cm_ctx']
-                )
+                ).where(_indep_collab_cm_qual, np.nan)
     else:
         logger.info("  列 'innovation_collab_mode_full' 不存在, innovation_collab_mode 分组聚合将跳过")
 

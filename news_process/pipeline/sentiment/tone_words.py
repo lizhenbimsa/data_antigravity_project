@@ -796,6 +796,34 @@ def _inject_custom_dicts_to_jieba():
         except Exception as e:  # noqa: BLE001
             logger.warning(f"未能加载清晰度词典注入jieba: {e}")
 
+        # 6. 注入 LM 2011 JF 4 子词典 (uncert/litig/constr/modal) + Li 2010 JAR FLS 前瞻词
+        # fix(completeness-02): 与 clarity_cn-01 同型缺陷 — 多字 LM(18.5%)/FLS 词此前从未
+        # add_word, 被 jieba 切碎永不命中, 致 LM/FLS frac 系统性漏匹配下偏。
+        try:
+            from news_process.pipeline.sentiment.lm_non_sentiment import (
+                load_lm_non_sentiment_dicts,
+            )
+            for _subset in load_lm_non_sentiment_dicts().values():
+                for word in _subset:
+                    w = str(word).strip()
+                    if len(w) >= 2:
+                        jieba.add_word(w)
+                        added_count += 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"未能加载 LM 非情感词典注入jieba: {e}")
+        try:
+            from news_process.pipeline.sentiment.forward_looking import (
+                _FUTURE_WORDS,
+                _TIME_FUTURE_MARKERS,
+            )
+            for word in (_FUTURE_WORDS | _TIME_FUTURE_MARKERS):
+                w = str(word).strip()
+                if len(w) >= 2:
+                    jieba.add_word(w)
+                    added_count += 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"未能加载 FLS 前瞻词典注入jieba: {e}")
+
         logger.info(f"成功注入 {added_count} 个领域自定义词汇到 jieba 分词树。")
         _JIEBA_INJECTED = True
 
