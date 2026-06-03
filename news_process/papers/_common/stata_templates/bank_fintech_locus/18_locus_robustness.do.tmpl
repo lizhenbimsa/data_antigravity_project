@@ -55,10 +55,15 @@ else {
 * (6) Spillover SUTVA
 
 * (7) Sample cuts
-reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if bank_type != 1, ///
+* st-did-05 fix (2026-06-03): bank_type 是字符串列 (str), 由 iv_did.py::load_bank_group_maps()
+* 产出 'soe'/'joint'/'city'/'rural'/'private'/'foreign'/'other' (NFRA_TO_SHORT 映射,
+* 见 runner.py:857 `is_soe = (panel['bank_type'] == 'soe')`). 旧 `if bank_type != 1`
+* / `!= 4` 用数值与字符串列比较, StataNow 19.5 触发 r(109) type mismatch. 改为字符串
+* 比较: excl 国有 6 = != "soe", excl 农商行 = != "rural" (对齐 attention/18:94 已修写法).
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if bank_type != "soe", ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo excl_soe6
-reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if bank_type != 4, ///
+reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if bank_type != "rural", ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo excl_rural
 reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if year >= 2013, ///

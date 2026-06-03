@@ -168,6 +168,11 @@ def _cn2arab(text: str) -> str:
     # 2. 处理一般中文数字块
     def _replace_block(match: re.Match) -> str:
         cn_str = match.group(0)
+        # fix(numintensity-02): 序数词 "第N" 不是定量信息 (如 "第三季度"/"第十八届"),
+        # 不转阿拉伯数字, 避免产生假定量 token 污染 Hales 2011 num_intensity。
+        start = match.start()
+        if start > 0 and match.string[start - 1] == '第':
+            return cn_str
         arab = _cn_number_to_arabic(cn_str)
         if arab is None:
             return cn_str

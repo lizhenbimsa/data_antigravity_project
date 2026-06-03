@@ -15,6 +15,17 @@ local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
 local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
 local EXPL   digital_frontier
 
+* V5 / st-table2-main-04 fix (2026-06-03): full 轨 (lf/sf) 展开成幻影列
+* tech_frac_lf / symb_frac_sf (面板无, 只有裸名 tech_frac/symb_frac 与 ctx 轨
+* tech_frac_lc/symb_frac_sc). 缺列时下方 reghdfe 引用为控制变量会 r(111) 崩.
+* 加守卫: 缺列则置空, degrade 为不含 LOCUS/SUBST 的回归.
+capture confirm variable `LOCUS' `SUBST'
+if _rc {
+    display "  ⚠️ LOCUS/SUBST 列缺 (`LOCUS' / `SUBST'): full 轨须用裸名, 见 stata_runner; 词典法回归 degrade 为不含 LOCUS/SUBST"
+    local LOCUS
+    local SUBST
+}
+
 * --- Main LLM (主对照) ---
 local LLM_DV  llm_vote_tone_{{MAIN_SENT_TRACK}}
 capture confirm variable `LLM_DV'

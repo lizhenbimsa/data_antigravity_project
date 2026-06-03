@@ -175,6 +175,48 @@ elif DEVICE.type == 'cuda':
 DEFAULT_LABEL_MAP = {0: "负面", 1: "中性", 2: "正面"}
 DEFAULT_LABEL_MAP_2CLASS = {0: "负面", 1: "正面"}
 
+# 极性同义词分组（用于 checkpoint id2label 顺序校验）。
+# checkpoint 的标签文本可能是中/英文任意写法, 这里把它们归一到
+# {neg, neu, pos} 三类, 只比较"哪个索引落在哪个极性"这一顺序契约,
+# 不要求标签文本字面相等。
+_POLARITY_SYNONYMS = {
+    'neg': {'负面', '消极', '负向', 'negative', 'neg', 'bad', 'label_0'},
+    'neu': {'中性', '中立', 'neutral', 'neu', 'none'},
+    'pos': {'正面', '积极', '正向', 'positive', 'pos', 'good'},
+}
+
+
+def _polarity_of(label_text) -> str | None:
+    """把任意 checkpoint 标签文本归一为 'neg'/'neu'/'pos'/None。"""
+    if label_text is None:
+        return None
+    s = str(label_text).strip().lower()
+    for pol, names in _POLARITY_SYNONYMS.items():
+        if s in {n.lower() for n in names}:
+            return pol
+    return None
+
+
+def _label_order_consistent(ckpt_id2label: dict, expected_label_map: dict) -> bool:
+    """校验 checkpoint 的 id2label 极性顺序是否与项目预期一致。
+
+    仅对那些两边都能归一到已知极性 (neg/neu/pos) 的索引做比较;
+    无法识别的标签文本视为"无法判定"而跳过 (返回 True 不误报),
+    因为本守卫的目的是抓"正负静默对调", 而非强制标签文本统一。
+
+    Returns:
+        True  — 顺序一致 (或无法判定, 保守不告警);
+        False — 至少一个索引两边都可识别但极性相反/错位。
+    """
+    for idx, expected_name in expected_label_map.items():
+        exp_pol = _polarity_of(expected_name)
+        ckpt_pol = _polarity_of(ckpt_id2label.get(idx))
+        if exp_pol is None or ckpt_pol is None:
+            continue  # 任一侧无法识别极性 → 不判定
+        if exp_pol != ckpt_pol:
+            return False
+    return True
+
 
 # ============================================================================
 # 2. 模型配置（仅从 config.yaml 加载, 单一真值; Plan P0-2 删除内置 fallback 列表）
@@ -316,6 +358,23 @@ class MultiModelSentimentEngine:
                         )
                         num_labels = actual
                         label_map = DEFAULT_LABEL_MAP_2CLASS if actual == 2 else DEFAULT_LABEL_MAP
+
+                # 防御性校验 (latent 防护): checkpoint 的 id2label *顺序* 与项目
+                # 预期极性顺序 (索引 0=负面 … 末位=正面) 是否一致。
+                # 现有逻辑只校验标签*数量* (上方 num_labels 分支), 不查顺序 —
+                # 若上游 checkpoint 重排类别 (如 0=正面/2=负面), label_map 会
+                # 静默把正负对调而不报错。这里仅在检测到不一致时 warning, 不改
+                # 当前正确 checkpoint 下的映射结果 (label_map 不被覆盖)。
+                _ckpt_id2label = getattr(model.config, 'id2label', None)
+                if isinstance(_ckpt_id2label, dict) and _ckpt_id2label:
+                    if not _label_order_consistent(_ckpt_id2label, label_map):
+                        logger.warning(
+                            f"  模型 {short_name} checkpoint id2label={_ckpt_id2label} "
+                            f"的极性顺序与项目预期 label_map={label_map} 不一致 — "
+                            f"上游 checkpoint 可能重排了类别索引, 正负情感存在静默"
+                            f"对调风险。请核对 checkpoint 的标签顺序后再信任本模型的"
+                            f"情感方向 (本步骤不自动重排, 仅告警)。"
+                        )
 
                 self.models[short_name] = model
                 self.tokenizers[short_name] = tokenizer

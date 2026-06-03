@@ -44,11 +44,17 @@ if !_rc {
         statistics(N mean sd min p25 p50 p75 max) ///
         columns(statistics)
 
+    * st-descriptives-01 fix (2026-06-03): 本表在 master 流程中先于主回归 (11_table2)
+    * 运行 (00_master.do L26 在 L27 之前), 故 e(sample) 尚未填充, 无法用 if e(sample)
+    * 限定到回归样本. 描述统计覆盖全面板 (含零新闻 bank-year), 与主回归 if e(sample)
+    * 样本 N 不一致 — 在表注如实披露, 供审稿人对账 (顶刊复现包诚实度).
     esttab using "output/tables/table1_descriptives.tex", ///
         cells("count(fmt(0)) mean(fmt(3)) sd(fmt(3)) min(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) max(fmt(3))") ///
         nonumber booktabs replace ///
         title("Table 1: Descriptive Statistics") ///
-        note("Main spec: locus={{MAIN_LOCUS_TRACK}}, subst={{MAIN_SUBST_TRACK}}, sent={{MAIN_SENT_TRACK}}. N = bank-year observations.")
+        note("Main spec: locus={{MAIN_LOCUS_TRACK}}, subst={{MAIN_SUBST_TRACK}}, sent={{MAIN_SENT_TRACK}}. " ///
+             "Descriptives computed over the full bank-year panel (incl. zero-news bank-years); " ///
+             "the regression sample (if e(sample), Tables 2+) excludes obs with missing DV/treatment and thus differs in N.")
 
     display "✅ Table 1 written to output/tables/table1_descriptives.tex"
 }

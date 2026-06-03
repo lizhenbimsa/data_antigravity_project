@@ -15,7 +15,13 @@
 * M5: + macro controls (gdp_growth / m2_growth)
 * M6: + attention × post-event interaction (for event study spec.event_studies)
 *
-* Identification: staggered DiD baseline (Callaway-Sant'Anna 2021) per spec.identification;
+* Identification: two-way fixed-effects (TWFE) panel regression (bank FE + year FE)
+*                via reghdfe; M1-M6 全为 reghdfe TWFE, 本模板无 csdid 调用.
+*                注: spec.identification 概念上锚定 staggered DiD, 但 Callaway-Sant'Anna
+*                (2021) staggered DiD estimator 需 T≥3 (多期 pre/post 以识别 group-time
+*                ATT); 当前面板 T=2 (2017-2018 bank-year), staggered DiD 不可识别, 故
+*                baseline 退化为 TWFE — 见 pipeline/panel/iv_did.py docstring 的 T=2
+*                识别披露. 待 production run 扩到 T≥3 后方可启用 csdid.
 *                IV via leave-one-out peer attention (15-shared 22_tableA3_bartik_iv handles
 *                Bartik fallback).
 * ============================================================================
@@ -82,7 +88,8 @@ esttab M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Main Results --- bank_fintech_attention (P2)") ///
     mtitles("M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 +E1×treat") ///
-    addnotes("bank / year FE; SE clustered at {{CLUSTER_VAR}}; identification = staggered DiD (Callaway-Sant'Anna 2021)." ///
+    addnotes("Two-way fixed-effects (TWFE) panel regression; bank and year FE; SE clustered at {{CLUSTER_VAR}}." ///
+             "Callaway-Sant'Anna (2021) staggered DiD requires T>=3 and is not identified on the current T=2 panel (2017-2018)." ///
              "IV first stage in 19_attention_iv_first_stage.do; Bartik fallback in 22_tableA3_bartik_iv.")
 
 display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex"

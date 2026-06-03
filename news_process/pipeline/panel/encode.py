@@ -1132,10 +1132,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             )
 
         # 情感纯度差距指标
+        # fix(encode-02): 补 min-n>=5 守门 (对齐 _compute_tone_gap_tech_app:814 的 R8 防混淆),
+        # 否则单篇 cell 驱动的伪差距进 Table3 机制回归。
         if 'llm_vote_tone_sub_full' in panel.columns and 'llm_vote_tone_symb_full' in panel.columns:
+            _sub_symb_qual = (panel['n_articles_sub'] >= 5) & (panel['n_articles_symb'] >= 5)
             panel['tone_gap_sub_symb'] = (
                 panel['llm_vote_tone_sub_full'] - panel['llm_vote_tone_symb_full']
-            )
+            ).where(_sub_symb_qual, np.nan)
 
         # innovation_substantiveness 恒等式校验（二分类）
         if all(f'n_articles{s}' in panel.columns for s in ['_sub', '_symb']):
@@ -1179,11 +1182,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 panel['n_articles_llm_valid_ctx'] > 0,
                 panel['n_articles_symb_sc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
 
-            # tone_gap_sub_symb_sc_ctx: ctx 轨情感纯度差距
+            # tone_gap_sub_symb_sc_ctx: ctx 轨情感纯度差距 (fix(encode-02): 补 min-n>=5 守门)
             if 'llm_vote_tone_sub_sc_ctx' in panel.columns and 'llm_vote_tone_symb_sc_ctx' in panel.columns:
+                _sub_symb_ctx_qual = (
+                    (panel['n_articles_sub_sc_ctx'] >= 5) & (panel['n_articles_symb_sc_ctx'] >= 5)
+                )
                 panel['tone_gap_sub_symb_sc_ctx'] = (
                     panel['llm_vote_tone_sub_sc_ctx'] - panel['llm_vote_tone_symb_sc_ctx']
-                )
+                ).where(_sub_symb_ctx_qual, np.nan)
     else:
         logger.info("  列 'innovation_substantiveness_full' 不存在, innovation_substantiveness 分组聚合将跳过")
 
@@ -1246,10 +1252,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             )
 
         # 情感纯度差距指标 (自主 vs 外部协同 LLM 投票情感差)
+        # fix(encode-02): 补 min-n>=5 守门 (对齐 tech_app/sub_symb)
         if 'llm_vote_tone_indep_full' in panel.columns and 'llm_vote_tone_collab_full' in panel.columns:
+            _indep_collab_qual = (
+                (panel['n_articles_indep'] >= 5) & (panel['n_articles_collab'] >= 5)
+            )
             panel['tone_gap_indep_collab'] = (
                 panel['llm_vote_tone_indep_full'] - panel['llm_vote_tone_collab_full']
-            )
+            ).where(_indep_collab_qual, np.nan)
 
         # innovation_collab_mode 恒等式校验（二分类）— F-CR-cell-NA (R6 fix):
         # 旧严格 `n_articles == n_articles_indep + n_articles_collab` 在 LLM 对 collab_mode
@@ -1305,9 +1315,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 panel['n_articles_collab_cm_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
 
             if 'llm_vote_tone_indep_cm_ctx' in panel.columns and 'llm_vote_tone_collab_cm_ctx' in panel.columns:
+                # fix(completeness-05): 第 6 个 tone_gap 此前漏补 min-n>=5 守门 (对齐其余 5 个),
+                # 否则单篇 cell 伪差距进 ctx 轨机制回归。
+                _indep_collab_cm_qual = (
+                    (panel['n_articles_indep_cm_ctx'] >= 5) & (panel['n_articles_collab_cm_ctx'] >= 5)
+                )
                 panel['tone_gap_indep_collab_cm_ctx'] = (
                     panel['llm_vote_tone_indep_cm_ctx'] - panel['llm_vote_tone_collab_cm_ctx']
-                )
+                ).where(_indep_collab_cm_qual, np.nan)
     else:
         logger.info("  列 'innovation_collab_mode_full' 不存在, innovation_collab_mode 分组聚合将跳过")
 

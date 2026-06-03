@@ -970,9 +970,13 @@ def main():
     for track in ['_full', '_ctx']:
         pos_c, neg_c = f'pos_count{track}', f'neg_count{track}'
         if pos_c in panel.columns and neg_c in panel.columns:
-            total_pn = panel[pos_c] + panel[neg_c]
+            # fix(completeness-03): Int8 计数转 float64 防 (pos+neg)≥128 静默回绕致 senti_ratio
+            # 翻符号 (当前 max~100 不触发, 0 值变化; 防御 production)。
+            _pos = panel[pos_c].astype('float64')
+            _neg = panel[neg_c].astype('float64')
+            total_pn = _pos + _neg
             safe_total = total_pn.replace(0, np.nan)
-            senti_ratio = (panel[neg_c] - panel[pos_c]) / safe_total
+            senti_ratio = (_neg - _pos) / safe_total
             panel[f'concern_score{track}'] = (
                 panel['ln_news_coverage'] * (senti_ratio + 1) / 2
             )
@@ -1414,8 +1418,11 @@ def main():
         pos_col = f'pos_count{track}'
         neg_col = f'neg_count{track}'
         if pos_col in panel.columns and neg_col in panel.columns:
-            P = panel[pos_col].fillna(0)
-            N = panel[neg_col].fillna(0)
+            # fix(jf-int8): pos_count/neg_count 为 Int8 dtype, 直接 P**2 / (P+N)**2
+            # 在 Int8 算术下静默整数回绕 (P+N≥12 即溢出 127), 致 jf_coefficient 越界 [-1,1]
+            # (实测 max=2.387)。先转 float64 再算, 数学域恢复 [-1,1]。
+            P = panel[pos_col].fillna(0).astype('float64')
+            N = panel[neg_col].fillna(0).astype('float64')
             total_sq = (P + N) ** 2
             # 安全除法: 防止 0/0
             safe_denom = total_sq.replace(0, np.nan)
@@ -1432,6 +1439,13 @@ def main():
             panel[f'jf_coefficient{track}'] = np.where(
                 safe_denom.isna(), np.nan, jf
             )
+            # fix(jf-int8): Janis-Fadner 理论域守卫 — 越界即溢出回归未根治
+            _jf_valid = panel[f'jf_coefficient{track}'].dropna()
+            if len(_jf_valid) and not _jf_valid.between(-1.0, 1.0).all():
+                raise ValueError(
+                    f"jf_coefficient{track} 越界 [-1,1]: "
+                    f"min={_jf_valid.min():.4f}, max={_jf_valid.max():.4f} "
+                    f"(疑似整数溢出未根治)")
             logger.info(f"  jf_coefficient{track}: "
                         f"mean={panel[f'jf_coefficient{track}'].mean():.4f}, "
                         f"std={panel[f'jf_coefficient{track}'].std():.4f}")
@@ -1449,7 +1463,11 @@ def main():
         """通用 disag 计算, 处理 denom=0 边界 → NaN"""
         if p_col not in _panel.columns or n_col not in _panel.columns:
             return pd.Series(np.nan, index=_panel.index)
-        p, n = _panel[p_col], _panel[n_col]
+        # fix(completeness-03): 计数轨(pos_count/neg_count)为 Int8, (p+n) 在 ≥128 时
+        # 静默整数回绕(同 JF 溢出类)。先转 float64 防御(当前 max~100 不触发, 故 0 值变化;
+        # production 负面覆盖上升后避免 disag 翻错)。对 float 输入(ratio/bert)是 no-op。
+        p = _panel[p_col].astype('float64')
+        n = _panel[n_col].astype('float64')
         denom = p + n
         ratio = ((p - n) / denom.replace(0, np.nan)) ** 2
         return np.sqrt(1 - ratio)

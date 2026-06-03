@@ -783,6 +783,46 @@ def _inject_custom_dicts_to_jieba():
         for word in ADVERSATIVE_WORDS:
             jieba.add_word(word)
 
+        # 5. 注入清晰度词典 (You & Zhang 2009 / You 2018)
+        # fix(clarity_cn-01): 多字 clarity definite/ambiguous 词此前从未 add_word →
+        # 被 jieba 切碎 (实测 67/541 多字词不可匹配, 12.4%), clarity_score 系统性低估。
+        try:
+            _def_set, _amb_set = load_clarity_dictionaries()
+            for word in (_def_set | _amb_set):
+                w = str(word).strip()
+                if len(w) >= 2:  # 单字不受切分影响, 仅多字词需防碎
+                    jieba.add_word(w)
+                    added_count += 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"未能加载清晰度词典注入jieba: {e}")
+
+        # 6. 注入 LM 2011 JF 4 子词典 (uncert/litig/constr/modal) + Li 2010 JAR FLS 前瞻词
+        # fix(completeness-02): 与 clarity_cn-01 同型缺陷 — 多字 LM(18.5%)/FLS 词此前从未
+        # add_word, 被 jieba 切碎永不命中, 致 LM/FLS frac 系统性漏匹配下偏。
+        try:
+            from news_process.pipeline.sentiment.lm_non_sentiment import (
+                load_lm_non_sentiment_dicts,
+            )
+            for _subset in load_lm_non_sentiment_dicts().values():
+                for word in _subset:
+                    w = str(word).strip()
+                    if len(w) >= 2:
+                        jieba.add_word(w)
+                        added_count += 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"未能加载 LM 非情感词典注入jieba: {e}")
+        try:
+            from news_process.pipeline.sentiment.forward_looking import (
+                _FUTURE_WORDS,
+                _TIME_FUTURE_MARKERS,
+            )
+            for word in (_FUTURE_WORDS | _TIME_FUTURE_MARKERS):
+                w = str(word).strip()
+                if len(w) >= 2:
+                    jieba.add_word(w)
+                    added_count += 1
+        except Exception as e:  # noqa: BLE001
+            logger.warning(f"未能加载 FLS 前瞻词典注入jieba: {e}")
 
         logger.info(f"成功注入 {added_count} 个领域自定义词汇到 jieba 分词树。")
         _JIEBA_INJECTED = True
@@ -1354,8 +1394,13 @@ def main():
         from news_process.pipeline.sentiment.numerical_intensity import (
             enrich_with_num_intensity_dual_track,
         )
-        processed_df = enrich_with_num_intensity_dual_track(processed_df)
-        logger.info("v3.5.1 A3: num_intensity 真双轨派生完成 (full + ctx 独立扫描)")
+        # fix(genA-01/V4): full 轨须读 content_full(含标题, v3.8.0 两轨契约), 不再用
+        # 默认裸 '内容' — 否则 num_intensity_full 是唯一不含标题的 *_full 情感族指标,
+        # 与同 stage 的 clarity/LM/FLS(均已读 content_full)轨道不对称。
+        _ni_full_col = 'content_full' if 'content_full' in processed_df.columns else '内容'
+        processed_df = enrich_with_num_intensity_dual_track(
+            processed_df, full_col=_ni_full_col)
+        logger.info(f"v3.5.1 A3: num_intensity 真双轨派生完成 (full 轨={_ni_full_col} + ctx 独立扫描)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"v3.5.1 A3 num_intensity enrich 失败 (graceful skip): {e}")
 
