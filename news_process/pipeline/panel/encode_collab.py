@@ -501,24 +501,37 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
     # D0 frozen median (修 H2 + R7-H1): 若未给, in-sample 算; 实际生产应从 sidecar JSON 读
     if median_amb_d0 is None:
         median_amb_d0 = float(df['clarity_frac_ambiguous_full'].dropna().median())
-        logger.info(f"v3.5.1 A1: D0 median_amb 实测 = {median_amb_d0:.6f}")
+        logger.info(f"v3.5.1 A1: D0 median_amb(full) 实测 = {median_amb_d0:.6f}")
+    # fix(encode_collab-01): ctx 轨用 ctx 自身分布的 median 二值化, 不再套用 full 轨阈值
+    median_amb_d0_ctx = float(df['clarity_frac_ambiguous_ctx'].dropna().median())
+    logger.info(f"v3.5.1 A1: D0 median_amb(ctx) 实测 = {median_amb_d0_ctx:.6f}")
 
-    # weight = stage21 media_authority × herd_decay (与 llm_vote_tone 同权重)
-    w = pd.Series(1.0, index=df.index)
-    for w_col in ('media_authority_weight', 'herd_weight_full'):
-        if w_col in df.columns:
-            w = w * df[w_col].fillna(1.0)
+    # weight = stage21 media_authority × herd_decay
+    # fix(herd-ghost-01): full/ctx 双轨各配自己的 herd 权重 (Edwards 2001 measurement-treatment
+    # matching), 不再让 ctx 轨借用 herd_weight_full。herd_weight_ctx 缺失时优雅回退 full。
+    def _track_weight(track: str) -> pd.Series:
+        wt = pd.Series(1.0, index=df.index)
+        if 'media_authority_weight' in df.columns:
+            wt = wt * df['media_authority_weight'].fillna(1.0)
+        herd_col = f'herd_weight{track}'
+        if herd_col in df.columns:
+            wt = wt * df[herd_col].fillna(1.0)
+        elif 'herd_weight_full' in df.columns:
+            wt = wt * df['herd_weight_full'].fillna(1.0)
+        return wt
+    w_full = _track_weight('_full')
+    w_ctx = _track_weight('_ctx')
 
     added_cols = []
     # 加 weighted columns 给 article level
-    # 单次 assign 写入 5 个临时列, 避免逐列 insert 触发 pandas
-    # PerformanceWarning (DataFrame is highly fragmented)
+    # 单次 assign 写入临时列, 避免逐列 insert 触发 pandas PerformanceWarning
     df = df.assign(
-        _w_clarity_full=df['clarity_clarity_score_full'] * w,
-        _w_clarity_ctx=df['clarity_clarity_score_ctx'] * w,
-        _w_def_full=df['clarity_frac_definite_full'] * w,
-        _w_def_ctx=df['clarity_frac_definite_ctx'] * w,
-        _w=w,
+        _w_clarity_full=df['clarity_clarity_score_full'] * w_full,
+        _w_clarity_ctx=df['clarity_clarity_score_ctx'] * w_ctx,
+        _w_def_full=df['clarity_frac_definite_full'] * w_full,
+        _w_def_ctx=df['clarity_frac_definite_ctx'] * w_ctx,
+        _w_full=w_full,
+        _w_ctx=w_ctx,
     )
 
     agg = df.groupby(['target_bank', 'year']).agg(
@@ -526,20 +539,22 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
         _sum_w_clarity_ctx=('_w_clarity_ctx', 'sum'),
         _sum_w_def_full=('_w_def_full', 'sum'),
         _sum_w_def_ctx=('_w_def_ctx', 'sum'),
-        _sum_w=('_w', 'sum'),
-        _n_articles=('_w', 'count'),
+        _sum_w_full=('_w_full', 'sum'),
+        _sum_w_ctx=('_w_ctx', 'sum'),
+        _n_articles=('_w_full', 'count'),
         _n_amb_full=('clarity_frac_ambiguous_full',
                      lambda s: int((s >= median_amb_d0).sum())),
         _n_amb_ctx=('clarity_frac_ambiguous_ctx',
-                    lambda s: int((s >= median_amb_d0).sum())),
+                    lambda s: int((s >= median_amb_d0_ctx).sum())),
     ).reset_index()
 
-    # 派生 panel 列
-    sw = agg['_sum_w'].replace(0, float('nan'))
-    agg['mean_clarity_score_full'] = agg['_sum_w_clarity_full'] / sw
-    agg['mean_clarity_score_ctx'] = agg['_sum_w_clarity_ctx'] / sw
-    agg['mean_frac_definite_full'] = agg['_sum_w_def_full'] / sw
-    agg['mean_frac_definite_ctx'] = agg['_sum_w_def_ctx'] / sw
+    # 派生 panel 列 (各轨用自己的权重和作分母)
+    sw_full = agg['_sum_w_full'].replace(0, float('nan'))
+    sw_ctx = agg['_sum_w_ctx'].replace(0, float('nan'))
+    agg['mean_clarity_score_full'] = agg['_sum_w_clarity_full'] / sw_full
+    agg['mean_clarity_score_ctx'] = agg['_sum_w_clarity_ctx'] / sw_ctx
+    agg['mean_frac_definite_full'] = agg['_sum_w_def_full'] / sw_full
+    agg['mean_frac_definite_ctx'] = agg['_sum_w_def_ctx'] / sw_ctx
 
     # n_articles ≥ 2 mask (修 R8-H2)
     mask = agg['_n_articles'] >= 2
@@ -564,7 +579,8 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
         added_cols.append(c)
 
     # cleanup
-    for tmp in ('_w_clarity_full', '_w_clarity_ctx', '_w_def_full', '_w_def_ctx', '_w'):
+    for tmp in ('_w_clarity_full', '_w_clarity_ctx', '_w_def_full', '_w_def_ctx',
+                '_w_full', '_w_ctx'):
         if tmp in df.columns:
             del df[tmp]
 
@@ -584,27 +600,38 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
         logger.info("v3.5.1 A3: num_intensity article 列缺, 跳过 panel 聚合 (graceful)")
         return {'v3_5_1_num_intensity_added': []}
 
-    w = pd.Series(1.0, index=df.index)
-    for w_col in ('media_authority_weight', 'herd_weight_full'):
-        if w_col in df.columns:
-            w = w * df[w_col].fillna(1.0)
+    # fix(herd-ghost-01): full/ctx 双轨各配自己的 herd 权重 (与 clarity 聚合同口径)
+    def _track_weight(track: str) -> pd.Series:
+        wt = pd.Series(1.0, index=df.index)
+        if 'media_authority_weight' in df.columns:
+            wt = wt * df['media_authority_weight'].fillna(1.0)
+        herd_col = f'herd_weight{track}'
+        if herd_col in df.columns:
+            wt = wt * df[herd_col].fillna(1.0)
+        elif 'herd_weight_full' in df.columns:
+            wt = wt * df['herd_weight_full'].fillna(1.0)
+        return wt
+    w_full = _track_weight('_full')
+    w_ctx = _track_weight('_ctx')
 
-    # 单次 assign 写入 3 个临时列, 避免逐列 insert 触发 pandas
-    # PerformanceWarning (DataFrame is highly fragmented)
+    # 单次 assign 写入临时列, 避免逐列 insert 触发 pandas PerformanceWarning
     df = df.assign(
-        _w_ni_full=df['num_intensity_full'] * w,
-        _w_ni_ctx=df['num_intensity_ctx'] * w,
-        _w=w,
+        _w_ni_full=df['num_intensity_full'] * w_full,
+        _w_ni_ctx=df['num_intensity_ctx'] * w_ctx,
+        _w_full=w_full,
+        _w_ctx=w_ctx,
     )
 
     agg = df.groupby(['target_bank', 'year']).agg(
         _sum_w_ni_full=('_w_ni_full', 'sum'),
         _sum_w_ni_ctx=('_w_ni_ctx', 'sum'),
-        _sum_w=('_w', 'sum'),
+        _sum_w_full=('_w_full', 'sum'),
+        _sum_w_ctx=('_w_ctx', 'sum'),
     ).reset_index()
-    sw = agg['_sum_w'].replace(0, float('nan'))
-    agg['mean_num_intensity_full'] = agg['_sum_w_ni_full'] / sw
-    agg['mean_num_intensity_ctx'] = agg['_sum_w_ni_ctx'] / sw
+    sw_full = agg['_sum_w_full'].replace(0, float('nan'))
+    sw_ctx = agg['_sum_w_ctx'].replace(0, float('nan'))
+    agg['mean_num_intensity_full'] = agg['_sum_w_ni_full'] / sw_full
+    agg['mean_num_intensity_ctx'] = agg['_sum_w_ni_ctx'] / sw_ctx
 
     out_cols = ['mean_num_intensity_full', 'mean_num_intensity_ctx']
     # idempotent: 先 drop panel 已有的 out_cols (避免 merge _x/_y 后缀冲突)
@@ -616,7 +643,7 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
     for c in out_cols:
         panel[c] = panel_merged[c].values
 
-    for tmp in ('_w_ni_full', '_w_ni_ctx', '_w'):
+    for tmp in ('_w_ni_full', '_w_ni_ctx', '_w_full', '_w_ctx'):
         if tmp in df.columns:
             del df[tmp]
 

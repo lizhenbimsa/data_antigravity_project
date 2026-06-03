@@ -223,13 +223,20 @@ def compute_npl_formation(df_yearly: pd.DataFrame) -> tuple[pd.Series, pd.Series
 def compute_llp_discretion(df_yearly: pd.DataFrame) -> pd.Series:
     """Loan loss provision raw ratio (LLP / Total_loans).
 
-    v3.7.0 (M10 修复): 重命名 docstring 不再声称 "discretion" — 真实 BW 2012
-    discretion 是 residual from fundamentals regression, 在 Stata 模板中 2-stage
-    实施 (先跑 fundamentals model 算 residual, 再用 residual 作 outcome).
-    本 stage 仅产 raw ratio 作 Stata fundamentals model 的 LHS 输入.
+    ⚠ 诚实度声明: 本函数返回的是 **裸 LLP/loans 比率, 不是 BW2012 (Bushman-
+    Williams 2012 JAE) 基于残差的贷款损失准备裁量度量** (raw LLP/loans ratio,
+    NOT the BW2012 residual-based discretion measure). residual 回归在本仓库中
+    **尚未实现** (residual regression NOT implemented): 列名 / 变量名虽含
+    "discretion" 字样, 但其数值只是 LLP/loans, 任何把它当作"裁量性"准备解读的
+    下游分析都是过度声称, 须先减去 fundamentals 拟合值才成立。
+
+    真实 BW 2012 discretion = residual from fundamentals regression, 设计上应在
+    Stata 模板中 2-stage 实施 (先跑 fundamentals model 算 residual, 再用 residual
+    作 outcome); 本 stage 仅产 raw ratio 作该 fundamentals model 的 LHS 输入。
 
     Stata 模板 papers/bank_news_clarity/stata_templates/12_table3_bw2012_llp_residual.do.tmpl
-    (待 M5 创建) 跑 Bushman-Williams 2012 Eq.(2):
+    **尚不存在 (待 M5 创建)**, 因此目前整个 pipeline 中没有任何 BW2012 residual
+    产出。计划中的 Bushman-Williams 2012 Eq.(2):
         LLP_t / Loans_{t-1} = α + β1·ΔNPL_t + β2·ΔLoans_t + β3·GDP_t + ε_t
         → residual ε_t = LLP discretion
     """

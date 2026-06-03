@@ -38,9 +38,21 @@ critical 修复).
 
 panel 新增列
 -----------
-``n_ceo_mentions_{full,ctx}``       高管提及总次数
-``n_unique_execs_{full,ctx}``       去重高管数
+``n_ceo_mentions_{full,ctx}``       高管提及总次数 (bank-year = 篇级总次数的 mean)
+``n_unique_execs_{full,ctx}``       去重高管数 (bank-year = 篇级 distinct 数的 mean)
 ``exec_hhi_{full,ctx}``             mention 在 executives 上的 HHI (聚焦度)
+
+⚠ 诚实度声明 (口径限制):
+  1. **无跨银行 / 跨文章高管去歧义** (no cross-bank disambiguation): 每篇文章
+     的高管名单由 LLM 独立抽取, 同名高管在不同银行 / 不同文章间不做实体对齐;
+     ``n_unique_execs`` 是 *篇内* distinct 名字数, 不是 bank-year 池化后的真实
+     去重高管数。重名 / 别名 / 简称在文章间会被重复计数。
+  2. **bank-year HHI 是 mean(篇级 HHI), 非加权 pooled HHI** (mean-of-per-article
+     HHI, NOT a mention-weighted pooled HHI): 聚合在 ``main()`` 用 ``'mean'``
+     对篇级 ``exec_hhi`` 取等权简单平均 (每篇文章权重相同, 与文章篇幅 / 提及
+     次数无关), 而非把所有文章的提及汇总到 bank-year 后再算单一 HHI。两者在
+     文章数不均或单篇主导时会显著不同; 任何"该银行年度高管聚焦度"的解读须
+     按此等权 mean-of-fractions 口径理解。
 
 stub 说明
 ---------
@@ -468,6 +480,9 @@ def main():
                 df[col] = ner_df.set_index('article_id').loc[df.index, col].values
 
     # ── bank-year 聚合 ──
+    # 诚实度: 三列均用等权 'mean' 对篇级值简单平均 —— exec_hhi 是 mean(篇级 HHI)
+    # 而非 mention-weighted pooled HHI; n_unique_execs 是篇级 distinct 数的 mean
+    # 而非跨文章池化去重 (无跨银行/跨文章实体去歧义)。详见模块 docstring 口径声明。
     agg_cols = {}
     for c in df.columns:
         if any(c.startswith(p) for p in ('n_ceo_mentions_', 'n_unique_execs_', 'exec_hhi_')):

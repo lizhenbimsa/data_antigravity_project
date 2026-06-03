@@ -158,19 +158,83 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     )
 
     # ═══ 注意力指数 ═══
+    # metric-audit 2026-06-02 (attention_media-01 codebook 三项更正):
+    #   原 formula/range/source 三项均与 attention_media.py:279 实现不符 —
+    #   实际 ft_attn_yr = 当年 fintech 文章数 / 当年全部唯一文章数 (一个比率),
+    #   不是 "ln(1+n_articles)×exp(-distance_decay)"; 值域 [0,1] 非 [0,+∞);
+    #   无任何距离衰减 (距离衰减仅用于 ft_attn_prov/city 的地理变体); 在
+    #   panel encode (compute_fintech_attention_index) 物化而非 Stage 24。
     metadata['ft_attn_yr'] = VariableMetadata(
         var_name='ft_attn_yr',
         label='Fintech Attention Index (Year)',
-        description='年度金融科技注意力指数，基于新闻报道频率和媒体覆盖度计算',
+        description='年度金融科技注意力强度 = 当年金融科技新闻占当年全部唯一文章的比例 '
+                    '(year-level 常量, 同年所有 bank 取同值)',
         data_type='float',
-        unit='指数值',
-        value_range='[0, +∞)',
-        formula='ln(1 + n_articles) × exp(-distance_decay)',
-        source_stage='Stage 24',
+        unit='比率',
+        value_range='[0, 1]',
+        formula='fintech_articles / total_articles  '
+                '(按 docid 去重后, 当年 is_fintech_news==True 篇数 / 当年全部唯一篇数)',
+        source_stage='Stage 45/46 (panel/encode compute_fintech_attention_index)',
         reference='Da et al. (2011, JF); Fang & Peress (2009, JF)',
-        notes='使用指数距离衰减权重，反映媒体注意力的空间扩散效应',
+        notes='媒体覆盖率范式 (coverage ratio) 的年度基准; 无距离衰减 (距离衰减仅用于 '
+              'ft_attn_prov / ft_attn_city 地理变体)。实测值域 ≈ [0.23, 0.30]',
         category='注意力指数',
         track='',
+    )
+
+    # ═══ 文章计数口径 (物理篇数 vs LLM 有效投票篇数) ═══
+    # metric-audit 2026-06-02 (nart-02 codebook 缺新列): encode-02 重构区分两个
+    # 口径 — n_articles = 物理新闻覆盖篇数 (含 LLM 失败/NA 行, 供 ln_news_coverage /
+    # falsification 等 coverage 消费者); n_articles_llm_valid(_ctx) = LLM 有效投票
+    # 篇数, 用作所有分类组成型 frac (tech/app/sub/symb/indep/collab) 的分母, 保证
+    # 分子分母同口径 (encode.py:579-588)。补这三列的 codebook 条目消除元数据缺口。
+    metadata['n_articles'] = VariableMetadata(
+        var_name='n_articles',
+        label='N articles (physical coverage)',
+        description='该 Bank-Year 的物理新闻覆盖篇数 (组内全部行, 含 LLM 投票失败 / NA 行); '
+                    '用作媒体覆盖度 (ln_news_coverage) 与 falsification 的曝露量',
+        data_type='int',
+        unit='篇',
+        value_range='[0, +∞)',
+        formula="size(llm_vote_score_full)  (groupby bank-year 行数, 含 NA)",
+        source_stage='Stage 45 (panel/encode aggregate_panel)',
+        reference='Fang & Peress (2009, JF) media coverage',
+        notes='区别于 n_articles_llm_valid (后者为分类 frac 的分母, 跳过 NA)。'
+              '实测值域 [0, 101]',
+        category='文章计数',
+        track='',
+    )
+    metadata['n_articles_llm_valid'] = VariableMetadata(
+        var_name='n_articles_llm_valid',
+        label='N articles, LLM-valid (category-frac denominator)',
+        description='该 Bank-Year LLM 有效分类/投票成功的篇数 (full 轨); '
+                    '是 tech/app/sub/symb/indep/collab 等分类组成型 frac 的正确分母',
+        data_type='int',
+        unit='篇',
+        value_range='[0, n_articles]',
+        formula="count(llm_vote_score_full)  (groupby bank-year 非 NA 计数)",
+        source_stage='Stage 45 (panel/encode aggregate_panel)',
+        reference='Antweiler & Frank (2004, JF); Fang & Peress (2009, JF)',
+        notes='与 n_articles 的差额 = LLM 投票失败 / NA 篇数。分类 frac 分子分母同口径 '
+              '(修 encode-02 轨道不对称除法)',
+        category='文章计数',
+        track='full',
+    )
+    metadata['n_articles_llm_valid_ctx'] = VariableMetadata(
+        var_name='n_articles_llm_valid_ctx',
+        label='N articles, ctx-track LLM-valid (ctx category-frac denom)',
+        description='该 Bank-Year ctx 轨 LLM 有效投票篇数; 是 ctx 对角线分类 frac '
+                    '(tech/app_lc, sub/symb_sc, indep/collab_cm) 的正确分母',
+        data_type='int',
+        unit='篇',
+        value_range='[0, n_articles]',
+        formula="count(llm_vote_score_ctx)  (groupby bank-year 非 NA 计数)",
+        source_stage='Stage 45 (panel/encode aggregate_panel)',
+        reference='Hassan et al. (2019, QJE) entity-proximity; Antweiler & Frank (2004, JF)',
+        notes='ctx 轨 LLM 成功率与 full 轨独立, 故 ctx 分类 frac 必须用本列做分母 '
+              '(旧实现错用 full 轨 n_articles_llm_valid → frac 越界至 3.0, 已修)',
+        category='文章计数',
+        track='ctx',
     )
 
     # ═══ LLM 情感指标 ═══

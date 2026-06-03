@@ -28,11 +28,15 @@ set seed {{RANDOM_SEED}}
 * ============================================================================
 capture confirm variable bank_type
 if !_rc {
+    * st-did-05 fix (2026-06-03): bank_type 是字符串列 (str), levelsof 产出字符串 token
+    * ('soe'/'joint'/'city'/'rural'/...; 见 iv_did.py::load_bank_group_maps + runner.py:857).
+    * 旧 `bank_type == `t'` 宏未加引号 → 字符串值无法解析为数值表达式, StataNow 19.5
+    * 触发 r(198) invalid syntax. 改为 `bank_type == "`t'"` (宏外加双引号).
     levelsof bank_type, local(types)
     foreach t of local types {
-        count if bank_type == `t' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        count if bank_type == "`t'" & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
         if r(N) >= 10 {
-            reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_type == `t', ///
+            reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_type == "`t'", ///
                 absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
             eststo type_`t'
         }

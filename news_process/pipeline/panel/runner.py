@@ -1414,8 +1414,11 @@ def main():
         pos_col = f'pos_count{track}'
         neg_col = f'neg_count{track}'
         if pos_col in panel.columns and neg_col in panel.columns:
-            P = panel[pos_col].fillna(0)
-            N = panel[neg_col].fillna(0)
+            # fix(jf-int8): pos_count/neg_count 为 Int8 dtype, 直接 P**2 / (P+N)**2
+            # 在 Int8 算术下静默整数回绕 (P+N≥12 即溢出 127), 致 jf_coefficient 越界 [-1,1]
+            # (实测 max=2.387)。先转 float64 再算, 数学域恢复 [-1,1]。
+            P = panel[pos_col].fillna(0).astype('float64')
+            N = panel[neg_col].fillna(0).astype('float64')
             total_sq = (P + N) ** 2
             # 安全除法: 防止 0/0
             safe_denom = total_sq.replace(0, np.nan)
@@ -1432,6 +1435,13 @@ def main():
             panel[f'jf_coefficient{track}'] = np.where(
                 safe_denom.isna(), np.nan, jf
             )
+            # fix(jf-int8): Janis-Fadner 理论域守卫 — 越界即溢出回归未根治
+            _jf_valid = panel[f'jf_coefficient{track}'].dropna()
+            if len(_jf_valid) and not _jf_valid.between(-1.0, 1.0).all():
+                raise ValueError(
+                    f"jf_coefficient{track} 越界 [-1,1]: "
+                    f"min={_jf_valid.min():.4f}, max={_jf_valid.max():.4f} "
+                    f"(疑似整数溢出未根治)")
             logger.info(f"  jf_coefficient{track}: "
                         f"mean={panel[f'jf_coefficient{track}'].mean():.4f}, "
                         f"std={panel[f'jf_coefficient{track}'].std():.4f}")

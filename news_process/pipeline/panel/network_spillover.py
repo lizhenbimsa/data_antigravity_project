@@ -262,11 +262,23 @@ def compute_network_spillovers(
 
             # 网络加权: peer_tone = W × tone_vec
             # W: (n×n), tone_vec: (n,) → peer_tone: (n,)
-            peer_tone = W.values @ tone_vec.fillna(0).values
+            tone_filled = tone_vec.fillna(0).values
+            peer_tone = W.values @ tone_filled
 
-            # 二阶溢出: 捕获"邻居的邻居"间接情感传染 (LeSage & Pace 2009)
-            # peer_tone_2nd = W × peer_tone = W² × tone
-            peer_tone_2nd = W.values @ peer_tone
+            # 二阶溢出: 捕获"邻居的邻居"间接情感传染 (LeSage & Pace 2009)。
+            # fix(network-01): W² 必须去对角自反馈 (Bramoullé-Djebbari-Fortin 2009 JoE):
+            #   高阶网络 IV 须排除 W² 对角项, 否则 peer_tone_2nd 含本行自身滞后 tone,
+            #   作工具变量时违反排他性约束。原 W @ (W @ tone) 保留了 W² 完整对角。
+            W2 = W.values @ W.values
+            np.fill_diagonal(W2, 0.0)
+            peer_tone_2nd = W2 @ tone_filled
+
+            # fix(network-03): 孤立银行 (W 行全 0, 无共现同行) 的 peer_tone 应为 NaN,
+            # 而非结构性 0.0 — 否则"无同行"与"同行 tone 均值=0"混淆, 伪零混入回归致
+            # attenuation bias (实测 41/73 是结构性零)。
+            row_has_peers = (W.values.sum(axis=1) > 0)
+            peer_tone = np.where(row_has_peers, peer_tone, np.nan)
+            peer_tone_2nd = np.where(row_has_peers, peer_tone_2nd, np.nan)
 
             # 存储结果（使用字典累积, 避免多 tone_col 合并丢失）
             suffix = tone_col.replace('llm_vote_tone', '')

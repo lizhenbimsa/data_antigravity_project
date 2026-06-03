@@ -29,8 +29,10 @@
   3. **T=2 面板结构退化**: 当前面板仅 2017-2018 (84 banks × 2y). Bartik share
      在 64%(112/176) bank-year 退化为 own-type one-hot (基期 co-mention 跨组为
      0 → L137-143 兜底 share=1.0), fintech 基期类别 96.7% app vs 3.3% tech →
-     工具近共线于 bank-type FE、一阶段 F 弱; DiD(dcep/sandbox) 处理年份 ≤2018 致
-     _post 恒 0、不可识别. 论文须报告一阶段有效 N/F、披露退化并相应降权这些 spec.
+     工具近共线于 bank-type FE、一阶段 F 弱; DiD(dcep/sandbox) 处理年份均 ≥2019
+     (晚于面板末年 2018) 致 _post 恒 0、不可识别 (fix(ivdid-stata-01): 原文误写
+     "≤2018", 归因方向倒置, 实为处理年份晚于样本期末). 论文须报告一阶段有效 N/F、
+     披露退化并相应降权这些 spec.
 """
 
 import json
@@ -580,6 +582,14 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
             (panel['year'] >= panel[f'{prefix}_treat_year']).astype(int),
             0
         )
+
+        # fix(ivdid-01): T=2 面板 + 处理年份均 ≥2019 (晚于面板末年) → _post 恒 0,
+        # DiD/event-study 在当前 corpus 上结构性不可识别。fail-loud 披露, 提醒下游
+        # 回归勿在 post≡0 spec 上估计 ATT (production T≥3 面板下自然恢复可识别)。
+        if not (panel[f'{prefix}_post'] == 1).any():
+            logger.warning(
+                f"  [DiD 不可识别] {prefix}_post 全为 0 — 处理年份均晚于面板末年 "
+                f"{int(panel['year'].max())}; 下游勿在此 spec 上估计 ATT")
 
         # ── G-01: Event Study 动态效应支持 ──
         # 学术依据: Callaway & Sant'Anna (2021, JoE), Sun & Abraham (2021, JoE)

@@ -48,19 +48,30 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.stage in ('tables', 'all'):
         from news_process.papers.bank_fintech_attention import tables
+        # metric-audit 2026-06-02 (attention_media-01): 放宽 except.
+        # 缺列触发 pyarrow ArrowInvalid (非 FileNotFoundError), 原窄 except
+        # 接不住 → 整体 traceback。改为 catch Exception, 单表失败仅 warning
+        # 跳过, 不阻塞其余阶段 / 不抛非零退出码。
         try:
             out = tables.write_table1(pc)
             _LOGGER.info("  [OK] Table 1 -> %s", out)
         except FileNotFoundError as e:
             _LOGGER.warning("  [SKIP] Table 1 (run pipeline first): %s", e)
+        except Exception as e:  # noqa: BLE001 — 单表失败不应使整个 CLI 崩
+            _LOGGER.warning("  [SKIP] Table 1 (生成失败, 已优雅跳过): %s", e)
 
     if args.stage in ('figures', 'all'):
         from news_process.papers.bank_fintech_attention import figures
         try:
             out = figures.plot_attention_distribution(pc)
-            _LOGGER.info("  [OK] Figure 1 -> %s", out)
+            if out is None:
+                _LOGGER.warning("  [SKIP] Figure 1 (注意力强度列缺失或为空)")
+            else:
+                _LOGGER.info("  [OK] Figure 1 -> %s", out)
         except FileNotFoundError as e:
             _LOGGER.warning("  [SKIP] Figure 1 (missing pipeline output): %s", e)
+        except Exception as e:  # noqa: BLE001 — 单图失败不应使整个 CLI 崩
+            _LOGGER.warning("  [SKIP] Figure 1 (生成失败, 已优雅跳过): %s", e)
 
     return 0
 

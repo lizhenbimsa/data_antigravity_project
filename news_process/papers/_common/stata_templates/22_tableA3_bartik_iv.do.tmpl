@@ -11,7 +11,12 @@
 *   bartik_collab_*       : share = innovation_collab_mode 基期占比 (v3.4.0, Chesbrough 2003)
 *   (Hassan 2019 QJE entity-proximity 同构)
 *
-* 必报: KP F (Kleibergen-Paap rk Wald F) + Hansen J + DWH (R32-G)
+* 必报: KP F (Kleibergen-Paap rk Wald F, weak-ID test).
+* st-bartik-iv fix (2026-06-03): 本表为恰好识别 (just-identified, 1 endogenous LOCUS
+* = 1 instrument), Hansen J 过度识别检验在恰好识别下自由度为 0、不可计算 (恒为 0 或缺失),
+* 报告它无意义 — 已从 stats() 移除 (旧版报 jp 列). DWH (Durbin-Wu-Hausman) 内生性检验
+* 在本模板未实际计算/输出, 头注不再承诺. 弱工具守卫见下方 esttab note (KP F<10 时
+* 用 Anderson-Rubin weak-IV-robust CI).
 *
 * Stata 必装包: ssc install ivreg2
 
@@ -72,17 +77,19 @@ if !_rc {
 * --- OLS 对照 (用 estout 同表呈现) ---
 eststo OLS: reghdfe `DV' `LOCUS' digital_frontier, absorb(bank_id year) vce(cluster bank_id)
 
-* 输出 + 必报 KP F / Hansen J (R32-G)
+* 输出 + 报 KP F (恰好识别, 不报 Hansen J; 见顶部 st-bartik-iv fix 说明)
 esttab OLS IV_LF IV_LC using "output/tables/tableA3_bartik_iv.tex", ///
     se star(* 0.10 ** 0.05 *** 0.01) ///
     booktabs replace fragment ///
-    stats(N r2 widstat jp, ///
-          fmt(0 3 3 3) ///
-          labels("N" "R²" "KP F" "Hansen J p")) ///
+    stats(N r2 widstat, ///
+          fmt(0 3 3) ///
+          labels("N" "R²" "KP F")) ///
     title("Table A3: Bartik IV — Locus Share Switch (lf vs lc)") ///
     mtitles("OLS" "IV: locus full share" "IV: locus ctx share") ///
     note("Bartik IV (Goldsmith-Pinkham et al. 2020 AER). " ///
-         "KP F: Kleibergen-Paap rk Wald F (weak ID test, threshold 10). " ///
+         "KP F: Kleibergen-Paap rk Wald F (weak-ID test, threshold 10). " ///
+         "Just-identified (1 endogenous = 1 instrument): Hansen J overid test not computable (df=0), not reported. " ///
+         "If first-stage KP F < 10, instrument is weak; interpret 2SLS with Anderson-Rubin weak-IV-robust CI (e.g. weakiv / condivreg). " ///
          "Hassan 2019 QJE entity-proximity 同构 (lc share).")
 
 display "✅ Table A3 written to output/tables/tableA3_bartik_iv.tex"
