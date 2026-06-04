@@ -1,9 +1,9 @@
 """Orphan-panel merge fix (2026-05-30) — stage 17/18/19 feature panels into 40_panel_yearly.
 
-Companion to the S2/EPU merge. Stages 17 (BERTopic), 18 (staleness), 19 (CEO NER) each
+Stages 17 (BERTopic), 18 (staleness), 19 (CEO NER) each
 produce a bank-year FEATURE panel whose columns stata_export.py core_patterns already
-declares, but nothing merged them into 40_panel_yearly (same orphan class as the EPU
-panel that S2 fixed). runner.py main() now has an "8c" conditional left-merge loop that
+declares, but nothing merged them into 40_panel_yearly. runner.py main() now has a
+conditional left-merge loop that
 brings their columns in when the (opt-in) stage has run, and is a graceful no-op when
 the file is absent (the default, since 17/18/19 are disabled-by-default).
 

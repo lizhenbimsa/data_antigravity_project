@@ -83,17 +83,18 @@ def test_validation_orchestrator_uses_canonical_stages(rpv, core_dag):
 
 
 def test_main_stage_count(core_dag):
-    """``STAGES_MAIN`` 阶段数须等于 v3.7.0 + v2.3 计划增量 − stage 30 退役 (19)。"""
+    """``STAGES_MAIN`` 阶段数须等于 v3.7.0 + v2.3 计划增量 − stage 30 退役 − stage 16 移除 (18)。"""
     # v3.7.0 baseline 15: 00 + 11 + 12 + 13 + 14 + 15 + 21 + 22 + 23 + 24 + 45 + 46 + 49 + 51 (+30 历史)
     # v3.2.0 M6: + stage 46 Stata 导出
     # v3.6.0 (Plan E P4 A1): + stage 13 content_ctx 物化, 让 14/15 双轨化前置可用
     # v3.7.0 (DC2 + C2, 2026-05-18): + stage 49 risk_taking_outcomes (第 10/11 篇)
-    # v2.3 计划增量 +5: 16/17/18/19/30a (B1 EPU / D1 BERTopic / D2 staleness /
-    #   D4 LLM CEO NER / D 组前置 SBERT 持久化) → 曾达 20
+    # v2.3 计划增量: 17/18/19/30a (D1 BERTopic / D2 staleness /
+    #   D4 LLM CEO NER / D 组前置 SBERT 持久化) → 连同一度存在的 stage 16 曾达 20
     # 2026-05-29 双模型重构: stage 30 (robustness_text2vec) 退役 (其 _t2v 列改由
     #   stage 15/25 内联双模型产出) → 20 − 1 = 19
-    assert len(core_dag.STAGES_MAIN) == 19, (
-        f"STAGES_MAIN 数量漂移: 期望 19 (v3.7.0 + v2.3 − stage 30 退役), "
+    # 2026-06-05: stage 16 (宏观控制 merge) 整体移除 → 19 − 1 = 18
+    assert len(core_dag.STAGES_MAIN) == 18, (
+        f"STAGES_MAIN 数量漂移: 期望 18 (v3.7.0 + v2.3 − stage 30 退役 − stage 16 移除), "
         f"实际 {len(core_dag.STAGES_MAIN)}. 若有意增删阶段, 请同步更新本测试。"
     )
 
@@ -196,32 +197,33 @@ def test_filter_enabled_respects_predicate(core_dag):
     # 三种情感方法全开 -> v3.7.1: stage 19 改 opt-in (P-016), 默认 disabled.
     # O2 2026-05-25: stage 17/18 也改 opt-in, 默认 disabled.
     # 2026-05-29: stage 30 (always_enabled) 退役 → total 20 → 19.
-    # 故全开 enabled count = 19 - 4 (19/17/18/49 opt-in) = 15.
+    # 2026-06-05: stage 16 (always_enabled) 移除 → total 19 → 18.
+    # 故全开 enabled count = 18 - 4 (19/17/18/49 opt-in) = 14.
     cfg_full = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
         },
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 15
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 14
 
-    # 仅 LLM -> 15 - 2 (words+berts) - 1 (24 跟随 berts) = 12
+    # 仅 LLM -> 14 - 2 (words+berts) - 1 (24 跟随 berts) = 11
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 12
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 11
 
-    # 无情感方法 -> 15 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 11
+    # 无情感方法 -> 14 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 10
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 11
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 10
     )
 
-    # v3.7.0 NEW: risk_taking_outcomes opt-in 启用 stage 49 → 15 + 1 = 16
+    # v3.7.0 NEW: risk_taking_outcomes opt-in 启用 stage 49 → 14 + 1 = 15
     cfg_with_risk_taking = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -229,9 +231,9 @@ def test_filter_enabled_respects_predicate(core_dag):
         "validation": {},
         "risk_taking_outcomes": {"enabled": True},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_risk_taking)) == 16
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_risk_taking)) == 15
 
-    # O2 NEW 2026-05-25: article_topic + article_staleness opt-in 启用 → 15 + 2 = 17
+    # O2 NEW 2026-05-25: article_topic + article_staleness opt-in 启用 → 14 + 2 = 16
     cfg_with_d_group = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -240,9 +242,9 @@ def test_filter_enabled_respects_predicate(core_dag):
         "article_topic": {"enabled": True},
         "article_staleness": {"enabled": True},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_d_group)) == 17
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_d_group)) == 16
 
-    # v3.7.1 NEW: P-016 修复 — executive_ner opt-in 启用 stage 19 → 15 + 1 = 16
+    # v3.7.1 NEW: P-016 修复 — executive_ner opt-in 启用 stage 19 → 14 + 1 = 15
     cfg_with_ner = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -250,7 +252,7 @@ def test_filter_enabled_respects_predicate(core_dag):
         "validation": {},
         "executive_ner": {"enabled": True},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_ner)) == 16
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_ner)) == 15
 
 
 def test_stages_main_all_registered_in_output_registry(core_dag):

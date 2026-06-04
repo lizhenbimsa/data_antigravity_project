@@ -18,7 +18,7 @@ run_pipeline_function.py — 新闻处理流水线调度器
     ┌─ 模块二：新闻筛选模块 ──────────────────────────────┐
     │ 11_news_bank → 12_news_fintech → 13_materialize_ctx        │
     │ → 14_fintech_intensity → 15_article_policy_alignment       │
-    │ → 16_epu_merge → 19_executive_ner                          │
+    │ → 19_executive_ner                                         │
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块三：新闻情感模块 ──────────────────────────────┐

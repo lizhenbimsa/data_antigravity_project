@@ -216,12 +216,6 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
         'benefit_neg_frac_t2v_ctx':         "Benefit Neg Frac (T2V robust, ctx)",
         'emb_peer_tone_lag1_t2v_full':      "Emb Peer Tone Lag1 (T2V robust, full)",
         'bank_emb_sim_mean_t2v':            "Bank Emb Sim Mean (T2V robust)",
-        # S2 fix (2026-05-30): EPU 中国版宏观控制 (Baker-Bloom-Davis 2016 QJE),
-        # stage 16 经 runner.py 8b 左连接并入面板后导出 (每条 ≤ 80 UTF-8 bytes)。
-        'epu_mean_year':                    "Econ Policy Uncertainty, month-equal annual mean (BBD 2016 QJE)",
-        'epu_year_end':                     "Econ Policy Uncertainty, year-end month (BBD 2016 QJE)",
-        'epu_std_year':                     "Econ Policy Uncertainty, within-year SD (BBD 2016 QJE)",
-        'epu_data_complete':                "EPU coverage flag: 1=all 12 months present that year",
     }
 
     for col in df.columns:
@@ -336,12 +330,10 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         # A2 Forward-Looking Statements (Li 2010 JAR) — 2 列双轨
         'frac_fls_full', 'frac_fls_ctx',
         # ─────────────────────────────────────────────────────────────
-        # v3.6.1 PR #14 集成 — C1 媒体 3 级 tier + B1 EPU 中国版
+        # v3.6.1 PR #14 集成 — C1 媒体 3 级 tier
         # ─────────────────────────────────────────────────────────────
         # C1 媒体 tier 加权 (sensitivity, 不替换原 media_authority_weight)
         'media_authority_weight_tier', 'media_tier_label',
-        # B1 EPU 中国版 (Baker-Bloom-Davis 2016 QJE)
-        'epu_mean_year', 'epu_year_end', 'epu_std_year', 'epu_data_complete',
         # ─────────────────────────────────────────────────────────────
         # v3.7.0 PR #14 集成 — D 组 (BERTopic / staleness / α / CEO NER)
         # 详细列名见 sidecar JSON ``17_topic_metadata.json``;

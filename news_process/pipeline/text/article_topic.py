@@ -235,7 +235,7 @@ def main():
 
     # metric-audit 2026-06-02 final (病根A 同型 latent crash): 13_news_with_ctx 仅有
     # str '日期' 无 'year' 列, 而 out_article['year']=art_df['year'] (下方) + 聚合
-    # groupby(['target_bank','year']) 会 KeyError('year'). 与 epu_merge / executive_ner /
+    # groupby(['target_bank','year']) 会 KeyError('year'). 与 executive_ner /
     # article_staleness 同口径从 '日期' 派生 year (在 emb merge 前, 使 year 随 art_df 保留).
     if 'year' not in art_df.columns:
         _date_col = '日期' if '日期' in art_df.columns else 'publish_date'

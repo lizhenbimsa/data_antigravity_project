@@ -53,8 +53,6 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
     "13_materialize_ctx.py": ["13_news_with_ctx.parquet"],
     "14_fintech_intensity.py": ["14_fintech_intensity.parquet"],
     "15_article_policy_alignment.py": ["15_article_alignment.parquet"],
-    # v3.6.1 PR #5 (B1): EPU 中国版 merge
-    "16_epu_merge.py": ["16_epu_panel.parquet"],
     # v3.7.0 PR #10 (D1): article-level BERTopic narrative topic
     "17_article_topic.py": [
         "17_article_topics.parquet",
@@ -129,8 +127,6 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("13_materialize_ctx.py", "13_news_with_ctx.parquet"): "output_13_news_with_ctx",
     ("14_fintech_intensity.py", "14_fintech_intensity.parquet"): "output_14_fintech_intensity",
     ("15_article_policy_alignment.py", "15_article_alignment.parquet"): "output_15_article_alignment",
-    # v3.6.1 PR #5 (B1)
-    ("16_epu_merge.py", "16_epu_panel.parquet"): "output_16_epu_panel",
     # v3.7.0 PR #10 (D1)
     ("17_article_topic.py", "17_article_topics.parquet"): "output_17_article_topics",
     ("17_article_topic.py", "17_topic_info.parquet"): "output_17_topic_info",

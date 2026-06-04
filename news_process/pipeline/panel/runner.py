@@ -1580,38 +1580,8 @@ def main():
         )
     logger.info(f"  ✅ 内联双模型稳健性特征 (保留自然缺失值 NaN): present={_present}")
 
-    # --- 8b. EPU 宏观控制 merge (S2 fix 2026-05-30) ---
-    # stage 16 (16_epu_merge.py, 默认运行/无 enabled_when) 产出 bank-year 级 EPU 面板,
-    # 但此前无任何代码把它并回主面板 → epu_* 列从未进入 40_panel_yearly / 46_*.dta / 回归
-    # (导出层 stata_export.py core_patterns 列了 epu_* 却因列缺失被 `if c in df.columns`
-    # 静默跳过)。此处按 (target_bank, year) 左连接补回 (Baker-Bloom-Davis 2016 QJE
-    # 时变宏观控制)。自然缺失保留 NaN (Allison 2001 listwise), 仅 epu_data_complete 还原 int。
-    _epu_path = os.path.join(OUTPUT_DIR, '16_epu_panel.parquet')
-    if os.path.exists(_epu_path):
-        _epu = pd.read_parquet(_epu_path)
-        _epu_cols = ['epu_mean_year', 'epu_year_end', 'epu_std_year', 'epu_data_complete']
-        _epu_keep = ['target_bank', 'year'] + [c for c in _epu_cols if c in _epu.columns]
-        _n_before = len(panel)
-        panel = panel.merge(
-            _epu[_epu_keep].drop_duplicates(['target_bank', 'year']),
-            on=['target_bank', 'year'], how='left')
-        if len(panel) != _n_before:
-            # raise (not assert): assert 在 python -O 下被剥离 (export.py:215 同约定)
-            raise RuntimeError(
-                f"EPU merge 改变面板行数 {_n_before}->{len(panel)} "
-                f"(16_epu_panel (target_bank,year) 键非 1:1; drop_duplicates 后不应发生)")
-        if 'epu_data_complete' in panel.columns:
-            panel['epu_data_complete'] = panel['epu_data_complete'].fillna(0).astype(int)
-        _matched = (int(panel['epu_mean_year'].notna().sum())
-                    if 'epu_mean_year' in panel.columns else 0)
-        logger.info(f"  ✅ EPU 宏观控制已合并: {_matched}/{len(panel)} bank-year 匹配 "
-                    f"(Baker-Bloom-Davis 2016 QJE)")
-    else:
-        logger.warning(f"  ⚠️ EPU 面板不存在 ({_epu_path}); 跳过 EPU merge "
-                       f"(stage 16 未运行?)")
-
     # --- 8c. Opt-in 特征面板 merge (stage 17/18/19; orphan-panel fix 2026-05-30) ---
-    # 与 EPU (8b) 同一孤儿类: 这些 opt-in stage 产出 bank-year FEATURE 面板, 其列
+    # 这些 opt-in stage 产出 bank-year FEATURE 面板, 其列
     # stata_export.py core_patterns 已声明期待 (topic_hhi / *_staleness / n_ceo_mentions
     # 等), 但此前无任何代码把它们并入 40_panel_yearly。条件左连接 (opt-in stage 未运行
     # → 文件缺失 → graceful no-op)。带全列 (topic K 动态, frac_topic_* 列名运行时才定)。

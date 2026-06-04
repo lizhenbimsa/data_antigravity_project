@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "generated_utc": "2026-06-03T02:30:08.904546+00:00",
+  "generated_utc": "2026-06-04T16:14:05.661737+00:00",
   "git_tag": "baseline-pre-restructure",
   "data_dir": "data\\processed",
   "hash_method": "pd.util.hash_pandas_object(s, index=False).sum() -> u64 hex",
-  "llm_snapshot_date": "2026-06-03",
+  "llm_snapshot_date": "2026-06-04",
   "llm_models": [
     "gpt54nano",
     "gemini31111",
@@ -711,36 +711,6 @@
         "policy_cosine_sim": "51346ae2a3762740",
         "policy_cosine_sim_t2v_full": "7d0a88763443e7c1",
         "policy_cosine_sim_t2v_ctx": "9f027b7d6e607b03"
-      }
-    },
-    "16_epu_panel.parquet": {
-      "file": "16_epu_panel.parquet",
-      "size_bytes": 5906,
-      "n_rows": 157,
-      "n_columns": 6,
-      "columns_order": [
-        "target_bank",
-        "year",
-        "epu_mean_year",
-        "epu_std_year",
-        "epu_year_end",
-        "epu_data_complete"
-      ],
-      "dtypes": {
-        "target_bank": "str",
-        "year": "int64",
-        "epu_mean_year": "float64",
-        "epu_std_year": "float64",
-        "epu_year_end": "float64",
-        "epu_data_complete": "int64"
-      },
-      "column_hashes": {
-        "target_bank": "08e67a64504f364b",
-        "year": "6e46079e68482fc2",
-        "epu_mean_year": "f222e6298534b427",
-        "epu_std_year": "2e1f0ba828484611",
-        "epu_year_end": "94815b59feccae51",
-        "epu_data_complete": "17978fd2d6c29d71"
       }
     },
     "18_article_staleness.parquet": {
@@ -3830,9 +3800,9 @@
     },
     "40_panel_yearly.parquet": {
       "file": "40_panel_yearly.parquet",
-      "size_bytes": 1940839,
+      "size_bytes": 1935278,
       "n_rows": 176,
-      "n_columns": 1560,
+      "n_columns": 1556,
       "columns_order": [
         "target_bank",
         "year",
@@ -5376,10 +5346,6 @@
         "cater_finbert_cn_ctx",
         "cater_fin_sent_zh_ctx",
         "cater_finbert2_ctx",
-        "epu_mean_year",
-        "epu_year_end",
-        "epu_std_year",
-        "epu_data_complete",
         "surface_staleness_full",
         "surface_highstale_full",
         "surface_staleness_ctx",
@@ -6938,10 +6904,6 @@
         "cater_finbert_cn_ctx": "float64",
         "cater_fin_sent_zh_ctx": "float64",
         "cater_finbert2_ctx": "float64",
-        "epu_mean_year": "float64",
-        "epu_year_end": "float64",
-        "epu_std_year": "float64",
-        "epu_data_complete": "int64",
         "surface_staleness_full": "float64",
         "surface_highstale_full": "float64",
         "surface_staleness_ctx": "float64",
@@ -8500,10 +8462,6 @@
         "cater_finbert_cn_ctx": "36472174da908acb",
         "cater_fin_sent_zh_ctx": "e2d96ed857c1ab57",
         "cater_finbert2_ctx": "f6fc77c761552a9e",
-        "epu_mean_year": "8b878101816c2b8c",
-        "epu_year_end": "d87dce7b2b9b8074",
-        "epu_std_year": "270d63b725930632",
-        "epu_data_complete": "eec2b613c556daec",
         "surface_staleness_full": "92ebedcc058945dc",
         "surface_highstale_full": "e4e53a90d9e0fab2",
         "surface_staleness_ctx": "b3a2653c980f2b4e",
@@ -10265,9 +10223,9 @@
     },
     "51_panel_with_controls.parquet": {
       "file": "51_panel_with_controls.parquet",
-      "size_bytes": 1950894,
+      "size_bytes": 1944641,
       "n_rows": 176,
-      "n_columns": 1569,
+      "n_columns": 1565,
       "columns_order": [
         "target_bank",
         "year",
@@ -11811,10 +11769,6 @@
         "cater_finbert_cn_ctx",
         "cater_fin_sent_zh_ctx",
         "cater_finbert2_ctx",
-        "epu_mean_year",
-        "epu_year_end",
-        "epu_std_year",
-        "epu_data_complete",
         "surface_staleness_full",
         "surface_highstale_full",
         "surface_staleness_ctx",
@@ -13382,10 +13336,6 @@
         "cater_finbert_cn_ctx": "float64",
         "cater_fin_sent_zh_ctx": "float64",
         "cater_finbert2_ctx": "float64",
-        "epu_mean_year": "float64",
-        "epu_year_end": "float64",
-        "epu_std_year": "float64",
-        "epu_data_complete": "int64",
         "surface_staleness_full": "float64",
         "surface_highstale_full": "float64",
         "surface_staleness_ctx": "float64",
@@ -14953,10 +14903,6 @@
         "cater_finbert_cn_ctx": "36472174da908acb",
         "cater_fin_sent_zh_ctx": "e2d96ed857c1ab57",
         "cater_finbert2_ctx": "f6fc77c761552a9e",
-        "epu_mean_year": "8b878101816c2b8c",
-        "epu_year_end": "d87dce7b2b9b8074",
-        "epu_std_year": "270d63b725930632",
-        "epu_data_complete": "eec2b613c556daec",
         "surface_staleness_full": "92ebedcc058945dc",
         "surface_highstale_full": "e4e53a90d9e0fab2",
         "surface_staleness_ctx": "b3a2653c980f2b4e",
@@ -15015,8 +14961,8 @@
   },
   "incomplete": true,
   "counts": {
-    "expected": 28,
-    "present": 22,
+    "expected": 27,
+    "present": 21,
     "missing": 6
   },
   "missing_stages": [

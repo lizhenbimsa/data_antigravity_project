@@ -62,20 +62,6 @@
     "g_a1_2_gate": "panel-level HTMT < 0.85 on ~9000 bank-year obs",
     "user_action_required": "依赖 M0 panel 扩展 (Layer 4.1, 见 v2_3_remaining_user_work.md) + 启用 5 v3.7.0 包"
   },
-  "v3_6_1_pr_5_epu": {
-    "module": "news_process.pipeline.external.epu_merge",
-    "shim": "16_epu_merge.py",
-    "expected_csv_path": "data/external/epu_china_monthly_2007_2024.csv",
-    "expected_csv_schema": "year,month,epu",
-    "g_b1_1_gate": "实测覆盖 2007-2024",
-    "g_b1_2_gate": "corr(epu, gdp_growth) < 0.7",
-    "fallback_sources": [
-      "Davis-Liu-Sheng (2019) NBER 中国本土版",
-      "Huang & Luk (2020) 中国 mainland-paper EPU"
-    ],
-    "anchor_paper": "Baker, Bloom & Davis (2016) QJE 131(4):1593-1636",
-    "user_action_required": "policyuncertainty.com 下载 EPU 中国 CSV → data/external/ (Layer 2.2)"
-  },
   "v3_6_1_pr_6_media_tier": {
     "function": "compute_media_tier_weights",
     "module": "news_process.pipeline.panel.encode",
@@ -175,17 +161,17 @@
   },
   "v2_3_pr_14_integration": {
     "schemas_output_registry_added_stages": [
-      "16_epu_merge.py", "17_article_topic.py", "18_article_staleness.py",
+      "17_article_topic.py", "18_article_staleness.py",
       "19_executive_ner.py", "30a_article_sbert.py"
     ],
     "schemas_expected_no_output_added_stages": [
       "39e_lm_discriminant_validity.py", "39f_cross_media_alpha.py"
     ],
-    "dag_stages_main_count": "15 → 20 (+5 stages)",
+    "dag_stages_main_count": "15 → 18 (2026-06-05 移除 1 个 main stage)",
     "dag_stages_validation_count": "15 → 17 (+2 stages)",
     "validation_preds_added": ["lm_discriminant_validity", "cross_media_alpha"],
     "stata_export_core_patterns_added_cols": 28,
-    "shim_count": "32 → 39 (v3.7.0 baseline 32 含 stage 49; v2.3 +7)"
+    "shim_count": "32 → 38 (2026-06-05 移除 1 个 shim)"
   },
   "audit_summary_17_rounds": {
     "total_audit_rounds": 17,
@@ -199,12 +185,10 @@
       "S2.3 PR #12 α 二维 matrix",
       "B1 requests 加 requirements",
       "B2 get_or_compute_llm 死代码",
-      "C1 epu_merge path 退化",
       "C2 媒体双归属优先级"
     ],
     "gates_total": 17,
     "d0_remaining_uncertainty_items": [
-      "policyuncertainty.com 中国 EPU 实际覆盖年份",
       "Stata ssc install ritest 跑通",
       "BERTopic K 在中文金融 corpus 实际值",
       "LLM CEO NER 200 篇 gold P/R"

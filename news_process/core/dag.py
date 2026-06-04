@@ -230,16 +230,6 @@ STAGES_MAIN: list[StageSpec] = [
         group="main", kind="filter",
         timeout=7200,  # 阶段内含 Embedding API 调用
     ),
-    # v3.6.1 PR #5 (B1): EPU 中国版宏观控制 merge.
-    # 学术依据: Baker, Bloom & Davis (2016) QJE 131(4):1593-1636.
-    # 数据 fallback: 若 data/external/epu_china_*.csv 缺失, stage 输出全 NaN
-    # (不阻塞下游, 退化为时变 macro control 缺失).
-    StageSpec(
-        name="阶段16: EPU 中国版宏观控制 merge (Baker-Bloom-Davis 2016 QJE)",
-        script="16_epu_merge.py",
-        group="main", kind="external",
-        timeout=600,  # CSV merge, 小数据量
-    ),
     # v3.7.0 PR #13 (D4): LLM CEO/Chairman zero-shot NER.
     # 学术依据: Kaustia & Rantapuska (2016) JFM; Bushee-Gow-Taylor (2018) JAR.
     # 启用前置: yunwu API + ~$12 预算 + DC3 LLM archive (v3.7.0 已就绪).
