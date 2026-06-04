@@ -1,18 +1,20 @@
-"""Plan-r3 P1-8: 6 个历史无单元测试 stage 的 import + main() smoke 测试.
+"""Plan-r3 P1-8: 5 个历史无单元测试 stage 的 import + main() smoke 测试.
 
 历史空白
 --------
-截至 v2.1.x post-recode round 2, 以下 6 个 stage 的 backing module 既无
+截至 v2.1.x post-recode round 2, 以下 stage 的 backing module 既无
 专门 ``test_<sid>_*.py``, 在其它测试中也无内容引用, 即处于 *零测试覆盖* 状态:
 
     sid               backing module
     ────────────────  ───────────────────────────────────────────────
-    30                news_process.validation.text2vec
     32a               news_process.validation.dedup_threshold
     38                news_process.validation.media_diversity
     38a               news_process.validation.temporal_mask
     52                news_process.pipeline.audit.stata_audit
     53                news_process.pipeline.audit.stats_excel
+
+注: 原 stage 30 (news_process.validation.text2vec) 已于 2026-05-29 双模型重构退役,
+模块文件删除后此处一并移除其 smoke 覆盖 (其 _t2v 稳健列改由 stage 15/25 内联产出)。
 
 本文件提供两类最低限度保护:
 
@@ -77,7 +79,6 @@ def _cleanup_smoke_log_artifacts():
 # ----------------------------------------------------------------------------
 
 UNTESTED_STAGES: dict[str, str] = {
-    "stage30":  "news_process.validation.text2vec",
     "stage32a": "news_process.validation.dedup_threshold",
     "stage38":  "news_process.validation.media_diversity",
     "stage38a": "news_process.validation.temporal_mask",

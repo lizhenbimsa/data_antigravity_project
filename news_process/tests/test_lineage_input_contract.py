@@ -21,12 +21,6 @@ def test_sentiment_stage_lineage_uses_actual_upstream_paths():
     assert "CONFIG['filenames']['output_21_tone_llms']" not in herd_decay
 
 
-def test_text2vec_lineage_uses_stage14_input():
-    text2vec = _source("validation/text2vec.py")
-    assert "input_path = os.path.join(output_dir, '14_fintech_intensity.parquet')" in text2vec
-    assert "input_files=[input_path]" in text2vec
-
-
 def test_fintech_intensity_lineage_records_both_stage12_inputs():
     fintech_intensity = _source("pipeline/filtering/fintech_intensity.py")
     assert "input_files=[full_path, input_file]" in fintech_intensity
