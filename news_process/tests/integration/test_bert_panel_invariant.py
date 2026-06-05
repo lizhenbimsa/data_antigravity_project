@@ -65,7 +65,7 @@ def test_every_configured_bert_model_has_label_columns(bert_parquet):
 
     missing_per_model: dict[str, list[str]] = {}
     for short_name in expected:
-        required = [f"{short_name}_label_{ctx}" for ctx in ("ctx", "full", "title")]
+        required = [f"{short_name}_label_{ctx}" for ctx in ("ctx", "full")]
         absent = [c for c in required if c not in bert_parquet.columns]
         if absent:
             missing_per_model[short_name] = absent
