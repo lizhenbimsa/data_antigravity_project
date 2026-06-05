@@ -54,12 +54,13 @@ panel 新增列
      文章数不均或单篇主导时会显著不同; 任何"该银行年度高管聚焦度"的解读须
      按此等权 mean-of-fractions 口径理解。
 
-stub 说明
+运行说明
 ---------
-本模块代码完整, 实际跑需要:
-    1. yunwu YUNWU_API_KEY 配置 (现有 stage 21 已用)
-    2. ~$12 预算 + 12-24 h wall clock
-    3. 200 篇人工 gold standard 标注 → precision ≥ 0.85, recall ≥ 0.75
+2026-06-05 已实跑 (1170 篇 × 双轨, 100+ 路并行, 失败 0); 产出 19_executive_ner_panel.parquet,
+经 stage 45 §8c 条件左连接并入 40/51 面板 (NER 列哈希与 golden 基线一致)。重跑前提:
+    1. yunwu YUNWU_API_KEY 配置 (现有 stage 21 已用) + stage 13 产物
+    2. 命中缓存则 $0; 全量 miss 约 $1-2/轨 (gpt-5.4-nano)
+    3. 实证闭环待补: 200 篇人工 gold standard 标注 → precision ≥ 0.85, recall ≥ 0.75
 """
 
 from __future__ import annotations
@@ -95,8 +96,8 @@ CACHE_DB_PATH = CONFIG['paths'].get(
 # P-022 修复 (v3.7.1): retry/backoff 参数 (从 sentiment.yaml::executive_ner 读取).
 _NER_CONFIG = CONFIG.get('executive_ner', {})
 MAX_RETRIES = int(_NER_CONFIG.get('max_retries', 5))
-TIMEOUT_PER_REQUEST = int(_NER_CONFIG.get('timeout_per_request', 60))
-PARALLEL_WORKERS = int(_NER_CONFIG.get('parallel_workers', 150))  # D4 并行 LLM 调用并发度 (线程池; config 可覆盖)
+TIMEOUT_PER_REQUEST = int(_NER_CONFIG.get('timeout_per_request', 600))
+PARALLEL_WORKERS = int(_NER_CONFIG.get('parallel_workers', 100))  # D4 并行 LLM 调用并发度 (线程池; config 可覆盖)
 RETRY_DELAY = 1.0       # 起始 sleep 秒
 RETRY_BACKOFF_CAP = 60  # 单次 sleep 上限
 
@@ -454,10 +455,13 @@ def main():
     except Exception:
         _ner_cache = None
 
-    # 双轨 LLM 调用 (cost: ~$6 each)
+    # 双轨 LLM 调用 (并行 PARALLEL_WORKERS 路; 命中缓存 $0, 全量 miss 约 $1-2/轨 @ gpt-5.4-nano)
     # P1 修复 (metric-audit 2026-06-02, 病根A 标题不对称): full 轨改读 content_full
     # (=标题+正文, stage 13 物化), 与 ctx 轨 (content_ctx 含标题) 对称; 缺列回退 '内容'.
     _full_col = 'content_full' if 'content_full' in df.columns else '内容'
+    _nan_feats = {'n_ceo_mentions': float('nan'),
+                  'n_unique_execs': float('nan'),
+                  'exec_hhi': float('nan')}
     for suffix, content_col in (('full', _full_col), ('ctx', 'content_ctx')):
         if content_col not in df.columns:
             continue
@@ -468,21 +472,26 @@ def main():
         # 线程并发可有效绕过 GIL。call_llm_for_ner 自身宽 except, 正常不抛。
         def _process_article(item, _suffix=suffix):
             _idx, _content, _bank = item
-            execs, call_failed = call_llm_for_ner(
-                content=_content,
-                bank_name=_bank,
-                cache_namespace=f'd4_ceo_ner_{_suffix}',
-                return_status=True,
-                cache=_ner_cache,  # audit S11: 复用共享连接, 不每篇新建
-            )
-            if call_failed:
-                # audit-fixes 2026-05-29 (M4): LLM 调用失败 → NaN (不当作 0 高管)
-                feats = {'n_ceo_mentions': float('nan'),
-                         'n_unique_execs': float('nan'),
-                         'exec_hhi': float('nan')}
-            else:
-                feats = extract_ner_features(execs)
-            return _idx, call_failed, feats
+            try:
+                execs, call_failed = call_llm_for_ner(
+                    content=_content,
+                    bank_name=_bank,
+                    cache_namespace=f'd4_ceo_ner_{_suffix}',
+                    return_status=True,
+                    cache=_ner_cache,  # audit S11: 复用共享连接, 不每篇新建
+                )
+                if call_failed:
+                    # audit-fixes 2026-05-29 (M4): LLM 调用失败 → NaN (不当作 0 高管)
+                    return _idx, True, dict(_nan_feats)
+                return _idx, False, extract_ner_features(execs)
+            except Exception as e:  # noqa: BLE001
+                # 并行加固: 单条异常 (如 extract_ner_features 解析 mention_count 失败)
+                # 降级为 call_failed=True (NaN), 不让 _pool.map 抛出拖垮整轨;
+                # 系统性故障仍由下方 >50% 熔断兜住。
+                logger.warning(
+                    f"  [{_suffix}] article {_idx} 处理异常, 降级为失败: "
+                    f"{type(e).__name__}: {str(e)[:120]}")
+                return _idx, True, dict(_nan_feats)
 
         items = [(idx, row[content_col], row.get('target_bank', ''))
                  for idx, row in df.iterrows()]
