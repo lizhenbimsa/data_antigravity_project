@@ -25,7 +25,7 @@ v3.6.0 (Plan E P1 B3) 双轨化升级:
 
 关键设计:
   - TF-IDF 向量化 + 维度封锁 (max_features=10000)
-  - pairwise_distances_chunked 分块运算, 峰值内存 < 30GB
+  - ≤2000 篇/bank 走 dense pairwise; >2000 篇走 7 天窗双指针分桶 O(N·window) (W1 2026-06-05)
   - 相似度阈值 0.35: 高于此值视为"跟风"
   - 衰减公式: weight = 1 / (1 + n_similar_predecessors)
   - **双轨**: full 用 '内容', ctx 用 'content_ctx' (后者由 stage 21 物化)
@@ -43,7 +43,7 @@ import sys
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import pairwise_distances, pairwise_distances_chunked
+from sklearn.metrics import pairwise_distances
 
 # Phase 7a-7: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 pipeline/sentiment/herd_decay.py 出发, 上溯 3 层抵达 news_process/ 的父目录)
@@ -72,7 +72,7 @@ TIME_WINDOW_DAYS = HERD_CFG.get('time_window_days', 7)
 MAX_FEATURES = HERD_CFG.get('max_features', 10000)
 MIN_DF = HERD_CFG.get('min_df', 5)
 MAX_DF = HERD_CFG.get('max_df', 0.9)
-CHUNK_SIZE = HERD_CFG.get('chunk_size', 1000)  # 仅用于日志显示; 实际内存分块由 pairwise_distances_chunked(working_memory=) 控制
+CHUNK_SIZE = HERD_CFG.get('chunk_size', 1000)  # 仅用于日志显示; >2000 篇分支已改 7 天窗双指针分桶 (W1), 不再用 chunked working_memory
 
 
 # ============================================================================
@@ -100,6 +100,61 @@ def _build_tfidf_vectorizer(n_docs: int, *, relaxed: bool = False) -> TfidfVecto
         ngram_range=(2, 4),
         dtype=np.float32,  # 节省内存
     )
+
+
+def _dense_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
+    """≤2000 篇稠密分支 (参照实现): 全 N×N 余弦 + 7 天窗下三角 mask 的前驱计数。
+
+    语义: 对每篇 i, 计 {j : j<i (index, 已排序故=日期序), |date_i-date_j|<=window,
+    cos_sim(i,j) >= SIMILARITY_THRESHOLD}; NaT 篇不计数也不作候选。
+    """
+    n_articles = len(dates)
+    _epoch = pd.Timestamp('1970-01-01')
+    dates_num = np.array(
+        [(d - _epoch).days if pd.notna(d) else np.nan for d in dates],
+        dtype=np.float64)
+    time_diff = np.abs(np.subtract.outer(dates_num, dates_num))
+    time_diff = np.nan_to_num(time_diff, nan=float(TIME_WINDOW_DAYS + 1))
+    valid_mask = (time_diff <= TIME_WINDOW_DAYS) & np.tril(
+        np.ones((n_articles, n_articles), dtype=bool), k=-1)
+    sim_matrix = 1.0 - pairwise_distances(tfidf_matrix, metric='cosine')
+    herd_mask = (sim_matrix >= SIMILARITY_THRESHOLD) & valid_mask
+    return herd_mask.sum(axis=1).astype(int)
+
+
+def _bucketed_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
+    """>2000 篇 M0 规模分支: 7 天窗双指针分桶, O(N·window), 与 _dense_similar_counts 数值逐位等价。
+
+    前置: dates 已升序排序 (NaT 末尾) — 由 compute_herd_weights 的 sort_values('日期')
+    保证。因 index 序 = 日期序, 每篇 i 的候选前驱仅落在 [date_i-window, date_i] 的连续
+    滑窗 [lo, i) 内; 双指针使左界 lo 单调右移, 每篇只对窗内候选算余弦, 把 per-bank 成本
+    从 O(N^2) 降到 O(N*window)。NaT 篇不计数也不作候选 (与稠密分支一致)。
+    """
+    n_articles = len(dates)
+    _epoch = pd.Timestamp('1970-01-01')
+    dates_num = np.array(
+        [(d - _epoch).days if pd.notna(d) else np.nan for d in dates],
+        dtype=np.float64)
+    similar_counts = np.zeros(n_articles, dtype=int)
+    lo = 0
+    for i in range(n_articles):
+        di = dates_num[i]
+        if np.isnan(di):
+            continue  # NaT: 与稠密分支 nan_to_num>window 一致, 不计数
+        # 双指针: 左界右移直到 dates_num[lo] 落入 [di-window, di]
+        # (有效前缀里无 NaN; isnan 守卫纯防御以兼容任意 NaT 排序)
+        while lo < i and (np.isnan(dates_num[lo])
+                          or di - dates_num[lo] > TIME_WINDOW_DAYS):
+            lo += 1
+        if lo >= i:
+            continue
+        # 仅对窗内候选 [lo, i) 算余弦 (稀疏行 × 稀疏块, 窗口仅几十~几百篇)
+        # i:i+1 切片保持 2D (稀疏 CSR 与 numpy dense 通用; 裸 [i] 在 dense 下退化 1D)
+        sims = 1.0 - pairwise_distances(
+            tfidf_matrix[i:i + 1], tfidf_matrix[lo:i], metric='cosine')[0]
+        similar_counts[i] = int(np.count_nonzero(sims >= SIMILARITY_THRESHOLD))
+    return similar_counts
+
 
 def _compute_similar_counts_for_track(
     bank_df: pd.DataFrame, text_col: str, dates: list
@@ -135,51 +190,12 @@ def _compute_similar_counts_for_track(
 
     n_articles = len(texts)
     if n_articles <= 2000:
-        _epoch = pd.Timestamp('1970-01-01')
-        dates_num = np.array(
-            [(d - _epoch).days if pd.notna(d) else np.nan for d in dates],
-            dtype=np.float64)
-        time_diff = np.abs(np.subtract.outer(dates_num, dates_num))
-        time_diff = np.nan_to_num(time_diff, nan=float(TIME_WINDOW_DAYS + 1))
-        valid_mask = (time_diff <= TIME_WINDOW_DAYS) & np.tril(
-            np.ones((n_articles, n_articles), dtype=bool), k=-1)
-        sim_matrix = 1.0 - pairwise_distances(tfidf_matrix, metric='cosine')
-        herd_mask = (sim_matrix >= SIMILARITY_THRESHOLD) & valid_mask
-        return herd_mask.sum(axis=1).astype(int)
-
-    # ⚠ PERF / SCALABILITY (audit-fixes 2026-05-29, M5 — documented, deferred):
-    # 下方 >2000 篇分支是 O(N²): pairwise_distances_chunked 计算全 N×N 余弦,
-    # 内层 `for j in range(global_i)` 是纯 Python 双循环, 7 天窗在循环内判断而非
-    # 用来缩候选集。在 400k-article 生产规模 (M0 gate 之后) 头部银行 ~20k 篇 →
-    # ~2e8 次内循环 + 20k×20k 余弦, 是 stage 24 主 wall-clock cliff。
-    # 修复配方 (须 byte 级数值等价, 不改 herd_weight): 先按日期排序并按 7 天滚动
-    # 窗预分桶 (仿 article_staleness.compute_surface_staleness 的 day-bucketing,
-    # ~50000× 提速 precedent), 仅对同窗候选算相似度, 把 per-bank 成本从 O(N²)
-    # 降到 O(N·window)。等价要求: 保持"j 按 index < global_i 且
-    # |date_i-date_j|<=window 且 sim>=threshold"的计数语义不变。
-    # 暂不实施: dev panel (≤2000 篇/bank) 全走上方 dense 分支, 本分支无 >2000 篇
-    # 测试夹具可验证数值等价, 贸然重写有 herd_weight 静默回归风险 → defer 到
-    # M0 规模放大时连同 >2000 篇 fixture 一起做。
-    similar_counts = np.zeros(n_articles, dtype=int)
-    row_start = 0
-    for chunk in pairwise_distances_chunked(
-        tfidf_matrix, working_memory=128, metric='cosine'
-    ):
-        n_rows_in_chunk = chunk.shape[0]
-        similarity_chunk = 1.0 - chunk
-        for local_i in range(n_rows_in_chunk):
-            global_i = row_start + local_i
-            date_i = dates[global_i]
-            for j in range(global_i):
-                date_j = dates[j]
-                if pd.isna(date_i) or pd.isna(date_j):
-                    continue
-                if abs((date_i - date_j).days) > TIME_WINDOW_DAYS:
-                    continue
-                if similarity_chunk[local_i, j] >= SIMILARITY_THRESHOLD:
-                    similar_counts[global_i] += 1
-        row_start += n_rows_in_chunk
-    return similar_counts
+        return _dense_similar_counts(tfidf_matrix, dates)
+    # M0 规模 (>2000 篇/bank): 7 天窗双指针分桶替换原 O(N^2) 纯 Python 双循环。
+    # 头部银行 (工农中建招) 全量 2007-2024 可达数十万篇, 原 O(N^2) 是 stage 24 的
+    # wall-clock cliff + N×N 余弦 OOM 悬崖。_bucketed 与 _dense 数值逐位等价,
+    # 由 tests/test_24_herd_decay_bucketing.py 在 >2000 fixture 上对拍守护。
+    return _bucketed_similar_counts(tfidf_matrix, dates)
 
 
 def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
@@ -188,7 +204,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     算法流程 (对 full / ctx 两轨各跑一次):
       1. 按 target_bank 分组
       2. 对每组新闻进行 TF-IDF 向量化 (轨 1 用 '内容', 轨 2 用 'content_ctx')
-      3. 使用 pairwise_distances_chunked 分块计算余弦距离
+      3. 计算余弦距离 (≤2000 篇 dense / >2000 篇 7 天窗双指针分桶, W1 2026-06-05)
       4. 在时间窗口内, 若文章 j 与更早的文章 i 的相似度 > 阈值,
          则 j 被标记为"跟风", 衰减权重递减
       5. 衰减公式: weight_j = 1 / (1 + n_similar_predecessors)
