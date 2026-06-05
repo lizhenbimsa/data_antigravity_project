@@ -182,6 +182,60 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='',
     )
 
+    # ═══ P2 attention 处理变量 (bank_fintech_attention; Hassan 2019 QJE firm-level exposure) ═══
+    # W2 (2026-06-05): compute_attention_treatments 物化。双轨=互为稳健性 (main=full, robustness=ctx
+    # 分离复跑)。零-fintech bank-year: index/pct/density→0 (真零曝光), disp/sd/gap/share→NaN。
+    _ATTN_TREAT = [
+        ('attention_index_full', 'Fintech Attention Index (full)', 'full',
+         'ln(1 + Σ_d fintech_intensity_score_full)', '[0, +inf)',
+         '银行-年累积 fintech 曝光强度 (全文口径); P2 主处理变量 (cumulative attention without sign)'),
+        ('attention_index_ctx', 'Fintech Attention Index (ctx)', 'ctx',
+         'ln(1 + Σ_d fintech_intensity_score_ctx)', '[0, +inf)',
+         '同上, 实体窗口口径 (Hassan proximity 归因); 双轨稳健性: 与 _full 分离复跑'),
+        ('attention_pct_full', 'Fintech Attention Share', '',
+         'N_ft / N_all (12_full 全部银行新闻为分母)', '[0, 1]',
+         'fintech 新闻占该行该年全部新闻的议程份额 (track-agnostic 单轨, Fang-Peress 2009 JF)'),
+        ('attention_disp_full', 'Fintech Attention Dispersion (outlet HHI)', '',
+         'Σ_o (n_o / Σn)²  on 媒体(中文)', '[0, 1]',
+         '跨媒体曝光集中度 (HHI, 单 outlet=1); 零-fintech→NaN (track-agnostic, Cookson-Niessner 2020 JF)'),
+        ('attention_intensity_density_full', 'Attention Intensity Density (full)', 'full',
+         'Σ_d fintech_intensity_score_full / N_all', '[0, +inf)',
+         '强度加权曝光密度 (非[0,1]故非"share"名); 双轨稳健性载体'),
+        ('attention_intensity_density_ctx', 'Attention Intensity Density (ctx)', 'ctx',
+         'Σ_d fintech_intensity_score_ctx / N_all', '[0, +inf)',
+         '同上, 实体窗口口径; 与 _full 分离复跑'),
+        ('attention_intensity_sd_full', 'Attention Intensity SD (full)', 'full',
+         'std_d(fintech_intensity_score_full), ddof=1', '[0, +inf)',
+         '篇间 fintech 技术强度离散 (二阶矩); N<2→NaN; disp 真双轨载体'),
+        ('attention_intensity_sd_ctx', 'Attention Intensity SD (ctx)', 'ctx',
+         'std_d(fintech_intensity_score_ctx), ddof=1', '[0, +inf)',
+         '同上, 实体窗口口径; 双轨相关最低 (实跑 0.656), 最强稳健性'),
+        ('attention_gap_full_ctx', 'Attention Attribution Gap', '',
+         'mean_d(intensity_full − intensity_ctx)', '(-inf, +inf)',
+         '双轨派生: 注意力借位/稀释度 (full 相对 ctx 的非本行归因量); 机制变量'),
+        ('attention_attr_share', 'Attention Attribution Purity', '',
+         'clip(Σ_d ctx / Σ_d full, 0, 1)', '[0, 1]',
+         '双轨派生: 归因纯度 (指向本行的 fintech 注意力占比); Σfull=0→NaN'),
+        ('n_fintech_articles', 'N fintech articles', '',
+         'count(fintech 文章 in bank-year)', '[0, +inf)',
+         'extensive-margin baseline 计数 (诊断/对照, track-agnostic)'),
+        ('n_outlets', 'N distinct outlets', '',
+         'nunique(媒体(中文) over fintech 文章)', '[0, +inf)',
+         'HHI 可算性诊断 (n_outlets≥2 才有 disp 变异); 零-fintech→NaN'),
+    ]
+    for _vn, _lbl, _trk, _fml, _rng, _desc in _ATTN_TREAT:
+        metadata[_vn] = VariableMetadata(
+            var_name=_vn, label=_lbl, description=_desc, data_type='float',
+            unit='比率' if _rng == '[0, 1]' else '',
+            value_range=_rng, formula=_fml,
+            source_stage='Stage 45 (panel/attention_media compute_attention_treatments)',
+            reference='Hassan et al. (2019, QJE); Fang & Peress (2009, JF); '
+                      'Cookson & Niessner (2020, JF)',
+            notes='W2 物化 (2026-06-05); 双轨=互为稳健性 (main=full / robustness=ctx 分离复跑); '
+                  '零-fintech bank-year 填 0(index/pct/density) 或 NaN(disp/sd/gap/share)',
+            category='注意力指数', track=_trk,
+        )
+
     # ═══ 文章计数口径 (物理篇数 vs LLM 有效投票篇数) ═══
     # metric-audit 2026-06-02 (nart-02 codebook 缺新列): encode-02 重构区分两个
     # 口径 — n_articles = 物理新闻覆盖篇数 (含 LLM 失败/NA 行, 供 ln_news_coverage /

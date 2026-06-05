@@ -5,16 +5,15 @@ Figure layout (per plan §5.8.2):
     Figure 2: event study coefplot (E1/E2/E4/E5a/E5b)
     Figure 3: time trend by 4 bank types × fintech wave segments
 
-缺列防护 (metric-audit 2026-06-02 attention_media-01):
-    plan §5.8.2 起草时假设面板含 ``attention_index_full`` 处理列, 但该列
-    **从未在任何 stage 物化** (全仓零产出)。直接 ``load_panel(columns=[...])``
-    会触发 pyarrow ``ArrowInvalid`` (而非 ``FileNotFoundError``), analysis.py
-    的 ``except FileNotFoundError`` 接不住 → CLI 退出码 1 + traceback。
-    本模块改为: 先探测面板实际列, 缺 ``attention_index_*`` 时回退到真实存在、
-    语义最接近 Hassan 2019 QJE attention intensity 的 ``avg_ft_intensity_*``
-    (stage 14_fintech_intensity → panel aggregate), 并在图标题/轴标签注明
-    "(proxied by avg_ft_intensity)"; 候选列全缺时 logger.warning + 优雅返回
-    ``None`` (不抛)。
+缺列防护 (metric-audit 2026-06-02 attention_media-01; W2 2026-06-05 更新):
+    历史上 plan §5.8.2 设计的 ``attention_index_full`` 处理列长期未物化, 故本模块
+    设了"探测实际列 → 缺则回退 ``avg_ft_intensity_*`` 代理"的安全网, 防 pyarrow
+    ``ArrowInvalid`` 击穿 analysis.py 的 ``except FileNotFoundError``。
+    **W2 (2026-06-05) 已由 ``compute_attention_treatments`` 物化 attention_index_full/ctx**
+    (落 40/51 panel, 实测 full n=153 非退化), 故正常路径下优先列直接命中、不再走代理。
+    fallback 链保留为防御 (仅当未来 panel 重生缺该列时触发); 命中代理时仍在图
+    标题/轴标签注明 "(proxied by avg_ft_intensity)"; 候选列全缺时 logger.warning +
+    优雅返回 ``None`` (不抛)。
 """
 
 from __future__ import annotations
@@ -36,9 +35,9 @@ from news_process.papers._common import (
 _LOGGER = logging.getLogger('papers.bank_fintech_attention.figures')
 
 # 注意力强度处理列优先级 (从理想 → 可得 fallback)。
-# attention_index_* 是 plan §5.8.2 设计列但从未物化; avg_ft_intensity_* 为
-# stage 14 fintech_intensity 的 bank-year 均值, 是当前面板真实可得、最贴近
-# Hassan 2019 QJE attention intensity 的代理 (实测 full/ctx 各 119 非空)。
+# attention_index_full/ctx 已由 W2 (2026-06-05) compute_attention_treatments 物化,
+# 正常命中首位; avg_ft_intensity_* (stage 14 fintech_intensity 的 bank-year 均值)
+# 仅作历史防御 fallback, 用于面板重生缺该列时的代理 (Hassan 2019 QJE 近似)。
 _ATTENTION_COL_PREFERENCE: list[str] = [
     'attention_index_full',
     'attention_index_ctx',

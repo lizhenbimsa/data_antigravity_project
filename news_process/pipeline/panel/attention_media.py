@@ -194,6 +194,164 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
 _ATTN_MIN_ARTICLES = 5
 
 
+def _validate_attention_treatments(panel: pd.DataFrame) -> None:
+    """校验 P2 attention 处理变量值域 (仿 _validate_attention_index 的 between(0,1) 模式)。"""
+    bounded = {
+        'attention_index_full': (0.0, None), 'attention_index_ctx': (0.0, None),
+        'attention_pct_full': (0.0, 1.0), 'attention_disp_full': (0.0, 1.0),
+        'attention_attr_share': (0.0, 1.0),
+        'attention_intensity_density_full': (0.0, None),
+        'attention_intensity_density_ctx': (0.0, None),
+        'attention_intensity_sd_full': (0.0, None),
+        'attention_intensity_sd_ctx': (0.0, None),
+    }
+    for col, (lo, hi) in bounded.items():
+        if col not in panel.columns:
+            continue
+        v = panel[col].dropna()
+        if len(v) == 0:
+            logger.warning(f"  {col}: 全为 NaN")
+            continue
+        ok = (v >= lo - 1e-9).all() and (hi is None or (v <= hi + 1e-9).all())
+        if ok:
+            logger.info(f"  ✓ {col}: n={len(v)} mean={v.mean():.4f} "
+                        f"[{v.min():.4f}, {v.max():.4f}]")
+        else:
+            rng = f"[{lo}, {hi}]" if hi is not None else f"[{lo}, +inf)"
+            logger.error(f"  ✗ {col}: 越界 [{v.min():.4f}, {v.max():.4f}], 期望 {rng}")
+
+
+def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
+    """P2 bank_fintech_attention 处理变量物化 (Hassan 2019 QJE firm-level exposure)。
+
+    产出 spec 钦定 4 列 + 双轨/派生 (双轨 = 互为稳健性, 用户裁定 2026-06-05):
+      attention_index_full / attention_index_ctx          ln(1+Σ intensity) 累积曝光强度 (DUAL)
+      attention_pct_full                                  N_ft/N_all fintech 议程份额 (track-agnostic 单轨)
+      attention_intensity_density_full / _ctx             Σintensity/N_all 强度加权密度 (DUAL; 值域[0,+∞) 故非"share"名, B3)
+      attention_disp_full                                 跨媒体 HHI (vectorized, track-agnostic 单轨, H4)
+      attention_intensity_sd_full / _ctx                  篇间强度二阶矩 (disp 真双轨; N<2→NaN, H1)
+      attention_gap_full_ctx                              mean(full−ctx) 双轨派生归因借位 (机制变量)
+      attention_attr_share                                Σctx/Σfull 归因纯度 (clip[0,1], B4)
+      n_fintech_articles / n_outlets                      extensive baseline / HHI 可算性诊断
+
+    回归用法: index/density/sd 各产 _full/_ctx, main=full、robustness=ctx 分离复跑, 不同进一个 RHS。
+
+    防选择偏差 (B1/B2): 分子(强度/计数)取自 14_fintech_intensity (article×bank, is_fintech 子集);
+      分母 N_all + outlet 分布取自 12_fintech_news_full (全部银行新闻含非 fintech)。在 12_full 全
+      bank-year 全集上 LEFT-join 分子, 零-fintech bank-year: index/pct/density → 0 (真零曝光),
+      disp/sd/gap/share → NaN (无报道无离散度/借位)。时间维方法 (Da异常/AR/burstiness/月度) 全量后
+      opt-in, 此处不产 (T=2 试跑样本不可估, H2)。
+
+    NaN 非对称契约 (须知): panel 是 balance_panel 笛卡尔积, 可含 12_full universe 之外的
+      bank-year (该银行该年**完全无银行新闻**, has_coverage=0)。这些行最终 panel.merge LEFT-join
+      天然得**全 NaN** (含 index/pct/density)。这与 in-universe 零-fintech 行 (有新闻但无 fintech →
+      index/pct=0) **刻意不对称**: 无新闻=注意力不可测 (NaN), 有新闻但零 fintech=真零曝光 (0)。
+      回归中前者 listwise 删除 (正确)、后者保留为信息性零。(test_attention_treatments
+      test_panel_superset_rows_are_nan 锁定此契约)
+    """
+    s14_path = os.path.join(OUTPUT_DIR, FILENAMES.get(
+        'output_14_fintech_intensity', '14_fintech_intensity.parquet'))
+    f12_path = os.path.join(OUTPUT_DIR, FILENAMES.get(
+        'output_12_fintech_full', '12_fintech_news_full.parquet'))
+    if not (os.path.exists(s14_path) and os.path.exists(f12_path)):
+        logger.warning("  14_fintech_intensity / 12_fintech_news_full 缺失, 跳过 "
+                       "attention 处理变量物化")
+        return panel
+
+    logger.info("=" * 60)
+    logger.info("步骤 6b-2: P2 attention 处理变量 (Hassan 2019 QJE; 双轨=互为稳健性)")
+    logger.info("=" * 60)
+
+    s14 = pd.read_parquet(s14_path)
+    need_intensity = {'fintech_intensity_score_full', 'fintech_intensity_score_ctx'}
+    if not need_intensity.issubset(s14.columns):
+        logger.warning(f"  14_fintech_intensity 缺强度列 {need_intensity - set(s14.columns)}, "
+                       f"跳过 attention 处理变量")
+        return panel
+    f12 = pd.read_parquet(f12_path, columns=[
+        'target_bank', '日期', 'is_fintech_news', '媒体(中文)'])
+
+    GK = ['target_bank', 'year']
+    for df in (s14, f12):  # year 派生 (镜像 attention_media.py:255, 防 groupby KeyError)
+        df['year'] = pd.to_datetime(df['日期'], errors='coerce').dt.year
+        df.dropna(subset=['year'], inplace=True)
+        df['year'] = df['year'].astype(int)
+
+    # ── 全 bank-year 全集 (防 B1 选择偏差): 来自 12_full 全部银行新闻 ──
+    universe = f12.drop_duplicates(GK)[GK].copy()
+    n_all = f12.groupby(GK).size().rename('_n_all')
+
+    # ── 分子: 14_fintech_intensity (有双轨强度分) ──
+    g = s14.groupby(GK)
+    num = pd.DataFrame({
+        'sum_full': g['fintech_intensity_score_full'].sum(),
+        'sum_ctx': g['fintech_intensity_score_ctx'].sum(),
+        'mean_full': g['fintech_intensity_score_full'].mean(),   # NaN-keep (零fintech无gap)
+        'mean_ctx': g['fintech_intensity_score_ctx'].mean(),
+        'sd_full': g['fintech_intensity_score_full'].std(),       # ddof=1, N=1→NaN (H1)
+        'sd_ctx': g['fintech_intensity_score_ctx'].std(),
+        'n_ft': g.size(),
+    })
+
+    # ── 跨媒体 HHI (vectorized, 防 H4 groupby-apply 性能炸弹) ──
+    f12_ft = f12[f12['is_fintech_news'] == True]
+    oc = f12_ft.groupby(GK + ['媒体(中文)']).size().reset_index(name='n')
+    oc['_tot'] = oc.groupby(GK)['n'].transform('sum')
+    oc['_s2'] = (oc['n'] / oc['_tot']) ** 2
+    disp = pd.DataFrame({
+        'disp_hhi': oc.groupby(GK)['_s2'].sum(),
+        'n_outlets': oc.groupby(GK)['媒体(中文)'].nunique(),
+    })
+
+    # ── 在全集脊柱上组装 ──
+    t = universe.set_index(GK).join(n_all).join(num).join(disp)
+    # 分子缺失 (零-fintech bank-year) → 累积/计数填 0 (真零曝光)
+    for c in ['sum_full', 'sum_ctx', 'n_ft']:
+        t[c] = t[c].fillna(0)
+    t['n_ft'] = t['n_ft'].astype(int)
+    # mean/sd/disp/n_outlets 保持 NaN (零-fintech 无离散度/借位)
+    # 防御性下界 (W2 复核 LOW): 上游 stage14 IDF 权重在某 fintech 词近全文档时理论可转负
+    # (fintech_intensity.py:157 raw_idf=log10(N/(1+df))) → 篇级 score 可负 → sum 可负 →
+    # log1p(负) 产 -inf/NaN 破 index/density [0,+∞) 契约, attr_share 符号翻转被 clip 静默掩盖。
+    # 当前数据 intensity min=0 未触发, clip 作结构性保证 (no-op on 非负数据)。
+    t['sum_full'] = t['sum_full'].clip(lower=0)
+    t['sum_ctx'] = t['sum_ctx'].clip(lower=0)
+
+    t['attention_index_full'] = np.log1p(t['sum_full'])
+    t['attention_index_ctx'] = np.log1p(t['sum_ctx'])
+    t['attention_pct_full'] = t['n_ft'] / t['_n_all']            # _n_all≥1 (全集来自12_full)
+    t['attention_intensity_density_full'] = t['sum_full'] / t['_n_all']
+    t['attention_intensity_density_ctx'] = t['sum_ctx'] / t['_n_all']
+    t['attention_gap_full_ctx'] = t['mean_full'] - t['mean_ctx']  # 零-fintech → NaN
+    with np.errstate(divide='ignore', invalid='ignore'):
+        _share = t['sum_ctx'] / t['sum_full'].replace(0, np.nan)
+    t['attention_attr_share'] = _share.clip(0.0, 1.0)            # B4: ctx>full 越界 clip
+    t['attention_disp_full'] = t['disp_hhi']
+    t['attention_intensity_sd_full'] = t['sd_full']
+    t['attention_intensity_sd_ctx'] = t['sd_ctx']
+    t['n_fintech_articles'] = t['n_ft']
+
+    out_cols = [
+        'attention_index_full', 'attention_index_ctx', 'attention_pct_full',
+        'attention_intensity_density_full', 'attention_intensity_density_ctx',
+        'attention_disp_full', 'attention_intensity_sd_full', 'attention_intensity_sd_ctx',
+        'attention_gap_full_ctx', 'attention_attr_share',
+        'n_fintech_articles', 'n_outlets',
+    ]
+    treat = t.reset_index()[GK + out_cols]
+
+    drop = [c for c in out_cols if c in panel.columns]
+    if drop:
+        panel = panel.drop(columns=drop)
+    panel = panel.merge(treat, on=GK, how='left')
+
+    matched = panel['attention_index_full'].notna().sum()
+    logger.info(f"  attention 处理变量: 匹配 {matched}/{len(panel)} bank-year "
+                f"({matched / len(panel) * 100:.1f}%); 全集脊柱 {len(universe)} bank-year")
+    _validate_attention_treatments(panel)
+    return panel
+
+
 def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
     """构建金融科技公众注意力指数 — 三级地理维度。
 

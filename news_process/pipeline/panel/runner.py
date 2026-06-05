@@ -58,6 +58,7 @@ from news_process.pipeline.panel import geography as _m43
 
 # 从 panel.attention_media (原 42)
 from news_process.pipeline.panel.attention_media import (
+    compute_attention_treatments,
     compute_fintech_attention_index,
     compute_media_heterogeneity,
 )
@@ -554,6 +555,12 @@ def main():
     #    12_fintech_news_full.parquet (含全量银行新闻)
     if PANEL_CFG.get('compute_attention_index', True):
         panel = compute_fintech_attention_index(panel)
+
+    # --- 6b-2. P2 attention 处理变量 (Hassan 2019 QJE firm-level exposure; 双轨=互为稳健性) ---
+    # spec 钦定 attention_index_full/ctx + attention_pct_full + attention_disp_full +
+    # 双轨派生 (density/sd/gap/share)。防选择偏差: 全集脊柱 LEFT-join + 零-fintech 填 0 (index/pct)。
+    if PANEL_CFG.get('compute_attention_treatments', True):
+        panel = compute_attention_treatments(panel)
 
     # --- 6c. 媒体异质性变量 (四维度) ---
     if PANEL_CFG.get('compute_media_heterogeneity', True):
