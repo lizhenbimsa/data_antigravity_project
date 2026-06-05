@@ -149,13 +149,26 @@ def test_independence_diagnostic_in_source():
 
 
 # ── Cases 8-10: 数据流契约 ──
-def test_full_text_uses_title_plus_content():
-    """full 轨应拼 标题 + 内容 (保持 v3.5.0 行为)."""
+def test_full_text_reads_content_full_for_cache_reuse():
+    """full 轨应读 stage 13 物化的 content_full (与 stage 27 逐篇嵌入同源, 复用 embedding 缓存)。
+
+    P0 修复 (embedding-reuse-audit 2026-06-05): 旧的裸 '标题 + 空格 + 内容' 与下游
+    content_full (prepend_title) 不同字节 → 互为 LLMCache miss, 同篇文章重复付费。
+    改读 content_full 后, full 轨并入 stage 27 (benefit_society) 的文章级共享缓存池。
+    (stage 25 嵌 bank-year 聚合文档, 粒度错配不共享; 仅文本源串同源。) 语义仍是 标题+内容。
+    """
     import inspect
 
     from news_process.pipeline.filtering import policy_alignment as pa
     src = inspect.getsource(pa.compute_article_policy_alignment)
-    assert "titles + ' ' + contents" in src or 'full_texts' in src
+    # 主路径读 content_full 列
+    assert "'content_full' in df.columns" in src and "df['content_full']" in src, \
+        "full 轨应优先读 content_full (与 stage 25/27 同源)"
+    # 回退路径用 prepend_title (与 stage 13 同函数 → 与 content_full 字节一致)
+    assert 'prepend_title' in src, "缺 content_full 列时应回退 prepend_title 内联构建"
+    # 不应再有旧的裸空格拼接 (会与 content_full 口径分裂 → cache miss + 标题不对称)
+    assert "titles + ' ' + contents" not in src, \
+        "旧裸空格拼接应已移除 (会与 content_full 缓存命名空间分裂)"
 
 
 def test_ctx_text_is_content_ctx_only():

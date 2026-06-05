@@ -410,7 +410,9 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
       Substantive (词频高+对齐高=言行一致) / Irrelevant (词频低+对齐低=不相关)
 
     Args:
-        df: 含 '标题' 和 '内容' 列的 DataFrame (来自 14_fintech_intensity.parquet)
+        df: DataFrame (来自 14_fintech_intensity.parquet)。full 轨优先读 stage 13
+            物化的 'content_full' 列; 缺列时回退用 '标题' + '内容' 经 prepend_title 构建。
+            ctx 轨读 'content_ctx' 列。
 
     Returns:
         DataFrame: 新增 'policy_cosine_sim' 列
@@ -463,9 +465,27 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # 【白话】两条轨道分别打分:
     #   - full: 整篇新闻 vs 政策 (措施层 — Hassan 2019 macro 类比)
     #   - ctx:  目标银行那段 vs 政策 (实体特异性 — Tetlock 2007 / L&M 2016)
-    titles = df['标题'].fillna('').astype(str)
-    contents = df['内容'].fillna('').astype(str)
-    full_texts = (titles + ' ' + contents).tolist()
+    # P0 修复 (embedding-reuse-audit 2026-06-05, 病根A 残留): full 轨改读 stage 13
+    # 物化的 content_full (= prepend_title(标题, 内容)), 替代旧的裸 '标题 + 空格 + 内容'。
+    # 两个动机:
+    #   (1) embedding 缓存复用: content_full 是逐字节固定的文章级串, 与 **stage 27
+    #       (benefit_society) 逐篇嵌入的 content_full 同源** → 同篇文章的
+    #       text-embedding-3-small 向量经 LLMCache (键含逐字文本) 只付费一次; 旧空格
+    #       口径与 content_full 不同字节 → 互为 cache miss, 各付一次。
+    #       ⚠ 复用范围仅限 stage 27: stage 25 (strategic_diff) 嵌的是 (bank,year)
+    #       聚合超级文档 (非文章级), 粒度错配不可能共享缓存; tone_words/tone_berts
+    #       虽读同一 content_full 源串, 但走词典/BERT 不调 embedding API, 不进此缓存。
+    #   (2) full↔ctx 标题对称: full 轨 (含标题) 与 ctx 轨 (content_ctx 含标题) 标题
+    #       口径一致 (病根A 同型, 与 fintech_intensity / strategic_diff 等同批修复)。
+    # 缺 content_full 列时回退至 prepend_title 内联构建 — 与 stage 13 同函数同输入,
+    # 产出字节一致字符串, 故两个分支都能命中 stage 27 的共享缓存。
+    if 'content_full' in df.columns:
+        full_texts = df['content_full'].fillna('').astype(str).str.strip().tolist()
+    else:
+        from news_process.core.text.entity_context import prepend_title
+        _titles = df.get('标题', pd.Series('', index=df.index)).fillna('').astype(str)
+        _contents = df.get('内容', pd.Series('', index=df.index)).fillna('').astype(str)
+        full_texts = [prepend_title(t, b).strip() for t, b in zip(_titles, _contents)]
 
     has_ctx = 'content_ctx' in df.columns
     if has_ctx:
