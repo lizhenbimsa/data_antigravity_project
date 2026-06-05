@@ -1,7 +1,7 @@
 """news_process.pipeline.sentiment.executive_ner — stage 19 LLM CEO NER.
 
-v3.7.0 PR #13 (D4) — 用 yunwu LLM zero-shot 抽取银行高管 (CEO / 董事长 /
-总裁 / 行长) 提及, panel 新增高管聚焦度指标.
+v3.7.0 PR #13 (D4) — 用 yunwu LLM zero-shot 抽取银行高管 (董事长 / 行长 /
+监事长 / 党委(党组)书记 等「三会一层」+ 党委职衔) 提及, panel 新增高管聚焦度指标.
 
 学术依据
 --------
@@ -68,6 +68,7 @@ import json
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 
@@ -95,10 +96,11 @@ CACHE_DB_PATH = CONFIG['paths'].get(
 _NER_CONFIG = CONFIG.get('executive_ner', {})
 MAX_RETRIES = int(_NER_CONFIG.get('max_retries', 5))
 TIMEOUT_PER_REQUEST = int(_NER_CONFIG.get('timeout_per_request', 60))
-RETRY_DELAY = 2.0       # 起始 sleep 秒
+PARALLEL_WORKERS = int(_NER_CONFIG.get('parallel_workers', 150))  # D4 并行 LLM 调用并发度 (线程池; config 可覆盖)
+RETRY_DELAY = 1.0       # 起始 sleep 秒
 RETRY_BACKOFF_CAP = 60  # 单次 sleep 上限
 
-PROMPT_VERSION = 'd4_v0_20260518'  # 与 prompt 内容绑定; 改 PROMPT_TEMPLATE 必须 bump
+PROMPT_VERSION = 'd4_v4_20260605'  # 与 prompt 内容绑定; 改 PROMPT_TEMPLATE 必须 bump
 
 # v3.7.0 V4 P2.1: DC3 LLM archive 接入
 try:
@@ -110,8 +112,28 @@ except ImportError:
     archive_record = None  # type: ignore
 
 
-PROMPT_TEMPLATE = """请从以下中文银行 / 金融科技新闻文章中识别提到的银行高管姓名。
-关注职位: CEO / 董事长 / 总裁 / 行长 / 副行长 / 副总裁 / 首席执行官 / 首席风险官 / 首席信息官。
+PROMPT_TEMPLATE = """请从以下中文银行 / 金融科技新闻文章中, 识别"目标银行 ({bank_name}) 本身"的现任(含代理)高管姓名。
+
+【归属规则 — 仅限目标银行】
+  · 文中"该行 / 本行 / 我行"及目标银行的简称, 均指目标银行 {bank_name}; 但指代可能跳指上一句提到的其他机构, 须按上下文判定。
+  · 仅当某人职衔能明确判定隶属目标银行 {bank_name} 时才识别; 机构归属不明, 或属于其他任何主体的, 一律不识别——包括: 其他银行、金融科技公司 / 互联网平台(如蚂蚁集团 / 京东科技 / 度小满 / 腾讯金融科技)、目标银行的母公司 / 金融控股集团、监管机构(如人民银行"行长" / 金融监管总局 / 银保监会 / 央行)、基金 / 信托 / 保险 / 资产管理等关联非银机构。
+
+【应识别的职位】(目标银行总行层级, 「三会一层」+ 党委 / 党组)
+  · 董事会: 董事长 / 副董事长 / 执行董事
+  · 监事会: 监事长 / 监事会主席 / 副监事长
+  · 党委 / 党组: 党委(党组)书记 / 副书记 / 委员(成员) / 纪委书记 / 驻行纪检监察组组长
+  · 高级管理层: 行长(亦称 总经理 / 主任 / 首席执行官 / CEO) / 联席行长 / 常务副行长 / 副行长 / 行长助理 / 代行长(代理行长 / 主持工作) / 总会计师(首席会计师) / 总审计师(首席审计官) / 首席运营官(COO) / 首席风险官(风险总监 / CRO) / 首席合规官(合规总监 / 合规负责人) / 首席财务官(CFO) / 首席信息官(CIO) / 首席技术官(CTO) / 首席数据官(CDO) / 总行级(高级)业务总监 / 董事会秘书 / 其他经董事会聘任、属总行高级管理层的「首席 XX 官」
+
+【不得识别 (排除)】
+  · 分支 / 中层负责人: 带"部门 / 业务 / 条线 / 区域 / 分行 / 支行 / 分公司"等限定词者(如 部门总经理、零售业务总监、区域总监、XX 分行行长 / 党委书记、XX 支行副行长)。凡无法判断是否为"总行行级 / C 级"的, 一律不识别(宁缺毋滥)。
+  · 非高管事务 / 服务岗: 董事长 / 行长秘书; 投资 / 理财 / 财富 / 财务"顾问"; "法定代表人 / 媒体代表"等"代表"(非职务)。
+  · 非执行 / 监督类: 独立董事、非执行董事、监事(职工 / 外部 / 股东监事)。
+  · 非现任(按文本时态判定): 仅当文中出现"前 / 原 / 已离任 / 卸任 / 退休 / 曾任"等过去时标记, 或"拟任 / 候任 / 提名待核准"等未上任标记时才排除; 在任的"代行长 / 代理 / 主持工作"属现任, 应识别。无任何时态标记时(如"XX 银行行长张三表示"), 默认按现任识别。
+
+【识别与计数要求】
+  · 同一人有多个职衔(如"董事长兼党委书记""副行长兼首席风险官")只输出一条, 各职衔提及合并到该人; title 字段填其在目标银行的最高职衔(优先级: 党委 / 党组书记 > 董事长 > 行长 > 其余)。
+  · mention_count = 该人在文中被明确提及的总次数, 计入: 全名、"姓 + 职衔"简称(如"张行长")、以及确指其本人的"该行行长 / 该副行长"等; 不计入纯代词"他 / 其"。
+  · 仅出现职衔、无具名的匿名高管(如"该行一位副行长表示")不予识别。
 
 仅返回 JSON 数组, 格式如下 (无任何额外文字):
 [
@@ -119,7 +141,7 @@ PROMPT_TEMPLATE = """请从以下中文银行 / 金融科技新闻文章中识�
   ...
 ]
 
-若无任何高管提及, 返回空数组 [].
+若无任何符合条件的高管提及, 返回空数组 [].
 
 文章 (银行: {bank_name}):
 {content}
@@ -261,7 +283,7 @@ def call_llm_for_ner(
 
     prompt = PROMPT_TEMPLATE.format(
         bank_name=bank_name or '未知银行',
-        content=content[:2000],  # 截断防超 token limit
+        content=content,  # 不截断: 长度控制由上游阶段负责, 此处传全文防尾部高管丢失
     )
 
     # P-006 修复 (v3.7.1): LLMCache 真 API 是 `LLMCache(db_path)` 不是
@@ -439,31 +461,50 @@ def main():
     for suffix, content_col in (('full', _full_col), ('ctx', 'content_ctx')):
         if content_col not in df.columns:
             continue
-        logger.info(f"  ── 轨道 {suffix} ──")
-        records = []
-        n_failed = 0
-        for idx, row in df.iterrows():
+        logger.info(f"  ── 轨道 {suffix} (并行 {PARALLEL_WORKERS} 路线程池) ──")
+
+        # 单篇处理. 线程安全前提: LLMCache 与 LLMArchive 内部均 _lock 保护,
+        # 共享 _ner_cache 连接 (check_same_thread=False); LLM 调用为 I/O bound,
+        # 线程并发可有效绕过 GIL。call_llm_for_ner 自身宽 except, 正常不抛。
+        def _process_article(item, _suffix=suffix):
+            _idx, _content, _bank = item
             execs, call_failed = call_llm_for_ner(
-                content=row[content_col],
-                bank_name=row.get('target_bank', ''),
-                cache_namespace=f'd4_ceo_ner_{suffix}',
+                content=_content,
+                bank_name=_bank,
+                cache_namespace=f'd4_ceo_ner_{_suffix}',
                 return_status=True,
                 cache=_ner_cache,  # audit S11: 复用共享连接, 不每篇新建
             )
             if call_failed:
                 # audit-fixes 2026-05-29 (M4): LLM 调用失败 → NaN (不当作 0 高管)
-                n_failed += 1
                 feats = {'n_ceo_mentions': float('nan'),
                          'n_unique_execs': float('nan'),
                          'exec_hhi': float('nan')}
             else:
                 feats = extract_ner_features(execs)
-            records.append({
-                'article_id': idx,
-                f'n_ceo_mentions_{suffix}': feats['n_ceo_mentions'],
-                f'n_unique_execs_{suffix}': feats['n_unique_execs'],
-                f'exec_hhi_{suffix}': feats['exec_hhi'],
-            })
+            return _idx, call_failed, feats
+
+        items = [(idx, row[content_col], row.get('target_bank', ''))
+                 for idx, row in df.iterrows()]
+        feats_by_id: dict = {}
+        n_failed = 0
+        done = 0
+        # ThreadPoolExecutor.map 按 items 顺序返回结果, article_id 映射不乱。
+        with ThreadPoolExecutor(max_workers=PARALLEL_WORKERS) as _pool:
+            for _idx, call_failed, feats in _pool.map(_process_article, items):
+                feats_by_id[_idx] = feats
+                if call_failed:
+                    n_failed += 1
+                done += 1
+                if done % 200 == 0:
+                    logger.info(f"    [{suffix}] 进度 {done}/{len(items)} (累计失败 {n_failed})")
+
+        records = [{
+            'article_id': idx,
+            f'n_ceo_mentions_{suffix}': feats_by_id[idx]['n_ceo_mentions'],
+            f'n_unique_execs_{suffix}': feats_by_id[idx]['n_unique_execs'],
+            f'exec_hhi_{suffix}': feats_by_id[idx]['exec_hhi'],
+        } for idx in df.index]
         # audit-fixes 2026-05-29 (M4): 失败率 > 50% = LLM 整体宕机, 拒绝写出
         # 退化面板 (此前 100% 失败会静默产出全零面板并 exit 0, 与"确无高管"不可
         # 区分)。与 tone_llms 的 call_failure→NaN 约定一致。
