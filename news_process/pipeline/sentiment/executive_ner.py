@@ -95,8 +95,8 @@ CACHE_DB_PATH = CONFIG['paths'].get(
 
 # P-022 修复 (v3.7.1): retry/backoff 参数 (从 sentiment.yaml::executive_ner 读取).
 _NER_CONFIG = CONFIG.get('executive_ner', {})
-MAX_RETRIES = int(_NER_CONFIG.get('max_retries', 5))
-TIMEOUT_PER_REQUEST = int(_NER_CONFIG.get('timeout_per_request', 600))
+MAX_RETRIES = int(_NER_CONFIG.get('max_retries', 30))
+TIMEOUT_PER_REQUEST = int(_NER_CONFIG.get('timeout_per_request', 60))
 PARALLEL_WORKERS = int(_NER_CONFIG.get('parallel_workers', 100))  # D4 并行 LLM 调用并发度 (线程池; config 可覆盖)
 RETRY_DELAY = 1.0       # 起始 sleep 秒
 RETRY_BACKOFF_CAP = 60  # 单次 sleep 上限
