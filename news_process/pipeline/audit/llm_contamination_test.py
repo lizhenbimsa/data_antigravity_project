@@ -311,6 +311,88 @@ def contamination_test(
     return report
 
 
+STAGE_NAME = "39h_llm_contamination_test"
+
+
+def run_stage(config=None):
+    """Stage 39h 入口 (config 驱动, opt-in 默认禁用).
+
+    DC4 LLM 训练数据污染留出检验. 与 CLI ``main()`` 的区别:
+    - cutoff / 列名 / 输入路径全部从 config 读取. ``cutoff`` 须用户在
+      ``config/validation.yaml::llm_contamination_test.cutoff`` 显式提供
+      (来源为 LLM provider 官方文档, 不得伪造 — 见模块 docstring C5 修复);
+      未配置则优雅跳过, 绝不 fabricate.
+    - 缺面板 / 缺 outcome 列 (``z_score`` 来自 opt-in stage 49 risk_taking_outcomes) /
+      未配 cutoff / pre-post 样本不足时一律优雅跳过 (log + return 0, 不 raise),
+      与同族 39d/39e "缺列 graceful skip" 约定一致 (T=2 面板年份多 < cutoff,
+      n_post 通常为 0, 属预期).
+    """
+    import logging as _logging
+    _logging.basicConfig(level=_logging.INFO)
+    if config is None:
+        from news_process.core.config import load_config
+        config = load_config()
+
+    logger.info("=" * 60)
+    logger.info("Stage 39h: LLM contamination holdout test (DC4 F-Adv.2)")
+
+    cfg = config.get('llm_contamination_test', {}) or {}
+    paths = config.get('paths', {}) or {}
+    filenames = config.get('filenames', {}) or {}
+    output_dir = Path(paths.get('output_dir', 'data/processed'))
+    panel_name = filenames.get('output_40_panel_yearly', '40_panel_yearly.parquet')
+    input_path = Path(cfg.get('input') or (output_dir / panel_name))
+    llm_col = cfg.get('llm_col', 'llm_vote_tone_full')
+    outcome_col = cfg.get('outcome_col', 'z_score')
+    date_col = cfg.get('date_col', 'year')
+    cutoff = cfg.get('cutoff')  # None → 跳过 (禁止伪造 cutoff)
+    method = cfg.get('method', 'pearson')
+    report_path = Path(cfg.get('report') or (output_dir / 'llm_contamination_report.json'))
+
+    if not input_path.exists():
+        logger.warning("[skip] 面板不存在: %s — Stage 39h 跳过.", input_path)
+        return 0
+    if not cutoff:
+        logger.warning(
+            "[skip] 未配置 cutoff (config/validation.yaml::llm_contamination_test.cutoff); "
+            "cutoff 须来自 LLM provider 官方文档不得伪造 — Stage 39h 跳过.")
+        return 0
+
+    df = pd.read_parquet(input_path)
+    if outcome_col not in df.columns:
+        logger.warning(
+            "[skip] outcome 列 %r 不在面板 (来自 opt-in stage 49 risk_taking_outcomes, "
+            "尚未并入面板) — Stage 39h 跳过.", outcome_col)
+        return 0
+    if llm_col not in df.columns:
+        logger.warning("[skip] LLM 列 %r 不在面板 — Stage 39h 跳过.", llm_col)
+        return 0
+
+    if date_col == 'year':
+        df['_test_date'] = pd.to_datetime(df['year'].astype(str) + '-07-01')
+        eff_date_col = '_test_date'
+    else:
+        eff_date_col = date_col
+
+    try:
+        report = contamination_test(
+            df, llm_col=llm_col, outcome_col=outcome_col,
+            date_col=eff_date_col, cutoff_date=cutoff, method=method,
+        )
+    except Exception as exc:  # noqa: BLE001 — 同族 graceful-skip: 样本不足时不阻塞验证管线
+        logger.warning(
+            "[skip] contamination_test 无法在当前样本计算 (%s: %s); "
+            "通常因 pre/post-cutoff 样本不足 (T=2 面板年份 < cutoff) — Stage 39h 跳过.",
+            type(exc).__name__, exc)
+        return 0
+
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    with report_path.open('w', encoding='utf-8') as f:
+        json.dump(report, f, ensure_ascii=False, indent=2, default=str)
+    logger.info("Stage 39h verdict=%s → %s", report.get('verdict'), report_path)
+    return 0
+
+
 def main():
     """CLI 入口."""
     parser = argparse.ArgumentParser(

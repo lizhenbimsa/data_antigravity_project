@@ -852,8 +852,11 @@ def generate_codebook(
             # 调整列宽
             worksheet = writer.sheets['Codebook']
             for idx, col in enumerate(codebook_df.columns, 1):
+                # 逐元素 str() 再取 len: nullable Float64/NaN 列上 .astype(str).map(len)
+                # 会在 pandas 2.x 留下 float 标量导致 `object of type 'float' has no len()`,
+                # 改用 map(lambda v: len(str(v))) 对每个标量先 Python str() 再 len, dtype 无关。
                 max_length = max(
-                    codebook_df[col].astype(str).map(len).max(),
+                    int(codebook_df[col].map(lambda v: len(str(v))).max()),
                     len(col)
                 )
                 worksheet.column_dimensions[chr(64 + idx)].width = min(max_length + 2, 50)

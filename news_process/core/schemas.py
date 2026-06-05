@@ -199,6 +199,7 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "39d_lexical_discriminant_validity.py",  # v3.5.1 A1/A3 HTMT+κ+α: 写 data/processed/39d_*.parquet + 39d_htmt_matrix.json, validation 不进 OUTPUT_REGISTRY
     "39e_lm_discriminant_validity.py",  # v3.5.2 PR #4 (A1 LM 4 子词典 HTMT): 仅写 eval_reports/*.csv
     "39f_cross_media_alpha.py",  # v3.7.0 PR #12 (D3 Krippendorff α): 写 data/processed/39f_*.parquet, 但 validation 类不进 OUTPUT_REGISTRY (与 39c/39d 约定一致)
+    "39h_llm_contamination_test.py",  # DC4 LLM 污染留出 (2026-06-05 接线): 写 data/processed/llm_contamination_report.json, validation 类不进 OUTPUT_REGISTRY (与 39c/39d/39f 约定一致)
 })
 
 

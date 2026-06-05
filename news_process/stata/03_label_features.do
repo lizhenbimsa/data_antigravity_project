@@ -33,7 +33,6 @@ label variable avg_deepseekv4_conf_full "Grok4.1平均置信度(全文)"
 * 5.4 LLM一致性指标
 label variable avg_agreement_rate_full "LLM平均一致率(全文)"
 label variable avg_agreement_rate_ctx "LLM平均一致率(上下文)"
-label variable avg_agreement_rate_title "LLM平均一致率(标题)"
 
 * ============================================================================
 * 6. 金融科技强度指标 (阶段14: 金融科技技术重度评分)

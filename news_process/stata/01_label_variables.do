@@ -52,8 +52,4 @@ label variable llm_vote_cont_ctx "LLM投票连续情感(上下文)"
 label variable llm_vote_cont_sum_ctx "LLM投票连续情感总和(上下文)"
 
 * 2.3 标题轨道 (_title)
-label variable llm_vote_tone_title "LLM投票情感得分(标题)"
-label variable llm_vote_tone_sum_title "LLM投票情感总和(标题)"
-label variable llm_vote_cont_title "LLM投票连续情感(标题)"
-label variable llm_vote_cont_sum_title "LLM投票连续情感总和(标题)"
 

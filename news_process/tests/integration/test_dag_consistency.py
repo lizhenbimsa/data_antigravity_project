@@ -100,17 +100,18 @@ def test_main_stage_count(core_dag):
 
 
 def test_validation_stage_count(core_dag):
-    """``STAGES_VALIDATION`` 阶段数须等于 17 (39g track-discriminant 已随 remove-title-track 删除)。
+    """``STAGES_VALIDATION`` 阶段数须等于 18 (39g track-discriminant 已随 remove-title-track 删除)。
 
     v3.4.0 baseline = 13 (含 39a inter_track_kappa).
     v3.5.0 +1 = 14: 加 39c construct_orthogonality (NMI 正交性 D3 stage)
     v3.5.1 +1 = 15: 加 39d lexical_discriminant_validity (A1+A3 HTMT/AVE/κ/α)
     v2.3 PR-#4 +1 = 16: 加 39e lm_discriminant_validity (LM 4 子词典 HTMT)
     v2.3 PR-D3 +1 = 17: 加 39f cross_media_alpha (Krippendorff α + variance)
+    2026-06-05 +1 = 18: 加 39h llm_contamination_test (DC4 接线, opt-in 默认禁用)
     """
-    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c + 39d + 39e + 39f = 17
-    assert len(core_dag.STAGES_VALIDATION) == 17, (
-        f"STAGES_VALIDATION drift: expected 17 (39g track-discriminant removed), got {len(core_dag.STAGES_VALIDATION)}."
+    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c + 39d + 39e + 39f + 39h = 18
+    assert len(core_dag.STAGES_VALIDATION) == 18, (
+        f"STAGES_VALIDATION drift: expected 18 (39g removed; 39h DC4 added 2026-06-05), got {len(core_dag.STAGES_VALIDATION)}."
     )
 
 

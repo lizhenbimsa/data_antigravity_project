@@ -62,8 +62,6 @@ label variable llm_vote_tone_hw_prob_full "LLM投票概率HW(全文)"
 * 14. 标题-全文情感差异
 * ============================================================================
 
-label variable tone_gap_title_full "标题-全文情感差"
-label variable prob_gap_title_full "标题-全文概率差"
 
 * ============================================================================
 * 15. 概率分数指标 (Logit-to-Score)

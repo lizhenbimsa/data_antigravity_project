@@ -14,8 +14,6 @@ label variable peer_tone_lag1_full "同行情感滞后1期(全文)"
 label variable peer_tone_2nd_lag1_full "二阶同行情感滞后1期(全文)"
 label variable peer_tone_lag1_ctx "同行情感滞后1期(上下文)"
 label variable peer_tone_2nd_lag1_ctx "二阶同行情感滞后1期(上下文)"
-label variable peer_tone_lag1_title "同行情感滞后1期(标题)"
-label variable peer_tone_2nd_lag1_title "二阶同行情感滞后1期(标题)"
 label variable peer_fintech_exposure_lag1 "同行金融科技暴露滞后1期"
 
 * 22.2 银行网络中心度指标

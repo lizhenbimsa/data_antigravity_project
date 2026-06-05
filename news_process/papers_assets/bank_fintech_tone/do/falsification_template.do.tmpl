@@ -121,11 +121,19 @@ reghdfe Y llm_vote_tone_full avg_llm_prob_score_full X, ///
   absorb(target_bank year) vce(cluster target_bank)
   est store prob_horse
 
-* (5c-3) 标题-全文概率缺口 → Y
+* (5c-3) 标题-全文概率缺口 → Y  [remove-title-track v3.8.0: prob_gap_title_full 已停产]
 * 衡量"标题党/软文嫌疑": gap 越大 → 标题情感偏离全文
-reghdfe Y prob_gap_title_full X, ///
-  absorb(target_bank year) vce(cluster target_bank)
+* 守卫: 仅当列存在时运行 — 当前两轨面板 (full/ctx) 无 title 列, 直接 reghdfe 会
+*       r(111) variable not found 崩溃; capture confirm 后优雅跳过 (标题轨已停产)。
+capture confirm variable prob_gap_title_full
+if _rc == 0 {
+  reghdfe Y prob_gap_title_full X, ///
+    absorb(target_bank year) vce(cluster target_bank)
   est store prob_gap
+}
+else {
+  display as text "[skip] prob_gap_title_full 不存在 (标题情感轨 v3.8.0 已停产), 跳过检验 5c-3"
+}
 
 * ── 检验 6: 控制新闻语言特征 ──
 * 目的: 验证 tone 不受文本长度/词汇多样性/可读性驱动

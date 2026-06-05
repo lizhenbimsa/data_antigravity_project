@@ -149,6 +149,7 @@ _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'lexical_discriminant_validity': _validation_flag('lexical_discriminant_validity'),  # v3.5.1 stage 39d
     'lm_discriminant_validity': _validation_flag('lm_discriminant_validity'),  # v3.5.2 PR #4 stage 39e (LM 4 子词典 HTMT)
     'cross_media_alpha': _validation_flag('cross_media_alpha'),  # v3.7.0 PR #12 stage 39f (Krippendorff α + variance)
+    'llm_contamination': _validation_flag('llm_contamination', default=False),  # DC4 stage 39h (2026-06-05 接线; opt-in 默认禁用: 需 stage 49 z_score + 官方 cutoff)
 }
 
 
@@ -518,6 +519,21 @@ STAGES_VALIDATION: list[StageSpec] = [
         group="validation", kind="audit",
         timeout=3600,  # 60 min ceiling, event detection + outlet aggregation
         enabled_when=_VALIDATION_PREDS['cross_media_alpha'],
+    ),
+    # DC4 (V4 F-Adv.2): LLM 训练数据污染留出检验 (Fisher z + permutation + Bayes factor).
+    # 学术依据: Sainz 2023 EMNLP; Magar-Schwartz 2022 ACL; Lopez-Lira-Tang 2023 holdout 协议.
+    # 2026-06-05 补 shim+注册接线: 此前 pipeline/audit/llm_contamination_test.py 是同族 6 个
+    # audit (39a/39c/39d/39e/39f/52) 中唯一缺 shim+注册者, 但已是两篇 provisional 论文
+    # (bank_news_clarity / bank_media_disagreement) frozen spec 承诺的 DC4 必修项。
+    # opt-in 默认禁用 (validation.llm_contamination=false): 需 opt-in stage 49 的 z_score
+    # outcome + 用户在 config 提供官方 LLM cutoff (禁止伪造); run_stage 在缺数据/未配 cutoff/
+    # pre-post 样本不足时优雅跳过 (与 39d/39e 缺列 graceful-skip 同族约定)。
+    StageSpec(
+        name="阶段39h: LLM 训练数据污染留出检验 (DC4, Fisher z)",
+        script="39h_llm_contamination_test.py",
+        group="validation", kind="audit",
+        timeout=900,  # 15 min ceiling; 纯 pandas 相关 + permutation, 小面板秒级
+        enabled_when=_VALIDATION_PREDS['llm_contamination'],
     ),
 ]
 

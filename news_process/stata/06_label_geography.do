@@ -71,19 +71,16 @@ label variable ai_reg_200km "AI模仿渗透率(200km)"
 * 19.1 省级LOO
 label variable prov_leave1out_tone_full "省级LOO情感(全文)"
 label variable prov_leave1out_tone_ctx "省级LOO情感(上下文)"
-label variable prov_leave1out_tone_title "省级LOO情感(标题)"
 label variable prov_leave1out_dict_avg_tone_full "省级LOO词典情感(全文)"
 label variable prov_leave1out_bert_avg_pos_full "省级LOO BERT正面(全文)"
 
 * 19.2 市级LOO
 label variable city_leave1out_tone_full "市级LOO情感(全文)"
 label variable city_leave1out_tone_ctx "市级LOO情感(上下文)"
-label variable city_leave1out_tone_title "市级LOO情感(标题)"
 label variable city_leave1out_dict_avg_tone_full "市级LOO词典情感(全文)"
 label variable city_leave1out_bert_avg_pos_full "市级LOO BERT正面(全文)"
 
 * 19.3 经济区LOO
 label variable zone_leave1out_tone_full "经济区LOO情感(全文)"
 label variable zone_leave1out_tone_ctx "经济区LOO情感(上下文)"
-label variable zone_leave1out_tone_title "经济区LOO情感(标题)"
 

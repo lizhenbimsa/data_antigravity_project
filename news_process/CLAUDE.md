@@ -25,6 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **2026-06-05 后续结构移除** (post-v3.8.0, 非 v3.8.0 内容):
 - 整体移除 **stage 16 EPU 中国版宏观控制** (Baker-Bloom-Davis 2016 QJE): 删 `16_epu_merge.py` shim + `pipeline/external/` 子包 + `data/external/` 数据 + DAG/OUTPUT_REGISTRY 注册 + runner `8b` merge + `stata_export.py` 的 `epu_*` 标签/core_patterns; panel/.dta/.csv/codebook 去 4 列 `epu_*`, golden snapshot 同步重生。→ **STAGES_MAIN 19→18, 注册阶段 36→35 (18 + 17), thin shim 39→38** (Stata 模板数不变, 无模板引用 epu)。
 - 清除已退役死代码 `validation/text2vec.py` (stage 30 早于 2026-05-29 退役, 无 shim、不在 DAG) + 其 2 处测试引用 (`test_stage_smoke` / `test_lineage_input_contract`); 已退役模块清理, 不改计数。⚠ 活跃的 `shibing624/text2vec-base-chinese` 稳健双轨 (`*_t2v` 列, stage 15/25 内联) 完好无损, 勿混淆。
+- 接线 **stage 39h `llm_contamination_test`** (DC4 LLM 训练数据污染留出检验, V4 F-Adv.2): 此前 `pipeline/audit/llm_contamination_test.py` 是同族 6 个 audit 中唯一缺 shim+注册者, 但已是 bank_news_clarity / bank_media_disagreement 两篇 frozen spec 承诺的 DC4 必修项。补 `run_stage()` (config 驱动, 缺 stage 49 z_score / 未配官方 cutoff / 样本不足时优雅跳过) + 根 shim `39h_*.py` + `STAGES_VALIDATION` 注册 (opt-in `validation.llm_contamination=false`) + `EXPECTED_NO_OUTPUT_STAGES`。→ **STAGES_VALIDATION 17→18, 注册阶段 35→36 (18 + 18), thin shim 38→39**。配套修 `codebook.py` xlsx 列宽 nullable-dtype `len(float)` 崩溃 + 重生 variable_codebook (去 `*_title` 幻影行) + 守卫 `falsification_template.do.tmpl` 的 `prob_gap_title_full` 陈旧回归 (capture confirm 防 r(111))。
 
 **Disk 状态** (2026-06-03 实测): panel/.dta 已重生为 v3.8.0 两轨 schema (full/ctx), 无任何 `*_title` 情感列, golden snapshot 同步重生; ~176 行 (banks × 2 years 2017–2018, T=2)。列数详见 Stata 段, 随每次 panel 重生漂移, 以实读 .dta 为准。完整 LLM 重处理 (stage 21 等付费阶段) 仍受 M0 gate (见 memory `paper_portfolio_decision_gates`)。
 
@@ -70,8 +71,8 @@ news_process/
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
 ├── tests/          # full sweep 2581 passed / 3 skipped / 0 failed (collect 数以 --collect-only 为准)
-└── NN_*.py         # 38 thin shim scripts under news_process/ (≤30 lines each);
-                    # 35 registered in core/dag.py (18 STAGES_MAIN + 17 STAGES_VALIDATION);
+└── NN_*.py         # 39 thin shim scripts under news_process/ (≤30 lines each);
+                    # 36 registered in core/dag.py (18 STAGES_MAIN + 18 STAGES_VALIDATION);
                     # 3 unregistered by design: 27c (audit-only sibling),
                     # 52/53 (user-CLI wrappers, schemas.py:182 显式排除).
                     # planned retirement Plan-r3 P3-18 (拆分约束见 pipeline/panel/runner.py:159).
@@ -165,7 +166,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Code Modification Rules
 
-1. **Stage shims are frozen**: The 38 `news_process/NN_*.py` scripts are thin shims (≤30 lines). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
+1. **Stage shims are frozen**: The 39 `news_process/NN_*.py` scripts are thin shims (≤30 lines). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
 2. **DAG consistency**: Any stage added/removed must update `core/dag.py::STAGES_MAIN`/`STAGES_VALIDATION` and `core/schemas.py::OUTPUT_REGISTRY` (if it produces parquet). Verify with `pytest tests/integration/test_dag_consistency.py`.
 3. **Config split is active**: `core/config.py::load_config()` prefers the 7-domain YAML split and falls back to legacy single-file mode only when all split files are absent. Keep split files semantically equivalent to the legacy config contract.
 4. **Golden baseline**: After column schema changes, regenerate `tests/fixtures/golden_panel_v0.json` via `scripts/migrate/generate_golden_snapshot.py`.

@@ -106,5 +106,4 @@ label variable tone_x_highcov_ctx "情感×高覆盖(上下文)"
 
 label variable fintech_exposure_full "金融科技暴露(全文)"
 label variable fintech_exposure_ctx "金融科技暴露(上下文)"
-label variable fintech_exposure_title "金融科技暴露(标题)"
 

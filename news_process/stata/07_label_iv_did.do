@@ -13,7 +13,6 @@
 label variable bank_type "银行类型"
 label variable bartik_type_iv_full "银行类型Bartik IV(全文)"
 label variable bartik_type_iv_ctx "银行类型Bartik IV(上下文)"
-label variable bartik_type_iv_title "银行类型Bartik IV(标题)"
 label variable bartik_type_iv_full_t0 "银行类型Bartik IV t0(全文)"
 label variable bartik_type_iv_ctx_t0 "银行类型Bartik IV t0(上下文)"
 label variable bartik_type_iv_full_t1 "银行类型Bartik IV t1(全文)"
@@ -25,7 +24,6 @@ label variable bartik_type_iv_ctx_t01 "银行类型Bartik IV t01(上下文)"
 label variable bank_scale "银行规模"
 label variable bartik_scale_iv_full "银行规模Bartik IV(全文)"
 label variable bartik_scale_iv_ctx "银行规模Bartik IV(上下文)"
-label variable bartik_scale_iv_title "银行规模Bartik IV(标题)"
 
 * 20.3 金融科技Bartik IV
 label variable digital_frontier "数字前沿银行"
@@ -33,14 +31,12 @@ label variable bartik_fintech_share_app "金融科技应用份额"
 label variable bartik_fintech_share_tech "金融科技技术份额"
 label variable bartik_fintech_iv_full "金融科技Bartik IV(全文)"
 label variable bartik_fintech_iv_ctx "金融科技Bartik IV(上下文)"
-label variable bartik_fintech_iv_title "金融科技Bartik IV(标题)"
 
 * 20.4 媒体类型Bartik IV
 label variable bartik_media_share_comp "综合媒体份额"
 label variable bartik_media_share_fin "金融媒体份额"
 label variable bartik_media_iv_full "媒体类型Bartik IV(全文)"
 label variable bartik_media_iv_ctx "媒体类型Bartik IV(上下文)"
-label variable bartik_media_iv_title "媒体类型Bartik IV(标题)"
 
 * 20.5 媒体权威性Bartik IV
 label variable bartik_mauth_share_high "高权威媒体份额"
@@ -48,14 +44,12 @@ label variable bartik_mauth_share_low "低权威媒体份额"
 label variable bartik_mauth_share_mid "中权威媒体份额"
 label variable bartik_mauth_iv_full "媒体权威Bartik IV(全文)"
 label variable bartik_mauth_iv_ctx "媒体权威Bartik IV(上下文)"
-label variable bartik_mauth_iv_title "媒体权威Bartik IV(标题)"
 
 * 20.6 地理邻近性Bartik IV
 label variable bartik_geoprox_share_local "本地媒体份额"
 label variable bartik_geoprox_share_nonlocal "外地媒体份额"
 label variable bartik_geoprox_iv_full "地理邻近Bartik IV(全文)"
 label variable bartik_geoprox_iv_ctx "地理邻近Bartik IV(上下文)"
-label variable bartik_geoprox_iv_title "地理邻近Bartik IV(标题)"
 
 * ============================================================================
 * 21. DID政策冲击指标
