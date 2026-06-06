@@ -1,7 +1,8 @@
 * ============================================================================
 * 27_tableA9_num_intensity.do — v3.5.1 A3 Numerical Intensity (P1 bank_fintech_tone Table A9)
 * Paper: {{PAPER_ID}}
-* Anchor: Hales, Kuang & Venkataraman (2011, CAR 28:1); 真双轨.
+* Anchor: Davis & Tama-Sweet (2012, CAR 29:3); 公式项目自定义操作化 (2026-06-06 引文勘误:
+*   原引 Hales-Kuang-Venkataraman 2011 系误归—该文实为 JAR 49(1) 论 vivid/pallid, 非数字密度); 真双轨.
 * Located in v3_5_1/ subdirectory per build_replication_package glob isolation
 * (P1 bank_fintech_tone 用 _common/ root template_dir, 无 paper-specific 子目录).
 * ============================================================================
@@ -40,4 +41,4 @@ if !_rc {
 esttab p1_num_intensity_interact p1_num_intensity_dual ///
     using "$tables_dir/tableA9_num_intensity.tex", ///
     se star(* 0.10 ** 0.05 *** 0.01) replace ///
-    title("Table A9: Numerical Intensity (Hales 2011 CAR) Robustness — P1 {{PAPER_ID}}")
+    title("Table A9: Numerical Intensity Robustness — P1 {{PAPER_ID}}")

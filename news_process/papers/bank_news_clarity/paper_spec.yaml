@@ -51,7 +51,7 @@ theory:
     - "You, Zhang & Zhang (2018 hhx055) Panel C/D — 中文清晰度词典 (v3.5.1 frozen at D0)"
   secondary_anchors:
     - "Bushman & Williams (2015 JAR 53:511-553) — delayed loss recognition → risk profile"
-    - "Hales, Kuang & Venkataraman (2011 CAR 28:305-339) — numerical intensity (complementary clarity)"
+    - "Davis & Tama-Sweet (2012 CAR 29:804-837) — numerical intensity (complementary clarity); 公式项目自定义 (原引 Hales 2011 系误归)"
     - "Acharya, Anginer & Warburton (2016 RFS, working) — implicit guarantee 框架 (V4 F-P1.1 必加)"
     - "Hwang & Kim (2017 RAS 22:1184-1226) — 10-K readability"
     - "You-Zhang (2009 RAST 14:559-586) — 中文 readability 框架原始"
@@ -106,7 +106,7 @@ treatment:
     - mean_frac_definite_full
     - frac_amb_articles_ctx         # 二值化指标 (≥ D0 全样本中位数)
     - frac_amb_articles_full
-    - mean_num_intensity_ctx        # Hales 2011 CAR 数值密度 (complementary clarity)
+    - mean_num_intensity_ctx        # 数值密度 Davis-Tama-Sweet 2012 CAR (complementary clarity; 原引 Hales 系误归)
     - mean_num_intensity_full
 
   composite_pca:  # V4 F6.2 multiple testing
@@ -281,7 +281,7 @@ tables:
   t6: channel_decomposition           # 三 channel (depositor / regulator / management) 分解
   tA1: dual_track_full_vs_ctx
   tA2: pca_composite_clarity          # V4 F6.2
-  tA3: num_intensity_complementary    # Hales 2011 CAR 数值密度
+  tA3: num_intensity_complementary    # 数值密度 Davis-Tama-Sweet 2012 CAR (原引 Hales 系误归)
   tA4: alt_iv_specifications
   tA5: placebo_random_bank_id_1000
   tA6: cross_country_us_placebo       # V4 F-Comp.4

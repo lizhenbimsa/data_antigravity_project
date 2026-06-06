@@ -1,6 +1,7 @@
 """tests/test_numerical_intensity.py — v3.5.1 A3 真双轨数字密度单测.
 
-锚定: Hales-Kuang-Venkataraman (2011) CAR 28(1) Eq.(1); plan v0.3 §2.2 + §4.1.
+锚定: 数值披露强度 (Davis & Tama-Sweet 2012 CAR 29(3); 公式为项目自定义操作化;
+原引 Hales 2011 系误归—见 numerical_intensity 模块 docstring 引文勘误); plan v0.3 §2.2 + §4.1.
 
 测试覆盖 (10 tests):
     1-2: cn2arab 5 标准样例 (frozen at D0)

@@ -1,7 +1,7 @@
 * ============================================================================
 * 19_bs_num_intensity_robustness.do — v3.5.1 A3 Numerical Intensity (benefit_society Table A8)
 * Paper: {{PAPER_ID}}
-* Anchor: Hales, Kuang & Venkataraman (2011, CAR 28:1); 真双轨 (修 R3-C2).
+* Anchor: Davis & Tama-Sweet (2012, CAR 29:3); 公式项目自定义 (原引 Hales 2011 系误归, 见 numerical_intensity docstring); 真双轨 (修 R3-C2).
 * ============================================================================
 
 version 19
@@ -16,7 +16,7 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
-* Panel A: 量化披露强度 (Hales 2011 Eq.1, 真双轨)
+* Panel A: 量化披露强度 (数字密度公式, 项目自定义; Davis-Tama-Sweet 2012 CAR; 原引 Hales 系误归, 真双轨)
 capture confirm variable mean_num_intensity_full
 if !_rc {
     reghdfe {{MAIN_DV}} mean_num_intensity_full mean_num_intensity_ctx $bank_controls, ///
@@ -38,5 +38,5 @@ if !_rc {
 esttab bs_num_intensity_dual bs_num_intensity_interact ///
     using "$tables_dir/tableA8_num_intensity.tex", ///
     se star(* 0.10 ** 0.05 *** 0.01) replace ///
-    title("Table A8: Numerical Intensity (Hales 2011 CAR) Robustness — {{PAPER_ID}}") ///
+    title("Table A8: Numerical Intensity Robustness — {{PAPER_ID}}") ///
     note("Dual-track independent regex+cn2arab scan. Chinese sentence denominator caveat per paper §3.4.")

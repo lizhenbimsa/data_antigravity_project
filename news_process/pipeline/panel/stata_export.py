@@ -184,9 +184,9 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
         'mean_frac_definite_ctx':           "Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)",
         'frac_amb_articles_full':           "Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)",
         'frac_amb_articles_ctx':            "Frac Articles Ambiguous Ctx (>=D0 median, You 2018 Panel D)",
-        # v3.5.1 A3 Numerical Intensity (Hales-Kuang-Venkataraman 2011 CAR 28:1) 真双轨
-        'mean_num_intensity_full':          "Mean Numerical Intensity Full (Hales 2011 CAR, dual-track)",
-        'mean_num_intensity_ctx':           "Mean Numerical Intensity Ctx (Hales 2011 CAR, dual-track)",
+        # v3.5.1 A3 Numerical Intensity (数值披露强度; 引文勘误见 codebook reference) 真双轨
+        'mean_num_intensity_full':          "Mean Numerical Intensity Full (dual-track)",
+        'mean_num_intensity_ctx':           "Mean Numerical Intensity Ctx (dual-track)",
         # remove-title-track: title-indicator labels 已移除
         # ─────────────────────────────────────────────────────────────
         # 2026-05-29 双模型嵌入: text2vec 稳健 twin (主轨=text-embedding-3-small,
@@ -305,7 +305,7 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         'mean_clarity_score_full', 'mean_clarity_score_ctx',
         'mean_frac_definite_full', 'mean_frac_definite_ctx',
         'frac_amb_articles_full', 'frac_amb_articles_ctx',
-        # v3.5.1 A3 Numerical Intensity (Hales 2011 CAR) — 2 列全进 core
+        # v3.5.1 A3 Numerical Intensity (数值披露强度) — 2 列全进 core
         'mean_num_intensity_full', 'mean_num_intensity_ctx',
         # v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 (entity-miss → ctx ≡ full → 双轨退化)
         # ⚠ 与 intensity_verified_{full,ctx} 不同义:

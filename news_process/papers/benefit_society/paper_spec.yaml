@@ -60,7 +60,7 @@ tables:
   tA8:
     template: 19_bs_num_intensity_robustness
     num_intensity_robustness:
-      anchor: "Hales, Kuang & Venkataraman (2011) CAR 28(1)"
+      anchor: "Davis & Tama-Sweet (2012) CAR 29(3); 公式项目自定义操作化 (原引 Hales 2011 系误归, 见 numerical_intensity 模块 docstring)"
       dual_track: true  # 真双轨 (修 R3-C2)
   tA9:
     template:

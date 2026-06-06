@@ -70,7 +70,7 @@ if !_rc {
 
     * v3.5.1 A1+A3: winsorize 8 新列 (per plan v0.3 §2.5.3 修 M4' guard).
     * `capture confirm variable` guard 保证不引用 A1/A3 的 paper 跳过, 不抛错.
-    * 同 winsor 阈值 1%/99% (Loughran-McDonald 2011 JF 惯例) + Hales 2011 CAR 量化披露
+    * 同 winsor 阈值 1%/99% (Loughran-McDonald 2011 JF 惯例) + 数值披露强度 (Davis-Tama-Sweet 2012 CAR; 原引 Hales 系误归)
     * 饱和度 fallback (修 R7-M1 + R8-M4 num_intensity / clarity 同 winsorize).
     foreach v3_5_1_var in mean_clarity_score_full mean_clarity_score_ctx ///
                           mean_frac_definite_full mean_frac_definite_ctx ///
