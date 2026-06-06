@@ -31,6 +31,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **冻结锚点**: Prompt v8 字节级冻结 + `jieba == 0.42.1` (不重跑 stage 21, $0 LLM)。
 
+**Stage 21 确定性锚点 = `data/processed/_llm_cache.db`** (2026-06-06 落地, 问题3): golden 的跨-run 可复现性取决于 stage 21 LLM 投票是否确定。唯一不确定源是 **缓存 miss → 重调付费 API → 同篇文章投票可能翻转** (实测曾致某边缘银行整行掉出, panel 176→174 行漂移)。
+- **充要条件**: 当前语料 × 全部启用模型 × 双轨 在 `_llm_cache.db` 中 **0 miss**。已验证: 7020/7020 命中 (1170 文 × 3 模型 × 2 轨, `prompt_version='v8-2026-05-17'` / `temperature=0.0`); 离线真跑 stage 21 输出与原盘 **content-sha256 字节级一致**。
+- **强制机制 (新)**: 设 `NEWS_PROCESS_LLM_OFFLINE=1` → stage 21 缓存 miss 时 **raise `LLMCacheMissError` 而非调 API** (`pipeline/sentiment/tone_llms.py`, 默认关闭, 不改生产首跑); 离线模式同时跳过 preflight 探针 → 零网络、$0。
+- **验证工具**: `python -m news_process.scripts.audit.verify_stage21_cache_coverage` (纯缓存读, 报 hit/miss; misses=0 即可 $0 确定性复现)。
+- **铁律**: **勿删 `_llm_cache.db`** (407MB / 133,687 条) — 删则 golden 不再可复现, 须重跑付费 stage 21。prompt 构造单一事实源 = `tone_llms.iter_article_track_prompts` (生产与审计共用 → 缓存键一致)。
+
 **Test baseline** (v3.8.0 实测 2026-05-31): 全量 sweep **2581 passed / 3 skipped / 0 failed** (ruff clean)。精确 collect 数随 production run 漂移, 以 `pytest --collect-only` 为准; 历史逐版计数已失效, 不再维护。
 
 > 历史版本 (v3.5.x–v3.7.5) 的完整 changelog 与 audit 记录见 git history。本文件顶部 "Current version" 段是版本变更的权威源 (CHANGELOG.md 暂未维护)。

@@ -176,6 +176,33 @@ CONNECTOR_TTL_DNS_CACHE = int(LLM_CONFIG.get('ttl_dns_cache', 300))
 CONNECTOR_KEEPALIVE = float(LLM_CONFIG.get('keepalive_timeout', 60))
 AUTH_PROBE_TIMEOUT = float(LLM_CONFIG.get('auth_probe_timeout', min(30, REQUEST_TIMEOUT_TOTAL)))
 
+# 问题3 (golden 跨-run 确定性): 离线确定性守卫开关。
+# 设环境变量 ``NEWS_PROCESS_LLM_OFFLINE=1`` 后, stage 21 在缓存 miss 时
+# **raise 而非调用付费 API** — 把 "golden 可能因 LLM 重投票静默漂移" 从
+# 一种"祈祷"升级为"结构性保证":
+#   - 语料全部命中 _llm_cache.db → 端到端字节级确定性复现, $0 (缓存即锚点);
+#   - 任一 (model, prompt) miss → 显式 LLMCacheMissError 立即中止, 杜绝
+#     "边缘文章重新投票翻转 → 边缘银行掉出 → 行数漂移" 的隐性付费/不确定。
+# 默认关闭 (env 未设) → 生产首跑 / 在线回填行为完全不变, 不影响 frozen
+# Prompt v8 缓存命中路径。学术依据: Carlson & Burbano (2026 SMJ §3.3)
+# version-aware reproducibility — 复现包必须能在纯缓存下重跑出同一结果。
+LLM_OFFLINE = os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '').strip().lower() in (
+    '1', 'true', 'yes', 'on',
+)
+
+
+class LLMCacheMissError(RuntimeError):
+    """离线确定性模式 (``NEWS_PROCESS_LLM_OFFLINE=1``) 下遭遇缓存 miss。
+
+    含义: 当前语料存在未被 ``_llm_cache.db`` 覆盖的 ``(model, prompt)`` 组合,
+    意味着 golden 无法在 *不调用付费 API* 的前提下确定性复现。
+
+    修复路径:
+    1. 显式在线跑一次 stage 21 (env 不设此开关) 回填缺失缓存; 或
+    2. 检查语料 / ``prompt_template_version`` / 模型清单是否相对 golden 漂移
+       (漂移会改变缓存键 → 全 miss)。
+    """
+
 
 def _compute_retry_sleep(attempt: int) -> float:
     """v6/N4: 计算第 attempt 次重试的 sleep 秒数。
@@ -441,6 +468,16 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
         if cached_response is not None:
             return row_idx, model_id, cached_response, track
 
+    # 问题3: 离线确定性守卫 — 缓存 miss 且开启离线模式时拒绝任何付费 API
+    # 调用, 显式 raise 让 run 经 asyncio.as_completed (run_all_llms) 立即
+    # loud-fail。这一步发生在 semaphore / session.post 之前, 保证 $0 与零网络。
+    if LLM_OFFLINE:
+        raise LLMCacheMissError(
+            f"离线确定性模式缓存 miss: model={model_id} row_idx={row_idx} "
+            f"track={track} prompt_version={prompt_version}; "
+            "需在线回填 _llm_cache.db 或检查语料/prompt_version 漂移"
+        )
+
     if model_availability is not None and model_availability.is_disabled(model_id):
         return row_idx, model_id, None, track
 
@@ -550,6 +587,41 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
         logger.info(f"[{model_id}] 行 {row_idx}: {last_failure_reason}，该模型结果将从投票中排除")
     return row_idx, model_id, None, track
 
+
+def iter_article_track_prompts(df: pd.DataFrame):
+    """逐 (行 × 轨道) yield ``(row_idx, track, prompt)`` — prompt 构造的单一事实源。
+
+    问题3 (确定性): ``run_all_llms`` (生产) 与缓存覆盖审计
+    (``scripts/audit/verify_stage21_cache_coverage.py``) **共用此生成器**,
+    保证两者构造的 prompt 字节级一致 → ``LLMCache`` 键一致 → 离线确定性
+    (缓存全命中 ⟺ golden 可 $0 复现) 可被审计如实证明, 不会因 prompt
+    构造在两处各写一遍而悄悄漂移。
+
+    要求 df 含 ``content_ctx`` 列 (stage 13 物化); 缺失时回退到 ``内容``。
+    与历史行为字节级等价 (原 run_all_llms 内联构造), 不改任何缓存键。
+    """
+    for idx, row in df.iterrows():
+        content_full = str(row.get('内容', ''))
+        content_ctx = str(row.get('content_ctx', content_full))
+        target_bank = str(row.get('target_bank', ''))
+        title = str(row.get('标题', ''))
+        # fix(tonellms-01): content_ctx 已由 stage13 prepend 标题, 若再把 {title} 作独立
+        # 字段注入会致 ctx 轨标题双重注入 (full 轨 1 次 / ctx 轨 2 次), 污染 full↔ctx
+        # 对照 — 而 llm_vote_tone_ctx 是 P1 G3 主处理。剥离 content_ctx 的标题前缀, 使
+        # 两轨对称: 均由 {title} 字段提供标题 1 次 + content 提供去标题正文/窗口。
+        # full 轨 (内容 无标题) 不变 → 缓存命中、$0。
+        content_ctx_body = _strip_prepended_title(content_ctx, title)
+
+        for track, content in [('full', content_full), ('ctx', content_ctx_body)]:
+            prompt = PROMPT_TEMPLATE.format(
+                title=title,
+                content=content,
+                target_bank=target_bank,
+                co_mentioned_banks=str(row.get('co_mentioned_banks', '无')),
+            )
+            yield idx, track, prompt
+
+
 async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -> dict:
     """逐条并发执行 DataFrame 中所有行对所有配置模型的双轨请求。
     
@@ -570,37 +642,24 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
     request_pacers = build_model_pacers(models, LLM_CONFIG.get('request_spacing_seconds', 0.0))
     model_availability = AsyncModelAvailability()
     async with aiohttp.ClientSession(connector=connector, timeout=build_llm_timeout()) as session:
-        await preflight_model_availability(session, models, model_availability)
-        # 构建任务列表：每行 x 每轨道 x 每模型
+        # 问题3: 离线确定性模式跳过 preflight 探针 (它本身会 session.post 探活),
+        # 保证缓存全命中场景下零网络、$0; 缓存命中发生在 model_availability 检查
+        # 之前 (fetch_llm_async), 故跳过 preflight 不影响命中行的返回。
+        if not LLM_OFFLINE:
+            await preflight_model_availability(session, models, model_availability)
+        # 构建任务列表：每行 x 每轨道 x 每模型 (prompt 经 iter_article_track_prompts
+        # 单一事实源构造, 与缓存覆盖审计字节级一致)
         real_tasks = []
-        for idx, row in df.iterrows():
-            content_full = str(row.get('内容', ''))
-            content_ctx = str(row.get('content_ctx', content_full))
-            target_bank = str(row.get('target_bank', ''))
-            title = str(row.get('标题', ''))
-            # fix(tonellms-01): content_ctx 已由 stage13 prepend 标题, 若再把 {title} 作独立
-            # 字段注入会致 ctx 轨标题双重注入 (full 轨 1 次 / ctx 轨 2 次), 污染 full↔ctx
-            # 对照 — 而 llm_vote_tone_ctx 是 P1 G3 主处理。剥离 content_ctx 的标题前缀, 使
-            # 两轨对称: 均由 {title} 字段提供标题 1 次 + content 提供去标题正文/窗口。
-            # full 轨 (内容 无标题) 不变 → 缓存命中、$0。
-            content_ctx_body = _strip_prepended_title(content_ctx, title)
-
-            for track, content in [('full', content_full), ('ctx', content_ctx_body)]:
-                prompt = PROMPT_TEMPLATE.format(
-                    title=title,
-                    content=content,
-                    target_bank=target_bank,
-                    co_mentioned_banks=str(row.get('co_mentioned_banks', '无')),
-                )
-                for m in models:
-                    real_tasks.append(
-                        fetch_llm_async(
-                            session, semaphore, prompt, m, idx, track, cache=cache,
-                            request_pacer=request_pacers.get(m['model_name']),
-                            model_availability=model_availability,
-                            prompt_version=PROMPT_VERSION,
-                        )
+        for idx, track, prompt in iter_article_track_prompts(df):
+            for m in models:
+                real_tasks.append(
+                    fetch_llm_async(
+                        session, semaphore, prompt, m, idx, track, cache=cache,
+                        request_pacer=request_pacers.get(m['model_name']),
+                        model_availability=model_availability,
+                        prompt_version=PROMPT_VERSION,
                     )
+                )
         
         completed = 0
         total = len(real_tasks)
@@ -1461,6 +1520,18 @@ def main():
         # 异步并发大模型（双轨）
         logger.info(f"开始分发双轨组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")
         results_map = asyncio.run(run_all_llms(df, MODELS, cache=cache))
+
+        # 问题3: 缓存命中统计摘要 — 让确定性可观测。misses=0 & writes=0
+        # ⟺ 本次 run 全部命中 _llm_cache.db (无新 API 调用) → golden 字节级
+        # 可复现。离线模式下 (NEWS_PROCESS_LLM_OFFLINE=1) miss 会先 raise, 故
+        # 此处能打印即代表零 miss。
+        _cstats = cache.stats()
+        logger.info(
+            f"LLM 缓存命中统计: lookups={_cstats['lookups']} hits={_cstats['hits']} "
+            f"v0_hits={_cstats['v0_hits']} misses={_cstats['misses']} "
+            f"writes={_cstats['writes']} hit_rate={_cstats['hit_rate']:.4f}"
+            + ("  [OFFLINE 确定性模式]" if LLM_OFFLINE else "")
+        )
 
         # 提取与投票（双轨）
         logger.info("开始聚合各模型 JSON 响应并执行双轨多数投票三角验证...")
