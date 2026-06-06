@@ -740,36 +740,119 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='ctx',
     )
 
-    # ═══ v3.5.1 A3 Numerical Intensity (真双轨, Hales 2011 CAR Eq.1) ═══
+    # ═══ v3.5.1 A3 Numerical Intensity (真双轨, 数值披露强度; 2026-06-05 引文勘误见 reference) ═══
     metadata['mean_num_intensity_full'] = VariableMetadata(
         var_name='mean_num_intensity_full',
-        label='Mean Numerical Intensity Full (Hales 2011 CAR, dual-track)',
+        label='Mean Numerical Intensity Full (dual-track)',
         description='Bank-year 加权平均量化披露强度; 基于 content_full + cn2arab + 正则独立扫描',
         data_type='float',
         unit='digits per sentence',
         value_range='[0, +∞) ∪ NaN',
         formula='Σ w_i × (n_digits_full_i / n_sentences_full_i) / Σ w_i; n_sentences lookahead/behind 排除小数点',
         source_stage='Stage 22 (tone_words post-processor enrich_with_num_intensity_dual_track) + Stage 45',
-        reference='Hales, Kuang & Venkataraman (2011) CAR 28(1); Davis & Tama-Sweet (2012) CAR 29(3)',
-        notes='v3.5.1 A3 真双轨; cn2arab 5 标准样例 frozen at D0; 不定数 (几千/数十亿) 不计为 token (修 R7-M2); 中文 sentence 分母与英文 Hales 2011 不直接可比 (paper §3.4 disclosure 修 R7-M1)',
+        reference='Davis & Tama-Sweet (2012) CAR 29(3); 公式为项目自定义操作化 (2026-06-05 引文勘误: 原引 Hales-Kuang-Venkataraman 2011 系误归, 该文实为 JAR 49(1) 论 vivid/pallid 语言, 未定义 numerical intensity)',
+        notes='v3.5.1 A3 真双轨; cn2arab 5 标准样例 frozen at D0; 不定数 (几千/数十亿) 不计为 token (修 R7-M2); 中文 sentence 分母与英文文献不直接可比 (paper §3.4 disclosure 修 R7-M1)',
         category='Numerical Intensity (v3.5.1 A3)',
         track='full',
     )
 
     metadata['mean_num_intensity_ctx'] = VariableMetadata(
         var_name='mean_num_intensity_ctx',
-        label='Mean Numerical Intensity Ctx (Hales 2011 CAR, dual-track)',
+        label='Mean Numerical Intensity Ctx (dual-track)',
         description='Bank-year 加权平均 num_intensity; ctx 轨独立扫描',
         data_type='float',
         unit='digits per sentence',
         value_range='[0, +∞) ∪ NaN',
         formula='Σ w_i × (n_digits_ctx_i / n_sentences_ctx_i) / Σ w_i',
         source_stage='Stage 22 + Stage 45',
-        reference='Hales, Kuang & Venkataraman (2011) CAR 28(1)',
+        reference='Davis & Tama-Sweet (2012) CAR 29(3); 公式为项目自定义操作化 (原引 Hales 2011 系误归, 见 full 轨 reference)',
         notes='ctx 残半句已被 entity_context 完整句号过滤 (修 R3-H3)',
         category='Numerical Intensity (v3.5.1 A3)',
         track='ctx',
     )
+
+    # ═══ 文本测度缺口补全 (2026-06-05, 批 #1–#15): 词汇复杂度/披露质量/新闻显著性 ═══
+    # 全 $0 (jieba/posseg/纯解析); 真双轨; 详见 lexical_complexity.py / news_salience.py +
+    # scripts/audit/TEXTUAL_MEASURE_GAP_AUDIT_2026-06-05.md。
+    _CAT_NEW = 'Text Complexity/Disclosure (2026-06-05)'
+    # (col_base, label, unit, value_range, formula, reference, source_stage)
+    _DUAL_TEXT_SPECS = [
+        ('avg_rare_word', 'Rare-Word Ratio', 'token fraction', '[0,1] ∪ NaN',
+         'bank-year mean of (低频词 token / 总 token); 低频=jieba 冻结词典词频≤P20 cutoff(实测覆盖~57% distinct词, 实为"非高频词率")',
+         'You & Zhang (2009) RAS 14(4); Gentzkow-Kelly-Taddy (2019) JEL 57(3)', 'Stage 22 (lexical_complexity) + Stage 45'),
+        ('avg_hard_char', 'Hard-Char Ratio', 'char fraction', '[0,1] ∪ NaN',
+         'bank-year mean of (非常用汉字 / 全部汉字); 常用字=jieba 词典字频累计 99.5% 派生集',
+         '丘心颖等 (2016) 经济学(季刊) 15(4):1483; Dale & Chall (1948)', 'Stage 22 (lexical_complexity) + Stage 45'),
+        ('avg_nominalization', 'Nominalization Ratio', 'token fraction', '[0,1] ∪ NaN',
+         'bank-year mean of (vn/an 词性+性/化/度/型/制 后缀名词 / 总 token); posseg 近似(含专名 nr 小幅高估)',
+         'Bonsall-Leone-Miller-Rennekamp (2017) JAE 63(2-3) Bog 句法成分', 'Stage 22 (lexical_complexity) + Stage 45'),
+        ('avg_function_word', 'Function-Word Ratio (LIWC Analytic 近似)', 'token fraction', '[0,1] ∪ NaN',
+         'bank-year mean of (u/p/c/r/y/e 虚词词性 / 总 token); 虚词占比高≈低分析性',
+         'LIWC Analytic 维中文近似', 'Stage 22 (lexical_complexity) + Stage 45'),
+        ('avg_specificity', 'Specificity / Hard-Info Density', 'token fraction', '[0,1] ∪ NaN',
+         'bank-year mean of ((nr/ns/nt/nz 实体 + m 数词)/总 token); reframe=报道硬信息密度(非10-K披露); posseg 粗近似',
+         'Hope, Hu & Lu (2016) RAS 21(4):1005', 'Stage 22 (lexical_complexity) + Stage 45'),
+        ('avg_within_doc_redund', 'Within-Document Redundancy', 'ratio', '[0,1] ∪ NaN',
+         'bank-year mean of (1 − 唯一字符3-gram/全部字符3-gram); 篇内自重复(与 staleness 跨篇正交)',
+         'Dyer-Lang-Stice-Lawrence (2017) JAE 64(2-3); Cazier & Pfeiffer (2016)', 'Stage 22 (lexical_complexity) + Stage 45'),
+        ('avg_adversative', 'Adversative-Conjunction Ratio', 'token fraction', '[0,1] ∪ NaN',
+         'bank-year mean of (独立逆接连词表命中/总 token); 探索性, 不复用情感轨 adversative_words',
+         '徐巍-姚振晔-陈冬华 (2021) 会计研究 (3):28; Ding-Liu-Yu (2008) WSDM', 'Stage 22 (lexical_complexity) + Stage 45'),
+        ('avg_word_count', 'Avg Word Count (jieba)', 'words', '[0, +∞) ∪ NaN',
+         'bank-year mean of 文章 jieba 词数(去空白)',
+         'Li (2008) JAE 45(2-3) 篇幅代理', 'Stage 22 (lexical_complexity) + Stage 45'),
+        ('ln_word_count', 'Article Length ln(1+avg_words) 词口径 MLENGTH', 'ln words', '[0, +∞) ∪ NaN',
+         'ln(1 + avg_word_count); 真词口径 MLENGTH (区别于字符口径 avg_article_length)',
+         'Li (2008) JAE 45(2-3); He et al. (2024) IRFA', 'Stage 45 (geography)'),
+        ('mean_num_intensity_word', 'Numerical Intensity per-Word (§4.3)', 'digits per word', '[0, +∞) ∪ NaN',
+         'bank-year 加权均值 of (数字 token / jieba 词数); 句级 num_intensity 的词级替代版, 对中文句读 sparse 稳健',
+         'Davis & Tama-Sweet (2012) CAR 29(3) (构念; 公式为项目自定义)', 'Stage 22 (numerical_intensity) + Stage 45'),
+        ('tone_volatility', 'Tone Volatility (rolling SD)', 'std', '[0, +∞) ∪ NaN',
+         'per-bank 3-year rolling std of llm_vote_tone (min_periods=2); 时间维二阶矩(与年内SD/反转正交)',
+         'De Bondt-Thaler (1985) 反转之二阶矩补全', 'Stage 45 (runner i2)'),
+        ('lazy_jaccard', 'YoY Text Change — Jaccard', 'distance', '[0,1] ∪ NaN',
+         '相邻年(t,t-1)同行聚合文本 1 − jieba 词集 Jaccard; 首年 NaN',
+         'Cohen, Malloy & Nguyen (2020) JF 75(3):1371', 'Stage 45 (strategic_diff)'),
+        ('lazy_overlap', 'YoY Text Change — Word-Overlap', 'distance', '[0,1] ∪ NaN',
+         '相邻年 1 − |A∩B|/min(|A|,|B|) 词集; 首年 NaN',
+         'Cohen, Malloy & Nguyen (2020) JF 75(3):1371', 'Stage 45 (strategic_diff)'),
+        ('lazy_minedit', 'YoY Text Change — Norm-Levenshtein', 'distance', '[0,1] ∪ NaN',
+         '相邻年 归一化编辑距离(rapidfuzz, 截断前2000字); 首年 NaN',
+         'Cohen, Malloy & Nguyen (2020) JF 75(3):1371', 'Stage 45 (strategic_diff)'),
+    ]
+    for _base, _label, _unit, _vr, _formula, _ref, _src in _DUAL_TEXT_SPECS:
+        for _tk, _tn in (('_full', 'full'), ('_ctx', 'ctx')):
+            metadata[f'{_base}{_tk}'] = VariableMetadata(
+                var_name=f'{_base}{_tk}', label=f'{_label} ({_tn})',
+                description=f'{_label}; bank-year 聚合, {_tn} 轨', data_type='float',
+                unit=_unit, value_range=_vr, formula=_formula, source_stage=_src,
+                reference=_ref, category=_CAT_NEW, track=_tn)
+
+    # 新闻体裁显著性 (#8–#10, 非双轨; 版面/页号/作者 解析, Tetlock 2007/2008; Boudoukh 2019 RFS)
+    _SINGLE_TEXT_SPECS = [
+        ('frac_front_page', 'Front-Page Coverage Frac', '[0,1] ∪ NaN',
+         'bank-year mean of is_front_page (头版/要闻 或 A叠首页)', 'Tetlock (2007) JF 62(3); Boudoukh et al. (2019) RFS', 'Stage 11 (news_salience) + Stage 45'),
+        ('frac_front_section', 'Front-Section Coverage Frac', '[0,1] ∪ NaN',
+         'bank-year mean of is_front_section (版面含头版/要闻/头条关键词)', 'Tetlock (2007) JF 62(3)', 'Stage 11 (news_salience) + Stage 45'),
+        ('avg_page_rank', 'Avg Page Prominence (lower=front)', 'rank ∪ NaN',
+         'bank-year mean of page_rank=叠字母序×100+页码 (越小越显著)', 'Tetlock (2007) JF 62(3); Boudoukh et al. (2019) RFS', 'Stage 11 (news_salience) + Stage 45'),
+        ('staff_written_frac', 'Staff-Written (Byline) Frac', '[0,1] ∪ NaN',
+         'bank-year mean of has_byline (作者具名且非通讯社)', '来源原创性 (投入端, 与 media_authority/herd 正交)', 'Stage 11 (news_salience) + Stage 45'),
+        ('wire_frac', 'Wire-Service Frac', '[0,1] ∪ NaN',
+         'bank-year mean of is_wire (作者/电头命中通讯社)', '通稿/转载来源', 'Stage 11 (news_salience) + Stage 45'),
+        ('frac_target_in_lead', 'Target-in-Lead Frac', '[0,1] ∪ NaN',
+         'bank-year mean of target_in_lead (规范行名出现在标题或正文前2句)', 'Tetlock (2008); Boudoukh et al. (2019) RFS relevance/centrality', 'Stage 11 (news_salience) + Stage 45'),
+        ('coverage_active_days', 'Active Coverage Days per Year', 'days ∪ NaN',
+         'bank-year 内有报道的不同日历天数(nunique 日期)', 'Hillert-Jacobs-Müller (2014) RFS', 'Stage 45 (encode)'),
+        ('coverage_continuity', 'Coverage Continuity (active/span)', '[0,1] ∪ NaN',
+         'coverage_active_days / (报道跨度天数); 1=天天有, 低=爆发式 (节奏, 与 staleness 内容重复正交)', 'Hillert-Jacobs-Müller (2014) RFS', 'Stage 45 (encode)'),
+    ]
+    for _name, _label, _vr, _formula, _ref, _src in _SINGLE_TEXT_SPECS:
+        metadata[_name] = VariableMetadata(
+            var_name=_name, label=_label, description=_label, data_type='float',
+            unit=_vr.split()[0] if '∪' not in _vr.split()[0] else '—',
+            value_range=_vr, formula=_formula, source_stage=_src,
+            reference=_ref, category=_CAT_NEW, track='—')
 
     return metadata
 

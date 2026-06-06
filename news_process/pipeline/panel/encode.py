@@ -542,6 +542,21 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         agg[f'avg_ttr{track}'] = (f'type_token_ratio{track}', 'mean')
         agg[f'avg_cpw{track}'] = (f'char_per_word{track}', 'mean')
 
+        # --- H2. 词汇/句法复杂度 $0 测度族 (批 #2–#6, 2026-06-05): bank-year 均值 ---
+        # rare_word/hard_char=词汇难度 (You-Zhang 2009 RAS; 丘心颖 2016); nominalization=
+        # Bog 句法成分 (Bonsall 2017 JAE); function_word=LIWC Analytic 近似; specificity=
+        # 报道硬信息密度 (Hope-Hu-Lu 2016 RAS); within_doc_redund=篇内冗余 (Dyer 2017 JAE);
+        # adversative=逆接连词密度 (探索性, 徐巍 2021). 'mean' 自动跳过 NaN (短/空文本不污染)。
+        agg[f'avg_rare_word{track}'] = (f'rare_word_ratio{track}', 'mean')
+        agg[f'avg_hard_char{track}'] = (f'hard_char_ratio{track}', 'mean')
+        agg[f'avg_nominalization{track}'] = (f'nominalization_ratio{track}', 'mean')
+        agg[f'avg_function_word{track}'] = (f'function_word_ratio{track}', 'mean')
+        agg[f'avg_specificity{track}'] = (f'specificity_index{track}', 'mean')
+        agg[f'avg_within_doc_redund{track}'] = (f'within_doc_redundancy{track}', 'mean')
+        agg[f'avg_adversative{track}'] = (f'adversative_ratio{track}', 'mean')
+        # 词级文章长度 (批 #7): bank-year 平均 jieba 词数; geography 再做 ln → ln_word_count
+        agg[f'avg_word_count{track}'] = (f'n_words_real{track}', 'mean')
+
         # --- I. 正/负面词频分离 (Berger, Kim & Ma 2024, CAR;
         #        Loughran & McDonald 2011, JF) ---
         agg[f'avg_pos_ratio{track}'] = (f'pos_ratio{track}', 'mean')
@@ -620,6 +635,18 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     agg['sum_doc_length'] = ('doc_length', 'sum')
     agg['avg_doc_length'] = ('doc_length', 'mean')
     agg['sum_target_mentions'] = ('target_bank_mention_count', 'sum')
+
+    # --- F3. 新闻体裁显著性 (批 #8–#10, 2026-06-05): 版位/导语/署名 bank-year 聚合 ---
+    # Tetlock 2007/2008 JF; Boudoukh et al. 2019 RFS (版位/导语注意力代理); 署名=来源原创性。
+    # 源列由 news_salience 在 stage 11 物化; 'mean' 自动跳过 nan; valid_agg 会过滤缺失源列
+    # (graceful)。与 media_authority(媒体级)/herd(产出端重复)正交: 版位=物理显著, 导语=
+    # 主角性, 署名=投入端原创 (论文须明写区分以防 variable-farm 质疑)。
+    agg['frac_front_page'] = ('is_front_page', 'mean')
+    agg['frac_front_section'] = ('is_front_section', 'mean')
+    agg['avg_page_rank'] = ('page_rank', 'mean')
+    agg['staff_written_frac'] = ('has_byline', 'mean')
+    agg['wire_frac'] = ('is_wire', 'mean')
+    agg['frac_target_in_lead'] = ('target_in_lead', 'mean')
     for track in ['_full', '_ctx']:
         agg[f'llm_vote_score_w_sum{track}'] = (f'llm_vote_score_w{track}', 'sum')
         agg[f'llm_vote_cont_w_sum{track}'] = (f'llm_vote_cont_w{track}', 'sum')
@@ -892,6 +919,31 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     else:
         logger.warning("  列 '媒体(中文)' 不存在, media_breadth 将为 NaN")
         panel['media_breadth'] = np.nan
+
+    # --- 报道连续性/节奏 (Hillert 2014 RFS; 批 #12, 2026-06-05) ---
+    # 与 staleness(内容重复)/herd(产出端重复) 正交: 此为【时间分布形态】(节奏 vs 冷饭)。
+    # coverage_active_days=有报道的天数; coverage_continuity=活跃天数/跨度天数 (1=天天有,
+    # 低=爆发式). $0 纯 日期 聚合; 年内天级分布在 T=2 试跑样本即可识别 (跨年 run-length
+    # 才需全量 T=18). 论文须明写与 staleness 的判别区分。
+    if '日期' in df.columns:
+        _d = df[['target_bank', 'year', '日期']].copy()
+        _d['日期'] = pd.to_datetime(_d['日期'], errors='coerce')
+        _d = _d.dropna(subset=['日期'])
+        _d['_day'] = _d['日期'].dt.normalize()
+        cov = _d.groupby(['target_bank', 'year']).agg(
+            coverage_active_days=('_day', 'nunique'),
+            _min_day=('_day', 'min'),
+            _max_day=('_day', 'max'),
+        ).reset_index()
+        cov['coverage_active_days'] = cov['coverage_active_days'].astype(float)
+        _span = (cov['_max_day'] - cov['_min_day']).dt.days + 1
+        cov['coverage_continuity'] = cov['coverage_active_days'] / _span.replace(0, np.nan)
+        cov = cov[['target_bank', 'year', 'coverage_active_days', 'coverage_continuity']]
+        panel = panel.merge(cov, on=['target_bank', 'year'], how='left')
+    else:
+        logger.warning("  列 '日期' 不存在, coverage_active_days/continuity 将为 NaN")
+        panel['coverage_active_days'] = np.nan
+        panel['coverage_continuity'] = np.nan
 
     # --- 按 innovation_locus_full 分组聚合（M1 临时单轨; M2 P2 后续展开 _lf/_lc mean 对角线） ---
     if 'innovation_locus_full' in df.columns:
@@ -1573,8 +1625,14 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     # 改为匹配任意 *_count(_vw)?_<track>; 排除 peer-group 计数 (llm_peer_count*,
     # 在零自有新闻时合法非零) 与实体属性均值 (avg/max_bank_count, 无轨道后缀, 正确保持 NaN)。
     _count_pat = re.compile(r'_count(_vw)?_(full|ctx|title)$')
+    # 2026-06-06 fix: 排除 avg_/mean_ 前缀的【均值】列 — avg_word_count_{full,ctx} 虽含
+    # "_count" 词根却是词数【均值】(非计数/和), 空 bank-year(无文章)应为 NaN 而非伪 0
+    # (否则违反其 codebook [0,+∞)∪NaN 值域 + "空单元须 NaN" 契约; 下游 ln_word_count=
+    # log1p(avg_word_count) 亦随之回到 NaN)。真计数/和列(pos_count/n_articles/*_sum)不带
+    # avg_/mean_ 前缀, 不受影响。
     suffixed_count_cols = [c for c in panel.columns
-                           if _count_pat.search(c) and 'peer' not in c]
+                           if _count_pat.search(c) and 'peer' not in c
+                           and not c.startswith(('avg_', 'mean_'))]
     zero_fill_cols = zero_fill_patterns + sum_cols + count_cols + suffixed_count_cols
 
     for col in zero_fill_cols:

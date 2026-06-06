@@ -107,11 +107,25 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
 
     logger.info(f"  生成双轨综合指标完成")
 
-    # --- 文章平均长度 (He et al. 2024, IRFA, Panel A.5: MLENGTH) ---
-    # MLENGTH = ln(文章词数), 此处取 Bank-Year 均值后 ln 变换
+    # --- 文章平均长度 ---
+    # (a) 字符口径: avg_article_length = ln(1 + bank-year 平均【字符数】).
+    #     ⚠ 2026-06-05 引文/单位勘误: 底层 doc_length = len(str(内容)) = Unicode 字符数
+    #     (news_bank.py:230), 非 jieba 词数。原注"MLENGTH=ln(文章词数)/avg_words"系单位
+    #     误标 (字符≈词数×1.5-1.7)。中文场景字符数是 defensible 长度代理, 但口径是【字符】。
+    #     He et al. 2024 IRFA 的 MLENGTH 本是词数定义, 真词口径见下方 (b) ln_word_count。
     if 'avg_doc_length' in panel.columns:
-        new_cols['avg_article_length'] = np.log1p(panel['avg_doc_length'])
-        logger.info(f"  avg_article_length (MLENGTH proxy) 已生成")
+        new_cols['avg_article_length'] = np.log1p(panel['avg_doc_length'])  # ln(1+平均字符数)
+        logger.info(f"  avg_article_length (ln(1+平均字符数), 字符口径) 已生成")
+
+    # (b) 词口径: ln_word_count = ln(1 + bank-year 平均【jieba 词数】) — 真 MLENGTH 词口径
+    #     (Li 2008 JAE; He et al. 2024 IRFA). 2026-06-05 新增 (批 #7), 与 (a) 字符口径
+    #     互为长度稳健 (双轨纪律)。源列 avg_word_count_{full,ctx} 来自 encode H2 段。
+    for _track in ('_full', '_ctx'):
+        _wc = f'avg_word_count{_track}'
+        if _wc in panel.columns:
+            new_cols[f'ln_word_count{_track}'] = np.log1p(panel[_wc])
+    if 'avg_word_count_full' in panel.columns:
+        logger.info(f"  ln_word_count_{{full,ctx}} (ln(1+平均词数), 词口径 MLENGTH) 已生成")
 
     # --- 分类维度综合指标 ---
     for suffix in ['_tech', '_app']:

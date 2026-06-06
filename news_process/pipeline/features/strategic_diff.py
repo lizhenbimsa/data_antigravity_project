@@ -1006,6 +1006,63 @@ def _compute_tfidf_coherence(agg_df, mode='char'):
     return coherence
 
 
+# Lazy-Prices 多算子稳健性 (批 #13, 2026-06-05): 归一化编辑距离截断长度 (控 O(L²) 成本)
+_LEVEN_MAX_CHARS = 2000
+try:  # rapidfuzz 已在 requirements (canonicalization.py 在用); 缺失则降级 difflib
+    from rapidfuzz.distance import Levenshtein as _RFLeven
+
+    def _normalized_levenshtein(a: str, b: str) -> float:
+        if not a and not b:
+            return float('nan')
+        return float(_RFLeven.normalized_distance(a, b))
+except Exception:  # pragma: no cover - 仅依赖缺失时触发
+    import difflib
+
+    def _normalized_levenshtein(a: str, b: str) -> float:
+        if not a and not b:
+            return float('nan')
+        return 1.0 - difflib.SequenceMatcher(None, a, b).ratio()
+
+
+def _compute_lazy_distances(agg_df):
+    """相邻期 (t, t-1) 文档变化量的 3 个非余弦距离 (Lazy-Prices 稳健性矩阵补充, P3)。
+
+    【学术】Cohen, Malloy & Nguyen (2020) JF 75(3):1371-1415 "Lazy Prices": 用多种文本
+    距离度量同一主体相邻期文档的"改动量"。核心余弦构念本项目已由 coh_* 覆盖 (故 P3 降级),
+    此处仅补 Jaccard / 词重叠 / 归一化编辑距离 3 个并列算子, 作多算子稳健性矩阵。
+
+    【白话】对每家银行, 看它今年和去年的"年度文本"差了多少 —— 用三把不同的尺子量"改动量"
+    (词集不重合度、最小集合不重合度、逐字编辑距离)。距离越大=年际措辞改得越多。
+
+    距离 = 1 − 相似度; 首年/年份间隙 → 缺失。Levenshtein 对长文 O(L²), 截断到
+    _LEVEN_MAX_CHARS (全量长文须抽样/限长, 见缺口报告 G6 caveat)。
+
+    Returns:
+        dict[(bank, year)] -> {'jaccard': d, 'overlap': d, 'minedit': d}
+    """
+    out = {}
+    bank_year_text = {(r['target_bank'], r['year']): r['agg_text']
+                      for _, r in agg_df.iterrows()}
+    for (bank, year), text_t in bank_year_text.items():
+        text_t1 = bank_year_text.get((bank, year - 1))
+        if text_t1 is None:
+            continue  # 首年/间隙 → 缺失 (与 coherence 同口径)
+        set_t = set(_jieba_tokenizer(text_t))
+        set_t1 = set(_jieba_tokenizer(text_t1))
+        union = set_t | set_t1
+        inter = set_t & set_t1
+        jaccard_sim = (len(inter) / len(union)) if union else float('nan')
+        min_sz = min(len(set_t), len(set_t1))
+        overlap_sim = (len(inter) / min_sz) if min_sz > 0 else float('nan')
+        out[(bank, year)] = {
+            'jaccard': (1.0 - jaccard_sim) if jaccard_sim == jaccard_sim else float('nan'),
+            'overlap': (1.0 - overlap_sim) if overlap_sim == overlap_sim else float('nan'),
+            'minedit': _normalized_levenshtein(text_t[:_LEVEN_MAX_CHARS],
+                                               text_t1[:_LEVEN_MAX_CHARS]),
+        }
+    return out
+
+
 def _compute_lda_coherence(agg_df):
     """LDA 主题模型 + Jensen-Shannon 散度的相邻期文本连贯性。
 
@@ -1370,6 +1427,16 @@ def compute_strategic_differentiation(df_exploded, panel):
             panel[name] = panel.apply(
                 lambda r, d=coh_dict: d.get(
                     (r['target_bank'], r['year']), np.nan),
+                axis=1)
+
+        # Lazy-Prices 3 补充距离 (批 #13, P3): 同 t/t-1 配对, 补 coh_* 余弦之外的算子
+        lazy = _compute_lazy_distances(agg_track)
+        for _dk, _col in [('jaccard', f'lazy_jaccard{track_suffix}'),
+                          ('overlap', f'lazy_overlap{track_suffix}'),
+                          ('minedit', f'lazy_minedit{track_suffix}')]:
+            panel[_col] = panel.apply(
+                lambda r, k=_dk, d=lazy: d.get(
+                    (r['target_bank'], r['year']), {}).get(k, np.nan),
                 axis=1)
 
     _log_coherence_diagnostics(panel)

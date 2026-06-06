@@ -1008,6 +1008,57 @@ def main():
             lag_count += 2
     logger.info(f"  已生成 {lag_count} 个滞后/反转变量 (lag1 + reversal)")
 
+    # --- (i2) 语调时序波动率 (rolling SD, 批 #11, 2026-06-05) ---
+    # 二阶矩补全: 一阶反转 tone_reversal 之外的【时间维】语调不稳定性。与年内跨文章 SD
+    # (*_tone_std) / 跨媒体方差 (cross_outlet) 正交 (论文须明写以防冗余质疑)。复用
+    # risk_taking_outcomes.compute_sigma_roa_rolling 的 rolling().std() 范式; window=3,
+    # min_periods=2 → ≥2 年即出值, 优雅降级 (全量 T=18 充分, 磁盘 T=2 仅末年有值)。
+    TONE_VOL_WINDOW, TONE_VOL_MINP = 3, 2
+    vol_count = 0
+    for track in ['_full', '_ctx']:
+        tone = f'llm_vote_tone{track}'
+        if tone in panel.columns:
+            panel[f'tone_volatility{track}'] = (
+                panel.groupby('target_bank')[tone]
+                .rolling(TONE_VOL_WINDOW, min_periods=TONE_VOL_MINP).std()
+                .reset_index(level=0, drop=True)
+            )
+            vol_count += 1
+    logger.info(f"  已生成 {vol_count} 个语调时序波动率变量 (rolling SD, w={TONE_VOL_WINDOW})")
+
+    # --- (i3) 异常/残差语调 (Huang, Teoh & Zhang 2014 TAR "Tone Management"; 批 #15) ---
+    # abnormal_tone = tone 对【银行基本面 + 年份 FE】回归后的残差 (剔除基本面可解释部分,
+    # 留下"异常"语调). ⚠ 阻塞: 当前面板无银行财务基本面列 (资产/杠杆/ROA/NPL), 须外部 merge
+    # CSMAR 年报财务 (非 LLM 付费, 但非现成). 优雅降级: 基本面就位则自动产出 abnormal_tone
+    # _{full,ctx} (dormant, 缺则不产列, 与 topic_entropy 同条件; 批 #15, 2026-06-05)。
+    _FUNDAMENTAL_CANDS = ['ln_assets', 'ln_total_assets', 'leverage', 'roa', 'roe',
+                          'npl', 'npl_ratio', 'car', 'capital_ratio']
+    _funds = [c for c in _FUNDAMENTAL_CANDS if c in panel.columns]
+    if _funds:
+        import numpy as _np
+        _yd = pd.get_dummies(panel['year'].astype('Int64'), prefix='yr', drop_first=True)
+        _X = pd.concat([panel[_funds].astype(float), _yd.astype(float)], axis=1)
+        _X.insert(0, '_const', 1.0)
+        abn_count = 0
+        for track in ['_full', '_ctx']:
+            tone = f'llm_vote_tone{track}'
+            if tone not in panel.columns:
+                continue
+            _y = panel[tone].astype(float)
+            _mask = _y.notna() & _X.notna().all(axis=1)
+            resid = pd.Series(_np.nan, index=panel.index, dtype=float)
+            if int(_mask.sum()) > _X.shape[1] + 1:  # 自由度充足才回归
+                Xm = _X.loc[_mask].to_numpy(dtype=float)
+                ym = _y.loc[_mask].to_numpy(dtype=float)
+                beta, *_ = _np.linalg.lstsq(Xm, ym, rcond=None)
+                resid.loc[_mask] = ym - Xm @ beta
+            panel[f'abnormal_tone{track}'] = resid
+            abn_count += 1
+        logger.info(f"  已生成 {abn_count} 个异常语调残差变量 (基本面={_funds})")
+    else:
+        logger.info("  异常语调 (abnormal_tone) 跳过: 面板无银行财务基本面列 "
+                    "(需外部 merge CSMAR 财务; dormant, 批 #15)")
+
     logger.info(f"  ── 异质性分析交互项预计算完成 ──")
 
     # --- 7h-net. 同行网络传染/溢出效应 (Leary & Roberts 2014, JF) ---
@@ -1410,7 +1461,7 @@ def main():
 
     # =========================================================================
     # 步骤 7i: Janis-Fadner (J-F) 情绪系数 — 稳健性替代指标
-    # 学术依据: Janis & Fadner (1965); Deephouse (2000, SMJ)
+    # 学术依据: Janis & Fadner (1965); Deephouse (2000, J. of Management 26(6):1091-1112)
     # 公式:
     #   若 P > N: JF = (P² - P×N) / (P+N)²
     #   若 N > P: JF = (P×N - N²) / (P+N)²

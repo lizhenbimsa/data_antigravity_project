@@ -588,9 +588,11 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
 
 
 def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
-    """v3.5.1 A3: 聚合 article 层 num_intensity 列到 bank-year panel (2 列).
+    """v3.5.1 A3: 聚合 article 层 num_intensity 列到 bank-year panel.
 
-    Per plan v0.3 §2.2.4 公式: weighted mean by stage21 weights.
+    句级 2 列 (mean_num_intensity_{full,ctx}) + 词级替代版 2 列
+    (mean_num_intensity_word_{full,ctx}, §4.3, 2026-06-05 新增) = 共 4 列。
+    Per plan v0.3 §2.2.4 公式: weighted mean by stage21 weights (媒体权威×herd)。
     """
     for required_col in ('target_bank', 'year'):
         if required_col not in panel.columns or required_col not in df.columns:
@@ -614,26 +616,44 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
     w_full = _track_weight('_full')
     w_ctx = _track_weight('_ctx')
 
+    # word-level 替代版 (§4.3) 列是否就位 (graceful: 旧 parquet 无此列时仅聚句级版)
+    has_word = ('num_intensity_word_full' in df.columns
+                and 'num_intensity_word_ctx' in df.columns)
+
     # 单次 assign 写入临时列, 避免逐列 insert 触发 pandas PerformanceWarning
-    df = df.assign(
+    assign_kwargs = dict(
         _w_ni_full=df['num_intensity_full'] * w_full,
         _w_ni_ctx=df['num_intensity_ctx'] * w_ctx,
         _w_full=w_full,
         _w_ctx=w_ctx,
     )
+    if has_word:
+        # 词级替代版加权分子 (与句级版同权重 w_full/w_ctx, 仅 article 分母从句数→词数)
+        assign_kwargs['_w_niw_full'] = df['num_intensity_word_full'] * w_full
+        assign_kwargs['_w_niw_ctx'] = df['num_intensity_word_ctx'] * w_ctx
+    df = df.assign(**assign_kwargs)
 
-    agg = df.groupby(['target_bank', 'year']).agg(
+    agg_kwargs = dict(
         _sum_w_ni_full=('_w_ni_full', 'sum'),
         _sum_w_ni_ctx=('_w_ni_ctx', 'sum'),
         _sum_w_full=('_w_full', 'sum'),
         _sum_w_ctx=('_w_ctx', 'sum'),
-    ).reset_index()
+    )
+    if has_word:
+        agg_kwargs['_sum_w_niw_full'] = ('_w_niw_full', 'sum')
+        agg_kwargs['_sum_w_niw_ctx'] = ('_w_niw_ctx', 'sum')
+    agg = df.groupby(['target_bank', 'year']).agg(**agg_kwargs).reset_index()
     sw_full = agg['_sum_w_full'].replace(0, float('nan'))
     sw_ctx = agg['_sum_w_ctx'].replace(0, float('nan'))
     agg['mean_num_intensity_full'] = agg['_sum_w_ni_full'] / sw_full
     agg['mean_num_intensity_ctx'] = agg['_sum_w_ni_ctx'] / sw_ctx
 
     out_cols = ['mean_num_intensity_full', 'mean_num_intensity_ctx']
+    if has_word:
+        # 兑现 §4.3: 词级数字密度 bank-year 加权均值 (分母词数, 对中文句读 sparse 稳健)
+        agg['mean_num_intensity_word_full'] = agg['_sum_w_niw_full'] / sw_full
+        agg['mean_num_intensity_word_ctx'] = agg['_sum_w_niw_ctx'] / sw_ctx
+        out_cols += ['mean_num_intensity_word_full', 'mean_num_intensity_word_ctx']
     # idempotent: 先 drop panel 已有的 out_cols (避免 merge _x/_y 后缀冲突)
     for c in out_cols:
         if c in panel.columns:
@@ -643,7 +663,7 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
     for c in out_cols:
         panel[c] = panel_merged[c].values
 
-    for tmp in ('_w_ni_full', '_w_ni_ctx', '_w_full', '_w_ctx'):
+    for tmp in ('_w_ni_full', '_w_ni_ctx', '_w_niw_full', '_w_niw_ctx', '_w_full', '_w_ctx'):
         if tmp in df.columns:
             del df[tmp]
 

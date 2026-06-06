@@ -1,11 +1,14 @@
 """news_process.pipeline.sentiment.numerical_intensity — v3.5.1 A3 真双轨数字密度.
 
-锚定文献:
-    - Hales, Kuang & Venkataraman (2011) CAR 28(1): 305-339
-      "Who Believes the Hype? An Experimental Examination of How Language Affects
-       Investor Judgments" — numerical intensity Eq.(1):
-       n_numeric_tokens / total_sentences
-    - Davis & Tama-Sweet (2012) CAR 29(3): 804-837 (补强)
+锚定文献 (2026-06-05 引文勘误):
+    - 数值披露强度构念 (numerical intensity = 数字 token / 篇幅):
+      Davis, A. K., & Tama-Sweet, I. (2012). Managers' use of language across
+      alternative disclosure outlets. Contemporary Accounting Research, 29(3): 804-837.
+    - ⚠ 原注 "Hales, Kuang & Venkataraman (2011) CAR 28(1):305-339 — numerical
+      intensity Eq.(1)" 经 web 核对有误: 该文实为 Journal of Accounting Research
+      49(1):223-255, 主题是 vivid/pallid 语言对投资者判断的影响, 并未定义 numerical
+      intensity。故数字密度构念不归该文; 本实现公式 n_numeric_tokens / total_sentences
+      为项目自定义操作化, 精确公式锚点待最终确认。
 
 设计要点 (per stage3_v3_5_1 plan v0.3 §2.2):
     1. 真双轨 (修 R3-C2): `enrich_with_num_intensity_dual_track` 对 content_full
@@ -25,9 +28,11 @@
     6. **decision (D-1.4)**: 不引入 PyPI cn2an 包; 自实现 ~50 行保守版本以避免
        requirements.lock 增量.
 
-中文 sentence 分母与英文 Hales 2011 不直接可比 disclosure (paper §3.4, 修 R7-M1):
+中文 sentence 分母与英文不直接可比 disclosure (paper §3.4, 修 R7-M1):
    中文新闻句号使用比英文 sparse (长句 + 逗号), num_intensity 分母系统性偏低.
-   同时报 word-level 替代版 (paper §4.3).
+   word-level 替代版 (n_numeric / jieba 词数) 已实现 — compute_num_intensity_word,
+   产出 num_intensity_word_{full,ctx} (2026-06-05, 兑现 paper §4.3 承诺; 对"归一化
+   分母选择"互为稳健性).
 """
 from __future__ import annotations
 
@@ -35,6 +40,7 @@ import logging
 import re
 from typing import Optional
 
+import jieba
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -169,7 +175,7 @@ def _cn2arab(text: str) -> str:
     def _replace_block(match: re.Match) -> str:
         cn_str = match.group(0)
         # fix(numintensity-02): 序数词 "第N" 不是定量信息 (如 "第三季度"/"第十八届"),
-        # 不转阿拉伯数字, 避免产生假定量 token 污染 Hales 2011 num_intensity。
+        # 不转阿拉伯数字, 避免产生假定量 token 污染 num_intensity 计数。
         start = match.start()
         if start > 0 and match.string[start - 1] == '第':
             return cn_str
@@ -221,7 +227,8 @@ def _count_numerical_tokens(text: str) -> tuple[int, int]:
 
 
 def compute_num_intensity(content: str) -> float:
-    """对**单一文本**计算 numerical intensity (Hales 2011 CAR Eq.1).
+    """对**单一文本**计算 numerical intensity (数值披露强度; 公式 n_numeric/n_sentences
+    为项目自定义操作化, 构念锚 Davis & Tama-Sweet 2012 CAR, 见模块 docstring 引文勘误).
 
     Args:
         content: 任意单一文本 (典型为 content_full 或 content_ctx).
@@ -257,6 +264,52 @@ def compute_num_intensity(content: str) -> float:
     return round(n_num / max(n_sent, 1), 6)
 
 
+def _count_word_tokens(content: str) -> int:
+    """返回 jieba 分词后非空白 token 数 (= 文章词级长度).
+
+    与 tone_words._analyze_single_article (L871 jieba.cut + L874 非空白过滤) /
+    lm_non_sentiment 的分词口径一致, 保证 num_intensity_word 的分母与项目其它
+    词级密度指标 (frac_uncert / clarity 等) 语义同构、可横向比较。
+    """
+    if not isinstance(content, str) or not content.strip():
+        return 0
+    return sum(1 for t in jieba.cut(content) if t.strip())
+
+
+def compute_num_intensity_word(content: str) -> float:
+    """word-level 数字密度: n_numeric / n_words (兑现本模块 §4.3 承诺).
+
+    动机: 主测度 ``compute_num_intensity`` 以**句子数**为分母 (句级口径), 但中文新闻
+    句号比英文 sparse (长句 + 逗号), 句级分母系统性偏低、放大数字密度 (见模块 docstring
+    §3.4)。本 word-level 版改以 **jieba 词数**为分母, 规避中英文句读差异, 作为对
+    "归一化分母选择"互为稳健性的替代轨 (双轨纪律: 不以相关性取舍, 两版各自进回归)。
+
+    与句级版**共享分子** n_numeric (同一 _cn2arab + _DIGIT_TOKEN_RE 计数), 仅分母不同
+    → 误差同源、不引入新偏差。已知 cn2arab 修饰词误转 (序数/不定数, 见 compute_num_intensity
+    docstring) 同等影响两版分子, 不构成 word 版独有缺陷。
+
+    Args:
+        content: 任意单一文本 (典型为 content_full 或 content_ctx)。
+
+    Returns:
+        float: n_numeric / max(n_words, 1); 空/单字符/字符串化 NaN 哨兵 → float('nan')。
+    """
+    if not isinstance(content, str) or not content.strip():
+        return float('nan')
+    # 拦截 pandas astype(str) 产生的字符串化 NaN 哨兵 (与 compute_num_intensity 同款保护,
+    # 防 'nan'/'<NA>' 被当正常文本算出 0.0 污染 panel 聚合)
+    if content.strip() in ('nan', 'NaN', 'None', '<NA>', 'NaT'):
+        return float('nan')
+
+    # 分子: cn2arab 后阿拉伯数字 token 数 (与句级版同源; 注: 此处独立再算一次 cn2arab,
+    # 17M 全量下若成吞吐瓶颈可与句级版合并为单 pass, 当前保持独立函数以便单测)
+    text_arabic = _cn2arab(content)
+    n_num, _ = _count_numerical_tokens(text_arabic)
+    # 分母: 原文 jieba 词数 (词级文章长度)
+    n_words = _count_word_tokens(content)
+    return round(n_num / max(n_words, 1), 6)
+
+
 def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
                                          full_col: str = '内容',
                                          ctx_col: str = 'content_ctx') -> pd.DataFrame:
@@ -270,7 +323,8 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
         ctx_col: 上下文列名 (默认 'content_ctx').
 
     Returns:
-        pd.DataFrame: 加 ``num_intensity_full`` + ``num_intensity_ctx`` 两列.
+        pd.DataFrame: 加 ``num_intensity_{full,ctx}`` (句级口径) +
+        ``num_intensity_word_{full,ctx}`` (词级替代版, §4.3) 共 4 列.
     """
     if df is None or len(df) == 0:
         return df
@@ -281,7 +335,12 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
         logger.warning(f"v3.5.1 A3: '{ctx_col}' 缺失, ctx 轨回退用 '{full_col}'")
         df[ctx_col] = df[full_col]
 
+    # 句级 (主测度): n_numeric / n_sentences
     df['num_intensity_full'] = df[full_col].astype(str).apply(compute_num_intensity)
     df['num_intensity_ctx'] = df[ctx_col].astype(str).apply(compute_num_intensity)
+
+    # 词级 (替代版, 兑现 §4.3; 对中文句读 sparse 稳健): n_numeric / jieba 词数
+    df['num_intensity_word_full'] = df[full_col].astype(str).apply(compute_num_intensity_word)
+    df['num_intensity_word_ctx'] = df[ctx_col].astype(str).apply(compute_num_intensity_word)
 
     return df

@@ -83,6 +83,10 @@ from news_process.core.text.ahocorasick import (
     load_bank_names,
     load_exclusion_patterns,
 )
+from news_process.pipeline.filtering.news_salience import (
+    NEWS_SALIENCE_KEYS,
+    compute_news_salience,
+)
 
 # ============================================================================
 # 1. 全局配置和初始化
@@ -231,6 +235,14 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             new_row['doc_length'] = doc_len
             new_row['target_bank_mention_count'] = bank_info['total_count']
             new_row['mention_density'] = bank_info['total_count'] / doc_len
+            # ── 新闻体裁显著性 (批 #8–#10, 2026-06-05): 版位/导语/署名, $0 纯解析 ──
+            # 在 stage 11 物化 (此处原始 版面/页号/作者 列俱在, 且早于 noise 剥离, 见
+            # news_salience docstring); 经 encode 聚合到 bank-year。
+            new_row.update(compute_news_salience(
+                str(row_data.get('版面', '')), str(row_data.get('页号', '')),
+                str(row_data.get('作者', '')), str(row_data.get('标题', '')),
+                str(row_data.get('内容', '')), bank_info['bank_name'],
+            ))
             expanded_rows.append(new_row)
 
     # 构建展开后的 DataFrame
@@ -240,7 +252,8 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         # 边界情况：该批次无任何银行新闻
         extra_cols = ['is_bank_news', 'target_bank', 'co_mentioned_banks',
                       'target_bank_in_title', 'matched_banks_info', 'matched_bank_names',
-                      'doc_length', 'target_bank_mention_count', 'mention_density']
+                      'doc_length', 'target_bank_mention_count', 'mention_density',
+                      *NEWS_SALIENCE_KEYS]
         df = pd.DataFrame(columns=original_columns + extra_cols)
 
     # 统计

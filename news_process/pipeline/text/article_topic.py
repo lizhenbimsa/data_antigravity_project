@@ -207,6 +207,22 @@ def aggregate_to_bank_year(
     if ctx_cols:
         panel['topic_hhi_ctx'] = (panel[ctx_cols] ** 2).sum(axis=1)
 
+    # topic Shannon 熵 (叙事多样性, Dyer-Lang-Stice-Lawrence 2017 JAE; Blei 2003) —
+    # HHI 的对偶: HHI=Σp² 对【头部】主题敏感, 熵=−Σp·ln p 对【长尾】主题敏感 (批 #14,
+    # 2026-06-05)。dormant: 依附 stage 17 BERTopic 的 frac_topic 输入, stage 17 未跑通时
+    # 本 stage 不产出, 故默认 golden 无此列 (与 topic_hhi 同条件)。
+    def _row_entropy(row) -> float:
+        import math
+        vals = [v for v in row.to_numpy() if v == v and v > 0]  # 去 NaN/0/负
+        tot = sum(vals)
+        if tot <= 0:
+            return float('nan')
+        return float(-sum((v / tot) * math.log(v / tot) for v in vals))
+    if full_cols:
+        panel['topic_entropy_full'] = panel[full_cols].apply(_row_entropy, axis=1)
+    if ctx_cols:
+        panel['topic_entropy_ctx'] = panel[ctx_cols].apply(_row_entropy, axis=1)
+
     return panel
 
 

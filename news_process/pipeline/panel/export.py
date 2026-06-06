@@ -407,8 +407,50 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_msent_ctx':                  'MSENT (Neg-Pos)/(Neg+Pos) EW Mean (Ctx)',
                 'avg_msent_std_full':              'MSENT Std Dev (Full)',
                 'avg_msent_std_ctx':               'MSENT Std Dev (Ctx)',
-                # 文章长度 (He et al. 2024, IRFA)
-                'avg_article_length':             'Article Length ln(1+avg_words)',
+                # 文章长度: avg_article_length=字符口径 ln(1+avg_chars) (2026-06-05 单位勘误,
+                # 原标 avg_words 系误标, 底层 doc_length=字符数); ln_word_count=词口径 (Li 2008)
+                'avg_article_length':             'Article Length ln(1+avg_chars)',
+                # ── 文本测度缺口补全 (2026-06-05, 批 #1–#15) Stata 标签 ──
+                'mean_num_intensity_word_full':  'Num Intensity per-Word (Full)',
+                'mean_num_intensity_word_ctx':   'Num Intensity per-Word (Ctx)',
+                'avg_rare_word_full':            'Rare-Word Ratio (Full)',
+                'avg_rare_word_ctx':             'Rare-Word Ratio (Ctx)',
+                'avg_hard_char_full':            'Hard-Char Ratio (Full)',
+                'avg_hard_char_ctx':             'Hard-Char Ratio (Ctx)',
+                'avg_nominalization_full':       'Nominalization Ratio (Full)',
+                'avg_nominalization_ctx':        'Nominalization Ratio (Ctx)',
+                'avg_function_word_full':        'Function-Word Ratio LIWC-Analytic (Full)',
+                'avg_function_word_ctx':         'Function-Word Ratio LIWC-Analytic (Ctx)',
+                'avg_specificity_full':          'Specificity Hard-Info Density (Full)',
+                'avg_specificity_ctx':           'Specificity Hard-Info Density (Ctx)',
+                'avg_within_doc_redund_full':    'Within-Doc Redundancy (Full)',
+                'avg_within_doc_redund_ctx':     'Within-Doc Redundancy (Ctx)',
+                'avg_adversative_full':          'Adversative-Conjunction Ratio (Full)',
+                'avg_adversative_ctx':           'Adversative-Conjunction Ratio (Ctx)',
+                'avg_word_count_full':           'Avg Word Count (Full)',
+                'avg_word_count_ctx':            'Avg Word Count (Ctx)',
+                'ln_word_count_full':            'Article Length ln(1+avg_words) (Full)',
+                'ln_word_count_ctx':             'Article Length ln(1+avg_words) (Ctx)',
+                'frac_front_page':               'Front-Page Coverage Frac',
+                'frac_front_section':            'Front-Section Coverage Frac',
+                'avg_page_rank':                 'Avg Page Prominence (lower=front)',
+                'staff_written_frac':            'Staff-Written Byline Frac',
+                'wire_frac':                     'Wire-Service Frac',
+                'frac_target_in_lead':           'Target-in-Lead Frac',
+                'tone_volatility_full':          'Tone Volatility 3y-roll SD (Full)',
+                'tone_volatility_ctx':           'Tone Volatility 3y-roll SD (Ctx)',
+                'coverage_active_days':          'Active Coverage Days per Year',
+                'coverage_continuity':           'Coverage Continuity active/span',
+                'lazy_jaccard_full':             'YoY Text Change Jaccard (Full)',
+                'lazy_jaccard_ctx':              'YoY Text Change Jaccard (Ctx)',
+                'lazy_overlap_full':             'YoY Text Change Word-Overlap (Full)',
+                'lazy_overlap_ctx':              'YoY Text Change Word-Overlap (Ctx)',
+                'lazy_minedit_full':             'YoY Text Change Norm-Leven (Full)',
+                'lazy_minedit_ctx':              'YoY Text Change Norm-Leven (Ctx)',
+                'topic_entropy_full':            'Topic Shannon Entropy (Full)',
+                'topic_entropy_ctx':             'Topic Shannon Entropy (Ctx)',
+                'abnormal_tone_full':            'Abnormal Tone resid-vs-fundmtl (Full)',
+                'abnormal_tone_ctx':             'Abnormal Tone resid-vs-fundmtl (Ctx)',
                 # Fintech Exposure (Dim et al. 2024 概念迁移)
                 'fintech_exposure_full':   'Fintech Exposure (Cov*Std, Full)',
                 'fintech_exposure_ctx':    'Fintech Exposure (Cov*Std, Ctx)',
@@ -741,7 +783,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'neg_frac_nonprov_full':            'Non-Province Neg Frac (Full)',
                 'neg_frac_homecity_full':           'Home-City Neg Frac (Full)',
                 'neg_frac_noncity_full':            'Non-City Neg Frac (Full)',
-                # 姜富伟系数 (Jiang et al. 2019)
+                # Janis-Fadner 极性系数 (Janis & Fadner 1965; Deephouse 2000, J. of Management 26(6):1091-1112).
+                # ⚠ 2026-06-05 勘误: 此前误注 "Jiang et al. 2019 (姜富伟)"; 实现的是 J-F
+                # 极性集中度系数 (P²-PN)/(P+N)² 类, 与 Jiang 2019 PLS 市场情绪指数无关。
                 'jf_coefficient_full':              'JF Coefficient (Full-text)',
                 'jf_coefficient_ctx':               'JF Coefficient (Context)',
                 # 媒体质量指标 — 洗稿率 44 种 (Bingler et al. 2022, FRL)
@@ -1035,9 +1079,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'mean_frac_definite_ctx':    'Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)',
                 'frac_amb_articles_full':    'Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)',
                 'frac_amb_articles_ctx':     'Frac Articles Ambiguous Ctx (>=D0 median, You 2018 Panel D)',
-                # v3.5.1 A3 Numerical Intensity (Hales 2011 CAR) — 真双轨
-                'mean_num_intensity_full':   'Mean Numerical Intensity Full (Hales 2011 CAR, dual-track)',
-                'mean_num_intensity_ctx':    'Mean Numerical Intensity Ctx (Hales 2011 CAR, dual-track)',
+                # v3.5.1 A3 Numerical Intensity (数值披露强度; 引文勘误见 codebook reference) — 真双轨
+                'mean_num_intensity_full':   'Mean Numerical Intensity Full (dual-track)',
+                'mean_num_intensity_ctx':    'Mean Numerical Intensity Ctx (dual-track)',
             }
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()

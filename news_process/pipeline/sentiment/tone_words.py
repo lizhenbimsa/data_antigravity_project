@@ -82,6 +82,11 @@ from news_process.core.reporting import safe_save_preview_csv
 from news_process.pipeline.sentiment.forward_looking import (  # noqa: E402
     compute_fls_for_text,
 )
+from news_process.pipeline.sentiment.lexical_complexity import (  # noqa: E402
+    LEXICAL_COMPLEXITY_KEYS,
+    WORD_COUNT_KEY,
+    compute_lexical_complexity,
+)
 from news_process.pipeline.sentiment.lm_non_sentiment import (  # noqa: E402
     _compute_lm_non_sentiment_for_text,
     load_lm_non_sentiment_dicts,
@@ -936,6 +941,12 @@ def _analyze_single_article(content: str) -> dict:
     result['type_token_ratio'] = readability['type_token_ratio']
     result['char_per_word'] = readability['char_per_word']
 
+    # ── 词汇/句法复杂度 $0 测度族 (批 #2–#6, 2026-06-05) ──
+    # rare_word/hard_char/nominalization/function_word/specificity/redundancy/adversative
+    # (单次 jieba.posseg pass)。空/哨兵文本的 nan 兜底由 compute_lexical_complexity 入口
+    # guard + 列提取 .get(k, nan) 负责, 不依赖本函数早返 (早返分支本就不含 lexical 键)。
+    result.update(compute_lexical_complexity(content))
+
     # ── 正/负面词频分离（稳健性检验）──
     # 学术依据: 将正负面词汇分离作为独立的协变量，能有效缓解传统净情感指标可能带来的极性对冲掩蔽问题。
     # Garcia, D. (2013). Sentiment during recessions.
@@ -1136,6 +1147,14 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         'frac_fls',
     ]
     for col in lm_a2_metric_cols:
+        for track in ['_full', '_ctx']:
+            col_key = f'{col}{track}'
+            new_columns[col_key] = results.apply(
+                lambda r, k=col_key: r.get(k, float('nan'))
+            )
+
+    # ── 词汇/句法复杂度 $0 测度族 (批 #2–#6) + 词级长度 n_words_real (批 #7) 双轨列提取 ──
+    for col in (*LEXICAL_COMPLEXITY_KEYS, WORD_COUNT_KEY):
         for track in ['_full', '_ctx']:
             col_key = f'{col}{track}'
             new_columns[col_key] = results.apply(
@@ -1388,8 +1407,9 @@ def main():
 
     # v3.5.1 A3: Numerical Intensity 真双轨 post-processor (per plan v0.3 §2.2.3 修 R3-C2 + H4).
     # 对 content_full + content_ctx 各调用 compute_num_intensity 一次, 写入
-    # num_intensity_full / num_intensity_ctx 两 article 列. 锚定: Hales-Kuang-
-    # Venkataraman (2011 CAR 28:1). 依赖方向: tone_words → numerical_intensity (单向).
+    # num_intensity_full / num_intensity_ctx 两 article 列. 锚定: 数值披露强度
+    # (Davis & Tama-Sweet 2012 CAR; 原引 Hales 2011 系误归, 见 numerical_intensity 模块 docstring).
+    # 依赖方向: tone_words → numerical_intensity (单向).
     try:
         from news_process.pipeline.sentiment.numerical_intensity import (
             enrich_with_num_intensity_dual_track,
