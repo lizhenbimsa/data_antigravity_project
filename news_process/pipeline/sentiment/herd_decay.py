@@ -28,7 +28,8 @@ v3.6.0 (Plan E P1 B3) 双轨化升级:
   - ≤2000 篇/bank 走 dense pairwise; >2000 篇走 7 天窗双指针分桶 O(N·window) (W1 2026-06-05)
   - 相似度阈值 0.35: 高于此值视为"跟风"
   - 衰减公式: weight = 1 / (1 + n_similar_predecessors)
-  - **双轨**: full 用 '内容', ctx 用 'content_ctx' (后者由 stage 21 物化)
+  - **双轨**: full 用 'content_full'(标题+全文), ctx 用 'content_ctx'(标题+实体窗口);
+    两者均由 stage 13 物化、含标题对称 (病根A 已修); 缺 content_full 时 full 回退裸 '内容'
 
 输入: 23_bert_tone.parquet (含 content_ctx 列, 由 stage 21 物化后下传)
 输出: 24_herd_decay.parquet (追加 6 列: 4 双轨列 herd_weight_full + herd_weight_ctx
@@ -166,7 +167,7 @@ def _compute_similar_counts_for_track(
 
     Args:
         bank_df: 单银行子集, 已按日期排序。
-        text_col: 文本列名 ('内容' for full, 'content_ctx' for ctx)。
+        text_col: 文本列名 ('content_full' for full, 'content_ctx' for ctx; 均含标题)。
         dates:    与 bank_df 对齐的日期列表 (含 NaT)。
 
     Returns:
@@ -215,8 +216,8 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
       本版本输出 herd_weight_full + herd_weight_ctx 两列, 下游按轨匹配。
 
     Args:
-        df: 篇章级 DataFrame, 须含 'target_bank', '日期', '内容' 列;
-            'content_ctx' 可选 — 缺失时 ctx 轨回退到 '内容' (即与 full 同值)。
+        df: 篇章级 DataFrame, 须含 'target_bank', '日期', 'content_full'(或 '内容') 列;
+            'content_ctx' 可选 — 缺失时 ctx 轨回退到 full 轨文本 (即与 full 同值)。
 
     Returns:
         df: 附加 'herd_weight_full' / 'herd_weight_ctx' /
@@ -233,7 +234,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     df['日期'] = pd.to_datetime(df['日期'], errors='coerce')
 
     # 双轨文本列解析
-    # full 轨: 优先 '内容', 兼容 '正文' / 'content'
+    # full 轨: 优先 content_full (含标题), 缺列回退 '内容' / '正文' / 'content'
     # P1 修复 (metric-audit 2026-06-02, 病根A): full 轨优先 content_full (含标题, 与
     # 加权对象 _full 情感同源), 缺列回退 '内容'/'正文'/'content'.
     full_col = 'content_full' if 'content_full' in df.columns else (

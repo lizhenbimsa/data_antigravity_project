@@ -671,6 +671,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'benefit_neg_frac_t2v_full':           'Benefit Neg Frac (T2V robust, full)',
                 'benefit_neg_frac_t2v_ctx':            'Benefit Neg Frac (T2V robust, ctx)',
                 'emb_peer_tone_lag1_t2v_full':         'Emb Peer Tone Lag1 (T2V robust, full)',
+                'emb_peer_tone_lag1_t2v_ctx':          'Emb Peer Tone Lag1 (T2V robust, ctx)',
                 'bank_emb_sim_mean_t2v':               'Bank Emb Sim Mean (T2V robust)',
                 # Event Study 动态效应 (Callaway & Sant'Anna 2021, JoE)
                 'dcep_rel_year':                       'DCEP Relative Year to Treatment',
@@ -783,6 +784,18 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'neg_frac_nonprov_full':            'Non-Province Neg Frac (Full)',
                 'neg_frac_homecity_full':           'Home-City Neg Frac (Full)',
                 'neg_frac_noncity_full':            'Non-City Neg Frac (Full)',
+                # dual-track parity (2026-06-08): 地理-媒体情感 _ctx 孪生 (attention_media
+                # 早已双轨产出, 仅此前缺 Stata 标签 → .dta 中 _ctx 列丢失变量标签)。
+                'tone_homeprov_media_ctx':          'Home-Province Media Tone (Ctx)',
+                'tone_nonprov_media_ctx':           'Non-Province Media Tone (Ctx)',
+                'tone_gap_homeprov_nonprov_ctx':    'Local Media Slant: Prov (Ctx)',
+                'tone_homecity_media_ctx':          'Home-City Media Tone (Ctx)',
+                'tone_noncity_media_ctx':           'Non-City Media Tone (Ctx)',
+                'tone_gap_homecity_noncity_ctx':    'Local Media Slant: City (Ctx)',
+                'neg_frac_homeprov_ctx':            'Home-Province Neg Frac (Ctx)',
+                'neg_frac_nonprov_ctx':             'Non-Province Neg Frac (Ctx)',
+                'neg_frac_homecity_ctx':            'Home-City Neg Frac (Ctx)',
+                'neg_frac_noncity_ctx':             'Non-City Neg Frac (Ctx)',
                 # Janis-Fadner 极性系数 (Janis & Fadner 1965; Deephouse 2000, J. of Management 26(6):1091-1112).
                 # ⚠ 2026-06-05 勘误: 此前误注 "Jiang et al. 2019 (姜富伟)"; 实现的是 J-F
                 # 极性集中度系数 (P²-PN)/(P+N)² 类, 与 Jiang 2019 PLS 市场情绪指数无关。
@@ -868,6 +881,20 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'prox_200km_pos_frac':           'Pos Frac Within 200km',
                 'prox_200km_neg_frac':           'Neg Frac Within 200km',
                 'prox_200km_is_local':           'Has Local Media 200km (0/1)',
+                # dual-track parity (2026-06-08): 距离缓冲情感 _ctx 孪生 (geography.py 新增,
+                # 由同模块 LOO-IV 双轨惯用法指导; full 轨保留既有列名: tone_*_full + pos/neg_frac)。
+                'prox_50km_tone_ctx':            'Avg Tone Within 50km (Ctx)',
+                'prox_50km_pos_frac_ctx':        'Pos Frac Within 50km (Ctx)',
+                'prox_50km_neg_frac_ctx':        'Neg Frac Within 50km (Ctx)',
+                'prox_100km_tone_ctx':           'Avg Tone Within 100km (Ctx)',
+                'prox_100km_pos_frac_ctx':       'Pos Frac Within 100km (Ctx)',
+                'prox_100km_neg_frac_ctx':       'Neg Frac Within 100km (Ctx)',
+                'prox_150km_tone_ctx':           'Avg Tone Within 150km (Ctx)',
+                'prox_150km_pos_frac_ctx':       'Pos Frac Within 150km (Ctx)',
+                'prox_150km_neg_frac_ctx':       'Neg Frac Within 150km (Ctx)',
+                'prox_200km_tone_ctx':           'Avg Tone Within 200km (Ctx)',
+                'prox_200km_pos_frac_ctx':       'Pos Frac Within 200km (Ctx)',
+                'prox_200km_neg_frac_ctx':       'Neg Frac Within 200km (Ctx)',
                 # === 区域 AI 模仿渗透率 (Leary & Roberts 2014) ===
                 'ai_reg_province':               'AI Imitation Rate (Province)',
                 'ai_reg_city':                   'AI Imitation Rate (City)',
@@ -890,6 +917,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'strat_sim_max_w':     'Max Peer Similarity (TF-IDF jieba)',
                 'strat_fluidity':      'Product Mkt Fluidity (TF-IDF char)',
                 'strat_fluidity_w':    'Product Mkt Fluidity (TF-IDF jieba)',
+                # dual-track parity (2026-06-08): Fluidity _ctx 孪生 (strategic_diff.py 新增)
+                'strat_fluidity_ctx':   'Product Mkt Fluidity TF-IDF char (Ctx)',
+                'strat_fluidity_w_ctx': 'Product Mkt Fluidity TF-IDF jieba (Ctx)',
                 'strat_diff_n5_lda':   'Strat Diff N=5 (LDA+JSD)',
                 'strat_sim_max_lda':   'Max Peer Similarity (LDA+JSD)',
                 'strat_diff_n5_emb':   'Strat Diff N=5 (Embedding)',
@@ -932,15 +962,20 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'peer_fintech_exposure_lag1':    'Peer Fintech Exposure (L1)',
                 # === Embedding 同业网络 (Hoberg & Phillips 2016) ===
                 'emb_peer_tone_lag1_full':      'Emb Peer Tone L1 (Full)',
+                'emb_peer_tone_lag1_ctx':       'Emb Peer Tone L1 (Ctx)',
                 'bank_emb_sim_mean':            'Bank Embedding Sim Mean',
                 # === LLM-Peer 竞争网络 IV (Cao et al. 2025) ===
                 # 主回归变量 (cutoff=0.80 TNIC 标准, 无后缀)
                 'llm_peer_tone_iv_full':        'LLM-Peer Tone IV (Full)',
+                'llm_peer_tone_iv_ctx':         'LLM-Peer Tone IV (Ctx)',
                 'llm_peer_coverage_iv':         'LLM-Peer Coverage IV',
                 'llm_peer_count':               'LLM-Peer Count',
                 'peer_compete_idx':             'Peer Competition Index (0.80)',
                 # 多阈值敏感性变体 (cutoff=0.70/0.75/0.80/0.85/0.90)
                 **{f'llm_peer_tone_iv_full_{c}': f'LLM-Peer Tone IV (Full, c={c/100:.2f})'
+                   for c in [70, 75, 80, 85, 90]},
+                # dual-track parity (2026-06-08): ctx 轨 IV 多阈值 (llm_peer_iv.py 新增)
+                **{f'llm_peer_tone_iv_ctx_{c}': f'LLM-Peer Tone IV (Ctx, c={c/100:.2f})'
                    for c in [70, 75, 80, 85, 90]},
                 **{f'llm_peer_coverage_iv_{c}': f'LLM-Peer Coverage IV (c={c/100:.2f})'
                    for c in [70, 75, 80, 85, 90]},
@@ -1049,6 +1084,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # Continuous aggregation (main regression)
                 'article_sim_mean':       'Avg Article-Policy Cosine Sim',
                 'article_sim_std':        'Std Article-Policy Cosine Sim',
+                # dual-track parity (2026-06-08): MAIN/API spec 政策对齐 _ctx 孪生 (runner.py
+                # 新增聚合; 与 _t2v 轨 policy_cosine_sim_t2v_full/_ctx 面板双轨对称)。
+                'article_sim_mean_ctx':   'Avg Article-Policy Cosine Sim (Ctx)',
+                'article_sim_std_ctx':    'Std Article-Policy Cosine Sim (Ctx)',
                 'fintech_intensity_mean': 'Avg FinTech Intensity Score',
                 # Quadrant discrete classification (mechanism / robustness)
                 # Track A (kw) x P={25,50,75}

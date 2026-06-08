@@ -789,14 +789,15 @@ def compute_geo_proximity_buffers(
 ) -> pd.DataFrame:
     """计算多梯度地理距离缓冲下的媒体接近度指标。
 
-    对 50/100/150/200 km 四个阈值, 分别计算 7 个变量, 共 28 个:
-      - prox_{d}km_n_media:    距离圈内的媒体来源数
-      - prox_{d}km_n_articles: 距离圈内的文章数
-      - prox_{d}km_frac:       距离圈内文章占比
-      - prox_{d}km_tone_full:  距离圈内文章的平均情感
-      - prox_{d}km_pos_frac:   距离圈内正面文章比例
-      - prox_{d}km_neg_frac:   距离圈内负面文章比例
-      - prox_{d}km_is_local:   是否存在距离圈内媒体 (0/1)
+    对 50/100/150/200 km 四个阈值, 分别计算 10 个变量, 共 40 个
+    (2026-06-08 dual-track parity: 情感三项补 _ctx 孪生, 28→40):
+      - prox_{d}km_n_media:    距离圈内的媒体来源数 (track-agnostic 单轨)
+      - prox_{d}km_n_articles: 距离圈内的文章数 (track-agnostic 单轨)
+      - prox_{d}km_frac:       距离圈内文章占比 (track-agnostic 单轨)
+      - prox_{d}km_is_local:   是否存在距离圈内媒体 (0/1, track-agnostic 单轨)
+      - prox_{d}km_tone_full / _ctx:   距离圈内文章的平均情感 (双轨)
+      - prox_{d}km_pos_frac / _ctx:    距离圈内正面文章比例 (双轨; full 沿用无后缀历史名)
+      - prox_{d}km_neg_frac / _ctx:    距离圈内负面文章比例 (双轨; full 沿用无后缀历史名)
 
     学术依据:
       Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype:
@@ -947,27 +948,34 @@ def compute_geo_proximity_buffers(
                 else:
                     buf_results[key][f'{prefix}_n_media'] = 0
 
-                # 情感 (LLM 投票分数)
-                tone_col = 'llm_vote_score_full'
-                if tone_col in within.columns and n_within > 0:
-                    buf_results[key][f'{prefix}_tone_full'] = (
-                        within[tone_col].mean())
-                else:
-                    buf_results[key][f'{prefix}_tone_full'] = np.nan
+                # 情感聚合 (LLM 投票分数) — dual-track parity (2026-06-08):
+                # 此前仅聚合 _full 文章列 (硬编码 llm_vote_score_full / is_positive_full /
+                # is_negative_full), 无 _ctx 孪生; 而同模块 LOO-IV (compute_*_leave_one_out)
+                # 已 `for track in ['_full','_ctx']` 双轨。此处复用该双轨惯用法补 _ctx 孪生。
+                # 命名: 保留既有列名作 full 轨 (tone 既有 _full 后缀; pos_frac/neg_frac 既有
+                # 无后缀=隐式 full, 沿用项目 _lc/_sc 对角线"隐式 full + 显式 ctx"约定 → 零
+                # 重命名、不破坏下游 Stata 模板/golden), ctx 轨统一加 _ctx 后缀。
+                for _track, _pn_suffix in (('_full', ''), ('_ctx', '_ctx')):
+                    _tone_col = f'llm_vote_score{_track}'
+                    if _tone_col in within.columns and n_within > 0:
+                        buf_results[key][f'{prefix}_tone{_track}'] = (
+                            within[_tone_col].mean())
+                    else:
+                        buf_results[key][f'{prefix}_tone{_track}'] = np.nan
 
-                # 正面比例
-                if 'is_positive_full' in within.columns and n_within > 0:
-                    buf_results[key][f'{prefix}_pos_frac'] = (
-                        within['is_positive_full'].mean())
-                else:
-                    buf_results[key][f'{prefix}_pos_frac'] = np.nan
+                    _pos_col = f'is_positive{_track}'
+                    if _pos_col in within.columns and n_within > 0:
+                        buf_results[key][f'{prefix}_pos_frac{_pn_suffix}'] = (
+                            within[_pos_col].mean())
+                    else:
+                        buf_results[key][f'{prefix}_pos_frac{_pn_suffix}'] = np.nan
 
-                # 负面比例
-                if 'is_negative_full' in within.columns and n_within > 0:
-                    buf_results[key][f'{prefix}_neg_frac'] = (
-                        within['is_negative_full'].mean())
-                else:
-                    buf_results[key][f'{prefix}_neg_frac'] = np.nan
+                    _neg_col = f'is_negative{_track}'
+                    if _neg_col in within.columns and n_within > 0:
+                        buf_results[key][f'{prefix}_neg_frac{_pn_suffix}'] = (
+                            within[_neg_col].mean())
+                    else:
+                        buf_results[key][f'{prefix}_neg_frac{_pn_suffix}'] = np.nan
 
     # ── 合并至面板 ──
     if buf_results:

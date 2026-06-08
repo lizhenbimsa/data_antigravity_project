@@ -16,7 +16,10 @@ business cycles. Review of Financial Studies, 37(3), 887-936.
    strategic_diff 4 callsite 完全一致, 零下载 + 零双轨配置漂移)
 2. **输入策略**: 标题 + 首段 300 字 (实际新闻中位 800 字 ≈ 1200 token, SBERT
    max_seq_len=512 截断会丢失末段)
-3. **双轨**: '内容' (full 轨, 标题经 Bybee 截断单独前置) + content_ctx 各编码一次 (与 v3.5.1 真双轨对齐)
+3. **双轨** (2026-06-08 dual-track parity): full 读 content_full / ctx 读 content_ctx
+   (两者均由 stage 13 prepend 标题【恰好一次】), 编码时 title_col=None 关闭二次前置 →
+   两轨同型构造、标题各一次 (修 ctx 标题×2 反向病根); 仅输入文本范围不同 (全文 vs 实体
+   窗口)。缺 content_full 时回退裸 '内容'+'标题' (走 _truncate_for_sbert Bybee 前置, 标题一次)
 4. **存储**: parquet (article_id, target_bank, year, emb_full[768], emb_ctx[768])
    预估 400k × 768 × 4 byte × 2 轨 = ~2.5 GB
 
@@ -140,10 +143,25 @@ def main():
     df = pd.read_parquet(src_path)
     logger.info(f"  article-level: {len(df)} 行")
 
-    # ── 双轨编码 ──
-    embs_full = encode_articles(df, content_col='内容', title_col='标题')
+    # ── 双轨编码 (dual-track parity 2026-06-08) ──
+    # content_full / content_ctx 均已由 stage 13 (ctx_materializer) prepend 标题【恰好一次】。
+    # 故 title_col=None 关闭 encode_articles 内 _truncate_for_sbert 的二次标题前置 —— 否则
+    # ctx 轨 (读已含标题的 content_ctx) 会重复注入标题 (标题×2), 与 full 轨 (标题×1) 不对称,
+    # 致 emb_full/emb_ctx 语义权重不可比 (下传 stage 17 topic emb / stage 18 semantic_staleness)。
+    # 两轨改为同型构造: 各取 content_*[:TITLE+PARA] (标题在串首恰好一次), 仅输入文本范围不同
+    # (full=标题+全文 / ctx=标题+实体窗口)。与同源 content_full/content_ctx 消费者 (stage 15
+    # policy_alignment / stage 27 benefit_society) 读同一含标题串、标题注入一次的口径对齐
+    # (注: 各模块下游截断方式不同——sbert 取字符 [:400], stage 15 走 token 截断——此处仅指
+    #  "读含标题串、标题恰好一次"这一点对齐, 非截断算法相同)。
+    # 缺 content_full 时回退裸 '内容'+'标题' (旧 schema; _truncate_for_sbert 注入标题一次)。
+    _has_cfull = 'content_full' in df.columns
+    embs_full = encode_articles(
+        df,
+        content_col='content_full' if _has_cfull else '内容',
+        title_col=None if _has_cfull else '标题',
+    )
     embs_ctx = (
-        encode_articles(df, content_col='content_ctx', title_col='标题')
+        encode_articles(df, content_col='content_ctx', title_col=None)
         if 'content_ctx' in df.columns
         else np.full_like(embs_full, np.nan)
     )

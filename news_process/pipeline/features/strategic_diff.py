@@ -1458,6 +1458,13 @@ def compute_strategic_differentiation(df_exploded, panel):
     if 'content_ctx' in df_exploded.columns:
         agg_ctx_sd = _aggregate_bank_year_texts(
             df_exploded, text_col='content_ctx')
+        # dual-track parity (2026-06-08): Fluidity 此前仅 Full 轨 (strat_fluidity/_w),
+        # 是 strategic_diff 文本测度族中唯一缺 _ctx 孪生者; 而同族同业相对测度
+        # (strat_diff_n5 / strat_sim_max / centroid_diff_*) 均已产 _ctx 孪生。
+        # _compute_fluidity(agg_df, mode) 签名 track-agnostic, 复用现成 ctx 聚合 agg_ctx_sd
+        # 补 strat_fluidity_ctx / strat_fluidity_w_ctx, 与 Full 轨 strat_fluidity/_w 对称。
+        flu_c_ctx = _compute_fluidity(agg_ctx_sd, 'char')
+        flu_w_ctx = _compute_fluidity(agg_ctx_sd, 'word')
         ctx_results = []
 
         for year in sorted(agg_ctx_sd['year'].unique()):
@@ -1525,6 +1532,9 @@ def compute_strategic_differentiation(df_exploded, panel):
                 if cd_emb_t2v:  # 稳健 twin + 契约别名 strat_diff_t2v_ctx
                     row['centroid_diff_emb_t2v_ctx'] = cd_emb_t2v.get(bank, np.nan)
                     row['strat_diff_t2v_ctx'] = cd_emb_t2v.get(bank, np.nan)
+                # Fluidity Ctx 轨 (dual-track parity 2026-06-08; 与 Full strat_fluidity 对称)
+                row['strat_fluidity_ctx'] = flu_c_ctx.get((bank, year), np.nan)
+                row['strat_fluidity_w_ctx'] = flu_w_ctx.get((bank, year), np.nan)
                 ctx_results.append(row)
 
         if ctx_results:

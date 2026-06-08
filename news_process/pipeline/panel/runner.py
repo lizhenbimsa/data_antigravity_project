@@ -1168,13 +1168,24 @@ def main():
         #   连续变量优于离散化
         # 【白话】算每家银行每年的平均政策对齐分和平均技术强度分
         if 'target_bank' in df_align.columns and 'year' in df_align.columns:
+            # dual-track parity (2026-06-08): MAIN/API spec 的 policy_cosine_sim_ctx
+            # 此前已在文章级产出 (stage 15 与 _full 对称), 却未聚合进面板 (只聚合 _full
+            # alias policy_cosine_sim) → 面板层 API 模型单边缺 ctx, 而 _t2v 稳健轨 full/ctx
+            # 双聚合 (见下方)。此处由 _t2v 轨写法指导补 ctx 孪生, 使 API 模型面板亦含双轨。
+            _agg_spec = {
+                'article_sim_mean': ('policy_cosine_sim', 'mean'),
+                'article_sim_std': ('policy_cosine_sim', 'std'),
+                'fintech_intensity_mean': ('fintech_intensity_score', 'mean'),
+            }
+            if 'policy_cosine_sim_ctx' in df_align.columns:
+                _agg_spec['article_sim_mean_ctx'] = ('policy_cosine_sim_ctx', 'mean')
+                _agg_spec['article_sim_std_ctx'] = ('policy_cosine_sim_ctx', 'std')
             _agg = df_align.groupby(['target_bank', 'year']).agg(
-                article_sim_mean=('policy_cosine_sim', 'mean'),
-                article_sim_std=('policy_cosine_sim', 'std'),
-                fintech_intensity_mean=('fintech_intensity_score', 'mean')
-            ).reset_index()
-            # std 对单篇文章的 bank-year 返回 NaN, 填 0
+                **_agg_spec).reset_index()
+            # std 对单篇文章的 bank-year 返回 NaN, 填 0 (两轨对称处理)
             _agg['article_sim_std'] = _agg['article_sim_std'].fillna(0.0)
+            if 'article_sim_std_ctx' in _agg.columns:
+                _agg['article_sim_std_ctx'] = _agg['article_sim_std_ctx'].fillna(0.0)
             panel = panel.merge(_agg, on=['target_bank', 'year'], how='left')
             logger.info(f"  连续聚合: article_sim_mean/std, "
                         f"fintech_intensity_mean 已合并")

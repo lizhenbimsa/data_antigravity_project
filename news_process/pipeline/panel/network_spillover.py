@@ -1160,10 +1160,15 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
     """
     text_col = '内容'
     title_col = '标题'
-    tone_col = 'llm_vote_tone_full'
     MAX_CHARS = 8000  # 截断阈值: ~4000 中文字 ≈ 5000 tokens
 
-    tone_key = f'emb_peer_tone_lag1{suffix}_full'
+    # dual-track parity (2026-06-08): W_emb 同业网基于文本相似度 (track-agnostic), 与被传播
+    # 的 tone 无关 → 用同一 W_emb 同时传播 full / ctx 两轨 tone, 零额外嵌入 ($0)。此前仅
+    # _full (emb_peer_tone_lag1{suffix}_full), 缺 _ctx 孪生; panel 已有 llm_vote_tone_ctx
+    # 可直接喂入。sim_key (bank_emb_sim_mean) 是文本相似度均值, track-agnostic, 不分轨。
+    _tone_tracks = [('_full', 'llm_vote_tone_full')]
+    if 'llm_vote_tone_ctx' in panel.columns:
+        _tone_tracks.append(('_ctx', 'llm_vote_tone_ctx'))
     sim_key = f'bank_emb_sim_mean{suffix}'
 
     years = sorted(panel['year'].unique())
@@ -1216,34 +1221,39 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         sim_df = pd.DataFrame(sim_matrix, index=bank_list, columns=bank_list)
         W_emb = row_stochastic_normalize(sim_df)
 
-        # ── 5. emb_peer_tone = W_emb(t-1) × tone(t-1) ──
+        # ── 5. emb_peer_tone = W_emb(t-1) × tone(t-1), 两轨共享同一 W_emb ──
         panel_lag = panel[panel['year'] == lag_year].set_index('target_bank')
-        tone_vec = pd.Series(np.nan, index=bank_list)
-        for bank in bank_list:
-            if bank in panel_lag.index:
-                val = panel_lag.loc[bank, tone_col]
-                if isinstance(val, pd.Series):
-                    val = val.iloc[0]
-                tone_vec[bank] = val
-
-        emb_peer_tone = W_emb.values @ tone_vec.fillna(0).values
         # fix(completeness-06): 与 peer_tone 同口径 — 嵌入网中孤立行(W_emb 行全 0)→ NaN
         # 而非结构性 0(当前嵌入矩阵稠密, 0 个孤立行, 故无当前数值影响, 仅防御性对齐)。
         _has_emb_peers = (W_emb.values.sum(axis=1) > 0)
-        emb_peer_tone = np.where(_has_emb_peers, emb_peer_tone, np.nan)
+        _track_tone_vecs = {}  # track_suffix -> emb_peer_tone ndarray (按 bank_list 对齐)
+        for _track, _tcol in _tone_tracks:
+            if _tcol not in panel_lag.columns:
+                continue
+            tone_vec = pd.Series(np.nan, index=bank_list)
+            for bank in bank_list:
+                if bank in panel_lag.index:
+                    val = panel_lag.loc[bank, _tcol]
+                    if isinstance(val, pd.Series):
+                        val = val.iloc[0]
+                    tone_vec[bank] = val
+            _ept = W_emb.values @ tone_vec.fillna(0).values
+            _track_tone_vecs[_track] = np.where(_has_emb_peers, _ept, np.nan)
 
         for idx, bank in enumerate(bank_list):
             # 平均相似度: 该银行与所有其他银行的 Embedding 余弦相似度均值
             sim_row = sim_matrix[idx].copy()
             sim_mean = float(np.mean(sim_row[sim_row > 0])) if (sim_row > 0).any() else np.nan
+            _entry = {sim_key: sim_mean}
+            for _track, _ept in _track_tone_vecs.items():
+                _entry[f'emb_peer_tone_lag1{suffix}{_track}'] = _ept[idx]
+            emb_results[(bank, year)] = _entry
 
-            emb_results[(bank, year)] = {
-                tone_key: emb_peer_tone[idx],
-                sim_key: sim_mean,
-            }
-
+        _log_tone = _track_tone_vecs.get('_full')
+        _mean_str = (f"{np.nanmean(_log_tone):.4f}"
+                     if _log_tone is not None and len(_log_tone) else "n/a")
         logger.info(f"  年份 {year}: {n_banks} 家银行, "
-                    f"Embedding 同行情感均值={np.nanmean(emb_peer_tone):.4f}")
+                    f"Embedding 同行情感均值(full)={_mean_str}")
 
     return emb_results
 
@@ -1311,12 +1321,16 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         logger.warning("  未生成任何 Embedding 同业网络变量")
 
     # ── 稳健轨 (ROBUSTNESS twin): text2vec → *_t2v* 列 (失败仅填 NaN, 不阻塞主轨) ──
-    t2v_tone_col = 'emb_peer_tone_lag1_t2v_full'
+    # dual-track parity (2026-06-08): _t2v 轨复用同一 pass → 自动产 _full + _ctx 孪生;
+    # 失败兜底亦需对两轨同时 NaN 填充, 保持降级对称。
+    t2v_tone_cols = ['emb_peer_tone_lag1_t2v_full']
+    if 'llm_vote_tone_ctx' in panel.columns:
+        t2v_tone_cols.append('emb_peer_tone_lag1_t2v_ctx')
     t2v_sim_col = 'bank_emb_sim_mean_t2v'
     if not _ROBUSTNESS_SPEC:
         logger.info("  无 embedding_robustness spec, 跳过 _t2v 稳健轨")
-        panel[t2v_tone_col] = np.nan
-        panel[t2v_sim_col] = np.nan
+        for _c in (*t2v_tone_cols, t2v_sim_col):
+            panel[_c] = np.nan
         return panel
 
     logger.info("-" * 60)
@@ -1335,7 +1349,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         ])
         panel = panel.merge(t2v_df, on=['target_bank', 'year'], how='left')
         # 缺失轨道列补齐 (graceful: 某些 (bank, year) 未生成时)
-        for col in (t2v_tone_col, t2v_sim_col):
+        for col in (*t2v_tone_cols, t2v_sim_col):
             if col not in panel.columns:
                 panel[col] = np.nan
         valid_t2v_sim = panel[t2v_sim_col].dropna()
@@ -1344,7 +1358,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
                         f"sim_mean={valid_t2v_sim.mean():.4f}")
     else:
         logger.warning("  _t2v 稳健轨未生成任何变量, 相关列填 NaN")
-        panel[t2v_tone_col] = np.nan
-        panel[t2v_sim_col] = np.nan
+        for _c in (*t2v_tone_cols, t2v_sim_col):
+            panel[_c] = np.nan
 
     return panel

@@ -169,8 +169,14 @@ def aggregate_to_bank_year(
     df['_topic_ctx'] = topics_ctx
 
     # 双轨 dummy-encode topic ID → bank-year mean
-    full_dummies = pd.get_dummies(df['_topic_full'], prefix='_tf')
-    ctx_dummies = pd.get_dummies(df['_topic_ctx'], prefix='_tc')
+    # dual-track parity (2026-06-08): 两轨 dummy 列集 reindex 到【共享】topic-id 空间
+    # range(-1, K) (-1=outlier, 0..K-1=topics)。修 presence-driven get_dummies 的孤儿列
+    # 缺陷 — 某 topic 若只在一轨出现, 另一轨缺该 frac_topic_k 列 → 破坏 _full/_ctx 结构对等。
+    # 两轨共享同一 fit 的 topic_model (ctx 走 transform 复用, K 一致), 故拓扑空间良定义;
+    # reindex 仅对缺席 topic 补全 0 列, 对实际出现的 topic 零数值影响。
+    _topic_cat = pd.CategoricalDtype(categories=list(range(-1, K)))
+    full_dummies = pd.get_dummies(df['_topic_full'].astype(_topic_cat), prefix='_tf')
+    ctx_dummies = pd.get_dummies(df['_topic_ctx'].astype(_topic_cat), prefix='_tc')
 
     full_panel = (
         pd.concat([df[['target_bank', 'year']], full_dummies], axis=1)

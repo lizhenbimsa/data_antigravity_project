@@ -311,7 +311,7 @@ def compute_num_intensity_word(content: str) -> float:
 
 
 def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
-                                         full_col: str = '内容',
+                                         full_col: str = 'content_full',
                                          ctx_col: str = 'content_ctx') -> pd.DataFrame:
     """真双轨 post-processor: 对 content_full + content_ctx 各调用一次 compute_num_intensity.
 
@@ -319,7 +319,7 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
 
     Args:
         df: 含 full_col + ctx_col 列的 DataFrame (典型来自 stage 22 batch 处理后).
-        full_col: 全文列名 (默认 '内容').
+        full_col: 全文列名 (默认 'content_full'; 含标题, 与 ctx 对称; 缺列回退裸 '内容').
         ctx_col: 上下文列名 (默认 'content_ctx').
 
     Returns:
@@ -330,6 +330,16 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
         return df
 
     df = df.copy()
+    # 防御: full_col 缺失 (旧 schema 未物化 content_full) 时回退裸 '内容'。
+    # dual-track 一致性修 (2026-06-08): 默认 full_col 已由历史地雷 '内容'(裸正文无标题)
+    # 改为 'content_full'(含标题), 与 ctx_col='content_ctx' 同为含标题轨 → 任何用默认调用
+    # 的 caller 不再让 num_intensity_full 成为唯一不含标题的 *_full 指标 (病根A 模式)。
+    # 与项目其余 tone_words 站点 'content_full 缺列回退裸内容' 范式一致。
+    if full_col not in df.columns:
+        _fallback = '内容' if '内容' in df.columns else None
+        if _fallback is not None:
+            logger.warning(f"num_intensity: '{full_col}' 缺失, full 轨回退用 '{_fallback}'")
+            full_col = _fallback
     # 防御: 若 ctx_col 缺失, 回退用 full_col
     if ctx_col not in df.columns:
         logger.warning(f"v3.5.1 A3: '{ctx_col}' 缺失, ctx 轨回退用 '{full_col}'")

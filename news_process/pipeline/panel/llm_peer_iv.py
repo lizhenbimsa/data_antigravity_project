@@ -676,17 +676,30 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                 if tone_vals.notna().any():
                     iv_entry[f'llm_peer_tone_iv_full_{c_str}'] = tone_vals.mean()
 
+                # dual-track parity (2026-06-08): ctx 轨 IV — peer_map (LLM 识别同侪)
+                # track-agnostic, 同一 peer_mask 复聚合 llm_vote_tone_ctx (规避反射 Manski 1993),
+                # 产 llm_peer_tone_iv_ctx_{c}, 与 _full 对称 ($0, 无新 LLM 调用)。
+                if 'llm_vote_tone_ctx' in panel.columns:
+                    _tone_vals_ctx = panel.loc[peer_mask, 'llm_vote_tone_ctx']
+                    if _tone_vals_ctx.notna().any():
+                        iv_entry[f'llm_peer_tone_iv_ctx_{c_str}'] = _tone_vals_ctx.mean()
+
                 if coverage_col in panel.columns:
                     cov_vals = panel.loc[peer_mask, coverage_col]
                     if cov_vals.notna().any():
                         iv_entry[f'llm_peer_coverage_iv_{c_str}'] = cov_vals.mean()
             # 主回归用无后缀变量: cutoff=0.80 (Hoberg & Phillips 2016 TNIC 标准)
             # 与 45_panel_export_main.py Stata 标签 'llm_peer_tone_iv_full' 等对齐
-            for primary_col, suffixed_col in [
+            _primary_maps = [
                 ('llm_peer_count', 'llm_peer_count_80'),
                 ('llm_peer_tone_iv_full', 'llm_peer_tone_iv_full_80'),
                 ('llm_peer_coverage_iv', 'llm_peer_coverage_iv_80'),
-            ]:
+            ]
+            # dual-track parity (2026-06-08): ctx 轨主回归无后缀变量 = cutoff=0.80
+            if 'llm_vote_tone_ctx' in panel.columns:
+                _primary_maps.append(
+                    ('llm_peer_tone_iv_ctx', 'llm_peer_tone_iv_ctx_80'))
+            for primary_col, suffixed_col in _primary_maps:
                 if suffixed_col in iv_entry:
                     iv_entry[primary_col] = iv_entry[suffixed_col]
             if iv_entry:
