@@ -7,7 +7,6 @@ test_34_tone_validation.py 是"复刻"文件, 本地副本仍内嵌旧逻辑、�
 覆盖:
   M-tv  tone_validation.label_to_numeric (失败/未定义 → NaN 非 0)
         + compute_label_agreement_rate (严格多数 > n/2)
-  M4    executive_ner.call_llm_for_ner (return_status: 调用失败 vs 确无高管)
   H3    stata_export.asciify_non_ascii_columns + validate_stata_compat 标识符门
   L1    encode.balance_panel (零新闻 bank-year 计数列填 0 非 NaN)
 """
@@ -59,29 +58,6 @@ class TestMtvFailureNotNeutral:
         # row0 正/负 平局 → 非多数; row1 正/正 → 多数; rate = 1/2
         assert out['majority_agreement_rate'] == pytest.approx(0.5)
         assert out['n_methods'] == 2
-
-
-# ── M4: 调用失败 vs 确无高管 区分 + 向后兼容 ────────────────────────────────
-class TestM4CallFailureStatus:
-    def test_empty_input_not_failure(self):
-        from news_process.pipeline.sentiment.executive_ner import call_llm_for_ner
-        execs, failed = call_llm_for_ner('', 'TestBank', return_status=True)
-        assert execs == []
-        assert failed is False   # 空输入 ≠ 调用失败
-
-    def test_no_api_key_is_failure(self, monkeypatch):
-        from news_process.pipeline.sentiment import executive_ner as en
-        monkeypatch.delenv('YUNWU_API_KEY', raising=False)
-        execs, failed = en.call_llm_for_ner(
-            'audit-fix regression probe content', 'TestBank', return_status=True
-        )
-        assert execs == []
-        assert failed is True    # 无 key → 空响应 → 调用失败
-
-    def test_default_backward_compat_returns_list(self):
-        from news_process.pipeline.sentiment.executive_ner import call_llm_for_ner
-        out = call_llm_for_ner('', 'TestBank')   # 不传 return_status
-        assert out == []         # 仍返回 list (既有调用方/测试不破)
 
 
 # ── H3: 中文变量名转写 + validate 标识符门 ─────────────────────────────────

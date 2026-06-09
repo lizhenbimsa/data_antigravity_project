@@ -53,19 +53,11 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
     "13_materialize_ctx.py": ["13_news_with_ctx.parquet"],
     "14_fintech_intensity.py": ["14_fintech_intensity.parquet"],
     "15_article_policy_alignment.py": ["15_article_alignment.parquet"],
-    # v3.7.0 PR #10 (D1): article-level BERTopic narrative topic
-    "17_article_topic.py": [
-        "17_article_topics.parquet",
-        "17_topic_info.parquet",
-        "17_topic_panel.parquet",
-    ],
     # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标
     "18_article_staleness.py": [
         "18_article_staleness.parquet",
         "18_staleness_panel.parquet",
     ],
-    # v3.7.0 PR #13 (D4): LLM CEO/Chairman NER
-    "19_executive_ner.py": ["19_executive_ner_panel.parquet"],
     # v3.7.0 PR #9 (D 组前置): article-level SBERT 持久化
     "30a_article_sbert.py": ["30a_article_embeddings.parquet"],
     # 模块三: sentiment
@@ -127,15 +119,9 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("13_materialize_ctx.py", "13_news_with_ctx.parquet"): "output_13_news_with_ctx",
     ("14_fintech_intensity.py", "14_fintech_intensity.parquet"): "output_14_fintech_intensity",
     ("15_article_policy_alignment.py", "15_article_alignment.parquet"): "output_15_article_alignment",
-    # v3.7.0 PR #10 (D1)
-    ("17_article_topic.py", "17_article_topics.parquet"): "output_17_article_topics",
-    ("17_article_topic.py", "17_topic_info.parquet"): "output_17_topic_info",
-    ("17_article_topic.py", "17_topic_panel.parquet"): "output_17_topic_panel",
     # v3.7.0 PR #11+#11.5 (D2)
     ("18_article_staleness.py", "18_article_staleness.parquet"): "output_18_article_staleness",
     ("18_article_staleness.py", "18_staleness_panel.parquet"): "output_18_staleness_panel",
-    # v3.7.0 PR #13 (D4)
-    ("19_executive_ner.py", "19_executive_ner_panel.parquet"): "output_19_executive_ner_panel",
     ("21_tone_llms.py", "21_tone_llms.parquet"): "output_21_tone_llms",
     ("21_tone_llms.py", "21_tone_llms_full.parquet"): "output_21_tone_llms_full",
     ("22_tone_words.py", "22_words_tone.parquet"): "output_22_words_tone",
@@ -258,7 +244,7 @@ def _validate_registry_invariant() -> None:
         )
 
     # ── 校验 4: 跨 stage 文件名唯一性 (recode round 2) ──
-    # 现状: 27 个 parquet + 5 个 stage46 导出 = 32 个文件名两两不同; 校验防御未来 copy-paste 笔误.
+    # 现状: 22 个 parquet + 5 个 stage46 导出 = 27 个文件名两两不同; 校验防御未来 copy-paste 笔误.
     all_files = [f for files in OUTPUT_REGISTRY.values() for f in files]
     if len(all_files) != len(set(all_files)):
         from collections import Counter as _Counter

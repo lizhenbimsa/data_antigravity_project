@@ -24,7 +24,7 @@
 > 八期重构（Phase 0 → 8）+ Phase 9 (v2.1.0) post-restructure cleanup + v3.2.0
 > 三轨化双轨核心 + post-v3.2.0 multi-paper extension (8d33c46, 4 衍生 paper) +
 > v3.4.0 第三维度 collab_mode + v3.5.0/v3.5.1 Stage 3 augmentation +
-> v3.6.0 Plan E 双轨闭合 + v3.7.0 D 组 (BERTopic / staleness / α / NER) +
+> v3.6.0 Plan E 双轨闭合 + v3.7.0 D 组 (staleness / α) +
 > v2.3 集成层 (LM 4 子词典 + FLS + 媒体 tier + EPU + DC3 LLM archive).
 > **pytest baseline (v3.7.0)**: **1629 fast / 284 integration / 1913 total**
 > (`pytest --collect-only` 实测; 历史: v2.1.0 release = 772 / v3.2.0 = 1144 /

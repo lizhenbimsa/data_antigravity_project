@@ -1030,7 +1030,7 @@ def main():
     # abnormal_tone = tone 对【银行基本面 + 年份 FE】回归后的残差 (剔除基本面可解释部分,
     # 留下"异常"语调). ⚠ 阻塞: 当前面板无银行财务基本面列 (资产/杠杆/ROA/NPL), 须外部 merge
     # CSMAR 年报财务 (非 LLM 付费, 但非现成). 优雅降级: 基本面就位则自动产出 abnormal_tone
-    # _{full,ctx} (dormant, 缺则不产列, 与 topic_entropy 同条件; 批 #15, 2026-06-05)。
+    # _{full,ctx} (dormant, 缺则不产列; 批 #15, 2026-06-05)。
     _FUNDAMENTAL_CANDS = ['ln_assets', 'ln_total_assets', 'leverage', 'roa', 'roe',
                           'npl', 'npl_ratio', 'car', 'capital_ratio']
     _funds = [c for c in _FUNDAMENTAL_CANDS if c in panel.columns]
@@ -1649,20 +1649,17 @@ def main():
         )
     logger.info(f"  ✅ 内联双模型稳健性特征 (保留自然缺失值 NaN): present={_present}")
 
-    # --- 8c. Opt-in 特征面板 merge (stage 17/18/19; orphan-panel fix 2026-05-30) ---
+    # --- 8c. Opt-in 特征面板 merge (stage 18; orphan-panel fix 2026-05-30) ---
     # 这些 opt-in stage 产出 bank-year FEATURE 面板, 其列
-    # stata_export.py core_patterns 已声明期待 (topic_hhi / *_staleness / n_ceo_mentions
-    # 等), 但此前无任何代码把它们并入 40_panel_yearly。条件左连接 (opt-in stage 未运行
-    # → 文件缺失 → graceful no-op)。带全列 (topic K 动态, frac_topic_* 列名运行时才定)。
+    # stata_export.py core_patterns 已声明期待 (*_staleness 等), 但此前无任何代码把它们
+    # 并入 40_panel_yearly。条件左连接 (opt-in stage 未运行 → 文件缺失 → graceful no-op)。
     # ⚠ stage 49 (risk-taking OUTCOMES) 刻意不在此: 它是 DV master 数据集, paper 10/11
     # 直接 `use` 它再并入 treatment; 反向并入 40_panel 会颠倒 DV/feature 方向 (范畴错误)。
     # 39f (cross_media_alpha) 同属此孤儿类 (bank-year; cross_outlet_tone_variance_* 是
     # paper 10 主处理且在 stata_export core_patterns), 但它是 validation-class
     # (run_pipeline_validation 中, 排在 stage 45 之后)。故正常单趟主链运行时其文件尚不
     # 存在 → graceful skip; 仅当 validation 已先产出 39f 后再 (重)建面板时才并入。
-    for _ofile, _otag in [('17_topic_panel.parquet', 'topic'),
-                          ('18_staleness_panel.parquet', 'staleness'),
-                          ('19_executive_ner_panel.parquet', 'NER'),
+    for _ofile, _otag in [('18_staleness_panel.parquet', 'staleness'),
                           ('39f_cross_media_alpha.parquet', 'cross_media')]:
         _opath = os.path.join(OUTPUT_DIR, _ofile)
         if not os.path.exists(_opath):

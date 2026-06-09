@@ -1,8 +1,8 @@
 """news_process.pipeline.text.article_sbert — stage 30a article-level SBERT 持久化.
 
 v3.7.0 PR #9 — D 组前置. 把 stage 30 内部计算后即丢的 article-level SBERT
-embeddings 持久化, 让 D1 (BERTopic) / D2 (staleness) / D3 (Krippendorff α)
-能直接复用, 避免 ×3 重新编码 (节省 ~12-15 h 计算).
+embeddings 持久化, 让 D2 (staleness) / D3 (Krippendorff α)
+能直接复用, 避免重复编码 (节省 ~12-15 h 计算).
 
 学术依据
 --------

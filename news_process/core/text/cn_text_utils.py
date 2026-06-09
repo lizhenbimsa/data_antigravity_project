@@ -1,6 +1,6 @@
 """news_process.core.text.cn_text_utils — 中文文本工具 (v3.5.2 前置 PR #1).
 
-为 A2 (Forward-Looking Statements) / D1 (BERTopic narrative topic) 提供
+为 A2 (Forward-Looking Statements) 等中文文本测度提供
 统一的中文分句、分词、停用词工具。本模块不依赖任何 v3.6.0 之外的新包,
 只用 ``jieba == 0.42.1`` (已 frozen at D0, 见 CLAUDE.md memory)。
 
@@ -14,15 +14,13 @@ v2.3 计划 PR #1 — 中文 sentence splitter + jieba tokenizer + 金融领域
 --------
 - A2 句子级 FLS 判定: Li (2010). Journal of Accounting Research,
   48(5), 1049-1102.
-- D1 BERTopic 中文 tokenizer: Bybee, Kelly, Manela & Xiu (2024).
-  Review of Financial Studies, 37(3), 887-936.
 
 API
 ---
 - ``cn_split_sentence(text) -> list[str]``: 中文分句; 与 1000 句人工分句
   一致率 ≥ 95% (G-S4 准入门控).
-- ``cn_tokenize(text) -> list[str]``: jieba 分词 + 停用词过滤; 供 BERTopic
-  CountVectorizer ``tokenizer=cn_tokenize`` 使用.
+- ``cn_tokenize(text) -> list[str]``: jieba 分词 + 停用词过滤; 供 sklearn
+  ``CountVectorizer`` ``tokenizer=cn_tokenize`` 使用 (通用中文分词器).
 - ``CN_FIN_STOPWORDS``: frozenset[str]; 通用中文 + 金融领域停用词合集.
 """
 
@@ -65,7 +63,7 @@ _GENERIC_STOPWORDS = frozenset([
 # 中文金融领域扩展停用词 (50+ 词)
 # 来源: 项目语料 jieba 词频 top-200 中的无信息量金融通用词.
 # 这些词在 P1-P5 / 衍生 4 paper 的 fintech 新闻中高频出现但不携带 narrative,
-# 若不过滤会污染 BERTopic c-TF-IDF topic keyword.
+# 若不过滤会污染下游文本测度 (CountVectorizer / 词频统计) 的关键词信号.
 _FINANCIAL_STOPWORDS = frozenset([
     # 机构类
     "公司", "银行", "集团", "企业", "机构", "组织", "单位", "团体",
@@ -147,7 +145,7 @@ def _is_valid_token(token: str) -> bool:
 
 
 def cn_tokenize(text: str) -> list[str]:
-    """jieba 分词 + 停用词过滤; 供 BERTopic ``CountVectorizer`` 复用.
+    """jieba 分词 + 停用词过滤; 供 sklearn ``CountVectorizer`` 复用.
 
     Args:
         text: 待分词的中文文本.
@@ -156,7 +154,7 @@ def cn_tokenize(text: str) -> list[str]:
         过滤后的 token 列表 (顺序保留, 不去重).
 
     Note:
-        BERTopic 集成示例::
+        CountVectorizer 集成示例::
 
             from sklearn.feature_extraction.text import CountVectorizer
             vec = CountVectorizer(

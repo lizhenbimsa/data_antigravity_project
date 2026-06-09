@@ -40,20 +40,18 @@
 | `fintech_intensity.py` | 14 | TF-IDF + SIF 词向量质心连续型强度评分 |
 | `policy_alignment.py` | 15 | 文章级政策语义对齐度（Distel et al. 2026） |
 
-### `pipeline.text` — 阶段 13 / 17 / 18 / 30a 文本预处理与表示（v3.5+/v3.7.0）
+### `pipeline.text` — 阶段 13 / 18 / 30a 文本预处理与表示（v3.5+/v3.7.0）
 
 | 模块 | 阶段 | 职责 |
 |---|---|---|
 | `ctx_materializer.py` | 13 | content_ctx 列前置物化（v3.6.0 Plan E A1，让下游 14/15 真双轨化） |
-| `article_topic.py` | 17 | BERTopic 主题建模（v3.7.0 D1） |
 | `article_staleness.py` | 18 | 文章 staleness 双指标（O(N²)→O(N·k) 重写，720× speedup） |
 | `article_sbert.py` | 30a | shibing624 Sentence-BERT 持久化 |
 
-### `pipeline.sentiment` — 阶段 19 / 21-24 情感分析
+### `pipeline.sentiment` — 阶段 21-24 情感分析
 
 | 模块 | 阶段 | 职责 |
 |---|---|---|
-| `executive_ner.py` | 19 | LLM CEO NER（v3.7.0 D4，yunwu sync + LLMCache + DC3 archive） |
 | `tone_llms.py` | 21 | 多 LLM 双轨 + 标题轨道，多数投票共识 |
 | `tone_words.py` | 22 | 词典法 + 语言学规则增强 |
 | `tone_berts.py` | 23 | BERT 系列预训练模型情感分析 |

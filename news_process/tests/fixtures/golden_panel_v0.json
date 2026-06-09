@@ -15876,15 +15876,11 @@
   },
   "incomplete": true,
   "counts": {
-    "expected": 27,
+    "expected": 23,
     "present": 22,
-    "missing": 5
+    "missing": 1
   },
   "missing_stages": [
-    "17_article_topics.parquet",
-    "17_topic_info.parquet",
-    "17_topic_panel.parquet",
-    "19_executive_ner_panel.parquet",
     "30a_article_embeddings.parquet"
   ]
 }

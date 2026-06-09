@@ -447,8 +447,6 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'lazy_overlap_ctx':              'YoY Text Change Word-Overlap (Ctx)',
                 'lazy_minedit_full':             'YoY Text Change Norm-Leven (Full)',
                 'lazy_minedit_ctx':              'YoY Text Change Norm-Leven (Ctx)',
-                'topic_entropy_full':            'Topic Shannon Entropy (Full)',
-                'topic_entropy_ctx':             'Topic Shannon Entropy (Ctx)',
                 'abnormal_tone_full':            'Abnormal Tone resid-vs-fundmtl (Full)',
                 'abnormal_tone_ctx':             'Abnormal Tone resid-vs-fundmtl (Ctx)',
                 # Fintech Exposure (Dim et al. 2024 概念迁移)

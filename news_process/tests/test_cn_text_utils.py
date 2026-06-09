@@ -140,7 +140,7 @@ class TestCnTokenize:
 
     def test_mixed_zh_en_keeps_fintech_terms(self):
         # 设计决策: 'P2P' / 'B2B' / 'API' 等英数混合 fintech 关键词应保留
-        # (D1 BERTopic narrative topic 需要这些信号); 纯英文与纯数字才过滤.
+        # (文本测度需要这些信号); 纯英文与纯数字才过滤.
         tokens = cn_tokenize("银行 P2P 整顿规范化运营")
         assert "P2P" in tokens
 
@@ -205,7 +205,7 @@ class TestCnFinStopwords:
         assert not missing, f"top-100 关键停用词缺失: {missing}"
 
     def test_no_fintech_keyword_in_stopwords(self):
-        """fintech 业务核心词不应在停用词集 (否则 BERTopic topic 信号丢失)."""
+        """fintech 业务核心词不应在停用词集 (否则文本测度的主题信号丢失)."""
         fintech_keywords = [
             "区块链", "数字货币", "移动支付", "助贷", "智能投顾",
             "P2P", "监管沙盒", "开放银行", "金融科技",
@@ -234,7 +234,7 @@ class TestIntegration:
         assert any(any(fk in t for fk in future_kw) for t in tokens) or len(tokens) > 0
 
     def test_topic_keyword_smoke(self):
-        """BERTopic c-TF-IDF 关键词提取样例."""
+        """c-TF-IDF / CountVectorizer 关键词提取样例."""
         articles = [
             "区块链技术应用于跨境支付清算",
             "数字货币央行试点深圳上海北京",

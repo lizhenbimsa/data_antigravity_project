@@ -4,7 +4,6 @@
 对称性不变式, 防回归。覆盖可隔离单测的修复:
   #5 article_sbert: 两轨标题各注入【恰好一次】(反向病根: ctx 曾标题×2)
   #6 strat_fluidity: _compute_fluidity track-agnostic → 可产 _ctx 孪生
-  #7 article_topic: get_dummies reindex 到共享 K → 每个 frac_topic_k_full 有 _ctx 孪生
   #8 num_intensity: 默认 full_col 改为 content_full (含标题), 防"唯一不含标题 *_full"地雷
 
 #1/#2/#3 (policy/geography/network/llm-peer 面板聚合) 依赖完整面板上下文, 由端到端
@@ -14,37 +13,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-
-
-# ── #7 article_topic: 共享 topic-id 空间 → frac_topic 列双轨对等 ──────────────────
-def test_topic_frac_dual_track_column_parity():
-    """某 topic 仅在一轨出现时, 两轨仍各产该 frac_topic_k 列 (缺席轨补全 0, 非缺列)。"""
-    from news_process.pipeline.text.article_topic import aggregate_to_bank_year
-
-    df = pd.DataFrame({
-        'target_bank': ['A', 'A', 'B', 'B'],
-        'year': [2017, 2017, 2017, 2017],
-    })
-    topics_full = [0, 2, 1, 0]   # topic 2 出现在 full 轨
-    topics_ctx = [0, 0, 1, 1]    # topic 2 在 ctx 轨【0 出现】
-
-    panel = aggregate_to_bank_year(df, topics_full, topics_ctx, K=3)
-
-    full_ids = {c[:-5] for c in panel.columns
-                if c.startswith('frac_topic_') and c.endswith('_full')}
-    ctx_ids = {c[:-4] for c in panel.columns
-               if c.startswith('frac_topic_') and c.endswith('_ctx')}
-    assert full_ids == ctx_ids, (
-        f"topic 列双轨不对等: full-only={full_ids - ctx_ids}, "
-        f"ctx-only={ctx_ids - full_ids}")
-    # topic 2 在两轨都必须有列 (修复前 ctx 轨会整列缺失 → 孤儿)
-    assert 'frac_topic_2_full' in panel.columns
-    assert 'frac_topic_2_ctx' in panel.columns
-    # ctx 轨该 topic 缺席 → 全 0 (而非 NaN/缺列)
-    assert (panel['frac_topic_2_ctx'].fillna(0) == 0).all()
-    # outlier(-1) 与正常 topic 命名约定保留
-    assert 'frac_topic_outlier_full' in panel.columns
-    assert 'frac_topic_outlier_ctx' in panel.columns
 
 
 # ── #6 strat_fluidity: _compute_fluidity track-agnostic ──────────────────────────

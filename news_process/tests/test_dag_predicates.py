@@ -20,9 +20,7 @@ from news_process.core.dag import (
     _validation_flag,
     always_enabled,
     article_staleness_enabled,
-    article_topic_enabled,
     berts_method_enabled,
-    executive_ner_enabled,
     llm_method_enabled,
     risk_taking_outcomes_enabled,
     temporal_mask_enabled,
@@ -99,8 +97,6 @@ def test_validation_preds_contain_expected_keys():
 @pytest.mark.parametrize("predicate,cfg_key", [
     (temporal_mask_enabled, 'temporal_mask_test'),
     (risk_taking_outcomes_enabled, 'risk_taking_outcomes'),
-    (executive_ner_enabled, 'executive_ner'),
-    (article_topic_enabled, 'article_topic'),
     (article_staleness_enabled, 'article_staleness'),
 ])
 def test_optin_predicate_default_false(predicate, cfg_key):
@@ -111,8 +107,6 @@ def test_optin_predicate_default_false(predicate, cfg_key):
 @pytest.mark.parametrize("predicate,cfg_key", [
     (temporal_mask_enabled, 'temporal_mask_test'),
     (risk_taking_outcomes_enabled, 'risk_taking_outcomes'),
-    (executive_ner_enabled, 'executive_ner'),
-    (article_topic_enabled, 'article_topic'),
     (article_staleness_enabled, 'article_staleness'),
 ])
 def test_optin_predicate_true_when_enabled(predicate, cfg_key):

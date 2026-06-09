@@ -71,7 +71,7 @@ class TestSurfaceStalenessRowOrder:
 
 
 class TestStaleAndNerYearSchemaContract:
-    """P0-③/④: stage 18/19 输入无 'year' 列, 须由 '日期' 派生后才能 groupby."""
+    """P0-③: stage 18 输入无 'year' 列, 须由 '日期' 派生后才能 groupby."""
 
     def _thirteen_schema(self):
         # 镜像 13_news_with_ctx schema: '日期' 为 str, 无 'year' 列.
@@ -107,25 +107,6 @@ class TestStaleAndNerYearSchemaContract:
         assert 'surface_staleness_full' in panel.columns
         # 工商银行: 2017 + 2018 两行; 建设银行: 2018 一行 → 3 bank-year
         assert len(panel) == 3
-
-    def test_article_topic_derives_year_before_groupby(self):
-        """metric-audit final (终验逮到): stage 17 article_topic 同型 latent KeyError.
-
-        article_topic.main 从 13_news_with_ctx (无 year) 读 art_df, 在
-        out_article['year']=art_df['year'] + 聚合 groupby(['target_bank','year']) 前
-        必须从 '日期' 派生 year (与 stage 18/19 同口径). 源契约钉死, 防同型回归.
-        """
-        import inspect
-
-        from news_process.pipeline.text import article_topic
-        src = inspect.getsource(article_topic)
-        derive_pos = src.find("art_df['year'] = pd.to_datetime")
-        use_pos = src.find("'year': art_df['year']")
-        assert derive_pos != -1, (
-            "article_topic 缺 art_df['year']=pd.to_datetime(日期).dt.year 派生 → "
-            "stage 17 enabled 时 KeyError('year')"
-        )
-        assert use_pos != -1 and derive_pos < use_pos, "year 派生须在第一次使用前"
 
 
 class TestDiscriminant39eCoWSafe:

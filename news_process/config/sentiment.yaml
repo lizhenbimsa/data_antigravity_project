@@ -284,27 +284,6 @@ sentiment_analysis:
 # [模块四：面板数据构建] Bank-Year 面板构建 - 阶段 41-45
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
-# [模块二 D-group] Stage 19 LLM CEO/Chairman zero-shot NER
-# ------------------------------------------------------------------------------
-# P-016 修复 (v3.7.1): stage 19 改 opt-in. 启用前确认 yunwu API key 配置 +
-# ~$6-12 LLM 预算 + 12-24h wall-clock. 详见 pipeline/sentiment/executive_ner.py
-# docstring L28-32 + AUDIT_REPORT_ULTIMATE.md::P-016.
-executive_ner:
-  enabled: true                # opt-in 显式启用 (2026-06-01 全功能打开): stage 19 LLM CEO/Chairman NER. ⚠ 需 YUNWU_API_KEY + ~$6-12 LLM 预算 + 12-24h wall-clock
-  model: gpt-5.4-nano          # 与 stage 21 同 OpenAI-compat (注: 当前未接线; NER 模型硬编码于 executive_ner.py, 改此键无效)
-  timeout_per_request: 60      # 单请求超时 (秒)
-  max_retries: 30              # P-022 配套: 重试上限
-
-# ------------------------------------------------------------------------------
-# [模块二 D-group] Stage 17 Article-level BERTopic narrative topic (D1)
-# ------------------------------------------------------------------------------
-# O2 finding (2026-05-25): 改 opt-in (HDBSCAN k-NN 小样本 k>n 限制). 启用前置依赖:
-# bertopic / umap-learn / hdbscan (2026-06-01 已 pip 安装到位). 学术依据: Bybee et al.
-# (2024) RFS 37(3); Hansen-McMahon-Prat (2018) QJE.
-article_topic:
-  enabled: true                # opt-in 显式启用 (2026-06-01 全功能打开)
-
-# ------------------------------------------------------------------------------
 # [模块二 D-group] Stage 18 Article-level staleness 双指标 (surface MinHash + semantic Faiss) (D2)
 # ------------------------------------------------------------------------------
 # O2 finding (2026-05-25): 改 opt-in (faiss-cpu + datasketch 依赖). 启用前置依赖已

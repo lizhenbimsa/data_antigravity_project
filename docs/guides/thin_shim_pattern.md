@@ -284,7 +284,7 @@ v2.1.0 的 26 thin shim 是分三批完成的：
 
 v2.1.0 之后 v3.x 又增加了 15 个 shim（总数 26 → **41**），新加项：
 * `13` (v3.6.0 ctx_materializer)
-* `16` (v3.6.1 epu_merge), `17` (v3.7.0 article_topic), `18` (article_staleness), `19` (executive_ner)
+* `16` (v3.6.1 epu_merge), `18` (article_staleness)
 * `27c` (v3.7.1 placebo_and_alt_anchor), `30a` (v3.7.0 article_sbert)
 * `39a` (inter_track_kappa), `39c` (construct_orthogonality), `39d` (lexical_discriminant_validity),
   `39e` (lm_discriminant_validity), `39f` (cross_media_alpha), `39g` (v3.7.3 track_discriminant_validity)

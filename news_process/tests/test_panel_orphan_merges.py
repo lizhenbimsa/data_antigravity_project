@@ -1,11 +1,11 @@
-"""Orphan-panel merge fix (2026-05-30) — stage 17/18/19 feature panels into 40_panel_yearly.
+"""Orphan-panel merge fix (2026-05-30) — stage 18 / 39f feature panels into 40_panel_yearly.
 
-Stages 17 (BERTopic), 18 (staleness), 19 (CEO NER) each
+Stage 18 (staleness) and 39f (cross_media_alpha) each
 produce a bank-year FEATURE panel whose columns stata_export.py core_patterns already
 declares, but nothing merged them into 40_panel_yearly. runner.py main() now has a
 conditional left-merge loop that
 brings their columns in when the (opt-in) stage has run, and is a graceful no-op when
-the file is absent (the default, since 17/18/19 are disabled-by-default).
+the file is absent (the default, since stage 18 is disabled-by-default).
 
 Stage 49 (risk_taking_outcomes) is deliberately EXCLUDED from the merge: it is the
 DV/outcome master that papers 10/11 `use` directly, so merging it into the feature
@@ -32,12 +32,10 @@ def _runner_src() -> str:
 
 
 def test_runner_has_feature_merge_block():
-    """The 8c merge loop must reference all four orphan feature panels (17/18/19 +
-    39f cross_media_alpha, paper-10 main treatment)."""
+    """The 8c merge loop must reference both remaining orphan feature panels
+    (18 staleness + 39f cross_media_alpha, paper-10 main treatment)."""
     src = _runner_src()
-    for fname in ("17_topic_panel.parquet",
-                  "18_staleness_panel.parquet",
-                  "19_executive_ner_panel.parquet",
+    for fname in ("18_staleness_panel.parquet",
                   "39f_cross_media_alpha.parquet"):
         assert fname in src, f"runner.py missing feature-merge for {fname}"
 
@@ -89,15 +87,15 @@ def _panel():
 def test_feature_merge_preserves_rowcount_and_adds_cols():
     panel = _panel()
     feat = pd.DataFrame({
-        'target_bank': ['工商', '农业'],  # 建设 has no topic row
+        'target_bank': ['工商', '农业'],  # 建设 has no staleness row
         'year': [2018, 2018],
-        'topic_hhi_full': [0.5, 0.7],
+        'surface_staleness_full': [0.5, 0.7],
     })
     out = _merge_feature(panel, feat)
     assert len(out) == 3                      # left-join preserves panel rows
-    assert 'topic_hhi_full' in out.columns
-    assert out.loc[out['target_bank'] == '工商', 'topic_hhi_full'].iloc[0] == 0.5
-    assert pd.isna(out.loc[out['target_bank'] == '建设', 'topic_hhi_full'].iloc[0])
+    assert 'surface_staleness_full' in out.columns
+    assert out.loc[out['target_bank'] == '工商', 'surface_staleness_full'].iloc[0] == 0.5
+    assert pd.isna(out.loc[out['target_bank'] == '建设', 'surface_staleness_full'].iloc[0])
 
 
 def test_feature_merge_raises_on_duplicate_after_dedup_is_safe():
@@ -106,7 +104,7 @@ def test_feature_merge_raises_on_duplicate_after_dedup_is_safe():
     feat = pd.DataFrame({
         'target_bank': ['工商', '工商'],   # duplicate key
         'year': [2018, 2018],
-        'topic_hhi_full': [0.5, 0.9],
+        'surface_staleness_full': [0.5, 0.9],
     })
     out = _merge_feature(panel, feat)          # must NOT raise / must NOT explode
     assert len(out) == 3
@@ -119,9 +117,9 @@ def test_feature_merge_does_not_overwrite_existing_panel_column():
         'target_bank': ['工商', '建设', '农业'],
         'year': [2018, 2018, 2018],
         'llm_vote_tone_full': [9.9, 9.9, 9.9],   # collides with panel
-        'topic_hhi_full': [0.5, 0.6, 0.7],
+        'surface_staleness_full': [0.5, 0.6, 0.7],
     })
     out = _merge_feature(panel, feat)
     # existing panel value preserved, not overwritten by the feature panel's 9.9
     assert out.loc[out['target_bank'] == '工商', 'llm_vote_tone_full'].iloc[0] == 0.1
-    assert 'topic_hhi_full' in out.columns
+    assert 'surface_staleness_full' in out.columns

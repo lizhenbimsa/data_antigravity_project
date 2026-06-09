@@ -86,43 +86,13 @@ def risk_taking_outcomes_enabled(cfg: dict[str, Any]) -> bool:
     return cfg.get('risk_taking_outcomes', {}).get('enabled', False)
 
 
-def executive_ner_enabled(cfg: dict[str, Any]) -> bool:
-    """P-016 修复 (v3.7.1): stage 19 (LLM CEO/Chairman zero-shot NER) 改为 opt-in.
-
-    设计原因: stage 19 调用 yunwu API 跑 ~40 万文章, 单次 run ~$6-12 + 12-24h
-    wall-clock (见 executive_ner.py:30 docstring). 旧版 always_enabled 默认导致
-    fresh checkout `python run_pipeline_function.py` 直接触发 $12 LLM 预算无任何
-    confirmation gate, 与 peer stage 49 (risk_taking_outcomes_enabled) 的 opt-in
-    pattern 不对称.
-
-    用户启用方式:
-        config/sentiment.yaml::executive_ner::enabled: true
-    """
-    return cfg.get('executive_ner', {}).get('enabled', False)
-
-
-def article_topic_enabled(cfg: dict[str, Any]) -> bool:
-    """O2 sample-run finding (2026-05-25): stage 17 (BERTopic D1) 改为 opt-in.
-
-    设计原因: BERTopic + HDBSCAN clustering 在小样本 (~1170 articles) 上触发
-    `ValueError: k must be less than or equal to the number of training points`
-    (HDBSCAN.generate_prediction_data 内 sklearn k-NN tree query). 这印证 memory
-    `v3_7_0_landmarks` 标 "BERTopic K" 为 D-0 实测项, sample-scale limit 未实测.
-    Mirror P-016 (stage 19) opt-in pattern, production gate 启动时 user 显式启用.
-
-    用户启用方式:
-        config/sentiment.yaml::article_topic::enabled: true
-    """
-    return cfg.get('article_topic', {}).get('enabled', False)
-
-
 def article_staleness_enabled(cfg: dict[str, Any]) -> bool:
     """O2 sample-run finding (2026-05-25): stage 18 (staleness D2) 改为 opt-in.
 
     设计原因: stage 18 (semantic Faiss + surface MinHash 双指标) 依赖 faiss-cpu
     + datasketch 两个 v3.7.0 启用前置包. requirements.txt 中这些行被注释,
-    用户须先 pip install 才能启用. Mirror P-016 (stage 19) / article_topic_enabled
-    opt-in pattern.
+    用户须先 pip install 才能启用. 沿用 stage 49 (risk_taking_outcomes_enabled)
+    的 opt-in pattern.
 
     用户启用方式:
         1. pip install faiss-cpu>=1.7.4 datasketch>=1.6.0
@@ -231,22 +201,6 @@ STAGES_MAIN: list[StageSpec] = [
         group="main", kind="filter",
         timeout=7200,  # 阶段内含 Embedding API 调用
     ),
-    # v3.7.0 PR #13 (D4): LLM CEO/Chairman zero-shot NER.
-    # 学术依据: Kaustia & Rantapuska (2016) JFM; Bushee-Gow-Taylor (2018) JAR.
-    # 启用前置: yunwu API + ~$12 预算 + DC3 LLM archive (v3.7.0 已就绪).
-    # P-016 修复 (v3.7.1): 改 opt-in 与 stage 49 / stage 21 LLM 类对齐, 防 fresh
-    # checkout 误触 $12 LLM 预算无 gate. 启用: config/sentiment.yaml::executive_ner::enabled: true
-    # P-016 配套 (v3.7.1): kind 由 "sentiment" 改 "feature" — stage 19 是 NER 任务
-    # (非 tone classification), 与 METHOD_TO_PREDICATE = {llm/words/berts} sentiment
-    # 三方法的 invariant 不冲突.
-    StageSpec(
-        name="阶段19: LLM CEO/Chairman zero-shot NER (v3.7.0 D4)",
-        script="19_executive_ner.py",
-        group="main", kind="feature",
-        timeout=21600,  # 与 stage 21 同 6 h 上限
-        enabled_when=executive_ner_enabled,
-    ),
-
     # ── 模块三：新闻情感模块 (由 sentiment_analysis.enabled_methods 配置条件性启停) ──
     StageSpec(
         name="阶段21: 统一 LLM 语义精筛与情感分析",
@@ -309,16 +263,6 @@ STAGES_MAIN: list[StageSpec] = [
         script="30a_article_sbert.py",
         group="main", kind="robustness",
         timeout=21600,  # 4-6 h on GPU, 12-24 h on CPU for 400k articles
-    ),
-    # v3.7.0 PR #10 (D1): article-level BERTopic narrative topic labeling.
-    # 学术依据: Bybee et al. (2024) RFS 37(3); Hansen-McMahon-Prat (2018) QJE.
-    # 启用前置: 5 个 v3.7.0 包 (bertopic/umap-learn/hdbscan), 见 requirements.txt 注释行.
-    StageSpec(
-        name="阶段17: Article-level BERTopic narrative topic (D1)",
-        script="17_article_topic.py",
-        group="main", kind="robustness",
-        timeout=21600,  # BERTopic 在 400k 文章上 4-6 h
-        enabled_when=article_topic_enabled,  # O2 finding 2026-05-25: opt-in (HDBSCAN k-NN sample-scale limit)
     ),
     # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标.
     # 学术依据: Tetlock (2011) JF 66(5):1481; Gentzkow-Shapiro-Taddy (2019) JEL.

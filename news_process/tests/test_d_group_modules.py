@@ -1,15 +1,11 @@
-"""Tests for v3.7.0 D 组: PR #11 (staleness) + #12 (α) + #13 (LLM NER).
+"""Tests for v3.7.0 D 组: PR #11 (staleness) + #12 (α).
 
 覆盖:
 - pipeline.text.article_staleness.compute_surface_staleness (P0.3 算法验证)
 - pipeline.audit.cross_media_alpha.compute_outlet_tone_aggregates (P1.6 修复)
-- pipeline.sentiment.executive_ner.extract_ner_features
-- pipeline.sentiment.executive_ner.call_llm_for_ner (P0.4 修复 + graceful fallback)
 """
 from __future__ import annotations
 
-import math
-import os
 import time
 
 import numpy as np
@@ -172,98 +168,3 @@ class TestCrossMediaAlphaAggregates:
         assert len(m) == 1
         assert m['n_outlets'].iloc[0] == 4
         assert m['variance'].iloc[0] > 0  # 4 outlets tone 分散, 必有方差
-
-
-# ── PR #13 D4 LLM CEO NER (P0.4 修复后) ─────────────────────────────
-class TestExecutiveNER:
-    def test_extract_features_empty(self):
-        from news_process.pipeline.sentiment.executive_ner import (
-            extract_ner_features,
-        )
-        f = extract_ner_features([])
-        assert f['n_ceo_mentions'] == 0
-        assert f['n_unique_execs'] == 0
-        assert math.isnan(f['exec_hhi'])
-
-    def test_extract_features_single_exec(self):
-        from news_process.pipeline.sentiment.executive_ner import (
-            extract_ner_features,
-        )
-        execs = [{'name': '张三', 'title': '行长', 'mention_count': 5}]
-        f = extract_ner_features(execs)
-        assert f['n_ceo_mentions'] == 5
-        assert f['n_unique_execs'] == 1
-        assert f['exec_hhi'] == 1.0  # 单高管 → HHI = 1
-
-    def test_extract_features_balanced_mentions(self):
-        from news_process.pipeline.sentiment.executive_ner import (
-            extract_ner_features,
-        )
-        execs = [
-            {'name': '张三', 'title': '行长', 'mention_count': 2},
-            {'name': '李四', 'title': '副行长', 'mention_count': 2},
-        ]
-        f = extract_ner_features(execs)
-        assert f['n_ceo_mentions'] == 4
-        assert f['n_unique_execs'] == 2
-        # HHI = 0.5^2 + 0.5^2 = 0.5
-        assert abs(f['exec_hhi'] - 0.5) < 0.001
-
-    def test_extract_features_concentrated_mentions(self):
-        from news_process.pipeline.sentiment.executive_ner import (
-            extract_ner_features,
-        )
-        execs = [
-            {'name': '张三', 'title': '行长', 'mention_count': 9},
-            {'name': '李四', 'title': '副行长', 'mention_count': 1},
-        ]
-        f = extract_ner_features(execs)
-        # HHI = 0.9^2 + 0.1^2 = 0.82
-        assert abs(f['exec_hhi'] - 0.82) < 0.001
-
-    def test_extract_features_default_count(self):
-        # 缺 'mention_count' 字段, 默认 1
-        from news_process.pipeline.sentiment.executive_ner import (
-            extract_ner_features,
-        )
-        execs = [{'name': '张三', 'title': '行长'}]
-        f = extract_ner_features(execs)
-        assert f['n_ceo_mentions'] == 1
-
-    def test_call_llm_no_api_key_graceful(self):
-        """P0.4 关键: 无 YUNWU_API_KEY 时返回空列表, 不 crash."""
-        from news_process.pipeline.sentiment.executive_ner import call_llm_for_ner
-        if 'YUNWU_API_KEY' in os.environ:
-            del os.environ['YUNWU_API_KEY']
-        out = call_llm_for_ner('test content', 'TestBank')
-        assert out == []
-
-    def test_call_llm_empty_content(self):
-        from news_process.pipeline.sentiment.executive_ner import call_llm_for_ner
-        out = call_llm_for_ner('', 'TestBank')
-        assert out == []
-
-    def test_prompt_template_has_bank_name_and_content_slots(self):
-        from news_process.pipeline.sentiment.executive_ner import (
-            PROMPT_TEMPLATE,
-        )
-        assert '{bank_name}' in PROMPT_TEMPLATE
-        assert '{content}' in PROMPT_TEMPLATE
-
-    def test_yunwu_sync_no_key_returns_empty(self):
-        """P0.4 _yunwu_chat_sync 无 key 时返回 ('', meta) (graceful).
-
-        v3.7.1 (P-022 修复) API 变更: 现返回 tuple[str, dict] (content + meta
-        for archive_record). 无 key 时 content='' 表示失败.
-        """
-        if 'YUNWU_API_KEY' in os.environ:
-            del os.environ['YUNWU_API_KEY']
-        from news_process.pipeline.sentiment.executive_ner import (
-            _yunwu_chat_sync,
-        )
-        out = _yunwu_chat_sync(prompt='hi', model='gpt-5.4-nano', timeout=5)
-        # 新 API: (content, meta_dict)
-        assert isinstance(out, tuple) and len(out) == 2
-        content, meta = out
-        assert content == ''
-        assert isinstance(meta, dict)

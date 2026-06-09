@@ -96,9 +96,6 @@
   "v3_6_1_pr_8_5_requirements": {
     "added_packages": ["requests>=2.31.0,<3.0.0"],
     "commented_v3_7_0_packages": [
-      "bertopic>=0.16.0,<1.0.0",
-      "umap-learn>=0.5.0,<1.0.0",
-      "hdbscan>=0.8.30,<1.0.0",
       "faiss-cpu>=1.7.4,<2.0.0",
       "krippendorff>=0.5.0,<1.0.0"
     ],
@@ -113,15 +110,6 @@
     "storage_estimate_400k": "~2.5 GB",
     "anchor_paper": "Bybee, Kelly, Manela & Xiu (2024) RFS 37(3):887-936",
     "user_action_required": "Layer 4.2 — 400k articles × 768 dim × 2 轨编码 (GPU 2 h / CPU 4-6 h)"
-  },
-  "v3_7_0_pr_10_bertopic": {
-    "shim": "17_article_topic.py",
-    "umap_params": {"n_neighbors": 15, "n_components": 5, "min_dist": 0.0, "metric": "cosine", "random_state": 42},
-    "hdbscan_params": {"min_cluster_size": 5000, "metric": "euclidean", "cluster_selection_method": "eom"},
-    "vectorizer_tokenizer": "cn_tokenize (jieba + CN_FIN_STOPWORDS)",
-    "embedding_model_none": "绕过 BERTopic 默认 all-MiniLM 下载 (HF 网络限制)",
-    "g_d1_2_gate": "K ≥ 10 + c-TF-IDF top-10 词 ≥ 80% 中文金融专家可解读",
-    "user_action_required": "Layer 4.3 — UMAP+HDBSCAN 4-6 h MP 64-core + 专家解读"
   },
   "v3_7_0_pr_11_staleness": {
     "shim": "18_article_staleness.py",
@@ -144,25 +132,9 @@
     "anchor_papers": ["Krippendorff (2004) SAGE", "Tetlock (2007) JF 62(3):1139-1168"],
     "user_action_required": "Layer 6.1 — 与第 10 篇作者协调 spec 后启用"
   },
-  "v3_7_0_pr_13_ceo_ner": {
-    "shim": "19_executive_ner.py",
-    "llm_model": "gpt-5.4-nano (yunwu compatible)",
-    "api_endpoint_env": "YUNWU_BASE_URL (默认 https://yunwu.ai/v1)",
-    "api_key_env": "YUNWU_API_KEY",
-    "cost_estimate_400k": "~$12 USD (100% miss; LLMCache 命中后降至 $4-6)",
-    "g_d4_1_gate": "200 篇 gold standard precision ≥ 0.85, recall ≥ 0.75",
-    "dc3_archive_integration": "pipeline.llm_archive.archive.archive_record",
-    "anchor_papers": [
-      "Kaustia & Rantapuska (2016) JFM 29:1-26",
-      "Bushee, Gow & Taylor (2018) JAR 56(1):85-121",
-      "Malmendier & Tate (2009) QJE 124(4):1593-1638"
-    ],
-    "user_action_required": "Layer 4.5 — yunwu API key + $12 预算 + 200 篇人工标注 gold standard"
-  },
   "v2_3_pr_14_integration": {
     "schemas_output_registry_added_stages": [
-      "17_article_topic.py", "18_article_staleness.py",
-      "19_executive_ner.py", "30a_article_sbert.py"
+      "18_article_staleness.py", "30a_article_sbert.py"
     ],
     "schemas_expected_no_output_added_stages": [
       "39e_lm_discriminant_validity.py", "39f_cross_media_alpha.py"
@@ -189,9 +161,7 @@
     ],
     "gates_total": 17,
     "d0_remaining_uncertainty_items": [
-      "Stata ssc install ritest 跑通",
-      "BERTopic K 在中文金融 corpus 实际值",
-      "LLM CEO NER 200 篇 gold P/R"
+      "Stata ssc install ritest 跑通"
     ]
   }
 }

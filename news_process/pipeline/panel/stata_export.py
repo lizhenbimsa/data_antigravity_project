@@ -335,22 +335,14 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         # C1 媒体 tier 加权 (sensitivity, 不替换原 media_authority_weight)
         'media_authority_weight_tier', 'media_tier_label',
         # ─────────────────────────────────────────────────────────────
-        # v3.7.0 PR #14 集成 — D 组 (BERTopic / staleness / α / CEO NER)
-        # 详细列名见 sidecar JSON ``17_topic_metadata.json``;
-        # frac_topic_k_{full,ctx} × K 在 K 确定后由集成 PR 补全.
+        # v3.7.0 PR #14 集成 — D 组 (staleness / α)
         # ─────────────────────────────────────────────────────────────
-        # D1 BERTopic 主题聚焦度
-        'topic_hhi_full', 'topic_hhi_ctx',
         # D2 staleness 双指标
         'surface_staleness_full', 'surface_staleness_ctx',
         'semantic_staleness_full', 'semantic_staleness_ctx',
         # D3 Krippendorff α (与第 10 篇 bank_media_disagreement 对齐)
         'cross_outlet_tone_variance_full', 'cross_outlet_tone_variance_ctx',
         'cross_media_alpha_full', 'cross_media_alpha_ctx',
-        # D4 LLM CEO NER
-        'n_ceo_mentions_full', 'n_ceo_mentions_ctx',
-        'n_unique_execs_full', 'n_unique_execs_ctx',
-        'exec_hhi_full', 'exec_hhi_ctx',
     ]
 
     core = [c for c in core_patterns if c in df.columns]

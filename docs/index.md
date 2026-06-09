@@ -10,8 +10,8 @@
 **v3.7.0 + v2.3 implementation (2026-05-18; 最近 git tag: v3.6.0)**：
 v2.1.0 八期重构 + Phase 9 cleanup 后，主线持续演进至 v3.7.x 多 epoch:
 v3.2.0 三轨化双轨 + v3.4.0 第三维度 collab_mode + v3.5.0/v3.5.1 Stage 3
-augmentation + v3.6.0 Plan E 双轨闭合 + v3.7.0 D 组 (BERTopic / staleness
-/ α / NER) + v2.3 集成层. 完整演进史见 [CHANGELOG](changelog.md) 与
+augmentation + v3.6.0 Plan E 双轨闭合 + v3.7.0 D 组 (staleness
+/ α) + v2.3 集成层. 完整演进史见 [CHANGELOG](changelog.md) 与
 [news_process/CLAUDE.md](https://github.com/example/news_process/blob/main/news_process/CLAUDE.md) 顶部 "Current version" 段。
 ```
 
