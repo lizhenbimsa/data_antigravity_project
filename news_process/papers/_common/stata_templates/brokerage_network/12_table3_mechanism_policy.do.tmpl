@@ -14,45 +14,64 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-* B1-B3: DCEP × (betweenness / constraint / brokerage)
-gen dcep_x_btw    = {{TREATMENT_DCEP}} * L_btw
-gen dcep_x_cons   = {{TREATMENT_DCEP}} * L_cons
-gen dcep_x_broker = {{TREATMENT_DCEP}} * L_broker
+* ── 审计修复 (degradation F21/F22): DiD 处理变量零方差守卫 ──
+* 在 T=2 试跑面板上, 政策处理年 (DCEP 2019/Sandbox 等) 晚于面板末年 → 处理 dummy (dcep_post/
+* sandbox_post) 恒为 0 (sd==0), DiD 结构性不可识别。恒零 treatment 进 reghdfe 会得共线/无意义系数
+* 却照样写入发表级 .tex (table3_mechanism_policy.tex), 此前仅 Python 端 logger.warning
+* (referee 不可见)。此处方差守卫: 任一处理变量 sd==0 即跳过整张机制表、不写 .tex,
+* 并显式提示。全量 T≥3 (生产 T=18) 面板下处理年落入窗口, _post 有变异, 正常生成。
+quietly summarize {{TREATMENT_DCEP}}
+local _dcep_sd = r(sd)
+quietly summarize {{TREATMENT_SANDBOX}}
+local _sb_sd = r(sd)
 
-reghdfe {{MAIN_DV}}_w dcep_x_btw {{TREATMENT_DCEP}} L_btw $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-eststo B1_btw
+if (`_dcep_sd' > 0) & (`_dcep_sd' < .) & (`_sb_sd' > 0) & (`_sb_sd' < .) {
+    * B1-B3: DCEP × (betweenness / constraint / brokerage)
+    gen dcep_x_btw    = {{TREATMENT_DCEP}} * L_btw
+    gen dcep_x_cons   = {{TREATMENT_DCEP}} * L_cons
+    gen dcep_x_broker = {{TREATMENT_DCEP}} * L_broker
 
-reghdfe {{MAIN_DV}}_w dcep_x_cons {{TREATMENT_DCEP}} L_cons $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-eststo B2_cons
+    reghdfe {{MAIN_DV}}_w dcep_x_btw {{TREATMENT_DCEP}} L_btw $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo B1_btw
 
-reghdfe {{MAIN_DV}}_w dcep_x_broker {{TREATMENT_DCEP}} L_broker $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-eststo B3_broker
+    reghdfe {{MAIN_DV}}_w dcep_x_cons {{TREATMENT_DCEP}} L_cons $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo B2_cons
 
-* C1-C3: Sandbox × (same three)
-gen sb_x_btw    = {{TREATMENT_SANDBOX}} * L_btw
-gen sb_x_cons   = {{TREATMENT_SANDBOX}} * L_cons
-gen sb_x_broker = {{TREATMENT_SANDBOX}} * L_broker
+    reghdfe {{MAIN_DV}}_w dcep_x_broker {{TREATMENT_DCEP}} L_broker $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo B3_broker
 
-reghdfe {{MAIN_DV}}_w sb_x_btw {{TREATMENT_SANDBOX}} L_btw $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-eststo C1_btw
+    * C1-C3: Sandbox × (same three)
+    gen sb_x_btw    = {{TREATMENT_SANDBOX}} * L_btw
+    gen sb_x_cons   = {{TREATMENT_SANDBOX}} * L_cons
+    gen sb_x_broker = {{TREATMENT_SANDBOX}} * L_broker
 
-reghdfe {{MAIN_DV}}_w sb_x_cons {{TREATMENT_SANDBOX}} L_cons $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-eststo C2_cons
+    reghdfe {{MAIN_DV}}_w sb_x_btw {{TREATMENT_SANDBOX}} L_btw $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo C1_btw
 
-reghdfe {{MAIN_DV}}_w sb_x_broker {{TREATMENT_SANDBOX}} L_broker $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-eststo C3_broker
+    reghdfe {{MAIN_DV}}_w sb_x_cons {{TREATMENT_SANDBOX}} L_cons $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo C2_cons
 
-esttab B1_btw B2_cons B3_broker C1_btw C2_cons C3_broker ///
-    using "$tables_dir/table3_mechanism_policy.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Centrality × Policy --- brokerage_network") ///
-    mtitles("DCEP×Btw" "DCEP×Cons" "DCEP×Brkr" "SB×Btw" "SB×Cons" "SB×Brkr") ///
-    addnotes("Bank/year FE; SE clustered at province.")
+    reghdfe {{MAIN_DV}}_w sb_x_broker {{TREATMENT_SANDBOX}} L_broker $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo C3_broker
 
-display "[OK] Table 3 → $tables_dir/table3_mechanism_policy.tex"
+    esttab B1_btw B2_cons B3_broker C1_btw C2_cons C3_broker ///
+        using "$tables_dir/table3_mechanism_policy.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("Centrality × Policy --- brokerage_network") ///
+        mtitles("DCEP×Btw" "DCEP×Cons" "DCEP×Brkr" "SB×Btw" "SB×Cons" "SB×Brkr") ///
+        addnotes("Bank/year FE; SE clustered at province.")
+
+    display "[OK] Table 3 → $tables_dir/table3_mechanism_policy.tex"
+}
+else {
+    display as error "[SKIP degradation F21/F22] 政策处理变量零方差 " ///
+        "(DCEP sd=`_dcep_sd', Sandbox sd=`_sb_sd') — DiD 不可识别 (处理年晚于面板末年, " ///
+        "典型 T=2 试跑面板). 跳过 Table 3 机制回归, 不写入发表 .tex。" ///
+        "全量 T≥3 面板下处理年落入窗口、方差恢复后正常生成。"
+}

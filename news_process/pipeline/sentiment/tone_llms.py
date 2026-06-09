@@ -1432,8 +1432,14 @@ def main():
         logger.info("统一 LLM 处理已在 config.yaml 中禁用。将透传输入数据并填入默认值。")
 
         # 添加空的 LLM 双轨列，确保下游阶段不因缺列报错
-        df['llm_verified_full'] = True
-        df['llm_verified_ctx'] = True
+        # 审计修复 (degradation F1): 禁用分支原置 llm_verified=True, 使全篇文章
+        # "伪装通过 LLM 验证" (R6) — encode.py:131 的 invalid_mask 用 ~llm_verified
+        # 判失效, True 会让占位"中性"被当作合法已验证观测进面板 (P1 main DV
+        # llm_vote_tone_ctx 退化为全 0 列且不可察). 改 False: 与 V6 方法学
+        # "(llm_verified=False) sentiment treated as missing" 一致, 禁用 LLM 时
+        # 占位被 invalid_mask 正确剔除 (vote_score=NA), 而非伪装验证通过。
+        df['llm_verified_full'] = False
+        df['llm_verified_ctx'] = False
         df['llm_sentiment_full'] = '中性'
         df['llm_sentiment_ctx'] = '中性'
         df['llm_agreement_rate_full'] = 0.0
@@ -1468,13 +1474,18 @@ def main():
         # plan v14 §3.1: dual gate 三互斥指示列 (Action #6)
         df['llm_verified_dual_full_only'] = False
         df['llm_verified_dual_ctx_only'] = False
-        df['llm_verified_dual_both'] = True
+        # 审计修复 (degradation F1, 复核补全): dual_both 亦改 False — 禁用 LLM 时
+        # "两轨均未验证", 不应标记 dual_both 通过 (否则被 stage 39a 当有效 subset)。
+        df['llm_verified_dual_both'] = False
         # remove-title-track: 标题轨虚拟列已取消
         # 逐模型虚拟列补全（双轨）
         for m in MODELS:
             short = m['short_name']
             for track in ['_full', '_ctx']:
-                df[f'{short}_verified{track}'] = True
+                # 审计修复 (degradation F1, 复核补全): 逐模型 verified 亦改 False —
+                # encode.py:160-167 用逐模型 {short}_verified 掩码逐模型 score, True
+                # 会让占位中性退化为有效 0 而非 NA (与聚合轨 verified=False 不一致)。
+                df[f'{short}_verified{track}'] = False
                 df[f'{short}_sentiment{track}'] = '中性'
                 df[f'{short}_verification_confidence{track}'] = 0.0
                 df[f'{short}_sentiment_confidence{track}'] = 0.0

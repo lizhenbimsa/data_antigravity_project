@@ -705,18 +705,29 @@ def main():
 
     for track in TRACKS:
         c = results[track]
+        # 审计修复 (degradation F24): sentiment_consistency is None 表示双方均判
+        # verified=True 的条件子集为空 (n_both_true==0) — 即"无法测量"情感一致性。
+        # 旧逻辑 ``is None or >= threshold`` 把"未测量"短路成"通过该子准则", 会在
+        # 空子集时伪装情感掩码稳健性成立 (R6 伪装通过). 现把 None 视为"不可判定",
+        # 不计通过 (保守且诚实: 无法宣称未曾测量的稳健性); n_both_true 已在结果
+        # 字典中暴露, sentiment_inconclusive 显式标记供下游/读者区分。
+        sentiment_inconclusive = c['sentiment_consistency'] is None
+        sentiment_ok = (not sentiment_inconclusive
+                        and c['sentiment_consistency'] >= thresholds['sentiment'])
         passed = (
             c['verification_consistency'] >= thresholds['verification']
-            and (c['sentiment_consistency'] is None
-                 or c['sentiment_consistency'] >= thresholds['sentiment'])
+            and sentiment_ok
             and c['cohens_kappa']['kappa'] >= thresholds['kappa']
         )
         c['passed'] = passed
+        c['sentiment_inconclusive'] = sentiment_inconclusive
         c['thresholds'] = thresholds
 
         sen_display = (f"{c['sentiment_consistency']:.1%}"
-                       if c['sentiment_consistency'] is not None else 'N/A')
-        logger.info(f"[{track.upper()}] {'✅ 通过' if passed else '❌ 未通过'}: "
+                       if c['sentiment_consistency'] is not None
+                       else 'N/A(子集为空,不可判定)')
+        logger.info(f"[{track.upper()}] {'✅ 通过' if passed else '❌ 未通过'}"
+                    f"{' [情感不可判定]' if sentiment_inconclusive else ''}: "
                     f"验证一致率={c['verification_consistency']:.1%}, "
                     f"情感一致率={sen_display}, "
                     f"κ={c['cohens_kappa']['kappa']:.4f}")

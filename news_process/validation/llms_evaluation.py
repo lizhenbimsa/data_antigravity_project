@@ -1626,16 +1626,26 @@ def main():
     logger.info(f"  标准化验证报告: {std_report_path}")
 
     # 论文引用建议
-    logger.info("")
-    logger.info("  ── 论文方法论章节建议表述 ──")
-    logger.info(f"  \"We randomly sampled {std_report.get('验证样本总量 (N)', 'N')} articles")
-    logger.info(f"   for manual validation. Two independent coders evaluated each article")
-    logger.info(f"   following a standardized protocol (Carlson & Burbano, 2026, SMJ).")
-    if icr_ver:
-        logger.info(f"   Inter-coder reliability for the verification task was")
-        logger.info(f"   κ = {std_report.get('验证任务_Cohens_κ', 'N/A')} "
-                    f"{std_report.get('验证任务_κ_95%CI', '')}, "
-                    f"α = {std_report.get('验证任务_Krippendorffs_α', 'N/A')}.\"")
+    # 审计修复 (degradation F3): demo_mode 下 std_report 的 κ/α 来自 _generate_demo_data
+    # 的随机合成标注 (非真实人工标注). 旧实现无条件打印"可直接粘贴进论文方法论章节"的
+    # κ 英文表述, 即便在 demo_mode 也照打 — 合成数字可能被误抄进发表稿 (R1 捏造风险).
+    # 现 gate 在 not demo_mode 下; demo_mode 显式拒绝并告警。
+    if demo_mode:
+        logger.warning(
+            "  [demo_mode] 当前为模拟标注数据 — 已抑制'论文建议表述'输出; "
+            "κ/F1/混淆矩阵均为合成噪声, 严禁用于论文报告。请在人工编码完成后重跑。"
+        )
+    else:
+        logger.info("")
+        logger.info("  ── 论文方法论章节建议表述 ──")
+        logger.info(f"  \"We randomly sampled {std_report.get('验证样本总量 (N)', 'N')} articles")
+        logger.info(f"   for manual validation. Two independent coders evaluated each article")
+        logger.info(f"   following a standardized protocol (Carlson & Burbano, 2026, SMJ).")
+        if icr_ver:
+            logger.info(f"   Inter-coder reliability for the verification task was")
+            logger.info(f"   κ = {std_report.get('验证任务_Cohens_κ', 'N/A')} "
+                        f"{std_report.get('验证任务_κ_95%CI', '')}, "
+                        f"α = {std_report.get('验证任务_Krippendorffs_α', 'N/A')}.\"")
 
     results['standardized_validation_report'] = std_report
 

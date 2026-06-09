@@ -56,6 +56,7 @@ from __future__ import annotations
 import concurrent.futures
 import gc
 import glob
+import json
 import os
 import sys
 import time
@@ -170,6 +171,11 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
 
     writer = None
     total_rows = 0
+    # 审计修复 (degradation F7): 逐源行数贡献 + 失败清单, 供处理后 found-vs-contributed
+    # 对账 (旧实现单源读取/处理崩溃 → load.py return None → runner 静默 continue,
+    # 整源记录从面板消失且无任何对账, R3 样本透明)。
+    source_rows: dict[str, int] = {}
+    failed_files: list[tuple[str, str]] = []
 
     # 工作进程数: 取 CPU 核心数和配置值的较小者, 防止内存溢出
     cpu_count = os.cpu_count() or 4
@@ -189,6 +195,8 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
                     )
                 writer.write_table(table)
                 total_rows += table.num_rows
+                _xlsx_name = os.path.basename(cache_path).replace('.parquet', '.xlsx')
+                source_rows[_xlsx_name] = source_rows.get(_xlsx_name, 0) + table.num_rows
             except Exception as e:
                 logger.warning(
                     f"缓存 {os.path.basename(cache_path)} 读取失败, 将重新处理: {e}"
@@ -219,9 +227,12 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
                     df_cleaned = future.result()
                 except Exception as e:
                     logger.error(f"处理 {file_name} 异常: {e}")
+                    failed_files.append((file_name, str(e)))
+                    source_rows.setdefault(file_name, 0)
                     continue
 
                 if df_cleaned is not None and not df_cleaned.empty:
+                    source_rows[file_name] = source_rows.get(file_name, 0) + len(df_cleaned)
                     table = pa.Table.from_pandas(df_cleaned)
                     if writer is None:
                         writer = pq.ParquetWriter(
@@ -259,6 +270,52 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
         logger.info(f"数据加载完成, 共 {total_rows:,} 行 → {output_path}")
     else:
         logger.warning("所有文件均为空或无法处理, 未生成输出文件")
+
+    # ── 审计修复 (degradation F7): 源文件 found-vs-contributed 对账 ──
+    # 把"发现 N 源 / 贡献 M 源 / 零贡献 K 源"写入产物级 sidecar, 使源记录静默丢失对
+    # referee/data-editor 可见 (旧实现仅 logger.error 埋日志)。**所有零贡献源** (合法
+    # 空源 + 处理失败源) 都进 zero_contribution_files 可见 — 这是丢源可见性的关键保证。
+    # failed_files 仅是其子集: 只捕获**逃出 worker 进程**的崩溃 (BrokenProcessPool /
+    # 结果不可 pickle / OOM kill); 大多数 per-file 处理异常被 load.py:179-181 在 worker
+    # 内 catch→return None, 经 df_cleaned is None 落入 zero_contribution_files (非
+    # failed_files)。设 NEWS_PROCESS_STRICT_SOURCES=1 可在有失败/零贡献时 fail-loud。
+    all_sources = [os.path.basename(f) for f in xlsx_files]
+    zero_contrib = [s for s in all_sources if source_rows.get(s, 0) == 0]
+    n_contributed = sum(1 for s in all_sources if source_rows.get(s, 0) > 0)
+    recon = {
+        'n_found': len(all_sources),
+        'n_contributed': n_contributed,
+        'n_zero_contribution': len(zero_contrib),
+        'total_rows': total_rows,
+        'failed_files': [{'file': f, 'error': e} for f, e in failed_files],
+        'zero_contribution_files': zero_contrib,
+        'per_source_rows': {s: source_rows.get(s, 0) for s in all_sources},
+    }
+    try:
+        recon_path = os.path.join(os.path.dirname(output_path),
+                                  'source_reconciliation.json')
+        with open(recon_path, 'w', encoding='utf-8') as _f:
+            json.dump(recon, _f, ensure_ascii=False, indent=2)
+        logger.info(f"源文件对账已落盘: {recon_path}")
+    except Exception as e:
+        logger.warning(f"source_reconciliation.json 写入失败: {e}")
+
+    if failed_files or zero_contrib:
+        logger.error(
+            f"⚠ 源文件对账[degradation F7]: 发现 {recon['n_found']} 源 / "
+            f"贡献 {n_contributed} 源 / 零贡献 {len(zero_contrib)} 源 "
+            f"(其中处理失败 {len(failed_files)} 源). 零贡献源已记入 "
+            f"source_reconciliation.json — 勿默认'全部源已纳入面板'; "
+            f"设 NEWS_PROCESS_STRICT_SOURCES=1 可在此 fail-loud。"
+        )
+        if os.environ.get('NEWS_PROCESS_STRICT_SOURCES', '').strip().lower() in (
+                '1', 'true', 'yes', 'on'):
+            raise RuntimeError(
+                f"[STRICT_SOURCES] {len(failed_files)} 源处理失败 / "
+                f"{len(zero_contrib)} 源零贡献; 详见 source_reconciliation.json"
+            )
+    else:
+        logger.info(f"源文件对账: 发现={recon['n_found']} 源, 全部贡献 (>0 行)。")
 
     log_memory_usage(logger, "并行处理完成后")
     return total_rows

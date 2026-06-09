@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -229,7 +230,9 @@ __all__ = ['sanitize_stata_columns', 'export_dta', 'summary_stats',
 def build_summary_table(paper_id: str,
                         variables: list[str],
                         panel_filename: str = '40_panel_yearly.parquet',
-                        paper_config=None) -> pd.DataFrame:
+                        paper_config=None,
+                        *,
+                        strict: bool = False) -> pd.DataFrame:
     """通用 Table 1 描述统计。
 
     Args:
@@ -237,14 +240,43 @@ def build_summary_table(paper_id: str,
         variables:       论文专属变量列表。
         panel_filename:  面板文件名 (默认年度面板)。
         paper_config:    可选已实例化的 PaperConfig。
+        strict:          缺核心变量时是否 fail-loud raise (默认 False)。
+
+    审计修复 (degradation F16): 旧实现 ``available = [v ... if v in panel.columns]``
+    在写发表级 Table 1 前**静默剔除**缺失的核心变量, 绕过了 ``summary_stats`` 自带
+    的 KeyError fail-loud (其 raise 在本文件 ``summary_stats`` 的缺列校验处), 读者只看到行数更少的表、毫无缺失提示
+    (R3 样本/变量透明)。现默认 (strict=False) **不再静默**: 缺列以 NaN 占位行**可见
+    保留**在表中 (原变量顺序) 并打 ``logger.warning`` 列出缺失, 既让缺失对读者/
+    referee 可见, 又不打断 CLI、不污染数值列 dtype (用 ``np.nan`` 保 float64 → .dta
+    可正常导出)。需要 CI 硬门的场景 (如锁定 fully-coded 论文必须齐全) 显式传
+    ``strict=True`` → 缺列直接 raise。
     """
     from news_process.papers._common import get_paper_config, load_panel
 
     pc = paper_config or get_paper_config(paper_id)
     panel = load_panel(panel_filename, paper_id=pc.paper_id,
                        project_config=pc.config)
+    # 去重保序 (reindex 不容重复标签; available/missing 亦须唯一以防重复索引)。
+    # _TABLE1_VARIABLES 各论文本就唯一, 此为通用工具的防御性规整, 不改既有行为。
+    _seen: set = set()
+    variables = [v for v in variables if not (v in _seen or _seen.add(v))]
+    missing = [v for v in variables if v not in panel.columns]
+    if not missing:
+        return summary_stats(panel, variables=variables)
+
+    msg = (f"build_summary_table[{paper_id}]: Table 1 变量在面板 {panel_filename} 缺失: "
+           f"{missing}. 不静默剔除 — 以 NaN 占位行可见保留 (strict=True 可改为 fail-loud)。")
+    if strict:
+        raise KeyError(msg)
+    logging.getLogger(__name__).warning(msg)
+
+    # 缺列以 NaN (非 pd.NA, 保 float64 → .dta 可导) 占位行可见保留, 维持原变量顺序。
     available = [v for v in variables if v in panel.columns]
-    return summary_stats(panel, variables=available)
+    table = summary_stats(panel, variables=available) if available \
+        else summary_stats(panel, variables=None).iloc[0:0]
+    for v in missing:
+        table.loc[v] = np.nan
+    return table.reindex(variables)
 
 
 def write_summary_table(paper_id: str,

@@ -147,7 +147,12 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
         dict: {关键词: 综合权重 (float)}
     """
     if not keyword_doc_freq or N_total == 0:
-        logger.warning("DF 为空或文档数为零，所有权重降级为 1.0")
+        # 审计修复 (degradation F11): 升 ERROR — 同名 fintech_intensity_score
+        # 此时由"语义加权"静默退化为纯词频, 列名不变, 下游回归无从察觉口径漂移
+        # (R7 测量一致性). 全权重 1.0 的数值不可用于发表对比。
+        logger.error("⚠ 口径降级[fintech_intensity]: DF 为空或文档数为零，"
+                     "所有权重降级为 1.0 → 评分退化为纯词频, 与语义加权设计不一致, "
+                     "勿用于发表/跨样本对比。")
         return {kw: 1.0 for kw in FINTECH_KEYWORDS}
 
     # ── 步骤 A: 全局 IDF 计算 ──
@@ -161,6 +166,11 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
     if mean_val > 0:
         normed_idf = {w: v / mean_val for w, v in raw_idf.items()}
     else:
+        # 审计修复 (degradation F11, 第5个同型支闭合): IDF 均值≤0 (绝大多数关键词
+        # 近乎篇篇出现, 极小/退化样本可达) → 归一化 IDF 全塌缩为 1.0, IDF 维度静默
+        # 失效, 评分退化。原先此支连 warning 都无 (可见性低于其余 4 支), 补 ERROR。
+        logger.error("⚠ 口径降级[fintech_intensity]: IDF 均值≤0，归一化 IDF 全回退 1.0 "
+                     "→ IDF 维度失效, 评分退化, 与设计不一致, 勿用于发表/跨样本对比")
         normed_idf = {w: 1.0 for w in raw_idf}
 
     normed_vals = np.array(list(normed_idf.values()))
@@ -201,7 +211,11 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
                          (cos_sims[i] - min_sim) / (max_sim - min_sim)
                 cos_sim_scaled[kw] = float(scaled)
         else:
-            logger.warning("所有关键词余弦相似度相同，CosSim 权重回退为 1.0")
+            # 审计修复 (degradation F11, 复核补全): 第 4 个同型降级支 — 全部关键词
+            # 余弦相似度相同时 CosSim 亦塌缩为 1.0 (评分退化为纯 IDF), 升 ERROR 闭合。
+            logger.error("⚠ 口径降级[fintech_intensity]: 所有关键词余弦相似度相同，"
+                         "CosSim 权重回退为 1.0 → 评分退化为纯 IDF, 与语义加权设计不一致, "
+                         "勿用于发表/跨样本对比")
             cos_sim_scaled = {kw: 1.0 for kw in kw_list}
 
         logger.info(f"CosSim 校准: min={min_sim:.4f}, max={max_sim:.4f}, "
@@ -209,11 +223,18 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
         del model, embeddings
 
     except ImportError:
-        logger.warning("sentence_transformers 未安装，CosSim 权重降级为 1.0"
-                       "（仅使用 IDF 权重）")
+        # 审计修复 (degradation F11): 升 ERROR — CosSim 维度静默失效会让
+        # fintech_intensity_score 由语义加权退化为纯 IDF (列名不变, R7 口径漂移)。
+        logger.error("⚠ 口径降级[fintech_intensity]: sentence_transformers 未安装，"
+                     "CosSim 权重降级为 1.0（评分退化为纯 IDF, 与语义加权设计不一致, "
+                     "勿用于发表/跨样本对比）")
         cos_sim_scaled = {kw: 1.0 for kw in idf_weights}
     except Exception as e:
-        logger.warning(f"词向量计算异常 ({type(e).__name__}: {e})，CosSim 降级为 1.0")
+        # 审计修复 (degradation F11/补漏): 装了库但运行期失败 (模型连不上/OOM 等)
+        # 是更危险的同型触发 — 同样静默退化为纯 IDF, 升 ERROR。
+        logger.error(f"⚠ 口径降级[fintech_intensity]: 词向量计算异常 "
+                     f"({type(e).__name__}: {e})，CosSim 降级为 1.0 → 评分退化为纯 IDF, "
+                     f"与语义加权设计不一致, 勿用于发表/跨样本对比")
         cos_sim_scaled = {kw: 1.0 for kw in idf_weights}
 
     # ── 步骤 C: 预乘综合权重 ──
