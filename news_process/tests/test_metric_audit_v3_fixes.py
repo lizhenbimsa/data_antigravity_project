@@ -146,9 +146,48 @@ class TestNetworkSpilloverEndToEnd:
 
         # network-03: 孤立银行 D 的 peer_tone 应 NaN (非结构性 0)
         assert pd.isna(get('Dbank', 'peer_tone_lag1_full'))
-        # network-01: W² 去对角 → A 的二阶溢出 = 0.5*tone_C = -0.5 (含对角则为 0)
+        # network-01 (W² 去对角) + netspill-peertone-fillna (2026-06-10 renormalize 修):
+        #   peer_tone_2nd 现为对 OBSERVED 二阶邻居的**加权均值** (按观测权重和重归一),
+        #   而非旧的未归一路径概率加权和。A 的唯一二阶邻居 = C (A→B→C, 排除自身),
+        #   tone_C=-1.0 → peer_tone_2nd[A] = -1.0 (旧未归一值 0.5·(-1)=-0.5 把 tone 与路径
+        #   概率混淆)。B 无非自二阶邻居 → NaN (旧给伪零 0.0)。
         v = get('Abank', 'peer_tone_2nd_lag1_full')
-        assert abs(v - (-0.5)) < 1e-9, f'peer_tone_2nd[A]={v}, 期望 -0.5 (去对角)'
+        assert abs(v - (-1.0)) < 1e-9, f'peer_tone_2nd[A]={v}, 期望 -1.0 (renormalized 二阶均值)'
+        assert pd.isna(get('Bbank', 'peer_tone_2nd_lag1_full')), \
+            'B 无非自二阶邻居, 应 NaN (修复后不再伪零)'
+
+    def test_first_order_renormalizes_over_observed_peers(self):
+        """netspill-peertone-fillna 一阶头部路径: 在网同行 tone 缺失时, peer_tone 仅对
+        OBSERVED 同行重归一 (非旧 fillna(0) 伪零衰减)。NSP-2 加固。"""
+        from news_process.pipeline.panel.network_spillover import (
+            compute_network_spillovers,
+        )
+        banks = ['Abank', 'Bbank', 'Cbank']
+        # 2017 lag: B=0.8 观测, C=NaN 缺失 (A 自身值与 A 的 peer_tone 无关)
+        tone2017 = {'Abank': 0.5, 'Bbank': 0.8, 'Cbank': np.nan}
+        rows = []
+        for y in (2017, 2018):
+            for b in banks:
+                rows.append({'target_bank': b, 'year': y,
+                             'llm_vote_tone_full': tone2017[b] if y == 2017 else np.nan})
+        panel = pd.DataFrame(rows)
+        # A 共现 B 和 C → A 的同行 {B,C}, 行随机 W[A,B]=W[A,C]=0.5
+        df_ex = pd.DataFrame([
+            {'year': 2017, 'target_bank': 'Abank', 'co_mentioned_banks': 'Bbank;Cbank'},
+            {'year': 2017, 'target_bank': 'Bbank', 'co_mentioned_banks': 'Abank'},
+            {'year': 2017, 'target_bank': 'Cbank', 'co_mentioned_banks': 'Abank'},
+        ])
+        out = compute_network_spillovers(panel.copy(), df_ex)
+
+        def get(bank, col):
+            m = (out['target_bank'] == bank) & (out['year'] == 2018)
+            return out.loc[m, col].iloc[0]
+
+        # A 同行 B(0.8 观测)+C(NaN 缺失) → 仅 B 重归一 = (0.5·0.8)/0.5 = 0.8
+        # 旧 fillna(0) 衰减 = (0.5·0.8 + 0.5·0)/1.0 = 0.4
+        v = get('Abank', 'peer_tone_lag1_full')
+        assert abs(v - 0.8) < 1e-9, (
+            f'peer_tone[A]={v}, 期望 0.8 (仅观测同行 B 重归一), 非 0.4 (旧伪零衰减)')
 
 
 class TestTonellmsCtxTitleStrip:
