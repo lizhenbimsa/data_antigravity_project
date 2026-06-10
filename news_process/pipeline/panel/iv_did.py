@@ -303,6 +303,12 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
 
     shares = (base.groupby(['target_bank', '_cat_short']).size()
               .unstack(fill_value=0))
+    # fix(ivdid-05, metric-audit 2026-06-10): 分母须仅含 kept groups (排除 'other'/未映射 NaN),
+    # 与 compute_bartik_iv (type/scale) 的 total=sum-over-non-other 口径一致; 否则 'other' 计入
+    # 分母却不进分子 → 基期份额和 <1, 与 type/scale 轨 (份额和=1) 归一化不可比, 跨工具系数
+    # 失真 (media 轨实测 present-row 行和 0.73 vs type/scale 1.0)。reindex 到 kept 列后再归一。
+    _kept_groups = [g for g in groups if g in shares.columns]
+    shares = shares.reindex(columns=_kept_groups, fill_value=0)
     total = shares.sum(axis=1).replace(0, np.nan)
     shares = shares.div(total, axis=0).fillna(0)
 

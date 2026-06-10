@@ -109,9 +109,19 @@ def _is_fls_sentence(sentence: str) -> bool:
     if not sentence:
         return False
     tokens = set(jieba.cut(sentence))
-    if not (tokens & _FUTURE_WORDS):
-        return False
-    return bool(tokens & _TIME_FUTURE_MARKERS)
+    has_future = bool(tokens & _FUTURE_WORDS)
+    has_time = bool(tokens & _TIME_FUTURE_MARKERS)
+    # fix(forward-looking-jieba, metric-audit 2026-06-10): jieba 默认词典常把多字标记切碎
+    # (如 '下一财年'→下/一/财年, '中长期目标'→中长期/目标), 其成分若不在词集 → 整词漏判。
+    # 对 **≥3 字** 标记补 substring 命中 (纯加性: 只把门控置 True, 不移除任何 token 命中,
+    # 故不会像 add_word 那样反而拆掉 '未来三年' 的 '未来' future token; 单/双字仍仅 token 匹配
+    # 以保 P-038 精度 — 单字 substring 误判风险高)。空格统一剥除以兼容 '到 2030' 类标记。
+    _s = sentence.replace(' ', '')
+    if not has_future:
+        has_future = any(len(w) >= 3 and w.replace(' ', '') in _s for w in _FUTURE_WORDS)
+    if not has_time:
+        has_time = any(len(w) >= 3 and w.replace(' ', '') in _s for w in _TIME_FUTURE_MARKERS)
+    return has_future and has_time
 
 
 def compute_fls_for_text(text: str) -> dict[str, float]:

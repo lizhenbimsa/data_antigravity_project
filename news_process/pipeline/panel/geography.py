@@ -98,7 +98,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         new_cols[f'bert_avg_pos_mw{track}'] = _safe_mean([f'{b}_pos_mw{track}' for b in BERT_MODELS])
         new_cols[f'bert_avg_neg_mw{track}'] = _safe_mean([f'{b}_neg_mw{track}' for b in BERT_MODELS])
 
-        # --- HW 综合指标 (Tetlock 2011, JF) ---
+        # --- HW 综合指标 (Tetlock 2011, RFS) ---
         new_cols[f'llm_models_avg_tone_hw{track}'] = _safe_mean([f'{s}_tone_hw{track}' for s in LLM_MODELS])
         new_cols[f'dict_avg_tone_hw{track}'] = _safe_mean([f'{d}_tone_hw{track}' for d in DICT_NAMES])
         new_cols[f'dict_avg_idf_tone_hw{track}'] = _safe_mean([f'{d}_idf_tone_hw{track}' for d in DICT_NAMES])
@@ -926,6 +926,10 @@ def compute_geo_proximity_buffers(
 
             df_bank = df_bank.copy()
             df_bank['_dist_km'] = distances
+            # fix(prox-frac-denominator, metric-audit 2026-06-10): prox_frac 分子(圈内)只含
+            # 可定位文章, 分母应同口径取**可定位文章数**而非全部 n_total(含媒体无法地理编码
+            # 的文章), 否则地理覆盖度被未定位文章稀释(valid-vs-physical 域不匹配, P3)。
+            n_geocoded = int(df_bank['_dist_km'].notna().sum())
 
             key = (bank, year)
             buf_results[key] = {}
@@ -937,7 +941,7 @@ def compute_geo_proximity_buffers(
 
                 buf_results[key][f'{prefix}_n_articles'] = n_within
                 buf_results[key][f'{prefix}_frac'] = (
-                    n_within / n_total if n_total > 0 else np.nan)
+                    n_within / n_geocoded if n_geocoded > 0 else np.nan)
                 buf_results[key][f'{prefix}_is_local'] = (
                     1 if n_within > 0 else 0)
 
@@ -1067,6 +1071,12 @@ def compute_regional_imitation_pressure(
 
         vals = pd.Series(np.nan, index=panel.index)
         for (region, year), grp in panel.groupby([geo_col, 'year']):
+            # fix(regional-phantom-guard, metric-audit 2026-06-10): 地理未匹配银行若填 ''/NaN,
+            # groupby 会把它们聚成一个伪区域 ('' , year) 并互算 LOO 同行压力 (Leary-Roberts
+            # 2014 要求真实同省/市参照集, 非残差桶)。当前盘上 0 未匹配故不触发(latent), 但
+            # 全量新增银行可能触发 → 显式跳过空/缺失区域。
+            if region is None or (isinstance(region, float) and pd.isna(region)) or str(region).strip() == '':
+                continue
             if len(grp) < 2:
                 continue
             total = grp['_has_fintech'].sum()

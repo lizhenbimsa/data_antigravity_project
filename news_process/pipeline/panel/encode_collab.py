@@ -525,11 +525,18 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
     added_cols = []
     # 加 weighted columns 给 article level
     # 单次 assign 写入临时列, 避免逐列 insert 触发 pandas PerformanceWarning
+    # fix(clarity-weighted-denom, metric-audit 2026-06-10): 加权均值分母须 mask 到各指标
+    # valid 集, 否则 clarity 缺失文章的权重仍进物理分母 → Σ_valid(w·x)/Σ_all(w) 系统性下偏
+    # (VW/MW/HW 同型未标记兄弟)。各指标(clarity/frac_definite × full/ctx)用自己的 valid 分母。
     df = df.assign(
         _w_clarity_full=df['clarity_clarity_score_full'] * w_full,
         _w_clarity_ctx=df['clarity_clarity_score_ctx'] * w_ctx,
         _w_def_full=df['clarity_frac_definite_full'] * w_full,
         _w_def_ctx=df['clarity_frac_definite_ctx'] * w_ctx,
+        _wd_clarity_full=w_full.where(df['clarity_clarity_score_full'].notna()),
+        _wd_clarity_ctx=w_ctx.where(df['clarity_clarity_score_ctx'].notna()),
+        _wd_def_full=w_full.where(df['clarity_frac_definite_full'].notna()),
+        _wd_def_ctx=w_ctx.where(df['clarity_frac_definite_ctx'].notna()),
         _w_full=w_full,
         _w_ctx=w_ctx,
     )
@@ -539,6 +546,10 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
         _sum_w_clarity_ctx=('_w_clarity_ctx', 'sum'),
         _sum_w_def_full=('_w_def_full', 'sum'),
         _sum_w_def_ctx=('_w_def_ctx', 'sum'),
+        _sum_wd_clarity_full=('_wd_clarity_full', 'sum'),
+        _sum_wd_clarity_ctx=('_wd_clarity_ctx', 'sum'),
+        _sum_wd_def_full=('_wd_def_full', 'sum'),
+        _sum_wd_def_ctx=('_wd_def_ctx', 'sum'),
         _sum_w_full=('_w_full', 'sum'),
         _sum_w_ctx=('_w_ctx', 'sum'),
         _n_articles=('_w_full', 'count'),
@@ -548,13 +559,11 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
                     lambda s: int((s >= median_amb_d0_ctx).sum())),
     ).reset_index()
 
-    # 派生 panel 列 (各轨用自己的权重和作分母)
-    sw_full = agg['_sum_w_full'].replace(0, float('nan'))
-    sw_ctx = agg['_sum_w_ctx'].replace(0, float('nan'))
-    agg['mean_clarity_score_full'] = agg['_sum_w_clarity_full'] / sw_full
-    agg['mean_clarity_score_ctx'] = agg['_sum_w_clarity_ctx'] / sw_ctx
-    agg['mean_frac_definite_full'] = agg['_sum_w_def_full'] / sw_full
-    agg['mean_frac_definite_ctx'] = agg['_sum_w_def_ctx'] / sw_ctx
+    # 派生 panel 列 (各指标用自己 valid-mask 的权重和作分母, 域与分子一致)
+    agg['mean_clarity_score_full'] = agg['_sum_w_clarity_full'] / agg['_sum_wd_clarity_full'].replace(0, float('nan'))
+    agg['mean_clarity_score_ctx'] = agg['_sum_w_clarity_ctx'] / agg['_sum_wd_clarity_ctx'].replace(0, float('nan'))
+    agg['mean_frac_definite_full'] = agg['_sum_w_def_full'] / agg['_sum_wd_def_full'].replace(0, float('nan'))
+    agg['mean_frac_definite_ctx'] = agg['_sum_w_def_ctx'] / agg['_sum_wd_def_ctx'].replace(0, float('nan'))
 
     # n_articles ≥ 2 mask (修 R8-H2)
     mask = agg['_n_articles'] >= 2
@@ -621,9 +630,14 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
                 and 'num_intensity_word_ctx' in df.columns)
 
     # 单次 assign 写入临时列, 避免逐列 insert 触发 pandas PerformanceWarning
+    # fix(numint-weighted-denom, metric-audit 2026-06-10): 加权均值分母须 mask 到各指标的
+    # valid 集 (num_intensity 非 NaN), 否则空文本(A7 显式 NaN 保护)的权重仍进物理分母 →
+    # Σ_valid(w·x)/Σ_all(w) 系统性下偏, 抵消 A7 的 NaN 语义。各指标用自己的 valid-mask 分母。
     assign_kwargs = dict(
         _w_ni_full=df['num_intensity_full'] * w_full,
         _w_ni_ctx=df['num_intensity_ctx'] * w_ctx,
+        _wd_ni_full=w_full.where(df['num_intensity_full'].notna()),
+        _wd_ni_ctx=w_ctx.where(df['num_intensity_ctx'].notna()),
         _w_full=w_full,
         _w_ctx=w_ctx,
     )
@@ -631,28 +645,37 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
         # 词级替代版加权分子 (与句级版同权重 w_full/w_ctx, 仅 article 分母从句数→词数)
         assign_kwargs['_w_niw_full'] = df['num_intensity_word_full'] * w_full
         assign_kwargs['_w_niw_ctx'] = df['num_intensity_word_ctx'] * w_ctx
+        assign_kwargs['_wd_niw_full'] = w_full.where(df['num_intensity_word_full'].notna())
+        assign_kwargs['_wd_niw_ctx'] = w_ctx.where(df['num_intensity_word_ctx'].notna())
     df = df.assign(**assign_kwargs)
 
     agg_kwargs = dict(
         _sum_w_ni_full=('_w_ni_full', 'sum'),
         _sum_w_ni_ctx=('_w_ni_ctx', 'sum'),
+        _sum_wd_ni_full=('_wd_ni_full', 'sum'),
+        _sum_wd_ni_ctx=('_wd_ni_ctx', 'sum'),
         _sum_w_full=('_w_full', 'sum'),
         _sum_w_ctx=('_w_ctx', 'sum'),
     )
     if has_word:
         agg_kwargs['_sum_w_niw_full'] = ('_w_niw_full', 'sum')
         agg_kwargs['_sum_w_niw_ctx'] = ('_w_niw_ctx', 'sum')
+        agg_kwargs['_sum_wd_niw_full'] = ('_wd_niw_full', 'sum')
+        agg_kwargs['_sum_wd_niw_ctx'] = ('_wd_niw_ctx', 'sum')
     agg = df.groupby(['target_bank', 'year']).agg(**agg_kwargs).reset_index()
-    sw_full = agg['_sum_w_full'].replace(0, float('nan'))
-    sw_ctx = agg['_sum_w_ctx'].replace(0, float('nan'))
-    agg['mean_num_intensity_full'] = agg['_sum_w_ni_full'] / sw_full
-    agg['mean_num_intensity_ctx'] = agg['_sum_w_ni_ctx'] / sw_ctx
+    # 分母 = 各指标 valid-mask 后的权重和 (域与分子一致)
+    swd_ni_full = agg['_sum_wd_ni_full'].replace(0, float('nan'))
+    swd_ni_ctx = agg['_sum_wd_ni_ctx'].replace(0, float('nan'))
+    agg['mean_num_intensity_full'] = agg['_sum_w_ni_full'] / swd_ni_full
+    agg['mean_num_intensity_ctx'] = agg['_sum_w_ni_ctx'] / swd_ni_ctx
 
     out_cols = ['mean_num_intensity_full', 'mean_num_intensity_ctx']
     if has_word:
         # 兑现 §4.3: 词级数字密度 bank-year 加权均值 (分母词数, 对中文句读 sparse 稳健)
-        agg['mean_num_intensity_word_full'] = agg['_sum_w_niw_full'] / sw_full
-        agg['mean_num_intensity_word_ctx'] = agg['_sum_w_niw_ctx'] / sw_ctx
+        swd_niw_full = agg['_sum_wd_niw_full'].replace(0, float('nan'))
+        swd_niw_ctx = agg['_sum_wd_niw_ctx'].replace(0, float('nan'))
+        agg['mean_num_intensity_word_full'] = agg['_sum_w_niw_full'] / swd_niw_full
+        agg['mean_num_intensity_word_ctx'] = agg['_sum_w_niw_ctx'] / swd_niw_ctx
         out_cols += ['mean_num_intensity_word_full', 'mean_num_intensity_word_ctx']
     # idempotent: 先 drop panel 已有的 out_cols (避免 merge _x/_y 后缀冲突)
     for c in out_cols:

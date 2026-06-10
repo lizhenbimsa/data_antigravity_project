@@ -494,8 +494,20 @@ def run_sensitivity_analysis(
             kappa = compute_cohens_kappa(base_labels, comp_labels)
 
             # Pearson 和 Spearman 相关
-            pearson_r, pearson_p = scipy_stats.pearsonr(base_scores, comp_scores) if len(base_scores) > 2 else (0, 1)
-            spearman_r, spearman_p = scipy_stats.spearmanr(base_scores, comp_scores) if len(base_scores) > 2 else (0, 1)
+            # fix(radius-zerovar-guard, 2026-06-10 + review-closure F1/F4): 零方差(常量分数 —
+            # 词典零命中/空实体窗口/T=2 退化样本)下 pearsonr/spearmanr 返 NaN 并发
+            # ConstantInputWarning。本守卫显式把常量输入的相关定义为 **NaN**(语义正确: 相关
+            # 无定义)。注: 兄弟 decay_sensitivity 选 0.0 sentinel (下游 builtin min/mean 安全),
+            # 本模块选 NaN 并**同步把下游裁决聚合改 np.nanmin/np.nanmean**(见 §汇总段), 二者
+            # 路线不同但均无静默污染; 勿误以为与 decay 行为逐位一致。
+            if (len(base_scores) > 2
+                    and float(np.std(base_scores)) > 0
+                    and float(np.std(comp_scores)) > 0):
+                pearson_r, pearson_p = scipy_stats.pearsonr(base_scores, comp_scores)
+                spearman_r, spearman_p = scipy_stats.spearmanr(base_scores, comp_scores)
+            else:
+                pearson_r, pearson_p = (float('nan'), float('nan'))
+                spearman_r, spearman_p = (float('nan'), float('nan'))
 
             # 均值差异的配对 t 检验
             score_diffs = [c - b for b, c in zip(base_scores, comp_scores)]
@@ -598,7 +610,7 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
 
         logger.info(f"  ── r=1 vs r=0（极端窗口: 仅实体所在句）──")
         logger.info(f"     Kappa 范围:     {min(kappas):.4f} ~ {max(kappas):.4f}  (均值 {np.mean(kappas):.4f})")
-        logger.info(f"     Pearson 范围:   {min(pearsons):.4f} ~ {max(pearsons):.4f}  (均值 {np.mean(pearsons):.4f})")
+        logger.info(f"     Pearson 范围:   {np.nanmin(pearsons):.4f} ~ {np.nanmax(pearsons):.4f}  (均值 {np.nanmean(pearsons):.4f})")
         logger.info(f"     一致率范围:     {min(agrees):.2%} ~ {max(agrees):.2%}")
         logger.info(f"     t 检验显著 (p<0.05): {sig_count}/{len(dict_names)} 个词典")
         if np.mean(kappas) < 0.60:
@@ -624,10 +636,10 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
 
         logger.info(f"  ── r=1 vs 邻近窗口（{adj_radii_str}）──")
         logger.info(f"     Kappa 范围:     {min(adj_kappas):.4f} ~ {max(adj_kappas):.4f}  (均值 {np.mean(adj_kappas):.4f})")
-        logger.info(f"     Pearson 范围:   {min(adj_pearsons):.4f} ~ {max(adj_pearsons):.4f}  (均值 {np.mean(adj_pearsons):.4f})")
+        logger.info(f"     Pearson 范围:   {np.nanmin(adj_pearsons):.4f} ~ {np.nanmax(adj_pearsons):.4f}  (均值 {np.nanmean(adj_pearsons):.4f})")
         logger.info(f"     一致率范围:     {min(adj_agrees):.2%} ~ {max(adj_agrees):.2%}")
         logger.info(f"     t 检验显著 (p<0.05): {adj_sig_count}/{len(adj_t_ps)} 个词典×对比组")
-        if np.mean(adj_pearsons) >= 0.80:
+        if np.nanmean(adj_pearsons) >= 0.80:
             logger.info(f"     → 解读: 邻近半径间得分高度相关 (Pearson ≥ 0.80)，")
             logger.info(f"       标签变化极少，结果具有良好稳健性。")
 
@@ -661,7 +673,7 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
 
     # 判定邻近窗口的稳健性
     adj_robust = (len(adjacent_keys) > 0
-                  and np.mean(adj_pearsons) >= 0.80
+                  and np.nanmean(adj_pearsons) >= 0.80
                   and np.mean(adj_agrees) >= 0.95)
 
     # 判定极端窗口是否有偏差
@@ -681,7 +693,7 @@ def _log_key_interpretation(results: dict, dict_names: list[str], logger):
             logger.info("")
             logger.info(f"  - 当前生产配置 r={baseline_radius} 是合理的折中选择。")
             logger.info(f"  - 邻近半径 (r={baseline_radius} vs r=2/r=3) 一致率 ≥ {min(adj_agrees):.1%}，")
-            logger.info(f"    Pearson 相关 ≥ {min(adj_pearsons):.3f}，差异统计上不显著。")
+            logger.info(f"    Pearson 相关 ≥ {np.nanmin(adj_pearsons):.3f}，差异统计上不显著。")
             logger.info(f"  - r=0 的 Kappa 较低是由标签高度不平衡导致的 Kappa 悖论，")
             logger.info(f"    以及 r=0 上下文信息不足的双重因素所致，")
             logger.info(f"    不影响 r={baseline_radius} 作为默认值的方法论合理性。")
@@ -789,7 +801,7 @@ def log_report(results: dict):
     if all_kappas:
         min_kappa = min(all_kappas)
         min_agree = min(all_agreements)
-        min_pearson = min(all_pearsons)
+        min_pearson = float(np.nanmin(all_pearsons)) if all_pearsons else float('nan')  # fix(radius-F1): nan-safe
 
         baseline_radius = 1
         extreme_key = f"r{baseline_radius}_vs_r0"
@@ -813,7 +825,9 @@ def log_report(results: dict):
         if adjacent_kappas:
             adj_min_kappa = min(adjacent_kappas)
             adj_min_agree = min(adjacent_agreements)
-            adj_min_pearson = min(adjacent_pearsons)
+            # fix(radius-F1, review-closure 2026-06-10): nan-safe — adjacent_pearsons 可含
+            # 零方差守卫产生的 NaN, builtin min(含 nan) 不可靠。
+            adj_min_pearson = float(np.nanmin(adjacent_pearsons)) if adjacent_pearsons else float('nan')
             logger.info(f"  邻近窗口最低标签一致率: {adj_min_agree:.2%}")
             logger.info(f"  邻近窗口最低 Cohen's Kappa: {adj_min_kappa:.4f}")
             logger.info(f"  邻近窗口最低 Pearson 相关: {adj_min_pearson:.4f}")

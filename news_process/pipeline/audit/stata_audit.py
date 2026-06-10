@@ -354,8 +354,11 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
         pos_col = f'pos_count{track}'
         neg_col = f'neg_count{track}'
         if pos_col in p.columns and neg_col in p.columns:
-            pos = p[pos_col].fillna(0)
-            neg = p[neg_col].fillna(0)
+            # fix(int8-stata-audit, 2026-06-10): pos_count/neg_count 为 nullable Int8,
+            # 元素级 Int8+Int8 在 pandas 静默回绕 (98+60→-98), 会击穿本审计要查的
+            # "pos+neg>n_articles 双重计数"检验。先 astype('int64') 再相加。
+            pos = p[pos_col].fillna(0).astype('int64')
+            neg = p[neg_col].fillna(0).astype('int64')
             total_sentiment = pos + neg
             neutral_implied = p['n_articles'] - total_sentiment
             neg_neutral = (neutral_implied < -0.5).sum()

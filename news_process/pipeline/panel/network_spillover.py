@@ -267,25 +267,34 @@ def compute_network_spillovers(
                         val = val.iloc[0]
                     tone_vec[bank] = val
 
-            # 网络加权: peer_tone = W × tone_vec
-            # W: (n×n), tone_vec: (n,) → peer_tone: (n,)
-            tone_filled = tone_vec.fillna(0).values
-            peer_tone = W.values @ tone_filled
+            # 网络加权同行均值 (row-stochastic spatial lag, LeSage-Pace 2009; Leary-Roberts 2014)。
+            # fix(netspill-peertone-fillna, metric-audit 2026-06-10): 原实现 tone_vec.fillna(0)
+            # 把"在网但滞后 tone 缺失"的同行以 0 注入分子, 而其权重仍留在行和(=1)分母 →
+            # 加权均值系统性向 0 衰减(伪零/attenuation)。正确做法: 仅对 OBSERVED-tone 同行
+            # 求加权均值, 并按观测同行的权重和重新归一化; 无观测同行 → NaN (并入 network-03
+            # 孤立银行守卫: denom>0 同时覆盖"有同行"与"有观测-tone 同行")。
+            W_arr = W.values
+            tone_arr = tone_vec.to_numpy(dtype=float)
+            obs_mask = ~np.isnan(tone_arr)
+            tone_obs = np.where(obs_mask, tone_arr, 0.0)  # 未观测置 0, 其权重亦从分母剔除
+            denom1 = W_arr[:, obs_mask].sum(axis=1)
+            with np.errstate(invalid='ignore', divide='ignore'):
+                peer_tone = (W_arr @ tone_obs) / denom1
+            peer_tone = np.where(denom1 > 0, peer_tone, np.nan)
 
-            # 二阶溢出: 捕获"邻居的邻居"间接情感传染 (LeSage & Pace 2009)。
-            # fix(network-01): W² 必须去对角自反馈 (Bramoullé-Djebbari-Fortin 2009 JoE):
-            #   高阶网络 IV 须排除 W² 对角项, 否则 peer_tone_2nd 含本行自身滞后 tone,
-            #   作工具变量时违反排他性约束。原 W @ (W @ tone) 保留了 W² 完整对角。
-            W2 = W.values @ W.values
+            # 二阶溢出 (邻居的邻居, LeSage & Pace 2009): W² 去对角自反馈
+            # fix(network-01, Bramoullé-Djebbari-Fortin 2009 JoE): 排除 W² 对角, 否则作高阶
+            # IV 含本行自身滞后 tone 违排他性。同样仅对观测同行重归一 (与一阶同口径)。
+            # ⚠ 行为披露 (NSP-B): 因 W² 去对角后行和≠1, 本重归一对**所有行**(非仅缺 tone 行)
+            # 改变 peer_tone_2nd 标度 —— 从旧"路径概率加权和"变为"二阶邻居加权均值"(更可解释,
+            # 与一阶同口径)。peer_tone_2nd 作 brokerage IV 工具变量 (brokerage_network spec),
+            # 2SLS 对工具的标度变换不变 (相关性/排他性不变, W² 去对角守住), 故不破坏识别。
+            W2 = W_arr @ W_arr
             np.fill_diagonal(W2, 0.0)
-            peer_tone_2nd = W2 @ tone_filled
-
-            # fix(network-03): 孤立银行 (W 行全 0, 无共现同行) 的 peer_tone 应为 NaN,
-            # 而非结构性 0.0 — 否则"无同行"与"同行 tone 均值=0"混淆, 伪零混入回归致
-            # attenuation bias (实测 41/73 是结构性零)。
-            row_has_peers = (W.values.sum(axis=1) > 0)
-            peer_tone = np.where(row_has_peers, peer_tone, np.nan)
-            peer_tone_2nd = np.where(row_has_peers, peer_tone_2nd, np.nan)
+            denom2 = W2[:, obs_mask].sum(axis=1)
+            with np.errstate(invalid='ignore', divide='ignore'):
+                peer_tone_2nd = (W2 @ tone_obs) / denom2
+            peer_tone_2nd = np.where(denom2 > 0, peer_tone_2nd, np.nan)
 
             # 存储结果（使用字典累积, 避免多 tone_col 合并丢失）
             suffix = tone_col.replace('llm_vote_tone', '')
@@ -297,10 +306,14 @@ def compute_network_spillovers(
                 peer_dict[key][f'peer_tone_2nd_lag1{suffix}'] = peer_tone_2nd[idx]
 
         # ── 同行金融科技声量溢出 ──
-        # Berger, A. N., Guedhami, O., Kim, H. H., & Li, X. (2022).
-        # Economic policy uncertainty and bank liquidity hoarding.
-        # Journal of Financial Intermediation, 49, 100893.
-        # DOI: 10.1016/j.jfi.2020.100893
+        # 锚点勘误 (metric-audit 2026-06-10): 原注引 Berger et al. (2022, JFI 49)
+        # "Economic policy uncertainty and bank liquidity hoarding" 与本构念不符 ——
+        # 该文研究宏观 EPU 指数对银行流动性囤积的影响, 并未定义同行共提网络的
+        # 行随机空间滞后。本构念 (row-stochastic 同行声量溢出) 的正确锚点是:
+        #   LeSage, J. & Pace, R. K. (2009). Introduction to Spatial Econometrics.
+        #     → 行随机权重矩阵 W 的空间滞后 W*y 作同行加权均值。
+        #   Leary, M. T. & Roberts, M. R. (2014). Do peer firms affect corporate
+        #     financial policy? Journal of Finance, 69(1), 139-178. → 同行均值范式。
         # → 同行溢出: peer_fintech_exposure_i,t = Σ_j W[i,t-1] × ln_coverage_j,t-1
         # peer_fintech_exposure_i,t = Σ_j W[i,t-1] × ln_news_coverage_j,t-1
         if 'ln_news_coverage' in panel_lag.columns:
@@ -311,12 +324,17 @@ def compute_network_spillovers(
                     if isinstance(val, pd.Series):
                         val = val.iloc[0]
                     cov_vec[bank] = val
-            peer_cov = W.values @ cov_vec.fillna(0).values
-            # fix(completeness-01): 孤立银行(W 行全 0, 无共现同行)的 peer_cov 应为 NaN,
-            # 与 peer_tone/peer_tone_2nd 同口径(否则 41 个结构性 0 混入 brokerage Table1
-            # 描述统计, 把"无同行"伪装成"同行覆盖度=0")。
-            _has_peers_cov = (W.values.sum(axis=1) > 0)
-            peer_cov = np.where(_has_peers_cov, peer_cov, np.nan)
+            # fix(netspill-peercov-fillna, metric-audit 2026-06-10): 与 peer_tone 同型修复 ——
+            # 仅对 OBSERVED-coverage 同行求加权均值并按其权重和重归一, 而非 fillna(0) 把
+            # 缺失/在网无值同行伪零注入。原 completeness-01 仅加孤立行 NaN 守卫(W 行全 0),
+            # 未修"在网但 ln_coverage 缺失"的伪零(与 peer_tone 同病根)。denom>0 并入孤立守卫。
+            cov_arr = cov_vec.to_numpy(dtype=float)
+            cov_mask = ~np.isnan(cov_arr)
+            cov_obs = np.where(cov_mask, cov_arr, 0.0)
+            denom_c = W.values[:, cov_mask].sum(axis=1)
+            with np.errstate(invalid='ignore', divide='ignore'):
+                peer_cov = (W.values @ cov_obs) / denom_c
+            peer_cov = np.where(denom_c > 0, peer_cov, np.nan)
             for idx_b, bank in enumerate(bank_list):
                 key = (bank, year)
                 if key not in peer_dict:
@@ -1223,10 +1241,17 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
 
         # ── 5. emb_peer_tone = W_emb(t-1) × tone(t-1), 两轨共享同一 W_emb ──
         panel_lag = panel[panel['year'] == lag_year].set_index('target_bank')
-        # fix(completeness-06): 与 peer_tone 同口径 — 嵌入网中孤立行(W_emb 行全 0)→ NaN
-        # 而非结构性 0(当前嵌入矩阵稠密, 0 个孤立行, 故无当前数值影响, 仅防御性对齐)。
-        _has_emb_peers = (W_emb.values.sum(axis=1) > 0)
+        # fix(netspill-embpeertone-fillna, metric-audit 2026-06-10 review-closure NSP-1):
+        # 与 peer_tone/peer_cov 同型修复 (原 completeness-06 仅守孤立行)。嵌入网 W_emb 稠密
+        # 且行随机, fillna(0) 把缺 tone 同行伪零注入分子而权重仍留在行和(=1)分母 → 在 T=18
+        # 全量(缺 tone 同行有真实新闻/权重)下加权均值向 0 衰减。改为仅对 OBSERVED-tone 同行
+        # 加权均值并按观测权重和重归一; denom>0 同时覆盖"有同行"(孤立行守卫)与"有观测-tone 同行"。
+        # ⚠ 落盘提示 (NSP-A): 本嵌入轨依赖 30a_article_embeddings(当前缺), stage 45 未重跑嵌入
+        # pass, 故盘上 emb_peer_tone 仍是旧 fillna 值、golden 暂未反映本修(repro 仍绿因二者同陈旧)。
+        # T=2 上本修为近-no-op (15 个缺 tone 银行 ln_news_coverage=0 → W_emb 权重~0, 旧≈新,
+        # 盘上 [0.953,0.969] 即正确值); 真实差异仅现于 T=18。落盘待带 embeddings 的 production run。
         _track_tone_vecs = {}  # track_suffix -> emb_peer_tone ndarray (按 bank_list 对齐)
+        _Wemb = W_emb.values
         for _track, _tcol in _tone_tracks:
             if _tcol not in panel_lag.columns:
                 continue
@@ -1237,8 +1262,13 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
                     if isinstance(val, pd.Series):
                         val = val.iloc[0]
                     tone_vec[bank] = val
-            _ept = W_emb.values @ tone_vec.fillna(0).values
-            _track_tone_vecs[_track] = np.where(_has_emb_peers, _ept, np.nan)
+            tone_arr = tone_vec.to_numpy(dtype=float)
+            obs_mask = ~np.isnan(tone_arr)
+            tone_obs = np.where(obs_mask, tone_arr, 0.0)
+            denom = _Wemb[:, obs_mask].sum(axis=1)
+            with np.errstate(invalid='ignore', divide='ignore'):
+                _ept = (_Wemb @ tone_obs) / denom
+            _track_tone_vecs[_track] = np.where(denom > 0, _ept, np.nan)
 
         for idx, bank in enumerate(bank_list):
             # 平均相似度: 该银行与所有其他银行的 Embedding 余弦相似度均值

@@ -71,7 +71,7 @@ filenames:
   output_21_tone_llms_full: 21_tone_llms_full.parquet     # 21_tone_llms.py → LLM 全量结果（含 llm_verified=True/False，供验证模块使用）
   output_22_words_tone: 22_words_tone.parquet             # 22_tone_words.py → 词典法情感分析
   output_23_bert_tone: 23_bert_tone.parquet               # 23_tone_berts.py → BERT 模型情感分析
-  output_24_herd_decay: 24_herd_decay.parquet             # 24_herd_decay_processor.py → 跟风衰减权重 (Tetlock 2011, JF)
+  output_24_herd_decay: 24_herd_decay.parquet             # 24_herd_decay_processor.py → 跟风衰减权重 (Tetlock 2011, RFS)
   output_32_human_sample: 32_human_samples.xlsx           # 32_news_llms_human.py → 人工验证样本（含真伪与情感标注）
   output_40_panel_yearly: 40_panel_yearly.parquet          # 45_panel_export_main.py → 年度平衡面板 (Bank-Year)
   output_40_article_bank: 40_article_bank_level.parquet    # 45_panel_export_main.py → 展开后文章-银行级数据

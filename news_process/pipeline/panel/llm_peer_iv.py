@@ -688,7 +688,11 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                     cov_vals = panel.loc[peer_mask, coverage_col]
                     if cov_vals.notna().any():
                         iv_entry[f'llm_peer_coverage_iv_{c_str}'] = cov_vals.mean()
-            # 主回归用无后缀变量: cutoff=0.80 (Hoberg & Phillips 2016 TNIC 标准)
+            # 主回归用无后缀变量: cutoff=0.80
+            # ⚠ 命名勘误 (metric-audit 2026-06-10): 此 cutoff 是 difflib.get_close_matches
+            # 的字符串匹配严格度 (用于把 LLM 输出的银行名归一到规范名), 不是 TNIC 的
+            # 同行语义相似度阈值。Hoberg & Phillips (2016) 的 TNIC "10 closest peers" 上限
+            # (见 L264) 与本 difflib cutoff 是两回事, 勿将 cutoff 扫描标注为 TNIC/Cao 相似度阈值。
             # 与 45_panel_export_main.py Stata 标签 'llm_peer_tone_iv_full' 等对齐
             _primary_maps = [
                 ('llm_peer_count', 'llm_peer_count_80'),
@@ -748,7 +752,8 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                 c_str = f"{int(c*100)}"
                 idx_val = co_with_peer / len(articles)
                 compete_entry[f'peer_compete_idx_{c_str}'] = idx_val
-                # 主回归用无后缀变量 (cutoff=0.80 TNIC 标准)
+                # 主回归用无后缀变量: difflib 名归一 cutoff=0.80 (⚠ 非 TNIC 相似度阈值,
+                # 与 L691 同口径勘误 — cutoff 是 difflib.get_close_matches 串匹配严格度)
                 if c == 0.80:
                     compete_entry['peer_compete_idx'] = idx_val
                 has_data = True

@@ -125,6 +125,44 @@ def _append_columns(frame: pd.DataFrame, columns: dict) -> pd.DataFrame:
     return pd.concat([frame, pd.DataFrame(columns, index=frame.index)], axis=1).copy()
 
 
+def _build_llm_valid_masked_weights(frame: pd.DataFrame, weight, wtag: str) -> dict:
+    """为 LLM 族 (numerator NA-skip) 构建 valid-mask 权重列, 供 encode 作 VW/MW/HW 加权
+    均值的**匹配分母** (Σ weight over valid) —— 修 encode-01: 原 valid-only 分子 ÷ physical
+    分母 (Σ weight over all) 使加权语调系统性向 0 衰减 (随 LLM-invalid 占比增大)。
+
+    仅 LLM 族需要: 其 score 为 nullable <NA>(无效行) → 分子 NA-skip。**dict/BERT 族不建**
+    (score=0 非 NA, 分子分母同为全物理域, 加 mask 会反向失配; 见 encode.py VW 段说明)。
+
+    Args:
+        frame: 含 llm_vote_score / {short}_score / llm_prob_score {track} 列的篇级 df。
+        weight: pd.Series (两轨同权重, 如 VW mention_density / MW media_authority) 或
+                dict {track: Series} (如 HW 双轨独立权重 hw_by_track)。
+        wtag: 'vw' / 'mw' / 'hw' (列名标签)。
+
+    Returns:
+        dict {col_name: masked_series}; 列名 ``_wd_{wtag}_{group}{track}``,
+        group ∈ {llm, <每个模型 short>, prob}。masked = weight.where(score.notna()),
+        无效行置 NaN → groupby('sum') 自动跳过 → Σ weight over valid。
+    """
+    out = {}
+    for track in ['_full', '_ctx']:
+        if f'llm_vote_score{track}' not in frame.columns:
+            continue
+        wt = weight[track] if isinstance(weight, dict) else weight
+        # llm-aggregate validity (llm_vote_score / llm_vote_cont 同一行有效性)
+        out[f'_wd_{wtag}_llm{track}'] = wt.where(frame[f'llm_vote_score{track}'].notna())
+        # 逐模型 (各自有效性)
+        for short in LLM_MODELS:
+            sc = f'{short}_score{track}'
+            if sc in frame.columns:
+                out[f'_wd_{wtag}_{short}{track}'] = wt.where(frame[sc].notna())
+        # logit-to-score 概率 (自身有效性)
+        sp = f'llm_prob_score{track}'
+        if sp in frame.columns:
+            out[f'_wd_{wtag}_prob{track}'] = wt.where(frame[sp].notna())
+    return out
+
+
 
 # ============================================================================
 # 8 + 9. Diagnostics + Export — extracted to export.py in Phase 2b for
@@ -255,6 +293,9 @@ def main():
             src_prob = f'llm_prob_score{track}'
             if src_prob in df.columns:
                 weighted_cols[f'llm_prob_score_w{track}'] = df[src_prob] * w
+        # fix(encode-01, metric-audit 2026-06-10): 为 LLM 族建 valid-mask 权重 (Σ w over
+        # valid), 供 encode 作匹配分母, 消除 valid-only 分子/physical 分母失配 (向零衰减)。
+        weighted_cols.update(_build_llm_valid_masked_weights(df, w, 'vw'))
         df = _append_columns(df, weighted_cols)
         logger.info(f"  已生成 {len(weighted_cols)} 个加权列")
     else:
@@ -296,10 +337,12 @@ def main():
             src_prob = f'llm_prob_score{track}'
             if src_prob in df.columns:
                 weighted_cols[f'llm_prob_score_mw{track}'] = df[src_prob] * mw
+        # fix(encode-01, 2026-06-10): LLM 族 valid-mask 媒体权威权重分母
+        weighted_cols.update(_build_llm_valid_masked_weights(df, mw, 'mw'))
         df = _append_columns(df, weighted_cols)
         logger.info(f"  已生成 {len(weighted_cols)} 个媒体权威性加权列")
 
-    # --- 3d. 跟风衰减加权列预计算 (Tetlock 2011, JF; Edwards 2001 ORM) ---
+    # --- 3d. 跟风衰减加权列预计算 (Tetlock 2011, RFS; Edwards 2001 ORM) ---
     # v3.6.0 (Plan E P1 B3): 双轨权重独立施加 (remove-title-track 后收为 _full / _ctx)
     #   _full track → herd_weight_full
     #   _ctx  track → herd_weight_ctx
@@ -354,6 +397,8 @@ def main():
             src_prob = f'llm_prob_score{track}'
             if src_prob in df.columns:
                 weighted_cols[f'llm_prob_score_hw{track}'] = df[src_prob] * hw
+        # fix(encode-01, 2026-06-10): LLM 族 valid-mask 跟风衰减权重分母 (双轨独立权重)
+        weighted_cols.update(_build_llm_valid_masked_weights(df, hw_by_track, 'hw'))
         df = _append_columns(df, weighted_cols)
         logger.info(f"  已生成 {len(weighted_cols)} 个跟风衰减加权列 "
                     f"({'双轨独立权重' if has_dual_hw else '单轨 legacy 权重'})")
@@ -1492,7 +1537,17 @@ def main():
             # (实测 max=2.387)。先转 float64 再算, 数学域恢复 [-1,1]。
             P = panel[pos_col].fillna(0).astype('float64')
             N = panel[neg_col].fillna(0).astype('float64')
-            total_sq = (P + N) ** 2
+            # fix(jf-denominator, metric-audit 2026-06-10): canonical Janis-Fadner (1965) /
+            # Deephouse (2000, J.Mgmt 26(6)) 的分母是 t² (t = 全部有效编码数 = 正+负+**中性**),
+            # 而非 (P+N)²。原 (P+N)² 丢弃中性覆盖, 对中性主导的 bank-year 系统性高估 |JF|
+            # (P=10/N=0/中性90: 原式=1.0 vs canonical=0.01)。t 取 n_articles_llm_valid{track}
+            # (= pos+neg+neu 有效投票数, 已验证 (P+N)≤该列)。范围仍守 [-1,1] (下方 assert)。
+            _tcol = 'n_articles_llm_valid' if track == '_full' else f'n_articles_llm_valid{track}'
+            if _tcol in panel.columns:
+                T = panel[_tcol].fillna(0).astype('float64')
+            else:
+                T = P + N  # 回退 (旧 schema 无 valid 计数): 退化为有效方向口径
+            total_sq = T ** 2
             # 安全除法: 防止 0/0
             safe_denom = total_sq.replace(0, np.nan)
 

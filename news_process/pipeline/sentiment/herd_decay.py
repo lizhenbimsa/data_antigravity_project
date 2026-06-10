@@ -19,7 +19,7 @@ v3.6.0 (Plan E P1 B3) 双轨化升级:
   v3.6.0 起按 full / ctx 双轨独立判定。
 
 学术依据:
-  - Tetlock (2011, JF): 媒体新闻的信息冗余与重复效应
+  - Tetlock (2011, RFS 24(5):1481-1512): 媒体新闻的信息冗余与重复效应
   - Sautner et al. (2023, JF): 文本相似度驱动的曝光度度量
   - Edwards (2001, ORM): measurement-treatment matching (双轨化动因)
 
@@ -153,7 +153,12 @@ def _bucketed_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
         # i:i+1 切片保持 2D (稀疏 CSR 与 numpy dense 通用; 裸 [i] 在 dense 下退化 1D)
         sims = 1.0 - pairwise_distances(
             tfidf_matrix[i:i + 1], tfidf_matrix[lo:i], metric='cosine')[0]
-        similar_counts[i] = int(np.count_nonzero(sims >= SIMILARITY_THRESHOLD))
+        # fix(herd-bucket-nat, metric-audit 2026-06-10): 排除窗内 NaT 候选, 与 _dense
+        # (nan_to_num>window 已排除 NaT) 逐位对齐。生产 sort 使 NaT 末位故一般不触发, 但
+        # 任意 NaT 排列下双指针窗 [lo,i) 可能含内部 NaT, 此守卫保证无条件等价 (3rd-layer P3)。
+        _cand_valid = ~np.isnan(dates_num[lo:i])
+        similar_counts[i] = int(
+            np.count_nonzero((sims >= SIMILARITY_THRESHOLD) & _cand_valid))
     return similar_counts
 
 
@@ -286,7 +291,11 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
         if len(bank_df) < 2:
             continue
 
-        bank_df = bank_df.sort_values('日期').copy()
+        # fix(herd-decay-01, metric-audit 2026-06-10): 同日文章排序须确定 (原默认 quicksort
+        # 不稳定 + 无次键 → 同日 tie 顺序 run-to-run 非确定 → 加权 llm_vote_tone_hw 漂移)。
+        # 加 kind='stable' + 内容派生次键 (标题, 内容) 使同日次序内容确定、跨运行可复现。
+        _sort_keys = ['日期'] + [c for c in ('标题', '内容') if c in bank_df.columns]
+        bank_df = bank_df.sort_values(_sort_keys, kind='stable').copy()
         indices = bank_df.index.tolist()
         dates = bank_df['日期'].tolist()
 

@@ -465,7 +465,7 @@ def _build_lda_jsd_matrix(texts, n_banks):
     jsd_mat = np.zeros((n_banks, n_banks))
     for i in range(n_banks):
         for j in range(i + 1, n_banks):
-            d = jensenshannon(theta[i], theta[j])  # sqrt(JSD) ∈ [0,1]
+            d = jensenshannon(theta[i], theta[j], base=2)  # sqrt(JSD) ∈ [0,1] (fix 2026-06-10: 原缺 base= → 默认 base e 上界 √ln2≈0.833≠1, 与 [0,1] 声称不符)
             jsd_mat[i, j] = jsd_mat[j, i] = d
     np.fill_diagonal(jsd_mat, np.nan)
     return jsd_mat, theta  # jsd_mat: distance ∈ [0,1]; theta: ndarray (n_banks, K) 主题分布
@@ -1121,8 +1121,8 @@ def _compute_lda_coherence(agg_df):
                       enumerate(df_t1['target_bank'].values)}
             for i, bank in enumerate(df_t['target_bank'].values):
                 if bank in t1_map:
-                    # jensenshannon 返回 √JSD ∈ [0,1] (Lin, 1991)
-                    d = jensenshannon(theta[i], theta[t1_map[bank]])
+                    # jensenshannon 返回 √JSD ∈ [0,1] (Lin, 1991; base=2 使上界=1)
+                    d = jensenshannon(theta[i], theta[t1_map[bank]], base=2)
                     coherence[(bank, year)] = float(1.0 - d)
         except Exception as e:
             logger.warning(f"    LDA 连贯性 {year}: {type(e).__name__}: {e}, 跳过")

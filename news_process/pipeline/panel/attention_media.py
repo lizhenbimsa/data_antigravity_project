@@ -222,7 +222,13 @@ def _validate_attention_treatments(panel: pd.DataFrame) -> None:
 
 
 def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
-    """P2 bank_fintech_attention 处理变量物化 (Hassan 2019 QJE firm-level exposure)。
+    """P2 bank_fintech_attention 处理变量物化。
+
+    ⚠ 锚点更正 (metric-audit 2026-06-10): 主处理 attention_index = ln(1+Σ intensity) 是
+    **extensive 累积曝光**(未按文章数/token 归一), 对应 Fang & Peress (2009 JF) 式覆盖量,
+    **不是** Hassan et al. (2019 QJE) 的 intensive 归一化份额 (PRisk = 命中 bigram / 总 bigram)。
+    若要严格对齐 Hassan QJE intensive 曝光, 应以同函数内的 attention_pct / attention_intensity_density
+    (N_ft/N_all 或强度密度) 作 spec primary。attention_index 当前应表述为 extensive 覆盖加权曝光。
 
     产出 spec 钦定 4 列 + 双轨/派生 (双轨 = 互为稳健性, 用户裁定 2026-06-05):
       attention_index_full / attention_index_ctx          ln(1+Σ intensity) 累积曝光强度 (DUAL)

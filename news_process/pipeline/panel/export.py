@@ -730,10 +730,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'llm_vote_tone_ctx_lag1':              'Lagged Tone t-1 (Ctx)',
                 'tone_reversal_full':                  'Tone Reversal t-(t-1) (Full)',
                 'tone_reversal_ctx':                   'Tone Reversal t-(t-1) (Ctx)',
-                # 跟风新闻检测 (Tetlock 2011, JF)
+                # 跟风新闻检测 (Tetlock 2011, RFS)
                 'avg_herd_weight':                     'Avg Herd Decay Weight 1/(1+N) (Tetlock 2011)',
                 'min_herd_weight':                     'Min Herd Decay Weight (Tetlock 2011)',
-                # 跟风衰减加权情感 (Tetlock 2011, JF)
+                # 跟风衰减加权情感 (Tetlock 2011, RFS)
                 'llm_vote_tone_hw_full':               'LLM Vote Tone (Herd-Decay Wt, Full)',
                 'llm_vote_tone_hw_ctx':                'LLM Vote Tone (Herd-Decay Wt, Ctx)',
                 'llm_vote_cont_hw_full':               'LLM Vote Cont (Herd-Decay Wt, Full)',

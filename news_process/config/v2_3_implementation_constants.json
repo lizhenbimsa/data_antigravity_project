@@ -120,7 +120,7 @@
     "speedup_400k": "~50000× (原 10+ 天 → 现 20 min)",
     "duals": {"surface": "MinHash + datasketch jaccard", "semantic": "Faiss + SBERT cosine"},
     "g_d2_1_gate": "surface vs semantic corr ∈ [0.3, 0.7]",
-    "anchor_papers": ["Tetlock (2011) JF 66(5):1481-1512", "Gentzkow et al. (2019) JEL 57(3)"]
+    "anchor_papers": ["Tetlock (2011) RFS 24(5):1481-1512", "Gentzkow et al. (2019) JEL 57(3)"]
   },
   "v3_7_0_pr_12_alpha": {
     "shim": "39f_cross_media_alpha.py",

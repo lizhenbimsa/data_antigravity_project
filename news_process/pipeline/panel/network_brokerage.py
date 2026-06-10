@@ -30,9 +30,10 @@
   Manski, C. F. (1993). Identification of endogenous social effects:
   The reflection problem. The Review of Economic Studies, 60(3), 531-542.
   DOI: 10.2307/2298123
-  → industry_neg_shock 使用 LOO 规避反射问题:
-    即银行 i 的冲击值 = 同年其余所有银行 j≠i 的负面比率均值,
-    排除自身以打破 Manski 所述的"镜像效应"。
+  → industry_neg_shock 使用 LOO 消除机械性自相关:
+    即银行 i 的冲击值 = 同年其余所有银行 j≠i 的负面比率均值, 排除自身。
+    ⚠ 识别更正 (2026-06-10): 同期 LOO 仅去自相关, **不**解决 Manski 反射/同时性
+    (同期同行结果仍由共同冲击联合决定); 作 IV/treatment 须滞后 t-1 或工具化。
 
 输出变量 (Stata 回归可用):
   - brokerage_eigen_cent: 二分图特征向量中心度
@@ -299,8 +300,11 @@ def compute_industry_neg_shock(panel: pd.DataFrame) -> pd.DataFrame:
       The reflection problem. The Review of Economic Studies, 60(3), 531-542.
       DOI: 10.2307/2298123
       → 如果直接使用行业均值 (含自身), 银行自身的负面新闻会同时
-        出现在因变量和自变量中, 产生机械性相关。LOO 通过排除银行
-        自身来打破这种"反射效应", 满足排他性约束。
+        出现在因变量和自变量中, 产生机械性相关。LOO 排除银行自身
+        **消除这一机械性自相关**。
+      ⚠ 识别更正 (2026-06-10): 同期 (year t) LOO **不**解决 Manski (1993) 反射/
+        同时性问题 (同期同行结果仍由共同行业冲击联合决定), 不构成排他性约束的满足;
+        作 IV/treatment 须滞后到 t-1 或工具化 (参 fire_sale 已正确滞后 brokerage 至 t-1)。
 
     数据源 (上游管线):
       neg_count_full: 41_panel_encode_aggregate.py — LLM 投票判定为负面的文章数

@@ -581,7 +581,8 @@ def build_idf_weights(
     设计决策:
       1. 为了和特征抽取保持严格语义同构，使用 jieba.cut 并行分词来统计 Document Frequency，
          坚决废除 Aho-Corasick 子匹配以避免把 “大家” 错误计为 “大”。
-      2. IDF 在全文语料（text_col='内容'）上统一计算一次，两轨共享。
+      2. IDF 在与 TF 加权同一语料（caller 传 text_col='content_full'，含标题；缺则回退
+         '内容'）上统一计算一次，两轨共享 (fix 2026-06-10: 原裸 '内容' 与 TF 打分语料不一致)。
       3. 均值归一化确保 IDF 加权后得分量级 ≈ 等权版，可共享阈值。
       4. P1/P99 Winsorization 防止极端稀有词主导或极高频词归零。
 
@@ -1294,7 +1295,12 @@ def main():
         logger.info("IDF 加权稳健性检验 (Gentzkow et al. 2019, JEL §2.2)")
         logger.info("═" * 60)
 
-        idf_weights = build_idf_weights(df, ALL_DICTIONARIES, text_col='内容')
+        # fix(tone-words-idf-corpus, metric-audit 2026-06-10): IDF 的 document-frequency 须在
+        # 与 TF 加权**同一语料**上统计 (Gentzkow-Kelly-Taddy 2019 JEL §2.2)。TF 打分文本是
+        # 含标题的 content_full (病根A 修后), 故 IDF 亦应在 content_full 上算, 而非裸 '内容'
+        # (无标题) → 否则 IDF 语料 ≠ TF 语料, 标题词的 df 被低估。缺 content_full 回退 '内容'。
+        _idf_text_col = 'content_full' if 'content_full' in df.columns else '内容'
+        idf_weights = build_idf_weights(df, ALL_DICTIONARIES, text_col=_idf_text_col)
         IDF_DICTIONARIES = [
             (name, _build_idf_weighted_dict(d, idf_weights.get(name, {})))
             for name, d in ALL_DICTIONARIES

@@ -265,7 +265,7 @@ STAGES_MAIN: list[StageSpec] = [
         timeout=21600,  # 4-6 h on GPU, 12-24 h on CPU for 400k articles
     ),
     # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标.
-    # 学术依据: Tetlock (2011) JF 66(5):1481; Gentzkow-Shapiro-Taddy (2019) JEL.
+    # 学术依据: Tetlock (2011) RFS 24(5):1481-1512; Gentzkow-Shapiro-Taddy (2019) JEL.
     StageSpec(
         name="阶段18: Article-level staleness 双指标 (surface MinHash + semantic Faiss)",
         script="18_article_staleness.py",

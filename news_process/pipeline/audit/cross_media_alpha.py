@@ -93,11 +93,17 @@ def detect_bank_events(
         .reset_index(name='n_per_day')
     )
     by_day.columns = ['target_bank', 'event_date', 'n_per_day']
-    # 每 bank p90
-    p90 = by_day.groupby('target_bank')['n_per_day'].quantile(N_ARTICLE_PERCENTILE).reset_index()
-    p90.columns = ['target_bank', 'p90']
-    by_day = by_day.merge(p90, on='target_bank')
-    events = by_day[by_day['n_per_day'] >= by_day['p90']][['target_bank', 'event_date']]
+    # 每 bank p90 + 每 bank min (方差守卫用)
+    _agg = (by_day.groupby('target_bank')['n_per_day']
+            .agg(p90=lambda s: s.quantile(N_ARTICLE_PERCENTILE), pmin='min')
+            .reset_index())
+    by_day = by_day.merge(_agg, on='target_bank')
+    # fix(cmalpha-p90, review-closure 2026-06-10 F2): 用 '>=' p90 保真顶分位 spike(含落在 max
+    # 的合法峰值, 整数小样本日计数下 p90 常 == max), 但仅对**有方差**的 bank (p90 > pmin) 判
+    # 事件 —— 退化源是常量/近常量分布 (p90==pmin, 如每日恒 1 篇), 该守卫使其 0 事件; 真分布
+    # 仍取 >= 高分位的全部峰值。修正前版严格 '>' 会漏掉 p90==max 的真峰值 (over-correction)。
+    events = by_day[(by_day['n_per_day'] >= by_day['p90'])
+                    & (by_day['p90'] > by_day['pmin'])][['target_bank', 'event_date']]
     return events.reset_index(drop=True)
 
 

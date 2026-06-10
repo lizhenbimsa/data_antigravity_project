@@ -90,8 +90,19 @@ def _build_masked_panel_stats(df: pd.DataFrame, max_year: int,
     }
     
     # 核心情感变量统计
+    # fix(temporal-mask-column, metric-audit 2026-06-10): stage-21 输出(本模块所读)只有
+    # 类别列 llm_sentiment{track}, 无 llm_vote_score{track}(后者由下游 encode.py 物化)。
+    # 原 `if score_col in df.columns` 守卫使整段 tone 统计在真输入上静默跳过 → 前视偏误
+    # 稳健性检验从不运行(panel_tone_* 恒 N/A, 裁决失真)。此处就地从 llm_sentiment 派生
+    # 数值票(与 encode.py 同口径: 正面=1/中性=0/负面=-1)。
+    _SENT_MAP = {'正面': 1, '中性': 0, '负面': -1}
     for track in ['_full', '_ctx']:
         score_col = f'llm_vote_score{track}'
+        if score_col not in df_masked.columns:
+            _sent_col = f'llm_sentiment{track}'
+            if _sent_col in df_masked.columns:
+                df_masked = df_masked.copy()
+                df_masked[score_col] = df_masked[_sent_col].map(_SENT_MAP)
         if score_col in df_masked.columns:
             panel = df_masked.groupby(['target_bank', 'year']).agg(
                 tone_mean=(score_col, 'mean'),

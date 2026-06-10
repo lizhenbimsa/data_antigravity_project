@@ -65,9 +65,12 @@ def compute_authoritative_similarity(df_exploded, panel):
     【学术基础】
     本模块的测度范式严格依据以下顶刊文献的 "Text-based Anchor Vectorization" 框架构建：
     - Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level
-      political risk: Measurement and effects. The Quarterly Journal of Economics, 
+      political risk: Measurement and effects. The Quarterly Journal of Economics,
       134(4), 2135-2202. https://doi.org/10.1093/qje/qjz021
-      (注: 采用该文献中经典的“计算微观企业文本向量与宏观政策基准向量的余弦相似度”思想)
+      (注 [锚点勘误 2026-06-10]: Hassan et al. 2019 仅提供"将宏观政策文本嵌入与微观企业
+       共享向量空间"的概念动因; 其 firm-level political risk 实为窗口 bigram 频率, 并非
+       "微观向量与宏观锚向量的余弦相似度"。本模块实际采用的 cosine-to-anchor 操作化
+       归功于下方 Hoberg & Phillips (2016) / Guzman & Li (2023), 勿将余弦公式归 Hassan。)
     - Hoberg, G., & Phillips, G. (2016). Text-based network industries and endogenous
       product differentiation. Journal of Political Economy, 124(5), 1423-1465.
       https://doi.org/10.1086/688176

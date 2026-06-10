@@ -287,7 +287,7 @@ sentiment_analysis:
 # [模块二 D-group] Stage 18 Article-level staleness 双指标 (surface MinHash + semantic Faiss) (D2)
 # ------------------------------------------------------------------------------
 # O2 finding (2026-05-25): 改 opt-in (faiss-cpu + datasketch 依赖). 启用前置依赖已
-# pip 安装到位 (2026-06-01). 学术依据: Tetlock (2011) JF 66(5):1481; Gentzkow-Shapiro-Taddy (2019) JEL.
+# pip 安装到位 (2026-06-01). 学术依据: Tetlock (2011) RFS 24(5):1481-1512; Gentzkow-Shapiro-Taddy (2019) JEL.
 article_staleness:
   enabled: true                # opt-in 显式启用 (2026-06-01 全功能打开)
 

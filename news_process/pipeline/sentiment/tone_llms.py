@@ -1195,7 +1195,15 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             ps_result = compute_prob_score(s_label, s_conf)
             per_model_parsed[f"{short}_prob_score"] = ps_result['prob_score']
             per_model_parsed[f"{short}_prob_source"] = ps_result['prob_source']
-            prob_scores.append(ps_result['prob_score'])
+            # fix(tonellms-prob-score, metric-audit 2026-06-10 升级 P1): 仅 verified=True 模型
+            # 计入 avg_prob_score —— 镜像离散投票 s_votes_verified_only 的 `if v:` 门控
+            # (v6/F2 契约), 使连续稳健/falsification 主 DV (avg_prob_score) 与离散主 DV
+            # (final_s) 算在**同一模型子集**上, 修复二者子集不一致对 falsification 的结构性破坏
+            # (盘实测 28.9% 情感票来自 verified=False 模型)。{short}_prob_score 仍逐模型存档供
+            # 审计; 仅聚合的 prob_scores 列表收紧。$0 (暖缓存) 但变 panel 值 → 落盘待 production
+            # run (stage 21 piecemeal 重跑注入行噪声, 见 memory stage21-determinism-anchor)。
+            if per_model_parsed.get(f"{short}_verified") is True:
+                prob_scores.append(ps_result['prob_score'])
         # Binary prob_score for substantiveness
         subst_label = per_model_parsed.get(f"{short}_innovation_substantiveness")
         subst_conf = per_model_parsed.get(f"{short}_innovation_substantiveness_confidence", 0.0)
@@ -1222,6 +1230,12 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             collab_prob_scores.append(collab_bin["prob_score"])
 
     avg_prob_score = sum(prob_scores) / len(prob_scores) if prob_scores else float('nan')
+    # fix(tonellms-probgate-articlelevel, review-closure 2026-06-10 PROBGATE-1): 离散主 DV
+    # final_s 在 final_v=False(整文被多数判非 fintech)或 tie(undefined)时为 None; 连续稳健/
+    # falsification DV avg_prob_score 须同步置 nan, 否则当多数拒但少数 verified 模型仍投情感时,
+    # 连续 DV 仍含该泄漏情感 → 与离散 DV 不在同一观测子集。final_s is None 覆盖拒绝与 tie 两种。
+    if final_s is None:
+        avg_prob_score = float('nan')
     avg_subst_prob_score = (sum(subst_prob_scores) / len(subst_prob_scores)
                             if subst_prob_scores else float('nan'))
     avg_locus_prob_score = (sum(locus_prob_scores) / len(locus_prob_scores)

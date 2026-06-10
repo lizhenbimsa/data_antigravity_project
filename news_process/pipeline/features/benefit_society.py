@@ -620,8 +620,11 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
 
             # 正/负态度占比 (P1 修复 metric-audit 2026-06-02; fix(benefitfrac-01)): 余弦投影
             # 受嵌入空间各向异性影响, 绝对 sign-at-0 阈值使 benefit_pos_frac 近饱和退化
-            # (实测 ~96.9% 文章投影>0, 作回归自变量信息量趋零). 各向异性校正 (Mu &
-            # Viswanath 2018 All-but-the-Top; Ethayarajh 2019)。**以全样本投影中位数为中心**:
+            # (实测 ~96.9% 文章投影>0, 作回归自变量信息量趋零).
+            # 注 [锚点勘误 2026-06-10]: Mu & Viswanath (2018, All-but-the-Top) 与 Ethayarajh
+            # (2019) 仅**记录嵌入空间各向异性问题** (动因), 二者的方法是去主成分/whitening,
+            # **不是**中位数中心化。下面"以全样本投影中位数为中心"是本项目针对左偏分布的
+            # 操作化处理, 勿声称实现了 Mu-Viswanath/Ethayarajh 的各向异性校正法。**以全样本投影中位数为中心**:
             # 原 mean-center 在左偏分布 (skew≈-1.23) 下仅得 P(>mean)=0.5634≠0.5, 未达声称的
             # ~50% 平衡基线; median-center 由构造保证 P(>median)≈0.5, 对投影偏态稳健。
             # benefit_mean (连续主测度) 不变, 其绝对偏移由 bank/year FE 吸收.

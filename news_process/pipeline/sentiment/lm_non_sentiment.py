@@ -37,10 +37,16 @@ v0.2 由中文金融专家扩至 LM 2011 原版 1219 词覆盖 (G-A1.1 准入门
 from __future__ import annotations
 
 import json
+import re
 from functools import lru_cache
 from pathlib import Path
 
 import jieba
+
+# fix(lmfls-01, 2026-06-10): 纯标点/纯数字/下划线 token 正则 (LM 2011 词数分母须排除)。
+# \w (re.UNICODE 默认) 含 CJK 与字母 → [\W\d_]+ 仅匹配全标点/全数字/下划线串; 含一个汉字
+# 或字母的 token 不会 fullmatch, 被保留为 word。
+_LMFLS_NONWORD_RE = re.compile(r'[\W\d_]+')
 
 _LM_DICT_PATH = (
     Path(__file__).resolve().parents[2] / 'config' / 'lm_non_sentiment_dicts.json'
@@ -115,7 +121,12 @@ def _compute_lm_non_sentiment_for_text(
         return empty
 
     tokens = list(jieba.cut(text))
-    n_tokens = len([t for t in tokens if t.strip()])
+    # fix(lmfls-01, metric-audit 2026-06-10): Loughran-McDonald (2011, JF) 的词表占比分母是
+    # **词数** (排除纯数字与标点 token), 原 n_tokens 含 ~19% 标点/纯数字 token → 四个 frac
+    # (uncert/litig/constr/modal_strong) 系统性下偏。仅计含字母/汉字的 word token。
+    # 注: 数值分子 counts 不变 (LM 词典词均为真词, 标点/数字本不命中), 仅分母收紧。
+    word_tokens = [t for t in tokens if t.strip() and not _LMFLS_NONWORD_RE.fullmatch(t.strip())]
+    n_tokens = len(word_tokens)
     if n_tokens == 0:
         return empty
 

@@ -62,13 +62,13 @@ theory:
     channel_decomposition_required: true  # V4 F2.1 必加
 
 outcome:
-  primary: z_score                           # 与第 10 篇共享, Laeven-Levine 2009 JFE 标准
-  primary_formula: "(roa + capital_adequacy_ratio) / sigma_roa_5y_rolling"
+  primary: z_score                           # 与第 10 篇共享。⚠ 锚点更正 2026-06-10: 资本项用监管 Basel CAR (RWA 加权), 故为 *CAR-based Z-score 变体*, 非 Laeven-Levine 2009 JFE 原版 (后者资本项=账面 equity/total-assets)。投稿前须如实标注为 CAR 变体。
+  primary_formula: "(roa + capital_adequacy_ratio) / sigma_roa_5y_rolling"  # 注: capital_adequacy_ratio=监管 CAR, 非 L&L 的 equity/assets
   secondary:
     - npl_formation_rate     # Bushman-Williams 2015 JAR
     - rwa_to_ta_ratio        # Demirgüç-Kunt & Huizinga 2010 JFE
     - sigma_roa_5y_rolling   # Houston 2010 JFE
-    - loan_loss_provision_discretion  # Bushman-Williams 2012 JAE DIRECT MATCH (V4 F-Comp.1)
+    - loan_loss_provision_discretion  # ⚠ 更正 2026-06-10: 当前实现是裸 LLP/贷款比率, **非** Bushman-Williams 2012 JAE 的残差式 discretion (残差回归未实现, 模板 12_table3_bw2012_llp_residual 不存在)。投稿前须 (a) 重命名为 loan_loss_provision_ratio 并去 "DIRECT MATCH/discretion" 标注, 或 (b) 实现基本面回归真正产出残差。勿当 BW2012 discretion 呈现。
   enrichment_source: "M0.5.x (共享第 10 篇 outcome panel; DC2 dry-run pending)"
   data_feasibility_status: pending  # 与第 10 篇同步
   hierarchy:

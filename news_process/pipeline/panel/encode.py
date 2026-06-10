@@ -666,7 +666,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
 
     # --- F3. 媒体权威性加权聚合 (Holzman et al. 2023, TAR) ---
     agg['sum_media_authority_weight'] = ('media_authority_weight', 'sum')
-    # --- F4. 跟风衰减权重 (Tetlock 2011, JF) — 作为面板控制变量 ---
+    # --- F4. 跟风衰减权重 (Tetlock 2011, RFS) — 作为面板控制变量 ---
     # v3.6.0 (Plan E P1 B3): herd_weight 双轨独立 (Edwards 2001 ORM)
     # 兼容: 若仅存在 v3.5.0 legacy herd_weight 单列, 双轨均映射到该列
     # (退化为单轨, 但保持下游引用稳定)
@@ -703,7 +703,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     agg['min_herd_weight_full'] = (_hw_full_src, 'min')
     agg['avg_herd_weight_ctx'] = (_hw_ctx_src, 'mean')
     agg['min_herd_weight_ctx'] = (_hw_ctx_src, 'min')
-    # --- F5. 跟风衰减加权聚合 (Tetlock 2011, JF) ---
+    # --- F5. 跟风衰减加权聚合 (Tetlock 2011, RFS) ---
     # 双轨 sum 用于下游 hw_denom 除法 (encode.py:1200-1214)
     agg['sum_herd_weight_full'] = (_hw_full_src, 'sum')
     agg['sum_herd_weight_ctx'] = (_hw_ctx_src, 'sum')
@@ -812,6 +812,14 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         agg[f'llm_prob_score_w_sum{track}'] = (f'llm_prob_score_w{track}', 'sum')
         agg[f'llm_prob_score_mw_sum{track}'] = (f'llm_prob_score_mw{track}', 'sum')
         agg[f'llm_prob_score_hw_sum{track}'] = (f'llm_prob_score_hw{track}', 'sum')
+
+    # fix(encode-01, metric-audit 2026-06-10): LLM 族 valid-mask 权重和 (Σ weight over valid),
+    # 作 VW/MW/HW 加权语调的匹配分母 (源列 _wd_{wtag}_{group}{track} 由 runner._build_llm_
+    # valid_masked_weights 预计算; 缺源由 valid_agg 自动过滤)。group ∈ {llm, <models>, prob}。
+    for track in ['_full', '_ctx']:
+        for wtag in ('vw', 'mw', 'hw'):
+            for grp in ['llm', *LLM_MODELS, 'prob']:
+                agg[f'sum_wd_{wtag}_{grp}{track}'] = (f'_wd_{wtag}_{grp}{track}', 'sum')
 
     # Plan v1.37 P2 §5.3.2: 8 new bank-year columns for binary prob_score
     # (avg_{subst,locus}_prob_score_{full,ctx} mean + std). Positive class
@@ -1439,22 +1447,30 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         'ln_news_coverage': np.log1p(panel['n_articles']),
     }
 
-    # --- Value-weighted Tone 计算 (Hassan et al. 2019, QJE; 双轨) ---
-    # 公式: VW_tone_i = Σ(mention_density_j × tone_j) / Σ(mention_density_j)
-    # 其中 j 遍历 Bank i 在 Year t 下的所有文章。
-    # 提及密度越高的文章对聚合情感的贡献越大,
-    # 这反映了"银行作为核心主题的文章应有更大权重"的直觉。
+    # --- Value-weighted / Media-authority / Herd-decay Tone (Hassan 2019 QJE /
+    #     Holzman 2023 TAR / Tetlock 2011 RFS; 双轨) ---
+    # 公式: W_tone_i = Σ(weight_j × tone_j) / Σ(weight_j)。
+    # fix(encode-01, metric-audit 2026-06-10): **LLM 族**(llm_vote_tone/cont/prob, 各
+    # {short}_tone) 分子 = Σ(llm_score · weight), 因 llm_score 为 nullable <NA>(无效行) →
+    # sum 跳过无效行 = valid-only 分子; 若分母用 physical Σweight 则 Σ_valid(w·s)/Σ_all(w)
+    # 系统性向 0 衰减。故 LLM 族改用 valid-mask 分母 sum_wd_{wtag}_{group}{track}
+    # (= Σ weight over {i: 该族 score 有效}, 由 runner._build_llm_valid_masked_weights 预计算)。
+    # ⚠ dict/BERT 族 **不改**: 词典 score=0(非 NA)/BERT prob=0(非 NA), 分子分母同全物理域,
+    # 加 mask 会反向失配 (over-correct)。缺 mask 列 → 回退 physical (向后兼容)。
+    def _llm_denom(wtag, grp, track, physical):
+        col = f'sum_wd_{wtag}_{grp}{track}'
+        return panel[col].replace(0, np.nan) if col in panel.columns else physical
     if 'sum_mention_density' in panel.columns:
         denom = panel['sum_mention_density'].replace(0, np.nan)
         for track in ['_full', '_ctx']:
             if f'llm_vote_score_w_sum{track}' in panel.columns:
-                panel_new_cols[f'llm_vote_tone_vw{track}'] = panel[f'llm_vote_score_w_sum{track}'] / denom
+                panel_new_cols[f'llm_vote_tone_vw{track}'] = panel[f'llm_vote_score_w_sum{track}'] / _llm_denom('vw', 'llm', track, denom)
             if f'llm_vote_cont_w_sum{track}' in panel.columns:
-                panel_new_cols[f'llm_vote_cont_vw{track}'] = panel[f'llm_vote_cont_w_sum{track}'] / denom
+                panel_new_cols[f'llm_vote_cont_vw{track}'] = panel[f'llm_vote_cont_w_sum{track}'] / _llm_denom('vw', 'llm', track, denom)
             for short in LLM_MODELS:
                 w_col = f'{short}_score_w_sum{track}'
                 if w_col in panel.columns:
-                    panel_new_cols[f'{short}_tone_vw{track}'] = panel[w_col] / denom
+                    panel_new_cols[f'{short}_tone_vw{track}'] = panel[w_col] / _llm_denom('vw', short, track, denom)
             for d in DICT_NAMES:
                 w_col = f'{d}_score_w_sum{track}'
                 if w_col in panel.columns:
@@ -1471,10 +1487,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     panel_new_cols[f'{b}_pos_vw{track}'] = panel[w_pos] / denom
                 if w_neg in panel.columns:
                     panel_new_cols[f'{b}_neg_vw{track}'] = panel[w_neg] / denom
-            # Logit-to-Score 概率分数 VW
+            # Logit-to-Score 概率分数 VW (LLM 族 → valid-mask 分母)
             w_prob = f'llm_prob_score_w_sum{track}'
             if w_prob in panel.columns:
-                panel_new_cols[f'llm_vote_tone_vw_prob{track}'] = panel[w_prob] / denom
+                panel_new_cols[f'llm_vote_tone_vw_prob{track}'] = panel[w_prob] / _llm_denom('vw', 'prob', track, denom)
         logger.info(f"  已计算 Value-weighted Tone 指标（双轨）")
 
     # --- MW Tone (媒体权威性加权, Holzman et al. 2023, TAR) ---
@@ -1483,14 +1499,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         for track in ['_full', '_ctx']:
             if f'llm_vote_score_mw_sum{track}' in panel.columns:
                 panel_new_cols[f'llm_vote_tone_mw{track}'] = (
-                    panel[f'llm_vote_score_mw_sum{track}'] / mw_denom)
+                    panel[f'llm_vote_score_mw_sum{track}'] / _llm_denom('mw', 'llm', track, mw_denom))
             if f'llm_vote_cont_mw_sum{track}' in panel.columns:
                 panel_new_cols[f'llm_vote_cont_mw{track}'] = (
-                    panel[f'llm_vote_cont_mw_sum{track}'] / mw_denom)
+                    panel[f'llm_vote_cont_mw_sum{track}'] / _llm_denom('mw', 'llm', track, mw_denom))
             for short in LLM_MODELS:
                 w_col = f'{short}_score_mw_sum{track}'
                 if w_col in panel.columns:
-                    panel_new_cols[f'{short}_tone_mw{track}'] = panel[w_col] / mw_denom
+                    panel_new_cols[f'{short}_tone_mw{track}'] = panel[w_col] / _llm_denom('mw', short, track, mw_denom)
             for d in DICT_NAMES:
                 w_col = f'{d}_score_mw_sum{track}'
                 if w_col in panel.columns:
@@ -1503,13 +1519,13 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     w_col = f'{b}{label}_mw_sum{track}'
                     if w_col in panel.columns:
                         panel_new_cols[f'{b}{sfx}_mw{track}'] = panel[w_col] / mw_denom
-            # Logit-to-Score 概率分数 MW
+            # Logit-to-Score 概率分数 MW (LLM 族 → valid-mask 分母)
             w_prob = f'llm_prob_score_mw_sum{track}'
             if w_prob in panel.columns:
-                panel_new_cols[f'llm_vote_tone_mw_prob{track}'] = panel[w_prob] / mw_denom
+                panel_new_cols[f'llm_vote_tone_mw_prob{track}'] = panel[w_prob] / _llm_denom('mw', 'prob', track, mw_denom)
         logger.info(f"  已计算 Media-Authority-weighted Tone 指标（双轨）")
 
-    # --- HW Tone (跟风衰减加权, Tetlock 2011, JF) ---
+    # --- HW Tone (跟风衰减加权, Tetlock 2011, RFS) ---
     # v3.6.0 (Plan E P1 B3): hw_denom 按 track 双轨独立 (Edwards 2001 ORM
     # measurement-treatment matching) — 修正 v3.5.0 错配 (全文 sum 当分母,
     # 同时除给 _full / _ctx 两轨)。
@@ -1532,14 +1548,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             hw_denom = hw_denom_by_track[track]
             if f'llm_vote_score_hw_sum{track}' in panel.columns:
                 panel_new_cols[f'llm_vote_tone_hw{track}'] = (
-                    panel[f'llm_vote_score_hw_sum{track}'] / hw_denom)
+                    panel[f'llm_vote_score_hw_sum{track}'] / _llm_denom('hw', 'llm', track, hw_denom))
             if f'llm_vote_cont_hw_sum{track}' in panel.columns:
                 panel_new_cols[f'llm_vote_cont_hw{track}'] = (
-                    panel[f'llm_vote_cont_hw_sum{track}'] / hw_denom)
+                    panel[f'llm_vote_cont_hw_sum{track}'] / _llm_denom('hw', 'llm', track, hw_denom))
             for short in LLM_MODELS:
                 w_col = f'{short}_score_hw_sum{track}'
                 if w_col in panel.columns:
-                    panel_new_cols[f'{short}_tone_hw{track}'] = panel[w_col] / hw_denom
+                    panel_new_cols[f'{short}_tone_hw{track}'] = panel[w_col] / _llm_denom('hw', short, track, hw_denom)
             for d in DICT_NAMES:
                 w_col = f'{d}_score_hw_sum{track}'
                 if w_col in panel.columns:
@@ -1552,10 +1568,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     w_col = f'{b}{label}_hw_sum{track}'
                     if w_col in panel.columns:
                         panel_new_cols[f'{b}{sfx}_hw{track}'] = panel[w_col] / hw_denom
-            # Logit-to-Score 概率分数 HW
+            # Logit-to-Score 概率分数 HW (LLM 族 → valid-mask 分母)
             w_prob = f'llm_prob_score_hw_sum{track}'
             if w_prob in panel.columns:
-                panel_new_cols[f'llm_vote_tone_hw_prob{track}'] = panel[w_prob] / hw_denom
+                panel_new_cols[f'llm_vote_tone_hw_prob{track}'] = panel[w_prob] / _llm_denom('hw', 'prob', track, hw_denom)
         logger.info("  已计算 Herd-Decay-weighted Tone 指标 (双轨独立分母)")
 
     # remove-title-track: tone_gap_title_full / prob_gap_title_full 已取消 (标题轨停产)
@@ -1633,7 +1649,12 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     suffixed_count_cols = [c for c in panel.columns
                            if _count_pat.search(c) and 'peer' not in c
                            and not c.startswith(('avg_', 'mean_'))]
-    zero_fill_cols = zero_fill_patterns + sum_cols + count_cols + suffixed_count_cols
+    # fix(vwmwhw-F1, review-closure 2026-06-10): 新增的 sum_wd_{wtag}_{grp}{track} valid-mask
+    # 权重和列同属"计数/和"契约 (零新闻 bank-year = Σ weight over ∅ = 0), 须 fill 0 与
+    # sum_mention_density 等兄弟一致 (否则零新闻行残留 NaN, .dta 显 . 而非 0; 虽 _llm_denom
+    # 的 replace(0,nan) 已兜底除法, 但列契约要求计数/和列填 0)。
+    wd_cols = [c for c in panel.columns if c.startswith('sum_wd_')]
+    zero_fill_cols = zero_fill_patterns + sum_cols + count_cols + suffixed_count_cols + wd_cols
 
     for col in zero_fill_cols:
         if col in panel.columns:

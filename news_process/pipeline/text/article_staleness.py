@@ -16,7 +16,7 @@ dedup.py:94 的 jaccard 布尔决策互补.
 
 双指标 panel 列 (G-S7 设计):
     ``surface_staleness_{full,ctx}``     (与 MinHash jaccard 相关性 ≥ 80%)
-    ``semantic_staleness_{full,ctx}``    (Tetlock 2011 JF 原文 cosine 范式)
+    ``semantic_staleness_{full,ctx}``    (Tetlock 2011 RFS 24(5):1481-1512 原文 cosine 范式)
     ``staleness_corr``                  panel-level surface vs semantic 相关性
 
 学术依据

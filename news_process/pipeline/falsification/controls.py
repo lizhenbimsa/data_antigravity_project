@@ -424,6 +424,19 @@ def build_non_fintech(df_full: pd.DataFrame,
         logger.info(f"          ②是规则预筛通过但经 LLM 语义验证后被认定为非金融科技的新闻。")
         logger.info(f"          两者合并构成伪造检验的对照组。")
 
+    # fix(fintech-share-counting-basis, metric-audit 2026-06-10): 计算**去重口径**的
+    # fintech bank-year 篇数 (与 nf_n_articles 同基), 供 merge_to_panel 作 fintech_share
+    # 分子 —— 替代面板物理 n_articles (无复合键去重), 消除分子(物理)/分母 NF(去重)计数基
+    # 不一致 (Hassan 2019 QJE Table 7 要求 PRisk/(PRisk+NPRisk) 同一计数域)。df_art 此处
+    # 已按 (target_bank,标题,_date_str) 去重 (line 339), 故 groupby size = 去重 fintech 篇数。
+    if 'year' in df_art.columns:
+        ft_dedup_agg = (df_art.groupby(['target_bank', 'year']).size()
+                        .reset_index(name='ft_n_articles_dedup'))
+        df_nf.attrs['ft_dedup_agg'] = ft_dedup_agg
+        logger.info(f"  ft_n_articles_dedup (去重 fintech 篇数, fintech_share 分子): "
+                    f"{int(ft_dedup_agg['ft_n_articles_dedup'].sum()):,} 条 / "
+                    f"{len(ft_dedup_agg):,} bank-year")
+
     return df_nf
 
 
@@ -565,13 +578,16 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
 # ============================================================================
 
 def merge_to_panel(panel: pd.DataFrame,
-                   nf_agg: pd.DataFrame) -> pd.DataFrame:
+                   nf_agg: pd.DataFrame,
+                   ft_dedup_agg: pd.DataFrame | None = None) -> pd.DataFrame:
     """将非金融科技对照变量合并到面板, 构造总量变量。
 
     总量变量学术依据:
-      all_n_articles  = n_articles + nf_n_articles (穷举)
+      all_n_articles  = n_articles + nf_n_articles (穷举; n_articles=物理覆盖)
       all_ln_coverage = log(1 + all_n_articles), Fang & Peress (2009)
-      fintech_share   = n_articles / all_n_articles (密集度边际)
+      fintech_share   = ft_n_articles_dedup / (ft_n_articles_dedup + nf_n_articles)
+                        (fix 2026-06-10: 分子改去重口径, 与分母 NF 同基; ft_dedup_agg=None
+                         时回退旧物理 n_articles 口径, 向后兼容旧调用/测试)。
 
     对标 Hassan et al. (2019) Table 7:
       all_ln_coverage 类似于 Risk_it (总体风险暴露),
@@ -611,16 +627,31 @@ def merge_to_panel(panel: pd.DataFrame,
     logger.info(f"  all_ln_coverage = ln(1 + all_n_articles)")
     logger.info(f"    依据: Fang & Peress (2009, JF, 64(5), 2023-2052)")
 
-    # fintech_share (防除零)
-    panel['fintech_share'] = np.where(
-        panel['all_n_articles'] > 0,
-        panel['n_articles'] / panel['all_n_articles'],
-        0
-    )
-    logger.info(f"  fintech_share = n_articles / all_n_articles (除零保护)")
-    logger.info(f"    说明: 当 all_n_articles=0 时, fintech_share=0 (非 NaN)")
-    logger.info(f"    学术意义: 衡量金融科技新闻在全部银行新闻中的信息密集度,")
-    logger.info(f"              类似 Hassan (2019) 中 PRisk / (PRisk + NPRisk) 的比例。")
+    # fix(fintech-share-counting-basis, metric-audit 2026-06-10): 分子改用**去重口径**
+    # ft_n_articles_dedup (与分母 NF 同基, 均按 (target_bank,标题,日期) 去重), 替代物理
+    # n_articles —— 消除分子(物理 857)/分母 NF(去重 849)计数基不一致 (最坏单 bank-year 偏
+    # 7.05pp; Hassan 2019 QJE Table 7 要求 PRisk/(PRisk+NPRisk) 同一计数域)。all_n_articles
+    # 维持 n_articles+nf (物理覆盖, 用于 Fang-Peress ln_coverage) 不变, 其恒等式不受影响
+    # (本修仅改 fintech_share 分子分母, 不动 all_n_articles)。ft_dedup_agg=None → 回退物理。
+    if ft_dedup_agg is not None and 'ft_n_articles_dedup' in ft_dedup_agg.columns:
+        panel = panel.drop(columns=['ft_n_articles_dedup'], errors='ignore')
+        panel = panel.merge(ft_dedup_agg, on=['target_bank', 'year'], how='left')
+        panel['ft_n_articles_dedup'] = panel['ft_n_articles_dedup'].fillna(0)
+        _ft_num = panel['ft_n_articles_dedup']
+        _ft_den = panel['ft_n_articles_dedup'] + panel['nf_n_articles']
+        panel['fintech_share'] = np.where(_ft_den > 0, _ft_num / _ft_den, 0)
+        logger.info("  fintech_share = ft_n_articles_dedup / (ft_dedup + nf_n_articles) "
+                    "[去重同基口径, fix 2026-06-10]")
+    else:
+        # 回退: 旧物理口径 (向后兼容旧调用/测试; 计数基不一致为已知, 见 fix 注)
+        panel['fintech_share'] = np.where(
+            panel['all_n_articles'] > 0,
+            panel['n_articles'] / panel['all_n_articles'],
+            0
+        )
+        logger.warning("  fintech_share 回退物理口径 (ft_dedup_agg 缺失)")
+    logger.info(f"    学术意义: 金融科技新闻在全部银行新闻中的信息密集度,")
+    logger.info(f"              类似 Hassan (2019) PRisk / (PRisk + NPRisk)。")
 
     # --- 挤出效应弹性变量 (避免百分比回归机械 β=-1) ---
     panel['ln_ft_articles'] = np.log1p(panel['n_articles'])
@@ -1186,7 +1217,10 @@ def main():
     df_full, df_art, panel = load_data()
     df_nf = build_non_fintech(df_full, df_art)
     nf_agg = aggregate_non_fintech(df_nf)
-    panel = merge_to_panel(panel, nf_agg)
+    # fix(fintech-share-counting-basis): 取去重口径 fintech 计数 (build_non_fintech 经 attrs
+    # 暴露) 作 fintech_share 分子, 与 NF 分母同基。
+    _ft_dedup = df_nf.attrs.get('ft_dedup_agg') if hasattr(df_nf, 'attrs') else None
+    panel = merge_to_panel(panel, nf_agg, ft_dedup_agg=_ft_dedup)
     pearson_corr = run_diagnostics(panel)
     export_results(panel, pearson_corr)
     print_stata_template()
