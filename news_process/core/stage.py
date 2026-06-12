@@ -43,8 +43,11 @@ except ImportError:  # pragma: no cover - psutil 是运行时必装依赖, 此�
 
 from .logging import get_run_id, log_memory_usage
 
-# 子进程 stdout/stderr 累积上限 (行数); 防止任意大日志撑爆父进程
-_TAIL_BUFFER_MAXLEN = 10000
+# 子进程 stdout/stderr 尾部累积上限 (行数); 防止任意大日志撑爆父进程。
+# 2026-06-12 由 1 万行上调为 10 万行 (用户决策): 失败诊断时保留更长尾部。
+# 此环形缓冲只是父进程内存里的诊断快照 — 完整(超长)日志始终经 reader 线程
+# 实时透传到父 logger, 落盘于 logs/runs/<run_id>/*.log, 不受此上限截断。
+_TAIL_BUFFER_MAXLEN = 100000
 
 
 def _stage_popen_isolation_kwargs() -> dict[str, object]:
