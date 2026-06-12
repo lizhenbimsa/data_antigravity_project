@@ -11049,57 +11049,6 @@
         "ft_attn_city": "d3496db67b29172e"
       }
     },
-    "49_risk_taking_outcomes.parquet": {
-      "file": "49_risk_taking_outcomes.parquet",
-      "size_bytes": 7046,
-      "n_rows": 0,
-      "n_columns": 13,
-      "columns_order": [
-        "target_bank",
-        "year",
-        "z_score",
-        "npl_formation_rate",
-        "writeoffs_imputed",
-        "rwa_to_ta_ratio",
-        "sigma_roa_5y_rolling",
-        "loan_loss_provision_discretion",
-        "roa",
-        "npl_ratio",
-        "is_soe",
-        "bank_type_id",
-        "implicit_guarantee_tier"
-      ],
-      "dtypes": {
-        "target_bank": "object",
-        "year": "float64",
-        "z_score": "float64",
-        "npl_formation_rate": "float64",
-        "writeoffs_imputed": "float64",
-        "rwa_to_ta_ratio": "float64",
-        "sigma_roa_5y_rolling": "float64",
-        "loan_loss_provision_discretion": "float64",
-        "roa": "float64",
-        "npl_ratio": "float64",
-        "is_soe": "float64",
-        "bank_type_id": "object",
-        "implicit_guarantee_tier": "object"
-      },
-      "column_hashes": {
-        "target_bank": "0000000000000000",
-        "year": "0000000000000000",
-        "z_score": "0000000000000000",
-        "npl_formation_rate": "0000000000000000",
-        "writeoffs_imputed": "0000000000000000",
-        "rwa_to_ta_ratio": "0000000000000000",
-        "sigma_roa_5y_rolling": "0000000000000000",
-        "loan_loss_provision_discretion": "0000000000000000",
-        "roa": "0000000000000000",
-        "npl_ratio": "0000000000000000",
-        "is_soe": "0000000000000000",
-        "bank_type_id": "0000000000000000",
-        "implicit_guarantee_tier": "0000000000000000"
-      }
-    },
     "51_panel_with_controls.parquet": {
       "file": "51_panel_with_controls.parquet",
       "size_bytes": 2064382,
@@ -16149,8 +16098,8 @@
   },
   "incomplete": true,
   "counts": {
-    "expected": 23,
-    "present": 22,
+    "expected": 22,
+    "present": 21,
     "missing": 1
   },
   "missing_stages": [

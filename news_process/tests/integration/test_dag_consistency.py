@@ -83,25 +83,25 @@ def test_validation_orchestrator_uses_canonical_stages(rpv, core_dag):
 
 
 def test_main_stage_count(core_dag):
-    """``STAGES_MAIN`` 阶段数须等于 v3.7.0 + v2.3 计划增量 − stage 30 退役 − stage 16 移除 − stage 17/19 移除 (16)。"""
-    # v3.7.0 baseline 15: 00 + 11 + 12 + 13 + 14 + 15 + 21 + 22 + 23 + 24 + 45 + 46 + 49 + 51 (+30 历史)
+    """``STAGES_MAIN`` 阶段数须等于 15 (v3.7.0 + v2.3 增量 − stage 30 退役 − stage 16/17/19 移除 − stage 49 移除)。"""
+    # baseline 14: 00 + 11 + 12 + 13 + 14 + 15 + 21 + 22 + 23 + 24 + 45 + 46 + 51 (+30 历史)
     # v3.2.0 M6: + stage 46 Stata 导出
     # v3.6.0 (Plan E P4 A1): + stage 13 content_ctx 物化, 让 14/15 双轨化前置可用
-    # v3.7.0 (DC2 + C2, 2026-05-18): + stage 49 risk_taking_outcomes (第 10/11 篇)
     # v2.3 计划增量: 17/18/19/30a (D1 BERTopic / D2 staleness /
     #   D4 LLM CEO NER / D 组前置 SBERT 持久化) → 连同一度存在的 stage 16 曾达 20
     # 2026-05-29 双模型重构: stage 30 (robustness_text2vec) 退役 (其 _t2v 列改由
     #   stage 15/25 内联双模型产出) → 20 − 1 = 19
     # 2026-06-05: stage 16 (宏观控制 merge) 整体移除 → 19 − 1 = 18
     # 2026-06-09: stage 17 (D1 BERTopic 叙事主题) + stage 19 (D4 LLM CEO NER) 整体移除 → 18 − 2 = 16
-    assert len(core_dag.STAGES_MAIN) == 16, (
-        f"STAGES_MAIN 数量漂移: 期望 16 (v3.7.0 + v2.3 − stage 30 退役 − stage 16/17/19 移除), "
+    # 2026-06-12: stage 49 (risk_taking_outcomes) 整体移除 (无财务数据无法计算) → 16 − 1 = 15
+    assert len(core_dag.STAGES_MAIN) == 15, (
+        f"STAGES_MAIN 数量漂移: 期望 15 (v3.7.0 + v2.3 − stage 30 退役 − stage 16/17/19/49 移除), "
         f"实际 {len(core_dag.STAGES_MAIN)}. 若有意增删阶段, 请同步更新本测试。"
     )
 
 
 def test_validation_stage_count(core_dag):
-    """``STAGES_VALIDATION`` 阶段数须等于 18 (39g track-discriminant 已随 remove-title-track 删除)。
+    """``STAGES_VALIDATION`` 阶段数须等于 16 (39g title 轨 + 39h DC4 污染检验 + 38a 时间掩码均已删除)。
 
     v3.4.0 baseline = 13 (含 39a inter_track_kappa).
     v3.5.0 +1 = 14: 加 39c construct_orthogonality (NMI 正交性 D3 stage)
@@ -109,10 +109,12 @@ def test_validation_stage_count(core_dag):
     v2.3 PR-#4 +1 = 16: 加 39e lm_discriminant_validity (LM 4 子词典 HTMT)
     v2.3 PR-D3 +1 = 17: 加 39f cross_media_alpha (Krippendorff α + variance)
     2026-06-05 +1 = 18: 加 39h llm_contamination_test (DC4 接线, opt-in 默认禁用)
+    随后 −1 = 17: 删 39h (其唯一 outcome 源 stage 49 移除, 无财务数据无法计算)
+    本次 −1 = 16: 删 38a temporal_mask_test (时间掩码前视偏误检验移除)
     """
-    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38a + 38b + 39 + 39a + 39c + 39d + 39e + 39f + 39h = 18
-    assert len(core_dag.STAGES_VALIDATION) == 18, (
-        f"STAGES_VALIDATION drift: expected 18 (39g removed; 39h DC4 added 2026-06-05), got {len(core_dag.STAGES_VALIDATION)}."
+    # 31 + 32 + 32a + 33 + 34 + 35 + 36 + 37 + 38 + 38b + 39 + 39a + 39c + 39d + 39e + 39f = 16
+    assert len(core_dag.STAGES_VALIDATION) == 16, (
+        f"STAGES_VALIDATION drift: expected 16 (39g/39h/38a removed), got {len(core_dag.STAGES_VALIDATION)}."
     )
 
 
@@ -141,7 +143,7 @@ def test_no_orphan_twelve_in_validation_count():
 
     Uses ``\\b12\\b`` word-boundary regex across the entire function source
     (covers docstring, comments, f-strings, and numeric tokens).
-    Plan v1.37 §4.3.5 + Round-12 R12B-01 + Round-36/v1.31 expected count = 17 (39g removed).
+    Plan v1.37 §4.3.5 + Round-12 R12B-01 + Round-36/v1.31 expected count = 16 (39g/39h/38a removed).
     """
     import inspect
     import re
@@ -150,7 +152,7 @@ def test_no_orphan_twelve_in_validation_count():
     hits = re.findall(r"\b12\b", src)
     assert hits == [], (
         f"Stale '12' references in test_validation_stage_count: "
-        f"{len(hits)} hit(s). Expected count = 17 (39g removed). "
+        f"{len(hits)} hit(s). Expected count = 16 (39g/39h/38a removed). "
         f"Check docstring, enumeration comment, assertion, and "
         f"error f-string in test_validation_stage_count."
     )
@@ -166,8 +168,6 @@ def test_predicate_identity_module_scope(core_dag):
         core_dag.llm_method_enabled,
         core_dag.words_method_enabled,
         core_dag.berts_method_enabled,
-        core_dag.temporal_mask_enabled,
-        core_dag.risk_taking_outcomes_enabled,  # v3.7.0 C4 修复
         core_dag.article_staleness_enabled,     # O2 sample-run finding 2026-05-25
     }
     expected_predicates.update(core_dag._VALIDATION_PREDS.values())
@@ -191,14 +191,12 @@ def test_filter_enabled_respects_predicate(core_dag):
     ``enabled_when=berts_method_enabled`` 谓词, 与 stage 23 同步启停.
     因此 cfg_llm_only / cfg_no_sentiment 下被排除的 stage 数 +1.
     """
-    # v3.7.0 (C4 修复): stage 49 默认 disabled (opt-in), 故下面 enabled count
-    # 与 v3.6.0 保持一致 — stage 49 通过单独 cfg_risk_taking 测试.
-
     # 三种情感方法全开 -> stage 18 (staleness) opt-in 默认 disabled.
     # 2026-05-29: stage 30 (always_enabled) 退役 → total 20 → 19.
     # 2026-06-05: stage 16 (always_enabled) 移除 → total 19 → 18.
     # 2026-06-09: stage 17 (D1 BERTopic) + stage 19 (D4 NER) 移除 → total 18 → 16.
-    # 故全开 enabled count = 16 - 2 (18/49 opt-in) = 14.
+    # 2026-06-12: stage 49 (risk_taking_outcomes) 移除 → total 16 → 15.
+    # 故全开 enabled count = 15 - 1 (18 opt-in) = 14.
     cfg_full = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
@@ -222,16 +220,6 @@ def test_filter_enabled_respects_predicate(core_dag):
     assert (
         len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 10
     )
-
-    # v3.7.0 NEW: risk_taking_outcomes opt-in 启用 stage 49 → 14 + 1 = 15
-    cfg_with_risk_taking = {
-        "sentiment_analysis": {
-            "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
-        },
-        "validation": {},
-        "risk_taking_outcomes": {"enabled": True},
-    }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_with_risk_taking)) == 15
 
     # O2 2026-05-25 (stage 17 已于 2026-06-09 移除): 仅 article_staleness opt-in 启用 → 14 + 1 = 15
     cfg_with_d_group = {

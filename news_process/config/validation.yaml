@@ -7,11 +7,10 @@ human_validation:
   random_seed: 42                                   # 随机种子（保证可复现）
 
 # ------------------------------------------------------------------------------
-# [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31-39 (含38a/38b)
+# [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31-39 (含38b)
 # ------------------------------------------------------------------------------
 # 控制是否启用各验证阶段（默认全部启用）。
 # 阶段32始终执行，无开关控制。
-# 阶段38a由 temporal_mask_test.enabled 控制。
 # 阶段38b始终执行（无开关）。
 validation:
   classification_eval: true                         # 阶段33: 分类有效性评估 (Cohen's Kappa, P/R/F1)
@@ -23,7 +22,6 @@ validation:
   media_diversity: true                             # 阶段38: 媒体名称与地域多样性审计
   prompt_sensitivity: true                           # 阶段39: Prompt 措辞敏感度量化测试
   dedup_sensitivity: true                            # 阶段32a: 去重阈值敏感性分析 (Broder 1997; 全量数据, 耗时约2.5小时)
-  llm_contamination: false                           # 阶段39h: DC4 LLM 训练数据污染留出检验 (opt-in 默认禁用; 需 stage 49 z_score + 下方 llm_contamination_test.cutoff 官方日期)
 
 # ------------------------------------------------------------------------------
 # [模块四：评估验证模块] Entity Masking 稳健性测试 - 阶段 36
@@ -65,30 +63,6 @@ prompt_sensitivity_test:
   pass_threshold_innovation_substantiveness: 0.70   # W6 修正: 最小 Cohen's κ ≥ 0.70 (substantial per Landis & Koch 1977); W&Z (1994/1998 ASQ) substantive-symbolic 跨变体一致性
   pass_threshold_innovation_locus: 0.70             # W6 修正: 最小 Cohen's κ ≥ 0.70 (substantial); Gomber et al. (2018 JMIS) technology-application 跨变体一致性
   pass_threshold_innovation_collab_mode: 0.70       # v3.4.0: 最小 Cohen's κ ≥ 0.70 (mirrors substantiveness/locus); Chesbrough (2003) Open Innovation + Laursen & Salter (2006 SMJ) independent-collaborative 跨变体一致性
-
-# ------------------------------------------------------------------------------
-# [模块四：评估验证模块] DC4 LLM 训练数据污染留出检验 - 阶段 39h
-# ------------------------------------------------------------------------------
-# 利用 LLM 训练数据 cutoff 把样本切成 pre-cutoff (LLM 可能见过) / post-cutoff
-# (LLM 绝对没见过) 两段, 比较 LLM 输出与 outcome 的相关性是否异常 (Fisher z),
-# 检测 look-ahead 污染。学术依据: Sainz 2023 EMNLP; Lopez-Lira-Tang 2023 holdout。
-# 启用: 上方 validation.llm_contamination: true。前置依赖:
-#   1) opt-in stage 49 risk_taking_outcomes 已产出 49_risk_taking_outcomes.parquet。
-#      fix(omni-g-audit-family-07, 2026-06-11): z_score 刻意不并入 40_panel
-#      (panel/runner.py 8c: DV master 反向并入是范畴错误); 39h 运行时自动按
-#      (target_bank, year) 做 audit-local 临时 join 拉入 outcome 列 (不写回面板)。
-#      旧注释声称 "已并入面板" 与 runner 设计矛盾 → 检验结构性永不激活, 已修。
-#   2) cutoff 须填 LLM provider 官方文档日期 (留空则优雅跳过, 严禁伪造 — 见模块 C5 修复)。
-# 注: 当前 T=2 面板 (2017-2018) 年份均 < 主流 LLM cutoff → post 段为空, run_stage
-#     会优雅跳过; 需待面板含 post-cutoff 年份后才产出实质结果。
-#     跨 cutoff 之年 (straddle year) 整年剔出留出集 (fix omni-g-audit-family-03)。
-llm_contamination_test:
-  cutoff:                                            # 例: "2024-04-01" (须为官方文档日期; 留空=跳过, 禁止伪造)
-  llm_col: llm_vote_tone_full                        # LLM 输出列
-  outcome_col: z_score                               # outcome 列 (来自 stage 49 产物, 39h 临时 join)
-  # outcome_input:                                   # 可选: 覆盖 49 产物路径 (默认 output_dir/49_risk_taking_outcomes.parquet)
-  date_col: year                                     # 时间列 (year → 年中点 7-01 + 跨界年剔除)
-  method: pearson                                    # pearson | spearman
 
 # 阈值敏感性分析参数 (Threshold Sensitivity) - 阶段 31
 threshold_sensitivity:

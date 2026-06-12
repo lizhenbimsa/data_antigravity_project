@@ -10,7 +10,7 @@
 #                           + article_alignment + context_window
 #     sentiment.yaml      — tone_llm_processing + sentiment_analysis + herd_detection
 #     features.yaml       — embedding_api + benefit_society
-#     panel.yaml          — panel_building + temporal_mask_test
+#     panel.yaml          — panel_building
 #     validation.yaml     — human_validation + validation + *_test + *_sensitivity
 #
 # And 1 active prompt template externalized to (was 2 before title-track removal):

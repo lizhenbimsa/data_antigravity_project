@@ -7,10 +7,6 @@ conditional left-merge loop that
 brings their columns in when the (opt-in) stage has run, and is a graceful no-op when
 the file is absent (the default, since stage 18 is disabled-by-default).
 
-Stage 49 (risk_taking_outcomes) is deliberately EXCLUDED from the merge: it is the
-DV/outcome master that papers 10/11 `use` directly, so merging it into the feature
-panel would invert the DV→feature direction. This file pins both contracts.
-
 `pytest.mark.fast` (pure source-inspection + in-memory pandas; no IO/LLM).
 """
 from __future__ import annotations
@@ -59,16 +55,6 @@ def test_runner_merge_is_key_safe_and_graceful():
     # row-count integrity guard (raise, not assert — survives python -O)
     assert re.search(r"feature merge 改变面板行数", src)
     assert "os.path.exists(_opath)" in src
-
-
-def test_runner_excludes_stage49_from_feature_merge():
-    """Stage 49 risk-taking OUTCOMES must NOT be merged into 40_panel (DV master)."""
-    src = _runner_src()
-    # 49 outcomes parquet is never read into the feature-merge loop
-    assert "49_risk_taking_outcomes.parquet" not in src, (
-        "stage 49 (DV outcomes) must stay standalone, not merged into the panel")
-    # and the rationale comment documents the exclusion
-    assert "DV master" in src or "DV/feature" in src
 
 
 # --- behavioral contract (mirrors the 8c loop semantics on fixtures) -----------

@@ -1376,8 +1376,8 @@ def main():
 
     # --- (i2) 语调时序波动率 (rolling SD, 批 #11, 2026-06-05) ---
     # 二阶矩补全: 一阶反转 tone_reversal 之外的【时间维】语调不稳定性。与年内跨文章 SD
-    # (*_tone_std) / 跨媒体方差 (cross_outlet) 正交 (论文须明写以防冗余质疑)。复用
-    # risk_taking_outcomes.compute_sigma_roa_rolling 的 rolling().std() 范式; window=3,
+    # (*_tone_std) / 跨媒体方差 (cross_outlet) 正交 (论文须明写以防冗余质疑)。用
+    # 按银行分组的 rolling().std() 范式; window=3,
     # min_periods=2 → ≥2 年即出值, 优雅降级 (全量 T=18 充分, 磁盘 T=2 仅末年有值)。
     TONE_VOL_WINDOW, TONE_VOL_MINP = 3, 2
     vol_count = 0
@@ -2101,8 +2101,6 @@ def main():
     # 这些 opt-in stage 产出 bank-year FEATURE 面板, 其列
     # stata_export.py core_patterns 已声明期待 (*_staleness 等), 但此前无任何代码把它们
     # 并入 40_panel_yearly。条件左连接 (opt-in stage 未运行 → 文件缺失 → graceful no-op)。
-    # ⚠ stage 49 (risk-taking OUTCOMES) 刻意不在此: 它是 DV master 数据集, paper 10/11
-    # 直接 `use` 它再并入 treatment; 反向并入 40_panel 会颠倒 DV/feature 方向 (范畴错误)。
     # 39f (cross_media_alpha) 同属此孤儿类 (bank-year; cross_outlet_tone_variance_* 在
     # stata_export core_patterns — ⚠ 与 paper 10 spec 冻结 main treatment 同名异构,
     # 事件窗条件方差而非 spec 的全年截面口径, 见 cross_media_alpha.py 模块 docstring

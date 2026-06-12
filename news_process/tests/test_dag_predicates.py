@@ -22,8 +22,6 @@ from news_process.core.dag import (
     article_staleness_enabled,
     berts_method_enabled,
     llm_method_enabled,
-    risk_taking_outcomes_enabled,
-    temporal_mask_enabled,
     words_method_enabled,
 )
 
@@ -95,18 +93,14 @@ def test_validation_preds_contain_expected_keys():
 
 
 @pytest.mark.parametrize("predicate,cfg_key", [
-    (temporal_mask_enabled, 'temporal_mask_test'),
-    (risk_taking_outcomes_enabled, 'risk_taking_outcomes'),
     (article_staleness_enabled, 'article_staleness'),
 ])
 def test_optin_predicate_default_false(predicate, cfg_key):
-    """所有 opt-in 谓词缺 cfg → False (lines 72, 86, 101, 116, 131)."""
+    """所有 opt-in 谓词缺 cfg → False (line 82)."""
     assert predicate({}) is False
 
 
 @pytest.mark.parametrize("predicate,cfg_key", [
-    (temporal_mask_enabled, 'temporal_mask_test'),
-    (risk_taking_outcomes_enabled, 'risk_taking_outcomes'),
     (article_staleness_enabled, 'article_staleness'),
 ])
 def test_optin_predicate_true_when_enabled(predicate, cfg_key):

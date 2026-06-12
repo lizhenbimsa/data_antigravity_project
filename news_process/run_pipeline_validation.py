@@ -14,7 +14,6 @@ run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
       - 阶段36:  Entity Masking 稳健性测试 (36_entity_masking_test.py)
       - 阶段37:  金融科技词典覆盖率审计 (37_dict_coverage_audit.py)
       - 阶段38:  媒体名称与地域多样性审计 (38_media_diversity.py)
-      - 阶段38a: 时间掩码前视偏误检验   (38a_temporal_mask_test.py)
       - 阶段38b: 距离衰减权重敏感性检验 (38b_decay_sensitivity.py)
       - 阶段39:  Prompt 措词敏感度测试  (39_prompt_sensitivity.py)
       - 阶段39a: 轨间一致性 Cohen's κ    (39a_inter_track_kappa.py)
@@ -22,7 +21,7 @@ run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
       - 阶段39d: lexical HTMT+AVE+κ+α     (39d_lexical_discriminant_validity.py)
       - 阶段39e: LM 4 子词典 discriminant (39e_lm_discriminant_validity.py)
       - 阶段39f: cross-media Krippendorff α (39f_cross_media_alpha.py)
-    (阶段清单以 core/dag.py::STAGES_VALIDATION 为权威真源, 共 17 个。)
+    (阶段清单以 core/dag.py::STAGES_VALIDATION 为权威真源, 共 16 个。)
 
 设计意图:
     这些验证模块对应经济学顶级期刊审稿中常见的稳健性检验要求:
@@ -94,16 +93,15 @@ def run_validation():
       6. 阶段36: Entity Masking 稳健性测试（由 validation.entity_masking 控制）
       7. 阶段37: 金融科技词典覆盖率审计（由 validation.dict_coverage_audit 控制）
       8. 阶段38: 媒体名称与地域多样性审计（由 validation.media_diversity 控制）
-      9. 阶段38a: 时间掩码前视偏误检验（由 temporal_mask_test.enabled 控制）
-     10. 阶段38b: 距离衰减权重敏感性检验（始终执行）
-     11. 阶段39: Prompt 措辞敏感度测试（由 validation.prompt_sensitivity 控制）
-     12. 阶段39a: 轨间一致性 Cohen's κ
-     13. 阶段39c: NMI construct 正交性
-     14. 阶段39d: lexical HTMT+AVE+κ+α
-     15. 阶段39e: LM 4 子词典 discriminant
-     16. 阶段39f: cross-media Krippendorff α
+      9. 阶段38b: 距离衰减权重敏感性检验（始终执行）
+     10. 阶段39: Prompt 措辞敏感度测试（由 validation.prompt_sensitivity 控制）
+     11. 阶段39a: 轨间一致性 Cohen's κ
+     12. 阶段39c: NMI construct 正交性
+     13. 阶段39d: lexical HTMT+AVE+κ+α
+     14. 阶段39e: LM 4 子词典 discriminant
+     15. 阶段39f: cross-media Krippendorff α
 
-    阶段清单以 core/dag.py::STAGES_VALIDATION 为权威真源, 共 17 个;
+    阶段清单以 core/dag.py::STAGES_VALIDATION 为权威真源, 共 16 个;
     实际执行集由 filter_enabled(STAGES, CONFIG) 按 enabled_when 谓词裁剪。
     """
     module_start = time.time()
@@ -120,7 +118,7 @@ def run_validation():
         logger.info("     对前三模块(预处理→分类→情感分析)的全部关键决策进行系统性验证,")
         logger.info("     确保研究结论不受人为参数选择、模型偏差或数据噪声的影响。")
         logger.info("")
-        logger.info("  📖 17 个验证阶段说明 (core/dag.py::STAGES_VALIDATION 为权威真源)")
+        logger.info("  📖 16 个验证阶段说明 (core/dag.py::STAGES_VALIDATION 为权威真源)")
         logger.info("     31:  阈值敏感性  — 分类参数做网格搜索, 证明当前阈值是稳健的")
         logger.info("     32:  人工抽样    — 生成分层随机样本供人工标注比对")
         logger.info("     32a: 去重敏感性  — Jaccard MinHash 多阈值去重, 证明去重参数稳健 (Broder 1997)")
@@ -130,7 +128,6 @@ def run_validation():
         logger.info("     36:  实体掩码    — 替换银行名验证情感判定不依赖实体先验")
         logger.info("     37:  词典审计    — 金融科技关键词覆盖率和精确度系统审计")
         logger.info("     38:  媒体多样性  — HHI/Shannon/Gini 多维度量化媒体来源与地域覆盖")
-        logger.info("     38a: 时间掩码    — 逐步掩码最新N年新闻, 检验前视偏误 (Tetlock 2008)")
         logger.info("     38b: 衰减敏感性  — 比较 uniform/inverse/exponential 权重, 检验结果稳健性")
         logger.info("     39:  提示词敏感度 — 系统性改写 Prompt 措辞, 量化标注结果的表述稳健性")
         logger.info("     39a: 轨间一致性  — full/ctx 轨间 Cohen's κ")

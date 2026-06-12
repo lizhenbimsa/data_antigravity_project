@@ -78,16 +78,13 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
         "40_attn_index_province_year.parquet",
         "40_attn_index_city_year.parquet",
     ],
-    # v3.2.0 M6 (plan v14 §9.1): Stata 数据导出层
+    # v3.2.0 M6 (plan v14 §9.1; 2026-06-12: 单一全列 .dta — 移除 core/aux 双切分,
+    # 本机 StataNow/MP 19.5 maxvar≤120,000 直读 full): Stata 数据导出层
     "46_stata_export.py": [
-        "46_panel_yearly_core.dta",
         "46_panel_yearly_full.dta",
-        "46_panel_yearly_aux.dta",
         "46_panel_yearly_labels.do",
         "46_panel_yearly_codebook.xlsx",
     ],
-    # v3.7.0 (DC2 + C2): 第 10/11 篇 risk-taking outcomes 三件套
-    "49_risk_taking_outcomes.py": ["49_risk_taking_outcomes.parquet"],
     # 模块六: falsification
     "51_falsification_test.py": ["51_panel_with_controls.parquet"],
 }
@@ -136,14 +133,10 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("45_panel_export_main.py", "40_attn_index_year.parquet"): None,
     ("45_panel_export_main.py", "40_attn_index_province_year.parquet"): None,
     ("45_panel_export_main.py", "40_attn_index_city_year.parquet"): None,
-    # v3.2.0 M6 (plan v14 §9.1): stage 46 Stata 数据导出层产出 5 文件
-    ("46_stata_export.py", "46_panel_yearly_core.dta"): None,
+    # v3.2.0 M6 (plan v14 §9.1; 2026-06-12 单一全列 .dta): stage 46 Stata 导出层产出 3 文件
     ("46_stata_export.py", "46_panel_yearly_full.dta"): None,
-    ("46_stata_export.py", "46_panel_yearly_aux.dta"): None,
     ("46_stata_export.py", "46_panel_yearly_labels.do"): None,
     ("46_stata_export.py", "46_panel_yearly_codebook.xlsx"): None,
-    # v3.7.0 (DC2 + C2): stage 49 第 10/11 篇 outcome 三件套
-    ("49_risk_taking_outcomes.py", "49_risk_taking_outcomes.parquet"): "output_49_risk_taking_outcomes",
     ("51_falsification_test.py", "51_panel_with_controls.parquet"): "output_51_panel_controls",
 }
 
@@ -177,7 +170,6 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "36_entity_masking_test.py",
     "37_dict_coverage_audit.py",
     "38_media_diversity.py",
-    "38a_temporal_mask_test.py",
     "38b_decay_sensitivity.py",
     "39_prompt_sensitivity.py",
     "39a_inter_track_kappa.py",
@@ -185,7 +177,6 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "39d_lexical_discriminant_validity.py",  # v3.5.1 A1/A3 HTMT+κ+α: 写 data/processed/39d_*.parquet + 39d_htmt_matrix.json, validation 不进 OUTPUT_REGISTRY
     "39e_lm_discriminant_validity.py",  # v3.5.2 PR #4 (A1 LM 4 子词典 HTMT): 仅写 eval_reports/*.csv
     "39f_cross_media_alpha.py",  # v3.7.0 PR #12 (D3 Krippendorff α): 写 data/processed/39f_*.parquet, 但 validation 类不进 OUTPUT_REGISTRY (与 39c/39d 约定一致)
-    "39h_llm_contamination_test.py",  # DC4 LLM 污染留出 (2026-06-05 接线): 写 data/processed/llm_contamination_report.json, validation 类不进 OUTPUT_REGISTRY (与 39c/39d/39f 约定一致)
 })
 
 
@@ -244,7 +235,7 @@ def _validate_registry_invariant() -> None:
         )
 
     # ── 校验 4: 跨 stage 文件名唯一性 (recode round 2) ──
-    # 现状: 22 个 parquet + 5 个 stage46 导出 = 27 个文件名两两不同; 校验防御未来 copy-paste 笔误.
+    # 现状: 21 个 parquet + 3 个 stage46 导出 = 24 个文件名两两不同; 校验防御未来 copy-paste 笔误.
     all_files = [f for files in OUTPUT_REGISTRY.values() for f in files]
     if len(all_files) != len(set(all_files)):
         from collections import Counter as _Counter

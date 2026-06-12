@@ -1,18 +1,16 @@
 """tests/test_omni_fix_audit_family.py — omni 2026-06-11 g-audit-family 组修复回归锁.
 
-锁定 8 条 finding 的修复后行为 (全部用合成 DataFrame, 零盘上大数据 / 零外部 API):
+锁定 g-audit-family 组中仍在仓的 finding 修复后行为 (全部用合成 DataFrame, 零盘上大数据 / 零外部 API):
   01 cross_media_alpha 重叠事件窗合并为 episode + n_articles 加权契约
-  02 llm_contamination verdict |r| 口径 (负向关系下真污染不再误判 reverse_pattern)
-  03 跨 cutoff 之年整年剔出留出集 + n_straddle_excluded 披露
   04 construct_orthogonality 观测/null 同 listwise 域 + 未用 Z 常量删除
   05 39e 与 39d 统一 LLM-valid mask + permutation null listwise 域 + 聚类披露
-  06 Bayes factor 标签对齐 Jeffreys (1961) 原表档位
-  07 39h outcome 列 audit-local join 自 stage 49 产物 (结构性死路打通)
   08 cross_media_alpha 同名异构披露 (docstring 不再宣称 39f 列 = paper 10 main treatment)
+
+注: 原 finding 02/03/06/07 (llm_contamination_test verdict |r| 口径 / straddle 年剔除 /
+    Jeffreys BF 标签 / 39h outcome audit-local join) 随 stage 39h + stage 49 移除
+    (2026-06-12, 无财务数据无法计算) 一并删除。
 """
 from __future__ import annotations
-
-import json
 
 import numpy as np
 import pandas as pd
@@ -140,167 +138,6 @@ class TestEpisodeMerge:
 
 
 # ════════════════════════════════════════════════════════════════════════
-# finding 02 — verdict |r| 口径
-# ════════════════════════════════════════════════════════════════════════
-def _make_corr_panel(r_pre: float, r_post: float, n: int = 300,
-                     seed: int = 123) -> pd.DataFrame:
-    rng = np.random.default_rng(seed)
-    pre_y = rng.standard_normal(n)
-    pre_llm = r_pre * pre_y + np.sqrt(1 - r_pre ** 2) * rng.standard_normal(n)
-    post_y = rng.standard_normal(n)
-    post_llm = r_post * post_y + np.sqrt(1 - r_post ** 2) * rng.standard_normal(n)
-    return pd.DataFrame({
-        'date': (list(pd.date_range('2010-01-01', periods=n, freq='D'))
-                 + list(pd.date_range('2025-01-01', periods=n, freq='D'))),
-        'llm': list(pre_llm) + list(post_llm),
-        'y': list(pre_y) + list(post_y),
-    })
-
-
-class TestVerdictAbsScale:
-    def test_negative_relationship_contamination_detected(self):
-        """负向 LLM-outcome 关系下真污染: 旧带符号比较 (r_pre < r_post) 误判
-        reverse_pattern_anomaly; 新 |r| 口径正确判 contamination_detected."""
-        from news_process.pipeline.audit.llm_contamination_test import (
-            contamination_test,
-        )
-        df = _make_corr_panel(r_pre=-0.85, r_post=-0.05)
-        report = contamination_test(
-            df, llm_col='llm', outcome_col='y', date_col='date',
-            cutoff_date='2024-01-01',  # test-frozen, NOT 来自 LLM provider
-        )
-        assert report['r_pre_cutoff'] < 0  # 关系确为负向
-        assert report['verdict'] == 'contamination_detected'
-        assert report['abs_r_pre_cutoff'] > report['abs_r_post_cutoff']
-
-    def test_positive_contamination_still_detected(self):
-        from news_process.pipeline.audit.llm_contamination_test import (
-            contamination_test,
-        )
-        df = _make_corr_panel(r_pre=0.85, r_post=0.05)
-        report = contamination_test(
-            df, llm_col='llm', outcome_col='y', date_col='date',
-            cutoff_date='2024-01-01',
-        )
-        assert report['verdict'] == 'contamination_detected'
-
-    def test_report_carries_both_signed_and_abs_scales(self):
-        from news_process.pipeline.audit.llm_contamination_test import (
-            contamination_test,
-        )
-        df = _make_corr_panel(r_pre=0.4, r_post=0.4)
-        report = contamination_test(
-            df, llm_col='llm', outcome_col='y', date_col='date',
-            cutoff_date='2024-01-01',
-        )
-        for key in ('r_pre_cutoff', 'r_post_cutoff', 'abs_r_pre_cutoff',
-                    'abs_r_post_cutoff', 'fisher_z_stat', 'fisher_p_value',
-                    'fisher_z_stat_abs', 'fisher_p_value_abs', 'verdict_scale'):
-            assert key in report, f"report 缺字段 {key}"
-        assert report['verdict'] != 'contamination_detected'
-
-
-# ════════════════════════════════════════════════════════════════════════
-# finding 03 — 跨 cutoff 之年整年剔出
-# ════════════════════════════════════════════════════════════════════════
-class TestStraddleYearExclusion:
-    def test_straddle_year_excluded_with_disclosure(self):
-        from news_process.pipeline.audit.llm_contamination_test import (
-            year_to_test_dates_excluding_straddle,
-        )
-        df = pd.DataFrame({'year': [2023] * 5 + [2024] * 5 + [2025] * 5,
-                           'x': range(15)})
-        kept, n_excl, yrs = year_to_test_dates_excluding_straddle(df, '2024-04-01')
-        # 2024 跨界 (1-3 月 pre / 4-12 月 post) → 整年剔出, 不得划入 post 留出集
-        assert n_excl == 5
-        assert yrs == [2024]
-        assert set(kept['year']) == {2023, 2025}
-        assert '_test_date' in kept.columns
-        assert (kept.loc[kept['year'] == 2025, '_test_date']
-                == pd.Timestamp('2025-07-01')).all()
-
-    def test_jan1_cutoff_year_is_pure_post_not_straddle(self):
-        from news_process.pipeline.audit.llm_contamination_test import (
-            year_to_test_dates_excluding_straddle,
-        )
-        df = pd.DataFrame({'year': [2023, 2024, 2025]})
-        kept, n_excl, yrs = year_to_test_dates_excluding_straddle(df, '2024-01-01')
-        # cutoff 恰为 1 月 1 日 → 2024 整年 ≥ cutoff (纯 post), 无跨界剔除
-        assert n_excl == 0
-        assert yrs == []
-        assert len(kept) == 3
-
-
-# ════════════════════════════════════════════════════════════════════════
-# finding 07 (+ 03 E2E) — 39h run_stage: stage 49 audit-local join
-# ════════════════════════════════════════════════════════════════════════
-class TestRunStage39hWiring:
-    @staticmethod
-    def _cfg(tmp_path, cutoff='2024-04-01'):
-        return {
-            'paths': {'output_dir': str(tmp_path)},
-            'filenames': {},
-            'llm_contamination_test': {
-                'cutoff': cutoff,
-                'llm_col': 'llm_vote_tone_full',
-                'outcome_col': 'z_score',
-                'date_col': 'year',
-                'method': 'pearson',
-                'report': str(tmp_path / 'llm_contamination_report.json'),
-            },
-        }
-
-    @staticmethod
-    def _write_inputs(tmp_path, with_outcome_file=True):
-        rng = np.random.default_rng(42)
-        banks = [f'B{i:02d}' for i in range(30)]
-        years = list(range(2018, 2026))  # 2018-2025
-        panel = pd.DataFrame(
-            [{'target_bank': b, 'year': y} for b in banks for y in years])
-        panel['llm_vote_tone_full'] = rng.standard_normal(len(panel))
-        # 面板刻意不含 z_score (runner 8c: stage 49 DV master 不并入 40_panel)
-        panel.to_parquet(tmp_path / '40_panel_yearly.parquet')
-        if with_outcome_file:
-            odf = panel[['target_bank', 'year']].copy()
-            odf['z_score'] = (0.5 * panel['llm_vote_tone_full'].to_numpy()
-                              + rng.standard_normal(len(panel)))
-            odf.to_parquet(tmp_path / '49_risk_taking_outcomes.parquet')
-
-    def test_outcome_joined_from_49_and_report_written(self, tmp_path):
-        """旧接线结构性死路: 面板无 z_score → 永远 skip. 新接线: 自动 join 49 产物."""
-        from news_process.pipeline.audit.llm_contamination_test import run_stage
-        self._write_inputs(tmp_path)
-        rc = run_stage(self._cfg(tmp_path))
-        assert rc == 0
-        report_path = tmp_path / 'llm_contamination_report.json'
-        assert report_path.exists(), "39h 应产出 report (不再结构性 skip)"
-        report = json.loads(report_path.read_text(encoding='utf-8'))
-        # straddle 披露 (finding 03): 2024 跨 2024-04-01 → 30 行整年剔出
-        assert report['n_straddle_excluded'] == 30
-        assert report['straddle_years'] == [2024]
-        # pre = 2018-2023 (6×30); post = 2025 纯 post 年 (1×30)
-        assert report['n_pre_cutoff'] == 180
-        assert report['n_post_cutoff'] == 30
-        assert report['verdict'] in (
-            'contamination_detected', 'no_contamination_evidence',
-            'reverse_pattern_anomaly', 'inconclusive')
-
-    def test_graceful_skip_when_49_output_missing(self, tmp_path):
-        from news_process.pipeline.audit.llm_contamination_test import run_stage
-        self._write_inputs(tmp_path, with_outcome_file=False)
-        rc = run_stage(self._cfg(tmp_path))
-        assert rc == 0
-        assert not (tmp_path / 'llm_contamination_report.json').exists()
-
-    def test_graceful_skip_when_cutoff_unset(self, tmp_path):
-        from news_process.pipeline.audit.llm_contamination_test import run_stage
-        self._write_inputs(tmp_path)
-        rc = run_stage(self._cfg(tmp_path, cutoff=None))
-        assert rc == 0
-        assert not (tmp_path / 'llm_contamination_report.json').exists()
-
-
-# ════════════════════════════════════════════════════════════════════════
 # finding 04 — 39c 观测/null 同 listwise 域 + Z 常量删除
 # ════════════════════════════════════════════════════════════════════════
 class TestOrthogonalityDomainMatch:
@@ -407,53 +244,6 @@ class Test39eMaskAndListwiseNull:
         })  # listwise = 0 行
         out = permutation_null(panel, cols, n_perm=5, seed=42)
         assert out.empty
-
-
-# ════════════════════════════════════════════════════════════════════════
-# finding 06 — Jeffreys (1961) BF 标签档位
-# ════════════════════════════════════════════════════════════════════════
-class TestJeffreysBayesLabels:
-    @staticmethod
-    def _label_for(bf01: float) -> str:
-        from news_process.pipeline.audit.llm_contamination_test import (
-            BAYES_FACTOR_LABELS,
-        )
-        for threshold, label in BAYES_FACTOR_LABELS:
-            if bf01 <= threshold:
-                return label
-        return 'UNREACHED'
-
-    def test_ladder_cutpoints_match_jeffreys(self):
-        from news_process.pipeline.audit.llm_contamination_test import (
-            BAYES_FACTOR_LABELS,
-        )
-        thresholds = [t for t, _ in BAYES_FACTOR_LABELS]
-        finite = thresholds[:-1]
-        assert finite == pytest.approx(
-            [0.01, 10 ** -1.5, 0.10, 10 ** -0.5, 1.0, 10 ** 0.5,
-             10.0, 10 ** 1.5, 100.0])
-        assert thresholds[-1] == float('inf')
-
-    def test_decisive_requires_bf10_over_100(self):
-        # 旧表: bf_01 ≤ 0.10 (BF_10 ≥ 10) 即标 decisive — Jeffreys 要求 BF_10 > 100
-        assert self._label_for(0.005) == 'decisive evidence FOR contamination'
-        assert self._label_for(0.05) == 'strong evidence FOR contamination'
-        assert self._label_for(0.2) == 'substantial evidence FOR contamination'
-
-    def test_against_side_no_longer_inflated(self):
-        # 旧表: (1, 3] 标 moderate / (3, 10] 标 strong — Jeffreys: barely / substantial
-        assert self._label_for(2.0).startswith('barely worth mentioning')
-        assert self._label_for(5.0) == 'substantial evidence AGAINST contamination'
-        assert self._label_for(50.0) == 'very strong evidence AGAINST contamination'
-        assert self._label_for(500.0) == 'decisive evidence AGAINST contamination'
-
-    def test_classify_bayes_factor_strong_evidence_path(self):
-        from news_process.pipeline.audit.llm_contamination_test import (
-            classify_bayes_factor,
-        )
-        bf, label = classify_bayes_factor(1e-8, 200, 200)
-        assert bf < 0.01
-        assert label == 'decisive evidence FOR contamination'
 
 
 # ════════════════════════════════════════════════════════════════════════

@@ -67,32 +67,13 @@ def _validation_flag(key: str, default: bool = True
     return predicate
 
 
-def temporal_mask_enabled(cfg: dict[str, Any]) -> bool:
-    """``enabled_when`` 谓词：当 ``temporal_mask_test.enabled = true`` 时启用 stage 38a。"""
-    return cfg.get('temporal_mask_test', {}).get('enabled', False)
-
-
-def risk_taking_outcomes_enabled(cfg: dict[str, Any]) -> bool:
-    """v3.7.0 (C4 修复): stage 49 仅在 DC2 dry-run / full acquisition 输出存在时启用.
-
-    设计原因: stage 49 (risk_taking_outcomes) 读取 banking outcome 三件套数据
-    (Z-score / NPL formation / RWA ratio), 来源是 DC2 banking_outcome_dry_run.py
-    抓取脚本输出. 在用户实际跑 DC2 之前, input 文件不存在, stage 49 会 fail-loud.
-    本谓词通过 config flag 让用户显式 opt-in (避免无 input 时阻塞 pipeline).
-
-    用户启用方式:
-        config/panel.yaml::risk_taking_outcomes::enabled: true
-    """
-    return cfg.get('risk_taking_outcomes', {}).get('enabled', False)
-
-
 def article_staleness_enabled(cfg: dict[str, Any]) -> bool:
     """O2 sample-run finding (2026-05-25): stage 18 (staleness D2) 改为 opt-in.
 
     设计原因: stage 18 (semantic Faiss + surface MinHash 双指标) 依赖 faiss-cpu
     + datasketch 两个 v3.7.0 启用前置包. requirements.txt 中这些行被注释,
-    用户须先 pip install 才能启用. 沿用 stage 49 (risk_taking_outcomes_enabled)
-    的 opt-in pattern.
+    用户须先 pip install 才能启用. 采用 config flag 显式 opt-in pattern
+    (默认 disabled, 避免缺前置包时阻塞 pipeline)。
 
     用户启用方式:
         1. pip install faiss-cpu>=1.7.4 datasketch>=1.6.0
@@ -119,7 +100,6 @@ _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'lexical_discriminant_validity': _validation_flag('lexical_discriminant_validity'),  # v3.5.1 stage 39d
     'lm_discriminant_validity': _validation_flag('lm_discriminant_validity'),  # v3.5.2 PR #4 stage 39e (LM 4 子词典 HTMT)
     'cross_media_alpha': _validation_flag('cross_media_alpha'),  # v3.7.0 PR #12 stage 39f (Krippendorff α + variance)
-    'llm_contamination': _validation_flag('llm_contamination', default=False),  # DC4 stage 39h (2026-06-05 接线; opt-in 默认禁用: 需 stage 49 z_score + 官方 cutoff)
 }
 
 
@@ -302,27 +282,6 @@ STAGES_MAIN: list[StageSpec] = [
         timeout=600,  # 跨平台 pyreadstat 写 .dta, 小面板 (~168 行) < 1 分钟
     ),
 
-    # ── 模块五b: v3.7.0 risk-taking outcomes (第 10/11 篇 outcome 三件套) ──
-    # V4 audit DC2 + C2 deliverable (2026-05-18).
-    # 输入: data/dry_run/<period>_outcome.parquet (DC2 dry-run 输出) +
-    #       news_process/config/bank_list.yaml (bank metadata)
-    # 输出: data/processed/49_risk_taking_outcomes.parquet
-    #       schema: target_bank × year × {z_score, npl_formation_rate,
-    #       rwa_to_ta_ratio, sigma_roa_5y_rolling, llp_discretion,
-    #       is_soe, bank_type_id, implicit_guarantee_tier}
-    # 锚定: Laeven-Levine (2009 JFE) Z-score + Bushman-Williams (2015 JAR)
-    #       NPL formation + Acharya 2016 RFS implicit guarantee 框架.
-    # 注: M0 当前 bank_list.yaml frozen 39 行 (~10%), 完整 panel 待 M1 补全.
-    #     在 outcome dry-run 文件不存在时 stage 49 会 fail-loud (SystemExit 1),
-    #     用户应在跑 DC2 dry-run 后再启用本 stage 入流水线.
-    StageSpec(
-        name="阶段49: Risk-Taking Outcomes 三件套 (Z-score/NPL/RWA)",
-        script="49_risk_taking_outcomes.py",
-        group="main", kind="panel",
-        timeout=600,  # 纯 pandas 计算, 9000 obs panel < 1 分钟
-        enabled_when=risk_taking_outcomes_enabled,  # C4 修复: opt-in 谓词
-    ),
-
     # ── 模块六：伪造检验 ──
     StageSpec(
         name="阶段51: 伪造检验对照变量构建",
@@ -398,12 +357,6 @@ STAGES_VALIDATION: list[StageSpec] = [
         enabled_when=_VALIDATION_PREDS['media_diversity'],
     ),
     StageSpec(
-        name="阶段38a: 时间掩码前视偏误检验",
-        script="38a_temporal_mask_test.py",
-        group="validation", kind="robustness",
-        enabled_when=temporal_mask_enabled,
-    ),
-    StageSpec(
         name="阶段38b: 距离衰减权重敏感性检验",
         script="38b_decay_sensitivity.py",
         group="validation", kind="sensitivity",
@@ -463,21 +416,6 @@ STAGES_VALIDATION: list[StageSpec] = [
         group="validation", kind="audit",
         timeout=3600,  # 60 min ceiling, event detection + outlet aggregation
         enabled_when=_VALIDATION_PREDS['cross_media_alpha'],
-    ),
-    # DC4 (V4 F-Adv.2): LLM 训练数据污染留出检验 (Fisher z + permutation + Bayes factor).
-    # 学术依据: Sainz 2023 EMNLP; Magar-Schwartz 2022 ACL; Lopez-Lira-Tang 2023 holdout 协议.
-    # 2026-06-05 补 shim+注册接线: 此前 pipeline/audit/llm_contamination_test.py 是同族 6 个
-    # audit (39a/39c/39d/39e/39f/52) 中唯一缺 shim+注册者, 但已是两篇 provisional 论文
-    # (bank_news_clarity / bank_media_disagreement) frozen spec 承诺的 DC4 必修项。
-    # opt-in 默认禁用 (validation.llm_contamination=false): 需 opt-in stage 49 的 z_score
-    # outcome + 用户在 config 提供官方 LLM cutoff (禁止伪造); run_stage 在缺数据/未配 cutoff/
-    # pre-post 样本不足时优雅跳过 (与 39d/39e 缺列 graceful-skip 同族约定)。
-    StageSpec(
-        name="阶段39h: LLM 训练数据污染留出检验 (DC4, Fisher z)",
-        script="39h_llm_contamination_test.py",
-        group="validation", kind="audit",
-        timeout=900,  # 15 min ceiling; 纯 pandas 相关 + permutation, 小面板秒级
-        enabled_when=_VALIDATION_PREDS['llm_contamination'],
     ),
 ]
 

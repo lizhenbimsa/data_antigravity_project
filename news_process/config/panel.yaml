@@ -31,30 +31,6 @@ panel_building:
   compute_policy_shocks: true             # 7g. DID 政策冲击变量 — DCEP + Fintech Sandbox (Callaway & Sant'Anna 2021, JoE)
 
 # ------------------------------------------------------------------------------
-# [模块四：评估验证模块] 时间掩码前视偏误测试 - 阶段 38a (B2-1)
-# ------------------------------------------------------------------------------
-# 学术依据: Tetlock et al. (2008, JF) — 确保情感度量不依赖于未来信息
-# 检测窗口: 掩码 t 年的新闻后重建面板, 比较回归系数稳定性
-temporal_mask_test:
-  enabled: true
-  mask_windows:
-    - {name: 'last_year', description: '掩码最后一年', n_years_mask: 1}
-    - {name: 'last_2years', description: '掩码最后两年', n_years_mask: 2}
-  output_dir_suffix: '_temporal_mask'
-  # 回归稳定性阈值: 掩码前后系数变动超过此比例则报警
-  coefficient_stability_threshold: 0.20
-
-# ------------------------------------------------------------------------------
-# [模块五b] Stage 49 Risk-Taking Outcomes 三件套 (Z-score / NPL formation / RWA)
-# ------------------------------------------------------------------------------
-# C4 修复 (v3.7.0): stage 49 改 opt-in. 2026-06-01 全功能打开 → enabled: true.
-# ⚠ 输入 data/dry_run/<period>_outcome.parquet 由 DC2 banking_outcome_dry_run.py 生成;
-# 数据缺失时 stage 49 已加'优雅跳过'守卫 (写 schema 合法空 panel + 警告, 不再 fail-fast
-# 中断主流水线; 见 pipeline/panel/risk_taking_outcomes.py::main)。
-risk_taking_outcomes:
-  enabled: true                # opt-in 显式启用 (2026-06-01 全功能打开)
-
-# ------------------------------------------------------------------------------
 # 跟风/抄袭新闻检测配置 (Herd Detection)
 # ------------------------------------------------------------------------------
 # 学术依据: Tetlock (2011, RFS 24(5):1481-1512) — 媒体新闻信息冗余与重复效应

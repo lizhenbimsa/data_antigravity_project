@@ -1,4 +1,4 @@
-"""Plan-r3 P1-8: 5 个历史无单元测试 stage 的 import + main() smoke 测试.
+"""Plan-r3 P1-8: 4 个历史无单元测试 stage 的 import + main() smoke 测试.
 
 历史空白
 --------
@@ -9,7 +9,6 @@
     ────────────────  ───────────────────────────────────────────────
     32a               news_process.validation.dedup_threshold
     38                news_process.validation.media_diversity
-    38a               news_process.validation.temporal_mask
     52                news_process.pipeline.audit.stata_audit
     53                news_process.pipeline.audit.stats_excel
 
@@ -81,7 +80,6 @@ def _cleanup_smoke_log_artifacts():
 UNTESTED_STAGES: dict[str, str] = {
     "stage32a": "news_process.validation.dedup_threshold",
     "stage38":  "news_process.validation.media_diversity",
-    "stage38a": "news_process.validation.temporal_mask",
     "stage52":  "news_process.pipeline.audit.stata_audit",
     "stage53":  "news_process.pipeline.audit.stats_excel",
 }
