@@ -7,12 +7,14 @@
 *   M       = ln_fintech_mdna_length  (P2 mediator.primary, MD&A 章节文本长度)
 *   Y       = {{MAIN_DV}}           (ln_fintech_investment)
 *
-* Baron-Kenny 4 steps:
+* Baron-Kenny 四步法:
 *   (1) Y ~ X     (total effect, c)
 *   (2) M ~ X     (a path)
 *   (3) Y ~ X + M (c' direct + b indirect)
 *   (4) Sobel z = a*b / sqrt(b²σ²_a + a²σ²_b)
-* + Imai-Keele-Tingley 2010 sensitivity: medsens (varies ρ between residuals).
+* + Imai-Keele-Tingley 2010 敏感性分析: medsens (令残差间相关系数 ρ 变动)。
+* 白话: 先看媒体注意力是否影响 fintech 投资 (总效应), 再看是否经"年报 MD&A 里谈 fintech
+* 的篇幅"这条中间渠道传导; Sobel z 检验中介效应是否显著, medsens 检验该结论的敏感性。
 * ============================================================================
 
 version 19
@@ -28,12 +30,12 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* Step 1: total effect Y ~ X
+* Step 1: 总效应 Y ~ X
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo total
 
-* Step 2: a path M ~ X
+* Step 2: a 路径 M ~ X
 capture confirm variable ln_fintech_mdna_length
 if !_rc {
     reghdfe ln_fintech_mdna_length {{MAIN_TREAT}} $controls, ///
@@ -44,7 +46,7 @@ else {
     display "  [WARN] ln_fintech_mdna_length not in panel (M0.5.11 enrichment pending)"
 }
 
-* Step 3: c' direct + b indirect: Y ~ X + M
+* Step 3: c' 直接效应 + b 间接效应: Y ~ X + M
 capture confirm variable ln_fintech_mdna_length
 if !_rc {
     reghdfe {{MAIN_DV}} {{MAIN_TREAT}} ln_fintech_mdna_length $controls, ///
@@ -52,9 +54,9 @@ if !_rc {
     eststo direct
 }
 
-* Step 4: Sobel z + Imai-Keele 2010 sensitivity
-* Note: The medsens command requires Imai's `medsens` SSC package; install per
-* §5.7.3 SSC prerequisites at M2 onboarding.
+* Step 4: Sobel z + Imai-Keele 2010 敏感性分析
+* 注: medsens 命令需要 Imai 的 `medsens` SSC 包; 安装见 §5.7.3 SSC prerequisites
+* (M2 onboarding 时执行)。
 * ssc install medsens, replace
 * medsens, sims(1000) rho(-0.5 0.5)
 

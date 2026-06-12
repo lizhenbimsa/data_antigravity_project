@@ -1,11 +1,13 @@
 * ============================================================================
-* 30_figure1_first_stage_F.do — First-stage F across cutoff thresholds
+* 30_figure1_first_stage_F.do — 各 cutoff 阈值下的第一阶段 F 统计量
 * Paper: {{PAPER_ID}}
 *
-* Visualizes Kleibergen-Paap (or Cragg-Donald) F statistic for the LLM-Peer IV
-* across 5 cutoff thresholds. F > 10 (Stock-Yogo 2005) signals strong IV.
+* 可视化 LLM-Peer IV 在 5 个 cutoff 阈值下的 Kleibergen-Paap (或 Cragg-Donald)
+* F 统计量。F > 10 (Stock-Yogo 2005) 提示强工具变量。
+* 白话: 第一阶段 F 衡量工具变量和内生变量绑得够不够紧; F 低于 10 说明工具
+*       太弱, 第二阶段的因果估计不可信。
 *
-* Output: $figures_dir/figure1_first_stage_F.pdf
+* 输出: $figures_dir/figure1_first_stage_F.pdf
 * ============================================================================
 
 version 19
@@ -24,9 +26,8 @@ if _rc {
     exit 199
 }
 
-* Collect first-stage F statistics manually because coefplot doesn't natively
-* support `r(weakid)`. Build a tiny 5-row dataset of (cutoff, F) and use
-* twoway/coefplot to draw.
+* 手工收集第一阶段 F 统计量 (coefplot 不原生支持 `r(weakid)`)。
+* 构造 5 行 (cutoff, F) 小数据集后用 twoway/coefplot 作图。
 
 tempname F_mat
 matrix `F_mat' = J(5, 2, .)
@@ -45,7 +46,7 @@ foreach c in 70 75 80 85 90 {
     matrix `F_mat'[`i', 2] = `F_stat'
 }
 
-* Build mini dataset for plotting.
+* 构造作图用小数据集。
 preserve
 clear
 svmat `F_mat', names(col)
@@ -53,7 +54,7 @@ rename c1 cutoff
 rename c2 F_stat
 list
 
-* Draw line + scatter with horizontal reference at F=10 (Stock-Yogo critical).
+* 画折线 + 散点, 加 F=10 水平参考线 (Stock-Yogo 临界值)。
 twoway (line F_stat cutoff, lcolor(black) lwidth(medium)) ///
        (scatter F_stat cutoff, msize(medium) mcolor(black)) ///
        (function y = 10, range(0.65 0.95) lpattern(dash) lcolor(red)), ///

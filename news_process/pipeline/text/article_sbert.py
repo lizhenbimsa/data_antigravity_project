@@ -30,9 +30,10 @@ D-0 实测项
 - HF cache 是否含 shibing624/text2vec-base-chinese (validate via SentenceTransformer init)
 - GPU vs CPU 速度 (项目本机有 CUDA 时 < 2 h, CPU 4-6 h)
 
-stub 说明
+运行方式
 ---------
-模块代码完整可跑, 但实际 4-6 h 编码需用户手动触发:
+本 stage 已注册于 core/dag.py::STAGES_MAIN (无 enabled_when 条件, 随主管道
+always-on 执行); 也可单独手动触发 (全量 40 万文章编码 GPU 约 4-6 h):
     python news_process/30a_article_sbert.py
 """
 
@@ -46,7 +47,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-# Path injection
+# 路径注入: 让 ``news_process.core.*`` 在任意 cwd 下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
@@ -208,7 +209,8 @@ def main():
     # content_full / content_ctx 均已由 stage 13 (ctx_materializer) prepend 标题【恰好一次】。
     # 故 title_col=None 关闭 encode_articles 内 _truncate_for_sbert 的二次标题前置 —— 否则
     # ctx 轨 (读已含标题的 content_ctx) 会重复注入标题 (标题×2), 与 full 轨 (标题×1) 不对称,
-    # 致 emb_full/emb_ctx 语义权重不可比 (下传 stage 17 topic emb / stage 18 semantic_staleness)。
+    # 致 emb_full/emb_ctx 语义权重不可比 (下传 stage 18 semantic_staleness;
+    # 原 stage 17 topic emb 消费端已于 2026-06-09 随 BERTopic 阶段整体移除)。
     # 两轨改为同型构造: 各取 content_*[:TITLE+PARA] (标题在串首恰好一次), 仅输入文本范围不同
     # (full=标题+全文 / ctx=标题+实体窗口)。与同源 content_full/content_ctx 消费者 (stage 15
     # policy_alignment / stage 27 benefit_society) 读同一含标题串、标题注入一次的口径对齐

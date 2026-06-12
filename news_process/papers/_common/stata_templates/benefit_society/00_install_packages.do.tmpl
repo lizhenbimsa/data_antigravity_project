@@ -1,11 +1,10 @@
 * ============================================================================
-* 00_install_packages.do — One-shot ssc install for benefit_society
+* 00_install_packages.do — benefit_society 一次性 ssc install 安装脚本
 * Paper: {{PAPER_ID}}
 *
-* Per audit F-R10-L2 / F-R6-L1, install all third-party Stata packages
-* required by the dual-track replication battery.
+* 按审计 F-R10-L2 / F-R6-L1, 安装双轨复现 battery 所需的全部第三方 Stata 包。
 *
-* Run ONCE per Stata installation:
+* 每个 Stata 安装只需运行一次:
 *   . do 00_install_packages.do
 * ============================================================================
 
@@ -15,7 +14,7 @@ clear all
 display _newline "[ssc install] benefit_society dual-track dependencies"
 display      "================================================================"
 
-* Core regression / fixed effects
+* 核心回归 / 固定效应
 capture which reghdfe
 if _rc ssc install reghdfe, replace
 capture which ftools
@@ -35,19 +34,19 @@ if _rc ssc install estout, replace
 capture which coefplot
 if _rc ssc install coefplot, replace
 
-* Winsorization
+* 缩尾 Winsorization
 capture which winsor2
 if _rc ssc install winsor2, replace
 
-* Wild cluster bootstrap (F-R5-H1 / F-H4)
+* 野聚类自助法 Wild cluster bootstrap (F-R5-H1 / F-H4)
 capture which boottest
 if _rc ssc install boottest, replace
 
-* Family-wise Romano-Wolf (F-R5-M2)
+* 族错误率多重检验校正 Romano-Wolf (F-R5-M2)
 capture which rwolf
 if _rc ssc install rwolf, replace
 
-* Kappa with CI (article-level inter-track agreement, F-M2)
+* 带置信区间的 Kappa (篇章级双轨一致性, F-M2)
 capture which kapci2
 if _rc ssc install kapci2, replace
 

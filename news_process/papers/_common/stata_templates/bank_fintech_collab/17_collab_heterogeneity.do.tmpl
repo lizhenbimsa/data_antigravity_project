@@ -1,5 +1,5 @@
 * ============================================================================
-* 17_collab_heterogeneity.do — Heterogeneity by bank type / size / location (P5)
+* 17_collab_heterogeneity.do — 按银行类型 / 规模 / 地区的异质性 (P5)
 * Paper: {{PAPER_ID}}
 * HET_VAR per derivative_replication: bank_type (与 P2 attention 同 cut)
 * ============================================================================
@@ -16,12 +16,14 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* Heterogeneity by {{HET_VAR}} (per spec)
+* 按 {{HET_VAR}} 分组的异质性 (per spec)
 * fix(omni-g-templates-08, 2026-06-11): st-did-05 修复传播补全 — HET_VAR=bank_type
 * 是字符串列 (levelsof 产字符串 token 'soe'/'joint'...), 旧 `if {{HET_VAR}} == `lvl''
 * 宏未加引号 → Stata 把 token 当变量名解析, r(111) 'joint not found' 必崩 (attention/
 * locus/substance 17/18 各站已逐站修掉, 唯独漏本文件)。按 HET_VAR 字符串/数值二态
 * 分支: 字符串列加双引号比较, 数值列保持裸比较。
+* 白话: 按银行类型等维度逐组重跑回归; 分组列存的是文字 ('soe' 等) 时比较必须加引号,
+* 否则 Stata 会把文字当变量名去找而直接报错。
 capture confirm variable {{HET_VAR}}
 if !_rc {
     levelsof {{HET_VAR}}, local(het_levels)

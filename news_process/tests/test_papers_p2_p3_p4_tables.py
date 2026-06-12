@@ -1,8 +1,8 @@
-"""Tests for P2/P3/P4 paper tables.py thin wrappers.
+"""P2/P3/P4 三篇 paper 的 tables.py thin wrapper 测试。
 
 quality-hardening Round 33 (2026-05-27): bank_fintech_attention/locus/substance
-tables.py 各 22 stmts, 之前 ~55%. 加 mock-based test 覆盖
-build_tableN_X 4 个 thin wrappers (per actual function names per paper).
+tables.py 各 22 stmts, 之前覆盖率 ~55%. 加 mock-based 测试覆盖
+build_tableN_X 4 个 thin wrapper (按各论文的真实函数名逐一列举).
 """
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ if str(_PROJECT_PARENT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_PARENT))
 
 
-# Per-paper actual function name inventory (some papers use _mechanism, P3
-# substance uses _dual_outcome). Enumerated to avoid cross-product mismatch.
+# 各论文真实函数名清单 (部分论文用 _mechanism, P3 substance 用
+# _dual_outcome)。逐项枚举以避免笛卡尔积导致的名称错配。
 _TARGETS = [
     # (paper_id, fn_name, expected_csv_substring)
     ('bank_fintech_attention', 'build_table2_main',          'table2'),

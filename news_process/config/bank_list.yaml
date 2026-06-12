@@ -1,7 +1,7 @@
 # news_process/config/bank_list.yaml
 # ──────────────────────────────────────────────────────────────────────────
-# Bank panel master list — derived from bank_addresses.json (NFRA 1768 银行)
-# + 政策性银行 3 家手动补充 + D-SIB list 2024-Q4 frozen.
+# 银行面板主清单 (Bank panel master list) — 派生自 bank_addresses.json (NFRA 1768 银行)
+# + 政策性银行 3 家手动补充 + D-SIB 名单 (2024-Q4 冻结)。
 #
 # v3.7.0 user task 3 (2026-05-18): 严格按照 bank_addresses.json 执行.
 # 重新生成: python scripts/generate_bank_list_from_addresses.py
@@ -11,12 +11,13 @@
 #   POLICY_BANKS (脚本内 3 家政策性) → 手动加 3 行
 #   总计: 1771 行
 #
-# Schema (per bank):
+# Schema (每家银行一条记录, 字段如下):
 #   target_bank: 中文全称 (与 bank_addresses.json key 完全一致)
 #   is_soe: bool (国务院 / 财政部 / 汇金 控股 ≥ 50%)
 #   is_commercial_bank: bool (排除央行; 下游 panel 过滤依据)  # M6 audit V2 修复
 #   bank_type_id: int 1-8 (国有/股份/城商/农商/民营/外资/政策/其他)
 #   implicit_guarantee_tier: int 1-5 (Acharya 2016 RFS 框架, 5=TBTF / 1=无)
+#     白话: 隐性担保层级 — 5 = "大到不能倒"必被国家兜底的大行, 1 = 出事基本没人兜底的小机构。
 #   wind_code: NFRA 机构 code (F010/F020xxxx 格式; 非股票 ticker. M5 audit warning)
 #   listed: bool (A/H/U 股任一; 基于 LISTED_BANKS_2024_Q4 hardcode set)
 #   province: 总部省份
@@ -63,7 +64,7 @@ bank_type_definitions:
   8: "其他 (直销 / 央行 / 未分类)"
 
 # ─────────────────────────────────────────────────────────────────────────
-# Bank entries (flow style for compactness; 1771 行)
+# 银行条目 (用 YAML flow 紧凑风格逐行书写; 共 1771 行)
 # ─────────────────────────────────────────────────────────────────────────
 banks:
   - {target_bank: 中国农业银行, is_soe: true, is_commercial_bank: true, bank_type_id: 1, implicit_guarantee_tier: 5, wind_code: "F0100202", listed: true, province: 北京, nfra_type: 国有大型商业银行}

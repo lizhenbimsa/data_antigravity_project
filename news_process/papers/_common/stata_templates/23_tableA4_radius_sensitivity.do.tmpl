@@ -1,4 +1,4 @@
-* news_process v3.2.0 — Table A4: Radius Sensitivity (plan v14 §3.5 P5.2 / §9.2)
+* news_process v3.2.0 — Table A4: 实体窗口半径敏感性 Radius Sensitivity (plan v14 §3.5 P5.2 / §9.2)
 *
 * Stage 35 LLM 法升级输出 radius_sensitivity_results.json (10.5k API).
 * 此模板读 JSON → 转 .dta → 绘 heatmap κ × radius × dimension.
@@ -10,6 +10,8 @@
 *   innovation_collab_mode × radius (v3.4.0, Chesbrough 2003 + L&S 2006 SMJ)
 *
 * 阈值: 全维度 radius κ ≥ 0.70 (Landis & Koch 1977 substantial, 应稳健)
+* 白话: ctx 轨取"实体附近 N 句话"作上下文, N (半径) 是人为选的; 此表检验把半径从 1 句
+* 改成 0/2/3 句后分类结果是否基本不变 (κ≥0.70), 证明结论不依赖这个人为参数。
 
 version 19
 

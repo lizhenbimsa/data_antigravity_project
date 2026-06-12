@@ -1,25 +1,26 @@
-"""tests/integration/test_bert_panel_invariant.py — Wave 4 fail-fast invariant.
+"""tests/integration/test_bert_panel_invariant.py — Wave 4 fail-fast 不变量。
 
-Catches the "stage 23 silently drops a BERT model" failure mode at test time
-rather than at panel construction time.
+在测试期 (而非 panel 构建期) 拦截 "stage 23 静默丢掉某个 BERT 模型" 的
+失败模式。
 
-Concrete failure mode (originally observed 2026-05-13 in Wave 0/1 finalization):
-  - config/sentiment.yaml lists 3 BERT models (finbert_cn / fin_sent_zh /
-    finbert2).
-  - If HuggingFace huggingface.co is unreachable from the dev machine, a
-    model whose weights are uncached locally graceful-skips while the
-    cached ones succeed.
-  - Such a silent skip drops that model's columns from the stage 23 output.
-  - Downstream panel encode (pipeline/panel/encode.py:63) reads BERT_MODELS
-    from the SAME config; trying to read a dropped `<model>_label_ctx` would
-    KeyError ~30 min later. This test catches it in <1s.
+具体失败模式 (2026-05-13 在 Wave 0/1 收尾时实际观测到):
+  - config/sentiment.yaml 列出 3 个 BERT 模型 (finbert_cn / fin_sent_zh /
+    finbert2)。
+  - 若开发机连不上 HuggingFace huggingface.co, 权重未本地缓存的模型会
+    graceful skip, 而已缓存的照常成功。
+  - 这种静默跳过会让该模型的列从 stage 23 输出中消失。
+  - 下游 panel encode (pipeline/panel/encode.py:63) 从同一份 config 读
+    BERT_MODELS; 读取已消失的 `<model>_label_ctx` 会在 ~30 分钟后才
+    KeyError。本测试 <1 秒就能抓到。
 
-The invariant: for every model declared in `tone_berts.models`, the stage 23
-parquet must contain its 2 label columns: `{short_name}_label_{ctx,full}`
-(remove-title-track 后 BERT 收为 _full/_ctx 双轨).
+不变量: `tone_berts.models` 中声明的每个模型, stage 23 parquet 必须含其
+2 个 label 列: `{short_name}_label_{ctx,full}`
+(remove-title-track 后 BERT 收为 _full/_ctx 双轨)。
 
-The test auto-skips when 23_bert_tone.parquet is absent (CI light/CI full
-both have `data/processed/` .gitignored) and is auto-marked `integration`.
+23_bert_tone.parquet 缺失时自动 skip (CI light/CI full 的
+`data/processed/` 均被 .gitignore), 并自动打 `integration` 标记。
+白话: 配置里写了几个 BERT 模型, 产物文件里就必须有几个模型的结果列;
+少一个就立刻报错, 不让问题拖到半小时后的下游阶段才爆。
 """
 
 from __future__ import annotations
@@ -36,7 +37,7 @@ SENTIMENT_YAML = REPO_ROOT / "news_process" / "config" / "sentiment.yaml"
 
 
 def _configured_bert_short_names() -> list[str]:
-    """Read sentiment.yaml -> tone_berts.models -> list of short_name."""
+    """读取 sentiment.yaml -> tone_berts.models -> short_name 列表。"""
     with SENTIMENT_YAML.open(encoding="utf-8") as f:
         cfg = yaml.safe_load(f) or {}
     models = (

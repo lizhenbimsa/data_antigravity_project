@@ -21,6 +21,13 @@
     (组级)          benefit 15_table6 esttab `se ci` 互斥 → 拆 SE 主表 + CI 伴表
 
 全部测试为 python 层模板文本断言 + parse_esttab_csv 合成格式契约, 不启动 Stata。
+
+# 白话: Stata 模板(.do.tmpl)是生成回归表的脚本底稿, 这组测试不跑 Stata,
+# 只检查脚本文字本身: 每张 .tex 表要配一份机器可读的 CSV 且文件名和 Python
+# 消费端一字不差; esttab 的 se 和 ci 选项不能同时用(会报错整表丢失);
+# 表格汇总名单用 estimates dir 动态生成, 免得某个被守卫跳过的估计名导致
+# 报错; 变量名不许超 Stata 的 32 字符上限; 模板里的 {{占位符}} 必须都在
+# 白名单里, 否则一键替换会留下残渣。
 """
 from __future__ import annotations
 

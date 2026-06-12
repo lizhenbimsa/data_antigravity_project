@@ -1,18 +1,19 @@
 * ============================================================================
-* 21_tableA2_attitude_track_switch.do — Dual-track main spec comparison
+* 21_tableA2_attitude_track_switch.do — 双轨主规格对比
 * Paper: {{PAPER_ID}}
 *
-* PAP v1.0-final §2 H3 evidence (audit-frozen):
-*   2-spec switch: full vs ctx
-*   H3 acceptance:
+* PAP v1.0-final §2 H3 证据 (审计冻结):
+*   2 规格切换: full vs ctx
+*   H3 验收标准:
 *     (1) sign(beta_full) == sign(beta_ctx)
 *     (2) min(|beta_full|, |beta_ctx|) / max(|beta_full|, |beta_ctx|) > 0.5
-*   3 dimensions evaluated jointly (mean / pos_frac / neg_frac, F-H3).
+*   3 个维度联合评估 (mean / pos_frac / neg_frac, F-H3)。
+* 白话: 同一个回归用全文口径和实体上下文口径各跑一遍, 两边系数得同号、
+* 大小差距不超过一倍, 才算"换口径结论不变"。
 *
-* Wild cluster bootstrap inference (F-H4 / F-R5-H1) via boottest:
-*   boottest does NOT directly accept reghdfe e-class; we partial out FE
-*   first into residual, then run regress + boottest. Implementation: rely
-*   on boottest's built-in reghdfe support (boottest >= 4.0).
+* 野聚类自助法推断 (F-H4 / F-R5-H1), 经 boottest:
+*   boottest 不直接接受 reghdfe e-class; 思路是先把 FE partial out 进残差,
+*   再 regress + boottest。实现上依赖 boottest 对 reghdfe 的内建支持 (boottest >= 4.0)。
 * ============================================================================
 
 version 19
@@ -37,7 +38,7 @@ if !`has_boottest' {
             "Run: do 00_install_packages.do"
 }
 
-* ----- 2-spec main regression: full vs ctx, 3 dimensions = 6 specs total -----
+* ----- 2 规格主回归: full vs ctx, 3 个维度 = 共 6 个规格 -----
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 scalar b_mean_full = _b[{{ATTITUDE_FULL}}]
@@ -109,7 +110,7 @@ if !_rc {
     eststo M_neg_ctx
 }
 
-* ----- H3 sign + min/max ratio check (3 dimensions) -----
+* ----- H3 符号 + min/max 比例检查 (3 个维度) -----
 quietly {
     foreach dim in mean pos neg {
         capture {
@@ -136,7 +137,7 @@ display "  neg    : sign_match=" sign_match_neg  ", ratio=" ratio_neg  ", pass="
 scalar h3_total_pass = (h3_pass_mean == 1) + (h3_pass_pos == 1) + (h3_pass_neg == 1)
 display "  TOTAL  : " h3_total_pass " / 3 dimensions pass (>=2 required)"
 
-* ----- Output Table A2 -----
+* ----- 输出 Table A2 -----
 * fix(omni-gapfill-16, 2026-06-12): 'Wild boot p' stats 行呈现逐规格 boottest
 * p 值 (estadd 注入, 见上方); 表注如实区分渐近 cluster SE 与 WCB p。
 esttab M_mean_full M_mean_ctx M_pos_full M_pos_ctx M_neg_full M_neg_ctx ///

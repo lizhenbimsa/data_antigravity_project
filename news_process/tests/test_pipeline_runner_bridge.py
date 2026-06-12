@@ -1,4 +1,4 @@
-"""Tests for ``news_process.papers._common.pipeline_runner.run_main_pipeline``.
+"""``news_process.papers._common.pipeline_runner.run_main_pipeline`` 的测试。
 
 quality-hardening Round 16 (2026-05-27): pipeline_runner.py 50% → 100%.
 覆盖 Phase 9b 引入的薄 bridge (run_main_pipeline → run_pipeline_function.run_pipeline).

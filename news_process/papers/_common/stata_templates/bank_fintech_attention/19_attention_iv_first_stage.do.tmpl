@@ -6,9 +6,12 @@
 * IV (per spec.identification.iv):
 *   primary  = leave_one_out_peer_attention_iv  (firm-level: 4 银行类型分类同业 mean)
 *   fallback = bartik_attention_iv              (Bartik shift-share, R1-M22 修订)
+* 白话: 担心"媒体注意力"本身内生 (好坏银行被报道得不一样多), 借同类型同业银行的
+* 平均注意力 (剔除自己) 当工具变量; 第一阶段先确认工具与内生变量足够相关, 弱工具
+* 会让 2SLS 比 OLS 更不可信。
 *
 * First stage: {{MAIN_TREAT}} ~ IV + controls
-* Reduced form / 2SLS via ivreg2 or ivregress2sls.
+* Reduced form / 2SLS 经 ivreg2 实现。
 * ============================================================================
 
 version 19
@@ -29,17 +32,17 @@ set seed {{RANDOM_SEED}}
 * ============================================================================
 capture confirm variable leave_one_out_peer_attention_iv
 if !_rc {
-    * First stage: treat ~ IV + controls + FE
+    * 第一阶段: treat ~ IV + controls + FE
     reghdfe {{MAIN_TREAT}} leave_one_out_peer_attention_iv $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo first_loo
 
-    * Reduced form: outcome ~ IV directly
+    * 简化式: outcome 直接对 IV 回归
     reghdfe {{MAIN_DV}} leave_one_out_peer_attention_iv $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo reduced_loo
 
-    * 2SLS: outcome ~ instrumented(treat) + controls
+    * 2SLS: outcome ~ 工具化的 treat + controls
     ivreg2 {{MAIN_DV}} ({{MAIN_TREAT}} = leave_one_out_peer_attention_iv) $controls ///
         i.bank_id i.year, cluster({{CLUSTER_VAR}}) first
     eststo tsls_loo

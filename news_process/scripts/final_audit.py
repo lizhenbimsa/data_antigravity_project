@@ -20,7 +20,7 @@ print('FINAL AUDIT - Stata Integration Review')
 print('=' * 70)
 print()
 
-# 1. Panel data
+# 1. Panel data (面板数据校验)
 df = pd.read_parquet('data/processed/40_panel_yearly.parquet')
 print('[1] Panel Data Verification')
 print('-' * 70)
@@ -30,7 +30,7 @@ print(f'  Year range:  {df["year"].min()} - {df["year"].max()}')
 print(f'  Missing key: target_bank={df["target_bank"].isna().sum()}, year={df["year"].isna().sum()}')
 print()
 
-# 2. Stata do files
+# 2. Stata do files (.do 文件清点, 指向已退役的 stata/ 单目录体系)
 print('[2] Stata Do Files')
 print('-' * 70)
 do_files = sorted([f for f in os.listdir('stata') if f.endswith('.do')])
@@ -58,7 +58,7 @@ for f, (lines, labels) in sorted(label_counts.items()):
     print(f'    {f:40s} {lines:4d} lines  {labels:5d} labels')
 print()
 
-# 3. Label coverage
+# 3. Label coverage (标签覆盖率分析)
 print('[3] Label Coverage Analysis')
 print('-' * 70)
 all_cols = set(df.columns)
@@ -71,7 +71,7 @@ for f in do_files:
         matches = re.findall(r'label variable (\S+)', content)
         labeled_vars.update(matches)
 
-# Only count labels for actual dataset columns
+# 只统计真实存在于数据集列中的 label (排除 .do 里给幻影变量打的标签)
 labeled_in_dataset = labeled_vars & all_cols
 coverage = len(labeled_in_dataset) / len(all_cols) * 100
 unlabeled = all_cols - labeled_vars
@@ -93,7 +93,7 @@ else:
     print('  [OK] All dataset variables are labeled!')
 print()
 
-# 4. Check for duplicate labels
+# 4. Check for duplicate labels (重复标签检查)
 print('[4] Duplicate Label Check')
 print('-' * 70)
 all_labels = []
@@ -118,7 +118,7 @@ else:
     print('  [OK] No duplicate labels')
 print()
 
-# 5. Documents
+# 5. Documents (文档存在性检查; 这些根级文档均为历史遗留, 已删)
 print('[5] Documentation Check')
 print('-' * 70)
 docs = [
@@ -138,7 +138,7 @@ for doc in docs:
 print(f'  Total docs size: {total_doc_size:.1f} KB')
 print()
 
-# 6. Python scripts
+# 6. Python scripts (辅助脚本存在性检查)
 print('[6] Python Scripts')
 print('-' * 70)
 scripts = [
@@ -155,7 +155,7 @@ for script in scripts:
         print(f'  [--] {script:45s} MISSING')
 print()
 
-# 7. Final summary
+# 7. Final summary (汇总打分)
 print('=' * 70)
 print('AUDIT SUMMARY')
 print('=' * 70)

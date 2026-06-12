@@ -1,7 +1,7 @@
-"""Unit tests for papers/benefit_society/ncd_{downloader,extractor,parser}.py modules.
+"""papers/benefit_society/ncd_{downloader,extractor,parser}.py 模块的单元测试。
 
-Covers PDF downloader (stub mode), extractor (cache/stub paths), and field parser.
-No real HTTP / LLM API calls are made.
+覆盖 PDF downloader (stub 模式)、extractor (缓存/stub 路径) 与字段 parser。
+不发起任何真实 HTTP / LLM API 调用。
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 
 # =============================================================================
-# PDF Downloader Tests
+# PDF Downloader 测试
 # =============================================================================
 
 @pytest.fixture
@@ -22,12 +22,12 @@ def downloader():
 
 
 def test_downloader_search_report_url_returns_none_for_unknown_agency(downloader):
-    """search_report_url stub must return None for unknown agency."""
+    """search_report_url stub 对未知评级机构必须返回 None。"""
     assert downloader.search_report_url("某银行", 2018, "unknown_agency") is None
 
 
 def test_downloader_search_report_url_stub_always_none(downloader):
-    """In Phase 0 stub mode, search returns None for all valid agencies."""
+    """Phase 0 stub 模式下, 对所有合法评级机构搜索均返回 None。"""
     for agency in downloader.RATING_AGENCIES:
         assert downloader.search_report_url("Test Bank", 2018, agency) is None
 
@@ -63,7 +63,7 @@ def test_downloader_batch_download_dry_run(downloader, tmp_path):
         session=None,
         agencies=["ccxr"],
     )
-    # 2 banks × 2 years × 1 agency = 4 records, all stub (no URL)
+    # 2 银行 × 2 年 × 1 机构 = 4 条记录, 全部为 stub (无 URL)
     assert len(records) == 4
     assert all(r.status in ("skip", "stub") for r in records)
 
@@ -83,7 +83,7 @@ def test_downloader_write_manifest_structure(downloader, tmp_path):
 
 
 def test_downloader_batch_skips_existing(downloader, tmp_path):
-    # Pre-create one file
+    # 预先创建一个已存在的文件
     existing = tmp_path / "BID-1_2017_ccxr.pdf"
     existing.write_bytes(b"fake pdf content")
 
@@ -99,7 +99,7 @@ def test_downloader_batch_skips_existing(downloader, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# quality-hardening Round 39 (2026-05-27): ncd_pdf_downloader 83.33% → ≥90%
+# quality-hardening Round 39 (2026-05-27): ncd_pdf_downloader 覆盖率 83.33% → ≥90%
 # 补漏行 131-151: download_one 真 session 路径 + 重试 + sha256 + 失败终态
 # ---------------------------------------------------------------------------
 
@@ -112,11 +112,11 @@ def test_downloader_download_one_with_session_writes_file(downloader, tmp_path):
         "BID-1", "Test Bank", 2018, "ccxr",
         url="https://example.com/x.pdf",
     )
-    # mock session.get(...).content = PDF bytes
+    # mock session.get(...).content = PDF 字节
     fake_pdf_bytes = b"%PDF-1.4 fake bytes"
     fake_resp = MagicMock()
     fake_resp.content = fake_pdf_bytes
-    fake_resp.raise_for_status = MagicMock()  # success
+    fake_resp.raise_for_status = MagicMock()  # 模拟请求成功
     fake_session = MagicMock()
     fake_session.get.return_value = fake_resp
 
@@ -130,7 +130,7 @@ def test_downloader_download_one_with_session_writes_file(downloader, tmp_path):
     assert written.read_bytes() == fake_pdf_bytes
     # sha256 应该是真 hash, 不是 None
     assert out.sha256 is not None
-    assert len(out.sha256) == 64  # SHA-256 hex digest
+    assert len(out.sha256) == 64  # SHA-256 十六进制摘要长度
 
 
 def test_downloader_download_one_retries_on_exception_then_fails(downloader, tmp_path):
@@ -181,7 +181,7 @@ def test_downloader_download_one_retries_then_succeeds(downloader, tmp_path):
 
 
 # =============================================================================
-# Text Extractor Tests
+# Text Extractor 测试
 # =============================================================================
 
 @pytest.fixture
@@ -201,13 +201,13 @@ def test_extractor_unimplemented_provider_returns_stub(extractor, tmp_path):
     fake_pdf = tmp_path / "fake.pdf"
     fake_pdf.write_bytes(b"%PDF-1.4 fake content")
     rec = extractor.extract_one(fake_pdf, provider="gpt4o")
-    # In Phase 0, all providers raise NotImplementedError → status="stub"
+    # Phase 0 阶段所有 provider 都抛 NotImplementedError → status="stub"
     assert rec.status == "stub"
     assert "unblock" in rec.error.lower() or "D4" in rec.error or "API" in rec.error
 
 
 def test_extractor_cache_hit_short_circuits_api(extractor, tmp_path):
-    """If cache has a previous response, no API call is attempted."""
+    """若缓存中已有历史响应, 则不会尝试任何 API 调用。"""
     from news_process.core.caching import LLMCache
 
     fake_pdf = tmp_path / "fake.pdf"
@@ -251,7 +251,7 @@ def test_extractor_unknown_provider_raises(extractor, tmp_path):
 
 
 # =============================================================================
-# Field Parser Tests
+# Field Parser 测试
 # =============================================================================
 
 @pytest.fixture
@@ -280,7 +280,7 @@ def test_parser_validate_field_type_check(parser):
 
 
 def test_parser_validate_field_int_to_float_coercion(parser):
-    ok, _ = parser.validate_field("npl_ratio_pct", 5)  # int → float OK
+    ok, _ = parser.validate_field("npl_ratio_pct", 5)  # int → float 自动转换应通过
     assert ok
 
 
@@ -294,12 +294,12 @@ def test_parser_validate_record_returns_cleaned(parser):
     raw = {
         "bank_name": "Test",
         "report_year": 2018,
-        "npl_ratio_pct": 99.0,  # Out of range
+        "npl_ratio_pct": 99.0,  # 超出取值范围
         "car_ratio_pct": 12.0,
     }
     cleaned, warns = parser.validate_record(raw)
     assert cleaned["bank_name"] == "Test"
-    assert cleaned["npl_ratio_pct"] is None  # Cleaned to None
+    assert cleaned["npl_ratio_pct"] is None  # 越界值被清洗为 None
     assert cleaned["car_ratio_pct"] == 12.0
     assert len(warns) >= 1
 
@@ -332,14 +332,14 @@ def test_parser_records_to_panel_dedups_bank_year(parser):
         {"pdf_path": "/b.pdf", "response_parsed": {"bank_name": "A", "report_year": 2018, "total_assets_billion_rmb": 110.0}},
     ]
     panel = parser.records_to_panel(records)
-    assert len(panel) == 1  # Dedup'd
+    assert len(panel) == 1  # 已按 bank-year 去重
 
 
 def test_parser_flag_outliers(parser):
     df = pd.DataFrame({
         "bank_id": ["A", "B", "C", "D"],
         "year": [2018] * 4,
-        "total_assets": [100.0, 105.0, 102.0, 100_000.0],  # last is outlier
+        "total_assets": [100.0, 105.0, 102.0, 100_000.0],  # 最后一个是离群值
         "npl": [1.0, 1.5, 1.2, 1.3],
         "car": [12.0, 12.5, 13.0, 12.2],
         "profit": [100.0, 110.0, 105.0, 102.0],
@@ -361,8 +361,8 @@ def test_parser_triangulation_inconsistency_flag(parser):
     ar = pd.DataFrame({
         "bank_id": ["A"],
         "year": [2018],
-        "total_assets": [110.0],  # 10% diff → inconsistent
-        "npl": [1.45],  # ~3% diff → consistent
+        "total_assets": [110.0],  # 差异 10% → 不一致
+        "npl": [1.45],  # 差异约 3% → 一致
         "car": [12.1],
     })
     out = parser.triangulate_with_annual_report(ncd, ar, tolerance_pct=5.0)
@@ -371,11 +371,11 @@ def test_parser_triangulation_inconsistency_flag(parser):
 
 
 # ---------------------------------------------------------------------------
-# quality-hardening Round 38 (2026-05-27): ncd_field_parser 85.71% → ≥90%
-# 补漏行: 67 (float→int coerce), 126 (parsed=None skip), 130-132 (warns log),
-#         136 (bank_name None skip), 187-188 (mad=0 outlier branch),
-#         220 (triangulate field missing skip), 272-274 (CLI bank_id_map),
-#         284-288 (CLI annual_report path)
+# quality-hardening Round 38 (2026-05-27): ncd_field_parser 覆盖率 85.71% → ≥90%
+# 补漏行: 67 (float→int 转换), 126 (parsed=None 跳过), 130-132 (警告日志),
+#         136 (bank_name 为 None 跳过), 187-188 (mad=0 离群分支),
+#         220 (triangulate 字段缺失跳过), 272-274 (CLI bank_id_map),
+#         284-288 (CLI annual_report 路径)
 # ---------------------------------------------------------------------------
 
 
@@ -411,7 +411,7 @@ def test_parser_records_to_panel_logs_warnings_for_invalid_field(parser, caplog)
         {"pdf_path": "/bad.pdf", "response_parsed": {
             "bank_name": "X",
             "report_year": 2018,
-            "npl_ratio_pct": 99.0,  # out of [0, 50] → warning
+            "npl_ratio_pct": 99.0,  # 超出 [0, 50] 取值范围 → 触发 warning
             "car_ratio_pct": 12.0,
         }},
     ]

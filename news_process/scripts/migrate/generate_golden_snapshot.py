@@ -17,6 +17,10 @@ Phase 2 的 ``test_panel_reproducibility.py`` 将仅对有基线的阶段列做�
 
 用法:
     python news_process/scripts/migrate/generate_golden_snapshot.py
+
+白话: 给当前磁盘上每个 parquet 产物的每一列拍一张"数值指纹"存进 JSON 基线。
+以后任何代码改动后重跑流水线, 测试拿新指纹和这份基线逐列比对 —— 指纹变了
+就说明数据真的变了 (而不是文件时间戳之类的无关差异), 防止悄悄破坏结果。
 """
 
 from __future__ import annotations
@@ -36,6 +40,9 @@ import yaml
 # 三份手抄 stage 清单 (OUTPUT_REGISTRY / 本 EXPECTED_STAGES / test_panel_reproducibility
 # parametrize) 两两漂移。早期硬编码列表漏掉 v3.6-v3.7 新增 stage (13/16/17/18/19/30a/49),
 # 下次 golden 重生 (deferred 到 production run) 时本派生自动覆盖之。
+# (历史注: 其中 16/17/19/49 此后又被整体移除并从 OUTPUT_REGISTRY 注销 —— 单源派生
+#  机制同样自动跟随, 无需改本脚本。)
+# 白话: 期望文件清单不再手抄, 直接照抄注册表, 注册表加减 stage 这里自动同步。
 from news_process.core.schemas import OUTPUT_REGISTRY  # noqa: E402
 
 # 无生产 stage 的 orphan 产物: golden 历史追踪但 OUTPUT_REGISTRY 无登记。
@@ -88,10 +95,10 @@ def hash_parquet(path: Path) -> dict:
 
 
 def _read_sentiment_models(project_root: Path) -> list[str]:
-    """Return LLM model short names from ``config/sentiment.yaml``.
+    """从 ``config/sentiment.yaml`` 返回 LLM 模型短名列表。
 
-    Reads ``tone_llm_processing.models`` directly (not via load_config) to keep
-    this migration script free of project-config side effects.
+    直接读 ``tone_llm_processing.models`` (而非经 load_config), 使本迁移脚本
+    不引入项目配置加载的副作用。
     """
     cfg_path = project_root / "config" / "sentiment.yaml"
     if not cfg_path.exists():
@@ -126,9 +133,9 @@ def main() -> int:
         "git_tag": "baseline-pre-restructure",
         "data_dir": str(data_dir.relative_to(project_root)),
         "hash_method": "pd.util.hash_pandas_object(s, index=False).sum() -> u64 hex",
-        # v2 additions: LLM snapshot metadata for cross-time reproducibility.
-        # Tracks the LLM model lineup at golden-generation time so future
-        # diff sessions can distinguish "data drift" from "LLM API endpoint drift".
+        # v2 新增: 面向跨时间可复现性的 LLM 快照元数据。
+        # 记录 golden 生成时刻的 LLM 模型阵容, 让未来的 diff 会话能区分
+        # "数据漂移" 与 "LLM API 端点漂移"。
         "llm_snapshot_date": datetime.now(timezone.utc).date().isoformat(),
         "llm_models": _read_sentiment_models(project_root),
         "stages": {},

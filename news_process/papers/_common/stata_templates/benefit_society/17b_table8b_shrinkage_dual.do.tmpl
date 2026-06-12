@@ -1,12 +1,12 @@
 * ============================================================================
-* 17b_table8b_shrinkage_dual.do — Bayesian shrinkage dual-track companion
+* 17b_table8b_shrinkage_dual.do — 贝叶斯收缩双轨伴生表
 * Paper: {{PAPER_ID}}
 *
-* PAP v1.0-final §5 R5 dual-track extension (F-H3 / F-R3-H1):
-*   Panel A (full): Raw  / Shrunk / Inv-weight (= Table 8 already)
-*   Panel B (ctx) : Raw  / Shrunk / Inv-weight (this template)
+* PAP v1.0-final §5 R5 双轨扩展 (F-H3 / F-R3-H1):
+*   Panel A (full): 原始 / 收缩 / 逆权重 (= Table 8 已涵盖)
+*   Panel B (ctx) : 原始 / 收缩 / 逆权重 (本模板)
 *
-* Prerequisite columns (set by papers/benefit_society/shrinkage.py --track ctx):
+* 前置列 (由 papers/benefit_society/shrinkage.py --track ctx 生成):
 *   {{ATTITUDE_CTX}}_shrunk, {{ATTITUDE_CTX}}_shrunk_weight
 * ============================================================================
 
@@ -27,12 +27,12 @@ if _rc {
     exit 0
 }
 
-* Raw ctx
+* ctx 轨原始 (未收缩)
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo Sc_raw
 
-* Shrunk ctx
+* ctx 轨收缩后
 capture confirm variable {{ATTITUDE_CTX}}_shrunk
 if _rc != 0 {
     display "[INFO] {{ATTITUDE_CTX}}_shrunk absent. " ///
@@ -43,7 +43,7 @@ reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}}_shrunk $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo Sc_shrunk
 
-* Inverse-weight
+* 逆权重
 capture confirm variable {{ATTITUDE_CTX}}_shrunk_weight
 if _rc == 0 {
     gen analytic_weight_ctx = 1 - {{ATTITUDE_CTX}}_shrunk_weight

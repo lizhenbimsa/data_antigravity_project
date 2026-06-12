@@ -48,7 +48,7 @@ def plot_benefit_distribution(paper_config: PaperConfig | None = None,
 
 def plot_main_coefplot(paper_config: PaperConfig | None = None,
                        *, filename: str = 'fig2_main_coefplot.pdf') -> Path:
-    """Figure 2: main effects coefplot (Table 2 esttab)."""
+    """Figure 2: 主效应系数图 (读 Table 2 esttab CSV)."""
     from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
     from news_process.papers.benefit_society.tables import build_table2_main
 
@@ -68,7 +68,7 @@ def plot_main_coefplot(paper_config: PaperConfig | None = None,
 
 def plot_mechanism_forest(paper_config: PaperConfig | None = None,
                           *, filename: str = 'fig3_mechanism_forest.pdf') -> Path:
-    """Figure 3: Token/Hidden/Subst mechanism forest (Table 3 esttab)."""
+    """Figure 3: Token/Hidden/Subst 机制森林图 (读 Table 3 esttab CSV)."""
     from news_process.papers._common.paper_figures_ext import forest_plot_from_esttab_df
     from news_process.papers.benefit_society.tables import build_table3_mechanism
 
@@ -76,7 +76,7 @@ def plot_mechanism_forest(paper_config: PaperConfig | None = None,
     df = build_table3_mechanism(pc)
     out = pc.output_dir / 'figures' / filename
     out.parent.mkdir(parents=True, exist_ok=True)
-    # Pick whichever mechanism variable is present in row index
+    # 取行索引中第一个存在的机制变量
     var = next((v for v in ['token_adopt_kw_p50', 'hidden_adopt_kw_p50',
                             'subst_adopt_kw_p50', 'benefit_mean_full']
                 if v in df.index), None)
@@ -155,11 +155,15 @@ def plot_placebo_comparison(
     *,
     filename: str = 'figA2_placebo_comparison.pdf',
 ) -> Path:
-    """Figure A2: Placebo β bar chart vs main β (S1 visual evidence).
+    """Figure A2: Placebo β 与 main β 对照条形图 (S1 可视化证据).
 
-    Per V2.0 plan §3 P3.3: 5 placebo β + 1 main β bar chart, each annotated
-    with |β_placebo / β_main| ratio. Acceptance (AC-S1) visual check:
-    placebo bars should be ≤30% of main bar height.
+    按 V2.0 plan §3 P3.3: 5 个 placebo β + 1 个 main β 条形图, 每根条标注
+    |β_placebo / β_main| 比率。验收 (AC-S1) 目检标准: placebo 条高
+    应 ≤ main 条高的 30%。
+
+    白话: placebo (安慰剂) 检验 = 把处理变量换成"理论上不该有效果"的
+    业务线指标再跑一遍回归; 如果安慰剂的系数远小于主回归 (比率<0.3),
+    说明主结果不是数据里随便什么变量都能跑出来的假象。
 
     fix(omni-gapfill-11, 2026-06-12): parse_esttab_csv 单元格是 Coefficient
     namedtuple — 旧 ``float(coef_row[c])`` 必 TypeError (pd.notna 对 namedtuple
@@ -185,8 +189,7 @@ def plot_placebo_comparison(
             f"Placebo table CSV missing (run Stata 23_tableA10_*.do first): {e}"
         ) from e
 
-    # Pick first coefficient row (typically the projected mean variable),
-    # skipping footer stats rows (N / r2 / ...).
+    # 取第一行系数行 (通常是投影均值变量), 跳过表尾统计行 (N / r2 / ...)。
     coef_vars = [ix for ix in df.index if ix not in _KNOWN_STATS]
     if not coef_vars:
         raise ValueError("Placebo CSV empty (no coefficient rows)")
@@ -201,7 +204,7 @@ def plot_placebo_comparison(
 
     ax.bar(range(len(cols)), values, color=colors, alpha=0.85,
            edgecolor='white', linewidth=0.5)
-    # |β_placebo / β_main| ratio annotation (AC-S1: < 0.3 expected)
+    # |β_placebo / β_main| 比率标注 (AC-S1: 预期 < 0.3)
     main_beta = values[0]
     if main_beta != 0.0:
         for i, v in enumerate(values[1:], start=1):
@@ -229,7 +232,7 @@ __all__ = [
     'plot_benefit_distribution',
     'plot_main_coefplot',
     'plot_mechanism_forest',
-    # V2.0 J-L-M alignment (Round 9)
+    # V2.0 J-L-M 对齐 (Round 9)
     'plot_benefit_distribution_with_subsampling_ci',
     'plot_placebo_comparison',
 ]

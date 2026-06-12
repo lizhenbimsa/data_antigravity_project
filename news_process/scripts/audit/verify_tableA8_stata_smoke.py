@@ -4,20 +4,20 @@
 llm_peer_tone_iv_title / peer_tone_2nd_lag1_title / tone_gap_title_full /
 frac_title_mentions_fintech / frac_title_long 均已停产。)
 
-历史描述 (Stata/MP smoke verification harness for the now-deleted Table A8 templates):
+历史描述 (针对现已删除的 Table A8 模板的 Stata/MP smoke 验证 harness):
 
-Renders 4 representative templates, builds a synthetic _prepared_panel.dta, and writes a
-master verify.do that runs each under `capture` and asserts the post-hardening behavior:
+渲染 4 个代表性模板, 构造合成 _prepared_panel.dta, 并写出一个 master verify.do,
+在 `capture` 下逐一运行各模板并断言 hardening 后的行为:
 
-  - strategic_diff : title_applicable=0 (strat_diff_n5 no suffix) -> Panel A/B N/A,
-                     Panel C runs; NO degenerate m_title_only; rc==0.
-  - bank_fintech_substance : MAIN_TREAT absent -> every reghdfe gated off ->
-                     stub .tex written; rc==0 (no r(111) crash).
-  - brokerage_network : Panel A/B/C + Panel F (genuine 2SLS IV-title) run; rc==0.
-  - llm_peer : firm-tone OLS reduced-form Panel A/B/C run; rc==0.
+  - strategic_diff : title_applicable=0 (strat_diff_n5 无 suffix) -> Panel A/B N/A,
+                     Panel C 运行; 无退化的 m_title_only; rc==0。
+  - bank_fintech_substance : MAIN_TREAT 缺失 -> 全部 reghdfe 被 gate 关闭 ->
+                     写出 stub .tex; rc==0 (无 r(111) 崩溃)。
+  - brokerage_network : Panel A/B/C + Panel F (真 2SLS IV-title) 运行; rc==0。
+  - llm_peer : firm-tone OLS reduced-form Panel A/B/C 运行; rc==0。
 
-Outputs everything under build/stata_verify/. The actual Stata run is launched
-separately (PowerShell): StataMP-64.exe /b do build/stata_verify/verify.do
+全部产物输出到 build/stata_verify/。实际的 Stata 运行需另行启动 (PowerShell):
+StataMP-64.exe /b do build/stata_verify/verify.do
 (Windows 必须用 /b 批处理 flag; 用 /e 或裸 GUI 启动会弹「已完成」对话框并阻塞等待点击.)
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ from news_process.papers._common import derivative_replication as dr
 _REPO = Path(__file__).resolve().parents[1]
 _TDIR = Path(dr.__file__).resolve().parent / "stata_templates"
 _OUT = _REPO / "build" / "stata_verify"
-_CODE = _OUT / "code"          # cwd at run time; templates use ../data + ../output/tables fallback
+_CODE = _OUT / "code"          # 运行时 cwd; 模板用 ../data + ../output/tables 回退路径
 _DATA = _OUT / "data"
 _TABLES = _OUT / "output" / "tables"
 
@@ -40,8 +40,8 @@ _PAPERS = {
     "llm_peer": "llm_peer_25.do",
 }
 
-# Fixture columns. NOTE: innovation_substantiveness_full (substance MAIN_TREAT) is
-# DELIBERATELY omitted so the absent-main gating path is exercised.
+# Fixture 列定义。注意: innovation_substantiveness_full (substance 的 MAIN_TREAT)
+# 是**刻意省略**的, 用以触发 main-treatment 缺失时的 gating 路径。
 _FIXTURE_DO = r"""
 clear all
 set more off
@@ -84,9 +84,9 @@ def main() -> None:
         (_CODE / out).write_text(_render(pid), encoding="utf-8")
 
     tex = (_TABLES / "tableA8_title_robustness.tex").as_posix()
-    # cwd = code dir so each template's `../data` / `../output/tables` fallback resolves
-    # even after its leading `clear all` wipes the session globals. Absolute globals are
-    # also set, so it works whether or not clear all drops globals.
+    # cwd 设为 code 目录, 使各模板的 `../data` / `../output/tables` 回退路径在模板
+    # 开头的 `clear all` 清掉 session globals 之后仍可解析。同时也设置了绝对路径
+    # globals, 所以无论 clear all 是否清掉 globals 都能工作。
     lines = [
         "* v3.7.5 Table A8 Stata/MP smoke verification (auto-generated).",
         "clear all",

@@ -1,20 +1,25 @@
-"""news_process.pipeline.audit.inter_track_kappa — Stage 39a (P1 of three-dim borrowing plan v1.37).
+"""news_process.pipeline.audit.inter_track_kappa — Stage 39a (三维借用计划 v1.37 的 P1)。
 
-Compute article-level Cohen's κ between full and ctx tracks for the three
-innovation dimensions (locus, substantiveness, collab_mode) on the
-``llm_verified_dual_both == True`` subset; emit machine-readable CSV +
-paper-ready TeX to ``eval_reports/``.
+在 ``llm_verified_dual_both == True`` 子集上, 对三个创新维度 (locus,
+substantiveness, collab_mode) 计算 full 轨与 ctx 轨之间的文章级 Cohen's κ;
+输出机器可读 CSV + 论文可用 TeX 到 ``eval_reports/``。
 
-Mirrors the Stata template ``20_tableA1_inter_track_kappa.do.tmpl``.
+与 Stata 模板 ``20_tableA1_inter_track_kappa.do.tmpl`` 互为镜像。
 
-Academic anchors:
-  - Cohen (1960) — κ formula.
-  - Landis & Koch (1977) — κ interpretation thresholds.
-  - κ ∈ [0.50, 0.70] expected (not "higher is better"); κ > 0.70 flags
-    redundant dual-track; κ < 0.30 flags noise (Landis & Koch 1977 区间 +
-    项目内部约定; 原解释文档随 docs/ 目录于 commit 1698bda5 删除).
-  - Plan v1.37 §4.3.1: bootstrap CI with NaN-aware percentile + 50%
-    finite-fraction guard (R30A-01/R30B-01).
+学术锚点:
+  - Cohen (1960) — κ 公式。
+  - Landis & Koch (1977) — κ 解释阈值。
+  - 预期 κ ∈ [0.50, 0.70] (不是"越高越好"); κ > 0.70 提示双轨冗余;
+    κ < 0.30 提示噪声 (Landis & Koch 1977 区间 + 项目内部约定;
+    原解释文档随 docs/ 目录于 commit 1698bda5 删除)。
+  - Plan v1.37 §4.3.1: bootstrap CI, NaN-aware percentile + 50%
+    有限值占比守卫 (R30A-01/R30B-01)。
+
+白话: 同一篇文章我们用两种文本口径 (full=全文, ctx=实体上下文窗口) 各打
+一次标签。κ 衡量两套标签的一致程度。太一致 (>0.70) 提示两个口径可能测的
+是同一个东西; 太不一致 (<0.30) 提示至少有一轨是噪声。落在中间区间说明
+双轨互补、各有信息。注意: 这只是诊断披露 (供论文中讨论), 双轨的去留不由
+相关性决定 — 项目立场是 full/ctx 互为稳健性, 高相关 = 对归因窗口稳健。
 """
 import os
 import warnings
@@ -39,15 +44,19 @@ _THRESHOLDS = {
 
 
 def _compute_kappa_with_bootstrap(y1, y2, n_boot=1000, seed=42):
-    """Return (kappa_point, ci_low, ci_high, n_obs) with NaN-safe bootstrap.
+    """返回 (kappa_point, ci_low, ci_high, n_obs), bootstrap 对 NaN 安全。
 
-    Implementation per plan v1.37 §4.3.1 steps 1-5:
-      1. Short-circuit n_obs < 3 → (nan, nan, nan, n_obs).
-      2. Point κ via cohens_kappa_2cat(...)['kappa'] (R29C-01 dict access).
-      3. Bootstrap n_boot resamples; append ['kappa'] per resample.
-      4. NaN-aware percentile (R30A-01/R30B-01): require ≥50% finite kappas
-         else return (kappa_point, nan, nan, n_obs) + WARN.
-      5. Edge: original input with one column constant → (nan, nan, nan, n_obs).
+    实现遵循 plan v1.37 §4.3.1 步骤 1-5:
+      1. n_obs < 3 时短路 → (nan, nan, nan, n_obs)。
+      2. 点估计 κ 经 cohens_kappa_2cat(...)['kappa'] (R29C-01 dict 取值)。
+      3. Bootstrap 重抽 n_boot 次; 每次重抽追加 ['kappa']。
+      4. NaN-aware percentile (R30A-01/R30B-01): 要求 ≥50% 的 κ 为有限值,
+         否则返回 (kappa_point, nan, nan, n_obs) + WARN。
+      5. 边界: 原始输入某列为常量 → (nan, nan, nan, n_obs)。
+
+    白话: bootstrap 就是"有放回地反复抽自己的样本再算一遍 κ", 用上千次
+    结果的 2.5%/97.5% 分位数当置信区间。如果一半以上的重抽算不出有效 κ
+    (比如抽到的子样本里某个标签全是同一个值), 区间就不可信, 直接报 NaN。
     """
     y1 = np.asarray(y1)
     y2 = np.asarray(y2)
@@ -57,7 +66,7 @@ def _compute_kappa_with_bootstrap(y1, y2, n_boot=1000, seed=42):
 
     point = cohens_kappa_2cat(y1, y2)
     kappa_point = point['kappa']
-    # Original-input constant-column edge (point is NaN already → return NaN tuple)
+    # 原始输入常量列边界 (点估计已是 NaN → 直接返回 NaN 元组)
     if np.isnan(kappa_point):
         return (float('nan'), float('nan'), float('nan'), int(n_obs))
 
@@ -84,10 +93,10 @@ def _compute_kappa_with_bootstrap(y1, y2, n_boot=1000, seed=42):
 
 
 def compute_inter_track_kappa(df):
-    """Return DataFrame with 7 columns: field, kappa_point, ci_95_low,
-    ci_95_high, n_obs, threshold, passes_threshold.
+    """返回 7 列 DataFrame: field, kappa_point, ci_95_low,
+    ci_95_high, n_obs, threshold, passes_threshold。
 
-    One row per innovation dimension (locus, substantiveness, collab_mode [v3.4.0])."""
+    每个创新维度一行 (locus, substantiveness, collab_mode [v3.4.0])。"""
     rows = []
     for field, threshold in _THRESHOLDS.items():
         col_full = f"{field}_full"
@@ -103,7 +112,7 @@ def compute_inter_track_kappa(df):
                 'passes_threshold': False,
             })
             continue
-        # Drop NaN-paired rows
+        # 丢弃任一轨为 NaN 的成对行
         sub = df[[col_full, col_ctx]].dropna()
         kp, lo, hi, n = _compute_kappa_with_bootstrap(
             sub[col_full].to_numpy(),
@@ -126,8 +135,9 @@ def compute_inter_track_kappa(df):
 
 
 def _render_tex(table_df, out_path):
-    """Booktabs-style TeX table; matches plan v1.37 §4.7 acceptance regex
-    (\\toprule / \\midrule / \\bottomrule; 7 columns; 2 data rows)."""
+    """Booktabs 风格 TeX 表; 满足 plan v1.37 §4.7 验收正则
+    (\\toprule / \\midrule / \\bottomrule; 7 列; plan 原文写 2 数据行,
+    v3.4.0 增 collab_mode 维度后实际为每维度一行 = 3 行)。"""
     cols = list(table_df.columns)
     n_cols = len(cols)
     lines = [
@@ -155,11 +165,11 @@ def _render_tex(table_df, out_path):
 
 
 def run_stage(config=None, logger=None):
-    """Stage 39a entry point.
+    """Stage 39a 入口。
 
-    Reads ``21_tone_llms.parquet`` from configured output dir, filters on
-    ``llm_verified_dual_both == True``, computes inter-track κ for all three
-    innovation dimensions, writes CSV + TeX to ``eval_reports/``.
+    从配置的 output dir 读 ``21_tone_llms.parquet``, 按
+    ``llm_verified_dual_both == True`` 过滤, 对全部三个创新维度计算
+    轨间 κ, 写 CSV + TeX 到 ``eval_reports/``。
     """
     if config is None:
         config = load_config()
@@ -199,7 +209,7 @@ def run_stage(config=None, logger=None):
     table.to_csv(csv_path, index=False, encoding='utf-8')
     _render_tex(table, tex_path)
 
-    # Threshold range warning per plan v1.37 §4.3.1 step 6
+    # 阈值区间告警, 按 plan v1.37 §4.3.1 step 6
     for _, r in table.iterrows():
         k = r['kappa_point']
         if not np.isnan(k) and (k < 0.30 or k > 0.70):

@@ -35,8 +35,9 @@ run_pipeline_function.py — 新闻处理流水线调度器
                       ↓
                 pipeline_summary
 
-    情感分析的三个变体（words/BERT/LLM）由 config/sentiment.yaml 中
-    sentiment_analysis.enabled_methods 控制启用。
+    情感分析中 LLM (21) 与词典 (22) 两个变体由 config/sentiment.yaml 中
+    sentiment_analysis.enabled_methods 控制启停; BERT (23) 与跟风衰减 (24)
+    自 2026-06-12 起为无条件 always-on, 不再随该配置启停。
     文本嵌入与新颖度 (D 组: 30a_article_sbert / 18_article_staleness)
     在情感模块后、面板构建前执行。
 
@@ -115,7 +116,7 @@ logger.info(f"NEWS_PROCESS_RUN_ID = {_RUN_ID}")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def _get_stage_output_files(stage_script: str) -> list:
-    """Return the parquet outputs of ``stage_script``.
+    """返回 ``stage_script`` 登记的 parquet 输出文件名列表.
 
     OUTPUT_REGISTRY 是单一真值 (Phase 2d 起 + Phase 8 baseline 后).
     Phase 9d 删除历史兜底 dict — 任何 stage 缺登记直接返回空列表.
@@ -189,7 +190,7 @@ _STAGE21_REQUIRED_OUTPUT_COLUMNS = (
 
 
 def _fingerprint_dataframe_rows(df, columns: tuple[str, ...]) -> tuple[int, str]:
-    """Return a deterministic row-count + content digest for selected columns."""
+    """对选定列返回确定性的 (行数, 内容 sha256 摘要) 二元组。"""
     import hashlib
 
     missing = [col for col in columns if col not in df.columns]
@@ -204,11 +205,14 @@ def _fingerprint_dataframe_rows(df, columns: tuple[str, ...]) -> tuple[int, str]
 
 
 def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
-    """Check whether existing stage 21 outputs match the current stage 14 input.
+    """检查既有 stage 21 输出是否与当前 stage 14 输入匹配。
 
-    ``--skip-21-if-exists`` is only safe if the full stage-21 output was produced
-    from the current stage-14 parquet. Otherwise downstream stages would silently
-    consume stale LLM labels after upstream stages were regenerated.
+    只有当 stage 21 的 full 输出确实由当前 stage 14 parquet 生成时,
+    ``--skip-21-if-exists`` 才是安全的; 否则上游重生后, 下游各 stage
+    会静默消费过期的 LLM 标签。
+
+    白话: 这是"跳过付费 LLM 阶段"的安检 — 对比上游输入和已有输出的
+    行数与内容指纹, 对得上才允许跳过, 防止省钱省出旧数据。
     """
     import pandas as pd
 
@@ -351,7 +355,7 @@ def run_pipeline(args: argparse.Namespace | None = None):
     流程：
       1. 执行模块一：新闻预处理模块 (00)
       2. 执行模块二：新闻筛选模块 (11, 12, 14, 15)
-      3. 执行模块三：新闻情感模块 (21, 22, 23, 视配置启动)
+      3. 执行模块三：新闻情感模块 (21, 22 视配置启停; 23, 24 always-on)
       4. 执行模块五：面板数据构建 (41-45)
       5. 执行模块六：伪造检验对照变量构建 (51)
       6. 生成管道执行摘要报告和耗时统计
@@ -389,8 +393,9 @@ def run_pipeline(args: argparse.Namespace | None = None):
         logger.info(f"启用的情感分析方法: {enabled_methods}")
 
         # ── 数据流防护：清理未启用的情感分析阶段的残留输出 ──
-        # 阶段 24 硬编码读取阶段 23 的输出，若 tone_berts 未启用但
-        # 磁盘上残留旧的 23 输出文件，会导致阶段 24 静默读取过期数据。
+        # 历史动机: 早年 stage 23 还受 enabled_methods 启停时, 磁盘残留的旧
+        # 23 输出会被硬依赖它的 stage 24 静默读取 (23/24 现已 always-on,
+        # 该例不再发生; 但 21/22 仍可切换, 本清理循环对它们依然必要)。
         #
         # plan m5 修复: 改用 OUTPUT_REGISTRY 取阶段全部输出 (含 _full 变体),
         # 否则 21_tone_llms_full.parquet 会被遗漏 → 验证阶段 32/36/37/39

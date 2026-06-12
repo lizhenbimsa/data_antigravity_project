@@ -228,6 +228,12 @@ def compute_network_spillovers(
       peer_tone_i,t = Σ_j W[i,t-1] × tone_j,t-1
       即: 用去年的网络权重 × 去年的同行情感
 
+    白话: 给每家银行算一个"它的圈子去年舆论怎么样"的变量。哪些银行算
+    同一个圈子? 看新闻里谁经常和谁被一起提到 (共现)。权重做了行标准化
+    (每行加起来等于 1), 这样大银行不会光靠新闻多就主导别人的圈子值。
+    刻意全部用**去年**的数据 (网络也用去年的、情感也用去年的), 避免
+    "我影响圈子、圈子又同时影响我"的同期互相纠缠 (Manski 反射问题)。
+
     Args:
         panel: Bank-Year 面板 DataFrame
         df_exploded: 篇章级 DataFrame
@@ -461,6 +467,14 @@ def compute_bank_network_centrality(
         非主分量/非 LCC 银行两级均兜底 0.0 (fix omni-g-net-spill-05,
         退化语义跨年一致, 不随数值收敛性漂移)
       - 断连图: CFB/eccentricity/avg_path 仅对最大连通分量计算
+
+    白话: 中心度回答"这家银行在新闻共现网络里有多居中/多重要"。不同指标
+    量的是不同的"重要": degree=认识多少邻居, betweenness=多少最短路径必须
+    经过它 (桥梁地位), eigenvector/katz=邻居本身重不重要, constraint=它的
+    邻居之间是否互相认识 (结构洞)。路径类指标要把"共现越多=关系越近"翻译
+    成"距离越短", 所以建图时边权取倒数 (1/共现次数)。
+    ⚠ 另注 (memory: panel-3-network-cols-nondeterministic): bank_clustering /
+    cfbetween / harmonic 三列受 BLAS 浮点漂移影响, 跨次重建非逐位可复现。
 
     Args:
         panel: Bank-Year 面板 DataFrame

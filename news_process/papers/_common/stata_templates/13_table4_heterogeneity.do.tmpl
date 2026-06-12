@@ -1,4 +1,4 @@
-* news_process v3.2.0 — Table 4: Heterogeneity (plan v14 §9.2)
+* news_process v3.2.0 — Table 4: 异质性 Heterogeneity (plan v14 §9.2)
 *
 * 异质性维度:
 *   1. Bank type (大型 vs 中小型, by bank_size 中位数)
@@ -27,7 +27,7 @@ if _rc {
     local SUBST
 }
 
-* --- Heterogeneity 1: Bank size (中位数 split) ---
+* --- 异质性 1: Bank size 银行规模 (中位数切分) ---
 capture confirm variable bank_size
 if !_rc {
     quietly summarize bank_size, detail
@@ -40,7 +40,7 @@ if !_rc {
         absorb(bank_id year) vce(cluster bank_id)
 }
 
-* --- Heterogeneity 2: Digital frontier (二元) ---
+* --- 异质性 2: Digital frontier 数字化前沿 (二元) ---
 capture confirm variable digital_frontier
 if !_rc {
     eststo HET2_front:  reghdfe `DV' `LOCUS' `SUBST' if digital_frontier == 1, ///
@@ -49,7 +49,7 @@ if !_rc {
         absorb(bank_id year) vce(cluster bank_id)
 }
 
-* --- Heterogeneity 3: Geographic zone (Engelberg & Parsons 2011 JF 地理) ---
+* --- 异质性 3: Geographic zone 地理区域 (Engelberg & Parsons 2011 JF 地理) ---
 capture confirm variable bank_zone
 if !_rc {
     gen byte _coastal = inlist(bank_zone, "京津冀", "长三角", "珠三角", "东南", "环渤海")

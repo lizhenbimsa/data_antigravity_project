@@ -1,47 +1,48 @@
-# J-L-M 2026 RFS Internet Appendix A — Chinese alternative anchor family
+# J-L-M 2026 RFS 网络附录 A — 中文替代锚点族 (Chinese alternative anchor family)
 # ============================================================================
-# Source:
+# 来源 (Source):
 #   Jha, M., Liu, H., & Manela, A. (2026). Does Finance Benefit Society?
 #   A Language Embedding Approach. Review of Financial Studies, 39(5),
 #   1227-1266. https://doi.org/10.1093/rfs/hhaf012
 #   Internet Appendix Table IA.1 (b) Chinese
 #
-# Provenance:
-#   - Authors' draft date: 2025-02-19 (PDF cover)
-#   - Obtained by user from OUP RFS website: 2026-05-18
-#   - Transcribed verbatim into yaml: 2026-05-18
+# 数据来历 (Provenance):
+#   - 作者工作稿日期: 2025-02-19 (PDF 封面)
+#   - 用户于 2026-05-18 从 OUP RFS 官网获取
+#   - 2026-05-18 逐字 (verbatim) 转录进本 yaml
 #
-# Methodology context (per Appendix A footnote + §1.3.2):
-#   J-L-M follow Kozlowski, Taddy & Evans (2019, ASR) and define **5 pairs**
-#   of sentences encoding semantic dimensions:
+# 方法论背景 (per Appendix A footnote + §1.3.2):
+#   J-L-M 沿用 Kozlowski, Taddy & Evans (2019, ASR), 定义 **5 对**
+#   编码语义维度的句子:
 #     (positive − negative), (benefit − damage), (good − bad),
 #     (good − corrupt), (help − hurt)
-#   The same 5 pairs are translated into 7 languages (en/zh/fr/de/it/ru/es).
+#   同样的 5 对句子被翻译为 7 种语言 (en/zh/fr/de/it/ru/es)。
 #
-# Relationship to benefit_society project anchors (Round 9 V2.E37 clarification):
-#   benefit_society and J-L-M 2026 study **different research questions**:
-#     - benefit_society: bank fintech operational-benefit attitudes (China,
-#       firm-year, fintech-specific). 10 paper-specific anchor pairs in
-#       pipeline/features/benefit_society.py.
-#     - J-L-M 2026: broad finance sentiment across 7 languages (country-year,
-#       broad-finance). 5 K-T-E canonical anchor pairs per language.
-#   The two share the bipolar-projection METHOD (Kozlowski-Taddy-Evans 2019 ASR
-#   geometry-of-culture framework) but NOT the anchor design. Anchor counts
-#   (10 vs 5) reflect different research questions, NOT one being an
-#   extension/correction of the other.
+# 与 benefit_society 项目自有锚点的关系 (Round 9 V2.E37 澄清):
+#   benefit_society 与 J-L-M 2026 研究的是**不同的研究问题**:
+#     - benefit_society: 银行金融科技经营效益态度 (中国, firm-year 粒度,
+#       金融科技专属)。10 对论文自定义锚点, 位于
+#       pipeline/features/benefit_society.py。
+#     - J-L-M 2026: 跨 7 种语言的广义金融情感 (country-year 粒度, 广义
+#       金融)。每种语言 5 对 K-T-E 经典锚点。
+#   两者共享"双极投影"方法 (Kozlowski-Taddy-Evans 2019 ASR
+#   geometry-of-culture 框架), 但锚点设计**不同**。锚点数量差异 (10 对
+#   vs 5 对) 反映的是研究问题不同, 而非一方是另一方的扩展/修正。
 #
-#   This yaml is the J-L-M canonical 5-pair anchor set, used in benefit_society
-#   plan v2.0 §3 P1.3 / P2.A2 / AC-A2 as an **alternative anchor family** for
-#   robustness — to test whether benefit_society main story holds when using
-#   broad-finance (rather than fintech-specific) anchors. Expected behavior:
-#   sign-match with main 10-pair projection, but magnitude attenuated because
-#   J-L-M broad-finance anchors are less sensitive to fintech-specific signal.
+#   本 yaml 即 J-L-M 官方 5 对锚点集, 在 benefit_society 计划 v2.0 §3 P1.3 /
+#   P2.A2 / AC-A2 中作为**替代锚点族**做稳健性检验 — 检验改用广义金融
+#   (而非金融科技专属) 锚点后, benefit_society 的主结论是否仍成立。预期
+#   行为: 与主分析 10 对锚点的投影符号一致, 但量级衰减 — 因为 J-L-M 的
+#   广义金融锚点对金融科技专属信号不够敏感。
+# 白话: 这份文件抄录了 RFS 那篇论文官方给的 5 对中文"正反例句", 拿它替换
+#       本项目自己设计的 10 对例句把指标重算一遍 — 若结论方向不变, 说明
+#       主结果不是被我们自家例句的措辞"喂"出来的。
 #
-# Reproducibility note (V2.E37):
-#   Pair 5 negative phrase reads "金融系统有害金融" in the published Appendix.
-#   This appears to be a translation typo (expected: "金融系统有害经济" to mirror
-#   the positive "金融系统帮助经济"). PRESERVED VERBATIM per J-L-M source for
-#   reproducibility; do not "correct" without separate decision documentation.
+# 可复现性说明 (V2.E37):
+#   第 5 对的负极句在已发表附录中原文为"金融系统有害金融", 疑似翻译笔误
+#   (按对仗预期应为"金融系统有害经济", 与正极句"金融系统帮助经济"镜像)。
+#   按 J-L-M 原文**逐字保留 (PRESERVED VERBATIM)** 以保证可复现;
+#   未经单独的决策文档, 不得擅自"更正"。
 # ============================================================================
 
 schema_version: "1.0"
@@ -81,13 +82,13 @@ pairs:
     semantic_dimension: "positive_negative"
   - id: 5
     positive: "金融系统帮助经济"
-    negative: "金融系统有害金融"  # Appendix typo preserved verbatim (V2.E37)
+    negative: "金融系统有害金融"  # 附录原文笔误, 逐字保留 (V2.E37)
     semantic_dimension: "help_hurt"
 
-# Notes for downstream consumption:
-# - All sentences are simplified Chinese, no preprocessing applied
-# - Encoding: UTF-8
-# - For embedding via shibing624/text2vec-base-chinese (768-d): no tokenization needed
-# - Direction vector: p = (1/N) Σ_i [emb(pos_i) − emb(neg_i)],
-#   mathematically equivalent to mean(pos_embs) − mean(neg_embs)
-#   per linear additivity (see V2.0 plan §0 V1.E4 撤回)
+# 下游消费注意事项:
+# - 所有句子均为简体中文, 未做任何预处理
+# - 编码: UTF-8
+# - 经 shibing624/text2vec-base-chinese (768 维) 嵌入时: 无需分词
+# - 方向向量: p = (1/N) Σ_i [emb(pos_i) − emb(neg_i)],
+#   依线性可加性, 数学上等价于 mean(pos_embs) − mean(neg_embs)
+#   (见 V2.0 plan §0 V1.E4 撤回)

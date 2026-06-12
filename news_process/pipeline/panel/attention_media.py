@@ -368,6 +368,9 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     # 无删失; 0.5 ⇔ 两轨密度相等, 越大归因越纯)。Σctx+Σfull=0 (零 fintech) → NaN。
     # sums 已在上方 clip(lower=0), share 结构性落 [0,1], 无需 censor clip。
     # codebook.py/export.py 标签同步交由集中重生 (本组不越界编辑)。
+    # 白话: ctx 文本短, 按"密度"算强度天然可能比全文还高, 直接拿 ctx/full
+    # 做比值会超过 1, 旧做法把超出部分硬剪到 1 反而抹掉了信息。改成
+    # "ctx 占两者之和的份额"后数学上必落在 0~1, 大小排序也不变。
     with np.errstate(divide='ignore', invalid='ignore'):
         _share = t['sum_ctx'] / (t['sum_ctx'] + t['sum_full']).replace(0, np.nan)
     t['attention_attr_share'] = _share
@@ -698,7 +701,7 @@ def _validate_attention_index(panel):
     if 'ft_attn_yr' in panel.columns:
         _std = (panel.dropna(subset=['ft_attn_yr'])
                 .groupby('year')['ft_attn_yr'].std())
-        max_std = _std.max()  # NaN if all groups have n=1
+        max_std = _std.max()  # 若所有分组均仅 1 个观测则为 NaN
         if pd.isna(max_std) or max_std <= 1e-10:
             logger.info("  ✓ ft_attn_yr 为 year-level 常量")
         else:
@@ -710,7 +713,7 @@ def _validate_attention_index(panel):
             continue
         within_std = (panel.dropna(subset=[col])
                       .groupby('year')[col].std())
-        mean_std = within_std.mean()  # NaN if all groups have n=1
+        mean_std = within_std.mean()  # 若所有分组均仅 1 个观测则为 NaN
         if pd.isna(mean_std):
             logger.info(f"  ✓ {col}: 各年均仅 1 个银行, 无法计算年内 std")
         elif mean_std < 1e-6:

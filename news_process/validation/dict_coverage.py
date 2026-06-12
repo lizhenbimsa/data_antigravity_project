@@ -44,13 +44,20 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
 设计原则:
     - 全自动化执行, 零人工参与
     - 不修改任何现有管道代码
-    - 所有阈值从 config.yaml 动态读取
+    - 所有阈值从 config 拆分 YAML (config/filtering.yaml) 动态读取
 
 用法:
     python 37_dict_coverage_audit.py                  # 分析 1-4 + 5a (纯统计)
     python 37_dict_coverage_audit.py --run-llm-check  # 追加 5b (注: 从未实装,
                                                       # 仅输出披露, 见 analysis_5b
                                                       # docstring, fix omni 2026-06-11)
+
+白话:
+    判断一篇新闻是不是金融科技新闻, 靠的是一本人工编的关键词词典。本审计
+    回答"这本词典够不够用"三个问题: ① 有多少文章是刚好踩线通过的 (踩线多
+    = 词典覆盖勉强); ② 词典里的词是不是只有少数几个在真正干活 (HHI/ENK
+    集中度); ③ 词典会不会随时间"过时" (新术语出现但词典没收录, 表现为
+    踩线率逐年升高)。全程纯统计、零人工、零 LLM 付费。
 """
 
 import argparse
@@ -88,7 +95,7 @@ OUTPUT_DIR = CONFIG["paths"]["output_dir"]
 EVAL_DIR = os.path.join(OUTPUT_DIR, 'eval_reports')
 os.makedirs(EVAL_DIR, exist_ok=True)
 
-# 从 config.yaml 动态读取阈值 T
+# 从 config 拆分 YAML (config/filtering.yaml) 动态读取阈值 T
 FINTECH_PARAMS = CONFIG.get('fintech_news_classification', {})
 T = FINTECH_PARAMS.get('min_distinct_keywords', 3)
 
@@ -98,7 +105,7 @@ T = FINTECH_PARAMS.get('min_distinct_keywords', 3)
 # ============================================================================
 
 def wilson_ci(p_hat: float, n: int, z: float = 1.96) -> tuple:
-    """Wilson score interval for a binomial proportion.
+    """二项比例的 Wilson score interval (置信区间)。
 
     参考: Wilson, E. B. (1927). Probable Inference, the Law of Succession,
     and Statistical Inference. JASA, 22(158), 209–212.
@@ -121,7 +128,7 @@ def wilson_ci(p_hat: float, n: int, z: float = 1.96) -> tuple:
 
 def cochran_armitage_trend_test(counts_table: np.ndarray,
                                  scores: np.ndarray) -> dict:
-    """Cochran-Armitage test for trend in proportions.
+    """Cochran-Armitage 比例趋势检验 (test for trend in proportions)。
 
     参考:
         Cochran, W. G. (1954). Some Methods for Strengthening the Common
@@ -130,26 +137,29 @@ def cochran_armitage_trend_test(counts_table: np.ndarray,
         Frequencies. Biometrics, 11(3), 375–386.
 
     Args:
-        counts_table: 2×K array, row 0 = successes, row 1 = failures per group
-        scores:       length-K array of ordinal scores for each group
+        counts_table: 2×K 数组, 第 0 行 = 各组成功数, 第 1 行 = 各组失败数
+        scores:       长度为 K 的数组, 各组的有序得分 (ordinal scores)
 
     Returns:
-        dict with keys: 'statistic', 'p_value', 'slope_sign'
+        dict, 键为: 'statistic', 'p_value', 'slope_sign'
+
+    白话: 检验"通过率是否随分组等级单调上升/下降"。普通卡方只能说
+    "各组有差异", 这个检验额外利用分组的先后顺序, 专门探测线性趋势。
     """
     from scipy import stats as sp_stats
 
-    n_j = counts_table.sum(axis=0).astype(float)  # group totals
-    r_j = counts_table[0].astype(float)            # successes
+    n_j = counts_table.sum(axis=0).astype(float)  # 各组总数 (group totals)
+    r_j = counts_table[0].astype(float)            # 各组成功数 (successes)
     N = n_j.sum()
     R = r_j.sum()
     p_bar = R / N
 
     t_bar = np.sum(n_j * scores) / N
 
-    # Numerator
+    # 分子 (Numerator)
     numer = np.sum(n_j * (r_j / n_j - p_bar) * (scores - t_bar))
 
-    # Denominator
+    # 分母 (Denominator)
     denom_sq = p_bar * (1 - p_bar) * (np.sum(n_j * scores**2) - N * t_bar**2)
 
     if denom_sq <= 0:

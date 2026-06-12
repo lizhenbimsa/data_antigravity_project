@@ -476,6 +476,9 @@ def audit_iv_variables(panel: pd.DataFrame, name: str):
     # 会排除 'other' 类别 (groups = sorted(set(v for v in map.values() if v != 'other')))
     # 因此 share 列之和 <= 1.0 是**设计意图**, 不是数据错误
     # 检验标准: sum <= 1.0 + tolerance (排除 other 后不应超过 1)
+    # 白话: Bartik 工具变量 = "本行初始的媒体类别构成份额 × 各类别全国趋势"
+    # 加权求和。份额是比例, 加起来理应 ≤ 1; 这里只在份额和 > 1 (溢出, 真错误)
+    # 时报 FAIL, 和 < 1 是因为刻意丢掉了 'other' 类, 属正常。
     bartik_groups = {}
     for col in panel.columns:
         if col.startswith('bartik_') and '_share_' in col:

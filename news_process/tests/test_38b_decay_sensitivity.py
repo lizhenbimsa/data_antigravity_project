@@ -38,7 +38,7 @@ def test_decay_functions():
     assert math.isclose(decay.DECAY_FUNCTIONS['exponential'](2), math.exp(-1.0))
 
 def test_sentence_tone(mock_sentiment_dict):
-    # Same as 22_tone_words testing
+    # 与 22_tone_words 的测试同思路
     tokens = ["银行业绩", "增长"]
     assert decay._sentence_tone(tokens, mock_sentiment_dict) == 1.0
     
@@ -46,8 +46,8 @@ def test_sentence_tone(mock_sentiment_dict):
     assert decay._sentence_tone(tokens_unmatched, mock_sentiment_dict) == 0.0
 
 def test_compute_decay_sentiment(mock_sentiment_dict):
-    # sentence dist 0: "银行业绩好", tone = 1.0
-    # sentence dist 1: "市场减少", tone = -1.0
+    # 句距 0: "银行业绩好", tone = 1.0
+    # 句距 1: "市场减少", tone = -1.0
     tokenized_swd = [
         (["银行", "业绩", "好"], 0),      # w=1.0,  tone=1.0  => sum=1.0
         (["市场", "表现", "减少"], 1)       # w=0.5,  tone=-1.0 => sum=-0.5

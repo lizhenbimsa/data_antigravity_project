@@ -1,10 +1,10 @@
-"""news_process.pipeline.panel.encode_collab — v3.5.0 D2 cell decomposition + D4 dual-track residual.
+"""news_process.pipeline.panel.encode_collab — v3.5.0 D2 八格分解 + D4 跨轨残差。
 
-Per the v3.5.0 Stage-3 augmentation plan §2.1 / §2.3 (历史方法学文档, 已随 docs/ 目录删除):
-    D2 8-cell encoding: cell_id = subst*4 + locus*2 + collab + 1 ∈ {1..8}
+依 v3.5.0 Stage-3 augmentation plan §2.1 / §2.3 (历史方法学文档, 已随 docs/ 目录删除):
+    D2 八格编码: cell_id = subst*4 + locus*2 + collab + 1 ∈ {1..8}
         baseline (cell 1) = (0, 0, 0) = 实质性 × 底层技术 × 自主研发
-    D4 cross-track residual signals (9 article-level + 18 panel-level frac/count
-        + 3 n_articles_{dim}_bothvalid 覆盖披露列, omni 2026-06-11)
+    D4 跨轨残差信号 (9 个文章级 + 18 个面板级 frac/count
+        + 3 个 n_articles_{dim}_bothvalid 覆盖披露列, omni 2026-06-11)
 
 锚定文献:
     Angrist & Pischke (2009) Mostly Harmless Econometrics Ch.5 saturated regression (D2)
@@ -12,9 +12,14 @@ Per the v3.5.0 Stage-3 augmentation plan §2.1 / §2.3 (历史方法学文档, �
     Loughran & McDonald (2011 JF) tone-vs-context differential 类比借用 (D4)
     Westphal & Zajac (2001 ASQ) decoupling 类比借用 narrative-context layer (D4)
 
-v3.7.0 breaking note: 当 collab_mode 升级到 6-class (multi-class A1), CELL_LABEL_MAP
-必须重写为 24 项. Backward-compat: v3.7.0 panel 同时保留 cell_id_v3_5_full + cell_id_v3_7_full,
-旧列可在 v3.8.0 deprecate.
+v3.7.0 breaking 备忘: 若未来 collab_mode 升级为 6-class (multi-class A1), CELL_LABEL_MAP
+必须重写为 24 项; 向后兼容方案为 panel 同时保留 cell_id_v3_5_full + cell_id_v3_7_full,
+旧列再于后续版本 deprecate (截至目前未发生, 仅留为升级预案)。
+
+白话: 把每篇文章按三个二选一属性 (实质/象征 × 底层/应用 × 自研/协同)
+落进 2×2×2=8 个格子, 像三位二进制编号, 回归时可以"饱和地"比较任意格子
+组合而不必预设哪两维交互。D4 残差则看两个文本口径 (full/ctx) 对同一篇
+文章判得是否一致 — 不一致本身就是有信息量的信号。
 """
 from __future__ import annotations
 
@@ -43,7 +48,7 @@ CELL_LABEL_MAP = {
     8: '象征性·应用场景·外部协同',
 }
 
-# v3.5.0 D4: 9 article-level residual signals (3 dim × 3 signal)
+# v3.5.0 D4: 9 个文章级残差信号 (3 维度 × 3 信号)
 DIMS_D4 = [
     ('subst',  'innovation_substantiveness', '实质性',   '象征性'),
     ('locus',  'innovation_locus',           '底层技术', '应用场景'),
@@ -52,10 +57,10 @@ DIMS_D4 = [
 
 
 def _normalize_label(series: pd.Series) -> pd.Series:
-    """Pre-normalize LLM label: strip whitespace + 全角空格 + all internal \\s.
+    """LLM 标签预归一化: 去首尾空白 + 全角空格 + 所有内部 \\s。
 
-    Per plan §2.1.1 F32: defense against trailing space / U+3000 / newline noise
-    from stage 21 LLM output. NaN values preserve NaN through .str accessors.
+    Per plan §2.1.1 F32: 防御 stage 21 LLM 输出携带的尾随空格 / U+3000 /
+    换行噪声。NaN 经 .str accessor 链保持 NaN。
     """
     # fix(omni-g-encode-collab-02, 2026-06-11): pandas 3.0 读 parquet/构造字符串列默认
     # 返回新 `str` dtype, `series.dtype == object` 恒 False → F32 脏标签清洗在生产路径
@@ -87,16 +92,20 @@ def _both_valid_mask(full_norm: pd.Series, ctx_norm: pd.Series,
 
 
 def compute_cell_id(df: pd.DataFrame, track: str) -> pd.Series:
-    """Compute article-level cell_id ∈ {1..8} for given track ('full' or 'ctx').
+    """计算指定轨道 ('full' 或 'ctx') 的文章级 cell_id ∈ {1..8}。
 
-    Returns Int8 nullable Series:
-        - Valid value 1..8 when all 3 dims have valid labels (per VALID_* sets, post-normalize)
-        - pd.NA when any dim is NaN, dirty label, or column missing
+    返回 Int8 nullable Series:
+        - 三个维度标签均合法 (归一化后落在 VALID_* 集合) 时取有效值 1..8
+        - 任一维度为 NaN / 脏标签 / 列缺失时为 pd.NA
 
     Per plan §2.1.1 (F27/F28/F32/B-NEW-2/m3):
-        - Missing column guard returns all-NA Int8 (no KeyError)
-        - Dirty label defense via _normalize_label + isin
-        - .where(valid, pd.NA).astype('Int8') universal pandas/numpy compat
+        - 缺列守卫返回全 NA Int8 (不抛 KeyError)
+        - 脏标签防御走 _normalize_label + isin
+        - .where(valid, pd.NA).astype('Int8') 兼容各版本 pandas/numpy
+
+    白话: 把每篇文章在三个二元维度上的标签 (实质/象征 × 底层/应用 ×
+    自研/协同) 编成 1~8 号"格子", 类似三位二进制数 +1, 方便后面按格子
+    数文章做饱和回归。
     """
     s_col = f'innovation_substantiveness_{track}'
     l_col = f'innovation_locus_{track}'
@@ -126,14 +135,14 @@ def compute_cell_id(df: pd.DataFrame, track: str) -> pd.Series:
 
 
 def derive_residual_signals(df: pd.DataFrame) -> list[str]:
-    """In-place add 9 article-level D4 residual indicators.
+    """原地 (in-place) 添加 9 个文章级 D4 残差指示列。
 
-    **WARNING (CR-2)**: This function modifies ``df`` IN-PLACE. If columns
-    ``{dim}_disagree`` / ``{dim}_freerider`` / ``{dim}_quietworker`` already exist
-    (e.g., function called twice in dev workflow), they are **silently overwritten**.
+    **WARNING (CR-2)**: 本函数**原地修改** ``df``。若 ``{dim}_disagree`` /
+    ``{dim}_freerider`` / ``{dim}_quietworker`` 列已存在 (如开发流程中重复
+    调用), 将被**静默覆盖**。
 
     Per plan §2.3.2 (F C-NEW-4 invariants i/ii/iii):
-        For each dim ∈ {subst, locus, collab}:
+        对每个 dim ∈ {subst, locus, collab}:
             {dim}_disagree    = (full != ctx) ∧ both_valid           [boolean]
             {dim}_freerider   = (full == baseline) ∧ (ctx == contrast) [boolean]
             {dim}_quietworker = (full == contrast) ∧ (ctx == baseline) [boolean]
@@ -142,10 +151,15 @@ def derive_residual_signals(df: pd.DataFrame) -> list[str]:
         (i)  freerider + quietworker ≤ 1 (mutually exclusive)
         (ii) freerider + quietworker == disagree (definitionally; 由 both_valid 的
              isin 白名单口径保证 — 非 canonical 标签不进 both_valid)
-        (iii) NaN propagation: NaN **或非 canonical 脏标签** on either track ⇒
-             all three False (not NaN)
+        (iii) NaN 传播: 任一轨为 NaN **或非 canonical 脏标签** ⇒
+             三列全为 False (而非 NaN)
 
-    Returns: list of column names added (for downstream panel aggregation registry).
+    Returns: 新增列名 list (供下游 panel 聚合登记)。
+
+    白话: 对每个维度比较两个文本口径的标签 — "disagree"=两轨说法不一;
+    "freerider"=全文看着像基线类、贴近实体的上下文却是对照类 (说一套
+    做一套的疑似信号); "quietworker"=反过来 (做了不说)。这些差异本身
+    就是研究变量。
     """
     added_cols: list[str] = []
     for short, base, baseline, contrast in DIMS_D4:
@@ -173,24 +187,24 @@ def derive_residual_signals(df: pd.DataFrame) -> list[str]:
 
 
 def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
-    """Aggregate D2 8-cell counts onto bank-year panel.
+    """把 D2 8 格计数聚合到 bank-year 面板。
 
     Per plan §2.1.2 + F-CR-cell-NA (R6 fix):
-        - 8 cell-count columns: n_articles_cell_{1..8}_full
-        - 1 NA bucket column: n_articles_cell_NA_full
+        - 8 个格子计数列: n_articles_cell_{1..8}_full
+        - 1 个 NA 桶列: n_articles_cell_NA_full
           (articles 在 cell_id_full = NA, 通常 LLM 对 substantiveness/locus/
            collab_mode 三维之一失败)
-        - main identity: ``n_articles >= Σ n_articles_cell_{1..8}_full``
+        - 主恒等式: ``n_articles >= Σ n_articles_cell_{1..8}_full``
           (逻辑必然性, n_articles 包含 cell_NA bucket; main_fail 仅在 n_articles
           < sum 时 > 0, 那才是真不一致 bug 而非 LLM 部分失败)
-        - stricter completeness: ``n_articles == Σ cells_1..8 + n_articles_cell_NA_full``
+        - 更严完整性: ``n_articles == Σ cells_1..8 + n_articles_cell_NA_full``
           (na_bucket_fail > 0 → 上游 race condition)
-        - cross identities (vs v3.4.0 _indep/_collab):
+        - 交叉恒等式 (对 v3.4.0 _indep/_collab):
             n_articles_indep  >= n_articles_cell_{1,3,5,7}_full
             n_articles_collab >= n_articles_cell_{2,4,6,8}_full
 
-    Returns dict with identity check failure counts (per plan §2.1.2 F27/C-NEW-2
-    + R6 F-CR-cell-NA: na_bucket_fail / n_articles_cell_NA_total / na_bucket_pct).
+    返回含恒等式校验失败计数的 dict (per plan §2.1.2 F27/C-NEW-2
+    + R6 F-CR-cell-NA: na_bucket_fail / n_articles_cell_NA_total / na_bucket_pct)。
     """
     # CR-3 / CR-4 (CRITICAL fix): 与 production encode.py 对齐 — panel 是 flat
     # DataFrame, target_bank + year 是**列**而非 MultiIndex (参 encode.py:666
@@ -246,7 +260,7 @@ def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
             "panel.attrs['D2_small_sample_warning'] = True; 继续聚合 (production threshold ≥ 100k)"
         )
 
-    # Align groupby results to panel row order via MultiIndex (panel itself stays flat)
+    # 经 MultiIndex 把 groupby 结果对齐到 panel 行序 (panel 本身保持 flat)
     panel_idx = pd.MultiIndex.from_frame(panel[['target_bank', 'year']])
 
     # F-CR-cell-NA (R6 fix): cell 聚合需与 panel.n_articles 同源 subset 计数。
@@ -355,28 +369,33 @@ def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
 
 def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
                        ctx_baseline_path: Optional[str] = None) -> dict:
-    """Aggregate D4 residual signals onto bank-year panel.
+    """把 D4 残差信号聚合到 bank-year 面板。
 
-    Per plan §2.3.3 + §2.3.4 (denominator semantics revised, omni 2026-06-11):
-        18 panel columns: {dim}_{signal}_frac + n_articles_{dim}_{signal}
-            (3 dim × 3 signal × 2 metric)
-        + 3 coverage columns: n_articles_{dim}_bothvalid (论文披露 both_valid 覆盖率)
+    Per plan §2.3.3 + §2.3.4 (分母语义修订, omni 2026-06-11):
+        18 个 panel 列: {dim}_{signal}_frac + n_articles_{dim}_{signal}
+            (3 维度 × 3 信号 × 2 度量)
+        + 3 个覆盖列: n_articles_{dim}_bothvalid (论文披露 both_valid 覆盖率)
         *_frac = Σ signal / n_bothvalid — 分母为该维 both_valid (两轨 canonical 标签)
             文章数, 与分子同域; n_bothvalid == 0 → NaN (非假零)。
-        Small-sample restriction: n_bothvalid < 5 → *_frac forced to NaN
+        小样本限制: n_bothvalid < 5 → *_frac 强制 NaN
             (valid 域门; 上游标签列缺失时回退 legacy 物理分母 + n_articles < 5 门)
-        ctx coverage adaptive warning + d4_data_quality_flag str column (F6 + C-NEW-3)
+        ctx 覆盖率自适应告警 + d4_data_quality_flag 字符串列 (F6 + C-NEW-3)
 
-    ctx_baseline_path: path to v3_4_0_ctx_coverage_baseline.json (per §9.10).
-                       If None or missing, fallback to fixed 0.5 threshold with caveat.
+    ctx_baseline_path: v3_4_0_ctx_coverage_baseline.json 路径 (per §9.10)。
+                       None 或缺失时回退固定 0.5 阈值并注明 caveat。
 
-    CR-6 note: coverage check uses `innovation_collab_mode_ctx` as canonical proxy
-    (assumed lowest-coverage of 3 ctx dims because Hassan-2019 entity-context
-    extraction is most variable on the most-recently-added v3.4.0 dim). For symmetric
-    treatment, future versions could average across 3 ctx dims.
+    CR-6 note: 覆盖率检查用 `innovation_collab_mode_ctx` 作 canonical 代理
+    (假定其为 3 个 ctx 维度中覆盖最低者 — Hassan-2019 实体上下文抽取在
+    v3.4.0 最新加入的维度上波动最大)。若要求对称处理, 未来版本可对
+    3 个 ctx 维度取平均。
 
     CR-4 (CRITICAL fix): 与 aggregate_d2_panel 同样要求 panel 含 target_bank + year **列**
     (production flat panel, 非 MultiIndex; 参 encode.py:666 约定).
+
+    白话: 分母只数"两个口径都给出合法标签"的文章 — 因为分子 (分歧/言行
+    不一信号) 只可能在这类文章上为真。如果拿全部物理文章数当分母, 没
+    标签的文章会被当成"无分歧", 把分歧率系统性压低; 样本不足 5 篇时
+    占比噪声太大, 直接记缺失。
     """
     # CR-4: column invariant (与 aggregate_d2_panel 对称 — flat panel with target_bank/year cols)
     for required_col in ('target_bank', 'year'):
@@ -428,7 +447,7 @@ def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
         for col in signal_cols:
             frac_col = f'{col}_frac'
             count_col = f'n_articles_{col}'
-            # Use target_bank (production convention) + reindex to panel_idx for row alignment
+            # 用 target_bank (生产约定) + reindex 到 panel_idx 做行对齐
             count_series = (df.groupby(['target_bank', 'year'])[col]
                               .sum().reindex(panel_idx, fill_value=0).astype('Int32'))
             panel[count_col] = count_series.values
@@ -494,22 +513,22 @@ def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
 
 def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
                  ctx_baseline_path: Optional[str] = None) -> dict:
-    """One-shot entry point: apply all v3.5.0 D2 + D4 derivations to df + panel.
+    """一次性入口: 对 df + panel 应用全部 v3.5.0 D2 + D4 派生。
 
-    Called by encode.py::aggregate_panel after v3.4.0 collab_mode aggregation block.
-    Returns aggregated diagnostics dict for audit log §A.
+    由 encode.py::aggregate_panel 在 v3.4.0 collab_mode 聚合块之后调用。
+    返回汇总诊断 dict, 供 audit log §A。
     """
-    # article-level D2
+    # 文章级 D2
     df['cell_id_full'] = compute_cell_id(df, 'full')
     df['cell_id_ctx'] = compute_cell_id(df, 'ctx')
 
-    # article-level D4
+    # 文章级 D4
     residual_cols = derive_residual_signals(df)
 
-    # panel-level D2 8-cell + identities
+    # 面板级 D2 8 格计数 + 恒等式
     d2_diag = aggregate_d2_panel(df, panel)
 
-    # panel-level D4 frac/count + d4_data_quality_flag
+    # 面板级 D4 frac/count + d4_data_quality_flag
     d4_diag = aggregate_d4_panel(df, panel, ctx_baseline_path)
 
     return {
@@ -885,31 +904,33 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
 
 
 def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
-    """v3.5.2 PR #2/#3 panel-level aggregation for LM 4 subdicts + FLS.
+    """v3.5.2 PR #2/#3: LM 4 子词典 + FLS 的 panel 层聚合。
 
-    Closes CLAUDE.md 顶部声明 "Stage 22 _dual_analyze 真集成 LM+FLS → panel +10 列"
-    在 panel 层实现 gap: stage 22 article-level 产出 8 LM cols + 2 FLS cols,
-    但 encode.py 仅 apply_v3_5_0/v3_5_1, 无对应 v3_5_2 panel-agg → panel-level
-    0 cols (O2 sample-run 实测发现).
+    补齐历史声明 "Stage 22 _dual_analyze 真集成 LM+FLS → panel +10 列"
+    在 panel 层的实现缺口: stage 22 article 级产出 8 个 LM 列 + 2 个 FLS 列,
+    但 encode.py 当时仅 apply_v3_5_0/v3_5_1, 无对应 v3.5.2 panel 聚合 →
+    panel 层 0 列 (O2 sample-run 实测发现)。
 
-    Aggregates 10 article-level columns to bank-year panel by simple mean:
-        LM 4 subdicts × 2 tracks (full, ctx) = 8 panel cols:
-            uncert_frac_{full,ctx} → uncert_frac_{full,ctx}_panel  (mean)
-            litig_frac_{full,ctx}  → litig_frac_{full,ctx}_panel  (mean)
-            constr_frac_{full,ctx} → constr_frac_{full,ctx}_panel (mean)
-            modal_strong_frac_{full,ctx} → modal_strong_frac_{full,ctx}_panel (mean)
-        FLS × 2 tracks = 2 panel cols:
-            frac_fls_{full,ctx} → frac_fls_{full,ctx}_panel (mean)
+    把 10 个 article 级列按简单均值聚合到 bank-year panel
+    (输出列名与 article 源列**同名**, dst_col = src_col, 无 _panel 后缀 —
+    与 stata_export.py core_patterns 注册名一致):
+        LM 4 子词典 × 2 轨 (full, ctx) = 8 个 panel 列:
+            uncert_frac_{full,ctx} (mean)
+            litig_frac_{full,ctx} (mean)
+            constr_frac_{full,ctx} (mean)
+            modal_strong_frac_{full,ctx} (mean)
+        FLS × 2 轨 = 2 个 panel 列:
+            frac_fls_{full,ctx} (mean)
 
-    Per stata_export.py L285-290 这 10 panel col 已注册 core_patterns
-    (即下游 Stata 已期待这些列存在).
+    这 10 个 panel 列已在 stata_export.py 注册 core_patterns
+    (即下游 Stata 已期待这些列存在)。
 
     Args:
-        df: article-level DataFrame (含 8 LM + 2 FLS article cols).
-        panel: bank-year panel DataFrame (in-place add 10 cols).
+        df: article 级 DataFrame (含 8 LM + 2 FLS article 列)。
+        panel: bank-year panel DataFrame (原地新增 10 列)。
 
     Returns:
-        dict: {v3_5_2_lm_added, v3_5_2_fls_added, v3_5_2_skipped_reason}.
+        dict: {v3_5_2_lm_added, v3_5_2_fls_added, v3_5_2_skipped_reason}。
     """
     LM_KEYS = ('uncert', 'litig', 'constr', 'modal_strong')
     TRACKS = ('full', 'ctx')
@@ -917,7 +938,7 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     added_cols: list[str] = []
     skipped_cols: list[str] = []
 
-    # Sanity check upstream columns
+    # 上游列健全性检查 (缺键列则整体跳过)
     needed = ['target_bank', 'year']
     for col in needed:
         if col not in df.columns:
@@ -957,13 +978,13 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
             'v3_5_2_skipped_reason': f"article df 缺所有 LM/FLS 源列 ({skipped_cols[:3]}...), 跳过",
         }
 
-    # Aggregate to bank-year (simple mean of article-level frac)
+    # 聚合到 bank-year (文章级 frac 的简单均值)
     agg_panel = (
         df.groupby(['target_bank', 'year'], as_index=False)
         .agg(**agg_dict)
     )
 
-    # Merge into existing panel (append cols on key match)
+    # 按键匹配合并进既有 panel (追加列)
     # fix(omni-g-encode-collab-04, 2026-06-11): idempotent pre-drop — 镜像 clarity/
     # num_intensity 聚合的同款防护; 否则 panel 已含同名列时 (二次调用/增量重编码)
     # merge 默认 suffixes 产生 *_x/*_y 幻影列双双入 panel, 未后缀陈旧原列保旧值,
@@ -975,7 +996,7 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     merged = panel.merge(agg_panel, on=['target_bank', 'year'], how='left')
     new_cols = [c for c in merged.columns if c not in panel_pre_cols]
 
-    # In-place column add on panel (caller-passed DataFrame)
+    # 原地往 panel (调用方传入的 DataFrame) 加列
     for c in new_cols:
         panel[c] = merged[c].values
 

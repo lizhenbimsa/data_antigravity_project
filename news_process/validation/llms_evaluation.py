@@ -73,6 +73,9 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # _ctx 轨 (主 spec llm_vote_tone_ctx) 的 "误差" 混入 [归因窗口 vs 全文] 的
 # 真实分歧, 其 accuracy 应解释为 [模型误差 + 窗口-全文构念差] 的混合下界,
 # 不可解释为纯模型错误。独立的窗口级金标准待人工采集后可消除此混淆。
+# 白话: 人工标注员看的是整篇文章, 而 ctx 轨模型只看银行名附近的几句话。
+# 拿"整篇答案"去给"只看片段的模型"打分, 模型答错可能不是它笨, 而是片段
+# 和整篇本来就传达不同信息 — 所以 ctx 轨的准确率只能当保守下限看。
 GOLD_CONSTRUCT_DISCLOSURE = (
     '人工金标准为整篇阅读的全文构念; _ctx 轨指标含归因窗口与全文的真实分歧, '
     '其 accuracy 为 [模型误差 + 窗口-全文构念差] 的混合下界, 非纯模型误差'
@@ -101,6 +104,11 @@ def compute_cohens_kappa(rater1: np.ndarray, rater2: np.ndarray) -> dict:
 
     Returns:
         dict: 包含 kappa, observed_agreement, expected_agreement, n_samples 的字典。
+
+    白话: 两个人独立给同一批文章打标签, 即使完全瞎猜也会有一定比例
+    碰巧打得一样。κ 就是把"碰巧一致"扣掉之后的真实一致度: 1 = 完全
+    一致, 0 = 跟瞎猜一样, 负数 = 比瞎猜还差。学界常用 0.8 作为
+    "几乎完全一致"的门槛。
     """
     rater1 = np.asarray(rater1)
     rater2 = np.asarray(rater2)
@@ -154,6 +162,10 @@ def compute_krippendorffs_alpha(ratings_matrix: np.ndarray) -> float:
 
     Returns:
         float: Krippendorff's Alpha 值。
+
+    白话: 与 Cohen's κ 同类的"扣除碰巧一致后的一致度", 但更通用 —
+    支持 3 人及以上编码者、且允许个别人对个别条目缺标 (κ 只支持
+    两人且要求逐条都有标注)。
     """
     n_coders, n_items = ratings_matrix.shape
     valid_mask = ratings_matrix >= 0  # 非缺失标记
@@ -291,6 +303,11 @@ def compute_mcnemar_test(y_true: np.ndarray,
 
     Returns:
         dict: 包含 chi2_statistic, p_value, significant(bool) 的字典。
+
+    白话: 比较两个分类器谁更准, 不能只看准确率高低 (差异可能是抽样
+    碰巧)。McNemar 只盯"一个对、另一个错"的分歧样本: 如果 A 对 B 错
+    的次数和 A 错 B 对的次数差不多, 说明两者水平相当; 一边显著多于
+    另一边 (p<0.05), 才能说两个分类器有真实的性能差异。
     """
     correct_a = (y_pred_a == y_true)
     correct_b = (y_pred_b == y_true)
@@ -524,10 +541,10 @@ def generate_latex_table(results: dict, output_path: str, logger_inst):
         r"\end{tabular}",
     ])
 
-    # Plan v1.37 P0 §3.3.2 + R12C-01 + R21A-01: Panels E (substantiveness)
-    # + F (locus) in a SEPARATE \begin{tabular}...\end{tabular} block.
-    # Per R21A-01 pending-case reconciliation, Panel E/F subheaders are
-    # ALWAYS present; only data rows differ between populated and pending.
+    # Plan v1.37 P0 §3.3.2 + R12C-01 + R21A-01: Panel E (substantiveness)
+    # 与 Panel F (locus) 放在**独立的** \begin{tabular}...\end{tabular} 块中。
+    # 按 R21A-01 的 pending 情形对账约定, Panel E/F 子表头**始终**渲染;
+    # 已填充与待标注 (pending) 两种状态只在数据行上有差异。
     pending_reason = results.get('innovation_pending_reason')
     lines.extend([
         "",
@@ -690,15 +707,15 @@ def _safe_kstest(group_a, group_b, label_a, label_b, var_name, logger_inst):
 
 
 def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> None:
-    """Plan v1.37 P0 §3.3.1: populate Panel E (substantiveness) + Panel F (locus).
+    """Plan v1.37 P0 §3.3.1: 填充 Panel E (substantiveness) + Panel F (locus)。
 
-    Reads manual_validation_samples.xlsx (3-rater R1/R2/R3 stage3a/3b cols),
-    merges via majority-vote into single gold column, joins to LLM predictions
-    from 21_tone_llms.parquet, computes per-model + aggregate classification
-    metrics. Sets results['innovation_pending_reason'] to one of:
-      None (data available), 'file not present', 'schema mismatch', 'n=0'.
+    读取 manual_validation_samples.xlsx (3 编码者 R1/R2/R3 的 stage3a/3b 列),
+    经多数票 (majority-vote) 合并为单一 gold 列, 与 21_tone_llms.parquet 的
+    LLM 预测 join, 计算逐模型 + 聚合分类指标。
+    将 results['innovation_pending_reason'] 设为以下之一:
+      None (数据可用), 'file not present', 'schema mismatch', 'n=0'。
 
-    Outputs (when gold data present):
+    输出 (gold 数据存在时):
       - eval_reports/cm_innovation_{substantiveness,locus}_llm_{full,ctx}.png
       - eval_reports/per_model_innovation_{substantiveness,locus}_comparison.csv
     """
@@ -712,7 +729,7 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
     output_dir_cfg = config.get('paths', {}).get('output_dir', output_dir)
     mv_path = os.path.join(output_dir_cfg, 'manual_validation_samples.xlsx')
 
-    # Reachability check 1: file absent
+    # 可达性检查 1 (Reachability check 1): 文件不存在
     if not os.path.exists(mv_path):
         results['innovation_pending_reason'] = 'file not present'
         logger_inst.info(
@@ -721,7 +738,7 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         )
         return
 
-    # Load xlsx
+    # 加载 xlsx
     try:
         xl = pd.ExcelFile(mv_path)
         sheet = xl.sheet_names[0]
@@ -733,7 +750,7 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         )
         return
 
-    # Reachability check 2: schema mismatch
+    # 可达性检查 2 (Reachability check 2): schema 不匹配
     all_r_cols = R_COLUMNS_BY_RATER['substantiveness'] + R_COLUMNS_BY_RATER['locus']
     missing = [c for c in all_r_cols if c not in df_mv.columns]
     if missing:
@@ -744,7 +761,7 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         )
         return
 
-    # Merge raters → gold (per-row majority vote on 3 raters)
+    # 编码者合并 → gold (逐行对 3 名编码者做多数票)
     df_mv = df_mv.copy()
     df_mv['gold_substantiveness'] = df_mv.apply(
         lambda r: merge_three_rater_majority(r, R_COLUMNS_BY_RATER['substantiveness']),
@@ -758,7 +775,7 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
     n_gold_subst = df_mv['gold_substantiveness'].notna().sum()
     n_gold_locus = df_mv['gold_locus'].notna().sum()
 
-    # Reachability check 3: all R-cells NaN
+    # 可达性检查 3 (Reachability check 3): 全部 R 列单元格为 NaN
     if n_gold_subst == 0 and n_gold_locus == 0:
         results['innovation_pending_reason'] = 'n=0'
         logger_inst.warning(
@@ -767,7 +784,7 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         )
         return
 
-    # Join with 21_tone_llms predictions
+    # 与 21_tone_llms 的预测 join
     llms_path = os.path.join(output_dir_cfg, '21_tone_llms.parquet')
     if not os.path.exists(llms_path):
         results['innovation_pending_reason'] = 'file not present'
@@ -777,10 +794,10 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         return
     df_pred = pd.read_parquet(llms_path)
 
-    # Determine join key: prefer docid (production). If absent in either df,
-    # mark schema mismatch and bail (positional/orig_index fallback would
-    # require careful column-name disambiguation; deferred).
-    # Rα3-01 fix: unconditional return when no usable key (previously dead-coded).
+    # 确定 join 键: 优先 docid (生产口径)。任一 df 缺该列则标记
+    # schema mismatch 并退出 (positional/orig_index 回退需要谨慎的
+    # 列名消歧, 暂缓实现)。
+    # Rα3-01 fix: 无可用键时无条件 return (此前为死代码)。
     if 'docid' not in df_mv.columns or 'docid' not in df_pred.columns:
         logger_inst.warning(
             "  no shared docid join key between manual_validation_samples.xlsx "
@@ -790,13 +807,13 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         return
     join_key = 'docid'
 
-    # Deduplicate join key (R2C-04 + plan §3.3.3 test 14)
+    # join 键去重 (R2C-04 + plan §3.3.3 test 14)
     df_mv = df_mv.drop_duplicates(subset=[join_key], keep='first')
     df_pred = df_pred.drop_duplicates(subset=[join_key], keep='first')
 
     df_joined = df_mv.merge(df_pred, on=join_key, how='inner', suffixes=('_mv', ''))
 
-    # Evaluate each innovation dim + each track
+    # 逐创新维度 × 逐轨道评估
     for task_name, gold_col, pred_template, class_labels in [
         ('innovation_substantiveness', 'gold_substantiveness',
          'innovation_substantiveness{track}', ['实质性', '象征性']),
@@ -828,7 +845,7 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
                 )
             except Exception as exc:
                 logger_inst.warning(f"  cm plot {task_name}{track} failed: {exc}")
-        # Per-model comparison CSV
+        # 逐模型对比 CSV
         rows = []
         for k, m in results['classifier_metrics'][task_name].items():
             rows.append({
@@ -890,6 +907,13 @@ def diagnose_misclassification_bias(
 
     Returns:
         dict: 包含四象限计数、检验结果列表、剔除计数和总体结论。
+
+    白话: 第一阶段筛选难免有错判, 真正危险的不是"错多少", 而是"错得有
+    没有方向性"。比如被误放进来的无关文章 (FP) 如果普遍偏正面, 整体
+    情感分就会被系统性抬高, 准确率再高也救不了第二阶段的回归结论。
+    本诊断把样本按 对/错 × 真/假 切成四个象限, 用 t 检验和 KS 检验比较
+    各象限的情感分/文本长度/置信度有无系统差异; 全不显著才说明错判是
+    "无方向的噪声", 可以放心。
     """
     ver_col = f'llm_verified{track}'
     sent_col = f'llm_sentiment{track}'
@@ -1323,22 +1347,21 @@ def main():
         'inter_coder_reliability': {
             'verification': {},
             'sentiment': {}
-            # Plan v1.37 P0 §3.3.2 R27B-02: ICR stays at 2 keys.
-            # 32_human_samples.xlsx uses 2-rater (coder_A/coder_B) suited
-            # to Cohen κ. manual_validation_samples.xlsx uses 3-rater
-            # majority-voted into a single gold column (per-rater data
-            # merged away). Innovation reliability is reported separately
-            # via the manual-validation-study-plan κ/α workstream.
+            # Plan v1.37 P0 §3.3.2 R27B-02: ICR 保持 2 个键。
+            # 32_human_samples.xlsx 是 2 编码者 (coder_A/coder_B), 适配
+            # Cohen κ; manual_validation_samples.xlsx 是 3 编码者经多数票
+            # 合并为单一 gold 列 (逐编码者数据已被合并掉)。创新维度的
+            # 信度经 manual-validation-study-plan 的 κ/α 工作流单独报告。
         },
         'classifier_metrics': {
             'verification': {},
             'sentiment': {},
-            # Plan v1.37 P0 §3.3.2: 4-task extension for Panels E (substantiveness) + F (locus).
+            # Plan v1.37 P0 §3.3.2: 扩展为 4 任务, 支撑 Panel E (substantiveness) + F (locus)。
             'innovation_substantiveness': {},
             'innovation_locus': {},
         },
         'mcnemar_test': {},
-        # Plan v1.37 P0 §3.3.1 pending semantics
+        # Plan v1.37 P0 §3.3.1 待标注 (pending) 语义
         'innovation_pending_reason': None,
     }
 
@@ -1644,10 +1667,10 @@ def main():
         logger.info("  未找到有效的情感分类黄金标准。")
 
     # ======================================================================
-    # Step 4c: Plan v1.37 P0 §3.3.1 — Panels E (substantiveness) + F (locus)
-    # Innovation-dimension classifier metrics from manual_validation_samples.xlsx.
-    # Code path lands regardless of annotation state; pending footnote used
-    # when xlsx absent / schema mismatch / all cells NaN.
+    # Step 4c: Plan v1.37 P0 §3.3.1 — Panel E (substantiveness) + F (locus)
+    # 基于 manual_validation_samples.xlsx 的创新维度分类器指标。
+    # 无论标注状态如何, 此代码路径都会执行; xlsx 缺失 / schema 不匹配 /
+    # 单元格全 NaN 时改用 pending 脚注。
     # ======================================================================
     logger.info("=" * 70)
     logger.info("===    Step 4c: Panels E/F (innovation dimensions)    ===")

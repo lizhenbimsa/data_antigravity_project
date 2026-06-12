@@ -5,25 +5,27 @@
 *
 *   DV   = {{MAIN_DV}}    (default ln_fintech_investment per spec.outcome.primary)
 *   X    = {{MAIN_TREAT}} (default attention_index_full per spec.treatment.primary)
-*   Theory anchor: Hassan-Hollander-van Lent-Tahoun 2019 QJE 134(4) — firm-level
-*                  political risk exposure (intensity DiD).
+*   理论锚点 (Theory anchor): Hassan-Hollander-van Lent-Tahoun 2019 QJE 134(4) —
+*                  firm-level 政治风险暴露测度 (political risk exposure, intensity DiD)。
 *
-* M1: bare (treat only, no controls, no FE)
-* M2: + bank FE
-* M3: + bank FE + year FE
-* M4: + standard bank-level controls
-* M5: + macro controls (gdp_growth / m2_growth)
-* M6: + attention × post-event interaction (for event study spec.event_studies)
+* M1: 裸回归 (仅 treatment, 无控制无 FE)
+* M2: + bank FE (银行固定效应)
+* M3: + bank FE + year FE (银行+年份双固定效应)
+* M4: + 标准银行层面控制变量
+* M5: + 宏观控制 (gdp_growth / m2_growth)
+* M6: + attention × post-event 交互 (对应 spec.event_studies 的事件设定)
 *
-* Identification: two-way fixed-effects (TWFE) panel regression (bank FE + year FE)
+* 识别策略: 双向固定效应 (TWFE) 面板回归 (bank FE + year FE)
 *                via reghdfe; M1-M6 全为 reghdfe TWFE, 本模板无 csdid 调用.
 *                注: spec.identification 概念上锚定 staggered DiD, 但 Callaway-Sant'Anna
 *                (2021) staggered DiD estimator 需 T≥3 (多期 pre/post 以识别 group-time
 *                ATT); 当前面板 T=2 (2017-2018 bank-year), staggered DiD 不可识别, 故
 *                baseline 退化为 TWFE — 见 pipeline/panel/iv_did.py docstring 的 T=2
 *                识别披露. 待 production run 扩到 T≥3 后方可启用 csdid.
-*                IV via leave-one-out peer attention (15-shared 22_tableA3_bartik_iv handles
-*                Bartik fallback).
+*                IV 用 leave-one-out 同业 attention (Bartik 后备由共享模板
+*                22_tableA3_bartik_iv 处理)。
+* 白话: 想用的分期 DiD 方法至少需要三年数据, 当前试跑面板只有两年, 只能退回普通
+* 双向固定效应回归; 等数据扩到多年后再换正式的分期 DiD。
 * ============================================================================
 
 version 19
@@ -39,26 +41,26 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* M1: bare
+* M1: 裸回归
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}}, noabsorb vce(cluster {{CLUSTER_VAR}})
 eststo M1
 
-* M2: + bank FE
+* M2: + bank FE (银行固定效应)
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}}, ///
     absorb(bank_id) vce(cluster {{CLUSTER_VAR}})
 eststo M2
 
-* M3: + bank FE + year FE (within-bank within-year baseline)
+* M3: + bank FE + year FE (银行内、年份内变异的基准设定)
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}}, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M3
 
-* M4: + bank-level controls
+* M4: + 银行层面控制变量
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M4
 
-* M5: + macro controls
+* M5: + 宏观控制
 capture confirm variable gdp_growth m2_growth
 if !_rc {
     reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls gdp_growth m2_growth, ///
@@ -71,8 +73,8 @@ else {
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 }
 
-* M6: + attention × event-post interaction (per spec.event_studies E1/E2/E4/E5a/E5b)
-* Detailed event study via paper 17_attention_heterogeneity.do.
+* M6: + attention × event-post 交互 (per spec.event_studies E1/E2/E4/E5a/E5b)
+* 更细的 wave × treatment 交互检验见 17_attention_heterogeneity.do。
 capture confirm variable post_E1
 if !_rc {
     gen treat_x_postE1 = {{MAIN_TREAT}} * post_E1
@@ -87,6 +89,7 @@ else {
 * fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — M6 依赖 post_E1 (无管道
 * 生产者), 守卫跳过后旧版硬点名 M6 → r(111) 丢整表且 master 链中止; 改为仅引用实际
 * 已存储估计, mtitle 同步删列防错位。
+* 白话: 出表时只点名实际估计成功的模型, 防止某一列缺席导致整张表报错丢失。
 qui estimates dir
 local stored `r(names)'
 local cand_models M1 M2 M3 M4 M5 M6

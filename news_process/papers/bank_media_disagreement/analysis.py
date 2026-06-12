@@ -6,7 +6,7 @@ CLI: ``python -m news_process.papers.bank_media_disagreement.analysis [--stage .
 状态 (provisional): paper_spec.yaml 已 frozen + 通过 schema 校验, 本 analysis 入口
 符合 Phase-3 契约 (main(argv) + STAGES), 故可被 run_paper 调度。treatment
 ``cross_outlet_tone_variance_full`` 待 M2-M3 新建 (V4 R3); tables/figures 为占位骨架,
-主回归 (Cookson-Niessner 2020 RFS disagreement) 待 M5 填实。
+主回归 (Cookson-Niessner 2020 JF disagreement; 勘误: 旧注释误标 RFS) 待 M5 填实。
 """
 
 from __future__ import annotations

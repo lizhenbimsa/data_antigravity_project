@@ -630,6 +630,9 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     # ln_news_coverage / falsification 等 coverage 消费者. 分类组成型比率
     # (tech/app/sub/symb/indep/collab_frac) 与其恒等式改用 n_articles_llm_valid
     # (LLM 有效投票篇数 = 分类定义域, 'count' 跳 NA), 保持分子分母同口径、值不变.
+    # 白话: 面板里有两种"篇数" — n_articles 数的是该银行该年物理上有多少篇
+    # 新闻 (媒体关注度用这个); n_articles_llm_valid 只数 LLM 成功打出标签的
+    # 那部分 (算"某类占比"时分母必须用它, 不然分母混进无标签文章, 占比偏低)。
     agg['n_articles'] = ('llm_vote_score_full', 'size')
     agg['n_articles_llm_valid'] = ('llm_vote_score_full', 'count')
     # metric-audit 2026-06-02 final: ctx 轨独立有效投票篇数 (= ctx 分类 frac 的正确分母).
@@ -656,7 +659,7 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     # remove-title-track: avg_agreement_rate_title 已取消
 
     # --- E2. v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 ---
-    # ctx_is_fallback (article, bool): True iff content_ctx ≡ content_full (entity-miss)
+    # ctx_is_fallback (article 级, bool): 当且仅当 content_ctx ≡ content_full (实体未命中回退) 时为 True
     # → frac_ctx_fallback (bank-year, mean): 高值=ctx 轨等价于 full 轨, 双轨退化为单轨
     # → n_articles_for_ctx_independence (bank-year, count): 真双轨文章绝对数,
     #    避免按比例 filter 时的银行规模偏差 (大行总通过, 小行总被剔)
@@ -668,13 +671,13 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         # 用 size-then-subtract 而非 lambda 以兼容 pandas groupby.agg 的 NamedAgg 协议
         agg['_ctx_fallback_count'] = ('ctx_is_fallback', 'sum')
 
-    # --- E3. v3.7.4 P3.1.5: title indicators bank-year aggregation ---
-    # title_mentions_fintech (article bool) → frac_title_mentions_fintech (bank-year mean)
-    # title_length_bucket (article {0,1}) → frac_title_long (bank-year mean of bucket==1)
-    # 用途: Panel D/E stratified robustness (v3.7.4 Plan A v1.0)
+    # --- E3. v3.7.4 P3.1.5: 标题指示符 bank-year 聚合 (历史设计, 已随标题轨取消) ---
+    # 原设计: title_mentions_fintech (article bool) → frac_title_mentions_fintech (bank-year mean)
+    #         title_length_bucket (article {0,1}) → frac_title_long (bank-year mean of bucket==1)
+    # 用途 (当时): Panel D/E stratified robustness (v3.7.4 Plan A v1.0)
     # 锚定: Antweiler-Frank (2004) JF subject-relevance threshold;
     #        Da-Engelberg-Gao (2011) JF attention-channel separation
-    # remove-title-track: frac_title_mentions_fintech / frac_title_long 已取消
+    # remove-title-track: frac_title_mentions_fintech / frac_title_long 已取消, 本节无产出列
 
     # --- F. Value-weighted 辅助列 (Hassan et al. 2019, QJE; Sautner et al. 2023, JF) ---
     agg['sum_mention_density'] = ('mention_density', 'sum')
@@ -867,10 +870,10 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
             for grp in ['llm', *LLM_MODELS, 'prob']:
                 agg[f'sum_wd_{wtag}_{grp}{track}'] = (f'_wd_{wtag}_{grp}{track}', 'sum')
 
-    # Plan v1.37 P2 §5.3.2: 8 new bank-year columns for binary prob_score
-    # (avg_{subst,locus}_prob_score_{full,ctx} mean + std). Positive class
-    # encoding: 1 = 象征性 / 应用场景 (stata_export.py:40-50). NaN-safe
-    # via pandas mean/std (ddof=1 default).
+    # Plan v1.37 P2 §5.3.2: 8 个新增 bank-year 列, 二分类 prob_score
+    # (avg_{subst,locus}_prob_score_{full,ctx} 的 mean + std)。正类编码:
+    # 1 = 象征性 / 应用场景 (stata_export.py:40-50)。NaN 安全:
+    # 走 pandas mean/std (默认 ddof=1)。
     for track in ['_full', '_ctx']:
         agg[f'avg_subst_prob_score{track}'] = (f'avg_subst_prob_score{track}', 'mean')
         agg[f'avg_subst_prob_score_std{track}'] = (f'avg_subst_prob_score{track}', 'std')
@@ -963,7 +966,7 @@ def _aggregate_ctx_diagonal(df: pd.DataFrame, panel: pd.DataFrame,
 
 
 def _compute_tone_gap_tech_app(panel: pd.DataFrame) -> pd.Series:
-    """Compute tone_gap_tech_app with min-n confound defense (v3.1.1).
+    """计算 tone_gap_tech_app, 带最小篇数混杂防御 (v3.1.1)。
 
     反向借鉴 tone_gap_sub_symb (encode.py 中 substantiveness 块), 增加
     min(n_tech, n_app) >= 5 过滤防 compositional confound (R8 audit).
@@ -973,6 +976,10 @@ def _compute_tone_gap_tech_app(panel: pd.DataFrame) -> pd.Series:
                llm_vote_tone_tech_full, llm_vote_tone_app_full
     Returns:
         Float64 Series: gap = tech - app, NaN 当 min < 5
+
+    白话: "底层技术类新闻的语调"减"应用场景类新闻的语调"。但若某类
+    只有一两篇文章, 均值噪声极大、差值没意义, 所以要求两类各至少 5 篇
+    才计算, 否则记缺失。
     """
     both_qualified = (panel['n_articles_tech'] >= 5) & (panel['n_articles_app'] >= 5)
     gap_raw = panel['llm_vote_tone_tech_full'] - panel['llm_vote_tone_app_full']
@@ -1525,8 +1532,8 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         logger.info("  列 'innovation_collab_mode_full' 不存在, innovation_collab_mode 分组聚合将跳过")
 
     # --- v3.5.0 D2 + D4 派生 (per stage3_v3_5_0_augmentation_plan.md §2.1 / §2.3) ---
-    # D2 8-cell decomposition: cell_id_{full,ctx} + 8 cell-count + cross-identity checks
-    # D4 cross-track residual: 9 article-level + 18 panel-level + d4_data_quality_flag
+    # D2 八格分解: cell_id_{full,ctx} + 8 个 cell 计数列 + 跨格恒等校验
+    # D4 跨轨残差: 9 个文章级列 + 18 个面板级列 + d4_data_quality_flag
     # 走 §7 R10 rollback path: 不拆分 encode.py, 接受 ≈1470 行临时膨胀直至 v3.6.0 refactor.
     try:
         from news_process.pipeline.panel import encode_collab as _ec  # noqa: WPS433
@@ -1557,7 +1564,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         except Exception as e:  # noqa: BLE001
             logger.warning(f"  ⚠ v3.5.1 A1+A3 派生 graceful skip: {e}")
 
-        # v3.5.2 PR #2/#3 LM 4 subdicts + FLS panel-level aggregation
+        # v3.5.2 PR #2/#3: LM 4 子词典 + FLS 的 panel 级聚合
         # (O2 sample-run finding 2026-05-25: 关闭 CLAUDE.md 顶部声明 "stage 22
         # +10 panel 列" 与 disk 实际 0 panel 列的 gap; article-level 8 LM + 2 FLS
         # 已在 stage 22 _dual_analyze 产出, 缺 panel-agg).
@@ -1595,6 +1602,10 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
     # (= Σ weight over {i: 该族 score 有效}, 由 runner._build_llm_valid_masked_weights 预计算)。
     # ⚠ dict/BERT 族 **不改**: 词典 score=0(非 NA)/BERT prob=0(非 NA), 分子分母同全物理域,
     # 加 mask 会反向失配 (over-correct)。缺 mask 列 → 回退 physical (向后兼容)。
+    # 白话: 加权平均 = "分数×权重加总"再除以"权重加总"。LLM 打分失败的文章
+    # 分子里自动不算, 那分母也必须只数"打分成功文章"的权重 — 否则分母偏大,
+    # 算出来的语调被整体压向 0。词典/BERT 对每篇文章都有分数 (失败记 0 而非
+    # 缺失), 分子分母本来就同域, 不需要也不能套这个修正。
     def _llm_denom(wtag, grp, track, physical):
         col = f'sum_wd_{wtag}_{grp}{track}'
         return panel[col].replace(0, np.nan) if col in panel.columns else physical

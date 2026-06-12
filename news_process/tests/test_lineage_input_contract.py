@@ -8,7 +8,12 @@ def _source(relative_path: str) -> str:
 
 
 def test_sentiment_stage_lineage_uses_actual_upstream_paths():
-    """Guard against lineage metadata drifting away from real stage inputs."""
+    """守卫血缘 (lineage) 元数据不偏离 stage 真实输入.
+
+    # 白话: 这是"源码锁"测试 —— 直接读生产模块的源码文本, 断言其中必须出现/
+    # 不得出现某些代码片段。它不跑代码, 只防有人改掉"每个阶段记录自己真实
+    # 上游文件"的写法。下方 assert 里的字符串是被锁定的代码原文, 一字不可改。
+    """
     tone_words = _source("pipeline/sentiment/tone_words.py")
     assert "input_files=[input_path]" in tone_words
 

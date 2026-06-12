@@ -1,4 +1,4 @@
-"""Smoke tests for brokerage_network / llm_peer / strategic_diff analysis CLIs.
+"""brokerage_network / llm_peer / strategic_diff 三篇 analysis CLI 的 smoke 测试。
 
 quality-hardening Round 47 (2026-05-27): 3 篇衍生论文 analysis.py 此前在
 tests/ 中零直接覆盖. 参照 test_papers_p2_p3_p4_smoke.py 的 pattern, 验证两类
@@ -21,7 +21,7 @@ if str(_PROJECT_PARENT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_PARENT))
 
 
-# Each entry: (paper_id, primary_plot_fn_name, table_builder_fn_names)
+# 每项格式: (paper_id, 主 plot 函数名, table builder 函数名列表)
 _DERIVATIVE_PAPERS = [
     ('brokerage_network', 'plot_brokerage_centrality_distribution',
      ['build_table2_main', 'build_table3_mechanism',

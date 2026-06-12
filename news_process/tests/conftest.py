@@ -33,7 +33,7 @@ if PROJECT_PARENT not in sys.path:
 # ``@pytest.mark.integration`` 装饰器, pytest 会保留两个 marker.
 
 def pytest_collection_modifyitems(config, items):
-    """Auto-tag tests as 'integration' (under tests/integration/) or 'fast' (rest)."""
+    """按路径自动打 marker: tests/integration/ 下为 'integration', 其余为 'fast'。"""
     integration_marker = pytest.mark.integration
     fast_marker = pytest.mark.fast
     integration_segment = os.path.join("tests", "integration") + os.sep

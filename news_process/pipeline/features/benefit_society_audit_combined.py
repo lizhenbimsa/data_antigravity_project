@@ -1,25 +1,25 @@
-"""benefit_society — Combined audit-only pipeline (P1.6).
+"""benefit_society — 合并 audit-only 管线 (P1.6).
 
 V2.0 J-L-M 2026 robustness alignment plan §3 Phase 1 P1.6:
-Orchestrates ``benefit_society_alt_anchor`` (J-L-M canonical 5-pair) +
-``benefit_society_placebo`` (4 business-line + 1 neutral) into a single
-audit-only output:
+把 ``benefit_society_alt_anchor`` (J-L-M canonical 5 对锚点) +
+``benefit_society_placebo`` (4 业务线 + 1 中性基线) 编排为单一
+audit-only 输出:
 
     data/processed/27c_alt_anchor_and_placebo_panel.parquet
 
-Schema (key = target_bank + year):
+Schema (键 = target_bank + year):
     - benefit_jlm_zh_mean / std / pos_frac / neg_frac  (+ ``_ctx`` twin 列,
       当提供 ctx 轨嵌入时; fix(omni-g-benefit-01, 2026-06-11) 补 ctx 轨)
     - benefit_placebo_housing_loans_mean
     - benefit_placebo_credit_cards_mean
     - benefit_placebo_intermediate_business_mean
     - benefit_placebo_branch_channel_mean
-    - benefit_placebo_general_corporate_mean   (neutral baseline)
+    - benefit_placebo_general_corporate_mean   (中性基线)
       (placebo 列同样有 ``_ctx`` twin)
 
-Sidecar JSON: ``...sidecar.json`` with yaml SHA-256 anchors + match counts.
+Sidecar JSON: ``...sidecar.json``, 记录锚点 yaml SHA-256 + 逐 placebo 命中数。
 
-**Critical**: does not touch main panel; this is audit-only path.
+**关键约束**: 不触碰主面板; 这是 audit-only 路径。
 
 fix(omni-g-benefit-01, 2026-06-11) 链路重接线 (2026-05-29 主轨换模后失效):
 - 锚点嵌入不再硬编码 SentenceTransformer("shibing624/...") — 经统一引擎
@@ -85,25 +85,25 @@ def build_audit_panel(
     embedding_model_id: str | None = None,
     seed: int = DEFAULT_SEED,
 ) -> tuple[pd.DataFrame, dict[str, object]]:
-    """Build the combined audit panel.
+    """构建合并的 audit 面板.
 
     Parameters
     ----------
     df_exploded
-        Article-bank DataFrame (must have target_bank, year, 标题, 内容).
+        文章-银行级 DataFrame (须含 target_bank, year, 标题, 内容).
     text_embeddings
-        Pre-computed article embeddings, shape ``(n_articles, d)`` — full track
+        预计算的文章嵌入, 形状 ``(n_articles, d)`` — full 轨
         (stage 27 ``27_benefit_embeddings_full.npy``; 行序对齐 df_exploded,
         空文本行=NaN)。fix(omni-g-benefit-01, 2026-06-11): 不再假设
         shibing624/768 — 维度由数组自描述, 模型由 ``embedding_model_id`` 声明。
     main_direction
-        Main 10-anchor fintech direction vector (used for placebo subset
-        projection); stage 27 ``27_benefit_direction.npy`` (未归一, 本函数
+        主 10 锚点对金融科技方向向量 (用于 placebo 子集投影);
+        即 stage 27 ``27_benefit_direction.npy`` (未归一, 本函数
         消费端归一)。
     text_embeddings_ctx
-        Optional ctx-track embeddings (同 model / 同行序) → ``_ctx`` twin 列。
+        可选 ctx 轨嵌入 (同 model / 同行序) → ``_ctx`` twin 列。
     anchor_embedding_fn
-        Injectable anchor-embedding closure (tests). ``None`` → 经
+        可注入的锚点嵌入闭包 (测试用). ``None`` → 经
         ``make_anchor_embedding_fn(resolve_embedding_spec(model_id))`` 构造
         (统一引擎, 与文章同空间)。
     embedding_model_id
@@ -115,8 +115,8 @@ def build_audit_panel(
     Returns
     -------
     tuple[pd.DataFrame, dict]
-        ``(combined_panel, metadata)``. Metadata contains anchor yaml SHAs +
-        per-placebo match counts for downstream sidecar JSON.
+        ``(combined_panel, metadata)``. metadata 含锚点 yaml SHA +
+        逐 placebo 命中数, 供下游 sidecar JSON 使用.
     """
     if len(df_exploded) != len(text_embeddings):
         raise ValueError(
@@ -137,7 +137,7 @@ def build_audit_panel(
 
     np.random.seed(seed)  # 显式 seed (确定性披露见 docstring)
 
-    # ---- 1) Alt anchor (J-L-M 5-pair) — anchors embedded via unified engine
+    # ---- 1) 替代锚点 (J-L-M 5 对) — 锚点经统一引擎嵌入
     if embedding_model_id is None:
         from news_process.core.config import load_config
 
@@ -166,7 +166,7 @@ def build_audit_panel(
             alt_panel_ctx, on=[bank_col, year_col], how="outer"
         )
 
-    # ---- 2) Placebo (4 business lines + 1 neutral) — uses MAIN direction
+    # ---- 2) Placebo (4 业务线 + 1 中性) — 使用 MAIN 主方向向量
     business_lines, neutral_baseline, placebo_meta = load_placebo_keywords()
     keyword_sets: dict[str, list[str]] = {**business_lines, **neutral_baseline}
     placebo_panel, match_counts = compute_placebo_projection(
@@ -192,7 +192,7 @@ def build_audit_panel(
             placebo_panel_ctx, on=[bank_col, year_col], how="outer"
         )
 
-    # ---- 3) Outer-merge on (bank, year)
+    # ---- 3) 按 (bank, year) outer-merge 合并
     combined = alt_panel.merge(
         placebo_panel, on=[bank_col, year_col], how="outer"
     )
@@ -292,7 +292,7 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
     )
 
-    # Always-safe yaml schema validation (no embedding load)
+    # 恒安全的 yaml schema 校验 (不加载嵌入)
     pos, neg, alt_meta = load_jlm_zh_anchors()
     bl, nb, placebo_meta = load_placebo_keywords()
     logger.info(

@@ -81,7 +81,7 @@ __all__ = [
     "run_do",
     "StataNotFoundError",
     "run_main_pipeline",
-    # M0.2 paper_registry (8 paper spec.yaml 统一入口):
+    # M0.2 paper_registry (11 paper spec.yaml 统一入口):
     "PAPER_IDS_ALL",
     "PAPER_IDS_EXISTING",
     "PAPER_IDS_NEW",

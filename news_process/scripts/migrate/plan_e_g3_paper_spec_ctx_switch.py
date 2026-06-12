@@ -85,7 +85,7 @@ def migrate_one(spec_path: str, dry_run: bool = False) -> tuple[bool, str]:
     # 2) 所有 _full 变体的 _ctx 镜像加入 alternative (若不已在)
     existing_set = {str(a) for a in alt}
     to_append: list[str] = []
-    # ctx mirrors
+    # alternative 中 _full 变体的 _ctx 镜像
     for a in list(alt):
         if _is_full_suffix_var(a):
             ctx = _to_ctx(a)

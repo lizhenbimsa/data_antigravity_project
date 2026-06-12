@@ -1,17 +1,17 @@
-"""v3.5.0 D2 panel-level 8-cell aggregation unit tests.
+"""v3.5.0 D2 panel 级 8-cell 聚合单元测试。
 
-Per v3.5.0 D2 panel 8-cell 聚合 §2.1.2 / §4.1 (文档已随 docs/ 删除):
-    6 tests covering:
-        - 8 cell-count columns (n_articles_cell_1..8_full) on bank-year panel
-        - Main identity: n_articles == Σ_{i=1..8} n_articles_cell_i_full
-        - Cross identity vs v3.4.0 _indep/_collab 二元后缀 (修 C-NEW-2):
+依据 v3.5.0 D2 panel 8-cell 聚合 §2.1.2 / §4.1 (文档已随 docs/ 删除):
+    6 个测试覆盖:
+        - bank-year panel 上的 8 个 cell 计数列 (n_articles_cell_1..8_full)
+        - 主恒等式: n_articles == Σ_{i=1..8} n_articles_cell_i_full
+        - 与 v3.4.0 _indep/_collab 二元后缀的交叉恒等式 (修 C-NEW-2):
             n_articles_indep == n_articles_cell_{1,3,5,7}_full
             n_articles_collab == n_articles_cell_{2,4,6,8}_full
-        - Graceful skip on all-NA cell_id (修 F46)
-        - Empty panel boundary (修 F27)
-        - panel.attrs['D2_small_sample_warning'] for df < 1000 articles
+        - 全 NA cell_id 时优雅跳过 (修 F46)
+        - 空 panel 边界 (修 F27)
+        - df < 1000 篇时设 panel.attrs['D2_small_sample_warning']
 
-依赖: synthetic fixture (per plan §4.1 F36).
+依赖: 合成 fixture (按 plan §4.1 F36)。
 """
 from __future__ import annotations
 
@@ -24,10 +24,10 @@ from news_process.pipeline.panel.encode_collab import (
 
 
 def _make_article_df(rows: list[tuple]) -> pd.DataFrame:
-    """rows = list of (target_bank, year, subst_full, locus_full, collab_full).
+    """rows = (target_bank, year, subst_full, locus_full, collab_full) 元组列表。
 
-    Production convention (per encode.py:221 + 666): bank column name is 'target_bank',
-    NOT 'bank'. Tests align to production reality.
+    生产约定 (见 encode.py:221 + 666): 银行列名是 'target_bank' 而非 'bank',
+    测试与生产现状对齐。
     """
     df = pd.DataFrame(
         rows,
@@ -43,9 +43,9 @@ def _make_article_df(rows: list[tuple]) -> pd.DataFrame:
 
 
 def _make_panel(article_df: pd.DataFrame) -> pd.DataFrame:
-    """Build a flat (target_bank, year) panel with n_articles + indep + collab counts.
+    """构造含 n_articles + indep + collab 计数的扁平 (target_bank, year) panel。
 
-    Production convention: flat DataFrame with target_bank + year as **columns** (not MultiIndex).
+    生产约定: 扁平 DataFrame, target_bank + year 是**列** (非 MultiIndex)。
     """
     grouped = article_df.groupby(['target_bank', 'year']).size().reset_index(name='n_articles')
     panel = grouped.copy()
@@ -63,11 +63,11 @@ def _make_panel(article_df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ----------------------------------------------------------------------------
-# Test 1: 8 cell columns generated + dtype Int32
+# Test 1: 生成 8 个 cell 列 + dtype Int32
 # ----------------------------------------------------------------------------
 
 def test_panel_creates_8_cell_count_columns():
-    """aggregate_d2_panel adds n_articles_cell_{1..8}_full Int32 columns."""
+    """aggregate_d2_panel 应新增 n_articles_cell_{1..8}_full Int32 列。"""
     article_df = _make_article_df([
         ('B1', 2020, '实质性', '底层技术', '自主研发'),  # cell 1
         ('B1', 2020, '实质性', '底层技术', '外部协同'),  # cell 2
@@ -84,11 +84,11 @@ def test_panel_creates_8_cell_count_columns():
 
 
 # ----------------------------------------------------------------------------
-# Test 2: Main identity n_articles == Σ n_articles_cell_i_full
+# Test 2: 主恒等式 n_articles == Σ n_articles_cell_i_full
 # ----------------------------------------------------------------------------
 
 def test_main_identity_n_articles_equals_sum_of_cells():
-    """Main identity: panel n_articles == sum of 8 cell counts (per row)."""
+    """主恒等式: panel 每行 n_articles == 8 个 cell 计数之和。"""
     article_df = _make_article_df([
         ('B1', 2020, '实质性', '底层技术', '自主研发'),
         ('B1', 2020, '象征性', '应用场景', '外部协同'),
@@ -99,7 +99,7 @@ def test_main_identity_n_articles_equals_sum_of_cells():
     aggregate_d2_panel(article_df, panel)
 
     cell_sum = sum(panel[f'n_articles_cell_{i}_full'] for i in range(1, 9))
-    # Main identity holds for rows with n_articles > 0
+    # 主恒等式对 n_articles > 0 的行成立
     has_news = panel['n_articles'] > 0
     assert (panel.loc[has_news, 'n_articles'] == cell_sum.loc[has_news]).all()
 
@@ -109,7 +109,7 @@ def test_main_identity_n_articles_equals_sum_of_cells():
 # ----------------------------------------------------------------------------
 
 def test_cross_identity_with_v3_4_0_indep_collab_suffixes():
-    """n_articles_indep == cells {1,3,5,7}; n_articles_collab == cells {2,4,6,8}."""
+    """n_articles_indep == cell {1,3,5,7} 之和; n_articles_collab == cell {2,4,6,8} 之和。"""
     article_df = _make_article_df([
         ('B1', 2020, '实质性', '底层技术', '自主研发'),  # cell 1 (indep)
         ('B1', 2020, '实质性', '底层技术', '外部协同'),  # cell 2 (collab)
@@ -119,17 +119,17 @@ def test_cross_identity_with_v3_4_0_indep_collab_suffixes():
     panel = _make_panel(article_df)
     diag = aggregate_d2_panel(article_df, panel)
 
-    # Cross-identity must pass (diag returns failure counts)
+    # 交叉恒等式必须通过 (diag 返回失败计数)
     assert diag.get('indep_cross_fail', 0) == 0
     assert diag.get('collab_cross_fail', 0) == 0
 
 
 # ----------------------------------------------------------------------------
-# Test 4: Graceful skip on all-NA cell_id (修 F46)
+# Test 4: 全 NA cell_id 时优雅跳过 (修 F46)
 # ----------------------------------------------------------------------------
 
 def test_graceful_skip_all_na_cell_id():
-    """All-NA cell_id_full (LLM 列缺失) → skip aggregation, no raise (修 F46)."""
+    """cell_id_full 全 NA (LLM 列缺失) → 跳过聚合, 不抛异常 (修 F46)。"""
     article_df = pd.DataFrame({
         'target_bank': ['B1', 'B1'],
         'year': [2020, 2020],
@@ -149,15 +149,15 @@ def test_graceful_skip_all_na_cell_id():
 
 
 # ----------------------------------------------------------------------------
-# Test 5: Empty panel boundary (修 F27)
+# Test 5: 空 panel 边界 (修 F27)
 # ----------------------------------------------------------------------------
 
 def test_empty_panel_graceful_skip():
-    """Empty panel (0 rows) → graceful skip, no raise (修 F27 + F46)."""
+    """空 panel (0 行) → 优雅跳过, 不抛异常 (修 F27 + F46)。"""
     article_df = _make_article_df([
         ('B1', 2020, '实质性', '底层技术', '自主研发'),
     ])
-    # Empty panel with required columns but 0 rows (production flat structure)
+    # 含必需列但 0 行的空 panel (生产扁平结构)
     panel = pd.DataFrame(columns=['target_bank', 'year', 'n_articles',
                                    'n_articles_indep', 'n_articles_collab'])
 
@@ -167,12 +167,12 @@ def test_empty_panel_graceful_skip():
 
 
 # ----------------------------------------------------------------------------
-# Test 6: D2_small_sample_warning attr for df < 1000 articles
+# Test 6: df < 1000 篇时设 D2_small_sample_warning attr
 # ----------------------------------------------------------------------------
 
 def test_d2_small_sample_warning_attr():
     """df.shape[0] < 1000 → panel.attrs['D2_small_sample_warning'] = True, 不阻聚合."""
-    # 100 articles spread across 2 bank × 2 year
+    # 100 篇文章分布在 2 银行 × 2 年
     rows = []
     for i in range(25):
         rows.append(('B1', 2020, '实质性', '底层技术', '自主研发'))
@@ -183,7 +183,7 @@ def test_d2_small_sample_warning_attr():
     panel = _make_panel(article_df)
 
     diag = aggregate_d2_panel(article_df, panel)
-    # Aggregation proceeded despite small sample
+    # 小样本下聚合仍照常进行
     assert diag.get('cell_aggregation_skipped') is False
-    # Warning attr set
+    # 已设置 warning attr
     assert panel.attrs.get('D2_small_sample_warning') is True

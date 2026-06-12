@@ -3,11 +3,11 @@
 * Paper: {{PAPER_ID}}
 * Plan: §5.5.2 P2 heterogeneity per R6-M03/M04 + R7-m01 small-cell warning
 *
-* Heterogeneity dimensions (NOT full Cartesian per R7-m01; cell N<10 → skip/caveat):
-*   (a) 4 bank types (国有 6 / 股份制 12 / 城商行 ~130 / 农商行 ~350)
-*   (b) Fintech wave segments (pre/wave_1/wave_2/consolidation/wave_3, R10-m03 main spec
-*       = treatment × wave_dummies interaction)
-*   (c) SOE × non-SOE
+* 异质性维度 (按 R7-m01 不做全笛卡尔积; 单元格 N<10 → 跳过/加注):
+*   (a) 4 类银行类型 (国有 6 / 股份制 12 / 城商行 ~130 / 农商行 ~350)
+*   (b) Fintech 浪潮分段 (pre/wave_1/wave_2/consolidation/wave_3, R10-m03 主设定
+*       = treatment × wave_dummies 交互)
+*   (c) 国有 (SOE) × 非国有 (non-SOE)
 * ============================================================================
 
 version 19
@@ -24,7 +24,7 @@ use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
 * ============================================================================
-* (a) Heterogeneity by 4 bank_type categories
+* (a) 按 4 类 bank_type 分组的异质性
 * ============================================================================
 capture confirm variable bank_type
 if !_rc {
@@ -47,7 +47,8 @@ if !_rc {
 }
 
 * ============================================================================
-* (b) Fintech wave × treatment interaction (R10-m03 main spec)
+* (b) Fintech wave × treatment 交互 (R10-m03 主设定)
+* 白话: 看注意力效应在不同 fintech 浪潮阶段是否不一样。
 * ============================================================================
 capture confirm variable wave_1 wave_2 consolidation wave_3
 if !_rc {
@@ -64,7 +65,7 @@ else {
 }
 
 * ============================================================================
-* (c) SOE × non-SOE split
+* (c) SOE × 非 SOE 分组
 * ============================================================================
 * fix(omni-g-templates-08, 2026-06-11): SOE 二元列在面板实名 is_soe (int64,
 * runner.py:909 `is_soe = (bank_type=='soe')`), 旧 `confirm variable soe` 引用幻影列

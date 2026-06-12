@@ -124,8 +124,8 @@ class TestDiagnoseMisclassificationBias:
 
 
 # =============================================================================
-# Plan v1.37 P0 §3.3.3 — 17 new tests for 4-task extension
-# 26 parametrize-aware cases (test 7: 10 cases; tests 1-6, 8-17: 1 case each)
+# Plan v1.37 P0 §3.3.3 — 4-task 扩展的 17 个新测试
+# 参数化展开后共 26 个 case (test 7: 10 个 case; tests 1-6, 8-17: 各 1 个 case)
 # =============================================================================
 from news_process.validation.manual_validation_schema import (
     R_COLUMNS_BY_RATER,
@@ -135,7 +135,10 @@ from news_process.validation.manual_validation_schema import (
 
 
 def _rater_row(sub_vals, locus_vals):
-    """Build a dict row with the 6 R-columns + 2 stage1/stage2 dummies."""
+    """构造含 6 个 R 列 (3 个 substantiveness + 3 个 locus) 的 dict 行。
+
+    (原英文注释声称还附加 2 个 stage1/stage2 dummy 列, 实际代码并未添加, 已更正。)
+    """
     row = {}
     for i, v in enumerate(sub_vals, 1):
         row[f'R{i}_stage3a_substantiveness'] = v
@@ -145,7 +148,7 @@ def _rater_row(sub_vals, locus_vals):
 
 
 def test_merge_majority_3_agree():
-    """Item 1: 3 raters all agree → row kept with majority label."""
+    """Item 1: 3 位评分者全部一致 → 保留该行, 取多数标签。"""
     row = _rater_row(['substantive', 'substantive', 'substantive'],
                      ['technology', 'technology', 'technology'])
     assert merge_three_rater_majority(row, R_COLUMNS_BY_RATER['substantiveness']) == '实质性'
@@ -153,7 +156,7 @@ def test_merge_majority_3_agree():
 
 
 def test_merge_majority_2_of_3():
-    """Item 2: 2 raters agree, 1 disagrees → row kept with 2-rater label."""
+    """Item 2: 2 位一致, 1 位不同 → 保留该行, 取 2 票多数标签。"""
     row = _rater_row(['substantive', 'substantive', 'symbolic'],
                      ['technology', 'application', 'technology'])
     assert merge_three_rater_majority(row, R_COLUMNS_BY_RATER['substantiveness']) == '实质性'
@@ -161,7 +164,7 @@ def test_merge_majority_2_of_3():
 
 
 def test_merge_2_agree_1_missing():
-    """Item 3: 2 raters agree, 1 NaN → row kept with majority."""
+    """Item 3: 2 位一致, 1 位 NaN → 保留该行, 取多数标签。"""
     import numpy as np
     row = _rater_row(['substantive', 'substantive', np.nan],
                      ['technology', np.nan, 'technology'])
@@ -170,7 +173,7 @@ def test_merge_2_agree_1_missing():
 
 
 def test_merge_1_1_tie_with_missing():
-    """Item 4: 1-1 tie + NaN 3rd → row dropped."""
+    """Item 4: 1-1 平局 + 第 3 位 NaN → 丢弃该行。"""
     import numpy as np
     row = _rater_row(['substantive', 'symbolic', np.nan],
                      ['technology', 'application', np.nan])
@@ -179,14 +182,14 @@ def test_merge_1_1_tie_with_missing():
 
 
 def test_merge_all_missing():
-    """Item 5: all 3 NaN → row dropped."""
+    """Item 5: 3 位全 NaN → 丢弃该行。"""
     import numpy as np
     row = _rater_row([np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan])
     assert merge_three_rater_majority(row, R_COLUMNS_BY_RATER['substantiveness']) is None
 
 
 def test_merge_single_rater_dropped():
-    """Item 6: 1 cell + 2 NaN → drop (insufficient inter-rater; R3C-13)."""
+    """Item 6: 仅 1 个有效值 + 2 个 NaN → 丢弃 (评分者间信息不足; R3C-13)。"""
     import numpy as np
     row = _rater_row(['substantive', np.nan, np.nan], [np.nan, np.nan, 'technology'])
     assert merge_three_rater_majority(row, R_COLUMNS_BY_RATER['substantiveness']) is None
@@ -206,7 +209,7 @@ def test_merge_single_rater_dropped():
     ('', None),                  # empty
 ])
 def test_merge_value_normalization(raw, expected):
-    """Item 7 (10 cases): normalize_rater_value rules (R5C-01 + R4A-02)."""
+    """Item 7 (10 个 case): normalize_rater_value 归一化规则 (R5C-01 + R4A-02)。"""
     assert normalize_rater_value(raw) == expected
 
 
@@ -221,9 +224,9 @@ def test_normalize_rater_value_pd_isna_raises_caught_silently():
 
 
 def test_panels_E_F_present_with_gold(tmp_path, monkeypatch):
-    """Item 8: synthesize manual_validation_samples.xlsx with 30 valid rows;
-    invoke _evaluate_innovation_panels; assert pending_reason None + Panels E/F populated."""
-    # Synthesize xlsx + 21_tone_llms.parquet with matching docid
+    """Item 8: 合成 30 行有效的 manual_validation_samples.xlsx;
+    调用 _evaluate_innovation_panels; 断言 pending_reason 为 None 且 Panel E/F 已填充。"""
+    # 合成 xlsx + docid 匹配的 21_tone_llms.parquet
     output_dir = tmp_path / "processed"
     output_dir.mkdir()
     n = 30
@@ -259,7 +262,7 @@ def test_panels_E_F_present_with_gold(tmp_path, monkeypatch):
 
 
 def test_panels_E_F_pending_when_empty(tmp_path, monkeypatch):
-    """Item 9: xlsx with all R-cells NaN → pending reason 'n=0'."""
+    """Item 9: xlsx 中 R 列单元格全 NaN → pending 原因 'n=0'。"""
     import numpy as np
     output_dir = tmp_path / "processed"
     output_dir.mkdir()
@@ -283,7 +286,7 @@ def test_panels_E_F_pending_when_empty(tmp_path, monkeypatch):
 
 
 def test_panels_E_F_pending_when_file_absent(tmp_path, monkeypatch):
-    """Item 10: no xlsx → pending reason 'file not present'."""
+    """Item 10: 无 xlsx 文件 → pending 原因 'file not present'。"""
     output_dir = tmp_path / "processed"
     output_dir.mkdir()
     monkeypatch.setattr(
@@ -299,8 +302,8 @@ def test_panels_E_F_pending_when_file_absent(tmp_path, monkeypatch):
 
 
 def test_panels_A_to_D_structural_equality():
-    """Item 11: latex table contains Panel E + Panel F structure (separate
-    tabular per R12C-01); first \\end{tabular} truncates Panels A-D."""
+    """Item 11: LaTeX 表应含 Panel E + Panel F 结构 (按 R12C-01 各占独立
+    tabular); 第一个 \\end{tabular} 截断 Panel A-D。"""
     results = {
         'demo_mode': True,
         'classifier_metrics': {
@@ -316,17 +319,17 @@ def test_panels_A_to_D_structural_equality():
     import logging
     _mod.generate_latex_table(results, out_path, logging.getLogger('t'))
     tex = open(out_path, encoding='utf-8').read()
-    # Panels E + F always present (R21A-01 reconciliation)
+    # Panel E + F 始终存在 (R21A-01 对账)
     assert 'Panel E' in tex
     assert 'Panel F' in tex
-    # Two \begin{tabular} blocks (R12C-01 structural constraint)
+    # 两个 \begin{tabular} 块 (R12C-01 结构约束)
     assert tex.count(r'\begin{tabular}') == 2
-    # Pending footnote present in both panels
+    # pending 脚注在两个 panel 中均存在
     assert 'manual validation pending' in tex
 
 
 def test_xlsx_with_wrong_columns_emits_pending(tmp_path, monkeypatch):
-    """Item 12 (R2C-04): xlsx exists with wrong R-column names → pending 'schema mismatch'."""
+    """Item 12 (R2C-04): xlsx 存在但 R 列名错误 → pending 'schema mismatch'。"""
     output_dir = tmp_path / "processed"
     output_dir.mkdir()
     df_mv = pd.DataFrame({
@@ -347,9 +350,9 @@ def test_xlsx_with_wrong_columns_emits_pending(tmp_path, monkeypatch):
 
 
 def test_join_falls_back_to_orig_index(tmp_path, monkeypatch):
-    """Item 13 (R2C-04): if docid absent → schema mismatch (fallback path)."""
-    # Per current implementation, if join_key cannot be docid → schema mismatch
-    # (fallback to orig_index would require positional join, marked as future work)
+    """Item 13 (R2C-04): 缺 docid 列 → schema mismatch (回退路径)。"""
+    # 按当前实现: join_key 无法取 docid → schema mismatch
+    # (回退到 orig_index 需要按位置 join, 标记为 future work)
     output_dir = tmp_path / "processed"
     output_dir.mkdir()
     n = 5
@@ -376,17 +379,17 @@ def test_join_falls_back_to_orig_index(tmp_path, monkeypatch):
                'innovation_pending_reason': None}
     import logging
     _mod._evaluate_innovation_panels(results, str(output_dir), logging.getLogger('t'))
-    # Documents current behavior: no docid → schema mismatch
+    # 记录当前行为: 无 docid → schema mismatch
     assert results['innovation_pending_reason'] in ('schema mismatch', None)
 
 
 def test_duplicate_docid_dedupe_with_warn(tmp_path, monkeypatch):
-    """Item 14 (R2C-04): duplicate docids → keep first (dedupe with warn)."""
+    """Item 14 (R2C-04): docid 重复 → 保留首条 (去重并 warn)。"""
     output_dir = tmp_path / "processed"
     output_dir.mkdir()
     n = 4
     df_mv = pd.DataFrame({
-        'docid': ['d0', 'd0', 'd1', 'd2'],  # d0 duplicated
+        'docid': ['d0', 'd0', 'd1', 'd2'],  # d0 重复
         **{c: ['substantive'] * n for c in R_COLUMNS_BY_RATER['substantiveness']},
         **{c: ['technology'] * n for c in R_COLUMNS_BY_RATER['locus']},
     })
@@ -408,37 +411,37 @@ def test_duplicate_docid_dedupe_with_warn(tmp_path, monkeypatch):
                'innovation_pending_reason': None}
     import logging
     _mod._evaluate_innovation_panels(results, str(output_dir), logging.getLogger('t'))
-    # Should not raise; pending None means populated
+    # 不应抛异常; pending 为 None 表示已填充
     assert results['innovation_pending_reason'] is None
 
 
 def test_r_column_schema_coupling():
-    """Item 15 (R3C-01 + R34A/B/C-01): template-piece presence in sampling
-    script + round-trip reconstruction matches R_COLUMNS_BY_RATER."""
+    """Item 15 (R3C-01 + R34A/B/C-01): 采样脚本源码中模板片段存在
+    + 往返重构结果与 R_COLUMNS_BY_RATER 一致。"""
     import pathlib
     src_path = (pathlib.Path(__file__).resolve().parents[1]
                 / 'scripts' / 'migrate' / 'manual_validation_sampling.py')
     src = src_path.read_text(encoding='utf-8')
 
-    # (a) Template pieces in source
+    # (a) 源码中含模板片段
     assert 'stage3a_substantiveness' in src
     assert 'stage3b_locus' in src
     for rater in ('R1', 'R2', 'R3'):
         assert rater in src
 
-    # (b) Round-trip reconstruction
+    # (b) 往返重构
     reconstructed_subst = [f'{r}_stage3a_substantiveness' for r in ('R1', 'R2', 'R3')]
     reconstructed_locus = [f'{r}_stage3b_locus' for r in ('R1', 'R2', 'R3')]
     assert R_COLUMNS_BY_RATER['substantiveness'] == reconstructed_subst
     assert R_COLUMNS_BY_RATER['locus'] == reconstructed_locus
 
-    # (c) Value-vocabulary tokens present in script
+    # (c) 取值词表 token 应在脚本中存在
     for token in ('substantive', 'symbolic', 'technology', 'application'):
         assert token in src
 
 
 def test_panels_E_F_in_separate_tabular():
-    """Item 16 (R12C-01): post-refactor TeX has exactly 2 \\begin{tabular} blocks."""
+    """Item 16 (R12C-01): 重构后 TeX 应恰有 2 个 \\begin{tabular} 块。"""
     import logging
     results = {
         'demo_mode': True,
@@ -462,20 +465,19 @@ def test_panels_E_F_in_separate_tabular():
     tex = open(out_path, encoding='utf-8').read()
     assert tex.count(r'\begin{tabular}') == 2
     assert tex.count(r'\end{tabular}') == 2
-    # Panel E + F present in second tabular (populated, not pending)
+    # Panel E + F 在第二个 tabular 中 (已填充, 非 pending)
     assert 'Panel E' in tex
     assert 'Panel F' in tex
     assert 'manual validation pending' not in tex
 
 
 def test_sha_missing_is_auto_generated(tmp_path):
-    """Item 17 (R7C-02): pending data path — placeholder test to document
-    that manual_validation_samples_synthetic.sha sidecar regeneration is
-    handled by the fixture generator script (not directly tested here
-    because the synthetic xlsx fixture isn't required for code-path
-    acceptance — see plan §3.7 split)."""
-    # Documentary test: assert the manual_validation_schema module exists
-    # and exposes the canonical constants used by future fixture regeneration.
+    """Item 17 (R7C-02): pending 数据路径 — 占位文档性测试: 说明
+    manual_validation_samples_synthetic.sha sidecar 的重生成由 fixture
+    生成脚本负责 (此处不直接测试, 因 code-path 验收不需要合成 xlsx
+    fixture — 见 plan §3.7 拆分)。"""
+    # 文档性测试: 断言 manual_validation_schema 模块存在,
+    # 并暴露未来 fixture 重生成所需的规范常量。
     from news_process.validation import manual_validation_schema
     assert hasattr(manual_validation_schema, 'R_COLUMNS_BY_RATER')
     assert hasattr(manual_validation_schema, 'normalize_rater_value')

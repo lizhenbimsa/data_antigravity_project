@@ -1,5 +1,5 @@
 * ============================================================================
-* 01_data_prep.do — Load panel + xtset + globals (benefit_society)
+* 01_data_prep.do — 加载面板 + xtset + 全局宏 (benefit_society)
 * Paper: {{PAPER_ID}}
 * ============================================================================
 
@@ -18,7 +18,7 @@ global controls "{{CONTROLS}}"
 * $bank_controls 保留为 $controls 的兼容性 alias (部分 robustness 模板引用)
 global bank_controls "$controls"
 
-* Pipeline-produced required variables (stage 21/24/45 产出)
+* 管线必产变量校验 (stage 21/24/45 产出)
 foreach v in {{ATTITUDE_VAR}} {{MECHANISM_TOKEN}} {{MECHANISM_HIDDEN}} {{MECHANISM_SUBST}} {
     capture confirm variable `v'
     if _rc {

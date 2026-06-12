@@ -1,14 +1,13 @@
-"""tests/test_cleanup_prune_logs.py — V8 P-4 age-based logs/runs pruner.
+"""tests/test_cleanup_prune_logs.py — V8 P-4 基于 age 的 logs/runs 清理器.
 
-Verifies the new `prune-logs --keep-days N` subcommand of
-news_process.scripts.cleanup correctly:
-  - deletes run subdirs older than the cutoff,
-  - keeps run subdirs newer than the cutoff,
-  - dry-run mode performs no deletion,
-  - graceful no-op when logs/runs/ is missing.
+验证 news_process.scripts.cleanup 新增的 `prune-logs --keep-days N` 子命令:
+  - 删除早于 cutoff 的 run 子目录,
+  - 保留晚于 cutoff 的 run 子目录,
+  - dry-run 模式不执行任何删除,
+  - logs/runs/ 缺失时优雅 no-op.
 
-Uses tmp_path + monkeypatch on `_root()` to avoid touching the real
-news_process/logs directory.
+通过 tmp_path + monkeypatch 替换 `_root()`, 避免触碰真实的
+news_process/logs 目录.
 """
 
 from __future__ import annotations
@@ -24,10 +23,9 @@ from news_process.scripts import cleanup
 
 @pytest.fixture
 def fake_logs_runs(tmp_path, monkeypatch):
-    """Build a fake logs/runs/ tree under tmp_path; monkeypatch _root().
+    """在 tmp_path 下构造伪造的 logs/runs/ 目录树; monkeypatch 替换 _root().
 
-    Returns (runs_dir, old_dirs, new_dirs) so individual tests can
-    assert which subdirs survived.
+    返回 (runs_dir, old_dirs, new_dirs), 便于各测试断言哪些子目录幸存.
     """
     np_dir = tmp_path / "news_process"
     runs_dir = np_dir / "logs" / "runs"

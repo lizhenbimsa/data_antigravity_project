@@ -22,7 +22,7 @@
       [fix(omni-g-stata-export-04/10/13, 2026-06-11): 原声称 ". / .a / .b
       distinguishable causes" 从未实现, 改为与实现对齐]
     - 非 value-labeled int8/Int8 计数列升 Int16 写出 (Stata byte 合法值域
-      [-127,100], 101..126 是 extended-missing 码位; 防 pyreadstat 直写损值)
+      [-127,100], 101..127 是缺失码位 `.` + .a-.z; 防 pyreadstat 直写损值)
       [fix(omni-g-stata-export-01, 2026-06-11), KNOWN-OPEN ⑥]
     - 列名 ≤ 32 字符 (Stata 硬限)
     - variable label ≤ 80 字符 (Stata 硬限)
@@ -47,6 +47,9 @@ logger = logging.getLogger(__name__)
 STATA_VAR_NAME_MAXLEN = 32      # 变量名最长 32 字符
 STATA_VAR_LABEL_MAXLEN = 80     # 变量标签最长 80 字符
 STATA_IC_MAX_VARS = 2048        # Stata IC license 最大列数
+# 白话: 2048 是给外部协作者用低配 Stata IC 版预留的兼容上限, 不是本机限制
+# (本机 StataNow/MP 19.5 上限 12 万列)。2026-06-12 起已不再按它拆 core/aux
+# 两个 .dta, 只剩 assign_core_columns 用它做"分析核心列别膨胀过头"的守卫。
 
 # v3.2.0 类别 → byte encoding 映射 (plan v14 §9.1 + R32-B 编码方向论证)
 # 关键: 0=baseline, 1=对照 (洗稿率框架天然解释方向)
@@ -72,7 +75,7 @@ COLLAB_MODE_ENCODING: Dict[str, int] = {
 # cell_id = subst*4 + locus*2 + collab + 1
 # cell 1 = (0, 0, 0) = 实质性·底层技术·自主研发 (三维全 baseline)
 # cell 8 = (1, 1, 1) = 象征性·应用场景·外部协同 (三维全 contrast)
-# ASCII-only labels for Stata value label compat (32K bytes 软上限).
+# value label 全用 ASCII 字符以保证 Stata 兼容 (value label 总量 32K bytes 软上限).
 CELL_ID_VALUE_LABEL: Dict[int, str] = {
     1: 'sub.tech.indep',  2: 'sub.tech.collab',
     3: 'sub.app.indep',   4: 'sub.app.collab',
@@ -80,8 +83,8 @@ CELL_ID_VALUE_LABEL: Dict[int, str] = {
     7: 'symb.app.indep',  8: 'symb.app.collab',
 }
 
-# v3.5.0 D4: d4_data_quality_flag str column value mapping (per plan §2.3.4 F6).
-# Persisted via str column (not byte encoding) for Stata user visibility.
+# v3.5.0 D4: d4_data_quality_flag 字符串列的取值映射 (per plan §2.3.4 F6)。
+# 刻意以 str 列落盘 (不做 byte 编码), 让 Stata 用户直接看到可读值。
 # Stata 端典型用法: `keep if d4_data_quality_flag == "ok"` 过滤不可信 ctx coverage.
 D4_DATA_QUALITY_FLAG_VALUES = ('ok', 'insufficient')
 
@@ -210,9 +213,9 @@ def build_variable_labels(
         'app_frac_lc':                      "Frac of App-locus articles (ctx classification)",
         'sub_frac_sc':                      "Frac of Substantive articles (ctx classification)",
         'symb_frac_sc':                     "Frac of Symbolic articles (ctx classification)",
-        # Plan v1.37 P2 §5.3.4: 8 binary prob_score columns (≤ 80 UTF-8 bytes;
-        # em-dash 3 bytes; positive_class = 象征性 / 应用场景 per stata_export
-        # encoding 1=对照).
+        # Plan v1.37 P2 §5.3.4: 8 个二元 prob_score 列的标签 (每条 ≤ 80 UTF-8
+        # 字节; em-dash 占 3 字节; positive_class = 象征性 / 应用场景, 与
+        # stata_export 编码 1=对照 一致)。
         'avg_subst_prob_score_full':        "Avg Subst P_BIN (full-track) — 1=symbolic, max-ent map",
         'avg_subst_prob_score_std_full':    "Std Subst P_BIN (full-track, bank-year SD)",
         'avg_subst_prob_score_ctx':         "Avg Subst P_BIN (ctx-track) — 1=symbolic, max-ent map",
@@ -315,6 +318,12 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         - 4-way 洗稿率非主组合 (sentiment × subst 笛卡尔积非对角)
         - inter-track κ
         - 历史保留列
+
+    白话: 这个函数从上千列的面板里挑出"做主回归真正要用的核心列"清单。
+    早期会按这份清单把数据拆成 core.dta (≤2048 列, 低配 Stata IC 也能打开)
+    和 aux.dta 两个文件; 2026-06-12 起不再拆分、只写单一全列 .dta, 这份
+    清单现在只用来 (1) 在 codebook 里给核心列打 is_core 标记, (2) 守卫
+    核心列数量别无节制膨胀超过 2048。
     """
     rename_map = rename_map or {}
     core_patterns = [
@@ -367,7 +376,7 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # 主洗稿率 count (sentiment × _full)
         'pos_symb_count_full', 'pos_symb_count_ctx',
         'neg_sub_count_full', 'neg_sub_count_ctx',
-        # Plan v1.37 P2 §5.3.4: 8 binary prob_score columns (core; not aux).
+        # Plan v1.37 P2 §5.3.4: 8 个二元 prob_score 列 (归入分析核心列, 非 aux)。
         'avg_subst_prob_score_full', 'avg_subst_prob_score_ctx',
         'avg_subst_prob_score_std_full', 'avg_subst_prob_score_std_ctx',
         'avg_locus_prob_score_full', 'avg_locus_prob_score_ctx',
@@ -386,9 +395,10 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # n_articles_for_ctx_independence: 绝对独立文章数, 避免按比例 filter 时的银行规模偏差
         # 论文用途: P1 (llm_vote_tone_ctx) / P11 (mean_clarity_score_ctx) measurement-error robustness
         'frac_ctx_fallback', 'n_articles_for_ctx_independence',
-        # v3.7.4 P3.1.6: title indicators for Panel D/E stratified robustness
-        # Anchor: Antweiler-Frank (2004) JF subject-relevance threshold;
-        #          Da-Engelberg-Gao (2011) JF attention-channel separation.
+        # remove-title-track: 原 v3.7.4 P3.1.6 的 title indicator 列 (Panel D/E
+        # 分层稳健性) 已随标题情感轨整体移除, 此处不再声明对应 pattern。
+        # 历史锚点留档: Antweiler-Frank (2004) JF subject-relevance threshold;
+        #               Da-Engelberg-Gao (2011) JF attention-channel separation.
         # ─────────────────────────────────────────────────────────────
         # v3.5.2 PR #14 集成 — A1 LM 4 子词典 + A2 FLS (本批列在 v3.5.2
         # PR #3 panel 集成完成前会被 ``if c in df.columns`` 过滤; append-only
@@ -718,8 +728,8 @@ def upcast_unsafe_int8_columns(
 ) -> pd.DataFrame:
     """fix(omni-g-stata-export-01, 2026-06-11): 计数列导出禁止 Int8 (KNOWN-OPEN ⑥).
 
-    Stata byte 类型合法值域为 [-127, 100]; 101..126 是 extended missing 码位
-    (.a-.z)。pyreadstat 直写 int8∈[101,126] 会被 Stata 读成缺失码 (值静默损坏);
+    Stata byte 类型合法值域为 [-127, 100]; 101..127 是缺失码位
+    (`.`=101, .a-.z=102..127)。pyreadstat 直写 int8∈[101,127] 会被 Stata 读成缺失码 (值静默损坏);
     pandas fallback 的 ``_cast_to_stata_types`` 则自动升 int16 — 两后端语义分叉。
 
     统一策略 (主控裁决 2026-06-11):
@@ -734,6 +744,11 @@ def upcast_unsafe_int8_columns(
         value_labels: {var_name: {code: label}} — 键为当前 df 列名
         force_non_labeled: True=非 value-labeled int8 全升 (export 主流程);
             False=仅按值域升 (backend 写出前的最终安全网)
+
+    白话: Stata 最小的整数类型 byte 只能存 -127 到 100, 101 到 127 被 Stata
+    征用作缺失码 (`.`=101, `.a`–`.z`=102–127, 共 27 个)。如果一个计数列 (比如某年某银行的篇数) 以 int8
+    直写, 值一旦超过 100 就会被 Stata 当成缺失值, 数字无声损坏。所以这里
+    把这类列统一升级成 16 位整数再写盘, 宁可多占一点空间也不丢数。
     """
     value_labels = value_labels or {}
     out = df.copy()
@@ -763,7 +778,7 @@ def _write_dta_pyreadstat(df, path, value_labels, var_labels):
     fix(omni-g-stata-export-10/13, 2026-06-11): 移除原 docstring 的 extended
     missing 声称 — 本后端不传 missing_user_values, 全部 NaN 落盘为 sysmiss '.'。
     fix(omni-g-stata-export-01, 2026-06-11): 写出前对越出 byte 合法值域的 int8
-    列防御升型 (与 pandas _cast_to_stata_types 语义对齐), 防 101..126 损值。
+    列防御升型 (与 pandas _cast_to_stata_types 语义对齐), 防 101..127 损值。
     """
     import pyreadstat
     df = upcast_unsafe_int8_columns(df, value_labels, force_non_labeled=False)
@@ -860,7 +875,7 @@ def export_panel_to_stata(
     df_encoded, value_labels = encode_categorical_columns(df)
 
     # 1a'. fix(omni-g-stata-export-01, 2026-06-11): 计数列禁 Int8 — 非 value-labeled
-    # int8/Int8 列升 Int16 (Stata byte 上限 100 零余量; 101..126 是缺失码位,
+    # int8/Int8 列升 Int16 (Stata byte 上限 100 零余量; 101..127 是缺失码位,
     # pyreadstat 直写损值 / pandas 静默升型 → 两后端在此统一)
     df_encoded = upcast_unsafe_int8_columns(df_encoded, value_labels)
 

@@ -49,7 +49,7 @@ REPORT = ROOT / "docs" / "methodology" / "title_track_robustness_report_v2_6.md"
 
 MARKER = "current production panel (174"
 
-# ---- FIX A: the verbatim-mirrored (i) HTMT bullet (identical in both files) ----
+# ---- FIX A: 两文件逐字镜像的 (i) HTMT bullet (两份内容必须 byte-identical) ----
 OLD_HTMT_BULLET = (
     "> (i) HTMT discriminant validity (Henseler-Ringle-Sarstedt 2015, *JAMS*):\n"
     ">     HTMT(`_full`,`_title`) point estimate = 0.627 (strict pass < 0.85);\n"
@@ -84,12 +84,12 @@ NEW_HTMT_BULLET = (
     ">     Heston-Sinha (2017, *FAJ*);\n"
 )
 
-# ---- FIX B: BERT model count (5 -> 3 after the erlangshen+hw2942 drop) ----
+# ---- FIX B: BERT 模型计数 (erlangshen+hw2942 移除后 5 -> 3) ----
 OLD_BERT = "(LLM 3-vote / dictionary 5-lexicon / BERT 5-model)."
 NEW_BERT = ("(LLM 3-vote / dictionary 5-lexicon / BERT 3-model — "
             "BERT reduced 5→3 after the erlangshen+hw2942 drop, commit a6327512).")
 
-# ---- FIX C: over-claimed anchors ----
+# ---- FIX C: 软化两处过度声称的文献锚点 ----
 OLD_TSM = ("| Tetlock-Saar-Tsechansky-Macskassy (2008) | *JF* 63(3) | "
            '"More Than Words" — direct firm news headline vs body sentiment '
            "comparison (DOI verified v3.7.4) |")
@@ -102,8 +102,8 @@ OLD_TSM2 = "   firm news (already firm-tagged), headline and body scored separat
 NEW_TSM2 = ("   firm news (already firm-tagged), scored at the story level "
             "(news-tone precedent; not a headline-vs-body split)\n")
 
-# Per-file edit lists: (old, new, expected_count)
-MIRROR_EDITS = [(OLD_HTMT_BULLET, NEW_HTMT_BULLET, 1)]  # both files
+# 按文件分组的编辑清单: (old, new, expected_count)
+MIRROR_EDITS = [(OLD_HTMT_BULLET, NEW_HTMT_BULLET, 1)]  # 两文件共用
 METH_ONLY_EDITS = [
     (OLD_BERT, NEW_BERT, 1),
     (OLD_TSM, NEW_TSM, 1),
@@ -137,7 +137,7 @@ def main() -> None:
     print("=== FIX B + C: methodology-only (BERT 5->3, Tetlock/DEG soften) ===")
     b = apply(METH, METH_ONLY_EDITS)
     print(f"  methodology: {b} edits")
-    # post: verify the two mirror blocks are byte-identical
+    # 后置校验: 确认两文件的镜像块仍 byte-identical
     nt = NEW_HTMT_BULLET
     ok = (nt in METH.read_text(encoding="utf-8")) and \
          (nt in REPORT.read_text(encoding="utf-8"))

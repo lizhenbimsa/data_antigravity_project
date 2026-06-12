@@ -52,23 +52,23 @@ _SE_PAREN_RE = re.compile(r'^\s*\(([-+]?[\d\.]+(?:[eE][-+]?\d+)?)\)\s*$')
 _STARS_RE = re.compile(r'(\*{1,3})$')
 _NUMBER_RE = re.compile(r'^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?')
 
-# Standard footer stat names that esttab emits.
+# esttab 常规输出的表尾统计量名称。
 _KNOWN_STATS = frozenset({
     'N', 'r2', 'r2_a', 'F', 'aic', 'bic', 'll', 'rmse', 'p',
-    'widstat', 'idstat',  # ivreg2 / ivreghdfe weak-id stats
-    'mss', 'rss',         # sum of squares
+    'widstat', 'idstat',  # ivreg2 / ivreghdfe 弱识别检验统计量
+    'mss', 'rss',         # 平方和 (模型/残差)
 })
 
 
 # ============================================================================
-# Data classes
+# 数据类 Data classes
 # ============================================================================
 
 class Coefficient(NamedTuple):
-    """A single regression coefficient cell parsed from esttab output."""
-    value: float          # the coefficient itself
-    se: float | None      # standard error (from parenthesized row below)
-    stars: int            # 0/1/2/3 — number of significance stars
+    """从 esttab 输出解析出的单个回归系数单元格。"""
+    value: float          # 系数值本身
+    se: float | None      # 标准误 (来自系数行下方的括号行)
+    stars: int            # 0/1/2/3 — 显著性星号个数
 
     def as_string(self, b_fmt: str = '.3f', se_fmt: str = '.3f') -> str:
         """Render to 'coef*** (se)' style string."""
@@ -80,7 +80,7 @@ class Coefficient(NamedTuple):
 
 
 # ============================================================================
-# Core parser
+# 核心解析器 Core parser
 # ============================================================================
 
 def _parse_body_cells(model_labels: list[str],
@@ -98,13 +98,13 @@ def _parse_body_cells(model_labels: list[str],
         first = cells[0].strip() if cells else ''
         rest = [c.strip() for c in cells[1:]]
 
-        # Check if this is a SE row (all cells parenthesized)
+        # 判断是否为标准误行 (所有单元格都带括号)
         is_se_row = (not first) and all(
             (not c) or _SE_PAREN_RE.match(c) for c in rest
         )
 
         if is_se_row and current_var is not None:
-            # Attach SEs to previous coefficient row
+            # 把标准误挂到上一条系数行上
             existing = coef_rows.get(current_var, [None] * len(model_labels))
             for col_idx, cell in enumerate(rest):
                 m = _SE_PAREN_RE.match(cell)
@@ -163,23 +163,21 @@ def _parse_body_cells(model_labels: list[str],
 
 
 def parse_esttab_csv(path: str | Path) -> pd.DataFrame:
-    """Parse an esttab CSV output into a DataFrame indexed by variable name.
+    """把 esttab 的 CSV 输出解析为以变量名为索引的 DataFrame。
 
-    The returned DataFrame has variable names as the index and model labels
-    as columns. Each cell contains a ``Coefficient`` namedtuple combining the
-    point estimate, standard error, and significance star count.
+    返回的 DataFrame 以变量名为 index、模型标签为列。每个单元格是一个
+    ``Coefficient`` namedtuple, 合并了点估计、标准误和显著性星号数。
 
     Args:
-        path: Path to esttab CSV file (typically esttab .. using "...".csv).
+        path: esttab CSV 文件路径 (通常由 esttab .. using "...".csv 产出)。
 
     Returns:
-        DataFrame[variable -> model -> Coefficient]. Footer stats (N, r2,
-        etc.) appear as separate rows with ``Coefficient(value=N, se=None,
-        stars=0)``.
+        DataFrame[variable -> model -> Coefficient]。表尾统计量 (N, r2 等)
+        以单独的行出现, 形如 ``Coefficient(value=N, se=None, stars=0)``。
 
     Raises:
-        FileNotFoundError: path does not exist.
-        ValueError:        CSV not recognizable as esttab output.
+        FileNotFoundError: 路径不存在。
+        ValueError:        CSV 无法识别为 esttab 输出。
     """
     path = Path(path)
     if not path.exists():
@@ -189,7 +187,7 @@ def parse_esttab_csv(path: str | Path) -> pd.DataFrame:
     if raw.empty:
         raise ValueError(f"esttab CSV is empty: {path}")
 
-    # First non-empty row = header (model labels).
+    # 第一条非空行 = 表头 (模型标签)。
     header_idx = 0
     while header_idx < len(raw) and not any(raw.iloc[header_idx].astype(str).str.strip()):
         header_idx += 1
@@ -279,15 +277,14 @@ def to_markdown_table(df: pd.DataFrame,
                       se_fmt: str = '.3f',
                       include_se: bool = True,
                       stats_separator: bool = True) -> str:
-    """Render the parsed esttab DataFrame as a Markdown table.
+    """把解析后的 esttab DataFrame 渲染为 Markdown 表格。
 
     Args:
-        df:               DataFrame returned by parse_esttab_csv.
-        b_fmt:            Format spec for coefficients.
-        se_fmt:           Format spec for SEs.
-        include_se:       If True, append SE on next row in parens.
-        stats_separator:  If True, insert a horizontal rule before footer
-                          stats (N / r2 / etc.).
+        df:               parse_esttab_csv 返回的 DataFrame。
+        b_fmt:            系数的格式化 spec。
+        se_fmt:           标准误的格式化 spec。
+        include_se:       为 True 时在下一行以括号追加标准误。
+        stats_separator:  为 True 时在表尾统计量 (N / r2 等) 前插入分隔线。
     """
     header = ['Variable'] + list(df.columns)
     lines = ['| ' + ' | '.join(header) + ' |']
@@ -326,7 +323,7 @@ def to_latex_booktabs(df: pd.DataFrame,
                       include_se: bool = True,
                       caption: str = '',
                       label: str = '') -> str:
-    """Render the parsed esttab DataFrame as a LaTeX booktabs table."""
+    """把解析后的 esttab DataFrame 渲染为 LaTeX booktabs 表格。"""
     n_cols = len(df.columns)
     col_spec = 'l' + 'c' * n_cols
     out_lines = [
@@ -372,7 +369,7 @@ def to_latex_booktabs(df: pd.DataFrame,
 
 
 def _latex_escape(s: str) -> str:
-    """Minimal LaTeX-special-character escape for variable names."""
+    """对变量名做最小集 LaTeX 特殊字符转义。"""
     return (s.replace('_', r'\_')
              .replace('&', r'\&')
              .replace('%', r'\%')
@@ -381,7 +378,7 @@ def _latex_escape(s: str) -> str:
 
 
 # ============================================================================
-# Convenience: full pipeline (csv → markdown / latex)
+# 便捷封装: 全流程 (csv → markdown / latex)
 # ============================================================================
 
 def esttab_csv_to_markdown(csv_path: str | Path, **kwargs) -> str:
@@ -395,7 +392,7 @@ def esttab_csv_to_latex(csv_path: str | Path, **kwargs) -> str:
 
 
 # ============================================================================
-# Paper-aware path resolution (P2.2: bridge to papers/<id>/tables.py)
+# 感知论文目录的路径解析 (P2.2: 桥接到 papers/<id>/tables.py)
 # ============================================================================
 
 def read_paper_esttab(paper_id: str,

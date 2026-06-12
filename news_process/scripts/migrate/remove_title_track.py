@@ -9,6 +9,11 @@ tone_llms/tone_berts 标题块删除) 由后续手工 Edit 处理。
   - 打印 before/after 摘要
 
 运行: python news_process/scripts/migrate/remove_title_track.py
+
+白话: 这是"删掉标题情感轨"大改造的第一步机器活: 把代码里所有三轨循环
+['_full','_ctx','_title'] 收成两轨、从 DAG/注册表里摘掉 39g 阶段、删掉 Stata
+主控里调标题模板的行、把测试里的计数断言改对。每一处替换都先确认锚点存在,
+找不到就报错停下, 绝不悄悄跳过; 需要人工判断的语义改动留给后续手改。
 """
 from __future__ import annotations
 

@@ -44,7 +44,7 @@ def plot_strategic_diff_n5_distribution(paper_config: PaperConfig | None = None,
 
 def plot_main_coefplot(paper_config: PaperConfig | None = None,
                        *, filename: str = 'fig2_main_coefplot.pdf') -> Path:
-    """Figure 2: main differentiation effects coefplot (Table 2 esttab)."""
+    """Figure 2: 战略差异度主效应系数图 (读 Table 2 esttab CSV)."""
     from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
     from news_process.papers.strategic_diff.tables import build_table2_main
 
@@ -65,7 +65,7 @@ def plot_main_coefplot(paper_config: PaperConfig | None = None,
 
 def plot_n_sensitivity_coefplot(paper_config: PaperConfig | None = None,
                                 *, filename: str = 'fig3_n_sensitivity_coefplot.pdf') -> Path:
-    """Figure 3: N=3..7 sensitivity coefplot (Table 5a esttab)."""
+    """Figure 3: N=3..7 邻居数敏感性系数图 (读 Table 5a esttab CSV)."""
     from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
     from news_process.papers.strategic_diff.tables import build_table5_robustness
 

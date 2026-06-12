@@ -15,6 +15,11 @@ tests/test_omni_fix_val_eval.py — omni 审计修复组 g-val-eval 回归锁
   - 组裁决补充: diagnose_misclassification_bias 的 gold fillna(0) 同理剔除。
 
 全部用合成 DataFrame, 不依赖盘上大数据, 不调外部 API。
+
+# 白话: 这是给"模型 vs 人工标注"评估打分器本身上锁: 模型没给出预测的行
+# 不能偷偷填成"中性"再算成"答对了", 要剔除并单独报覆盖率; 人工还没仲裁完
+# 的样本(-1/待仲裁)不算金标准; 演示模式跑出来的假数据, 所有文件名和表格
+# 标题都要打上 DEMO 警示, 防止误引用。
 """
 
 import json

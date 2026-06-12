@@ -85,8 +85,8 @@ class TestPaperConfig:
         assert isinstance(assets, Path)
         assert assets.name == 'papers_assets'
 
-    # quality-hardening Round 19 (2026-05-27): paper_config.py 95.56% → ~100%
-    # missing 79 (resolve fallback) + 93 (assets root no-explicit fallback)
+    # quality-hardening Round 19 (2026-05-27): paper_config.py 覆盖率 95.56% → ~100%
+    # 补漏行 79 (resolve fallback) + 93 (assets root 无显式配置时的 fallback)
 
     def test_resolve_project_root_fallback_when_output_dir_missing(self):
         """cfg 无 paths.output_dir → fallback Path(__file__).parents[2] (line 79)."""
@@ -125,8 +125,8 @@ class TestPanelLoader:
         assert '11_news_bank.py' in result
         assert '11_bank_news.parquet' in result['11_news_bank.py']
 
-    # quality-hardening Round 5 (2026-05-27): panel_loader.py 50% → ~100%
-    # cover load_panel (40-79), _resolve_panel_dir (30-37), _find_producer_stage (104-109)
+    # quality-hardening Round 5 (2026-05-27): panel_loader.py 覆盖率 50% → ~100%
+    # 覆盖 load_panel (40-79), _resolve_panel_dir (30-37), _find_producer_stage (104-109)
     # 复用 module-level pd / pytest 已 import, 避免局部重 import 触发
     # pytest-cov 下 numpy reload 警告 + TypeError (umr_sum vs _NoValueType).
 
@@ -209,10 +209,10 @@ class TestSanitizeStataColumns:
         assert sanitize_stata_columns(cols) == cols
 
     def test_chinese_asciified_to_valid_identifier(self):
-        # S3 v2 (2026-05-30): non-ASCII now handled by the canonical 46-path
-        # asciify (was: stripped to empty in the old divergent scheme). A
-        # non-sentiment Chinese name yields a VALID ASCII Stata identifier
-        # ('v_' fallback when nothing ASCII survives); 'year' passes through.
+        # S3 v2 (2026-05-30): 非 ASCII 列名现走 canonical 46-path 的 asciify
+        # 处理 (旧的分叉方案会剥成空串)。非情感类中文列名会得到一个合法的
+        # ASCII Stata 标识符 (若 asciify 后无 ASCII 残留则 fallback 'v_' 前缀);
+        # 'year' 原样通过。
         import re as _re
         cols = ['银行名称', 'year']
         result = sanitize_stata_columns(cols)
@@ -227,8 +227,8 @@ class TestSanitizeStataColumns:
         assert all('（' not in c and '）' not in c for c in result)
 
     def test_max_len_32(self):
-        # S3 v2 (2026-05-30): canonical Stata-14+ limit is 32, matching the 46-path
-        # (the old divergent tables.py reserved 4 chars and capped at 28).
+        # S3 v2 (2026-05-30): canonical 的 Stata-14+ 列名长度上限是 32, 与 46-path
+        # 一致 (旧的分叉版 tables.py 预留 4 字符、截到 28)。
         long_name = 'a' * 50
         result = sanitize_stata_columns([long_name])
         assert len(result[0]) <= 32
@@ -247,12 +247,14 @@ class TestSanitizeStataColumns:
         assert result[2] == 'valid'
 
     def test_equivalence_with_pipeline_panel_export_algorithm(self):
-        # S3 v2 (2026-05-30): sanitize_stata_columns now DELEGATES to the canonical
+        # S3 v2 (2026-05-30): sanitize_stata_columns 现已 DELEGATE 到 canonical
         # 46-path (stata_export.shorten_long_column_names → asciify_non_ascii_columns),
-        # so it is byte-identical to the stage-46 export BY CONSTRUCTION. The actual
-        # byte-level cross-path equivalence (40-path ≡ 46-path) is pinned in
-        # tests/test_dta_name_sanitizer_consistency.py. Here we only assert the
-        # invariants (uniqueness / ≤32 / no parens) on a trap-input set.
+        # 因此与 stage-46 导出在构造上 (BY CONSTRUCTION) 字节级一致。真正的
+        # 跨路径字节级等价 (40-path ≡ 46-path) 由
+        # tests/test_dta_name_sanitizer_consistency.py 钉死。此处仅在一组陷阱
+        # 输入上断言不变量 (唯一性 / ≤32 / 无括号)。
+        # 白话: 两条导出路径用的是同一个改列名函数, 所以结果天然一样;
+        # 这里只检查改完的列名不重复、不超长、没括号。
         cols = [
             'plain', 'with_(usd)', 'mixed_（中文）', '银行', '___',
             'a' * 50, 'b' * 30, 'b' * 30,  # 第三个 collision
@@ -374,7 +376,7 @@ class TestFigures:
         import matplotlib.pyplot as plt
         apply_publication_style(font_size=11)
         assert plt.rcParams['font.size'] == 11
-        apply_publication_style(font_size=9)  # restore default
+        apply_publication_style(font_size=9)  # 恢复默认值
         assert plt.rcParams['font.size'] == 9
 
 
@@ -419,4 +421,4 @@ class TestStataRunner:
             run_do(do_file, stata_bin=str(fake_bin), timeout=5)
 
 
-import subprocess  # noqa: E402 — placed after class def to avoid top-level pollution
+import subprocess  # noqa: E402 — 置于类定义之后, 避免污染模块顶部命名空间

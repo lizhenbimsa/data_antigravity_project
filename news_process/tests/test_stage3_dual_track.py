@@ -31,7 +31,7 @@ def _build_dual(
     sub_conf: float = 0.85,
     topic: str = "数字人民币",
 ) -> str:
-    """Build a v7 JSON response with explicit per-field overrides."""
+    """构造 v7 JSON 响应, 各字段可显式覆盖。"""
     return json.dumps({
         "is_bank_fintech_news": verified,
         "sentiment": sentiment,
@@ -62,7 +62,7 @@ def test_ctx_locus_independent_of_full(models):
         m["model_name"]: _build_dual(locus="底层技术") for m in models
     }
     out_full = _aggregate_track(full, models)
-    # v3.4.0: 18-tuple (added innov_collab_modes + avg_collab_prob_score for Chesbrough 2003)
+    # v3.4.0: 18 元组 (为 Chesbrough 2003 新增 innov_collab_modes + avg_collab_prob_score)
     _, _, _, _, _, _, _, _, _, _, innov_loci_full, _, _, _, _, _, _, _ = out_full
     assert innov_loci_full == ["底层技术", "底层技术", "底层技术"], innov_loci_full
 
@@ -81,7 +81,7 @@ def test_ctx_substantiveness_independent_of_full(models):
     full = {m["model_name"]: _build_dual(subst="实质性") for m in models}
     ctx = {m["model_name"]: _build_dual(subst="象征性") for m in models}
 
-    # v3.4.0: 18-tuple (added innov_collab_modes + avg_collab_prob_score for Chesbrough 2003)
+    # v3.4.0: 18 元组 (为 Chesbrough 2003 新增 innov_collab_modes + avg_collab_prob_score)
     _, _, _, _, _, _, _, _, _, _, _, innov_substs_full, _, _, _, _, _, _ = _aggregate_track(full, models)
     _, _, _, _, _, _, _, _, _, _, _, innov_substs_ctx, _, _, _, _, _, _ = _aggregate_track(ctx, models)
 

@@ -1,5 +1,5 @@
 * ============================================================================
-* 01_data_prep.do — Load panel + xtset + global controls (llm_peer)
+* 01_data_prep.do — 加载 panel + xtset + 全局 controls (llm_peer)
 * Paper: {{PAPER_ID}}
 * ============================================================================
 
@@ -7,7 +7,7 @@ version 19
 clear all
 set more off
 
-* Data file: 40_panel_yearly.dta (copied into ../data/ before run).
+* 数据文件: 40_panel_yearly.dta (运行前复制进 ../data/)。
 if "$data_dir" == "" {
     global data_dir "../data"
 }
@@ -17,11 +17,11 @@ if "$panel_dta" == "" {
 
 use "$panel_dta", clear
 
-* Panel structure: target_bank × year
+* 面板结构: target_bank × year
 encode target_bank, gen(bank_id)
 xtset bank_id year
 
-* Province ID for optional clustering (matches brokerage_network convention).
+* 省份 ID, 供可选聚类用 (与 brokerage_network 约定一致)。
 capture confirm variable bank_province
 if !_rc {
     capture confirm variable prov_id
@@ -30,18 +30,18 @@ if !_rc {
     }
 }
 
-* SOE indicator for heterogeneity (project convention, see V6 §F2/F3).
+* SOE 指示变量, 供异质性分析 (项目约定, 见 V6 §F2/F3)。
 capture confirm variable {{HET_VAR}}
 if _rc {
     display "[WARN] {{HET_VAR}} not in panel; Table 4 heterogeneity will skip."
 }
 
-* Standard control set per _PAPER_DEFAULTS['llm_peer'].
+* 标准控制变量集, 按 _PAPER_DEFAULTS['llm_peer']。
 global controls "{{CONTROLS}}"
 * $bank_controls 保留为 $controls 的兼容性 alias (部分 robustness 模板引用)
 global bank_controls "$controls"
 
-* Sanity: verify required IV / endog variables exist before downstream tables (pipeline 产出).
+* 自检: 下游各表运行前确认必需 IV / 内生变量存在 (pipeline 产出)。
 foreach v in {{LLM_PEER_IV}} {{LLM_PEER_COVERAGE_IV}} {{COMPETE_IDX}} {{TONE_VAR}} {
     capture confirm variable `v'
     if _rc {
@@ -58,7 +58,7 @@ if _rc {
     exit 198
 }
 
-* Winsorize MAIN_DV at 1% / 99% (standard finance robustness).
+* 对 MAIN_DV 做 1% / 99% 缩尾 (winsorize, 金融实证标准做法)。
 capture confirm variable {{MAIN_DV}}_w
 if _rc {
     capture which winsor2
@@ -73,5 +73,5 @@ if _rc {
 
 display "[OK] 01_data_prep complete. N=" _N ", controls=$controls"
 
-* Save prepared panel for subsequent .do (avoids re-encoding).
+* 保存准备好的 panel 供后续 .do 使用 (避免重复 encode)。
 save "$data_dir/_prepared_panel.dta", replace

@@ -125,6 +125,8 @@ def _compute_lm_non_sentiment_for_text(
     # **词数** (排除纯数字与标点 token), 原 n_tokens 含 ~19% 标点/纯数字 token → 四个 frac
     # (uncert/litig/constr/modal_strong) 系统性下偏。仅计含字母/汉字的 word token。
     # 注: 数值分子 counts 不变 (LM 词典词均为真词, 标点/数字本不命中), 仅分母收紧。
+    # 白话: 算"不确定词占比"时, 分母原来把逗号、句号、纯数字也当词数了,
+    # 等于把蛋糕做大却没多放料, 比例被系统性压低; 现在分母只数真正的词。
     word_tokens = [t for t in tokens if t.strip() and not _LMFLS_NONWORD_RE.fullmatch(t.strip())]
     n_tokens = len(word_tokens)
     if n_tokens == 0:

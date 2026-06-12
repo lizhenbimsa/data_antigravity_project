@@ -1,13 +1,13 @@
-"""tests/test_manuscripts_structure.py — Manuscript structural integrity.
+"""tests/test_manuscripts_structure.py — 手稿结构完整性测试.
 
 P4.3 (plan-r3 derivative-paper extension, 2026-05-15)
 
-Verifies each of 10 manuscripts (5 papers × {en, zh}) plus 10 refs.bib files:
-- Required LaTeX scaffolding (\\documentclass via preamble include, \\begin{document}, \\end{document})
-- 8 standard sections (Intro, Lit, Method, Data, Main, Mechanism, Het, Robustness, Conclusion — Σ ≥ 7 unique \\section{} markers)
-- V6 methodology F1-F4 markers present in Method section
-- \\printbibliography present
-- refs.bib has at least 1 valid @article entry
+逐一验证 10 份手稿 (5 篇论文 × {en, zh}) 及 10 个 refs.bib 文件:
+- 必需的 LaTeX 骨架 (\\documentclass 经 preamble include 引入, \\begin{document}, \\end{document})
+- 8 个标准章节 (Intro, Lit, Method, Data, Main, Mechanism, Het, Robustness, Conclusion — Σ ≥ 7 个互异 \\section{} 标记)
+- Method 章节含 V6 方法论 F1-F4 标记
+- 含 \\printbibliography
+- refs.bib 至少含 1 条合法 @article 条目
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ def _bib_path(paper_id: str, lang: str) -> Path:
 
 
 # ============================================================================
-# 1. File existence
+# 1. 文件存在性
 # ============================================================================
 
 
@@ -66,7 +66,7 @@ def test_shared_preamble_exists(lang):
 
 
 # ============================================================================
-# 2. LaTeX scaffolding
+# 2. LaTeX 骨架
 # ============================================================================
 
 
@@ -110,7 +110,7 @@ def test_manuscript_has_abstract(paper_id, lang):
 
 
 # ============================================================================
-# 3. Section structure (8 standard sections, at least 7 distinct)
+# 3. 章节结构 (8 个标准章节, 至少 7 个互异)
 # ============================================================================
 
 _EXPECTED_SECTION_LABELS = frozenset({
@@ -122,7 +122,7 @@ _EXPECTED_SECTION_LABELS = frozenset({
 @pytest.mark.parametrize('paper_id', _FIVE_PAPERS)
 @pytest.mark.parametrize('lang', _LANGS)
 def test_manuscript_has_at_least_7_sections(paper_id, lang):
-    """Each manuscript should have a near-complete 8-section structure."""
+    """每份手稿应具备接近完整的 8 章节结构."""
     import re
 
     content = _manuscript_path(paper_id, lang).read_text(encoding='utf-8')
@@ -135,7 +135,7 @@ def test_manuscript_has_at_least_7_sections(paper_id, lang):
 
 
 # ============================================================================
-# 4. V6 methodology F1-F4 declarations
+# 4. V6 方法论 F1-F4 声明
 # ============================================================================
 
 _V6_MARKERS_EN = (
@@ -178,7 +178,7 @@ def test_manuscript_zh_has_v6_markers(paper_id):
 
 
 # ============================================================================
-# 5. Bibliography linkage
+# 5. 参考文献接线
 # ============================================================================
 
 
@@ -200,7 +200,7 @@ def test_manuscript_has_printbibliography(paper_id, lang):
 @pytest.mark.parametrize('lang', _LANGS)
 def test_refs_bib_has_at_least_one_entry(paper_id, lang):
     content = _bib_path(paper_id, lang).read_text(encoding='utf-8')
-    # Count @article / @incollection / @book entries
+    # 统计 @article / @incollection / @book 等条目数
     entry_count = sum(
         content.count(f'@{e}{{') for e in ('article', 'incollection', 'book', 'inproceedings')
     )
@@ -208,7 +208,7 @@ def test_refs_bib_has_at_least_one_entry(paper_id, lang):
 
 
 # ============================================================================
-# 6. Shared preamble integrity
+# 6. 共享 preamble 完整性
 # ============================================================================
 
 
@@ -225,17 +225,17 @@ def test_preamble_zh_has_xecjk_and_simsun():
 
 
 # ============================================================================
-# 7. Cross-paper invariants
+# 7. 跨论文不变式
 # ============================================================================
 
 
 def test_all_ten_manuscripts_distinct():
-    """Each of 10 manuscripts should have distinct content (no copy-paste of same body)."""
+    """10 份手稿内容应两两不同 (防止同一正文复制粘贴)."""
     texts = {}
     for p in _FIVE_PAPERS:
         for lang in _LANGS:
             texts[(p, lang)] = _manuscript_path(p, lang).read_text(encoding='utf-8')
-    # All pairs should differ by at least one character (typically much more).
+    # 任意两份手稿至少应有一个字符不同 (实际通常差异大得多)
     for (p1, l1), t1 in texts.items():
         for (p2, l2), t2 in texts.items():
             if (p1, l1) >= (p2, l2):
@@ -244,10 +244,10 @@ def test_all_ten_manuscripts_distinct():
 
 
 def test_main_paper_manuscript_longer_than_derivatives():
-    """bank_fintech_tone manuscript should be hand-written and longer."""
+    """bank_fintech_tone 主线手稿应为手写且篇幅更长."""
     main_en = _manuscript_path('bank_fintech_tone', 'en').read_text(encoding='utf-8')
     deriv_en = _manuscript_path('llm_peer', 'en').read_text(encoding='utf-8')
-    # Hand-written main should have more content than generated derivative.
+    # 手写主线手稿的内容量应多于生成的衍生论文手稿
     assert len(main_en) >= len(deriv_en) * 0.8, (
         f"main manuscript surprisingly short ({len(main_en)} vs derivative {len(deriv_en)})"
     )

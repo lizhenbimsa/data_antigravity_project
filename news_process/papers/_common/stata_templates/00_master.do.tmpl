@@ -1,10 +1,10 @@
-* news_process v3.2.0 — Master orchestrator (plan v14 §9.2)
-* Generated from template by build_replication_package (plan v14 §9.3)
-* Plan version: v14 frozen at git tag plan-stage3-dual-track-frozen
+* news_process v3.2.0 — Master 总编排脚本 (plan v14 §9.2)
+* 由 build_replication_package 从模板生成 (plan v14 §9.3)
+* Plan 版本: v14, 冻结于 git tag plan-stage3-dual-track-frozen
 *
-* Main spec choices (由论文 Methods §4 决定, 模板替换占位符):
-*   LOCUS_TRACK:  {{MAIN_LOCUS_TRACK}}    (lf=full-text classification / lc=entity-context)
-*   SUBST_TRACK:  {{MAIN_SUBST_TRACK}}    (sf=full-text / sc=entity-context)
+* 主规格选择 Main spec choices (由论文 Methods §4 决定, 模板替换占位符):
+*   LOCUS_TRACK:  {{MAIN_LOCUS_TRACK}}    (lf=全文分类 full-text / lc=实体上下文 entity-context)
+*   SUBST_TRACK:  {{MAIN_SUBST_TRACK}}    (sf=全文 full-text / sc=实体上下文 entity-context)
 *   SENT_TRACK:   {{MAIN_SENT_TRACK}}     (full / ctx)
 *
 * Stata 版本要求: ≥ 19 (项目策略 2026-05-16: Stata 19+ only, 无需向下兼容)
@@ -29,7 +29,7 @@ do "code/12_table3_mechanism.do"
 do "code/13_table4_heterogeneity.do"
 do "code/14_table5_advanced_robustness.do"
 
-* === Robustness Appendix (双轨化核心) ===
+* === 稳健性附录 Robustness Appendix (双轨化核心) ===
 do "code/20_tableA1_inter_track_kappa.do"
 do "code/21_tableA2_main_spec_switch.do"
 do "code/22_tableA3_bartik_iv.do"

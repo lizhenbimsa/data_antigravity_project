@@ -22,7 +22,7 @@ import pandas as pd
 def convert_parquet_to_stata(
     input_path: str = "data/processed/40_panel_yearly.parquet",
     output_path: str = "data/processed/40_panel_yearly.dta",
-    stata_version: int = 118,  # Stata 14/15/16
+    stata_version: int = 118,  # .dta 文件格式 spec 118 (Stata 14+ 均可读, 含本机 Stata 19)
 ) -> None:
     """
     将parquet文件转换为Stata dta格式。

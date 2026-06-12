@@ -244,10 +244,10 @@ class LLMCache:
                  *, prompt_version: str = "v0",
                  temperature: float = 0.0,
                  random_seed: int | None = None) -> str:
-        """Public alias for ``_make_key`` (v3.7.0+, stable API).
+        """``_make_key`` 的公开别名 (v3.7.0+, 稳定 API)。
 
-        Use this from ``pipeline/llm_archive/`` callsites to maintain
-        reverse lookup compatibility across LLMCache schema migrations.
+        ``pipeline/llm_archive/`` 各调用点应使用本方法, 以在 LLMCache
+        schema 迁移过程中保持反向 lookup 兼容性。
         """
         return LLMCache._make_key(model_id, prompt,
                                   prompt_version=prompt_version,

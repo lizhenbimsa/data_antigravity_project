@@ -1,4 +1,4 @@
-* news_process v3.2.0 — Table A5: Dictionary Method Comparison (plan v14 §9.2)
+* news_process v3.2.0 — Table A5: 词典法对比 Dictionary Method Comparison (plan v14 §9.2)
 *
 * 词典法 vs LLM 法 robustness:
 *   主 spec 用 LLM ensemble; 此表展示 5 个金融情感词典的同 spec 结果.
@@ -34,7 +34,7 @@ if !_rc {
         absorb(bank_id year) vce(cluster bank_id)
 }
 
-* --- Dictionary methods (5 个词典) ---
+* --- 词典法 Dictionary methods (5 个词典) ---
 local dicts jiang_2021 yao_2021 bian_2021 du_2022 you_2018
 foreach d of local dicts {
     local DICT_DV `d'_tone_{{MAIN_SENT_TRACK}}
@@ -59,7 +59,9 @@ foreach b of local berts {
     }
 }
 
-* 输出 (esttab 部分缺失 spec 时仍输出可用列)
+* 输出 — 注释更正 (2026-06-12): 旧注释声称 "esttab 部分缺失 spec 时仍输出可用列" 不实 —
+* esttab 对缺名估计是 r(111) 硬崩 (同 12_table3 fix(omni-g-templates-14) 实证)。本表 esttab
+* 仍硬点名 6 个估计, 任一词典列缺失 (上方守卫跳过 eststo) 时整表会崩, 尚未做动态名单化。
 esttab LLM_main DICT_jiang_2021 DICT_yao_2021 DICT_bian_2021 DICT_du_2022 DICT_you_2018 ///
     using "output/tables/tableA5_dictionary_method.tex", ///
     se star(* 0.10 ** 0.05 *** 0.01) ///

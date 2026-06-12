@@ -2,7 +2,8 @@
 
 Table 1 (descriptive stats) 走 _common 通用 summary builder, 与其它 paper 对称, 即开即用。
 Tables 2-5 (主回归 / 机制 / 异质性 / 稳健性) 为 esttab CSV reader 占位, 待 M5 跑通 Stata
-后填实 (Cookson-Niessner 2020 RFS media disagreement; outcome 为 CAR-based Z-score 变体,
+后填实 (Cookson-Niessner 2020 JF media disagreement, 勘误: 旧注释误标 RFS;
+outcome 为 CAR-based Z-score 变体,
 cf. Laeven-Levine 2009 JFE — 资本项=监管 CAR 非账面 equity/assets, 见 paper_spec outcome
 更正)。fix(omni-g-zscore-papers-01, 2026-06-11)。
 """
@@ -47,11 +48,11 @@ def write_table1(paper_config: PaperConfig | None = None,
 
 
 # ============================================================================
-# Tables 2-5 from Stata esttab CSV output (filled at M5)
+# Tables 2-5 读取 Stata esttab CSV 输出 (M5 阶段填实)
 # ============================================================================
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 2: main regression (cross-outlet disagreement → risk-taking)."""
+    """Table 2: 主回归 (cross-outlet disagreement → risk-taking)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab(PAPER_ID, 'table2_main.csv', paper_config)

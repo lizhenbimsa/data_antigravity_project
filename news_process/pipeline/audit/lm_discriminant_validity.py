@@ -43,6 +43,10 @@ HTMT < 0.85 (判别效度通过).
 ``main()`` 与 ``permutation_null`` 已由 PR #14 集成完成 (非 stub): 依赖 v3.5.2
 PR #3 (lm_non_sentiment) 输出的 panel 列存在; G-A1.2 准入门控
 (panel HTMT < 0.85) 在该集成中验证。
+
+白话: LM 词典给文本打了 4 类标签 (不确定性/诉讼/约束/强情态), 我们又造了
+清晰度和数字密集度两个测度。这一步检查这 6 个测度两两相关是否都低于
+0.85 — 低才说明它们各测各的、没有重复造轮子; 否则要请专家复核。
 """
 
 from __future__ import annotations
@@ -54,7 +58,7 @@ import time
 import numpy as np
 import pandas as pd
 
-# Path injection
+# sys.path 注入 (保证从任意 cwd 直跑本文件时可 import news_process 包)
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
@@ -152,7 +156,7 @@ def compute_htmt_matrix(panel: pd.DataFrame, indicators: list[str]) -> pd.DataFr
 
 
 def compute_cronbach_alpha(panel: pd.DataFrame, indicators: list[str]) -> float:
-    """Cronbach α (Cronbach 1951) across 6 indicators."""
+    """跨 6 个 indicator 的 Cronbach α (Cronbach 1951)。"""
     present = [c for c in indicators if c in panel.columns]
     if len(present) < 2:
         return float('nan')
@@ -169,7 +173,7 @@ def compute_cronbach_alpha(panel: pd.DataFrame, indicators: list[str]) -> float:
 
 def permutation_null(panel: pd.DataFrame, indicators: list[str],
                      n_perm: int = 1000, seed: int = 42) -> pd.DataFrame:
-    """Permutation null distribution for HTMT (random column shuffles).
+    """HTMT 的 permutation null 分布 (按列随机洗牌)。
 
     实现仿 stage 39c::permutation_null: 对每个 indicator 列独立随机置换 n_perm 次,
     统计 HTMT 上限的 null 分布 (当前为串行循环, 非 n_jobs 并行)。

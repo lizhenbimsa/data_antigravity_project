@@ -1,5 +1,6 @@
 """
-26_authoritative_similarity.py — 权威政策战略响应度多维测算模块
+news_process.pipeline.features.policy_similarity — 权威政策战略响应度多维测算模块
+(stage 26; 历史脚本名 26_authoritative_similarity.py, 现无独立 shim, 由 panel runner 调用)
 ============================================================================
 
 【学术支撑 (Academic Foundation)】

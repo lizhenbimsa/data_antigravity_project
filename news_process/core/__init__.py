@@ -1,4 +1,4 @@
-"""news_process.core — shared kernel.
+"""news_process.core — 共享内核 (shared kernel)。
 
 历史: 本包替代了 Phase 0 之前的 ``utils/helpers.py`` mega-module
 (Phase 1-3 期间 ``utils/<module>.py`` forward shims 已全部退役, ``utils/``

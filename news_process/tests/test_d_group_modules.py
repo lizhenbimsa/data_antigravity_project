@@ -1,4 +1,4 @@
-"""Tests for v3.7.0 D 组: PR #11 (staleness) + #12 (α).
+"""v3.7.0 D 组的测试: PR #11 (staleness) + #12 (α).
 
 覆盖:
 - pipeline.text.article_staleness.compute_surface_staleness (P0.3 算法验证)

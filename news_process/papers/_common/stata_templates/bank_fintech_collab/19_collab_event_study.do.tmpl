@@ -1,5 +1,5 @@
 * ============================================================================
-* 19_collab_event_study.do — Event study E1/E3/E4 (P5)
+* 19_collab_event_study.do — 事件研究 (Event study) E1/E3/E4 (P5)
 * Paper: {{PAPER_ID}}
 * v3.4.0: 与 P4 locus 同 events (per spec event_studies)
 *   E1: 2013-06-13 yuebao_launch (fintech ecosystem 开启)
@@ -35,6 +35,8 @@ forvalues i = 1/`n_ev' {
     }
 
     * Treatment = collab_open_full × event flag (cross-sectional intensity DiD)
+    * 白话: 把"开放协同主导"哑变量与事件年前后的时间哑变量相乘,
+    * 比较事件冲击对开放协同型 vs 其他银行的差异化影响 (截面强度 DiD)。
     capture confirm variable collab_open_full
     if !_rc {
         reghdfe {{MAIN_DV}} c.collab_open_full#i.event_t_`ev'_3 ///

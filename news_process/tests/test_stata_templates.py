@@ -102,7 +102,7 @@ def test_table2_has_m1_to_m6():
 def test_tableA2_has_8_specs():
     """Table A2 必含 2×2×2 = 8 specs (lf/lc × sf/sc × full/ctx)."""
     content = _load_template('21_tableA2_main_spec_switch.do.tmpl')
-    # 8 specs nested loop
+    # 8 specs 的嵌套循环
     assert 'foreach loc in lf lc' in content
     assert 'foreach sub in sf sc' in content
     assert 'foreach sent in full ctx' in content
@@ -129,7 +129,7 @@ def test_templates_version_stata_19():
 
 
 # ============================================================================
-# v3.2.0 M6/7 续 — 新增模板综合测试 (12 模板全覆盖)
+# v3.2.0 M6/7 续 — 新增模板综合测试 (14 模板全覆盖; EXPECTED_TEMPLATES_V14 实为 14 项)
 # ============================================================================
 
 EXPECTED_TEMPLATES_V14 = [
@@ -168,7 +168,7 @@ def test_template_version_19_required(template_name):
 
 @pytest.mark.parametrize("template_name", EXPECTED_TEMPLATES_V14)
 def test_template_no_unknown_placeholders_full(template_name):
-    """全部 12 模板 占位符必在白名单."""
+    """全部 14 模板 占位符必在白名单."""
     content = _load_template(template_name)
     for m in re.finditer(r'\{\{([A-Z_]+)\}\}', content):
         assert m.group(1) in KNOWN_PLACEHOLDERS, f"{template_name}: 未知 {{{{{m.group(1)}}}}}"
@@ -217,13 +217,13 @@ def test_figure_templates_export_pdf(template_name):
 
 
 def test_master_references_all_subdo_files():
-    """00_master.do.tmpl 必引用所有 12 模板 (序号文件名)."""
+    """00_master.do.tmpl 必引用其余 13 个子模板 (序号文件名)."""
     master = _load_template('00_master.do.tmpl')
-    # 排除 00 自己, 检查 11 个子文件被引用 (按 .do 文件名, 不含 .tmpl)
+    # 排除 00 自己, 检查 13 个子文件被引用 (按 .do 文件名, 不含 .tmpl)
     for tpl in EXPECTED_TEMPLATES_V14:
         if tpl == '00_master.do.tmpl':
             continue
-        do_name = tpl.replace('.tmpl', '')  # e.g. 01_data_prep.do
+        do_name = tpl.replace('.tmpl', '')  # 例如 01_data_prep.do
         # 允许 do "code/01_data_prep.do" 或 do "stata/01_data_prep.do"
         assert do_name in master, f"00_master 未引用 {do_name}"
 
@@ -293,7 +293,7 @@ def test_cli_verify_replication_on_valid_package(tmp_path, capsys):
     assert '[1/5] 目录结构' in out
     # 取消标题轨 (remove-title-track): 删除 25_tableA8_title_robustness.do.tmpl → 回到 14
     assert '14/14 完整' in out  # 14 .do (title robustness 模板已删)
-    assert '13/13 子 .do' in out  # master.do references 13
+    assert '13/13 子 .do' in out  # master.do 引用 13 个子 .do
     assert 'Summary: 8 OK' in out
 
 
@@ -368,7 +368,7 @@ def test_cli_doctor_verbose_shows_versions(capsys):
     args = SimpleNamespace(verbose=True)
     mod._cli_doctor(args)
     out = capsys.readouterr().out
-    # verbose mode banner
+    # verbose 模式横幅
     assert 'verbose mode' in out
 
 

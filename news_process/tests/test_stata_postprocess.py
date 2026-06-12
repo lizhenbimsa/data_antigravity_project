@@ -1,15 +1,15 @@
-"""tests/test_stata_postprocess.py — esttab CSV postprocess tests.
+"""tests/test_stata_postprocess.py — esttab CSV 后处理测试。
 
 P2.4 (plan-r3 derivative-paper extension, 2026-05-15)
 
-Covers:
-1. parse_esttab_csv on representative fixtures (3-star, 2-star, 1-star, no-star)
-2. Coefficient namedtuple basic invariants
-3. Markdown rendering correctness
-4. LaTeX booktabs structural correctness
-5. Footer stats (N, r2, F) parsed as no-SE entries
-6. Error path: missing file → FileNotFoundError
-7. read_paper_esttab — path resolution + propagation of FileNotFoundError
+覆盖:
+1. parse_esttab_csv 在代表性 fixture 上解析 (3 星 / 2 星 / 1 星 / 无星)
+2. Coefficient namedtuple 的基本不变量
+3. Markdown 渲染正确性
+4. LaTeX booktabs 结构正确性
+5. 表尾统计量 (N, r2, F) 解析为无 SE 条目
+6. 错误路径: 文件缺失 → FileNotFoundError
+7. read_paper_esttab — 路径解析 + FileNotFoundError 透传
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ from news_process.papers._common.stata_postprocess import (  # noqa: E402
 )
 
 # ============================================================================
-# Fixture: a minimal esttab CSV with mixed star levels + footer stats
+# Fixture: 混合星级 + 表尾统计量的最小 esttab CSV
 # ============================================================================
 
 _FIXTURE_CSV = """,M1,M2,M3
@@ -58,7 +58,7 @@ def fixture_csv(tmp_path):
 
 
 # ============================================================================
-# 1. Parser tests
+# 1. 解析器测试
 # ============================================================================
 
 
@@ -149,7 +149,7 @@ def test_coefficient_as_string_no_se():
 
 
 # ============================================================================
-# 3. Markdown rendering
+# 3. Markdown 渲染
 # ============================================================================
 
 
@@ -172,9 +172,9 @@ def test_markdown_has_parenthesized_se(fixture_csv):
 
 
 def test_markdown_footer_separator(fixture_csv):
-    """Footer stats (N/r2/F) should appear under a horizontal-rule separator."""
+    """表尾统计量 (N/r2/F) 应出现在水平分隔线之后。"""
     md = to_markdown_table(parse_esttab_csv(fixture_csv), stats_separator=True)
-    # Two HR-line markers expected (one after header, one before stats)
+    # 预期 2 条水平分隔线 (header 后一条, 统计量前一条)
     hr_count = sum(1 for line in md.splitlines() if line.startswith('|---|'))
     assert hr_count >= 2, f"expected >= 2 HR rules, got {hr_count}"
 
@@ -185,7 +185,7 @@ def test_esttab_csv_to_markdown_shortcut(fixture_csv):
 
 
 # ============================================================================
-# 4. LaTeX rendering
+# 4. LaTeX 渲染
 # ============================================================================
 
 
@@ -220,15 +220,15 @@ def test_esttab_csv_to_latex_shortcut(fixture_csv):
 
 
 # ============================================================================
-# 5. read_paper_esttab — paper-aware path resolution
+# 5. read_paper_esttab — 论文感知的路径解析
 # ============================================================================
 
 
 def test_read_paper_esttab_raises_for_missing_csv(tmp_path, monkeypatch):
-    """If the expected CSV is missing under the paper's output_dir, raise."""
+    """期望的 CSV 在论文 output_dir 下缺失时必须 raise。"""
     from news_process.papers._common import paper_config
 
-    # Build a custom PaperConfig pointing at tmp_path
+    # 构造一个指向 tmp_path 的自定义 PaperConfig
     pc = paper_config.PaperConfig(
         paper_id='llm_peer',
         project_root=tmp_path,
@@ -248,7 +248,7 @@ def test_read_paper_esttab_raises_for_missing_csv(tmp_path, monkeypatch):
 
 
 def test_read_paper_esttab_returns_df_for_existing_csv(tmp_path, fixture_csv):
-    """Drop the fixture CSV into the paper's expected location → parse succeeds."""
+    """把 fixture CSV 放到论文期望位置 → 解析成功。"""
     from news_process.papers._common import paper_config
 
     pc = paper_config.PaperConfig(
@@ -262,7 +262,7 @@ def test_read_paper_esttab_returns_df_for_existing_csv(tmp_path, fixture_csv):
     )
     target_dir = pc.output_dir / 'tables'
     target_dir.mkdir(parents=True, exist_ok=True)
-    # Copy fixture into target
+    # 把 fixture 复制到目标位置
     (target_dir / 'table2.csv').write_text(_FIXTURE_CSV, encoding='utf-8')
 
     df = read_paper_esttab('llm_peer', 'table2.csv', paper_config=pc)
@@ -271,7 +271,7 @@ def test_read_paper_esttab_returns_df_for_existing_csv(tmp_path, fixture_csv):
 
 
 # ============================================================================
-# 6. Paper-level builders (build_tableN per paper) — error path
+# 6. 论文级 builder (各论文的 build_tableN) — 错误路径
 # ============================================================================
 
 @pytest.mark.parametrize('paper_module,fn_name', [
@@ -293,7 +293,7 @@ def test_read_paper_esttab_returns_df_for_existing_csv(tmp_path, fixture_csv):
     ('news_process.papers.strategic_diff.tables', 'build_table5_robustness'),
 ])
 def test_paper_builders_raise_when_csv_missing(paper_module, fn_name, tmp_path):
-    """Each paper's build_tableN_X must raise FileNotFoundError when CSV absent."""
+    """各论文的 build_tableN_X 在 CSV 缺失时必须抛 FileNotFoundError。"""
     import importlib
 
     from news_process.papers._common import paper_config
@@ -316,9 +316,9 @@ def test_paper_builders_raise_when_csv_missing(paper_module, fn_name, tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# quality-hardening Round 27 (2026-05-27): stata_postprocess.py 95.04% → ~100%
-# missing 99 (empty CSV), 104-106 (all-blank rows), 142 (blank row continue),
-# 157-160 (non-numeric cell branches)
+# quality-hardening Round 27 (2026-05-27): stata_postprocess.py 覆盖率 95.04% → ~100%
+# 补漏行 99 (空 CSV), 104-106 (全空白行), 142 (空白行 continue),
+# 157-160 (非数值单元格分支)
 # ---------------------------------------------------------------------------
 
 
@@ -336,7 +336,7 @@ def test_parse_esttab_csv_empty_file_raises():
 def test_parse_esttab_csv_all_blank_rows_raises(tmp_path):
     """CSV 全空白行 → 找不到 header → ValueError (line 104-106)."""
     blank_csv = tmp_path / 'blank.csv'
-    blank_csv.write_text(',\n,\n,\n', encoding='utf-8')  # 3 blank rows
+    blank_csv.write_text(',\n,\n,\n', encoding='utf-8')  # 3 行空白行
     with pytest.raises(ValueError, match="no header row"):
         parse_esttab_csv(blank_csv)
 
@@ -346,13 +346,13 @@ def test_parse_esttab_csv_blank_row_in_body_skipped(tmp_path):
     csv_text = (
         ",M1\n"
         "var_a,1.234\n"
-        ",\n"            # blank row
+        ",\n"            # 空白行
         "var_b,5.678\n"
     )
     p = tmp_path / 'with_blank.csv'
     p.write_text(csv_text, encoding='utf-8')
     df = parse_esttab_csv(p)
-    # Both var_a / var_b should be parsed, blank row skipped silently
+    # var_a / var_b 都应被解析, 空白行被静默跳过
     assert 'var_a' in df.index
     assert 'var_b' in df.index
 

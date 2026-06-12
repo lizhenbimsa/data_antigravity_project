@@ -1,24 +1,27 @@
 * ============================================================================
-* 24_tableA11_anchor_family_alternative.do — A2 alternative anchor family
+* 24_tableA11_anchor_family_alternative.do — A2 替代锚点族稳健性
 * Paper: {{PAPER_ID}}
 *
-* V2.0 J-L-M 2026 robustness alignment plan §3 Phase 2 P2.A2 (Round 9 修正版):
-*   Compare benefit_mean (10 fintech-specific anchors, project main) vs
-*   benefit_jlm_zh (5 J-L-M canonical broad-finance anchors, K-T-E framework).
+* V2.0 J-L-M 2026 稳健性对齐计划 §3 Phase 2 P2.A2 (Round 9 修正版):
+*   对比 benefit_mean (项目主测度: 10 对 fintech 专用锚点) vs
+*   benefit_jlm_zh (J-L-M 正典 5 对广义金融锚点, K-T-E 框架)。
+* 白话: 换一套别人论文里的标准锚点词重算态度分数再跑回归, 只要求
+* 方向 (正负号) 与主结果一致; 幅度变小是正常的, 因为那套锚点不是
+* 为金融科技定制的, 不算失败。
 *
-* Acceptance (AC-A2, Round 9 修正):
-*   - HARD: sign-match (β × β_main > 0)
-*   - SOFT (informative only): magnitude ratio
-*     ! Do NOT enforce ratio > 0.5 — broad-finance anchors are fintech-
-*       agnostic; magnitude attenuation is expected and not a failure.
+* 验收标准 (AC-A2, Round 9 修正):
+*   - 硬性: 符号一致 (β × β_main > 0)
+*   - 软性 (仅供参考): 幅度比例
+*     ! 不强制 ratio > 0.5 — 广义金融锚点对 fintech 不敏感,
+*       幅度衰减是预期内现象, 不算失败。
 *
-* Anchor family identities:
-*   benefit_mean    = pipeline/features/benefit_society.py 10-pair fintech (main)
-*   benefit_jlm_zh  = config/jlm2026_chinese_anchors.yaml 5-pair J-L-M
-*                     Appendix A (broad finance, K-T-E 2019 ASR canonical)
+* 两族锚点的出处:
+*   benefit_mean    = pipeline/features/benefit_society.py 10 对 fintech 锚点 (主测度)
+*   benefit_jlm_zh  = config/jlm2026_chinese_anchors.yaml 5 对 J-L-M
+*                     Appendix A 锚点 (广义金融, K-T-E 2019 ASR 正典)
 *
-* Data dependency: merge audit panel column benefit_jlm_zh_mean from
-*   data/processed/27c_alt_anchor_and_placebo_panel.parquet
+* 数据依赖: 须先从 data/processed/27c_alt_anchor_and_placebo_panel.parquet
+*   merge 进 audit 面板列 benefit_jlm_zh_mean
 * ============================================================================
 
 version 19
@@ -32,13 +35,13 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* ----- Spec 1: main (10-pair fintech-specific) -----
+* ----- 规格 1: 主测度 (10 对 fintech 专用锚点) -----
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo A_main
 scalar b_main = _b[{{ATTITUDE_VAR}}]
 
-* ----- Spec 2: J-L-M alternative (5-pair broad-finance) -----
+* ----- 规格 2: J-L-M 替代锚点族 (5 对广义金融锚点) -----
 capture confirm variable benefit_jlm_zh_mean
 if _rc == 0 {
     reghdfe {{MAIN_DV}}_w benefit_jlm_zh_mean $controls, ///
@@ -46,9 +49,9 @@ if _rc == 0 {
     eststo A_jlm
     scalar b_jlm = _b[benefit_jlm_zh_mean]
 
-    * ----- AC-A2 sign-match acceptance -----
+    * ----- AC-A2 符号一致性验收 -----
     scalar sign_match = (sign(b_main) == sign(b_jlm))
-    scalar ratio_info = abs(b_jlm) / abs(b_main)  // informative only
+    scalar ratio_info = abs(b_jlm) / abs(b_main)  // 仅供参考 (软性指标)
     display _newline "AC-A2 (Round 9 修正):"
     display "  β_main (10-pair fintech) = " b_main
     display "  β_jlm (5-pair broad)      = " b_jlm

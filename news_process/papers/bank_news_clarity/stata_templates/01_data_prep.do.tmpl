@@ -13,12 +13,13 @@ xtset bank_id year
 capture merge m:1 target_bank using "data/processed/bank_metadata.dta", ///
     keep(master match) nogen
 
-* Merge clarity treatment from main panel (v3.5.1 已 frozen mean_clarity_score)
+* 从主 panel merge clarity treatment 列 (v3.5.1 已 frozen mean_clarity_score)
 * fix(omni-g-replication-03, 2026-06-11): 拆为逐列 merge — Stata keepusing 中任一
 * 变量缺失会令整条 merge r(111) 失败 (all-or-nothing), 其余面板中实际存在的列
 * 一并丢失; 旧诊断把列缺失误报为 "文件不可读"。现按 _rc 区分 601 (文件缺失)
 * 与 111 (列缺失)。(bank_type / is_soe 一并拉取, 供 spec controls 的 bank_type_id
 * 派生 — fix(omni-g-replication-07): 主 panel 实际列为字符串 bank_type。)
+* 白话: 一列一列单独 merge, 哪列缺就跳过哪列并明说, 不让一列缺失连累其他列全部丢失。
 capture confirm file "data/processed/40_panel_yearly.dta"
 if _rc {
     display "WARNING: 40_panel_yearly.dta 不存在 (rc=601) — main treatment 不可用"

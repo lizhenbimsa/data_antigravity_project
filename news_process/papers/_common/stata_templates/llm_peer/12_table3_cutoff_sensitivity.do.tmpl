@@ -1,12 +1,14 @@
 * ============================================================================
-* 12_table3_cutoff_sensitivity.do — IV cutoff threshold sensitivity (llm_peer)
+* 12_table3_cutoff_sensitivity.do — IV 相似度 cutoff 阈值敏感性 (llm_peer)
 * Paper: {{PAPER_ID}}
 *
-* Cao 2025 §3.4: LLM-defined peer set depends on a similarity cutoff τ ∈ {0.70,
-*   0.75, 0.80, 0.85, 0.90}. Lower cutoff → larger peer set; higher cutoff →
-*   narrower set. Robustness check: main 2SLS coefficient stable across τ.
+* Cao 2025 §3.4: LLM 定义的同业集合依赖相似度 cutoff τ ∈ {0.70,
+*   0.75, 0.80, 0.85, 0.90}。cutoff 越低 → 同业集合越大; 越高 → 越窄。
+*   稳健性检验: 主 2SLS 系数应在各 τ 取值下保持稳定。
+* 白话: "谁算同行"取决于相似度门槛划在哪; 把门槛从松到紧各试一遍,
+*   证明结论不是挑了某个门槛才成立的。
 *
-* Output: $tables_dir/table3_cutoff_sensitivity.tex (5 columns, one per τ)
+* 输出: $tables_dir/table3_cutoff_sensitivity.tex (5 列, 每 τ 一列)
 * ============================================================================
 
 version 19

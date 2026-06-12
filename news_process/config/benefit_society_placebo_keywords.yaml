@@ -1,24 +1,27 @@
-# benefit_society — Business-line placebo keyword set
+# benefit_society — 业务线安慰剂 (placebo) 关键词集
 # ============================================================================
-# V2.0 J-L-M 2026 RFS robustness alignment plan §3 Phase 1 P1.1 + P1.2:
+# V2.0 J-L-M 2026 RFS 稳健性对齐计划 §3 Phase 1 P1.1 + P1.2:
 #
-# Per J-L-M 2026 §4.2 placebo industries methodology, this yaml defines
-# 4 BANK BUSINESS LINES (non-fintech) + 1 NEUTRAL baseline. For each line,
-# article-level filtering uses these keywords; the SAME main fintech-specific
-# 10-anchor direction vector is then projected onto the filtered subset.
+# 按照 J-L-M 2026 §4.2 的 placebo industries 方法论, 本 yaml 定义
+# 4 条银行业务线 (非金融科技) + 1 条中性基线。每条业务线先用这些
+# 关键词做文章级过滤, 再把【同一套】主分析的金融科技专属 10 对锚点
+# 方向向量投影到过滤后的子集上。
 #
-# Acceptance logic (AC-S1, plan §4):
-#   If `|β_placebo / β_fintech_main| < 0.3` for ≥4/5 placebo specs, the main
-#   fintech-specific signal is not driven by general reporting tone — main
-#   measurement is robust.
+# 验收逻辑 (AC-S1, 计划 §4):
+#   若 ≥4/5 条 placebo 设定满足 `|β_placebo / β_fintech_main| < 0.3`, 则
+#   说明主信号不是由"报道总体语气"驱动 — 主测度稳健。
 #
-# These are BASE keyword sets; user may extend via jieba TF-IDF expansion
-# (out of scope for V2.0 plan §3 Phase 1 P1.1; see [R1.A] in plan §5).
+# 白话: 拿"房贷""信用卡"这类跟金融科技无关的新闻, 用同一把"金融科技
+#       效益"尺子去量 — 如果这些无关新闻也量出强信号, 说明尺子量的其实
+#       是新闻的普遍语气而非金融科技; 量不出才证明主指标真有针对性。
+#
+# 这些是基础 (BASE) 关键词集; 用户可经 jieba TF-IDF 扩展
+# (不在 V2.0 计划 §3 Phase 1 P1.1 范围内; 见计划 §5 [R1.A])。
 # ============================================================================
 
 schema_version: "1.0"
 
-# 4 business-line filters (non-fintech) — used to construct placebo
+# 4 条业务线过滤器 (非金融科技) — 用于构造 placebo
 # 该业务线新闻文章应当**不**强烈响应 fintech 经营效益锚点投影
 business_lines:
   housing_loans:
@@ -74,7 +77,7 @@ business_lines:
       - "物理网点"
       - "城市分行"
 
-# 1 neutral baseline — general bank news with no business-specific topic
+# 1 条中性基线 — 不涉及任何具体业务主题的一般性银行新闻
 # 该过滤应当与 fintech 锚点投影完全无关 (sanity 中性词 placebo)
 neutral_baseline:
   general_corporate:
@@ -90,13 +93,13 @@ neutral_baseline:
       - "干部任命"
       - "组织架构调整"
 
-# Filter logic (per plan §3 P1.2):
-#   For each business line `bl`:
-#     1. Article matches if ANY keyword in `keywords` appears in 标题 OR 内容
-#     2. Construct filtered DataFrame
-#     3. Project filtered articles using MAIN 10-anchor fintech direction
-#     4. Aggregate to bank-year → `benefit_placebo_<bl>_mean` column
+# 过滤逻辑 (按计划 §3 P1.2):
+#   对每条业务线 `bl`:
+#     1. `keywords` 中任一关键词出现在 标题 或 内容 中即判定文章命中
+#     2. 构造过滤后的 DataFrame
+#     3. 用主分析的 10 对 fintech 锚点方向向量对过滤后文章做投影
+#     4. 聚合到 bank-year → `benefit_placebo_<bl>_mean` 列
 #
-# Match-rate validation (per plan §5 R1.A):
-#   If any business line has < 500 matched articles, log warning and proceed;
-#   fallback to <=3 business lines + neutral if 2+ lines fail threshold.
+# 命中率校验 (按计划 §5 R1.A):
+#   任一业务线命中文章 < 500 篇时, 记 warning 后继续;
+#   若 ≥2 条业务线不达标, 回退为 ≤3 条业务线 + 中性基线。

@@ -252,9 +252,9 @@ def test_run_discriminant_validity_lenient_pass_branch():
     np.random.seed(42)
     n = 100
     common = np.random.randn(n)
-    T1 = common + np.random.randn(n) * 0.2  # very correlated
+    T1 = common + np.random.randn(n) * 0.2  # 高度相关
     T2 = common + np.random.randn(n) * 0.2
-    T3 = np.random.randn(n)  # uncorrelated
+    T3 = np.random.randn(n)  # 不相关
     df = pd.DataFrame({
         'avg_subst_prob_score_full': T1,
         'mean_clarity_score_full': T2,

@@ -14,6 +14,12 @@ test_omni_fix_net_brok.py — omni 审计修复回归锁 (g-net-brok 组, 2026-0
   -04 latent: eigenvector_centrality_numpy ARPACK 随机初值非确定 → 删除
       numpy 路径, 统一确定性迭代法 (跨 run 逐位一致)
   -05 own ratio NaN 时 shock 整体置 NaN → 同行均值天然 leave-out 直接可算
+
+# 白话: "媒体-银行网络"指标的修复锁: 图不连通时, 每块单独算中心度, 不让
+# 算法残渣给孤立小块塞进 1e-180 这种伪数值; 只发过一两篇新闻的银行不够格
+# 进"行业负面冲击"的平均(样本太少比率失真); 算中心度统一用确定性算法,
+# 每次跑结果一字不差; 同期冲击和自身负面率在年固定效应下数学上完全共线,
+# 所以补了滞后一年的版本并在文档里写明白。
 """
 import os
 import sys

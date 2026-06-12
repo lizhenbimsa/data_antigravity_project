@@ -73,7 +73,7 @@ def main():
                     print(f"  [警告] 列 '{col_name}' 不存在于 {label}，跳过")
                     continue
 
-                sheet_name = f"{label}_{sheet_suffix}"[:31]  # Excel sheet name limit
+                sheet_name = f"{label}_{sheet_suffix}"[:31]  # Excel sheet 名上限 31 字符
 
                 vc = df[col_name].fillna('(空值)').value_counts().reset_index()
                 vc.columns = [col_name, '数量']

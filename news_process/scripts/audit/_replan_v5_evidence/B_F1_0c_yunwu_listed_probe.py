@@ -88,19 +88,19 @@ def call(model: str, mode: str, content: str = "hi", force_json: bool = True) ->
 def main():
     out = {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "base_url": BASE_URL, "probes": []}
     for m in CANDIDATES:
-        # mode 1: minimal hi (force_json on)
+        # 模式 1: 最小 "hi" 调用 (force_json 开)
         r = call(m, "minimal_force_json", "hi", True)
         out["probes"].append(r)
         print(f"[{m}] minimal force_json=True -> {r.get('http_status')} {'OK' if r.get('ok') else r.get('error_msg')}")
         time.sleep(0.5)
 
-        # mode 2: minimal hi (force_json off)
+        # 模式 2: 最小 "hi" 调用 (force_json 关)
         r = call(m, "minimal_no_force_json", "hi", False)
         out["probes"].append(r)
         print(f"[{m}] minimal force_json=False -> {r.get('http_status')} {'OK' if r.get('ok') else r.get('error_msg')}")
         time.sleep(0.5)
 
-        # mode 3: real-world prompt
+        # 模式 3: 模拟真实场景 prompt
         r = call(m, "real_world", REAL_PROMPT, True)
         out["probes"].append(r)
         print(f"[{m}] real_world force_json=True -> {r.get('http_status')} {'OK' if r.get('ok') else r.get('error_msg')}")

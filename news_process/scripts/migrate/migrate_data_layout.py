@@ -89,7 +89,7 @@ def plan_moves() -> list[tuple[Path, Path]]:
     本辅助脚本若被调用, 将在该单层之下再细分至 ``data/processed/<group>/``。
     """
     root = _project_root()
-    # Phase 8 (2026-05-04): src_dir migrated from data_processed/ → data/processed/
+    # Phase 8 (2026-05-04): 源目录已由 data_processed/ 迁至 data/processed/
     src_dir = root / "data" / "processed"
     dst_root = root / "data" / "processed"
     moves: list[tuple[Path, Path]] = []

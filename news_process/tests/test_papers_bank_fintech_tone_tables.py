@@ -33,7 +33,7 @@ def test_build_table1_delegates_with_paper_id_and_variables():
         result = t_mod.build_table1()
         assert mock_build.called
         args, kwargs = mock_build.call_args
-        # positional args: (paper_id, variables)
+        # 位置参数: (paper_id, variables)
         assert args[0] == 'bank_fintech_tone'
         assert args[1] == t_mod._TABLE1_VARIABLES
         # paper_config 走 kwarg None 默认

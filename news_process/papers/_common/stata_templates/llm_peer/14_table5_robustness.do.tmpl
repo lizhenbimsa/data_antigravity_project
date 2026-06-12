@@ -1,13 +1,17 @@
 * ============================================================================
-* 14_table5_robustness.do — Robustness battery (llm_peer)
+* 14_table5_robustness.do — 稳健性组合 (llm_peer)
 * Paper: {{PAPER_ID}}
 *
-* (R1) coverage-weighted IV substitution: {{LLM_PEER_COVERAGE_IV}}
-* (R2) competition-intensity control: {{COMPETE_IDX}}
-* (R3) Ctx-track tone (replace _full with _ctx)
-* (R4) leave-one-province-out (clusterboot) — diagnostic only, no eststo
+* (R1) 覆盖度 IV 替换: {{LLM_PEER_COVERAGE_IV}}
+*      (勘误 2026-06-12: 旧称"覆盖度加权"与实现不符 — llm_peer_iv.py 自始为
+*      同行 ln_news_coverage 的等权均值, 见 fix omni-g-llm-peer-08)
+* (R2) 竞争强度控制: {{COMPETE_IDX}}
+* (R3) ctx 轨 tone (以 _ctx 替换 _full)
+* (R4) 省级聚类替代 SE (cluster(prov_id), eststo R4)
+*      (勘误 2026-06-12: 旧头注称 "leave-one-province-out (clusterboot), 仅诊断
+*      不 eststo", 与下方实际实现不符 — 实际为省级聚类并 eststo R4 进表)
 *
-* Output: $tables_dir/table5_robustness.tex
+* 输出: $tables_dir/table5_robustness.tex
 * ============================================================================
 
 version 19
@@ -26,17 +30,17 @@ if _rc {
     exit 199
 }
 
-* R1: coverage-IV substitution
+* R1: 覆盖度 IV 替换 (等权均值口径, 见文件头勘误)
 ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_COVERAGE_IV}}) $controls, ///
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo R1
 
-* R2: + competition-intensity control
+* R2: + 竞争强度控制
 ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) {{COMPETE_IDX}} $controls, ///
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo R2
 
-* R3: Ctx-track endogenous + IV (if _ctx variants exist)
+* R3: ctx 轨内生变量 + IV (若 _ctx 变体存在)
 * fix(omni-g-templates-04, 2026-06-11): 旧版连续两条 capture confirm — 后一条覆盖 _rc,
 * 第一变量 (llm_vote_tone_ctx) 单独缺失时守卫穿透 → ivreghdfe r(111)。合并为单次
 * confirm (多变量语义: 任一缺失即 _rc≠0)。
@@ -50,7 +54,7 @@ else {
     display "[INFO] Ctx-track IV variables not in panel; R3 skipped."
 }
 
-* R4: cluster at province (alternative SE) when CLUSTER_VAR != prov_id
+* R4: 省级聚类 (替代 SE; 当 CLUSTER_VAR != prov_id 时有信息量)
 capture confirm variable prov_id
 if !_rc {
     ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///

@@ -1,6 +1,6 @@
-"""tests/test_loc_summation_check.py — v3.7.4 L4 lint tests.
+"""tests/test_loc_summation_check.py — v3.7.4 L4 lint 测试.
 
-Covers 4.D protocol (5R-A1) + stdin (8R-A2) + self-check (8R-B2) + opt-in marker (7R-B3).
+覆盖 4.D protocol (5R-A1) + stdin (8R-A2) + self-check (8R-B2) + opt-in marker (7R-B3).
 """
 from __future__ import annotations
 
@@ -8,14 +8,14 @@ import io
 import sys
 from pathlib import Path
 
-# Path injection: project root on sys.path
+# 路径注入: 把项目根目录放进 sys.path
 _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from news_process.scripts.audit import loc_summation_check as M  # noqa: E402
 
-# --- 8R-B3 marker opt-in: chain INSIDE marker triggers check; OUTSIDE does not ---
+# --- 8R-B3 marker opt-in: 标记块**内**的算式链才检查; 块外不检查 ---
 
 def test_valid_chain_inside_marker_passes():
     doc = (
@@ -42,7 +42,7 @@ def test_invalid_chain_inside_marker_fails():
 
 
 def test_chain_outside_marker_ignored():
-    """7R-B3: opt-in — chains outside <!-- loc-summation-check --> NOT checked."""
+    """7R-B3: opt-in — <!-- loc-summation-check --> 标记之外的算式链**不**检查."""
     doc = "Some doc: 1 + 1 = 999 (this is fake, should be ignored)\n"
     violations = M.check_text(doc, src="legacy.md")
     assert violations == []
@@ -74,7 +74,7 @@ def test_multiple_chains_in_one_section():
 
 
 def test_main_with_stdin(monkeypatch, capsys):
-    """8R-A2 stdin pathway."""
+    """8R-A2 stdin 输入路径."""
     bad_doc = (
         f"{M.MARKER_OPEN}\n"
         "1 + 1 = 99\n"
@@ -86,24 +86,24 @@ def test_main_with_stdin(monkeypatch, capsys):
 
 
 def test_main_self_check_within_tolerance():
-    """8R-B2 self-check — actual LOC should match DECLARED_LOC ± TOLERANCE."""
+    """8R-B2 self-check — 实际 LOC 应落在 DECLARED_LOC ± TOLERANCE 内."""
     rc = M.main(["--self-check"])
-    # Self-check should pass (0) — if it fails (2), declared LOC needs updating
+    # self-check 应通过 (返回 0); 若返回 2 说明声明的 LOC 需要更新
     assert rc in (0, 2)
 
 
 # ---------------------------------------------------------------------------
-# quality-hardening Round 3 (2026-05-27): missing-branch coverage
+# quality-hardening Round 3 (2026-05-27): 补缺失分支覆盖
 # loc_summation_check.py 85% -> 100% (lines 59-60 / 104-106 / 129-134 / 141-143)
 # ---------------------------------------------------------------------------
 
 
 def test_unclosed_open_marker_includes_rest_of_file():
-    """unclosed OPEN marker → captures from OPEN to EOF (lines 59-60)."""
+    """OPEN 标记未闭合 → 从 OPEN 捕获到文件末尾 (lines 59-60)."""
     doc = (
         f"{M.MARKER_OPEN}\n"
         "Tail with bad chain: 1 + 1 = 99\n"
-        # no MARKER_CLOSE
+        # 故意不写 MARKER_CLOSE
     )
     violations = M.check_text(doc, src="unclosed.md")
     assert len(violations) == 1
@@ -111,7 +111,7 @@ def test_unclosed_open_marker_includes_rest_of_file():
 
 
 def test_self_check_fails_when_declared_loc_off(monkeypatch, capsys):
-    """self-check FAIL path — DECLARED_LOC perturbed > TOLERANCE (lines 104-106)."""
+    """self-check FAIL 路径 — DECLARED_LOC 被扰动超过 TOLERANCE (lines 104-106)."""
     monkeypatch.setattr(M, 'DECLARED_LOC', M.DECLARED_LOC + 100)
     rc = M.self_check()
     assert rc == 2
@@ -128,7 +128,7 @@ def test_main_skips_missing_path_and_continues(tmp_path, capsys):
     )
     missing = tmp_path / "nope.md"
     rc = M.main([str(missing), str(real)])
-    # OK exit because real file passes, missing file skipped (no violation)
+    # 退出码 0: 真实文件通过检查, 缺失文件被跳过 (不计违规)
     assert rc == 0
     err = capsys.readouterr().err
     assert "not found" in err

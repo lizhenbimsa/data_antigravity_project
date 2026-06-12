@@ -1,4 +1,4 @@
-"""Smoke tests for P2/P3/P4 paper-level analysis CLIs.
+"""P2/P3/P4 三篇 paper-level analysis CLI 的 smoke 测试。
 
 quality-hardening Round 22 (2026-05-27): bank_fintech_attention / locus / substance
 analysis.py 模块此前在 tests/ 中零直接覆盖. 参照 test_papers_bank_fintech_tone.py
@@ -82,7 +82,7 @@ def test_paper_main_dry_run_accepts_all_stages(paper_id, stage):
 
 
 # ---------------------------------------------------------------------------
-# quality-hardening Round 46 (2026-05-27): P2/P3/P4 analysis.py 57.14% → 100%
+# quality-hardening Round 46 (2026-05-27): P2/P3/P4 analysis.py 覆盖率 57.14% → 100%
 # 覆盖非 dry-run 路径 (lines 45-65 in P2/P3/P4 analysis.py)
 # ---------------------------------------------------------------------------
 
@@ -133,8 +133,8 @@ def test_paper_main_figures_stage_handles_filenotfound(paper_id):
     plot_fns = [n for n in dir(figures_mod)
                 if n.startswith('plot_') and callable(getattr(figures_mod, n))]
     assert len(plot_fns) >= 1, f"{paper_id}/figures.py 应至少有 1 个 plot_* 函数"
-    # P2/P3/P4 analysis.py 默认调用第一个 plot 函数 (per source: plot_attention_distribution
-    # / plot_*_distribution / etc.)
+    # P2/P3/P4 analysis.py 默认调用第一个 plot 函数 (依源码: plot_attention_distribution
+    # / plot_*_distribution 等)
     primary_plot = plot_fns[0]
     with patch.object(figures_mod, primary_plot,
                        side_effect=FileNotFoundError("pipeline 输出缺失")):

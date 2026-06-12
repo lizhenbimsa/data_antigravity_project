@@ -1,7 +1,11 @@
-* news_process v3.2.0 — Figure 1: Event Study (plan v14 §9.2)
+* news_process v3.2.0 — Figure 1: 事件研究 Event Study (plan v14 §9.2)
 *
 * DID 平行趋势 + 动态处理效应 (Sun & Abraham 2021 JoE):
 *   y_{i,t} = Σ_τ β_τ × D_{i, t=τ} + α_i + γ_t + ε_{i,t}
+* 白话: 事件研究图把处理前后各年的效应分别画出来 — 处理前各年的系数应接近 0
+* (说明处理组与对照组事前走势平行, DiD 前提成立), 处理后的系数轨迹则展示效应随时间的演变。
+* 注 (2026-06-12 核对): 本模板实际估计是下方"标准 TWFE"lead/lag 回归; 头注所引
+* Sun-Abraham 2021 的 interaction-weighted 估计未实装 (下方 has_es 探测结果当前未被使用)。
 *
 * 主 spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
 

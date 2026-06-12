@@ -174,10 +174,10 @@ class TestPipelineDataFlowCalculation:
 
 
 # ============================================================================
-# quality-hardening Round 42 (2026-05-27): reporting.py 84.57% → ≥90%
-# 补漏: panel_stages 段 (397-416, 423-427) + per-stage exception handler
-# (354-356) + final detail report exception (379-380) + missing pct when
-# total_rows==0 (line 189) + 14_fintech_intensity stage filename key
+# quality-hardening Round 42 (2026-05-27): reporting.py 覆盖率 84.57% → ≥90%
+# 补漏: panel_stages 段 (397-416, 423-427) + 逐 stage exception handler
+# (354-356) + 最终明细报告 exception (379-380) + total_rows==0 时的
+# 缺失率百分比 (line 189) + 14_fintech_intensity stage filename key
 # ============================================================================
 
 
@@ -300,7 +300,7 @@ def test_pipeline_summary_final_detail_report_error(pipeline_config,
 
 # ============================================================================
 # 直接对 reporting helpers 加测试 (Round 42 续) — save_dataset 双分支 +
-# safe_save_preview_csv PermissionError + total_rows==0 missing pct
+# safe_save_preview_csv PermissionError + total_rows==0 时的缺失率百分比
 # ============================================================================
 
 

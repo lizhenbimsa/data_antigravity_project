@@ -1,22 +1,22 @@
 * ============================================================================
-* 11_table2_main.do — Main regression M1-M6 progressive (benefit_society)
+* 11_table2_main.do — 主回归 M1-M6 渐进规格 (benefit_society)
 * Paper: {{PAPER_ID}}
 *
-* PAP v1.0-final §4 (audit-frozen):
-*   DV   = {{MAIN_DV}}_w (winsorized)
-*   X    = {{ATTITUDE_VAR}} (full track; ATTITUDE_VAR is alias for backwards compat)
-*   Theory anchor: Tetlock 2007 JF + Garcia 2013 JF + Jha-Liu-Manela 2026 RFS
+* PAP v1.0-final §4 (审计冻结):
+*   DV   = {{MAIN_DV}}_w (缩尾后)
+*   X    = {{ATTITUDE_VAR}} (full 轨; ATTITUDE_VAR 是向后兼容 alias)
+*   理论锚: Tetlock 2007 JF + Garcia 2013 JF + Jha-Liu-Manela 2026 RFS
 *
-* M1: attitude only, no FE
+* M1: 仅 attitude, 无固定效应
 * M2: + bank_type FE
 * M3: + bank_type FE + year FE
-* M4: + standard controls $controls
-* M5: + size / age controls
-* M6: + attitude × intensity interaction (Brambor-Clark-Golder 2006)
+* M4: + 标准控制 $controls
+* M5: + 规模 / 年龄控制
+* M6: + attitude × intensity 交互项 (Brambor-Clark-Golder 2006)
 *
-* Dual-track inference: see Table A2 (21_tableA2_attitude_track_switch.do)
-* and Figure 2 (31_figure2_coefplot_dual.do) for full/ctx comparison.
-* Wild cluster bootstrap inference: see 11b_table2_boottest.do.
+* 双轨推断: full/ctx 对比见 Table A2 (21_tableA2_attitude_track_switch.do)
+* 与 Figure 2 (31_figure2_coefplot_dual.do)。
+* 野聚类自助法推断: 见 11b_table2_boottest.do。
 * ============================================================================
 
 version 19
@@ -30,7 +30,7 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* M1: attitude only, no FE
+* M1: 仅 attitude, 无固定效应
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}}, noabsorb vce(cluster {{CLUSTER_VAR}})
 eststo M1
 
@@ -44,12 +44,12 @@ reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}}, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo M3
 
-* M4: + standard controls
+* M4: + 标准控制
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo M4
 
-* M5: + size / age controls (graceful skip if absent)
+* M5: + 规模 / 年龄控制 (缺列时优雅跳过)
 capture confirm variable ln_total_assets ln_bank_age
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls ln_total_assets ln_bank_age, ///
@@ -62,7 +62,7 @@ else {
         absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 }
 
-* M6: + attitude × intensity interaction
+* M6: + attitude × intensity 交互项
 capture confirm variable fintech_intensity_mean
 if !_rc {
     gen attitude_x_intensity = {{ATTITUDE_VAR}} * fintech_intensity_mean

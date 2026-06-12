@@ -1,4 +1,4 @@
-* news_process v3.4.0 — Table A1: Inter-track κ (plan v14 §3.5 P5.1 / §9.2 + v3.4.0 §J)
+* news_process v3.4.0 — Table A1: 双轨间一致性 Inter-track κ (plan v14 §3.5 P5.1 / §9.2 + v3.4.0 §J)
 *
 * 双轨化核心新价值: 篇章级 + bank-year 级 κ for stage 3 字段双轨
 * v3.4.0: 加入第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ)
@@ -7,6 +7,8 @@
 *   篇章级 substantiveness κ ≥ 0.45 (fair-to-moderate)
 *   篇章级 collab_mode κ ≥ 0.45 (mirrors substantiveness 标准, v3.4.0)
 *   注: κ 不应过高 (>0.70 → 双轨设计冗余)
+* 白话: κ 衡量全文轨与实体上下文轨对同一篇文章的分类有多一致; 太低说明两轨测的不是
+* 一回事, 太高说明第二条轨是多余的, 适中才证明双轨互为稳健性有价值。
 *
 * Stata 必装包: ssc install kappa (或 kapci2 含 CI)
 

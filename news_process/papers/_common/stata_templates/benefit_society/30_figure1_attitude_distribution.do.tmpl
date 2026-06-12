@@ -1,5 +1,7 @@
 * ============================================================================
-* 30_figure1_attitude_distribution.do — Attitude distribution + bank-year heatmap
+* 30_figure1_attitude_distribution.do — 态度变量分布直方图 (bank-year)
+* 注 (2026-06-12 核对): 旧头注另称 "bank-year heatmap", 本模板实际仅实现
+* histogram, 无 heatmap 代码 — 头注已更正为与实现一致。
 * Paper: {{PAPER_ID}}
 * ============================================================================
 
@@ -12,7 +14,7 @@ if "$figures_dir" == ""  global figures_dir "../output/figures"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-* Histogram of attitude variable
+* 态度变量直方图
 hist {{ATTITUDE_VAR}}, percent fcolor(navy%70) lcolor(white) ///
     xtitle("Operating-benefit attitude (Jha-Liu-Manela 2026)") ///
     title("Distribution of {{ATTITUDE_VAR}} (bank-year)") ///

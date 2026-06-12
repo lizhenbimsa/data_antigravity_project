@@ -1,4 +1,4 @@
-"""Tests for ``news_process.run_paper`` — multi-paper CLI dispatcher.
+"""``news_process.run_paper`` 多论文 CLI dispatcher 的测试。
 
 quality-hardening Round 23 (2026-05-27): run_paper.py 0% → ~95%. 模块此前在
 tests/ 中零直接覆盖. 覆盖 6 类 CLI 路径:

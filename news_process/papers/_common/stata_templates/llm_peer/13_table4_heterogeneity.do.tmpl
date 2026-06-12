@@ -1,12 +1,12 @@
 * ============================================================================
-* 13_table4_heterogeneity.do — State-ownership heterogeneity (llm_peer)
+* 13_table4_heterogeneity.do — 国有属性异质性 (llm_peer)
 * Paper: {{PAPER_ID}}
 *
-* Tests whether the LLM-Peer IV effect on {{MAIN_DV}} differs by bank ownership
-* type ({{HET_VAR}} = is_soe by default). Brambor-Clark-Golder (2006) interaction
-* requires including both main effect of {{HET_VAR}} and the interaction.
+* 检验 LLM-Peer IV 对 {{MAIN_DV}} 的效应是否随银行所有制类型而不同
+* ({{HET_VAR}} 默认 = is_soe)。Brambor-Clark-Golder (2006) 交互规范要求
+* 同时纳入 {{HET_VAR}} 主效应与交互项。
 *
-* Output: $tables_dir/table4_heterogeneity.tex
+* 输出: $tables_dir/table4_heterogeneity.tex
 * ============================================================================
 
 version 19
@@ -25,7 +25,7 @@ if _rc {
     exit 0
 }
 
-* Interaction construction (must precede 2SLS so it can be added to RHS).
+* 交互项构造 (须先于 2SLS, 才能加入 RHS)。
 gen tone_x_het = {{TONE_VAR}} * {{HET_VAR}}
 gen peer_x_het = {{LLM_PEER_IV}} * {{HET_VAR}}
 
@@ -35,20 +35,21 @@ if _rc {
     exit 199
 }
 
-* H1: OLS with interaction (no IV, for reference)
+* H1: 带交互项的 OLS (无 IV, 供参照)
 reghdfe {{MAIN_DV}}_w {{TONE_VAR}} tone_x_het {{HET_VAR}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo H1
 
-* H2: Single-instrument 2SLS, interaction on the (single) endogenous.
-* Two endogenous regressors require two instruments; we add peer_x_het as a
-* second instrument for the interacted endogenous tone_x_het.
+* H2: 2SLS 交互规格 — 两个内生回归元需要两个工具变量; 为交互内生项
+* tone_x_het 追加第二工具 peer_x_het。
+* 白话: 语调和"语调×国有"两个都内生, 一个工具不够用, 于是把工具变量也
+*       乘上国有虚拟变量, 凑成两对一一对应。
 ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} tone_x_het = {{LLM_PEER_IV}} peer_x_het) ///
     {{HET_VAR}} $controls, ///
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo H2
 
-* H3: Split-sample 2SLS (SOE=0)
+* H3: 分样本 2SLS (SOE=0)
 preserve
 keep if {{HET_VAR}} == 0
 ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
@@ -56,7 +57,7 @@ ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
 eststo H3_nonSOE
 restore
 
-* H4: Split-sample 2SLS (SOE=1)
+* H4: 分样本 2SLS (SOE=1)
 preserve
 keep if {{HET_VAR}} == 1
 ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///

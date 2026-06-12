@@ -278,7 +278,7 @@ class TestSha256OfFile:
         assert h1 == 'b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9'
 
     def test_sha256_raises_oserror_on_missing_file(self, tmp_path):
-        """v3.7.0 m2: file disappeared → OSError with context (archive.py:295-296)."""
+        """v3.7.0 m2: 文件消失 → 抛带上下文的 OSError (archive.py:295-296)."""
         with pytest.raises(OSError, match="文件不存在"):
             sha256_of_file(tmp_path / 'no_such.txt')
 
@@ -308,7 +308,7 @@ class TestResolveArchiveRoot:
         def fake_load_config():
             return {'paths': {'llm_archive': str(fake_root)}}
 
-        # Patch the load_config import inside the function
+        # patch 函数内部 import 的 load_config
         import news_process.core.config as cfg_mod
         monkeypatch.setattr(cfg_mod, 'load_config', fake_load_config)
         result = _resolve_archive_root_via_helper()
@@ -342,7 +342,7 @@ class TestResolveArchiveRoot:
 
 
 def _resolve_archive_root_via_helper():
-    """Helper to call _resolve_archive_root with monkeypatch'd config."""
+    """helper: 在 config 已被 monkeypatch 的前提下调用 _resolve_archive_root."""
     from news_process.pipeline.llm_archive.archive import _resolve_archive_root
     return _resolve_archive_root()
 
@@ -351,7 +351,7 @@ class TestAppendBatch:
     """LLMArchive.append_batch 批量路径 (v3.7.0 M15)."""
 
     def test_empty_batch_returns_empty(self, tmp_archive):
-        """[] input → [] return, no file written (line 173)."""
+        """输入 [] → 返回 [], 不写任何文件 (line 173)."""
         assert tmp_archive.append_batch([]) == []
         assert tmp_archive.stats()['writes'] == 0
 

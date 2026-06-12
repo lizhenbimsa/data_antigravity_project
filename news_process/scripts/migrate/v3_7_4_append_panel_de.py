@@ -6,22 +6,20 @@ benefit_society × 26_bs_title_robustness.do.tmpl) 已在 remove-title-track 改
 (encode.py 三轨循环收为 [_full, _ctx])。该脚本若再运行将对全部 9 个目标报 [MISS]。仅作历史留存,
 请勿当作活体迁移工具。下方为历史描述。
 
-One-shot migration: append Panel D + Panel E sections to each of 9 Stata
-templates (8 paper × `25_tableA8_title_robustness.do.tmpl` + benefit_society
-× `26_bs_title_robustness.do.tmpl`).
+一次性迁移: 向 9 个 Stata 模板各追加 Panel D + Panel E 区块
+(8 paper × `25_tableA8_title_robustness.do.tmpl` + benefit_society
+× `26_bs_title_robustness.do.tmpl`)。
 
-Idempotent: skips templates that already contain `*Panel D:` and `*Panel E:`
-markers.
+幂等: 已含 `*Panel D:` 与 `*Panel E:` 标记的模板自动跳过。
 
-Run:
+运行:
     python F:/Anaconda3/python.exe scripts/migrate/v3_7_4_append_panel_de.py
 
-The Panel D template stratifies the main treatment by
-`frac_title_mentions_fintech` at three Antweiler-Frank (2004 JF) sensitivity
-thresholds {0.3, 0.5, 0.7}.
+Panel D 模板按 `frac_title_mentions_fintech` 在三个 Antweiler-Frank (2004 JF)
+敏感性阈值 {0.3, 0.5, 0.7} 上对 main treatment 做分层。
 
-The Panel E template stratifies by `frac_title_long` (above/below bank-year
-median title length, per Da-Engelberg-Gao 2011 JF attention channel).
+Panel E 模板按 `frac_title_long` 分层 (高于/低于 bank-year 标题长度中位数,
+依 Da-Engelberg-Gao 2011 JF 注意力通道)。
 """
 from __future__ import annotations
 
@@ -32,7 +30,7 @@ _HERE = Path(__file__).resolve().parent
 _PROJECT_ROOT = _HERE.parent.parent
 _TEMPLATES_ROOT = _PROJECT_ROOT / "papers" / "_common" / "stata_templates"
 
-# 9 target templates (8 paper × 25_tableA8 + benefit_society × 26_bs)
+# 9 个目标模板 (8 paper × 25_tableA8 + benefit_society × 26_bs); 现均已删除
 TARGETS: list[Path] = [
     _TEMPLATES_ROOT / "25_tableA8_title_robustness.do.tmpl",  # P1 main
     _TEMPLATES_ROOT / "bank_fintech_attention/25_tableA8_title_robustness.do.tmpl",
@@ -128,9 +126,9 @@ else {
 
 
 def append_to_template(template_path: Path) -> str:
-    """Append Panel D + Panel E blocks to a Stata template. Idempotent.
+    """向单个 Stata 模板追加 Panel D + Panel E 区块。幂等。
 
-    Returns a status string: '[APPENDED] ...', '[SKIP idempotent] ...', or '[MISS] ...'.
+    返回状态字符串: '[APPENDED] ...' / '[SKIP idempotent] ...' / '[MISS] ...'。
     """
     if not template_path.exists():
         return f"[MISS] {template_path.name}"
@@ -138,13 +136,13 @@ def append_to_template(template_path: Path) -> str:
     if "* Panel D (v3.7.4)" in content and "* Panel E (v3.7.4)" in content:
         return f"[SKIP idempotent] {template_path.name}"
 
-    # Insert before the final `esttab` block (per existing convention)
-    # If `esttab` is found, insert before; otherwise append at end.
+    # 插入到最后的 `esttab` 块之前 (沿用既有约定)
+    # 找到 `esttab` 则插其前; 否则追加到文件末尾。
     marker = "esttab "
     insert_block = PANEL_D_BLOCK + PANEL_E_BLOCK
     if marker in content:
         idx = content.find(marker)
-        # Walk back to start of line
+        # 回退到该行行首
         line_start = content.rfind("\n", 0, idx) + 1
         new_content = content[:line_start] + insert_block + "\n" + content[line_start:]
     else:
@@ -155,7 +153,7 @@ def append_to_template(template_path: Path) -> str:
 
 
 def main() -> int:
-    """Walk TARGETS and append Panel D + Panel E blocks. Returns 0 on success."""
+    """遍历 TARGETS 并追加 Panel D + Panel E 区块。成功返回 0。"""
     print(f"v3.7.4 Panel D + E propagator: walking {len(TARGETS)} templates")
     print(f"Templates root: {_TEMPLATES_ROOT}")
     print("-" * 60)

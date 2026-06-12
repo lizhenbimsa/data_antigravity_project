@@ -101,8 +101,8 @@ POLICY_BANKS: list[dict] = [
 # nfra_type → (bank_type_id, default_tier, default_is_soe)
 NFRA_TYPE_MAP: dict[str, tuple[int, int, bool]] = {
     '国有大型商业银行': (1, 5, True),
-    '股份制商业银行':   (2, 3, False),  # tier 4 if D-SIB
-    '城市商业银行':     (3, 2, False),  # tier 3 if listed
+    '股份制商业银行':   (2, 3, False),  # D-SIB 则升 tier 4
+    '城市商业银行':     (3, 2, False),  # 上市则升 tier 3
     '农村商业银行':     (4, 1, False),
     '民营银行':         (5, 1, False),
     '外资法人银行':     (6, 1, False),
@@ -127,7 +127,9 @@ def derive_bank_record(name: str, addr_info: dict) -> dict:
     M3 修复 (audit V2): unknown nfra_type 不再 silent fallback,
     raise ValueError 强制开发者明确决定如何分类新类型.
     M6 修复 (audit V2): 央行加 is_commercial_bank=false 标记,
-    防止下游 stage 49 / Stata 模板误把央行纳入商业银行回归.
+    防止下游 panel / Stata 模板误把央行纳入商业银行回归.
+    (注: 修复当时所指的下游 stage 49 risk_taking_outcomes 已于 2026-06-12 整体移除,
+    is_commercial_bank 标记本身仍为通用过滤依据, 保留有效。)
     """
     nfra_type = addr_info.get('nfra_type', '')
     wind_code = addr_info.get('wind_code') or None
@@ -266,16 +268,16 @@ def main():
     with addresses_path.open('r', encoding='utf-8') as f:
         addresses = json.load(f)
 
-    # Derive 1768 records from bank_addresses
+    # 从 bank_addresses.json 派生 1768 条银行记录
     records: list[dict] = []
     for name, info in addresses.items():
         records.append(derive_bank_record(name, info))
 
-    # Add 3 policy banks (manual)
+    # 手动补充 3 家政策性银行 (bank_addresses.json 不含)
     for pb in POLICY_BANKS:
         records.append(derive_bank_record(pb['target_bank'], pb))
 
-    # Sort: 国有大 → 政策性 → D-SIB 股份制 → 其他股份制 → 城商行 → 农商 → 民营 → 外资 → 直销 → 央行
+    # 排序: 国有大 → 政策性 → D-SIB 股份制 → 其他股份制 → 城商行 → 农商 → 民营 → 外资 → 直销 → 央行
     def _sort_priority(b: dict) -> tuple[int, str]:
         """v3.7.1 audit V2 m2 修复: lambda → def 提升可读性 + ruff PLW0108 合规."""
         type_to_priority = {
@@ -295,7 +297,7 @@ def main():
     yaml_text = render_yaml(records, len(records))
     output_path.write_text(yaml_text, encoding='utf-8')
 
-    # Statistics report
+    # 统计报告 (分类型/分 tier 计数)
     from collections import Counter
     type_counts = Counter(b['bank_type_id'] for b in records)
     tier_counts = Counter(b['implicit_guarantee_tier'] for b in records)

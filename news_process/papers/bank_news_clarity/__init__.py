@@ -5,6 +5,8 @@
 Bank-News-Clarity: 媒体报道清晰度 (mean_clarity_score, You 2018 词典) 作为
 external information environment quality proxy, 对银行风险承担 (Z-score /
 NPL formation / RWA ratio) 的因果效应。
+(注: stage 49 已删除, 三件套 outcome 目前仅为 Stata 模板中的变量名占位,
+待银行财务面板数据接入后才可计算。)
 
 V4 reframe (致命修复)
 --------------------
@@ -28,13 +30,13 @@ Main track: _ctx (entity-context, Tetlock 2007 JF + L&M 2016 JAR 现代标准)
 Pre-registration: OSF required pre-M5
 LLM response archive: required (DC3)
 
-包结构 (M7+ 创建)
-----------------
+包结构
+------
 - ``paper_spec.yaml`` : 立项 spec
 - ``stata_templates/`` + ``replication/`` : 已就位
-- ``analysis.py``     : 待 M7 创建
-- ``tables.py``       : 待 M7 创建
-- ``figures.py``      : 待 M7 创建
+- ``analysis.py``     : 已创建 (2026-06-01 provisional 接线; main CLI 入口 + STAGES 引用)
+- ``tables.py``       : 已创建 (provisional 占位骨架, 主回归 esttab 待 onboarding 填实)
+- ``figures.py``      : 已创建 (provisional 占位骨架)
 
 Audit 历史
 ----------

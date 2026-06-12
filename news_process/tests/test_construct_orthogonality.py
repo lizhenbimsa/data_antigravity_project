@@ -1,22 +1,22 @@
-"""v3.5.0 D3 stage 39c construct_orthogonality unit tests.
+"""v3.5.0 D3 stage 39c construct_orthogonality 单元测试.
 
-Per v3.5.0 D3 stage 39c 计划 §2.2 / §4.1 (文档已随 docs/ 删除):
-    14 tests covering:
-        - NMI arithmetic averaging (Vinh 2010 / Fred-Jain 2003)
-        - Bootstrap row-pair correctness (修 C1, 两列同步)
-        - Permutation null distribution
-        - 3×3 + 6×6 matrix shape
-        - listwise vs pairwise complete sample strategy (修 C-NEW-1)
-        - Extreme values (all-same constant pair → skip per F40)
-        - Degenerate dim-pair (both H=0) guard
-        - SeedSequence reproducibility cross numpy version (修 H-NEW-2)
+依 v3.5.0 D3 stage 39c 计划 §2.2 / §4.1 (文档已随 docs/ 删除):
+    14 个测试覆盖:
+        - NMI 算术平均口径 (Vinh 2010 / Fred-Jain 2003)
+        - Bootstrap 行对正确性 (修 C1, 两列同步)
+        - Permutation 零分布
+        - 3×3 + 6×6 矩阵 shape
+        - listwise vs pairwise complete 样本策略 (修 C-NEW-1)
+        - 极端值 (两列同为常量的 pair → 按 F40 skip)
+        - 退化 dim-pair (两侧 H=0) 守卫
+        - SeedSequence 跨 numpy 版本可复现 (修 H-NEW-2)
         - 3-档 classify_orthogonality (Z ≤ 1.96 / ≤ 2.58 / > 2.58)
-        - n_pair_matrix dim-pair sample size tracking (修 C-NEW-1)
-        - sample size < 100 → skip (graceful)
-        - run_stage smoke (single small synthetic fixture)
+        - n_pair_matrix 按 dim-pair 记录样本量 (修 C-NEW-1)
+        - 样本量 < 100 → skip (优雅降级)
+        - run_stage smoke (单个小合成 fixture)
 
-依赖: synthetic small fixture (N=200) replacing real 400k stage 21 output;
-bootstrap_n=50 replacing production 1000 (per plan §4.1 F36 test fixture 策略).
+依赖: 小合成 fixture (N=200) 替代真实 40 万条 stage 21 输出;
+bootstrap_n=50 替代生产值 1000 (依 plan §4.1 F36 test fixture 策略).
 """
 from __future__ import annotations
 
@@ -38,10 +38,10 @@ from news_process.pipeline.audit.construct_orthogonality import (
     run_stage,
 )
 
-# Synthetic helpers ----------------------------------------------------------
+# 合成数据 helpers ------------------------------------------------------------
 
 def _make_synthetic_df(n: int = 200, seed: int = 0) -> pd.DataFrame:
-    """N rows × 6 dim columns (3 full + 3 ctx) with random binary labels."""
+    """N 行 × 6 个 dim 列 (3 full + 3 ctx), 填充随机二值 label."""
     rng = np.random.default_rng(seed)
     return pd.DataFrame({
         'innovation_substantiveness_full': rng.choice(['实质性', '象征性'], size=n),
@@ -54,7 +54,7 @@ def _make_synthetic_df(n: int = 200, seed: int = 0) -> pd.DataFrame:
 
 
 # ----------------------------------------------------------------------------
-# Test 1-2: 3×3 / 6×6 matrix shape + dtype
+# Test 1-2: 3×3 / 6×6 矩阵 shape + dtype
 # ----------------------------------------------------------------------------
 
 def test_nmi_full_3x3_matrix_shape():
@@ -64,7 +64,7 @@ def test_nmi_full_3x3_matrix_shape():
     assert lo.shape == (3, 3)
     assert hi.shape == (3, 3)
     assert n_pair.shape == (3, 3)
-    # diagonals should be 1.0 (perfect dependence with self)
+    # 对角线应为 1.0 (与自身完全相关)
     for d in DIMS_FULL:
         assert point.loc[d, d] == pytest.approx(1.0, abs=1e-10)
 
@@ -81,13 +81,16 @@ def test_nmi_cross_6x6_matrix_shape():
 # ----------------------------------------------------------------------------
 
 def test_bootstrap_resamples_two_columns_together():
-    """Bootstrap CI must come from joint (d1, d2) resample, not independent shuffles.
+    """Bootstrap CI 必须来自 (d1, d2) 联合 resample, 而非两列各自独立 shuffle.
 
-    Critical regression test for C1 (plan §2.2.2): if we resampled d1 and d2
-    independently, bootstrap distribution would collapse to permutation null (~0),
-    giving falsely tight CI around 0. Joint resample preserves correlation structure.
+    C1 的关键回归测试 (plan §2.2.2): 若 d1 与 d2 各自独立 resample,
+    bootstrap 分布会塌缩到 permutation 零分布 (~0), 给出围绕 0 的假性窄 CI;
+    联合 resample 才能保留两列间的相关结构.
+    # 白话: bootstrap 重抽样必须把同一行的两个标签"绑在一起"抽。如果各抽各的,
+    # 两列之间的关联会被人为打散, 算出来的置信区间就变成"毫无关联"的假象。
+    # 本测试用两列完全相同的数据来当探针: 若实现正确, CI 下界应明显大于 0。
     """
-    # Create df with PERFECT correlation between d1 and d2 (identical labels)
+    # 构造 d1 与 d2 完全相关的 df (label 逐行相同)
     n = 100
     labels = np.array(['A', 'B'] * 50)
     df = pd.DataFrame({
@@ -95,9 +98,9 @@ def test_bootstrap_resamples_two_columns_together():
         'd2': labels.copy(),
     })
     point, lo, hi, _ = compute_nmi_matrix(df, ['d1', 'd2'], bootstrap_n=100, seed=42)
-    # Point estimate should be ~1.0 (perfect dependence)
+    # 点估计应 ~1.0 (完全相关)
     assert point.loc['d1', 'd2'] > 0.9
-    # Bootstrap CI lower bound should also be > 0.5 (would collapse to ~0 if broken)
+    # Bootstrap CI 下界也应 > 0.5 (若实现坏掉会塌缩到 ~0)
     assert lo.loc['d1', 'd2'] > 0.5, (
         f"Bootstrap CI lower {lo.loc['d1','d2']:.4f} too low; "
         "row-pair resample correctness broken?"
@@ -105,7 +108,7 @@ def test_bootstrap_resamples_two_columns_together():
 
 
 # ----------------------------------------------------------------------------
-# Test 4: Permutation null returns 2 matrices (p95, p99)
+# Test 4: Permutation 零分布返回 2 个矩阵 (p95, p99)
 # ----------------------------------------------------------------------------
 
 def test_permutation_null_returns_2_matrices():
@@ -113,25 +116,25 @@ def test_permutation_null_returns_2_matrices():
     p95, p99 = compute_permutation_null(df, DIMS_FULL, n_permutations=50, seed=42)
     assert p95.shape == (3, 3)
     assert p99.shape == (3, 3)
-    # Off-diagonal cells should have finite null thresholds
+    # 非对角格应有有限的 null 阈值
     for d1 in DIMS_FULL:
         for d2 in DIMS_FULL:
             if d1 == d2:
                 continue
             assert not pd.isna(p95.loc[d1, d2])
             assert not pd.isna(p99.loc[d1, d2])
-            # p99 >= p95 (higher percentile of same null distribution)
+            # p99 >= p95 (同一零分布的更高分位数)
             assert p99.loc[d1, d2] >= p95.loc[d1, d2] - 1e-10
 
 
 # ----------------------------------------------------------------------------
-# Test 5: Sample strategy listwise vs pairwise (修 C-NEW-1)
+# Test 5: 样本策略 listwise vs pairwise (修 C-NEW-1)
 # ----------------------------------------------------------------------------
 
 def test_listwise_vs_pairwise_sample_strategies():
-    """Listwise complete: all dims valid jointly; pairwise: each pair drops own NaN."""
+    """listwise complete: 所有 dim 联合有效才入样; pairwise: 每个 pair 各自剔除自己的 NaN."""
     df = _make_synthetic_df(n=200, seed=4)
-    # Inject NaN into one dim
+    # 向其中一个 dim 注入 NaN
     df.loc[df.index[:50], 'innovation_locus_full'] = None
 
     _, _, _, n_listwise = compute_nmi_matrix(
@@ -140,13 +143,13 @@ def test_listwise_vs_pairwise_sample_strategies():
     _, _, _, n_pairwise = compute_nmi_matrix(
         df, DIMS_FULL, sample_strategy='pairwise_complete', bootstrap_n=20, seed=42
     )
-    # listwise: all cells share same n (intersect of valid)
+    # listwise: 所有格共享同一 n (各列有效集的交集)
     listwise_ns = set(n_listwise.values.flatten().tolist())
     listwise_ns.discard(0)
     assert len(listwise_ns) == 1, f"listwise n_pair not uniform: {listwise_ns}"
 
-    # pairwise: cells with locus involved have smaller n (50 NaN removed only for those pairs)
-    # cells with no locus = 200; cells with locus = 150
+    # pairwise: 涉及 locus 的格 n 更小 (50 个 NaN 只在这些 pair 中被剔除)
+    # 不含 locus 的格 = 200; 含 locus 的格 = 150
     n_subst_collab_pw = n_pairwise.loc['innovation_substantiveness_full',
                                        'innovation_collab_mode_full']
     n_subst_locus_pw = n_pairwise.loc['innovation_substantiveness_full',
@@ -158,31 +161,31 @@ def test_listwise_vs_pairwise_sample_strategies():
 
 
 # ----------------------------------------------------------------------------
-# Test 6: Degenerate both-constant pair → skip (修 F40)
+# Test 6: 两列同为常量的退化 pair → skip (修 F40)
 # ----------------------------------------------------------------------------
 
 def test_degenerate_dim_pair_both_constant_skipped():
-    """If both d1 and d2 are constant (nunique < 2), skip + n_pair = 0 (修 F40)."""
+    """d1 与 d2 均为常量 (nunique < 2) 时 skip 且 n_pair = 0 (修 F40)."""
     n = 200
     df = pd.DataFrame({
         'd1': ['constant'] * n,
         'd2': ['also_constant'] * n,
     })
     point, _, _, n_pair = compute_nmi_matrix(df, ['d1', 'd2'], bootstrap_n=20, seed=42)
-    # Off-diagonal cells skipped
+    # 非对角格被 skip
     assert pd.isna(point.loc['d1', 'd2'])
     assert n_pair.loc['d1', 'd2'] == 0
 
 
 # ----------------------------------------------------------------------------
-# Test 7: Sample size < 100 → skip (graceful)
+# Test 7: 样本量 < 100 → skip (优雅降级)
 # ----------------------------------------------------------------------------
 
 def test_sample_size_below_100_skipped():
-    """Pairs with clean sample < 100 → skip, n_pair = 0."""
-    df = _make_synthetic_df(n=50, seed=5)  # too small
+    """clean 样本 < 100 的 pair → skip, n_pair = 0."""
+    df = _make_synthetic_df(n=50, seed=5)  # 样本太小
     point, _, _, n_pair = compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=20, seed=42)
-    # All off-diagonals should be skipped (NaN point, 0 n_pair)
+    # 所有非对角格应被 skip (point 为 NaN, n_pair 为 0)
     for d1 in DIMS_FULL:
         for d2 in DIMS_FULL:
             if d1 != d2:
@@ -195,7 +198,7 @@ def test_sample_size_below_100_skipped():
 # ----------------------------------------------------------------------------
 
 def test_seed_sequence_reproducibility():
-    """Same seed → identical bootstrap CI across runs (cross numpy 1.x/2.x stable)."""
+    """同一 seed → 跨 run 的 bootstrap CI 逐位一致 (跨 numpy 1.x/2.x 稳定)."""
     df = _make_synthetic_df(n=200, seed=6)
     _, lo1, hi1, _ = compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=30, seed=42)
     _, lo2, hi2, _ = compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=30, seed=42)
@@ -208,12 +211,12 @@ def test_seed_sequence_reproducibility():
 # ----------------------------------------------------------------------------
 
 def test_classify_orthogonality_three_thresholds():
-    """obs ≤ p95 strong; p95 < obs ≤ p99 moderate; obs > p99 weak.
+    """obs ≤ p95 → strong; p95 < obs ≤ p99 → moderate; obs > p99 → weak.
 
     fix(omni-g-audit-family-04, 2026-06-11): 旧断言锁定从未被引用的 Z_STRONG=1.96 /
     Z_MODERATE=2.58 常量 (与单侧分位实现口径不符), 常量已删除, 改锁分位分类行为.
     """
-    # Build a fake point matrix + null thresholds for classify
+    # 构造伪造的 point 矩阵 + null 阈值供 classify 使用
     dims = ['a', 'b']
     point = pd.DataFrame([[1.0, 0.05], [0.05, 1.0]], index=dims, columns=dims)
     null_p95 = pd.DataFrame([[np.nan, 0.10], [0.10, np.nan]], index=dims, columns=dims)
@@ -223,12 +226,12 @@ def test_classify_orthogonality_three_thresholds():
     assert result['a__b'] == 'strong'
     assert result['b__a'] == 'strong'
 
-    # Test moderate: obs > p95 but ≤ p99
+    # moderate 档: obs > p95 但 ≤ p99
     point_mod = pd.DataFrame([[1.0, 0.15], [0.15, 1.0]], index=dims, columns=dims)
     result_mod = classify_orthogonality(point_mod, null_p95, null_p99)
     assert result_mod['a__b'] == 'moderate'
 
-    # Test weak: obs > p99
+    # weak 档: obs > p99
     point_weak = pd.DataFrame([[1.0, 0.30], [0.30, 1.0]], index=dims, columns=dims)
     result_weak = classify_orthogonality(point_weak, null_p95, null_p99)
     assert result_weak['a__b'] == 'weak'
@@ -239,23 +242,23 @@ def test_classify_orthogonality_three_thresholds():
 # ----------------------------------------------------------------------------
 
 def test_n_pair_matrix_records_sample_sizes():
-    """n_pair[d1, d2] equals clean sample size for that pair."""
+    """n_pair[d1, d2] 等于该 pair 的 clean 样本量."""
     df = _make_synthetic_df(n=200, seed=7)
     _, _, _, n_pair = compute_nmi_matrix(
         df, DIMS_FULL, sample_strategy='listwise_complete', bootstrap_n=10, seed=42,
     )
-    # All listwise n_pair entries equal (200 rows fully valid since synthetic no NaN)
+    # listwise 下所有 n_pair 相等 (合成数据无 NaN, 200 行全有效)
     for d1 in DIMS_FULL:
         for d2 in DIMS_FULL:
             assert n_pair.loc[d1, d2] == 200
 
 
 # ----------------------------------------------------------------------------
-# Test 11: Bootstrap CI vs naive σ sanity check
+# Test 11: Bootstrap CI vs 朴素 σ 的 sanity check
 # ----------------------------------------------------------------------------
 
 def test_bootstrap_ci_within_reasonable_range():
-    """CI low ≤ point ≤ CI high for off-diagonal cells (basic sanity)."""
+    """非对角格满足 CI low ≤ point ≤ CI high (基本 sanity)."""
     df = _make_synthetic_df(n=200, seed=8)
     point, lo, hi, _ = compute_nmi_matrix(df, DIMS_FULL, bootstrap_n=100, seed=42)
     for d1 in DIMS_FULL:
@@ -269,11 +272,11 @@ def test_bootstrap_ci_within_reasonable_range():
 
 
 # ----------------------------------------------------------------------------
-# Test 12: NMI arithmetic averaging algorithm correctness
+# Test 12: NMI 算术平均口径的算法正确性
 # ----------------------------------------------------------------------------
 
 def test_nmi_arithmetic_averaging():
-    """Sanity: NMI of perfectly identical columns = 1.0 (arithmetic average mode)."""
+    """Sanity: 两列完全相同时 NMI = 1.0 (算术平均模式)."""
     n = 100
     df = pd.DataFrame({'d1': ['A'] * 50 + ['B'] * 50, 'd2': ['A'] * 50 + ['B'] * 50})
     point, _, _, _ = compute_nmi_matrix(df, ['d1', 'd2'], bootstrap_n=10, seed=42)
@@ -281,11 +284,11 @@ def test_nmi_arithmetic_averaging():
 
 
 # ----------------------------------------------------------------------------
-# Test 13: Independent random labels → NMI close to 0
+# Test 13: 独立随机 label → NMI 接近 0
 # ----------------------------------------------------------------------------
 
 def test_independent_labels_low_nmi():
-    """Two independently randomly assigned binary labels → NMI < 0.1 on N=200."""
+    """两列相互独立随机赋值的二值 label → N=200 时 NMI < 0.1."""
     rng = np.random.default_rng(9)
     n = 200
     df = pd.DataFrame({
@@ -299,11 +302,11 @@ def test_independent_labels_low_nmi():
 
 
 # ----------------------------------------------------------------------------
-# Test 14: run_stage smoke (synthetic parquet → outputs in tmp dir)
+# Test 14: run_stage smoke (合成 parquet → 输出落 tmp 目录)
 # ----------------------------------------------------------------------------
 
 def test_run_stage_smoke(tmp_path: Path):
-    """End-to-end run_stage on synthetic 200-article parquet, verify 6 outputs written."""
+    """对合成 200 篇文章 parquet 端到端跑 run_stage, 验证写出 6 个输出."""
     df = _make_synthetic_df(n=200, seed=10)
     stage_21 = tmp_path / 'stage21.parquet'
     df.to_parquet(stage_21)
@@ -316,7 +319,7 @@ def test_run_stage_smoke(tmp_path: Path):
         seed=42,
     )
 
-    # Verify 6 outputs (5 parquet + 1 json)
+    # 验证 6 个输出 (5 parquet + 1 json)
     expected_files = [
         '39c_nmi_matrix_full.parquet',
         '39c_nmi_matrix_ctx.parquet',
@@ -328,7 +331,7 @@ def test_run_stage_smoke(tmp_path: Path):
     for f in expected_files:
         assert (tmp_path / f).exists(), f"Missing output: {f}"
 
-    # Summary JSON shape
+    # summary JSON 的结构
     summary_disk = json.loads((tmp_path / '39c_nmi_summary.json').read_text(encoding='utf-8'))
     assert 'max_off_diag_nmi' in summary_disk
     assert 'classify_full_3x3' in summary_disk
@@ -338,7 +341,7 @@ def test_run_stage_smoke(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
-# quality-hardening Round 8 (2026-05-27): missing-branch coverage
+# quality-hardening Round 8 (2026-05-27): 补缺失分支覆盖
 # construct_orthogonality.py 87.80% → ~95% (lines 109-115 / 122 / 175-176 /
 # 183-185 / 221-225 / 230-233 / 277-278 / 308 / 313)
 # ---------------------------------------------------------------------------

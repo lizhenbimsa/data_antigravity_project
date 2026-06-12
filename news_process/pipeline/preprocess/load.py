@@ -39,6 +39,8 @@ from news_process.pipeline.preprocess._constants import (
 # 技术原理: AC 自动机在文本上的一次线性扫描中同时匹配所有关键词,
 # 时间复杂度 O(文本长度 + 匹配数), 相比逐关键词正则匹配的
 # O(文本长度 × 关键词数) 有数量级提升。
+# 白话: 把几百个银行关键词预先编成一张"查词地图", 文章从头到尾只读一遍,
+# 就能同时知道哪些关键词出现过 — 不用拿每个关键词分别把文章搜一遍。
 
 
 def _build_ac_automaton(keywords):
@@ -140,9 +142,9 @@ def _process_single_file(file_path: str) -> pd.DataFrame | None:
     Returns:
         pd.DataFrame | None: 处理后的 DataFrame, 或 None(处理失败/数据为空)。
     """
-    # Lazy imports to avoid module-load-time circulars:
-    # - filter.py imports BANK_KW_AUTOMATON from this module
-    # - normalize.py is a sibling that depends only on _constants
+    # lazy import, 避免模块加载期循环依赖:
+    # - filter.py 从本模块 import BANK_KW_AUTOMATON
+    # - normalize.py 是仅依赖 _constants 的 sibling 模块
     from news_process.pipeline.preprocess.filter import _clean_and_filter_dataframe
     from news_process.pipeline.preprocess.normalize import clean_text_batch
 
@@ -225,10 +227,10 @@ def _process_single_file(file_path: str) -> pd.DataFrame | None:
         return None
 
 
-# numpy is needed for the AC mask in _clean_and_filter_dataframe but
-# imported here too to make sure ProcessPoolExecutor workers re-import it
-# fresh on spawn (defensive against subtle import-order timing issues).
-_ = np  # silence "imported but unused"
+# numpy 由 _clean_and_filter_dataframe 的 AC mask 使用; 此处也 import 一次,
+# 确保 ProcessPoolExecutor spawn 出的 worker 进程重新导入时它已就位
+# (对微妙的 import 顺序时序问题做防御)。
+_ = np  # 消除 "imported but unused" 告警
 
 
 __all__ = [

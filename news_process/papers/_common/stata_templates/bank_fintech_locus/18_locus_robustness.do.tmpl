@@ -19,20 +19,24 @@ use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
 * (1) Oster (2019) δ
+* 白话: 估算"看不见的遗漏变量得有多强, 才能把结论推翻", 衡量选择性偏误的稳健性。
 * psacalc delta locus_layer_full, rmax(1.3 r²) mcontrol($controls)
 
-* (2) rwolf multi-hypothesis
+* (2) rwolf 多假设检验
+* 白话: 同时检验多个假设时, 用 Romano-Wolf 逐步法校正"碰运气显著"的多重检验问题。
 * rwolf {{MAIN_DV}}, indepvar(locus_layer_full) controls($controls) reps(1000) ///
 *     method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
 
 * (3) Honest DiD
+* 白话: 允许"平行趋势"假设有一定程度的偏离, 看结论在多大偏离下仍然站得住。
 * honestdid, l_vec(...) m_grid(0 0.5 1 2)
 
-* (4) Wild cluster bootstrap
+* (4) Wild cluster bootstrap (野聚类自举)
 * fix(omni-g-templates-10, 2026-06-11): (i) boottest 补 capture which 守卫 (对齐
 * collab/18; 未装机器上旧版裸调 r(199) 致本表整丢); (ii) boottest 按设计不改写
 * e(b)/e(V) (wild p 在 r(p)), 旧 eststo 存的是 reghdfe 解析 cluster SE → "Wild boot"
 * 列名实不符。现以 estadd 把 r(p) 注入 e(p_wild) 进表 stats 行, 缺 boottest 时如实告警。
+* 白话: 银行聚类数偏少时常规标准误偏小、容易假显著; 用 wild bootstrap 重算 p 值并如实写进表里。
 reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 capture which boottest
@@ -47,6 +51,7 @@ eststo wild_boot
 
 * (5) ritest randomization inference (Young 2019 QJE; MacKinnon-Webb 2020 JBES)
 * v3.6.1 PR #7 启用; SSC 自动检测, 装不上则跳过 (G-C2.0 准入门控由 v2.3).
+* 白话: 把处理变量随机打乱很多次构造"纯随机"分布, 看真实系数是否明显超出该分布 (随机化推断)。
 capture which ritest
 if _rc != 0 {
     capture ssc install ritest, replace
@@ -63,9 +68,9 @@ else {
     display "  ⚠️ ritest not installed (ssc install ritest); randomization inference 跳过"
 }
 
-* (6) Spillover SUTVA
+* (6) 溢出效应 SUTVA 检验 (本模板未实现, 仅为维度占位)
 
-* (7) Sample cuts
+* (7) 样本切分 (Sample cuts)
 * st-did-05 fix (2026-06-03): bank_type 是字符串列 (str), 由 iv_did.py::load_bank_group_maps()
 * 产出 'soe'/'joint'/'city'/'rural'/'private'/'foreign'/'other' (NFRA_TO_SHORT 映射,
 * 见 runner.py:857 `is_soe = (panel['bank_type'] == 'soe')`). 旧 `if bank_type != 1`
@@ -82,11 +87,12 @@ reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if year >= 20
 eststo excl_pre
 
 * ============================================================================
-* (8) Paper-specific: alternative locus classifier (ctx track)
+* (8) Paper-specific: 替代 locus 分类器 (ctx 轨)
 * ============================================================================
 * fix(omni-g-templates-09, 2026-06-11): locus_layer_ctx/locus_scenario_ctx 现由
 * 01_data_prep 从 panel 真实 ctx 孪生 tech_frac_lc/app_frac_lc 派生 (与 _full 对同构;
 * 旧版从未派生 → 本块守卫永假、双轨稳健性永久静默跳过)。守卫保留作 _lc 列缺失兜底。
+* 白话: 用 ctx 轨 (标题+实体上下文窗口) 重新分类得到的占比再跑一遍, 验证结论不依赖归因窗口的选法。
 capture confirm variable locus_layer_ctx locus_scenario_ctx
 if !_rc {
     reghdfe {{MAIN_DV}} locus_layer_ctx locus_scenario_ctx $controls, ///
@@ -99,10 +105,11 @@ else {
 
 * ============================================================================
 * (9) Borusyak-Jaravel-Spiess imputation DiD (额外 robustness per spec)
+* 白话: 用"插补法"做双重差分, 避免传统双向固定效应在各银行处理时点不同时产生的加权偏误。
 * ============================================================================
 capture confirm variable treat_year
 if !_rc {
-    * did_imputation requires ssc install did_imputation (per §5.7.3)
+    * did_imputation 需先 ssc install did_imputation (per §5.7.3)
     * did_imputation {{MAIN_DV}} bank_id year treat_year, ///
     *     fe(bank_id year) controls($controls) autosample
     display "  [TODO] did_imputation requires SSC; see §5.7.3 prereqs"

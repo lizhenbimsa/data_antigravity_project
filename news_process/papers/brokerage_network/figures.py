@@ -46,7 +46,7 @@ def plot_brokerage_centrality_distribution(paper_config: PaperConfig | None = No
 
 def plot_main_iv_coefplot(paper_config: PaperConfig | None = None,
                           *, filename: str = 'fig2_main_iv_coefplot.pdf') -> Path:
-    """Figure 2: Network 2SLS main coefplot (Table 2 esttab)."""
+    """Figure 2: 网络 2SLS 主效应系数图 (读 Table 2 esttab CSV)."""
     from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
     from news_process.papers.brokerage_network.tables import build_table2_main
 
@@ -66,7 +66,7 @@ def plot_main_iv_coefplot(paper_config: PaperConfig | None = None,
 
 def plot_policy_centrality_forest(paper_config: PaperConfig | None = None,
                                   *, filename: str = 'fig3_policy_centrality_forest.pdf') -> Path:
-    """Figure 3: DCEP/Sandbox × centrality forest (Table 3 esttab)."""
+    """Figure 3: DCEP/监管沙盒政策 × 中心性森林图 (读 Table 3 esttab CSV)."""
     from news_process.papers._common.paper_figures_ext import forest_plot_from_esttab_df
     from news_process.papers.brokerage_network.tables import build_table3_mechanism
 
@@ -74,7 +74,7 @@ def plot_policy_centrality_forest(paper_config: PaperConfig | None = None,
     df = build_table3_mechanism(pc)
     out = pc.output_dir / 'figures' / filename
     out.parent.mkdir(parents=True, exist_ok=True)
-    # Pick the first interaction variable present
+    # 取 esttab 结果中第一个存在的交互项变量
     var = next((v for v in ['dcep_x_btw', 'dcep_x_cons', 'dcep_x_broker',
                             'sb_x_btw', 'sb_x_cons', 'sb_x_broker']
                 if v in df.index), None)

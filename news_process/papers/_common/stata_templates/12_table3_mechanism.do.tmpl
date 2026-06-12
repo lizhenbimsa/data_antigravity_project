@@ -1,4 +1,4 @@
-* news_process v3.2.0 — Table 3: Mechanism (plan v14 §9.2)
+* news_process v3.2.0 — Table 3: 机制检验 Mechanism (plan v14 §9.2)
 *
 * 机制变量: tone_gap_tech_app + tone_gap_sub_symb (双轨化对角线 + ctx 版本)
 * 经济直觉:
@@ -31,14 +31,14 @@ if !_rc {
     local CH_SUB_SYMB_ALT  tone_gap_sub_symb
 }
 
-* M1: only Tech-App channel
+* M1: 仅 Tech-App 通道
 capture confirm variable `CH_TECH_APP'
 if !_rc {
     eststo M1: reghdfe `DV' digital_frontier `CH_TECH_APP', ///
         absorb(bank_id year) vce(cluster bank_id)
 }
 
-* M2: only Sub-Symb channel
+* M2: 仅 Sub-Symb 通道
 capture confirm variable `CH_SUB_SYMB'
 if !_rc {
     eststo M2: reghdfe `DV' digital_frontier `CH_SUB_SYMB', ///

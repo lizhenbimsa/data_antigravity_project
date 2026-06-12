@@ -1,5 +1,10 @@
 """
 第四轮审核：极端边界 + 并发安全 + 配置回归深度测试
+
+⚠ 现状注记 (2026-06-12): Test D 读取 docs/codebook.md, 但 docs/ 目录已整体删除
+(commit 1698bda5) → 跑到 Test D 会 FileNotFoundError 崩溃。Test A/B/C (LLMCache
+并发 / config hash / 向量化边界) 仍可独立验证 canonical core API; Test E 对
+CHANGELOG.md 缺失已有优雅跳过。如需完整跑通, 须先重建 docs/codebook.md。
 """
 import os
 import sys
@@ -96,7 +101,7 @@ for t in range(4):
             break
 check("A7: concurrent data integrity", all_ok)
 
-# A8: get after close should raise (defensive check)
+# A8: close 后 get 应当抛异常 (防御性检查)
 c.close()
 try:
     c.get("model", "test")
@@ -104,7 +109,7 @@ try:
 except Exception:
     check("A8: get after close raises", True)
 
-# A9: put after close should raise
+# A9: close 后 put 应当抛异常
 try:
     c.put("model", "test", "val")
     check("A9: put after close raises", False, "should have raised")
@@ -255,14 +260,14 @@ lr6 = loop_compute(dates_c5, sim_all, 0.35, 7)
 vr6 = vec_compute(dates_c5, sim_all, 0.35, 7)
 check("C6: full similarity", np.array_equal(lr6, vr6), f"loop={lr6} vec={vr6}")
 
-# C7: first NaT, rest valid
+# C7: 首项 NaT, 其余日期有效
 dates_c7 = [pd.NaT, pd.Timestamp("2024-01-02"), pd.Timestamp("2024-01-03")]
 sim_c7 = np.array([[1, .8, .6], [.8, 1, .9], [.6, .9, 1]])
 lr7 = loop_compute(dates_c7, sim_c7, 0.35, 7)
 vr7 = vec_compute(dates_c7, sim_c7, 0.35, 7)
 check("C7: first NaT rest valid", np.array_equal(lr7, vr7), f"loop={lr7} vec={vr7}")
 
-# C8: alternating NaT/valid
+# C8: NaT 与有效日期交替
 dates_c8 = [pd.NaT, pd.Timestamp("2024-01-02"), pd.NaT, pd.Timestamp("2024-01-04"),
             pd.NaT, pd.Timestamp("2024-01-06")]
 sim_c8 = np.ones((6, 6)) * 0.5
@@ -271,22 +276,22 @@ lr8 = loop_compute(dates_c8, sim_c8, 0.35, 7)
 vr8 = vec_compute(dates_c8, sim_c8, 0.35, 7)
 check("C8: alternating NaT", np.array_equal(lr8, vr8), f"loop={lr8} vec={vr8}")
 
-# C9: threshold = 0 (everything matches)
+# C9: threshold = 0 (一切都算匹配)
 lr9 = loop_compute(dates_c5, sim_c7[:3,:3] if len(dates_c5) == 3 else sim_zero, 0.0, 7)
 vr9 = vec_compute(dates_c5, sim_c7[:3,:3] if len(dates_c5) == 3 else sim_zero, 0.0, 7)
 check("C9: threshold=0", np.array_equal(lr9, vr9), f"loop={lr9} vec={vr9}")
 
-# C10: threshold = 1.0 (only self matches, but self excluded by tril k=-1)
+# C10: threshold = 1.0 (仅自身匹配, 但 tril k=-1 已排除自身)
 lr10 = loop_compute(dates_c5, sim_all, 1.0, 7)
 vr10 = vec_compute(dates_c5, sim_all, 1.0, 7)
 check("C10: threshold=1.0", np.array_equal(lr10, vr10), f"loop={lr10} vec={vr10}")
 
-# C11: window = 0 (only same-day articles)
+# C11: window = 0 (仅同日文章)
 lr11 = loop_compute(dates_c5, sim_all, 0.35, 0)
 vr11 = vec_compute(dates_c5, sim_all, 0.35, 0)
 check("C11: window=0", np.array_equal(lr11, vr11), f"loop={lr11} vec={vr11}")
 
-# C12: dates[0]=NaT + far-apart valid dates (the CRITICAL bug scenario)
+# C12: dates[0]=NaT + 相距很远的有效日期 (曾触发 CRITICAL bug 的场景)
 dates_c12 = [pd.NaT, pd.Timestamp("2024-01-02"), pd.Timestamp("2024-12-31")]
 sim_c12 = np.array([[1,.9,.4],[.9,1,.8],[.4,.8,1]])
 lr12 = loop_compute(dates_c12, sim_c12, 0.35, 7)
@@ -337,7 +342,7 @@ else:
 print()
 
 # ============================================
-# Summary
+# Summary (汇总)
 # ============================================
 print("=" * 50)
 print(f"TOTAL: {passed} passed, {failed} failed")

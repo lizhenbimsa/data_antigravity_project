@@ -1,7 +1,7 @@
-"""Tests for benefit_society_alt_anchor (A2 alternative anchor family).
+"""benefit_society_alt_anchor (A2 备择锚点族) 测试。
 
-V2.0 J-L-M robustness alignment plan §3 Phase 1 P1.9 (A2 portion).
-Uses MOCK embedding function — does not load shibing624 model (CI-safe).
+V2.0 J-L-M 稳健性对齐计划 §3 Phase 1 P1.9 (A2 部分)。
+使用 MOCK embedding 函数 — 不加载 shibing624 模型 (CI 安全)。
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ class TestLoadAnchors:
         """V2.E37: pair 5 负面句保留 Appendix typo '金融' (本应 '经济')."""
         pos, neg, _ = load_jlm_zh_anchors()
         assert pos[4] == "金融系统帮助经济"
-        # NOT correcting the Appendix typo per reproducibility requirement
+        # 按可复现性要求, 刻意不纠正 Appendix 原文 typo
         assert neg[4] == "金融系统有害金融"
 
     def test_sha256_stable(self) -> None:
@@ -52,9 +52,11 @@ class TestLoadAnchors:
         sha = meta["yaml_sha256"]
         assert isinstance(sha, str)
         assert len(sha) == 64  # SHA-256 hex
-        # If yaml content changes intentionally, update this expected hash
+        # 若有意修改 yaml 内容, 需同步更新此期望 hash
         # Round 9 V2.E37 修正版: yaml comments 重写 (澄清"不同研究问题"非"项目扩展")
-        assert sha == "b56a610c25a981b1c3e1d1ceb594cf6397ef5c279c5724ae47f2f7834a249b38"
+        # 2026-06-12 注释审计: yaml 注释英译中 (锚点句/键值逐位未动, safe_load 与改前
+        # 递归相等), 按上行指引同步更新期望 hash。
+        assert sha == "0e35d996917c8910bd9f6293cf920e2898438bd0fd225ab5957ad3f1acb57c4d"
 
     def test_missing_yaml_raises(self, tmp_path) -> None:
         """yaml 不存在 → FileNotFoundError."""
@@ -62,7 +64,7 @@ class TestLoadAnchors:
             load_jlm_zh_anchors(tmp_path / "nonexistent.yaml")
 
     def test_invalid_n_pairs_raises(self, tmp_path) -> None:
-        """n_pairs != 5 → ValueError (J-L-M canonical methodology violation)."""
+        """n_pairs != 5 → ValueError (违反 J-L-M 规范方法论的锚点对数)。"""
         bad_yaml = tmp_path / "bad.yaml"
         bad_yaml.write_text(
             "schema_version: '1.0'\n"
@@ -84,10 +86,10 @@ class TestLoadAnchors:
 
 
 def _mock_embedding_fn(d: int = 16):
-    """Return deterministic mock embedding function (hash-based) for testing."""
+    """返回确定性 mock embedding 函数 (基于 hash), 仅供测试。"""
 
     def fn(texts):
-        # Hash-based pseudo-deterministic embedding (NOT real semantic)
+        # 基于 hash 的伪确定性 embedding (非真实语义)
         n = len(texts)
         out = np.empty((n, d), dtype=np.float32)
         for i, t in enumerate(texts):
@@ -113,7 +115,7 @@ class TestComputeDirection:
             compute_direction_vector(["a", "b"], ["c"], fn)
 
     def test_degenerate_direction_raises(self) -> None:
-        """All anchors identical → degenerate (zero) direction → raise."""
+        """全部锚点相同 → 退化 (零) 方向向量 → 抛异常。"""
 
         def constant_fn(texts):
             return np.ones((len(texts), 8), dtype=np.float32)
@@ -122,19 +124,19 @@ class TestComputeDirection:
             compute_direction_vector(["a", "b"], ["c", "d"], constant_fn)
 
     def test_pair_wise_diff_equivalent_to_mean_then_diff(self) -> None:
-        """Verify N4 撤回: pair-wise diff average == mean-then-diff (linear algebra)."""
+        """验证 N4 撤回: 逐对差均值 == 先均值再差 (线性代数恒等)。"""
         fn = _mock_embedding_fn(d=8)
         pos = ["p1", "p2", "p3", "p4", "p5"]
         neg = ["n1", "n2", "n3", "n4", "n5"]
-        # Method A: mean(pos) - mean(neg), then normalize (codebase approach)
+        # 方法 A: mean(pos) - mean(neg) 后归一化 (代码库实现)
         d_a = compute_direction_vector(pos, neg, fn)
-        # Method B: mean of pair-wise differences, then normalize (J-L-M phrasing)
+        # 方法 B: 逐对差的均值后归一化 (J-L-M 原文表述)
         embeddings = fn(pos + neg)
         n = len(pos)
         pair_diffs = embeddings[:n] - embeddings[n:]
         d_b_raw = pair_diffs.mean(axis=0)
         d_b = d_b_raw / np.linalg.norm(d_b_raw)
-        # Both should be byte-identical up to floating-point tolerance
+        # 两者在浮点误差内应一致
         assert np.allclose(d_a, d_b, atol=1e-6)
 
 
@@ -156,9 +158,9 @@ class TestProjectTexts:
         assert np.all(scores <= 1.0 + 1e-5)
 
     def test_handles_zero_embedding(self) -> None:
-        """Zero-norm embedding → cosine = 0 (not NaN)."""
+        """零范数 embedding → cosine = 0 (而非 NaN)。"""
         embeddings = np.zeros((3, 8), dtype=np.float32)
-        embeddings[1] = 1.0  # one non-zero row
+        embeddings[1] = 1.0  # 一行非零
         direction = np.zeros(8, dtype=np.float32)
         direction[0] = 1.0
         scores = project_texts(embeddings, direction)
@@ -221,18 +223,18 @@ class TestAggregateBankYear:
         scores = np.array([0.5, np.nan, -0.3], dtype=np.float32)
         agg = aggregate_to_bank_year(df, scores)
         assert len(agg) == 1
-        # mean of [0.5, -0.3] = 0.1
+        # [0.5, -0.3] 的均值 = 0.1
         assert agg.iloc[0]["benefit_jlm_zh_mean"] == pytest.approx(0.1, abs=1e-5)
 
 
 # ============================================================================
-# CLI smoke (validate-only path; does not touch sentence_transformers)
+# CLI 冒烟测试 (validate-only 路径; 不触碰 sentence_transformers)
 # ============================================================================
 
 
 class TestCLIValidate:
     def test_validate_only_exits_clean(self) -> None:
-        """--validate-only does not load model and exits 0."""
+        """--validate-only 不加载模型且退出码 0。"""
         from news_process.pipeline.features import benefit_society_alt_anchor
 
         rc = benefit_society_alt_anchor.main(["--validate-only"])
@@ -282,7 +284,7 @@ class TestLoadAnchorsValidation:
         bad_yaml.write_text(
             "schema_version: '1.0'\nanchor_family: 'bad'\nn_pairs: 5\n"
             "pairs:\n"
-            "  - {id: 1, positive: 'a', negative: ''}\n"  # empty negative
+            "  - {id: 1, positive: 'a', negative: ''}\n"  # negative 为空
             "  - {id: 2, positive: 'c', negative: 'd'}\n"
             "  - {id: 3, positive: 'e', negative: 'f'}\n"
             "  - {id: 4, positive: 'g', negative: 'h'}\n"

@@ -7,7 +7,8 @@
 *   M (mediator)   = capex_it (primary) / r_and_d_intensity (secondary, R9-m02)
 *   Y (outcome)    = {{MAIN_DV}}    (car_5day_window 主) + patent_fintech_count (secondary)
 *
-* Mediation hypothesis: locus_layer → higher capex_it / R&D → higher patent + CAR.
+* 中介假说: locus_layer → 更高 capex_it / R&D 投入 → 更高专利产出 + CAR。
+* 白话: 检验"押注底层技术的银行 → 加大 IT/研发投入 → 专利和股价反应更好"这条因果链是否成立。
 * ============================================================================
 
 version 19
@@ -23,12 +24,12 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* Step 1: total effect Y ~ X (layer)
+* Step 1: 总效应 Y ~ X (layer)
 reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo total_layer
 
-* Step 2: a path capex_it ~ locus
+* Step 2: a 路径 capex_it ~ locus
 capture confirm variable capex_it
 if !_rc {
     reghdfe capex_it locus_layer_full locus_scenario_full $controls, ///
@@ -39,7 +40,7 @@ else {
     display "  [WARN] capex_it not in panel (M0.5.11 CSMAR enrichment pending)"
 }
 
-* Step 3: direct path Y ~ locus + capex_it
+* Step 3: 直接效应路径 Y ~ locus + capex_it
 capture confirm variable capex_it
 if !_rc {
     reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full capex_it $controls, ///
@@ -47,7 +48,7 @@ if !_rc {
     eststo direct_capex
 }
 
-* Step 4: secondary mediator r_and_d_intensity
+* Step 4: 次级中介变量 r_and_d_intensity
 capture confirm variable r_and_d_intensity
 if !_rc {
     reghdfe r_and_d_intensity locus_layer_full locus_scenario_full $controls, ///
@@ -59,7 +60,7 @@ if !_rc {
     eststo direct_rd
 }
 
-* Step 5: Patent outcome alternative
+* Step 5: 以专利产出作替代 outcome
 capture confirm variable patent_fintech_count
 if !_rc {
     reghdfe patent_fintech_count locus_layer_full locus_scenario_full $controls, ///
@@ -67,7 +68,7 @@ if !_rc {
     eststo total_patent
 }
 
-* Imai-Keele-Tingley 2010 sensitivity: medsens (per §5.7.3 SSC install)
+* Imai-Keele-Tingley 2010 敏感性分析: medsens (per §5.7.3 SSC install)
 * ssc install medsens, replace
 * medsens, sims(1000) rho(-0.5 0.5)
 

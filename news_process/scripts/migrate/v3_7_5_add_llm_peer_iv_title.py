@@ -3,26 +3,27 @@
 ⚠ 已废 (标题情感轨已删): 本脚本物化的列 llm_peer_tone_iv_title (2SLS 标题工具变量) 是标题情感轨
 产物, 已随 remove-title-track 标题轨取消。请勿再对 panel 写入该已废列。仅作历史留存。下方为历史描述。
 
-Materializes the genuine 2SLS title instrument on the EXISTING frozen panel WITHOUT a
-full stage 14-40 re-run, with two hard safety gates:
+在**现有** frozen panel 上物化真 2SLS 标题工具变量, 而**无需**重跑完整
+stage 14-40, 设两道硬安全门:
 
-  1. CACHE-ONLY: `_call_llm_peer` is monkeypatched so a cache MISS returns None and makes
-     NO API call (the miss count is reported). The LLM peer network is rebuilt purely
-     from `_llm_cache.db` -> $0 incremental LLM. Any nonzero miss count means the
-     reconstruction diverged from the panel-build run.
-  2. FAITHFULNESS GATE: the rebuilt `llm_peer_tone_iv_full` is compared key-by-key
-     against the on-panel values. The new `llm_peer_tone_iv_title` is written ONLY if
-     every key matches exactly (same peer network -> consistent instrument). Otherwise
-     the script aborts WITHOUT touching the panel.
+  1. CACHE-ONLY (纯缓存): monkeypatch `_call_llm_peer`, 使缓存 MISS 直接返回 None
+     且**不**调 API (miss 数会被报告)。LLM peer 网络纯由 `_llm_cache.db` 重建
+     -> 增量 LLM 成本 $0。miss 数非零即说明重建与 panel-build 那次运行有分歧。
+  2. FAITHFULNESS GATE (忠实性门): 重建出的 `llm_peer_tone_iv_full` 与 panel 上
+     的现值逐 key 比对。**仅当**每个 key 都精确一致 (同一 peer 网络 -> 工具变量
+     一致) 才写入新列 `llm_peer_tone_iv_title`; 否则脚本中止, 不碰 panel。
 
-df_exploded is reconstructed from `24_herd_decay.parquet` (the runner's `input_path`,
-runner.py:173-180) with year derived from `日期` (runner.py:1101-1102 convention) —
-faithful because compute_llm_peer_iv consumes only {target_bank, year,
-co_mentioned_banks, 标题, 内容} and no rows are dropped before df_exploded.
+df_exploded 由 `24_herd_decay.parquet` 重建 (即 runner 的 `input_path`,
+runner.py:173-180), year 按 `日期` 派生 (runner.py:1101-1102 约定) — 之所以忠实,
+是因为 compute_llm_peer_iv 只消费 {target_bank, year, co_mentioned_banks,
+标题, 内容}, 且 df_exploded 之前不丢任何行。
 
-Usage:
-  python scripts/migrate/v3_7_5_add_llm_peer_iv_title.py            # DRY (validate only)
-  python scripts/migrate/v3_7_5_add_llm_peer_iv_title.py --write    # write if faithful
+用法:
+  python scripts/migrate/v3_7_5_add_llm_peer_iv_title.py            # DRY (只验证)
+  python scripts/migrate/v3_7_5_add_llm_peer_iv_title.py --write    # 忠实才写入
+
+白话: 先用缓存"免费重演"一遍 LLM 同行网络, 重演结果若和面板上原有列一字不差,
+才敢把新算的标题工具变量列补进面板; 任何一点对不上就立刻放弃, 面板原样不动。
 """
 from __future__ import annotations
 
@@ -43,7 +44,7 @@ _MISS = {"n": 0}
 
 
 async def _cache_only_call(session, semaphore, bank, year, sentences, model_cfg, cache):
-    """Cache-only replacement for llm_peer_iv._call_llm_peer: NO API on miss."""
+    """llm_peer_iv._call_llm_peer 的纯缓存替身: miss 时不调 API。"""
     model_id = model_cfg["model_name"]
     prompt = llm_peer_iv.PEER_PROMPT.format(
         bank_name=bank,
@@ -74,7 +75,7 @@ def main() -> None:
     if not llm_peer_iv.MODELS:
         sys.exit("ABORT: no LLM models configured (config tone_llm_processing.models)")
 
-    # Gate 1: cache-only — no API calls possible.
+    # 门 1: 纯缓存 — 物理上不可能发出 API 调用。
     llm_peer_iv._call_llm_peer = _cache_only_call
 
     panel = pd.read_parquet(_PANEL)

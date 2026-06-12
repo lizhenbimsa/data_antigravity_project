@@ -1,18 +1,21 @@
-"""probe_llm_cache — LLM cache occupancy probe (V4 T0.0).
+"""probe_llm_cache — LLM 缓存占用探针 (V4 T0.0)。
 
-One-shot diagnostic: report cached entry count and time range of the
-SQLite-backed LLM cache. Does NOT measure hit-rate (that requires
-counters on LLMCache.get/put — out of scope for Wave 0; future work).
+一次性诊断: 报告 SQLite LLM 缓存 (_llm_cache.db) 的条目总数与时间范围。
+**不**测量命中率 (那需要在 LLMCache.get/put 上加计数器 — 超出 Wave 0 范围,
+留作后续工作; 命中率审计请用 verify_stage21_cache_coverage)。
 
-Usage:
+用法:
     python -m news_process.scripts.audit.probe_llm_cache
 
-Output (stdout, also appended to docs/llm_cache_probe_<date>.log):
+输出 (stdout, 同时追加写入 docs/llm_cache_probe_<date>.log):
     cached entries:   <int>
-    earliest entry:   <ISO timestamp or '(empty)'>
-    latest entry:     <ISO timestamp or '(empty)'>
-    db file size:     <human-readable>
-    db path:          <absolute>
+    earliest entry:   <ISO 时间戳或 '(empty)'>
+    latest entry:     <ISO 时间戳或 '(empty)'>
+    db file size:     <人类可读大小>
+    db path:          <绝对路径>
+
+白话: 只是数一数缓存数据库里存了多少条、最早最晚各是什么时候、文件多大,
+纯读不写, 不花钱不联网。
 """
 
 from __future__ import annotations
@@ -22,7 +25,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Resolve project root from this file's location (no chdir, no load_config side-effects).
+# 从本文件位置解析项目根 (不 chdir, 不触发 load_config 副作用)。
 # probe_llm_cache.py → scripts/audit/ → scripts/ → news_process/
 _HERE = Path(__file__).resolve()
 PROJECT_ROOT = _HERE.parents[2]

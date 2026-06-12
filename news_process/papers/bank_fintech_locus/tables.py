@@ -2,12 +2,12 @@
 
 P4 = Bank Fintech Locus (Gomber 2018 JMIS + Kogan 2017 QJE).
 
-Table layout (per plan §5.8.2 / §B.4):
-    Table 1: descriptive (locus_layer / locus_scenario / outcomes / controls)
-    Table 2: main regression (M1→M6 progressive; layer × event study)
-    Table 3: mechanism (locus → R&D / IT capex → patent + stock return; Baron-Kenny)
-    Table 4: heterogeneity (三波 fintech 浪潮 wave_1/2/3 + consolidation + SOE)
-    Table 5: advanced robustness (含 alternative locus classifier + Borusyak DiD)
+表格布局 (per plan §5.8.2 / §B.4):
+    Table 1: 描述统计 (locus_layer / locus_scenario / outcomes / controls)
+    Table 2: 主回归 (M1→M6 递进控制; layer × event study)
+    Table 3: 机制 (locus → R&D / IT capex → patent + stock return; Baron-Kenny)
+    Table 4: 异质性 (三波 fintech 浪潮 wave_1/2/3 + consolidation + SOE)
+    Table 5: 高阶稳健性 (含 alternative locus classifier + Borusyak DiD)
 """
 
 from __future__ import annotations
@@ -76,26 +76,26 @@ def write_table1(paper_config: PaperConfig | None = None,
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 2: M1→M6 progressive main regression (layer × event study baseline)."""
+    """Table 2: M1→M6 递进式主回归 (layer × event study baseline)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_locus', 'table2_main.csv', paper_config)
 
 
 def build_table3_mechanism(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 3: Mediation (locus → capex_it / r_and_d_intensity → patent / car).
+    """Table 3: 中介机制 (locus → capex_it / r_and_d_intensity → patent / car).
 
-    Baron-Kenny 1986 + Imai-Keele-Tingley 2010 sensitivity."""
+    Baron-Kenny 1986 中介三步法 + Imai-Keele-Tingley 2010 敏感性分析."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_locus', 'table3_mechanism.csv', paper_config)
 
 
 def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 4: 三波 fintech 浪潮 (wave_1/2/3) + consolidation + SOE heterogeneity."""
+    """Table 4: 三波 fintech 浪潮 (wave_1/2/3) + consolidation + SOE 异质性."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_locus', 'table4_heterogeneity.csv', paper_config)
 
 
 def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 5: Advanced robustness + alternative locus classifier (full vs ctx) + Borusyak DiD."""
+    """Table 5: 高阶稳健性 + 替代 locus 分类器 (full vs ctx 轨) + Borusyak DiD."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_locus', 'table5_robustness.csv', paper_config)

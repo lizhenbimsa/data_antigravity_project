@@ -4,7 +4,7 @@ run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
 
 功能:
     单独执行流水线的模块四: 评估验证模块。
-    包含以下阶段(由 config.yaml 中 validation 节点控制):
+    包含以下阶段(由 config/validation.yaml 的 validation 节点控制):
       - 阶段31:  阈值敏感性分析         (31_bank_fintech_threshold.py)
       - 阶段32:  人工抽样验证样本生成   (32_news_llms_human.py)
       - 阶段32a: 去重阈值敏感性分析     (32a_dedup_threshold_sensitivity.py)

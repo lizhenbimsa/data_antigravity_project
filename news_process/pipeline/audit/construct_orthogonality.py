@@ -35,6 +35,11 @@ Concurrency (修 F7 + F43):
 Logging 约定 (修 F13):
     与 v3.4.0 main pipeline 一致, 通过 logger.info / logger.warning 输出.
     stage 内禁止 print() 直接输出; 诊断信号全部走 logger.
+
+白话: 这个阶段检验我们造的三个创新测度 (实质性/落点/协同模式) 是不是
+真的在测三件不同的事。NMI (归一化互信息) 衡量两个标签之间"互相能猜出
+多少"; 如果两两 NMI 都低 (与随机打乱后的水平差不多), 说明三个测度各管
+各的、没有重复计量, 论文附录就能放心声称"构念正交"。
 """
 from __future__ import annotations
 
@@ -64,7 +69,7 @@ ALL_DIMS = DIMS_FULL + DIMS_CTX
 
 
 def _lazy_import_nmi():
-    """Defer sklearn import to function scope (CI light job loads only when stage runs)."""
+    """把 sklearn import 推迟到函数作用域 (CI 轻量 job 只在阶段真跑时才加载)。"""
     from sklearn.metrics import normalized_mutual_info_score
     return normalized_mutual_info_score
 
@@ -76,22 +81,26 @@ def compute_nmi_matrix(
     bootstrap_n: int = 1000,
     seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Compute NMI matrix + bootstrap 95% CI + per-pair n.
+    """计算 NMI 矩阵 + bootstrap 95% CI + 每对样本数。
 
     Returns:
-        (nmi_point, ci_low, ci_high, n_pair_matrix) — all 4 DataFrames indexed/columned by dims.
+        (nmi_point, ci_low, ci_high, n_pair_matrix) — 4 个 DataFrame 均以 dims 为行列索引。
 
     sample_strategy:
-        'listwise_complete' — 全 dims 同时非脏的 row (修 C-NEW-1; recommended for matrix)
+        'listwise_complete' — 全 dims 同时非脏的 row (修 C-NEW-1; 矩阵推荐口径)
         'pairwise_complete' — 每 (d1, d2) 各自 dropna (legacy, sample size 不可比)
 
-    Bootstrap implementation (修 C1 + H-NEW-2):
+    Bootstrap 实现 (修 C1 + H-NEW-2):
         - 在 sampled DataFrame 上整体 resample (两列同步 row, 修 C1)
         - 用 NumPy 2.x SeedSequence.spawn 替代 rng.integers (跨 NumPy 版本 reproducible, 修 H-NEW-2)
 
-    Degenerate dim-pair (修 F40):
+    退化维度对 (修 F40):
         若 d1 或 d2 在 clean sample 上 nunique() < 2 (constant), 跳过该 pair 并 logger.error;
         n_pair[i, j] = 0; 写入 audit log §A.degenerate_dim_pair.
+
+    白话: listwise = 只要任一维度缺值就整行丢掉, 保证所有格子用同一批
+    样本、相互可比; pairwise = 每对维度各丢各的缺值, 样本量不一致,
+    仅作历史兼容保留。
     """
     nmi_score = _lazy_import_nmi()
 
@@ -127,8 +136,8 @@ def compute_nmi_matrix(
     for i, d1 in enumerate(dims):
         for j, d2 in enumerate(dims):
             if sample_strategy == 'pairwise_complete':
-                # Dedupe column list to avoid duplicate-named columns when d1==d2
-                # (DataFrame[[d1,d1]] would return DataFrame slice instead of Series).
+                # d1==d2 时去重列名, 避免重名列
+                # (DataFrame[[d1,d1]] 会返回 DataFrame 切片而非 Series)。
                 cols = [d1] if d1 == d2 else [d1, d2]
                 clean = df[cols].dropna()
             else:
@@ -137,7 +146,7 @@ def compute_nmi_matrix(
             if len(clean) < 100:
                 continue
 
-            # F40: degenerate (both-constant) guard
+            # F40: 退化 (常量列) 守卫
             if clean[d1].nunique() < 2 or clean[d2].nunique() < 2:
                 logger.error(
                     f"  v3.5.0 D3 degenerate dim-pair: ({d1}, {d2}) nunique < 2; "
@@ -202,13 +211,16 @@ def compute_permutation_null(
     n_permutations: int = 1000,
     seed: int = 43,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Permutation-based null distribution for NMI thresholds (修 C3).
+    """基于置换 (permutation) 的 NMI 阈值 null 分布 (修 C3)。
 
-    Returns (null_p95, null_p99) — matrices of NMI 95% / 99% percentile of null
-    distribution per (d1, d2). Used as pre-registered threshold reference rather
-    than ad-hoc 0.15 / 0.30 thresholds.
+    Returns (null_p95, null_p99) — 每对 (d1, d2) 的 null 分布 NMI 95% / 99%
+    分位矩阵。作为预注册阈值参照, 替代拍脑袋的 0.15 / 0.30 固定阈值。
 
-    Reads off-diagonal cells only (i != j); diagonals are NaN.
+    只填非对角格 (i != j); 对角线为 NaN。
+
+    白话: 把其中一列标签随机打乱一千次, 看"纯属巧合"时 NMI 能有多大,
+    取其 95%/99% 分位当门槛 — 观测值只有超过这个门槛才算"真有关联",
+    比直接定一个固定数字更有说服力。
     """
     nmi_score = _lazy_import_nmi()
     n = len(dims)
@@ -297,9 +309,9 @@ def run_stage(
     n_permutations: int = 1000,
     seed: int = 42,
 ) -> dict:
-    """Stage 39c entry point: read stage 21 parquet, compute NMI matrices + null, write outputs.
+    """Stage 39c 入口: 读 stage 21 parquet, 算 NMI 矩阵 + null 分布, 写出产物。
 
-    Outputs (per plan §2.2.3):
+    产物 (per plan §2.2.3):
         39c_nmi_matrix_full.parquet   — full 3×3 NMI + CI + n_pair (multi-frame parquet)
         39c_nmi_matrix_ctx.parquet    — ctx  3×3 同
         39c_nmi_matrix_cross.parquet  — 6×6 full ∪ ctx cross-matrix
@@ -354,13 +366,13 @@ def run_stage(
         df, DIMS_FULL, n_permutations=n_permutations, seed=perm_seed_state,
     )
 
-    # classify orthogonality (3 dim full only — simpler narrative for paper Appendix A.2)
+    # 正交性分类 (仅 full 3 维 — 论文 Appendix A.2 叙事更简洁)
     classify = classify_orthogonality(point_f, null_p95_f, null_p99_f)
 
-    # Write outputs
+    # 写出产物
     def _save_matrix(name: str, point: pd.DataFrame, lo: pd.DataFrame,
                      hi: pd.DataFrame, n: pd.DataFrame) -> None:
-        # Stack 4 layers into long-form DataFrame for parquet
+        # 把 4 层矩阵堆成长表 DataFrame 再落 parquet
         long = []
         for d1 in point.index:
             for d2 in point.columns:
@@ -379,14 +391,14 @@ def run_stage(
     null_p95.to_parquet(out_path / '39c_nmi_null_p95.parquet')
     null_p99.to_parquet(out_path / '39c_nmi_null_p99.parquet')
 
-    # off-diagonal max for summary (nan-safe in case some pairs degenerate)
+    # summary 用的非对角最大值 (nan 安全, 防部分 pair 退化)
     off_diag_mask = ~np.eye(len(ALL_DIMS), dtype=bool)
     off_diag_vals = point_x.values[off_diag_mask]
     max_off_diag = float(np.nanmax(off_diag_vals)) if not np.all(np.isnan(off_diag_vals)) else float('nan')
 
-    # CR-15: vacuous truth bug fix — when classify is all 'undefined' (e.g.,
-    # all permutation nulls failed due to degenerate dims), `all(... if v != 'undefined')`
-    # returned True (vacuous), wrongly reporting 'strong'. Filter explicitly first.
+    # CR-15: 空真 (vacuous truth) bug 修复 — 当 classify 全为 'undefined' 时
+    # (如所有 permutation null 因维度退化而失败), 旧 `all(... if v != 'undefined')`
+    # 对空集合返回 True (空真), 错报 'strong'。现先显式过滤再判。
     non_undefined = [v for v in classify.values() if v != 'undefined']
     if not non_undefined:
         interpretation = 'undefined'

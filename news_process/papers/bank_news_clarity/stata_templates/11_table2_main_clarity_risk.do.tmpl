@@ -4,9 +4,11 @@
 *   DV  = z_score   (CAR-based Z-score 变体, cf. Laeven-Levine 2009 JFE;
 *         fix(omni-g-zscore-papers-01, 2026-06-11): 资本项=监管 Basel CAR 非
 *         L&L 原版账面 equity/assets, 见 paper_spec.yaml outcome 更正)
+*         白话: Z-score 越高表示银行离资不抵债越远、风险越低; 此处资本项用监管
+*         资本充足率 (CAR), 与原版账面口径不同, 故称"变体"。
 *   TX  = mean_clarity_score_ctx   (You 2018 词典, _ctx 轨 G3 严谨路线)
 *
-* M1-M6 progressive:
+* M1-M6 渐进设定 (progressive):
 *   M1: 主解释 only
 *   M2: + Bank FE
 *   M3: + Bank FE + Year FE
@@ -14,8 +16,8 @@
 *   M5: + year controls
 *   M6: + SOE × clarity 交互 (Acharya 2016 RFS framework)
 *
-* Anchor: Bushman-Williams 2012 JAE info environment → bank risk-taking framework
-* Reframe: clarity = external info env quality (Bushee 2010 JAR), NOT 银行透明度
+* 理论锚点 (Anchor): Bushman-Williams 2012 JAE 信息环境 → 银行风险承担框架
+* 重新定位 (Reframe): clarity = 外部信息环境质量 (Bushee 2010 JAR), 而非银行透明度
 
 version 19
 clear all
@@ -58,7 +60,7 @@ if "`MISSING_VARS'" != "" {
 }
 
 * ──────────────────────────────────────────────────────────────────────────
-* M1-M6 progressive
+* M1-M6 渐进设定
 * ──────────────────────────────────────────────────────────────────────────
 eststo M1: reghdfe `DV' `TX', noabsorb vce(cluster bank_id year)
 

@@ -1,4 +1,4 @@
-* news_process v3.2.0 — Table 5: Advanced Robustness (plan v14 §9.2)
+* news_process v3.2.0 — Table 5: 高阶稳健性 Advanced Robustness (plan v14 §9.2)
 *
 * 高阶稳健性 (顶刊 standard):
 *   1. Placebo test (随机分配处理变量, β 应为 0)
@@ -35,6 +35,8 @@ if _rc {
 * 既不保留处理变量的边际分布 (处理银行数随机漂移), bysort 无 stable 平局序也非确定,
 * 与旧注释"随机置换 (保 bank-level 数量)"不符。现改为银行级真 shuffle (Fisher 置换
 * 检验语义): bank-level 处理值在银行之间重排, 处理者数量精确保持。
+* 白话: 把"哪些银行算处理组"的标签在银行之间随机洗牌后重跑回归; 假标签也跑出显著
+* 结果就说明主结果可疑, 洗牌时处理组银行的总个数保持不变。
 preserve
     set seed 12345
     capture confirm variable `EXPL'
@@ -61,7 +63,7 @@ preserve
     }
 restore
 
-* --- 5b: Sub-period split ---
+* --- 5b: Sub-period split 子期切分 ---
 quietly summarize year
 local median_year = floor((r(min) + r(max)) / 2)
 
@@ -82,8 +84,9 @@ else {
     display "  ⚠️ 5b sub-period split 跳过: 早期子样本 N=`n_early' / 晚期 N=`n_late' (T 过短)"
 }
 
-* --- 5c: Drop one bank at a time (influential obs) ---
+* --- 5c: 逐一剔除银行 Drop one bank at a time (influential obs 检验) ---
 * 主回归系数稳健性: β across leave-one-out 应在主回归 95% CI 内
+* 白话: 每次剔除一家银行重跑回归, 看系数是否仍落在全样本 95% 置信区间内, 防止结果被个别银行带偏。
 * fix(omni-g-templates-15, 2026-06-11) (b): 实装 95% CI 判定 — 旧版 n_stable 无条件
 * 自增 (b_coef 算出即弃), 表注的稳定性比率恒为 100%, 是装饰性假统计量。现先估全样本
 * 主回归取 β̂±1.96·SE, 循环内逐一比较后计数。
@@ -105,8 +108,10 @@ foreach b of local banks {
 }
 display "  Leave-one-out stable specs: `n_stable'/`n_banks' (within full-sample 95% CI [`ci_lo', `ci_hi'])"
 
-* --- 5d: Wild bootstrap (MacKinnon & Webb 2020 JBES, small clusters) ---
+* --- 5d: 野聚类自助法 Wild bootstrap (MacKinnon & Webb 2020 JBES, 小聚类数情形) ---
 * 必装包: ssc install boottest
+* 白话: 银行 (聚类) 个数偏少时, 普通聚类标准误会低估不确定性; wild cluster bootstrap
+* 通过对残差反复重抽样重新算 p 值, 给出小样本下更可信的显著性判断。
 capture which boottest
 if !_rc {
     reghdfe `DV' `EXPL' `LOCUS' `SUBST', absorb(bank_id year) vce(cluster bank_id)

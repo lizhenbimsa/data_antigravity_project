@@ -84,7 +84,7 @@ def _derived_files() -> list[Path]:
 
 
 # ----------------------------------------------------------------------------
-# Targets.
+# 各子命令实现 (对应 Makefile targets).
 # ----------------------------------------------------------------------------
 
 
@@ -103,6 +103,9 @@ def cmd_sizes(_args: argparse.Namespace) -> int:
 
 
 def cmd_clean_cache(_args: argparse.Namespace) -> int:
+    # ⚠ 注意: _llm_cache.db 是 stage 21 确定性锚点 (见 CLAUDE.md "铁律: 勿删")。
+    # 删除后 golden 不再可 $0 复现, 须重跑付费 stage 21。本命令仅供确认要全量重跑时使用。
+    # 白话: 这个数据库存着所有已付费的 LLM 调用结果, 删了就得重新花钱调 API。
     proc = _processed()
     cache = proc / '_cache'
     db = proc / '_llm_cache.db'

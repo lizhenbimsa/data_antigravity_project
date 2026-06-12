@@ -29,7 +29,7 @@ from news_process.pipeline.panel import geography as _geo  # noqa: E402
 
 class _BpFacade:
     """Phase 5a: 桥接层, 供测试以 ``bp.<x>`` 访问迁移后的函数与常量."""
-    # Functions
+    # 函数
     encode_sentiment = staticmethod(_enc.encode_sentiment)
     parse_time = staticmethod(_enc.parse_time)
     aggregate_panel = staticmethod(_enc.aggregate_panel)

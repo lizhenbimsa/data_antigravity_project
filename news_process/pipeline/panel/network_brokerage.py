@@ -248,6 +248,11 @@ def compute_brokerage_centrality(
 
     仅提取 bipartite=1 (银行) 节点的中心度值, 排除媒体节点。
 
+    白话: 特征向量中心度的逻辑是"你的重要性 = 你邻居重要性的加总" —
+    被很多媒体报道还不够, 被**本身就连接广泛的**媒体报道才得高分
+    (类似 Google PageRank)。图不连通时必须按"岛"分别算, 否则小岛上
+    银行的数值只是算法的数值残渣, 没有任何网络含义。
+
     数据流:
       df_exploded (11_news_bank.py) → build_media_bank_bipartite()
       → nx.eigenvector_centrality → panel['brokerage_eigen_cent']

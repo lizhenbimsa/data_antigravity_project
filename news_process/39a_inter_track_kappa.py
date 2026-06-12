@@ -1,8 +1,8 @@
-"""Thin shim → news_process.pipeline.audit.inter_track_kappa.
+"""Thin shim → news_process.pipeline.audit.inter_track_kappa。
 
-Stage 39a: inter-track Cohen's κ for innovation_locus and
-innovation_substantiveness on the llm_verified_dual_both subset.
-Plan v1.37 P1 (R7C-01 placement; ≤30 lines per shim invariant).
+Stage 39a: 在 llm_verified_dual_both 子集上对 innovation_locus /
+innovation_substantiveness / collab_mode 三维计算双轨 (inter-track) Cohen's κ。
+Plan v1.37 P1 (R7C-01 placement; shim 不变式 ≤30 行)。
 """
 import os
 import sys

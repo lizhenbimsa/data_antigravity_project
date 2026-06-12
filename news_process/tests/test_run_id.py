@@ -46,7 +46,7 @@ def test_generate_run_id_truncates_long_hostname(monkeypatch):
     monkeypatch.setattr(_socket, "gethostname",
                          lambda: "very.long.fqdn.example.subdomain.host.com")
     rid = generate_run_id()
-    # split on '-': ts, host(<=24), pid
+    # 按 '-' 切分: ts, host(≤24 字符), pid
     parts = rid.split("-")
     # ts 含 '-' 否, 这里需更稳健解析: pid 是 trailing 数字, host 是其前
     pid = parts[-1]

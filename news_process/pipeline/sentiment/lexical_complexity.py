@@ -129,6 +129,10 @@ _PUNCT_FLAG = 'x'  # jieba.posseg 标点/未知词性
 # omni-g-tonewords-10/-11 — 两端隔离后全局 jieba 即使被第三方污染也不影响本族)。
 # RLock (非 Lock): _get_pristine_posseg 持锁期间嵌套调用 _get_pristine_tokenizer,
 # 非重入锁会自死锁。
+# 白话: 全局共享的分词器像公共白板, 别的模块可能往上面加自定义词, 一加,
+# 这里算出来的"难词率"等数值就会跟着变, 同一篇文章前后两次算出不同结果。
+# 解决办法是自己私藏一块干净白板 (私有 Tokenizer), 谁也写不到它上面,
+# 保证结果永远可复现。
 _PRISTINE_LOCK = threading.RLock()
 _PRISTINE_TOKENIZER: jieba.Tokenizer | None = None
 _PRISTINE_POSSEG: pseg.POSTokenizer | None = None
@@ -250,6 +254,11 @@ def _char_trigram_redundancy(content: str) -> tuple[float, float]:
     redundancy 是 TTR 族测度, 对长度强机械依赖 (盘上实测 corr=0.50, 长度五分位
     均值严格单调 0.119→0.228; Covington & McFall 2010 对 TTR 的批评同构), 截面/
     轨间差异大半由长度驱动 → 输出同定义域的 log-length 控制变体列, 回归必控。
+
+    白话: 把文章切成连续 3 个字一组的小片段, 数一数有多少片段是重复出现的,
+    重复越多说明越啰嗦。但文章越长, 撞出重复片段的概率天然越高 —— 长文
+    显得"更啰嗦"很多时候只是因为它长。所以这里顺手把文章长度 (取对数) 也
+    输出一列, 做回归时把它放进去当控制变量, 才能分清"真啰嗦"和"只是长"。
     """
     s = re.sub(r'\s+', '', content)
     if len(s) < 3:

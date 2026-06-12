@@ -1,11 +1,11 @@
-"""Unit tests for papers/benefit_society/dimension_analysis.py.
+"""papers/benefit_society/dimension_analysis.py 的单元测试。
 
-Coverage targets:
-- Dimension index slicing aligns with Stage 27 anchor labels
-- Direction vector computation produces unit-norm vectors
-- Projection cosine similarity stays in [-1, 1]
-- Bank-year aggregation matches equal-weighted mean per Jha 2026 Eq. 2
-- Anchor import tolerates Stage 27 module signature
+覆盖目标:
+- 维度索引切片与 Stage 27 anchor 标签对齐
+- 方向向量计算产出单位范数 (unit-norm) 向量
+- 投影余弦相似度保持在 [-1, 1] 区间
+- bank-year 聚合与等权均值一致 (Jha 2026 Eq. 2)
+- anchor 导入兼容 Stage 27 模块签名
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ def dim_module():
 
 
 def test_dimension_indices_cover_all_anchors(dim_module):
-    """All 10 anchor indices must appear exactly once across 4 dimensions."""
+    """全部 10 个 anchor 索引必须在 4 个维度间恰好各出现一次。"""
     all_indices = []
     for indices in dim_module.DIMENSION_INDICES.values():
         all_indices.extend(indices)
@@ -34,14 +34,14 @@ def test_dimension_indices_cover_all_anchors(dim_module):
 
 
 def test_dimension_labels_match_indices(dim_module):
-    """Every dimension in DIMENSION_INDICES must have a label."""
+    """DIMENSION_INDICES 中的每个维度都必须有对应标签。"""
     for dim_name in dim_module.DIMENSION_INDICES:
         assert dim_name in dim_module.DIMENSION_LABELS, \
             f"Missing label for {dim_name}"
 
 
 def test_import_anchors_returns_lists(dim_module):
-    """_import_anchors must return parallel pos/neg lists of length 10."""
+    """_import_anchors 必须返回长度均为 10 的平行 pos/neg 列表。"""
     pos, neg = dim_module._import_anchors()
     assert isinstance(pos, list)
     assert isinstance(neg, list)
@@ -49,11 +49,11 @@ def test_import_anchors_returns_lists(dim_module):
 
 
 def test_project_texts_by_dimension_cosine_range(dim_module):
-    """Projection scores must be cosine similarities in [-1, 1]."""
+    """投影分数必须是落在 [-1, 1] 内的余弦相似度。"""
     rng = np.random.default_rng(42)
     text_emb = rng.standard_normal((20, 128)).astype(np.float32)
 
-    # Build unit-norm fake directions
+    # 构造单位范数的伪方向向量
     directions = {}
     for dim_name in dim_module.DIMENSION_INDICES:
         d = rng.standard_normal(128).astype(np.float32)
@@ -68,7 +68,7 @@ def test_project_texts_by_dimension_cosine_range(dim_module):
 
 
 def test_project_texts_zero_norm_handled(dim_module):
-    """Zero-norm text embeddings must not cause division by zero."""
+    """零范数文本 embedding 不得导致除零。"""
     text_emb = np.zeros((3, 64), dtype=np.float32)
     direction = np.ones(64, dtype=np.float32) / np.sqrt(64)
     scores = dim_module.project_texts_by_dimension(
@@ -79,8 +79,8 @@ def test_project_texts_zero_norm_handled(dim_module):
 
 
 def test_aggregate_to_bank_year_equal_weighted_mean(dim_module):
-    """Aggregation must match equal-weighted mean (Jha 2026 Eq. 2)."""
-    # Build a fake exploded DataFrame with 2 banks × 2 years × 3 articles each
+    """聚合结果必须等于等权均值 (Jha 2026 Eq. 2)。"""
+    # 构造伪 exploded DataFrame: 2 银行 × 2 年 × 各 3 篇文章
     df_exp = pd.DataFrame({
         "target_bank": ["A"] * 6 + ["B"] * 6,
         "year": [2017, 2017, 2017, 2018, 2018, 2018] * 2,
@@ -120,7 +120,7 @@ def test_compute_direction_vectors_anchor_mismatch_raises(dim_module):
 
 
 def test_compute_direction_vectors_missing_cache_raises(dim_module, tmp_path):
-    """Missing LLM cache must produce a clear RuntimeError."""
+    """LLM 缓存缺失时必须抛出清晰的 RuntimeError。"""
     pos = ["p1"] * 10
     neg = ["n1"] * 10
     cache_path = tmp_path / "missing.db"
@@ -131,7 +131,7 @@ def test_compute_direction_vectors_missing_cache_raises(dim_module, tmp_path):
 
 
 def test_get_anchor_embeddings_uses_cache(dim_module, tmp_path, monkeypatch):
-    """Anchor embedding retrieval must hit LLMCache, not call API."""
+    """anchor embedding 检索必须命中 LLMCache, 而非调用 API。"""
     from news_process.core.caching import LLMCache
 
     cache_path = tmp_path / "fake.db"

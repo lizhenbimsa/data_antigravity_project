@@ -129,6 +129,9 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             df[col] = df[col].fillna('').astype(str)
 
     # 8. 媒体名称清理: 去除报纸名称中的各类修饰后缀、附加版面及无效字符
+    # 白话: 把 "人民日报·海外版 since 2008" 这类带修饰的报名逐步裁剪回母报名
+    # ("人民日报"), 让同一家报纸在数据里只剩一个统一名字; 裁过头变成空串时
+    # 回退到只去掉换行符的原名, 不会把媒体名洗丢。
     if '媒体(中文)' in df.columns:
         orig_media = df['媒体(中文)'].astype(str)
         # (0) 基础预清理: 剔除换行/制表符等不可见格式字符, 作为最安全的基底名称

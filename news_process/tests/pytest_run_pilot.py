@@ -1,13 +1,11 @@
 """
 pytest_run_pilot.py — 微缩沙盒测试 (200条合成数据)
 ====================================================
-  1. 41 聚合中的 G2 块
-  2. Washing Ratio + dummy_no_positive_news
-  3. J-F 系数计算
-  3. Washing Ratio + dummy_no_positive_news
-  4. J-F 系数计算
-  5. 跟风检测 (24_herd_decay_processor)
-  6. 网络溢出 (46_network_spillovers)
+实际包含 4 个测试函数 (文内 print 的 "TEST 1/2/4/5" 编号为历史遗留, 与函数序号不一一对应):
+  1. J-F 系数计算 (test_jf_coefficient)
+  2. Washing Ratio + dummy_no_positive_news (test_washing_ratio)
+  3. 跟风检测 (test_herd_detection)
+  4. 网络溢出行随机标准化与滞后逻辑 (test_network_spillover)
 """
 
 import os

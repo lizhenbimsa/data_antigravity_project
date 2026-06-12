@@ -394,7 +394,8 @@ class TestComputeLabelAgreementRate:
         })
         result = compute_label_agreement_rate(df)
         assert result['full_agreement_rate'] == 0.0
-        # 但多数一致率仍为 1.0（每行最高频次=1 >= 3/2=1.5 → False）
+        # 多数一致率也为 0.0（每行最高频次=1, 严格多数判定 1 > 3/2=1.5 为 False）
+        # （原注释误写"仍为 1.0", 与下行断言 == 0.0 矛盾, 已更正）
         assert result['majority_agreement_rate'] == 0.0
 
     def test_majority_partial(self):

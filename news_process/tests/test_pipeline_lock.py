@@ -398,15 +398,14 @@ class TestPipelineLockEdgeCases(unittest.TestCase):
 
 
 # ============================================================================
-# quality-hardening Round 12 (2026-05-27): core/locking.py 74% → ~88%
-# Windows-reachable except handlers (Linux fcntl branches are excluded on
-# Windows because fcntl is unavailable there, so those code paths cannot be
-# exercised on this platform)
+# quality-hardening Round 12 (2026-05-27): core/locking.py 覆盖率 74% → ~88%
+# 覆盖 Windows 上可触达的 except handler (Linux fcntl 分支在 Windows 上
+# 因 fcntl 模块不可用而无法执行, 故这些代码路径在本平台不测)
 # ============================================================================
 
 
 class TestPipelineLockErrorHandlers(unittest.TestCase):
-    """missing-branch coverage for OSError / Exception cleanup paths."""
+    """补齐 OSError / Exception 清理路径的缺失分支覆盖。"""
 
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
@@ -464,7 +463,7 @@ class TestPipelineLockErrorHandlers(unittest.TestCase):
     def test_handle_lock_failure_close_oserror_logged_to_debug(self):
         """_handle_lock_failure 内 close() 失败 → debug log, 不阻塞主 raise
         (lines 139-145)."""
-        # Pre-occupy the lock so second attempt triggers _handle_lock_failure.
+        # 预先占用锁, 让第二次尝试触发 _handle_lock_failure。
         primary = PipelineLock(self.logger, self.temp_dir)
         primary.__enter__()
         try:
@@ -503,13 +502,13 @@ class TestPipelineLockErrorHandlers(unittest.TestCase):
 
     def test_handle_lock_failure_sidecar_read_unicode_decode_returns_unknown(self):
         """sidecar 损坏 (非 UTF-8) → except + lock_info 留 '未知' (lines 159-161)."""
-        # Write non-UTF-8 bytes to sidecar
+        # 向 sidecar 写入非 UTF-8 字节
         primary = PipelineLock(self.logger, self.temp_dir)
         primary.__enter__()
         try:
             # 覆盖 sidecar 为损坏的二进制
             with open(self.sidecar_path, 'wb') as f:
-                f.write(b'\xff\xfe\x00\x80\x81')  # invalid UTF-8
+                f.write(b'\xff\xfe\x00\x80\x81')  # 非法 UTF-8 字节序列
             second_logger = Mock(spec=logging.Logger)
             second_lock = PipelineLock(second_logger, self.temp_dir)
             with self.assertRaises(RuntimeError) as ctx:

@@ -58,16 +58,16 @@ TEMPLATES = [
     TPL / "benefit_society" / "26_bs_title_robustness.do.tmpl",
 ]
 
-# (old, new, expected_count) — every count asserted per file.
+# (old, new, expected_count) — 每个文件逐条断言命中次数 (count 不符即 raise, 防锚点漂移静默 no-op)。
 REPL = [
-    # ---- de_models declaration: piggy-back on the universal a8_titles="" line ----
+    # ---- de_models 声明: 借通用的 a8_titles="" 行搭车注入 ----
     ('local a8_titles ""\n',
      'local a8_titles ""\n'
      '* v3.7.6: separate accumulator for Panel D/E stratified models (own table)\n'
      'local de_models ""\n',
      1),
 
-    # ---- Panel D: missing-guards on the two counts ----
+    # ---- Panel D: 给两处 count 加缺失值守卫 (Stata 把 missing 当 +inf, 不加守卫会误纳入) ----
     ("    quietly count if frac_title_mentions_fintech > `tau'\n",
      "    quietly count if frac_title_mentions_fintech > `tau' "
      "& !missing(frac_title_mentions_fintech)\n",
@@ -76,7 +76,7 @@ REPL = [
      "    quietly count if frac_title_mentions_fintech <= `tau' "
      "& !missing(frac_title_mentions_fintech)\n",
      1),
-    # ---- Panel D: missing-guards on reghdfe if + de_models accumulation ----
+    # ---- Panel D: reghdfe if 条件加缺失值守卫 + de_models 累加 ----
     ("            if frac_title_mentions_fintech > `tau', ///\n",
      "            if frac_title_mentions_fintech > `tau' "
      "& !missing(frac_title_mentions_fintech), ///\n",
@@ -94,7 +94,7 @@ REPL = [
      "        local de_models \"`de_models' m_panelD_below_`thr_str'\"\n",
      1),
 
-    # ---- Panel E: true bank-year median split (replaces fixed 0.5) ----
+    # ---- Panel E: 真·bank-year 中位数切分 (替换硬编码 0.5; r(p50) 先存 local 防被后续 count 清掉) ----
     ("    quietly count if frac_title_long > 0.5\n"
      "    local n_long = r(N)\n"
      "    quietly count if frac_title_long <= 0.5\n"
@@ -122,7 +122,7 @@ REPL = [
      1),
 ]
 
-# D/E export block, inserted immediately before the A/B/C export guard (unique).
+# D/E 导出块, 紧插在 A/B/C 导出守卫之前 (该锚点全文唯一)。
 EXPORT_ANCHOR = 'if "`a8_models\'" == "" {'
 EXPORT_BLOCK = (
     "* ==== v3.7.6 Panel D/E export ====\n"

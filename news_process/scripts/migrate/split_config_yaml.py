@@ -63,8 +63,8 @@ SECTION_TO_DOMAIN: dict[str, str] = {
 DOMAINS = ('paths', 'preprocessing', 'filtering', 'sentiment',
            'features', 'panel', 'validation')
 
-# Prompt template fields to externalize:
-#   key path (within the parsed dict) → output filename under config/prompts/
+# 要外置的 prompt 模板字段:
+#   (解析后 dict 内的) key 路径 → config/prompts/ 下的输出文件名
 PROMPT_EXTRACTIONS: dict[tuple[str, str], str] = {
     ('tone_llm_processing', 'prompt_template'): 'unified_cot.txt',
     ('tone_llm_processing', 'title_sentiment_prompt_template'): 'title_sentiment.txt',
@@ -98,7 +98,7 @@ def main():
     yaml = YAML()
     yaml.preserve_quotes = True
     yaml.indent(mapping=2, sequence=4, offset=2)
-    yaml.width = 4096  # Don't wrap long strings
+    yaml.width = 4096  # 不对长字符串做折行
 
     print(f"Loading {legacy_yaml}...")
     with open(legacy_yaml, 'r', encoding='utf-8') as f:
@@ -106,7 +106,7 @@ def main():
 
     print(f"Top-level keys: {list(cfg.keys())}")
 
-    # 1) Extract prompt templates
+    # 1) 提取 prompt 模板到外部文件
     prompts_dir.mkdir(parents=True, exist_ok=True)
     for (section, key), filename in PROMPT_EXTRACTIONS.items():
         if section not in cfg or key not in cfg[section]:
@@ -117,12 +117,12 @@ def main():
         out_path.write_text(content, encoding='utf-8', newline='\n')
         print(f"  ✓ Extracted prompt: {section}.{key} → {out_path.name} "
               f"({len(content)} chars)")
-        # Replace inline content with file reference
+        # 把内联内容替换为文件引用
         del cfg[section][key]
-        # New key name: <key>_file → relative path
+        # 新 key 名: <key>_file → 相对路径
         cfg[section][f'{key}_file'] = f'./config/prompts/{filename}'
 
-    # 2) Split top-level into 7 domain dicts
+    # 2) 把顶层节拆入 7 个领域 dict
     split_dicts: dict[str, dict] = {d: {} for d in DOMAINS}
     unmapped_sections: list[str] = []
     for section in cfg:
@@ -136,7 +136,7 @@ def main():
         print(f"ERROR: unmapped sections: {unmapped_sections}", file=sys.stderr)
         return 2
 
-    # 3) Write split YAMLs
+    # 3) 写出 split YAML 文件
     for domain in DOMAINS:
         out_path = targets[domain]
         sub_cfg = split_dicts[domain]
@@ -153,7 +153,7 @@ def main():
         print(f"  ✓ Wrote {out_path.name} ({size_kb:.1f}KB, "
               f"{len(sub_cfg)} top-level keys)")
 
-    # 4) Replace legacy config.yaml with stub
+    # 4) 把旧 config.yaml 改写为说明性 stub
     stub = """# news_process configuration — split into 7 domain YAMLs (Phase 4d)
 # =====================================================================
 #

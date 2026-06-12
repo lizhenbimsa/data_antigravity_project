@@ -15,6 +15,13 @@ papers/bank_news_clarity 两目录, 按主控组级裁决):
       clarity Panel B 的幻影列 listed 单独守卫 (缺失跳过该 panel)。
 
 纯文本/YAML 断言, 不跑 Stata, 不依赖盘上大数据, 不调外部 API。
+
+# 白话: 两篇 provisional 论文的模板里, z_score 的算法其实是用监管资本充足率
+# (CAR) 拼的变体, 不是 Laeven-Levine 原版 — 这组测试确保所有引用该文献的地方
+# 都老实写明"CAR 变体"; 同名但算法不同的指标要披露差异; 引用了全仓不存在的
+# 模板要标"待设计"; 回归用到的列缺失时要给可读报错, 不能让 Stata 抛裸 r(111)。
+# (注: stage 49 风险结果三件套已于 2026-06-12 整体移除, z_score 等名称仅作为
+# 这两篇论文 spec/模板中的指标占位保留, 与本文件断言不冲突。)
 """
 
 from __future__ import annotations

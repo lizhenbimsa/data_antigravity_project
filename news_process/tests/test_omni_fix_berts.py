@@ -19,6 +19,11 @@
 Mock 策略: 不加载真实 BERT 模型 / 不触网 — 以 Fake tokenizer/model 替换
 模块命名空间内的 AutoTokenizer / AutoModelForSequenceClassification;
 process_all_models 用合成 DataFrame + 桩 run_all_models。
+
+# 白话: 这组测试用"假模型/假分词器"复现四个历史 bug 场景, 确保修复不被改回去:
+# 1) 不同词表的模型不能共用一份分词结果; 2) 一篇文章推理失败只标记那一篇,
+# 不再整批悄悄填"中性"; 3) 标签顺序对不上时宁可报错也不瞎猜; 4) 模型加载
+# 失败默认大声报错, 只有"本地私有模型没配置"才允许安静跳过。
 """
 
 from __future__ import annotations

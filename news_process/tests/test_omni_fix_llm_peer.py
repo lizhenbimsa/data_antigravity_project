@@ -15,6 +15,12 @@ test_omni_fix_llm_peer.py — omni 审计修复回归锁 (g-llm-peer 组, 2026-0
   -07 '查证后零同行' → count/compete_idx 显式 0 + llm_peer_queried 旗标
   -08 等权均值文档修正 + llm_peer_n_effective 诊断列 (count 与均值域不一致披露)
   -09 _normalize_peer_names 保序去重 (dict.fromkeys 替代 list(set))
+
+# 白话: 让 LLM 找"某银行的竞争对手"再用对手的舆论情绪当工具变量, 这条链上
+# 的修复锁: 算对手情绪时要剔掉和本行同篇报道的文章(否则自己影响自己);
+# 同一家银行的不同叫法(工行/工商银行)只算一家; LLM 报出的不认识的银行名
+# 宁可扔掉也不硬凑近似匹配; LLM 明确说"没有对手"时记 0, 和"没问过"区分开;
+# 离线模式下缓存没命中就报错, 绝不偷偷联网花钱。
 """
 import asyncio
 import json

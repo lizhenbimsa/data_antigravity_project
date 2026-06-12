@@ -1,11 +1,11 @@
 * ============================================================================
-* 13_table4_heterogeneity.do — Exploratory heterogeneity (benefit_society)
+* 13_table4_heterogeneity.do — 探索性异质性 (benefit_society)
 * Paper: {{PAPER_ID}}
 *
-* PAP v1.0-final §6 (exploratory, NOT in H series):
+* PAP v1.0-final §6 (探索性, 不属 H 假设系列):
 *   {{HET_VAR}} = is_listed (DP-9 / F-R3-H2)
-*   FE: absorb(bank_type year) — NOT absorb(bank_id year) per F-R5-H2
-*       (2-year panel + within-type variation only)
+*   FE: absorb(bank_type year) — 按 F-R5-H2 不用 absorb(bank_id year)
+*       (2 年面板 + 仅类型内变异)
 * ============================================================================
 
 version 19
@@ -27,12 +27,12 @@ if _rc {
 
 gen attitude_x_het = {{ATTITUDE_VAR}} * {{HET_VAR}}
 
-* H1: pooled with interaction
+* H1: 全样本 + 交互项
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} attitude_x_het {{HET_VAR}} $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo H1
 
-* H2/H3: split-sample (F-R5-H2: absorb(bank_type year), NOT bank_id)
+* H2/H3: 分样本回归 (F-R5-H2: absorb(bank_type year), 不用 bank_id)
 preserve
 keep if {{HET_VAR}} == 0
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///

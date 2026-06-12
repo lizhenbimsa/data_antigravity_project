@@ -1,27 +1,28 @@
-"""news_process.papers._common.derivative_replication — Stata replication
-package generator for the 4 derivative papers.
+"""news_process.papers._common.derivative_replication — 非主线论文的
+Stata replication 包生成器。
 
-P1 (2026-05-15): Parallel to ``stata_runner.build_replication_package`` (which
-is locked to the main paper ``bank_fintech_tone``). This module handles the
-4 derivative papers (``benefit_society`` / ``brokerage_network`` /
-``strategic_diff`` / ``llm_peer``) without touching the main-paper flow.
+P1 (2026-05-15): 与 ``stata_runner.build_replication_package`` 并行 (后者
+锁定主线论文 ``bank_fintech_tone``)。本模块最初处理 4 篇衍生论文
+(``benefit_society`` / ``brokerage_network`` / ``strategic_diff`` /
+``llm_peer``); RR7-1 后又纳入 3 篇 B-route 论文 (attention / substance /
+locus), 现共 7 个 paper id, 全程不触碰主线论文流程。
 
-Why a separate module
+为什么独立成模块
 ---------------------
-- ``stata_runner.build_replication_package`` validates main-paper triad
-  (``MAIN_LOCUS_TRACK`` / ``MAIN_SUBST_TRACK`` / ``MAIN_SENT_TRACK``) as
-  required; derivative papers do not have those tracks.
-- Templates for the main paper live at ``stata_templates/*.do.tmpl``;
-  derivative papers live at ``stata_templates/<paper_id>/*.do.tmpl``.
-- Keeps main-paper code path (and its 73 tests) entirely untouched.
+- ``stata_runner.build_replication_package`` 把主线三轨 triad
+  (``MAIN_LOCUS_TRACK`` / ``MAIN_SUBST_TRACK`` / ``MAIN_SENT_TRACK``)
+  作为必填项校验; 衍生论文没有这些轨道。
+- 主线模板位于 ``stata_templates/*.do.tmpl``;
+  衍生论文模板位于 ``stata_templates/<paper_id>/*.do.tmpl``。
+- 保证主线代码路径 (及其当时的 73 个测试) 完全不受影响。
 
-Design rules
+设计规则
 ------------
-- Pure functions; no global state.
-- Re-uses ``stata_runner._get_git_commit_hash_with_dirty`` for commit
-  fingerprinting (single source of truth for that detail).
-- Substitution is fail-fast on unresolved ``{{...}}`` (same discipline as
-  ``stata_runner._substitute_placeholders``).
+- 纯函数; 无全局状态。
+- 复用 ``stata_runner._get_git_commit_hash_with_dirty`` 做 commit
+  指纹 (该细节的单一可信源)。
+- 占位符替换对残留 ``{{...}}`` fail-fast (与
+  ``stata_runner._substitute_placeholders`` 同一纪律)。
 """
 
 from __future__ import annotations
@@ -30,13 +31,15 @@ import re
 from pathlib import Path
 from typing import Mapping
 
-# Q1.4 (2026-05-15): commit-hash helper extracted to _git_utils.py to break
-# the stata_runner ↔ derivative_replication import cycle introduced by the
-# _PAPER_DEFAULTS single-source-of-truth consolidation.
+# Q1.4 (2026-05-15): commit-hash helper 抽到 _git_utils.py, 以打破
+# _PAPER_DEFAULTS 单源化合并时引入的 stata_runner ↔ derivative_replication
+# import 循环。
 from news_process.papers._common._git_utils import _get_git_commit_hash_with_dirty
 
 # ============================================================================
-# 4 derivative paper IDs — main paper bank_fintech_tone deliberately excluded.
+# 非主线 paper id 白名单 (4 衍生 + 3 B-route, 共 7) — 主线 bank_fintech_tone
+# 刻意排除在外; bank_fintech_collab 因 P5 onboarding 未完成 (缺 derivative
+# 注册, 见 paper_registry.PAPER_IDS_PROVISIONAL 注) 暂不在此, 待独立 PR 接线。
 # ============================================================================
 
 _DERIVATIVE_PAPER_IDS: frozenset[str] = frozenset({
@@ -44,11 +47,10 @@ _DERIVATIVE_PAPER_IDS: frozenset[str] = frozenset({
     'brokerage_network',
     'strategic_diff',
     'llm_peer',
-    # RR7-1 (Review-only audit): B-route 3 new papers use same per-paper replication
-    # path as the 4 derivative papers. Naming kept as "_DERIVATIVE_*" for backwards-
-    # compat (semantically it means "non-main-paper IDs handled by per-paper template
-    # instantiation"; the historical "derivative of bank_fintech_tone" framing is
-    # superseded by the B-route plan).
+    # RR7-1 (Review-only audit): B-route 3 篇新论文复用与 4 篇衍生论文相同的
+    # per-paper replication 路径。命名保留 "_DERIVATIVE_*" 以向后兼容
+    # (语义上它指 "由 per-paper 模板实例化处理的非主线 paper id";
+    # 历史上 "bank_fintech_tone 的衍生" 这一框架已被 B-route 计划取代)。
     'bank_fintech_attention',
     'bank_fintech_substance',
     'bank_fintech_locus',
@@ -61,12 +63,12 @@ _DERIVATIVE_PAPER_IDS: frozenset[str] = frozenset({
 
 
 def is_derivative_paper(paper_id: str) -> bool:
-    """True iff paper_id is one of the 4 derivative papers."""
+    """当且仅当 paper_id 属于 _DERIVATIVE_PAPER_IDS (7 个非主线 id) 时为 True。"""
     return paper_id in _DERIVATIVE_PAPER_IDS
 
 
 # ============================================================================
-# Placeholder defaults per paper (Tier 2 universal + Tier 3 specific).
+# 各 paper 的占位符默认值 (Tier 2 通用 + Tier 3 paper-specific)。
 # ============================================================================
 
 _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
@@ -83,12 +85,12 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'MAIN_DV': 'ROA',  # external sentinel — 见上方 fix(omni-g-replication-01) 注
         'CONTROLS': 'ln_news_coverage media_breadth n_articles',
         'CLUSTER_VAR': 'bank_id',
-        'HET_VAR': 'is_listed',  # PAP v1.0-final DP-9: replaces is_soe (F-R3-H2); external sentinel
-        # v3.2.1 dual-track (plan v2.12, F-M1 / F-H3): ATTITUDE_VAR retained as
-        # backwards-compat alias = full track; ATTITUDE_FULL / ATTITUDE_CTX are
-        # the canonical dual-track placeholders used by new templates
+        'HET_VAR': 'is_listed',  # PAP v1.0-final DP-9: 取代 is_soe (F-R3-H2); external sentinel
+        # v3.2.1 dual-track (plan v2.12, F-M1 / F-H3): ATTITUDE_VAR 保留为
+        # 向后兼容别名 = full 轨; ATTITUDE_FULL / ATTITUDE_CTX 才是新模板
+        # 使用的规范双轨占位符
         # (20_tableA1_inter_track_kappa, 21_tableA2_attitude_track_switch,
-        # 31_figure2_coefplot_dual, 17b_table8b_shrinkage_dual).
+        # 31_figure2_coefplot_dual, 17b_table8b_shrinkage_dual)。
         'ATTITUDE_VAR': 'benefit_mean_full',
         'ATTITUDE_FULL': 'benefit_mean_full',
         'ATTITUDE_CTX': 'benefit_mean_ctx',
@@ -102,25 +104,25 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'ROBUSTNESS_DV': 'CAR',  # external sentinel — 见上方 fix(omni-g-replication-01) 注
         'BOOTSTRAP_REPS': '999',  # F-R5-H1 wild cluster bootstrap
         'RANDOM_SEED': '20260516',  # F-R6-M2
-        # V2.0 J-L-M 2026 alignment Round 9: P2.G4 external Y placeholders.
-        # Actual column names depend on UA-2 data acquisition (Wind / 银保监 /
-        # CSMAR); defaults below are sentinel names that allow template build to
-        # succeed; Stata `capture confirm variable` falls through if absent.
-        'EXT_Y1': 'ncd_spread_3m',           # NCD spread (predicted ↓)
-        'EXT_Y2': 'regulatory_penalty_n',    # 监管处罚频次 (predicted ↓)
-        'EXT_Y3': 'soa_rating_score',        # SOA / Wind rating (predicted ↑)
-        # MAIN_TREAT alias retained as benefit_society main attitude = ATTITUDE_VAR
-        # (benefit_mean_full). NOTE: benefit_society .do templates consume the
-        # ATTITUDE_* namespace, not {{MAIN_TREAT}}; this alias is now unused here
-        # since its sole consumer (the _title robustness template) was removed in
-        # the remove-title-track refactor.
+        # V2.0 J-L-M 2026 对齐 Round 9: P2.G4 外部 Y 占位符。
+        # 实际列名取决于 UA-2 数据获取 (Wind / 银保监 / CSMAR); 下方默认值
+        # 是 sentinel 名, 仅保证模板能 build 成功; 列缺失时 Stata
+        # `capture confirm variable` 安全跳过。
+        'EXT_Y1': 'ncd_spread_3m',           # NCD 利差 (预期 ↓)
+        'EXT_Y2': 'regulatory_penalty_n',    # 监管处罚频次 (预期 ↓)
+        'EXT_Y3': 'soa_rating_score',        # SOA / Wind 评级 (预期 ↑)
+        # MAIN_TREAT 别名保留为 benefit_society 主态度变量 = ATTITUDE_VAR
+        # (benefit_mean_full)。注意: benefit_society 的 .do 模板消费的是
+        # ATTITUDE_* 命名空间而非 {{MAIN_TREAT}}; 其唯一消费者 (_title
+        # robustness 模板) 已随 remove-title-track 重构删除, 此别名现为
+        # 无害闲置默认值。
         'MAIN_TREAT': 'benefit_mean_full',
     },
     'brokerage_network': {
         'PAPER_ID': 'brokerage_network',
         'MAIN_DV': 'ROA',  # external sentinel — 见 benefit_society 块上方 fix(omni-g-replication-01) 注
         'CONTROLS': 'ln_news_coverage media_hhi bank_scale_ord',
-        'CLUSTER_VAR': 'prov_id',  # province-level per Cameron-Miller 2015
+        'CLUSTER_VAR': 'prov_id',  # 省级聚类, 依 Cameron-Miller 2015
         'HET_VAR': 'is_soe',
         'MAIN_ENDOG': 'peer_tone_lag1_full',
         'MAIN_IV': 'peer_tone_2nd_lag1_full',
@@ -132,7 +134,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         # 残留默认值: MAIN_TREAT/RANDOM_SEED 原供已删的 _title robustness 模板
         # (25_tableA8_title_robustness, remove-title-track 已删) 使用; 现
         # brokerage_network 无存活模板消费此二 placeholder, 保留为无害默认值。
-        'MAIN_TREAT': 'peer_tone_lag1_full',  # alias of MAIN_ENDOG
+        'MAIN_TREAT': 'peer_tone_lag1_full',  # MAIN_ENDOG 的别名
         'RANDOM_SEED': '20260516',
     },
     'strategic_diff': {
@@ -151,7 +153,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         # (strategic_diff/25_tableA8_title_robustness.do.tmpl) 而加; 该 _title 情感轨
         # 模板已随 remove-title-track 删除, 现 strategic_diff 无模板引用这两个
         # placeholder, 保留为无害 unused default (无测试依赖, _substitute 不报错)。
-        'MAIN_TREAT': 'strat_diff_n5',  # alias of MAIN_DIFF_VAR
+        'MAIN_TREAT': 'strat_diff_n5',  # MAIN_DIFF_VAR 的别名
         'RANDOM_SEED': '20260516',
     },
     'llm_peer': {
@@ -174,12 +176,12 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         # MAIN_TREAT (alias of TONE_VAR) + RANDOM_SEED: 原供已删的 _title robustness
         # 模板 (llm_peer/25_tableA8_title_robustness.do.tmpl, remove-title-track 已删)
         # 使用; 现 llm_peer 无存活模板消费此二 placeholder, 保留为无害默认值。
-        'MAIN_TREAT': 'llm_vote_tone_full',  # alias of TONE_VAR
+        'MAIN_TREAT': 'llm_vote_tone_full',  # TONE_VAR 的别名
         'RANDOM_SEED': '20260516',
     },
     # ========================================================================
-    # RR7-1 (Review-only audit): B-route 3 new paper defaults.
-    # Source: paper_spec.yaml outcome.primary / treatment.primary / controls.
+    # RR7-1 (Review-only audit): B-route 3 篇新论文的默认值。
+    # 来源: paper_spec.yaml 的 outcome.primary / treatment.primary / controls。
     # ========================================================================
     # fix(omni-g-replication-05, 2026-06-11): 4 篇 B-route CONTROLS 去掉
     # gdp_growth/m2_growth — 15_* 主回归 M5 设计为 "M4 + macro" 并显式追加
@@ -194,7 +196,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CONTROLS': 'ln_assets leverage capital_ratio npl_ratio deposit_growth',
         'CLUSTER_VAR': 'bank_id',
         'RANDOM_SEED': '20260516',
-        'HET_VAR': 'bank_type',                       # per §B.2 heterogeneity (4 bank types)
+        'HET_VAR': 'bank_type',                       # 依 §B.2 异质性 (4 类银行)
     },
     'bank_fintech_substance': {
         'PAPER_ID': 'bank_fintech_substance',
@@ -208,19 +210,19 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CONTROLS': 'ln_assets leverage capital_ratio npl_ratio deposit_growth',  # fix(omni-g-replication-05): 去 macro, M5 真增量
         'CLUSTER_VAR': 'bank_id',
         'RANDOM_SEED': '20260516',
-        'HET_VAR': 'is_soe',                           # per §B.3 heterogeneity
+        'HET_VAR': 'is_soe',                           # 依 §B.3 异质性
     },
     'bank_fintech_locus': {
         'PAPER_ID': 'bank_fintech_locus',
         'MAIN_DV': 'car_5day_window',                 # spec.outcome.primary (P4)
         # P4 用 primary_pair = (locus_layer_full, locus_scenario_full), 15_locus_main
         # 直接 hardcode pair; MAIN_TREAT 留 locus_layer_full 作单 placeholder fallback
-        # 给 16_mechanism 等用 single treatment 的 paper-specific templates.
+        # 给 16_mechanism 等用 single treatment 的 paper-specific 模板。
         'MAIN_TREAT': 'locus_layer_full',
         'CONTROLS': 'ln_assets leverage capital_ratio npl_ratio deposit_growth',  # fix(omni-g-replication-05): 去 macro, M5 真增量
         'CLUSTER_VAR': 'bank_id',
         'RANDOM_SEED': '20260516',
-        'HET_VAR': 'is_soe',                           # per §B.4 heterogeneity (wave + SOE)
+        'HET_VAR': 'is_soe',                           # 依 §B.4 异质性 (wave + SOE)
     },
     # v3.4.0 epoch 4: P5 bank_fintech_collab (Chesbrough 2003 + L&S 2006 SMJ)
     'bank_fintech_collab': {
@@ -243,7 +245,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
 
 
 def get_paper_defaults(paper_id: str) -> dict[str, str]:
-    """Return a shallow copy of the placeholder defaults for ``paper_id``."""
+    """返回 ``paper_id`` 占位符默认值字典的浅拷贝。"""
     if paper_id not in _DERIVATIVE_PAPER_IDS:
         raise ValueError(
             f"Unknown derivative paper_id={paper_id!r}. "
@@ -253,14 +255,14 @@ def get_paper_defaults(paper_id: str) -> dict[str, str]:
 
 
 # ============================================================================
-# Placeholder substitution (fail-fast on residue).
+# 占位符替换 (残留即 fail-fast)。
 # ============================================================================
 
 _PLACEHOLDER_RE = re.compile(r'\{\{([A-Z_]+)\}\}')
 
 
 def _substitute(content: str, choices: Mapping[str, str]) -> str:
-    """Replace {{KEY}} → value in content. Raises ValueError on residue."""
+    """把 content 中的 {{KEY}} → value 逐个替换; 有残留占位符即抛 ValueError。"""
     result = content
     for key, value in choices.items():
         result = result.replace(f'{{{{{key}}}}}', str(value))
@@ -274,7 +276,7 @@ def _substitute(content: str, choices: Mapping[str, str]) -> str:
 
 
 # ============================================================================
-# Replication package builder.
+# Replication 包构建器。
 # ============================================================================
 
 def build_derivative_replication_package(
@@ -283,21 +285,23 @@ def build_derivative_replication_package(
     output_root: str | Path | None = None,
     template_dir: str | Path | None = None,
 ) -> Path:
-    """Generate a Stata replication package for a derivative paper.
+    """为一篇非主线论文生成 Stata replication 包。
 
     Args:
-        paper_id:     One of {benefit_society, brokerage_network, strategic_diff, llm_peer}.
-        overrides:    Optional dict overriding paper defaults (e.g., swap MAIN_DV='Tobin_Q').
-                      Must use known placeholder keys (Tier 2 / Tier 3 per paper).
-        output_root:  Parent dir for the package (default: news_process repo root).
-        template_dir: Override template source dir. Default: stata_templates/<paper_id>/.
+        paper_id:     _DERIVATIVE_PAPER_IDS 之一 (4 衍生: benefit_society /
+                      brokerage_network / strategic_diff / llm_peer + 3 B-route:
+                      bank_fintech_attention / substance / locus)。
+        overrides:    可选, 覆盖 paper 默认值的字典 (如换 MAIN_DV='Tobin_Q')。
+                      key 必须是该 paper 已知占位符 (Tier 2 / Tier 3)。
+        output_root:  包的父目录 (默认: news_process 仓库根)。
+        template_dir: 覆盖模板源目录。默认: stata_templates/<paper_id>/。
 
     Returns:
-        Path to the generated package directory.
+        生成的包目录路径。
 
     Raises:
-        ValueError:        Unknown paper_id, or unsubstituted {{...}} after merge.
-        FileNotFoundError: Template dir does not exist.
+        ValueError:        未知 paper_id, 或合并后仍有未替换的 {{...}}。
+        FileNotFoundError: 模板目录不存在。
     """
     if paper_id not in _DERIVATIVE_PAPER_IDS:
         raise ValueError(
@@ -305,7 +309,7 @@ def build_derivative_replication_package(
             f"Valid: {sorted(_DERIVATIVE_PAPER_IDS)}"
         )
 
-    # Merge defaults + user overrides.
+    # 合并: 默认值 + 用户覆盖。
     effective: dict[str, str] = dict(_PAPER_DEFAULTS[paper_id])
     if overrides:
         bad = set(overrides.keys()) - set(effective.keys())
@@ -333,16 +337,16 @@ def build_derivative_replication_package(
     (pkg_dir / 'output' / 'tables').mkdir(parents=True, exist_ok=True)
     (pkg_dir / 'output' / 'figures').mkdir(parents=True, exist_ok=True)
 
-    # Instantiate templates.
+    # 实例化模板。
     n_templates = 0
     for tpl_path in sorted(template_dir.glob('*.do.tmpl')):
-        out_name = tpl_path.stem  # strip .tmpl, e.g., 11_table2_main_iv_2sls.do
+        out_name = tpl_path.stem  # 去掉 .tmpl 后缀, 如 11_table2_main_iv_2sls.do
         out_path = pkg_dir / 'code' / out_name
         content = tpl_path.read_text(encoding='utf-8')
         out_path.write_text(_substitute(content, effective), encoding='utf-8')
         n_templates += 1
 
-    # Copy README.md with paper-specific appendix.
+    # 复制 README.md 并追加 paper-specific 附录。
     readme_src = template_dir / 'README.md'
     if readme_src.exists():
         commit_hash = _get_git_commit_hash_with_dirty()

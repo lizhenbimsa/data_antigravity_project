@@ -1,24 +1,23 @@
-"""news_process.papers._common._git_utils — Git commit-hash helper.
+"""news_process.papers._common._git_utils — Git commit-hash helper。
 
-Q1.4 (post-P4 cleanup, 2026-05-15) — Extracted from
-``stata_runner._get_git_commit_hash_with_dirty`` to break a circular import
-between ``stata_runner`` and ``derivative_replication`` after the
-``_PAPER_DEFAULTS`` single-source-of-truth consolidation.
+Q1.4 (post-P4 cleanup, 2026-05-15) — 从
+``stata_runner._get_git_commit_hash_with_dirty`` 抽出, 以打破
+``_PAPER_DEFAULTS`` 单源化合并后 ``stata_runner`` 与
+``derivative_replication`` 之间的循环 import。
 
-Why a separate module
+为什么独立成模块
 ---------------------
-Before Q1.4:
-- ``derivative_replication.py`` imports ``stata_runner._get_git_commit_hash_with_dirty``
-- ``stata_runner.py._PAPER_DEFAULTS`` had a redundant duplicate of
-  ``derivative_replication._PAPER_DEFAULTS`` (4 derivative papers).
+Q1.4 之前:
+- ``derivative_replication.py`` import ``stata_runner._get_git_commit_hash_with_dirty``
+- ``stata_runner.py._PAPER_DEFAULTS`` 冗余复制了一份
+  ``derivative_replication._PAPER_DEFAULTS`` (4 篇衍生论文)。
 
-If we let ``stata_runner.py`` import from ``derivative_replication`` to
-remove the duplicate, ``stata_runner`` ↔ ``derivative_replication`` would
-form a cycle.
+若让 ``stata_runner.py`` 反过来从 ``derivative_replication`` import 来
+消除重复, ``stata_runner`` ↔ ``derivative_replication`` 就会成环。
 
-Solution: extract the commit-hash helper into this leaf-utility module.
-Both ``stata_runner`` and ``derivative_replication`` import from here.
-No upward dependencies → no cycle.
+解法: 把 commit-hash helper 抽到这个叶子工具模块,
+``stata_runner`` 与 ``derivative_replication`` 都从这里 import。
+本模块无任何向上依赖 → 无环。
 """
 
 from __future__ import annotations
@@ -35,7 +34,7 @@ def get_git_commit_hash_with_dirty() -> str:
         'unknown' (no git / no repo / timeout / etc.)
     """
     try:
-        # Four levels up: this file → _common → papers → news_process → repo_root.
+        # 向上四级: 本文件 → _common → papers → news_process → repo_root。
         repo_root = Path(__file__).resolve().parents[3]
         h = subprocess.run(
             ['git', 'rev-parse', 'HEAD'],
@@ -50,13 +49,13 @@ def get_git_commit_hash_with_dirty() -> str:
         return 'unknown'
 
 
-# Backward-compat alias for stata_runner internal callers.
-# stata_runner.py used to define this as `_get_git_commit_hash_with_dirty`;
-# Q1.4 keeps that name resolvable via `from _git_utils import _get_git_commit_hash_with_dirty`.
+# 供 stata_runner 内部调用方的向后兼容别名。
+# stata_runner.py 原本以 `_get_git_commit_hash_with_dirty` 之名定义此函数;
+# Q1.4 保留该名可经 `from _git_utils import _get_git_commit_hash_with_dirty` 解析。
 _get_git_commit_hash_with_dirty = get_git_commit_hash_with_dirty
 
 
 __all__ = [
     'get_git_commit_hash_with_dirty',
-    '_get_git_commit_hash_with_dirty',  # legacy underscore name
+    '_get_git_commit_hash_with_dirty',  # 遗留下划线旧名
 ]

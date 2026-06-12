@@ -1,5 +1,5 @@
 """
-utils/entity_context.py - 实体特异性上下文提取引擎
+core/text/entity_context.py - 实体特异性上下文提取引擎 (历史来源 utils/entity_context.py)
 ==================================================
 
 为每个 (文章, 目标银行) 对提取局部上下文窗口,

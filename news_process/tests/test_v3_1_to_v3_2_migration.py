@@ -40,7 +40,7 @@ def test_upgrade_renames_bare_columns(mock_v3_1_panel, tmp_path):
     from news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade import upgrade_panel
     out = tmp_path / "v3_2_panel.parquet"
     stats = upgrade_panel(str(mock_v3_1_panel), str(out))
-    assert stats['n_renamed'] == 3  # locus + substantiveness + category_confidence
+    assert stats['n_renamed'] == 3  # locus + substantiveness + category_confidence 三列
 
     df = pd.read_parquet(out)
     # 旧 bare 列不存在
@@ -138,8 +138,8 @@ def test_cli_returns_nonzero_on_missing_input(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# quality-hardening Round 6 (2026-05-27): v3_1_to_v3_2 79.37% → ~100%
-# missing 65 / 71-72 / 81 / 97 / 102 (verbose prints) + 137-142 (CLI happy path)
+# quality-hardening Round 6 (2026-05-27): v3_1_to_v3_2 覆盖率 79.37% → ~100%
+# 补漏行 65 / 71-72 / 81 / 97 / 102 (verbose 打印) + 137-142 (CLI 正常路径)
 # ---------------------------------------------------------------------------
 
 
@@ -179,6 +179,6 @@ def test_cli_verbose_flag_propagates(mock_v3_1_panel, tmp_path, capsys):
     rc = main([str(mock_v3_1_panel), str(out), '--verbose'])
     assert rc == 0
     output = capsys.readouterr().out
-    # Both verbose per-column and summary should be present
+    # verbose 逐列输出与 summary 应同时出现
     assert "RENAMED:" in output
     assert "v3.2.0 panel upgrade complete:" in output

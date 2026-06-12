@@ -10,6 +10,10 @@
 2. ``run_pipeline_validation.STAGES is core.dag.STAGES_VALIDATION``
 3. 任一 ``StageSpec.enabled_when`` 须为 ``core.dag`` 模块级谓词之一;
    从而防止未来误将新 ``lambda`` 内联进 ``StageSpec``、导致跨模块 ``is`` 校验失效。
+
+白话: 流水线的阶段清单只许有一份 (写在 core/dag.py 里), 两个编排器必须
+直接引用同一个 list 对象 (用 ``is`` 比对内存同一性, 而非内容相等) —
+谁要是自己复制了一份清单, 哪怕内容一模一样, 这里也会立刻报错。
 """
 
 from __future__ import annotations
@@ -139,11 +143,16 @@ def test_v3_5_1_stage_39d_not_in_output_registry(core_dag):
 
 
 def test_no_orphan_twelve_in_validation_count():
-    """Guards against future maintainers leaving stale `12` references.
+    """守护未来维护者不在 test_validation_stage_count 中遗留陈旧的 `12` 引用。
 
-    Uses ``\\b12\\b`` word-boundary regex across the entire function source
-    (covers docstring, comments, f-strings, and numeric tokens).
-    Plan v1.37 §4.3.5 + Round-12 R12B-01 + Round-36/v1.31 expected count = 16 (39g/39h/38a removed).
+    用 ``\\b12\\b`` 词边界正则扫描该函数的完整源码
+    (覆盖 docstring、注释、f-string 与数字 token)。
+    Plan v1.37 §4.3.5 + Round-12 R12B-01 + Round-36/v1.31 期望计数 = 16 (39g/39h/38a 已删)。
+
+    白话: 本测试用 inspect.getsource 把上面那个计数测试的源代码当文本读出来,
+    检查里面没有残留历史计数 "12" 字样 — 改阶段数时漏改注释也会被抓。
+    因此修改 test_validation_stage_count 内的任何文字都可能影响本测试;
+    只能追加不含独立 "12" 的内容, 勿随意替换。
     """
     import inspect
     import re

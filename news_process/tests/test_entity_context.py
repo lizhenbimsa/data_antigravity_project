@@ -1,5 +1,5 @@
 """
-tests/test_entity_context.py — utils/entity_context.py 白盒测试
+tests/test_entity_context.py — core/text/entity_context.py 白盒测试
 ================================================================
 
 覆盖维度：
@@ -34,7 +34,7 @@ class TestSplitSentences:
         from news_process.core.text.entity_context import _split_sentences
         text = "First sentence! Second sentence? Third."
         result = _split_sentences(text)
-        assert len(result) >= 2  # ! and ? are handled
+        assert len(result) >= 2  # ! 与 ? 均被处理
 
     def test_no_punctuation(self):
         from news_process.core.text.entity_context import _split_sentences
@@ -57,7 +57,7 @@ class TestSplitSentences:
         from news_process.core.text.entity_context import _split_sentences
         text = "真的吗？！是的。"
         result = _split_sentences(text)
-        # Should not crash; exact behavior depends on split pattern
+        # 不应崩溃; 具体切分结果取决于 split 正则
         assert isinstance(result, list)
         assert len(result) >= 1
 
@@ -288,9 +288,9 @@ class TestExtractEntityContextWithDistances:
         from news_process.core.text.entity_context import (
             extract_entity_context_with_distances,
         )
-        # 覆盖 line 227-228: not text branch
+        # 覆盖 line 227-228: not text 分支
         assert extract_entity_context_with_distances("", ["工商银行"]) == []
-        # not target_aliases branch
+        # not target_aliases 分支
         assert extract_entity_context_with_distances("文本", []) == []
 
     def test_short_text_with_hit_returns_all_zero_distance(self):

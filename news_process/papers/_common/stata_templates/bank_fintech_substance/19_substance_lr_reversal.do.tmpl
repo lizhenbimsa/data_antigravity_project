@@ -3,15 +3,17 @@
 * Paper: {{PAPER_ID}}
 * Plan: §5.5.2 P3 extras + W&Z 1994 ASQ long-run reversal mechanism
 *
-* W&Z 1994 prediction (focal hypothesis):
+* W&Z 1994 预测 (焦点假设):
 *   symbolic fintech 宣告 (substantiveness 低) → 短期 CAR 正反应 →
 *   3 年后 ROA 反转 (negative long_run_roa_change_3yr).
 *
-* Test structure:
-*   (1) Baseline: long_run_roa_change_3yr ~ substantiveness + controls
-*   (2) Triple-difference: long_run_roa_change ~ subst × short_run_car × post
-*   (3) Quintile by short-run CAR:
-*       within high-CAR subset, low substantiveness → most reversal.
+* 检验结构:
+*   (1) 基准: long_run_roa_change_3yr ~ substantiveness + controls
+*   (2) 交互项检验: long_run_roa_change ~ subst × short_run_car
+*       (注 2026-06-12: 下方代码实际实现为双向交互, 未含 × post 三重差分项;
+*       eststo 名 triple_diff 沿用历史命名, 勿按名理解为三重差分)
+*   (3) 按短期 CAR 五分位:
+*       高 CAR 子样本内, 低实质性 → 反转最强。
 * ============================================================================
 
 version 19
@@ -27,12 +29,13 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* (1) Baseline long-run reversal
+* (1) 基准长期反转回归
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo baseline
 
-* (2) Triple-difference: subst × short_run_CAR × post
+* (2) 交互项检验: subst × short_run_CAR (实际为双向交互, 见文件头注; eststo 名 triple_diff 为历史命名)
+* 白话: 看"实质性低、但短期股价反应大"的宣告, 是否在 3 年后业绩跌得最狠。
 * fix(omni-g-templates-06, 2026-06-11): 旧 36 字符名 car_3day_window_fintech_announcement
 * 超 Stata 32 字符硬限 (r(198)) → confirm 永假, triple-diff 永不可达; 全链统一短名。
 capture confirm variable car_3day_window_ft_announce
@@ -46,7 +49,7 @@ else {
     display "  [WARN] car_3day_window_ft_announce not in panel (M0.5.11 enrichment pending)"
 }
 
-* (3) Quintile-by-short-run-CAR
+* (3) 按短期 CAR 五分位分组
 capture confirm variable car_3day_window_ft_announce
 if !_rc {
     * fix(omni-g-templates-02, 2026-06-11): 五分位改按年内切 (by-year xtile)。旧版

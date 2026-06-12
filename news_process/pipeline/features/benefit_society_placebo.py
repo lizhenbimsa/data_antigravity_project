@@ -1,16 +1,19 @@
-"""benefit_society — Business-line placebo projection (S1 robustness).
+"""benefit_society — 业务线 placebo (安慰剂) 投影 (S1 稳健性).
 
 V2.0 J-L-M 2026 RFS robustness alignment plan §3 Phase 1 P1.1 + P1.2:
 
-Per J-L-M 2026 §4.2 placebo industries methodology, applies the **same** main
-fintech-specific 10-anchor direction vector to **filtered** article subsets
-(non-fintech business lines + neutral baseline). Expected behavior: filtered
-projections should NOT predict ROA (acceptance: |β_placebo / β_fintech| < 0.3
-for ≥4/5 placebo specs, per AC-S1).
+依 J-L-M 2026 §4.2 的 placebo industries 方法论, 把**同一个**金融科技主
+10 锚点对方向向量, 施加到经关键词**过滤**后的文章子集 (非金融科技业务线 +
+中性基线) 上。预期行为: 过滤后的投影**不应**预测 ROA (验收标准:
+≥4/5 个 placebo spec 满足 |β_placebo / β_fintech| < 0.3, 见 AC-S1)。
 
-**Audit-only path**: writes to `data/processed/27c_alt_anchor_panel.parquet`
-or a sibling file; does NOT modify the main panel `40_panel_yearly.parquet`
-or its golden snapshot.
+**Audit-only 路径**: 只写 `data/processed/27c_alt_anchor_panel.parquet`
+或其同级文件; **不**修改主面板 `40_panel_yearly.parquet` 及其 golden snapshot。
+
+白话: 这是一个"反向对照实验"。我们的主指标声称量出了"金融科技利好经营"
+的态度; 为了证明它量的真是金融科技而不是随便什么新闻都能量出效果,
+把同一把尺子拿去量"住房贷款/信用卡/中间业务/网点渠道"这类与金融科技无关的新闻 —
+如果在这些无关新闻上也能"预测"银行业绩, 说明尺子本身有问题。
 """
 
 from __future__ import annotations
@@ -36,15 +39,15 @@ def _repo_root() -> Path:
 def load_placebo_keywords(
     yaml_path: Path | str | None = None,
 ) -> tuple[dict[str, list[str]], dict[str, list[str]], dict[str, object]]:
-    """Load business-line + neutral placebo keyword sets.
+    """加载业务线 + 中性基线的 placebo 关键词集.
 
     Returns
     -------
     tuple
-        ``(business_lines, neutral_baseline, metadata)`` where:
-        - ``business_lines``: ``{line_id: keyword_list}`` (4 lines)
-        - ``neutral_baseline``: ``{neutral_id: keyword_list}`` (1 set)
-        - ``metadata``: yaml SHA-256 + schema_version
+        ``(business_lines, neutral_baseline, metadata)``, 其中:
+        - ``business_lines``: ``{line_id: keyword_list}`` (4 条业务线)
+        - ``neutral_baseline``: ``{neutral_id: keyword_list}`` (1 套中性基线)
+        - ``metadata``: yaml 文件 SHA-256 + schema_version
     """
     if yaml_path is None:
         yaml_path = (
@@ -97,28 +100,27 @@ def filter_articles_by_keywords(
     title_col: str = "标题",
     content_col: str = "内容",
 ) -> pd.Series:
-    """Return a boolean mask selecting rows where ANY keyword appears in
-    title OR content.
+    """返回布尔掩码: 任一关键词出现在标题**或**正文中的行为 True.
 
     Parameters
     ----------
     df_articles
-        Article DataFrame (must contain title_col + content_col).
+        文章级 DataFrame (须含 title_col + content_col 列).
     keywords
-        List of Chinese keywords to match (case-sensitive substring match;
-        Chinese text is case-invariant).
+        待匹配的中文关键词列表 (大小写敏感的子串匹配;
+        中文文本天然无大小写之分).
     title_col, content_col
-        Column names. Defaults match v3.7.0 pipeline 标题/内容 convention.
+        列名. 默认值沿用 v3.7.0 管道的 标题/内容 约定.
 
     Returns
     -------
     pd.Series
-        Boolean mask, length == len(df_articles).
+        布尔掩码, 长度 == len(df_articles).
     """
     if not keywords:
         return pd.Series(False, index=df_articles.index)
 
-    # Escape regex meta chars in keywords (defensive; Chinese rarely needs it)
+    # 转义关键词中的正则元字符 (防御性; 中文关键词很少需要)
     escaped = [re.escape(kw) for kw in keywords]
     pattern = "|".join(escaped)
 
@@ -149,12 +151,12 @@ def compute_placebo_projection(
     content_col: str = "内容",
     col_suffix: str = "",
 ) -> tuple[pd.DataFrame, dict[str, int]]:
-    """Compute placebo projections for multiple business-line filters.
+    """对多个业务线过滤器分别计算 placebo 投影.
 
-    For each filter in ``keyword_sets``:
-        1. Filter articles by keyword match (title + content)
-        2. Apply ``direction`` to filtered subset of ``text_embeddings``
-        3. Aggregate to bank-year mean cosine projection
+    对 ``keyword_sets`` 中的每个过滤器:
+        1. 按关键词匹配过滤文章 (标题 + 正文)
+        2. 把 ``direction`` 施加到 ``text_embeddings`` 的过滤子集上
+        3. 聚合为 bank-year 级余弦投影均值
 
     确定性披露 (fix(omni-g-benefit-01, 2026-06-11)): 本函数链路 (关键词过滤 +
     余弦投影 + groupby mean) 无任何随机步; 编排器 (audit_combined) 仍显式
@@ -163,13 +165,13 @@ def compute_placebo_projection(
     Parameters
     ----------
     df_articles
-        Article DataFrame; must have len == len(text_embeddings).
+        文章级 DataFrame; 须满足 len == len(text_embeddings).
     text_embeddings
-        Pre-computed embeddings, shape ``(n_articles, d)``.
+        预计算好的嵌入向量, 形状 ``(n_articles, d)``.
     direction
-        Unit-norm direction vector (typically main 10-pair fintech direction).
+        单位范数方向向量 (典型为金融科技主 10 锚点对方向).
     keyword_sets
-        ``{placebo_id: [keyword, ...]}`` mapping (4 biz + 1 neutral = 5).
+        ``{placebo_id: [keyword, ...]}`` 映射 (4 业务线 + 1 中性 = 5).
     col_suffix
         输出列后缀 (ctx 轨传 ``"_ctx"``; fix(omni-g-benefit-01, 2026-06-11)
         补 ctx 轨)。默认 ``""`` 维持既有列名。
@@ -177,11 +179,11 @@ def compute_placebo_projection(
     Returns
     -------
     pd.DataFrame
-        Bank-year panel with one column per placebo:
+        Bank-year 面板, 每个 placebo 一列:
         ``benefit_placebo_{placebo_id}_mean{col_suffix}``.
     dict[str, int]
-        Per-placebo match counts (``{placebo_id: n_matched_articles}``)
-        for downstream R1.A risk monitoring.
+        逐 placebo 命中文章数 (``{placebo_id: n_matched_articles}``),
+        供下游 R1.A 风险监控使用.
     """
     if len(df_articles) != len(text_embeddings):
         raise ValueError(

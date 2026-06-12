@@ -1,7 +1,7 @@
-"""Tests for benefit_society_placebo (S1 business-line placebo).
+"""benefit_society_placebo (S1 业务线 placebo) 测试。
 
-V2.0 J-L-M robustness alignment plan §3 Phase 1 P1.9 (S1 portion).
-Pure-Python tests; no sentence_transformers / no LLM API dependency.
+V2.0 J-L-M 稳健性对齐计划 §3 Phase 1 P1.9 (S1 部分)。
+纯 Python 测试; 不依赖 sentence_transformers / LLM API。
 """
 
 from __future__ import annotations
@@ -114,9 +114,9 @@ class TestFilterArticles:
         assert mask.tolist() == [False, False]
 
     def test_nan_columns_handled(self) -> None:
-        # Row 0: title=NaN, content="按揭" → matched via content
-        # Row 1: title="房贷新政", content=NaN → "按揭" not in either → not matched
-        # Row 2: title="按揭利率", content="..." → matched via title
+        # 第 0 行: 标题=NaN, 内容="按揭" → 经内容命中
+        # 第 1 行: 标题="房贷新政", 内容=NaN → 两处都无"按揭" → 不命中
+        # 第 2 行: 标题="按揭利率", 内容="..." → 经标题命中
         df = pd.DataFrame(
             {
                 "标题": [np.nan, "房贷新政", "按揭利率"],
@@ -127,7 +127,7 @@ class TestFilterArticles:
         assert mask.tolist() == [True, False, True]
 
     def test_missing_columns_default_to_empty(self) -> None:
-        df = pd.DataFrame({"标题": ["按揭贷款"]})  # 内容 col missing
+        df = pd.DataFrame({"标题": ["按揭贷款"]})  # 缺 '内容' 列
         mask = filter_articles_by_keywords(df, ["按揭"])
         assert mask.tolist() == [True]
 
@@ -165,7 +165,7 @@ class TestComputePlaceboProjection:
         panel, matches = compute_placebo_projection(df, emb, direction, keyword_sets)
         assert matches["housing"] == 1
         assert "benefit_placebo_housing_mean" in panel.columns
-        # row 0 matched (cosine emb[0] @ direction = 1.0), only at (bank_a, 2017)
+        # 第 0 行命中 (cosine emb[0] @ direction = 1.0), 仅落在 (bank_a, 2017)
         row = panel[
             (panel["target_bank"] == "bank_a") & (panel["year"] == 2017)
         ].iloc[0]
@@ -188,24 +188,24 @@ class TestComputePlaceboProjection:
         keyword_sets = {"empty": ["完全不存在的词组"]}
         panel, matches = compute_placebo_projection(df, emb, direction, keyword_sets)
         assert matches["empty"] == 0
-        # Column exists but all-NaN (no rows aggregated)
+        # 列可不存在, 或存在但全 NaN (无行被聚合)
         assert "benefit_placebo_empty_mean" not in panel.columns or panel[
             "benefit_placebo_empty_mean"
         ].isna().all()
 
     def test_length_mismatch_raises(self) -> None:
         df = pd.DataFrame({"target_bank": ["a"], "year": [2017], "标题": ["x"], "内容": ["y"]})
-        emb = np.zeros((3, 8))  # length mismatch
+        emb = np.zeros((3, 8))  # 长度不匹配
         direction = np.zeros(8)
         with pytest.raises(ValueError, match="length mismatch"):
             compute_placebo_projection(df, emb, direction, {"x": ["k"]})
 
     def test_zero_norm_embeddings_handled(self) -> None:
         df, emb, direction = self._make_data()
-        emb[2] = 0.0  # zero-norm row
+        emb[2] = 0.0  # 零范数行
         keyword_sets = {"branch": ["网点"]}
         panel, matches = compute_placebo_projection(df, emb, direction, keyword_sets)
-        # row 2 matched 网点 with zero embedding → cosine = 0
+        # 第 2 行命中"网点"且 embedding 为零向量 → cosine = 0
         assert matches["branch"] == 1
         row = panel[
             (panel["target_bank"] == "bank_b") & (panel["year"] == 2017)
@@ -214,7 +214,7 @@ class TestComputePlaceboProjection:
 
 
 # ============================================================================
-# CLI smoke (validate-only)
+# CLI 冒烟测试 (validate-only)
 # ============================================================================
 
 

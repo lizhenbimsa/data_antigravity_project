@@ -1,17 +1,16 @@
-"""tests/test_tone_berts_deterministic.py — V4 T1.1a determinism guard.
+"""tests/test_tone_berts_deterministic.py — V4 T1.1a 确定性守卫。
 
-Verifies the seeding + ``torch.use_deterministic_algorithms`` behaviour added
-by V4 T1.1a so that future regressions (e.g. someone re-enabling AMP in
-tone_berts.py for performance) trip a fast unit test before stage 23 outputs
-diverge in production.
+验证 V4 T1.1a 引入的随机种子 + ``torch.use_deterministic_algorithms`` 行为,
+使未来的回归 (如有人为性能在 tone_berts.py 重新打开 AMP) 先被快速单测拦下,
+而不是等 stage 23 产物在生产中漂移才发现。
 
-The test is lightweight: no model loading, no parquet IO. It exercises the
-two invariants that matter for cross-run reproducibility of BERT inference:
+测试本身轻量: 不加载模型、不做 parquet IO。只演练对 BERT 推理跨-run
+可复现性真正要紧的两条不变量:
 
-  1. torch.manual_seed produces identical tensor draws across separate calls
-     after re-seeding (sanity check of the platform RNG).
-  2. The tone_berts module successfully sets cpu_strict mode based on yaml
-     config, and reading the module's exposed constants matches expectation.
+  1. 重新设种后, torch.manual_seed 在两次独立调用中产生完全相同的张量
+     (平台 RNG 的 sanity check)。
+  2. tone_berts 模块按 yaml 配置成功设置 cpu_strict 模式, 模块暴露的
+     常量读出来符合预期。
 """
 
 from __future__ import annotations
@@ -28,14 +27,14 @@ import numpy as np
 
 @pytest.fixture(scope="module")
 def tone_berts_module():
-    """Import tone_berts once; reset import cache to honour fresh yaml read."""
+    """只 import 一次 tone_berts; reload 以确保读到新鲜的 yaml 配置。"""
     import news_process.pipeline.sentiment.tone_berts as mod
     importlib.reload(mod)
     return mod
 
 
 def test_seed_makes_torch_rand_deterministic(tone_berts_module):
-    """After re-seeding to the same value, torch.rand returns identical tensors."""
+    """以相同值重新设种后, torch.rand 返回完全相同的张量。"""
     seed = tone_berts_module._SEED
     torch.manual_seed(seed)
     a = torch.rand(5)
@@ -45,7 +44,7 @@ def test_seed_makes_torch_rand_deterministic(tone_berts_module):
 
 
 def test_seed_makes_numpy_deterministic(tone_berts_module):
-    """np.random seeding survives the module's seed setup."""
+    """np.random 设种在模块的种子初始化之后仍然有效。"""
     seed = tone_berts_module._SEED
     np.random.seed(seed)
     a = np.random.rand(5)
@@ -55,10 +54,10 @@ def test_seed_makes_numpy_deterministic(tone_berts_module):
 
 
 def test_module_constants_match_yaml_config(tone_berts_module):
-    """The constants exposed by tone_berts.py match the yaml-configured values.
+    """tone_berts.py 暴露的常量与 yaml 配置值一致。
 
-    Regression guard: if someone changes the BERT_PARAMS access path or the
-    deterministic_mode default, this test catches it before stage 23 runs.
+    回归守卫: 若有人改动 BERT_PARAMS 的访问路径或 deterministic_mode 默认值,
+    本测试在 stage 23 真跑之前就会抓到。
     """
     assert tone_berts_module._DETERMINISTIC_MODE in {"cpu_strict", "gpu_strict", "off"}, (
         f"unexpected deterministic_mode: {tone_berts_module._DETERMINISTIC_MODE}"
@@ -69,15 +68,15 @@ def test_module_constants_match_yaml_config(tone_berts_module):
 
 
 def test_cpu_strict_mode_disables_amp_and_cudnn_benchmark(tone_berts_module):
-    """In cpu_strict / gpu_strict mode, AMP must be off and (on CUDA) cuDNN benchmark off."""
+    """cpu_strict / gpu_strict 模式下 AMP 必须关闭, (CUDA 上) cuDNN benchmark 也须关闭。"""
     mode = tone_berts_module._DETERMINISTIC_MODE
     if mode == "off":
         pytest.skip("deterministic_mode=off; nothing to enforce")
-    # USE_AMP must always be False in strict modes regardless of device.
+    # 严格模式下无论什么设备, USE_AMP 都必须是 False。
     assert tone_berts_module.USE_AMP is False, (
         f"USE_AMP must be False in {mode} mode; AMP introduces non-determinism"
     )
-    # On CUDA, cuDNN must be in deterministic mode with benchmark off.
+    # CUDA 上 cuDNN 必须处于确定性模式且 benchmark 关闭。
     if tone_berts_module.DEVICE.type == "cuda":
         assert torch.backends.cudnn.deterministic is True, (
             f"cudnn.deterministic must be True in {mode} mode"

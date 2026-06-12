@@ -13,6 +13,10 @@
 
 CLI:
   python -m news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade <old.parquet> <new.parquet>
+
+白话: 旧版面板里的三个 LLM 标签列没有轨道后缀, 新版约定全文轨加 _full、上下文轨加
+_ctx。本工具把旧列名批量改成 _full 后缀, 再补三个空的 _ctx 列占位 (真实值要重跑
+stage 21 才有), 顺带派生三个"哪条轨通过了验证"的指示列。不动任何数据值。
 """
 from __future__ import annotations
 

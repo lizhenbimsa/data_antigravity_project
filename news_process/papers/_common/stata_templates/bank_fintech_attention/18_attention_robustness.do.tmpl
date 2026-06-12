@@ -8,10 +8,11 @@
 *   (2) Romano-Wolf stepdown (rwolf)
 *   (3) Honest DiD (Rambachan-Roth 2023) M ∈ {0, 0.5, 1, 2}×∆̂
 *   (4) Wild cluster bootstrap (boottest)
-*   (5) Placebo / randomization (ritest)
-*   (6) Spillover SUTVA check
-*   (7) Sample cuts (excl 国有 6 / excl 农商行 / excl 上市子样本 / excl pre_period 2007-2012)
-* + Paper-specific alternative measure: attention_index_full vs ctx vs disp vs pct
+*   (5) Placebo / 随机化推断 (ritest)
+*   (6) 溢出效应 SUTVA 检验
+*   (7) 样本切分 (excl 国有 6 / excl 农商行 / excl 上市子样本 / excl pre_period 2007-2012)
+*       (注: 本模板实际落地 excl 国有 6 与 excl pre_period 两项; 其余 cut 为计划清单项)
+* + paper 特有替代测度: attention_index_full vs ctx vs disp vs pct
 * ============================================================================
 
 version 19
@@ -28,22 +29,25 @@ use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
 * ============================================================================
-* (1) Oster (2019) δ stability — requires `psacalc` (SSC)
+* (1) Oster (2019) δ stability — 需要 `psacalc` (SSC)
+* 白话: 估算"看不见的遗漏变量得有多强, 才能把结论推翻", 衡量选择性偏误的稳健性。
 * ============================================================================
 * ssc install psacalc, replace
 * psacalc delta {{MAIN_TREAT}}, rmax(1.3 r²) mcontrol($controls)
 
 * ============================================================================
-* (2) Romano-Wolf stepdown
+* (2) Romano-Wolf stepdown 多重检验校正
+* 白话: 同时检验多个假设时, 用逐步法校正"碰运气显著"的多重检验问题。
 * ============================================================================
 * rwolf {{MAIN_DV}}, indepvar({{MAIN_TREAT}}) controls($controls) reps(1000) ///
 *       method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
 
 * ============================================================================
 * (3) Honest DiD (Rambachan-Roth 2023) — 4 M-bands
+* 白话: 允许"平行趋势"假设有一定程度的偏离, 看结论在多大偏离下仍然站得住。
 * ============================================================================
 * honestdid, l_vec(...) m_grid(0 0.5 1 2)
-* Main spec: M = 1 × max|∆̂_pre|; sensitivity table shows all 4 bands (R5-m06).
+* 主设定: M = 1 × max|∆̂_pre|; 敏感性表呈现全部 4 个 M-band (R5-m06)。
 
 * ============================================================================
 * (4) Wild cluster bootstrap (boottest)
@@ -53,6 +57,7 @@ set seed {{RANDOM_SEED}}
 * (ii) boottest 按设计不改写 e(b)/e(V) (wild p 在 r(p)), 旧 eststo 存的是 reghdfe
 * 解析 cluster SE → "Wild boot" 列名实不符 (small-G 下这正是 wild boot 要纠正的对象)。
 * 现以 estadd 把 r(p) 注入 e(p_wild) 进表 (esttab stats 行), 缺 boottest 时如实告警。
+* 白话: 银行聚类数偏少时常规标准误偏小、容易假显著; 用 wild bootstrap 重算 p 值并如实写进表里。
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 capture which boottest
@@ -69,6 +74,7 @@ eststo wild_boot
 * (5) Placebo / randomization inference (ritest)
 * Young 2019 QJE 134(2):557; MacKinnon & Webb 2020 JBES 38(3); v3.6.1 PR #7.
 * SSC 自动检测, 装不上则跳过 (G-C2.0 准入门控由 v2.3).
+* 白话: 把处理变量随机打乱很多次构造"纯随机"分布, 看真实系数是否明显超出该分布 (随机化推断)。
 * ============================================================================
 capture which ritest
 if _rc != 0 {
@@ -87,7 +93,7 @@ else {
 }
 
 * ============================================================================
-* (6) Spillover SUTVA — peer-attention placebo
+* (6) 溢出效应 SUTVA — 同业注意力 placebo (下方代码为注释占位, 未启用)
 * ============================================================================
 * capture confirm variable peer_attention_placebo
 * if !_rc {
@@ -96,7 +102,7 @@ else {
 * }
 
 * ============================================================================
-* (7) Sample cuts
+* (7) 样本切分 (Sample cuts)
 * ============================================================================
 * excl 国有 6 (bank_type == "soe")
 * st-did-05 fix (2026-06-03): bank_type 是字符串列 (str), 由 iv_did.py::load_bank_group_maps()
@@ -113,7 +119,10 @@ reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if year >= 2013, ///
 eststo excl_pre
 
 * ============================================================================
-* (8) Paper-specific: alternative attention measure (ctx / disp / pct)
+* (8) paper 特有: 替代 attention 测度 (ctx / disp / pct)
+* 白话: 换用不同口径的注意力指标重跑 (ctx 窗口轨 / 跨媒体集中度 HHI 注意:
+*       attention_disp_full 高值=集中而非分散 / 金融科技议程份额 N_ft/N_all),
+* 验证结论不依赖单一测度构造。
 * ============================================================================
 foreach alt in attention_index_ctx attention_disp_full attention_pct_full {
     capture confirm variable `alt'

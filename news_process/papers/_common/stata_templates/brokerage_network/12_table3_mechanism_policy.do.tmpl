@@ -1,8 +1,10 @@
 * ============================================================================
-* 12_table3_mechanism_policy.do — Centrality × policy interactions
+* 12_table3_mechanism_policy.do — 中心度 × 政策交互
 * Paper: {{PAPER_ID}}
 *
-* DCEP / Sandbox post × L1.centrality. Brambor-Clark-Golder (2006).
+* DCEP / Sandbox post × 滞后一期中心度 (L1.centrality)。Brambor-Clark-Golder (2006)。
+* 白话: 看数字人民币 (DCEP) 试点 / 监管沙盒落地之后, 在新闻共现网络里
+*   位置越关键的银行, 受政策冲击的影响是否更大。
 * ============================================================================
 
 version 19
@@ -26,7 +28,7 @@ quietly summarize {{TREATMENT_SANDBOX}}
 local _sb_sd = r(sd)
 
 if (`_dcep_sd' > 0) & (`_dcep_sd' < .) & (`_sb_sd' > 0) & (`_sb_sd' < .) {
-    * B1-B3: DCEP × (betweenness / constraint / brokerage)
+    * B1-B3: DCEP × 三类中心度 (betweenness / constraint / brokerage)
     gen dcep_x_btw    = {{TREATMENT_DCEP}} * L_btw
     gen dcep_x_cons   = {{TREATMENT_DCEP}} * L_cons
     gen dcep_x_broker = {{TREATMENT_DCEP}} * L_broker
@@ -43,7 +45,7 @@ if (`_dcep_sd' > 0) & (`_dcep_sd' < .) & (`_sb_sd' > 0) & (`_sb_sd' < .) {
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo B3_broker
 
-    * C1-C3: Sandbox × (same three)
+    * C1-C3: Sandbox × 同样三类中心度
     gen sb_x_btw    = {{TREATMENT_SANDBOX}} * L_btw
     gen sb_x_cons   = {{TREATMENT_SANDBOX}} * L_cons
     gen sb_x_broker = {{TREATMENT_SANDBOX}} * L_broker

@@ -32,6 +32,12 @@ prompt 构造复用 ``tone_llms.iter_article_track_prompts`` (生产同一生成
 ----
     python -m news_process.scripts.audit.verify_stage21_cache_coverage
     python news_process/scripts/audit/verify_stage21_cache_coverage.py --max-show 20
+
+白话
+----
+LLM 打分结果都存在本地缓存数据库里。只要"每篇文章 × 每个模型 × 每条轨"都能在
+缓存里查到, 重跑 stage 21 就一分钱不花、结果和上次一模一样。本脚本就是挨个查
+一遍缓存: 全查到 → 放心; 有查不到的 → 重跑会调付费 API, 结果可能变, 先回填缓存。
 """
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 """
-utils/canonicalization.py - 金融科技主题标准化分类(增强版)
+core/text/canonicalization.py - 金融科技主题标准化分类(增强版, 历史来源 utils/canonicalization.py)
 =====================================================
 
 将 LLM 自由文本输出的 fintech_topic 标准化分类为二选一:

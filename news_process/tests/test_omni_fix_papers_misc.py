@@ -21,6 +21,12 @@
   12  P1/P2 spec IV 标识符零实现 → P1 改实存 LOO/Bartik, P2 补 PENDING 标注
 
 全部用合成 DataFrame/fixture, 不依赖盘上大数据; 不触网。
+
+# 白话: 各论文模块的杂项修复锁: 读取 Stata 表格结果时, CSV 不在就读同名
+# .tex, 不再直接报错; 画图/做描述统计表引用的列必须是面板里真实存在的列,
+# 缺列时画占位图、给 NaN 占位行并在脚注里说明, 而不是崩溃或悄悄删行;
+# 解析回归表要认得科学计数法(1.23e-05), 同名变量行要消歧; 论文规格文件里
+# 声称的处理变量/工具变量必须指向真实实现, 没实现的明确标 PENDING。
 """
 
 from __future__ import annotations
@@ -605,8 +611,8 @@ class TestSpecTreatmentRealColumns:
         )
 
         assert get_paper_defaults('bank_fintech_substance')['MAIN_TREAT'] == 'sub_frac'
-        # collab 不在 _DERIVATIVE_PAPER_IDS 白名单 (走独立 instantiation 路径),
-        # 直接锁 _PAPER_DEFAULTS 块
+        # collab 不在 _DERIVATIVE_PAPER_IDS 白名单 (P5 onboarding 未完成,
+        # derivative 注册待独立 PR 接线), 直接锁 _PAPER_DEFAULTS 块
         assert _PAPER_DEFAULTS['bank_fintech_collab']['MAIN_TREAT'] == 'collab_frac'
 
 

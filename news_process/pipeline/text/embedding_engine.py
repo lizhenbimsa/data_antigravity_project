@@ -25,6 +25,12 @@ spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` 或 ``embedd
   - Reimers & Gurevych (2019, EMNLP) Sentence-BERT mean pooling, DOI 10.18653/v1/D19-1410
   - Guenther et al. (2024, arXiv:2409.04701) Early Chunking 超长文本分段
   - Carlson & Burbano (2026, SMJ §3.3) version-aware provenance (cache 版本维度)
+
+白话:
+    全项目所有"把文本变成向量"的需求都走这一个模块: 调用方传一份 spec
+    (写明用哪个模型、走 API 还是本地), 同一批文本就能分别用主模型和稳健
+    模型各算一遍向量。算过的结果存在缓存里, 下次同样的文本不再花钱重算;
+    太长的文本先切成小段、各段算完再加权平均成一条向量。
 """
 
 from __future__ import annotations
@@ -474,6 +480,9 @@ def embed_texts(texts, spec: dict, *,
         # (b) 按块 token 数加权 — 等权下 (8191, 1) 切分的 1-token 尾段碎片占 50%
         #     方向权重, 严重扭曲超长文本的向量表征。
         # 切分边界/块文本不变 → API 路径 LLMCache 缓存键与已存向量不受影响。
+        # 白话: 长文切块后合并时, 先把每块向量拉到同一长度(归一), 再按每块
+        # 实际有多少字(token 数)来定话语权 — 否则结尾只剩 1 个 token 的小尾巴
+        # 会和整整一大块平起平坐, 把合并结果带歪。
         block = raw_emb[start:end].astype(np.float64)
         norms = np.linalg.norm(block, axis=1, keepdims=True)
         norms[norms == 0.0] = 1.0

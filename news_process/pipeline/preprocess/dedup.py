@@ -58,6 +58,12 @@ class ArticleDeduplicator:
         COL_WEIGHT:   媒体权重临时列名。
         COL_LENGTH:   内容长度临时列名。
         COL_COMBINED: 标题+内容合并临时列名。
+
+    白话:
+        先删一字不差的完全重复 (保留最早发的那篇); 再给每篇文章算一个
+        "文本指纹" (MinHash), 哪怕改了几个字指纹也几乎一样, 借此快速找出
+        转载/通稿簇 — 簇内 5 个工作日内后发的相似稿被判为重复删除,
+        间隔更久的 (如周年回顾) 保留。
     """
 
     COL_WEIGHT = 'temp_media_weight'
@@ -401,8 +407,8 @@ class ArticleDeduplicator:
         )
 
 
-# Re-export MinHash for any caller that does `from .dedup import MinHash, MinHashLSH`.
-# (Defensive backwards-compat — the legacy runner.py exposed these top-level.)
+# 重导出 MinHash, 兼容 `from .dedup import MinHash, MinHashLSH` 的调用方。
+# (防御性向后兼容 — 旧版 runner.py 曾在顶层暴露这两个名字。)
 _ = MinHash, MinHashLSH
 
 

@@ -1,8 +1,8 @@
 * ============================================================================
-* 21_substance_clarity_robustness.do — v3.5.1 A1 Lexical Clarity Robustness (P3 Table A7)
+* 21_substance_clarity_robustness.do — v3.5.1 A1 词汇清晰度稳健性 (lexical clarity; P3 Table A7)
 * Paper: {{PAPER_ID}}
-* Anchor: Loughran & McDonald (2011, JF 66:1) uncertain dictionary;
-*         You et al. (2018) hhx055 Panel C/D Chinese adaptation;
+* 锚定: Loughran & McDonald (2011, JF 66:1) uncertain 词典 (不确定性词表);
+*         You et al. (2018) hhx055 Panel C/D 中文改编;
 *         真双轨 (full + ctx 独立扫描, 修 R3-C1).
 *
 * Plan: stage3_v3_5_1_a1_a3_supplementation_plan.md §2.5 (per R6-C1 schema 扩 tA7).
@@ -22,7 +22,7 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* Panel A: Main DV on dual-track clarity (full + ctx 独立扫描)
+* Panel A: 主 DV 对双轨 clarity 回归 (full + ctx 独立扫描)
 capture confirm variable mean_clarity_score_full
 if !_rc {
     reghdfe {{MAIN_DV}} mean_clarity_score_full mean_clarity_score_ctx $bank_controls, ///
@@ -33,7 +33,8 @@ else {
     display "  [WARN] mean_clarity_score_full not in panel (v3.5.1 D5 enrichment pending)"
 }
 
-* Panel B: LLM substance × clarity_full interaction (HTMT discriminant validation)
+* Panel B: LLM substance × clarity_full 交互 (HTMT 区分效度验证)
+* 白话: HTMT 是检查两个构念是否"其实在量同一个东西"的指标, 这里验证实质性与清晰度可区分。
 capture confirm variable mean_clarity_score_full
 if !_rc {
     reghdfe {{MAIN_DV}} c.mean_clarity_score_full##c.{{MAIN_TREAT}} $bank_controls, ///

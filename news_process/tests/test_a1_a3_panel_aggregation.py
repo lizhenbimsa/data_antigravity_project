@@ -70,7 +70,7 @@ def test_single_article_cell_na_mask(sample_df_panel):
 
 
 def test_weighted_aggregation_correct(sample_df_panel):
-    """Weighted aggregation: bank A 2 articles, mean_clarity = (0.06 + (-0.08)) / 2 = -0.01."""
+    """加权聚合: 银行 A 共 2 篇文章, mean_clarity = (0.06 + (-0.08)) / 2 = -0.01。"""
     df, panel = sample_df_panel
     aggregate_clarity_panel(df, panel, median_amb_d0=0.06)
     bank_a = panel[panel['target_bank'] == 'A'].iloc[0]

@@ -17,6 +17,11 @@
 
 外部依赖处理: 无网络调用; SBERT 模型用 fake (注入 _LOCAL_MODELS); faiss/datasketch/
 tiktoken 为已装本地包; torch 测试 importorskip。
+
+# 白话: 这组测试守住向量化(embedding)相关修复: "新闻陈旧度"只跟前几天的
+# 文章比、不跟当天的自己比; 两个文件拼接必须按文章 ID 对齐, 不能靠"行序碰巧
+# 一样"; 超长文章切块后, 大块说话权重大、尾巴小碎块不能喧宾夺主; 聚合求平均
+# 时只算经过核验的文章; 推理前固定随机种子保证每次结果一样。
 """
 from __future__ import annotations
 

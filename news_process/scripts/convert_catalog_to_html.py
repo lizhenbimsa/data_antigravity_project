@@ -374,7 +374,9 @@ def build_html(md_text: str) -> str:
     body_html = post_process_html(body_html)
 
     # 版本/行数/commit/列数等不再硬编码 (旧值 v1.5/3085 行/31737cd8/1700+ 列/16 stage
-    # 早已过期且易失真; STAGES_VALIDATION 实为 17 非 16); 以源 catalog 顶部声明为准。
+    # 早已过期且易失真; 阶段计数随版本持续漂移, 2026-06-12 真值为 STAGES_VALIDATION=16,
+    # 一律以 core/dag.py 与源 catalog 顶部声明为准)。
+    # 白话: 这类会变的数字写死在 HTML 头部迟早过期, 所以干脆不写, 读者去源文档看。
     header_html = (
         '<div class="doc-header">\n'
         '  <strong>news_process — Stata 指标完整分类说明书</strong>\n'

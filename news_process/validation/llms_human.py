@@ -81,7 +81,7 @@ def set_excel_data_validation(writer, sheet_name, df, start_row=1):
             if name in col_names:
                 idx = col_names.index(name)
                 col_letter = get_col_letter(idx)
-                # Apply validation to the entire dynamic column except header
+                # 对整列动态范围 (表头除外) 应用数据校验
                 worksheet.data_validation(f'{col_letter}2:{col_letter}10000', validate_verif)
         
         for name in ['编码者A_情感', '编码者B_情感']:

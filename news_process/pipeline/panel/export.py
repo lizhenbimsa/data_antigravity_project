@@ -1,18 +1,17 @@
-"""news_process.pipeline.panel.export — diagnostics + multi-format panel export.
+"""news_process.pipeline.panel.export — 面板诊断 + 多格式导出。
 
-Extracted from pipeline/panel/runner.py during Phase 2b to enforce single-
-responsibility separation:
-  - log_diagnostics(panel, df_exploded)  → panel diagnostic statistics
+Phase 2b 从 pipeline/panel/runner.py 抽离, 落实单一职责拆分:
+  - log_diagnostics(panel, df_exploded)  → 面板诊断统计
                                                 (纯只读, 不变异 panel schema;
                                                 fix omni-g-panel-export-05)
-  - export_panel(panel, df_exploded)     → Parquet + Stata .dta export with
-                                                32-character Stata column-name
-                                                discipline + STATA_LABELS dict
+  - export_panel(panel, df_exploded)     → Parquet + Stata .dta 导出, 含
+                                                Stata 32 字符列名纪律 +
+                                                STATA_LABELS 标签字典
                                                 (含 low_conf_flag 无条件物化 +
                                                 变量标签启发式兜底).
 
-Importing this module is side-effect free; consumers call the two functions
-explicitly.  runner.py re-exports them for backwards compatibility.
+导入本模块无副作用; 调用方需显式调用上述两个函数。
+runner.py re-export 这两个函数以保持向后兼容。
 """
 
 from __future__ import annotations
@@ -1109,8 +1108,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'benefit_pos_frac_ctx':   'Benefit-Ops Positive Frac (Ctx)',
                 'benefit_neg_frac_full':  'Benefit-Ops Negative Frac (Full)',
                 'benefit_neg_frac_ctx':   'Benefit-Ops Negative Frac (Ctx)',
-                # === Article-level Policy Alignment (Stage 15; Distel et al. 2026) ===
-                # Continuous aggregation (main regression)
+                # === 文章级政策对齐 Article-level Policy Alignment (Stage 15; Distel et al. 2026) ===
+                # 连续型聚合 (主回归用)
                 'article_sim_mean':       'Avg Article-Policy Cosine Sim',
                 'article_sim_std':        'Std Article-Policy Cosine Sim',
                 # dual-track parity (2026-06-08): MAIN/API spec 政策对齐 _ctx 孪生 (runner.py
@@ -1118,7 +1117,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'article_sim_mean_ctx':   'Avg Article-Policy Cosine Sim (Ctx)',
                 'article_sim_std_ctx':    'Std Article-Policy Cosine Sim (Ctx)',
                 'fintech_intensity_mean': 'Avg FinTech Intensity Score',
-                # Quadrant discrete classification (mechanism / robustness)
+                # 象限离散分类 (机制检验 / 稳健性用)
                 # Track A (kw) x P={25,50,75}
                 'token_adopt_kw_p25':     'Token Adoption (KW, P25)',
                 'hidden_adopt_kw_p25':    'Hidden Adoption (KW, P25)',

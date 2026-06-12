@@ -12,10 +12,10 @@
 #   - id 用 core/dag.py STAGES_MAIN 的脚本 stem (此处列举核心生产阶段子集, 非全量;
 #     skeleton 占位, 无代码按 id 解析)。
 
-version: 1.0.0  # config schema version (not pipeline version)
+version: 1.0.0  # config schema 版本号 (不是 pipeline 版本号)
 plan_anchor: "B_route_master_plan_v2 §5.3"
 target_panel: "46_panel_yearly_v34.dta"
-status: skeleton  # placeholder until G-1 pass + D1 confirms raw access
+status: skeleton  # 占位状态: 待 G-1 审计通过 + D1 确认 raw 数据可获取后才转正
 
 # ----------------------------------------------------------------------------
 # M0.5.1 Raw 入库 + 00_preprocessing
@@ -23,10 +23,10 @@ status: skeleton  # placeholder until G-1 pass + D1 confirms raw access
 raw_ingest:
   # **TODO (M-1.1 + D1)**: 填写实际 raw 数据物理位置 / API endpoint / DB 连接串.
   #   候选: CNRDS / Wind / 巨灵财经 / 自建爬虫
-  source_type: TBD  # one of: filesystem / database / api / multi
-  source_path: null  # absolute path or connection string
-  credentials_ref: null  # env var name (e.g. RAW_DATA_API_KEY), never inline credentials
-  schema_doc: null  # path to original schema documentation
+  source_type: TBD  # 取值之一: filesystem / database / api / multi
+  source_path: null  # 绝对路径或数据库连接串
+  credentials_ref: null  # 环境变量名 (如 RAW_DATA_API_KEY); 绝不把凭证明文写进本文件
+  schema_doc: null  # 原始数据 schema 文档的路径
   cutoff_date: 2024-12-31  # raw 抓取截止日 (per plan §1 "2007-2024 (18 年)")
   expected_record_count: 400000
   expected_bank_count: 500
@@ -52,7 +52,7 @@ stages:
     duration_wk: 0   # M0.5.3 chained
     resource: cpu
   - id: "21_tone_llms"
-    duration_wk: 4   # M0.5.4 — LLM API critical path bottleneck
+    duration_wk: 4   # M0.5.4 — LLM API 调用是整条关键路径的瓶颈
     resource: "llm_api"
     cost_estimate_usd: 2400
     families: [gpt54nano, gemini31111, deepseekv4]
@@ -171,8 +171,8 @@ acceptance:
     categorical_tolerance: 0
 
 # ----------------------------------------------------------------------------
-# Critical path note (per §5.3 R9-M02):
-#   sub-task sequential sum = 1+1+1+4+1+2+1+2+1 = 14 wk
-#   minus M0.5.10/M0.5.11 parallel savings (2 wk during M0.5.4 wait)
-#   = 12 wk critical path
+# 关键路径说明 (per §5.3 R9-M02):
+#   子任务顺序耗时合计 = 1+1+1+4+1+2+1+2+1 = 14 周
+#   减去 M0.5.10/M0.5.11 并行节省 (在 M0.5.4 等待期内并行, 省 2 周)
+#   = 关键路径 12 周
 # ----------------------------------------------------------------------------

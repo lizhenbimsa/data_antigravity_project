@@ -18,7 +18,7 @@ _PROJECT_PARENT = Path(__file__).resolve().parents[2]
 if str(_PROJECT_PARENT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_PARENT))
 
-# Mapping: (function_name, expected_csv_substr)
+# 映射表: (函数名, 期望的 csv 文件名子串)
 _TARGETS = [
     ('build_table2_main',                 'table2_main.csv'),
     ('build_table3_mechanism',            'table3_mechanism.csv'),

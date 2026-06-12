@@ -1,36 +1,35 @@
-"""news_process.papers._common.paper_figures_ext — Figure 2-4 generic helpers.
+"""news_process.papers._common.paper_figures_ext — Figure 2-4 通用 helper。
 
 P3.1 (plan-r3 derivative-paper extension, 2026-05-15)
 
-Generic publication-grade matplotlib figures consuming Stata esttab CSV output
-(parsed via ``stata_postprocess.parse_esttab_csv``).
+消费 Stata esttab CSV 输出 (经 ``stata_postprocess.parse_esttab_csv``
+解析) 的通用发表级 matplotlib 图。
 
-Why a separate file (not extending _common/figures.py)
+为什么独立成文件 (而不是扩展 _common/figures.py)
 -------------------------------------------------------
-The existing ``_common/figures.py`` only sets matplotlib rcParams and exposes
-the colorblind palette. Adding plotting *functions* there would mix concerns
-and is more invasive to a file with stable tests. P3.1 deliberately ships in
-a sibling module so the existing 106-line `figures.py` is untouched.
+既有 ``_common/figures.py`` 只设置 matplotlib rcParams 和暴露色盲友好
+调色板。在那里加绘图*函数*会混淆职责, 且对一个测试已稳定的文件侵入
+更大。P3.1 刻意放在兄弟模块, 让既有 106 行的 `figures.py` 原封不动。
 
-Provided plots
+提供的图
 --------------
 1. ``coefplot_from_esttab_df(df, vars, models)``
-   — coefficient ± 1.96·SE plot. The Cao-2025 cutoff-sensitivity figure +
-   strategic_diff N-sensitivity both reduce to this.
+   — 系数 ± 1.96·SE 图。Cao-2025 cutoff 灵敏度图 +
+   strategic_diff N 灵敏度图都可归约为它。
 
 2. ``forest_plot_from_esttab_df(df, var, models)``
-   — heterogeneity forest plot (each row = a sub-group / spec, with SE bars).
-   Used for SOE × paper heterogeneity figures.
+   — 异质性森林图 (每行 = 一个子组 / spec, 带 SE 误差棒)。
+   用于 SOE × paper 异质性图。
 
-3. ``event_study_from_esttab_df(df, lead_lags)``
-   — TWFE dynamic event-study plot (Sun-Abraham 2021). Bank-fintech-tone uses
-   this; derivative papers can reuse where applicable.
+3. ``event_study_plot(periods, coefficients, ...)``
+   — TWFE 动态事件研究图 (Sun-Abraham 2021)。bank_fintech_tone 在用;
+   衍生论文可按需复用。
 
-All plots:
-- Default backend: matplotlib's Agg (set via setting savefig.format) so tests
-  pass under headless CI.
-- Default style: ``apply_publication_style`` (Times Roman, 9pt, color-blind).
-- File extension: .pdf (matches journal convention).
+所有图:
+- 默认后端: matplotlib 的 Agg (经 savefig.format 设置), 保证 headless
+  CI 下测试可过。
+- 默认风格: ``apply_publication_style`` (Times Roman, 9pt, 色盲友好)。
+- 文件扩展名: .pdf (符合期刊惯例)。
 """
 
 from __future__ import annotations
@@ -53,7 +52,7 @@ from news_process.papers._common.stata_postprocess import Coefficient
 # ============================================================================
 
 def _ensure_matplotlib_agg():
-    """Force Agg backend if running headless (no DISPLAY)."""
+    """headless 运行 (无 DISPLAY) 时强制 Agg 后端。"""
     import os
 
     import matplotlib
@@ -62,7 +61,7 @@ def _ensure_matplotlib_agg():
 
 
 def _to_value_se(cell) -> tuple[float, float | None]:
-    """Extract (value, SE) from a Coefficient or numeric scalar; None → (nan, None)."""
+    """从 Coefficient 对象或数值标量中提取 (value, SE); None → (nan, None)。"""
     if cell is None:
         return float('nan'), None
     if isinstance(cell, Coefficient):
@@ -74,7 +73,7 @@ def _to_value_se(cell) -> tuple[float, float | None]:
 
 
 # ============================================================================
-# 1. Coefplot from esttab DataFrame
+# 1. 系数图 Coefplot (输入 = esttab 解析后的 DataFrame)
 # ============================================================================
 
 def coefplot_from_esttab_df(df: pd.DataFrame,
@@ -87,23 +86,23 @@ def coefplot_from_esttab_df(df: pd.DataFrame,
                             ci_multiplier: float = 1.96,
                             figsize: tuple[float, float] = FIGSIZE_WIDE,
                             ) -> Path:
-    """Render a coefficient plot: one point + 95% CI per (model, variable).
+    """绘制系数图: 每个 (model, variable) 组合画一个点 + 95% 置信区间。
 
-    Layout: y-axis = variables (top to bottom), x-axis = coefficient value.
-    Multiple models shown side by side with different colors.
+    布局: y 轴 = 变量 (自上而下), x 轴 = 系数值。
+    多个模型以不同颜色并排展示。
 
     Args:
-        df:              Output of parse_esttab_csv.
-        variables:       Variable rows to plot (in index of df).
-        models:          Column names; defaults to all model columns of df.
-        output_path:     .pdf file path.
-        title:           Figure title.
-        xlabel:          X-axis label.
-        ci_multiplier:   95% CI = 1.96·SE; pass 1.645 for 90% CI.
-        figsize:         (width, height) in inches.
+        df:              parse_esttab_csv 的输出。
+        variables:       要绘制的变量行 (须在 df.index 中)。
+        models:          列名; 默认取 df 的全部模型列。
+        output_path:     .pdf 输出路径。
+        title:           图标题。
+        xlabel:          x 轴标签。
+        ci_multiplier:   95% CI = 1.96·SE; 传 1.645 得 90% CI。
+        figsize:         (宽, 高), 单位英寸。
 
     Returns:
-        Resolved output path (Path).
+        解析后的输出路径 (Path)。
     """
     _ensure_matplotlib_agg()
     import matplotlib.pyplot as plt
@@ -155,7 +154,7 @@ def coefplot_from_esttab_df(df: pd.DataFrame,
 
 
 # ============================================================================
-# 2. Forest plot — single variable across multiple specs (heterogeneity)
+# 2. 森林图 Forest plot — 同一变量跨多个回归设定 (异质性分析)
 # ============================================================================
 
 def forest_plot_from_esttab_df(df: pd.DataFrame,
@@ -168,10 +167,10 @@ def forest_plot_from_esttab_df(df: pd.DataFrame,
                                ci_multiplier: float = 1.96,
                                figsize: tuple[float, float] = FIGSIZE_SINGLE,
                                ) -> Path:
-    """Render a forest plot: one row per model spec, single variable's coef ± CI.
+    """绘制森林图: 每个模型设定一行, 展示单一变量的系数 ± 置信区间。
 
-    Typical use: heterogeneity table (SOE / non-SOE / OLS+Int / 2SLS+Int rows)
-    with the same MAIN_DV-on-TONE_VAR coefficient.
+    典型用途: 异质性表 (SOE / 非 SOE / OLS+交互 / 2SLS+交互 各行),
+    比较同一 MAIN_DV-对-TONE_VAR 系数在不同设定下的大小。
     """
     _ensure_matplotlib_agg()
     import matplotlib.pyplot as plt
@@ -215,7 +214,7 @@ def forest_plot_from_esttab_df(df: pd.DataFrame,
 
 
 # ============================================================================
-# 3. Event study (TWFE dynamic) plot
+# 3. 事件研究图 Event study (TWFE 动态系数)
 # ============================================================================
 
 def event_study_plot(periods: Sequence[int],
@@ -230,14 +229,14 @@ def event_study_plot(periods: Sequence[int],
                      reference_period: int = -1,
                      figsize: tuple[float, float] = FIGSIZE_WIDE,
                      ) -> Path:
-    """TWFE dynamic event-study plot (Sun-Abraham 2021 style).
+    """TWFE 动态事件研究图 (Sun-Abraham 2021 风格)。
 
     Args:
-        periods:           Event-time integers, e.g. [-3,-2,-1,0,1,2,3].
-        coefficients:      Estimated coefficients matched to periods.
-        standard_errors:   Optional matched SEs (for 95% CI bars).
-        output_path:       PDF target.
-        reference_period:  Period to mark as omitted (no CI). Default -1.
+        periods:           事件时间整数序列, 如 [-3,-2,-1,0,1,2,3]。
+        coefficients:      与 periods 一一对应的估计系数。
+        standard_errors:   可选的对应标准误 (用于画 95% CI 误差条)。
+        output_path:       PDF 输出路径。
+        reference_period:  标记为省略基期的期数 (不画 CI), 默认 -1。
     """
     _ensure_matplotlib_agg()
     import matplotlib.pyplot as plt

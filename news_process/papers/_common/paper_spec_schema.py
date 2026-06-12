@@ -1,4 +1,4 @@
-"""papers/_common/paper_spec_schema.py — Lightweight paper_spec.yaml validator.
+"""papers/_common/paper_spec_schema.py — 轻量级 paper_spec.yaml 校验器。
 
 remove-title-track: 此模块原为校验已删除的「标题情感稳健性轨」字段而建
 (tables.tA8.title_robustness.* / title_robustness_table.*)。这些字段已从所有
@@ -6,11 +6,11 @@ papers/*/paper_spec.yaml 移除, 故本模块的检查在当前 spec 上恒为 n
 直接通过)。模块予以保留仅因 11 份 paper_spec.yaml 顶部以注释方式引用其路径
 (`# Schema reference: papers/_common/paper_spec_schema.py`)。
 
-Public API:
-    validate_paper_spec(spec_dict) -> list[str]   # returns violations, empty = ok
+公开 API:
+    validate_paper_spec(spec_dict) -> list[str]   # 返回违规消息列表, 空 = 通过
     is_valid_audit_response_ref(s)  -> bool
 
-Usage:
+用法:
     from papers._common.paper_spec_schema import validate_paper_spec
     import yaml
     with open("papers/bank_fintech_tone/paper_spec.yaml") as f:
@@ -22,8 +22,8 @@ from __future__ import annotations
 
 from typing import Any
 
-# Round 62 audit (62-A1): use explicit allowlist instead of wildcard regex
-# to prevent stale or typo'd anchors (e.g. '#999-bogus') from passing.
+# Round 62 audit (62-A1): 用显式 allowlist 而非通配正则,
+# 防止过期或打错的锚点 (如 '#999-bogus') 蒙混过关。
 _VALID_AUDIT_RESPONSE_REFS: frozenset[str] = frozenset({
     "docs/methodology/title_track_as_robustness.md"
     "#5-audit-response-template-for-peer-review",
@@ -31,7 +31,7 @@ _VALID_AUDIT_RESPONSE_REFS: frozenset[str] = frozenset({
 
 
 def is_valid_audit_response_ref(s: Any) -> bool:
-    """True iff s is one of the explicitly allow-listed audit-response anchors.
+    """当且仅当 s 是显式 allowlist 中的 audit-response 锚点时为 True。
 
     remove-title-track: 该 audit-response 体系随标题情感稳健性轨一并停产, 不再
     新增 variant; 此函数在当前 spec 上恒返回 False 对缺失字段无影响 (调用方仅在
@@ -52,17 +52,17 @@ def _get_path(d: dict, path: list[str]) -> Any:
 
 
 def validate_paper_spec(spec: dict) -> list[str]:
-    """Validate v3.7.4 fields in a paper_spec.yaml dict.
+    """校验 paper_spec.yaml dict 中的 v3.7.4 字段。
 
     Returns:
-        List of human-readable violation messages (empty list = valid).
+        人类可读的违规消息列表 (空列表 = 通过)。
     """
     errs: list[str] = []
     if not isinstance(spec, dict):
         errs.append(f"paper_spec must be a dict, got {type(spec).__name__}")
         return errs
 
-    # Pattern A: tables.tA8.title_robustness.* (8 papers + 1 deferred)
+    # 模式 A: tables.tA8.title_robustness.* (历史字段, 已从全部 spec 移除; 8 papers + 1 deferred)
     tA8_tr = _get_path(spec, ["tables", "tA8", "title_robustness"])
     if isinstance(tA8_tr, dict):
         ref = tA8_tr.get("audit_response_ref")
@@ -79,7 +79,7 @@ def validate_paper_spec(spec: dict) -> list[str]:
                     f"got {type(v).__name__}"
                 )
 
-    # Pattern B: top-level title_robustness_table.* (benefit_society alt-key)
+    # 模式 B: 顶层 title_robustness_table.* (benefit_society 替代键, 同为历史字段)
     bs_tr = _get_path(spec, ["title_robustness_table"])
     if isinstance(bs_tr, dict):
         ref = bs_tr.get("audit_response_ref")

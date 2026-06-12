@@ -28,21 +28,21 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-# Attention treatments (stage 14_fintech_intensity derivatives) + outcome enrichment
+# Attention treatment 列 (stage 14_fintech_intensity 衍生) + outcome enrichment 列
 _TABLE1_VARIABLES: list[str] = [
-    # P2 treatment (per paper_spec.yaml R36-m01)
+    # P2 处理变量 treatment (依 paper_spec.yaml R36-m01)
     'attention_index_full',
     'attention_index_ctx',
     'attention_disp_full',
     'attention_pct_full',
-    # P2 outcome (M0.5.11 financial enrichment)
+    # P2 结果变量 outcome (M0.5.11 财务数据扩充列)
     'ln_fintech_investment',
     'm_and_a_fintech',
     'patent_fintech_count',
     'employee_growth_it',
     # P2 mediator
     'ln_fintech_mdna_length',
-    # Bank-level standard controls
+    # 银行层面标准控制变量
     'ln_assets',
     'leverage',
     'capital_ratio',
@@ -66,7 +66,7 @@ def write_table1(paper_config: PaperConfig | None = None,
 
 
 # ============================================================================
-# Tables 2-5 from Stata esttab CSV output (filled at M5/M6)
+# Tables 2-5 读取 Stata esttab CSV 输出 (M5/M6 阶段填实)
 # ============================================================================
 
 
@@ -83,21 +83,27 @@ def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
 
 
 def build_table3_mechanism(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 3: Mediation (attention → ln_fintech_mdna_length → ln_fintech_investment).
+    """Table 3: 中介机制 (attention → ln_fintech_mdna_length → ln_fintech_investment).
 
-    Baron-Kenny 1986 + Imai-Keele-Tingley 2010 sensitivity (per §5.5.2 R7-M01/M02)."""
+    Baron-Kenny 1986 中介三步法 + Imai-Keele-Tingley 2010 敏感性分析
+    (per §5.5.2 R7-M01/M02)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_attention', 'table3_mechanism.csv', paper_config)
 
 
 def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 4: 4 bank types × fintech wave + SOE × non-SOE heterogeneity."""
+    """Table 4: 4 bank types × fintech wave + SOE × non-SOE 异质性."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_attention', 'table4_heterogeneity.csv', paper_config)
 
 
 def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 5: Advanced robustness (Oster δ / rwolf / Honest DiD / wild bootstrap / ritest /
-    spillover / sample cuts + paper-specific alternative attention measures)."""
+    """Table 5: 高阶稳健性 (Oster δ / rwolf / Honest DiD / wild bootstrap / ritest /
+    spillover / 样本切割 + 本文专属替代 attention 度量).
+
+    白话: rwolf = Romano-Wolf 多重检验校正 — 同时跑很多个稳健性回归时,
+    总会有几个"碰巧"显著, rwolf 把 p 值整体调严, 防止挑出来的显著是运气;
+    Oster δ 衡量"还要多大的遗漏变量才能推翻结论"。
+    """
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_attention', 'table5_robustness.csv', paper_config)

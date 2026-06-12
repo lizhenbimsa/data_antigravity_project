@@ -1,5 +1,5 @@
 * ============================================================================
-* 01_data_prep.do — Load panel + xtset + globals (bank_fintech_collab / P5)
+* 01_data_prep.do — 载入面板 + xtset + 全局宏 globals (bank_fintech_collab / P5)
 * Paper: {{PAPER_ID}}
 * v3.4.0: 第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ)
 * ============================================================================
@@ -62,12 +62,14 @@ if _rc {
 * open+closed≡1 与常数项/FE 完全共线 → reghdfe 静默 omit, 15_collab:69 的
 * `test open = closed` 退化。现: 平局 (含两者皆 0) 两者皆 0 作显式参照组
 * (避免共线), 缺失 → missing (排除出回归)。
+* 白话: 每家银行每年看"外部协同"和"自主研发"哪类报道占比更高, 高者记 1;
+* 打平就两个都记 0 当对照基准, 占比缺失则整行不进回归 (不再被误当对照组虚增样本)。
 capture drop collab_open_full collab_closed_full collab_gap
 gen collab_open_full   = (collab_frac > indep_frac) if !missing(collab_frac, indep_frac)
 gen collab_closed_full = (indep_frac > collab_frac) if !missing(collab_frac, indep_frac)
 gen collab_gap = collab_open_full - collab_closed_full   // ∈ {-1, 0, +1}
 
-* Winsorize outcome
+* 对 outcome 做 winsorize 缩尾 (1%/99%)
 capture which winsor2
 if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
 else gen {{MAIN_DV}}_w = {{MAIN_DV}}

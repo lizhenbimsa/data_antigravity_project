@@ -99,7 +99,7 @@ def _sha256_of_file(path: Path) -> str:
 
 
 def _pdf_to_base64(path: Path) -> str:
-    """Convert PDF to base64 for vision API payload."""
+    """把 PDF 转为 base64, 用作 vision API 的请求载荷。"""
     return base64.b64encode(path.read_bytes()).decode("ascii")
 
 
@@ -107,8 +107,8 @@ def _pdf_to_base64(path: Path) -> str:
 # Provider stubs (Phase 0: 全部返回 stub 响应)
 # ---------------------------------------------------------------------------
 def _call_gpt4o_vision(pdf_b64: str, prompt: str, *, model_id: str) -> str:
-    """Call GPT-4o vision API. Phase 0 stub returns None to indicate unimplemented."""
-    del pdf_b64, prompt, model_id  # reserved for real implementation
+    """调用 GPT-4o vision API。Phase 0 占位 stub, 抛 NotImplementedError 表示未实现。"""
+    del pdf_b64, prompt, model_id  # 参数为真实实现预留
     raise NotImplementedError(
         "GPT-4o vision API call requires Phase 0 D4 unblock (API key + budget approval). "
         "Wire up openai.ChatCompletion here with model_id, temperature=0, seed=42."
@@ -129,13 +129,13 @@ def _call_gemini_vision(pdf_b64: str, prompt: str, *, model_id: str) -> str:
 
 
 def _call_local_ocr(pdf_path: Path, prompt: str) -> str:
-    """Local OCR fallback wrapping OCR text in a JSON envelope (F2 fix).
+    """本地 OCR 兜底: 把 OCR 文本包进 JSON 信封 (F2 fix)。
 
-    Returns a JSON string with shape {"_local_ocr_text": "<full OCR text>"} so that
-    downstream JSON parsing in extract_one succeeds; structured field extraction
-    can be deferred to a post-processing step that operates on _local_ocr_text.
+    返回形如 {"_local_ocr_text": "<完整 OCR 文本>"} 的 JSON 字符串, 使
+    extract_one 中下游的 JSON 解析能够成功; 结构化字段抽取可推迟到
+    针对 _local_ocr_text 的后处理步骤中完成。
     """
-    del prompt  # OCR ignores the prompt; structured extraction is downstream
+    del prompt  # OCR 不使用 prompt; 结构化抽取在下游做
     try:
         import pytesseract  # type: ignore[import-not-found]
         from pdf2image import convert_from_path  # type: ignore[import-not-found]
@@ -145,7 +145,7 @@ def _call_local_ocr(pdf_path: Path, prompt: str) -> str:
     images = convert_from_path(str(pdf_path), dpi=200)
     pages_text = [pytesseract.image_to_string(img, lang="chi_sim+eng") for img in images]
     full_text = "\n\n=== PAGE BREAK ===\n\n".join(pages_text)
-    # F2 fix: wrap in JSON envelope so downstream json.loads() succeeds
+    # F2 fix: 包进 JSON 信封, 保证下游 json.loads() 解析成功
     return json.dumps({"_local_ocr_text": full_text}, ensure_ascii=False)
 
 
@@ -153,7 +153,7 @@ PROVIDER_DISPATCH = {
     "gpt4o": _call_gpt4o_vision,
     "claude": _call_claude_vision,
     "gemini": _call_gemini_vision,
-    "local_ocr": None,  # special-case in extract_one
+    "local_ocr": None,  # 在 extract_one 内特判处理
 }
 
 
@@ -170,9 +170,9 @@ def extract_one(
     cache_db_path: str | None = None,
     raw_response_dir: Path | None = None,
 ) -> ExtractionRecord:
-    """Extract structured fields from a single PDF.
+    """从单个 PDF 中抽取结构化字段。
 
-    On cache hit, returns the cached response without re-calling the API.
+    缓存命中时直接返回缓存的响应, 不重新调 API。
     """
     if not pdf_path.exists():
         return ExtractionRecord(
@@ -327,10 +327,10 @@ def batch_extract(
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry: extract structured fields from NCD rating PDFs via vision API.
+    """CLI 入口: 经 vision API 从 NCD 评级 PDF 中抽取结构化字段。
 
-    Returns 0 on success, 1 if PDF directory not found. In Phase 0, all providers
-    return status='stub' until API budget D4 is unblocked.
+    成功返回 0, PDF 目录不存在返回 1。Phase 0 阶段在 API 预算 D4 解锁前,
+    所有 provider 都返回 status='stub'。
     """
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.ncd_text_extractor",

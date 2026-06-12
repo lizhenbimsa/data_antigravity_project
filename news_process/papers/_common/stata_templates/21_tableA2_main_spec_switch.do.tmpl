@@ -1,9 +1,11 @@
-* news_process v3.2.0 — Table A2: Main Spec Switch Sensitivity (plan v14 §5.3 / §9.2)
+* news_process v3.2.0 — Table A2: 主规格切换敏感性 Main Spec Switch Sensitivity (plan v14 §5.3 / §9.2)
 *
 * 核心新价值 (Hassan 2019 QJE / Sautner 2023 JF / Bingler 2022 FRL):
 *   双轨化设计让 main spec 选择有 8 种 (2 locus × 2 subst × 2 sentiment).
 *   此表展示 main spec 在 8 种切换下的系数 / SE 稳健性 (robustness).
 *   论文 Methods §4 中 main spec 是 1 种, Robustness Appendix 展示其他 7 种.
+* 白话: 测量口径有三处可二选一 (创新位置/实质性/情感各有全文与上下文两版), 共 2×2×2=8 种
+* 组合; 把主回归在 8 种组合下各跑一遍, 若系数方向与显著性都差不多, 说明结论不靠挑口径挑出来。
 
 version 19
 set maxvar 32767

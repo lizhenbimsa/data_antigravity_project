@@ -1,5 +1,5 @@
 * ============================================================================
-* 01_data_prep.do — Data prep (strategic_diff)
+* 01_data_prep.do — 数据准备 (strategic_diff)
 * Paper: {{PAPER_ID}}
 * ============================================================================
 
@@ -18,7 +18,7 @@ global controls "{{CONTROLS}}"
 * $bank_controls 保留为 $controls 的兼容性 alias (跨篇共享 boilerplate; strategic_diff 本篇原引用它的 25_tableA8_title 模板已删, 现为无害 dead alias)
 global bank_controls "$controls"
 
-* Pipeline-produced required variables (stage 21/24/45 产出)
+* Pipeline 产出的必需变量 (stage 21/24/45 产出)
 foreach v in {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} {{SIM_MAX_VAR}} {{TONE_VAR}} {{BARTIK_IV}} {
     capture confirm variable `v'
     if _rc {

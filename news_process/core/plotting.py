@@ -1,4 +1,4 @@
-"""Matplotlib helpers shared by validation plots."""
+"""validation 各绘图模块共享的 Matplotlib 辅助工具。"""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def _installed_font_names() -> set[str]:
 
 
 def configure_matplotlib_chinese_fonts() -> str | None:
-    """Configure Matplotlib so Chinese labels render without glyph warnings."""
+    """配置 Matplotlib 中文字体, 使中文标签渲染不再报缺字形警告。"""
     import matplotlib.pyplot as plt
 
     installed = _installed_font_names()

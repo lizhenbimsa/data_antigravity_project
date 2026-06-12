@@ -29,7 +29,8 @@ except ImportError as _exc:  # pragma: no cover
 
 
 # ----------------------------------------------------------------------------
-# 8 paper id 完整白名单 (plan §3.3 + §B.1-B.4 + 4 existing 衍生)
+# 11 paper id 完整白名单 (5 existing + 3 new + 3 provisional;
+# plan §3.3 + §B.1-B.4 + 2026-06-01 provisional 接线)
 # ----------------------------------------------------------------------------
 
 PAPER_IDS_EXISTING: tuple[str, ...] = (
@@ -46,7 +47,7 @@ PAPER_IDS_NEW: tuple[str, ...] = (
     'bank_fintech_locus',       # P4 (per §B.4)
 )
 
-# Provisional / onboarding-incomplete papers (2026-06-01 wiring).
+# Provisional 临时档 / onboarding 未完成的论文 (2026-06-01 接线)。
 # 这 3 篇 paper_spec.yaml 已 frozen 且通过 REQUIRED_FIELDS + schema 校验, 故纳入
 # PAPER_IDS_ALL 使其经 run_paper.py 可调度 (analysis.py 已建, 表/图为 Phase-3 契约
 # 占位骨架)。它们刻意 *不* 进 PAPER_IDS_NEW — 因为 B-route NEW 契约 (test_papers_b_route)
@@ -64,8 +65,8 @@ PAPER_IDS_ALL: tuple[str, ...] = (
 )
 
 
-# Schema-required fields per plan §5.2.3.bis.
-# Public per RR1-2 (M0.3 test_paper_spec_schema 跨模块直接 import 此集合验证 schema).
+# schema 必填字段, 依 plan §5.2.3.bis。
+# 按 RR1-2 设为 public (M0.3 test_paper_spec_schema 跨模块直接 import 此集合验证 schema)。
 REQUIRED_FIELDS: frozenset[str] = frozenset({
     'paper_id',
     'spec_version',
@@ -81,7 +82,7 @@ REQUIRED_FIELDS: frozenset[str] = frozenset({
     'audit_rounds_target_min',
 })
 
-# Backwards-compat alias for the previous private name (delete in v3.0 plan major).
+# 旧私有名的向后兼容别名 (计划在 v3.0 plan major 删除)。
 _REQUIRED_FIELDS = REQUIRED_FIELDS
 
 
@@ -145,7 +146,7 @@ def _spec_path_for(paper_id: str) -> Path:
 
 
 # ----------------------------------------------------------------------------
-# Loader (lazy + cached)
+# 加载器 Loader (懒加载 + 模块级缓存)
 # ----------------------------------------------------------------------------
 
 
@@ -171,7 +172,7 @@ def _load_one(paper_id: str) -> PaperSpec:
             f"got {type(raw).__name__}"
         )
 
-    # Light schema validation (required fields presence; type checks 留给 M0.3 test)
+    # 轻量 schema 校验 (只查必填字段是否存在; 类型检查留给 M0.3 test)
     missing = REQUIRED_FIELDS - set(raw.keys())
     if missing:
         raise ValueError(
@@ -179,7 +180,7 @@ def _load_one(paper_id: str) -> PaperSpec:
             f"{sorted(missing)}; required = {sorted(_REQUIRED_FIELDS)}"
         )
 
-    # paper_id field must match directory name
+    # paper_id 字段必须与目录名一致
     declared_id = raw.get('paper_id')
     if declared_id != paper_id:
         raise ValueError(

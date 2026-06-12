@@ -1,9 +1,11 @@
-# Exogenous shock event library — M4 DiD design upstream.
-# Plan v2.x §5.7.2 + Appendix C.
-# Each event: id / date / name / name_zh / description / treatment_logic /
-# identification / applicable_papers / reference.
-# All E1-E5b are intensity-based DiD (R8-M03), not staggered timing DiD —
-# policy 同步生效, treatment = bank-level pre-event exposure × post_dummy.
+# 外生冲击事件库 — M4 DiD 设计的上游输入。
+# Plan v2.x §5.7.2 + Appendix C。
+# 每个事件字段: id / date / name / name_zh / description / treatment_logic /
+# identification / applicable_papers / reference。
+# E1-E5b 全部为基于强度的 DiD (intensity-based, R8-M03), 而非错峰时点
+# (staggered timing) DiD — policy 同步生效, treatment = 银行级事前暴露度 × post_dummy。
+# 白话: 这些政策对所有银行同一天生效, 没有"先后受政策"的对照组; 所以识别
+#       策略是比较"事前跟该领域绑得深的银行 vs 绑得浅的银行"在事件后的差异。
 
 events:
   - id: E1
@@ -79,7 +81,7 @@ events:
     reference: "网信办 (2023) 第 16 号令"
 
 # ----------------------------------------------------------------------------
-# Plan §5.7.1 spec count check (17 DiD specs):
+# Plan §5.7.1 规格计数核对 (17 个 DiD spec; tests/test_papers_b_route.py 据此断言事件数=6、spec 总数=17):
 #   E1 × {P1,P2,P3,P4} = 4
 #   E2 × {P1,P2,P3}    = 3
 #   E3 × {P1,P3}       = 2

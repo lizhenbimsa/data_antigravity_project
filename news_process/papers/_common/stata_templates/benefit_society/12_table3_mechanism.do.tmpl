@@ -1,21 +1,24 @@
 * ============================================================================
-* 12_table3_mechanism.do — Token/Hidden/Subst mechanism (benefit_society)
+* 12_table3_mechanism.do — Token/Hidden/Subst 机制检验 (benefit_society)
 * Paper: {{PAPER_ID}}
 *
-* Methodology: Distel-Grimpe-Poetz (2026, Research Policy §3.2.1) —
-*   Token (symbolic adoption) vs Hidden (substantive adoption) decoupling.
-*   Westphal & Zajac (2001, ASQ) institutional theory base.
+* 方法论: Distel-Grimpe-Poetz (2026, Research Policy §3.2.1) —
+*   Token (象征性采纳) vs Hidden (实质性采纳) 的脱耦 decoupling。
+*   制度理论基础: Westphal & Zajac (2001, ASQ)。
 *
-* M1: Token → short-term reaction (use ROBUSTNESS_DV = CAR)
-* M2: Hidden → long-term fundamentals (use MAIN_DV = ROA)
-* M3: Substantive (alignment) → fundamentals
-* M4: Joint Token + Hidden + Subst
+* M1: Token → 短期市场反应 (用 ROBUSTNESS_DV = CAR)
+* M2: Hidden → 长期基本面 (用 MAIN_DV = ROA)
+* M3: Substantive (言行一致) → 基本面
+* M4: Token + Hidden + Subst 联合
 *
-* V2.0 plan §3 P2.B2 (Round 9 fracreg + LPM dual model):
-*   M5/M6: Fractional logit (Papke-Wooldridge 1996 J. Applied Econometrics)
-*          + OLS LPM for fraction-bounded Y (token_adopt ∈ [0, 1]).
-*   Note: fracreg does NOT support absorb(); use bank_id dummies
-*   (Greene 2004 incidental-parameter problem caveat in §6.1 Limitations).
+* V2.0 plan §3 P2.B2 (Round 9 fracreg + LPM 双模型):
+*   M5/M6: 分数 logit (Papke-Wooldridge 1996 J. Applied Econometrics)
+*          + OLS LPM, 用于取值有界的分数型 Y (token_adopt ∈ [0, 1])。
+*   注: fracreg 不支持 absorb(); 改用 bank_id 哑变量
+*   (Greene 2004 伴生参数问题 caveat, 见 §6.1 Limitations)。
+* 白话: 检验"嘴上说"与"实际做"两条机制 — 只发公关稿不落地 (Token) 应只影响短期股价,
+* 真投入 (Hidden) 才影响长期盈利; Y 是 0 到 1 之间的占比时, 普通回归可能预测出界,
+* 故 M5 用专门处理占比因变量的分数 logit, M6 用普通线性模型互为印证。
 * ============================================================================
 
 version 19
@@ -27,7 +30,7 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-* M1: Token → CAR (short-term market reaction)
+* M1: Token → CAR (短期市场反应)
 capture confirm variable {{ROBUSTNESS_DV}}
 if !_rc {
     reghdfe {{ROBUSTNESS_DV}} {{MECHANISM_TOKEN}} $controls, ///
@@ -35,32 +38,32 @@ if !_rc {
     eststo M1_token_CAR
 }
 
-* M2: Hidden → ROA (long-term fundamentals)
+* M2: Hidden → ROA (长期基本面)
 reghdfe {{MAIN_DV}}_w {{MECHANISM_HIDDEN}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M2_hidden_ROA
 
-* M3: Substantive (consistency between token and hidden) → ROA
+* M3: Substantive (token 与 hidden 的一致性) → ROA
 reghdfe {{MAIN_DV}}_w {{MECHANISM_SUBST}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M3_subst_ROA
 
-* M4: Joint Token + Hidden + Subst
+* M4: Token + Hidden + Subst 联合
 reghdfe {{MAIN_DV}}_w {{MECHANISM_TOKEN}} {{MECHANISM_HIDDEN}} {{MECHANISM_SUBST}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M4_joint
 
 * ============================================================================
-* V2.0 plan §3 P2.B2 dual-model columns (Round 9): fractional logit + LPM
-* for fraction Y (token_adopt_kw_p50 ∈ [0,1]; verified via panel inspection).
+* V2.0 plan §3 P2.B2 双模型列 (Round 9): 分数 logit + LPM,
+* 用于分数型 Y (token_adopt_kw_p50 ∈ [0,1]; 经面板实查核实)。
 * ============================================================================
 
-* M5: Fractional logit (Papke-Wooldridge 1996) for Token adoption fraction
+* M5: 分数 logit (Papke-Wooldridge 1996), 用于 Token 采纳占比
 capture confirm variable {{MECHANISM_TOKEN}}
 if !_rc {
     quietly summarize {{MECHANISM_TOKEN}}, detail
     if r(min) >= 0 & r(max) <= 1 {
-        * fracreg requires Y in [0, 1]; bank_id as dummy due to no absorb() support
+        * fracreg 要求 Y 在 [0, 1]; 因不支持 absorb(), bank_id 以哑变量进入
         capture fracreg logit {{MECHANISM_TOKEN}} {{ATTITUDE_VAR}} $controls i.bank_id i.year, ///
             vce(cluster {{CLUSTER_VAR}})
         if _rc == 0 {
@@ -76,7 +79,7 @@ if !_rc {
     }
 }
 
-* M6: OLS LPM for same Y (sanity check; standard panel FE)
+* M6: 同一 Y 的 OLS LPM (互为印证 sanity check; 标准面板 FE)
 capture confirm variable {{MECHANISM_TOKEN}}
 if !_rc {
     reghdfe {{MECHANISM_TOKEN}} {{ATTITUDE_VAR}} $controls, ///

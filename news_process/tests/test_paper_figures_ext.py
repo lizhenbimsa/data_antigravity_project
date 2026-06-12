@@ -1,8 +1,8 @@
-"""tests/test_paper_figures_ext.py — Figure 2-4 generic + paper-level tests.
+"""tests/test_paper_figures_ext.py — Figure 2-4 通用绘图 + paper 级绘图测试。
 
 P3.3 (plan-r3 derivative-paper extension, 2026-05-15)
 
-Tests use matplotlib's Agg backend (headless safe) and write to tmp_path.
+测试使用 matplotlib 的 Agg 后端 (无头环境安全), 输出写入 tmp_path。
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-# Force Agg backend before importing pyplot
+# 在 import pyplot 之前强制 Agg 后端
 os.environ.setdefault('MPLBACKEND', 'Agg')
 import matplotlib  # noqa: E402
 
@@ -87,7 +87,7 @@ def test_coefplot_with_explicit_models(fixture_df, tmp_path):
     out = tmp_path / 'coef.pdf'
     coefplot_from_esttab_df(
         fixture_df, variables=['llm_vote_tone_full'],
-        models=['M1', 'M3'],  # skip M2
+        models=['M1', 'M3'],  # 跳过 M2
         output_path=out,
     )
     assert out.exists()
@@ -147,12 +147,12 @@ def test_event_study_without_se(tmp_path):
 
 
 # ============================================================================
-# 4. Paper-level figure functions (4 papers × 2 new figs = 8 cases)
+# 4. paper 级绘图函数 (4 篇论文 × 2 张新图 = 8 个用例)
 # ============================================================================
 
 
 def _make_paper_config(paper_id: str, base: Path):
-    """Construct a PaperConfig pointing at tmp dirs for testing."""
+    """构造一个指向临时目录的 PaperConfig 供测试用。"""
     from news_process.papers._common import paper_config
     return paper_config.PaperConfig(
         paper_id=paper_id,
@@ -166,7 +166,7 @@ def _make_paper_config(paper_id: str, base: Path):
 
 
 def _drop_fixture(pc, csv_basename: str):
-    """Drop the standard fixture CSV at pc.output_dir / tables / <name>."""
+    """把标准 fixture CSV 放到 pc.output_dir / tables / <name>。"""
     target_dir = pc.output_dir / 'tables'
     target_dir.mkdir(parents=True, exist_ok=True)
     (target_dir / csv_basename).write_text(_FIXTURE_CSV, encoding='utf-8')
@@ -186,7 +186,7 @@ def _drop_fixture(pc, csv_basename: str):
 ])
 def test_paper_figure_renders_with_fixture(paper_id, fig_module, fn_name,
                                            csv_basename, tmp_path):
-    """End-to-end: drop fixture CSV → call paper figure fn → verify PDF written."""
+    """端到端: 放置 fixture CSV → 调用 paper 绘图函数 → 验证 PDF 已写出。"""
     import importlib
 
     pc = _make_paper_config(paper_id, tmp_path)
@@ -211,7 +211,7 @@ def test_paper_figure_renders_with_fixture(paper_id, fig_module, fn_name,
     ('strategic_diff',    'news_process.papers.strategic_diff.figures',    'plot_n_sensitivity_coefplot'),
 ])
 def test_paper_figure_raises_when_csv_missing(paper_id, fig_module, fn_name, tmp_path):
-    """Without the fixture CSV, the figure fn must raise FileNotFoundError."""
+    """没有 fixture CSV 时, 绘图函数必须抛 FileNotFoundError。"""
     import importlib
 
     pc = _make_paper_config(paper_id, tmp_path)
@@ -222,8 +222,8 @@ def test_paper_figure_raises_when_csv_missing(paper_id, fig_module, fn_name, tmp
 
 
 # ---------------------------------------------------------------------------
-# quality-hardening Round 28 (2026-05-27): paper_figures_ext 94.92% → ~100%
-# missing 70-73 (_to_value_se numeric scalar + TypeError fallback) + 265 (title)
+# quality-hardening Round 28 (2026-05-27): paper_figures_ext 覆盖率 94.92% → ~100%
+# 补缺行 70-73 (_to_value_se 数值标量 + TypeError 回退) + 265 (title 分支)
 # ---------------------------------------------------------------------------
 
 

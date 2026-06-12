@@ -3,11 +3,11 @@
 * Paper: {{PAPER_ID}}
 * Plan: §5.5.2 P4 heterogeneity (R6-M03/M04 + R4-M03 三波严格对称)
 *
-* Heterogeneity dimensions:
+* 异质性维度 (Heterogeneity dimensions):
 *   (a) 三波 fintech 浪潮 (wave_1 2013-2015 / wave_2 2016-2018 / wave_3 2022-2024)
-*       + consolidation period (2019-2021, 对照组)
-*   (b) SOE × non-SOE
-*   (c) 4 bank types
+*       + consolidation 整固期 (2019-2021, 对照组)
+*   (b) 国有 (SOE) × 非国有 (non-SOE)
+*   (c) 4 类银行类型 (bank types)
 * ============================================================================
 
 version 19
@@ -41,7 +41,8 @@ foreach w in pre_period wave_1 wave_2 consolidation wave_3 {
     }
 }
 
-* Layer × wave interaction (main spec per R10-m03)
+* Layer × wave 交互项 (主设定, per R10-m03)
+* 白话: 看"押注底层技术"的效应在不同 fintech 浪潮阶段是否不一样。
 capture confirm variable wave_1 wave_2 consolidation wave_3
 if !_rc {
     foreach w in wave_1 wave_2 consolidation wave_3 {
@@ -54,7 +55,7 @@ if !_rc {
 }
 
 * ============================================================================
-* (b) SOE × non-SOE split
+* (b) 国有 (SOE) × 非国有 (non-SOE) 分样本
 * ============================================================================
 * fix(omni-g-templates-08, 2026-06-11): SOE 二元列在面板中实名 is_soe (int64,
 * runner.py:909 `is_soe = (bank_type=='soe')`), 旧 `confirm variable soe` 引用幻影列
@@ -71,7 +72,7 @@ if !_rc {
 }
 
 * ============================================================================
-* (c) 4 bank types
+* (c) 4 类银行类型 (bank types)
 * ============================================================================
 capture confirm variable bank_type
 if !_rc {

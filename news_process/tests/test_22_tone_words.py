@@ -127,5 +127,5 @@ def test_analyze_empty_and_robustness():
     # fix(omni-g-tonewords-06, 2026-06-11): 纯标点文本 word-token 分母 = 0 → ratio NaN
     # (旧断言 == 0.0 锁的是含标点分母旧行为)
     assert math.isnan(res_punct['pos_ratio'])
-    # empty/punctuation content yields default readability
+    # 空文本/纯标点内容应产出默认可读性指标
     assert res_punct['avg_sentence_len'] == 0.0 or res_punct['avg_sentence_len'] == 6.0

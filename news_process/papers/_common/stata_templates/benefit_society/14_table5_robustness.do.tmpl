@@ -1,13 +1,13 @@
 * ============================================================================
-* 14_table5_robustness.do — Robustness battery (benefit_society)
+* 14_table5_robustness.do — 稳健性检验组 Robustness battery (benefit_society)
 * Paper: {{PAPER_ID}}
 *
-* PAP v1.0-final §5 (R8 + R11 removed per F-R3-H1):
-*   R1: P25 threshold (relaxed)
-*   R2: P75 threshold (strict)
-*   R3: INT track (TF-IDF×SIF weighted)
-*   R4: Ctx track attitude (dual-track; full main comparison in Table A2)
-*   R5: Pos/Neg fraction decomposition (now dual-track, F-H3)
+* PAP v1.0-final §5 (R8 + R11 已按 F-R3-H1 移除):
+*   R1: P25 阈值 (宽松)
+*   R2: P75 阈值 (严格)
+*   R3: INT 轨 (TF-IDF×SIF 加权)
+*   R4: Ctx 轨 attitude (双轨; full 主对比见 Table A2)
+*   R5: Pos/Neg 占比分解 (现为双轨, F-H3)
 * ============================================================================
 
 version 19
@@ -29,7 +29,7 @@ local int_p50 token_adopt_int_p50 hidden_adopt_int_p50
 * `foreach v { capture confirm; if _rc continue }` 中 continue 只跳 foreach 本轮、
 * 不跳过紧随其后的回归 — 守卫是 no-op, 缺列时回归照样 r(111); R2/R3 干脆无守卫。
 * 改为单次多变量 confirm (任一缺失即 _rc≠0) 包裹整块 (与 R4/R5 同模式)。
-* R1: P25 threshold
+* R1: P25 阈值
 capture confirm variable `kw_p25'
 if !_rc {
     reghdfe {{MAIN_DV}}_w `kw_p25' $controls, ///
@@ -40,7 +40,7 @@ else {
     display "  [WARN] P25 threshold 列缺失 (`kw_p25'); R1 跳过"
 }
 
-* R2: P75 threshold
+* R2: P75 阈值
 capture confirm variable `kw_p75'
 if !_rc {
     reghdfe {{MAIN_DV}}_w `kw_p75' $controls, ///
@@ -51,7 +51,7 @@ else {
     display "  [WARN] P75 threshold 列缺失 (`kw_p75'); R2 跳过"
 }
 
-* R3: INT track
+* R3: INT 轨
 capture confirm variable `int_p50'
 if !_rc {
     reghdfe {{MAIN_DV}}_w `int_p50' $controls, ///
@@ -62,7 +62,7 @@ else {
     display "  [WARN] INT track 列缺失 (`int_p50'); R3 跳过"
 }
 
-* R4: Ctx track attitude (dual-track main comparison; full vs ctx)
+* R4: Ctx 轨 attitude (双轨主对比; full vs ctx)
 capture confirm variable {{ATTITUDE_CTX}}
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls, ///
@@ -70,7 +70,7 @@ if !_rc {
     eststo R4_ctx
 }
 
-* R5 (dual-track Pos/Neg fraction): full + ctx side-by-side, F-H3
+* R5 (双轨 Pos/Neg 占比): full 与 ctx 并排, F-H3
 capture confirm variable {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_NEG_FRAC_FULL}}
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_NEG_FRAC_FULL}} $controls, ///

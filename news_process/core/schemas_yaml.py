@@ -125,7 +125,7 @@ class HerdDetectionSchema:
 
 
 def _type_check(field_name: str, value: Any, expected_type: type, domain: str) -> None:
-    """raise TypeError if value mismatches expected_type.
+    """value 与 expected_type 类型不匹配时 raise TypeError.
 
     bool ↔ int 关系特殊处理: Python ``isinstance(True, int)`` 返回 True, 但我们
     不希望把 ``compute_bartik_iv: true`` 当作"int 字段被填了 1". 反之亦然.

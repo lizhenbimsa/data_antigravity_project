@@ -3,7 +3,7 @@
 实现正文已迁至 ``news_process.pipeline.audit.stats_excel:main``。
 为向后兼容 ``python news_process/53_export_stats_excel.py`` 外部 CLI 契约保留;
 **不在 STAGES_MAIN/STAGES_VALIDATION 中, 编排器不会触发**
-(见 ``news_process/core/schemas.py:182`` 显式排除注释)。
+(见 ``news_process/core/schemas.py:156`` 显式排除注释)。
 
 由用户按需手动调用 (导出描述性统计 Excel); 推荐入口:
     python -m news_process.pipeline.audit.stats_excel

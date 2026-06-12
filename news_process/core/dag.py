@@ -248,7 +248,7 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段30a: Article-level SBERT 持久化 (D 组前置)",
         script="30a_article_sbert.py",
         group="main", kind="robustness",
-        timeout=21600,  # 4-6 h on GPU, 12-24 h on CPU for 400k articles
+        timeout=21600,  # 40 万文章: GPU 约 4-6 小时, CPU 约 12-24 小时
     ),
     # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标.
     # 学术依据: Tetlock (2011) RFS 24(5):1481-1512; Gentzkow-Shapiro-Taddy (2019) JEL.
@@ -388,20 +388,20 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段39c: NMI 三 construct 正交性测度 + permutation null (v3.5.0 D3)",
         script="39c_construct_orthogonality.py",
         group="validation", kind="audit",
-        # bootstrap 1000 + permutation 1000 on N≈400k labels;
-        # single-thread ≈ 70 min, n_jobs=16 ≈ 5 min on 64-core MP
-        # (per plan §2.2.2 Performance estimate + F31 recommended default).
-        timeout=10800,  # 3 hour ceiling — allow worst-case + some margin
+        # 在 N≈40 万标签上做 bootstrap 1000 次 + permutation 1000 次;
+        # 单线程约 70 分钟, 64 核 MP 上 n_jobs=16 约 5 分钟
+        # (依据 plan §2.2.2 性能估算 + F31 推荐默认值)。
+        timeout=10800,  # 3 小时上限 — 覆盖最坏情况并留余量
         enabled_when=_VALIDATION_PREDS['construct_orthogonality'],
     ),
     StageSpec(
         name="阶段39d: A1/A3 lexical discriminant validity (HTMT + AVE + κ + α; v3.5.1)",
         script="39d_lexical_discriminant_validity.py",
         group="validation", kind="audit",
-        # pairwise on-disk HTMT on N≈9000 bank-year panel obs;
-        # single-thread < 1 min light job (per plan v0.3 §2.3 修 R7-H3 + R8-H3).
-        # Permutation 1000 with seed=42 (修 R9-H3).
-        timeout=900,  # 15 min ceiling
+        # 在 N≈9000 个 bank-year 面板观测上做成对 on-disk HTMT;
+        # 单线程 < 1 分钟的轻量任务 (依据 plan v0.3 §2.3 修 R7-H3 + R8-H3)。
+        # Permutation 1000 次, seed=42 (修 R9-H3)。
+        timeout=900,  # 15 分钟上限
         enabled_when=_VALIDATION_PREDS['lexical_discriminant_validity'],
     ),
     # v3.5.2 PR #4: LM 4 子词典 (uncert/litig/constr/modal_strong) HTMT.
@@ -410,7 +410,7 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段39e: LM 4 子词典 discriminant validity (HTMT + Cronbach α + permutation)",
         script="39e_lm_discriminant_validity.py",
         group="validation", kind="audit",
-        timeout=900,  # 15 min ceiling, 仿 39d
+        timeout=900,  # 15 分钟上限, 仿 39d
         enabled_when=_VALIDATION_PREDS['lm_discriminant_validity'],
     ),
     # v3.7.0 PR #12 (D3): Cross-media tone variance + Krippendorff α.
@@ -420,7 +420,7 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段39f: Cross-media tone variance + Krippendorff α (v3.7.0 D3)",
         script="39f_cross_media_alpha.py",
         group="validation", kind="audit",
-        timeout=3600,  # 60 min ceiling, event detection + outlet aggregation
+        timeout=3600,  # 60 分钟上限, 含事件检测 + 媒体源聚合
         enabled_when=_VALIDATION_PREDS['cross_media_alpha'],
     ),
 ]

@@ -448,7 +448,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         ('_ctx', '上下文', 'Entity-context'),
     ]:
         _trk = _suffix.lstrip('_')  # 'full' / 'ctx' 标准枚举值
-        # ─── Plan v1.37 P2: 4 binary prob_score columns per track ───
+        # ─── Plan v1.37 P2: 每轨 4 个 binary prob_score 列 (两轨共 8 列) ───
         metadata[f'avg_subst_prob_score{_suffix}'] = VariableMetadata(
             var_name=f'avg_subst_prob_score{_suffix}',
             label=f'Avg Subst P_BIN ({_track_en}, 1=symbolic)',

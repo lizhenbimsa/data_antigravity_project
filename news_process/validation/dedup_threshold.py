@@ -11,7 +11,8 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
     使用 Jaccard MinHash 分别测试截断点阈值 [0.75, 0.80, 0.85, 0.90]，
     输出去重敏感性统计表，供实证检验附件使用。
 
-    本阶段用于证明生产去重阈值 (config.yaml: deduplication.jaccard_similarity_threshold)
+    本阶段用于证明生产去重阈值 (config/preprocessing.yaml:
+    deduplication.jaccard_similarity_threshold)
     的选择不影响核心结论，属于学术论文附录中的参数稳健性检验。
 
     方法论要点 (fix(omni-g-val-robust-01, 2026-06-11) 修订)：
@@ -35,7 +36,7 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
 
 流水线集成：
     由 run_pipeline_validation.py 调度，在阶段 32 (人工抽样) 之后执行。
-    受 config.yaml 中 validation.dedup_sensitivity 开关控制 (默认开启)。
+    受 config/validation.yaml 中 validation.dedup_sensitivity 开关控制 (默认开启)。
 
 输入：
     优先: data/processed/_cache/*.parquet — stage 00 增量缓存
@@ -47,6 +48,15 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
     eval_reports/dedup_sensitivity_report.csv — 多阈值去重敏感性统计表
     列: Threshold, Retained, Dropped, Retained_Ratio, Is_Production,
         Input_Mode, Mechanically_Censored
+
+白话:
+    去重时"相似到多少算重复"是个人为定的阈值 (生产用 0.80)。本检验把
+    阈值换成 0.75/0.80/0.85/0.90 各跑一遍, 看保留的文章数变化大不大;
+    变化小就说明结论不依赖这个阈值。关键坑 ("机械截尾"): 如果输入语料
+    本身已经按 0.80 去过重, 那再用 0.85/0.90 去测肯定"测不出"新重复 —
+    这不是稳健, 是数据早被剪过了。所以本模块优先读去重之前的原始快照
+    (_cache/), 实在拿不到才退回旧输入, 并在报告里逐行标明哪些数字是
+    机械结果不可当证据。
 """
 
 import gc

@@ -1,20 +1,21 @@
 * ============================================================================
-* 11b_table2_boottest.do — Wild cluster bootstrap inference (A1)
+* 11b_table2_boottest.do — 野聚类自助法推断 Wild cluster bootstrap (A1)
 * Paper: {{PAPER_ID}}
 *
-* V2.0 J-L-M 2026 robustness alignment plan §3 Phase 2 P2.A1:
-*   Wild cluster bootstrap on bank_id (G_bank=84) for main regression.
-*   Per MacKinnon-Webb 2017 (J. Econometrics), G≥30 satisfies wild cluster
-*   bootstrap regularity. G_year=2 in current panel → cannot cluster on year
-*   (deferred to Stage B trigger T≥30).
+* V2.0 J-L-M 2026 稳健性对齐计划 §3 Phase 2 P2.A1:
+*   对主回归做按 bank_id 聚类的 wild cluster bootstrap (G_bank=84)。
+*   按 MacKinnon-Webb 2017 (J. Econometrics), G≥30 满足 wild cluster
+*   bootstrap 正则性。当前面板 G_year=2 → 不能按 year 聚类
+*   (推迟到 Stage B 触发条件 T≥30)。
 *
-* References:
+* 参考文献:
 *   - Cameron, Gelbach & Miller (2008, REStat) wild cluster bootstrap
-*   - MacKinnon-Webb 2017 (J. Econometrics) small-G aspects
-*   - Baron & Muir 2022 (RFS) narrow-panel SE practices
+*   - MacKinnon-Webb 2017 (J. Econometrics) small-G 情形
+*   - Baron & Muir 2022 (RFS) 窄面板 SE 实务
 *
-* Replaces conventional cluster SE p-value with wild bootstrap p-value
-* for the main regression coefficient on {{ATTITUDE_VAR}}.
+* 把主回归系数 {{ATTITUDE_VAR}} 的常规聚类 SE p 值替换为 wild bootstrap p 值。
+* 白话: 银行数 84 够做按银行聚类的 bootstrap 重抽推断, 但年份只有 2 个,
+* 按年聚类在统计上站不住, 所以只按银行聚类; 本脚本对比两种 p 值是否接近作为验收。
 * ============================================================================
 
 version 19
@@ -28,12 +29,12 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* Re-run main regression to set e() context for boottest
+* 重跑主回归, 为 boottest 准备 e() 上下文
 quietly reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 display "Main β: " _b[{{ATTITUDE_VAR}}] "  SE (cluster): " _se[{{ATTITUDE_VAR}}]
 
-* Wild cluster bootstrap inference (boottest >=4.0)
+* 野聚类自助法推断 (boottest >=4.0)
 capture which boottest
 if _rc == 0 {
     boottest {{ATTITUDE_VAR}}=0, ///
@@ -43,7 +44,7 @@ if _rc == 0 {
         nograph
     display _newline "Wild bootstrap p-value (cluster=bank_id, G=84, reps={{BOOTSTRAP_REPS}}): " r(p)
 
-    * Acceptance (AC-A1, plan §4): |p_wild - p_cluster| < 0.05
+    * 验收标准 (AC-A1, plan §4): |p_wild - p_cluster| < 0.05
     scalar p_wild = r(p)
     quietly reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
         absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
@@ -61,8 +62,8 @@ else {
     display "Wild bootstrap p-value unavailable; reverting to cluster SE only."
 }
 
-* Output appendix table with both SE methods side-by-side
-* (Actual esttab output deferred to Phase 5 integration once boottest result
-* is captured; this template runs as standalone diagnostic.)
+* 两种 SE 方法并排的附录表
+* (实际 esttab 输出推迟到 Phase 5 集成、待 boottest 结果捕获后;
+* 本模板作为独立诊断脚本运行。)
 
 display "[OK] 11b boottest diagnostic complete"

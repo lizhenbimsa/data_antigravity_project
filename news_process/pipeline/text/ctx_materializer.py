@@ -24,6 +24,12 @@ Plan E P4 A1 (v3.6.0):
     若 stage 13 未跑, stage 21 仍会自己物化 content_ctx (tone_llms.py
     的 _materialize_content_ctx 不删, 改为 idempotent: 检测列存在则跳过).
     这保证 v3.5.0 既有 pipeline 行为不变。
+
+白话:
+    这一步给每篇文章额外造两列文本: content_full = "标题 + 整篇正文",
+    content_ctx = "标题 + 只跟目标银行相关的那几句话" (按实体出现位置截窗口,
+    截不到就退回全文)。后面的情感/强度阶段直接读这两列; 原始 '内容' 列
+    原样保留, 不被改动。
 """
 from __future__ import annotations
 
@@ -33,7 +39,7 @@ import time
 
 import pandas as pd
 
-# Path injection
+# 路径注入: 让 ``news_process.core.*`` 在任意 cwd 下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:

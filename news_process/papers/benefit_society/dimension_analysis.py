@@ -57,7 +57,7 @@ DIMENSION_LABELS = {
 # 2. 锚点导入 (容错)
 # ---------------------------------------------------------------------------
 def _import_anchors() -> tuple[list[str], list[str]]:
-    """Import POSITIVE/NEGATIVE anchors from Stage 27, with version-tolerant fallback."""
+    """从 Stage 27 导入 POSITIVE/NEGATIVE 锚点, 带版本容错回退."""
     try:
         from news_process.pipeline.features.benefit_society import (
             NEGATIVE_ANCHORS,
@@ -75,12 +75,11 @@ def _import_anchors() -> tuple[list[str], list[str]]:
 # 3. Embedding 获取 (通过 LLMCache 公共接口)
 # ---------------------------------------------------------------------------
 def _resolve_prompt_version() -> str:
-    """Resolve the prompt_version used by Stage 27 (F7 fix).
+    """解析 Stage 27 实际使用的 prompt_version (F7 fix).
 
-    Stage 27 stores anchor embeddings keyed by ``EMBEDDING_CONFIG['text_pipeline_version']``
-    (see news_process.pipeline.features.benefit_society). If we use a different
-    value, we silently miss the cache and try to call the API. Resolve dynamically
-    with a safe fallback.
+    Stage 27 以 ``EMBEDDING_CONFIG['text_pipeline_version']`` 为键存储锚点
+    embedding (见 news_process.pipeline.features.benefit_society)。若此处用了
+    不同的值, 会静默 miss 缓存并尝试调付费 API。因此动态解析, 并带安全回退。
     """
     try:
         from news_process.pipeline.features.benefit_society import EMBEDDING_CONFIG
@@ -96,17 +95,16 @@ def _get_anchor_embeddings(
     model_id: str = "text-embedding-3-small",
     prompt_version: str | None = None,
 ) -> np.ndarray:
-    """Retrieve embeddings for anchor sentences via LLMCache.
+    """经 LLMCache 取锚点句子的 embedding.
 
-    If the anchors were already embedded by Stage 27, this is a cache hit and no
-    new API calls are made. Otherwise, raises RuntimeError instructing the caller
-    to run Stage 27 first.
+    若锚点已被 Stage 27 嵌入过, 则全部缓存命中、不产生任何新 API 调用;
+    否则抛 RuntimeError 提示调用方先跑 Stage 27。
 
     Parameters
     ----------
     prompt_version : optional
-        If None (default), auto-resolves to Stage 27's value via
-        [_resolve_prompt_version]. Explicit override is honored.
+        None (默认) 时经 [_resolve_prompt_version] 自动解析为 Stage 27 的值;
+        显式传入则按传入值。
     """
     if prompt_version is None:
         prompt_version = _resolve_prompt_version()
@@ -116,7 +114,7 @@ def _get_anchor_embeddings(
         raise RuntimeError(f"news_process.core.caching unavailable: {e}") from e
 
     if cache_db_path is None:
-        # Default cache path consistent with Stage 27
+        # 默认缓存路径与 Stage 27 保持一致
         try:
             from news_process.pipeline.panel.encode import CONFIG, OUTPUT_DIR
             cache_db_path = CONFIG.get("paths", {}).get(
@@ -158,9 +156,13 @@ def compute_direction_vectors(
     *,
     cache_db_path: str | None = None,
     model_id: str = "text-embedding-3-small",
-    prompt_version: str | None = None,  # F7: auto-resolved from Stage 27 when None
+    prompt_version: str | None = None,  # F7: None 时自动解析为 Stage 27 的值
 ) -> dict[str, np.ndarray]:
-    """Compute 4 dimensional direction vectors.
+    """计算 4 个维度的方向向量.
+
+    白话: 每个维度取若干"正面锚点句"与"负面锚点句"的 embedding 均值,
+    两均值之差就是该维度的语义方向; 之后把新闻文本投影到这个方向上,
+    投影值越大表示该维度态度越正面。
 
     Returns
     -------
@@ -208,19 +210,19 @@ def project_texts_by_dimension(
     text_embeddings: np.ndarray,
     directions: dict[str, np.ndarray],
 ) -> dict[str, np.ndarray]:
-    """Project text embeddings onto each dimensional direction vector.
+    """把文本 embedding 投影到各维度方向向量上.
 
     Parameters
     ----------
     text_embeddings : np.ndarray, shape (n_texts, dim)
-        Pre-computed text embeddings (e.g., from Stage 27 [27_benefit_embeddings_full.npy])
+        预计算好的文本 embedding (如来自 Stage 27 [27_benefit_embeddings_full.npy])
     directions : dict
-        Output of [compute_direction_vectors].
+        [compute_direction_vectors] 的输出。
 
     Returns
     -------
     dict
-        {dim_name: ndarray of shape (n_texts,)} cosine projections
+        {dim_name: shape 为 (n_texts,) 的 ndarray} 余弦投影值
     """
     if text_embeddings.ndim != 2:
         raise ValueError(f"text_embeddings must be 2D, got shape {text_embeddings.shape}")
@@ -243,10 +245,10 @@ def aggregate_to_bank_year(
     text_embeddings: np.ndarray,
     directions: dict[str, np.ndarray],
     *,
-    bank_col: str = "target_bank",  # F6: align with 40_panel_yearly.parquet schema
+    bank_col: str = "target_bank",  # F6: 与 40_panel_yearly.parquet schema 对齐
     year_col: str = "year",
 ) -> pd.DataFrame:
-    """Aggregate dimensional scores to bank-year panel (equal-weighted mean per Jha 2026 Eq. 2)."""
+    """把维度得分聚合到 bank-year 面板 (等权均值, per Jha 2026 Eq. 2)."""
     if len(df_exploded) != len(text_embeddings):
         raise ValueError(
             f"df_exploded ({len(df_exploded)}) and text_embeddings ({len(text_embeddings)}) length mismatch"
@@ -266,8 +268,8 @@ def aggregate_to_bank_year(
 
 
 # ---------------------------------------------------------------------------
-# 7. Dual-track helpers (plan v2.12, F-B2 / F-M3 / F-V2-B2 — write back to
-#    pipeline/features layer rather than the shared panel runner)
+# 7. 双轨辅助函数 (plan v2.12, F-B2 / F-M3 / F-V2-B2 — 回写到
+#    pipeline/features 层, 而非共享的 panel runner)
 # ---------------------------------------------------------------------------
 
 _DEFAULT_EMBEDDINGS = {
@@ -284,12 +286,12 @@ def compute_dual_track_dimensions(
     bank_col: str = "target_bank",
     year_col: str = "year",
 ) -> pd.DataFrame:
-    """Aggregate sub-index scores into a single bank-year panel covering all tracks.
+    """把各轨子指数得分聚合进同一张 bank-year 面板.
 
-    For each track key in ``track_to_embedding`` (typically ``{'full', 'ctx'}``),
-    produces columns ``benefit_<dim>_<track>`` keyed on (bank_col, year_col).
+    对 ``track_to_embedding`` 中的每个轨键 (通常为 ``{'full', 'ctx'}``),
+    产出以 (bank_col, year_col) 为键的 ``benefit_<dim>_<track>`` 列。
 
-    Returns a merged bank-year DataFrame.
+    返回合并后的 bank-year DataFrame。
     """
     merged: pd.DataFrame | None = None
     for track, text_emb in track_to_embedding.items():
@@ -408,18 +410,18 @@ def merge_dimensions_to_panel(
 # 8. CLI 入口
 # ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry: compute 4-dimensional sub-indices and optionally aggregate to bank-year panel.
+    """CLI 入口: 计算 4 维度子指数, 并可选聚合到 bank-year 面板.
 
-    Plan v2.12: ``--track {full,ctx,both}`` (default both) produces dual-track
-    output ``benefit_{core_op,growth,resource,compliance}_{full,ctx}``.
+    Plan v2.12: ``--track {full,ctx,both}`` (默认 both) 产出双轨输出
+    ``benefit_{core_op,growth,resource,compliance}_{full,ctx}``。
 
-    Returns 0 on success or graceful skip (missing optional inputs); raises on hard errors.
+    成功或优雅跳过 (可选输入缺失) 时返回 0; 硬错误直接 raise。
     """
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.dimension_analysis",
         description="4 维度子指数计算 (core_op / growth / resource / compliance, 双轨)",
-        # F-V2-H2 backwards-compat: disable abbrev so legacy --text-embeddings
-        # (Phase 0) and new --text-embeddings-full (v2.12) are unambiguous.
+        # F-V2-H2 向后兼容: 关闭前缀缩写匹配, 使旧版 --text-embeddings
+        # (Phase 0) 与新版 --text-embeddings-full (v2.12) 不产生歧义。
         allow_abbrev=False,
     )
     parser.add_argument(
@@ -430,7 +432,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--text-embeddings-full",
-        "--text-embeddings",  # legacy alias (Phase 0 scaffolding default)
+        "--text-embeddings",  # legacy 别名 (Phase 0 脚手架时期的默认参数名)
         type=str,
         default=_DEFAULT_EMBEDDINGS["full"],
         dest="text_embeddings_full",

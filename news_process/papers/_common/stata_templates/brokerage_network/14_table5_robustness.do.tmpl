@@ -1,11 +1,13 @@
 * ============================================================================
-* 14_table5_robustness.do — Robustness (brokerage_network)
+* 14_table5_robustness.do — 稳健性 (brokerage_network)
 * Paper: {{PAPER_ID}}
 *
-* R1: Ctx-track 2SLS (replace _full with _ctx variants)
-* R2: Cluster at bank_id (alternative SE level)
-* R3: Drop singleton groups (reghdfe noabsorb)
-* R4: Add second-order centrality (L2.brokerage_eigen_cent)
+* R1: ctx 轨 2SLS (以 _ctx 变体替换 _full)
+* R2: 改在 bank_id 层聚类 (替代 SE 层级)
+* R3: 剔除 singleton 银行组 (仅单条可用观测的银行)
+*     (勘误 2026-06-12: 旧注 "(reghdfe noabsorb)" 与实际实现不符 — 实际为
+*     ivreghdfe + absorb(bank_id year) + "if _bank_grp_n > 1" 子样本)
+* R4: 加入二阶滞后中心度 (L2.brokerage_eigen_cent)
 * ============================================================================
 
 version 19
@@ -23,7 +25,7 @@ if _rc {
     exit 199
 }
 
-* R1: Ctx-track 2SLS
+* R1: ctx 轨 2SLS
 * fix(omni-g-templates-04, 2026-06-11): 旧版连续两条 capture confirm — 后一条覆盖 _rc,
 * peer_tone_lag1_ctx 单独缺失时守卫穿透 → ivreghdfe r(111)。合并为单次 confirm
 * (多变量语义: 任一缺失即 _rc≠0)。
@@ -34,12 +36,12 @@ if !_rc {
     eststo R1_ctx
 }
 
-* R2: cluster at bank_id (alternative)
+* R2: 改在 bank_id 层聚类 (替代 SE)
 ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
     absorb(bank_id year) cluster(bank_id) ffirst
 eststo R2_bank_cluster
 
-* R3: drop singleton bank groups (banks with a single usable observation)
+* R3: 剔除 singleton 银行组 (仅单条可用观测的银行)
 * fix(omni-g-templates-03, 2026-06-11): 旧版命令与 Table 2 M2 基线逐 token 相同,
 * 无任何 keep/drop/singleton 处理 — mtitle "Kept" 的稳健性列实为重复发表同一回归
 * (假稳健性列)。现真实剔除单观测银行组后重估 (singleton 组在 within-FE 估计中
@@ -50,7 +52,7 @@ ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls if _bank_grp_n 
 eststo R3_kept
 drop _bank_grp_n
 
-* R4: add 2nd-order centrality
+* R4: 加入二阶滞后中心度
 gen L2_broker = L2.{{CENTRALITY_BROKER}}
 ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) L_broker L2_broker $controls, ///
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst

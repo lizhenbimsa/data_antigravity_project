@@ -1656,7 +1656,11 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         3. stratified_analysis        -- 按 length/time/dict-coverage 分层
         4. diagnose_llm_category_bias -- LLM 偏向"中性"等分类偏倚检测
         5. diagnose_confidence_calibration -- 置信度校准 ECE
-        6. 输出报告 ``34_tone_validation_<track>.{csv,md,json}``
+        6. 输出报告 — ``sentiment_validation_results<track>.json`` /
+           ``sentiment_validation_table<track>.tex`` /
+           ``sentiment_cross_method<track>.csv`` /
+           ``cronbachs_alpha_summary<track>.csv`` +
+           人工验证样本 ``09_sentiment_verify<track>.xlsx``
 
     Args:
         df:         track 已过滤的双轨 panel
@@ -1666,7 +1670,8 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         CONFIG:     已加载的项目 cfg
 
     Returns:
-        None — 副作用是写出 3 份 ``34_*_<track>.*`` 报告.
+        None — 副作用是写出上述 ``*<track>.*`` 报告文件 (json/tex/csv/xlsx,
+        另含热力图 PNG; 文件名无 ``34_`` 前缀, 见第 6 步清单).
     """
     # ======================================================================
     # Step 2: 自动发现情感列

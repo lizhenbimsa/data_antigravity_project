@@ -11,7 +11,7 @@
 *   Loughran & McDonald (2011 JF) tone-vs-context differential 类比借用
 *   Westphal & Zajac (2001 ASQ) decoupling 类比借用到 narrative-context 层面
 *
-* Small-sample restriction (per plan §2.3.3): panel n_articles < 5 → *_frac forced NA.
+* 小样本限制 (per plan §2.3.3): panel n_articles < 5 → *_frac 强制置 NA.
 * ctx coverage 自适应警告 (per plan §2.3.4): d4_data_quality_flag str column 标 'ok' / 'insufficient'.
 *
 * 三种用法 (per plan §2.3.6):
@@ -25,13 +25,13 @@ set linesize 120
 
 use "{{ panel_path }}", clear
 
-* --- D4 data quality filter (per plan §2.3.4 F6) ---
+* --- D4 数据质量过滤 (per plan §2.3.4 F6) ---
 * Stata 端可见 d4_data_quality_flag (str col); 不可信 ctx coverage 时排除
 capture confirm variable d4_data_quality_flag
 if !_rc {
     display as text "d4_data_quality_flag levels:"
     tab d4_data_quality_flag, missing
-    * Default: keep only 'ok' samples (insufficient ctx coverage 排除).
+    * 默认: 仅保留 'ok' 样本 (insufficient ctx coverage 排除).
     * Paper authors 可在 paper_spec.yaml 配置 disable-filter 来用全部样本.
     keep if d4_data_quality_flag == "ok" | d4_data_quality_flag == ""
 }
@@ -50,7 +50,7 @@ eststo M_residual: reghdfe {{ outcome }} {{ treatment }} ///
     {{ controls }} [aw={{ weight }}], ///
     absorb(i.{{ bank_fe }} i.{{ year_fe }}) cluster({{ cluster_var }})
 
-* --- Output combined table ---
+* --- 输出合并表 ---
 esttab M_disagree M_residual using "{{ output_dir }}/table_A6_residual.tex", ///
     cells(b(star fmt(3)) se(par fmt(3))) ///
     label nogaps ///

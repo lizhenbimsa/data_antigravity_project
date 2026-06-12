@@ -1,22 +1,25 @@
-"""benefit_society — Alternative Anchor Family (A2 robustness, audit-only).
+"""benefit_society — 替代锚点族 (A2 稳健性, audit-only).
 
 V2.0 J-L-M 2026 RFS robustness alignment plan §3 Phase 1 P1.3:
 
-Replicates the benefit_society direction-vector projection using the
-**J-L-M 2026 RFS Internet Appendix A Table IA.1 (b) Chinese** 5-pair canonical
-anchor set (instead of the 10-pair extended set in
-``pipeline/features/benefit_society.py``).
+用 **J-L-M 2026 RFS Internet Appendix A Table IA.1 (b) Chinese** 的 5 对
+canonical 锚点集 (替代 ``pipeline/features/benefit_society.py`` 中扩充的
+10 对锚点集), 复刻 benefit_society 的方向向量投影。
 
-Purpose: provide an alternative anchor family for plan Acceptance Criterion
-AC-A2 — "benefit_jlm_zh vs benefit_mean β sign-match + ratio > 0.5".
+目的: 为计划验收标准 AC-A2 提供替代锚点族 —
+"benefit_jlm_zh vs benefit_mean 的 β 符号一致 + 比值 > 0.5"。
 
-**Audit-only path**: this module writes outputs to a separate parquet
-(``data/processed/27c_alt_anchor_panel.parquet``) and does NOT modify the
-main panel ``40_panel_yearly.parquet`` or its golden-snapshot schema.
+**Audit-only 路径**: 本模块输出写入独立 parquet
+(``data/processed/27c_alt_anchor_panel.parquet``), **不**修改主面板
+``40_panel_yearly.parquet`` 及其 golden-snapshot schema。
 
-Reuses (does not duplicate) the embedding cache + projection mechanics from
-``benefit_society.py`` — anchor count differs (5 vs 10) but direction-vector
-math (``mean(pos) − mean(neg)``) and cosine projection are byte-identical.
+复用 (而非复制) ``benefit_society.py`` 的嵌入缓存 + 投影机制 —
+锚点数量不同 (5 对 vs 10 对), 但方向向量数学 (``mean(pos) − mean(neg)``)
+与余弦投影字节级一致。
+
+白话: 主指标用的是我们自己扩充的 10 对"尺子句"; 这里换成原论文官方的
+5 对句子再量一遍 —— 如果两把尺子量出来的结论方向一致, 说明结果不是
+被我们自选的句子"凑"出来的。
 
 fix(omni-g-benefit-01, 2026-06-11) 链路重接线 (2026-05-29 主轨换模后失效):
 - 锚点嵌入不再硬编码 SentenceTransformer("shibing624/...") 直调 — 改经统一引擎
@@ -51,21 +54,21 @@ def _repo_root() -> Path:
 def load_jlm_zh_anchors(
     yaml_path: Path | str | None = None,
 ) -> tuple[list[str], list[str], dict[str, object]]:
-    """Load the J-L-M 2026 Appendix A Chinese 5-pair anchor set.
+    """加载 J-L-M 2026 Appendix A 中文 5 对锚点集.
 
     Returns
     -------
     tuple[list[str], list[str], dict]
-        ``(positive_sentences, negative_sentences, metadata)`` where metadata
-        contains schema_version / anchor_family / sha256 / n_pairs.
+        ``(positive_sentences, negative_sentences, metadata)``, metadata
+        含 schema_version / anchor_family / sha256 / n_pairs.
 
     Raises
     ------
     FileNotFoundError
-        If the yaml file is missing.
+        yaml 文件缺失时.
     ValueError
-        If the yaml fails schema validation (n_pairs != 5, missing fields,
-        duplicate ids, or empty sentence).
+        yaml schema 校验失败时 (n_pairs != 5、字段缺失、
+        id 重复、或句子为空).
     """
     if yaml_path is None:
         yaml_path = _repo_root() / "news_process" / "config" / "jlm2026_chinese_anchors.yaml"
@@ -219,24 +222,23 @@ def compute_direction_vector(
     neg_sentences: Sequence[str],
     embedding_fn,
 ) -> np.ndarray:
-    """Compute the unit-norm direction vector p = mean(pos) − mean(neg).
+    """计算单位范数方向向量 p = mean(pos) − mean(neg).
 
-    Mathematically equivalent to per-pair difference average (linear
-    additivity of the mean operator).
+    数学上等价于逐对差分再取平均 (均值算子的线性可加性)。
 
     Parameters
     ----------
     pos_sentences, neg_sentences
-        Anchor sentences. Must have equal length.
+        锚点句, 两侧数量必须相等.
     embedding_fn
-        Callable ``texts -> np.ndarray of shape (n, d)``. Production path uses
+        可调用对象 ``texts -> np.ndarray, 形状 (n, d)``. 生产路径用
         ``make_anchor_embedding_fn(spec)`` (统一引擎, 与文章嵌入同空间;
-        fix(omni-g-benefit-01, 2026-06-11)); tests may inject a mock.
+        fix(omni-g-benefit-01, 2026-06-11)); 测试可注入 mock.
 
     Returns
     -------
     np.ndarray
-        Unit-norm direction vector of shape (d,).
+        单位范数方向向量, 形状 (d,).
     """
     if len(pos_sentences) != len(neg_sentences):
         raise ValueError(
@@ -261,19 +263,19 @@ def project_texts(
     text_embeddings: np.ndarray,
     direction: np.ndarray,
 ) -> np.ndarray:
-    """Project pre-computed text embeddings onto direction (cosine similarity).
+    """把预计算好的文本嵌入投影到方向向量上 (余弦相似度).
 
     Parameters
     ----------
     text_embeddings
-        Shape ``(n, d)`` array of text embeddings (one per article).
+        文本嵌入数组, 形状 ``(n, d)`` (每篇文章一行).
     direction
-        Unit-norm direction vector of shape ``(d,)``.
+        单位范数方向向量, 形状 ``(d,)``.
 
     Returns
     -------
     np.ndarray
-        Cosine projections in ``[-1, 1]``, shape ``(n,)``.
+        余弦投影值 ∈ ``[-1, 1]``, 形状 ``(n,)``.
     """
     if text_embeddings.ndim != 2:
         raise ValueError(
@@ -299,12 +301,12 @@ def aggregate_to_bank_year(
     center: float | None = None,
     col_suffix: str = "",
 ) -> pd.DataFrame:
-    """Aggregate article-level cosine scores to bank-year panel.
+    """把文章级余弦得分聚合为 bank-year 面板.
 
-    Follows J-L-M 2026 Eq. (2) with article-level c=1 instantiation:
-    ``f_it = mean(a_ji over articles j in bank i, year t)``.
+    遵循 J-L-M 2026 Eq. (2) 的文章级 c=1 实例化:
+    ``f_it = mean(银行 i 年度 t 内全部文章 j 的 a_ji)``.
 
-    Returns columns (``col_suffix`` 用于 ctx 轨 ``_ctx`` 后缀):
+    返回列 (``col_suffix`` 用于 ctx 轨 ``_ctx`` 后缀):
         ``benefit_jlm_zh_mean``, ``benefit_jlm_zh_std``,
         ``benefit_jlm_zh_pos_frac``, ``benefit_jlm_zh_neg_frac``
 
@@ -357,7 +359,7 @@ def write_sidecar_json(
     embedding_dim: int = 768,
     tracks: tuple[str, ...] = ("full",),
 ) -> Path:
-    """Write reproducibility sidecar JSON next to the parquet output.
+    """在 parquet 输出旁写入可复现性 sidecar JSON.
 
     fix(omni-g-benefit-01, 2026-06-11): embedding_model / embedding_dim 改为
     参数 (main() 传入文章 .npy sidecar 实际值) — 此前硬编码 shibing624/768,

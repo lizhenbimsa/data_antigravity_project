@@ -1,4 +1,4 @@
-"""Tests for ``news_process.core.dag`` enabled_when predicates.
+"""``news_process.core.dag`` enabled_when 谓词的测试.
 
 quality-hardening Round 35 (2026-05-27): core/dag.py 58.82% → ~100%.
 模块此前覆盖率低因 predicates 多数路径未被任何测试直接调用; 此 file 把所有
@@ -184,7 +184,7 @@ def test_get_script_for_method_fallback_when_predicate_unmounted():
     """
     import news_process.core.dag as dag
 
-    fake_pred = lambda _c: True  # noqa: E731 — module-level scope unnecessary, just需 identity 不匹配
+    fake_pred = lambda _c: True  # noqa: E731 — 无需模块级作用域, 只需 identity 与现有谓词不匹配
     original = dag.METHOD_TO_PREDICATE.copy()
     try:
         dag.METHOD_TO_PREDICATE['__test_unknown__'] = fake_pred

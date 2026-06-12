@@ -1,5 +1,6 @@
 """
-tests/test_helpers.py — utils/helpers.py 单元测试
+tests/test_helpers.py — core 辅助函数单元测试 (历史名 utils/helpers.py, 现拆分至
+core/{config,logging,reporting,stage}.py)
 ==================================================
 """
 

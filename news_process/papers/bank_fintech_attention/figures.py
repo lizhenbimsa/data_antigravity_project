@@ -1,9 +1,9 @@
 """news_process.papers.bank_fintech_attention.figures — P2 论文图表.
 
-Figure layout (per plan §5.8.2):
-    Figure 1: attention intensity bank-year distribution
-    Figure 2: event study coefplot (E1/E2/E4/E5a/E5b)
-    Figure 3: time trend by 4 bank types × fintech wave segments
+图表布局 (per plan §5.8.2):
+    Figure 1: attention intensity 的 bank-year 分布
+    Figure 2: event study 系数图 (E1/E2/E4/E5a/E5b)
+    Figure 3: 4 bank types × fintech wave 分段的时间趋势
 
 缺列防护 (metric-audit 2026-06-02 attention_media-01; W2 2026-06-05 更新):
     历史上 plan §5.8.2 设计的 ``attention_index_full`` 处理列长期未物化, 故本模块

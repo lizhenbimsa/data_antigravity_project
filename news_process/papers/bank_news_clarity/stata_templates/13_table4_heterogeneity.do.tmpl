@@ -1,10 +1,10 @@
-* news_process v3.7.0 — 第 11 篇 Table 4: Heterogeneity 5 dimensions
+* news_process v3.7.0 — 第 11 篇 Table 4: 异质性分析 (本模板实际落地 Panel A-D 四维度)
 *
-* V4 F2.2 boundary condition:
-* Panel A: implicit_guarantee_tier (Acharya 2016 RFS, 5 tiers)
-* Panel B: listed vs non-listed (V4 F-P1.3)
-* Panel C: sub-period regime shift (V4 F-Comp.3)
-* Panel D: drop top 6 国有大行 (V4 F-P1.2)
+* V4 F2.2 边界条件 (boundary condition):
+* Panel A: implicit_guarantee_tier 隐性担保层级 (Acharya 2016 RFS, 5 档)
+* Panel B: 上市 vs 非上市 (listed; V4 F-P1.3)
+* Panel C: 分时段 regime 切换 (V4 F-Comp.3)
+* Panel D: 剔除 top 6 国有大行 (V4 F-P1.2)
 
 version 19
 clear all
@@ -40,7 +40,7 @@ if "`MISSING_VARS'" != "" {
     error 111
 }
 
-* ── Panel A: tier split ─────────────────────────────────────────────────
+* ── Panel A: 按隐性担保层级 (tier) 分样本 ────────────────────────────────
 forvalues t = 1/5 {
     eststo A_tier`t': reghdfe `DV' `TX' `CTRL_B' `CTRL_Y' ///
         if implicit_guarantee_tier == `t', ///
@@ -57,7 +57,7 @@ esttab A_tier1 A_tier2 A_tier3 A_tier4 A_tier5 ///
 
 eststo clear
 
-* ── Panel B: listed vs non-listed ────────────────────────────────────────
+* ── Panel B: 上市 vs 非上市 (listed) ─────────────────────────────────────
 * fix(omni-g-zscore-papers-04, 2026-06-11): listed 是幻影列 — stage 49 输出 /
 * bank_metadata / 40_panel 均不产出, 需外部上市状态数据。缺失时可读警告 + 跳过
 * Panel B (其余 panel 不受影响), 不再 r(111) 崩整个 do-file。
@@ -83,7 +83,7 @@ else {
     eststo clear
 }
 
-* ── Panel C: sub-period ──────────────────────────────────────────────────
+* ── Panel C: 分时段 (sub-period) ─────────────────────────────────────────
 * v3.7.0 (M17 修复): 用更可靠的 foreach 写法替代嵌套 backtick eval
 local i = 0
 foreach range in "2007 2011" "2012 2015" "2016 2019" "2020 2024" {

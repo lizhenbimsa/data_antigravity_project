@@ -143,16 +143,15 @@ def project_root() -> Path:
 
 @pytest.fixture(scope="module")
 def split_mode_cfg(project_root: Path) -> dict:
-    """Load via the real load_config(); should auto-detect mode."""
+    """走真实 load_config() 加载; 应自动探测模式。"""
     return load_config()
 
 
 @pytest.fixture(scope="module")
 def legacy_yaml_path(project_root: Path) -> Path:
-    """Path to a self-contained monolithic YAML reconstructed from
-    the current split YAMLs + inlined prompts.
+    """由当前 split YAMLs + 内联 prompts 重建的自包含 monolithic YAML 路径。
 
-    Built on-the-fly inside a tmp dir so the test does not pollute config/.
+    在 tmp 目录中即时构建, 测试不会污染 config/。
     """
     tmp_dir = Path(tempfile.mkdtemp(prefix="cfg_eqv_"))
     try:
@@ -166,7 +165,7 @@ def legacy_yaml_path(project_root: Path) -> Path:
             domain_path = config_dir / f'{domain}.yaml'
             with open(domain_path, 'r', encoding='utf-8') as f:
                 merged.update(yaml.safe_load(f) or {})
-        # Inline prompts so the legacy mode fixture is self-contained
+        # 内联 prompts, 让 legacy mode fixture 自包含
         for section in list(merged.keys()):
             if not isinstance(merged.get(section), dict):
                 continue
@@ -196,12 +195,12 @@ def legacy_yaml_path(project_root: Path) -> Path:
 
 @pytest.fixture(scope="module")
 def legacy_mode_cfg(legacy_yaml_path: Path) -> dict:
-    """load_config explicitly pointing to the reconstructed legacy file."""
+    """显式把 load_config 指向重建出的 legacy 文件。"""
     return load_config(str(legacy_yaml_path))
 
 
 def _deep_equal(a, b, path=""):
-    """Recursive deep-equality with detailed diff message on first mismatch."""
+    """递归深度相等比较, 首个不匹配处给出详细 diff 信息。"""
     if type(a) is not type(b):
         return False, f"type mismatch at {path!r}: {type(a).__name__} vs {type(b).__name__}"
     if isinstance(a, dict):

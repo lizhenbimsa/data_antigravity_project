@@ -38,7 +38,7 @@ from typing import IO, Deque
 
 try:
     import psutil
-except ImportError:  # pragma: no cover - psutil is a runtime dependency
+except ImportError:  # pragma: no cover - psutil 是运行时必装依赖, 此分支仅防御
     psutil = None
 
 from .logging import get_run_id, log_memory_usage
@@ -48,7 +48,7 @@ _TAIL_BUFFER_MAXLEN = 10000
 
 
 def _stage_popen_isolation_kwargs() -> dict[str, object]:
-    """Return platform-specific Popen kwargs that isolate console signals."""
+    """返回隔离控制台信号的平台特定 Popen kwargs (Windows 新进程组 / Unix 新会话)。"""
     if os.name == "nt":
         return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
     return {"start_new_session": True}
@@ -71,7 +71,7 @@ def _reader_thread(stream: IO[str],
             line = line.rstrip('\r\n')
             logger.log(log_level, f"  {prefix} {line}")
             accumulator.append(line)
-    except Exception as e:  # pragma: no cover — defensive
+    except Exception as e:  # pragma: no cover — 防御性兜底
         logger.warning(f"  reader thread ({prefix}) 异常: {e}")
     finally:
         try:
@@ -84,12 +84,11 @@ def _terminate_process_tree(proc: subprocess.Popen,
                             logger: logging.Logger,
                             reason: str,
                             grace_seconds: float = 5.0) -> None:
-    """Best-effort terminate of a stage process and any descendants.
+    """尽力而为地终止阶段子进程及其全部后代进程。
 
-    Deliberately avoids sending console control events. On Windows, Intel
-    Fortran runtime users can print ``forrtl: error (200)`` when they receive
-    Ctrl+C directly, so the orchestrator owns shutdown through process
-    termination after catching the user's interrupt.
+    刻意不发送控制台控制事件 (Ctrl 信号): Windows 上 Intel Fortran 运行时
+    直接收到 Ctrl+C 时会打印 ``forrtl: error (200)``, 因此由 orchestrator
+    在捕获用户中断后通过进程终止 (terminate/kill) 独占接管关停流程。
     """
     if proc.poll() is not None:
         return

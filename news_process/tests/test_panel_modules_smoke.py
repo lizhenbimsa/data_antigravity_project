@@ -1,7 +1,7 @@
-"""tests/test_panel_modules_smoke.py — Priority A: 5 panel modules smoke + math.
+"""tests/test_panel_modules_smoke.py — Priority A: 6 个 panel 模块 smoke + 数学验证.
 
 V8 Wave 2 b1 (bb6574a) 给 iv_did 加了 12 个数学测试. 同目录 panel/ 下还有
-5 个零测试的 paper-critical 模块, 共 5300+ LOC:
+6 个 paper-critical 模块 (当时缺测试), 共 5300+ LOC:
 
   pipeline/panel/runner.py            1505 LOC  - panel 主编排器
   pipeline/panel/network_spillover.py 1216 LOC  - brokerage 论文 IV 核心
@@ -12,7 +12,7 @@ V8 Wave 2 b1 (bb6574a) 给 iv_did 加了 12 个数学测试. 同目录 panel/ �
 
 本文件提供两层保护:
 
-  A. Import-time smoke (parametrized over 5 modules):
+  A. Import-time smoke (对 6 个模块参数化):
      模块本身可 import (无 import-time KeyError / 循环依赖 / 顶层 IO)
      声明的公共函数 (非 _ 前缀) 全部 callable
 
@@ -52,15 +52,16 @@ PANEL_MODULES = [
 
 
 # ============================================================================
-# A. Import-time smoke (parametrized)
+# A. Import-time smoke (参数化)
 # ============================================================================
 
 @pytest.mark.parametrize("mod_name", PANEL_MODULES)
 def test_panel_module_importable(mod_name):
     """6 个 panel module 全部 import 不崩.
 
-    覆盖 5 个零测试模块 + iv_did (作为 import 链完整性回归 — 它已被
-    Wave 2 b1 单独测过, 但这里 import 它防止间接破坏)."""
+    覆盖 PANEL_MODULES 清单中的 6 个模块 (runner / network_spillover /
+    attention_media / llm_peer_iv / codebook / network_brokerage);
+    iv_did 已被 Wave 2 b1 单独测过, 不在本清单内。"""
     full_name = f"news_process.pipeline.panel.{mod_name}"
     mod = importlib.import_module(full_name)
     assert mod is not None
@@ -119,8 +120,8 @@ def test_network_spillover_row_stochastic_sums_to_one():
     """
     from news_process.pipeline.panel import network_spillover as ns
     adj = pd.DataFrame(
-        [[1.0, 2.0, 3.0],   # row sum = 6 -> normalize to [1/6, 2/6, 3/6]
-         [0.0, 4.0, 4.0],   # row sum = 8 -> [0, 0.5, 0.5]
+        [[1.0, 2.0, 3.0],   # 行和 = 6 -> 归一为 [1/6, 2/6, 3/6]
+         [0.0, 4.0, 4.0],   # 行和 = 8 -> [0, 0.5, 0.5]
          [0.0, 0.0, 0.0]],  # 全零行 -> 保持全零
         index=['A', 'B', 'C'],
         columns=['A', 'B', 'C'],
@@ -161,7 +162,7 @@ def test_codebook_variable_metadata_dict_non_empty():
 
 
 def test_codebook_infer_track_recognizes_suffix():
-    """_infer_track: 列名后缀 -> {full, ctx, title, none}.
+    """_infer_track: 列名后缀 -> {full, ctx, ''} (remove-title-track 后无 title 轨).
 
     迁移 / 重命名 panel 列时, 这条会捕获 _infer_track 的 fallback
     是否被破坏 (silent 'unknown' 代替 'full' 之类).

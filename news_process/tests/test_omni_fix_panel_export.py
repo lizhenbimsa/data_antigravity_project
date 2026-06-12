@@ -13,6 +13,12 @@ revert。全部使用合成 DataFrame / 源码静态解析, 不依赖盘上大�
   -06 .dta 变量标签覆盖率兜底 (_apply_label_fallback, 100% 覆盖)
   -07 t2v 标签与 stata_export HEURISTIC_LABELS 逐字对齐 (2 对漂移修正)
   -08 ai_reg_* 构念勘误 (AI Imitation Rate → Peer FinTech Coverage Penetration)
+
+# 白话: 面板导出给 Stata 时, 每个变量都带一个英文标签当"名牌"。这组测试守住:
+# 名牌上不能写编造的模型名(Grok)和名不副实的构念(变量算的是同行报道覆盖率,
+# 名牌却写 AI 模仿率); 已改名的变量旧名牌要删干净; 根本不存在的变量不该有
+# 名牌; 每个真实变量都必须有名牌且符合 Stata 的 80 字符/latin-1 限制;
+# 列名压到 32 字符内, full/ctx 两轨名字保持对称。
 """
 import os
 import re

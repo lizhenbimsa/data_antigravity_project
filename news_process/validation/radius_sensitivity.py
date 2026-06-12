@@ -28,6 +28,14 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
     1. 敏感性分析报告（JSON + LaTeX 表格）
     2. 可视化图表（标签分布对比、相关性热力图）
     3. 控制台/日志完整统计输出
+
+白话:
+    ctx 轨提取"银行名前后几句话"时, "几句"是个人为参数 (生产用前后 1 句)。
+    本检验把窗口改成 0/1/2/3 句各算一遍词典情感分, 看结果变不变: 邻近
+    窗口 (1 vs 2/3) 高度一致就说明参数选择不要紧; r=0 (只留银行名所在
+    那一句) 是故意的极端压力测试, 它偏差大是预期内的 — 上下文被砍没了,
+    不能据此否定默认窗口。另注意"Kappa 悖论": 当 90% 以上文章都是同一个
+    标签时, κ 会被数学机制压得很低, 此时一致率和相关系数更可靠。
 """
 
 import json
@@ -864,7 +872,7 @@ def generate_latex_table(results: dict) -> str:
     lines.append(r"\label{tab:radius_sensitivity}")
     lines.append(r"\small")
 
-    # ── Panel A: Label Distribution ──
+    # ── Panel A: 标签分布 Label Distribution ──
     lines.append(r"\begin{tabular}{ll" + "r" * len(meta['radii_tested']) + "}")
     lines.append(r"\toprule")
     header_cols = " & ".join([f"$r={r}$" for r in meta['radii_tested']])
@@ -888,7 +896,7 @@ def generate_latex_table(results: dict) -> str:
 
     lines.append(r"\vspace{0.5em}")
 
-    # ── Panel B: Cross-Radius Agreement ──
+    # ── Panel B: 跨半径一致率 Cross-Radius Agreement ──
     lines.append(r"\begin{tabular}{llrrrrr}")
     lines.append(r"\toprule")
     lines.append(r"Comparison & Dictionary & Agreement & $\kappa$ & Pearson $r$ & Spearman $\rho$ & $p$-value \\")

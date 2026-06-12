@@ -1,5 +1,5 @@
 * ============================================================================
-* 13_table4_heterogeneity.do — SOE × peer-tone (brokerage_network)
+* 13_table4_heterogeneity.do — SOE × 同业语调异质性 (brokerage_network)
 * Paper: {{PAPER_ID}}
 * ============================================================================
 
@@ -24,7 +24,7 @@ if _rc {
     exit 199
 }
 
-* H1: split-sample SOE=0
+* H1: 分样本 SOE=0
 preserve
 keep if {{HET_VAR}} == 0
 ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
@@ -32,7 +32,7 @@ ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
 eststo H1_nonSOE
 restore
 
-* H2: split-sample SOE=1
+* H2: 分样本 SOE=1
 preserve
 keep if {{HET_VAR}} == 1
 ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///

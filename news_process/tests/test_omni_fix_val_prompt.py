@@ -18,6 +18,11 @@
                         + 重试缺省对齐生产 (config 覆盖须显式)
   omni-g-val-prompt-06: radius_sensitivity_llm 全 NaN κ → passed=false + pass_reason;
                         parse_track_results_from_cache scaffold 路径 fail-loud
+
+# 白话: prompt 敏感性检验是换几种问法问 LLM 同一批文章, 看结论稳不稳。这组
+# 测试确保: 换问法的对照实验和正式生产用同一套文本预处理和同一套聚合规则
+# (否则比较没意义); 新增的"协同模式"维度全程接进对照; 全失败的调用要打旗标
+# 不冒充有效票; 结果全是空值时要判不通过并说明原因, 不能静默放行。
 """
 import asyncio
 import json
@@ -116,8 +121,8 @@ class TestV8VariantSchema:
         """聚合层 collab 多数票, tie→自主研发 / 空票→None (与生产 stage 21 一致)。"""
         cases = [
             (['外部协同', '外部协同', '自主研发'], '外部协同'),
-            (['外部协同', '自主研发'], '自主研发'),  # tie → conservative default
-            ([], None),                              # empty → None (对齐 substantiveness)
+            (['外部协同', '自主研发'], '自主研发'),  # 平票 → 保守默认
+            ([], None),                              # 空票 → None (对齐 substantiveness)
         ]
         for votes, expected in cases:
             monkeypatch.setattr(

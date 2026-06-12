@@ -44,30 +44,30 @@ def write_table1(paper_config: PaperConfig | None = None,
 
 
 # ============================================================================
-# P2.2 — Tables 2-5 from Stata esttab CSV output
+# P2.2 — Tables 2-5 读取 Stata esttab CSV 输出
 # ============================================================================
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 2: Main IV 2SLS (Cao et al. 2025) — reads esttab CSV."""
+    """Table 2: 主回归 IV 2SLS (Cao et al. 2025) — 读 esttab CSV."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('llm_peer', 'table2_main_iv_2sls.csv', paper_config)
 
 
 def build_table3_cutoff(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 3: Cutoff threshold sensitivity (τ ∈ {0.70,...,0.90})."""
+    """Table 3: cutoff 阈值敏感性 (τ ∈ {0.70,...,0.90})."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('llm_peer', 'table3_cutoff_sensitivity.csv', paper_config)
 
 
 def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 4: SOE heterogeneity (interaction + split-sample 2SLS)."""
+    """Table 4: 国企 (SOE) 异质性 (交互项 + 分样本 2SLS)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('llm_peer', 'table4_heterogeneity.csv', paper_config)
 
 
 def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 5: Robustness battery (cov-IV / +compIdx / Ctx / Prov-cluster)."""
+    """Table 5: 稳健性组合 (cov-IV / +compIdx / Ctx 轨 / 省级聚类)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('llm_peer', 'table5_robustness.csv', paper_config)
 

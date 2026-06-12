@@ -1,7 +1,8 @@
 """news_process.papers.bank_media_disagreement.figures — 第10篇图表 (provisional 2026-06-01).
 
 Figure 1 (treatment 分布) 走 _common 通用绘图样式, 即开即用 (依赖 pipeline 产出 panel)。
-event study / coefplot 待 M5 填实 (Cookson-Niessner 2020 RFS media disagreement)。
+event study / coefplot 待 M5 填实 (Cookson-Niessner 2020 JF media disagreement;
+勘误: 旧注释误标 RFS, 实为 JF)。
 """
 
 from __future__ import annotations

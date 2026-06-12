@@ -29,7 +29,7 @@ news_process.pipeline.filtering.news_fintech — 阶段12：金融科技新闻�
     - joblib 并行分批处理
 
 输入：
-    阶段2输出的 Parquet 文件（``11_news_bank.parquet``）
+    阶段 11 输出的 Parquet 文件（``11_news_bank.parquet``）
 
 输出：
     1. 全量分类结果（含非金融科技新闻），保存为 12_news_fintech_full.parquet/.csv

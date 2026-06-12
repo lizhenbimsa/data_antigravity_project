@@ -46,30 +46,30 @@ def write_table1(paper_config: PaperConfig | None = None,
 
 
 # ============================================================================
-# P2.2 — Tables 2-5 from Stata esttab CSV output
+# P2.2 — Tables 2-5 读取 Stata esttab CSV 输出
 # ============================================================================
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 2: Network 2SLS (Bramoulle 2009)."""
+    """Table 2: 网络 2SLS 主回归 (Bramoulle 2009)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('brokerage_network', 'table2_main_iv_2sls.csv', paper_config)
 
 
 def build_table3_mechanism(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 3: Centrality × DCEP/Sandbox policy."""
+    """Table 3: 机制 — 中心性 × DCEP/监管沙盒政策交互."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('brokerage_network', 'table3_mechanism_policy.csv', paper_config)
 
 
 def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 4: SOE split-sample 2SLS."""
+    """Table 4: 国企 (SOE) 分样本 2SLS 异质性."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('brokerage_network', 'table4_heterogeneity.csv', paper_config)
 
 
 def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 5: Robustness (Ctx / bank-cluster / L2 centrality)."""
+    """Table 5: 稳健性 (Ctx 轨 / bank 聚类 / 二阶滞后 (L2.) 中心度)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('brokerage_network', 'table5_robustness.csv', paper_config)
 

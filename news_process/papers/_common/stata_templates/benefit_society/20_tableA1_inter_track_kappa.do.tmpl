@@ -1,21 +1,19 @@
 * ============================================================================
-* 20_tableA1_inter_track_kappa.do — Inter-track agreement (benefit_society)
+* 20_tableA1_inter_track_kappa.do — 双轨间一致性 Inter-track agreement (benefit_society)
 * Paper: {{PAPER_ID}}
 *
-* PAP v1.0-final §2 H3 evidence supporting table.
-* benefit_society specialization (F-M2): stage 21 does NOT emit article-level
-* benefit_label_{full,ctx} discrete labels; this template falls back to
-* score-level Pearson/Spearman rho on llm_prob_score_{full,ctx} (closest
-* article-level proxy available) plus bank-year level correlations on
-* benefit_{mean,pos_frac,neg_frac}_{full,ctx}.
+* PAP v1.0-final §2 H3 证据支撑表。
+* benefit_society 特化 (F-M2): stage 21 不产出篇章级
+* benefit_label_{full,ctx} 离散标签; 本模板回退为对 llm_prob_score_{full,ctx}
+* (可得的最接近篇章级代理) 算分数级 Pearson/Spearman rho,
+* 外加 bank-year 级 benefit_{mean,pos_frac,neg_frac}_{full,ctx} 相关性。
 *
-* Threshold (audit-frozen):
-*   rho >= 0.50: convergent validity acceptable
-*   rho <= 0.85: dual-track NOT redundant (F-H2 disclosure)
+* 阈值 (审计冻结):
+*   rho >= 0.50: 收敛效度可接受
+*   rho <= 0.85: 双轨不冗余 (F-H2 披露)
 *
-* PAP v1.0-final §9 deviation disclosure: benefit_mean rho = 0.761 already
-* approaches redundancy threshold; pos/neg_frac rho = 0.459 carries real
-* dual-track information.
+* PAP v1.0-final §9 偏离披露: benefit_mean rho = 0.761 已接近冗余阈值;
+* pos/neg_frac rho = 0.459 承载真实的双轨增量信息。
 * ============================================================================
 
 version 19
@@ -25,9 +23,8 @@ set more off
 if "$data_dir" == ""    global data_dir "../data"
 if "$tables_dir" == ""  global tables_dir "../output/tables"
 
-* ----- Section 1: article-level score-level rho (proxy for kappa) -----
-* Falls back to score-level rho since benefit-domain article-level discrete
-* labels do not exist (per audit F-M2 empirical check).
+* ----- Section 1: 篇章级分数 rho (kappa 的代理) -----
+* benefit 域无篇章级离散标签 (审计 F-M2 实证核查), 故回退为分数级 rho。
 capture confirm file "$data_dir/21_tone_llms.dta"
 if !_rc {
     preserve
@@ -53,7 +50,7 @@ else {
     local article_rho_spearman .
 }
 
-* ----- Section 2: bank-year level rho (3 dimensions, PAP §2 H3) -----
+* ----- Section 2: bank-year 级 rho (3 个维度, PAP §2 H3) -----
 use "$data_dir/_prepared_panel.dta", clear
 
 quietly {
@@ -84,7 +81,7 @@ display "  benefit_mean       full vs ctx Pearson rho = `rho_mean'"
 display "  benefit_pos_frac   full vs ctx Pearson rho = `rho_pos'"
 display "  benefit_neg_frac   full vs ctx Pearson rho = `rho_neg'"
 
-* ----- Section 3: LaTeX output -----
+* ----- Section 3: LaTeX 输出 -----
 file open f1 using "$tables_dir/tableA1_inter_track_kappa.tex", write replace
 file write f1 "\begin{table}[h]\centering" _newline
 file write f1 "\caption{Table A1: Inter-track Agreement (benefit_society dual-track)}" _newline

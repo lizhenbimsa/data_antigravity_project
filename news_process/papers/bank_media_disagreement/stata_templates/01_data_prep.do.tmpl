@@ -5,7 +5,7 @@
 *   data/processed/bank_metadata.dta           (bank_list.yaml 派生)
 *   (可选) data/processed/40_panel_yearly.dta  (stage 45 主面板, 含 treatment)
 *
-* 输出 (内存中):
+* 输出 (落盘 data/processed/_paper10_working.dta):
 *   working dataset 含 z_score / npl_formation / rwa_to_ta + treatment +
 *   bank metadata (is_soe / bank_type_id / tier).
 *
@@ -39,6 +39,7 @@ if _rc != 0 {
 * 601 (文件缺失) 与 111 (列缺失), fallback 列独立存活。
 * (bank_type / is_soe 一并拉取, 供 spec controls 的 bank_type_id 派生 —
 *  fix(omni-g-replication-07): 主 panel 实际列为字符串 bank_type, 无 bank_type_id。)
+* 白话: 一列一列单独 merge, 哪列缺就跳过哪列并明说, 不让一列缺失连累 fallback 列全部丢失。
 capture confirm file "data/processed/40_panel_yearly.dta"
 if _rc {
     display "WARNING: 40_panel_yearly.dta 不存在 (rc=601) — main treatment 不可用"
@@ -85,7 +86,7 @@ if _rc {
 * 排序保证 xtset 顺序
 sort bank_id year
 
-* Save instrumented dataset
+* 保存 working dataset (供 11/13 表脚本改指向后使用)
 save "data/processed/_paper10_working.dta", replace
 display "  Working dataset saved: data/processed/_paper10_working.dta"
 display "  N = " _N ", banks = " _N / (2024 - 2007 + 1)

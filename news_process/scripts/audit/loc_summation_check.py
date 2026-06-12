@@ -1,25 +1,25 @@
-"""scripts/audit/loc_summation_check.py — v3.7.4 L4 lint script.
+"""scripts/audit/loc_summation_check.py — v3.7.4 L4 lint 脚本.
 
-LOC summation chain checker.
+LOC 加和链检查器 (LOC summation chain checker)。
 
-Enforces the LOC-summation lint protocol: within marked sections, any
-"N+N+...+N = M" sum chain must satisfy LHS sum == M (i.e. the declared total M
-must equal the sum of the addends on the left-hand side).
+强制执行 LOC-summation lint 协议: 在标记区段内, 任何形如
+"N+N+...+N = M" 的加和链必须满足 左侧各项之和 == M
+(即声明的总数 M 必须等于左侧各加数之和)。
 
-Marker:
+标记 (Marker):
     <!-- loc-summation-check -->
-    ... markdown content with sum chains ...
+    ... 含加和链的 markdown 内容 ...
     <!-- /loc-summation-check -->
 
-Flags (8R-A2 stdin + 8R-B2 self-check):
-    --from-stdin : read doc content from stdin instead of file paths
-    --self-check : verify the script's own LOC count matches declared plan value
-                   (±5 line tolerance)
+命令行开关 (8R-A2 stdin + 8R-B2 self-check):
+    --from-stdin : 从 stdin 读文档内容, 而非文件路径
+    --self-check : 校验本脚本自身行数与声明值 DECLARED_LOC 一致
+                   (容差 ±5 行; 白话: 防止文档里写的脚本行数与实际脱节)
 
-Exit:
-    0 = all chains valid
-    1 = at least one violation
-    2 = self-check failure
+退出码:
+    0 = 全部加和链有效
+    1 = 至少一处违规 (有算错的加法)
+    2 = self-check 失败 (脚本自身行数与声明不符)
 """
 from __future__ import annotations
 
@@ -28,25 +28,25 @@ import re
 import sys
 from pathlib import Path
 
-# 8R-B2 self-check anchor: self-referential LOC anchor (no external plan; docs/ removed)
-DECLARED_LOC = 147  # actual after Round 57 docstring additions for 3 public funcs;
-                    # was 136 pre-Round-57; self-check correctly tripped on diff>5,
-                    # confirming 4.D mechanical enforcement is functional.
+# 8R-B2 self-check 锚点: 自引用 LOC 锚 (无外部 plan 文档可对照; docs/ 已删)
+DECLARED_LOC = 147  # Round 57 给 3 个公开函数补 docstring 后的实际行数;
+                    # Round-57 前为 136; 当时 self-check 在 diff>5 时正确报警,
+                    # 证明 4.D 机械强制机制有效。(翻译注释时须保持总行数 ±5 内)
 TOLERANCE = 5
 
 MARKER_OPEN = "<!-- loc-summation-check -->"
 MARKER_CLOSE = "<!-- /loc-summation-check -->"
 
-# Match e.g. "60 + 30 + 20 = 110" or "60+30+20=110"; allow Unicode minus
+# 匹配如 "60 + 30 + 20 = 110" 或 "60+30+20=110"; 允许 Unicode 减号 −
 CHAIN_RE = re.compile(
     r"(?P<lhs>(?:\d+(?:\s*[+\-−]\s*\d+)+))\s*=\s*(?P<rhs>\d+)"
 )
 
 
 def extract_marked_sections(text: str) -> list[str]:
-    """Return list of content slices between MARKER_OPEN and MARKER_CLOSE pairs.
+    """返回所有 MARKER_OPEN 与 MARKER_CLOSE 配对之间的内容切片列表。
 
-    An unclosed opening marker captures from MARKER_OPEN to end of file.
+    未闭合的开标记会捕获从 MARKER_OPEN 到文件末尾的全部内容。
     """
     sections: list[str] = []
     idx = 0
@@ -56,7 +56,7 @@ def extract_marked_sections(text: str) -> list[str]:
             break
         b = text.find(MARKER_CLOSE, a)
         if b < 0:
-            # unclosed marker: include rest of file
+            # 未闭合标记: 纳入文件剩余全部内容
             sections.append(text[a + len(MARKER_OPEN):])
             break
         sections.append(text[a + len(MARKER_OPEN):b])
@@ -65,10 +65,10 @@ def extract_marked_sections(text: str) -> list[str]:
 
 
 def evaluate_chain(lhs: str) -> int:
-    """Evaluate an integer expression of the form 'A+B-C+D' (Unicode minus OK)."""
-    # Normalize Unicode minus to ASCII
+    """求值 'A+B-C+D' 形式的整数表达式 (支持 Unicode 减号)。"""
+    # 把 Unicode 减号归一化为 ASCII 减号
     norm = lhs.replace("−", "-")
-    # Tokenize into +/- terms; first term has implicit + sign
+    # 按 +/- 切分为项; 首项隐含 + 号
     parts = re.split(r"\s*([+\-])\s*", norm)
     total = int(parts[0])
     for i in range(1, len(parts) - 1, 2):
@@ -81,7 +81,7 @@ def evaluate_chain(lhs: str) -> int:
 
 
 def check_text(text: str, src: str = "<stdin>") -> list[tuple[str, str, int, int]]:
-    """Return list of violations: (src, lhs, expected_rhs, actual_rhs)."""
+    """返回违规列表: (src, lhs, 实算和, 声明值)。"""
     violations: list[tuple[str, str, int, int]] = []
     sections = extract_marked_sections(text)
     if not sections:
@@ -97,7 +97,7 @@ def check_text(text: str, src: str = "<stdin>") -> list[tuple[str, str, int, int
 
 
 def self_check() -> int:
-    """8R-B2: verify this script's own LOC matches DECLARED_LOC ± TOLERANCE."""
+    """8R-B2: 校验本脚本自身行数与 DECLARED_LOC ± TOLERANCE 相符。"""
     self_path = Path(__file__)
     actual_loc = sum(1 for _ in self_path.open(encoding="utf-8"))
     diff = abs(actual_loc - DECLARED_LOC)
@@ -110,9 +110,9 @@ def self_check() -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entrypoint: parse args, run checks, return exit code.
+    """CLI 入口: 解析参数, 执行检查, 返回退出码。
 
-    Exit 0 = clean; 1 = at least one summation violation; 2 = self-check failure.
+    退出码 0 = 干净; 1 = 至少一处加和违规; 2 = self-check 失败。
     """
     p = argparse.ArgumentParser(description="LOC summation chain checker (v3.7.4 4.D)")
     p.add_argument("paths", nargs="*", help="Markdown files to check")

@@ -6,7 +6,7 @@
     - plan v0.3 §2.1 + §4.1
 
 测试覆盖 (12 tests):
-    1. 词典加载: list[str] 结构 + 388/178 词数
+    1. 词典加载: frozenset 结构 + 387/177 词数 (源 JSON 388/178, 跨类重叠词 '不可' 双侧剔除)
     2. clarity_score ∈ [-1, +1]
     3. NaN 分母传播 (空文本)
     4. NaN 分母传播 (单字符纯标点)
@@ -17,7 +17,7 @@
     9. frozenset O(1) 查找
    10. 加载 lazy cache (二次加载等价)
    11. you_2018 结构稳定性 (R7-C1)
-   12. paper §3.4 disclosure 分母与 LM 2011 偏差注解
+   12. 词典词条与 jieba 分词粒度部分重叠 (R8-M2, 防 clarity 全样本恒 0)
 """
 from __future__ import annotations
 

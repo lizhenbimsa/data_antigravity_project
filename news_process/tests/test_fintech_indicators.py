@@ -176,7 +176,7 @@ class TestPeerCompeteIdx:
 
 # ═══ F. Stata 变量名长度验证 ═══
 class TestStataVarNames:
-    """验证全部 123 个新增变量名 ≤ 32 字符。"""
+    """验证全部 111 个新增变量名 ≤ 32 字符 (原 123 个, v3.8.0 移除 title 轨后为 111)。"""
 
     ALL_VARS = [
         'disag_full','disag_ctx',

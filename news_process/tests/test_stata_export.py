@@ -227,7 +227,7 @@ def test_export_panel_pandas_fallback_when_no_pyreadstat(tmp_path, mock_panel, m
     panel_path = tmp_path / "panel.parquet"
     mock_panel.to_parquet(panel_path)
 
-    # Simulate "no pyreadstat" by patching _select_dta_backend
+    # 通过 patch _select_dta_backend 模拟 "pyreadstat 未安装"
     from news_process.pipeline.panel import stata_export
     monkeypatch.setattr(stata_export, '_select_dta_backend',
                         lambda: ('pandas', stata_export._write_dta_pandas_fallback))
@@ -253,13 +253,13 @@ def test_export_panel_returns_backend_info(tmp_path, mock_panel):
 
 
 # ============================================================================
-# quality-hardening Round 43 (2026-05-27): stata_export.py 81% → ≥90%
-# 补漏: collab_mode encoding (121-122) + codebook fallback (141-143) +
-# HEURISTIC label hit (198) + label truncation (205) + collab label values
-# (464) + pyreadstat ImportError fallback (504-510) + panel-not-found (538) +
-# rename_map > 3 logging (549-553) + aux dta write (578-581) +
-# codebook xlsx exception (592-593) + rename_map None fallback (620) +
-# main() CLI entry (642-657)
+# quality-hardening Round 43 (2026-05-27): stata_export.py 覆盖率 81% → ≥90%
+# 补漏: collab_mode 编码 (121-122) + codebook fallback (141-143) +
+# HEURISTIC label 命中 (198) + label 截断 (205) + collab label 取值
+# (464) + pyreadstat ImportError fallback (504-510) + panel 不存在 (538) +
+# rename_map > 3 时的日志 (549-553) + aux dta 写出 (578-581) +
+# codebook xlsx 异常 (592-593) + rename_map None fallback (620) +
+# main() CLI 入口 (642-657)
 # ============================================================================
 
 
@@ -281,7 +281,7 @@ def test_encode_categorical_columns_with_collab_mode():
     assert encoded.loc[0, 'innovation_collab_mode_full'] == 0
     assert encoded.loc[1, 'innovation_collab_mode_full'] == 1
     assert value_labels['innovation_collab_mode_full'] == COLLAB_MODE_VALUE_LABELS
-    # Encoding direction sanity check
+    # 编码方向 sanity check
     assert COLLAB_MODE_ENCODING['自主研发'] == 0
     assert COLLAB_MODE_ENCODING['外部协同'] == 1
 
@@ -333,7 +333,7 @@ def test_build_variable_labels_truncates_long_label():
 
 
 def test_select_dta_backend_falls_back_when_pyreadstat_missing(monkeypatch):
-    """pyreadstat ImportError → fallback (lines 504-510)."""
+    """pyreadstat 抛 ImportError → 回退 pandas backend (lines 504-510)。"""
     import builtins
 
     import news_process.pipeline.panel.stata_export as se

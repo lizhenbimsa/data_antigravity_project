@@ -56,6 +56,12 @@ pip install krippendorff>=0.5.0 (默认注释化, 见 requirements.txt:123).
 D-0 实测项 (v2.3 G-D3.1)
 ------------------------
 valid (bank, event) 三元组覆盖 ≥ 60% bank-year.
+
+白话: 同一家银行出大新闻的那几天, 不同媒体打出来的语调一致吗?
+方差衡量"各家媒体说法差多远", Krippendorff α 衡量"把媒体当评分员,
+它们打分有多一致"。一致说明信号可靠; 分歧本身也是信息 (媒体分歧度)。
+注意: 这里算的是"事件窗口内"的口径, 和第 10 篇论文承诺的"全年口径"
+同名不同义, 用之前必须先对齐, 详见顶部披露。
 """
 
 from __future__ import annotations
@@ -68,7 +74,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
-# Path injection
+# sys.path 注入 (保证从任意 cwd 直跑本文件时可 import news_process 包)
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:

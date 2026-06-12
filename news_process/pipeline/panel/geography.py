@@ -645,6 +645,11 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         panel: 附加 4 个 leave-one-out 列的 DataFrame。
+
+    白话: leave-one-out (留一法) 工具变量 = "同省/同城**其他**银行当年的
+    平均舆论"。逻辑是: 本地媒体生态会同时影响一片银行, 但邻居们的报道
+    语调不太可能由我自己的经营决定 — 所以拿"除我之外的本地平均"当外生
+    推力。一定要把自己剔掉, 否则工具里混着自己, 内生性又回来了。
     """
     logger.info("=" * 60)
     logger.info("步骤 7d: Leave-one-out 地理平均情感 (Luo & Li 2025)")
@@ -886,6 +891,12 @@ def compute_geo_proximity_buffers(
     Returns:
         panel: 追加 40 个距离缓冲变量 (fix(omni-g-geography-05): 双轨化后
                28→40 计数勘误) + 1 个省会插补诊断列 prox_geo_imputed_frac
+
+    白话: 以银行总部为圆心画 50/100/150/200 公里四个圈, 分别统计圈内媒体
+    对它的报道量和语调 — 检验"近处媒体是否更捧本地银行"。注意坐标有水分:
+    定位不到城市的媒体会退而用省会坐标, 这对省会银行会把距离算成约 0、
+    对非省会银行一律算到省会, 误差和银行区位相关, 所以同时输出插补比例
+    列 prox_geo_imputed_frac, 论文里要披露并做剔除稳健性。
     """
     logger.info("=" * 60)
     logger.info("步骤: 四梯度地理距离缓冲 "

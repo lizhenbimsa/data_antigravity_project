@@ -4,9 +4,11 @@
 *   DV  = z_score   (CAR-based Z-score 变体, cf. Laeven-Levine 2009 JFE;
 *         fix(omni-g-zscore-papers-01, 2026-06-11): 资本项=监管 Basel CAR 非
 *         L&L 原版账面 equity/assets, 见 paper_spec.yaml outcome 更正)
+*         白话: Z-score 越高表示银行离资不抵债越远、风险越低; 此处资本项用监管
+*         资本充足率 (CAR), 与原版账面口径不同, 故称"变体"。
 *   TX  = cross_outlet_tone_variance_full   (V4 R3 critical 修复, M2-M3 新建字段)
 *
-* M1-M6 progressive (V4 F2.2 boundary condition + F-P1.1 implicit guarantee):
+* M1-M6 渐进设定 (V4 F2.2 边界条件 + F-P1.1 隐性担保 implicit guarantee):
 *   M1: 主解释 only
 *   M2: + Bank FE
 *   M3: + Bank FE + Year FE

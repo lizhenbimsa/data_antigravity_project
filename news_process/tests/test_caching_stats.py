@@ -1,8 +1,8 @@
-"""tests/test_caching_stats.py — T0.0a LLMCache hit/miss counters.
+"""tests/test_caching_stats.py — T0.0a LLMCache hit/miss 计数器。
 
-Verifies the runtime stats counters added by T0.0a so that future regressions
-(e.g. removing a counter, breaking lock-scope, double-counting) trip a fast
-unit test before the LLM stage logs misleading metrics.
+验证 T0.0a 新增的运行时 stats 计数器, 使未来回归 (如删掉某计数器、
+破坏锁作用域、重复计数) 先被快速单测拦截, 而不是等 LLM stage
+打出误导性指标后才发现。
 """
 
 from __future__ import annotations

@@ -131,6 +131,9 @@ def _is_fls_sentence(sentence: str) -> bool:
     # 对 **≥3 字** 标记补 substring 命中 (纯加性: 只把门控置 True, 不移除任何 token 命中,
     # 故不会像 add_word 那样反而拆掉 '未来三年' 的 '未来' future token; 单/双字仍仅 token 匹配
     # 以保 P-038 精度 — 单字 substring 误判风险高)。空格统一剥除以兼容 '到 2030' 类标记。
+    # 白话: jieba 有时会把"下一财年"这类长词切成碎片, 碎片对不上词表就漏判。
+    # 补救办法是: 只对 3 字以上的词表词, 再直接在原句里找一遍字面子串;
+    # 这只会"多认出"前瞻句, 不会把已认出的取消, 而 1-2 字短词仍走精确分词匹配以防误伤。
     _s = sentence.replace(' ', '')
     if not has_future:
         has_future = any(len(w) >= 3 and w.replace(' ', '') in _s for w in _FUTURE_WORDS)

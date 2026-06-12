@@ -102,14 +102,14 @@ class TestP3Path:
     """P3 路径: confidence = 0 或无效 → one-hot 硬分类"""
 
     def test_zero_confidence(self):
-        """confidence = 0 → P3 one-hot"""
+        """confidence = 0 → 走 P3 one-hot 硬分类路径"""
         r = compute_prob_score("正面", 0.0)
         _assert_prob_axiom(r)
         assert r['prob_source'] == 'P3'
         assert r['prob_score'] == 1.0, "P3 正面应为 +1.0"
 
     def test_none_confidence(self):
-        """confidence = None → P3 fallback"""
+        """confidence = None → 回退 P3 路径"""
         r = compute_prob_score("负面", None)
         _assert_prob_axiom(r)
         assert r['prob_source'] == 'P3'

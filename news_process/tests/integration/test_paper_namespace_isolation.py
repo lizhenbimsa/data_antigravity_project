@@ -1,11 +1,11 @@
-"""M0 G0 acceptance — 8 paper 列名冲突扫描.
+"""M0 G0 acceptance — 跨 paper 列名冲突扫描 (现为 11 篇, 2026-06-01 起)。
 
-Plan v2.x §5.2.2 M0.3 + §5.2.4 G0:
+Plan v2.x §5.2.2 M0.3 + §5.2.4 G0 (历史计划原文, 当时为 8 篇):
     "8 paper 列名冲突: 0 冲突 (跨 8 paper)"
 
 红线不变式
 ----------
-1. 8 paper 的 ``treatment.primary`` 必须互不重复 (paper-specific signal column).
+1. 各 paper 的 ``treatment.primary`` 必须互不重复 (paper-specific signal column).
 2. 各 paper 的 ``mediator.primary`` (P2/P4 有 mediator) 互不重复.
 3. 各 paper 的 paper-specific derived outcome 名 (如 car_3day_window_tone_shock,
    long_run_roa_change_3yr, car_5day_window) 互不重复.
@@ -26,20 +26,20 @@ from news_process.papers._common.paper_registry import (
     load_all_specs,
 )
 
-# Shared utility columns (controls / FE) — allowed to overlap across papers.
+# 共享工具列 (controls / FE) — 允许跨 paper 重叠。
 SHARED_CONTROLS: frozenset[str] = frozenset({
-    # bank-level standard controls
+    # 银行层面标准控制变量
     'ln_assets', 'leverage', 'capital_ratio', 'npl_ratio', 'deposit_growth',
-    # year-level macro controls
+    # 年度层面宏观控制变量
     'gdp_growth', 'm2_growth',
-    # fixed effects
+    # 固定效应
     'bank_fe', 'year_fe',
     # ROA / market-cap 作为 outcome.secondary 跨 paper 共享 (P1+benefit+broker+llm+strategic)
     'roa', 'loan_growth', 'ln_market_cap',
-    # CAR 3-day generic — some specs may have it under secondary
+    # CAR 3 日通用版 — 部分 spec 可能把它放在 secondary 下
     'car_3day',
     'tobin_q',
-    'strat_fluidity',  # strategic_diff secondary
+    'strat_fluidity',  # strategic_diff 的 secondary
     # z_score = Laeven-Levine (2009 JFE) bank-stability outcome, 由第10篇
     # (bank_media_disagreement) 与第11篇 (bank_news_clarity) *刻意共享* 作 outcome.primary
     # (两篇 spec 均注明 "与第 10/11 篇共享, Laeven-Levine 2009 标准"; provisional 2026-06-01)。
@@ -73,17 +73,17 @@ def _collect_paper_specific_signals(specs: dict) -> dict[str, list[tuple[str, st
         outcome = spec.raw.get('outcome', {}) or {}
         mediator = spec.raw.get('mediator', {}) or {}
 
-        # P4 treatment uses primary_pair (list) instead of primary
+        # P4 的 treatment 用 primary_pair (list) 而非 primary
         for col in _flatten(treatment.get('primary')):
             bucket[col].append((paper_id, 'treatment.primary'))
         for col in _flatten(treatment.get('primary_pair')):
             bucket[col].append((paper_id, 'treatment.primary_pair'))
 
-        # mediator.primary (only present on P2/P4)
+        # mediator.primary (仅 P2/P4 存在)
         for col in _flatten(mediator.get('primary')):
             bucket[col].append((paper_id, 'mediator.primary'))
 
-        # outcome.primary — only paper-specific derived names count
+        # outcome.primary — 只有 paper-specific 的派生名才计入
         for col in _flatten(outcome.get('primary')):
             if col not in SHARED_CONTROLS:
                 bucket[col].append((paper_id, 'outcome.primary'))
@@ -94,10 +94,10 @@ def _collect_paper_specific_signals(specs: dict) -> dict[str, list[tuple[str, st
 def test_treatment_primary_columns_are_unique() -> None:
     specs = load_all_specs()
 
-    primaries: dict[str, str] = {}  # column -> paper_id
+    primaries: dict[str, str] = {}  # 列名 -> paper_id
     for paper_id, spec in specs.items():
         t = spec.raw.get('treatment', {}) or {}
-        # primary may be str OR primary_pair may be list (P4)
+        # primary 可能是 str, 或 primary_pair 是 list (P4)
         names: list[str] = []
         names.extend(_flatten(t.get('primary')))
         names.extend(_flatten(t.get('primary_pair')))
@@ -126,15 +126,15 @@ def test_mediator_primary_columns_are_unique_across_papers_with_mediator() -> No
 
 
 def test_paper_specific_derived_outcome_names_unique() -> None:
-    """Plan §B.X intentionally diverges car_3day_window names between P1 (tone_shock) /
-    P3 (fintech_announcement) / P4 (5day) to avoid salami slicing collision (R10-M01).
+    """Plan §B.X 刻意让 car_3day_window 命名在 P1 (tone_shock) /
+    P3 (fintech_announcement) / P4 (5day) 间分化, 以避免 salami slicing 冲突 (R10-M01)。
     """
     specs = load_all_specs()
     paper_derived_outcomes: dict[str, str] = {}
     for paper_id, spec in specs.items():
         primary = spec.raw.get('outcome', {}).get('primary', '')
         if primary in SHARED_CONTROLS:
-            continue  # shared outcome (e.g. roa); covered by SHARED_CONTROLS exemption
+            continue  # 共享 outcome (如 roa); 已由 SHARED_CONTROLS 豁免覆盖
         if not primary:
             continue
         if primary in paper_derived_outcomes:
@@ -146,8 +146,8 @@ def test_paper_specific_derived_outcome_names_unique() -> None:
 
 
 def test_paper_specific_signal_columns_no_unexpected_overlap() -> None:
-    """Comprehensive scan: any column claimed as paper-specific by 2+ papers
-    should be in the explicit SHARED_CONTROLS allow-list."""
+    """全面扫描: 任何被 2+ 篇 paper 同时声明为 paper-specific 的列
+    都必须在显式的 SHARED_CONTROLS 白名单中。"""
     specs = load_all_specs()
     bucket = _collect_paper_specific_signals(specs)
 
@@ -164,8 +164,8 @@ def test_paper_specific_signal_columns_no_unexpected_overlap() -> None:
 
 
 def test_8_paper_treatment_primary_count_equals_paper_count() -> None:
-    """Each of 11 papers (5 existing + 3 new + 3 provisional, 2026-06-01) must declare
-    exactly one primary treatment 'spec' (could be primary str or primary_pair list)."""
+    """全部 11 篇 paper (5 既有 + 3 新增 + 3 provisional, 2026-06-01) 必须各自
+    恰好声明一个 primary treatment 'spec' (可以是 primary str 或 primary_pair list)。"""
     specs = load_all_specs()
     assert len(specs) == 11
 

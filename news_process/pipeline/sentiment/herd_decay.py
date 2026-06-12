@@ -94,7 +94,7 @@ CHUNK_SIZE = HERD_CFG.get('chunk_size', 1000)  # 仅用于日志显示; >2000 �
 # ============================================================================
 
 def _build_tfidf_vectorizer(n_docs: int, *, relaxed: bool = False) -> TfidfVectorizer:
-    """Create a TF-IDF vectorizer whose df thresholds are valid for the group size.
+    """构造 TF-IDF vectorizer, 其 df 阈值随组规模 (n_docs) 自适应保持合法。
 
     fix(omni-g-herd-01, 2026-06-11): min_df 比例化 (proportional df threshold)。
     原实现 min_df=MIN_DF 为**绝对**文档数: n=6 的组配合 max_df=0.9 (floor(5.4)=5)
@@ -104,6 +104,12 @@ def _build_tfidf_vectorizer(n_docs: int, *, relaxed: bool = False) -> TfidfVecto
     小/中组 min_df=2 (仅剪 hapax 噪声), n≳200 平滑爬升, n≥~500 封顶于 MIN_DF
     (大组与历史行为一致); 另加 max_df 守卫 — 若 floor(max_df·n) ≤ min_df
     (df-band 退化为近全员共现带), 放开 max_df=1.0 而非把 min_df 压回退化带。
+
+    白话: min_df/max_df 是"一个词至少/至多出现在多少篇文章里才保留"的门槛。
+    老写法用固定篇数, 对只有几篇新闻的小银行来说门槛过高, 剩下的全是
+    "本报讯""记者报道"这类套话词, 任何两篇都显得很像, 跟风被大量误报。
+    新写法让门槛随组的大小按比例伸缩: 组小门槛低, 组大门槛逐步升到原值,
+    保证不同规模的银行用大致同一把尺子量相似度。
     """
     if relaxed or n_docs < 4:
         # 微型组 (n<4): 任何 df 剪枝都会让词表退化, 直接放开
@@ -132,7 +138,7 @@ def _build_tfidf_vectorizer(n_docs: int, *, relaxed: bool = False) -> TfidfVecto
 
 
 def _fit_tfidf_with_fallback(texts: list, *, bank_name=None, track=None):
-    """Fit TF-IDF with transparent relaxed fallback; return matrix or None.
+    """拟合 TF-IDF, 失败时透明降级 relaxed 参数重试; 返回矩阵或 None。
 
     fix(omni-g-herd-03, 2026-06-11): 原两层 ValueError fallback 均零日志 — 走
     relaxed (min_df=1/max_df=1.0) 的组其相似度刻度 (全词表) 与主参数组不同, 二次
@@ -199,6 +205,12 @@ def _bucketed_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
     保证。因 index 序 = 日期序, 每篇 i 的候选前驱仅落在 [date_i-window, date_i] 的连续
     滑窗 [lo, i) 内; 双指针使左界 lo 单调右移, 每篇只对窗内候选算余弦, 把 per-bank 成本
     从 O(N^2) 降到 O(N*window)。NaT 篇不计数也不作候选 (与稠密分支一致)。
+
+    白话: 要判断一篇新闻是不是"跟风", 只需和它前 7 天内的旧文比相似度,
+    没必要和几年前的全部文章两两都比一遍。文章已按日期排好队, 用一个
+    左指针标记"7 天窗口的起点", 它只会往右走不回头, 于是每篇文章只和
+    窗口内的几十篇邻居比较, 几十万篇的银行也算得动, 且结果与笨办法
+    (全两两比较) 逐位相同。
     """
     n_articles = len(dates)
     _epoch = pd.Timestamp('1970-01-01')
@@ -331,6 +343,12 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         df: 附加 'herd_weight_full' / 'herd_weight_ctx' /
             'n_similar_articles_full' / 'n_similar_articles_ctx' 四列。
+
+    白话: 同一家银行的新闻常被各家媒体转抄, 同一条消息若被算 10 遍,
+    情感指标就被注了水。这里给每篇文章数一数"它发布前 7 天内有几篇
+    长得很像的前文" (记为 n), 然后把它的权重打折成 1/(1+n): 头一篇原创
+    权重 1, 第 10 篇抄稿权重只剩约 1/10。full 轨看标题+全文的相似,
+    ctx 轨只看与目标银行相关的那段文字的相似, 两轨各自打分互不混用。
     """
     logger.info("=" * 60)
     logger.info("步骤 1: 跟风/抄袭新闻检测与衰减加权 (双轨 v3.6.0)")

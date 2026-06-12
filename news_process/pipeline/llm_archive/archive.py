@@ -152,7 +152,7 @@ class LLMArchive:
             ValueError: 若 record 缺必填字段.
         """
         record, line = self._prepare_record(record)
-        # JSONL append (atomic at OS level for small writes < PIPE_BUF)
+        # JSONL append (小于 PIPE_BUF 的小写入在 OS 层面是原子的)
         # _current_file() 在 lock 内调用以避免跨午夜 race (M2 修复)
         with self._lock:
             fp = self._current_file()

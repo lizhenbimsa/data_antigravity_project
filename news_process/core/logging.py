@@ -27,7 +27,7 @@ _RUN_ID_ENV = "NEWS_PROCESS_RUN_ID"
 
 
 def _install_warning_filters() -> None:
-    """Suppress known optional-accelerator warnings that are harmless on CPU."""
+    """抑制已知的可选加速器警告 (CPU 环境下无害, 如 triton 找不到 CUDA)。"""
     warnings.filterwarnings(
         "ignore",
         message=r"Failed to find CUDA\.",
@@ -37,7 +37,7 @@ def _install_warning_filters() -> None:
 
 
 def _configure_standard_streams() -> None:
-    """Make redirected Windows stdio tolerant of UTF-8 pipeline logs."""
+    """让被重定向的 Windows 标准流容忍 UTF-8 流水线日志 (errors=replace)。"""
     for stream in (sys.stdout, sys.stderr):
         reconfigure = getattr(stream, "reconfigure", None)
         if reconfigure is not None:
@@ -48,7 +48,7 @@ def _configure_standard_streams() -> None:
 
 
 def _configure_third_party_loggers() -> None:
-    """Keep recoverable dependency chatter out of stage stderr streams."""
+    """把第三方依赖的可恢复噪音日志压到 ERROR 级, 避免污染阶段 stderr。"""
     for name in (
         "huggingface_hub",
         "huggingface_hub.utils._http",
@@ -65,7 +65,7 @@ def get_run_id() -> str | None:
 
 
 class _MaxLevelFilter(logging.Filter):
-    """Allow records below ``max_level`` only."""
+    """只放行级别低于 ``max_level`` 的日志记录。"""
 
     def __init__(self, max_level: int):
         super().__init__()

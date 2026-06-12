@@ -9,12 +9,12 @@
 *   Angrist & Pischke (2009) Mostly Harmless Econometrics Ch.5 saturated regression
 *   Sun & Abraham (2021 JOE 225) cohort decomposition 类比
 *
-* Cell merge decision (per plan §2.1.4 + framework §2.bis):
+* Cell 合并决策 (per plan §2.1.4 + framework §2.bis):
 *   单 paper Table 6 启动前根据 cell n 应用 Priority A/B/C 合并规则;
 *   合并决策 pre-registered, 记录到 audit log §B.cell_merge_history.
-*   {{ cell_merge_decisions }}  // populated by stata_runner build-replication per paper
+*   {{ cell_merge_decisions }}  // 由 stata_runner build-replication 按论文填充
 *
-* RHS variable count (per plan §2.1.5 F25):
+* RHS 变量数 (per plan §2.1.5 F25):
 *   i.cell_id_full → 7 dummy (8-1 base omitted) + controls (~7) = ~14 RHS.
 *   MP 19.5 上限 65,532, IC 上限 798 — 14 << 所有 license.
 
@@ -24,24 +24,24 @@ set linesize 120
 
 use "{{ panel_path }}", clear
 
-* --- Step 1: cell merge pre-regression decision (per plan §2.1.4) ---
-* If cell merges declared in paper_spec.yaml, execute here:
-* e.g., `recode cell_id_full (6 = 4)` to merge cell 6 into cell 4 (Priority A).
-* Default (no merge): cell_id_full stays as 1..8.
+* --- Step 1: 回归前 cell 合并决策 (per plan §2.1.4) ---
+* 若 paper_spec.yaml 中声明了 cell 合并, 在此执行:
+* 例: `recode cell_id_full (6 = 4)` 把 cell 6 并入 cell 4 (Priority A).
+* 默认 (不合并): cell_id_full 保持 1..8.
 {{ cell_merge_recode_block }}
 
-* --- Step 2: 8-cell categorical treatment regression ---
+* --- Step 2: 8-cell 分类处理变量回归 ---
 * base = cell 1 (sub.tech.indep, 三维全 baseline)
 eststo M_cell: reghdfe {{ outcome }} i.cell_id_full {{ controls }} [aw={{ weight }}], ///
     absorb(i.{{ bank_fe }} i.{{ year_fe }}) cluster({{ cluster_var }})
 
-* --- Step 3: Joint Wald test ---
+* --- Step 3: 联合 Wald 检验 ---
 testparm i.cell_id_full
 local F_joint = r(F)
 local p_joint = r(p)
 display "Joint test F = `F_joint', p = `p_joint'"
 
-* --- Step 4: Output table ---
+* --- Step 4: 输出表 ---
 esttab M_cell using "{{ output_dir }}/table6_cell_decomp.tex", ///
     cells(b(star fmt(3)) se(par fmt(3))) ///
     keep(*.cell_id_full) ///
@@ -50,7 +50,7 @@ esttab M_cell using "{{ output_dir }}/table6_cell_decomp.tex", ///
     addnotes("Joint test F=`F_joint', p=`p_joint'." ///
              "Cell merge decisions per plan §2.1.4 logged to audit §B.cell_merge_history.")
 
-* --- Step 5: Coefplot visualization (optional) ---
+* --- Step 5: Coefplot 可视化 (可选) ---
 coefplot M_cell, keep(*.cell_id_full) drop(_cons) ///
     xline(0, lcolor(gs8) lpattern(dash)) ///
     title("8-cell decomposition coefficients (base = cell 1)") ///

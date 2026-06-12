@@ -1,7 +1,7 @@
 * ============================================================================
-* 18_collab_robustness.do — Robustness battery (P5)
+* 18_collab_robustness.do — 稳健性检验组 (Robustness battery, P5)
 * Paper: {{PAPER_ID}}
-* v3.4.0: Chesbrough 2003 framework robustness checks
+* v3.4.0: Chesbrough 2003 框架稳健性检验
 * ============================================================================
 
 version 19
@@ -16,7 +16,8 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* R1: ctx track alternative spec (indep_frac_cm / collab_frac_cm; Hassan 2019 QJE entity-proximity)
+* R1: ctx 轨替代设定 (indep_frac_cm / collab_frac_cm; Hassan 2019 QJE entity-proximity)
+* 白话: 换用"标题+实体上下文窗口"口径分类出的协同占比重跑, 验证结论不依赖归因窗口。
 capture confirm variable indep_frac_cm collab_frac_cm
 if !_rc {
     reghdfe {{MAIN_DV}} collab_frac_cm $controls, ///
@@ -34,7 +35,7 @@ if !_rc {
     eststo R_FRAC
 }
 
-* R3: winsorized DV
+* R3: winsorize 缩尾后的 DV
 capture confirm variable {{MAIN_DV}}_w
 if !_rc {
     reghdfe {{MAIN_DV}}_w collab_open_full collab_closed_full $controls, ///
@@ -42,7 +43,7 @@ if !_rc {
     eststo R_WIN
 }
 
-* R4: drop top/bottom 1% by bank size
+* R4: 按银行规模剔除上下 1% 极端样本
 capture confirm variable ln_assets
 if !_rc {
     quietly summarize ln_assets, detail
@@ -71,6 +72,7 @@ if _rc == 0 {
     * 在 r(p)), 旧 eststo 存的是 reghdfe 解析 cluster SE → "Wild boot" 列名实不符
     * (84-cluster small-G 场景正是 wild boot 要纠正的对象)。以 estadd 把 r(p) 注入
     * e(p_wild) 进表 stats 行, 列内容如实披露。
+    * 白话: 银行聚类数偏少时常规标准误偏小、容易假显著; 用 wild bootstrap 重算 p 值并如实写进表里。
     estadd scalar p_wild = r(p)
     eststo R_WILD
 }
@@ -81,6 +83,7 @@ else {
 * ============================================================================
 * R6: ritest randomization inference — v3.6.1 PR #7.5 新增 (与 3 paper 对齐)
 * Young 2019 QJE 134(2):557-598; cluster + strata 保 panel structure.
+* 白话: 把处理变量随机打乱很多次构造"纯随机"分布, 看真实系数是否明显超出该分布 (随机化推断)。
 * ============================================================================
 capture which ritest
 if _rc != 0 {

@@ -16,7 +16,7 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
-* Panel A: clarity × locus interaction
+* Panel A: clarity × locus 交互
 capture confirm variable mean_clarity_score_full
 if !_rc {
     reghdfe {{MAIN_DV}} c.mean_clarity_score_full##c.{{MAIN_TREAT}} $bank_controls, ///
@@ -27,7 +27,8 @@ else {
     display "  [WARN] mean_clarity_score_full not in panel (v3.5.1 D5 pending)"
 }
 
-* Panel B: dual-track main effect
+* Panel B: 双轨主效应 (full / ctx 同表)
+* 白话: full 轨与 ctx 轨的清晰度得分一起放进回归 — 两轨互为稳健性, 验证结论不依赖归因窗口。
 capture confirm variable mean_clarity_score_full
 if !_rc {
     reghdfe {{MAIN_DV}} mean_clarity_score_full mean_clarity_score_ctx $bank_controls, ///

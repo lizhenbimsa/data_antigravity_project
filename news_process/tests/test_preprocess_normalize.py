@@ -1,7 +1,7 @@
-"""Tests for ``news_process.pipeline.preprocess.normalize`` text-clean pipeline.
+"""``news_process.pipeline.preprocess.normalize`` 文本清洗管道的测试。
 
-quality-hardening Round 24 (2026-05-27): normalize.py 0% → ~90%. Module 此前在
-tests/ 中无直接覆盖 (existing test_00_preprocessing.py 用 local 副本测试 `_tail_cleanup_repl`
+quality-hardening Round 24 (2026-05-27): normalize.py 0% → ~90%. 该模块此前在
+tests/ 中无直接覆盖 (已有的 test_00_preprocessing.py 用本地副本测试 `_tail_cleanup_repl`
 而不是 import 真实模块).
 """
 from __future__ import annotations

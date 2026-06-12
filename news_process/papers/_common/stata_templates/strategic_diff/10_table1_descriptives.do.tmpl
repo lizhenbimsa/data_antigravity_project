@@ -1,5 +1,5 @@
 * ============================================================================
-* 10_table1_descriptives.do — Descriptive stats (strategic_diff)
+* 10_table1_descriptives.do — 描述性统计 (strategic_diff)
 * Paper: {{PAPER_ID}}
 * ============================================================================
 
@@ -26,7 +26,7 @@ esttab using "$tables_dir/table1_descriptives.tex", replace ///
     title("Descriptive Statistics --- strategic_diff panel") ///
     note("Descriptives over the full panel (incl. zero-news bank-years); regression sample (if e(sample)) differs in N.")
 
-* Multi-method correlation matrix (convergent validity).
+* 多方法相关矩阵 (收敛效度: TF-IDF / LDA / Embedding 三法测同一构念应高相关)。
 estpost correlate {{MAIN_DIFF_VAR}} strat_diff_n5_lda strat_diff_n5_emb, matrix
 esttab using "$tables_dir/table1b_method_correlation.tex", replace ///
     not unstack compress booktabs ///

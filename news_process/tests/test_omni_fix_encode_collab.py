@@ -17,6 +17,11 @@ test_omni_fix_encode_collab.py — omni 审计修复回归锁 (g-encode-collab �
       (media_authority_weight × herd_weight_ctx, 非 mention_density)
   KNOWN-OPEN② apply_v3_5_1 frozen-median sidecar 接线 (首跑计算并持久化,
       后续跑读冻结值, 阈值不随样本组成漂移)
+
+# 白话: 这组测试管"比例怎么算才诚实": 算分歧比例时, 分子分母必须数同一批
+# 文章(两轨都有标签的那批); 样本太少或全缺时给 NaN 而不是假装是 0; 脏标签
+# (多空格/换行)先洗干净再比对; 同一函数跑两遍结果要一样, 不能越跑列越多;
+# 中位数阈值第一次算好就冻结存盘, 以后换样本也不漂移。
 """
 import json
 import os
@@ -35,7 +40,7 @@ if _PROJECT_PARENT not in sys.path:
 from news_process.pipeline.panel import encode_collab as ec  # noqa: E402
 
 # ============================================================================
-# helpers
+# 辅助函数
 # ============================================================================
 
 def _mk_subst_df(rows: list[tuple[str, int, object, object]]) -> pd.DataFrame:

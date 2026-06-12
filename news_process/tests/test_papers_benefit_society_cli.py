@@ -1,6 +1,6 @@
-"""CLI smoke tests for papers/benefit_society/ modules.
+"""papers/benefit_society/ 各模块的 CLI smoke 测试。
 
-Verifies argparse signatures and graceful failure on missing inputs.
+验证 argparse 签名与缺输入时的优雅失败行为。
 """
 
 from __future__ import annotations
@@ -10,7 +10,10 @@ import pytest
 
 
 def test_dimension_analysis_cli_no_inputs_returns_zero(capsys):
-    """CLI must return 0 when text_embeddings is missing (graceful skip)."""
+    """缓存 db 缺失时 CLI 必须抛 RuntimeError('LLM cache not found')。
+
+    注: 函数名 "returns_zero" 是历史遗留 — 实际断言的当前契约是 raise
+    RuntimeError (fail-loud), 而非返回 0 优雅跳过。"""
     from news_process.papers.benefit_society import dimension_analysis
     argv = [
         "--text-embeddings", "/nonexistent/path.npy",
@@ -28,7 +31,7 @@ def test_shrinkage_cli_missing_panel_raises(tmp_path):
 
 
 def test_shrinkage_cli_missing_columns_returns_nonzero(tmp_path):
-    """If required columns are missing, CLI returns 1."""
+    """缺必需列时, CLI 返回 1。"""
     from news_process.papers.benefit_society import shrinkage
     panel = pd.DataFrame({"benefit_mean_full": [0.1, 0.2]})
     panel_path = tmp_path / "panel.parquet"
@@ -39,7 +42,7 @@ def test_shrinkage_cli_missing_columns_returns_nonzero(tmp_path):
 
 
 def test_ncd_downloader_cli_dry_run(tmp_path):
-    """Downloader CLI in dry-run mode must produce a manifest with stub records."""
+    """下载器 CLI 在 dry-run 模式下必须产出含 stub 记录的 manifest。"""
     import csv
 
     from news_process.papers.benefit_society import ncd_pdf_downloader
@@ -72,7 +75,7 @@ def test_ncd_extractor_cli_missing_dir_returns_nonzero(tmp_path):
 
 
 def test_ncd_extractor_cli_empty_dir_returns_zero(tmp_path):
-    """An empty PDF directory should produce an empty output, not crash."""
+    """空 PDF 目录应产出空结果文件而非崩溃。"""
     from news_process.papers.benefit_society import ncd_text_extractor
     pdf_dir = tmp_path / "pdfs"
     pdf_dir.mkdir()
@@ -96,7 +99,7 @@ def test_ncd_parser_cli_missing_input_returns_one(tmp_path):
 
 
 def test_ncd_parser_cli_empty_records_writes_empty_panel(tmp_path):
-    """Empty records list should produce an empty parquet without crashing."""
+    """空 records 列表应写出空 parquet 而非崩溃。"""
     import json
 
     from news_process.papers.benefit_society import ncd_field_parser

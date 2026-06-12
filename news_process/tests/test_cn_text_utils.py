@@ -1,4 +1,4 @@
-"""Tests for news_process.core.text.cn_text_utils (PR #1, v3.5.2 前置).
+"""news_process.core.text.cn_text_utils 的测试 (PR #1, v3.5.2 前置).
 
 50 fast tests 覆盖 cn_split_sentence / cn_tokenize / CN_FIN_STOPWORDS 三个
 public API.

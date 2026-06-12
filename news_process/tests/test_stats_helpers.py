@@ -1,7 +1,7 @@
-"""Tests for news_process.papers._common.stats_helpers.
+"""news_process.papers._common.stats_helpers 的测试。
 
-V2.0 J-L-M 2026 robustness alignment plan §3 Phase 1 P1.9 partial.
-Covers within_unit_sd (A4) + cluster_block_bootstrap_ci (C1).
+V2.0 J-L-M 2026 robustness alignment plan §3 Phase 1 P1.9 部分实现。
+覆盖 within_unit_sd (A4) + cluster_block_bootstrap_ci (C1)。
 
 fix(omni-g-papers-misc-10, 2026-06-11): 主名由 block_subsampling_ci (方法标签
 误称 Politis-Romano subsampling) 更正为 cluster_block_bootstrap_ci (实现自始是
@@ -34,17 +34,17 @@ class TestWithinUnitSD:
 
     def test_two_unit_symmetric_variation(self) -> None:
         """两 unit, 每 unit 两观测对称偏离均值."""
-        # a: [1, 3] mean=2, demeaned=[-1, 1]
-        # b: [5, 7] mean=6, demeaned=[-1, 1]
-        # combined demeaned: [-1, 1, -1, 1] → SD(ddof=1) = sqrt(4/3) ≈ 1.1547
+        # a: [1, 3] 均值=2, 去均值后=[-1, 1]
+        # b: [5, 7] 均值=6, 去均值后=[-1, 1]
+        # 合并去均值序列: [-1, 1, -1, 1] → SD(ddof=1) = sqrt(4/3) ≈ 1.1547
         series = [1.0, 3.0, 5.0, 7.0]
         unit_id = ["a", "a", "b", "b"]
         assert within_unit_sd(series, unit_id) == pytest.approx(1.1547, abs=1e-3)
 
     def test_drops_nan_values(self) -> None:
         """NaN 行被 drop, 不参与 demean."""
-        # After dropna: a=[1.0] (demeaned=0), b=[5.0, 7.0] (demeaned=[-1, 1])
-        # combined demeaned: [0, -1, 1] → SD(ddof=1) = 1.0
+        # dropna 后: a=[1.0] (去均值=0), b=[5.0, 7.0] (去均值=[-1, 1])
+        # 合并去均值序列: [0, -1, 1] → SD(ddof=1) = 1.0
         series = [1.0, np.nan, 5.0, 7.0]
         unit_id = ["a", "a", "b", "b"]
         assert within_unit_sd(series, unit_id) == pytest.approx(1.0, abs=1e-3)
@@ -110,8 +110,8 @@ class TestClusterBlockBootstrapCI:
         values = rng.standard_normal(100)
         r1 = cluster_block_bootstrap_ci(values, block_size=2, n_resamples=200, seed=1)
         r2 = cluster_block_bootstrap_ci(values, block_size=2, n_resamples=200, seed=2)
-        assert r1[0] == pytest.approx(r2[0], abs=1e-10)  # point estimate
-        # bounds should differ stochastically
+        assert r1[0] == pytest.approx(r2[0], abs=1e-10)  # 点估计相同
+        # CI 边界应随机性地不同
         assert (r1[1], r1[2]) != (r2[1], r2[2])
 
     def test_drops_nan_values(self) -> None:
@@ -147,7 +147,7 @@ class TestClusterBlockBootstrapCI:
         """block_size=1 退化为标准 iid bootstrap on means."""
         rng = np.random.default_rng(42)
         values = rng.standard_normal(100)
-        # Should run without error
+        # 应能无错误运行
         point, lo, hi = cluster_block_bootstrap_ci(
             values, block_size=1, n_resamples=500, seed=42
         )

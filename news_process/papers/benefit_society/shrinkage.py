@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# 1. Empirical Bayes closed-form shrinkage (Morris MoM)
+# 1. Empirical Bayes 闭式收缩 (Morris 矩估计法 MoM)
 # ---------------------------------------------------------------------------
 def empirical_bayes_shrinkage(
     values: np.ndarray,
@@ -65,7 +65,10 @@ def empirical_bayes_shrinkage(
     group_labels: np.ndarray,
     sampling_var: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Shrink ``values`` toward group means weighted by within-unit precision.
+    """按单元内精度加权, 把 ``values`` 向组均值收缩.
+
+    白话: 新闻很少的银行-年份算出的均值很"飘", 这里让它向同组 (同年同省
+    同类型) 的平均值靠拢——新闻越少靠得越多, 新闻越多越保留原值。
 
     fix(omni-g-benefit-03/07/09, 2026-06-11) — 方差分量修正 (公式与代码统一):
 
@@ -82,22 +85,21 @@ def empirical_bayes_shrinkage(
     Parameters
     ----------
     values : np.ndarray, shape (N,)
-        Raw bank-year measurements (e.g., benefit_mean_full)
+        原始 bank-year 度量值 (如 benefit_mean_full)
     n_obs : np.ndarray, shape (N,)
-        Number of articles backing each measurement
+        支撑每个度量值的文章数
     group_labels : np.ndarray, shape (N,)
-        Group identifier (e.g., bank_type×province×year combo)
+        组标识 (如 bank_type×province×year 组合)
     sampling_var : np.ndarray | None, shape (N,)
-        Optional per-unit sampling variance σ̂²ᵢ (e.g., benefit_std²/nᵢ);
+        可选的单元抽样方差 σ̂²ᵢ (如 benefit_std²/nᵢ);
         non-finite / non-positive 元素逐位回退 grand_var/nᵢ 代理。
 
     Returns
     -------
     shrunk : np.ndarray, shape (N,)
-        Shrunk measurements
+        收缩后的度量值
     weights : np.ndarray, shape (N,)
-        Shrinkage weights ∈ [0, 1], where 1 = full pooling toward group mean,
-        0 = no shrinkage (keep raw)
+        收缩权重 ∈ [0, 1]; 1 = 完全收缩到组均值, 0 = 不收缩 (保留原值)
     """
     if not (len(values) == len(n_obs) == len(group_labels)):
         raise ValueError("values, n_obs, group_labels must have equal length")
@@ -113,21 +115,21 @@ def empirical_bayes_shrinkage(
         logger.warning("Insufficient valid observations for shrinkage; returning raw values")
         return values.copy(), np.zeros_like(values)
 
-    # Compute group means
+    # 计算组均值
     unique_groups, inverse = np.unique(group_labels[valid_mask], return_inverse=True)
     group_means = np.array(
         [values[valid_mask][inverse == g].mean() for g in range(len(unique_groups))]
     )
     group_sizes = np.bincount(inverse, minlength=len(unique_groups))
 
-    # Map back to all rows
+    # 映射回全部行
     group_mean_per_row = np.full(len(values), np.nan, dtype=np.float64)
     group_lookup = dict(zip(unique_groups, group_means))
     for i, g in enumerate(group_labels):
         if g in group_lookup:
             group_mean_per_row[i] = group_lookup[g]
 
-    # σ̂²ᵢ — within-unit sampling variance:
+    # σ̂²ᵢ — 组内 (单元内) 抽样方差 within-unit sampling variance:
     # 优先文章级 sampling_var; 缺失元素回退 grand_var/nᵢ 代理 (有偏, 已披露)
     grand_var = np.var(values[valid_mask], ddof=1) if valid_mask.sum() > 1 else 1.0
     proxy_var = grand_var / np.maximum(n_obs, 1.0)
@@ -150,8 +152,8 @@ def empirical_bayes_shrinkage(
     else:
         between_var = 1e-8  # 无可识别的组内对比 → 收缩恒等 (单成员组均值=自身)
 
-    # EB posterior weight on the prior (group) mean: w = σ̂²ᵢ / (σ̂²ᵢ + τ̂²)
-    # When n_obs is large → σ̂²ᵢ small → w small → less shrinkage
+    # EB 后验中先验 (组) 均值的权重: w = σ̂²ᵢ / (σ̂²ᵢ + τ̂²)
+    # n_obs 越大 → σ̂²ᵢ 越小 → w 越小 → 收缩越少
     weights = within_var / (within_var + between_var)
     weights = np.clip(weights, 0.0, 1.0)  # 防御性 (两项非负时数学上已 ∈[0,1])
     weights = np.where(valid_mask, weights, 0.0)
@@ -166,18 +168,18 @@ def empirical_bayes_shrinkage(
 
 
 # ---------------------------------------------------------------------------
-# 2. Sanity check via statsmodels MixedLM (optional, slow)
+# 2. 用 statsmodels MixedLM 做交叉合理性校验 (可选, 慢)
 # ---------------------------------------------------------------------------
 def mixedlm_sanity_check(
     df: pd.DataFrame,
     value_col: str,
     group_col: str,
 ) -> dict | None:
-    """Run a random-intercept MixedLM as cross-validation of closed-form shrinkage.
+    """跑随机截距 MixedLM, 作为 closed-form 收缩的交叉校验.
 
     Returns
     -------
-    dict with {sigma_within, sigma_between, icc} or None if statsmodels unavailable
+    含 {sigma_within, sigma_between, icc} 的 dict; statsmodels 不可用时返回 None
     """
     try:
         import statsmodels.formula.api as smf
@@ -202,7 +204,7 @@ def mixedlm_sanity_check(
 
 
 # ---------------------------------------------------------------------------
-# 3. Panel-level shrinkage wrapper
+# 3. 面板级收缩封装 wrapper
 # ---------------------------------------------------------------------------
 def apply_shrinkage_to_panel(
     panel: pd.DataFrame,
@@ -216,11 +218,11 @@ def apply_shrinkage_to_panel(
     std_col: str | None = "auto",
     output_col: str | None = None,
 ) -> pd.DataFrame:
-    """Apply empirical Bayes shrinkage to a bank-year panel column.
+    """对 bank-year 面板的一列应用 empirical Bayes 收缩.
 
-    Adds two columns:
-    - {output_col}: shrunk values
-    - {output_col}_weight: shrinkage weight per row
+    新增两列:
+    - {output_col}: 收缩后的值
+    - {output_col}_weight: 每行的收缩权重
 
     Parameters (新增, fix(omni-g-benefit-03/09, 2026-06-11))
     ----------
@@ -257,7 +259,7 @@ def apply_shrinkage_to_panel(
             "其余回退 grand_var/n 代理)"
         )
 
-    # Build composite group label
+    # 构造复合组标签
     group_label = df[list(group_cols)].astype(str).agg("|".join, axis=1).values
 
     shrunk, weights = empirical_bayes_shrinkage(
@@ -276,9 +278,9 @@ def apply_shrinkage_to_panel(
 # 4. CLI
 # ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry: apply empirical Bayes shrinkage to benefit_mean on a panel parquet.
+    """CLI 入口: 对面板 parquet 的 benefit_mean 应用 empirical Bayes 收缩.
 
-    Returns 0 on success, 1 if required panel columns are missing.
+    成功返回 0; 面板缺必需列时返回 1。
     """
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.shrinkage",
@@ -289,9 +291,8 @@ def main(argv: list[str] | None = None) -> int:
         type=str,
         default="news_process/data/processed/40_panel_yearly.parquet",
     )
-    # Plan v2.12 dual-track (F-H3): default 'both' produces shrunk columns
-    # for benefit_mean_full + benefit_mean_ctx. Legacy --value-col still
-    # supported for backwards compat with a single column.
+    # Plan v2.12 双轨 (F-H3): 默认 'both' 同时产出 benefit_mean_full 与
+    # benefit_mean_ctx 的 shrunk 列。旧版 --value-col 仍支持单列向后兼容。
     parser.add_argument(
         "--track",
         choices=["full", "ctx", "both"],
@@ -329,7 +330,7 @@ def main(argv: list[str] | None = None) -> int:
     panel = pd.read_parquet(args.panel)
     logger.info(f"Loaded panel: {panel.shape}")
 
-    # Resolve value columns from --track / --value-col (--value-col wins if set)
+    # 由 --track / --value-col 解析待处理列 (--value-col 显式给出时优先)
     if args.value_col is not None:
         value_cols = [args.value_col]
     elif args.track == "both":
@@ -339,7 +340,7 @@ def main(argv: list[str] | None = None) -> int:
 
     group_cols = tuple(c.strip() for c in args.group_cols.split(","))
 
-    # Validate required columns once
+    # 一次性校验必需列
     base_required = [args.n_obs_col, *group_cols]
     missing_base = [c for c in base_required if c not in panel.columns]
     if missing_base:

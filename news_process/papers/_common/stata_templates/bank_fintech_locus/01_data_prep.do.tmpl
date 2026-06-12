@@ -1,5 +1,5 @@
 * ============================================================================
-* 01_data_prep.do — Load panel + xtset + globals (bank_fintech_locus / P4)
+* 01_data_prep.do — 载入面板 + xtset + 全局宏 globals (bank_fintech_locus / P4)
 * Paper: {{PAPER_ID}}
 * RR6-1: paper-specific globals + P4 primary_pair derivation (R35-M02)
 * ============================================================================
@@ -59,6 +59,8 @@ if _rc {
 * panel-level locus 占比, 以"主导类别"二元化 (Gomber 2018 JMIS layer-vs-scenario):
 * bank-year 若 底层占比 > 应用占比 → layer-focused; 反之 → scenario-focused;
 * 平局 (tech_frac == app_frac, 含两者皆 0) 两者皆 0, 作参照组 (避免与常数项共线)。
+* 白话: 每家银行每年看"底层技术"和"应用场景"哪类报道占比更高, 高者记 1;
+* 打平或都没报道就两个都记 0 当对照基准, 占比缺失则整行不进回归。
 capture drop locus_layer_full locus_scenario_full locus_gap
 gen locus_layer_full    = (tech_frac > app_frac) if !missing(tech_frac, app_frac)
 gen locus_scenario_full = (app_frac > tech_frac) if !missing(tech_frac, app_frac)
@@ -79,7 +81,7 @@ else {
     display "  [WARN] tech_frac_lc/app_frac_lc not in panel; ctx-track locus pair 未派生 (18 的 alt_ctx 块将跳过)"
 }
 
-* Winsorize outcome
+* 对 outcome 做 winsorize 缩尾 (1%/99%)
 capture which winsor2
 if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
 else gen {{MAIN_DV}}_w = {{MAIN_DV}}

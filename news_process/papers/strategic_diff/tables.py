@@ -53,30 +53,30 @@ def write_table1(paper_config: PaperConfig | None = None,
 
 
 # ============================================================================
-# P2.2 — Tables 2-5 from Stata esttab CSV output
+# P2.2 — Tables 2-5 读取 Stata esttab CSV 输出
 # ============================================================================
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 2: Main regression (Guzman-Li 2023 + Hoberg-Phillips 2016)."""
+    """Table 2: 主回归 (Guzman-Li 2023 + Hoberg-Phillips 2016)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('strategic_diff', 'table2_main.csv', paper_config)
 
 
 def build_table3_mechanism(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 3: Bartik IV + multi-method comparison."""
+    """Table 3: Bartik IV + 多方法对照."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('strategic_diff', 'table3_mechanism.csv', paper_config)
 
 
 def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 4: SOE split heterogeneity."""
+    """Table 4: 国企 (SOE) 分样本异质性."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('strategic_diff', 'table4_heterogeneity.csv', paper_config)
 
 
 def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 5: N-sensitivity / Centroid / Ctx-track."""
+    """Table 5: N 邻敏感性 / 行业重心 / Ctx 轨稳健性 (读 table5a_n_sensitivity.csv)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('strategic_diff', 'table5a_n_sensitivity.csv', paper_config)
 

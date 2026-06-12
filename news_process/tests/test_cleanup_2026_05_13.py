@@ -26,7 +26,7 @@ from news_process.core.schemas_yaml import (
 )
 
 # ----------------------------------------------------------------------------
-# P0-3: cross-stage enabled_methods consistency
+# P0-3: 跨阶段 enabled_methods 一致性
 # ----------------------------------------------------------------------------
 
 
@@ -90,7 +90,7 @@ class TestEnabledMethodsConsistency:
 
 
 # ----------------------------------------------------------------------------
-# P1-2: YAML schema validation
+# P1-2: YAML schema 校验
 # ----------------------------------------------------------------------------
 
 
@@ -201,14 +201,14 @@ class TestSchemaSelfConsistency:
 
 
 # ----------------------------------------------------------------------------
-# quality-hardening Round 18 (2026-05-27): schemas_yaml 94.1% → ~100%
-# missing 148 (str mismatch) / 152 (list mismatch) / 156 (dict mismatch) /
-# 162 (unknown expected_type) / 175 (non-Mapping section) / 195 (non-str hint)
+# quality-hardening Round 18 (2026-05-27): schemas_yaml 覆盖率 94.1% → ~100%
+# 补齐未覆盖行: 148 (str 不匹配) / 152 (list 不匹配) / 156 (dict 不匹配) /
+# 162 (未知 expected_type) / 175 (非 Mapping 节) / 195 (非 str hint)
 # ----------------------------------------------------------------------------
 
 
 class TestSchemaTypeCheckEdgeCases:
-    """Per-type mismatch branches of _type_check."""
+    """_type_check 各类型不匹配分支的逐一覆盖."""
 
     def test_str_field_int_raises(self):
         """str 期望 + int 实际 → TypeError (schemas_yaml.py:148)."""

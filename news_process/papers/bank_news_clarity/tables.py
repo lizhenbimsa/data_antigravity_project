@@ -48,11 +48,12 @@ def write_table1(paper_config: PaperConfig | None = None,
 
 
 # ============================================================================
-# Tables 2-5 from Stata esttab CSV output (filled at M7)
+# Tables 2-5 读取 Stata esttab CSV 输出 (M7 阶段填实)
 # ============================================================================
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 2: main regression (news clarity → external info environment quality)."""
+    """Table 2: 主回归 (news clarity 作为 external info environment quality
+    proxy → 银行风险承担; 原英文注释把 proxy 误写成回归右端→左端方向, 已更正)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab(PAPER_ID, 'table2_main.csv', paper_config)

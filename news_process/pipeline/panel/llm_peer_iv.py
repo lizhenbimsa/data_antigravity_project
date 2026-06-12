@@ -412,7 +412,7 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
                                       prompt_version=PEER_PROMPT_VERSION,
                                       temperature=TEMPERATURE,
                                       random_seed=RANDOM_SEED)
-                        # v3.7.0 (C1): LLM raw response archive (V4 F-P2.1)
+                        # v3.7.0 (C1): LLM 原始响应永久归档 (V4 F-P2.1 复现性要求)
                         if _LLM_ARCHIVE_AVAILABLE:
                             try:
                                 _llm_archive_record(

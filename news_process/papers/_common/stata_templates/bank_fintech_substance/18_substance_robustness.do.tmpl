@@ -1,5 +1,5 @@
 * ============================================================================
-* 18_substance_robustness.do — Table 5 advanced robustness (P3 bank_fintech_substance)
+* 18_substance_robustness.do — Table 5 进阶稳健性 (P3 bank_fintech_substance)
 * Paper: {{PAPER_ID}}
 * Plan: §5.9.2 + R6-M02 — 7 通用维度 + paper-specific alternative substantiveness track
 * ============================================================================
@@ -18,16 +18,20 @@ use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
 * (1) Oster (2019) δ
+* 白话: 估算"看不见的遗漏变量要比已控制变量强多少倍才能把结论翻盘"的界值。
 * psacalc delta {{MAIN_TREAT}}, rmax(1.3 r²) mcontrol($controls)
 
-* (2) rwolf multi-hypothesis
+* (2) rwolf 多重假设校正 (Romano-Wolf)
+* 白话: 一次检验很多个假设时总会有几个"碰巧显著", rwolf 把 p 值整体调严防误报。
 * rwolf {{MAIN_DV}}, indepvar({{MAIN_TREAT}}) controls($controls) reps(1000) ///
 *     method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
 
 * (3) Honest DiD
+* 白话: 允许"平行趋势"不完美成立, 看结论在多大程度的偏离下仍然站得住。
 * honestdid, l_vec(...) m_grid(0 0.5 1 2)
 
-* (4) Wild cluster bootstrap
+* (4) Wild cluster bootstrap (野聚类自助法)
+* 白话: 聚类个数少时常规聚类标准误会偏小, wild bootstrap 用重抽样把 p 值算得更可信。
 * fix(omni-g-templates-10, 2026-06-11): (i) boottest 补 capture which 守卫 (对齐
 * collab/18; 未装机器上旧版裸调 r(199) 致本表整丢); (ii) boottest 按设计不改写
 * e(b)/e(V) (wild p 在 r(p)), 旧 eststo 存的是 reghdfe 解析 cluster SE → "Wild boot"
@@ -44,8 +48,9 @@ else {
 }
 eststo wild_boot
 
-* (5) ritest randomization inference (Young 2019 QJE; MacKinnon-Webb 2020 JBES)
+* (5) ritest 随机化推断 (randomization inference; Young 2019 QJE; MacKinnon-Webb 2020 JBES)
 * v3.6.1 PR #7 启用; SSC 自动检测, 装不上则跳过 (G-C2.0 准入门控由 v2.3).
+* 白话: 把"谁受处理"随机打乱上千次重新跑回归, 看真实系数是否明显超出乱排出来的分布。
 capture which ritest
 if _rc != 0 {
     capture ssc install ritest, replace
@@ -62,10 +67,10 @@ else {
     display "  ⚠️ ritest not installed (ssc install ritest); randomization inference 跳过"
 }
 
-* (6) Spillover SUTVA
-* (paper-specific: bank fintech announcement spillover via共现 network)
+* (6) 溢出效应 SUTVA 检验
+* (paper-specific: 银行 fintech 宣告经共现 network 的溢出)
 
-* (7) Sample cuts — excl 国有 6 / excl 农商行 / excl pre_period
+* (7) 样本切除 — 剔除国有 6 大行 / 剔除农商行 / 剔除 pre_period
 * st-did-05 fix (2026-06-03): bank_type 是字符串列 (str), 由 iv_did.py::load_bank_group_maps()
 * 产出 'soe'/'joint'/'city'/'rural'/'private'/'foreign'/'other' (NFRA_TO_SHORT 映射,
 * 见 runner.py:857 `is_soe = (panel['bank_type'] == 'soe')`). 旧 `if bank_type != 1`
@@ -82,7 +87,7 @@ reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if year >= 2013, ///
 eststo excl_pre
 
 * ============================================================================
-* (8) Paper-specific: alternative substantiveness track (ctx + gap)
+* (8) Paper-specific: 替代实质性度量轨 (ctx 轨 + gap 差值)
 * ============================================================================
 * fix(omni-g-templates-09, 2026-06-11): 旧 foreach 引用幻影列
 * innovation_substantiveness_ctx / substantive_minus_symbolic_gap (panel 上从未派生,

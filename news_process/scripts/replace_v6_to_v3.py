@@ -7,17 +7,17 @@
 import glob
 
 replacements = {
-    # model names
+    # model names (模型全名)
     "gpt-5.4-nano": "gpt-5.4-nano",
     "gemini-3.1-flash-lite-preview": "gemini-3.1-flash-lite-preview",
     "deepseek-v4-flash": "deepseek-v4-flash",
     
-    # short names
+    # short names (短名映射, 唯一实际生效的替换条目)
     "gpt54nano": "gpt54nano",
     "gemini31111": "gemini311111",
     "deepseekv4": "deepseekv4",
     
-    # documentation
+    # documentation (文档措辞, 1:1 占位保留)
     "v3 锁定": "v3 锁定",
     "v3 LLM 模型列表": "v3 LLM 模型列表",
     "v3:": "v3:",

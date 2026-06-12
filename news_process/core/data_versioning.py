@@ -122,9 +122,9 @@ class DataVersionMetadata:
         self.git_commit = get_git_commit_hash()
         self.git_branch = get_git_branch()
         self.config_hash = compute_config_hash(config)
-        # F-15 (2026-05-16): tz-aware UTC for cross-server lineage comparability.
-        # Naive datetime ambiguity was the only F-15 hit project-wide (R25 sweep);
-        # sibling pattern in core/run_id.py:27 uses the same idiom.
+        # F-15 (2026-05-16): 带时区的 UTC 时间戳, 保证跨服务器血缘记录可比。
+        # naive datetime 的时区歧义是 F-15 全项目唯一命中点 (R25 扫描);
+        # core/run_id.py:27 的同类代码用同一写法。
         self.timestamp = datetime.now(timezone.utc).isoformat()
         self.python_version = get_python_version()
         self.dependencies = get_key_dependencies()

@@ -94,7 +94,8 @@ class TestStage21LLMDualTrack:
                     assert col in df21.columns, \
                         f"逐模型列缺失: {col}"
             # 标题轨道仅含情感列（无真伪验证列）
-            # 注：需要重跑管线后才会生成 _title 列
+            # 注：v3.8.0 (remove-title-track) 已删除独立 _title 情感轨,
+            # 这些列不会再生成 → 下方分支在现行 schema 下恒走 skip (历史兼容保留)
             first_title_col = f"{model_shorts[0]}_sentiment_title"
             if first_title_col not in df21.columns:
                 pytest.skip("标题轨道列尚未生成（需重跑 21_tone_llms.py）")
@@ -124,7 +125,7 @@ class TestStage22DictDualTrack:
                 for sfx in ['_score', '_label', '_zscore']:
                     col = f"{d}{sfx}{track}"
                     assert col in df22.columns, f"缺少列: {col}"
-        # 标题轨道（需重跑管线）
+        # 标题轨道 — v3.8.0 已删除 _title 情感轨, 现行 schema 下恒 skip (历史兼容保留)
         if f'{dicts[0]}_score_title' not in df22.columns:
             pytest.skip("标题轨道列尚未生成（需重跑 22_tone_words.py）")
         for d in dicts:
@@ -312,9 +313,10 @@ class TestFullLLMOutput:
     def test_filtered_row_count(self, df21, df21_full):
         """过滤文件行数 ≈ 全量文件中 verified_full=True 的行数。
 
-        历史 invariant 是严格相等，但 stage 21 的 title-track 批处理
+        历史 invariant 是严格相等，但当时 stage 21 的 title-track 批处理
         会偶发地丢失少量行（约 < 1%），属于已知的非 v6 引入小问题。
         v6 仍校验"差距 ≤ 1% 且不超过 100 行"以防退化。
+        (注: v3.8.0 已移除 title 情感轨, 上述丢行机制不复存在; 宽容度断言保留。)
         """
         verified_full = int(df21_full['llm_verified_full'].sum())
         diff = abs(len(df21) - verified_full)

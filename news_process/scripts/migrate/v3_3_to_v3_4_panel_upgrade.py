@@ -20,6 +20,10 @@ prompt-v8-supplementation-released 锚定 v3.4.0 baseline.
 
 CLI:
   python -m news_process.scripts.migrate.v3_3_to_v3_4_panel_upgrade <old.parquet> <new.parquet>
+
+白话: v3.4.0 新增了"自主研发 vs 外部协同"第三个分类维度。本工具只是给旧面板补上
+4 个对应的空列 (标签列填 None、置信度列填 0.0) 让 schema 对齐, 不改任何已有数据;
+真实标签要重跑 stage 21 (prompt v8) 才会填进来。重复运行无副作用。
 """
 from __future__ import annotations
 

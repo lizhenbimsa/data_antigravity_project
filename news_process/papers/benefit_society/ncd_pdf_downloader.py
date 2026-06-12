@@ -94,12 +94,12 @@ def search_report_url(
     year: int,
     agency: str,
 ) -> str | None:
-    """Resolve the public download URL for a given bank-year-agency report.
+    """解析给定 bank-year-agency 评级报告的公开下载 URL.
 
     **NOTE**: 真实实现需 Phase 0 D4 (LLM 抽取 PoC) 后, 通过站内搜索 API 解析.
     当前为 stub, 总是返回 None.
     """
-    del bank_name, year  # reserved for future site-search impl (silences unused-param)
+    del bank_name, year  # 预留给未来站内搜索实现 (消除未用参数告警)
     if agency not in RATING_AGENCIES:
         return None
     return None  # stub
@@ -114,9 +114,9 @@ def download_one(
     max_retries: int = DEFAULT_MAX_RETRIES,
     timeout: int = DEFAULT_TIMEOUT,
 ) -> DownloadRecord:
-    """Download a single PDF report.
+    """下载单份 PDF 报告.
 
-    If session is None, this is a dry-run / stub mode (no HTTP calls).
+    session 为 None 时即 dry-run / stub 模式 (不发任何 HTTP 请求)。
     """
     if record.url is None:
         record.status = "skip"
@@ -160,14 +160,14 @@ def batch_download(
     agencies: Iterable[str] = ("ccxr", "dagong", "lhratings"),
     delay_sec: float = DEFAULT_DELAY_SEC,
 ) -> list[DownloadRecord]:
-    """Batch download across (bank × year × agency) grid.
+    """按 (bank × year × agency) 网格批量下载.
 
-    Skips entries already present in ``output_dir`` (resume-friendly).
+    已存在于 ``output_dir`` 的条目自动跳过 (支持断点续传)。
     """
     records: list[DownloadRecord] = []
     banks_list = list(banks)
     years_list = list(years)
-    agencies_list = list(agencies)  # materialize once (F1 fix)
+    agencies_list = list(agencies)  # 一次性物化, 防迭代器耗尽 (F1 fix)
 
     total = len(banks_list) * len(years_list) * len(agencies_list)
     logger.info(f"Planning {total} download attempts ({len(banks_list)} banks × {len(years_list)} years × {len(agencies_list)} agencies)")
@@ -195,7 +195,7 @@ def batch_download(
 
 
 def write_manifest(records: list[DownloadRecord], manifest_path: Path) -> None:
-    """Persist download manifest for reproducibility."""
+    """落盘下载 manifest, 保障可复现性."""
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "schema_version": "v1",
@@ -212,10 +212,10 @@ def write_manifest(records: list[DownloadRecord], manifest_path: Path) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry: batch download NCD rating reports (Phase 0 stub mode).
+    """CLI 入口: 批量下载 NCD 评级报告 (Phase 0 stub 模式).
 
-    Returns 0 if no failures, 1 otherwise. In stub mode (no session), all attempts
-    are marked status='stub' or status='skip' without HTTP traffic.
+    无失败返回 0, 否则返回 1。stub 模式 (无 session) 下所有尝试标记为
+    status='stub' 或 status='skip', 不产生 HTTP 流量。
     """
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.ncd_pdf_downloader",
@@ -244,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
 
     years = [int(y) for y in args.years.split(",")]
 
-    # Phase 0: no HTTP session (stub mode); D4 解阻塞后传入 requests.Session()
+    # Phase 0: 无 HTTP session (stub 模式); D4 解阻塞后传入 requests.Session()
     session = None if args.dry_run else None
 
     records = batch_download(

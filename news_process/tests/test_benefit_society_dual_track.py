@@ -1,14 +1,14 @@
-"""Tests for benefit_society plan v2.12 dual-track upgrade.
+"""benefit_society plan v2.12 双轨升级测试。
 
-Covers (benefit_society plan v2.12 审计 finding 编号; 审计日志已随 docs/ 删除):
-- F-M1: ATTITUDE_VAR alias backwards-compat
-- F-H3 / F-V2-H5: new dual-track placeholders (ATTITUDE_FULL/CTX, frac_*)
-- F-V2-B1 / DP-8: cohort manifest sha256 stability
-- F-R6-M2: random seed placeholder propagated to templates
-- Phase F: new templates exist and can be instantiated without residue
-- Phase G: dimension_analysis.py + shrinkage.py dual-track CLI flags
+覆盖 (benefit_society plan v2.12 审计 finding 编号; 审计日志已随 docs/ 删除):
+- F-M1: ATTITUDE_VAR 别名向后兼容
+- F-H3 / F-V2-H5: 新双轨占位符 (ATTITUDE_FULL/CTX, frac_*) 全部接线
+- F-V2-B1 / DP-8: cohort manifest sha256 稳定性
+- F-R6-M2: 随机种子占位符传播到相关模板
+- Phase F: 新模板存在且 instantiate 后无残留
+- Phase G: dimension_analysis.py + shrinkage.py 双轨 CLI flag
 
-Test marker: fast (no Stata / no LLM / no network).
+测试 marker: fast (无 Stata / 无 LLM / 无网络)。
 """
 from __future__ import annotations
 
@@ -35,12 +35,12 @@ pytestmark = pytest.mark.fast
 
 
 # ============================================================================
-# F-M1: ATTITUDE_VAR backwards-compat alias
+# F-M1: ATTITUDE_VAR 向后兼容别名
 # ============================================================================
 
 
 def test_attitude_var_alias_equals_attitude_full():
-    """ATTITUDE_VAR must remain == ATTITUDE_FULL for backwards compat (F-M1)."""
+    """ATTITUDE_VAR 必须保持 == ATTITUDE_FULL 以向后兼容 (F-M1)。"""
     defaults = _PAPER_DEFAULTS["benefit_society"]
     assert defaults["ATTITUDE_VAR"] == defaults["ATTITUDE_FULL"], (
         "ATTITUDE_VAR alias must equal ATTITUDE_FULL to keep 6 legacy templates "
@@ -49,7 +49,7 @@ def test_attitude_var_alias_equals_attitude_full():
 
 
 # ============================================================================
-# F-H3 / F-V2-H5: dual-track placeholders all wired up
+# F-H3 / F-V2-H5: 双轨占位符全部接线
 # ============================================================================
 
 
@@ -65,7 +65,7 @@ def test_attitude_var_alias_equals_attitude_full():
     ("HET_VAR",                "is_listed"),   # DP-9 / F-R3-H2
 ])
 def test_dual_track_placeholders_present(key, expected):
-    """All v2.12 dual-track placeholders must resolve to canonical values."""
+    """全部 v2.12 双轨占位符必须解析为规范取值。"""
     defaults = get_paper_defaults("benefit_society")
     assert key in defaults, f"placeholder {key!r} missing from benefit_society defaults"
     assert defaults[key] == expected, (
@@ -74,7 +74,7 @@ def test_dual_track_placeholders_present(key, expected):
 
 
 def test_known_placeholders_in_stata_runner_inventory():
-    """stata_runner._KNOWN_PLACEHOLDERS must include the v2.12 additions."""
+    """stata_runner._KNOWN_PLACEHOLDERS 必须包含 v2.12 新增占位符。"""
     from news_process.papers._common import stata_runner
 
     expected = {
@@ -88,7 +88,7 @@ def test_known_placeholders_in_stata_runner_inventory():
 
 
 # ============================================================================
-# Phase F: new dual-track templates exist and instantiate without residue
+# Phase F: 新双轨模板存在且 instantiate 后无占位符残留
 # ============================================================================
 
 
@@ -108,8 +108,8 @@ def test_new_dual_track_template_exists(template_name):
 
 
 def test_replication_package_instantiates_all_templates_no_residue(tmp_path):
-    """build_derivative_replication_package must succeed with zero {{placeholder}}
-    residue across all 17 .do files (including the 4 new dual-track templates)."""
+    """build_derivative_replication_package 必须成功, 且全部 17 个 .do 文件
+    (含 4 个新双轨模板) 零 {{placeholder}} 残留。"""
     pkg = build_derivative_replication_package("benefit_society", output_root=tmp_path)
     do_files = sorted((pkg / "code").glob("*.do"))
     assert len(do_files) >= 17, f"expected >=17 .do files; got {len(do_files)}"
@@ -122,7 +122,7 @@ def test_replication_package_instantiates_all_templates_no_residue(tmp_path):
 
 
 def test_master_orchestrates_new_dual_track_templates():
-    """00_master.do.tmpl must include `capture do` calls for new dual-track templates."""
+    """00_master.do.tmpl 必须包含新双轨模板的 `capture do` 调用。"""
     master = (TEMPLATE_DIR / "00_master.do.tmpl").read_text(encoding="utf-8")
     for needle in [
         "17b_table8b_shrinkage_dual",
@@ -134,24 +134,24 @@ def test_master_orchestrates_new_dual_track_templates():
 
 
 # ============================================================================
-# F-R6-M2: random seed propagation to templates that need it
+# F-R6-M2: 随机种子传播到需要它的模板
 # ============================================================================
 
 
-# 20_tableA1 only computes correlate + spearman (deterministic); excluded.
+# 20_tableA1 只算 correlate + spearman (确定性), 不需要种子, 故排除在外。
 @pytest.mark.parametrize("template_name", [
     "11_table2_main.do.tmpl",
     "13_table4_heterogeneity.do.tmpl",
     "14_table5_robustness.do.tmpl",
     "17_table8_shrinkage_robustness.do.tmpl",
     "18_table9_dimension_decomposition.do.tmpl",
-    "21_tableA2_attitude_track_switch.do.tmpl",   # boottest needs seed
-    "31_figure2_coefplot_dual.do.tmpl",            # regression-only but kept for symmetry
+    "21_tableA2_attitude_track_switch.do.tmpl",   # boottest 需要种子
+    "31_figure2_coefplot_dual.do.tmpl",            # 仅回归, 为对称性保留
     "17b_table8b_shrinkage_dual.do.tmpl",
 ])
 def test_random_seed_placeholder_in_stochastic_templates(template_name):
-    """F-R6-M2: any template doing stochastic work (regression / bootstrap)
-    must reference RANDOM_SEED placeholder so the replication is bit-reproducible."""
+    """F-R6-M2: 任何含随机性工作 (回归 / bootstrap) 的模板必须引用
+    RANDOM_SEED 占位符, 使复现可逐位重现。"""
     p = TEMPLATE_DIR / template_name
     if not p.exists():
         pytest.skip(f"template {template_name} not generated yet")
@@ -162,12 +162,12 @@ def test_random_seed_placeholder_in_stochastic_templates(template_name):
 
 
 # ============================================================================
-# DP-8 / F-V2-B1: cohort manifest export
+# DP-8 / F-V2-B1: cohort manifest 导出
 # ============================================================================
 
 
 def test_cohort_module_exports_84_banks(tmp_path):
-    """Phase C: cohort.export_cohort_manifest produces panel cohort manifest.
+    """Phase C: cohort.export_cohort_manifest 产出 panel cohort manifest。
 
     历史 baseline 锁定 84-bank (v3.3.0); 自 2026-05-28 后因 normalize.py
     敏感词过滤启用导致 article→bank 路由变化, 当前 panel 含 87 银行。
@@ -185,7 +185,7 @@ def test_cohort_module_exports_84_banks(tmp_path):
 
 
 def test_cohort_csv_is_committed_in_repo():
-    """The committed cohort manifest must exist and match the export module."""
+    """已提交的 cohort manifest 必须存在且与导出模块一致。"""
     committed = (
         _REPO_ROOT
         / "news_process" / "data" / "raw" / "cohort"
@@ -195,7 +195,7 @@ def test_cohort_csv_is_committed_in_repo():
         "data/raw/cohort/benefit_society_84banks.csv missing — "
         "regenerate via `python -m news_process.papers.benefit_society.cohort`"
     )
-    # Quick column sanity (no full diff)
+    # 快速列名 sanity 检查 (不做全量 diff)
     import pandas as pd
     df = pd.read_csv(committed, encoding="utf-8-sig")
     assert len(df) == 84
@@ -264,12 +264,12 @@ def test_cohort_main_real_write_creates_csv(monkeypatch, tmp_path):
 
 
 # ============================================================================
-# Phase G: dimension_analysis + shrinkage dual-track CLI
+# Phase G: dimension_analysis + shrinkage 双轨 CLI
 # ============================================================================
 
 
 def test_dimension_analysis_cli_accepts_dual_track_flag():
-    """Phase G: dimension_analysis CLI must accept --track {full,ctx,both}."""
+    """Phase G: dimension_analysis CLI 必须接受 --track {full,ctx,both}。"""
     import inspect
 
     from news_process.papers.benefit_society import dimension_analysis
@@ -284,11 +284,11 @@ def test_dimension_analysis_cli_accepts_dual_track_flag():
 
 
 def test_shrinkage_cli_accepts_dual_track_flag():
-    """Phase G: shrinkage CLI must accept --track {full,ctx,both}."""
+    """Phase G: shrinkage CLI 必须接受 --track {full,ctx,both}。"""
     import importlib
 
     sh = importlib.import_module("news_process.papers.benefit_society.shrinkage")
-    # Inspect the module source for the new --track argparse argument
+    # 检查模块源码中是否有新增的 --track argparse 参数
     import inspect
     src = inspect.getsource(sh.main)
     assert '"--track"' in src, "shrinkage.main is missing --track argparse flag"
@@ -297,12 +297,12 @@ def test_shrinkage_cli_accepts_dual_track_flag():
 
 
 # ============================================================================
-# Phase H: Python loader exposes new dual-track table builders
+# Phase H: Python loader 暴露新双轨表构建器
 # ============================================================================
 
 
 def test_tables_module_exports_dual_track_builders():
-    """Phase H: tables.py must expose new dual-track table builders."""
+    """Phase H: tables.py 必须暴露新双轨表构建器。"""
     from news_process.papers.benefit_society import tables
 
     for name in [

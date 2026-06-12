@@ -160,25 +160,25 @@ _KNOWN_PLACEHOLDERS_MAIN = {
     'MAIN_LOCUS_TRACK',  # lf / lc
     'MAIN_SUBST_TRACK',  # sf / sc
     'MAIN_SENT_TRACK',   # full / ctx
-    'PROJECT_ROOT',      # absolute path
+    'PROJECT_ROOT',      # 绝对路径
 }
 
 # Tier 2: paper-level (5 paper 共用, 但每个 paper 取不同默认值)
 _KNOWN_PLACEHOLDERS_PAPER_LEVEL = {
     'PAPER_ID',
-    'MAIN_DV',           # canonical dependent variable
-    'CONTROLS',           # standard control set (string)
-    'CLUSTER_VAR',        # vce(cluster <var>) target
-    'HET_VAR',            # heterogeneity interaction variable
-    # v3.7.3 Plan A v1.0: paper-level main treatment placeholder (used by
-    # B-route paper-specific templates).
-    'MAIN_TREAT',         # main treatment variable (per paper, e.g. P1 = llm_vote_tone_ctx)
+    'MAIN_DV',           # 规范因变量 (canonical dependent variable)
+    'CONTROLS',           # 标准控制变量集 (字符串)
+    'CLUSTER_VAR',        # vce(cluster <var>) 的聚类变量
+    'HET_VAR',            # 异质性交互变量
+    # v3.7.3 Plan A v1.0: paper 级主 treatment 占位符 (供 B-route
+    # paper-specific 模板使用)。
+    'MAIN_TREAT',         # 主 treatment 变量 (随 paper 而异, 如 P1 = llm_vote_tone_ctx)
 }
 
-# Tier 3: paper-specific (sparse, only the paper that needs it)
+# Tier 3: paper-specific (稀疏占位符, 仅需要它的 paper 使用)
 _KNOWN_PLACEHOLDERS_PAPER_SPECIFIC = {
-    # benefit_society (v3.2.1 dual-track expansion — plan v2.12)
-    'ATTITUDE_VAR',      # alias = ATTITUDE_FULL (backwards compat)
+    # benefit_society (v3.2.1 dual-track 双轨扩展 — plan v2.12)
+    'ATTITUDE_VAR',      # 别名 = ATTITUDE_FULL (向后兼容)
     'ATTITUDE_FULL', 'ATTITUDE_CTX',
     'BENEFIT_POS_FRAC_FULL', 'BENEFIT_POS_FRAC_CTX',
     'BENEFIT_NEG_FRAC_FULL', 'BENEFIT_NEG_FRAC_CTX',
@@ -192,10 +192,10 @@ _KNOWN_PLACEHOLDERS_PAPER_SPECIFIC = {
     'BARTIK_IV', 'TONE_VAR', 'COHERENCE_VAR',
     # llm_peer
     'LLM_PEER_IV', 'LLM_PEER_COVERAGE_IV', 'COMPETE_IDX', 'CUTOFF_VARS',
-    # (TONE_VAR shared with strategic_diff)
+    # (TONE_VAR 与 strategic_diff 共用)
 }
 
-# Union — superset that any template may legally reference.
+# 并集 — 任何模板可合法引用的占位符超集。
 _KNOWN_PLACEHOLDERS = (
     _KNOWN_PLACEHOLDERS_MAIN
     | _KNOWN_PLACEHOLDERS_PAPER_LEVEL
@@ -247,8 +247,8 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
 }
 
 
-# Q1.4 (2026-05-15): commit-hash helper moved to _git_utils.py.
-# Re-export for any external callers that imported by old path.
+# Q1.4 (2026-05-15): commit-hash helper 已移至 _git_utils.py。
+# 此处 re-export, 兼容仍按旧路径 import 的外部调用方。
 from news_process.papers._common._git_utils import (  # noqa: E402
     _get_git_commit_hash_with_dirty,
 )
@@ -295,6 +295,10 @@ def _substitute_placeholders(content: str, choices: dict) -> str:
         choices: 占位符值字典
     Returns:
         替换后内容; 未替换的 {{...}} 抛 ValueError (fail-fast)
+
+    白话: 模板 .do.tmpl 里写的是 {{MAIN_DV}} 这类双花括号坑位, 这里逐个
+    用真实变量名填进去; 填完若还剩任何 {{...}} 没填上, 说明模板引用了
+    未登记的占位符或调用方漏传值, 立即报错而不是生成一个跑不动的 .do。
     """
     result = content
     for key, value in choices.items():
@@ -411,7 +415,7 @@ def build_replication_package(
 - **Plan version**: v14 (62 rounds audit; user confirmed 9 Action Items)
 """
         else:
-            # Derivative paper: no main-paper triad; report paper_id + key defaults.
+            # 衍生 paper: 无主线 triad (locus/subst/sent); 报告 paper_id + 关键默认值。
             keys_used = sorted(effective_choices.keys())
             appendix = f"""
 
@@ -469,7 +473,7 @@ def _cli_build_replication(args) -> int:
         choices['MAIN_SUBST_TRACK'] = args.subst
         choices['MAIN_SENT_TRACK']  = args.sent
     else:
-        # Optional override (rare for derivative papers; mostly unused).
+        # 可选覆盖 (衍生 paper 很少用到; 大多数情况不传)。
         if args.locus: choices['MAIN_LOCUS_TRACK'] = args.locus
         if args.subst: choices['MAIN_SUBST_TRACK'] = args.subst
         if args.sent:  choices['MAIN_SENT_TRACK']  = args.sent

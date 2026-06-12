@@ -10,7 +10,8 @@ news_process.pipeline.sentiment.tone_berts — 阶段23：基于 BERT 系列预�
 功能：
     使用多个中文金融/通用预训练语言模型，对每篇新闻进行情感分类。
 
-模型列表（由 config.yaml 中 sentiment_analysis.tone_berts.models 配置）：
+模型列表（由 config/sentiment.yaml 中 sentiment_analysis.tone_berts.models 配置;
+config.yaml 已是 legacy stub, 配置拆分后单一真值在 7 域 split YAML）：
     1. yiyanghkust/finbert-tone-chinese — FinBERT 中文金融情感
     2. bardsai/finance-sentiment-zh-base — 中文金融短语级情感
     3. FinBERT2-base — 本地微调金融分类模型
@@ -39,6 +40,11 @@ news_process.pipeline.sentiment.tone_berts — 阶段23：基于 BERT 系列预�
       logits* = Σ(confidence_k · logits_k) / Σ(confidence_k)
       probs* = softmax(logits*)
       label* = argmax(probs*)
+
+    白话: BERT 一口最多只能"吃"约 512 个 token, 长文章吃不下。做法是把
+    长文切成若干段, 相邻段有一半重叠 (防止关键句正好被切断), 每段各打
+    一次分; 最后汇总时, 模型越有把握 (置信度越高) 的段, 话语权越大,
+    加权平均出整篇文章的情感判定。
 
 性能优化（v5 — GPU 全面加速架构）：
     - **AMP 动态混合精度**：torch.amp.autocast 自动选择最优数值精度，
@@ -271,6 +277,11 @@ def _tokenizer_fingerprint(tokenizer) -> str:
     Returns:
         str: sha256 hex digest; 无 get_vocab 的异类 tokenizer 退化为按对象身份
             生成的唯一指纹 (保守: 永不与他人共享分词)。
+
+    白话: 不同模型各有一本"字典"(词表), 同一个编号在两本字典里可能对应
+    完全不同的字。为了省时间让多个模型共用一次分词结果, 必须先确认它们
+    的字典一模一样 —— 这里把整本字典内容哈希成一个指纹, 指纹相同才共享,
+    否则各分各的, 防止把 A 模型的编号喂给 B 模型变成乱码。
     """
     h = hashlib.sha256()
     try:
@@ -294,11 +305,11 @@ def _tokenizer_fingerprint(tokenizer) -> str:
 
 
 # ============================================================================
-# 2. 模型配置（仅从 config.yaml 加载, 单一真值; Plan P0-2 删除内置 fallback 列表）
+# 2. 模型配置（仅从 config/sentiment.yaml 加载, 单一真值; Plan P0-2 删除内置 fallback 列表）
 # ============================================================================
 
 def _build_model_configs() -> list:
-    """从 config.yaml 的 sentiment_analysis.tone_berts.models 构建模型配置列表。
+    """从 config/sentiment.yaml 的 sentiment_analysis.tone_berts.models 构建模型配置列表。
 
     label_map 键在 YAML 中为字符串（如 "0"），这里转换为整数。
 
@@ -796,9 +807,10 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
     标志列; 末尾统计总失败篇数。
 
     Args:
-        df:           包含"内容"列的 DataFrame。
+        df:           仅用于确定总行数 (len(df)) 的 DataFrame; 文本不从此读取
+                      (历史注释称"包含'内容'列", 与实现不符, 已修正)。
         engine:       已加载全部模型的多模型引擎。
-        content_list: 预构建的文本列表（全文或上下文片段）。
+        content_list: 预构建的文本列表 (content_full 或 content_ctx, 均含 prepend 标题)。
 
     Returns:
         dict: {short_name: {'columns': {...}, 'stats': {...}}}

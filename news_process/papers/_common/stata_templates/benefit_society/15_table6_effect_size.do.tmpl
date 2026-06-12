@@ -1,13 +1,15 @@
 * ============================================================================
-* 15_table6_effect_size.do — Effect size + 95% CI reporting (MVP)
+* 15_table6_effect_size.do — 效应量 + 95% CI 报告 (MVP)
 * Paper: {{PAPER_ID}}
 *
-* Rationale: MVP power is limited (n≈116, MDE≈0.27-0.30 SD). To avoid
-* over-claiming on significance alone, this table reports:
-*   (a) raw β with 95% CI
-*   (b) standardized β (1 SD X → β SD Y)
-*   (c) effect size relative to literature benchmarks (Jha-Liu-Manela 2026,
+* 设计动机: MVP 统计功效有限 (n≈116, MDE≈0.27-0.30 SD)。为避免只凭显著性
+* 过度宣称, 本表报告:
+*   (a) 原始 β 及 95% CI
+*   (b) 标准化 β (X 变动 1 SD → Y 变动 β SD)
+*   (c) 相对文献基准的效应量 (Jha-Liu-Manela 2026,
 *       Hassan 2019 QJE, Tetlock 2007 JF)
+* 白话: 样本小的时候"显著不显著"很容易翻车, 所以这张表不只看星号, 还报效应有多大、
+* 误差范围多宽, 并跟文献里同类效应的常见大小对一对, 让读者自己判断分量。
 * ============================================================================
 
 version 19
@@ -19,19 +21,19 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-* Cross-sectional + bank-type FE specification (MVP)
+* 截面 + bank-type FE 规格 (MVP)
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
     absorb(bank_type year) vce(cluster bank_id)
 eststo MVP1
 
-* Standardized coefficient
+* 标准化系数
 egen std_dv  = std({{MAIN_DV}}_w)
 egen std_att = std({{ATTITUDE_VAR}})
 reghdfe std_dv std_att $controls, ///
     absorb(bank_type year) vce(cluster bank_id)
 eststo MVP2
 
-* 1-year change design (Δbenefit → ΔY)
+* 一年变化量设计 (Δbenefit → ΔY)
 sort bank_id year
 bysort bank_id: gen d_dv  = {{MAIN_DV}}_w - L1.{{MAIN_DV}}_w
 bysort bank_id: gen d_att = {{ATTITUDE_VAR}} - L1.{{ATTITUDE_VAR}}

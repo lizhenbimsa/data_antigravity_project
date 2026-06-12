@@ -1,17 +1,17 @@
 * ============================================================================
-* 20_substance_disclosure_quality.do — P3 disclosure quality covariance
+* 20_substance_disclosure_quality.do — P3 披露质量协变检验 (disclosure quality)
 * Paper: {{PAPER_ID}}
-* Plan: §5.5.2 P3 extras (R7-M03) — substantiveness × disclosure quality framework
+* Plan: §5.5.2 P3 extras (R7-M03) — substantiveness × disclosure quality 框架
 *
-* Used as salvage path foundation (per §B.3 sequential_resubmission JFE corp finance
-* track). If SMJ/AMJ/ASQ cascade reject, P3 改写为独立 disclosure quality paper.
+* 作为 salvage 路径基础 (按 §B.3 sequential_resubmission JFE 公司金融轨)。
+* 若 SMJ/AMJ/ASQ 级联拒稿, P3 改写为独立 disclosure quality paper.
 *
-* Test structure:
-*   (1) Disclosure quality measure: ln_fintech_mdna_length (P2 mediator reused) OR
-*       custom W&Z disclosure index from spec.
-*   (2) substantiveness × disclosure quality interaction → effect on long_run ROA.
-*   (3) Show substantive announcements with HIGH disclosure quality have positive
-*       long-run effect; symbolic with LOW disclosure quality have reversal.
+* 检验结构:
+*   (1) 披露质量度量: ln_fintech_mdna_length (复用 P2 mediator), 或
+*       spec 中自定义的 W&Z 披露指数。
+*   (2) substantiveness × 披露质量交互 → 对长期 ROA 的效应。
+*   (3) 验证: 高披露质量的实质性宣告 → 长期效应为正;
+*       低披露质量的象征性宣告 → 出现长期反转。
 * ============================================================================
 
 version 19
@@ -27,7 +27,7 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* (1) Baseline: long-run ROA ~ substantiveness × disclosure_quality
+* (1) 基准: 长期 ROA ~ substantiveness × disclosure_quality
 capture confirm variable ln_fintech_mdna_length
 if !_rc {
     gen subst_x_disclose = {{MAIN_TREAT}} * ln_fintech_mdna_length
@@ -39,7 +39,7 @@ else {
     display "  [WARN] ln_fintech_mdna_length not in panel (M0.5.11 enrichment pending)"
 }
 
-* (2) Disclosure quality quartile
+* (2) 披露质量四分位
 capture confirm variable ln_fintech_mdna_length
 if !_rc {
     * fix(omni-g-templates-02, 2026-06-11): 四分位改按年内切 (by-year xtile)。旧版

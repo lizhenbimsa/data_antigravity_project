@@ -129,7 +129,7 @@ TONE_DICTS_FILE = CONFIG['paths'].get(
 
 
 # ============================================================================
-# 2. 语言学规则常量（从 config.yaml 加载）
+# 2. 语言学规则常量（从 config/sentiment.yaml 加载; config.yaml 为 legacy stub）
 #
 # 设计依据与参考文献（APA 7th Edition，附带有效 DOI 链接）：
 #
@@ -432,6 +432,12 @@ def build_union_dictionary(
 
     Returns:
         dict[str, float]: 固定 union 词典 {word: score}。
+
+    白话: 以前算总体正负词占比时, 每篇文章各自挑"匹配词最多的那部词典"
+    来数, 等于不同文章用不同的尺子量长度, 结果不可比。现在把 5 部词典
+    合成一张固定大词表, 全部文章统一用它。同一个词若在不同词典里有的
+    判正有的判负, 就按"判正的词典多还是判负的多"投票定极性; 票数打平
+    说明这词本身有歧义, 干脆不要。
     """
     polarity_votes: dict[str, list[float]] = {}
     for _name, d in dictionaries:
@@ -507,6 +513,12 @@ def _compute_sentiment_with_rules(tokens: list[str], sentiment_dict: dict[str, f
 
     Returns:
         tuple: (raw_score, normalized_score, pos_count, neg_count, matched_words)
+
+    白话: 不是见到情感词就简单加减分, 而是看上下文修饰: "不乐观"里的
+    "不"会把"乐观"翻成负面; "非常好"的"非常"把分数放大; "但是"之后的话
+    往往才是作者真实态度, 给更高权重; 一到句号这些修饰效果就清零,
+    不会跨句串味。最后把总分除以各词加权后的绝对值之和, 保证结果
+    永远落在 -1 到 +1 之间, 和 LLM/BERT 的打分尺度能对得上。
     """
     total_score: float = 0.0
     total_abs_score: float = 0.0
@@ -720,6 +732,14 @@ def build_idf_weights(
 
     Returns:
         dict: {dict_name: {word: capped_normalized_idf}}
+
+    白话: 像"发展""提高"这类词几乎每篇新闻都有, 信息量低; 像"违约""挤兑"
+    这类词很少出现, 一出现就很说明问题。IDF 就是按"一个词在多少篇文章里
+    出现过"给它定权重: 越常见权重越低, 越稀有权重越高。再做两步保险:
+    (1) 把权重整体缩放到平均为 1, 让加权版得分和不加权版量级差不多,
+    能共用同一套阈值; (2) 把最极端 1% 的权重削平 (Winsorize), 防止某个
+    超稀有词一词定乾坤。统计文档数时同一篇文章只算一次 (去重), 不让
+    "一篇新闻提到 8 家银行被展开成 8 行"虚增计数。
     """
     # fix(omni-g-tonewords-04, 2026-06-11): 唯一文档去重 — N 与 df(w) 均在去重后语料上统计
     texts = (
@@ -1254,7 +1274,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
 
     Args:
         df_batch: 待分析的 DataFrame 批次（需含 'content_ctx' 列，
-                  由阶段 21 物化生成）。
+                  由阶段 13 ctx_materializer 物化、随 21 输出下传）。
 
     Returns:
         tuple: (processed_df, stats_dict)
@@ -1273,7 +1293,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     stats['total'] = len(df)
 
     # 对每篇文章执行双轨情感分析
-    # content_ctx 由阶段 21 预计算并物化为列，直接读取以确保三种方法输入一致
+    # content_ctx 由阶段 13 ctx_materializer 物化为列 (随上游输出下传)，直接读取以确保三种方法输入一致
     # v3.5.1 A1: 加载 clarity 词典 (lazy, batch 内 1 次)
     _def_set, _amb_set = load_clarity_dictionaries()
     # v3.5.2 PR #3: 加载 LM 4 子词典 (lru_cache 全局单例; 第 2 次调用 O(1))

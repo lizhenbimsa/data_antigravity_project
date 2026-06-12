@@ -292,6 +292,10 @@ def build_non_fintech(df_full: pd.DataFrame,
       确保两组指标穷尽全部文本信息。
       本脚本中 Fintech tone + Non-fintech volume = 全量银行新闻,
       遵循同一穷举原则。
+
+    白话: anti-join 就是"从全量银行新闻里减掉已进面板的金融科技新闻,
+    剩下的全归对照组"。这样保证每篇新闻必属两组之一、不重不漏 —
+    后面才能问"金融科技语调是不是真的比一般新闻量多解释了点什么"。
     """
     logger.info("=" * 70)
     logger.info("步骤 2: Anti-join 构建非金融科技对照组")
@@ -673,6 +677,12 @@ def merge_to_panel(panel: pd.DataFrame,
     对标 Hassan et al. (2019) Table 7:
       all_ln_coverage 类似于 Risk_it (总体风险暴露),
       fintech tone 类似于 PRisk_it (特异性风险暴露)。
+
+    白话: "计数基统一"是说算份额时分子分母必须用同一把尺子数新闻 —
+    分子若数的是物理行 (同一篇稿被多家媒体转载算多篇)、分母却按
+    "同稿件只算一篇"去重, 份额就会系统性偏大。fintech_share 在全年
+    零新闻时是 0/0, 数学上没意义, 所以记 NaN 让回归自动剔除,
+    而不是填 0 冒充"有新闻但都不是金融科技"。
     """
     logger.info("=" * 70)
     logger.info("步骤 4: 合并到面板 + 总量变量")
@@ -1033,12 +1043,11 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
         # v6/F2 Stata 兼容: pandas Int*/boolean nullable → Float64 (NaN 保留)
         for _col in panel_stata.select_dtypes(include=['Int8','Int16','Int32','Int64','boolean']).columns:
             panel_stata[_col] = panel_stata[_col].astype('Float64')
-        # S3 fix v2 (2026-05-30): route stage-51 .dta column names through the SAME
-        # canonical sanitizer as stages 45/46 (export.py uses sanitize_stata_columns,
-        # which delegates to stata_export.shorten→asciify). Single source of truth →
-        # 51_panel_with_controls.dta names match 40/46 byte-for-byte. The prior inline
-        # loop only got the CN-map and still diverged on >32-char names (track-suffix
-        # destruction the moment a CN-mapped name exceeded 32 chars).
+        # S3 fix v2 (2026-05-30): stage 51 的 .dta 列名走与 stage 45/46 **同一个**
+        # 规范 sanitizer (export.py 用 sanitize_stata_columns, 内部委托
+        # stata_export.shorten→asciify)。单一事实源 → 51_panel_with_controls.dta
+        # 的列名与 40/46 逐字节一致。旧的内联循环只做了中文映射, 在 >32 字符
+        # 列名上仍会分叉 (中文映射后超 32 字符时轨道后缀被截毁)。
         from news_process.papers._common.tables import sanitize_stata_columns
         # fix(omni-g-controls-06, 2026-06-11): 记录 sanitize 前原始列名, 供共享
         # 标签构建器按原名查 codebook/HEURISTIC (改名列否则必 miss)。
@@ -1169,6 +1178,12 @@ def generate_placebo_did_variables(panel: pd.DataFrame,
         * 或: reghdfe Y dcep_placebo2_did X if year < dcep_treat_year | ///
               dcep_treat_year == 0, absorb(bank_id year) cluster(bank_id)
       * 若显著 → 处理前已有趋势分化, 平行趋势假设可能违反
+
+    白话: placebo (安慰剂) 检验 = 故意把政策时间往前挪 k 年再跑一遍 DID。
+    那几年其实什么都没发生, 如果"假政策"也跑出显著效应, 说明处理组和
+    对照组在政策之前就已经走势不同, 真实 DID 的结果就不可信。关键是
+    假窗口必须截止在真政策之前 (year < treat_year), 否则会把真效应
+    混进来, 假检验必然显著、白测。
 
     返回:
         panel: 附加 placebo DID 变量的 DataFrame

@@ -1,5 +1,5 @@
 * ============================================================================
-* 16_substance_mechanism.do — Table 3 dual outcome (P3 bank_fintech_substance)
+* 16_substance_mechanism.do — Table 3 双结果变量 (dual outcome) (P3 bank_fintech_substance)
 * Paper: {{PAPER_ID}}
 * Plan: §5.5.2 P3 mechanism (R7-M03 + R11-m02)
 *
@@ -32,7 +32,7 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* Short-run outcome: car_3day_window_ft_announce ~ X
+* 短期 outcome: car_3day_window_ft_announce ~ X
 * fix(omni-g-templates-06, 2026-06-11): 36 字符旧名超 Stata 32 字符硬限 → 改短名
 capture confirm variable car_3day_window_ft_announce
 if !_rc {
@@ -44,13 +44,15 @@ else {
     display "  [WARN] car_3day_window_ft_announce not in panel (M0.5.11 enrichment pending)"
 }
 
-* Long-run outcome: long_run_roa_change_3yr ~ X (W&Z 1994 反转检验)
+* 长期 outcome: long_run_roa_change_3yr ~ X (W&Z 1994 反转检验)
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo long_run
 
-* Joint test: SUR (seemingly unrelated regression) for cross-equation coefficient
-* equality/reversal — short-run pos vs long-run neg.
+* 联合检验: SUR (seemingly unrelated regression, 似不相关回归) 检验跨方程系数
+* 相等/反转 — 短期为正 vs 长期为负。
+* 白话: 把短期和长期两条回归联立起来一起估计, 再检验"短期涨的"是否恰好等于
+*       "长期跌的" (两个系数一正一负互为镜像), 这正是 W&Z 象征性宣告的预测。
 capture confirm variable car_3day_window_ft_announce
 if !_rc {
     sureg (car_3day_window_ft_announce {{MAIN_TREAT}} $controls) ///

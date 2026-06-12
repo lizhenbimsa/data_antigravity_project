@@ -1,12 +1,14 @@
-"""benefit_society cohort manifest export (DP-8 / F-R6 lineage).
+"""benefit_society cohort manifest 导出 (DP-8 / F-R6 lineage).
 
-Generates ``data/raw/cohort/benefit_society_84banks.csv`` — the locked
-84-bank cohort manifest for benefit_society dual-track analysis.
+生成 ``data/raw/cohort/benefit_society_84banks.csv`` — benefit_society
+双轨分析锁定的 84 银行 cohort 名单 (manifest)。
 
-PAP v1.0-final §3 anchors all analyses to this manifest; downstream
-filtering on `target_bank` must validate against it. The ``is_listed``
-proxy uses bank_type ∈ {soe, joint} as listed (China Big-5 + major
-joint-stock all listed at HKEX / SSE / SZSE).
+PAP v1.0-final §3 把全部分析锚定到此 manifest; 下游对 `target_bank` 的
+过滤必须对照它做校验。``is_listed`` 代理以 bank_type ∈ {soe, joint} 视为
+上市 (中国五大行 + 主要股份制银行均在 HKEX / SSE / SZSE 上市)。
+
+白话: 这份 CSV 就是"研究对象点名册"——把哪 84 家银行进样本一次性
+冻结下来, 之后所有表/图只认这份名单, 防止样本悄悄变动。
 
 CLI: ``python -m news_process.papers.benefit_society.cohort [--dry-run]``
 """
@@ -36,9 +38,9 @@ def export_cohort_manifest(
     *,
     dry_run: bool = False,
 ) -> dict[str, object]:
-    """Build the 84-bank cohort manifest from the bank-year panel.
+    """从 bank-year panel 构建 84 银行 cohort manifest.
 
-    Returns a dict with metadata (sha256 / n_banks / output_path).
+    返回含元数据的 dict (sha256 / n_banks / output_path)。
     """
     root = _repo_root()
     panel_path = panel_path or root / "news_process" / "data" / "processed" / "40_panel_yearly.parquet"

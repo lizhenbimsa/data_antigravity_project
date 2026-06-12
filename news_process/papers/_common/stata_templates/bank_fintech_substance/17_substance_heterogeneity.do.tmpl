@@ -1,13 +1,13 @@
 * ============================================================================
-* 17_substance_heterogeneity.do — Table 4 heterogeneity (P3 bank_fintech_substance)
+* 17_substance_heterogeneity.do — Table 4 异质性 (P3 bank_fintech_substance)
 * Paper: {{PAPER_ID}}
 * Plan: §5.5.2 P3 heterogeneity (R6-M03/M04 + R7-m01)
 *
-* Heterogeneity dimensions (NOT full Cartesian per R7-m01):
-*   (a) 4 bank types × SOE
-*   (b) fintech wave segments (pre/wave_1/wave_2/consolidation/wave_3)
-*   (c) Capital ratio quartile (capital_ratio quartiles)
-*   (d) pre-2013 fintech exposure (continuous interaction)
+* 异质性维度 (按 R7-m01 不做全笛卡尔积组合):
+*   (a) 4 类银行类型 × 是否国有 (SOE)
+*   (b) fintech 浪潮分段 (pre/wave_1/wave_2/consolidation/wave_3)
+*   (c) 资本充足率四分位 (capital_ratio quartiles)
+*   (d) 2013 年前 fintech 暴露 (连续交互项)
 * ============================================================================
 
 version 19
@@ -24,7 +24,7 @@ use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
 * ============================================================================
-* (a) 4 bank types × SOE
+* (a) 4 类银行类型 × SOE
 * ============================================================================
 * st-did-05 fix (2026-06-03): (1) bank_type 是字符串列 (str), levelsof 产出字符串 token
 * ('soe'/'joint'/'city'/'rural'/...; 见 iv_did.py::load_bank_group_maps + runner.py:857).
@@ -51,7 +51,7 @@ if !_rc {
 }
 
 * ============================================================================
-* (b) Fintech wave segments
+* (b) Fintech 浪潮分段
 * ============================================================================
 foreach w in wave_1 wave_2 consolidation wave_3 {
     capture confirm variable `w'
@@ -63,7 +63,7 @@ foreach w in wave_1 wave_2 consolidation wave_3 {
 }
 
 * ============================================================================
-* (c) Capital ratio quartile
+* (c) 资本充足率四分位
 * ============================================================================
 capture confirm variable capital_ratio
 if !_rc {
@@ -72,6 +72,8 @@ if !_rc {
     * 阶段达标系统性上行 → Q1 被早年观测占满 / Q4 被晚年占满, "资本充足度异质性"
     * 混入年代异质性; 且 t 年观测的阈值由含未来年份的 in-sample 分布决定 (前视泄漏)。
     * Stata 原生 xtile 无 by() — 用年份循环逐年切分实现 within-year quartiles。
+    * 白话: 每一年单独把银行按资本充足率分四档, 而不是把全部年份混在一起分 —
+    *       否则早年银行全挤在低档、晚年全在高档, 比的就不是资本而是年代了。
     gen cap_q = .
     quietly levelsof year, local(_capq_yrs)
     foreach y of local _capq_yrs {
@@ -99,7 +101,7 @@ if !_rc {
 }
 
 * ============================================================================
-* (d) Pre-2013 fintech exposure × treatment (continuous)
+* (d) 2013 年前 fintech 暴露 × treatment (连续交互)
 * ============================================================================
 capture confirm variable pre_2013_fintech_exposure
 if !_rc {

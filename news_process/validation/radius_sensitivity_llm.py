@@ -22,6 +22,13 @@ Plan v14 §3.5 P5.2: stage 35 词典法 → LLM 法升级
     Hassan et al. (2019, QJE) Proximity-based Attribution 参数敏感性
     Sautner et al. (2023, JF) firm × topic 邻近化 robustness
     Bingler et al. (2022, FRL) cheap talk segment-level robustness
+
+白话:
+    radius_sensitivity.py 用词典法测"窗口几句话"的敏感性, 本模块是它的
+    LLM 法姊妹版: 换不同窗口重新让 LLM 判一遍, 看三个维度 (情感/创新
+    位点/实质性) 的结论稳不稳。目前是脚手架状态: --dry-run 只估算要花
+    多少次 LLM 调用; --launch 真跑路径尚未完整实现, 读缓存解析也刻意
+    fail-loud (宁可报错也不返回假数据凑出"通过"报告)。
 """
 from __future__ import annotations
 
@@ -52,9 +59,9 @@ KAPPA_THRESHOLD_RADIUS = 0.70  # radius 稳健性: 期望高 (双轨内不同 ra
 
 
 def cohens_kappa_2cat(y1: np.ndarray, y2: np.ndarray) -> Dict[str, float]:
-    """Cohen's κ for 2-category labels (e.g., locus / substantiveness).
+    """二分类标签 (如 locus / substantiveness) 的 Cohen's κ。
 
-    Returns dict: {kappa, observed_agreement, expected_agreement, n}
+    返回 dict: {kappa, observed_agreement, expected_agreement, n}
     """
     mask = (~pd.isna(y1)) & (~pd.isna(y2))
     y1, y2 = y1[mask], y2[mask]

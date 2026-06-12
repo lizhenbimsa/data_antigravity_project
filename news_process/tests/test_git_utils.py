@@ -1,4 +1,4 @@
-"""Tests for ``news_process.papers._common._git_utils.get_git_commit_hash_with_dirty``.
+"""``news_process.papers._common._git_utils.get_git_commit_hash_with_dirty`` 的测试.
 
 quality-hardening Round 2 (2026-05-27): 既有 test_build_replication_package
 覆盖到 happy path, missing 的 fallback 路径 (subprocess 失败 → 'unknown') 由

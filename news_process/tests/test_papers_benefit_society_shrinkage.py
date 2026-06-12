@@ -1,4 +1,4 @@
-"""Unit tests for papers/benefit_society/shrinkage.py."""
+"""papers/benefit_society/shrinkage.py 的单元测试。"""
 
 from __future__ import annotations
 
@@ -34,26 +34,26 @@ def test_shrinkage_weights_in_unit_interval(shrink):
 
 
 def test_shrinkage_more_when_n_obs_small(shrink):
-    """Lower n_obs → larger within-unit variance → larger shrinkage weight."""
+    """n_obs 越小 → 单元内方差越大 → 收缩权重越大。"""
     values = np.array([5.0, 5.0])
-    n_obs = np.array([100, 1])  # First is precise, second is sparse
+    n_obs = np.array([100, 1])  # 第一个观测精确, 第二个稀疏
     groups = np.array(["G1", "G1"])
     _, weights = shrink.empirical_bayes_shrinkage(values, n_obs, groups)
     assert weights[1] >= weights[0]
 
 
 def test_shrinkage_pulls_toward_group_mean(shrink):
-    """An outlier observation must be pulled toward its group mean."""
+    """离群观测必须被拉向其所在组的组均值。"""
     values = np.array([0.0, 0.0, 0.0, 10.0])
     n_obs = np.array([100, 100, 100, 1])
     groups = np.array(["G1", "G1", "G1", "G1"])
     shrunk, _ = shrink.empirical_bayes_shrinkage(values, n_obs, groups)
-    # The outlier should have moved toward 0 (group mean)
+    # 离群值应已向 0 (组均值) 方向移动
     assert abs(shrunk[3]) < 10.0
 
 
 def test_shrinkage_handles_nan(shrink):
-    """NaN values must be left untouched."""
+    """NaN 值必须原样保留, 不参与收缩。"""
     values = np.array([1.0, np.nan, 3.0])
     n_obs = np.array([5, 5, 5])
     groups = np.array(["G", "G", "G"])
@@ -64,7 +64,7 @@ def test_shrinkage_handles_nan(shrink):
 
 
 def test_shrinkage_insufficient_obs_returns_raw(shrink):
-    """With <2 valid obs, must return raw values unchanged."""
+    """有效观测 <2 时, 必须原样返回原始值。"""
     values = np.array([1.0, np.nan])
     n_obs = np.array([5, 5])
     groups = np.array(["G", "G"])
@@ -118,7 +118,7 @@ def test_apply_shrinkage_custom_output_col(shrink):
 
 
 # ============================================================================
-# quality-hardening Round 53 (2026-05-27): shrinkage 65.38% → ≥90%
+# quality-hardening Round 53 (2026-05-27): shrinkage 覆盖率 65.38% → ≥90%
 # 补 mixedlm_sanity_check (127-146) + CLI legacy/track 分支 (236/240/254-280)
 # ============================================================================
 
@@ -257,7 +257,7 @@ def test_main_track_both_skips_missing_ctx_column(tmp_path):
     # fix(omni-g-benefit-06, 2026-06-11): fixture 补 year 列。
     df = pd.DataFrame({
         'benefit_mean_full': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-        # no benefit_mean_ctx → warning skip
+        # 缺 benefit_mean_ctx 列 → warning 后跳过
         'n_articles': [5] * 10,
         'bank_type': ['A'] * 10,
         'bank_province': ['P1'] * 10,

@@ -55,7 +55,7 @@ def plot_cutoff_sensitivity(paper_config: PaperConfig | None = None,
 def plot_main_iv_coefplot(paper_config: PaperConfig | None = None,
                           *, filename: str = 'fig2_main_iv_coefplot.pdf'
                           ) -> Path:
-    """Figure 2: main IV 2SLS coefficient plot (reads Table 2 esttab CSV)."""
+    """Figure 2: 主回归 IV 2SLS 系数图 (读 Table 2 esttab CSV)."""
     from news_process.papers._common.paper_figures_ext import coefplot_from_esttab_df
     from news_process.papers.llm_peer.tables import build_table2_main
 
@@ -76,7 +76,7 @@ def plot_main_iv_coefplot(paper_config: PaperConfig | None = None,
 def plot_heterogeneity_forest(paper_config: PaperConfig | None = None,
                               *, filename: str = 'fig3_heterogeneity_forest.pdf'
                               ) -> Path:
-    """Figure 3: SOE × LLM-Peer-IV heterogeneity forest (reads Table 4 esttab CSV)."""
+    """Figure 3: 国企 (SOE) × LLM-Peer-IV 异质性森林图 (读 Table 4 esttab CSV)."""
     from news_process.papers._common.paper_figures_ext import forest_plot_from_esttab_df
     from news_process.papers.llm_peer.tables import build_table4_heterogeneity
 

@@ -63,7 +63,9 @@
   config/authoritative_corpus.txt (权威政策文本)
 
 输出:
-  15_article_alignment.parquet (= 原数据 + 新增 policy_cosine_sim 列)
+  15_article_alignment.parquet (= 原数据 + 新增 5 列: policy_cosine_sim
+  (legacy alias = _full) + policy_cosine_sim_{full,ctx} 双轨
+  + policy_cosine_sim_t2v_{full,ctx} 双模型稳健 twin)
 ============================================================================
 """
 
@@ -619,7 +621,8 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
             ctx 轨读 'content_ctx' 列。
 
     Returns:
-        DataFrame: 新增 'policy_cosine_sim' 列
+        DataFrame: 新增 'policy_cosine_sim' (legacy alias) + _full/_ctx 双轨
+        + _t2v_full/_t2v_ctx 稳健 twin, 共 5 列 (见模块 docstring 输出段)
     """
     logger.info("=" * 60)
     logger.info("开始计算: 文章级政策语义对齐度 (Stage 15)")
@@ -890,7 +893,8 @@ def main():
     """Stage 15 主入口。
 
     数据流: 14_fintech_intensity.parquet → 15_article_alignment.parquet
-    新增列: policy_cosine_sim (float32, 值域 [-1, 1])
+    新增列: policy_cosine_sim 族共 5 列 (float32, 值域 [-1, 1];
+    含 _full/_ctx 双轨 + _t2v_* 双模型稳健 twin)
     """
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")

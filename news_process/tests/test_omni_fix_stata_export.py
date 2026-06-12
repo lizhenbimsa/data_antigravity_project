@@ -15,6 +15,12 @@
     12      shorten used 集合预载全部列名 (截短名不抢占真实同名列)
 
 全部测试用合成 DataFrame, 不依赖盘上大数据, 不调外部 API。
+
+# 白话: 导出 .dta 给 Stata 用时有一堆格式陷阱, 这组测试守住: Stata 的 byte
+# 类型只认 -127~100, 101~126 是它的"缺失值暗号", 计数列升级成 int16 免得
+# 数值 126 被当成缺失; 中文标签按字节(不是字数)截到 80 字节内, 别越截越长;
+# 列名超 32 字符要改短, 但不能撞了别的真实列的名字, 改名后标签/分组/取值
+# 标签都要跟着新名字走; 没登记过的分类取值直接报错, 不许悄悄变成缺失。
 """
 from __future__ import annotations
 
@@ -73,7 +79,7 @@ def test_upcast_value_labeled_out_of_range_defensive():
 def test_upcast_range_mode_for_pyreadstat_backend():
     """force_non_labeled=False (pyreadstat 写出前安全网): 仅按值域升型.
 
-    Stata byte 合法值域 [-127, 100]; 101..126 是 extended-missing 码位 —
+    Stata byte 合法值域 [-127, 100]; 101..127 是缺失码位 (`.` + .a-.z) —
     KNOWN-OPEN ⑥ 的损值场景。
     """
     safe = pd.DataFrame({'x': np.array([1, 100], dtype='int8')})

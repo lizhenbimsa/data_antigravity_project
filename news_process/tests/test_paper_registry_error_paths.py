@@ -1,13 +1,12 @@
-"""Unit tests for paper_registry error paths (RR2-2 added by Review-only audit).
+"""paper_registry 错误路径单元测试 (RR2-2, Review-only audit 补充)。
 
-Covers the failure modes of paper_registry.get_spec / _load_one that previously had
-0 explicit test coverage:
-    1. Unknown paper_id (not in PAPER_IDS_ALL) → ValueError
-    2. Missing yaml file (file system gap) → FileNotFoundError
-    3. Malformed yaml (non-mapping root) → ValueError
-    4. paper_id mismatch (directory vs declared field) → ValueError
-    5. Missing required fields → ValueError
-    6. PaperSpec.primary_outlet defensive fallback on non-dict targets → ''
+覆盖 paper_registry.get_spec / _load_one 此前零显式测试覆盖的失败模式:
+    1. 未知 paper_id (不在 PAPER_IDS_ALL 白名单) → ValueError
+    2. yaml 文件缺失 (文件系统缺口) → FileNotFoundError
+    3. 畸形 yaml (根节点非 mapping) → ValueError
+    4. paper_id 不匹配 (目录名 vs 声明字段) → ValueError
+    5. 缺必填字段 → ValueError
+    6. targets 非 dict 时 PaperSpec.primary_outlet 防御性回退 → ''
 """
 
 from __future__ import annotations
@@ -22,12 +21,12 @@ from news_process.papers._common.paper_registry import (
 )
 
 # ---------------------------------------------------------------------------
-# Public API error paths
+# 公共 API 错误路径
 # ---------------------------------------------------------------------------
 
 
 def test_unknown_paper_id_raises_value_error() -> None:
-    """get_spec rejects paper_id not in PAPER_IDS_ALL whitelist."""
+    """get_spec 拒绝不在 PAPER_IDS_ALL 白名单中的 paper_id。"""
     with pytest.raises(ValueError, match=r"Unknown paper_id"):
         get_spec('not_a_real_paper')
 
@@ -38,15 +37,15 @@ def test_empty_paper_id_raises_value_error() -> None:
 
 
 # ---------------------------------------------------------------------------
-# _load_one error paths (private but documented error modes)
+# _load_one 错误路径 (私有函数, 但错误模式有文档约定)
 # ---------------------------------------------------------------------------
 
 
 def test_missing_yaml_raises_file_not_found(tmp_path, monkeypatch):
-    """If paper_spec.yaml is missing, FileNotFoundError with clear context."""
+    """paper_spec.yaml 缺失时 → FileNotFoundError 且报错信息上下文清晰。"""
     clear_cache()
 
-    # Monkey-patch _spec_path_for to return a non-existent path
+    # monkeypatch _spec_path_for 使其返回一个不存在的路径
     fake_path = tmp_path / 'nonexistent' / 'paper_spec.yaml'
     monkeypatch.setattr(
         'news_process.papers._common.paper_registry._spec_path_for',
@@ -57,7 +56,7 @@ def test_missing_yaml_raises_file_not_found(tmp_path, monkeypatch):
 
 
 def test_malformed_yaml_non_mapping_raises_value_error(tmp_path, monkeypatch):
-    """Yaml that parses to non-dict (e.g. list/string) → ValueError."""
+    """yaml 解析结果非 dict (如 list/string) → ValueError。"""
     clear_cache()
 
     bad = tmp_path / 'bad.yaml'
@@ -71,10 +70,10 @@ def test_malformed_yaml_non_mapping_raises_value_error(tmp_path, monkeypatch):
 
 
 def test_paper_id_mismatch_raises_value_error(tmp_path, monkeypatch):
-    """Declared paper_id ≠ directory name → ValueError."""
+    """声明的 paper_id ≠ 目录名 → ValueError。"""
     clear_cache()
 
-    # Write a minimal valid-shape yaml but with wrong paper_id field
+    # 写一个形状最小但 paper_id 字段错误的 yaml
     bad = tmp_path / 'spec.yaml'
     bad.write_text(
         "paper_id: WRONG_NAME\n"
@@ -100,14 +99,14 @@ def test_paper_id_mismatch_raises_value_error(tmp_path, monkeypatch):
 
 
 def test_missing_required_fields_raises_value_error(tmp_path, monkeypatch):
-    """If yaml is missing schema-required field, ValueError lists them."""
+    """yaml 缺 schema 必填字段时, ValueError 须列出缺失项。"""
     clear_cache()
 
     bad = tmp_path / 'partial.yaml'
     bad.write_text(
         "paper_id: bank_fintech_tone\n"
         "spec_version: 1.0.0\n"
-        "status: existing\n",  # missing 9 of 12 required fields
+        "status: existing\n",  # 12 个必填字段缺了 9 个
         encoding='utf-8',
     )
     monkeypatch.setattr(
@@ -119,12 +118,12 @@ def test_missing_required_fields_raises_value_error(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# PaperSpec defensive property fallbacks (RR2-1)
+# PaperSpec 防御性 property 回退 (RR2-1)
 # ---------------------------------------------------------------------------
 
 
 def test_primary_outlet_returns_empty_when_targets_not_dict() -> None:
-    """RR2-1 — defensive fallback: targets parsed as non-dict yields '' not crash."""
+    """RR2-1 — 防御性回退: targets 解析为非 dict 时返回 '' 而非崩溃。"""
     from pathlib import Path
 
     bad_spec = PaperSpec(
@@ -132,7 +131,7 @@ def test_primary_outlet_returns_empty_when_targets_not_dict() -> None:
         spec_version='0.0.0',
         status='skeleton',
         spec_path=Path('/tmp/x'),
-        raw={'targets': ['list', 'not', 'dict']},  # malformed
+        raw={'targets': ['list', 'not', 'dict']},  # 畸形输入
     )
     assert bad_spec.primary_outlet == ''
 
@@ -170,7 +169,7 @@ def test_event_study_ids_returns_empty_list_when_non_list() -> None:
 
 
 def test_event_study_ids_returns_copy_not_reference() -> None:
-    """Mutating the returned list should not affect spec.raw."""
+    """改动返回的 list 不应影响 spec.raw (返回副本而非引用)。"""
     from pathlib import Path
 
     spec = PaperSpec(
@@ -185,7 +184,7 @@ def test_event_study_ids_returns_copy_not_reference() -> None:
 
 # ---------------------------------------------------------------------------
 # quality-hardening Round 19 (2026-05-27): PaperSpec.get + differentiation_claim
-# paper_registry.py 95.59% → ~100% (lines 98, 103, 193)
+# paper_registry.py 覆盖率 95.59% → ~100% (补 98, 103, 193 行)
 # ---------------------------------------------------------------------------
 
 
@@ -221,7 +220,10 @@ def test_paper_spec_differentiation_claim_property():
 
 
 def test_list_paper_ids_returns_8_element_tuple():
-    """list_paper_ids 返回 PAPER_IDS_ALL (paper_registry.py:193)."""
+    """list_paper_ids 返回 PAPER_IDS_ALL (paper_registry.py:193).
+
+    注: 函数名中的 "8_element" 是历史遗留 (当时 8 篇); 2026-06-01 起为 11 篇,
+    断言以下方 len == 11 为准。"""
     from news_process.papers._common.paper_registry import (
         PAPER_IDS_ALL,
         list_paper_ids,

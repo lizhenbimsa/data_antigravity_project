@@ -1,9 +1,12 @@
 * ============================================================================
-* 12_table3_mechanism.do — Bartik IV + multi-method comparison
+* 12_table3_mechanism.do — Bartik IV + 多方法对比
 * Paper: {{PAPER_ID}}
 *
-* Bartik IV: Goldsmith-Pinkham-Sorkin-Swift (2020, AER) — instrument {{TONE_VAR}}
-* (endogenous covariate) with {{BARTIK_IV}} via 2SLS.
+* Bartik IV: Goldsmith-Pinkham-Sorkin-Swift (2020, AER) — 用 {{BARTIK_IV}}
+* 经 2SLS 工具化 {{TONE_VAR}} (内生协变量)。
+* 白话: Bartik 工具变量用"大盘共同趋势 × 各银行初始暴露份额"拼出一个与单家银行
+*       自身冲击无关的外生变量; 本表只用它矫正语调 (tone) 的内生性,
+*       差异化主变量并未被 IV 识别 (见下方勘误)。
 * fix(omni-g-templates-05, 2026-06-11): 头注勘误 — 旧注称 "identify causal effect of
 * differentiation", 但 M1 工具化的是 tone ({{TONE_VAR}}), 论文主变量 {{MAIN_DIFF_VAR}}
 * 以外生控制身份进 RHS — differentiation 系数未获任何 IV 识别, 仍是 conditional-OLS
@@ -31,7 +34,7 @@ ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{BARTIK_IV}}) {{MAIN_DIFF_VAR}} {{FLUID
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo M1_bartik
 
-* M2-M5: multi-method robustness (TF-IDF char vs jieba vs LDA vs Embedding)
+* M2-M5: 多方法稳健性 (TF-IDF char vs jieba vs LDA vs Embedding)
 foreach v in strat_diff_n5_w strat_diff_n5_lda strat_diff_n5_emb {
     capture confirm variable `v'
     if !_rc {

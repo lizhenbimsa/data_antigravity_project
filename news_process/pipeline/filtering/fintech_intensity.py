@@ -107,6 +107,9 @@ logger.info(f"金融科技词典: 共 {len(FINTECH_KEYWORDS)} 个词汇")
 # ("注入" 路径技术不可行) → 按裁决走 "剔除 + 披露": 从权重宇宙 (IDF 归一化 / 质心 /
 # CosSim 重标定) 剔除并 WARNING 披露, 避免 DF=0 的幻影词拉高 IDF 均值、扭曲质心与
 # min-max 缩放 (TF 端 jieba 本就不可见这些词, 剔除不改任何单篇 TF 命中)。
+# 白话: 个别带空格/顿号的关键词, jieba 分词器天生切不出来、文章里永远数不到它们;
+# 如果还让它们参与算权重, 等于拿一批"永远命中 0 次的幽灵词"去拉偏所有词的权重,
+# 所以干脆把它们从权重计算里踢掉, 并在日志里说明踢了哪些。
 _KW_STATE: dict = {'injected': False, 'matchable': None, 'unmatchable': None}
 
 
@@ -550,7 +553,7 @@ def main():
         df = pd.read_parquet(filtered_path)
     logger.info(f"金融科技子集: {len(df)} 篇文档")
 
-    # v3.6.0 (Plan E P4 B1): 双轨计算 — full 用 '内容', ctx 用 'content_ctx'
+    # v3.6.0 (Plan E P4 B1): 双轨计算 — full 用 content_full (回退 '内容'), ctx 用 'content_ctx'
     # 输出列: fintech_intensity_score_{full,ctx} + intensity_verified_{full,ctx}
     # 向后兼容: 同时保留无后缀 fintech_intensity_score = _full alias
     # P1 修复 (metric-audit 2026-06-02, 病根A): full 轨改读 content_full (含标题), 与
@@ -559,7 +562,7 @@ def main():
     scores_full, verified_full = _compute_intensity_scores(df, combined_weights, text_col=_full_col)
     df['fintech_intensity_score_full'] = scores_full
     df['intensity_verified_full'] = verified_full
-    # legacy alias (deprecate after 9 paper migration)
+    # legacy alias (历史无后缀别名, 待各论文迁移到 _full/_ctx 列后弃用)
     df['fintech_intensity_score'] = scores_full
     df['intensity_verified'] = verified_full
 

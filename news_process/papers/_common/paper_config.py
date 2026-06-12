@@ -14,8 +14,8 @@ from typing import Any
 
 from news_process.core.config import load_config
 
-# RR1-1: single source of truth for the 11 paper id whitelist (5 existing + 3 new
-# + 3 provisional, 2026-06-01; was hardcoded duplicate).
+# RR1-1: 11 paper id 白名单的单一可信源 (5 existing + 3 new
+# + 3 provisional, 2026-06-01; 此处原为 hardcode 重复)。
 from news_process.papers._common.paper_registry import PAPER_IDS_ALL as _PAPER_IDS_ALL
 
 # ----------------------------------------------------------------------------
@@ -75,7 +75,7 @@ def _resolve_project_root(cfg: dict[str, Any]) -> Path:
     output_dir = cfg.get('paths', {}).get('output_dir')
     if output_dir:
         return Path(output_dir).parent
-    # Fallback: from this file's location
+    # 兜底: 从本文件位置向上回溯
     # paper_config.py -> _common/ -> papers/ -> news_process/
     return Path(__file__).resolve().parents[2]
 
@@ -134,7 +134,7 @@ def get_paper_config(paper_id: str,
     cfg = project_config if project_config is not None else load_config()
     paths = cfg.get('paths', {})
     project_root = _resolve_project_root(cfg)
-    # Phase 8 (2026-05-04): default fallback path migrated to ``data/processed/``
+    # Phase 8 (2026-05-04): 默认 fallback 路径已迁移到 ``data/processed/``
     panel_dir = Path(paths.get('output_dir', project_root / 'data' / 'processed'))
     assets_root = get_papers_assets_root(cfg)
     paper_root = assets_root / paper_id

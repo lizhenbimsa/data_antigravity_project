@@ -7,10 +7,11 @@
 *   X   = collab_open_full / collab_closed_full   (binary pair, 01_data_prep 从
 *         collab_frac/indep_frac 派生; 平局 both-0 参照组, fix(omni-g-replication-04/06))
 *
-*   Theory anchor: Chesbrough (2003) Open Innovation; Laursen & Salter (2006 SMJ 27:131-150)
-*                  search breadth & depth; Hagedoorn (2002 RP) inter-firm R&D partnerships.
+*   理论锚点 (Theory anchor): Chesbrough (2003) Open Innovation; Laursen & Salter (2006 SMJ 27:131-150)
+*                  搜索广度与深度 (search breadth & depth); Hagedoorn (2002 RP) 企业间研发合作。
 *
-* M1-M6: open vs closed innovation × M&A activity baseline.
+* M1-M6: 开放式 vs 封闭式创新 × M&A 活动 baseline。
+* 白话: 六列回归从"最裸"逐步加固定效应和控制变量, 看核心系数是否稳定。
 * ============================================================================
 
 version 19
@@ -26,27 +27,27 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* M1: bare (collab open/closed pair only)
+* M1: 裸回归 (仅 collab open/closed 变量对)
 reghdfe {{MAIN_DV}} collab_open_full collab_closed_full, ///
     noabsorb vce(cluster {{CLUSTER_VAR}})
 eststo M1
 
-* M2: + bank FE
+* M2: + bank FE (银行固定效应)
 reghdfe {{MAIN_DV}} collab_open_full collab_closed_full, ///
     absorb(bank_id) vce(cluster {{CLUSTER_VAR}})
 eststo M2
 
-* M3: + bank FE + year FE
+* M3: + bank FE + year FE (银行+年份双固定效应)
 reghdfe {{MAIN_DV}} collab_open_full collab_closed_full, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M3
 
-* M4: + bank-level controls
+* M4: + 银行层面控制变量
 reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M4
 
-* M5: + macro
+* M5: + 宏观控制 (gdp_growth / m2_growth)
 capture confirm variable gdp_growth m2_growth
 if !_rc {
     reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls gdp_growth m2_growth, ///
@@ -60,7 +61,7 @@ else {
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 }
 
-* M6: collab_gap (∈ {-1, 0, +1}) as compact alternative (mirrors P4 locus_gap)
+* M6: collab_gap (∈ {-1, 0, +1}) 作为紧凑替代设定 (与 P4 locus_gap 同构)
 capture confirm variable collab_gap
 if !_rc {
     reghdfe {{MAIN_DV}} collab_gap $controls, ///
@@ -68,11 +69,12 @@ if !_rc {
     eststo M6_gap
 }
 
-* Test open ≠ closed coefficient (formal open-vs-closed innovation differential)
+* 检验 open ≠ closed 系数 (正式的开放式-vs-封闭式创新差异检验)
 test collab_open_full = collab_closed_full
 
 * fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — M6_gap 在守卫块内
 * (collab_gap 缺失即跳过), 旧版硬点名缺名 → r(111) 丢整表且 master 链中止。
+* 白话: 出表时只点名实际估计成功的模型, 防止某一列缺席导致整张表报错丢失。
 qui estimates dir
 local stored `r(names)'
 local cand_models M1 M2 M3 M4 M5 M6_gap

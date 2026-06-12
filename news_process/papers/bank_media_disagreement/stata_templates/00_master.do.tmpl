@@ -10,8 +10,8 @@ set maxvar 32767
 set linesize 120
 set more off
 
-* Project root (substituted by stata_runner::_substitute_placeholders;
-* fallback to relative cwd if placeholder not resolved.)
+* 项目根目录 (由 stata_runner::_substitute_placeholders 替换;
+* 占位符未被替换时回退为当前工作目录 cwd。)
 local project_root "{{PROJECT_ROOT}}"
 if "`project_root'" == "{{PROJECT_ROOT}}" {
     di as txt "(P-017) PROJECT_ROOT placeholder not substituted; using cwd."

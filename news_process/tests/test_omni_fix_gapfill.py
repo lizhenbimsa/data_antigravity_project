@@ -27,6 +27,12 @@ g-benefit 组按文件白名单申报域外、g-templates 组只修自己任务�
               取代 g-val-prompt-04 手工内联的旧生产行为)
 
 全部为模板文本断言 + 合成 DataFrame, 不启动 Stata、不调 API、不触盘上大数据。
+
+# 白话: 前几轮审计修复时, 有 9 个"没人认领"的尾巴项, 这个文件给它们的修复
+# 上锁: 比如 Stata 模板生成的表要配套机器可读的 CSV; 模板里引用的 Python
+# 函数必须真的存在; 主控脚本承诺要跑的子脚本必须真的被编排进去; 出错不能被
+# capture 静默吞掉; LLM 抽取年报数字时"亿元/billion"差 10 倍的疑似单位错
+# 只标记不擅自改数。
 """
 from __future__ import annotations
 

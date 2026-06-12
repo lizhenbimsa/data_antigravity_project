@@ -3,7 +3,7 @@
 * Paper: {{PAPER_ID}}
 * Anchor: Davis & Tama-Sweet (2012, CAR 29:3); 公式项目自定义操作化 (2026-06-06 引文勘误:
 *   原引 Hales-Kuang-Venkataraman 2011 系误归—该文实为 JAR 49(1) 论 vivid/pallid, 非数字密度); 真双轨.
-* Located in v3_5_1/ subdirectory per build_replication_package glob isolation
+* 按 build_replication_package glob 隔离约定置于 v3_5_1/ 子目录
 * (P1 bank_fintech_tone 用 _common/ root template_dir, 无 paper-specific 子目录).
 * ============================================================================
 
@@ -30,7 +30,7 @@ else {
     display "  [WARN] mean_num_intensity_full not in panel"
 }
 
-* Panel B: dual-track main
+* Panel B: 双轨主回归 dual-track main
 capture confirm variable mean_num_intensity_full
 if !_rc {
     reghdfe {{MAIN_DV}} mean_num_intensity_full mean_num_intensity_ctx $bank_controls, ///

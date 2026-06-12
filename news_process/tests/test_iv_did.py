@@ -1,4 +1,4 @@
-"""tests/test_iv_did.py — V8 Wave 2 paper-critical math coverage.
+"""tests/test_iv_did.py — V8 Wave 2 论文关键数学函数覆盖.
 
 iv_did.py 是主论文计量识别核心 (812 行实现 Bartik IV + DID + Rotemberg
 诊断), 此前 0 测试覆盖. 本批先用合成 mini 数据 (3 银行 × 3 年, 5-8 文章)

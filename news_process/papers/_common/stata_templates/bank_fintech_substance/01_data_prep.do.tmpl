@@ -1,7 +1,7 @@
 * ============================================================================
-* 01_data_prep.do — Load panel + xtset + globals (bank_fintech_substance / P3)
+* 01_data_prep.do — 加载 panel + xtset + 设定 globals (bank_fintech_substance / P3)
 * Paper: {{PAPER_ID}}
-* RR6-1: paper-specific globals + P3 dual-outcome variable existence check
+* RR6-1: paper-specific globals + P3 双结果变量 (dual-outcome) 存在性检查
 * ============================================================================
 
 version 19
@@ -61,7 +61,7 @@ if _rc {
 capture drop substantive_minus_symbolic_gap
 gen substantive_minus_symbolic_gap = sub_frac - symb_frac if !missing(sub_frac, symb_frac)
 
-* Short-run outcome optional check (per spec.outcome.short_run; may be NaN pre-enrichment)
+* 短期 outcome 可选检查 (按 spec.outcome.short_run; 外部财务数据接入前可能全为 NaN)
 * fix(omni-g-templates-06, 2026-06-11): 旧 36 字符名超 Stata 32 字符硬限 (r(198)
 * invalid name, confirm 永假) → 全链改 27 字符短名 car_3day_window_ft_announce。
 capture confirm variable car_3day_window_ft_announce

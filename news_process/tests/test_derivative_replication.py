@@ -1,29 +1,30 @@
-"""tests/test_derivative_replication.py — Derivative paper replication tests.
+"""tests/test_derivative_replication.py — 衍生 paper replication 测试.
 
 P1.4 (plan-r3 derivative-paper extension, 2026-05-15)
 
-Tests for ``news_process.papers._common.derivative_replication`` covering 4
-derivative papers (benefit_society / brokerage_network / strategic_diff /
-llm_peer). The main-paper bank_fintech_tone path is covered by the existing
-``test_stata_templates.py`` suite (73 tests), which this file does NOT
-duplicate.
+``news_process.papers._common.derivative_replication`` 的测试, 覆盖 7 篇衍生
+paper (legacy 4: benefit_society / brokerage_network / strategic_diff /
+llm_peer; RR9-1 后新增 B-route 3: bank_fintech_attention / substance / locus)。
+主线 paper bank_fintech_tone 路径由既有 ``test_stata_templates.py`` 套件覆盖,
+本文件不重复。
 
-Test surface
-------------
-1. Module imports cleanly (no circular import with ``stata_runner``).
-2. ``_DERIVATIVE_PAPER_IDS`` contains exactly the 4 expected papers.
-3. ``_PAPER_DEFAULTS`` is well-formed for each paper:
-   - Required Tier 2 keys present: PAPER_ID / MAIN_DV / CONTROLS / CLUSTER_VAR / HET_VAR
-   - PAPER_ID self-consistent
-4. ``get_paper_defaults`` raises on unknown paper_id and returns dict-copy.
-5. ``build_derivative_replication_package`` end-to-end for each paper:
-   - Template dir exists at ``stata_templates/<paper_id>/``
-   - Generates >= 7 .do files (Table 1 + Table 2 + Table 3 + Table 4 + Table 5 + Figure 1 + Master + Data prep, but 7 is the floor for resilient testing)
-   - Zero ``{{...}}`` placeholder residue in any .do file
-   - README.md exists with paper_id appendix
-6. ``build_derivative_replication_package`` raises on:
-   - Unknown paper_id
-   - Overrides referencing unknown placeholder keys
+测试面
+------
+1. 模块可干净 import (与 ``stata_runner`` 无循环 import)。
+2. ``_DERIVATIVE_PAPER_IDS`` 恰好包含预期的衍生 paper 集合。
+3. ``_PAPER_DEFAULTS`` 每篇结构良构:
+   - 必备 Tier 2 key 齐全: PAPER_ID / MAIN_DV / CONTROLS / CLUSTER_VAR / HET_VAR
+   - PAPER_ID 自洽
+4. ``get_paper_defaults`` 对未知 paper_id raise, 且返回 dict 副本。
+5. ``build_derivative_replication_package`` 逐篇端到端:
+   - 模板目录存在于 ``stata_templates/<paper_id>/``
+   - 生成 >= 7 个 .do 文件 (Table 1-5 + Figure 1 + Master + Data prep;
+     7 是为测试鲁棒性设的下限)
+   - 任何 .do 文件中零 ``{{...}}`` 占位符残留
+   - README.md 存在且含 paper_id 附录
+6. ``build_derivative_replication_package`` 对以下情形 raise:
+   - 未知 paper_id
+   - overrides 引用未知占位符 key
 """
 
 from __future__ import annotations
@@ -47,11 +48,11 @@ from news_process.papers._common.derivative_replication import (  # noqa: E402
 )
 
 # ============================================================================
-# Constants — invariant for derivative papers
+# 常量 — 衍生 paper 的不变式
 # ============================================================================
 
-# RR9-1: split into legacy 4 + B-route 3 — legacy-specific invariants
-# (ROA outcome, 11_table2 filename) only apply to the legacy 4.
+# RR9-1: 拆为 legacy 4 + B-route 3 — legacy 专属不变式
+# (ROA outcome, 11_table2 文件名) 仅适用于 legacy 4 篇.
 EXPECTED_DERIVATIVE_PAPERS_LEGACY = frozenset({
     'benefit_society',
     'brokerage_network',
@@ -71,11 +72,11 @@ REQUIRED_TIER2_KEYS = frozenset({
     'PAPER_ID', 'MAIN_DV', 'CONTROLS', 'CLUSTER_VAR', 'HET_VAR',
 })
 
-# Templates expected at a minimum across all 4 papers.
+# 所有衍生 paper 至少应生成的 .do 模板数下限.
 MINIMUM_EXPECTED_DO_FILES = 7
 
 # ============================================================================
-# 1. Module-level invariants
+# 1. 模块级不变式
 # ============================================================================
 
 
@@ -106,17 +107,17 @@ def test_paper_defaults_paper_id_self_consistent(paper_id):
 
 @pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_LEGACY))
 def test_paper_defaults_main_dv_is_roa(paper_id):
-    """Legacy 4 衍生 paper convention: ROA is the canonical DV.
+    """legacy 4 篇衍生 paper 约定: ROA 是规范 DV.
 
-    RR9-1: B-route 3 new papers use paper-specific outcome.primary
-    (ln_fintech_investment / long_run_roa_change_3yr / car_5day_window) per spec
-    and are excluded from this legacy invariant."""
+    RR9-1: B-route 3 篇新 paper 按 spec 使用各自的 outcome.primary
+    (ln_fintech_investment / long_run_roa_change_3yr / car_5day_window),
+    不受此 legacy 不变式约束."""
     assert _PAPER_DEFAULTS[paper_id]['MAIN_DV'] == 'ROA'
 
 
 @pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_B_ROUTE))
 def test_b_route_paper_defaults_main_dv_from_spec(paper_id):
-    """RR9-1: 3 new B-route paper defaults align with paper_spec.yaml outcome.primary."""
+    """RR9-1: B-route 3 篇新 paper 的 defaults 须与 paper_spec.yaml 的 outcome.primary 对齐."""
     from news_process.papers._common.paper_registry import get_spec
     spec = get_spec(paper_id)
     expected_dv = spec.raw['outcome']['primary']
@@ -127,15 +128,15 @@ def test_b_route_paper_defaults_main_dv_from_spec(paper_id):
 
 
 def test_brokerage_network_clusters_at_province():
-    """brokerage_network uses prov_id, not bank_id (Cameron-Miller 2015 rationale)."""
+    """brokerage_network 用 prov_id 而非 bank_id 聚类 (Cameron-Miller 2015 依据)."""
     assert _PAPER_DEFAULTS['brokerage_network']['CLUSTER_VAR'] == 'prov_id'
 
 
 def test_other_papers_cluster_at_bank():
-    """Non-brokerage_network papers cluster at bank_id.
+    """除 brokerage_network 外的 paper 都在 bank_id 上聚类.
 
-    RR12-1: extended to include 3 new B-route papers; brokerage_network excluded
-    (uses prov_id per Cameron-Miller 2015)."""
+    RR12-1: 已扩展覆盖 B-route 3 篇新 paper; brokerage_network 除外
+    (依 Cameron-Miller 2015 用 prov_id)."""
     expected_bank_cluster = sorted(EXPECTED_DERIVATIVE_PAPERS - {'brokerage_network'})
     for pid in expected_bank_cluster:
         assert _PAPER_DEFAULTS[pid]['CLUSTER_VAR'] == 'bank_id', (
@@ -145,8 +146,8 @@ def test_other_papers_cluster_at_bank():
 
 @pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_B_ROUTE))
 def test_b_route_paper_defaults_main_treat_from_spec(paper_id):
-    """RR12-2: drift detection — defaults[MAIN_TREAT] vs spec.treatment.primary
-    (or primary_pair[0] for P4)."""
+    """RR12-2: 漂移检测 — defaults[MAIN_TREAT] vs spec.treatment.primary
+    (P4 用 primary_pair[0])."""
     from news_process.papers._common.paper_registry import get_spec
     spec = get_spec(paper_id)
     t = spec.raw.get('treatment', {})
@@ -159,17 +160,17 @@ def test_b_route_paper_defaults_main_treat_from_spec(paper_id):
 
 @pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_B_ROUTE))
 def test_b_route_paper_defaults_cluster_var_bank_id(paper_id):
-    """RR12-2: 3 new B-route papers all cluster at bank_id (per spec design)."""
+    """RR12-2: B-route 3 篇新 paper 均在 bank_id 上聚类 (依 spec 设计)."""
     assert _PAPER_DEFAULTS[paper_id]['CLUSTER_VAR'] == 'bank_id'
 
 
 # ============================================================================
-# 2. get_paper_defaults — accessor invariants
+# 2. get_paper_defaults — 访问器不变式
 # ============================================================================
 
 
 def test_get_paper_defaults_returns_copy():
-    """Mutating the returned dict must not affect module state."""
+    """改写返回的 dict 不得影响模块内部状态."""
     d = get_paper_defaults('llm_peer')
     d['PAPER_ID'] = 'mutated'
     assert _PAPER_DEFAULTS['llm_peer']['PAPER_ID'] == 'llm_peer'
@@ -177,13 +178,13 @@ def test_get_paper_defaults_returns_copy():
 
 def test_get_paper_defaults_rejects_unknown():
     with pytest.raises(ValueError, match='Unknown derivative paper_id'):
-        get_paper_defaults('bank_fintech_tone')  # main paper rejected
+        get_paper_defaults('bank_fintech_tone')  # 主线 paper 应被拒绝
     with pytest.raises(ValueError, match='Unknown derivative paper_id'):
         get_paper_defaults('no_such_paper')
 
 
 # ============================================================================
-# 3. build_derivative_replication_package — end-to-end per paper
+# 3. build_derivative_replication_package — 逐篇端到端
 # ============================================================================
 
 
@@ -193,7 +194,7 @@ def test_build_package_per_paper(paper_id, tmp_path):
     assert pkg.is_dir()
     assert pkg.name == f'replication_v3.2.0_{paper_id}'
 
-    # Expected subdirs
+    # 预期的子目录
     assert (pkg / 'code').is_dir()
     assert (pkg / 'data').is_dir()
     assert (pkg / 'output' / 'tables').is_dir()
@@ -233,15 +234,15 @@ def test_build_readme_contains_paper_id(paper_id, tmp_path):
 
 @pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS))
 def test_build_templates_use_reghdfe(paper_id, tmp_path):
-    """All derivative papers use reghdfe for the main regression.
+    """所有衍生 paper 的主回归均用 reghdfe.
 
-    RR9-1: legacy 4 papers name main regression as 11_table2*.do;
-    B-route 3 new papers use 15_<paper>_main_regression.do (per plan §5.5.2)."""
+    RR9-1: legacy 4 篇主回归文件名为 11_table2*.do;
+    B-route 3 篇新 paper 用 15_<paper>_main_regression.do (依 plan §5.5.2)."""
     pkg = build_derivative_replication_package(paper_id, output_root=tmp_path)
     code_dir = pkg / 'code'
     main_table_files = (
         list(code_dir.glob('11_table2*.do'))                   # legacy 衍生
-        + list(code_dir.glob('15_*_main_regression.do'))        # B-route new
+        + list(code_dir.glob('15_*_main_regression.do'))        # B-route 新 paper
     )
     assert main_table_files, (
         f"{paper_id}: no main regression file matching 11_table2*.do "
@@ -255,18 +256,18 @@ def test_build_templates_use_reghdfe(paper_id, tmp_path):
 
 @pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS))
 def test_build_master_references_subtemplates(paper_id, tmp_path):
-    """00_master.do must `do` at least 5 subtemplates."""
+    """00_master.do 必须 `do` 至少 5 个子模板."""
     pkg = build_derivative_replication_package(paper_id, output_root=tmp_path)
     master = pkg / 'code' / '00_master.do'
     assert master.exists()
     content = master.read_text(encoding='utf-8')
-    # Must reference data_prep + table1 + table2 + table3/figure
+    # 必须引用 data_prep + table1 + table2 + table3/figure
     do_references = content.count('do 0') + content.count('do 1') + content.count('do 2') + content.count('do 3')
     assert do_references >= 5, f"{paper_id}: master.do has only {do_references} `do <N>` calls"
 
 
 # ============================================================================
-# 4. Error paths
+# 4. 错误路径
 # ============================================================================
 
 
@@ -288,13 +289,13 @@ def test_build_rejects_unknown_override_key(tmp_path):
 
 
 def test_build_accepts_known_override(tmp_path):
-    """Override of an existing key should succeed; verify MAIN_DV swap propagates."""
+    """覆盖已存在的 key 应成功; 验证 MAIN_DV 替换会向下传播."""
     pkg = build_derivative_replication_package(
         'llm_peer',
         overrides={'MAIN_DV': 'Tobin_Q'},
         output_root=tmp_path,
     )
-    # The main table should reference Tobin_Q_w (winsorized).
+    # 主表应引用 Tobin_Q_w (winsorize 后的列).
     main_tex = (pkg / 'code' / '11_table2_main_iv_2sls.do').read_text(encoding='utf-8')
     assert 'Tobin_Q_w' in main_tex, (
         "MAIN_DV override did not propagate to 11_table2_main_iv_2sls.do"
@@ -312,12 +313,12 @@ def test_build_missing_template_dir_raises(tmp_path):
 
 
 # ============================================================================
-# 5. Cross-paper invariants
+# 5. 跨 paper 不变式
 # ============================================================================
 
 
 def test_all_four_papers_produce_uniform_subdirs(tmp_path):
-    """Every derivative package must have code/, data/, output/{tables,figures}/."""
+    """每个衍生 replication 包都必须有 code/, data/, output/{tables,figures}/."""
     expected_subdirs = ['code', 'data', 'output/tables', 'output/figures']
     for paper_id in sorted(EXPECTED_DERIVATIVE_PAPERS):
         pkg = build_derivative_replication_package(paper_id, output_root=tmp_path)
@@ -326,7 +327,7 @@ def test_all_four_papers_produce_uniform_subdirs(tmp_path):
 
 
 def test_all_four_papers_have_winsor_in_data_prep(tmp_path):
-    """01_data_prep.do for each paper performs winsorize on MAIN_DV (per project convention)."""
+    """每篇 paper 的 01_data_prep.do 都对 MAIN_DV 做 winsorize (项目约定)."""
     for paper_id in sorted(EXPECTED_DERIVATIVE_PAPERS):
         pkg = build_derivative_replication_package(paper_id, output_root=tmp_path)
         data_prep = pkg / 'code' / '01_data_prep.do'
@@ -337,7 +338,7 @@ def test_all_four_papers_have_winsor_in_data_prep(tmp_path):
 
 # ---------------------------------------------------------------------------
 # quality-hardening Round 17 (2026-05-27): derivative_replication 96.67% → 100%
-# missing lines 233 (residue ValueError) + 290 (output_root None fallback)
+# 补未覆盖行 233 (残留占位符 ValueError) + 290 (output_root None fallback)
 # ---------------------------------------------------------------------------
 
 

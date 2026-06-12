@@ -47,6 +47,13 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
     eval_reports/prompt_sensitivity_detail.csv     — 逐条对比
     eval_reports/prompt_sensitivity_table.tex      — LaTeX 表格
     eval_reports/prompt_sensitivity_heatmap.png    — κ 热力图
+
+白话:
+    担心 LLM 的判定结果是"prompt 怎么写"碰巧决定的。本检验把同一个任务
+    用 4 种不同说法重写 (换角色口吻 / 换段落顺序 / 大幅精简 / 整句改写),
+    意思完全不变, 再让 LLM 对同一批文章重判。如果 5 个版本 (原版+4 变体)
+    给出的答案高度一致 (一致率/κ/α 全过阈值, 且 full 和 ctx 两条轨道都要
+    过), 就说明结果反映的是文章本身, 不是 prompt 措辞的偶然产物。
 """
 
 import asyncio
@@ -471,6 +478,10 @@ def compute_fleiss_kappa(ratings_matrix: np.ndarray) -> float:
 
     Returns:
         float: Fleiss' κ 值。完全一致=1, 偶然一致=0, 系统性不一致<0。
+
+    白话: Cohen's κ 只能比较两个编码者; 这里有 5 个"编码者" (原版 prompt
+    + 4 个变体), Fleiss' κ 把"扣除碰巧一致后的一致度"推广到任意多个
+    编码者同时互比。
     """
     N, k = ratings_matrix.shape  # N=项目数, k=类别数
     if N == 0:
@@ -1434,7 +1445,7 @@ def main():
         logger.info(f"    Multi-variant α={multi['krippendorffs_alpha']:.4f}, "
                     f"Fleiss' κ={multi['fleiss_kappa']:.4f}")
 
-        # 6.3 Cross-variant variance
+        # 6.3 跨变体方差 Cross-variant variance
         var = compute_cross_variant_variance(df_sample, variant_keys, track)
         variance_results[track] = var
         logger.info(f"    True rate σ={var['true_rate_std']:.4f}")

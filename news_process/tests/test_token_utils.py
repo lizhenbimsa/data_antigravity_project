@@ -1,4 +1,4 @@
-"""Tests for ``news_process.core.text.token_utils`` — tiktoken cl100k_base helpers.
+"""``news_process.core.text.token_utils`` (tiktoken cl100k_base helper) 的测试。
 
 quality-hardening Round 21 (2026-05-27): token_utils.py 0% → 100%.
 模块此前在 tests/ 中完全无直接覆盖 — 6 个公开函数 0 行测试.

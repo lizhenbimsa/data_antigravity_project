@@ -43,6 +43,14 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
     `eval_reports/entity_masking_detail.csv`    — 逐条对比
     `eval_reports/entity_masking_table.tex`     — 论文就绪表格（含双轨 Panel）
     `eval_reports/entity_masking_confusion.png` — 混淆矩阵（full + ctx 并排）
+
+白话:
+    担心 LLM 是"看名字下结论"——比如一看到"工商银行"就默认国有大行很稳健,
+    而不是真的读懂了新闻内容。本检验把银行名全部涂掉换成"目标银行A/同业
+    银行B"这种匿名代号, 再让同一批 LLM 重新判一遍。如果涂名前后的判定
+    基本一致 (一致率 ≥90%、κ ≥0.8), 就证明 LLM 靠的是文本语义而非对银行
+    的刻板印象。混淆矩阵图展示"涂名前判真/假 × 涂名后判真/假"四格的分布,
+    对角线占比越高越好。
 """
 
 import asyncio
@@ -372,6 +380,13 @@ def compute_masking_consistency(df_result: pd.DataFrame, track: str) -> dict:
 
     Returns:
         dict: 四维一致性指标 (含 ITT 披露键 + n_call_failure)。
+
+    白话: 两个分母口径的区别 — 有些行 LLM 调用全失败, 系统默认记为
+    "判否", 这是测量缺失不是真的"判定翻转"。per-protocol 口径把这些
+    失败行剔出分母 (只算真测到的), ITT 口径保留全部行 (失败算不一致)。
+    两个数都报告, 主结论用 per-protocol, ITT 作诚实披露。Cohen's κ 是
+    "扣掉碰巧一致后的真实一致度": 即使两边瞎猜也会有一定比例碰巧相同,
+    κ 把这部分剔掉, 0.81 以上视为几乎完全一致。
     """
     b_ver = f'baseline_verified_{track}'
     m_ver = f'masked_verified_{track}'

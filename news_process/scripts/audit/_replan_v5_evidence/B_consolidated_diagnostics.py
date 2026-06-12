@@ -57,7 +57,7 @@ if p_panel.exists():
                     "eq_zero_in_zeronews": int(eq_zero),
                     "isna_in_zeronews": int(isna),
                 }
-    # F4: bartik IV column inventory
+    # F4: bartik IV 列清点
     bartik_cols = sorted([c for c in panel.columns if c.startswith("bartik_")])
     f4 = {
         "bartik_total_cols": len(bartik_cols),

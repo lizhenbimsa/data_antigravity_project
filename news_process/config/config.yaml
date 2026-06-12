@@ -1,28 +1,29 @@
-# news_process configuration — split into 7 domain YAMLs (Phase 4d)
+# news_process 配置 — 已拆分为 7 个领域 YAML (Phase 4d)
 # =====================================================================
 #
-# This file is intentionally empty. The configuration is now distributed
-# across 7 domain-specific YAML files in this directory:
+# 本文件刻意留空 (legacy stub)。配置现已分布在本目录下的
+# 7 个领域专属 YAML 文件中:
 #
-#     paths.yaml          — paths + filenames + parallel
-#     preprocessing.yaml  — preprocessing + normalization + deduplication
+#     paths.yaml          — paths + filenames + parallel (路径/输出文件名/并行)
+#     preprocessing.yaml  — preprocessing + normalization + deduplication (预处理/标准化/去重)
 #     filtering.yaml      — bank/fintech_news_classification + fintech_intensity
-#                           + article_alignment + context_window
-#     sentiment.yaml      — tone_llm_processing + sentiment_analysis + herd_detection
-#     features.yaml       — embedding_api + benefit_society
-#     panel.yaml          — panel_building
-#     validation.yaml     — human_validation + validation + *_test + *_sensitivity
+#                           + article_alignment + context_window (分类/强度/对齐/上下文窗口)
+#     sentiment.yaml      — tone_llm_processing + sentiment_analysis + herd_detection (情感/跟风检测)
+#     features.yaml       — embedding_api + benefit_society (嵌入 API/效益态度)
+#     panel.yaml          — panel_building (面板构建)
+#     validation.yaml     — human_validation + validation + *_test + *_sensitivity (验证/敏感性)
 #
-# And 1 active prompt template externalized to (was 2 before title-track removal):
+# 另有 1 个在用的 prompt 模板外置于 (标题轨移除前为 2 个):
 #
 #     prompts/unified_cot.txt        — tone_llm_processing.prompt_template
 #     (remove-title-track: prompts/title_sentiment.txt 已删除)
 #
-# news_process.core.config.load_config() detects the split-mode setup and
-# deep-merges all 7 YAMLs into a single dict semantically equivalent to the
-# pre-Phase-4d monolithic config.yaml.
+# news_process.core.config.load_config() 检测到 split-mode 布局后,
+# 会把全部 7 个 YAML 深度合并 (deep-merge) 为单个 dict, 语义上等价于
+# Phase 4d 之前的单体 config.yaml。
 #
-# Backward compatibility: if any of the 7 split YAMLs is missing, the
-# loader falls back to reading this file as a monolithic legacy config.
-# Therefore the loader treats THIS file as authoritative when split YAMLs
-# are absent, but uses the 7-file layout when they are present.
+# 向后兼容: 若 7 个拆分 YAML 中任一缺失, loader 回退为把本文件
+# 当作单体 legacy 配置读取。因此当拆分 YAML 缺席时 loader 以本文件
+# 为权威; 拆分文件齐备时则使用 7 文件布局。
+# 白话: 这个文件现在只是个"说明牌", 真正的配置都搬去同目录的 7 个
+#       小文件了; 只有那 7 个文件丢了, 程序才会回头读这里。

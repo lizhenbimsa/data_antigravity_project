@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-# Force Agg backend before importing pyplot (headless safe)
+# 在 import pyplot 之前强制 Agg 后端 (无显示器环境安全)
 os.environ.setdefault('MPLBACKEND', 'Agg')
 import matplotlib  # noqa: E402
 

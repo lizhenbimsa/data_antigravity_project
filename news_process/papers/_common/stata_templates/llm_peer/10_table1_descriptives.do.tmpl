@@ -1,7 +1,7 @@
 * ============================================================================
-* 10_table1_descriptives.do — Descriptive statistics (Table 1) for llm_peer
+* 10_table1_descriptives.do — 描述性统计 (Table 1) (llm_peer)
 * Paper: {{PAPER_ID}}
-* Output: $tables_dir/table1_descriptives.tex (booktabs)
+* 输出: $tables_dir/table1_descriptives.tex (booktabs)
 * ============================================================================
 
 version 19
@@ -14,13 +14,13 @@ capture mkdir "$tables_dir"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-* Variables to summarize: MAIN_DV + main IV/endog + cutoff variants + controls.
+* 汇总变量: MAIN_DV + 主 IV/内生变量 + cutoff 变体 + controls。
 local desc_vars {{MAIN_DV}} {{TONE_VAR}} {{LLM_PEER_IV}} {{LLM_PEER_COVERAGE_IV}} {{COMPETE_IDX}} {{CUTOFF_VARS}} $controls
 
 * st-descriptives-01 fix (2026-06-03): 本表独立 use 全面板后直接 estpost summarize,
 * 无先行回归留下 e(sample), 故描述统计覆盖全面板 (含零新闻 bank-year), 与主回归
 * if e(sample) 样本 N 不一致 — 在表注如实披露 (顶刊复现包诚实度; 对齐 benefit_society/10).
-* `estpost summarize` writes a results matrix esttab can format.
+* `estpost summarize` 写出 esttab 可排版的结果矩阵。
 estpost summarize `desc_vars', detail
 
 esttab using "$tables_dir/table1_descriptives.tex", replace ///

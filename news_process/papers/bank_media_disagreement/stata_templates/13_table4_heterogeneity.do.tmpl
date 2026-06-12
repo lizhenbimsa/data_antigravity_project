@@ -1,4 +1,4 @@
-* news_process v3.7.0 — 第 10 篇 Table 4: Heterogeneity by implicit_guarantee_tier
+* news_process v3.7.0 — 第 10 篇 Table 4: 按 implicit_guarantee_tier (隐性担保层级) 的异质性
 *
 * V4 F2.2 boundary condition + F-P1.1 implicit guarantee 5-tier 异质性
 * Tier 5 (国有大行 + 政策性): channel 弱 (LOLR 主导)
@@ -38,7 +38,7 @@ if "`MISSING_VARS'" != "" {
     error 111
 }
 
-* ── Panel A: Sample split by tier ────────────────────────────────────────
+* ── Panel A: 按隐性担保层级 (tier) 分样本 ────────────────────────────────
 forvalues t = 1/5 {
     eststo tier`t': reghdfe `DV' `TX' `CTRL_B' `CTRL_Y' ///
         if implicit_guarantee_tier == `t', ///
@@ -55,7 +55,7 @@ esttab tier1 tier2 tier3 tier4 tier5 ///
 
 eststo clear
 
-* ── Panel B: Sub-period (regime shift, V4 F-Comp.3) ──────────────────────
+* ── Panel B: 分时段 (regime 切换, V4 F-Comp.3) ───────────────────────────
 local PERIODS "2007-2011 2012-2015 2016-2019 2020-2024"
 local i = 0
 foreach p of local PERIODS {

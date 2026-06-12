@@ -30,6 +30,12 @@ A1/A3 vs LLM substance 的 discriminant validity 检验 — 3 × 3 矩阵:
     7. n_articles(b,t) ≥ 2 mask (修 R8-H2).
     8. Panel HTMT 适用性 disclosure (修 R9-M1): paper §3.4 加 "cross-sectional HTMT
        applied to panel as conservative diagnostic per Henseler 2015 footnote 11".
+
+白话: 我们有三把"尺子"量银行新闻 — LLM 判的实质性 (T1)、词典算的表述
+清晰度 (T2)、数字密集度 (T3)。判别效度检验回答: 这三把尺子是不是真的在
+量三件不同的事? HTMT 看任意两把尺子的相关有多高 (低于 0.85/0.90 才算
+"各量各的"); Cronbach α 看把三者合成一个量表是否内部一致; Cohen κ 专门
+看"象征性"标签与"表述含糊"是否如理论预期正相关。
 """
 from __future__ import annotations
 
@@ -112,19 +118,19 @@ def compute_ave_and_phi_squared(indicators: dict[str, np.ndarray]) -> dict[str, 
 
 
 def compute_cronbach_alpha_across_indicators(indicators: dict[str, np.ndarray]) -> float:
-    """Cronbach α across all indicators (modified R9-M2).
+    """跨全部 indicator 的 Cronbach α (修 R9-M2)。
 
-    Standard formula (across k items):
+    标准公式 (k 个 item):
         α = (k / (k-1)) × (1 - Σ σ²_i / σ²_total)
 
     Args:
-        indicators: dict with ≥ 2 indicators (each a panel vector).
+        indicators: 含 ≥ 2 个 indicator 的 dict (每个是 panel 向量)。
 
     Returns:
-        Cronbach α ∈ [0, 1].
+        Cronbach α ∈ [0, 1]。
     """
     arr = np.column_stack([v for v in indicators.values()])
-    arr = arr[~np.isnan(arr).any(axis=1)]  # row-wise complete cases
+    arr = arr[~np.isnan(arr).any(axis=1)]  # 按行取完整观测 (任一列缺值整行剔除)
     k = arr.shape[1]
     if k < 2 or arr.shape[0] < 2:
         return float('nan')
@@ -139,17 +145,17 @@ def compute_cohen_kappa_substance_vs_clarity(
         substance: np.ndarray,
         clarity: np.ndarray,
         clarity_median: Optional[float] = None) -> dict[str, float]:
-    """Cohen κ (1960 EPM) between LLM substance and dichotomized clarity.
+    """LLM substance 与二分化 clarity 之间的 Cohen κ (1960 EPM)。
 
     方向锁定 (修 M2'): 象征性 (1) ↔ clarity_score < median (1); 预期正 κ.
 
     Args:
-        substance: panel vector of LLM substance probability (0=实质性, 1=象征性).
-        clarity: panel vector of clarity_score (continuous).
-        clarity_median: D0 frozen median; if None, computed in-sample.
+        substance: LLM substance 概率的 panel 向量 (0=实质性, 1=象征性)。
+        clarity: clarity_score 的 panel 向量 (连续值)。
+        clarity_median: D0 冻结的 median; None 时样本内计算。
 
     Returns:
-        dict: {kappa, n_obs, median_used}.
+        dict: {kappa, n_obs, median_used}。
     """
     s = np.asarray(substance, dtype=float)
     c = np.asarray(clarity, dtype=float)
@@ -176,10 +182,10 @@ def compute_cohen_kappa_substance_vs_clarity(
 
     # Cohen κ
     n = len(s_bin)
-    p_o = float((s_bin == c_bin).mean())  # observed agreement
+    p_o = float((s_bin == c_bin).mean())  # 观测一致率
     p_s = float((s_bin == 1).mean())
     p_c = float((c_bin == 1).mean())
-    p_e = p_s * p_c + (1 - p_s) * (1 - p_c)  # expected agreement by chance
+    p_e = p_s * p_c + (1 - p_s) * (1 - p_c)  # 随机碰巧一致的期望率
     if p_e >= 1.0:
         return {'kappa': float('nan'), 'n_obs': n, 'median_used': clarity_median}
     kappa = (p_o - p_e) / (1 - p_e)
@@ -318,7 +324,7 @@ def run_discriminant_validity(
 
 
 def main():
-    """Stage 39d entry point."""
+    """Stage 39d 入口。"""
     import os
 
     from news_process.core.config import load_config

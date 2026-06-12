@@ -1,11 +1,11 @@
-"""M0 G0 acceptance — 8 paper × paper_spec.yaml schema 一致性测试.
+"""M0 G0 acceptance — 跨 paper × paper_spec.yaml schema 一致性测试 (现为 11 篇)。
 
-Plan v2.x §5.2.3.bis + §5.2.4 G0 acceptance:
+Plan v2.x §5.2.3.bis + §5.2.4 G0 acceptance (历史计划原文, 当时为 8 篇):
     "8 paper × spec.yaml 全部 conform 此 schema"
 
 红线不变式
 ----------
-1. 8 个 paper_spec.yaml 文件全部存在且可被 yaml.safe_load 解析。
+1. 全部 paper_spec.yaml 文件 (现 11 个) 存在且可被 yaml.safe_load 解析。
 2. 每份 spec 的 ``paper_id`` 字段必须与所在目录名一致。
 3. Schema-required 字段 (12 个) 必须全部 present。
 4. ``spec_version`` 必须满足 semver-ish (X.Y.Z 三段, 数字).
@@ -14,7 +14,7 @@ Plan v2.x §5.2.3.bis + §5.2.4 G0 acceptance:
 7. ``audit_rounds_target_min`` 必须为正整数。
 8. ``targets.primary_outlet`` 必须非空。
 9. ``targets.submission_window`` 必须是 YYYY-MM-DD 形式 (per §5.11.1 投稿计划)。
-10. 8 paper 的 spec_version 主版本号 ≤ plan major (per §13 R1-m07/R6-m02)。
+10. 各 paper 的 spec_version 主版本号 ≤ plan major (per §13 R1-m07/R6-m02)。
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ VALID_STATUS = frozenset({'existing', 'new', 'skeleton'})
 SEMVER_RE = re.compile(r'^\d+\.\d+\.\d+$')
 DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
-# Plan v2.x major = 2; spec_version major must ≤ 2 per §13.
+# Plan v2.x 的 major = 2; 按 §13 各 spec_version 的 major 必须 ≤ 2。
 PLAN_MAJOR_VERSION = 2
 
 
@@ -118,9 +118,9 @@ def test_targets_primary_outlet_nonempty(paper_id: str) -> None:
 def test_targets_submission_window_valid_date(paper_id: str) -> None:
     spec = get_spec(paper_id)
     sw = spec.raw.get('targets', {}).get('submission_window')
-    # YAML 1.1 loads YYYY-MM-DD as datetime.date by default
+    # YAML 1.1 默认会把 YYYY-MM-DD 解析为 datetime.date
     if isinstance(sw, date):
-        return  # already parsed
+        return  # 已被解析为 date, 直接通过
     assert isinstance(sw, str), f"{paper_id}: submission_window type {type(sw).__name__}"
     assert DATE_RE.match(sw), (
         f"{paper_id}: submission_window={sw!r} not YYYY-MM-DD"
@@ -150,8 +150,8 @@ def test_sample_block_complete(paper_id: str) -> None:
 
 
 # ----------------------------------------------------------------------------
-# v3.5.0 D2 8-cell decomposition: tables.t6 field schema
-# Per stage3_v3_5_0_augmentation_plan.md §2.1.6 + master plan v2 §5.2.3.bis.
+# v3.5.0 D2 8-cell 分解: tables.t6 字段 schema
+# 依据 stage3_v3_5_0_augmentation_plan.md §2.1.6 + master plan v2 §5.2.3.bis。
 # (修 E-NEW-2 + F2: v3.5.0 D6 day 扩展 schema 测试)
 #
 # 注: 这些测试用直接 YAML load (绕过 paper_registry.get_spec) 因为 v3.4.0 PAPER_IDS_NEW
@@ -165,9 +165,9 @@ import yaml as _yaml  # noqa: E402
 
 _PAPERS_DIR_V3_5_0 = Path(__file__).resolve().parents[2] / 'papers'
 
-# 9 paper portfolio split per plan §2.1.6:
-#   - D2 main regression users (Table 6 i.cell_id_full): P3/P4/P5
-#   - D2 not used (explicit null to prevent schema drift): P1/P2 + 4 retrofit
+# 9 paper portfolio 按 plan §2.1.6 划分:
+#   - D2 主回归使用者 (Table 6 i.cell_id_full): P3/P4/P5
+#   - 不使用 D2 (显式 null 防 schema drift): P1/P2 + 4 retrofit
 V3_5_0_D2_USING = (
     'bank_fintech_substance',
     'bank_fintech_locus',
@@ -186,7 +186,7 @@ V3_5_0_D2_TEMPLATE = '19_table6_cell_decomposition'
 
 
 def _load_spec_yaml_v3_5_0(paper_id: str) -> dict:
-    """Filesystem YAML load bypassing v3.4.0 paper_registry (which misses P5)."""
+    """直接从文件系统加载 YAML, 绕过 v3.4.0 paper_registry (其缺少 P5)。"""
     path = _PAPERS_DIR_V3_5_0 / paper_id / 'paper_spec.yaml'
     if not path.exists():
         pytest.skip(f"paper_spec.yaml missing for {paper_id}")
@@ -235,8 +235,8 @@ def test_v3_5_0_d2_null_papers_explicit(paper_id: str) -> None:
 
 
 # ----------------------------------------------------------------------------
-# v3.5.0 D2 P5-specific: treatment.alternative + alternative_construction extensions
-# Per plan §2.1.7 (修 A-NEW-2 P5 treatment.alternative 同步)
+# v3.5.0 D2 P5 专属: treatment.alternative + alternative_construction 扩展
+# 依据 plan §2.1.7 (修 A-NEW-2 P5 treatment.alternative 同步)
 # ----------------------------------------------------------------------------
 
 def test_v3_5_0_p5_treatment_alternative_includes_cell_id_full() -> None:

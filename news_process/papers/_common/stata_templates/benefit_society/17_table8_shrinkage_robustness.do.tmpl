@@ -1,13 +1,15 @@
 * ============================================================================
-* 17_table8_shrinkage_robustness.do — R5 Bayesian shrinkage robustness
+* 17_table8_shrinkage_robustness.do — R5 贝叶斯收缩稳健性 Bayesian shrinkage
 * Paper: {{PAPER_ID}}
 *
-* PAP v1.0-final §5 R5 (dual-track upgrade per F-H3):
-*   (a) Raw {{ATTITUDE_FULL}}
-*   (b) Shrunk {{ATTITUDE_FULL}}_shrunk
-*   (c) Ctx shrunk (companion: 17b_table8b_shrinkage_dual)
+* PAP v1.0-final §5 R5 (按 F-H3 升级为双轨):
+*   (a) 原始 {{ATTITUDE_FULL}}
+*   (b) 收缩后 {{ATTITUDE_FULL}}_shrunk
+*   (c) Ctx 轨收缩版 (伴生表: 17b_table8b_shrinkage_dual)
 *
-* Acceptance: beta sign unchanged; |beta_shrunk - beta_raw| / |beta_raw| < 30%.
+* 验收标准: beta 符号不变; |beta_shrunk - beta_raw| / |beta_raw| < 30%。
+* 白话: 新闻很少的银行算出的态度分数噪音大; 贝叶斯收缩把这类不可靠的分数往组内
+* 平均值"拉一拉"再重跑回归, 若结果基本不变, 说明主结论不是噪音观测撑起来的。
 * ============================================================================
 
 version 19
@@ -21,12 +23,12 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* Raw
+* 原始 (未收缩)
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo S_raw
 
-* Shrunk
+* 收缩后
 capture confirm variable {{ATTITUDE_FULL}}_shrunk
 if _rc != 0 {
     display "[INFO] {{ATTITUDE_FULL}}_shrunk not in panel. " ///
@@ -37,7 +39,7 @@ reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}}_shrunk $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo S_shrunk
 
-* Inverse-weight regression (heteroskedasticity correction)
+* 逆权重回归 (异方差校正)
 capture confirm variable {{ATTITUDE_FULL}}_shrunk_weight
 if _rc == 0 {
     gen analytic_weight = 1 - {{ATTITUDE_FULL}}_shrunk_weight

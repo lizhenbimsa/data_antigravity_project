@@ -1,6 +1,6 @@
-"""Tests for ``news_process.pipeline.preprocess.load`` AC automaton + single-file processor.
+"""``news_process.pipeline.preprocess.load`` AC 自动机 + 单文件处理器的测试。
 
-quality-hardening Round 25 (2026-05-27): load.py 0% → 部分覆盖. Module
+quality-hardening Round 25 (2026-05-27): load.py 0% → 部分覆盖. 该模块
 此前在 tests/ 中无直接覆盖. 重点测两个 AC helper (line 44-72), 模块级 singleton
 + _process_single_file 的失败路径.
 """

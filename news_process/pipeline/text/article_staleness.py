@@ -68,7 +68,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
-# Path injection
+# 路径注入: 让 ``news_process.core.*`` 在任意 cwd 下可解析
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
@@ -148,6 +148,9 @@ def compute_surface_staleness(
     #      → 总 ≈ unique_days × (N / unique_days × 7) = 7N
     # 性能: 400k × 7 = 2.8M ops vs 原 O(N²)=1.6e11 → ~50000× speedup
     # 实测预估: 单线程 5-15 min (原 10+ 天)
+    # 白话: 要给每篇文章找"过去 7 天里和它最像的旧文章"。挨篇两两比对算不动,
+    # 改成按"天"分批: 同一天发的文章共用同一个"过去 7 天文章索引", 索引一天只建
+    # 一次, 当天所有文章都来这个索引里查 — 总工作量从天文数字降到几分钟。
     stale = np.full(len(df), np.nan)
     if dates.isna().all():
         return stale[np.argsort(_sort_idx)]  # 逆置换还原原始行序 (P0 修复)
@@ -203,7 +206,7 @@ def compute_surface_staleness(
     return stale[np.argsort(_sort_idx)]
 
 
-# ── D2.b Semantic staleness (Faiss + SBERT cosine) ───────────────────
+# ── D2.b 语义陈旧度 Semantic staleness (Faiss + SBERT 余弦相似) ───────
 def compute_semantic_staleness(
     df: pd.DataFrame,
     embeddings: np.ndarray,

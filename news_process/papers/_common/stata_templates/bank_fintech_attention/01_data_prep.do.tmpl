@@ -1,7 +1,7 @@
 * ============================================================================
-* 01_data_prep.do — Load panel + xtset + globals (bank_fintech_attention / P2)
+* 01_data_prep.do — 载入面板 + xtset + 全局宏 globals (bank_fintech_attention / P2)
 * Paper: {{PAPER_ID}}
-* RR6-1: paper-specific globals + variable existence check (per benefit_society pattern)
+* RR6-1: paper-specific globals + 变量存在性检查 (per benefit_society 同模式)
 * ============================================================================
 
 version 19
@@ -13,12 +13,12 @@ if "$panel_dta" == "" global panel_dta "$data_dir/40_panel_yearly.dta"
 
 use "$panel_dta", clear
 
-* xtset (bank_id × year) — required by reghdfe, csdid, eventstudyinteract
+* xtset (bank_id × year) — reghdfe / csdid / eventstudyinteract 均要求先声明面板结构
 capture confirm variable bank_id
 if _rc encode target_bank, gen(bank_id)
 xtset bank_id year
 
-* Standard bank-level controls (per spec.controls)
+* 标准银行层面控制变量 (per spec.controls)
 * fix(omni-g-replication-01, 2026-06-11): 财务控制 (ln_assets 族) 为外部数据 sentinel
 * (config/银行面板2007-2025年.xlsx 待接入) — capture confirm 自校验拼装 $controls,
 * 防下游 reghdfe `$controls` r(111) 硬崩 (主线 01_data_prep 同模式)。
@@ -41,7 +41,7 @@ if "`_ctrl_missing'" != "" {
 * 让 robustness 与 main Table 2/3 用同一 controls 集合.
 global bank_controls "$controls"
 
-* Required-variable presence check (P2 treatment, pipeline 产出)
+* 必需变量存在性检查 (P2 treatment, pipeline 产出)
 capture confirm variable {{MAIN_TREAT}}
 if _rc {
     display as error "[ERROR] required P2 treatment {{MAIN_TREAT}} missing — run 14_fintech_intensity + stage 45 panel aggregation first"
@@ -56,7 +56,7 @@ if _rc {
     exit 198
 }
 
-* Optional winsor2 trimming (1%/99%) for outcome variable
+* 可选: 对 outcome 变量 winsor2 缩尾 (1%/99%)
 capture which winsor2
 if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
 else gen {{MAIN_DV}}_w = {{MAIN_DV}}

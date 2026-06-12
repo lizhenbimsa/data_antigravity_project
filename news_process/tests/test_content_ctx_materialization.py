@@ -297,7 +297,8 @@ class TestDownstreamConsumption23:
         """content_ctx 列完全不存在时的处理。"""
         df = pd.DataFrame({'内容': ['全文A', '全文B']})
         # 在实际代码中，如果 content_ctx 列不存在，会报 KeyError
-        # 这验证了阶段的依赖关系：23 必须在 21 之后运行
+        # 这验证了阶段的依赖关系：23 必须在物化 content_ctx 的阶段之后运行
+        # (规范物化自 v3.8.0 起在 stage 13 ctx_materializer, 不再是 stage 21)
         with pytest.raises(KeyError):
             _ = df['content_ctx']
 

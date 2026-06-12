@@ -65,11 +65,16 @@ def write_table1(paper_config: PaperConfig | None = None,
 
 
 # ============================================================================
-# Tables 2-5 from Stata esttab CSV output (filled at M5/M6)
+# Tables 2-5 读取 Stata esttab CSV 输出 (M5/M6 阶段填实)
 # ============================================================================
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 2: M1→M6 progressive main regression (collab_mode → M&A / R&D)."""
+    """Table 2: M1→M6 递进式主回归 (collab_mode → M&A / R&D).
+
+    白话: M1→M6 指主回归表的 6 列从左到右逐列加控制变量/固定效应,
+    让读者看到系数随控制加严是否稳定; 本函数只负责把 Stata esttab
+    导出的 CSV 读回 DataFrame, 回归本身在 .do 模板里跑。
+    """
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab(PAPER_ID, 'table2_main.csv', paper_config)

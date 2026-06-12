@@ -1,24 +1,25 @@
 * ============================================================================
-* 22_tableA9_external_validation.do — G4 J-L-M §3 external validation
+* 22_tableA9_external_validation.do — G4 J-L-M §3 外部效度验证
 * Paper: {{PAPER_ID}}
 *
-* V2.0 J-L-M 2026 robustness alignment plan §3 Phase 2 P2.G4:
-*   Validate benefit_mean_full against ≥2 firm-level THIRD-PARTY indicators
-*   (NCD spread / regulatory penalty / SOA rating; see plan §2 UA-2).
+* V2.0 J-L-M 2026 稳健性对齐计划 §3 Phase 2 P2.G4:
+*   用 ≥2 个银行层面第三方指标交叉验证 benefit_mean_full
+*   (NCD 利差 / 监管处罚 / SOA 评级; 见 plan §2 UA-2)。
+* 白话: 自建的"惠及社会"文本测度若是真的, 应该跟外部第三方数据对得上 —
+* 分数高的银行融资成本更低、被罚更少、评级更高; 对不上则测度可疑。
 *
-* Unit-of-observation note (V2.0 plan §2 M2 修正):
-*   J-L-M 2026 §3 uses country-year external Y (credit/GDP/Gini).
-*   benefit_society transposes the SAME methodology to bank-year external Y
-*   (firm-level), gaining identification strength via within-bank variation.
+* 观测单位说明 (V2.0 plan §2 M2 修正):
+*   J-L-M 2026 §3 用的是国家-年外部 Y (credit/GDP/Gini)。
+*   benefit_society 把同一方法学移植到 bank-year 外部 Y (公司层面),
+*   借银行内变异获得更强识别。
 *
-* Acceptance (AC-G4): ≥2 of 3 external Y exhibit sign-match per theory
-*   predicted direction (NCD spread ↓ / penalty ↓ / rating ↑ as benefit_mean ↑).
-*   P-value significance secondary; sign-match is hard requirement.
+* 验收标准 (AC-G4): 3 个外部 Y 中 ≥2 个的符号与理论预测方向一致
+*   (benefit_mean ↑ 时 NCD 利差 ↓ / 处罚 ↓ / 评级 ↑)。
+*   p 值显著性是次要的; 符号一致是硬性要求。
 *
-* USER ACTION REQUIRED (UA-2):
-*   Replace placeholders {{EXT_Y1}}, {{EXT_Y2}}, {{EXT_Y3}} with actual column
-*   names from CSMAR/Wind/银保监 merge. If <3 indicators available, drop
-*   accordingly and update mtitles().
+* 需用户操作 (UA-2):
+*   把占位符 {{EXT_Y1}}, {{EXT_Y2}}, {{EXT_Y3}} 替换为 CSMAR/Wind/银保监
+*   merge 后的真实列名。若可用指标 <3 个, 相应删列并同步更新 mtitles()。
 * ============================================================================
 
 version 19
@@ -32,10 +33,10 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* ----- 3 external Y regressions (PAP §3 + V2.0 plan P2.G4) -----
-* Each Y is firm-year level; predicted sign in parentheses.
+* ----- 3 个外部 Y 回归 (PAP §3 + V2.0 plan P2.G4) -----
+* 每个 Y 均为公司-年层面; 括号内为预测符号。
 
-* Y1: NCD spread (predicted ↓ as benefit_mean ↑)
+* Y1: NCD 利差 (预测: benefit_mean ↑ 时 ↓)
 capture confirm variable {{EXT_Y1}}
 if !_rc {
     reghdfe {{EXT_Y1}} {{ATTITUDE_VAR}} $controls, ///
@@ -46,7 +47,7 @@ else {
     display "[INFO] {{EXT_Y1}} not in panel (UA-2 pending); skipping column 1"
 }
 
-* Y2: Regulatory penalty count or amount (predicted ↓ as benefit_mean ↑)
+* Y2: 监管处罚次数或金额 (预测: benefit_mean ↑ 时 ↓)
 capture confirm variable {{EXT_Y2}}
 if !_rc {
     reghdfe {{EXT_Y2}} {{ATTITUDE_VAR}} $controls, ///
@@ -57,7 +58,7 @@ else {
     display "[INFO] {{EXT_Y2}} not in panel (UA-2 pending); skipping column 2"
 }
 
-* Y3: SOA / Wind rating (predicted ↑ as benefit_mean ↑)
+* Y3: SOA / Wind 评级 (预测: benefit_mean ↑ 时 ↑)
 capture confirm variable {{EXT_Y3}}
 if !_rc {
     reghdfe {{EXT_Y3}} {{ATTITUDE_VAR}} $controls, ///
@@ -68,8 +69,8 @@ else {
     display "[INFO] {{EXT_Y3}} not in panel (UA-2 pending); skipping column 3"
 }
 
-* ----- Sign-match acceptance scoreboard (V2.0 plan AC-G4) -----
-* Manually check β signs in output table; soft acceptance: ≥2/3 sign-match.
+* ----- 符号一致性验收记分板 (V2.0 plan AC-G4) -----
+* 在输出表中人工核对 β 符号; 软验收: ≥2/3 符号一致。
 
 esttab EXT_Y* using "$tables_dir/tableA9_external_validation.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///

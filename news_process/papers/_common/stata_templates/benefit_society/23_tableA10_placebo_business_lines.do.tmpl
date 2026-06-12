@@ -1,26 +1,28 @@
 * ============================================================================
-* 23_tableA10_placebo_business_lines.do — S1 J-L-M §4.2 placebo industries
+* 23_tableA10_placebo_business_lines.do — S1 J-L-M §4.2 placebo 业务线安慰剂检验
 * Paper: {{PAPER_ID}}
 *
-* V2.0 J-L-M 2026 robustness alignment plan §3 Phase 2 P2.S1:
-*   Apply MAIN 10-anchor fintech direction to NON-fintech article subsets
-*   (4 business lines + 1 neutral baseline). If main signal is fintech-
-*   specific, placebo β should be near-zero.
+* V2.0 J-L-M 2026 稳健性对齐计划 §3 Phase 2 P2.S1:
+*   把主测度的 10 锚点 fintech 方向向量套到"非 fintech"文章子集上
+*   (4 个业务线 + 1 个中性基线)。若主信号确为 fintech 特异,
+*   placebo β 应接近 0。
+* 白话: 用"金融科技"专用的尺子去量住房贷款、信用卡等不相干的新闻,
+* 量出来不应该再有解释力; 若 placebo 也显著, 说明主结果可能只是
+* 在捕捉笼统的"好消息"而非 fintech 本身。
 *
-* Acceptance (AC-S1, plan §4):
-*   |β_placebo / β_main_fintech| < 0.3 for >=4/5 placebo specs.
+* 验收标准 (AC-S1, plan §4):
+*   ≥4/5 个 placebo 规格满足 |β_placebo / β_main_fintech| < 0.3。
 *
-* Data dependency: this template expects the audit-only panel
+* 数据依赖: 本模板要求 audit-only 面板
 *   data/processed/27c_alt_anchor_and_placebo_panel.parquet
-* to be merged into _prepared_panel.dta with these columns:
+* 已 merge 进 _prepared_panel.dta, 含以下列:
 *   benefit_placebo_housing_loans_mean / _credit_cards_mean /
 *   _intermediate_business_mean / _branch_channel_mean / _general_corporate_mean
 *
-* Anchor design rationale (V2.0 plan §2 N2 + S1 design):
-*   J-L-M 2026 §4.2 changes anchors (coal/paper/tobacco) to test method
-*   generality. benefit_society inverts: keeps fintech anchors fixed, changes
-*   ARTICLE FILTER. If fintech anchors are domain-meaningful, projection onto
-*   non-fintech text should NOT predict ROA.
+* 锚点设计理据 (V2.0 plan §2 N2 + S1 design):
+*   J-L-M 2026 §4.2 是换锚点 (coal/paper/tobacco) 检验方法普适性;
+*   benefit_society 反向操作: 固定 fintech 锚点不动, 换"文章过滤器"。
+*   若 fintech 锚点确有领域含义, 投影到非 fintech 文本上不应预测 ROA。
 * ============================================================================
 
 version 19
@@ -34,14 +36,14 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* ----- Baseline: main fintech β (for scaling acceptance) -----
+* ----- 基线: 主 fintech β (作验收比例的分母) -----
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
 eststo P0_main
 scalar b_main = _b[{{ATTITUDE_VAR}}]
 display "[INFO] Main β reference: " b_main
 
-* ----- 4 business-line placebos -----
+* ----- 4 个业务线 placebo (+1 中性基线) -----
 local placebos housing_loans credit_cards intermediate_business branch_channel general_corporate
 local i = 1
 foreach pl of local placebos {
@@ -51,7 +53,7 @@ foreach pl of local placebos {
         reghdfe {{MAIN_DV}}_w `col' $controls, ///
             absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
         eststo P`i'_`pl'
-        * Acceptance check: |β_placebo / β_main| < 0.3
+        * 验收检查: |β_placebo / β_main| < 0.3
         scalar b_pl = _b[`col']
         scalar ratio_`pl' = abs(b_pl) / abs(b_main)
         scalar accept_`pl' = ratio_`pl' < 0.3
@@ -63,7 +65,7 @@ foreach pl of local placebos {
     local i = `i' + 1
 }
 
-* ----- Final acceptance tally -----
+* ----- 最终验收计数 -----
 quietly {
     scalar n_accept = 0
     foreach pl of local placebos {

@@ -40,7 +40,7 @@ news_process.pipeline.filtering.news_bank — 阶段11：银行新闻判断
     - 减少不必要的 DataFrame 深拷贝
 
 输入：
-    阶段1输出的 Parquet 文件（``00_preprocessing.parquet``）
+    阶段 00 输出的 Parquet 文件（``00_preprocessing.parquet``）
 
 输出：
     仅保留判定为银行新闻的记录，并展开为 firm-document 级（每家合格银行生成一条

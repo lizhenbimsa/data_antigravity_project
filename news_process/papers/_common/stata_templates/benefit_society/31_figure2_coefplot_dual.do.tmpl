@@ -1,10 +1,10 @@
 * ============================================================================
-* 31_figure2_coefplot_dual.do — Coefplot dual-track visual (benefit_society)
+* 31_figure2_coefplot_dual.do — 双轨系数对比图 Coefplot (benefit_society)
 * Paper: {{PAPER_ID}}
 *
-* PAP v1.0-final §2 H3 visual evidence:
-*   6 coefficient × CI bars across 2 tracks × 3 dimensions.
-* Output: PDF + PNG (F-R10-L1).
+* PAP v1.0-final §2 H3 视觉证据:
+*   2 轨 × 3 维度共 6 根系数 × CI 误差条。
+* 输出: PDF + PNG 双格式 (F-R10-L1)。
 * ============================================================================
 
 version 19
@@ -72,7 +72,7 @@ if !_rc {
     * 渐近 cluster CI (boottest 置信集从未进图), 旧注 'Wild cluster bootstrap
     * inference' 与图内 CI 来源不符; WCB p 由 21_tableA2 estadd 进表后在表层呈现。
 
-    * Dual-format output per F-R10-L1
+    * 按 F-R10-L1 双格式输出
     graph export "$figures_dir/figure2_coefplot_dual.pdf", replace
     graph export "$figures_dir/figure2_coefplot_dual.png", replace width(1200)
     display "[OK] Figure 2 saved (PDF + PNG) to $figures_dir/"

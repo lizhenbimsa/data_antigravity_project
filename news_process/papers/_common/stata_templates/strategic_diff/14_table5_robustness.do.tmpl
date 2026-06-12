@@ -1,10 +1,10 @@
 * ============================================================================
-* 14_table5_robustness.do — Robustness (strategic_diff)
+* 14_table5_robustness.do — 稳健性 (strategic_diff)
 * Paper: {{PAPER_ID}}
 *
-* R1-R5: N=3, 4, 5, 6, 7 sensitivity (Bresnahan-Reiss 1991)
-* R6: Centroid distance (谢佳松 2025, 经济研究)
-* R7: Ctx-track replacement
+* R1-R5: 邻居数 N=3, 4, 5, 6, 7 敏感性 (Bresnahan-Reiss 1991)
+* R6: 质心距离 (centroid distance) (谢佳松 2025, 经济研究)
+* R7: 换用 ctx 轨度量 (full/ctx 双轨互为稳健性)
 * ============================================================================
 
 version 19
@@ -16,7 +16,7 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-* R1-R5: N=3..7 sensitivity
+* R1-R5: 邻居数 N=3..7 敏感性
 forvalues n = 3/7 {
     capture confirm variable strat_diff_n`n'
     if !_rc {
@@ -49,7 +49,7 @@ else {
     display as error "[WARN] table5a 无任何 strat_diff_n* 估计; 表跳过"
 }
 
-* R6: Centroid distance (4 methods)
+* R6: 质心距离 (4 种文本表示方法)
 foreach m in tfidf_c tfidf_w lda emb {
     capture confirm variable centroid_diff_`m'
     if !_rc {
@@ -86,7 +86,7 @@ else {
     display as error "[WARN] table5b 无任何 centroid_diff_* 估计; 表跳过"
 }
 
-* R7: Ctx-track
+* R7: ctx 轨替换
 capture confirm variable strat_diff_n5_ctx
 if !_rc {
     reghdfe {{MAIN_DV}}_w strat_diff_n5_ctx $controls, ///

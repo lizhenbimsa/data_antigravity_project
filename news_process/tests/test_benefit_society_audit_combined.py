@@ -1,8 +1,8 @@
-"""Tests for benefit_society_audit_combined (P1.6 + 27c thin shim).
+"""benefit_society_audit_combined (P1.6 + 27c thin shim) 测试。
 
-V2.0 J-L-M robustness alignment plan §3 Phase 1 P1.9 (P1.6 portion).
-Validate-only path tests; full projection requires sentence_transformers
-(integration-marked).
+V2.0 J-L-M 稳健性对齐计划 §3 Phase 1 P1.9 (P1.6 部分)。
+仅测 validate-only 路径; 完整 projection 需要 sentence_transformers
+(标记为 integration)。
 """
 
 from __future__ import annotations
@@ -26,13 +26,13 @@ class TestCLIValidate:
         assert rc == 0
 
     def test_no_args_warns_and_exits_clean(self) -> None:
-        """Without input flags, yaml schemas are validated; CLI exits 0 with warning."""
+        """不带输入参数时仅校验 yaml schema; CLI 发警告并退出码 0。"""
         rc = benefit_society_audit_combined.main([])
         assert rc == 0
 
 
 # ============================================================================
-# build_audit_panel (mock embedding path) — pure-Python, no sentence_transformers
+# build_audit_panel (mock embedding 路径) — 纯 Python, 不依赖 sentence_transformers
 # ============================================================================
 
 
@@ -46,46 +46,46 @@ class TestBuildAuditPanelMock:
                 "内容": ["y"],
             }
         )
-        emb = np.zeros((3, 8))  # wrong length
+        emb = np.zeros((3, 8))  # 长度不匹配
         direction = np.zeros(8)
         with pytest.raises(ValueError, match="length mismatch"):
             benefit_society_audit_combined.build_audit_panel(df, emb, direction)
 
 
 # ============================================================================
-# 27c thin shim — script invocation
+# 27c thin shim — 脚本调用形态
 # ============================================================================
 
 
 class TestThinShim:
     def test_27c_shim_is_short(self) -> None:
-        """Shim ≤30 lines per CLAUDE.md invariant."""
+        """按 CLAUDE.md 不变量, shim 应 ≤30 行。"""
         path = Path(__file__).resolve().parents[1] / "27c_placebo_and_alt_anchor.py"
-        # actually news_process root, not tests root — adjust
+        # 实际在 news_process 根目录而非 tests 根 — 此处做路径调整
         shim_path = (
             Path(__file__).resolve().parents[1] / "27c_placebo_and_alt_anchor.py"
         )
         if not shim_path.exists():
-            # tests is under news_process/tests/; shim is at news_process/
+            # tests 在 news_process/tests/ 下; shim 在 news_process/ 根
             shim_path = Path(__file__).resolve().parent.parent / "27c_placebo_and_alt_anchor.py"
         assert shim_path.exists(), f"shim not found: {shim_path}"
-        # CLAUDE.md hard cap: ≤30 lines
+        # CLAUDE.md 硬上限: ≤30 行
         with open(shim_path, encoding="utf-8") as f:
             nlines = sum(1 for _ in f)
         assert nlines <= 30, f"27c shim has {nlines} lines > 30 cap"
 
     def test_27c_shim_imports_main_only(self) -> None:
-        """Shim contains exactly one import-and-delegate pattern (no logic)."""
+        """shim 应仅含"导入并转发"模式 (无业务逻辑)。"""
         shim_path = (
             Path(__file__).resolve().parent.parent / "27c_placebo_and_alt_anchor.py"
         )
         text = shim_path.read_text(encoding="utf-8")
-        # Must import main from pipeline.features.benefit_society_audit_combined
+        # 必须从 pipeline.features.benefit_society_audit_combined 导入 main
         assert (
             "from news_process.pipeline.features.benefit_society_audit_combined import main"
             in text
         )
-        # Must call sys.exit(main()) under __main__ guard
+        # 必须在 __main__ guard 下调用 sys.exit(main())
         assert "sys.exit(main())" in text
 
 
@@ -97,7 +97,7 @@ class TestThinShim:
 class TestSidecarJSON:
     def test_sidecar_json_written(self, tmp_path) -> None:
         panel_path = tmp_path / "audit_panel.parquet"
-        # Don't actually write parquet; just verify sidecar.json
+        # 不实际写 parquet; 只验证 sidecar.json
         meta = {
             "alt_anchor_yaml_sha256": "abc",
             "placebo_keyword_yaml_sha256": "def",
@@ -149,25 +149,25 @@ def test_build_audit_panel_happy_path_mocked(tmp_path, monkeypatch):
     text_embeddings = np.random.RandomState(42).randn(n, emb_dim).astype(np.float32)
     main_direction = np.random.RandomState(43).randn(emb_dim).astype(np.float32)
 
-    # Mock SentenceTransformer constructor + encode
+    # Mock SentenceTransformer 构造器 + encode
     fake_st = MagicMock()
     fake_st.encode = lambda texts, show_progress_bar=False: np.zeros(
         (len(texts), emb_dim), dtype=np.float32)
     with patch('sentence_transformers.SentenceTransformer',
                return_value=fake_st):
-        # Mock helpers to skip yaml IO (use fake anchors/keywords)
+        # Mock 各 helper 以跳过 yaml IO (使用伪造锚点/关键词)
         fake_pos = ['pos1', 'pos2']
         fake_neg = ['neg1', 'neg2']
         fake_alt_meta = {'yaml_sha256': 'fakealtanchor'}
         with patch.object(mod, 'load_jlm_zh_anchors',
                            return_value=(fake_pos, fake_neg, fake_alt_meta)):
-            # _alt_direction returns unit vector
+            # _alt_direction 返回单位向量
             with patch.object(mod, '_alt_direction',
                                return_value=np.ones(emb_dim, dtype=np.float32)):
-                # _alt_project returns array of scores
+                # _alt_project 返回得分数组
                 with patch.object(mod, '_alt_project',
                                    return_value=np.array([0.1, 0.2, 0.3])):
-                    # _alt_aggregate returns minimal panel
+                    # _alt_aggregate 返回最小 panel
                     alt_panel = pd.DataFrame({
                         'target_bank': ['A', 'B'],
                         'year': [2018, 2018],
@@ -175,7 +175,7 @@ def test_build_audit_panel_happy_path_mocked(tmp_path, monkeypatch):
                     })
                     with patch.object(mod, '_alt_aggregate',
                                        return_value=alt_panel):
-                        # placebo helpers
+                        # placebo 相关 helper
                         fake_placebo_meta = {'yaml_sha256': 'fakeplacebo'}
                         with patch.object(
                                 mod, 'load_placebo_keywords',

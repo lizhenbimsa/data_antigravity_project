@@ -62,14 +62,14 @@ def detect_unit_mismatch(field_name: str, value: Any) -> bool:
 # 字段验证
 # ---------------------------------------------------------------------------
 def validate_field(field_name: str, value: Any) -> tuple[bool, str]:
-    """Validate a single field's type and range.
+    """校验单个字段的类型与取值范围.
 
     Returns
     -------
     (is_valid, error_msg)
     """
     if value is None:
-        return True, ""  # null is acceptable (missing data)
+        return True, ""  # null 可接受 (缺失数据)
     if field_name not in EXPECTED_FIELDS:
         return False, f"unknown field: {field_name}"
 
@@ -89,7 +89,7 @@ def validate_field(field_name: str, value: Any) -> tuple[bool, str]:
 
 
 def validate_record(parsed: dict) -> tuple[dict, list[str]]:
-    """Validate all fields in a parsed record.
+    """校验解析记录中的全部字段.
 
     Returns
     -------
@@ -126,26 +126,26 @@ def validate_record(parsed: dict) -> tuple[dict, list[str]]:
 # Bank-year panel 构建
 # ---------------------------------------------------------------------------
 def records_to_panel(records: list[dict], bank_id_lookup: dict[str, str] | None = None) -> pd.DataFrame:
-    """Convert extraction records to bank-year DataFrame.
+    """把抽取记录转换为 bank-year DataFrame.
 
     Parameters
     ----------
     records : list of dict
-        Each dict must have 'response_parsed' (the validated fields) + 'pdf_path' (for bank_id inference)
+        每个 dict 须含 'response_parsed' (已校验字段) + 'pdf_path' (用于推断 bank_id)
     bank_id_lookup : optional
-        ``{bank_name -> target_bank}`` mapping. ``target_bank`` is the canonical
-        identifier used by the main pipeline panel ([40_panel_yearly.parquet]);
-        if None, falls back to ``bank_name`` verbatim.
+        ``{bank_name -> target_bank}`` 映射。``target_bank`` 是主管线面板
+        ([40_panel_yearly.parquet]) 使用的规范标识符; None 时按 ``bank_name``
+        原样回退。
 
     Returns
     -------
-    DataFrame with columns:
+    含以下列的 DataFrame:
         bank_id, bank_name, year, total_assets, npl, car, profit, retail_dep, info_tech, source_pdf
 
     Note
     ----
-    The returned column ``bank_id`` is the lookup result — when merging with the
-    main panel, rename to ``target_bank`` to align with pipeline convention.
+    返回列 ``bank_id`` 即 lookup 结果 — 与主面板 merge 时请重命名为
+    ``target_bank`` 以对齐 pipeline 约定。
     """
     rows: list[dict] = []
     for rec in records:
@@ -185,7 +185,7 @@ def records_to_panel(records: list[dict], bank_id_lookup: dict[str, str] | None 
     if df.empty:
         return df
 
-    # Deduplicate (keep latest source_pdf for each bank-year)
+    # 去重 (每个 bank-year 保留 source_pdf 排序最后的一条)
     df = df.sort_values(["bank_id", "year", "source_pdf"])
     df = df.drop_duplicates(subset=["bank_id", "year"], keep="last").reset_index(drop=True)
     return df
@@ -200,11 +200,13 @@ def flag_outliers(
     numeric_cols: tuple[str, ...] = ("total_assets", "npl", "car", "profit", "retail_dep", "info_tech"),
     sd_threshold: float = 3.0,
 ) -> pd.DataFrame:
-    """Add boolean ``outlier_<col>`` columns flagging values > sd_threshold robust SD from median.
+    """新增布尔列 ``outlier_<col>``, 标记偏离中位数超过 sd_threshold 个稳健 SD 的值.
 
-    Uses MAD (median absolute deviation) scaled by 1.4826 as a robust SD estimator
-    (Rousseeuw & Croux 1993). MAD is not inflated by the outliers it is meant to
-    detect, unlike sample SD.
+    用 MAD (中位数绝对偏差) × 1.4826 作为稳健 SD 估计量 (Rousseeuw & Croux 1993)。
+    与样本 SD 不同, MAD 不会被它要检测的离群值本身推大。
+
+    白话: 如果用普通标准差找离群值, 离群值自己会把标准差撑大、反而藏住自己;
+    MAD 用"到中位数的距离的中位数", 对极端值不敏感, 找得更准。
     """
     df = df.copy()
     for col in numeric_cols:
@@ -213,7 +215,7 @@ def flag_outliers(
         med = df[col].median()
         deviations = (df[col] - med).abs()
         mad = deviations.median()
-        robust_sd = 1.4826 * mad  # scale factor under Gaussian assumption
+        robust_sd = 1.4826 * mad  # 高斯分布假设下 MAD→SD 的换算系数
         if not np.isfinite(robust_sd) or robust_sd == 0:
             df[f"outlier_{col}"] = False
             continue
@@ -266,10 +268,10 @@ def triangulate_with_annual_report(
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry: convert NCD extraction records JSON to bank-year panel parquet.
+    """CLI 入口: 把 NCD 抽取记录 JSON 转换为 bank-year panel parquet。
 
-    Performs schema validation, outlier flagging, and optional R11 triangulation
-    against annual-report data. Returns 0 on success, 1 if input JSON not found.
+    执行 schema 校验、离群值标记, 以及可选的 R11 与年报数据三角互证。
+    成功返回 0, 输入 JSON 不存在返回 1。
     """
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.ncd_field_parser",

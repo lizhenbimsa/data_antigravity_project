@@ -56,16 +56,18 @@ def sanitize_stata_columns(columns: Sequence[str],
     Returns:
         长度等于 ``len(columns)`` 的清洗后列名列表 (全部 ≤32 字符、唯一、合法)。
     """
-    # S3 fix v2 (2026-05-30): delegate to the canonical 46-path sanitizer
-    # (stata_export.shorten_long_column_names → asciify_non_ascii_columns, IN THAT
-    # ORDER, exactly as stage 46 applies them at stata_export.py:643/654) so the
-    # 40-path (pipeline/panel/export.py calls THIS function) and the 46-path emit
-    # BYTE-IDENTICAL Stata names — eliminating the two-divergent-name-sets defect
-    # entirely. The earlier fix only removed pos/neg collisions but still diverged
-    # at 125/2129 cols (base_len=28 vs the 46-path's 32-char truncation/abbrev).
-    # Single source of truth = stata_export; lazy import keeps it leaf-safe
-    # (stata_export imports neither tables nor export → no cycle).
-    # max_len is honored as the 46-path's 32-char Stata-14+ cap.
+    # S3 fix v2 (2026-05-30): 委托给规范的 46-path 清洗器
+    # (stata_export.shorten_long_column_names → asciify_non_ascii_columns, 顺序
+    # 严格一致, 与 stage 46 在 stata_export.py:643/654 的施加顺序相同), 使
+    # 40-path (pipeline/panel/export.py 调用本函数) 与 46-path 产出**字节级一致**
+    # 的 Stata 列名 — 彻底消除两套名字分叉的缺陷。早先的修复只消除了 pos/neg
+    # 碰撞, 仍有 125/2129 列分叉 (base_len=28 vs 46-path 的 32 字符截断/缩写)。
+    # 单一可信源 = stata_export; lazy import 保持叶子安全
+    # (stata_export 既不 import tables 也不 import export → 无环)。
+    # max_len 实际生效值即 46-path 的 32 字符 Stata-14+ 上限。
+    # 白话: 这个项目有两条路径会把列名转成 Stata 合法名, 以前两条路径各转各的,
+    # 同一列在两份 .dta 里可能叫不同名字; 现在统一让本函数直接调用 stage 46
+    # 那套转换, 保证两边出来的名字一个字节都不差。
     import pandas as _pd
 
     from news_process.pipeline.panel.stata_export import (
@@ -75,9 +77,9 @@ def sanitize_stata_columns(columns: Sequence[str],
         shorten_long_column_names as _shorten,
     )
 
-    # Pre-process the two things the 46-path does NOT do: ()/（）→ _ and
-    # empty / all-underscore → col_<i> (panel & derivative-paper columns may carry
-    # parens; the 46-path assumes already-paren-free names).
+    # 预处理 46-path 不做的两件事: ()/（）→ _ 以及
+    # 空名/全下划线名 → col_<i> (面板与衍生论文的列名可能带括号;
+    # 46-path 假定输入已无括号)。
     pre: list[str] = []
     _seen_pre: dict[str, int] = {}
     for i, raw in enumerate(columns):
@@ -85,11 +87,10 @@ def sanitize_stata_columns(columns: Sequence[str],
         c = c.replace('（', '_').replace('）', '_')
         if not c or not c.strip('_'):
             c = f'col_{i}'
-        # Disambiguate genuine DUPLICATE input names: the 46-path md5 collision
-        # suffix hashes the (original) string, so identical inputs would hash to
-        # the same name and stay collided. Real DataFrame columns are unique, so
-        # this is a no-op on the panel (byte-identity with the 46-path preserved)
-        # — it only hardens the general-purpose utility against duplicate inputs.
+        # 对真正重复的输入名消歧: 46-path 的 md5 碰撞后缀是对 (原始) 字符串取
+        # 哈希, 相同输入会哈希出相同名字、依旧碰撞。真实 DataFrame 列本就唯一,
+        # 故此步对面板是 no-op (与 46-path 的字节级一致性不受影响) —
+        # 仅加固通用工具对重复输入的鲁棒性。
         if c in _seen_pre:
             _seen_pre[c] += 1
             c = f'{c}_{_seen_pre[c]}'

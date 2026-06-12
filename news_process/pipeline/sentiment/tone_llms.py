@@ -217,7 +217,7 @@ def _compute_retry_sleep(attempt: int) -> float:
 
 
 def build_llm_timeout() -> aiohttp.ClientTimeout:
-    """Create a conservative timeout profile for high-volume validation calls."""
+    """为大批量验证调用构造保守的超时配置 (total/connect/sock 各维独立)。"""
     return aiohttp.ClientTimeout(
         total=REQUEST_TIMEOUT_TOTAL,
         connect=REQUEST_TIMEOUT_CONNECT,
@@ -227,7 +227,7 @@ def build_llm_timeout() -> aiohttp.ClientTimeout:
 
 
 def build_llm_connector(limit: int) -> aiohttp.TCPConnector:
-    """Build the shared LLM connector with an explicit per-host cap."""
+    """构建共享 LLM TCP connector, 显式限制单 host 连接数上限。"""
     safe_limit = max(1, int(limit))
     return aiohttp.TCPConnector(
         limit=safe_limit,
@@ -239,7 +239,7 @@ def build_llm_connector(limit: int) -> aiohttp.TCPConnector:
 
 
 class AsyncRequestPacer:
-    """Serialize request starts so large validation batches do not burst."""
+    """串行化请求起跑时刻, 防止大批量验证请求瞬时突发 (burst) 打爆限流。"""
 
     def __init__(self, spacing_seconds: float = 0.0):
         self.spacing_seconds = max(0.0, float(spacing_seconds or 0.0))
@@ -259,13 +259,13 @@ class AsyncRequestPacer:
 
 
 def build_model_pacers(models: list, spacing_seconds: float = 0.0) -> dict:
-    """Build one request-start pacer per model."""
+    """为每个模型各建一个请求起跑节流器 (pacer); 间距为 0 时返回空 dict。"""
     spacing = max(0.0, float(spacing_seconds or 0.0))
     return {m['model_name']: AsyncRequestPacer(spacing) for m in models} if spacing > 0 else {}
 
 
 class AsyncModelAvailability:
-    """Per-run circuit breaker for permanent model failures."""
+    """单轮 run 级断路器 (circuit breaker): 标记永久失败模型, 跳过其后续请求。"""
 
     def __init__(self):
         self._disabled: dict[str, str] = {}
@@ -297,7 +297,7 @@ class AsyncModelAvailability:
             self._preflighted.add(model_id)
 
     async def note_transient_failure(self, model_id: str, reason: str, row_idx: int) -> None:
-        """Record a one-off transport/server failure without disabling the model."""
+        """记录一次性传输/服务端故障 (不停用模型, 仅把该次结果从投票剔除)。"""
         logger.info(f"[{model_id}] 行 {row_idx}: {reason}，该次结果将从投票中排除")
 
 
@@ -305,7 +305,7 @@ AUTH_FAILURE_STATUSES = {401, 403}
 
 
 def _summarize_auth_failure(status: int, resp_text: str) -> str:
-    """Return a compact, secret-free authorization failure summary."""
+    """返回简洁且不含密钥的授权失败摘要 (截断长消息, 剥离 request id)。"""
     message = ""
     try:
         payload = json.loads(resp_text or "{}")
@@ -392,7 +392,7 @@ async def preflight_model_availability(
     models: list,
     model_availability: AsyncModelAvailability,
 ) -> None:
-    """Probe model authorization once before a high-volume batch starts."""
+    """大批量请求开跑前对各模型做一次授权探活 (preflight); 401/403 即停用该模型。"""
     probe_timeout = aiohttp.ClientTimeout(
         total=AUTH_PROBE_TIMEOUT,
         connect=min(AUTH_PROBE_TIMEOUT, REQUEST_TIMEOUT_CONNECT),
@@ -488,6 +488,13 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
 
     Returns:
         tuple: (row_idx, model_id, result_text, track)
+
+    白话: 每次问大模型之前先查"账本"(_llm_cache.db): 账本的索引由
+    模型名 + 完整 prompt 文本 + prompt 版本号 + temperature 共同决定,
+    任何一个字符变了都算新问题。查到了就直接用旧答案 (不花钱、结果
+    永远一样); 查不到才真去调付费 API, 拿到合格答案后先记归档再记账本。
+    这也是为什么 prompt 模板一个字都不能改 —— 改了索引就全对不上,
+    13 万条旧答案全部作废, 得重新花钱问一遍。
     """
     model_id = model_cfg['model_name']
     base_url = model_cfg.get('base_url', '')
@@ -691,7 +698,8 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
     """逐条并发执行 DataFrame 中所有行对所有配置模型的双轨请求。
     
     为每行 × 每模型 × 每轨道 生成独立 prompt，通过信号量控制并发数。
-    要求 df 中已包含 'content_ctx' 列（由 main() 预计算并物化）。
+    要求 df 中已包含 'content_ctx' 列（标准 DAG 由 stage 13 ctx_materializer
+    物化; 跳过 stage 13 时由 main() 的备援路径兜底物化）。
     
     Returns:
         dict: {row_idx: {'full': {model_id: res_text}, 'ctx': {model_id: res_text}}}
@@ -856,7 +864,7 @@ def majority_vote_categorical(
 
 
 def _resolve_locus_track(innov_loci_track: list, topics_track: list) -> tuple:
-    """Resolve locus label + confidence for a single track (full or ctx)。
+    """解析单一轨道 (full 或 ctx) 的 locus 标签 + 置信度。
 
     Returns (label, confidence)。Plan v14 §3.1 P1.5: 双轨平局策略对称。
     原为 main() 内联闭包, 提取为模块级以便 import-based 回归测试。
@@ -1092,36 +1100,40 @@ VALID_BINARY_LABELS = {
 
 
 def compute_prob_score_binary(label, confidence, positive_class) -> dict:
-    """Binary prob_score ∈ [0, 1] for innovation_substantiveness / innovation_locus / innovation_collab_mode.
+    """二分类 prob_score ∈ [0, 1], 用于 innovation_substantiveness / innovation_locus / innovation_collab_mode。
 
-    Plan v1.37 P2 §5.2-5.3.1; mirrors the 3-class compute_prob_score
-    semantics for binary labels. Returns {prob_score, prob_source} with
-    prob_source ∈ {"P2_BIN", "P3_BIN"} (parallel to existing P2/P3 codes).
+    Plan v1.37 P2 §5.2-5.3.1; 镜像 3-class compute_prob_score 在二分类
+    标签下的语义。返回 {prob_score, prob_source}, 其中
+    prob_source ∈ {"P2_BIN", "P3_BIN"} (与既有 P2/P3 代码并行)。
 
-    Academic anchors:
+    学术锚点 (原文保留):
       - Cover & Thomas (2006) §2 — Bernoulli/binary entropy.
-      - Jaynes (1957) — historical max-entropy framing; binary case
-        reduces to direct normalization (single linear constraint).
-      - Törnberg (2024) — LLM verbalized confidence → continuous indicator.
-      - Shapiro/Sudhof/Wilson (2022 J.Econometrics) — continuous LHS.
-      - Platt 1999 NOT used; De Kok 2025 NOT applicable (3-class only).
+      - Jaynes (1957) — 最大熵的历史框架; 二分类情形退化为直接归一化
+        (单一线性约束)。
+      - Törnberg (2024) — LLM verbalized confidence → 连续指标。
+      - Shapiro/Sudhof/Wilson (2022 J.Econometrics) — 连续因变量。
+      - Platt 1999 未使用; De Kok 2025 不适用 (仅 3-class)。
 
-    Derivation: LLM emits predicted label ℓ ∈ {0, 1} with verbalized
-    confidence c (interpretation P(ℓ|x) = c). Normalization gives
-    P(¬ℓ|x) = 1 − c. Downstream relabeling: prob_score = P(positive_class|x)
-    equals c if ℓ == positive_class, else 1 − c. The positive_class
-    assignment is downstream econometric encoding only.
+    推导: LLM 输出预测标签 ℓ ∈ {0, 1} 与自报置信度 c (解释为 P(ℓ|x) = c)。
+    归一化得 P(¬ℓ|x) = 1 − c。下游重标记: prob_score = P(positive_class|x),
+    若 ℓ == positive_class 则等于 c, 否则等于 1 − c。positive_class 的指定
+    仅是下游计量编码约定, 不含价值判断。
 
-    Input domain validation (plan §5.3.1, R29A-01 / R20A-01):
+    输入域校验 (plan §5.3.1, R29A-01 / R20A-01):
       - positive_class ∉ VALID_BINARY_LABELS → (NaN, "P3_BIN")  [Rule 0]
-      - label is None / confidence is None → (NaN, "P3_BIN")
+      - label 为 None / confidence 为 None → (NaN, "P3_BIN")
       - label ∉ VALID_BINARY_LABELS → (NaN, "P3_BIN")
-      - confidence outside [0, 1] (1.0001 / -0.0001 rounding) → (NaN, "P3_BIN")
-      - confidence == 0 → one-hot fallback (label==positive_class → 1.0;
-        else → 0.0), "P3_BIN".  Discontinuity intentional per plan §5.3.1
-        design clarification (parallel to 3-class P3 at L757-760).
-      - label == positive_class, 0 < c ≤ 1 → (c, "P2_BIN")
-      - label != positive_class, 0 < c ≤ 1 → (1 − c, "P2_BIN")
+      - confidence 越出 [0, 1] (如 1.0001 / -0.0001 舍入) → (NaN, "P3_BIN")
+      - confidence == 0 → one-hot 回退 (label==positive_class → 1.0;
+        否则 → 0.0), "P3_BIN"。该不连续点为 plan §5.3.1 设计澄清的刻意
+        行为 (与 3-class P3 路径平行)。
+      - label == positive_class 且 0 < c ≤ 1 → (c, "P2_BIN")
+      - label != positive_class 且 0 < c ≤ 1 → (1 − c, "P2_BIN")
+
+    白话: 模型只在两个选项里二选一并附一个把握度 c。若它选的是我们
+    编码为 1 的那一类, 分数就是 c; 选的是另一类, 分数就是 1−c
+    (它有 c 的把握不是这一类)。把握度缺失或不在 0~1 之间属于答非所问,
+    直接记 NaN 不入聚合。
     """
     if positive_class not in VALID_BINARY_LABELS:
         return {"prob_score": float("nan"), "prob_source": "P3_BIN"}
@@ -1136,7 +1148,7 @@ def compute_prob_score_binary(label, confidence, positive_class) -> dict:
     if c < 0.0 or c > 1.0:
         return {"prob_score": float("nan"), "prob_source": "P3_BIN"}
     if c == 0.0:
-        # One-hot fallback (intentional discontinuity per plan §5.3.1)
+        # one-hot 回退 (plan §5.3.1 设计澄清的刻意不连续点)
         return {
             "prob_score": 1.0 if label == positive_class else 0.0,
             "prob_source": "P3_BIN",
@@ -1189,6 +1201,14 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             avg_locus_prob_score: Binary prob_score for locus (positive_class=应用场景) ∈ [0, 1]
             avg_collab_prob_score (v3.4.0): Binary prob_score for collab_mode
                                             (positive_class=外部协同) ∈ [0, 1]
+
+    白话: 三个大模型各自独立读同一篇新闻, 各投两票: 第一票"这是不是
+    银行金融科技新闻"(真伪), 第二票"语气是正面/中性/负面"(情感)。
+    真伪票按"过半数"裁定; 情感票只数那些第一票投了"是"的模型 (认为
+    新闻不相关的模型, 它的情感意见不作数)。情感票打成平手时不硬判
+    中性, 而是标记"未定"留给下游剔除 —— 因为"真中性"和"吵不出结果"
+    是两回事。模型调用失败或答非所问 (JSON 解析不出) 按"缺席"处理,
+    既不投票也不充当反对票。
     """
     v_votes = []
     s_votes_all = []           # 所有成功调用模型的 sentiment（含 verified=False 模型）
@@ -1202,10 +1222,9 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
 
     for m in models:
         short = m['short_name']
-        # Plan v1.37 P2 §5.3.1 Step A (R19B-01 + R20A-01): unconditional
-        # default-init for the innovation keys at the top of each model
-        # iteration. Covers BOTH the API-failure `continue` branch AND
-        # the normal parsing branch (overwritten below for valid labels).
+        # Plan v1.37 P2 §5.3.1 Step A (R19B-01 + R20A-01): 每轮模型迭代开头
+        # 无条件 default-init 全部 innovation 键 — 同时覆盖 API 失败的
+        # `continue` 分支与正常解析分支 (合法标签在下方覆写)。
         # v3.4.0 BREAKING: 第三维度 innovation_collab_mode 加入 (additive supplementation
         # per Nosek 2018 PNAS; v7 substantiveness/locus 语义不变).
         per_model_parsed[f"{short}_innovation_locus"] = None
@@ -1303,8 +1322,8 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
                 if part in ('底层技术', '应用场景'):
                     if v:
                         innov_loci.append(part)
-                    # Plan v1.37 P2 §5.3.1 Step A: overwrite per-model
-                    # default-None label with the canonical accepted value.
+                    # Plan v1.37 P2 §5.3.1 Step A: 用 canonical 接受值
+                    # 覆写逐模型 default-None 标签。
                     per_model_parsed[f"{short}_innovation_locus"] = part
                     break
 
@@ -1316,8 +1335,8 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             if tt_str in ('实质性', '象征性'):
                 if v:  # fix(omni-g-tonellms-09): verified 门控, 同上
                     innov_substs.append(tt_str)
-                # Plan v1.37 P2 §5.3.1 Step A: overwrite per-model
-                # default-None label with the canonical accepted value.
+                # Plan v1.37 P2 §5.3.1 Step A: 用 canonical 接受值
+                # 覆写逐模型 default-None 标签。
                 per_model_parsed[f"{short}_innovation_substantiveness"] = tt_str
 
         # v3.4.0: innovation_collab_mode (Chesbrough 2003 Open Innovation + L&S 2006 SMJ
@@ -1386,15 +1405,15 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     undefined = 1 if (final_v and final_s is None) else 0
 
     prob_scores = []
-    # Plan v1.37 P2 §5.3.1 Step B: per-model binary prob_score for
-    # substantiveness (positive_class="象征性"), locus
-    # (positive_class="应用场景"), and v3.4.0 collab_mode
-    # (positive_class="外部协同"). Positive-class choice aligns with
-    # stata_export.py value_labels (1=对照 / 1=象征性 / 1=应用场景 / 1=外部协同).
+    # Plan v1.37 P2 §5.3.1 Step B: 逐模型 binary prob_score —
+    # substantiveness (positive_class="象征性") / locus
+    # (positive_class="应用场景") / v3.4.0 collab_mode
+    # (positive_class="外部协同")。positive_class 选取与
+    # stata_export.py value_labels 对齐 (1=对照 / 1=象征性 / 1=应用场景 / 1=外部协同)。
     subst_prob_scores = []
     locus_prob_scores = []
     collab_prob_scores = []
-    import numpy as _np  # local import to avoid top-level dependency conflict
+    import numpy as _np  # 局部 import, 避免顶层依赖冲突
     for m in models:
         short = m['short_name']
         s_label = per_model_parsed.get(f"{short}_sentiment")
@@ -1485,7 +1504,8 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     22_tone_words 和 23_tone_berts 直接读取此列，避免重复计算
     并确保三种情感分析方法对完全一致的文本进行分析。
 
-    窗口参数从 config.yaml 的 context_window 节读取，确保参数
+    窗口参数从 config/filtering.yaml 的 context_window 节读取 (经
+    load_config 合并; legacy 单文件 config.yaml 仅为 stub)，确保参数
     可追溯性和审计透明度：
       - sentence_radius: 句子级窗口半径（默认 1 = 命中句前后各1句）
       - fallback_char_radius: 文本过短时的字符级回退半径
@@ -1513,7 +1533,7 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: 增加了 'content_full' / 'content_ctx' / 'ctx_is_fallback'
         列的 DataFrame。
     """
-    # 从 config.yaml 读取窗口参数（显式参数化，取代函数默认值）
+    # 从 config (split: filtering.yaml) 读取窗口参数（显式参数化，取代函数默认值）
     _ctx_cfg = CONFIG.get('context_window', {})
     _sentence_radius = _ctx_cfg.get('sentence_radius', 1)
     _fallback_char_radius = _ctx_cfg.get('fallback_char_radius', 150)
@@ -1755,8 +1775,8 @@ def main():
                 for track in ['_full', '_ctx']:
                     df[f'{short}_prob_score{track}'] = _np.nan
                     df[f'{short}_prob_source{track}'] = 'MISSING'
-        # Plan v1.37 P2 (disabled-LLM fallback): 6 article-level binary
-        # prob_score columns default to NaN (downstream NaN-safe aggregation).
+        # Plan v1.37 P2 (disabled-LLM fallback): 6 个文章级 binary prob_score
+        # 列默认 NaN (下游 NaN-safe 聚合)。
         # fix(omni-g-tonellms-06, 2026-06-11): 补 avg_collab_prob_score 双列 —
         # v3.4.0 启用分支已产出该对列, 禁用分支漏补致三种配置态 (enabled×logit)
         # schema 不一致 (下游 schema 期望随配置漂移)。
@@ -1856,9 +1876,9 @@ def main():
         # Logit-to-Score 轨道级数组
         prob_score_full_arr = []
         prob_score_ctx_arr = []
-        # Plan v1.37 P2: 4 article-level binary prob_score arrays
-        # (avg_subst_prob_score_{full,ctx} + avg_locus_prob_score_{full,ctx}).
-        # v3.4.0: 2 additional collab_prob_score arrays (Chesbrough 2003)
+        # Plan v1.37 P2: 4 个文章级 binary prob_score 数组
+        # (avg_subst_prob_score_{full,ctx} + avg_locus_prob_score_{full,ctx})。
+        # v3.4.0: 另加 2 个 collab_prob_score 数组 (Chesbrough 2003)
         subst_prob_score_full_arr = []
         subst_prob_score_ctx_arr = []
         locus_prob_score_full_arr = []
@@ -2062,8 +2082,8 @@ def main():
         if LOGIT_SCORE_ENABLED:
             df['llm_prob_score_full'] = prob_score_full_arr
             df['llm_prob_score_ctx'] = prob_score_ctx_arr
-            # Plan v1.37 P2: 4 article-level binary prob_score columns
-            # v3.4.0: + 2 collab_mode prob_score columns (Chesbrough 2003 + L&S 2006)
+            # Plan v1.37 P2: 4 个文章级 binary prob_score 列
+            # v3.4.0: + 2 个 collab_mode prob_score 列 (Chesbrough 2003 + L&S 2006)
             df['avg_subst_prob_score_full'] = subst_prob_score_full_arr
             df['avg_subst_prob_score_ctx'] = subst_prob_score_ctx_arr
             df['avg_locus_prob_score_full'] = locus_prob_score_full_arr

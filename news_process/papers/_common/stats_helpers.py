@@ -1,10 +1,10 @@
-"""Statistical helpers for paper-level robustness analysis.
+"""论文级稳健性分析的统计 helper。
 
-V2.0 J-L-M 2026 RFS robustness alignment plan §3 Phase 1 (P1.4 + P1.5):
+V2.0 J-L-M 2026 RFS robustness 对齐计划 §3 Phase 1 (P1.4 + P1.5):
 
-- `within_unit_sd`: Within-group standard deviation for economic significance
-  reporting per J-L-M 2026 RFS §2.1 convention:
-    "A 1 within-bank SD increase in benefit_mean ≈ X bp change in ROA"
+- `within_unit_sd`: 组内标准差, 用于经济显著性报告,
+  依 J-L-M 2026 RFS §2.1 惯例:
+    "benefit_mean 提高 1 个 within-bank SD ≈ ROA 变动 X bp"
 
 - `cluster_block_bootstrap_ci`: (cluster) block bootstrap percentile 95% CI。
   fix(omni-g-papers-misc-10, 2026-06-11) 方法标签更正: 本实现自始是
@@ -16,8 +16,8 @@ V2.0 J-L-M 2026 RFS robustness alignment plan §3 Phase 1 (P1.4 + P1.5):
   新增 `cluster_id` 簇模式: 按真实依赖单元 (如 target_bank) 整簇重采样,
   替代位置切片块 (位置块在 dropna 移位 / T>2 不平衡面板下会跨银行)。
 
-Both helpers are pure NumPy/pandas; no external API dependencies, no
-sentence_transformers, no Stata. CI-safe across all 5 matrix jobs.
+两个 helper 均为纯 NumPy/pandas; 不依赖外部 API、sentence_transformers
+或 Stata。在全部 5 个 CI matrix job 上安全可跑。
 """
 
 from __future__ import annotations
@@ -32,31 +32,29 @@ def within_unit_sd(
     series: pd.Series | np.ndarray | list[float],
     unit_id: pd.Series | np.ndarray | list,
 ) -> float:
-    """Compute within-unit standard deviation (group-demeaned SD, ddof=1).
+    """计算组内标准差 (within-unit, 组内去均值后的 SD, ddof=1)。
 
-    Group-demean values by `unit_id`, then return SD of demeaned residuals.
-    Following J-L-M 2026 RFS §2.1 convention where within-country SD is
-    reported to gauge economic significance after country fixed effects.
+    先按 `unit_id` 组内去均值, 再返回去均值残差的 SD。
+    遵循 J-L-M 2026 RFS §2.1 惯例: 报告 within-country SD,
+    用于衡量加入固定效应后的经济显著性。
 
     Parameters
     ----------
     series
-        Numeric values (e.g., benefit_mean_full at bank-year level).
+        数值序列 (如 bank-year 级的 benefit_mean_full)。
     unit_id
-        Grouping variable (e.g., target_bank or bank_id).
+        分组变量 (如 target_bank 或 bank_id)。
 
     Returns
     -------
     float
-        Within-unit SD. Returns ``float('nan')`` when fewer than 2 valid
-        (non-NaN) observations remain after dropping NaN rows.
+        组内 SD。剔除 NaN 行后有效观测不足 2 个时返回 ``float('nan')``。
 
     Notes
     -----
-    - NaN values in `series` are dropped before demeaning.
-    - Single-observation groups contribute 0 to the demeaned residual
-      (their group mean equals their value).
-    - Uses sample SD (``ddof=1``).
+    - `series` 中的 NaN 在去均值前剔除。
+    - 单观测组对去均值残差贡献为 0 (其组均值等于自身)。
+    - 用样本 SD (``ddof=1``)。
     """
     df = pd.DataFrame({"y": pd.Series(series), "unit": pd.Series(unit_id)})
     df = df.dropna(subset=["y", "unit"])
@@ -75,7 +73,7 @@ def cluster_block_bootstrap_ci(
     alpha: float = 0.05,
     seed: int = 42,
 ) -> tuple[float, float, float]:
-    """(Cluster) block bootstrap percentile CI for the sample mean.
+    """样本均值的 (cluster) block bootstrap 百分位 CI。
 
     fix(omni-g-papers-misc-10, 2026-06-11) 方法标签更正: 本函数实现的是
     Carlstein (1986) / Künsch (1989) 式**有放回块自助百分位 CI** (抽满 n 的
@@ -83,7 +81,7 @@ def cluster_block_bootstrap_ci(
     (b≪n 无放回 + sqrt(b/n) 重标定)。算法本体保持原状 (golden-safe), 仅命名/
     文档更正 + 新增 ``cluster_id`` 簇模式。
 
-    Two resampling modes:
+    两种重采样模式:
 
     - **cluster mode** (``cluster_id`` given, 推荐): 按真实依赖单元 (如
       ``target_bank``) 整簇有放回重采样 (cluster bootstrap over banks)。
@@ -93,34 +91,39 @@ def cluster_block_bootstrap_ci(
       non-overlapping blocks of ``block_size``; 仅当输入已按依赖单元排序且
       无缺失移位时块与依赖结构对齐 (caller beware)。
 
+    白话: 普通 bootstrap 假设观测彼此独立, 但同一家银行不同年份的数据
+    是相关的; 所以重抽样时要"整块/整簇"地抽 — 推荐传 cluster_id 按银行
+    整簇抽 (不怕缺失值错位), 不传则退回按相邻位置切块的旧行为 (要求
+    调用方自己保证数据已按银行排好且无缺失)。
+
     Parameters
     ----------
     values
-        Numeric values (e.g., bank-year benefit_mean).
+        数值序列 (如 bank-year 级 benefit_mean)。
     cluster_id
-        Optional cluster labels aligned with ``values`` (e.g., target_bank)。
-        Given → cluster mode; None → positional-block mode.
+        可选 — 与 ``values`` 对齐的簇标签 (如 target_bank)。
+        给定 → cluster mode; None → positional-block mode。
     block_size
-        Positional mode only — consecutive observations per block. Default 2
-        reflects short-T panel context; rule of thumb ``floor(n ** (1/3))``.
+        仅 positional mode 用 — 每块连续观测数。默认 2 对应短 T 面板
+        语境; 经验法则 ``floor(n ** (1/3))``。
     n_resamples
-        Number of bootstrap resamples (with replacement).
+        bootstrap 重采样次数 (有放回)。
     alpha
-        Significance level. Default 0.05 → 95% CI.
+        显著性水平。默认 0.05 → 95% CI。
     seed
-        RNG seed for reproducibility.
+        RNG 种子 (可复现)。
 
     Returns
     -------
     tuple[float, float, float]
-        ``(point_estimate, lower_bound, upper_bound)`` — bounds are the
-        empirical ``alpha/2`` / ``1 - alpha/2`` percentile of resampled means.
+        ``(point_estimate, lower_bound, upper_bound)`` — 上下界为重采样
+        均值的经验 ``alpha/2`` / ``1 - alpha/2`` 分位数。
 
     Raises
     ------
     ValueError
-        Positional mode: fewer than ``block_size * 2`` non-NaN obs.
-        Cluster mode: fewer than 2 distinct clusters with valid obs.
+        positional mode: 非 NaN 观测少于 ``block_size * 2``。
+        cluster mode: 含有效观测的不同簇少于 2 个。
     """
     rng = np.random.default_rng(seed)
 
@@ -163,7 +166,7 @@ def cluster_block_bootstrap_ci(
     resample_means = np.empty(n_resamples, dtype=float)
     for i in range(n_resamples):
         chosen = rng.choice(block_starts, size=n_blocks, replace=True)
-        # Vectorized block gather: shape (n_blocks, block_size) → flatten
+        # 向量化取块: 形状 (n_blocks, block_size) → 拉平
         idx = chosen[:, None] + np.arange(block_size)[None, :]
         resample_means[i] = arr[idx.ravel()].mean()
 
@@ -179,7 +182,7 @@ def block_subsampling_ci(
     alpha: float = 0.05,
     seed: int = 42,
 ) -> tuple[float, float, float]:
-    """DEPRECATED misnomer alias — see ``cluster_block_bootstrap_ci``.
+    """已弃用的错误命名别名 (DEPRECATED misnomer) — 见 ``cluster_block_bootstrap_ci``。
 
     fix(omni-g-papers-misc-10, 2026-06-11): 旧名宣称 Politis-Romano (1994)
     subsampling, 但实现是 with-replacement 块自助 (block bootstrap)。保留此

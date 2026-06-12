@@ -119,7 +119,11 @@ from news_process.pipeline.panel.network_spillover import (
 
 
 def _append_columns(frame: pd.DataFrame, columns: dict) -> pd.DataFrame:
-    """Append many columns at once and return a defragmented frame."""
+    """一次性批量追加多列, 返回去碎片化 (defragmented) 的 DataFrame。
+
+    逐列 ``frame[col] = ...`` 会触发 pandas PerformanceWarning (高度碎片化);
+    用单次 concat + copy 合并写入避免该问题。
+    """
     if not columns:
         return frame
     return pd.concat([frame, pd.DataFrame(columns, index=frame.index)], axis=1).copy()
@@ -371,6 +375,11 @@ def _build_llm_valid_masked_weights(frame: pd.DataFrame, weight, wtag: str) -> d
                 dict {track: Series} (如 HW 双轨独立权重 hw_by_track)。
         wtag: 'vw' / 'mw' / 'hw' (列名标签)。
 
+    白话: 算加权平均语调时, 分子只加了"LLM 真给出判断"的文章, 分母却把
+    所有文章的权重都加进去 — 等于把没判断的文章当成语调为 0, 平均值被
+    人为往 0 拉。这里给每种权重配一个"只数有效文章"的分母列, 让分子分母
+    数的是同一批文章。
+
     Returns:
         dict {col_name: masked_series}; 列名 ``_wd_{wtag}_{group}{track}``,
         group ∈ {llm, <每个模型 short>, prob}。masked = weight.where(score.notna()),
@@ -397,8 +406,8 @@ def _build_llm_valid_masked_weights(frame: pd.DataFrame, weight, wtag: str) -> d
 
 
 # ============================================================================
-# 8 + 9. Diagnostics + Export — extracted to export.py in Phase 2b for
-# single-responsibility separation.  Re-exported here for backwards compat.
+# 8 + 9. 诊断 + 导出 — Phase 2b 按单一职责原则抽离到 export.py;
+# 此处 re-export 以保持向后兼容 (旧调用方仍可从 runner import)。
 # ============================================================================
 from news_process.pipeline.panel.export import export_panel, log_diagnostics  # noqa: E402,F401
 
@@ -668,6 +677,9 @@ def main():
     # 分子), 但旧分母数全部阳性文章 → LLM 实质性分类失败率上升时洗稿率系统性下偏
     # (valid 分子 / physical 分母失配, 与已修 encode-01 同族)。此处为每个方法的分母
     # 构造 `_svd_*` (subst-valid denominator) 篇章级指示, 步骤 7h 聚合后作同域分母。
+    # 白话: 洗稿率 = "正面且象征性"的文章 ÷ 正面文章。如果一篇文章 LLM 没能判出
+    # 实质性/象征性, 它进不了分子, 那分母也不该数它 — 否则分类失败越多, 洗稿率
+    # 被稀释得越低, 这是假象不是事实。_svd_* 列就是"分母只数判出来的那批"。
     _subst_measured = _tt.isin(_SUBST_VALID_LABELS) if _tt is not None else None
 
     washing_cols = {}
@@ -1927,6 +1939,9 @@ def main():
             # 而非 (P+N)²。原 (P+N)² 丢弃中性覆盖, 对中性主导的 bank-year 系统性高估 |JF|
             # (P=10/N=0/中性90: 原式=1.0 vs canonical=0.01)。t 取 n_articles_llm_valid{track}
             # (= pos+neg+neu 有效投票数, 已验证 (P+N)≤该列)。范围仍守 [-1,1] (下方 assert)。
+            # 白话: J-F 系数衡量"报道倒向一边的程度"。正确分母要把中性报道也
+            # 算进总数, 否则一家银行 100 篇里 90 篇中性、10 篇正面会被误判成
+            # "舆论一边倒"满分 1.0, 实际只有 0.01。
             _tcol = 'n_articles_llm_valid' if track == '_full' else f'n_articles_llm_valid{track}'
             if _tcol in panel.columns:
                 T = panel[_tcol].fillna(0).astype('float64')

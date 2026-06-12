@@ -1,9 +1,9 @@
 * ============================================================================
-* 01_data_prep.do — Load + xtset + province encode (brokerage_network)
+* 01_data_prep.do — 加载 + xtset + 省份 encode (brokerage_network)
 * Paper: {{PAPER_ID}}
 *
-* Cluster level: {{CLUSTER_VAR}} (province). Rationale: Cameron-Miller 2015 JHR
-*   plus consistency with project-level LOO province IV.
+* 聚类层级: {{CLUSTER_VAR}} (省份)。依据: Cameron-Miller 2015 JHR,
+*   并与项目级 LOO (leave-one-out) 省份 IV 保持一致。
 * ============================================================================
 
 version 19
@@ -17,7 +17,7 @@ use "$panel_dta", clear
 encode target_bank, gen(bank_id)
 xtset bank_id year
 
-* Province encoding for cluster level (project convention).
+* 省份 encode 为聚类层级 (项目约定)。
 capture confirm variable {{CLUSTER_VAR}}
 if _rc {
     capture confirm variable bank_province
@@ -32,7 +32,7 @@ global controls "{{CONTROLS}}"
 * $bank_controls 保留为 $controls 的兼容性 alias (部分 robustness 模板引用)
 global bank_controls "$controls"
 
-* Required: endog tone, IV (2nd-order), centrality vars, treatment dummies (pipeline 产出).
+* 必需列: 内生 tone、IV (二阶同业)、中心度变量、政策处理 dummy (pipeline 产出)。
 foreach v in {{MAIN_ENDOG}} {{MAIN_IV}} {{CENTRALITY_BTW}} {{CENTRALITY_CONS}} {{CENTRALITY_BROKER}} {{TREATMENT_DCEP}} {{TREATMENT_SANDBOX}} {
     capture confirm variable `v'
     if _rc {
@@ -49,7 +49,7 @@ if _rc {
     exit 198
 }
 
-* Lagged centrality (avoids contemporaneous reverse causality with policy).
+* 滞后中心度 (避免与政策的同期反向因果)。
 gen L_btw       = L.{{CENTRALITY_BTW}}
 gen L_cons      = L.{{CENTRALITY_CONS}}
 gen L_broker    = L.{{CENTRALITY_BROKER}}
