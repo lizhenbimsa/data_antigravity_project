@@ -4,7 +4,7 @@
     - 类别变量编码 (中文 str → byte 0/1)
     - variable labels ≤ 80 字符
     - 列名 ≤ 32 字符
-    - core/aux 拆分 (Stata IC ≤ 2048 兼容)
+    - core 列归属 (assign_core_columns, 供 codebook is_core; 2026-06-12 起单一全列 .dta, 不再写独立切分)
     - labels .do 文件生成
     - 编码方向 (R32-B: 0=baseline, 1=对照)
 
@@ -234,11 +234,11 @@ def test_export_panel_pandas_fallback_when_no_pyreadstat(tmp_path, mock_panel, m
 
     result = stata_export.export_panel_to_stata(str(panel_path), str(tmp_path))
 
-    # 验证产出文件存在
+    # 验证产出文件存在 (2026-06-12: 单一全列 full.dta, 不再产 core/aux 双切分)
     import os
-    assert os.path.exists(result['core_dta'])
     assert os.path.exists(result['full_dta'])
     assert os.path.exists(result['labels_do'])
+    assert 'core_dta' not in result and 'aux_dta' not in result
     assert result['backend'] == 'pandas'
 
 
@@ -389,14 +389,16 @@ def test_export_panel_rename_map_more_than_three_logged(tmp_path, monkeypatch, c
     assert 'more' in msgs.lower() or 'Renamed' in msgs
 
 
-def test_export_panel_aux_dta_written_when_aux_cols_present(tmp_path,
-                                                              monkeypatch,
-                                                              mock_panel):
-    """mock_panel 含 category_confidence_full/ctx etc. (aux cols);
-    应生成 aux .dta (lines 578-581)."""
+def test_export_panel_only_full_dta_no_core_aux_split(tmp_path,
+                                                      monkeypatch,
+                                                      mock_panel):
+    """2026-06-12: stage 46 仅产单一全列 full.dta — 不再写 core/aux 双切分
+    (本机 StataNow/MP 19.5 maxvar≤120,000 直读 full); aux-only 指标列仍在 full 内."""
+    import os
+
     from news_process.pipeline.panel import stata_export as se
 
-    # 在 mock_panel 上加些 aux-only 列
+    # 在 mock_panel 上加些 (历史上会落 aux 的) 非核心列
     panel = mock_panel.copy()
     panel['some_aux_metric_1'] = 1.0
     panel['another_aux_metric'] = 2.0
@@ -406,10 +408,17 @@ def test_export_panel_aux_dta_written_when_aux_cols_present(tmp_path,
     monkeypatch.setattr(se, '_select_dta_backend',
                         lambda: ('pandas', se._write_dta_pandas_fallback))
     result = se.export_panel_to_stata(str(panel_path), str(tmp_path))
-    # aux_dta 路径非空且文件存在
-    assert result['aux_dta'] != ''
-    import os
-    assert os.path.exists(result['aux_dta'])
+
+    # 返回 dict 不含 core_dta/aux_dta 键, 盘上无 core/aux 切分文件
+    assert 'core_dta' not in result
+    assert 'aux_dta' not in result
+    assert os.path.exists(result['full_dta'])
+    assert not os.path.exists(tmp_path / '46_panel_yearly_core.dta')
+    assert not os.path.exists(tmp_path / '46_panel_yearly_aux.dta')
+    # 全列保真: 原本会落 aux 的指标列也在 full.dta 内
+    back = pd.read_stata(result['full_dta'])
+    assert 'some_aux_metric_1' in back.columns
+    assert 'another_aux_metric' in back.columns
 
 
 def test_export_panel_codebook_write_failure_non_blocking(tmp_path, monkeypatch,
@@ -489,6 +498,7 @@ def test_main_cli_entry(tmp_path, monkeypatch, mock_panel):
                         lambda: ('pandas', se._write_dta_pandas_fallback))
 
     se.main()
-    # 应产出文件
-    assert (output_dir / '46_panel_yearly_core.dta').exists()
+    # 2026-06-12: 仅产单一全列 full.dta, 不再产 core/aux 双切分
     assert (output_dir / '46_panel_yearly_full.dta').exists()
+    assert not (output_dir / '46_panel_yearly_core.dta').exists()
+    assert not (output_dir / '46_panel_yearly_aux.dta').exists()

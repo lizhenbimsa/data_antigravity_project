@@ -16,14 +16,15 @@ set maxvar 32767
 * 副作用: 22/23/24 均无自己的 use, 现继承本 full in-memory 状态 — 23 不碰数据,
 * 24 为 full⊇core 严格超集 (所需列仍在), 均安全。
 * 路径: honor $data_dir; 主链 $data_dir="" → data/processed;
-* _prepared_panel 缺失时回退 core (防御)。
+* _prepared_panel 缺失时回退 full (防御; 2026-06-12 stage 46 改单一全列 full.dta,
+* 不再产 core/aux, 回退指向 full)。
 if "$data_dir" == "" global data_dir "data/processed"
 capture confirm file "$data_dir/_prepared_panel.dta"
 if !_rc {
     use "$data_dir/_prepared_panel.dta", clear
 }
 else {
-    use "data/processed/46_panel_yearly_core.dta", clear
+    use "data/processed/46_panel_yearly_full.dta", clear
 }
 
 * bank_id 已在 01_data_prep 编码 + xtset; guard 防 r(110) bank_id already defined

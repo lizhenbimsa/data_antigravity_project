@@ -31,14 +31,15 @@ eststo clear
 * _prepared_panel.dta, 使 Table 2 主回归与 Table 1 描述统计同口径 (均 1%/99%
 * winsorized, Loughran-McDonald 2011 JF). 旧 `use core.dta, clear` 重载原始未缩尾
 * 数据 → 同论文内 Table1(缩尾)/Table2(原始) 样本口径互反、审稿人可对账识破.
-* _prepared 缺失 (未先跑 01_data_prep) 则回退 core.dta 并告警 (此时未缩尾).
+* _prepared 缺失 (未先跑 01_data_prep) 则回退 full.dta 并告警 (此时未缩尾).
+* 2026-06-12: stage 46 改单一全列 full.dta (不再产 core/aux), 回退指向 full。
 capture confirm file "data/processed/_prepared_panel.dta"
 if !_rc {
     use "data/processed/_prepared_panel.dta", clear
 }
 else {
-    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep 缩尾); 回退未缩尾 core.dta"
-    use "data/processed/46_panel_yearly_core.dta", clear
+    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep 缩尾); 回退未缩尾 full.dta"
+    use "data/processed/46_panel_yearly_full.dta", clear
 }
 
 * xtset 声明 panel (bank_id 可能已由 01_data_prep 编码, guard 防重复 encode 报错)

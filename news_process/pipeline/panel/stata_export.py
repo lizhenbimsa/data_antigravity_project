@@ -3,12 +3,11 @@
 功能 (plan v14 §9.1):
     把 stage 45 panel parquet (40_panel_yearly.parquet) 转换为 Stata .dta + labels.
 
-输出三文件 (与 plan v14 §9.1 一致):
-    46_panel_yearly_core.dta    # Stata IC 兼容 (≤ 2048 vars)
-    46_panel_yearly_full.dta    # 全列 (Stata SE/MP)
-    46_panel_yearly_aux.dta     # robustness 子集 (core 互补; merge 1:1 可还原 full)
+输出 (2026-06-12 起单一全列 .dta; 本机 StataNow/MP 19.5 maxvar≤120,000 直读全列,
+不再做 core/aux 双切分 — 原 IC ≤2048 兼容切分仅为外部协作者保留, 已按项目策略移除):
+    46_panel_yearly_full.dta    # 全列 (Stata SE/MP; 唯一 .dta 产物)
     46_panel_yearly_labels.do   # variable/value labels Stata 脚本
-    46_panel_yearly_codebook.xlsx  # 人类可读变量字典
+    46_panel_yearly_codebook.xlsx  # 人类可读变量字典 (is_core 列仍标注分析核心变量子集)
 
 关键转换 (plan v14 §9.1; v3.4.0 +collab_mode):
     - innovation_locus_{full,ctx} (中文 str) → byte 0=底层技术, 1=应用场景 + value label
@@ -841,8 +840,9 @@ def export_panel_to_stata(
         output_dir: 输出目录 (data/processed/)
         output_prefix: 文件名前缀 (默认 46_panel_yearly)
     Returns:
-        dict 含产出文件路径: {'core_dta', 'aux_dta', 'full_dta',
-                             'labels_do', 'codebook_xlsx', 'backend'}
+        dict 含产出文件路径: {'full_dta', 'labels_do', 'codebook_xlsx', 'backend'}
+        (2026-06-12: 移除 core/aux 双切分 — 本机 StataNow/MP 19.5 直读全列 full.dta;
+         codebook is_core 列仍标注分析核心变量子集供参考)
     """
     backend_name, write_dta = _select_dta_backend()
 
@@ -909,27 +909,17 @@ def export_panel_to_stata(
     # 3. Stata 兼容性校验 (plan v14 §9.5; 缩短后应全过)
     validate_stata_compat(df_encoded, var_labels)
 
-    # 4. core/aux 拆分 (plan v14 §9.1 R42-A + R44-A; 改名列经 rename_map 反查)
+    # 4. 计算分析核心列归属 (2026-06-12: 不再写独立 core.dta; 仅供 codebook is_core
+    #    列标注核心变量子集 — 主键 + 双轨主指标 + stage3 标签 + 主 Bartik 等)。
+    #    本机 StataNow/MP 19.5 (maxvar≤120,000) 直读全列 full.dta, 无需 IC 双切分。
+    #    assign_core_columns 内的 ≤2048 守卫保留为分析核心规模回归监测 (当前 ~100 列)。
     core_cols = assign_core_columns(df_encoded, rename_map=rename_map)
-    aux_cols = [c for c in df_encoded.columns if c not in core_cols]
 
-    # 5. 写 .dta 三件套 (经 backend 抽象, 兼容 pyreadstat / pandas)
-    core_path = os.path.join(output_dir, f'{output_prefix}_core.dta')
+    # 5. 写单一全列 .dta (经 backend 抽象, 兼容 pyreadstat / pandas)
     full_path = os.path.join(output_dir, f'{output_prefix}_full.dta')
-    aux_path  = os.path.join(output_dir, f'{output_prefix}_aux.dta')
-
-    write_dta(df_encoded[core_cols], core_path, value_labels, var_labels)
-    logger.info(f"  Core .dta 已写入: {core_path} ({len(core_cols)} 列, ≤ {STATA_IC_MAX_VARS})")
-
     write_dta(df_encoded, full_path, value_labels, var_labels)
-    logger.info(f"  Full .dta 已写入: {full_path} ({len(df_encoded.columns)} 列)")
-
-    if aux_cols:
-        # aux 含主键 + aux 列, 用户可 merge 1:1 到 core
-        aux_with_keys = ['target_bank', 'year'] + [c for c in aux_cols if c not in ('target_bank', 'year')]
-        aux_value_labels = {k: v for k, v in value_labels.items() if k in aux_with_keys}
-        write_dta(df_encoded[aux_with_keys], aux_path, aux_value_labels, var_labels)
-        logger.info(f"  Aux .dta 已写入: {aux_path} ({len(aux_with_keys)} 列)")
+    logger.info(f"  Full .dta 已写入: {full_path} ({len(df_encoded.columns)} 列; "
+                f"含 {len(core_cols)} 个分析核心列, 单一全列导出不再拆分 core/aux)")
 
     # 6. labels .do (omni-03/15: 带 backend 指纹)
     labels_path = os.path.join(output_dir, f'{output_prefix}_labels.do')
@@ -944,9 +934,7 @@ def export_panel_to_stata(
         logger.warning(f"  codebook .xlsx 写入失败 (非阻塞): {e}")
 
     return {
-        'core_dta': core_path,
         'full_dta': full_path,
-        'aux_dta':  aux_path if aux_cols else '',
         'labels_do': labels_path,
         'codebook_xlsx': codebook_path,
         'backend': backend_name,  # v3.2.0 M1/7: 'pyreadstat' | 'pandas'
