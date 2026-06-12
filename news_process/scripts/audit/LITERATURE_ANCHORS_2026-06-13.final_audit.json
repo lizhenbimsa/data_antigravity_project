@@ -1,0 +1,1037 @@
+{
+ "sources": [
+  {
+   "results": [
+    {
+     "key": "https://www.nber.org/papers/w27867",
+     "verdict": "needs_fix",
+     "evidence": "访问 nber.org/papers/w27867: 标题 'Firm-Level Risk Exposures and Stock Returns in the Wake of COVID-19', 作者 Steven J. Davis, Stephen Hansen, Cristhian Seminario-Amez, WP No. 27867 全部一致; 但页面显示 Original Issue Date: September 2020, Latest Revision: February 2021。按'NBER 按最新版本年'裁决规则, 年份应为 2021 并标注修订, APA 现写 2020 且未注 rev。",
+     "fix_apa": "Davis, S. J., Hansen, S., & Seminario-Amez, C. (2021). Firm-level risk exposures and stock returns in the wake of COVID-19 (NBER Working Paper No. 27867, rev. February 2021). National Bureau of Economic Research. https://www.nber.org/papers/w27867"
+    },
+    {
+     "key": "https://www.nber.org/papers/w28906 (doi: 10.3386/w28906)",
+     "verdict": "needs_fix",
+     "evidence": "访问 nber.org/papers/w28906: 标题 'The Anatomy of Cyber Risk', 作者 Rustam Jamilov, Hélène Rey, Ahmed Tahoun, WP No. 28906 全部一致; 但页面显示 Original Issue Date: June 2021, Latest Revision: December 2025。按最新版本年规则, 年份应为 2025 并标注修订, APA 现写 2021。",
+     "fix_apa": "Jamilov, R., Rey, H., & Tahoun, A. (2025). The anatomy of cyber risk (NBER Working Paper No. 28906, rev. December 2025). National Bureau of Economic Research. https://www.nber.org/papers/w28906"
+    },
+    {
+     "key": "https://www.nber.org/papers/w31138",
+     "verdict": "needs_fix",
+     "evidence": "访问 nber.org/papers/w31138: 标题 'Deposit Franchise Runs', 作者 Itamar Drechsler, Alexi Savov, Philipp Schnabl, Olivier Wang, WP No. 31138 全部一致; APA 已正确标注 'rev. September 2024' (与页面 Latest Revision: September 2024 吻合), 但年份写 2023 (原始发布 April 2023)。按最新版本年规则, 年份应为 2024。",
+     "fix_apa": "Drechsler, I., Savov, A., Schnabl, P., & Wang, O. (2024). Deposit franchise runs (NBER Working Paper No. 31138, rev. September 2024). National Bureau of Economic Research. https://www.nber.org/papers/w31138"
+    },
+    {
+     "key": "https://www.nber.org/papers/w32089",
+     "verdict": "confirmed",
+     "evidence": "访问 nber.org/papers/w32089: 标题 'Customer Data Access and Fintech Entry: Early Evidence from Open Banking', 作者顺序 Tania Babina, Saleem A. Bahaj, Greg Buchak, Filippo De Marco, Angus K. Foulis, Will Gornall, Francesco Mazzola, Tong Yu (8 人), Issue Date: January 2024, 无 revision, WP No. 32089。APA 的作者/年份(2024)/标题/编号逐字段一致。",
+     "fix_apa": ""
+    },
+    {
+     "key": "https://www.nber.org/papers/w32402",
+     "verdict": "confirmed",
+     "evidence": "访问 nber.org/papers/w32402: 标题 'Business as Usual: Bank Net Zero Commitments, Lending, and Engagement', 作者 Parinitha R. Sastry, Emil Verner, David Marques Ibanez (该作者通行连字号拼法 Marques-Ibanez), Issue Date: May 2024, 无 revision, WP No. 32402。APA 各字段一致。",
+     "fix_apa": ""
+    },
+    {
+     "key": "https://www.nber.org/papers/w32601",
+     "verdict": "needs_fix",
+     "evidence": "访问 nber.org/papers/w32601: 标题 'Destabilizing Digital \"Bank Walks\"', 作者 Naz Koont, Tano Santos, Luigi Zingales, WP No. 32601 全部一致; APA 已正确标注 'rev. August 2025' (与页面 Latest Revision: August 2025 吻合), 但年份写 2024 (原始发布 June 2024)。按最新版本年规则, 年份应为 2025。",
+     "fix_apa": "Koont, N., Santos, T., & Zingales, L. (2025). Destabilizing digital \"bank walks\" (NBER Working Paper No. 32601, rev. August 2025). National Bureau of Economic Research. https://www.nber.org/papers/w32601"
+    },
+    {
+     "key": "https://www.nber.org/papers/w33814",
+     "verdict": "confirmed",
+     "evidence": "访问 nber.org/papers/w33814: 标题 'Decoding China's Industrial Policies', 作者 Hanming Fang, Ming Li, Guangli Lu, Issue Date: May 2025, 无 revision, WP No. 33814。APA 的作者/年份(2025)/标题/编号逐字段一致。",
+     "fix_apa": ""
+    }
+   ]
+  },
+  {
+   "results": [
+    {
+     "key": "10.2139/ssrn.3446388",
+     "verdict": "confirmed",
+     "evidence": "Crossref(10.2139/ssrn.3446388): 题名'A New Chinese Financial Sentiment Dictionary for Textual Analysis in Accounting and Finance', 作者 Shibo Bian/Dekui Jia/Feng Li/Zhipeng Yan, issued 2019(=首发年)。SSRN 页(Google 索引快照, papers.ssrn.com/abstract=3446388)显示 Last revised / Date Written = June 7, 2021。按'SSRN 工作论文取最新版本年'裁决规则, APA 年份 2021 正确, Crossref 2019 是初版 posted 年不采。作者/标题/编号逐字一致。"
+    },
+    {
+     "key": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2927561",
+     "verdict": "needs_fix",
+     "evidence": "SSRN 页(papers.ssrn.com/abstract=2927561, 经两次独立搜索快照核验): 题名'Joint News, Attention Spillover, and Stock Returns', 作者 Li Guo, Lin Peng, Yubo Tao, Jun Tu — 与 APA 一致; 但页面 Last revised = February 10, 2026 (arXiv 1703.02715 平行版本 v6=2025-07-15, SSRN 版更新)。按最新版本年裁决, APA 的 2025 应改 2026。注意 Crossref 对此 DOI 的存底是陈旧旧题'Media Network and Return Predictability'(仅 Guo/Tao), 不可作为依据。",
+     "fix_apa": "Guo, L., Peng, L., Tao, Y., & Tu, J. (2026). Joint news, attention spillover, and stock returns (SSRN Working Paper No. 2927561). https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2927561"
+    },
+    {
+     "key": "https://ssrn.com/abstract=4416687",
+     "verdict": "needs_fix",
+     "evidence": "作者官方页 dachxiu.chicagobooth.edu (Dacheng Xiu, Chicago Booth) 列明: 'Expected Returns and Large Language Models', with Yifei Chen and Bryan Kelly, **Feb. 2026** 版本 (2023 GSU-RFS FinTech 最佳论文奖)。SSRN 页(Google 索引)作者 Yifei Chen, Bryan T. Kelly, Dacheng Xiu, Date Written = Nov 22, 2022 仅为初稿日。按最新版本年裁决, APA 的 2022 应改 2026。作者/标题/编号一致。",
+     "fix_apa": "Chen, Y., Kelly, B. T., & Xiu, D. (2026). Expected returns and large language models (SSRN Working Paper No. 4416687). https://ssrn.com/abstract=4416687"
+    },
+    {
+     "key": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4529594",
+     "verdict": "confirmed",
+     "evidence": "SSRN 页(papers.ssrn.com/abstract=4529594): 'Investor Disagreement: Daily Measures from Social Media', J. Anthony Cookson & Marina Niessner, posted Aug 2, 2023; Crossref issued 2023; 作者本人主页 marinaniessner.com/data.html 列为 'Working paper. 2023', 无更晚修订。APA 作者/年份/标题/编号全一致。"
+    },
+    {
+     "key": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5133107",
+     "verdict": "needs_fix",
+     "evidence": "SSRN 当前页(papers.ssrn.com/abstract=5133107, Google 索引页题): 'Signals or Smoke? The Determinants and Informativeness of Corporate Artificial Intelligence (AI) Disclosures', 作者 John Manuel Barrios, John L. Campbell, Ryan G. Johnson, Christine Liu — 标题/作者与 APA 一致 (Liu, C.=Christine Liu 成立)。年份: Aug 23, 2024 仅为 Date Written; SSRN 编号 51xxxxx 段为 2025 年初 posted, Crossref issued=2025 (且 Crossref 存底旧题 'Artificially Intelligent or Artificially Inflated?' 证明 2025 内有改题修订)。按发布/最新版本年裁决, APA 的 2024 应改 2025。",
+     "fix_apa": "Barrios, J. M., Campbell, J. L., Johnson, R. G., & Liu, C. (2025). Signals or smoke? The determinants and informativeness of corporate artificial intelligence (AI) disclosures (SSRN Working Paper No. 5133107). SSRN. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5133107"
+    },
+    {
+     "key": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5159615",
+     "verdict": "confirmed",
+     "evidence": "SSRN 页(papers.ssrn.com/abstract=5159615): 'Chronologically Consistent Large Language Models', Songrun He, Linying Lv, Asaf Manela, Jimmy Wu, dated March 1, 2025; Crossref issued/posted 2025; arXiv 2502.21206 最新 v3 = 2025-07-06, 仍在 2025 年内。APA 作者/年份 2025/标题/编号全一致。"
+    },
+    {
+     "key": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5265257",
+     "verdict": "confirmed",
+     "evidence": "SSRN 页(papers.ssrn.com/abstract=5265257): 'Strategic AI Disclosures: Determinants and Consequences of Obfuscated and Overstated AI Investments', 作者 Dain C. Donelson, MJ Kim, Sydney Seulgi Kim, Michael A. Yip, posted May 22, 2025; Crossref issued 2025, 题名逐字一致。APA 缩写 Kim, M. J.(=MJ Kim) / Kim, S. S.(=Sydney Seulgi Kim) 均成立, 年份 2025 正确。"
+    },
+    {
+     "key": "https://ssrn.com/abstract=4412788",
+     "verdict": "needs_fix",
+     "evidence": "SSRN 页(papers.ssrn.com/abstract=4412788): 'Can ChatGPT Forecast Stock Price Movements? Return Predictability and Large Language Models', Alejandro Lopez-Lira & Yuehua Tang, 初版 posted Apr 10, 2023, Last revised = October 28, 2025; arXiv 2304.07619 官方版本史独立佐证 v6(当前) = 2025-10-28 同日。Crossref issued 2023 为初版年。按最新版本年裁决, APA 的 2023 应改 2025。作者/标题/编号一致。",
+     "fix_apa": "Lopez-Lira, A., & Tang, Y. (2025). Can ChatGPT forecast stock price movements? Return predictability and large language models (SSRN Working Paper No. 4412788). https://ssrn.com/abstract=4412788"
+    }
+   ]
+  },
+  {
+   "results": [
+    {
+     "key": "10.48550/arxiv.2004.05150",
+     "verdict": "confirmed",
+     "evidence": "访问 arxiv.org/abs/2004.05150: 作者 Iz Beltagy, Matthew E. Peters, Arman Cohan; 标题 'Longformer: The Long-Document Transformer'; 2020-04-10 首次提交; DOI 10.48550/arXiv.2004.05150。APA 作者/年份/标题/编号全部一致。",
+     "fix_apa": ""
+    },
+    {
+     "key": "https://arxiv.org/abs/2110.12010",
+     "verdict": "confirmed",
+     "evidence": "访问 arxiv.org/abs/2110.12010: 作者 Nicolas Webersinke, Mathias Kraus, Julia Anna Bingler, Markus Leippold; 标题 'ClimateBert: A Pretrained Language Model for Climate-Related Text'; 2021-10-22 首次提交。APA 四位作者顺序/年份 2021/标题全部一致。",
+     "fix_apa": ""
+    },
+    {
+     "key": "https://arxiv.org/abs/2203.11171",
+     "verdict": "confirmed",
+     "evidence": "访问 arxiv.org/abs/2203.11171: 作者 Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc Le, Ed Chi, Sharan Narang, Aakanksha Chowdhery, Denny Zhou (8 人顺序与 APA 一致); 标题 'Self-Consistency Improves Chain of Thought Reasoning in Language Models'; 页面标注 Published at ICLR 2023 → APA 载体 ICLR 2023 与年份 2023 正确。",
+     "fix_apa": ""
+    },
+    {
+     "key": "https://arxiv.org/abs/2308.08493",
+     "verdict": "confirmed",
+     "evidence": "访问 arxiv.org/abs/2308.08493: 作者 Shahriar Golchin, Mihai Surdeanu; 标题 'Time Travel in LLMs: Tracing Data Contamination in Large Language Models'; 页面标注 Published at ICLR 2024 (Spotlight, top 5%) → APA 作者/标题/载体 ICLR 2024/年份 2024 全部一致。",
+     "fix_apa": ""
+    },
+    {
+     "key": "https://arxiv.org/abs/2601.13770",
+     "verdict": "confirmed",
+     "evidence": "访问 arxiv.org/abs/2601.13770: 论文真实存在 (非幻觉)。单作者 Mostapha Benhenda (LAGA); 标题 'Look-Ahead-Bench: a Standardized Benchmark of Look-ahead Bias in Point-in-Time LLMs for Finance'; 2026-01-20 提交; 主题为金融 PiT LLM 前视偏误基准, 与 APA 描述一致。APA 作者/年份 2026/标题/编号 2601.13770 全部正确。",
+     "fix_apa": ""
+    },
+    {
+     "key": "https://openreview.net/forum?id=bgzusz8aeg",
+     "verdict": "confirmed",
+     "evidence": "访问 openreview.net/forum?id=bgzUSZ8aeg: 作者 Junyou Li, Qin Zhang, Yangbin Yu, Qiang Fu, Deheng Ye (与 APA 'Li, J., Zhang, Q., Yu, Y., Fu, Q., & Ye, D.' 逐一对应); 标题 'More Agents Is All You Need'; 载体 TMLR, 2024-10-23 接收发表。APA 年份 2024/载体 Transactions on Machine Learning Research 一致。",
+     "fix_apa": ""
+    },
+    {
+     "key": "https://openreview.net/forum?id=ks8mivetg2",
+     "verdict": "needs_fix",
+     "evidence": "访问 openreview.net/forum?id=KS8mIvetg2: 标题 'Proving Test Set Contamination in Black-Box Language Models'; 载体 ICLR 2024; 作者 Yonatan Oren, Nicole Meister, Niladri S. Chatterji, Faisal Ladhak, Tatsunori Hashimoto。除第三作者中间名缩写外全部一致: 权威页为 Niladri S. Chatterji, APA 写作 'Chatterji, N.' 漏掉中间名缩写 S, 应为 'Chatterji, N. S.'。",
+     "fix_apa": "Oren, Y., Meister, N., Chatterji, N. S., Ladhak, F., & Hashimoto, T. B. (2024). Proving test set contamination in black box language models. *The Twelfth International Conference on Learning Representations (ICLR 2024)*. https://openreview.net/forum?id=KS8mIvetg2"
+    }
+   ]
+  },
+  {
+   "results": [
+    {
+     "key": "10.1093/rfs/hhac024",
+     "verdict": "confirmed",
+     "evidence": "OUP 文章页 (academic.oup.com/rfs/article-abstract/36/1/351/6585907) + IDEAS/RePEc (oup/rfinst v36 y2023 i1 p351-407) 核验: Cybersecurity Risk, Florackis/Louca/Michaely/Weber, RFS 36(1) 2023年1月刊, pp. 351–407。卷期所属刊年=2023, Crossref 的 2022 是在线首发年。按期刊文章用刊年的裁决规则, APA 2023 正确。"
+    },
+    {
+     "key": "10.1111/1475-679x.70058",
+     "verdict": "confirmed",
+     "evidence": "Crossref API (api.crossref.org/works/10.1111/1475-679X.70058) + Wiley 检索结果核验: 作者唯一且 given=Bradford / family=Levy (Crossref family 字段含全名系数据噪音, 真实姓氏为 Levy), 即 Levy, B. 正确; Journal of Accounting Research, vol 64, issue 3, pp. 1139–1188, print 2026年6月 (online 2026-05-06)。APA 各字段全部一致。SSRN 页另署 'Bradford (Lynch) Levy' 亦支持姓氏=Levy。"
+    },
+    {
+     "key": "10.13821/j.cnki.ceq.2021.04.10",
+     "verdict": "confirmed",
+     "evidence": "《经济学(季刊)》官方文章页 (ccj.pku.edu.cn/article/info?aid=267157088) 核验: 标题《媒体文本情绪与股票回报预测》, 作者姜富伟(中央财经大学)/孟令超(北京大学经济学院)/唐国豪(湖南大学金融与统计学院), 2021年, 21卷4期, 1323–1344页, DOI 10.13821/j.cnki.ceq.2021.04.10。与 APA 条目逐字段一致。"
+    },
+    {
+     "key": "https://archive.org/details/openinnovationne0000ches",
+     "verdict": "confirmed",
+     "evidence": "archive.org 详情页直接访问被拒 (ECONNREFUSED), 改经搜索取得该 archive.org 条目元数据 (identifier=openinnovationne0000ches): 'Open innovation : the new imperative for creating and profiting from technology', Chesbrough, Henry William, Boston, Mass.: Harvard Business School Press, 2003 (xxxi+227页); Open Library/HBR Store 页交叉印证出版社与2003年。APA 作者/年份/标题/出版社全部一致。"
+    }
+   ]
+  }
+ ],
+ "relevance": [
+  {
+   "family": "llm_sentiment",
+   "family_note": "14 条文献全部真实且 11 条锚定声明如实; 3 条 (Kim 2023 / Wang 2023 / Li 2024) 属\"论文真实但被外推到项目设计\"——分别把 LLM 摘要压缩外推为实体窗口双轨、把单模型自洽采样和同质采样投票外推为 3 个异构 LLM 多数投票, 建议改写为\"思想同源的间接支撑\"而非直接锚定。",
+   "findings": [
+    {
+     "apa_head": "Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Kim, A. G., Muhn, M., & Nikolaev, V. V. (2023). Bloated discl",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 用 GPT-3.5 对 10-K/盈余公告做'摘要式压缩', 发现摘要情感与市场反应关联更强, 并构造'信息臃肿度 (bloat)' 度量及其资本市场后果。声明前半段对论文描述如实, 但把它锚定为项目 full/ctx 双轨设计的'方法学锚点'属外推: 论文的压缩机制是 LLM 生成式摘要, 而项目 content_ctx 是确定性的实体关键词窗口截取, 二者机制不同, 论文也完全未涉及实体上下文窗口或双轨对比设计。建议改写: '该文表明浓缩后的财经文本仍保留 (甚至锐化) 情感信号, 为项目 ctx 轨“截短文本仍可测情感”提供间接旁证; 但其压缩方式为 LLM 摘要而非实体窗口截取, 属思想同源而非直接锚定。'"
+    },
+    {
+     "apa_head": "Jha, M., Qian, J., Weber, M., & Yang, B. (2024). ChatGPT and ",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Hansen, A. L., & Kazinnik, S. (2023). Can ChatGPT decipher Fe",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Korinek, A. (2023). Generative AI for economic research: Use ",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Dell, M. (2025). Deep learning for economists. *Journal of Ec",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "de Kok, T. (2025). ChatGPT for textual analysis? How to use g",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large l",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure senti",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang, S",
+     "verdict": "overstated",
+     "detail": "论文实际内容: self-consistency 是对**同一个模型**用非零温度采样多条 chain-of-thought 推理路径, 再对最终答案做 majority vote 以边际化推理路径噪声; 全文不涉及多个不同模型的集成。声明对机制的描述如实, 但称其为项目'3 个异构 LLM 取多数投票'的'核心方法学奠基'属外推——项目是跨模型 (cross-model) ensemble 且 temperature=0 (无采样多样性), 与论文的单模型多采样在技术上是两件事。建议改写: '该文确立了对 LLM 多次输出做 majority vote 降噪的思想范式, 与项目跨 3 个异构模型投票 (llm_vote_tone) 思想同源; 但论文研究的是单模型多采样自洽, 跨模型集成为本项目的延伸应用而非该文直接结论。'"
+    },
+    {
+     "apa_head": "Li, J., Zhang, Q., Yu, Y., Fu, Q., & Ye, D. (2024). More agen",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 提出 sampling-and-voting——把**同一个 LLM** 实例化/采样多次作为多个 agent, 对输出投票, 性能随 agent 数量增加而提升 (后趋平), 增益幅度与任务难度相关; 实验主体是同质采样而非异构模型混合。声明对结论的描述基本如实, 但括注'(而非单模型)'造成误导: 论文的 agents 本质上就是单模型的多个采样副本, 它并未比较'异构多模型 vs 单模型', 也未对 n=3 这种极小 ensemble 给出针对性结论。建议改写: '该文定量证明对 LLM 输出做投票集成可随票数提升性能, 为项目 3 模型投票的 ensemble 降噪思路提供同族证据; 注意其实验为同一模型的多次采样, 异构 3 模型投票是本项目的变体延伸。'"
+    },
+    {
+     "apa_head": "Eisfeldt, A. L., & Schubert, G. (2025). Generative AI and fin",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "You, J., Zhang, B., & Zhang, L. (2018). Who captures the powe",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Loughran, T., & McDonald, B. (2011). When is a liability not ",
+     "verdict": "accurate"
+    }
+   ]
+  },
+  {
+   "family": "dictionary_tone",
+   "family_note": "15 条中 12 条锚定声明如实; 3 条 overstated (Frankel 2022 结论被反向解读为支持词典轨、Jegadeesh & Wu 2013 被安上其并未主张的 IDF 加权背书、Barbaglia 2025 被加上论文明确未用的否定/修饰规则与不存在的 ML 对比); 无 wrong。",
+   "findings": [
+    {
+     "apa_head": "Loughran, T., & McDonald, B. (2011). When is a liability not a lia",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Loughran, T., & McDonald, B. (2016). Textual analysis in accounti",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Loughran, T., & McDonald, B. (2020). Textual analysis in finance.",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Tetlock, P. C. (2007). Giving content to investor sentiment: The ",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "García, D., Hu, X., & Rohrer, M. (2023). The colour of finance wo",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentiment",
+     "verdict": "overstated",
+     "detail": "论文实际结论与声明相反: 摘要与结论明确说 ML (尤其 random forest) 是'easily implementable, more POWERFUL and more RELIABLE'的披露情感测度, 在 10-K 与电话会两个场景解释力均显著优于 LM 词典 (优势幅度甚至超过 LM 对 Harvard 词典的改进)。论文并未得出'词典法更透明、跨样本更稳'的结论——'更 reliable'恰恰说的是 ML。声明把一篇论证 ML 优于词典的论文反向解读为给词典轨'透明稳健'背书。建议改写: '系统证明 ML 法测披露情感在解释力与可靠性上均优于 LM 词典——锚定项目不止步于 stage 22 词典、必须并行 stage 21 LLM / stage 23 BERT 的多方法设计; 词典轨在三角验证中定位为传统基准对照轨'。"
+    },
+    {
+     "apa_head": "Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large langu",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Jegadeesh, N., & Wu, D. (2013). Word power: A new approach for co",
+     "verdict": "overstated",
+     "detail": "论文核心发现 ('加权方案的选择至少与词表完备性同等重要, 甚至更重要') 引用属实, 但其提出的加权是基于 10-K 市场反应回归出的 word power 权重, 并非 IDF; 论文反而对 tf.idf 这类与经济含义无关的统计加权持保留态度。声称该文'直接锚定项目采用 IDF 加权'是外推——它锚定的是'必须加权、等权计数有缺陷'这一一般命题, 而非 IDF 这个具体方案。建议改写: '证明词项加权选择至少与词表完备性同等重要——支撑项目 tone_words 放弃等权计数、引入加权的方向性决策; IDF 这一具体加权形式的出处应引 Loughran & McDonald (2011) 的 tf.idf 方案'。"
+    },
+    {
+     "apa_head": "Du, Z., Huang, A. G., Wermers, R., & Wu, W. (2022). Language and ",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "You, J., Zhang, B., & Zhang, L. (2018). Who captures the power of",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Bian, S., Jia, D., Li, F., & Yan, Z. (2021). A new Chinese financ",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Algaba, A., Ardia, D., Bluteau, K., Borms, S., & Boudt, K. (2020)",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Pröllochs, N., Feuerriegel, S., & Neumann, D. (2016). Negation sc",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Barbaglia, L., Consoli, S., Manzan, S., Tiozzo Pezzoli, L., & Tos",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 构建人工标注连续打分 ([-1,1]) 的 Economic Lexicon, 情感测度刻意取'负面词占比减正面词占比'的简单线性形式, 作者明言不用修饰词/否定等非线性规则 (为保持 simple and transparent); 对比对象限于其他词典 (LM/VADER/REN/SSW 等), 全文未与 BERT/FinBERT/ChatGPT 等 ML/transformer 对比。声明中'修饰词/否定规则'与'仍可与 ML 竞争'两点论文里都没有 (前者可能与同组作者 Consoli et al. KBS 2022 细粒度方法混淆)。建议改写: '2025 年最新同行评议证据: 人工标注连续打分的领域词典 (EL) 在覆盖与词级情感分类准确性上优于既有词典且在多个经济应用中有效——为项目选择领域专属词典而非通用词典、并保留简单透明词典轨提供最新背书' (删去否定规则与 ML 竞争两处)。"
+    },
+    {
+     "apa_head": "姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. *经济学(季刊)*, 21(4), 13",
+     "verdict": "accurate"
+    }
+   ]
+  },
+  {
+   "family": "bert_sentiment",
+   "family_note": "13 条锚定声明中 12 条与论文实际内容相符 (含联网核实 FinBERT2 基线确为 GPT-4-turbo/Claude-3.5-Sonnet); 仅 García et al. 2023 一条把词典改进型论文外推为 BERT 轨增量信息证据, 属 overstated。",
+   "findings": [
+    {
+     "apa_head": "Huang, A. H., Wang, H., & Yang, Y. (2023). FinBERT: A large lan",
+     "verdict": "accurate",
+     "detail": ""
+    },
+    {
+     "apa_head": "Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentime",
+     "verdict": "accurate",
+     "detail": ""
+    },
+    {
+     "apa_head": "Bochkay, K., Brown, S. V., Leone, A. J., & Tucker, J. W. (2023)",
+     "verdict": "accurate",
+     "detail": ""
+    },
+    {
+     "apa_head": "Siano, F., & Wysocki, P. (2021). Transfer learning and textual ",
+     "verdict": "accurate",
+     "detail": "已核实摘要: 论文确以 BERT + 季度盈余披露情感分析演示'大语料预训练→小会计样本'迁移学习, 与声明相符。细微提示: 论文流程含在小样本上 fine-tune, 项目是直接套用现成预训练模型不微调, 但'迁移学习正当性'这一锚定本身成立, 不构成夸大。"
+    },
+    {
+     "apa_head": "Devlin, J., Chang, M.-W., Lee, K., & Toutanova, K. (2019). BERT",
+     "verdict": "accurate",
+     "detail": ""
+    },
+    {
+     "apa_head": "Xu, X., Wen, F., Chu, B., Fu, Z., Lin, Q., Liu, J., Fei, B., Li",
+     "verdict": "accurate",
+     "detail": "已逐项核实: 32B token 中文金融语料 (自称该参数规模下已知最大中文金融预训练语料) 属实; 论文 Table 3 五个金融分类任务的 LLM 基线恰为 GPT-4-turbo (avg F1 0.8066)、Claude-3.5-Sonnet (0.8310)、Qwen2-72B (0.8329), FinBERT2-base 0.9295 全面胜出 — 声明中点名 GPT-4-turbo/Claude 完全如实。"
+    },
+    {
+     "apa_head": "Liu, Z., Huang, D., Huang, K., Li, Z., & Zhao, J. (2020). FinBE",
+     "verdict": "accurate",
+     "detail": ""
+    },
+    {
+     "apa_head": "Sun, C., Qiu, X., Xu, Y., & Huang, X. (2019). How to fine-tune ",
+     "verdict": "accurate",
+     "detail": ""
+    },
+    {
+     "apa_head": "Beltagy, I., Peters, M. E., & Cohan, A. (2020). Longformer: The",
+     "verdict": "accurate",
+     "detail": ""
+    },
+    {
+     "apa_head": "García, D., Hu, X., & Rohrer, M. (2023). The colour of finance ",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 在盈余电话会议文稿上, 用股价反应作监督信号逐词重估金融词汇情感色彩, 产出一套**新的正/负词典** (refine & expand LM 词典), 样本外预测股价优于既有词典 — 其'机器学习'产物本身仍是词级词典, 全文未研究 BERT/上下文化模型。声明哪里不符: 把它说成为'统计学习的情感测度 (BERT 轨) 含词典轨之外的增量定价信息'提供 JFE 级证据, 是把'数据驱动词典 > 固定词典'外推成'上下文模型 > 词典', 论文不支持后者; 且论文结论是改进词典而非把词典降格为基准。建议改写: '证明词典本身可由股价反应数据驱动地重估与改进、固定 LM 词表并非最优——支撑项目不把 stage 22 词典轨视为唯一权威基准、并行保留统计学习轨 (stage 21/23) 互证的多方法架构; 注意该文的 ML 产物仍是词级词典, 不直接构成 BERT 上下文模型增量信息的证据。'"
+    },
+    {
+     "apa_head": "Chen, Y., Kelly, B. T., & Xiu, D. (2022). Expected returns and ",
+     "verdict": "accurate",
+     "detail": ""
+    },
+    {
+     "apa_head": "Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock p",
+     "verdict": "accurate",
+     "detail": ""
+    },
+    {
+     "apa_head": "You, J., Zhang, B., & Zhang, L. (2018). Who captures the power ",
+     "verdict": "accurate",
+     "detail": ""
+    }
+   ]
+  },
+  {
+   "family": "media_bank_risk",
+   "family_note": "13 条锚定声明全部如实反映论文实际内容 (accurate 13/13), 无被安到不相干用途的文献; Cookson 2026 的\"存款流出\"声明经原文摘要核实确为论文实测结果 (Twitter 暴露 × 经典挤兑风险交互预测 Q1-2023 存款流出), 非外推。",
+   "findings": [
+    {
+     "apa_head": "Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schill",
+     "verdict": "accurate",
+     "detail": "联网核实: 论文确实同时报告股价损失 (Twitter 高暴露银行跑输 4.3pp) 与存款流出 (Twitter 暴露与 mark-to-market/未保险存款等经典挤兑风险交互, 预测 Q1-2023 更大存款流出), 声明两项均如实。细微提示 (不构成 overstated): 论文发现负面 Twitter 情感本身不放大挤兑风险, 起作用的是注意力/扩散; 项目若以'语调→风险'为主线引用此文时宜注意这一区分。"
+    },
+    {
+     "apa_head": "Drechsler, I., Savov, A., Schnabl, P., & Wang, O. (2023). De",
+     "verdict": "accurate",
+     "detail": "论文确为理论模型: 利率上升提高存款特许权价值, 但该价值依赖储户留存, 未保险储户预期他人撤离时特许权价值瞬间蒸发→自我实现式挤兑。声明'存款特许权价值随利率上升反而诱发未保险储户挤兑的理论机制'与论文核心机制一致。"
+    },
+    {
+     "apa_head": "Jiang, E. X., Matvos, G., Piskorski, T., & Seru, A. (2024). ",
+     "verdict": "accurate",
+     "detail": "论文对全美银行做资产盯市损失估值并与未保险存款比例联合构造挤兑脆弱性测度 (SVB 并非最差案例), 声明'盯市损失与未保险存款杠杆共同决定自我实现式挤兑脆弱性'及'提供 bank-level 风险结果度量模板'如实。"
+    },
+    {
+     "apa_head": "Koont, N., Santos, T., & Zingales, L. (2024). Destabilizing ",
+     "verdict": "accurate",
+     "detail": "论文证明拥有数字平台 (手机银行 app / 经纪渠道便利转移) 的银行在 2022-23 加息周期中存款流出更快、利率敏感性更高, 侵蚀存款特许权价值——'walks 而非 runs'。声明与论文主题/结论一致, 用于锚定'数字化×存款稳定性'交互项正当。"
+    },
+    {
+     "apa_head": "Chen, Q., Goldstein, I., Huang, Z., & Vashishtha, R. (2022).",
+     "verdict": "accurate",
+     "detail": "论文用监管披露变化等设定证明银行透明度越高, (未保险) 存款流动对银行业绩信息越敏感; 声明'储户对银行公开信息做出反应'的传导前提锚定如实。"
+    },
+    {
+     "apa_head": "Tetlock, P. C. (2007). Giving content to investor sentiment:",
+     "verdict": "accurate",
+     "detail": "WSJ 'Abreast of the Market' 专栏 GI 词典悲观度预测次日市场下跌与成交量, 确为'新闻词频→媒体语调→经济后果'范式开山之作, 声明如实且定位 (范式锚点而非银行专门证据) 恰当。"
+    },
+    {
+     "apa_head": "Engelberg, J. E., & Parsons, C. A. (2011). The causal impact",
+     "verdict": "accurate",
+     "detail": "论文用同一盈余公告在不同城市报纸的本地报道差异 (含极端天气致投递中断的准实验) 分离报道本身对本地交易的因果效应, 声明'分离媒体报道与被报道事件'的识别模板描述准确。"
+    },
+    {
+     "apa_head": "Peress, J. (2014). The media and the diffusion of informatio",
+     "verdict": "accurate",
+     "detail": "论文以多国报纸罢工为外生冲击, 发现罢工日成交量/波动率下降、价格对信息反应迟缓, 证明媒体是信息扩散的因果渠道; 声明如实。"
+    },
+    {
+     "apa_head": "Cookson, J. A., Lu, R., Mullins, W., & Niessner, M. (2024). ",
+     "verdict": "accurate",
+     "detail": "联网核实摘要: 论文区分注意力与情感两类信号 (Twitter/StockTwits/Seeking Alpha 三平台), 注意力跨平台高相关而情感跨平台低相关 (第一主成分解释力接近纯特异性), 且两类信号含不同收益信息。声明'区分注意力与情感且跨平台情感测度低相关'逐项如实, 锚定项目 salience+多方法语调并行设计贴切。"
+    },
+    {
+     "apa_head": "Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2024). Busin",
+     "verdict": "accurate",
+     "detail": "论文用约 80 万篇 WSJ 文章 LDA 主题模型构造新闻注意力结构, 证明新闻文本含预测宏观/市场动态的增量信息; 声明的规模数字与结论均如实, 作为大语料文本计量先例锚定恰当。"
+    },
+    {
+     "apa_head": "Goldstein, I. (2023). Information in financial markets and i",
+     "verdict": "accurate",
+     "detail": "RoF 主席演讲式综述, 梳理金融市场信息 (含披露、媒体、社交媒体、FinTech/大数据带来的信息处理变迁) 及其对实体决策的反馈效应; 声明定位为'2020 后权威综述锚点'如实且克制。"
+    },
+    {
+     "apa_head": "You, J., Zhang, B., & Zhang, L. (2018). Who captures the pow",
+     "verdict": "accurate",
+     "detail": "论文用大样本中文财经新闻发现市场化媒体负面报道显著提高高管被迫更替概率而官媒报道无此监督效应; 声明'市场化媒体监督有效/官媒无效→支持按媒体属性做异质性'与论文核心结果一致。"
+    },
+    {
+     "apa_head": "Qin, B., Strömberg, D., & Wu, Y. (2018). Media bias in China",
+     "verdict": "accurate",
+     "detail": "论文构造中国报纸政治偏向的内容测度, 刻画偏向与市场竞争/政府控制层级的关系 (报纸数据跨 1981-2011); 声明'为处理中文语料体制性偏向 (官媒 vs 市场化) 提供测度与控制依据'如实。"
+    }
+   ]
+  },
+  {
+   "family": "firm_exposure_text",
+   "family_note": "16 条 relevance_zh 全部如实: Hassan 范式系谱、关键词份额/上下文窗口/人工审计/IV 等声明均与论文实际方法相符, 无张冠李戴; 仅 Kalyani 条目\"含 fintech 类技术\"的括注属合理但未逐字核实的推断, 不构成夸大。",
+   "findings": [
+    {
+     "apa_head": "Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019)",
+     "verdict": "accurate",
+     "detail": "论文确以电话会议文本中主题词命中份额构造 firm-level political risk 并配人工审计, 是 share-of-text 暴露度范式源头; 声明未谎称语料相同, 如实。"
+    },
+    {
+     "apa_head": "Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Firm-le",
+     "verdict": "accurate",
+     "detail": "JF 2023 确用 ML 关键词发现算法+二元组频率构造 firm-level climate exposure 并做人工审计, 声明相符。"
+    },
+    {
+     "apa_head": "Sautner, Z., van Lent, L., Vilkov, G., & Zhang, R. (2023). Pricin",
+     "verdict": "accurate",
+     "detail": "MS 2023 确把文本 climate exposure 测度接入资产定价回归估计风险溢价, 声明相符。"
+    },
+    {
+     "apa_head": "Hassan, T. A., Hollander, S., van Lent, L., Schwedeler, M., & Ta",
+     "verdict": "accurate",
+     "detail": "RFS 2023 确为 Hassan 范式向疫情主题的迁移, 且确实示范疾病主题词与情感词邻近联合计数 (disease sentiment), 声明相符。"
+    },
+    {
+     "apa_head": "Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2024)",
+     "verdict": "accurate",
+     "detail": "JF 2024 确用 firm-level Brexit 文本暴露度估计不确定性冲击对非英国企业的跨境影响, 声明相符。"
+    },
+    {
+     "apa_head": "Florackis, C., Louca, C., Michaely, R., & Weber, M. (2023)",
+     "verdict": "accurate",
+     "detail": "RFS 2023 确以 10-K 风险披露文本相似度构造 firm-level cybersecurity risk 并以未来真实攻击事件验证预测效度, 声明相符。"
+    },
+    {
+     "apa_head": "Jamilov, R., Rey, H., & Tahoun, A. (2021). The anatomy of cyber",
+     "verdict": "accurate",
+     "detail": "确在全球电话会议语料上用 Hassan 式主题二元组+邻近上下文窗口 (情感/风险条件计数) 提取 cyber exposure; '对应项目 ctx 轨'是合理类比而非误述。"
+    },
+    {
+     "apa_head": "Caldara, D., & Iacoviello, M. (2022). Measuring geopolitical ri",
+     "verdict": "accurate",
+     "detail": "AER 2022 确基于报纸文章关键词频率构造 GPR 指数, 配套电话会议层面的公司级指标与人工阅读审计, 声明相符。"
+    },
+    {
+     "apa_head": "Kalyani, A., Bloom, N., Carvalho, M., Hassan, T. A., Lerner, J.",
+     "verdict": "accurate",
+     "detail": "已联网核验 QJE 摘要: 确用专利/招聘/电话会议文本 bigram 识别新兴技术并追踪扩散。括注'含 fintech 类技术'未逐项核实其技术词典, 但该团队技术清单覆盖面极广 (姊妹作含 mobile payment/cryptocurrency), 属合理表述; 若求严谨可改为'含数字技术'。"
+    },
+    {
+     "apa_head": "Babina, T., Fedyk, A., He, A., & Hodson, J. (2024)",
+     "verdict": "accurate",
+     "detail": "已联网核验: 确用简历 (Cognism) + 职位发布 (Burning Glass) 文本构造 firm-level AI 投资测度, 并以高校 AI 毕业生供给暴露做工具变量稳健性, 声明相符。"
+    },
+    {
+     "apa_head": "Li, K., Mai, F., Shen, R., & Yan, X. (2021). Measuring corporat",
+     "verdict": "accurate",
+     "detail": "RFS 2021 确用 word2vec 把种子词扩展为企业文化词典再在电话会议中计频, 声明相符。"
+    },
+    {
+     "apa_head": "Cheng, M., & Qu, Y. (2020). Does bank FinTech reduce credit ris",
+     "verdict": "accurate",
+     "detail": "确为中国银行业情境: 用新闻搜索爬虫+fintech 关键词词频构造 bank FinTech index 进 bank-year 面板检验信贷风险, 与项目做法直接对标, 声明相符。"
+    },
+    {
+     "apa_head": "Berg, T., Fuster, A., & Puri, M. (2022). FinTech lending",
+     "verdict": "accurate",
+     "detail": "ARFE 2022 综述 fintech lending (市场化放贷/大科技 vs 银行); 声明仅将其用作研究动机的综述锚点, 如实 (若细究, 其范围是 fintech 放贷而非 fintech-银行全景, 但不构成夸大)。"
+    },
+    {
+     "apa_head": "Engle, R. F., Giglio, S., Kelly, B., Lee, H., & Stroebel, J. (2",
+     "verdict": "accurate",
+     "detail": "RFS 2020 确从 WSJ 等新闻语料构造时变气候新闻指数 (非公司自述文本), 声明只取'新闻语料做主题指数'这一点作锚, 未谎称其为 firm-level 测度, 如实。"
+    },
+    {
+     "apa_head": "Loughran, T., & McDonald, B. (2016). Textual analysis in accoun",
+     "verdict": "accurate",
+     "detail": "JAR 2016 综述确系统讨论词典构建、词频归一化分母与测度验证陷阱, 声明相符。"
+    },
+    {
+     "apa_head": "Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data",
+     "verdict": "accurate",
+     "detail": "JEL 2019 确给出'文本→数值表示→回归输入'的统一方法框架与稀疏计数表示讨论, 作为管线方法学总纲引用如实。"
+    }
+   ]
+  },
+  {
+   "family": "substance_symbolic",
+   "family_note": "14 条锚定声明 13 条如实, 仅 Bingler et al. 2022 (FRL) 一条把\"按 TCFD 类别分类后推断 cheap talk\"夸大成\"首个把文本直接二分为 cheap talk vs 实质承诺的 BERT 分类器\", 建议按实际机制改写; 族整体引用质量高。",
+   "findings": [
+    {
+     "apa_head": "Kim, E.-H., & Lyon, T. P. (2015). Greenwash vs. brownwash: Exagg",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Lyon, T. P., & Montgomery, A. W. (2015). The means and end of g",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Flammer, C. (2021). Corporate green bonds. *Journal of Financia",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 用 ClimateBERT 把 TCFD 支持企业的披露按 TCFD 四大类别 (治理/战略/风险管理/指标目标) 自动分类, 发现 (1) 宣布支持 TCFD 后披露量仅微增 1.9% → 推断 TCFD 支持多为 cheap talk; (2) 企业偏好披露非实质性 (non-material) 类别 → cherry-picking。论文里并没有一个把文本直接二分为 'cheap talk vs 实质承诺' 的分类器——cheap talk 是从披露量不增 + 类别选择性这两个间接证据推断出来的结论, 不是分类标签; 把承诺文本按'具体 vs 含糊'二分的 specificity 分类器是该团队后续工作 (本族第 5 条 Bingler et al. 2024 JBF) 才使用的。'首个用微调 BERT 把企业披露文本自动分为 cheap talk vs 实质承诺' 夸大了该文的方法机制。建议改写: '首篇用领域微调 BERT (ClimateBERT) 自动分类企业气候披露并据此实证揭示 TCFD 支持多为 cheap talk、披露内容 cherry-pick 非实质类别的金融研究; 为项目用 BERT 文本分类器检测银行 fintech 叙事中的象征性话语提供方法先例 (二分类器设计可另引其 2024 JBF 后续)。'"
+    },
+    {
+     "apa_head": "Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Webersinke, N., Kraus, M., Bingler, J. A., & Leippold, M. (2021",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Giannetti, M., Jasova, M., Loumioti, M., & Mendicino, C. (2026)",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Sastry, P. R., Verner, E., & Marques-Ibanez, D. (2024). Busines",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Duchin, R., Gao, J., & Xu, Q. (2025). Sustainability or greenwa",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Kim, S., & Yoon, A. (2023). Analyzing active fund managers' com",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Donelson, D. C., Kim, M. J., Kim, S. S., & Yip, M. A. (2025). S",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Song, X., Hou, W., Ouyang, Z., & Hao, F. (2026). AI washing: St",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Barrios, J. M., Campbell, J. L., Johnson, R. G., & Liu, C. (202",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Babina, T., Fedyk, A., He, A., & Hodson, J. (2024). Artificial ",
+     "verdict": "accurate"
+    }
+   ]
+  },
+  {
+   "family": "fintech_taxonomy",
+   "family_note": "15 条中 13 条锚定如实; 2 条 overstated (Gomber 2018 框架被安上其并未显式提出的\"底层技术 vs 应用层\"二分; Babina et al. 的新借贷关系是 SME-fintech 而非银行-fintech), 无 wrong。",
+   "findings": [
+    {
+     "apa_head": "Gomber, P., Kauffman, R. J., Parker, C., & Weber, B. W. (2018)",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 提出 fintech innovation mapping, 按四个业务/服务领域组织 (运营管理、支付/区块链、借贷与存款、投资与市场), 评估各领域的创新-颠覆-转型程度; 技术 (区块链等) 作为贯穿各领域的使能要素出现, 并未提出'底层技术能力层 vs 面向客户的应用功能层'的显式二元分类框架。声明把它说成 P4 locus 二元编码的'直接出处'是外推——显式区分 business functions 维度与 technologies 维度的是 Gomber, Koch & Siering (2017, J Bus Econ) 的 Digital Finance Cube。建议改写: '该综述系统梳理 fintech 技术创新对支付/信贷/投资等业务功能领域的颠覆与转型, 为按技术与业务功能给银行 fintech 新闻分类提供领域图谱式背景支撑; 显式的功能×技术维度分离可补引 Gomber, Koch & Siering (2017) Digital Finance Cube 作为直接出处'。",
+     "apa_full": ""
+    },
+    {
+     "apa_head": "Chen, M. A., Wu, Q., & Yang, B. (2019). How valuable is FinTech",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Berg, T., Fuster, A., & Puri, M. (2022). FinTech lending. *Annua",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Boot, A., Hoffmann, P., Laeven, L., & Ratnovski, L. (2021). Fint",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Vives, X. (2019). Digital disruption in banking. *Annual Review",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "He, Z., Jiang, S., Xu, D., & Yin, X. (2026). Investing in lendin",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Kwan, A., Lin, C., Pursiainen, V., & Tai, M. (2024). Stress test",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Vives, X., & Ye, Z. (2025). Information technology and lender co",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Pierri, N., & Timmer, Y. (2022). The importance of technology in",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Parlour, C. A., Rajan, U., & Zhu, H. (2022). When FinTech compet",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Lerner, J., Seru, A., Short, N., & Sun, Y. (2024). Financial inn",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Chesbrough, H. W. (2003). *Open innovation: The new imperative f",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Goldstein, B., Jagtiani, J., & Lemieux, C. (2025). Fintech innov",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Babina, T., Bahaj, S. A., Buchak, G., De Marco, F., Foulis, A. K",
+     "verdict": "overstated",
+     "detail": "论文实际内容 (NBER w32089 摘要): 49 国开放银行政策样本, 发现消费者对 fintech 的信任预测 OB 采纳, 采纳促进 fintech 投资/进入; 英国微观数据显示消费者经 fintech 获取理财建议与信贷, 且 SME 与 fintech 放贷方建立新借贷关系; 校准模型分析福利。声明前半 ('开放银行促成 fintech 进入') 如实, 但'银行-fintech 新借贷关系建立'与论文不符——论文证据是借款人(SME)-fintech 的新借贷关系, 不是银行与 fintech 之间的合作/借贷关系, 该说法会误导读者以为论文支持银行-fintech 协同。建议改写: '开放银行(客户数据共享)促成 fintech 进入并让 SME 与 fintech 放贷方建立新借贷关系, 为项目把数据接口/开放合作类新闻纳入讨论、刻画数据共享的竞争-进入效应提供前沿证据' (若用于 P5 外部协同锚定, 应弱化为间接背景而非直接证据)。"
+    },
+    {
+     "apa_head": "Hau, H., Huang, Y., Lin, C., Shan, H., Sheng, Z., & Wei, L. (202",
+     "verdict": "accurate"
+    }
+   ]
+  },
+  {
+   "family": "herding_staleness",
+   "family_note": "12 条锚定中 10 条如实 (Tetlock 2011 staleness 范式、Fedyk 两篇、Da/Cagé/Hirshleifer/Glasserman/Bybee/Guo 等均经摘要核验与声明相符); 2 条夸大: You/Zhang/Zhang 2018 被外推为\"首发 vs 通稿转载级联\"证据 (论文只比较国有 vs 市场化媒体的批评性与治理效应, 无报道级联内容), Call et al. 2022 被安上\"记者依赖既有报道与同业线索跟进\"这一其调查并未记录的发现 (其头条发现反而是记者重视独家性)。",
+   "findings": [
+    {
+     "apa_head": "Tetlock, P. C. (2011). All the news that's fit to reprint: Do",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Fedyk, A., & Hodson, J. (2023). When can the market identify",
+     "verdict": "accurate",
+     "detail": "经摘要核验: 论文确用 Bloomberg 终端 1700 万条新闻数据集, 确实区分直接转载 (reprints) 与多源重组 (recombinations) 两类旧新闻, 且发现重组型更难被识别 (引发更大价格波动与随后反转)。声明逐项相符。"
+    },
+    {
+     "apa_head": "Fedyk, A. (2024). Front-page news: The effect of news positi",
+     "verdict": "accurate",
+     "detail": "经摘要核验: 头版位置外生变动 (Bloomberg 终端), 头版文章 1 小时内充分入价, 同等重要的非头版文章需两天以上才完全反映 — '相差两天以上'与原文 'takes more than two days' 一致。"
+    },
+    {
+     "apa_head": "Da, Z., Gurun, U. G., & Warachka, M. (2014). Frog in the pan",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Hirshleifer, D., Lim, S. S., & Teoh, S. H. (2009). Driven to",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Cagé, J., Hervé, N., & Viaud, M.-L. (2020). The production o",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Glasserman, P., Li, F., & Mamaysky, H. (2025). Time variatio",
+     "verdict": "accurate",
+     "detail": "经摘要核验: 论文确实研究价格对当期与滞后新闻 (lagged news, 即反应不足) 的时变响应, 并提出含有限注意力与三类投资者的简单模型。声明相符。"
+    },
+    {
+     "apa_head": "Hirshleifer, D., & Sheng, J. (2022). Macro news and micro ne",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Bybee, L., Kelly, B., Manela, A., & Xiu, D. (2024). Business",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "You, J., Zhang, B., & Zhang, L. (2018). Who captures the pow",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 比较中国国有 vs 市场化媒体对上市公司负面报道的批评性、信息含量及其公司治理后果 (市场化媒体负面报道提高高管被迫更替概率, 官媒无效), 识别依赖广告收入/监管激励差异。声明前半 ('系统比较国有 vs 市场化媒体的报道行为与信息含量差异') 属实, 但后半把它安到 '区分首发原创报道与官方通稿式跟进转载、论证中国媒体报道级联结构' 上 — 论文完全没有研究首发 vs 转载、跟进报道或报道级联 (cascade) 结构, 与 stage 24 herd decay / stage 18 staleness 的核心机制无直接对应。建议改写: '中国情境制度背景锚点: 证明国有与市场化媒体的报道激励与信息含量存在系统差异, 为项目在中文银行新闻上按媒体属性做异质性分析提供制度背景' — 删去首发/转载/级联的归因, 该用途应由 Cagé et al. (2020) 与 Fedyk & Hodson (2023) 承担。"
+    },
+    {
+     "apa_head": "Call, A. C., Emett, S. A., Maksymov, E., & Sharp, N. Y. (202",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 对 462 名财经记者的调查 (+18 访谈), 记录其报道输入 (公司披露、与管理层私下通话、分析师)、激励 (准确性/时效性/深度/独家性) 与选题驱动因素 (争议性公司、有个性的 CEO、舞弊、CEO 更替)。声明称调查 '直接揭示记者依赖既有报道与同业线索决定是否跟进某公司'、为 copycat 跟进建模提供微观证据 — 可获取的摘要、官方新闻稿与媒体综述均未列出 '既有报道/同业线索' 作为选题因素; 论文头条发现之一恰恰是记者高度重视独家性 (exclusive stories, 即首发原创), 方向上与 copycat 叙事相反。建议改写: '对 462 名财经记者的调查揭示选题决策由争议性、读者吸引力与独家性激励驱动, 为项目把新闻覆盖视为内生编辑选择 (而非外生信息到达) 提供微观行为证据' — 删去 '依赖既有报道与同业线索跟进' 的具体归因, 或核对论文全文后补充确切表项再引用。"
+    },
+    {
+     "apa_head": "Guo, L., Peng, L., Tao, Y., & Tu, J. (2025). Joint news, att",
+     "verdict": "accurate",
+     "detail": "经摘要核验: 论文确用联合新闻覆盖 (一篇新闻覆盖多家公司) 文档注意力传染, 以 EDGAR 唯一 IP 访问提供直接证据, 发现同步估值抬升与随后反转。声明相符。"
+    }
+   ]
+  },
+  {
+   "family": "embedding_alignment",
+   "family_note": "14/14 条 relevance_zh 经对抗复核全部如实: 每篇论文的实际方法/语境与声称的锚定用途相符, 未发现张冠李戴或夸大外推。",
+   "findings": [
+    {
+     "apa_head": "Ash, E., & Hansen, S. (2023). Text algorithms in economics. *An",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. *Jou",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Gennaro, G., & Ash, E. (2022). Emotion and reason in political ",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Hanley, K. W., & Hoberg, G. (2019). Dynamic interpretation of e",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Hoberg, G., & Phillips, G. (2016). Text-based network industrie",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Li, K., Mai, F., Shen, R., & Yan, X. (2021). Measuring corporat",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2024). Business",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Jha, M., Liu, H., & Manela, A. (2026). Does finance benefit soc",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Kalmenovitz, J., Lowry, M., & Volkova, E. (2025). Regulatory fr",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Davis, S. J., Hansen, S., & Seminario-Amez, C. (2020). Firm-lev",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "He, S., Lv, L., Manela, A., & Wu, J. (2025). Chronologically co",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence emb",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Liu, Y., Cao, Z., & Wen, F. (2024). Textual similarity between ",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Fang, H., Li, M., & Lu, G. (2025). Decoding China's industrial ",
+     "verdict": "accurate"
+    }
+   ]
+  },
+  {
+   "family": "readability_numint",
+   "family_note": "15 条锚定声明全部如实: 各文献的实际主题/方法 (Fog 基准、LM 文件大小批评、Bog 指数、NER specificity、75% 4-gram boilerplate、数字密度、Lazy Prices 陈旧度、中文可读性指数) 与其被声称锚定的项目测度逐条对应, 英文文献用于中文语料处均已诚实标注为\"移植/适配\"而非伪称直接支持。",
+   "findings": [
+    {
+     "apa_head": "Li, F. (2008). Annual report readability, current earnings, and",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Loughran, T., & McDonald, B. (2014). Measuring readability in f",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Bonsall, S. B., IV, Leone, A. J., Miller, B. P., & Rennekamp, K",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Hwang, B.-H., & Kim, H. H. (2017). It pays to write well. *Jour",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Bushee, B. J., Gow, I. D., & Taylor, D. J. (2018). Linguistic c",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Loughran, T., & McDonald, B. (2020). Textual analysis in financ",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Blankespoor, E., deHaan, E., & Marinovic, I. (2020). Disclosure",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to tal",
+     "verdict": "accurate",
+     "detail": "论文核心是文本生产方针对机器读者策略性调整措辞 (实证: 机器下载量高的公司规避 LM 负面词等), 声明第二半句 (策略性写作提示、boilerplate/staleness 应对) 完全如实; 第一半句'正当化机器化测量'是温和的框架性引申 (论文前提确实是机器在解析文本特征), 整体仍判 accurate, 但若求严谨可弱化为'印证机器读者已成文本特征的实际消费者'。"
+    },
+    {
+     "apa_head": "Kim, A. G., Muhn, M., & Nikolaev, V. V. (2023). Bloated disclos",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Lundholm, R. J., Rogo, R., & Zhang, J. L. (2014). Restoring the",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Hope, O.-K., Hu, D., & Lu, H. (2016). The benefits of specific",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Lang, M., & Stice-Lawrence, L. (2015). Textual analysis and int",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Dyer, T., Lang, M., & Stice-Lawrence, L. (2017). The evolution",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Cohen, L., Malloy, C., & Nguyen, Q. (2020). Lazy prices. *The J",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Li, F., Yang, M., & Zhang, T. (2023). Does prospectus readabili",
+     "verdict": "accurate"
+    }
+   ]
+  },
+  {
+   "family": "llm_contamination",
+   "family_note": "12 条锚定声明 11 条如实 (accurate), 仅 Rahimikia & Drinkall 一条的\"系统批评可复现性缺陷\"成分无摘要级证据支持, 判 overstated; 无 wrong。",
+   "findings": [
+    {
+     "apa_head": "Sarkar, S. K., & Vafa, K. (2024). Lookahead bias in pretrained",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Glasserman, P., & Lin, C. (2024). Assessing look-ahead bias in",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Levy, B. (2026). Caution ahead: Numerical reasoning and look-ah",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "He, S., Lv, L., Manela, A., & Wu, J. (2025). Chronologically co",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Ludwig, J., Mullainathan, S., & Rambachan, A. (2025). Large lan",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Lopez-Lira, A., Tang, Y., & Zhu, M. (2025). The memorization pr",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock p",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Golchin, S., & Surdeanu, M. (2024). Time travel in LLMs: Tracin",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Oren, Y., Meister, N., Chatterji, N., Ladhak, F., & Hashimoto,",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Rahimikia, E., & Drinkall, F. (2024). Re(Visiting) large langua",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 提出 FinText 系列按年 (2007-2023) point-in-time 预训练的金融专用小型 LLM, 消除 look-ahead bias, 并在交易任务上击败大 50 倍的 LLaMA 1/2/3; 模型全部开源发布, 强调自身的透明/可复现承诺。声明前半 (按年预训练根除 look-ahead bias) 准确; 但'系统批评现有金融 LLM 研究的可复现性缺陷'在摘要与多方简介中均无支持——论文是以自身开源实践示范可复现性, 而非对既有研究做系统性可复现性批评, 由此引出的'为项目冻结 prompt+缓存锚点复现策略提供对照'属外推。建议改写: '按年逐个预训练 point-in-time FinText 模型 (2007-2023) 以根除 look-ahead bias 并开源全部模型, 为项目讨论时间一致替代模型与开源可复现实践提供金融侧对照' (删去'系统批评可复现性缺陷'断言)。"
+    },
+    {
+     "apa_head": "Gao, Z., Jiang, W., & Yan, Y. (2026). A test of lookahead bias",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Benhenda, M. (2026). Look-Ahead-Bench: A standardized benchmark",
+     "verdict": "accurate"
+    }
+   ]
+  },
+  {
+   "family": "peer_disagreement",
+   "family_note": "14 条中 12 条锚定如实, 2 条 overstated (Cookson-Niessner 2020 与 Frankel et al. 2022 均为'人类/方法对比'到'NLP 方法间分歧=有含义信号'的类比外推, 论文本身未做此论证); 无 wrong。",
+   "findings": [
+    {
+     "apa_head": "Cookson, J. A., & Niessner, M. (2020). Why don't we agree? Evid",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 用 StockTwits 投资者情绪 + 用户投资方法标签 (技术派/基本面派), 把人类投资者分歧分解为'信息集差异'vs'解读差异'(组内 vs 跨组), 发现两者约各占一半且组内分歧与交易量关系更紧。声明不符处: 论文研究对象是人类投资者, 并未涉及文本测度算法; '正当化把 LLM/词典/BERT 三方法语调差异视作信息解读分歧而非测量误差'是把'不同投资方法的人'类比为'不同 NLP 算法'的外推, 论文没有任何关于算法间差异是否为测量误差的论证 (该裁定更接近由 Cookson et al. 2024 The Social Signal 提供)。建议改写: '提供同一信息、不同解读范式的分歧分解概念框架 (人类投资者层面); 项目将 LLM/词典/BERT 方法间语调差异类比为解读差异——属类比性锚定, 算法分歧的信息含量需另引 Cookson et al. (2024) 佐证'。",
+     "apa_head_note": ""
+    },
+    {
+     "apa_head": "Cookson, J. A., Engelberg, J. E., & Mullins, W. (2023). Echo ch",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Cookson, J. A., Lu, R., Mullins, W., & Niessner, M. (2024). The",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Cookson, J. A., & Niessner, M. (2023). Investor disagreement: D",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Cookson, J. A., Fox, C., Gil-Bazo, J., Imbet, J. F., & Schiller",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Grieser, W., Hadlock, C., LeSage, J., & Zekhnini, M. (2022). Ne",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Bramoullé, Y., Djebbari, H., & Fortin, B. (2020). Peer effects ",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect cor",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Jackson, M. O., & Pernoud, A. (2021). Systemic risk in financia",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Duarte, F., & Eisenbach, T. M. (2021). Fire-sale spillovers and",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Frankel, R., Jennings, J., & Lee, J. (2022). Disclosure sentime",
+     "verdict": "overstated",
+     "detail": "论文实际内容: 在 10-K 与电话会议文本上系统比较词典法 (LM/Harvard) 与机器学习法 (随机森林等) 情感测度对公告日收益的解释力, 结论是 ML 显著优于词典法 (前半句声明属实)。声明不符处: 后半句'正当化把方法间语调分歧 (cross-method disagreement) 当作有经济含义的测度对象'超出论文范围——论文的论旨是一种方法支配另一种 (词典法偏离更接近劣质测量/误差), 全文未把方法间分歧本身构造成变量或赋予其经济含义, 该用法甚至与论文'择优弃劣'的精神相反。建议改写: '系统证明不同情感测度方法捕捉的信息含量存在系统性差异 (ML>词典), 支持项目并行运行多方法做稳健性; 但将方法间分歧本身作为有经济含义的测度对象需另行论证 (如援引 Cookson et al. 2024)'。"
+    },
+    {
+     "apa_head": "Bachmann, R., Elstner, S., & Sims, E. R. (2013). Uncertainty an",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "Carlin, B. I., Longstaff, F. A., & Matoba, K. (2014). Disagreem",
+     "verdict": "accurate"
+    },
+    {
+     "apa_head": "You, J., Zhang, B., & Zhang, L. (2018). Who captures the power ",
+     "verdict": "accurate"
+    }
+   ]
+  }
+ ],
+ "facts": {
+  "findings": [
+   {
+    "claim": "族1 (stage 21): 3 个 LLM 分别打分、少数服从多数投票合成 llm_vote_tone、温度 0、提示词字节级冻结、结果全部缓存保证重跑一致",
+    "verdict": "correct",
+    "detail": "config/sentiment.yaml: models 恰 3 个 (gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash, 行 28-43), temperature: 0.0 (行 18), ensemble_method: majority_vote (行 21); pipeline/sentiment/tone_llms.py: PROMPT_VERSION 缓存键命名空间 (行 146-148), 'Prompt 构造与缓存键已字节级冻结 (v8, $0 铁律)' (行 334), LLMCache 穿透缓存 _llm_cache.db + NEWS_PROCESS_LLM_OFFLINE 离线守卫 (行 184-198, miss 即 raise)。'保证任何人重跑一模一样'严格说以缓存全命中为前提 (已验证 7020/7020 命中), 白话表述可接受。"
+   },
+   {
+    "claim": "族2 (stage 22): 用'一份'中文金融情感词典数正负面词, 配合否定词窗口和 IDF 加权得到 tone_words",
+    "verdict": "imprecise",
+    "detail": "pipeline/sentiment/tone_words.py: 否定词窗口属实 (NEGATION_WINDOW=2 分词单元, 行 163-189/529-597, 极性翻转); IDF 加权存在且默认启用 (idf_weighting 默认 True, 行 1589)。但两处不准: ① 不是'一份'词典而是 5 部并行 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018, 行 360); ② IDF 加权是标注为'稳健性检验'的并行变体 (行 685 '4B. IDF 加权稳健性检验', 产出独立的 {dict}_idf_score{track} 列, 行 1691-1692), 主 tone_words 得分为等权计数+否定/程度/转折修饰, 不是 IDF 加权的产物。建议改为: '5 部中文金融情感词典等权打分+否定词窗口, 另以 IDF 加权版作并行稳健轨'。"
+   },
+   {
+    "claim": "族3 (stage 23): 3 个中文金融领域微调的 BERT 模型打文章级情感分, 永远开启 (always-on)",
+    "verdict": "correct",
+    "detail": "config/sentiment.yaml 行 282-301: 恰 3 个 BERT (finbert_cn=yiyanghkust/finbert-tone-chinese, fin_sent_zh=bardsai/finance-sentiment-zh-base, finbert2=本地私有, 均 max_length 512); core/dag.py 行 212-217: stage 23 自 2026-06-12 起省略 enabled_when 取默认 always_enabled, 不再受 enabled_methods 启停。小注: finbert2 在 FINBERT2_MODEL_DIR 未设时 graceful skip (配置注释行 293-296), '3 个'是配置满员数。"
+   },
+   {
+    "claim": "族5 (stage 14): 数每家银行新闻里金融科技相关词'占多大比重', 得到'银行层面'的 fintech 关注度 (Hassan 2019 份额范式)",
+    "verdict": "imprecise",
+    "detail": "pipeline/filtering/fintech_intensity.py: 确为关键词驱动+文长归一化, 但实际核函数是 Score_d = Σ (1+ln TF)/(1+ln L_d) × W_i (行 395), 其中 W_i = IDF × 语义余弦综合权重 (sentence_transformers 质心相似度, 行 340-359), 是'技术重度评分', 不是 Hassan 式裸 share (词数/总词数); 且 stage 14 产出文章级 fintech_intensity_score_{full,ctx}, '银行层面'是下游 encode.py 聚合 (avg_ft_intensity*) 才得到。白话方向对 (份额式精神/文长归一), 但'占多大比重'与'银行层面(stage 14)'两处与实现有偏。"
+   },
+   {
+    "claim": "族8 (stage 24): 用'指数衰减'权重区分首发与跟进报道",
+    "verdict": "wrong",
+    "detail": "pipeline/sentiment/herd_decay.py 行 43/332/439-445: 衰减公式为 weight = 1/(1 + n_similar_predecessors), 是按相似前驱篇数的双曲/调和衰减, 不是指数衰减 (代码与 config 中均无 exp/半衰期参数)。'区分首发与跟进'属实 (首发 weight=1, 跟进按前驱数降权, TF-IDF 相似度阈值判定)。修正表述: '按 1/(1+n) 双曲衰减权重区分首发与跟进'。"
+   },
+   {
+    "claim": "族8 (stage 18): 度量每篇新闻与近期报道的文本相似度作为陈旧度 (staleness)",
+    "verdict": "correct",
+    "detail": "pipeline/text/article_staleness.py: surface_staleness (字面 Jaccard/MinHash) + semantic_staleness (SBERT cosine, Faiss) 双指标, 过去 7d 滚动窗口取 max 相似度 (行 6-53), 明确锚 Tetlock 2011 RFS。小注 (文件自带披露, 行 30-35): 匹配域是全银行混池 7d 而非 Tetlock 原文同公司 72h, 但报告白话未作此声称, 不构成偏差。"
+   },
+   {
+    "claim": "族9 (stage 15): 新闻与监管政策文件转向量算余弦相似度得政策对齐度, 且用两套不同向量模型互相验证",
+    "verdict": "correct",
+    "detail": "pipeline/filtering/policy_alignment.py: 余弦相似度构造 policy_cosine_sim_{full,ctx} (行 11-67), MAIN spec = text-embedding-3-small (API), ROBUSTNESS spec = shibing624/text2vec 本地模型产出 _t2v 后缀稳健 twin 列 (行 98-101, policy_cosine_sim_t2v_{full,ctx})。双模型稳健属实。"
+   },
+   {
+    "claim": "族10: 约 15 族文本测度 (可读性/确定模糊词/数字密度/具体性/套话比例等)",
+    "verdict": "correct",
+    "detail": "pipeline/sentiment/lexical_complexity.py + pipeline/filtering/news_salience.py 两个'$0 测度族'模块存在; boilerplate/specificity/num_intensity 在 pipeline/sentiment/{numerical_intensity,lexical_complexity}.py 及 tone_words.py (clarity definite/ambiguous frozenset, 行 201) 均有实现; 项目记忆 (2026-06-05 textual-measure-impl) 确认 15 测度族 ~40 新列已落地。'约 15 族'成立。"
+   },
+   {
+    "claim": "族11 (DC4): 项目论文承诺做 DC4 LLM 训练数据污染留出检验 (知识截止后留出样本)",
+    "verdict": "correct",
+    "detail": "papers/bank_media_disagreement/paper_spec.yaml 行 129/245 与 papers/bank_news_clarity/paper_spec.yaml 行 126/251 仍写明 'F-Adv.2: LLM training data contamination test (DC4 必修, pre/post cutoff holdout)' + 'llm_contamination_holdout' — frozen spec 承诺仍在, '论文承诺'表述站得住。重要 caveat: 执行该检验的 stage 39h 已于 2026-06-12 随 stage 49 (z_score outcome 缺财务数据) 整体移除, 管线中当前无任何已接线实现 — 若报告语境暗示'检验已实现', 则应补注'目前仅为 spec 承诺, 实现待财务面板接入后重建'。"
+   },
+   {
+    "claim": "族12: 同行银行舆论语调作 IV 且 leave-one-out 排除自身; 跨方法/跨媒体情感分歧作不确定性代理",
+    "verdict": "correct",
+    "detail": "pipeline/panel/iv_extensions.py: compute_peer_loo_iv 显式 LOO_{i,t} = (Σ_{j∈g(i)} x_{j,t} − x_{i,t})/... (行 113-126), Bartik shift 亦为'组内其他银行'LOO 均值 (行 212-215), min_peers 守卫单一同业 (行 88); peer_tone 族列 (llm_peer_tone_iv) 同走 LOO。分歧测度: papers/bank_media_disagreement/ 论文模块存在且 spec 活跃。"
+   },
+   {
+    "claim": "双轨表述: full=标题+正文 (content_full), ctx=标题+实体上下文窗口 (content_ctx), 两轨对称注入同一标题",
+    "verdict": "correct",
+    "detail": "core/text/entity_context.py 行 56-66: ctx_materializer 物化的 content_full / content_ctx 两轨均经 prepend_title 注入同一标题 (对称设计, 2026-06-02 病根A修复); 与 CLAUDE.md v3.8.0 'content_full(=标题+正文) / content_ctx(=标题+实体窗口)' 一致。报告各族提及 ctx='实体上下文窗口轨'的表述无误。"
+   },
+   {
+    "claim": "族1/族12 横切: 报告通篇以 'llm_vote_tone' 称呼 LLM 投票测度、以三方法 (21 LLM / 22 词典 / 23 BERT) 并行互证描述总体架构",
+    "verdict": "correct",
+    "detail": "config/sentiment.yaml ensemble_method: majority_vote + 三模型; stage 21/22 受 enabled_methods 条件启停而 23/24 always-on (core/dag.py 行 453 注释), 三方法并行的事实成立; 主 spec 列为 llm_vote_tone_ctx (CLAUDE.md P1 段), 'llm_vote_tone' 作为族名简称无误。"
+   }
+  ]
+ }
+}
