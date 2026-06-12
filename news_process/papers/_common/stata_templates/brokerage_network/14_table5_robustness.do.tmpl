@@ -24,8 +24,10 @@ if _rc {
 }
 
 * R1: Ctx-track 2SLS
-capture confirm variable peer_tone_lag1_ctx
-capture confirm variable peer_tone_2nd_lag1_ctx
+* fix(omni-g-templates-04, 2026-06-11): 旧版连续两条 capture confirm — 后一条覆盖 _rc,
+* peer_tone_lag1_ctx 单独缺失时守卫穿透 → ivreghdfe r(111)。合并为单次 confirm
+* (多变量语义: 任一缺失即 _rc≠0)。
+capture confirm variable peer_tone_lag1_ctx peer_tone_2nd_lag1_ctx
 if !_rc {
     ivreghdfe {{MAIN_DV}}_w (peer_tone_lag1_ctx = peer_tone_2nd_lag1_ctx) $controls, ///
         absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
@@ -37,10 +39,16 @@ ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
     absorb(bank_id year) cluster(bank_id) ffirst
 eststo R2_bank_cluster
 
-* R3: drop singleton bank groups (force minimum)
-ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+* R3: drop singleton bank groups (banks with a single usable observation)
+* fix(omni-g-templates-03, 2026-06-11): 旧版命令与 Table 2 M2 基线逐 token 相同,
+* 无任何 keep/drop/singleton 处理 — mtitle "Kept" 的稳健性列实为重复发表同一回归
+* (假稳健性列)。现真实剔除单观测银行组后重估 (singleton 组在 within-FE 估计中
+* 本就不贡献识别, 此列验证点估计不被这些组的存在性影响)。
+bysort bank_id: gen long _bank_grp_n = _N
+ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls if _bank_grp_n > 1, ///
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo R3_kept
+drop _bank_grp_n
 
 * R4: add 2nd-order centrality
 gen L2_broker = L2.{{CENTRALITY_BROKER}}
@@ -48,11 +56,29 @@ ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) L_broker L2_broker $contr
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo R4_l2
 
-esttab R1_ctx R2_bank_cluster R3_kept R4_l2 ///
+* fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — R1_ctx 被守卫跳过后
+* 旧版硬点名 → r(111) 整表丢失; 仅引用实际已存储估计, mtitle 同步删列防错位。
+qui estimates dir
+local stored `r(names)'
+local cand_models R1_ctx R2_bank_cluster R3_kept R4_l2
+local cand_titles `""Ctx" "Bank-cluster" "Drop singletons" "L2.Broker""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' ///
     using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Robustness Battery --- brokerage_network") ///
-    mtitles("Ctx" "Bank-cluster" "Kept" "L2.Broker") ///
-    addnotes("Bank/year FE; cluster varies per column.")
+    mtitles(`mtitles') ///
+    addnotes("Bank/year FE; cluster varies per column." ///
+             "Drop-singletons column re-estimates after excluding banks with a single observation.")
 
 display "[OK] Table 5 → $tables_dir/table5_robustness.tex"

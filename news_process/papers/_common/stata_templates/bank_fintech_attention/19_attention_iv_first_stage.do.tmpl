@@ -62,10 +62,34 @@ if !_rc {
     eststo tsls_bartik
 }
 
-esttab first_loo reduced_loo tsls_loo first_bartik tsls_bartik ///
-    using "$tables_dir/tableA_iv_first_stage.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("P2 IV First Stage + 2SLS") ///
-    addnotes("Kleibergen-Paap rk-F-stat reported by ivreg2; weak-IV threshold = 16.38 (Stock-Yogo 2005).")
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — 全部 5 个估计都在守卫
+* 块内 (leave_one_out_peer_attention_iv / bartik_attention_iv 均为派生 pending 列),
+* 任一缺失旧版硬点名 → r(111) 丢整表; 全缺时如实告警跳过。
+qui estimates dir
+local stored `r(names)'
+local cand_models first_loo reduced_loo tsls_loo first_bartik tsls_bartik
+local cand_titles `""1st LOO" "Reduced LOO" "2SLS LOO" "1st Bartik" "2SLS Bartik""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] IV first-stage 表无任何已存储估计 (两 IV 列全缺), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA_iv_first_stage.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("P2 IV First Stage + 2SLS") ///
+        mtitles(`mtitles') ///
+        addnotes("Kleibergen-Paap rk-F-stat reported by ivreg2; weak-IV threshold = 16.38 (Stock-Yogo 2005).")
 
-display "[OK] 19_attention_iv_first_stage → $tables_dir/tableA_iv_first_stage.tex"
+    display "[OK] 19_attention_iv_first_stage → $tables_dir/tableA_iv_first_stage.tex"
+}

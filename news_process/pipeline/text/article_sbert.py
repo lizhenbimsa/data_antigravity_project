@@ -12,8 +12,10 @@ business cycles. Review of Financial Studies, 37(3), 887-936.
 
 设计决策
 --------
-1. **SBERT 模型**: ``shibing624/text2vec-base-chinese`` (与 stage 30 / 15 /
-   strategic_diff 4 callsite 完全一致, 零下载 + 零双轨配置漂移)
+1. **SBERT 模型**: 读 ``config/features.yaml::embedding_robustness.model``
+   (默认 ``shibing624/text2vec-base-chinese``, 与 stage 15 / strategic_diff t2v 轨
+   真单源, 零下载 + 零双轨配置漂移; fix(omni-g-embed-05, 2026-06-11) — 此前读
+   不存在的 'embedding' 键恒走硬编码默认)
 2. **输入策略**: 标题 + 首段 300 字 (实际新闻中位 800 字 ≈ 1200 token, SBERT
    max_seq_len=512 截断会丢失末段)
 3. **双轨** (2026-06-08 dual-track parity): full 读 content_full / ctx 读 content_ctx
@@ -57,10 +59,28 @@ CONFIG = load_config()
 STAGE_NAME = "30a_article_sbert"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
-# 与 config/features.yaml::embedding.model 单源对齐
-_SBERT_MODEL_ID = CONFIG.get('embedding', {}).get(
-    'model', 'shibing624/text2vec-base-chinese'
-)
+def _resolve_sbert_model(config: dict) -> tuple[str, str | None]:
+    """从 config/features.yaml::embedding_robustness 解析 (model_id, revision).
+
+    fix(omni-g-embed-05, 2026-06-11): 此前读不存在的 'embedding' 顶级键 (features.yaml
+    仅有 embedding_api / embedding_robustness 两键) → 恒走硬编码默认, "单源对齐"声称
+    失实; 改 embedding_robustness.model 时 stage 30a 静默不跟随, 与 stage 15/25 t2v
+    轨配置漂移。现真单源 = embedding_robustness.model (+ 可选 revision 键钉死 HF
+    commit, 防上游模型权重更新静默改变全部嵌入派生测度)。
+    """
+    rob = (config or {}).get('embedding_robustness', {}) or {}
+    model_id = rob.get('model') or 'shibing624/text2vec-base-chinese'
+    revision = rob.get('revision') or None
+    return model_id, revision
+
+
+# 与 config/features.yaml::embedding_robustness.model 真单源对齐 (stage 15/25 t2v 同源)
+_SBERT_MODEL_ID, _SBERT_REVISION = _resolve_sbert_model(CONFIG)
+
+# 30a 输入文本构造版本 (provenance, 与 LLMCache 的 prompt_version 维度同哲学):
+# v2 = 2026-06-08 dual-track parity (content_full/content_ctx 已 prepend 标题一次,
+# title_col=None 关闭二次前置)。任何对输入构造/截断策略的变更必须 bump。
+_TEXT_PIPELINE_VERSION = 'v2-2026-06-08-dualtrack-prepend'
 
 # Bybee 2024 风格 "标题 + 首段 300 字" 截断
 TITLE_CHARS = 100
@@ -99,8 +119,21 @@ def encode_articles(
         logger.error("sentence-transformers 未安装; pip install sentence-transformers")
         raise
 
-    logger.info(f"  加载 SBERT: {_SBERT_MODEL_ID}")
-    model = SentenceTransformer(_SBERT_MODEL_ID)
+    # fix(omni-g-embed-07, 2026-06-11): 推理前确定性硬化 (共享 helper, 对齐 stage 23
+    # tone_berts V4 T1.1a — seed 四源 + deterministic algorithms + cuDNN 策略)
+    from news_process.pipeline.text.embedding_engine import ensure_torch_determinism
+    ensure_torch_determinism()
+
+    logger.info(
+        f"  加载 SBERT: {_SBERT_MODEL_ID}"
+        + (f" @ revision={_SBERT_REVISION}" if _SBERT_REVISION else "")
+    )
+    # fix(omni-g-embed-05, 2026-06-11): 配置了 revision 时钉死 HF commit;
+    # 未配置保持旧调用形态 (兼容旧版 sentence-transformers 无 revision kwarg)
+    if _SBERT_REVISION:
+        model = SentenceTransformer(_SBERT_MODEL_ID, revision=_SBERT_REVISION)
+    else:
+        model = SentenceTransformer(_SBERT_MODEL_ID)
 
     if title_col and title_col in df.columns:
         docs = [
@@ -126,6 +159,34 @@ def encode_articles(
     )
     logger.info(f"  编码完成: {time.time() - t0:.1f}s, shape={embs.shape}")
     return embs.astype(np.float32)
+
+
+def _build_output_frame(
+    df: pd.DataFrame, embs_full: np.ndarray, embs_ctx: np.ndarray,
+) -> pd.DataFrame:
+    """组装 30a 输出 frame (对齐键 + provenance + 双轨向量).
+
+    fix(omni-g-embed-03, 2026-06-11): 新增 model_id / model_revision /
+    text_pipeline_version provenance 列 (与 LLMCache 键维度对齐) + docid 透传 —
+    供 stage 18 消费端按 article_id 显式 join 并检测 30a 陈旧 (此前消费端纯位置
+    对齐, 行数恰相等的陈旧 30a 会静默整列错位)。
+    """
+    out: dict = {
+        'article_id': df.index if 'article_id' not in df.columns else df['article_id'],
+    }
+    if 'docid' in df.columns:
+        out['docid'] = df['docid']
+    out.update({
+        'target_bank': df['target_bank'] if 'target_bank' in df.columns else pd.NA,
+        'year': df['year'] if 'year' in df.columns else pd.NA,
+        '日期': df['日期'] if '日期' in df.columns else pd.NA,
+        'emb_full': list(embs_full),   # list of 1D arrays (parquet-compatible)
+        'emb_ctx': list(embs_ctx),
+        'model_id': _SBERT_MODEL_ID,
+        'model_revision': _SBERT_REVISION or '',
+        'text_pipeline_version': _TEXT_PIPELINE_VERSION,
+    })
+    return pd.DataFrame(out)
 
 
 def main():
@@ -166,16 +227,9 @@ def main():
         else np.full_like(embs_full, np.nan)
     )
 
-    # ── 持久化 ──
+    # ── 持久化 (fix(omni-g-embed-03, 2026-06-11): 含 provenance 列) ──
     out_path = os.path.join(output_dir, '30a_article_embeddings.parquet')
-    out_df = pd.DataFrame({
-        'article_id': df.index if 'article_id' not in df.columns else df['article_id'],
-        'target_bank': df['target_bank'] if 'target_bank' in df.columns else pd.NA,
-        'year': df['year'] if 'year' in df.columns else pd.NA,
-        '日期': df['日期'] if '日期' in df.columns else pd.NA,
-        'emb_full': list(embs_full),   # list of 1D arrays (parquet-compatible)
-        'emb_ctx': list(embs_ctx),
-    })
+    out_df = _build_output_frame(df, embs_full, embs_ctx)
     out_df.to_parquet(out_path, index=False)
 
     size_mb = os.path.getsize(out_path) / 1024 / 1024

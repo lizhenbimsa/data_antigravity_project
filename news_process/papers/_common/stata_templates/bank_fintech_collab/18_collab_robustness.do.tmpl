@@ -24,7 +24,9 @@ if !_rc {
     eststo R_CTX
 }
 
-* R2: alternative treatment = innovation_collab_mode_full average (continuous fraction)
+* R2: alternative treatment = collab_frac (外部协同文章占比, panel 聚合连续测度;
+*     fix(omni-g-papers-misc-11, 2026-06-11) 注释勘误: 原写 article-level 幻影列
+*     innovation_collab_mode_full average — panel 真名即 collab_frac)
 capture confirm variable collab_frac
 if !_rc {
     reghdfe {{MAIN_DV}} collab_frac $controls, ///
@@ -65,6 +67,11 @@ if _rc == 0 {
     reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     boottest collab_open_full, reps(9999) seed({{RANDOM_SEED}})
+    * fix(omni-g-templates-10, 2026-06-11): boottest 按设计不改写 e(b)/e(V) (wild p
+    * 在 r(p)), 旧 eststo 存的是 reghdfe 解析 cluster SE → "Wild boot" 列名实不符
+    * (84-cluster small-G 场景正是 wild boot 要纠正的对象)。以 estadd 把 r(p) 注入
+    * e(p_wild) 进表 stats 行, 列内容如实披露。
+    estadd scalar p_wild = r(p)
     eststo R_WILD
 }
 else {
@@ -91,9 +98,33 @@ else {
     display "  ⚠️ ritest not installed (ssc install ritest); randomization inference 跳过"
 }
 
-esttab R_CTX R_FRAC R_WIN R_TRIM R_WILD R_RITEST using "$tables_dir/table5_robustness.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Robustness --- bank_fintech_collab (P5)") ///
-    mtitles("Ctx track" "Frac (cont.)" "Winsor DV" "Trim 1%-99%" "Wild boot" "RI 1000")
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — R_CTX..R_RITEST 全部在
+* 守卫块内, 任一被跳过后旧版硬点名 → r(111) 整表丢失; mtitle 同步删列防错位。
+qui estimates dir
+local stored `r(names)'
+local cand_models R_CTX R_FRAC R_WIN R_TRIM R_WILD R_RITEST
+local cand_titles `""Ctx track" "Frac (cont.)" "Winsor DV" "Trim 1%-99%" "Wild boot" "RI 1000""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] Table 5 无任何已存储估计 (R1-R6 全被守卫跳过), 表跳过"
+}
+else {
+    esttab `models' using "$tables_dir/table5_robustness.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 p_wild, fmt(0 3 3) labels("N" "R²" "Wild cluster bootstrap p")) ///
+        title("Robustness --- bank_fintech_collab (P5)") ///
+        mtitles(`mtitles') ///
+        addnotes("Wild-boot column: analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row.")
 
-display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"
+    display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"
+}

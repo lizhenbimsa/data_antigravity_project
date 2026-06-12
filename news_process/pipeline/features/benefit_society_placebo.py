@@ -147,6 +147,7 @@ def compute_placebo_projection(
     year_col: str = "year",
     title_col: str = "标题",
     content_col: str = "内容",
+    col_suffix: str = "",
 ) -> tuple[pd.DataFrame, dict[str, int]]:
     """Compute placebo projections for multiple business-line filters.
 
@@ -154,6 +155,10 @@ def compute_placebo_projection(
         1. Filter articles by keyword match (title + content)
         2. Apply ``direction`` to filtered subset of ``text_embeddings``
         3. Aggregate to bank-year mean cosine projection
+
+    确定性披露 (fix(omni-g-benefit-01, 2026-06-11)): 本函数链路 (关键词过滤 +
+    余弦投影 + groupby mean) 无任何随机步; 编排器 (audit_combined) 仍显式
+    np.random.seed 并把 seed 写入 sidecar, 守卫未来引入的抽样步。
 
     Parameters
     ----------
@@ -165,12 +170,15 @@ def compute_placebo_projection(
         Unit-norm direction vector (typically main 10-pair fintech direction).
     keyword_sets
         ``{placebo_id: [keyword, ...]}`` mapping (4 biz + 1 neutral = 5).
+    col_suffix
+        输出列后缀 (ctx 轨传 ``"_ctx"``; fix(omni-g-benefit-01, 2026-06-11)
+        补 ctx 轨)。默认 ``""`` 维持既有列名。
 
     Returns
     -------
     pd.DataFrame
         Bank-year panel with one column per placebo:
-        ``benefit_placebo_{placebo_id}_mean``.
+        ``benefit_placebo_{placebo_id}_mean{col_suffix}``.
     dict[str, int]
         Per-placebo match counts (``{placebo_id: n_matched_articles}``)
         for downstream R1.A risk monitoring.
@@ -210,7 +218,9 @@ def compute_placebo_projection(
             sub.groupby([bank_col, year_col])["_score"]
             .mean()
             .reset_index()
-            .rename(columns={"_score": f"benefit_placebo_{placebo_id}_mean"})
+            .rename(columns={
+                "_score": f"benefit_placebo_{placebo_id}_mean{col_suffix}",
+            })
         )
         panel_pieces.append(agg)
 

@@ -38,12 +38,30 @@ foreach c of local cutoffs {
     eststo C`c'
 }
 
-esttab C70 C75 C80 C85 C90 using "$tables_dir/table3_cutoff_sensitivity.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
-    label compress b(3) ///
-    title("Cutoff Threshold Sensitivity --- llm_peer IV 2SLS") ///
-    mtitles("τ=0.70" "τ=0.75" "τ=0.80" "τ=0.85" "τ=0.90") ///
-    addnotes("Each column re-instruments {{TONE_VAR}} with LLM-peer tone at the given τ." ///
-             "Bank and year FE; cluster-robust SE at {{CLUSTER_VAR}} level.")
+* fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — 循环内任一 cutoff 列缺失
+* 被 continue 跳过后, 旧版硬点名 C70..C90 → 首个缺名估计即 r(111) 整表丢失。
+* 改为仅引用实际已存储的估计, mtitle 同步删列防错位。
+qui estimates dir
+local stored `r(names)'
+local models ""
+local mtitles `""'
+foreach c of local cutoffs {
+    if `: list posof "C`c'" in stored' {
+        local models `models' C`c'
+        local mtitles `"`mtitles' "τ=0.`c'""'
+    }
+}
+if "`models'" == "" {
+    display as error "[WARN] Table 3 无任何 cutoff 估计 (llm_peer_tone_iv_full_70..90 全缺); 表跳过"
+}
+else {
+    esttab `models' using "$tables_dir/table3_cutoff_sensitivity.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
+        label compress b(3) ///
+        title("Cutoff Threshold Sensitivity --- llm_peer IV 2SLS") ///
+        mtitles(`mtitles') ///
+        addnotes("Each column re-instruments {{TONE_VAR}} with LLM-peer tone at the given τ." ///
+                 "Bank and year FE; cluster-robust SE at {{CLUSTER_VAR}} level.")
+}
 
 display "[OK] Table 3 written to $tables_dir/table3_cutoff_sensitivity.tex"

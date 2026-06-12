@@ -48,9 +48,21 @@ set seed {{RANDOM_SEED}}
 * ============================================================================
 * (4) Wild cluster bootstrap (boottest)
 * ============================================================================
+* fix(omni-g-templates-10, 2026-06-11): (i) boottest 补 capture which 守卫 (对齐
+* collab/18; 未装机器上旧版裸调 r(199) 致本 capture 步整个 Table 5 丢失);
+* (ii) boottest 按设计不改写 e(b)/e(V) (wild p 在 r(p)), 旧 eststo 存的是 reghdfe
+* 解析 cluster SE → "Wild boot" 列名实不符 (small-G 下这正是 wild boot 要纠正的对象)。
+* 现以 estadd 把 r(p) 注入 e(p_wild) 进表 (esttab stats 行), 缺 boottest 时如实告警。
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-boottest {{MAIN_TREAT}}, reps(9999) seed({{RANDOM_SEED}})
+capture which boottest
+if !_rc {
+    boottest {{MAIN_TREAT}}, reps(9999) seed({{RANDOM_SEED}})
+    estadd scalar p_wild = r(p)
+}
+else {
+    display "  ⚠️ boottest not installed (ssc install boottest); wild_boot 列仅含解析 cluster SE, wild p 缺失"
+}
 eststo wild_boot
 
 * ============================================================================
@@ -112,9 +124,27 @@ foreach alt in attention_index_ctx attention_disp_full attention_pct_full {
     }
 }
 
-esttab wild_boot excl_soe6 excl_pre alt_* using "$tables_dir/table5_robustness.tex", replace ///
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — alt_* 通配可能空匹配,
+* 旧版硬点名缺名即 r(111) 丢整表; ritest_ri 仍按原设计只留 log 不进表
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if inlist("`m'", "wild_boot", "excl_soe6", "excl_pre") | strmatch("`m'", "alt_*") {
+        local models `models' `m'
+    }
+}
+esttab `models' using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 p_wild, fmt(0 3 3) labels("N" "R²" "Wild cluster bootstrap p")) ///
     title("Table 5 — Advanced Robustness (P2 attention)") ///
-    addnotes("Oster δ / rwolf / Honest DiD / ritest output in supplemental log.")
+    addnotes("Column 1 (wild_boot): analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
+             "Oster δ / rwolf / Honest DiD / ritest output in supplemental log.")
 
-display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — tables.py:build_table5_robustness
+* 经 read_paper_esttab(...,'table5_robustness.csv') 消费 (parse_esttab_csv 格式)
+estout `models' using "$tables_dir/table5_robustness.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild, fmt(0 3 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01)
+
+display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex (+ .csv side-channel)"

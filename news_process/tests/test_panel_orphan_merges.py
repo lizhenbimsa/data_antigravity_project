@@ -41,10 +41,20 @@ def test_runner_has_feature_merge_block():
 
 
 def test_runner_merge_is_key_safe_and_graceful():
-    """The merge must drop_duplicates on keys, left-join, raise on row-count drift,
-    and be guarded by os.path.exists (graceful when the opt-in stage didn't run)."""
+    """The merge must fail-loud on duplicate keys, left-join, raise on row-count
+    drift, and be guarded by os.path.exists (graceful when the opt-in stage didn't
+    run).
+
+    断言更新 (fix(omni-g-runner-16), 2026-06-11): 旧断言锁
+    `drop_duplicates(['target_bank', 'year'])` (静默取任意首行, 使行数守卫永真
+    空转) — 新契约为重复键即 raise + 特征文件 mtime 新鲜度守卫。
+    """
     src = _runner_src()
-    assert "drop_duplicates(['target_bank', 'year'])" in src
+    assert "duplicated(['target_bank', 'year'])" in src
+    assert "拒绝静默取首行" in src
+    # freshness guard: feature file must not predate its registered upstreams
+    assert "_OPTIN_FEATURE_UPSTREAMS" in src
+    assert "getmtime" in src
     assert "how='left'" in src
     # row-count integrity guard (raise, not assert — survives python -O)
     assert re.search(r"feature merge 改变面板行数", src)
@@ -64,8 +74,14 @@ def test_runner_excludes_stage49_from_feature_merge():
 # --- behavioral contract (mirrors the 8c loop semantics on fixtures) -----------
 
 def _merge_feature(panel: pd.DataFrame, feat: pd.DataFrame) -> pd.DataFrame:
-    """Replicate the runner.py 8c merge contract for a single feature panel."""
-    feat = feat.drop_duplicates(['target_bank', 'year'])
+    """Replicate the runner.py 8c merge contract for a single feature panel.
+
+    契约更新 (fix(omni-g-runner-16), 2026-06-11): 重复 (bank,year) 键不再
+    drop_duplicates 静默取首行, 而是 fail-loud raise (镜像
+    _merge_optin_feature_panels 新语义)。
+    """
+    if feat.duplicated(['target_bank', 'year']).any():
+        raise RuntimeError("duplicate (target_bank, year) keys in feature panel")
     bring = ['target_bank', 'year'] + [
         c for c in feat.columns
         if c not in ('target_bank', 'year') and c not in panel.columns]
@@ -98,16 +114,20 @@ def test_feature_merge_preserves_rowcount_and_adds_cols():
     assert pd.isna(out.loc[out['target_bank'] == '建设', 'surface_staleness_full'].iloc[0])
 
 
-def test_feature_merge_raises_on_duplicate_after_dedup_is_safe():
-    """Duplicate (bank,year) rows in the feature panel are de-duplicated, not exploded."""
+def test_feature_merge_raises_on_duplicate_keys():
+    """Duplicate (bank,year) rows in the feature panel must fail-loud.
+
+    断言更新 (fix(omni-g-runner-16), 2026-06-11): 旧契约 drop_duplicates 静默
+    取任意首行 (0.5 vs 0.9 不确定) 且使行数守卫永真空转 — 新契约重复键即 raise。
+    """
     panel = _panel()
     feat = pd.DataFrame({
         'target_bank': ['工商', '工商'],   # duplicate key
         'year': [2018, 2018],
         'surface_staleness_full': [0.5, 0.9],
     })
-    out = _merge_feature(panel, feat)          # must NOT raise / must NOT explode
-    assert len(out) == 3
+    with pytest.raises(RuntimeError, match="duplicate"):
+        _merge_feature(panel, feat)
 
 
 def test_feature_merge_does_not_overwrite_existing_panel_column():

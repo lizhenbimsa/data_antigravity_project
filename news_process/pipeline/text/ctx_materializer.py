@@ -41,6 +41,7 @@ if _PROJECT_PARENT not in sys.path:
 
 from news_process.core.config import load_config  # noqa: E402
 from news_process.core.logging import setup_logging  # noqa: E402
+from news_process.core.text.ahocorasick import load_exclusion_patterns  # noqa: E402
 from news_process.core.text.entity_context import (  # noqa: E402
     extract_entity_context,
     get_target_aliases,
@@ -49,6 +50,20 @@ from news_process.core.text.entity_context import (  # noqa: E402
 CONFIG = load_config()
 STAGE_NAME = "13_materialize_ctx"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
+
+# fix(omni-g-entity-03/16, 2026-06-11): ctx 锚定与 stage 11 分类共用同一套
+# 否定模式 / 短名歧义排除配置 (单一匹配语义事实源) — 加载路径解析逻辑与
+# news_bank.py 完全一致。此前 ctx 提取用裸 `alias in sent` 子串匹配, 被分类层
+# 排除的假命中 ('涉农行业'⊂'农行' 等) 在 ctx 物化层重新生效, 把无关句子拖进
+# content_ctx。
+_EXCLUSION_FILE = CONFIG['paths'].get(
+    'bank_name_exclusions_file',
+    os.path.join(os.path.dirname(CONFIG['paths'].get('bank_names_file', '')),
+                 'bank_name_exclusions.json'),
+)
+NEGATION_AC, SHORT_NAME_EXCLUSIONS, CONTEXT_WINDOW = load_exclusion_patterns(
+    _EXCLUSION_FILE
+)
 
 
 def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
@@ -64,6 +79,13 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         df: 新增 'content_ctx' 列 (若已存在则不变)。
+
+    Note:
+        fix(omni-g-misc-04, 2026-06-11): 主物化路径的缺失标题 (np.nan/pd.NA/None)
+        统一按空标题处理 (不再注入字面 'nan' 前缀 / 不再 TypeError), 与旧 schema
+        分支的 fillna('') 口径一致。
+        fix(omni-g-entity-03/16, 2026-06-11): ctx 锚定套用 stage 11 同款否定/
+        短名排除 — 全部 alias 出现均被排除的文章 ctx 退回全文 body (回退公理)。
     """
     # remove-title-track: 两轨文本均需"包含标题"。content_full (= 标题 + 内容)
     # 与 content_ctx (= 标题 + 实体窗口) 都经 prepend_title 注入标题。原始 '内容'
@@ -119,15 +141,26 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     ctx_body_list = []   # ctx 的纯 body 部分 (无标题前缀), 仅用于 fallback 判定
     for _, row in df.iterrows():
         body_full = str(row.get('内容', ''))
-        title = str(row.get('标题', '') or '')
+        # fix(omni-g-misc-04, 2026-06-11): 缺失标题显式 pd.isna 判空, 与 L98 旧 schema
+        # 路径 fillna('') 口径对齐 — 原 `str(... or '')`: np.nan (truthy float) 漏网被
+        # str() 成字面 'nan' 前缀静默注入两轨情感/embedding 文本; pd.NA 在 `or` 布尔
+        # 语境直接 TypeError。上游 stage 00 KEY_COLUMNS 过滤守卫是 config 驱动
+        # (默认可为空), 不可依赖。
+        _t = row.get('标题', '')
+        title = '' if pd.isna(_t) else str(_t)
         target_bank = str(row.get('target_bank', ''))
         if target_bank and target_bank not in ('nan', 'None'):
             if target_bank not in _alias_cache:
                 _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
+            # fix(omni-g-entity-03/16, 2026-06-11): 传入 stage 11 同款排除配置,
+            # 锚定与分类两层共用同一匹配语义。
             ctx_body = extract_entity_context(
                 body_full, _alias_cache[target_bank],
                 sentence_radius=_sentence_radius,
                 fallback_char_radius=_fallback_char_radius,
+                negation_ac=NEGATION_AC,
+                short_name_exclusions=SHORT_NAME_EXCLUSIONS,
+                context_window=CONTEXT_WINDOW,
             )
             if not ctx_body:
                 ctx_body = body_full  # 回退公理: 无匹配时保留全文 body

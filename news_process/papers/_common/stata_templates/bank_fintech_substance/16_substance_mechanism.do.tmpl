@@ -8,9 +8,11 @@
 *   此文件内部实际是 dual outcome (短期 CAR + 长期 ROA 反转, 二者反向预期,
 *   共同检验 W&Z 1994 实证机制).
 *
-*   short_run = car_3day_window_fintech_announcement (P3 spec outcome.short_run)
+*   short_run = car_3day_window_ft_announce        (P3 spec outcome.short_run;
+*               fix(omni-g-templates-06, 2026-06-11): 旧 36 字符名超 Stata 32 字符
+*               硬限 r(198), 全链统一改 27 字符短名)
 *   long_run  = long_run_roa_change_3yr            (P3 spec outcome.primary)
-*   X         = {{MAIN_TREAT}}                     (innovation_substantiveness_full)
+*   X         = {{MAIN_TREAT}}                     (sub_frac panel 聚合列; fix(omni-g-replication-04))
 *
 * W&Z 1994 预测:
 *   - 象征性宣告 (substantiveness 低) → 短期 CAR 正反应 + 长期 ROA 反转 (negative)
@@ -30,15 +32,16 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* Short-run outcome: car_3day_window_fintech_announcement ~ X
-capture confirm variable car_3day_window_fintech_announcement
+* Short-run outcome: car_3day_window_ft_announce ~ X
+* fix(omni-g-templates-06, 2026-06-11): 36 字符旧名超 Stata 32 字符硬限 → 改短名
+capture confirm variable car_3day_window_ft_announce
 if !_rc {
-    reghdfe car_3day_window_fintech_announcement {{MAIN_TREAT}} $controls, ///
+    reghdfe car_3day_window_ft_announce {{MAIN_TREAT}} $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo short_run
 }
 else {
-    display "  [WARN] car_3day_window_fintech_announcement not in panel (M0.5.11 enrichment pending)"
+    display "  [WARN] car_3day_window_ft_announce not in panel (M0.5.11 enrichment pending)"
 }
 
 * Long-run outcome: long_run_roa_change_3yr ~ X (W&Z 1994 反转检验)
@@ -48,19 +51,43 @@ eststo long_run
 
 * Joint test: SUR (seemingly unrelated regression) for cross-equation coefficient
 * equality/reversal — short-run pos vs long-run neg.
-capture confirm variable car_3day_window_fintech_announcement
+capture confirm variable car_3day_window_ft_announce
 if !_rc {
-    sureg (car_3day_window_fintech_announcement {{MAIN_TREAT}} $controls) ///
+    sureg (car_3day_window_ft_announce {{MAIN_TREAT}} $controls) ///
           (long_run_roa_change_3yr {{MAIN_TREAT}} $controls)
-    test [car_3day_window_fintech_announcement]_b[{{MAIN_TREAT}}] = ///
+    test [car_3day_window_ft_announce]_b[{{MAIN_TREAT}}] = ///
          -[long_run_roa_change_3yr]_b[{{MAIN_TREAT}}]
 }
 
-esttab short_run long_run using "$tables_dir/table3_dual_outcome.tex", replace ///
+* fix(omni-g-templates-06/07, 2026-06-11): 旧版 esttab 无条件点名 short_run — CAR 列
+* 缺失 (enrichment pending) 时 short_run 从未 eststo → r(111), W&Z 双 outcome Table 3
+* 整表永不产出。改动态名单, 仅引用实际已存储估计。
+qui estimates dir
+local stored `r(names)'
+local cand_models short_run long_run
+local cand_titles `""Short-run CAR" "Long-run ROA Δ""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' using "$tables_dir/table3_dual_outcome.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Table 3 — Dual Outcome (W&Z 1994 — short-run CAR vs long-run ROA reversal)") ///
-    mtitles("Short-run CAR" "Long-run ROA Δ") ///
+    mtitles(`mtitles') ///
     addnotes("W&Z 1994 prediction: symbolic substantiveness → short-run CAR + / long-run ROA −." ///
              "Joint reversal test via sureg + test (cross-equation coefficient reversal).")
 
-display "[OK] Table 3 (dual outcome) → $tables_dir/table3_dual_outcome.tex"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_substance/
+* tables.py:build_table3_dual_outcome 经 read_paper_esttab(..., 'table3_dual_outcome.csv') 消费。
+estout `models' using "$tables_dir/table3_dual_outcome.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+display "[OK] Table 3 (dual outcome) → $tables_dir/table3_dual_outcome.tex (+ .csv side-channel)"

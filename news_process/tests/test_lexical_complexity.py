@@ -34,7 +34,11 @@ def test_all_keys_present_and_in_range():
     )
     assert set(r.keys()) == _ALL_KEYS
     # 比率类键 ∈ [0,1] 或 nan; 词数计数键单独校验 (非比率)
-    assert all(_finite_or_nan_in_unit(r[k]) for k in LEXICAL_COMPLEXITY_KEYS)
+    # fix(omni-g-numlex-05, 2026-06-11) 断言更新: 新增的 'redundancy_log_length'
+    # 是 ln(去空白字符数) 控制变体列 (非 [0,1] 比率), 从比率断言豁免、单独校验 > 0。
+    ratio_keys = [k for k in LEXICAL_COMPLEXITY_KEYS if k != 'redundancy_log_length']
+    assert all(_finite_or_nan_in_unit(r[k]) for k in ratio_keys)
+    assert r['redundancy_log_length'] > 0  # 该样例 > 3 字 → ln(长度) 有限正值
     assert r[WORD_COUNT_KEY] >= 1.0  # 该样例有多个词
 
 

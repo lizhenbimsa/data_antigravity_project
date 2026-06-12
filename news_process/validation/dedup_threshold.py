@@ -8,18 +8,24 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
 =============================================================================
 
 功能：
-    针对 LLM 语义精筛后的最终分析数据集 (21_tone_llms.parquet)，
     使用 Jaccard MinHash 分别测试截断点阈值 [0.75, 0.80, 0.85, 0.90]，
     输出去重敏感性统计表，供实证检验附件使用。
 
     本阶段用于证明生产去重阈值 (config.yaml: deduplication.jaccard_similarity_threshold)
     的选择不影响核心结论，属于学术论文附录中的参数稳健性检验。
 
-    方法论要点：
-      敏感性分析的核心问题是："如果使用不同的去重阈值，最终分析样本是否会
-      显著改变？" 因此，输入数据应为经过完整流水线处理后的最终分析数据集
-      (21_tone_llms.parquet)，而非预处理阶段的中间产出。这确保了敏感性检验
-      直接对标审稿人关注的研究结论稳健性。
+    方法论要点 (fix(omni-g-val-robust-01, 2026-06-11) 修订)：
+      敏感性输入必须是 **去重前** 的语料。旧实现读 21_tone_llms.parquet —
+      它严格继承 stage 00 在生产阈值 (0.80) 下的近似去重结果, 所有相似度
+      >=0.80 的对已被移除; 在其上扫描 0.85/0.90 (要求更高相似度才算重复)
+      找到的新重复对 ⊂ 已删集合 → Dropped≈0 / Retained≈100% 是机械结果,
+      稳健性单侧截尾 (仅 <0.80 一侧有信息), 且旧 docstring 以同一偏误为由
+      弃用 00 输出、改用 00 的下游, 论证自我否定。
+      修复: 优先从 stage 00 的 per-file 增量缓存 (data/processed/_cache/
+      *.parquet — normalize+filter 后、去重前的快照) 重建预去重语料, 对每个
+      阈值真实执行 精确去重 + 近似去重, 双向均有信息量; 缓存不可得时回退旧
+      输入并在日志与报告列 (Input_Mode / Mechanically_Censored) 中显式披露
+      ">= 生产阈值方向机械截尾"。
 
 学术基准：
     Broder, A. Z. (1997). On the resemblance and containment of documents.
@@ -32,20 +38,25 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
     受 config.yaml 中 validation.dedup_sensitivity 开关控制 (默认开启)。
 
 输入：
-    21_tone_llms.parquet — 阶段 21 LLM 语义精筛后的最终分析数据集
-    (经 00→11→12→21 完整流水线处理，含文本列 '内容' 供 MinHash 计算)
+    优先: data/processed/_cache/*.parquet — stage 00 增量缓存
+    (normalize+filter 后、**去重前** 的 per-file 快照, 仅读去重所需 5 列)
+    回退: 21_tone_llms.parquet (经生产阈值去重的下游产物;
+    此口径下 >=生产阈值方向机械截尾, 报告中显式披露)
 
 输出：
     eval_reports/dedup_sensitivity_report.csv — 多阈值去重敏感性统计表
-    列: Threshold, Retained, Dropped, Retained_Ratio, Is_Production
+    列: Threshold, Retained, Dropped, Retained_Ratio, Is_Production,
+        Input_Mode, Mechanically_Censored
 """
 
 import gc
+import glob
 import os
 import sys
 import time
 
 import pandas as pd
+import pyarrow.parquet as pq
 
 # Phase 7b: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 news_process/validation/dedup_threshold.py 出发, 上溯 2 层抵达项目父目录)
@@ -69,6 +80,73 @@ except ImportError as e:
 
 STAGE_NAME = "32a_dedup_sensitivity"
 
+# ArticleDeduplicator 全流程 (媒体权重排序 / 标题+内容合并 / 日期窗口) 所需最小列集
+PRE_DEDUP_REQUIRED_COLS = ['docid', '标题', '内容', '日期', '媒体(中文)']
+
+
+def _load_pre_dedup_corpus(output_dir: str, logger) -> "pd.DataFrame | None":
+    """加载 stage 00 去重前的 normalize 后语料 (per-file 增量缓存)。
+
+    fix(omni-g-val-robust-01, 2026-06-11): stage 00 (pipeline.preprocess.runner)
+    在去重 **之前** 把每个 xlsx 的 normalize+filter 结果写入
+    ``<output_dir>/_cache/<file>.parquet`` 增量缓存 — 这是管道中唯一持久化的
+    预去重快照, 正是阈值敏感性的正确输入。仅读取去重所需 5 列以控内存。
+
+    Returns:
+        pd.DataFrame | None: 拼接后的预去重语料; 缓存目录缺失/为空/任一文件
+        缺列或读取失败时返回 None (调用方回退旧输入并披露单侧截尾)。
+    """
+    cache_dir = os.path.join(output_dir, '_cache')
+    if not os.path.isdir(cache_dir):
+        logger.warning(f"预去重缓存目录不存在: {cache_dir}")
+        return None
+
+    cache_files = sorted(glob.glob(os.path.join(cache_dir, '*.parquet')))
+    if not cache_files:
+        logger.warning(f"预去重缓存目录为空: {cache_dir}")
+        return None
+
+    frames = []
+    for fp in cache_files:
+        try:
+            schema_names = set(pq.read_schema(fp).names)
+        except Exception as e:
+            logger.warning(f"预去重缓存 schema 读取失败 ({os.path.basename(fp)}): {e}")
+            return None
+        missing = [c for c in PRE_DEDUP_REQUIRED_COLS if c not in schema_names]
+        if missing:
+            logger.warning(f"预去重缓存缺少必需列 {missing} "
+                           f"({os.path.basename(fp)}), 放弃缓存口径")
+            return None
+        try:
+            frames.append(pd.read_parquet(fp, columns=PRE_DEDUP_REQUIRED_COLS))
+        except Exception as e:
+            logger.warning(f"预去重缓存读取失败 ({os.path.basename(fp)}): {e}")
+            return None
+
+    df = pd.concat(frames, ignore_index=True)
+    logger.info(f"预去重语料加载完成: {len(cache_files)} 个缓存文件, "
+                f"{len(df):,} 行 (去重前口径)")
+    return df
+
+
+def _annotate_censoring(res_df: pd.DataFrame, input_mode: str,
+                        prod_threshold: float) -> pd.DataFrame:
+    """为敏感性报告追加输入口径与机械截尾披露列。
+
+    fix(omni-g-val-robust-01, 2026-06-11): 回退口径 (post_dedup_fallback) 下,
+    输入已按生产阈值去重 — 所有 Threshold >= 生产阈值的行 Dropped≈0 是机械
+    结果而非稳健性证据, 标记 Mechanically_Censored=True 使报告自描述;
+    预去重口径 (pre_dedup_cache) 下双向均有信息, 全部 False。
+    """
+    out = res_df.copy()
+    out['Input_Mode'] = input_mode
+    if input_mode == 'pre_dedup_cache':
+        out['Mechanically_Censored'] = False
+    else:
+        out['Mechanically_Censored'] = out['Threshold'] >= prod_threshold
+    return out
+
 
 def main():
     config = load_config()
@@ -86,25 +164,44 @@ def main():
         'jaccard_similarity_threshold', 0.80)
     logger.info(f"  生产去重阈值 (config.yaml): {prod_threshold}")
 
-    # ── 加载输入数据: 阶段 21 的最终分析数据集 ──
-    # 使用 21_tone_llms.parquet 而非 00_preprocessing.parquet，原因:
-    #   1. 00_preprocessing.parquet 已在生产阈值 (0.80) 下完成去重，
-    #      在其上重复运行去重会低估阈值变化的真实影响 (方法论偏误)
-    #   2. 审稿人关心的是最终分析样本的稳健性，而非中间预处理数据
-    #   3. 21 的输出保留了原始文本列 '内容'，可直接用于 MinHash 计算
+    # ── 加载输入数据 ──
+    # fix(omni-g-val-robust-01, 2026-06-11): 优先用 stage 00 的 per-file 增量缓存
+    # (_cache/*.parquet = normalize+filter 后、**去重前** 的快照) 作为敏感性输入。
+    # 旧实现读 21_tone_llms.parquet 并以 "00 输出已按生产阈值去重 → 低估阈值
+    # 影响" 为由 — 但 21 严格继承 00 的去重, 同一偏误原样存在 (论证自我否定):
+    # 相似度 >=0.80 的对已被删, 0.85/0.90 扫不出新重复, Retained≈100% 是机械
+    # 结果, 稳健性单侧截尾。预去重口径下每个阈值真实执行去重, 双向均有信息。
     output_dir = config['paths']['output_dir']
-    input_filename = config.get('filenames', {}).get(
-        'output_21_tone_llms', '21_tone_llms.parquet')
-    input_path = os.path.join(output_dir, input_filename)
+    df = _load_pre_dedup_corpus(output_dir, logger)
 
-    if not os.path.exists(input_path):
-        logger.error(f"输入文件未找到: {input_path}")
-        logger.error("  请确保阶段 21 (21_tone_llms.py) 已执行完成")
-        return
+    if df is not None and not df.empty:
+        input_mode = 'pre_dedup_cache'
+        input_desc = '_cache/*.parquet (stage 00 去重前快照)'
+        logger.info("输入口径: 预去重语料 (pre_dedup_cache) — 双向阈值敏感性均有效")
+    else:
+        # ── 回退: 阶段 21 输出 (已按生产阈值去重的下游产物) + 单侧截尾披露 ──
+        input_mode = 'post_dedup_fallback'
+        input_filename = config.get('filenames', {}).get(
+            'output_21_tone_llms', '21_tone_llms.parquet')
+        input_desc = input_filename
+        input_path = os.path.join(output_dir, input_filename)
 
-    logger.info(f"正在加载分析数据集: {input_path}")
-    df = pd.read_parquet(input_path)
-    logger.info(f"成功加载数据, 行数: {len(df):,}")
+        if not os.path.exists(input_path):
+            logger.error(f"输入文件未找到: {input_path}")
+            logger.error("  请确保阶段 00 缓存 (_cache/) 或阶段 21 输出至少一项可用")
+            return
+
+        logger.info(f"正在加载回退分析数据集: {input_path}")
+        df = pd.read_parquet(input_path)
+        logger.info(f"成功加载数据, 行数: {len(df):,}")
+
+        # fix(omni-g-val-robust-01, 2026-06-11): 诚实披露单侧截尾 —
+        # 回退输入已按生产阈值去重, >= 生产阈值方向的 Dropped≈0 为机械结果
+        logger.warning("⚠ 输入口径: post_dedup_fallback — 数据已按生产阈值 "
+                       f"({prod_threshold}) 去重。阈值 >= {prod_threshold} 方向的 "
+                       "'高保留率' 是机械截尾而非稳健性证据, 仅 < "
+                       f"{prod_threshold} 方向有信息量; 报告列 "
+                       "Mechanically_Censored 已逐行标记。")
 
     if df.empty:
         logger.error("数据为空，无法执行测试。")
@@ -123,9 +220,10 @@ def main():
 
     # ── 前置预处理 + 精确去重 (仅执行一次) ──
     # 注意: 此处调用 ArticleDeduplicator 的内部方法 (_prepare_dataframe 等)，
-    # 这些方法与 00_preprocessing.py 的生产逻辑完全相同。由于输入数据已经过
-    # 阶段 00 的预处理，_prepare_dataframe 的操作是幂等的 (无副作用)，
-    # _perform_exact_deduplication 不会再移除行 (精确重复已在阶段 00 清除)。
+    # 这些方法与 00_preprocessing.py 的生产逻辑完全相同。
+    # fix(omni-g-val-robust-01, 2026-06-11): 预去重口径 (pre_dedup_cache) 下
+    # 精确去重会真实移除行 (与生产 stage 00 行为一致); 仅回退口径
+    # (post_dedup_fallback) 下精确重复已被上游清除、此步为幂等空转。
     # 若 ArticleDeduplicator API 变更，需同步更新。
     dedup = ArticleDeduplicator(config, logger)
     df_prep = dedup._prepare_dataframe(df)
@@ -170,6 +268,8 @@ def main():
     logger.info("=" * 40)
 
     res_df = pd.DataFrame(results)
+    # fix(omni-g-val-robust-01, 2026-06-11): 追加输入口径 + 机械截尾披露列
+    res_df = _annotate_censoring(res_df, input_mode, prod_threshold)
     # 格式化输出百分比
     res_df_display = res_df.copy()
     res_df_display['Retained_Ratio'] = res_df_display[
@@ -187,7 +287,7 @@ def main():
     logger.info("=" * 60)
     logger.info(f"阶段 32a 完成: 测试 {len(thresholds)} 个阈值, "
                 f"生产阈值={prod_threshold}")
-    logger.info(f"  输入数据: {input_filename} ({len(df):,} 行)")
+    logger.info(f"  输入数据: {input_desc} ({len(df):,} 行, 口径={input_mode})")
     logger.info(f"  保留率范围: "
                 f"{min(r['Retained_Ratio'] for r in results):.2%} ~ "
                 f"{max(r['Retained_Ratio'] for r in results):.2%}")

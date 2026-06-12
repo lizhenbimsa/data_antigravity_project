@@ -9,8 +9,11 @@
   和 llm_vote_tone_* 情感指标。
 
 核心思想:
-  从新闻正文中提取同时包含 2+ 银行名的句子 → 送 GPT 判断竞争关系
-  → 构建动态同行网络 → 加权同行情感作为 IV。
+  从新闻正文中提取同时包含焦点银行与其他银行 (规范名 distinct ≥2 家) 的句子
+  → 送 GPT 判断竞争关系 → 构建动态同行网络
+  → 等权同行情感均值 (文章级 leave-out) 作为 IV。
+  (fix omni-g-llm-peer-08, 2026-06-11: 原文档误称 "加权" — 实现自始为
+   等权 .mean(); prompt 的竞争强度排序现经保序去重保留, 供未来秩权重使用。)
 
 学术依据:
   Cao, Y., Chen, L., Tucker, J. W., & Wan, C. (2025). Can generative AI
@@ -31,12 +34,23 @@
   Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect corporate
   financial policy? The Journal of Finance, 69(1), 139-178.
   https://doi.org/10.1111/jofi.12094
-  → 同行情感均值作为 IV 的理论基础
+  → 同行均值 IV 的局限讨论 (fix omni-g-llm-peer-01, 2026-06-11): L&R 正因
+    同行结果均值难以满足排除约束而改用同行特质收益冲击。本模块以
+    滞后一期 + 文章级 leave-out (剔除与焦点银行共提的报道) 缓解共享文章
+    带来的机械相关; 剩余识别假设 (情感持续性下, 同行 t-1 特质报道冲击
+    对焦点银行 t 期结果仅经同行渠道起作用) 须在论文中明确披露。
 
 输出:
-  llm_peer_tone_iv_full: LLM-Peer 加权情感 IV (核心 IV)
-  llm_peer_coverage_iv:  LLM-Peer 加权声量 IV (辅助 IV)
-  llm_peer_count:        LLM-Peer 网络连通度 (诊断变量)
+  llm_peer_tone_iv_full/ctx: LLM-Peer 等权情感均值 IV (文章级 leave-out; 核心 IV)
+  llm_peer_coverage_iv:  LLM-Peer 等权声量均值 IV (辅助 IV; panel 级均值,
+                         未做文章级 leave-out — 共享报道声量的披露项)
+  llm_peer_count:        LLM-Peer 网络连通度 (诊断变量; 计全部归一化同行,
+                         含不在面板内的在册银行 — 与 tone IV 有效域不同, 见
+                         llm_peer_n_effective)
+  llm_peer_n_effective:  实际进入 tone IV 均值的面板内同行数 (诊断变量,
+                         fix omni-g-llm-peer-08)
+  llm_peer_queried:      1 = 该 bank-year LLM 调用+解析成功 (peer 集可为空),
+                         区分 '查证后零同行' 与 '未查证' (fix omni-g-llm-peer-07)
 """
 
 import asyncio
@@ -44,7 +58,6 @@ import json
 import os
 import re
 import sys
-from difflib import get_close_matches
 from typing import Dict, List, Optional, Set, Tuple
 
 import pandas as pd
@@ -62,6 +75,22 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 from news_process.core.caching import LLMCache
+
+# fix(omni-g-llm-peer-06, 2026-06-11): stage 48 接入与 stage 21 相同的离线确定性
+# 守卫 — 复用 tone_llms.LLMCacheMissError 保证 except 语义跨 stage 一致;
+# tone_llms 不可导入的极端环境 (如 aiohttp 缺失) 用本地同名 fallback 兜底。
+try:
+    from news_process.pipeline.sentiment.tone_llms import LLMCacheMissError
+except Exception:  # pragma: no cover — aiohttp 缺失等极端环境
+    class LLMCacheMissError(RuntimeError):
+        """fallback: tone_llms 不可导入时的本地同名异常 (语义一致)。"""
+
+# 离线确定性守卫开关 (与 pipeline/sentiment/tone_llms.py L189 完全同语义):
+# 设 NEWS_PROCESS_LLM_OFFLINE=1 后, stage 48 缓存 miss 时 raise 而非调付费 API,
+# 杜绝 "上游句子/排序微变 → 缓存键漂移 → LLM 重判 → peer 网络静默翻转"。
+LLM_OFFLINE = os.environ.get('NEWS_PROCESS_LLM_OFFLINE', '').strip().lower() in (
+    '1', 'true', 'yes', 'on',
+)
 
 # v3.7.0 (DC3 + C1 + M13 修复): LLM raw response archive 集成 (V4 F-P2.1 critical)
 try:
@@ -186,19 +215,28 @@ def _load_all_bank_names(bank_names_path: str
 def _extract_multi_bank_sentences(df_bank_year: pd.DataFrame,
                                    all_bank_names: Set[str],
                                    fintech_keywords: Set[str],
+                                   variant_to_canonical: Dict[str, str],
+                                   focal_bank: str,
                                    max_sents: int = 5000) -> List[str]:
     """从该银行某年文章中提取同时满足两个条件的句子。
 
-    条件 1: 包含 ≥2 个不同银行名称
+    条件 1 (fix omni-g-llm-peer-02/03, 2026-06-11): 句中命中的银行名先经
+      variant → canonical 归一, 再要求 distinct 规范银行 ≥2 家, 且规范银行集
+      必须包含焦点银行本身:
+      (a) 修变体子串双计 — 如 '中国工商银行' 一个实体同时命中变体 '工商银行',
+          旧实现把单行句伪装成 '≥2 银行' 比较句 (盘上实测 ~20% 过筛句仅 1 家);
+      (b) 修 PEER_PROMPT 虚假前提 — prompt 向 LLM 断言句子 '同时提及
+          【焦点银行】和其他银行', 旧实现 ~46% 过筛句根本不含焦点银行,
+          诱导 LLM 把无关银行判为焦点行竞争对手。
     条件 2: 包含 ≥1 个金融科技关键词 (来自 fintech_dict.json)
 
-    双重筛选确保送入 LLM 的句子既涉及银行间比较, 又聚焦于金融科技
-    领域, 最大化信号纯度, 避免宏观经济/公司治理等无关并列干扰。
+    双重筛选确保送入 LLM 的句子既涉及焦点银行与其他银行的真实比较,
+    又聚焦于金融科技领域, 最大化信号纯度。
 
     流程:
       1. 筛选 co_mentioned_banks 非空的文章 (预筛)
       2. 标题+正文拼接后按 。！？；\\n 分句
-      3. 逐句检查: 是否含 ≥2 银行名 且 含 ≥1 金融科技关键词
+      3. 逐句检查: 规范银行集含焦点银行 且 distinct ≥2 且 含 ≥1 金融科技关键词
       4. 去重 + 截断至 max_sents 条
 
     Token 预算:
@@ -214,6 +252,8 @@ def _extract_multi_bank_sentences(df_bank_year: pd.DataFrame,
         df_bank_year: 该银行某年全部文章
         all_bank_names: set, 全部银行名+别名 (bank_names.json)
         fintech_keywords: set, 金融科技关键词 (fintech_dict.json)
+        variant_to_canonical: {变体: 标准名} 映射 (来自 _load_all_bank_names)
+        focal_bank: 焦点银行 (panel target_bank, 即 bank_names.json 规范名)
         max_sents: 最大返回句数 (默认 5000, 实质不限制)
 
     Returns:
@@ -226,6 +266,9 @@ def _extract_multi_bank_sentences(df_bank_year: pd.DataFrame,
         lambda x: isinstance(x, str) and len(x.strip()) > 0)
     df_co = df_bank_year[mask]
 
+    # 焦点银行规范名 (target_bank 本就是规范名, 经映射兜底变体输入)
+    focal_canon = variant_to_canonical.get(focal_bank, focal_bank)
+
     sentences = []
     for _, row in df_co.iterrows():
         title = str(row.get('标题', '')).strip()
@@ -236,12 +279,19 @@ def _extract_multi_bank_sentences(df_bank_year: pd.DataFrame,
             sent = sent.strip()
             if len(sent) < 10:
                 continue
-            # 检查条件 1: ≥2 个不同银行名称
+            # 检查条件 1: 规范化后 ≥2 家不同银行 且 含焦点银行
             banks_found = set()
             for name in all_bank_names:
                 if len(name) >= 2 and name in sent:
                     banks_found.add(name)
-            if len(banks_found) < 2:
+            # fix(omni-g-llm-peer-02, 2026-06-11): 变体 → canonical 归一后再数
+            # distinct, 防 '中国工商银行'⊃'工商银行' 同实体双计击穿 ≥2 契约
+            canon_found = {variant_to_canonical.get(n, n) for n in banks_found}
+            if len(canon_found) < 2:
+                continue
+            # fix(omni-g-llm-peer-03, 2026-06-11): 焦点银行必须在句中 —
+            # 与 PEER_PROMPT '同时提及【{bank_name}】和其他银行' 前提对齐
+            if focal_canon not in canon_found:
                 continue
             # 检查条件 2: ≥1 个金融科技关键词
             has_fintech = any(kw in sent for kw in fintech_keywords)
@@ -321,6 +371,17 @@ async def _call_llm_peer(session, semaphore, bank: str, year: int,
                            temperature=TEMPERATURE, random_seed=RANDOM_SEED)
         if cached:
             return bank, year, cached
+
+    # fix(omni-g-llm-peer-06, 2026-06-11): 离线确定性守卫 (与 stage 21 同模式) —
+    # NEWS_PROCESS_LLM_OFFLINE=1 下缓存 miss 即 raise, 严禁静默调付费 API
+    # (peer 网络列入 golden panel, miss → 重判可翻转 peer 集 → golden 漂移)。
+    if LLM_OFFLINE:
+        raise LLMCacheMissError(
+            f"[Peer-IV offline] 缓存 miss: bank={bank}, year={year}, "
+            f"model={model_id}, prompt_version={PEER_PROMPT_VERSION} — "
+            f"NEWS_PROCESS_LLM_OFFLINE=1 下禁止调用付费 API; "
+            f"请在线回填缓存或检查句子筛选/语料是否相对 golden 漂移"
+        )
 
     headers = {"Content-Type": "application/json",
                "Authorization": f"Bearer {model_cfg['api_key']}"}
@@ -404,30 +465,41 @@ def _normalize_peer_names(raw_peers: List[str],
                            variant_to_canonical: Optional[Dict[str, str]] = None,
                            cutoff: float = 0.8
                            ) -> List[str]:
-    """将 LLM 输出的银行名模糊匹配至 bank_names.json 标准名。
+    """将 LLM 输出的银行名匹配至 bank_names.json 标准名。
 
     匹配策略 (优先级递减):
       1. 精确匹配: raw == canonical
       2. 变体映射: raw ∈ variant_to_canonical (bank_names.json 的 variants)
          → 处理 LLM 输出简称如 '工行' → '中国工商银行',
            '招行' → '招商银行' 等 2 字符缩写
-      3. 子串包含: canonical ⊂ raw 或 raw ⊂ canonical (最小长度 3)
-         → 处理 LLM 返回 '中国工商银行股份有限公司' 而标准名为
-           '中国工商银行' 的情况
-      4. difflib 模糊匹配: cutoff=0.8
-         → 防止 '招商银行' vs '浙商银行' 误匹配 (相似度 0.75)
+      3. 子串包含 (最小长度 3, fix omni-g-llm-peer-04 歧义守卫):
+         仅当唯一命中 1 家规范名时接受 (处理 LLM 返回
+         '中国工商银行股份有限公司' 而标准名为 '中国工商银行' 的情况);
+         命中 >1 家 (如行业泛称 '农村商业银行' ⊂ 1558 个规范名, 旧实现
+         max(key=len) 任取一家) 视为歧义泛称, 直接拒绝。
+      4. OOV 拒绝 (fix omni-g-llm-peer-04, 2026-06-11): 原 difflib.get_close_matches
+         兜底已移除 — 不在 bank_names.json 的名称 (如政策性银行
+         '中国农业发展银行', difflib ratio=0.857 ≥ 0.8 曾被错配为
+         '中国农业银行') 一律丢弃并记录, 不再吸附到最相近的在册银行。
 
     Args:
         raw_peers: LLM 输出的银行名列表
         canonical_names: bank_names.json 中的标准 bank_name 列表
         variant_to_canonical: {变体: 标准名} 映射 (来自 bank_names.json)
             → 用于解析 '工行'/'招行' 等 2 字符简称
+        cutoff: (inert since fix omni-g-llm-peer-04) 原 difflib 串匹配严格度;
+            策略 4 改为 OOV 拒绝后本参数不再影响归一化结果, 仅为五档
+            cutoff 扫描调用兼容保留 — 五档列结构性相同, 见
+            omni-g-llm-peer-05 disclosure (compute_llm_peer_iv 步骤 5)。
 
     Returns:
-        list[str]: 去重后的标准银行名列表
+        list[str]: 保序去重后的标准银行名列表 (fix omni-g-llm-peer-09:
+        list(set()) → dict.fromkeys 保留 LLM 的竞争强度排序, 未来 top-N
+        截断/秩权重不再受 hash 序漂移影响)
     """
     canonical_set = set(canonical_names)  # O(1) 查找优化 (银行数 ~200+)
     normalized = []
+    rejected: List[str] = []
     for name in raw_peers:
         name = name.strip()
         if not name:
@@ -440,20 +512,28 @@ def _normalize_peer_names(raw_peers: List[str],
         if variant_to_canonical and name in variant_to_canonical:
             normalized.append(variant_to_canonical[name])
             continue
-        # 策略 3: 子串包含 (取最长匹配避免歧义)
+        # 策略 3: 子串包含 — fix(omni-g-llm-peer-04, 2026-06-11): 唯一命中才接受,
+        # 命中 >1 家规范名 = 行业泛称/歧义 (如 '农村商业银行'), 拒绝
         # 最小长度 3: 防止 '中国'/'银行' 等过短非银行名片段误匹配
         if len(name) >= 3:
-            substr_matches = [cn for cn in canonical_names
-                              if cn in name or name in cn]
-            if substr_matches:
-                best = max(substr_matches, key=len)
-                normalized.append(best)
+            substr_matches = {cn for cn in canonical_names
+                              if cn in name or name in cn}
+            if len(substr_matches) == 1:
+                normalized.append(next(iter(substr_matches)))
                 continue
-        # 策略 4: difflib 模糊匹配 (最后手段)
-        match = get_close_matches(name, canonical_names, n=1, cutoff=cutoff)
-        if match:
-            normalized.append(match[0])
-    return list(set(normalized))  # 去重
+            if len(substr_matches) > 1:
+                rejected.append(name)
+                continue
+        # 策略 4: OOV 拒绝 — fix(omni-g-llm-peer-04, 2026-06-11): 词典外名称丢弃,
+        # 不再用 difflib.get_close_matches(cutoff) 吸附 (原 cutoff=0.8 错配实证见
+        # docstring); '命名勘误' 注释 (compute 步骤 6) 中 difflib cutoff 语义随之失效
+        rejected.append(name)
+    if rejected:
+        logger.debug(f"  [peer 归一化] 拒绝 {len(rejected)} 个 OOV/歧义泛称名称: "
+                     f"{rejected[:5]}")
+    # fix(omni-g-llm-peer-09, 2026-06-11): dict.fromkeys 保序去重 (替代 list(set()))
+    # — 保留 PEER_PROMPT '按竞争强度排列' 的输出序, 当前消费点序无关故盘上值零变化
+    return list(dict.fromkeys(normalized))
 
 
 # ============================================================================
@@ -480,6 +560,63 @@ def _save_peer_cache(cache: dict, cache_path: str):
 
 
 # ============================================================================
+# 8b. 文章级 leave-out 情感索引 (fix omni-g-llm-peer-01)
+# ============================================================================
+
+def _build_article_tone_index(df_exploded: pd.DataFrame,
+                              tone_cols: List[str]) -> Dict[tuple, tuple]:
+    """预聚合文章级情感索引: (target_bank, year) → (co_sets, {col: 值列表})。
+
+    fix(omni-g-llm-peer-01, 2026-06-11): 为 peer 情感的文章级 leave-out 服务。
+    news_bank.py 的 explode 使同一篇共提文章同时进入焦点银行 i 与同行 j 双方的
+    bank-year 情感聚合 — peer j 的 panel 级均值机械嵌入 i 自身报道的情感。
+    本索引保留每篇文章的 co_mentioned_banks 规范名集合, 让 IV 构建时能按
+    (i, j) 对剔除共提文章 ($0, 无新 LLM 调用)。
+
+    Returns:
+        {(bank, year): (co_sets, tone_lists)} —
+        co_sets[k] = 第 k 篇文章的共提银行集合;
+        tone_lists[col][k] = 第 k 篇文章的情感值 (缺失 → None)。
+    """
+    index: Dict[tuple, tuple] = {}
+    cols = ['target_bank', 'year', 'co_mentioned_banks'] + list(tone_cols)
+    sub = df_exploded[cols]
+    for (b, y), g in sub.groupby(['target_bank', 'year'], sort=False):
+        co_sets = []
+        for x in g['co_mentioned_banks']:
+            if isinstance(x, str) and x.strip():
+                co_sets.append({s for s in x.split(';') if s})
+            else:
+                co_sets.append(set())
+        tone_lists = {
+            c: [float(v) if pd.notna(v) else None for v in g[c].tolist()]
+            for c in tone_cols
+        }
+        index[(b, int(y))] = (co_sets, tone_lists)
+    return index
+
+
+def _peer_leave_out_tone_mean(art_index: Dict[tuple, tuple],
+                              peer: str, lag_year: int, tone_col: str,
+                              exclude_bank: str) -> Optional[float]:
+    """peer 在 lag_year 的文章级情感均值, 排除与 exclude_bank 共提的文章。
+
+    fix(omni-g-llm-peer-01, 2026-06-11): leave-out 均值 — 无共提文章时
+    与 panel 级均值等价 (encode.py L506 同为 plain mean), 有共提文章时
+    剔除焦点银行自身 t-1 报道的情感, 修复 IV 排除约束的机械违背。
+    """
+    entry = art_index.get((peer, int(lag_year)))
+    if entry is None:
+        return None
+    co_sets, tone_lists = entry
+    vals = [v for cs, v in zip(co_sets, tone_lists.get(tone_col, []))
+            if v is not None and exclude_bank not in cs]
+    if not vals:
+        return None
+    return sum(vals) / len(vals)
+
+
+# ============================================================================
 # 9. 主函数
 # ============================================================================
 
@@ -487,26 +624,38 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                          df_exploded: pd.DataFrame) -> pd.DataFrame:
     """基于 LLM 语义判断的动态竞争网络工具变量。
 
+    fix(omni 2026-06-11) 语义变更披露: tone IV 改文章级 leave-out 等权均值
+    (剔除与焦点银行共提的 t-1 报道, g-llm-peer-01); 句子筛选要求规范化后
+    ≥2 家不同银行且含焦点银行 (g-llm-peer-02/03, 改变 LLM 输入 → 缓存键);
+    LLM 判 '零同行' 显式写 count=0 并加 llm_peer_queried 旗标 (g-llm-peer-07);
+    新增 llm_peer_n_effective 诊断列 (g-llm-peer-08)。
+
     完整流程:
       1. 加载银行名 + 金融科技关键词
-      2. 按银行×年份提取双重筛选句子
-      3. 调用 LLM 识别竞争同行 (异步并发)
-      4. 模糊匹配标准化 → 构建 peer_map
-      5. 滞后一期: IV = mean(tone_{peers, t-1})
+      2. 按银行×年份提取双重筛选句子 (规范银行 ≥2 家 + 含焦点银行 + fintech 词)
+      3. 调用 LLM 识别竞争同行 (异步并发; NEWS_PROCESS_LLM_OFFLINE=1 时
+         缓存 miss → raise LLMCacheMissError, 不调付费 API)
+      4. 名称标准化 (精确/变体/唯一子串; 泛称歧义与 OOV 拒绝) → 构建 peer_map
+      5. 滞后一期 + 文章级 leave-out:
+         tone IV = mean_j [ mean(tone_{j 文章, t-1, 排除共提 i 的文章}) ]
+         (coverage IV 仍为 panel 级均值, 未做 leave-out — 披露项)
 
     方法论:
-      - 句子双重筛选: 2+ 银行名 + fintech 关键词
+      - 句子双重筛选: 规范银行 ≥2 家 (含焦点银行) + fintech 关键词
       - LLM 判断: temperature=0, seed=42, JSON 输出
-      - 滞后一期规避 Manski (1993) 反射问题
-      - Peer 数量上限 = 10 (Hoberg & Phillips 2016 TNIC 标准)
+      - 滞后一期规避 Manski (1993) 反射问题; 文章级 leave-out 缓解
+        共享文章机械相关 (Leary & Roberts 2014 排除约束讨论, 见模块头)
+      - Peer 数量上限 = 10 (Hoberg & Phillips 2016 TNIC 标准, prompt 软约束)
 
     Args:
         panel: 银行-年份面板 DataFrame
-        df_exploded: 文章级 DataFrame
+        df_exploded: 文章级 DataFrame (含 llm_vote_score_full/_ctx 时启用
+            文章级 leave-out; 缺失时回退 panel 级均值并 loud 披露)
 
     Returns:
-        panel: 追加 llm_peer_tone_iv_full, llm_peer_coverage_iv,
-               llm_peer_count 列的面板
+        panel: 追加 llm_peer_tone_iv_full/_ctx, llm_peer_coverage_iv,
+               llm_peer_count, llm_peer_n_effective, llm_peer_queried
+               (及五档 cutoff 后缀列) 的面板
 
     References:
         Cao, Y. et al. (2025). RAS, 30(4), 3344-3386.
@@ -571,8 +720,11 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
             if df_by.empty:
                 continue
 
+            # fix(omni-g-llm-peer-02/03, 2026-06-11): 传 variant_to_canonical
+            # (规范化去双计) + focal_bank=bank (焦点银行必须在句中)
             sents = _extract_multi_bank_sentences(
-                df_by, all_bank_names, fintech_keywords)
+                df_by, all_bank_names, fintech_keywords,
+                variant_to_canonical, bank)
             if not sents:
                 logger.info(f"  {bank} {year}: 无符合条件的句子, 跳过")
                 continue
@@ -601,6 +753,13 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         n_success = 0
         n_fail = 0
         for r in raw_results:
+            if isinstance(r, LLMCacheMissError):
+                # fix(omni-g-llm-peer-06, 2026-06-11): gather(return_exceptions=True)
+                # 会把离线守卫的 raise 包成结果项 — 此处显式重抛, 镜像 tone_llms
+                # as_completed 路径的立即 loud-fail 语义。若吞成普通失败日志,
+                # 离线确定性守卫将静默失效 (peer 网络以残缺结果继续构建)。
+                # raise 发生在 session.post 之前, $0 零网络已由 _call_llm_peer 保证。
+                raise r
             if isinstance(r, Exception):
                 n_fail += 1
                 logger.error(f"  LLM 调用异常: {r}")
@@ -612,8 +771,17 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         logger.info(f"  LLM 调用完成: 成功={n_success}, 失败={n_fail}")
 
     # ── 5. 解析结果 → peer_map ──
+    # disclosure(omni-g-llm-peer-05, 2026-06-11): cutoff 五档 (0.70..0.90) 原仅
+    # 作用于已移除的策略 4 difflib 兜底; 策略 1-3 (精确/变体/唯一子串) 与 cutoff
+    # 无关 → 五档后缀列结构性逐位相同 (盘上实证: nonnull 数与 mean 五档全同)。
+    # 五档列保留仅为 Stata schema 兼容 (derivative_replication.py CUTOFF_VARS
+    # 消费); 论文表注必须披露该灵敏度维度无识别变差, 真正有识别力的稳健性维度
+    # (max peers 上限 / 单模型 vs 多模型 / 句子口径) 须另行扫描。
     cutoffs = [0.70, 0.75, 0.80, 0.85, 0.90]
     peer_maps = {c: {} for c in cutoffs}
+    # fix(omni-g-llm-peer-07, 2026-06-11): 记录 '已查证' bank-year (LLM 调用 +
+    # JSON 解析成功, peers 可为空) — 让 affirmative 零同行与未查证可区分
+    queried_keys: Set[str] = set()
 
     # 从 raw_results 解析 peer_map
     for r in raw_results:
@@ -633,6 +801,8 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                 _raw = _raw[:-3]
             parsed = json.loads(_raw.strip())
             raw_peers = parsed.get('peers', [])
+            # fix(omni-g-llm-peer-07): 解析成功即标记已查证 (含 {"peers": []})
+            queried_keys.add(f"{bank}_{year}")
             if raw_peers:
                 # 使用从 raw_results 解析出的 bank 和 year 构建 key
                 for c in cutoffs:
@@ -651,7 +821,28 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
     for c in cutoffs:
         logger.info(f"  Peer 网络 (cutoff={c}): {len(peer_maps[c])} 对有效 (银行×年份)")
 
-    # ── 6. IV 构建 (滞后一期) ──
+    # ── 6. IV 构建 (滞后一期 + 文章级 leave-out) ──
+    # fix(omni-g-llm-peer-01, 2026-06-11): tone IV 改两层等权均值 —
+    #   外层: 对 peers 等权; 内层: 每个 peer j 取其 t-1 文章级情感均值,
+    #   剔除 co_mentioned_banks 含焦点银行 i 的共提文章 (leave-out)。
+    # news_bank explode 使共提文章同入 i/j 双方 bank-year 聚合, 旧 panel 级
+    # 均值机械嵌入 i 自身 t-1 报道情感, 违背 IV 排除约束 (见模块头 L&R 段)。
+    # coverage IV 保持 panel 级均值 (无文章级 leave-out, 模块头已披露)。
+    _ART_TONE_BY_TRACK = {
+        'full': 'llm_vote_score_full',  # 文章级列, 聚合后即 panel llm_vote_tone_full
+        'ctx': 'llm_vote_score_ctx',
+    }
+    art_tone_cols = [c for c in _ART_TONE_BY_TRACK.values()
+                     if c in df_exploded.columns]
+    art_index = (_build_article_tone_index(df_exploded, art_tone_cols)
+                 if art_tone_cols else {})
+    if 'llm_vote_score_full' not in df_exploded.columns:
+        # loud 披露: 回退旧 panel 级口径 (无 leave-out, 含共提文章机械相关)
+        logger.warning(
+            "  [leave-out 回退] df_exploded 缺 llm_vote_score_full — "
+            "llm_peer_tone_iv_full 回退 panel 级均值 (无文章级 leave-out, "
+            "IV 排除约束缺口见模块头 g-llm-peer-01 披露)")
+
     results = {}  # key: (bank, year), value: dict
     for year in years:
         lag_year = year - 1
@@ -659,40 +850,60 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
             key = f'{bank_i}_{lag_year}'
             iv_entry = {}
             for c in cutoffs:
+                c_str = f"{int(c*100)}"
                 peers = peer_maps[c].get(key, [])
                 if not peers:
+                    # fix(omni-g-llm-peer-07, 2026-06-11): t-1 查证成功且判
+                    # '零同行' → count 显式 0 (拓扑变量, 区别于未查证的 NaN);
+                    # tone/coverage IV 保持缺失 — 空集合均值未定义。
+                    if key in queried_keys:
+                        iv_entry[f'llm_peer_count_{c_str}'] = 0
+                        if c == 0.80:
+                            iv_entry['llm_peer_n_effective'] = 0
                     continue
-                c_str = f"{int(c*100)}"
                 # [计量逻辑加固] 同侪数量 (网络中心度) 属于网络拓扑结构变量
                 # 绝对不能因为同侪恰好当年未发布新闻 (情感为 NaN) 而将其连带设置为缺失
                 iv_entry[f'llm_peer_count_{c_str}'] = len(peers)
 
                 # 取 t-1 年 LLM-peers 的情感均值 (规避同期反射问题 Manski, 1993)
                 peer_mask = (panel['year'] == lag_year) & (panel['target_bank'].isin(peers))
-                tone_vals = panel.loc[peer_mask, tone_col]
-                
-                # [白盒安全加固] 必须使用 notna().any() 而非 len() > 0 
-                # 防止当所有匹配到的 peer 情感值全为 NaN 时，触发均值计算污染面板数据
-                if tone_vals.notna().any():
-                    iv_entry[f'llm_peer_tone_iv_full_{c_str}'] = tone_vals.mean()
-
-                # dual-track parity (2026-06-08): ctx 轨 IV — peer_map (LLM 识别同侪)
-                # track-agnostic, 同一 peer_mask 复聚合 llm_vote_tone_ctx (规避反射 Manski 1993),
-                # 产 llm_peer_tone_iv_ctx_{c}, 与 _full 对称 ($0, 无新 LLM 调用)。
-                if 'llm_vote_tone_ctx' in panel.columns:
-                    _tone_vals_ctx = panel.loc[peer_mask, 'llm_vote_tone_ctx']
-                    if _tone_vals_ctx.notna().any():
-                        iv_entry[f'llm_peer_tone_iv_ctx_{c_str}'] = _tone_vals_ctx.mean()
+                for _track in ('full', 'ctx'):
+                    _panel_tone_col = f'llm_vote_tone_{_track}'
+                    _art_col = _ART_TONE_BY_TRACK[_track]
+                    _out_col = f'llm_peer_tone_iv_{_track}_{c_str}'
+                    if _art_col in df_exploded.columns:
+                        # 文章级 leave-out: peer j 的 t-1 均值剔除共提 i 的文章
+                        _lo = [_peer_leave_out_tone_mean(
+                                   art_index, p, lag_year, _art_col, bank_i)
+                               for p in peers]
+                        _vals = [v for v in _lo if v is not None]
+                        if _vals:
+                            iv_entry[_out_col] = sum(_vals) / len(_vals)
+                        if _track == 'full' and c == 0.80:
+                            # fix(omni-g-llm-peer-08): 实际进入 tone IV 的
+                            # 面板内有效 peer 数 (count 计全部归一同行, 域不同)
+                            iv_entry['llm_peer_n_effective'] = len(_vals)
+                    elif _panel_tone_col in panel.columns:
+                        # 回退: panel 级均值 (旧口径, 无 leave-out — loud 披露见上)
+                        _tone_vals = panel.loc[peer_mask, _panel_tone_col]
+                        # [白盒安全加固] notna().any() 而非 len()>0, 防全 NaN
+                        # 的 peer 集触发均值计算污染面板数据
+                        if _tone_vals.notna().any():
+                            iv_entry[_out_col] = _tone_vals.mean()
+                        if _track == 'full' and c == 0.80:
+                            iv_entry['llm_peer_n_effective'] = int(
+                                _tone_vals.notna().sum())
 
                 if coverage_col in panel.columns:
                     cov_vals = panel.loc[peer_mask, coverage_col]
                     if cov_vals.notna().any():
                         iv_entry[f'llm_peer_coverage_iv_{c_str}'] = cov_vals.mean()
             # 主回归用无后缀变量: cutoff=0.80
-            # ⚠ 命名勘误 (metric-audit 2026-06-10): 此 cutoff 是 difflib.get_close_matches
-            # 的字符串匹配严格度 (用于把 LLM 输出的银行名归一到规范名), 不是 TNIC 的
-            # 同行语义相似度阈值。Hoberg & Phillips (2016) 的 TNIC "10 closest peers" 上限
-            # (见 L264) 与本 difflib cutoff 是两回事, 勿将 cutoff 扫描标注为 TNIC/Cao 相似度阈值。
+            # ⚠ 命名勘误 (metric-audit 2026-06-10): 此 cutoff 原是 difflib.get_close_matches
+            # 的字符串匹配严格度 (银行名归一), 不是 TNIC 的同行语义相似度阈值, 勿将
+            # cutoff 扫描标注为 TNIC/Cao 相似度阈值。fix(omni-g-llm-peer-04/05,
+            # 2026-06-11) 后 difflib 兜底已移除, cutoff 完全惰性 — 五档列结构性
+            # 逐位相同 (披露见步骤 5 注释)。
             # 与 45_panel_export_main.py Stata 标签 'llm_peer_tone_iv_full' 等对齐
             _primary_maps = [
                 ('llm_peer_count', 'llm_peer_count_80'),
@@ -736,6 +947,13 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
             for c in cutoffs:
                 peers = peer_maps[c].get(key, [])
                 if not peers:
+                    # fix(omni-g-llm-peer-07, 2026-06-11): 同年查证成功且判
+                    # '零同行' → 共现比例 trivially 0 (区别于未查证的 NaN)
+                    if key in queried_keys:
+                        compete_entry[f'peer_compete_idx_{int(c*100)}'] = 0.0
+                        if c == 0.80:
+                            compete_entry['peer_compete_idx'] = 0.0
+                        has_data = True
                     continue
                 peer_set = set(peers)
                 mask = ((df_exploded['target_bank'] == bank) &
@@ -765,6 +983,17 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
         logger.info(f"  peer_compete_idx 生成完毕 (多阈值)")
     else:
         logger.info("  peer_compete_idx: 无 peer_map 记录, 跳过")
+
+    # ── 7c. llm_peer_queried 旗标 (fix omni-g-llm-peer-07, 2026-06-11) ──
+    # 1 = 该 bank-year 自身的 LLM 调用 + JSON 解析成功 (peers 可为空; 同年口径,
+    # 与 peer_compete_idx 一致 — 滞后 IV/count 的查证年份是 t-1)。
+    # 0 = 未查证 (无合格句子 / 调用失败 / 解析失败), 供回归区分样本选择。
+    panel['llm_peer_queried'] = [
+        int(f"{b}_{y}" in queried_keys)
+        for b, y in zip(panel['target_bank'], panel['year'])
+    ]
+    logger.info(f"  llm_peer_queried: {int(panel['llm_peer_queried'].sum())}/"
+                f"{len(panel)} bank-year 已查证")
 
     # 诊断统计
     if results:

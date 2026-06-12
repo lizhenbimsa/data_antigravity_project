@@ -67,11 +67,34 @@ foreach w in wave_1 wave_2 consolidation wave_3 {
 * ============================================================================
 capture confirm variable capital_ratio
 if !_rc {
-    xtile cap_q = capital_ratio, n(4)
+    * fix(omni-g-templates-02, 2026-06-11): 分位改按年内切 (by-year xtile)。旧版在
+    * pooled bank-year 全样本上切四分位: 全量 T=18 下 capital_ratio 因 Basel III
+    * 阶段达标系统性上行 → Q1 被早年观测占满 / Q4 被晚年占满, "资本充足度异质性"
+    * 混入年代异质性; 且 t 年观测的阈值由含未来年份的 in-sample 分布决定 (前视泄漏)。
+    * Stata 原生 xtile 无 by() — 用年份循环逐年切分实现 within-year quartiles。
+    gen cap_q = .
+    quietly levelsof year, local(_capq_yrs)
+    foreach y of local _capq_yrs {
+        capture xtile _capq_tmp = capital_ratio if year == `y', n(4)
+        if !_rc {
+            replace cap_q = _capq_tmp if year == `y'
+            drop _capq_tmp
+        }
+        else {
+            capture drop _capq_tmp
+            display "  [SKIP] year `y': within-year capital_ratio quartile 切分失败 (单元过小)"
+        }
+    }
     forval q = 1/4 {
-        reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if cap_q == `q', ///
-            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-        eststo cap_q_`q'
+        count if cap_q == `q' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if cap_q == `q', ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            eststo cap_q_`q'
+        }
+        else {
+            display "  [SKIP] cap_q=`q' has " r(N) " obs (< 10; R7-m01)"
+        }
     }
 }
 
@@ -86,10 +109,27 @@ if !_rc {
     eststo pre2013_interact
 }
 
-esttab type_* wave_* cap_q_* pre2013_interact ///
-    using "$tables_dir/table4_heterogeneity.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Table 4 — Heterogeneity (P3 substance; bank type × SOE × wave × capital quartile)") ///
-    addnotes("Small-cell warning (R7-m01): cell N<10 skipped.")
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — 旧版硬点名 pre2013_interact
+* (守卫跳过后 r(111) 丢整表) + 通配 type_*/wave_*/cap_q_* 零匹配同样 r(111)。本文件
+* 开头 clear all 已清空估计命名空间, estimates dir 即本表全部家族估计。
+qui estimates dir
+local models `r(names)'
+if "`models'" == "" {
+    display as error "  [WARN] Table 4 无任何已存储估计 (全部切分被守卫跳过), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/table4_heterogeneity.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("Table 4 — Heterogeneity (P3 substance; bank type × SOE × wave × capital quartile)") ///
+        addnotes("Small-cell warning (R7-m01): cell N<10 skipped." ///
+                 "Capital-ratio quartiles computed within year (by-year xtile) to avoid cohort confounding.")
 
-display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex"
+    * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_substance/
+    * tables.py:build_table4_heterogeneity 经 read_paper_esttab(..., 'table4_heterogeneity.csv') 消费。
+    estout `models' using "$tables_dir/table4_heterogeneity.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+
+    display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex (+ .csv side-channel)"
+}

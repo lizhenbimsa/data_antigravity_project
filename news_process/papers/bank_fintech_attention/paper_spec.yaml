@@ -7,7 +7,11 @@ spec_version: 2.0.0
 status: new
 differentiation_claim: |
   P2 度量银行被 fintech 媒体话题"曝光"的强度，独立于情感方向。
-  方法对标 Hassan et al. 2019 QJE 的 firm-level political risk exposure。
+  锚点更正 (fix(omni-g-papers-misc-09, 2026-06-11), 同步 attention_media.py 2026-06-10 更正):
+  主处理 attention_index = ln(1+Σ intensity) 是 Fang & Peress (2009 JF) 式 **extensive
+  覆盖加权曝光** (未按文章数/token 归一), 不是 Hassan et al. (2019 QJE) 的 intensive
+  归一化份额 (PRisk = 命中 bigram / 总 bigram); Hassan 对标仅限归一化度量
+  (attention_pct / attention_intensity_density) 与 ctx 轨 entity-proximity 归因。
   R17-m01 + R21-m01 跨 paper 区分 (B-route 3 + existing 4 paper, 共 7 对照):
   - 与 P1 (tone): P2 度量曝光强度 (cumulative attention without sign); P1 度量情感方向 (sign + magnitude); 二者独立 channel
   - 与 P3 (substance): P2 度量媒体对银行的曝光强度 (cumulative attention from media); P3 度量银行 fintech 公告的 W&Z 实质性 vs 象征性
@@ -28,12 +32,24 @@ mediator:  # R8-M01 + R47-M01 + R63-M01: mediator 紧跟 outcome (与 §B.4 + sc
   source: 银行年报 MD&A 章节文本长度 (enrichment M0.5.11; observable proxy 对应 §5.5.2 P2 16_mechanism)
 
 treatment:
+  # fix(omni-g-papers-misc-09, 2026-06-11): primary 保持 attention_index_full
+  # (extensive 覆盖加权曝光, Fang-Peress 2009 JF 锚); 严格 Hassan 2019 QJE
+  # intensive 对标应使用 secondary 中的归一化度量 attention_pct_full /
+  # attention_intensity_density_*。
   primary: attention_index_full
+  # fix(omni-g-attention-06, 2026-06-11): attention_disp_full 实为跨媒体 outlet
+  # 集中度 HHI = Σ(n_o/Σn)² (单 outlet=1, 高值=集中=低分散)。"disp" 系历史命名,
+  # 论文表述/系数解读应作 "outlet concentration (HHI)", 勿按 dispersion 反向解读符号。
   secondary: [attention_index_ctx, attention_disp_full, attention_pct_full]
   source: "stage 14_fintech_intensity 衍生 (R36-m01 - 4 attention 度量 index_full/index_ctx/disp/pct;
     M0 G0 时按 14_fintech_intensity.parquet schema 对齐 actual column names)"
 
 controls:
+  # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/
+  # leverage/capital_ratio/npl_ratio/deposit_growth) + year_level 宏观 2 列
+  # (gdp_growth/m2_growth) 在当前 bank-year panel (40/51) 全为 0 命中 —
+  # enrichment pending (M0.5.11 / config/银行面板2007-2025年.xlsx 待接入)。
+  # 复现包 01_data_prep 以 capture confirm 自校验拼装 $controls, 只用实存列。
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]
@@ -47,8 +63,13 @@ identification:
   baseline: cross_sectional_intensity_did  # main spec per §5.7.3 R8-M03
   baseline_legacy_label: staggered_did_callaway_santanna  # §B.2 historical label retained for traceability
   iv:
-    primary: leave_one_out_peer_attention_iv  # firm-level 兼容
-    fallback: bartik_attention_iv             # 需要 pre-2007 bank fintech-lending share
+    # fix(omni-g-papers-misc-12, 2026-06-11): 两 IV 标识符当前全管线零实现
+    # (0 builder / 0 panel 列) — PENDING M0.5.X derivation。模板
+    # 19_attention_iv_first_stage.do 以 capture confirm 探测、缺列时优雅跳过并
+    # 打印 'M0.5.X derivation pending' (模板层诚实, 此处补 spec 层同口径标注)。
+    # interim 现实可用替代: panel 已物化的 bartik_* 族 (如 bartik_type_iv_*)。
+    primary: leave_one_out_peer_attention_iv  # firm-level 兼容 (PENDING M0.5.X, 未物化)
+    fallback: bartik_attention_iv             # 需要 pre-2007 bank fintech-lending share (PENDING M0.5.X, 未物化)
     # R5-m03 与 llm_peer paper 区别: P2 leave-one-out peer = 银行类型 (国有 / 股份制 / 城商 / 农商)
     # 子样本内同类银行 attention 均值, 不依赖 LLM 语义判定; llm_peer paper 用 LLM-determined
     # semantic peer (Cao 2025 RAS 风格的语义相似度), 与 P2 的 4 类银行分类完全不同。

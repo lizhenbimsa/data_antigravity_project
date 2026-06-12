@@ -2,7 +2,9 @@
 
 Table 1 (descriptive stats) 走 _common 通用 summary builder, 与其它 paper 对称, 即开即用。
 Tables 2-5 (主回归 / 机制 / 异质性 / 稳健性) 为 esttab CSV reader 占位, 待 M5 跑通 Stata
-后填实 (Cookson-Niessner 2020 RFS media disagreement; Laeven-Levine 2009 JFE Z-score)。
+后填实 (Cookson-Niessner 2020 RFS media disagreement; outcome 为 CAR-based Z-score 变体,
+cf. Laeven-Levine 2009 JFE — 资本项=监管 CAR 非账面 equity/assets, 见 paper_spec outcome
+更正)。fix(omni-g-zscore-papers-01, 2026-06-11)。
 """
 
 from __future__ import annotations
@@ -21,7 +23,7 @@ PAPER_ID = 'bank_media_disagreement'
 # treatment (cross-outlet tone variance) + outcome (Z-score 稳定性) + 标准控制
 _TABLE1_VARIABLES: list[str] = [
     'cross_outlet_tone_variance_full',  # treatment.primary (V4 R3, 待 M2-M3 新建)
-    'z_score',                          # outcome.primary (Laeven-Levine 2009, 与第11篇共享)
+    'z_score',                          # outcome.primary (CAR-based Z-score 变体, cf. Laeven-Levine 2009; 与第11篇共享)
     'sigma_roa_5y_rolling',
     'ln_assets',
     'leverage',

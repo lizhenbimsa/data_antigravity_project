@@ -1,7 +1,12 @@
 """Tests for news_process.papers._common.stats_helpers.
 
 V2.0 J-L-M 2026 robustness alignment plan §3 Phase 1 P1.9 partial.
-Covers within_unit_sd (A4) + block_subsampling_ci (C1).
+Covers within_unit_sd (A4) + cluster_block_bootstrap_ci (C1).
+
+fix(omni-g-papers-misc-10, 2026-06-11): 主名由 block_subsampling_ci (方法标签
+误称 Politis-Romano subsampling) 更正为 cluster_block_bootstrap_ci (实现自始是
+with-replacement 块自助); 本文件断言改用新名 (positional 模式数值行为逐位不变),
+旧名 alias 的 DeprecationWarning 行为在 tests/test_omni_fix_papers_misc.py 锁定。
 """
 
 from __future__ import annotations
@@ -11,7 +16,7 @@ import pandas as pd
 import pytest
 
 from news_process.papers._common.stats_helpers import (
-    block_subsampling_ci,
+    cluster_block_bootstrap_ci,
     within_unit_sd,
 )
 
@@ -67,16 +72,16 @@ class TestWithinUnitSD:
 
 
 # ============================================================================
-# block_subsampling_ci
+# cluster_block_bootstrap_ci (fix(omni-g-papers-misc-10): 原名 block_subsampling_ci)
 # ============================================================================
 
 
-class TestBlockSubsamplingCI:
+class TestClusterBlockBootstrapCI:
     def test_constant_values_give_degenerate_ci(self) -> None:
         """全相等输入 → CI = (val, val, val)."""
         values = np.full(20, 0.5)
-        point, lo, hi = block_subsampling_ci(
-            values, block_size=2, n_subsamples=100, seed=42
+        point, lo, hi = cluster_block_bootstrap_ci(
+            values, block_size=2, n_resamples=100, seed=42
         )
         assert point == pytest.approx(0.5, abs=1e-12)
         assert lo == pytest.approx(0.5, abs=1e-12)
@@ -86,8 +91,8 @@ class TestBlockSubsamplingCI:
         """CI 边界 lo ≤ point ≤ hi."""
         rng = np.random.default_rng(123)
         values = rng.standard_normal(200)
-        point, lo, hi = block_subsampling_ci(
-            values, block_size=2, n_subsamples=500, seed=42
+        point, lo, hi = cluster_block_bootstrap_ci(
+            values, block_size=2, n_resamples=500, seed=42
         )
         assert lo <= point <= hi
 
@@ -95,16 +100,16 @@ class TestBlockSubsamplingCI:
         """相同 seed → 相同结果."""
         rng = np.random.default_rng(123)
         values = rng.standard_normal(100)
-        r1 = block_subsampling_ci(values, block_size=2, n_subsamples=200, seed=7)
-        r2 = block_subsampling_ci(values, block_size=2, n_subsamples=200, seed=7)
+        r1 = cluster_block_bootstrap_ci(values, block_size=2, n_resamples=200, seed=7)
+        r2 = cluster_block_bootstrap_ci(values, block_size=2, n_resamples=200, seed=7)
         assert r1 == r2
 
     def test_different_seed_gives_different_ci(self) -> None:
         """不同 seed → CI 边界不同 (point 相同, 边界 stochastic)."""
         rng = np.random.default_rng(123)
         values = rng.standard_normal(100)
-        r1 = block_subsampling_ci(values, block_size=2, n_subsamples=200, seed=1)
-        r2 = block_subsampling_ci(values, block_size=2, n_subsamples=200, seed=2)
+        r1 = cluster_block_bootstrap_ci(values, block_size=2, n_resamples=200, seed=1)
+        r2 = cluster_block_bootstrap_ci(values, block_size=2, n_resamples=200, seed=2)
         assert r1[0] == pytest.approx(r2[0], abs=1e-10)  # point estimate
         # bounds should differ stochastically
         assert (r1[1], r1[2]) != (r2[1], r2[2])
@@ -114,8 +119,8 @@ class TestBlockSubsamplingCI:
         rng = np.random.default_rng(42)
         values = rng.standard_normal(100)
         values[::10] = np.nan
-        point, lo, hi = block_subsampling_ci(
-            values, block_size=2, n_subsamples=200, seed=42
+        point, lo, hi = cluster_block_bootstrap_ci(
+            values, block_size=2, n_resamples=200, seed=42
         )
         assert not np.isnan(point)
         assert lo <= point <= hi
@@ -124,17 +129,17 @@ class TestBlockSubsamplingCI:
         """obs 数 < block_size * 2 → ValueError."""
         values = np.array([1.0, 2.0, 3.0])
         with pytest.raises(ValueError, match="block_size"):
-            block_subsampling_ci(values, block_size=2, n_subsamples=100, seed=42)
+            cluster_block_bootstrap_ci(values, block_size=2, n_resamples=100, seed=42)
 
     def test_alpha_param_affects_ci_width(self) -> None:
         """alpha=0.10 (90% CI) 应当窄于 alpha=0.05 (95% CI)."""
         rng = np.random.default_rng(42)
         values = rng.standard_normal(200)
-        _, lo90, hi90 = block_subsampling_ci(
-            values, block_size=2, n_subsamples=500, alpha=0.10, seed=42
+        _, lo90, hi90 = cluster_block_bootstrap_ci(
+            values, block_size=2, n_resamples=500, alpha=0.10, seed=42
         )
-        _, lo95, hi95 = block_subsampling_ci(
-            values, block_size=2, n_subsamples=500, alpha=0.05, seed=42
+        _, lo95, hi95 = cluster_block_bootstrap_ci(
+            values, block_size=2, n_resamples=500, alpha=0.05, seed=42
         )
         assert (hi90 - lo90) <= (hi95 - lo95)
 
@@ -143,19 +148,19 @@ class TestBlockSubsamplingCI:
         rng = np.random.default_rng(42)
         values = rng.standard_normal(100)
         # Should run without error
-        point, lo, hi = block_subsampling_ci(
-            values, block_size=1, n_subsamples=500, seed=42
+        point, lo, hi = cluster_block_bootstrap_ci(
+            values, block_size=1, n_resamples=500, seed=42
         )
         assert lo <= point <= hi
 
     def test_accepts_pandas_series_and_list(self) -> None:
         """接受 pd.Series / list / np.ndarray 输入."""
         arr = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
-        r_np = block_subsampling_ci(arr, block_size=2, n_subsamples=100, seed=42)
-        r_pd = block_subsampling_ci(
-            pd.Series(arr), block_size=2, n_subsamples=100, seed=42
+        r_np = cluster_block_bootstrap_ci(arr, block_size=2, n_resamples=100, seed=42)
+        r_pd = cluster_block_bootstrap_ci(
+            pd.Series(arr), block_size=2, n_resamples=100, seed=42
         )
-        r_lst = block_subsampling_ci(
-            list(arr), block_size=2, n_subsamples=100, seed=42
+        r_lst = cluster_block_bootstrap_ci(
+            list(arr), block_size=2, n_resamples=100, seed=42
         )
         assert r_np == r_pd == r_lst

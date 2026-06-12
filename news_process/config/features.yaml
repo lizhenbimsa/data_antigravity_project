@@ -30,10 +30,28 @@ embedding_robustness:                            # ROBUSTNESS twin — text2vec 
   # 稳健轨独立 cache 命名空间 (model_id 已不同, 版本字符串再隔离一层)。
   text_pipeline_version: "v2-2026-05-29-t2v"
 
+# stage 25 战略差异度 (strategic_diff) — fix(omni-g-strategic-09, 2026-06-11)
+strategic_diff:
+  # 共提及文章 1/n_banks 降权稳健开关 (默认 false = 维持原口径):
+  # true 时同年内被 n>1 家银行共提的同文按句子 round-robin 均分到各银行
+  # (每家期望权重 1/n_banks, 跨银行零逐字重叠), 缓解共同报道驱动的机械相似
+  # (HP2016/GL2023 的企业自撰文本互斥, 无此问题; 详见 strategic_diff.py
+  # 模块 docstring 局限性 4)。同行年内重复全文 content 去重恒开, 不受此开关控制。
+  co_mention_downweight: false
+
 benefit_society:
+  # fix(omni-g-benefit-04, 2026-06-11): max_tokens_per_input 不再用于文章预截断
+  # (统一引擎 embed_texts 自带 Early Chunking + 加权池化处理超长文本); 保留为
+  # 单条 API 输入硬上限的文档值 (engine 内 EMB_MAX_TOKENS=8191 同义)。
   max_tokens_per_input: 8191        # 单条输入 token 上限 (text-embedding-3-small 硬性上限)
   max_tokens_per_request: 250000    # 单次 API 请求总 token 上限
   positive_anchors:                 # 预留扩展: 自定义正极句列表 (当前版本未启用, 始终使用模块内置 10 对)
   negative_anchors:                 # 预留扩展: 自定义负极句列表 (当前版本未启用, 始终使用模块内置 10 对)
-  cache_embeddings: true            # 缓存 Embedding 为 .npy (降低 API 成本)
+  # fix(omni-g-benefit-01, 2026-06-11): 旧注释"缓存 Embedding 为 .npy (降低 API
+  # 成本)"是虚假声称 — cache_path 曾被函数体忽略, 全仓无生产 np.save; API 成本
+  # 实际由 LLMCache (sqlite) 穿透缓存承担。现 true = 落盘审计链路输入产物:
+  #   27_benefit_embeddings{_t2v}_{full,ctx}.npy  (全 df_exploded 行序, 空文本行=NaN)
+  #   27_benefit_direction{_t2v}.npy              (10 对锚点方向向量, 未归一)
+  # 各带 .sidecar.json (model_id/n_rows/dim) — 供 27c alt-anchor/placebo 同空间消费。
+  cache_embeddings: true
 

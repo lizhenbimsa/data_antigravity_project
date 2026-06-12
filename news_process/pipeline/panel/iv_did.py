@@ -33,6 +33,14 @@
      (晚于面板末年 2018) 致 _post 恒 0、不可识别 (fix(ivdid-stata-01): 原文误写
      "≤2018", 归因方向倒置, 实为处理年份晚于样本期末). 论文须报告一阶段有效 N/F、
      披露退化并相应降权这些 spec.
+  4. **缺失语义 (fix(omni g-ivdid, 2026-06-11))**: 基期无文章的银行 share/IV 保持
+     NaN (非 0 — 消除 GPSS 2020 incomplete-shares 伪零暴露); share>0 而该组该年
+     shift 不可计算 (LOO 组内仅剩自身) → IV=NaN 传播 (不再零插补); 面板 year <
+     基期末年 → IV=NaN (share 前视掩码); zone LOO 'other' 伪经济圈 → NaN。
+  5. **DiD 处理分配是 HQ-based (fix(omni-g-ivdid-06))**: merge_policy_shocks 按
+     银行总部城市/省份匹配试点名单 — 对城商行/农商行 (经营地≈总部) 近似成立, 对
+     全国经营的 soe/joint 银行总部所在地≠业务暴露 (总部北京的全国性银行整体编入
+     DCEP 首批)。论文须披露并以剔除 soe/joint 作 robustness。
 """
 
 import json
@@ -96,7 +104,8 @@ def compute_bartik_iv(panel: pd.DataFrame,
                       df_exploded: pd.DataFrame,
                       bank_group_map: dict,
                       group_prefix: str,
-                      base_year: int = None) -> pd.DataFrame:
+                      base_year: int = None,
+                      base_years: list = None) -> pd.DataFrame:
     """通用 Bartik Shift-Share IV 计算。
 
     参数:
@@ -104,18 +113,33 @@ def compute_bartik_iv(panel: pd.DataFrame,
         df_exploded:    文章级数据 (含 target_bank, co_mentioned_banks)
         bank_group_map: {银行名 → 组别标签} (如 type_map 或 scale_map)
         group_prefix:   输出列名前缀 ('type' 或 'scale')
-        base_year:      基期年份 (None = 面板最早年份)
+        base_year:      基期年份 (None 且 base_years 未给时 = 面板最早年份)
+        base_years:     基期年份集合 (fix(omni, 2026-06-11): 多年时 share 在基期年
+                        集合上池化, 供 _t01 等基期敏感性变体使用; 与 base_year
+                        同时给定时以 base_years 为准)
 
     输出列:
         bartik_{prefix}_iv_full / _ctx         — Bartik IV 值
         bartik_{prefix}_share_{group}          — 基期份额
         bank_{prefix}                          — 银行分组标签
 
+    缺失语义 (fix(omni-g-ivdid-01/-02/-03, 2026-06-11), 行为变更披露):
+        - 基期无文章的银行: share/IV 保持 NaN (原 fillna(0) 制造伪零暴露);
+        - share>0 但该组该年 shift 不可计算 (LOO 组内仅剩自身): IV=NaN 传播;
+        - 面板 year < max(基期年): IV=NaN (share 测自未来 → 前视掩码)。
+
     索引安全: 全程 merge-based, 不依赖行序。
     """
-    T0 = base_year if base_year is not None else panel['year'].min()
+    # fix(omni-g-ivdid-02, 2026-06-11): base_years 池化基期 (真 _t01); None 时退回
+    # base_year 单年, 再退回面板最早年 — 兼容旧语义。
+    if base_years is not None:
+        resolved_base_years = sorted({int(y) for y in base_years})
+    elif base_year is not None:
+        resolved_base_years = [int(base_year)]
+    else:
+        resolved_base_years = [int(panel['year'].min())]
     groups = sorted(set(v for v in bank_group_map.values() if v != 'other'))
-    logger.info(f"  Bartik IV [{group_prefix}]: 基期 T0={T0}, "
+    logger.info(f"  Bartik IV [{group_prefix}]: 基期 T0={resolved_base_years}, "
                 f"组别={groups} ({len(groups)} 维)")
     panel = panel.copy()
 
@@ -125,9 +149,10 @@ def compute_bartik_iv(panel: pd.DataFrame,
     )
 
     # --- Step 2: 基期份额 (通过 co_mentioned_banks 计算跨组暴露) ---
-    base = df_exploded[df_exploded['year'] == T0].copy()
+    base = df_exploded[df_exploded['year'].isin(resolved_base_years)].copy()
     if len(base) == 0:
-        logger.warning(f"  基期 T0={T0} 无数据, Bartik IV [{group_prefix}] 跳过")
+        logger.warning(f"  基期 T0={resolved_base_years} 无数据, "
+                       f"Bartik IV [{group_prefix}] 跳过")
         for track in ['_full', '_ctx']:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
         return panel
@@ -156,6 +181,12 @@ def compute_bartik_iv(panel: pd.DataFrame,
         total = sum(group_counts.values())
         if total == 0:
             own_group = bank_group_map.get(bank, 'other')
+            # fix(omni-g-ivdid-01, 2026-06-11): own_group=='other' (未映射银行) 时
+            # one-hot 兜底退化为全 0 行 (own group 不在 kept groups) → Σshare=0≠1,
+            # IV 输出伪零 — 与基期无文章同口径保持 NaN (skip → merge 后 share NaN);
+            # 与 compute_bartik_iv_fintech "基期文章全 'other'/未映射 → NaN" 一致。
+            if own_group not in groups:
+                continue
             for g in groups:
                 shares_data.append({
                     'target_bank': bank, 'group': g,
@@ -168,7 +199,8 @@ def compute_bartik_iv(panel: pd.DataFrame,
                     'share': group_counts.get(g, 0) / total
                 })
 
-    shares_df = pd.DataFrame(shares_data)
+    # 显式列名: shares_data 为空时仍保有 schema, 下游按列筛选不抛 KeyError
+    shares_df = pd.DataFrame(shares_data, columns=['target_bank', 'group', 'share'])
 
     for g in groups:
         g_shares = shares_df[shares_df['group'] == g][['target_bank', 'share']]
@@ -178,7 +210,9 @@ def compute_bartik_iv(panel: pd.DataFrame,
         if col_name in panel.columns:
             panel = panel.drop(columns=[col_name])
         panel = panel.merge(g_shares, on='target_bank', how='left')
-        panel[col_name] = panel[col_name].fillna(0)
+        # fix(omni-g-ivdid-01, 2026-06-11): 基期无文章的银行 share 保持 NaN —
+        # 原 fillna(0) 把"工具缺失"伪装成"零暴露", 7 族 IV 输出 12σ/50σ 离群伪零
+        # 直接污染 2SLS 一阶段 (GPSS 2020 incomplete-shares); IV 经 Step 4 随之 NaN。
 
     # --- Step 3: 组别×年份 shift (关键: 自身组=LOO, 其他组=FULL) ---
     df_with_group = pd.concat(
@@ -228,9 +262,15 @@ def compute_bartik_iv(panel: pd.DataFrame,
             all_banks_df[f'_bi_cnt_{g}'] = all_banks_df[f'_bi_cnt_{g}'].fillna(0)
 
             # LOO: (组总和 - 银行贡献) / (组计数 - 银行计数)
-            # v6/F2: groupby.sum() over nullable Int8 returns Int64 nullable → 转 float 再走 np.where
-            remain_sum = (all_banks_df[f'_sum_{g}'] - all_banks_df[f'_bi_sum_{g}']).astype('float64')
-            remain_cnt = (all_banks_df[f'_cnt_{g}'] - all_banks_df[f'_bi_cnt_{g}']).astype('float64')
+            # fix(omni-g-ivdid-07, 2026-06-11): float64 转换前移到减法【之前】—
+            # pandas (实测 3.0.3) 对 masked Int8 的 groupby sum 按值降型 (组和落
+            # [-128,127] 内时 'sum' 保持 Int8, 原 v6/F2 注释 "returns Int64
+            # nullable" 前提为假), Int8−Int8 元素级减法静默回绕 (实测 124−(−6)
+            # =−126) 可致 LOO shift 完整符号翻转且零警告。
+            remain_sum = (all_banks_df[f'_sum_{g}'].astype('float64')
+                          - all_banks_df[f'_bi_sum_{g}'].astype('float64'))
+            remain_cnt = (all_banks_df[f'_cnt_{g}'].astype('float64')
+                          - all_banks_df[f'_bi_cnt_{g}'].astype('float64'))
             all_banks_df[f'shift_{g}'] = np.where(
                 remain_cnt > 0,
                 remain_sum / remain_cnt,
@@ -250,10 +290,14 @@ def compute_bartik_iv(panel: pd.DataFrame,
             share_col = f'bartik_{group_prefix}_share_{g}'
             shift_col = f'shift_{g}'
             if shift_col in biv.columns:
-                # NaN shift → 0: 当某组在该年份无 LOO 可计算时
-                # (组内仅剩自身银行), 视该维度暴露为零
-                # 学术合理性: 等价于 exclusion restriction (该维度无外生冲击)
-                biv_val += biv[share_col].fillna(0) * biv[shift_col].fillna(0)
+                # fix(omni-g-ivdid-03/-09, 2026-06-11): share>0 而该组该年 shift
+                # 不可计算 (LOO 组内仅剩自身) → BIV=NaN 传播, 不再 fillna(0) 零插补
+                # (原注释误用 exclusion restriction 术语为零插补辩护 — 排他性约束
+                # 是工具不直接进结果方程的假设, 与缺失插补无关); share 全 NaN (基期无文章) 同样
+                # 传播 NaN。share==0 的维度: shift 缺失无贡献 (0×缺失 → 0)。
+                _share = biv[share_col].astype('float64')
+                _shift = biv[shift_col].astype('float64')
+                biv_val = biv_val + (_share * _shift).mask(_share == 0, 0.0)
 
         # 通过 target_bank+year 对齐回 panel，确保行序安全
         biv_result = biv[['target_bank', 'year']].copy()
@@ -264,6 +308,20 @@ def compute_bartik_iv(panel: pd.DataFrame,
             panel = panel.drop(columns=[iv_col])
         panel = panel.merge(biv_result[['target_bank', 'year', iv_col]],
                             on=['target_bank', 'year'], how='left')
+
+    # fix(omni-g-ivdid-02, 2026-06-11): share 前视掩码 — share 测自基期年集合,
+    # year < max(基期年) 的面板行携带"未来"测得的 share (T=18 全量下 T0=2010 时
+    # 2007-2009 行触发), GPSS(2020) "基期份额预定"外生性论证对这些行结构性失效
+    # → IV 置 NaN (share 列保留, 仅供诊断)。
+    _pre_base_mask = panel['year'] < max(resolved_base_years)
+    if _pre_base_mask.any():
+        for track in ['_full', '_ctx']:
+            iv_col = f'bartik_{group_prefix}_iv{track}'
+            if iv_col in panel.columns:
+                panel.loc[_pre_base_mask, iv_col] = np.nan
+        logger.warning(
+            f"  [{group_prefix}] {int(_pre_base_mask.sum())} 行面板年份早于基期末年 "
+            f"{max(resolved_base_years)} → IV 置 NaN (share 前视掩码)")
 
     # 诊断
     group_dist = panel.drop_duplicates('target_bank')[f'bank_{group_prefix}'].value_counts()
@@ -282,7 +340,8 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
                               category_map: dict,
                               group_prefix: str,
                               base_year: int = None,
-                              category_col: str = 'innovation_locus') -> pd.DataFrame:
+                              category_col: str = 'innovation_locus',
+                              base_years: list = None) -> pd.DataFrame:
     """文章属性维度 Bartik IV (基于文章自身分类列, 而非 co_mentioned_banks)。
 
     通用接口: 可接受任意文章级分类列 (innovation_locus, _media_type,
@@ -291,14 +350,25 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
 
     share_{i,k,T0} = 银行 i 在基期文章中, category_col=k 的占比
     shift_{k,t}    = 类别 k 中其他银行的 leave-one-out 年度情感均值
+
+    缺失语义 (fix(omni-g-ivdid-01/-02/-03, 2026-06-11), 行为变更披露, 与
+    compute_bartik_iv 同口径): 基期无文章或基期文章全 'other'/未映射的银行
+    share/IV 保持 NaN (原 fillna(0) 伪零); share>0 × shift 缺失 → IV=NaN 传播;
+    year < max(基期年) → IV=NaN (前视掩码); base_years 给定时基期池化。
     """
-    T0 = base_year if base_year is not None else panel['year'].min()
+    # fix(omni-g-ivdid-02, 2026-06-11): 基期解析与 compute_bartik_iv 一致
+    if base_years is not None:
+        resolved_base_years = sorted({int(y) for y in base_years})
+    elif base_year is not None:
+        resolved_base_years = [int(base_year)]
+    else:
+        resolved_base_years = [int(panel['year'].min())]
     # 修正5: 排除兜底类别 'other', 与 compute_bartik_iv 保持一致
     groups = sorted(set(v for v in category_map.values() if v != 'other'))
     panel = panel.copy()
 
     # Step 1: 基期份额 (直接从文章的分类列计算)
-    base = df_exploded[df_exploded['year'] == T0].copy()
+    base = df_exploded[df_exploded['year'].isin(resolved_base_years)].copy()
     base['_cat_short'] = base[category_col].map(category_map)
 
     shares = (base.groupby(['target_bank', '_cat_short']).size()
@@ -307,17 +377,16 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
     # 与 compute_bartik_iv (type/scale) 的 total=sum-over-non-other 口径一致; 否则 'other' 计入
     # 分母却不进分子 → 基期份额和 <1, 与 type/scale 轨 (份额和=1) 归一化不可比, 跨工具系数
     # 失真 (media 轨实测 present-row 行和 0.73 vs type/scale 1.0)。reindex 到 kept 列后再归一。
-    _kept_groups = [g for g in groups if g in shares.columns]
-    shares = shares.reindex(columns=_kept_groups, fill_value=0)
+    # fix(omni-g-ivdid-01, 2026-06-11): reindex 到全部非-other groups (基期未出现的
+    # 类别补 0 列, 分母口径不变); total==0 (基期文章全 'other'/未映射) 的银行 share
+    # 保持 NaN, 基期无文章的银行 map 后亦为 NaN — 不再 fillna(0) 制造伪零暴露。
+    shares = shares.reindex(columns=groups, fill_value=0)
     total = shares.sum(axis=1).replace(0, np.nan)
-    shares = shares.div(total, axis=0).fillna(0)
+    shares = shares.div(total, axis=0)
 
     for g in groups:
         col_name = f'bartik_{group_prefix}_share_{g}'
-        if g in shares.columns:
-            panel[col_name] = panel['target_bank'].map(shares[g]).fillna(0)
-        else:
-            panel[col_name] = 0.0
+        panel[col_name] = panel['target_bank'].map(shares[g]).astype('float64')
 
     # Step 2: shift (用 bank×category×year 的贡献做 LOO 减除)
     df_cat = pd.concat(
@@ -360,9 +429,13 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
             abd[f'_bi_sum_{g}'] = abd[f'_bi_sum_{g}'].fillna(0)
             abd[f'_bi_cnt_{g}'] = abd[f'_bi_cnt_{g}'].fillna(0)
 
-            # v6/F2: nullable Int8 → float 兼容 np.where
-            remain_sum = (abd[f'_sum_{g}'] - abd[f'_bi_sum_{g}']).astype('float64')
-            remain_cnt = (abd[f'_cnt_{g}'] - abd[f'_bi_cnt_{g}']).astype('float64')
+            # fix(omni-g-ivdid-07, 2026-06-11): float64 转换前移到减法【之前】 —
+            # masked Int8 groupby sum 按值降型, Int8−Int8 减法静默回绕可翻转
+            # LOO 符号 (详见 compute_bartik_iv 同型注释)。
+            remain_sum = (abd[f'_sum_{g}'].astype('float64')
+                          - abd[f'_bi_sum_{g}'].astype('float64'))
+            remain_cnt = (abd[f'_cnt_{g}'].astype('float64')
+                          - abd[f'_bi_cnt_{g}'].astype('float64'))
             abd[f'shift_{g}'] = np.where(
                 remain_cnt > 0,
                 remain_sum / remain_cnt,
@@ -376,7 +449,14 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
         biv = biv.merge(
             abd[['target_bank', 'year'] + [f'shift_{g}' for g in groups]],
             on=['target_bank', 'year'], how='left')
-        biv_val = sum(biv[f's_{g}'].fillna(0) * biv[f'shift_{g}'].fillna(0) for g in groups)
+        # fix(omni-g-ivdid-03/-09, 2026-06-11): NaN share (基期无文章/全 'other') 与
+        # share>0 × NaN shift (LOO 不可计算) → BIV=NaN 传播, 消除 fillna(0) 伪零;
+        # share==0 的维度: shift 缺失无贡献 (与 compute_bartik_iv 同口径)。
+        biv_val = pd.Series(0.0, index=biv.index)
+        for g in groups:
+            _share = biv[f's_{g}'].astype('float64')
+            _shift = biv[f'shift_{g}'].astype('float64')
+            biv_val = biv_val + (_share * _shift).mask(_share == 0, 0.0)
         # 通过 target_bank+year 对齐回 panel，确保行序安全
         biv_result = biv[['target_bank', 'year']].copy()
         biv_result[f'bartik_{group_prefix}_iv{track}'] = biv_val.values
@@ -385,6 +465,17 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
             panel = panel.drop(columns=[iv_col])
         panel = panel.merge(biv_result[['target_bank', 'year', iv_col]],
                             on=['target_bank', 'year'], how='left')
+
+    # fix(omni-g-ivdid-02, 2026-06-11): share 前视掩码 (与 compute_bartik_iv 同口径)
+    _pre_base_mask = panel['year'] < max(resolved_base_years)
+    if _pre_base_mask.any():
+        for track in ['_full', '_ctx']:
+            iv_col = f'bartik_{group_prefix}_iv{track}'
+            if iv_col in panel.columns:
+                panel.loc[_pre_base_mask, iv_col] = np.nan
+        logger.warning(
+            f"  [{group_prefix}] {int(_pre_base_mask.sum())} 行面板年份早于基期末年 "
+            f"{max(resolved_base_years)} → IV 置 NaN (share 前视掩码)")
 
     # 诊断日志
     for track in ['_full', '_ctx']:
@@ -448,6 +539,10 @@ def compute_zone_leave1out(panel: pd.DataFrame,
         ],
         axis=1,
     ).copy()
+    # fix(omni-g-ivdid-04, 2026-06-11): 'other' 伪经济圈 (bank_province 未映射
+    # PROVINCE_TO_ZONE) 不构成真实"区域共同冲击"组 — 其文章不进 zone 聚合, 'other'
+    # 银行的 zone LOO 输出 NaN, 镜像 compute_bartik_iv 排除 'other' 的口径。
+    df_z = df_z[df_z['_zone'] != 'other']
 
     for track in ['_full', '_ctx']:
         score_col = f'llm_vote_score{track}'
@@ -475,11 +570,17 @@ def compute_zone_leave1out(panel: pd.DataFrame,
         tmp['_bi_cnt'] = tmp['_bi_cnt'].fillna(0)
 
         # LOO: (经济圈总和 - 自身贡献) / (经济圈计数 - 自身计数)
-        # v6/F2: nullable Int8 → float 兼容 np.where
-        remain_sum = (tmp['sum'] - tmp['_bi_sum']).astype('float64')
-        remain_cnt = (tmp['count'] - tmp['_bi_cnt']).astype('float64')
+        # fix(omni-g-ivdid-07, 2026-06-11): float64 转换前移到减法【之前】 —
+        # masked Int8 groupby sum 按值降型, Int8−Int8 减法静默回绕可翻转
+        # LOO 符号 (详见 compute_bartik_iv 同型注释)。
+        remain_sum = tmp['sum'].astype('float64') - tmp['_bi_sum'].astype('float64')
+        remain_cnt = tmp['count'].astype('float64') - tmp['_bi_cnt'].astype('float64')
+        # 门槛语义披露 (g-ivdid-04): min_group_size 计的是组内(排除自身后)的
+        # 【文章数】而非银行数 — 3 篇可全部来自同一家其他银行, 此时 LOO 退化为
+        # 单一银行语调, "区域共同冲击"构念弱化; codebook/论文按此口径披露。
         tmp[out_col] = np.where(
-            remain_cnt >= min_group_size,  # 组内(排除自身后)至少3篇文章
+            (remain_cnt >= min_group_size)
+            & (tmp['bank_zone'] != 'other'),  # fix(omni-g-ivdid-04): 'other' 伪圈 → NaN
             remain_sum / remain_cnt,
             np.nan
         )
@@ -521,6 +622,16 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
         2. full_province:  按 bank_province 匹配整个省份的全部银行
         3. new_cities:     按 bank_city 匹配零散新增城市
         先入为主: 一旦银行已被某年份匹配, 后续年份不再覆盖。
+
+    识别局限披露 (fix(omni-g-ivdid-05/-06), 2026-06-11):
+        1. **HQ-based 处理分配**: 试点按银行【总部注册地】城市/省份匹配。对
+           城商行/农商行 (经营地≈总部) 近似成立; 对全国经营的 soe/joint 银行,
+           总部所在地≠业务暴露 (如总部北京的全国性银行整体编入 DCEP 首批),
+           处理强度与地方性银行不可比。robustness: 剔除 soe/joint 重估, 或仅以
+           city/rural 地方性银行定义处理组。
+        2. **never-treated 控制组趋空**: 政策覆盖面广 (sandbox 2022 后 23 省级
+           辖区) 时 never-treated 银行结构性稀少, csdid 默认 never-treated
+           baseline 由极少数特异银行驱动 — 应改用 `notyet` (not-yet-treated)。
     """
     # Phase 1 重构: 优先读取 CONFIG['paths']['policy_shocks_file']。
     shock_path = CONFIG['paths'].get(
@@ -533,6 +644,12 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
 
     with open(shock_path, 'r', encoding='utf-8') as f:
         shocks = json.load(f)
+
+    # fix(omni-g-ivdid-06, 2026-06-11): HQ-based 处理分配假设显式披露 (详见 docstring)
+    logger.warning(
+        "  [DiD 处理分配假设] 试点匹配基于银行总部城市/省份 (HQ-based): 全国性银行 "
+        "(soe/joint) 的总部所在地≠业务暴露, 其 treat_year 系统性偏向最早处理波次; "
+        "论文须披露此假设并以剔除 soe/joint (或仅 city/rural 定义处理组) 作 robustness")
 
     # 城市名别名映射 (雄安新区行政上属保定市)
     CITY_ALIASES = {
@@ -607,7 +724,9 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
         panel[f'{prefix}_rel_year'] = np.where(
             panel[f'{prefix}_treat_year'] > 0,
             panel['year'] - panel[f'{prefix}_treat_year'],
-            np.nan  # 控制组: NaN, Stata 中作为 never-treated baseline
+            # 控制组: NaN (Stata 自动排除)。fix(omni-g-ivdid-05): 控制组基准勿默认
+            # never-treated — 该组结构性趋空时须用 csdid 的 notyet 选项 (见下方日志)
+            np.nan
         )
 
         # 生成 Event Study lead/lag 虚拟变量 (k = -3 到 +3, 以 k=-1 为基期)
@@ -646,6 +765,16 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
         logger.info(f"  {policy_name}: 处理组 {n_treated} 家, "
                     f"控制组 {n_control} 家, 年份分布 {year_dist}")
 
+        # fix(omni-g-ivdid-05, 2026-06-11): never-treated 控制组规模守卫 — 政策
+        # 覆盖面广 (sandbox 2022 后 23 省级辖区) 时 never-treated 组结构性趋空
+        # (盘上实测仅 2/87 家), csdid 默认 never-treated baseline 由极少数特异
+        # 银行驱动, 不可估或不可信 → 显式提醒改用 notyet。
+        if 0 < n_control < 5:
+            logger.warning(
+                f"  [{policy_name}] never-treated 控制组仅 {n_control} 家银行 — "
+                f"csdid 默认 never-treated baseline 不可靠, 请改用 notyet "
+                f"(not-yet-treated 控制组) 并在论文披露")
+
         # Event Study 诊断
         if panel[f'{prefix}_rel_year'].notna().any():
             rel_year_dist = panel.loc[
@@ -655,8 +784,12 @@ def merge_policy_shocks(panel: pd.DataFrame) -> pd.DataFrame:
             logger.info(f"  {policy_name} Event Study relative_year 分布: "
                         f"{rel_year_dist}")
             logger.info(f"  {policy_name} Stata Event Study 命令:")
+            # fix(omni-g-ivdid-05, 2026-06-11): 推荐 notyet (not-yet-treated 控制组) —
+            # csdid 默认 never-treated baseline 在该组趋空时不可估/由特异银行驱动
             logger.info(f"    * csdid Y X, ivar(bank_id) time(year) "
-                        f"gvar({prefix}_treat_year)")
+                        f"gvar({prefix}_treat_year) notyet")
+            logger.info(f"      // notyet = not-yet-treated 控制组; never-treated "
+                        f"组过小时勿用默认 baseline")
             logger.info(f"    * estat event  // 绘制 Event Study Plot")
             logger.info(f"    * estat pretrend  // 平行趋势检验")
 

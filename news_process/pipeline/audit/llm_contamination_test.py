@@ -76,14 +76,24 @@ logger = logging.getLogger(__name__)
 #   - 不要在本 module 重新引入 hardcoded cutoff date 字典.
 #   - 不要给 contamination_test 的 cutoff_date 参数设非空默认值.
 
-# Bayes factor 评级 (Jeffreys 1961 scale)
+# Bayes factor 评级 — Jeffreys (1961, Theory of Probability 3rd ed. Appendix B) 原表档位.
+# fix(omni-g-audit-family-06, 2026-06-11): 旧映射系统性抬高证据等级 1-2 档
+# (如 bf_01 ≤ 0.10 即 BF_10 ≥ 10 被标 'decisive', Jeffreys 要求 BF_10 > 100 才是
+# decisive; AGAINST 侧同样抬档). 现对齐 Jeffreys 原表半阶 log10 切点
+# (bf_01 口径: 0.01 / 10^-1.5 / 0.10 / 10^-0.5 / 1 / 10^0.5 / 10 / 10^1.5 / 100):
+#   BF_10 > 100 decisive | 31.6-100 very strong | 10-31.6 strong |
+#   3.16-10 substantial | 1-3.16 barely worth mentioning (对称作用于 H0 侧).
 BAYES_FACTOR_LABELS = [
-    (0.10, "decisive evidence FOR contamination"),
-    (0.33, "very strong evidence FOR contamination"),
-    (1.0, "weak / inconclusive"),
-    (3.0, "moderate evidence AGAINST contamination"),
-    (10.0, "strong evidence AGAINST contamination"),
-    (float('inf'), "very strong evidence AGAINST contamination"),
+    (0.01, "decisive evidence FOR contamination"),                    # BF_10 > 100
+    (10 ** -1.5, "very strong evidence FOR contamination"),           # 31.6 < BF_10 <= 100
+    (0.10, "strong evidence FOR contamination"),                      # 10 < BF_10 <= 31.6
+    (10 ** -0.5, "substantial evidence FOR contamination"),           # 3.16 < BF_10 <= 10
+    (1.0, "barely worth mentioning (FOR contamination)"),             # 1 < BF_10 <= 3.16
+    (10 ** 0.5, "barely worth mentioning (AGAINST contamination)"),   # 1 <= BF_01 < 3.16
+    (10.0, "substantial evidence AGAINST contamination"),
+    (10 ** 1.5, "strong evidence AGAINST contamination"),
+    (100.0, "very strong evidence AGAINST contamination"),
+    (float('inf'), "decisive evidence AGAINST contamination"),
 ]
 
 
@@ -235,7 +245,7 @@ def classify_bayes_factor(p_value: float, n_pre: int, n_post: int) -> tuple[floa
     for threshold, label in BAYES_FACTOR_LABELS:
         if bf_01 <= threshold:
             return float(bf_01), label
-    return float(bf_01), "very strong evidence AGAINST contamination"
+    return float(bf_01), "decisive evidence AGAINST contamination"
 
 
 def contamination_test(
@@ -259,6 +269,12 @@ def contamination_test(
 
     Returns:
         dict 含 contamination report 字段 (参 module docstring).
+
+    Verdict 口径 (fix(omni-g-audit-family-02, 2026-06-11)): 污染构念 = 记忆强化
+    LLM 输出与 outcome 关系的**强度** (与符号无关, 见 module docstring "异常高"),
+    故 verdict 走 |r| 口径 — Fisher z 在 atanh(|r|) 上检验 (即 |z1| vs |z2|);
+    带符号口径 (r / z / p) 同步保留在 report 中供对照. 旧实现用带符号 r 比较,
+    负向 LLM-outcome 关系下真污染 (r_pre 更负) 被误判 reverse_pattern_anomaly.
     """
     required = {llm_col, outcome_col, date_col}
     missing = required - set(df.columns)
@@ -277,17 +293,24 @@ def contamination_test(
     r_post, n_post = compute_correlation(df_post, llm_col, outcome_col, method)
     z_stat, p_value = fisher_z_test(r_pre, n_pre, r_post, n_post)
 
+    # fix(omni-g-audit-family-02, 2026-06-11): |r| 口径 Fisher z (verdict 用) —
+    # atanh(|r|) = |atanh(r)|, 等价对 |z1| - |z2| 检验; abs(NaN)=NaN 自然传播.
+    abs_r_pre = abs(r_pre)
+    abs_r_post = abs(r_post)
+    z_stat_abs, p_value_abs = fisher_z_test(abs_r_pre, n_pre, abs_r_post, n_post)
+
     try:
-        bf, bf_label = classify_bayes_factor(p_value, n_pre, n_post)
+        # BF 与 verdict 同口径 (|r| scale 的 p-value)
+        bf, bf_label = classify_bayes_factor(p_value_abs, n_pre, n_post)
     except ImportError:
         bf, bf_label = float('nan'), 'scipy unavailable'
 
-    # Verdict
-    if not np.isfinite(p_value):
+    # Verdict — |r| 口径 (fix omni-g-audit-family-02; 符号无关的强度比较)
+    if not np.isfinite(p_value_abs):
         verdict = 'inconclusive'
-    elif p_value < 0.05 and r_pre > r_post:
+    elif p_value_abs < 0.05 and abs_r_pre > abs_r_post:
         verdict = 'contamination_detected'
-    elif p_value < 0.05 and r_pre < r_post:
+    elif p_value_abs < 0.05 and abs_r_pre < abs_r_post:
         verdict = 'reverse_pattern_anomaly'  # unexpected, 需要人工 review
     else:
         verdict = 'no_contamination_evidence'
@@ -301,8 +324,13 @@ def contamination_test(
         'n_post_cutoff': int(n_post),
         'r_pre_cutoff': r_pre,
         'r_post_cutoff': r_post,
+        'abs_r_pre_cutoff': abs_r_pre,
+        'abs_r_post_cutoff': abs_r_post,
         'fisher_z_stat': z_stat,
         'fisher_p_value': p_value,
+        'fisher_z_stat_abs': z_stat_abs,
+        'fisher_p_value_abs': p_value_abs,
+        'verdict_scale': 'abs(r) (符号无关强度比较; 带符号口径见 fisher_z_stat/p_value)',
         'bayes_factor_h0': bf,
         'bayes_factor_label': bf_label,
         'verdict': verdict,
@@ -314,6 +342,45 @@ def contamination_test(
 STAGE_NAME = "39h_llm_contamination_test"
 
 
+def year_to_test_dates_excluding_straddle(
+    df: pd.DataFrame,
+    cutoff_date: str,
+    year_col: str = 'year',
+) -> tuple[pd.DataFrame, int, list[int]]:
+    """年粒度面板的留出切分守卫: 跨 cutoff 之年 (straddle year) 整年剔出.
+
+    fix(omni-g-audit-family-03, 2026-06-11): 旧年中点规约 (year + '-07-01') 把
+    跨界年 (如 cutoff=2024-04-01 时的 2024 年, 其 1-3 月文章 LLM 可能见过) 因
+    年中点 ≥ cutoff 被整年划入 "绝对没见过" 的 post 留出集 → holdout 被
+    pre-cutoff 记忆成分污染, r_post 同含记忆 → pre/post 差被衰减, 检验系统性
+    偏向 no_contamination_evidence (最危险方向). Lopez-Lira & Tang (2023)
+    holdout protocol 要求 holdout 严格 post-cutoff.
+
+    年粒度下无真实文章日期可按日切分, 故: 纯 pre 年 (整年 < cutoff) 留 pre,
+    纯 post 年 (整年 ≥ cutoff) 留 post, 跨界年整年剔出并披露
+    (``n_straddle_excluded`` / ``straddle_years`` 进 report JSON).
+    若调用方有真实日期列 (``date_col != 'year'``), 不走本守卫, 按真实日期切分.
+
+    Returns:
+        (df_kept 带 ``_test_date`` 列, n_straddle_excluded, straddle_years)
+    """
+    cutoff = pd.Timestamp(cutoff_date)
+    years = pd.to_numeric(df[year_col], errors='coerce')
+    # 跨界年: year == cutoff.year 且 cutoff 不是该年 1 月 1 日
+    # (cutoff 恰为 YYYY-01-01 时该年整年 ≥ cutoff → 纯 post, 不跨界)
+    if cutoff == pd.Timestamp(year=cutoff.year, month=1, day=1):
+        is_straddle = pd.Series(False, index=df.index)
+    else:
+        is_straddle = (years == cutoff.year).fillna(False)
+    straddle_years = sorted({int(y) for y in years[is_straddle].dropna().unique()})
+    n_excluded = int(is_straddle.sum())
+    df_kept = df.loc[~is_straddle].copy()
+    kept_years = pd.to_numeric(df_kept[year_col], errors='coerce').astype('Int64')
+    df_kept['_test_date'] = pd.to_datetime(
+        kept_years.astype(str) + '-07-01', errors='coerce')
+    return df_kept, n_excluded, straddle_years
+
+
 def run_stage(config=None):
     """Stage 39h 入口 (config 驱动, opt-in 默认禁用).
 
@@ -322,10 +389,20 @@ def run_stage(config=None):
       ``config/validation.yaml::llm_contamination_test.cutoff`` 显式提供
       (来源为 LLM provider 官方文档, 不得伪造 — 见模块 docstring C5 修复);
       未配置则优雅跳过, 绝不 fabricate.
-    - 缺面板 / 缺 outcome 列 (``z_score`` 来自 opt-in stage 49 risk_taking_outcomes) /
-      未配 cutoff / pre-post 样本不足时一律优雅跳过 (log + return 0, 不 raise),
-      与同族 39d/39e "缺列 graceful skip" 约定一致 (T=2 面板年份多 < cutoff,
-      n_post 通常为 0, 属预期).
+    - outcome 列 (``z_score``) 接线 (fix(omni-g-audit-family-07, 2026-06-11)):
+      stage 49 (risk-taking OUTCOMES) 刻意不并入 40_panel (panel/runner.py 8c:
+      DV master 反向并入是范畴错误), 旧默认接线下 outcome 列永远缺失 → DC4
+      必修检验结构性永不激活. 现若面板缺 outcome 列, 自动读
+      ``49_risk_taking_outcomes.parquet`` 按 (target_bank, year) 做
+      audit-local 临时左连接 (仅本检验内存中使用, 不写回面板, 不违反
+      DV/feature 方向约束); 可用 ``llm_contamination_test.outcome_input``
+      覆盖 49 产物路径.
+    - 缺面板 / outcome 列无处可取 / 缺 LLM 列 / 未配 cutoff / pre-post 样本
+      不足时一律优雅跳过 (log + return 0, 不 raise), 与同族 39d/39e
+      "缺列 graceful skip" 约定一致 (T=2 面板年份多 < cutoff, n_post 通常为 0,
+      属预期).
+    - 年粒度 (``date_col == 'year'``) 时跨 cutoff 之年整年剔出留出检验
+      (fix omni-g-audit-family-03, 见 ``year_to_test_dates_excluding_straddle``).
     """
     import logging as _logging
     _logging.basicConfig(level=_logging.INFO)
@@ -360,17 +437,45 @@ def run_stage(config=None):
 
     df = pd.read_parquet(input_path)
     if outcome_col not in df.columns:
-        logger.warning(
-            "[skip] outcome 列 %r 不在面板 (来自 opt-in stage 49 risk_taking_outcomes, "
-            "尚未并入面板) — Stage 39h 跳过.", outcome_col)
-        return 0
+        # fix(omni-g-audit-family-07, 2026-06-11): audit-local join 自 stage 49 产物
+        # (49 刻意不并入 40_panel — 见 docstring; 此前默认接线结构性死路, 永远 skip)
+        outcomes_name = filenames.get(
+            'output_49_risk_taking_outcomes', '49_risk_taking_outcomes.parquet')
+        outcome_path = Path(cfg.get('outcome_input') or (output_dir / outcomes_name))
+        join_keys = ['target_bank', 'year']
+        if outcome_path.exists():
+            odf = pd.read_parquet(outcome_path)
+            if (outcome_col in odf.columns
+                    and set(join_keys).issubset(odf.columns)
+                    and set(join_keys).issubset(df.columns)):
+                odf = odf.drop_duplicates(join_keys)
+                df = df.merge(odf[join_keys + [outcome_col]],
+                              on=join_keys, how='left')
+                logger.info(
+                    "outcome 列 %r 经 audit-local join 自 %s 拉入 (非空 %d/%d; "
+                    "仅本检验内存中使用, 不写回面板).",
+                    outcome_col, outcome_path,
+                    int(df[outcome_col].notna().sum()), len(df))
+        if outcome_col not in df.columns:
+            logger.warning(
+                "[skip] outcome 列 %r 既不在面板, 也无法从 %s join "
+                "(文件缺失或缺列/键; 需先跑 opt-in stage 49) — Stage 39h 跳过.",
+                outcome_col, outcome_path)
+            return 0
     if llm_col not in df.columns:
         logger.warning("[skip] LLM 列 %r 不在面板 — Stage 39h 跳过.", llm_col)
         return 0
 
+    n_straddle, straddle_years = 0, []
     if date_col == 'year':
-        df['_test_date'] = pd.to_datetime(df['year'].astype(str) + '-07-01')
+        # fix(omni-g-audit-family-03, 2026-06-11): 跨 cutoff 之年整年剔出 (见 helper)
+        df, n_straddle, straddle_years = year_to_test_dates_excluding_straddle(
+            df, cutoff)
         eff_date_col = '_test_date'
+        if n_straddle:
+            logger.info(
+                "跨 cutoff 年 %s 整年剔出留出检验 (n=%d 行) — 年粒度无真实日期, "
+                "防 post 留出集被 pre-cutoff 文章污染.", straddle_years, n_straddle)
     else:
         eff_date_col = date_col
 
@@ -385,6 +490,13 @@ def run_stage(config=None):
             "通常因 pre/post-cutoff 样本不足 (T=2 面板年份 < cutoff) — Stage 39h 跳过.",
             type(exc).__name__, exc)
         return 0
+
+    # 留出集纯净性披露 (fix omni-g-audit-family-03)
+    report['n_straddle_excluded'] = n_straddle
+    report['straddle_years'] = straddle_years
+    report['date_granularity'] = (
+        'year-midpoint (straddle year excluded)' if date_col == 'year'
+        else 'exact-date')
 
     report_path.parent.mkdir(parents=True, exist_ok=True)
     with report_path.open('w', encoding='utf-8') as f:
@@ -417,10 +529,16 @@ def main():
     df = pd.read_parquet(args.input)
     logger.info(f"Loaded {len(df)} rows from {args.input}")
 
-    # 若 date_col 是 year, 转 datetime (年中点)
+    # 若 date_col 是 year, 转 datetime (年中点) + 跨界年剔除
+    # (fix omni-g-audit-family-03, 2026-06-11: 防 holdout 被 pre-cutoff 文章污染)
+    n_straddle, straddle_years = 0, []
     if args.date_col == 'year':
-        df['_test_date'] = pd.to_datetime(df['year'].astype(str) + '-07-01')
+        df, n_straddle, straddle_years = year_to_test_dates_excluding_straddle(
+            df, args.cutoff)
         date_col = '_test_date'
+        if n_straddle:
+            logger.info(f"跨 cutoff 年 {straddle_years} 整年剔出留出检验 "
+                        f"(n={n_straddle} 行)")
     else:
         date_col = args.date_col
 
@@ -432,6 +550,11 @@ def main():
         cutoff_date=args.cutoff,
         method=args.method,
     )
+    report['n_straddle_excluded'] = n_straddle
+    report['straddle_years'] = straddle_years
+    report['date_granularity'] = (
+        'year-midpoint (straddle year excluded)' if args.date_col == 'year'
+        else 'exact-date')
 
     args.report.parent.mkdir(parents=True, exist_ok=True)
     with args.report.open('w', encoding='utf-8') as f:

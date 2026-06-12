@@ -12,8 +12,21 @@
 *   M4: + locus / subst frac 控制
 *   M5: + bank size / age 控制
 *   M6: + 交互项 (LOCUS × SUBST)
+*
+* ⚠️ 方向披露 fix(omni-g-templates-11, 2026-06-11):
+*   paper_spec.yaml (P1 bank_fintech_tone) 冻结的主识别是
+*     outcome.primary  = car_3day_window_tone_shock (CAR ~ tone, tone 为 treatment),
+*   而本表当前方程是 tone ~ digital_frontier (tone 作 DV) — 与 spec 主识别方向相反。
+*   本表是 pre-enrichment 占位规格: CAR 列 (M0.5.11 enrichment) 落地前, 以
+*   digital_frontier → tone 的描述性关联占住 Table 2 槽位。CAR 列落地后须重写为
+*   {MAIN_DV} ~ {MAIN_TREAT} 形式 (capture confirm 守卫), 论文不得以本占位表充当主结果。
 
 version 19
+
+* fix(omni-g-templates-14, 2026-06-11): 主线模板链共享同一 Stata session (master 顺序
+* do 各表, 无 clear all), 先前表的同名估计会泄入后续 esttab (静默复用陈旧估计冒充新列)。
+* 每表开头 eststo clear 隔离本表估计命名空间。
+eststo clear
 * metric-audit 2026-06-02 (stata_vars-01): 改读 01_data_prep 保存的缩尾面板
 * _prepared_panel.dta, 使 Table 2 主回归与 Table 1 描述统计同口径 (均 1%/99%
 * winsorized, Loughran-McDonald 2011 JF). 旧 `use core.dta, clear` 重载原始未缩尾
@@ -124,4 +137,13 @@ esttab M1 M2 M3 M4 M5 M6 using "output/tables/table2_main.tex", ///
     mtitles("M1" "M2" "M3" "M4" "M5" "M6") ///
     note("Robust SEs clustered at bank level. Main spec: locus={{MAIN_LOCUS_TRACK}}, subst={{MAIN_SUBST_TRACK}}, sent={{MAIN_SENT_TRACK}}")
 
-display "✅ Table 2 written to output/tables/table2_main.tex"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel (与 .tex 同模型同统计规格) —
+* 供 python 侧 papers/_common/stata_postprocess.parse_esttab_csv 消费。
+* 用 estout + delimiter(",") 而非 esttab csv: esttab csv 默认 ="..." Excel 包裹
+* (plain 则丢 SE 括号), 两者都破坏 parse_esttab_csv 的 (se) 行正则。
+estout M1 M2 M3 M4 M5 M6 using "output/tables/table2_main.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) ///
+    mlabels("M1" "M2" "M3" "M4" "M5" "M6")
+
+display "✅ Table 2 written to output/tables/table2_main.tex (+ .csv side-channel)"

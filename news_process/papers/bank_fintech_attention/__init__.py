@@ -5,8 +5,12 @@
 Bank Fintech Attention — 银行 fintech 媒体话题曝光强度 (firm-level attention intensity)
 对银行 fintech 战略响应的因果识别.
 
-锚定文献:
-    - Hassan, Hollander, van Lent, Tahoun (2019) QJE 134(4) — firm-level political risk exposure
+锚定文献 (fix(omni-g-papers-misc-09, 2026-06-11) 锚点更正, 同步 attention_media.py):
+    - Fang & Peress (2009) JF — media coverage / extensive 覆盖加权曝光
+      (主处理 attention_index = ln(1+Σ intensity) 的实际构造锚)
+    - Hassan, Hollander, van Lent, Tahoun (2019) QJE 134(4) — firm-level exposure;
+      仅对标归一化度量 (attention_pct/density) 与 ctx 轨 entity-proximity 归因,
+      **非** attention_index 的 intensive 归一化份额
     - Florackis, Louca, Michaely, Weber (2023) RFS 36(1) — cybersecurity exposure
     - Gomber, Kauffman, Parker, Weber (2018) JMIS 35(1) — fintech taxonomy (secondary anchor)
 
@@ -21,8 +25,10 @@ Bank Fintech Attention — 银行 fintech 媒体话题曝光强度 (firm-level a
 - ``attention_index_full`` / ``attention_index_ctx`` /
   ``attention_disp_full`` / ``attention_pct_full``
 
-Identification: staggered DiD (Callaway-Sant'Anna 2021) + leave-one-out peer attention IV /
-Bartik IV fallback (per paper_spec.yaml identification.iv).
+Identification (fix(omni-g-papers-misc-08, 2026-06-11) 与 spec RR15-1/R8-M03 对齐):
+cross-sectional intensity DiD baseline (TWFE; csdid 仅 T≥3 robustness) +
+leave-one-out peer attention IV / Bartik IV fallback (per paper_spec.yaml
+identification.iv; 两 IV 列 PENDING M0.5.X 未物化, 见 spec 标注)。
 
 Spec: ``papers/bank_fintech_attention/paper_spec.yaml`` (M0 G0 frozen).
 """

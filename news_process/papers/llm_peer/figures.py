@@ -38,7 +38,11 @@ def plot_cutoff_sensitivity(paper_config: PaperConfig | None = None,
     x = [c / 100 for c in cutoffs]
     ax.errorbar(x, means, yerr=stds, fmt='o-', color=COLORBLIND_PALETTE[3],
                 ecolor=COLORBLIND_PALETTE[3], capsize=3, linewidth=1.0)
-    ax.set_xlabel('TNIC similarity cutoff $c$')
+    # fix(omni-g-misc-02, 2026-06-11): 轴标签去 TNIC 误标 — 此 cutoff 是
+    # difflib.get_close_matches 的字符串匹配严格度 (LLM 输出同行名 → 规范名归一),
+    # 非 Hoberg-Phillips TNIC 同行语义相似度阈值 (口径勘误同 llm_peer_iv.py:692);
+    # 原标签直接印入出版图 fig1, 故须改。
+    ax.set_xlabel('Peer name-matching cutoff $c$')
     ax.set_ylabel(r'$\overline{\mathrm{LLM\ Peer\ Tone\ IV}}\ \pm\ \mathrm{SD}$')
     ax.set_title('LLM-Peer IV mean $\\pm$ SD by cutoff')
 

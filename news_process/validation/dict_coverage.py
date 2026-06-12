@@ -48,7 +48,9 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
 
 用法:
     python 37_dict_coverage_audit.py                  # 分析 1-4 + 5a (纯统计)
-    python 37_dict_coverage_audit.py --run-llm-check  # 追加 5b (LLM 交叉验证)
+    python 37_dict_coverage_audit.py --run-llm-check  # 追加 5b (注: 从未实装,
+                                                      # 仅输出披露, 见 analysis_5b
+                                                      # docstring, fix omni 2026-06-11)
 """
 
 import argparse
@@ -399,7 +401,15 @@ def analysis_2_monotonicity_test(df: pd.DataFrame,
 # ============================================================================
 
 def analysis_3_keyword_concentration(df: pd.DataFrame) -> tuple:
-    """分析关键词频率分布、HHI、零命中关键词."""
+    """分析关键词频率分布、HHI、零命中关键词.
+
+    fix(omni-g-val-robust-02, 2026-06-11) 口径披露: 输入 df 是
+    21_tone_llms_full.parquet — 即已通过 distinct>=T 阈值分类的金融科技文章
+    (选择后样本)。所有频率/零命中/HHI 统计的口径均为 "通过分类的文章中",
+    **不是** 全语料: 只在灰色地带 (1<=distinct<T) 或被拒文章中出现的关键词
+    会被计入 "零命中", 因此本分析系统性高估死词数、高估集中度。
+    全语料口径需改用 12_fintech_news_full.parquet (含被拒行的 keyword_details)。
+    """
     logger.info("=" * 70)
     logger.info("分析 3: 关键词贡献集中度")
     logger.info("=" * 70)
@@ -408,6 +418,8 @@ def analysis_3_keyword_concentration(df: pd.DataFrame) -> tuple:
     logger.info("  还是只有少数几个高频词贡献了绝大多数命中。")
     logger.info("  如果词典有 1500 个词, 但只有 50 个词在实际新闻中出现过,")
     logger.info("  那词典的'有效覆盖面'其实远小于其表面规模。")
+    logger.info("  [口径] 统计样本 = 已通过分类的金融科技文章 (选择后样本),")
+    logger.info("  非全语料 — '零命中'词可能仍出现在灰色地带/被拒文章中。")
     logger.info("")
 
     # 加载词典
@@ -476,17 +488,22 @@ def analysis_3_keyword_concentration(df: pd.DataFrame) -> tuple:
     zero_hit_df = pd.DataFrame({'keyword': zero_hit})
 
     # --- 3d: 有效覆盖率 ---
+    # fix(omni-g-val-robust-02, 2026-06-11): 措辞限定为 "通过分类的文章中" —
+    # 输入是阈值选择后的样本, 旧措辞 "在全部语料中从未出现过" 为过度声称
+    # (词可能只出现在灰色地带 1<=distinct<T 或被拒文章中)。
     coverage_rate = 1 - len(zero_hit) / len(all_keywords) if all_keywords else 0
     logger.info("")
     logger.info(f"  【零命中关键词】: {len(zero_hit)} / {len(all_keywords)} 个")
-    logger.info(f"    这 {len(zero_hit)} 个词存在于词典中, 但在全部语料中从未出现过 ('死词')。")
+    logger.info(f"    这 {len(zero_hit)} 个词存在于词典中, 但在**通过分类的金融科技文章**中")
+    logger.info(f"    从未命中 (选择后样本口径, 非全语料 '死词' 判定)。")
     logger.info(f"  【有效覆盖率】: {coverage_rate:.1%}")
-    logger.info(f"    即词典中实际在语料中命中过的词占总词表的比例。")
+    logger.info(f"    即词典中在通过分类的文章中命中过的词占总词表的比例。")
     if coverage_rate < 0.50:
-        logger.info(f"    有效覆盖率低于 50%, 超过一半的词典词条是'死词',")
-        logger.info(f"      建议清理这些无效词条, 或检查词典与语料的匹配度。")
+        logger.info(f"    有效覆盖率低于 50% (通过样本口径)。注意: 本统计在阈值")
+        logger.info(f"      选择后的样本上计算, 系统性高估零命中词数; 清理词条前")
+        logger.info(f"      须先在全量语料 (12_fintech_news_full, 含被拒文章) 复核。")
     else:
-        logger.info(f"    ✓ 有效覆盖率 ≥ 50%, 词典与语料匹配度尚可。")
+        logger.info(f"    ✓ 有效覆盖率 ≥ 50% (通过样本口径), 词典与语料匹配度尚可。")
 
     return freq_df, zero_hit_df
 
@@ -622,18 +639,23 @@ def analysis_5a_grey_zone_stats(df_full: pd.DataFrame) -> dict:
 
 
 def analysis_5b_llm_cross_validation(grey_zone_df: pd.DataFrame):
-    """对灰色地带文章执行 LLM 自动化交叉验证.
+    """灰色地带 LLM 自动化交叉验证 — **从未实装, 死分支已移除并披露**.
 
-    方法论独立性说明:
-        关键词过滤器 (Aho-Corasick 词袋匹配) 与 LLM 验证 (语义理解) 是
-        方法论独立的两套分类器——前者基于词表精确匹配, 后者基于上下文语义推理,
-        二者无共享参数或训练数据。因此用 LLM 交叉验证关键词过滤器不构成循环
-        论证, 与 Sautner et al. (2023, JF) 使用独立人工审读验证 ML 分类器
-        的逻辑一致。
+    fix(omni-extra-dictcov-5b, 2026-06-11): 历史实现依赖 ``from utils.llm_clients
+    import call_llm_models_async``, 但 ``utils.llm_clients`` 模块从未存在 —
+    整个 try-block 自模块诞生起必然落入 except 分支, ~120 行 LLM 调用代码
+    永久不可达, 且 except 文案 ("请确认 utils/llm_clients.py 存在且 API 密钥
+    已配置") 把"从未实装"误导为可修复的环境问题。按主控裁决移除死代码,
+    本函数现仅输出诚实披露并返回 None (不产出 37_false_negative_estimate.csv)。
 
-    样本量依据:
-        n=1000 在 p=20% 时 95% CI 半宽度 ±2.5pp.
-        参考: Wilson (1927, JASA 22(158):209-212).
+    若未来实装, 设计约束:
+      - 须复用 stage 21 的 LLM 基础设施 (pipeline.sentiment.tone_llms),
+        接受其缓存/付费/离线守卫 (NEWS_PROCESS_LLM_OFFLINE) 约束;
+      - 方法论独立性依据保留: 关键词过滤器 (AC 词袋匹配) 与 LLM 验证
+        (语义推理) 无共享参数, 交叉验证不构成循环论证
+        (类比 Sautner et al. 2023, JF 的独立人工审读);
+      - 样本量依据保留: n=1000 在 p=20% 时 95% CI 半宽度 ±2.5pp
+        (Wilson 1927, JASA 22(158):209-212)。
     """
     logger.info("=" * 70)
     logger.info("分析 5b: 灰色地带 LLM 自动化交叉验证")
@@ -641,145 +663,15 @@ def analysis_5b_llm_cross_validation(grey_zone_df: pd.DataFrame):
 
     if grey_zone_df.empty:
         logger.info("  灰色地带为空, 跳过 LLM 交叉验证")
-        return
+        return None
 
-    n_total = len(grey_zone_df)
-    n_sample = min(1000, n_total)
-    is_census = n_sample == n_total
-
-    if is_census:
-        sample_df = grey_zone_df.copy()
-        logger.info(f"  灰色地带总量 {n_total} ≤ 1000, 执行全量验证")
-    else:
-        sample_df = grey_zone_df.sample(n=n_sample, random_state=42)
-        logger.info(f"  从 {n_total:,} 篇中随机抽取 {n_sample} 篇 (seed=42)")
-
-    # --- 复用 21_tone_llms.py 的 LLM 基础设施 ---
-    try:
-        # 延迟导入, 仅在 --run-llm-check 时加载
-        # Phase 6a: utils.helpers → news_process.core.config (load_config 已在文件顶部 import,
-        # 此处保留是历史 dead-code; utils.llm_clients 模块从未存在, 整个 try-block 必然走 except 分支)
-        from utils.llm_clients import call_llm_models_async  # noqa: F401 — known-broken; preserved verbatim
-
-        from news_process.core.config import load_config  # noqa: F401  (re-import OK)
-
-        llm_config = CONFIG.get('tone_llm_processing', {})
-        models = llm_config.get('models', [])
-
-        if not models:
-            logger.error("  config.yaml 中未配置 LLM 模型, 无法执行交叉验证")
-            return
-
-        logger.info(f"  LLM 模型: {[m['short_name'] for m in models]}")
-        logger.info(f"  预计 LLM 调用次数: ~{n_sample * len(models)}")
-
-        # 构建 prompt (复用 21_tone_llms.py 的 prompt 模板)
-        prompt_template = llm_config.get('prompt_template', '')
-        if not prompt_template:
-            prompt_template = (
-                "请判断以下新闻是否与银行金融科技相关。\n"
-                "标题: {title}\n内容: {content}\n"
-                "请以 JSON 格式回答: "
-                '{{\"is_bank_fintech_news\": true/false, '
-                '\"sentiment\": \"正面/中性/负面\"}}'
-            )
-
-        results = []
-        batch_size = 50
-        n_batches = (n_sample + batch_size - 1) // batch_size
-
-        for batch_i in range(n_batches):
-            start = batch_i * batch_size
-            end = min(start + batch_size, n_sample)
-            batch = sample_df.iloc[start:end]
-
-            logger.info(f"  处理批次 {batch_i+1}/{n_batches} "
-                         f"({start+1}-{end}/{n_sample})")
-
-            for idx, row in batch.iterrows():
-                title = str(row.get('标题', ''))
-                content = str(row.get('内容', ''))[:2000]
-
-                try:
-                    import asyncio
-
-                    # 调用多模型
-                    model_responses = asyncio.run(
-                        call_llm_models_async(
-                            prompt_template.format(title=title, content=content),
-                            models
-                        )
-                    )
-
-                    # 多数投票判断 is_bank_fintech_news
-                    votes = []
-                    for m in models:
-                        resp = model_responses.get(m['model_name'], '')
-                        if resp:
-                            try:
-                                # 尝试解析 JSON
-                                import re
-                                json_match = re.search(r'\{[^}]+\}', resp)
-                                if json_match:
-                                    jd = json.loads(json_match.group())
-                                    v = jd.get('is_bank_fintech_news', False)
-                                    if isinstance(v, str):
-                                        v = v.strip().lower() in ('true', '1', 'yes')
-                                    votes.append(bool(v))
-                            except (json.JSONDecodeError, AttributeError):
-                                pass
-
-                    # 多数决
-                    is_fintech = sum(votes) > len(votes) / 2 if votes else False
-
-                    results.append({
-                        'idx': idx,
-                        'distinct_keywords': row.get('fintech_distinct_keywords', 0),
-                        'llm_is_fintech': is_fintech,
-                        'n_votes': len(votes),
-                        'n_yes': sum(votes) if votes else 0,
-                    })
-                except Exception as e:
-                    logger.warning(f"    LLM 调用失败 (idx={idx}): {e}")
-                    results.append({
-                        'idx': idx,
-                        'distinct_keywords': row.get('fintech_distinct_keywords', 0),
-                        'llm_is_fintech': None,
-                        'n_votes': 0,
-                        'n_yes': 0,
-                    })
-
-        # --- 汇总 FNR ---
-        results_df = pd.DataFrame(results)
-        valid = results_df[results_df['llm_is_fintech'].notna()]
-
-        if len(valid) > 0:
-            fnr_overall = valid['llm_is_fintech'].mean()
-            lo, hi = wilson_ci(fnr_overall, len(valid))
-            logger.info(f"  【总体 FNR】: {fnr_overall:.1%} "
-                         f"95% CI [{lo:.1%}, {hi:.1%}]"
-                         f" ({'> 20%' if fnr_overall > 0.20 else '✓'})")
-
-            # 分层报告
-            for d_val in sorted(valid['distinct_keywords'].unique()):
-                sub = valid[valid['distinct_keywords'] == d_val]
-                if len(sub) > 0:
-                    fnr_d = sub['llm_is_fintech'].mean()
-                    lo_d, hi_d = wilson_ci(fnr_d, len(sub))
-                    logger.info(f"    distinct={int(d_val)}: "
-                                 f"FNR={fnr_d:.1%} [{lo_d:.1%}, {hi_d:.1%}] "
-                                 f"(n={len(sub)})")
-
-        # 保存
-        output_path = os.path.join(EVAL_DIR, '37_false_negative_estimate.csv')
-        results_df.to_csv(output_path, index=False, encoding='utf-8-sig')
-        logger.info(f"  LLM 交叉验证结果已保存: {output_path}")
-
-    except ImportError as e:
-        logger.error(f"  LLM 基础设施导入失败: {e}")
-        logger.error("  请确认 utils/llm_clients.py 存在且 API 密钥已配置")
-    except Exception as e:
-        logger.error(f"  LLM 交叉验证执行失败: {e}")
+    # fix(omni-extra-dictcov-5b, 2026-06-11): 诚实披露 — 功能从未可用
+    logger.error("  分析 5b 不可用: LLM 交叉验证从未实装 (历史代码依赖不存在的 "
+                 "utils.llm_clients 模块, 属已编目死功能; 2026-06-11 移除死分支)。")
+    logger.error(f"  灰色地带规模 (供参考): {len(grey_zone_df):,} 篇; "
+                 "FNR 自动化估计无产出, 37_false_negative_estimate.csv 不会生成。")
+    logger.error("  替代诊断: 分析 5a 的灰色地带形态统计仍然有效; 实装路线见本函数 docstring。")
+    return None
 
 
 # ============================================================================
@@ -798,7 +690,8 @@ def log_summary(marginal_rate: float, effect_size: float,
     logger.info(f"    · 边际通过率: {marginal_rate:.1%}   (安全阈值: ≤15%)")
     logger.info(f"    · 验证率差异: {effect_size:+.1f}pp  (安全阈值: <3pp)")
     logger.info(f"    · 有效关键词数 ENK: {enk:.0f}     (建议: ≥50)")
-    logger.info(f"    · 有效覆盖率: {coverage_rate:.1%}   (建议: ≥50%)")
+    # fix(omni-g-val-robust-02, 2026-06-11): 覆盖率为通过样本口径 (见分析 3 披露)
+    logger.info(f"    · 有效覆盖率: {coverage_rate:.1%}   (建议: ≥50%; 通过样本口径)")
     if fnr is not None:
         logger.info(f"    · 自动化 FNR: {fnr:.1%}      (安全阈值: <10%)")
     logger.info("")
@@ -814,8 +707,10 @@ def log_summary(marginal_rate: float, effect_size: float,
         issues.append(f"有效关键词数不足 (ENK={enk:.0f}): "
                        f"词典过度依赖少数高频词, 有效维度偏低")
     if coverage_rate < 0.50:
+        # fix(omni-g-val-robust-02, 2026-06-11): 限定通过样本口径, 撤回全语料声称
         issues.append(f"有效覆盖率偏低 ({coverage_rate:.1%}): "
-                       f"词典中超过一半的词条从未在语料中出现过")
+                       f"词典中超过一半的词条从未在通过分类的文章中命中 "
+                       f"(选择后样本口径, 高估死词数)")
     if fnr is not None and fnr > 0.20:
         issues.append(f"FNR 偏高 ({fnr:.1%}): "
                        f"灰色地带中有大量真正的金融科技新闻被遗漏")
@@ -832,7 +727,10 @@ def log_summary(marginal_rate: float, effect_size: float,
         if marginal_rate > 0.15 or (enk < 50):
             logger.info("    → 扩展词典: 引入类 Sautner et al. (2023) 的 ML 关键词发现算法")
         if coverage_rate < 0.50:
-            logger.info("    → 清理词典: 移除零命中的'死词', 提高词典信噪比")
+            # fix(omni-g-val-robust-02, 2026-06-11): 撤回直接清理建议的全语料含义 —
+            # 零命中为通过样本口径, 直接删词可能误删仅在灰色地带/被拒文章出现的词
+            logger.info("    → 核查词典: 零命中词为通过样本口径, 须先在全量语料")
+            logger.info("      (12_fintech_news_full, 含被拒文章) 复核后再考虑清理")
         if fnr is not None and fnr > 0.20:
             logger.info(f"    → 降低阈值: 考虑将 min_distinct_keywords 从 {T} 下调至 {T-1}")
 
@@ -844,7 +742,8 @@ def log_summary(marginal_rate: float, effect_size: float,
 def main():
     parser = argparse.ArgumentParser(description='金融科技词典覆盖率审计')
     parser.add_argument('--run-llm-check', action='store_true',
-                        help='执行分析 5b: LLM 灰色地带交叉验证')
+                        help='分析 5b: LLM 灰色地带交叉验证 (从未实装, 死分支已于 '
+                             '2026-06-11 移除, 仅输出披露; 见 analysis_5b docstring)')
     args = parser.parse_args()
 
     start_time = time.time()

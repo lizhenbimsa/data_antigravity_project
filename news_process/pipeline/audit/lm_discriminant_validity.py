@@ -88,6 +88,34 @@ INDICATORS_FULL = [
 HTMT_STRICT = 0.85
 HTMT_LENIENT = 0.90
 
+# fix(omni-g-audit-family-05, 2026-06-11): 与 39d (lexical_discriminant_validity
+# run_discriminant_validity min_n_articles=2, 修 R8-H2) 统一样本过滤口径.
+MIN_N_ARTICLES = 2
+
+
+def _apply_llm_valid_mask(panel: pd.DataFrame,
+                          min_n_articles: int = MIN_N_ARTICLES) -> pd.DataFrame:
+    """对 panel 施加 n_articles_llm_valid ≥ min_n_articles mask (与 39d 同口径).
+
+    fix(omni-g-audit-family-05, 2026-06-11): 39d 与 39e 测同一对构念
+    (clarity / num_intensity), 旧 39e 完全不 mask — 单篇文章 bank-year 的噪声
+    测度进入 HTMT, 两份判别效度报告在不同样本上互不可比, 且 G-A1.2 门控
+    (max HTMT < 0.85) 的判定样本与 39d 论文口径脱节. 现复用 39d 的过滤:
+    优先 ``n_articles_llm_valid`` (判别效度测度建立在 LLM-valid 文章上),
+    旧冻结 panel 缺该列则回退 ``n_articles``; 两列均缺 → 不过滤 (graceful).
+    """
+    mask_col = ('n_articles_llm_valid'
+                if 'n_articles_llm_valid' in panel.columns else 'n_articles')
+    if mask_col not in panel.columns:
+        logger.warning(
+            f"  39e mask: panel 缺 n_articles_llm_valid / n_articles 列, "
+            f"不过滤 (与 39d 口径对齐失败, 结果与 39d 不可比)")
+        return panel
+    masked = panel.loc[panel[mask_col] >= min_n_articles].copy()
+    logger.info(f"  39e: {mask_col} ≥ {min_n_articles} mask 后 {len(masked)} obs "
+                f"(原 {len(panel)}; 与 39d R8-H2 口径统一)")
+    return masked
+
 
 def _offdiag_max(corr: pd.DataFrame) -> float:
     """对称矩阵的非对角最大值 (P0 修复 metric-audit 2026-06-02; CoW 安全).
@@ -145,13 +173,27 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
 
     实现仿 stage 39c::permutation_null: 对每个 indicator 列独立随机置换 n_perm 次,
     统计 HTMT 上限的 null 分布 (当前为串行循环, 非 n_jobs 并行)。
+
+    fix(omni-g-audit-family-05, 2026-06-11) 两处口径修正:
+    (a) 旧实现对含 NaN 的全样本列直接 ``rng.permutation`` — NaN 随值一起洗牌,
+        破坏列间缺失对齐 → null 的有效 pairwise n 缩水, |corr| null 分布偏宽
+        (p95 偏高, 方向保守但口径失准). 现观测与置换统一在 listwise-complete
+        子样本上进行 (缺失模式固定, 观测/null 同域).
+    (b) 披露: 行置换假设观测行独立, 未处理面板 bank 聚类 (within-bank 序列
+        相关下 null 可能偏窄) — 写入输出 ``note`` 字段.
     """
     rng = np.random.default_rng(seed)
     present = [c for c in indicators if c in panel.columns]
     if len(present) < 2:
         return pd.DataFrame()
+    # fix(omni-g-audit-family-05): listwise-complete 子样本 — 观测与 null 同域
+    sub = panel[present].dropna()
+    if len(sub) < 4:
+        logger.warning(
+            f"  permutation_null: listwise-complete 样本不足 ({len(sub)} 行 < 4); 跳过")
+        return pd.DataFrame()
     # 观测 HTMT 上限 (对角置 NaN 后取全矩阵最大值), 作为下方 permutation null 的对比基准.
-    obs_htmt = compute_htmt_matrix(panel, present)
+    obs_htmt = compute_htmt_matrix(sub, present)
     if obs_htmt.empty:
         return pd.DataFrame()
     obs_max = _offdiag_max(obs_htmt)  # P0 修复: CoW 安全 (不写只读 .values)
@@ -160,7 +202,7 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
     # Sarstedt 2015 JAMS 建议 ≥ 500; 项目 stage 39d 用 1000 seed=42).
     perm_max = []
     for _ in range(n_perm):
-        shuffled = panel[present].apply(lambda c: rng.permutation(c.values))
+        shuffled = sub.apply(lambda c: rng.permutation(c.values))
         h = shuffled.corr().abs()
         perm_max.append(_offdiag_max(h))  # P0 修复: CoW 安全
     p_emp = float((np.array(perm_max) >= obs_max).mean())
@@ -170,7 +212,10 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
         'perm_htmt_max_p95': float(np.percentile(perm_max, 95)),
         'p_empirical': p_emp,
         'n_perm': len(perm_max),
-        'note': f'{n_perm} reps (与 stage 39d 1000-rep 基线对齐); seed={seed}',
+        'n_listwise': int(len(sub)),
+        'note': (f'{n_perm} reps (与 stage 39d 1000-rep 基线对齐); seed={seed}; '
+                 f'obs 与 null 同 listwise-complete 域 (n={len(sub)}); '
+                 f'披露: 行置换未处理面板 bank 聚类 (within-bank 相关下 null 或偏窄)'),
     }])
 
 
@@ -191,6 +236,10 @@ def main():
 
     panel = pd.read_parquet(panel_path)
     logger.info(f"  panel: {len(panel)} 行 × {len(panel.columns)} 列")
+
+    # fix(omni-g-audit-family-05, 2026-06-11): 与 39d 统一 n_articles_llm_valid ≥ 2
+    # 样本过滤 (HTMT / Cronbach α / permutation 全部在同一过滤后样本上计算)
+    panel = _apply_llm_valid_mask(panel)
 
     # 双轨各跑一次 (与 v3.5.1 stage 39d 对齐)
     for suffix, indicators in (('ctx', INDICATORS_CTX), ('full', INDICATORS_FULL)):

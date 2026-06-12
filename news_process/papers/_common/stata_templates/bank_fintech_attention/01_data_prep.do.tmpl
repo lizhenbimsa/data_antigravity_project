@@ -18,8 +18,22 @@ capture confirm variable bank_id
 if _rc encode target_bank, gen(bank_id)
 xtset bank_id year
 
-* Standard bank-level + macro controls (per spec.controls)
-global controls "{{CONTROLS}}"
+* Standard bank-level controls (per spec.controls)
+* fix(omni-g-replication-01, 2026-06-11): 财务控制 (ln_assets 族) 为外部数据 sentinel
+* (config/银行面板2007-2025年.xlsx 待接入) — capture confirm 自校验拼装 $controls,
+* 防下游 reghdfe `$controls` r(111) 硬崩 (主线 01_data_prep 同模式)。
+* fix(omni-g-replication-05): CONTROLS 默认值已去 gdp_growth/m2_growth (M5 真增量加 macro)。
+local _ctrl ""
+local _ctrl_missing ""
+foreach v in {{CONTROLS}} {
+    capture confirm variable `v'
+    if !_rc local _ctrl "`_ctrl' `v'"
+    else    local _ctrl_missing "`_ctrl_missing' `v'"
+}
+global controls "`_ctrl'"
+if "`_ctrl_missing'" != "" {
+    display as error "[WARN] controls 缺失:`_ctrl_missing' — 外部银行财务面板待接入 (config/银行面板2007-2025年.xlsx); 回归仅用现存 controls [$controls]"
+}
 
 * $bank_controls 保留为 $controls 的兼容性 alias: 部分 robustness 模板引用
 * $bank_controls, 而 paper-specific 01_data_prep 只设 $controls. Stata 对未定义
@@ -27,13 +41,19 @@ global controls "{{CONTROLS}}"
 * 让 robustness 与 main Table 2/3 用同一 controls 集合.
 global bank_controls "$controls"
 
-* Required-variable presence check (P2 outcome + treatment + mediator)
-foreach v in {{MAIN_DV}} {{MAIN_TREAT}} {
-    capture confirm variable `v'
-    if _rc {
-        display as error "[ERROR] required P2 variable `v' missing — run M0.5.11 enrichment + 14_fintech_intensity first"
-        exit 198
-    }
+* Required-variable presence check (P2 treatment, pipeline 产出)
+capture confirm variable {{MAIN_TREAT}}
+if _rc {
+    display as error "[ERROR] required P2 treatment {{MAIN_TREAT}} missing — run 14_fintech_intensity + stage 45 panel aggregation first"
+    exit 198
+}
+
+* P2 outcome (外部财务数据 sentinel, 与 treatment 分开诊断)
+* fix(omni-g-replication-01, 2026-06-11): 缺失时给出明确外部数据指引 (00_master fail-loud)。
+capture confirm variable {{MAIN_DV}}
+if _rc {
+    display as error "[ERROR] required P2 outcome {{MAIN_DV}} missing — 外部财务数据未接入 (M0.5.11 CSMAR 年报 fintech 投入; 见 config/银行面板2007-2025年.xlsx 接入计划与 spec.outcome.enrichment_source)"
+    exit 198
 }
 
 * Optional winsor2 trimming (1%/99%) for outcome variable

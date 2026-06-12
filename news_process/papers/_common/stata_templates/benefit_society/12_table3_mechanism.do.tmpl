@@ -93,4 +93,13 @@ esttab M1_token_CAR M2_hidden_ROA M3_subst_ROA M4_joint M5_token_fracreg M6_toke
              "FracReg: Papke-Wooldridge 1996 for fraction Y in [0,1] (V2.0 plan P2.B2)." ///
              "LPM: standard FE OLS sanity check.")
 
-display "[OK] Table 3 → $tables_dir/table3_mechanism.tex"
+* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+* tables.py:build_table3_mechanism 经 read_paper_esttab(...,'table3_mechanism.csv')
+* 消费 (parse_esttab_csv 格式; estout+delimiter 防 esttab csv 的 ="..." 包裹)。
+estout M1_token_CAR M2_hidden_ROA M3_subst_ROA M4_joint M5_token_fracreg M6_token_lpm ///
+    using "$tables_dir/table3_mechanism.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) ///
+    mlabels("Token→CAR" "Hidden→ROA" "Subst→ROA" "Joint" "Token-FracReg" "Token-LPM")
+
+display "[OK] Table 3 → $tables_dir/table3_mechanism.tex (+ .csv side-channel)"

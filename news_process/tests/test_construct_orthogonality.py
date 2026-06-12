@@ -27,11 +27,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
+# fix(omni-g-audit-family-04, 2026-06-11): Z_STRONG/Z_MODERATE 常量已删除 —
+# 从未被实现引用且与单侧 p95/p99 分位口径不符 (双侧 1.96/2.58 ≠ 单侧 1.645/2.326).
 from news_process.pipeline.audit.construct_orthogonality import (
     ALL_DIMS,
     DIMS_FULL,
-    Z_MODERATE,
-    Z_STRONG,
     classify_orthogonality,
     compute_nmi_matrix,
     compute_permutation_null,
@@ -204,14 +204,15 @@ def test_seed_sequence_reproducibility():
 
 
 # ----------------------------------------------------------------------------
-# Test 9: classify_orthogonality 3-档 thresholds (Z_STRONG / Z_MODERATE)
+# Test 9: classify_orthogonality 3-档 thresholds (permutation p95 / p99)
 # ----------------------------------------------------------------------------
 
 def test_classify_orthogonality_three_thresholds():
-    """Z ≤ 1.96 strong; 1.96 < Z ≤ 2.58 moderate; Z > 2.58 weak."""
-    assert Z_STRONG == 1.96
-    assert Z_MODERATE == 2.58
+    """obs ≤ p95 strong; p95 < obs ≤ p99 moderate; obs > p99 weak.
 
+    fix(omni-g-audit-family-04, 2026-06-11): 旧断言锁定从未被引用的 Z_STRONG=1.96 /
+    Z_MODERATE=2.58 常量 (与单侧分位实现口径不符), 常量已删除, 改锁分位分类行为.
+    """
     # Build a fake point matrix + null thresholds for classify
     dims = ['a', 'b']
     point = pd.DataFrame([[1.0, 0.05], [0.05, 1.0]], index=dims, columns=dims)

@@ -54,4 +54,13 @@ esttab H1 H2_low H3_high using "$tables_dir/table4_heterogeneity.tex", replace /
     addnotes("Brambor-Clark-Golder (2006) interaction; bank_type/year FE (NOT bank FE per F-R5-H2)." ///
              "EXPLORATORY: not in H series; subsample n approx 40-80, power < 0.50.")
 
-display "[OK] Table 4 → $tables_dir/table4_heterogeneity.tex"
+* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+* tables.py:build_table4_heterogeneity 经 read_paper_esttab(...,
+* 'table4_heterogeneity.csv') 消费 (parse_esttab_csv 格式)。
+estout H1 H2_low H3_high using "$tables_dir/table4_heterogeneity.csv", ///
+    replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) ///
+    mlabels("Pooled+Int" "{{HET_VAR}}=0" "{{HET_VAR}}=1")
+
+display "[OK] Table 4 → $tables_dir/table4_heterogeneity.tex (+ .csv side-channel)"

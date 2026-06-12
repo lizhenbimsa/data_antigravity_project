@@ -915,6 +915,42 @@ def generate_latex_table(results: dict) -> str:
     return "\n".join(lines)
 
 
+def _compute_pairwise_radius_corr(per_radius_data: dict, dict_name: str,
+                                  radii: list) -> np.ndarray:
+    """计算各半径得分两两 Pearson 相关矩阵 (供热力图渲染)。
+
+    fix(omni-g-val-robust-03, 2026-06-11): FIX-REGRESSION 闭合 — 复用 cross_radius
+    统计路径的 radius-zerovar-guard (2026-06-10, 见 run_sensitivity_analysis 内
+    注释): 零方差 (常量分数 — 词典零命中/空实体窗口/T=2 退化样本) 或样本 n<=2
+    时 pearsonr 无定义。此前热力图路径裸调 pearsonr → NaN + ConstantInputWarning,
+    'nan' 文本被直接渲染进论文附录图 35_radius_correlation_heatmap.png。
+    现与统计路径同语义置 NaN, 由调用方标注 'n/a'; 对角线按惯例固定 1.0。
+
+    Args:
+        per_radius_data: {radius: [per-article dict, ...]} 得分明细。
+        dict_name:       词典名 (取 f'{dict_name}_score' 列)。
+        radii:           半径列表 (与矩阵行列顺序一致)。
+
+    Returns:
+        np.ndarray: len(radii) × len(radii) 相关矩阵, 退化单元格为 NaN。
+    """
+    n = len(radii)
+    corr = np.ones((n, n))
+    for i, r1 in enumerate(radii):
+        scores_1 = [d[f'{dict_name}_score'] for d in per_radius_data[r1]]
+        for j, r2 in enumerate(radii):
+            if i == j:
+                continue
+            scores_2 = [d[f'{dict_name}_score'] for d in per_radius_data[r2]]
+            if (len(scores_1) > 2
+                    and float(np.std(scores_1)) > 0
+                    and float(np.std(scores_2)) > 0):
+                corr[i, j] = scipy_stats.pearsonr(scores_1, scores_2)[0]
+            else:
+                corr[i, j] = float('nan')
+    return corr
+
+
 def generate_visualizations(results: dict, per_radius_data: dict, output_dir: str):
     """生成可视化图表。"""
     if not HAS_MATPLOTLIB:
@@ -980,13 +1016,9 @@ def generate_visualizations(results: dict, per_radius_data: dict, output_dir: st
 
     for idx, dn in enumerate(dict_names):
         ax = axes[idx]
-        corr_matrix = np.ones((len(RADII), len(RADII)))
-        for i, r1 in enumerate(RADII):
-            scores_1 = [d[f'{dn}_score'] for d in per_radius_data[r1]]
-            for j, r2 in enumerate(RADII):
-                if i != j:
-                    scores_2 = [d[f'{dn}_score'] for d in per_radius_data[r2]]
-                    corr_matrix[i, j] = scipy_stats.pearsonr(scores_1, scores_2)[0]
+        # fix(omni-g-val-robust-03, 2026-06-11): 改走带零方差/样本量守卫的辅助函数
+        # (与 cross_radius 统计路径的 radius-zerovar-guard 同款), 防 NaN 渲染进附录图
+        corr_matrix = _compute_pairwise_radius_corr(per_radius_data, dn, RADII)
 
         im = ax.imshow(corr_matrix, cmap='RdYlGn', vmin=0.5, vmax=1.0, aspect='auto')
         ax.set_xticks(range(len(RADII)))
@@ -998,9 +1030,16 @@ def generate_visualizations(results: dict, per_radius_data: dict, output_dir: st
         # 在单元格中标注数值
         for i in range(len(RADII)):
             for j in range(len(RADII)):
-                text_color = 'white' if corr_matrix[i, j] < 0.75 else 'black'
-                ax.text(j, i, f'{corr_matrix[i, j]:.3f}',
-                        ha='center', va='center', fontsize=8, color=text_color)
+                val = corr_matrix[i, j]
+                if np.isnan(val):
+                    # fix(omni-g-val-robust-03): 零方差单元格显式标注 n/a
+                    # (相关无定义), 与 cross_radius 的 NaN 语义一致
+                    ax.text(j, i, 'n/a', ha='center', va='center',
+                            fontsize=8, color='black')
+                else:
+                    text_color = 'white' if val < 0.75 else 'black'
+                    ax.text(j, i, f'{val:.3f}',
+                            ha='center', va='center', fontsize=8, color=text_color)
 
     plt.suptitle('Score Correlation Across Window Radii (Pearson r)', fontsize=13, fontweight='bold')
     plt.tight_layout()

@@ -43,6 +43,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
 import asyncio
 import json
+import math
 import os
 import sys
 import time
@@ -321,10 +322,18 @@ def _summarize_auth_failure(status: int, resp_text: str) -> str:
 
 
 def _strip_prepended_title(text: str, title: str) -> str:
-    """剥离 prepend_title 拼接的标题前缀 (entity_context.prepend_title 的逆操作)。
+    """剥离 prepend_title 拼接的标题前缀 (entity_context.prepend_title 的近似逆操作)。
 
     fix(tonellms-01): content_ctx 由 stage13 prepend_title 拼成 ``title + [。] + body``;
     喂 LLM prompt 前需还原为去标题 body, 避免与 {title} 字段重复注入标题。
+
+    fix(omni-g-tonellms-03, 2026-06-11) 披露: 本函数按**文本前缀**剥离, 不是
+    prepend_title 的精确逆 — prepend_title 在 body 已以 title 开头时跳过拼接,
+    而此处无条件剥离前缀。当实体窗口/正文本身恰以标题文本开头时 (盘上实测
+    7/1170 ≈ 0.6%), 剥掉的是窗口真实首句内容 (标题为首句严格前缀时留下断句
+    残文)。Prompt 构造与缓存键已字节级冻结 (v8, $0 铁律), 行为不可更改 —
+    本条仅作如实披露; 双路径 (stage 13 / stage 21 兜底) 经函数复合验证产出
+    逐字相同 prompt, 不构成缓存键分歧。
     """
     from news_process.core.text.entity_context import _TITLE_SEP
     title = str(title or '').strip()
@@ -334,6 +343,32 @@ def _strip_prepended_title(text: str, title: str) -> str:
     if rest.startswith(_TITLE_SEP):
         rest = rest[len(_TITLE_SEP):]
     return rest
+
+
+def _is_cacheable_llm_response(result_text, force_json: bool | None = None) -> bool:
+    """HTTP 200 响应写缓存前的内容校验 (write-side guard)。
+
+    fix(omni-g-tonellms-02/15, 2026-06-11): 空串 / 纯空白 / (FORCE_JSON 时)
+    JSON 不可解析的 200 响应一旦 ``cache.put`` 即被永久冻结为合法命中 —
+    ``LLMCache.get`` 的 ``is not None`` 判定把 ``''`` 当有效命中短路返回,
+    该 (model, prompt) 格永无重试机会 (实测盘上 idx 982 ctx×deepseekv4 的
+    空串已被固化为伪 False 票)。本守卫只在**写入侧**把关: 校验失败按可重试
+    瞬时失败处理, 不写缓存、不归档; 既有缓存库 (确定性锚点, 勿删铁律) 中
+    已冻结的空串/截断响应**不动**, 由 ``_aggregate_track`` 在读取侧按
+    "模型缺席"处理 (见 fix omni-g-tonellms-01/08/15)。
+
+    Args:
+        result_text: API 200 响应的 message.content。
+        force_json: 覆盖模块级 FORCE_JSON (测试注入用); None = 取全局值。
+
+    Returns:
+        bool: True = 内容非空且 (FORCE_JSON 时) JSON 可解析, 允许 cache.put。
+    """
+    if force_json is None:
+        force_json = FORCE_JSON
+    if not isinstance(result_text, str) or not result_text.strip():
+        return False
+    return not force_json or bool(parse_json_response(result_text))
 
 
 def _build_llm_request(model_id: str, api_key: str, prompt: str) -> tuple[dict, dict]:
@@ -503,13 +538,32 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                     if resp.status == 200:
                         data = await resp.json()
                         result_text = data['choices'][0]['message']['content']
-                        if cache is not None:
-                            cache.put(model_id, prompt, result_text,
-                                      prompt_version=prompt_version,
-                                      temperature=TEMPERATURE,
-                                      random_seed=RANDOM_SEED)
+                        # fix(omni-g-tonellms-02/15, 2026-06-11): 200 但 completion
+                        # 为空/不可解析 → 按可重试瞬时失败处理, 绝不 cache.put —
+                        # 防止瞬时 API 故障被永久写入确定性锚点 (缓存命中后该格
+                        # 永不重试, 固化为伪 False 票)。
+                        if not _is_cacheable_llm_response(result_text):
+                            last_failure_reason = (
+                                f"连续 {max_attempts} 次请求未成功，"
+                                f"最后一次 200 响应内容为空或不可解析"
+                            )
+                            if has_more_attempts:
+                                logger.debug(
+                                    f"[{model_id}] 200 响应内容为空/不可解析 "
+                                    f"(attempt {attempt+1}/{max_attempts}) "
+                                    f"- 等待 {sleep_s:.1f}s 后重试..."
+                                )
+                                await asyncio.sleep(sleep_s)
+                            continue
                         # v3.7.0 (C1): LLM raw response archive (V4 F-P2.1 critical)
-                        # 失败不阻塞 pipeline: try/except + warning
+                        # fix(omni-g-tonellms-04, 2026-06-11): archive append 移到
+                        # cache.put **之前**, 且归档失败时跳过 put — 消除"先 put 后
+                        # archive 异常 → 响应被永久缓存、后续命中短路、归档一次性
+                        # 永久漏档"的窗口。归档失败按 warning 处理 (本次投票仍用该
+                        # 响应, 不阻塞 pipeline), 下次 run 因未缓存会重调并重试归档。
+                        # 注: archive 模块 import 失败 (_LLM_ARCHIVE_AVAILABLE=False)
+                        # 时已在模块加载期 loud error, 此处仍照常缓存 (历史行为)。
+                        _archive_ok = True
                         if _LLM_ARCHIVE_AVAILABLE:
                             try:
                                 # data['model'] 字段为 API 返回的 actual version
@@ -538,9 +592,16 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
                                     http_status=resp.status,
                                 )
                             except Exception as _arch_exc:
+                                _archive_ok = False
                                 logger.warning(
-                                    f"LLM archive 失败 (不阻塞 pipeline): {_arch_exc!r}"
+                                    f"LLM archive 失败 (不阻塞 pipeline, 本响应不写缓存"
+                                    f"以待下次 run 重调+重试归档): {_arch_exc!r}"
                                 )
+                        if cache is not None and _archive_ok:
+                            cache.put(model_id, prompt, result_text,
+                                      prompt_version=prompt_version,
+                                      temperature=TEMPERATURE,
+                                      random_seed=RANDOM_SEED)
                         return row_idx, model_id, result_text, track
                     elif resp.status in (429, 500, 502, 503, 504):
                         last_failure_reason = f"连续 {max_attempts} 次请求未成功，最后状态码 {resp.status}"
@@ -608,8 +669,12 @@ def iter_article_track_prompts(df: pd.DataFrame):
         # fix(tonellms-01): content_ctx 已由 stage13 prepend 标题, 若再把 {title} 作独立
         # 字段注入会致 ctx 轨标题双重注入 (full 轨 1 次 / ctx 轨 2 次), 污染 full↔ctx
         # 对照 — 而 llm_vote_tone_ctx 是 P1 G3 主处理。剥离 content_ctx 的标题前缀, 使
-        # 两轨对称: 均由 {title} 字段提供标题 1 次 + content 提供去标题正文/窗口。
-        # full 轨 (内容 无标题) 不变 → 缓存命中、$0。
+        # 两轨**近似**对称: 均由 {title} 字段提供标题 1 次 + content 提供去标题正文/窗口。
+        # fix(omni-g-tonellms-03, 2026-06-11) 披露: "full 轨 (内容 无标题)" 的原声称
+        # 仅近似成立 — 实测 7/1170 (0.6%) 文章的原始 `内容` 本身以 `标题` 开头, 这些
+        # 文章 full 轨 prompt 标题注入 2 次而 ctx 轨 1 次 (full 轨 content 不经剥离)。
+        # Prompt 构造已字节级冻结 (v8 缓存键铁律, $0), 不可改行为修正, 仅如实披露;
+        # _strip_prepended_title 的非精确逆局限见该函数 docstring。
         content_ctx_body = _strip_prepended_title(content_ctx, title)
 
         for track, content in [('full', content_full), ('ctx', content_ctx_body)]:
@@ -790,6 +855,78 @@ def majority_vote_categorical(
     return top[0][0]
 
 
+def _resolve_locus_track(innov_loci_track: list, topics_track: list) -> tuple:
+    """Resolve locus label + confidence for a single track (full or ctx)。
+
+    Returns (label, confidence)。Plan v14 §3.1 P1.5: 双轨平局策略对称。
+    原为 main() 内联闭包, 提取为模块级以便 import-based 回归测试。
+
+    fix(omni-g-tonellms-10, 2026-06-11): 零证据路径返回 (None, 0.0) —
+    此前 empty_fallback=_kw_cat 接住 canonicalize_topic 的硬默认
+    ('应用场景', 0.0) (空入参/三轮匹配全失败的基率归类, 见
+    canonicalization.py fix omni-g-entity-05 披露), 致 LLM 零票 + 零关键词
+    证据的文章 (含全部未验证文章, topics 按 prompt 为 null) 也被分类为
+    '应用场景' (盘上实证 null=0/857 而 subst/collab 分别有 234/295 null;
+    ctx 轨 62 个未验证行 60 个获标签, 其中 30 个 category_confidence==0
+    纯零证据默认)。与 subst/collab 的 empty_fallback=None 对称化:
+    - LLM 票为空且关键词分类器零证据 (_kw_conf == 0) → (None, 0.0);
+    - LLM 票为空但关键词有真实证据 (_kw_conf > 0) → keyword 回退保留;
+    - 有 LLM 票时平局 tie_default='应用场景' 保留 (有票的 MAP 是另一回事),
+      LLM × keyword 交叉验证 boost/penalty 行为不变。
+    """
+    _combined_topic = ' '.join(topics_track) if topics_track else ''
+    _kw_cat, _kw_conf = canonicalize_topic(_combined_topic)
+    if not innov_loci_track:
+        # 空 LLM 票: 仅当 keyword 分类器有真实证据 (conf > 0) 时回退 keyword
+        # 类目; canonicalize_topic 的零证据基率默认 ('应用场景', 0.0) 不再
+        # 冒充分类信号 → 与 subst/collab 一致返回 None。
+        if _kw_conf > 0:
+            return _kw_cat, _kw_conf
+        return None, 0.0
+    _majority = majority_vote_categorical(
+        innov_loci_track,
+        tie_strategy='conservative',
+        tie_default='应用场景',
+        empty_fallback=None,  # unreachable: 上方已处理空票
+    )
+    # LLM × keyword 交叉验证：一致 → +0.2 boost；分歧 → ×0.5 penalty
+    if _majority == _kw_cat:
+        _final_conf = min(_kw_conf + 0.2, 1.0)
+    else:
+        _final_conf = round(_kw_conf * 0.5, 3)
+    return _majority, _final_conf
+
+
+def _avg_innovation_confidence(parsed: dict, dim: str, models: list) -> float:
+    """行级创新维度置信度均值 (W&Z + Gomber + Chesbrough 维度, 双轨独立)。
+
+    原为 main() 内联闭包 ``_avg_conf``, 提取为模块级以便 import-based 回归测试。
+
+    fix(omni-g-tonellms-13, 2026-06-11): 聚合域与标签聚合域对齐 — 仅纳入对应
+    维度标签非 None (canonical 集接受) 的模型置信度。prompt 仅对标签写
+    "false 时填 null" 指示, 模型判 false/标签 null 时仍 emit 置信度数值,
+    此前无条件进均值, 致分子 (标签投票) 与伴随置信度 (信号强度) 来自不同
+    模型子集 (盘上实证 "无标签却有置信度" 行 subst full=7/ctx=13,
+    collab full=7/ctx=11)。镜像 H1 "sentiment-not-None 过滤" 语义。
+
+    Args:
+        parsed: _aggregate_track 的 per_model_parsed 字典。
+        dim: 'innovation_substantiveness' | 'innovation_locus'
+             | 'innovation_collab_mode'。
+        models: MODELS 配置列表 (含 short_name)。
+
+    Returns:
+        float: 被接受标签模型的 confidence(>0) 均值; 无有效项时 0.0。
+    """
+    confs = [
+        parsed.get(f"{m['short_name']}_{dim}_confidence", 0.0)
+        for m in models
+        if parsed.get(f"{m['short_name']}_{dim}") is not None
+    ]
+    valid = [c for c in confs if c and c > 0]
+    return sum(valid) / len(valid) if valid else 0.0
+
+
 def majority_vote_sentiment(sents: list, tie_strategy: str = 'undefined'):
     """多数决判断情感（v6/F2: 平局策略可配置）。
 
@@ -864,12 +1001,19 @@ def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
         DOI: 10.1073/pnas.2305016120
 
     【概率模拟策略】
-      P2 路径 (confidence > 0):
+      P2 路径 (0 < confidence ≤ 1):
         主类概率 = c, 其余两类概率 = (1-c)/2
         公式: Score = P(正面) - P(负面)
-      P3 路径 (confidence ≤ 0 或无效):
+      P3 路径 (confidence == 0 或 None/falsy 缺失):
         one-hot: 主类=1.0, 其余=0.0
         Score ∈ {+1.0, 0.0, -1.0}
+      P3_INV 路径 (confidence 为 NaN 或 ∉[0,1] — 无效输入域):
+        fix(omni-g-tonellms-07/11, 2026-06-11): 与 compute_prob_score_binary
+        的输入域政策对齐 — 显式拒绝, 返回 prob_score=NaN / prob_source="P3_INV",
+        由聚合层按 isnan 剔除。此前 NaN 因 CPython ``min(1.0, nan)`` 返回 1.0
+        被静默编码为满置信 ±1.0 (P2), 越界值 (如百分制误报 confidence=95) 被
+        静默 clip 成最强信号 — 而 binary 版对同类输入返回 NaN/"P3_BIN" 拒绝,
+        同一构念双政策不一致。
 
     【数学性质】（已数学证明，P2 路径 c ∈ (0, 1]）
       - label="中性" → Score ≡ 0（∀ c，因 P_pos = P_neg = (1-c)/2）
@@ -884,17 +1028,38 @@ def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
 
     Args:
         sentiment_label: "正面" / "中性" / "负面"
-        confidence: LLM 自报 sentiment_confidence ∈ [0, 1]
+        confidence: LLM 自报 sentiment_confidence ∈ [0, 1];
+            NaN / 越界 ([0,1] 之外) 属无效输入域 → P3_INV 拒绝 (见上)。
 
     Returns:
         dict: prob_pos, prob_neu, prob_neg (各∈[0,1], Σ=1),
               prob_score ∈ [-1, +1],
-              prob_source: "P2" 或 "P3"
+              prob_source: "P2" / "P3" / "P3_INV" (无效输入域, 全 NaN)
     """
     LABEL_MAP = {"正面": "positive", "中性": "neutral", "负面": "negative"}
     cls = LABEL_MAP.get(sentiment_label, "neutral")
 
-    c = max(0.0, min(1.0, confidence)) if confidence else 0.0
+    # fix(omni-g-tonellms-07/11, 2026-06-11): NaN / 越界 confidence 显式拒绝
+    # (镜像 compute_prob_score_binary 的 NaN/"P3_BIN" 路径), 不再静默映射为
+    # 满置信 c=1.0 (NaN) 或 clip (越界)。None/0.0 等 falsy 缺失保持历史 P3
+    # one-hot 语义 (生产 caller 默认 0.0, 与盘上值兼容)。
+    if confidence:
+        try:
+            _c_float = float(confidence)
+        except (TypeError, ValueError):
+            _c_float = float('nan')
+        if math.isnan(_c_float) or _c_float < 0.0 or _c_float > 1.0:
+            _nan = float('nan')
+            return {
+                "prob_pos": _nan,
+                "prob_neu": _nan,
+                "prob_neg": _nan,
+                "prob_score": _nan,
+                "prob_source": "P3_INV",
+            }
+        c = _c_float
+    else:
+        c = 0.0
     if c > 0:
         probs = {k: (1.0 - c) / 2.0 for k in ["positive", "neutral", "negative"]}
         probs[cls] = c
@@ -1053,7 +1218,10 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         m_id = m['model_name']
         raw_text = model_res_dict.get(m_id)
 
-        if raw_text is None:
+        # fix(omni-g-tonellms-15, 2026-06-11): 缓存层历史冻结的空串响应 ('')
+        # 在读取侧与 None (call-failure) 同路径按"模型缺席"处理 — 不动缓存库
+        # (确定性锚点), 写入侧守卫见 _is_cacheable_llm_response。
+        if raw_text is None or not str(raw_text).strip():
             n_failures += 1
             per_model_parsed[f"{short}_verified"] = None
             per_model_parsed[f"{short}_sentiment"] = None
@@ -1065,6 +1233,27 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         # 双重保险：parse_json_response 已统一返回 dict，但仍防御 LLM 异常输出
         if not isinstance(jd, dict):
             jd = {}
+
+        # fix(omni-g-tonellms-01/08, 2026-06-11): 解析失败 (jd=={}) 或缺
+        # is_bank_fintech_news 键的响应 = "模型缺席", 与 call-failure 同口径
+        # (verified=None / 不入 v_votes / 不计 n_valid_votes / n_failures+1) —
+        # 兑现 parse_json_response docstring 的"模型缺席"契约。此前被静默编码
+        # 为 verified=False 拒绝有效票, 污染 n_valid_votes / agree_rate_v /
+        # 下游连续 DV (encode 的 ×agreement_rate 衰减) 与 HC 子样本 (agr≥0.67
+        # 剔除); 与 sentiment 通道 (s=None 不入票) 编码不一致, 叠加 call-failure
+        # 可翻转 final_v (盘上 8 例 deepseekv4 截断/空响应坐实)。
+        if not jd or 'is_bank_fintech_news' not in jd:
+            n_failures += 1
+            logger.warning(
+                f"[{m_id}] 响应不可解析或缺 is_bank_fintech_news 键 "
+                f"(rawlen={len(str(raw_text))}), 按模型缺席处理, "
+                f"该模型本篇判定从投票中排除"
+            )
+            per_model_parsed[f"{short}_verified"] = None
+            per_model_parsed[f"{short}_sentiment"] = None
+            per_model_parsed[f"{short}_verification_confidence"] = 0.0
+            per_model_parsed[f"{short}_sentiment_confidence"] = 0.0
+            continue
 
         v = jd.get('is_bank_fintech_news', False)
         if isinstance(v, str):
@@ -1102,13 +1291,18 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             topics.append(str(topic))
 
         # v7: innovation_locus (原 fintech_category, Gomber 2018 JMIS technology-application 层)
+        # fix(omni-g-tonellms-09, 2026-06-11): 创新三维度补模型级 verified 门控 —
+        # 仅 verified=True 模型的标签入票 (镜像 sentiment 的 s_votes_verified_only
+        # `if v:` 门控, v6/F2 契约), 不再依赖 prompt "false 时填 null" 的软约束
+        # (模型违规即漏)。per-model 存档列不门控 (审计保留原始输出)。
         llm_cat = jd.get('innovation_locus')
         if llm_cat:
             cat_str = str(llm_cat).strip().replace('；', ';')
             for part in cat_str.split(';'):
                 part = part.strip()
                 if part in ('底层技术', '应用场景'):
-                    innov_loci.append(part)
+                    if v:
+                        innov_loci.append(part)
                     # Plan v1.37 P2 §5.3.1 Step A: overwrite per-model
                     # default-None label with the canonical accepted value.
                     per_model_parsed[f"{short}_innovation_locus"] = part
@@ -1120,7 +1314,8 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         if llm_tt:
             tt_str = str(llm_tt).strip()
             if tt_str in ('实质性', '象征性'):
-                innov_substs.append(tt_str)
+                if v:  # fix(omni-g-tonellms-09): verified 门控, 同上
+                    innov_substs.append(tt_str)
                 # Plan v1.37 P2 §5.3.1 Step A: overwrite per-model
                 # default-None label with the canonical accepted value.
                 per_model_parsed[f"{short}_innovation_substantiveness"] = tt_str
@@ -1132,7 +1327,8 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         if llm_cm:
             cm_str = str(llm_cm).strip()
             if cm_str in ('自主研发', '外部协同'):
-                innov_collab_modes.append(cm_str)
+                if v:  # fix(omni-g-tonellms-09): verified 门控, 同上
+                    innov_collab_modes.append(cm_str)
                 per_model_parsed[f"{short}_innovation_collab_mode"] = cm_str
 
         # v7: per-model stage 3 confidence (用于 row-level avg 聚合, 对应论文 W&Z 框架信号强度)
@@ -1164,6 +1360,18 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     else:
         # 整篇被多数判为非金融科技 → 情感无意义；标记为 undefined（None）。
         final_s = None
+
+    # fix(omni-g-tonellms-09, 2026-06-11): 文章级 final_v 门控 (标签层, 镜像
+    # 上方 final_s=None) — 整文被 ensemble 多数判非 fintech 时, 创新三维度
+    # (locus/subst/collab) 标签票与 fintech_topic 关键词证据同步清空, 下游
+    # 标签解析 (main 的 _resolve_locus_track / majority_vote_categorical
+    # empty_fallback) 对空票得 None, 未验证文章不再获得 innovation_* 标签;
+    # per-model 存档列 ({short}_innovation_*) 不受影响 (审计保留原始输出)。
+    if not final_v:
+        topics = []
+        innov_loci = []
+        innov_substs = []
+        innov_collab_modes = []
 
     n_valid_votes = len(v_votes)
     n_verifying_votes = sum(1 for v in v_votes if v == final_v) if final_v else 0
@@ -1202,15 +1410,22 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
             # (盘实测 28.9% 情感票来自 verified=False 模型)。{short}_prob_score 仍逐模型存档供
             # 审计; 仅聚合的 prob_scores 列表收紧。$0 (暖缓存) 但变 panel 值 → 落盘待 production
             # run (stage 21 piecemeal 重跑注入行噪声, 见 memory stage21-determinism-anchor)。
-            if per_model_parsed.get(f"{short}_verified") is True:
+            # fix(omni-g-tonellms-07, 2026-06-11): P3_INV (无效 confidence 域) 的
+            # NaN 分数不入聚合均值 (镜像下方 binary 轨的 isnan 守卫)。
+            if (per_model_parsed.get(f"{short}_verified") is True
+                    and not _np.isnan(ps_result['prob_score'])):
                 prob_scores.append(ps_result['prob_score'])
+        # fix(omni-g-tonellms-09, 2026-06-11): 三维度 binary prob_score 聚合补
+        # verified 门控 (镜像上方 sentiment prob_scores 的 verified-only 门控) —
+        # 未验证模型的分数仍逐模型存档 ({short}_*_prob_score), 仅聚合列表收紧。
+        _model_verified = per_model_parsed.get(f"{short}_verified") is True
         # Binary prob_score for substantiveness
         subst_label = per_model_parsed.get(f"{short}_innovation_substantiveness")
         subst_conf = per_model_parsed.get(f"{short}_innovation_substantiveness_confidence", 0.0)
         subst_bin = compute_prob_score_binary(subst_label, subst_conf, "象征性")
         per_model_parsed[f"{short}_subst_prob_score"] = subst_bin["prob_score"]
         per_model_parsed[f"{short}_subst_prob_source"] = subst_bin["prob_source"]
-        if not _np.isnan(subst_bin["prob_score"]):
+        if _model_verified and not _np.isnan(subst_bin["prob_score"]):
             subst_prob_scores.append(subst_bin["prob_score"])
         # Binary prob_score for locus
         locus_label = per_model_parsed.get(f"{short}_innovation_locus")
@@ -1218,7 +1433,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         locus_bin = compute_prob_score_binary(locus_label, locus_conf, "应用场景")
         per_model_parsed[f"{short}_locus_prob_score"] = locus_bin["prob_score"]
         per_model_parsed[f"{short}_locus_prob_source"] = locus_bin["prob_source"]
-        if not _np.isnan(locus_bin["prob_score"]):
+        if _model_verified and not _np.isnan(locus_bin["prob_score"]):
             locus_prob_scores.append(locus_bin["prob_score"])
         # v3.4.0: Binary prob_score for collab_mode (positive_class="外部协同")
         collab_label = per_model_parsed.get(f"{short}_innovation_collab_mode")
@@ -1226,7 +1441,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         collab_bin = compute_prob_score_binary(collab_label, collab_conf, "外部协同")
         per_model_parsed[f"{short}_collab_prob_score"] = collab_bin["prob_score"]
         per_model_parsed[f"{short}_collab_prob_source"] = collab_bin["prob_source"]
-        if not _np.isnan(collab_bin["prob_score"]):
+        if _model_verified and not _np.isnan(collab_bin["prob_score"]):
             collab_prob_scores.append(collab_bin["prob_score"])
 
     avg_prob_score = sum(prob_scores) / len(prob_scores) if prob_scores else float('nan')
@@ -1242,6 +1457,13 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
                             if locus_prob_scores else float('nan'))
     avg_collab_prob_score = (sum(collab_prob_scores) / len(collab_prob_scores)
                              if collab_prob_scores else float('nan'))
+    # fix(omni-g-tonellms-09, 2026-06-11): 文章级 final_v 门控 (镜像 PROBGATE-1
+    # 的 final_s→avg_prob_score 同步置 nan) — 整文被多数判非 fintech 时, 创新
+    # 三维度连续分数同步 NaN, 不让少数 verified 模型的判定泄入 panel。
+    if not final_v:
+        avg_subst_prob_score = float('nan')
+        avg_locus_prob_score = float('nan')
+        avg_collab_prob_score = float('nan')
 
     return (
         final_v, final_s,
@@ -1256,7 +1478,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
 
 
 def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
-    """预计算并物化 content_ctx 列，供双轨分析和下游阶段复用。
+    """预计算并物化 content_full / content_ctx 列，供双轨分析和下游阶段复用。
 
     对每个 (文章, 目标银行) 对调用 extract_entity_context() 提取
     实体特异性上下文片段，结果存入 'content_ctx' 列。下游阶段
@@ -1272,26 +1494,48 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
       Hassan et al. (2019, QJE) Proximity-based Attribution。
       敏感性检验: 35_radius_sensitivity.py 验证 radius ∈ {0,1,2,3} 的稳健性。
 
+    fix(omni-g-tonellms-14, 2026-06-11): 备援路径与 stage 13
+    (ctx_materializer.materialize_content_ctx) 语义对齐 — content_ctx 同样经
+    prepend_title 注入标题, 并补产 content_full (= 标题 + 正文) 列, 兑现
+    "双路径必须产同名同语义列" 不变量 (此前备援不 prepend 也不产 content_full,
+    跳过 stage 13 时下游 22/23/herd_decay 等 ctx/full 消费者一含标题一不含)。
+    Stage 21 自身 prompt 不受影响: iter_article_track_prompts 经
+    _strip_prepended_title 按文本前缀剥离, 两路径产出逐字相同 prompt → 缓存键
+    不变 (经函数复合验证)。ctx_is_fallback 判定改为比较去标题 body (与
+    ctx_materializer 同口径)。残留差异 (诚实披露): 本备援的实体匹配仍未套用
+    stage 11 否定/短名排除配置 (stage 13 已套用, 见 fix omni-g-entity-03/16);
+    标准 DAG 跑 stage 13 在前, 本备援仅在跳过 stage 13 的非标准跑触发。
+
     Args:
-        df: 含 '内容' 和 'target_bank' 列的 DataFrame。
+        df: 含 '内容' / '标题' / 'target_bank' 列的 DataFrame。
 
     Returns:
-        pd.DataFrame: 增加了 'content_ctx' 列的 DataFrame。
+        pd.DataFrame: 增加了 'content_full' / 'content_ctx' / 'ctx_is_fallback'
+        列的 DataFrame。
     """
     # 从 config.yaml 读取窗口参数（显式参数化，取代函数默认值）
     _ctx_cfg = CONFIG.get('context_window', {})
     _sentence_radius = _ctx_cfg.get('sentence_radius', 1)
     _fallback_char_radius = _ctx_cfg.get('fallback_char_radius', 150)
 
-    logger.info(f"物化 content_ctx 列（实体特异性上下文提取）"
+    logger.info(f"物化 content_full + content_ctx 列（实体特异性上下文提取 + 标题注入）"
                 f"— sentence_radius={_sentence_radius}, "
                 f"fallback_char_radius={_fallback_char_radius}")
     _bnf = CONFIG['paths'].get('bank_names_file', '')
     _alias_cache = {}
 
-    ctx_list = []
+    # fix(omni-g-tonellms-14, 2026-06-11): 与 ctx_materializer 同语义 —
+    # 两轨文本均经 prepend_title 注入标题; 缺失标题 (NaN/None) 按空标题处理
+    # (与 ctx_materializer fix omni-g-misc-04 口径一致)。
+    from news_process.core.text.entity_context import prepend_title
+
+    full_list = []       # full 轨: 标题 + 正文
+    ctx_list = []        # ctx 轨: 标题 + 实体窗口 (或 fallback)
+    ctx_body_list = []   # ctx 的纯 body 部分 (无标题前缀), 仅用于 fallback 判定
     for _, row in df.iterrows():
-        content_full = str(row.get('内容', ''))
+        body_full = str(row.get('内容', ''))
+        _t = row.get('标题', '')
+        title = '' if pd.isna(_t) else str(_t)
         target_bank = str(row.get('target_bank', ''))
 
         # 防御性检查：当 target_bank 为 NaN 时 str() 会产出 'nan'，
@@ -1299,25 +1543,32 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
         if target_bank and target_bank not in ('nan', 'None'):
             if target_bank not in _alias_cache:
                 _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
-            content_ctx = extract_entity_context(
-                content_full, _alias_cache[target_bank],
+            ctx_body = extract_entity_context(
+                body_full, _alias_cache[target_bank],
                 sentence_radius=_sentence_radius,
                 fallback_char_radius=_fallback_char_radius,
             )
-            if not content_ctx:
-                content_ctx = content_full  # 回退公理：无匹配时保留全文
+            if not ctx_body:
+                ctx_body = body_full  # 回退公理：无匹配时保留全文
         else:
-            content_ctx = content_full  # 无目标银行时回退至全文
+            ctx_body = body_full  # 无目标银行时回退至全文
 
-        ctx_list.append(content_ctx)
+        ctx_body_list.append(ctx_body)
+        full_list.append(prepend_title(title, body_full))
+        ctx_list.append(prepend_title(title, ctx_body))
 
+    df['content_full'] = full_list
     df['content_ctx'] = ctx_list
-    # v3.7.2 R8-H1 全管道延伸: 与 ctx_materializer.py:101 同源 (R8 audit 锚定)
+    # v3.7.2 R8-H1 全管道延伸: 与 ctx_materializer.py 同源 (R8 audit 锚定)
     # 双路径必须产同名同语义列, 防止"跳过 stage 13 直接跑 stage 21"导致列缺失
-    df['ctx_is_fallback'] = (
-        df['content_ctx'].astype(str) == df['内容'].astype(str)
+    # fix(omni-g-tonellms-14): 两轨均含标题后, fallback 判定改比较去标题 body
+    # (ctx_body vs 全文 body), 与 ctx_materializer.py 的判定口径一致。
+    _bodies = df['内容'].astype(str).tolist()
+    df['ctx_is_fallback'] = pd.Series(
+        [cb == fb for cb, fb in zip(ctx_body_list, _bodies)],
+        index=df.index,
     ).astype('bool')
-    n_fallback = sum(1 for ctx, full in zip(ctx_list, df['内容'].astype(str)) if ctx == full)
+    n_fallback = sum(1 for cb, fb in zip(ctx_body_list, _bodies) if cb == fb)
     assert int(df['ctx_is_fallback'].sum()) == n_fallback, \
         "ctx_is_fallback 列计数与 batch 统计不一致 (stage 21 fallback path)"
     # 统计逻辑与 L404 的 NaN 防御保持一致：排除 'nan'/'None'/空字符串
@@ -1505,22 +1756,31 @@ def main():
                 df[f'{short}_sentiment_confidence{track}'] = 0.0
 
         # Logit-to-Score 禁用分支虚拟列（与启用分支输出列对齐）
+        import numpy as _np
         if LOGIT_SCORE_ENABLED:
+            # fix(omni-g-tonellms-06, 2026-06-11): 占位从 0.0 改 NaN — 0.0 是
+            # 合法语调值 (中性), 与 "无数据" 不可区分; 启用分支的失败语义是
+            # NaN (PROBGATE-1: final_s=None → avg_prob=nan 契约)。逐模型
+            # prob_source 占位同步改 'MISSING' (与启用分支缺席模型 default
+            # 一致, 见 fix omni-g-tonellms-12); verified=False 已掩码下游。
             # 聚合级概率分数（双轨道）
             for track in ['_full', '_ctx']:
-                df[f'llm_prob_score{track}'] = 0.0
+                df[f'llm_prob_score{track}'] = _np.nan
             # 逐模型概率分数（双轨道）
             for m in MODELS:
                 short = m['short_name']
                 for track in ['_full', '_ctx']:
-                    df[f'{short}_prob_score{track}'] = 0.0
-                    df[f'{short}_prob_source{track}'] = 'P3'
-        # Plan v1.37 P2 (disabled-LLM fallback): 4 article-level binary
+                    df[f'{short}_prob_score{track}'] = _np.nan
+                    df[f'{short}_prob_source{track}'] = 'MISSING'
+        # Plan v1.37 P2 (disabled-LLM fallback): 6 article-level binary
         # prob_score columns default to NaN (downstream NaN-safe aggregation).
-        import numpy as _np
+        # fix(omni-g-tonellms-06, 2026-06-11): 补 avg_collab_prob_score 双列 —
+        # v3.4.0 启用分支已产出该对列, 禁用分支漏补致三种配置态 (enabled×logit)
+        # schema 不一致 (下游 schema 期望随配置漂移)。
         for track in ['_full', '_ctx']:
             df[f'avg_subst_prob_score{track}'] = _np.nan
             df[f'avg_locus_prob_score{track}'] = _np.nan
+            df[f'avg_collab_prob_score{track}'] = _np.nan
 
 
         output_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms', '21_tone_llms.parquet')
@@ -1655,8 +1915,13 @@ def main():
                 per_model_cols[f"{short}_verification_confidence_full"].append(parsed_full.get(f"{short}_verification_confidence", 0.0))
                 per_model_cols[f"{short}_sentiment_confidence_full"].append(parsed_full.get(f"{short}_sentiment_confidence", 0.0))
                 if LOGIT_SCORE_ENABLED:
-                    per_model_cols[f"{short}_prob_score_full"].append(parsed_full.get(f"{short}_prob_score", 0.0))
-                    per_model_cols[f"{short}_prob_source_full"].append(parsed_full.get(f"{short}_prob_source", 'P3'))
+                    # fix(omni-g-tonellms-12, 2026-06-11): 失败/解析失败模型的逐模型
+                    # 存档列 default 从 (0.0, 'P3') 改 (NaN, 'MISSING') — 0.0+'P3'
+                    # 与真实零置信中性的 P3 one-hot 同值不可区分 ("失败≠中性",
+                    # 镜像 2026-05-29 H1 title 轨语义)。聚合 avg_prob_score 已被
+                    # verified-gate 正确排除, 本修仅存档列 (无下游回归消费)。
+                    per_model_cols[f"{short}_prob_score_full"].append(parsed_full.get(f"{short}_prob_score", float('nan')))
+                    per_model_cols[f"{short}_prob_source_full"].append(parsed_full.get(f"{short}_prob_source", 'MISSING'))
             prob_score_full_arr.append(avg_prob_full)
             subst_prob_score_full_arr.append(avg_subst_prob_full)
             locus_prob_score_full_arr.append(avg_locus_prob_full)
@@ -1689,8 +1954,10 @@ def main():
                 per_model_cols[f"{short}_verification_confidence_ctx"].append(parsed_ctx.get(f"{short}_verification_confidence", 0.0))
                 per_model_cols[f"{short}_sentiment_confidence_ctx"].append(parsed_ctx.get(f"{short}_sentiment_confidence", 0.0))
                 if LOGIT_SCORE_ENABLED:
-                    per_model_cols[f"{short}_prob_score_ctx"].append(parsed_ctx.get(f"{short}_prob_score", 0.0))
-                    per_model_cols[f"{short}_prob_source_ctx"].append(parsed_ctx.get(f"{short}_prob_source", 'P3'))
+                    # fix(omni-g-tonellms-12, 2026-06-11): 同上 full 轨 — 缺席模型
+                    # 存档列 (NaN, 'MISSING'), 与真实 P3 零置信中性可区分。
+                    per_model_cols[f"{short}_prob_score_ctx"].append(parsed_ctx.get(f"{short}_prob_score", float('nan')))
+                    per_model_cols[f"{short}_prob_source_ctx"].append(parsed_ctx.get(f"{short}_prob_source", 'MISSING'))
             prob_score_ctx_arr.append(avg_prob_ctx)
             subst_prob_score_ctx_arr.append(avg_subst_prob_ctx)
             locus_prob_score_ctx_arr.append(avg_locus_prob_ctx)
@@ -1699,27 +1966,8 @@ def main():
             # ── 金融科技主题标准化分类（v3.2.0 双轨独立，plan v14 §3.1 P1）──
             # 双轨平局策略对称：locus → 应用场景；substantiveness → 象征性（plan v14 §3.1 P1.5）
             # 双轨各自独立运行关键词分类器 (canonicalize_topic) 交叉验证 (R3-B)
-            def _resolve_locus_track(innov_loci_track, topics_track):
-                """Resolve locus label + confidence for a single track (full or ctx).
-
-                Returns (label, confidence). Plan v14 §3.1 P1.5: 双轨平局策略对称。
-                """
-                _combined_topic = ' '.join(topics_track) if topics_track else ''
-                _kw_cat, _kw_conf = canonicalize_topic(_combined_topic)
-                _majority = majority_vote_categorical(
-                    innov_loci_track,
-                    tie_strategy='conservative',
-                    tie_default='应用场景',
-                    empty_fallback=_kw_cat,
-                )
-                if innov_loci_track:
-                    # LLM × keyword 交叉验证：一致 → +0.2 boost；分歧 → ×0.5 penalty
-                    if _majority == _kw_cat:
-                        _final_conf = min(_kw_conf + 0.2, 1.0)
-                    else:
-                        _final_conf = round(_kw_conf * 0.5, 3)
-                    return _majority, _final_conf
-                return _kw_cat, _kw_conf
+            # fix(omni-g-tonellms-10): _resolve_locus_track 已提取为模块级
+            # (import-based 回归测试), 行为见该函数 docstring。
 
             # Full 轨 locus + confidence
             _loc_full, _conf_full = _resolve_locus_track(innov_loci_full, topics_full)
@@ -1748,15 +1996,13 @@ def main():
             ))
 
             # v7 R6-H: row-level avg per-model confidence (W&Z + Gomber 维度), 双轨独立
-            def _avg_conf(parsed, suffix):
-                confs = [parsed.get(f"{m['short_name']}_{suffix}", 0.0) for m in MODELS]
-                valid = [c for c in confs if c and c > 0]
-                return sum(valid) / len(valid) if valid else 0.0
-
-            innov_subst_conf_full_arr.append(_avg_conf(parsed_full, 'innovation_substantiveness_confidence'))
-            innov_subst_conf_ctx_arr.append(_avg_conf(parsed_ctx, 'innovation_substantiveness_confidence'))
-            innov_locus_conf_full_arr.append(_avg_conf(parsed_full, 'innovation_locus_confidence'))
-            innov_locus_conf_ctx_arr.append(_avg_conf(parsed_ctx, 'innovation_locus_confidence'))
+            # fix(omni-g-tonellms-13, 2026-06-11): 原内联闭包 _avg_conf 提取为
+            # 模块级 _avg_innovation_confidence (聚合域与标签域对齐, 行为见其
+            # docstring; import-based 回归测试)。
+            innov_subst_conf_full_arr.append(_avg_innovation_confidence(parsed_full, 'innovation_substantiveness', MODELS))
+            innov_subst_conf_ctx_arr.append(_avg_innovation_confidence(parsed_ctx, 'innovation_substantiveness', MODELS))
+            innov_locus_conf_full_arr.append(_avg_innovation_confidence(parsed_full, 'innovation_locus', MODELS))
+            innov_locus_conf_ctx_arr.append(_avg_innovation_confidence(parsed_ctx, 'innovation_locus', MODELS))
 
             # v3.4.0: 第三维度 innovation_collab_mode 多数决 + confidence (Chesbrough 2003)
             # tie_strategy: 保守 fallback 至 "自主研发" (与 W&Z substantiveness tie→"象征性" 同样
@@ -1774,8 +2020,8 @@ def main():
                 tie_default='自主研发',
                 empty_fallback=None,
             ))
-            innov_collab_conf_full_arr.append(_avg_conf(parsed_full, 'innovation_collab_mode_confidence'))
-            innov_collab_conf_ctx_arr.append(_avg_conf(parsed_ctx, 'innovation_collab_mode_confidence'))
+            innov_collab_conf_full_arr.append(_avg_innovation_confidence(parsed_full, 'innovation_collab_mode', MODELS))
+            innov_collab_conf_ctx_arr.append(_avg_innovation_confidence(parsed_ctx, 'innovation_collab_mode', MODELS))
 
 
 

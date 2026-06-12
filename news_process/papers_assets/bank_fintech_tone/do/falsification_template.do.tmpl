@@ -9,6 +9,16 @@
 * 方法论对标:
 *   Hassan, T.A. et al. (2019). "Firm-Level Political Risk."
 *   QJE, 134(4), 2135-2202, Table 7.
+*
+* fix(omni-g-templates-01, 2026-06-11) — 双轨披露:
+*   bank_fintech_tone 冻结 spec 的主指标是 llm_vote_tone_ctx (paper_spec.yaml
+*   primary), 而检验 1-10 的示例方程历史上全部硬编码 llm_vote_tone_full。
+*   按项目 "full/ctx 双轨互为稳健性" 公理, 主轨必须同样受 Hassan 伪造检验保护:
+*   (i)  检验 4 后新增 "检验 1-4 ctx 平行块" (capture confirm 守卫, 与检验 16-4
+*        同款), 对基准/控制NF/赛马在 ctx 轨重估;
+*   (ii) 检验 5-10 报告 full 轨结论时, 须将 llm_vote_tone_full 全局替换为
+*        llm_vote_tone_ctx 重跑一遍 (IV 检验 8 同时把 *_tone_full 后缀 IV 换成
+*        对应 *_tone_ctx 列), 两轨结论一并呈报, 不得只报单轨。
 * ============================================================
 
 use "51_panel_with_controls.dta", clear
@@ -41,6 +51,36 @@ reghdfe Y nf_ln_coverage nf_media_breadth X, ///
 reghdfe Y llm_vote_tone_full all_ln_coverage X, ///
   absorb(target_bank year) vce(cluster target_bank)
   est store ctrl_all
+
+* ── 检验 1-4 (ctx 平行块): 主指标 llm_vote_tone_ctx 的伪造检验 ──
+* fix(omni-g-templates-01, 2026-06-11): 论文冻结主指标是 llm_vote_tone_ctx,
+* 历史上检验 1-10 仅保护 full 轨 — 主轨从未受 Hassan 构造效度检验保护。
+* 此块以与检验 16-4 同款的 capture confirm 守卫, 对核心三联
+* (基准/控制NF/赛马) 在 ctx 轨平行重估; 检验 3 (替换 Placebo) 不含 tone,
+* 两轨共用无须重复。检验 5-10 的 ctx 重跑说明见模板头部披露。
+capture confirm variable llm_vote_tone_ctx
+if _rc != 0 {
+  display as text "  [跳过] llm_vote_tone_ctx 不存在 (单轨 panel), 跳过检验 1-4 ctx 平行块"
+  display as text "         (base_ctx/ctrl_nf_ctx/ctrl_all_ctx 不会被产出; 主轨伪造检验缺位须在论文中披露)"
+}
+else {
+  * (1-ctx) 基准回归 — 主轨
+  reghdfe Y llm_vote_tone_ctx X, absorb(target_bank year) vce(cluster target_bank)
+    est store base_ctx
+
+  * (2-ctx) 控制非金融科技新闻量 — 主轨
+  reghdfe Y llm_vote_tone_ctx nf_ln_coverage nf_media_breadth X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+    est store ctrl_nf_ctx
+
+  * (4-ctx) 赛马 (Horse Race) — 主轨
+  reghdfe Y llm_vote_tone_ctx all_ln_coverage X, ///
+    absorb(target_bank year) vce(cluster target_bank)
+    est store ctrl_all_ctx
+  * → 解读: ctx 系数应与 full 轨同号、同量级显著 (双轨互稳);
+  *   若 ctx 轨在控制 NF/总新闻量后失去显著性而 full 轨保留,
+  *   说明主指标混入一般媒体关注度, 构造效度声称不成立。
+}
 
 * ── 检验 5: 交互项 ──
 * 目的: 金融科技新闻占比是否调节 tone 的边际效应

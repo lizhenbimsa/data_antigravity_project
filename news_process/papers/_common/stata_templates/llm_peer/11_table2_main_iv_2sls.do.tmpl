@@ -2,8 +2,11 @@
 * 11_table2_main_iv_2sls.do — Main IV 2SLS (llm_peer)
 * Paper: {{PAPER_ID}}
 *
-* Methodology: Cao, Z., Li, W., Wang, Y., & Zhao, Y. (2025). Can generative AI
-*   help identify peer firms? Review of Asset Studies, forthcoming.
+* Methodology: Cao, Y., Chen, L., Tucker, J.W., & Wan, C. (2025). Can generative
+*   AI help identify peer firms? Review of Accounting Studies, 30(4), 3344-3386.
+*   fix(omni-g-templates-05, 2026-06-11): 旧引文 "Cao, Z., Li, W., Wang, Y., &
+*   Zhao, Y. … Review of Asset Studies" 为 LLM hallucination (期刊不存在 + 作者全错),
+*   refs.bib (cao2025genai) 已改正, 此处对齐 canonical source (llm_peer_iv.py:16-18)。
 *
 * Estimating equation:
 *   {{MAIN_DV}}_it = β · {{TONE_VAR}}_it + γ' Controls_it + α_i + δ_t + ε_it

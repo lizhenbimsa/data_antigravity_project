@@ -8,11 +8,15 @@
   - 银行地理信息合并 (merge_bank_geography)
   - Leave-One-Out 省/市情感 IV (compute_leave_one_out_sentiment)
   - 四梯度地理距离缓冲 (compute_geo_proximity_buffers)
-    → 50/100/150/200 km 下的 28 个媒体接近度指标
+    → 50/100/150/200 km 下的 40 个媒体接近度指标 (双轨化后 28→40,
+      fix(omni-g-geography-05, 2026-06-11) 计数勘误)
+      + 1 个省会插补诊断列 prox_geo_imputed_frac
     → Gurun & Butler (2012, JF); Engelberg & Parsons (2011, JF)
-  - 六层区域 AI 模仿渗透率 (compute_regional_imitation_pressure)
-    → 省/市/50/100/150/200 km LOO 同行模仿压力
-    → Leary & Roberts (2014, JF); Dahlke et al. (2024, RP)
+  - 六层区域同行 FinTech 新闻覆盖渗透率 (compute_regional_imitation_pressure)
+    → 省/市/50/100/150/200 km LOO 同行覆盖压力 (列名 ai_reg_* 历史保留)
+    → Leary & Roberts (2014, JF) 同行压力操作化
+    → fix(omni-g-panel-export-08, 2026-06-11) 构念勘误: 测度无 AI 子类过滤,
+      非"AI 模仿率" — 实为区域内其他银行有任意 fintech 新闻覆盖的比例
 
 拆分自: 40_build_panel.py (L1638-2181)
 学术依据: Fama & MacBeth (1973, JPE); Luo & Li (2025);
@@ -42,7 +46,13 @@ from news_process.pipeline.panel.encode import (
 # ============================================================================
 
 def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
-    """在面板 DataFrame 上计算综合指标。"""
+    """在面板 DataFrame 上计算综合指标。
+
+    fix(omni-g-geography-06, 2026-06-11): bert_avg_pos/neg 全族 (含 _sum/_std/
+    _vw/_mw/_hw 及 _tech/_app 分类维度) 改为仅在三分类模型 (THREE_CLASS_MODELS)
+    上平均, 与 bert_avg_neu 同聚合域 — 二分类 finbert2 的 pos/neg 处于条件概率
+    类空间 (pos+neg≡1), 不与三分类直接平均; finbert2 逐模型列保留为二分类稳健轨。
+    """
     logger.info("=" * 60)
     logger.info("步骤 7: 面板级综合指标计算")
     logger.info("=" * 60)
@@ -57,6 +67,17 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
     # 使用字典收集所有新列, 避免逐列原地赋值导致 DataFrame 碎片化
     # (PerformanceWarning: DataFrame is highly fragmented)
     new_cols = {}
+
+    # fix(omni-g-geography-06, 2026-06-11): bert_avg_pos/neg 聚合域统一为三分类模型。
+    # 此前 pos/neg 在全部 BERT_MODELS (含二分类 finbert2) 上平均, 而 neu 仅在
+    # THREE_CLASS_MODELS 上平均 — 类空间混合: finbert2 把中性概率质量重归一进
+    # pos/neg (pos+neg≡1, 实测 pos 均值 0.912 vs 三分类 0.690/0.817), 致
+    # bert_avg_pos 系统性上偏且 bert_avg_{pos,neu,neg} 不构成概率单纯形
+    # (盘上实测三类和 max 1.33)。修复后 pos/neg/neu 同域 (THREE_CLASS_MODELS),
+    # pos+neu+neg≈1 恒等式在三分类族成立; finbert2 的逐模型列
+    # (finbert2_pos_*/finbert2_neg_* 及其 _vw/_mw/_hw 变体) 完整保留,
+    # 作为二分类稳健轨单独使用。
+    _BERT3 = [b for b in BERT_MODELS if b in THREE_CLASS_MODELS]
 
     # --- LLM 逐模型综合 ---
     for track in ['_full', '_ctx']:
@@ -75,35 +96,35 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         new_cols[f'dict_avg_idf_tone{track}'] = _safe_mean([f'{d}_idf_tone{track}' for d in DICT_NAMES])
         new_cols[f'dict_avg_idf_tone_sum{track}'] = _safe_mean([f'{d}_idf_tone_sum{track}' for d in DICT_NAMES])
 
-        # --- BERT 综合 ---
-        new_cols[f'bert_avg_pos{track}'] = _safe_mean([f'{b}_pos{track}' for b in BERT_MODELS])
-        new_cols[f'bert_avg_neg{track}'] = _safe_mean([f'{b}_neg{track}' for b in BERT_MODELS])
-        new_cols[f'bert_avg_neu{track}'] = _safe_mean([f'{b}_neu{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
-        new_cols[f'bert_avg_pos_sum{track}'] = _safe_mean([f'{b}_pos_sum{track}' for b in BERT_MODELS])
-        new_cols[f'bert_avg_neg_sum{track}'] = _safe_mean([f'{b}_neg_sum{track}' for b in BERT_MODELS])
-        new_cols[f'bert_avg_neu_sum{track}'] = _safe_mean([f'{b}_neu_sum{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
-        new_cols[f'bert_avg_pos_std{track}'] = _safe_mean([f'{b}_pos_std{track}' for b in BERT_MODELS])
+        # --- BERT 综合 (fix(omni-g-geography-06): pos/neg/neu 同域 = 三分类模型) ---
+        new_cols[f'bert_avg_pos{track}'] = _safe_mean([f'{b}_pos{track}' for b in _BERT3])
+        new_cols[f'bert_avg_neg{track}'] = _safe_mean([f'{b}_neg{track}' for b in _BERT3])
+        new_cols[f'bert_avg_neu{track}'] = _safe_mean([f'{b}_neu{track}' for b in _BERT3])
+        new_cols[f'bert_avg_pos_sum{track}'] = _safe_mean([f'{b}_pos_sum{track}' for b in _BERT3])
+        new_cols[f'bert_avg_neg_sum{track}'] = _safe_mean([f'{b}_neg_sum{track}' for b in _BERT3])
+        new_cols[f'bert_avg_neu_sum{track}'] = _safe_mean([f'{b}_neu_sum{track}' for b in _BERT3])
+        new_cols[f'bert_avg_pos_std{track}'] = _safe_mean([f'{b}_pos_std{track}' for b in _BERT3])
 
         # --- VW 综合指标 ---
         new_cols[f'llm_models_avg_tone_vw{track}'] = _safe_mean([f'{s}_tone_vw{track}' for s in LLM_MODELS])
         new_cols[f'dict_avg_tone_vw{track}'] = _safe_mean([f'{d}_tone_vw{track}' for d in DICT_NAMES])
         new_cols[f'dict_avg_idf_tone_vw{track}'] = _safe_mean([f'{d}_idf_tone_vw{track}' for d in DICT_NAMES])
-        new_cols[f'bert_avg_pos_vw{track}'] = _safe_mean([f'{b}_pos_vw{track}' for b in BERT_MODELS])
-        new_cols[f'bert_avg_neg_vw{track}'] = _safe_mean([f'{b}_neg_vw{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_pos_vw{track}'] = _safe_mean([f'{b}_pos_vw{track}' for b in _BERT3])
+        new_cols[f'bert_avg_neg_vw{track}'] = _safe_mean([f'{b}_neg_vw{track}' for b in _BERT3])
 
         # --- MW 综合指标 (Holzman et al. 2023, TAR) ---
         new_cols[f'llm_models_avg_tone_mw{track}'] = _safe_mean([f'{s}_tone_mw{track}' for s in LLM_MODELS])
         new_cols[f'dict_avg_tone_mw{track}'] = _safe_mean([f'{d}_tone_mw{track}' for d in DICT_NAMES])
         new_cols[f'dict_avg_idf_tone_mw{track}'] = _safe_mean([f'{d}_idf_tone_mw{track}' for d in DICT_NAMES])
-        new_cols[f'bert_avg_pos_mw{track}'] = _safe_mean([f'{b}_pos_mw{track}' for b in BERT_MODELS])
-        new_cols[f'bert_avg_neg_mw{track}'] = _safe_mean([f'{b}_neg_mw{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_pos_mw{track}'] = _safe_mean([f'{b}_pos_mw{track}' for b in _BERT3])
+        new_cols[f'bert_avg_neg_mw{track}'] = _safe_mean([f'{b}_neg_mw{track}' for b in _BERT3])
 
         # --- HW 综合指标 (Tetlock 2011, RFS) ---
         new_cols[f'llm_models_avg_tone_hw{track}'] = _safe_mean([f'{s}_tone_hw{track}' for s in LLM_MODELS])
         new_cols[f'dict_avg_tone_hw{track}'] = _safe_mean([f'{d}_tone_hw{track}' for d in DICT_NAMES])
         new_cols[f'dict_avg_idf_tone_hw{track}'] = _safe_mean([f'{d}_idf_tone_hw{track}' for d in DICT_NAMES])
-        new_cols[f'bert_avg_pos_hw{track}'] = _safe_mean([f'{b}_pos_hw{track}' for b in BERT_MODELS])
-        new_cols[f'bert_avg_neg_hw{track}'] = _safe_mean([f'{b}_neg_hw{track}' for b in BERT_MODELS])
+        new_cols[f'bert_avg_pos_hw{track}'] = _safe_mean([f'{b}_pos_hw{track}' for b in _BERT3])
+        new_cols[f'bert_avg_neg_hw{track}'] = _safe_mean([f'{b}_neg_hw{track}' for b in _BERT3])
 
     logger.info(f"  生成双轨综合指标完成")
 
@@ -148,13 +169,13 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
             new_cols[f'dict_avg_idf_tone{suffix}{track}'] = _safe_mean(
                 [f'{d}_idf_tone{suffix}{track}' for d in DICT_NAMES])
 
-            # BERT 综合
+            # BERT 综合 (fix(omni-g-geography-06): pos/neg/neu 同域 = 三分类模型)
             new_cols[f'bert_avg_pos{suffix}{track}'] = _safe_mean(
-                [f'{b}_pos{suffix}{track}' for b in BERT_MODELS])
+                [f'{b}_pos{suffix}{track}' for b in _BERT3])
             new_cols[f'bert_avg_neg{suffix}{track}'] = _safe_mean(
-                [f'{b}_neg{suffix}{track}' for b in BERT_MODELS])
+                [f'{b}_neg{suffix}{track}' for b in _BERT3])
             new_cols[f'bert_avg_neu{suffix}{track}'] = _safe_mean(
-                [f'{b}_neu{suffix}{track}' for b in BERT_MODELS if b in THREE_CLASS_MODELS])
+                [f'{b}_neu{suffix}{track}' for b in _BERT3])
 
         logger.info(f"  分类 {suffix} 综合指标生成完成")
 
@@ -412,7 +433,11 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
 
     填充策略:
       未匹配银行 → 空字符串 '' (非 NaN)
-      原因: Stata 的 cluster() 对 NaN 会报错, 空字符串可被安全忽略
+      fix(omni-g-geography-03c, 2026-06-11) 注释勘误: Stata 中空字符串 ''
+      即字符串缺失值, vce(cluster bank_province/bank_city) 会把这些观测从
+      估计样本中**剔除** (并非旧注释所称"安全忽略") → 省/市级聚类回归的
+      估计样本相对银行级聚类静默缩小, 构成跨聚类层级比较时的样本不一致。
+      未匹配 > 0 时本函数输出样本一致性警告 (见下方诊断日志)。
 
     Args:
         panel: Bank-Year 面板 DataFrame, 须含 'target_bank' 列。
@@ -428,10 +453,17 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
 
     # ── 加载 bank_addresses.json ──
     # 路径优先从 config.yaml 的 paths.bank_addresses_file 读取,
-    # 未配置时回退到项目默认路径 config/bank_addresses.json
+    # 未配置时回退到项目默认路径 <package_root>/config/bank_addresses.json
+    # fix(omni-g-geography-03a, 2026-06-11): 旧回退 os.path.dirname(__file__)/config/
+    # 解析为 pipeline/panel/config/ (不存在) — 与注释声称的"项目 config/"不符,
+    # 触发时整段地理列 (省/市聚类 + LOO IV 前置) 仅 warning 后静默置空。
+    # 改为包根 config/ (与 core/config.py::load_config 的 ./ 前缀解析一致:
+    # geography.py 位于 <pkg>/pipeline/panel/, 上溯三层 dirname = 包根)。
+    _pkg_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     addr_path = CONFIG['paths'].get(
         'bank_addresses_file',
-        os.path.join(os.path.dirname(__file__), 'config', 'bank_addresses.json')
+        os.path.join(_pkg_root, 'config', 'bank_addresses.json')
     )
     if not os.path.exists(addr_path):
         logger.warning(f"  bank_addresses_file 不存在: {addr_path}, 跳过")
@@ -469,6 +501,13 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
     if len(unmatched_banks) > 0:
         logger.warning(f"  未匹配银行 ({len(unmatched_banks)}): "
                        f"{list(unmatched_banks)[:10]}")
+        # fix(omni-g-geography-03c, 2026-06-11): 样本一致性警告 — Stata 中 ''
+        # 为字符串缺失, vce(cluster) 会剔除这些观测; 省/市级聚类回归的估计
+        # 样本将小于银行级聚类, 跨聚类层级比较前须确认两者样本一致。
+        logger.warning(
+            "  ⚠ 样本一致性: bank_province/bank_city='' 的观测会被 Stata "
+            "vce(cluster ...) 从估计样本中剔除 (空字符串=字符串缺失值), "
+            "省/市级聚类回归样本相对银行级聚类静默缩小")
     else:
         logger.info("  ✓ 全部银行匹配成功")
 
@@ -524,6 +563,13 @@ def merge_bank_geography(panel: pd.DataFrame) -> pd.DataFrame:
 #     因此这两个 LOO-IV **不得**作为强因果识别的主 IV 使用; 仅可
 #     作为 falsification / 稳健性展示。production run (spec 声明 T=18)
 #     下地理单元年度内银行数增加, 工具强度才可能改善, 需届时重测。
+#
+#   ⚠ 反射问题披露 (fix(omni-g-geography-05, 2026-06-11)): Manski (1993,
+#     REStud) 证明线性均值模型下同期组均值 (即本 LOO peer mean) 与个体
+#     结果不可分离识别 (reflection problem); Bramoullé et al. (2009, JoE)
+#     的网络识别条件要求非传递三元组, 而同省/同城分组是完全图, 不满足。
+#     因此两文对本 IV 是识别威胁/限定条件而非支撑 — 本 IV 的辩护只能
+#     建立在 Luo & Li (2025) 的排他性论证上, 论文中须如实披露。
 #
 #   两个层级的 IV 可同时用于过度识别检验 (Hansen J test),
 #   检验排他性约束是否同时成立。
@@ -601,10 +647,14 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
         panel: 附加 4 个 leave-one-out 列的 DataFrame。
     """
     logger.info("=" * 60)
-    logger.info("步骤 7d: Leave-one-out 地理平均情感 (Luo & Li 2025; Manski 1993; Bramoullé 2009)")
+    logger.info("步骤 7d: Leave-one-out 地理平均情感 (Luo & Li 2025)")
     logger.info("=" * 60)
-    logger.info("  [文献支撑 1]: Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies. https://doi.org/10.2307/2298123")
-    logger.info("  [文献支撑 2]: Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics. https://doi.org/10.1016/j.jeconom.2008.12.021")
+    # fix(omni-g-geography-05, 2026-06-11): 引文角色勘误 — Manski/Bramoullé
+    # 是本同期组均值 IV 的**识别威胁/限定条件**, 非支撑性引用 (Manski 1993
+    # 证明线性均值模型下同期组均值不可识别; Bramoullé 2009 的识别条件依赖
+    # 网络非传递三元组, 同省/同城完全图不满足), 旧日志标"文献支撑"属倒置。
+    logger.info("  [识别威胁披露 1]: Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem. The Review of Economic Studies. https://doi.org/10.2307/2298123 — 反射问题: 同期组均值 (本 LOO IV) 在线性均值模型下不可识别; 本 IV 的有效性依赖 Luo & Li (2025) 的排他性论证而非该文背书")
+    logger.info("  [识别威胁披露 2]: Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of peer effects through social networks. Journal of Econometrics. https://doi.org/10.1016/j.jeconom.2008.12.021 — 其识别条件要求网络存在非传递三元组; 地理完全组 (同省/同城全连接) 不满足, 故本 IV 不能援引该文主张点识别")
     logger.info("  对标: Province_news_sentiment (Table 3)")
     logger.info("  公式: leave1out_i = (Σ tone_j - tone_i) / (N - 1), j ≠ i")
 
@@ -680,6 +730,14 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
         'dict_avg_tone': '词典法综合',
         'bert_avg_pos': 'BERT正面概率',
     }
+    # fix(omni-g-panel-export-04, 2026-06-11): 输出列名词干压缩
+    # dict_avg_tone → dict_tone — 原 prov/city_leave1out_dict_avg_tone_full
+    # 为 33 字符, 超 Stata 32 字符上限被 sanitize_stata_columns 单侧缩写为
+    # prov_l1o_dict_avg_tone_full, 而其 _ctx 孪生 (恰 32 字符) 保留原名 →
+    # .dta 内同一双轨变量 full/ctx 词干不同, Stata 通配
+    # `*_leave1out_dict_avg_tone_*` 只捕获 ctx 轨。成对改名保持词干对称且
+    # 全部 ≤32 字符 (bert_avg_pos 族本就 ≤32, 不变)。
+    _OUT_STEM = {'dict_avg_tone': 'dict_tone', 'bert_avg_pos': 'bert_avg_pos'}
     for base_col, desc in extra_tone_cols.items():
         for geo_col, geo_label in [('bank_province', '省级'),
                                     ('bank_city', '城市级')]:
@@ -687,7 +745,8 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
                 continue
             for track in ['_full', '_ctx']:
                 tone_col = f'{base_col}{track}'
-                out_col = f'{_GEO_SHORT[geo_col]}_leave1out_{base_col}{track}'
+                out_col = (f'{_GEO_SHORT[geo_col]}_leave1out_'
+                           f'{_OUT_STEM[base_col]}{track}')
 
                 if tone_col not in panel.columns:
                     continue
@@ -717,10 +776,12 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
                 logger.info(f"    {out_col} ({desc}): 有效={n_valid}")
 
     # 输出 Stata over-identification 检验命令
+    # fix(omni-g-panel-export-04, 2026-06-11): 推荐命令同步改用压缩后列名
+    # (原引用 prov_leave1out_dict_avg_tone_full 在 .dta 中不存在 → r(111))
     logger.info("  ── G-08: Stata 过度识别检验命令 ──")
     logger.info("    * ivreghdfe Y (llm_vote_tone_full = "
                 "prov_leave1out_tone_full "
-                "prov_leave1out_dict_avg_tone_full "
+                "prov_leave1out_dict_tone_full "
                 "prov_leave1out_bert_avg_pos_full), "
                 "absorb(target_bank year) cluster(target_bank)")
     logger.info("    * estat overid  // Hansen J test")
@@ -799,6 +860,14 @@ def compute_geo_proximity_buffers(
       - prox_{d}km_pos_frac / _ctx:    距离圈内正面文章比例 (双轨; full 沿用无后缀历史名)
       - prox_{d}km_neg_frac / _ctx:    距离圈内负面文章比例 (双轨; full 沿用无后缀历史名)
 
+    另追加 1 个阈值无关的诊断列 (fix(omni-g-geography-04, 2026-06-11)):
+      - prox_geo_imputed_frac: 可定位文章中经 Level-3 省会回退插补坐标的
+        比例 (bank-year 级)。省会插补的距离误差与银行区位系统相关 (省会
+        银行 → 距离压 ≈0 → is_local/frac 上偏; 非省会银行 → 一律得到
+        到省会的距离), 非经典测量误差, 与 Gurun & Butler (2012) /
+        Engelberg & Parsons (2011) 的精确媒体定位口径有实质差距 —
+        论文中须披露插补率, 稳健性检验应按本列剔除/切分高插补格。
+
     学术依据:
       Gurun, U. G., & Butler, A. W. (2012). Don't believe the hype:
       Local media slant, local advertising, and firm value. The Journal
@@ -815,7 +884,8 @@ def compute_geo_proximity_buffers(
         panel: Bank-Year 面板
 
     Returns:
-        panel: 追加 28 个距离缓冲变量
+        panel: 追加 40 个距离缓冲变量 (fix(omni-g-geography-05): 双轨化后
+               28→40 计数勘误) + 1 个省会插补诊断列 prox_geo_imputed_frac
     """
     logger.info("=" * 60)
     logger.info("步骤: 四梯度地理距离缓冲 "
@@ -839,13 +909,17 @@ def compute_geo_proximity_buffers(
     for raw_name in city_coords:
         clean_to_raw[_clean_geo_name(raw_name)] = raw_name
 
+    # fix(omni-g-geography-03b, 2026-06-11): None 短路守卫 — capital_path /
+    # bank_addr_path 未配置时 CONFIG.get(...) 返回 None, os.path.exists(None)
+    # 在 Python 3 抛 TypeError (仅吞 OSError/ValueError); 与同文件 coord_path
+    # 及 compute_regional_imitation_pressure 的既有守卫对齐。
     province_capital = {}
-    if os.path.exists(capital_path):
+    if capital_path and os.path.exists(capital_path):
         with open(capital_path, 'r', encoding='utf-8') as f:
             province_capital = json.load(f)
 
     bank_city_map = {}
-    if os.path.exists(bank_addr_path):
+    if bank_addr_path and os.path.exists(bank_addr_path):
         with open(bank_addr_path, 'r', encoding='utf-8') as f:
             bank_addr = json.load(f)
         for bank, info in bank_addr.items():
@@ -858,27 +932,32 @@ def compute_geo_proximity_buffers(
                 f"{len(bank_city_map)} 银行地址")
 
     # ── 城市坐标查找辅助函数 (三级退化: 精确→清洗→省会) ──
+    # fix(omni-g-geography-04, 2026-06-11): 返回值增加 level 标记
+    # ('exact'/'clean'/'capital'/None), 用于记录省会插补 (Level 3) 占比 —
+    # 省会回退把媒体放到省会坐标, 误差与银行区位 (省会 vs 非省会) 系统相关
+    # (省会银行距离压 ≈0 → is_local/frac 上偏), 非经典测量误差; 下游需
+    # prox_geo_imputed_frac 才能做剔除插补的稳健性切分 (见函数 docstring)。
     def _lookup_coords(city_name, province_name=None):
-        """三级查找: 精确匹配 → 清洗后匹配 → 省会退化。"""
+        """三级查找: 精确匹配 → 清洗后匹配 → 省会退化。返回 (lat, lon, level)。"""
         if city_name is not None and not pd.isna(city_name):
             cn = str(city_name).strip()
             # Level 1: 精确
             if cn in city_coords:
                 c = city_coords[cn]
-                return c['lat'], c['lon']
+                return c['lat'], c['lon'], 'exact'
             # Level 2: 清洗
             clean = _clean_geo_name(cn)
             if clean in clean_to_raw:
                 c = city_coords[clean_to_raw[clean]]
-                return c['lat'], c['lon']
+                return c['lat'], c['lon'], 'clean'
         # Level 3: 省会退化
         if province_name is not None and not pd.isna(province_name):
             prov_clean = _clean_geo_name(str(province_name).strip())
             capital = province_capital.get(prov_clean)
             if capital and capital in clean_to_raw:
                 c = city_coords[clean_to_raw[capital]]
-                return c['lat'], c['lon']
-        return None, None
+                return c['lat'], c['lon'], 'capital'
+        return None, None, None
 
     # ── 媒体地理列发现 ──
     media_city_col = '城市' if '城市' in df_exploded.columns else None
@@ -904,7 +983,7 @@ def compute_geo_proximity_buffers(
 
         for bank in df_year['target_bank'].unique():
             bank_city = bank_city_map.get(bank)
-            b_lat, b_lon = _lookup_coords(bank_city)
+            b_lat, b_lon, _b_level = _lookup_coords(bank_city)
             if b_lat is None:
                 continue
 
@@ -914,13 +993,18 @@ def compute_geo_proximity_buffers(
                 continue
 
             # 计算每篇文章与银行的距离
+            # fix(omni-g-geography-04, 2026-06-11): 同时统计媒体侧省会插补
+            # (Level 3) 文章数, 供 prox_geo_imputed_frac 诊断列。
             distances = []
+            n_capital_imputed = 0
             for _, row in df_bank.iterrows():
                 m_city = row.get(media_city_col) if media_city_col else None
                 m_prov = row.get(media_prov_col) if media_prov_col else None
-                m_lat, m_lon = _lookup_coords(m_city, m_prov)
+                m_lat, m_lon, m_level = _lookup_coords(m_city, m_prov)
                 if m_lat is not None:
                     distances.append(_haversine(b_lat, b_lon, m_lat, m_lon))
+                    if m_level == 'capital':
+                        n_capital_imputed += 1
                 else:
                     distances.append(np.nan)
 
@@ -933,24 +1017,38 @@ def compute_geo_proximity_buffers(
 
             key = (bank, year)
             buf_results[key] = {}
+            # fix(omni-g-geography-04, 2026-06-11): 省会插补占比诊断列 (bank-year
+            # 级, 阈值无关) — 可定位文章中经 Level-3 省会回退定位的比例; 全部
+            # 不可定位时为 NaN。论文中应披露插补率, 稳健性检验可按此列剔除/切分。
+            buf_results[key]['prox_geo_imputed_frac'] = (
+                n_capital_imputed / n_geocoded if n_geocoded > 0 else np.nan)
 
             for threshold in _DISTANCE_THRESHOLDS_KM:
                 prefix = f'prox_{threshold}km'
                 within = df_bank[df_bank['_dist_km'] <= threshold]
                 n_within = len(within)
 
-                buf_results[key][f'{prefix}_n_articles'] = n_within
-                buf_results[key][f'{prefix}_frac'] = (
-                    n_within / n_geocoded if n_geocoded > 0 else np.nan)
-                buf_results[key][f'{prefix}_is_local'] = (
-                    1 if n_within > 0 else 0)
-
-                # 媒体来源数
-                if '媒体(中文)' in within.columns:
-                    buf_results[key][f'{prefix}_n_media'] = (
-                        within['媒体(中文)'].nunique())
+                # fix(omni-g-geography-02, 2026-06-11): n_geocoded==0 (该 bank-year
+                # 的媒体全部无法地理编码) 时, is_local/n_media/n_articles 与 frac
+                # 的 NaN 语义对齐 — 此时"圈内有无媒体"是**未知**而非"确知为 0";
+                # 旧行为 is_local=0 构成与 frac=NaN 自相矛盾的差异性误分类
+                # (2026-06-10 frac 分母修复未覆盖的兄弟列)。
+                if n_geocoded == 0:
+                    buf_results[key][f'{prefix}_n_articles'] = np.nan
+                    buf_results[key][f'{prefix}_frac'] = np.nan
+                    buf_results[key][f'{prefix}_is_local'] = np.nan
+                    buf_results[key][f'{prefix}_n_media'] = np.nan
                 else:
-                    buf_results[key][f'{prefix}_n_media'] = 0
+                    buf_results[key][f'{prefix}_n_articles'] = n_within
+                    buf_results[key][f'{prefix}_frac'] = n_within / n_geocoded
+                    buf_results[key][f'{prefix}_is_local'] = (
+                        1 if n_within > 0 else 0)
+                    # 媒体来源数
+                    if '媒体(中文)' in within.columns:
+                        buf_results[key][f'{prefix}_n_media'] = (
+                            within['媒体(中文)'].nunique())
+                    else:
+                        buf_results[key][f'{prefix}_n_media'] = 0
 
                 # 情感聚合 (LLM 投票分数) — dual-track parity (2026-06-08):
                 # 此前仅聚合 _full 文章列 (硬编码 llm_vote_score_full / is_positive_full /
@@ -959,25 +1057,31 @@ def compute_geo_proximity_buffers(
                 # 命名: 保留既有列名作 full 轨 (tone 既有 _full 后缀; pos_frac/neg_frac 既有
                 # 无后缀=隐式 full, 沿用项目 _lc/_sc 对角线"隐式 full + 显式 ctx"约定 → 零
                 # 重命名、不破坏下游 Stata 模板/golden), ctx 轨统一加 _ctx 后缀。
+                # fix(omni-g-geography-01, 2026-06-11): float64 归一 — 文章级
+                # llm_vote_score/is_positive/is_negative 是 nullable Int8
+                # (encode.py, NA=测量失败/平局); n_within>0 但圈内该轨全 NA 时
+                # .mean() 返回 pd.NA (非 np.nan), 混入 buf_rows 后该列被
+                # pd.DataFrame 推断为 object dtype。先 astype('float64')
+                # (NA→NaN) 再 mean, 全-NA 圈得 np.nan, dtype 恒为 float64。
                 for _track, _pn_suffix in (('_full', ''), ('_ctx', '_ctx')):
                     _tone_col = f'llm_vote_score{_track}'
                     if _tone_col in within.columns and n_within > 0:
                         buf_results[key][f'{prefix}_tone{_track}'] = (
-                            within[_tone_col].mean())
+                            within[_tone_col].astype('float64').mean())
                     else:
                         buf_results[key][f'{prefix}_tone{_track}'] = np.nan
 
                     _pos_col = f'is_positive{_track}'
                     if _pos_col in within.columns and n_within > 0:
                         buf_results[key][f'{prefix}_pos_frac{_pn_suffix}'] = (
-                            within[_pos_col].mean())
+                            within[_pos_col].astype('float64').mean())
                     else:
                         buf_results[key][f'{prefix}_pos_frac{_pn_suffix}'] = np.nan
 
                     _neg_col = f'is_negative{_track}'
                     if _neg_col in within.columns and n_within > 0:
                         buf_results[key][f'{prefix}_neg_frac{_pn_suffix}'] = (
-                            within[_neg_col].mean())
+                            within[_neg_col].astype('float64').mean())
                     else:
                         buf_results[key][f'{prefix}_neg_frac{_pn_suffix}'] = np.nan
 
@@ -1017,13 +1121,20 @@ def compute_geo_proximity_buffers(
 
 
 # ============================================================================
-# 13. 区域 AI 模仿渗透率 (六层 LOO)
+# 13. 区域同行 FinTech 新闻覆盖渗透率 (六层 LOO; 列名 ai_reg_* 历史保留)
 # ============================================================================
 
 def compute_regional_imitation_pressure(
     panel: pd.DataFrame
 ) -> pd.DataFrame:
-    """计算六层区域 AI 模仿渗透率 (Leave-One-Out)。
+    """计算六层区域同行 FinTech 新闻覆盖渗透率 (Leave-One-Out)。
+
+    fix(omni-g-panel-export-08, 2026-06-11) 构念勘误: 本测度原中文名"区域 AI
+    模仿渗透率"系误称 — 指示变量 _has_fintech = I(n_articles > 0) 基于该银行
+    全部 fintech 新闻计数, 无任何 AI 关键词/子类过滤; 测度内容是"区域内其他
+    银行有任意 fintech 新闻覆盖的比例" (同行媒体覆盖渗透, Leary-Roberts 2014
+    同行压力代理), 既非 AI 亦非"模仿率"。列名 ai_reg_* 与函数名保留以兼容
+    既有 panel schema / 下游引用; Stata 标签已同步改述 (export.py)。
 
     六层:
       1. ai_reg_province: 同省 LOO
@@ -1038,12 +1149,13 @@ def compute_regional_imitation_pressure(
       Leary, M. T., & Roberts, M. R. (2014). Do peer firms affect
       corporate financial policy? The Journal of Finance, 69(1), 139-178.
       https://doi.org/10.1111/jofi.12094
-      → 同行模仿效应的操作化
+      → 同行压力效应的操作化 (本测度的实际构念锚点)
 
       Dahlke, J., et al. (2024). Epidemic effects in the diffusion
       of emerging digital technologies. Research Policy, 53(2), 104917.
       DOI: 10.1016/j.respol.2023.104917
-      → AI 技术扩散传染病模型
+      → 历史动机引文 (数字技术扩散); 注意本实现未过滤 AI 子类,
+        不宜以该文的 AI 扩散框架直接背书 (见上方勘误)
 
     Args:
         panel: Bank-Year 面板
@@ -1052,7 +1164,8 @@ def compute_regional_imitation_pressure(
         panel: 追加 6 个 ai_reg_* 变量
     """
     logger.info("=" * 60)
-    logger.info("步骤: 区域 AI 模仿渗透率 (六层 LOO, Leary & Roberts 2014)")
+    logger.info("步骤: 区域同行 FinTech 覆盖渗透率 "
+                "(六层 LOO, Leary & Roberts 2014)")
     logger.info("=" * 60)
 
     # 指示变量: 该银行该年是否有 fintech 新闻

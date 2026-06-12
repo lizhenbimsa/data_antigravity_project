@@ -21,7 +21,11 @@ from news_process.pipeline.panel.risk_taking_outcomes import (
 
 
 class TestComputeZScore:
-    """Z = (ROA + CAR) / sigma_roa_5y_rolling; sigma NaN/≈0 → NaN."""
+    """Z = (ROA + CAR) / sigma_roa_5y_rolling; sigma NaN/≈0 → NaN.
+
+    fix(omni-g-risk-06, 2026-06-11): compute_z_score 现返回
+    (z_score, zero_var_flag) 两元组, 断言已同步更新。
+    """
 
     def test_basic_golden_value(self):
         df = pd.DataFrame({
@@ -29,22 +33,29 @@ class TestComputeZScore:
             'capital_adequacy_ratio': [10.0],
             'sigma_roa_5y_rolling': [2.0],
         })
-        out = compute_z_score(df)
-        assert out[0] == pytest.approx((1.0 + 10.0) / 2.0)  # 5.5
+        z, flag = compute_z_score(df)
+        assert z.iloc[0] == pytest.approx((1.0 + 10.0) / 2.0)  # 5.5
+        assert int(flag.iloc[0]) == 0
 
     def test_nan_sigma_yields_nan(self):
         df = pd.DataFrame({
             'roa': [1.0], 'capital_adequacy_ratio': [10.0],
             'sigma_roa_5y_rolling': [np.nan],
         })
-        assert np.isnan(compute_z_score(df)[0])
+        z, flag = compute_z_score(df)
+        assert np.isnan(z.iloc[0])
+        # 数据缺失 (σ=NaN) 不是零方差剔除 → flag=0
+        assert int(flag.iloc[0]) == 0
 
     def test_zero_sigma_yields_nan(self):
         df = pd.DataFrame({
             'roa': [1.0], 'capital_adequacy_ratio': [10.0],
             'sigma_roa_5y_rolling': [0.0],
         })
-        assert np.isnan(compute_z_score(df)[0])
+        z, flag = compute_z_score(df)
+        assert np.isnan(z.iloc[0])
+        # fix(omni-g-risk-06): σ≈0 零方差剔除须被指示列标记
+        assert int(flag.iloc[0]) == 1
 
     def test_sign_preserved(self):
         # 负 ROA + 小 CAR → 负 numerator → 负 Z (符号回归守卫)
@@ -52,7 +63,8 @@ class TestComputeZScore:
             'roa': [-5.0], 'capital_adequacy_ratio': [1.0],
             'sigma_roa_5y_rolling': [2.0],
         })
-        assert compute_z_score(df)[0] == pytest.approx((-5.0 + 1.0) / 2.0)  # -2.0
+        z, _ = compute_z_score(df)
+        assert z.iloc[0] == pytest.approx((-5.0 + 1.0) / 2.0)  # -2.0
 
 
 class TestComputeNplFormation:
@@ -107,19 +119,43 @@ class TestComputeNplFormation:
 
 
 class TestComputeLlpDiscretion:
-    """LLP raw ratio = loan_loss_provision / total_loans; loans NaN/≈0 → NaN."""
+    """LLP raw ratio = LLP_t / Loans_{t-1}; lag 缺失/≈0 → NaN.
 
-    def test_basic_ratio(self):
-        df = pd.DataFrame({'loan_loss_provision': [20.0], 'total_loans': [1000.0]})
-        assert compute_llp_discretion(df)[0] == pytest.approx(0.02)
+    fix(omni-g-risk-05, 2026-06-11): 分母从当期 total_loans 改为日历 t-1 的
+    Loans_{t-1} (与 docstring BW2012 Eq.(2) LHS 规格一致), 旧断言锁的是
+    错误的当期分母行为, 已更新。
+    """
 
-    def test_zero_loans_nan(self):
-        df = pd.DataFrame({'loan_loss_provision': [20.0], 'total_loans': [0.0]})
-        assert np.isnan(compute_llp_discretion(df)[0])
+    def test_basic_ratio_lagged_denominator(self):
+        df = pd.DataFrame({
+            'target_bank': ['A', 'A'],
+            'year': [2017, 2018],
+            'loan_loss_provision': [15.0, 20.0],
+            'total_loans': [1000.0, 1100.0],
+        })
+        out = compute_llp_discretion(df)
+        # 2017: 无 Loans_{t-1} → NaN
+        assert np.isnan(out.iloc[0])
+        # 2018: LLP_2018 / Loans_2017 = 20/1000 = 0.02 (非 20/1100)
+        assert out.iloc[1] == pytest.approx(0.02)
+
+    def test_zero_lag_loans_nan(self):
+        df = pd.DataFrame({
+            'target_bank': ['A', 'A'],
+            'year': [2017, 2018],
+            'loan_loss_provision': [15.0, 20.0],
+            'total_loans': [0.0, 1100.0],
+        })
+        # 2018 的 Loans_{t-1}=0 → NaN
+        assert np.isnan(compute_llp_discretion(df).iloc[1])
 
     def test_missing_llp_column_nan(self):
-        df = pd.DataFrame({'total_loans': [1000.0]})
-        assert np.isnan(compute_llp_discretion(df)[0])
+        df = pd.DataFrame({
+            'target_bank': ['A', 'A'],
+            'year': [2017, 2018],
+            'total_loans': [1000.0, 1100.0],
+        })
+        assert compute_llp_discretion(df).isna().all()
 
 
 class TestComputeSigmaRoaRolling:

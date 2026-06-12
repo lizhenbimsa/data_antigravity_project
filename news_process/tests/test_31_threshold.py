@@ -19,13 +19,19 @@ def simulate_bank_classification_from_precomputed(article_matches: list,
                                                    min_upper: int,
                                                    min_lower: int,
                                                    threshold: int) -> int:
-    """对预计算的银行匹配数据进行阈值过滤，返回分类为正的数量。"""
+    """对预计算的银行匹配数据进行阈值过滤，返回分类为正的数量。
+
+    fix(omni-extra-threshold-condb, 2026-06-11): 与 validation/threshold.py 的
+    修复同步 — 路径 B (cond_b) 用正文 total (upper+lower) 对齐生产
+    analyze_bank_matches, 不再用含标题的 total_with_title。
+    """
     count = 0
     for m in article_matches:
         for bank_name, counts in m['bank_counts'].items():
             if counts['total'] >= threshold:
                 cond_a = counts['upper'] >= min_upper and counts['lower'] >= min_lower
-                cond_b = counts['title'] > 0 and counts['total'] >= min_upper
+                cond_b = (counts['title'] > 0
+                          and (counts['upper'] + counts['lower']) >= min_upper)
                 if cond_a or cond_b:
                     count += 1
                     break
@@ -145,14 +151,34 @@ class TestBankClassificationThreshold:
         assert result == 1
 
     def test_title_match_bypass(self):
-        """标题中出现应走 cond_b 路径。"""
+        """标题中出现 + 正文达标应走 cond_b 路径。
+
+        fix(omni-extra-threshold-condb, 2026-06-11): 旧 fixture (upper=0,
+        lower=0, title=1, total=3) 锁定的是 total_with_title 的错误口径;
+        生产 cond_b 比较基数 = 正文 total (upper+lower), 改为正文 2 次 +
+        标题 1 次的生产可达样态。
+        """
         matches = [
-            {'bank_counts': {'中国工商银行': {'total': 3, 'upper': 0, 'lower': 0, 'title': 1}}}
+            {'bank_counts': {'中国工商银行': {'total': 3, 'upper': 2, 'lower': 0, 'title': 1}}}
         ]
-        # cond_a: upper >= 1 && lower >= 1 → False
-        # cond_b: title > 0 && total >= 1 → True
+        # cond_a: upper >= 1 && lower >= 1 → lower=0 → False
+        # cond_b: title > 0 && (upper+lower)=2 >= 1 → True
         result = simulate_bank_classification_from_precomputed(matches, 1, 1, 3)
         assert result == 1
+
+    def test_title_only_no_body_mentions_rejected(self):
+        """标题-only 提及 (正文 0 次) 不再走 cond_b — 对齐生产逻辑。
+
+        fix(omni-extra-threshold-condb, 2026-06-11): 旧实现 cond_b 用
+        total_with_title, 该样态会被误判达标 (低阈值端正例虚高)。
+        """
+        matches = [
+            {'bank_counts': {'中国工商银行': {'total': 3, 'upper': 0, 'lower': 0, 'title': 3}}}
+        ]
+        # 前置: total_with_title=3 >= 3 → 通过
+        # cond_a: False; cond_b: title > 0 但 (upper+lower)=0 < 1 → False
+        result = simulate_bank_classification_from_precomputed(matches, 1, 1, 3)
+        assert result == 0
 
     def test_multiple_banks_one_matches(self):
         """多银行中只要一个达标就算正。"""

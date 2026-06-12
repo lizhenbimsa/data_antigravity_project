@@ -55,8 +55,8 @@ theory:
     channel_decomposition_required: true  # V4 F2.1: 三 channel 不能简单声称共同作用
 
 outcome:
-  primary: z_score  # Roy (1952) + Laeven-Levine (2009 JFE) 标准
-  primary_formula: "(roa + capital_adequacy_ratio) / sigma_roa_5y_rolling"
+  primary: z_score  # Roy (1952) 框架。⚠ 锚点更正 fix(omni-g-zscore-papers-01, 2026-06-11) (与第 11 篇 spec 2026-06-10 更正同步): 资本项用监管 Basel CAR (RWA 加权), 故为 *CAR-based Z-score 变体*, 非 Laeven-Levine 2009 JFE 原版 (后者资本项=账面 equity/total-assets)。投稿前须如实标注为 CAR 变体。
+  primary_formula: "(roa + capital_adequacy_ratio) / sigma_roa_5y_rolling"  # 注: capital_adequacy_ratio=监管 CAR, 非 L&L 的 equity/assets
   secondary:
     - npl_formation_rate    # Bushman-Williams (2015 JAR 53:511-553) forward-looking
     - rwa_to_ta_ratio       # Demirgüç-Kunt & Huizinga (2010 JFE 98:626-650)
@@ -78,12 +78,26 @@ treatment:
     rationale: "RFS finance audience 偏好高传播 + 早期 SSRN feedback; 牺牲 entity-attribution 严谨性换学术影响力"
 
   primary: cross_outlet_tone_variance_full  # V4 R3 critical 修复, 待新建 (M2-M3)
+  # ⚠ 同名异构披露 fix(omni-g-zscore-papers-02 + omni-g-audit-family-08, 2026-06-11):
+  # 盘上同名 panel 列当前由 stage 39f (pipeline/audit/cross_media_alpha.py) 产出,
+  # 与下方 spec 构造**不同口径**:
+  # 39f 版 = 仅 coverage-spike 事件日 (bank-day 文章数 ≥ bank 内 p90, 且 p90 > pmin)
+  # ± EVENT_WINDOW_DAYS 窗内 (重叠窗合并为 episode, fix omni-g-audit-family-01)、
+  # ≥ MIN_OUTLETS_PER_EVENT 个 outlet 时的 outlet 间 variance (np.var, ddof=1),
+  # 再按 episode 内文章数 (n_articles) 加权平均到 bank-year — 即"条件于报道
+  # 高峰"的事件加权估计量; 下方 Step 2-3 = 无条件全年截面口径。估计对象 (条件 vs
+  # 无条件) / 聚合 (episode 文章数加权 vs 单一截面) 两重不同 (矩已于 2026-06-11
+  # 统一为 var), M2-M3 落地 spec 版构造时必须二选一:
+  # (a) spec 版用新列名 (如 cross_outlet_tone_var_uncond),
+  # 或 (b) 重命名 39f 产物 (如 event_window_outlet_tone_var)。严禁两种构造共用同名列。
   primary_construction: |
     Step 1 (现成 stage 21 输出): 文章级 llm_vote_score_full ∈ {-1, 0, +1}
     Step 2 (待建 stage 21b): (bank b, year t, outlet m) 级
         outlet_tone[b,t,m] = mean(llm_vote_score over articles in cell)
     Step 3 (待建 encode.py 扩展): (bank b, year t) 级
-        cross_outlet_tone_variance[b,t] = std(outlet_tone[b,t,*])
+        cross_outlet_tone_variance[b,t] = var(outlet_tone[b,t,*], ddof=1)
+        (2026-06-11 更正: 列名含 variance → 矩统一为 var 非 std; 原 spec 写 std
+         与列名自相矛盾, 现与 39f 实现的矩定义对齐, 见上方同名异构披露)
     前置 diagnostic (M1 必跑): ≥3 outlet 覆盖率 > 40% 才可行
     Fallback (若 < 30%): 退回 llm_vote_tone_std_full 作 main (R3 critical 妥协)
 
@@ -111,6 +125,11 @@ treatment:
     - outlet_normalization: "媒体源 normalization 规范 (V4 F3.1 必修, M2-M3 outlet_dict 建立)"
 
 controls:
+  # fix(omni-g-replication-07, 2026-06-11): bank_level 财务 5 列 (ln_assets/leverage/
+  # capital_ratio/npl_ratio/deposit_growth) + year_level 的 shibor/lpr_year_avg/
+  # gdp_growth/m2_growth 在当前 panel 全为 0 命中 — enrichment pending
+  # (config/银行面板2007-2025年.xlsx + 宏观利率序列待接入)。bank_type_id 非 panel
+  # 原生列: 01_data_prep 从主 panel 字符串列 bank_type encode 派生。
   bank_level:
     - ln_assets
     - leverage

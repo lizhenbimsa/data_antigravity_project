@@ -46,9 +46,12 @@ def _tail_cleanup_repl(m: re.Match) -> str:
     """``TAIL_CLEANUP_PATTERN`` 的替换回调函数.
 
     替换规则:
-      - 重复字符 → 保留 2 个 (如 ``aaa`` → ``aa``)
+      - 重复字符 (非数字) → 保留 2 个 (如 ``aaa`` → ``aa``)
       - 冗余标点 → 保留 1 个 (如 ``。。。`` → ``。``)
       - 空白序列 → 单个空格
+
+    fix(omni-g-preprocess-01, 2026-06-11): 重复压缩支已排除数字 ([^0-9]) —
+    '1000亿'/'2000年'/股票代码 '600000' 等连零量级不再被压缩破坏。
     """
     if m.group(1):
         return m.group(1) * 2
@@ -105,7 +108,7 @@ def _clean_single_text(text: str, cc) -> str:
         for pat in [url_pattern, email_pattern, phone_pattern,
                     emoji_pattern, combined_removal_pattern]:
             text = pat.sub('', text)
-    # 步骤 6: 尾部清理(重复字符+冗余标点+空白标准化)
+    # 步骤 6: 尾部清理(重复字符[非数字]+冗余标点+空白标准化)
     text = TAIL_CLEANUP_PATTERN.sub(_tail_cleanup_repl, text).strip()
     return text
 

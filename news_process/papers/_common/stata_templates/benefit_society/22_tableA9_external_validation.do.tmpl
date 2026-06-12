@@ -79,4 +79,11 @@ esttab EXT_Y* using "$tables_dir/tableA9_external_validation.tex", replace ///
              "Acceptance (AC-G4): >=2/3 sign-match with predicted direction." ///
              "Bank-type/year FE; SE clustered at {{CLUSTER_VAR}}.")
 
-display "[OK] Table A9 external validation --> $tables_dir/tableA9_external_validation.tex"
+* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+* tables.py:build_table_a9_external_validation 经 read_paper_esttab(...,
+* 'tableA9_external_validation.csv') 消费 (parse_esttab_csv 格式)。
+estout EXT_Y* using "$tables_dir/tableA9_external_validation.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) mlabels("NCD spread" "Penalty freq" "Rating")
+
+display "[OK] Table A9 external validation --> $tables_dir/tableA9_external_validation.tex (+ .csv side-channel)"

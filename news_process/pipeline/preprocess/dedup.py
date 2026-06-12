@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import multiprocessing
+import os
 import string
 import sys
 from functools import partial
@@ -36,7 +37,8 @@ class ArticleDeduplicator:
 
     算法说明:
       ① 精确去重: 基于 (标题 + 内容) 字符串完全匹配。
-         在重复组内, 按媒体权重降序、docid 升序保留首条。
+         在重复组内, 按日期升序 (保留首发)、媒体权重降序 (同日 tiebreak)、
+         docid 升序保留首条 (fix omni-g-preprocess-06, 与近似去重口径对齐)。
 
       ② 近似去重:
          - 对每篇文章计算 MinHash 签名(128 个置换), 使用字符级 3-gram 作为特征。
@@ -61,8 +63,13 @@ class ArticleDeduplicator:
     COL_WEIGHT = 'temp_media_weight'
     COL_LENGTH = 'temp_content_length'
     COL_COMBINED = 'temp_title_content'
-    SORT_BY_COLS = [COL_WEIGHT, 'docid', COL_LENGTH]
-    SORT_ASCENDING = [False, True, False]
+    COL_DATETIME = 'temp_datetime'
+    # fix(omni-g-preprocess-06, 2026-06-11): 精确去重排序键加日期为第一键
+    # (升序, NaT 排末) — 与近似去重 '保留首发源' 原则对齐; 媒体权重降级为
+    # 同日 tiebreak。旧序 [权重↓, docid↑, 长度↓] 完全不看日期, 跨年转载时
+    # 保留高权重副本的日期 → bank-year 面板年度归属错位。
+    SORT_BY_COLS = [COL_DATETIME, COL_WEIGHT, 'docid', COL_LENGTH]
+    SORT_ASCENDING = [True, False, True, False]
 
     # 标点和空白字符清洗表: 用于 MinHash 分词前的文本规范化
     PUNCTUATION = (
@@ -140,6 +147,65 @@ class ArticleDeduplicator:
         m.update_batch([t.encode('utf8') for t in tokens])
         return (idx, m)
 
+    def _log_media_weight_coverage(self, media_names: pd.Series,
+                                   mapped_weight: pd.Series) -> None:
+        """媒体权重覆盖率日志 (匹配行占比 + 高频未匹配名单).
+
+        fix(omni-g-preprocess-06, 2026-06-11): 旧实现未匹配媒体静默回退默认权重
+        (盘上实测 ~24% 行无覆盖率日志), 未覆盖媒体间的精确去重保留退化为 docid
+        序而无任何可见性。覆盖率 payload 暂存于 ``self.weight_coverage_``,
+        sidecar 落盘由 ``_write_weight_coverage_sidecar()`` 在 ``run()`` 中执行
+        (validation 阶段直接调本方法复用时不会覆写 stage 00 的 sidecar)。
+        """
+        self.weight_coverage_ = None
+        total = len(media_names)
+        if total == 0:
+            return
+        unmatched_mask = mapped_weight.isna()
+        n_matched = int((~unmatched_mask).sum())
+        coverage = n_matched / total
+        self.logger.info(
+            f"媒体权重覆盖率: {n_matched:,}/{total:,} 行 ({coverage:.1%}) 命中 "
+            f"media_weights.json; 未匹配行回退默认权重 {self.default_weight}"
+        )
+        if not bool(unmatched_mask.any()):
+            return
+        unmatched_counts = media_names[unmatched_mask].astype(str).value_counts()
+        self.logger.warning(
+            f"未匹配媒体 {len(unmatched_counts)} 个 "
+            f"({int(unmatched_mask.sum()):,} 行回退默认权重), "
+            f"高频未匹配: {unmatched_counts.head(10).to_dict()}"
+        )
+        self.weight_coverage_ = {
+            'total_rows': int(total),
+            'matched_rows': n_matched,
+            'coverage': round(coverage, 4),
+            'default_weight': int(self.default_weight),
+            'unmatched_media': {
+                str(k): int(v) for k, v in unmatched_counts.items()
+            },
+        }
+
+    def _write_weight_coverage_sidecar(self) -> None:
+        """把未匹配媒体清单落 sidecar (``<output_dir>/media_weight_coverage.json``).
+
+        fix(omni-g-preprocess-06, 2026-06-11): 仅在存在未匹配媒体时写盘;
+        写盘失败仅 warning (fail-soft, 不阻断去重主流程)。
+        """
+        payload = getattr(self, 'weight_coverage_', None)
+        if not payload:
+            return
+        try:
+            out_dir = self.paths.get('output_dir', '')
+            if out_dir:
+                os.makedirs(out_dir, exist_ok=True)
+                sidecar = os.path.join(out_dir, 'media_weight_coverage.json')
+                with open(sidecar, 'w', encoding='utf-8') as f:
+                    json.dump(payload, f, ensure_ascii=False, indent=2)
+                self.logger.info(f"未匹配媒体清单已落盘: {sidecar}")
+        except Exception as e:
+            self.logger.warning(f"media_weight_coverage.json 写入失败: {e}")
+
     def _prepare_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """添加去重所需的辅助列 (媒体权重、内容长度、合并文本、日期)."""
         self.logger.info("添加辅助列...")
@@ -147,6 +213,8 @@ class ArticleDeduplicator:
             df['媒体(中文)'].map(self.media_weights),
             errors='coerce',
         )
+        # fix(omni-g-preprocess-06, 2026-06-11): 权重覆盖率显式化 (日志 + sidecar)
+        self._log_media_weight_coverage(df['媒体(中文)'], media_weight)
         df[self.COL_WEIGHT] = media_weight.fillna(self.default_weight).astype(int)
         df[self.COL_LENGTH] = df['内容'].str.len().fillna(0).astype(int)
         df[self.COL_COMBINED] = df['标题'].fillna('') + " " + df['内容'].fillna('')
@@ -165,10 +233,18 @@ class ArticleDeduplicator:
         return df
 
     def _perform_exact_deduplication(self, df: pd.DataFrame) -> pd.DataFrame:
-        """精确去重: 基于标题+内容完全匹配, 保留媒体权重最高者."""
+        """精确去重: 基于标题+内容完全匹配, 保留首发 (最早日期) 副本.
+
+        fix(omni-g-preprocess-06, 2026-06-11): 排序键改为 [日期↑, 权重↓, docid↑,
+        长度↓] (NaT 日期排末) — 媒体权重仅作同日 tiebreak, 与近似去重 '保留
+        首发源' 口径一致; 旧实现保留最高权重副本, 跨年转载导致年度归属错位。
+        """
         self.logger.info("执行精确去重...")
         pre_count = len(df)
-        df_sorted = df.sort_values(by=self.SORT_BY_COLS, ascending=self.SORT_ASCENDING)
+        df_sorted = df.sort_values(
+            by=self.SORT_BY_COLS, ascending=self.SORT_ASCENDING,
+            na_position='last',  # NaT 日期副本排末: 有效日期副本优先保留
+        )
         df_deduped = df_sorted.drop_duplicates(subset=[self.COL_COMBINED], keep='first')
         removed = pre_count - len(df_deduped)
         self.logger.info(
@@ -309,6 +385,9 @@ class ArticleDeduplicator:
             return df
 
         df_prepared = self._prepare_dataframe(df)
+        # fix(omni-g-preprocess-06, 2026-06-11): 未匹配媒体清单 sidecar 仅在
+        # 主流程 run() 落盘 (validation 复用内部方法时不覆写 stage 00 产物)
+        self._write_weight_coverage_sidecar()
         df_exact = self._perform_exact_deduplication(df_prepared)
         df_near = self._perform_near_deduplication(df_exact)
 

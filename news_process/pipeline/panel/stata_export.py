@@ -14,7 +14,17 @@
     - innovation_locus_{full,ctx} (中文 str) → byte 0=底层技术, 1=应用场景 + value label
     - innovation_substantiveness_{full,ctx} (中文 str) → byte 0=实质性, 1=象征性 + value label
     - innovation_collab_mode_{full,ctx} (中文 str) → byte 0=自主研发, 1=外部协同 + value label  [v3.4.0]
-    - NaN → . / .a / .b (extended missing for distinguishable causes)
+      ⚠ 上述 3 组类别编码仅当列存在时启用 — 当前 bank-year panel 不含这些文章级
+      str 列 (仅有派生数值聚合 avg_*_prob_score / *_frac 等), encoder 为 no-op,
+      盘上 .dta value label = 0; 保留以服务未来文章级/众数面板导出场景
+      [fix(omni-g-stata-export-14, 2026-06-11) 诚实披露]
+    - NaN → . (统一 sysmiss; extended missing .a/.b 未实现 — 两后端均不传
+      missing_user_values, 缺失原因在 .dta 中不可区分)
+      [fix(omni-g-stata-export-04/10/13, 2026-06-11): 原声称 ". / .a / .b
+      distinguishable causes" 从未实现, 改为与实现对齐]
+    - 非 value-labeled int8/Int8 计数列升 Int16 写出 (Stata byte 合法值域
+      [-127,100], 101..126 是 extended-missing 码位; 防 pyreadstat 直写损值)
+      [fix(omni-g-stata-export-01, 2026-06-11), KNOWN-OPEN ⑥]
     - 列名 ≤ 32 字符 (Stata 硬限)
     - variable label ≤ 80 字符 (Stata 硬限)
 
@@ -93,8 +103,32 @@ COLLAB_MODE_VALUE_LABELS: Dict[int, str] = {
 }
 
 
+def _map_categorical_failloud(series: pd.Series, encoding: Dict[str, int], col: str) -> pd.Series:
+    """fix(omni-g-stata-export-04/11, 2026-06-11): 类别映射 + 未登记值 fail-loud 守卫.
+
+    pandas ``.map()`` 对不在映射表内的非空值静默返回 NaN — 上游 LLM 噪声/新类别
+    (如 '不适用'、空白变体) 会与『真缺失』在 .dta 中不可区分地合流。此处对账
+    notna-before vs isna-after, 任何未登记类别值直接 raise (而非静默丢值)。
+    """
+    mapped = series.map(encoding)
+    unmapped = series.notna() & mapped.isna()
+    if unmapped.any():
+        samples = series[unmapped].astype(str).unique()[:5].tolist()
+        raise ValueError(
+            f"encode_categorical_columns: 列 '{col}' 含 {int(unmapped.sum())} 个未登记"
+            f"类别值 (不在编码表 {sorted(encoding)} 中), 样本: {samples}. "
+            f"静默 NaN 化会与真缺失合流 — 请先在上游清洗或扩充编码映射表."
+        )
+    return mapped.astype('Int8')
+
+
 def encode_categorical_columns(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Dict[int, str]]]:
     """把 stage 3 字符串列编码为 byte 0/1 + 收集 value labels.
+
+    fix(omni-g-stata-export-11/14, 2026-06-11) 披露: 当前 bank-year panel 不含
+    这 6 个文章级 str 列 (encode.py 聚合期已消费), 本函数对其恒为 no-op →
+    value_labels={} — 保留以服务未来文章级/众数面板导出场景。
+    未登记类别值 fail-loud raise 而非静默 NaN (见 _map_categorical_failloud)。
 
     Args:
         df: panel DataFrame 含 innovation_locus_{full,ctx} 与
@@ -107,33 +141,45 @@ def encode_categorical_columns(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str
 
     for col in ['innovation_locus_full', 'innovation_locus_ctx']:
         if col in df.columns:
-            df[col] = df[col].map(LOCUS_ENCODING).astype('Int8')
+            df[col] = _map_categorical_failloud(df[col], LOCUS_ENCODING, col)
             value_labels[col] = LOCUS_VALUE_LABELS
 
     for col in ['innovation_substantiveness_full', 'innovation_substantiveness_ctx']:
         if col in df.columns:
-            df[col] = df[col].map(SUBSTANTIVENESS_ENCODING).astype('Int8')
+            df[col] = _map_categorical_failloud(df[col], SUBSTANTIVENESS_ENCODING, col)
             value_labels[col] = SUBSTANTIVENESS_VALUE_LABELS
 
     # v3.4.0: 第三维度 collab_mode encoding (Chesbrough 2003)
     for col in ['innovation_collab_mode_full', 'innovation_collab_mode_ctx']:
         if col in df.columns:
-            df[col] = df[col].map(COLLAB_MODE_ENCODING).astype('Int8')
+            df[col] = _map_categorical_failloud(df[col], COLLAB_MODE_ENCODING, col)
             value_labels[col] = COLLAB_MODE_VALUE_LABELS
 
     return df, value_labels
 
 
-def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
-    """为每列生成 ≤ 80 字符英文 variable label.
+def build_variable_labels(
+    df: pd.DataFrame,
+    rename_map: Dict[str, str] = None,
+) -> Dict[str, str]:
+    """为每列生成 ≤ 80 字节英文 variable label.
+
+    fix(omni-g-stata-export-05/09, 2026-06-11): 新增 rename_map 参数
+    ({short_stata_name: original_panel_name}) — codebook meta 与
+    HEURISTIC_LABELS 均以原始 panel 列名为键, 此前被 shorten/asciify 改名的
+    列按短名查找必 miss, 人工标签静默退化为列名 fallback。
 
     优先级:
-        1. codebook.py::get_variable_metadata_dict()[col].label (若存在)
-        2. heuristic 基于列名命名规则 (locus_full → "..." 等)
-        3. fallback: 列名本身
+        1. codebook meta[原名].label (若改名, 先按原名查)
+        2. HEURISTIC_LABELS[原名]
+        3. codebook meta[短名].label / HEURISTIC_LABELS[短名] (兜底)
+        4. fallback: 原始列名本身 (保留被截断吃掉的判别后缀信息)
 
-    所有 label 强制截断至 80 字符 (R32-H + R40-A fallback策略).
+    所有 label 强制按 UTF-8 字节边界截断至 80 字节 (R32-H + R40-A;
+    fix(omni-g-stata-export-02/08, 2026-06-11): 原实现字节判定+字符切片,
+    CJK 标签『越截越长』并触发 validate_stata_compat raise).
     """
+    rename_map = rename_map or {}
     labels: Dict[str, str] = {}
     try:
         from news_process.pipeline.panel.codebook import get_variable_metadata_dict
@@ -219,25 +265,42 @@ def build_variable_labels(df: pd.DataFrame) -> Dict[str, str]:
     }
 
     for col in df.columns:
-        # 优先 codebook
-        if col in meta and hasattr(meta[col], 'label') and meta[col].label:
+        # fix(omni-g-stata-export-05/09, 2026-06-11): 改名列先按原名查
+        # (meta/HEURISTIC 以原始 panel 名为键), 短名兜底, fallback 用原名
+        orig = rename_map.get(col, col)
+        if orig in meta and hasattr(meta[orig], 'label') and meta[orig].label:
+            label = meta[orig].label
+        elif orig in HEURISTIC_LABELS:
+            label = HEURISTIC_LABELS[orig]
+        elif col != orig and col in meta and hasattr(meta[col], 'label') and meta[col].label:
             label = meta[col].label
-        elif col in HEURISTIC_LABELS:
+        elif col != orig and col in HEURISTIC_LABELS:
             label = HEURISTIC_LABELS[col]
         else:
-            # fallback: 列名 (注意中文 column 名直接用)
-            label = col
+            # fallback: 原始列名 (改名列保留判别后缀; 中文 column 名直接用)
+            label = orig
 
-        # 截断至 80 字符 (R40-A fallback)
+        # fix(omni-g-stata-export-02/08, 2026-06-11): 按 UTF-8 字节边界截断 —
+        # 与 validate_stata_compat 的字节口径一致。原实现 label[:77]+'...'
+        # 按字符切片, 对 CJK 标签 (3 字节/字符) 字节数可不减反增 (81→84 字节
+        # 『越截越长』), 必触发下游 validate raise → stage 46 硬崩。
         if len(label.encode('utf-8')) > STATA_VAR_LABEL_MAXLEN:
-            label = label[:STATA_VAR_LABEL_MAXLEN - 3] + '...'
+            truncated = label.encode('utf-8')[:STATA_VAR_LABEL_MAXLEN - 3]
+            # errors='ignore' 丢弃截断点处不完整的多字节序列 → 合法 UTF-8 边界
+            label = truncated.decode('utf-8', errors='ignore') + '...'
 
         labels[col] = label
     return labels
 
 
-def assign_core_columns(df: pd.DataFrame) -> List[str]:
+def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> List[str]:
     """按 plan v14 §9.1 (R42-A + R44-A): 划分 core 列 (≤ 2048, Stata IC 兼容).
+
+    fix(omni-g-stata-export-09, 2026-06-11): 新增 rename_map 参数
+    ({short_stata_name: original_panel_name}) — core_patterns 以原始列名声明,
+    此前 >32 字符的声明列被 shorten 改名后按原名匹配必 miss → 静默落 aux。
+    fix(omni-g-stata-export-07, 2026-06-11): 声明却缺席的 pattern 记 warning
+    (此前 ``if c in df.columns`` 静默吞掉 schema 漂移, 23 个死 pattern 零告警)。
 
     Core 列规则:
         - 主键 (target_bank, year)
@@ -246,7 +309,7 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         - dual gate 三互斥指示
         - 主子集 mean 列 (_lf × _full 隐式 + _lc × _ctx 显式对角线)
         - 主洗稿率 count
-        - 主 Bartik IV (full/ctx)
+        - 主 Bartik IV (bartik_type_iv_*, full/ctx) + fintech 稳健套 (lf)
         - 基础统计 (n_articles, frac, ln_news_coverage)
 
     Aux 列:
@@ -254,6 +317,7 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         - inter-track κ
         - 历史保留列
     """
+    rename_map = rename_map or {}
     core_patterns = [
         # 主键
         'target_bank', 'year',
@@ -272,6 +336,10 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         'innovation_collab_mode_full', 'innovation_collab_mode_ctx',
         'innovation_collab_mode_confidence_full', 'innovation_collab_mode_confidence_ctx',
         'category_confidence_full', 'category_confidence_ctx',
+        # fix(omni-g-stata-export-07, 2026-06-11): panel 级实际聚合列名
+        # (encode.py 产出 avg_category_confidence; 轨后缀版预留给 g-encode 组修复)
+        'avg_category_confidence',
+        'avg_category_confidence_full', 'avg_category_confidence_ctx',
         'avg_il_confidence_full', 'avg_il_confidence_ctx',
         'avg_iss_confidence_full', 'avg_iss_confidence_ctx',
         'avg_icm_confidence_full', 'avg_icm_confidence_ctx',
@@ -290,8 +358,13 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         # tone gap
         'tone_gap_tech_app', 'tone_gap_tech_app_lc_ctx',
         'tone_gap_sub_symb', 'tone_gap_sub_symb_sc_ctx',
-        # 主 Bartik IV (full/ctx 2 列; _title 列已随标题情感轨删除)
-        'bartik_fintech_iv_full', 'bartik_fintech_iv_ctx',  # remove-title-track
+        # 主 Bartik IV (full/ctx; _title 列已随标题情感轨删除)
+        # fix(omni-g-stata-export-07, 2026-06-11): 原声明 'bartik_fintech_iv_*'
+        # 是幻影列名 (生产代码从不产出) → 改真实列名: 主 Bartik = 银行类型
+        # bartik_type_iv_* (runner.py 'type'; iv_did.py f'bartik_{prefix}_iv{track}'),
+        # fintech 稳健套 = bartik_fintech_lf_iv_* (share=innovation_locus_full 基期占比)
+        'bartik_type_iv_full', 'bartik_type_iv_ctx',
+        'bartik_fintech_lf_iv_full', 'bartik_fintech_lf_iv_ctx',
         # 主洗稿率 count (sentiment × _full)
         'pos_symb_count_full', 'pos_symb_count_ctx',
         'neg_sub_count_full', 'neg_sub_count_ctx',
@@ -345,7 +418,32 @@ def assign_core_columns(df: pd.DataFrame) -> List[str]:
         'cross_media_alpha_full', 'cross_media_alpha_ctx',
     ]
 
-    core = [c for c in core_patterns if c in df.columns]
+    # fix(omni-g-stata-export-09, 2026-06-11): 改名列经 rename_map 反查原名匹配 —
+    # pattern 命中原名时返回 df 中的短名 (如 innovation_collab_mode_confidence_*
+    # 38/37 字符, shorten 后才存在于 df)
+    orig2short = {orig: short for short, orig in rename_map.items()}
+    core: List[str] = []
+    seen: set = set()
+    missing: List[str] = []
+    for pattern in core_patterns:
+        if pattern in df.columns:
+            target = pattern
+        elif pattern in orig2short and orig2short[pattern] in df.columns:
+            target = orig2short[pattern]
+        else:
+            missing.append(pattern)
+            continue
+        if target not in seen:
+            seen.add(target)
+            core.append(target)
+
+    # fix(omni-g-stata-export-07, 2026-06-11): 声明却缺席的 pattern 不再静默吞掉 —
+    # 记 warning 监测 schema 漂移 (列改名/退役后 core_patterns 未同步即在此暴露)
+    if missing:
+        logger.warning(
+            f"  assign_core_columns: {len(missing)} 个声明的 core pattern 在 panel 中缺席 "
+            f"(schema 漂移监测; 样本: {missing[:8]})"
+        )
 
     if len(core) > STATA_IC_MAX_VARS:
         raise ValueError(
@@ -363,8 +461,16 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
     缩写规则:
         1. 常见模式替换 (idf_score → idfsc, leave1out → l1o, 等)
         2. 若仍 > 32, 截断到 32 字符
-        3. 截断后冲突 → 后缀 _1, _2, ...
+        3. 截断后冲突 → 6-char md5 hash 后缀 (跨 run 确定性)
         4. 返回 (df_renamed, mapping) 让 codebook 记录原名
+
+    fix(omni-g-stata-export-12, 2026-06-11): used 集合预载全部原列名 (镜像
+    asciify_non_ascii_columns 的预载) — 此前 used 从空集累加, 截短名可抢占 df
+    中靠后的真实同名列, 造成 core 选列时的列身份静默交换 (值级错配)。
+    fix(omni-g-stata-export-09, 2026-06-11): 两遍式前瞻碰撞检测 — 多个长列截断
+    后 32-char 前缀相同时 (如 innovation_collab_mode_confidence_full/_ctx),
+    全部 (含先到的第一列) 加 md5 后缀; 此前首列独占裸截断名, 彻底丢失
+    _full/_ctx 判别轨后缀 (P-063 修复只救了碰撞的第二列)。
 
     Returns:
         (renamed_df, {short_name: original_name}) — codebook 可反查
@@ -374,15 +480,20 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
         ('_leave1out_', '_l1o_'),
         ('_dict_avg_tone_', '_davg_t_'),
         ('_bert_avg_pos_', '_bavg_p_'),
+        # fix(omni-g-stata-export, 2026-06-11) 模板组约定: 36-char 事件研究列
+        # car_3day_window_fintech_announcement → car_3day_window_ft_announce
+        # (27 字符; 未来双轨后缀 _full/_ctx 仍 ≤ 32, 免触发裸截断歧义)
+        ('_fintech_announcement', '_ft_announce'),
     ]
-    rename_map: Dict[str, str] = {}  # short → original
-    new_cols: List[str] = []
-    used: set = set()
     # P-063 修复 (v3.7.1): 旧 dedup 用 _1/_2 numeric suffix 截断 base
     # (`base[:MAX-2] + '_1'`), 把 32-char 区间内的关键 suffix (_full/_ctx/
     # _t0/_t1) 吃掉, 破坏 track 语义. 改用 6-char md5 hash suffix 保留尽量
     # 多的 discriminating chars + 跨 run 确定性 (同 col 总产同 hash).
     import hashlib as _hashlib  # 局部 import 避免 module-level 污染
+    from collections import Counter as _Counter
+
+    # Pass 1: 计算每列暂定短名 (缩写 → 截断), 不做去重
+    tentative: List[str] = []
     for col in df.columns:
         new_col = col
         if len(new_col) > STATA_VAR_NAME_MAXLEN:
@@ -394,11 +505,28 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
         # 仍超 → 截断
         if len(new_col) > STATA_VAR_NAME_MAXLEN:
             new_col = new_col[:STATA_VAR_NAME_MAXLEN]
-        # 冲突处理: 用 md5 hash suffix 保 discriminating chars
-        if new_col in used:
-            base = new_col[:STATA_VAR_NAME_MAXLEN - 7]
-            h = _hashlib.md5(col.encode('utf-8')).hexdigest()[:6]
-            new_col = f"{base}_{h}"
+        tentative.append(new_col)
+
+    # Pass 2: 碰撞消解 — used 预载全部原列名 + 暂定名计数前瞻
+    tentative_counts = _Counter(tentative)
+    used: set = set(df.columns)  # omni-12: 不得抢占任何既有真实列名
+    rename_map: Dict[str, str] = {}  # short → original
+    new_cols: List[str] = []
+    for col, new_col in zip(df.columns, tentative):
+        if new_col != col:
+            collides = (
+                tentative_counts[new_col] > 1   # omni-09: 与其他列暂定短名相撞 (含首列)
+                or new_col in used              # omni-12: 与既有列名 / 已分配短名相撞
+            )
+            if collides:
+                base = new_col[:STATA_VAR_NAME_MAXLEN - 7]
+                h = _hashlib.md5(col.encode('utf-8')).hexdigest()[:6]
+                new_col = f"{base}_{h}"
+                if new_col in used:  # md5 仍撞 (理论上几乎不可能) → fail loud
+                    raise ValueError(
+                        f"shorten_long_column_names: md5 去重后仍冲突 '{new_col}' "
+                        f"(原列 '{col}') — 请人工指定缩写映射."
+                    )
         used.add(new_col)
         new_cols.append(new_col)
         if new_col != col:
@@ -488,28 +616,56 @@ def validate_stata_compat(df: pd.DataFrame, var_labels: Dict[str, str]) -> None:
         )
 
 
+def _stata_string_literal(text: str) -> str:
+    """fix(omni-g-stata-export-06, 2026-06-11): 生成 Stata 安全字符串字面量.
+
+    Stata 简单双引号串不支持 ``""`` 加倍转义 (``"a""b"`` 解析为两个相邻 token
+    → r(198) invalid syntax, 行首 capture 静默吞掉 → 标签丢失且无报错), 嵌入
+    引号必须用 compound double quotes ``\\`"..."'``。另: 双引号串 (含 compound)
+    内 ``$`` / ``\\``` 触发 Stata macro 展开 → 反斜杠转义 ([U] 18.3.11);
+    转义 ``\\``` 同时阻止内嵌 ``\\`"`` 抬高 compound 嵌套层级。
+    """
+    safe = text.replace('$', r'\$').replace('`', r'\`')
+    # 残余 `"'` 闭合序列 (" 紧跟 ') 会提前终结 compound 串 → 插空格消解
+    safe = safe.replace('"\'', '" \'')
+    return '`"' + safe + '"\''
+
+
 def write_labels_do_file(
     out_path: str,
     var_labels: Dict[str, str],
     value_labels: Dict[str, Dict[int, str]],
+    backend_name: str = '',
 ) -> None:
     """生成 Stata .do 脚本: variable labels + value labels + apply.
+
+    fix(omni-g-stata-export-06, 2026-06-11): 标签输出改 compound double quotes
+    (原 ``""`` 加倍转义非 Stata 合法语法, 含 ``"``/``$`` 的标签被 capture 静默丢弃)。
 
     Args:
         out_path: 输出 .do 路径
         var_labels: {var_name: english_label}
         value_labels: {var_name: {int_code: label_string}}
+        backend_name: fix(omni-g-stata-export-03/15, 2026-06-11) 产物指纹 —
+            实际写 .dta 的 backend ('pyreadstat' | 'pandas'), 空串则省略该注释行
     """
     lines: List[str] = [
         '* news_process v3.2.0 — Stata variable/value labels (plan v14 §9.1)',
         '* Generated by news_process.pipeline.panel.stata_export.write_labels_do_file',
-        '',
-        '* Section 1: Variable labels (每列加 ≤ 80 字符英文说明)',
     ]
+    if backend_name:
+        # omni-03/15: backend 指纹 — pandas fallback 产物不含 embedded value labels
+        # (须跑本 .do apply), 且 nullable Int 存储宽度与 pyreadstat 不同 (byte vs long)
+        lines.append(f'* .dta writer backend: {backend_name}'
+                     + (' (fallback; .dta 无 embedded value labels — 须 run 本脚本 apply)'
+                        if backend_name == 'pandas' else ''))
+    lines.extend([
+        '',
+        '* Section 1: Variable labels (每列加 ≤ 80 字节英文说明)',
+    ])
     for col, label in var_labels.items():
-        # Stata `label var` 语法: label var <name> "<label>"
-        safe_label = label.replace('"', '""')
-        lines.append(f'capture label var {col} "{safe_label}"')
+        # Stata `label var` 语法: label var <name> `"<label>"' (compound quotes)
+        lines.append(f'capture label var {col} {_stata_string_literal(label)}')
 
     lines.extend([
         '',
@@ -518,15 +674,24 @@ def write_labels_do_file(
 
     # locus_lbl (共享)
     lines.append('capture label drop locus_lbl')
-    lines.append('label define locus_lbl 0 "底层技术 (Technology)" 1 "应用场景 (Application)"')
+    lines.append(
+        f'label define locus_lbl 0 {_stata_string_literal("底层技术 (Technology)")} '
+        f'1 {_stata_string_literal("应用场景 (Application)")}'
+    )
 
     # subst_lbl (共享)
     lines.append('capture label drop subst_lbl')
-    lines.append('label define subst_lbl 0 "实质性 (Substantive)" 1 "象征性 (Symbolic)"')
+    lines.append(
+        f'label define subst_lbl 0 {_stata_string_literal("实质性 (Substantive)")} '
+        f'1 {_stata_string_literal("象征性 (Symbolic)")}'
+    )
 
     # v3.4.0: collab_mode_lbl (Chesbrough 2003 + L&S 2006 SMJ; 第三维度)
     lines.append('capture label drop collab_mode_lbl')
-    lines.append('label define collab_mode_lbl 0 "自主研发 (Independent R&D)" 1 "外部协同 (External Collab)"')
+    lines.append(
+        f'label define collab_mode_lbl 0 {_stata_string_literal("自主研发 (Independent R&D)")} '
+        f'1 {_stata_string_literal("外部协同 (External Collab)")}'
+    )
 
     lines.append('')
     lines.append('* Apply value labels to encoded columns')
@@ -547,9 +712,62 @@ def write_labels_do_file(
     logger.info(f"  Stata labels .do 已写入: {out_path} ({len(lines)} 行)")
 
 
+def upcast_unsafe_int8_columns(
+    df: pd.DataFrame,
+    value_labels: Dict[str, Dict[int, str]] = None,
+    force_non_labeled: bool = True,
+) -> pd.DataFrame:
+    """fix(omni-g-stata-export-01, 2026-06-11): 计数列导出禁止 Int8 (KNOWN-OPEN ⑥).
+
+    Stata byte 类型合法值域为 [-127, 100]; 101..126 是 extended missing 码位
+    (.a-.z)。pyreadstat 直写 int8∈[101,126] 会被 Stata 读成缺失码 (值静默损坏);
+    pandas fallback 的 ``_cast_to_stata_types`` 则自动升 int16 — 两后端语义分叉。
+
+    统一策略 (主控裁决 2026-06-11):
+        - 非 value-labeled 的 int8/Int8 计数列 (tone_sum / pos_count / neg_count
+          等) 一律升 Int16 — 实测 gpt54nano_tone_sum_full max=100 已压满 byte
+          上限零余量, 任何增长即触雷 (``force_non_labeled=True``);
+        - value-labeled 0/1 编码列保持 byte (构造上安全), 但实际值越出
+          [-127, 100] 时仍防御性升型 + warning。
+
+    Args:
+        df: 待写出 DataFrame
+        value_labels: {var_name: {code: label}} — 键为当前 df 列名
+        force_non_labeled: True=非 value-labeled int8 全升 (export 主流程);
+            False=仅按值域升 (backend 写出前的最终安全网)
+    """
+    value_labels = value_labels or {}
+    out = df.copy()
+    for col in out.columns:
+        dtype_name = str(out[col].dtype)
+        if dtype_name not in ('int8', 'Int8'):
+            continue
+        target = 'Int16' if dtype_name == 'Int8' else 'int16'
+        if force_non_labeled and col not in value_labels:
+            out[col] = out[col].astype(target)
+            continue
+        s = out[col]
+        mx, mn = s.max(skipna=True), s.min(skipna=True)
+        if pd.notna(mx) and (mx > 100 or mn < -127):
+            logger.warning(
+                f"  upcast_unsafe_int8_columns: 列 '{col}' int8 值域 [{mn}, {mx}] "
+                f"越出 Stata byte 合法域 [-127, 100] → 防御升型 {target} "
+                f"(101..126 直写会被读成 extended missing 码)"
+            )
+            out[col] = out[col].astype(target)
+    return out
+
+
 def _write_dta_pyreadstat(df, path, value_labels, var_labels):
-    """Backend 1 (推荐): pyreadstat 全功能写入 (value labels + 中文 + extended missing)."""
+    """Backend 1 (推荐): pyreadstat 写入 (embedded value labels + 中文 labels).
+
+    fix(omni-g-stata-export-10/13, 2026-06-11): 移除原 docstring 的 extended
+    missing 声称 — 本后端不传 missing_user_values, 全部 NaN 落盘为 sysmiss '.'。
+    fix(omni-g-stata-export-01, 2026-06-11): 写出前对越出 byte 合法值域的 int8
+    列防御升型 (与 pandas _cast_to_stata_types 语义对齐), 防 101..126 损值。
+    """
     import pyreadstat
+    df = upcast_unsafe_int8_columns(df, value_labels, force_non_labeled=False)
     pyreadstat.write_dta(
         df, path,
         variable_value_labels=value_labels,
@@ -560,10 +778,15 @@ def _write_dta_pyreadstat(df, path, value_labels, var_labels):
 def _write_dta_pandas_fallback(df, path, value_labels, var_labels):
     """Backend 2 (fallback): pandas 原生 .to_stata().
 
-    限制 (相比 pyreadstat):
-        - 无 value labels (需用 labels.do 手动 apply)
-        - 无 extended missing (.a/.b/.c)
-        - 仅 variable label 通过 variable_labels 参数支持
+    与 pyreadstat 后端的行为差异 (fix(omni-g-stata-export-03, 2026-06-11)
+    docstring 与事实对齐):
+        - 不嵌入 value labels — pandas≥1.4 ``to_stata(value_labels=)`` 原生支持,
+          但本项目刻意不传 (主控裁决 2026-06-11): labels.do 是唯一 apply 路径,
+          避免两后端各自半套 value-label 语义; 差异在 _select_dta_backend WARN 明示
+        - 无 extended missing (.a/.b/.c) — pyreadstat 路径同样未实现, 两后端
+          一致全写 sysmiss '.'
+        - nullable Int 存储宽度可能不同 (pandas 写 byte/int 最小宽度;
+          pyreadstat 写 nullable Int 升格 long) → .dta 二进制随后端漂移
     但不需要额外安装 pyreadstat, 让用户在 minimal install 下也能跑 stage 46.
     """
     # pandas to_stata 接受 dict-form variable_labels
@@ -576,15 +799,23 @@ def _write_dta_pandas_fallback(df, path, value_labels, var_labels):
 
 
 def _select_dta_backend():
-    """探测可用 .dta 写入 backend; 优先 pyreadstat (功能更全)."""
+    """探测可用 .dta 写入 backend; 优先 pyreadstat (功能更全).
+
+    fix(omni-g-stata-export-03/15, 2026-06-11): backend 由 import 探测静默决定,
+    产物语义随环境漂移 (embedded value labels 有/无 + 存储宽度 byte vs long) —
+    fallback 时 WARN 明示差异, 并由 export 主流程把 backend 名写进 labels.do
+    头注释与日志作产物指纹。
+    """
     try:
         import pyreadstat  # noqa: F401
         return 'pyreadstat', _write_dta_pyreadstat
     except ImportError:
         logger.warning(
-            "  pyreadstat 未装, fallback 到 pandas to_stata. "
-            "限制: value labels 需用 labels.do 手动 apply; extended missing 不支持. "
-            "推荐: pip install pyreadstat>=1.2 启用全功能."
+            "  pyreadstat 未装, fallback 到 pandas to_stata — 产物与 pyreadstat 后端"
+            "不等价: (1) .dta 不含 embedded value labels, 须手动 run labels.do apply; "
+            "(2) nullable Int 存储宽度可能不同 (byte/int vs long), .dta 二进制不可跨"
+            "后端复现; (3) extended missing 两后端均不支持. "
+            "推荐: pip install pyreadstat>=1.2 锁定单一后端."
         )
         return 'pandas', _write_dta_pandas_fallback
 
@@ -598,6 +829,12 @@ def export_panel_to_stata(
 
     v3.2.0 M1/7 (此 commit): pyreadstat 改为 OPTIONAL, fallback 到 pandas to_stata.
     解除 plan v14 §9.4 的"硬依赖"约束, 让用户在 minimal install 下也能产 .dta.
+
+    fix(omni-g-stata-export, 2026-06-11) 语义变更披露: ① 非 value-labeled 计数
+    Int8 列升 Int16 写出 (byte 缺失码位防损值); ② shorten/asciify 改名后
+    value_labels 键全程同步 + rename_map 链式压平, build_variable_labels /
+    assign_core_columns 经原名反查 (改名列标签/core 归属不再静默丢失);
+    ③ labels.do 头部带 backend 指纹。
 
     Args:
         panel_path: 输入 40_panel_yearly.parquet 路径
@@ -622,6 +859,11 @@ def export_panel_to_stata(
     # 1. 类别变量编码 (中文 str → byte 0/1)
     df_encoded, value_labels = encode_categorical_columns(df)
 
+    # 1a'. fix(omni-g-stata-export-01, 2026-06-11): 计数列禁 Int8 — 非 value-labeled
+    # int8/Int8 列升 Int16 (Stata byte 上限 100 零余量; 101..126 是缺失码位,
+    # pyreadstat 直写损值 / pandas 静默升型 → 两后端在此统一)
+    df_encoded = upcast_unsafe_int8_columns(df_encoded, value_labels)
+
     # 1b. v3.2.0 M3/7: 自动缩短超 32 字符列名 (Stata 硬限) + 记录 mapping
     df_encoded, rename_map = shorten_long_column_names(df_encoded)
     if rename_map:
@@ -630,6 +872,12 @@ def export_panel_to_stata(
             logger.info(f"    {orig} → {short}")
         if len(rename_map) > 3:
             logger.info(f"    ... +{len(rename_map) - 3} more (full mapping in codebook.xlsx)")
+        # fix(omni-g-stata-export-05/09, 2026-06-11): shorten 改名后同步 value_labels
+        # 键 (此前仅 asciify 后同步 → 未来 >32 字符 value-labeled 列的 value label
+        # 悬空: pyreadstat 引用不存在列 / labels.do apply 被 capture 静默吞掉)
+        if value_labels:
+            _orig2short = {orig: short for short, orig in rename_map.items()}
+            value_labels = {_orig2short.get(k, k): v for k, v in value_labels.items()}
 
     # 1c. H3 (audit-fixes 2026-05-29): 把残留非 ASCII (中文) 列名转写为合法
     # Stata 变量名 (正面/负面/中性 → pos/neg/neu)。此前缺该步, 117 个中文列名
@@ -645,15 +893,24 @@ def export_panel_to_stata(
             _orig2new = {orig: new for new, orig in ascii_map.items()}
             value_labels = {_orig2new.get(k, k): v for k, v in value_labels.items()}
         rename_map.update(ascii_map)
+        # fix(omni-g-stata-export-05, 2026-06-11): 链式改名压平 — 列被 shorten 又
+        # asciify 时 ascii_map 的 value 是中间名, 反查需指回最初 panel 原名
+        def _chase_original(name: str) -> str:
+            seen = set()
+            while name in rename_map and name not in seen:
+                seen.add(name)
+                name = rename_map[name]
+            return name
+        rename_map = {k: _chase_original(v) for k, v in rename_map.items()}
 
-    # 2. 生成 variable labels (基于新 (短/ASCII) 列名)
-    var_labels = build_variable_labels(df_encoded)
+    # 2. 生成 variable labels (改名列经 rename_map 反查原名命中 codebook/HEURISTIC)
+    var_labels = build_variable_labels(df_encoded, rename_map=rename_map)
 
     # 3. Stata 兼容性校验 (plan v14 §9.5; 缩短后应全过)
     validate_stata_compat(df_encoded, var_labels)
 
-    # 4. core/aux 拆分 (plan v14 §9.1 R42-A + R44-A)
-    core_cols = assign_core_columns(df_encoded)
+    # 4. core/aux 拆分 (plan v14 §9.1 R42-A + R44-A; 改名列经 rename_map 反查)
+    core_cols = assign_core_columns(df_encoded, rename_map=rename_map)
     aux_cols = [c for c in df_encoded.columns if c not in core_cols]
 
     # 5. 写 .dta 三件套 (经 backend 抽象, 兼容 pyreadstat / pandas)
@@ -674,9 +931,9 @@ def export_panel_to_stata(
         write_dta(df_encoded[aux_with_keys], aux_path, aux_value_labels, var_labels)
         logger.info(f"  Aux .dta 已写入: {aux_path} ({len(aux_with_keys)} 列)")
 
-    # 6. labels .do
+    # 6. labels .do (omni-03/15: 带 backend 指纹)
     labels_path = os.path.join(output_dir, f'{output_prefix}_labels.do')
-    write_labels_do_file(labels_path, var_labels, value_labels)
+    write_labels_do_file(labels_path, var_labels, value_labels, backend_name=backend_name)
 
     # 7. codebook .xlsx (依赖 codebook.py)
     codebook_path = os.path.join(output_dir, f'{output_prefix}_codebook.xlsx')

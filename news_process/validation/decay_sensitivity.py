@@ -15,14 +15,27 @@ v3.6.0 (Plan E P7 C4 stub):
 
 功能：
     比较均匀权重 vs 距离衰减权重对词典法情感得分的影响。
-    验证主结果是否对窗口内权重选择具有稳健性。
+    验证词典情感得分在衰减权重族内 (radius=2) 是否稳健。
 
 设计定位：
     稳健性变体 — 不替换现有 full/ctx 双轨设计，
     仅作为论文 Appendix 的一行结论。
 
+与生产主测度的口径差异 (fix(omni-g-val-robust-04, 2026-06-11) 披露):
+    本检验的 uniform 列 **不是** 生产 ctx 测度的数值锚点, 存在三重口径差异:
+      1. 窗口半径: 本模块 sentence_radius=2, 生产 ctx 轨 = 1
+         (config/filtering.yaml: sentence_radius);
+      2. 估计量: 本模块 = 句级归一化 tone 的加权平均 (mean-of-ratios),
+         生产 22_tone_words = 整窗 token 池化 score/(pos+neg) (ratio-of-sums) —
+         1 个命中词的句与 10 个命中词的句在前者等权、后者按命中数加权,
+         数学上非同一估计量;
+      3. 输入文本: 本模块读原始 `内容` 列, 生产两轨自 v3.8.0 起读
+         prepend_title 注入标题后的文本。
+    因此本检验的结论只支持 "词典得分在 radius=2 的衰减权重族内稳健",
+    不可直接表述为 "主结果对权重方案不敏感"。
+
 衰减函数 (3 种固定形式，不做超参搜索):
-    1. uniform:     w(d) = 1          (当前默认 — 等权基准)
+    1. uniform:     w(d) = 1          (族内等权基准 — 非生产 ctx 口径, 见上方披露)
     2. inverse:     w(d) = 1/(1+d)    (倒数衰减 — 调和递减)
     3. exponential: w(d) = exp(-0.5d)  (指数衰减 — 半生命期 ≈ 1.4 句)
 
@@ -180,7 +193,9 @@ TONE_DICTS_FILE = CONFIG['paths'].get(
 #
 # 设计考量:
 #   - 所有函数在 d=0 时权重 = 1.0 (命中句本身获得最大权重)
-#   - uniform 作为基准 (当前管道默认), inverse 和 exponential 作为对比
+#   - uniform 作为族内基准 (fix(omni-g-val-robust-04, 2026-06-11): 非生产主测度
+#     数值锚点 — 窗口/估计量/输入文本三重口径差异见模块 docstring 披露),
+#     inverse 和 exponential 作为对比
 #   - inverse 衰减较快 (调和级数), exponential 衰减适中
 #   - lambda 参数使用 closure, 无运行时开销
 #
@@ -463,7 +478,10 @@ def compute_decay_sentiment(
 
     该公式确保:
         - 距离越近的句子对最终得分贡献越大
-        - uniform 衰减等价于简单平均 (当前管道默认)
+        - uniform 衰减等价于句级简单平均 (族内基准;
+          fix(omni-g-val-robust-04, 2026-06-11): 生产 22_tone_words 为整窗
+          token 池化 ratio-of-sums, 与本式 mean-of-ratios 非同一估计量,
+          勿当作 "当前管道默认" 的数值锚点 — 见模块 docstring 披露)
         - 分母 Σ w(d_s) 归一化, 使不同衰减函数的得分量级可比
 
     Args:
@@ -619,6 +637,9 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
     论文建议用语:
       当 min Pearson ≥ 0.90 时, 自动生成英文论文建议用语,
       引用 Sautner et al. (2023) 作为方法论依据。
+      fix(omni-g-val-robust-04, 2026-06-11): 用语限定为衰减权重族内
+      (within the decay-weighting family at radius 2) 的稳健性, 不声称
+      "主结果对权重方案不敏感" — 口径差异见模块 docstring 披露。
 
     Args:
         score_df: 得分矩阵 (由 run_analysis() 生成)。
@@ -685,25 +706,36 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
         logger.info(f"  平均 Pearson = {avg_pr:.4f}, 最低 = {min_pr:.4f}")
 
         # 稳健性判定 (三级阈值体系)
+        # fix(omni-g-val-robust-04, 2026-06-11): 结论措辞限定为 "衰减权重族内
+        # (radius=2)" — uniform 列与生产 ctx 测度有三重口径差 (窗口半径 2 vs 1 /
+        # mean-of-ratios vs ratio-of-sums / 无标题 prepend), 高相关只证明衰减
+        # 权重内部稳健, 不直接证明 "主结果" 对权重不敏感。详见模块 docstring。
         if min_pr >= 0.95:
-            logger.info("  ✅ 结论: 主结果对权重选择高度不敏感 (min r ≥ 0.95)")
-            logger.info("  → 论文建议: 一句话在 Appendix 中说明即可")
+            logger.info("  ✅ 结论: 词典得分在衰减权重族内 (radius=2) 高度不敏感 (min r ≥ 0.95)")
+            logger.info("  → 论文建议: 一句话在 Appendix 中说明即可 (限定族内稳健口径)")
         elif min_pr >= 0.90:
-            logger.info("  ✓ 结论: 主结果对权重选择基本不敏感 (min r ≥ 0.90)")
-            logger.info("  → 论文建议: Appendix 中报告相关性表格")
+            logger.info("  ✓ 结论: 词典得分在衰减权重族内 (radius=2) 基本不敏感 (min r ≥ 0.90)")
+            logger.info("  → 论文建议: Appendix 中报告相关性表格 (限定族内稳健口径)")
         else:
-            logger.info("  结论: 权重选择有一定影响 (min r < 0.90)")
+            logger.info("  结论: 衰减权重在族内有一定影响 (min r < 0.90)")
             logger.info("  → 论文建议: 在正文中讨论衰减函数的影响")
 
         # 论文建议用语 (英文, 供直接复制到论文中)
         logger.info("")
         logger.info("  ── 论文建议用语 ──")
         if min_pr >= 0.90:
+            # fix(omni-g-val-robust-04, 2026-06-11): 不再生成 "confirming that our
+            # main results are insensitive to the weighting scheme" 的过度声称,
+            # 改为限定 within-family + 显式披露与生产测度的口径差异。
             logger.info('  "As a robustness check, we implement Sautner et al. (2023)-style')
-            logger.info('   distance decay weighting. The Pearson correlation between')
-            logger.info(f'   uniform and inverse-decay weighted sentiment exceeds {min_pr:.2f}')
-            logger.info('   across all five dictionaries, confirming that our main results')
-            logger.info('   are insensitive to the weighting scheme."')
+            logger.info('   distance decay weighting over sentence windows of radius 2.')
+            logger.info('   The Pearson correlation between uniform and decay-weighted')
+            logger.info(f'   dictionary sentiment exceeds {min_pr:.2f} across all five')
+            logger.info('   dictionaries, indicating that dictionary sentiment is insensitive')
+            logger.info('   to the choice of distance-decay weights within this family.')
+            logger.info('   This exercise uses sentence-level normalized scores at radius 2')
+            logger.info('   and is not numerically anchored to the production')
+            logger.info('   context-window measure."')
     else:
         logger.warning("  未能计算任何相关系数 (可能数据量不足)")
 

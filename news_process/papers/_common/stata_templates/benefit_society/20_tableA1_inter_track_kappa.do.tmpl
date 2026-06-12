@@ -104,4 +104,17 @@ file write f1 "discriminative info concentrates in pos/neg_frac (rho=0.459)." _n
 file write f1 "\end{tablenotes}\end{table}" _newline
 file close f1
 
-display _newline "[OK] Table A1 written to $tables_dir/tableA1_inter_track_kappa.tex"
+* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — 本表是 file-write 手工
+* .tex (非 esttab, 无 \multicolumn 头 → parse_esttab_tex 回退不可解析); 直接写
+* stata_postprocess.parse_esttab_csv 兼容 CSV (首行=header, 首列=变量名, 缺测
+* 单元格留空) 供 papers/benefit_society/tables.py:build_table_a1_inter_track_kappa
+* 消费。
+file open f2 using "$tables_dir/tableA1_inter_track_kappa.csv", write replace
+file write f2 "field,Article-Pearson,Article-Spearman,BankYear-Pearson" _newline
+file write f2 "llm_prob_score,`article_rho_pearson',`article_rho_spearman'," _newline
+file write f2 "benefit_mean,,,`rho_mean'" _newline
+file write f2 "benefit_pos_frac,,,`rho_pos'" _newline
+file write f2 "benefit_neg_frac,,,`rho_neg'" _newline
+file close f2
+
+display _newline "[OK] Table A1 written to $tables_dir/tableA1_inter_track_kappa.tex (+ .csv side-channel)"

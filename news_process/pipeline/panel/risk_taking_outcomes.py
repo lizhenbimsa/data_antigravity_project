@@ -12,11 +12,12 @@ V4 audit DC2 + C2 deliverable (2026-05-18).
 输出
 ----
 - data/processed/49_risk_taking_outcomes.parquet
-  schema: target_bank × year × {
+  schema: target_bank × year × OUTPUT_OUTCOME_COLS (权威列表见下方常量), 含
       z_score, npl_formation_rate, rwa_to_ta_ratio,
       sigma_roa_5y_rolling, loan_loss_provision_discretion,
+      zero_var_flag (σ(ROA)≈0 零方差剔除指示, omni g-risk-06),
+      stock_quarter_used (stock 快照参考季度, omni g-risk-02),
       is_soe, bank_type_id, implicit_guarantee_tier  (from bank_list.yaml)
-  }
 
 Z-score 计算
 ------------
@@ -26,11 +27,16 @@ Z_score[b, t] = (ROA[b, t] + CAR[b, t]) / sigma_roa_5y_rolling[b, t]
     sigma_roa_5y_rolling[b, t] = std(ROA[b, t-4..t])  if  count(non-NaN) >= 4
                                = NaN                  otherwise
 
+日历语义 (fix omni-g-risk-01, 2026-06-11): rolling 窗口与全部 lag-1 均先按银行
+reindex 到连续年网格 (缺年 → NaN 行) 再计算 — 缺年作为 NaN 观测参与
+min_periods 计数, gap year 不会被静默当作相邻年 (位置语义 → 日历语义)。
+
 NPL formation rate 计算
 ----------------------
 NPL_formation[b, t] = (NPL_balance[b, t] - NPL_balance[b, t-1] + writeoffs[b, t])
                      / Total_loans[b, t-1]
 
+NPL_balance[b, t-1] / Total_loans[b, t-1] 均为 *日历* t-1 (缺年 → NaN, 见上)。
 writeoffs 缺失时 fallback 为 0 (会保守低估 NPL formation).
 
 V4 audit 修复对应
@@ -40,6 +46,9 @@ V4 audit 修复对应
 - F5.3 NPL formation 公式: 已注入 writeoffs 修正项
 - F5.5 winsorize: 1%/5% 选项 (default 不 winsorize, 留给 stage 51)
 - Fallback path α/β/γ: 通过 outcome 列可得率自动判定 (path γ → 仅保留 ROA + NPL ratio)
+- omni 2026-06-11 (g-risk-01..06): 连续年网格日历语义 / stock 单一参考季度快照 /
+  flow YTD de-cumulation 启发式 / window-min_periods 耦合校验 /
+  LLP 分母改 Loans_{t-1} / σ≈0 零方差剔除 zero_var_flag 披露
 """
 from __future__ import annotations
 
@@ -76,11 +85,16 @@ INPUT_OUTCOME_COLS = [
 OUTPUT_OUTCOME_COLS = [
     'target_bank', 'year',
     'z_score',
+    'zero_var_flag',                    # fix(omni-g-risk-06, 2026-06-11): σ(ROA)≈0
+                                        # → z_score 置 NaN 的零方差剔除指示 (1=被剔)
     'npl_formation_rate',
     'writeoffs_imputed',                # v3.7.0 M7: writeoffs imputation indicator
     'rwa_to_ta_ratio',
     'sigma_roa_5y_rolling',
-    'loan_loss_provision_discretion',   # raw LLP/Loans ratio; BW 2012 residual 在 Stata
+    'loan_loss_provision_discretion',   # raw LLP_t/Loans_{t-1} ratio (omni g-risk-05);
+                                        # BW 2012 residual 在 Stata
+    'stock_quarter_used',               # fix(omni-g-risk-02, 2026-06-11): stock 类
+                                        # 单一参考季度 (快照季度号, 无共同季度→NaN)
     'roa',                              # 保留原始字段供 fallback path γ
     'npl_ratio',
     'is_soe',
@@ -92,14 +106,33 @@ OUTPUT_OUTCOME_COLS = [
 def aggregate_quarterly_to_yearly(df_quarterly: pd.DataFrame) -> pd.DataFrame:
     """季度数据聚合为年度.
 
-    v3.7.0 (M8 修复): stock 类不再仅取 Q4, 而是 fallback 到 *最后可得季度*.
-    避免 Q4 缺失即全年丢失的边界 bug.
+    v3.7.0 (M8 修复): stock 类不再仅取 Q4, 而是 fallback 到可得季度.
 
-    财务量类 (stock): 该 bank-year *最后可得* 季度的值 (forward-fill semantic)
+    fix(omni-g-risk-02, 2026-06-11): stock 类改 *单一参考季度快照* — 取该
+    bank-year 内 "全部有数据的 stock 列均非 NaN" 的最后一个季度, 整行同一日期
+    取值; 无共同季度时全置 NaN, 并输出 ``stock_quarter_used`` 指示列供下游
+    稳健性。此前每列独立取各自最后非 NaN 季度, 同一比率分子分母可来自不同
+    测量日 (如 rwa(Q2)/TA(Q4), 增长银行系统性向下偏)。整列缺失 (该 bank-year
+    全 NaN) 的 stock 列不参与共同季度判定, 避免单字段缺失毒化全部 stock 值。
+
+    fix(omni-g-risk-03, 2026-06-11): flow 类 (loan_writeoffs) 不再无条件年内
+    求和。中国银行业季报核销/利润类流量按惯例为年初至今 (YTD) 累计, 且 PDF
+    年报抓取路径把 *全年值* 记为 quarter=4 一条记录 — 直接 sum 会把全年高估至
+    ~2x 并灌入 npl_formation 分子。现按 data_source + de-cumulation 启发式分流:
+      (a) data_source 列存在且该 bank-year 有 'annual_report_pdf' 非 NaN 记录
+          → 直接用该全年值 (同年混源时优先整年同源值);
+      (b) 多季非 NaN 且按季度顺序单调非降 → 视为 YTD 累计 → 取最后可得值;
+      (c) 否则 (非单调) → 视为单季流量 → 年内求和 (min_count=1 语义保留)。
+    披露: 启发式无法区分 "恰好逐季递增的真单季流量" (会被当 YTD 取末值低估);
+    抓取层统一单季口径后可移除该启发式。
+
+    财务量类 (stock): 单一参考季度快照 (见上)
         total_assets, rwa, npl_balance, total_loans, loan_loss_provision
     比率类 (intensive): 年内均值
         roa, capital_adequacy_ratio, npl_ratio
-    流量类 (flow): 年内累计 (min_count=1 → 全 NaN 时返回 NaN)
+        披露 (omni g-risk-03): 若源数据 ROA 为 YTD 年化口径, 4 季均值是全年
+        ROA 的近似而非精确值; 此处保留均值语义, 口径统一属抓取层职责。
+    流量类 (flow): YTD-aware 年度值 (见上)
         loan_writeoffs
     """
     if 'quarter' not in df_quarterly.columns:
@@ -114,13 +147,28 @@ def aggregate_quarterly_to_yearly(df_quarterly: pd.DataFrame) -> pd.DataFrame:
     intensive_avail = [c for c in intensive_cols if c in df_quarterly.columns]
     flow_avail = [c for c in flow_cols if c in df_quarterly.columns]
 
-    # Stock: 每个 (bank, year) 取 quarter 最大值, 但每列分别取最大可得 quarter
-    # (避免 Q4 缺失全年丢失). 实现: 按 (bank, year) 排序 quarter 后 last valid.
+    df_q_sorted = df_quarterly.sort_values(['target_bank', 'year', 'quarter'])
+
+    # Stock: 单一参考季度快照 (fix omni-g-risk-02, 2026-06-11)
     if stock_avail:
-        df_q_sorted = df_quarterly.sort_values(['target_bank', 'year', 'quarter'])
+        def _stock_snapshot(g: pd.DataFrame) -> pd.Series:
+            # 仅对该 bank-year 内 *有至少一个观测* 的 stock 列要求共同季度;
+            # 整列 NaN 的字段 (如该行不披露 rwa) 不毒化其余 stock 值。
+            out: dict = {c: np.nan for c in stock_avail}
+            out['stock_quarter_used'] = np.nan
+            cols_with_data = [c for c in stock_avail if g[c].notna().any()]
+            if cols_with_data:
+                joint_valid = g[cols_with_data].notna().all(axis=1)
+                if joint_valid.any():
+                    row = g.loc[joint_valid].iloc[-1]  # 最后一个共同可得季度
+                    for c in stock_avail:
+                        out[c] = row[c]
+                    out['stock_quarter_used'] = row['quarter']
+            return pd.Series(out)
+
         df_stock = (df_q_sorted
-                    .groupby(['target_bank', 'year'])[stock_avail]
-                    .apply(lambda g: g.ffill().iloc[-1])
+                    .groupby(['target_bank', 'year'])[stock_avail + ['quarter']]
+                    .apply(_stock_snapshot)
                     .reset_index())
     else:
         df_stock = pd.DataFrame(columns=['target_bank', 'year'])
@@ -135,13 +183,35 @@ def aggregate_quarterly_to_yearly(df_quarterly: pd.DataFrame) -> pd.DataFrame:
     else:
         df_intensive = pd.DataFrame(columns=['target_bank', 'year'])
 
-    # 年内累计 (flow)
+    # 年度流量 (flow): YTD-aware (fix omni-g-risk-03, 2026-06-11)
     if flow_avail:
-        df_flow = (
-            df_quarterly.groupby(['target_bank', 'year'])[flow_avail]
-            .sum(min_count=1)
-            .reset_index()
-        )
+        has_source = 'data_source' in df_q_sorted.columns
+
+        def _flow_year(g: pd.DataFrame) -> pd.Series:
+            out: dict = {}
+            for c in flow_avail:
+                if has_source:
+                    pdf_vals = g.loc[g['data_source'] == 'annual_report_pdf', c].dropna()
+                    if not pdf_vals.empty:
+                        # PDF 年报值即全年值, 不与季度记录相加
+                        out[c] = float(pdf_vals.iloc[-1])
+                        continue
+                s = g[c].dropna()
+                if s.empty:
+                    out[c] = np.nan          # min_count=1 语义: 全 NaN → NaN
+                elif len(s) == 1:
+                    out[c] = float(s.iloc[0])
+                elif s.is_monotonic_increasing:
+                    out[c] = float(s.iloc[-1])  # 单调非降 → YTD 累计 → 取末值
+                else:
+                    out[c] = float(s.sum())     # 非单调 → 单季流量 → 求和
+            return pd.Series(out)
+
+        flow_need = flow_avail + (['data_source'] if has_source else [])
+        df_flow = (df_q_sorted
+                   .groupby(['target_bank', 'year'])[flow_need]
+                   .apply(_flow_year)
+                   .reset_index())
     else:
         df_flow = pd.DataFrame(columns=['target_bank', 'year'])
 
@@ -155,22 +225,105 @@ def aggregate_quarterly_to_yearly(df_quarterly: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
+def _reindex_bank_year_grid(
+    df_yearly: pd.DataFrame,
+    value_cols: list[str],
+) -> pd.DataFrame:
+    """fix(omni-g-risk-01, 2026-06-11): 按银行补全连续年网格 (缺年 → NaN 行).
+
+    rolling/shift 是行位置 (positional) 语义, 而本模块 docstring 承诺日历
+    (calendar) 语义 (t-1 / t-4..t)。输入存在缺年时二者背离: shift(1) 会把多年
+    以前的值当 "上一年", rolling(window) 实际跨更长日历区间, 静默产出错误值。
+    本 helper 把每个 bank reindex 到 [year_min..year_max] 完整年网格 (缺年填
+    NaN 行), 使位置 == 日历; 调用方在 grid 上 rolling/shift 后用
+    (target_bank, year) 经 :func:`_map_grid_back` 映射回原行。
+
+    fail-loud 校验: year 非空 + (target_bank, year) 唯一 (重复键下 shift /
+    rolling 语义未定义)。
+    """
+    if df_yearly.empty:
+        # 空输入: 返回带显式 dtype 的空网格 (object dtype 会让 rolling 崩溃)
+        return pd.DataFrame({
+            'target_bank': pd.Series(dtype='object'),
+            'year': pd.Series(dtype='int64'),
+            **{c: pd.Series(dtype='float64') for c in value_cols},
+        })
+    if df_yearly['year'].isna().any():
+        raise ValueError(
+            "risk_taking_outcomes: year 列含 NaN, 无法构建日历年网格 "
+            "(rolling/lag 的日历语义未定义)"
+        )
+    dup_mask = df_yearly.duplicated(subset=['target_bank', 'year'])
+    if dup_mask.any():
+        dups = (df_yearly.loc[dup_mask, ['target_bank', 'year']]
+                .head(5).to_dict('records'))
+        raise ValueError(
+            f"risk_taking_outcomes: (target_bank, year) 存在重复键 "
+            f"(示例 {dups}), shift/rolling 语义未定义 — 请先去重/聚合"
+        )
+    frames = []
+    for bank, g in df_yearly.groupby('target_bank', sort=False):
+        y_min, y_max = int(g['year'].min()), int(g['year'].max())
+        gi = (g.assign(year=g['year'].astype('int64'))
+                .set_index('year')[value_cols]
+                .reindex(range(y_min, y_max + 1)))
+        gi.index.name = 'year'
+        gi = gi.reset_index()
+        gi['target_bank'] = bank
+        frames.append(gi)
+    return pd.concat(frames, ignore_index=True)
+
+
+def _map_grid_back(
+    df_yearly: pd.DataFrame,
+    grid: pd.DataFrame,
+    col: str,
+) -> pd.Series:
+    """把年网格上计算的列按 (target_bank, year) 映射回原始行 (索引对齐)."""
+    left = df_yearly[['target_bank', 'year']].copy()
+    left['year'] = left['year'].astype('int64')
+    right = grid[['target_bank', 'year', col]].copy()
+    right['year'] = right['year'].astype('int64')
+    merged = left.merge(right, on=['target_bank', 'year'],
+                        how='left', validate='one_to_one')
+    return pd.Series(merged[col].to_numpy(), index=df_yearly.index)
+
+
 def compute_sigma_roa_rolling(
     df_yearly: pd.DataFrame,
     window: int = 5,
     min_periods: int = 4,
 ) -> pd.Series:
-    """5-year rolling std of ROA per bank (V4 F5.2)."""
-    df_yearly = df_yearly.sort_values(['target_bank', 'year'])
-    return (
-        df_yearly.groupby('target_bank')['roa']
+    """N-year rolling std of ROA per bank (V4 F5.2), 日历窗语义.
+
+    fix(omni-g-risk-01, 2026-06-11): 先按银行 reindex 连续年网格再 rolling —
+    缺年作为 NaN 观测参与窗口 (按 min_periods 非 NaN 计数), 锁定
+    std(ROA[t-window+1..t]) 的日历语义; 此前为行位置窗, gap year 下 "5y"
+    实际跨更长日历区间且静默出值。
+
+    fix(omni-g-risk-04, 2026-06-11): min_periods > window 时自动收缩
+    min_periods = window 并警告 (此前 --rolling-window 3 + 默认 min_periods=4
+    直接 pandas ValueError, 文档承诺的 3y robustness 路径无法运行)。
+    """
+    if min_periods > window:
+        logger.warning(
+            "compute_sigma_roa_rolling: min_periods=%d > window=%d, "
+            "自动收缩 min_periods=window (耦合校验, 防 pandas ValueError)",
+            min_periods, window,
+        )
+        min_periods = window
+    grid = _reindex_bank_year_grid(df_yearly, ['roa'])
+    grid = grid.sort_values(['target_bank', 'year'])
+    grid['_sigma'] = (
+        grid.groupby('target_bank')['roa']
         .rolling(window=window, min_periods=min_periods)
         .std()
         .reset_index(level=0, drop=True)
     )
+    return _map_grid_back(df_yearly, grid, '_sigma')
 
 
-def compute_z_score(df: pd.DataFrame) -> pd.Series:
+def compute_z_score(df: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     """Bank stability Z-score = (ROA + CAR) / sigma_roa_5y_rolling.
 
     ⚠ 构念说明 (audit-fixes 2026-05-29, M2): 此处资本项用监管 Basel 资本充足率
@@ -182,11 +335,33 @@ def compute_z_score(df: pd.DataFrame) -> pd.Series:
     直引 L&L。量纲无碍 (ROA 与 CAR 同为 %, 与 sigma 约掉)。
 
     v3.7.0 (M6 修复): NaN 处理 explicit, 不依赖 NaN.abs() < eps 行为隐含.
+
+    fix(omni-g-risk-06, 2026-06-11): 返回 (z_score, zero_var_flag) 两列.
+    zero_var_flag=1 标记 σ(ROA) 非 NaN 但 |σ|<eps → z_score 被置 NaN 的观测
+    (零方差剔除)。这些恰是理论上最稳定 (Z 最大) 的银行 — 静默剔除等于对 DV
+    右尾做与稳定性相关的非随机截断, 故用指示列 + 日志计数显式披露, 供下游
+    稳健性 (winsorize σ / ln(1+Z)) 与论文披露使用; σ 为 NaN (数据缺失) 不算
+    零方差剔除, flag=0。
+
+    Returns:
+        (z_score: pd.Series, zero_var_flag: pd.Series[Int8])
     """
     numerator = df['roa'] + df['capital_adequacy_ratio']
     denominator = df['sigma_roa_5y_rolling']
-    invalid_denom = denominator.isna() | (denominator.abs() < _DIV_EPS)
-    return np.where(invalid_denom, np.nan, numerator / denominator)
+    zero_var = denominator.notna() & (denominator.abs() < _DIV_EPS)
+    invalid_denom = denominator.isna() | zero_var
+    n_censored = int(zero_var.sum())
+    if n_censored > 0:
+        logger.warning(
+            "compute_z_score: %d obs 因 σ(ROA)≈0 (零方差) z_score 置 NaN — "
+            "缺失与稳定性 (DV 本身) 相关, 见 zero_var_flag 指示列",
+            n_censored,
+        )
+    z = pd.Series(
+        np.where(invalid_denom, np.nan, numerator / denominator),
+        index=df.index,
+    )
+    return z, zero_var.astype('Int8')
 
 
 def compute_npl_formation(df_yearly: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
@@ -196,12 +371,22 @@ def compute_npl_formation(df_yearly: pd.DataFrame) -> tuple[pd.Series, pd.Series
     writeoffs_imputed=1 表示该 obs 用了 0 imputation (writeoffs 缺失) — 下游回归
     需要区分真实 0 vs imputation, 否则系数偏 (writeoffs missing 集中在小银行).
 
+    fix(omni-g-risk-01, 2026-06-11): npl_lag1/loan_lag1 改在连续年网格上
+    shift(1) — 缺年时 lag = NaN → formation = NaN (日历语义)。此前为行位置
+    shift, gap year 下会把多年前的存量当 "上一年", 静默产出错误 formation 值
+    (多年累计不良变动除以多年前贷款余额)。
+
     Returns:
         (npl_formation: pd.Series, writeoffs_imputed: pd.Series)
     """
     df_yearly = df_yearly.sort_values(['target_bank', 'year'])
-    npl_lag1 = df_yearly.groupby('target_bank')['npl_balance'].shift(1)
-    loan_lag1 = df_yearly.groupby('target_bank')['total_loans'].shift(1)
+    # fix(omni-g-risk-01, 2026-06-11): 连续年网格上 shift → 日历 t-1
+    grid = _reindex_bank_year_grid(df_yearly, ['npl_balance', 'total_loans'])
+    grid = grid.sort_values(['target_bank', 'year'])
+    grid['_npl_lag1'] = grid.groupby('target_bank')['npl_balance'].shift(1)
+    grid['_loan_lag1'] = grid.groupby('target_bank')['total_loans'].shift(1)
+    npl_lag1 = _map_grid_back(df_yearly, grid, '_npl_lag1')
+    loan_lag1 = _map_grid_back(df_yearly, grid, '_loan_lag1')
 
     if 'loan_writeoffs' in df_yearly.columns:
         writeoffs_raw = df_yearly['loan_writeoffs']
@@ -221,14 +406,19 @@ def compute_npl_formation(df_yearly: pd.DataFrame) -> tuple[pd.Series, pd.Series
 
 
 def compute_llp_discretion(df_yearly: pd.DataFrame) -> pd.Series:
-    """Loan loss provision raw ratio (LLP / Total_loans).
+    """Loan loss provision raw ratio (LLP_t / Loans_{t-1}).
 
-    ⚠ 诚实度声明: 本函数返回的是 **裸 LLP/loans 比率, 不是 BW2012 (Bushman-
-    Williams 2012 JAE) 基于残差的贷款损失准备裁量度量** (raw LLP/loans ratio,
+    fix(omni-g-risk-05, 2026-06-11): 分母从当期 total_loans 改为日历 t-1 的
+    Loans_{t-1} (连续年网格 shift, 继承 g-risk-01 的缺年→NaN 语义), 与下方
+    BW2012 Eq.(2) 的 LHS 规格 'LLP_t / Loans_{t-1}' 一致。此前当期分母对高
+    增长银行系统性压低比率, 且与本 docstring 声称的角色自相矛盾。
+
+    ⚠ 诚实度声明: 本函数返回的是 **裸 LLP_t/Loans_{t-1} 比率, 不是 BW2012
+    (Bushman-Williams 2012 JAE) 基于残差的贷款损失准备裁量度量** (raw ratio,
     NOT the BW2012 residual-based discretion measure). residual 回归在本仓库中
     **尚未实现** (residual regression NOT implemented): 列名 / 变量名虽含
-    "discretion" 字样, 但其数值只是 LLP/loans, 任何把它当作"裁量性"准备解读的
-    下游分析都是过度声称, 须先减去 fundamentals 拟合值才成立。
+    "discretion" 字样, 但其数值只是 LLP_t/Loans_{t-1}, 任何把它当作"裁量性"
+    准备解读的下游分析都是过度声称, 须先减去 fundamentals 拟合值才成立。
 
     真实 BW 2012 discretion = residual from fundamentals regression, 设计上应在
     Stata 模板中 2-stage 实施 (先跑 fundamentals model 算 residual, 再用 residual
@@ -242,9 +432,16 @@ def compute_llp_discretion(df_yearly: pd.DataFrame) -> pd.Series:
     """
     llp = df_yearly.get('loan_loss_provision',
                         pd.Series(np.nan, index=df_yearly.index))
-    loans = df_yearly['total_loans']
-    invalid_loans = loans.isna() | (loans.abs() < _DIV_EPS)
-    return np.where(invalid_loans, np.nan, llp / loans)
+    # fix(omni-g-risk-05, 2026-06-11): 分母 = 日历 t-1 贷款余额 (年网格 shift)
+    grid = _reindex_bank_year_grid(df_yearly, ['total_loans'])
+    grid = grid.sort_values(['target_bank', 'year'])
+    grid['_loan_lag1'] = grid.groupby('target_bank')['total_loans'].shift(1)
+    loan_lag1 = _map_grid_back(df_yearly, grid, '_loan_lag1')
+    invalid_loans = loan_lag1.isna() | (loan_lag1.abs() < _DIV_EPS)
+    return pd.Series(
+        np.where(invalid_loans, np.nan, llp / loan_lag1),
+        index=df_yearly.index,
+    )
 
 
 def merge_bank_metadata(
@@ -318,8 +515,10 @@ def build_risk_taking_outcomes(
         df_y, window=rolling_window, min_periods=min_periods
     )
 
-    # Step 3: Z-score
-    df_y['z_score'] = compute_z_score(df_y)
+    # Step 3: Z-score (fix omni-g-risk-06: 同时输出 zero_var_flag 零方差剔除指示)
+    z_score, zero_var_flag = compute_z_score(df_y)
+    df_y['z_score'] = z_score
+    df_y['zero_var_flag'] = zero_var_flag
 
     # Step 4: NPL formation rate (M7 修复: 同时输出 writeoffs_imputed indicator)
     npl_formation, writeoffs_imputed = compute_npl_formation(df_y)
@@ -350,7 +549,11 @@ def build_risk_taking_outcomes(
 
 
 def summarize_outcomes(df: pd.DataFrame) -> dict:
-    """计算 outcome panel 关键指标供 fallback decision 复用."""
+    """计算 outcome panel 关键指标供 fallback decision 复用.
+
+    fix(omni-g-risk-06, 2026-06-11): 新增 n_zero_var_censored — 区分 z_score
+    的 '数据缺失' 与 'σ≈0 零方差被剔' 两类 NaN (后者与 DV 相关, 非随机)。
+    """
     return {
         'n_bank_year_obs': len(df),
         'n_unique_banks': df['target_bank'].nunique(),
@@ -360,6 +563,11 @@ def summarize_outcomes(df: pd.DataFrame) -> dict:
             for c in ['z_score', 'npl_formation_rate', 'rwa_to_ta_ratio',
                       'sigma_roa_5y_rolling', 'loan_loss_provision_discretion']
         },
+        'n_zero_var_censored': (
+            int(pd.to_numeric(df['zero_var_flag'], errors='coerce')
+                .fillna(0).sum())
+            if 'zero_var_flag' in df.columns else 0
+        ),
         'is_soe_count': int(df['is_soe'].fillna(False).astype(bool).sum()),
         'tier_distribution': df['implicit_guarantee_tier'].value_counts(dropna=False)
                               .to_dict(),
@@ -399,8 +607,19 @@ v3.7.0 (m7) 用法场景:
         default=_DEFAULT_BANK_LIST,
         type=Path,
     )
-    parser.add_argument('--rolling-window', type=int, default=5)
-    parser.add_argument('--min-periods', type=int, default=4)
+    # fix(omni-g-risk-04, 2026-06-11): 两参数耦合 — min-periods > rolling-window
+    # 时在 compute_sigma_roa_rolling 内自动收缩 min_periods=window 并警告
+    # (否则 pandas ValueError, 3y robustness 路径无法运行)。
+    parser.add_argument(
+        '--rolling-window', type=int, default=5,
+        help='σ(ROA) 滚动窗口年数 (V4 F5.2: 3/5/7 robustness; '
+             '小于 --min-periods 时自动收缩 min_periods=window)',
+    )
+    parser.add_argument(
+        '--min-periods', type=int, default=4,
+        help='滚动窗口最小非 NaN 观测数 (与 --rolling-window 耦合, '
+             '超过窗长时自动 clamp 到窗长)',
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')

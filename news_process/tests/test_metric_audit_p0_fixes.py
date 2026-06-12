@@ -311,6 +311,10 @@ class TestStrategicDiffNoDoubleTitle:
     """P1 (漏报): strategic_diff/policy_similarity 共享 _aggregate 对 ctx 轨双标题."""
 
     def test_ctx_track_title_not_doubled(self):
+        # fix(omni-g-strategic-01, 2026-06-11): 同 (bank, year) 内逐字重复全文现被
+        # content 去重 (只计一次) — 旧用例两篇同文在新口径下会收为 1 篇, 故改用
+        # 两篇互异正文/互异 ctx 窗口, 保留本测试"每篇标题恰 1 次"的双标题断言语义;
+        # 去重行为本身由 tests/test_omni_fix_strategic.py 锁定.
         from news_process.core.text.entity_context import prepend_title
         from news_process.pipeline.features.strategic_diff import (
             _aggregate_bank_year_texts,
@@ -318,13 +322,14 @@ class TestStrategicDiffNoDoubleTitle:
         T = '某银行金融科技战略'
         df = pd.DataFrame({
             'target_bank': ['A', 'A'], 'year': [2018, 2018],
-            '标题': [T, T], '内容': ['正文数字化转型布局推进', '正文数字化转型布局推进'],
-            'content_ctx': [prepend_title(T, '实体窗口附近几句'),
-                            prepend_title(T, '实体窗口附近几句')],
+            '标题': [T, T],
+            '内容': ['正文数字化转型布局推进甲', '正文数字化转型布局推进乙'],
+            'content_ctx': [prepend_title(T, '实体窗口附近几句甲'),
+                            prepend_title(T, '实体窗口附近几句乙')],
         })
         full = _aggregate_bank_year_texts(df, text_col='内容').iloc[0]['agg_text']
         ctx = _aggregate_bank_year_texts(df, text_col='content_ctx').iloc[0]['agg_text']
-        # 2 篇文章, 每篇标题应恰 1 次 → 共 2 次 (旧 ctx bug 为 4)
+        # 2 篇互异文章, 每篇标题应恰 1 次 → 共 2 次 (旧 ctx bug 为 4)
         assert full.count(T) == 2, f"full 标题次数={full.count(T)}"
         assert ctx.count(T) == 2, f"ctx 双标题未修复: {ctx.count(T)} (应 2, 旧 bug=4)"
 

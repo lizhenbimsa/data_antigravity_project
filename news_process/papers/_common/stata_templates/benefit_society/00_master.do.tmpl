@@ -23,20 +23,52 @@ capture mkdir "$figures_dir"
 * Optional one-shot ssc install (F-R10-L2 / F-R6-L1) — run ONCE per Stata install.
 * capture do 00_install_packages.do
 
-do 01_data_prep.do
+* fix(omni-g-replication-01, 2026-06-11): 01_data_prep 失败时 fail-loud 带可读原因
+* (常见原因: 外部财务列未接入 — ROA/CAR/ln_assets 族, 见 config/银行面板2007-2025年.xlsx
+* 接入计划与 paper_spec.yaml enrichment_source), 而非裸 r(198) 中断。
+capture noisily do 01_data_prep.do
+local _prep_rc = _rc
+if `_prep_rc' {
+    display as error "[FATAL] 01_data_prep.do failed (rc=`_prep_rc') — 复现包中止; 详见上方 [ERROR] 行 (多为外部财务数据未接入)"
+    exit `_prep_rc'
+}
 do 10_table1_descriptives.do
 do 11_table2_main.do
+
+* fix(omni-gapfill-15, 2026-06-12): 补 5 个 spec 承诺却不在 master 路径的 .do —
+* 11b (A1 主推断 wild cluster bootstrap, 11_table2 表注明言 boottest)、19 (Table
+* A8 num_intensity)、22/23/24 (A9/A10/A11; 依赖外部数据 UA-2 / 27c 产物, 各 .do
+* 自身对缺列优雅跳过)。此前 5 个模板"装进复现包但永不运行"。
+* fix(omni-gapfill-14, 2026-06-12): 可选 .do 统一 capture noisily + 回显 _rc —
+* 旧版裸 capture do 静默吞错 (如 Table 9 维度 esttab r(111)), 表无声缺失零报错。
+capture noisily do 11b_table2_boottest.do
+if _rc display as error "[WARN] 11b_table2_boottest.do failed (rc=`=_rc'); wild bootstrap diagnostic skipped"
 do 12_table3_mechanism.do
 do 13_table4_heterogeneity.do
 do 14_table5_robustness.do
 do 15_table6_effect_size.do
-capture do 16_table7_robustness_loo_anchor.do
-capture do 17_table8_shrinkage_robustness.do
-capture do 17b_table8b_shrinkage_dual.do
-capture do 18_table9_dimension_decomposition.do
-capture do 20_tableA1_inter_track_kappa.do
-capture do 21_tableA2_attitude_track_switch.do
+capture noisily do 16_table7_robustness_loo_anchor.do
+if _rc display as error "[WARN] 16_table7_robustness_loo_anchor.do failed (rc=`=_rc'); Table 7 skipped"
+capture noisily do 17_table8_shrinkage_robustness.do
+if _rc display as error "[WARN] 17_table8_shrinkage_robustness.do failed (rc=`=_rc'); Table 8 skipped"
+capture noisily do 17b_table8b_shrinkage_dual.do
+if _rc display as error "[WARN] 17b_table8b_shrinkage_dual.do failed (rc=`=_rc'); Table 8b skipped"
+capture noisily do 18_table9_dimension_decomposition.do
+if _rc display as error "[WARN] 18_table9_dimension_decomposition.do failed (rc=`=_rc'); Table 9 (H4) skipped"
+capture noisily do 19_bs_num_intensity_robustness.do
+if _rc display as error "[WARN] 19_bs_num_intensity_robustness.do failed (rc=`=_rc'); Table A8 skipped"
+capture noisily do 20_tableA1_inter_track_kappa.do
+if _rc display as error "[WARN] 20_tableA1_inter_track_kappa.do failed (rc=`=_rc'); Table A1 skipped"
+capture noisily do 21_tableA2_attitude_track_switch.do
+if _rc display as error "[WARN] 21_tableA2_attitude_track_switch.do failed (rc=`=_rc'); Table A2 skipped"
+capture noisily do 22_tableA9_external_validation.do
+if _rc display as error "[WARN] 22_tableA9_external_validation.do failed (rc=`=_rc'); Table A9 skipped (external data UA-2 pending?)"
+capture noisily do 23_tableA10_placebo_business_lines.do
+if _rc display as error "[WARN] 23_tableA10_placebo_business_lines.do failed (rc=`=_rc'); Table A10 skipped (run 27c first?)"
+capture noisily do 24_tableA11_anchor_family_alternative.do
+if _rc display as error "[WARN] 24_tableA11_anchor_family_alternative.do failed (rc=`=_rc'); Table A11 skipped (run 27c first?)"
 do 30_figure1_attitude_distribution.do
-capture do 31_figure2_coefplot_dual.do
+capture noisily do 31_figure2_coefplot_dual.do
+if _rc display as error "[WARN] 31_figure2_coefplot_dual.do failed (rc=`=_rc'); Figure 2 skipped"
 
 display "[OK] benefit_society master.do complete (plan v2.12 dual-track)"

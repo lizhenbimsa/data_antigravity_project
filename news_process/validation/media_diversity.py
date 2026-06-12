@@ -197,17 +197,22 @@ def compute_pielou_evenness(shannon: float, n_unique: int) -> float:
     J' = H / H_max, 其中 H_max = log2(N)
     范围 [0, 1]: 1 = 完全均匀, 0 = 完全集中
 
+    fix(omni-g-val-robust-05, 2026-06-11): S=1 (单一类别) 时 J' = H/log2(1) = 0/0
+    数学未定义 (生态学惯例报 NaN/不适用)。旧实现为绕开除零硬编码返回 1.0,
+    把"被单一媒体完全垄断"报成"完全均匀" (J' 语义上界), 与同报告 HHI=1.0 /
+    ENM=1 的"完全集中"判读自相矛盾 — 改返回 NaN, 下游报告显示 n/a。
+
     Args:
         shannon:  Shannon 熵值。
         n_unique: 唯一类别数。
 
     Returns:
-        float: Pielou 均匀度。
+        float: Pielou 均匀度; n_unique <= 1 时返回 NaN (J' 不适用)。
     """
     if n_unique <= 1:
-        return 1.0
+        return float('nan')
     h_max = np.log2(n_unique)
-    return float(shannon / h_max) if h_max > 0 else 1.0
+    return float(shannon / h_max) if h_max > 0 else float('nan')
 
 
 def compute_weighted_hhi(counts: pd.Series, weights: dict,
@@ -347,7 +352,9 @@ def analyze_media_names(df: pd.DataFrame, stage_name: str,
     top10_share = media_counts.head(10).sum() / total
     top20_share = media_counts.head(20).sum() / total
     shannon = max(0.0, float(-np.sum(shares * np.log2(shares + 1e-15))))
-    shannon_max = float(np.log2(n_unique)) if n_unique > 1 else 1.0
+    # fix(omni-g-val-robust-05, 2026-06-11): S=1 时 H_max = log2(1) = 0 (真值),
+    # 旧实现显示 1.0 与 Pielou 硬编码 1.0 同源, 一并改为真值 0.0。
+    shannon_max = float(np.log2(n_unique)) if n_unique > 1 else 0.0
     evenness = compute_pielou_evenness(shannon, n_unique)
     gini = compute_gini(media_counts.values.astype(float))
     w_hhi = compute_weighted_hhi(media_counts, media_weights, default_weight)
@@ -497,7 +504,8 @@ def analyze_regions(df: pd.DataFrame, stage_name: str,
         region_enr = 1.0 / region_hhi if region_hhi > 0 else n_unique
         top3_share = region_counts.head(3).sum() / total
         region_shannon = max(0.0, float(-np.sum(region_shares * np.log2(region_shares + 1e-15))))
-        region_shannon_max = float(np.log2(n_unique)) if n_unique > 1 else 1.0
+        # fix(omni-g-val-robust-05, 2026-06-11): S=1 时 H_max 真值 = 0, 与媒体名称段同步
+        region_shannon_max = float(np.log2(n_unique)) if n_unique > 1 else 0.0
         region_evenness = compute_pielou_evenness(region_shannon, n_unique)
         region_gini = compute_gini(region_counts.values.astype(float))
 
@@ -909,8 +917,13 @@ def log_comprehensive_summary(final_metrics: dict,
                  f"({'✓ <0.10 分散' if hhi < 0.10 else '≥0.10 集中'})")
     logger.info(f"    · 等效媒体数 ENM:       {enm:.0f}          "
                  f"[Laakso1979]")
-    logger.info(f"    · Pielou 均匀度 J':     {evenness:.4f}    "
-                 f"({'✓ ≥0.70' if evenness >= 0.70 else '<0.70'})")
+    # fix(omni-g-val-robust-05, 2026-06-11): J' 在 S=1 时为 NaN (不适用),
+    # 显示 n/a 而非误导性的数值/阈值判定; 单一媒体垄断由 HHI≥0.10 门捕获。
+    if pd.isna(evenness):
+        logger.info("    · Pielou 均匀度 J':     n/a       (S=1 单一媒体, J' 不适用)")
+    else:
+        logger.info(f"    · Pielou 均匀度 J':     {evenness:.4f}    "
+                     f"({'✓ ≥0.70' if evenness >= 0.70 else '<0.70'})")
     logger.info(f"    · Gini 系数:            {gini:.4f}    "
                  f"({'✓ <0.80' if gini < 0.80 else '≥0.80 高度不均'})")
     logger.info(f"    · Tier 1-5 报道占比:    {rated_pct:.1f}%    "
@@ -925,7 +938,8 @@ def log_comprehensive_summary(final_metrics: dict,
     issues = []
     if hhi >= 0.10:
         issues.append(f"媒体 HHI={hhi:.4f} ≥0.10: 来源过度集中于少数媒体")
-    if evenness < 0.70:
+    # fix(omni-g-val-robust-05, 2026-06-11): NaN (S=1 不适用) 不触发均匀度判定
+    if not pd.isna(evenness) and evenness < 0.70:
         issues.append(f"Pielou J'={evenness:.3f} <0.70: 报道数在各媒体间分布不均")
     if gini >= 0.80:
         issues.append(f"Gini={gini:.3f} ≥0.80: 媒体报道数高度不等")

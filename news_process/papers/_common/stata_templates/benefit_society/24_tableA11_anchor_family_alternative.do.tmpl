@@ -68,4 +68,13 @@ esttab A_* using "$tables_dir/tableA11_anchor_family_alternative.tex", replace /
              "Both share K-T-E 2019 ASR bipolar-projection method, NOT anchor design." ///
              "AC-A2: sign-match HARD; ratio informative only.")
 
-display _newline "[OK] Table A11 anchor alternative --> $tables_dir/tableA11_anchor_family_alternative.tex"
+* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+* tables.py:build_table_a11_anchor_alt 经 read_paper_esttab(...,
+* 'tableA11_anchor_family_alternative.csv') 消费 (parse_esttab_csv 格式)。
+estout A_* using "$tables_dir/tableA11_anchor_family_alternative.csv", ///
+    replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) ///
+    mlabels("Main: 10-pair fintech" "Alt: 5-pair J-L-M")
+
+display _newline "[OK] Table A11 anchor alternative --> $tables_dir/tableA11_anchor_family_alternative.tex (+ .csv side-channel)"

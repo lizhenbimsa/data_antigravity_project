@@ -3,9 +3,13 @@
 Extracted from pipeline/panel/runner.py during Phase 2b to enforce single-
 responsibility separation:
   - log_diagnostics(panel, df_exploded)  → panel diagnostic statistics
+                                                (纯只读, 不变异 panel schema;
+                                                fix omni-g-panel-export-05)
   - export_panel(panel, df_exploded)     → Parquet + Stata .dta export with
                                                 32-character Stata column-name
-                                                discipline + STATA_LABELS dict.
+                                                discipline + STATA_LABELS dict
+                                                (含 low_conf_flag 无条件物化 +
+                                                变量标签启发式兜底).
 
 Importing this module is side-effect free; consumers call the two functions
 explicitly.  runner.py re-exports them for backwards compatibility.
@@ -33,7 +37,13 @@ from news_process.pipeline.panel.encode import (
 
 def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     """输出面板诊断统计, 包含分类维度(底层技术/应用场景)的覆盖率、置信度
-    和面板平衡性诊断 (G-07)。"""
+    和面板平衡性诊断 (G-07)。
+
+    fix(omni-g-panel-export-05, 2026-06-11): 本函数为纯只读 (read-only) — 不再
+    副作用式创建 low_conf_flag 列 (原嵌在 `if len(valid_conf) > 0` 分支内, 致
+    panel schema 随数据内容漂移, 且隐式依赖 runner 先 log_diagnostics 后
+    export_panel 的调用顺序契约); 该列物化移至 export_panel 无条件执行。
+    """
     logger.info("=" * 60)
     logger.info("步骤 8: 诊断统计量")
     logger.info("=" * 60)
@@ -84,13 +94,13 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             logger.info(f"  分类置信度: mean={valid_conf.mean():.3f}, "
                         f"median={valid_conf.median():.3f}")
 
-            # ── G-20: 低置信度分类诊断列 ──
-            # 纯诊断性质: 标记 avg_category_confidence < 0.5 的 Bank-Year,
-            # 供下游分析筛选, 不改变任何指标的计算逻辑
-            panel['low_conf_flag'] = (
-                panel['avg_category_confidence'] < 0.5
-            ).astype(int)
-            low_n = panel['low_conf_flag'].sum()
+            # ── G-20: 低置信度分类诊断 (read-only) ──
+            # fix(omni-g-panel-export-05, 2026-06-11): 不再在诊断函数内变异
+            # panel (low_conf_flag 列改由 export_panel 经
+            # _materialize_low_conf_flag 无条件物化, schema 稳定);
+            # 此处仅本地计算统计量供日志输出。
+            _low_mask = panel['avg_category_confidence'] < 0.5
+            low_n = int(_low_mask.sum())
             low_pct = low_n / max(len(panel), 1)
             logger.info(f"  G-20 低置信度标记: {low_n}/{len(panel)} "
                         f"({low_pct:.1%} Bank-Year, conf < 0.5)")
@@ -174,11 +184,69 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
 
 
 # ============================================================================
+# 8b. 导出前置 helpers (fix omni-g-panel-export-05/-06, 2026-06-11)
+# ============================================================================
+
+def _materialize_low_conf_flag(panel: pd.DataFrame) -> pd.DataFrame:
+    """无条件物化 G-20 低置信度诊断列 low_conf_flag (schema 稳定)。
+
+    fix(omni-g-panel-export-05, 2026-06-11): 原实现把列创建埋在 log_diagnostics
+    的 `if len(valid_conf) > 0` 分支 (数据依赖的 schema 漂移 + 诊断函数副作用):
+    avg_category_confidence 全 NaN 时列缺失 (盘上试跑样本即如此), 全量置信度
+    就位后列突现 → panel/.dta 列集随数据内容而非代码漂移。现改为: 只要
+    avg_category_confidence 列存在即创建 (全 NaN → 全 0, 与原 `NaN < 0.5 ==
+    False → 0` 语义逐位一致), 列存在性仅取决于上游代码路径。
+    """
+    if 'avg_category_confidence' in panel.columns:
+        panel['low_conf_flag'] = (
+            panel['avg_category_confidence'] < 0.5
+        ).astype(int)
+    return panel
+
+
+def _apply_label_fallback(labels: dict, columns) -> dict:
+    """40-path .dta 变量标签覆盖率兜底 (返回新 dict, 不原地修改入参)。
+
+    fix(omni-g-panel-export-06, 2026-06-11): STATA_LABELS 仅命中部分列 (实测
+    992/1658 列在 40_panel_yearly.dta 中无任何 variable label, 含主回归 DV
+    llm_vote_tone_full/_ctx 与主键 target_bank/year), 与 export_panel 自述
+    "确保导入 Stata 后能直接跑回归" 不符 — stage 46 的 46_*.dta 有
+    codebook+启发式+列名三级兜底而 40-path 没有。本函数复用 stage 46 的
+    build_variable_labels (codebook 优先 → HEURISTIC_LABELS → 列名兜底)
+    补齐未命中列, 保证 100% 标签覆盖。
+
+    防御: pandas to_stata 要求 variable label ≤80 字符且 latin-1 可编码 —
+    兜底标签若含非 latin-1 字符 (如中文 codebook label) 则退回列名本身
+    (此时列名已被 sanitize_stata_columns asciify, 安全)。
+    """
+    out = dict(labels)
+    missing = [c for c in columns if c not in out]
+    if not missing:
+        return out
+    # 延迟 import: 仅 .dta 导出路径需要, 且避免模块级 import 链膨胀
+    from news_process.pipeline.panel.stata_export import build_variable_labels
+    fb = build_variable_labels(pd.DataFrame(columns=missing))
+    for c in missing:
+        lab = str(fb.get(c, c)) or str(c)
+        try:
+            lab.encode('latin-1')
+        except UnicodeEncodeError:
+            lab = str(c)  # 列名已 ASCII 化, 必然 latin-1 可编码
+        out[c] = lab[:80]
+    return out
+
+
+# ============================================================================
 # 9. 导出
 # ============================================================================
 
 def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     """多格式导出面板数据。
+
+    行为披露 (fix omni-g-panel-export-05/-06, 2026-06-11): 导出前无条件物化
+    G-20 诊断列 low_conf_flag (取代 log_diagnostics 的数据依赖式副作用创建);
+    .dta 变量标签对 STATA_LABELS 未命中列启用 stage-46 启发式兜底, 保证
+    100% 标签覆盖 (原实测 59.8% 列无标签, 含主回归 DV llm_vote_tone_full/_ctx)。
 
     .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
@@ -236,6 +304,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         f"({len(REQUIRED_PANEL_COLUMNS)} 列 / panel 共 {len(panel.columns)} 列, "
         f"{len(panel)} 行)"
     )
+
+    # fix(omni-g-panel-export-05, 2026-06-11): G-20 low_conf_flag 在导出前
+    # 无条件物化 (原由 log_diagnostics 数据依赖式副作用创建, 见 helper docstring)
+    panel = _materialize_low_conf_flag(panel)
 
     logger.info("=" * 60)
     logger.info("步骤 9: 多格式导出")
@@ -474,6 +546,19 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'prov_leave1out_tone_ctx':          'Province Leave-1-Out Tone (Ctx)',
                 'city_leave1out_tone_full':         'City Leave-1-Out Tone (Full)',
                 'city_leave1out_tone_ctx':          'City Leave-1-Out Tone (Ctx)',
+                # G-08 多情感度量 LOO IV 扩展 (Hansen J 过度识别; geography.py)
+                # fix(omni-g-panel-export-04, 2026-06-11): 产生端列名压缩为
+                # dict_tone 词干 (原 prov/city_leave1out_dict_avg_tone_full 33
+                # 字符超 Stata 32 上限, 被 sanitize 单侧缩写致 .dta 内 full/ctx
+                # 词干不对称); 此处按新对称列名补标签。
+                'prov_leave1out_dict_tone_full':    'Province Leave-1-Out Dict Tone (Full)',
+                'prov_leave1out_dict_tone_ctx':     'Province Leave-1-Out Dict Tone (Ctx)',
+                'city_leave1out_dict_tone_full':    'City Leave-1-Out Dict Tone (Full)',
+                'city_leave1out_dict_tone_ctx':     'City Leave-1-Out Dict Tone (Ctx)',
+                'prov_leave1out_bert_avg_pos_full': 'Province Leave-1-Out BERT Pos (Full)',
+                'prov_leave1out_bert_avg_pos_ctx':  'Province Leave-1-Out BERT Pos (Ctx)',
+                'city_leave1out_bert_avg_pos_full': 'City Leave-1-Out BERT Pos (Full)',
+                'city_leave1out_bert_avg_pos_ctx':  'City Leave-1-Out BERT Pos (Ctx)',
                 # Bartik IV — 银行类型维度 (主)
                 'bank_type':                           'Bank Type (nfra_type)',
                 'bartik_type_iv_full':                 'Bartik IV: Bank-Type (Full)',
@@ -492,128 +577,47 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'bartik_scale_share_M':                'Bartik Share: Medium Banks',
                 'bartik_scale_share_S':                'Bartik Share: Small Banks',
                 'bartik_scale_share_XS':               'Bartik Share: Micro Banks',
-                # Bartik IV — 金融科技类型维度 (稳健性 2)
-                'bartik_fintech_iv_full':              'Bartik IV: Fintech-Category (Full)',
-                'bartik_fintech_iv_ctx':               'Bartik IV: Fintech-Category (Ctx)',
-                'bartik_fintech_share_tech':           'Bartik Share: Technology',
-                'bartik_fintech_share_app':            'Bartik Share: Application',
+                # Bartik IV — 金融科技类型维度 (稳健性 2; v3.2.0 M3 P4 双套独立:
+                # lf=innovation_locus_full 基期份额 / lc=innovation_locus_ctx)
+                # fix(omni-g-panel-export-02, 2026-06-11): v3.2 起实际列为 lf/lc
+                # 两套 8 列 (runner.py compute_bartik_iv_fintech 调用), 原
+                # bartik_fintech_iv_*/share_* 陈旧键已不存在 → 活跃列曾无标签。
+                'bartik_fintech_lf_iv_full':           'Bartik IV: Fintech-Cat (Locus=Full, Full)',
+                'bartik_fintech_lf_iv_ctx':            'Bartik IV: Fintech-Cat (Locus=Full, Ctx)',
+                'bartik_fintech_lf_share_tech':        'Bartik Share: Technology (Locus=Full)',
+                'bartik_fintech_lf_share_app':         'Bartik Share: Application (Locus=Full)',
+                'bartik_fintech_lc_iv_full':           'Bartik IV: Fintech-Cat (Locus=Ctx, Full)',
+                'bartik_fintech_lc_iv_ctx':            'Bartik IV: Fintech-Cat (Locus=Ctx, Ctx)',
+                'bartik_fintech_lc_share_tech':        'Bartik Share: Technology (Locus=Ctx)',
+                'bartik_fintech_lc_share_app':         'Bartik Share: Application (Locus=Ctx)',
                 # Bartik IV — 媒体类型维度 (稳健性 3)
                 'bartik_media_iv_full':                'Bartik IV: Media-Type (Full)',
                 'bartik_media_iv_ctx':                 'Bartik IV: Media-Type (Ctx)',
                 'bartik_media_share_fin':              'Bartik Share: Financial Media',
                 'bartik_media_share_comp':             'Bartik Share: Comprehensive Media',
-                # Bartik IV — 中央/地方 (稳健性 4)
-                'bartik_mcentral_iv_full':             'Bartik IV: Central-Local (Full)',
-                'bartik_mcentral_iv_ctx':              'Bartik IV: Central-Local (Ctx)',
-                'bartik_mcentral_share_central':       'Bartik Share: Central Media',
-                'bartik_mcentral_share_local':         'Bartik Share: Local Media',
-                # Bartik IV — 财经/非财经 (稳健性 5)
-                'bartik_mfin_iv_full':                 'Bartik IV: Fin-NonFin (Full)',
-                'bartik_mfin_iv_ctx':                  'Bartik IV: Fin-NonFin (Ctx)',
-                'bartik_mfin_share_fin':               'Bartik Share: Financial',
-                'bartik_mfin_share_nonfin':            'Bartik Share: Non-Financial',
-                # Bartik IV — 综合类/非综合类 (稳健性 6)
-                'bartik_mcomp_iv_full':                'Bartik IV: Comp-NonComp (Full)',
-                'bartik_mcomp_iv_ctx':                 'Bartik IV: Comp-NonComp (Ctx)',
-                'bartik_mcomp_share_comp':             'Bartik Share: Comprehensive',
-                'bartik_mcomp_share_noncomp':          'Bartik Share: Non-Comprehensive',
-                # Bartik IV — 官方/非官方 (稳健性 7a)
-                'bartik_mofficial_iv_full':             'Bartik IV: Official-NonOff (Full)',
-                'bartik_mofficial_iv_ctx':              'Bartik IV: Official-NonOff (Ctx)',
-                'bartik_mofficial_share_official':      'Bartik Share: Official Media',
-                'bartik_mofficial_share_nonoff':        'Bartik Share: Non-Official',
-                # Bartik IV — 市场化/非市场化 (稳健性 7b)
-                'bartik_mmarket_iv_full':               'Bartik IV: Market-NonMkt (Full)',
-                'bartik_mmarket_iv_ctx':                'Bartik IV: Market-NonMkt (Ctx)',
-                'bartik_mmarket_share_market':          'Bartik Share: Market Media',
-                'bartik_mmarket_share_nonmkt':          'Bartik Share: Non-Market',
-                # Bartik IV — 出版频率三方 (稳健性 7c)
-                'bartik_mfreq_iv_full':                'Bartik IV: Pub-Frequency (Full)',
-                'bartik_mfreq_iv_ctx':                 'Bartik IV: Pub-Frequency (Ctx)',
-                'bartik_mfreq_share_deepdive':          'Bartik Share: Deep-dive',
-                'bartik_mfreq_share_daily':             'Bartik Share: Daily',
-                # Bartik IV — 深度/非深度 (稳健性 7d)
-                'bartik_mdeep_iv_full':                'Bartik IV: Deep-NonDeep (Full)',
-                'bartik_mdeep_iv_ctx':                 'Bartik IV: Deep-NonDeep (Ctx)',
-                'bartik_mdeep_share_deepdive':          'Bartik Share: Deep-dive',
-                'bartik_mdeep_share_nondeep':           'Bartik Share: Non-Deep',
-                # Bartik IV — 日报/非日报 (稳健性 7e)
-                'bartik_mdaily_iv_full':                'Bartik IV: Daily-NonDaily (Full)',
-                'bartik_mdaily_iv_ctx':                 'Bartik IV: Daily-NonDaily (Ctx)',
-                'bartik_mdaily_share_daily':            'Bartik Share: Daily',
-                'bartik_mdaily_share_nondaily':         'Bartik Share: Non-Daily',
-                # Bartik IV — 媒体省份 (稳健性 8)
-                'bartik_mprov_iv_full':                'Bartik IV: Media-Province (Full)',
-                'bartik_mprov_iv_ctx':                 'Bartik IV: Media-Province (Ctx)',
-                # Bartik IV — 媒体权威性 (稳健性 8)
+                # fix(omni-g-panel-export-03, 2026-06-11): 移除"稳健性 4-8"幻影
+                # Bartik 维度标签 (mcentral/mfin/mcomp/mofficial/mmarket/mfreq/
+                # mdeep/mdaily/mprov) — 全仓无任何生产代码产出这些列 (runner.py
+                # 仅调用 type/scale/media/mauth/geoprox/fintech_lf/lc 七族;
+                # v6/F4 删除清单见 runner.py "v6/F4 删除清单" 注释段)。这些键
+                # 不是数据未就位的合法 dormant (如 GOV_*/bal_w*), 而是代码路径
+                # 根本不存在的纯幻影, 保留会虚报测度面。
+                # Bartik IV — 媒体权威性 (稳健性 4)
                 'bartik_mauth_iv_full':                'Bartik IV: Media-Authority (Full)',
                 'bartik_mauth_iv_ctx':                 'Bartik IV: Media-Authority (Ctx)',
                 'bartik_mauth_share_high':             'Bartik Share: High Authority',
                 'bartik_mauth_share_mid':              'Bartik Share: Mid Authority',
                 'bartik_mauth_share_low':              'Bartik Share: Low Authority',
-                # Bartik IV — 文章长度 (稳健性 9)
-                'bartik_doclen_iv_full':               'Bartik IV: Doc-Length (Full)',
-                'bartik_doclen_iv_ctx':                'Bartik IV: Doc-Length (Ctx)',
-                'bartik_doclen_share_long':            'Bartik Share: Long Articles',
-                'bartik_doclen_share_short':           'Bartik Share: Short Articles',
-                # Bartik IV — 半年度 (稳健性 10)
-                'bartik_half_iv_full':                 'Bartik IV: Half-Year (Full)',
-                'bartik_half_iv_ctx':                  'Bartik IV: Half-Year (Ctx)',
-                'bartik_half_share_H1':                'Bartik Share: First Half',
-                'bartik_half_share_H2':                'Bartik Share: Second Half',
-                # Bartik IV — 季度 (稳健性 11)
-                'bartik_qtr_iv_full':                  'Bartik IV: Quarter (Full)',
-                'bartik_qtr_iv_ctx':                   'Bartik IV: Quarter (Ctx)',
-                # Bartik IV — 月度 (稳健性 12)
-                'bartik_month_iv_full':                'Bartik IV: Month (Full)',
-                'bartik_month_iv_ctx':                 'Bartik IV: Month (Ctx)',
-                # Bartik IV — 工作日/周末 (稳健性 13)
-                'bartik_wkday_iv_full':                'Bartik IV: Weekday-Weekend (Full)',
-                'bartik_wkday_iv_ctx':                 'Bartik IV: Weekday-Weekend (Ctx)',
-                # Bartik IV — 专属/共享 (稳健性 14)
-                'bartik_excl_iv_full':                 'Bartik IV: Exclusive-Shared (Full)',
-                'bartik_excl_iv_ctx':                  'Bartik IV: Exclusive-Shared (Ctx)',
-                'bartik_excl_share_exclusive':         'Bartik Share: Exclusive',
-                'bartik_excl_share_shared':            'Bartik Share: Shared',
-                # Bartik IV — 地理邻近 (稳健性 15)
+                # fix(omni-g-panel-export-03, 2026-06-11): 移除"稳健性 9-14"幻影
+                # Bartik 维度标签 (doclen/half/qtr/month/wkday/excl) — 同上,
+                # 无任何生产代码产出 (且与 v6/F4 外生性公理删除决策一致)。
+                # Bartik IV — 地理邻近 (稳健性 5)
                 'bartik_geoprox_iv_full':              'Bartik IV: Geo-Proximity (Full)',
                 'bartik_geoprox_iv_ctx':               'Bartik IV: Geo-Proximity (Ctx)',
-                # Bartik IV — 标题出现 (稳健性 16)
-                'bartik_title_iv_full':                'Bartik IV: Title-Body (Full)',
-                'bartik_title_iv_ctx':                 'Bartik IV: Title-Body (Ctx)',
-                # Bartik IV — 关键词多样性 (稳健性 17)
-                'bartik_mden_iv_full':                 'Bartik IV: Mention-Density (Full)',
-                'bartik_mden_iv_ctx':                  'Bartik IV: Mention-Density (Ctx)',
-                # Bartik IV — 关键词密度 (稳健性 18)
-                'bartik_mcount_iv_full':               'Bartik IV: Mention-Count (Full)',
-                'bartik_mcount_iv_ctx':                'Bartik IV: Mention-Count (Ctx)',
-                # Bartik IV — 提及密度 (稳健性 19)
-                'bartik_breadth_iv_full':              'Bartik IV: Outlet-Breadth (Full)',
-                'bartik_breadth_iv_ctx':               'Bartik IV: Outlet-Breadth (Ctx)',
-
-                'bartik_sentlen_iv_full':              'Bartik IV: Sentence-Length (Full)',
-                'bartik_sentlen_iv_ctx':               'Bartik IV: Sentence-Length (Ctx)',
-                # Bartik IV — 词汇丰富度 (稳健性 22)
-                'bartik_ttr_iv_full':                  'Bartik IV: Type-Token-Ratio (Full)',
-                'bartik_ttr_iv_ctx':                   'Bartik IV: Type-Token-Ratio (Ctx)',
-                # Bartik IV — 平均句长 (稳健性 23)
-                'bartik_pubfmt_iv_full':               'Bartik IV: Pub-Format (Full)',
-                'bartik_pubfmt_iv_ctx':                'Bartik IV: Pub-Format (Ctx)',
-                # Bartik IV — 词汇丰富度 (稳健性 24)
-                'bartik_author_iv_full':               'Bartik IV: Author-Byline (Full)',
-                'bartik_author_iv_ctx':                'Bartik IV: Author-Byline (Ctx)',
-                # Bartik IV — 出版形态 (稳健性 25)
-                'bartik_page_iv_full':                 'Bartik IV: Section-Position (Full)',
-                'bartik_page_iv_ctx':                  'Bartik IV: Section-Position (Ctx)',
-                # Bartik IV — 作者署名 (稳健性 26)
-                'bartik_pgnum_iv_full':                'Bartik IV: Page-Number (Full)',
-                'bartik_pgnum_iv_ctx':                 'Bartik IV: Page-Number (Ctx)',
-                # Bartik IV — 版面位置 (稳健性 27)
-                'bartik_kwdiv_iv_full':                'Bartik IV: Keyword-Diversity (Full)',
-                'bartik_kwdiv_iv_ctx':                 'Bartik IV: Keyword-Diversity (Ctx)',
-                # Bartik IV — 页号位置 (稳健性 28)
-                'bartik_kwden_iv_full':                'Bartik IV: Keyword-Density (Full)',
-                'bartik_kwden_iv_ctx':                 'Bartik IV: Keyword-Density (Ctx)',
+                # fix(omni-g-panel-export-03, 2026-06-11): 移除"稳健性 16-28"幻影
+                # Bartik 维度标签 (title/mden/mcount/breadth/sentlen/ttr/pubfmt/
+                # author/page/pgnum/kwdiv/kwden) — 同上, 无任何生产代码产出
+                # (title 维度另随 v3.8.0 remove-title-track 失去语义基础)。
                 # Bartik IV — 基期敏感性
                 'bartik_type_iv_full_t0':              'Bartik IV: Type (Full, T0)',
                 'bartik_type_iv_full_t1':              'Bartik IV: Type (Full, T0+1)',
@@ -643,13 +647,18 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'auth_sim_emb_ctx':                    'Auth Alignment Embedding (Ctx)',
                 # 双模型嵌入: text2vec 稳健 twin (2026-05-29 双模型重构; 主轨=
                 # text-embedding-3-small, _t2v=shibing624/text2vec 同算法只换模型)。
-                # 原 stage 30 退役后, 这 24 列由 stage 15/25/26/27/network 内联产出;
-                # 标签与 stata_export.py::HEURISTIC_LABELS 同源, 保证 40_*.dta 与
-                # 46_*.dta 双导出口径一致 (F3 fix 2026-05-30: 原仅 4 列, 补齐 24 列)。
-                'strat_diff_t2v_full':                 'Strategic Diff (T2V, Full)',
-                'strat_diff_t2v_ctx':                  'Strategic Diff (T2V, Ctx)',
-                'policy_cosine_sim_t2v_full':          'Policy Auth Sim (T2V, Full)',
-                'policy_cosine_sim_t2v_ctx':           'Policy Auth Sim (T2V, Ctx)',
+                # 原 stage 30 退役后, 这些列由 stage 15/25/26/27/network 内联产出。
+                # fix(omni-g-panel-export-07, 2026-06-11): 原注释声称"与
+                # stata_export.py::HEURISTIC_LABELS 同源"不实 — 实为手抄副本且
+                # 2 对文本已漂移 (strat_diff_t2v_*/policy_cosine_sim_t2v_*); 现
+                # 逐字对齐 46-path 文本 (verbatim sync, 由
+                # tests/test_omni_fix_panel_export.py 锁定)。真单一常量化需
+                # stata_export 侧将 HEURISTIC_LABELS 提升为模块级配合 (另组负责);
+                # 46-path 缺 emb_peer_tone_lag1_t2v_ctx 键亦待该侧补齐。
+                'strat_diff_t2v_full':                 'Strat Diff (T2V robust=text2vec, full)',
+                'strat_diff_t2v_ctx':                  'Strat Diff (T2V robust=text2vec, ctx)',
+                'policy_cosine_sim_t2v_full':          'Policy Cosine Sim (T2V robust, full)',
+                'policy_cosine_sim_t2v_ctx':           'Policy Cosine Sim (T2V robust, ctx)',
                 'strat_diff_n5_emb_t2v':               'Strat Diff N5 Emb (T2V robust, full)',
                 'strat_diff_n5_emb_t2v_ctx':           'Strat Diff N5 Emb (T2V robust, ctx)',
                 'strat_sim_max_emb_t2v':               'Strat Max Sim Emb (T2V robust, full)',
@@ -699,8 +708,12 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_gpt54nano_conf_ctx':               'GPT-5nano Confidence (Ctx)',
                 'avg_gemini31111_conf_full':               'Gemini-3 Confidence (Full)',
                 'avg_gemini31111_conf_ctx':                'Gemini-3 Confidence (Ctx)',
-                'avg_deepseekv4_conf_full':                'Grok-4.1 Confidence (Full)',
-                'avg_deepseekv4_conf_ctx':                 'Grok-4.1 Confidence (Ctx)',
+                # fix(omni-g-panel-export-01, 2026-06-11): 供应商归属勘误 —
+                # deepseekv4 实为 DeepSeek V4 Flash (单一事实源 config/
+                # sentiment.yaml::models, 直连 api.deepseek.com), 原误标
+                # 'Grok-4.1' (xAI 与 DeepSeek 是两家公司的不同模型)。
+                'avg_deepseekv4_conf_full':                'DeepSeek-V4 Confidence (Full)',
+                'avg_deepseekv4_conf_ctx':                 'DeepSeek-V4 Confidence (Ctx)',
                 # 其他
                 'has_coverage':                        'Has News Coverage (0/1)',
                 # ═══ 异质性分析变量 (Angrist & Pischke 2009; Brambor et al. 2006) ═══
@@ -731,8 +744,15 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'tone_reversal_full':                  'Tone Reversal t-(t-1) (Full)',
                 'tone_reversal_ctx':                   'Tone Reversal t-(t-1) (Ctx)',
                 # 跟风新闻检测 (Tetlock 2011, RFS)
-                'avg_herd_weight':                     'Avg Herd Decay Weight 1/(1+N) (Tetlock 2011)',
-                'min_herd_weight':                     'Min Herd Decay Weight (Tetlock 2011)',
+                # fix(omni-g-panel-export-02, 2026-06-11): v3.6.0 双轨化后实际
+                # 列为 *_herd_weight_full/_ctx 六列 (encode.py 聚合), 原无后缀
+                # 键 avg/min_herd_weight 已不存在 → 活跃列曾在 .dta 中无标签。
+                'avg_herd_weight_full':                'Avg Herd Decay Weight 1/(1+N) (Tetlock 2011, Full)',
+                'avg_herd_weight_ctx':                 'Avg Herd Decay Weight 1/(1+N) (Tetlock 2011, Ctx)',
+                'min_herd_weight_full':                'Min Herd Decay Weight (Tetlock 2011, Full)',
+                'min_herd_weight_ctx':                 'Min Herd Decay Weight (Tetlock 2011, Ctx)',
+                'sum_herd_weight_full':                'Sum Herd Decay Weight (HW denominator, Full)',
+                'sum_herd_weight_ctx':                 'Sum Herd Decay Weight (HW denominator, Ctx)',
                 # 跟风衰减加权情感 (Tetlock 2011, RFS)
                 'llm_vote_tone_hw_full':               'LLM Vote Tone (Herd-Decay Wt, Full)',
                 'llm_vote_tone_hw_ctx':                'LLM Vote Tone (Herd-Decay Wt, Ctx)',
@@ -893,13 +913,18 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'prox_200km_tone_ctx':           'Avg Tone Within 200km (Ctx)',
                 'prox_200km_pos_frac_ctx':       'Pos Frac Within 200km (Ctx)',
                 'prox_200km_neg_frac_ctx':       'Neg Frac Within 200km (Ctx)',
-                # === 区域 AI 模仿渗透率 (Leary & Roberts 2014) ===
-                'ai_reg_province':               'AI Imitation Rate (Province)',
-                'ai_reg_city':                   'AI Imitation Rate (City)',
-                'ai_reg_50km':                   'AI Imitation Rate (50km)',
-                'ai_reg_100km':                  'AI Imitation Rate (100km)',
-                'ai_reg_150km':                  'AI Imitation Rate (150km)',
-                'ai_reg_200km':                  'AI Imitation Rate (200km)',
+                # === 区域同行 FinTech 新闻覆盖渗透率 (Leary & Roberts 2014 同行压力代理) ===
+                # fix(omni-g-panel-export-08, 2026-06-11): 构念勘误 — 实测度为
+                # LOO mean I(n_articles>0) (geography.py: 区域内其他银行有任意
+                # fintech 新闻覆盖的比例), 无 AI 子类过滤、亦非"模仿率"; 原标签
+                # 'AI Imitation Rate' 把误称固化进 .dta。列名 ai_reg_* 保留
+                # (向后兼容), 标签如实改述为同行覆盖渗透。
+                'ai_reg_province':               'Peer FinTech Coverage Penetration (Province, LOO)',
+                'ai_reg_city':                   'Peer FinTech Coverage Penetration (City, LOO)',
+                'ai_reg_50km':                   'Peer FinTech Coverage Penetration (50km, LOO)',
+                'ai_reg_100km':                  'Peer FinTech Coverage Penetration (100km, LOO)',
+                'ai_reg_150km':                  'Peer FinTech Coverage Penetration (150km, LOO)',
+                'ai_reg_200km':                  'Peer FinTech Coverage Penetration (200km, LOO)',
                 # === 战略差异度 (Guzman & Li 2023; Hoberg & Phillips 2016) ===
                 'strat_diff_n3':       'Strat Diff N=3 (TF-IDF char)',
                 'strat_diff_n4':       'Strat Diff N=4 (TF-IDF char)',
@@ -956,14 +981,20 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'brokerage_eigen_cent':          'Brokerage Eigenvector Cent',
                 'industry_neg_shock':            'Industry Neg Shock (LOO)',
                 'brokerage_fire_sale':           'Brokerage x Neg Shock',
-                # === 同行金融科技溢出 (Berger et al. 2022) ===
+                # === 同行金融科技溢出 (LeSage & Pace 2009; Leary & Roberts 2014 JF) ===
+                # fix(omni-g-misc-01, 2026-06-11): 原误引 Berger et al. (2022, JFI) — 该文研究
+                # EPU 与银行流动性囤积, 与本构念 (row-stochastic 同行声量溢出) 不符; 正确锚点
+                # 同 network_spillover.py:309-316 勘误 (空间滞后 + 同行均值范式)。
                 'peer_fintech_exposure_lag1':    'Peer Fintech Exposure (L1)',
                 # === Embedding 同业网络 (Hoberg & Phillips 2016) ===
                 'emb_peer_tone_lag1_full':      'Emb Peer Tone L1 (Full)',
                 'emb_peer_tone_lag1_ctx':       'Emb Peer Tone L1 (Ctx)',
                 'bank_emb_sim_mean':            'Bank Embedding Sim Mean',
                 # === LLM-Peer 竞争网络 IV (Cao et al. 2025) ===
-                # 主回归变量 (cutoff=0.80 TNIC 标准, 无后缀)
+                # 主回归变量 (无后缀, difflib 名归一 cutoff=0.80)
+                # fix(omni-g-misc-02, 2026-06-11): cutoff 是 difflib.get_close_matches 的
+                # 字符串匹配严格度 (LLM 输出银行名 → 规范名归一), 非 Hoberg-Phillips TNIC
+                # 同行语义相似度阈值 — 口径勘误同 llm_peer_iv.py:692。
                 'llm_peer_tone_iv_full':        'LLM-Peer Tone IV (Full)',
                 'llm_peer_tone_iv_ctx':         'LLM-Peer Tone IV (Ctx)',
                 'llm_peer_coverage_iv':         'LLM-Peer Coverage IV',
@@ -1123,6 +1154,23 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
                       if k in panel_stata.columns}
+            # fix(omni-g-panel-export-06, 2026-06-11): 未命中 STATA_LABELS 的列
+            # 复用 stage 46 启发式兜底 (codebook → HEURISTIC_LABELS → 列名),
+            # 杜绝主回归变量 (llm_vote_tone_full/_ctx 等) 在 .dta 中无标签;
+            # 兜底后做 100% 覆盖率断言 (fail-loud 而非静默漏标)。
+            labels = _apply_label_fallback(labels, panel_stata.columns)
+            _unlabeled = [c for c in panel_stata.columns if not labels.get(c)]
+            if _unlabeled:
+                raise RuntimeError(
+                    f"[export_panel] 变量标签覆盖率断言失败: "
+                    f"{len(_unlabeled)} 列无标签 (前 10): {_unlabeled[:10]}"
+                )
+            logger.info(
+                f"  变量标签覆盖: {len(labels)}/{len(panel_stata.columns)} 列 "
+                f"(显式 STATA_LABELS 命中 "
+                f"{sum(1 for c in panel_stata.columns if c in STATA_LABELS)}, "
+                f"其余启发式兜底)"
+            )
             panel_stata.to_stata(dta_path, write_index=False, version=118,
                                  variable_labels=labels)
             logger.info(f"  已导出 Stata 文件: {dta_path}")

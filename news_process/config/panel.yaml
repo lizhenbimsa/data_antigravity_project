@@ -11,7 +11,9 @@ panel_building:
   aggregation_frequency: yearly
   export_stata: true
   compute_attention_index: true      # 6b. 金融科技注意力指数 (三级地理维度)
-  compute_attention_treatments: true # 6b-2. P2 attention 处理变量 (Hassan 2019 QJE; 双轨=互为稳健性, W2)
+  # fix(omni-g-papers-misc-09, 2026-06-11) 锚点更正: attention_index = Fang-Peress (2009 JF)
+  # extensive 覆盖加权曝光; Hassan (2019 QJE) 仅限 pct/density 归一化度量与 ctx 轨归因
+  compute_attention_treatments: true # 6b-2. P2 attention 处理变量 (Fang-Peress 2009 JF; 双轨=互为稳健性, W2)
   compute_media_heterogeneity: true  # 6c. 媒体异质性 (四维度: 财经/综合/中央级/其他)
   compute_media_authority_weighting: true  # 3c. 媒体权威性加权 (Holzman et al. 2023, TAR)
   # v6/F4 重构: Bartik IV 修剪至 6 类 (type/scale/fintech/media/geoprox/mauth)

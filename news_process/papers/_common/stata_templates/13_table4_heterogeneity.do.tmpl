@@ -9,6 +9,9 @@
 
 version 19
 
+* fix(omni-g-templates-14, 2026-06-11): 隔离估计命名空间 (主线模板链共享 session)
+eststo clear
+
 local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
 local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
 local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
@@ -57,12 +60,40 @@ if !_rc {
 }
 
 * 输出 6 列对照 (3 异质维度 × 2 sub-samples)
-esttab HET1_large HET1_small HET2_front HET2_back HET3_coast HET3_inland ///
-    using "output/tables/table4_heterogeneity.tex", ///
-    se star(* 0.10 ** 0.05 *** 0.01) ///
-    booktabs replace fragment ///
-    title("Table 4: Heterogeneity — Bank Size × Digital Frontier × Geography") ///
-    mtitles("Large" "Small" "Frontier" "Follower" "Coastal" "Inland") ///
-    note("Robust SEs clustered at bank. Bank size split by median. Coastal = {京津冀, 长三角, 珠三角, 东南, 环渤海}.")
+* fix(omni-g-templates-12, 2026-06-11): esttab 名单动态化 — HET1 被 bank_size 守卫
+* 跳过时 (bank_size 需 Wind/CSMAR merge, 当前 .dta 不在产), 旧版 esttab 硬引
+* HET1_large → r(111) 硬崩且 00_master 的 do 无 capture → 后续 8 个模板永不执行。
+* 改为仅引用实际已存储的估计, mtitle 同步删列防错位。
+qui estimates dir
+local stored `r(names)'
+local cand_models HET1_large HET1_small HET2_front HET2_back HET3_coast HET3_inland
+local cand_titles `""Large" "Small" "Frontier" "Follower" "Coastal" "Inland""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  ⚠️ Table 4 无任何已存储估计 (全部异质性切分列缺), 表跳过"
+}
+else {
+    esttab `models' using "output/tables/table4_heterogeneity.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) ///
+        booktabs replace fragment ///
+        title("Table 4: Heterogeneity — Bank Size × Digital Frontier × Geography") ///
+        mtitles(`mtitles') ///
+        note("Robust SEs clustered at bank. Bank size split by median. Coastal = {京津冀, 长三角, 珠三角, 东南, 环渤海}.")
 
-display "✅ Table 4 written to output/tables/table4_heterogeneity.tex"
+    * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel (parse_esttab_csv 消费)
+    estout `models' using "output/tables/table4_heterogeneity.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+    display "✅ Table 4 written to output/tables/table4_heterogeneity.tex (+ .csv side-channel)"
+}

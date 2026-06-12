@@ -5,15 +5,31 @@
 
 version 19
 
+* fix(omni-g-templates-14, 2026-06-11): 隔离估计命名空间 — 防 21_tableA2 同名
+* spec_* 陈旧估计在本 loop 跳过时被 coefplot 静默复用
+eststo clear
+
 * Main spec local for label
 local main_spec  "{{MAIN_LOCUS_TRACK}}-{{MAIN_SUBST_TRACK}}-{{MAIN_SENT_TRACK}}"
 
 * 估 8 specs (与 tableA2 同 loop)
+* fix(omni-g-templates-13, 2026-06-11): 裸名重映射 (correctness-04 同款, 此前漏本模板) —
+* full 轨在面板是裸名 tech_frac/symb_frac, 直拼 _lf/_sf 是幻影列致 6/8 spec 永跳。
 foreach loc in lf lc {
     foreach sub in sf sc {
         foreach sent in full ctx {
-            local LOCUS  tech_frac_`loc'
-            local SUBST  symb_frac_`sub'
+            if "`loc'" == "lf" {
+                local LOCUS tech_frac
+            }
+            else {
+                local LOCUS tech_frac_`loc'
+            }
+            if "`sub'" == "sf" {
+                local SUBST symb_frac
+            }
+            else {
+                local SUBST symb_frac_`sub'
+            }
             local DV     llm_vote_tone_`sent'
 
             capture confirm variable `LOCUS' `SUBST' `DV'
@@ -27,26 +43,39 @@ foreach loc in lf lc {
 }
 
 * coefplot: 8 specs × digital_frontier 系数
+* fix(omni-g-templates-13, 2026-06-11): 绘图名单动态化 — 旧版硬点名 8 估计,
+* 任一 spec 缺即 coefplot r(111) 整图丢失; 改为仅绘实际已存储者。
 capture which coefplot
 if !_rc {
-    coefplot (spec_lf_sf_full, label("Lf-Sf-Full")) ///
-             (spec_lf_sf_ctx,  label("Lf-Sf-Ctx"))  ///
-             (spec_lf_sc_full, label("Lf-Sc-Full")) ///
-             (spec_lf_sc_ctx,  label("Lf-Sc-Ctx"))  ///
-             (spec_lc_sf_full, label("Lc-Sf-Full")) ///
-             (spec_lc_sf_ctx,  label("Lc-Sf-Ctx"))  ///
-             (spec_lc_sc_full, label("Lc-Sc-Full")) ///
-             (spec_lc_sc_ctx,  label("Lc-Sc-Ctx")), ///
-             keep(digital_frontier) ///
-             vertical ///
-             ytitle("β (Main coefficient on digital_frontier)") ///
-             xtitle("Main spec (locus-subst-sent)") ///
-             title("Figure 2: Main Spec Switch Sensitivity") ///
-             subtitle("Highlighted main spec: `main_spec'") ///
-             note("Hassan 2019 QJE + Sautner 2023 JF: dual-track design. " ///
-                  "All specs report β on digital_frontier under TWFE absorb(bank_id year).")
-    graph export "output/figures/figure2_coefplot_dual.pdf", replace
-    display "✅ Figure 2 saved to output/figures/figure2_coefplot_dual.pdf"
+    qui estimates dir
+    local stored `r(names)'
+    local plots ""
+    foreach loc in lf lc {
+        foreach sub in sf sc {
+            foreach sent in full ctx {
+                local nm spec_`loc'_`sub'_`sent'
+                if `: list nm in stored' {
+                    local plots `"`plots' (`nm', label("`loc'-`sub'-`sent'"))"'
+                }
+            }
+        }
+    }
+    if `"`plots'"' == "" {
+        display "  ⚠️ 无任何已存储 spec 估计; Figure 2 跳过"
+    }
+    else {
+        coefplot `plots', ///
+                 keep(digital_frontier) ///
+                 vertical ///
+                 ytitle("β (Main coefficient on digital_frontier)") ///
+                 xtitle("Main spec (locus-subst-sent)") ///
+                 title("Figure 2: Main Spec Switch Sensitivity") ///
+                 subtitle("Highlighted main spec: `main_spec'") ///
+                 note("Hassan 2019 QJE + Sautner 2023 JF: dual-track design. " ///
+                      "All specs report β on digital_frontier under TWFE absorb(bank_id year).")
+        graph export "output/figures/figure2_coefplot_dual.pdf", replace
+        display "✅ Figure 2 saved to output/figures/figure2_coefplot_dual.pdf"
+    }
 }
 else {
     display "  ⚠️ coefplot not installed (ssc install coefplot); Figure 2 跳过"

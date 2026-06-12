@@ -82,26 +82,34 @@ def test_write_table1_custom_filenames_propagate():
 
 
 def test_table1_variables_inventory_stable():
-    """_TABLE1_VARIABLES 锚定核心 16 变量 — 任何无意修改 (rename/drop) 立即报错."""
+    """_TABLE1_VARIABLES 锚定核心 19 变量 — 任何无意修改 (rename/drop) 立即报错.
+
+    fix(omni-g-papers-misc-06, 2026-06-11): 16 → 19 — 增补主轨 (ctx) 的连续分
+    与 IV (llm_vote_cont_ctx / prov_leave1out_tone_ctx / bartik_type_iv_ctx);
+    旧契约只列 full 轨, 与 spec main=ctx 不对齐。
+    """
     from news_process.papers.bank_fintech_tone.tables import _TABLE1_VARIABLES
 
     # 不强制顺序, 但锚定关键变量必须存在 (这些是论文 spec 的 main treatments).
     must_have = {
         'llm_vote_tone_full',
         'llm_vote_tone_ctx',
+        'llm_vote_cont_ctx',
         'n_articles',
         'auth_sim_emb_full',
         'auth_sim_emb_ctx',
         'benefit_mean_full',
         'benefit_mean_ctx',
+        'prov_leave1out_tone_ctx',
         'prov_leave1out_tone_full',
+        'bartik_type_iv_ctx',
         'bartik_type_iv_full',
     }
     actual = set(_TABLE1_VARIABLES)
     missing = must_have - actual
     assert not missing, f"_TABLE1_VARIABLES 丢失锚定变量: {missing}"
-    # 总数 == 16 (Phase 3c 交付契约, 任何增减需同步修改 Stata 50_robustness_text2vec_stata.do)
-    assert len(_TABLE1_VARIABLES) == 16
+    # 总数 == 19 (16 Phase 3c 契约 + 3 ctx 轨增补, fix(omni-g-papers-misc-06))
+    assert len(_TABLE1_VARIABLES) == 19
 
 
 def test_module_exports_only_two_public_names():

@@ -28,9 +28,20 @@ set seed {{RANDOM_SEED}}
 * honestdid, l_vec(...) m_grid(0 0.5 1 2)
 
 * (4) Wild cluster bootstrap
+* fix(omni-g-templates-10, 2026-06-11): (i) boottest 补 capture which 守卫 (对齐
+* collab/18; 未装机器上旧版裸调 r(199) 致本表整丢); (ii) boottest 按设计不改写
+* e(b)/e(V) (wild p 在 r(p)), 旧 eststo 存的是 reghdfe 解析 cluster SE → "Wild boot"
+* 列名实不符。现以 estadd 把 r(p) 注入 e(p_wild) 进表 stats 行, 缺 boottest 时如实告警。
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-boottest {{MAIN_TREAT}}, reps(9999) seed({{RANDOM_SEED}})
+capture which boottest
+if !_rc {
+    boottest {{MAIN_TREAT}}, reps(9999) seed({{RANDOM_SEED}})
+    estadd scalar p_wild = r(p)
+}
+else {
+    display "  ⚠️ boottest not installed (ssc install boottest); wild_boot 列仅含解析 cluster SE, wild p 缺失"
+}
 eststo wild_boot
 
 * (5) ritest randomization inference (Young 2019 QJE; MacKinnon-Webb 2020 JBES)
@@ -73,19 +84,54 @@ eststo excl_pre
 * ============================================================================
 * (8) Paper-specific: alternative substantiveness track (ctx + gap)
 * ============================================================================
-foreach alt in innovation_substantiveness_ctx substantive_minus_symbolic_gap {
-    capture confirm variable `alt'
-    if !_rc {
-        reghdfe {{MAIN_DV}} `alt' $controls, ///
-            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-        eststo alt_`alt'
-    }
+* fix(omni-g-templates-09, 2026-06-11): 旧 foreach 引用幻影列
+* innovation_substantiveness_ctx / substantive_minus_symbolic_gap (panel 上从未派生,
+* 守卫永假) → "(8) alternative substantiveness track" 双轨稳健性永久静默跳过。
+* panel 上 ctx 轨真名是 sub_frac_sc / symb_frac_sc (stage 45 聚合, 实测在产);
+* gap 由真实列现场派生 (full 轨裸名 sub_frac/symb_frac, ctx 轨 _sc 后缀)。
+capture confirm variable sub_frac_sc
+if !_rc {
+    reghdfe {{MAIN_DV}} sub_frac_sc $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo alt_ctx_track
+}
+capture confirm variable sub_frac symb_frac
+if !_rc {
+    gen sub_symb_gap_full = sub_frac - symb_frac
+    reghdfe {{MAIN_DV}} sub_symb_gap_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo alt_gap_full
+}
+capture confirm variable sub_frac_sc symb_frac_sc
+if !_rc {
+    gen sub_symb_gap_ctx = sub_frac_sc - symb_frac_sc
+    reghdfe {{MAIN_DV}} sub_symb_gap_ctx $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo alt_gap_ctx
 }
 
-esttab wild_boot excl_soe6 excl_rural excl_pre alt_* ///
-    using "$tables_dir/table5_robustness.tex", replace ///
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — alt_* 通配可能空匹配,
+* 旧版硬点名缺名即 r(111) 丢整表
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if inlist("`m'", "wild_boot", "excl_soe6", "excl_rural", "excl_pre") | strmatch("`m'", "alt_*") {
+        local models `models' `m'
+    }
+}
+esttab `models' using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 p_wild, fmt(0 3 3) labels("N" "R²" "Wild cluster bootstrap p")) ///
     title("Table 5 — Advanced Robustness (P3 substance)") ///
-    addnotes("Honest DiD M-grid sensitivity output in supplemental log.")
+    addnotes("Column 1 (wild_boot): analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
+             "Alternative substantiveness track: sub_frac_sc (ctx) + sub-symb gap (full/ctx), derived from panel-real columns." ///
+             "Honest DiD M-grid sensitivity output in supplemental log.")
 
-display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — tables.py:build_table5_robustness
+* 经 read_paper_esttab(...,'table5_robustness.csv') 消费 (parse_esttab_csv 格式)
+estout `models' using "$tables_dir/table5_robustness.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild, fmt(0 3 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01)
+
+display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex (+ .csv side-channel)"

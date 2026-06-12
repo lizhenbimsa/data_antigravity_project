@@ -22,6 +22,9 @@
 
 version 19
 
+* fix(omni-g-templates-14, 2026-06-11): 隔离估计命名空间 (主线模板链共享 session)
+eststo clear
+
 local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
 local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
 
@@ -42,6 +45,19 @@ if _rc {
     exit 0
 }
 
+* fix(omni-g-templates-17, 2026-06-11): IV 列与 OLS 列同规格 TWFE — 旧版 ivreg2 调用
+* 串无 absorb/i.bank_id/i.year (零固定效应), 同表 OLS 列却是 reghdfe absorb(bank_id year);
+* OLS-vs-IV 系数差异混杂"内生性矫正"与"FE 有无"两种来源不可归因, 且 Bartik shift 分量
+* 逐年变动, 不控 year FE 时共同年份冲击直接进残差并与 IV 相关 (GPSS 2020 AER 框架下
+* 削弱排他性)。优先用 ivreghdfe absorb(bank_id year); 未装则回退旧无-FE ivreg2 并在
+* log 显式告警 (脚注同步披露)。
+capture which ivreghdfe
+local has_ivreghdfe = (_rc == 0)
+if !`has_ivreghdfe' {
+    display "  ⚠️ ivreghdfe not installed (ssc install ivreghdfe); IV 列回退无-FE ivreg2 —"
+    display "     与 OLS 列 (TWFE) 规格不对称, OLS-vs-IV 对比不可归因, 建议安装后重跑"
+}
+
 * --- IV-A: bartik_fintech_lf_iv (locus_full share, plan v14 §3.4) ---
 local IV_LF_full   bartik_fintech_lf_iv_full
 local IV_LF_ctx    bartik_fintech_lf_iv_ctx
@@ -57,8 +73,15 @@ if !_rc {
     else {
         local IV_LF `IV_LF_ctx'
     }
-    eststo IV_LF: ivreg2 `DV' (`LOCUS' = `IV_LF') digital_frontier, ///
-        cluster(bank_id) first robust
+    * fix(omni-g-templates-17, 2026-06-11): TWFE 对齐 OLS 列 (ivreghdfe 可用时)
+    if `has_ivreghdfe' {
+        eststo IV_LF: ivreghdfe `DV' (`LOCUS' = `IV_LF') digital_frontier, ///
+            absorb(bank_id year) cluster(bank_id) first
+    }
+    else {
+        eststo IV_LF: ivreg2 `DV' (`LOCUS' = `IV_LF') digital_frontier, ///
+            cluster(bank_id) first robust
+    }
 }
 
 * --- IV-B: bartik_fintech_lc_iv (locus_ctx share, Hassan 2019 QJE entity-proximity) ---
@@ -70,23 +93,54 @@ if !_rc {
     else {
         local IV_LC bartik_fintech_lc_iv_ctx
     }
-    eststo IV_LC: ivreg2 `DV' (`LOCUS' = `IV_LC') digital_frontier, ///
-        cluster(bank_id) first robust
+    * fix(omni-g-templates-17, 2026-06-11): TWFE 对齐 OLS 列 (ivreghdfe 可用时)
+    if `has_ivreghdfe' {
+        eststo IV_LC: ivreghdfe `DV' (`LOCUS' = `IV_LC') digital_frontier, ///
+            absorb(bank_id year) cluster(bank_id) first
+    }
+    else {
+        eststo IV_LC: ivreg2 `DV' (`LOCUS' = `IV_LC') digital_frontier, ///
+            cluster(bank_id) first robust
+    }
 }
 
 * --- OLS 对照 (用 estout 同表呈现) ---
 eststo OLS: reghdfe `DV' `LOCUS' digital_frontier, absorb(bank_id year) vce(cluster bank_id)
 
 * 输出 + 报 KP F (恰好识别, 不报 Hansen J; 见顶部 st-bartik-iv fix 说明)
-esttab OLS IV_LF IV_LC using "output/tables/tableA3_bartik_iv.tex", ///
+* fix(omni-g-templates-17, 2026-06-11): esttab 名单动态化 (IV_LF/IV_LC 被 confirm
+* 守卫跳过时旧版硬点名 r(111) 丢整表); 脚注披露 IV 列 FE 规格 (含回退不对称情形)。
+if `has_ivreghdfe' {
+    local fe_note "IV columns: TWFE absorbed (bank + year FE via ivreghdfe), same specification as the OLS column."
+}
+else {
+    local fe_note "CAUTION: ivreghdfe unavailable — IV columns estimated WITHOUT fixed effects (ivreg2 fallback), NOT comparable to the TWFE OLS column."
+}
+qui estimates dir
+local stored `r(names)'
+local cand_models OLS IV_LF IV_LC
+local cand_titles `""OLS" "IV: locus full share" "IV: locus ctx share""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' using "output/tables/tableA3_bartik_iv.tex", ///
     se star(* 0.10 ** 0.05 *** 0.01) ///
     booktabs replace fragment ///
     stats(N r2 widstat, ///
           fmt(0 3 3) ///
           labels("N" "R²" "KP F")) ///
     title("Table A3: Bartik IV — Locus Share Switch (lf vs lc)") ///
-    mtitles("OLS" "IV: locus full share" "IV: locus ctx share") ///
+    mtitles(`mtitles') ///
     note("Bartik IV (Goldsmith-Pinkham et al. 2020 AER). " ///
+         "`fe_note' " ///
          "KP F: Kleibergen-Paap rk Wald F (weak-ID test, threshold 10). " ///
          "Just-identified (1 endogenous = 1 instrument): Hansen J overid test not computable (df=0), not reported. " ///
          "If first-stage KP F < 10, instrument is weak; interpret 2SLS with Anderson-Rubin weak-IV-robust CI (e.g. weakiv / condivreg). " ///

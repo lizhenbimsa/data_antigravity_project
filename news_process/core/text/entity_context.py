@@ -39,6 +39,11 @@ import logging
 import re
 from typing import List, Tuple
 
+from news_process.core.text.ahocorasick import (
+    has_unexcluded_occurrence,
+    is_match_excluded,
+)
+
 logger = logging.getLogger(__name__)
 
 # remove-title-track: 标题注入辅助。取消"标题轨"后, full / ctx 两轨用于情感
@@ -47,8 +52,13 @@ logger = logging.getLogger(__name__)
 # 注意:
 #   - LLM (tone_llms) 不调用 — 其 prompt 模板已用独立 title 字段把标题喂给模型
 #     (frozen prompt v8), 再拼会重复标题。
-#   - 实体窗口类特征 (fintech_intensity / policy_alignment 等) 也不调用, 因 ctx
-#     本身是目标银行局部窗口, 加标题会污染语义/分母。
+#   - 实体窗口类特征 (fintech_intensity / policy_alignment) 消费的是 stage 13
+#     ctx_materializer 物化的 content_full / content_ctx 列 — 两轨均已经
+#     prepend_title 注入【同一标题】(对称设计, 2026-06-02 病根A修复), 因此
+#     ctx 轨分母 (doc_length / token 数) 含标题字符及非连续窗口的 ' [...] '
+#     人工分隔符 (每处 7 字符)。
+#     fix(omni-g-entity-06, 2026-06-11): 原注释声称 "实体窗口类特征不调用本函数
+#     / ctx 不含标题" 与 ctx_materializer.py 实际数据流矛盾, 已按实情更正。
 _TITLE_SEP = "。"
 _TITLE_END_PUNCT = ("。", "！", "？", "!", "?", "；", ";", "…")
 
@@ -136,6 +146,9 @@ def extract_entity_context(
     target_aliases: List[str],
     sentence_radius: int = 1,
     fallback_char_radius: int = 150,
+    negation_ac=None,
+    short_name_exclusions: dict = None,
+    context_window: int = 5,
 ) -> str:
     """为目标银行提取实体特异性上下文摘要。
 
@@ -151,9 +164,18 @@ def extract_entity_context(
         target_aliases:       目标银行的所有名称变体列表。
         sentence_radius:      句子级窗口半径（默认 1 = 前后各1句）。
         fallback_char_radius: 回退时的字符级窗口半径。
+        negation_ac:          否定模式 AC 自动机 (可选; 与 stage 11 分类共用)。
+        short_name_exclusions: 短名歧义排除规则 (可选)。
+        context_window:       短名上下文检查窗口。
 
     Returns:
         str: 实体特异性摘要文本。空字符串表示未匹配到目标银行。
+
+    Note:
+        fix(omni-g-entity-03/16, 2026-06-11): 锚句判定由裸 `alias in sent`
+        改为 occurrence 级套用 stage 11 的 is_match_excluded 否定/短名排除
+        (单一匹配语义事实源) — '涉农行业' 不再为 '农行' 锚定假窗口。
+        排除参数缺省 None 时保持旧裸匹配行为 (向后兼容)。
     """
     if not text or not target_aliases:
         return ""
@@ -163,13 +185,19 @@ def extract_entity_context(
     # 当句子分割退化(< 3 句)时, 回退到字符级窗口。
     # 退化场景: 文本过短或缺少句号标点(如标题、摘要)
     if len(sentences) < 3:
-        return _char_level_fallback(text, target_aliases, fallback_char_radius)
+        return _char_level_fallback(
+            text, target_aliases, fallback_char_radius,
+            negation_ac=negation_ac,
+            short_name_exclusions=short_name_exclusions,
+            context_window=context_window,
+        )
 
-    # 定位目标银行出现的句子索引
+    # 定位目标银行出现的句子索引 (排除规则过滤后的有效出现)
     hit_indices = set()
     for i, sent in enumerate(sentences):
         for alias in target_aliases:
-            if alias in sent:
+            if has_unexcluded_occurrence(sent, alias, negation_ac,
+                                         short_name_exclusions, context_window):
                 hit_indices.add(i)
                 break  # 一个别名命中即可
 
@@ -197,11 +225,17 @@ def _char_level_fallback(
     text: str,
     target_aliases: List[str],
     radius: int = 150,
+    negation_ac=None,
+    short_name_exclusions: dict = None,
+    context_window: int = 5,
 ) -> str:
     """字符级回退: 当文本过短无法有效分句时使用。
 
     策略: 以银行名称出现位置为中心, 前后各取 radius 个字符。
     多个匹配位置的窗口仍执行区间合并。
+
+    fix(omni-g-entity-03/16, 2026-06-11): 出现位置先经 is_match_excluded
+    否定/短名排除再开窗 (与句级路径同口径); 排除参数缺省时行为不变。
     """
     intervals = []
     for alias in target_aliases:
@@ -210,6 +244,12 @@ def _char_level_fallback(
             pos = text.find(alias, start_pos)
             if pos == -1:
                 break
+            if (negation_ac is not None or short_name_exclusions) and \
+                    is_match_excluded(text, pos + len(alias) - 1, alias,
+                                      negation_ac, short_name_exclusions,
+                                      context_window) is not None:
+                start_pos = pos + 1
+                continue  # 被排除规则命中的假出现不开窗
             intervals.append((max(0, pos - radius),
                               min(len(text) - 1, pos + len(alias) + radius)))
             start_pos = pos + 1
@@ -237,6 +277,9 @@ def extract_entity_context_with_distances(
     text: str,
     target_aliases: List[str],
     sentence_radius: int = 2,
+    negation_ac=None,
+    short_name_exclusions: dict = None,
+    context_window: int = 5,
 ) -> List[Tuple[str, int]]:
     """返回窗口内句子及其到最近目标实体的句级距离。
 
@@ -249,10 +292,17 @@ def extract_entity_context_with_distances(
         text:            文章全文。
         target_aliases:  目标银行的所有名称变体。
         sentence_radius: 句子级窗口半径 (默认 2)。
+        negation_ac:     否定模式 AC 自动机 (可选; 与 stage 11 分类共用)。
+        short_name_exclusions: 短名歧义排除规则 (可选)。
+        context_window:  短名上下文检查窗口。
 
     Returns:
         list[tuple[str, int]]: 窗口内的 (句子文本, 距离) 对。
             空列表表示未匹配到目标银行。
+
+    Note:
+        fix(omni-g-entity-03/16, 2026-06-11): 与 extract_entity_context 同步
+        支持 occurrence 级否定/短名排除; 排除参数缺省时行为不变。
     """
     if not text or not target_aliases:
         return []
@@ -260,9 +310,10 @@ def extract_entity_context_with_distances(
     sentences = _split_sentences(text)
 
     if len(sentences) < 3:
-        # 短文本退化: 检查是否有任何句子命中目标银行
+        # 短文本退化: 检查是否有任何句子命中目标银行 (排除规则过滤后)
         has_hit = any(
-            alias in s
+            has_unexcluded_occurrence(s, alias, negation_ac,
+                                      short_name_exclusions, context_window)
             for s in sentences
             for alias in target_aliases
         )
@@ -270,11 +321,12 @@ def extract_entity_context_with_distances(
             return [(sent, 0) for sent in sentences]
         return []
 
-    # 定位命中句索引
+    # 定位命中句索引 (排除规则过滤后的有效出现)
     hit_indices = set()
     for i, sent in enumerate(sentences):
         for alias in target_aliases:
-            if alias in sent:
+            if has_unexcluded_occurrence(sent, alias, negation_ac,
+                                         short_name_exclusions, context_window):
                 hit_indices.add(i)
                 break
 

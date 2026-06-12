@@ -22,25 +22,42 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
+# fix(omni-g-papers-misc-03/-11, 2026-06-11): treatment 行改 panel 真实物化的
+# bank-year 编码 (tech_frac/app_frac + ctx 轨 *_lc) — 旧清单的 locus_layer_full/
+# locus_scenario_full/locus_gap 仅在 Stata 01_data_prep.do 内由 tech_frac/app_frac
+# 临时 gen, 不落 parquet (结构性错名 → Table 1 全 NaN)。金融 enrichment 列
+# (待 M0.5.11) 保留为可见 NaN 占位行 (F16 政策) 并经 CSV 脚注披露。
 _TABLE1_VARIABLES: list[str] = [
-    # P4 primary_pair treatment (R35-M02 derived)
-    'locus_layer_full',
-    'locus_scenario_full',
-    'locus_gap',
-    # P4 primary outcome
+    # P4 treatment 源列 — panel 真实列 (底层技术/应用场景占比, full 轨 + ctx 轨)
+    'tech_frac',
+    'app_frac',
+    'tech_frac_lc',
+    'app_frac_lc',
+    # P4 primary outcome (M0.5.11 enrichment 待落盘)
     'car_5day_window',
     'patent_fintech_count',
     'citation_weighted_patent',
-    # P4 mediator (R7-M04)
+    # P4 mediator (R7-M04; M0.5.11 enrichment 待落盘)
     'capex_it',
     'r_and_d_intensity',
-    # Bank-level standard controls
+    # Bank-level standard controls (M0.5.11 enrichment 待落盘)
     'ln_assets',
     'leverage',
     'capital_ratio',
     'npl_ratio',
     'deposit_growth',
 ]
+
+# Table 1 CSV 脚注 (存在性披露; fix(omni-g-papers-misc-03))
+_TABLE1_FOOTNOTE = (
+    "Treatment rows use panel-materialized bank-year shares "
+    "(tech_frac/app_frac, full track; *_lc = ctx track); the regression "
+    "indicators locus_layer_full/locus_scenario_full/locus_gap are derived "
+    "from these in Stata 01_data_prep.do (dominant-category binarization) "
+    "and do not exist on the parquet panel. "
+    "Outcome/mediator/control rows pending M0.5.11 financial enrichment "
+    "appear as NaN placeholder rows until materialized."
+)
 
 
 def build_table1(paper_config: PaperConfig | None = None) -> pd.DataFrame:
@@ -54,7 +71,8 @@ def write_table1(paper_config: PaperConfig | None = None,
                  ) -> Path:
     return write_summary_table('bank_fintech_locus', _TABLE1_VARIABLES,
                                paper_config=paper_config,
-                               filename=filename, dta_filename=dta_filename)
+                               filename=filename, dta_filename=dta_filename,
+                               footnote=_TABLE1_FOOTNOTE)
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:

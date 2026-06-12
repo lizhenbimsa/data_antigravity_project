@@ -42,11 +42,32 @@ else {
 * (2) Disclosure quality quartile
 capture confirm variable ln_fintech_mdna_length
 if !_rc {
-    xtile disclose_q = ln_fintech_mdna_length, n(4)
+    * fix(omni-g-templates-02, 2026-06-11): 四分位改按年内切 (by-year xtile)。旧版
+    * pooled 全样本切分位: 全量 T=18 下披露长度随披露监管趋严系统性上行 → 分位组
+    * 混入年代效应, 且阈值含未来年份 (in-sample 前视泄漏)。
+    gen disclose_q = .
+    quietly levelsof year, local(_disq_yrs)
+    foreach y of local _disq_yrs {
+        capture xtile _disq_tmp = ln_fintech_mdna_length if year == `y', n(4)
+        if !_rc {
+            replace disclose_q = _disq_tmp if year == `y'
+            drop _disq_tmp
+        }
+        else {
+            capture drop _disq_tmp
+            display "  [SKIP] year `y': within-year disclosure quartile 切分失败 (单元过小)"
+        }
+    }
     forval q = 1/4 {
-        reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if disclose_q == `q', ///
-            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-        eststo disclose_q_`q'
+        count if disclose_q == `q' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if disclose_q == `q', ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            eststo disclose_q_`q'
+        }
+        else {
+            display "  [SKIP] disclose_q=`q' has " r(N) " obs (< 10; R7-m01)"
+        }
     }
 }
 
@@ -74,10 +95,20 @@ else {
     display "  [WARN] mean_clarity_score_full not in panel (v3.5.1 D5 enrichment pending)"
 }
 
-esttab subst_x_disclose disclose_q_* subst_triangulate subst_clarity_interact ///
-    using "$tables_dir/table_disclosure_quality.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("P3 Substantiveness × Disclosure Quality (JFE salvage; v3.5.1 A1 triangulation)") ///
-    addnotes("Disclosure quality = ln\_fintech\_mdna\_length; 4 quartiles ranked Q1=low Q4=high. v3.5.1: + A1 lexical clarity triangulation per LM 2011 JF.")
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — 本表全部估计名都在守卫
+* 块内 (subst_x_disclose/disclose_q_*/subst_triangulate/subst_clarity_interact),
+* 任一守卫跳过后旧版硬点名 → r(111) 丢整表; 全空时如实告警跳过。
+qui estimates dir
+local models `r(names)'
+if "`models'" == "" {
+    display as error "  [WARN] disclosure quality 表无任何已存储估计 (enrichment 列全缺), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/table_disclosure_quality.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("P3 Substantiveness × Disclosure Quality (JFE salvage; v3.5.1 A1 triangulation)") ///
+        addnotes("Disclosure quality = ln\_fintech\_mdna\_length; 4 quartiles ranked Q1=low Q4=high (within-year xtile). v3.5.1: + A1 lexical clarity triangulation per LM 2011 JF.")
 
-display "[OK] 20_substance_disclosure_quality → $tables_dir/table_disclosure_quality.tex"
+    display "[OK] 20_substance_disclosure_quality → $tables_dir/table_disclosure_quality.tex"
+}

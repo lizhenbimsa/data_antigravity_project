@@ -79,7 +79,11 @@
     与企业创新边界. 经济研究, (11).
     → 图 1: BERTopic 余弦相似度 → 技术布局引导, 本模块迁移为行业质心距离
 
-输出列 (~50 列, 值域均为 [0, 1]; 含 2026-05-29 双模型新增的 text2vec 稳健 twin 列):
+输出列 (~50 列; 含 2026-05-29 双模型新增的 text2vec 稳健 twin 列)。
+值域口径 (fix(omni-g-strategic-02/03), 2026-06-11): TF-IDF/LDA 轨 (非负向量/分布)
+∈ [0,1]; **Embedding 轨余弦真值域 [-1,1]** → 相似度列 (strat_sim_max_emb*, coh_emb*)
+∈ [-1,1], 距离列 (strat_diff_*_emb*, centroid_diff_emb*, strat_diff_t2v_*) ∈ [0,2]
+(此前对 emb 轨统一 clip [0,1] 属值域删失, 负余弦被地板到 0):
   --- N-最近邻 Full 轨 (18 列) ---
   strat_diff_n{3..7}       TF-IDF char N-近邻差异度 (Ŝ_i, N=3~7)
   strat_diff_n{3..7}_w     TF-IDF jieba 词级 N-近邻差异度 (稳健性检验)
@@ -113,6 +117,13 @@
   strat_sim_max_emb_t2v{,_ctx}    text2vec Embedding 最大同行相似度
   centroid_diff_emb_t2v{,_ctx}    text2vec Embedding centroid 距离
   strat_diff_t2v_{full,ctx}       契约别名 (export REQUIRED_PANEL_COLUMNS 硬要求)
+                                  披露(omni-g-strategic-07): = centroid_diff_emb_t2v
+                                  的逐值别名 (**centroid 构念**, 谢佳松 2025), 非
+                                  Guzman-Li N-NN 构念 — N-NN 的 t2v 孪生是
+                                  strat_diff_n5_emb_t2v, 稳健配对勿错配; 且与退役
+                                  stage 30 同名列构造域已变 (旧=文章级 emb 对年度
+                                  文章质心距离按银行年均值, 新=银行年聚合文档对
+                                  行业质心距离), 跨版本结果不可比
   coh_emb_t2v_{full,ctx}          text2vec Embedding 相邻期连贯性
 
 注意: 连贯性变量 (coh_*) 对首年及年份间隙返回 NaN (与 strat_fluidity 一致),
@@ -123,7 +134,19 @@
      本项目使用第三方新闻报道, 测量的是"媒体感知差异"而非"自我披露差异"
   2. 银行样本量 (~54 家/年) 远小于 TNIC 数据集 (~5000 家/年),
      N=5 近邻占样本比例 ~10%, 需注意小样本偏差
-  3. Embedding 长文本已采用 token 分段 + 均值池化, 避免超长文本尾部语义被截断
+  3. Embedding 长文本采用 token 分段 + 均值池化, 避免超长文本尾部语义被截断。
+     本地 t2v 稳健轨的二次分块 (模型 max_seq_length=128, 此前被模型静默截断为
+     文档前缀) 已由 embedding_engine.encode_local 修复
+     (fix(omni-g-embed-04), 见 g-strategic-08 同病根)
+  4. 共提及文章机械相似 (披露, omni-g-strategic-01/09, 2026-06-11): full 轨中
+     一篇共提 n 家银行的文章会逐字进入每家被提银行的年度聚合文档 (HP2016/GL2023
+     的企业自撰文本互斥, 无此问题) → 共同被报道的银行对之间产生与战略无关的
+     机械相似, N-NN 最近邻部分被共享语料而非战略邻居驱动 (试跑盘上 13.8% 展开行
+     为跨银行逐字重复, 5/118 bank-year 文档 100% 由共享文章构成)。缓解:
+     (a) 同行年内重复全文已 content 去重 (默认开, 见 _aggregate_bank_year_texts);
+     (b) ctx 轨文本为 bank-specific 实体窗口, 跨银行逐字共享天然弱;
+     (c) 稳健开关 strategic_diff.co_mention_downweight 按 1/n_banks 降权
+         (句子级 round-robin 均分, 跨银行零逐字重叠)。
 """
 # ══ 导入依赖库 (Dependencies) ══
 # 【术语】导入数值计算、NLP 特征提取、主题模型和信息论距离等工具库
@@ -137,6 +160,7 @@
 import asyncio
 import logging
 import os
+import re
 import sys
 
 import jieba
@@ -306,7 +330,30 @@ def _l2_normalize(m: np.ndarray) -> np.ndarray:
 #   金融科技战略方向。
 # ============================================================================
 
-def _aggregate_bank_year_texts(df_exploded, text_col='内容'):
+# 句界切分 (sentence boundary): 用于共提及文章 1/n_banks 降权的 round-robin 均分
+_SENT_SPLIT_RE = re.compile(r'(?<=[。！？!?；;\n])')
+
+
+def _round_robin_sentences(text: str, rank: int, n: int) -> str:
+    """共享文章句子级 round-robin 均分 (fix(omni-g-strategic-09), 2026-06-11)。
+
+    【术语】同年内被 n>1 家银行共提的同文 (content 相同), 第 rank 家银行
+    (按银行名排序的确定性序) 保留句子序列的 pieces[rank::n] 子集 —
+    各银行保留的句子互不重叠 (零逐字共享), 每家期望词项权重 = 1/n_banks。
+    【白话】一篇同时报道 3 家银行的文章, 把句子轮流分给 3 家银行, 每家拿 1/3,
+    既保留信号又避免 3 家银行的"年度文档"出现一模一样的大段文字。
+    无句界可切 (单句) 时退化为独占指派: 仅 rank=0 的银行保留全文。
+    """
+    if n <= 1:
+        return text
+    pieces = [s for s in _SENT_SPLIT_RE.split(text) if s]
+    if len(pieces) <= 1:
+        return text if rank == 0 else ''
+    return ''.join(pieces[rank::n])
+
+
+def _aggregate_bank_year_texts(df_exploded, text_col='内容',
+                               co_mention_downweight=False):
     """按 (target_bank, year) 聚合新闻文本。
 
     【学术】Hoberg & Phillips (2016, JPE, §II.A) 将同一企业同一年度的
@@ -316,9 +363,17 @@ def _aggregate_bank_year_texts(df_exploded, text_col='内容'):
     【白话】把同一家银行同一年的所有新闻（标题+正文）合并成一大段文本,
     方便后续用数学方法比较不同年份之间这段文本的变化程度。
 
+    fix(omni-g-strategic-01, 2026-06-11) 语义变更: 同 (bank, year) 内逐字重复的
+    文章文本 (content 相同, 含标题拼接后) 只计一次 — 防止转载/重发的同文机械
+    放大词项权重。跨银行共享文章 (共提及) 默认**保留** (与 HP2016 互斥文本的
+    构念差异见模块 docstring 局限性 4), 可经 co_mention_downweight 开关降权。
+
     Args:
         df_exploded: 文章-银行级 DataFrame, 需包含 target_bank, year 列
         text_col: 聚合使用的文本列名 ('内容' for Full 轨, 'content_ctx' for Ctx 轨)
+        co_mention_downweight: fix(omni-g-strategic-09) 稳健开关 (默认 False =
+            维持原口径)。True 时同年内被 n>1 家银行共享的同文按句子 round-robin
+            均分到各银行 (每家 1/n_banks 权重, 跨银行零逐字重叠)。
 
     Returns:
         DataFrame[target_bank, year, agg_text], 已过滤空文本行
@@ -328,22 +383,53 @@ def _aggregate_bank_year_texts(df_exploded, text_col='内容'):
         logger.info(f"  文本聚合: 0 个 Bank-Year 文档 (text_col='{text_col}' 缺失或数据为空)")
         return pd.DataFrame(columns=['target_bank', 'year', 'agg_text'])
 
-    def _concat(group):
-        # 闭包引用外层 text_col (而非硬编码 '内容'), 支持双轨聚合
-        bodies = group[text_col].fillna('').astype(str)
-        if '标题' not in group.columns:
-            return ' '.join(bodies)
-        titles = group['标题'].fillna('').astype(str)
+    bodies = df_exploded[text_col].fillna('').astype(str)
+    if '标题' in df_exploded.columns:
+        titles = df_exploded['标题'].fillna('').astype(str)
         # P1 修复 (metric-audit 2026-06-02): 去重防双标题. ctx 轨 text_col=content_ctx
         # 已由 stage 13 prepend_title 注入标题, 旧 'titles + 内容' 对 ctx 二次注入标题
         # → auth_sim_*_ctx / strat_*_ctx 全列受污 (full 轨 text_col=内容 无标题, 不受影响).
         # body 已以标题开头(ctx 轨) → 不再重复拼接标题; 否则按原 '标题 正文' 拼接.
         parts = [b if (t and b.startswith(t)) else (f"{t} {b}" if t else b)
                  for t, b in zip(titles, bodies)]
-        return ' '.join(parts)
+    else:
+        parts = bodies.tolist()
 
-    agg = df_exploded.groupby(['target_bank', 'year']).apply(
-        _concat, include_groups=False).reset_index(name='agg_text')
+    work = pd.DataFrame({
+        'target_bank': df_exploded['target_bank'].values,
+        'year': df_exploded['year'].values,
+        '_part': parts,
+    })
+    # fix(omni-g-strategic-01): 文章级 content 去重 — 同 (bank, year) 内重复全文只计一次
+    n_before = len(work)
+    work = work.drop_duplicates(subset=['target_bank', 'year', '_part'],
+                                keep='first')
+    if len(work) < n_before:
+        logger.info(f"  文本聚合: 同行年内重复全文去重 {n_before - len(work)} 行 "
+                    f"(omni-g-strategic-01)")
+
+    if co_mention_downweight and not work.empty:
+        # fix(omni-g-strategic-09): 同年跨银行共享同文 → 句子级 round-robin 均分,
+        # rank 按银行名排序确定性指派 (mergesort 稳定排序 + cumcount; 去重后
+        # 每 (year, 同文) 组内银行唯一, cumcount 即 dense rank)
+        n_share = (work.groupby(['year', '_part'])['target_bank']
+                   .transform('nunique'))
+        _sorted = work.sort_values(['year', '_part', 'target_bank'],
+                                   kind='mergesort')
+        rank = (_sorted.groupby(['year', '_part']).cumcount()
+                .reindex(work.index))
+        mask = (n_share > 1) & (work['_part'].str.len() > 0)
+        if mask.any():
+            logger.info(f"  文本聚合: 共提及降权 (1/n_banks) 作用于 "
+                        f"{int(mask.sum())} 行 (omni-g-strategic-09)")
+            work.loc[mask, '_part'] = [
+                _round_robin_sentences(p, r, n)
+                for p, r, n in zip(work.loc[mask, '_part'],
+                                   rank[mask], n_share[mask])
+            ]
+
+    agg = (work.groupby(['target_bank', 'year'])['_part']
+           .agg(' '.join).reset_index(name='agg_text'))
     result = agg[agg['agg_text'].str.strip().str.len() > 0]
     logger.info(f"  文本聚合: {len(result)} 个 Bank-Year 文档 "
                 f"(覆盖 {result['target_bank'].nunique()} 银行, "
@@ -429,6 +515,18 @@ def _build_lda_jsd_matrix(texts, n_banks):
     主题数 K 的选取:
       - K = max(10, n_banks // 30), 确保主题数不低于 10
       - 当银行数 ~54 时 K=10, 每个主题约覆盖 5-6 家银行
+      - 披露(omni-g-strategic-06, 2026-06-11): n_banks//30 在 <300 银行/年时恒
+        <10 → K 对本样本实为**固定常数 10** (伪自适应), 无 perplexity/held-out
+        数据驱动选 K, 亦无 K∈{5,15,20} 敏感性列 (Bybee et al. / Hanley-Hoberg
+        类文本论文的标准披露项); _compute_lda_coherence 的 K 公式基数为两年池
+        n_total (与此处单年 n_banks 不同), 当前同被 max(10,·) 兜底为 10,
+        >165 银行/年时两处将分叉
+
+    确定性 (fix(omni-g-strategic-16), 2026-06-11): n_jobs=1 + random_state=42。
+    原 n_jobs=-1 时 sklearn online LDA E-step 按 effective_n_jobs 切片累加充分
+    统计量, 切片数=核数 → 跨机器浮点求和序不同, 实测 max|Δθ|≈0.99 (nj=1 vs 2);
+    random_state 仅在单线程下保证逐位可复现。~百级文档/年, 并行收益可忽略。
+    (本函数被 policy_similarity.py 复用 → auth_sim_lda* 同受益。)
 
     Args:
         texts: 文本列表
@@ -455,9 +553,11 @@ def _build_lda_jsd_matrix(texts, n_banks):
             token_pattern=None,
             max_features=5000, min_df=1, max_df=1.0)
         dtm = cv.fit_transform(texts)
+    # fix(omni-g-strategic-16, 2026-06-11): n_jobs=-1 → 1 (跨机器核数依赖的
+    # E-step 浮点求和序破坏逐位可复现性, 见函数 docstring "确定性" 段)
     lda = LatentDirichletAllocation(
         n_components=K, random_state=42,
-        max_iter=50, learning_method='online', n_jobs=-1)
+        max_iter=50, learning_method='online', n_jobs=1)
     theta = lda.fit_transform(dtm)
     logger.info(f"    LDA K={K}, perplexity={lda.perplexity(cv.transform(texts)):.1f}")
 
@@ -667,7 +767,9 @@ def _build_embedding_sim_matrix(texts, spec=None):
 
     sim = cosine_similarity(emb)
     np.fill_diagonal(sim, np.nan)
-    return sim, emb  # sim: similarity ∈ [0,1]; emb: ndarray (n_banks, dim)
+    # fix(omni-g-strategic-02, 2026-06-11): emb 余弦真值域 [-1,1] (非 [0,1]) —
+    # 消费端 _compute_nn_scores 须传 sim_bounds=(-1,1), 勿按 [0,1] 删失
+    return sim, emb  # sim: similarity ∈ [-1,1] (embedding 余弦); emb: ndarray (n_banks, dim)
 
 
 # ============================================================================
@@ -680,8 +782,17 @@ def _build_embedding_sim_matrix(texts, spec=None):
 #   然后看你们的平均差距有多大 — 差距越大，说明你越"与众不同"。
 # ============================================================================
 
-def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
+def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False,
+                       sim_bounds=(0.0, 1.0)):
     """N-最近邻差异度聚合 — 实现 Guzman & Li (2023) Section 3 核心公式。
+
+    fix(omni-g-strategic-02/05, 2026-06-11) 两处语义变更:
+    1. sim_bounds 参数化相似度真值域 — TF-IDF (非负向量) 默认 (0,1);
+       embedding 余弦须传 (-1,1), clip 仅作浮点容忍 (~1e-7) 而非值域删失
+       (原统一 clip[0,1] 把 emb 真负余弦地板到 0 → δ 封顶 1.0/sim_max 报 0);
+       emb 轨距离 δ=1-sim ∈ [0,2]。
+    2. |peers| < N → 置 NaN (不可测量) — 原 k=min(N,|peers|) 静默降级使低覆盖
+       年份 n3..n7 五列塌缩同值, 制造虚假的 N 敏感性稳健。
 
     本函数直接实现论文中从相似度到战略差异度的转换规则:
 
@@ -707,9 +818,12 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
         bank_list: 银行名称列表
         N_list: N 值列表 (如 [3,4,5,6,7])
         is_distance: True=距离矩阵, False=相似度矩阵
+        sim_bounds: 相似度算子真值域 (lo, hi) — TF-IDF/LDA 默认 (0,1);
+            embedding 余弦传 (-1,1) (fix(omni-g-strategic-02))
 
     Returns:
         dict: {f'n{N}': {bank: Ŝ_i}, 'sim_max': {bank: max_similarity}}
+        (|peers| < N 的 bank → n{N} 为 NaN, fix(omni-g-strategic-05))
     """
     results = {f'n{N}': {} for N in N_list}
     results['sim_max'] = {}
@@ -726,21 +840,30 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
             # float 误差容忍: 距离可微负 / sim=1-dist 可微超 1 → clip [0,1] (镜像 L839)
             results['sim_max'][bank] = float(np.clip(1.0 - valid[idx[0]], 0.0, 1.0))
             for N in N_list:
-                k = min(N, len(valid))
-                # Ŝ_i = mean(dist_topK), K = min(N, |peers|)
-                results[f'n{N}'][bank] = float(np.clip(np.mean(valid[idx[:k]]), 0.0, 1.0))
+                if len(valid) < N:
+                    # fix(omni-g-strategic-05, 2026-06-11): |peers| < N → NaN
+                    # (原 k=min(N,|peers|) 静默降级 → n3..n7 塌缩同值伪稳健)
+                    results[f'n{N}'][bank] = np.nan
+                    continue
+                # Ŝ_i = mean(dist_topN)
+                results[f'n{N}'][bank] = float(np.clip(np.mean(valid[idx[:N]]), 0.0, 1.0))
         else:
             # 相似度矩阵: 降序排列, 取最大 N 个
             # Guzman & Li (2023, §3): δ_ij = 1 - sim_ij → Ŝ_i = mean(δ_topN)
-            # metric-audit 2026-06-02: float32 cosine 点积可溢出 [0,1] ~1e-7
-            # (归一化向量内积舍入); clip sim 防 sim_max>1+1e-10 断言崩 / 距离(1-sim)<0.
-            valid = np.clip(valid, 0.0, 1.0)
+            # metric-audit 2026-06-02 + fix(omni-g-strategic-02, 2026-06-11):
+            # float32 cosine 点积可溢出真值域 ~1e-7 (归一化向量内积舍入) → clip 到
+            # **算子真值域 sim_bounds** (TF-IDF [0,1] / emb [-1,1]) 作浮点容忍;
+            # 原硬编码 [0,1] 对 emb 是值域删失 (真负余弦地板到 0)。
+            valid = np.clip(valid, sim_bounds[0], sim_bounds[1])
             idx = np.argsort(valid)[::-1]
             results['sim_max'][bank] = float(valid[idx[0]])
             for N in N_list:
-                k = min(N, len(valid))
-                # Ŝ_i = (1/k) Σ_{j ∈ J_i^k} (1 - sim_ij)
-                results[f'n{N}'][bank] = float(np.mean(1.0 - valid[idx[:k]]))
+                if len(valid) < N:
+                    # fix(omni-g-strategic-05, 2026-06-11): |peers| < N → NaN
+                    results[f'n{N}'][bank] = np.nan
+                    continue
+                # Ŝ_i = (1/N) Σ_{j ∈ J_i^N} (1 - sim_ij)
+                results[f'n{N}'][bank] = float(np.mean(1.0 - valid[idx[:N]]))
     return results
 
 
@@ -783,8 +906,18 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False):
 #   然后看每家银行和这个"平均画像"有多不同。越不同 = 创新边界越大。
 # ============================================================================
 
-def _compute_centroid_scores(vectors, bank_list, is_sparse=False):
-    """全行业向量法: 1 - CosineSim(bank_vec, industry_centroid)。
+def _compute_centroid_scores(vectors, bank_list, is_sparse=False,
+                             dist_bounds=(0.0, 1.0)):
+    """全行业向量法: 1 - CosineSim(bank_vec, leave-one-out industry_centroid)。
+
+    fix(omni-g-strategic-10, 2026-06-11) 语义变更: 行业质心改 **leave-one-out**
+    (c_{-i} = (n·c − v_i)/(n−1)) — 原 mean(全部含自身) 使 cos(v_i, c) 含 ~1/n_t
+    机械自相关, 且对与行业越正交的银行抬升越多 → centroid_diff 右尾被系统性
+    压缩。与模块内既有惯例一致 (N-NN 路径 fill_diagonal NaN / fluidity
+    other != bank 均排除自身, 质心路径原是模块内唯一不排除者)。n<2 → NaN。
+    fix(omni-g-strategic-02 同口径): dist_bounds 参数化距离真值域 — TF-IDF/LDA
+    (非负向量/分布, cos ∈ [0,1]) 默认 (0,1); embedding 余弦 ∈ [-1,1] →
+    距离 ∈ [0,2], 调用方传 (0,2), clip 仅作浮点容忍而非值域删失。
 
     ── 改进 B: 基于新闻主题余弦相似度构建"转型创新边界"指标 ──
 
@@ -815,16 +948,19 @@ def _compute_centroid_scores(vectors, bank_list, is_sparse=False):
     与 N-最近邻法的区别:
       - N-NN (Guzman & Li 2023, MS, §3): Ŝ_i = mean(dist to N peers)
         → "我与最像我的几家同行有多不同" (niche distance)
-      - Centroid (谢佳松 2025, 经济研究, 图 1): C_i = 1 - cos(vec_i, mean(all vecs))
+      - Centroid (谢佳松 2025, 经济研究, 图 1): C_i = 1 - cos(v_i, c_{-i}),
+        c_{-i} = leave-one-out 行业质心 (排除自身后均值)
         → "我与行业平均水平有多不同" (average distance)
 
     Args:
         vectors: (n_banks, dim) 向量矩阵 (稀疏或稠密)
         bank_list: 银行名称列表
         is_sparse: True 则使用稀疏矩阵操作
+        dist_bounds: 距离真值域 (lo, hi) — TF-IDF/LDA 默认 (0,1);
+            embedding 余弦传 (0,2) (fix(omni-g-strategic-02 同口径))
 
     Returns:
-        dict: {bank: centroid_diff ∈ [0, 1]}
+        dict: {bank: centroid_diff ∈ dist_bounds}; n<2 时全 NaN (LOO 无定义)
 
     References:
         谢佳松, 樊嘉诚, & 林建浩. (2025). 信息摩擦、公共数据与企业创新边界.
@@ -833,14 +969,29 @@ def _compute_centroid_scores(vectors, bank_list, is_sparse=False):
           Management Science, 69(1), 101–118.
           https://doi.org/10.1287/mnsc.2022.4369
     """
-    if is_sparse:
-        # csr_matrix.mean(axis=0) 返回 np.matrix, 需转为 ndarray
-        centroid = np.asarray(vectors.mean(axis=0))
-    else:
-        centroid = np.mean(vectors, axis=0, keepdims=True)
-    sims = cosine_similarity(vectors, centroid).flatten()
-    # clip 防止浮点误差导致超出 [0, 1]
-    return {bank: float(np.clip(1.0 - sims[i], 0.0, 1.0))
+    # fix(omni-g-strategic-10, 2026-06-11): leave-one-out 质心 c_{-i} = (n·c − v_i)/(n−1)
+    # — 原 mean(全部, 含自身权重 1/n_t) 使 cos(v_i, c) 含机械自相关, 且对与行业越
+    # 正交的银行抬升越多 → centroid_diff 右尾被系统性压缩。与模块内既有惯例对齐
+    # (N-NN 路径 fill_diagonal NaN / fluidity other != bank 均排除自身)。
+    dense = (np.asarray(vectors.todense(), dtype=np.float64) if is_sparse
+             else np.asarray(vectors, dtype=np.float64))
+    n = dense.shape[0]
+    if n < 2:
+        # 单银行年: leave-one-out 质心无定义 → NaN (不可测量)
+        return {bank: float('nan') for bank in bank_list}
+    total = dense.sum(axis=0, keepdims=True)
+    loo_centroid = (total - dense) / (n - 1)   # 每行 = 排除该银行自身后的行业质心
+    num = np.einsum('ij,ij->i', dense, loo_centroid)
+    denom = (np.linalg.norm(dense, axis=1)
+             * np.linalg.norm(loo_centroid, axis=1))
+    with np.errstate(invalid='ignore', divide='ignore'):
+        sims = np.where(denom > 0, num / np.where(denom == 0, 1.0, denom), np.nan)
+    # clip 至算子真值域 dist_bounds (仅浮点容忍, fix(omni-g-strategic-02 同口径)):
+    # TF-IDF/LDA 非负向量 → cos ∈ [0,1] → 距离 [0,1]; embedding 余弦 ∈ [-1,1] →
+    # 距离 [0,2] (调用方传 (0,2), 原硬编码 [0,1] 对 emb 是值域删失)
+    lo, hi = dist_bounds
+    return {bank: (float(np.clip(1.0 - sims[i], lo, hi))
+                   if np.isfinite(sims[i]) else float('nan'))
             for i, bank in enumerate(bank_list)}
 
 # ============================================================================
@@ -879,14 +1030,18 @@ def _compute_fluidity(agg_df, mode='char'):
             continue  # 首年无前期数据
 
         # min_df: 跨 t 和 t-1 合并后的文档池，动态调整
-        # min_df=1: 与 _build_tfidf_sim_matrix 保持一致
+        # fix(omni-g-strategic-11, 2026-06-11): 补 sublinear_tf=True — vectorizer
+        # 全参数与 _build_tfidf_sim_matrix / _compute_tfidf_coherence 家族统一
+        # (原仅 min_df 一致而漏 sublinear_tf, 线性 tf 下高频词与长文档主导
+        # 市场变化向量 Σ|N_jt−N_jt−1|; log(1+tf) 亦更贴近 HPP 2014 的
+        # 准二值词使用向量, 见 Manning et al. 2008 §6.4)
         _mdf_flu = 1
         kw = (dict(analyzer='char_wb', ngram_range=(2, 4),
-                   max_features=5000, min_df=_mdf_flu)
+                   max_features=5000, min_df=_mdf_flu, sublinear_tf=True)
               if mode == 'char'
               else dict(tokenizer=_jieba_tokenizer,
                         token_pattern=None,
-                        max_features=5000, min_df=_mdf_flu))
+                        max_features=5000, min_df=_mdf_flu, sublinear_tf=True))
         try:
             vec = TfidfVectorizer(max_df=0.95, **kw).fit(
                 pd.concat([df_t['agg_text'], df_t1['agg_text']]))
@@ -1000,7 +1155,10 @@ def _compute_tfidf_coherence(agg_df, mode='char'):
             if bank in t1_map:
                 # cosine_similarity 接受稀疏矩阵, 内部含 L2 归一化
                 sim = cosine_similarity(vt[i:i+1], vt1[t1_map[bank]:t1_map[bank]+1])
-                coherence[(bank, year)] = float(sim[0, 0])
+                # fix(omni-g-strategic-12, 2026-06-11): clip 至真值域 [0,1]
+                # (TF-IDF 非负 → cos ∈ [0,1]) 仅作浮点容忍, 防高度相似文档
+                # cos=1+ε (ε~1e-7 > 断言容差 1e-10) 崩诊断断言
+                coherence[(bank, year)] = float(np.clip(sim[0, 0], 0.0, 1.0))
 
     logger.info(f"    TF-IDF {mode} 连贯性: {len(coherence)} 个 Bank-Year 对")
     return coherence
@@ -1036,6 +1194,13 @@ def _compute_lazy_distances(agg_df):
 
     距离 = 1 − 相似度; 首年/年份间隙 → 缺失。Levenshtein 对长文 O(L²), 截断到
     _LEVEN_MAX_CHARS (全量长文须抽样/限长, 见缺口报告 G6 caveat)。
+
+    披露 (omni-g-strategic-14, 2026-06-11): minedit 仅对聚合文档前
+    _LEVEN_MAX_CHARS=2000 字**前缀**计算, 而前缀 = groupby 保序拼接的头部文章
+    (组内不按日期排序, 内容取决于上游 parquet 行序) → 实质度量"两个任意头部
+    文章片段的编辑距离", 上游重排/去重即改值; 盘上实测近天花板 (mean≈0.95,
+    变异极小, 即任意两段不同中文前缀的噪声)。回归端优先用全文 token 集的
+    jaccard/overlap 算子; minedit 仅作多算子矩阵的披露性补充, 勿单独入主回归。
 
     Returns:
         dict[(bank, year)] -> {'jaccard': d, 'overlap': d, 'minedit': d}
@@ -1076,8 +1241,11 @@ def _compute_lda_coherence(agg_df):
     (比如 30% 谈 AI, 40% 谈风控, 30% 谈支付), 然后比较同一银行今年和去年
     的主题比例是否接近。越接近 = 沟通越连贯。
 
-    参数一致性: random_state=42, max_iter=50, learning_method='online',
-    n_jobs=-1 (与 _build_lda_jsd_matrix 完全一致, 保证可复现性)。
+    确定性 (fix(omni-g-strategic-16), 2026-06-11): random_state=42, max_iter=50,
+    learning_method='online', n_jobs=1 (与 _build_lda_jsd_matrix 一致)。
+    可复现性来自 random_state + 单线程 E-step; 原 n_jobs=-1 的核数依赖切片
+    求和使 θ 跨机漂移 (实测 max|Δθ|≈0.99), 与旧注释"保证可复现性"相反
+    (机制详见 _build_lda_jsd_matrix docstring "确定性" 段)。
 
     Args:
         agg_df: _aggregate_bank_year_texts 的输出
@@ -1096,7 +1264,12 @@ def _compute_lda_coherence(agg_df):
         all_texts = pd.concat([df_t['agg_text'], df_t1['agg_text']],
                                ignore_index=True).tolist()
         n_total = len(all_texts)
-        K = max(10, n_total // 30)  # 主题数: 与 _build_lda_jsd_matrix 一致
+        # 主题数: 同一 K=max(10, n_docs//30) 规则, 但基数是两年池 n_total
+        # (≈2×单年银行数, 与 _build_lda_jsd_matrix 的单年 n_banks 基数**不同**);
+        # 当前两处同被 max(10,·) 兜底为常数 10, >165 银行/年时将分叉
+        # (披露, omni-g-strategic-06, 2026-06-11; 原注释"与 _build_lda_jsd_matrix
+        # 一致"仅因兜底巧合成立)
+        K = max(10, n_total // 30)
 
         try:
             # CountVectorizer → DTM → LDA
@@ -1111,9 +1284,12 @@ def _compute_lda_coherence(agg_df):
                                      max_features=5000, min_df=1, max_df=1.0)
                 dtm = cv.fit_transform(all_texts)
 
+            # fix(omni-g-strategic-16, 2026-06-11): n_jobs=-1 → 1 (同
+            # _build_lda_jsd_matrix; 跨机器核数依赖的 E-step 浮点求和序
+            # 破坏 coh_lda* 逐位可复现性)
             lda = LatentDirichletAllocation(
                 n_components=K, random_state=42,
-                max_iter=50, learning_method='online', n_jobs=-1)
+                max_iter=50, learning_method='online', n_jobs=1)
             theta = lda.fit_transform(dtm)
             # theta[:n_t] 对应 df_t, theta[n_t:] 对应 df_t1
 
@@ -1123,7 +1299,9 @@ def _compute_lda_coherence(agg_df):
                 if bank in t1_map:
                     # jensenshannon 返回 √JSD ∈ [0,1] (Lin, 1991; base=2 使上界=1)
                     d = jensenshannon(theta[i], theta[t1_map[bank]], base=2)
-                    coherence[(bank, year)] = float(1.0 - d)
+                    # fix(omni-g-strategic-12, 2026-06-11): clip [0,1] 仅作浮点
+                    # 容忍 (√JSD 浮点可微越界, 断言容差 1e-10 < FP 误差)
+                    coherence[(bank, year)] = float(np.clip(1.0 - d, 0.0, 1.0))
         except Exception as e:
             logger.warning(f"    LDA 连贯性 {year}: {type(e).__name__}: {e}, 跳过")
             continue
@@ -1146,11 +1324,16 @@ def _compute_emb_coherence(agg_df, spec=None):
     效率: 一次性获取所有 Bank-Year 嵌入，长文本复用分段池化逻辑；
     避免逐对调用。三层降级: API → sentence-transformers → 返回空 dict。
 
+    值域 (fix(omni-g-strategic-03/12), 2026-06-11): embedding 余弦真值域
+    **[-1,1]** (非 TF-IDF/LDA 的 [0,1]) — 落值 clip 至 [-1,1] 仅作浮点容忍
+    (float32 余弦误差 ~1e-7), 合法负余弦**保留不删失**; 下游
+    _log_coherence_diagnostics 对 coh_emb* 按 [-1,1] 断言。
+
     Args:
         agg_df: _aggregate_bank_year_texts 的输出
 
     Returns:
-        dict: {(bank, year): coherence ∈ [0,1]}, 首年/间隙年 → 缺失
+        dict: {(bank, year): coherence ∈ [-1,1]}, 首年/间隙年 → 缺失
     """
     coherence = {}
     all_texts = agg_df['agg_text'].tolist()
@@ -1180,7 +1363,10 @@ def _compute_emb_coherence(agg_df, spec=None):
             sim = cosine_similarity(
                 emb[i].reshape(1, -1),
                 emb[emb_map[key_t1]].reshape(1, -1))
-            coherence[(bank, year)] = float(sim[0, 0])
+            # fix(omni-g-strategic-03/12, 2026-06-11): clip 至 emb 真值域 [-1,1]
+            # 仅作浮点容忍 (float32 cos 可 1+ε, ε~1e-7 > 断言容差 1e-10 →
+            # 原裸值+硬断言 [0,1] 是 latent 崩溃); 负余弦保留, 不删失到 0
+            coherence[(bank, year)] = float(np.clip(sim[0, 0], -1.0, 1.0))
 
     logger.info(f"    Embedding 连贯性: {len(coherence)} 个 Bank-Year 对")
     return coherence
@@ -1194,7 +1380,10 @@ def _log_coherence_diagnostics(panel):
          — 如果四种方法都说某银行的沟通很连贯, 说明结论可靠
       2. 与情感变量 (llm_vote_tone_full) 相关性低 → 确认正交性
          — 连贯性衡量"稳定性", 情感衡量"内容", 二者应独立
-      3. 所有分数是否在 [0,1] 范围内 — 超出说明计算有 Bug
+      3. 值域检查 (fix(omni-g-strategic-03), 2026-06-11): coh_emb*
+         (embedding 余弦) ∈ [-1,1], 其余 (TF-IDF/LDA) ∈ [0,1] —
+         原对全部 coh_* 断言 [0,1], 对 emb 轨的合法负余弦数学上不成立
+         (latent AssertionError 崩 stage 45)
     """
     # 四方法收敛效度 (Full 轨)
     coh_cols = [c for c in ['coh_tfidf_c_full', 'coh_tfidf_w_full',
@@ -1214,12 +1403,14 @@ def _log_coherence_diagnostics(panel):
                 logger.info(f"    {cc} ↔ {tone_col}: r = {r:.3f} "
                             f"({'✅ 正交' if abs(r) < 0.3 else '相关偏高'})")
 
-    # 值域断言: 所有 coh_* 列 ∈ [0, 1] (含浮点误差容忍)
+    # 值域断言 (fix(omni-g-strategic-03), 2026-06-11): coh_emb* (embedding 余弦,
+    # 真值域 [-1,1]) 下界放宽到 -1; 其余 (TF-IDF/LDA, 非负算子) 维持 [0,1]
     for col in [c for c in panel.columns if c.startswith('coh_')]:
         v = panel[col].dropna()
         if len(v) > 0:
-            assert (v >= -1e-10).all() and (v <= 1 + 1e-10).all(), \
-                f"{col} 超出 [0,1] 值域: min={v.min():.6f}, max={v.max():.6f}"
+            lo = -1.0 if col.startswith('coh_emb') else 0.0
+            assert (v >= lo - 1e-10).all() and (v <= 1 + 1e-10).all(), \
+                f"{col} 超出 [{lo:g},1] 值域: min={v.min():.6f}, max={v.max():.6f}"
 
 
 # ============================================================================
@@ -1277,11 +1468,17 @@ def compute_strategic_differentiation(df_exploded, panel):
     # 【白话】N_LIST = [3,4,5,6,7] 表示分别看最像的 3/4/5/6/7 家同行
     #   N=5 是论文推荐的基准值，其他是"换个数字看结果是否稳定"
     N_LIST = [3, 4, 5, 6, 7]
+    # fix(omni-g-strategic-09, 2026-06-11): 共提及文章 1/n_banks 降权稳健开关
+    # (config strategic_diff.co_mention_downweight, 默认 False = 维持原口径;
+    # 详见 _aggregate_bank_year_texts / 模块 docstring 局限性 4)
+    _co_dw = bool(CONFIG.get('strategic_diff', {})
+                  .get('co_mention_downweight', False))
     # 第一步: 把所有新闻按 (银行, 年) 合并成"年度总结"大文档
     # fix(completeness-04): full 轨读 content_full(含标题), 与 ctx 轨(content_ctx)对称;
     # 原默认裸 '内容'(无标题) 致 full↔ctx 不对称 (病根A 同型, 见 :339 注释)。
     _full_text_col = 'content_full' if 'content_full' in df_exploded.columns else '内容'
-    agg_df = _aggregate_bank_year_texts(df_exploded, text_col=_full_text_col)
+    agg_df = _aggregate_bank_year_texts(df_exploded, text_col=_full_text_col,
+                                        co_mention_downweight=_co_dw)
     all_results = []  # 用来收集所有年度、所有银行的计算结果
 
     # 【白话】逐年计算 — 每一年独立建模，不跨年混合
@@ -1315,18 +1512,23 @@ def compute_strategic_differentiation(df_exploded, panel):
             sl = None
             cd_lda = None
         # 方法 D: Embedding (主轨) — text-embedding-3-small 语义距离
+        # fix(omni-g-strategic-02/10, 2026-06-11): emb 余弦真值域 [-1,1] /
+        # 距离 [0,2] — 显式传 bounds, 防按 TF-IDF [0,1] 默认值删失负余弦
         se_mat, se_emb = _build_embedding_sim_matrix(texts)
         if se_mat is not None:
-            se = _compute_nn_scores(se_mat, banks, [5])
-            cd_emb = _compute_centroid_scores(se_emb, banks)
+            se = _compute_nn_scores(se_mat, banks, [5], sim_bounds=(-1.0, 1.0))
+            cd_emb = _compute_centroid_scores(se_emb, banks,
+                                              dist_bounds=(0.0, 2.0))
         else:
             se, cd_emb = None, None
         # 方法 D-t2v: 稳健 twin — text2vec 本地模型 (2026-05-29 双模型, 同算法只换模型)
         se_mat_t2v, se_emb_t2v = _build_embedding_sim_matrix(
             texts, spec=_ROBUSTNESS_SPEC)
         if se_mat_t2v is not None:
-            se_t2v = _compute_nn_scores(se_mat_t2v, banks, [5])
-            cd_emb_t2v = _compute_centroid_scores(se_emb_t2v, banks)
+            se_t2v = _compute_nn_scores(se_mat_t2v, banks, [5],
+                                        sim_bounds=(-1.0, 1.0))
+            cd_emb_t2v = _compute_centroid_scores(se_emb_t2v, banks,
+                                                  dist_bounds=(0.0, 2.0))
         else:
             se_t2v, cd_emb_t2v = None, None
 
@@ -1372,19 +1574,22 @@ def compute_strategic_differentiation(df_exploded, panel):
     #   面板(panel) = 每行是一家银行的一年，这里把差异度分数填进去
     if all_results:
         res = pd.DataFrame(all_results)
-        # 把 Fluidity 分数也加上
-        res['strat_fluidity'] = res.apply(
-            lambda r: flu_c.get((r['target_bank'], r['year']), np.nan), axis=1)
-        res['strat_fluidity_w'] = res.apply(
-            lambda r: flu_w.get((r['target_bank'], r['year']), np.nan), axis=1)
         # 用银行名+年份做"钥匙"，把新列合并到面板
         panel = panel.merge(res, on=['target_bank', 'year'], how='left')
-        # 跑诊断: 检查四种方法的结果是否大致一致（收敛效度）
-        _log_robustness_diagnostics(panel)
         logger.info(f"  ✅ 战略差异度: 成功合并 {len(res)} 行, "
                     f"新增 {len(res.columns) - 2} 列")
     else:
         logger.warning("  无有效结果 (所有年度银行数不足 3)")
+    # fix(omni-g-strategic-13, 2026-06-11): fluidity 落列独立于 NN ≥3 银行闸门 —
+    # 原经 res (行集 ⊂ 通过闸门的年份) 附着, <3 银行年份已算出的 fluidity 被
+    # 静默丢弃; 全年份失败时列根本不创建。fluidity 仅要求 t-1 非空 (2 家银行
+    # 即可定义), 故直接以 panel 为骨架附着, 与 coh_* 落列口径一致。
+    panel['strat_fluidity'] = panel.apply(
+        lambda r: flu_c.get((r['target_bank'], r['year']), np.nan), axis=1)
+    panel['strat_fluidity_w'] = panel.apply(
+        lambda r: flu_w.get((r['target_bank'], r['year']), np.nan), axis=1)
+    # 跑诊断: 检查四种方法的结果是否大致一致（收敛效度）+ 分族值域断言
+    _log_robustness_diagnostics(panel)
 
     # ══════════════════════════════════════════════════════════════════
     # 改进 B: 相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024)
@@ -1400,7 +1605,8 @@ def compute_strategic_differentiation(df_exploded, panel):
     # Ctx 轨: 新建聚合 (使用 content_ctx 列)
     tracks = [('_full', agg_df)]
     if 'content_ctx' in df_exploded.columns:
-        agg_ctx = _aggregate_bank_year_texts(df_exploded, text_col='content_ctx')
+        agg_ctx = _aggregate_bank_year_texts(df_exploded, text_col='content_ctx',
+                                             co_mention_downweight=_co_dw)
         tracks.append(('_ctx', agg_ctx))
     else:
         logger.warning("  连贯性 _ctx: 列 'content_ctx' 不存在, 跳过 Ctx 轨道")
@@ -1457,7 +1663,7 @@ def compute_strategic_differentiation(df_exploded, panel):
 
     if 'content_ctx' in df_exploded.columns:
         agg_ctx_sd = _aggregate_bank_year_texts(
-            df_exploded, text_col='content_ctx')
+            df_exploded, text_col='content_ctx', co_mention_downweight=_co_dw)
         # dual-track parity (2026-06-08): Fluidity 此前仅 Full 轨 (strat_fluidity/_w),
         # 是 strategic_diff 文本测度族中唯一缺 _ctx 孪生者; 而同族同业相对测度
         # (strat_diff_n5 / strat_sim_max / centroid_diff_*) 均已产 _ctx 孪生。
@@ -1491,18 +1697,23 @@ def compute_strategic_differentiation(df_exploded, panel):
             except Exception:
                 sl, cd_lda = None, None
 
+            # fix(omni-g-strategic-02/10): emb 轨显式 bounds (同 Full 轨)
             se_mat, se_emb = _build_embedding_sim_matrix(texts)
             if se_mat is not None:
-                se = _compute_nn_scores(se_mat, banks, [5])
-                cd_emb = _compute_centroid_scores(se_emb, banks)
+                se = _compute_nn_scores(se_mat, banks, [5],
+                                        sim_bounds=(-1.0, 1.0))
+                cd_emb = _compute_centroid_scores(se_emb, banks,
+                                                  dist_bounds=(0.0, 2.0))
             else:
                 se, cd_emb = None, None
             # 稳健 twin (text2vec, 2026-05-29 双模型)
             se_mat_t2v, se_emb_t2v = _build_embedding_sim_matrix(
                 texts, spec=_ROBUSTNESS_SPEC)
             if se_mat_t2v is not None:
-                se_t2v = _compute_nn_scores(se_mat_t2v, banks, [5])
-                cd_emb_t2v = _compute_centroid_scores(se_emb_t2v, banks)
+                se_t2v = _compute_nn_scores(se_mat_t2v, banks, [5],
+                                            sim_bounds=(-1.0, 1.0))
+                cd_emb_t2v = _compute_centroid_scores(se_emb_t2v, banks,
+                                                      dist_bounds=(0.0, 2.0))
             else:
                 se_t2v, cd_emb_t2v = None, None
 
@@ -1532,9 +1743,6 @@ def compute_strategic_differentiation(df_exploded, panel):
                 if cd_emb_t2v:  # 稳健 twin + 契约别名 strat_diff_t2v_ctx
                     row['centroid_diff_emb_t2v_ctx'] = cd_emb_t2v.get(bank, np.nan)
                     row['strat_diff_t2v_ctx'] = cd_emb_t2v.get(bank, np.nan)
-                # Fluidity Ctx 轨 (dual-track parity 2026-06-08; 与 Full strat_fluidity 对称)
-                row['strat_fluidity_ctx'] = flu_c_ctx.get((bank, year), np.nan)
-                row['strat_fluidity_w_ctx'] = flu_w_ctx.get((bank, year), np.nan)
                 ctx_results.append(row)
 
         if ctx_results:
@@ -1545,6 +1753,15 @@ def compute_strategic_differentiation(df_exploded, panel):
                         f"{len(ctx_df.columns) - 2} 列")
         else:
             logger.warning("  Ctx 轨: 无有效结果")
+        # Fluidity Ctx 轨 (dual-track parity 2026-06-08; 与 Full strat_fluidity 对称)
+        # fix(omni-g-strategic-13, 2026-06-11): 同 Full 轨, 落列独立于 NN ≥3
+        # 银行闸门 (原经 ctx_results 行附着, <3 银行年份的 ctx fluidity 被丢弃)
+        panel['strat_fluidity_ctx'] = panel.apply(
+            lambda r: flu_c_ctx.get((r['target_bank'], r['year']), np.nan),
+            axis=1)
+        panel['strat_fluidity_w_ctx'] = panel.apply(
+            lambda r: flu_w_ctx.get((r['target_bank'], r['year']), np.nan),
+            axis=1)
     else:
         logger.warning("  Ctx 轨: 列 'content_ctx' 不存在, 跳过")
 
@@ -1563,12 +1780,17 @@ def compute_strategic_differentiation(df_exploded, panel):
 
 
 def _log_robustness_diagnostics(panel):
-    """输出六方法相关矩阵 + 值域断言。
+    """输出六方法相关矩阵 + 分族值域断言。
 
     【白话】这是"质量检查"函数，做两件事：
       1. 看六种方法（TF-IDF字符/词级、LDA、Embedding + centroid 字符/Embedding）
          算出来的分数是否大致一致 — 如果都说某银行很独特，说明结果可靠
-      2. 检查所有 strat_* 和 centroid_* 分数是否在 0~1 之间 — 超出范围说明有 Bug
+      2. 分族值域检查 (fix(omni-g-strategic-02/10), 2026-06-11):
+         - emb 轨相似度 (strat_sim_max*emb*) ∈ [-1,1] (余弦真值域)
+         - emb 轨距离 (strat_diff_*emb* / centroid_diff_emb* / strat_diff_t2v_*)
+           ∈ [0,2] (δ = 1 − cos)
+         - 其余 (TF-IDF/LDA 非负向量/分布 + fluidity) ∈ [0,1]
+         原对全族统一断言 [0,1], 与 emb 轨去删失后的真值域不符
     """
     cols = [c for c in ['strat_diff_n5', 'strat_diff_n5_w',
                         'strat_diff_n5_lda', 'strat_diff_n5_emb',
@@ -1577,10 +1799,17 @@ def _log_robustness_diagnostics(panel):
     if len(cols) >= 2:
         logger.info(f"  六方法相关矩阵:\n{panel[cols].corr().round(3).to_string()}")
 
-    # 值域断言: 所有 strat_* / centroid_* 列 ∈ [0, 1] (含浮点误差容忍)
+    # 分族值域断言 (含浮点误差容忍)
     for col in [c for c in panel.columns
                 if c.startswith('strat_') or c.startswith('centroid_')]:
         v = panel[col].dropna()
-        if len(v) > 0:
-            assert (v >= -1e-10).all() and (v <= 1 + 1e-10).all(), \
-                f"{col} 超出 [0,1] 值域: min={v.min():.6f}, max={v.max():.6f}"
+        if len(v) == 0:
+            continue
+        if col.startswith('strat_sim_max') and '_emb' in col:
+            lo, hi = -1.0, 1.0       # emb 余弦相似度
+        elif '_emb' in col or col.startswith('strat_diff_t2v'):
+            lo, hi = 0.0, 2.0        # emb 距离 δ = 1 − cos
+        else:
+            lo, hi = 0.0, 1.0        # TF-IDF / LDA / fluidity
+        assert (v >= lo - 1e-10).all() and (v <= hi + 1e-10).all(), \
+            f"{col} 超出 [{lo:g},{hi:g}] 值域: min={v.min():.6f}, max={v.max():.6f}"

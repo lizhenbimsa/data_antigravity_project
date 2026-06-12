@@ -28,7 +28,9 @@ from news_process.pipeline.panel.encode import (
 # 覆盖: LLM 投票 + 各大模型 + 词典法 + BERT
 _SCORE_PATTERNS = [
     'llm_vote_score_', 'gpt54nano_score_', 'gemini31111_score_',
-    'deepseekv4_score_',  # v3: 从 claude4h_score_ 重命名 (反映真实身份: DeepSeek Grok 4.1)
+    'deepseekv4_score_',  # v3: 从 claude4h_score_ 重命名 (反映真实身份: DeepSeek V4 Flash;
+                          # fix(omni-g-panel-export-01, 2026-06-11): 原注 "DeepSeek Grok 4.1"
+                          # 自相矛盾 — Grok 是 xAI 模型, 单一事实源 config/sentiment.yaml)
     'jiang_2021_score_', 'yao_2021_score_', 'bian_2021_score_',
     'du_2022_score_', 'you_2018_score_',
     'finbert_cn_\u6b63\u9762_', 'fin_sent_zh_\u6b63\u9762_',
@@ -37,18 +39,29 @@ _SCORE_PATTERNS = [
 
 
 def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
-    """数据驱动 + NPPA 交叉验证的隐性停刊检测。
+    """数据驱动 + NPPA 交叉验证的隐性覆盖退出 (de-facto coverage cessation) 检测。
+
+    构念措辞修正 fix(omni-g-attention-03, 2026-06-11): 传入的 df 是银行-fintech 文章
+    子集 (runner.py df_exploded), first/last_year 度量的是媒体**退出银行-fintech 话题
+    覆盖** (topic exit), 而非经证实的报纸停刊 — 媒体可能仍在正常出版只是不再覆盖该话题。
+    三点诚实披露 (latent, T=18 全量语料下显著):
+      (a) 排除集 ceased_all = confirmed ∪ suspected — NPPA 交叉验证仅改报告标签,
+          **未经 NPPA 证实的 suspected 全量进入排除集**;
+      (b) n_articles 按 article × bank 行计数 (多银行文章重复计入), 非 docid 去重;
+      (c) 下游 ceased_media_frac / exc_* / n_articles_exc 应解读为"疑似退出覆盖媒体"
+          稳健性口径 (保守剔除), 不可在论文中表述为严格停刊 (publication cessation) 口径。
 
     学术基础:
       报纸停刊导致地方企业监督真空，显著增加公司违规行为
       (Heese et al., 2022, JFE) 及公共财政成本 (Gao et al., 2020, JFE)。
       在以媒体情感为核心变量的面板研究中，必须识别并控制
       因媒体来源消失引入的样本选择偏误 (Wooldridge, 2010, Ch.19)。
+      本实现以"话题覆盖退出"为停刊的保守代理 (proxy), 见上方措辞修正。
 
     算法:
-      1. 计算每家媒体的 first_year, last_year, n_articles
-      2. 标记 last_year < sample_max - threshold_gap 为疑似停刊
-      3. NPPA 交叉验证: confirmed / suspected / nppa_only / active
+      1. 计算每家媒体的 first_year, last_year, n_articles (银行-fintech 子集口径)
+      2. 标记 last_year < sample_max - threshold_gap 为疑似覆盖退出
+      3. NPPA 交叉验证: confirmed / suspected / nppa_only / active (仅标签, 不收窄排除集)
       4. 返回 ceased_media_set (confirmed ∪ suspected)
 
     References:
@@ -90,8 +103,11 @@ def detect_defacto_cessation(df, logger, output_dir, threshold_gap=2):
     nppa_only = (nppa_ceased & set(media_span.index)) - data_ceased
     ceased_all = confirmed | suspected
 
-    logger.info(f"  停刊检测: confirmed={len(confirmed)}, "
-                f"suspected={len(suspected)}, "
+    # fix(omni-g-attention-03, 2026-06-11): 日志措辞与构念对齐 (话题覆盖退出代理,
+    # suspected 未经 NPPA 证实仍进排除集)
+    logger.info(f"  覆盖退出检测 (停刊代理, fintech 子集口径): "
+                f"confirmed={len(confirmed)}, "
+                f"suspected={len(suspected)} (未证实, 仍入排除集), "
                 f"nppa_only={len(nppa_only)}, "
                 f"active={len(set(media_span.index) - data_ceased)}")
 
@@ -121,6 +137,10 @@ ROBUSTNESS_WINDOWS = [
 def compute_balanced_media_robustness(df, panel, logger, score_patterns):
     """3 个时间窗口的平衡媒体面板稳健性检验。
 
+    语义变更披露 fix(omni-g-attention-04, 2026-06-11): "全程在刊"判据由端点
+    (first_year≤start ∧ last_year≥end) 改为窗口内**逐年覆盖** (每年都有报道);
+    且语料域为银行-fintech 文章子集, "在刊"实指"该年有银行-fintech 报道"。
+
     学术基础:
       在非平衡面板中，媒体来源的进入-退出可能引入样本选择偏误。
       通过构建"全程在刊"的平衡媒体子集，检验基准结果是否受
@@ -131,15 +151,16 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
       Engelberg & Parsons (2011). JF, 66(1), 67-97.
         https://doi.org/10.1111/j.1540-6261.2010.01626.x
     """
-    media_span = df.groupby('媒体(中文)').agg(
-        first_year=('year', 'min'),
-        last_year=('year', 'max'))
-
     for start_year, end_year, suffix in ROBUSTNESS_WINDOWS:
         df_w = df[(df['year'] >= start_year) & (df['year'] <= end_year)]
-        balanced = media_span[
-            (media_span['first_year'] <= start_year) &
-            (media_span['last_year'] >= end_year)].index
+        # fix(omni-g-attention-04, 2026-06-11): 平衡判据改逐年覆盖 — 旧端点判据
+        # (first_year≤start ∧ last_year≥end, 无逐年检查) 会把间歇媒体 (如 2007 与
+        # 2024 各一篇、中间年份全缺) 误纳入"平衡"子集, 与 Wooldridge §19.9.3 每期
+        # 观测的平衡面板定义不符 (latent: 盘上 T=2 无满足者, T=18 全量触发)。
+        # 窗口内 distinct year 数 == 窗口长度 ⟺ 每年都有报道。
+        _window_len = end_year - start_year + 1
+        _years_covered = df_w.groupby('媒体(中文)')['year'].nunique()
+        balanced = _years_covered[_years_covered == _window_len].index
         df_b = df_w[df_w['媒体(中文)'].isin(balanced)]
 
         if len(df_b) == 0:
@@ -234,10 +255,17 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
       attention_index_full / attention_index_ctx          ln(1+Σ intensity) 累积曝光强度 (DUAL)
       attention_pct_full                                  N_ft/N_all fintech 议程份额 (track-agnostic 单轨)
       attention_intensity_density_full / _ctx             Σintensity/N_all 强度加权密度 (DUAL; 值域[0,+∞) 故非"share"名, B3)
-      attention_disp_full                                 跨媒体 HHI (vectorized, track-agnostic 单轨, H4)
+      attention_disp_full                                 跨媒体 outlet 集中度 HHI (高值=集中=低分散, 勿按
+                                                          "dispersion"反向解读符号; vectorized, track-agnostic 单轨, H4)
       attention_intensity_sd_full / _ctx                  篇间强度二阶矩 (disp 真双轨; N<2→NaN, H1)
       attention_gap_full_ctx                              mean(full−ctx) 双轨派生归因借位 (机制变量)
-      attention_attr_share                                Σctx/Σfull 归因纯度 (clip[0,1], B4)
+      attention_attr_share                                Σctx/(Σctx+Σfull) 有界归因占比 (结构性[0,1]无删失, B4 修订)
+
+    语义变更披露 fix(omni-g-attention-01/08, 2026-06-11): attention_attr_share 由
+      clip(Σctx/Σfull, 0, 1) 改为 Σctx/(Σctx+Σfull) — 旧比值的分子非分母嵌套子集
+      (两轨各自做文长归一化, ctx 短文本密度合法更高), 结构上可 >1, clip 把 11.5% 面板值
+      右删失到 1.0; 新构造为同归一化口径的有界 share (= r/(1+r) 单调变换, 保序无删失)。
+      另: attention_disp_full 是集中度 (HHI) 非分散度 — fix(omni-g-attention-06)。
       n_fintech_articles / n_outlets                      extensive baseline / HHI 可算性诊断
 
     回归用法: index/density/sd 各产 _full/_ctx, main=full、robustness=ctx 分离复跑, 不同进一个 RHS。
@@ -265,7 +293,9 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         return panel
 
     logger.info("=" * 60)
-    logger.info("步骤 6b-2: P2 attention 处理变量 (Hassan 2019 QJE; 双轨=互为稳健性)")
+    # fix(omni-g-papers-misc-09, 2026-06-11): 日志锚点与本函数 docstring 锚点更正对齐
+    logger.info("步骤 6b-2: P2 attention 处理变量 (Fang-Peress 2009 JF extensive 覆盖; "
+                "Hassan 2019 QJE 仅限 pct/density/ctx 归因; 双轨=互为稳健性)")
     logger.info("=" * 60)
 
     s14 = pd.read_parquet(s14_path)
@@ -329,9 +359,18 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     t['attention_intensity_density_full'] = t['sum_full'] / t['_n_all']
     t['attention_intensity_density_ctx'] = t['sum_ctx'] / t['_n_all']
     t['attention_gap_full_ctx'] = t['mean_full'] - t['mean_ctx']  # 零-fintech → NaN
+    # fix(omni-g-attention-01/08, 2026-06-11): 旧 Σctx/Σfull 是两种文长归一化密度之比
+    # (fintech_intensity.py score = Σ(1+log tf)/(1+log L_d)×w, ctx 文本更短 → 密度合法
+    # 更高), 分子非分母的嵌套子集量, 结构上可 >1 (实测 24/157 bank-year, max 1.22),
+    # 旧 clip[0,1] 把越界质量右删失到 1.0 (面板 14/122=11.5% 值恰为 1.0) 并破坏删失区
+    # 排序 — 系统性测度后果而非浮点边角。改为同归一化口径的有界 ctx 贡献占比:
+    # share = Σctx/(Σctx+Σfull) ∈ [0,1] (= r/(1+r), r=ctx/full 的严格单调变换, 保序、
+    # 无删失; 0.5 ⇔ 两轨密度相等, 越大归因越纯)。Σctx+Σfull=0 (零 fintech) → NaN。
+    # sums 已在上方 clip(lower=0), share 结构性落 [0,1], 无需 censor clip。
+    # codebook.py/export.py 标签同步交由集中重生 (本组不越界编辑)。
     with np.errstate(divide='ignore', invalid='ignore'):
-        _share = t['sum_ctx'] / t['sum_full'].replace(0, np.nan)
-    t['attention_attr_share'] = _share.clip(0.0, 1.0)            # B4: ctx>full 越界 clip
+        _share = t['sum_ctx'] / (t['sum_ctx'] + t['sum_full']).replace(0, np.nan)
+    t['attention_attr_share'] = _share
     t['attention_disp_full'] = t['disp_hhi']
     t['attention_intensity_sd_full'] = t['sd_full']
     t['attention_intensity_sd_ctx'] = t['sd_ctx']
@@ -469,8 +508,10 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
             prov_col: 'province', '_total': 'total_articles',
             '_ft': 'fintech_articles'}), '40_attn_index_province_year')
 
+        # fix(omni-g-attention-05, 2026-06-11): 传入 _total/_ft 全单元计数供 LOO 扣减
         panel = _merge_geo_index_to_panel(
-            df_all, panel, idx_prov[[prov_col, 'year', 'ft_attn_prov']],
+            df_all, panel,
+            idx_prov[[prov_col, 'year', '_total', '_ft', 'ft_attn_prov']],
             prov_col, 'ft_attn_prov')
         n_prov = idx_prov[prov_col].nunique()
         logger.info(f"  Province × Year: {n_prov} 省 × "
@@ -491,8 +532,10 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
             city_col: 'city', '_total': 'total_articles',
             '_ft': 'fintech_articles'}), '40_attn_index_city_year')
 
+        # fix(omni-g-attention-05, 2026-06-11): 传入 _total/_ft 全单元计数供 LOO 扣减
         panel = _merge_geo_index_to_panel(
-            df_all, panel, idx_city[[city_col, 'year', 'ft_attn_city']],
+            df_all, panel,
+            idx_city[[city_col, 'year', '_total', '_ft', 'ft_attn_city']],
             city_col, 'ft_attn_city')
         n_city = idx_city[city_col].nunique()
         logger.info(f"  City × Year: {n_city} 市 × "
@@ -566,41 +609,72 @@ def _save_attn_index(df, basename):
 
 
 def _merge_geo_index_to_panel(df_all, panel, idx_geo,
-                               geo_col, target_col):
-    """将地理注意力指数通过曝露度加权合并到 Bank-Year 面板。
+                               geo_col, target_col,
+                               min_articles=_ATTN_MIN_ARTICLES):
+    """将地理注意力指数通过曝露度加权合并到 Bank-Year 面板 (leave-one-out)。
 
-    合并策略 (Exposure-weighted average):
+    语义变更披露 fix(omni-g-attention-05, 2026-06-11): geo×year 指数由全单元值改为
+    逐 (geo, year, bank) leave-one-out — 剔除提及焦点银行的唯一文章后再取比值,
+    消除"银行自身 fintech 报道越多 → 其 ft_attn_* 机械越高"的反射性内生
+    (市级 min_articles=5 小单元曾可被单一银行支配, own-share 实测 max=0.875)。
+
+    合并策略 (Exposure-weighted leave-one-out average):
       1. df_all 中每行 = (article, target_bank), 含媒体来源地
-      2. 为每行匹配其来源地的 attention index
+      2. 为每行计算其来源地的 LOO attention index:
+         (cell_ft − own_ft) / (cell_total − own_total), 唯一 docid 口径;
+         LOO 分母 < min_articles → NaN (沿用小样本噪声守卫, 与 _build_geo_index
+         的 cell 级过滤同理 — 自身支配单元剔除后剩余样本过小同样产 0/1 噪声)
       3. 按 (target_bank, year) 取均值
-         → "报道该银行的全部媒体所在地区的平均金融科技关注度"
+         → "报道该银行的全部媒体所在地区的 (剔除自身报道后) 平均金融科技关注度"
 
     注意: 权重基于 df_all (含 fintech + non-fintech 全量银行新闻),
        确保地理曝露反映银行的真实媒体环境, 而非仅金融科技新闻的分布。
+
+    Args:
+        idx_geo: 含 [geo_col, 'year', '_total', '_ft', target_col] 的指数表
+                 (_total/_ft 为该 geo×year 全单元唯一文章计数, 供 LOO 扣减)。
 
     Returns:
         panel: 附加 target_col 列的面板。
     """
     # 1. 选取需要的列并清洗
-    work = df_all[['target_bank', 'year', geo_col]].copy()
+    work = df_all[['docid', 'target_bank', 'year', geo_col,
+                   'is_fintech_news']].copy()
     work = work.dropna(subset=[geo_col])
 
-    # 2. 匹配地理指数
+    # 2. fix(omni-g-attention-05, 2026-06-11): 该 geo×year×bank 自身文章计数
+    #    (唯一 (docid, bank) 口径, 与 _build_geo_index 的 df_unique 分母同口径)
+    own = work.drop_duplicates(subset=['docid', 'target_bank'])
+    own_tot = (own.groupby([geo_col, 'year', 'target_bank'])
+               .size().reset_index(name='_own_total'))
+    own_ft = (own[own['is_fintech_news'] == True]
+              .groupby([geo_col, 'year', 'target_bank'])
+              .size().reset_index(name='_own_ft'))
+
+    # 3. 匹配地理指数 (含全单元 _total/_ft) + 自身计数 → 逐行 LOO 指数
     work = work.merge(idx_geo, on=[geo_col, 'year'], how='left')
     # left join miss → 该 geo×year 被 min_articles 过滤掉, 值为 NaN, 不参与均值
+    work = work.merge(own_tot, on=[geo_col, 'year', 'target_bank'], how='left')
+    work = work.merge(own_ft, on=[geo_col, 'year', 'target_bank'], how='left')
+    _loo_den = work['_total'] - work['_own_total'].fillna(0)
+    _loo_num = work['_ft'] - work['_own_ft'].fillna(0)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        # NaN >= min_articles → False → NaN (被 cell 级过滤的单元保持 NaN)
+        work[target_col] = np.where(
+            _loo_den >= min_articles, _loo_num / _loo_den, np.nan)
 
-    # 3. Bank-Year 均值
+    # 4. Bank-Year 均值
     bank_yr = (work.groupby(['target_bank', 'year'])[target_col]
                .mean().reset_index())
 
-    # 4. 安全合并到 panel (避免 .values 位置赋值的脆弱性)
+    # 5. 安全合并到 panel (避免 .values 位置赋值的脆弱性)
     if target_col in panel.columns:
         panel = panel.drop(columns=[target_col])
     panel = panel.merge(bank_yr, on=['target_bank', 'year'], how='left')
 
     matched = panel[target_col].notna().sum()
     logger.info(f"    {target_col}: 匹配 {matched}/{len(panel)} "
-                f"({matched/len(panel)*100:.1f}%)")
+                f"({matched/len(panel)*100:.1f}%) [leave-one-out]")
     return panel
 
 
@@ -673,6 +747,12 @@ def compute_media_heterogeneity(df, panel):
          (Qin, Strömberg & Wu 2018, AER)
 
     数据源: config/media_classification.json
+
+    语义变更披露 (omni 2026-06-11):
+      - fix(omni-g-attention-02): 维度⑤⑥改互斥构造 official := OFF−MKT /
+        market := MKT−OFF (NPPA 主管/主办双判据非互斥, 重叠媒体落入两对照组);
+      - fix(omni-g-attention-07): 维度⑨地理元数据缺失 → NaN 出域 (而非编码为
+        "非本地" 0), frac 分母 = 可判定篇数, away 对照组不再混入未知来源文章。
     """
     if '媒体(中文)' not in df.columns:
         logger.warning("  媒体列不存在, 跳过")
@@ -716,6 +796,15 @@ def compute_media_heterogeneity(df, panel):
     if fc_in_central:
         logger.info(f"  ℹ️ 财经/综合 ∩ 中央级: {len(fc_in_central)} 家 "
                     f"(正交分类, 合理)")
+    # fix(omni-g-attention-02, 2026-06-11): OFF ∩ MKT 重叠检查日志 — NPPA 双判据
+    # (官方=主管单位为党政机关; 市场化=主办单位为企业) 非互斥, 实测重叠 386 家
+    # (82% MARKET ⊂ OFFICIAL)。此前仅查 FIN∩COMP 从未查 OFF∩MKT, 维度⑤⑥的
+    # YZZ (2018 RFS) 对立构念被重叠 dummy 掩盖。重叠媒体 (双判据) 从两维度
+    # dummy 中互斥剔除 (official := OFF−MKT, market := MKT−OFF, 见维度⑤⑥)。
+    overlap_om = OFFICIAL & MARKET
+    if overlap_om:
+        logger.info(f"  ℹ️ OFFICIAL ∩ MARKET 重叠: {len(overlap_om)} 家 "
+                    f"(双判据媒体, 已从两维度 dummy 互斥剔除, 归入各自对照组)")
 
     # ── 维度①②③: 财经/综合/其他 三方分类 ──
     def _classify_content(name):
@@ -792,10 +881,19 @@ def compute_media_heterogeneity(df, panel):
     #     市场化媒体则有显著治理效应 (doi: 10.1093/rfs/hhx055)
     #   - Piotroski, Wong & Zhang (2015, JAR): 政治激励导致关联企业负面信息
     #     被暂时压制 (doi: 10.1111/1475-679X.12071)
-    # 操作化: official_media 名单来自 NPPA 数据库, 以主管单位为党政机关为判据
-    df['_is_official'] = df['媒体(中文)'].isin(OFFICIAL).astype(int)
+    # 操作化: official_media 名单来自 NPPA 数据库, 以主管单位为党政机关为判据。
+    # fix(omni-g-attention-02, 2026-06-11): YZZ (2018 RFS) 的对立构念是互斥窄集
+    # (党委机关报 vs 市场化报), 而 NPPA 双判据 OFF (2208 家, 近全集) 与 MKT (471 家)
+    # 重叠 386 家 — 旧 dummy 下 official_media_frac 近退化 (均值 0.873), 且 nonoff
+    # 对照组反而剔除了大部分市场化媒体。改互斥构造: official := OFF − MKT (纯官方;
+    # 企业主办的市场化媒体不再计入官方组, 归入 nonoff 对照, 修正 tone_gap_official_nonoff
+    # 的 nonoff 组定义 — nonoff 现含**全部**市场化媒体)。与维度⑥ market := MKT − OFF
+    # 结构性互斥, official_frac + market_frac ≤ 1 (校验见文末 (7b))。
+    # 披露: 双判据媒体 (OFF∩MKT, 主管党政 + 主办企业) 不计入任一处理组,
+    # 落入 nonoff / nonmkt 两对照组 — 论文层应重述操作化 (主管 vs 主办 双判据非互斥)。
+    df['_is_official'] = df['媒体(中文)'].isin(OFFICIAL - MARKET).astype(int)
     n_official = df['_is_official'].sum()
-    logger.info(f"    政治取向 - 官方: {n_official:,} "
+    logger.info(f"    政治取向 - 纯官方 (OFF−MKT): {n_official:,} "
                 f"({n_official/len(df)*100:.1f}%)")
 
     frac_off = (df.groupby(['target_bank', 'year'])['_is_official']
@@ -821,10 +919,14 @@ def compute_media_heterogeneity(df, panel):
     #     体现了媒体治理功能 (doi: 10.1093/rfs/hhx055)
     #   - Fang & Peress (2009, JF): 媒体覆盖度越高, 信息不对称越低,
     #     无覆盖股票存在回报溢价 (doi: 10.1111/j.1540-6261.2009.01493.x)
-    # 操作化: market_media 名单来自 NPPA 数据库, 以主办单位为企业/商业集团为判据
-    df['_is_market'] = df['媒体(中文)'].isin(MARKET).astype(int)
+    # 操作化: market_media 名单来自 NPPA 数据库, 以主办单位为企业/商业集团为判据。
+    # fix(omni-g-attention-02, 2026-06-11): market := MKT − OFF (纯市场化), 与维度⑤
+    # official := OFF − MKT 结构性互斥 — 旧 dummy 直接 isin(MARKET) 时 82% MARKET ⊂
+    # OFFICIAL (重叠 386 家), YZZ (2018 RFS) 对立构念被重叠掩盖。双判据媒体 (OFF∩MKT)
+    # 不计入任一处理组, 落入 nonoff / nonmkt 两对照组 (披露见维度⑤ 注释)。
+    df['_is_market'] = df['媒体(中文)'].isin(MARKET - OFFICIAL).astype(int)
     n_market = df['_is_market'].sum()
-    logger.info(f"    政治取向 - 市场化: {n_market:,} "
+    logger.info(f"    政治取向 - 纯市场化 (MKT−OFF): {n_market:,} "
                 f"({n_market/len(df)*100:.1f}%)")
 
     frac_mkt = (df.groupby(['target_bank', 'year'])['_is_market']
@@ -952,35 +1054,51 @@ def compute_media_heterogeneity(df, panel):
         _news_city_clean = _clean_geo(df['城市']) if '城市' in df.columns else pd.Series('', index=df.index)
         _bank_city_clean = _clean_geo(df['_bank_city'])
 
-        df['_is_homeprov'] = (_news_prov_clean == _bank_prov_clean).astype(int)
-        df['_is_homecity'] = (_news_city_clean == _bank_city_clean).astype(int)
+        # float 编码 (1.0=本地 / 0.0=异地 / NaN=不可判), 见下方 (9d) 出域守卫
+        df['_is_homeprov'] = (_news_prov_clean == _bank_prov_clean).astype(float)
+        df['_is_homecity'] = (_news_city_clean == _bank_city_clean).astype(float)
 
         # (9d) NaN / 空值 显式守卫
         #   防止 _clean_geo(NaN) → "nan" == "nan" 假阳性
         #   以及 "" == "" 假阳性 (当 bank_addresses 或新闻数据缺省份/城市时)
+        # fix(omni-g-attention-07, 2026-06-11): 地理元数据缺失 → NaN (出域) 而非 0 —
+        # 旧编码把"来源不可知"强制归入非本地: (a) homeprov/homecity_media_frac 的
+        # 分母含地理不可判文章而分子只能来自确认本地 → 本地占比低估;
+        # (b) away 组 (==0) 混入未知来源文章 → tone_gap_home*_non* 衰减;
+        # (c) 银行总部省缺失时整行全 0 → frac 伪零而非 NaN。
+        # 改 NaN 后: frac 的 groupby.mean 自动跳 NA (分母 = 可判定篇数, 全不可判 →
+        # NaN), home/away 子组过滤 (==1 / ==0) 天然排除 NaN 行 (NaN==x 恒 False)。
+        # (latent: 盘上试跑 857 篇地理列 0 缺失不触发; 17M 全量元数据缺失必现)
         _prov_invalid = (df['_bank_prov'].isna()
                          | df['国家地区/省份'].isna()
                          | (df['_bank_prov'].astype(str).str.strip() == '')
                          | (df['国家地区/省份'].astype(str).str.strip() == ''))
-        df.loc[_prov_invalid, '_is_homeprov'] = 0
+        df.loc[_prov_invalid, '_is_homeprov'] = np.nan
         if '城市' in df.columns:
             _city_invalid = (df['_bank_city'].isna()
                              | df['城市'].isna()
                              | (df['_bank_city'].astype(str).str.strip() == '')
                              | (df['城市'].astype(str).str.strip() == ''))
-            df.loc[_city_invalid, '_is_homecity'] = 0
+            df.loc[_city_invalid, '_is_homecity'] = np.nan
         else:
-            df['_is_homecity'] = 0
+            # 城市列整列缺失 → 同城性整体不可判 (NaN), 而非全体"非同城"
+            df['_is_homecity'] = np.nan
 
-        # (9e) 拓扑不变量: 同城 ⊆ 同省
-        df['_is_homeprov'] = np.maximum(df['_is_homeprov'], df['_is_homecity'])
+        # (9e) 拓扑不变量: 确认同城 (==1) ⇒ 同省 (提升为 1)。
+        # fix(omni-g-attention-07): NaN 编码下不可再用 np.maximum (NaN 传播会抹掉
+        # 已判定的 prov 值), 也不可用 np.fmax (fmax(NaN, 0)=0 会把"省不可判"错误
+        # 改写为非同省 — 非同城不蕴含非同省)。只在 city==1 时改写。
+        df['_is_homeprov'] = np.where(
+            df['_is_homecity'] == 1, 1.0, df['_is_homeprov'])
 
-        # 诊断
+        # 诊断 (sum/isna 均 skipna; NaN = 地理不可判, 不计入本地/异地任一侧)
         n_total = len(df)
-        n_homeprov = df['_is_homeprov'].sum()
-        n_homecity = df['_is_homecity'].sum()
+        n_homeprov = int(df['_is_homeprov'].sum())
+        n_homecity = int(df['_is_homecity'].sum())
+        n_geo_na = int(df['_is_homeprov'].isna().sum())
         logger.info(f"    同省报道: {n_homeprov:,} ({n_homeprov/n_total*100:.1f}%), "
-                    f"同城报道: {n_homecity:,} ({n_homecity/n_total*100:.1f}%)")
+                    f"同城报道: {n_homecity:,} ({n_homecity/n_total*100:.1f}%), "
+                    f"地理不可判 (出域): {n_geo_na:,} ({n_geo_na/n_total*100:.1f}%)")
 
         # (9f) 三项核心指标 × Prov/City 双轨
         #   指标1: 偏袒度 (tone_gap) — 均值层面的系统性倾斜
@@ -1081,6 +1199,13 @@ def compute_media_heterogeneity(df, panel):
             .groupby(['target_bank', 'year']).size()
             .reset_index(name='n_articles_exc'))
     panel = panel.merge(n_ex, on=['target_bank', 'year'], how='left')
+    # fix(omni-g-attention-zerofill, 2026-06-11 组级裁决): 计数零填契约补齐 —
+    # 本函数在 balance_panel (encode.py "计数/和类填 0" 契约, 含 n_articles* 前缀
+    # 通配) **之后** 运行, 上方 left-join 对零文章 bank-year 留 NaN, 逃过该契约
+    # (.dta 显 . 而非 0, 与兄弟列 n_articles=0 矛盾)。计数 Σ over ∅ = 0 → 填 0
+    # 并恢复整型 (merge 产生 NaN 时 size 的 int64 已漂移为 float64)。
+    # ceased_media_frac (比例类) / exc_*tone* (情感类) 按契约保持 NaN, 勿连带零填。
+    panel['n_articles_exc'] = panel['n_articles_exc'].fillna(0).astype('int64')
 
     # (C.3) bank-year 双轨道全局情感均值（排除停刊; full/ctx）
     df_alive = df[df['_is_ceased_media'] == 0]
@@ -1157,8 +1282,23 @@ def compute_media_heterogeneity(df, panel):
         else:
             logger.info("  ✓ deepdive + daily 互斥约束成立")
 
-    # (8) 正交分类说明
-    logger.info("  ✓ 中央级/official/market 与内容分类为正交分类 (无互斥约束)")
+    # (7b) fix(omni-g-attention-02, 2026-06-11): official/market 互斥校验 —
+    # official := OFF−MKT 与 market := MKT−OFF 结构性不交 ⟹ 占比之和 ≤ 1
+    # (旧重叠 dummy 下两占比之和实测 1.53, 该校验永不成立故从未存在)
+    if ('official_media_frac' in panel.columns
+            and 'market_media_frac' in panel.columns):
+        _sum_om = (panel['official_media_frac'].fillna(0)
+                   + panel['market_media_frac'].fillna(0))
+        if (_sum_om > 1.0001).any():
+            logger.error("  ✗ official + market 占比之和超过 1 (互斥构造被破坏)!")
+        else:
+            logger.info("  ✓ official + market 互斥约束成立 (OFF−MKT / MKT−OFF)")
+
+    # (8) 正交分类说明 — fix(omni-g-attention-02, 2026-06-11): official/market 之间
+    # 是互斥构造 (见 7b) 而非正交; 旧日志"central/official/market 正交分类"曾掩盖
+    # OFF∩MKT 重叠。此处"正交"仅指与内容分类 (fin/comp) 的关系。
+    logger.info("  ✓ 中央级/official/market 与内容分类 (fin/comp) 为正交分类; "
+                "official ⊥ market 为互斥构造 (见 7b)")
     logger.info("  ✓ deepdive/daily 与其他维度正交")
 
     return panel

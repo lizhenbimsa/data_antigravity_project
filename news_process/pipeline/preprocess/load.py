@@ -72,9 +72,53 @@ def _ac_contains_any(text: str, automaton) -> bool:
     return False
 
 
-BANK_KW_AUTOMATON = _build_ac_automaton(BANK_KEYWORDS) if BANK_KEYWORDS else None
+def _expand_keyword_variants(keywords) -> list:
+    """为银行关键词注入繁体 (OpenCC s2t) + 全角括号变体.
+
+    fix(omni-g-preprocess-07, 2026-06-11): 银行关键词保留过滤 (决定样本存留,
+    淘汰 30-50%) 在文本规范化 (ftfy / OpenCC t2s / 全角→半角) **之前** 对原始
+    文本执行 (见 _process_single_file: 先 _clean_and_filter_dataframe 再
+    clean_text_batch), 而 bank_keywords.json 全部为简体+半角括号 — 繁体源 /
+    全角括号源文章会在规范化修复之前被静默丢弃 (latent, 全量 2007-2024 语料)。
+    经裁决采纳廉价修法: 构建 AC 自动机时同时加入 s2t 繁体变体与全角括号变体,
+    过滤顺序保持不变 (避免对 60-70% 将被地域/类型过滤淘汰的行先做昂贵规范化)。
+    OpenCC 不可用时优雅降级 (仅原始关键词 + 全角括号变体, log warning)。
+
+    Args:
+        keywords: 原始 (简体) 关键词列表。
+
+    Returns:
+        list: 去重排序后的关键词 + 变体列表。
+    """
+    variants = set(keywords)
+    # 全角括号变体 (如 '联合银行(中国)' → '联合银行（中国）')
+    variants |= {
+        kw.replace('(', '（').replace(')', '）')
+        for kw in variants if '(' in kw or ')' in kw
+    }
+    try:
+        import opencc
+        _cc_s2t = opencc.OpenCC('s2t')
+        variants |= {_cc_s2t.convert(kw) for kw in variants}
+        # 繁体变体再补全角括号形态 (组合覆盖: 繁体 × 全角括号)
+        variants |= {
+            kw.replace('(', '（').replace(')', '）')
+            for kw in variants if '(' in kw or ')' in kw
+        }
+    except Exception as e:  # 防御性回退: opencc 缺失/初始化失败不阻断加载
+        logger.warning(f"OpenCC s2t 关键词变体生成失败, AC 自动机不含繁体变体: {e}")
+    return sorted(variants)
+
+
+BANK_KW_AUTOMATON = (
+    _build_ac_automaton(_expand_keyword_variants(BANK_KEYWORDS))
+    if BANK_KEYWORDS else None
+)
 if BANK_KW_AUTOMATON is not None:
-    logger.info(f"Aho-Corasick 自动机构建完成({len(BANK_KEYWORDS)} 个关键词)")
+    logger.info(
+        f"Aho-Corasick 自动机构建完成({len(BANK_KEYWORDS)} 个关键词 "
+        f"+ 繁体/全角括号变体, fix omni-g-preprocess-07)"
+    )
 
 
 # ============================================================================
@@ -190,6 +234,7 @@ _ = np  # silence "imported but unused"
 __all__ = [
     '_build_ac_automaton',
     '_ac_contains_any',
+    '_expand_keyword_variants',
     'BANK_KW_AUTOMATON',
     '_process_single_file',
 ]

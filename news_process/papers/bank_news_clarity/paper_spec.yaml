@@ -95,10 +95,15 @@ treatment:
         Step 1c: frac_definite_ctx = n_definite_ctx / n_tokens_ctx ∈ [0,1]
                  frac_ambiguous_ctx = n_ambiguous_ctx / n_tokens_ctx ∈ [0,1]
                  clarity_score_ctx = frac_definite_ctx - frac_ambiguous_ctx ∈ [-1,+1]
-    Step 2 (现成, encode_collab.py L467): bank-year 加权聚合
-        权重 w_i = mention_density (默认) 或 1
-        mean_clarity_score_ctx[b,t] = Σ w_i × clarity_score_ctx_i / Σ w_i
+    Step 2 (现成, encode_collab.py::aggregate_clarity_panel): bank-year 加权聚合
+        # fix(omni-g-encode-collab-08, 2026-06-11): 旧描述 "w_i = mention_density (默认) 或 1"
+        # 与实现不符 (mention_density 在 encode_collab.py 0 命中); 真实权重如下
+        权重 w_i = media_authority_weight × herd_weight_ctx (任一缺失回退 1)
+        mean_clarity_score_ctx[b,t] = Σ_valid w_i × clarity_score_ctx_i / Σ_valid w_i
+        (分母 mask 到 clarity-valid 文章集, fix(clarity-weighted-denom, 2026-06-10))
     Sidecar JSON anchor (frozen): data/processed/v3_5_1_constants.json::median_amb_d0
+        (+ median_amb_d0_ctx — ctx 轨自身分布阈值; 首跑 in-sample 计算后冻结,
+         后续跑读冻结值, 防 look-ahead 泄漏; fix(omni-known-open-2, 2026-06-11))
 
   alternative:
     - mean_clarity_score_full       # _full 轨 dual-track robustness
@@ -122,6 +127,12 @@ treatment:
     - lexical_discriminant_validity: "v3.5.1 已实现 (pipeline/audit/lexical_discriminant_validity.py)"
 
 controls:
+  # fix(omni-g-replication-07, 2026-06-11): bank_level 财务 5 列 (ln_assets/leverage/
+  # capital_ratio/npl_ratio/deposit_growth) + credit_rating + year_level 的 shibor/
+  # term_spread/lpr_year_avg/gdp_growth/m2_growth 在当前 panel 全为 0 命中 —
+  # enrichment pending (config/银行面板2007-2025年.xlsx + 宏观利率/评级序列待接入;
+  # term_spread 由 01_data_prep gen 为全缺失 placeholder)。bank_type_id 非 panel
+  # 原生列: 01_data_prep 从主 panel 字符串列 bank_type encode 派生。
   bank_level:
     - ln_assets
     - leverage
@@ -288,6 +299,9 @@ tables:
   tA7:
     template: 19_bnc_clarity_main_robustness  # 待 M7 设计
   tA8:
-    template: 19_bnc_num_intensity_complementary  # 复用 v3.5.1 A3 模板风格
+    # ⚠ 模板待设计 fix(omni-g-zscore-papers-03, 2026-06-11): 此 .do.tmpl 全仓尚不存在
+    # (grep 0 命中), 当前 build-replication 不产出; 与 tA7 同为待 M7 设计项, 届时复用
+    # v3.5.1 A3 模板风格。
+    template: 19_bnc_num_intensity_complementary  # 待 M7 设计
   tA9:
     template: null

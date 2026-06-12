@@ -79,10 +79,16 @@ def test_strategic_diff_emits_canonical_and_t2v(monkeypatch):
         assert col in panel.columns, f"缺 ctx 稳健 twin 列 {col}"
 
 
-def test_benefit_society_emits_canonical_and_t2v(monkeypatch):
+def test_benefit_society_emits_canonical_and_t2v(monkeypatch, tmp_path):
     """stage 27: benefit_* 须同时含 canonical 与 _t2v 双族 (8 + 8)。"""
     _patch_engine(monkeypatch)
     from news_process.pipeline.features import benefit_society as bs
+
+    # fix(omni-g-benefit-01 / KNOWN-OPEN①, 2026-06-11): stage 27 现真实落盘
+    # 嵌入/方向 .npy 与冻结 center sidecar → 重定向 OUTPUT_DIR 到 tmp, 防止
+    # toy 数据污染真实 data/processed (尤其 _benefit_center_sidecar.json 的
+    # 首跑冻结值)。
+    monkeypatch.setattr(bs, 'OUTPUT_DIR', str(tmp_path))
 
     panel = bs.compute_benefit_society_panel(_toy_panel(), _toy_df_exploded())
 
@@ -176,7 +182,10 @@ def _toy_panel_2yr():
 
 def test_network_embedding_peer_emits_canonical_and_t2v(monkeypatch):
     """第 5 个 callsite (network embedding peer): emb_peer_tone_lag1 +
-    bank_emb_sim_mean 须同时含 canonical 与 _t2v 双族 (闭合此前覆盖缺口)。"""
+    bank_emb_sim_mean_lag1 须同时含 canonical 与 _t2v 双族 (闭合此前覆盖缺口)。
+
+    fix(omni-g-net-spill-03, 2026-06-11): sim 列重命名披露 t-1 文本口径
+    (bank_emb_sim_mean → bank_emb_sim_mean_lag1, _t2v 同步), 断言随更新。"""
     from news_process.pipeline.text import embedding_engine as eng
     monkeypatch.setattr(eng, 'embed_texts', _fake_embed_spec_aware())
     from news_process.pipeline.panel import network_spillover as ns
@@ -184,15 +193,15 @@ def test_network_embedding_peer_emits_canonical_and_t2v(monkeypatch):
     panel = ns.compute_embedding_peer_network(
         _toy_df_exploded_2yr(), _toy_panel_2yr())
 
-    for col in ['emb_peer_tone_lag1_full', 'bank_emb_sim_mean',
-                'emb_peer_tone_lag1_t2v_full', 'bank_emb_sim_mean_t2v']:
+    for col in ['emb_peer_tone_lag1_full', 'bank_emb_sim_mean_lag1',
+                'emb_peer_tone_lag1_t2v_full', 'bank_emb_sim_mean_lag1_t2v']:
         assert col in panel.columns, f"缺 network 嵌入列 {col}"
     # 2020 行 (其 lag 年 2019 有数据) canonical 主轨应算出真值
     y2020 = panel[panel['year'] == 2020]
-    assert y2020['bank_emb_sim_mean'].notna().any(), "canonical 主轨未算出值"
+    assert y2020['bank_emb_sim_mean_lag1'].notna().any(), "canonical 主轨未算出值"
     # 配置含 embedding_robustness 时, _t2v 稳健轨也应算出真值 (真双算)
     if ns._ROBUSTNESS_SPEC:
-        assert y2020['bank_emb_sim_mean_t2v'].notna().any(), "稳健 _t2v 轨未算出值"
+        assert y2020['bank_emb_sim_mean_lag1_t2v'].notna().any(), "稳健 _t2v 轨未算出值"
 
 
 def test_policy_alignment_main_fail_keeps_t2v_contract(monkeypatch):

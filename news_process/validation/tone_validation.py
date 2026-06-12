@@ -98,10 +98,14 @@ def discover_sentiment_columns(df: pd.DataFrame, track_suffix: str = '') -> dict
 
     Returns:
         dict: {
-            'words': {dict_name: {'score': col, 'label': col}},
-            'bert':  {short_name: {'label': col, 'probs': {label_name: col}}},
-            'llm':   {short_name: {'sentiment': col, 'confidence': col}},
+            'words':     {dict_name: {'score': col, 'label': col}},
+            'words_idf': {dict_name: {'score': col, 'label': col}},  # IDF 稳健性组
+            'bert':      {short_name: {'label': col, 'probs': {label_name: col}}},
+            'llm':       {short_name: {'sentiment': col, 'confidence': col}},
         }
+
+        注 (fix omni-g-val-tone-01, 2026-06-11): 'bert' 组保证不含词典 (等权/IDF)
+        与 LLM 名; probs 仅收情感类别概率列 (正面/中性/负面), 不收 zscore 等派生列。
     """
     columns = list(df.columns)
     result = {'words': {}, 'bert': {}, 'llm': {}}
@@ -153,26 +157,39 @@ def discover_sentiment_columns(df: pd.DataFrame, track_suffix: str = '') -> dict
             }
 
     # BERT 法：找 _label{track_suffix} 列（排除已被词典法识别的；排除 LLM 的）
+    # fix(omni-g-val-tone-01, 2026-06-11): 此前仅排除等权词典名 + LLM 名, 未排除
+    # IDF 词典名 (result['words_idf']) → jiang_2021_idf 等 5 个 IDF 词典的
+    # *_label 列被误判为 "BERT 模型" (其 *_zscore 列被当作概率列), 结构性污染
+    # BERT 组 Cronbach α / 跨方法一致率 / 词典覆盖率分层稳健性 (盘上实测
+    # "BERT N Models=8, α=0.894" 实为 3 真 BERT + 5 词典, 纯 BERT α=0.699)。
     words_names = set(result['words'].keys())
+    words_idf_names = set(result['words_idf'].keys())
     llm_names = set(result['llm'].keys())
     for col in columns:
         if col.endswith(label_suffix):
             name = col[:-len(label_suffix)]
-            if name not in words_names and name not in llm_names:
-                probs = {}
-                for c in columns:
-                    # 查找同 track 的概率列：{name}_{prob_label}{track_suffix}
-                    if c.startswith(f'{name}_') and c.endswith(track_suffix) and c != col:
-                        # 去除前缀和后缀得到 prob_label
-                        prob_label = c[len(f'{name}_'):]
-                        if track_suffix:
-                            prob_label = prob_label[:-len(track_suffix)]
-                        if prob_label not in ('label', 'score', 'sentiment', 'confidence'):
-                            probs[prob_label] = c
-                result['bert'][name] = {
-                    'label': col,
-                    'probs': probs,
-                }
+            if (name in words_names or name in words_idf_names
+                    or name in llm_names or '_idf' in name):
+                # '_idf' 子串守卫与词典法分支同一判别式 (见上方 words_idf 分组),
+                # 防 IDF 列缺 score 对时绕过 words_idf 集合再次泄漏进 BERT 组
+                continue
+            probs = {}
+            for c in columns:
+                # 查找同 track 的概率列：{name}_{prob_label}{track_suffix}
+                if c.startswith(f'{name}_') and c.endswith(track_suffix) and c != col:
+                    # 去除前缀和后缀得到 prob_label
+                    prob_label = c[len(f'{name}_'):]
+                    if track_suffix:
+                        prob_label = prob_label[:-len(track_suffix)]
+                    # fix(omni-g-val-tone-01, 2026-06-11): probs 从黑名单收紧为
+                    # 情感类别白名单 — 真 BERT 概率列只有 {name}_{正面|中性|负面}
+                    # (tone_berts.py 写出格式), zscore / ratio 等派生列不是概率
+                    if prob_label in ('正面', '中性', '负面'):
+                        probs[prob_label] = c
+            result['bert'][name] = {
+                'label': col,
+                'probs': probs,
+            }
 
     return result
 
@@ -471,12 +488,22 @@ def generate_validation_sample(df: pd.DataFrame,
                                 logger_inst,
                                 n_agree: int = 100,
                                 n_disagree: int = 200,
-                                seed: int = 42):
+                                seed: int = 42,
+                                track: str = '_full'):
     """生成情感标签人工验证样本。
 
     抽样策略：
       - 一致样本：所有方法标签一致的文章中随机抽取 n_agree 篇
       - 不一致样本：存在分歧的文章中随机抽取 n_disagree 篇
+
+    fix(omni-g-val-tone-04, 2026-06-11): 编码协议与被验证构念对齐 —
+      (a) 调用方按 track 写独立文件 (此前双轨共写同一 xlsx, _ctx 覆盖 _full,
+          标注归属轨道不可追溯);
+      (b) 编码指南随 track 切换: v3.8.0 起两轨机器输入均为 prepend_title 后
+          文本 (full=标题+正文, ctx=标题+实体上下文窗口), 旧指南"不受标题影响"
+          指示人类剔除标题信息, 与机器口径系统性错位;
+      (c) 样本附带被验证轨道的机器输入文本列 (content_full / content_ctx,
+          若存在), 让人工阅读与机器消费同一文本。
 
     Args:
         df:              原始 DataFrame（含标题、内容等）。
@@ -487,6 +514,8 @@ def generate_validation_sample(df: pd.DataFrame,
         n_agree:         一致样本抽样数。
         n_disagree:      不一致样本抽样数。
         seed:            随机种子。
+        track:           被验证轨道 ('_full' / '_ctx'), 决定编码指南口径与
+                         机器输入文本列。
     """
     valid = all_labels_df.dropna(how='any')
     if valid.empty:
@@ -537,9 +566,20 @@ def generate_validation_sample(df: pd.DataFrame,
     sample_df['人工判定_情感'] = ''
     sample_df['人工判定_理由'] = ''
 
+    # fix(omni-g-val-tone-04, 2026-06-11): 附上被验证轨道的机器输入文本
+    # (prepend_title 后), 让人工标注口径与机器口径一致
+    track_text_col = 'content_ctx' if track == '_ctx' else 'content_full'
+    if track_text_col in sample_df.columns:
+        sample_df['机器输入文本'] = sample_df[track_text_col]
+    else:
+        logger_inst.warning(
+            f"  机器输入文本列 '{track_text_col}' 不存在 — 验证样本仅含原始"
+            f" 标题/内容 列, 人工口径与机器口径可能存在差异 (需 stage 13 物化)"
+        )
+
     # 保留核心列
     keep_cols = []
-    for col in ['标题', '内容', '日期', '媒体(中文)']:
+    for col in ['标题', '内容', '机器输入文本', '日期', '媒体(中文)']:
         if col in sample_df.columns:
             keep_cols.append(col)
 
@@ -551,12 +591,28 @@ def generate_validation_sample(df: pd.DataFrame,
 
     sample_output = sample_df[keep_cols].copy()
 
+    # fix(omni-g-val-tone-04, 2026-06-11): 编码指南与机器文本口径对齐 —
+    # v3.8.0 起 full=标题+正文 / ctx=标题+实体上下文窗口 (均 prepend_title),
+    # 旧指南"不受标题影响"与被验证测度的文本口径系统性错位
+    if track == '_ctx':
+        track_desc = ('ctx 轨 (上下文窗口): 机器输入 = 标题+目标实体上下文窗口 '
+                      '(见"机器输入文本"列), 请基于该窗口文本判断, 勿引入'
+                      '窗口外的全文信息')
+        coding_note = ('基于"标题+实体上下文窗口"文本(见"机器输入文本"列)的'
+                       '整体语调判断, 标题计入判断; 客观报道标为中性')
+    else:
+        track_desc = ('full 轨 (全文): 机器输入 = 标题+正文全文 '
+                      '(见"机器输入文本"列), 请基于标题+正文判断')
+        coding_note = ('基于"标题+正文"整体语调判断, 标题计入判断; '
+                       '客观报道标为中性')
+
     try:
         with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
             # 编码指南
             guide_data = pd.DataFrame({
                 '项目': [
                     '目的',
+                    '验证轨道',
                     '情感标签定义',
                     '编码规则',
                     '注意事项',
@@ -564,9 +620,10 @@ def generate_validation_sample(df: pd.DataFrame,
                 ],
                 '说明': [
                     '对情感分析方法进行人工验证，评估自动化方法的准确性',
+                    track_desc,
                     '正面: 积极/利好; 中性: 客观描述; 负面: 消极/风险',
                     '在"人工判定_情感"列填写: 正面/中性/负面; 在"人工判定_理由"列简述原因',
-                    '基于文章整体语调判断，不受标题影响; 客观报道标为中性',
+                    coding_note,
                     '"一致"=各方法结果一致的样本; "分歧"=各方法结果不一致的样本',
                 ],
             })
@@ -1190,10 +1247,13 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
 
     升级版 (G-02): 实现完整的 Expected Calibration Error (ECE) 和可靠性图。
 
-    ECE 计算策略:
-      - 若 33 阶段人工金标准数据存在 → 用人工标注作为 ground truth
-      - 否则 → 用多数投票标签 (llm_sentiment{track}) 作为伪标准 (pseudo-ground-truth)
-        理由: 多数投票是 3 模型的共识, 单模型的 confidence 应与该共识一致
+    ECE 计算策略 (fix omni-g-val-tone-03, 2026-06-11):
+      - 若 33 阶段人工金标准数据存在 → 用人工标注作为 ground truth (最高优先级)
+      - 否则 → 对每个被评模型用 leave-one-out 共识作伪标准: 其余独立模型的标签
+        全部非空且一致时取该共识, 不一致/缺失行剔除。
+        此前的 leave-one-in 伪标准 (llm_sentiment{track} 含被评模型自身票) 中
+        被评模型自己是共识选票之一, 仅当其余模型一致且都反对它时才判"错" →
+        per-bin accuracy 被机械抬高, ECE 对过自信模型系统性低估。
 
     学术依据：
       - Guo et al. (2017, ICML): ECE = Σ(|B_m|/n) × |acc(B_m) - conf(B_m)|
@@ -1268,117 +1328,137 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
     logger_inst.info(f"  分箱数: {N_BINS} (Guo et al. 2017, ICML)")
 
     # 确定 ground truth 标签
-    # 优先使用人工金标准 (33 阶段输出), 否则使用多数投票标签
+    # fix(omni-g-val-tone-03, 2026-06-11): 伪标准从 leave-one-in (llm_sentiment{track}
+    # = 含被评模型自身票的多数票) 改为 leave-one-out 共识 — 旧口径下被评模型自己
+    # 持共识选票, 仅当其余模型一致且都反对它时才判"错", per-bin accuracy 被机械
+    # 抬高, ECE 对过自信模型系统性低估。LOO 规则: 其余独立模型标签全部非空且
+    # 一致 → 取共识为伪 GT; 否则该行剔除。人工金标准路径保留为最高优先级。
     human_col = f'human_sentiment{track}'
-    vote_col = f'llm_sentiment{track}'
-    if human_col in df.columns and df[human_col].notna().sum() > 100:
-        gt_col = human_col
+    use_human_gt = (human_col in df.columns
+                    and df[human_col].notna().sum() > 100)
+    if use_human_gt:
         gt_source = '人工金标准 (Stage 33)'
-    elif vote_col in df.columns:
-        gt_col = vote_col
-        gt_source = '多数投票伪标准 (3-model consensus)'
     else:
-        logger_inst.warning("  无可用 ground truth 标签，ECE 计算跳过")
-        gt_col = None
-        gt_source = None
+        gt_source = ('leave-one-out 共识 (其余独立模型一致取共识, '
+                     '排除被评模型自身票; 不一致行剔除)')
+    logger_inst.info(f"  Ground Truth 来源: {gt_source}")
 
     ece_results = {}
     reliability_data = {}
 
-    if gt_col is not None:
-        logger_inst.info(f"  Ground Truth 来源: {gt_source}")
+    for name, info in independent_models.items():
+        conf_col = info.get('confidence')
+        sent_col = info.get('score')  # 模型情感标签列
+        if not conf_col or conf_col not in df.columns:
+            continue
 
-        for name, info in independent_models.items():
-            conf_col = info.get('confidence')
-            sent_col = info.get('score')  # 模型情感标签列
-            if not conf_col or conf_col not in df.columns:
+        # 获取该模型的情感预测标签
+        # 查找模型的 sentiment 标签列
+        model_sent_col = None
+        for candidate in [f'{name}_sentiment{track}', sent_col]:
+            if candidate and candidate in df.columns:
+                model_sent_col = candidate
+                break
+        if model_sent_col is None:
+            logger_inst.info(f"  [{name}] 无情感标签列，跳过 ECE")
+            continue
+
+        # 构建该模型的 ground truth 序列
+        if use_human_gt:
+            gt_series = df[human_col]
+        else:
+            # leave-one-out: 仅用其余独立模型的 sentiment 列构建共识
+            other_cols = [
+                info2.get('sentiment')
+                for name2, info2 in independent_models.items()
+                if name2 != name
+                and info2.get('sentiment') in df.columns
+                and info2.get('sentiment') != model_sent_col
+            ]
+            if not other_cols:
+                logger_inst.info(
+                    f"  [{name}] 无其余独立模型可构建 leave-one-out 共识，跳过 ECE"
+                )
                 continue
+            others = df[other_cols]
+            # 全部非空且唯一值数 == 1 → 一致共识; 否则该行剔除 (NaN)
+            unanimous = others.notna().all(axis=1) & (others.nunique(axis=1) == 1)
+            gt_series = others.iloc[:, 0].where(unanimous)
 
-            # 获取该模型的情感预测标签
-            # 查找模型的 sentiment 标签列
-            model_sent_col = None
-            for candidate in [f'{name}_sentiment{track}', sent_col]:
-                if candidate and candidate in df.columns:
-                    model_sent_col = candidate
-                    break
-            if model_sent_col is None:
-                logger_inst.info(f"  [{name}] 无情感标签列，跳过 ECE")
-                continue
+        # 构建有效数据掩码
+        valid_mask = (
+            df[conf_col].notna() &
+            df[model_sent_col].notna() &
+            gt_series.notna()
+        )
+        if valid_mask.sum() < 50:
+            logger_inst.info(f"  [{name}] 有效观测 < 50，跳过 ECE")
+            continue
 
-            # 构建有效数据掩码
-            valid_mask = (
-                df[conf_col].notna() &
-                df[model_sent_col].notna() &
-                df[gt_col].notna()
-            )
-            if valid_mask.sum() < 50:
-                logger_inst.info(f"  [{name}] 有效观测 < 50，跳过 ECE")
-                continue
+        confidences = pd.to_numeric(df.loc[valid_mask, conf_col], errors='coerce').values
+        predictions = df.loc[valid_mask, model_sent_col].astype(str).values
+        ground_truth = gt_series.loc[valid_mask].astype(str).values
 
-            confidences = pd.to_numeric(df.loc[valid_mask, conf_col], errors='coerce').values
-            predictions = df.loc[valid_mask, model_sent_col].astype(str).values
-            ground_truth = df.loc[valid_mask, gt_col].astype(str).values
+        # 计算 ECE (10-bin equal-width binning)
+        bin_boundaries = np.linspace(0, 1, N_BINS + 1)
+        bin_ece = 0.0
+        n_total = len(confidences)
+        bin_details = []
 
-            # 计算 ECE (10-bin equal-width binning)
-            bin_boundaries = np.linspace(0, 1, N_BINS + 1)
-            bin_ece = 0.0
-            n_total = len(confidences)
-            bin_details = []
+        for i in range(N_BINS):
+            low, high = bin_boundaries[i], bin_boundaries[i + 1]
+            if i == N_BINS - 1:
+                in_bin = (confidences >= low) & (confidences <= high)
+            else:
+                in_bin = (confidences >= low) & (confidences < high)
 
-            for i in range(N_BINS):
-                low, high = bin_boundaries[i], bin_boundaries[i + 1]
-                if i == N_BINS - 1:
-                    in_bin = (confidences >= low) & (confidences <= high)
-                else:
-                    in_bin = (confidences >= low) & (confidences < high)
-
-                bin_size = in_bin.sum()
-                if bin_size == 0:
-                    bin_details.append({
-                        'bin': f'{low:.1f}-{high:.1f}',
-                        'n': 0, 'avg_conf': 0, 'accuracy': 0, 'gap': 0
-                    })
-                    continue
-
-                avg_conf = float(confidences[in_bin].mean())
-                accuracy = float((predictions[in_bin] == ground_truth[in_bin]).mean())
-                gap = abs(accuracy - avg_conf)
-                bin_ece += (bin_size / n_total) * gap
-
+            bin_size = in_bin.sum()
+            if bin_size == 0:
                 bin_details.append({
                     'bin': f'{low:.1f}-{high:.1f}',
-                    'n': int(bin_size),
-                    'avg_conf': round(avg_conf, 4),
-                    'accuracy': round(accuracy, 4),
-                    'gap': round(gap, 4),
+                    'n': 0, 'avg_conf': 0, 'accuracy': 0, 'gap': 0
                 })
+                continue
 
-            ece_value = round(float(bin_ece), 4)
-            ece_results[name] = ece_value
-            reliability_data[name] = bin_details
+            avg_conf = float(confidences[in_bin].mean())
+            accuracy = float((predictions[in_bin] == ground_truth[in_bin]).mean())
+            gap = abs(accuracy - avg_conf)
+            bin_ece += (bin_size / n_total) * gap
 
-            # ECE 解读 (Guo et al. 2017)
-            if ece_value < 0.05:
-                quality = '✅ 校准良好 (< 0.05)'
-            elif ece_value < 0.10:
-                quality = '校准一般 (0.05-0.10)'
-            elif ece_value < 0.15:
-                quality = '校准偏差 (0.10-0.15)'
-            else:
-                quality = '🔴 校准不良 (≥ 0.15)'
+            bin_details.append({
+                'bin': f'{low:.1f}-{high:.1f}',
+                'n': int(bin_size),
+                'avg_conf': round(avg_conf, 4),
+                'accuracy': round(accuracy, 4),
+                'gap': round(gap, 4),
+            })
 
-            logger_inst.info(f"  [{name}] ECE = {ece_value:.4f} {quality}")
-            logger_inst.info(f"    Ground Truth: {gt_source}, N = {n_total}")
+        ece_value = round(float(bin_ece), 4)
+        ece_results[name] = ece_value
+        reliability_data[name] = bin_details
 
-            # 输出分箱详情
-            for bd in bin_details:
-                if bd['n'] > 0:
-                    logger_inst.info(
-                        f"    Bin {bd['bin']}: n={bd['n']:>5}, "
-                        f"avg_conf={bd['avg_conf']:.3f}, "
-                        f"accuracy={bd['accuracy']:.3f}, "
-                        f"gap={bd['gap']:.3f}"
-                    )
+        # ECE 解读 (Guo et al. 2017)
+        if ece_value < 0.05:
+            quality = '✅ 校准良好 (< 0.05)'
+        elif ece_value < 0.10:
+            quality = '校准一般 (0.05-0.10)'
+        elif ece_value < 0.15:
+            quality = '校准偏差 (0.10-0.15)'
+        else:
+            quality = '🔴 校准不良 (≥ 0.15)'
+
+        logger_inst.info(f"  [{name}] ECE = {ece_value:.4f} {quality}")
+        logger_inst.info(f"    Ground Truth: {gt_source}, N = {n_total}")
+
+        # 输出分箱详情
+        for bd in bin_details:
+            if bd['n'] > 0:
+                logger_inst.info(
+                    f"    Bin {bd['bin']}: n={bd['n']:>5}, "
+                    f"avg_conf={bd['avg_conf']:.3f}, "
+                    f"accuracy={bd['accuracy']:.3f}, "
+                    f"gap={bd['gap']:.3f}"
+                )
 
     # ── 3. 输出 CSV ──
     csv_rows = []
@@ -1608,9 +1688,21 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     if not sentiment_cols['llm']:
         logger.warning("未发现 LLM 情感列 → 请确认阶段 21 已正确运行")
 
+    # fix(omni-g-val-tone-02, 2026-06-11): 聚合投票列 short_name=='llm'
+    # (llm_sentiment{track} = 3 模型多数票) 不是独立测量 — 计入 Cronbach α /
+    # 标签一致率 / 方法级均值 / majority_vote 合成会把成员模型的合成结果当作
+    # 第 4 个独立模型, 经典测量理论下机械抬高一致性 (盘上实测 LLM α 0.7677
+    # 含投票列 vs 纯 3 模型 0.6933, 0.70 阈值结论翻转)。与
+    # diagnose_llm_category_bias / diagnose_confidence_calibration 的过滤
+    # 先例对齐, 此处从源头剔除; 聚合列仅作对比基准单独记录于
+    # results['llm_aggregate_benchmark']。
+    llm_independent = {name: info for name, info in sentiment_cols['llm'].items()
+                       if name != 'llm'}
+    llm_aggregate_info = sentiment_cols['llm'].get('llm')
+
     n_words = len(sentiment_cols['words'])
     n_bert = len(sentiment_cols['bert'])
-    n_llm = len(sentiment_cols['llm'])
+    n_llm = len(llm_independent)
     total_methods = n_words + n_bert + n_llm
 
     if total_methods < 2:
@@ -1637,7 +1729,9 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
             # 用标签数值化作为分数
             all_scores[f'BERT_{short_name}'] = label_to_numeric(df[cols_info['label']])
 
-    for short_name, cols_info in sentiment_cols['llm'].items():
+    # fix(omni-g-val-tone-02, 2026-06-11): 仅独立模型进入 all_scores/all_labels,
+    # 聚合投票列 'llm' 不参与任何跨方法统计
+    for short_name, cols_info in llm_independent.items():
         all_labels[f'LLM_{short_name}'] = df[cols_info['sentiment']]
         # 用标签×置信度作为连续得分
         if cols_info.get('confidence'):
@@ -1659,11 +1753,25 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
         'methods_detected': {
             'words': list(sentiment_cols['words'].keys()),
             'bert': list(sentiment_cols['bert'].keys()),
-            'llm': list(sentiment_cols['llm'].keys()),
+            # fix(omni-g-val-tone-02): 'llm' 仅列独立模型; 聚合投票列单独披露
+            'llm': list(llm_independent.keys()),
+            'llm_aggregate_excluded': (['llm'] if llm_aggregate_info else []),
         },
         'within_method': {},
         'cross_method': {},
     }
+
+    # 聚合投票列仅作对比基准单独报告 (不进入 α / 一致率 / 方法均值)
+    if llm_aggregate_info is not None:
+        agg_col = llm_aggregate_info['sentiment']
+        results['llm_aggregate_benchmark'] = {
+            'column': agg_col,
+            'distribution': {str(k): int(v)
+                             for k, v in df[agg_col].value_counts().items()},
+            'note': ('聚合投票列 (成员模型多数票), 非独立测量; '
+                     '已从 Cronbach α / 一致率 / 方法级均值剔除, 仅作对比基准'),
+        }
+        logger.info(f"聚合投票列 '{agg_col}' 已从跨方法统计剔除 (仅作对比基准)")
 
     # ======================================================================
     # Step 3: 内部一致性分析（Within-Method）
@@ -1867,8 +1975,8 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     # ======================================================================
     # Step 6.5: LLM 概率诊断 (Chiu & Hung 2025 M3 降级适配)
     # ======================================================================
-    # n_llm 包含聚合列 'llm'（= 独立模型数 + 1），此处仅做粗筛；
-    # 函数内部过滤聚合列后会自行检查独立模型数 >= 2，不足则跳过两两比较
+    # fix(omni-g-val-tone-02): n_llm 已剔除聚合列 = 独立模型数; 仍传入完整
+    # sentiment_cols['llm'], 函数内部自行过滤聚合列 (defense in depth)
     if n_llm >= 2:
         bias_diag = diagnose_llm_category_bias(
             df, sentiment_cols['llm'], track, output_dir, logger
@@ -1887,10 +1995,13 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     logger.info("===    五、人工验证样本生成    ===")
     logger.info("=" * 70)
 
-    verify_path = os.path.join(output_dir, '09_sentiment_verify.xlsx')
+    # fix(omni-g-val-tone-04, 2026-06-11): 文件名加 track 后缀 — 此前双轨共写
+    # 同一 09_sentiment_verify.xlsx, _ctx 覆盖 _full, 文件内 词典_/BERT_/LLM_
+    # 标签列实为后写轨道值但无轨道标识, 人工标注的归属轨道不可追溯
+    verify_path = os.path.join(output_dir, f'09_sentiment_verify{track}.xlsx')
     generate_validation_sample(
         df, all_labels_df, vote_labels, verify_path, logger,
-        n_agree=100, n_disagree=200, seed=42
+        n_agree=100, n_disagree=200, seed=42, track=track
     )
 
     # ======================================================================
@@ -1946,7 +2057,8 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
 
     n_words = len(sentiment_cols['words'])
     n_bert = len(sentiment_cols['bert'])
-    n_llm = len(sentiment_cols['llm'])
+    # fix(omni-g-val-tone-02): 汇总口径与 LaTeX 'Number of Models' 一致 = 独立模型数
+    n_llm = len(llm_independent)
     total_methods = n_words + n_bert + n_llm
     logger.info(f"[{track}] 三角验证完毕: 词典={n_words}, BERT={n_bert}, LLM={n_llm}")
 

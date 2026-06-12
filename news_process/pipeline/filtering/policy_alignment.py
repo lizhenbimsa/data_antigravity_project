@@ -70,6 +70,7 @@
 import asyncio
 import json
 import os
+import re as _re
 import sys
 import time
 
@@ -152,20 +153,149 @@ def _split_into_chunks(text: str, max_tokens: int = _MAX_TOKENS_PER_INPUT) -> li
 
 
 # ============================================================================
+# 2b. 权威政策语料 vintage 解析 (fix(omni-g-policy-02, 2026-06-11))
+# ============================================================================
+# 【术语】Vintage-aware Anchor: 静态权威语料把 2015-2025 间发布的 6 份政策文件
+#   拼接为单一锚点 → 时刻 t 的 policy_cosine_sim / auth_sim_* 嵌入了 t 期不可知
+#   的未来政策语言 (look-ahead bias, 前视构造)。修复: 语料按文档切分并解析发布
+#   年份 (vintage), 消费方对年度 t 仅用发布年份 ≤ t 的文档段构造锚点。
+# 【白话】2017 年的新闻不该拿来跟 2022 年才发布的政策文件比"像不像"——
+#   那时政策还没出生。所以把语料库按"哪年发布"拆开, 算哪一年就只用那一年
+#   (含) 之前已经发布的政策文件当"标准答案"。
+# 年份来源优先级: 语料内 `# [VINTAGE YYYY]` 标注行 > 文档前部落款日期行
+#   (如 "2019 年 8 月") > 文号 `〔YYYY〕N号` 的最大年份。仍解析不出 → 默认取
+#   语料库最早年份并在日志披露 (master 设计决定: 无法解析年份默认最早年)。
+
+# 标注行: `# [VINTAGE 2021] <标题> — <发布依据>` (注释剥离机制保证不进入锚点文本)
+_VINTAGE_MARKER_RE = _re.compile(r'^#\s*\[VINTAGE\s+((?:19|20)\d{2})(?:-\d{1,2})?\]')
+# 落款日期行: 独占一行的 "YYYY年M月" (容忍全角空格/半角空格)
+_DATE_LINE_RE = _re.compile(r'^[\s　]*((?:19|20)\d{2})\s*年\s*\d{1,2}\s*月[\s　]*$')
+# 文号: 〔YYYY〕N号 / [YYYY]N号 (如 银发〔2015〕221号、国办发〔2025〕8号)
+_DOCNO_RE = _re.compile(r'[〔\[]\s*((?:19|20)\d{2})\s*[〕\]]\s*\d+\s*号')
+
+# fix(omni-g-policy-01, 2026-06-11): 与新闻侧预处理对称的敏感词清除。
+# preprocess/normalize.py::_clean_single_text 步骤 2.5 对全部新闻标题/内容无条件
+# 删除 '习近平'; 权威语料此前裸读不经该规则 → 相似度两端文本预处理不对称
+# (语料 6 处 vs 新闻侧 0 处)。此处镜像同一规则使两端口径一致 (对称清洗级,
+# 裁决: 锚为全行共享常量, 实测效应 ≤3.2e-3, P3 披露级)。
+_LEADER_NAME_TOKENS = ('习近平',)
+
+
+def _strip_leader_names(text: str) -> str:
+    """对语料文本应用与 normalize.py 步骤 2.5 相同的敏感词删除 (对称清洗)。"""
+    for tok in _LEADER_NAME_TOKENS:
+        text = text.replace(tok, '')
+    return text
+
+
+def load_policy_corpus_docs(auth_path: str) -> list[dict]:
+    """加载权威政策语料并按文档切分, 解析各文档 vintage 年份。
+
+    fix(omni-g-policy-01/02, 2026-06-11) 语义披露:
+      - 文本经 _strip_leader_names 对称清洗 (与新闻侧 normalize 步骤 2.5 同规则);
+      - 文档切分: `# [VINTAGE]` 标注行优先, 无标注时按 ≥3 连续空行分隔;
+      - 年份解析失败的文档默认取语料库最早已知年份, 并 logger.warning 披露。
+
+    Returns:
+        list[dict]: [{'text': str, 'year': int | None, 'year_imputed': bool}, ...]
+        year 仅当全语料无任何可解析年份时为 None (消费方应退化为静态锚点并披露)。
+    """
+    docs: list[dict] = []
+    cur_year: int | None = None
+    cur_lines: list[str] = []
+    blank_run = 0
+
+    def _flush():
+        nonlocal cur_year, cur_lines
+        text = _strip_leader_names('\n'.join(cur_lines).strip())
+        if text:
+            year = cur_year
+            if year is None:
+                # 回退正则: 文档前 5 个非空行找落款日期, 其次全文文号取最大年份
+                head = [ln for ln in cur_lines if ln.strip()][:5]
+                for ln in head:
+                    m = _DATE_LINE_RE.match(ln)
+                    if m:
+                        year = int(m.group(1))
+                        break
+                if year is None:
+                    docno_years = [int(y) for y in _DOCNO_RE.findall(text)]
+                    if docno_years:
+                        year = max(docno_years)
+            docs.append({'text': text, 'year': year, 'year_imputed': False})
+        cur_year, cur_lines = None, []
+
+    with open(auth_path, 'r', encoding='utf-8') as f:
+        for raw_line in f:
+            line = raw_line.rstrip('\n')
+            marker = _VINTAGE_MARKER_RE.match(line.strip())
+            if marker:
+                if cur_lines:
+                    _flush()
+                cur_year = int(marker.group(1))
+                blank_run = 0
+                continue
+            if line.strip().startswith('#'):
+                continue  # 注释剥离机制 (Anti-Pollution Filter)
+            if not line.strip():
+                blank_run += 1
+                # 无标注语料的回退切分: ≥3 连续空行 = 文档分隔符
+                if blank_run >= 3 and cur_lines:
+                    _flush()
+                continue
+            blank_run = 0
+            cur_lines.append(line)
+    if cur_lines:
+        _flush()
+
+    known_years = [d['year'] for d in docs if d['year'] is not None]
+    if known_years:
+        earliest = min(known_years)
+        for d in docs:
+            if d['year'] is None:
+                # master 设计决定: 无法解析年份的锚点段默认最早年 + 披露
+                d['year'] = earliest
+                d['year_imputed'] = True
+                logger.warning(
+                    f"  权威语料 vintage: 1 份文档无法解析发布年份, "
+                    f"默认归入语料库最早年 {earliest} (前视守卫保守披露): "
+                    f"{d['text'][:30]}...")
+    else:
+        if docs:
+            logger.warning(
+                "  权威语料 vintage: 全部文档均无法解析发布年份, "
+                "无法做 vintage 切分 — 消费方将退化为静态全语料锚点 (前视披露)")
+    return docs
+
+
+def vintage_aware_enabled() -> bool:
+    """vintage-aware 锚点开关 (默认 True; 静态全语料旧行为降级为稳健性 opt-out)。
+
+    供 stage 15 (本模块) 与 stage 26 (policy_similarity) 共用 — 两者消费同一语料,
+    锚点口径必须一致。config 键: article_alignment.vintage_aware。
+    """
+    return bool((CONFIG.get('article_alignment') or {}).get('vintage_aware', True))
+
+
+def vintage_anchor_text(docs: list[dict], year) -> str | None:
+    """拼接发布年份 ≤ year 的文档文本作为该年度锚点; 无可用文档 → None。"""
+    parts = [d['text'] for d in docs
+             if d['year'] is not None and d['year'] <= year]
+    joined = '\n\n'.join(parts).strip()
+    return joined or None
+
+
+# ============================================================================
 # 3. Embedding API 管线（动态批量）
 # ============================================================================
-# 【术语】复用 Stage 25 (25_strategic_differentiation.py L358-390) 的
-#   text-embedding-3-small API 调用架构，但改用动态批量大小以适配
-#   逐篇文章全文输入的场景
-#
-#   Stage 25 使用固定每批 100 条 (L375)，适用于 Bank-Year 聚合文本
-#   (通常几十条短文本)。Stage 15 处理逐篇文章全文，若 100 篇 ×
-#   平均 3000 tokens = 300,000 tokens，恰好撞到 API 上限。
-#   因此改用动态批量：按 token 总数而非文章数切分批次。
-#
-# 【白话】不是固定每批 100 篇，而是看总字数决定每批装多少篇
-#   短新闻多的批次可能装 200+ 篇，长新闻多的批次可能只装 30 篇
-#   这样确保每次调用 API 都不会超过它的容量上限
+# 【术语】(2026-06-11 注释纠偏, fix(omni-g-policy-04)) 本节的
+#   _get_embeddings_api_dynamic 是 **legacy 实现, 生产路径已不再调用**:
+#   生产嵌入统一走 pipeline/text/embedding_engine.py::embed_texts
+#   (LLMCache 穿透 + 动态分批: 单批 ≤2000 条 且 token 总和 ≤ 上限 + 超长文本
+#   Early Chunking + Mean Pooling)。Stage 25/26/27 也走同一引擎 (不存在旧注释
+#   所称 "Stage 25 固定每批 100 条" — 该描述已随引擎统一而过时)。
+#   本函数仅余 tests/test_pipeline_robustness.py 引用 (缓存穿透/重试机制单测),
+#   保留以维持测试契约; 勿在生产代码中新增调用。
 
 async def _get_embeddings_api_dynamic(
     texts: list[str],
@@ -175,6 +305,11 @@ async def _get_embeddings_api_dynamic(
     prompt_version_override: str | None = None,
 ) -> np.ndarray:
     """通过 API 获取文本 Embedding 向量 — 穿透式缓存与死战不退容错。
+
+    ⚠ LEGACY (test-only, fix(omni-g-policy-04, 2026-06-11) 标注): 生产调用链已
+    全部迁移至 embedding_engine.embed_texts (_cosine_for_spec 内), 本函数生产
+    0 调用, 仅 tests/test_pipeline_robustness.py 的缓存穿透/重试单测引用。
+    保留以维持测试契约; 勿在生产代码中新增调用。
 
     【术语】
     引入 LLMCache 穿透查询，未命中则走 API。
@@ -210,9 +345,11 @@ async def _get_embeddings_api_dynamic(
     base_url = str(base_url).rstrip("/")
     # Plan-r3 P3-17 接入: embedding 缓存键的 prompt_version 维度,
     # 防止改 embedding model / 文本预处理后旧 cache silent 命中.
-    # Round 4 M8 修: 用参数 prompt_version_override 替代全局 mutation, 避免污染其他 callsite
-    # 默认走 EMBEDDING_CONFIG 的 base version (full+auth 命中 v3.5.x 旧 cache);
-    # ctx 轨调用方传 base+'-ctx' 显式隔离 namespace, 不再 mutate 全局 dict.
+    # Round 4 M8 修: 用参数 prompt_version_override 替代全局 mutation, 避免污染其他 callsite。
+    # (2026-06-11 注释纠偏, fix(omni-g-policy-04)): 旧注释所述 "ctx 轨调用方传
+    # base+'-ctx' 显式隔离 namespace" 在现行调用链中已不存在 — 生产双轨均经
+    # embedding_engine 以同一 text_pipeline_version 入缓存 (键含逐字文本, 天然隔离);
+    # override 参数仅为本 legacy 函数的测试接口保留, 勿据此审计生产缓存命名空间。
     text_pipeline_version = (
         prompt_version_override
         if prompt_version_override is not None
@@ -319,35 +456,51 @@ async def _get_embeddings_api_dynamic(
 def _cosine_for_spec(
     full_texts: list[str],
     ctx_texts: list[str],
-    auth_chunks: list[str],
+    doc_chunks: list[list[str]],
     spec: dict,
+    *,
+    doc_years: list | None = None,
+    article_years: np.ndarray | None = None,
 ) -> tuple[np.ndarray | None, np.ndarray | None]:
     """用单一 spec 嵌入 (full / ctx / auth) 并返回 (cos_full, cos_ctx)。
 
     【关键约束】每个 spec 用**自己的**模型独立嵌入自己的 anchors/texts,
     绝不复用另一 spec 的向量 (API 1536 维 vs text2vec 768 维, 严禁混算)。
 
+    fix(omni-g-policy-02, 2026-06-11) 语义变更: 锚点改为 vintage-aware —
+    传入 doc_years (各政策文档发布年份) + article_years (各文章年份) 时, 年度 t
+    的文章只与发布年份 ≤ t 的政策文档段的池化锚点算余弦 (消除前视构造);
+    无 ≤t 文档的年份与年份未知的文章 → NaN。两参数任一为 None → 静态全语料
+    锚点 (旧行为, 仅作稳健性/降级路径)。
+
     流程:
-      1. 用 spec 经 _eng.embed_texts 分别嵌入 full_texts / ctx_texts / auth_chunks
+      1. 用 spec 经 _eng.embed_texts 分别嵌入 full_texts / ctx_texts / 全部文档段
          (text-level, 内部已处理 chunk 切分 + mean pooling + local/API 分派)。
-      2. 对 auth-chunk 嵌入做 mean pooling + L2 归一化 → 单个政策锚点向量
-         (保留原 zero-norm 守卫: 范数为零时返回 NaN series)。
-      3. cosine_similarity(full, anchor) / cosine_similarity(ctx, anchor)。
+      2. 对各年度允许的文档段嵌入做 mean pooling + L2 归一化 → 该年度政策锚点
+         向量 (保留 zero-norm 守卫)。
+      3. cosine_similarity(full, anchor_year) / cosine_similarity(ctx, anchor_year)。
 
     Args:
-        full_texts: 已截断的 full 轨文本
-        ctx_texts:  已截断的 ctx 轨文本
-        auth_chunks: 权威政策语料分段
+        full_texts: full 轨文本 (不截断; 超长由引擎分段池化)
+        ctx_texts:  ctx 轨文本
+        doc_chunks: 权威政策语料分段, 按文档分组 (list per 文档)
         spec: embedding spec (MAIN=API / ROBUSTNESS=local)
+        doc_years: 各文档 vintage 年份 (与 doc_chunks 对齐); None → 静态锚点
+        article_years: (N,) 文章年份 float 数组 (NaN=未知); None → 静态锚点
 
     Returns:
         (cos_full_array, cos_ctx_array): 各为 (N,) np.ndarray;
-        嵌入失败 (embed_texts 返回 None) 或锚点范数为零 → (None, None)。
+        嵌入失败 (embed_texts 返回 None) 或静态锚点范数为零 → (None, None)。
     """
     from sklearn.metrics.pairwise import cosine_similarity
 
     model_id = _eng.spec_model(spec)
     log_prefix = f"Embedding[{model_id}]"
+
+    auth_chunks = [c for chunks in doc_chunks for c in chunks]
+    # 每个分段所属文档下标 (用于 vintage 过滤)
+    chunk_doc_idx = np.array(
+        [i for i, chunks in enumerate(doc_chunks) for _ in chunks], dtype=int)
 
     article_embs_full = _eng.embed_texts(
         full_texts, spec, cache_db_path=CACHE_DB_PATH, log_prefix=log_prefix)
@@ -361,19 +514,65 @@ def _cosine_for_spec(
         logger.warning(f"  {log_prefix}: 嵌入返回 None, 该 spec 轨置 NaN")
         return None, None
 
-    # 均值池化 + L2 归一化 → 单个政策锚点向量 (维度无关)
-    auth_emb = auth_chunk_embs.mean(axis=0, keepdims=True)
-    auth_norm = np.linalg.norm(auth_emb, axis=1, keepdims=True)
-    if auth_norm.item() > 0:
-        auth_emb = auth_emb / auth_norm
-    else:
-        logger.error(f"  ⚠️ {log_prefix}: 政策锚点均值池化后范数为零!")
-        return None, None
-    logger.info(f"  {log_prefix} 政策锚点: {len(auth_chunk_embs)} 段 → "
-                f"Mean Pooling → 1 个 {auth_emb.shape[1]}D 向量")
+    def _pooled_anchor(chunk_mask: np.ndarray) -> np.ndarray | None:
+        """选中分段 → mean pooling + L2 归一化 → (1, D) 锚点; 范数零 → None。"""
+        sub = auth_chunk_embs[chunk_mask]
+        anchor = sub.mean(axis=0, keepdims=True)
+        norm = np.linalg.norm(anchor, axis=1, keepdims=True)
+        if norm.item() <= 0:
+            return None
+        return anchor / norm
 
-    cos_full = cosine_similarity(article_embs_full, auth_emb)[:, 0]
-    cos_ctx = cosine_similarity(article_embs_ctx, auth_emb)[:, 0]
+    vintage_mode = (
+        doc_years is not None and article_years is not None
+        and any(y is not None for y in doc_years)
+    )
+
+    if not vintage_mode:
+        # 静态全语料锚点 (旧行为; 仅稳健性 opt-out / 无年份信息降级, 调用方已披露)
+        auth_emb = _pooled_anchor(np.ones(len(auth_chunks), dtype=bool))
+        if auth_emb is None:
+            logger.error(f"  ⚠️ {log_prefix}: 政策锚点均值池化后范数为零!")
+            return None, None
+        logger.info(f"  {log_prefix} 政策锚点(静态): {len(auth_chunk_embs)} 段 → "
+                    f"Mean Pooling → 1 个 {auth_emb.shape[1]}D 向量")
+        cos_full = cosine_similarity(article_embs_full, auth_emb)[:, 0]
+        cos_ctx = cosine_similarity(article_embs_ctx, auth_emb)[:, 0]
+        return cos_full, cos_ctx
+
+    # --- vintage-aware: 逐年度构造 ≤t 锚点 ---
+    doc_years_arr = np.array(
+        [np.nan if y is None else float(y) for y in doc_years], dtype=float)
+    n = len(full_texts)
+    cos_full = np.full(n, np.nan, dtype=np.float64)
+    cos_ctx = np.full(n, np.nan, dtype=np.float64)
+
+    year_vals = np.asarray(article_years, dtype=float)
+    n_unknown = int(np.isnan(year_vals).sum())
+    if n_unknown:
+        logger.warning(f"  {log_prefix}: {n_unknown} 篇文章年份未知, "
+                       f"无法做前视守卫 → policy_cosine_sim 置 NaN")
+
+    for year in np.unique(year_vals[~np.isnan(year_vals)]):
+        art_mask = year_vals == year
+        allowed_docs = ~np.isnan(doc_years_arr) & (doc_years_arr <= year)
+        if not allowed_docs.any():
+            logger.warning(
+                f"  {log_prefix} {int(year)}: 无发布年份 ≤ {int(year)} 的政策"
+                f"文档 (前视守卫), 该年 {int(art_mask.sum())} 篇置 NaN")
+            continue
+        chunk_mask = np.isin(chunk_doc_idx, np.where(allowed_docs)[0])
+        anchor = _pooled_anchor(chunk_mask)
+        if anchor is None:
+            logger.error(f"  ⚠️ {log_prefix} {int(year)}: 锚点范数为零, 该年置 NaN")
+            continue
+        cos_full[art_mask] = cosine_similarity(
+            article_embs_full[art_mask], anchor)[:, 0]
+        cos_ctx[art_mask] = cosine_similarity(
+            article_embs_ctx[art_mask], anchor)[:, 0]
+        logger.info(f"  {log_prefix} 政策锚点(vintage≤{int(year)}): "
+                    f"{int(allowed_docs.sum())}/{len(doc_chunks)} 文档 "
+                    f"{int(chunk_mask.sum())} 段 → {int(art_mask.sum())} 篇")
     return cos_full, cos_ctx
 
 
@@ -391,7 +590,10 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
 
     其中:
       - emb() 为 text-embedding-3-small 的稠密语义编码 (1536 (API main) / 768 (text2vec robustness) 维)
-      - auth_text 为权威政策语料库的拼接文本 (config/authoritative_corpus.txt)
+      - auth_text 为权威政策语料库 (config/authoritative_corpus.txt) 中发布年份
+        ≤ 文章年份的文档段拼接 (vintage-aware, fix(omni-g-policy-02, 2026-06-11):
+        旧静态全语料锚点含未来政策文本, 构成前视; 现按政策发布年份切分,
+        年度 t 只用 t 期已存在的政策文件; 无年份信息时降级为静态锚点并披露)
       - cos(A,B) = (A·B) / (||A|| × ||B||)，值域 [-1, 1]
 
     该度量直接映射 Distel et al. (2026, Research Policy, §3.2.1) 的方法论:
@@ -401,9 +603,11 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     参考: Hassan et al. (2019, QJE) — 将宏观政策文本注入微观企业向量空间
 
     【白话说明】
-    给每篇金融科技新闻打一个 0~1 的分数：
+    给每篇金融科技新闻打一个对齐分 (余弦相似度, 理论值域 [-1, 1],
+    实务上政策语料相似度多落在 0~1 区间; fix(omni-g-policy-04) 纠偏旧 "0~1" 表述)：
       - 分数高 → 这篇新闻跟国家政策"很像"（语义对齐度高）
       - 分数低 → 这篇新闻跟国家政策"不太像"（语义对齐度低）
+    且只跟"这篇新闻发表时已经发布"的政策文件比 (vintage-aware, 见上)。
 
     后续 Stage 45 会结合词频维度（Stage 12/14）把每篇新闻归入四个象限:
       Token (词频高+对齐低=洗科技) / Hidden (词频低+对齐高=闷声干大事) /
@@ -446,17 +650,20 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
             df[_c] = np.nan
         return df
 
-    with open(auth_path, 'r', encoding='utf-8') as f:
-        auth_lines = [line for line in f if not line.strip().startswith('#')]
-        auth_text = '\n'.join(auth_lines).strip()
+    # fix(omni-g-policy-01/02, 2026-06-11): 经 load_policy_corpus_docs 统一加载 —
+    # (01) 语料文本经与新闻侧 normalize 步骤 2.5 相同的敏感词对称清洗;
+    # (02) 按政策发布年份 (vintage) 切分为文档列表, 供下方按年构造 ≤t 锚点。
+    auth_docs = load_policy_corpus_docs(auth_path)
 
-    if not auth_text:
+    if not auth_docs:
         logger.warning("  权威政策语料为空。跳过 Stage 15 计算。")
         for _c in _ALIGN_NAN_COLS:
             df[_c] = np.nan
         return df
 
-    logger.info(f"  权威政策语料: {len(auth_text)} 字符")
+    _n_chars = sum(len(d['text']) for d in auth_docs)
+    logger.info(f"  权威政策语料: {len(auth_docs)} 份文档 / {_n_chars} 字符, "
+                f"vintage 年份: {sorted({d['year'] for d in auth_docs})}")
 
     # ---- 4.2 构建文章输入文本 (v3.6.0 Plan E P3 B2: 双轨) ----
     # 【术语】full 轨 = 标题 + 全文; ctx 轨 = content_ctx (= 标题 + 实体局部窗口,
@@ -502,10 +709,18 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  文章总数: {len(raw_texts)}")
 
     # ---- 4.3 Token 精确截断 ----
-    # 【术语】使用 tiktoken cl100k_base 编码器精确计算每篇文章的 token 数
-    #   超过 8191 tokens 的文章截断至上限 (API 硬性限制，超限报 HTTP 400)
-    #   与 Stage 25 的字符级粗略截断 (t[:8000]) 不同
-    # 【白话】数一数每篇文章有多少个"令牌"，太长就截短
+    # 【术语】使用 tiktoken cl100k_base 编码器精确计算每篇文章的 token 数,
+    #   超过 8191 tokens 的文章截断至上限。
+    # 口径披露 (omni-g-policy-03, 2026-06-11): 文章侧 policy_cosine_sim* 的语义
+    #   口径 = **每篇文章前 8191 token** (超限尾部丢弃, 盘上试跑 5/1170 篇受影响,
+    #   最长截掉 ~23%)。引擎 (_eng.embed_texts) 本可对超长文章自动 chunk+pool
+    #   无损 (锚点侧 4.4 即如此; stage 25/26 聚合文档同), 但本截断**刻意保留**:
+    #   LLMCache 缓存键含逐字文本, 改为全文口径会使全部既存长文向量 cache miss
+    #   → 触发增量付费重嵌入; 主控决定保留截断 + 显式披露 (而非静默不一致)。
+    #   旧注释所称 "Stage 25 字符级 8000 字粗略截断" 已不存在 (stage 25 走引擎
+    #   chunk+pool, fix(omni-g-policy-04) 注释纠偏)。
+    # 【白话】数一数每篇文章有多少个"令牌"，太长就截短 — 所以超长文章的对齐分
+    #   只看它的"前半篇"(约 4000 中文字), 这是有意保留并公开说明的口径。
     logger.info("  正在计算 token 数并截断超限文章...")
     truncated_texts = []
     token_counts = []
@@ -524,13 +739,38 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  Token 统计: 平均 {avg_tokens:.0f} tokens/篇, "
                 f"截断 {n_truncated}/{len(raw_texts)} 篇")
 
-    # ---- 4.4 权威政策文本分段 (Chunk-then-Pool) ----
+    # ---- 4.4 权威政策文本分段 (Chunk-then-Pool, 按文档分组) ----
     # 【术语】Early Chunking + Mean Pooling (Günther et al., 2024; Reimers &
     #   Gurevych, 2019): 将超长锚点文本按 token 上限切分为 K 个不重叠段，
     #   各段独立嵌入后均值池化为单个锚点向量，保留全部语义信息。
+    # fix(omni-g-policy-02, 2026-06-11): 分段改为**逐文档**进行 (doc_chunks 按
+    #   文档分组), 段不跨文档边界 → 下游可按各文档 vintage 年份过滤分段,
+    #   构造年度 t 的 ≤t 锚点。
     # 【白话】政策文件可能远超模型单条输入上限 (8,191 tokens)，所以按实际 token
-    #   数切成多段分别处理，最后取平均，5 份文件的内容都不会被丢弃。
-    auth_chunks = _split_into_chunks(auth_text, _MAX_TOKENS_PER_INPUT)
+    #   数切成多段分别处理，最后取平均，全部政策文件的内容都不会被丢弃。
+    doc_chunks = [_split_into_chunks(d['text'], _MAX_TOKENS_PER_INPUT)
+                  for d in auth_docs]
+    doc_years = [d['year'] for d in auth_docs]
+
+    # ---- 4.4a 文章年份解析 (vintage-aware 前视守卫, fix(omni-g-policy-02)) ----
+    # 优先读上游已派生的 'year' 列; 否则从 '日期' 列派生 (与 panel/encode 同口径);
+    # 两者皆缺 / vintage opt-out → article_years=None → 静态全语料锚点降级 + 披露。
+    article_years = None
+    if vintage_aware_enabled() and any(y is not None for y in doc_years):
+        if 'year' in df.columns:
+            article_years = pd.to_numeric(
+                df['year'], errors='coerce').to_numpy(dtype=float)
+        elif '日期' in df.columns:
+            article_years = pd.to_datetime(
+                df['日期'], errors='coerce').dt.year.to_numpy(dtype=float)
+        else:
+            logger.warning(
+                "  vintage 前视守卫: 输入缺 'year'/'日期' 列, 无法解析文章年份 "
+                "→ 降级为静态全语料锚点 (含未来政策文本, 前视披露)")
+    else:
+        logger.warning(
+            "  vintage 前视守卫: 关闭 (article_alignment.vintage_aware=false "
+            "或语料年份全部未知) → 静态全语料锚点 (含未来政策文本, 前视披露)")
 
     # ---- 4.4b ctx 轨 token 截断 (v3.6.0 P3 B2) ----
     truncated_ctx_texts = []
@@ -559,7 +799,8 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
 
     # --- MAIN (canonical) 轨: 列名 byte-for-byte 不变 ---
     sim_scores_full, sim_scores_ctx = _cosine_for_spec(
-        truncated_texts, truncated_ctx_texts, auth_chunks, EMBEDDING_CONFIG)
+        truncated_texts, truncated_ctx_texts, doc_chunks, EMBEDDING_CONFIG,
+        doc_years=doc_years, article_years=article_years)
     if sim_scores_full is None or sim_scores_ctx is None:
         # F1 fix (2026-05-30): MAIN 失败也须产出全部 5 列 (含 _t2v, 全 NaN), 与
         # 上面两个 auth 早退路径对称。否则缺 policy_cosine_sim_t2v_* → 下游
@@ -577,8 +818,19 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     df['policy_cosine_sim'] = df['policy_cosine_sim_full']
 
     # --- ROBUSTNESS (_t2v) 轨: 失败不破坏 canonical, 仅 _t2v 列置 NaN ---
-    t2v_full, t2v_ctx = _cosine_for_spec(
-        truncated_texts, truncated_ctx_texts, auth_chunks, _ROBUSTNESS_SPEC)
+    # fix(omni-g-policy-05, 2026-06-11): try/except 守卫 raise 路径 — 此前仅拦
+    # embed_texts 返回 None; embedding_robustness 配置缺失 ({} → spec_uses_local
+    # 为 False → API 分支 get_embeddings_api raise RuntimeError) 或本地模型加载
+    # 抛错会沿调用链炸掉整个 stage (canonical 列一并丢失), 与本契约注释矛盾。
+    try:
+        t2v_full, t2v_ctx = _cosine_for_spec(
+            truncated_texts, truncated_ctx_texts, doc_chunks, _ROBUSTNESS_SPEC,
+            doc_years=doc_years, article_years=article_years)
+    except Exception as _t2v_exc:
+        logger.warning(f"  ROBUSTNESS (text2vec) 嵌入异常: "
+                       f"{type(_t2v_exc).__name__}: {_t2v_exc} → _t2v 轨置 NaN "
+                       f"(canonical 不受影响, omni-g-policy-05)")
+        t2v_full, t2v_ctx = None, None
     if t2v_full is None or t2v_ctx is None:
         logger.warning(
             "  ROBUSTNESS (text2vec) 嵌入失败, "
@@ -590,11 +842,20 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         df['policy_cosine_sim_t2v_ctx'] = t2v_ctx.astype(np.float32)
 
     # ---- 4.7 统计报告 ----
+    # fix(omni-g-policy-02, 2026-06-11): 统计/诊断/断言全部改 NaN-安全 —
+    # vintage 前视守卫会产生合法 NaN (文章年份未知 / 早于全部政策文档),
+    # 旧 .min()/.max() 在含 NaN 时返回 NaN → 值域断言 `NaN >= x` 恒 False 假崩。
+    _n_nan_full = int(np.isnan(sim_scores_full).sum())
+    if _n_nan_full:
+        logger.info(f"     vintage 前视守卫: {_n_nan_full}/{len(sim_scores_full)} "
+                    f"篇 full 轨置 NaN (年份未知或早于全部政策文档)")
     logger.info(f"  ✅ policy_cosine_sim 双轨计算完成:")
-    logger.info(f"     full 范围: [{sim_scores_full.min():.4f}, {sim_scores_full.max():.4f}], "
-                f"均值={sim_scores_full.mean():.4f}, σ={sim_scores_full.std():.4f}")
-    logger.info(f"     ctx  范围: [{sim_scores_ctx.min():.4f}, {sim_scores_ctx.max():.4f}], "
-                f"均值={sim_scores_ctx.mean():.4f}, σ={sim_scores_ctx.std():.4f}")
+    for _nm, _sc in [('full', sim_scores_full), ('ctx ', sim_scores_ctx)]:
+        if np.isnan(_sc).all():
+            logger.warning(f"     {_nm} 轨全 NaN (无任何可比文章-锚点对)")
+            continue
+        logger.info(f"     {_nm} 范围: [{np.nanmin(_sc):.4f}, {np.nanmax(_sc):.4f}], "
+                    f"均值={np.nanmean(_sc):.4f}, σ={np.nanstd(_sc):.4f}")
 
     # 双轨独立性诊断 (Plan E 验收门)
     try:
@@ -602,24 +863,28 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         # 常量输入 (min == max, 零方差) 时 Spearman ρ 无定义, scipy 会发
         # ConstantInputWarning。退化场景 (如双轨完全一致或样本极小) 下该诊断无
         # 意义, 显式跳过避免未预期告警, 并防止 rho=nan 误判为 "⚠ 高度相关"。
-        full_constant = sim_scores_full.min() == sim_scores_full.max()
-        ctx_constant = sim_scores_ctx.min() == sim_scores_ctx.max()
-        if full_constant or ctx_constant:
+        _valid = ~np.isnan(sim_scores_full) & ~np.isnan(sim_scores_ctx)
+        _vf, _vc = sim_scores_full[_valid], sim_scores_ctx[_valid]
+        if _valid.sum() < 3:
+            logger.info("     双轨独立性诊断: 有效样本 <3, 跳过")
+        elif _vf.min() == _vf.max() or _vc.min() == _vc.max():
             logger.info("     双轨独立性诊断: 输入为常量 (零方差), "
                         "Spearman ρ 无定义, 跳过")
         else:
-            rho, _ = spearmanr(sim_scores_full, sim_scores_ctx)
+            rho, _ = spearmanr(_vf, _vc)
             logger.info(f"     双轨独立性诊断: Spearman ρ = {rho:.4f} "
                         f"({'真双轨' if abs(rho) < 0.95 else '⚠ 高度相关'})")
     except ImportError:
         pass
 
-    # 值域断言 (双轨同时检)
+    # 值域断言 (双轨同时检, NaN-安全: 仅检有效值)
     for name, scores in [('full', sim_scores_full), ('ctx', sim_scores_ctx)]:
-        assert scores.min() >= -1.0 - 1e-6, \
-            f"policy_cosine_sim_{name} 下界异常: {scores.min()}"
-        assert scores.max() <= 1.0 + 1e-6, \
-            f"policy_cosine_sim_{name} 上界异常: {scores.max()}"
+        if np.isnan(scores).all():
+            continue
+        assert np.nanmin(scores) >= -1.0 - 1e-6, \
+            f"policy_cosine_sim_{name} 下界异常: {np.nanmin(scores)}"
+        assert np.nanmax(scores) <= 1.0 + 1e-6, \
+            f"policy_cosine_sim_{name} 上界异常: {np.nanmax(scores)}"
 
     return df
 

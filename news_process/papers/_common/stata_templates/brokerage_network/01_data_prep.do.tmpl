@@ -32,13 +32,21 @@ global controls "{{CONTROLS}}"
 * $bank_controls 保留为 $controls 的兼容性 alias (部分 robustness 模板引用)
 global bank_controls "$controls"
 
-* Required: endog tone, IV (2nd-order), centrality vars, treatment dummies.
-foreach v in {{MAIN_DV}} {{MAIN_ENDOG}} {{MAIN_IV}} {{CENTRALITY_BTW}} {{CENTRALITY_CONS}} {{CENTRALITY_BROKER}} {{TREATMENT_DCEP}} {{TREATMENT_SANDBOX}} {
+* Required: endog tone, IV (2nd-order), centrality vars, treatment dummies (pipeline 产出).
+foreach v in {{MAIN_ENDOG}} {{MAIN_IV}} {{CENTRALITY_BTW}} {{CENTRALITY_CONS}} {{CENTRALITY_BROKER}} {{TREATMENT_DCEP}} {{TREATMENT_SANDBOX}} {
     capture confirm variable `v'
     if _rc {
-        display as error "[ERROR] required variable `v' missing"
+        display as error "[ERROR] required variable `v' missing — run stage 24 (herd_decay network) + 45 (panel) first"
         exit 198
     }
+}
+
+* fix(omni-g-replication-01, 2026-06-11): MAIN_DV ({{MAIN_DV}}) 是外部财务列 sentinel
+* (bank-year panel 无 ROA 列); 缺失时给出明确指引而非裸 "missing" (00_master fail-loud)。
+capture confirm variable {{MAIN_DV}}
+if _rc {
+    display as error "[ERROR] required outcome {{MAIN_DV}} missing — 外部银行财务面板未接入 (config/银行面板2007-2025年.xlsx 待接入)"
+    exit 198
 }
 
 * Lagged centrality (avoids contemporaneous reverse causality with policy).

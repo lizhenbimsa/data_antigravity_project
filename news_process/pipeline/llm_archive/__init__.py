@@ -75,6 +75,24 @@ LFS quota: GitHub 默认 1GB 免费 + $5/月 50GB → 充裕
    注: 从 archive 直接重建 LLMCache 的 "replay-to-cache" 工具尚未实现 (roadmap 项);
        当前复现依赖既有的 _llm_cache.db 缓存命中。
 
+覆盖范围限制 (fix(omni-g-tonellms-04, 2026-06-11) 如实披露)
+--------------------------------------------------------
+归档仅在 **缓存 miss → 新 API 调用成功 (HTTP 200)** 时触发 (tone_llms.py 的
+200 分支); 缓存命中提前返回, 永不归档。当前 frozen v8 生产语料 7020 响应
+全部命中 v3.7.0 接线前已建成的 ``_llm_cache.db`` (133,687 条) → **本归档对
+该语料的覆盖恒为空集** (data/llm_archive/ 不存在, manifest 从未写出,
+verify_manifest 直接返回 "manifest 不存在")。即:
+- 本模块实际仅覆盖 **v3.7.0 接线后的新 API 调用** (如全量 17M 语料重处理);
+- frozen 语料的复现锚点仍是 ``_llm_cache.db`` (勿删铁律) + 离线守卫
+  ``NEWS_PROCESS_LLM_OFFLINE=1``, 而非本归档;
+- "审稿人 fresh API call 时仍能从归档完整复现" 的设计目标对 frozen 语料
+  尚未兑现 — 需 cache→archive backfill 工具 (遍历 _llm_cache.db,
+  model_version 标 'backfill-unknown') + write_manifest, 与 replay-to-cache
+  同列 roadmap 项, 均未实现。
+- 写入顺序已修 (tone_llms.py fix omni-g-tonellms-04): archive append 先于
+  cache.put, 归档失败时跳过 put — 消除 "先 put 后归档异常 → 响应被永久缓存、
+  后续命中短路 → 一次性永久漏档" 的窗口。
+
 接口 (与 __all__ 一致)
 ----
 - LLMArchive: 主类, append-only 归档

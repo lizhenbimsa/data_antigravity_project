@@ -82,4 +82,14 @@ esttab P0_main P*_* using "$tables_dir/tableA10_placebo_business_lines.tex", rep
              "Placebos = same direction on keyword-filtered subsets (non-fintech business lines)." ///
              "AC-S1: |beta_placebo / beta_main| < 0.3 for >=4/5 placebo specs.")
 
-display "[OK] Table A10 placebo --> $tables_dir/tableA10_placebo_business_lines.tex"
+* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+* tables.py:build_table_a10_placebo 与 figures.py:plot_placebo_comparison 经
+* read_paper_esttab(...,'tableA10_placebo_business_lines.csv') 消费
+* (parse_esttab_csv 格式; 首列为 Main 主回归列, 其余为 placebo)。
+estout P0_main P*_* using "$tables_dir/tableA10_placebo_business_lines.csv", ///
+    replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) ///
+    mlabels("Main" "Housing" "Cards" "Inter-Biz" "Branch" "Neutral")
+
+display "[OK] Table A10 placebo --> $tables_dir/tableA10_placebo_business_lines.tex (+ .csv side-channel)"

@@ -3,7 +3,11 @@
 * Paper: {{PAPER_ID}}
 *
 * Bartik IV: Goldsmith-Pinkham-Sorkin-Swift (2020, AER) — instrument {{TONE_VAR}}
-* with {{BARTIK_IV}}, partial out via 2SLS, identify causal effect of differentiation.
+* (endogenous covariate) with {{BARTIK_IV}} via 2SLS.
+* fix(omni-g-templates-05, 2026-06-11): 头注勘误 — 旧注称 "identify causal effect of
+* differentiation", 但 M1 工具化的是 tone ({{TONE_VAR}}), 论文主变量 {{MAIN_DIFF_VAR}}
+* 以外生控制身份进 RHS — differentiation 系数未获任何 IV 识别, 仍是 conditional-OLS
+* (仅 tone 通道经 Bartik 矫正)。读者勿将 M1 的 diff 系数解读为因果。
 * ============================================================================
 
 version 19
@@ -21,7 +25,8 @@ if _rc {
     exit 199
 }
 
-* M1: Bartik IV — 2SLS of differentiation effect conditional on tone
+* M1: Bartik IV — tone 内生协变量经 2SLS 矫正; {{MAIN_DIFF_VAR}} 系数 = conditional-OLS
+* (见头部 fix(omni-g-templates-05) 勘误)
 ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{BARTIK_IV}}) {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} $controls, ///
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo M1_bartik
@@ -36,11 +41,29 @@ foreach v in strat_diff_n5_w strat_diff_n5_lda strat_diff_n5_emb {
     }
 }
 
-esttab M1_bartik M_strat_diff_n5_w M_strat_diff_n5_lda M_strat_diff_n5_emb ///
+* fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — M_* 多方法列被守卫跳过后
+* 旧版硬点名 → r(111) 整表丢失; 改为仅引用实际已存储估计, mtitle 同步删列防错位。
+qui estimates dir
+local stored `r(names)'
+local cand_models M1_bartik M_strat_diff_n5_w M_strat_diff_n5_lda M_strat_diff_n5_emb
+local cand_titles `""Bartik-IV (tone)" "TFIDF-jieba" "LDA" "Embedding""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' ///
     using "$tables_dir/table3_mechanism.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Mechanism: Bartik IV + Multi-Method --- strategic_diff") ///
-    mtitles("Bartik-IV" "TFIDF-jieba" "LDA" "Embedding") ///
-    addnotes("Convergent validity across text representations.")
+    mtitles(`mtitles') ///
+    addnotes("Convergent validity across text representations." ///
+             "Col 1: Bartik IV instruments tone (endogenous covariate); the differentiation coefficient remains conditional-OLS, not IV-identified.")
 
 display "[OK] Table 3 → $tables_dir/table3_mechanism.tex"

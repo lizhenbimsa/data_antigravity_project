@@ -32,7 +32,10 @@ ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo M2_net2sls
 
-* M3: 2SLS + centrality control (over-identification check via additional IV).
+* M3: 2SLS + centrality controls (model remains just-identified).
+* fix(omni-g-templates-03, 2026-06-11): 注释勘误 — 旧注称 "over-identification check
+* via additional IV", 但 L_btw/L_cons/L_broker 在 IV 括号外, 是外生控制而非额外工具;
+* 模型仍 1 IV / 1 内生 = 恰好识别, Hansen J 不存在 (df=0), 不得宣称 overid 检验。
 ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) L_btw L_cons L_broker $controls, ///
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo M3_2sls_cent

@@ -125,6 +125,238 @@ def _append_columns(frame: pd.DataFrame, columns: dict) -> pd.DataFrame:
     return pd.concat([frame, pd.DataFrame(columns, index=frame.index)], axis=1).copy()
 
 
+# fix(omni-g-runner-05/g-runner-09, 2026-06-11): 方法 F "高置信度子样本" 阈值。
+# 3 模型多数投票下 agreement_rate 支撑集仅 {1/3, 2/3, 1.0}; 历史硬编码 0.67 把唯一
+# 多数票档 2/3 (=0.6666...) 整类静默排除, 使 _hc 退化为全票一致 (==1.0), 与 L424
+# 声明的 "≥ 2/3" (Shapiro et al. 2022, JoE) 构念不符。取 2/3 - 1e-9 浮点下界,
+# 使 2/3 档按声明纳入。
+HC_AGREEMENT_THRESHOLD = (2.0 / 3.0) - 1e-9
+
+# 洗稿率 substantiveness-measured 标签集合 (LLM 实质性分类成功的两个合法取值;
+# NaN 经 astype(str) 变 'nan' 不在其中 → 视为未测量)。
+_SUBST_VALID_LABELS = ('实质性', '象征性')
+
+
+def _bert_argmax_pos_neg(frame: pd.DataFrame, model: str, track: str):
+    """逐 BERT 模型的 argmax 极性指示 (类数尺度不变量)。
+
+    fix(omni-g-runner-01, 2026-06-11): 2-class 模型 (finbert2, P(正面) 基线 ~1/2)
+    与 3-class 模型 (finbert_cn/fin_sent_zh, 基线 ~1/3) 的裸 P(正面) 概率尺度不可比:
+    等权平均后统一 0.5 二值化使均值被 2-class 尺度主导, 0.5 阈值对 3-class 远严于
+    argmax。统一为逐模型 argmax 标签: 3-class 取全类 argmax (P(正)>P(负) ∧ P(正)>P(中));
+    2-class 取 P>0.5 (softmax 和为 1 时 ⇔ argmax, 保持旧行为逐位一致)。
+
+    Returns:
+        (pos, neg): 布尔 Series 二元组; NaN 概率行两者均 False (与旧 >0.5 行为一致)。
+            负面概率列缺失时 neg 返回 None (调用方跳过 negative 编码)。
+    """
+    p_col = f'{model}_正面{track}'
+    n_col = f'{model}_负面{track}'
+    u_col = f'{model}_中性{track}'
+    p = frame[p_col]
+    if n_col not in frame.columns:
+        return (p > 0.5), None  # 退化: 仅正面概率可用, 无法 argmax
+    n = frame[n_col]
+    if u_col in frame.columns:  # 3-class: 全类 argmax
+        u = frame[u_col]
+        return ((p > n) & (p > u)), ((n > p) & (n > u))
+    return (p > 0.5), (n > 0.5)  # 2-class: P>0.5 ⇔ argmax
+
+
+def _pool_svd_substvalid_counts(frame: pd.DataFrame):
+    """聚合 ``_svd_*`` 篇章级指示 → ``{name}_substvalid_count{track}`` bank-year 计数。
+
+    fix(omni-g-runner-10/g-runner-14, 2026-06-11): 洗稿率分子隐式要求
+    innovation_substantiveness 已测量 (NaN→astype(str)→'nan' 永 False), 旧分母却数
+    全部阳性文章 (valid 分子 / physical 分母失配, 与已修 encode-01 同族)。本函数在
+    runner 内自聚合 (encode.build_aggregation_dict 属 g-encode 组文件, 不越界) 产出
+    同域分母计数列, 供步骤 7h 洗稿率除法消费。列名以 ``_count_{track}`` 结尾, 命中
+    balance_panel 的计数零填正则 (零新闻 bank-year → 0 → _safe_ratio → NaN)。
+
+    Returns:
+        bank-year DataFrame (键 target_bank×year) 或 None (无 _svd_ 列时)。
+    """
+    svd_cols = [c for c in frame.columns if c.startswith('_svd_')]
+    if not svd_cols or 'year' not in frame.columns:
+        return None
+    agg = frame.groupby(['target_bank', 'year'])[svd_cols].sum().reset_index()
+    rename = {}
+    for c in svd_cols:
+        for tr in ('_full', '_ctx'):
+            if c.endswith(tr):
+                rename[c] = f"{c[len('_svd_'):-len(tr)]}_substvalid_count{tr}"
+                break
+    return agg.rename(columns=rename)
+
+
+def _base_year_median_split(panel: pd.DataFrame, value_col: str = 'n_articles',
+                            by: str | None = None) -> pd.Series:
+    """Pre-period 固定切分: 面板最早年中位数定组员资格, broadcast 到全年份。
+
+    fix(omni-g-runner-12/g-runner-13, 2026-06-11): digital_frontier / high_coverage
+    旧实现按【同年】中位数切分, 组员资格逐年随内生新闻覆盖量翻转 (盘上 43/87、
+    20/87 银行跨年翻转), 进入 DDD 交互/tone 交互时调节变量与 outcome 同期内生 —
+    与本文件对 Bartik 强制的 pre-treatment 固定公理 (Goldsmith-Pinkham et al.
+    2020 AER) 自相矛盾, 也偏离 Fang & Peress (2009 JF) 的 predetermined 排序。
+    改为: 用基年 (panel['year'].min()) 有覆盖银行的 value_col 中位数 (可按 `by`
+    分组, 如 bank_type) 切分一次, 组员资格跨年固定。基年零覆盖银行 → 0。
+
+    Returns:
+        与 panel.index 对齐的 0/1 int Series。
+    """
+    base_yr = int(panel['year'].min())
+    cols = ['target_bank', value_col] + ([by] if by else [])
+    base = (panel.loc[panel['year'] == base_yr, cols]
+            .drop_duplicates('target_bank').reset_index(drop=True))
+    has_news = base[value_col] > 0
+    member = pd.Series(0, index=base.index, dtype=int)
+    if has_news.any():
+        if by is not None:
+            med = base[has_news].groupby(by)[value_col].transform('median')
+        else:
+            med = base.loc[has_news, value_col].median()
+        member.loc[has_news] = (
+            base.loc[has_news, value_col] >= med).astype(int)
+    mapping = pd.Series(member.values, index=base['target_bank'])
+    return panel['target_bank'].map(mapping).fillna(0).astype(int)
+
+
+def _filter_to_verified_universe(df_align: pd.DataFrame,
+                                 df_exploded: pd.DataFrame) -> pd.DataFrame:
+    """7h-token 聚合域对齐: (docid, target_bank) semi-join LLM-verified 集。
+
+    fix(omni-g-runner-02, 2026-06-11): stage 15 输出 = stage 14 规则预筛候选集
+    (含 LLM 验证未通过文章), 而面板其余全部文本测度都在 stage 21 语义精筛后的
+    verified 集 (df_exploded=24_herd_decay) 上聚合 — 26.8% 假阳性文章曾污染政策
+    对齐族 bank-year 均值/分位阈值/象限分母并制造 phantom bank-year。本函数把
+    7h-token 全族 (article_sim_*/fintech_intensity_mean/policy_cosine_sim_t2v_*/
+    四象限) 的输入收敛到同一 verified 聚合域。
+    """
+    keys = ['docid', 'target_bank']
+    if (not all(k in df_align.columns for k in keys)
+            or not all(k in df_exploded.columns for k in keys)):
+        logger.warning(
+            "  ⚠️ verified 域过滤跳过: docid/target_bank 键不齐 — 7h-token 族将在 "
+            "pre-LLM-verification 全集上聚合 (与其余面板测度聚合域不一致, 仅限旧 schema)")
+        return df_align
+    n_before = len(df_align)
+    out = df_align.merge(df_exploded[keys].drop_duplicates(), on=keys, how='inner')
+    logger.info(f"  verified 域过滤: {n_before} → {len(out)} 篇 "
+                f"(semi-join 24_herd_decay; fix(omni-g-runner-02))")
+    return out
+
+
+def _classify_policy_quadrants(df_align: pd.DataFrame, sim_col: str,
+                               freq_col: str, pct: int):
+    """四象限逐篇分类 (measured 掩码版), 返回 (token, hidden, subst) float 指示。
+
+    fix(omni-g-runner-03/g-runner-11, 2026-06-11): 旧实现 `NaN >= thresh → False`
+    把测量失败 (sim/freq=NaN) 文章静默归入低对齐/低词频 — stage 15 三条优雅早退
+    路径写出的 policy_cosine_sim 全 NaN parquet 会让全部高词频文章误归 Token
+    (由零测量制造非 NaN 面板值), 且逐篇 NaN 滞留物理域分母。改为: 仅对
+    sim/freq 双双 notna 的行分类, 未测量行指示=NaN → groupby('mean') 自动跳过
+    (占比分母=已测量篇数); 全 NaN 年阈值=NaN → 全行未测量 → 面板输出 NaN,
+    与 L1324-1332 既有"无数据=未测量(NaN)"契约对齐。
+    分位阈值 (年度 transform quantile 本就跳过 NaN) 与分类定义域就此一致。
+    """
+    ysim = df_align.groupby('year')[sim_col].transform(
+        lambda x, p=pct: x.quantile(p / 100.0))
+    yfreq = df_align.groupby('year')[freq_col].transform(
+        lambda x, p=pct: x.quantile(p / 100.0))
+    measured = df_align[sim_col].notna() & df_align[freq_col].notna()
+    high_freq = df_align[freq_col] >= yfreq
+    high_sim = df_align[sim_col] >= ysim
+    token = (high_freq & ~high_sim).astype(float).where(measured)
+    hidden = (~high_freq & high_sim).astype(float).where(measured)
+    subst = (high_freq & high_sim).astype(float).where(measured)
+    return token, hidden, subst
+
+
+def _gated_log_sent(panel: pd.DataFrame, track: str) -> pd.Series:
+    """log1p(pos_count) − log1p(neg_count), 零覆盖 bank-year → NaN。
+
+    fix(omni-g-runner-06/g-runner-15, 2026-06-11): balance_panel 契约把计数列零填,
+    旧实现对 n_articles==0 (全年无报道, 情感不可测) 的 bank-year 输出 0.0 — 与
+    "1正1负完全均衡" 的真实测量 0 不可区分 (盘上 32.2% 行被注入伪中性零)。本文件
+    F3 红线 (Allison 2001; Heckman 1979) 规定无文章语调类指标 → NaN, 同族
+    jf_coefficient/concern_score/disag 均已遵守, 唯 log_sent 漏网。加覆盖门控:
+    仅 n_articles>0 时计算, 否则 NaN (对齐同族缺失语义)。
+    """
+    pc, nc = f'pos_count{track}', f'neg_count{track}'
+    ls = (np.log1p(panel[pc].fillna(0).astype('float64'))
+          - np.log1p(panel[nc].fillna(0).astype('float64')))
+    if 'n_articles' in panel.columns:
+        ls = ls.where(panel['n_articles'].fillna(0) > 0)
+    return ls
+
+
+# fix(omni-g-runner-16, 2026-06-11): 8c opt-in 特征面板的登记上游 (新鲜度守卫用)。
+# 18_staleness 读 13_news_with_ctx + 30a_article_embeddings + 24/21 verified 键
+# (article_staleness.py:426-484); 39f 读 21_tone_llms[_full] (cross_media_alpha.py:340-347)。
+_OPTIN_FEATURE_UPSTREAMS = {
+    '18_staleness_panel.parquet': ['13_news_with_ctx.parquet',
+                                   '30a_article_embeddings.parquet',
+                                   '24_herd_decay.parquet',
+                                   '21_tone_llms.parquet'],
+    '39f_cross_media_alpha.parquet': ['21_tone_llms_full.parquet',
+                                      '21_tone_llms.parquet'],
+}
+
+
+def _merge_optin_feature_panels(panel: pd.DataFrame, output_dir: str) -> pd.DataFrame:
+    """8c. Opt-in 特征面板条件左连接 (stage 18 staleness / 39f cross_media)。
+
+    fix(omni-g-runner-16, 2026-06-11): 旧实现仅 `os.path.exists` 守卫 —
+    (1) 无新鲜度校验: 实测 06-03 的 39f 被并入 06-10 重生的面板, 而 39f 的上游
+        21_tone_llms 已于 06-06 重生 → 面板携带旧数据代际的列 (lineage 不可见)。
+        现校验特征文件 mtime ≥ 其登记上游 (_OPTIN_FEATURE_UPSTREAMS); 陈旧 →
+        跳过 merge 并 loud-warn 要求重跑 opt-in/validation stage (与 opt-in
+        graceful-skip 设计一致: 缺列 = 该 stage 未跑, 而非静默并入陈旧值)。
+    (2) drop_duplicates keep='first' 静默取任意首行且使行数守卫永真空转 →
+        改为重复键即 raise。
+    """
+    for _ofile, _otag in [('18_staleness_panel.parquet', 'staleness'),
+                          ('39f_cross_media_alpha.parquet', 'cross_media')]:
+        _opath = os.path.join(output_dir, _ofile)
+        if not os.path.exists(_opath):
+            continue
+        # --- 新鲜度守卫: 特征文件须不早于其全部存在的登记上游 ---
+        _feat_mtime = os.path.getmtime(_opath)
+        _stale_ups = [
+            u for u in _OPTIN_FEATURE_UPSTREAMS.get(_ofile, [])
+            if os.path.exists(os.path.join(output_dir, u))
+            and os.path.getmtime(os.path.join(output_dir, u)) > _feat_mtime]
+        if _stale_ups:
+            logger.warning(
+                f"  ⚠️ {_ofile} 早于其上游 {_stale_ups} (数据代际陈旧), 跳过 "
+                f"{_otag} merge — 请重跑对应 opt-in/validation stage 后再重建面板 "
+                f"(fix(omni-g-runner-16))")
+            continue
+        _odf = pd.read_parquet(_opath)
+        if not {'target_bank', 'year'}.issubset(_odf.columns):
+            logger.warning(f"  ⚠️ {_ofile} 缺 target_bank/year 键, 跳过 {_otag} merge")
+            continue
+        # --- 重复键 fail-loud (替代旧 drop_duplicates 静默取首行) ---
+        _dup = _odf.duplicated(['target_bank', 'year'])
+        if _dup.any():
+            raise RuntimeError(
+                f"{_ofile} (target_bank, year) 键重复 {int(_dup.sum())} 行 — "
+                f"上游 {_otag} 面板非唯一键, 拒绝静默取首行 (fix(omni-g-runner-16))")
+        # 只并入面板尚无的新列 (防同名列覆盖; 键除外)
+        _bring = ['target_bank', 'year'] + [
+            c for c in _odf.columns
+            if c not in ('target_bank', 'year') and c not in panel.columns]
+        _nb = len(panel)
+        panel = panel.merge(_odf[_bring], on=['target_bank', 'year'], how='left')
+        if len(panel) != _nb:
+            raise RuntimeError(
+                f"{_otag} feature merge 改变面板行数 {_nb}->{len(panel)} "
+                f"({_ofile} (target_bank,year) 键非 1:1)")
+        logger.info(f"  ✅ stage-{_otag} 特征面板已合并: +{len(_bring) - 2} 列 "
+                    f"({_ofile}; opt-in, 缺失则 graceful skip)")
+    return panel
+
+
 def _build_llm_valid_masked_weights(frame: pd.DataFrame, weight, wtag: str) -> dict:
     """为 LLM 族 (numerator NA-skip) 构建 valid-mask 权重列, 供 encode 作 VW/MW/HW 加权
     均值的**匹配分母** (Σ weight over valid) —— 修 encode-01: 原 valid-only 分子 ÷ physical
@@ -415,19 +647,28 @@ def main():
     #   climate risk disclosures. Finance Research Letters, 47(Part B), 102776.
     #   https://doi.org/10.1016/j.frl.2022.102776
     #
-    # 构造 40 种洗稿率变体 (10 方法 × 双轨 Full/Ctx) 的篇章级标记列:
+    # 构造 多方法 × 双轨 (Full/Ctx) 洗稿率变体的篇章级标记列
+    # (fix(omni-g-runner-08, 2026-06-11): 历史注释硬编码 "40 种/5 模型" 与实现漂移 —
+    #  实际变体数随启用模型/词典数浮动, 以步骤 7h 的 wr_variants 诊断日志为准):
     #   A:  LLM 多数投票 (is_positive{track}, 双轨)
-    #   A2: 单个 LLM (逐 LLM 情感{track} > 0)
+    #   A2: 单个 LLM (逐 LLM 情感{track} > 0, LLM_MODELS 当前 3 个)
     #   B:  反向验证 (负面{track} ∧ 实质性)
-    #   D/D2: 词典均值 / 单词典 ({dict}_score{track} > 0)
-    #   E/E2: BERT 均值 / 单 BERT ({bert}_正面{track} > 0.5)
-    #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3)
+    #   D/D2: 词典均值 / 单词典 ({dict}_score{track} > 0, DICT_NAMES 5 本)
+    #   E/E2: BERT 均值 (逐模型 argmax 多数票) / 单 BERT (argmax 标签,
+    #         BERT_MODELS 当前 3 个; 见 fix(omni-g-runner-01))
+    #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3, 实现= 2/3 - 1e-9 浮点下界)
     # 方法 C 和 G 无需篇章级标记, 直接使用面板级已有变量计算
     # v3.2.0 BREAKING (plan v14 §3.3 P3): bare innovation_substantiveness 删除, 单独使用 _full 作 main spec
     # M2 P3 后续展开 count 4-way (sentiment × subst 双轨乘积)
     _tt = df['innovation_substantiveness_full'].astype(str).str.strip() if 'innovation_substantiveness_full' in df.columns else None
     _is_symb = (_tt == '象征性') if _tt is not None else None
     _is_sub  = (_tt == '实质性') if _tt is not None else None
+    # fix(omni-g-runner-10/g-runner-14, 2026-06-11): substantiveness-measured 掩码。
+    # 分子侧 NaN 经 astype(str) 变 'nan' → _is_symb/_is_sub 恒 False (测量失败永不入
+    # 分子), 但旧分母数全部阳性文章 → LLM 实质性分类失败率上升时洗稿率系统性下偏
+    # (valid 分子 / physical 分母失配, 与已修 encode-01 同族)。此处为每个方法的分母
+    # 构造 `_svd_*` (subst-valid denominator) 篇章级指示, 步骤 7h 聚合后作同域分母。
+    _subst_measured = _tt.isin(_SUBST_VALID_LABELS) if _tt is not None else None
 
     washing_cols = {}
     for track in ['_full', '_ctx']:
@@ -442,6 +683,10 @@ def main():
         washing_cols[f'_is_pos_symb{track}'] = (
             (df[pos_col].fillna(0) == 1) & _is_symb
         ).astype(int)
+        # fix(omni-g-runner-10): 方法 A 分母同域计数 (正面 ∧ 实质性已测量)
+        washing_cols[f'_svd_pos{track}'] = (
+            (df[pos_col].fillna(0) == 1) & _subst_measured
+        ).astype(int)
 
         # --- 方法 B: 反向验证 (负面 ∧ 实质性) ---
         # 学术依据: Deephouse, D.L. (2000). Media reputation as a strategic
@@ -450,6 +695,10 @@ def main():
         if neg_col in df.columns and _is_sub is not None:
             washing_cols[f'_is_neg_sub{track}'] = (
                 (df[neg_col].fillna(0) == 1) & _is_sub
+            ).astype(int)
+            # fix(omni-g-runner-10): 方法 B 分母同域计数
+            washing_cols[f'_svd_neg{track}'] = (
+                (df[neg_col].fillna(0) == 1) & _subst_measured
             ).astype(int)
 
         # --- 方法 A2: 单个 LLM (Loughran & McDonald 2016, JAR) ---
@@ -462,6 +711,9 @@ def main():
                 washing_cols[f'_is_{llm}_positive{track}'] = _llm_pos.astype(int)
                 washing_cols[f'_is_{llm}_pos_symb{track}'] = (
                     _llm_pos & _is_symb).astype(int)
+                # fix(omni-g-runner-14): 方法 A2 分母同域计数
+                washing_cols[f'_svd_{llm}_pos{track}'] = (
+                    _llm_pos & _subst_measured).astype(int)
                 # negative 编码 (Garcia 2013, JF → disag 输入)
                 washing_cols[f'_is_{llm}_negative{track}'] = (_src < 0).astype(int)
 
@@ -475,6 +727,9 @@ def main():
             washing_cols[f'_is_dict_positive{track}'] = _dict_pos.astype(int)
             washing_cols[f'_is_dict_pos_symb{track}'] = (
                 _dict_pos & _is_symb).astype(int)
+            # fix(omni-g-runner-14): 方法 D 分母同域计数
+            washing_cols[f'_svd_dict_pos{track}'] = (
+                _dict_pos & _subst_measured).astype(int)
 
         # --- 方法 D2: 单个词典 (Gentzkow et al. 2019, JEL) ---
         for d in DICT_NAMES:
@@ -484,44 +739,71 @@ def main():
                 washing_cols[f'_is_{d}_positive{track}'] = _d_pos.astype(int)
                 washing_cols[f'_is_{d}_pos_symb{track}'] = (
                     _d_pos & _is_symb).astype(int)
+                # fix(omni-g-runner-14): 方法 D2 分母同域计数
+                washing_cols[f'_svd_{d}_pos{track}'] = (
+                    _d_pos & _subst_measured).astype(int)
                 # negative 编码 (Garcia 2013, JF → disag 输入)
                 washing_cols[f'_is_{d}_negative{track}'] = (
                     df[src_col] < 0).astype(int)
 
-        # --- 方法 E: BERT 均值 (Huang et al. 2023, CAR) ---
-        _bert_pos_cols = [f'{b}_正面{track}' for b in BERT_MODELS
-                          if f'{b}_正面{track}' in df.columns]
-        if _bert_pos_cols:
-            _bert_avg = df[_bert_pos_cols].mean(axis=1)
+        # --- 方法 E/E2 共用: 逐 BERT argmax 极性指示 ---
+        # fix(omni-g-runner-01, 2026-06-11): 旧实现等权平均 2-class 与 3-class 模型的
+        # 裸 P(正面) 后统一 0.5 二值化 — 跨类数概率尺度不可比 (盘上 _bert_avg 被
+        # finbert2 的 2-class 尺度主导, E2 的 0.5 阈值对 3-class 远严于 argmax,
+        # disag 输入被尺度差污染)。统一为逐模型 argmax 标签 (类数不变量, 见
+        # _bert_argmax_pos_neg), E 改为模型间 argmax 多数票。
+        _bert_pos_by_model = {}
+        _bert_neg_by_model = {}
+        for b in BERT_MODELS:
+            if f'{b}_正面{track}' not in df.columns:
+                continue
+            _bp, _bn = _bert_argmax_pos_neg(df, b, track)
+            _bert_pos_by_model[b] = _bp
+            _bert_neg_by_model[b] = _bn
+
+        # --- 方法 E: BERT 均值 (Huang et al. 2023, CAR) — argmax 多数票 ---
+        if _bert_pos_by_model:
+            # _bert_avg 现语义 = 投正面 (argmax) 的模型占比 (尺度不变), 多数票 > 0.5
+            _bert_avg = (pd.concat(_bert_pos_by_model.values(), axis=1)
+                         .astype(float).mean(axis=1))
             _bert_pos = (_bert_avg > 0.5)
             washing_cols[f'_bert_avg_pos{track}'] = _bert_avg
             washing_cols[f'_is_bert_positive{track}'] = _bert_pos.astype(int)
             washing_cols[f'_is_bert_pos_symb{track}'] = (
                 _bert_pos & _is_symb).astype(int)
+            # fix(omni-g-runner-14): 方法 E 分母同域计数
+            washing_cols[f'_svd_bert_pos{track}'] = (
+                _bert_pos & _subst_measured).astype(int)
 
-        # --- 方法 E2: 单个 BERT ---
-        for b in BERT_MODELS:
-            src_col = f'{b}_正面{track}'
-            if src_col in df.columns:
-                _b_pos = (df[src_col] > 0.5)
-                washing_cols[f'_is_{b}_positive{track}'] = _b_pos.astype(int)
-                washing_cols[f'_is_{b}_pos_symb{track}'] = (
-                    _b_pos & _is_symb).astype(int)
-                # negative 编码 (Garcia 2013, JF → disag 输入)
-                neg_src = f'{b}_负面{track}'
-                if neg_src in df.columns:
-                    washing_cols[f'_is_{b}_negative{track}'] = (
-                        df[neg_src] > 0.5).astype(int)
+        # --- 方法 E2: 单个 BERT — argmax 标签 (fix(omni-g-runner-01)) ---
+        for b, _b_pos in _bert_pos_by_model.items():
+            washing_cols[f'_is_{b}_positive{track}'] = _b_pos.astype(int)
+            washing_cols[f'_is_{b}_pos_symb{track}'] = (
+                _b_pos & _is_symb).astype(int)
+            # fix(omni-g-runner-14): 方法 E2 分母同域计数
+            washing_cols[f'_svd_{b}_pos{track}'] = (
+                _b_pos & _subst_measured).astype(int)
+            # negative 编码 (Garcia 2013, JF → disag 输入)
+            _b_neg = _bert_neg_by_model[b]
+            if _b_neg is not None:
+                washing_cols[f'_is_{b}_negative{track}'] = _b_neg.astype(int)
 
         # --- 方法 F: 高置信度子样本 (Shapiro et al. 2022, JoE) ---
         agr_col = f'llm_agreement_rate{track}'
         if agr_col in df.columns:
-            _hc = df[agr_col].fillna(0) >= 0.67
+            # fix(omni-g-runner-05/g-runner-09, 2026-06-11): 0.67 → 2/3 - 1e-9,
+            # 使唯一多数票档 2/3 (=0.6667) 按声明的 "≥ 2/3" 构念纳入 HC 子样本
+            # (旧阈值把该档整类静默排除, _hc 退化为全票一致)。
+            _hc = df[agr_col].fillna(0) >= HC_AGREEMENT_THRESHOLD
             # v6/F2: pos_col nullable Int8 → fillna(0)
             washing_cols[f'_is_pos_hc{track}'] = (
                 (df[pos_col].fillna(0) == 1) & _hc).astype(int)
             washing_cols[f'_is_pos_symb_hc{track}'] = (
                 (df[pos_col].fillna(0) == 1) & _is_symb & _hc
+            ).astype(int)
+            # fix(omni-g-runner-10): 方法 F 分母同域计数
+            washing_cols[f'_svd_pos_hc{track}'] = (
+                (df[pos_col].fillna(0) == 1) & _hc & _subst_measured
             ).astype(int)
 
 
@@ -563,7 +845,8 @@ def main():
             # 方法 F (4-way): HC × subst_ctx
             agr_col = f'llm_agreement_rate{track}'
             if agr_col in df.columns:
-                _hc = df[agr_col].fillna(0) >= 0.67
+                # fix(omni-g-runner-05/g-runner-09): 与主洗稿循环同步 2/3 - 1e-9
+                _hc = df[agr_col].fillna(0) >= HC_AGREEMENT_THRESHOLD
                 washing_cols[f'_is_pos_symb_hc{track}_sc'] = (
                     (df[pos_col].fillna(0) == 1) & _is_symb_ctx & _hc
                 ).astype(int)
@@ -576,6 +859,14 @@ def main():
 
     # --- 5. Bank-Year 聚合 (df 为只读: groupby/filter/merge) ---
     panel = aggregate_panel(df)
+
+    # fix(omni-g-runner-10/g-runner-14, 2026-06-11): _svd_* subst-valid 分母计数
+    # 聚合并入 (encode.build_aggregation_dict 属 g-encode 组文件, runner 内自聚合;
+    # 步骤 7h 洗稿率除法消费这些同域分母)。
+    _svd_panel = _pool_svd_substvalid_counts(df)
+    if _svd_panel is not None:
+        panel = panel.merge(_svd_panel, on=['target_bank', 'year'], how='left')
+        logger.info(f"  subst-valid 分母计数已合并: {len(_svd_panel.columns) - 2} 列")
 
     # 引用转移: aggregate_panel 已完成, 后续全部使用 df_exploded
     df_exploded = df
@@ -601,7 +892,9 @@ def main():
     if PANEL_CFG.get('compute_attention_index', True):
         panel = compute_fintech_attention_index(panel)
 
-    # --- 6b-2. P2 attention 处理变量 (Hassan 2019 QJE firm-level exposure; 双轨=互为稳健性) ---
+    # --- 6b-2. P2 attention 处理变量 (Fang-Peress 2009 JF extensive 覆盖加权曝光;
+    #     Hassan 2019 QJE 仅限 pct/density/ctx 归因 — fix(omni-g-papers-misc-09, 2026-06-11)
+    #     锚点更正, 同步 attention_media.py docstring; 双轨=互为稳健性) ---
     # spec 钦定 attention_index_full/ctx + attention_pct_full + attention_disp_full +
     # 双轨派生 (density/sd/gap/share)。防选择偏差: 全集脊柱 LEFT-join + 零-fintech 填 0 (index/pct)。
     if PANEL_CFG.get('compute_attention_treatments', True):
@@ -681,6 +974,18 @@ def main():
         # 基期敏感性 (T0, T0+1, T0&T0+1) — 检验 IV 对基期选择的稳健性
         # ⚠️ 使用 merge-based 赋值，避免 .values 行序错配
         for suffix, base_yr in [('_t0', T0), ('_t1', T0+1)]:
+            # fix(omni-g-runner-04, 2026-06-11): _t1 基期外生性守卫 — 主 IV 仅检
+            # T0 < cutoff, _t1 基期=T0+1 可落入 post-treatment 区间 (panel 起始
+            # 2018 时 _t1 基期=2019 绕过红线)。基期 ≥ cutoff → 该敏感性变体置
+            # NaN 并告警 (share 已在 post-treatment, 违反 GPSS 2020 公理)。
+            if base_yr >= _bartik_pre_cutoff:
+                logger.warning(
+                    f"  Bartik {suffix} 变体基期 {base_yr} ≥ 政策冲击里程碑 "
+                    f"{_bartik_pre_cutoff}, 违反外生性公理 → 置 NaN 跳过 "
+                    f"(fix(omni-g-runner-04))")
+                for track in ['_full', '_ctx']:
+                    panel[f'bartik_type_iv{track}{suffix}'] = np.nan
+                continue
             ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
                                      df_exploded, type_map, 'type',
                                      base_year=base_yr)
@@ -693,38 +998,53 @@ def main():
                       f'bartik_type_iv_full{suffix}',
                       f'bartik_type_iv_ctx{suffix}']],
                 on=['target_bank', 'year'], how='left')
-        base_t01 = df_exploded[df_exploded['year'].isin([T0, T0+1])]
-        ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
-                                 base_t01, type_map, 'type', base_year=T0)
-        for track in ['_full', '_ctx']:
-            src_col = f'bartik_type_iv{track}'
-            ptmp = ptmp.rename(columns={src_col: f'bartik_type_iv{track}_t01'})
-        panel = panel.merge(
-            ptmp[['target_bank', 'year',
-                  'bartik_type_iv_full_t01',
-                  'bartik_type_iv_ctx_t01']],
-            on=['target_bank', 'year'], how='left')
+        # fix(omni-g-runner-04, 2026-06-11): 真·池化基期 _t01 — 旧实现把 {T0,T0+1}
+        # 年份子集当全量文章传入, 而 compute_bartik_iv 内部 share 仍只取 year==T0
+        # (池化从未发生, _t01 与 _t0 字节级相同的幻影变体); 且 shift 聚合域被截断
+        # 到基期两年, 其余年份 shift NaN 经旧 fillna(0) 制成 IV 精确伪零。改为传
+        # 全量 df_exploded + base_years=[T0, T0+1] (iv_did 池化基期接口,
+        # fix(omni-g-ivdid-02) 实现)。池化基期含 T0+1 → 同样受 cutoff 外生性守卫。
+        if _bartik_pre_cutoff <= T0 + 1:
+            logger.warning(
+                f"  Bartik _t01 池化基期含 {T0 + 1} ≥ 政策冲击里程碑 "
+                f"{_bartik_pre_cutoff}, 违反外生性公理 → 置 NaN 跳过 "
+                f"(fix(omni-g-runner-04))")
+            for track in ['_full', '_ctx']:
+                panel[f'bartik_type_iv{track}_t01'] = np.nan
+        else:
+            ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
+                                     df_exploded, type_map, 'type',
+                                     base_years=[T0, T0 + 1])
+            for track in ['_full', '_ctx']:
+                src_col = f'bartik_type_iv{track}'
+                ptmp = ptmp.rename(columns={src_col: f'bartik_type_iv{track}_t01'})
+            panel = panel.merge(
+                ptmp[['target_bank', 'year',
+                      'bartik_type_iv_full_t01',
+                      'bartik_type_iv_ctx_t01']],
+                on=['target_bank', 'year'], how='left')
 
         # --- 稳健性 1: 银行规模 (4类, 3有效IV) — v3: 显式基期 T0 ---
         panel = compute_bartik_iv(panel, df_exploded, scale_map, 'scale',
                                    base_year=T0)
 
         # --- 7e-digfront. 数字化前沿距离代理变量 ---
-        # 按同类型银行的年度中位数新闻覆盖量划分 (仅有新闻覆盖的银行参与)
+        # 按同类型银行【基年】中位数新闻覆盖量划分一次, 组员资格跨年固定
+        # (仅基年有新闻覆盖的银行参与切分; 基年零覆盖 → 0)
         # 概念迁移自:
         #   Goldfarb, A. & Tucker, C. (2019). Digital economics.
         #   Journal of Economic Literature, 57(1), 3-43.
         #   https://doi.org/10.1257/jel.20171452
         # 用途: DDD 三重差分 — 数字化前沿 × 政策冲击 (步骤 7g 后构建)
+        # fix(omni-g-runner-12, 2026-06-11): 旧实现按【同年】中位数切分, frontier
+        # 身份逐年随内生覆盖量翻转 (盘上 43/87 银行 2017→2018 翻转), post 期身份由
+        # post 期自身实现值决定 — 与上方 Bartik 的 pre-treatment 固定公理 (GPSS
+        # 2020 AER) 自相矛盾。改为 pre-period 固定切分 (见 _base_year_median_split)。
         if 'bank_type' in panel.columns:
-            _has_news_df = panel['n_articles'] > 0
-            _grp_median = panel[_has_news_df].groupby(
-                ['bank_type', 'year'])['n_articles'].transform('median')
-            panel['digital_frontier'] = 0
-            panel.loc[_has_news_df, 'digital_frontier'] = (
-                panel.loc[_has_news_df, 'n_articles'] >= _grp_median
-            ).astype(int)
-            logger.info(f"  digital_frontier: "
+            panel['digital_frontier'] = _base_year_median_split(
+                panel, value_col='n_articles', by='bank_type')
+            logger.info(f"  digital_frontier (基年 {int(panel['year'].min())} "
+                        f"固定切分): "
                         f"1={panel['digital_frontier'].sum()}, "
                         f"0={(panel['digital_frontier'] == 0).sum()}")
         else:
@@ -926,23 +1246,24 @@ def main():
         panel['bank_scale_ord'] = 0
 
     # --- (c) 覆盖强度分组 (替代二元 has_coverage) ---
-    # 仅在有新闻覆盖的银行中按年度中位数分组
+    # 仅在基年有新闻覆盖的银行中按【基年】中位数分组一次, 跨年固定
     # 学术依据:
     #   Fang, L.H. & Peress, J. (2009). Media coverage and the cross-section
     #   of stock returns. Journal of Finance, 64(5), 2023-2052.
     #   https://doi.org/10.1111/j.1540-6261.2009.01493.x
-    #   → 媒体覆盖的边际效应递减，需区分高低覆盖强度
+    #   → 媒体覆盖的边际效应递减，需区分高低覆盖强度; 原文用 t 期覆盖排序
+    #     预测 t+1 收益 (predetermined sort)
     # ⚠️ 注意: 原始 has_coverage (0/1) 与 tone 的交互项无额外信息 (冗余):
     #   零新闻行 tone=NaN → tone×has_coverage=NaN (非0);
     #   有新闻行 tone×1=tone → 交互项退化为 tone 本身，无增量信息
-    has_news_het = panel['n_articles'] > 0
-    year_median_cov = panel[has_news_het].groupby(
-        'year')['n_articles'].transform('median')
-    panel['high_coverage'] = 0
-    panel.loc[has_news_het, 'high_coverage'] = (
-        panel.loc[has_news_het, 'n_articles'] >= year_median_cov
-    ).astype(int)
-    logger.info(f"  high_coverage: 1={panel['high_coverage'].sum()}, "
+    # fix(omni-g-runner-13, 2026-06-11): 旧实现按【同年】中位数切分 (含自身观测),
+    # 组员资格逐年随内生覆盖量翻转 (盘上 20/87 银行跨年翻转), 与同年 tone 相乘
+    # 进回归 — 调节变量与 outcome 完全同期内生。改为 pre-period 固定切分
+    # (面板最早年中位数, 见 _base_year_median_split), 对齐 predetermined 口径。
+    panel['high_coverage'] = _base_year_median_split(
+        panel, value_col='n_articles', by=None)
+    logger.info(f"  high_coverage (基年 {int(panel['year'].min())} 固定切分): "
+                f"1={panel['high_coverage'].sum()}, "
                 f"0={(panel['high_coverage'] == 0).sum()}")
 
     # --- (d) 交互项构建 (双轨: _full + _ctx) ---
@@ -1206,6 +1527,13 @@ def main():
             df_align['year'] = df_align['year'].astype(int)
             logger.info(f"  从 '日期' 列派生 year: {df_align['year'].nunique()} 个年份")
 
+        # fix(omni-g-runner-02, 2026-06-11): 聚合域对齐 — 7h-token 全族 (article_sim_*/
+        # fintech_intensity_mean/policy_cosine_sim_t2v_*/四象限) 此前在 stage 14 规则
+        # 预筛全集 (含 LLM 验证未通过文章) 上聚合, 与全仓其余面板测度的 verified 聚合域
+        # (df_exploded=24_herd_decay) 结构性不一致 (盘上孪生对 60/118 取值不同,
+        # max|Δ|=0.437, 4 个 phantom bank-year)。semi-join 收敛到 verified 子集。
+        df_align = _filter_to_verified_universe(df_align, df_exploded)
+
         # --- 逻辑 A: 连续聚合变量 (主回归) ---
         # 【术语】按 (target_bank, year) 聚合文章级 policy_cosine_sim
         #   为 mean 和 std, 以及 fintech_intensity_score 的 mean
@@ -1227,10 +1555,12 @@ def main():
                 _agg_spec['article_sim_std_ctx'] = ('policy_cosine_sim_ctx', 'std')
             _agg = df_align.groupby(['target_bank', 'year']).agg(
                 **_agg_spec).reset_index()
-            # std 对单篇文章的 bank-year 返回 NaN, 填 0 (两轨对称处理)
-            _agg['article_sim_std'] = _agg['article_sim_std'].fillna(0.0)
-            if 'article_sim_std_ctx' in _agg.columns:
-                _agg['article_sim_std_ctx'] = _agg['article_sim_std_ctx'].fillna(0.0)
+            # fix(omni-group-std-singleobs, 2026-06-11, 组级裁决): 删除旧
+            # `article_sim_std(_ctx).fillna(0.0)` — 单篇文章的 bank-year 其
+            # std (ddof=1) 数学上未定义, 强填 0 把"离散度不可估计"伪装成
+            # "零分歧"假观测; 保持 NaN 与本函数下方 v6/F3 "无数据=未测量"
+            # 契约及同族 *_std 缺失语义一致 (benefit_std 同型缺陷在
+            # features/benefit_society.py, 归 g-features 组)。
             panel = panel.merge(_agg, on=['target_bank', 'year'], how='left')
             logger.info(f"  连续聚合: article_sim_mean/std, "
                         f"fintech_intensity_mean 已合并")
@@ -1277,49 +1607,69 @@ def main():
             _align_cfg = CONFIG.get('article_alignment', {})
             _percentiles = _align_cfg.get('quadrant_percentiles', [25, 50, 75])
 
-            for track_name, freq_col in _tracks:
-                if freq_col not in df_align.columns:
-                    logger.warning(f"  {freq_col} 列缺失, 跳过 Track {track_name}")
-                    continue
+            # fix(omni-g-runner-03/g-runner-11, 2026-06-11): NaN 掩码分类 —
+            # 旧实现 `NaN >= thresh → False` 把测量失败文章静默归入低对齐/低词频:
+            # stage 15 三条优雅早退路径写出的 policy_cosine_sim 全 NaN parquet 会让
+            # 全部高词频文章误归 Token (由零测量制造非 NaN 面板值), 逐篇 NaN 滞留
+            # 物理域分母。改经 _classify_policy_quadrants: 仅 sim/freq 双双 notna
+            # 行分类, 未测量行指示=NaN → groupby mean 跳过 (分母=已测量篇数);
+            # 全 NaN 年 → 面板 NaN, 与下方 v6/F3 "无数据=未测量" 契约对齐。
+            if df_align['policy_cosine_sim'].notna().sum() == 0:
+                logger.warning(
+                    "  ⚠️ policy_cosine_sim 全 NaN (stage 15 优雅早退产物?) — "
+                    "四象限/相似度面板列将全部输出 NaN 而非伪零 "
+                    "(fix(omni-g-runner-03))")
 
-                for pct in _percentiles:
-                    # 按年度计算分位数阈值
-                    # 使用默认参数绑定 p=pct, 防止 late-binding 陷阱
-                    _yearly_sim_thresh = df_align.groupby('year')[
-                        'policy_cosine_sim'].transform(
-                        lambda x, p=pct: x.quantile(p / 100.0))
-                    _yearly_freq_thresh = df_align.groupby('year')[
-                        freq_col].transform(
-                        lambda x, p=pct: x.quantile(p / 100.0))
+            # fix(omni-g-runner-07, 2026-06-11): ctx 孪生 — 旧四象限仅 full 轨
+            # (sim/freq 全用 full alias), 而同函数上方 sim mean/std 已有 ctx 分支。
+            # 补 *_adopt_{kw,int}_p{pct}_ctx: sim 用 policy_cosine_sim_ctx, 词频
+            # 优先 {freq_col}_ctx (int 轨存在); kw 轨的 AC 去重关键词数为
+            # track-agnostic 元数据 (无 ctx 变体) 时复用 full 列并披露。
+            _sim_tracks = [('', 'policy_cosine_sim')]
+            if 'policy_cosine_sim_ctx' in df_align.columns:
+                _sim_tracks.append(('_ctx', 'policy_cosine_sim_ctx'))
+            else:
+                logger.warning("  ⚠️ policy_cosine_sim_ctx 缺失, 四象限 ctx 孪生"
+                               "跳过 (旧 schema)")
 
-                    # 四象限分类 (互斥穷尽)
-                    _high_freq = df_align[freq_col] >= _yearly_freq_thresh
-                    _high_sim = df_align['policy_cosine_sim'] >= _yearly_sim_thresh
+            for _sim_sfx, _sim_col in _sim_tracks:
+                for track_name, freq_col in _tracks:
+                    _freq_eff = freq_col
+                    if _sim_sfx == '_ctx':
+                        if f'{freq_col}_ctx' in df_align.columns:
+                            _freq_eff = f'{freq_col}_ctx'
+                        else:
+                            logger.info(
+                                f"  Track {track_name} (ctx): 词频列无 ctx 变体 "
+                                f"(track-agnostic), 复用 {freq_col}")
+                    if _freq_eff not in df_align.columns:
+                        logger.warning(f"  {_freq_eff} 列缺失, "
+                                       f"跳过 Track {track_name}{_sim_sfx}")
+                        continue
 
-                    df_align[f'_is_token_{track_name}_p{pct}'] = (
-                        _high_freq & ~_high_sim).astype(int)
-                    df_align[f'_is_hidden_{track_name}_p{pct}'] = (
-                        ~_high_freq & _high_sim).astype(int)
-                    df_align[f'_is_subst_{track_name}_p{pct}'] = (
-                        _high_freq & _high_sim).astype(int)
+                    for pct in _percentiles:
+                        _tok, _hid, _sub = _classify_policy_quadrants(
+                            df_align, _sim_col, _freq_eff, pct)
+                        _k = f'{track_name}_p{pct}{_sim_sfx}'
+                        df_align[f'_is_token_{_k}'] = _tok
+                        df_align[f'_is_hidden_{_k}'] = _hid
+                        df_align[f'_is_subst_{_k}'] = _sub
 
-                    # 按 (银行, 年) 聚合为占比
-                    _quadrant_agg = df_align.groupby(
-                        ['target_bank', 'year']).agg(
-                        **{f'token_adopt_{track_name}_p{pct}': (
-                            f'_is_token_{track_name}_p{pct}', 'mean'),
-                           f'hidden_adopt_{track_name}_p{pct}': (
-                            f'_is_hidden_{track_name}_p{pct}', 'mean'),
-                           f'subst_adopt_{track_name}_p{pct}': (
-                            f'_is_subst_{track_name}_p{pct}', 'mean'),
-                           }
-                    ).reset_index()
+                        # 按 (银行, 年) 聚合为占比 (mean 跳过 NaN →
+                        # 分母 = 已测量篇数; 全未测量 bank-year → NaN)
+                        _quadrant_agg = df_align.groupby(
+                            ['target_bank', 'year']).agg(
+                            **{f'token_adopt_{_k}': (f'_is_token_{_k}', 'mean'),
+                               f'hidden_adopt_{_k}': (f'_is_hidden_{_k}', 'mean'),
+                               f'subst_adopt_{_k}': (f'_is_subst_{_k}', 'mean'),
+                               }
+                        ).reset_index()
 
-                    panel = panel.merge(
-                        _quadrant_agg, on=['target_bank', 'year'], how='left')
+                        panel = panel.merge(
+                            _quadrant_agg, on=['target_bank', 'year'], how='left')
 
-                logger.info(f"  Track {track_name}: P={{25,50,75}} "
-                            f"四象限占比已合并")
+                    logger.info(f"  Track {track_name}{_sim_sfx}: "
+                                f"P={_percentiles} 四象限占比已合并")
 
             # v6/F3 修复 (主路径全 NaN)：删除原 fillna(0.0)。
             # token_adopt / hidden_adopt / subst_adopt / article_sim_ / fintech_intensity_mean
@@ -1382,17 +1732,19 @@ def main():
     #   Cheap talk and cherry-picking. Finance Research Letters, 47(B), 102776.
     #   https://doi.org/10.1016/j.frl.2022.102776
     #
-    # 构造 40 种洗稿率变体 (10 方法 × 双轨 Full/Ctx):
-    #   A/A2: LLM 投票 + 单 LLM (3模型) × 双轨
+    # 构造 多方法 × 双轨 (Full/Ctx) 洗稿率变体
+    # (fix(omni-g-runner-08, 2026-06-11): 旧注释硬编码 "40 种/5模型" 与实现漂移,
+    #  实际变体数随启用模型/词典数浮动, 以下方 wr_variants 动态诊断日志为准):
+    #   A/A2: LLM 投票 + 单 LLM (LLM_MODELS 当前 3 个) × 双轨
     #   B:    反向验证 + 非对称性 × 双轨
     #   C:    情感纯度缺口 × 双轨
-    #   D/D2: 词典均值 + 单词典 (5本) × 双轨
-    #   E/E2: BERT 均值 + 单 BERT (5模型) × 双轨
+    #   D/D2: 词典均值 + 单词典 (DICT_NAMES 5 本) × 双轨
+    #   E/E2: BERT 均值 + 单 BERT (BERT_MODELS 当前 3 个) × 双轨
     #   F:    高置信度子样本 × 双轨
     #   G:    象征性文章情感偏移 × 双轨
     # =========================================================================
     logger.info("=" * 60)
-    logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造 (40种)")
+    logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造")
     logger.info("=" * 60)
 
     def _safe_ratio(numer, denom):
@@ -1402,6 +1754,22 @@ def main():
         np.divide(np.asarray(numer), np.asarray(denom), out=out, where=mask)
         return out
 
+    def _svd_denom(svd_col, phys_col):
+        """洗稿率分母同域化 (fix(omni-g-runner-10/g-runner-14, 2026-06-11))。
+
+        分子隐式要求 innovation_substantiveness 已测量 (NaN→astype(str)→'nan'
+        永 False), 旧分母却数全部阳性文章 → LLM 实质性分类失败率上升时洗稿率
+        系统性下偏 (valid 分子 / physical 分母失配, 与已修 encode-01 同族)。
+        分母改用 `{name}_substvalid_count{track}` (阳性 ∧ 实质性已测量, 步骤 5
+        由 _pool_svd_substvalid_counts 聚合); 旧 schema 缺该列时回退物理分母
+        (保持旧行为) 并告警。
+        """
+        if svd_col in panel.columns:
+            return panel[svd_col]
+        logger.warning(f"  ⚠️ {svd_col} 缺失, 洗稿率分母回退物理计数 "
+                       f"{phys_col} (旧 schema; fix(omni-g-runner-10/14))")
+        return panel[phys_col]
+
     wr_variants = {}  # {变量名: 描述}
 
     for track in ['_full', '_ctx']:
@@ -1409,10 +1777,13 @@ def main():
         pos_col = f'pos_count{track}'
 
         # --- 方法 A: LLM 投票极化条件法 ---
+        # fix(omni-g-runner-10, 2026-06-11): 分母改 substvalid 同域计数 (下同各方法)
         pd_col = f'pos_symb_count{track}'
         vn = f'washing_ratio{_sfx}'
         if pos_col in panel.columns and pd_col in panel.columns:
-            panel[vn] = _safe_ratio(panel[pd_col], panel[pos_col])
+            panel[vn] = _safe_ratio(
+                panel[pd_col],
+                _svd_denom(f'pos_substvalid_count{track}', pos_col))
             wr_variants[vn] = f'A: LLM投票{track}'
 
         # --- 方法 A2: 单个 LLM ---
@@ -1421,7 +1792,9 @@ def main():
             pdc = f'{llm}_pos_symb_count{track}'
             vn = f'washing_ratio_{llm}{_sfx}'
             if pc in panel.columns and pdc in panel.columns:
-                panel[vn] = _safe_ratio(panel[pdc], panel[pc])
+                panel[vn] = _safe_ratio(
+                    panel[pdc],
+                    _svd_denom(f'{llm}_pos_substvalid_count{track}', pc))
                 wr_variants[vn] = f'A2: {llm}{track}'
 
         # --- 方法 B: 反向验证 ---
@@ -1429,7 +1802,9 @@ def main():
         ns_col = f'neg_sub_count{track}'
         if neg_col in panel.columns and ns_col in panel.columns:
             vn_r = f'neg_sub_ratio{track}'
-            panel[vn_r] = _safe_ratio(panel[ns_col], panel[neg_col])
+            panel[vn_r] = _safe_ratio(
+                panel[ns_col],
+                _svd_denom(f'neg_substvalid_count{track}', neg_col))
             wr_variants[vn_r] = f'B: 负面实质性{track}'
             # 非对称性
             wr_a = f'washing_ratio{_sfx}'
@@ -1451,7 +1826,9 @@ def main():
         dpdc = f'dict_pos_symb_count{track}'
         if dpc in panel.columns and dpdc in panel.columns:
             vn = f'washing_ratio_dict{_sfx}'
-            panel[vn] = _safe_ratio(panel[dpdc], panel[dpc])
+            panel[vn] = _safe_ratio(
+                panel[dpdc],
+                _svd_denom(f'dict_pos_substvalid_count{track}', dpc))
             wr_variants[vn] = f'D: 词典均值{track}'
 
         # --- 方法 D2: 单个词典 ---
@@ -1460,7 +1837,9 @@ def main():
             pdc = f'{d}_pos_symb_count{track}'
             vn = f'washing_ratio_{d}{_sfx}'
             if pc in panel.columns and pdc in panel.columns:
-                panel[vn] = _safe_ratio(panel[pdc], panel[pc])
+                panel[vn] = _safe_ratio(
+                    panel[pdc],
+                    _svd_denom(f'{d}_pos_substvalid_count{track}', pc))
                 wr_variants[vn] = f'D2: {d}{track}'
 
         # --- 方法 E: BERT 均值 ---
@@ -1468,7 +1847,9 @@ def main():
         bpdc = f'bert_pos_symb_count{track}'
         if bpc in panel.columns and bpdc in panel.columns:
             vn = f'washing_ratio_bert{_sfx}'
-            panel[vn] = _safe_ratio(panel[bpdc], panel[bpc])
+            panel[vn] = _safe_ratio(
+                panel[bpdc],
+                _svd_denom(f'bert_pos_substvalid_count{track}', bpc))
             wr_variants[vn] = f'E: BERT均值{track}'
 
         # --- 方法 E2: 单个 BERT ---
@@ -1477,7 +1858,9 @@ def main():
             pdc = f'{b}_pos_symb_count{track}'
             vn = f'washing_ratio_{b}{_sfx}'
             if pc in panel.columns and pdc in panel.columns:
-                panel[vn] = _safe_ratio(panel[pdc], panel[pc])
+                panel[vn] = _safe_ratio(
+                    panel[pdc],
+                    _svd_denom(f'{b}_pos_substvalid_count{track}', pc))
                 wr_variants[vn] = f'E2: {b}{track}'
 
         # --- 方法 F: 高置信度子样本 ---
@@ -1485,7 +1868,9 @@ def main():
         hpdc = f'pos_symb_hc_count{track}'
         if hpc in panel.columns and hpdc in panel.columns:
             vn = f'washing_ratio_hc{_sfx}'
-            panel[vn] = _safe_ratio(panel[hpdc], panel[hpc])
+            panel[vn] = _safe_ratio(
+                panel[hpdc],
+                _svd_denom(f'pos_hc_substvalid_count{track}', hpc))
             wr_variants[vn] = f'F: 高置信{track}'
 
         # --- 方法 G: 情感偏移 ---
@@ -1618,20 +2003,28 @@ def main():
         for b in BERT_MODELS:
             panel[f'disag_{b}{track}'] = _compute_disag(
                 f'{b}_pos{track}', f'{b}_neg{track}', panel)
-    logger.info(f"  disag 指标计算完成 (32 变量)")
+    # fix(omni-g-runner-08, 2026-06-11): 旧硬编码 "(32 变量)" 实为 28
+    # (BERT_MODELS=3 非注释所称 5) — 改动态计数, 防再漂移。
+    _disag_n = len([c for c in panel.columns if c.startswith('disag')])
+    logger.info(f"  disag 指标计算完成 ({_disag_n} 变量)")
 
     # ═══ 8c. 对数降噪定向情感 (Log-Transformed Sentiment) ═══
     # Angelico, C., Marcucci, J., Miccoli, M., & Quarta, F. (2022).
     #   Can we measure inflation expectations using Twitter?
     #   Journal of Econometrics, 228(2), 259-277. DOI: 10.1016/j.jeconom.2021.12.008
     # 公式: log_sent = log(1 + pos_count) - log(1 + neg_count)
+    # fix(omni-g-runner-06/g-runner-15, 2026-06-11): 加覆盖门控 — balance_panel
+    # 零填计数使零覆盖 bank-year (盘上 32.2% 行) 得伪中性 0.0, 与"1正1负完全均衡"
+    # 的真测量 0 不可区分; 同族 jf/concern/disag 均已对无文章行输出 NaN (F3 红线,
+    # Allison 2001; Heckman 1979), 唯 log_sent 漏网。改经 _gated_log_sent
+    # (n_articles==0 → NaN, 对齐同族缺失语义)。
+    _log_sent_n = 0
     for track in ['_full', '_ctx']:
         pc, nc = f'pos_count{track}', f'neg_count{track}'
         if pc in panel.columns and nc in panel.columns:
-            panel[f'log_sent{track}'] = (
-                np.log1p(panel[pc].fillna(0)) -
-                np.log1p(panel[nc].fillna(0)))
-    logger.info(f"  log_sent 指标计算完成 (2 变量)")
+            panel[f'log_sent{track}'] = _gated_log_sent(panel, track)
+            _log_sent_n += 1
+    logger.info(f"  log_sent 指标计算完成 ({_log_sent_n} 变量, 零覆盖→NaN)")
 
     # ═══ 8d. 算法迎合度 (Algorithmic Catering) — 全展开 ═══
     # Cao, S., Jiang, W., Yang, B., & Zhang, A. L. (2023). How to talk
@@ -1710,32 +2103,18 @@ def main():
     # 并入 40_panel_yearly。条件左连接 (opt-in stage 未运行 → 文件缺失 → graceful no-op)。
     # ⚠ stage 49 (risk-taking OUTCOMES) 刻意不在此: 它是 DV master 数据集, paper 10/11
     # 直接 `use` 它再并入 treatment; 反向并入 40_panel 会颠倒 DV/feature 方向 (范畴错误)。
-    # 39f (cross_media_alpha) 同属此孤儿类 (bank-year; cross_outlet_tone_variance_* 是
-    # paper 10 主处理且在 stata_export core_patterns), 但它是 validation-class
+    # 39f (cross_media_alpha) 同属此孤儿类 (bank-year; cross_outlet_tone_variance_* 在
+    # stata_export core_patterns — ⚠ 与 paper 10 spec 冻结 main treatment 同名异构,
+    # 事件窗条件方差而非 spec 的全年截面口径, 见 cross_media_alpha.py 模块 docstring
+    # 披露 fix(omni-g-audit-family-08, 2026-06-11)), 但它是 validation-class
     # (run_pipeline_validation 中, 排在 stage 45 之后)。故正常单趟主链运行时其文件尚不
     # 存在 → graceful skip; 仅当 validation 已先产出 39f 后再 (重)建面板时才并入。
-    for _ofile, _otag in [('18_staleness_panel.parquet', 'staleness'),
-                          ('39f_cross_media_alpha.parquet', 'cross_media')]:
-        _opath = os.path.join(OUTPUT_DIR, _ofile)
-        if not os.path.exists(_opath):
-            continue
-        _odf = pd.read_parquet(_opath)
-        if not {'target_bank', 'year'}.issubset(_odf.columns):
-            logger.warning(f"  ⚠️ {_ofile} 缺 target_bank/year 键, 跳过 {_otag} merge")
-            continue
-        _odf = _odf.drop_duplicates(['target_bank', 'year'])
-        # 只并入面板尚无的新列 (防同名列覆盖; 键除外)
-        _bring = ['target_bank', 'year'] + [
-            c for c in _odf.columns
-            if c not in ('target_bank', 'year') and c not in panel.columns]
-        _nb = len(panel)
-        panel = panel.merge(_odf[_bring], on=['target_bank', 'year'], how='left')
-        if len(panel) != _nb:
-            raise RuntimeError(
-                f"{_otag} feature merge 改变面板行数 {_nb}->{len(panel)} "
-                f"({_ofile} (target_bank,year) 键非 1:1)")
-        logger.info(f"  ✅ stage-{_otag} 特征面板已合并: +{len(_bring) - 2} 列 "
-                    f"({_ofile}; opt-in, 缺失则 graceful skip)")
+    # fix(omni-g-runner-16, 2026-06-11): merge 逻辑收敛到
+    # _merge_optin_feature_panels — 在旧 exists 守卫之上加 (1) 新鲜度守卫
+    # (特征文件 mtime ≥ 其登记上游, 陈旧代际 → 跳过并 loud-warn, 防 06-03 的
+    # 39f 被并入 06-10 重生面板的 run-顺序依赖) + (2) 重复键 fail-loud
+    # (替代旧 drop_duplicates keep='first' 静默取首行, 旧行为使行数守卫永真空转)。
+    panel = _merge_optin_feature_panels(panel, OUTPUT_DIR)
 
     log_diagnostics(panel, df_exploded)
 

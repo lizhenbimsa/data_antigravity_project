@@ -17,12 +17,25 @@ use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
 * Heterogeneity by {{HET_VAR}} (per spec)
+* fix(omni-g-templates-08, 2026-06-11): st-did-05 修复传播补全 — HET_VAR=bank_type
+* 是字符串列 (levelsof 产字符串 token 'soe'/'joint'...), 旧 `if {{HET_VAR}} == `lvl''
+* 宏未加引号 → Stata 把 token 当变量名解析, r(111) 'joint not found' 必崩 (attention/
+* locus/substance 17/18 各站已逐站修掉, 唯独漏本文件)。按 HET_VAR 字符串/数值二态
+* 分支: 字符串列加双引号比较, 数值列保持裸比较。
 capture confirm variable {{HET_VAR}}
 if !_rc {
     levelsof {{HET_VAR}}, local(het_levels)
+    capture confirm string variable {{HET_VAR}}
+    local _het_is_str = (_rc == 0)
     foreach lvl of local het_levels {
-        reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls if {{HET_VAR}} == `lvl', ///
-            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        if `_het_is_str' {
+            reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls if {{HET_VAR}} == "`lvl'", ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        }
+        else {
+            reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls if {{HET_VAR}} == `lvl', ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        }
         eststo HET_`lvl'
     }
     esttab HET_* using "$tables_dir/table4_heterogeneity.tex", replace ///

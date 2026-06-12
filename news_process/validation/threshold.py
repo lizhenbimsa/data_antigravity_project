@@ -129,13 +129,25 @@ def simulate_bank_classification_from_precomputed(article_matches: list,
                                                    min_upper: int,
                                                    min_lower: int,
                                                    threshold: int) -> int:
-    """对预计算的银行匹配数据进行阈值过滤，返回分类为正的数量。"""
+    """对预计算的银行匹配数据进行阈值过滤，返回分类为正的数量。
+
+    fix(omni-extra-threshold-condb, 2026-06-11): 路径 B (cond_b) 的比较基数由
+    total_with_title 改为正文 total (upper+lower), 对齐生产 analyze_bank_matches。
+    """
     count = 0
     for m in article_matches:
         for bank_name, counts in m['bank_counts'].items():
             if counts['total'] >= threshold:
                 cond_a = counts['upper'] >= min_upper and counts['lower'] >= min_lower
-                cond_b = counts['title'] > 0 and counts['total'] >= min_upper
+                # fix(omni-extra-threshold-condb, 2026-06-11): 路径 B 对齐生产逻辑
+                # analyze_bank_matches (core/text/ahocorasick.py:414-417) — 比较基数
+                # 用 **正文** total (upper+lower), 而非含标题的 total_with_title。
+                # 旧实现 counts['total'] (= total_with_title) 使标题-only 提及
+                # (正文 0 次) 也能踩线达标, 敏感性网格低阈值端正例数虚高。
+                # 前置条件 counts['total'] >= threshold 仍用 total_with_title,
+                # 与生产 meets_occurrence 口径一致, 勿一并改动。
+                cond_b = (counts['title'] > 0
+                          and (counts['upper'] + counts['lower']) >= min_upper)
                 if cond_a or cond_b:
                     count += 1
                     break

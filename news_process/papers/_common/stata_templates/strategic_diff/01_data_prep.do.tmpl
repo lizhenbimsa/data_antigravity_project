@@ -18,12 +18,21 @@ global controls "{{CONTROLS}}"
 * $bank_controls 保留为 $controls 的兼容性 alias (跨篇共享 boilerplate; strategic_diff 本篇原引用它的 25_tableA8_title 模板已删, 现为无害 dead alias)
 global bank_controls "$controls"
 
-foreach v in {{MAIN_DV}} {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} {{SIM_MAX_VAR}} {{TONE_VAR}} {{BARTIK_IV}} {
+* Pipeline-produced required variables (stage 21/24/45 产出)
+foreach v in {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} {{SIM_MAX_VAR}} {{TONE_VAR}} {{BARTIK_IV}} {
     capture confirm variable `v'
     if _rc {
-        display as error "[ERROR] required variable `v' missing"
+        display as error "[ERROR] required variable `v' missing — run stage 21 (tone_llms) + 24 (strategic similarity) + 45 (panel) first"
         exit 198
     }
+}
+
+* fix(omni-g-replication-01, 2026-06-11): MAIN_DV ({{MAIN_DV}}) 是外部财务列 sentinel
+* (bank-year panel 无 ROA 列); 缺失时给出明确指引而非裸 "missing" (00_master fail-loud)。
+capture confirm variable {{MAIN_DV}}
+if _rc {
+    display as error "[ERROR] required outcome {{MAIN_DV}} missing — 外部银行财务面板未接入 (config/银行面板2007-2025年.xlsx 待接入)"
+    exit 198
 }
 
 capture which winsor2

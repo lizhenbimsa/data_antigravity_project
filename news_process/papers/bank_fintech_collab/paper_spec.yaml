@@ -44,17 +44,28 @@ outcome:
     patents)
 
 treatment:
-  primary: innovation_collab_mode_full    # v3.4.0 pipeline 实测列名 (positive_class=外部协同)
+  # fix(omni-g-papers-misc-11, 2026-06-11): 旧 primary=innovation_collab_mode_full
+  # 是文章级中文分类字符串 (自主研发/外部协同, 21_tone_llms dtype=str), 在
+  # bank-year panel 0 命中 (幻影列; 旧注 "v3.4.0 pipeline 实测列名" 不实)。
+  # 改指 panel 真实物化的 bank-year 占比编码 (encode.py, 分母=n_articles_llm_valid)。
+  primary: collab_frac                    # 外部协同新闻占比 (full 轨; positive 方向=外部协同, Chesbrough 2003)
   alternative:
-    - innovation_collab_mode_ctx          # context-conditional 轨 (Hassan 2019 QJE 同构)
-    - independent_minus_collab_gap        # derived = full - (1 - full) ∈ {-1, +1}
-    - cell_id_full                        # v3.5.0 D2 8-cell decomposition treatment
+    - collab_frac_cm                      # context-conditional 轨 (entity-context 分类, 分母=ctx llm_valid)
+    - independent_minus_collab_gap        # derived = indep_frac - collab_frac ∈ [-1, +1]
+                                          # (fix(omni-g-papers-misc-05): Stata 二元化版 collab_gap ∈ {-1, 0, +1}, 0=平票; 缺失→missing, fix(omni-g-replication-06) !missing 守卫)
+    - cell_id_full                        # v3.5.0 D2 8-cell decomposition treatment (panel 级衍生, pending)
   alternative_construction:
-    independent_minus_collab_gap: innovation_collab_mode_full - (1 - innovation_collab_mode_full)
+    # 公式改为对 frac 列的运算 (旧式 full - (1 - full) 对分类字符串做算术, 类型不自洽)
+    independent_minus_collab_gap: indep_frac - collab_frac
     cell_id_full: subst*4 + locus*2 + collab + 1  # v3.5.0 D2; see plan §2.1.1
-  source: pipeline/sentiment/tone_llms.py stage 21 (Chesbrough 2003 framework, v3.4.0)
+  source: pipeline/panel/encode.py stage 45 聚合 (源分类 = stage 21 tone_llms Chesbrough 2003 framework, v3.4.0)
 
 controls:
+  # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/
+  # leverage/capital_ratio/npl_ratio/deposit_growth) + year_level 宏观 2 列
+  # (gdp_growth/m2_growth) 在当前 bank-year panel (40/51) 全为 0 命中 —
+  # enrichment pending (M0.5.11 / config/银行面板2007-2025年.xlsx 待接入)。
+  # 复现包 01_data_prep 以 capture confirm 自校验拼装 $controls, 只用实存列。
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]

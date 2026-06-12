@@ -4,8 +4,14 @@
 * Plan: §5.5.2 + §B.3 P3 spec
 *
 *   DV (long-run)  = {{MAIN_DV}}                                (long_run_roa_change_3yr)
-*   DV (short-run) = car_3day_window_fintech_announcement      (P3 outcome.short_run)
-*   X              = {{MAIN_TREAT}}                             (innovation_substantiveness_full)
+*   DV (short-run) = car_3day_window_ft_announce               (P3 outcome.short_run)
+*   fix(omni-g-templates-06, 2026-06-11): 旧名 car_3day_window_fintech_announcement
+*   长 36 字符 > Stata 变量名 32 字符硬限 (r(198) invalid name), stata_export 截断后
+*   capture confirm 永远失败 → W&Z 1994 双 outcome 检验结构性不可达。全链 (spec/
+*   export/模板) 统一改用 ≤32 字符短名 car_3day_window_ft_announce (27 字符)。
+*   X              = {{MAIN_TREAT}}      (sub_frac — stage 45 聚合的实质性文章占比,
+*                    panel 真实列; fix(omni-g-replication-04): 原 article-level
+*                    innovation_substantiveness_full 不在 bank-year panel)
 *   Theory anchor: Westphal-Zajac 1994/1998 ASQ — substance vs symbolism
 *
 * M1-M6: within-bank within-year FE (long_panel_within_bank_within_year baseline,
@@ -52,26 +58,53 @@ if !_rc {
     eststo M5
 }
 else {
+    * fix(omni-g-replication-05, 2026-06-11): 显式披露 — 宏观列缺失时 M5 复用 M4 规格 (非真 "+macro")
+    display "  [INFO] gdp_growth / m2_growth 不存在 (宏观 enrichment pending); M5 复用 M4 规格"
     eststo M5: reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 }
 
-* M6: short-run dual outcome (car_3day_window_fintech_announcement)
-capture confirm variable car_3day_window_fintech_announcement
+* M6: short-run dual outcome (car_3day_window_ft_announce)
+* fix(omni-g-templates-06, 2026-06-11): 36 字符旧名超 Stata 32 字符硬限 → 改短名
+capture confirm variable car_3day_window_ft_announce
 if !_rc {
-    reghdfe car_3day_window_fintech_announcement {{MAIN_TREAT}} $controls, ///
+    reghdfe car_3day_window_ft_announce {{MAIN_TREAT}} $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo M6_short
 }
 else {
-    display "  [WARN] car_3day_window_fintech_announcement not in panel (M0.5.11 enrichment pending)"
+    display "  [WARN] car_3day_window_ft_announce not in panel (M0.5.11 enrichment pending)"
 }
 
-esttab M1 M2 M3 M4 M5 M6_short using "$tables_dir/table2_main.tex", replace ///
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — M6_short 被守卫跳过后
+* 旧版硬点名 M6_short → r(111) 丢整表, 且 00_master 的 do 15_* 未 capture → 整链中止。
+qui estimates dir
+local stored `r(names)'
+local cand_models M1 M2 M3 M4 M5 M6_short
+local cand_titles `""M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 short-run CAR""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' using "$tables_dir/table2_main.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Main Results --- bank_fintech_substance (P3)") ///
-    mtitles("M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 short-run CAR") ///
+    mtitles(`mtitles') ///
     addnotes("bank / year FE; SE clustered at {{CLUSTER_VAR}}; baseline = long_panel within-bank within-year (no IV per spec)." ///
              "Dual outcome (short-run CAR + long-run ROA reversal) detail in 16_substance_mechanism.do.")
 
-display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_substance/
+* tables.py:build_table2_main 经 read_paper_esttab(..., 'table2_main.csv') 消费;
+* estout+delimiter(",") 防 esttab csv 的 ="..." Excel 包裹破坏 parse_esttab_csv 解析。
+estout `models' using "$tables_dir/table2_main.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex (+ .csv side-channel)"

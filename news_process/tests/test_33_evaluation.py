@@ -54,7 +54,10 @@ class TestDiagnoseMisclassificationBias:
         """返回字典包含所有必要键，四象限之和等于总样本数。"""
         df = _make_df(100)
         r = diagnose_misclassification_bias(df, '最终_验证', '_full')
-        assert set(r.keys()) == {'track', 'tests', 'quadrant_counts', 'conclusion'}
+        # fix(omni-g-val-eval-01/03, 2026-06-11): 新增 n_gold_excluded 键
+        # (金标准 NaN/-1 哨兵行从诊断域剔除的计数)
+        assert set(r.keys()) == {'track', 'tests', 'quadrant_counts',
+                                 'conclusion', 'n_gold_excluded'}
         qc = r['quadrant_counts']
         assert set(qc.keys()) == {'TP', 'FP', 'FN', 'TN'}
         assert qc['TP'] + qc['FP'] + qc['FN'] + qc['TN'] == 100

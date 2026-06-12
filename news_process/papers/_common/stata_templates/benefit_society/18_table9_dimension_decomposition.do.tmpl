@@ -9,9 +9,16 @@
 * Decompose main beta into 4 dimensional sub-indices (core_op / growth /
 * resource / compliance) per dimension_analysis.py output.
 *
-* Prerequisite: panel must contain (set by pipeline/features/benefit_society.py
-* merge_dimensions_to_panel(track='both')):
+* Prerequisite: panel must contain
 *   benefit_{core_op,growth,resource,compliance}_{full,ctx}
+* fix(omni-gapfill-10, 2026-06-12): 此前注释指向不存在的
+* pipeline/features/benefit_society.py::merge_dimensions_to_panel (全仓无此函数,
+* 幻影前置)。真实产出链:
+*   (1) python -m news_process.papers.benefit_society.dimension_analysis
+*       --df-exploded <24_herd_decay.parquet> --track both
+*       → 27_benefit_dimensions_panel.parquet
+*   (2) papers/benefit_society/dimension_analysis.py::merge_dimensions_to_panel
+*       把维度列并进面板副本 (不改写主 40_panel_yearly.parquet) 后再 export .dta。
 *
 * H4 acceptance: at least 2 of 4 sub-indices share sign with main beta at p<0.10.
 * ============================================================================
@@ -62,16 +69,40 @@ if !_rc {
 }
 
 * ----- Combined output -----
-esttab D_main_full D_core_op_full D_growth_full D_resource_full D_compliance_full ///
-       D_main_ctx D_core_op_ctx D_growth_ctx D_resource_ctx D_compliance_ctx ///
-    using "$tables_dir/table9_dimension.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Mechanism: 4-Dimension Decomposition (full + ctx, PAP §7)") ///
-    mgroups("Panel A: Full" "Panel B: Ctx", pattern(1 0 0 0 0 1 0 0 0 0)) ///
-    mtitles("Main" "Core-Op" "Growth" "Resource" "Compliance" ///
-            "Main" "Core-Op" "Growth" "Resource" "Compliance") ///
-    addnotes("bank_type/year FE; cluster {{CLUSTER_VAR}}; dimensions per stage 27 anchors." ///
-             "H4 acceptance: >=2/4 sub-indices share sign at p<0.10 (full track primary)." ///
-             "Dual-track convergent validity: cross-panel sign concordance reported separately.")
+* fix(omni-gapfill-14, 2026-06-12): esttab 名单动态化 — 8 个维度估计全部在
+* capture confirm 守卫块内, 旧版硬点名 10 个 eststo 名 → 维度列缺失时 r(111)
+* (再被 00_master 的 capture do 吞掉, H4 机制表无声缺失零报错)。现按
+* estimates dir 实际存在名单拼装 + mtitle 同步, 全缺时显式 as error 告警。
+qui estimates dir
+local stored `r(names)'
+local cand_models D_main_full D_core_op_full D_growth_full D_resource_full ///
+                  D_compliance_full D_main_ctx D_core_op_ctx D_growth_ctx ///
+                  D_resource_ctx D_compliance_ctx
+local cand_titles `""Main-F" "Core-Op-F" "Growth-F" "Resource-F" "Compliance-F" "Main-C" "Core-Op-C" "Growth-C" "Resource-C" "Compliance-C""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] Table 9 无任何已存储估计 (维度列全缺, 先跑 dimension_analysis + merge_dimensions_to_panel); 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/table9_dimension.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("Mechanism: 4-Dimension Decomposition (full + ctx, PAP §7)") ///
+        mtitles(`mtitles') ///
+        addnotes("bank_type/year FE; cluster {{CLUSTER_VAR}}; dimensions per stage 27 anchors." ///
+                 "Columns suffixed -F (full track) / -C (ctx track); missing dimensions omitted." ///
+                 "H4 acceptance: >=2/4 sub-indices share sign at p<0.10 (full track primary)." ///
+                 "Dual-track convergent validity: cross-panel sign concordance reported separately.")
+}
 
 display "[OK] Table 9 dimension --> $tables_dir/table9_dimension.tex"

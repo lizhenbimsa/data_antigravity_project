@@ -26,46 +26,87 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
+* fix(omni-gapfill-16, 2026-06-12): WCB 推断真正进表 — 此前 boottest 只对 full 轨
+* 主回归跑一条且 r(p) 仅 display 到 log, esttab/.tex 的星标/SE 全是渐近 cluster
+* 却加注 'Wild cluster bootstrap inference' (名实不符)。现 6 个规格逐一 boottest
+* 并以 estadd 注入 e(p_wild) → esttab stats 行呈现; SE 括号仍如实为渐近 cluster。
+capture which boottest
+local has_boottest = (_rc == 0)
+if !`has_boottest' {
+    display "  [WARN] boottest not installed; 'Wild boot p' row will be empty. " ///
+            "Run: do 00_install_packages.do"
+}
+
 * ----- 2-spec main regression: full vs ctx, 3 dimensions = 6 specs total -----
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls, ///
     absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
-eststo M_mean_full
 scalar b_mean_full = _b[{{ATTITUDE_FULL}}]
 scalar se_mean_full = _se[{{ATTITUDE_FULL}}]
+if `has_boottest' {
+    boottest {{ATTITUDE_FULL}}=0, reps({{BOOTSTRAP_REPS}}) cluster({{CLUSTER_VAR}}) ///
+        seed({{RANDOM_SEED}}) nograph
+    estadd scalar p_wild = r(p)
+}
+eststo M_mean_full
 
 capture confirm variable {{ATTITUDE_CTX}}
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls, ///
         absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
-    eststo M_mean_ctx
     scalar b_mean_ctx = _b[{{ATTITUDE_CTX}}]
     scalar se_mean_ctx = _se[{{ATTITUDE_CTX}}]
+    if `has_boottest' {
+        boottest {{ATTITUDE_CTX}}=0, reps({{BOOTSTRAP_REPS}}) cluster({{CLUSTER_VAR}}) ///
+            seed({{RANDOM_SEED}}) nograph
+        estadd scalar p_wild = r(p)
+    }
+    eststo M_mean_ctx
 }
 
 capture confirm variable {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_POS_FRAC_CTX}}
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_FULL}} $controls, ///
         absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
-    eststo M_pos_full
     scalar b_pos_full = _b[{{BENEFIT_POS_FRAC_FULL}}]
+    if `has_boottest' {
+        boottest {{BENEFIT_POS_FRAC_FULL}}=0, reps({{BOOTSTRAP_REPS}}) ///
+            cluster({{CLUSTER_VAR}}) seed({{RANDOM_SEED}}) nograph
+        estadd scalar p_wild = r(p)
+    }
+    eststo M_pos_full
 
     reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_CTX}} $controls, ///
         absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
-    eststo M_pos_ctx
     scalar b_pos_ctx = _b[{{BENEFIT_POS_FRAC_CTX}}]
+    if `has_boottest' {
+        boottest {{BENEFIT_POS_FRAC_CTX}}=0, reps({{BOOTSTRAP_REPS}}) ///
+            cluster({{CLUSTER_VAR}}) seed({{RANDOM_SEED}}) nograph
+        estadd scalar p_wild = r(p)
+    }
+    eststo M_pos_ctx
 }
 
 capture confirm variable {{BENEFIT_NEG_FRAC_FULL}} {{BENEFIT_NEG_FRAC_CTX}}
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{BENEFIT_NEG_FRAC_FULL}} $controls, ///
         absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
-    eststo M_neg_full
     scalar b_neg_full = _b[{{BENEFIT_NEG_FRAC_FULL}}]
+    if `has_boottest' {
+        boottest {{BENEFIT_NEG_FRAC_FULL}}=0, reps({{BOOTSTRAP_REPS}}) ///
+            cluster({{CLUSTER_VAR}}) seed({{RANDOM_SEED}}) nograph
+        estadd scalar p_wild = r(p)
+    }
+    eststo M_neg_full
 
     reghdfe {{MAIN_DV}}_w {{BENEFIT_NEG_FRAC_CTX}} $controls, ///
         absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
-    eststo M_neg_ctx
     scalar b_neg_ctx = _b[{{BENEFIT_NEG_FRAC_CTX}}]
+    if `has_boottest' {
+        boottest {{BENEFIT_NEG_FRAC_CTX}}=0, reps({{BOOTSTRAP_REPS}}) ///
+            cluster({{CLUSTER_VAR}}) seed({{RANDOM_SEED}}) nograph
+        estadd scalar p_wild = r(p)
+    }
+    eststo M_neg_ctx
 }
 
 * ----- H3 sign + min/max ratio check (3 dimensions) -----
@@ -95,22 +136,9 @@ display "  neg    : sign_match=" sign_match_neg  ", ratio=" ratio_neg  ", pass="
 scalar h3_total_pass = (h3_pass_mean == 1) + (h3_pass_pos == 1) + (h3_pass_neg == 1)
 display "  TOTAL  : " h3_total_pass " / 3 dimensions pass (>=2 required)"
 
-* ----- Wild cluster bootstrap (boottest) for primary inference -----
-* boottest weight(reghdfe) requires the LAST e-class result to be reghdfe.
-quietly reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls, ///
-    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
-capture which boottest
-if !_rc {
-    boottest {{ATTITUDE_FULL}}=0, reps({{BOOTSTRAP_REPS}}) cluster({{CLUSTER_VAR}}) ///
-        seed({{RANDOM_SEED}}) nograph
-    display "  Wild bootstrap p-value (full): " r(p)
-}
-else {
-    display "  [WARN] boottest not installed; skip wild bootstrap. " ///
-            "Run: do 00_install_packages.do"
-}
-
 * ----- Output Table A2 -----
+* fix(omni-gapfill-16, 2026-06-12): 'Wild boot p' stats 行呈现逐规格 boottest
+* p 值 (estadd 注入, 见上方); 表注如实区分渐近 cluster SE 与 WCB p。
 esttab M_mean_full M_mean_ctx M_pos_full M_pos_ctx M_neg_full M_neg_ctx ///
     using "$tables_dir/tableA2_attitude_track_switch.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
@@ -118,7 +146,18 @@ esttab M_mean_full M_mean_ctx M_pos_full M_pos_ctx M_neg_full M_neg_ctx ///
     mgroups("benefit_mean" "benefit_pos_frac" "benefit_neg_frac", ///
             pattern(1 0 1 0 1 0)) ///
     mtitles("Full" "Ctx" "Full" "Ctx" "Full" "Ctx") ///
+    stats(N r2 p_wild, fmt(0 3 3) labels("N" "R2" "Wild boot p")) ///
     addnotes("PAP v1.0-final §2 H3: sign_match AND min/max ratio > 0.5 across >=2/3 dimensions." ///
-             "Wild cluster bootstrap (boottest, B={{BOOTSTRAP_REPS}}) for small-G inference (F-R5-H1).")
+             "SE in parentheses: asymptotic cluster-robust ({{CLUSTER_VAR}})." ///
+             "'Wild boot p' row: per-spec wild cluster bootstrap p-values (boottest, B={{BOOTSTRAP_REPS}}, F-R5-H1).")
 
-display _newline "[OK] Table A2 written to $tables_dir/tableA2_attitude_track_switch.tex"
+* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+* tables.py:build_table_a2_attitude_track_switch 经 read_paper_esttab(...,
+* 'tableA2_attitude_track_switch.csv') 消费 (parse_esttab_csv 格式)。
+estout M_mean_full M_mean_ctx M_pos_full M_pos_ctx M_neg_full M_neg_ctx ///
+    using "$tables_dir/tableA2_attitude_track_switch.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild, fmt(0 3 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) ///
+    mlabels("Mean-Full" "Mean-Ctx" "Pos-Full" "Pos-Ctx" "Neg-Full" "Neg-Ctx")
+
+display _newline "[OK] Table A2 written to $tables_dir/tableA2_attitude_track_switch.tex (+ .csv side-channel)"

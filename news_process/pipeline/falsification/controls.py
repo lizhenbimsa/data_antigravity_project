@@ -340,6 +340,18 @@ def build_non_fintech(df_full: pd.DataFrame,
     _df_art_dropped = _df_art_before - len(df_art)
 
     _df_full_before = len(df_full)
+    # fix(omni-g-controls-02, 2026-06-11): 在复合键去重**之前**留物理行快照 (仅取
+    # breadth 所需列, 控制内存) — nf_media_breadth (Bushee et al. 2010 JAR) 的构念
+    # 是"多少家不同信息中介覆盖该银行", 跨媒体转载正是广度的体现; 复合键
+    # (target_bank,标题,日期, 不含媒体列) keep='first' 会把同稿跨媒体副本折叠,
+    # 系统性低估广度。nf_n_articles 的"同稿件"集合语义维持去重基不变。
+    _media_col = '媒体(中文)'
+    if _media_col in df_full.columns:
+        _df_full_physical = df_full[
+            ['target_bank', '标题', '_date_str', '日期', _media_col]
+        ].copy()
+    else:
+        _df_full_physical = None
     df_full = df_full.drop_duplicates(subset=_key_cols, keep='first').copy()
     _df_full_dropped = _df_full_before - len(df_full)
 
@@ -386,6 +398,39 @@ def build_non_fintech(df_full: pd.DataFrame,
     df_nf = df_full[~df_full['_key'].isin(panel_keys)].copy()
     df_nf.drop(columns=['_key', '_date_str'], inplace=True)
     df_full.drop(columns=['_key', '_date_str'], inplace=True)
+
+    # fix(omni-g-controls-02, 2026-06-11): 物理 (去重前) NF 行集 = 物理 df_full 对
+    # 去重后 df_art 键集的 anti-join (anti-join 不要求先物理去重 df_full); 在其上
+    # 按 bank-year 计算 distinct-outlet 媒体广度, 经 attrs 暴露给
+    # aggregate_non_fintech 替代去重基 nunique (Bushee 2010 JAR: 转载属于广度)。
+    if _df_full_physical is not None:
+        _phys_key = pd.Series(
+            list(zip(_df_full_physical['target_bank'],
+                     _df_full_physical['标题'],
+                     _df_full_physical['_date_str'])),
+            index=_df_full_physical.index,
+        )
+        _nf_phys = _df_full_physical.loc[~_phys_key.isin(panel_keys)].copy()
+        _nf_phys['_year'] = pd.to_datetime(_nf_phys['日期'], errors='coerce').dt.year
+        _nf_phys = _nf_phys.dropna(subset=['_year'])
+        if len(_nf_phys) > 0:
+            _nf_phys['_year'] = _nf_phys['_year'].astype(int)
+            _breadth_phys = (
+                _nf_phys.groupby(['target_bank', '_year'])[_media_col]
+                .nunique().reset_index()
+            )
+            _breadth_phys.columns = ['target_bank', 'year', 'nf_media_breadth']
+        else:
+            _breadth_phys = pd.DataFrame({
+                'target_bank': pd.Series(dtype=object),
+                'year': pd.Series(dtype='int64'),
+                'nf_media_breadth': pd.Series(dtype='int64'),
+            })
+        df_nf.attrs['nf_media_breadth_physical'] = _breadth_phys
+        logger.info(
+            f"  nf_media_breadth 物理口径聚合 (去重前行集, 含跨媒体转载): "
+            f"{len(_breadth_phys):,} bank-year [fix omni-g-controls-02]"
+        )
 
     # --- 三分类校验与详细统计 ---
     n_total = len(df_full)  # 已去重
@@ -448,9 +493,13 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     """按 (target_bank, year) 聚合非金融科技对照变量。
 
     生成变量及学术依据:
-      nf_n_articles    — 非金融科技新闻篇数 (原始计数)
+      nf_n_articles    — 非金融科技新闻篇数 (去重基"同稿件"集合语义)
       nf_ln_coverage   — log(1 + count), Fang & Peress (2009, JF, 64(5), 2023-2052)
-      nf_media_breadth — 不同媒体来源数, Bushee et al. (2010, JAR, 48(1), 1-19)
+      nf_media_breadth — 不同媒体来源数, Bushee et al. (2010, JAR, 48(1), 1-19);
+                         fix(omni-g-controls-02, 2026-06-11): 改在物理 (去重前)
+                         NF 行集上 nunique (转载属于广度), 经
+                         df_nf.attrs['nf_media_breadth_physical'] 注入;
+                         attrs 缺失时回退去重基 nunique (已知低估, 仅兼容直调)
       nf_headline_frac — 平均标题提及率 (目标银行在标题中出现的比例)
 
     技术注意:
@@ -470,7 +519,7 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"      说明: Fang & Peress (2009) 使用 ln(1+媒体报道数) 作为")
     logger.info(f"            媒体关注度的连续变量,对数变换缓解右偏分布问题。")
     logger.info(f"")
-    logger.info(f"  [3] nf_media_breadth: 不同媒体来源数 (nunique)")
+    logger.info(f"  [3] nf_media_breadth: 不同媒体来源数 (nunique, 物理/去重前口径)")
     logger.info(f"      学术依据: {REFERENCES['Bushee2010']}")
     logger.info(f"      说明: Bushee et al. (2010) 指出信息中介的多样性")
     logger.info(f"            (媒体广度) 影响信息扩散效率,")
@@ -479,6 +528,10 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  [4] nf_headline_frac: 标题提及率 = mean(target_bank_in_title)")
     logger.info(f"      说明: 目标银行出现在新闻标题中的比例,")
     logger.info(f"            标题提及通常意味着更高的新闻显著性和读者关注度。")
+
+    # fix(omni-g-controls-02, 2026-06-11): 在 df_nf 被 copy/过滤前先取
+    # build_non_fintech 暴露的物理 (去重前) 口径媒体广度聚合。
+    _breadth_physical = df_nf.attrs.get('nf_media_breadth_physical')
 
     # 处理空输入
     if len(df_nf) == 0:
@@ -528,12 +581,26 @@ def aggregate_non_fintech(df_nf: pd.DataFrame) -> pd.DataFrame:
     nf_agg.rename(columns={'_year': 'year'}, inplace=True)
 
     # 媒体广度 (需要单独 nunique)
-    if has_media:
+    if _breadth_physical is not None:
+        # fix(omni-g-controls-02, 2026-06-11): 用物理 (去重前) NF 行集的
+        # distinct-outlet 计数 — 转载属于广度 (Bushee 2010 JAR 构念); 去重基
+        # nunique (复合键不含媒体列, keep='first') 会折叠同稿跨媒体副本,
+        # 系统性低估广度且与新闻显著性相关 (非经典测量误差)。
+        nf_agg = nf_agg.merge(_breadth_physical, on=['target_bank', 'year'],
+                              how='left')
+        nf_agg['nf_media_breadth'] = nf_agg['nf_media_breadth'].fillna(0).astype(int)
+        logger.info("  nf_media_breadth: 物理 (去重前) 行集口径 "
+                    "[fix omni-g-controls-02]")
+    elif has_media:
+        # legacy 去重基 fallback (直接调用本函数、无 attrs 注入时):
+        # 已知会折叠跨媒体转载、低估广度, 仅为向后兼容保留。
         media_breadth = df_nf.groupby(
             ['target_bank', '_year']
         )[media_col].nunique().reset_index()
         media_breadth.columns = ['target_bank', 'year', 'nf_media_breadth']
         nf_agg = nf_agg.merge(media_breadth, on=['target_bank', 'year'], how='left')
+        logger.warning("  nf_media_breadth: 去重基 fallback (物理口径 attrs 缺失) — "
+                       "跨媒体转载被折叠, 广度可能低估")
     else:
         logger.warning(f"  列 '{media_col}' 不存在, nf_media_breadth 将为 0")
         nf_agg['nf_media_breadth'] = 0
@@ -582,12 +649,17 @@ def merge_to_panel(panel: pd.DataFrame,
                    ft_dedup_agg: pd.DataFrame | None = None) -> pd.DataFrame:
     """将非金融科技对照变量合并到面板, 构造总量变量。
 
-    总量变量学术依据:
-      all_n_articles  = n_articles + nf_n_articles (穷举; n_articles=物理覆盖)
+    总量变量学术依据 (fix(omni-g-controls-03/05/07, 2026-06-11) 计数基统一 + 份额
+    缺失语义):
+      all_n_articles  = ft_n_articles_dedup + nf_n_articles (穷举, 去重同基;
+                        ft_dedup_agg=None 时回退 n_articles(物理) + nf(去重) 的
+                        **混合基**, 仅向后兼容旧调用/测试, 注释如实不再称物理覆盖)
       all_ln_coverage = log(1 + all_n_articles), Fang & Peress (2009)
       fintech_share   = ft_n_articles_dedup / (ft_n_articles_dedup + nf_n_articles)
-                        (fix 2026-06-10: 分子改去重口径, 与分母 NF 同基; ft_dedup_agg=None
-                         时回退旧物理 n_articles 口径, 向后兼容旧调用/测试)。
+                        (fix 2026-06-10: 分子去重口径与分母同基; fix omni-g-controls-05:
+                         分母 0 → NaN, 未定义份额不再与真实 0 份额同值混淆)
+      zero_coverage   = 1{all_n_articles == 0} (零新闻指示, 标记 fintech_share 无定义行)
+      ln_ft_articles / ln_nf_articles — 挤出弹性对, 两端同基 (去重可用时均去重)
 
     对标 Hassan et al. (2019) Table 7:
       all_ln_coverage 类似于 Risk_it (总体风险暴露),
@@ -620,53 +692,90 @@ def merge_to_panel(panel: pd.DataFrame,
     # --- 总量变量 ---
     logger.info("")
     logger.info("  ─── 总量变量构建 ───")
-    panel['all_n_articles'] = panel['n_articles'] + panel['nf_n_articles']
-    logger.info(f"  all_n_articles = n_articles + nf_n_articles")
+    # fix(omni-g-controls-03/07, 2026-06-11): 计数基统一 (counting-basis unification)。
+    # 2026-06-10 修复仅改了 fintech_share 分子分母, all_n_articles / ln_ft_articles
+    # 仍是 fintech 物理 + NF 去重的混合基, 且旧注释误把 NF 侧称作"物理覆盖" (NF 侧
+    # 实经 build_non_fintech 复合键去重)。现统一: ft_dedup_agg 可用 → 总量/份额/
+    # 弹性对全部用去重基 (ft_n_articles_dedup 与 nf_n_articles 同按
+    # (target_bank,标题,日期) 去重); 不可用 → 回退 fintech 物理 n_articles + NF
+    # 去重的**混合基** (仅向后兼容旧调用/测试, 如实披露, 不再谎称物理覆盖)。
+    _has_dedup = (ft_dedup_agg is not None
+                  and 'ft_n_articles_dedup' in ft_dedup_agg.columns)
+    if _has_dedup:
+        panel = panel.drop(columns=['ft_n_articles_dedup'], errors='ignore')
+        panel = panel.merge(ft_dedup_agg, on=['target_bank', 'year'], how='left')
+        panel['ft_n_articles_dedup'] = panel['ft_n_articles_dedup'].fillna(0)
+        _ft_count = panel['ft_n_articles_dedup']
+        logger.info("  计数基: 去重同基 (fintech=ft_n_articles_dedup, "
+                    "NF=nf_n_articles) [fix omni-g-controls-03/07]")
+    else:
+        _ft_count = panel['n_articles']
+        logger.warning("  ft_dedup_agg 缺失 → all_n_articles/ln_ft_articles 回退"
+                       "混合基 (fintech 物理 + NF 去重), 仅限旧调用兼容")
+
+    panel['all_n_articles'] = _ft_count + panel['nf_n_articles']
+    logger.info("  all_n_articles = fintech 计数 + nf_n_articles (同基相加)")
 
     panel['all_ln_coverage'] = np.log1p(panel['all_n_articles'])
     logger.info(f"  all_ln_coverage = ln(1 + all_n_articles)")
     logger.info(f"    依据: Fang & Peress (2009, JF, 64(5), 2023-2052)")
 
-    # fix(fintech-share-counting-basis, metric-audit 2026-06-10): 分子改用**去重口径**
-    # ft_n_articles_dedup (与分母 NF 同基, 均按 (target_bank,标题,日期) 去重), 替代物理
-    # n_articles —— 消除分子(物理 857)/分母 NF(去重 849)计数基不一致 (最坏单 bank-year 偏
-    # 7.05pp; Hassan 2019 QJE Table 7 要求 PRisk/(PRisk+NPRisk) 同一计数域)。all_n_articles
-    # 维持 n_articles+nf (物理覆盖, 用于 Fang-Peress ln_coverage) 不变, 其恒等式不受影响
-    # (本修仅改 fintech_share 分子分母, 不动 all_n_articles)。ft_dedup_agg=None → 回退物理。
-    if ft_dedup_agg is not None and 'ft_n_articles_dedup' in ft_dedup_agg.columns:
-        panel = panel.drop(columns=['ft_n_articles_dedup'], errors='ignore')
-        panel = panel.merge(ft_dedup_agg, on=['target_bank', 'year'], how='left')
-        panel['ft_n_articles_dedup'] = panel['ft_n_articles_dedup'].fillna(0)
-        _ft_num = panel['ft_n_articles_dedup']
-        _ft_den = panel['ft_n_articles_dedup'] + panel['nf_n_articles']
-        panel['fintech_share'] = np.where(_ft_den > 0, _ft_num / _ft_den, 0)
+    # fix(fintech-share-counting-basis, metric-audit 2026-06-10): 分子用**去重口径**
+    # ft_n_articles_dedup (与分母 NF 同基), 消除分子(物理)/分母(去重)计数基不一致
+    # (Hassan 2019 QJE Table 7 要求 PRisk/(PRisk+NPRisk) 同一计数域)。
+    # fix(omni-g-controls-05, 2026-06-11): 分母为 0 (该 bank-year 全年零新闻, 份额
+    # 无定义) → NaN (回归自然剔除), 不再填 0 与"有新闻但全为非金融科技"的真实
+    # 0 份额同值混淆; 配套 zero_coverage 指示列供使用者条件化/诊断。
+    panel['zero_coverage'] = (panel['all_n_articles'] == 0).astype(int)
+    panel['fintech_share'] = np.where(
+        panel['all_n_articles'] > 0,
+        _ft_count / panel['all_n_articles'],
+        np.nan,
+    )
+    if _has_dedup:
         logger.info("  fintech_share = ft_n_articles_dedup / (ft_dedup + nf_n_articles) "
-                    "[去重同基口径, fix 2026-06-10]")
+                    "[去重同基口径, fix 2026-06-10; 分母0→NaN, fix omni-g-controls-05]")
     else:
-        # 回退: 旧物理口径 (向后兼容旧调用/测试; 计数基不一致为已知, 见 fix 注)
-        panel['fintech_share'] = np.where(
-            panel['all_n_articles'] > 0,
-            panel['n_articles'] / panel['all_n_articles'],
-            0
-        )
-        logger.warning("  fintech_share 回退物理口径 (ft_dedup_agg 缺失)")
+        logger.warning("  fintech_share 回退物理分子口径 (ft_dedup_agg 缺失; "
+                       "分母0→NaN 同样生效)")
+    logger.info("  zero_coverage = 1{all_n_articles == 0} "
+                "(fintech_share 无定义指示, fix omni-g-controls-05)")
     logger.info(f"    学术意义: 金融科技新闻在全部银行新闻中的信息密集度,")
     logger.info(f"              类似 Hassan (2019) PRisk / (PRisk + NPRisk)。")
 
     # --- 挤出效应弹性变量 (避免百分比回归机械 β=-1) ---
-    panel['ln_ft_articles'] = np.log1p(panel['n_articles'])
+    # fix(omni-g-controls-03, 2026-06-11): ln_ft 与 ln_nf 两端同基 (去重可用时均
+    # 去重) — 弹性回归 ln(nf) ~ ln(ft) 与 run_diagnostics 的 r(ln_ft, ln_nf)
+    # 校验不再两端口径不同。
+    panel['ln_ft_articles'] = np.log1p(_ft_count)
     panel['ln_nf_articles'] = np.log1p(panel['nf_n_articles'])
-    logger.info(f"  ln_ft_articles  = ln(1 + n_articles)")
+    logger.info(f"  ln_ft_articles  = ln(1 + fintech 计数"
+                f"{'[去重]' if _has_dedup else '[物理, 回退]'})")
     logger.info(f"  ln_nf_articles  = ln(1 + nf_n_articles)")
     logger.info(f"    依据: 对数弹性 ln(nf) ~ ln(ft) 避免 fintech% + nf% ≡ 100% 约束")
 
-    # --- 恒等式校验 ---
+    # --- 跨源一致性校验 ---
+    # fix(omni-g-controls-04, 2026-06-11): 旧"恒等式校验" (all == n_articles + nf)
+    # 是把上面刚算出的和与同一表达式再比一次的同义反复 (tautology), 永不可能检出
+    # 数据不一致, 却在日志中呈现为数据一致性闸门 (虚假验证保证; 真正有信息量的
+    # 文章级恒等式在 build_non_fintech 三分类校验已存在)。改为有信息量的跨源
+    # 不变量: 去重 fintech 计数 (源自 40_article_bank_level 复合键去重聚合) 必须
+    # 逐行 ≤ 面板物理计数 n_articles (源自 stage 45 聚合) — 违反即 merge 键错位
+    # 或上游计数源分叉。
     logger.info("")
-    logger.info("  ─── 恒等式校验 ───")
-    eq_check = (panel['all_n_articles'] == panel['n_articles'] + panel['nf_n_articles']).all()
-    logger.info(f"  all = fintech + non-fintech: {'✓ 恒等式成立' if eq_check else '✗ 恒等式不成立!'}")
-    if not eq_check:
-        logger.error("  ✗ 恒等式校验失败! 请检查数据一致性。")
+    logger.info("  ─── 跨源一致性校验 (fix omni-g-controls-04) ───")
+    if _has_dedup:
+        _viol = panel['ft_n_articles_dedup'] > panel['n_articles']
+        if _viol.any():
+            logger.error(f"  ✗ 跨源校验失败: {int(_viol.sum())} 行去重 fintech 计数 > "
+                         f"物理 n_articles — merge 键错位或上游计数源分叉, "
+                         f"请检查 40_article_bank_level 与 40_panel_yearly 一致性!")
+        else:
+            _shrink = float((panel['n_articles'] - panel['ft_n_articles_dedup']).sum())
+            logger.info(f"  ✓ 去重计数 ≤ 物理计数 逐行成立 ({len(panel):,} 行); "
+                        f"复合键去重收缩合计 {_shrink:.0f} 篇")
+    else:
+        logger.info("  (跳过: ft_dedup_agg 缺失, 无跨源可比计数)")
 
     # --- 变量名冲突检查 ---
     new_cols = set(panel.columns) - panel_before_cols
@@ -809,6 +918,69 @@ def run_diagnostics(panel: pd.DataFrame):
 # 7. 导出
 # ============================================================================
 
+# fix(omni-g-controls-06, 2026-06-11): 字典提升为模块级常量 (原藏在 export_results
+# 函数体内), 供 build_stage51_variable_labels 与测试共同消费。
+# 挤出弹性与总量变量标签 (stage 51 专属, 覆盖优先于共享标签构建器)
+STATA_LABELS_41 = {
+    'ln_ft_articles':  'ln(1 + Fintech Articles, dedup basis)',
+    'ln_nf_articles':  'ln(1 + Non-Fintech Articles)',
+    'fintech_share':   'Fintech News Share',
+    # fix(omni-g-controls-05, 2026-06-11): 零新闻指示 (fintech_share 无定义行)
+    'zero_coverage':   'No-News Bank-Year (fintech_share undefined)',
+    # fix(omni-g-controls-03/07, 2026-06-11): 去重 fintech 计数 (总量/份额同基分子)
+    'ft_n_articles_dedup': 'Fintech Articles (dedup by bank-title-date)',
+    # 银行注册地 (步骤 40 的 7c 生成)
+    'bank_province':               'Bank HQ Province',
+    'bank_city':                   'Bank HQ City',
+    # Leave-one-out 情感 IV (步骤 40 的 7d 生成)
+    # 用途: ivreghdfe Y (tone = prov_leave1out_tone_full) X, ...
+    'prov_leave1out_tone_full':     'Prov Leave-1-Out Tone (Full)',
+    'prov_leave1out_tone_ctx':      'Prov Leave-1-Out Tone (Ctx)',
+    'city_leave1out_tone_full':     'City Leave-1-Out Tone (Full)',
+    'city_leave1out_tone_ctx':      'City Leave-1-Out Tone (Ctx)',
+    # 治理约束型合约 (Zhou et al., 2026, JBR §2.1; Core et al. 2003)
+    'GOV_equity_ratio':             'Equity Comp / Total Comp Ratio',
+    'GOV_cash_ratio':               'Cash Comp / Total Comp Ratio',
+    'GOV_top3_pay_gap':             'ln(Top3 Exec Pay / Avg Emp Pay)',
+    'GOV_esg_kpi':                  'ESG-KPI in Exec Comp (0/1)',
+    'GOV_board_indep':              'Independent Director Ratio',
+    'GOV_dual_chair':               'CEO-Chair Duality (0/1)',
+    'GOV_comp_committee':           'Compensation Committee (0/1)',
+    'GOV_ceo_tenure':               'CEO Tenure (Years)',
+}
+
+
+def build_stage51_variable_labels(sanitized_cols, original_cols) -> dict:
+    """fix(omni-g-controls-06, 2026-06-11): stage 51 .dta 变量标签构建。
+
+    此前 51_panel_with_controls.dta 只传 17 键局部字典 (盘上实测 9/1668 列有
+    标签), 与 40.dta (666 条策展标签) / 46_*.dta 断崖式不一致 — 而 CLAUDE.md
+    恰推荐 MP 用户直接读本文件。改为消费 stage 46 的共享标签构建器
+    ``stata_export.build_variable_labels`` (codebook meta → HEURISTIC_LABELS →
+    列名兜底, ≤80 UTF-8 字节), 以 rename_map(短名→原名) 桥接 sanitize 改名,
+    stage-51 专属 STATA_LABELS_41 仍以覆盖优先。
+
+    注: 真正的单一事实源 (export.py 函数内 STATA_LABELS 提升为模块级共享)
+    须改 pipeline/panel/export.py (本轮另组负责文件), 留待主控统一落地。
+
+    参数:
+        sanitized_cols: sanitize_stata_columns 之后的列名序列 (.dta 实际列名)
+        original_cols:  sanitize 之前的原始 panel 列名序列 (与上一一对应)
+    返回:
+        {sanitized_col: label} — 每列必有非空标签 (兜底为原始列名)
+    """
+    from news_process.pipeline.panel.stata_export import build_variable_labels
+    sanitized_cols = list(sanitized_cols)
+    original_cols = list(original_cols)
+    rename_map = {new: old for new, old in zip(sanitized_cols, original_cols)
+                  if new != old}
+    shared = build_variable_labels(pd.DataFrame(columns=sanitized_cols),
+                                   rename_map=rename_map)
+    overlay = {k: v for k, v in STATA_LABELS_41.items()
+               if k in set(sanitized_cols)}
+    return {**shared, **overlay}
+
+
 def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
     """多格式导出。"""
     logger.info("=" * 70)
@@ -859,39 +1031,23 @@ def export_results(panel: pd.DataFrame, pearson_corr: pd.DataFrame):
         # loop only got the CN-map and still diverged on >32-char names (track-suffix
         # destruction the moment a CN-mapped name exceeded 32 chars).
         from news_process.papers._common.tables import sanitize_stata_columns
+        # fix(omni-g-controls-06, 2026-06-11): 记录 sanitize 前原始列名, 供共享
+        # 标签构建器按原名查 codebook/HEURISTIC (改名列否则必 miss)。
+        _orig_cols = list(panel_stata.columns)
         panel_stata.columns = sanitize_stata_columns(panel_stata.columns, max_len=32)
         for col in panel_stata.select_dtypes(include=['Float64', 'Int64']).columns:
             panel_stata[col] = panel_stata[col].astype(float)
-        # 挤出弹性与总量变量标签
-        STATA_LABELS_41 = {
-            'ln_ft_articles':  'ln(1 + Fintech Articles)',
-            'ln_nf_articles':  'ln(1 + Non-Fintech Articles)',
-            'fintech_share':   'Fintech News Share',
-            # 银行注册地 (步骤 40 的 7c 生成)
-            'bank_province':               'Bank HQ Province',
-            'bank_city':                   'Bank HQ City',
-            # Leave-one-out 情感 IV (步骤 40 的 7d 生成)
-            # 用途: ivreghdfe Y (tone = prov_leave1out_tone_full) X, ...
-            'prov_leave1out_tone_full':     'Prov Leave-1-Out Tone (Full)',
-            'prov_leave1out_tone_ctx':      'Prov Leave-1-Out Tone (Ctx)',
-            'city_leave1out_tone_full':     'City Leave-1-Out Tone (Full)',
-            'city_leave1out_tone_ctx':      'City Leave-1-Out Tone (Ctx)',
-            # 治理约束型合约 (Zhou et al., 2026, JBR §2.1; Core et al. 2003)
-            'GOV_equity_ratio':             'Equity Comp / Total Comp Ratio',
-            'GOV_cash_ratio':               'Cash Comp / Total Comp Ratio',
-            'GOV_top3_pay_gap':             'ln(Top3 Exec Pay / Avg Emp Pay)',
-            'GOV_esg_kpi':                  'ESG-KPI in Exec Comp (0/1)',
-            'GOV_board_indep':              'Independent Director Ratio',
-            'GOV_dual_chair':               'CEO-Chair Duality (0/1)',
-            'GOV_comp_committee':           'Compensation Committee (0/1)',
-            'GOV_ceo_tenure':               'CEO Tenure (Years)',
-        }
-        labels_41 = {k: v for k, v in STATA_LABELS_41.items()
-                     if k in panel_stata.columns}
+        # fix(omni-g-controls-06, 2026-06-11): 共享标签构建器 + STATA_LABELS_41
+        # 覆盖 — 替代仅 17 键局部字典 (实测 9/1668 列有标签, 与 40/46 .dta 断崖)。
+        labels_41 = build_stage51_variable_labels(panel_stata.columns, _orig_cols)
         panel_stata.to_stata(dta_path, write_index=False, version=118,
                              variable_labels=labels_41)
         logger.info(f"  ✓ 已导出 Stata 文件: {dta_path}")
         logger.info(f"    Stata 列数: {len(panel_stata.columns)}")
+        _n_labeled = sum(1 for c in panel_stata.columns
+                         if labels_41.get(c) and labels_41[c] != c)
+        logger.info(f"    变量标签覆盖 (非列名兜底): {_n_labeled}/"
+                    f"{len(panel_stata.columns)} 列 [fix omni-g-controls-06]")
     except Exception as e:
         # B-2 同精神 (audit-fixes 2026-05-29): 根除 swallow-errors 反模式.
         # 旧代码仅 logger.warning 让 stage 51 退出码假装 0, 但 .dta 未写出 (或
@@ -964,15 +1120,14 @@ def print_references():
 # ============================================================================
 # G-13: Placebo 时点检验
 # ============================================================================
-# 学术依据:
-#   Hassan et al. (2019, QJE, Table 7):
-#     通过构造 placebo 政策时点 (将真实处理年份提前 k 年),
-#     检验处理效应是否在真实政策实施前就已存在。
-#     若 placebo 效应显著 → 平行趋势假设可能违反。
-#
+# 学术依据 (fix(omni-g-controls-01, 2026-06-11): 移除 Hassan et al. 2019 QJE
+# Table 7 错配引用 — 该表是 PRisk/NPRisk 伪造检验, 与 placebo-in-time 无关):
 #   Callaway & Sant'Anna (2021, JoE, §4.3):
 #     "Pre-treatment placebo tests are essential for validating
 #      the parallel trends assumption in staggered DID."
+#     伪处理窗口必须落在真实处理之前 (year < treat_year)。
+#   La Ferrara, Chong & Duryea (2012, AEJ:Applied): placebo-in-time 设计,
+#     将处理年份提前 k 年并仅在处理前样本中估计伪效应。
 # ============================================================================
 
 def generate_placebo_did_variables(panel: pd.DataFrame,
@@ -983,19 +1138,28 @@ def generate_placebo_did_variables(panel: pd.DataFrame,
     对面板中每个 DID 政策冲击, 将 treat_year 提前 k 年 (k ∈ placebo_shifts),
     生成伪处理变量 {prefix}_placebo{k}_post, 供回归检验使用。
 
+    fix(omni-g-controls-01, 2026-06-11) 语义变更披露: 伪处理窗口加上界
+    placebo_post = 1{treat_year-k <= year < treat_year} — 旧实现 1{year >= ty-k}
+    是真实 post 的严格超集, placebo 系数混入真实处理效应 → 只要真实效应存在
+    placebo 必显著, 会机械性误判平行趋势违反 (Callaway & Sant'Anna 2021 §4.3
+    pre-treatment placebo 要求窗口落在处理前)。
+
     参数:
         panel:           Bank-Year 面板 (须已包含 {prefix}_treat_year 列)
         placebo_shifts:  提前年数列表 (默认 [1, 2, 3])
         logger_inst:     日志实例
 
     新增列 (每个政策 × 每个 shift):
-        {prefix}_placebo{k}_post:  伪政策后哑变量
+        {prefix}_placebo{k}_post:  伪政策后哑变量 (仅处理前窗口 [ty-k, ty) 内=1)
         {prefix}_placebo{k}_did:   伪 DID 交互项 (treated × placebo_post)
 
     Stata 用法:
-      * 检验 placebo DID 是否显著 (应不显著):
-        reghdfe Y dcep_placebo2_did X, absorb(bank_id year) cluster(bank_id)
-      * 若显著 → 平行趋势假设可能违反, 需关注
+      * 检验 placebo DID 是否显著 (应不显著); 须同时控制真实 DID 项,
+        或将样本限于处理前期间:
+        reghdfe Y dcep_placebo2_did dcep_did X, absorb(bank_id year) cluster(bank_id)
+        * 或: reghdfe Y dcep_placebo2_did X if year < dcep_treat_year | ///
+              dcep_treat_year == 0, absorb(bank_id year) cluster(bank_id)
+      * 若显著 → 处理前已有趋势分化, 平行趋势假设可能违反
 
     返回:
         panel: 附加 placebo DID 变量的 DataFrame
@@ -1006,9 +1170,9 @@ def generate_placebo_did_variables(panel: pd.DataFrame,
 
     lg.info("=" * 70)
     lg.info("G-13: Placebo 时点检验变量生成")
-    lg.info("  对标: Hassan et al. (2019, QJE, Table 7)")
-    lg.info("  对标: Callaway & Sant'Anna (2021, JoE, §4.3)")
-    lg.info(f"  Placebo shifts: {placebo_shifts} (提前 k 年)")
+    lg.info("  对标: Callaway & Sant'Anna (2021, JoE, §4.3) pre-treatment placebo")
+    lg.info("  对标: La Ferrara, Chong & Duryea (2012, AEJ:Applied) placebo-in-time")
+    lg.info(f"  Placebo shifts: {placebo_shifts} (提前 k 年, 窗口截断于真实处理年)")
     lg.info("=" * 70)
 
     # 找到所有 DID 政策前缀
@@ -1028,11 +1192,17 @@ def generate_placebo_did_variables(panel: pd.DataFrame,
                 0
             )
 
-            # 伪政策后哑变量
+            # 伪政策后哑变量 — fix(omni-g-controls-01, 2026-06-11): 窗口加上界
+            # year < 真实 treat_year。旧实现 1{year >= ty-k} 是真实 post 的严格
+            # 超集 → placebo 系数 = 前趋势效应与真实处理效应的加权平均, 全量
+            # T=18 下处理后年份主导窗口, 真实效应存在则 placebo 必显著, 按
+            # "若显著则平行趋势不成立"的解读会机械性误判。现仅覆盖处理前窗口
+            # [ty-k, ty) (Callaway & Sant'Anna 2021 pre-trend placebo)。
             plac_post_col = f'{prefix}_placebo{k}_post'
             panel[plac_post_col] = np.where(
                 placebo_ty > 0,
-                (panel['year'] >= placebo_ty).astype(int),
+                ((panel['year'] >= placebo_ty)
+                 & (panel['year'] < panel[ty_col])).astype(int),
                 0
             )
 
@@ -1049,13 +1219,16 @@ def generate_placebo_did_variables(panel: pd.DataFrame,
             n_treated_plac = (panel[plac_did_col] == 1).sum()
             lg.info(f"  {plac_did_col}: treated×post = {n_treated_plac}")
 
-        # Stata 命令建议
+        # Stata 命令建议 — fix(omni-g-controls-01, 2026-06-11): 同时控制真实
+        # DID 项 (或限处理前样本), 避免伪效应吸收真实处理效应。
         lg.info(f"  ── {prefix} Placebo Stata 命令 ──")
         for k in placebo_shifts:
-            lg.info(f"    reghdfe Y {prefix}_placebo{k}_did X, "
+            lg.info(f"    reghdfe Y {prefix}_placebo{k}_did {prefix}_did X, "
                     f"absorb(bank_id year) cluster(bank_id)")
+        lg.info(f"    * 替代: 限处理前样本 keep if year < {prefix}_treat_year "
+                f"| {prefix}_treat_year == 0")
         lg.info(f"    * 预期: 所有 placebo DID 系数应不显著 (p > 0.10)")
-        lg.info(f"    * 若显著: 平行趋势假设可能不成立")
+        lg.info(f"    * 若显著: 处理前已有趋势分化, 平行趋势假设可能不成立")
 
     return panel
 

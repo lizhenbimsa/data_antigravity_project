@@ -43,6 +43,9 @@ def main(argv: list[str] | None = None) -> int:
         _LOGGER.info("阶段 pipeline: 调用 run_pipeline_function.run_pipeline()")
         run_main_pipeline()
 
+    # fix(omni-g-papers-misc-02, 2026-06-11): 扩散 attention-01 修复 — 缺列触发
+    # pyarrow ArrowInvalid (非 FileNotFoundError), 原窄 except 接不住 → CLI 整体
+    # traceback。改为 catch Exception, 单表/单图失败仅 warning 跳过。
     if args.stage in ('tables', 'all'):
         from news_process.papers.bank_fintech_substance import tables
         try:
@@ -50,14 +53,21 @@ def main(argv: list[str] | None = None) -> int:
             _LOGGER.info("  [OK] Table 1 -> %s", out)
         except FileNotFoundError as e:
             _LOGGER.warning("  [SKIP] Table 1 (run pipeline first): %s", e)
+        except Exception as e:  # noqa: BLE001 — 单表失败不应使整个 CLI 崩
+            _LOGGER.warning("  [SKIP] Table 1 (生成失败, 已优雅跳过): %s", e)
 
     if args.stage in ('figures', 'all'):
         from news_process.papers.bank_fintech_substance import figures
         try:
             out = figures.plot_substantiveness_distribution(pc)
-            _LOGGER.info("  [OK] Figure 1 -> %s", out)
+            if out is None:
+                _LOGGER.warning("  [SKIP] Figure 1 (面板缺失或列不可用)")
+            else:
+                _LOGGER.info("  [OK] Figure 1 -> %s", out)
         except FileNotFoundError as e:
             _LOGGER.warning("  [SKIP] Figure 1 (missing pipeline output): %s", e)
+        except Exception as e:  # noqa: BLE001 — 单图失败不应使整个 CLI 崩
+            _LOGGER.warning("  [SKIP] Figure 1 (生成失败, 已优雅跳过): %s", e)
 
     return 0
 

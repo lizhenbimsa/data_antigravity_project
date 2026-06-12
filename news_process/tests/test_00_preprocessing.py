@@ -45,8 +45,10 @@ _quote_table = {
 
 COMBINED_TRANS = {**_full_to_half_table, **_quote_table}
 
+# fix(omni-g-preprocess-01, 2026-06-11): 与生产 _constants.TAIL_CLEANUP_PATTERN
+# 同步 — 重复压缩支排除数字 [^0-9] ('1000亿' 等量级不再被压缩破坏)。
 _TAIL_CLEANUP_PATTERN = re.compile(
-    r'(.)\1{2,}'
+    r'([^0-9])\1{2,}'
     r'|([,，.。!！?？;；:：、])\2+'
     r'|\s+'
 )
@@ -163,7 +165,7 @@ class TestTailCleanup:
     def test_whitespace_collapse(self):
         """连续空白：3个空格被 group(1) 重复字符规则捕获，保留2个。"""
         result = _TAIL_CLEANUP_PATTERN.sub(_tail_cleanup_repl, '   ')
-        assert result == '  '  # (.)\1{2,} 先于 \s+ 匹配
+        assert result == '  '  # ([^0-9])\1{2,} 先于 \s+ 匹配 (空格属非数字, fix omni-g-preprocess-01 行为不变)
         # 2个空格被 \s+ 匹配，替换为 1 个
         result2 = _TAIL_CLEANUP_PATTERN.sub(_tail_cleanup_repl, 'a  b')
         assert result2 == 'a b'

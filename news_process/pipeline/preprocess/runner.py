@@ -84,11 +84,77 @@ from news_process.pipeline.preprocess._constants import (
     CONFIG,
     MEDIA_NAME_OVERRIDES,
     PARAMS,
+    PREPROCESS_CODE_VERSION,
     STAGE_NAME,
     logger,
 )
 from news_process.pipeline.preprocess.dedup import ArticleDeduplicator
 from news_process.pipeline.preprocess.load import _process_single_file
+
+# ============================================================================
+# 增量缓存键 — config + 资源内容 + 清洗代码版本
+# ============================================================================
+
+
+def compute_preprocess_cache_key(
+    params: dict | None = None,
+    normalization: dict | None = None,
+    noise_patterns_path: str | None = None,
+    bank_keywords_path: str | None = None,
+    code_version: str | None = None,
+) -> str:
+    """计算 per-file 增量缓存键 (SHA-256).
+
+    fix(omni-g-preprocess-04, 2026-06-11): 旧实现仅 hash PARAMS (preprocessing
+    段), 注释却声称 plan m4 已覆盖 noise_patterns / normalize* 等键 — 与实现
+    不符。per-file 清洗结果实际还依赖:
+      ① ``CONFIG['normalization']`` 段 (opencc_config / html_removal_length_threshold,
+         独立顶层段, 不在 PARAMS 内);
+      ② noise_patterns.json 与 bank_keywords.json 的**文件内容** (路径在 paths 段,
+         内容从不进哈希 → 改资源文件后缓存仍命中, 盘上已实证混规则语料);
+      ③ 清洗代码本身的版本 (正则/过滤逻辑变更)。
+    现缓存键 = SHA-256(preprocessing 段 + normalization 段 + 两资源文件 sha256
+    + PREPROCESS_CODE_VERSION) — 任一变更 → production run 自动失效重算。
+    资源文件缺失时以 ``missing:<文件名>`` 哨兵入哈希 (fail-soft, 与 _constants
+    资源加载失败回退空列表的行为一致)。
+
+    Args:
+        params:             preprocessing 配置段 (默认取全局 PARAMS)。
+        normalization:      normalization 配置段 (默认取 CONFIG['normalization'])。
+        noise_patterns_path: 噪声模式 JSON 路径 (默认取 CONFIG['paths'])。
+        bank_keywords_path:  银行关键词 JSON 路径 (默认取 CONFIG['paths'])。
+        code_version:       清洗代码版本号 (默认 PREPROCESS_CODE_VERSION)。
+
+    Returns:
+        str: 64 位十六进制 SHA-256 摘要。
+    """
+    from news_process.core.data_versioning import (
+        compute_config_hash,
+        compute_file_hash,
+    )
+
+    def _resource_hash(path: str | None) -> str:
+        try:
+            return compute_file_hash(path)
+        except (OSError, TypeError):
+            return f'missing:{os.path.basename(str(path))}'
+
+    if noise_patterns_path is None:
+        noise_patterns_path = CONFIG['paths'].get('noise_patterns_file', '')
+    if bank_keywords_path is None:
+        bank_keywords_path = CONFIG['paths'].get('bank_keywords_file', '')
+
+    payload = {
+        'preprocessing': params if params is not None else PARAMS,
+        'normalization': (normalization if normalization is not None
+                          else CONFIG.get('normalization', {})),
+        'noise_patterns_sha256': _resource_hash(noise_patterns_path),
+        'bank_keywords_sha256': _resource_hash(bank_keywords_path),
+        'code_version': (code_version if code_version is not None
+                         else PREPROCESS_CODE_VERSION),
+    }
+    return compute_config_hash(payload)
+
 
 # ============================================================================
 # 主处理函数 — XLSX 并行加载 + 增量缓存
@@ -121,22 +187,10 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
 
     # ── 增量缓存检查 ──
     # 已处理的文件写入 Parquet 缓存, 下次运行时直接读取
-    # 配置哈希: 用于检测预处理配置是否变更, 变更时自动使缓存失效
-    #
-    # plan m4 修复: 哈希整段 PARAMS, 不再仅哈希 7 个白名单键。
-    # 旧实现遗漏 noise_patterns_file / media_weights_file / title_max_length /
-    # ad_keywords / mainland_china_regions / normalize* 等键, 用户改这些值时
-    # 缓存仍命中, 半成品 parquet 进入合并, 最终输出在某些行使用旧规则。
-    #
-    # 排除项 (这些不影响 per-file 处理结果, 只影响合并/IO 阶段):
-    # - fasttext_model_path / sheet_name 等 IO/外部资源路径 (可改名但语义相同)
-    # 实际很少会改, 一并入哈希也无害, 因此不做白名单过滤, 保持"全部入哈希"
-    # 的最强语义。
-    def _compute_config_hash() -> str:
-        from news_process.core.data_versioning import compute_config_hash
-        return compute_config_hash(PARAMS)
-
-    config_hash = _compute_config_hash()
+    # 缓存键: preprocessing 段 + normalization 段 + noise_patterns/bank_keywords
+    # 资源内容 sha256 + 清洗代码版本号 (PREPROCESS_CODE_VERSION), 任一变更时
+    # 自动使缓存失效 (fix omni-g-preprocess-04, 详见 compute_preprocess_cache_key)。
+    config_hash = compute_preprocess_cache_key()
     logger.info(f"当前预处理配置哈希: {config_hash}")
 
     cache_dir = os.path.join(os.path.dirname(output_path), '_cache')

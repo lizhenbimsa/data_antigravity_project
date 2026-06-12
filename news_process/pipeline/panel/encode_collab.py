@@ -3,7 +3,8 @@
 Per the v3.5.0 Stage-3 augmentation plan §2.1 / §2.3 (历史方法学文档, 已随 docs/ 目录删除):
     D2 8-cell encoding: cell_id = subst*4 + locus*2 + collab + 1 ∈ {1..8}
         baseline (cell 1) = (0, 0, 0) = 实质性 × 底层技术 × 自主研发
-    D4 cross-track residual signals (9 article-level + 18 panel-level)
+    D4 cross-track residual signals (9 article-level + 18 panel-level frac/count
+        + 3 n_articles_{dim}_bothvalid 覆盖披露列, omni 2026-06-11)
 
 锚定文献:
     Angrist & Pischke (2009) Mostly Harmless Econometrics Ch.5 saturated regression (D2)
@@ -56,11 +57,33 @@ def _normalize_label(series: pd.Series) -> pd.Series:
     Per plan §2.1.1 F32: defense against trailing space / U+3000 / newline noise
     from stage 21 LLM output. NaN values preserve NaN through .str accessors.
     """
-    if series.dtype == object:
+    # fix(omni-g-encode-collab-02, 2026-06-11): pandas 3.0 读 parquet/构造字符串列默认
+    # 返回新 `str` dtype, `series.dtype == object` 恒 False → F32 脏标签清洗在生产路径
+    # 静默 no-op。gate 放宽为 object 或 string dtype (legacy object / pandas3 str /
+    # StringDtype 三者 .str accessor 均可用); 非字符串 dtype (如全 NaN float64) 仍原样返回。
+    if series.dtype == object or pd.api.types.is_string_dtype(series):
         return (series.str.strip()
                       .str.replace('　', '', regex=False)
                       .str.replace(r'\s+', '', regex=True))
     return series
+
+
+def _is_nan(v) -> bool:
+    """None 或 float NaN 判定 (sidecar / median 锚点通用小工具)."""
+    return v is None or (isinstance(v, float) and v != v)
+
+
+def _both_valid_mask(full_norm: pd.Series, ctx_norm: pd.Series,
+                     baseline: str, contrast: str) -> pd.Series:
+    """D4 dim-level both_valid: 两轨归一化标签均为 canonical (baseline/contrast).
+
+    fix(omni-g-encode-collab-02, 2026-06-11): 用 isin 白名单 (与 compute_cell_id 校验
+    口径对齐) 取代 notna() — 非 canonical 但非 NaN 的脏标签不再计入 both_valid, 否则
+    它只推高 disagree 而打破 invariant (ii) freerider+quietworker == disagree。
+    derive_residual_signals 与 aggregate_d4_panel 共用本函数 ⇒ frac 分子/分母同域。
+    """
+    valid = (baseline, contrast)
+    return full_norm.isin(valid) & ctx_norm.isin(valid)
 
 
 def compute_cell_id(df: pd.DataFrame, track: str) -> pd.Series:
@@ -117,8 +140,10 @@ def derive_residual_signals(df: pd.DataFrame) -> list[str]:
 
     Invariants (provable by construction):
         (i)  freerider + quietworker ≤ 1 (mutually exclusive)
-        (ii) freerider + quietworker == disagree (definitionally)
-        (iii) NaN propagation: NaN on either track ⇒ all three False (not NaN)
+        (ii) freerider + quietworker == disagree (definitionally; 由 both_valid 的
+             isin 白名单口径保证 — 非 canonical 标签不进 both_valid)
+        (iii) NaN propagation: NaN **或非 canonical 脏标签** on either track ⇒
+             all three False (not NaN)
 
     Returns: list of column names added (for downstream panel aggregation registry).
     """
@@ -135,7 +160,8 @@ def derive_residual_signals(df: pd.DataFrame) -> list[str]:
 
         full_norm = _normalize_label(df[full_col])
         ctx_norm = _normalize_label(df[ctx_col])
-        both_valid = df[full_col].notna() & df[ctx_col].notna()
+        # fix(omni-g-encode-collab-02, 2026-06-11): notna() → isin 白名单 (修 invariant ii)
+        both_valid = _both_valid_mask(full_norm, ctx_norm, baseline, contrast)
 
         df[f'{short}_disagree'] = ((full_norm != ctx_norm) & both_valid)
         df[f'{short}_freerider'] = ((full_norm == baseline) & (ctx_norm == contrast))
@@ -331,10 +357,14 @@ def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
                        ctx_baseline_path: Optional[str] = None) -> dict:
     """Aggregate D4 residual signals onto bank-year panel.
 
-    Per plan §2.3.3 + §2.3.4:
+    Per plan §2.3.3 + §2.3.4 (denominator semantics revised, omni 2026-06-11):
         18 panel columns: {dim}_{signal}_frac + n_articles_{dim}_{signal}
             (3 dim × 3 signal × 2 metric)
-        Small-sample restriction: panel['n_articles'] < 5 → *_frac forced to pd.NA
+        + 3 coverage columns: n_articles_{dim}_bothvalid (论文披露 both_valid 覆盖率)
+        *_frac = Σ signal / n_bothvalid — 分母为该维 both_valid (两轨 canonical 标签)
+            文章数, 与分子同域; n_bothvalid == 0 → NaN (非假零)。
+        Small-sample restriction: n_bothvalid < 5 → *_frac forced to NaN
+            (valid 域门; 上游标签列缺失时回退 legacy 物理分母 + n_articles < 5 门)
         ctx coverage adaptive warning + d4_data_quality_flag str column (F6 + C-NEW-3)
 
     ctx_baseline_path: path to v3_4_0_ctx_coverage_baseline.json (per §9.10).
@@ -364,31 +394,66 @@ def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
 
     residual_frac_cols: list[str] = []
     has_residual = False
-    for short, _, _, _ in DIMS_D4:
-        for signal in ['disagree', 'freerider', 'quietworker']:
-            col = f'{short}_{signal}'
-            if col not in df.columns:
-                continue
-            has_residual = True
+    # fix(omni-g-encode-collab-01, 2026-06-11): *_frac 分母改 both_valid 计数 (与分子同域)。
+    # derive_residual_signals invariant (iii) 把任一轨缺失/脏标签的文章编为 False (非 NaN),
+    # 旧实现 groupby.mean() 的分母=物理文章数 → 缺标签文章被静默计为"不分歧" (系统性下偏),
+    # both_valid=0 的组输出假零 0.0。现: frac = Σ signal / n_bothvalid, n_bothvalid < 5
+    # (含 ==0) → NaN (small-sample 门同步迁移到 valid 域); 另导出 n_articles_{dim}_bothvalid
+    # 供论文披露覆盖率。上游标签列缺失 (无法重建 both_valid) 时回退 legacy 物理分母。
+    fallback_frac_cols: list[str] = []
+    for short, base, baseline, contrast in DIMS_D4:
+        signal_cols = [f'{short}_{s}' for s in ('disagree', 'freerider', 'quietworker')
+                       if f'{short}_{s}' in df.columns]
+        if not signal_cols:
+            continue
+        has_residual = True
+
+        full_col = f'{base}_full'
+        ctx_col = f'{base}_ctx'
+        bv_count = None
+        if full_col in df.columns and ctx_col in df.columns:
+            # 与 derive_residual_signals 共用 _both_valid_mask ⇒ 分母与分子可达域一致
+            bv = _both_valid_mask(_normalize_label(df[full_col]),
+                                  _normalize_label(df[ctx_col]),
+                                  baseline, contrast)
+            bv_count = (bv.groupby([df['target_bank'], df['year']]).sum()
+                          .reindex(panel_idx, fill_value=0).astype('Int32'))
+            panel[f'n_articles_{short}_bothvalid'] = bv_count.values
+        else:
+            logger.warning(
+                f"  v3.5.0 D4: {base} 双轨源列缺失, {short}_*_frac 回退 legacy 物理分母 "
+                "(both_valid 不可重建)"
+            )
+
+        for col in signal_cols:
             frac_col = f'{col}_frac'
             count_col = f'n_articles_{col}'
             # Use target_bank (production convention) + reindex to panel_idx for row alignment
-            mean_series = (df.groupby(['target_bank', 'year'])[col]
-                             .mean().reindex(panel_idx))
             count_series = (df.groupby(['target_bank', 'year'])[col]
                               .sum().reindex(panel_idx, fill_value=0).astype('Int32'))
-            panel[frac_col] = mean_series.values
             panel[count_col] = count_series.values
+            if bv_count is not None:
+                denom = bv_count.astype('float64')
+                # n_bothvalid < 5 (含 ==0 假零) → NaN
+                frac_series = (count_series.astype('float64') / denom).where(denom >= 5)
+                panel[frac_col] = frac_series.values
+            else:
+                mean_series = (df.groupby(['target_bank', 'year'])[col]
+                                 .mean().reindex(panel_idx))
+                panel[frac_col] = mean_series.values
+                fallback_frac_cols.append(frac_col)
             residual_frac_cols.append(frac_col)
 
     if not has_residual:
         logger.info("  v3.5.0 D4: residual signal columns absent, skipping panel aggregation")
         return {'residual_skipped': True}
 
-    # Small-sample restriction (修 m5 + C-NEW-3)
-    small_mask = panel['n_articles'] < 5
-    for col in residual_frac_cols:
-        panel.loc[small_mask, col] = pd.NA
+    # Small-sample restriction (修 m5 + C-NEW-3): 仅 legacy 回退列沿用物理 n_articles 门
+    # (both_valid 路径已在上方用 valid 域门 n_bothvalid < 5)
+    if fallback_frac_cols:
+        small_mask = panel['n_articles'] < 5
+        for col in fallback_frac_cols:
+            panel.loc[small_mask, col] = pd.NA
 
     # ctx coverage 自适应警告 (修 C-NEW-3 + F6)
     quality_flag = 'ok'
@@ -463,28 +528,34 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
 
 
 def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
-                            median_amb_d0: Optional[float] = None) -> dict:
+                            median_amb_d0: Optional[float] = None,
+                            median_amb_d0_ctx: Optional[float] = None) -> dict:
     """v3.5.1 A1: 聚合 article 层 clarity 列到 bank-year panel (6 列).
 
-    Per plan v0.3 §2.1.4 公式 (修 H2 + R8-H2 + R9-M3):
-        mean_clarity_score_full[b,t] = Σ w_i × clarity_score_full_i / Σ w_i
-        mean_frac_definite_full[b,t] = Σ w_i × frac_definite_full_i / Σ w_i
-        frac_amb_articles_full[b,t]  = #{i: frac_ambiguous_full_i ≥ median_amb_d0
-                                          ∧ n_articles ≥ 2} / n_articles
-        (同 ctx 双轨)
+    Per plan v0.3 §2.1.4 公式 (修 H2 + R8-H2 + R9-M3; 分母口径修订 omni 2026-06-11):
+        mean_clarity_score_full[b,t] = Σ_valid w_i × clarity_score_full_i / Σ_valid w_i
+        mean_frac_definite_full[b,t] = Σ_valid w_i × frac_definite_full_i / Σ_valid w_i
+        frac_amb_articles_full[b,t]  = #{i: frac_ambiguous_full_i ≥ median_amb_d0}
+                                       / n_clarity_valid_full   (n_clarity_valid ≥ 2 门)
+        (同 ctx 双轨; frac_amb 分母 = 该轨 clarity 非缺失文章数, 与分子同域 —
+         空文/零 token 文章 (tone_words 显式 NaN) 不再进物理分母造成系统性下偏;
+         n_clarity_valid < 2 或 median 为 NaN (全 NaN 轨) → NaN 而非假零)
 
     Args:
         df: article-level DataFrame (含 clarity_* 双轨 article 列, 来自 stage 22).
         panel: bank-year panel DataFrame (含 target_bank + year).
-        median_amb_d0: D0 frozen 全样本中位数; if None, in-sample 计算 (仅用于测试).
+        median_amb_d0: D0 frozen full 轨全样本中位数 (生产经 apply_v3_5_1 从 sidecar
+            冻结值传入); if None, in-sample 计算 (首跑 freeze / 测试).
+        median_amb_d0_ctx: D0 frozen ctx 轨中位数, 语义同上 (ctx 轨用自身分布阈值).
 
     Returns:
-        dict: diagnostics + median_amb_d0 actual used.
+        dict: diagnostics + median_amb_d0 / median_amb_d0_ctx actual used.
     """
     for required_col in ('target_bank', 'year'):
         if required_col not in panel.columns or required_col not in df.columns:
             logger.warning(f"v3.5.1 A1: 缺 '{required_col}' 列, clarity panel 聚合跳过")
-            return {'v3_5_1_clarity_added': [], 'median_amb_d0': float('nan')}
+            return {'v3_5_1_clarity_added': [], 'median_amb_d0': float('nan'),
+                    'median_amb_d0_ctx': float('nan')}
 
     # 检查 article 层 clarity 列存在性 (graceful)
     required_article_cols = [
@@ -496,15 +567,18 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
     missing = [c for c in required_article_cols if c not in df.columns]
     if missing:
         logger.info(f"v3.5.1 A1: article 层 clarity 列缺 {missing}, 跳过 panel 聚合 (graceful)")
-        return {'v3_5_1_clarity_added': [], 'median_amb_d0': float('nan')}
+        return {'v3_5_1_clarity_added': [], 'median_amb_d0': float('nan'),
+                'median_amb_d0_ctx': float('nan')}
 
-    # D0 frozen median (修 H2 + R7-H1): 若未给, in-sample 算; 实际生产应从 sidecar JSON 读
+    # D0 frozen median (修 H2 + R7-H1): 若未给, in-sample 算 (首跑 freeze);
+    # 生产由 apply_v3_5_1 从 sidecar JSON 读冻结值传入 (fix(omni-known-open-2, 2026-06-11))
     if median_amb_d0 is None:
         median_amb_d0 = float(df['clarity_frac_ambiguous_full'].dropna().median())
         logger.info(f"v3.5.1 A1: D0 median_amb(full) 实测 = {median_amb_d0:.6f}")
     # fix(encode_collab-01): ctx 轨用 ctx 自身分布的 median 二值化, 不再套用 full 轨阈值
-    median_amb_d0_ctx = float(df['clarity_frac_ambiguous_ctx'].dropna().median())
-    logger.info(f"v3.5.1 A1: D0 median_amb(ctx) 实测 = {median_amb_d0_ctx:.6f}")
+    if median_amb_d0_ctx is None:
+        median_amb_d0_ctx = float(df['clarity_frac_ambiguous_ctx'].dropna().median())
+        logger.info(f"v3.5.1 A1: D0 median_amb(ctx) 实测 = {median_amb_d0_ctx:.6f}")
 
     # weight = stage21 media_authority × herd_decay
     # fix(herd-ghost-01): full/ctx 双轨各配自己的 herd 权重 (Edwards 2001 measurement-treatment
@@ -553,6 +627,10 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
         _sum_w_full=('_w_full', 'sum'),
         _sum_w_ctx=('_w_ctx', 'sum'),
         _n_articles=('_w_full', 'count'),
+        # fix(omni-g-encode-collab-03, 2026-06-11): clarity-valid 计数 (count 自动跳 NaN),
+        # 作 frac_amb_articles 分母 — 与分子 (s >= median).sum() 只可能数 valid 文章同域
+        _n_clar_valid_full=('clarity_frac_ambiguous_full', 'count'),
+        _n_clar_valid_ctx=('clarity_frac_ambiguous_ctx', 'count'),
         _n_amb_full=('clarity_frac_ambiguous_full',
                      lambda s: int((s >= median_amb_d0).sum())),
         _n_amb_ctx=('clarity_frac_ambiguous_ctx',
@@ -565,11 +643,19 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
     agg['mean_frac_definite_full'] = agg['_sum_w_def_full'] / agg['_sum_wd_def_full'].replace(0, float('nan'))
     agg['mean_frac_definite_ctx'] = agg['_sum_w_def_ctx'] / agg['_sum_wd_def_ctx'].replace(0, float('nan'))
 
-    # n_articles ≥ 2 mask (修 R8-H2)
-    mask = agg['_n_articles'] >= 2
-    n_safe = agg['_n_articles'].where(mask)
-    agg['frac_amb_articles_full'] = (agg['_n_amb_full'] / n_safe).where(mask)
-    agg['frac_amb_articles_ctx'] = (agg['_n_amb_ctx'] / n_safe).where(mask)
+    # fix(omni-g-encode-collab-03, 2026-06-11): frac_amb_articles 分母改 clarity-valid
+    # 计数 (刚修的加权均值 valid-mask 分母同型同步, 见 L529 注释理由)。旧分母 _n_articles
+    # =物理篇数 → clarity 缺失 (空文/零 token, tone_words.py 显式 NaN) 文章进分母不进
+    # 分子的系统性下偏。≥ 2 mask (修 R8-H2) 同步迁移到各轨 valid 计数; median 为 NaN
+    # (该轨全 NaN) 时输出 NaN 而非 "s>=NaN 全 False" 的全员假零。
+    mask_full = agg['_n_clar_valid_full'] >= 2
+    mask_ctx = agg['_n_clar_valid_ctx'] >= 2
+    agg['frac_amb_articles_full'] = agg['_n_amb_full'] / agg['_n_clar_valid_full'].where(mask_full)
+    agg['frac_amb_articles_ctx'] = agg['_n_amb_ctx'] / agg['_n_clar_valid_ctx'].where(mask_ctx)
+    if _is_nan(median_amb_d0):
+        agg['frac_amb_articles_full'] = float('nan')
+    if _is_nan(median_amb_d0_ctx):
+        agg['frac_amb_articles_ctx'] = float('nan')
 
     out_cols = ['mean_clarity_score_full', 'mean_clarity_score_ctx',
                 'mean_frac_definite_full', 'mean_frac_definite_ctx',
@@ -593,7 +679,8 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
         if tmp in df.columns:
             del df[tmp]
 
-    return {'v3_5_1_clarity_added': added_cols, 'median_amb_d0': median_amb_d0}
+    return {'v3_5_1_clarity_added': added_cols, 'median_amb_d0': median_amb_d0,
+            'median_amb_d0_ctx': median_amb_d0_ctx}
 
 
 def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
@@ -697,10 +784,15 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
                  prompt_v8_sha256: Optional[str] = None) -> dict:
     """v3.5.1 A1 + A3 panel 聚合一站入口 (与 apply_v3_5_0 并存, 修 C2).
 
-    顺序: A1 clarity → A3 num_intensity → 写 sidecar JSON.
+    顺序: 读 sidecar 冻结 median → A1 clarity → A3 num_intensity → 写 sidecar JSON.
 
     Sidecar JSON path: ``data/processed/v3_5_1_constants.json`` (修 C1' + R7-H1
     双 anchor: prompt_v8_sha256 + stage21_last_run_timestamp).
+
+    fix(omni-known-open-2, 2026-06-11) frozen-median 接线 (防泄漏机制): clarity 二值化
+    阈值 median_amb_d0 / median_amb_d0_ctx 优先读 sidecar 已冻结值传入聚合; sidecar 不
+    存在 (或锚值缺失/NaN) 则首跑 in-sample 计算并持久化, 后续跑一律读冻结值 — 阈值不再
+    随每次重跑的样本组成漂移 (look-ahead / 全样本中位数泄漏防护, D0 freeze 语义)。
 
     Args:
         df: article-level DataFrame (含 clarity_* 6 双轨列 + num_intensity 双轨列).
@@ -713,24 +805,19 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
     import os
     from datetime import datetime, timezone
 
-    # A1 clarity panel 聚合 (D0 frozen median 写入 sidecar)
-    clarity_diag = aggregate_clarity_panel(df, panel, median_amb_d0=None)
-
-    # A3 num_intensity panel 聚合
-    ni_diag = aggregate_num_intensity_panel(df, panel)
-
-    # 写 sidecar JSON (修 C1' 序列化丢失 -> parquet/.dta 不保留 attrs)
     sidecar_path = 'data/processed/v3_5_1_constants.json'
     # P0-B (2026-05-25): preserve-if-set — 若 caller 未显式传 prompt_v8_sha256
     # 但已有 sidecar 含非 null SHA, 保留旧值 (避免 stage 21 重跑无声 wipe
     # 已手动锚定的 SHA). 仅当 caller 显式传 SHA 时覆盖.
     # 审计扩展 (2026-05-29): median_amb_d0 同为 "D0 frozen 全样本中位数" 手动锚点
-    # (CLAUDE.md 双 anchor); 与 SHA 同理, 当 in-sample 重算得 NaN / 空列表 (默认
-    # median_amb_d0=None 走"仅用于测试"的 in-sample 路径, 且文章级 clarity 列缺失时
-    # 早退) 时须保留既有锚值, 否则 run_pipeline_function 每次重跑都会把受跟踪的
-    # frozen anchor 清成 NaN/空 (见 aggregate_clarity_panel 文档串)。
+    # (CLAUDE.md 双 anchor); 与 SHA 同理, 当 in-sample 重算得 NaN / 空列表 (文章级
+    # clarity 列缺失时早退) 时须保留既有锚值, 否则 run_pipeline_function 每次重跑
+    # 都会把受跟踪的 frozen anchor 清成 NaN/空 (见 aggregate_clarity_panel 文档串)。
+    # fix(omni-known-open-2, 2026-06-11): sidecar 读移到聚合**之前**, 冻结 median 真正
+    # 接线进 aggregate_clarity_panel (此前每次重跑都 in-sample 重算, freeze 名存实亡)。
     existing_sha = None
     existing_median = None
+    existing_median_ctx = None
     existing_clarity_cols = None
     existing_ni_cols = None
     if os.path.exists(sidecar_path):
@@ -739,19 +826,34 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
                 _prev = json.load(_f)
             existing_sha = _prev.get('prompt_v8_sha256')
             existing_median = _prev.get('median_amb_d0')
+            existing_median_ctx = _prev.get('median_amb_d0_ctx')
             existing_clarity_cols = _prev.get('a1_clarity_panel_cols')
             existing_ni_cols = _prev.get('a3_num_intensity_panel_cols')
         except Exception:  # noqa: BLE001
             pass
-    effective_sha = prompt_v8_sha256 if prompt_v8_sha256 is not None else existing_sha
 
-    def _is_nan(v):
-        return v is None or (isinstance(v, float) and v != v)
+    # A1 clarity panel 聚合 (D0 frozen median: sidecar 有值用冻结值, 否则首跑 in-sample)
+    frozen_median = existing_median if not _is_nan(existing_median) else None
+    frozen_median_ctx = existing_median_ctx if not _is_nan(existing_median_ctx) else None
+    clarity_diag = aggregate_clarity_panel(df, panel, median_amb_d0=frozen_median,
+                                           median_amb_d0_ctx=frozen_median_ctx)
+
+    # A3 num_intensity panel 聚合
+    ni_diag = aggregate_num_intensity_panel(df, panel)
+
+    # 写 sidecar JSON (修 C1' 序列化丢失 -> parquet/.dta 不保留 attrs)
+    effective_sha = prompt_v8_sha256 if prompt_v8_sha256 is not None else existing_sha
 
     _recomputed_median = clarity_diag.get('median_amb_d0', float('nan'))
     effective_median = (
         _recomputed_median if not _is_nan(_recomputed_median)
         else (existing_median if not _is_nan(existing_median) else _recomputed_median)
+    )
+    _recomputed_median_ctx = clarity_diag.get('median_amb_d0_ctx', float('nan'))
+    effective_median_ctx = (
+        _recomputed_median_ctx if not _is_nan(_recomputed_median_ctx)
+        else (existing_median_ctx if not _is_nan(existing_median_ctx)
+              else _recomputed_median_ctx)
     )
     _recomputed_clarity = clarity_diag.get('v3_5_1_clarity_added', []) or []
     effective_clarity_cols = _recomputed_clarity or (existing_clarity_cols or [])
@@ -762,6 +864,8 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
         sidecar = {
             'plan_version': 'v3.5.1',
             'median_amb_d0': effective_median,
+            # fix(omni-known-open-2, 2026-06-11): ctx 轨阈值同步冻结 (ctx 用自身分布)
+            'median_amb_d0_ctx': effective_median_ctx,
             'prompt_v8_sha256': effective_sha,
             'stage21_last_run_timestamp': datetime.now(timezone.utc).isoformat(),
             'a1_clarity_panel_cols': effective_clarity_cols,
@@ -860,6 +964,13 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     )
 
     # Merge into existing panel (append cols on key match)
+    # fix(omni-g-encode-collab-04, 2026-06-11): idempotent pre-drop — 镜像 clarity/
+    # num_intensity 聚合的同款防护; 否则 panel 已含同名列时 (二次调用/增量重编码)
+    # merge 默认 suffixes 产生 *_x/*_y 幻影列双双入 panel, 未后缀陈旧原列保旧值,
+    # 下游 stata_export 按精确列名抓到陈旧值。
+    for c in added_cols:
+        if c in panel.columns:
+            del panel[c]
     panel_pre_cols = set(panel.columns)
     merged = panel.merge(agg_panel, on=['target_bank', 'year'], how='left')
     new_cols = [c for c in merged.columns if c not in panel_pre_cols]

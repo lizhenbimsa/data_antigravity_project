@@ -29,6 +29,12 @@ treatment:
   alternative: [benefit_pos_frac_full]
 
 controls:
+  # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/
+  # leverage/capital_ratio/npl_ratio/deposit_growth) + year_level 宏观 2 列
+  # (gdp_growth/m2_growth) 在当前 bank-year panel (40/51) 全为 0 命中 —
+  # enrichment pending (M0.5.11 / config/银行面板2007-2025年.xlsx 待接入)。
+  # 当前复现包实际控制集为 coverage 代理 (derivative_replication CONTROLS):
+  # ln_news_coverage media_breadth n_articles (panel 实存列)。
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]

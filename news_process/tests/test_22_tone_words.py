@@ -115,11 +115,17 @@ def test_build_idf_empty():
 
 def test_analyze_empty_and_robustness():
     # 测试异常输入处理
+    import math
+
     tone.ALL_DICTIONARIES = []
     res_none = tone._analyze_single_article(None)
+    # fix(omni-g-tonewords empty-text contract, 2026-06-11): 空/无效文本 ratio → NaN
+    # (缺失语义, 旧断言 == 0.0 为伪中性回填)
+    assert math.isnan(res_none['pos_ratio'])
 
-    
     res_punct = tone._analyze_single_article("。。？？！！")
-    assert res_punct['pos_ratio'] == 0.0
+    # fix(omni-g-tonewords-06, 2026-06-11): 纯标点文本 word-token 分母 = 0 → ratio NaN
+    # (旧断言 == 0.0 锁的是含标点分母旧行为)
+    assert math.isnan(res_punct['pos_ratio'])
     # empty/punctuation content yields default readability
     assert res_punct['avg_sentence_len'] == 0.0 or res_punct['avg_sentence_len'] == 6.0

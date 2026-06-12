@@ -184,19 +184,26 @@ class TestManifest:
         assert m['total_records'] == 0
 
     def test_read_prompt_version_anchor_sidecar_missing_returns_none(self, tmp_path, monkeypatch):
-        """sidecar 不存在 → None (manifest.py:109)."""
+        """sidecar 不存在 → None.
+
+        fix(omni-g-tonellms-05, 2026-06-11): sidecar 路径不再 cwd-相对 (config
+        绝对解析), 测试改用 LLM_ARCHIVE_SIDECAR_PATH env override 指向不存在
+        路径 (原 monkeypatch.chdir 已无法隔离真值 sidecar)。
+        """
         from news_process.pipeline.llm_archive import manifest as M
-        monkeypatch.chdir(tmp_path)  # cwd 切到无 data/processed/v3_5_1_constants.json 的临时目录
+        monkeypatch.setenv('LLM_ARCHIVE_SIDECAR_PATH',
+                           str(tmp_path / 'no_such_sidecar.json'))
         assert M._read_prompt_version_anchor_from_sidecar() is None
 
     def test_read_prompt_version_anchor_corrupt_json_returns_none(self, tmp_path, monkeypatch):
-        """sidecar JSON 损坏 → except → None (manifest.py:114-115)."""
+        """sidecar JSON 损坏 → except → None.
+
+        fix(omni-g-tonellms-05, 2026-06-11): 改用 env override 定位损坏 sidecar。
+        """
         from news_process.pipeline.llm_archive import manifest as M
-        sidecar_dir = tmp_path / 'data' / 'processed'
-        sidecar_dir.mkdir(parents=True)
-        (sidecar_dir / 'v3_5_1_constants.json').write_text(
-            'NOT JSON {{{{', encoding='utf-8')
-        monkeypatch.chdir(tmp_path)
+        sidecar = tmp_path / 'v3_5_1_constants.json'
+        sidecar.write_text('NOT JSON {{{{', encoding='utf-8')
+        monkeypatch.setenv('LLM_ARCHIVE_SIDECAR_PATH', str(sidecar))
         assert M._read_prompt_version_anchor_from_sidecar() is None
 
     def test_read_prompt_sha256_happy_path_returns_value(self, tmp_path, monkeypatch):
@@ -205,27 +212,29 @@ class TestManifest:
         早期实现误读 'prompt_v8_sha256_anchor'/'prompt_version' 两个不存在的键,
         对真值 sidecar 永远返回 None (dead branch), 而旧测试只覆盖 missing/corrupt
         两条 None 分支故无法暴露。本 happy-path 测试锁定修复: 真值键能被读到。
+        fix(omni-g-tonellms-05, 2026-06-11): 改用 env override 定位测试 sidecar。
         """
         from news_process.pipeline.llm_archive import manifest as M
-        sidecar_dir = tmp_path / 'data' / 'processed'
-        sidecar_dir.mkdir(parents=True)
         sha = '0430ba3c1b2a289e5f022081953e7748f35dfa9e3e1ac9303f6d0f1871cc858c'
-        (sidecar_dir / 'v3_5_1_constants.json').write_text(
+        sidecar = tmp_path / 'v3_5_1_constants.json'
+        sidecar.write_text(
             json.dumps({'prompt_v8_sha256': sha, 'plan_version': 'v3.5.1'}),
             encoding='utf-8')
-        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv('LLM_ARCHIVE_SIDECAR_PATH', str(sidecar))
         assert M._read_prompt_sha256_from_sidecar() == sha
         # 向后兼容别名同样生效
         assert M._read_prompt_version_anchor_from_sidecar() == sha
 
     def test_write_manifest_records_prompt_sha256_from_sidecar(self, tmp_archive, tmp_path, monkeypatch):
-        """audit S1 回归: write_manifest 把 sidecar 的 prompt SHA 写入 manifest['prompt_sha256']。"""
-        sidecar_dir = tmp_path / 'data' / 'processed'
-        sidecar_dir.mkdir(parents=True)
+        """audit S1 回归: write_manifest 把 sidecar 的 prompt SHA 写入 manifest['prompt_sha256']。
+
+        fix(omni-g-tonellms-05, 2026-06-11): 改用 env override 定位测试 sidecar。
+        """
         sha = 'a' * 64
-        (sidecar_dir / 'v3_5_1_constants.json').write_text(
+        sidecar = tmp_path / 'v3_5_1_constants.json'
+        sidecar.write_text(
             json.dumps({'prompt_v8_sha256': sha}), encoding='utf-8')
-        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv('LLM_ARCHIVE_SIDECAR_PATH', str(sidecar))
         tmp_archive.append(_valid_record())
         write_manifest(tmp_archive.root)
         manifest = json.loads(

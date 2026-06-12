@@ -29,9 +29,20 @@ set seed {{RANDOM_SEED}}
 * honestdid, l_vec(...) m_grid(0 0.5 1 2)
 
 * (4) Wild cluster bootstrap
+* fix(omni-g-templates-10, 2026-06-11): (i) boottest 补 capture which 守卫 (对齐
+* collab/18; 未装机器上旧版裸调 r(199) 致本表整丢); (ii) boottest 按设计不改写
+* e(b)/e(V) (wild p 在 r(p)), 旧 eststo 存的是 reghdfe 解析 cluster SE → "Wild boot"
+* 列名实不符。现以 estadd 把 r(p) 注入 e(p_wild) 进表 stats 行, 缺 boottest 时如实告警。
 reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-boottest locus_layer_full, reps(9999) seed({{RANDOM_SEED}})
+capture which boottest
+if !_rc {
+    boottest locus_layer_full, reps(9999) seed({{RANDOM_SEED}})
+    estadd scalar p_wild = r(p)
+}
+else {
+    display "  ⚠️ boottest not installed (ssc install boottest); wild_boot 列仅含解析 cluster SE, wild p 缺失"
+}
 eststo wild_boot
 
 * (5) ritest randomization inference (Young 2019 QJE; MacKinnon-Webb 2020 JBES)
@@ -73,11 +84,17 @@ eststo excl_pre
 * ============================================================================
 * (8) Paper-specific: alternative locus classifier (ctx track)
 * ============================================================================
+* fix(omni-g-templates-09, 2026-06-11): locus_layer_ctx/locus_scenario_ctx 现由
+* 01_data_prep 从 panel 真实 ctx 孪生 tech_frac_lc/app_frac_lc 派生 (与 _full 对同构;
+* 旧版从未派生 → 本块守卫永假、双轨稳健性永久静默跳过)。守卫保留作 _lc 列缺失兜底。
 capture confirm variable locus_layer_ctx locus_scenario_ctx
 if !_rc {
     reghdfe {{MAIN_DV}} locus_layer_ctx locus_scenario_ctx $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo alt_ctx
+}
+else {
+    display "  [WARN] locus_layer_ctx/locus_scenario_ctx 未派生 (tech_frac_lc/app_frac_lc 缺); alt_ctx 跳过"
 }
 
 * ============================================================================
@@ -91,10 +108,28 @@ if !_rc {
     display "  [TODO] did_imputation requires SSC; see §5.7.3 prereqs"
 }
 
-esttab wild_boot excl_soe6 excl_rural excl_pre alt_ctx ///
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — alt_ctx 在守卫块内,
+* 旧版硬点名缺名 → r(111) 丢整张 Table 5; ritest_ri 仍按原设计只留 log 不进表。
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if inlist("`m'", "wild_boot", "excl_soe6", "excl_rural", "excl_pre", "alt_ctx") {
+        local models `models' `m'
+    }
+}
+esttab `models' ///
     using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 p_wild, fmt(0 3 3) labels("N" "R²" "Wild cluster bootstrap p")) ///
     title("Table 5 — Advanced Robustness (P4 locus + alternative classifier + Borusyak DiD)") ///
-    addnotes("Honest DiD M-grid sensitivity in supplemental log; layer-specific Sun-Abraham event study in 19_locus_event_study.do; Borusyak DiD output to robustness.log.")
+    addnotes("Column 1 (wild_boot): analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
+             "Honest DiD M-grid sensitivity in supplemental log; layer-specific Sun-Abraham event study in 19_locus_event_study.do; Borusyak DiD output to robustness.log.")
 
-display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_locus/
+* tables.py:build_table5_robustness 经 read_paper_esttab(..., 'table5_robustness.csv') 消费。
+estout `models' using "$tables_dir/table5_robustness.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild, fmt(0 3 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01)
+
+display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex (+ .csv side-channel)"

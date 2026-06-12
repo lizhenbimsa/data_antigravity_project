@@ -84,12 +84,38 @@ else {
     display "  [INFO] post_E1 indicator 不存在 (build via data/exogenous_shocks.yaml); M6 跳过"
 }
 
-esttab M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.tex", replace ///
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — M6 依赖 post_E1 (无管道
+* 生产者), 守卫跳过后旧版硬点名 M6 → r(111) 丢整表且 master 链中止; 改为仅引用实际
+* 已存储估计, mtitle 同步删列防错位。
+qui estimates dir
+local stored `r(names)'
+local cand_models M1 M2 M3 M4 M5 M6
+local cand_titles `""M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 +E1×treat""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' using "$tables_dir/table2_main.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Main Results --- bank_fintech_attention (P2)") ///
-    mtitles("M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 +E1×treat") ///
+    mtitles(`mtitles') ///
     addnotes("Two-way fixed-effects (TWFE) panel regression; bank and year FE; SE clustered at {{CLUSTER_VAR}}." ///
              "Callaway-Sant'Anna (2021) staggered DiD requires T>=3 and is not identified on the current T=2 panel (2017-2018)." ///
              "IV first stage in 19_attention_iv_first_stage.do; Bartik fallback in 22_tableA3_bartik_iv.")
 
-display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_attention/
+* tables.py:build_table2_main 经 read_paper_esttab('bank_fintech_attention',
+* 'table2_main.csv') 消费; estout+delimiter(",") 防 esttab csv 的 ="..." Excel 包裹
+* (或 plain 丢 SE 括号) 破坏 stata_postprocess.parse_esttab_csv 解析。
+estout `models' using "$tables_dir/table2_main.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex (+ .csv side-channel)"

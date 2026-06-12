@@ -4,22 +4,43 @@ Hierarchical empirical Bayes shrinkage for benefit_mean in sparse-coverage setti
 
 【目的】
 - 当某些 bank-year 单元仅有 1-3 篇新闻时, benefit_mean 标准误大
-- 用 hierarchical model 将稀疏单元向"同省同类型均值"收缩
+- 用 hierarchical model 将稀疏单元向"同年同省同类型均值"收缩
 - Bias-variance tradeoff: 引入小 bias 换取大幅降 variance
 
 【方法】
-- James-Stein-style empirical Bayes (closed-form, no MCMC)
-- Group-wise pooling on (bank_type, province) 群组均值
-- Shrinkage weight = σ²_within / (σ²_within + n_i × σ²_between)
+- Empirical Bayes (closed-form Morris 矩估计, no MCMC)
+- Group-wise pooling on (bank_type, province, **year**) 同年截面群组均值
+  (fix(omni-g-benefit-06, 2026-06-11): group 加 year — 此前 pooled 全年份组均值
+   使 t 期 shrunk 值嵌入未来年份信息, 而 shrunk 列是 Table 8/8b 回归 RHS)
+- Shrinkage weight: w_i = σ̂²ᵢ / (σ̂²ᵢ + τ̂²)
+  σ̂²ᵢ = 单元均值的抽样方差 (优先 文章级 std²/nᵢ, 即面板自带 benefit_std_*;
+        缺失回退 grand_var/nᵢ 代理 — 有偏, 见下方披露)
+  τ̂²  = 组内真实均值的先验方差, Morris 矩估计:
+        max(SS_dev/(N−k) − mean(σ̂²ᵢ), 1e-8)
+  (fix(omni-g-benefit-03/07/09, 2026-06-11): 此前 between_var=var(value−groupmean,
+   ddof=1) 是含抽样噪声的组内残差方差 (=τ²+E[σ̂²ᵢ], 未做 Efron-Morris 噪声扣除),
+   且单成员组贡献恒 0 离差、分母 N−1 而非 N−k — 三项偏误致权重系统性失真
+   (独立模拟: 旧实现权重均值 0.13 vs 正确 EB 0.64)。现: 单成员组从 τ̂² 估计中
+   排除 + N−k 自由度 + 减 mean(σ̂²ᵢ) 噪声扣除。)
+
+【披露 (g-benefit-03)】
+- 回退代理 grand_var/nᵢ 用 bank-year 均值的截面总方差 (≈τ²+E[σ²/n]) 冒充文章级
+  σ², 系统性低估; 仅在 std_col 不可用时使用。
+- n_obs 默认列 n_articles 是 cell 内全部文章数, 非支撑 benefit_mean 的
+  valid-scored 文章数 (ctx 轨差异更大) → 精度有高估; 上游无 per-track valid
+  计数列, 可经 n_obs_col 覆写。
 
 【为什么用 closed-form 而非 PyMC/Stan】
 - 避免重依赖 (PyMC ~ 100MB)
-- closed-form James-Stein 在 group-level shrinkage 上已是最优 (Efron-Morris 1973)
-- statsmodels.regression.mixed_linear_model 作 sanity check
+- closed-form Morris (1983, JASA) 矩估计在等方差近似下与 EB 后验均值一致;
+  statsmodels.regression.mixed_linear_model 作 sanity check
+  (注: 旧 docstring "James-Stein 已是最优 (Efron-Morris 1973)" 声称已撤 —
+   旧实现未做噪声扣除, 并不构成 Efron-Morris 估计量)
 
 【输入/输出】
-- 输入: bank-year panel with [benefit_mean_full, n_articles, bank_type, province]
-- 输出: panel + [benefit_mean_full_shrunk, shrinkage_weight]
+- 输入: bank-year panel with [benefit_mean_full(+benefit_std_full), n_articles,
+        bank_type, bank_province, year]
+- 输出: panel + [benefit_mean_full_shrunk, benefit_mean_full_shrunk_weight]
 """
 
 from __future__ import annotations
@@ -36,14 +57,27 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# 1. James-Stein closed-form shrinkage
+# 1. Empirical Bayes closed-form shrinkage (Morris MoM)
 # ---------------------------------------------------------------------------
 def empirical_bayes_shrinkage(
     values: np.ndarray,
     n_obs: np.ndarray,
     group_labels: np.ndarray,
+    sampling_var: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Shrink ``values`` toward group means weighted by within-unit precision.
+
+    fix(omni-g-benefit-03/07/09, 2026-06-11) — 方差分量修正 (公式与代码统一):
+
+    - ``w_i = σ̂²ᵢ / (σ̂²ᵢ + τ̂²)``;  ``shrunk_i = w_i·groupmean + (1−w_i)·value_i``
+    - ``σ̂²ᵢ`` (单元抽样方差): 优先 ``sampling_var`` (= 文章级 std²/nᵢ, 调用方
+      从面板 benefit_std_* 构造); 缺失元素回退 ``grand_var/nᵢ`` 代理 (有偏,
+      模块头已披露)。
+    - ``τ̂²`` (组内真实均值先验方差, Morris 矩估计):
+      ``max(SS_dev/(N−k) − mean(σ̂²ᵢ), 1e-8)``, 其中 SS_dev 只累计 **≥2 成员组**
+      (单成员组离差恒 0, 纳入会双重低估 τ̂²), N/k = 非单成员组的行数/组数,
+      减 mean(σ̂²ᵢ) 是 Efron-Morris 噪声扣除 (残差方差 = τ² + E[σ̂²ᵢ])。
+    - 全部组均为单成员时 τ̂² 取 1e-8 (此时组均值≡自身, 收缩为恒等, 权重无影响)。
 
     Parameters
     ----------
@@ -52,7 +86,10 @@ def empirical_bayes_shrinkage(
     n_obs : np.ndarray, shape (N,)
         Number of articles backing each measurement
     group_labels : np.ndarray, shape (N,)
-        Group identifier (e.g., bank_type×province combo)
+        Group identifier (e.g., bank_type×province×year combo)
+    sampling_var : np.ndarray | None, shape (N,)
+        Optional per-unit sampling variance σ̂²ᵢ (e.g., benefit_std²/nᵢ);
+        non-finite / non-positive 元素逐位回退 grand_var/nᵢ 代理。
 
     Returns
     -------
@@ -64,6 +101,8 @@ def empirical_bayes_shrinkage(
     """
     if not (len(values) == len(n_obs) == len(group_labels)):
         raise ValueError("values, n_obs, group_labels must have equal length")
+    if sampling_var is not None and len(sampling_var) != len(values):
+        raise ValueError("sampling_var must have equal length with values")
 
     values = np.asarray(values, dtype=np.float64)
     n_obs = np.asarray(n_obs, dtype=np.float64)
@@ -79,6 +118,7 @@ def empirical_bayes_shrinkage(
     group_means = np.array(
         [values[valid_mask][inverse == g].mean() for g in range(len(unique_groups))]
     )
+    group_sizes = np.bincount(inverse, minlength=len(unique_groups))
 
     # Map back to all rows
     group_mean_per_row = np.full(len(values), np.nan, dtype=np.float64)
@@ -87,18 +127,33 @@ def empirical_bayes_shrinkage(
         if g in group_lookup:
             group_mean_per_row[i] = group_lookup[g]
 
-    # Within-unit variance (proxy: 1/n_obs scaled by grand variance)
+    # σ̂²ᵢ — within-unit sampling variance:
+    # 优先文章级 sampling_var; 缺失元素回退 grand_var/nᵢ 代理 (有偏, 已披露)
     grand_var = np.var(values[valid_mask], ddof=1) if valid_mask.sum() > 1 else 1.0
-    within_var = grand_var / np.maximum(n_obs, 1.0)
+    proxy_var = grand_var / np.maximum(n_obs, 1.0)
+    if sampling_var is not None:
+        sv = np.asarray(sampling_var, dtype=np.float64)
+        within_var = np.where(np.isfinite(sv) & (sv > 0), sv, proxy_var)
+    else:
+        within_var = proxy_var
 
-    # Between-group variance (residual after group means)
-    deviations = values[valid_mask] - group_mean_per_row[valid_mask]
-    between_var = max(np.var(deviations, ddof=1), 1e-8) if len(deviations) > 1 else 1e-8
+    # τ̂² — Morris MoM: 排除单成员组 + N−k 自由度 + 噪声扣除 (见 docstring)
+    sizes_per_valid_row = group_sizes[inverse]          # 各 valid 行所属组的成员数
+    multi = sizes_per_valid_row >= 2
+    n_multi = int(multi.sum())
+    k_multi = int(np.unique(inverse[multi]).size) if n_multi else 0
+    if n_multi - k_multi >= 1:
+        deviations = values[valid_mask][multi] - group_mean_per_row[valid_mask][multi]
+        resid_var = float((deviations ** 2).sum()) / float(n_multi - k_multi)
+        mean_sampling = float(within_var[valid_mask][multi].mean())
+        between_var = max(resid_var - mean_sampling, 1e-8)
+    else:
+        between_var = 1e-8  # 无可识别的组内对比 → 收缩恒等 (单成员组均值=自身)
 
-    # James-Stein weight: w = within_var / (within_var + between_var)
-    # When n_obs is large → within_var small → w small → less shrinkage
+    # EB posterior weight on the prior (group) mean: w = σ̂²ᵢ / (σ̂²ᵢ + τ̂²)
+    # When n_obs is large → σ̂²ᵢ small → w small → less shrinkage
     weights = within_var / (within_var + between_var)
-    weights = np.clip(weights, 0.0, 1.0)
+    weights = np.clip(weights, 0.0, 1.0)  # 防御性 (两项非负时数学上已 ∈[0,1])
     weights = np.where(valid_mask, weights, 0.0)
 
     shrunk = np.where(
@@ -154,7 +209,11 @@ def apply_shrinkage_to_panel(
     *,
     value_col: str = "benefit_mean_full",
     n_obs_col: str = "n_articles",
-    group_cols: tuple[str, ...] = ("bank_type", "bank_province"),  # F8 fix: align with existing panel
+    # fix(omni-g-benefit-06, 2026-06-11): 默认 group 加 year — 收缩目标改为同年
+    # 截面组均值, 消除"t 期 shrunk 值嵌入未来年份信息"的跨年泄漏 (shrunk 列是
+    # Table 8/8b reghdfe RHS 主解释变量)。
+    group_cols: tuple[str, ...] = ("bank_type", "bank_province", "year"),
+    std_col: str | None = "auto",
     output_col: str | None = None,
 ) -> pd.DataFrame:
     """Apply empirical Bayes shrinkage to a bank-year panel column.
@@ -162,6 +221,15 @@ def apply_shrinkage_to_panel(
     Adds two columns:
     - {output_col}: shrunk values
     - {output_col}_weight: shrinkage weight per row
+
+    Parameters (新增, fix(omni-g-benefit-03/09, 2026-06-11))
+    ----------
+    std_col
+        文章级离散度列, 用于 σ̂²ᵢ = std²/nᵢ (替代 grand_var/nᵢ 有偏代理)。
+        ``"auto"`` (默认) → 由 value_col 推导 (benefit_mean_* → benefit_std_*,
+        面板自带), 不存在时回退代理; ``None`` → 强制代理 (legacy 行为)。
+        注意: 单观测 bank-year 的 std 为 NaN (fix(omni-g-benefit-05)) → 该行
+        逐位回退代理, 不影响其余行。
     """
     if output_col is None:
         output_col = f"{value_col}_shrunk"
@@ -171,6 +239,24 @@ def apply_shrinkage_to_panel(
     if missing:
         raise KeyError(f"Missing columns: {missing}")
 
+    if std_col == "auto":
+        candidate = value_col.replace("benefit_mean", "benefit_std")
+        std_col = candidate if (candidate != value_col and candidate in df.columns) else None
+    elif std_col is not None and std_col not in df.columns:
+        raise KeyError(f"Missing columns: ['{std_col}']")
+
+    sampling_var = None
+    if std_col is not None:
+        n_arr = pd.to_numeric(df[n_obs_col], errors="coerce").astype(float).values
+        std_arr = pd.to_numeric(df[std_col], errors="coerce").astype(float).values
+        with np.errstate(divide="ignore", invalid="ignore"):
+            sampling_var = (std_arr ** 2) / np.maximum(n_arr, 1.0)
+        logger.info(
+            f"  [{value_col}] σ̂²ᵢ 来源: {std_col}²/{n_obs_col} "
+            f"(可用 {int(np.isfinite(sampling_var).sum())}/{len(sampling_var)} 行, "
+            "其余回退 grand_var/n 代理)"
+        )
+
     # Build composite group label
     group_label = df[list(group_cols)].astype(str).agg("|".join, axis=1).values
 
@@ -178,6 +264,7 @@ def apply_shrinkage_to_panel(
         df[value_col].values,
         df[n_obs_col].values,
         group_label,
+        sampling_var=sampling_var,
     )
 
     df[output_col] = shrunk
@@ -217,8 +304,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--group-cols",
         type=str,
-        default="bank_type,bank_province",  # F8 fix
+        # fix(omni-g-benefit-06, 2026-06-11): 默认加 year (同年截面收缩目标,
+        # 消除跨年泄漏; shrunk 列进 Table 8/8b 回归 RHS)
+        default="bank_type,bank_province,year",
         help="Comma-separated grouping columns (must exist in panel)",
+    )
+    parser.add_argument(
+        "--std-col",
+        type=str,
+        default="auto",
+        help=(
+            "文章级离散度列 (σ̂²ᵢ=std²/n; fix(omni-g-benefit-03/09, 2026-06-11)); "
+            "'auto'=由 value_col 推导 benefit_std_*, 'none'=强制 grand_var/n 代理"
+        ),
     )
     parser.add_argument(
         "--output",
@@ -261,6 +359,7 @@ def main(argv: list[str] | None = None) -> int:
             value_col=value_col,
             n_obs_col=args.n_obs_col,
             group_cols=group_cols,
+            std_col=None if args.std_col == "none" else args.std_col,
         )
         sanity = mixedlm_sanity_check(panel, value_col, group_cols[0])
         if sanity:

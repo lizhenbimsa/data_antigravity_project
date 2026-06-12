@@ -192,13 +192,18 @@ class TestAggregateBankYear:
         assert a_2017["benefit_jlm_zh_pos_frac"] == pytest.approx(0.5)
         assert a_2017["benefit_jlm_zh_neg_frac"] == pytest.approx(0.5)
 
-    def test_singleton_std_is_zero(self) -> None:
-        """单观测组 std=NaN → fillna(0)."""
+    def test_singleton_std_is_nan(self) -> None:
+        """单观测组 std 保持 NaN (fix(omni-g-benefit-05, 2026-06-11)).
+
+        旧行为断言更新注明: 原断言 std==0.0 锁定的是 fillna(0) 缺陷 — 填 0 令
+        '只有 1 篇报道'与'多篇完全一致(真实零分歧)'不可区分, 与核心 tone std
+        族 (保持 NaN) 口径冲突, 已按组级裁决移除。
+        """
         df = pd.DataFrame({"target_bank": ["bank_a"], "year": [2018]})
         scores = np.array([0.5], dtype=np.float32)
         agg = aggregate_to_bank_year(df, scores)
         assert len(agg) == 1
-        assert agg.iloc[0]["benefit_jlm_zh_std"] == 0.0
+        assert np.isnan(agg.iloc[0]["benefit_jlm_zh_std"])
 
     def test_length_mismatch_raises(self) -> None:
         df = pd.DataFrame({"target_bank": ["a"], "year": [2017]})
@@ -337,38 +342,90 @@ def test_main_missing_inputs_warns_and_exits_clean():
     assert rc == 0
 
 
+def _write_emb_with_sidecar(path, emb, model_id='text-embedding-3-small'):
+    """fix(omni-g-benefit-01, 2026-06-11): 测试 helper — 写 .npy + 必备 sidecar."""
+    import json
+    np.save(path, emb)
+    sidecar = {
+        'model_id': model_id,
+        'n_rows': int(emb.shape[0]),
+        'dim': int(emb.shape[1]),
+    }
+    with open(f"{path}.sidecar.json", 'w', encoding='utf-8') as f:
+        json.dump(sidecar, f)
+
+
 def test_main_full_projection_path(tmp_path, monkeypatch):
-    """main() 全输入路径 (lines 307-343): mock SentenceTransformer + 走完整 projection."""
-    from unittest.mock import MagicMock, patch
+    """main() 全输入路径: mock 统一引擎闭包 + 走完整 projection (含 ctx 轨)。
+
+    旧行为断言更新注明 (fix(omni-g-benefit-01, 2026-06-11)): 原测试 mock
+    SentenceTransformer("shibing624/...") 直调且 .npy 无 sidecar — 该链路
+    已按组级裁决重接线: 锚点经统一引擎 (spec 由 sidecar model_id 反查),
+    无 sidecar 的陈旧 .npy fail-loud。
+    """
+    from unittest.mock import patch
 
     from news_process.pipeline.features import benefit_society_alt_anchor as mod
 
-    # 准备 fixture 文件
+    # 准备 fixture 文件 (.npy + sidecar; 维度任意 — 由 sidecar 自描述)
     n = 4
-    emb_dim = 768  # match embedding_dim in main
+    emb_dim = 16
     emb = np.random.RandomState(0).randn(n, emb_dim).astype(np.float32)
+    emb_ctx = np.random.RandomState(2).randn(n, emb_dim).astype(np.float32)
     df = pd.DataFrame({
         'target_bank': ['A'] * n,
         'year': [2018] * n,
     })
     emb_path = tmp_path / 'emb.npy'
+    ctx_path = tmp_path / 'emb_ctx.npy'
     df_path = tmp_path / 'df.parquet'
     output_path = tmp_path / 'out' / 'panel.parquet'
-    np.save(emb_path, emb)
+    _write_emb_with_sidecar(emb_path, emb)
+    _write_emb_with_sidecar(ctx_path, emb_ctx)
     df.to_parquet(df_path)
 
-    # Mock sentence_transformers to avoid heavy load
-    fake_st = MagicMock()
-    fake_st.encode = lambda texts, show_progress_bar=False: np.random.RandomState(
-        1).randn(len(texts), emb_dim).astype(np.float32)
-    with patch('sentence_transformers.SentenceTransformer',
-               return_value=fake_st):
+    # mock 引擎闭包工厂 (不触网、不读 config): 返回确定性锚点嵌入
+    def fake_make_fn(spec, **kwargs):
+        return lambda texts: np.random.RandomState(1).randn(
+            len(list(texts)), emb_dim).astype(np.float32)
+
+    with patch.object(mod, 'resolve_embedding_spec', return_value={'model': 'x'}), \
+         patch.object(mod, 'make_anchor_embedding_fn', side_effect=fake_make_fn):
         rc = mod.main([
             '--text-embeddings-full', str(emb_path),
+            '--text-embeddings-ctx', str(ctx_path),
             '--df-exploded', str(df_path),
             '--output', str(output_path),
         ])
     assert rc == 0
     assert output_path.exists()
+    out = pd.read_parquet(output_path)
+    # ctx 轨列 (fix(omni-g-benefit-01): 补 ctx 轨)
+    assert 'benefit_jlm_zh_mean' in out.columns
+    assert 'benefit_jlm_zh_mean_ctx' in out.columns
     sidecar = output_path.with_suffix('.sidecar.json')
     assert sidecar.exists()
+    import json
+    meta = json.loads(sidecar.read_text(encoding='utf-8'))
+    # sidecar 不再硬编码 shibing624/768 — 反映实际输入
+    assert meta['embedding_model'] == 'text-embedding-3-small'
+    assert meta['embedding_dim'] == emb_dim
+    assert meta['tracks'] == ['full', 'ctx']
+
+
+def test_main_stale_npy_without_sidecar_fails_loud(tmp_path):
+    """无 sidecar 的 .npy (2026-05-09 陈旧产物形态) → fail-loud, 不静默消费
+    (fix(omni-g-benefit-01, 2026-06-11))."""
+    from news_process.pipeline.features import benefit_society_alt_anchor as mod
+
+    emb_path = tmp_path / 'stale.npy'
+    np.save(emb_path, np.zeros((3, 8), dtype=np.float32))  # 故意不写 sidecar
+    df_path = tmp_path / 'df.parquet'
+    pd.DataFrame({'target_bank': ['A'] * 3, 'year': [2018] * 3}).to_parquet(df_path)
+
+    with pytest.raises(FileNotFoundError, match="sidecar"):
+        mod.main([
+            '--text-embeddings-full', str(emb_path),
+            '--df-exploded', str(df_path),
+            '--output', str(tmp_path / 'out.parquet'),
+        ])

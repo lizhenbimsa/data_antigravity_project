@@ -42,6 +42,17 @@ DEFAULT_MODELS = {
 # Prompt 版本 (变更需 bump → cache miss → 重新抽取)
 EXTRACTION_PROMPT_VERSION = "v1-2026-05-16"
 
+# fix(omni-gapfill-12, 2026-06-12) ⚠ 已知缺陷披露 (prompt 本体冻结, 改 prompt 会
+# bump 缓存键 → 付费重抽, 故只在解析侧防御):
+#   Rule 1 写 "亿元/百万元" 与 total_assets_billion_rmb / retail_deposit_billion_rmb
+#   字段名及 ncd_field_parser.EXPECTED_FIELDS 的 billion (十亿) 校验区间冲突 10×
+#   (1 billion = 10 亿)。LLM 若遵循 亿元 指令 (中文评级报告原生单位), 返回值是
+#   billion 口径的 10 倍: 大行越界被 validate 置 None (静默丢失), 中小行以 10×
+#   错值入 ncd_panel。百万元字段 (net_profit/info_tech) 无此冲突。
+#   解析侧防御: ncd_field_parser.validate_record 的 10× 启发式探测
+#   (suspected unit error 警告 + _unit_suspect_fields 旁路列) +
+#   triangulate_with_annual_report 的 unit_mismatch_* 商≈10 旗标 (R11)。
+#   D4 解禁真接 API 前若决定改 prompt, 须同步 bump EXTRACTION_PROMPT_VERSION。
 EXTRACTION_PROMPT = """You are extracting structured financial data from a Chinese bank NCD (Negotiable Certificates of Deposit) credit rating report.
 
 Extract the following 8 fields, returning JSON only. Use null for fields you cannot find.

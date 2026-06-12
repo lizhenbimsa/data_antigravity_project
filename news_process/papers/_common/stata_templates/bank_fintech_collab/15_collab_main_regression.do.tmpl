@@ -4,7 +4,8 @@
 * v3.4.0: 第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ)
 *
 *   DV  = {{MAIN_DV}}                  (m_and_a_fintech per spec.outcome.primary)
-*   X   = collab_open_full / collab_closed_full   (binary pair, derived in 01_data_prep)
+*   X   = collab_open_full / collab_closed_full   (binary pair, 01_data_prep 从
+*         collab_frac/indep_frac 派生; 平局 both-0 参照组, fix(omni-g-replication-04/06))
 *
 *   Theory anchor: Chesbrough (2003) Open Innovation; Laursen & Salter (2006 SMJ 27:131-150)
 *                  search breadth & depth; Hagedoorn (2002 RP) inter-firm R&D partnerships.
@@ -53,11 +54,13 @@ if !_rc {
     eststo M5
 }
 else {
+    * fix(omni-g-replication-05, 2026-06-11): 显式披露 — 宏观列缺失时 M5 复用 M4 规格 (非真 "+macro")
+    display "  [INFO] gdp_growth / m2_growth 不存在 (宏观 enrichment pending); M5 复用 M4 规格"
     eststo M5: reghdfe {{MAIN_DV}} collab_open_full collab_closed_full $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 }
 
-* M6: collab_gap (∈ {-1, +1}) as compact alternative (mirrors P4 locus_gap)
+* M6: collab_gap (∈ {-1, 0, +1}) as compact alternative (mirrors P4 locus_gap)
 capture confirm variable collab_gap
 if !_rc {
     reghdfe {{MAIN_DV}} collab_gap $controls, ///
@@ -68,11 +71,36 @@ if !_rc {
 * Test open ≠ closed coefficient (formal open-vs-closed innovation differential)
 test collab_open_full = collab_closed_full
 
-esttab M1 M2 M3 M4 M5 M6_gap using "$tables_dir/table2_main.tex", replace ///
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — M6_gap 在守卫块内
+* (collab_gap 缺失即跳过), 旧版硬点名缺名 → r(111) 丢整表且 master 链中止。
+qui estimates dir
+local stored `r(names)'
+local cand_models M1 M2 M3 M4 M5 M6_gap
+local cand_titles `""M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 collab_gap""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' using "$tables_dir/table2_main.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Main Results --- bank_fintech_collab (P5)") ///
-    mtitles("M1 bare" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +macro" "M6 collab_gap") ///
+    mtitles(`mtitles') ///
     addnotes("bank / year FE; SE clustered at {{CLUSTER_VAR}}; open vs closed innovation baseline (Chesbrough 2003)." ///
              "Wald test open = closed in log.")
 
-display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex (P5 Chesbrough 2003 framework)"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_collab/
+* tables.py:build_table2_main 经 read_paper_esttab('bank_fintech_collab',
+* 'table2_main.csv') 消费; estout+delimiter(",") 防 esttab csv 的 ="..." Excel 包裹
+* (或 plain 丢 SE 括号) 破坏 stata_postprocess.parse_esttab_csv 解析。
+estout `models' using "$tables_dir/table2_main.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex (+ .csv side-channel; P5 Chesbrough 2003 framework)"

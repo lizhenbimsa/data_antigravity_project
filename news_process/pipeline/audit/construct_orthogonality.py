@@ -57,10 +57,10 @@ DIMS_FULL = [
 DIMS_CTX = [d.replace('_full', '_ctx') for d in DIMS_FULL]
 ALL_DIMS = DIMS_FULL + DIMS_CTX
 
-# pre-registered Z-score thresholds (per plan §2.2.4 + §2.2.6 / F30 + F40)
-# Z ≤ 1.96 → strong orthogonality; 1.96 < Z ≤ 2.58 → moderate; Z > 2.58 → weak
-Z_STRONG = 1.96
-Z_MODERATE = 2.58
+# 分类阈值口径 (fix(omni-g-audit-family-04, 2026-06-11)): 实现为 permutation null
+# 分布的**单侧** 95% / 99% 分位 (≈ 单侧 Z 1.645 / 2.326), 而非旧注释宣称的
+# "pre-registered 双侧 Z 1.96 / 2.58" — 旧 Z_STRONG/Z_MODERATE 常量从未被任何
+# 代码引用, 预注册口径与执行口径不符, 已删除; 权威口径见 classify_orthogonality.
 
 
 def _lazy_import_nmi():
@@ -258,12 +258,17 @@ def compute_permutation_null(
 
 def classify_orthogonality(point: pd.DataFrame, null_p95: pd.DataFrame,
                            null_p99: pd.DataFrame) -> dict:
-    """Pre-registered Z-score 三档分类 (per plan §2.2.6).
+    """Permutation-null 单侧分位三档分类 (per plan §2.2.6).
+
+    口径声明 (fix(omni-g-audit-family-04, 2026-06-11)): 阈值 = permutation null
+    的单侧 95% / 99% 分位 (≈ 单侧 Z 1.645 / 2.326), 非双侧 Z 1.96 / 2.58.
+    调用方必须保证 ``point`` 与 ``null_p95``/``null_p99`` 来自**同一 listwise
+    样本域** (NMI 有限样本偏差随 N 变化, 域错配会使阈值失准).
 
     Returns dict per off-diagonal (d1, d2) pair:
         'strong'   if observed_NMI ≤ null_p95
         'moderate' if null_p95 < obs ≤ null_p99
-        'weak'     if obs > null_p99 (Z > 2.58; triggers paper Appendix A.2 暂缓 per §2.2.6 R2)
+        'weak'     if obs > null_p99 (triggers paper Appendix A.2 暂缓 per §2.2.6 R2)
     """
     result = {}
     for d1 in point.index:
@@ -336,14 +341,21 @@ def run_stage(
     point_x, lo_x, hi_x, n_x = compute_nmi_matrix(
         df, ALL_DIMS, bootstrap_n=bootstrap_n, seed=boot_seed_state,
     )
-    # permutation null (独立 seed)
+    # permutation null (独立 seed) — 6×6 cross-matrix 参考 (落盘用)
     null_p95, null_p99 = compute_permutation_null(
         df, ALL_DIMS, n_permutations=n_permutations, seed=perm_seed_state,
     )
 
+    # fix(omni-g-audit-family-04, 2026-06-11): classify 的观测值 point_f 在 DIMS_FULL
+    # 3 列 listwise 样本上计算, 旧实现却对照 ALL_DIMS 6 列 listwise 样本的 null 阈值 —
+    # NMI 有限样本偏差随 N 变化, 观测/阈值样本域不一致 (双轨缺失差异越大错配越大).
+    # 现为 DIMS_FULL 在其自身 listwise 域上单独重算 null, 与 point_f 同域.
+    null_p95_f, null_p99_f = compute_permutation_null(
+        df, DIMS_FULL, n_permutations=n_permutations, seed=perm_seed_state,
+    )
+
     # classify orthogonality (3 dim full only — simpler narrative for paper Appendix A.2)
-    classify = classify_orthogonality(point_f, null_p95.loc[DIMS_FULL, DIMS_FULL],
-                                       null_p99.loc[DIMS_FULL, DIMS_FULL])
+    classify = classify_orthogonality(point_f, null_p95_f, null_p99_f)
 
     # Write outputs
     def _save_matrix(name: str, point: pd.DataFrame, lo: pd.DataFrame,
@@ -389,6 +401,11 @@ def run_stage(
         'max_off_diag_nmi': max_off_diag,
         'classify_full_3x3': classify,
         'interpretation': interpretation,
+        # fix(omni-g-audit-family-04, 2026-06-11): 口径披露 — 观测与 null 同域 +
+        # 单侧分位阈值 (非双侧 Z 1.96/2.58)
+        'classify_threshold_scale': (
+            'one-sided permutation percentile p95/p99 (≈ one-sided Z 1.645/2.326); '
+            'observed NMI and null share the same DIMS_FULL 3-col listwise sample'),
         'reproducibility': {
             'stage_21_input': stage_21_parquet,
             'v3_4_0_anchor': '450c1aa7 (per plan §0 Tag-over-hash)',

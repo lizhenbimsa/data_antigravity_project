@@ -17,6 +17,14 @@ main panel ``40_panel_yearly.parquet`` or its golden-snapshot schema.
 Reuses (does not duplicate) the embedding cache + projection mechanics from
 ``benefit_society.py`` — anchor count differs (5 vs 10) but direction-vector
 math (``mean(pos) − mean(neg)``) and cosine projection are byte-identical.
+
+fix(omni-g-benefit-01, 2026-06-11) 链路重接线 (2026-05-29 主轨换模后失效):
+- 锚点嵌入不再硬编码 SentenceTransformer("shibing624/...") 直调 — 改经统一引擎
+  ``embedding_engine.embed_texts`` (穿透 LLMCache), spec 由文章嵌入 .npy 的
+  sidecar ``model_id`` 解析 → 锚点与文章保证同嵌入空间 (维度错配根因消除)。
+- 文章嵌入 .npy 必须带 stage 27 落盘的 ``.sidecar.json`` (model_id/n_rows
+  一致性断言); 2026-05-09 陈旧无 sidecar 文件 → fail-loud, 不静默消费。
+- 新增 ctx 轨 (``--text-embeddings-ctx`` → ``benefit_jlm_zh_*_ctx`` 列)。
 """
 
 from __future__ import annotations
@@ -103,6 +111,109 @@ def load_jlm_zh_anchors(
     return pos, neg, metadata
 
 
+# ============================================================================
+# fix(omni-g-benefit-01, 2026-06-11): 嵌入空间一致性基础设施
+# ============================================================================
+
+
+def load_article_embeddings(npy_path: Path | str) -> tuple[np.ndarray, dict]:
+    """加载 stage 27 落盘的文章嵌入 .npy, 强制 sidecar 一致性断言。
+
+    fix(omni-g-benefit-01, 2026-06-11): 2026-05-29 主轨换模 (text2vec 768 维 →
+    text-embedding-3-small 1536 维) 后, 盘上无 sidecar 的 .npy 一律视为陈旧
+    产物 fail-loud, 不静默消费 (历史 2026-05-09 npy 曾以 584 行 / 1536 维与
+    857 行 df_exploded 错配)。sidecar 由 benefit_society._persist_article_embeddings
+    产出, 含 model_id / n_rows / dim。
+
+    Returns
+    -------
+    tuple[np.ndarray, dict]
+        ``(embeddings (n_rows, dim), sidecar_metadata)``
+    """
+    npy_path = Path(npy_path)
+    if not npy_path.exists():
+        raise FileNotFoundError(f"article embeddings .npy not found: {npy_path}")
+    sidecar_path = Path(f"{npy_path}.sidecar.json")
+    if not sidecar_path.exists():
+        raise FileNotFoundError(
+            f"article-embedding sidecar missing: {sidecar_path} — 无 sidecar 的 "
+            ".npy 视为 2026-05-29 换模前陈旧产物, 拒绝静默消费; 重跑 stage 27 "
+            "(config benefit_society.cache_embeddings=true) 生成对齐的 .npy + sidecar"
+        )
+    meta = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    if not meta.get("model_id"):
+        raise ValueError(f"sidecar {sidecar_path} 缺 model_id, 无法做嵌入空间断言")
+    emb = np.load(npy_path)
+    if emb.ndim != 2:
+        raise ValueError(f"article embeddings must be 2D, got shape {emb.shape}")
+    n_rows = int(meta.get("n_rows", -1))
+    if n_rows != emb.shape[0]:
+        raise ValueError(
+            f"sidecar n_rows={n_rows} != npy rows={emb.shape[0]} ({npy_path}): "
+            "嵌入与 sidecar 不同代产物, 重跑 stage 27"
+        )
+    dim = int(meta.get("dim", -1))
+    if dim != emb.shape[1]:
+        raise ValueError(
+            f"sidecar dim={dim} != npy dim={emb.shape[1]} ({npy_path})"
+        )
+    return emb, meta
+
+
+def resolve_embedding_spec(model_id: str) -> dict:
+    """按 model_id 解析 config/features.yaml 的 embedding spec。
+
+    fix(omni-g-benefit-01, 2026-06-11): 锚点嵌入必须与文章嵌入同空间 —
+    spec 不再硬编码 shibing624, 而是由文章 .npy sidecar 的 model_id 反查
+    ``embedding_api`` (MAIN) / ``embedding_robustness`` (_t2v)。未知 model
+    → fail-loud (无法保证同空间)。
+    """
+    from news_process.core.config import load_config
+
+    cfg = load_config()
+    for section in ("embedding_api", "embedding_robustness"):
+        spec = cfg.get(section) or {}
+        if str(spec.get("model") or "") == str(model_id):
+            return spec
+    raise ValueError(
+        f"未知嵌入模型 {model_id!r}: 不匹配 config/features.yaml 的 "
+        "embedding_api / embedding_robustness — 锚点与文章无法保证同嵌入空间"
+    )
+
+
+def make_anchor_embedding_fn(spec: dict, *, cache_db_path: str | None = None):
+    """构造经统一引擎 (embedding_engine.embed_texts) 的锚点嵌入闭包。
+
+    fix(omni-g-benefit-01, 2026-06-11): 替代原 SentenceTransformer("shibing624/…")
+    硬编码直调 — 统一引擎穿透 LLMCache (API spec) / 本地确定性硬化 (local spec),
+    与主管线 stage 27 共用缓存键命名空间。注: 真实 API 重算 deferred 到下次
+    生产 run (锚点句量级 ~10 条, 受 NEWS_PROCESS_LLM_OFFLINE 离线守卫约束)。
+    """
+    if cache_db_path is None:
+        from news_process.core.config import load_config
+
+        paths = load_config().get("paths") or {}
+        cache_db_path = paths.get("llm_cache_db")
+        if not cache_db_path and paths.get("output_dir"):
+            cache_db_path = str(Path(paths["output_dir"]) / "_llm_cache.db")
+
+    def _fn(texts: Sequence[str]) -> np.ndarray:
+        from news_process.pipeline.text import embedding_engine as _eng
+
+        emb = _eng.embed_texts(
+            list(texts), spec,
+            cache_db_path=cache_db_path,
+            log_prefix="JLM anchor embedding",
+        )
+        if emb is None:
+            raise RuntimeError(
+                "anchor embedding failed (embedding_engine.embed_texts → None)"
+            )
+        return emb
+
+    return _fn
+
+
 def compute_direction_vector(
     pos_sentences: Sequence[str],
     neg_sentences: Sequence[str],
@@ -118,8 +229,9 @@ def compute_direction_vector(
     pos_sentences, neg_sentences
         Anchor sentences. Must have equal length.
     embedding_fn
-        Callable ``texts -> np.ndarray of shape (n, d)``. Typically a closure
-        around shibing624 sentence-transformer or a mock for testing.
+        Callable ``texts -> np.ndarray of shape (n, d)``. Production path uses
+        ``make_anchor_embedding_fn(spec)`` (统一引擎, 与文章嵌入同空间;
+        fix(omni-g-benefit-01, 2026-06-11)); tests may inject a mock.
 
     Returns
     -------
@@ -184,15 +296,27 @@ def aggregate_to_bank_year(
     bank_col: str = "target_bank",
     year_col: str = "year",
     score_col: str = "benefit_jlm_zh_score",
+    center: float | None = None,
+    col_suffix: str = "",
 ) -> pd.DataFrame:
     """Aggregate article-level cosine scores to bank-year panel.
 
     Follows J-L-M 2026 Eq. (2) with article-level c=1 instantiation:
     ``f_it = mean(a_ji over articles j in bank i, year t)``.
 
-    Returns columns:
+    Returns columns (``col_suffix`` 用于 ctx 轨 ``_ctx`` 后缀):
         ``benefit_jlm_zh_mean``, ``benefit_jlm_zh_std``,
         ``benefit_jlm_zh_pos_frac``, ``benefit_jlm_zh_neg_frac``
+
+    fix(omni-g-benefit-02, 2026-06-11): pos/neg_frac 阈值与主模块 (benefit_society
+    .py median-center, fix(benefitfrac-01)) 对齐 — ``center=None`` 时取本批
+    scores 的 pooled median (各向异性嵌入空间下 sign-at-0 实测 ~97% 投影>0,
+    饱和退化; J-L-M 5 对锚点族不改变该根因)。披露: 默认 center 为 in-sample
+    median; 若需与主面板同阈值口径, 经 ``center=`` 显式传入主模块冻结 sidecar
+    值 (data/processed/_benefit_center_sidecar.json)。
+
+    fix(omni-g-benefit-05, 2026-06-11): 单观测 bank-year 的 std (ddof=1 未定义)
+    保持 NaN, 不再 fillna(0) — 与主模块及核心 tone std 族口径一致。
     """
     if len(df_articles) != len(scores):
         raise ValueError(
@@ -202,17 +326,23 @@ def aggregate_to_bank_year(
     work[score_col] = scores
     work = work.dropna(subset=[score_col])
 
+    if center is None:
+        center = float(work[score_col].median()) if len(work) else 0.0
+        if not np.isfinite(center):
+            center = 0.0
+
     agg = (
         work.groupby([bank_col, year_col])[score_col]
-        .agg(
-            benefit_jlm_zh_mean="mean",
-            benefit_jlm_zh_std="std",
-            benefit_jlm_zh_pos_frac=lambda x: float((x > 0).mean()),
-            benefit_jlm_zh_neg_frac=lambda x: float((x < 0).mean()),
-        )
+        .agg(**{
+            f"benefit_jlm_zh_mean{col_suffix}": "mean",
+            f"benefit_jlm_zh_std{col_suffix}": "std",
+            f"benefit_jlm_zh_pos_frac{col_suffix}":
+                lambda x, c=center: float((x > c).mean()),
+            f"benefit_jlm_zh_neg_frac{col_suffix}":
+                lambda x, c=center: float((x < c).mean()),
+        })
         .reset_index()
     )
-    agg["benefit_jlm_zh_std"] = agg["benefit_jlm_zh_std"].fillna(0.0)
     return agg
 
 
@@ -222,18 +352,29 @@ def write_sidecar_json(
     direction_sha: str,
     n_articles: int,
     n_bank_years: int,
+    *,
+    embedding_model: str = "shibing624/text2vec-base-chinese",
+    embedding_dim: int = 768,
+    tracks: tuple[str, ...] = ("full",),
 ) -> Path:
-    """Write reproducibility sidecar JSON next to the parquet output."""
+    """Write reproducibility sidecar JSON next to the parquet output.
+
+    fix(omni-g-benefit-01, 2026-06-11): embedding_model / embedding_dim 改为
+    参数 (main() 传入文章 .npy sidecar 实际值) — 此前硬编码 shibing624/768,
+    与 CLI help 声称的主管线 API 嵌入 (1536 维) 自相矛盾。keyword 默认值仅为
+    旧调用方兼容保留, 生产路径必须传实际值。
+    """
     sidecar = {
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "plan_version": "v2.0 (J-L-M 2026 robustness alignment)",
         "task_id": "P1.3 A2 alternative anchor projection",
         "anchor_metadata": metadata,
         "direction_vector_sha256": direction_sha,
         "n_articles_scored": int(n_articles),
         "n_bank_year_obs": int(n_bank_years),
-        "embedding_model": "shibing624/text2vec-base-chinese",
-        "embedding_dim": 768,
+        "embedding_model": embedding_model,
+        "embedding_dim": int(embedding_dim),
+        "tracks": list(tracks),
     }
     sidecar_path = panel_path.with_suffix(".sidecar.json")
     sidecar_path.write_text(
@@ -266,7 +407,21 @@ def main(argv: list[str] | None = None) -> int:
         "--text-embeddings-full",
         type=str,
         default=None,
-        help="Path to stage 27 article-level embeddings .npy (full track)",
+        help=(
+            "Path to stage 27 article-level embeddings .npy (full track; "
+            "requires sibling .sidecar.json with model_id/n_rows — "
+            "27_benefit_embeddings_full.npy, rows aligned with df_exploded)"
+        ),
+    )
+    parser.add_argument(
+        "--text-embeddings-ctx",
+        type=str,
+        default=None,
+        help=(
+            "Optional ctx-track embeddings .npy (27_benefit_embeddings_ctx.npy "
+            "+ sidecar); produces benefit_jlm_zh_*_ctx columns "
+            "(fix(omni-g-benefit-01, 2026-06-11): 补 ctx 轨)"
+        ),
     )
     parser.add_argument(
         "--df-exploded",
@@ -311,33 +466,63 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
 
-    # Defer model import to here so --validate-only stays import-light
-    from sentence_transformers import SentenceTransformer
-
-    model = SentenceTransformer("shibing624/text2vec-base-chinese")
-    embedding_fn = lambda texts: model.encode(list(texts), show_progress_bar=False)  # noqa: E731
+    # fix(omni-g-benefit-01, 2026-06-11): 文章嵌入须带 sidecar (fail-loud on
+    # stale npy); 锚点经统一引擎用 sidecar model_id 反查的 spec 嵌入 → 同空间。
+    text_embeddings, emb_meta = load_article_embeddings(args.text_embeddings_full)
+    df_exploded = pd.read_parquet(args.df_exploded)
+    if len(df_exploded) != text_embeddings.shape[0]:
+        raise ValueError(
+            f"df_exploded ({len(df_exploded)}) and embeddings "
+            f"({text_embeddings.shape[0]}) length mismatch — 不同代产物, 重跑 stage 27"
+        )
+    model_id = str(emb_meta["model_id"])
+    spec = resolve_embedding_spec(model_id)
+    embedding_fn = make_anchor_embedding_fn(spec)
+    logger.info(
+        "Loaded text_embeddings shape=%s (model=%s), df_exploded len=%d",
+        text_embeddings.shape,
+        model_id,
+        len(df_exploded),
+    )
 
     direction = compute_direction_vector(pos, neg, embedding_fn)
     dir_sha = hashlib.sha256(direction.tobytes()).hexdigest()
     logger.info("Direction vector computed: norm=1.0, sha=%s", dir_sha[:16])
 
-    text_embeddings = np.load(args.text_embeddings_full)
-    df_exploded = pd.read_parquet(args.df_exploded)
-    logger.info(
-        "Loaded text_embeddings shape=%s, df_exploded len=%d",
-        text_embeddings.shape,
-        len(df_exploded),
-    )
-
     scores = project_texts(text_embeddings, direction)
     panel = aggregate_to_bank_year(df_exploded, scores)
+    tracks: list[str] = ["full"]
+
+    # ctx 轨 (optional): 同一方向向量 (锚点 track-agnostic), ctx 文章嵌入投影
+    if args.text_embeddings_ctx is not None:
+        emb_ctx, ctx_meta = load_article_embeddings(args.text_embeddings_ctx)
+        if str(ctx_meta["model_id"]) != model_id:
+            raise ValueError(
+                f"ctx embeddings model={ctx_meta['model_id']!r} != full track "
+                f"model={model_id!r} — 双轨必须同嵌入空间"
+            )
+        if emb_ctx.shape[0] != len(df_exploded):
+            raise ValueError(
+                f"ctx embeddings rows ({emb_ctx.shape[0]}) != df_exploded "
+                f"({len(df_exploded)})"
+            )
+        scores_ctx = project_texts(emb_ctx, direction)
+        panel_ctx = aggregate_to_bank_year(df_exploded, scores_ctx,
+                                           col_suffix="_ctx")
+        panel = panel.merge(panel_ctx, on=["target_bank", "year"], how="outer")
+        tracks.append("ctx")
+
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     panel.to_parquet(output_path, index=False)
     logger.info("Wrote alt-anchor panel: %s (%d bank-year obs)", output_path, len(panel))
 
     sidecar_path = write_sidecar_json(
-        output_path, meta, dir_sha, n_articles=len(scores), n_bank_years=len(panel)
+        output_path, meta, dir_sha,
+        n_articles=len(scores), n_bank_years=len(panel),
+        embedding_model=model_id,
+        embedding_dim=int(text_embeddings.shape[1]),
+        tracks=tuple(tracks),
     )
     logger.info("Wrote sidecar JSON: %s", sidecar_path)
     return 0

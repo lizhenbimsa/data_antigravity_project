@@ -65,8 +65,12 @@ if !_rc {
         ytitle("beta on {{MAIN_DV}}_w") ///
         title("Figure 2: Dual-Track Coefficient Comparison") ///
         subtitle("benefit_society --- PAP v1.0-final {section}2 H3 evidence") ///
-        note("Wild cluster bootstrap inference (B={{BOOTSTRAP_REPS}}); cluster {{CLUSTER_VAR}}." ///
+        note("95% CI: asymptotic cluster-robust (cluster {{CLUSTER_VAR}}); wild cluster bootstrap" ///
+             "p-values per spec in Table A2 (boottest, B={{BOOTSTRAP_REPS}})." ///
              "H3 acceptance: sign match + min/max ratio > 0.5 across >=2/3 dimensions.")
+    * fix(omni-gapfill-16, 2026-06-12): 图注去 WCB 名实不符声称 — coefplot 画的是
+    * 渐近 cluster CI (boottest 置信集从未进图), 旧注 'Wild cluster bootstrap
+    * inference' 与图内 CI 来源不符; WCB p 由 21_tableA2 estadd 进表后在表层呈现。
 
     * Dual-format output per F-R10-L1
     graph export "$figures_dir/figure2_coefplot_dual.pdf", replace

@@ -37,7 +37,8 @@ _LOGGER = logging.getLogger('papers.bank_fintech_attention.figures')
 # 注意力强度处理列优先级 (从理想 → 可得 fallback)。
 # attention_index_full/ctx 已由 W2 (2026-06-05) compute_attention_treatments 物化,
 # 正常命中首位; avg_ft_intensity_* (stage 14 fintech_intensity 的 bank-year 均值)
-# 仅作历史防御 fallback, 用于面板重生缺该列时的代理 (Hassan 2019 QJE 近似)。
+# 仅作历史防御 fallback, 用于面板重生缺该列时的代理 (Fang-Peress 2009 JF extensive
+# 覆盖近似; fix(omni-g-papers-misc-09, 2026-06-11) 锚点更正 — 非 Hassan QJE intensive)。
 _ATTENTION_COL_PREFERENCE: list[str] = [
     'attention_index_full',
     'attention_index_ctx',
@@ -89,7 +90,8 @@ def plot_attention_distribution(paper_config: PaperConfig | None = None,
     """绘制 fintech 注意力强度在 Bank-Year 维度的分布.
 
     优先用设计列 ``attention_index_full/ctx``; 未物化时回退到代理列
-    ``avg_ft_intensity_full/ctx`` (Hassan 2019 QJE attention intensity 近似)。
+    ``avg_ft_intensity_full/ctx`` (Fang-Peress 2009 JF extensive 覆盖近似;
+    fix(omni-g-papers-misc-09) 锚点更正 — 非 Hassan 2019 QJE intensive 份额)。
     候选列全缺或面板缺失 → logger.warning + 返回 None (不抛)。
     """
     import matplotlib.pyplot as plt

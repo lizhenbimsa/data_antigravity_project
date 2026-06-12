@@ -66,20 +66,45 @@ else {
 * ============================================================================
 * (c) SOE × non-SOE split
 * ============================================================================
-capture confirm variable soe
+* fix(omni-g-templates-08, 2026-06-11): SOE 二元列在面板实名 is_soe (int64,
+* runner.py:909 `is_soe = (bank_type=='soe')`), 旧 `confirm variable soe` 引用幻影列
+* → 整个 (c) 块在任何 T 下永久静默跳过 (st-did-05 修复传播不完整, substance/17:32-34
+* 修复注释早已明诊此 bug 但仅改了 substance)。对齐 substance/17 改 is_soe。
+capture confirm variable is_soe
 if !_rc {
-    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if soe == 1, ///
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if is_soe == 1, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo soe_1
-    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if soe == 0, ///
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if is_soe == 0, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo soe_0
 }
 
-esttab type_* wave_interact soe_* using "$tables_dir/table4_heterogeneity.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Table 4 — Heterogeneity (P2 attention; bank type × wave × SOE)") ///
-    addnotes("Small-cell warning (R7-m01): cell N<10 skipped; report ≥ 10 only." ///
-             "Wave segments per spec.heterogeneity_wave (R10-m03 main spec = interaction).")
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — wave_interact 被守卫
+* 跳过时旧版硬点名 r(111) 丢整表 (type_*/soe_* 通配亦可能空匹配)
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if strmatch("`m'", "type_*") | "`m'" == "wave_interact" | strmatch("`m'", "soe_*") {
+        local models `models' `m'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] Table 4 无任何已存储估计 (全部异质性块被守卫跳过), 表跳过"
+}
+else {
+    esttab `models' using "$tables_dir/table4_heterogeneity.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("Table 4 — Heterogeneity (P2 attention; bank type × wave × SOE)") ///
+        addnotes("Small-cell warning (R7-m01): cell N<10 skipped; report ≥ 10 only." ///
+                 "Wave segments per spec.heterogeneity_wave (R10-m03 main spec = interaction).")
 
-display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex"
+    * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — tables.py:build_table4_heterogeneity
+    * 经 read_paper_esttab(...,'table4_heterogeneity.csv') 消费 (parse_esttab_csv 格式)
+    estout `models' using "$tables_dir/table4_heterogeneity.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+
+    display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex (+ .csv side-channel)"
+}

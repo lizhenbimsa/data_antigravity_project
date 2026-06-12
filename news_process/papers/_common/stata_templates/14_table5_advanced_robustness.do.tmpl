@@ -10,6 +10,9 @@
 
 version 19
 
+* fix(omni-g-templates-14, 2026-06-11): 隔离估计命名空间 (主线模板链共享 session)
+eststo clear
+
 local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
 local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
 local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
@@ -27,15 +30,34 @@ if _rc {
 }
 
 * --- 5a: Placebo test (随机化处理变量, set seed 12345) ---
+* fix(omni-g-templates-15, 2026-06-11) (c): 真置换 (permutation) 替代 iid 重抽 —
+* 旧 `bysort bank_id: gen _rand_treat = runiformint(0, 1)` 是逐观测 iid Bernoulli(0.5),
+* 既不保留处理变量的边际分布 (处理银行数随机漂移), bysort 无 stable 平局序也非确定,
+* 与旧注释"随机置换 (保 bank-level 数量)"不符。现改为银行级真 shuffle (Fisher 置换
+* 检验语义): bank-level 处理值在银行之间重排, 处理者数量精确保持。
 preserve
     set seed 12345
     capture confirm variable `EXPL'
     if !_rc {
-        * 随机置换 digital_frontier (保 bank-level 数量, 打乱 within-bank)
-        bysort bank_id: gen _rand_treat = runiformint(0, 1)
+        * 银行级处理值取 bank 内首值 (digital_frontier 为 bank-level 常量;
+        * sort key 含 `EXPL' 保证取值确定); 随机秩 _rank 把值重排到其他银行
+        tempname pfr
+        frame put bank_id `EXPL', into(`pfr')
+        frame `pfr' {
+            bysort bank_id (`EXPL'): keep if _n == 1
+            gen double _u = runiform()
+            sort _u bank_id
+            gen long _rank = _n
+            sort bank_id
+            gen _rand_treat = `EXPL'[_rank]
+            keep bank_id _rand_treat
+        }
+        frlink m:1 bank_id, frame(`pfr')
+        frget _rand_treat, from(`pfr')
 
         eststo PLACEBO: reghdfe `DV' _rand_treat `LOCUS' `SUBST', ///
             absorb(bank_id year) vce(cluster bank_id)
+        frame drop `pfr'
     }
 restore
 
@@ -43,13 +65,33 @@ restore
 quietly summarize year
 local median_year = floor((r(min) + r(max)) / 2)
 
-eststo SUB_EARLY: reghdfe `DV' `EXPL' `LOCUS' `SUBST' if year < `median_year', ///
-    absorb(bank_id year) vce(cluster bank_id)
-eststo SUB_LATE:  reghdfe `DV' `EXPL' `LOCUS' `SUBST' if year >= `median_year', ///
-    absorb(bank_id year) vce(cluster bank_id)
+* fix(omni-g-templates-15, 2026-06-11) (d): 子期切分零观测守卫 — T=2 面板
+* (years={2017,2018}) 下 floor 中位年=2017, `year < 2017` 为空 → reghdfe r(2000) 崩。
+* 任一子样本为空时跳过 5b (T≥3 全量面板正常执行)。
+quietly count if year < `median_year'
+local n_early = r(N)
+quietly count if year >= `median_year'
+local n_late = r(N)
+if `n_early' > 0 & `n_late' > 0 {
+    eststo SUB_EARLY: reghdfe `DV' `EXPL' `LOCUS' `SUBST' if year < `median_year', ///
+        absorb(bank_id year) vce(cluster bank_id)
+    eststo SUB_LATE:  reghdfe `DV' `EXPL' `LOCUS' `SUBST' if year >= `median_year', ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+else {
+    display "  ⚠️ 5b sub-period split 跳过: 早期子样本 N=`n_early' / 晚期 N=`n_late' (T 过短)"
+}
 
 * --- 5c: Drop one bank at a time (influential obs) ---
-* 主回归系数稳健性: β across leave-one-out 应在 95% CI 内
+* 主回归系数稳健性: β across leave-one-out 应在主回归 95% CI 内
+* fix(omni-g-templates-15, 2026-06-11) (b): 实装 95% CI 判定 — 旧版 n_stable 无条件
+* 自增 (b_coef 算出即弃), 表注的稳定性比率恒为 100%, 是装饰性假统计量。现先估全样本
+* 主回归取 β̂±1.96·SE, 循环内逐一比较后计数。
+quietly reghdfe `DV' `EXPL' `LOCUS' `SUBST', absorb(bank_id year) vce(cluster bank_id)
+local b_main  = _b[`EXPL']
+local se_main = _se[`EXPL']
+local ci_lo = `b_main' - 1.96*`se_main'
+local ci_hi = `b_main' + 1.96*`se_main'
 quietly levelsof bank_id, local(banks)
 local n_banks : word count `banks'
 local n_stable = 0
@@ -57,18 +99,26 @@ foreach b of local banks {
     quietly reghdfe `DV' `EXPL' `LOCUS' `SUBST' if bank_id != `b', ///
         absorb(bank_id year) vce(cluster bank_id)
     local b_coef = _b[`EXPL']
-    local n_stable = `n_stable' + 1
+    if !missing(`b_coef') & inrange(`b_coef', `ci_lo', `ci_hi') {
+        local n_stable = `n_stable' + 1
+    }
 }
-display "  Leave-one-out stable specs: `n_stable'/`n_banks'"
+display "  Leave-one-out stable specs: `n_stable'/`n_banks' (within full-sample 95% CI [`ci_lo', `ci_hi'])"
 
 * --- 5d: Wild bootstrap (MacKinnon & Webb 2020 JBES, small clusters) ---
 * 必装包: ssc install boottest
 capture which boottest
 if !_rc {
     reghdfe `DV' `EXPL' `LOCUS' `SUBST', absorb(bank_id year) vce(cluster bank_id)
-    eststo MAIN_BOOT: estimates store
+    * fix(omni-g-templates-15, 2026-06-11) (a): 旧 `eststo MAIN_BOOT: estimates store`
+    * 是语法错误 (estimates store 必须带名字, 实证 r(100) 'name required'), 且在
+    * which boottest 通过分支内无 capture → 装了 boottest 反而整个 do-file 中断。
+    * 改为: boottest 后以 estadd 把 wild p 注入 e(), 再裸 eststo 存储 — wild p
+    * 进表而非只留 log (boottest 按设计不改写 e(b)/e(V), 结果在 r(p))。
     boottest `EXPL'=0, reps(999) cluster(bank_id) seed(54321) nograph
     local boot_p = r(p)
+    estadd scalar p_wild = r(p)
+    eststo MAIN_BOOT
     display "  Wild bootstrap p (n_reps=999): `boot_p'"
 }
 else {
@@ -76,13 +126,41 @@ else {
 }
 
 * 输出
-esttab PLACEBO SUB_EARLY SUB_LATE using "output/tables/table5_advanced_robust.tex", ///
-    se star(* 0.10 ** 0.05 *** 0.01) ///
-    booktabs replace fragment ///
-    title("Table 5: Advanced Robustness — Placebo + Sub-period + Leave-one-out") ///
-    mtitles("Placebo (random)" "Pre `=`median_year'-1'" "Post `median_year'") ///
-    note("Placebo: β should be insignificant on randomized treatment. " ///
-         "Leave-one-out: `n_stable'/`n_banks' bank exclusions yield consistent β. " ///
-         "MacKinnon & Webb 2020 JBES wild bootstrap (small clusters).")
+* fix(omni-g-templates-15, 2026-06-11): esttab 名单动态化 (PLACEBO/SUB_*/MAIN_BOOT
+* 均可能被守卫跳过, 旧版硬点名缺名 r(111) 丢整表); MAIN_BOOT 列入表并报 wild p。
+qui estimates dir
+local stored `r(names)'
+local cand_models PLACEBO SUB_EARLY SUB_LATE MAIN_BOOT
+local cand_titles `""Placebo (perm.)" "Pre `=`median_year'-1'" "Post `median_year'" "Main (wild boot)""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  ⚠️ Table 5 无任何已存储估计, 表跳过"
+}
+else {
+    esttab `models' using "output/tables/table5_advanced_robust.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) ///
+        booktabs replace fragment ///
+        stats(N p_wild, fmt(0 3) labels("N" "Wild cluster bootstrap p")) ///
+        title("Table 5: Advanced Robustness — Placebo + Sub-period + Leave-one-out + Wild bootstrap") ///
+        mtitles(`mtitles') ///
+        note("Placebo: bank-level permutation of treatment (treated count preserved); β should be insignificant. " ///
+             "Leave-one-out: `n_stable'/`n_banks' bank exclusions yield β within the full-sample 95% CI. " ///
+             "MacKinnon & Webb 2020 JBES wild cluster bootstrap p reported in the Main column (boottest, 999 reps).")
 
-display "✅ Table 5 written to output/tables/table5_advanced_robust.tex"
+    * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel (parse_esttab_csv 消费)
+    estout `models' using "output/tables/table5_advanced_robust.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N p_wild, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+    display "✅ Table 5 written to output/tables/table5_advanced_robust.tex (+ .csv side-channel)"
+}

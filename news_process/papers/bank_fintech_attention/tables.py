@@ -1,10 +1,16 @@
 """news_process.papers.bank_fintech_attention.tables — P2 论文表格生成.
 
-P2 = Bank Fintech Attention (Hassan 2019 QJE style firm-level attention intensity).
+P2 = Bank Fintech Attention — firm-level attention intensity。
+锚点更正 (fix(omni-g-papers-misc-09, 2026-06-11)): 主处理 attention_index 是
+Fang & Peress (2009 JF) 式 extensive 覆盖加权曝光; Hassan et al. (2019 QJE)
+对标仅限归一化度量 (attention_pct/density) 与 ctx 轨 proximity 归因。
 
-Table layout (per plan §5.8.2 / §B.2):
+Table layout (per plan §5.8.2 / §B.2; fix(omni-g-papers-misc-08, 2026-06-11):
+Table 2 baseline 措辞与 frozen spec RR15-1/R8-M03 对齐 — cross-sectional
+intensity DiD (TWFE 实现), 非旧称 staggered DiD; csdid 为 T≥3 robustness):
     Table 1: descriptive statistics (attention / outcomes / controls)
-    Table 2: main regression (M1→M6 progressive; staggered DiD baseline + IV)
+    Table 2: main regression (M1→M6 progressive; cross-sectional intensity DiD
+             baseline (TWFE) + IV; csdid 仅 T≥3 robustness)
     Table 3: mechanism (attention → ln_fintech_mdna_length → ln_fintech_investment)
     Table 4: heterogeneity (4 bank types × fintech wave + SOE)
     Table 5: advanced robustness (Oster δ + rwolf + Honest DiD + ...)
@@ -65,7 +71,13 @@ def write_table1(paper_config: PaperConfig | None = None,
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 2: M1→M6 progressive main regression (staggered DiD baseline + IV)."""
+    """Table 2: M1→M6 progressive main regression — cross-sectional intensity DiD
+    baseline (TWFE via reghdfe) + IV; csdid (Callaway-Sant'Anna) 仅作 T≥3 robustness.
+
+    fix(omni-g-papers-misc-08, 2026-06-11): 旧 docstring 无保留宣称 'staggered DiD
+    baseline', 与 frozen spec (RR15-1/R8-M03: baseline=cross_sectional_intensity_did)
+    及模板实现 (15_attention_main_regression: M1-M6 全为 reghdfe TWFE, 无 csdid 调用,
+    T=2 下 csdid 不可识别) 不符 — 现三层措辞对齐。"""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_attention', 'table2_main.csv', paper_config)
 

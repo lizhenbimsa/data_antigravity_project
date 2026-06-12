@@ -115,12 +115,17 @@ class TestP3Path:
         assert r['prob_source'] == 'P3'
         assert r['prob_score'] == -1.0, "P3 负面应为 -1.0"
 
-    def test_negative_confidence_clamped(self):
-        """confidence < 0 → clamped to 0 → P3"""
+    def test_negative_confidence_rejected_p3_inv(self):
+        """confidence < 0 → 无效输入域 → P3_INV (NaN).
+
+        fix(omni-g-tonellms-07/11, 2026-06-11): 原断言锁定旧 clamp-to-0 行为;
+        新政策与 compute_prob_score_binary 对齐 — 越界 confidence 显式拒绝,
+        返回 NaN/P3_INV 由聚合层 isnan 剔除, 不再静默 clip。
+        """
+        import math
         r = compute_prob_score("中性", -0.5)
-        _assert_prob_axiom(r)
-        assert r['prob_source'] == 'P3'
-        assert r['prob_score'] == 0.0, "P3 中性应为 0.0"
+        assert r['prob_source'] == 'P3_INV'
+        assert math.isnan(r['prob_score'])
 
 
 class TestBoundaryAndEdgeCases:
@@ -133,10 +138,16 @@ class TestBoundaryAndEdgeCases:
         assert r['prob_pos'] == 1.0
         assert r['prob_neg'] == 0.0
 
-    def test_confidence_over_one_clamped(self):
-        """c > 1 → clamped to 1.0"""
+    def test_confidence_over_one_rejected_p3_inv(self):
+        """c > 1 → 无效输入域 → P3_INV (NaN).
+
+        fix(omni-g-tonellms-07/11, 2026-06-11): 原断言锁定旧 clamp-to-1.0 行为
+        (百分制误报 confidence=95 会被静默编码为最强信号); 新政策显式拒绝。
+        """
+        import math
         r = compute_prob_score("正面", 1.5)
-        assert r['prob_score'] == 1.0
+        assert r['prob_source'] == 'P3_INV'
+        assert math.isnan(r['prob_score'])
 
     def test_unknown_label_defaults_neutral(self):
         """未知标签 → 默认中性"""

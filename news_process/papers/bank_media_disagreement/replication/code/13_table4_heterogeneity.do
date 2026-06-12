@@ -20,6 +20,24 @@ local TX     cross_outlet_tone_variance_full
 local CTRL_B ln_assets leverage capital_ratio npl_ratio deposit_growth
 local CTRL_Y gdp_growth m2_growth shibor
 
+* ── fail-loud guard fix(omni-g-zscore-papers-04, 2026-06-11) ─────────────
+* stage 49 导出的 49_risk_taking_outcomes.dta 仅含 outcome 列, 不含 treatment/
+* controls; 缺列时给可读报错并指明数据装配点, 不再让 Panel A 直接 r(111)。
+local REQUIRED_VARS `DV' `TX' `CTRL_B' `CTRL_Y' implicit_guarantee_tier
+local MISSING_VARS ""
+foreach v of local REQUIRED_VARS {
+    capture confirm variable `v'
+    if _rc != 0 local MISSING_VARS "`MISSING_VARS' `v'"
+}
+if "`MISSING_VARS'" != "" {
+    display as error "Table 4 缺失变量:`MISSING_VARS'"
+    display as error "原因: 49_risk_taking_outcomes.dta 仅含 stage 49 outcome 列。"
+    display as error "修复: 先跑 01_data_prep.do (merge 40_panel_yearly.dta 生成"
+    display as error "  data/processed/_paper10_working.dta), 再将本脚本 use 行指向"
+    display as error "  该 working dataset; 或自行 merge 上述缺失列后重跑。"
+    error 111
+}
+
 * ── Panel A: Sample split by tier ────────────────────────────────────────
 forvalues t = 1/5 {
     eststo tier`t': reghdfe `DV' `TX' `CTRL_B' `CTRL_Y' ///

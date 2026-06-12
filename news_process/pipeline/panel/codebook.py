@@ -42,6 +42,17 @@ from news_process.core.config import load_config
 CONFIG = load_config()
 logger = logging.getLogger(__name__)
 
+# fix(omni-g-codebook-02/-09, 2026-06-11): LLM 投票阵容 notes 从 config 动态拼接
+# (单一事实源 = config/sentiment.yaml::tone_llm_processing.models, 与 encode.LLM_MODELS
+# 同源), 杜绝硬编码漂移 (历史硬编码 'GPT-5-nano、Gemini-3、Grok-4.1' 三个名字全错)。
+_TONE_LLM_CFG = CONFIG.get('tone_llm_processing', {}).get('models', [])
+_LLM_MODEL_NAMES: List[str] = [
+    m.get('model_name', m.get('short_name', '?')) for m in _TONE_LLM_CFG
+] or ['gpt-5.4-nano', 'gemini-3.1-flash-lite', 'deepseek-v4-flash']
+
+# fix(omni-g-codebook-05, 2026-06-11): track 字段全卷统一枚举 (生成期断言用)
+_ALLOWED_TRACKS = frozenset({'', 'full', 'ctx', 'dual'})
+
 
 # ============================================================================
 # 1. 变量元数据定义（Variable Metadata Schema）
@@ -127,13 +138,17 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     metadata = {}
 
     # ═══ 主键变量 ═══
+    # fix(omni-g-codebook-06/-14, 2026-06-11): 取值范围不再硬编码 '42家商业银行'
+    # (盘上实测 87 家, 同行 唯一值数 字段自相矛盾) — 生成时由
+    # generate_codebook::_apply_dynamic_value_ranges 从 panel nunique 动态覆盖,
+    # 此处仅作 panel 缺列时的 fallback 文案。
     metadata['target_bank'] = VariableMetadata(
         var_name='target_bank',
         label='Target Bank',
         description='目标银行名称（标准化后的银行全称）',
         data_type='str',
         unit='',
-        value_range='42家商业银行',
+        value_range='商业银行标准化全称 (家数生成时从 panel 动态实测)',
         formula='',
         source_stage='Stage 11',
         reference='',
@@ -142,13 +157,15 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='',
     )
 
+    # fix(omni-g-codebook-01/-08, 2026-06-11): year 取值范围不再硬编码 '[2013, 2023]'
+    # (盘上实际 2017–2018, 全量语料 2007–2024, 两种口径下都错) — 生成时动态覆盖。
     metadata['year'] = VariableMetadata(
         var_name='year',
         label='Year',
         description='年份',
         data_type='int',
         unit='年',
-        value_range='[2013, 2023]',
+        value_range='生成时从 panel 动态实测 (min–max)',
         formula='',
         source_stage='Stage 11',
         reference='',
@@ -174,7 +191,9 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         value_range='[0, 1]',
         formula='fintech_articles / total_articles  '
                 '(按 docid 去重后, 当年 is_fintech_news==True 篇数 / 当年全部唯一篇数)',
-        source_stage='Stage 45/46 (panel/encode compute_fintech_attention_index)',
+        # fix(omni-g-codebook-04, 2026-06-11): 原 'Stage 45/46' — 现行 DAG stage 46 =
+        # stata_export 不产指标, 该列在 stage 45 panel encode 内物化
+        source_stage='Stage 45 (panel/encode compute_fintech_attention_index)',
         reference='Da et al. (2011, JF); Fang & Peress (2009, JF)',
         notes='媒体覆盖率范式 (coverage ratio) 的年度基准; 无距离衰减 (距离衰减仅用于 '
               'ft_attn_prov / ft_attn_city 地理变体)。实测值域 ≈ [0.23, 0.30]',
@@ -182,16 +201,21 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='',
     )
 
-    # ═══ P2 attention 处理变量 (bank_fintech_attention; Hassan 2019 QJE firm-level exposure) ═══
+    # ═══ P2 attention 处理变量 (bank_fintech_attention) ═══
+    # fix(omni-g-codebook-03, 2026-06-11): 族级锚点与 attention_media.py:227-231 更正对齐 —
+    # 主处理 attention_index = ln(1+Σ intensity) 是 **extensive 累积曝光** (Fang & Peress 2009 JF),
+    # **不是** Hassan et al. (2019 QJE) intensive 归一化份额; intensive 对应 attention_pct/density。
     # W2 (2026-06-05): compute_attention_treatments 物化。双轨=互为稳健性 (main=full, robustness=ctx
     # 分离复跑)。零-fintech bank-year: index/pct/density→0 (真零曝光), disp/sd/gap/share→NaN。
     _ATTN_TREAT = [
         ('attention_index_full', 'Fintech Attention Index (full)', 'full',
          'ln(1 + Σ_d fintech_intensity_score_full)', '[0, +inf)',
-         '银行-年累积 fintech 曝光强度 (全文口径); P2 主处理变量 (cumulative attention without sign)'),
+         '银行-年累积 fintech 曝光强度 (全文口径); P2 主处理变量 (cumulative attention without sign); '
+         'extensive 累积曝光, 非 Hassan intensive 归一化份额 (intensive 对应 attention_pct/density)'),
         ('attention_index_ctx', 'Fintech Attention Index (ctx)', 'ctx',
          'ln(1 + Σ_d fintech_intensity_score_ctx)', '[0, +inf)',
-         '同上, 实体窗口口径 (Hassan proximity 归因); 双轨稳健性: 与 _full 分离复跑'),
+         '同上, 实体窗口口径 (entity-context 窗口归因); 双轨稳健性: 与 _full 分离复跑; '
+         'extensive 累积曝光, 非 Hassan intensive 份额'),
         ('attention_pct_full', 'Fintech Attention Share', '',
          'N_ft / N_all (12_full 全部银行新闻为分母)', '[0, 1]',
          'fintech 新闻占该行该年全部新闻的议程份额 (track-agnostic 单轨, Fang-Peress 2009 JF)'),
@@ -224,13 +248,21 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'HHI 可算性诊断 (n_outlets≥2 才有 disp 变异); 零-fintech→NaN'),
     ]
     for _vn, _lbl, _trk, _fml, _rng, _desc in _ATTN_TREAT:
+        # fix(omni-g-codebook-03, 2026-06-11): attention_index_* 是 extensive 累积曝光
+        # (Fang & Peress 2009 JF 主锚, Hassan 2019 QJE 仅作 cf. 对照), 其余列保持族级共引。
+        if _vn.startswith('attention_index'):
+            _ref = ('Fang & Peress (2009, JF) extensive coverage; '
+                    'cf. Hassan et al. (2019, QJE) intensive share; '
+                    'Cookson & Niessner (2020, JF)')
+        else:
+            _ref = ('Hassan et al. (2019, QJE); Fang & Peress (2009, JF); '
+                    'Cookson & Niessner (2020, JF)')
         metadata[_vn] = VariableMetadata(
             var_name=_vn, label=_lbl, description=_desc, data_type='float',
             unit='比率' if _rng == '[0, 1]' else '',
             value_range=_rng, formula=_fml,
             source_stage='Stage 45 (panel/attention_media compute_attention_treatments)',
-            reference='Hassan et al. (2019, QJE); Fang & Peress (2009, JF); '
-                      'Cookson & Niessner (2020, JF)',
+            reference=_ref,
             notes='W2 物化 (2026-06-05); 双轨=互为稳健性 (main=full / robustness=ctx 分离复跑); '
                   '零-fintech bank-year 填 0(index/pct/density) 或 NaN(disp/sd/gap/share)',
             category='注意力指数', track=_trk,
@@ -292,6 +324,12 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     )
 
     # ═══ LLM 情感指标 ═══
+    # fix(omni-g-codebook-02/-09, 2026-06-11): 投票阵容从 config 动态拼接 (原硬编码
+    # 'GPT-5-nano、Gemini-3、Grok-4.1' 三名全错且 Grok 从未在阵容中)。
+    _llm_lineup_note = (
+        f"使用 {'、'.join(_LLM_MODEL_NAMES)} 共 {len(_LLM_MODEL_NAMES)} 个模型的"
+        f"多数投票结果 (阵容动态读自 config/sentiment.yaml)"
+    )
     metadata['llm_vote_tone_full'] = VariableMetadata(
         var_name='llm_vote_tone_full',
         label='LLM Vote Tone (Full-text)',
@@ -302,7 +340,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         formula='(n_pos - n_neg) / (n_pos + n_neg + n_neu)',
         source_stage='Stage 21',
         reference='Cao et al. (2025, Working Paper)',
-        notes='使用GPT-5-nano、Gemini-3、Grok-4.1三个模型的多数投票结果',
+        notes=_llm_lineup_note,
         category='情感指标',
         track='full',
     )
@@ -317,7 +355,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         formula='(n_pos - n_neg) / (n_pos + n_neg + n_neu)',
         source_stage='Stage 21',
         reference='Cao et al. (2025, Working Paper)',
-        notes='上下文轨道可以减少噪音，提高情感识别的精确度',
+        notes=f'上下文轨道可以减少噪音，提高情感识别的精确度；{_llm_lineup_note}',
         category='情感指标',
         track='ctx',
     )
@@ -331,7 +369,10 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         unit='中心度',
         value_range='[0, 1]',
         formula='degree(i) / (n - 1)',
-        source_stage='Stage 46',
+        # fix(omni-g-codebook-04, 2026-06-11): 现行 DAG 的 stage 46 = stata_export
+        # (不产指标); 该列实际在 stage 45 panel 构建 Step 7f/7g 内由
+        # network_spillover.py 计算 (模块历史名 46_network_spillovers 系遗留编号)。
+        source_stage='Stage 45 (panel/network_spillover, 历史模块名 46_network_spillovers)',
         reference='Freeman (1979, Social Networks)',
         notes='度中心度越高，表示该银行与其他银行共同出现在新闻中的频率越高',
         category='网络指标',
@@ -387,87 +428,26 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='full',
     )
 
-    # ═══ v3.2.0 Stage 3 双轨标签篇章级 (plan v14 §2.1, BREAKING) ═══
-    for _suffix, _track_zh, _track_en, _ref in [
-        ('_full', '全文', 'Full-text', 'Gomber 2018 JMIS'),
-        ('_ctx', '上下文', 'Entity-context', 'Hassan 2019 QJE entity-proximity'),
+    # ═══ v3.2.0 Stage 3 双轨 prob_score bank-year 聚合 (plan v1.37 P2) ═══
+    # fix(omni-g-codebook-10, 2026-06-11): 本循环原先还注册 13 个 article 级列名
+    # (innovation_locus_* / innovation_substantiveness_* / innovation_collab_mode_* /
+    # *_confidence_* / llm_verified_dual_*) — 这些列只存在于 21_tone_llms.parquet,
+    # 从不出现在 bank-year panel, generate_codebook 只迭代 panel.columns → 永不发射。
+    # 已迁往 get_article_level_metadata_dict() 保留引文; panel 真实聚合列 (tech_frac
+    # 等 12 个分类组成型 frac) 改为按真实列名 curated 注册 (见下方 _FRAC_SPECS)。
+    # fix(omni-g-codebook-05, 2026-06-11): track 改全卷标准 'full'/'ctx' 枚举
+    # (原误用中文 '全文'/'上下文', 致产物 文本轨道 字段 4+4 行混编)。
+    # fix(omni-g-codebook-13, 2026-06-11): *_prob_score_std 取值范围 [0, 0.5] →
+    # [0, 1/√2 ≈ 0.7071] — 实现是 pandas ddof=1 样本 SD; [0,1] 有界变量的样本 SD
+    # 上确界 = √(n/(n-1))·0.5, 在 n=2 取得 sup = 1/√2 (盘上实测 0.5292 已越出旧界)。
+    _PROB_STD_RANGE = '[0, 1/√2 ≈ 0.7071]'
+    _PROB_STD_NOTE = ('zero-article bank-year → NaN per encode.py L1105 convention; '
+                      '上界 1/√2 为 ddof=1 样本 SD 上确界 (√(n/(n-1))·0.5, n=2 时取得)')
+    for _suffix, _track_zh, _track_en in [
+        ('_full', '全文', 'Full-text'),
+        ('_ctx', '上下文', 'Entity-context'),
     ]:
-        metadata[f'innovation_locus{_suffix}'] = VariableMetadata(
-            var_name=f'innovation_locus{_suffix}',
-            label=f'Innovation Locus ({_track_en}, {_ref})',
-            description=f'金融科技创新位点 ({_track_zh}判定): 0=底层技术 / 1=应用场景',
-            data_type='Int8 (encoded byte) or str',
-            unit='类别',
-            value_range='0 (底层技术) | 1 (应用场景) | NaN',
-            formula=f'majority_vote_3LLMs(innovation_locus | {_track_en} prompt) + canonicalize_topic crossvalidation',
-            source_stage='Stage 21',
-            reference=f'Gomber et al. (2018, JMIS); Adner & Kapoor (2010, SMJ); {_ref}',
-            notes=f'v3.2.0 BREAKING: 替代 v3.1.x bare innovation_locus. {_track_zh}轨独立判定.',
-            category='创新属性-locus',
-            track=_track_zh,
-        )
-        metadata[f'innovation_substantiveness{_suffix}'] = VariableMetadata(
-            var_name=f'innovation_substantiveness{_suffix}',
-            label=f'Innov. Substantiveness ({_track_en}, W&Z 1998 ASQ)',
-            description=f'金融科技创新实质性 ({_track_zh}判定): 0=实质性 / 1=象征性 (洗稿率框架)',
-            data_type='Int8 (encoded byte) or str',
-            unit='类别',
-            value_range='0 (实质性) | 1 (象征性) | NaN',
-            formula=f'majority_vote_3LLMs(innovation_substantiveness | {_track_en} prompt)',
-            source_stage='Stage 21',
-            reference=f'Westphal & Zajac (1994, 1998, ASQ); Fiss & Zajac (2006, ASQ); Bingler et al. (2022, FRL)',
-            notes=f'v3.2.0 BREAKING: 替代 v3.1.x bare innovation_substantiveness. {_track_zh}轨独立判定.',
-            category='创新属性-substantiveness',
-            track=_track_zh,
-        )
-        # v3.4.0 BREAKING: 第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ;
-        # additive supplementation per Nosek 2018 PNAS, v7 双维语义不变)
-        metadata[f'innovation_collab_mode{_suffix}'] = VariableMetadata(
-            var_name=f'innovation_collab_mode{_suffix}',
-            label=f'Innov. Collab Mode ({_track_en}, Chesbrough 2003)',
-            description=(f'金融科技创新协作模式 ({_track_zh}判定): '
-                         '0=自主研发 (closed innovation) / 1=外部协同 (open innovation)'),
-            data_type='Int8 (encoded byte) or str',
-            unit='类别',
-            value_range='0 (自主研发) | 1 (外部协同) | NaN',
-            formula=f'majority_vote_3LLMs(innovation_collab_mode | {_track_en} prompt)',
-            source_stage='Stage 21',
-            reference=('Chesbrough (2003) Open Innovation; '
-                       'Laursen & Salter (2006, SMJ 27:131-150); '
-                       'Hagedoorn (2002, Research Policy)'),
-            notes=(f'v3.4.0 BREAKING: 第三维度对称扩张. {_track_zh}轨独立判定. '
-                   'tie→"自主研发" (MAP under uniform prior).'),
-            category='创新属性-collab_mode',
-            track=_track_zh,
-        )
-        metadata[f'innovation_collab_mode_confidence{_suffix}'] = VariableMetadata(
-            var_name=f'innovation_collab_mode_confidence{_suffix}',
-            label=f'Collab Mode Confidence ({_track_en}, raw LLM)',
-            description=f'innovation_collab_mode{_suffix} 原始 LLM 置信度 (跨模型 row-level 平均)',
-            data_type='float',
-            unit='概率',
-            value_range='[0, 1]',
-            formula=f'mean(per_model innovation_collab_mode_confidence | {_track_en} prompt) over verifying models',
-            source_stage='Stage 21',
-            reference='Törnberg (2024) LLM verbalized confidence',
-            notes='v3.4.0: pure LLM confidence (no keyword fallback, mirrors substantiveness pattern)',
-            category='置信度-collab_mode',
-            track=_track_zh,
-        )
-        metadata[f'category_confidence{_suffix}'] = VariableMetadata(
-            var_name=f'category_confidence{_suffix}',
-            label=f'Locus Confidence ({_track_en}, LLM+kw hybrid)',
-            description=f'innovation_locus{_suffix} 置信度 (LLM × keyword crossvalidation, +0.2 boost / ×0.5 penalty)',
-            data_type='float',
-            unit='概率',
-            value_range='[0, 1]',
-            formula='LLM_majority_conf ± boost/penalty by canonicalize_topic agreement',
-            source_stage='Stage 21',
-            reference='Gilardi et al. (2023, PNAS) LLM-vs-rule crossvalidation',
-            notes='hybrid confidence; raw LLM confidence 在 innovation_locus_confidence_{full,ctx} 列',
-            category='置信度-locus',
-            track=_track_zh,
-        )
+        _trk = _suffix.lstrip('_')  # 'full' / 'ctx' 标准枚举值
         # ─── Plan v1.37 P2: 4 binary prob_score columns per track ───
         metadata[f'avg_subst_prob_score{_suffix}'] = VariableMetadata(
             var_name=f'avg_subst_prob_score{_suffix}',
@@ -479,9 +459,9 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             formula=f'mean(compute_prob_score_binary(label, conf, positive_class="象征性")) over models on innovation_substantiveness{_suffix}',
             source_stage='Stage 21 (article-level) → Stage 45 (bank-year mean)',
             reference='Cover & Thomas (2006) §2 Bernoulli entropy; Jaynes (1957); Törnberg (2024)',
-            notes=f'plan v1.37 P2; positive_class=象征性 aligns with stata_export 1=对照 encoding',
+            notes='plan v1.37 P2; positive_class=象征性 aligns with stata_export 1=对照 encoding',
             category='prob_score-substantiveness',
-            track=_track_zh,
+            track=_trk,
         )
         metadata[f'avg_subst_prob_score_std{_suffix}'] = VariableMetadata(
             var_name=f'avg_subst_prob_score_std{_suffix}',
@@ -489,13 +469,13 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             description=f'avg_subst_prob_score{_suffix} 的 bank-year 标准差',
             data_type='float',
             unit='概率SD',
-            value_range='[0, 0.5]',
+            value_range=_PROB_STD_RANGE,
             formula=f'std(avg_subst_prob_score{_suffix}) over articles per (target_bank, year)',
             source_stage='Stage 45 panel aggregation',
             reference='Plan v1.37 P2 §5.3.2',
-            notes='zero-article bank-year → NaN per encode.py L1105 convention',
+            notes=_PROB_STD_NOTE,
             category='prob_score-substantiveness',
-            track=_track_zh,
+            track=_trk,
         )
         metadata[f'avg_locus_prob_score{_suffix}'] = VariableMetadata(
             var_name=f'avg_locus_prob_score{_suffix}',
@@ -507,9 +487,9 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             formula=f'mean(compute_prob_score_binary(label, conf, positive_class="应用场景")) over models on innovation_locus{_suffix}',
             source_stage='Stage 21 (article-level) → Stage 45 (bank-year mean)',
             reference='Cover & Thomas (2006) §2; Jaynes (1957); Törnberg (2024); Shapiro et al. (2022 J.Econometrics)',
-            notes=f'plan v1.37 P2; positive_class=应用场景 aligns with stata_export 1=对照 encoding',
+            notes='plan v1.37 P2; positive_class=应用场景 aligns with stata_export 1=对照 encoding',
             category='prob_score-locus',
-            track=_track_zh,
+            track=_trk,
         )
         metadata[f'avg_locus_prob_score_std{_suffix}'] = VariableMetadata(
             var_name=f'avg_locus_prob_score_std{_suffix}',
@@ -517,34 +497,74 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             description=f'avg_locus_prob_score{_suffix} 的 bank-year 标准差',
             data_type='float',
             unit='概率SD',
-            value_range='[0, 0.5]',
+            value_range=_PROB_STD_RANGE,
             formula=f'std(avg_locus_prob_score{_suffix}) over articles per (target_bank, year)',
             source_stage='Stage 45 panel aggregation',
             reference='Plan v1.37 P2 §5.3.2',
-            notes='zero-article bank-year → NaN per encode.py L1105 convention',
+            notes=_PROB_STD_NOTE,
             category='prob_score-locus',
-            track=_track_zh,
+            track=_trk,
         )
 
-    # ═══ v3.2.0 Dual gate 三互斥指示列 (plan v14 §3.1 Action #6) ═══
-    for _gate_var, _gate_zh, _gate_en in [
-        ('llm_verified_dual_full_only',  '只 full 通过',  'Full-track only'),
-        ('llm_verified_dual_ctx_only',   '只 ctx 通过',   'Ctx-track only'),
-        ('llm_verified_dual_both',       '双轨都通过',    'Both tracks'),
-    ]:
-        metadata[_gate_var] = VariableMetadata(
-            var_name=_gate_var,
-            label=f'Dual Gate: {_gate_en} verified',
-            description=f'三互斥指示 ({_gate_zh}): R1-A 致命修复, ctx 轨独立可作 main spec',
-            data_type='bool',
-            unit='二元',
-            value_range='True | False',
-            formula='derived from llm_verified_full / llm_verified_ctx',
-            source_stage='Stage 21',
-            reference='Hassan et al. (2019, QJE) entity-proximity independence',
-            notes='plan v14 §3.1 P1 R1-A: 改并集 verified_full | verified_ctx 修复',
-            category='Stage 1 gate',
-            track='dual',
+    # ═══ 分类组成型 frac (panel 真实聚合列) ═══
+    # fix(omni-g-codebook-10, 2026-06-11): 把原 13 个死条目承载的三维分类引文转移到
+    # panel 中真实存在的 bank-year 聚合 frac 列 (encode.py:1039-1048/1117-1122/
+    # 1188-1192/1238-1243/1308-1312/1370-1375); 分母 = 同轨 n_articles_llm_valid(_ctx)
+    # (分子分母同口径, metric-audit 2026-06-02 final 修轨道不对称除法)。
+    # (var, 子集中文, 子集英文, track, 分子列, 分母列, reference, category)
+    _FRAC_SPECS = [
+        ('tech_frac', '底层技术', 'Technology', 'full',
+         'n_articles_tech', 'n_articles_llm_valid',
+         'Gomber et al. (2018, JMIS); Adner & Kapoor (2010, SMJ)', '创新属性-locus'),
+        ('app_frac', '应用场景', 'Application', 'full',
+         'n_articles_app', 'n_articles_llm_valid',
+         'Gomber et al. (2018, JMIS); Adner & Kapoor (2010, SMJ)', '创新属性-locus'),
+        ('tech_frac_lc', '底层技术', 'Technology', 'ctx',
+         'n_articles_tech_lc_ctx', 'n_articles_llm_valid_ctx',
+         'Gomber et al. (2018, JMIS); Hassan et al. (2019, QJE) entity-proximity', '创新属性-locus'),
+        ('app_frac_lc', '应用场景', 'Application', 'ctx',
+         'n_articles_app_lc_ctx', 'n_articles_llm_valid_ctx',
+         'Gomber et al. (2018, JMIS); Hassan et al. (2019, QJE) entity-proximity', '创新属性-locus'),
+        ('sub_frac', '实质性', 'Substantive', 'full',
+         'n_articles_sub', 'n_articles_llm_valid',
+         'Westphal & Zajac (1994, 1998, ASQ); Fiss & Zajac (2006, ASQ)', '创新属性-substantiveness'),
+        ('symb_frac', '象征性', 'Symbolic', 'full',
+         'n_articles_symb', 'n_articles_llm_valid',
+         'Westphal & Zajac (1994, 1998, ASQ); Bingler et al. (2022, FRL)', '创新属性-substantiveness'),
+        ('sub_frac_sc', '实质性', 'Substantive', 'ctx',
+         'n_articles_sub_sc_ctx', 'n_articles_llm_valid_ctx',
+         'Westphal & Zajac (1998, ASQ); Hassan et al. (2019, QJE) entity-proximity', '创新属性-substantiveness'),
+        ('symb_frac_sc', '象征性', 'Symbolic', 'ctx',
+         'n_articles_symb_sc_ctx', 'n_articles_llm_valid_ctx',
+         'Westphal & Zajac (1998, ASQ); Bingler et al. (2022, FRL)', '创新属性-substantiveness'),
+        ('indep_frac', '自主研发', 'Closed/independent', 'full',
+         'n_articles_indep', 'n_articles_llm_valid',
+         'Chesbrough (2003) Open Innovation; Laursen & Salter (2006, SMJ)', '创新属性-collab_mode'),
+        ('collab_frac', '外部协同', 'Open/collaborative', 'full',
+         'n_articles_collab', 'n_articles_llm_valid',
+         'Chesbrough (2003) Open Innovation; Laursen & Salter (2006, SMJ)', '创新属性-collab_mode'),
+        ('indep_frac_cm', '自主研发', 'Closed/independent', 'ctx',
+         'n_articles_indep_cm_ctx', 'n_articles_llm_valid_ctx',
+         'Chesbrough (2003); Hassan et al. (2019, QJE) entity-proximity', '创新属性-collab_mode'),
+        ('collab_frac_cm', '外部协同', 'Open/collaborative', 'ctx',
+         'n_articles_collab_cm_ctx', 'n_articles_llm_valid_ctx',
+         'Chesbrough (2003); Hassan et al. (2019, QJE) entity-proximity', '创新属性-collab_mode'),
+    ]
+    for _vn, _zh, _en, _trk, _num, _den, _ref, _cat in _FRAC_SPECS:
+        metadata[_vn] = VariableMetadata(
+            var_name=_vn,
+            label=f'Frac {_en} articles ({_trk})',
+            description=f'该 Bank-Year 中 LLM 判定为「{_zh}」的文章占比 ({_trk} 轨分类)',
+            data_type='float',
+            unit='比率',
+            value_range='[0, 1] ∪ NaN',
+            formula=f'{_num} / {_den}  ({_den} == 0 → NaN)',
+            source_stage='Stage 45 (panel/encode aggregate_panel)',
+            reference=_ref,
+            notes='分子分母同轨同口径 (LLM 有效投票篇数为分母); '
+                  '原 article 级标签列元数据见 get_article_level_metadata_dict()',
+            category=_cat,
+            track=_trk,
         )
 
     # ═══ v3.2.0 M2 P2 子集对角线列 (_lc × _ctx, _sc × _ctx; plan v14 §2.2) ═══
@@ -852,7 +872,132 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             var_name=_name, label=_label, description=_label, data_type='float',
             unit=_vr.split()[0] if '∪' not in _vr.split()[0] else '—',
             value_range=_vr, formula=_formula, source_stage=_src,
-            reference=_ref, category=_CAT_NEW, track='—')
+            # fix(omni-g-codebook-05, 2026-06-11): track-agnostic 空值统一 ''
+            # (原 '—' 与其他条目的 '' 两种空值并存)
+            reference=_ref, category=_CAT_NEW, track='')
+
+    return metadata
+
+
+def get_article_level_metadata_dict() -> Dict[str, VariableMetadata]:
+    """article 级 (21_tone_llms.parquet) 列的 curated 元数据 — 不进 panel codebook 产物。
+
+    fix(omni-g-codebook-10, 2026-06-11): 这 13 个条目原registered在
+    get_variable_metadata_dict() 中, 但列名只存在于 article 级 21_tone_llms.parquet,
+    从不出现在 bank-year panel — generate_codebook 仅迭代 panel.columns, 故它们
+    永远不会写入任何产物 (死条目)。迁出以 (a) 保留精心撰写的引文供未来 article 级
+    sheet / 文档复用; (b) 修正取值范围: article 级 parquet 实际存储中文标签字符串
+    (large_string, 如 '底层技术'/'应用场景'), 0/1 编码仅发生在下游 stata_export
+    (本模块 docstring v3.0.0: '翻译层已废除, panel 列值即 LLM 原始输出')。
+    panel 真实存在的聚合派生列 (tech_frac 等) 已在主字典按真实列名注册。
+    """
+    metadata: Dict[str, VariableMetadata] = {}
+
+    for _suffix, _track_zh, _track_en, _ref in [
+        ('_full', '全文', 'Full-text', 'Gomber 2018 JMIS'),
+        ('_ctx', '上下文', 'Entity-context', 'Hassan 2019 QJE entity-proximity'),
+    ]:
+        _trk = _suffix.lstrip('_')  # fix(omni-g-codebook-05): 'full'/'ctx' 标准枚举
+        metadata[f'innovation_locus{_suffix}'] = VariableMetadata(
+            var_name=f'innovation_locus{_suffix}',
+            label=f'Innovation Locus ({_track_en}, {_ref})',
+            description=f'金融科技创新位点 ({_track_zh}判定): 底层技术 / 应用场景',
+            data_type='str (article-level raw LLM label)',
+            unit='类别',
+            value_range="'底层技术' | '应用场景' | NaN (0/1 编码仅在下游 stata_export)",
+            formula=f'majority_vote_3LLMs(innovation_locus | {_track_en} prompt) + canonicalize_topic crossvalidation',
+            source_stage='Stage 21 (article-level, 21_tone_llms.parquet)',
+            reference=f'Gomber et al. (2018, JMIS); Adner & Kapoor (2010, SMJ); {_ref}',
+            notes=f'v3.2.0 BREAKING: 替代 v3.1.x bare innovation_locus. {_track_zh}轨独立判定. '
+                  'panel 聚合派生列 = tech_frac/app_frac (full) 与 tech_frac_lc/app_frac_lc (ctx).',
+            category='创新属性-locus',
+            track=_trk,
+        )
+        metadata[f'innovation_substantiveness{_suffix}'] = VariableMetadata(
+            var_name=f'innovation_substantiveness{_suffix}',
+            label=f'Innov. Substantiveness ({_track_en}, W&Z 1998 ASQ)',
+            description=f'金融科技创新实质性 ({_track_zh}判定): 实质性 / 象征性 (洗稿率框架)',
+            data_type='str (article-level raw LLM label)',
+            unit='类别',
+            value_range="'实质性' | '象征性' | NaN (0/1 编码仅在下游 stata_export)",
+            formula=f'majority_vote_3LLMs(innovation_substantiveness | {_track_en} prompt)',
+            source_stage='Stage 21 (article-level, 21_tone_llms.parquet)',
+            reference='Westphal & Zajac (1994, 1998, ASQ); Fiss & Zajac (2006, ASQ); Bingler et al. (2022, FRL)',
+            notes=f'v3.2.0 BREAKING: 替代 v3.1.x bare innovation_substantiveness. {_track_zh}轨独立判定. '
+                  'panel 聚合派生列 = sub_frac/symb_frac (full) 与 sub_frac_sc/symb_frac_sc (ctx).',
+            category='创新属性-substantiveness',
+            track=_trk,
+        )
+        # v3.4.0 BREAKING: 第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ;
+        # additive supplementation per Nosek 2018 PNAS, v7 双维语义不变)
+        metadata[f'innovation_collab_mode{_suffix}'] = VariableMetadata(
+            var_name=f'innovation_collab_mode{_suffix}',
+            label=f'Innov. Collab Mode ({_track_en}, Chesbrough 2003)',
+            description=(f'金融科技创新协作模式 ({_track_zh}判定): '
+                         '自主研发 (closed innovation) / 外部协同 (open innovation)'),
+            data_type='str (article-level raw LLM label)',
+            unit='类别',
+            value_range="'自主研发' | '外部协同' | NaN (0/1 编码仅在下游 stata_export)",
+            formula=f'majority_vote_3LLMs(innovation_collab_mode | {_track_en} prompt)',
+            source_stage='Stage 21 (article-level, 21_tone_llms.parquet)',
+            reference=('Chesbrough (2003) Open Innovation; '
+                       'Laursen & Salter (2006, SMJ 27:131-150); '
+                       'Hagedoorn (2002, Research Policy)'),
+            notes=(f'v3.4.0 BREAKING: 第三维度对称扩张. {_track_zh}轨独立判定. '
+                   'tie→"自主研发" (MAP under uniform prior). '
+                   'panel 聚合派生列 = indep_frac/collab_frac (full) 与 indep_frac_cm/collab_frac_cm (ctx).'),
+            category='创新属性-collab_mode',
+            track=_trk,
+        )
+        metadata[f'innovation_collab_mode_confidence{_suffix}'] = VariableMetadata(
+            var_name=f'innovation_collab_mode_confidence{_suffix}',
+            label=f'Collab Mode Confidence ({_track_en}, raw LLM)',
+            description=f'innovation_collab_mode{_suffix} 原始 LLM 置信度 (跨模型 row-level 平均)',
+            data_type='float',
+            unit='概率',
+            value_range='[0, 1]',
+            formula=f'mean(per_model innovation_collab_mode_confidence | {_track_en} prompt) over verifying models',
+            source_stage='Stage 21 (article-level, 21_tone_llms.parquet)',
+            reference='Törnberg (2024) LLM verbalized confidence',
+            notes='v3.4.0: pure LLM confidence (no keyword fallback, mirrors substantiveness pattern)',
+            category='置信度-collab_mode',
+            track=_trk,
+        )
+        metadata[f'category_confidence{_suffix}'] = VariableMetadata(
+            var_name=f'category_confidence{_suffix}',
+            label=f'Locus Confidence ({_track_en}, LLM+kw hybrid)',
+            description=f'innovation_locus{_suffix} 置信度 (LLM × keyword crossvalidation, +0.2 boost / ×0.5 penalty)',
+            data_type='float',
+            unit='概率',
+            value_range='[0, 1]',
+            formula='LLM_majority_conf ± boost/penalty by canonicalize_topic agreement',
+            source_stage='Stage 21 (article-level, 21_tone_llms.parquet)',
+            reference='Gilardi et al. (2023, PNAS) LLM-vs-rule crossvalidation',
+            notes='hybrid confidence; raw LLM confidence 在 innovation_locus_confidence_{full,ctx} 列',
+            category='置信度-locus',
+            track=_trk,
+        )
+
+    # ═══ v3.2.0 Dual gate 三互斥指示列 (plan v14 §3.1 Action #6; article 级 bool) ═══
+    for _gate_var, _gate_zh, _gate_en in [
+        ('llm_verified_dual_full_only',  '只 full 通过',  'Full-track only'),
+        ('llm_verified_dual_ctx_only',   '只 ctx 通过',   'Ctx-track only'),
+        ('llm_verified_dual_both',       '双轨都通过',    'Both tracks'),
+    ]:
+        metadata[_gate_var] = VariableMetadata(
+            var_name=_gate_var,
+            label=f'Dual Gate: {_gate_en} verified',
+            description=f'三互斥指示 ({_gate_zh}): R1-A 致命修复, ctx 轨独立可作 main spec',
+            data_type='bool',
+            unit='二元',
+            value_range='True | False',
+            formula='derived from llm_verified_full / llm_verified_ctx',
+            source_stage='Stage 21 (article-level, 21_tone_llms.parquet)',
+            reference='Hassan et al. (2019, QJE) entity-proximity independence',
+            notes='plan v14 §3.1 P1 R1-A: 改并集 verified_full | verified_ctx 修复',
+            category='Stage 1 gate',
+            track='dual',
+        )
 
     return metadata
 
@@ -919,12 +1064,38 @@ def extract_variable_stats(
 _DEFAULT_CODEBOOK_FORMATS: tuple[str, ...] = ('excel', 'csv', 'markdown', 'json')
 
 
+def _apply_dynamic_value_ranges(
+    row: Dict[str, Any],
+    col: str,
+    panel: pd.DataFrame,
+) -> Dict[str, Any]:
+    """生成时从 panel 动态计算主键取值范围, 覆盖静态 fallback 文案。
+
+    fix(omni-g-codebook-06/-14, 2026-06-11): target_bank 原硬编码 '42家商业银行'
+    (盘上实测 87 家, 与同行 唯一值数 字段自相矛盾) → 改 nunique 动态实测。
+    fix(omni-g-codebook-01/-08, 2026-06-11): year 原硬编码 '[2013, 2023]'
+    (盘上实际 2017–2018) → 改 min–max 动态实测, panel 重生后自愈。
+    """
+    if col == 'target_bank' and col in panel.columns:
+        n_banks = int(panel[col].nunique(dropna=True))
+        row['取值范围'] = f'{n_banks}家商业银行 (生成时实测)'
+    elif col == 'year' and col in panel.columns:
+        yv = pd.to_numeric(panel[col], errors='coerce').dropna()
+        if len(yv) > 0:
+            row['取值范围'] = f'[{int(yv.min())}, {int(yv.max())}] (生成时实测)'
+    return row
+
+
 def generate_codebook(
     panel: pd.DataFrame,
     output_dir: str,
     formats: List[str] | None = None,
 ) -> Dict[str, str]:
     """生成完整的变量代码手册
+
+    fix(omni-g-codebook, 2026-06-11): 生成期新增两道行为 — 主键 (target_bank/year)
+    取值范围从 panel 动态实测覆盖静态 fallback; track 编码非法值 (∉ {'', 'full',
+    'ctx', 'dual'}) fail-loud raise ValueError 而非静默进产物。
 
     Args:
         panel: 面板数据
@@ -968,6 +1139,17 @@ def generate_codebook(
                 '文本轨道': _infer_track(col),
             }
 
+        # fix(omni-g-codebook-06/-14/-01, 2026-06-11): 主键取值范围动态实测覆盖
+        row = _apply_dynamic_value_ranges(row, col, panel)
+
+        # fix(omni-g-codebook-05, 2026-06-11): 生成期断言 track 编码统一枚举,
+        # 防 '全文'/'上下文'/'—' 等混编值再次进入产物
+        if row['文本轨道'] not in _ALLOWED_TRACKS:
+            raise ValueError(
+                f"codebook track 编码非法: 列 {col!r} 的 文本轨道={row['文本轨道']!r}, "
+                f"允许枚举 = {sorted(_ALLOWED_TRACKS)}"
+            )
+
         # 添加统计信息
         stats = extract_variable_stats(panel, col)
         row.update(stats)
@@ -983,6 +1165,10 @@ def generate_codebook(
 
     # Excel 格式
     if 'excel' in formats:
+        # fix(omni-g-codebook-12, 2026-06-11): 列字母改用 openpyxl get_column_letter —
+        # 原 chr(64+idx) 仅支持 A–Z (26 列), idx=27 → '[' 非法列名致 xlsx 崩溃
+        # (当前 25 列距边界仅 1 列裕度, latent)。
+        from openpyxl.utils import get_column_letter
         excel_path = os.path.join(output_dir, 'variable_codebook.xlsx')
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
             codebook_df.to_excel(writer, sheet_name='Codebook', index=False)
@@ -996,7 +1182,7 @@ def generate_codebook(
                     int(codebook_df[col].map(lambda v: len(str(v))).max()),
                     len(col)
                 )
-                worksheet.column_dimensions[chr(64 + idx)].width = min(max_length + 2, 50)
+                worksheet.column_dimensions[get_column_letter(idx)].width = min(max_length + 2, 50)
         output_files['excel'] = excel_path
         logger.info(f"  ✓ Excel 格式: {excel_path}")
 
@@ -1065,7 +1251,17 @@ def _infer_description(var_name: str) -> str:
 
 
 def _infer_source_stage(var_name: str) -> str:
-    """自动推断来源阶段"""
+    """自动推断来源阶段
+
+    fix(omni-g-codebook-04/-11, 2026-06-11): 两处系统性错标更正 —
+    'attn' 原映射 'Stage 24' (= herd_decay, 与本文件 L162-166 的 2026-06-02 审计
+    更正注释直接矛盾): attention 族实际由 stage 45 panel 构建内
+    attention_media/encode (compute_fintech_attention_index /
+    compute_attention_treatments) 物化;
+    network/cent 原映射 'Stage 46' (现行 DAG 的 stage 46 = stata_export, 不产
+    指标): 实际在 stage 45 panel 构建 Step 7f/7g 内由 network_spillover.py 计算
+    (模块历史名 46_network_spillovers 系遗留编号)。
+    """
     if 'llm' in var_name or 'gpt' in var_name or 'gemini' in var_name:
         return 'Stage 21'
     elif 'bert' in var_name:
@@ -1073,9 +1269,9 @@ def _infer_source_stage(var_name: str) -> str:
     elif 'dict' in var_name or 'jiang' in var_name or 'yao' in var_name:
         return 'Stage 22'
     elif 'attn' in var_name:
-        return 'Stage 24'
+        return 'Stage 45 (panel/attention_media·encode)'
     elif 'network' in var_name or 'cent' in var_name:
-        return 'Stage 46'
+        return 'Stage 45 (panel/network_spillover)'
     elif 'strat' in var_name:
         return 'Stage 25'
     else:

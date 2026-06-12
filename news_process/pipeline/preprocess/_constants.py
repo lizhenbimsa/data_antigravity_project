@@ -83,6 +83,12 @@ MEDIA_NAME_OVERRIDES = {
 # 文本标准化配置
 NORMALIZATION_PARAMS = CONFIG.get('normalization', {})
 
+# fix(omni-g-preprocess-04, 2026-06-11): 清洗代码版本号 — 纳入 per-file 增量缓存键
+# (见 runner.py::compute_preprocess_cache_key)。任何改变 per-file 清洗/过滤语义的
+# 代码变更 (正则/过滤顺序/资源处理) 都必须 bump 此常量, 使 production run 时
+# 旧缓存自动失效重算, 防止盘上语料成为不同清洗规则的混合体。
+PREPROCESS_CODE_VERSION = 'v2-2026-06-11-omni'
+
 
 # ============================================================================
 # 3. 预编译翻译表 (一次构建, 全局复用)
@@ -121,13 +127,57 @@ TEXT_COLUMNS = ['标题', '内容']
 # 4. 加载外部资源 (噪声 / 银行关键词)
 # ============================================================================
 
+# fix(omni-g-preprocess-03, 2026-06-11): 网页互动计数 noise 族 (_category_11:
+# view/like/comment/share/collect/count_suffix) 与 pagination 的裸 `\d+/\d+` 支
+# 设计目标是删网页互动计数, 但在报纸正文 (本语料媒体类型=报纸, 无互动计数) 中
+# 无锚定地命中实质内容 ('专家推荐30只银行股'→'专家只银行股', '不良率从3/4季度
+# 开始下降'→'不良率从季度开始下降')。按媒体类型条件启用: config 开关
+# preprocessing.interaction_noise_patterns_enabled, 默认 false (报纸语料关闭);
+# 网页/APP 语料可显式打开。
+INTERACTION_NOISE_KEYS = frozenset({
+    'view_count', 'count_suffix', 'comment_count',
+    'like_count', 'collect_count', 'share_count',
+})
+# pagination 中匹配任意 `数字/数字` 的裸分数支 (如 '3/4季度') — 与互动计数族同开关
+_PAGINATION_BARE_FRACTION_BRANCH = r'|\d+\s*/\s*\d+'
+INTERACTION_NOISE_ENABLED = bool(PARAMS.get('interaction_noise_patterns_enabled', False))
+
+
+def filter_noise_patterns(noise_data: dict, interaction_enabled: bool) -> list:
+    """从 noise_patterns.json 数据中选取生效的噪声模式 (跳过 ``_`` 注释键).
+
+    fix(omni-g-preprocess-03, 2026-06-11): ``interaction_enabled=False`` (报纸
+    语料默认) 时整键剔除互动计数族 (INTERACTION_NOISE_KEYS) 并从 pagination
+    模式中摘除裸 ``\\d+/\\d+`` 支, 防止报纸正文实质内容被误删。
+    """
+    patterns = []
+    for k, v in noise_data.items():
+        if k.startswith('_'):
+            continue
+        if not interaction_enabled:
+            if k in INTERACTION_NOISE_KEYS:
+                continue
+            if k == 'pagination':
+                stripped = v.replace(_PAGINATION_BARE_FRACTION_BRANCH, '')
+                if stripped == v:
+                    logger.warning(
+                        "pagination 模式中未找到预期的裸 \\d+/\\d+ 支 "
+                        "(noise_patterns.json 已变更?), 保留原模式"
+                    )
+                v = stripped
+        patterns.append(v)
+    return patterns
+
+
 # 噪声模式正则(从 JSON 文件加载, 支持热更新而无需改代码)
 try:
     with open(CONFIG['paths']['noise_patterns_file'], 'r', encoding='utf-8') as f:
         noise_data = json.load(f)
-        # 跳过以 '_' 开头的注释键
-        noise_patterns_list = [v for k, v in noise_data.items() if not k.startswith('_')]
-        logger.info(f"已加载 {len(noise_patterns_list)} 个噪声模式")
+        noise_patterns_list = filter_noise_patterns(noise_data, INTERACTION_NOISE_ENABLED)
+        logger.info(
+            f"已加载 {len(noise_patterns_list)} 个噪声模式 "
+            f"(互动计数族{'启用' if INTERACTION_NOISE_ENABLED else '关闭 — 报纸语料默认'})"
+        )
 except Exception as e:
     logger.error(f"无法加载噪声模式文件: {e}")
     noise_patterns_list = []
@@ -150,7 +200,15 @@ except Exception as e:
 control_char_pattern_str = r'[\x00-\x1f\x7f-\x9f]'
 url_pattern = re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+')
 email_pattern = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b')
-phone_pattern = re.compile(r'(?:\+?86)?1[3-9]\d{9}|\d{3,4}[-\s]?\d{7,8}')
+# fix(omni-g-preprocess-02, 2026-06-11): 两支均加 (?<!\d)/(?!\d) 数字边界锚 —
+# 旧模式无锚定, 会匹配更长数字串内部的 10-12 位子串并部分截删, 残留尾部数字
+# 拼出全新错误数值 (如 '总资产138000000000元'→'总资产0元')。锚定后长数字串
+# (>12 位) 完全不动; 恰为 10-12 位的独立数字串仍整体命中 (与真实电话格式
+# 不可区分, 已知保守行为), 但不再产生部分截删的拼接残值。
+phone_pattern = re.compile(
+    r'(?<!\d)(?:\+?86)?1[3-9]\d{9}(?!\d)'   # 手机号 (可带 +86/86 前缀)
+    r'|(?<!\d)\d{3,4}[-\s]?\d{7,8}(?!\d)'   # 座机号 (区号 + 可选分隔符)
+)
 emoji_pattern = re.compile(
     "["
     "\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF"
@@ -187,17 +245,48 @@ except re.error as e:
     UNIFIED_CLEANUP_PATTERN = None
 
 # 尾部清理: 重复字符 + 冗余标点 + 空白序列, 合并为单个正则
+# fix(omni-g-preprocess-01, 2026-06-11): 重复压缩支排除数字 [^0-9] — 旧 `(.)\1{2,}`
+# 对任意字符 (含数字) 的 ≥3 连续重复一律压缩为 2 个, 把金融文本中圆整金额/年份/
+# 指数/股票代码的连零量级吞掉 (1000亿→100亿, 2000年→200年, 600000→600),
+# 且事后不可逆。标点/空白两支保持不变。
 TAIL_CLEANUP_PATTERN = re.compile(
-    r'(.)\1{2,}'                        # 重复字符 (如 'aaaaa' → 'aa')
+    r'([^0-9])\1{2,}'                   # 重复字符 (排除数字; 如 'aaaaa' → 'aa')
     r'|([,，.。!！?？;；:：、])\2+'     # 冗余标点 (如 '。。。' → '。')
     r'|\s+'                              # 空白字符序列 → 单个空格
 )
 
 # 广告关键词模式: 支持字符间插入空白的弹性匹配(如"广 告"也能匹配"广告")
-AD_PATTERN = None
+# fix(omni-g-preprocess-05, 2026-06-11): 高误伤词 (公告/通知/声明/通报/风险提示/
+# 年度报告, config: preprocessing.ad_keywords_title_anchored) 在标题字段改为
+# **行尾锚定** 匹配 (如 '……公告$' 才删) — 旧无锚定子串匹配把货币政策公告报道
+# ('央行公告下调存准率')、监管风险提示新闻、年报解读等真监管新闻整篇删除,
+# 与监管事件强度强相关 → 非随机样本选择。版面/栏名字段保持无锚定 (付费公告
+# 版面仍全量排除, 行为不变)。披露: 该排除规则见 filter.py 步骤 5 docstring。
+_AD_KEYWORDS_TITLE_ANCHORED_DEFAULT = [
+    '公告', '通知', '声明', '通报', '风险提示', '年度报告',
+]
+AD_KEYWORDS_TITLE_ANCHORED = PARAMS.get(
+    'ad_keywords_title_anchored', _AD_KEYWORDS_TITLE_ANCHORED_DEFAULT
+)
+
+
+def _flex_kw(kw: str) -> str:
+    """关键词 → 字符间可插空白的弹性正则片段 (如 '广告' → '广\\s*告')."""
+    return r'\s*'.join(list(kw))
+
+
+AD_PATTERN = None         # 版面/栏名用: 全部关键词, 无锚定 (行为不变)
+AD_PATTERN_TITLE = None   # 标题用: 高误伤词要求行尾锚定
 if AD_KEYWORDS:
-    flexible_patterns = [r'\s*'.join(list(kw)) for kw in AD_KEYWORDS]
-    AD_PATTERN = re.compile('|'.join(flexible_patterns), re.IGNORECASE)
+    AD_PATTERN = re.compile(
+        '|'.join(_flex_kw(kw) for kw in AD_KEYWORDS), re.IGNORECASE
+    )
+    _anchored_set = set(AD_KEYWORDS_TITLE_ANCHORED)
+    _title_parts = (
+        [_flex_kw(kw) for kw in AD_KEYWORDS if kw not in _anchored_set]
+        + [_flex_kw(kw) + r'\s*$' for kw in AD_KEYWORDS if kw in _anchored_set]
+    )
+    AD_PATTERN_TITLE = re.compile('|'.join(_title_parts), re.IGNORECASE)
 
 # 中国大陆地区名匹配
 REGION_PATTERN = (
@@ -218,15 +307,18 @@ __all__ = [
     'logger', 'nb_workers',
     # data constants
     'KEY_COLUMNS', 'MEDIA_TYPES_TO_INCLUDE', 'REQUIRED_COLUMNS', 'SHEET_NAME',
-    'MAINLAND_CHINA_REGIONS', 'AD_KEYWORDS', 'MEDIA_NAMES_TO_EXCLUDE',
-    'MEDIA_NAME_OVERRIDES', 'TEXT_COLUMNS',
+    'MAINLAND_CHINA_REGIONS', 'AD_KEYWORDS', 'AD_KEYWORDS_TITLE_ANCHORED',
+    'MEDIA_NAMES_TO_EXCLUDE', 'MEDIA_NAME_OVERRIDES', 'TEXT_COLUMNS',
+    'PREPROCESS_CODE_VERSION',
     # raw resource lists
     'noise_patterns_list', 'BANK_KEYWORDS',
+    # noise gating (fix omni-g-preprocess-03)
+    'INTERACTION_NOISE_KEYS', 'INTERACTION_NOISE_ENABLED', 'filter_noise_patterns',
     # translation table
     'COMBINED_TRANS',
     # compiled regexes
     'url_pattern', 'email_pattern', 'phone_pattern', 'emoji_pattern',
     'combined_removal_pattern', 'UNIFIED_CLEANUP_PATTERN',
-    'TAIL_CLEANUP_PATTERN', 'AD_PATTERN', 'REGION_PATTERN',
+    'TAIL_CLEANUP_PATTERN', 'AD_PATTERN', 'AD_PATTERN_TITLE', 'REGION_PATTERN',
     'CHINESE_CHAR_PATTERN', 'MEDIA_TYPES_INCLUDE_SET',
 ]

@@ -32,12 +32,21 @@ outcome:
     event-window CAR construction per §5.3.2 M0.5.11)
 
 treatment:
-  primary: innovation_substantiveness_full  # R35-M01 同步 CLAUDE.md v3.2.0 pipeline 实际列名
-  alternative: [innovation_substantiveness_ctx, substantive_minus_symbolic_gap]
-  alternative_construction:  # R29-m01 + R35-M01 derived 字段说明
-    substantive_minus_symbolic_gap: innovation_substantiveness_full - (1 - innovation_substantiveness_full)  # M0.5.X / stage 24-40 panel construct 阶段衍生
+  # fix(omni-g-papers-misc-11, 2026-06-11): 旧 primary=innovation_substantiveness_full
+  # 是文章级中文分类字符串 (实质性/象征性, 21_tone_llms dtype=str), 在 40/51
+  # bank-year panel 0 命中 (幻影列; 旧注 "R35-M01 pipeline 实际列名" 不实)。
+  # 改指 panel 真实物化的 bank-year 占比编码 (encode.py, 分母=n_articles_llm_valid)。
+  primary: sub_frac        # 实质性新闻占比 (full 轨; W&Z substantive share)
+  alternative: [sub_frac_sc, substantive_minus_symbolic_gap]  # sub_frac_sc = ctx 轨 (分母=n_articles_llm_valid_ctx)
+  alternative_construction:  # R29-m01 derived 字段说明 (公式改为对 frac 列的运算, 类型自洽; 旧式对分类字符串做算术)
+    substantive_minus_symbolic_gap: sub_frac - symb_frac  # ∈ [-1, +1]; M0.5.X / Stata 01_data_prep 衍生 (尚未落 parquet)
 
 controls:
+  # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/
+  # leverage/capital_ratio/npl_ratio/deposit_growth) + year_level 宏观 2 列
+  # (gdp_growth/m2_growth) 在当前 bank-year panel (40/51) 全为 0 命中 —
+  # enrichment pending (M0.5.11 / config/银行面板2007-2025年.xlsx 待接入)。
+  # 复现包 01_data_prep 以 capture confirm 自校验拼装 $controls, 只用实存列。
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]

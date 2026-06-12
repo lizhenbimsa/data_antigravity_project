@@ -202,13 +202,30 @@ def test_build_audit_panel_happy_path_mocked(tmp_path, monkeypatch):
     assert meta['embedding_dim'] == emb_dim
 
 
+def _write_emb_with_sidecar(path, emb, model_id='text-embedding-3-small'):
+    """fix(omni-g-benefit-01, 2026-06-11): 测试 helper — 写 .npy + 必备 sidecar."""
+    import json
+    np.save(path, emb)
+    with open(f"{path}.sidecar.json", 'w', encoding='utf-8') as f:
+        json.dump({
+            'model_id': model_id,
+            'n_rows': int(emb.shape[0]),
+            'dim': int(emb.shape[1]),
+        }, f)
+
+
 def test_main_full_args_writes_panel_and_sidecar(tmp_path, monkeypatch):
-    """main() 带全部输入参数 → 跑通到 write parquet + sidecar (lines 213-231)."""
+    """main() 带全部输入参数 → 跑通到 write parquet + sidecar。
+
+    旧行为断言更新注明 (fix(omni-g-benefit-01, 2026-06-11)): 输入 .npy 现要求
+    sibling .sidecar.json (model_id/n_rows) — 无 sidecar 的陈旧 npy fail-loud;
+    fixture 据此补 sidecar。
+    """
     from unittest.mock import patch
 
     import news_process.pipeline.features.benefit_society_audit_combined as mod
 
-    # 写 fixture files
+    # 写 fixture files (.npy + sidecar)
     emb = np.zeros((2, 8), dtype=np.float32)
     df_exp = pd.DataFrame({
         'target_bank': ['A', 'B'],
@@ -221,7 +238,7 @@ def test_main_full_args_writes_panel_and_sidecar(tmp_path, monkeypatch):
     df_path = tmp_path / 'df.parquet'
     dir_path = tmp_path / 'dir.npy'
     out_path = tmp_path / 'out' / 'panel.parquet'
-    np.save(emb_path, emb)
+    _write_emb_with_sidecar(emb_path, emb)
     df_exp.to_parquet(df_path)
     np.save(dir_path, direction)
 

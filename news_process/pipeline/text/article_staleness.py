@@ -16,14 +16,31 @@ dedup.py:94 的 jaccard 布尔决策互补.
 
 双指标 panel 列 (G-S7 设计):
     ``surface_staleness_{full,ctx}``     (与 MinHash jaccard 相关性 ≥ 80%)
-    ``semantic_staleness_{full,ctx}``    (Tetlock 2011 RFS 24(5):1481-1512 原文 cosine 范式)
+    ``semantic_staleness_{full,ctx}``    (SBERT cosine 扩展轨, Tetlock 2011 RFS 启发)
     ``staleness_corr``                  panel-level surface vs semantic 相关性
 
 学术依据
 --------
 Tetlock, P. C. (2011). All the news that's fit to reprint: Do investors
 react to stale information? Review of Financial Studies, 24(5), 1481-1512.
-→ 主指标用 cosine staleness, return reversal 实证证据
+→ staleness 构念锚点 (return reversal 实证证据)
+
+构念保真披露 — fix(omni-g-embed-02, 2026-06-11)
+------------------------------------------------
+本实现与 Tetlock (2011) 原度量有两点刻意偏离, 论文/codebook 引用时须如实披露:
+1. **匹配域**: Tetlock 原文按 *同一公司* 过去 72h 内最近 10 篇旧故事匹配; 本实现
+   两轨均为 **corpus-level (全银行混池) 7d 日粒度窗口** — 度量"银行业信息环境"层面
+   的 staleness, 非严格的同公司旧闻重印率 (银行 A 的文章与上周关于银行 B 的行业
+   通稿相似亦计为 stale)。
+2. **相似度函数**: Tetlock 原文是词重叠比率 (与本模块 surface jaccard 轨同族);
+   semantic 轨的 SBERT 嵌入 cosine 是 *扩展* 而非"原文范式" (2011 年不存在 SBERT)。
+
+聚合域披露 — fix(omni-g-embed-06/08, 2026-06-11)
+------------------------------------------------
+staleness 的 *参照窗口* (过去 7d 信息环境基准) 用 stage 13 预筛全集; bank-year
+*平均域* 则收缩到 verified 面板语料 ((docid, target_bank) 内连 24_herd_decay /
+21_tone_llms), 与面板兄弟列 (tone/herd/intensity, 聚合自 verified-union) 口径
+一致。见 ``_restrict_to_panel_domain``。
 
 Gentzkow, M., Shapiro, J. M., & Taddy, M. (2019). Text as data. Journal of
 Economic Literature, 57(3), 535-574.
@@ -194,13 +211,20 @@ def compute_semantic_staleness(
 ) -> np.ndarray:
     """每篇文章 semantic staleness = max cosine sim in past 7d (Faiss-accelerated).
 
+    fix(omni-g-embed-01, 2026-06-11): 窗口改为日粒度 [d-7d, d) 且**严格排除同日行**,
+    与 surface 轨 (`day_arr[window_end_pos] < d`) 语义对齐。此前时间戳粒度窗口含
+    同日更早行 — 流水线把同一篇文章 (同 docid) 按 matched bank 复制成多行后,
+    dup 组内第 2+ 行与第 1 行 cosine=1.0, semantic staleness 机械=1.0 (盘上
+    155/155 同日 dup 行全 =1.0, semantic_highstale 信号几乎纯由该 artifact 驱动),
+    且哪一行得 1.0 取决于任意输入行序。修后两轨窗口/NaN 口径一致。
+
     Args:
         df: article-level DataFrame (按 date_col 升序对齐 embeddings 行).
         embeddings: (N, 768) SBERT embeddings (normalize_embeddings=True 假设).
         date_col: 日期列名.
 
     Returns:
-        np.ndarray of shape (N,); 第 1 周内文章为 NaN.
+        np.ndarray of shape (N,); 窗口空 (含首周/仅同日邻居) 的文章为 NaN.
     """
     try:
         import faiss
@@ -218,6 +242,8 @@ def compute_semantic_staleness(
     df_sorted = df.iloc[sort_idx].reset_index(drop=True)
     embs_sorted = embeddings[sort_idx]
     dates = pd.to_datetime(df_sorted[date_col], errors='coerce')
+    # fix(omni-g-embed-01, 2026-06-11): day 粒度 (剥离时分秒), 与 surface 轨 L139 对齐
+    day_vals = dates.dt.normalize().values  # datetime64[ns], NaT-aware
 
     N, dim = embs_sorted.shape
     stale = np.full(N, np.nan)
@@ -228,23 +254,33 @@ def compute_semantic_staleness(
 
     t0 = time.time()
     window_start_idx = 0
+    window_end_idx = 0  # 首个 day_j >= 当前日 d 的位置 (同日行被排除在窗口外)
     for i in range(N):
-        if pd.isna(dates.iloc[i]):
+        if pd.isna(day_vals[i]):
             continue
-        cutoff = dates.iloc[i] - timedelta(days=WINDOW_DAYS)
+        d = day_vals[i]
+        cutoff = d - np.timedelta64(WINDOW_DAYS, 'D')
         # 移除窗外 (P-013 修复: 镜像 compute_surface_staleness L144-147 的 NaT 守卫.
         # 不加 pd.isna 守卫时, NaT < cutoff 返 False, 窗口起点冻结在 NaT 行.)
         while window_start_idx < i and (
-            pd.isna(dates.iloc[window_start_idx])
-            or dates.iloc[window_start_idx] < cutoff
+            pd.isna(day_vals[window_start_idx])
+            or day_vals[window_start_idx] < cutoff
         ):
             window_start_idx += 1
+        # fix(omni-g-embed-01, 2026-06-11): 窗口终点 = 首个 day_j >= d 的行 —
+        # 严格排除同日行 (镜像 surface 轨 window_end_pos 的 `day < d` 推进条件)
+        if window_end_idx < window_start_idx:
+            window_end_idx = window_start_idx
+        while window_end_idx < i and (
+            pd.notna(day_vals[window_end_idx]) and day_vals[window_end_idx] < d
+        ):
+            window_end_idx += 1
+        if window_end_idx <= window_start_idx:
+            continue  # 窗口空 → NaN (与 surface 轨空窗口口径一致)
         # 重建 index (滚动重建; FlatIP 重建成本与 size 线性)
         index.reset()
-        if window_start_idx >= i:
-            continue
-        index.add(embs_sorted[window_start_idx:i].astype(np.float32))
-        # 查询 top-1 (除自己)
+        index.add(embs_sorted[window_start_idx:window_end_idx].astype(np.float32))
+        # 查询 top-1 (除自己与同日行)
         D_sim, I_idx = index.search(embs_sorted[i:i + 1].astype(np.float32), 1)
         stale[i] = float(D_sim[0, 0]) if D_sim.shape[1] > 0 else 0.0
 
@@ -291,6 +327,123 @@ def aggregate_to_bank_year(article_df: pd.DataFrame) -> pd.DataFrame:
     return panel
 
 
+def _load_aligned_embeddings(
+    art_df: pd.DataFrame, emb_path: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    """读取 stage 30a embeddings 并按 article_id 显式 join 对齐到 art_df 行序.
+
+    fix(omni-g-embed-03/09, 2026-06-11): 此前 `np.stack(emb_df['emb_full'])` 纯位置
+    对齐, 与 13_news_with_ctx 的对应完全靠隐式行序 — stage 13 重生而 30a (4-6h
+    手动重负载 stage) 陈旧时, 行数恰相等会**静默整列错位** (semantic staleness 全为
+    噪声且不可见)。现按 article_id 键 reindex (30a 写出 article_id = stage 13 的
+    df.index, 见 article_sbert.py::_build_output_frame), 长度不等/键缺失/键重复或
+    辅键 (target_bank/日期) 逐行不一致时 fail-loud 退出, 提示重跑 30a。
+
+    Returns:
+        (embs_full, embs_ctx): 均为 (N, dim) ndarray, 行序与 art_df 一致。
+    """
+    emb_df = pd.read_parquet(emb_path)
+
+    if 'article_id' not in emb_df.columns:
+        logger.error(f"  30a 缺 article_id 键列, 无法显式对齐: {emb_path}")
+        sys.exit(1)
+    if len(emb_df) != len(art_df):
+        logger.error(
+            f"  30a 行数 {len(emb_df)} != stage 13 行数 {len(art_df)} — "
+            f"30a 陈旧 (stage 13 重生后未重跑 30a), 请先重跑 30a"
+        )
+        sys.exit(1)
+
+    # 与 30a 产出端同构的键: art_df 有 article_id 列用之, 否则 = 行索引
+    # (read_parquet 后为 RangeIndex, 与 30a 写出时的 df.index 同构)
+    expected_ids = (
+        art_df['article_id'] if 'article_id' in art_df.columns
+        else pd.Series(art_df.index)
+    ).to_numpy()
+
+    emb_keyed = emb_df.set_index('article_id')
+    if emb_keyed.index.duplicated().any():
+        logger.error("  30a article_id 键重复, 无法 1:1 对齐, 请重跑 30a")
+        sys.exit(1)
+    missing = pd.Index(expected_ids).difference(emb_keyed.index)
+    if len(missing) > 0:
+        logger.error(
+            f"  30a 缺 {len(missing)} 个 article_id (如 {list(missing[:5])}) — "
+            f"30a 陈旧, 请重跑 30a"
+        )
+        sys.exit(1)
+    emb_aligned = emb_keyed.reindex(expected_ids)
+
+    # 辅键校验: target_bank / 日期 逐行一致 (仅当两 parquet 同源同一 stage-13 快照
+    # 才成立; 不一致 = 30a 陈旧 → fail-loud, 防静默错配文章-向量对)
+    for key in ('target_bank', '日期'):
+        if key in emb_aligned.columns and key in art_df.columns:
+            a = emb_aligned[key].reset_index(drop=True)
+            b = art_df[key].reset_index(drop=True)
+            if key == '日期':
+                a = pd.to_datetime(a, errors='coerce')
+                b = pd.to_datetime(b, errors='coerce')
+            mism = ~((a == b) | (a.isna() & b.isna()))
+            if bool(mism.any()):
+                logger.error(
+                    f"  30a 与 stage 13 的 {key} 不一致 {int(mism.sum())} 行 — "
+                    f"两文件非同一 stage-13 快照, 请重跑 30a"
+                )
+                sys.exit(1)
+
+    # 模型 provenance (g-embed-03 产出端新增列; 旧版 parquet 无 → 仅 WARN 不阻塞)
+    if 'model_id' in emb_aligned.columns:
+        logger.info(f"  30a 模型 provenance: {emb_aligned['model_id'].iloc[0]}")
+    else:
+        logger.warning(
+            "  30a 无 model_id provenance 列 (旧版 parquet); 建议重跑 30a 落 provenance"
+        )
+
+    embs_full = np.stack(emb_aligned['emb_full'].tolist())
+    embs_ctx = np.stack(emb_aligned['emb_ctx'].tolist())
+    return embs_full, embs_ctx
+
+
+def _restrict_to_panel_domain(art_df: pd.DataFrame, output_dir: str) -> pd.DataFrame:
+    """bank-year 聚合前把 *平均域* 收缩到 verified 面板语料 (参照窗口仍用全集).
+
+    fix(omni-g-embed-06/08, 2026-06-11): 此前聚合域 = stage 13 预筛全集 (盘上 1170
+    篇), 而面板全部兄弟文章级测度 (tone/herd/intensity/salience) 聚合自 24_herd_decay
+    (= stage 21 LLM 双轨验证并集, 盘上 857 篇): 26.8% 被 LLM 判定并非真正关于该银行
+    的文章混入 staleness 均值 (27% bank-year 偏移 >0.01, 最大 ≈10.6% 量程), 并产生
+    n_articles==0 却带非缺 staleness 的幻影 bank-year 行。staleness 的 *参照窗口*
+    (过去 7d 信息环境) 刻意保留全集 — compute_* 已在全集上算完, 本函数仅过滤进入
+    bank-year 均值的行: (docid, target_bank) 内连 24_herd_decay (缺则回退
+    21_tone_llms)。两文件均缺时 ERROR 披露口径降级并退回全集 (不静默)。
+    """
+    if not {'docid', 'target_bank'}.issubset(art_df.columns):
+        logger.error(
+            "⚠ 口径降级[staleness]: art_df 缺 docid/target_bank 键, 聚合域无法收缩到 "
+            "verified 语料 → 退回 stage-13 预筛全集 "
+            "(与面板兄弟列聚合域不一致, 勿用于发表对比)"
+        )
+        return art_df
+    for fname in ('24_herd_decay.parquet', '21_tone_llms.parquet'):
+        vpath = os.path.join(output_dir, fname)
+        if not os.path.exists(vpath):
+            continue
+        ver = pd.read_parquet(vpath, columns=['docid', 'target_bank'])
+        vkeys = pd.MultiIndex.from_frame(ver[['docid', 'target_bank']].drop_duplicates())
+        akeys = pd.MultiIndex.from_frame(art_df[['docid', 'target_bank']])
+        mask = np.asarray(akeys.isin(vkeys))
+        logger.info(
+            f"  聚合域: {int(mask.sum())}/{len(art_df)} 行落在 verified 语料 ({fname}); "
+            f"{int((~mask).sum())} 行仅参与参照窗口、不进 bank-year 均值"
+        )
+        return art_df[mask]
+    logger.error(
+        "⚠ 口径降级[staleness]: 24_herd_decay/21_tone_llms 均缺失, bank-year 聚合域"
+        "退化为 stage-13 预筛全集 → 与面板兄弟列 (verified-union) 聚合域不一致, "
+        "勿用于发表对比"
+    )
+    return art_df
+
+
 def main():
     stage_start = time.time()
     logger.info("=" * 60)
@@ -330,9 +483,8 @@ def main():
     # ── D2.b Semantic staleness (双轨, 依赖 stage 30a) ──
     emb_path = os.path.join(output_dir, '30a_article_embeddings.parquet')
     if os.path.exists(emb_path):
-        emb_df = pd.read_parquet(emb_path)
-        embs_full = np.stack(emb_df['emb_full'].tolist())
-        embs_ctx = np.stack(emb_df['emb_ctx'].tolist())
+        # fix(omni-g-embed-03/09, 2026-06-11): article_id 显式 join 取代裸位置对齐
+        embs_full, embs_ctx = _load_aligned_embeddings(art_df, emb_path)
         art_df['semantic_staleness_full'] = compute_semantic_staleness(
             art_df, embs_full,
         )
@@ -347,14 +499,17 @@ def main():
     # ── article-level 持久化 ──
     out_path = os.path.join(output_dir, '18_article_staleness.parquet')
     keep_cols = (
-        ['target_bank', 'year']
+        # docid 透传 (provenance 键, 供下游 join / 聚合域审计; 旧 schema 缺则跳过)
+        [c for c in ('docid',) if c in art_df.columns]
+        + ['target_bank', 'year']
         + [c for c in art_df.columns if 'staleness' in c]
     )
     art_df[keep_cols].to_parquet(out_path, index=False)
     logger.info(f"  article-level → {out_path}")
 
     # ── bank-year 聚合 ──
-    panel = aggregate_to_bank_year(art_df)
+    # fix(omni-g-embed-06/08, 2026-06-11): 平均域收缩到 verified 面板语料
+    panel = aggregate_to_bank_year(_restrict_to_panel_domain(art_df, output_dir))
     panel_path = os.path.join(output_dir, '18_staleness_panel.parquet')
     panel.to_parquet(panel_path, index=False)
     logger.info(f"  bank-year → {panel_path} ({len(panel)} 行)")

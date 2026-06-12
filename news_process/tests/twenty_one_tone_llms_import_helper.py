@@ -6,16 +6,38 @@
 替代方案: 直接内联 compute_prob_score 的逻辑用于测试。
 """
 
+import math
+
+
 def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
     """compute_prob_score 的测试用独立副本。
-    
-    与 21_tone_llms.py 中的实现完全一致。
+
+    与 pipeline/sentiment/tone_llms.py 中的实现完全一致。
     如果修改了原始函数，此处也需同步更新。
+
+    fix(omni-g-tonellms-07/11, 2026-06-11): 同步生产实现 — NaN / 越界
+    confidence 显式拒绝 (P3_INV, 全 NaN), 不再静默 clip / 满置信。
     """
     LABEL_MAP = {"正面": "positive", "中性": "neutral", "负面": "negative"}
     cls = LABEL_MAP.get(sentiment_label, "neutral")
 
-    c = max(0.0, min(1.0, confidence)) if confidence else 0.0
+    if confidence:
+        try:
+            _c_float = float(confidence)
+        except (TypeError, ValueError):
+            _c_float = float('nan')
+        if math.isnan(_c_float) or _c_float < 0.0 or _c_float > 1.0:
+            _nan = float('nan')
+            return {
+                "prob_pos": _nan,
+                "prob_neu": _nan,
+                "prob_neg": _nan,
+                "prob_score": _nan,
+                "prob_source": "P3_INV",
+            }
+        c = _c_float
+    else:
+        c = 0.0
     if c > 0:
         probs = {k: (1.0 - c) / 2.0 for k in ["positive", "neutral", "negative"]}
         probs[cls] = c

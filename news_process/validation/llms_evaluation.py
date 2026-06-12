@@ -40,6 +40,7 @@ news_process.validation.llms_evaluation — 阶段33：新闻分类模型评估
 """
 
 import json
+import math  # fix(omni-g-val-eval-04, 2026-06-11): 模块级 import — 原局部 import 仅在验证 CI 分支绑定, 情感 CI 分支会 UnboundLocalError
 import os
 import sys
 import time
@@ -66,6 +67,16 @@ from news_process.core.plotting import configure_matplotlib_chinese_fonts
 CONFIG = load_config()
 STAGE_NAME = "33_news_llms_evaluation"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
+
+# fix(omni-g-val-tone-04, 2026-06-11) 构念披露 (写入 results JSON + 日志):
+# 人工金标准源于整篇阅读 (全文构念), 同一份 gold 同时评 _full 与 _ctx 两轨 —
+# _ctx 轨 (主 spec llm_vote_tone_ctx) 的 "误差" 混入 [归因窗口 vs 全文] 的
+# 真实分歧, 其 accuracy 应解释为 [模型误差 + 窗口-全文构念差] 的混合下界,
+# 不可解释为纯模型错误。独立的窗口级金标准待人工采集后可消除此混淆。
+GOLD_CONSTRUCT_DISCLOSURE = (
+    '人工金标准为整篇阅读的全文构念; _ctx 轨指标含归因窗口与全文的真实分歧, '
+    '其 accuracy 为 [模型误差 + 窗口-全文构念差] 的混合下界, 非纯模型误差'
+)
 
 
 # ============================================================================
@@ -401,24 +412,52 @@ def save_confusion_matrix_plot(metrics: dict, classifier_name: str,
 # 4. LaTeX 格式输出
 # ============================================================================
 
+def _demo_marked_path(path: str, demo_mode: bool) -> str:
+    """demo_mode 下给产物文件名加 ``_DEMO`` 后缀 (扩展名前)。
+
+    fix(omni-g-val-eval-02, 2026-06-11): _generate_demo_data 的合成指标此前以
+    与真实运行完全相同的文件名写出 publication-ready 产物 (LaTeX/CSV/PNG/JSON),
+    唯一标记埋在 JSON 字段里; 现 demo 产物一律 ``*_DEMO.<ext>``, 防误用于论文。
+    """
+    if not demo_mode:
+        return path
+    base, ext = os.path.splitext(path)
+    return f"{base}_DEMO{ext}"
+
+
 def generate_latex_table(results: dict, output_path: str, logger_inst):
     """生成 LaTeX 格式的评估结果表格，分任务输出。
 
+    fix(omni-g-val-eval-02, 2026-06-11): ``results['demo_mode']`` 为 True 时,
+    caption 加 [SYNTHETIC-DEMO] 前缀并在表头插入警示行 — 合成数据防误抄进论文。
+
     Args:
-        results:     包含各项测试指标的字典。
+        results:     包含各项测试指标的字典 (含 ``demo_mode`` 标志)。
         output_path: .tex 文件保存路径。
         logger_inst: 日志记录器。
     """
+    demo_mode = bool(results.get('demo_mode', False))
+    caption = 'Validation and Sentiment Performance Evaluation'
+    if demo_mode:
+        caption = '[SYNTHETIC-DEMO] ' + caption
     lines = [
         r"\begin{table}[htbp]",
         r"\centering",
-        r"\caption{Validation and Sentiment Performance Evaluation}",
+        rf"\caption{{{caption}}}",
         r"\label{tab:dual_task_classification_eval}",
         r"\begin{tabular}{lcccc}",
         r"\hline",
+    ]
+    if demo_mode:
+        lines.extend([
+            r"\multicolumn{5}{l}{\textbf{WARNING: SYNTHETIC DEMO DATA (seed-generated) "
+            r"--- NOT real human annotation; do not cite}} \\",
+            r"\hline",
+        ])
+    lines.extend([
         r"Task/Classifier & Precision & Recall & F1-Score & Accuracy \\",
         r"\hline",
-    ]
+    ])
 
     # 添加 Verification 评估结果
     lines.append(r"\multicolumn{5}{l}{\textbf{Panel A: Verification Task (Binary)}} \\")
@@ -816,6 +855,7 @@ def diagnose_misclassification_bias(
     track: str = '_full',
     logger_inst=None,
     output_dir: str = None,
+    demo_mode: bool = False,
 ) -> dict:
     """第一阶段误分类 vs 下游变量系统相关性诊断。
 
@@ -836,21 +876,27 @@ def diagnose_misclassification_bias(
       T5: 误分类 vs 正确 文本长度 (t-test) — 长度偏差
       T6: 误分类 vs 正确 置信度 (t-test)   — 置信度校准
 
+    诊断域 (fix(omni-g-val-eval-01/03, 2026-06-11)): 金标准缺失 (NaN) / 待仲裁
+    哨兵 (-1) 行从诊断域剔除 — 旧 fillna(0) 把无金标准行伪造成 gold=0, 制造虚假
+    FP/TN 象限; 剔除条数记入返回值 ``n_gold_excluded``。
+
     Args:
         df_verify:    金标准验证样本 DataFrame。
         gold_ver_col: 黄金标准验证列名（如 '最终_验证'）。
         track:        轨道后缀（'_full' 或 '_ctx'）。
         logger_inst:  日志记录器（可选）。
         output_dir:   CSV 输出目录（可选）。
+        demo_mode:    True 时诊断 CSV 文件名加 _DEMO 后缀 (omni-g-val-eval-02)。
 
     Returns:
-        dict: 包含四象限计数、检验结果列表和总体结论。
+        dict: 包含四象限计数、检验结果列表、剔除计数和总体结论。
     """
     ver_col = f'llm_verified{track}'
     sent_col = f'llm_sentiment{track}'
     lg = logger_inst
 
-    diag = {'track': track, 'tests': [], 'quadrant_counts': {}, 'conclusion': ''}
+    diag = {'track': track, 'tests': [], 'quadrant_counts': {},
+            'conclusion': '', 'n_gold_excluded': 0}
 
     # ── 安全检查 ──
     if gold_ver_col not in df_verify.columns or ver_col not in df_verify.columns:
@@ -863,7 +909,18 @@ def diagnose_misclassification_bias(
         lg.info(f"  [{track}] 开始诊断: 金标准列='{gold_ver_col}', 预测列='{ver_col}', 样本数={len(df_verify)}")
 
     df = df_verify.copy()
-    df['_gold'] = pd.to_numeric(df[gold_ver_col], errors='coerce').fillna(0).astype(int)
+    # fix(omni-g-val-eval-01/03, 2026-06-11): 金标准 NaN / 待仲裁哨兵 (-1) 行从
+    # 诊断域剔除, 不再 fillna(0) 伪造 gold=0 (虚假 FP/TN 象限); 剔除数单独报告。
+    _gold_num = pd.to_numeric(df[gold_ver_col], errors='coerce')
+    _gold_valid = _gold_num.isin([0, 1])
+    diag['n_gold_excluded'] = int(len(df) - int(_gold_valid.sum()))
+    if diag['n_gold_excluded'] > 0 and lg:
+        lg.info(
+            f"  [{track}] 剔除无效金标准行 (NaN/-1 待仲裁): "
+            f"{diag['n_gold_excluded']} 条 (剩余 {int(_gold_valid.sum())} 条进入诊断域)"
+        )
+    df = df.loc[_gold_valid].copy()
+    df['_gold'] = _gold_num.loc[_gold_valid].astype(int)
     # 处理 bool / str / int 混合类型
     _pred_raw = df[ver_col].fillna(False)
     if _pred_raw.dtype == object:
@@ -1052,7 +1109,11 @@ def diagnose_misclassification_bias(
                     'skipped': t.get('skipped', False),
                     'skip_reason': t.get('skip_reason', ''),
                 })
-            csv_path = os.path.join(output_dir, f'misclassification_bias_diag{track}.csv')
+            # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 产物加 _DEMO 后缀
+            csv_path = _demo_marked_path(
+                os.path.join(output_dir, f'misclassification_bias_diag{track}.csv'),
+                demo_mode,
+            )
             pd.DataFrame(rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
             if lg:
                 lg.info(f"  [{track}] 诊断 CSV 已保存: {csv_path}")
@@ -1063,12 +1124,46 @@ def diagnose_misclassification_bias(
     return diag
 
 
+def _sentiment_eval_domain(frame: pd.DataFrame, pred_col: str,
+                           gold_col: str, labels: list):
+    """情感任务评估域构造: 剔除预测缺失/非法标签行, 返回 (y_gold, y_pred, coverage, valid_mask)。
+
+    fix(omni-g-val-eval-01/05, 2026-06-11): 旧实现 ``fillna('中性')`` +
+    ``np.where(非法标签→'中性')`` 把模型未输出情感的行 (调用失败/投票平局/
+    未通过相关性验证 → NaN) 伪造成"中性预测"计入 accuracy/F1/混淆矩阵,
+    且双轨失败率不对称 (ctx NaN 率 ≈ 3× full) 直接污染双轨对比结论。
+    现从评估域剔除无有效预测行, coverage (有效预测占比) 单独报告 —
+    与 tone_validation.py / panel encode 的 NA 语义 (测量失败 → 排除) 对齐。
+
+    Returns:
+        tuple: (y_gold ndarray, y_pred ndarray, coverage dict, valid_mask Series)
+    """
+    pred_str = frame[pred_col].astype(str).str.strip()
+    valid_mask = frame[pred_col].notna() & pred_str.isin(labels)
+    n_total = len(frame)
+    n_valid = int(valid_mask.sum())
+    coverage = {
+        'n_gold': n_total,
+        'n_valid_pred': n_valid,
+        'n_excluded_invalid_pred': n_total - n_valid,
+        'coverage': round(n_valid / n_total, 4) if n_total else 0.0,
+    }
+    y_gold = frame.loc[valid_mask, gold_col].to_numpy()
+    y_pred = pred_str[valid_mask].to_numpy()
+    return y_gold, y_pred, coverage, valid_mask
+
+
 # ============================================================================
 # 5. 主函数
 # ============================================================================
 
 def main():
     """分类有效性评估主入口。
+
+    评估域语义 (fix(omni-g-val-eval-01/02/03/05, 2026-06-11)):
+        金标准排除待仲裁哨兵 (-1/'待仲裁'); 情感预测 NaN/非法标签行从评估域剔除
+        并报告 coverage (不再伪造'中性'); demo_mode 全部产物加 _DEMO 后缀 +
+        [SYNTHETIC-DEMO] caption; 优先读取 *_merged.xlsx 合并标注产物。
 
     .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
@@ -1089,6 +1184,14 @@ def main():
         CONFIG['paths']['output_dir'],
         CONFIG['filenames'].get('output_32_human_sample', '32_news_llms_human_samples.xlsx')
     )
+    # fix(omni-g-val-eval-03, 2026-06-11): 显式优先读取 merge_annotations 产物
+    # (*_merged.xlsx, 含双编码者共识黄金标准 最终_* 列 — llms_human.py 默认命名);
+    # 旧实现从不读合并产物, 需手工改名才被消费。缺失时回退原始标注文件。
+    _vp_base, _vp_ext = os.path.splitext(verify_path)
+    _merged_path = f"{_vp_base}_merged{_vp_ext}"
+    if os.path.exists(_merged_path):
+        logger.info(f"检测到标注合并产物, 优先使用: {_merged_path}")
+        verify_path = _merged_path
     output_dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
     os.makedirs(output_dir, exist_ok=True)
 
@@ -1189,9 +1292,20 @@ def main():
         else:
             gold_sen_col = None
 
-    has_gold_ver = df_verify[gold_ver_col].notna()
+    # fix(omni-g-val-eval-03, 2026-06-11): 金标准提取排除待仲裁哨兵值。
+    # merge_annotations 把编码者分歧行写成 最终_验证=-1 (llms_human.py:229);
+    # 旧 notna() mask 让 -1 进入 accuracy 分母, 且对 labels=[0,1] 的 P/R/F1
+    # 构成虚假 FP (口径与 accuracy 分裂)。现仅 {0,1} 进入评估域,
+    # 待仲裁行数作为 attrition 单独报告。
+    _gold_ver_num = pd.to_numeric(df_verify[gold_ver_col], errors='coerce')
+    has_gold_ver = _gold_ver_num.isin([0, 1])
+    n_pending_ver = int((_gold_ver_num == -1).sum())
     n_gold_ver = int(has_gold_ver.sum())
     logger.info(f"有【验证】黄金标准的样本数: {n_gold_ver}")
+    if n_pending_ver > 0:
+        logger.info(
+            f"  [attrition] 验证待仲裁哨兵行 (最终_验证=-1) 已从评估域排除: {n_pending_ver} 条"
+        )
 
     if n_gold_ver == 0:
         logger.error("黄金标准样本数为 0，无法评估。请先完成人工编码。")
@@ -1201,6 +1315,11 @@ def main():
         'demo_mode': demo_mode,
         'n_samples': len(df_verify),
         'n_gold_ver': n_gold_ver,
+        # fix(omni-g-val-eval-03, 2026-06-11): 待仲裁哨兵剔除数作为 attrition 报告
+        'gold_standard_attrition': {
+            'verification_pending_arbitration': n_pending_ver,
+            'sentiment_pending_arbitration': 0,
+        },
         'inter_coder_reliability': {
             'verification': {},
             'sentiment': {}
@@ -1311,9 +1430,13 @@ def main():
             logger.info(f"    Macro F1:  {llm_metrics['macro']['f1']:.4f}")
             logger.info(f"    Accuracy:  {llm_metrics['accuracy']:.4f}")
 
+            # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 产物加 DEMO 标记
             save_confusion_matrix_plot(
-                llm_metrics, f'LLM 语义精筛验证 {track}',
-                os.path.join(output_dir, f'cm_verification_llm{track}.png'), logger
+                llm_metrics,
+                ('[SYNTHETIC-DEMO] ' if demo_mode else '') + f'LLM 语义精筛验证 {track}',
+                _demo_marked_path(
+                    os.path.join(output_dir, f'cm_verification_llm{track}.png'), demo_mode),
+                logger
             )
 
     # McNemar: 规则 vs LLM_full
@@ -1370,29 +1493,65 @@ def main():
                 'Accuracy': metrics['accuracy'],
             })
         comp_df = pd.DataFrame(comparison_rows)
-        comp_path = os.path.join(output_dir, 'per_model_verification_comparison.csv')
+        # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 产物加 _DEMO 后缀
+        comp_path = _demo_marked_path(
+            os.path.join(output_dir, 'per_model_verification_comparison.csv'), demo_mode)
         comp_df.to_csv(comp_path, index=False, encoding='utf-8-sig')
         logger.info(f"  模型间验证对比 CSV 已保存: {comp_path}")
 
     # 4.2 === 情感任务评估 ===
     logger.info(">>> 评估任务二：情感分类")
     if gold_sen_col is not None:
-        has_gold_sen = df_verify[gold_sen_col].notna() & (df_verify[gold_sen_col] != '')
-        df_eval_sen = df_verify[has_gold_sen].copy()
-        y_gold_sen = df_eval_sen[gold_sen_col].values
-        
         labels_sen = ['正面', '中性', '负面']
-        
+
+        # fix(omni-g-val-tone-04, 2026-06-11): 构念披露 — 整篇阅读的全文 gold
+        # 同时评 _full 与 _ctx 两轨, _ctx 指标含窗口-全文构念差 (非纯模型误差),
+        # 详见模块级 GOLD_CONSTRUCT_DISCLOSURE
+        results['gold_construct_disclosure'] = GOLD_CONSTRUCT_DISCLOSURE
+        logger.info(f"  ⚠ 构念披露: {GOLD_CONSTRUCT_DISCLOSURE}")
+
+        # fix(omni-g-val-eval-03, 2026-06-11): 情感金标准仅接受三个合法标签 —
+        # 排除 merge_annotations 的 '待仲裁' 哨兵 (llms_human.py:259, 旧 mask
+        # notna & !='' 会放行, 拖低中性类 precision 与 accuracy); attrition 单独报告。
+        _gold_sen_raw = df_verify[gold_sen_col]
+        has_gold_sen = _gold_sen_raw.isin(labels_sen)
+        n_pending_sen = int((_gold_sen_raw == '待仲裁').sum())
+        results['gold_standard_attrition']['sentiment_pending_arbitration'] = n_pending_sen
+        if n_pending_sen > 0:
+            logger.info(
+                f"  [attrition] 情感待仲裁哨兵行 (最终_情感='待仲裁') 已从评估域排除: {n_pending_sen} 条"
+            )
+        df_eval_sen = df_verify[has_gold_sen].copy()
+
+        # fix(omni-g-val-eval-01/05, 2026-06-11): 预测缺失/非法标签行从评估域剔除
+        # (不再 fillna('中性') 伪造中性预测), 每个评估单元 coverage 单独报告。
+        results['sentiment_prediction_coverage'] = {}
+
         # LLM 情感评估（双轨对比）
         for track in ['_full', '_ctx']:
             sen_col = f'llm_sentiment{track}'
             if sen_col in df_eval_sen.columns:
-                y_pred_llm_sen = df_eval_sen[sen_col].fillna('中性').astype(str).values
-                y_pred_llm_sen = np.where(np.isin(y_pred_llm_sen, labels_sen), y_pred_llm_sen, '中性')
-                
-                llm_sen_metrics = compute_classification_metrics(y_gold_sen, y_pred_llm_sen, labels=labels_sen)
+                y_gold_sen_t, y_pred_llm_sen, cov, valid_mask_t = _sentiment_eval_domain(
+                    df_eval_sen, sen_col, gold_sen_col, labels_sen)
+                # 区分'相关性筛选拒绝'与'情感判断缺失': 被剔除行中 llm_verified=False 的条数
+                ver_col_t = f'llm_verified{track}'
+                if ver_col_t in df_eval_sen.columns:
+                    _unverified = ~df_eval_sen[ver_col_t].fillna(False).astype(bool)
+                    cov['n_excluded_unverified'] = int((~valid_mask_t & _unverified).sum())
+                results['sentiment_prediction_coverage'][f'LLM 情感分析 ({track})'] = cov
+                logger.info(
+                    f"  [{track}] 情感评估域 coverage: {cov['n_valid_pred']}/{cov['n_gold']}"
+                    f" ({cov['coverage']:.1%}), 剔除无有效预测 {cov['n_excluded_invalid_pred']} 行"
+                )
+                if cov['n_valid_pred'] == 0:
+                    logger.warning(f"  [{track}] 无有效情感预测 (coverage=0), 跳过该轨评估")
+                    continue
+
+                llm_sen_metrics = compute_classification_metrics(y_gold_sen_t, y_pred_llm_sen, labels=labels_sen)
+                llm_sen_metrics['coverage'] = cov['coverage']
+                llm_sen_metrics['n_excluded_invalid_pred'] = cov['n_excluded_invalid_pred']
                 results['classifier_metrics']['sentiment'][f'LLM 情感分析 ({track})'] = llm_sen_metrics
-                
+
                 logger.info(f"  LLM 情感分析 [{track}]:")
                 logger.info(f"    Macro Precision: {llm_sen_metrics['macro']['precision']:.4f}")
                 logger.info(f"    Macro Recall:    {llm_sen_metrics['macro']['recall']:.4f}")
@@ -1413,9 +1572,13 @@ def main():
                             f"(n={support})"
                         )
                 
+                # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 产物加 DEMO 标记
                 save_confusion_matrix_plot(
-                    llm_sen_metrics, f'LLM 情感分析 {track}',
-                    os.path.join(output_dir, f'cm_sentiment_llm{track}.png'), logger
+                    llm_sen_metrics,
+                    ('[SYNTHETIC-DEMO] ' if demo_mode else '') + f'LLM 情感分析 {track}',
+                    _demo_marked_path(
+                        os.path.join(output_dir, f'cm_sentiment_llm{track}.png'), demo_mode),
+                    logger
                 )
         
         # 4.2b === 各 LLM 模型独立情感评估 ===
@@ -1426,9 +1589,17 @@ def main():
             for track in ['_full', '_ctx']:
                 col_name = f"{short}_sentiment{track}"
                 if col_name in df_eval_sen.columns:
-                    y_pred_model_sen = df_eval_sen[col_name].fillna('中性').astype(str).values
-                    y_pred_model_sen = np.where(np.isin(y_pred_model_sen, labels_sen), y_pred_model_sen, '中性')
-                    model_sen_metrics = compute_classification_metrics(y_gold_sen, y_pred_model_sen, labels=labels_sen)
+                    # fix(omni-g-val-eval-01/05, 2026-06-11): 逐模型同病同修 —
+                    # 剔除无有效预测行并报告 coverage, 不再 fillna('中性')
+                    y_gold_sen_m, y_pred_model_sen, cov_m, _ = _sentiment_eval_domain(
+                        df_eval_sen, col_name, gold_sen_col, labels_sen)
+                    results['sentiment_prediction_coverage'][f"{short}{track} (独立)"] = cov_m
+                    if cov_m['n_valid_pred'] == 0:
+                        logger.info(f"  {short}{track}: 无有效情感预测 (coverage=0), 跳过")
+                        continue
+                    model_sen_metrics = compute_classification_metrics(y_gold_sen_m, y_pred_model_sen, labels=labels_sen)
+                    model_sen_metrics['coverage'] = cov_m['coverage']
+                    model_sen_metrics['n_excluded_invalid_pred'] = cov_m['n_excluded_invalid_pred']
                     per_model_sen_results[f"{short}{track}"] = model_sen_metrics
                     results['classifier_metrics']['sentiment'][f"{short}{track} (独立)"] = model_sen_metrics
                     logger.info(f"  {short}{track} 独立情感:")
@@ -1460,9 +1631,13 @@ def main():
                     'Recall': metrics['macro']['recall'],
                     'F1-Score': metrics['macro']['f1'],
                     'Accuracy': metrics['accuracy'],
+                    # fix(omni-g-val-eval-01/05, 2026-06-11): coverage 入对比表
+                    'Coverage': metrics.get('coverage', 1.0),
                 })
             sen_comp_df = pd.DataFrame(sen_comparison_rows)
-            sen_comp_path = os.path.join(output_dir, 'per_model_sentiment_comparison.csv')
+            # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 产物加 _DEMO 后缀
+            sen_comp_path = _demo_marked_path(
+                os.path.join(output_dir, 'per_model_sentiment_comparison.csv'), demo_mode)
             sen_comp_df.to_csv(sen_comp_path, index=False, encoding='utf-8-sig')
             logger.info(f"  模型间情感对比 CSV 已保存: {sen_comp_path}")
     else:
@@ -1496,6 +1671,7 @@ def main():
                 track=track,
                 logger_inst=logger,
                 output_dir=output_dir,
+                demo_mode=demo_mode,  # fix(omni-g-val-eval-02, 2026-06-11)
             )
             results[f'misclassification_bias{track}'] = bias_diag
         else:
@@ -1508,14 +1684,30 @@ def main():
     logger.info("===    生成评估报告    ===")
     logger.info("=" * 70)
 
+    # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 全部产物加 _DEMO 后缀;
+    # 旧版曾把合成指标以真实文件名写盘 — 提示人工甄别历史残留的无标记产物。
+    if demo_mode:
+        _legacy = [p for p in (
+            os.path.join(output_dir, 'classification_eval_table.tex'),
+            os.path.join(output_dir, 'classification_eval_results.json'),
+            os.path.join(output_dir, 'classification_eval_summary.csv'),
+        ) if os.path.exists(p)]
+        if _legacy:
+            logger.warning(
+                "  [demo_mode] 检测到旧版无 DEMO 标记产物 (可能为合成数据), 请人工甄别: "
+                + "; ".join(_legacy)
+            )
+
     # 保存 JSON 结果
-    json_path = os.path.join(output_dir, 'classification_eval_results.json')
+    json_path = _demo_marked_path(
+        os.path.join(output_dir, 'classification_eval_results.json'), demo_mode)
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, ensure_ascii=False, indent=2, default=str)
     logger.info(f"JSON 结果已保存: {json_path}")
 
-    # 生成 LaTeX 表格
-    latex_path = os.path.join(output_dir, 'classification_eval_table.tex')
+    # 生成 LaTeX 表格 (demo_mode 时 generate_latex_table 自动加 caption 警示)
+    latex_path = _demo_marked_path(
+        os.path.join(output_dir, 'classification_eval_table.tex'), demo_mode)
     generate_latex_table(results, latex_path, logger)
 
     # 生成 CSV 汇总
@@ -1555,7 +1747,9 @@ def main():
         csv_rows.append(row)
         
     if csv_rows:
-        csv_path = os.path.join(output_dir, 'classification_eval_summary.csv')
+        # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 产物加 _DEMO 后缀
+        csv_path = _demo_marked_path(
+            os.path.join(output_dir, 'classification_eval_summary.csv'), demo_mode)
         pd.DataFrame(csv_rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
         logger.info(f"CSV 汇总已保存: {csv_path}")
 
@@ -1592,7 +1786,8 @@ def main():
         p_e = kappa_ver.get('expected_agreement', 0)
         n_s = kappa_ver.get('n_samples', 0)
         if n_s > 0 and p_e < 1:
-            import math
+            # fix(omni-g-val-eval-04, 2026-06-11): import math 已提升至模块级,
+            # 此处不再局部 import (防止情感分支单独执行时未绑定)
             se_kappa = math.sqrt(p_o * (1 - p_o) / (n_s * (1 - p_e) ** 2))
             ci_low = round(kappa_val - 1.96 * se_kappa, 4)
             ci_high = round(kappa_val + 1.96 * se_kappa, 4)
@@ -1620,8 +1815,9 @@ def main():
             logger.info(f"  情感任务: κ = {kappa_val_s:.4f}, 95% CI = [{ci_low_s:.4f}, {ci_high_s:.4f}]")
             logger.info(f"  情感任务: α = {alpha_sen}, N = {n_s_s}")
 
-    # 输出标准化报告 CSV
-    std_report_path = os.path.join(output_dir, 'validation_standard_report.csv')
+    # 输出标准化报告 CSV (fix(omni-g-val-eval-02, 2026-06-11): demo 产物加 _DEMO 后缀)
+    std_report_path = _demo_marked_path(
+        os.path.join(output_dir, 'validation_standard_report.csv'), demo_mode)
     pd.DataFrame([std_report]).to_csv(std_report_path, index=False, encoding='utf-8-sig')
     logger.info(f"  标准化验证报告: {std_report_path}")
 

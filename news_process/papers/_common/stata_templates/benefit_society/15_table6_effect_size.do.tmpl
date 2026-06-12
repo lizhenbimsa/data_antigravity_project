@@ -38,11 +38,21 @@ bysort bank_id: gen d_att = {{ATTITUDE_VAR}} - L1.{{ATTITUDE_VAR}}
 reg d_dv d_att $controls, vce(cluster bank_id)
 eststo MVP3
 
+* fix(omni-g-templates-misc, 2026-06-11): esttab 的 se 与 ci 互斥 (同抢系数下方
+* 括号行, esttab 实报 "se may not be combined with ci" r(198) → 整表零产出)。
+* 拆两表: 主表报 SE (与全包其余表同规格), 伴生 _ci 表报 95% CI (本表立意所在)。
 esttab MVP1 MVP2 MVP3 using "$tables_dir/table6_effect_size.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se ci booktabs label compress b(3) ///
-    title("Effect Size with 95\% CI --- MVP Power-Conscious Report") ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    title("Effect Size --- MVP Power-Conscious Report (SE)") ///
     mtitles("Raw" "Standardized" "1-yr Change") ///
-    addnotes("MVP n=116. Standardized: 1 SD X --> beta SD Y." ///
+    addnotes("MVP n=116. Standardized: 1 SD X --> beta SD Y. 95\% CI in companion table." ///
              "Reference: Jha 2026 RFS 0.15-0.25 SD; Hassan 2019 QJE 0.10-0.20 SD.")
 
-display "[OK] Table 6 effect size --> $tables_dir/table6_effect_size.tex"
+esttab MVP1 MVP2 MVP3 using "$tables_dir/table6_effect_size_ci.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) ci(3) booktabs label compress b(3) ///
+    title("Effect Size with 95\% CI --- MVP Power-Conscious Report") ///
+    mtitles("Raw" "Standardized" "1-yr Change") ///
+    addnotes("MVP n=116. 95\% CI shown beneath coefficients (companion to SE table)." ///
+             "Reference: Jha 2026 RFS 0.15-0.25 SD; Hassan 2019 QJE 0.10-0.20 SD.")
+
+display "[OK] Table 6 effect size --> $tables_dir/table6_effect_size.tex (+ _ci companion)"

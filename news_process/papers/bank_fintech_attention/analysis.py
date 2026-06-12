@@ -20,7 +20,10 @@ _LOGGER = logging.getLogger('papers.bank_fintech_attention.analysis')
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog='python -m news_process.papers.bank_fintech_attention.analysis',
-        description='P2 Bank Fintech Attention — firm-level attention intensity (Hassan 2019 QJE).',
+        # fix(omni-g-papers-misc-09, 2026-06-11): 锚点更正 — attention_index 为
+        # Fang-Peress (2009 JF) extensive 覆盖; Hassan QJE 仅限 pct/density/ctx 归因
+        description=('P2 Bank Fintech Attention — firm-level attention intensity '
+                     '(Fang-Peress 2009 JF extensive; Hassan 2019 QJE 限 pct/density)。'),
     )
     parser.add_argument('--stage', choices=['pipeline', 'tables', 'figures', 'all'],
                         default='all')

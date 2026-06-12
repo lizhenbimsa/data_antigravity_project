@@ -20,12 +20,16 @@ Firm-Year 级别的结构化特征。通过汇总该年度单家企业的全部�
 
 【白话说明 (Plain Language)】
 任务目标：衡量一家银行在特定年份，其战略方向与国家的“金融科技宏观政策”有多贴合。
-核心做法：
+核心做法 (fix(omni-g-policy-02/04, 2026-06-11) 口径更新)：
 1. 把银行一年的所有新闻碎片拼成一份长篇的“银行年度总结”。
-2. 把国家的 6 份重磅政策文件（权威语料库）视为一份“终极标准答案”。
+2. 把国家的重磅政策文件（权威语料库）按**发布年份 (vintage)** 切分，年度 t 的
+   “标准答案”只拼接发布年份 ≤ t 的文件 — 消除“拿还没出生的政策当标答”的前视构造。
 3. 为了保证比对的绝对公平，把这份“标准答案”当成一个虚拟的“幽灵银行”，和所有真实的银行
-   放在一模一样的算法标准（如同构的字典、相同的主题抽取、相同的 8000 字截断）下比对。
-4. 最终得出 4 种算法的“相似度评分”，分数越高，说明这家银行的战略步调与国家政策跟得越紧密。
+   放在一模一样的算法标准（同构的字典、相同的主题抽取、超长文本同走 token 分段 +
+   均值池化 — 旧注释所称“相同的 8000 字截断”已随 embedding_engine 统一而不存在）下比对。
+4. 最终得出 5 个相似度指标（TF-IDF 字符级 / TF-IDF 词级 / LDA 主题 / Embedding 主轨
+   / Embedding text2vec 稳健 twin）× Full/Ctx 双轨：分数越高，说明这家银行的战略步调
+   与（截至当年已发布的）国家政策跟得越紧密。
 ============================================================================
 """
 
@@ -45,6 +49,16 @@ from news_process.pipeline.features.strategic_diff import (
 )
 from news_process.pipeline.features.strategic_diff import (
     _build_tfidf_sim_matrix as _build_tfidf,
+)
+
+# fix(omni-g-policy-01/02, 2026-06-11): 权威语料加载/vintage 切分与 stage 15 共用
+# 同一实现 (policy_alignment) — 两 stage 消费同一份语料, 锚点口径必须一致:
+# (01) 对称清洗 (与新闻侧 normalize 步骤 2.5 同规则删除领导人姓名);
+# (02) vintage-aware 锚点 (年度 t 只用发布年份 ≤ t 的政策文档, 消除前视构造)。
+from news_process.pipeline.filtering.policy_alignment import (  # noqa: E402
+    load_policy_corpus_docs,
+    vintage_anchor_text,
+    vintage_aware_enabled,
 )
 
 # --- Phase 2a: 取代旧的 importlib 反射 ---
@@ -76,10 +90,16 @@ def compute_authoritative_similarity(df_exploded, panel):
       https://doi.org/10.1086/688176
       (注: 沿用其高维 TF-IDF 文本相似度矩阵提取与产品空间定位方法论)
 
+    fix(omni-g-policy-02, 2026-06-11) 语义变更: 锚点改为 vintage-aware — 年度 t 的
+    “标答”只拼接发布年份 ≤ t 的政策文档 (load_policy_corpus_docs 解析 vintage);
+    无 ≤t 文档的年份 auth_sim_* 置 NaN (前视守卫); vintage 不可用时降级静态锚点并披露。
+
     【白话说明】
     我们怎样判断一家银行是不是在“响应国家号召”？最客观的办法，就是把国家发布的
     “宏观政策原文”当成一个完美的满分标答（也就是这里的虚拟锚点），然后让所有
     银行当年的“新闻汇总”和这个标答去比对。相似度越高，说明这家银行在战略上越贴合国家政策。
+    比对只用“当年已经发布”的政策文件 — 2017 年的银行画像不会拿 2022 年才发布的
+    规划当标答 (vintage-aware, 见上)。
 
     【工程实现：幽灵锚点 (Ghost Anchor)】
     为保证与 Stage 25 (同行战略差异度) 采用绝对同构的度量空间，我们将政策文本作为
@@ -107,13 +127,21 @@ def compute_authoritative_similarity(df_exploded, panel):
         logger.warning(f"  找不到权威政策语料: {auth_path}。跳过 Stage 26 计算。")
         return panel
 
-    with open(auth_path, 'r', encoding='utf-8') as f:
-        auth_lines = [line for line in f if not line.strip().startswith('#')]
-        auth_text = '\n'.join(auth_lines).strip()
-    
-    if not auth_text:
+    # fix(omni-g-policy-01/02, 2026-06-11): 改经 load_policy_corpus_docs 加载 —
+    # 对称清洗 + 按发布年份切分; 静态全语料拼接仅作 vintage 不可用时的降级锚点。
+    auth_docs = load_policy_corpus_docs(auth_path)
+    auth_text_static = '\n\n'.join(d['text'] for d in auth_docs).strip()
+
+    if not auth_text_static:
         logger.warning("  权威政策语料为空。跳过 Stage 26 计算。")
         return panel
+
+    use_vintage = (vintage_aware_enabled()
+                   and any(d['year'] is not None for d in auth_docs))
+    if not use_vintage:
+        logger.warning(
+            "  vintage 前视守卫: 关闭 (opt-out 或语料年份全部未知) → "
+            "静态全语料锚点 (含未来政策文本, 前视披露)")
 
     # 2. 准备 Full 轨与 Ctx 轨池化数据
     # fix(completeness-04): full 轨读 content_full(含标题, v3.8.0 两轨契约), 与 ctx 轨
@@ -141,8 +169,23 @@ def compute_authoritative_similarity(df_exploded, panel):
             
             # 如果当年的银行数过少，跳过（为保持与 Stage 25 LDA K值的最小计算稳定性一致）
             if len(banks) < 3:
+                # fix(omni-g-policy-05, 2026-06-11): 裸 continue → 显式 warning
+                # (镜像 stage 25 同守卫), T=18 早期稀疏年份不再"静默 NaN"无迹可寻
+                logger.warning(f"  年度={year}{track_suffix}: 仅 {len(banks)} 家"
+                               f"银行, 跳过 auth_sim 计算 (最低要求 3)")
                 continue
-                
+
+            # fix(omni-g-policy-02, 2026-06-11): vintage-aware 锚点 — 年度 t 只用
+            # 发布年份 ≤ t 的政策文档拼接; 无可用文档 → 该年 auth_sim_* 全 NaN (前视守卫)
+            if use_vintage:
+                auth_text = vintage_anchor_text(auth_docs, year)
+                if auth_text is None:
+                    logger.warning(f"  年度={year}{track_suffix}: 无发布年份 ≤ "
+                                   f"{year} 的政策文档 (前视守卫), auth_sim_* 置 NaN")
+                    continue
+            else:
+                auth_text = auth_text_static
+
             # 【极简同构映射】: 将政策文本挂载至列表末尾，构成 (N+1) 全集
             texts_with_auth = texts + [auth_text]
             n_banks = len(banks)
@@ -175,7 +218,17 @@ def compute_authoritative_similarity(df_exploded, panel):
                 auth_emb = [np.nan] * n_banks
 
             # --- 方法 D-t2v: 稳健 twin (text2vec, 同 ghost-anchor 算法只换模型) ---
-            se_mat_t2v, _ = _build_emb(texts_with_auth, spec=_ROBUSTNESS_SPEC)
+            # fix(omni-g-policy-05, 2026-06-11): try/except 守卫 raise 路径 —
+            # embedding_robustness 配置缺失 ({} → API 分支 raise RuntimeError) 或
+            # 本地模型加载抛错时不再炸掉整个 stage (TF-IDF/LDA/主轨 emb 不受影响),
+            # 与 "稳健轨失败仅 _t2v 置 NaN" 契约一致。
+            try:
+                se_mat_t2v, _ = _build_emb(texts_with_auth, spec=_ROBUSTNESS_SPEC)
+            except Exception as _t2v_exc:
+                logger.warning(f"    Embedding t2v ({year}) 异常: "
+                               f"{type(_t2v_exc).__name__}: {_t2v_exc} → "
+                               f"auth_sim_emb_t2v{track_suffix} 置 NaN")
+                se_mat_t2v = None
             if se_mat_t2v is not None:
                 auth_emb_t2v = se_mat_t2v[:-1, -1]
             else:

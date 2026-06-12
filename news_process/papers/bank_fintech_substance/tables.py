@@ -22,25 +22,39 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
+# fix(omni-g-papers-misc-03/-11, 2026-06-11): treatment 行改 panel 真实物化的
+# bank-year 编码 (sub_frac/symb_frac + ctx 轨 *_sc) — 旧清单的
+# innovation_substantiveness_full/_ctx 是文章级中文字符串, 永远不会以该名出现在
+# bank-year panel (结构性错名 → Table 1 全 NaN)。金融 enrichment 列 (待 M0.5.11)
+# 保留为可见 NaN 占位行 (F16 政策) 并经 CSV 脚注披露。
 _TABLE1_VARIABLES: list[str] = [
-    # P3 treatment (per paper_spec.yaml R35-M01: pipeline v3.2.0 实测列名)
-    'innovation_substantiveness_full',
-    'innovation_substantiveness_ctx',
-    'substantive_minus_symbolic_gap',
-    # P3 dual outcome
+    # P3 treatment — panel 真实列 (实质性/象征性新闻占比, full 轨 + ctx 轨)
+    'sub_frac',
+    'symb_frac',
+    'sub_frac_sc',
+    'symb_frac_sc',
+    # P3 dual outcome (M0.5.11 enrichment 待落盘)
     'long_run_roa_change_3yr',
     'car_3day_window_fintech_announcement',
-    # P3 secondary outcomes
+    # P3 secondary outcomes (M0.5.11 enrichment 待落盘)
     'ceo_turnover_2yr',
     'executive_pay_change',
     'board_change',
-    # Bank-level standard controls
+    # Bank-level standard controls (M0.5.11 enrichment 待落盘)
     'ln_assets',
     'leverage',
     'capital_ratio',
     'npl_ratio',
     'deposit_growth',
 ]
+
+# Table 1 CSV 脚注 (存在性披露; fix(omni-g-papers-misc-03))
+_TABLE1_FOOTNOTE = (
+    "Treatment rows use panel-materialized bank-year shares "
+    "(sub_frac/symb_frac, full track; *_sc = ctx track). "
+    "Outcome/control rows pending M0.5.11 financial enrichment appear as "
+    "NaN placeholder rows until materialized (existence-checked at build time)."
+)
 
 
 def build_table1(paper_config: PaperConfig | None = None) -> pd.DataFrame:
@@ -54,7 +68,8 @@ def write_table1(paper_config: PaperConfig | None = None,
                  ) -> Path:
     return write_summary_table('bank_fintech_substance', _TABLE1_VARIABLES,
                                paper_config=paper_config,
-                               filename=filename, dta_filename=dta_filename)
+                               filename=filename, dta_filename=dta_filename,
+                               footnote=_TABLE1_FOOTNOTE)
 
 
 def build_table2_main(paper_config: PaperConfig | None = None) -> pd.DataFrame:

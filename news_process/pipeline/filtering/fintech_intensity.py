@@ -3,8 +3,9 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
 =================================================================================
 
 功能：
-    在阶段 12 的 AC 关键词分类（二元判定）基础上，使用 TF-IDF + SIF 词向量质心
-    计算连续型技术强度得分 `fintech_intensity_score`，消除三类系统性偏差：
+    在阶段 12 的 AC 关键词分类（二元判定）基础上，使用 TF-IDF + IDF 加权关键词
+    向量质心（IDF-weighted keyword embedding centroid）计算连续型技术强度得分
+    `fintech_intensity_score`，消除三类系统性偏差：
       1. 复读机刷分（Cheap Talk）— Bingler et al. (2022, FRL)
       2. 长文体量偏差（Document Length Bias）— Manning et al. (2008, Ch 6.4)
       3. 术语区分度缺失（Term Discriminability Loss）— Loughran & McDonald (2011, JF)
@@ -20,7 +21,11 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
     **阶段 12 零修改。** 本文件完全独立，删除即可回滚。
 
 输入：
-    阶段 12 输出的 `12_fintech_news_full.parquet`（全量，用于全局 IDF 计算）
+    阶段 12 输出的 `12_fintech_news_full.parquet`（全量含非金融科技, 用于全局 IDF;
+      fix omni-g-fintech-01/-03, 2026-06-11: DF 按唯一文档 (标题,日期) 去重后以
+      jieba 整词统计 — 与 TF 同分词器, 替换原 AC 子串计数源; 语料列在线物化
+      content_full = 标题 + 内容, 与 TF 打分文本同语义。⚠ 参考语料必须是全量:
+      13_news_with_ctx 仅含 fintech 子集, 不可用作 IDF 语料）
     阶段 12 输出的 `12_fintech_news.parquet`（仅金融科技，用于得分计算）
 
 输出：
@@ -33,8 +38,13 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
       Retrieval. Cambridge University Press.
     Arora, S., Liang, Y., & Ma, T. (2017). A simple but tough-to-beat baseline for
       sentence embeddings. Proceedings of ICLR 2017.
+      — fix(omni-g-fintech-02, 2026-06-11): 仅为 "加权质心" 思想借鉴, **非 SIF 实现**。
+        本实现无 a/(a+p(w)) 平滑逆频率权重、无首主成分 (common component) 去除,
+        实际为 IDF 加权普通质心 (np.average(embeddings, weights=idf))。
     Ethayarajh, K. (2019). How contextual are contextualized word representations?
       Proceedings of EMNLP-IJCNLP 2019.
+      — fix(omni-g-fintech-02, 2026-06-11): 仅作各向异性 **现象的动机引用**; 下文
+        min-max + floor 重标定是工程化 ad hoc 处理, 非该文提出的校准方法。
     Singhal, A., Buckley, C., & Mitra, M. (1996). Pivoted document length normalization.
       Proceedings of SIGIR '96, pp. 21-29.
 
@@ -44,7 +54,6 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
         python -m news_process.pipeline.filtering.fintech_intensity
 """
 
-import json
 import logging
 import math
 import os
@@ -91,39 +100,139 @@ ANISOTROPY_FLOOR = INTENSITY_CONFIG.get('anisotropy_floor', 0.1)
 FINTECH_KEYWORDS, _ = load_fintech_dict(CONFIG['paths'].get('fintech_dict_file', ''))
 logger.info(f"金融科技词典: 共 {len(FINTECH_KEYWORDS)} 个词汇")
 
+# fix(omni-g-fintech-03 组级裁决, 2026-06-11): jieba 注入态单源 — DF 与 TF 共用同一
+# 注入 + 同一可匹配词集 (同分词器原则, 对齐 tone_words._get_tone_tokenizer 先例)。
+# 词典中 6/1506 含空格/顿号的关键词 (如 'Open Banking' / '治理、风险与合规') 会被
+# jieba 块切分正则在词典查找之前切开, jieba.add_word 注入也**永不可能**成为单 token
+# ("注入" 路径技术不可行) → 按裁决走 "剔除 + 披露": 从权重宇宙 (IDF 归一化 / 质心 /
+# CosSim 重标定) 剔除并 WARNING 披露, 避免 DF=0 的幻影词拉高 IDF 均值、扭曲质心与
+# min-max 缩放 (TF 端 jieba 本就不可见这些词, 剔除不改任何单篇 TF 命中)。
+_KW_STATE: dict = {'injected': False, 'matchable': None, 'unmatchable': None}
+
+
+def _ensure_keywords_injected() -> tuple:
+    """注入全部关键词到 jieba 并划分可匹配/永不可匹配两类 (幂等, 进程内缓存)。
+
+    Returns:
+        tuple: (matchable: list[str], unmatchable: list[str])
+    """
+    if not _KW_STATE['injected']:
+        for kw in FINTECH_KEYWORDS:
+            jieba.add_word(kw)
+        unmatchable = [kw for kw in FINTECH_KEYWORDS
+                       if list(jieba.cut(kw)) != [kw]]
+        _unmatch_set = set(unmatchable)
+        matchable = [kw for kw in FINTECH_KEYWORDS if kw not in _unmatch_set]
+        _KW_STATE['matchable'] = matchable
+        _KW_STATE['unmatchable'] = unmatchable
+        _KW_STATE['injected'] = True
+        if unmatchable:
+            logger.warning(
+                f"⚠ 词典披露[fintech_intensity] (fix omni-g-fintech 组级, 2026-06-11): "
+                f"{len(unmatchable)}/{len(FINTECH_KEYWORDS)} 个关键词含 jieba 块切分"
+                f"边界字符 (空格/标点), 整词分词永不可命中, 已从 IDF/质心/CosSim "
+                f"权重宇宙剔除 (TF 端本就不可见, 不影响单篇得分命中): {unmatchable}")
+    return _KW_STATE['matchable'], _KW_STATE['unmatchable']
+
 
 # ============================================================================
 # 2. 全局文档频率解析 (Module A)
 # ============================================================================
 
-def _parse_global_df(df_full: pd.DataFrame) -> tuple:
-    """从全量分类结果中解析每个关键词的文档频率 (DF)。
+def _materialize_df_corpus_column(df_ref: pd.DataFrame) -> tuple:
+    """为 DF 统计在线物化与 TF 同语义的语料列, 返回 (frame, 列名)。
 
-    无需重新执行 AC 扫描 —— 阶段 12 已将完整命中信息持久化于
-    fintech_keyword_details 列。
+    fix(omni-g-fintech-03, 2026-06-11): TF 打分文本 (full 轨) 是 content_full
+    (= 标题 + 内容, stage 13 经 prepend_title 物化), 而 DF 参考语料
+    12_fintech_news_full.parquet 无该列 → 此处用同一单一事实源 prepend_title
+    在线物化 (逐字同口径), 使 DF 与 TF 同语料 (tone_words 2026-06-10 "IDF 在与
+    TF 加权同一语料上统一计算" 先例; 否则标题词 df 被低估)。只进 DF 统计,
+    不写盘。缺 '标题'/'内容' 列时回退 '内容' (与打分侧单轨退化路径同口径)。
+
+    Returns:
+        tuple: (df: pd.DataFrame, text_col: str)
+    """
+    if 'content_full' in df_ref.columns:
+        return df_ref, 'content_full'
+    if '标题' in df_ref.columns and '内容' in df_ref.columns:
+        from news_process.core.text.entity_context import prepend_title
+        titles = df_ref['标题'].fillna('').astype(str)
+        bodies = df_ref['内容'].fillna('').astype(str)
+        # .assign 浅拷贝其余列 (零数据复制), 不污染调用方 frame
+        df_ref = df_ref.assign(
+            content_full=[prepend_title(t, b) for t, b in zip(titles, bodies)])
+        return df_ref, 'content_full'
+    return df_ref, '内容'
+
+
+def _compute_global_df_jieba(df_full: pd.DataFrame, text_col: str = '内容') -> tuple:
+    """在全量参考语料上以 jieba 整词重算每个关键词的文档频率 (DF)。
 
     学术依据: Gentzkow, Kelly & Taddy (2019, JEL, §2.2):
       "IDF must be computed on the full reference corpus"
 
+    fix(omni-g-fintech-03, 2026-06-11, P2): 旧实现 (_parse_global_df) 从 stage 12
+      fintech_keyword_details 解析 DF — 该 DF 源自 AC 子串扫描, 允许子串误命中
+      (如 '网贷' ∈ '互联网贷款') 与重叠双计 (如 '大数据'+'数据风控'), 而 TF 走
+      jieba 整词 → 同一关键词两侧 "出现" 定义不同, DF 系统性偏大 → 子串高发
+      关键词 IDF/权重系统性偏低, 违 GKT 同语料原则。tone_words.py 已为同一问题
+      "坚决废除 Aho-Corasick 子匹配" (build_idf_weights), 本函数与其对齐:
+      DF 与 TF 同分词器 (jieba 整词, 同注入态)、同语料列 (caller 传 content_full
+      优先, 回退 '内容')。
+
+    fix(omni-g-fintech-01, 2026-06-11, P3): DF 与 N_total 按**唯一文档**统计 —
+      全量表每行 = (文章 × target_bank) 爆炸行 + 跨媒体转载 (盘上 4054 行 vs
+      3646 唯一 (标题,日期)), 旧实现同一物理文档在 DF 分子与 N_total 分母中计
+      k 次。现按 ['标题','日期'] 去重 (缺列回退文本内容自身为唯一键, 同
+      tone_words fix omni-g-tonewords-04), 与 fintech_share 2026-06-10 确立的
+      去重计数基对齐。
+
     Args:
-        df_full: 全量 DataFrame（含非金融科技文档）。
+        df_full: 全量参考语料 DataFrame（含非金融科技文档）。
+        text_col: DF 统计语料列 — 与 TF 打分同列 (content_full 优先, 回退 '内容')。
 
     Returns:
         tuple: (keyword_doc_freq: Counter, N_total: int)
     """
+    matchable, _ = _ensure_keywords_injected()
+    kw_set = set(matchable)
+
+    if text_col not in df_full.columns:
+        logger.warning(f"  DF 语料列 '{text_col}' 不存在, 回退至 '内容'")
+        text_col = '内容'
+
+    # 唯一文档去重 (g-fintech-01): (标题, 日期) 优先; 缺列回退文本自身为键
+    if {'标题', '日期'}.issubset(df_full.columns):
+        texts = (df_full.drop_duplicates(subset=['标题', '日期'])[text_col]
+                 .fillna('').astype(str).tolist())
+    else:
+        texts = (df_full[text_col].fillna('').astype(str)
+                 .drop_duplicates().tolist())
+
+    N_total = len(texts)
     keyword_doc_freq = Counter()
-    N_total = len(df_full)
+    if N_total == 0:
+        logger.info("全局 DF 解析完成: 0 篇唯一文档")
+        return keyword_doc_freq, 0
 
-    for details_json in df_full['fintech_keyword_details']:
-        if details_json:
-            try:
-                details = json.loads(details_json)
-                doc_kw_set = {kd['keyword'] for kd in details}
-                keyword_doc_freq.update(doc_kw_set)
-            except (json.JSONDecodeError, KeyError, TypeError):
-                continue
+    def _chunk_df(chunk_texts):
+        local = Counter()
+        for text in chunk_texts:
+            local.update(set(jieba.cut(text)) & kw_set)
+        return local
 
-    logger.info(f"全局 DF 解析完成: {N_total} 篇文档, "
+    batch_size = 2000
+    num_batches = max(1, (N_total - 1) // batch_size + 1)
+    chunks = [texts[i * batch_size:(i + 1) * batch_size]
+              for i in range(num_batches)]
+    logger.info(f"全局 DF (jieba 整词, 唯一文档语料): {N_total} 篇, {num_batches} 批次")
+    results = Parallel(n_jobs=-1, prefer='threads')(
+        delayed(_chunk_df)(chunk) for chunk in chunks
+    )
+    for local in results:
+        keyword_doc_freq.update(local)
+
+    logger.info(f"全局 DF 解析完成: {N_total} 篇唯一文档, "
                 f"{len(keyword_doc_freq)} 个不同关键词")
     return keyword_doc_freq, N_total
 
@@ -136,16 +245,24 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
     """构建 IDF × CosSim 综合权重。
 
     步骤 A: 全局 IDF 计算 + 均值归一化 + Winsorization
-    步骤 B: SIF 加权质心 + 各向异性校准
+    步骤 B: IDF 加权质心 + 各向异性重标定
+      (fix omni-g-fintech-02, 2026-06-11: 原称 "SIF 加权质心" 名实不符 — 无
+      a/(a+p(w)) 频率权重、无首主成分去除, 实为 IDF 加权普通质心, 措辞已修正)
     步骤 C: 预乘综合权重
 
+    fix(omni-g-fintech-03 组级裁决, 2026-06-11): 权重宇宙 = jieba 可匹配关键词
+      (_ensure_keywords_injected 的 matchable 集)。永不可匹配的 6 个含空格/顿号
+      关键词被剔除 — 它们 TF 端恒不可见, 留在宇宙内只会以 DF=0 的最大 IDF 拉高
+      均值归一化分母、并把幻影向量混入质心与 CosSim min-max 缩放。
+
     Args:
-        keyword_doc_freq: {关键词: 出现该词的文档数}。
-        N_total: 全量文档总数。
+        keyword_doc_freq: {关键词: 出现该词的文档数} (jieba 整词口径)。
+        N_total: 全量唯一文档总数。
 
     Returns:
         dict: {关键词: 综合权重 (float)}
     """
+    matchable, _ = _ensure_keywords_injected()
     if not keyword_doc_freq or N_total == 0:
         # 审计修复 (degradation F11): 升 ERROR — 同名 fintech_intensity_score
         # 此时由"语义加权"静默退化为纯词频, 列名不变, 下游回归无从察觉口径漂移
@@ -153,11 +270,12 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
         logger.error("⚠ 口径降级[fintech_intensity]: DF 为空或文档数为零，"
                      "所有权重降级为 1.0 → 评分退化为纯词频, 与语义加权设计不一致, "
                      "勿用于发表/跨样本对比。")
-        return {kw: 1.0 for kw in FINTECH_KEYWORDS}
+        # fix(omni-g-fintech-03 组级): 降级宇宙同样限 matchable (不可匹配词无意义)
+        return {kw: 1.0 for kw in matchable}
 
     # ── 步骤 A: 全局 IDF 计算 ──
     raw_idf = {}
-    for kw in FINTECH_KEYWORDS:
+    for kw in matchable:
         df_w = keyword_doc_freq.get(kw, 0)
         raw_idf[kw] = math.log10(N_total / (1 + df_w))
 
@@ -185,7 +303,9 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
     logger.info(f"IDF 权重: mean={np.mean(list(idf_weights.values())):.4f}, "
                 f"std={np.std(list(idf_weights.values())):.4f}")
 
-    # ── 步骤 B: SIF 加权质心 + 各向异性校准 ──
+    # ── 步骤 B: IDF 加权质心 + 各向异性重标定 ──
+    # fix(omni-g-fintech-02, 2026-06-11): 原注释 "SIF 加权质心" 名实不符, 见模块
+    # docstring Arora et al. (2017) 引用降格说明。
     try:
         from sentence_transformers import SentenceTransformer
         logger.info(f"加载词向量模型: {EMBEDDING_MODEL}")
@@ -201,7 +321,8 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
         emb_norms = embeddings / (np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-10)
         cos_sims = emb_norms @ centroid_norm
 
-        # ── 各向异性校准 (Ethayarajh, 2019, EMNLP) ──
+        # ── 各向异性重标定 (min-max + floor; fix omni-g-fintech-02: 工程化 ad hoc
+        #    处理, Ethayarajh 2019 仅为现象动机引用, 非该文提出的校准方法) ──
         min_sim, max_sim = float(cos_sims.min()), float(cos_sims.max())
 
         cos_sim_scaled = {}
@@ -238,8 +359,9 @@ def _build_intensity_weights(keyword_doc_freq: Counter, N_total: int) -> dict:
         cos_sim_scaled = {kw: 1.0 for kw in idf_weights}
 
     # ── 步骤 C: 预乘综合权重 ──
+    # fix(omni-g-fintech-03 组级): 宇宙限 matchable — 不可匹配词 TF 恒 0, 无需权重
     combined_weights = {}
-    for kw in FINTECH_KEYWORDS:
+    for kw in matchable:
         combined_weights[kw] = idf_weights.get(kw, 1.0) * cos_sim_scaled.get(kw, 1.0)
 
     sorted_weights = sorted(combined_weights.items(), key=lambda x: x[1], reverse=True)
@@ -282,15 +404,16 @@ def _compute_intensity_scores(
     Returns:
         tuple: (scores: list[float], verified_flags: list[bool])
     """
-    for kw in FINTECH_KEYWORDS:
-        jieba.add_word(kw)
+    # fix(omni-g-fintech-03 组级, 2026-06-11): 注入走单源 helper, TF 匹配集与
+    # DF 统计集 (_compute_global_df_jieba) 严格同一 (不可匹配词本就不可能命中)
+    matchable, _ = _ensure_keywords_injected()
 
     if text_col not in df.columns:
         # 缺失时回退到 '内容' (保证 ctx 轨在 stage 13 未跑时不崩)
         logger.warning(f"  '{text_col}' 列不存在, 回退至 '内容' (单轨退化)")
         text_col = '内容'
     contents = df[text_col].fillna('').astype(str).tolist()
-    kw_set = set(FINTECH_KEYWORDS)
+    kw_set = set(matchable)
 
     def _tokenize_chunk(chunk_texts):
         chunk_results = []
@@ -332,7 +455,12 @@ def _compute_intensity_scores(
         distinct = len(tf)
 
         if distinct < MIN_DISTINCT_KEYWORDS_JIEBA:
-            scores.append(0.0)
+            # fix(omni-g-fintech 组级裁决, 2026-06-11): 二次熔断由零填改 NaN —
+            # 旧 0.0 会计入下游 bank-year 均值分母 (encode.py avg_ft_intensity* /
+            # attention_media mean_*), 把 "未通过验证" 的文章当 "零强度" 系统性
+            # 拉低均值。NaN 在 pandas mean/std 聚合中自动剔除 (sum 仍视同 0,
+            # ln_sum_* 语义不变); intensity_verified=False 标志保持不变。
+            scores.append(float('nan'))
             verified_flags.append(False)
             n_fused += 1
             continue
@@ -381,10 +509,17 @@ def main():
         logger.error("请确保阶段 12 已执行且生成了全量输出文件。")
         raise SystemExit(1)
 
-    logger.info(f"加载全量分类结果: {full_path}")
-    df_full = pd.read_parquet(full_path)
-    keyword_doc_freq, N_total = _parse_global_df(df_full)
-    del df_full
+    # fix(omni-g-fintech-03, 2026-06-11): IDF 参考语料 = stage 12 全量 (含非金融科技
+    # 文档, GKT "full reference corpus" 语义) — ⚠ 勿改用 13_news_with_ctx: 盘上实证
+    # 其仅含 is_fintech_news=True 子集 (1170/4054 行), 用它会把参考语料塌缩为命中
+    # 子集、摧毁 IDF 区分度。语料列与 TF 同语义: 在线物化 content_full (= 标题 +
+    # 内容, prepend_title 单一事实源, 与 stage 13 物化口径逐字一致), 只进 DF 统计
+    # 不写盘。DF 以 jieba 整词重算 (_compute_global_df_jieba), 不再消费 AC 子串计数。
+    logger.info(f"加载 IDF 参考语料 (stage 12 全量): {full_path}")
+    df_ref = pd.read_parquet(full_path)
+    df_ref, ref_text_col = _materialize_df_corpus_column(df_ref)
+    keyword_doc_freq, N_total = _compute_global_df_jieba(df_ref, text_col=ref_text_col)
+    del df_ref
     log_memory_usage(logger, "全量 DF 解析后(已释放)")
 
     combined_weights = _build_intensity_weights(keyword_doc_freq, N_total)

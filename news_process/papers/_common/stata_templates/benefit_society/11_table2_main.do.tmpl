@@ -81,4 +81,14 @@ esttab M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.tex", replace ///
     addnotes("bank_type / year FE; SE clustered at {{CLUSTER_VAR}}; G=84 — main inference via wild cluster bootstrap (Table A2 / boottest)." ///
              "Dual-track full/ctx comparison: Table A2 + Figure 2.")
 
-display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex"
+* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+* tables.py:build_table2_main 经 read_paper_esttab('benefit_society',
+* 'table2_main.csv') 消费 (g-esttab-csv 约定补齐 benefit 子目录; g-templates
+* 任务清单未含本目录)。estout+delimiter(",") 防 esttab csv 的 ="..." Excel
+* 包裹破坏 stata_postprocess.parse_esttab_csv 解析。
+estout M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) ///
+    mlabels("M1" "M2 +typeFE" "M3 +yearFE" "M4 +ctrl" "M5 +size" "M6 +int")
+
+display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex (+ .csv side-channel)"

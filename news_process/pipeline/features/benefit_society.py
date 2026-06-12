@@ -43,11 +43,23 @@
 
 输出变量 (Bank-Year 级):
   benefit_mean_full/ctx:      态度均值 ∈ [-1, 1]
-  benefit_std_full/ctx:       态度离散度 ∈ [0, 1]
+  benefit_std_full/ctx:       态度离散度 ∈ [0, 1] (单观测 bank-year 为 NaN,
+                              fix(omni-g-benefit-05): 不再 fillna(0) — '只有 1 篇报道'
+                              与 '多篇完全一致' 在统计上不可区分, 与核心 tone std 族对齐)
   benefit_pos_frac_full/ctx:  正态度文章占比 ∈ [0, 1]
   benefit_neg_frac_full/ctx:  负态度文章占比 ∈ [0, 1]
   (上述 4 指标 × full/ctx 双轨另各有 _t2v 稳健 twin 列:
    benefit_mean_t2v_full/ctx 等; MAIN=API 1536 维 / ROBUSTNESS=text2vec 768 维, 共 16 列)
+
+pos/neg_frac 阈值中心 (KNOWN-OPEN① 修复, fix(omni-g-benefit, 2026-06-11)):
+  median-center 不再每次 run 现算 — 首跑以全样本投影 pooled median 计算并持久化到
+  data/processed/_benefit_center_sidecar.json, 后续 run 读冻结值 (跨 run 可比;
+  披露: 冻结值仍是首跑 in-sample median, P(>center)≈0.5 仅对首跑语料成立)。
+
+审计链路落盘 (fix(omni-g-benefit-01, 2026-06-11)):
+  cache_embeddings=true 时落盘全长文章嵌入 27_benefit_embeddings{_t2v}_{full,ctx}.npy
+  + 方向向量 27_benefit_direction{_t2v}.npy (各带 .sidecar.json: model_id/n_rows/dim),
+  供 27c alt-anchor / placebo 审计链路同嵌入空间消费。
 ============================================================================
 """
 
@@ -55,6 +67,7 @@ import asyncio
 import json
 import os
 import sys
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -475,27 +488,196 @@ def _compute_direction_vector(spec: dict | None = None) -> np.ndarray | None:
 # 5. 文章级投影计算
 # ============================================================================
 
+def _persist_article_embeddings(cache_path: str, emb: np.ndarray,
+                                valid_mask: np.ndarray, *, spec: dict) -> None:
+    """fix(omni-g-benefit-01, 2026-06-11): 落盘全长文章嵌入 .npy + .sidecar.json。
+
+    行序与 df_exploded 一一对应 (空文本行 = NaN), 供 27c alt-anchor/placebo
+    审计链路对齐消费; sidecar 记录 model_id / n_rows / dim, 消费端据此做
+    嵌入空间一致性断言 (2026-05-29 主轨换模后维度错配的根因防线)。
+    落盘失败仅 warning, 不阻塞主流程 (主面板不依赖 .npy)。
+    """
+    try:
+        full = np.full((len(valid_mask), emb.shape[1]), np.nan, dtype=np.float32)
+        full[valid_mask] = np.asarray(emb, dtype=np.float32)
+        np.save(cache_path, full)
+        sidecar = {
+            'schema_version': '1.0',
+            'producer': 'stage 27 benefit_society._project_texts',
+            'model_id': _eng.spec_model(spec),
+            'text_pipeline_version': _eng.spec_version(spec),
+            'n_rows': int(len(valid_mask)),
+            'n_valid': int(valid_mask.sum()),
+            'dim': int(emb.shape[1]),
+            'dtype': 'float32',
+            'nan_rows': '空文本行 (与 df_exploded 行序一一对应)',
+            'created_utc': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        }
+        with open(f"{cache_path}.sidecar.json", 'w', encoding='utf-8') as f:
+            json.dump(sidecar, f, ensure_ascii=False, indent=2)
+        logger.info(f"    嵌入落盘: {os.path.basename(str(cache_path))} "
+                    f"({sidecar['n_rows']}×{sidecar['dim']}, valid={sidecar['n_valid']})")
+    except OSError as exc:
+        logger.warning(f"    嵌入 .npy 落盘失败 (不阻塞主流程): {exc!r}")
+
+
+def _persist_direction_vector(direction: np.ndarray, suffix: str,
+                              *, spec: dict) -> None:
+    """fix(omni-g-benefit-01, 2026-06-11): 落盘方向向量 p = mean(pos) − mean(neg)。
+
+    27c placebo 链路的 ``--main-direction-npy`` 此前无任何产出方 — 现由 stage 27
+    在每个 spec 计算方向向量后写 ``27_benefit_direction{suffix}.npy`` + sidecar。
+    注意: 此向量是**未归一**的原始差分 (消费端 project 前自行归一), sidecar 中
+    ``unit_norm: false`` 显式披露。
+    """
+    path = os.path.join(OUTPUT_DIR, f'27_benefit_direction{suffix}.npy')
+    try:
+        np.save(path, np.asarray(direction, dtype=np.float32))
+        sidecar = {
+            'schema_version': '1.0',
+            'producer': 'stage 27 benefit_society._compute_direction_vector',
+            'model_id': _eng.spec_model(spec),
+            'text_pipeline_version': _eng.spec_version(spec),
+            'dim': int(np.asarray(direction).shape[0]),
+            'n_anchor_pairs': len(POSITIVE_ANCHORS),
+            'unit_norm': False,
+            'created_utc': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        }
+        with open(f"{path}.sidecar.json", 'w', encoding='utf-8') as f:
+            json.dump(sidecar, f, ensure_ascii=False, indent=2)
+        logger.info(f"    方向向量落盘: 27_benefit_direction{suffix}.npy "
+                    f"(dim={sidecar['dim']})")
+    except OSError as exc:
+        logger.warning(f"    方向向量 .npy 落盘失败 (不阻塞主流程): {exc!r}")
+
+
 def _project_texts(texts: list[str], direction: np.ndarray,
                    cache_path: str | None = None,
                    *, spec: dict | None = None) -> np.ndarray:
-    truncated = [_truncate_to_max_tokens(t) for t in texts]
-    token_counts = [_count_tokens(t) for t in truncated]
+    """文章级投影 a_j = cos(s_j, p) (Jha et al. 2026, RFS §1.3.2 Eq. 1)。
+
+    接收 **全量** 文本列表 (与 df_exploded 行序一致, 允许空文本); 空文本不送
+    引擎, 对应得分为 NaN。返回与 texts 等长的得分向量。
+
+    fix(omni-g-benefit-04, 2026-06-11): 移除 8191-token 预截断 — 统一引擎
+    embed_texts 自带 Early Chunking + token 加权 mean pooling (与 stage 25
+    strategic_diff 同口径), 长文尾部不再被静默丢弃 (兑现 'Full 轨: 完整语义
+    信号' 声称)。≤8191 token 文本的缓存键不变 (旧截断恒等); 超长文本首块与旧
+    截断文本字节一致 (cache hit), 仅尾部块为新键 → 嵌入重算 deferred 到下次
+    生产 run。
+
+    fix(omni-g-benefit-01, 2026-06-11): cache_path 参数真实生效 (此前函数体
+    完全忽略, _CACHE_EMBEDDINGS 死读, 27c 链路输入断供) — cache_embeddings=true
+    时经 _persist_article_embeddings 落盘全长嵌入 .npy + sidecar。
+    """
+    texts = ['' if t is None else str(t) for t in texts]
+    valid_mask = np.array([bool(t.strip()) for t in texts], dtype=bool)
+    scores = np.full(len(texts), np.nan)
+    valid_texts = [t for t, m in zip(texts, valid_mask) if m]
+    if not valid_texts:
+        return scores
 
     emb = _get_embeddings(
-        truncated,
-        token_counts,
+        valid_texts,
+        None,
         spec=spec or EMBEDDING_CONFIG,
         log_prefix="Benefit text embedding",
     )
 
     if emb is None or len(emb) == 0:
-        return np.full(len(texts), np.nan)
+        return scores
+
+    if cache_path and _CACHE_EMBEDDINGS:
+        _persist_article_embeddings(cache_path, emb, valid_mask,
+                                    spec=spec or EMBEDDING_CONFIG)
 
     dir_norm = direction / np.linalg.norm(direction)
     norms = np.linalg.norm(emb, axis=1, keepdims=True)
     norms = np.where(norms == 0, 1.0, norms)
-    scores = (emb @ dir_norm) / norms.ravel()
+    scores[valid_mask] = (emb @ dir_norm) / norms.ravel()
     return scores
+
+
+# ============================================================================
+# 5b. pos/neg_frac 阈值中心 — 冻结 sidecar (KNOWN-OPEN① 修复)
+# ============================================================================
+
+_CENTER_SIDECAR_FILENAME = '_benefit_center_sidecar.json'
+
+# 纵深防御 (2026-06-11 实测教训): 同分支并发 agent 曾用 4 篇 toy 数据跑
+# compute_benefit_society_panel (未重定向 OUTPUT_DIR 的旧版测试) → toy median
+# 被冻结进真实 data/processed sidecar。样本量低于此阈值时只现算不持久化,
+# 防 toy/试跑数据被冻结为生产阈值 (测试同时已全部重定向 OUTPUT_DIR)。
+_CENTER_MIN_N_TO_FREEZE = 50
+
+
+def _get_frozen_center(score_key: str, scores: pd.Series, model_id: str) -> float:
+    """pos/neg_frac 阈值中心的单一事实源 (冻结 sidecar)。
+
+    fix(omni-g-benefit KNOWN-OPEN①, 2026-06-11): 此前 _center 每次 run 用当期
+    语料 pooled median 现算 → 语料增量会平移全历史 pos/neg_frac (跨 run 不可比,
+    纯 in-sample 阈值)。现改为:
+      - 首跑: 以当期全样本投影 median 计算, 持久化到
+        ``data/processed/_benefit_center_sidecar.json`` (键 = score 列名,
+        如 ``benefit_score_full`` / ``benefit_score_t2v_ctx``);
+      - 后续 run: 直接读冻结值, 不随语料漂移;
+      - sidecar 记录 model_id, 与当前 spec 不匹配 → fail-loud (嵌入模型换代须
+        显式删除过期条目重冻结, 防跨嵌入空间阈值误用)。
+    披露: 冻结值本质仍是首跑 in-sample median — P(>center)≈0.5 仅对首跑语料
+    成立; benefit_mean 连续主测度不经此中心化, 不受影响。
+    """
+    sidecar_path = os.path.join(OUTPUT_DIR, _CENTER_SIDECAR_FILENAME)
+    record: dict = {}
+    if os.path.exists(sidecar_path):
+        try:
+            with open(sidecar_path, encoding='utf-8') as f:
+                record = json.load(f)
+            if not isinstance(record, dict):
+                record = {}
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.warning(f"    center sidecar 读取失败, 按首跑重建: {exc!r}")
+            record = {}
+
+    entry = record.get(score_key)
+    if (isinstance(entry, dict)
+            and isinstance(entry.get('center'), (int, float))
+            and np.isfinite(entry['center'])):
+        frozen_model = entry.get('model_id')
+        if frozen_model is not None and frozen_model != model_id:
+            raise ValueError(
+                f"benefit center sidecar 条目 {score_key!r} 冻结自 model="
+                f"{frozen_model!r}, 当前 spec model={model_id!r} — 嵌入模型换代须"
+                f"删除 {sidecar_path} 中该条目后重冻结 (防跨嵌入空间阈值误用)"
+            )
+        logger.info(f"    {score_key}: 使用冻结 center={entry['center']:.6f} (sidecar)")
+        return float(entry['center'])
+
+    center = float(scores.dropna().median()) if scores.notna().any() else float('nan')
+    if not np.isfinite(center):
+        logger.warning(f"    {score_key}: 无有效投影得分, center 回退 0.0 (不冻结)")
+        return 0.0
+    n_scores = int(scores.notna().sum())
+    if n_scores < _CENTER_MIN_N_TO_FREEZE:
+        logger.warning(
+            f"    {score_key}: 有效得分仅 {n_scores} 篇 < {_CENTER_MIN_N_TO_FREEZE}, "
+            f"本次使用现算 center={center:.6f} 但**不冻结** (防 toy/试跑数据持久化)"
+        )
+        return center
+    record[score_key] = {
+        'center': center,
+        'model_id': model_id,
+        'method': 'pooled-median (首跑 in-sample, 冻结)',
+        'n_scores': n_scores,
+        'frozen_utc': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+    }
+    try:
+        with open(sidecar_path, 'w', encoding='utf-8') as f:
+            json.dump(record, f, ensure_ascii=False, indent=2)
+        logger.info(f"    {score_key}: 首跑冻结 center={center:.6f} "
+                    f"→ {_CENTER_SIDECAR_FILENAME}")
+    except OSError as exc:
+        logger.warning(f"    center sidecar 写入失败 (本次仍用 {center:.6f}): {exc!r}")
+    return center
 
 # ============================================================================
 # 6. Bank-Year 聚合 + 面板合并（核心入口函数）
@@ -550,6 +732,11 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
             )
             continue
 
+        # fix(omni-g-benefit-01, 2026-06-11): 方向向量落盘 (27c placebo 链路
+        # --main-direction-npy 的产出方; 此前该输入从未被任何阶段产出)。
+        if _CACHE_EMBEDDINGS:
+            _persist_direction_vector(direction, suffix, spec=spec)
+
         # ---- 6.3 双轨投影 ----
         # 【术语】双轨投影 (Dual-Track Projection):
         #   - Full 轨: 标题 + 全文正文，完整语义信号
@@ -595,15 +782,16 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
                 OUTPUT_DIR,
                 cache_filename.replace('.npy', f'{suffix}_{track}.npy'))
 
-            # 投影计算 (用本 spec 嵌入并投影到本 spec 的方向向量)
-            valid_scores = _project_texts(valid_texts, direction, cache_path, spec=spec)
+            # 投影计算 (用本 spec 嵌入并投影到本 spec 的方向向量)。
+            # fix(omni-g-benefit-01, 2026-06-11): _project_texts 现接收全量
+            # 文本 (含空文本, 内部过滤并返回等长 NaN-填充得分), 使其能按
+            # df_exploded 行序落盘全长嵌入 .npy + sidecar (27c 链路输入)。
+            scores = _project_texts(texts, direction, cache_path, spec=spec)
 
-            # 向量化回填至 df_exploded (in-place 副作用)
+            # 回填至 df_exploded (in-place 副作用)
             # ⚠️ 此处向 df_exploded 添加了 benefit_score{suffix}_{track} 中间列。
             #   该列仅用于下方 Bank-Year 聚合，不影响后续模块
             #   (compute_brokerage_centrality 等只读取自身所需列)。
-            scores = np.full(len(texts), np.nan)
-            scores[valid_mask] = valid_scores
             df_exploded[col_score] = scores
 
             # ---- 6.4 Bank-Year 聚合 ----
@@ -631,7 +819,11 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
             # 注 (correctness-01): "P(>median)≈0.5" 指文章级 pooled 分布 (_center 由
             # df_exploded 算出); 面板列 benefit_pos_frac 因 mean-of-fractions 聚合 (各
             # bank-year 文章数不均的 Jensen 效应) 实测 bank-year 简单均值 ~0.45, 非 0.5。
-            _center = float(df_exploded[col_score].dropna().median())
+            # fix(omni-g-benefit KNOWN-OPEN①, 2026-06-11): median 不再每次 run 现算
+            # — 改冻结 sidecar (_benefit_center_sidecar.json): 首跑计算持久化, 后续
+            # 读冻结值; 语料增量不再平移全历史 pos/neg_frac。详见 _get_frozen_center。
+            _center = _get_frozen_center(col_score, df_exploded[col_score],
+                                         _eng.spec_model(spec))
             frac = (df_exploded
                     .dropna(subset=[col_score])
                     .groupby(['target_bank', 'year'])[col_score]
@@ -643,8 +835,10 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
 
             agg = agg.merge(frac, on=['target_bank', 'year'], how='left')
 
-            # std 的 NaN (单观测) → 0
-            agg['benefit_std'] = agg['benefit_std'].fillna(0)
+            # fix(omni-g-benefit-05, 2026-06-11): 单观测 bank-year 的 std (ddof=1)
+            # 在统计上未定义 — 保持 NaN, 不再 fillna(0) (填 0 令'只有 1 篇报道'与
+            # '多篇完全一致(真实零分歧)'不可区分, 且与同面板核心 llm_vote_tone_std
+            # 族的 NaN 口径冲突)。下游回归经 listwise deletion 自然处理。
 
             # 重命名: 添加 (模型 suffix +) 轨后缀
             #   suffix='' → benefit_mean_full 等 (canonical, 字节级不变)

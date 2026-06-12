@@ -17,6 +17,7 @@ import pandas as pd
 
 from news_process.pipeline.preprocess._constants import (
     AD_PATTERN,
+    AD_PATTERN_TITLE,
     KEY_COLUMNS,
     MEDIA_NAME_OVERRIDES,
     MEDIA_NAMES_TO_EXCLUDE,
@@ -39,8 +40,9 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
       2. 媒体类型过滤 (~5-10%)
       3. 媒体名称黑名单过滤 (排除剪报服务等非原始新闻来源)
       4. 缺失值过滤 (~2-5%)
-      5. 广告关键词过滤 (~1-3%)
-      6. 银行关键词保留过滤 (Aho-Corasick, ~30-50%)
+      5. 广告关键词过滤 (~1-3%; 标题字段高误伤词行尾锚定, fix omni-g-preprocess-05)
+      6. 银行关键词保留过滤 (Aho-Corasick, ~30-50%; 自动机含繁体/全角括号变体
+         以兼容规范化前的原始文本, fix omni-g-preprocess-07)
       7. Schema 统一 (object → string, 不改变行数)
       8. 媒体名称清理 (去除报纸名称修饰后缀/版面/无效字符, 不改变行数)
 
@@ -85,15 +87,27 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  [4/8 缺失值过滤] 移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}")
 
     # 5. 广告关键词过滤(检查标题、版面、栏名三个字段)
-    if AD_PATTERN is not None:
-        for field_name, col_name in [('标题', '标题'), ('版面', '版面'), ('栏名', '栏名')]:
-            rows_before = len(df)
-            df = df[~df[col_name].astype(str).str.contains(AD_PATTERN, na=False, regex=True)]
-            if rows_before - len(df) > 0:
-                logger.info(
-                    f"  [5/8 广告过滤-{field_name}] "
-                    f"移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}"
-                )
+    # fix(omni-g-preprocess-05, 2026-06-11): 标题字段改用 AD_PATTERN_TITLE —
+    # 高误伤词 (公告/通知/声明/通报/风险提示/年度报告) 对标题要求行尾锚定,
+    # 不再把 '央行公告下调存准率' / '上市银行年度报告显示…' 等监管新闻整篇
+    # 误删; 版面/栏名仍用无锚定 AD_PATTERN (付费公告版面全量排除, 行为不变)。
+    # 数据附录披露: 标题命中广告关键词 (高误伤词须行尾锚定) 或 版面/栏名含
+    # 任一广告关键词的记录被排除出语料 — 该排除与监管事件强度相关, 属语料
+    # 构建的样本选择规则, 写论文 data appendix 时须披露。
+    for field_name, col_name, _pattern in [
+        ('标题', '标题', AD_PATTERN_TITLE),
+        ('版面', '版面', AD_PATTERN),
+        ('栏名', '栏名', AD_PATTERN),
+    ]:
+        if _pattern is None:
+            continue
+        rows_before = len(df)
+        df = df[~df[col_name].astype(str).str.contains(_pattern, na=False, regex=True)]
+        if rows_before - len(df) > 0:
+            logger.info(
+                f"  [5/8 广告过滤-{field_name}] "
+                f"移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}"
+            )
 
     # 6. 银行关键词保留过滤(Aho-Corasick O(n) 复杂度)
     # 只保留内容中提及至少一个银行关键词的新闻

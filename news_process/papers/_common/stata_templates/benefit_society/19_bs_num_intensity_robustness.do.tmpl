@@ -16,27 +16,55 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
-* Panel A: 量化披露强度 (数字密度公式, 项目自定义; Davis-Tama-Sweet 2012 CAR; 原引 Hales 系误归, 真双轨)
+* fix(omni-gapfill-17, 2026-06-12): (i) Panel A 双轨拆为各自单轨回归 — 项目纪律
+* (用户钦定): 双轨互为稳健性, 两轨分别进各自回归、不同进一 RHS (高相关双轨同列
+* 致两个 β 共线不可解释); (ii) vce(cluster bank_id year) → vce(cluster bank_id):
+* 本篇 11b 头注红线 G_year=2 不可按 year 聚类 (T≥30 解禁), 对齐 11-14 全部单维
+* 聚类; (iii) DV 统一 {{MAIN_DV}}_w (winsorized, 全篇其余表同口径); (iv) ctx 列
+* 补 capture confirm 守卫; (v) esttab 名单动态化 (守卫跳过后硬点名 → r(111))。
+
+* Panel A: 量化披露强度 (数字密度公式, 项目自定义; Davis-Tama-Sweet 2012 CAR;
+* 原引 Hales 系误归; 真双轨 — full / ctx 各自单轨一列)
 capture confirm variable mean_num_intensity_full
 if !_rc {
-    reghdfe {{MAIN_DV}} mean_num_intensity_full mean_num_intensity_ctx $bank_controls, ///
-        absorb(bank_id year) vce(cluster bank_id year)
-    eststo bs_num_intensity_dual
+    reghdfe {{MAIN_DV}}_w mean_num_intensity_full $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+    eststo bs_numint_full
 }
 else {
     display "  [WARN] mean_num_intensity_full not in panel"
 }
-
-* Panel B: 与 LLM substance 交互 (discriminant: 量化披露 ↔ 实质性)
-capture confirm variable mean_num_intensity_full
+capture confirm variable mean_num_intensity_ctx
 if !_rc {
-    reghdfe {{MAIN_DV}} c.mean_num_intensity_full##c.{{ATTITUDE_VAR}} $bank_controls, ///
-        absorb(bank_id year) vce(cluster bank_id year)
-    eststo bs_num_intensity_interact
+    reghdfe {{MAIN_DV}}_w mean_num_intensity_ctx $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+    eststo bs_numint_ctx
+}
+else {
+    display "  [WARN] mean_num_intensity_ctx not in panel"
 }
 
-esttab bs_num_intensity_dual bs_num_intensity_interact ///
-    using "$tables_dir/tableA8_num_intensity.tex", ///
-    se star(* 0.10 ** 0.05 *** 0.01) replace ///
-    title("Table A8: Numerical Intensity Robustness — {{PAPER_ID}}") ///
-    note("Dual-track independent regex+cn2arab scan. Chinese sentence denominator caveat per paper §3.4.")
+* Panel B: 与 LLM substance 交互 (discriminant: 量化披露 ↔ 实质性; full 轨)
+capture confirm variable mean_num_intensity_full
+if !_rc {
+    reghdfe {{MAIN_DV}}_w c.mean_num_intensity_full##c.{{ATTITUDE_VAR}} $bank_controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+    eststo bs_numint_interact
+}
+
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m in bs_numint_full bs_numint_ctx bs_numint_interact {
+    if `: list m in stored' local models `models' `m'
+}
+if "`models'" == "" {
+    display as error "  [WARN] Table A8 无任何已存储估计 (num_intensity 列全缺); 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA8_num_intensity.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) replace ///
+        title("Table A8: Numerical Intensity Robustness — {{PAPER_ID}}") ///
+        note("Dual-track independent regex+cn2arab scan; full/ctx in separate columns (mutual-robustness discipline). Chinese sentence denominator caveat per paper §3.4. SE clustered at bank_id (G_year=2 forbids year clustering, cf. 11b).")
+}

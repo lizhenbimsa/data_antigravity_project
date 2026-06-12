@@ -10,6 +10,11 @@ generate_codebook.py - 生成完整的变量代码手册（Variable Codebook）
     - data/processed/variable_codebook.csv
     - data/processed/variable_codebook.md
     - data/processed/variable_codebook.json
+
+fix(omni-g-codebook-07, 2026-06-11): 面板源改为优先读 51_panel_with_controls
+(stage 51 controls 超集, 含 nf_*/fintech_share 族), 缺失时回退 40_panel_yearly。
+历史盘上产物实际生成自 51 面板而本入口只读 40 → 产物不可由文档化入口复现,
+且 40/51 列集差异是 codebook 幻影行/漏登记的结构性根因。
 """
 
 import os
@@ -46,13 +51,26 @@ def main():
     logger.info("=" * 70)
 
     # 读取面板数据
-    panel_path = os.path.join(
+    # fix(omni-g-codebook-07, 2026-06-11): 优先 51_panel_with_controls (controls 超集,
+    # 与历史盘上产物的真实祖先一致), 缺失时回退 40_panel_yearly 并显式告警。
+    panel51_path = os.path.join(
+        CONFIG['paths']['output_dir'],
+        CONFIG['filenames'].get('output_51_panel_controls', '51_panel_with_controls.parquet')
+    )
+    panel40_path = os.path.join(
         CONFIG['paths']['output_dir'],
         CONFIG['filenames'].get('output_40_panel_yearly', '40_panel_yearly.parquet')
     )
-
-    if not os.path.exists(panel_path):
-        logger.error(f"面板数据文件不存在: {panel_path}")
+    if os.path.exists(panel51_path):
+        panel_path = panel51_path
+    elif os.path.exists(panel40_path):
+        panel_path = panel40_path
+        logger.warning(
+            "51_panel_with_controls 不存在, 回退 40_panel_yearly — "
+            "codebook 将缺 stage 51 controls 族列 (nf_*/fintech_share 等)"
+        )
+    else:
+        logger.error(f"面板数据文件不存在: {panel51_path} 与 {panel40_path}")
         logger.error("请先运行数据处理流程生成面板数据")
         return 1
 

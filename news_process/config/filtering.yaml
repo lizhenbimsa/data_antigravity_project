@@ -47,6 +47,10 @@ article_alignment:
   max_tokens_per_input: 8191                               # 单条文本 token 上限 (OpenAI 硬性限制)
   max_tokens_per_request: 250000                           # 单次 API 请求总 token 安全上限 (300K - 50K 余量)
   quadrant_percentiles: [25, 50, 75]                       # 四象限分类的分位数阈值集合
+  # fix(omni-g-policy-02, 2026-06-11): vintage-aware 政策锚点 (stage 15 + 26 共用)。
+  # true (默认) = 年度 t 仅用发布年份 ≤ t 的政策文档构造锚点 (消除前视构造);
+  # false = 旧静态全语料锚点 (含未来政策文本, 仅作稳健性对照, 日志显式披露)。
+  vintage_aware: true
 
 # ------------------------------------------------------------------------------
 # [模块二：新闻筛选模块] 实体上下文窗口配置 (Entity Context Window) - 阶段 21 物化

@@ -25,13 +25,26 @@ v3.6.0 (Plan E P1 B3) 双轨化升级:
 
 关键设计:
   - TF-IDF 向量化 + 维度封锁 (max_features=10000)
-  - ≤2000 篇/bank 走 dense pairwise; >2000 篇走 7 天窗双指针分桶 O(N·window) (W1 2026-06-05)
-  - 相似度阈值 0.35: 高于此值视为"跟风"
+    ⚠ 披露 (fix(omni-g-herd-02, 2026-06-11)): max_features 按**原始词频**截断 top-k —
+    全量语料 (2007-2024) 头部银行单组数十万篇时 char 2-4 gram 词表达百万级, top-10k
+    截断把相似度计算压入高频 boilerplate ngram 子空间 (判别性长尾缺席 → 余弦系统性
+    膨胀, 规模依赖)。截断咬合时运行期记 logger.warning; 共享全语料词表 / 按 IDF 选
+    top-k 的重设计与全量 run 一并处理, 届时应做 max_features 敏感性检验。
+  - df 阈值比例化 (fix(omni-g-herd-01, 2026-06-11)): min_df = min(MIN_DF,
+    max(2, ceil(0.01·n))), 消除小组词表塌缩断崖; max_df 守卫 df-band 退化 (详见
+    _build_tfidf_vectorizer docstring)。
+    ⚠ 披露: 词表/IDF 仍按 (bank, 年度前缀) 组内拟合, 相似度刻度跨组不完全同质 →
+    0.35 阈值的跨银行严格可比性不成立 (比例化仅消除 df-band 退化这一最大失真源)。
+  - as-of yearly vocab fit (fix(omni-g-herd-05, 2026-06-11)): 年 t 文章的前驱计数仅用
+    year ≤ t 文档拟合的向量空间 (前驱构念严格后视, 向量空间不得含未来 DF/IDF);
+    年内残余前视为接受粒度 (面板为 bank-year)。
+  - ≤2000 篇/前缀 走 dense pairwise; >2000 篇走 7 天窗双指针分桶 O(N·window) (W1 2026-06-05)
+  - 相似度阈值 0.35: 相似度 ≥ 此值视为"跟风" (闭边界, 代码用 >=)
   - 衰减公式: weight = 1 / (1 + n_similar_predecessors)
   - **双轨**: full 用 'content_full'(标题+全文), ctx 用 'content_ctx'(标题+实体窗口);
     两者均由 stage 13 物化、含标题对称 (病根A 已修); 缺 content_full 时 full 回退裸 '内容'
 
-输入: 23_bert_tone.parquet (含 content_ctx 列, 由 stage 21 物化后下传)
+输入: 23_bert_tone.parquet (含 content_ctx 列, 由 stage 13 ctx_materializer 物化后下传)
 输出: 24_herd_decay.parquet (追加 6 列: 4 双轨列 herd_weight_full + herd_weight_ctx
       + n_similar_articles_full + n_similar_articles_ctx, 外加 herd_weight +
       n_similar_articles 两个单列 —— 后者作为 _full 轨的 NON-BREAKING 别名保留
@@ -81,17 +94,32 @@ CHUNK_SIZE = HERD_CFG.get('chunk_size', 1000)  # 仅用于日志显示; >2000 �
 # ============================================================================
 
 def _build_tfidf_vectorizer(n_docs: int, *, relaxed: bool = False) -> TfidfVectorizer:
-    """Create a TF-IDF vectorizer whose df thresholds are valid for the group size."""
-    if relaxed or n_docs <= MIN_DF:
+    """Create a TF-IDF vectorizer whose df thresholds are valid for the group size.
+
+    fix(omni-g-herd-01, 2026-06-11): min_df 比例化 (proportional df threshold)。
+    原实现 min_df=MIN_DF 为**绝对**文档数: n=6 的组配合 max_df=0.9 (floor(5.4)=5)
+    把存活词表压到"恰好 5/6 篇共现"的 boilerplate 子空间 → 余弦相似度系统性膨胀
+    (盘上实证 +17%~∞ flags), 且与 n≤MIN_DF 的 relaxed 分支 (min_df=1) 形成断崖
+    不连续 → 0.35 阈值跨银行不可比。现改 min(MIN_DF, max(2, ceil(0.01·n))):
+    小/中组 min_df=2 (仅剪 hapax 噪声), n≳200 平滑爬升, n≥~500 封顶于 MIN_DF
+    (大组与历史行为一致); 另加 max_df 守卫 — 若 floor(max_df·n) ≤ min_df
+    (df-band 退化为近全员共现带), 放开 max_df=1.0 而非把 min_df 压回退化带。
+    """
+    if relaxed or n_docs < 4:
+        # 微型组 (n<4): 任何 df 剪枝都会让词表退化, 直接放开
         min_df = 1
         max_df = 1.0
     else:
-        min_df = min(MIN_DF, n_docs)
+        # 比例化下限 2 (剪 hapax), 按 1%·n 爬升, 上限 MIN_DF (config 绝对计数 cap)
+        min_df = int(min(MIN_DF, max(2, int(np.ceil(0.01 * n_docs)))))
         max_df = MAX_DF
         if isinstance(max_df, float) and 0 < max_df < 1.0:
             max_allowed_df = int(np.floor(max_df * n_docs))
-            if max_allowed_df < min_df:
-                min_df = max(1, max_allowed_df)
+            if max_allowed_df <= min_df:
+                # fix(omni-g-herd-01): df-band 退化守卫 — 小 n 下 max_df 把允许带
+                # 收窄到 [min_df, min_df] 或更窄时, 放开 max_df 保留全部 ≥min_df
+                # 特征, 避免相似度在近全员共现子空间被强行抬高
+                max_df = 1.0
 
     return TfidfVectorizer(
         max_features=MAX_FEATURES,
@@ -101,6 +129,47 @@ def _build_tfidf_vectorizer(n_docs: int, *, relaxed: bool = False) -> TfidfVecto
         ngram_range=(2, 4),
         dtype=np.float32,  # 节省内存
     )
+
+
+def _fit_tfidf_with_fallback(texts: list, *, bank_name=None, track=None):
+    """Fit TF-IDF with transparent relaxed fallback; return matrix or None.
+
+    fix(omni-g-herd-03, 2026-06-11): 原两层 ValueError fallback 均零日志 — 走
+    relaxed (min_df=1/max_df=1.0) 的组其相似度刻度 (全词表) 与主参数组不同, 二次
+    失败整组 weight 保持 1.0, 用户无法审计哪些 (bank, track) 降级 (违反降级透明
+    红线, 同族 F7/F16/F21/F22)。现两分支各记 logger.warning(bank/track/n_docs/原因)。
+
+    fix(omni-g-herd-02, 2026-06-11): max_features 截断咬合 (词表撞 cap) 时记
+    logger.warning 披露规模依赖的相似度膨胀风险 (见模块头 ⚠ 披露)。
+    """
+    n_docs = len(texts)
+    try:
+        vectorizer = _build_tfidf_vectorizer(n_docs)
+        tfidf_matrix = vectorizer.fit_transform(texts)
+    except ValueError as exc:
+        logger.warning(
+            f"  [herd] TF-IDF 主参数 fit 失败, 降级 relaxed (min_df=1/max_df=1.0): "
+            f"bank={bank_name}, track={track}, n_docs={n_docs}, 原因: {exc}. "
+            f"该组相似度刻度与未降级组不同 (词表带放宽), 审计时注意。"
+        )
+        try:
+            vectorizer = _build_tfidf_vectorizer(n_docs, relaxed=True)
+            tfidf_matrix = vectorizer.fit_transform(texts)
+        except ValueError as exc2:
+            logger.warning(
+                f"  [herd] relaxed 重试仍失败, 该组本轨保持 weight=1.0 / count=0: "
+                f"bank={bank_name}, track={track}, n_docs={n_docs}, 原因: {exc2}"
+            )
+            return None
+    # max_features 截断透明化: 词表撞 cap 说明按词频截断已咬合 (大组高频
+    # boilerplate 子空间), 相似度刻度存在规模依赖膨胀 — 全量 run 必触发, 须披露
+    if MAX_FEATURES and len(vectorizer.vocabulary_) >= MAX_FEATURES:
+        logger.warning(
+            f"  [herd] max_features={MAX_FEATURES} 截断咬合: bank={bank_name}, "
+            f"track={track}, n_docs={n_docs} — 相似度计算被压入高频 ngram 子空间, "
+            f"大组相似度刻度可能膨胀 (建议全量 run 做 max_features 敏感性检验)"
+        )
+    return tfidf_matrix
 
 
 def _dense_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
@@ -163,45 +232,77 @@ def _bucketed_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
 
 
 def _compute_similar_counts_for_track(
-    bank_df: pd.DataFrame, text_col: str, dates: list
+    bank_df: pd.DataFrame, text_col: str, dates: list, *, bank_name=None
 ) -> np.ndarray | None:
     """对单一文本列计算同银行 + 时间窗口内的"前驱跟风计数"向量。
 
     抽出 v3.5.0 单轨实现的核心算法以支持双轨复用 (Plan E P1 B3)。
     返回 None 表示无法向量化 (空文本 / TF-IDF 失败), 调用方应保留 weight=1.0。
 
+    fix(omni-g-herd-05, 2026-06-11): as-of yearly vocab fit — 原实现对单银行
+    **全历史** texts 一次 fit_transform, 历史文章对的余弦使用了由未来文档频率决定
+    的 IDF 权重与 df 词表剪裁 (前驱计数构念严格后视, 向量空间却含前视) → 样本扩展
+    时历史 herd_weight 非不变 (0.35 阈值附近计数可翻转)。现按年截断: 年 t 文章的
+    计数仅在 year ≤ t 文档拟合的向量空间内计算 (前驱候选集不变 — 7 天窗下三角本就
+    只看更早文章); 年内残余前视为接受粒度 (面板为 bank-year, 年级 as-of 已足)。
+    NaT 日期文章排除出 fit (年份未知; 既有语义下其本就不计数、不作候选)。
+
     Args:
-        bank_df: 单银行子集, 已按日期排序。
+        bank_df: 单银行子集, 已按日期升序排序 (NaT 末位, 由调用方 sort_values 保证)。
         text_col: 文本列名 ('content_full' for full, 'content_ctx' for ctx; 均含标题)。
         dates:    与 bank_df 对齐的日期列表 (含 NaT)。
+        bank_name: 银行名, 仅用于降级/截断透明日志 (fix(omni-g-herd-03))。
 
     Returns:
         np.ndarray[int] 长度 = len(bank_df), 每元素为 i 的"早于 i 且相似 ≥ 阈值"
-        前驱数; 失败返回 None。
+        前驱数; 完全无法向量化 (全空文本) 返回 None。
     """
     texts = bank_df[text_col].fillna('').astype(str).tolist()
     non_empty = [t for t in texts if len(t.strip()) > 0]
     if len(non_empty) < 2:
         return None
 
-    try:
-        tfidf_matrix = _build_tfidf_vectorizer(len(texts)).fit_transform(texts)
-    except ValueError:
-        try:
-            tfidf_matrix = _build_tfidf_vectorizer(
-                len(texts), relaxed=True
-            ).fit_transform(texts)
-        except ValueError:
-            return None
-
     n_articles = len(texts)
-    if n_articles <= 2000:
-        return _dense_similar_counts(tfidf_matrix, dates)
-    # M0 规模 (>2000 篇/bank): 7 天窗双指针分桶替换原 O(N^2) 纯 Python 双循环。
-    # 头部银行 (工农中建招) 全量 2007-2024 可达数十万篇, 原 O(N^2) 是 stage 24 的
-    # wall-clock cliff + N×N 余弦 OOM 悬崖。_bucketed 与 _dense 数值逐位等价,
-    # 由 tests/test_24_herd_decay_bucketing.py 在 >2000 fixture 上对拍守护。
-    return _bucketed_similar_counts(tfidf_matrix, dates)
+    counts = np.zeros(n_articles, dtype=int)
+
+    # 非 NaT 前缀: 调用方已按日期升序排序 (NaT 末位), 故有效日期文档构成连续前缀
+    # [0, dated_n); 首个 NaT 即截断 (防御任意排列 — NaT 后的文档不进任何年度 fit)。
+    years: list[int] = []
+    for d in dates:
+        if pd.isna(d):
+            break
+        years.append(int(pd.Timestamp(d).year))
+    dated_n = len(years)
+    if dated_n < 2:
+        # 可计数文档不足 2 篇 (其余皆 NaT): 与旧实现等价 (NaT 不计数), 全 0
+        return counts
+
+    years_arr = np.asarray(years)
+    for t in np.unique(years_arr):
+        # 年度前缀 [0, prefix_end) = 全部 year ≤ t 文档; 本年文章区间 [target_lo, prefix_end)
+        prefix_end = int(np.searchsorted(years_arr, t, side='right'))
+        target_lo = int(np.searchsorted(years_arr, t, side='left'))
+        if prefix_end < 2:
+            continue  # 首年仅 1 篇: 无前驱对可计
+        sub_texts = texts[:prefix_end]
+        if sum(1 for s in sub_texts if s.strip()) < 2:
+            continue
+        tfidf_matrix = _fit_tfidf_with_fallback(
+            sub_texts, bank_name=bank_name, track=text_col)
+        if tfidf_matrix is None:
+            continue  # 该年度前缀 fit 失败 (已 warning): 本年文章保持 count=0
+        sub_dates = dates[:prefix_end]
+        if prefix_end <= 2000:
+            sub_counts = _dense_similar_counts(tfidf_matrix, sub_dates)
+        else:
+            # M0 规模 (>2000 篇/前缀): 7 天窗双指针分桶替换原 O(N^2) 纯 Python 双循环。
+            # 头部银行 (工农中建招) 全量 2007-2024 可达数十万篇, 原 O(N^2) 是 stage 24
+            # 的 wall-clock cliff + N×N 余弦 OOM 悬崖。_bucketed 与 _dense 数值逐位等价,
+            # 由 tests/test_24_herd_decay_bucketing.py 在 >2000 fixture 上对拍守护。
+            sub_counts = _bucketed_similar_counts(tfidf_matrix, sub_dates)
+        # 仅采纳本年文章的计数 (前驱候选 = 前缀内更早文章, 跨年 7 天窗自然覆盖)
+        counts[target_lo:prefix_end] = sub_counts[target_lo:prefix_end]
+    return counts
 
 
 def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
@@ -209,9 +310,12 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     算法流程 (对 full / ctx 两轨各跑一次):
       1. 按 target_bank 分组
-      2. 对每组新闻进行 TF-IDF 向量化 (轨 1 用 '内容', 轨 2 用 'content_ctx')
+      2. 对每组新闻进行 TF-IDF 向量化 (轨 1 用 'content_full' 标题+全文, 缺列回退
+         '内容'/'正文'/'content'; 轨 2 用 'content_ctx')
+         — fix(omni-g-herd-04, 2026-06-11): 原文档误称轨 1 为裸正文列, 与病根A修复
+         后的实现 (优先 content_full) 不符, 已同步
       3. 计算余弦距离 (≤2000 篇 dense / >2000 篇 7 天窗双指针分桶, W1 2026-06-05)
-      4. 在时间窗口内, 若文章 j 与更早的文章 i 的相似度 > 阈值,
+      4. 在时间窗口内, 若文章 j 与更早的文章 i 的相似度 ≥ 阈值 (闭边界, 代码 >=),
          则 j 被标记为"跟风", 衰减权重递减
       5. 衰减公式: weight_j = 1 / (1 + n_similar_predecessors)
 
@@ -246,7 +350,8 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
         '内容' if '内容' in df.columns else (
             '正文' if '正文' in df.columns else 'content'))
     has_full = full_col in df.columns
-    # ctx 轨: 来自 stage 21 _materialize_content_ctx; 缺失则回退 full
+    # ctx 轨: 来自 stage 13 ctx_materializer (fix(omni-g-herd-04, 2026-06-11):
+    # 原注释错标到 stage 21, 与本文件头部/现行架构矛盾); 缺失则回退 full
     has_ctx = 'content_ctx' in df.columns
 
     if not has_full:
@@ -262,9 +367,9 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     if not has_ctx:
         logger.warning(
-            "  'content_ctx' 列不存在 (stage 21 _materialize_content_ctx 未跑?), "
+            "  'content_ctx' 列不存在 (stage 13 ctx_materializer 未跑?), "
             "ctx 轨回退至全文计算 — 此时 herd_weight_ctx ≡ herd_weight_full, "
-            "不构成真双轨。建议先执行 stage 21 物化 content_ctx。"
+            "不构成真双轨。建议先执行 stage 13 物化 content_ctx。"
         )
 
     # 初始化结果列
@@ -299,11 +404,13 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
         indices = bank_df.index.tolist()
         dates = bank_df['日期'].tolist()
 
-        # full 轨计算
-        full_counts = _compute_similar_counts_for_track(bank_df, full_col, dates)
+        # full 轨计算 (bank_name 仅供降级/截断透明日志, fix(omni-g-herd-03, 2026-06-11))
+        full_counts = _compute_similar_counts_for_track(
+            bank_df, full_col, dates, bank_name=bank_name)
         # ctx 轨计算 (缺失时回退 = full)
         if has_ctx:
-            ctx_counts = _compute_similar_counts_for_track(bank_df, 'content_ctx', dates)
+            ctx_counts = _compute_similar_counts_for_track(
+                bank_df, 'content_ctx', dates, bank_name=bank_name)
         else:
             ctx_counts = full_counts  # 回退: 与 full 同值, 由 has_ctx 警告告知用户
 

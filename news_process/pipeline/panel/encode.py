@@ -15,6 +15,7 @@
 学术依据: Tetlock et al. (2008, JF) 先分后合范式
 """
 
+import calendar
 import json
 import os
 import re
@@ -194,14 +195,43 @@ def encode_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     #   DOI: 10.1016/j.jeconom.2020.07.053
     #   → 情感度量噪声导致回归系数衰减偏误(attenuation bias)
     #   → LLM 置信度低 = 信号噪声大 → 情感效应被低估
+    # fix(omni-g-encode-02, 2026-06-11): 聚合域对齐 (valid-only domain alignment) —
+    # 旧实现对全部物理文章合成 avg_llm_conf (含 verified=False / undefined /
+    # call_failure 的无效票文章), 而其要调节的 llm_vote_tone 只用 valid 票 →
+    # 验证失败率高的银行 avg_llm_conf 被无效票的系统性低置信度机械拉低 (域错位,
+    # 盘上实测 invalid 文章 conf≈0.66 vs valid≈0.88)。现以 llm_vote_score{track}
+    # .notna() (= valid-vote 域) 掩码, 与被调节测度同域。逐模型 conf 与
+    # agreement_rate 同病同修: 产出 underscore 掩码列 (_conf_valid_* /
+    # _agree_valid_*), 供 build_aggregation_dict 优先取用 (raw 列保持原值不动,
+    # llm_vote_cont / {short}_cont 等其他消费者不受影响)。
     for track in ['_full', '_ctx']:
         conf_cols = [f'{s}_sentiment_confidence{track}' for s in LLM_MODELS
                      if f'{s}_sentiment_confidence{track}' in df.columns]
+        vote_col = f'llm_vote_score{track}'
         if conf_cols:
-            df[f'avg_llm_conf{track}'] = df[conf_cols].mean(axis=1)
-            logger.info(f"  avg_llm_conf{track}: 由 {len(conf_cols)} 个模型置信度合成")
+            _conf_macro = df[conf_cols].mean(axis=1)
+            if vote_col in df.columns:
+                # valid-vote 域: 无效票文章 (vote_score=<NA>) 的置信度不进入合成
+                _conf_macro = _conf_macro.where(df[vote_col].notna())
+                logger.info(f"  avg_llm_conf{track}: 由 {len(conf_cols)} 个模型置信度合成 "
+                            f"(valid-vote 域, 与 llm_vote_tone 同口径)")
+            else:
+                logger.warning(f"  avg_llm_conf{track}: 缺 {vote_col}, 退化为物理全集口径")
+            df[f'avg_llm_conf{track}'] = _conf_macro
         else:
             logger.warning(f"  未找到 LLM 置信度列, 跳过 avg_llm_conf{track}")
+
+        # 逐模型 conf 掩码列: 域 = 该模型自身 score 有效性 ({short}_score=<NA> 即无效)
+        for short in LLM_MODELS:
+            m_conf = f'{short}_sentiment_confidence{track}'
+            m_score = f'{short}_score{track}'
+            if m_conf in df.columns and m_score in df.columns:
+                df[f'_conf_valid_{short}{track}'] = df[m_conf].where(df[m_score].notna())
+
+        # agreement_rate 掩码列: 域 = llm_vote_score 有效性 (与 avg_llm_conf 同口径)
+        ar_col = f'llm_agreement_rate{track}'
+        if ar_col in df.columns and vote_col in df.columns:
+            df[f'_agree_valid{track}'] = df[ar_col].where(df[vote_col].notna())
 
     logger.info(f"  生成编码列: {len(encoded_cols)} 个")
     logger.info(f"  离散映射: 正面=1, 中性=0, 负面=-1")
@@ -577,11 +607,20 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     # 置信度越低 → 测量误差越大 → Tone 对因变量的估计系数向零衰减
     for track in ['_full', '_ctx']:
         # 三模型宏平均置信度 → Bank-Year 均值 & 标准差
+        # (article 级 avg_llm_conf 已在 encode_sentiment 按 valid-vote 域掩码,
+        #  fix omni-g-encode-02)
         agg[f'avg_llm_conf{track}'] = (f'avg_llm_conf{track}', 'mean')
         agg[f'avg_llm_conf_std{track}'] = (f'avg_llm_conf{track}', 'std')
         # 逐模型置信度 → Bank-Year 均值 (稳健性分解)
+        # fix(omni-g-encode-02, 2026-06-11): 优先取 valid 域掩码列 (该模型 score
+        # 有效的文章), 与其调节的 {short}_tone 同口径; 掩码列缺失 (legacy parquet /
+        # 合成测试 df 未过 encode_sentiment) 时回退 raw 物理域列, 向后兼容。
         for short in LLM_MODELS:
-            conf_src = f'{short}_sentiment_confidence{track}'
+            _masked_src = f'_conf_valid_{short}{track}'
+            if df is not None and _masked_src in df.columns:
+                conf_src = _masked_src
+            else:
+                conf_src = f'{short}_sentiment_confidence{track}'
             agg[f'avg_{short}_conf{track}'] = (conf_src, 'mean')
 
     # --- E. 新闻覆盖量 & 稳健性辅助（无需双轨） ---
@@ -605,8 +644,15 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     agg['multi_bank_frac'] = ('is_multi_bank', 'mean')
     agg['avg_bank_count'] = ('bank_count', 'mean')
     agg['max_bank_count'] = ('bank_count', 'max')
-    agg['avg_agreement_rate_full'] = ('llm_agreement_rate_full', 'mean')
-    agg['avg_agreement_rate_ctx'] = ('llm_agreement_rate_ctx', 'mean')
+    # fix(omni-g-encode-02, 2026-06-11): agreement_rate 同口径修复 — 优先 valid-vote
+    # 域掩码列 (_agree_valid{track}, encode_sentiment 产), 缺失回退 raw 物理域列。
+    for _ar_track in ('_full', '_ctx'):
+        _ar_masked = f'_agree_valid{_ar_track}'
+        if df is not None and _ar_masked in df.columns:
+            _ar_src = _ar_masked
+        else:
+            _ar_src = f'llm_agreement_rate{_ar_track}'
+        agg[f'avg_agreement_rate{_ar_track}'] = (_ar_src, 'mean')
     # remove-title-track: avg_agreement_rate_title 已取消
 
     # --- E2. v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 ---
@@ -834,6 +880,88 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
     return agg
 
 
+def _check_partition_identity(panel: pd.DataFrame, valid_col: str,
+                              part_cols: list, dim_label: str) -> tuple:
+    """fix(omni-g-encode-07, 2026-06-11): R6 (>=) 恒等式校验统一 helper (三维度共用)。
+
+    旧实现 locus/substantiveness 用严格 `==` 而 collab 已按 R6 放宽为 `>=` —
+    LLM 对某维度分类部分失败 (label=NaN) 时, 该文章计入 n_articles_llm_valid 但
+    不入任何类别 → 严格相等"必然破坏" (collab F-CR-cell-NA 注释已论证), 全量语料
+    下任一 NaN 标签即触发伪 WARNING。同一失败模式逐字适用于三个维度, 故统一为
+    逻辑必然的 `valid >= Σ 分类计数`, 差额 = 该维度分类 NaN 的文章数 (info 级输出)。
+
+    Returns:
+        (n_fail, gap): n_fail = valid < Σ 分类 的行数 (>0 才是真 bug);
+                       gap = 部分失败文章累计数 (n_fail>0 时为 -1, 无意义)。
+    """
+    has_news = panel[valid_col] > 0
+    part_sum = sum(panel.loc[has_news, c] for c in part_cols)
+    n_fail = int((panel.loc[has_news, valid_col] < part_sum).sum())
+    if n_fail == 0:
+        gap = int((panel.loc[has_news, valid_col] - part_sum).sum())
+        logger.info(
+            f"  ✓ {dim_label} 恒等式校验通过: {valid_col} >= {' + '.join(part_cols)} "
+            f"(LLM {dim_label} 部分失败累计 {gap} articles, NA bucket 兜底)"
+        )
+    else:
+        gap = -1
+        logger.warning(
+            f"  ✗ {dim_label} 恒等式校验失败 ({valid_col} < 分类和, "
+            f"上游 race condition?): {n_fail} 行"
+        )
+    return n_fail, gap
+
+
+def _aggregate_ctx_diagonal(df: pd.DataFrame, panel: pd.DataFrame,
+                            dim_col: str, mapping: list) -> pd.DataFrame:
+    """fix(omni-g-encode-05, 2026-06-11): ctx 对角线分类聚合统一 helper (源列存在性守卫)。
+
+    旧实现 (_lc/_sc/_cm 三块) 把 ('llm_vote_score_ctx','count') /
+    ('llm_prob_score_ctx','mean') 硬编码进 groupby.agg, 不做 `in df.columns` 检查 —
+    与 full 轨 cat_agg 逐列守卫及主聚合 valid_agg 过滤的优雅跳过契约相悖。
+    llm_prob_score_ctx 是条件产物 (stage 21 LOGIT_SCORE_ENABLED 门控), 分类列与
+    情感列来自 stage 21 不同代码路径 → 部分产出组合 (分类列在、prob/vote 列不在)
+    下旧版直接 KeyError 崩溃。现逐源列守卫: 缺哪个源跳过哪项, 输出列以 0/NaN
+    占位 (schema 稳定, 与既有 empty-category 分支同语义)。
+
+    Args:
+        df: 文章级 DataFrame (须含 dim_col)。
+        panel: bank-year 面板 (merge 目标)。
+        dim_col: ctx 轨分类列名 (如 'innovation_locus_ctx')。
+        mapping: [(分类标签, 输出列后缀)], 如 [('底层技术', '_tech_lc_ctx'), ...]。
+
+    Returns:
+        合并对角线列后的 panel。
+    """
+    has_vote = 'llm_vote_score_ctx' in df.columns
+    has_prob = 'llm_prob_score_ctx' in df.columns
+    if not has_vote:
+        logger.warning(f"  {dim_col} 对角线: 缺 llm_vote_score_ctx, "
+                       "count/tone 输出以 0/NaN 占位")
+    if not has_prob:
+        logger.warning(f"  {dim_col} 对角线: 缺 llm_prob_score_ctx "
+                       "(stage 21 logit 探针未启用?), prob 输出以 NaN 占位")
+    for cat_label, suffix in mapping:
+        df_cat = df[df[dim_col] == cat_label]
+        diag_agg = {}
+        if not df_cat.empty:
+            if has_vote:
+                diag_agg[f'n_articles{suffix}'] = ('llm_vote_score_ctx', 'count')
+                diag_agg[f'llm_vote_tone{suffix}'] = ('llm_vote_score_ctx', 'mean')
+            if has_prob:
+                diag_agg[f'llm_prob_score{suffix}'] = ('llm_prob_score_ctx', 'mean')
+        if diag_agg:
+            _p = df_cat.groupby(['target_bank', 'year']).agg(**diag_agg).reset_index()
+            panel = panel.merge(_p, on=['target_bank', 'year'], how='left')
+        # 缺源/空类的输出列占位 (与旧 empty 分支一致: count→0, tone/prob→NaN)
+        for _out, _fill in [(f'n_articles{suffix}', 0),
+                            (f'llm_vote_tone{suffix}', np.nan),
+                            (f'llm_prob_score{suffix}', np.nan)]:
+            if _out not in panel.columns:
+                panel[_out] = _fill
+    return panel
+
+
 def _compute_tone_gap_tech_app(panel: pd.DataFrame) -> pd.Series:
     """Compute tone_gap_tech_app with min-n confound defense (v3.1.1).
 
@@ -880,9 +1008,19 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     f"非空={df['_ft_word_ratio'].notna().sum()}")
 
     # v3.7.2 R8-H1: bool dtype 防御 (防 parquet round-trip 漂移为 object → mean() 退化)
+    # fix(omni-g-encode-06, 2026-06-11): 裸 astype('bool') 对缺失值语义错乱 —
+    # object 列里 np.nan→True (被计为 fallback) 而 None→False, 同种缺失依存储形式
+    # 得相反结果, 静默高估 frac_ctx_fallback / 低估 n_articles_for_ctx_independence。
+    # 改为显式缺失策略: 缺失=非 fallback (fillna(False)) + 记录缺失数告警。
     if 'ctx_is_fallback' in df.columns and df['ctx_is_fallback'].dtype != bool:
         df = df.copy()
-        df['ctx_is_fallback'] = df['ctx_is_fallback'].astype('bool')
+        _ctx_fb_na = int(df['ctx_is_fallback'].isna().sum())
+        if _ctx_fb_na:
+            logger.warning(
+                f"  ctx_is_fallback 含 {_ctx_fb_na} 个缺失值 (dtype 漂移伴随缺失), "
+                "按『缺失=非 fallback』策略填 False 后再转 bool"
+            )
+        df['ctx_is_fallback'] = df['ctx_is_fallback'].fillna(False).astype('bool')
 
     agg_dict = build_aggregation_dict(df)
 
@@ -904,6 +1042,16 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
     # 执行聚合
     panel = df.groupby(['target_bank', 'year']).agg(**valid_agg).reset_index()
+
+    # fix(omni-g-encode-08, 2026-06-11): dtype pin — pandas groupby.agg 对 nullable
+    # Int8/Int16/Int32 源列做 sum 时按【结果值域】选输出 dtype (所有组和 ∈[-128,127]
+    # 保留 Int8, 任一组和超界静默升 Int64) → 计数/和列 schema 随数据规模漂移
+    # (T=2 试跑 .dta 为 byte, T=18 全量翻 long), parquet/.dta 存储型跨规模不稳定。
+    # 出口统一 pin 为 Int64: 值无损 (Int8⊂Int64), 消除值依赖性。
+    _narrow_int_dtypes = {'Int8', 'Int16', 'Int32'}
+    for _pin_col in valid_agg:
+        if str(panel[_pin_col].dtype) in _narrow_int_dtypes:
+            panel[_pin_col] = panel[_pin_col].astype('Int64')
 
     # v3.7.2 R8-H1: 由 _ctx_fallback_count (sum) 派生 n_articles_for_ctx_independence
     # 之所以不在 agg_dict 用 lambda: pandas.groupby.NamedAgg 协议不支持闭包稳定 hash
@@ -930,9 +1078,14 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
 
     # --- 报道连续性/节奏 (Hillert 2014 RFS; 批 #12, 2026-06-05) ---
     # 与 staleness(内容重复)/herd(产出端重复) 正交: 此为【时间分布形态】(节奏 vs 冷饭)。
-    # coverage_active_days=有报道的天数; coverage_continuity=活跃天数/跨度天数 (1=天天有,
-    # 低=爆发式). $0 纯 日期 聚合; 年内天级分布在 T=2 试跑样本即可识别 (跨年 run-length
-    # 才需全量 T=18). 论文须明写与 staleness 的判别区分。
+    # coverage_active_days=有报道的天数; coverage_continuity=活跃天数/当年自然天数
+    # (365/366, 1=全年天天有报道, 低=稀疏/爆发式). $0 纯 日期 聚合。
+    # fix(omni-g-encode-04, 2026-06-11): 分母由"自身报道首末跨度"改为当年自然天数 —
+    # 旧 span 分母端点内生 (endpoint endogeneity): 单日单篇报道 → 1/1 = 1.0 = 理论
+    # 最大值, 最极端的爆发式覆盖反而获最高"连续性", 与构念"低=爆发式"正好相反
+    # (盘上实证 47% 行 =1.0 且其中绝大多数为单篇, corr(continuity, active_days)<0)。
+    # 自然天数分母下 1.0 仅当全年天天有报道, 构念方向恢复; 语义变为年覆盖密度
+    # (within-year coverage density)。论文须明写与 staleness 的判别区分。
     if '日期' in df.columns:
         _d = df[['target_bank', 'year', '日期']].copy()
         _d['日期'] = pd.to_datetime(_d['日期'], errors='coerce')
@@ -940,12 +1093,12 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         _d['_day'] = _d['日期'].dt.normalize()
         cov = _d.groupby(['target_bank', 'year']).agg(
             coverage_active_days=('_day', 'nunique'),
-            _min_day=('_day', 'min'),
-            _max_day=('_day', 'max'),
         ).reset_index()
         cov['coverage_active_days'] = cov['coverage_active_days'].astype(float)
-        _span = (cov['_max_day'] - cov['_min_day']).dt.days + 1
-        cov['coverage_continuity'] = cov['coverage_active_days'] / _span.replace(0, np.nan)
+        # 当年自然天数 (闰年 366, 平年 365), 外生于报道行为
+        _year_days = cov['year'].astype(int).map(
+            lambda y: 366.0 if calendar.isleap(y) else 365.0)
+        cov['coverage_continuity'] = cov['coverage_active_days'] / _year_days
         cov = cov[['target_bank', 'year', 'coverage_active_days', 'coverage_continuity']]
         panel = panel.merge(cov, on=['target_bank', 'year'], how='left')
     else:
@@ -1047,8 +1200,27 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
             np.nan
         )
 
-        # avg_category_confidence
-        if 'category_confidence' in df.columns:
+        # avg_category_confidence — fix(omni-g-encode-10, 2026-06-11): 死列复活。
+        # v3.2.0 起上游列名为 category_confidence_<track> (tone_llms.py 双轨产出,
+        # hybrid LLM×keyword 的 locus 分类置信度), 旧裸名 'category_confidence'
+        # 检查恒假 → else 分支恒走, 列永久全 NaN (export.py G-20 低置信度诊断
+        # 沦为死代码)。现改接双轨源: 产 avg_category_confidence_full/_ctx
+        # (stata_export core_patterns 已预留两名), 裸名列保留 = _full 别名
+        # (export.py / codebook 既有消费者继续工作); 仍兼容 v3.1.x 裸名 parquet。
+        for _cc_src, _cc_out in [
+            ('category_confidence_full', 'avg_category_confidence_full'),
+            ('category_confidence_ctx', 'avg_category_confidence_ctx'),
+        ]:
+            if _cc_src in df.columns:
+                conf = df.groupby(['target_bank', 'year'])[_cc_src].mean().reset_index()
+                conf.columns = ['target_bank', 'year', _cc_out]
+                panel = panel.merge(conf, on=['target_bank', 'year'], how='left')
+            else:
+                panel[_cc_out] = np.nan
+        if 'category_confidence_full' in df.columns:
+            panel['avg_category_confidence'] = panel['avg_category_confidence_full']
+        elif 'category_confidence' in df.columns:
+            # legacy v3.1.x 裸名 schema 兼容 (v3.2.0 迁移前 parquet)
             conf = df.groupby(['target_bank', 'year'])['category_confidence'].mean().reset_index()
             conf.columns = ['target_bank', 'year', 'avg_category_confidence']
             panel = panel.merge(conf, on=['target_bank', 'year'], how='left')
@@ -1072,17 +1244,12 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 else:
                     panel[_out] = np.nan
 
-        # 恒等式校验（二分类）
+        # 恒等式校验（二分类）— fix(omni-g-encode-07, 2026-06-11): 严格 == 统一为
+        # R6 `>=` (与 collab 维度一致, 论证见 _check_partition_identity docstring)
         if all(f'n_articles{s}' in panel.columns for s in ['_tech', '_app']):
-            has_news = panel['n_articles_llm_valid'] > 0
-            identity_check = (panel.loc[has_news, 'n_articles_llm_valid'] ==
-                              panel.loc[has_news, 'n_articles_tech'] +
-                              panel.loc[has_news, 'n_articles_app'])
-            if identity_check.all():
-                logger.info("  ✓ 恒等式校验通过: n_articles == n_articles_tech + n_articles_app")
-            else:
-                n_fail = (~identity_check).sum()
-                logger.warning(f"  ✗ 恒等式校验失败: {n_fail} 行不满足 n_articles == n_articles_tech + n_articles_app")
+            _check_partition_identity(
+                panel, 'n_articles_llm_valid',
+                ['n_articles_tech', 'n_articles_app'], 'innovation_locus')
 
         # tone_gap_tech_app: 底层技术 vs 应用场景 LLM 投票情感差距 (v3.1.1)
         # 文献: Adner & Kapoor (2010 SMJ); Gomber et al. (2018 JMIS)
@@ -1092,21 +1259,11 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # ── v3.2.0 M2 P2 (plan v14 §2.2): _lc × _ctx 对角线追加 ──
         # Hassan 2019 QJE entity-proximity locus classification + ctx 轨情感
         if 'innovation_locus_ctx' in df.columns:
-            for cat_label, suffix in [('底层技术', '_tech_lc_ctx'),
-                                      ('应用场景', '_app_lc_ctx')]:
-                df_cat_lc = df[df['innovation_locus_ctx'] == cat_label]
-                if df_cat_lc.empty:
-                    panel[f'n_articles{suffix}'] = 0
-                    panel[f'llm_vote_tone{suffix}'] = np.nan
-                    panel[f'llm_prob_score{suffix}'] = np.nan
-                    continue
-                _lc_agg = {
-                    f'n_articles{suffix}': ('llm_vote_score_ctx', 'count'),
-                    f'llm_vote_tone{suffix}': ('llm_vote_score_ctx', 'mean'),
-                    f'llm_prob_score{suffix}': ('llm_prob_score_ctx', 'mean'),
-                }
-                _lc_p = df_cat_lc.groupby(['target_bank', 'year']).agg(**_lc_agg).reset_index()
-                panel = panel.merge(_lc_p, on=['target_bank', 'year'], how='left')
+            # fix(omni-g-encode-05, 2026-06-11): 改走统一守卫 helper (硬编码源列
+            # 在 stage 21 部分产出时 KeyError, 见 _aggregate_ctx_diagonal docstring)
+            panel = _aggregate_ctx_diagonal(
+                df, panel, 'innovation_locus_ctx',
+                [('底层技术', '_tech_lc_ctx'), ('应用场景', '_app_lc_ctx')])
 
             # 比例 frac (_lc)
             for suffix in ['_tech_lc_ctx', '_app_lc_ctx']:
@@ -1114,12 +1271,19 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                     panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
             # metric-audit 2026-06-02 final: ctx 分子须配 ctx 分母 n_articles_llm_valid_ctx
             # (旧用 full 轨 n_articles_llm_valid → 轨道不对称, frac 越界至 3.0).
-            panel['tech_frac_lc'] = np.where(
-                panel['n_articles_llm_valid_ctx'] > 0,
-                panel['n_articles_tech_lc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
-            panel['app_frac_lc'] = np.where(
-                panel['n_articles_llm_valid_ctx'] > 0,
-                panel['n_articles_app_lc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
+            # fix(omni-g-encode-05, 2026-06-11): 分母列存在性守卫 — llm_vote_score_ctx
+            # 缺失时主聚合不产 n_articles_llm_valid_ctx, 旧版此处直接 KeyError。
+            if 'n_articles_llm_valid_ctx' in panel.columns:
+                panel['tech_frac_lc'] = np.where(
+                    panel['n_articles_llm_valid_ctx'] > 0,
+                    panel['n_articles_tech_lc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
+                panel['app_frac_lc'] = np.where(
+                    panel['n_articles_llm_valid_ctx'] > 0,
+                    panel['n_articles_app_lc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
+            else:
+                panel['tech_frac_lc'] = np.nan
+                panel['app_frac_lc'] = np.nan
+                logger.warning("  缺 n_articles_llm_valid_ctx 分母, tech/app_frac_lc 置 NaN")
 
             # tone_gap_tech_app_lc_ctx: ctx 轨同向 gap
             if 'llm_vote_tone_tech_lc_ctx' in panel.columns and 'llm_vote_tone_app_lc_ctx' in panel.columns:
@@ -1200,47 +1364,37 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 panel['llm_vote_tone_sub_full'] - panel['llm_vote_tone_symb_full']
             ).where(_sub_symb_qual, np.nan)
 
-        # innovation_substantiveness 恒等式校验（二分类）
+        # innovation_substantiveness 恒等式校验（二分类）— fix(omni-g-encode-07,
+        # 2026-06-11): 严格 == 统一为 R6 `>=` (与 collab 维度一致)
         if all(f'n_articles{s}' in panel.columns for s in ['_sub', '_symb']):
-            has_news = panel['n_articles_llm_valid'] > 0
-            tt_identity = (panel.loc[has_news, 'n_articles_llm_valid'] ==
-                           panel.loc[has_news, 'n_articles_sub'] +
-                           panel.loc[has_news, 'n_articles_symb'])
-            if tt_identity.all():
-                logger.info("  ✓ innovation_substantiveness 恒等式校验通过: n_articles == n_articles_sub + n_articles_symb")
-            else:
-                n_fail_tt = (~tt_identity).sum()
-                logger.warning(f"  ✗ innovation_substantiveness 恒等式校验失败: {n_fail_tt} 行")
+            _check_partition_identity(
+                panel, 'n_articles_llm_valid',
+                ['n_articles_sub', 'n_articles_symb'], 'innovation_substantiveness')
 
         # ── v3.2.0 M2 P2 (plan v14 §2.2): _sc × _ctx 对角线追加 ──
         # W&Z 1994/1998 ASQ substantive-symbolic + Hassan 2019 QJE entity-proximity
         if 'innovation_substantiveness_ctx' in df.columns:
-            for tt_label, suffix in [('实质性', '_sub_sc_ctx'),
-                                     ('象征性', '_symb_sc_ctx')]:
-                df_tt_sc = df[df['innovation_substantiveness_ctx'] == tt_label]
-                if df_tt_sc.empty:
-                    panel[f'n_articles{suffix}'] = 0
-                    panel[f'llm_vote_tone{suffix}'] = np.nan
-                    panel[f'llm_prob_score{suffix}'] = np.nan
-                    continue
-                _sc_agg = {
-                    f'n_articles{suffix}': ('llm_vote_score_ctx', 'count'),
-                    f'llm_vote_tone{suffix}': ('llm_vote_score_ctx', 'mean'),
-                    f'llm_prob_score{suffix}': ('llm_prob_score_ctx', 'mean'),
-                }
-                _sc_p = df_tt_sc.groupby(['target_bank', 'year']).agg(**_sc_agg).reset_index()
-                panel = panel.merge(_sc_p, on=['target_bank', 'year'], how='left')
+            # fix(omni-g-encode-05, 2026-06-11): 统一守卫 helper (同 _lc 块)
+            panel = _aggregate_ctx_diagonal(
+                df, panel, 'innovation_substantiveness_ctx',
+                [('实质性', '_sub_sc_ctx'), ('象征性', '_symb_sc_ctx')])
 
             for suffix in ['_sub_sc_ctx', '_symb_sc_ctx']:
                 if f'n_articles{suffix}' in panel.columns:
                     panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
             # metric-audit 2026-06-02 final: ctx 分子配 ctx 分母 (修轨道不对称 frac>1)
-            panel['sub_frac_sc'] = np.where(
-                panel['n_articles_llm_valid_ctx'] > 0,
-                panel['n_articles_sub_sc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
-            panel['symb_frac_sc'] = np.where(
-                panel['n_articles_llm_valid_ctx'] > 0,
-                panel['n_articles_symb_sc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
+            # fix(omni-g-encode-05, 2026-06-11): 分母列存在性守卫 (同 _lc 块)
+            if 'n_articles_llm_valid_ctx' in panel.columns:
+                panel['sub_frac_sc'] = np.where(
+                    panel['n_articles_llm_valid_ctx'] > 0,
+                    panel['n_articles_sub_sc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
+                panel['symb_frac_sc'] = np.where(
+                    panel['n_articles_llm_valid_ctx'] > 0,
+                    panel['n_articles_symb_sc_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
+            else:
+                panel['sub_frac_sc'] = np.nan
+                panel['symb_frac_sc'] = np.nan
+                logger.warning("  缺 n_articles_llm_valid_ctx 分母, sub/symb_frac_sc 置 NaN")
 
             # tone_gap_sub_symb_sc_ctx: ctx 轨情感纯度差距 (fix(encode-02): 补 min-n>=5 守门)
             if 'llm_vote_tone_sub_sc_ctx' in panel.columns and 'llm_vote_tone_symb_sc_ctx' in panel.columns:
@@ -1326,53 +1480,37 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         # 维度部分失败时必然破坏 (失败 article 既不入 _indep 也不入 _collab 但仍计入 n_articles).
         # 改为逻辑必然性: `n_articles >= n_articles_indep + n_articles_collab`. 差额 =
         # 上游 collab_mode = NaN 的 articles, 由 v3.5.0 D2 `n_articles_cell_NA_full` 兜底跟踪.
+        # fix(omni-g-encode-07, 2026-06-11): 内联实现收敛到 _check_partition_identity
+        # (三维度共用同一 R6 语义, 防再漂移)
         if all(f'n_articles{s}' in panel.columns for s in ['_indep', '_collab']):
-            has_news = panel['n_articles_llm_valid'] > 0
-            cm_sum = (panel.loc[has_news, 'n_articles_indep'] +
-                      panel.loc[has_news, 'n_articles_collab'])
-            n_fail_cm = int((panel.loc[has_news, 'n_articles_llm_valid'] < cm_sum).sum())
-            if n_fail_cm == 0:
-                cm_gap = int((panel.loc[has_news, 'n_articles_llm_valid'] - cm_sum).sum())
-                logger.info(
-                    "  ✓ innovation_collab_mode 恒等式校验通过 "
-                    f"(LLM collab_mode 部分失败累计 {cm_gap} articles, 由 "
-                    "n_articles_cell_NA_full bucket 兜底)"
-                )
-            else:
-                logger.warning(
-                    f"  ✗ innovation_collab_mode 恒等式校验失败 (n_articles < "
-                    f"sum, 上游 race condition?): {n_fail_cm} 行"
-                )
+            _check_partition_identity(
+                panel, 'n_articles_llm_valid',
+                ['n_articles_indep', 'n_articles_collab'], 'innovation_collab_mode')
 
         # ── ctx 轨对角线追加 (与 substantiveness _sc / locus _lc 同模式) ──
         # Chesbrough 2003 + Hassan 2019 QJE entity-proximity
         if 'innovation_collab_mode_ctx' in df.columns:
-            for cm_label, suffix in [('自主研发', '_indep_cm_ctx'),
-                                     ('外部协同', '_collab_cm_ctx')]:
-                df_cm_cm = df[df['innovation_collab_mode_ctx'] == cm_label]
-                if df_cm_cm.empty:
-                    panel[f'n_articles{suffix}'] = 0
-                    panel[f'llm_vote_tone{suffix}'] = np.nan
-                    panel[f'llm_prob_score{suffix}'] = np.nan
-                    continue
-                _cm_agg = {
-                    f'n_articles{suffix}': ('llm_vote_score_ctx', 'count'),
-                    f'llm_vote_tone{suffix}': ('llm_vote_score_ctx', 'mean'),
-                    f'llm_prob_score{suffix}': ('llm_prob_score_ctx', 'mean'),
-                }
-                _cm_p = df_cm_cm.groupby(['target_bank', 'year']).agg(**_cm_agg).reset_index()
-                panel = panel.merge(_cm_p, on=['target_bank', 'year'], how='left')
+            # fix(omni-g-encode-05, 2026-06-11): 统一守卫 helper (同 _lc/_sc 块)
+            panel = _aggregate_ctx_diagonal(
+                df, panel, 'innovation_collab_mode_ctx',
+                [('自主研发', '_indep_cm_ctx'), ('外部协同', '_collab_cm_ctx')])
 
             for suffix in ['_indep_cm_ctx', '_collab_cm_ctx']:
                 if f'n_articles{suffix}' in panel.columns:
                     panel[f'n_articles{suffix}'] = panel[f'n_articles{suffix}'].fillna(0).astype(int)
             # metric-audit 2026-06-02 final: ctx 分子配 ctx 分母 (修轨道不对称 frac>1)
-            panel['indep_frac_cm'] = np.where(
-                panel['n_articles_llm_valid_ctx'] > 0,
-                panel['n_articles_indep_cm_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
-            panel['collab_frac_cm'] = np.where(
-                panel['n_articles_llm_valid_ctx'] > 0,
-                panel['n_articles_collab_cm_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
+            # fix(omni-g-encode-05, 2026-06-11): 分母列存在性守卫 (同 _lc/_sc 块)
+            if 'n_articles_llm_valid_ctx' in panel.columns:
+                panel['indep_frac_cm'] = np.where(
+                    panel['n_articles_llm_valid_ctx'] > 0,
+                    panel['n_articles_indep_cm_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
+                panel['collab_frac_cm'] = np.where(
+                    panel['n_articles_llm_valid_ctx'] > 0,
+                    panel['n_articles_collab_cm_ctx'] / panel['n_articles_llm_valid_ctx'], np.nan)
+            else:
+                panel['indep_frac_cm'] = np.nan
+                panel['collab_frac_cm'] = np.nan
+                logger.warning("  缺 n_articles_llm_valid_ctx 分母, indep/collab_frac_cm 置 NaN")
 
             if 'llm_vote_tone_indep_cm_ctx' in panel.columns and 'llm_vote_tone_collab_cm_ctx' in panel.columns:
                 # fix(completeness-05): 第 6 个 tone_gap 此前漏补 min-n>=5 守门 (对齐其余 5 个),
@@ -1596,8 +1734,14 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     """构建平衡面板: 银行 × 年份笛卡尔积 + 科学填充。
 
     填充策略:
-      - 计数类(n_articles, n_articles_tech, n_articles_app): 填充为 0
-      - 比例类(tech_frac, app_frac, avg_category_confidence): 保持 NaN
+      - 计数/和类(n_articles* 前缀全族, *_sum_<track> / *_count_<track> 后缀,
+        sum_mention_density / sum_herd_weight_* / sum_wd_* 等权重和,
+        coverage_active_days): 填充为 0
+        (fix omni-g-encode-01/03/09, 2026-06-11: n_articles_llm_valid(_ctx) /
+        ctx 对角计数 / n_articles_for_ctx_independence / D2 cell / D4 disagree
+        族 / sum_herd_weight_full|_ctx / coverage_active_days 此前漏填残留 NaN)
+      - 比例类(tech_frac, app_frac, avg_category_confidence, coverage_continuity):
+        保持 NaN
       - 情感类(所有 _tone, _pos, _neg 列): 保持 NaN
     """
     logger.info("=" * 60)
@@ -1654,30 +1798,33 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     # sum_mention_density 等兄弟一致 (否则零新闻行残留 NaN, .dta 显 . 而非 0; 虽 _llm_denom
     # 的 replace(0,nan) 已兜底除法, 但列契约要求计数/和列填 0)。
     wd_cols = [c for c in panel.columns if c.startswith('sum_wd_')]
-    zero_fill_cols = zero_fill_patterns + sum_cols + count_cols + suffixed_count_cols + wd_cols
+    # fix(omni-g-encode-01/03/09, 2026-06-11): 零填契约第 5 轮补漏 — L1/F4/F5/
+    # vwmwhw-F1 四轮修复后仍漏的【前缀式命名】计数/和列 (逃过既有精确名+后缀正则):
+    #   (a) sum_herd_weight_full/_ctx — 末尾 weight_<track> 而非 _sum_<track>,
+    #       与 sum_mention_density 兄弟同"和"契约 (零新闻 bank-year = Σ over ∅ = 0);
+    #   (b) coverage_active_days — 报道天数计数, 零新闻年 = 0 天
+    #       (coverage_continuity 为比例类, 零新闻行维持 NaN)。
+    herd_cov_cols = [c for c in ('sum_herd_weight_full', 'sum_herd_weight_ctx',
+                                 'coverage_active_days') if c in panel.columns]
+    zero_fill_cols = (zero_fill_patterns + sum_cols + count_cols
+                      + suffixed_count_cols + wd_cols + herd_cov_cols)
 
     for col in zero_fill_cols:
         if col in panel.columns:
             panel[col] = panel[col].fillna(0)
 
-    # --- 分类维度计数列填充为 0 ---
-    # zero_fill_patterns 中的 'n_articles' 为精确匹配，不会捕获 n_articles_tech / n_articles_app
-    for suffix in ['_tech', '_app']:
-        col = f'n_articles{suffix}'
-        if col in panel.columns:
-            panel[col] = panel[col].fillna(0).astype(int)
-
-    # --- innovation_substantiveness 分类维度计数列填充为 0（独立循环，不追加到 innovation_locus） ---
-    for suffix in ['_sub', '_symb']:
-        col = f'n_articles{suffix}'
-        if col in panel.columns:
-            panel[col] = panel[col].fillna(0).astype(int)
-
-    # --- v3.4.0: innovation_collab_mode 分类维度计数列填充为 0 (Chesbrough 2003) ---
-    for suffix in ['_indep', '_collab']:
-        col = f'n_articles{suffix}'
-        if col in panel.columns:
-            panel[col] = panel[col].fillna(0).astype(int)
+    # --- 计数族 n_articles* 前缀通配填 0 (fix omni-g-encode-01/03/09, 2026-06-11) ---
+    # 旧实现仅显式枚举 _tech/_app/_sub/_symb/_indep/_collab 六个 bare 后缀, 漏掉
+    # n_articles_llm_valid(_ctx) / ctx 对角计数 (_lc/_sc/_cm_ctx) /
+    # n_articles_for_ctx_independence / D2 cell 计数 / D4 disagree-bothvalid 族 →
+    # 零新闻行残留 NaN/<NA>, 违反本函数"计数类填 0"契约 (兄弟列 n_articles=0 对照)。
+    # 全仓 n_articles* 命名空间均为计数列 (无均值/比率同名), 前缀通配安全;
+    # 填 0 后恢复整型 (reindex 会把 numpy int 漂移为 float64;
+    # nullable Int 经 fillna 保持原 dtype, 不需转换)。
+    for col in [c for c in panel.columns if c.startswith('n_articles')]:
+        panel[col] = panel[col].fillna(0)
+        if panel[col].dtype.kind == 'f':
+            panel[col] = panel[col].astype('int64')
 
     # 其余 NaN 列保持不变（均值、比例、离散度等由 Stata 处理）
     # tech_frac / app_frac / sub_frac / symb_frac / indep_frac / collab_frac / avg_category_confidence:

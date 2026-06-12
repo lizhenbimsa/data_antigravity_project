@@ -57,7 +57,7 @@ prompt_sensitivity_test:
   max_concurrency: 100                              # 2026-05-14 用户决策: 项目统一 100 并发 (原阶段39=8); ⚠️ 注意: 24k 请求 + 100 并发可能触发 yunwu 网关 429 雪崩, 重跑前需监控; 若雪崩回退至 8
   request_spacing_seconds: 0.10                     # Prompt 验证使用短重试熔断，可提高真实缺缓存请求放行速率
   request_timeout_seconds: 60                       # Prompt 灵敏度以缓存为主，缺缓存请求超时后本轮熔断
-  max_retries: 1                                    # 避免单个变体因外部 API 长尾重试卡住数小时
+  max_retries: 1                                    # 披露 fix(omni-g-val-prompt-05, 2026-06-11): 刻意低于生产 stage 21 (max_retries=80, 指数退避), 避免 24k 请求长尾重试卡住数小时; 代价是变体失败率系统性高于 baseline — 失败行已由代码掩码剔除不计入措辞不一致 (JSON 报 n_call_failures_excluded), 不再偏置 κ。删除本行则缺省对齐生产 MAX_RETRIES
   pass_threshold_verification: 0.85                 # 均值验证一致率通过阈值 (≥85%)
   pass_threshold_sentiment: 0.80                    # 均值情感一致率通过阈值 (≥80%)
   pass_threshold_kappa: 0.70                        # 最小 Cohen's κ 通过阈值 (≥0.70)
@@ -73,15 +73,21 @@ prompt_sensitivity_test:
 # (LLM 绝对没见过) 两段, 比较 LLM 输出与 outcome 的相关性是否异常 (Fisher z),
 # 检测 look-ahead 污染。学术依据: Sainz 2023 EMNLP; Lopez-Lira-Tang 2023 holdout。
 # 启用: 上方 validation.llm_contamination: true。前置依赖:
-#   1) opt-in stage 49 risk_taking_outcomes 已把 outcome_col (z_score) 并入面板;
+#   1) opt-in stage 49 risk_taking_outcomes 已产出 49_risk_taking_outcomes.parquet。
+#      fix(omni-g-audit-family-07, 2026-06-11): z_score 刻意不并入 40_panel
+#      (panel/runner.py 8c: DV master 反向并入是范畴错误); 39h 运行时自动按
+#      (target_bank, year) 做 audit-local 临时 join 拉入 outcome 列 (不写回面板)。
+#      旧注释声称 "已并入面板" 与 runner 设计矛盾 → 检验结构性永不激活, 已修。
 #   2) cutoff 须填 LLM provider 官方文档日期 (留空则优雅跳过, 严禁伪造 — 见模块 C5 修复)。
 # 注: 当前 T=2 面板 (2017-2018) 年份均 < 主流 LLM cutoff → post 段为空, run_stage
 #     会优雅跳过; 需待面板含 post-cutoff 年份后才产出实质结果。
+#     跨 cutoff 之年 (straddle year) 整年剔出留出集 (fix omni-g-audit-family-03)。
 llm_contamination_test:
   cutoff:                                            # 例: "2024-04-01" (须为官方文档日期; 留空=跳过, 禁止伪造)
   llm_col: llm_vote_tone_full                        # LLM 输出列
-  outcome_col: z_score                               # outcome 列 (来自 stage 49)
-  date_col: year                                     # 时间列 (year → 自动转年中点 7-01)
+  outcome_col: z_score                               # outcome 列 (来自 stage 49 产物, 39h 临时 join)
+  # outcome_input:                                   # 可选: 覆盖 49 产物路径 (默认 output_dir/49_risk_taking_outcomes.parquet)
+  date_col: year                                     # 时间列 (year → 年中点 7-01 + 跨界年剔除)
   method: pearson                                    # pearson | spearman
 
 # 阈值敏感性分析参数 (Threshold Sensitivity) - 阶段 31

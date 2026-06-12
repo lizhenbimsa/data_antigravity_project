@@ -34,13 +34,26 @@
     即银行 i 的冲击值 = 同年其余所有银行 j≠i 的负面比率均值, 排除自身。
     ⚠ 识别更正 (2026-06-10): 同期 LOO 仅去自相关, **不**解决 Manski 反射/同时性
     (同期同行结果仍由共同冲击联合决定); 作 IV/treatment 须滞后 t-1 或工具化。
+    ⚠ 年 FE 共线披露 (fix omni-g-net-brok-01, 2026-06-11): 同期 LOO 均值是
+      组内常数减自身的仿射变换 shock_i,t = S_t/(N_t-1) − ratio_i,t/(N_t-1);
+      含年 FE 时 S_t/(N_t-1) 被吸收, 剩余识别变异与自身 neg_ratio within-year
+      精确共线 (corr = −1; Angrist 2014, The perils of peer effects)。
+      → 含年 FE 的规格请改用滞后变体 industry_neg_shock_lag1。
 
 输出变量 (Stata 回归可用):
   - brokerage_eigen_cent: 二分图特征向量中心度
+    (按连通分量分别计算 + 分量内归一; 孤立点/微小分量为缺失,
+     详见 _eigenvector_centrality_by_component)
     Stata 示例: reg Y brokerage_eigen_cent X, cluster(province)
-  - industry_neg_shock: 行业负面冲击指数 (LOO)
-    Stata 示例: reg Y industry_neg_shock X, cluster(province)
+  - industry_neg_shock: 行业负面冲击指数 (同期 LOO)
+    ⚠ 不可与年 FE 同入 (absorb(... year) 下与自身 neg_ratio 精确共线, 见上);
+      仅限无年 FE 的描述性规格。
+    Stata 示例 (无年 FE): reg Y industry_neg_shock X, cluster(province)
+  - industry_neg_shock_lag1: 行业负面冲击指数 (t-1 滞后, 年 FE 下保留跨期识别变异)
+    Stata 示例: reghdfe Y industry_neg_shock_lag1 X, absorb(bank_id year) cluster(province)
   - brokerage_fire_sale: 经纪中心度(t-1) × 行业负面冲击(t)
+    交乘项随 i×t 变异, 不受上述年 FE 完全共线影响; 但 shock 同期主效应项同染,
+    主效应请用 industry_neg_shock_lag1 (见 compute_fire_sale_interaction docstring)。
     Stata 示例: reg Y c.brokerage_fire_sale X, cluster(province)
     经济含义: 正系数 → 信息枢纽银行在行业负面冲击下遭受更大声誉损失
 """
@@ -158,8 +171,63 @@ def build_media_bank_bipartite(
 
 
 # ============================================================================
-# 2. 经纪中心度计算 (三级 fallback)
+# 2. 经纪中心度计算 (按连通分量)
 # ============================================================================
+
+# fix(omni-g-net-brok-02, 2026-06-11): 微小连通分量门槛 — 节点数低于该值的
+# 分量 (孤立点 / 单媒体-单银行 pair) 不计算中心度, 其银行置 NaN。
+# 取 3 (= 1 媒体 + 2 银行), 与全图层面的最小节点数门槛语义一致。
+_MIN_COMPONENT_SIZE = 3
+
+
+def _eigenvector_centrality_by_component(G: 'nx.Graph', year: int) -> dict:
+    """按连通分量分别计算特征向量中心度 (分量内 L2 归一)。
+
+    fix(omni-g-net-brok-02, 2026-06-11): 旧实现在非连通图上整体跑幂迭代
+    (A+I), 收敛到主分量的特征向量 — 非主分量节点的值是随迭代步数指数
+    衰减的数值残渣 (盘上实测低至 3.2e-180, 同构位置跨年可差 147 个数量级),
+    不具任何网络含义。现按连通分量分别计算; 孤立点/微小分量
+    (< _MIN_COMPONENT_SIZE 节点) 不赋值 (上游 left join 后为 NaN)。
+    ⚠ 披露: networkx 在传入子图范围内做 L2 归一 → 中心度水平仅在分量内
+    可比, 跨分量比较只在"是否处于大分量"意义上成立。
+
+    fix(omni-g-net-brok-04, 2026-06-11): 删除 nx.eigenvector_centrality_numpy
+    路径 — 其底层 scipy ARPACK ``eigs()`` 不传 v0 → 随机初始向量, 同一图
+    同进程重算即非逐位一致 (latent 非确定性, 全量语料连通年份会触发)。
+    统一改用确定性迭代法 (uniform nstart + 纯 Python 算术, 无 BLAS/ARPACK);
+    连通图 = 单分量, 与非连通图共用同一代码路径, 跨 run 逐位可复现。
+
+    Args:
+        G: 媒体-银行二分图 (节点须带 bipartite 属性)
+        year: 目标年份 (仅用于日志)
+
+    Returns:
+        {node: centrality} — 仅含大分量 (>= _MIN_COMPONENT_SIZE 节点) 的
+        全部节点 (媒体+银行, 调用方再筛银行节点)
+    """
+    vals: dict = {}
+    n_tiny = 0
+    for comp in nx.connected_components(G):
+        if len(comp) < _MIN_COMPONENT_SIZE:
+            n_tiny += 1
+            continue
+        sub = G.subgraph(comp)
+        try:
+            ec = nx.eigenvector_centrality(
+                sub, weight='weight', max_iter=2000, tol=1e-06)
+        except nx.PowerIterationFailedConvergence:
+            # 分量内 degree 兜底 (保留旧 Level-3 语义, 仅限极端退化分量);
+            # 与特征向量中心度构念不同, 故升 CRITICAL 便于事后排查
+            logger.critical(
+                f"  年份 {year}: {len(comp)} 节点分量幂迭代不收敛, "
+                f"该分量使用 degree_centrality 兜底")
+            ec = nx.degree_centrality(sub)
+        vals.update(ec)
+    if n_tiny:
+        logger.info(f"  年份 {year}: {n_tiny} 个微小分量 "
+                    f"(< {_MIN_COMPONENT_SIZE} 节点) 的银行置 NaN")
+    return vals
+
 
 def compute_brokerage_centrality(
     panel: pd.DataFrame, df_exploded: pd.DataFrame
@@ -171,13 +239,12 @@ def compute_brokerage_centrality(
       意味着其信息传播范围更广、信息中介地位更高。在 Stata 回归中,
       该变量可作为银行"信息可见度"的代理变量。
 
-    三级 fallback 策略 (确保生产环境的稳健性):
-      Level 1: nx.eigenvector_centrality_numpy (精确, 基于 numpy/scipy)
-               适用于大多数正常图, O(n³) 复杂度
-      Level 2: nx.eigenvector_centrality (迭代幂法, max_iter=2000)
-               当 numpy 方法因数值精度失败时的备选
-      Level 3: nx.degree_centrality (兜底) + CRITICAL 日志
-               仅在极端退化图 (如完全断连) 时触发, 日志标记便于事后排查
+    计算策略 (fix omni-g-net-brok-02/04, 2026-06-11 — 替换旧"三级 fallback"):
+      按连通分量分别计算确定性迭代特征向量中心度 (分量内 L2 归一);
+      孤立点/微小分量 (< _MIN_COMPONENT_SIZE 节点) 置 NaN; 分量幂迭代
+      不收敛时该分量 degree_centrality 兜底 + CRITICAL 日志。
+      numpy/ARPACK 路径已删除 (随机初始向量 → 跨 run 非逐位可复现),
+      详见 _eigenvector_centrality_by_component docstring。
 
     仅提取 bipartite=1 (银行) 节点的中心度值, 排除媒体节点。
 
@@ -216,40 +283,12 @@ def compute_brokerage_centrality(
         media_nodes = {n for n, d in G.nodes(data=True)
                        if d.get('bipartite') == 0}
 
-        eigen_vals = None
-        method_used = ""
-
-        # Level 1: eigenvector_centrality_numpy (精确)
-        # networkx 的 numpy 实现在非连通图上会主动报
-        # AmbiguousSolution；这是网络结构属性，不是生产故障。
-        if nx.is_connected(G):
-            try:
-                ec = nx.eigenvector_centrality_numpy(G, weight='weight')
-                eigen_vals = {n: ec[n] for n in bank_nodes if n in ec}
-                method_used = "numpy"
-            except Exception as e:
-                logger.info(f"  年份 {year}: numpy 特征向量中心度不可用, 转迭代法 ({e})")
-        else:
-            logger.info(f"  年份 {year}: 图非连通, 使用迭代特征向量中心度")
-
-        # Level 2: eigenvector_centrality (迭代)
-        if eigen_vals is None:
-            try:
-                ec = nx.eigenvector_centrality(
-                    G, weight='weight', max_iter=2000, tol=1e-06)
-                eigen_vals = {n: ec[n] for n in bank_nodes if n in ec}
-                method_used = "iterative"
-            except nx.PowerIterationFailedConvergence:
-                logger.info(f"  年份 {year}: eigenvector 迭代不收敛, 转 degree 兜底")
-            except Exception as e:
-                logger.info(f"  年份 {year}: eigenvector 迭代法不可用, 转 degree 兜底 ({e})")
-
-        # Level 3: degree_centrality (兜底)
-        if eigen_vals is None:
-            logger.info(f"  年份 {year}: 使用 degree_centrality 兜底")
-            dc = nx.degree_centrality(G)
-            eigen_vals = {n: dc[n] for n in bank_nodes if n in dc}
-            method_used = "degree_fallback"
+        # fix(omni-g-net-brok-02, omni-g-net-brok-04, 2026-06-11):
+        # 按连通分量分别计算 (分量内归一, 微小分量 NaN), 统一确定性迭代
+        # 路径 (无 ARPACK 随机初值) — 详见 _eigenvector_centrality_by_component
+        comp_vals = _eigenvector_centrality_by_component(G, year)
+        eigen_vals = {n: v for n, v in comp_vals.items() if n in bank_nodes}
+        method_used = "component-iterative"
 
         for bank, val in eigen_vals.items():
             results[(bank, year)] = val
@@ -283,8 +322,9 @@ def compute_brokerage_centrality(
 # 3. 行业负面冲击指数 (LOO)
 # ============================================================================
 
-def compute_industry_neg_shock(panel: pd.DataFrame) -> pd.DataFrame:
-    """计算行业负面冲击指数 (Leave-One-Out)。
+def compute_industry_neg_shock(panel: pd.DataFrame,
+                               min_count: int = 5) -> pd.DataFrame:
+    """计算行业负面冲击指数 (Leave-One-Out) + t-1 滞后变体。
 
     经济含义:
       衡量银行 i 在年份 t 面临的"行业整体负面舆论压力",
@@ -292,8 +332,9 @@ def compute_industry_neg_shock(panel: pd.DataFrame) -> pd.DataFrame:
       负面舆论环境中 (如监管风暴、金融危机期间)。
 
     公式:
-      neg_ratio_i,t = neg_count_full_i,t / n_articles_i,t
+      neg_ratio_i,t = neg_count_full_i,t / n_valid_i,t   (n_valid >= min_count 守门)
       industry_neg_shock_i,t = mean_{j≠i}(neg_ratio_j,t)
+      industry_neg_shock_lag1_i,t = industry_neg_shock_i,t-1
 
     LOO 设计动机:
       Manski, C. F. (1993). Identification of endogenous social effects:
@@ -305,21 +346,42 @@ def compute_industry_neg_shock(panel: pd.DataFrame) -> pd.DataFrame:
       ⚠ 识别更正 (2026-06-10): 同期 (year t) LOO **不**解决 Manski (1993) 反射/
         同时性问题 (同期同行结果仍由共同行业冲击联合决定), 不构成排他性约束的满足;
         作 IV/treatment 须滞后到 t-1 或工具化 (参 fire_sale 已正确滞后 brokerage 至 t-1)。
+      ⚠ 年 FE 共线披露 (fix omni-g-net-brok-01, 2026-06-11): 同期 LOO 均值是
+        组内常数减自身的仿射变换:
+          shock_i,t = S_t/(N_t−1) − neg_ratio_i,t/(N_t−1),  S_t = Σ_j ratio_j,t。
+        含年 FE 的回归中 S_t/(N_t−1) 被年 FE 吸收, 剩余识别变异 =
+        −neg_ratio_i,t/(N_t−1), 与银行自身负面比率 within-year **精确共线**
+        (corr = −1; Angrist 2014, The perils of peer effects, Labour Economics
+        30, 98-108) — "行业冲击"系数实为自身比率效应的符号翻转重标度。
+        → 同期水平项不可作含年 FE 规格 (项目 paper_spec 默认 [bank_fe, year_fe])
+        的解释变量; 此类规格请改用本函数同时输出的 industry_neg_shock_lag1
+        (年 FE 下保留跨期变异)。
 
     数据源 (上游管线):
       neg_count_full: 41_panel_encode_aggregate.py — LLM 投票判定为负面的文章数
-      n_articles: 41_panel_encode_aggregate.py — 银行年度总文章数
+      n_articles_llm_valid / n_articles: 41_panel_encode_aggregate.py — 分母篇数
 
     边界处理:
       - n_articles=0 → neg_ratio=NaN (通过 .replace(0, np.nan) 除零保护)
-      - 单银行年份 (total_n ≤ 1) → NaN (无法做 LOO, 测试 5 已验证)
-      - neg_count_full 或 n_articles 列缺失 → 跳过并返回原面板
+      - 有效篇数 < min_count (默认 5) → neg_ratio=NaN, 不进入行业指数
+        (fix omni-g-net-brok-03, 2026-06-11: 等权 mean-of-ratios 下单篇银行的
+         ratio 只能取 {0,1} 极值, 会独家设定全行业指数水平; min-n>=5 对齐项目
+         惯例, 见 attention_media._ATTN_MIN_ARTICLES / encode 系 min-n 守门)
+      - 自身 ratio 缺失但同年存在 >=1 家有效同行 → shock = 同行均值
+        total_sum/total_n (天然 leave-out, 求和本就不含自身;
+         fix omni-g-net-brok-05, 2026-06-11: 行业级变量不再与自身覆盖缺失绑定)
+      - 自身有效但单银行年份 (total_n <= 1) → NaN (无法做 LOO)
+      - neg_count_full 或分母列缺失 → 跳过并返回原面板
+      - lag1: 按 (target_bank, year) 排序后组内 shift(1), 首年为 NaN
+        (与 compute_fire_sale_interaction 的 lag 约定一致)
 
     Args:
-        panel: Bank-Year 面板 (须含 neg_count_full, n_articles)
+        panel: Bank-Year 面板 (须含 neg_count_full, n_articles[_llm_valid])
+        min_count: neg_ratio 的最小有效篇数守门 (默认 5)
 
     Returns:
-        panel: 追加 industry_neg_shock 列 (∈ [0,1], NaN 表示无法计算)
+        panel: 追加 industry_neg_shock + industry_neg_shock_lag1 列
+               (∈ [0,1], NaN 表示无法计算)
     """
     logger.info("=" * 60)
     logger.info("步骤: 行业负面冲击指数 (LOO, Manski 1993)")
@@ -339,8 +401,11 @@ def compute_industry_neg_shock(panel: pd.DataFrame) -> pd.DataFrame:
     # (encode.py is_negative_full sum), 分母须同口径 = LLM-valid 篇数; 重构后
     # n_articles=物理 size, 用 n_articles_llm_valid (旧 panel 缺列回退 n_articles, 其即 count).
     _nac = 'n_articles_llm_valid' if 'n_articles_llm_valid' in panel.columns else 'n_articles'
-    panel['_neg_ratio'] = (panel['neg_count_full']
-                           / panel[_nac].replace(0, np.nan))
+    # fix(omni-g-net-brok-03, 2026-06-11): 最小篇数守门 — 有效篇数 < min_count
+    # 的银行 neg_ratio 置 NaN, 不进入行业指数 (防单篇 {0,1} 极值独家设定水平)
+    _valid_n = panel[_nac].replace(0, np.nan).astype(float)
+    _valid_n = _valid_n.where(_valid_n >= min_count)
+    panel['_neg_ratio'] = panel['neg_count_full'] / _valid_n
 
     # 第二步: 逐年 Leave-One-Out 计算
     # 对于年份 t 中的银行 i: shock_i = (Σ_{j≠i} ratio_j) / (N_valid - 1)
@@ -354,16 +419,30 @@ def compute_industry_neg_shock(panel: pd.DataFrame) -> pd.DataFrame:
 
         for idx in panel.loc[mask].index:
             own = panel.at[idx, '_neg_ratio']
-            # 仅当自身有效 且 至少有 2 家有效银行时才计算
             if pd.notna(own) and total_n > 1:
+                # 标准 LOO: 自身有效且至少 2 家有效银行 → 排除自身取均值
                 shock_vals.at[idx] = (total_sum - own) / (total_n - 1)
+            elif pd.isna(own) and total_n >= 1:
+                # fix(omni-g-net-brok-05, 2026-06-11): 自身 ratio 缺失时,
+                # 同行均值天然 leave-out (求和本就不含自身), 行业级变量
+                # 不再因自身覆盖缺失被无谓置 NaN → 避免回归 listwise 剔除
+                shock_vals.at[idx] = total_sum / total_n
 
     panel['industry_neg_shock'] = shock_vals
     panel.drop('_neg_ratio', axis=1, inplace=True, errors='ignore')
 
+    # fix(omni-g-net-brok-01, 2026-06-11): t-1 滞后变体 — 同期水平项在年 FE
+    # 下与自身 neg_ratio 精确共线 (见 docstring), lag1 保留跨期识别变异,
+    # 是含年 FE 规格的唯一可用形态。组内 shift(1) 按 index 对齐写回原行序。
+    _sorted = panel.sort_values(['target_bank', 'year'])
+    panel['industry_neg_shock_lag1'] = (
+        _sorted.groupby('target_bank')['industry_neg_shock'].shift(1))
+
     valid = panel['industry_neg_shock'].notna().sum()
+    valid_lag = panel['industry_neg_shock_lag1'].notna().sum()
     logger.info(f"  行业负面冲击已计算: {valid:,} 有效值, "
-                f"mean={panel['industry_neg_shock'].mean():.4f}")
+                f"mean={panel['industry_neg_shock'].mean():.4f}; "
+                f"lag1: {valid_lag:,} 有效值")
 
     return panel
 
@@ -391,8 +470,17 @@ def compute_fire_sale_interaction(panel: pd.DataFrame) -> pd.DataFrame:
       - shift(1) 前必须按 (target_bank, year) 排序, 否则 lag 语义错误
       - 首年观测自动为 NaN (无前一期数据)
 
-    Stata 回归示例:
+    年 FE 共线披露 (fix omni-g-net-brok-01, 2026-06-11):
+      交乘项 cent_{i,t-1} × shock_{i,t} 本身**不**受同期 LOO 与年 FE 的完全
+      共线影响 (cent_{i,t-1} 跨 i 变异 → 乘积保留 i×t 变异); 但 shock 的
+      同期主效应项在年 FE 下与自身 neg_ratio 精确共线 (见
+      compute_industry_neg_shock docstring) — 含年 FE 规格的主效应请用
+      industry_neg_shock_lag1。
+
+    Stata 回归示例 (无年 FE 时同期主效应可入; 含年 FE 请用 lag1 主效应):
       reg Y c.brokerage_fire_sale brokerage_eigen_cent industry_neg_shock X
+      reghdfe Y c.brokerage_fire_sale brokerage_eigen_cent ///
+          industry_neg_shock_lag1 X, absorb(bank_id year)
       → 正系数: 信息枢纽银行在行业负面冲击下遭受更大损失
       → 解释: 媒体网络放大了行业负面信息对枢纽银行的冲击
 

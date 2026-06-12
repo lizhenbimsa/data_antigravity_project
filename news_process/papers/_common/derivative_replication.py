@@ -70,12 +70,20 @@ def is_derivative_paper(paper_id: str) -> bool:
 # ============================================================================
 
 _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
+    # fix(omni-g-replication-01, 2026-06-11): MAIN_DV='ROA' (及 benefit 的
+    # ROBUSTNESS_DV='CAR' / HET_VAR='is_listed') 是外部财务数据 sentinel — 当前
+    # bank-year panel (40_panel_yearly) 无任何 roa/car/is_listed 列, 数据源为
+    # config/银行面板2007-2025年.xlsx (待接入)。按裁决保留列名不改; 各 paper 的
+    # 01_data_prep 模板对缺失财务列给出明确 [ERROR]/[WARN] 指引, 00_master 对
+    # 01 失败 fail-loud 带可读原因 (而非裸 r(198))。CLUSTER_VAR bank_id / prov_id
+    # 非幻影: 每个 01_data_prep 均由 panel 真实列 encode 派生 (target_bank /
+    # bank_province)。
     'benefit_society': {
         'PAPER_ID': 'benefit_society',
-        'MAIN_DV': 'ROA',
+        'MAIN_DV': 'ROA',  # external sentinel — 见上方 fix(omni-g-replication-01) 注
         'CONTROLS': 'ln_news_coverage media_breadth n_articles',
         'CLUSTER_VAR': 'bank_id',
-        'HET_VAR': 'is_listed',  # PAP v1.0-final DP-9: replaces is_soe (F-R3-H2)
+        'HET_VAR': 'is_listed',  # PAP v1.0-final DP-9: replaces is_soe (F-R3-H2); external sentinel
         # v3.2.1 dual-track (plan v2.12, F-M1 / F-H3): ATTITUDE_VAR retained as
         # backwards-compat alias = full track; ATTITUDE_FULL / ATTITUDE_CTX are
         # the canonical dual-track placeholders used by new templates
@@ -91,7 +99,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'MECHANISM_TOKEN': 'token_adopt_kw_p50',
         'MECHANISM_HIDDEN': 'hidden_adopt_kw_p50',
         'MECHANISM_SUBST': 'subst_adopt_kw_p50',
-        'ROBUSTNESS_DV': 'CAR',
+        'ROBUSTNESS_DV': 'CAR',  # external sentinel — 见上方 fix(omni-g-replication-01) 注
         'BOOTSTRAP_REPS': '999',  # F-R5-H1 wild cluster bootstrap
         'RANDOM_SEED': '20260516',  # F-R6-M2
         # V2.0 J-L-M 2026 alignment Round 9: P2.G4 external Y placeholders.
@@ -110,7 +118,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     },
     'brokerage_network': {
         'PAPER_ID': 'brokerage_network',
-        'MAIN_DV': 'ROA',
+        'MAIN_DV': 'ROA',  # external sentinel — 见 benefit_society 块上方 fix(omni-g-replication-01) 注
         'CONTROLS': 'ln_news_coverage media_hhi bank_scale_ord',
         'CLUSTER_VAR': 'prov_id',  # province-level per Cameron-Miller 2015
         'HET_VAR': 'is_soe',
@@ -129,7 +137,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     },
     'strategic_diff': {
         'PAPER_ID': 'strategic_diff',
-        'MAIN_DV': 'ROA',
+        'MAIN_DV': 'ROA',  # external sentinel — 见 benefit_society 块上方 fix(omni-g-replication-01) 注
         'CONTROLS': 'ln_news_coverage media_hhi bank_scale_ord',
         'CLUSTER_VAR': 'bank_id',
         'HET_VAR': 'is_soe',
@@ -148,7 +156,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     },
     'llm_peer': {
         'PAPER_ID': 'llm_peer',
-        'MAIN_DV': 'ROA',
+        'MAIN_DV': 'ROA',  # external sentinel — 见 benefit_society 块上方 fix(omni-g-replication-01) 注
         'CONTROLS': 'ln_news_coverage media_hhi n_articles',
         'CLUSTER_VAR': 'bank_id',
         'HET_VAR': 'is_soe',
@@ -156,6 +164,10 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'LLM_PEER_IV': 'llm_peer_tone_iv_full',
         'LLM_PEER_COVERAGE_IV': 'llm_peer_coverage_iv',
         'COMPETE_IDX': 'peer_compete_idx',
+        # disclosure(omni-g-llm-peer-05, 2026-06-11): cutoff 五档列结构性逐位
+        # 相同 — cutoff 原仅作用于 llm_peer_iv 已移除的 difflib 兜底, 策略 1-3
+        # 与之无关 (盘上实证: 五档 nonnull/mean 全同)。该 '灵敏度电池' 无识别
+        # 变差, 论文表注必须如实披露 (详见 pipeline/panel/llm_peer_iv.py 步骤 5)。
         'CUTOFF_VARS': ('llm_peer_tone_iv_full_70 llm_peer_tone_iv_full_75 '
                         'llm_peer_tone_iv_full_80 llm_peer_tone_iv_full_85 '
                         'llm_peer_tone_iv_full_90'),
@@ -169,12 +181,17 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     # RR7-1 (Review-only audit): B-route 3 new paper defaults.
     # Source: paper_spec.yaml outcome.primary / treatment.primary / controls.
     # ========================================================================
+    # fix(omni-g-replication-05, 2026-06-11): 4 篇 B-route CONTROLS 去掉
+    # gdp_growth/m2_growth — 15_* 主回归 M5 设计为 "M4 + macro" 并显式追加
+    # `$controls gdp_growth m2_growth`; 旧默认值已含两宏观列 → reghdfe 重复
+    # regressor 被静默 omit, M5 ≡ M4 (M1→M6 渐进设计名存实亡)。现 M4 = bank-level
+    # only, M5 真增量。bank-level 5 列亦为外部财务 sentinel (见 fix(omni-g-replication-01)
+    # 注), 01_data_prep 以 capture confirm 自校验拼装 $controls。
     'bank_fintech_attention': {
         'PAPER_ID': 'bank_fintech_attention',
         'MAIN_DV': 'ln_fintech_investment',          # spec.outcome.primary (P2)
         'MAIN_TREAT': 'attention_index_full',        # spec.treatment.primary (P2)
-        'CONTROLS': ('ln_assets leverage capital_ratio npl_ratio deposit_growth '
-                     'gdp_growth m2_growth'),
+        'CONTROLS': 'ln_assets leverage capital_ratio npl_ratio deposit_growth',
         'CLUSTER_VAR': 'bank_id',
         'RANDOM_SEED': '20260516',
         'HET_VAR': 'bank_type',                       # per §B.2 heterogeneity (4 bank types)
@@ -182,9 +199,13 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     'bank_fintech_substance': {
         'PAPER_ID': 'bank_fintech_substance',
         'MAIN_DV': 'long_run_roa_change_3yr',         # spec.outcome.primary (P3 long-run)
-        'MAIN_TREAT': 'innovation_substantiveness_full',  # spec.treatment.primary (P3)
-        'CONTROLS': ('ln_assets leverage capital_ratio npl_ratio deposit_growth '
-                     'gdp_growth m2_growth'),
+        # fix(omni-g-replication-04, 2026-06-11): 原 'innovation_substantiveness_full'
+        # 是 stage 21 article-level 列, 永不在 bank-year panel (stage 45 聚合真名 =
+        # sub_frac/symb_frac) → 01_data_prep exit 198 全包死亡。改为 panel 真实聚合列
+        # sub_frac (实质性文章占比, 连续测度; 与 spec.treatment.primary 同步,
+        # spec 侧同次修于 omni-g-papers-misc-11)。
+        'MAIN_TREAT': 'sub_frac',                     # spec.treatment.primary (P3, panel 聚合列)
+        'CONTROLS': 'ln_assets leverage capital_ratio npl_ratio deposit_growth',  # fix(omni-g-replication-05): 去 macro, M5 真增量
         'CLUSTER_VAR': 'bank_id',
         'RANDOM_SEED': '20260516',
         'HET_VAR': 'is_soe',                           # per §B.3 heterogeneity
@@ -196,8 +217,7 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         # 直接 hardcode pair; MAIN_TREAT 留 locus_layer_full 作单 placeholder fallback
         # 给 16_mechanism 等用 single treatment 的 paper-specific templates.
         'MAIN_TREAT': 'locus_layer_full',
-        'CONTROLS': ('ln_assets leverage capital_ratio npl_ratio deposit_growth '
-                     'gdp_growth m2_growth'),
+        'CONTROLS': 'ln_assets leverage capital_ratio npl_ratio deposit_growth',  # fix(omni-g-replication-05): 去 macro, M5 真增量
         'CLUSTER_VAR': 'bank_id',
         'RANDOM_SEED': '20260516',
         'HET_VAR': 'is_soe',                           # per §B.4 heterogeneity (wave + SOE)
@@ -206,9 +226,15 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     'bank_fintech_collab': {
         'PAPER_ID': 'bank_fintech_collab',
         'MAIN_DV': 'm_and_a_fintech',                  # spec.outcome.primary (P5, M&A 直接 outcome)
-        'MAIN_TREAT': 'innovation_collab_mode_full',   # spec.treatment.primary (P5, positive_class=外部协同)
-        'CONTROLS': ('ln_assets leverage capital_ratio npl_ratio deposit_growth '
-                     'gdp_growth m2_growth'),
+        # fix(omni-g-replication-04, 2026-06-11): 原 'innovation_collab_mode_full'
+        # 是 article-level 列 (panel 聚合真名 = collab_frac/indep_frac) →
+        # 01_data_prep exit 198 全包死亡。改为 panel 真实聚合列 collab_frac (外部协同
+        # 文章占比; 与 spec.treatment.primary 同步, spec 侧同次修于 omni-g-papers-misc-11)。
+        # 15_collab 的 binary pair (collab_open/closed_full) 由 01_data_prep 照 locus
+        # R35-M02 模式从 collab_frac/indep_frac 派生 (同修 omni-g-replication-06 的
+        # missing→both-0 / open+closed≡1 共线缺陷)。
+        'MAIN_TREAT': 'collab_frac',                   # spec.treatment.primary (P5, panel 聚合列)
+        'CONTROLS': 'ln_assets leverage capital_ratio npl_ratio deposit_growth',  # fix(omni-g-replication-05): 去 macro, M5 真增量
         'CLUSTER_VAR': 'bank_id',
         'RANDOM_SEED': '20260516',
         'HET_VAR': 'bank_type',                        # 按银行类型异质性 (与 P2 一致)

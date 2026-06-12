@@ -17,20 +17,42 @@ capture confirm variable bank_id
 if _rc encode target_bank, gen(bank_id)
 xtset bank_id year
 
-global controls "{{CONTROLS}}"
+* fix(omni-g-replication-01, 2026-06-11): 财务控制 (ln_assets 族) 为外部数据 sentinel
+* (config/银行面板2007-2025年.xlsx 待接入) — capture confirm 自校验拼装 $controls,
+* 防下游 reghdfe `$controls` r(111) 硬崩 (主线 01_data_prep 同模式)。
+* fix(omni-g-replication-05): CONTROLS 默认值已去 gdp_growth/m2_growth (M5 真增量加 macro)。
+local _ctrl ""
+local _ctrl_missing ""
+foreach v in {{CONTROLS}} {
+    capture confirm variable `v'
+    if !_rc local _ctrl "`_ctrl' `v'"
+    else    local _ctrl_missing "`_ctrl_missing' `v'"
+}
+global controls "`_ctrl'"
+if "`_ctrl_missing'" != "" {
+    display as error "[WARN] controls 缺失:`_ctrl_missing' — 外部银行财务面板待接入 (config/银行面板2007-2025年.xlsx); 回归仅用现存 controls [$controls]"
+}
 * $bank_controls 保留为 $controls 的兼容性 alias (部分 robustness 模板引用)
 global bank_controls "$controls"
 
-* P4 required variables: outcome + panel-level locus 占比 (tech_frac/app_frac)。
+* P4 required variables: panel-level locus 占比 (tech_frac/app_frac)。
 * 注: innovation_locus 是 article-level 中文类别 (底层技术/应用场景), stage 45 聚合为
 * bank-year 的 tech_frac (底层技术占比) / app_frac (应用场景占比); 故 panel 级以
 * tech_frac/app_frac 为源, 而非 article-level 的 innovation_locus_full (不在 bank-year panel)。
-foreach v in {{MAIN_DV}} tech_frac app_frac {
+foreach v in tech_frac app_frac {
     capture confirm variable `v'
     if _rc {
-        display as error "[ERROR] required P4 variable `v' missing — run M0.5.11 enrichment + stage 21 (tone_llms) locus classification + stage 45 panel aggregation first"
+        display as error "[ERROR] required P4 variable `v' missing — run stage 21 (tone_llms) locus classification + stage 45 panel aggregation first"
         exit 198
     }
+}
+
+* P4 outcome (外部财务数据 sentinel, 与 treatment 分开诊断)
+* fix(omni-g-replication-01, 2026-06-11): 缺失时给出明确外部数据指引 (00_master fail-loud)。
+capture confirm variable {{MAIN_DV}}
+if _rc {
+    display as error "[ERROR] required P4 outcome {{MAIN_DV}} missing — 外部财务数据未接入 (M0.5.11 CSMAR daily returns 事件窗口 CAR; 见 config/银行面板2007-2025年.xlsx 接入计划与 spec.outcome.enrichment_source)"
+    exit 198
 }
 
 * R35-M02: derive firm-year primary_pair (locus_layer_full, locus_scenario_full) from
@@ -41,6 +63,21 @@ capture drop locus_layer_full locus_scenario_full locus_gap
 gen locus_layer_full    = (tech_frac > app_frac) if !missing(tech_frac, app_frac)
 gen locus_scenario_full = (app_frac > tech_frac) if !missing(tech_frac, app_frac)
 gen locus_gap = locus_layer_full - locus_scenario_full   // ∈ {-1, 0, +1}
+
+* fix(omni-g-templates-09, 2026-06-11): 同步派生 ctx 轨孪生 (locus_layer_ctx /
+* locus_scenario_ctx) — 18_locus_robustness "(8) alternative locus classifier (ctx)"
+* 引用这对变量, 但旧版从未派生 (panel 上 ctx 轨真名是 tech_frac_lc / app_frac_lc,
+* 实测在产却无人消费) → 该双轨稳健性块永久静默跳过。与 _full 对同构派生; _lc 列
+* 缺失时优雅跳过 (18 的 capture confirm 守卫接管)。
+capture drop locus_layer_ctx locus_scenario_ctx
+capture confirm variable tech_frac_lc app_frac_lc
+if !_rc {
+    gen locus_layer_ctx    = (tech_frac_lc > app_frac_lc) if !missing(tech_frac_lc, app_frac_lc)
+    gen locus_scenario_ctx = (app_frac_lc > tech_frac_lc) if !missing(tech_frac_lc, app_frac_lc)
+}
+else {
+    display "  [WARN] tech_frac_lc/app_frac_lc not in panel; ctx-track locus pair 未派生 (18 的 alt_ctx 块将跳过)"
+}
 
 * Winsorize outcome
 capture which winsor2

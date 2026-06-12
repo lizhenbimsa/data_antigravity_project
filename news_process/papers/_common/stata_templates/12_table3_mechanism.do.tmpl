@@ -9,6 +9,11 @@
 
 version 19
 
+* fix(omni-g-templates-14, 2026-06-11): 隔离估计命名空间 — 主线模板链共享 session,
+* 不 clear 时 Table 2 的陈旧 M1-M4 会在本表守卫跳过后被 esttab 静默复用
+* (错误模型冒充机制回归列, 实证: esttab 对同名陈旧估计 rc=0 不告警)。
+eststo clear
+
 local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
 
 * Channel 1: tone_gap_tech_app (Adner & Kapoor 2010 SMJ + Gomber 2018 JMIS)
@@ -48,18 +53,59 @@ if !_rc {
 }
 
 * M4: + bank 控制 (full mechanism spec)
+* fix(omni-g-templates-14, 2026-06-11): bank_size/bank_age 缺失时加 else 降级分支
+* (照 11_table2 M5 模式) — 旧版静默跳过 M4, 配合无 eststo clear 导致 Table 2 的
+* 陈旧 M4 估计泄入本表第 4 列。降级分支退化为 M3 双通道规格, note 中如实披露。
 capture confirm variable bank_size bank_age
 if !_rc {
     eststo M4: reghdfe `DV' digital_frontier `CH_TECH_APP' `CH_SUB_SYMB' bank_size bank_age, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
+else {
+    display "  ⚠️ bank_size/bank_age 不存在, M4 degrade 为双通道规格 (同 M3, 无 bank 控制)"
+    capture confirm variable `CH_TECH_APP' `CH_SUB_SYMB'
+    if !_rc {
+        eststo M4: reghdfe `DV' digital_frontier `CH_TECH_APP' `CH_SUB_SYMB', ///
+            absorb(bank_id year) vce(cluster bank_id)
+    }
+}
 
-* 输出 (esttab 部分缺失 spec 时仍输出可用列)
-esttab M1 M2 M3 M4 using "output/tables/table3_mechanism.tex", ///
-    se star(* 0.10 ** 0.05 *** 0.01) ///
-    booktabs replace fragment ///
-    title("Table 3: Mechanism — Tone Gap Channels (Tech-App + Sub-Symb)") ///
-    mtitles("Tech-App only" "Sub-Symb only" "Both" "+ Controls") ///
-    note("Channels: tone_gap_tech_app (Adner-Kapoor 2010 + Gomber 2018), tone_gap_sub_symb (W&Z 1998 + Bingler 2022). Robust SEs clustered at bank.")
+* 输出
+* fix(omni-g-templates-14, 2026-06-11): esttab 名单动态化。旧注释声称 "esttab 部分
+* 缺失 spec 时仍输出可用列" 为假 — esttab 对缺名估计是 r(111) 硬崩, 对同名陈旧估计
+* 是静默复用 (两种行为均经本机 StataNow 19.5 实证)。改为仅引用实际已存储的估计,
+* mtitle 同步删列防错位。
+qui estimates dir
+local stored `r(names)'
+local cand_models M1 M2 M3 M4
+local cand_titles `""Tech-App only" "Sub-Symb only" "Both" "+ Controls""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  ⚠️ Table 3 无任何已存储估计 (机制通道列全缺), 表跳过"
+}
+else {
+    esttab `models' using "output/tables/table3_mechanism.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) ///
+        booktabs replace fragment ///
+        title("Table 3: Mechanism — Tone Gap Channels (Tech-App + Sub-Symb)") ///
+        mtitles(`mtitles') ///
+        note("Channels: tone_gap_tech_app (Adner-Kapoor 2010 + Gomber 2018), tone_gap_sub_symb (W&Z 1998 + Bingler 2022). Robust SEs clustered at bank. M4 degrades to the two-channel spec when bank_size/bank_age are unavailable.")
 
-display "✅ Table 3 written to output/tables/table3_mechanism.tex"
+    * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel (parse_esttab_csv 消费;
+    * estout+delimiter 防 esttab csv 的 ="..." 包裹破坏解析)
+    estout `models' using "output/tables/table3_mechanism.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+    display "✅ Table 3 written to output/tables/table3_mechanism.tex (+ .csv side-channel)"
+}

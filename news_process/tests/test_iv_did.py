@@ -165,7 +165,9 @@ def test_compute_bartik_iv_loo_excludes_self(mini_panel, mini_articles):
 
     在基期 2020, 工行 (soe) 仅有自己 1 篇 score=1.0 → 组 soe 的 LOO
     对工行无可计算 (remain_cnt=0), shift_soe = NaN. iv 计入 share×NaN
-    -> 不应抛 KeyError; 应正常返回 (NaN 经 fillna(0) 后视作 0).
+    -> 不应抛 KeyError; 应正常返回.
+    fix(omni-g-ivdid-03, 2026-06-11): share>0 × shift 缺失现传播 NaN
+    (原 fillna(0) 零插补已删 — 旧 docstring "NaN 经 fillna(0) 后视作 0" 已废).
     """
     group_map = {'工行': 'soe', '招行': 'joint', '宁波银行': 'city'}
     out = iv_did.compute_bartik_iv(mini_panel, mini_articles, group_map,
@@ -175,6 +177,10 @@ def test_compute_bartik_iv_loo_excludes_self(mini_panel, mini_articles):
     # 不应有 inf / 抛异常; 所有值 finite (NaN 可接受, inf 不可)
     finite_or_nan = out[iv_col].apply(lambda x: pd.isna(x) or np.isfinite(x)).all()
     assert finite_or_nan, f"{iv_col} 含 inf"
+    # fix(omni-g-ivdid-03): 工行 share_joint=1, 2021 年组 joint 无其他文章
+    # (shift_joint=NaN) → IV 应为 NaN 而非伪零 0
+    gh_2021 = out.loc[(out['target_bank'] == '工行') & (out['year'] == 2021), iv_col]
+    assert gh_2021.isna().all(), f"工行 2021 IV 应 NaN (shift 缺失传播), got {gh_2021.tolist()}"
 
 
 def test_compute_bartik_iv_base_year_no_data_returns_nan(mini_panel, mini_articles):

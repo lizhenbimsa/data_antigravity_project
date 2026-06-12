@@ -284,8 +284,16 @@ def write_summary_table(paper_id: str,
                         paper_config=None,
                         *,
                         filename: str = 'table1_summary_stats.csv',
-                        dta_filename: str | None = 'table1_summary_stats.dta') -> Path:
-    """计算 Table 1 并写入 ``paper.output_dir``。"""
+                        dta_filename: str | None = 'table1_summary_stats.dta',
+                        footnote: str | None = None) -> Path:
+    """计算 Table 1 并写入 ``paper.output_dir``。
+
+    Args:
+        footnote: 可选 — 表尾脚注 (fix(omni-g-papers-misc-03, 2026-06-11):
+            供论文包披露 "金融 enrichment 列待 M0.5.11 落盘, 当前为 NaN 占位行"
+            之类的存在性说明)。以 ``# `` 注释行追加在 CSV 末尾 (pandas
+            ``read_csv(comment='#')`` 可跳过); .dta 不写脚注 (格式不支持)。
+    """
     from news_process.papers._common import get_paper_config
 
     pc = paper_config or get_paper_config(paper_id)
@@ -293,6 +301,10 @@ def write_summary_table(paper_id: str,
     table = build_summary_table(paper_id, variables, paper_config=pc)
     csv_path = pc.output_dir / filename
     table.to_csv(csv_path, encoding='utf-8-sig')
+    if footnote:
+        with open(csv_path, 'a', encoding='utf-8-sig') as fh:
+            for line in footnote.splitlines():
+                fh.write(f"# {line}\n")
     if dta_filename:
         export_dta(table.reset_index(), pc.output_dir / dta_filename)
     return csv_path

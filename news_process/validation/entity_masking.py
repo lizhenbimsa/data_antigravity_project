@@ -19,9 +19,13 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
       1. 加载全量 LLM 结果（含 verified=True/False）
       2. 随机抽样 N=1000 条
       3. 提取 baseline 判定（full + ctx 双轨已有列）
-      4. 银行名 → 匿名占位符替换 + 实体残留检测（双轨）
+      4. 银行名 → 匿名占位符替换 + 实体残留检测（双轨, 正文+标题全覆盖;
+         ctx 轨掩码前先剥离 stage13 prepend 的标题前缀, 与生产 prompt 构造对齐,
+         fix(omni-g-val-mask-01/03, 2026-06-11)）
       5. 掩码文本重新调用 3 模型 LLM 判定（双轨）
       6. 计算四维一致性指标（验证一致率、情感一致率、Cohen's κ、逐模型分解）× 双轨
+         （分母双口径: 主口径 per-protocol 剔除调用全失败行 + ITT 披露口径,
+         fix(omni-g-val-mask-02/04, 2026-06-11)）
       7. 生成 JSON/CSV/LaTeX/PNG 报告（含双轨对比）
 
     学术依据：
@@ -83,6 +87,9 @@ configure_matplotlib_chinese_fonts()
 _tone_llms = import_module('news_process.pipeline.sentiment.tone_llms')
 fetch_llm_async  = _tone_llms.fetch_llm_async
 _aggregate_track = _tone_llms._aggregate_track
+# fix(omni-g-val-mask-01, 2026-06-11): 复用生产同一标题剥离实现 (只读引用, 不改 tone_llms),
+# 保证 ctx 轨掩码输入与生产 prompt 构造 (iter_article_track_prompts) 语义一致。
+_strip_prepended_title = _tone_llms._strip_prepended_title
 build_llm_connector = _tone_llms.build_llm_connector
 build_llm_timeout = _tone_llms.build_llm_timeout
 build_model_pacers = _tone_llms.build_model_pacers
@@ -158,6 +165,20 @@ def extract_baseline(df_sample: pd.DataFrame) -> pd.DataFrame:
 # 3. 银行名替换与残留检测
 # ============================================================================
 
+def build_ctx_masking_input(content_ctx: str, title: str) -> str:
+    """ctx 轨掩码输入构造: 剥离 stage13 ``prepend_title`` 拼接的标题前缀。
+
+    fix(omni-g-val-mask-01, 2026-06-11): 盘上 ``content_ctx`` = stage13 物化的
+    "标题+实体窗口"; 生产 stage 21 (``tone_llms.iter_article_track_prompts``) 喂
+    prompt 前经 ``_strip_prepended_title`` 剥标题, 标题仅由 {title} 字段注入 1 次。
+    若本模块直接对盘上 content_ctx 整体掩码再与 masked_title 同时填入模板, 掩码
+    后 ctx prompt 标题出现 2 次而 baseline prompt 只出现 1 次 → 掩码前后判定差异
+    混杂 "实体匿名化" 与 "prompt 结构变化" 两个处理。掩码前先剥标题, 使两 prompt
+    仅差实体占位符, ctx 轨一致性指标恢复为纯掩码效应。
+    """
+    return _strip_prepended_title(str(content_ctx), str(title or ''))
+
+
 def mask_entity(
     text: str,
     title: str,
@@ -196,7 +217,10 @@ def mask_entity(
             peer_ph = PEER_TEMPLATE.format(chr(66 + i))  # B, C, D...
             peer_aliases = get_target_aliases(peer, bank_names_file)
             for alias in sorted(peer_aliases, key=len, reverse=True):
-                cnt = masked_text.count(alias)
+                # fix(omni-g-val-mask-03, 2026-06-11): 共提银行替换计数与目标银行
+                # 口径对齐 — 标题命中同样计入 n_replacements (替换本身一直双覆盖
+                # 正文+标题, 仅计数漏了标题命中, 导致零替换/质量统计偏低)。
+                cnt = masked_text.count(alias) + masked_title.count(alias)
                 masked_text = masked_text.replace(alias, peer_ph)
                 masked_title = masked_title.replace(alias, peer_ph)
                 n_replacements += cnt
@@ -215,9 +239,16 @@ def verify_masking_completeness(
     masked_text: str,
     original_aliases: list,
     co_bank_aliases: list,
+    masked_title: str = '',
 ) -> dict:
-    """检查掩码文本中是否仍残留原始银行名。"""
-    residuals = [a for a in original_aliases + co_bank_aliases if a in masked_text]
+    """检查掩码后文本 (正文 + 标题) 中是否仍残留原始银行名。
+
+    fix(omni-g-val-mask-03, 2026-06-11): 残留扫描扩展到标题 — mask_entity 对标题
+    同样执行替换, 且掩码标题会经 {title} 字段注入 LLM prompt; 漏遮审计只扫正文
+    会漏报标题残留 (实体先验经标题泄漏给 LLM, 掩码稳健性结论被高估)。
+    """
+    scan_text = f"{masked_text}\n{str(masked_title or '')}"
+    residuals = [a for a in original_aliases + co_bank_aliases if a in scan_text]
     return {'complete': len(residuals) == 0, 'residual_aliases': residuals}
 
 
@@ -236,6 +267,10 @@ async def run_masked_llms(
     Args:
         df_masked: 必须包含 masked_text_full, masked_title, masked_target,
                    masked_co_mentioned, masked_text_ctx 列。
+                   fix(omni-g-val-mask-01, 2026-06-11): masked_text_ctx 须为
+                   **去标题**实体窗口 (main() 已在掩码前剥离 prepend 标题前缀),
+                   使 {title}+{content} 注入后标题恰出现 1 次, 与生产 baseline
+                   prompt (iter_article_track_prompts) 同构。
 
     Returns:
         dict: {row_idx: {'full': {model_id: response_text},
@@ -300,6 +335,21 @@ async def run_masked_llms(
 # 5. 四维一致性指标（支持轨道后缀参数化）
 # ============================================================================
 
+def _call_failure_mask(df: pd.DataFrame, track: str) -> pd.Series:
+    """返回该轨 LLM 调用全失败行的布尔掩码 (掩码重判 + baseline 双侧)。
+
+    fix(omni-g-val-mask-02, 2026-06-11): 共用助手 — 聚合一致性指标与混淆矩阵图
+    用同一 per-protocol 过滤口径; 列缺失时 (旧 detail 数据) 优雅退化为不过滤。
+    """
+    fail = pd.Series(False, index=df.index)
+    for cf_col in (f'masked_call_failure_{track}', f'llm_call_failure_{track}'):
+        if cf_col in df.columns:
+            fail |= (
+                pd.to_numeric(df[cf_col], errors='coerce').fillna(0).astype(int) == 1
+            )
+    return fail
+
+
 def compute_masking_consistency(df_result: pd.DataFrame, track: str) -> dict:
     """计算 Entity Masking 某一轨道的四维一致性指标。
 
@@ -309,32 +359,54 @@ def compute_masking_consistency(df_result: pd.DataFrame, track: str) -> dict:
       3. Cohen's κ   — 排除随机一致后的验证一致度
       4. 逐模型分解 — 每个 LLM 独立的一致率
 
+    分母双口径 (fix(omni-g-val-mask-02, 2026-06-11) + fix(omni-g-val-mask-04, 2026-06-11)):
+      LLM 调用全失败行的 masked_verified 由空票 ``majority_vote_bool([])`` 判 False
+      (tone_llms.py), 属测量缺失而非掩码翻转。主口径 = per-protocol (valid 分母):
+      排除掩码重判 ``masked_call_failure_{track}=1`` 行及 baseline 同类失败行
+      (``llm_call_failure_{track}=1``), 与逐模型分解的 notna 双侧过滤口径对齐;
+      ITT (intent-to-treat, physical 分母) 口径以 ``*_itt`` 键并行披露, 两个数同时报告。
+
     Args:
         df_result: 含 baseline_verified_{track}, masked_verified_{track} 等列。
         track: 'full' 或 'ctx'。
 
     Returns:
-        dict: 四维一致性指标。
+        dict: 四维一致性指标 (含 ITT 披露键 + n_call_failure)。
     """
     b_ver = f'baseline_verified_{track}'
     m_ver = f'masked_verified_{track}'
     b_sen = f'baseline_sentiment_{track}'
     m_sen = f'masked_sentiment_{track}'
 
-    # 1. 验证一致率
-    ver_match = (df_result[b_ver] == df_result[m_ver]).mean()
+    # fix(omni-g-val-mask-02, 2026-06-11): 识别调用全失败行 (掩码重判 + baseline),
+    # 主口径分母剔除 (共用 _call_failure_mask, 与混淆矩阵口径一致)。
+    fail_mask = _call_failure_mask(df_result, track)
+    n_call_failure = int(fail_mask.sum())
+    df_valid = df_result.loc[~fail_mask]
 
-    # 2. 情感一致率（条件子集）
-    both_true = df_result[b_ver] & df_result[m_ver]
+    # 1. 验证一致率 (主口径 per-protocol + ITT 披露口径)
+    ver_match_itt = (df_result[b_ver] == df_result[m_ver]).mean()
+    ver_match = (
+        (df_valid[b_ver] == df_valid[m_ver]).mean()
+        if len(df_valid) > 0 else float('nan')
+    )
+
+    # 2. 情感一致率（条件子集, per-protocol; 失败行 masked_verified=False 本就进不了
+    #    both_true 子集, 此处显式用 df_valid 保持与聚合分母口径自洽）
+    both_true = df_valid[b_ver] & df_valid[m_ver]
     n_both_true = int(both_true.sum())
     sen_match = (
-        (df_result.loc[both_true, b_sen] ==
-         df_result.loc[both_true, m_sen]).mean()
+        (df_valid.loc[both_true, b_sen] ==
+         df_valid.loc[both_true, m_sen]).mean()
         if n_both_true > 0 else float('nan')
     )
 
-    # 3. Cohen's Kappa
+    # 3. Cohen's Kappa (主口径 per-protocol + ITT 披露口径)
     kappa = compute_cohens_kappa(
+        df_valid[b_ver].astype(int).values,
+        df_valid[m_ver].astype(int).values,
+    )
+    kappa_itt = compute_cohens_kappa(
         df_result[b_ver].astype(int).values,
         df_result[m_ver].astype(int).values,
     )
@@ -354,13 +426,26 @@ def compute_masking_consistency(df_result: pd.DataFrame, track: str) -> dict:
 
     return {
         'track': track,
+        # 主口径 = per-protocol (valid 分母, 调用失败行已剔除)。全失败退化场景下为
+        # NaN (非 None): Step 8 判定 nan>=threshold → False, 保守不通过且不抛 TypeError。
         'verification_consistency': round(ver_match, 4),
         'sentiment_consistency': round(sen_match, 4) if not pd.isna(sen_match) else None,
         'cohens_kappa': kappa,
+        # ITT 披露口径 (physical 分母, 含调用失败行) — 双口径两个数并行报告
+        'verification_consistency_itt': round(ver_match_itt, 4),
+        'cohens_kappa_itt': kappa_itt,
         'per_model_consistency': per_model,
         'n_samples': len(df_result),
+        'n_samples_valid': int(len(df_valid)),
+        'n_call_failure': n_call_failure,
         'n_both_true': n_both_true,
         'n_zero_replacements': int((df_result[f'n_replacements_{track}'] == 0).sum()),
+        'denominator_note': (
+            'primary metrics use the per-protocol (valid) denominator: rows with LLM '
+            'call failure in the masked re-query or the baseline are excluded as '
+            'measurement missingness; *_itt keys report the intent-to-treat '
+            '(physical) denominator for disclosure.'
+        ),
     }
 
 
@@ -398,6 +483,9 @@ def generate_report(
             f'baseline_verified_{track}', f'masked_verified_{track}',
             f'baseline_sentiment_{track}', f'masked_sentiment_{track}',
             f'n_replacements_{track}',
+            # fix(omni-g-val-mask-02, 2026-06-11): 导出调用失败旗标供逐行审计
+            # (此前生成后无任何消费), 支撑 ITT vs per-protocol 双口径复算。
+            f'masked_call_failure_{track}',
         ])
         for m in MODELS:
             short = m['short_name']
@@ -426,10 +514,13 @@ def generate_report(
 
     for label_name, key in [
         ('Verification Agreement', 'verification_consistency'),
+        # fix(omni-g-val-mask-02, 2026-06-11): ITT (physical 分母, 含调用失败行)
+        # 口径并行披露 — 主行为 per-protocol (valid 分母), 两个数同时进表。
+        ('Verification Agreement (ITT)', 'verification_consistency_itt'),
         ('Sentiment Agreement (cond.)', 'sentiment_consistency'),
     ]:
-        v_full = consistency_full[key]
-        v_ctx = consistency_ctx[key]
+        v_full = consistency_full.get(key)
+        v_ctx = consistency_ctx.get(key)
         if v_full is not None and v_ctx is not None:
             delta = v_full - v_ctx
             # 注: 不使用 Python format spec '.1%'，因为其输出的裸 '%' 在
@@ -468,6 +559,11 @@ def generate_report(
         r'  are replaced with anonymized placeholders. The LLM ensemble is',
         r'  re-queried on both full-text and entity-context tracks. Agreement',
         r'  is computed between original and masked predictions for each track.',
+        # fix(omni-g-val-mask-02, 2026-06-11): 分母双口径披露 (ITT vs per-protocol)
+        r'  \item Primary agreement rates use the per-protocol (valid) denominator:',
+        r'  rows with LLM call failures in the masked re-query or the baseline are',
+        r'  excluded as measurement missingness. ITT rows retain the full physical',
+        r'  denominator (call-failure rows counted as disagreement).',
         r'\end{tablenotes}',
         r'\end{table}',
     ])
@@ -491,6 +587,9 @@ def _generate_confusion_matrix_dual(
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 
     for ax, df_valid, track in zip(axes, [df_valid_full, df_valid_ctx], TRACKS):
+        # fix(omni-g-val-mask-02, 2026-06-11): 混淆矩阵与主口径 (per-protocol) 对齐 —
+        # 调用全失败行 (空票判 False, 属测量缺失) 不进图, 否则图与主指标分母矛盾。
+        df_valid = df_valid.loc[~_call_failure_mask(df_valid, track)]
         b = df_valid[f'baseline_verified_{track}'].astype(int).values
         m = df_valid[f'masked_verified_{track}'].astype(int).values
 
@@ -604,7 +703,8 @@ def main():
             str(row['target_bank']), aliases, co_banks_str, bnf,
         )
         completeness_full = verify_masking_completeness(
-            result_full['masked_text'], aliases, co_aliases
+            result_full['masked_text'], aliases, co_aliases,
+            masked_title=result_full['masked_title'],
         )
         if not completeness_full['complete']:
             n_incomplete['full'] += 1
@@ -617,13 +717,20 @@ def main():
         df_sample.at[idx, 'n_replacements_full'] = result_full['n_replacements']
 
         # ── Ctx 轨道掩码 ──
-        content_ctx = str(row.get('content_ctx', row['内容']))
+        # fix(omni-g-val-mask-01, 2026-06-11): 掩码前剥离 prepend 标题前缀, 与生产
+        # stage 21 prompt 构造对齐 — 掩码后 ctx prompt 与 baseline prompt 仅差实体
+        # 占位符, 一致性指标不再混杂标题双重注入的 prompt 结构变化 (详见
+        # build_ctx_masking_input docstring)。
+        content_ctx = build_ctx_masking_input(
+            str(row.get('content_ctx', row['内容'])), str(row['标题'])
+        )
         result_ctx = mask_entity(
             content_ctx, str(row['标题']),
             str(row['target_bank']), aliases, co_banks_str, bnf,
         )
         completeness_ctx = verify_masking_completeness(
-            result_ctx['masked_text'], aliases, co_aliases
+            result_ctx['masked_text'], aliases, co_aliases,
+            masked_title=result_ctx['masked_title'],
         )
         if not completeness_ctx['complete']:
             n_incomplete['ctx'] += 1
@@ -726,9 +833,12 @@ def main():
         sen_display = (f"{c['sentiment_consistency']:.1%}"
                        if c['sentiment_consistency'] is not None
                        else 'N/A(子集为空,不可判定)')
+        # fix(omni-g-val-mask-02, 2026-06-11): 主口径=per-protocol, 同时报 ITT 双口径
         logger.info(f"[{track.upper()}] {'✅ 通过' if passed else '❌ 未通过'}"
                     f"{' [情感不可判定]' if sentiment_inconclusive else ''}: "
-                    f"验证一致率={c['verification_consistency']:.1%}, "
+                    f"验证一致率={c['verification_consistency']:.1%} "
+                    f"(ITT={c['verification_consistency_itt']:.1%}, "
+                    f"call_failure 排除 {c['n_call_failure']} 行), "
                     f"情感一致率={sen_display}, "
                     f"κ={c['cohens_kappa']['kappa']:.4f}")
 

@@ -234,6 +234,13 @@ def canonicalize_topic(raw_topic: str) -> tuple:
         tuple: (category, confidence)
             - category: "底层技术" 或 "应用场景"
             - confidence: 0.0~1.0 之间的分类置信度
+
+    Note:
+        fix(omni-g-entity-05, 2026-06-11) 披露: 空输入 / 三轮匹配全失败的兜底
+        返回 ("应用场景", 0.0) 是刻意的基率归类设计 (见第 3 轮注释), **不是**
+        真实分类信号 — 下游聚合 (encode 的 _tech/_app 分组、encode_collab 的
+        l_bit/cell_id 等) 若不以 category_confidence > 0 门控剔除兜底文章,
+        缺失将被静默并入 "应用场景" 实类 (门控属 panel/encode 消费层职责)。
     """
     if not raw_topic or raw_topic.strip().lower() in ('null', 'none', ''):
         return ("应用场景", 0.0)
@@ -272,14 +279,18 @@ def canonicalize_topic(raw_topic: str) -> tuple:
     total_score = tech_score + app_score
 
     if total_score > 0:
+        # fix(omni-g-entity-05, 2026-06-11): 分母改为 total_score 本身, 与注释
+        # "胜出方得分/总分" 对齐 — 原 max(total_score, 1.0) 在 total < 1 时
+        # (如仅命中 0.5 权重词 '合规') 把置信度人为压成 score/1.0 (0.5) 而非 1.0。
+        # 比值恒 ≤ 1, min 夹层保留为数值防御。
         if tech_score >= app_score:
             # 置信度 = 胜出方得分 / 总分, 上限 1.0
             # 当 tech_score 远大于 app_score 时, 置信度接近 1.0
             # 当两者接近时, 置信度接近 0.5(表示不确定)
-            confidence = min(tech_score / max(total_score, 1.0), 1.0)
+            confidence = min(tech_score / total_score, 1.0)
             return ("底层技术", round(confidence, 3))
         else:
-            confidence = min(app_score / max(total_score, 1.0), 1.0)
+            confidence = min(app_score / total_score, 1.0)
             return ("应用场景", round(confidence, 3))
 
     # 第二轮：模糊匹配(仅当第 1 轮得分为 0 时触发)

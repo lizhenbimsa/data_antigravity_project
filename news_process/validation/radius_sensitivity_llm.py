@@ -129,6 +129,13 @@ def parse_track_results_from_cache(
     实施策略 (无 yunwu API key 时):
         本函数对 cache_db 做只读 lookup; 若 cache 缺命中则返回 NaN 不重跑.
         实际 launch 路径 (含真 LLM 重跑) 走 main() --launch flag.
+
+    ⚠ fix(omni-g-val-prompt-06, 2026-06-11) 语义变更披露: cache 缺失 / 空库 (无表)
+        时仍返回空 DataFrame (graceful); 但 cache 含表时, 真实解析 (按 radius 重抽
+        ctx → 重建 prompt → cache key lookup → ensemble 投票) 尚未实现 → raise
+        NotImplementedError (fail-loud), 替代旧版静默返回全 None 占位行的 scaffold
+        行为 — 占位行经 cohens_kappa_2cat 全行 mask 后 κ=NaN, 曾可配合报告层空泛
+        all([]) gate 产 passed=true 假阳性报告。
     """
     import os as _os
     import sqlite3
@@ -158,24 +165,17 @@ def parse_track_results_from_cache(
             logger.warning(f"  LLMCache empty 表; 返回空")
             return pd.DataFrame(columns=['article_idx'])
 
-        # 实施假定 (本函数为查询接口, 不重跑 LLM):
-        # 真正解码 → ensemble 投票需调用 tone_llms._aggregate_track + 三 LLM 缓存匹配
-        # 由于 LLMCache 键含 content_hash, 需先以 radius 重抽 ctx 文本计算 hash 才能 lookup.
-        # 此处返回 lookup 接口可调用性证明 (cache 存在 + 表存在), 实际逐 row 重抽 ctx
-        # + hash + lookup 留给 main(--launch).
-        result_rows = []
-        for _, row in articles_df.iterrows():
-            result_rows.append({
-                'article_idx': row.get('article_idx', row.name),
-                'sentiment': None,
-                'innovation_locus': None,
-                'innovation_substantiveness': None,
-                'sent_conf': float('nan'),
-                'locus_conf': float('nan'),
-                'subst_conf': float('nan'),
-                'n_models_responded': 0,
-            })
-        return pd.DataFrame(result_rows)
+        # fix(omni-g-val-prompt-06, 2026-06-11): 此前此分支无条件返回 sentiment=None /
+        # n_models_responded=0 的占位行 (自述 "lookup 接口可调用性证明"), 与 docstring
+        # 声称的"读缓存解析标签"矛盾; 占位行会经 cohens_kappa_2cat 全行 NaN-mask →
+        # 各维度 κ=NaN, 再遇报告层空泛 all([]) gate 即产 passed=true 假阳性通过报告。
+        # 真实现 (按 radius 重抽 ctx → 重建 prompt → cache key lookup → ensemble 投票)
+        # 落地前 fail-loud, 拒绝返回伪数据。
+        raise NotImplementedError(
+            "parse_track_results_from_cache: 真实 cache lookup (radius 重抽 ctx + "
+            "prompt hash + ensemble 投票) 尚未实现 — 拒绝静默返回全 None 占位行 "
+            "(会导致全 NaN κ 的假阳性 robustness 报告)。实现路径见 main(--launch) 注释。"
+        )
     finally:
         conn.close()
 
@@ -232,7 +232,41 @@ def write_radius_llm_report(report: Dict, output_path: str,
         output_path: JSON 输出路径
         call_estimates: estimate_llm_calls 返回值
         baseline_n: baseline radius 的文章数
+
+    语义变更披露: fix(omni-g-val-prompt-06, 2026-06-11) — 旧 passed 判定对 NaN κ
+    先过滤再 all(), 全 NaN 时空生成器 all([])==True → 零证据空泛通过。改为每维度
+    须 ≥1 个可评估 (非 NaN) κ 且全部可评估 κ 达标; 全维度 0 可评估时 passed=false
+    并写 pass_reason='insufficient_data...'。
     """
+    # fix(omni-g-val-prompt-06, 2026-06-11): 防空泛真通过 (vacuous pass) 判定
+    dim_status = {}
+    for dim, dim_report in report.items():
+        valid_kappas = [r['kappa'] for r in dim_report.values()
+                        if not np.isnan(r['kappa'])]
+        dim_status[dim] = {
+            'n_evaluable': len(valid_kappas),
+            'all_above_threshold': bool(valid_kappas) and all(
+                k >= KAPPA_THRESHOLD_RADIUS for k in valid_kappas
+            ),
+        }
+    n_evaluable_total = sum(s['n_evaluable'] for s in dim_status.values())
+    passed = bool(dim_status) and n_evaluable_total > 0 and all(
+        s['n_evaluable'] >= 1 and s['all_above_threshold']
+        for s in dim_status.values()
+    )
+    if not dim_status:
+        pass_reason = 'failed: kappa_report 为空, 无任何维度可评估'
+    elif n_evaluable_total == 0:
+        pass_reason = ('failed: insufficient_data — 全部维度 κ=NaN (0 个可评估 κ); '
+                       '数据不足不能证明稳健性, 拒绝空泛通过')
+    elif not passed:
+        failing = [dim for dim, s in dim_status.items()
+                   if not (s['n_evaluable'] >= 1 and s['all_above_threshold'])]
+        pass_reason = f'failed: 维度 {failing} 含低于阈值 κ 或无可评估 κ'
+    else:
+        pass_reason = (f'passed: 全部维度均有 ≥1 个可评估 κ 且全部 κ ≥ '
+                       f'{KAPPA_THRESHOLD_RADIUS}')
+
     out = {
         'stage': '35_radius_sensitivity_llm',
         'methodology': 'plan v14 §3.5 P5.2; Hassan 2019 QJE + Sautner 2023 JF 等参数敏感性',
@@ -241,12 +275,12 @@ def write_radius_llm_report(report: Dict, output_path: str,
         'baseline_n': baseline_n,
         'call_estimates': call_estimates,
         'kappa_threshold_radius': KAPPA_THRESHOLD_RADIUS,
-        'pass_criterion': '全部 radius vs baseline κ ≥ 0.70 (Landis & Koch substantial)',
+        'pass_criterion': ('全部 radius vs baseline κ ≥ 0.70 (Landis & Koch substantial); '
+                           '每维度须 ≥1 个可评估 κ, 全 NaN 不构成通过'),
         'kappa_report': report,
-        'passed': all(
-            all(r['kappa'] >= KAPPA_THRESHOLD_RADIUS for r in dim_report.values() if not np.isnan(r['kappa']))
-            for dim_report in report.values()
-        ),
+        'dimension_status': dim_status,
+        'passed': passed,
+        'pass_reason': pass_reason,
     }
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(out, f, ensure_ascii=False, indent=2, default=str)

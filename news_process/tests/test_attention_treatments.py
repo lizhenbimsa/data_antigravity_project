@@ -5,7 +5,8 @@
   B1 全集脊柱防选择偏差 (零-fintech bank-year 不丢、index/pct=0)
   B2 pct 分母独立读 12_full (无除零)
   B3 强度密度非[0,1]不叫share (值域校验)
-  B4 归因份额越界 clip[0,1]
+  B4 归因份额有界构造 Σctx/(Σctx+Σfull) ∈ [0,1] (fix(omni-g-attention-01/08):
+     旧 clip(Σctx/Σfull) 右删失构造已废弃)
   H1 强度SD N<2→NaN 守卫
   双轨=互为稳健性: index/density/sd 各产 _full/_ctx 成对
 """
@@ -92,8 +93,9 @@ def test_density_is_not_share(out):
         assert v.notna().all() and (v >= 0).all()
 
 
-def test_attr_share_clipped(out):
-    # B4: 归因份额 clip 到 [0,1] (原始 ctx/full 可 >1)
+def test_attr_share_bounded(out):
+    # B4 修订 fix(omni-g-attention-01/08, 2026-06-11): share = Σctx/(Σctx+Σfull)
+    # 结构性 ∈ [0,1] (旧 clip(Σctx/Σfull,0,1) 把 ctx>full 质量右删失到 1.0, 已废弃)
     s = out['attention_attr_share'].dropna()
     assert s.between(0, 1).all(), f'attr_share 越界 [{s.min()},{s.max()}]'
 

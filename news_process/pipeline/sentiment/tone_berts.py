@@ -48,7 +48,9 @@ news_process.pipeline.sentiment.tone_berts — 阶段23：基于 BERT 系列预�
       实际最长序列，减少无效计算
     - **cuDNN benchmark**：自动调优卷积算法
     - **全部模型预加载到 GPU**：消除串行加载/卸载开销
-    - **分词结果共享**：相同 max_length 的模型共享同一次批量分词和窗口
+    - **分词结果共享**：(max_length, 词表指纹) 完全一致的模型才共享同一次批量分词
+      和窗口 (fix g-berts-01: 历史按 max_length 分组会把不同词表模型的 token id
+      跨词表错配, 词表不同的模型现各自独立分词)
     - **pin_memory + non_blocking**：异步 CPU→GPU 数据传输
 
 输入：
@@ -59,6 +61,7 @@ news_process.pipeline.sentiment.tone_berts — 阶段23：基于 BERT 系列预�
 """
 
 import gc
+import hashlib
 import os
 import sys
 import time
@@ -171,7 +174,11 @@ if USE_AMP:
 elif DEVICE.type == 'cuda':
     logger.info("Mixed Precision (AMP): 已禁用 (严格模式)")
 
-# 标签映射（从模型输出 id 到中文标签）
+# 标签映射（从模型输出 id 到中文标签）— 项目侧极性索引*约定*文档
+# fix(omni-g-berts-03, 2026-06-11): 这两个常量不再作为 num_labels 不匹配时的盲目
+# 回退映射 (在产两个 hub checkpoint 的真实 id2label 顺序与此约定均为 0↔2 极性翻转,
+# 盲回退 = tone 符号整体翻转)。回退路径现优先从 checkpoint id2label 经极性归一推导,
+# 推导失败则 fail-loud raise。常量保留作为项目极性顺序约定的参照与测试锚点。
 DEFAULT_LABEL_MAP = {0: "负面", 1: "中性", 2: "正面"}
 DEFAULT_LABEL_MAP_2CLASS = {0: "负面", 1: "正面"}
 
@@ -218,6 +225,74 @@ def _label_order_consistent(ckpt_id2label: dict, expected_label_map: dict) -> bo
     return True
 
 
+# 极性 → 项目中文标签 (用于从 checkpoint id2label 推导项目侧 label_map)
+_POLARITY_TO_CN = {'neg': '负面', 'neu': '中性', 'pos': '正面'}
+
+
+def _derive_label_map_from_checkpoint(model_config, num_labels: int) -> dict | None:
+    """从 checkpoint 自带 id2label 推导项目中文 label_map。
+
+    fix(omni-g-berts-03, 2026-06-11): num_labels 与配置不匹配时, 以 checkpoint
+    自身声明的类别顺序为准 — 每个索引的标签文本经 _polarity_of 归一到
+    neg/neu/pos 再映射为项目中文标签, 保证极性顺序忠实于 checkpoint。
+
+    Returns:
+        dict | None: 推导成功返回 {idx: 中文标签}; 任一索引标签无法归一极性、
+            极性重复、或 id2label 缺失/条数不符 → 返回 None (调用方须 fail-loud,
+            不得回退项目侧 DEFAULT 顺序出数)。
+    """
+    id2label = getattr(model_config, 'id2label', None)
+    if not isinstance(id2label, dict) or len(id2label) != num_labels:
+        return None
+    derived = {}
+    seen_polarities = set()
+    for raw_idx, raw_label in id2label.items():
+        try:
+            idx = int(raw_idx)  # HF config.json 原始键可能是字符串
+        except (TypeError, ValueError):
+            return None
+        pol = _polarity_of(raw_label)
+        if pol is None or pol in seen_polarities:
+            return None  # 无法归一 (如 LABEL_1) 或极性重复 → 不可推导
+        seen_polarities.add(pol)
+        derived[idx] = _POLARITY_TO_CN[pol]
+    return derived
+
+
+def _tokenizer_fingerprint(tokenizer) -> str:
+    """计算 tokenizer 词表身份指纹 (vocab fingerprint)。
+
+    fix(omni-g-berts-01, 2026-06-11): 共享分词的分组键由 max_length 升级为
+    (max_length, 本指纹) — 仅词表 (含 added_tokens)、大小写策略、特殊 token id
+    完全一致的模型才允许共享同一次批量分词。历史按 max_length 分组曾让
+    finbert2 (词增强 vocab 34,932) 全程吃 finbert_cn (bert-base-chinese,
+    vocab 21,128) 的 token id — 逐 id 跨词表错位即乱码输入。
+
+    Returns:
+        str: sha256 hex digest; 无 get_vocab 的异类 tokenizer 退化为按对象身份
+            生成的唯一指纹 (保守: 永不与他人共享分词)。
+    """
+    h = hashlib.sha256()
+    try:
+        vocab = tokenizer.get_vocab()  # 含 added_tokens (HF 契约)
+    except Exception:
+        # 无法取词表 → 不可证明等价 → 按对象身份隔离, 永不共享
+        return f"no-vocab:{type(tokenizer).__name__}:{id(tokenizer)}"
+    for token, idx in sorted(vocab.items()):
+        h.update(f"{token}\t{idx}\n".encode())
+    do_lower = getattr(tokenizer, 'do_lower_case', None)
+    if do_lower is None:
+        do_lower = getattr(tokenizer, 'init_kwargs', {}).get('do_lower_case')
+    special_ids = (
+        getattr(tokenizer, 'cls_token_id', None),
+        getattr(tokenizer, 'sep_token_id', None),
+        getattr(tokenizer, 'pad_token_id', None),
+        getattr(tokenizer, 'unk_token_id', None),
+    )
+    h.update(f"|do_lower_case={do_lower}|special={special_ids}".encode())
+    return h.hexdigest()
+
+
 # ============================================================================
 # 2. 模型配置（仅从 config.yaml 加载, 单一真值; Plan P0-2 删除内置 fallback 列表）
 # ============================================================================
@@ -234,8 +309,9 @@ def _build_model_configs() -> list:
         的用户在 fallback 路径下立即失败.
         现在 sentiment.yaml 缺失或 models 段为空时直接 raise, 提示明确.
         finbert2 这类本地私有模型通过 ${FINBERT2_MODEL_DIR} env var 解析,
-        缺该 env 时 sentiment.yaml 解析为空字符串, 模型加载阶段 (L298 try/except)
-        graceful skip 而不影响其它 2 个 huggingface 模型 (finbert_cn / fin_sent_zh).
+        缺该 env 时 sentiment.yaml 解析为空字符串, load_all 在 try 之外显式判定为
+        "预期 graceful skip" (fix g-berts-04), 不影响其它 2 个 huggingface 模型
+        (finbert_cn / fin_sent_zh); 后者的非预期加载失败默认 fail-loud raise.
 
     Returns:
         list: 模型配置字典列表，每项包含 model_id、short_name、description、
@@ -295,12 +371,15 @@ class MultiModelSentimentEngine:
       - AMP autocast: 动态混合精度推理，自动选择最优精度
       - 窗口按长度排序分桶，mini-batch 仅填充到实际最长序列
       - 增大 batch size (128) 提升 GPU 吞吐
-      - 相同 max_length 的模型共享分词 + 窗口数据
+      - (max_length, 词表指纹) 一致的模型共享分词 + 窗口数据
+        (fix g-berts-01: 词表不同的模型独立分词, 防 token id 跨词表错配)
 
     Attributes:
-        models:       已加载的 PyTorch 模型。
-        tokenizers:   每个模型对应的 tokenizer。
-        model_configs: 模型配置列表。
+        models:          已加载的 PyTorch 模型。
+        tokenizers:      每个模型对应的 tokenizer。
+        model_configs:   模型配置列表。
+        skipped_expected: 预期 graceful skip 的模型名 (如 FINBERT2_MODEL_DIR 未配)。
+        failed_models:    非预期加载失败的模型名 (strict_models=false 时才可能非空)。
     """
 
     def __init__(self, model_configs: list):
@@ -309,30 +388,63 @@ class MultiModelSentimentEngine:
         self.tokenizers = {}     # short_name -> tokenizer
         self.loaded_configs = {} # short_name -> config (含实际 num_labels)
 
-        # 按 max_length 分组（用于共享分词）
-        self._groups = {}  # max_length -> [short_name, ...]
+        # fix(omni-g-berts-04, 2026-06-11): 显式记录跳过/失败清单, 供 stage summary
+        # 与 gate 校验 loaded/expected 计数
+        self.skipped_expected = []  # 预期跳过 (本地私有模型未配置)
+        self.failed_models = []     # 非预期加载失败
+
+        # fix(omni-g-berts-01, 2026-06-11): 分组键 max_length → (max_length, 词表指纹)
+        self._groups = {}  # (max_length, vocab_fingerprint) -> [short_name, ...]
 
     def load_all(self) -> list:
         """一次性加载全部模型到 GPU（FP32 权重, AMP 推理）。
+
+        fix(omni-g-berts-04, 2026-06-11) 降级透明化: 预期 graceful skip 仅限
+        "本地私有模型未配置" (model_id 为空 = FINBERT2_MODEL_DIR 未设, 或解析为
+        本地绝对路径但不存在); 其余模型 (hub 模型瞬态故障等) 加载失败默认 raise
+        (config 开关 sentiment_analysis.tone_berts.strict_models=false 可放宽,
+        放宽时失败记入 failed_models 供 gate 校验)。
+        fix(omni-g-berts-03, 2026-06-11): num_labels 不匹配时不再盲回退
+        DEFAULT_LABEL_MAP 顺序, 改从 checkpoint id2label 极性归一推导, 推导失败
+        raise; 极性顺序守卫由 warning-only 升级为 fail-loud。
 
         Returns:
             list: 成功加载的模型名称列表。
         """
         load_start = time.time()
         loaded_names = []
+        strict_models = bool(BERT_PARAMS.get('strict_models', True))
 
         for mc in self.model_configs:
             short_name = mc['short_name']
-            model_id = mc['model_id']
+            model_id = str(mc['model_id'] or '')
+
+            local_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                'models', short_name
+            )
+
+            # fix(omni-g-berts-04, 2026-06-11): 预期跳过判定提前到 try 之外,
+            # 与"非预期加载失败"严格分流。预期跳过 = 本地私有模型未配置:
+            #   (a) model_id 为空 (FINBERT2_MODEL_DIR 未设 → yaml 解析为空串);
+            #   (b) model_id 是本地路径 (绝对路径或含反斜杠, hub id 不可能) 但不存在。
+            # 两种情况均需本地 models/<short_name> 副本也不存在才跳过。
+            _looks_local = os.path.isabs(model_id) or ('\\' in model_id)
+            if not os.path.exists(local_path) and (
+                not model_id.strip() or (_looks_local and not os.path.exists(model_id))
+            ):
+                logger.warning(
+                    f"  模型 {short_name} 本地路径未配置或不存在 "
+                    f"(model_id={model_id!r}, 如 FINBERT2_MODEL_DIR 未设) — "
+                    f"预期 graceful skip, 其余模型继续。"
+                )
+                self.skipped_expected.append(short_name)
+                continue
+
+            model_path = local_path if os.path.exists(local_path) else model_id
 
             try:
                 logger.info(f"  正在加载模型: {model_id} ...")
-
-                local_path = os.path.join(
-                    os.path.dirname(os.path.abspath(__file__)),
-                    'models', short_name
-                )
-                model_path = local_path if os.path.exists(local_path) else model_id
 
                 # 加载 tokenizer
                 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
@@ -353,27 +465,42 @@ class MultiModelSentimentEngine:
                 if hasattr(model.config, 'num_labels'):
                     actual = model.config.num_labels
                     if actual != num_labels:
+                        # fix(omni-g-berts-03, 2026-06-11): 历史此处盲回退
+                        # DEFAULT_LABEL_MAP{,_2CLASS} — 其索引顺序对在产两个 hub
+                        # checkpoint 均为 0↔2 极性翻转 (tone 符号整体翻转)。
+                        # 改为: 从 checkpoint 自带 id2label 极性归一推导; 推导
+                        # 失败 fail-loud, 不得以项目侧约定顺序冒充 checkpoint 顺序。
+                        derived = _derive_label_map_from_checkpoint(model.config, actual)
+                        if derived is None:
+                            raise RuntimeError(
+                                f"模型 {short_name} 实际标签数={actual} 与配置 "
+                                f"label_map 条目数={num_labels} 不匹配, 且无法从 "
+                                f"checkpoint id2label="
+                                f"{getattr(model.config, 'id2label', None)!r} "
+                                f"推导极性映射 — 拒绝盲回退默认顺序 (极性翻转风险)。"
+                                f"请修正 config/sentiment.yaml 该模型的 label_map。"
+                            )
                         logger.warning(
-                            f"  模型 {short_name} 实际标签数={actual}, 配置={num_labels}。以模型为准。"
+                            f"  模型 {short_name} 实际标签数={actual}, 配置={num_labels}。"
+                            f"以 checkpoint id2label 极性推导为准: {derived}"
                         )
                         num_labels = actual
-                        label_map = DEFAULT_LABEL_MAP_2CLASS if actual == 2 else DEFAULT_LABEL_MAP
+                        label_map = derived
 
-                # 防御性校验 (latent 防护): checkpoint 的 id2label *顺序* 与项目
-                # 预期极性顺序 (索引 0=负面 … 末位=正面) 是否一致。
-                # 现有逻辑只校验标签*数量* (上方 num_labels 分支), 不查顺序 —
-                # 若上游 checkpoint 重排类别 (如 0=正面/2=负面), label_map 会
-                # 静默把正负对调而不报错。这里仅在检测到不一致时 warning, 不改
-                # 当前正确 checkpoint 下的映射结果 (label_map 不被覆盖)。
+                # 防御性校验: checkpoint 的 id2label *顺序* 与项目预期极性顺序
+                # 是否一致 (抓"正负静默对调")。
+                # fix(omni-g-berts-03, 2026-06-11): 由 warning-only 升级为
+                # fail-loud — 极性对调若放行, 该模型 tone 符号整体翻转且下游
+                # 无任何可见信号; 不得继续以可疑映射出数。
                 _ckpt_id2label = getattr(model.config, 'id2label', None)
                 if isinstance(_ckpt_id2label, dict) and _ckpt_id2label:
                     if not _label_order_consistent(_ckpt_id2label, label_map):
-                        logger.warning(
-                            f"  模型 {short_name} checkpoint id2label={_ckpt_id2label} "
-                            f"的极性顺序与项目预期 label_map={label_map} 不一致 — "
+                        raise RuntimeError(
+                            f"模型 {short_name} checkpoint id2label={_ckpt_id2label} "
+                            f"的极性顺序与项目 label_map={label_map} 不一致 — "
                             f"上游 checkpoint 可能重排了类别索引, 正负情感存在静默"
-                            f"对调风险。请核对 checkpoint 的标签顺序后再信任本模型的"
-                            f"情感方向 (本步骤不自动重排, 仅告警)。"
+                            f"对调风险。请核对并修正 config/sentiment.yaml 的 "
+                            f"label_map 后重跑 (本步骤拒绝以可疑映射出数)。"
                         )
 
                 self.models[short_name] = model
@@ -385,18 +512,36 @@ class MultiModelSentimentEngine:
                 }
                 loaded_names.append(short_name)
 
-                # 分组
-                ml = mc['max_length']
-                self._groups.setdefault(ml, []).append(short_name)
+                # 分组 — fix(omni-g-berts-01, 2026-06-11): 组键 max_length →
+                # (max_length, 词表指纹); 词表/大小写/特殊 token 任一不同的模型
+                # 不再共享分词 (finbert2 用自己的 tokenizer, 含其 added_tokens)
+                group_key = (mc['max_length'], _tokenizer_fingerprint(tokenizer))
+                self._groups.setdefault(group_key, []).append(short_name)
 
                 logger.info(f"  模型 {short_name} 加载成功 (labels={num_labels})")
 
             except Exception as e:
+                # fix(omni-g-berts-04, 2026-06-11): 非预期加载失败不再静默吞掉 —
+                # strict_models=true (默认) 直接 raise, 防止该模型双轨列从输出
+                # parquet 整体消失而阶段仍 SUCCESS (下游按列存在性静默跳过)。
+                self.failed_models.append(short_name)
                 logger.error(f"  模型 {model_id} 加载失败: {e}")
+                if strict_models:
+                    logger.error(
+                        "    strict_models=true (默认): 非预期模型加载失败 fail-loud。"
+                        "如确需容忍缺席, 在 config/sentiment.yaml 设 "
+                        "sentiment_analysis.tone_berts.strict_models: false"
+                    )
+                    raise
 
         load_elapsed = time.time() - load_start
-        logger.info(f"全部模型加载完毕: {len(loaded_names)}/{len(self.model_configs)} "
-                     f"(耗时 {load_elapsed:.1f}s)")
+        # fix(omni-g-berts-04): stage summary 显式记录 loaded/expected/skipped/failed
+        logger.info(
+            f"全部模型加载完毕: {len(loaded_names)}/{len(self.model_configs)} "
+            f"(预期跳过 {len(self.skipped_expected)}: {self.skipped_expected}; "
+            f"意外失败 {len(self.failed_models)}: {self.failed_models}) "
+            f"(耗时 {load_elapsed:.1f}s)"
+        )
 
         if DEVICE.type == 'cuda':
             allocated = torch.cuda.memory_allocated() / 1e9
@@ -434,8 +579,10 @@ class MultiModelSentimentEngine:
         n_texts = len(texts)
         all_model_results = {}
 
-        # ── 按 max_length 分组共享分词 ──
-        for max_length, group_names in self._groups.items():
+        # ── 按 (max_length, 词表指纹) 分组共享分词 ──
+        # fix(omni-g-berts-01, 2026-06-11): 组键含词表指纹, 组内 tokenizer 等价,
+        # representative 的分词结果对全组每个模型都是其自身词表下的合法 token id
+        for (max_length, _vocab_fp), group_names in self._groups.items():
             # 取该组中第一个已加载模型的 tokenizer
             representative = None
             for gn in group_names:
@@ -603,13 +750,35 @@ class MultiModelSentimentEngine:
         return all_model_results
 
     def _empty_result(self, short_name: str) -> dict:
-        """返回空结果。"""
+        """返回空文本结果 (num_windows=0)。
+
+        仅用于"输入文本为空/空白"这一语义; 推理失败请用 _failure_result
+        (num_windows=-1), 两者在 num_windows 上严格区分 (fix g-berts-02)。
+        """
         cfg = self.loaded_configs.get(short_name)
         if cfg:
             prob_dict = {label: 0.0 for label in cfg['label_map'].values()}
         else:
             prob_dict = {'正面': 0.0, '中性': 0.0, '负面': 0.0}
         return {'label': '中性', 'probabilities': prob_dict, 'num_windows': 0}
+
+    def _failure_result(self, short_name: str) -> dict:
+        """返回推理失败哨兵结果 (num_windows=-1)。
+
+        fix(omni-g-berts-02, 2026-06-11): 与空文本 (_empty_result, num_windows=0)
+        严格区分的失败哨兵:
+          - num_windows = -1 — 失败标志 (空文本=0, 正常推理 ≥1);
+          - label = None — 不冒充 '中性' (对 2-class 模型 '中性' 是标签空间外
+            类别, 对 3-class 模型则与真实中性预测不可区分);
+          - 概率 = NaN (而非 0.0) — pandas mean/sum 聚合自动跳过, 与 LLM 族
+            v6/F2 "测量失败 → pd.NA 与真实中性严格区分" 契约对齐。
+        """
+        cfg = self.loaded_configs.get(short_name)
+        if cfg:
+            prob_dict = {label: float('nan') for label in cfg['label_map'].values()}
+        else:
+            prob_dict = {'正面': float('nan'), '中性': float('nan'), '负面': float('nan')}
+        return {'label': None, 'probabilities': prob_dict, 'num_windows': -1}
 
 
 # ============================================================================
@@ -618,6 +787,13 @@ class MultiModelSentimentEngine:
 
 def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, content_list: list) -> dict:
     """使用多模型引擎对全部数据进行批量推理。
+
+    fix(omni-g-berts-02, 2026-06-11) 批级异常兜底重写: 历史 except 把整批
+    (200 篇 × 全部模型) 静默写成 '中性'+全 0 概率哨兵 (与空文本不可区分,
+    哨兵 0.0 直进下游 mean/sum 聚合)。现改为: 批级异常 → 逐篇单独重试一次
+    (隔离坏文章/瞬态 GPU 故障), 仍失败的文章才写失败哨兵 (_failure_result:
+    label=None / 概率 NaN / num_windows=-1), 并输出每篇 {sn}_infer_failed
+    标志列; 末尾统计总失败篇数。
 
     Args:
         df:           包含"内容"列的 DataFrame。
@@ -639,6 +815,7 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
             loaded_model_names.append(sn)
 
     inference_start = time.time()
+    n_failed_articles = 0  # fix(omni-g-berts-02): 重试后仍失败的文章总数
 
     for batch_start in range(0, total, ARTICLES_PER_BATCH):
         batch_end = min(batch_start + ARTICLES_PER_BATCH, total)
@@ -648,16 +825,34 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
         try:
             new_results = engine.run_all_models(batch_texts)
         except Exception as e:
-            logger.warning(f"  批次 {batch_start}-{batch_end} 推理异常: {e}")
-            new_results = {}
-            for sn in loaded_model_names:
-                new_results[sn] = [engine._empty_result(sn) for _ in batch_texts]
+            # fix(omni-g-berts-02, 2026-06-11): 批级异常不再整批置哨兵 —
+            # 逐篇单独重试一次, 仍失败的文章才写失败哨兵 (num_windows=-1,
+            # 概率 NaN, label=None, 与空文本 num_windows=0 严格区分)。
+            logger.warning(
+                f"  批次 {batch_start}-{batch_end} 推理异常, 逐篇重试一次: {e}"
+            )
+            new_results = {sn: [] for sn in loaded_model_names}
+            for art_offset, text in enumerate(batch_texts):
+                try:
+                    single = engine.run_all_models([text])
+                    for sn in loaded_model_names:
+                        sn_single = single.get(sn) or [engine._failure_result(sn)]
+                        new_results[sn].append(sn_single[0])
+                except Exception as retry_e:
+                    n_failed_articles += 1
+                    logger.warning(
+                        f"    文章 idx={batch_start + art_offset} 单篇重试仍失败, "
+                        f"写失败哨兵: {retry_e}"
+                    )
+                    for sn in loaded_model_names:
+                        new_results[sn].append(engine._failure_result(sn))
 
         for sn in loaded_model_names:
             sn_results = new_results.get(sn, [])
-            # 填充可能的长度不足（理论上不应发生）
+            # 填充可能的长度不足（理论上不应发生; 缺位 = 结果缺失而非空文本,
+            # fix(omni-g-berts-02): 改用失败哨兵而非空文本哨兵）
             while len(sn_results) < len(batch_texts):
-                sn_results.append(engine._empty_result(sn))
+                sn_results.append(engine._failure_result(sn))
             model_results_all[sn].extend(sn_results)
 
         # 进度日志
@@ -671,6 +866,15 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
     total_elapsed = time.time() - inference_start
     logger.info(f"  全部模型推理完成。总耗时: {total_elapsed:.1f}s, "
                 f"速度: {total / total_elapsed:.1f} 文章/秒 (×{len(model_results_all)}模型)")
+
+    # fix(omni-g-berts-02): 末尾统计重试后仍失败的文章数 (失败哨兵已写入,
+    # 下游可由 {sn}_infer_failed 标志列 / num_windows=-1 过滤)
+    if n_failed_articles:
+        logger.error(
+            f"  ⚠ {n_failed_articles}/{total} 篇文章批级+单篇重试均失败, "
+            f"已写失败哨兵 (label=None, 概率=NaN, num_windows=-1); "
+            f"请检查 GPU/驱动日志后考虑重跑本阶段。"
+        )
 
     # GPU 显存日志
     if DEVICE.type == 'cuda':
@@ -692,7 +896,9 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
         for label_name in label_map.values():
             stats[f'{sn}_{label_name}'] = label_counts.get(label_name, 0)
 
-        avg_windows = np.mean([r['num_windows'] for r in results]) if results else 0
+        # fix(omni-g-berts-02): avg_windows 排除失败哨兵 (-1), 不让其拉低均值
+        _nw_valid = [r['num_windows'] for r in results if r['num_windows'] >= 0]
+        avg_windows = np.mean(_nw_valid) if _nw_valid else 0
 
         # 输出列
         columns = {f'{sn}_label': labels}
@@ -702,6 +908,19 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
                 all_probs[label_name].append(result['probabilities'].get(label_name, 0.0))
         for label_name, probs_list in all_probs.items():
             columns[f'{sn}_{label_name}'] = probs_list
+
+        # fix(omni-g-berts-02, 2026-06-11): 2-class 模型 (如 finbert2) 输出端补
+        # 中性=NaN 列 (而非 0) — 下游 2-class/3-class 混均时 pandas mean/sum 自动
+        # 跳过 NaN, 不再把"该模型无中性维度"冒充为"中性概率恒 0"。
+        # 跨文件聚合接口注明: pipeline/panel/encode.py 的 THREE_CLASS_MODELS 守卫
+        # 仍按 config label_map 判定 (本列存在与否不改其现行行为); 若 panel 组
+        # 决定统一口径, 可将 encode.py:535 守卫改为列存在性 + NaN-aware 聚合。
+        if not any(_polarity_of(v) == 'neu' for v in label_map.values()):
+            columns[f'{sn}_中性'] = [float('nan')] * len(results)
+
+        # fix(omni-g-berts-02): 每篇 failure 标志列 (失败哨兵 num_windows=-1);
+        # 主函数追加轨道后缀 → {sn}_infer_failed_full / _ctx
+        columns[f'{sn}_infer_failed'] = [r['num_windows'] == -1 for r in results]
 
         num_windows_list = [r['num_windows'] for r in results]
         output[sn] = {'columns': columns, 'stats': stats, 'avg_windows': avg_windows,
@@ -757,16 +976,18 @@ def log_classification_report(output: dict, total: int):
     if _first_key and 'num_windows_list' in output[_first_key]:
         nw_list = output[_first_key]['num_windows_list']
         nw_arr = np.array(nw_list)
-        # num_windows=0 表示空文本/推理异常，排除后统计
+        # num_windows=0 表示空文本, -1 表示推理失败哨兵 (fix g-berts-02), 排除后统计
         valid_nw = nw_arr[nw_arr > 0]
         if len(valid_nw) > 0:
             multi_window = int((valid_nw > 1).sum())
             single_window = int((valid_nw == 1).sum())
             n_valid = len(valid_nw)
-            n_excluded = int((nw_arr == 0).sum())
+            n_empty = int((nw_arr == 0).sum())
+            n_failed = int((nw_arr == -1).sum())
             logger.info("-" * 70)
             logger.info("滑动窗口截断统计 (Sliding Window Truncation Statistics):")
-            logger.info(f"  有效文章数: {n_valid:,} (排除 {n_excluded} 篇空文本/异常)")
+            logger.info(f"  有效文章数: {n_valid:,} "
+                        f"(排除 {n_empty} 篇空文本, {n_failed} 篇推理失败哨兵)")
             logger.info(f"  单窗口文章: {single_window:,} 篇 ({single_window / n_valid * 100:.1f}%)")
             logger.info(f"  多窗口文章: {multi_window:,} 篇 ({multi_window / n_valid * 100:.1f}%)")
             logger.info(f"  窗口数统计: mean={valid_nw.mean():.2f}, "
@@ -881,6 +1102,9 @@ def main():
                     df[f"{col_name}{suffix}"] = col_data
 
     # ── Step 3b: 写入 BERT 窗口数列（双轨，供下游分层分析使用） ──
+    # 语义说明: num_windows ≥1 正常推理; 0 = 空文本; -1 = 推理失败哨兵
+    # (fix g-berts-02)。fix g-berts-01 后各模型按自身 tokenizer 分词, 窗口数
+    # 是 tokenizer 特异的; 本列取首个模型的计数 (日志注明基于哪个模型)。
     _first_sn = next((mc['short_name'] for mc in MODEL_CONFIGS
                       if mc['short_name'] in output_full), None)
     if _first_sn:

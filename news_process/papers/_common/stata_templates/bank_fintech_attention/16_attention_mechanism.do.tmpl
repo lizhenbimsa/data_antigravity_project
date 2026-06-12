@@ -58,11 +58,34 @@ if !_rc {
 * ssc install medsens, replace
 * medsens, sims(1000) rho(-0.5 0.5)
 
-esttab total apath direct using "$tables_dir/table3_mechanism.tex", replace ///
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — apath/direct 被
+* ln_fintech_mdna_length 守卫跳过时旧版硬点名 r(111) 静默丢整表
+qui estimates dir
+local stored `r(names)'
+local cand_models total apath direct
+local cand_titles `""Total Y~X" "a-path M~X" "Direct Y~X+M""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' using "$tables_dir/table3_mechanism.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Table 3 — Mechanism (Baron-Kenny mediation; P2 attention → MD&A → investment)") ///
-    mtitles("Total Y~X" "a-path M~X" "Direct Y~X+M") ///
+    mtitles(`mtitles') ///
     addnotes("Mediator = ln\_fintech\_mdna\_length (per spec mediator.primary R8-M01)." ///
              "Sobel z + Imai-Keele 2010 sensitivity (rho ∈ [-0.5, +0.5]) in medsens.log.")
 
-display "[OK] Table 3 (mechanism) → $tables_dir/table3_mechanism.tex"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — tables.py:build_table3_mechanism
+* 经 read_paper_esttab(...,'table3_mechanism.csv') 消费 (parse_esttab_csv 格式)
+estout `models' using "$tables_dir/table3_mechanism.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+display "[OK] Table 3 (mechanism) → $tables_dir/table3_mechanism.tex (+ .csv side-channel)"

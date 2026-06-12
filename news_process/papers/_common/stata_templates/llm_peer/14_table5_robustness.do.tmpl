@@ -37,8 +37,10 @@ ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) {{COMPETE_IDX}} $contro
 eststo R2
 
 * R3: Ctx-track endogenous + IV (if _ctx variants exist)
-capture confirm variable llm_vote_tone_ctx
-capture confirm variable llm_peer_tone_iv_ctx
+* fix(omni-g-templates-04, 2026-06-11): 旧版连续两条 capture confirm — 后一条覆盖 _rc,
+* 第一变量 (llm_vote_tone_ctx) 单独缺失时守卫穿透 → ivreghdfe r(111)。合并为单次
+* confirm (多变量语义: 任一缺失即 _rc≠0)。
+capture confirm variable llm_vote_tone_ctx llm_peer_tone_iv_ctx
 if !_rc {
     ivreghdfe {{MAIN_DV}}_w (llm_vote_tone_ctx = llm_peer_tone_iv_ctx) $controls, ///
         absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
@@ -56,11 +58,28 @@ if !_rc {
     eststo R4
 }
 
-esttab R1 R2 R3 R4 using "$tables_dir/table5_robustness.tex", replace ///
+* fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — R3/R4 守卫跳过后旧版硬
+* 点名 → r(111) 整表丢失; 仅引用实际已存储估计, mtitle 同步删列防错位。
+qui estimates dir
+local stored `r(names)'
+local cand_models R1 R2 R3 R4
+local cand_titles `""Cov-IV" "+CompIdx" "Ctx-track" "Prov-cluster""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
     label compress b(3) ///
     title("Robustness Battery --- llm_peer IV 2SLS") ///
-    mtitles("Cov-IV" "+CompIdx" "Ctx-track" "Prov-cluster") ///
+    mtitles(`mtitles') ///
     addnotes("R1 swaps {{LLM_PEER_IV}}→{{LLM_PEER_COVERAGE_IV}}." ///
              "R2 adds {{COMPETE_IDX}} as exogenous control." ///
              "R3 replaces _full with _ctx tracks (if available)." ///

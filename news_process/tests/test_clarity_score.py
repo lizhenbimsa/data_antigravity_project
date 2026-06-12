@@ -39,12 +39,20 @@ def reset_clarity_cache():
 
 
 def test_load_clarity_dictionaries_structure():
-    """词典加载: 返回 (frozenset, frozenset); 388 / 178 词数."""
+    """词典加载: 返回 (frozenset, frozenset); 387 / 177 词数.
+
+    fix(omni-g-tonewords-03, 2026-06-11): definite∩ambiguous 跨类重叠词 ('不可' 1 词)
+    双侧剔除 → 原 388/178 (源 JSON 计数) 加载后为 387/177; 旧断言 388/178 锁的是
+    重叠词双计旧行为。
+    """
     def_set, amb_set = tw.load_clarity_dictionaries()
     assert isinstance(def_set, frozenset)
     assert isinstance(amb_set, frozenset)
-    assert len(def_set) == 388, f"Expected 388 definite words, got {len(def_set)}"
-    assert len(amb_set) == 178, f"Expected 178 ambiguous words, got {len(amb_set)}"
+    assert len(def_set) == 387, f"Expected 387 definite words (388-1 overlap), got {len(def_set)}"
+    assert len(amb_set) == 177, f"Expected 177 ambiguous words (178-1 overlap), got {len(amb_set)}"
+    # 跨类重叠应已消解
+    assert not (def_set & amb_set)
+    assert '不可' not in def_set and '不可' not in amb_set
 
 
 def test_clarity_score_range_in_minus_one_to_plus_one():

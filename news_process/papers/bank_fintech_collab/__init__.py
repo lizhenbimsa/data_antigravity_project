@@ -11,10 +11,13 @@ Bank Fintech Collab Mode — 银行 fintech 创新的"自主研发 vs 外部协�
 - ``r_and_d_intensity``             : 自主研发的强度信号 (alternative outcome)
 - ``car_5day_window``               : 短期市场反应 (与 P4 同窗口)
 
-核心处理变量:
-- ``innovation_collab_mode_full``   : pipeline v3.4.0 实测列名 (Chesbrough 2003)
-- ``innovation_collab_mode_ctx``    : context-conditional 轨 (Hassan 2019 QJE 同构)
-- ``independent_minus_collab_gap``  : derived = full - (1 - full) ∈ {-1, +1}
+核心处理变量 (fix(omni-g-papers-misc-05/-11, 2026-06-11): 改指 bank-year panel
+真实物化列 — 旧 innovation_collab_mode_full 是文章级中文字符串, 不在 panel):
+- ``collab_frac``                   : 外部协同新闻占比 (full 轨, Chesbrough 2003)
+- ``collab_frac_cm``                : context-conditional 轨 (entity-context 分类)
+- ``independent_minus_collab_gap``  : derived = indep_frac - collab_frac ∈ [-1, +1];
+  Stata 层二元化版 collab_gap = collab_open - collab_closed ∈ {-1, 0, +1}
+  (0 = 平票/缺失, 见 01_data_prep.do.tmpl)
 
 Identification: long_panel within-bank within-year; E1/E3/E4 events applicable
 (per master plan §5.7.2 v2.56 epoch 5 audit 决策).

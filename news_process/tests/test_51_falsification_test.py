@@ -145,13 +145,21 @@ class TestAggregation:
             "恒等式 all = fintech + non-fintech 不成立"
 
     def test_fintech_share_range(self, synthetic_full, synthetic_panel_articles, synthetic_panel):
-        """fintech_share ∈ [0, 1]。"""
+        """fintech_share ∈ [0, 1] (有定义行); 零新闻行为 NaN。
+
+        fix(omni-g-controls-05, 2026-06-11): 分母 0 (零新闻 bank-year) 改 NaN,
+        范围断言仅对有定义 (非 NaN) 行成立。
+        """
         df_nf = mod.build_non_fintech(synthetic_full, synthetic_panel_articles)
         nf_agg = mod.aggregate_non_fintech(df_nf)
         panel = mod.merge_to_panel(synthetic_panel.copy(), nf_agg)
 
-        assert (panel['fintech_share'] >= 0).all(), "fintech_share < 0"
-        assert (panel['fintech_share'] <= 1).all(), "fintech_share > 1"
+        defined = panel['fintech_share'].dropna()
+        assert (defined >= 0).all(), "fintech_share < 0"
+        assert (defined <= 1).all(), "fintech_share > 1"
+        # NaN 只允许出现在零新闻行
+        assert (panel.loc[panel['fintech_share'].isna(), 'all_n_articles'] == 0).all(), \
+            "fintech_share=NaN 只应出现在 all_n_articles==0 行"
 
     def test_no_column_loss(self, synthetic_full, synthetic_panel_articles, synthetic_panel):
         """合并后不丢失已有面板列。"""
@@ -178,14 +186,22 @@ class TestAggregation:
                 "零新闻行的 nf_n_articles 应为 0"
 
     def test_fintech_share_zero_division(self, synthetic_full, synthetic_panel_articles, synthetic_panel):
-        """all_n_articles=0 时 fintech_share 不应为 NaN。"""
+        """all_n_articles=0 时 fintech_share 应为 NaN, 并由 zero_coverage 标记。
+
+        fix(omni-g-controls-05, 2026-06-11): 旧断言锁定的是错误行为 (未定义比率
+        填 0, 与真实零份额同值混淆); 现在分母 0 → NaN (回归自然剔除) +
+        zero_coverage 指示列。
+        """
         df_nf = mod.build_non_fintech(synthetic_full, synthetic_panel_articles)
         nf_agg = mod.aggregate_non_fintech(df_nf)
         panel = mod.merge_to_panel(synthetic_panel.copy(), nf_agg)
 
         zero_total = panel[panel['all_n_articles'] == 0]
         if len(zero_total) > 0:
-            assert not zero_total['fintech_share'].isna().any(), \
-                "all_n_articles=0 时 fintech_share 不应为 NaN"
-            assert (zero_total['fintech_share'] == 0).all(), \
-                "all_n_articles=0 时 fintech_share 应为 0"
+            assert zero_total['fintech_share'].isna().all(), \
+                "all_n_articles=0 时 fintech_share 应为 NaN (未定义份额)"
+            assert (zero_total['zero_coverage'] == 1).all(), \
+                "all_n_articles=0 时 zero_coverage 应为 1"
+        nonzero = panel[panel['all_n_articles'] > 0]
+        assert (nonzero['zero_coverage'] == 0).all(), \
+            "all_n_articles>0 时 zero_coverage 应为 0"

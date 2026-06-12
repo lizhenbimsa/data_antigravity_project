@@ -15,10 +15,13 @@ Bank Fintech Locus — 银行 fintech 公告的"底层技术 (区块链 / AI / �
 - ``patent_fintech_count``   : IncoPat fintech 专利计数
 - ``citation_weighted_patent``: Kogan 2017 market-value 加权专利
 
-核心处理变量 (primary_pair from innovation_locus_full):
-- ``locus_layer_full``       : 1 if 底层技术 else 0 (R35-M02 derived)
-- ``locus_scenario_full``    : 1 if 应用场景 else 0 (R35-M02 derived)
-- ``locus_gap``              : locus_layer - locus_scenario ∈ {-1, +1}
+核心处理变量 (primary_pair; fix(omni-g-papers-misc-05/-11, 2026-06-11)
+实际推导 = Stata 01_data_prep.do 从 panel 列 tech_frac/app_frac 主导类别二元化,
+非文章级 innovation_locus_full 字符串):
+- ``locus_layer_full``       : 1 if tech_frac > app_frac (R35-M02 derived, Stata 层)
+- ``locus_scenario_full``    : 1 if app_frac > tech_frac (R35-M02 derived, Stata 层)
+- ``locus_gap``              : locus_layer - locus_scenario ∈ {-1, 0, +1}
+                               (0 = 平票 tech_frac == app_frac, 含两者皆 0; 作参照组)
 
 Mediator (R7-M04):
 - ``capex_it``                : CSMAR 资本支出 IT 板块

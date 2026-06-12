@@ -21,6 +21,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # ============================================================================
 # 复制被测纯函数（避免 import 36_entity_masking_test 触发 LLM 模块加载）
+#
+# 注 fix(omni g-val-mask, 2026-06-11): 下列本地副本保留修复前语义, 仅锁通用算法
+# 骨架 (长别名优先/占位符分配等)。生产模块 validation/entity_masking.py 的修复后
+# 行为 (ctx 轨剥标题/残留扫描含标题/共提计数含标题/聚合分母 ITT vs per-protocol
+# 双口径) 由 tests/test_omni_fix_val_mask.py 直接 import 真模块锁定。
 # ============================================================================
 
 PLACEHOLDER = "目标银行A"

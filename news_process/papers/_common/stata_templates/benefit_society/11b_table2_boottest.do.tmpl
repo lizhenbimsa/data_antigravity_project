@@ -47,9 +47,12 @@ if _rc == 0 {
     scalar p_wild = r(p)
     quietly reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
         absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
-    scalar p_cluster = 2 * (1 - normal(abs(_b[{{ATTITUDE_VAR}}] / _se[{{ATTITUDE_VAR}}])))
+    * fix(omni-gapfill-16, 2026-06-12): p_cluster 由 normal() z 近似改 t(e(df_r))
+    * — reghdfe 在 vce(cluster) 下按 t(G-1) 汇报 p 值 (e(df_r)=G-1), 旧 z 近似与
+    * 表内 p 值口径不一致, AC-A1 差值含人为成分。
+    scalar p_cluster = 2 * ttail(e(df_r), abs(_b[{{ATTITUDE_VAR}}] / _se[{{ATTITUDE_VAR}}]))
     scalar p_diff = abs(p_wild - p_cluster)
-    display "p_cluster (asymptotic): " p_cluster
+    display "p_cluster (cluster t, df=G-1): " p_cluster
     display "p_diff = " p_diff " (AC-A1: <0.05 required)"
     display "AC-A1 passes: " (p_diff < 0.05)
 }

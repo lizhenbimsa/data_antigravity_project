@@ -43,11 +43,21 @@ from typing import Optional
 import jieba
 import pandas as pd
 
+# fix(omni-g-numlex word-denominator, 2026-06-11): 复用 lm_non_sentiment 的
+# word-token 过滤正则 (单一事实源), 让 _count_word_tokens 与 lmfls-01 修复后的
+# frac_* / clarity / pos_ratio 分母同口径 (排除纯标点/纯数字 token)。
+from news_process.pipeline.sentiment.lm_non_sentiment import _LMFLS_NONWORD_RE
+
 logger = logging.getLogger(__name__)
 
 # v3.5.1 A3 公式锁定 (frozen at D0):
 # 句子分割正则 (lookahead/behind 排除小数点, 修 M1')
-_SENTENCE_END_RE = re.compile(r'(?<!\d)[。！？.!?](?!\d)')
+# fix(omni-g-numlex-02, 2026-06-11): digit-guard 仅限半角句点 '.' (小数点保护本意) —
+# 旧正则把 (?<!\d)/(?!\d) 一并套在全角 。！？ 上, 而全角句号永远不是小数点, 致句尾
+# 数字 ("…达120。") / 句首数字 ("。2017年…", 新闻极常见) 的真句界被丢弃 (实测全语料
+# 丢 6.4% 全角句末符, 63.6% 文章受影响), 且 cn2arab 转换会新造 digit-相邻句号放大漏计
+# → 分母偏小且与分子正相关 → num_intensity 系统性上偏。全角 。！？ 与半角 !? 不再守卫。
+_SENTENCE_END_RE = re.compile(r'[。！？!?]|(?<!\d)\.(?!\d)')
 
 # 数字 token 正则
 _DIGIT_TOKEN_RE = re.compile(r'\d+(?:\.\d+)?[%％]?')
@@ -69,6 +79,33 @@ _CN_NUMBER_BLOCK_RE = re.compile(
 
 # 百分之 prefix
 _PERCENT_PREFIX_RE = re.compile(r'百分之([零一二两三四五六七八九十百千万亿]+)')
+
+# fix(omni-g-numlex-01/-08, 2026-06-11): 单字中文数字块的数量语境门控。
+# 旧行为对任意上下文单字数字无条件 cn2arab → 实测 (盘上 1170 篇 content_full)
+# 42.3% 分子来自该类转换 (单字 '一' 即 25.1%), 94.5% 文章受影响, 压倒性为功能词/
+# 固定搭配 (进一步/一起/统一/之一/一系列/一带一路/一方面 等), 系统性污染构念。
+# 修复: 单字块仅在数量语境计入 —
+#   (a) 后接量词/单位白名单 _SINGLE_CN_UNIT_AFTER (一笔/五家/三人/十年), 或
+#   (b) 前置数量修饰守卫 _SINGLE_CN_QUANT_BEFORE (约三/达九/共五);
+# 且前字命中功能词黑名单 _SINGLE_CN_PREV_BLACKLIST 时**强制不计** (黑名单优先于
+# 白名单, 防 '统一个人账户'/'这一年'/'同一家' 类 '一'+白名单字的边缘误计)。
+# 黑名单构成: 之/统/进 = 组级裁决点名 (之一/统一/进一步); 这/同/唯 = 指示/同一性
+# 前缀 (这一×222 是审计实测 top 噪声源, 同一/唯一 同构非定量)。
+_SINGLE_CN_UNIT_AFTER = frozenset(
+    '个家只笔元名人项次倍户张件款单期批轮宗股份成年月日天周季亩吨克米'
+)
+_SINGLE_CN_QUANT_BEFORE = frozenset('约近逾超达共仅')
+_SINGLE_CN_PREV_BLACKLIST = frozenset('之统进这同唯')
+
+# fix(omni-g-numlex-01/-08, 2026-06-11): 政治专名守卫 — '十九大' (党代会序数) 不是
+# 定量披露, 块后紧跟 '大' 且块命中党代会序数集时不转 ('十九大'→'19大' 是实测误转;
+# '十三五' 类规划名由 _cn_number_to_arabic 的相邻纯数字 malformed 守卫覆盖)。
+_PARTY_CONGRESS_BLOCKS = frozenset({'十六', '十七', '十八', '十九', '二十', '二十一'})
+
+# fix(omni-g-numlex-07, 2026-06-11): 后缀不定数字符 — 块后紧跟 多/余/来/几 时整体为
+# 不定数 ('三十多万'/'二十余家'/'十来个'/'百分之三十几'), 按 R7-M2 既定策略不计。
+# 旧实现的不定数守卫仅对块内字符生效, 后缀形式中不定字符在块外 → 守卫被旁路。
+_INDEFINITE_SUFFIX_CHARS = frozenset('多余来几')
 
 
 def _cn_number_to_arabic(cn_str: str) -> Optional[int]:
@@ -93,6 +130,19 @@ def _cn_number_to_arabic(cn_str: str) -> Optional[int]:
     # 必须至少含一个 pure digit 字符 (零一二两三四五六七八九).
     _pure_digits = frozenset({'零', '一', '二', '两', '三', '四', '五', '六', '七', '八', '九'})
     if not any(c in _pure_digits for c in cn_str):
+        return None
+
+    # fix(omni-g-numlex-01/-08, 2026-06-11): malformed 数词守卫 ×2 —
+    # (a) 相邻两个非零纯数字字符 = 非规范数词 (规范中文数词数字间必有单位:
+    #     三十五/三百五十; '零' 是合法占位符如 '一百零五' 故豁免)。命中者为专名/
+    #     枚举 ('十三五' 旧实现还错算成 15, '一二三'), 一律不转。
+    # (b) 前导单位字 (百/千/万/亿) = 非规范数词开头 ('万一' 旧实现误算 10001;
+    #     规范数词不以这些单位起头, '十三' 类 '十' 起头合法故豁免)。
+    _nonzero_digits = frozenset({'一', '二', '两', '三', '四', '五', '六', '七', '八', '九'})
+    for _a, _b in zip(cn_str, cn_str[1:]):
+        if _a in _nonzero_digits and _b in _nonzero_digits:
+            return None
+    if cn_str[0] in ('百', '千', '万', '亿'):
         return None
 
     # P-042 修复 (v3.7.1): "万亿" 复合单位 = 10^12 (万 × 亿). 旧实现把它当
@@ -164,6 +214,11 @@ def _cn2arab(text: str) -> str:
     # 1. 处理 "百分之 X" → "X%"
     def _percent_replace(match: re.Match) -> str:
         cn_num = match.group(1)
+        # fix(omni-g-numlex-07, 2026-06-11): '百分之三十几' 类后缀不定数整体不计
+        # (旧实现转出 '30%几' 计 1 token, 旁路 R7-M2 不定数策略)。
+        end = match.end()
+        if end < len(match.string) and match.string[end] in _INDEFINITE_SUFFIX_CHARS:
+            return match.group(0)
         arab = _cn_number_to_arabic(cn_num)
         if arab is None:
             return match.group(0)
@@ -174,11 +229,29 @@ def _cn2arab(text: str) -> str:
     # 2. 处理一般中文数字块
     def _replace_block(match: re.Match) -> str:
         cn_str = match.group(0)
+        start, end = match.start(), match.end()
+        s = match.string
+        prev_ch = s[start - 1] if start > 0 else ''
+        next_ch = s[end] if end < len(s) else ''
         # fix(numintensity-02): 序数词 "第N" 不是定量信息 (如 "第三季度"/"第十八届"),
         # 不转阿拉伯数字, 避免产生假定量 token 污染 num_intensity 计数。
-        start = match.start()
-        if start > 0 and match.string[start - 1] == '第':
+        if prev_ch == '第':
             return cn_str
+        # fix(omni-g-numlex-07, 2026-06-11): 后缀不定数 ('三十多万'/'二十余家'/'十来个')
+        # — 不定字符 多/余/来/几 在块外, 旧块内守卫被旁路; 按 R7-M2 整体不计。
+        if next_ch in _INDEFINITE_SUFFIX_CHARS:
+            return cn_str
+        # fix(omni-g-numlex-01/-08, 2026-06-11): 党代会专名 ('十九大'→曾误转 '19大')。
+        if next_ch == '大' and cn_str in _PARTY_CONGRESS_BLOCKS:
+            return cn_str
+        # fix(omni-g-numlex-01/-08, 2026-06-11): 单字块数量语境门控 (见常量注释) —
+        # 功能词黑名单优先; 否则须 后接量词/单位白名单 或 前置数量修饰守卫。
+        if len(cn_str) == 1:
+            if prev_ch in _SINGLE_CN_PREV_BLACKLIST:
+                return cn_str
+            if (next_ch not in _SINGLE_CN_UNIT_AFTER
+                    and prev_ch not in _SINGLE_CN_QUANT_BEFORE):
+                return cn_str
         arab = _cn_number_to_arabic(cn_str)
         if arab is None:
             return cn_str
@@ -244,11 +317,16 @@ def compute_num_intensity(content: str) -> float:
         偏低 (R4-A8 实测). 本 fix 在 isinstance check 后**显式拦截字符串化 NaN
         哨兵值**, 返回 float('nan') 保证 NaN propagate 到 panel 聚合层.
 
-        cn2arab 修饰词误转 (R4-A10 / R5-A1 BUG-1) 是已知 P1 known issue:
-        ``_cn2arab('第三季度')='第3季度'`` → num_intensity false-positive. 修复
-        需要 jieba POS-tag (NR/NT) 排除 ordinal/quantifier 修饰词, 工作量超 1 行
-        范围, deferred 到 v3.7.5; 当前 audit_log fix A7 仅做 NaN 保护, 影响 5-15
-        article / 1170 (R4-A10 量化 ≈ 1%).
+        cn2arab 误转修复史 (fix(omni-g-numlex-01/-08, 2026-06-11) 改写本段披露):
+        旧版此处声称误转仅 "影响 5-15 article/1170 ≈ 1%" 且 deferred 到 v3.7.5 —
+        该量化经 2026-06-11 omni 审计证实**失真约两个数量级**: 盘上 1170 篇实测
+        42.3% 分子 token 来自 cn2arab 转换 (单字 '一' 即占分子 25.1%), 94.5% 文章
+        受影响, 压倒性为功能词/固定搭配 (进一步/之一/统一/一系列/一带一路 等) 与
+        政治专名 ('十九大'→'19大'/'十三五'→错值 15/'万一'→错值 10001)。已修复:
+        序数 '第N' 守卫 (numintensity-02) + 单字块数量语境门控 + 党代会/规划名
+        专名守卫 + malformed 数词守卫 + 后缀不定数守卫 (g-numlex-07), 见 _cn2arab
+        与 _replace_block 内 fix 注释。修后单字数字仅在数量语境 (后接量词/单位
+        白名单或前置数量修饰) 计入。
     """
     if not isinstance(content, str) or not content.strip():
         return float('nan')
@@ -265,15 +343,23 @@ def compute_num_intensity(content: str) -> float:
 
 
 def _count_word_tokens(content: str) -> int:
-    """返回 jieba 分词后非空白 token 数 (= 文章词级长度).
+    """返回 jieba 分词后 word-token 数 (= 文章词级长度; 排除纯标点/纯数字 token).
 
-    与 tone_words._analyze_single_article (L871 jieba.cut + L874 非空白过滤) /
-    lm_non_sentiment 的分词口径一致, 保证 num_intensity_word 的分母与项目其它
-    词级密度指标 (frac_uncert / clarity 等) 语义同构、可横向比较。
+    fix(omni-g-numlex word-denominator, 2026-06-11): 加 ``_LMFLS_NONWORD_RE``
+    同口径过滤。旧实现仅剔空白、含标点/纯数字 token (盘上实测占 ~19%, 逐篇
+    13%-26% 非常数), 而 lm_non_sentiment (lmfls-01) / tone_words clarity 与
+    pos_ratio (omni-g-tonewords-01) 的分母均已是 word-token 口径 — 旧 docstring
+    声称的 "与 frac_uncert / clarity 可横向比较" 已失真。修后三处分母重新同构。
+
+    口径披露: 分母排除纯数字 token 而 num_intensity_word 分子计数字 token →
+    数字极密文本理论上比值可 > 1 (非 [0,1] 比率, codebook/论文须写明)。
     """
     if not isinstance(content, str) or not content.strip():
         return 0
-    return sum(1 for t in jieba.cut(content) if t.strip())
+    return sum(
+        1 for t in jieba.cut(content)
+        if t.strip() and not _LMFLS_NONWORD_RE.fullmatch(t.strip())
+    )
 
 
 def compute_num_intensity_word(content: str) -> float:

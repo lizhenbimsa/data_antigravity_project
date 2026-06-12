@@ -128,6 +128,10 @@ NEGATION_AC, SHORT_NAME_EXCLUSIONS, CONTEXT_WINDOW = load_exclusion_patterns(
     _exclusion_file
 )
 
+# fix(omni-g-entity-12, 2026-06-11): 规范行名 → 全部名称变体 查找表, 供
+# news_salience.target_in_lead 全变体匹配 (替代仅规范名的 5 倍跨行低估)。
+_BANK_VARIANTS = {b['bank_name']: b['variants'] for b in BANKS}
+
 
 def _analyze_single_article(content: str, title: str = "") -> dict:
     """使用共享 AC 自动机分析单篇文章，返回银行匹配详情。
@@ -214,6 +218,12 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         all_qualified_names = [b['bank_name'] for b in qualified_banks]
         row_data = df.iloc[row_i]
 
+        # fix(omni-g-entity-13, 2026-06-11): 缺失单元格 (NaN/None) → '' (而非
+        # str() 出的字面 'nan'), 让 news_salience 缺失路径正确触发。
+        def _cell(col: str, _row=row_data) -> str:
+            v = _row.get(col, '')
+            return '' if pd.isna(v) else str(v)
+
         for bank_info in qualified_banks:
             new_row = row_data.to_dict()
             new_row['is_bank_news'] = True
@@ -238,10 +248,17 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             # ── 新闻体裁显著性 (批 #8–#10, 2026-06-05): 版位/导语/署名, $0 纯解析 ──
             # 在 stage 11 物化 (此处原始 版面/页号/作者 列俱在, 且早于 noise 剥离, 见
             # news_salience docstring); 经 encode 聚合到 bank-year。
+            # fix(omni-g-entity-12/13, 2026-06-11):
+            #   - 缺失源字段经 _cell 转 '' 走 news_salience 的 NaN 路径,
+            #     不再被 str() 成字面 'nan' 文本 (原 'nan' 作者会被误计 has_byline=1);
+            #   - target_in_lead 传入全部名称变体 + stage 11 同款否定/短名排除。
             new_row.update(compute_news_salience(
-                str(row_data.get('版面', '')), str(row_data.get('页号', '')),
-                str(row_data.get('作者', '')), str(row_data.get('标题', '')),
-                str(row_data.get('内容', '')), bank_info['bank_name'],
+                _cell('版面'), _cell('页号'), _cell('作者'),
+                _cell('标题'), _cell('内容'), bank_info['bank_name'],
+                aliases=_BANK_VARIANTS.get(bank_info['bank_name']),
+                negation_ac=NEGATION_AC,
+                short_name_exclusions=SHORT_NAME_EXCLUSIONS,
+                context_window=CONTEXT_WINDOW,
             ))
             expanded_rows.append(new_row)
 

@@ -240,7 +240,10 @@ def test_read_paper_esttab_raises_for_missing_csv(tmp_path, monkeypatch):
     )
     (pc.output_dir / 'tables').mkdir(parents=True, exist_ok=True)
 
-    with pytest.raises(FileNotFoundError, match='esttab CSV not found'):
+    # fix(omni-g-papers-misc-01, 2026-06-11): read_paper_esttab 现支持同名 .tex
+    # 回退 (模板只写 .tex), 缺失消息由 'esttab CSV not found' 改为
+    # 'esttab output not found' (csv 与 tex 均缺时 raise)。
+    with pytest.raises(FileNotFoundError, match='esttab output not found'):
         read_paper_esttab('llm_peer', 'table2.csv', paper_config=pc)
 
 

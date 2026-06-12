@@ -17,25 +17,55 @@ capture confirm variable bank_id
 if _rc encode target_bank, gen(bank_id)
 xtset bank_id year
 
-global controls "{{CONTROLS}}"
+* fix(omni-g-replication-01, 2026-06-11): 财务控制 (ln_assets 族) 为外部数据 sentinel
+* (config/银行面板2007-2025年.xlsx 待接入) — capture confirm 自校验拼装 $controls,
+* 防下游 reghdfe `$controls` r(111) 硬崩 (主线 01_data_prep 同模式)。
+local _ctrl ""
+local _ctrl_missing ""
+foreach v in {{CONTROLS}} {
+    capture confirm variable `v'
+    if !_rc local _ctrl "`_ctrl' `v'"
+    else    local _ctrl_missing "`_ctrl_missing' `v'"
+}
+global controls "`_ctrl'"
+if "`_ctrl_missing'" != "" {
+    display as error "[WARN] controls 缺失:`_ctrl_missing' — 外部银行财务面板待接入 (config/银行面板2007-2025年.xlsx); 回归仅用现存 controls [$controls]"
+}
 * $bank_controls 保留为 $controls 的兼容性 alias (部分 robustness 模板引用)
 global bank_controls "$controls"
 
-* P5 required variables: m_and_a_fintech outcome + innovation_collab_mode_full source
-foreach v in {{MAIN_DV}} innovation_collab_mode_full {
+* fix(omni-g-replication-04, 2026-06-11): treatment 改从 panel 真实聚合列派生。
+* 原检查要求 article-level 列 innovation_collab_mode_full — 该列只在 stage 21 文章级
+* 输出, stage 45 聚合进 bank-year panel 的真名是 collab_frac (外部协同文章占比) /
+* indep_frac (自主研发占比) → 旧检查必 exit 198, 复现包零表产出 (locus R35-M02 同 bug)。
+* P5 required variables: 协同/自主 panel 聚合占比 (treatment 源)
+foreach v in collab_frac indep_frac {
     capture confirm variable `v'
     if _rc {
-        display as error "[ERROR] required P5 variable `v' missing — run M0.5.11 enrichment + v3.4.0 prompt v8 stage 21 first"
+        display as error "[ERROR] required P5 variable `v' missing — run v3.4.0 prompt v8 stage 21 collab_mode classification + stage 45 panel aggregation first"
         exit 198
     }
 }
 
-* v3.4.0: derive binary indicators (open vs closed innovation, parallel to P4 locus_layer pattern)
-* Convention: 1 = 外部协同 (external collab / open innovation), 0 = 自主研发 (in-house R&D / closed)
+* P5 outcome (外部财务数据 sentinel, 与 treatment 分开诊断)
+capture confirm variable {{MAIN_DV}}
+if _rc {
+    display as error "[ERROR] required P5 outcome {{MAIN_DV}} missing — 外部数据未接入 (M0.5.11 Tonghuashun M&A events; 见 config/银行面板2007-2025年.xlsx 接入计划与 spec.outcome.enrichment_source)"
+    exit 198
+}
+
+* fix(omni-g-replication-04 + omni-g-replication-06, 2026-06-11): derive binary
+* indicators from panel-level 占比 (照 P4 locus R35-M02 模式, 主导类别二元化)。
+* Convention: collab_open_full=1 外部协同主导 (open innovation); collab_closed_full=1 自主研发主导 (closed)。
+* 旧实现 `gen = (mode==1)/(mode==0)` 两缺陷: (i) 无 !missing() 守卫 → missing 行
+* 两 dummy 均 0, 被静默当 both-0 幻影参照组虚增 N; (ii) 二元 mode 非缺失时
+* open+closed≡1 与常数项/FE 完全共线 → reghdfe 静默 omit, 15_collab:69 的
+* `test open = closed` 退化。现: 平局 (含两者皆 0) 两者皆 0 作显式参照组
+* (避免共线), 缺失 → missing (排除出回归)。
 capture drop collab_open_full collab_closed_full collab_gap
-gen collab_open_full   = (innovation_collab_mode_full == 1)
-gen collab_closed_full = (innovation_collab_mode_full == 0)
-gen collab_gap = collab_open_full - collab_closed_full   // ∈ {-1, +1}
+gen collab_open_full   = (collab_frac > indep_frac) if !missing(collab_frac, indep_frac)
+gen collab_closed_full = (indep_frac > collab_frac) if !missing(collab_frac, indep_frac)
+gen collab_gap = collab_open_full - collab_closed_full   // ∈ {-1, 0, +1}
 
 * Winsorize outcome
 capture which winsor2
@@ -43,4 +73,4 @@ if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
 else gen {{MAIN_DV}}_w = {{MAIN_DV}}
 
 save "$data_dir/_prepared_panel.dta", replace
-display "[OK] P5 data prep N=" _N "; collab_open / collab_closed derived from innovation_collab_mode_full"
+display "[OK] P5 data prep N=" _N "; collab_open / collab_closed derived from collab_frac/indep_frac (bank-year 主导类别)"

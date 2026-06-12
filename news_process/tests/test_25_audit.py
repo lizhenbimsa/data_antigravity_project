@@ -89,13 +89,19 @@ class TestComputeNNScores:
         assert abs(result['sim_max']['BankC'] - 0.5) < 1e-10
 
     def test_n_exceeds_neighbors(self):
-        """N > 可用邻居数时应截断 (k = min(N, len))。"""
+        """N > 可用邻居数时应 NaN (不可测量)。
+
+        fix(omni-g-strategic-05, 2026-06-11): 原 k=min(N,|peers|) 静默降级
+        使 n3..n7 在低覆盖年份塌缩同值, 制造虚假的 N 敏感性稳健 —
+        现 |peers| < N → NaN (本测试旧断言 r5==r2 锁的正是旧降级行为)。
+        """
         sim, banks = self._make_sim_matrix()
         r2 = _compute_nn_scores(sim, banks, [2], is_distance=False)
         r5 = _compute_nn_scores(sim, banks, [5], is_distance=False)
-        # 每个银行只有 2 个邻居, N=5 应与 N=2 相同
+        # 每个银行只有 2 个邻居: N=2 可测量, N=5 → NaN (不再降级复用 N=2)
         for bank in banks:
-            assert abs(r2['n2'][bank] - r5['n5'][bank]) < 1e-10
+            assert np.isfinite(r2['n2'][bank])
+            assert np.isnan(r5['n5'][bank])
 
     def test_all_nan_row(self):
         """全 NaN 行应返回 NaN (如年度只有 1 家银行)。"""
@@ -301,14 +307,26 @@ class TestComputeStrategicDifferentiation:
                 assert (v <= 1 + 1e-10).all(), f"{col} max={v.max()}"
 
     def test_too_few_banks(self):
-        """少于 3 家银行的年度应被跳过, 不应崩溃。"""
+        """少于 3 家银行的年度: NN 族被跳过不崩溃, 但 fluidity 仍产出。
+
+        fix(omni-g-strategic-13, 2026-06-11): fluidity 仅要求 t-1 非空
+        (2 家银行即可定义), 落列已与 NN ≥3 银行闸门解耦 — 旧断言
+        "全部 strat_* 列全 NaN" 锁的是闸门连坐丢弃 fluidity 的旧缺陷。
+        """
         df_exp, panel = self._make_test_data(n_banks=2)
         result = _m25.compute_strategic_differentiation(df_exp, panel)
-        # 应无 strat_ 列 (因为 n_banks=2 < 3), 或列全 NaN
+        # NN 族确实未产 (闸门 <3 银行)
+        assert 'strat_diff_n5' not in result.columns
+        # 非 fluidity 的 strat_* 列 (契约别名 strat_diff_t2v_*) 应全 NaN
         strat_cols = [c for c in result.columns if c.startswith('strat_')]
-        if strat_cols:
-            for col in strat_cols:
-                assert result[col].isna().all()
+        for col in strat_cols:
+            if col.startswith('strat_fluidity'):
+                continue  # fluidity 独立于 NN 闸门, 非首年可有有限值
+            assert result[col].isna().all(), f"{col} 应全 NaN"
+        # fluidity: 首年 NaN; 第二年起有 t-1 → 应存在有限值 (不再被静默丢弃)
+        assert 'strat_fluidity' in result.columns
+        _flu = result['strat_fluidity']
+        assert _flu.notna().any(), "2 银行年份的 fluidity 不应再被闸门连坐丢弃"
 
     def test_single_year(self):
         """单年度不应产生 fluidity (首年无前期)。"""

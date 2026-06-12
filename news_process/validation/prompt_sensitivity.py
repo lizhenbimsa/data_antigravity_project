@@ -27,6 +27,18 @@ v7 升级（2026-05-14）：
     V3 精简 / V4 改写）内保持 W&Z substantive-symbolic 与 Gomber
     technology-application 判定标准的实质内容不变；仅改变表述方式。
 
+v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
+    4 变体 JSON schema 同步补齐生产 v8 (unified_cot.txt v8-2026-05-17) 第三维度
+    innovation_collab_mode 三字段（Chesbrough 2003 Open Innovation +
+    Laursen & Salter 2006 SMJ 自主研发 vs 外部协同），消除 baseline (v8)
+    与变体 (v7) 的 schema 不一致（版本级混淆）并补上第三维度的敏感性覆盖；
+    各变体仍在自身扰动维度内保持 collab 判定标准实质不变。配套接入
+    PASS_THRESHOLD_INNOVATION_COLLAB_MODE 进 pass criteria（此前为死阈值）。
+    同时（fix omni-g-val-prompt-01/03/04/05）：ctx 轨变体 prompt 构造前剥离
+    stage 13 prepend 的标题（镜像生产 tonellms-01）；pass/fail 裁决改双轨
+    AND（full 与 ctx 各自评估，JSON 报 per-track）；变体 locus 空票回退与
+    生产 keyword 分类器对齐；API 全失败行加掩码不计入措辞不一致。
+
 输入：
     阶段21输出 21_tone_llms_full.parquet（含双轨 LLM 判定列）
 
@@ -88,6 +100,15 @@ MODELS                 = _tone_llms.MODELS
 MAX_CONCURRENCY        = _tone_llms.MAX_CONCURRENCY
 PROMPT_TEMPLATE        = _tone_llms.PROMPT_TEMPLATE  # V0 baseline（测试套件用于差异比对）
 majority_vote_categorical = _tone_llms.majority_vote_categorical  # v7 R7.2: innov 维度跨变体一致性所需
+# fix(omni-g-val-prompt-01, 2026-06-11): ctx 轨剥离 prepend 标题, 镜像生产 tonellms-01
+_strip_prepended_title = _tone_llms._strip_prepended_title
+# fix(omni-g-val-prompt-04, 2026-06-11): locus 空票 keyword 回退与生产 _resolve_locus_track 对齐
+canonicalize_topic = _tone_llms.canonicalize_topic
+# fix(omni-gapfill-18, 2026-06-12): 直接复用生产模块级 _resolve_locus_track —
+# g-val-prompt-04 曾手工内联旧生产行为 (empty_fallback=keyword 硬默认), 随后
+# g-tonellms-10 把生产改为零证据空票 → (None, 0.0), 两侧再度漂移。改为同一函数
+# 对象后 baseline↔variant 的 locus 聚合规则永久同源 (含未来任何生产侧演进)。
+_resolve_locus_track = _tone_llms._resolve_locus_track
 
 # 复用评估模块的一致性指标
 _eval = import_module('news_process.validation.llms_evaluation')
@@ -106,7 +127,14 @@ PROMPT_REQUEST_SPACING = float(PS_CFG.get('request_spacing_seconds', 0.0))
 PROMPT_REQUEST_TIMEOUT_SECONDS = float(
     PS_CFG.get('request_timeout_seconds', min(60.0, _tone_llms.REQUEST_TIMEOUT_TOTAL))
 )
-PROMPT_MAX_RETRIES = max(1, min(_tone_llms.MAX_RETRIES, int(PS_CFG.get('max_retries', 1))))
+# fix(omni-g-val-prompt-05, 2026-06-11): 缺省值改为与生产 stage 21 MAX_RETRIES 对齐
+# (此前缺省 1 → 变体调用失败率系统性高于 baseline)。config 显式 max_retries 仍可下调
+# (validation.yaml 当前刻意取 1 防 24k 请求长尾重试卡死, 该取舍已在 YAML 注释与 JSON
+# 报告 prompt_max_retries 字段中披露); 失败行另由 call_failure 掩码剔除, 不再偏置 κ。
+PROMPT_MAX_RETRIES = max(1, min(
+    _tone_llms.MAX_RETRIES,
+    int(PS_CFG.get('max_retries', _tone_llms.MAX_RETRIES)),
+))
 PASS_THRESHOLD_VERIFICATION = PS_CFG.get('pass_threshold_verification', 0.85)
 PASS_THRESHOLD_SENTIMENT    = PS_CFG.get('pass_threshold_sentiment', 0.80)
 PASS_THRESHOLD_KAPPA        = PS_CFG.get('pass_threshold_kappa', 0.70)
@@ -164,7 +192,7 @@ VARIANT_PROMPTS = {
 
 【任务三：金融科技创新属性分类】（仅当任务一判定为 true 时执行）
 
-作为银行业数字化转型分析师，从两个并列维度刻画该报道的创新属性。
+作为银行业数字化转型分析师，从三个并列维度刻画该报道的创新属性。
 
 (1) 创新实质性 (innovation_substantiveness)
 依据 Westphal & Zajac (1994, 1998 ASQ) substantive-vs-symbolic management 框架：该银行行动是否产生实际经济/运营后果？还是主要服务于合法性获取或印象管理而与实际行为脱钩？
@@ -176,6 +204,12 @@ VARIANT_PROMPTS = {
 依据 Gomber et al. (2018 JMIS) enabling-technology vs business-function 框架：
 - 底层技术：AI、区块链、大数据、云计算等使能技术层。
 - 应用场景：数字支付、开放银行、智能风控等业务功能层。
+
+(3) 创新协作模式 (innovation_collab_mode)
+依据 Chesbrough (2003) Open Innovation 与 Laursen & Salter (2006 SMJ) 框架：该银行的金融科技创新由自有资源完成，还是与外部组织协同？
+- 自主研发：自建技术团队、自有研发实验室/专利/数据，内部 IT 部门主导建设，或报道明示"自研/自建/自主开发"。
+- 外部协同：与金融科技公司、科技巨头、高校院所的联合研发或技术合作；收购/战略投资金融科技公司；开放银行 API 第三方接入、行业联盟、引入外部供应商技术。
+注: 单纯采购通用 IT 设备不算外部协同；雇外部顾问做培训仍判自主研发；内外兼有时按报道主导事件（首段主语/标题指向）判定，不设混合类。
 
 目标分析银行: {target_bank}
 同文提及的其他银行（仅供参考，不作为评分对象）: {co_mentioned_banks}
@@ -197,7 +231,10 @@ VARIANT_PROMPTS = {
   "innovation_substantiveness_confidence": 0.0~1.0,
   "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
   "innovation_locus": "底层技术/应用场景（false 时填 null）",
-  "innovation_locus_confidence": 0.0~1.0
+  "innovation_locus_confidence": 0.0~1.0,
+  "innovation_collab_mode_reason": "简明说明协作模式判定依据（false 时填 null）",
+  "innovation_collab_mode": "自主研发/外部协同（false 时填 null）",
+  "innovation_collab_mode_confidence": 0.0~1.0
 }}""",
 
     # ── V2: 结构重组 (Structural Variation) ──
@@ -226,7 +263,7 @@ VARIANT_PROMPTS = {
 
 ## 第三步：创新属性分类（仅当第二步判定为 true 时执行）
 
-分为两个并列的属性维度：
+分为三个并列的属性维度：
 
 3a. 创新实质性 (innovation_substantiveness)
 判定问题：该银行行动是否产生实际经济/运营后果，还是主要服务于合法性获取与印象管理？
@@ -239,6 +276,13 @@ VARIANT_PROMPTS = {
 框架: Gomber et al. (2018 JMIS) enabling-technology vs business-function。
 1. 底层技术：AI、区块链、大数据、云计算等使能技术。
 2. 应用场景：数字支付、开放银行、智能风控等业务功能。
+
+3c. 创新协作模式 (innovation_collab_mode)
+判定问题：该银行的金融科技创新由自有资源完成，还是与外部组织协同完成？
+框架: Chesbrough (2003) Open Innovation；Laursen & Salter (2006 SMJ) search breadth & depth。
+1. 自主研发：自建技术团队 / 自有研发实验室、专利、数据 / 内部 IT 部门主导 / 报道明示"自研、自建、自主开发"。
+2. 外部协同：与金融科技公司、科技巨头、高校院所的联合研发或技术合作；收购或战略投资金融科技公司；开放银行 API 第三方接入 / 行业联盟 / 引入外部供应商技术。
+原则：采购通用 IT 设备不算外部协同；外聘顾问培训仍判自主研发；内外兼有按报道主导事件（首段主语 / 标题指向）判定，不设混合类。
 
 ## 输入数据
 
@@ -264,7 +308,10 @@ VARIANT_PROMPTS = {
   "innovation_substantiveness_confidence": 0.0~1.0,
   "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
   "innovation_locus": "底层技术/应用场景（false 时填 null）",
-  "innovation_locus_confidence": 0.0~1.0
+  "innovation_locus_confidence": 0.0~1.0,
+  "innovation_collab_mode_reason": "简明说明协作模式判定依据（false 时填 null）",
+  "innovation_collab_mode": "自主研发/外部协同（false 时填 null）",
+  "innovation_collab_mode_confidence": 0.0~1.0
 }}""",
 
     # ── V3: 精简压缩 (Complexity Reduction) ──
@@ -279,9 +326,10 @@ VARIANT_PROMPTS = {
 忽略同文提及的其他银行（{co_mentioned_banks}）的情感信号。
 若判定为 false，情感固定填"中性"。
 
-三、创新属性：仅当上述判定为 true 时，做两个二分类。
+三、创新属性：仅当上述判定为 true 时，做三个二分类。
 3a. 实质性 vs 象征性 (Westphal & Zajac 1994/1998 ASQ): 行动有可独立验证的经济/运营后果判实质性；仅合法性信号 / 印象管理 / decoupling 判象征性。象征性 ≠ 缺事实，含数据但纯营销也归象征性。
 3b. 底层技术 vs 应用场景 (Gomber et al. 2018 JMIS): 使能技术层 (AI/区块链/大数据/云) vs 业务功能层 (数字支付/开放银行/智能风控)。
+3c. 自主研发 vs 外部协同 (Chesbrough 2003; Laursen & Salter 2006 SMJ): 创新由自有资源完成 (自建团队/自有专利/内部 IT 主导) 判自主研发；外部组织实质参与 (合作研发/收购投资/开放 API 接入/联盟/引入外部技术) 判外部协同。采购通用 IT 设备或外聘顾问培训不算外部协同；内外兼有按报道主导事件判定。
 
 目标分析银行: {target_bank}
 同文提及银行: {co_mentioned_banks}
@@ -303,7 +351,10 @@ VARIANT_PROMPTS = {
   "innovation_substantiveness_confidence": 0.0~1.0,
   "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
   "innovation_locus": "底层技术/应用场景（false 时填 null）",
-  "innovation_locus_confidence": 0.0~1.0
+  "innovation_locus_confidence": 0.0~1.0,
+  "innovation_collab_mode_reason": "简明说明协作模式判定依据（false 时填 null）",
+  "innovation_collab_mode": "自主研发/外部协同（false 时填 null）",
+  "innovation_collab_mode_confidence": 0.0~1.0
 }}""",
 
     # ── V4: 判定改写 (Paraphrase Variation) ──
@@ -336,7 +387,7 @@ C. **银行与技术的因果关联**：存在可验证的证据表明该银行�
 <step3_innovation>
 **阶段三：金融科技创新属性评估**（仅当阶段一判定为 true 时执行）
 
-本阶段对该篇报道做两项并列的创新属性研判。
+本阶段对该篇报道做三项并列的创新属性研判。
 
 **A. 实质性属性研判 (innovation_substantiveness)**
 
@@ -353,6 +404,16 @@ C. **银行与技术的因果关联**：存在可验证的证据表明该银行�
 理论依据：Gomber, Kauffman, Parker, Weber (2018 JMIS) 关于 enabling-technology 与 business-function 的层级二分。
 - `底层技术`：使能技术栈层（AI、区块链、大数据、云计算、量子计算、生物识别等）。
 - `应用场景`：业务功能层（数字支付、开放银行、智能风控、智能投顾、数字信贷等）。
+
+**C. 协作模式属性研判 (innovation_collab_mode)**
+
+理论依据：Chesbrough (2003) 开放式创新范式；Laursen & Salter (2006 SMJ 27(2):131-150) 关于外部搜索宽度与深度的论述。
+中心问题：该银行的金融科技创新究竟依托**自有资源独立完成**——抑或存在**外部组织的实质性协同参与**？
+
+- `自主研发`：依托行内自建技术团队、自有研发实验室、自有专利或数据资产完成；内部 IT 部门主导的系统建设；报道明确以"自研""自建""自主开发"为主语。
+- `外部协同`：与金融科技企业、科技巨头、高校或研究机构开展联合研发或技术合作；收购金融科技子公司、战略投资、设立合资公司；开放银行 API 第三方接入、SDK、行业联盟、产业链协作；引入外部供应商技术栈或技术许可。
+
+注: 单纯采购通用 IT 设备（服务器、办公软件）**不**构成外部协同；自建团队雇佣外部顾问做培训仍判 `自主研发`；同篇内外兼述时，按**报道主导事件**（首段主语 / 标题指向）裁定，不引入「混合」类。
 </step3_innovation>
 
 <input_data>
@@ -378,7 +439,10 @@ C. **银行与技术的因果关联**：存在可验证的证据表明该银行�
   "innovation_substantiveness_confidence": 0.0~1.0,
   "innovation_locus_reason": "简明说明位点判定依据（false 时填 null）",
   "innovation_locus": "底层技术/应用场景（false 时填 null）",
-  "innovation_locus_confidence": 0.0~1.0
+  "innovation_locus_confidence": 0.0~1.0,
+  "innovation_collab_mode_reason": "简明说明协作模式判定依据（false 时填 null）",
+  "innovation_collab_mode": "自主研发/外部协同（false 时填 null）",
+  "innovation_collab_mode_confidence": 0.0~1.0
 }}
 </output_format>""",
 }
@@ -506,10 +570,16 @@ async def run_variant_llms(
         tasks = []
         for idx, row in df.iterrows():
             content_full = str(row.get('内容', ''))
-            content_ctx = str(row.get('content_ctx', content_full))
             target_bank = str(row.get('target_bank', ''))
             co_banks = str(row.get('co_mentioned_banks', '无'))
             title = str(row.get('标题', ''))
+            # fix(omni-g-val-prompt-01, 2026-06-11): 镜像生产 iter_article_track_prompts
+            # (tonellms-01) — content_ctx 已由 stage 13 prepend 标题, 而变体模板另以
+            # {title} 字段注入标题; 不剥离则变体 ctx 轨标题注入 2 次 (V0 baseline 仅
+            # 1 次), baseline↔variant 差异混入双重注入噪声而非纯措辞敏感度。
+            content_ctx = _strip_prepended_title(
+                str(row.get('content_ctx', content_full)), title
+            )
 
             for track, content in [('full', content_full), ('ctx', content_ctx)]:
                 prompt = variant_prompt.format(
@@ -558,6 +628,17 @@ def aggregate_variant_results(
     为每个变体生成以下列（每轨道独立）：
         {variant_key}_verified_full/ctx    — 多数投票验证结果 (bool)
         {variant_key}_sentiment_full/ctx   — 多数投票情感标签 (str)
+        {variant_key}_innovation_substantiveness_full/ctx — W&Z 多数票
+        {variant_key}_innovation_locus_full/ctx — Gomber 多数票
+            (生产 tone_llms._resolve_locus_track 同源聚合)
+        {variant_key}_innovation_collab_mode_full/ctx — Chesbrough 多数票 (v8)
+        {variant_key}_call_failure_full/ctx — API 全失败旗标 (一致性计算掩码用)
+        {variant_key}_undefined_full/ctx    — 情感平局旗标 (透明披露)
+
+    语义变更披露: fix(omni-g-val-prompt-02/05, 2026-06-11) — 新增 collab 列;
+    call_failure/undefined 旗标不再丢弃。fix(omni-gapfill-18, 2026-06-12) —
+    locus 聚合改为直接 import 生产 _resolve_locus_track (零证据空票 → None,
+    keyword 有真实证据时回退 keyword 类目), baseline↔variant 规则永久同源。
 
     Args:
         df: 样本 DataFrame。
@@ -577,6 +658,9 @@ def aggregate_variant_results(
         s_list = []
         innov_subst_list = []   # v7 R7.2: 创新实质性 (W&Z 1994/1998 ASQ)
         innov_locus_list = []   # v7 R7.2: 创新位点 (Gomber 2018 JMIS)
+        innov_collab_list = []  # fix(omni-g-val-prompt-02): 创新协作模式 (Chesbrough 2003, v8)
+        call_fail_list = []     # fix(omni-g-val-prompt-05): API 全失败旗标
+        undefined_list = []     # fix(omni-g-val-prompt-05): 情感平局旗标
 
         for idx in df.index:
             model_res = results_map.get(idx, {}).get(track_key, {})
@@ -584,11 +668,11 @@ def aggregate_variant_results(
                 final_v, final_s,
                 _agree_rate_v, _agree_rate_s,
                 _n_valid_votes, _n_verifying_votes,
-                _call_failure, _undefined,
-                _parsed, _topics, innov_loci, innov_substs,
+                call_failure, undefined,
+                _parsed, topics, innov_loci, innov_substs,
                 n_fail, _avg_prob_score,
                 _avg_subst_prob_score, _avg_locus_prob_score,
-                _innov_collab_modes, _avg_collab_prob_score,  # v3.4.0 BREAKING: 18-tuple
+                innov_collab_modes, _avg_collab_prob_score,  # v3.4.0 BREAKING: 18-tuple
             ) = _aggregate_track(model_res, models)
             v_list.append(final_v)
             s_list.append(final_s)
@@ -597,10 +681,23 @@ def aggregate_variant_results(
                 innov_substs, tie_strategy='conservative',
                 tie_default='象征性', empty_fallback=None,
             ))
-            innov_locus_list.append(majority_vote_categorical(
-                innov_loci, tie_strategy='conservative',
-                tie_default='应用场景', empty_fallback=None,
+            # fix(omni-gapfill-18, 2026-06-12): locus 聚合直接调用生产模块级
+            # _resolve_locus_track (tone_llms.py) — 取代 g-val-prompt-04 的手工
+            # 内联对齐 (该内联复制的是 g-tonellms-10 之前的旧生产行为:
+            # empty_fallback=keyword 硬默认, 零证据空票也得 '应用场景')。现规则
+            # 与生产逐字节同源: 空票 + keyword 零证据 → None; 空票 + keyword
+            # 有真实证据 (conf>0) → keyword 类目; 有票平局 tie→'应用场景'。
+            # 变体列仅存 label, confidence 弃用 (与旧实现一致)。
+            _locus_label, _ = _resolve_locus_track(innov_loci, topics)
+            innov_locus_list.append(_locus_label)
+            # fix(omni-g-val-prompt-02, 2026-06-11): v8 第三维度 collab_mode 多数决,
+            # tie/empty 策略与生产 stage 21 写回 (tone_llms.py) 完全一致。
+            innov_collab_list.append(majority_vote_categorical(
+                innov_collab_modes, tie_strategy='conservative',
+                tie_default='自主研发', empty_fallback=None,
             ))
+            call_fail_list.append(int(call_failure))
+            undefined_list.append(int(undefined))
             n_parse_fail += n_fail
             n_total += len(models)
 
@@ -608,6 +705,9 @@ def aggregate_variant_results(
         df[f'{variant_key}_sentiment{track}'] = s_list
         df[f'{variant_key}_innovation_substantiveness{track}'] = innov_subst_list
         df[f'{variant_key}_innovation_locus{track}'] = innov_locus_list
+        df[f'{variant_key}_innovation_collab_mode{track}'] = innov_collab_list
+        df[f'{variant_key}_call_failure{track}'] = call_fail_list
+        df[f'{variant_key}_undefined{track}'] = undefined_list
 
     fail_rate = n_parse_fail / max(n_total, 1)
     if fail_rate > 0.20:
@@ -644,10 +744,14 @@ def extract_baseline(df_sample: pd.DataFrame) -> pd.DataFrame:
     for _track, _suffix in [('_full', '_full'), ('_ctx', '_ctx')]:
         src_subst = f'innovation_substantiveness{_suffix}'
         src_locus = f'innovation_locus{_suffix}'
+        # fix(omni-g-val-prompt-02, 2026-06-11): v8 第三维度 collab_mode 纳入 baseline
+        src_collab = f'innovation_collab_mode{_suffix}'
         if src_subst in df.columns:
             df[f'V0_baseline_innovation_substantiveness{_track}'] = df[src_subst]
         if src_locus in df.columns:
             df[f'V0_baseline_innovation_locus{_track}'] = df[src_locus]
+        if src_collab in df.columns:
+            df[f'V0_baseline_innovation_collab_mode{_track}'] = df[src_collab]
 
     # 逐模型结果（用于后续分析扩展）
     for m in MODELS:
@@ -681,7 +785,34 @@ def compute_pairwise_consistency(
 
     Returns:
         dict: {verification_agreement, sentiment_agreement, cohens_kappa_verification}
+
+    语义变更披露: fix(omni-g-val-prompt-05, 2026-06-11) — 变体 API 全失败行
+    (call_failure=1, final_v/final_s 为默认值而非真实 LLM 判定) 掩码剔除,
+    不再把 API 噪声计为"措辞不一致"; 剔除量经 n_call_failures_excluded 披露。
     """
+    # fix(omni-g-val-prompt-05, 2026-06-11): 失败行掩码 (旗标列缺失时向后兼容不掩码)
+    fail_col = f'{variant_key}_call_failure{track}'
+    n_call_failures = 0
+    if fail_col in df.columns:
+        ok_mask = df[fail_col].fillna(0).astype(int) == 0
+        n_call_failures = int((~ok_mask).sum())
+        df = df.loc[ok_mask]
+
+    result_meta = {
+        'n_compared': int(len(df)),
+        'n_call_failures_excluded': n_call_failures,
+    }
+    if len(df) == 0:
+        # 全部行均为 API 失败 → 无可比样本, 指标 NaN (fail-loud 而非伪 0/伪 1)
+        return {
+            'verification_agreement': float('nan'),
+            'sentiment_agreement': float('nan'),
+            'cohens_kappa_verification': float('nan'),
+            'observed_agreement': float('nan'),
+            'expected_agreement': float('nan'),
+            **result_meta,
+        }
+
     base_v = df[f'V0_baseline_verified{track}'].astype(int).values
     var_v = df[f'{variant_key}_verified{track}'].astype(int).values
 
@@ -701,6 +832,7 @@ def compute_pairwise_consistency(
         'cohens_kappa_verification': round(float(kappa_result['kappa']), 4),
         'observed_agreement': round(float(kappa_result['observed_agreement']), 4),
         'expected_agreement': round(float(kappa_result['expected_agreement']), 4),
+        **result_meta,
     }
 
     # v7 R7.2: innovation_substantiveness 维度 (仅 verified=True 子集; 二分类)
@@ -745,6 +877,27 @@ def compute_pairwise_consistency(
             result['cohens_kappa_innovation_locus'] = float('nan')
             result['innovation_locus_n'] = int(mask.sum())
 
+    # fix(omni-g-val-prompt-02, 2026-06-11): innovation_collab_mode 维度
+    # (v8 第三维度, Chesbrough 2003; 仅 verified=True 子集; 二分类)
+    icm_col_base = f'V0_baseline_innovation_collab_mode{track}'
+    icm_col_var = f'{variant_key}_innovation_collab_mode{track}'
+    if icm_col_base in df.columns and icm_col_var in df.columns:
+        mask = (base_v == 1) & (var_v == 1)
+        if mask.sum() >= 2:
+            base_icm = df.loc[mask, icm_col_base].astype(str).values
+            var_icm = df.loc[mask, icm_col_var].astype(str).values
+            icm_agree = float(np.mean(base_icm == var_icm))
+            icm_b = np.array([1 if v == '外部协同' else 0 for v in base_icm])
+            icm_v = np.array([1 if v == '外部协同' else 0 for v in var_icm])
+            icm_kappa = compute_cohens_kappa(icm_b, icm_v)
+            result['innovation_collab_mode_agreement'] = round(icm_agree, 4)
+            result['cohens_kappa_innovation_collab_mode'] = round(float(icm_kappa['kappa']), 4)
+            result['innovation_collab_mode_n'] = int(mask.sum())
+        else:
+            result['innovation_collab_mode_agreement'] = float('nan')
+            result['cohens_kappa_innovation_collab_mode'] = float('nan')
+            result['innovation_collab_mode_n'] = int(mask.sum())
+
     return result
 
 
@@ -763,11 +916,32 @@ def compute_multivariant_consistency(
         track: '_full' 或 '_ctx'。
 
     Returns:
-        dict: {krippendorffs_alpha, fleiss_kappa}
+        dict: {krippendorffs_alpha, fleiss_kappa, n_items, n_call_failures_excluded}
+
+    语义变更披露: fix(omni-g-val-prompt-05, 2026-06-11) — 任一变体 API 全失败的行
+    剔除 (失败行 verified 是默认 False 非真实判定, 会污染 α/Fleiss κ)。
     """
+    # fix(omni-g-val-prompt-05, 2026-06-11): 失败行掩码 (旗标列缺失时向后兼容不掩码)
+    fail_cols = [f'{k}_call_failure{track}' for k in variant_keys
+                 if f'{k}_call_failure{track}' in df.columns]
+    n_excluded = 0
+    if fail_cols:
+        ok_mask = (df[fail_cols].fillna(0).astype(int) == 0).all(axis=1)
+        n_excluded = int((~ok_mask).sum())
+        df = df.loc[ok_mask]
+
     n_items = len(df)
     all_keys = ['V0_baseline'] + variant_keys
     n_coders = len(all_keys)
+
+    if n_items == 0:
+        # 全样本失败 → 指标 NaN (拒绝空泛 1.0)
+        return {
+            'krippendorffs_alpha': float('nan'),
+            'fleiss_kappa': float('nan'),
+            'n_items': 0,
+            'n_call_failures_excluded': n_excluded,
+        }
 
     # 构建编码者 × 项目矩阵（verification 二分类）
     ratings = np.zeros((n_coders, n_items), dtype=int)
@@ -786,6 +960,8 @@ def compute_multivariant_consistency(
     return {
         'krippendorffs_alpha': round(float(alpha), 4),
         'fleiss_kappa': round(float(fleiss), 4),
+        'n_items': int(n_items),
+        'n_call_failures_excluded': n_excluded,
     }
 
 
@@ -824,6 +1000,80 @@ def compute_cross_variant_variance(
     }
 
 
+def _min_valid_kappa(pw: dict, variant_keys: list, key: str) -> float:
+    """跨变体取某 κ 指标的最小有效值 (skip None/NaN); 全无效返回 NaN。"""
+    vals = []
+    for vk in variant_keys:
+        v = pw[vk].get(key)
+        if v is None:
+            continue
+        if isinstance(v, float) and np.isnan(v):
+            continue
+        vals.append(v)
+    return min(vals) if vals else float('nan')
+
+
+def evaluate_track_criteria(
+    pairwise_results: dict,
+    multi_results: dict,
+    variant_keys: list,
+    track: str,
+) -> tuple:
+    """对单一轨道评估全部 pass criteria。
+
+    fix(omni-g-val-prompt-03, 2026-06-11): 此前裁决仅基于 full 轨, 而 P1 主线
+    main spec = llm_vote_tone_ctx (ctx 轨) — full 过而 ctx 不过时会误报通过。
+    抽出单轨评估函数, 由 main() 对 full/ctx 各评一次并取 AND。
+    fix(omni-g-val-prompt-02, 2026-06-11): 接入 PASS_THRESHOLD_INNOVATION_COLLAB_MODE
+    (v8 第三维度, 此前为从未消费的死阈值)。
+
+    Args:
+        pairwise_results: {track: {variant_key: pairwise dict}}
+        multi_results: {track: multi-variant dict}
+        variant_keys: 变体标识符列表。
+        track: '_full' 或 '_ctx'。
+
+    Returns:
+        tuple: (criteria: dict[str, bool], summary: dict[str, float])
+    """
+    pw = pairwise_results[track]
+    multi = multi_results[track]
+
+    mean_v_agree = float(np.mean([pw[vk]['verification_agreement'] for vk in variant_keys]))
+    mean_s_agree = float(np.mean([pw[vk]['sentiment_agreement'] for vk in variant_keys]))
+    min_kappa = min(pw[vk]['cohens_kappa_verification'] for vk in variant_keys)
+    alpha_val = multi['krippendorffs_alpha']
+
+    # v7 R7.2 + W6: innovation 维度最小 Cohen's κ (skip NaN safely)
+    min_iss_kappa = _min_valid_kappa(pw, variant_keys, 'cohens_kappa_innovation_substantiveness')
+    min_il_kappa = _min_valid_kappa(pw, variant_keys, 'cohens_kappa_innovation_locus')
+    min_icm_kappa = _min_valid_kappa(pw, variant_keys, 'cohens_kappa_innovation_collab_mode')
+
+    criteria = {
+        f'均值验证一致率 ≥ {PASS_THRESHOLD_VERIFICATION}': mean_v_agree >= PASS_THRESHOLD_VERIFICATION,
+        f'均值情感一致率 ≥ {PASS_THRESHOLD_SENTIMENT}': mean_s_agree >= PASS_THRESHOLD_SENTIMENT,
+        f'最小 Cohen\'s κ (verification) ≥ {PASS_THRESHOLD_KAPPA}': min_kappa >= PASS_THRESHOLD_KAPPA,
+        f'Krippendorff\'s α ≥ {PASS_THRESHOLD_ALPHA}': alpha_val >= PASS_THRESHOLD_ALPHA,
+        f'最小 Cohen\'s κ (innovation_substantiveness, W&Z 1994) ≥ {PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS}':
+            (not np.isnan(min_iss_kappa)) and (min_iss_kappa >= PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS),
+        f'最小 Cohen\'s κ (innovation_locus, Gomber 2018) ≥ {PASS_THRESHOLD_INNOVATION_LOCUS}':
+            (not np.isnan(min_il_kappa)) and (min_il_kappa >= PASS_THRESHOLD_INNOVATION_LOCUS),
+        f'最小 Cohen\'s κ (innovation_collab_mode, Chesbrough 2003) ≥ {PASS_THRESHOLD_INNOVATION_COLLAB_MODE}':
+            (not np.isnan(min_icm_kappa)) and (min_icm_kappa >= PASS_THRESHOLD_INNOVATION_COLLAB_MODE),
+    }
+
+    summary = {
+        'mean_verification_agreement': mean_v_agree,
+        'mean_sentiment_agreement': mean_s_agree,
+        'min_kappa_verification': float(min_kappa),
+        'krippendorffs_alpha': float(alpha_val),
+        'min_kappa_innovation_substantiveness': float(min_iss_kappa),
+        'min_kappa_innovation_locus': float(min_il_kappa),
+        'min_kappa_innovation_collab_mode': float(min_icm_kappa),
+    }
+    return criteria, summary
+
+
 # ============================================================================
 # 7. 报告生成
 # ============================================================================
@@ -836,8 +1086,14 @@ def generate_reports(
     variance_results: dict,
     passed: bool,
     report_dir: str,
+    passed_by_track: dict | None = None,
 ):
-    """生成全部报告文件（JSON/CSV/LaTeX/PNG）。"""
+    """生成全部报告文件（JSON/CSV/LaTeX/PNG）。
+
+    fix(omni-g-val-prompt-03, 2026-06-11): 新增可选 passed_by_track
+    ({'_full': bool, '_ctx': bool}), JSON 报 per-track 裁决 (passed_full /
+    passed_ctx); 总 `passed` = 双轨 AND (由 main() 计算)。未传时两字段为 null。
+    """
 
     # ── 7.1 JSON 报告 ──
     json_report = {
@@ -857,8 +1113,18 @@ def generate_reports(
             # v7 R7.2 + W6: innovation κ thresholds
             'innovation_substantiveness_kappa': PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS,
             'innovation_locus_kappa': PASS_THRESHOLD_INNOVATION_LOCUS,
+            # fix(omni-g-val-prompt-02, 2026-06-11): v8 第三维度阈值接入 (原死配置)
+            'innovation_collab_mode_kappa': PASS_THRESHOLD_INNOVATION_COLLAB_MODE,
         },
+        # fix(omni-g-val-prompt-05, 2026-06-11): 重试策略透明披露 — 变体重试低于生产时
+        # 失败率系统性更高 (失败行已掩码剔除, 见 n_call_failures_excluded)
+        'prompt_max_retries': PROMPT_MAX_RETRIES,
+        'production_max_retries': _tone_llms.MAX_RETRIES,
         'passed': passed,
+        # fix(omni-g-val-prompt-03, 2026-06-11): per-track 裁决 — P1 主 spec 在 ctx 轨
+        # (llm_vote_tone_ctx), 总判定 = full AND ctx, 不再仅 full 轨
+        'passed_full': None if passed_by_track is None else bool(passed_by_track.get('_full')),
+        'passed_ctx': None if passed_by_track is None else bool(passed_by_track.get('_ctx')),
         'full_track': {
             'pairwise': pairwise_results.get('_full', {}),
             'multi_variant': multi_results.get('_full', {}),
@@ -881,6 +1147,9 @@ def generate_reports(
     for track in ['_full', '_ctx']:
         track_label = track.lstrip('_')
         for vk in variant_keys:
+            # fix(omni-g-val-prompt-05, 2026-06-11): detail CSV 增加 call_failure 列
+            # (旗标列缺失时向后兼容填 False)
+            fail_col = f'{vk}_call_failure{track}'
             for idx in df.index:
                 csv_rows.append({
                     'article_index': idx,
@@ -897,6 +1166,9 @@ def generate_reports(
                     'sentiment_match': (
                         df.at[idx, f'V0_baseline_sentiment{track}'] ==
                         df.at[idx, f'{vk}_sentiment{track}']
+                    ),
+                    'call_failure': (
+                        bool(df.at[idx, fail_col]) if fail_col in df.columns else False
                     ),
                 })
 
@@ -1167,51 +1439,33 @@ def main():
         variance_results[track] = var
         logger.info(f"    True rate σ={var['true_rate_std']:.4f}")
 
-    # ── Step 7: 通过/未通过判定（基于 full 轨道） ──
-    logger.info("Step 7: 通过/未通过判定（基于 full 轨道）...")
+    # ── Step 7: 通过/未通过判定（双轨 AND） ──
+    # fix(omni-g-val-prompt-03, 2026-06-11): 此前仅 full 轨进 gate, 而 P1 主线
+    # main spec = llm_vote_tone_ctx (ctx 轨) — full 过 ctx 不过会误报通过。
+    # 改为 full / ctx 各自评估全部 criteria, 总判定 = 双轨 AND, JSON 报 per-track。
+    logger.info("Step 7: 通过/未通过判定（full 与 ctx 双轨均须通过）...")
 
-    full_pw = pairwise_results['_full']
-    full_multi = multi_results['_full']
+    summary_by_track = {}
+    passed_by_track = {}
+    for track in ['_full', '_ctx']:
+        track_label = track.lstrip('_')
+        criteria, summary = evaluate_track_criteria(
+            pairwise_results, multi_results, variant_keys, track)
+        summary_by_track[track] = summary
+        passed_by_track[track] = all(criteria.values())
 
-    mean_v_agree = np.mean([full_pw[vk]['verification_agreement'] for vk in variant_keys])
-    mean_s_agree = np.mean([full_pw[vk]['sentiment_agreement'] for vk in variant_keys])
-    min_kappa = min(full_pw[vk]['cohens_kappa_verification'] for vk in variant_keys)
-    alpha_val = full_multi['krippendorffs_alpha']
+        logger.info(f"  ── {track_label} 轨道 ──")
+        for desc, met in criteria.items():
+            logger.info(f"    {'✅' if met else '❌'} {desc}")
+        logger.info(f"    {track_label} 轨道判定: "
+                    f"{'✅ 通过' if passed_by_track[track] else '❌ 未通过'}")
 
-    # v7 R7.2 + W6: innovation 维度最小 Cohen's κ (skip NaN safely)
-    iss_kappas = [full_pw[vk].get('cohens_kappa_innovation_substantiveness')
-                  for vk in variant_keys
-                  if full_pw[vk].get('cohens_kappa_innovation_substantiveness') is not None
-                  and not (isinstance(full_pw[vk].get('cohens_kappa_innovation_substantiveness'), float)
-                           and np.isnan(full_pw[vk].get('cohens_kappa_innovation_substantiveness')))]
-    il_kappas = [full_pw[vk].get('cohens_kappa_innovation_locus')
-                 for vk in variant_keys
-                 if full_pw[vk].get('cohens_kappa_innovation_locus') is not None
-                 and not (isinstance(full_pw[vk].get('cohens_kappa_innovation_locus'), float)
-                          and np.isnan(full_pw[vk].get('cohens_kappa_innovation_locus')))]
-    min_iss_kappa = min(iss_kappas) if iss_kappas else float('nan')
-    min_il_kappa = min(il_kappas) if il_kappas else float('nan')
-
-    criteria = {
-        f'均值验证一致率 ≥ {PASS_THRESHOLD_VERIFICATION}': mean_v_agree >= PASS_THRESHOLD_VERIFICATION,
-        f'均值情感一致率 ≥ {PASS_THRESHOLD_SENTIMENT}': mean_s_agree >= PASS_THRESHOLD_SENTIMENT,
-        f'最小 Cohen\'s κ (verification) ≥ {PASS_THRESHOLD_KAPPA}': min_kappa >= PASS_THRESHOLD_KAPPA,
-        f'Krippendorff\'s α ≥ {PASS_THRESHOLD_ALPHA}': alpha_val >= PASS_THRESHOLD_ALPHA,
-        f'最小 Cohen\'s κ (innovation_substantiveness, W&Z 1994) ≥ {PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS}':
-            (not np.isnan(min_iss_kappa)) and (min_iss_kappa >= PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS),
-        f'最小 Cohen\'s κ (innovation_locus, Gomber 2018) ≥ {PASS_THRESHOLD_INNOVATION_LOCUS}':
-            (not np.isnan(min_il_kappa)) and (min_il_kappa >= PASS_THRESHOLD_INNOVATION_LOCUS),
-    }
-
-    passed = all(criteria.values())
-
-    for desc, met in criteria.items():
-        logger.info(f"    {'✅' if met else '❌'} {desc}")
+    passed = passed_by_track['_full'] and passed_by_track['_ctx']
 
     if passed:
-        logger.info("  ✅ 判定: 通过 — Prompt 措辞改写对标注结果无实质影响")
+        logger.info("  ✅ 判定: 通过 (双轨) — Prompt 措辞改写对标注结果无实质影响")
     else:
-        logger.info("  ❌ 判定: 未通过 — 部分指标低于阈值，需审查变体敏感性")
+        logger.info("  ❌ 判定: 未通过 — 至少一条轨道有指标低于阈值，需审查变体敏感性")
 
     # ── Step 8: 生成报告 ──
     logger.info("Step 8: 生成报告 ...")
@@ -1219,7 +1473,8 @@ def main():
     os.makedirs(report_dir, exist_ok=True)
 
     generate_reports(df_sample, variant_keys, pairwise_results,
-                     multi_results, variance_results, passed, report_dir)
+                     multi_results, variance_results, passed, report_dir,
+                     passed_by_track=passed_by_track)
 
     # ── 最终摘要 ──
     logger.info("")
@@ -1228,13 +1483,17 @@ def main():
     logger.info("=" * 70)
     logger.info(f"  样本量: {len(df_sample):,}")
     logger.info(f"  变体数: {len(variant_keys)} + baseline")
-    logger.info(f"  Full 轨道:")
-    logger.info(f"    均值验证一致率: {mean_v_agree:.2%}")
-    logger.info(f"    均值情感一致率: {mean_s_agree:.2%}")
-    logger.info(f"    最小 Cohen's κ: {min_kappa:.4f}")
-    logger.info(f"    Krippendorff's α: {alpha_val:.4f}")
-    logger.info(f"    Fleiss' κ: {full_multi['fleiss_kappa']:.4f}")
-    logger.info(f"  判定: {'✅ 通过' if passed else '❌ 未通过'}")
+    for track in ['_full', '_ctx']:
+        track_label = track.lstrip('_')
+        s = summary_by_track[track]
+        logger.info(f"  {track_label.capitalize()} 轨道:")
+        logger.info(f"    均值验证一致率: {s['mean_verification_agreement']:.2%}")
+        logger.info(f"    均值情感一致率: {s['mean_sentiment_agreement']:.2%}")
+        logger.info(f"    最小 Cohen's κ: {s['min_kappa_verification']:.4f}")
+        logger.info(f"    Krippendorff's α: {s['krippendorffs_alpha']:.4f}")
+        logger.info(f"    Fleiss' κ: {multi_results[track]['fleiss_kappa']:.4f}")
+        logger.info(f"    轨道判定: {'✅ 通过' if passed_by_track[track] else '❌ 未通过'}")
+    logger.info(f"  总判定 (full AND ctx): {'✅ 通过' if passed else '❌ 未通过'}")
     logger.info("=" * 70)
     log_memory_usage(logger, "模块完成")
 

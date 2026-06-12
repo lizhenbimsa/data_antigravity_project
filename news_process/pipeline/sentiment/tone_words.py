@@ -34,6 +34,18 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 │    ├─ definite(388)  / ambiguous(178, v3.5.1 起用于 clarity) │
 └────────────────────────────────────────────────────────────┘
 
+词典消歧 (fix omni-g-tonewords-03/-07, 2026-06-11):
+    加载时对每部词典的 positive∩negative 跨类重叠词 (jiang_2021 21 词 /
+    you_2018 5 词) 按 LM 2011 JF 惯例**双侧剔除** + 日志披露 — 旧实现
+    negative 循环 last-writer-wins 静默判负。clarity 的 definite∩ambiguous
+    重叠 ('不可') 同样双侧剔除。故运行时词条数 < 上表原始计数。
+
+聚合测度的固定词典 (fix omni-g-tonewords-01/-05, 2026-06-11):
+    pos_ratio / neg_ratio / msent_score 的计数基从"逐篇匹配数最多的词典"
+    (best-dict, 测量工具跨观测漂移) 改为 **5 词典固定 union 词典**
+    (build_union_dictionary: 并集 + 重叠词极性多数票消解, 平票剔除),
+    兑现 Tetlock 2007 / Garcia 2013 / Henry 2008 的固定词表构念。
+
 语言学规则增强：
     - 否定词处理（翻转极性，窗口 = NEGATION_WINDOW 个分词单元）
     - 程度副词处理（放大/缩小情感强度，六级权重体系）
@@ -88,7 +100,7 @@ from news_process.pipeline.sentiment.lexical_complexity import (  # noqa: E402
     compute_lexical_complexity,
 )
 from news_process.pipeline.sentiment.lm_non_sentiment import (  # noqa: E402
-    _compute_lm_non_sentiment_for_text,
+    _LMFLS_NONWORD_RE,
     load_lm_non_sentiment_dicts,
 )
 
@@ -197,6 +209,8 @@ def load_clarity_dictionaries() -> tuple[frozenset, frozenset]:
         tuple[frozenset, frozenset]: ``(definite_set, ambiguous_set)``
             definite_set = 388 词 (Panel C, You 2018);
             ambiguous_set = 178 词 (Panel D, You 2018).
+            注 (fix omni-g-tonewords-03): definite∩ambiguous 跨类重叠词双侧剔除
+            后实际为 387 / 177 词 (剔除 '不可' 1 词, 见加载段日志披露)。
 
     锚定文献:
         - Loughran & McDonald (2011) JF 66(1) uncertain dictionary
@@ -220,6 +234,17 @@ def load_clarity_dictionaries() -> tuple[frozenset, frozenset]:
             if isinstance(you, dict):
                 def_set = frozenset(w.strip() for w in you.get('definite', []) if w and isinstance(w, str))
                 amb_set = frozenset(w.strip() for w in you.get('ambiguous', []) if w and isinstance(w, str))
+                # fix(omni-g-tonewords-03, 2026-06-11): definite∩ambiguous 跨类重叠词
+                # (实测 '不可' 1 词) 双侧剔除 — 旧实现同词双计, 在 clarity_score 中
+                # 抵消但同时虚增 frac_definite 与 frac_ambiguous; LM 2011 惯例为剔除
+                # 极性/类别歧义词。剔除清单日志披露。
+                _cross = def_set & amb_set
+                if _cross:
+                    logger.warning(
+                        f"clarity definite∩ambiguous 跨类重叠 {len(_cross)} 词已双侧剔除 "
+                        f"(fix omni-g-tonewords-03): {sorted(_cross)}")
+                    def_set = def_set - _cross
+                    amb_set = amb_set - _cross
         except Exception as e:
             logger.error(f"v3.5.1 A1 clarity 词典加载失败: {e}")
 
@@ -239,9 +264,12 @@ def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset)
     得到独立的 clarity_score_full_i 和 clarity_score_ctx_i — 与项目现有 ``_analyze_single_article``
     的双轨契约一致 (per stage3_v3_5_1 plan v0.3 §2.1.1 修 R3-C1).
 
-    分词流: ``list(jieba.cut(text))`` + 去空字符 token (与 ``_analyze_single_article:707-710`` 一致).
-    分母 = 否定词翻转**前**的 jieba token count (D-1.2 实测验证; 与 LM 2011 JF §3 相比为
-    "未去停用词" 版, 写入 paper §3.4 disclosure).
+    分词流: tone tokenizer (独立 jieba.Tokenizer 实例, 见 ``_get_tone_tokenizer``) +
+    去空字符 token (与 ``_analyze_single_article`` 一致).
+    分母 (fix omni-g-tonewords-02/-12, 2026-06-11) = **word-token** 数 — 排除纯标点/
+    纯数字 token (复用 ``lm_non_sentiment._LMFLS_NONWORD_RE``, 与 2026-06-10 lmfls-01
+    的 LM/FLS 分母修复同口径; 旧分母含 ~19% 标点/数字 token, 逐篇 14.5–25% 非常数稀释)。
+    仍为"未去停用词"版 (paper §3.4 disclosure 不变)。
 
     Args:
         text: 任意单一文本 (典型为 content_full 或 content_ctx).
@@ -252,7 +280,7 @@ def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset)
         dict: {
             'n_definite': int,
             'n_ambiguous': int,
-            'n_tokens_clarity_base': int (= len(tokens) 去空字符后),
+            'n_tokens_clarity_base': int (= word-token 数, 排除纯标点/纯数字 token),
             'frac_definite': float | None (分母=0 时 NA via float('nan')),
             'frac_ambiguous': float | None,
             'clarity_score': float | None (∈ [-1, +1] = frac_definite - frac_ambiguous),
@@ -268,9 +296,13 @@ def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset)
             'clarity_score': float('nan'),
         }
 
-    tokens = list(jieba.cut(text))
+    tokens = list(_get_tone_tokenizer().cut(text))
     tokens = [t for t in tokens if t.strip()]
-    n_tokens = len(tokens)
+    # fix(omni-g-tonewords-02, 2026-06-11): 分母 word-token 化 — 排除纯标点/纯数字
+    # token (与 lm_non_sentiment lmfls-01 修复同口径); 分子 def/amb 词均为真词,
+    # 标点/数字本不命中, 仅分母收紧。
+    word_tokens = [t for t in tokens if not _LMFLS_NONWORD_RE.fullmatch(t.strip())]
+    n_tokens = len(word_tokens)
 
     if n_tokens == 0:
         return {
@@ -279,8 +311,8 @@ def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset)
             'clarity_score': float('nan'),
         }
 
-    n_def = sum(1 for t in tokens if t in def_set)
-    n_amb = sum(1 for t in tokens if t in amb_set)
+    n_def = sum(1 for t in word_tokens if t in def_set)
+    n_amb = sum(1 for t in word_tokens if t in amb_set)
     frac_def = n_def / n_tokens
     frac_amb = n_amb / n_tokens
     return {
@@ -300,6 +332,12 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
         list[tuple]: ``[(dict_name, {word: score}), ...]``
             其中 score > 0 表示正面词，score < 0 表示负面词，
             score = 0.5 表示政治正面词（du_2022 特有）。
+
+    跨类重叠消解 (fix omni-g-tonewords-03/-07, 2026-06-11):
+        旧实现 negative 循环无 ``word not in d`` 守卫 (对照 political_positive 有),
+        positive∩negative 重叠词被静默 last-writer-wins 判负 (jiang_2021 21 词 /
+        you_2018 5 词, 含 9.7% 文档命中的 '打破')。现按 LM 2011 JF 惯例对重叠词
+        **双侧剔除** + logger.warning 披露清单与数量。
     """
     logger.info(f"正在从 {TONE_DICTS_FILE} 加载情感词典...")
 
@@ -327,14 +365,23 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
         d = {}
 
         # 从 JSON 中的 positive/negative 列表构建 {word: score}
-        for word in entry.get('positive', []):
-            word = str(word).strip()
-            if word:
-                d[word] = 1.0
-        for word in entry.get('negative', []):
-            word = str(word).strip()
-            if word:
-                d[word] = -1.0
+        # fix(omni-g-tonewords-03/-07, 2026-06-11): positive∩negative 跨类重叠词显式
+        # 消解 — 双侧剔除 (LM 2011 惯例) + 日志披露, 替代旧的静默 last-writer-wins 判负。
+        pos_words = {str(w).strip() for w in entry.get('positive', []) if str(w).strip()}
+        neg_words = {str(w).strip() for w in entry.get('negative', []) if str(w).strip()}
+        cross_overlap = pos_words & neg_words
+        if cross_overlap:
+            logger.warning(
+                f"  {dict_key}: positive∩negative 跨类重叠 {len(cross_overlap)} 词已双侧剔除 "
+                f"(LM 2011 惯例, fix omni-g-tonewords-03): {sorted(cross_overlap)}")
+        # sorted 保证 dict 插入序确定 (可复现性)
+        for word in sorted(pos_words - cross_overlap):
+            d[word] = 1.0
+        for word in sorted(neg_words - cross_overlap):
+            d[word] = -1.0
+        # 数量断言 (fix omni-g-tonewords-03): 剔除后正负词条数恒等校验 (防回归静默覆盖)
+        assert len(d) == len(pos_words - cross_overlap) + len(neg_words - cross_overlap), (
+            f"{dict_key}: 跨类重叠消解后词条数不恒等 (存在残余覆盖)")
 
         # Du et al. (2022) 特有：政治正面词以较低权重 0.5 加入
         for word in entry.get('political_positive', []):
@@ -364,6 +411,68 @@ def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
     return dictionaries
 
 
+def build_union_dictionary(
+    dictionaries: list[tuple[str, dict[str, float]]],
+) -> dict[str, float]:
+    """构造 5 词典固定 union 词典 (fix omni-g-tonewords-01/-05, 2026-06-11).
+
+    动机: pos_ratio / neg_ratio / msent_score 旧实现取"逐篇匹配数最多的词典"
+    (best-dict), 测量工具跨观测漂移 (盘上实证: 胜出词典逐篇切换, yao 51%/du 41%),
+    与所引 Tetlock 2007 JF / Garcia 2013 JF / Henry 2008 的**固定词表**构念冲突。
+    本函数把 5 部词典合并为单一固定词表, 全样本统一使用。
+
+    极性消解规则 (确定性, 与词典顺序无关):
+        1. 每词收集其出现的所有词典的 score;
+        2. 极性 = 正/负出现次数的**多数票**;
+        3. 平票 (正负词典数相同) → 极性歧义, 剔除 (LM 2011 惯例);
+        4. 幅值 = 胜出极性内最大 |score| (政治正面词 0.5 仅当无 ±1.0 同向词时保留)。
+
+    Args:
+        dictionaries: ``load_all_dictionaries()`` 的输出 [(name, {word: score}), ...]。
+
+    Returns:
+        dict[str, float]: 固定 union 词典 {word: score}。
+    """
+    polarity_votes: dict[str, list[float]] = {}
+    for _name, d in dictionaries:
+        for word, score in (d or {}).items():
+            polarity_votes.setdefault(word, []).append(score)
+
+    union: dict[str, float] = {}
+    n_dropped = 0
+    for word, scores in polarity_votes.items():
+        n_pos = sum(1 for s in scores if s > 0)
+        n_neg = sum(1 for s in scores if s < 0)
+        if n_pos == n_neg:
+            n_dropped += 1  # 平票 → 极性歧义词剔除
+            continue
+        sign = 1.0 if n_pos > n_neg else -1.0
+        magnitude = max(abs(s) for s in scores if (s > 0) == (sign > 0))
+        union[word] = sign * magnitude
+    if n_dropped:
+        logger.info(f"union 词典: 跨词典极性平票剔除 {n_dropped} 词 (LM 2011 惯例)")
+    return union
+
+
+# union 词典 lazy cache: 以 (对象 id, 各词典 (name, 词条数) 指纹) 为 key (main() 加载后
+# 构建一次; 测试直接改写 ALL_DICTIONARIES 时自动失效重建)。指纹防 CPython id 回收复用
+# 造成陈旧缓存 (旧 list 被 GC 后新 list 可能分配到同一地址)。
+_UNION_DICT_CACHE: tuple[Any, dict[str, float]] | None = None
+
+
+def _get_union_dictionary() -> dict[str, float]:
+    """返回与当前 ALL_DICTIONARIES 对应的固定 union 词典 (带身份+指纹缓存)."""
+    global _UNION_DICT_CACHE
+    dicts = ALL_DICTIONARIES or []
+    key = (id(ALL_DICTIONARIES),
+           tuple((name, len(d or {})) for name, d in dicts))
+    if _UNION_DICT_CACHE is not None and _UNION_DICT_CACHE[0] == key:
+        return _UNION_DICT_CACHE[1]
+    union = build_union_dictionary(dicts)
+    _UNION_DICT_CACHE = (key, union)
+    return union
+
+
 # ============================================================================
 # 4. 语言学规则情感计算引擎
 # ============================================================================
@@ -385,6 +494,13 @@ def _compute_sentiment_with_rules(tokens: list[str], sentiment_dict: dict[str, f
         token ∈ sentiment_dict    → 计算 score = base × degree × negation × adversative
         其他                       → 重置程度副词（未被消费）
 
+    归一化 (fix omni-g-tonewords-09, 2026-06-11):
+        normalized_score = Σ(final_score) / Σ|final_score| ∈ [-1, +1]。
+        旧分母为裸匹配词数 (pos_count+neg_count), 分子含程度副词(最高×3.0)×转折(×1.5)
+        放大 → 理论值域 ±4.5, 盘上实测 4/5 词典 13% 文章 >1 (max 1.286), 破坏与
+        LLM/BERT 有界 tone 轨的可比性且 ±0.1 标签阈值按单位区间校准。改加权幅度和
+        分母后恒有界; 无匹配时仍返回 0.0 (中性)。
+
     Args:
         tokens:         分词结果列表。
         sentiment_dict: ``{word: score}`` 情感词典。
@@ -393,6 +509,7 @@ def _compute_sentiment_with_rules(tokens: list[str], sentiment_dict: dict[str, f
         tuple: (raw_score, normalized_score, pos_count, neg_count, matched_words)
     """
     total_score: float = 0.0
+    total_abs_score: float = 0.0
     pos_count: int = 0
     neg_count: int = 0
     matched_words: list[dict[str, Any]] = []
@@ -443,6 +560,9 @@ def _compute_sentiment_with_rules(tokens: list[str], sentiment_dict: dict[str, f
                 final_score *= ADVERSATIVE_BOOST
 
             total_score += final_score
+            # fix(omni-g-tonewords-09, 2026-06-11): 累积加权幅度和 Σ|final_score|
+            # 作归一化分母 — 与分子同含 degree×adversative 权重 → 恒有界 [-1,1]
+            total_abs_score += abs(final_score)
 
             if final_score > 0:
                 pos_count += 1
@@ -464,9 +584,10 @@ def _compute_sentiment_with_rules(tokens: list[str], sentiment_dict: dict[str, f
         if negation_remaining > 0:
             negation_remaining -= 1
 
-    # 归一化: score / (pos_count + neg_count)，防止长文本偏高
-    total_matched = pos_count + neg_count
-    normalized_score = total_score / total_matched if total_matched > 0 else 0.0
+    # 归一化 (fix omni-g-tonewords-09, 2026-06-11): 分母改 Σ|final_score| (加权幅度和)。
+    # 旧分母 = 裸匹配词数 (pos_count+neg_count), 分子被 degree(≤3.0)×adversative(1.5)
+    # 放大 → 理论值域 ±4.5, 盘上实测 13% 文章 >1; 现恒有界 ∈ [-1, +1]。
+    normalized_score = total_score / total_abs_score if total_abs_score > 0 else 0.0
 
     return total_score, normalized_score, pos_count, neg_count, matched_words
 
@@ -579,12 +700,18 @@ def build_idf_weights(
       — Winsorization (P1/P99) 标准做法。
 
     设计决策:
-      1. 为了和特征抽取保持严格语义同构，使用 jieba.cut 并行分词来统计 Document Frequency，
+      1. 为了和特征抽取保持严格语义同构，使用与 TF 匹配同一注入态的 tone tokenizer
+         (``_get_tone_tokenizer``) 并行分词来统计 Document Frequency，
          坚决废除 Aho-Corasick 子匹配以避免把 “大家” 错误计为 “大”。
       2. IDF 在与 TF 加权同一语料（caller 传 text_col='content_full'，含标题；缺则回退
          '内容'）上统一计算一次，两轨共享 (fix 2026-06-10: 原裸 '内容' 与 TF 打分语料不一致)。
       3. 均值归一化确保 IDF 加权后得分量级 ≈ 等权版，可共享阈值。
       4. P1/P99 Winsorization 防止极端稀有词主导或极高频词归零。
+      5. DF/N 按**唯一文档**统计 (fix omni-g-tonewords-04, 2026-06-11): stage 21 输出
+         是 (article×bank) 展开表 (同篇多银行文章重复至多 8 行), 旧实现 N=len(df)+逐行
+         DF 使重复文章的 df(w) 与 N 同向膨胀, 偏离 Gentzkow-Kelly-Taddy 2019 JEL §2.2 /
+         Manning IIR 6.2.1 的文档级 DF 定义。现以文本内容自身为唯一键去重 (同 content
+         = 同 document)。
 
     Args:
         df:           全量 DataFrame，需含 text_col 列。
@@ -594,12 +721,15 @@ def build_idf_weights(
     Returns:
         dict: {dict_name: {word: capped_normalized_idf}}
     """
-    N = len(df)
+    # fix(omni-g-tonewords-04, 2026-06-11): 唯一文档去重 — N 与 df(w) 均在去重后语料上统计
+    texts = (
+        df[text_col].fillna('').astype(str).drop_duplicates().tolist()
+        if len(df) > 0 else []
+    )
+    N = len(texts)
     if N == 0:
         logger.warning("IDF: 语料为空，所有权重降级为 1.0")
         return {name: {w: 1.0 for w in d} for name, d in dictionaries}
-
-    texts = df[text_col].fillna('').astype(str).tolist()
 
     # 1. 抽取全局词典内词汇以快速过滤
     all_words = set()
@@ -610,19 +740,24 @@ def build_idf_weights(
         return {name: {} for name, _ in dictionaries}
 
     # 2. 定义局部并行切词函数，解决匹配必须是完整 token 的缺陷
+    # fix(omni-g-tonewords-10, 2026-06-11): 用与 TF 匹配同一注入态的 tone tokenizer
+    # (而非全局 jieba) 统计 DF — 注入隔离后全局分词器无领域复合词, 若仍用全局会把
+    # 多字情感词切碎, DF 系统性=0 → IDF 与 TF 语义不同构。
+    _tk = _get_tone_tokenizer()
+
     def _compute_chunk_df(chunk_texts):
         local_df = Counter()
         for text in chunk_texts:
-            tokens_in_doc = set(jieba.cut(text)) & all_words
+            tokens_in_doc = set(_tk.cut(text)) & all_words
             local_df.update(tokens_in_doc)
         return local_df
 
-    # 3. 执行多线程分块并行的 jieba.cut 统计
+    # 3. 执行多线程分块并行的 tone tokenizer 切词统计 (去重后唯一文档语料)
     batch_size = 2000
     num_batches = max(1, (N - 1) // batch_size + 1)
     chunks = [texts[i * batch_size:(i + 1) * batch_size] for i in range(num_batches)]
-    
-    logger.info(f"IDF: 正在使用 jieba 并行计算文档频率以保持语义精确同构 (共 {N} 篇, {num_batches} 个批次)...")
+
+    logger.info(f"IDF: 正在使用 jieba 并行计算文档频率以保持语义精确同构 (唯一文档 {N} 篇, {num_batches} 个批次)...")
     results = Parallel(n_jobs=-1, prefer='threads')(
         delayed(_compute_chunk_df)(chunk) for chunk in chunks
     )
@@ -699,6 +834,33 @@ IDF_DICTIONARIES = None  # IDF 加权词典（稳健性检验，在 main() 中�
 _JIEBA_INJECTED = False
 _JIEBA_LOCK = threading.Lock()
 
+# fix(omni-g-tonewords-10/-11, 2026-06-11): stage-22 词典匹配专用的**独立** jieba
+# Tokenizer 实例 (注入隔离)。领域词注入只写入此实例, 全局 jieba.dt / jieba.posseg
+# 保持纯净 → (a) lexical_complexity 的 posseg 词性不再被 add_word 的 tag='x' 回退
+# 污染 (OOV 领域词如 '金融科技' 被当标点剔出分母, 全 8 列失真且与领域词密度逐篇
+# 相关); (b) forward_looking 的 FLS 双门控不再被注入复合词吞掉 2 字门控 token
+# ('目标'/'战略' 等), 兑现 forward-looking-jieba (2026-06-10) "刻意不用 add_word"
+# 的修复设计; (c) 同一函数在注入态/非注入态 (生产 vs 单测/validation) 不再给出两套值。
+_TONE_TOKENIZER: "jieba.Tokenizer | None" = None
+
+
+def _get_tone_tokenizer() -> "jieba.Tokenizer":
+    """返回 stage-22 词典匹配专用的独立 jieba.Tokenizer (lazy 单例, DCL 锁).
+
+    fix(omni-g-tonewords-10/-11, 2026-06-11): 见 ``_TONE_TOKENIZER`` 注释 — 领域词
+    注入 (``_inject_custom_dicts_to_jieba``) 只进此实例, 全局分词器零注入。
+    消费方: ``_analyze_single_article`` (情感词典匹配) / ``_compute_clarity_for_text``
+    / ``build_idf_weights`` (DF 统计) / LM 4 子词典扫描
+    (经本文件 ``_compute_lm_non_sentiment_for_text_tone_tok`` 包装)。
+    """
+    global _TONE_TOKENIZER
+    if _TONE_TOKENIZER is None:
+        with _JIEBA_LOCK:
+            if _TONE_TOKENIZER is None:
+                _TONE_TOKENIZER = jieba.Tokenizer()
+    return _TONE_TOKENIZER
+
+
 def _inject_custom_dicts_to_jieba():
     global _JIEBA_INJECTED
     # 第一次检查 (无锁)：在绝大多数情况下，字典已被加载，直接返回，避免获取锁的系统开销
@@ -708,30 +870,35 @@ def _inject_custom_dicts_to_jieba():
         # 第二次检查 (有锁)：防止多个线程同时越过第一次检查，排队获取锁后造成重复注入
         if _JIEBA_INJECTED:
             return
-        
+
         """
-        将所有情感词、银行名称、金融科技词汇注入jieba分词器，防止专业词汇被切碎。
-        
+        将所有情感词、银行名称、金融科技词汇注入**独立 tone tokenizer**，防止专业词汇被切碎。
+
+        fix(omni-g-tonewords-10/-11, 2026-06-11): 注入目标从全局 jieba.dt 改为
+        ``_get_tone_tokenizer()`` 的独立实例 — 全局分词器保持纯净, posseg 词性
+        (lexical_complexity) 与 FLS 双门控 (forward_looking) 不再受注入副作用污染。
+
         [并发机理与锁机制依据]:
-        jieba 底层维护了一个全局共享的字典树 (Trie tree, 即 jieba.dt)。在 joblib 或 concurrent.futures
+        jieba 底层维护字典树 (Trie tree)。在 joblib 或 concurrent.futures
         等多线程/多进程后端调用 add_word 时，若没有严格的互斥锁保护，会导致字典树的内部指针状态
         损坏 (Race Condition)，引发 KeyError 或分词结果不可逆的碎片化。
         此处严格采用 Double-Checked Locking (DCL) 模式保证只执行一次 O(n) 的插入操作。
-        - Schmidt, D. C., & Harrison, T. (1997). Double-checked locking: An optimization pattern 
+        - Schmidt, D. C., & Harrison, T. (1997). Double-checked locking: An optimization pattern
           for efficiently initializing and accessing thread-safe objects. Pattern Languages of Program Design 3, 363-375.
-        
+
         [领域词库基石依据]:
-        Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks. 
+        Loughran, T., & McDonald, B. (2011). When is a liability not a liability? Textual analysis, dictionaries, and 10-Ks.
         The Journal of Finance, 66(1), 35-65. https://doi.org/10.1111/j.1540-6261.2010.01625.x
         """
-        logger.info("正在将自定义领域词汇注入 jieba 分词器...")
+        logger.info("正在将自定义领域词汇注入独立 tone tokenizer (全局 jieba 保持纯净)...")
+        tk = _get_tone_tokenizer()
         added_count = 0
 
         # 1. 注入所有情感词典中的词汇
         for dict_name, sentiment_dict in ALL_DICTIONARIES:
             if sentiment_dict:
                 for word in sentiment_dict.keys():
-                    jieba.add_word(word)
+                    tk.add_word(word)
                     added_count += 1
 
         # 2. 注入银行名称库 (11_news_bank.py 的同源字典)
@@ -748,11 +915,11 @@ def _inject_custom_dicts_to_jieba():
                             if not isinstance(bank, dict): continue
                             std_name = bank.get('standard_name')
                             if std_name:
-                                jieba.add_word(str(std_name).strip())
+                                tk.add_word(str(std_name).strip())
                                 added_count += 1
                             for variant in bank.get('variants', []):
                                 if variant:
-                                    jieba.add_word(str(variant).strip())
+                                    tk.add_word(str(variant).strip())
                                     added_count += 1
             except Exception as e:
                 logger.warning(f"未能加载银行词典注入jieba: {e}")
@@ -769,25 +936,25 @@ def _inject_custom_dicts_to_jieba():
                     if isinstance(fintech_data, list):
                         for word in fintech_data:
                             if word:
-                                jieba.add_word(str(word).strip())
+                                tk.add_word(str(word).strip())
                                 added_count += 1
                     elif isinstance(fintech_data, dict):
                         for category, words_list in fintech_data.items():
                             if isinstance(words_list, list):
                                 for word in words_list:
                                     if word:
-                                        jieba.add_word(str(word).strip())
+                                        tk.add_word(str(word).strip())
                                         added_count += 1
             except Exception as e:
                 logger.warning(f"未能加载金融科技词典注入jieba: {e}")
-                
+
         # 4. 注入否定词与程度词增强规则库
         for word in NEGATION_WORDS:
-            jieba.add_word(word)
+            tk.add_word(word)
         for word in DEGREE_WORDS:
-            jieba.add_word(word)
+            tk.add_word(word)
         for word in ADVERSATIVE_WORDS:
-            jieba.add_word(word)
+            tk.add_word(word)
 
         # 5. 注入清晰度词典 (You & Zhang 2009 / You 2018)
         # fix(clarity_cn-01): 多字 clarity definite/ambiguous 词此前从未 add_word →
@@ -797,14 +964,19 @@ def _inject_custom_dicts_to_jieba():
             for word in (_def_set | _amb_set):
                 w = str(word).strip()
                 if len(w) >= 2:  # 单字不受切分影响, 仅多字词需防碎
-                    jieba.add_word(w)
+                    tk.add_word(w)
                     added_count += 1
         except Exception as e:  # noqa: BLE001
             logger.warning(f"未能加载清晰度词典注入jieba: {e}")
 
-        # 6. 注入 LM 2011 JF 4 子词典 (uncert/litig/constr/modal) + Li 2010 JAR FLS 前瞻词
-        # fix(completeness-02): 与 clarity_cn-01 同型缺陷 — 多字 LM(18.5%)/FLS 词此前从未
-        # add_word, 被 jieba 切碎永不命中, 致 LM/FLS frac 系统性漏匹配下偏。
+        # 6. 注入 LM 2011 JF 4 子词典 (uncert/litig/constr/modal)
+        # fix(completeness-02): 与 clarity_cn-01 同型缺陷 — 多字 LM(18.5%) 词此前从未
+        # add_word, 被 jieba 切碎永不命中, 致 LM frac 系统性漏匹配下偏。
+        # fix(omni-g-tonewords-11, 2026-06-11): Li 2010 JAR FLS 前瞻词注入已**移除** —
+        # 注入复合 FLS 标记 (如 '中长期目标') 会吞掉 forward_looking 双门控的 2 字
+        # 门控 token ('目标'/'战略' 等, ≥3 字 substring 兜底无法补救), 正面冲突
+        # forward-looking-jieba (2026-06-10) "刻意不用 add_word" 的修复设计; FLS 判定
+        # 走全局纯净分词器 + 自带 ≥3 字 substring 兜底, 无需任何注入。
         try:
             from news_process.pipeline.sentiment.lm_non_sentiment import (
                 load_lm_non_sentiment_dicts,
@@ -813,95 +985,156 @@ def _inject_custom_dicts_to_jieba():
                 for word in _subset:
                     w = str(word).strip()
                     if len(w) >= 2:
-                        jieba.add_word(w)
+                        tk.add_word(w)
                         added_count += 1
         except Exception as e:  # noqa: BLE001
             logger.warning(f"未能加载 LM 非情感词典注入jieba: {e}")
-        try:
-            from news_process.pipeline.sentiment.forward_looking import (
-                _FUTURE_WORDS,
-                _TIME_FUTURE_MARKERS,
-            )
-            for word in (_FUTURE_WORDS | _TIME_FUTURE_MARKERS):
-                w = str(word).strip()
-                if len(w) >= 2:
-                    jieba.add_word(w)
-                    added_count += 1
-        except Exception as e:  # noqa: BLE001
-            logger.warning(f"未能加载 FLS 前瞻词典注入jieba: {e}")
 
-        logger.info(f"成功注入 {added_count} 个领域自定义词汇到 jieba 分词树。")
+        logger.info(f"成功注入 {added_count} 个领域自定义词汇到独立 tone tokenizer。")
         _JIEBA_INJECTED = True
 
 # 注入操作延迟到 main() 中执行
 # _inject_custom_dicts_to_jieba()
 
 
+def _compute_lm_non_sentiment_for_text_tone_tok(
+    text: str,
+    dicts: dict[str, frozenset[str]],
+) -> dict[str, float]:
+    """LM 4 子词典扫描 — tone tokenizer 版 (fix omni-g-tonewords-10/-11 配套, 2026-06-11).
+
+    与只读模块 ``lm_non_sentiment._compute_lm_non_sentiment_for_text`` 逐项同语义
+    (lmfls-01 word-token 分母 / 空文本 NaN / 返回键结构), 唯一差异 = 分词器:
+    用注入了 LM 多字词的独立 tone tokenizer (``_get_tone_tokenizer``) 而非全局
+    jieba。注入隔离后全局分词器无 LM 复合词 — 若仍走全局, 多字 LM 词 (~18.5%)
+    会被切碎永不命中, completeness-02 修复将静默回归。``lm_non_sentiment.py``
+    按修复纪律只读, 故在本文件做 tokenizer 替换包装。
+
+    Args:
+        text: 待分析的中文文本。
+        dicts: ``load_lm_non_sentiment_dicts()`` 的 4 子词典 dict。
+
+    Returns:
+        与 ``_compute_lm_non_sentiment_for_text`` 同构:
+        {'n_tokens', 'n_uncert', 'frac_uncert', 'n_litig', 'frac_litig',
+         'n_constr', 'frac_constr', 'n_modal_strong', 'frac_modal_strong'}
+    """
+    empty = {
+        'n_tokens': 0,
+        'n_uncert': 0, 'frac_uncert': float('nan'),
+        'n_litig': 0, 'frac_litig': float('nan'),
+        'n_constr': 0, 'frac_constr': float('nan'),
+        'n_modal_strong': 0, 'frac_modal_strong': float('nan'),
+    }
+    if not text or not text.strip():
+        return empty
+
+    tokens = list(_get_tone_tokenizer().cut(text))
+    # lmfls-01 同口径: 分母 = word-token 数 (排除纯标点/纯数字)
+    word_tokens = [t for t in tokens if t.strip() and not _LMFLS_NONWORD_RE.fullmatch(t.strip())]
+    n_tokens = len(word_tokens)
+    if n_tokens == 0:
+        return empty
+
+    subsets = ('uncertainty', 'litigious', 'constraining', 'modal_strong')
+    counts = {s: 0 for s in subsets}
+    for tok in tokens:
+        for s in subsets:
+            if tok in dicts.get(s, frozenset()):
+                counts[s] += 1
+
+    return {
+        'n_tokens': n_tokens,
+        'n_uncert': counts['uncertainty'],
+        'frac_uncert': counts['uncertainty'] / n_tokens,
+        'n_litig': counts['litigious'],
+        'frac_litig': counts['litigious'] / n_tokens,
+        'n_constr': counts['constraining'],
+        'frac_constr': counts['constraining'] / n_tokens,
+        'n_modal_strong': counts['modal_strong'],
+        'frac_modal_strong': counts['modal_strong'] / n_tokens,
+    }
+
+
+def _empty_article_result() -> dict:
+    """空/无效/全空 token 文本的统一返回 (fix omni-g-tonewords empty-text contract, 2026-06-11).
+
+    契约对称化: score / ratio / msent 空文本 → NaN (缺失语义, 与 clarity/LM/FLS
+    的空文本 NaN 契约一致; 旧实现回填 0.0 伪中性, 在 panel 聚合中压低均值)。
+    label 维持 '中性' (类别列, 供 stats 计数), 可读性三列维持 0.0 (长度类, 空文本
+    长度为 0 是真值而非缺失)。
+    """
+    result: dict[str, Any] = {}
+    for dict_name, _ in ALL_DICTIONARIES:
+        result[f'{dict_name}_score'] = float('nan')
+        result[f'{dict_name}_label'] = '中性'
+        result[f'{dict_name}_pos_ratio'] = float('nan')
+        result[f'{dict_name}_neg_ratio'] = float('nan')
+    result['sentiment_details'] = ''
+
+    result['avg_sentence_len'] = 0.0
+    result['type_token_ratio'] = 0.0
+    result['char_per_word'] = 0.0
+    result['pos_ratio'] = float('nan')
+    result['neg_ratio'] = float('nan')
+    result['msent_score'] = float('nan')
+    # IDF 加权列一致性初始化（确保所有行返回相同 key 结构）
+    if IDF_DICTIONARIES is not None:
+        for dict_name, _ in IDF_DICTIONARIES:
+            result[f'{dict_name}_idf_score'] = float('nan')
+            result[f'{dict_name}_idf_label'] = '中性'
+    return result
+
+
 def _analyze_single_article(content: str) -> dict:
     """对单篇文章执行所有词典的情感分析。
 
-    分词只执行一次（jieba.cut），然后对每个词典独立计分。
+    分词只执行一次（独立 tone tokenizer, 见 ``_get_tone_tokenizer``），然后对每个
+    词典独立计分。
+
+    聚合列语义 (fix omni-g-tonewords-01/-05/-06, 2026-06-11):
+        - ``pos_ratio`` / ``neg_ratio`` / ``msent_score`` / ``sentiment_details``
+          的计数基 = 5 词典固定 **union 词典** (``build_union_dictionary``), 替代旧
+          "逐篇匹配数最多的词典" (best-dict, 测量工具跨观测漂移)。
+        - 全部比率分母 = **word-token** 数 (排除纯标点/纯数字 token, 复用
+          ``lm_non_sentiment._LMFLS_NONWORD_RE``, 与 lmfls-01 修复同口径)。
+        - 空文本契约: score/ratio/msent → NaN (见 ``_empty_article_result``)。
 
     Args:
         content: 文章内容文本。
 
     Returns:
-        dict: 包含各词典的得分、标签和最佳匹配详情。
+        dict: 包含各词典的得分、标签和 union 词典匹配详情。
     """
-    result: dict[str, Any] = {}
-
     if not isinstance(content, str) or not content.strip():
-        for dict_name, _ in ALL_DICTIONARIES:
-            result[f'{dict_name}_score'] = 0.0
-            result[f'{dict_name}_label'] = '中性'
-        result['sentiment_details'] = ''
+        return _empty_article_result()
 
-        result['avg_sentence_len'] = 0.0
-        result['type_token_ratio'] = 0.0
-        result['char_per_word'] = 0.0
-        result['pos_ratio'] = 0.0
-        result['neg_ratio'] = 0.0
-        # IDF 加权列一致性初始化（确保所有行返回相同 key 结构）
-        if IDF_DICTIONARIES is not None:
-            for dict_name, _ in IDF_DICTIONARIES:
-                result[f'{dict_name}_idf_score'] = 0.0
-                result[f'{dict_name}_idf_label'] = '中性'
-        return result
-
-    # 分词（单次调用，所有词典共享分词结果）
-    tokens = list(jieba.cut(content))
+    # 分词（单次调用，所有词典共享分词结果; fix omni-g-tonewords-10: 用独立
+    # tone tokenizer, 领域词注入不再污染全局 jieba）
+    tokens = list(_get_tone_tokenizer().cut(content))
 
     # 防御：极端文本（纯符号、纯控制字符）可能产生全空分词结果
     tokens = [t for t in tokens if t.strip()]
     if not tokens:
-        for dict_name, _ in ALL_DICTIONARIES:
-            result[f'{dict_name}_score'] = 0.0
-            result[f'{dict_name}_label'] = '中性'
-        result['sentiment_details'] = ''
+        return _empty_article_result()
 
-        result['avg_sentence_len'] = 0.0
-        result['type_token_ratio'] = 0.0
-        result['char_per_word'] = 0.0
-        result['pos_ratio'] = 0.0
-        result['neg_ratio'] = 0.0
-        result['msent_score'] = 0.0
-        # IDF 加权列一致性初始化（确保所有行返回相同 key 结构）
-        if IDF_DICTIONARIES is not None:
-            for dict_name, _ in IDF_DICTIONARIES:
-                result[f'{dict_name}_idf_score'] = 0.0
-                result[f'{dict_name}_idf_label'] = '中性'
-        return result
+    result: dict[str, Any] = {}
+
+    # fix(omni-g-tonewords-02/-06, 2026-06-11): 比率分母 word-token 化 — 排除纯标点/
+    # 纯数字 token (盘上实测占全 token 均值 ~19%, 逐篇 13–26% 非常数稀释), 与
+    # lm_non_sentiment lmfls-01 的 LM/FLS 分母修复同口径 (Garcia 2013 JF / LM 2011 JF
+    # 的 "fraction of words" 分母均为词数而非物理 token 数)。分子为词典词 (真词,
+    # 标点/数字本不命中), 仅分母收紧。
+    n_word_tokens = sum(1 for t in tokens if not _LMFLS_NONWORD_RE.fullmatch(t.strip()))
 
     # 对每个词典计算情感
-    best_detail: list[dict[str, Any]] = []
-    best_matched_count: int = 0
-    best_pos_count: int = 0
-    best_neg_count: int = 0
-
     for dict_name, sentiment_dict in ALL_DICTIONARIES:
         if not sentiment_dict:
             result[f'{dict_name}_score'] = 0.0
             result[f'{dict_name}_label'] = '中性'
+            # 词典缺失 → 比率不可测, NaN (与 fix omni-g-tonewords-13 缺失语义一致)
+            result[f'{dict_name}_pos_ratio'] = float('nan')
+            result[f'{dict_name}_neg_ratio'] = float('nan')
             continue
 
         raw_score, norm_score, pos_cnt, neg_cnt, matched = \
@@ -916,19 +1149,26 @@ def _analyze_single_article(content: str) -> dict:
         #   DOI: 10.1111/jofi.12027
         #   → 将正负面词汇分离为独立协变量, 避免净情感指标的极性对冲掩蔽
         # 用途: 下游 disag (情感分歧) 指标的单词典变体输入
-        _n = len(tokens)
-        result[f'{dict_name}_pos_ratio'] = round(pos_cnt / _n, 6) if _n > 0 else 0.0
-        result[f'{dict_name}_neg_ratio'] = round(neg_cnt / _n, 6) if _n > 0 else 0.0
+        # 分母 = word-token 数 (fix omni-g-tonewords-06); 纯标点/数字文本 → NaN
+        result[f'{dict_name}_pos_ratio'] = (
+            round(pos_cnt / n_word_tokens, 6) if n_word_tokens > 0 else float('nan'))
+        result[f'{dict_name}_neg_ratio'] = (
+            round(neg_cnt / n_word_tokens, 6) if n_word_tokens > 0 else float('nan'))
 
-        # 记录匹配词最多的词典的详情（用于最终输出和正/负面词频分离）
-        if len(matched) > best_matched_count:
-            best_matched_count = len(matched)
-            best_detail = matched
-            best_pos_count = pos_cnt
-            best_neg_count = neg_cnt
+    # ── 固定 union 词典扫描 (fix omni-g-tonewords-01/-05, 2026-06-11) ──
+    # pos_ratio / neg_ratio / msent_score / sentiment_details 的计数基从"逐篇匹配数
+    # 最多的词典" (best-dict, 胜出词典逐篇切换 → 测量工具跨观测不固定) 改为 5 词典
+    # 固定 union 词典 — 全样本同一词表, 兑现 Tetlock 2007 / Garcia 2013 / Henry 2008
+    # 的固定词表构念。
+    union_dict = _get_union_dictionary()
+    if union_dict:
+        _, _, union_pos_count, union_neg_count, union_matched = \
+            _compute_sentiment_with_rules(tokens, union_dict)
+    else:
+        union_pos_count, union_neg_count, union_matched = 0, 0, []
 
-    # 仅保留 Top-20 匹配词（按绝对影响力降序）
-    top_detail = sorted(best_detail, key=lambda x: abs(x['final']), reverse=True)[:20]
+    # 仅保留 Top-20 匹配词（按绝对影响力降序; union 词典口径）
+    top_detail = sorted(union_matched, key=lambda x: abs(x['final']), reverse=True)[:20]
     result['sentiment_details'] = json.dumps(top_detail, ensure_ascii=False) if top_detail else ''
 
 
@@ -954,20 +1194,23 @@ def _analyze_single_article(content: str) -> dict:
     # The Journal of Finance, 68(3), 1267-1300.
     # https://doi.org/10.1111/jofi.12027
     #
-    # Loughran, T., & McDonald, B. (2011). When is a liability not a liability? 
+    # Loughran, T., & McDonald, B. (2011). When is a liability not a liability?
     # Textual analysis, dictionaries, and 10-Ks. The Journal of Finance, 66(1), 35-65.
     # https://doi.org/10.1111/j.1540-6261.2010.01625.x
-    n_tokens = len(tokens)
-    result['pos_ratio'] = round(best_pos_count / n_tokens, 6) if n_tokens > 0 else 0.0
-    result['neg_ratio'] = round(best_neg_count / n_tokens, 6) if n_tokens > 0 else 0.0
+    # fix(omni-g-tonewords-01/-05/-06, 2026-06-11): 分子 = 固定 union 词典计数
+    # (替代 best-dict); 分母 = word-token 数 (排除纯标点/纯数字)。
+    result['pos_ratio'] = (
+        round(union_pos_count / n_word_tokens, 6) if n_word_tokens > 0 else float('nan'))
+    result['neg_ratio'] = (
+        round(union_neg_count / n_word_tokens, 6) if n_word_tokens > 0 else float('nan'))
 
     # ── 计数型情感指标 MSENT ──
     # 学术依据: 经典的基于净负面值占比的情感计量方法，提供稳健性交叉验证。
-    # Henry, E. (2008). Are investors influenced by how earnings press releases are written? 
+    # Henry, E. (2008). Are investors influenced by how earnings press releases are written?
     # Journal of Business Communication, 45(4), 363-407.
     # https://doi.org/10.1177/0021943608319388
     #
-    # Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market. 
+    # Tetlock, P. C. (2007). Giving content to investor sentiment: The role of media in the stock market.
     # The Journal of Finance, 62(3), 1139-1168.
     # https://doi.org/10.1111/j.1540-6261.2007.01232.x
     # MSENT = (Negative Words − Positive Words) / (Positive Words + Negative Words)
@@ -975,15 +1218,20 @@ def _analyze_single_article(content: str) -> dict:
     # 极性 (final 字段)。论文的 MSENT 基于词典查找, 不考虑否定/程度/转折修饰。
     # 例: "不好" 中 "好" 在词典中为正面词 → 计为 Positive, 即使 final_score < 0。
     # 与管道主得分 (normalized_score, 语言学加权) 互为稳健性检验。
-    raw_pos = sum(1 for m in best_detail if m['base'] > 0)
-    raw_neg = sum(1 for m in best_detail if m['base'] < 0)
+    # fix(omni-g-tonewords-01/-05, 2026-06-11): 计数基 = 固定 union 词典匹配
+    # (替代 best-dict); 全文无 word-token 时 → NaN (与 ratio 契约对称)。
+    raw_pos = sum(1 for m in union_matched if m['base'] > 0)
+    raw_neg = sum(1 for m in union_matched if m['base'] < 0)
     total_raw = raw_pos + raw_neg
-    result['msent_score'] = round(
-        (raw_neg - raw_pos) / total_raw, 6
-    ) if total_raw > 0 else 0.0
+    if n_word_tokens == 0:
+        result['msent_score'] = float('nan')
+    else:
+        result['msent_score'] = round(
+            (raw_neg - raw_pos) / total_raw, 6
+        ) if total_raw > 0 else 0.0
 
     # ── IDF 加权并行度量 (Gentzkow et al. 2019, JEL §2.2) ──
-    # 复用同一次 jieba.cut() 的 tokens，零额外分词开销
+    # 复用同一次 tone tokenizer 切词的 tokens，零额外分词开销
     if IDF_DICTIONARIES is not None:
         for dict_name, idf_dict in IDF_DICTIONARIES:
             if not idf_dict:
@@ -1061,8 +1309,10 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         # v3.5.2 PR #3 (A1): LM 4 non-sentiment 子词典真双轨扫描.
         # 关键 4 panel 列: uncert_frac_{full,ctx} / litig_frac_{full,ctx} /
         # constr_frac_{full,ctx} / modal_strong_frac_{full,ctx}.
-        lm_full = _compute_lm_non_sentiment_for_text(content_full, _lm_dicts)
-        lm_ctx = _compute_lm_non_sentiment_for_text(content_ctx, _lm_dicts)
+        # fix(omni-g-tonewords-10/-11, 2026-06-11): 改走 tone tokenizer 包装 —
+        # lm_non_sentiment 原函数内部用全局 jieba, 注入隔离后会把多字 LM 词切碎。
+        lm_full = _compute_lm_non_sentiment_for_text_tone_tok(content_full, _lm_dicts)
+        lm_ctx = _compute_lm_non_sentiment_for_text_tone_tok(content_ctx, _lm_dicts)
         for k in ('uncert', 'litig', 'constr', 'modal_strong'):
             merged[f'{k}_frac_full'] = lm_full.get(f'frac_{k}', float('nan'))
             merged[f'{k}_frac_ctx'] = lm_ctx.get(f'frac_{k}', float('nan'))
@@ -1233,6 +1483,33 @@ def log_classification_report(stats: dict, logger, track_suffix: str = ''):
     logger.info("=" * 70)
 
 
+def _zscore_or_nan(series: pd.Series, col_label: str) -> pd.Series:
+    """单列 Z-score 标准化; σ 退化时整列 NaN (fix omni-g-tonewords-13, 2026-06-11).
+
+    μ/σ 按 pandas 默认 skipna 计算; 正常分支 (σ>0) 中源 NaN 行自然传播为 NaN。
+    退化分支 (σ=0 常数列 / 全 NaN 列致 σ=NaN, ``NaN>0`` 为 False) 旧实现对**整列**
+    回填 0.0 — 全 NaN 列被静默抹成"恰均值"伪零分, 与正常分支的缺失语义不一致。
+    现退化 → 整列 NaN + logger.error 降级披露 (与 fintech_intensity F11 同款口径);
+    z-score 对常数列本就数学未定义 (0/0)。
+
+    Args:
+        series: 待标准化的得分列。
+        col_label: 日志用列标签 (如 ``"jiang_2021 [_full]"``)。
+
+    Returns:
+        pd.Series: z-score 列; σ 退化时为全 NaN 列。
+    """
+    mean_val = series.mean()
+    std_val = series.std()
+    if std_val > 0:
+        logger.info(f"  {col_label}: Z-score 标准化完成 (μ={mean_val:.4f}, σ={std_val:.4f})")
+        return (series - mean_val) / std_val
+    logger.error(
+        f"  {col_label}: Z-score 退化 (μ={mean_val!r}, σ={std_val!r}) → 整列置 NaN "
+        f"(fix omni-g-tonewords-13; 旧行为整列回填 0.0 伪零分, 缺失被抹成'恰均值')")
+    return pd.Series(np.nan, index=series.index)
+
+
 # ============================================================================
 # 7. 主函数
 # ============================================================================
@@ -1332,7 +1609,12 @@ def main():
                 for k, v in idf_weights.items()
             }
             serializable['_meta'] = {
-                'N': int(len(df)),
+                # fix(omni-g-tonewords-04, 2026-06-11): N = 唯一文档数, 与
+                # build_idf_weights 内部去重后公式中的 N 一致 (旧值 = article×bank
+                # 展开行数, 与实际公式分子不符); 展开行数另存 n_rows 供对账。
+                'N': int(df[_idf_text_col].fillna('').astype(str).nunique()),
+                'n_rows': int(len(df)),
+                'dedup': 'unique documents by text content (fix omni-g-tonewords-04)',
                 'formula': 'log10(N / (1 + df(w)))',
                 'normalization': 'mean=1 then Winsorize P1/P99',
                 'reference': 'Gentzkow, Kelly & Taddy (2019, JEL) §2.2',
@@ -1371,21 +1653,16 @@ def main():
     # P1-4: 为每个词典的得分列添加 Z-score 标准化列（双轨独立计算）
     # 解决跨词典量纲不一致问题，供 34_tone_validation.py 的 Cronbach's Alpha 分析使用
     # 注意：_full 和 _ctx 的 μ 和 σ 必须独立计算，因文本长度差异导致数值分布本质不同
+    # fix(omni-g-tonewords-13, 2026-06-11): σ 退化分支改整列 NaN (见 _zscore_or_nan),
+    # 不再回填 0.0 伪零分; 正常分支 NaN 传播行为不变。
     zscore_columns = {}
     for dict_name, _ in ALL_DICTIONARIES:
         for track in ['_full', '_ctx']:
             score_col = f"{dict_name}_score{track}"
             zscore_col = f"{dict_name}_zscore{track}"
             if score_col in processed_df.columns:
-                mean_val = processed_df[score_col].mean()
-                std_val = processed_df[score_col].std()
-                if std_val > 0:
-                    zscore_columns[zscore_col] = (
-                        processed_df[score_col] - mean_val) / std_val
-                else:
-                    zscore_columns[zscore_col] = pd.Series(
-                        0.0, index=processed_df.index)
-                logger.info(f"  {dict_name} [{track}]: Z-score 标准化完成 (μ={mean_val:.4f}, σ={std_val:.4f})")
+                zscore_columns[zscore_col] = _zscore_or_nan(
+                    processed_df[score_col], f"{dict_name} [{track}]")
 
     # IDF 列 Z-score 标准化
     if IDF_DICTIONARIES is not None:
@@ -1394,16 +1671,8 @@ def main():
                 score_col = f"{dict_name}_idf_score{track}"
                 zscore_col = f"{dict_name}_idf_zscore{track}"
                 if score_col in processed_df.columns:
-                    mean_val = processed_df[score_col].mean()
-                    std_val = processed_df[score_col].std()
-                    if std_val > 0:
-                        zscore_columns[zscore_col] = (
-                            processed_df[score_col] - mean_val) / std_val
-                    else:
-                        zscore_columns[zscore_col] = pd.Series(
-                            0.0, index=processed_df.index)
-                    logger.info(f"  {dict_name}_idf [{track}]: "
-                                f"Z-score (μ={mean_val:.4f}, σ={std_val:.4f})")
+                    zscore_columns[zscore_col] = _zscore_or_nan(
+                        processed_df[score_col], f"{dict_name}_idf [{track}]")
 
     if zscore_columns:
         processed_df = pd.concat(

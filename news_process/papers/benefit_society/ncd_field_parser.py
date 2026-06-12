@@ -43,6 +43,20 @@ EXPECTED_FIELDS = {
     "info_tech_invest_million_rmb": (float, (0.0, 100_000)),
 }
 
+# fix(omni-gapfill-12, 2026-06-12): prompt Rule 1 "亿元" 与 *_billion_rmb 字段名
+# 冲突 10× (1 billion = 10 亿; prompt 冻结不可改 → 解析侧启发式探测, 见
+# ncd_text_extractor.EXTRACTION_PROMPT 上方披露)。命中条件: 值越上界但 ÷10 落回
+# 区间 → 高度疑似 LLM 按 亿元 回答; 标记而非静默置 None。
+_UNIT_SUSPECT_FIELDS = ("total_assets_billion_rmb", "retail_deposit_billion_rmb")
+
+
+def detect_unit_mismatch(field_name: str, value: Any) -> bool:
+    """10× 单位错误启发式 (亿元 vs billion): 越上界但 ÷10 在区间内 → True。"""
+    if field_name not in _UNIT_SUSPECT_FIELDS or not isinstance(value, (int, float)):
+        return False
+    lo, hi = EXPECTED_FIELDS[field_name][1]
+    return value > hi and lo <= value / 10.0 <= hi
+
 
 # ---------------------------------------------------------------------------
 # 字段验证
@@ -83,14 +97,28 @@ def validate_record(parsed: dict) -> tuple[dict, list[str]]:
     """
     warnings: list[str] = []
     cleaned: dict = {}
+    unit_suspects: list[str] = []
     for field_name in EXPECTED_FIELDS:
         value = parsed.get(field_name)
         is_valid, err = validate_field(field_name, value)
         if is_valid:
             cleaned[field_name] = value
+        elif detect_unit_mismatch(field_name, value):
+            # fix(omni-gapfill-12, 2026-06-12): 越界 + ÷10 落回区间 → 疑似 prompt
+            # Rule 1 亿元/billion 10× 单位错误。不静默置 None 了之: 显式警告 +
+            # 记入 _unit_suspect_fields (records_to_panel 旁路列), 供人工/三角
+            # 对照 (triangulate unit_mismatch_*) 裁决; 值本身仍置 None (不自动
+            # ÷10 改写 — 无年报对照时缩放同样可能是错的)。
+            unit_suspects.append(field_name)
+            warnings.append(
+                f"  {field_name}: {err} — SUSPECTED 10x unit error "
+                f"(亿元 vs billion, prompt Rule 1 ambiguity; value/10={value / 10.0})"
+            )
+            cleaned[field_name] = None
         else:
             warnings.append(f"  {field_name}: {err}")
             cleaned[field_name] = None
+    cleaned["_unit_suspect_fields"] = unit_suspects
     return cleaned, warnings
 
 
@@ -148,6 +176,9 @@ def records_to_panel(records: list[dict], bank_id_lookup: dict[str, str] | None 
             "retail_dep": cleaned.get("retail_deposit_billion_rmb"),
             "info_tech": cleaned.get("info_tech_invest_million_rmb"),
             "source_pdf": rec.get("pdf_path", ""),
+            # fix(omni-gapfill-12, 2026-06-12): 10× 单位疑似旁路列 (';' 连接,
+            # '' = 无嫌疑), 供下游审计/三角对照过滤。
+            "unit_suspect_fields": ";".join(cleaned.get("_unit_suspect_fields", [])),
         })
 
     df = pd.DataFrame(rows)
@@ -200,12 +231,18 @@ def triangulate_with_annual_report(
     join_keys: tuple[str, str] = ("bank_id", "year"),
     fields_to_compare: tuple[str, ...] = ("total_assets", "npl", "car"),
     tolerance_pct: float = 5.0,
+    unit_quotient: float = 10.0,
+    unit_quotient_tol_pct: float = 10.0,
 ) -> pd.DataFrame:
     """Compare NCD-extracted fields with annual-report fields, flagging discrepancies.
 
     Returns
     -------
-    DataFrame with columns ``inconsistent_<field>`` (bool) for each compared field.
+    DataFrame with columns ``inconsistent_<field>`` (bool) for each compared field,
+    plus ``unit_mismatch_<field>`` (bool) — fix(omni-gapfill-12, 2026-06-12):
+    NCD/年报 取整商 ≈ ``unit_quotient`` (默认 10, ±``unit_quotient_tol_pct``%)
+    时标记为 亿元/billion 单位错误 (prompt Rule 1 ambiguity), 与普通数值不一致
+    区分 — 单位错可机械 ÷10 修复, 普通不一致须人工裁决。
     """
     merged = ncd_panel.merge(
         annual_report_panel,
@@ -213,13 +250,18 @@ def triangulate_with_annual_report(
         how="inner",
         suffixes=("_ncd", "_ar"),
     )
+    q_lo = unit_quotient * (1 - unit_quotient_tol_pct / 100.0)
+    q_hi = unit_quotient * (1 + unit_quotient_tol_pct / 100.0)
     for f in fields_to_compare:
         ncd_col = f"{f}_ncd"
         ar_col = f"{f}_ar"
         if ncd_col not in merged.columns or ar_col not in merged.columns:
             continue
-        diff_pct = (merged[ncd_col] - merged[ar_col]).abs() / merged[ar_col].replace(0, np.nan).abs() * 100
+        ar_nonzero = merged[ar_col].replace(0, np.nan).abs()
+        diff_pct = (merged[ncd_col] - merged[ar_col]).abs() / ar_nonzero * 100
         merged[f"inconsistent_{f}"] = diff_pct > tolerance_pct
+        quotient = merged[ncd_col].abs() / ar_nonzero
+        merged[f"unit_mismatch_{f}"] = quotient.between(q_lo, q_hi).fillna(False)
     return merged
 
 

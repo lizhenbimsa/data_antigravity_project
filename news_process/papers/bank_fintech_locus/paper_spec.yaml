@@ -36,15 +36,24 @@ mediator:  # R7-M04 + R9-m02 + R9-m04
     用于 16_mechanism.do.tmpl 的 Baron-Kenny mediation
 
 treatment:
-  primary_pair: [locus_layer_full, locus_scenario_full]  # R35-M02 derived from `innovation_locus_full`
-  primary_pair_construction:  # R35-M02 explicit derivation
-    locus_layer_full: 1 if innovation_locus_full == '底层技术' else 0  # 底层 (区块链/AI/云) indicator
-    locus_scenario_full: 1 if innovation_locus_full == '应用场景' else 0  # 应用 (支付/信贷/理财) indicator
+  primary_pair: [locus_layer_full, locus_scenario_full]  # R35-M02 derived; 唯一 producer = Stata 01_data_prep.do (不落 parquet)
+  primary_pair_construction:  # fix(omni-g-papers-misc-11, 2026-06-11): 与 01_data_prep.do.tmpl:41-43
+    # 实际推导对齐 — 由 panel 真实列 tech_frac/app_frac 主导类别二元化;
+    # 旧式 "1 if innovation_locus_full == '底层技术'" 引用的是文章级字符串 (不在 bank-year panel)
+    locus_layer_full: (tech_frac > app_frac) if both non-missing else missing  # 底层主导 (区块链/AI/云) indicator
+    locus_scenario_full: (app_frac > tech_frac) if both non-missing else missing  # 应用主导 (支付/信贷/理财) indicator
   secondary: [locus_gap]
   secondary_construction:
-    locus_gap: locus_layer_full - locus_scenario_full  # ∈ {-1, +1}
+    # fix(omni-g-papers-misc-05, 2026-06-11): 值域补 0 — 平票 (tech_frac == app_frac,
+    # 含两者皆 0) 时两 dummy 同为 0 → gap=0 (作参照组), 与模板注释 '∈ {-1, 0, +1}' 一致
+    locus_gap: locus_layer_full - locus_scenario_full  # ∈ {-1, 0, +1}
 
 controls:
+  # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/
+  # leverage/capital_ratio/npl_ratio/deposit_growth) + year_level 宏观 2 列
+  # (gdp_growth/m2_growth) 在当前 bank-year panel (40/51) 全为 0 命中 —
+  # enrichment pending (M0.5.11 / config/银行面板2007-2025年.xlsx 待接入)。
+  # 复现包 01_data_prep 以 capture confirm 自校验拼装 $controls, 只用实存列。
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]

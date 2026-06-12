@@ -56,12 +56,16 @@ if !_rc {
 * ============================================================================
 * (b) SOE × non-SOE split
 * ============================================================================
-capture confirm variable soe
+* fix(omni-g-templates-08, 2026-06-11): SOE 二元列在面板中实名 is_soe (int64,
+* runner.py:909 `is_soe = (bank_type=='soe')`), 旧 `confirm variable soe` 引用幻影列
+* → SOE×非SOE 切分在任何 T 下永久静默跳过 (st-did-05 修复已在 substance/17 改对,
+* 漏本站; 现对齐)。
+capture confirm variable is_soe
 if !_rc {
-    reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if soe == 1, ///
+    reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if is_soe == 1, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo soe_1
-    reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if soe == 0, ///
+    reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if is_soe == 0, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo soe_0
 }
@@ -86,11 +90,27 @@ if !_rc {
     }
 }
 
-esttab wave_* layer_x_wave_interact soe_* type_* ///
-    using "$tables_dir/table4_heterogeneity.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Table 4 — Heterogeneity (P4 locus; 三波 fintech 浪潮 × SOE × 4 bank types)") ///
-    addnotes("Wave definition (R4-M03 三波严格对称): pre/wave_1/wave_2/consolidation/wave_3." ///
-             "Small-cell warning (R7-m01): cell N<10 skipped.")
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — layer_x_wave_interact 在
+* 守卫块内 (wave_* 缺失即跳过), 旧版硬点名缺名 → r(111) 丢整表; 通配 wave_*/soe_*/
+* type_* 零匹配同样 r(111)。本文件开头 clear all 已清空估计命名空间。
+qui estimates dir
+local models `r(names)'
+if "`models'" == "" {
+    display as error "  [WARN] Table 4 无任何已存储估计 (全部切分被守卫跳过), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/table4_heterogeneity.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("Table 4 — Heterogeneity (P4 locus; 三波 fintech 浪潮 × SOE × 4 bank types)") ///
+        addnotes("Wave definition (R4-M03 三波严格对称): pre/wave_1/wave_2/consolidation/wave_3." ///
+                 "Small-cell warning (R7-m01): cell N<10 skipped.")
 
-display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex"
+    * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_locus/
+    * tables.py:build_table4_heterogeneity 经 read_paper_esttab(..., 'table4_heterogeneity.csv') 消费。
+    estout `models' using "$tables_dir/table4_heterogeneity.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+
+    display "[OK] Table 4 (heterogeneity) → $tables_dir/table4_heterogeneity.tex (+ .csv side-channel)"
+}

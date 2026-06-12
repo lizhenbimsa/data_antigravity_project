@@ -29,7 +29,15 @@ capture mkdir "$figures_dir"
 * ----------------------------------------------------------------------------
 * 1. Data prep — load panel, xtset, define $controls
 * ----------------------------------------------------------------------------
-do 01_data_prep.do
+* fix(omni-g-replication-01, 2026-06-11): 01_data_prep 失败时 fail-loud 带可读原因
+* (常见原因: 外部财务列未接入 — ROA/CAR/ln_assets 族, 见 config/银行面板2007-2025年.xlsx
+* 接入计划与 paper_spec.yaml enrichment_source), 而非裸 r(198) 中断。
+capture noisily do 01_data_prep.do
+local _prep_rc = _rc
+if `_prep_rc' {
+    display as error "[FATAL] 01_data_prep.do failed (rc=`_prep_rc') — 复现包中止; 详见上方 [ERROR] 行 (多为外部财务数据未接入)"
+    exit `_prep_rc'
+}
 
 * ----------------------------------------------------------------------------
 * 2. Table 1: descriptive statistics

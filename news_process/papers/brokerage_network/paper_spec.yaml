@@ -30,6 +30,13 @@ treatment:
   alternative: [peer_tone_lag1_ctx]
 
 controls:
+  # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/
+  # leverage/capital_ratio/npl_ratio/deposit_growth) + year_level 宏观 2 列
+  # (gdp_growth/m2_growth) 在当前 bank-year panel (40/51) 全为 0 命中 —
+  # enrichment pending (M0.5.11 / config/银行面板2007-2025年.xlsx 待接入)。
+  # (centrality 3 列 bank_between_cent/bank_constraint/brokerage_eigen_cent 为
+  # panel 实存列, 不受影响。) 当前复现包实际控制集为 coverage 代理
+  # (derivative_replication CONTROLS): ln_news_coverage media_hhi bank_scale_ord。
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth, bank_between_cent,
     bank_constraint, brokerage_eigen_cent]
   year_level: [gdp_growth, m2_growth]

@@ -60,4 +60,11 @@ esttab Sc_* using "$tables_dir/table8b_shrinkage_dual.tex", replace ///
     addnotes("Companion to Table 8 (full track). Joint acceptance: " ///
              "(a) full + ctx both same-sign; (b) |beta_diff|/|beta_raw| < 30%.")
 
-display "[OK] Table 8b shrinkage ctx --> $tables_dir/table8b_shrinkage_dual.tex"
+* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+* tables.py:build_table_8b_shrinkage_dual 经 read_paper_esttab(...,
+* 'table8b_shrinkage_dual.csv') 消费 (parse_esttab_csv 格式)。
+estout Sc_* using "$tables_dir/table8b_shrinkage_dual.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01) mlabels("Raw" "Shrunk" "Inv-Weight")
+
+display "[OK] Table 8b shrinkage ctx --> $tables_dir/table8b_shrinkage_dual.tex (+ .csv side-channel)"

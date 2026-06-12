@@ -33,7 +33,9 @@
   → 认知邻近度的理论基础 (五维邻近度框架)
 
 关键设计:
-  - 邻接矩阵: A[i,j] = bank_i 与 bank_j 在 Year t 的新闻共现次数
+  - 邻接矩阵: A[i,j] = bank_i 与 bank_j 在 Year t 的新闻共现篇数
+    (both-verified 口径: 每篇文章对每条边只计 1 次, 且仅当两家银行的
+    twin 行均通过 verification 过滤幸存; fix omni-g-net-spill-01)
   - 行随机标准化: W[i,j] = A[i,j] / Σ_k A[i,k], 每行和为 1
     防止大银行规模主导网络权重 (类比空间计量的空间权重矩阵)
   - 网络压力: peer_tone_i,t = Σ_j W[i,t-1] × tone_j,t-1
@@ -94,33 +96,40 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 # ============================================================================
 # 2. 邻接矩阵构建
 # ============================================================================
-# co_mentioned_banks 列由 11_news_bank.py 在实体匹配阶段生成,
-# 格式为分号分隔字符串, 如 "工商银行;建设银行;农业银行"。
+# fix(omni-g-net-spill-01, 2026-06-11): 主路径改按 docid 聚合 (both-verified,
+# 每篇文章每对 +1), 不再消费 stage-11 的陈旧 co_mentioned_banks token —
+# 该列在 stage 21 verification 过滤后仍列出已被拒绝的银行 (phantom 边来源)。
+# co_mentioned_banks 仅作无 docid 旧 schema 的降级兜底。
 # 该矩阵是后续所有网络指标 (溢出、中心度) 的共同基础。
 
 def build_adjacency_matrix(
-    df_exploded: pd.DataFrame, 
+    df_exploded: pd.DataFrame,
     year: int
 ) -> tuple[pd.DataFrame, list[str]]:
-    """构建年度银行共现邻接矩阵。
+    """构建年度银行共现邻接矩阵 (both-verified, 每篇文章每对 +1)。
 
-    从 co_mentioned_banks 列解析共现关系:
-      如果文章 k 同时提及银行 A 和银行 B,
-      则 A[A,B] += 1, A[B,A] += 1 (对称)。
+    fix(omni-g-net-spill-01, 2026-06-11) 边权口径统一: 旧实现对 verification
+    过滤后的展开帧 (article × bank) 逐行解析 stage-11 的 co_mentioned_banks
+    并双向 +1 — 同一文章两 twin 行均幸存 → 该对计 2, 仅一行幸存 → 计 1
+    (1x/2x 任意混合); 且 co_mentioned_banks 仍列出 verification 已拒绝的
+    银行 → phantom 边入网。现按 docid 聚合: 文章 k 在帧中幸存的
+    target_bank 集合 (即均通过 verification 的银行) 内每无序对 {A,B}
+    恰好 A[A,B] += 1, A[B,A] += 1 (对称, 每篇文章 +1)。
 
     注: 由此矩阵计算的 bank_degree_cent (Freeman 1979 度中心度)
     在传染病扩散框架中等价于 Dahlke et al. (2024, RP) 的 degree_ai,
     即银行在金融科技信息网络中的连接程度。
 
     Args:
-        df_exploded: 篇章级 DataFrame, 须含 co_mentioned_banks 列
+        df_exploded: 篇章级 DataFrame, 须含 docid 列 (both-verified 主路径);
+            缺 docid 时按 co_mentioned_banks 旧口径降级 (见下方警告)
         year: 目标年份
 
     Returns:
         adj_df: 对称邻接矩阵 DataFrame (index=columns=银行列表)
         bank_list: 银行名称列表
     """
-    df_year = df_exploded[df_exploded['year'] == year].copy()
+    df_year = df_exploded[df_exploded['year'] == year]
 
     if df_year.empty:
         return pd.DataFrame(), []
@@ -136,25 +145,42 @@ def build_adjacency_matrix(
     # 构建稀疏邻接矩阵
     adj = lil_matrix((n, n), dtype=np.float64)
 
-    for _, row in df_year.iterrows():
-        target = row['target_bank']
-        co_banks_raw = row.get('co_mentioned_banks', '')
+    if 'docid' in df_year.columns:
+        # fix(omni-g-net-spill-01, 2026-06-11): both-verified 主路径 —
+        # 同 docid 下幸存的 target_bank 行集合内逐无序对 +1 (每篇文章每对恰 1 次)。
+        for _docid, banks in df_year.groupby('docid')['target_bank']:
+            uniq = sorted(set(banks))
+            for a_pos in range(len(uniq)):
+                i = bank_to_idx[uniq[a_pos]]
+                for b_pos in range(a_pos + 1, len(uniq)):
+                    j = bank_to_idx[uniq[b_pos]]
+                    adj[i, j] += 1
+                    adj[j, i] += 1  # 对称
+    else:
+        # ⚠ 口径降级 (兼容兜底, 仅旧 schema/合成帧): 无 docid 键无法按文章聚合 →
+        # 退回 co_mentioned_banks 逐行双向计数 (含 1x/2x 混合与 phantom 边)。
+        logger.warning(
+            f"  年份 {year}: df_exploded 缺 docid 列, 邻接矩阵退化为 "
+            f"co_mentioned_banks 逐行计数口径 (含 1x/2x 混合与 phantom 边)")
+        for _, row in df_year.iterrows():
+            target = row['target_bank']
+            co_banks_raw = row.get('co_mentioned_banks', '')
 
-        if pd.isna(co_banks_raw) or str(co_banks_raw).strip() == '':
-            continue
+            if pd.isna(co_banks_raw) or str(co_banks_raw).strip() == '':
+                continue
 
-        # co_mentioned_banks 是分号分隔的字符串
-        co_banks = [b.strip() for b in str(co_banks_raw).split(';') if b.strip()]
+            # co_mentioned_banks 是分号分隔的字符串
+            co_banks = [b.strip() for b in str(co_banks_raw).split(';') if b.strip()]
 
-        i = bank_to_idx.get(target)
-        if i is None:
-            continue
+            i = bank_to_idx.get(target)
+            if i is None:
+                continue
 
-        for co_bank in co_banks:
-            j = bank_to_idx.get(co_bank)
-            if j is not None and i != j:  # 排除自环
-                adj[i, j] += 1
-                adj[j, i] += 1  # 对称
+            for co_bank in co_banks:
+                j = bank_to_idx.get(co_bank)
+                if j is not None and i != j:  # 排除自环
+                    adj[i, j] += 1
+                    adj[j, i] += 1  # 对称
 
     adj_csr = adj.tocsr()
     adj_df = pd.DataFrame(adj_csr.toarray(), index=all_banks, columns=all_banks)
@@ -213,8 +239,11 @@ def compute_network_spillovers(
     logger.info("步骤: 同行网络传染/溢出效应计算")
     logger.info("=" * 60)
 
-    if 'co_mentioned_banks' not in df_exploded.columns:
-        logger.warning("  co_mentioned_banks 列不存在, 跳过网络溢出计算")
+    # fix(omni-g-net-spill-01, 2026-06-11): docid 是 both-verified 主路径键;
+    # co_mentioned_banks 仅作降级兜底 — 两者皆缺才跳过。
+    if ('docid' not in df_exploded.columns
+            and 'co_mentioned_banks' not in df_exploded.columns):
+        logger.warning("  docid / co_mentioned_banks 列均不存在, 跳过网络溢出计算")
         return panel
 
     # 确保年份列
@@ -287,8 +316,12 @@ def compute_network_spillovers(
             # IV 含本行自身滞后 tone 违排他性。同样仅对观测同行重归一 (与一阶同口径)。
             # ⚠ 行为披露 (NSP-B): 因 W² 去对角后行和≠1, 本重归一对**所有行**(非仅缺 tone 行)
             # 改变 peer_tone_2nd 标度 —— 从旧"路径概率加权和"变为"二阶邻居加权均值"(更可解释,
-            # 与一阶同口径)。peer_tone_2nd 作 brokerage IV 工具变量 (brokerage_network spec),
-            # 2SLS 对工具的标度变换不变 (相关性/排他性不变, W² 去对角守住), 故不破坏识别。
+            # 与一阶同口径)。peer_tone_2nd 作 brokerage IV 工具变量 (brokerage_network spec)。
+            # fix(omni-g-net-spill-06, 2026-06-11) 标度声明勘误: 本重归一是对工具的
+            # **逐观测 (row-specific) 确定性变换**, 不是全局标量缩放 — 2SLS 仅对工具集的
+            # 全局非奇异线性变换不变, 行特定除数会改变工具的截面变异、第一阶段系数与
+            # F 统计量 (旧注释"相关性不变"不成立)。但除数由外生网络结构确定, 工具
+            # 外生性/排他性不受影响 (W² 去对角守住), 识别有效性保持。
             W2 = W_arr @ W_arr
             np.fill_diagonal(W2, 0.0)
             denom2 = W2[:, obs_mask].sum(axis=1)
@@ -424,7 +457,9 @@ def compute_bank_network_centrality(
       - 路径型指标 (betweenness/harmonic/closeness/eccentricity) 使用
         倒数权重图 G_inv (edge_weight = 1/w)
       - CFB 使用原始图 (weight = 电导语义)
-      - eigenvector 三级 fallback: 全图 power → numpy(LCC) → NaN
+      - eigenvector 三级 fallback: 全图 power → numpy(LCC) → NaN;
+        非主分量/非 LCC 银行两级均兜底 0.0 (fix omni-g-net-spill-05,
+        退化语义跨年一致, 不随数值收敛性漂移)
       - 断连图: CFB/eccentricity/avg_path 仅对最大连通分量计算
 
     Args:
@@ -519,8 +554,12 @@ def compute_bank_network_centrality(
             try:
                 ec_lcc = nx.eigenvector_centrality_numpy(
                     G_lcc, weight='weight')
+                # fix(omni-g-net-spill-05, 2026-06-11): 非 LCC 银行兜底 0.0 (原 np.nan) —
+                # 主路径全图 power 迭代下非主特征分量节点收敛到 ≈0, fallback 改 NaN 会让
+                # 同列 bank_eigen_cent 对结构同类银行的取值 (0 vs NaN) 由数值收敛性
+                # 而非网络结构决定 (跨年缺失模式漂移)。统一退化语义为 0.0。
                 for b in bank_list:
-                    metrics[b]['bank_eigen_cent'] = ec_lcc.get(b, np.nan)
+                    metrics[b]['bank_eigen_cent'] = ec_lcc.get(b, 0.0)
                 eigen_done = True
             except Exception:
                 pass
@@ -936,15 +975,18 @@ def compute_cognitive_proximity(
 #   → 使用 Lag(Y-1) 规避同期反射问题
 #
 # 流程:
-#   1. 按银行×年份聚合文本 (标题+内容)
-#   2. 截断至 8000 字符 (API token 限制)
+#   1. 按银行×年份聚合文本 (标题+内容, docid 升序确定性拼接)
+#   2. 超长超级文档由 embedding_engine 分块 + token 加权 mean pooling
+#      (fix omni-g-net-spill-02: 旧 8000 字符前缀截断已移除 — 截断只保留
+#      行序最先若干篇文章前缀, 非代表性样本)
 #   3. 调用 yunwu.ai/v1/embeddings (降级: sentence-transformers)
-#   4. cosine_similarity → 对角线置零 → row_stochastic_normalize
+#   4. cosine_similarity → 对角线置零 → 负值 clip → row_stochastic_normalize
 #   5. emb_peer_tone = W_emb(t-1) × tone(t-1) (滞后一期)
 #
 # 输出:
-#   emb_peer_tone_lag1_full: Embedding 加权同行情感 (控制变量)
-#   bank_emb_sim_mean:       银行 Embedding 平均相似度 (控制变量)
+#   emb_peer_tone_lag1_full:  Embedding 加权同行情感 (控制变量)
+#   bank_emb_sim_mean_lag1:   银行 Embedding 平均相似度 (基于 t-1 文本, 控制变量;
+#                             fix omni-g-net-spill-03: 列名显式披露 lag)
 # ============================================================================
 
 # 读取 LLM 配置 (与 21_tone_llms.py 共享同一份 config.yaml 配置)
@@ -1171,23 +1213,33 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
     suffix 在指标名上注入轨道标识 (canonical 主轨 = ""; ROBUSTNESS 稳健轨 = "_t2v"),
     插在 ``_full``/``_ctx`` 之类的轨道后缀之前 (无轨道后缀时直接追加在末尾):
       emb_peer_tone_lag1_full  →  emb_peer_tone_lag1{suffix}_full
-      bank_emb_sim_mean        →  bank_emb_sim_mean{suffix}
+      bank_emb_sim_mean_lag1   →  bank_emb_sim_mean_lag1{suffix}
 
     每遍用 **自己的 spec 独立嵌入** 自己的文本, 绝不混用 API(1536d)/text2vec(768d) 向量。
     维度无关 (cosine 在任意维度上都成立)。
+
+    fix(omni-g-net-spill-02, 2026-06-11): 移除 8000 字符前缀截断 — 旧实现只嵌入
+    bank-year 超级文档行序最先若干篇文章的前缀 (盘上 30.5% bank-year 被截, 被截组
+    中位仅留 37.5% 文本; T=18 下退化更剧)。现把完整超级文档交 embedding_engine
+    (split_text_for_embedding 分块 + 逐块 L2 归一 token 加权 mean pooling) 编码全文;
+    同时拼接顺序改 docid 升序确定性排序 (旧实现依赖上游行序)。⚠ 块文本变 → API 轨
+    缓存键变, 下次 production run 将对超长 bank-year 触发新 embedding 调用。
+
+    fix(omni-g-net-spill-03, 2026-06-11): sim 列重命名 bank_emb_sim_mean →
+    bank_emb_sim_mean_lag1 (及 _t2v) — 该值由 t-1 超级文档算出 (与 emb_peer_tone_lag1
+    同一 sim_matrix), 旧名无 lag 标记, 与 bank_cogn_mean (当年文本) 口径混淆。
     """
     text_col = '内容'
     title_col = '标题'
-    MAX_CHARS = 8000  # 截断阈值: ~4000 中文字 ≈ 5000 tokens
 
     # dual-track parity (2026-06-08): W_emb 同业网基于文本相似度 (track-agnostic), 与被传播
     # 的 tone 无关 → 用同一 W_emb 同时传播 full / ctx 两轨 tone, 零额外嵌入 ($0)。此前仅
     # _full (emb_peer_tone_lag1{suffix}_full), 缺 _ctx 孪生; panel 已有 llm_vote_tone_ctx
-    # 可直接喂入。sim_key (bank_emb_sim_mean) 是文本相似度均值, track-agnostic, 不分轨。
+    # 可直接喂入。sim_key (bank_emb_sim_mean_lag1) 是文本相似度均值, track-agnostic, 不分轨。
     _tone_tracks = [('_full', 'llm_vote_tone_full')]
     if 'llm_vote_tone_ctx' in panel.columns:
         _tone_tracks.append(('_ctx', 'llm_vote_tone_ctx'))
-    sim_key = f'bank_emb_sim_mean{suffix}'
+    sim_key = f'bank_emb_sim_mean_lag1{suffix}'  # fix(omni-g-net-spill-03, 2026-06-11)
 
     years = sorted(panel['year'].unique())
     emb_results = {}  # key: (bank, year), value: dict
@@ -1199,6 +1251,14 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         if df_lag.empty:
             logger.info(f"  年份 {year}: 滞后年 {lag_year} 无数据, 跳过")
             continue
+
+        # fix(omni-g-net-spill-02, 2026-06-11): 超级文档拼接顺序确定性 — 旧实现
+        # 依赖上游行序 (groupby 保留帧内顺序), 行序漂移 → 拼接文本漂移 → 向量漂移。
+        # 按 docid (缺则 日期/标题) 稳定升序排序后再聚合。
+        _sort_keys = [c for c in ('docid', '日期', '标题')
+                      if c in df_lag.columns]
+        if _sort_keys:
+            df_lag = df_lag.sort_values(_sort_keys, kind='mergesort')
 
         # ── 1. 按银行聚合文本 (复用 _concat_text 模式) ──
         def _concat_text_emb(group):
@@ -1217,8 +1277,9 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
             logger.info(f"  年份 {year}: 仅 {n_banks} 家银行, 跳过")
             continue
 
-        # ── 2. 截断至 MAX_CHARS ──
-        texts = [t[:MAX_CHARS] for t in bank_texts.values]
+        # ── 2. 完整超级文档 (fix omni-g-net-spill-02: 不再 8000 字符前缀截断;
+        #       超长文本由 _eng.embed_texts 内部分块 + token 加权 mean pooling) ──
+        texts = list(bank_texts.values)
 
         # ── 3. 获取 Embedding (本 spec 独立嵌入; 经统一引擎 _eng) ──
         emb_matrix = _embed_peer_texts(texts, year=year, spec=spec)
@@ -1236,7 +1297,17 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
             sim_matrix = normed @ normed.T
 
         np.fill_diagonal(sim_matrix, 0)  # 自身不算同行
-        sim_df = pd.DataFrame(sim_matrix, index=bank_list, columns=bank_list)
+        # fix(omni-g-net-spill-04, 2026-06-11): W_emb 构造前 clip 负 cosine —
+        # row_stochastic_normalize 对含负项的行做行和归一会产生负"权重"
+        # (加权均值语义破坏, 行和分母可被负项侵蚀至 ≤0 → 静默 NaN/符号翻转)。
+        # cosine 非负性无保证 (text2vec/768d 轨与异质语料下负值可发生), 显式告警披露。
+        _n_neg_sim = int((sim_matrix < 0).sum())
+        if _n_neg_sim:
+            logger.warning(
+                f"  年份 {year}: sim_matrix 含 {_n_neg_sim} 个负 cosine, "
+                f"W_emb 构造前 clip 为 0 (sim_mean 仍基于未 clip 真值)")
+        sim_w = np.clip(sim_matrix, 0.0, None)
+        sim_df = pd.DataFrame(sim_w, index=bank_list, columns=bank_list)
         W_emb = row_stochastic_normalize(sim_df)
 
         # ── 5. emb_peer_tone = W_emb(t-1) × tone(t-1), 两轨共享同一 W_emb ──
@@ -1271,9 +1342,12 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
             _track_tone_vecs[_track] = np.where(denom > 0, _ept, np.nan)
 
         for idx, bank in enumerate(bank_list):
-            # 平均相似度: 该银行与所有其他银行的 Embedding 余弦相似度均值
-            sim_row = sim_matrix[idx].copy()
-            sim_mean = float(np.mean(sim_row[sim_row > 0])) if (sim_row > 0).any() else np.nan
+            # 平均相似度: 该银行与所有其他银行的 Embedding 余弦相似度均值。
+            # fix(omni-g-net-spill-04, 2026-06-11): 按索引排除对角 (np.delete), 而非
+            # 旧 sim_row>0 符号筛选 — 旧实现把"排除对角线"与"按符号筛选"混同, 非正
+            # cosine 同行被静默剔除 (实为"仅正相似度均值"), 且使 [0,1] 下界断言
+            # 结构性不可触发。基于未 clip 的真实 cosine (n_banks >= 2 已守卫)。
+            sim_mean = float(np.mean(np.delete(sim_matrix[idx], idx)))
             _entry = {sim_key: sim_mean}
             for _track, _ept in _track_tone_vecs.items():
                 _entry[f'emb_peer_tone_lag1{suffix}{_track}'] = _ept[idx]
@@ -1297,13 +1371,17 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     作为内生性处理的控制变量。
 
     双轨 (v3.7.x): 主轨 (MAIN spec = text-embedding-3-small) 写 canonical 列
-    (emb_peer_tone_lag1_full / bank_emb_sim_mean); 稳健轨 (ROBUSTNESS spec =
+    (emb_peer_tone_lag1_full / bank_emb_sim_mean_lag1); 稳健轨 (ROBUSTNESS spec =
     shibing624/text2vec) 用 **各自独立的 spec 嵌入各自的文本** 写同名 + '_t2v' 列
-    (emb_peer_tone_lag1_t2v_full / bank_emb_sim_mean_t2v)。稳健轨失败时其 '_t2v'
-    列填 NaN 并记日志, 不影响 canonical 主轨。
+    (emb_peer_tone_lag1_t2v_full / bank_emb_sim_mean_lag1_t2v)。稳健轨失败时其
+    '_t2v' 列填 NaN 并记日志, 不影响 canonical 主轨。
+
+    fix(omni-g-net-spill-02/03/04, 2026-06-11): 完整超级文档分块嵌入 (去 8000 字符
+    前缀截断) + sim 列加 _lag1 显式披露 t-1 文本口径 + sim_mean 按索引去对角
+    (真实 cosine 域 [-1,1], 不再 sim_row>0 符号筛选)。
 
     方法论:
-      - 权重矩阵 W_emb 基于 Embedding 余弦相似度, 非二值共现
+      - 权重矩阵 W_emb 基于 Embedding 余弦相似度 (负值 clip 为 0), 非二值共现
       - 滞后一期 (t-1) 避免 Manski (1993) 反射问题
       - 双模型独立嵌入 (API 1536d / text2vec 768d 绝不混用; 维度无关)
 
@@ -1312,8 +1390,9 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         panel: 银行-年份面板 DataFrame
 
     Returns:
-        panel: 追加 emb_peer_tone_lag1_full, bank_emb_sim_mean
-               + 稳健 twin emb_peer_tone_lag1_t2v_full, bank_emb_sim_mean_t2v 列的面板
+        panel: 追加 emb_peer_tone_lag1_full, bank_emb_sim_mean_lag1
+               + 稳健 twin emb_peer_tone_lag1_t2v_full, bank_emb_sim_mean_lag1_t2v
+               列的面板
 
     References:
         Hoberg, G., & Phillips, G. (2016). JPE, 124(5), 1423-1465.
@@ -1329,7 +1408,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         logger.warning(f"  {tone_col} 不存在, 跳过 Embedding 同业网络")
         return panel
 
-    # ── 主轨 (canonical): MAIN spec → emb_peer_tone_lag1_full / bank_emb_sim_mean ──
+    # ── 主轨 (canonical): MAIN spec → emb_peer_tone_lag1_full / bank_emb_sim_mean_lag1 ──
     emb_results = _compute_embedding_peer_network_pass(
         df_exploded, panel, spec=EMBEDDING_CONFIG, suffix="")
 
@@ -1340,11 +1419,13 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         ])
         panel = panel.merge(emb_df, on=['target_bank', 'year'], how='left')
 
-        # 范围断言
-        valid_sim = panel['bank_emb_sim_mean'].dropna()
+        # 范围断言 — fix(omni-g-net-spill-04, 2026-06-11): sim_mean 现为真实 cosine
+        # 域 (可含负), 断言界从 [0,1] 改为 [-1,1] (旧 [0,1] 下界因 sim_row>0
+        # 符号筛选结构性不可触发, 属自我掩蔽断言)。
+        valid_sim = panel['bank_emb_sim_mean_lag1'].dropna()
         if len(valid_sim) > 0:
-            assert (valid_sim >= -1e-10).all() and (valid_sim <= 1 + 1e-10).all(), \
-                f"bank_emb_sim_mean 超出 [0,1]: [{valid_sim.min():.6f}, {valid_sim.max():.6f}]"
+            assert (valid_sim >= -1 - 1e-10).all() and (valid_sim <= 1 + 1e-10).all(), \
+                f"bank_emb_sim_mean_lag1 超出 [-1,1]: [{valid_sim.min():.6f}, {valid_sim.max():.6f}]"
             logger.info(f"  Embedding 同业网络已合并: {len(valid_sim):,} 有效值, "
                         f"sim_mean={valid_sim.mean():.4f}")
     else:
@@ -1356,7 +1437,7 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     t2v_tone_cols = ['emb_peer_tone_lag1_t2v_full']
     if 'llm_vote_tone_ctx' in panel.columns:
         t2v_tone_cols.append('emb_peer_tone_lag1_t2v_ctx')
-    t2v_sim_col = 'bank_emb_sim_mean_t2v'
+    t2v_sim_col = 'bank_emb_sim_mean_lag1_t2v'  # fix(omni-g-net-spill-03, 2026-06-11)
     if not _ROBUSTNESS_SPEC:
         logger.info("  无 embedding_robustness spec, 跳过 _t2v 稳健轨")
         for _c in (*t2v_tone_cols, t2v_sim_col):

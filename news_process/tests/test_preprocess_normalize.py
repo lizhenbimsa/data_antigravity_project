@@ -26,9 +26,10 @@ def test_tail_cleanup_repl_repeated_char_keeps_two():
 def test_tail_cleanup_repl_redundant_punct_keeps_one():
     """重复标点 (3+ 同字符) 走 group(1) 分支 → 保留 2 个 (。。。→ 。。).
 
-    注意 TAIL_CLEANUP_PATTERN 第一个 alternation `(.)\1{2,}` 优先, 故 3+ 重复
-    标点会先匹配 group(1), 返回 g1*2 = 2 字符. group(2) `(标点)\2+` 只对 2-长
-    重复触发 (此时不命中 g1).
+    注意 TAIL_CLEANUP_PATTERN 第一个 alternation `([^0-9])\1{2,}` 优先
+    (fix omni-g-preprocess-01: 重复压缩支排除数字), 故 3+ 重复标点会先匹配
+    group(1), 返回 g1*2 = 2 字符. group(2) `(标点)\2+` 只对 2-长重复触发
+    (此时不命中 g1).
     """
     from news_process.pipeline.preprocess._constants import TAIL_CLEANUP_PATTERN
     from news_process.pipeline.preprocess.normalize import _tail_cleanup_repl
@@ -38,7 +39,8 @@ def test_tail_cleanup_repl_redundant_punct_keeps_one():
 def test_tail_cleanup_repl_two_repeated_punct_keeps_one():
     """2 个重复标点 → group(2) 分支 → 保留 1 个 (。。→ 。).
 
-    `(.)\1{2,}` 要求 3+ 重复, 2 重复落 group(2) `(标点)\2+` 一次匹配 → return g2.
+    `([^0-9])\1{2,}` 要求 3+ 重复 (fix omni-g-preprocess-01 排除数字),
+    2 重复落 group(2) `(标点)\2+` 一次匹配 → return g2.
     """
     from news_process.pipeline.preprocess._constants import TAIL_CLEANUP_PATTERN
     from news_process.pipeline.preprocess.normalize import _tail_cleanup_repl
@@ -49,7 +51,8 @@ def test_tail_cleanup_repl_whitespace_to_single_space():
     """空白序列 (\\s+) → 单个空格 (else branch, group 1 + 2 都 None)."""
     from news_process.pipeline.preprocess._constants import TAIL_CLEANUP_PATTERN
     from news_process.pipeline.preprocess.normalize import _tail_cleanup_repl
-    # '   ' = 3 spaces: 实测 (.)\1{2,} 会先匹配 3+ space → group(1) 命中 → 返回 ' '*2 = '  '
+    # '   ' = 3 spaces: 实测 ([^0-9])\1{2,} 会先匹配 3+ space → group(1) 命中 → 返回 ' '*2 = '  '
+    # (fix omni-g-preprocess-01: 空格属 [^0-9], 行为与旧 (.)\1{2,} 一致)
     # 要触发 else (group 1 + 2 都 None) 需要 \s+ 但不是重复同字符, e.g. ' \t ' 或 '\n '
     assert TAIL_CLEANUP_PATTERN.sub(_tail_cleanup_repl, ' \t ') == ' '
 

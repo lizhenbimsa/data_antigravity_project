@@ -71,6 +71,49 @@ except ImportError:  # pragma: no cover
     _LLM_ARCHIVE_AVAILABLE = False
 
 
+# 进程级幂等标志: 确定性硬化只设一次 (torch 全局开关, 重复设置无害但避免日志噪声)
+_TORCH_DETERMINISM_DONE = False
+
+
+def ensure_torch_determinism(seed: int = 42) -> None:
+    """本地 torch 推理确定性硬化 (对齐 stage 23 tone_berts.py V4 T1.1a 块).
+
+    fix(omni-g-embed-07, 2026-06-11): article_sbert.encode_articles 与本模块
+    encode_local 此前裸调 model.encode, 无 seed/deterministic/cudnn 设置 — CPU 单机
+    通常逐位稳定, 但 CUDA 机上 cudnn.benchmark 自动调优可致 run-to-run kernel 选择
+    漂移, 跨机必有 FP 级漂移; 下游 argsort top-k 近邻 (strat_sim) 与 staleness 阈值
+    化 (surface_highstale) 会把 FP 漂移放大为离散值翻转。本 helper 抽取 tone_berts
+    确定性块为共享入口: seed 四源 (random/numpy/torch/transformers) +
+    use_deterministic_algorithms(warn_only=True) + cuDNN deterministic/benchmark。
+    幂等 (进程内只设一次); torch 缺失时静默 no-op (本地编码路径必有 torch, 纯防御)。
+    """
+    global _TORCH_DETERMINISM_DONE
+    if _TORCH_DETERMINISM_DONE:
+        return
+    try:
+        import torch
+    except ImportError:  # pragma: no cover - 本地编码环境必有 torch
+        return
+    import random as _stdlib_random
+
+    _stdlib_random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    try:
+        from transformers import set_seed as _hf_set_seed
+        _hf_set_seed(seed)
+    except ImportError:  # pragma: no cover - transformers 旧版无 set_seed
+        pass
+    # warn_only=True: CPU 上几乎不抛错; GPU 个别 op 输出 warning 但继续 (同 tone_berts)
+    torch.use_deterministic_algorithms(True, warn_only=True)
+    if torch.cuda.is_available():  # pragma: no cover - 本机 CPU-only, GPU 机生效
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    _TORCH_DETERMINISM_DONE = True
+    logger.info(f"    本地嵌入确定性硬化: seed={seed}, deterministic_algorithms=on")
+
+
 def spec_uses_local(spec: dict | None) -> bool:
     """spec 是否指向本地 sentence-transformers (而非 API 端点)。"""
     base_url = str((spec or {}).get('base_url') or '').strip().lower()
@@ -114,18 +157,83 @@ def encode_local(texts, spec: dict, *, log_prefix: str = "Embedding") -> np.ndar
     """用本地 sentence-transformers 模型 (spec['model']) 编码文本。
 
     模型按 model_id 进程级缓存; 默认 shibing624/text2vec-base-chinese (768 维)。
+
+    fix(omni-g-embed-04/07, 2026-06-11) 两处语义变更:
+    1. 超出模型 max_seq_length (t2v=128 token) 的文本此前被模型**静默截断**到首段
+       (split_text_for_embedding 的 8191 cl100k 上限远大于本地模型上限, 拦不住);
+       现按模型自身 tokenizer 分块后 mean-pool (逐块 L2 归一 + token 数加权, 与
+       embed_texts 池化口径一致); 不超长文本原样直送, 输出与旧实现逐位一致。
+    2. 推理前调 ensure_torch_determinism() (对齐 stage 23 tone_berts 硬化)。
     """
     from sentence_transformers import SentenceTransformer
+
+    ensure_torch_determinism()  # fix(omni-g-embed-07, 2026-06-11)
 
     model_id = spec_model(spec, 'shibing624/text2vec-base-chinese')
     if model_id not in _LOCAL_MODELS:
         logger.info(f"    {log_prefix}: 加载本地嵌入模型 {model_id}")
         _LOCAL_MODELS[model_id] = SentenceTransformer(model_id)
+    model = _LOCAL_MODELS[model_id]
     batch_size = int((spec or {}).get('batch_size', 32) or 32)
-    emb_local = _LOCAL_MODELS[model_id].encode(
-        list(texts), batch_size=batch_size, show_progress_bar=False,
+    texts = list(texts)
+
+    # ── fix(omni-g-embed-04, 2026-06-11): 按模型 max_seq_length 分块, 防静默截断 ──
+    max_seq = int(getattr(model, 'max_seq_length', 0) or 0)
+    tokenizer = getattr(model, 'tokenizer', None)
+    if max_seq <= 0 or tokenizer is None:
+        # 无 tokenizer/max_seq 元数据 (如测试 fake 模型) → 旧行为直送
+        emb_local = model.encode(
+            texts, batch_size=batch_size, show_progress_bar=False,
+        )
+        return np.asarray(emb_local, dtype=np.float32)
+
+    effective_max = max(1, max_seq - 2)  # 留 [CLS]/[SEP] 特殊 token 位
+    chunks: list = []
+    chunk_map: list[tuple[int, int]] = []
+    chunk_weights: list[int] = []  # 与 chunks 等长, 单位 = 本地模型 token 数
+    for text in texts:
+        t = str(text) if text is not None else ''
+        ids = tokenizer.encode(t, add_special_tokens=False) if t else []
+        start = len(chunks)
+        if len(ids) <= effective_max:
+            chunks.append(text)  # 不超长 → 原样直送 (与旧实现逐位一致)
+            chunk_weights.append(max(1, len(ids)))
+        else:
+            for s in range(0, len(ids), effective_max):
+                seg = ids[s:s + effective_max]
+                chunks.append(tokenizer.decode(seg, skip_special_tokens=True))
+                chunk_weights.append(max(1, len(seg)))
+        chunk_map.append((start, len(chunks)))
+
+    if len(chunks) > len(texts):
+        logger.info(
+            f"    {log_prefix}: 本地模型 max_seq_length={max_seq} 分块: "
+            f"{len(texts)} 文本 → {len(chunks)} 段 (防静默截断)"
+        )
+
+    raw = np.asarray(
+        model.encode(chunks, batch_size=batch_size, show_progress_bar=False),
+        dtype=np.float32,
     )
-    return np.asarray(emb_local, dtype=np.float32)
+    if len(chunks) == len(texts):
+        return raw  # 无超长文本 → 与旧实现逐位一致
+
+    out = np.zeros((len(texts), raw.shape[1]), dtype=np.float32)
+    for i, (start, end) in enumerate(chunk_map):
+        if end - start == 1:
+            out[i] = raw[start]
+            continue
+        # 逐块 L2 归一 + token 数加权 mean-pool (KNOWN-OPEN⑧: 未归一向量的等权 mean
+        # 隐含按块范数加权; 等权下尾段碎片块与整块同权 → 双重权重失真)
+        block = raw[start:end].astype(np.float64)
+        norms = np.linalg.norm(block, axis=1, keepdims=True)
+        norms[norms == 0.0] = 1.0
+        unit = block / norms
+        w = np.asarray(chunk_weights[start:end], dtype=np.float64)
+        pooled = (unit * w[:, None]).sum(axis=0) / w.sum()
+        nrm = np.linalg.norm(pooled)
+        out[i] = (pooled / nrm if nrm > 0 else pooled).astype(np.float32)
+    return out
 
 
 async def get_embeddings_api(texts, spec: dict, cache=None, *,
@@ -306,6 +414,10 @@ def embed_texts(texts, spec: dict, *,
     超长文本走 Early Chunking + Mean Pooling。local spec 走 sentence-transformers,
     API spec 走 get_embeddings_api (经 LLMCache 穿透)。失败/形状异常 → None。
 
+    fix(omni-g-embed-04, 2026-06-11): 多块池化改为"逐块 L2 归一 + token 数加权"
+    (此前等权 mean — 8191+1 token 切分的 1-token 尾段碎片占 50% 方向权重)。切分
+    边界与缓存键 (块文本) 不变, 仅消费端池化权重修正。
+
     Returns:
         np.ndarray (n_texts, dim) | None
     """
@@ -356,7 +468,22 @@ def embed_texts(texts, spec: dict, *,
         if end - start == 1:
             emb[i] = raw_emb[start]
             continue
-        pooled = raw_emb[start:end].mean(axis=0)
+        # fix(omni-g-embed-04, 2026-06-11) + KNOWN-OPEN⑧ 池化权重修正:
+        # (a) 逐块先 L2 归一再平均 — 未归一向量的 mean 隐含按块范数加权 (cosine
+        #     消费端尺度不变, 但池化方向被大范数块拖偏);
+        # (b) 按块 token 数加权 — 等权下 (8191, 1) 切分的 1-token 尾段碎片占 50%
+        #     方向权重, 严重扭曲超长文本的向量表征。
+        # 切分边界/块文本不变 → API 路径 LLMCache 缓存键与已存向量不受影响。
+        block = raw_emb[start:end].astype(np.float64)
+        norms = np.linalg.norm(block, axis=1, keepdims=True)
+        norms[norms == 0.0] = 1.0
+        unit = block / norms
+        w = np.array(
+            [max(1, len(_EMB_ENCODING.encode(str(all_chunks[j]))))
+             for j in range(start, end)],
+            dtype=np.float64,
+        )
+        pooled = (unit * w[:, None]).sum(axis=0) / w.sum()
         norm = np.linalg.norm(pooled)
-        emb[i] = pooled / norm if norm > 0 else pooled
+        emb[i] = (pooled / norm if norm > 0 else pooled).astype(raw_emb.dtype)
     return emb

@@ -395,35 +395,58 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
         record(cat, 'LLM模型间一致性', 'PASS' if min_pair_corr > 0.5 else 'WARN',
                f'最小成对相关={min_pair_corr:.4f} ({len(llm_tone_cols)}个模型)')
 
-    # 3e. 加权均值恒等式 (VW, MW, HW)
-    # 列名模式: tone=llm_vote_tone_{wt}_full, sum=llm_vote_score_{wt}_sum_full
-    # 注意 VW 的列名后缀是 _vw, MW 是 _mw, HW 是 _hw
-    for wt_type, wt_sfx, denom_col in [
-        ('VW', 'vw', 'sum_mention_density'),
-        ('MW', 'mw', 'sum_media_authority_weight'),
-        ('HW', 'hw', 'sum_herd_weight'),
-    ]:
-        tone_col = f'llm_vote_tone_{wt_sfx}_full'
-        sum_col = f'llm_vote_score_{wt_sfx}_sum_full'
-        if tone_col in p.columns and sum_col in p.columns and denom_col in p.columns:
-            denom = p[denom_col].replace(0, np.nan)
-            expected = p[sum_col] / denom
-            actual = p[tone_col]
-            diff = (actual - expected).abs().dropna()
-            if len(diff) > 0:
-                max_diff = diff.max()
-                if max_diff > 1e-8:
-                    record(cat, f'{wt_type}加权恒等式', 'FAIL',
-                           f'最大差异={max_diff:.6e}')
+    # 3e. 加权均值恒等式 (VW, MW, HW) — 双轨
+    # 列名模式 (与 encode.py 实际产出对齐):
+    #   VW: tone=llm_vote_tone_vw{track}, 分子=llm_vote_score_w_sum{track}
+    #       (⚠ 分子真名带 _w_ 而非 _vw_, 见 encode.py 聚合 llm_vote_score_w_sum)
+    #   MW: tone=llm_vote_tone_mw{track}, 分子=llm_vote_score_mw_sum{track}
+    #   HW: tone=llm_vote_tone_hw{track}, 分子=llm_vote_score_hw_sum{track}
+    # fix(omni-g-stata-audit-01, 2026-06-11): LLM 族期望分母优先用 valid-mask 列
+    # sum_wd_{wtag}_llm{track} (与 encode.py::_llm_denom 2026-06-10 修复对齐) —
+    # 否则 valid-mask 重生面板上按物理分母重算恒等式必误 FAIL (含 LLM-invalid 文章
+    # 的 bank-year diff 可达 0.5) 并把 stage 52 退出码打成 1; 缺 mask 列回退物理分母
+    # (同 encode 回退契约, 旧冻结 panel 兼容), detail 注明所用分母口径。
+    # fix(omni-g-stata-audit-02, 2026-06-11): 修正两处陈旧列名导致的静默死亡 —
+    # VW 分子 llm_vote_score_vw_sum_full → llm_vote_score_w_sum{track}; HW 物理
+    # 分母 sum_herd_weight → sum_herd_weight_full/_ctx (v3.6.0 双轨化后单列已不
+    # 存在)。并把 else 兜底改为: 三种权重缺任一所需列即 record WARN, 杜绝静默跳过。
+    for track in ['_full', '_ctx']:
+        for wt_type, num_tpl, phys_denom_tpl in [
+            ('VW', 'llm_vote_score_w_sum{track}', 'sum_mention_density'),
+            ('MW', 'llm_vote_score_mw_sum{track}', 'sum_media_authority_weight'),
+            ('HW', 'llm_vote_score_hw_sum{track}', 'sum_herd_weight{track}'),
+        ]:
+            wt_sfx = wt_type.lower()
+            tone_col = f'llm_vote_tone_{wt_sfx}{track}'
+            sum_col = num_tpl.format(track=track)
+            mask_col = f'sum_wd_{wt_sfx}_llm{track}'        # valid-mask 分母 (encode 同名)
+            phys_col = phys_denom_tpl.format(track=track)   # 物理分母 (回退)
+            if mask_col in p.columns:
+                denom_col, denom_kind = mask_col, 'valid-mask'
+            elif phys_col in p.columns:
+                denom_col, denom_kind = phys_col, 'physical'
+            else:
+                denom_col, denom_kind = None, None
+            check = f'{wt_type}加权恒等式 ({track})'
+            if tone_col in p.columns and sum_col in p.columns and denom_col is not None:
+                denom = p[denom_col].replace(0, np.nan)
+                expected = p[sum_col] / denom
+                actual = p[tone_col]
+                diff = (actual - expected).abs().dropna()
+                if len(diff) > 0:
+                    max_diff = float(diff.max())
+                    record(cat, check, 'FAIL' if max_diff > 1e-8 else 'PASS',
+                           f'最大差异={max_diff:.6e} (分母口径={denom_kind}:{denom_col})')
                 else:
-                    record(cat, f'{wt_type}加权恒等式', 'PASS',
-                           f'最大差异={max_diff:.6e}')
-        else:
-            # HW 等可选模块未启用时列不存在，无需报 WARN
-            # 仅当 VW/MW 这类核心加权列缺失时才报告
-            if wt_sfx in ('vw', 'mw') and tone_col not in p.columns:
-                record(cat, f'{wt_type}加权恒等式', 'WARN',
-                       f'列 {tone_col} 不存在, 跳过检验')
+                    record(cat, check, 'WARN',
+                           f'无可比对行 (tone/expected 全缺失), 分母口径={denom_kind}:{denom_col}')
+            else:
+                missing = [label for label, ok in [
+                    (tone_col, tone_col in p.columns),
+                    (sum_col, sum_col in p.columns),
+                    (f'{mask_col}|{phys_col}', denom_col is not None),
+                ] if not ok]
+                record(cat, check, 'WARN', f'缺列跳过检验: {missing}')
 
     # 3f. 分类恒等式 n = tech + app
     if all(c in panel.columns for c in ['n_articles', 'n_articles_tech', 'n_articles_app']):
@@ -640,18 +663,38 @@ def audit_stata_compatibility(panel: pd.DataFrame, dta_path: str, name: str):
                 record(cat, '.dta 行数一致性', 'PASS', f'均为 {len(dta)} 行')
 
             # 6d. .dta 数值精度验证 (核心变量)
-            for col in ['llm_vote_tone_full', 'n_articles', 'ln_news_coverage']:
-                dta_col = col[:32]  # Stata 列名截断兼容
-                if dta_col in dta.columns and col in panel.columns:
-                    dta_vals = dta[dta_col].astype(float)
-                    pq_vals = panel[col].astype(float)
-                    diff = (dta_vals - pq_vals).abs().max()
-                    if diff > 0.001:
-                        record(cat, f'.dta 精度-{col}', 'WARN',
-                               f'最大差异={diff:.6e}')
-                    else:
-                        record(cat, f'.dta 精度-{col}', 'PASS',
-                               f'精度一致 (max_diff={diff:.6e})')
+            # fix(omni-g-stata-audit-03, 2026-06-11): 旧实现 (dta-pq).abs().max() 在
+            # 任一侧为 NaN 的位置产生 NaN diff, 被 .max() skipna 静默吞掉 → 值在
+            # .dta 写出端被静默改写为缺失 (如 Int8∈[101,126] 落 Stata extended
+            # missing, KNOWN-OPEN ⑥ 的腐蚀模式) 时 max_diff=0.0 恒 PASS, 审计对该
+            # "值→缺失"腐蚀类结构性失明。现补 NaN 对称比对: 逐位缺失掩码须对齐
+            # (含非空计数), 不对齐即 FAIL; 数值精度仅在双侧均非缺失的位置比较。
+            if len(dta) == len(panel):
+                for col in ['llm_vote_tone_full', 'n_articles', 'ln_news_coverage']:
+                    dta_col = col[:32]  # Stata 列名截断兼容
+                    if dta_col in dta.columns and col in panel.columns:
+                        dta_vals = dta[dta_col].astype(float).to_numpy()
+                        pq_vals = panel[col].astype(float).to_numpy()
+                        dta_nan = np.isnan(dta_vals)
+                        pq_nan = np.isnan(pq_vals)
+                        n_misalign = int((dta_nan != pq_nan).sum())
+                        if n_misalign > 0:
+                            record(cat, f'.dta NaN对齐-{col}', 'FAIL',
+                                   f'{n_misalign} 处缺失位置不对齐 '
+                                   f'(.dta 非空={int((~dta_nan).sum())} vs '
+                                   f'.parquet 非空={int((~pq_nan).sum())}; '
+                                   f'疑似值被写出端静默改写为缺失)')
+                        both = ~(dta_nan | pq_nan)
+                        diff = float(np.abs(dta_vals[both] - pq_vals[both]).max()) if both.any() else 0.0
+                        if diff > 0.001:
+                            record(cat, f'.dta 精度-{col}', 'WARN',
+                                   f'最大差异={diff:.6e}')
+                        else:
+                            record(cat, f'.dta 精度-{col}', 'PASS',
+                                   f'精度一致 (max_diff={diff:.6e}, 含 NaN 位置对称校验)')
+            else:
+                # 行数不一致已由 6c record FAIL; 逐位比对无意义, 显式 WARN 不静默
+                record(cat, '.dta 精度检查', 'WARN', '行数不一致, 跳过逐位精度比对 (见 6c)')
 
         except Exception as e:
             record(cat, '.dta 可读性', 'FAIL', f'读取失败: {e}')
@@ -739,7 +782,10 @@ def audit_descriptive_stats(panel: pd.DataFrame, name: str):
         'dict_avg_tone_full', 'bert_avg_pos_full',
         'llm_vote_tone_vw_full', 'llm_vote_tone_mw_full', 'llm_vote_tone_hw_full',
         'fintech_share', 'nf_ln_coverage', 'all_ln_coverage',
-        'avg_herd_weight', 'avg_llm_conf_full',
+        # fix(omni-g-panel-export-02, 2026-06-11): v3.6.0 双轨化后无后缀
+        # avg_herd_weight 列已不存在 (encode.py 产出 *_full/_ctx), 陈旧名被
+        # `if c in panel.columns` 静默过滤 → herd 权重从未进描述统计; 改双轨名。
+        'avg_herd_weight_full', 'avg_herd_weight_ctx', 'avg_llm_conf_full',
         'washing_ratio', 'jf_coefficient_full',
     ]
 

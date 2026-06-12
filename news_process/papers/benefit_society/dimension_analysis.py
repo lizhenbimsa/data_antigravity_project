@@ -312,6 +312,98 @@ def compute_dual_track_dimensions(
     return merged
 
 
+_DIMENSION_NAMES = tuple(DIMENSION_INDICES)  # core_op / growth / resource / compliance
+
+
+def merge_dimensions_to_panel(
+    panel: pd.DataFrame | None = None,
+    dimensions: pd.DataFrame | None = None,
+    *,
+    track: str = "both",
+    panel_path: str | Path = "news_process/data/processed/40_panel_yearly.parquet",
+    dimensions_path: str | Path = "news_process/data/processed/27_benefit_dimensions_panel.parquet",
+    bank_col: str = "target_bank",
+    year_col: str = "year",
+    output_path: str | Path | None = None,
+) -> pd.DataFrame:
+    """把 4 维度子指数列并入 bank-year 面板副本 (Table 9 / H4 机制前置).
+
+    fix(omni-gapfill-10, 2026-06-12): 18_table9_dimension_decomposition.do.tmpl
+    自始声称前置 "pipeline/features/benefit_society.py merge_dimensions_to_panel"
+    — 该函数全仓不存在 (幻影前置), dimension_analysis CLI 只写孤儿
+    27_benefit_dimensions_panel.parquet, 无任何代码把 benefit_<dim>_<track>
+    桥进面板 → Table 9 永远空守卫跳过。本函数补真实桥接:
+
+    - 左连接 (bank_col, year_col), 面板行数不变;
+    - 只并入所选 track 的 ``benefit_{core_op,growth,resource,compliance}_{track}``;
+    - **不改写主 40_panel_yearly.parquet** (golden 锚定): ``output_path`` 显式
+      指向主面板路径时 fail-loud; 默认仅返回 DataFrame, 由调用方导出 .dta 副本。
+
+    Args:
+        panel:       面板 DataFrame; None 时读 ``panel_path``。
+        dimensions:  dimension_analysis CLI 产物 DataFrame; None 时读
+                     ``dimensions_path``。
+        track:       'full' | 'ctx' | 'both'。
+        output_path: 可选 parquet 落盘路径 (副本, 禁与 panel_path 同路径)。
+
+    Returns:
+        合并后的面板副本 (含 4×track 个 ``benefit_<dim>_<track>`` 列)。
+
+    Raises:
+        ValueError: track 非法 / 维度列缺失 / output_path 指向主面板。
+        FileNotFoundError: panel/dimensions parquet 缺失。
+    """
+    if track not in ("full", "ctx", "both"):
+        raise ValueError(f"track must be 'full' | 'ctx' | 'both', got {track!r}")
+    tracks = ["full", "ctx"] if track == "both" else [track]
+
+    if panel is None:
+        panel_p = Path(panel_path)
+        if not panel_p.exists():
+            raise FileNotFoundError(f"panel parquet not found: {panel_p}")
+        panel = pd.read_parquet(panel_p)
+    if dimensions is None:
+        dim_p = Path(dimensions_path)
+        if not dim_p.exists():
+            raise FileNotFoundError(
+                f"dimensions parquet not found: {dim_p}. "
+                "Run: python -m news_process.papers.benefit_society.dimension_analysis "
+                "--df-exploded <exploded.parquet> --track both"
+            )
+        dimensions = pd.read_parquet(dim_p)
+
+    wanted = [f"benefit_{dim}_{t}" for t in tracks for dim in _DIMENSION_NAMES]
+    missing = [c for c in wanted if c not in dimensions.columns]
+    if missing:
+        raise ValueError(
+            f"dimensions panel lacks columns {missing}; "
+            f"available: {sorted(c for c in dimensions.columns if c.startswith('benefit_'))}"
+        )
+    for key in (bank_col, year_col):
+        if key not in panel.columns or key not in dimensions.columns:
+            raise ValueError(f"merge key {key!r} missing in panel and/or dimensions")
+
+    merged = panel.merge(
+        dimensions[[bank_col, year_col, *wanted]],
+        on=[bank_col, year_col],
+        how="left",
+        validate="one_to_one",
+    )
+
+    if output_path is not None:
+        out_p = Path(output_path)
+        if out_p.resolve() == Path(panel_path).resolve():
+            raise ValueError(
+                "refusing to overwrite the main panel parquet "
+                f"({panel_path}); write a sidecar copy instead (golden anchor)."
+            )
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        merged.to_parquet(out_p, index=False)
+        logger.info(f"Wrote dimension-merged panel copy to {out_p}: {merged.shape}")
+
+    return merged
+
+
 # ---------------------------------------------------------------------------
 # 8. CLI 入口
 # ---------------------------------------------------------------------------
@@ -369,6 +461,21 @@ def main(argv: list[str] | None = None) -> int:
         default="news_process/data/processed/27_benefit_dimensions_panel.parquet",
         help="Output path for bank-year dimensional panel",
     )
+    # fix(omni-gapfill-10, 2026-06-12): Table 9 桥接 — 可选地把维度列并入面板
+    # 副本 (merge_dimensions_to_panel; 禁写主 40_panel_yearly.parquet)。
+    parser.add_argument(
+        "--panel",
+        type=str,
+        default="news_process/data/processed/40_panel_yearly.parquet",
+        help="Main bank-year panel parquet (read-only merge base)",
+    )
+    parser.add_argument(
+        "--merge-panel-output",
+        type=str,
+        default=None,
+        help="Optional: write dimension-merged panel COPY parquet here "
+             "(refuses to overwrite --panel; Table 9 prerequisite)",
+    )
 
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s %(message)s")
@@ -409,6 +516,16 @@ def main(argv: list[str] | None = None) -> int:
     panel.to_parquet(output_path, index=False)
     logger.info(f"Wrote dual-track dimensional panel to {output_path}: {panel.shape}")
     logger.info(f"  Columns: {sorted(panel.columns)}")
+
+    # fix(omni-gapfill-10, 2026-06-12): 可选 Table 9 桥接 (面板副本, 不动主面板)。
+    # `tracks` 已剔除嵌入缺失轨 — 只并入实际算出的轨, 防 merge 因列缺失 fail-loud。
+    if args.merge_panel_output:
+        merge_dimensions_to_panel(
+            dimensions=panel,
+            track="both" if len(tracks) == 2 else tracks[0],
+            panel_path=args.panel,
+            output_path=args.merge_panel_output,
+        )
 
     return 0
 

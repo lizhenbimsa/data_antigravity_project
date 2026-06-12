@@ -46,8 +46,9 @@ logger = logging.getLogger(__name__)
 # 银行名称数据结构 (bank_names.json):
 #   [{"bank_name": "招商银行", "variants": ["招行", "招商银行", "CMB", ...]}, ...]
 #   每家银行可能有多个名称变体(variants), 包括简称、英文缩写等。
-#   变体按长度降序排列, 确保较长的匹配优先(AC 自动机返回所有匹配,
-#   但按长度降序插入有助于下游统计时识别最长匹配)。
+#   AC 自动机返回所有重叠匹配; 下游 analyze_bank_matches 通过
+#   _scan_dedup_bank_matches 做最长匹配位置去重 (longest-match resolution),
+#   嵌套/交叉跨度只计最长一个 (fix omni-g-entity-01/02, 2026-06-11 兑现本承诺)。
 # ============================================================================
 
 def load_bank_names(bank_names_file: str) -> tuple:
@@ -207,6 +208,42 @@ def is_match_excluded(text: str, match_end_pos: int, variant: str,
     return None
 
 
+def has_unexcluded_occurrence(text: str, pattern: str, negation_ac=None,
+                              short_name_exclusions: dict = None,
+                              context_window: int = 5) -> bool:
+    """检查 pattern 在 text 中是否存在至少一次【未被排除规则命中】的出现。
+
+    fix(omni-g-entity-03/12/16, 2026-06-11): 供 ctx 窗口锚定 (entity_context)
+    与导语显著性 (news_salience.target_in_lead) 复用 stage 11 分类的同一套
+    negation/short-name 排除语义 (单一匹配语义事实源)。未传排除配置时退化为
+    裸子串匹配 (`pattern in text`), 与旧调用方行为兼容。
+
+    Args:
+        text:                  待检查文本 (句子 / 导语 / 标题等片段)。
+        pattern:               银行名称变体。
+        negation_ac:           否定模式 AC 自动机 (可选)。
+        short_name_exclusions: 短名歧义排除规则 (可选)。
+        context_window:        短名上下文检查窗口。
+
+    Returns:
+        bool: True 表示存在至少一次有效出现。
+    """
+    if not text or not pattern:
+        return False
+    if negation_ac is None and not short_name_exclusions:
+        return pattern in text
+    start = 0
+    while True:
+        pos = text.find(pattern, start)
+        if pos == -1:
+            return False
+        end_pos = pos + len(pattern) - 1
+        if is_match_excluded(text, end_pos, pattern, negation_ac,
+                             short_name_exclusions, context_window) is None:
+            return True
+        start = pos + 1
+
+
 # ============================================================================
 # 2. 金融科技关键词 AC 自动机
 # ============================================================================
@@ -262,7 +299,60 @@ def load_fintech_dict(fintech_dict_file: str) -> tuple:
 #     其他主题, 则不应将该文章归类为该银行的相关新闻。
 #     上下半分割 + 最少分布要求(上下半各至少出现 1 次)就是
 #     对这一思想的操作化实现。
+#
+#   匹配消解 (fix omni-g-entity-01/02/04/08/09/11/14/15, 2026-06-11):
+#     1) 全文【单次】AC 扫描, 按匹配【起点】相对 split_pos 归入上/下半
+#        (替代原"先切两半再各自扫描" — 原实现使横跨切分点的名称在两半都
+#        不完整而被无声丢失, 且否定/短名上下文窗口在边界被截断);
+#     2) 最长匹配位置去重 (longest-match resolution): 嵌套/交叉重叠的跨度
+#        只保留最长一个, 跨银行同样适用 — 一次物理提及 "中国工商银行" 不再
+#        同时给 "工商银行" 变体计数 (同行 1771 对嵌套变体双计), 一次
+#        "法国兴业银行" 不再给 "兴业银行" (另一家银行) 计数 (跨行 71 对)。
 # ============================================================================
+
+def _scan_dedup_bank_matches(text: str, bank_ac,
+                             negation_ac=None,
+                             short_name_exclusions: dict = None,
+                             context_window: int = 5) -> tuple:
+    """对 text 做单次 AC 全文扫描 → 排除检查 → 最长匹配位置去重。
+
+    fix(omni-g-entity-01/02/04, 2026-06-11):
+      - 排除检查在【全文】上做 (否定/短名上下文窗口不再被上下半边界截断);
+      - 去重规则: 命中按 (长度降序, 起点升序) 排序, 用 occupied-position set
+        丢弃与已保留更长匹配位置重叠的命中 (移植自
+        canonicalization._match_keywords 的同型最长匹配范式)。
+        嵌套变体 (同行或跨行) 一律归属最长串对应银行。
+
+    Returns:
+        tuple: (selected, negation_excluded, short_name_excluded)
+          - selected: list[(start, end_pos, bank_idx, variant)] 去重后保留的命中
+    """
+    negation_excluded = 0
+    short_name_excluded = 0
+    survivors = []
+    for end_pos, (bank_idx, variant) in bank_ac.iter(text):
+        reason = is_match_excluded(text, end_pos, variant,
+                                   negation_ac, short_name_exclusions,
+                                   context_window)
+        if reason == 'negation':
+            negation_excluded += 1
+            continue
+        if reason == 'short_name':
+            short_name_excluded += 1
+            continue
+        survivors.append((end_pos - len(variant) + 1, end_pos, bank_idx, variant))
+
+    # 长度降序 + 起点升序 (等长交叉时左侧优先, 保证确定性)
+    survivors.sort(key=lambda m: (-(m[1] - m[0] + 1), m[0]))
+    occupied: set = set()
+    selected = []
+    for start, end_pos, bank_idx, variant in survivors:
+        positions = range(start, end_pos + 1)
+        if any(p in occupied for p in positions):
+            continue  # 被更长 (或等长更靠左) 匹配占据 → 丢弃短/后命中
+        occupied.update(positions)
+        selected.append((start, end_pos, bank_idx, variant))
+    return selected, negation_excluded, short_name_excluded
 
 def analyze_bank_matches(content: str, title: str,
                          bank_ac, banks_list: list,
@@ -293,6 +383,13 @@ def analyze_bank_matches(content: str, title: str,
     Returns:
         dict: 包含 is_bank_news, matched_banks, negation_excluded,
               short_name_excluded 的分析结果。
+
+    Note:
+        fix(omni-g-entity-01/02/04/08/09/11/14/15, 2026-06-11): 改为全文单次
+        AC 扫描 (按匹配起点 < split_pos 判定上/下半归属) + 最长匹配位置去重
+        (见 _scan_dedup_bank_matches)。语义变更: 嵌套变体不再双计 (同行),
+        被他行更长变体覆盖的命中归属最长串对应银行 (跨行); 横跨切分点的
+        名称不再丢失; 排除上下文窗口在全文上取, 不再被边界截断。
     """
     content_str = content if isinstance(content, str) else ""
     title_str = title if isinstance(title, str) else ""
@@ -306,11 +403,9 @@ def analyze_bank_matches(content: str, title: str,
     if bank_ac is None:
         return empty_result
 
-    # 上下半分割: 将文章内容按 split_ratio(默认 0.5)分为上半和下半
-    # 分别统计各银行名称在上/下半的出现次数, 以检验分布一致性
+    # 上下半分割点: 仅作为【位置阈值】使用 (fix omni-g-entity-04/11: 不再物理
+    # 切割文本 — 全文单次扫描后按匹配起点归半, 跨切分点的命中归上半)
     split_pos = int(len(content_str) * split_ratio)
-    upper_half = content_str[:split_pos]
-    lower_half = content_str[split_pos:]
 
     # bank_stats[bank_idx][variant] = {upper: 上半出现次数, lower: 下半出现次数, ...}
     # 使用双层 defaultdict 避免手动初始化
@@ -319,43 +414,25 @@ def analyze_bank_matches(content: str, title: str,
             lambda: {'upper': 0, 'lower': 0, 'in_title': False, 'title_count': 0}
         )
     )
-    negation_excluded = 0   # 被否定模式排除的匹配数(调试统计用)
-    short_name_excluded = 0  # 被短名歧义消解排除的匹配数
 
-    # 扫描上半
-    for end_pos, (bank_idx, variant) in bank_ac.iter(upper_half):
-        reason = is_match_excluded(upper_half, end_pos, variant,
-                                   negation_ac, short_name_exclusions, context_window)
-        if reason == 'negation':
-            negation_excluded += 1
-            continue
-        if reason == 'short_name':
-            short_name_excluded += 1
-            continue
-        bank_stats[bank_idx][variant]['upper'] += 1
+    # 扫描正文 (全文单次 + 最长匹配去重)
+    body_matches, negation_excluded, short_name_excluded = _scan_dedup_bank_matches(
+        content_str, bank_ac, negation_ac, short_name_exclusions, context_window
+    )
+    for start, _end_pos, bank_idx, variant in body_matches:
+        if start < split_pos:
+            bank_stats[bank_idx][variant]['upper'] += 1
+        else:
+            bank_stats[bank_idx][variant]['lower'] += 1
 
-    # 扫描下半
-    for end_pos, (bank_idx, variant) in bank_ac.iter(lower_half):
-        reason = is_match_excluded(lower_half, end_pos, variant,
-                                   negation_ac, short_name_exclusions, context_window)
-        if reason == 'negation':
-            negation_excluded += 1
-            continue
-        if reason == 'short_name':
-            short_name_excluded += 1
-            continue
-        bank_stats[bank_idx][variant]['lower'] += 1
-
-    # 扫描标题
-    for end_pos, (bank_idx, variant) in bank_ac.iter(title_str):
-        reason = is_match_excluded(title_str, end_pos, variant,
-                                   negation_ac, short_name_exclusions, context_window)
-        if reason == 'negation':
-            negation_excluded += 1
-            continue
-        if reason == 'short_name':
-            short_name_excluded += 1
-            continue
+    # 扫描标题 (同样做最长匹配去重: 标题中 "法国兴业银行" 不再给 "兴业银行"
+    # 记 in_title — fix omni-g-entity-09 标题路径)
+    title_matches, neg_t, short_t = _scan_dedup_bank_matches(
+        title_str, bank_ac, negation_ac, short_name_exclusions, context_window
+    )
+    negation_excluded += neg_t
+    short_name_excluded += short_t
+    for _start, _end_pos, bank_idx, variant in title_matches:
         bank_stats[bank_idx][variant]['in_title'] = True
         bank_stats[bank_idx][variant]['title_count'] += 1
 
@@ -454,6 +531,12 @@ def analyze_fintech_matches(content: str, title: str,
 
     Returns:
         dict: 包含 is_fintech_news、汇总计数和关键词详情的分析结果。
+
+    Note:
+        fix(omni-g-entity-07/11, 2026-06-11): 改为全文单次 AC 扫描, 按匹配
+        起点 < split_pos 归入上/下半 — 原"先切两半再各自扫描"使横跨切分点的
+        关键词在两半都不完整而被无声丢失 (漏计 total_count / keyword_details
+        → 下游 DF/IDF 低估, 边缘文档 is_fintech_news 判定可被翻转)。
     """
     content_str = content if isinstance(content, str) else ""
     title_str = title if isinstance(title, str) else ""
@@ -470,17 +553,17 @@ def analyze_fintech_matches(content: str, title: str,
     if fintech_ac is None:
         return empty_result
 
+    # split_pos 仅作位置阈值 (fix omni-g-entity-07/11: 不再物理切割文本)
     split_pos = int(len(content_str) * split_ratio)
-    upper_half = content_str[:split_pos]
-    lower_half = content_str[split_pos:]
 
     kw_stats = defaultdict(lambda: {'upper': 0, 'lower': 0, 'in_title': False})
 
-    for _, kw in fintech_ac.iter(upper_half):
-        kw_stats[kw]['upper'] += 1
-
-    for _, kw in fintech_ac.iter(lower_half):
-        kw_stats[kw]['lower'] += 1
+    for end_pos, kw in fintech_ac.iter(content_str):
+        start = end_pos - len(kw) + 1
+        if start < split_pos:
+            kw_stats[kw]['upper'] += 1
+        else:
+            kw_stats[kw]['lower'] += 1
 
     for _, kw in fintech_ac.iter(title_str):
         kw_stats[kw]['in_title'] = True

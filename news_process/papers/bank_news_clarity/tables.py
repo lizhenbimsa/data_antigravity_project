@@ -1,8 +1,11 @@
 """news_process.papers.bank_news_clarity.tables — 第11篇表格 (provisional 2026-06-01).
 
 Table 1 (descriptive stats) 走 _common 通用 summary builder, 与其它 paper 对称, 即开即用。
-Tables 2-5 (主回归 / BW2012 LLP residual / 异质性 / 稳健性) 为 esttab CSV reader 占位,
-待 M7 跑通 Stata 后填实 (Bushman-Williams 2012 JAE external info environment; Laeven-Levine 2009)。
+Tables 2-5 (主回归 / LLP ratio 替代 outcome / 异质性 / 稳健性) 为 esttab CSV reader 占位,
+待 M7 跑通 Stata 后填实 (Bushman-Williams 2012 JAE external info environment 仅作 framework
+anchor — 当前 loan_loss_provision_discretion 列实为裸 LLP/贷款比率, 非 BW2012 残差式
+discretion; outcome 为 CAR-based Z-score 变体, cf. Laeven-Levine 2009 — 见 paper_spec
+outcome 更正)。fix(omni-g-zscore-papers-01, 2026-06-11)。
 """
 
 from __future__ import annotations
@@ -21,7 +24,7 @@ PAPER_ID = 'bank_news_clarity'
 # treatment (ctx-track news clarity) + outcome (Z-score 稳定性) + 标准控制
 _TABLE1_VARIABLES: list[str] = [
     'mean_clarity_score_ctx',  # treatment.primary (ctx 轨, G3 严谨路线)
-    'z_score',                 # outcome.primary (Laeven-Levine 2009, 与第10篇共享)
+    'z_score',                 # outcome.primary (CAR-based Z-score 变体, cf. Laeven-Levine 2009; 与第10篇共享)
     'sigma_roa_5y_rolling',
     'ln_assets',
     'leverage',

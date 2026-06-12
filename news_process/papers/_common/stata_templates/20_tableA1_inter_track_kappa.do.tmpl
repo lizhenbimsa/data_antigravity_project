@@ -52,21 +52,31 @@ else {
 * --- Section 2: Bank-year 级一致性 ---
 * 用 frac 列做相关性 (Pearson + Spearman) 作 κ 的连续版本
 * v3.4.0: 加入 indep_frac (full) × indep_frac_cm (ctx) 相关性
+* fix(omni-g-templates-16, 2026-06-11): 旧 confirm 引用幻影列 tech_frac_lf/sub_frac_sf
+* (面板 full 轨是裸名 tech_frac/sub_frac, 仅 ctx 轨带 _lc/_sc 后缀; 与 11_table2
+* correctness-04 重映射同一事实) → 多变量 confirm 任一缺即 _rc≠0 → Locus/Subst 两行
+* ρ 恒为缺失, 双轨效度表实际永远空表。改用裸名×ctx 名, 且 locus/subst 独立守卫;
+* 同时去掉 `, c` (covariance) 选项 — 表头与 display 标的是 Pearson ρ, 旧版算的是协方差。
 quietly {
-    capture confirm variable tech_frac_lf tech_frac_lc sub_frac_sf sub_frac_sc
+    capture confirm variable tech_frac tech_frac_lc
     if !_rc {
-        correlate tech_frac_lf tech_frac_lc, c
+        correlate tech_frac tech_frac_lc
         local corr_locus = r(rho)
-        correlate sub_frac_sf sub_frac_sc, c
-        local corr_subst = r(rho)
     }
     else {
         local corr_locus  .
+    }
+    capture confirm variable sub_frac sub_frac_sc
+    if !_rc {
+        correlate sub_frac sub_frac_sc
+        local corr_subst = r(rho)
+    }
+    else {
         local corr_subst  .
     }
     capture confirm variable indep_frac indep_frac_cm
     if !_rc {
-        correlate indep_frac indep_frac_cm, c
+        correlate indep_frac indep_frac_cm
         local corr_collab = r(rho)
     }
     else {

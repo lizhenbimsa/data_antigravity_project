@@ -81,11 +81,15 @@ def test_shrinkage_length_mismatch_raises(shrink):
 
 
 def test_apply_shrinkage_to_panel_adds_columns(shrink):
+    # fix(omni-g-benefit-06, 2026-06-11): 默认 group_cols 加 year (同年截面收缩,
+    # 消除跨年泄漏) → fixture 补 year 列 (旧 fixture 无 year 会 KeyError, 见
+    # test_apply_shrinkage_missing_year_raises)。
     df = pd.DataFrame({
         "benefit_mean_full": [0.1, 0.2, 0.3, -0.1, np.nan, 0.5],
         "n_articles": [10, 5, 8, 3, 2, 12],
         "bank_type": ["city", "city", "rural", "rural", "city", "rural"],
         "bank_province": ["P1", "P1", "P2", "P2", "P1", "P2"],
+        "year": [2017, 2017, 2017, 2017, 2018, 2018],
     })
     out = shrink.apply_shrinkage_to_panel(df)
     assert "benefit_mean_full_shrunk" in out.columns
@@ -100,11 +104,13 @@ def test_apply_shrinkage_to_panel_missing_columns_raises(shrink):
 
 
 def test_apply_shrinkage_custom_output_col(shrink):
+    # fix(omni-g-benefit-06, 2026-06-11): fixture 补 year 列 (默认 group 含 year)。
     df = pd.DataFrame({
         "benefit_mean_full": [0.1, 0.2],
         "n_articles": [5, 5],
         "bank_type": ["A", "A"],
         "bank_province": ["P", "P"],
+        "year": [2017, 2017],
     })
     out = shrink.apply_shrinkage_to_panel(df, output_col="my_shrunk_col")
     assert "my_shrunk_col" in out.columns
@@ -201,11 +207,13 @@ def test_main_legacy_value_col_branch(tmp_path):
     from news_process.papers.benefit_society.shrinkage import main
     panel_path = tmp_path / 'panel.parquet'
     # 含完整列 + custom value_col
+    # fix(omni-g-benefit-06, 2026-06-11): fixture 补 year 列 (CLI 默认 group 含 year)。
     df = pd.DataFrame({
         'custom_metric': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
         'n_articles': [5] * 10,
         'bank_type': ['A'] * 10,
         'bank_province': ['P1'] * 10,
+        'year': [2017] * 5 + [2018] * 5,
     })
     df.to_parquet(panel_path)
     output = tmp_path / 'out.parquet'
@@ -222,11 +230,13 @@ def test_main_track_full_branch_writes_panel(tmp_path):
     """--track full 走 line 240 ('benefit_mean_full' single track)."""
     from news_process.papers.benefit_society.shrinkage import main
     panel_path = tmp_path / 'panel.parquet'
+    # fix(omni-g-benefit-06, 2026-06-11): fixture 补 year 列。
     df = pd.DataFrame({
         'benefit_mean_full': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
         'n_articles': [5] * 10,
         'bank_type': ['A'] * 10,
         'bank_province': ['P1'] * 10,
+        'year': [2017] * 5 + [2018] * 5,
     })
     df.to_parquet(panel_path)
     output = tmp_path / 'out.parquet'
@@ -244,12 +254,14 @@ def test_main_track_both_skips_missing_ctx_column(tmp_path):
     """--track both: 仅 _full 存在, _ctx 缺 → warning skip (lines 256-258 + 273-278)."""
     from news_process.papers.benefit_society.shrinkage import main
     panel_path = tmp_path / 'panel.parquet'
+    # fix(omni-g-benefit-06, 2026-06-11): fixture 补 year 列。
     df = pd.DataFrame({
         'benefit_mean_full': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
         # no benefit_mean_ctx → warning skip
         'n_articles': [5] * 10,
         'bank_type': ['A'] * 10,
         'bank_province': ['P1'] * 10,
+        'year': [2017] * 5 + [2018] * 5,
     })
     df.to_parquet(panel_path)
     output = tmp_path / 'out.parquet'

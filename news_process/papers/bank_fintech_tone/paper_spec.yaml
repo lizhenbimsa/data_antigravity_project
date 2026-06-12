@@ -40,6 +40,11 @@ treatment:
     - deepseekv4_tone_full
 
 controls:
+  # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/
+  # leverage/capital_ratio/npl_ratio/deposit_growth) + year_level 宏观 2 列
+  # (gdp_growth/m2_growth) 在当前 bank-year panel (40/51) 全为 0 命中 —
+  # enrichment pending (M0.5.11 / config/银行面板2007-2025年.xlsx 待接入)。
+  # 复现包 01_data_prep 以 capture confirm 自校验拼装 $bank_controls, 只用实存列。
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]
@@ -47,7 +52,15 @@ controls:
 identification:
   baseline: long_panel_within_bank_within_year
   iv:
-    primary: leave_one_out_industry_tone  # Cao et al. 2025 RAS 风格但 firm-level
+    # fix(omni-g-papers-misc-12, 2026-06-11): 旧 primary=leave_one_out_industry_tone
+    # 全管线零实现 (0 builder / 0 panel 列 / 0 模板引用, 仅 spec 自指)。改指
+    # pipeline 真实物化的地理 leave-one-out tone 族 (同省其它银行 LOO 均值,
+    # Cao et al. 2025 RAS 风格 firm-level LOO; 替换理由: "行业=全体银行" 的
+    # LOO 变体未实现, 地理 LOO 是当前唯一在产的 LOO tone IV; ctx=主轨)。
+    primary: prov_leave1out_tone_ctx     # 省级 LOO tone (main=ctx 轨; prov_leave1out_tone_full 作 robustness)
+    fallback: bartik_type_iv_ctx         # Bartik shift-share (panel 真实列; full 轨同)
+    # 已知缺口披露: P1 复现包现行唯一 IV 表 22_tableA3_bartik_iv.do 工具化的
+    # 内生变量是 LOCUS 占比 (tech_frac), 不是 tone — tone-IV .do 模板待 M5 接线。
 
 event_studies:  # 引用 Appendix C events by id
   - E1   # 2013-06-13 yuebao_launch

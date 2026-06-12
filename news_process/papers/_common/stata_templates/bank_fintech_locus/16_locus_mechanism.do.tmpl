@@ -71,11 +71,22 @@ if !_rc {
 * ssc install medsens, replace
 * medsens, sims(1000) rho(-0.5 0.5)
 
-esttab total_layer apath_capex direct_capex apath_rd direct_rd total_patent ///
+* fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — apath_capex/direct_capex/
+* apath_rd/direct_rd/total_patent 全在守卫块内 (capex_it 等 CSMAR enrichment 列缺失
+* 即跳过), 旧版硬点名缺名 → r(111) 丢整表 (total_layer 实际可估也一并丢)。
+qui estimates dir
+local models `r(names)'
+esttab `models' ///
     using "$tables_dir/table3_mechanism.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Table 3 — Mechanism (P4 locus → R&D / IT capex → patent + CAR)") ///
     addnotes("Mediator pair: capex_it (primary, CSMAR) + r_and_d_intensity (secondary, 国家专利局)." ///
              "Sobel z + Imai-Keele 2010 sensitivity in medsens.log.")
 
-display "[OK] Table 3 (mechanism) → $tables_dir/table3_mechanism.tex"
+* fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_locus/
+* tables.py:build_table3_mechanism 经 read_paper_esttab(..., 'table3_mechanism.csv') 消费。
+estout `models' using "$tables_dir/table3_mechanism.csv", replace delimiter(",") ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+    starlevels(* 0.10 ** 0.05 *** 0.01)
+
+display "[OK] Table 3 (mechanism) → $tables_dir/table3_mechanism.tex (+ .csv side-channel)"

@@ -26,11 +26,28 @@ forvalues n = 3/7 {
     }
 }
 
-esttab N3 N4 N5 N6 N7 using "$tables_dir/table5a_n_sensitivity.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("N-Neighbor Sensitivity --- strategic_diff") ///
-    mtitles("N=3" "N=4" "N=5" "N=6" "N=7") ///
-    addnotes("Bresnahan-Reiss (1991): robustness to N choice.")
+* fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — strat_diff_n3..n7 任一列
+* 缺失被 continue 跳过后, 旧版硬点名 N3..N7 → r(111) 整表丢失; mtitle 同步删列防错位。
+qui estimates dir
+local stored `r(names)'
+local n_models ""
+local n_titles `""'
+forvalues n = 3/7 {
+    if `: list posof "N`n'" in stored' {
+        local n_models `n_models' N`n'
+        local n_titles `"`n_titles' "N=`n'""'
+    }
+}
+if "`n_models'" != "" {
+    esttab `n_models' using "$tables_dir/table5a_n_sensitivity.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("N-Neighbor Sensitivity --- strategic_diff") ///
+        mtitles(`n_titles') ///
+        addnotes("Bresnahan-Reiss (1991): robustness to N choice.")
+}
+else {
+    display as error "[WARN] table5a 无任何 strat_diff_n* 估计; 表跳过"
+}
 
 * R6: Centroid distance (4 methods)
 foreach m in tfidf_c tfidf_w lda emb {
@@ -42,11 +59,32 @@ foreach m in tfidf_c tfidf_w lda emb {
     }
 }
 
-esttab CD_tfidf_c CD_tfidf_w CD_lda CD_emb ///
-    using "$tables_dir/table5b_centroid_robustness.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Centroid Distance Robustness (Xie 2025)") ///
-    mtitles("TFIDF-char" "TFIDF-jieba" "LDA" "Embedding")
+* fix(omni-g-templates-04, 2026-06-11): 同上 — CD_* 守卫跳过后动态点名防 r(111)
+qui estimates dir
+local stored `r(names)'
+local cd_cand_m CD_tfidf_c CD_tfidf_w CD_lda CD_emb
+local cd_cand_t `""TFIDF-char" "TFIDF-jieba" "LDA" "Embedding""'
+local cd_models ""
+local cd_titles `""'
+local ncd : word count `cd_cand_m'
+forvalues i = 1/`ncd' {
+    local m : word `i' of `cd_cand_m'
+    if `: list m in stored' {
+        local cd_models `cd_models' `m'
+        local t : word `i' of `cd_cand_t'
+        local cd_titles `"`cd_titles' "`t'""'
+    }
+}
+if "`cd_models'" != "" {
+    esttab `cd_models' ///
+        using "$tables_dir/table5b_centroid_robustness.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("Centroid Distance Robustness (Xie 2025)") ///
+        mtitles(`cd_titles')
+}
+else {
+    display as error "[WARN] table5b 无任何 centroid_diff_* 估计; 表跳过"
+}
 
 * R7: Ctx-track
 capture confirm variable strat_diff_n5_ctx
@@ -56,9 +94,28 @@ if !_rc {
     eststo R7_ctx
 }
 
-esttab N5 R7_ctx using "$tables_dir/table5c_ctx_track.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Full vs Ctx Track --- strategic_diff") ///
-    mtitles("Full" "Ctx")
+* fix(omni-g-templates-04, 2026-06-11): table5c 名单动态化 — N5 (strat_diff_n5 缺失
+* 被 continue 跳过) 与 R7_ctx (守卫块内) 任一缺名旧版硬点名 → r(111) 整表丢失。
+qui estimates dir
+local stored `r(names)'
+local c_models ""
+local c_titles `""'
+if `: list posof "N5" in stored' {
+    local c_models `c_models' N5
+    local c_titles `"`c_titles' "Full""'
+}
+if `: list posof "R7_ctx" in stored' {
+    local c_models `c_models' R7_ctx
+    local c_titles `"`c_titles' "Ctx""'
+}
+if "`c_models'" != "" {
+    esttab `c_models' using "$tables_dir/table5c_ctx_track.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("Full vs Ctx Track --- strategic_diff") ///
+        mtitles(`c_titles')
+}
+else {
+    display as error "[WARN] table5c 无任何 full/ctx 估计; 表跳过"
+}
 
 display "[OK] Table 5 → $tables_dir/{table5a,table5b,table5c}_*.tex"
