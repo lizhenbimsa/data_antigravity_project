@@ -36,6 +36,15 @@
   Non-Fintech = 12_fintech_news_full.parquet (全量银行新闻)
               MINUS 40_article_bank_level.parquet (最终面板文章)
 
+  命名澄清 (勿因 "fintech" 字样误判): 12_fintech_news_full.parquet 是 stage 12
+  在 **过滤之前** 落盘的全量分类结果 (news_fintech.py:295-321), 行集与上游
+  11_bank_news.parquet **逐行一致 (1:1, 零删行)**, 仅多出 is_fintech_news 等 7 列
+  金融科技标注。即 "_full" = "过滤前全量银行新闻", 而非 "仅金融科技新闻"
+  (后者是 filter 后的 12_fintech_news.parquet, 为本文件 _full 的子集)。
+  → anti-join 的「全量」基集用本文件正确; 之所以读 _full 而非 11_bank_news,
+    是因为下游 build_non_fintech 需 is_fintech_news 列把对照组细分为
+    ①关键词未匹配 / ②匹配但 LLM 拒绝 (11_bank_news 无此列, 换之会静默丢失该诊断)。
+
 输入:
   data/processed/12_fintech_news_full.parquet
   data/processed/40_article_bank_level.parquet
