@@ -708,36 +708,28 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     raw_texts = full_texts
     logger.info(f"  文章总数: {len(raw_texts)}")
 
-    # ---- 4.3 Token 精确截断 ----
-    # 【术语】使用 tiktoken cl100k_base 编码器精确计算每篇文章的 token 数,
-    #   超过 8191 tokens 的文章截断至上限。
-    # 口径披露 (omni-g-policy-03, 2026-06-11): 文章侧 policy_cosine_sim* 的语义
-    #   口径 = **每篇文章前 8191 token** (超限尾部丢弃, 盘上试跑 5/1170 篇受影响,
-    #   最长截掉 ~23%)。引擎 (_eng.embed_texts) 本可对超长文章自动 chunk+pool
-    #   无损 (锚点侧 4.4 即如此; stage 25/26 聚合文档同), 但本截断**刻意保留**:
-    #   LLMCache 缓存键含逐字文本, 改为全文口径会使全部既存长文向量 cache miss
-    #   → 触发增量付费重嵌入; 主控决定保留截断 + 显式披露 (而非静默不一致)。
-    #   旧注释所称 "Stage 25 字符级 8000 字粗略截断" 已不存在 (stage 25 走引擎
-    #   chunk+pool, fix(omni-g-policy-04) 注释纠偏)。
-    # 【白话】数一数每篇文章有多少个"令牌"，太长就截短 — 所以超长文章的对齐分
-    #   只看它的"前半篇"(约 4000 中文字), 这是有意保留并公开说明的口径。
-    logger.info("  正在计算 token 数并截断超限文章...")
-    truncated_texts = []
-    token_counts = []
-    n_truncated = 0
-
-    for text in raw_texts:
-        n_tok = _count_tokens(text)
-        if n_tok > _MAX_TOKENS_PER_INPUT:
-            text = _truncate_to_max_tokens(text, _MAX_TOKENS_PER_INPUT)
-            n_tok = _MAX_TOKENS_PER_INPUT
-            n_truncated += 1
-        truncated_texts.append(text)
-        token_counts.append(n_tok)
-
+    # ---- 4.3 Token 诊断 (无预截断 — 超长由引擎 chunk+pool 接管) ----
+    # 【术语】fix(2026-06-12, 选项 B; 镜像 stage 27 omni-g-benefit-04): 移除文章侧
+    #   8191-token 预截断。统一引擎 _eng.embed_texts 自带 Early Chunking + token
+    #   加权 Mean Pooling (Günther et al. 2024, arXiv:2409.04701; Reimers &
+    #   Gurevych 2019, EMNLP), 对超长文章无损分段池化 — 与锚点侧 (4.4) 及 stage
+    #   25/26/27 完全同一口径。两侧 (文章 / 政策锚点) 现走**对称** chunk-pool 管线,
+    #   符合 Hoberg & Phillips (2016, JPE) / Loughran & McDonald (2011, JF) 文本
+    #   相似度 "对比双方同管线、整文不截断" 的顶刊规范 (近期 earnings-call 实证亦
+    #   采分段嵌入+平均, 无公认最优池化规则)。
+    # 口径变更 (supersedes omni-g-policy-03): 此前为锁 LLMCache 缓存键的字节确定性,
+    #   刻意把文章截到前 8191 token (尾部丢弃; 盘上 5/1170 篇受影响, 最长截掉 ~23%)。
+    #   现改全文 chunk-pool: ≤8191 token 文章缓存键不变 (旧截断恒等 → 全部 cache hit);
+    #   超长文章的首块与旧截断文本字节一致 (cache hit), 仅尾部块为新缓存键 → 增量
+    #   嵌入仅 ~5 篇尾段 (≈$0 API 成本), golden 仅受影响行重生。本段只保留 token 诊断。
+    # 【白话】数一数每篇文章多少 token、有几篇超长 (会被引擎拆段读完再取平均), 但
+    #   不再"撕掉尾巴" — 超长文章整篇都算进对齐分, 跟政策文件那侧的处理方式一致。
+    logger.info("  正在计算 token 数 (无预截断, 超长走引擎 chunk+pool)...")
+    token_counts = [_count_tokens(text) for text in raw_texts]
+    n_long = sum(1 for n in token_counts if n > _MAX_TOKENS_PER_INPUT)
     avg_tokens = np.mean(token_counts) if token_counts else 0
     logger.info(f"  Token 统计: 平均 {avg_tokens:.0f} tokens/篇, "
-                f"截断 {n_truncated}/{len(raw_texts)} 篇")
+                f"超长 (引擎 chunk+pool) {n_long}/{len(raw_texts)} 篇")
 
     # ---- 4.4 权威政策文本分段 (Chunk-then-Pool, 按文档分组) ----
     # 【术语】Early Chunking + Mean Pooling (Günther et al., 2024; Reimers &
@@ -772,19 +764,13 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
             "  vintage 前视守卫: 关闭 (article_alignment.vintage_aware=false "
             "或语料年份全部未知) → 静态全语料锚点 (含未来政策文本, 前视披露)")
 
-    # ---- 4.4b ctx 轨 token 截断 (v3.6.0 P3 B2) ----
-    truncated_ctx_texts = []
-    ctx_token_counts = []
-    n_truncated_ctx = 0
-    for text in ctx_texts:
-        n_tok = _count_tokens(text)
-        if n_tok > _MAX_TOKENS_PER_INPUT:
-            text = _truncate_to_max_tokens(text, _MAX_TOKENS_PER_INPUT)
-            n_tok = _MAX_TOKENS_PER_INPUT
-            n_truncated_ctx += 1
-        truncated_ctx_texts.append(text)
-        ctx_token_counts.append(n_tok)
-    logger.info(f"  ctx 轨 token: 截断 {n_truncated_ctx}/{len(ctx_texts)} 篇")
+    # ---- 4.4b ctx 轨 token 诊断 (无预截断, 同 4.3 选项 B) ----
+    # ctx 轨 = 标题 + 实体局部窗口, 构造上几乎不超长; 仍与 full 轨同口径不预截断,
+    # 万一超长由引擎 chunk+pool 接管 (两轨对称)。
+    ctx_token_counts = [_count_tokens(text) for text in ctx_texts]
+    n_long_ctx = sum(1 for n in ctx_token_counts if n > _MAX_TOKENS_PER_INPUT)
+    logger.info(f"  ctx 轨 token: 超长 (引擎 chunk+pool) "
+                f"{n_long_ctx}/{len(ctx_texts)} 篇")
 
     # ---- 4.5 双模型嵌入 + 余弦相似度 (v3.7.5: dual-model) ----
     # 【术语】Hoberg & Phillips (2016, JPE, §III) 余弦相似度;
@@ -798,8 +784,9 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # --- MAIN (canonical) 轨: 列名 byte-for-byte 不变 ---
+    # 选项 B: 直送**全文** full_texts / ctx_texts (非预截断版), 超长由引擎 chunk+pool。
     sim_scores_full, sim_scores_ctx = _cosine_for_spec(
-        truncated_texts, truncated_ctx_texts, doc_chunks, EMBEDDING_CONFIG,
+        full_texts, ctx_texts, doc_chunks, EMBEDDING_CONFIG,
         doc_years=doc_years, article_years=article_years)
     if sim_scores_full is None or sim_scores_ctx is None:
         # F1 fix (2026-05-30): MAIN 失败也须产出全部 5 列 (含 _t2v, 全 NaN), 与
@@ -823,8 +810,9 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     # 为 False → API 分支 get_embeddings_api raise RuntimeError) 或本地模型加载
     # 抛错会沿调用链炸掉整个 stage (canonical 列一并丢失), 与本契约注释矛盾。
     try:
+        # 选项 B: 同 MAIN, 直送全文 full_texts / ctx_texts, 超长由引擎 chunk+pool。
         t2v_full, t2v_ctx = _cosine_for_spec(
-            truncated_texts, truncated_ctx_texts, doc_chunks, _ROBUSTNESS_SPEC,
+            full_texts, ctx_texts, doc_chunks, _ROBUSTNESS_SPEC,
             doc_years=doc_years, article_years=article_years)
     except Exception as _t2v_exc:
         logger.warning(f"  ROBUSTNESS (text2vec) 嵌入异常: "

@@ -1,8 +1,9 @@
 {
   "plan_version": "v3.5.1",
   "median_amb_d0": 0.005325,
+  "median_amb_d0_ctx": NaN,
   "prompt_v8_sha256": "0430ba3c1b2a289e5f022081953e7748f35dfa9e3e1ac9303f6d0f1871cc858c",
-  "stage21_last_run_timestamp": "2026-06-10T02:19:59.821388+00:00",
+  "stage21_last_run_timestamp": "2026-06-12T01:56:30.288899+00:00",
   "a1_clarity_panel_cols": [
     "mean_clarity_score_full",
     "mean_clarity_score_ctx",
