@@ -135,10 +135,10 @@ Next steps:
 A: `ssc install reghdfe` (Stata SSC archive)
 
 **Q: 列 `tech_frac_lc` 不存在?**
-A: 检查是否 `46_panel_yearly_core.dta` 由 v3.2.0 stage 46 stata_export 生成 (v3.1.1 panel 不含 `_lc` 列). 走完整 v3.2.0 pipeline 重生成.
+A: 检查是否 `46_panel_yearly_full.dta` 由 stage 46 stata_export 生成 (v3.1.1 panel 不含 `_lc` 列). 走完整 pipeline 重生成.
 
 **Q: Stata IC license 报"too many vars"?**
-A: 用 core .dta (≤ 2048 列), 不要 full .dta. plan v14 §9.1 R42-A 已为 IC 拆分了.
+A: 2026-06-12 起 stage 46 只产单一全列 `46_panel_yearly_full.dta` (本机 StataNow/MP 19.5 maxvar≤120,000 直读; 已移除 core/aux IC 双切分). 若确需在 IC 跑, 自行 `keep` 变量子集或升级到 SE/MP.
 
 **Q: main spec 怎么选?**
 A: 论文 Methods §4 决定. 推荐 (plan v14 §3.6):

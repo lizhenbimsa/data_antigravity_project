@@ -719,9 +719,14 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     #   采分段嵌入+平均, 无公认最优池化规则)。
     # 口径变更 (supersedes omni-g-policy-03): 此前为锁 LLMCache 缓存键的字节确定性,
     #   刻意把文章截到前 8191 token (尾部丢弃; 盘上 5/1170 篇受影响, 最长截掉 ~23%)。
-    #   现改全文 chunk-pool: ≤8191 token 文章缓存键不变 (旧截断恒等 → 全部 cache hit);
-    #   超长文章的首块与旧截断文本字节一致 (cache hit), 仅尾部块为新缓存键 → 增量
-    #   嵌入仅 ~5 篇尾段 (≈$0 API 成本), golden 仅受影响行重生。本段只保留 token 诊断。
+    #   现改全文 chunk-pool: API 主轨 ≤8191 token 文章缓存键不变 (旧截断恒等 → cache
+    #   hit), 超长文章首块与旧截断文本字节一致 (cache hit), 仅尾部块为新键 → 增量
+    #   嵌入仅 ~5 篇尾段 (≈$0 API)。t2v 稳健轨走本地模型不进缓存 (每 run 重算, $0),
+    #   其超长文章因本地模型 128-token 边界, 受影响幅度比 API 主轨更大。
+    #   ⚠ golden 重生范围**非仅这 ~5 篇**: 四象限分类用年度内分位阈值
+    #   (runner._classify_policy_quadrants), 单篇 sim 变动会移动整年度阈值 → 同年度
+    #   其它文章归类可能离散翻转, 连带 bank-year 聚合 / *_adopt_* 占比列变 → 须整体
+    #   重生 40/51 面板 (test_panel_reproducibility 门覆盖)。本段只保留 token 诊断。
     # 【白话】数一数每篇文章多少 token、有几篇超长 (会被引擎拆段读完再取平均), 但
     #   不再"撕掉尾巴" — 超长文章整篇都算进对齐分, 跟政策文件那侧的处理方式一致。
     logger.info("  正在计算 token 数 (无预截断, 超长走引擎 chunk+pool)...")
