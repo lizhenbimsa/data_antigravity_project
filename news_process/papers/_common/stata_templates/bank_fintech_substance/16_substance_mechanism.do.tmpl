@@ -44,7 +44,9 @@ else {
     display "  [WARN] car_3day_window_ft_announce not in panel (M0.5.11 enrichment pending)"
 }
 
-* 长期 outcome: long_run_roa_change_3yr ~ X (W&Z 1994 反转检验)
+* 长期 outcome: {{MAIN_DV}} ~ X (2026-06-13 重定位后 = cost_income_ratio_change_3yr
+* 效率试金石; W&Z 1994 ROA 反转检验移至下方 sureg, 用降级 secondary 的
+* long_run_roa_change_3yr)
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo long_run
@@ -53,8 +55,12 @@ eststo long_run
 * 相等/反转 — 短期为正 vs 长期为负。
 * 白话: 把短期和长期两条回归联立起来一起估计, 再检验"短期涨的"是否恰好等于
 *       "长期跌的" (两个系数一正一负互为镜像), 这正是 W&Z 象征性宣告的预测。
+* (反转检验对 = 短期 CAR vs 长期 ROA 变化, 与主回归的 CIR outcome 独立;
+*  两列均待 enrichment — 各自 confirm, 防 CAR 先到位而 ROA 缺列时 sureg r(111))
 capture confirm variable car_3day_window_ft_announce
-if !_rc {
+local _rc_car = _rc
+capture confirm variable long_run_roa_change_3yr
+if !`_rc_car' & !_rc {
     sureg (car_3day_window_ft_announce {{MAIN_TREAT}} $controls) ///
           (long_run_roa_change_3yr {{MAIN_TREAT}} $controls)
     test [car_3day_window_ft_announce]_b[{{MAIN_TREAT}}] = ///
@@ -67,7 +73,7 @@ if !_rc {
 qui estimates dir
 local stored `r(names)'
 local cand_models short_run long_run
-local cand_titles `""Short-run CAR" "Long-run ROA Δ""'
+local cand_titles `""Short-run CAR" "Long-run outcome Δ""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'

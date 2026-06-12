@@ -139,7 +139,11 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     },
     'strategic_diff': {
         'PAPER_ID': 'strategic_diff',
-        'MAIN_DV': 'ROA',  # external sentinel — 见 benefit_society 块上方 fix(omni-g-replication-01) 注
+        # 2026-06-13 outcome 重定位 (顶刊组合定稿): 差异化 → 市场势力 → 特许权价值
+        # (Hoberg-Phillips 2016 JPE 银行版; Keeley 1990 AER charter value)。tobin_q
+        # 仍为外部财务 sentinel (上市行子样本, 财务面板+市值接入前列缺失,
+        # 01_data_prep capture confirm 安全跳过), 性质同原 'ROA' 哨兵。
+        'MAIN_DV': 'tobin_q',  # spec.outcome.primary (external sentinel, 上市行)
         'CONTROLS': 'ln_news_coverage media_hhi bank_scale_ord',
         'CLUSTER_VAR': 'bank_id',
         'HET_VAR': 'is_soe',
@@ -158,7 +162,11 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     },
     'llm_peer': {
         'PAPER_ID': 'llm_peer',
-        'MAIN_DV': 'ROA',  # external sentinel — 见 benefit_society 块上方 fix(omni-g-replication-01) 注
+        # 2026-06-13 主规格重构 (顶刊组合定稿): outcome 改为银行自身 fintech 报道
+        # 强度年度聚合 (panel 真实在产列, encode.py:847) — 方法学论文用 "peer-IV →
+        # own tone → own fintech 战略响应" (Leary-Roberts 2014 JF 同群范式) 最大化
+        # 展示 LLM 语义同业尺子; 不再用外部财务 sentinel 'ROA' (roa 降级 secondary)。
+        'MAIN_DV': 'avg_ft_intensity_full',  # spec.outcome.primary (panel 实存列)
         'CONTROLS': 'ln_news_coverage media_hhi n_articles',
         'CLUSTER_VAR': 'bank_id',
         'HET_VAR': 'is_soe',
@@ -200,7 +208,9 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     },
     'bank_fintech_substance': {
         'PAPER_ID': 'bank_fintech_substance',
-        'MAIN_DV': 'long_run_roa_change_3yr',         # spec.outcome.primary (P3 long-run)
+        # 2026-06-13 outcome 重定位: 效率试金石 (W&Z decoupling — 实质性采纳应改善
+        # 成本收入比, 象征性宣告应无效); long_run_roa_change_3yr 降级 secondary。
+        'MAIN_DV': 'cost_income_ratio_change_3yr',    # spec.outcome.primary (P3, 3 年前向 CIR 变化)
         # fix(omni-g-replication-04, 2026-06-11): 原 'innovation_substantiveness_full'
         # 是 stage 21 article-level 列, 永不在 bank-year panel (stage 45 聚合真名 =
         # sub_frac/symb_frac) → 01_data_prep exit 198 全包死亡。改为 panel 真实聚合列
@@ -214,7 +224,9 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     },
     'bank_fintech_locus': {
         'PAPER_ID': 'bank_fintech_locus',
-        'MAIN_DV': 'car_5day_window',                 # spec.outcome.primary (P4)
+        # 2026-06-13 outcome 重定位 (年度数据约束): 事件窗 CAR 需日频 → 降级上市行
+        # 扩展; 主 outcome = 引用加权专利 (Kogan 2017 QJE 谱系, 底层技术轨直接产出)。
+        'MAIN_DV': 'citation_weighted_patent',        # spec.outcome.primary (P4)
         # P4 用 primary_pair = (locus_layer_full, locus_scenario_full), 15_locus_main
         # 直接 hardcode pair; MAIN_TREAT 留 locus_layer_full 作单 placeholder fallback
         # 给 16_mechanism 等用 single treatment 的 paper-specific 模板。

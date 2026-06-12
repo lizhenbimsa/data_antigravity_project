@@ -33,6 +33,7 @@ import time
 import numpy as np
 import pandas as pd
 
+from news_process.core.config import herd_sensitivity_grid
 from news_process.core.logging import log_stage_summary
 from news_process.pipeline.features.benefit_society import (
     compute_benefit_society_panel,
@@ -61,6 +62,9 @@ from news_process.pipeline.panel.attention_media import (
     compute_attention_treatments,
     compute_fintech_attention_index,
     compute_media_heterogeneity,
+)
+from news_process.pipeline.panel.dedup_sensitivity import (
+    compute_dedup_sensitivity_treatments,
 )
 
 # Phase 2a: 全部 9 处 importlib.spec_from_file_location 反射已删除,
@@ -99,6 +103,7 @@ from news_process.pipeline.panel.iv_did import (
     load_bank_group_maps,
     merge_policy_shocks,
 )
+from news_process.pipeline.panel.iv_extensions import compute_iv_extensions
 from news_process.pipeline.panel.llm_peer_iv import compute_llm_peer_iv
 from news_process.pipeline.panel.network_brokerage import (
     compute_brokerage_centrality,
@@ -644,6 +649,35 @@ def main():
         logger.info(f"  已生成 {len(weighted_cols)} 个跟风衰减加权列 "
                     f"({'双轨独立权重' if has_dual_hw else '单轨 legacy 权重'})")
 
+        # --- 3d-2. 阈值敏感性 HW 加权列 (2026-06-13) ---
+        # stage 24 按 herd_detection.sensitivity_thresholds 网格输出
+        # herd_weight_{track}_thrNN; 此处仅为 LLM 投票主测度族 (score/cont)
+        # 生成逐 τ 加权列 + valid-mask 分母 (与 _build_llm_valid_masked_weights
+        # 的 'llm' 组同构, encode-01 分子分母同域) — 网格 × 全 11 测度族会列爆炸,
+        # 稳健性表只需主回归 DV 的逐 τ 变体。legacy 单列 herd_weight 场景
+        # (v3.5.x parquet) 无 thr 列, 自动整体跳过。
+        # 白话: 每个备选门槛的打折权重, 只乘到 LLM 投票语调这一个主指标上,
+        # 聚合后在 Stata 里逐列重跑主回归, 证明结论不靠 0.35 这个门槛。
+        _sens_thrs, _sens_tags = herd_sensitivity_grid(CONFIG)
+        sens_cols = {}
+        for _tag in _sens_tags:
+            for track in ['_full', '_ctx']:
+                w_src = f'herd_weight{track}_{_tag}'
+                if (w_src not in df.columns
+                        or f'llm_vote_score{track}' not in df.columns):
+                    continue
+                hw_t = df[w_src].fillna(1.0)
+                sens_cols[f'llm_vote_score_hw_{_tag}{track}'] = (
+                    df[f'llm_vote_score{track}'] * hw_t)
+                sens_cols[f'llm_vote_cont_hw_{_tag}{track}'] = (
+                    df[f'llm_vote_cont{track}'] * hw_t)
+                sens_cols[f'_wd_hw_{_tag}_llm{track}'] = hw_t.where(
+                    df[f'llm_vote_score{track}'].notna())
+        if sens_cols:
+            df = _append_columns(df, sens_cols)
+            logger.info(f"  已生成 {len(sens_cols)} 个阈值敏感性 HW 加权列 "
+                        f"(tags={_sens_tags})")
+
     # --- 4. 时间解析 ---
     df = parse_time(df)
 
@@ -911,6 +945,12 @@ def main():
     # 双轨派生 (density/sd/gap/share)。防选择偏差: 全集脊柱 LEFT-join + 零-fintech 填 0 (index/pct)。
     if PANEL_CFG.get('compute_attention_treatments', True):
         panel = compute_attention_treatments(panel)
+
+    # --- 6b-3. 去重阈值敏感性处理变量 (Tetlock 2011 RFS; Hassan 2019 QJE) ---
+    # 严格方向网格 (J×W) 在 12_full 文章全集上追加判重 → 重算 index/pct/计数,
+    # 每变体 5 列 (_j70w5 等)。宽松方向需从 raw 重跑 stage 00, 模块 docstring 披露。
+    if PANEL_CFG.get('compute_dedup_sensitivity', True):
+        panel = compute_dedup_sensitivity_treatments(panel)
 
     # --- 6c. 媒体异质性变量 (四维度) ---
     if PANEL_CFG.get('compute_media_heterogeneity', True):
@@ -2128,6 +2168,21 @@ def main():
     # 39f 被并入 06-10 重生面板的 run-顺序依赖) + (2) 重复键 fail-loud
     # (替代旧 drop_duplicates keep='first' 静默取首行, 旧行为使行数守卫永真空转)。
     panel = _merge_optin_feature_panels(panel, OUTPUT_DIR)
+
+    # --- 8z. IV 扩展族 (11 论文工具变量补全, 2026-06-13) ---
+    # 必须在全部面板 merge 之后: 消费 attention_index (步骤 6) / sub_frac 等
+    # 分类 frac (步骤 5) / benefit_mean_full (7h-benefit) / bank_type+share
+    # (7e) / bank_zone (7f)。引擎与引用见 pipeline/panel/iv_extensions.py。
+    if PANEL_CFG.get('compute_iv_extensions', True):
+        _ivx_type_map, _ = load_bank_group_maps()
+        # 基期解析与步骤 7e 完全同口径 (share 复用 7e 产物, 掩码须一致)
+        _ivx_base_cfg = PANEL_CFG.get('bartik_base_year', 'auto')
+        if _ivx_base_cfg == 'auto' or _ivx_base_cfg is None:
+            _ivx_T0 = max(int(panel['year'].min()), 2010)
+        else:
+            _ivx_T0 = int(_ivx_base_cfg)
+        panel = compute_iv_extensions(panel, df_exploded,
+                                      _ivx_type_map, [_ivx_T0])
 
     log_diagnostics(panel, df_exploded)
 

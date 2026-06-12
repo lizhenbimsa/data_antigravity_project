@@ -1,0 +1,107 @@
+* ============================================================================
+* 25_tableA12_iv_2sls.do — benefit_society IV (2026-06-13 IV 补全)
+* Paper: benefit_society (Jha, Liu & Manela 2026 RFS 经营效益态度测度)
+*
+* 内生变量: benefit_mean_full (媒体经营效益态度均值, paper_spec treatment.primary)
+* IV (paper_spec identification.iv, iv_extensions.py 物化):
+*   primary  = leave_one_out_peer_benefit_iv (同银行类型×年 LOO 态度均值;
+*              滞后稳健性变体 leave_one_out_peer_benefit_iv_lag1)
+*   fallback = zone_leave1out_benefit_iv     (同经济圈跨省 LOO 态度均值,
+*              区域共同冲击粒度, 与 iv_did.compute_zone_leave1out 同构)
+* 白话: 媒体对一家银行"是否有利经营"的态度可能被该行业绩反向驱动; 借
+* "同类型/同区域其他银行被媒体如何评价"当外生推力 — 行业/区域层面的舆论
+* 风向推得动对本行的态度, 但不直接由本行当期业绩决定。
+*
+* 第二阶段 DV: roa (外部财务面板待接入; 缺列时 2SLS 优雅跳过, 第一阶段照常输出)。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+local TX   benefit_mean_full
+local IV1  leave_one_out_peer_benefit_iv
+local IV2  zone_leave1out_benefit_iv
+local DV   roa
+
+capture confirm variable `TX'
+if _rc {
+    display "  [WARN] 内生变量 `TX' 不在面板; 表跳过"
+    exit 0
+}
+capture which ivreg2
+if _rc {
+    display "  [WARN] ivreg2 not installed (ssc install ivreg2); 表跳过"
+    exit 0
+}
+
+* 第一阶段 (现有面板即可运行)
+capture confirm variable `IV1'
+if !_rc {
+    eststo first_type: reghdfe `TX' `IV1' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+capture confirm variable `IV2'
+if !_rc {
+    eststo first_zone: reghdfe `TX' `IV2' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* 2SLS (DV 待外部财务数据; 缺列优雅跳过)
+capture confirm variable `DV'
+if _rc {
+    display "  [WARN] 第二阶段 DV `DV' 未物化 (外部财务面板未接入); 仅输出第一阶段"
+}
+else {
+    capture confirm variable `IV1'
+    if !_rc {
+        eststo tsls_type: ivreg2 `DV' (`TX' = `IV1') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
+    capture confirm variable `IV1' `IV2'
+    if !_rc {
+        * 过度识别列 (2 工具 1 内生 → Hansen J df=1)
+        eststo tsls_overid: ivreg2 `DV' (`TX' = `IV1' `IV2') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
+}
+
+* esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
+qui estimates dir
+local stored `r(names)'
+local cand_models first_type first_zone tsls_type tsls_overid
+local cand_titles `""1st Type-LOO" "1st Zone-LOO" "2SLS Type" "2SLS Overid""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] IV 表无任何已存储估计 (IV 列全缺), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA12_benefit_iv_2sls.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 widstat jp, fmt(0 3 3 3) labels("N" "R²" "KP F" "Hansen J p")) ///
+        title("Table A12: Benefit-Attitude IV — Type LOO + Zone LOO (First Stage + 2SLS)") ///
+        mtitles(`mtitles') ///
+        addnotes("IV1 = same-bank-type leave-one-out benefit-attitude mean; IV2 = same-economic-zone (cross-province) leave-one-out mean (regional common shocks; cf. iv_did.compute_zone_leave1out)." ///
+                 "Exclusion caveats for peer-mean instruments (Manski 1993; Leary-Roberts 2014 JF) must be disclosed; lag-1 variant leave_one_out_peer_benefit_iv_lag1 as robustness." ///
+                 "KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005), use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified column.")
+
+    display "[OK] 25_tableA12_iv_2sls → $tables_dir/tableA12_benefit_iv_2sls.tex"
+}

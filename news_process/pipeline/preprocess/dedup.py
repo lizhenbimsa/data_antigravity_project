@@ -64,6 +64,14 @@ class ArticleDeduplicator:
         "文本指纹" (MinHash), 哪怕改了几个字指纹也几乎一样, 借此快速找出
         转载/通稿簇 — 簇内 5 个工作日内后发的相似稿被判为重复删除,
         间隔更久的 (如周年回顾) 保留。
+
+    下游口径注意 (对银行关注度指标的影响, 顶刊依据见
+    panel/attention_media.py::compute_attention_treatments docstring):
+        去重基适配 "信息到达" 构念 (Tetlock 2011 RFS; Hassan et al. 2019 QJE) —
+        attention_index/pct/density 等关注度指标消费本层输出 ✓; "传播广度"
+        构念 (Bushee et al. 2010 JAR; Fang & Peress 2009 JF) 需要转载,
+        由 falsification/controls.py::nf_media_breadth 用去重**前**物理行集
+        另行计算。"保留首发" 排序键防止跨期转载错配 bank-year 年度归属。
     """
 
     COL_WEIGHT = 'temp_media_weight'
@@ -258,11 +266,14 @@ class ArticleDeduplicator:
         )
         return df_deduped
 
-    def _perform_near_deduplication(self, df: pd.DataFrame) -> pd.DataFrame:
-        """近似去重: MinHash LSH + 5 个工作日时间窗口."""
-        self.logger.info("执行近似去重(LSH + 时间窗口)...")
+    def compute_minhashes(self, df: pd.DataFrame) -> pd.Series:
+        """Step 1: 并行生成 MinHash 签名 (索引 → MinHash 的 Series).
 
-        # ── Step 1: 标准进程池分块并行生成 MinHash 签名 ──
+        签名只依赖文本与 (num_perm, ngram_size), **不依赖** Jaccard 阈值/时间窗口
+        — 因此去重敏感性检验 (panel/dedup_sensitivity.py) 可对同一批签名按
+        多组 (threshold, window) 反复判重而无需重算签名。
+        前置: df 须已经 ``_prepare_dataframe`` (依赖 COL_COMBINED 列)。
+        """
         self.logger.info(
             f"生成 MinHash 签名({self.num_perm} 个置换, "
             f"{nb_workers} 个工作进程)..."
@@ -294,15 +305,30 @@ class ArticleDeduplicator:
                         f"  MinHash 进度: {i + 1:,}/{total_count:,} ({pct:.0f}%)"
                     )
 
-        minhashes = pd.Series(minhash_results)
+        return pd.Series(minhash_results)
 
+    def find_near_duplicate_indices(
+        self, df: pd.DataFrame, minhashes: pd.Series,
+        threshold: float = None, window_busdays: int = 5,
+    ) -> Set:
+        """Steps 2-3: 按 (threshold, window_busdays) 判近似重复, 返回应剔除的索引集.
+
+        生产默认 = (self.threshold, 5 工作日); 去重敏感性检验传入备选参数网格。
+        前置: df 须已经 ``_prepare_dataframe`` (依赖 temp_datetime / COL_WEIGHT /
+        docid 列做簇内排序)。
+        """
+        if threshold is None:
+            threshold = self.threshold
         if minhashes.empty:
             self.logger.warning("无有效 MinHash, 跳过近似去重")
-            return df
+            return set()
 
         # ── Step 2: 构建 LSH 索引 ──
-        self.logger.info(f"构建 LSH 索引({len(minhashes):,} 个文档)...")
-        lsh = MinHashLSH(threshold=self.threshold, num_perm=self.num_perm)
+        self.logger.info(
+            f"构建 LSH 索引({len(minhashes):,} 个文档, "
+            f"threshold={threshold}, window={window_busdays} 工作日)..."
+        )
+        lsh = MinHashLSH(threshold=threshold, num_perm=self.num_perm)
         lsh_data = list(minhashes.items())
         insert_errors = 0
 
@@ -349,7 +375,7 @@ class ArticleDeduplicator:
                 na_position='last'
             )
 
-            # 时间窗口去重: 5 个工作日内的后发相似文章视为重复
+            # 时间窗口去重: window_busdays 个工作日内的后发相似文章视为重复
             kept_articles = []
             for row in sorted_cluster.itertuples():
                 current_idx = row.Index
@@ -367,7 +393,7 @@ class ArticleDeduplicator:
                     try:
                         d1 = np.datetime64(kept_date, 'D')
                         d2 = np.datetime64(current_date, 'D')
-                        if 0 <= np.busday_count(d1, d2) <= 5:
+                        if 0 <= np.busday_count(d1, d2) <= window_busdays:
                             is_redundant = True
                             break
                     except Exception:
@@ -381,7 +407,19 @@ class ArticleDeduplicator:
         self.logger.info(
             f"近似去重完成: 找到 {len(all_indices_to_drop):,} 条近似重复"
         )
-        return df.drop(index=list(all_indices_to_drop)) if all_indices_to_drop else df
+        return all_indices_to_drop
+
+    def _perform_near_deduplication(self, df: pd.DataFrame) -> pd.DataFrame:
+        """近似去重: MinHash LSH + 5 个工作日时间窗口 (生产口径).
+
+        重构 (2026-06-13, 去重敏感性): 拆为 compute_minhashes (签名, 参数无关) +
+        find_near_duplicate_indices (判重, 参数化) 两个可复用方法, 本方法以生产
+        默认参数 (self.threshold, window=5) 串联二者 — 行为与拆分前逐位一致。
+        """
+        self.logger.info("执行近似去重(LSH + 时间窗口)...")
+        minhashes = self.compute_minhashes(df)
+        drop = self.find_near_duplicate_indices(df, minhashes)
+        return df.drop(index=list(drop)) if drop else df
 
     @log_and_time(logger)
     def run(self, df: pd.DataFrame) -> pd.DataFrame:

@@ -122,9 +122,12 @@ def test_v3_5_0_stata_templates_in_subdirectory():
         tmpl_path = v3_5_0_dir / tmpl_name
         assert tmpl_path.exists(), f"Missing v3.5.0 template: {tmpl_path}"
 
-    # 验证 v3.5.0 模板不直接放在 _common/stata_templates/ 顶层 (否则会破坏 legacy glob)
-    direct_v3_5_0 = list(templates_dir.glob('19_table6*.do.tmpl')) + \
-                    list(templates_dir.glob('25_tableA6*.do.tmpl'))
+    # 验证 v3.5.0 模板不直接放在 _common/stata_templates/ 顶层 (否则会破坏 legacy glob)。
+    # fix(2026-06-13): 通配收窄到 v3.5.0 两个模板的精确名 — 旧式 '25_tableA6*' 误伤
+    # 同前缀的主线新模板 25_tableA6_tone_iv_2sls (2026-06-13 IV 补全, 刻意放顶层
+    # 让主线非递归 glob 收入 P1 复现包, 用标准 {{...}} 占位符, 无 jinja2 风险)。
+    direct_v3_5_0 = list(templates_dir.glob('19_table6_cell_decomposition*.do.tmpl')) + \
+                    list(templates_dir.glob('25_tableA6_dual_track_residual*.do.tmpl'))
     assert not direct_v3_5_0, (
         f"v3.5.0 templates should NOT be in direct stata_templates/ (legacy build glob risk); "
         f"found: {direct_v3_5_0}"

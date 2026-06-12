@@ -40,7 +40,7 @@ papers_assets/strategic_diff/
 
 ## 关键变量 (Paper-specific defaults)
 
-- `MAIN_DV`: ROA
+- `MAIN_DV`: `tobin_q` (2026-06-13 outcome 重定位: 特许权价值, Hoberg-Phillips 2016 JPE 银行版; 原 ROA 降级 secondary; 仍为外部财务哨兵, 上市行子样本)
 - `MAIN_DIFF_VAR`: `strat_diff_n5` (N=5 TF-IDF char 默认)
 - `FLUIDITY_VAR`: `strat_fluidity` (Hoberg-Phillips-Prabhala 2014)
 - `SIM_MAX_VAR`: `strat_sim_max`

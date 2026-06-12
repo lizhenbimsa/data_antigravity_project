@@ -1,0 +1,111 @@
+* ============================================================================
+* 22_substance_iv_2sls.do — P3 paper-specific IV (2026-06-13 IV 补全)
+* Paper: bank_fintech_substance (W&Z 实质性 vs 象征性)
+*
+* 内生变量: sub_frac (实质性创新文章占比, paper_spec treatment.primary)
+* IV (paper_spec identification.iv, iv_extensions.py 物化):
+*   primary  = leave_one_out_peer_subst_iv  (同银行类型×年 LOO 实质性占比;
+*              滞后稳健性变体 leave_one_out_peer_subst_iv_lag1)
+*   fallback = bartik_subst_iv_full         (基期类型共现份额 × 同类 LOO
+*              实质性占比, GPSS 2020 AER share 外生性视角)
+* 白话: 担心"做实事还是做样子"由银行自身处境内生决定, 借"同类型其他银行
+* 今年实事占比"与"基期题材结构 × 同类行情"当外生推力; 第一阶段 KP F 验证
+* 推力够不够强, 弱了就用 Anderson-Rubin 区间解读。
+*
+* 第二阶段 DV: cost_income_ratio_change_3yr (2026-06-13 outcome 重定位, W&Z
+* 效率试金石; 外部财务面板待接入, long_run_roa_change_3yr 降级 secondary;
+* 缺列时 2SLS 优雅跳过, 第一阶段照常输出)。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+local TX   sub_frac
+local IV1  leave_one_out_peer_subst_iv
+local IV2  bartik_subst_iv_full
+* 2026-06-13 outcome 重定位同步: spec.outcome.primary = cost_income_ratio_change_3yr
+* (W&Z 效率试金石); 原 long_run_roa_change_3yr 已降级 secondary。
+local DV   cost_income_ratio_change_3yr
+
+capture confirm variable `TX'
+if _rc {
+    display "  [WARN] 内生变量 `TX' 不在面板; 表跳过"
+    exit 0
+}
+capture which ivreg2
+if _rc {
+    display "  [WARN] ivreg2 not installed (ssc install ivreg2); 表跳过"
+    exit 0
+}
+
+* 第一阶段 (现有面板即可运行)
+capture confirm variable `IV1'
+if !_rc {
+    eststo first_loo: reghdfe `TX' `IV1' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+capture confirm variable `IV2'
+if !_rc {
+    eststo first_bartik: reghdfe `TX' `IV2' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* 2SLS (DV 待外部财务数据; 缺列优雅跳过)
+capture confirm variable `DV'
+if _rc {
+    display "  [WARN] 第二阶段 DV `DV' 未物化 (外部财务面板未接入); 仅输出第一阶段"
+}
+else {
+    capture confirm variable `IV1'
+    if !_rc {
+        eststo tsls_loo: ivreg2 `DV' (`TX' = `IV1') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
+    capture confirm variable `IV1' `IV2'
+    if !_rc {
+        * 过度识别列 (2 工具 1 内生 → Hansen J df=1)
+        eststo tsls_overid: ivreg2 `DV' (`TX' = `IV1' `IV2') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
+}
+
+* esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
+qui estimates dir
+local stored `r(names)'
+local cand_models first_loo first_bartik tsls_loo tsls_overid
+local cand_titles `""1st LOO" "1st Bartik" "2SLS LOO" "2SLS Overid""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] IV 表无任何已存储估计 (IV 列全缺), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA_substance_iv_2sls.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 widstat jp, fmt(0 3 3 3) labels("N" "R²" "KP F" "Hansen J p")) ///
+        title("P3 Substance IV: Peer LOO + Bartik (First Stage + 2SLS)") ///
+        mtitles(`mtitles') ///
+        addnotes("IV1 = same-bank-type leave-one-out substantive share (exclusion caveats per Manski 1993; Leary-Roberts 2014 JF — disclose in text; lag-1 variant leave_one_out_peer_subst_iv_lag1 for robustness)." ///
+                 "IV2 = Bartik: base-period type co-mention shares x type-year LOO substantive share (Goldsmith-Pinkham et al. 2020 AER, share-exogeneity view only)." ///
+                 "KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005); if below, use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified column.")
+
+    display "[OK] 22_substance_iv_2sls → $tables_dir/tableA_substance_iv_2sls.tex"
+}

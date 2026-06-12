@@ -33,7 +33,11 @@ _TABLE1_VARIABLES: list[str] = [
     'symb_frac',
     'sub_frac_sc',
     'symb_frac_sc',
-    # P3 dual outcome (M0.5.11 enrichment 待落盘)
+    # P3 outcome 族 (M0.5.11 enrichment 待落盘; 2026-06-13 重定位: 主因变量 =
+    # cost_income_ratio_change_3yr 效率试金石, long_run_roa 降级 secondary,
+    # CAR 降级上市行扩展)
+    'cost_income_ratio_change_3yr',
+    'misconduct_penalty_count',
     'long_run_roa_change_3yr',
     'car_3day_window_fintech_announcement',
     # P3 secondary outcomes (M0.5.11 enrichment 待落盘)

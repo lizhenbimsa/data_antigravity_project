@@ -19,9 +19,17 @@ differentiation_claim: |
   - 与 strategic_diff: llm_peer 用 LLM 同业 IV; strategic_diff 用文本表征差异
 
 outcome:
-  primary: roa
-  secondary: [car_3day, tobin_q]
-  enrichment_source: pipeline + CSMAR ROA/CAR/Tobin_Q
+  # primary 切换 (2026-06-13, 主规格重构, 顶刊组合定稿): 方法学论文的 outcome 应
+  # 最大化展示 "LLM 语义同业" 这把尺子 — 估计同业语调溢出对银行 fintech 战略响应
+  # 的因果效应 (Leary & Roberts 2014 JF 同群范式移植到银行)。avg_ft_intensity_full
+  # = 银行自身 fintech 报道强度年度聚合 (pipeline/panel/encode.py 真实在产列,
+  # 文本基 outcome, $0 即可跑通主回归), 取代泛用 ROA (方法学论文配 ROA 易被问
+  # "so what")。2SLS 结构不变: peer-IV → own tone → own fintech 战略响应。
+  primary: avg_ft_intensity_full
+  # roa 降级 secondary (经济显著性佐证); car_3day 需日频, 年度主线移除。
+  secondary: [roa, tobin_q]
+  enrichment_source: pipeline (avg_ft_intensity_full 已在产) + 财务面板 ROA + Wind
+    市值 → tobin_q (M0.5.11)
 
 treatment:
   # v3.7.5 integrity fix (F3): the operative 2SLS in 11_table2_main_iv_2sls.do.tmpl is

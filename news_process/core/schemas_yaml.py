@@ -94,6 +94,9 @@ class PanelBuildingSchema:
     aggregation_frequency: str = "yearly"
     export_stata: bool = True
     compute_attention_index: bool = True
+    compute_dedup_sensitivity: bool = True  # 6b-3. 去重阈值敏感性 (Tetlock 2011 RFS)
+    # 严格方向 (jaccard, window_busdays) 变体网格; None → 模块 DEFAULT_VARIANTS
+    dedup_sensitivity: Any = None
     compute_media_heterogeneity: bool = True
     compute_media_authority_weighting: bool = True
     compute_bartik_iv: bool = True
@@ -117,6 +120,10 @@ class HerdDetectionSchema:
     min_df: int = 5
     max_df: float = 0.9
     chunk_size: int = 1000
+    # 阈值敏感性网格 (2026-06-13): 元素级范围/去重校验在
+    # core.config.herd_sensitivity_grid (单一事实源), 此处仅约束 list 类型
+    sensitivity_thresholds: list = field(
+        default_factory=lambda: [0.25, 0.30, 0.40, 0.45])
 
 
 # ----------------------------------------------------------------------------

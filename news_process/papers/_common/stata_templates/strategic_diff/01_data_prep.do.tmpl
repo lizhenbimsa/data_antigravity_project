@@ -28,7 +28,8 @@ foreach v in {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} {{SIM_MAX_VAR}} {{TONE_VAR}} {{B
 }
 
 * fix(omni-g-replication-01, 2026-06-11): MAIN_DV ({{MAIN_DV}}) 是外部财务列 sentinel
-* (bank-year panel 无 ROA 列); 缺失时给出明确指引而非裸 "missing" (00_master fail-loud)。
+* (bank-year panel 无 tobin_q / roa 等财务列; 2026-06-13 outcome 重定位后 MAIN_DV =
+* tobin_q 特许权价值, 哨兵机制不变); 缺失时给出明确指引而非裸 "missing" (00_master fail-loud)。
 capture confirm variable {{MAIN_DV}}
 if _rc {
     display as error "[ERROR] required outcome {{MAIN_DV}} missing — 外部银行财务面板未接入 (config/银行面板2007-2025年.xlsx 待接入)"

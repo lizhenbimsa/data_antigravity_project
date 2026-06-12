@@ -132,20 +132,38 @@ financial_enrichment:
     - "data/processed/v34/47_financial_outcomes_panel.parquet"
     - "data/processed/v34/48_daily_returns_panel.parquet"
   derived_columns:
+    # 2026-06-13 outcome 重定位 (年度数据约束 + 顶刊组合定稿): 全项目统一年度
+    # bank-year 面板 — 事件窗 CAR 族降级为上市行扩展 (listed_subsample_extension),
+    # 各 paper 主因变量改年度可构造列; 角色注释与 paper_spec.yaml 同步。
     - "ln_fintech_investment"           # P2 outcome.primary
-    - "m_and_a_fintech"                 # P2 outcome.secondary
-    - "patent_fintech_count"            # P2 outcome.secondary / P4 outcome.secondary
-    - "citation_weighted_patent"        # P4 outcome.secondary (Kogan 2017 algo)
-    - "long_run_roa_change_3yr"         # P3 outcome.primary (t+3 forward change)
+    - "m_and_a_fintech"                 # P5 outcome.primary / P2 outcome.secondary
+    - "patent_fintech_count"            # P2/P4/P5 outcome.secondary
+    - "employee_growth_it"              # P2 outcome.secondary (CSMAR 员工; 2026-06-13 审计补登, 此前漏列)
+    - "citation_weighted_patent"        # P4 outcome.primary (Kogan 2017 上市行市值加权 / 非上市退引用计数加权)
+    - "cost_income_ratio_change_3yr"    # P3 outcome.primary (t+3 forward CIR 变化, W&Z 效率试金石)
+    - "long_run_roa_change_3yr"         # P3 outcome.secondary (t+3 forward change)
+    - "misconduct_penalty_count"        # P3 outcome.secondary (银保监处罚公示, 年度计数)
     - "ceo_turnover_2yr"
     - "executive_pay_change"
     - "board_change"
     - "capex_it"                        # P4 mediator.primary
     - "r_and_d_intensity"               # P4 mediator.secondary
     - "ln_fintech_mdna_length"          # P2 mediator.primary (年报 MD&A 章节文本长度)
-    - "car_3day_window_tone_shock"      # P1 primary (R10-M01)
-    - "car_3day_window_fintech_announcement"   # P3 short_run
-    - "car_5day_window"                 # P4 primary
+    # ---- 年度财务 outcome 族 (财务面板接入后构造) ----
+    - "funding_cost"                    # P1 outcome.primary (利息支出/计息负债; 第10篇 mechanism / strategic_diff secondary)
+    - "tobin_q"                         # strategic_diff outcome.primary (特许权价值, 上市行) / P1·llm_peer secondary
+    - "noninterest_income_share"        # P2/P4/strategic_diff secondary (多元化/应用场景轨)
+    - "cost_income_ratio"               # P2 secondary (水平值; P3 用 3 年前向变化)
+    - "liquidity_hoarding_share"        # 第10篇 mechanism ((现金+同业资产)/总资产)
+    - "capital_buffer"                  # 第11篇 secondary (资本充足率-监管最低)
+    - "interbank_liability_share"       # brokerage_network secondary (同业负债依存度)
+    - "liquidity_creation"              # benefit_society exploratory (Berger-Bouwman 2009 RFS cat-fat)
+    - "inclusive_loan_growth"           # benefit_society exploratory (普惠/小微贷款增速)
+    # ---- 上市行扩展 (listed_subsample_extension, 需日频, 非年度主线) ----
+    - "car_3day_window_tone_shock"      # P1 扩展 (R10-M01)
+    - "car_3day_window_fintech_announcement"   # P3 扩展
+    - "car_5day_window"                 # P4/P5 扩展
+    - "delta_covar"                     # brokerage_network 扩展 (Adrian-Brunnermeier 2016 AER)
   car_construction:
     benchmark: 中证银行指数
     model: market_adjusted

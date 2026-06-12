@@ -16,6 +16,16 @@ panel_building:
   # fix(omni-g-papers-misc-09, 2026-06-11) 锚点更正: attention_index = Fang-Peress (2009 JF)
   # extensive 覆盖加权曝光; Hassan (2019 QJE) 仅限 pct/density 归一化度量与 ctx 轨归因
   compute_attention_treatments: true # 6b-2. P2 attention 处理变量 (Fang-Peress 2009 JF; 双轨=互为稳健性, W2)
+  compute_dedup_sensitivity: true    # 6b-3. 去重阈值敏感性 (Tetlock 2011 RFS; Hassan 2019 QJE; $0 本地)
+  dedup_sensitivity:
+    # 严格方向 (Jaccard 阈值, 工作日窗口) 网格; 生产锚点 = (0.80, 5) 即既有
+    # attention_* 列本身。宽松方向 (J>0.8 / W<5) 在已去重语料上不可识别
+    # (被删原文不可恢复), 模块拒绝并提示需从 data/raw 重跑 stage 00。
+    variants:
+      - [0.70, 5]
+      - [0.75, 5]
+      - [0.80, 10]
+      - [0.70, 10]
   compute_media_heterogeneity: true  # 6c. 媒体异质性 (四维度: 财经/综合/中央级/其他)
   compute_media_authority_weighting: true  # 3c. 媒体权威性加权 (Holzman et al. 2023, TAR)
   # v6/F4 重构: Bartik IV 修剪至 6 类 (type/scale/fintech/media/geoprox/mauth)
@@ -33,6 +43,14 @@ panel_building:
   #       若基期撞到 2019 (数字人民币沙盒) 及以后, 直接报错拒跑, 防止用
   #       "事后"的暴露结构当工具变量导致内生性。
   bartik_pre_treatment_cutoff: 2019
+  # IV 扩展族 (2026-06-13, pipeline/panel/iv_extensions.py): 为此前缺 IV 的
+  # 论文物化工具变量 — P2 attention (peer LOO + Bartik) / P3 substance /
+  # P4 locus / P5 collab / benefit_society (peer+zone LOO) / P10 媒体组合
+  # 离散度暴露 / P11 媒体笔法清晰度暴露。
+  # 白话: 给每篇论文配一个"与银行自身当期决策无关、但能推动内生变量"的
+  #       外生推力 (同类银行的平均水平剔除自己 / 基期媒体组合的固有笔法),
+  #       缓解互为因果。引用与识别假设披露见 iv_extensions.py 模块头。
+  compute_iv_extensions: true        # 8z. IV 扩展族 (GPSS 2020 AER 等, 见模块头)
   compute_policy_shocks: true             # 7g. DID 政策冲击变量 — DCEP + Fintech Sandbox (Callaway & Sant'Anna 2021, JoE)
 
 # ------------------------------------------------------------------------------

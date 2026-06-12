@@ -291,9 +291,9 @@ def test_cli_verify_replication_on_valid_package(tmp_path, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert '[1/5] 目录结构' in out
-    # 取消标题轨 (remove-title-track): 删除 25_tableA8_title_robustness.do.tmpl → 回到 14
-    assert '14/14 完整' in out  # 14 .do (title robustness 模板已删)
-    assert '13/13 子 .do' in out  # master.do 引用 13 个子 .do
+    # remove-title-track 后 14; 2026-06-13 IV 补全 (+25_tableA6_tone_iv_2sls) → 15
+    assert '15/15 完整' in out  # 15 .do (含语调 2SLS IV 模板)
+    assert '14/14 子 .do' in out  # master.do 引用 14 个子 .do
     assert 'Summary: 8 OK' in out
 
 

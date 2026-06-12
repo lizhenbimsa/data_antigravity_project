@@ -326,6 +326,81 @@ def load_config(config_path=None):
     return config
 
 
+# P0-3 (cleanup/2026-05-13): cross-stage enabled_methods 一致性提示.
+    # 原为暴露 stage 24 → 45 隐式硬依赖 (配错会跑 8 小时才在 stage 45 崩).
+    # 2026-06-12 起 stage 23/24 已改无条件 always-on, 该崩溃路径消除, 本检查
+    # 降级为纯信息提示 (见函数 docstring).
+    _validate_enabled_methods_consistency(config)
+
+    # P1-2 (cleanup/2026-05-13): 三域 YAML schema 校验
+    # tone_llm_processing / panel_building / herd_detection
+    # 类型错误 raise; 未知字段 warning (防 typo silent fallback).
+    from .schemas_yaml import validate_config_schema
+    validate_config_schema(config)
+
+    return config
+
+
+def herd_sensitivity_grid(config: dict) -> tuple[list[float], list[str]]:
+    """herd 相似度阈值敏感性网格的单一事实源 (2026-06-13)。
+
+    读 ``herd_detection.sensitivity_thresholds`` (sentiment.yaml), 返回
+    ``(thresholds, tags)`` 两个等长列表:
+      - thresholds: 升序去重后的 τ 网格, 已剔除基线 similarity_threshold
+        (基线列就是现有 herd_weight_{track}, 不重复生成) 与 (0,1) 区间外的非法值;
+      - tags: 与 thresholds 一一对应的列名后缀, ``thr{round(τ*100):02d}``
+        (0.25 → 'thr25')。τ*100 非整数 (如 0.275) 会因 tag 碰撞风险被剔除并告警。
+
+    消费方 (列名契约依赖本函数, 勿各自解析 config):
+      - stage 24 ``pipeline/sentiment/herd_decay.py`` → 文章列
+        ``herd_weight_{track}_{tag}`` / ``n_similar_articles_{track}_{tag}``
+      - ``pipeline/panel/runner.py`` 步骤 3d → 加权列 ``llm_vote_*_hw_{tag}{track}``
+      - ``pipeline/panel/encode.py`` → 聚合与面板比值 ``llm_vote_tone_hw_{tag}{track}``
+
+    白话: "相似到 0.35 算抄稿"这个门槛是自选的, 这里统一登记一组松紧不同的
+    备选门槛 (默认 0.25/0.30/0.40/0.45), 管道把每个门槛都算一遍, 最后在 Stata
+    面板里各留一列加权语调, 用来证明回归结论不依赖 0.35 这个具体取值。
+    """
+    _log = logging.getLogger(__name__)
+    herd_cfg = config.get('herd_detection', {}) or {}
+    baseline = float(herd_cfg.get('similarity_threshold', 0.35))
+    raw = herd_cfg.get('sensitivity_thresholds', [0.25, 0.30, 0.40, 0.45])
+    if not isinstance(raw, (list, tuple)):
+        _log.warning(
+            "herd_detection.sensitivity_thresholds 非 list (%r), 阈值敏感性网格禁用",
+            raw)
+        return [], []
+
+    thresholds: list[float] = []
+    tags: list[str] = []
+    seen_tags: set[str] = set()
+    for item in raw:
+        try:
+            thr = float(item)
+        except (TypeError, ValueError):
+            _log.warning("sensitivity_thresholds 含非数值项 %r, 已跳过", item)
+            continue
+        if not (0.0 < thr < 1.0):
+            _log.warning("sensitivity_thresholds 项 %s 超出 (0,1) 开区间, 已跳过", thr)
+            continue
+        if abs(thr - baseline) < 1e-9:
+            continue  # 基线已有 herd_weight_{track} 列, 不重复
+        scaled = thr * 100
+        if abs(scaled - round(scaled)) > 1e-6:
+            _log.warning(
+                "sensitivity_thresholds 项 %s 非 0.01 粒度, tag 无法唯一编码, 已跳过", thr)
+            continue
+        tag = f"thr{int(round(scaled)):02d}"
+        if tag in seen_tags:
+            continue  # 去重
+        seen_tags.add(tag)
+        thresholds.append(thr)
+        tags.append(tag)
+
+    order = sorted(range(len(thresholds)), key=lambda i: thresholds[i])
+    return [thresholds[i] for i in order], [tags[i] for i in order]
+
+
 # P0-3 (cleanup/2026-05-13): 决定"panel 构建是否启用"的 compute_* 标识集合.
 # 任一为 True 即视为 panel_active. 加新 panel 主开关时必须扩本列表 (见
 # ``_validate_enabled_methods_consistency`` docstring R3-2 note).

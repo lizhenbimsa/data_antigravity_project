@@ -19,7 +19,8 @@ Supported input formats
 2. ``esttab`` with ``stats`` footer rows (N, r2, F, etc.).
 3. Significance stars in ``*``/``**``/``***`` notation.
 4. ``esttab`` LaTeX (booktabs) — fix(omni-g-papers-misc-01, 2026-06-11):
-   仓库全部 95 个 .do.tmpl 的 esttab 都只写 ``.tex`` 侧通道 (无任何 csv 写出),
+   仓库全部 .do.tmpl (2026-06-13 IV 补全后 100 个) 的 esttab 都只写 ``.tex``
+   侧通道 (无任何 csv 写出),
    原 CSV-only 解析使 ``papers/<id>/tables.py`` 的 Tables 2-5 全链死接线
    (即使跑通 Stata 也永远 FileNotFoundError)。现新增 ``parse_esttab_tex``
    解析分支, ``read_paper_esttab`` 在 csv 缺失时自动回退同名 .tex。
@@ -404,7 +405,7 @@ def read_paper_esttab(paper_id: str,
 
     Default path: ``papers_assets/<paper_id>/output/<tables_subdir>/<csv_filename>``.
 
-    fix(omni-g-papers-misc-01, 2026-06-11): 全部 95 个 .do.tmpl 的 esttab 一律
+    fix(omni-g-papers-misc-01, 2026-06-11): 全部 .do.tmpl (2026-06-13 后 100 个) 的 esttab 一律
     ``using ".../<name>.tex"`` (无 csv 写出), 故 csv 缺失时自动回退解析**同名
     .tex** (``parse_esttab_tex``) — 否则即使完整跑通 Stata 复现包, 本函数也
     永远 FileNotFoundError (CSV 桥死接线)。

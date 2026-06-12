@@ -140,10 +140,13 @@ def test_total_template_count_77() -> None:
     templates = list(STATA_TEMPLATES_DIR.rglob('*.do.tmpl'))
     # remove-title-track: 删除 9 个标题稳健性模板 (8 _title across papers + 1 bs ext.)
     # → 回到 V2.0 J-L-M baseline 95.
-    expected_count = 95  # 104 (v3.7.3 Plan A) − 9 (取消标题轨)
+    # 2026-06-13 IV 物化: +5 个 2SLS 模板 (root/25_tableA6_tone_iv_2sls +
+    # substance/22_substance_iv_2sls + locus/20_locus_iv_2sls +
+    # collab/21_collab_iv_2sls + benefit_society/25_tableA12_iv_2sls) → 共 100。
+    expected_count = 100  # 95 (remove-title-track 后) + 5 (2026-06-13 IV 2SLS 族)
     assert len(templates) == expected_count, (
-        f"Expected {expected_count} total templates after remove-title-track, found {len(templates)}: "
-        f"= 95 (V2.0 J-L-M baseline); 9 title-robustness 模板已删除"
+        f"Expected {expected_count} total templates, found {len(templates)}: "
+        f"= 95 (remove-title-track baseline) + 5 (2026-06-13 IV 2SLS 模板族)"
     )
 
 

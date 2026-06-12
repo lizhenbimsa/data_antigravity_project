@@ -20,16 +20,25 @@ differentiation_claim: |
   - 与现有 strategic_diff: P3 度量 firm 自身 公告属性 (binary); strategic_diff 度量 firm 在 N-邻群中的战略差异度 (distinctness, distance)
 
 outcome:
-  primary: long_run_roa_change_3yr  # 长期 ROA 反转检验
+  # primary 切换 (2026-06-13, 顶刊组合定稿): 经营效率 3 年前向变化是 W&Z decoupling
+  # 框架最锐利的可证伪试金石 — 实质性采纳应改善成本收入比, 象征性宣告应无效。
+  # 比 long-run ROA 更贴"真做 vs 装样子"的机制 (ROA 混入定价/周期噪声)。
+  primary: cost_income_ratio_change_3yr  # 效率试金石 (实质↓ / 象征≈0)
   construction: |
-    long_run_roa_change_3yr[bank_b, year_t] = ROA[bank_b, year_t+3] - ROA[bank_b, year_t]
-    (within-bank 3-year forward change; 用于检验 W&Z 1994 框架下
-    象征性 fintech 宣告 → 短期股价正反应 → 长期 ROA 反转 (negative);
+    cost_income_ratio_change_3yr[bank_b, year_t] = CIR[bank_b, year_t+3] - CIR[bank_b, year_t]
+    (within-bank 3-year forward change, CIR = 业务及管理费 / 营业收入;
+    预测: sub_frac 高 → CIR 前向下降 (真实效率改善); 象征性宣告 → 无变化。
+    伴随检验 long_run_roa_change_3yr = ROA[t+3] - ROA[t] (W&Z 1994 长期反转);
     在 T=18 panel 上, t ∈ {2007, ..., 2021} 各有对应 t+3 outcome)
-  short_run: car_3day_window_fintech_announcement  # R7-M03 + R10-M01: dual outcome (fintech 公告事件窗口, 与 P1 tone shock 窗口区分)
-  secondary: [ceo_turnover_2yr, executive_pay_change, board_change]
-  enrichment_source: M0.5.11 (CSMAR 年报 ROA + 高管离职 + 高管薪酬 + CSMAR daily returns; derived
-    event-window CAR construction per §5.3.2 M0.5.11)
+  # 上市行扩展 (非年度主线): fintech 公告事件窗 CAR, 与 P1 tone shock 窗口区分
+  # (R7-M03 + R10-M01); 待日频数据可得时作附表。
+  listed_subsample_extension: car_3day_window_fintech_announcement
+  # misconduct_penalty_count = 监管处罚频次 (银保监会处罚公示, 年度计数, 独立外部源
+  # 无共同来源偏误) — decoupling 经典延伸: 象征性披露与后续不当行为正相关。
+  secondary: [long_run_roa_change_3yr, misconduct_penalty_count,
+    ceo_turnover_2yr, executive_pay_change, board_change]
+  enrichment_source: M0.5.11 (财务面板 成本收入比+ROA + 银保监处罚公示爬取 + CSMAR
+    高管离职/薪酬; CAR 扩展需 daily returns, 非主线)
 
 treatment:
   # fix(omni-g-papers-misc-11, 2026-06-11): 旧 primary=innovation_substantiveness_full
@@ -53,7 +62,17 @@ controls:
 
 identification:
   baseline: long_panel_within_bank_within_year
-  # P3 无 IV (per R15-M01: schema 允许 optional; cross-sectional intensity DiD 替代 IV 用于 E3)
+  # 2026-06-13 IV 补全 (此前: P3 无 IV per R15-M01, cross-sectional intensity
+  # DiD 替代; 现 DiD 保留为辅助识别, IV 升为正式通道):
+  #   primary  = 同类型同业 leave-one-out 实质性占比 (iv_extensions.py;
+  #              Manski 1993 反射与 Leary-Roberts 2014 JF 排他性局限须披露,
+  #              _lag1 滞后变体为稳健性)
+  #   fallback = Bartik: 基期银行类型共现份额 × 同类 LOO 实质性占比
+  #              (GPSS 2020 AER 基期 share 外生性视角; 模板报告 KP rk F +
+  #               弱工具时 Anderson-Rubin CI)
+  iv:
+    primary: leave_one_out_peer_subst_iv
+    fallback: bartik_subst_iv_full
 
 event_studies:  # P3 applicable events
   - E1  # 2013-06-13 yuebao_launch

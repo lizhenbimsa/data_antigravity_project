@@ -10,7 +10,7 @@ differentiation_claim: |
   P1 度量媒体对银行的语调情感方向 (积极 / 消极, 连续情感得分 llm_vote_tone_full)。
   R20-m01 跨 paper 区分 (B-route 3 + existing 4 paper, 共 7 对照):
   - 与 P2 (attention): P1 度量情感方向 (sign + magnitude); P2 度量曝光强度 (cumulative attention without sign); 二者独立 channel
-  - 与 P3 (substance): P1 度量连续 tone 情感; P3 度量银行 fintech 公告的 W&Z 二元 substantive vs symbolic; outcome 事件窗口也不同 — P1 用 car_3day_window_tone_shock (tone shock 触发), P3 用 car_3day_window_fintech_announcement (fintech 公告触发)
+  - 与 P3 (substance): P1 度量连续 tone 情感; P3 度量银行 fintech 公告的 W&Z 二元 substantive vs symbolic; outcome 亦分化 — P1 主打资金成本 (储户纪律), P3 主打成本收入比 3 年前向变化 (效率试金石); 两篇的上市行 CAR 扩展窗口也不同 (P1 tone shock 触发 vs P3 fintech 公告触发)
   - 与 P4 (locus): P1 度量连续 tone; P4 区分公告的 locus 二元属性 (底层/应用); 完全不同 dimension
   - 与现有 llm_peer: P1 不构造同业网络 IV, 仅用 firm-level tone; llm_peer 用 LLM-determined semantic peer 网络
   - 与现有 brokerage_network: P1 不用网络中心性, 仅 firm-level; brokerage 用 betweenness/constraint/eigenvector
@@ -18,10 +18,22 @@ differentiation_claim: |
   - 与现有 strategic_diff: P1 度量 firm 自身 tone; strategic_diff 度量 firm 在 N-邻群中的差异度 (distinctness, not tone)
 
 outcome:
-  primary: car_3day_window_tone_shock  # R10-M01: 重命名差异化 (tone shock 事件窗口, 与 P3 fintech announcement 窗口区分)
-  secondary: [loan_growth, ln_market_cap, roa]  # R1-M13: roa 仅作 outcome.secondary, 不在 controls 中复用
-  enrichment_source: M0.5.11 (CSMAR/Wind daily returns + 年报 ROA + Wind 季报 ln_market_cap;
-    derived event-window CAR construction per §5.3.2 M0.5.11)
+  # outcome 重定位 (2026-06-13, 年度数据约束 + 顶刊 outcome 组合定稿):
+  # 全项目统一年度 bank-year 面板 → 事件窗 CAR (需日频收益) 不再作 primary。
+  # P1 新主因变量 = 资金成本 (储户纪律范式: 媒体语调 → 储户/债权人风险感知 →
+  # 计息负债定价; Martinez Peria & Schmukler 2001 JF; 挤兑微观证据 Iyer & Puri
+  # 2012 AER)。年度全样本可用 (非上市行亦覆盖), 优于仅覆盖上市行的 CAR。
+  primary: funding_cost  # = 利息支出 / 计息负债年均余额 (年度, 全样本)
+  # tobin_q = 特许权价值通道 (Keeley 1990 AER, 上市行子样本; 与 strategic_diff
+  # 的 outcome.primary 共享列名但角色不同 — 此处仅 secondary)。
+  # roa 仅作 outcome.secondary, 不在 controls 中复用 (R1-M13)。
+  # deposit_growth 留在 controls, 刻意不作 outcome (避免同列双角色)。
+  secondary: [loan_growth, roa, tobin_q]
+  # legacy (上市行扩展, 非年度主线): car_3day_window_tone_shock (R10-M01 命名,
+  # tone shock 事件窗口) 降级为 listed-subsample 附表扩展, 待日频数据可得时启用。
+  listed_subsample_extension: car_3day_window_tone_shock
+  enrichment_source: M0.5.11 (财务面板 利息支出/计息负债/贷款余额/ROA + Wind 市值
+    → tobin_q; CAR 扩展需 CSMAR/Wind daily returns, 非主线)
 
 treatment:
   # v3.6.0 (Plan E P4 G3): main treatment 切换至 _ctx

@@ -1,0 +1,119 @@
+* news_process — 第 11 篇 Table 3: 清晰度 IV 2SLS (2026-06-13 IV 补全)
+*
+* 内生变量: mean_clarity_score_ctx (You 2018 词典清晰度, paper_spec
+*           treatment.primary, main_track=_ctx)
+* IV (paper_spec identification.iv, iv_extensions.py 物化):
+*   primary  = outlet_style_clarity_iv_ctx
+*   fallback = outlet_style_clarity_iv_full
+*   构造: 基期 outlet 报道份额 (冻结, GPSS 2020 AER share 外生性) ×
+*         各 outlet 当年文章级 clarity_score 的 LOO 均值 (剔除焦点银行
+*         自身报道)。
+* 学术依据:
+*   Dougal, Engelberg, García & Parsons (2012, RFS 25(3):639-679) — 记者/媒体
+*     写作风格的准随机变异对市场结果有因果力
+*   Gentzkow & Shapiro (2010, Econometrica 78(1):35-71) — outlet 风格持久性
+*   Goldsmith-Pinkham, Sorkin & Swift (2020, AER) — 基期份额外生性视角
+* 白话: 报道你的媒体爱不爱用模糊词是媒体自己的文风, 不由你这家银行当年
+* 经营好坏决定; 基期媒体组合的"平均文风"推动你被写得清楚与否, 却不直接
+* 进入你的风险结果方程。
+*
+* 第二阶段 DV: z_score (指标占位, 外部财务面板待接入 — 见 CLAUDE.md
+* 2026-06-12 stage 49 移除记录; 缺列时 2SLS 优雅跳过, 第一阶段照常输出)。
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+* 数据: 优先 working dataset (01_data_prep 产出), 缺则直接用全量面板导出
+capture confirm file "data/processed/_paper11_working.dta"
+if !_rc {
+    use "data/processed/_paper11_working.dta", clear
+}
+else {
+    use "data/processed/46_panel_yearly_full.dta", clear
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+local TX   mean_clarity_score_ctx
+local IV1  outlet_style_clarity_iv_ctx
+local IV2  outlet_style_clarity_iv_full
+local DV   z_score
+
+capture confirm variable `TX'
+if _rc {
+    display "  [WARN] 内生变量 `TX' 不在面板; 表跳过"
+    exit 0
+}
+capture which ivreg2
+if _rc {
+    display "  [WARN] ivreg2 not installed (ssc install ivreg2); 表跳过"
+    exit 0
+}
+
+* 第一阶段 (treatment + IV 已物化即可运行)
+capture confirm variable `IV1'
+if !_rc {
+    eststo first_ctx: reghdfe `TX' `IV1', absorb(bank_id year) vce(cluster bank_id)
+}
+capture confirm variable `IV2'
+if !_rc {
+    eststo first_full: reghdfe `TX' `IV2', absorb(bank_id year) vce(cluster bank_id)
+}
+
+* 2SLS (DV=z_score 指标占位; 缺列优雅跳过)
+capture confirm variable `DV'
+if _rc {
+    display "  [WARN] 第二阶段 DV `DV' 未物化 (外部财务面板未接入); 仅输出第一阶段"
+}
+else {
+    capture confirm variable `IV1'
+    if !_rc {
+        eststo tsls_ctx: ivreg2 `DV' (`TX' = `IV1') i.bank_id i.year, ///
+            cluster(bank_id) first
+    }
+    capture confirm variable `IV1' `IV2'
+    if !_rc {
+        * 过度识别列 (双轨 IV → Hansen J df=1; 双轨=互为稳健性)
+        eststo tsls_overid: ivreg2 `DV' (`TX' = `IV1' `IV2') i.bank_id i.year, ///
+            cluster(bank_id) first
+    }
+}
+
+* esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
+qui estimates dir
+local stored `r(names)'
+local cand_models first_ctx first_full tsls_ctx tsls_overid
+local cand_titles `""1st (ctx)" "1st (full)" "2SLS (ctx)" "2SLS Overid""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] IV 表无任何已存储估计 (IV 列全缺), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "output/tables/table3_clarity_iv_2sls.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 widstat jp, fmt(0 3 3 3) labels("N" "R²" "KP F" "Hansen J p")) ///
+        title("Table 3: News Clarity IV — Outlet-Composition Writing-Style Exposure") ///
+        mtitles(`mtitles') ///
+        addnotes("IV = base-period outlet portfolio shares x outlet-year leave-one-out mean clarity score (focal bank's own articles excluded)." ///
+                 "Identification: journalist/outlet writing-style exogeneity (Dougal et al. 2012 RFS); outlet style persistence (Gentzkow-Shapiro 2010 Econometrica); base-period share exogeneity (Goldsmith-Pinkham et al. 2020 AER)." ///
+                 "KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005), use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified (dual-track) column.")
+
+    display "[OK] 12_table3_iv_2sls → output/tables/table3_clarity_iv_2sls.tex"
+}

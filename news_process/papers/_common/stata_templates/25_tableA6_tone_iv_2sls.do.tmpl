@@ -1,0 +1,147 @@
+* news_process — Table A6: 媒体语调 2SLS (P1 bank_fintech_tone, 2026-06-13 IV 补全)
+*
+* 内生变量: llm_vote_tone_{{MAIN_SENT_TRACK}} (媒体语调, paper_spec treatment.primary)
+* 工具变量 (paper_spec identification.iv):
+*   IV1 (primary)  = prov_leave1out_tone_{{MAIN_SENT_TRACK}}
+*                    同省其他银行年度平均语调 (leave-one-out, geography.py)
+*   IV2 (fallback) = bartik_type_iv_{{MAIN_SENT_TRACK}}
+*                    基期银行类型共现份额 × 同类 LOO 语调 (iv_did.py)
+* 识别设计: 列 (1) IV1 恰好识别, 列 (2) IV2 恰好识别, 列 (3) IV1+IV2 过度识别
+*   → 列 (3) 报 Hansen J (df=1) 过度识别检验; 全列报 KP rk Wald F。
+*
+* 学术依据:
+*   Goldsmith-Pinkham, Sorkin & Swift (2020, AER 110(8):2586-2624) — Bartik share 外生性
+*   Gurun & Butler (2012, JF 67(2):561-598) — 本地媒体 slant 外生于单家企业基本面
+*   Kleibergen & Paap (2006, J. Econometrics 133:97-126) — KP rk Wald F
+*   Stock & Yogo (2005) / Andrews, Stock & Sun (2019, ARE 11:727-753) — 弱工具与 AR CI
+*
+* 白话: 担心"语调好坏"和"银行结果"互相影响 (报道差→业绩差→报道更差),
+* 借两个与本行自身决策无关的推力当杠杆: ① 同省其他银行被报道的语调
+* (区域媒体市场共同冲击, 不含本行自己的新闻); ② 基期"和哪类银行走得近"
+* × 那类银行今年的语调行情。第一阶段先验证杠杆推得动 (KP F), 两个杠杆
+* 同时用时再检验它们是否互相打架 (Hansen J)。
+*
+* 第二阶段 DV: funding_cost (2026-06-13 outcome 重定位: P1 spec.outcome.primary =
+* 资金成本, 储户纪律范式; roa 降级 secondary。外部财务面板待接入
+* config/银行面板2007-2025年.xlsx; 缺列时 2SLS 列优雅跳过, 第一阶段表仍照常
+* 输出 — 语调与 IV 全部已物化)。
+
+version 19
+
+* 隔离估计命名空间 (主线模板链共享 session, 同 22_tableA3 约定)
+eststo clear
+
+local TONE  llm_vote_tone_{{MAIN_SENT_TRACK}}
+local IV1   prov_leave1out_tone_{{MAIN_SENT_TRACK}}
+local IV2   bartik_type_iv_{{MAIN_SENT_TRACK}}
+* 2026-06-13 outcome 重定位同步: spec.outcome.primary = funding_cost (原 roa 降级 secondary)
+local DV    funding_cost
+
+capture confirm variable `TONE'
+if _rc {
+    display "  ⚠️ 内生语调变量 `TONE' 未物化; 跳过 Table A6"
+    exit 0
+}
+capture which ivreg2
+if _rc {
+    display "  ⚠️ ivreg2 not installed (ssc install ivreg2); Table A6 跳过"
+    exit 0
+}
+capture which ivreghdfe
+local has_ivreghdfe = (_rc == 0)
+if !`has_ivreghdfe' {
+    display "  ⚠️ ivreghdfe not installed; IV 列回退无-FE ivreg2 (与 TWFE 第一阶段不对称, 建议安装)"
+}
+
+* ── 第一阶段 (现有面板即可运行: tone ~ IV, TWFE) ──
+capture confirm variable `IV1'
+if !_rc {
+    eststo FS1: reghdfe `TONE' `IV1' digital_frontier, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+capture confirm variable `IV2'
+if !_rc {
+    eststo FS2: reghdfe `TONE' `IV2' digital_frontier, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+capture confirm variable `IV1' `IV2'
+if !_rc {
+    eststo FS12: reghdfe `TONE' `IV1' `IV2' digital_frontier, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* ── 2SLS (DV=funding_cost 待外部财务面板接入; 缺列优雅跳过) ──
+capture confirm variable `DV'
+if _rc {
+    display "  ⚠️ 第二阶段 DV `DV' 未物化 (外部财务面板未接入); 2SLS 列跳过, 仅输出第一阶段"
+}
+else {
+    capture confirm variable `IV1'
+    if !_rc {
+        if `has_ivreghdfe' {
+            eststo TSLS1: ivreghdfe `DV' (`TONE' = `IV1') digital_frontier, ///
+                absorb(bank_id year) cluster(bank_id) first
+        }
+        else {
+            eststo TSLS1: ivreg2 `DV' (`TONE' = `IV1') digital_frontier, ///
+                cluster(bank_id) first robust
+        }
+    }
+    capture confirm variable `IV2'
+    if !_rc {
+        if `has_ivreghdfe' {
+            eststo TSLS2: ivreghdfe `DV' (`TONE' = `IV2') digital_frontier, ///
+                absorb(bank_id year) cluster(bank_id) first
+        }
+        else {
+            eststo TSLS2: ivreg2 `DV' (`TONE' = `IV2') digital_frontier, ///
+                cluster(bank_id) first robust
+        }
+    }
+    capture confirm variable `IV1' `IV2'
+    if !_rc {
+        * 过度识别列: 2 工具 1 内生 → Hansen J df=1 可计算
+        if `has_ivreghdfe' {
+            eststo TSLS12: ivreghdfe `DV' (`TONE' = `IV1' `IV2') digital_frontier, ///
+                absorb(bank_id year) cluster(bank_id) first
+        }
+        else {
+            eststo TSLS12: ivreg2 `DV' (`TONE' = `IV1' `IV2') digital_frontier, ///
+                cluster(bank_id) first robust
+        }
+    }
+}
+
+* ── 输出 (esttab 名单动态化, 缺估计不点名 — 防 r(111) 丢整表) ──
+qui estimates dir
+local stored `r(names)'
+local cand_models FS1 FS2 FS12 TSLS1 TSLS2 TSLS12
+local cand_titles `""1st: Prov LOO" "1st: Bartik" "1st: Both" "2SLS: Prov LOO" "2SLS: Bartik" "2SLS: Overid""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display "  ⚠️ Table A6 无任何可估计列 (IV 列全缺?); 表跳过"
+    exit 0
+}
+esttab `models' using "output/tables/tableA6_tone_iv_2sls.tex", ///
+    se star(* 0.10 ** 0.05 *** 0.01) ///
+    booktabs replace fragment ///
+    stats(N r2 widstat jp, fmt(0 3 3 3) ///
+          labels("N" "R²" "KP F" "Hansen J p")) ///
+    title("Table A6: Media Tone 2SLS — Province LOO + Bartik Instruments") ///
+    mtitles(`mtitles') ///
+    note("Endogenous: media tone. IV1 = province leave-one-out peer tone (Gurun-Butler 2012 JF local-media logic); IV2 = Bartik type-share IV (Goldsmith-Pinkham et al. 2020 AER, base-period share exogeneity view only — shift is a LOO group mean, not quasi-random; do NOT claim BHJ identification). " ///
+         "KP F: Kleibergen-Paap rk Wald F (Kleibergen-Paap 2006). Hansen J reported only in the overidentified column (df=1). " ///
+         "If KP F < 10, interpret via Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE). " ///
+         "Exclusion caveats (peer-mean instruments; Manski 1993, Leary-Roberts 2014 JF) must be disclosed in the paper text.")
+
+display "✅ Table A6 written to output/tables/tableA6_tone_iv_2sls.tex"

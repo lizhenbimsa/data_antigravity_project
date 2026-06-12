@@ -28,6 +28,8 @@ _TABLE1_VARIABLES: list[str] = [
     # 多方法稳健性
     'strat_diff_n5_lda',
     'strat_diff_n5_emb',
+    # outcome (2026-06-13 重定位: 主因变量 = 特许权价值, 外部财务待落盘 → NaN 占位行)
+    'tobin_q',
     # 全行业重心 (谢佳松 2025)
     'centroid_diff_tfidf_c',
     'centroid_diff_lda',

@@ -21,6 +21,7 @@ import os
 import numpy as np
 import pandas as pd
 
+from news_process.core.config import herd_sensitivity_grid
 from news_process.core.reporting import save_dataset
 from news_process.pipeline.panel.encode import (
     CONFIG,
@@ -757,6 +758,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'llm_vote_tone_hw_ctx':                'LLM Vote Tone (Herd-Decay Wt, Ctx)',
                 'llm_vote_cont_hw_full':               'LLM Vote Cont (Herd-Decay Wt, Full)',
                 'llm_vote_cont_hw_ctx':                'LLM Vote Cont (Herd-Decay Wt, Ctx)',
+                # 跟风阈值敏感性变体 (2026-06-13) 的标签在字典字面量闭合后由
+                # update() 注入 (见下方) — 本字面量须保持纯常量, 供
+                # test_omni_fix_panel_export 以空 builtins eval 提取。
                 # ═══ 银行共现网络: Part A (11) ═══
                 'bank_degree_cent':     'Co-mention Degree Centrality (Freeman 1979)',
                 'bank_strength_cent':   'Co-mention Strength Centrality (Opsahl 2010)',
@@ -996,6 +1000,37 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # 同行语义相似度阈值 — 口径勘误同 llm_peer_iv.py:692。
                 'llm_peer_tone_iv_full':        'LLM-Peer Tone IV (Full)',
                 'llm_peer_tone_iv_ctx':         'LLM-Peer Tone IV (Ctx)',
+                # === IV 扩展族 (iv_extensions.py, 2026-06-13) ===
+                # 引用见模块头: GPSS 2020 AER / Manski 1993 / Leary-Roberts 2014 JF /
+                # Gentzkow-Shapiro 2010 ECMA / Dougal et al. 2012 RFS / Gurun-Butler 2012 JF
+                'leave_one_out_peer_attention_iv':
+                    'Peer LOO Attention IV (type-year)',
+                'leave_one_out_peer_attention_iv_lag1':
+                    'Peer LOO Attention IV (lag 1)',
+                'bartik_attention_iv':          'Bartik Attention IV (Full)',
+                'bartik_attention_iv_full':     'Bartik Attention IV (Full)',
+                'bartik_attention_iv_ctx':      'Bartik Attention IV (Ctx)',
+                'leave_one_out_peer_subst_iv':  'Peer LOO Substantive IV',
+                'leave_one_out_peer_subst_iv_lag1':
+                    'Peer LOO Substantive IV (lag 1)',
+                'bartik_subst_iv_full':         'Bartik Substantive IV (Full)',
+                'bartik_subst_iv_ctx':          'Bartik Substantive IV (Ctx)',
+                'leave_one_out_peer_locus_iv':  'Peer LOO Locus(Tech) IV',
+                'leave_one_out_peer_locus_iv_lag1':
+                    'Peer LOO Locus(Tech) IV (lag 1)',
+                'leave_one_out_peer_collab_iv': 'Peer LOO Collab IV',
+                'leave_one_out_peer_collab_iv_lag1':
+                    'Peer LOO Collab IV (lag 1)',
+                'bartik_collab_iv_full':        'Bartik Collab IV (Full)',
+                'bartik_collab_iv_ctx':         'Bartik Collab IV (Ctx)',
+                'leave_one_out_peer_benefit_iv': 'Peer LOO Benefit-Attitude IV',
+                'leave_one_out_peer_benefit_iv_lag1':
+                    'Peer LOO Benefit-Attitude IV (lag 1)',
+                'zone_leave1out_benefit_iv':    'Zone LOO Benefit-Attitude IV',
+                'outlet_disp_exposure_iv_full': 'Outlet Dispersion Exposure IV (Full)',
+                'outlet_disp_exposure_iv_ctx':  'Outlet Dispersion Exposure IV (Ctx)',
+                'outlet_style_clarity_iv_full': 'Outlet Style Clarity IV (Full)',
+                'outlet_style_clarity_iv_ctx':  'Outlet Style Clarity IV (Ctx)',
                 'llm_peer_coverage_iv':         'LLM-Peer Coverage IV',
                 'llm_peer_count':               'LLM-Peer Count',
                 'peer_compete_idx':             'Peer Competition Index (0.80)',
@@ -1150,6 +1185,19 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'mean_num_intensity_full':   'Mean Numerical Intensity Full (dual-track)',
                 'mean_num_intensity_ctx':    'Mean Numerical Intensity Ctx (dual-track)',
             }
+            # 跟风阈值敏感性变体标签 (2026-06-13): 逐 τ 重估的稳健性 DV +
+            # 逐 τ 权重诊断; 网格单一事实源 = core.config.herd_sensitivity_grid。
+            # 字面量外 update 注入: 标签随配置网格动态, 不能写死在纯常量字典里。
+            for _thr, _tag in zip(*herd_sensitivity_grid(CONFIG)):
+                for _s, _t in (('_full', 'Full'), ('_ctx', 'Ctx')):
+                    STATA_LABELS[f'llm_vote_tone_hw_{_tag}{_s}'] = (
+                        f'LLM Vote Tone (Herd Wt @t={_thr:.2f}, {_t})')
+                    STATA_LABELS[f'llm_vote_cont_hw_{_tag}{_s}'] = (
+                        f'LLM Vote Cont (Herd Wt @t={_thr:.2f}, {_t})')
+                    STATA_LABELS[f'avg_herd_weight{_s}_{_tag}'] = (
+                        f'Avg Herd Decay Weight @t={_thr:.2f} ({_t})')
+                    STATA_LABELS[f'sum_herd_weight{_s}_{_tag}'] = (
+                        f'Sum Herd Decay Weight @t={_thr:.2f} ({_t})')
             # 仅保留面板中实际存在的列
             labels = {k: v for k, v in STATA_LABELS.items()
                       if k in panel_stata.columns}

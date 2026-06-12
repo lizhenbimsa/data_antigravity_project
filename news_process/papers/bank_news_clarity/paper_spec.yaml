@@ -68,7 +68,10 @@ outcome:
     - npl_formation_rate     # Bushman-Williams 2015 JAR
     - rwa_to_ta_ratio        # Demirgüç-Kunt & Huizinga 2010 JFE
     - sigma_roa_5y_rolling   # Houston 2010 JFE
-    - loan_loss_provision_discretion  # ⚠ 更正 2026-06-10: 当前实现是裸 LLP/贷款比率, **非** Bushman-Williams 2012 JAE 的残差式 discretion (残差回归未实现, 模板 12_table3_bw2012_llp_residual 不存在)。投稿前须 (a) 重命名为 loan_loss_provision_ratio 并去 "DIRECT MATCH/discretion" 标注, 或 (b) 实现基本面回归真正产出残差。勿当 BW2012 discretion 呈现。
+    - loan_loss_provision_discretion  # ⚠ 更正 2026-06-10: 当前实现是裸 LLP/贷款比率, **非** Bushman-Williams 2012 JAE 的残差式 discretion (残差回归未实现, 模板 12_table3_bw2012_llp_residual 不存在)。投稿前须 (a) 重命名为 loan_loss_provision_ratio 并去 "DIRECT MATCH/discretion" 标注, 或 (b) 实现基本面回归真正产出残差。勿当 BW2012 discretion 呈现。→ 选定路线 (b) (2026-06-13 顶刊组合定稿): 财务面板接入后实现基本面回归 (LLP ~ ΔNPL + L.NPL + 贷款增速 + 盈余前指标) 取残差作真 discretion, 并升为与 z_score 并列的核心通道 — 这是本篇 Bushman-Williams 2012 JAE 直接锚的原始命题 (信息环境 → 计提纪律)。
+    # 资本缓冲通道 (2026-06-13 顶刊组合定稿): 透明度 → 市场纪律 → 自愿资本缓冲
+    # (capital_buffer = 资本充足率 - 监管最低要求, 年度直接可构造)。
+    - capital_buffer
   enrichment_source: "M0.5.x (共享第 10 篇 outcome panel; DC2 dry-run pending)"
   data_feasibility_status: pending  # 与第 10 篇同步
   hierarchy:
@@ -159,6 +162,21 @@ controls:
 
 identification:
   baseline: long_panel_within_bank_within_year
+  # 2026-06-13 IV 落地: 候选多依赖外部数据 (准则切换事件表 / Wind 基建 /
+  # 毕业生供给); 当前语料即可计算并已物化的是媒体笔法构成 IV —
+  # outlet_style_clarity_iv_full/_ctx (iv_extensions.py::
+  # compute_outlet_composition_iv):
+  #   基期 outlet 报道份额 (冻结, GPSS 2020 AER share 外生性) ×
+  #   各 outlet 当年文章级 clarity_score 的 LOO 均值 (剔除焦点银行自身
+  #   报道; 媒体笔法 house-style 持久且外生于单家被报道银行:
+  #   Gentzkow & Shapiro 2010 Econometrica; Dougal et al. 2012 RFS)。
+  # 白话: 报道你的媒体爱不爱用模糊词是媒体自己的文风, 不由你这家银行
+  #   当年的经营好坏决定 — 基期媒体组合的"平均文风"推动你被写得清楚
+  #   与否, 却不直接进入你的风险结果方程。
+  # accounting_standard_switch_did 等候选保留, M5 first-stage 后赛马。
+  iv:
+    primary: outlet_style_clarity_iv_ctx     # main_track=_ctx (governance 同步)
+    fallback: outlet_style_clarity_iv_full
   iv_candidates:  # V4 F4.2 修复 (放弃记者轮换 IV — institution 不存在)
     accounting_standard_switch_did:  # PRIMARY candidate (Bushman-Williams 2012 JAE 范式同源)
       events:

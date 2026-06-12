@@ -22,12 +22,18 @@ differentiation_claim: |
   - 与现有 strategic_diff: P4 度量 locus 自身属性, strategic_diff 度量 firm 在 N-邻群中的战略差异度
 
 outcome:
-  primary: car_5day_window
-  secondary: [patent_fintech_count, citation_weighted_patent]  # R7-M04/M05: capex_it 移到 mediator 角色
-  enrichment_source: M0.5.11 (CSMAR/Wind daily returns for car_5day + IncoPat / 国家专利局
-    patent count + Kogan 2017 algorithm for citation_weighted; derived event-window
-    CAR construction per §5.3.2 M0.5.11)
-  patent_quality_measure: kogan_2017_market_value  # R2-M12: Kogan 2017 是 outcome 度量, 不是 IV
+  # primary 切换 (2026-06-13, 年度数据约束 + 顶刊组合定稿): 二元 treatment 配二元
+  # outcome 对照 — 底层技术轨 (区块链/AI/云) 应产出技术创新 (引用加权专利, Kogan
+  # 2017 QJE 谱系), 应用场景轨 (支付/信贷/理财) 应产出产品创新/收费业务
+  # (noninterest_income_share)。结构对仗 = 本篇卖点; CAR (需日频) 降级为上市行扩展。
+  primary: citation_weighted_patent  # 技术创新 (底层技术轨的直接 outcome)
+  secondary: [patent_fintech_count, noninterest_income_share]  # 后者 = 应用场景轨对照 outcome; capex_it 留 mediator 角色 (R7-M04/M05)
+  listed_subsample_extension: car_5day_window  # 上市行扩展 (非年度主线), 待日频数据
+  enrichment_source: M0.5.11 (IncoPat / 国家专利局 patent count + 引用加权 + 财务面板
+    非利息收入占比; CAR 扩展需 CSMAR/Wind daily returns, 非主线)
+  # R2-M12: Kogan 2017 是 outcome 度量, 不是 IV。市值加权法需股价 → 仅上市行;
+  # 非上市行退回引用计数加权 (Hall-Jaffe-Trajtenberg 谱系), 两套并报。
+  patent_quality_measure: kogan_2017_market_value_or_citation_count
 
 mediator:  # R7-M04 + R9-m02 + R9-m04
   primary: capex_it
@@ -61,6 +67,8 @@ controls:
 identification:
   baseline: layer_x_event_study  # E1/E4 events × 2 locus class
   iv:  # R2-M12: Kogan 2017 不是 IV; locus IV 用 peer-based
+    # 2026-06-13 已物化 (iv_extensions.py): 同银行类型×年 LOO tech_frac 均值
+    # (含 _lag1 滞后变体; Manski 1993 / Leary-Roberts 2014 JF 排他性披露)
     primary: leave_one_out_peer_locus_iv  # Cao 2025 RAS 风格
     fallback: layer_scenario_industry_event_iv  # E1/E4 events 作为 instrument for locus
 

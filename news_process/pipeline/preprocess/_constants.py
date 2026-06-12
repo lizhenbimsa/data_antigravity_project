@@ -259,17 +259,26 @@ TAIL_CLEANUP_PATTERN = re.compile(
 )
 
 # 广告关键词模式: 支持字符间插入空白的弹性匹配(如"广 告"也能匹配"广告")
-# fix(omni-g-preprocess-05, 2026-06-11): 高误伤词 (公告/通知/声明/通报/风险提示/
-# 年度报告, config: preprocessing.ad_keywords_title_anchored) 在标题字段改为
-# **行尾锚定** 匹配 (如 '……公告$' 才删) — 旧无锚定子串匹配把货币政策公告报道
-# ('央行公告下调存准率')、监管风险提示新闻、年报解读等真监管新闻整篇删除,
-# 与监管事件强度强相关 → 非随机样本选择。版面/栏名字段保持无锚定 (付费公告
-# 版面仍全量排除, 行为不变)。披露: 该排除规则见 filter.py 步骤 5 docstring。
+# fix(omni-g-preprocess-05, 2026-06-11): 高误伤词 (config:
+# preprocessing.ad_keywords_title_anchored) 在标题字段改为 **行尾锚定** 匹配
+# (如 '……公告$' 才删) — 旧无锚定子串匹配把货币政策公告报道 ('央行公告下调
+# 存准率')、监管风险提示新闻、年报解读等真监管新闻整篇删除, 与监管事件强度
+# 强相关 → 非随机样本选择。版面/栏名字段保持无锚定 (付费公告版面仍全量排除,
+# 行为不变)。披露: 该排除规则见 filter.py 步骤 5 docstring。
+# 扩充(2026-06-13, 广告排除过度性复查, 两批): 锚定清单 6→12→22 词, 补入同构
+# 误伤模式的词 — 一批: 季度报告/半年度报告/业绩预告/信息披露/公示/通告;
+# 二批(终审对抗复核 P1): 广告/特别提示/专项报告/核查意见/权益变动报告书/
+# 事先告知书/事先告知函/事先催告书/倡议书/挂失 (如 'XX银行收到行政处罚事先
+# 告知书 拟被罚没2.6亿元' / '整治银行理财虚假广告乱象' 此前被中段命中整篇误删)。
+# ⚠ 拼写错误孪生词 '半年度度报告' 刻意不锚定 (详见 preprocessing.yaml 注释)。
 # 白话: 以前标题里只要出现"公告/通知"这类词整篇就被当广告删掉, 把"央行公告
 # 降准"这种正经新闻也误伤了; 现在只有标题以这些词【结尾】(如"××银行配股
 # 公告") 才删, 报道类标题保得住。
 _AD_KEYWORDS_TITLE_ANCHORED_DEFAULT = [
     '公告', '通知', '声明', '通报', '风险提示', '年度报告',
+    '季度报告', '半年度报告', '业绩预告', '信息披露', '公示', '通告',
+    '广告', '特别提示', '专项报告', '核查意见', '权益变动报告书',
+    '事先告知书', '事先告知函', '事先催告书', '倡议书', '挂失',
 ]
 AD_KEYWORDS_TITLE_ANCHORED = PARAMS.get(
     'ad_keywords_title_anchored', _AD_KEYWORDS_TITLE_ANCHORED_DEFAULT
@@ -283,6 +292,12 @@ def _flex_kw(kw: str) -> str:
 
 AD_PATTERN = None         # 版面/栏名用: 全部关键词, 无锚定 (行为不变)
 AD_PATTERN_TITLE = None   # 标题用: 高误伤词要求行尾锚定
+# 词级 pattern 表 (2026-06-13): 供 filter.py 步骤 5 对被删行做 per-keyword
+# 命中计数日志, 为 data appendix 排除统计表与"过度排除"监测提供素材。
+# 白话: 除了"一锅煮"的大正则, 再给每个词单独留一个小正则, 删完后回头数一数
+# 每个词各杀了多少行, 写进日志, 方便论文附录披露和发现哪个词杀错人。
+AD_KEYWORD_PATTERNS = []        # 版面/栏名用: [(关键词, 无锚定 pattern)]
+AD_KEYWORD_PATTERNS_TITLE = []  # 标题用: [(关键词, 高误伤词行尾锚定 pattern)]
 if AD_KEYWORDS:
     AD_PATTERN = re.compile(
         '|'.join(_flex_kw(kw) for kw in AD_KEYWORDS), re.IGNORECASE
@@ -293,6 +308,17 @@ if AD_KEYWORDS:
         + [_flex_kw(kw) + r'\s*$' for kw in AD_KEYWORDS if kw in _anchored_set]
     )
     AD_PATTERN_TITLE = re.compile('|'.join(_title_parts), re.IGNORECASE)
+    for _kw in AD_KEYWORDS:
+        _flex = _flex_kw(_kw)
+        AD_KEYWORD_PATTERNS.append((_kw, re.compile(_flex, re.IGNORECASE)))
+        AD_KEYWORD_PATTERNS_TITLE.append((
+            _kw,
+            re.compile(
+                _flex + r'\s*$' if _kw in _anchored_set else _flex,
+                re.IGNORECASE,
+            ),
+        ))
+    del _kw, _flex  # 防模块命名空间泄漏 (循环变量仅构表用)
 
 # 中国大陆地区名匹配
 REGION_PATTERN = (
@@ -325,6 +351,7 @@ __all__ = [
     # compiled regexes
     'url_pattern', 'email_pattern', 'phone_pattern', 'emoji_pattern',
     'combined_removal_pattern', 'UNIFIED_CLEANUP_PATTERN',
-    'TAIL_CLEANUP_PATTERN', 'AD_PATTERN', 'AD_PATTERN_TITLE', 'REGION_PATTERN',
+    'TAIL_CLEANUP_PATTERN', 'AD_PATTERN', 'AD_PATTERN_TITLE',
+    'AD_KEYWORD_PATTERNS', 'AD_KEYWORD_PATTERNS_TITLE', 'REGION_PATTERN',
     'CHINESE_CHAR_PATTERN', 'MEDIA_TYPES_INCLUDE_SET',
 ]

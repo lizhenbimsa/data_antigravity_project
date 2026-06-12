@@ -61,6 +61,13 @@ outcome:
     - npl_formation_rate    # Bushman-Williams (2015 JAR 53:511-553) forward-looking
     - rwa_to_ta_ratio       # Demirgüç-Kunt & Huizinga (2010 JFE 98:626-650)
     - sigma_roa_5y_rolling  # Houston et al. (2010 JFE) standalone risk measure
+    # 资金端机制通道 (2026-06-13 顶刊组合定稿; mechanism, 非 confirmatory —
+    # 不动下方 hierarchy 与 p_hacking_guard): Diether 2002 JF 分歧框架嫁接
+    # Diamond-Dybvig 挤兑微观基础 — 媒体分歧 → 储户不确定 → 资金变贵
+    # (funding_cost = 利息支出/计息负债, 与 P1 共享构造但此处仅 mechanism) →
+    # 银行预防性囤积流动性 (liquidity_hoarding_share = (现金+同业资产)/总资产)。
+    - funding_cost
+    - liquidity_hoarding_share
   enrichment_source: "M0.5.x (银保监会季报 + Wind 银行库 + 银行年报 PDF; DC2 dry-run pending)"
   data_feasibility_status: pending  # DC2 dry-run (M1 末) 决定 Path α/β/γ
   hierarchy:  # V4 F3.5 修复, 明确 primary 不混乱
@@ -154,6 +161,20 @@ controls:
 
 identification:
   baseline: long_panel_within_bank_within_year
+  # 2026-06-13 IV 落地: 5 个候选中唯一不依赖外部数据、当前语料即可计算的
+  # 是 outlet-composition 族 — 已物化为 outlet_disp_exposure_iv_full/_ctx
+  # (iv_extensions.py::compute_outlet_composition_iv):
+  #   基期 outlet 报道份额 (冻结, GPSS 2020 AER share 外生性) ×
+  #   各 outlet 当年 house-style 立场极端度 |tone − 年均| 的 LOO 均值
+  #   (剔除焦点银行自身报道; outlet 风格持久性: Gentzkow & Shapiro 2010
+  #    Econometrica; 写作风格外生先例: Dougal et al. 2012 RFS)。
+  # 白话: 一家银行基期碰巧被哪些"火药味重/四平八稳"的媒体盯上, 决定了
+  #   它后来被吵得凶不凶 — 这套媒体组合是历史存量, 与银行当期基本面无关。
+  # 其余 4 候选 (利率市场化 DiD / Wind 基建 / 媒体集团重组 / 记者流动)
+  # 仍保留待外部数据, M5 first-stage 后与本 IV 赛马。
+  iv:
+    primary: outlet_disp_exposure_iv_ctx     # main_track=_ctx (governance 同步)
+    fallback: outlet_disp_exposure_iv_full
   iv_candidates:  # V4 F4.2 修复, 5 个候选 (M5 first-stage 测试后选 1-2 作 main)
     bartik_outlet_share_x_fintech_trend:
       construction: "本行 pre-period 2011-2013 outlet portfolio composition × 全国年度 fintech 话题热度时序变化"

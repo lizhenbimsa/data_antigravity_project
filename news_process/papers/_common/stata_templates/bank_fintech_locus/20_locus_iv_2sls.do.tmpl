@@ -1,0 +1,109 @@
+* ============================================================================
+* 20_locus_iv_2sls.do — P4 paper-specific IV (2026-06-13 IV 补全)
+* Paper: bank_fintech_locus (Gomber 底层技术 vs 应用场景)
+*
+* 内生变量: tech_frac (底层技术文章占比 — locus_layer_full 二元 pair 的连续
+*           底座; 二元 pair 由 01_data_prep 派生, 此处直接工具化连续暴露)
+* IV (paper_spec identification.iv primary, iv_extensions.py 物化):
+*   leave_one_out_peer_locus_iv  = 同银行类型×年 LOO tech_frac 均值
+*   (滞后稳健性变体 leave_one_out_peer_locus_iv_lag1; Cao 2025 RAS 风格
+*    类型同业, 排他性披露按 Manski 1993 / Leary-Roberts 2014 JF)
+* 白话: "押底层技术还是押应用场景"可能由银行自身禀赋内生决定; 借同类型
+* 其他银行的技术侧重当外生推力 — 同业转向底层技术的行业潮流推得动本行
+* 的题材结构, 但不直接进入本行的市场反应方程。
+*
+* 第二阶段 DV: citation_weighted_patent (2026-06-13 outcome 重定位, Kogan 2017
+* 谱系; 外部专利数据待接入, car_5day_window 降级上市行扩展; 缺列时 2SLS
+* 优雅跳过, 第一阶段照常输出)。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+local TX   tech_frac
+local IV1  leave_one_out_peer_locus_iv
+local IV1L leave_one_out_peer_locus_iv_lag1
+* 2026-06-13 outcome 重定位同步: spec.outcome.primary = citation_weighted_patent
+* (Kogan 2017 谱系; 年度数据约束下 car_5day_window 已降级上市行扩展)。
+local DV   citation_weighted_patent
+
+capture confirm variable `TX'
+if _rc {
+    display "  [WARN] 内生变量 `TX' 不在面板; 表跳过"
+    exit 0
+}
+capture which ivreg2
+if _rc {
+    display "  [WARN] ivreg2 not installed (ssc install ivreg2); 表跳过"
+    exit 0
+}
+
+* 第一阶段 (现有面板即可运行): 同期 + 滞后变体
+capture confirm variable `IV1'
+if !_rc {
+    eststo first_loo: reghdfe `TX' `IV1' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+capture confirm variable `IV1L'
+if !_rc {
+    eststo first_lag: reghdfe `TX' `IV1L' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+
+* 2SLS (DV 待外部行情数据; 缺列优雅跳过)
+capture confirm variable `DV'
+if _rc {
+    display "  [WARN] 第二阶段 DV `DV' 未物化 (专利数据未接入); 仅输出第一阶段"
+}
+else {
+    capture confirm variable `IV1'
+    if !_rc {
+        eststo tsls_loo: ivreg2 `DV' (`TX' = `IV1') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
+    capture confirm variable `IV1L'
+    if !_rc {
+        eststo tsls_lag: ivreg2 `DV' (`TX' = `IV1L') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
+}
+
+* esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
+qui estimates dir
+local stored `r(names)'
+local cand_models first_loo first_lag tsls_loo tsls_lag
+local cand_titles `""1st LOO" "1st LOO lag1" "2SLS LOO" "2SLS LOO lag1""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] IV 表无任何已存储估计 (IV 列全缺), 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA_locus_iv_2sls.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 widstat, fmt(0 3 3) labels("N" "R²" "KP F")) ///
+        title("P4 Locus IV: Same-Type Peer LOO Tech Exposure (First Stage + 2SLS)") ///
+        mtitles(`mtitles') ///
+        addnotes("IV = same-bank-type leave-one-out mean of peers' tech_frac (contemporaneous + lag-1 robustness; reflection/exclusion caveats per Manski 1993; Leary-Roberts 2014 JF — disclose in text)." ///
+                 "Just-identified columns: Hansen J not computable (df=0), not reported. KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005); if below, use Anderson-Rubin CI (Andrews-Stock-Sun 2019).")
+
+    display "[OK] 20_locus_iv_2sls → $tables_dir/tableA_locus_iv_2sls.tex"
+}

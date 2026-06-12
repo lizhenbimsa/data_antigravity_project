@@ -2,6 +2,7 @@
 
 Phase 4b 从 ``runner.py`` 提取。包含:
 - ``_clean_and_filter_dataframe`` — 8 步过滤(地域/类型/黑名单/缺失/广告/银行词/Schema/媒体名称清理)
+- ``_ad_keyword_hit_counts`` — 广告过滤词级命中计数 (data appendix 排除统计素材)
 
 依赖:
     filter.py ← _constants.py
@@ -16,6 +17,8 @@ import numpy as np
 import pandas as pd
 
 from news_process.pipeline.preprocess._constants import (
+    AD_KEYWORD_PATTERNS,
+    AD_KEYWORD_PATTERNS_TITLE,
     AD_PATTERN,
     AD_PATTERN_TITLE,
     KEY_COLUMNS,
@@ -29,6 +32,30 @@ from news_process.pipeline.preprocess.load import (
     BANK_KW_AUTOMATON,
     _ac_contains_any,
 )
+
+
+def _ad_keyword_hit_counts(removed_values: pd.Series, kw_patterns) -> str:
+    """对被广告过滤删除的字段值做 per-keyword 命中计数, 返回日志摘要串.
+
+    仅在被删子集上计数 (淘汰率 ~1-3%, 开销可忽略)。一行可命中多个关键词,
+    故词级计数之和 ≥ 被删行数 (计数有重叠, 用于定位主力词而非精确分账)。
+    白话: 删完后回头数一数每个词各杀了多少行, 哪个词杀得多一目了然 —
+    既是论文 data appendix 排除统计表的素材, 也是"某词过度排除"的预警器。
+
+    Args:
+        removed_values: 被删行的字段值 (str Series)。
+        kw_patterns: [(关键词, compiled pattern)] 词级 pattern 表。
+
+    Returns:
+        str: 形如 '公告=12, 通知=3' 的摘要 (按命中数降序, 零命中词省略)。
+    """
+    counts = []
+    for kw, kw_pat in kw_patterns:
+        n = int(removed_values.str.contains(kw_pat, na=False, regex=True).sum())
+        if n:
+            counts.append((kw, n))
+    counts.sort(key=lambda item: (-item[1], item[0]))
+    return ', '.join(f'{kw}={n}' for kw, n in counts)
 
 
 def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -88,25 +115,31 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     # 5. 广告关键词过滤(检查标题、版面、栏名三个字段)
     # fix(omni-g-preprocess-05, 2026-06-11): 标题字段改用 AD_PATTERN_TITLE —
-    # 高误伤词 (公告/通知/声明/通报/风险提示/年度报告) 对标题要求行尾锚定,
-    # 不再把 '央行公告下调存准率' / '上市银行年度报告显示…' 等监管新闻整篇
-    # 误删; 版面/栏名仍用无锚定 AD_PATTERN (付费公告版面全量排除, 行为不变)。
+    # 高误伤词 (ad_keywords_title_anchored, 2026-06-13 两批扩 6→22 词) 对标题
+    # 要求行尾锚定, 不再把 '央行公告下调存准率' / '上市银行三季度报告显示…' /
+    # 'XX银行收到行政处罚事先告知书 拟被罚没…' 等监管/财经新闻整篇误删;
+    # 版面/栏名仍用无锚定 AD_PATTERN (付费公告版面全量排除, 行为不变)。
     # 数据附录披露: 标题命中广告关键词 (高误伤词须行尾锚定) 或 版面/栏名含
     # 任一广告关键词的记录被排除出语料 — 该排除与监管事件强度相关, 属语料
-    # 构建的样本选择规则, 写论文 data appendix 时须披露。
-    for field_name, col_name, _pattern in [
-        ('标题', '标题', AD_PATTERN_TITLE),
-        ('版面', '版面', AD_PATTERN),
-        ('栏名', '栏名', AD_PATTERN),
+    # 构建的样本选择规则, 写论文 data appendix 时须披露; 词级命中计数随
+    # 日志输出 (见 _ad_keyword_hit_counts), 即附录排除统计表的直接素材。
+    for field_name, col_name, _pattern, _kw_patterns in [
+        ('标题', '标题', AD_PATTERN_TITLE, AD_KEYWORD_PATTERNS_TITLE),
+        ('版面', '版面', AD_PATTERN, AD_KEYWORD_PATTERNS),
+        ('栏名', '栏名', AD_PATTERN, AD_KEYWORD_PATTERNS),
     ]:
         if _pattern is None:
             continue
         rows_before = len(df)
-        df = df[~df[col_name].astype(str).str.contains(_pattern, na=False, regex=True)]
-        if rows_before - len(df) > 0:
+        col_values = df[col_name].astype(str)
+        hit_mask = col_values.str.contains(_pattern, na=False, regex=True)
+        if hit_mask.any():
+            kw_detail = _ad_keyword_hit_counts(col_values[hit_mask], _kw_patterns)
+            df = df[~hit_mask]
             logger.info(
                 f"  [5/8 广告过滤-{field_name}] "
-                f"移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,}"
+                f"移除 {rows_before - len(df):,} 行 → 剩余 {len(df):,} "
+                f"(词级命中, 可重叠: {kw_detail})"
             )
 
     # 6. 银行关键词保留过滤(Aho-Corasick O(n) 复杂度)

@@ -32,7 +32,7 @@ if _PROJECT_PARENT not in sys.path:
 import numpy as np
 import pandas as pd
 
-from news_process.core.config import load_config
+from news_process.core.config import herd_sensitivity_grid, load_config
 from news_process.core.logging import setup_logging
 
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -768,6 +768,21 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         for b in BERT_MODELS:
             agg[f'{b}_正面_hw_sum{track}'] = (f'{b}_正面_hw{track}', 'sum')
             agg[f'{b}_负面_hw_sum{track}'] = (f'{b}_负面_hw{track}', 'sum')
+    # --- F5b. 阈值敏感性 HW 聚合 (2026-06-13, herd_detection.sensitivity_thresholds) ---
+    # 仅 LLM 投票主测度族 (score/cont): 网格 × 全 11 测度族会列爆炸, 稳健性表只需
+    # 主回归 DV 的逐 τ 变体。源列由 stage 24 (herd_weight_*_thrNN) + runner 3d
+    # (llm_vote_*_hw_thrNN_* 与 _wd_hw_thrNN_llm_*) 预计算; 缺源由 valid_agg 自动过滤。
+    # 白话: 把"换一个抄稿判定门槛"算出的每套权重, 各自聚合出一个银行-年加权语调,
+    # 之后导进 Stata 逐列重跑主回归, 证明结论不靠 0.35 这一个门槛。
+    _sens_thrs, _sens_tags = herd_sensitivity_grid(CONFIG)
+    for track in ['_full', '_ctx']:
+        for _tag in _sens_tags:
+            agg[f'avg_herd_weight{track}_{_tag}'] = (f'herd_weight{track}_{_tag}', 'mean')
+            agg[f'sum_herd_weight{track}_{_tag}'] = (f'herd_weight{track}_{_tag}', 'sum')
+            agg[f'llm_vote_score_hw_{_tag}_sum{track}'] = (f'llm_vote_score_hw_{_tag}{track}', 'sum')
+            agg[f'llm_vote_cont_hw_{_tag}_sum{track}'] = (f'llm_vote_cont_hw_{_tag}{track}', 'sum')
+            agg[f'sum_wd_hw_{_tag}_llm{track}'] = (f'_wd_hw_{_tag}_llm{track}', 'sum')
+
     for track in ['_full', '_ctx']:
         agg[f'llm_vote_score_mw_sum{track}'] = (f'llm_vote_score_mw{track}', 'sum')
         agg[f'llm_vote_cont_mw_sum{track}'] = (f'llm_vote_cont_mw{track}', 'sum')
@@ -1723,6 +1738,31 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
                 panel_new_cols[f'llm_vote_tone_hw_prob{track}'] = panel[w_prob] / _llm_denom('hw', 'prob', track, hw_denom)
         logger.info("  已计算 Herd-Decay-weighted Tone 指标 (双轨独立分母)")
 
+    # --- HW Tone 阈值敏感性变体 (2026-06-13): 逐 τ 重估的稳健性 DV ---
+    # 每个 τ 用自己的权重和作分母 (sum_herd_weight_{track}_{tag}), LLM 族走
+    # 配套 valid-mask 分母 sum_wd_hw_{tag}_llm{track} (encode-01 同构, 分子分母同域)。
+    _sens_thrs2, _sens_tags2 = herd_sensitivity_grid(CONFIG)
+    _n_sens_cols = 0
+    for track in ['_full', '_ctx']:
+        for _tag in _sens_tags2:
+            s_w = f'sum_herd_weight{track}_{_tag}'
+            if s_w not in panel.columns:
+                continue
+            _denom_t = panel[s_w].replace(0, np.nan)
+            s_col = f'llm_vote_score_hw_{_tag}_sum{track}'
+            if s_col in panel.columns:
+                panel_new_cols[f'llm_vote_tone_hw_{_tag}{track}'] = (
+                    panel[s_col] / _llm_denom(f'hw_{_tag}', 'llm', track, _denom_t))
+                _n_sens_cols += 1
+            c_col = f'llm_vote_cont_hw_{_tag}_sum{track}'
+            if c_col in panel.columns:
+                panel_new_cols[f'llm_vote_cont_hw_{_tag}{track}'] = (
+                    panel[c_col] / _llm_denom(f'hw_{_tag}', 'llm', track, _denom_t))
+                _n_sens_cols += 1
+    if _n_sens_cols:
+        logger.info(f"  已计算 {_n_sens_cols} 个阈值敏感性 HW Tone 变体列 "
+                    f"(tags={_sens_tags2})")
+
     # remove-title-track: tone_gap_title_full / prob_gap_title_full 已取消 (标题轨停产)
 
     if panel_new_cols:
@@ -1815,8 +1855,12 @@ def balance_panel(panel: pd.DataFrame) -> pd.DataFrame:
     #       与 sum_mention_density 兄弟同"和"契约 (零新闻 bank-year = Σ over ∅ = 0);
     #   (b) coverage_active_days — 报道天数计数, 零新闻年 = 0 天
     #       (coverage_continuity 为比例类, 零新闻行维持 NaN)。
-    herd_cov_cols = [c for c in ('sum_herd_weight_full', 'sum_herd_weight_ctx',
-                                 'coverage_active_days') if c in panel.columns]
+    # 2026-06-13 阈值敏感性: sum_herd_weight_{track}_thrNN 与基线两列同"和"契约,
+    # 改精确名单为前缀匹配 (avg_herd_weight* 是均值类, 不带 sum_ 前缀, 正确保持 NaN)
+    herd_cov_cols = ([c for c in panel.columns
+                      if c.startswith('sum_herd_weight')]
+                     + [c for c in ('coverage_active_days',)
+                        if c in panel.columns])
     zero_fill_cols = (zero_fill_patterns + sum_cols + count_cols
                       + suffixed_count_cols + wd_cols + herd_cov_cols)
 

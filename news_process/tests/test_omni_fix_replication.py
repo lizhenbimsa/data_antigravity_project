@@ -55,6 +55,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]  # news_process/
 TEMPLATES = PROJECT_ROOT / 'papers' / '_common' / 'stata_templates'
 
 LEGACY_4 = ('benefit_society', 'brokerage_network', 'strategic_diff', 'llm_peer')
+# 2026-06-13 outcome 重定位: llm_peer (avg_ft_intensity_full, panel 实存列) /
+# strategic_diff (tobin_q, 外部 sentinel) 的 MAIN_DV 改与 spec.outcome.primary
+# 动态对齐 (锁在 test_derivative_replication.py SPEC_ALIGNED); 'ROA' 哨兵不变式
+# 仅余下面 2 篇。
+ROA_SENTINEL_2 = ('benefit_society', 'brokerage_network')
 B_ROUTE_4 = ('bank_fintech_attention', 'bank_fintech_substance',
              'bank_fintech_locus', 'bank_fintech_collab')
 ALL_8 = LEGACY_4 + B_ROUTE_4
@@ -84,9 +89,12 @@ def _load_spec(paper_id: str) -> dict:
 # ============================================================================
 
 
-@pytest.mark.parametrize('paper_id', LEGACY_4)
+@pytest.mark.parametrize('paper_id', ROA_SENTINEL_2)
 def test_legacy_main_dv_roa_sentinel_retained(paper_id):
-    """裁决: 财务列无 panel 对应 → 保留 'ROA' sentinel (不静默换列)。"""
+    """裁决: 财务列无 panel 对应 → 保留 'ROA' sentinel (不静默换列)。
+
+    2026-06-13 起范围收窄至 2 篇 (见 ROA_SENTINEL_2 注); llm_peer/strategic_diff
+    的 MAIN_DV-spec 对齐由 test_derivative_replication.py 动态锁定。"""
     assert _PAPER_DEFAULTS[paper_id]['MAIN_DV'] == 'ROA'
 
 

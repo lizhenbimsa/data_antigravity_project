@@ -40,7 +40,7 @@ papers_assets/llm_peer/
 
 1. Manuscript 内 `\\NoteThis{...}` 占位 (Intro / Lit Review / Results / Conclusion 等实质内容)
 2. BibLaTeX 文献库扩展 (当前 5 条共享 + 1 条 LLM-Peer 专属 = 共 6 条, 需扩到 ~30-50 条)
-3. 实际 ROA / Tobin_Q 等会计变量并入 panel 后, 跑通 8 .do (llm_peer 衍生复现包, 与 L34 模板表一致) 端到端验证
+3. 跑通 8 .do 端到端验证 (llm_peer 衍生复现包, 与 L34 模板表一致)。2026-06-13 outcome 重定位后主回归 DV = `avg_ft_intensity_full` (panel 实存列, 无需等财务数据即可跑); ROA / Tobin_Q 降级 secondary, 并入 panel 后补跑
 
 ## 学术依据
 

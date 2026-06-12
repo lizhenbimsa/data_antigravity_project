@@ -4,8 +4,9 @@
 * 生成自: derivative_replication.build_derivative_replication_package
 *
 * RR6-1: 与 4 existing 衍生 paper 同模式 (paper-specific 00_master + 01_data_prep)
-* P3 dual outcome (long_run_roa_change_3yr + car_3day_window_ft_announce;
-* fix(omni-g-templates-06, 2026-06-11): 短期 CAR 全链改 ≤32 字符短名)
+* P3 outcome 族 (2026-06-13 重定位: primary = cost_income_ratio_change_3yr 效率
+* 试金石; long_run_roa_change_3yr 降级 secondary; 短期 CAR 降级上市行扩展,
+* fix(omni-g-templates-06, 2026-06-11): CAR 全链用 ≤32 字符短名 car_3day_window_ft_announce)
 * ============================================================================
 
 version 19
@@ -47,5 +48,8 @@ capture do 20_substance_disclosure_quality.do
 * audit S12 修复 (2026-05-30): v3.5.1 A1 lexical clarity robustness (Table A7)。
 * 此前模板随复现包发布但 master 从不调用; 以 capture-graceful 模式接入。
 capture do 21_substance_clarity_robustness.do
+
+* 2026-06-13 IV 补全: peer LOO + Bartik 实质性 IV (capture-graceful 接入)
+capture do 22_substance_iv_2sls.do
 
 display "[OK] bank_fintech_substance master.do complete (B-route P3)"

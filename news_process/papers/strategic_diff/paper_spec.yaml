@@ -20,9 +20,15 @@ differentiation_claim: |
   - 与 llm_peer: strategic_diff 用 N-邻文本距离; llm_peer 用 LLM 语义同业 IV
 
 outcome:
-  primary: roa
-  secondary: [strat_fluidity, car_3day]
-  enrichment_source: pipeline strat_diff_n{3..7} + CSMAR ROA
+  # primary 切换 (2026-06-13, 顶刊组合定稿): 差异化 → 市场势力 → 特许权价值, 是
+  # Hoberg & Phillips 2016 JPE 产品市场差异化框架的银行版直接落点 (charter value:
+  # Keeley 1990 AER)。tobin_q 仅上市行可算 — 本篇主表定位上市行子样本; 全样本
+  # 通道用 funding_cost (差异化 → 同质竞争弱 → 存款定价能力 → 资金成本低,
+  # 方向预测与 P1 的语调通道相反, 互为交叉验证)。
+  primary: tobin_q  # 特许权价值 (上市行子样本主表)
+  secondary: [roa, funding_cost, strat_fluidity, noninterest_income_share]
+  enrichment_source: pipeline strat_diff_n{3..7} + Wind 市值 → tobin_q + 财务面板
+    ROA/利息支出/非利息收入 (M0.5.11)
 
 treatment:
   primary: strat_diff_n5   # N=5 TF-IDF char 默认

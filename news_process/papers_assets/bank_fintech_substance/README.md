@@ -50,9 +50,9 @@ papers_assets/bank_fintech_substance/
 
 ## 关键变量 (Dual Outcome)
 
-- `OUTCOME.primary`: `long_run_roa_change_3yr` (within-bank 3-year forward ROA change, W&Z 1994 长期反转)
-  - Construction: `long_run_roa_change_3yr[bank_b, year_t] = ROA[b, t+3] - ROA[b, t]`
-- `OUTCOME.short_run`: `car_3day_window_fintech_announcement` (短期 CAR 事件窗口, 与 P1 tone_shock 窗口区分)
+- `OUTCOME.primary`: `cost_income_ratio_change_3yr` (2026-06-13 outcome 重定位: within-bank 3-year forward CIR change, W&Z decoupling 效率试金石; 原 `long_run_roa_change_3yr` 降级 secondary)
+  - Construction: `cost_income_ratio_change_3yr[bank_b, year_t] = CIR[b, t+3] - CIR[b, t]`
+- `OUTCOME.listed_subsample_extension`: `car_3day_window_fintech_announcement` (短期 CAR 事件窗口, 与 P1 tone_shock 窗口区分; 年度数据约束下降级上市行扩展, Stata 列用 ≤32 字符短名 `car_3day_window_ft_announce`)
 - `MAIN_TREAT`: `innovation_substantiveness_full` (pipeline v3.2.0 实测列名, R35-M01)
 - `ALT.treat`: `innovation_substantiveness_ctx` / `substantive_minus_symbolic_gap` (derived ∈ {-1, +1})
 - `CLUSTER_VAR`: `bank_id`

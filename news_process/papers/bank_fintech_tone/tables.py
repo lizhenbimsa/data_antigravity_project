@@ -30,8 +30,9 @@ if TYPE_CHECKING:
 # fix(omni-g-papers-misc-06, 2026-06-11): paper_spec.yaml 主回归 = ctx 轨
 # (treatment.primary=llm_vote_tone_ctx), 但连续分与 IV 原仅列 full 轨 —
 # 增补 llm_vote_cont_ctx / prov_leave1out_tone_ctx / bartik_type_iv_ctx
-# (盘上已存在且非空), main-ctx 在前排序。outcome (car_3day_window_tone_shock)
-# 与金融 controls 仍待 M0.5.11 enrichment 落盘后增补。
+# (盘上已存在且非空), main-ctx 在前排序。outcome (2026-06-13 重定位后主因变量 =
+# funding_cost 资金成本; car_3day_window_tone_shock 降级上市行扩展) 与金融
+# controls 仍待 M0.5.11 enrichment 落盘后增补 (届时在此列表加 funding_cost)。
 _TABLE1_VARIABLES: list[str] = [
     # 主关键解释变量 — 媒体语调 (main = ctx 轨, per spec v3.6.0)
     'llm_vote_tone_ctx',

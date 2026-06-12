@@ -32,11 +32,16 @@ theory:
 
 outcome:
   primary: m_and_a_fintech                # 外部协同的直接 outcome (M&A 事件计数, R&D collab 落地证据)
-  short_run: car_5day_window              # 短期市场反应 (与 P4 同窗口)
+  # 年度数据约束 (2026-06-13): 短期市场反应 CAR (需日频) 降级为上市行扩展, 非年度主线。
+  listed_subsample_extension: car_5day_window  # 与 P4 同窗口
   secondary:
     - r_and_d_intensity                   # 自主研发的强度信号 (alternative anchor)
     - patent_fintech_count                # 创新产出 (与 P4 共用)
     - capex_it                            # IT 资本投入
+    # 风险代价通道 (2026-06-13 顶刊组合定稿): 外部协同引入第三方/操作风险 (助贷/
+    # 联合贷监管背景), 自主研发无此暴露 — z_score (CAR-based 变体, 与第 10/11 篇
+    # 共享口径) 检验开放创新的风险代价差异。
+    - z_score
   construction: |
     m_and_a_fintech[bank_b, year_t] = count(M&A events targeting fintech 标的)
     数据源: M0.5.11 Tonghuashun m_and_a_events 模块.
@@ -72,7 +77,14 @@ controls:
 
 identification:
   baseline: long_panel_within_bank_within_year
-  # P5 无 IV (mirrors P3 spec; cross-sectional intensity DiD 替代 IV for E3 / E4 events)
+  # 2026-06-13 IV 补全 (此前: P5 无 IV mirrors P3; 现与 P3 同构补全):
+  #   primary  = 同类型同业 leave-one-out 外部协同占比 (iv_extensions.py;
+  #              Manski 1993 反射与 Leary-Roberts 2014 JF 排他性局限须披露)
+  #   fallback = Bartik: 基期类型共现份额 × 同类 LOO 外部协同占比
+  #              (GPSS 2020 AER 基期 share 外生性视角)
+  iv:
+    primary: leave_one_out_peer_collab_iv
+    fallback: bartik_collab_iv_full
 
 event_studies:
   - E1   # 2013-06-13 yuebao_launch (fintech ecosystem 开启, 与 P4 locus 同 events)

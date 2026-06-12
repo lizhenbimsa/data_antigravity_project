@@ -251,6 +251,28 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     若要严格对齐 Hassan QJE intensive 曝光, 应以同函数内的 attention_pct / attention_intensity_density
     (N_ft/N_all 或强度密度) 作 spec primary。attention_index 当前应表述为 extensive 覆盖加权曝光。
 
+    去重口径披露 (预处理去重对关注度指标的影响, 文献依据 2026-06-13):
+      本函数全部计数/强度均建立在 stage 00 去重后语料上 (精确去重 + MinHash LSH
+      Jaccard≥0.8 + 5 工作日窗口, 保留首发; 见 pipeline/preprocess/dedup.py)。顶刊
+      共识: 去重与否取决于构念 —
+      ① "信息到达"构念应去重 — 通稿/转载不携带新信息, 计入会系统性高估关注度
+         (Tetlock 2011 RFS, "All the News That's Fit to Reprint": 陈旧转载非新信息;
+          Hassan/Hollander/van Lent/Tahoun 2019 QJE, doi:10.1093/qje/qjz021:
+          文本内份额归一化隐含排斥机械重复计数)。本函数的 attention_index /
+          attention_pct / density 属此类, 故用去重基 ✓。
+      ② "传播广度/可见度"构念不应去重 — 转载本身就是构念
+         (Bushee/Core/Guay/Hamm 2010 JAR press dissemination; Fang & Peress 2009 JF
+          coverage 计数); 该口径由 falsification/controls.py::nf_media_breadth 以
+          去重**前**物理行集另行实现, 勿在本函数混用。
+      ③ 时间归属: 跨期转载若保留后发副本日期会错配 bank-year — 去重层已按
+         "日期升序保留首发" 消除 (fix omni-g-preprocess-06)。
+      ⚠ 含义: 水平类计数 (n_fintech_articles 等) 对去重参数 (Jaccard 0.8 / 5 工作日)
+        敏感, 论文须披露去重规则与剔除比例, 并配阈值敏感性稳健性; 份额类
+        (attention_pct) 分子分母同基, 去重影响部分相消但非完全免疫。
+      白话: 一条新闻被 50 家网站转载 — 测"发生了多少事"只能算 1 件 (本函数口径,
+        不去重会虚增); 测"传得多广"恰恰要数 50 次 (nf_media_breadth 口径)。两套
+        口径并存、各管各的, 不是矛盾而是分工。
+
     产出 spec 钦定 4 列 + 双轨/派生 (双轨 = 互为稳健性, 用户裁定 2026-06-05):
       attention_index_full / attention_index_ctx          ln(1+Σ intensity) 累积曝光强度 (DUAL)
       attention_pct_full                                  N_ft/N_all fintech 议程份额 (track-agnostic 单轨)

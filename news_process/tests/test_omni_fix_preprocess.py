@@ -510,3 +510,180 @@ class TestOmni07BankKeywordVariants:
         if BANK_KW_AUTOMATON is None:
             pytest.skip('生产 bank_keywords 资源未加载')
         assert _ac_contains_any('中國銀行公告', BANK_KW_AUTOMATON) is True
+
+
+# ============================================================================
+# 2026-06-13 — 广告排除过度性复查: 锚定清单 6→12 词 + 词级命中计数日志
+# ============================================================================
+
+class TestAdAnchoredExpansion20260613:
+    """守卫: 第二批 6 个同构误伤词 (季度报告/半年度报告/业绩预告/信息披露/
+    公示/通告) 在标题字段须行尾锚定 — 中段命中的真新闻存活, 行尾命中的
+    真公告仍删。"""
+
+    EXPANSION_WORDS = ['季度报告', '半年度报告', '业绩预告', '信息披露', '公示', '通告']
+
+    def test_config_and_default_in_sync(self):
+        # config 清单与 _constants 兜底默认须保持一致, 防 config 缺失时行为漂移
+        from news_process.pipeline.preprocess._constants import (
+            _AD_KEYWORDS_TITLE_ANCHORED_DEFAULT,
+            AD_KEYWORDS_TITLE_ANCHORED,
+        )
+        assert set(AD_KEYWORDS_TITLE_ANCHORED) == set(_AD_KEYWORDS_TITLE_ANCHORED_DEFAULT)
+        for w in self.EXPANSION_WORDS:
+            assert w in AD_KEYWORDS_TITLE_ANCHORED, f'{w!r} 应已加入锚定清单'
+
+    def test_midtitle_genuine_news_survive(self):
+        # 旧行为: 无锚定中段命中 → 这些真新闻被整篇误删
+        from news_process.pipeline.preprocess._constants import AD_PATTERN_TITLE
+        assert AD_PATTERN_TITLE is not None
+        for title in (
+            '上市银行三季度报告显示不良率下降',   # '季度报告' 在中部
+            '多家银行半年度报告盈利改善',         # '半年度报告' 在中部
+            '上市银行业绩预告密集发布盈利亮眼',   # '业绩预告' 在中部
+            '银保监会强化信息披露监管要求',       # '信息披露' 在中部
+            '央行罚单公示多家银行被罚',           # '公示' 在中部
+            '央行发布通告调整支付清算安排',       # '通告' 在中部
+        ):
+            assert AD_PATTERN_TITLE.search(title) is None, title
+
+    def test_title_ending_announcements_still_matched(self):
+        # 行尾命中 (真公告类标题) → 仍删
+        from news_process.pipeline.preprocess._constants import AD_PATTERN_TITLE
+        for title in (
+            'XX银行股份有限公司2017年第三季度报告',
+            'XX银行2017年半年度报告',
+            'XX银行2017年度业绩预告',
+            '关于变更注册地址的公示',
+            'XX市公安局关于打击非法集资的通告',
+        ):
+            assert AD_PATTERN_TITLE.search(title) is not None, title
+
+    def test_layout_pattern_still_unanchored_for_expansion_words(self):
+        # 版面/栏名行为不变: 扩充词在任意位置命中即排除 (公告版面全量排除)
+        from news_process.pipeline.preprocess._constants import AD_PATTERN
+        assert AD_PATTERN.search('信息披露专版') is not None
+        assert AD_PATTERN.search('业绩预告点评') is not None
+
+
+class TestAdAnchoredExpansionR2_20260613:
+    """守卫: 终审对抗复核 P1 — 二批 10 个同构误伤词锚定 (锚定清单 12→22)。
+    含两条不变量: anchored ⊆ ad_keywords (防 silent no-op) + 非空守卫 (防
+    生产 config 缺失时表级断言 []==[] 真空通过)。"""
+
+    EXPANSION_WORDS_R2 = [
+        '广告', '特别提示', '专项报告', '核查意见', '权益变动报告书',
+        '事先告知书', '事先告知函', '事先催告书', '倡议书', '挂失',
+    ]
+
+    def test_production_config_loaded_nonempty(self):
+        # 非空守卫: AD_KEYWORDS 为空时本类与表级测试不得真空通过
+        from news_process.pipeline.preprocess._constants import AD_KEYWORDS
+        assert len(AD_KEYWORDS) >= 50, '生产 ad_keywords 应已加载 (54 词)'
+
+    def test_anchored_subset_of_ad_keywords(self):
+        # 不变量: 锚定词必须同时在主清单, 否则锚定是 silent no-op
+        from news_process.pipeline.preprocess._constants import (
+            AD_KEYWORDS,
+            AD_KEYWORDS_TITLE_ANCHORED,
+        )
+        missing = set(AD_KEYWORDS_TITLE_ANCHORED) - set(AD_KEYWORDS)
+        assert not missing, f'锚定词不在 ad_keywords 主清单, 锚定落空: {missing}'
+
+    def test_r2_words_in_anchored_list(self):
+        from news_process.pipeline.preprocess._constants import (
+            AD_KEYWORDS_TITLE_ANCHORED,
+        )
+        for w in self.EXPANSION_WORDS_R2:
+            assert w in AD_KEYWORDS_TITLE_ANCHORED, f'{w!r} 应已加入锚定清单'
+        assert len(AD_KEYWORDS_TITLE_ANCHORED) == 22
+
+    def test_typo_twin_deliberately_unanchored(self):
+        # 决策锁定: '半年度度报告' (源数据拼写错误孪生词) 刻意不锚定 —
+        # 中段出现于真新闻概率≈0, 锚定反而让其源公告族经尾缀逃逸
+        from news_process.pipeline.preprocess._constants import (
+            AD_KEYWORDS,
+            AD_KEYWORDS_TITLE_ANCHORED,
+        )
+        assert '半年度度报告' in AD_KEYWORDS
+        assert '半年度度报告' not in AD_KEYWORDS_TITLE_ANCHORED
+
+    def test_r2_midtitle_genuine_news_survive(self):
+        # 对抗复核实测 27/27 被旧规则误杀的中段真新闻标题 (代表性子集)
+        from news_process.pipeline.preprocess._constants import AD_PATTERN_TITLE
+        assert AD_PATTERN_TITLE is not None
+        for title in (
+            'XX银行收到行政处罚事先告知书拟被罚没2.6亿元',  # 处罚新闻标准句式
+            '银行收到监管事先告知函后股价波动',
+            '银行向逾期客户发出事先催告书后启动诉讼',
+            '央行特别提示防范虚拟货币交易风险隐患',
+            '审计署专项报告点名多家银行违规输血楼市',
+            '保荐机构核查意见出炉定增过会在望',
+            '险资举牌XX银行权益变动报告书披露增持细节',
+            '银监会重拳整治银行理财虚假广告乱象',
+            '银行业协会倡议书呼吁降低小微企业融资成本',
+            '银行卡挂失费全面取消用户每年省下数亿元',
+        ):
+            assert AD_PATTERN_TITLE.search(title) is None, title
+
+    def test_r2_title_ending_announcements_still_matched(self):
+        # 行尾命中 (真公告/文书类标题) → 仍删
+        from news_process.pipeline.preprocess._constants import AD_PATTERN_TITLE
+        for title in (
+            'XX银行简式权益变动报告书',
+            '关于参加存款保险的特别提示',
+            '保荐机构关于XX银行非公开发行的核查意见',
+            '行政处罚事先告知书',
+            '绿色金融自律倡议书',
+            'XX银行存单挂失',
+            '某理财产品广告',
+        ):
+            assert AD_PATTERN_TITLE.search(title) is not None, title
+
+    def test_r2_layout_still_unanchored(self):
+        # 版面/栏名行为不变: 任意位置命中即排除
+        from news_process.pipeline.preprocess._constants import AD_PATTERN
+        assert AD_PATTERN.search('广告专版') is not None
+        assert AD_PATTERN.search('特别提示栏') is not None
+
+
+class TestAdKeywordHitCounts:
+    """守卫: 词级命中计数日志 (_ad_keyword_hit_counts + pattern 表)."""
+
+    def test_pattern_tables_cover_all_keywords(self):
+        from news_process.pipeline.preprocess._constants import (
+            AD_KEYWORD_PATTERNS,
+            AD_KEYWORD_PATTERNS_TITLE,
+            AD_KEYWORDS,
+        )
+        assert [kw for kw, _ in AD_KEYWORD_PATTERNS] == list(AD_KEYWORDS)
+        assert [kw for kw, _ in AD_KEYWORD_PATTERNS_TITLE] == list(AD_KEYWORDS)
+
+    def test_title_table_anchoring_matches_config(self):
+        from news_process.pipeline.preprocess._constants import (
+            AD_KEYWORD_PATTERNS_TITLE,
+            AD_KEYWORDS_TITLE_ANCHORED,
+        )
+        anchored = set(AD_KEYWORDS_TITLE_ANCHORED)
+        for kw, pat in AD_KEYWORD_PATTERNS_TITLE:
+            ends_anchored = pat.pattern.endswith(r'\s*$')
+            assert ends_anchored == (kw in anchored), kw
+
+    def test_hit_counts_sorted_and_overlapping(self):
+        from news_process.pipeline.preprocess.filter import _ad_keyword_hit_counts
+        kw_patterns = [
+            ('公告', re.compile('公\\s*告')),
+            ('通知', re.compile('通\\s*知')),
+            ('声明', re.compile('声\\s*明')),
+        ]
+        removed = pd.Series([
+            '配股公告', '中标公告', '停牌公告通知',  # '公告'×3, '通知'×1 (重叠行)
+        ])
+        out = _ad_keyword_hit_counts(removed, kw_patterns)
+        assert out == '公告=3, 通知=1'  # 降序 + 零命中词省略; 计数和 4 > 行数 3
+
+    def test_empty_removed_returns_empty_string(self):
+        from news_process.pipeline.preprocess.filter import _ad_keyword_hit_counts
+        out = _ad_keyword_hit_counts(
+            pd.Series([], dtype=str), [('公告', re.compile('公告'))])
+        assert out == ''

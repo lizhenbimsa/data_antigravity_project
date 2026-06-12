@@ -25,6 +25,9 @@ do "news_process/papers/bank_news_clarity/replication/code/01_data_prep.do"
 
 * === Tables ===
 do "news_process/papers/bank_news_clarity/replication/code/11_table2_main_clarity_risk.do"
+* 2026-06-13 IV 补全: outlet-composition 笔法清晰度 IV (capture-graceful)
+capture noisily do "news_process/papers/bank_news_clarity/replication/code/12_table3_iv_2sls.do"
+if _rc display as error "[WARN] 12_table3_iv_2sls.do failed (rc=`=_rc'); Table 3 IV skipped"
 do "news_process/papers/bank_news_clarity/replication/code/13_table4_heterogeneity.do"
 
 display ""

@@ -57,6 +57,7 @@ news_process.validation.tone_validation — 阶段34：情感分析三角验证�
 
 import json
 import os
+import re
 import sys
 import time
 from collections import Counter
@@ -489,7 +490,8 @@ def generate_validation_sample(df: pd.DataFrame,
                                 n_agree: int = 100,
                                 n_disagree: int = 200,
                                 seed: int = 42,
-                                track: str = '_full'):
+                                track: str = '_full',
+                                extra_labels: dict | None = None):
     """生成情感标签人工验证样本。
 
     抽样策略：
@@ -516,6 +518,12 @@ def generate_validation_sample(df: pd.DataFrame,
         seed:            随机种子。
         track:           被验证轨道 ('_full' / '_ctx'), 决定编码指南口径与
                          机器输入文本列。
+        extra_labels:    附加标签列 {列名: pd.Series} — 仅写入工作台供人工
+                         比对, 不参与一致/分歧抽样判定。用途 (final-audit F1,
+                         2026-06-13): LLM 聚合投票列 (主 spec llm_vote_tone
+                         的直接源) 被 omni-02 从 all_labels_df 剔除 (防互比
+                         一致性虚高), 但人工验证恰恰最需要验证它 — 经此参数
+                         回灌, 聚合票在工作台可被标注并经回读获得人工指标。
     """
     valid = all_labels_df.dropna(how='any')
     if valid.empty:
@@ -554,6 +562,10 @@ def generate_validation_sample(df: pd.DataFrame,
     # 添加各方法标签列
     for col in all_labels_df.columns:
         sample_df[col] = all_labels_df.loc[sample_idx, col]
+
+    # 附加标签列 (不参与一致/分歧判定, 见 docstring extra_labels)
+    for extra_name, extra_series in (extra_labels or {}).items():
+        sample_df[extra_name] = extra_series.loc[sample_idx]
 
     # 添加多数投票标签
     sample_df['多数投票标签'] = vote_labels.loc[sample_idx]
@@ -633,18 +645,25 @@ def generate_validation_sample(df: pd.DataFrame,
             sample_output.to_excel(writer, sheet_name='验证数据', index=False)
 
             # 统计概览
+            # fix(final-audit HV-P2-03, 2026-06-13): 生成时点锚点 — 工作台
+            # 内的机器标签是本时点快照, 防覆盖守卫生效后上游再迭代时,
+            # 回读指标可经此字段追溯其对应的方法版本时点
             overview = pd.DataFrame({
                 '统计项': [
                     '总验证样本数',
                     '一致样本数',
                     '分歧样本数',
                     '参与方法数',
+                    '生成时间',
+                    '源数据行数',
                 ],
                 '值': [
                     len(sample_output),
                     n_a,
                     n_d,
-                    all_labels_df.shape[1],
+                    all_labels_df.shape[1] + len(extra_labels or {}),
+                    time.strftime('%Y-%m-%d %H:%M:%S'),
+                    len(df),
                 ],
             })
             overview.to_excel(writer, sheet_name='统计概览', index=False)
@@ -652,6 +671,277 @@ def generate_validation_sample(df: pd.DataFrame,
         logger_inst.info(f"人工验证样本已保存: {output_path} ({len(sample_output)} 条)")
     except Exception as e:
         logger_inst.warning(f"保存人工验证样本失败: {e}")
+
+
+# ============================================================================
+# 8b. 人工标注回读比对 (human-annot-readback, 2026-06-13)
+# ============================================================================
+# 此前 09_sentiment_verify{track}.xlsx 只有生成端没有消费端 — 全仓无任何代码
+# 读回 '人工判定_情感' 列计算指标, 词典/BERT 族即使标注完成也无比对路径
+# (stage 33 评估循环只接 LLM 列)。本节补齐回读端: 对工作台内全部方法标签列
+# (词典_*/BERT_*/LLM_*/多数投票标签) vs 人工判定计算 accuracy/macro-P/R/F1 +
+# Cohen's κ, 空表优雅 pending (绝不合成数据, 防 demo 假产物覆辙)。
+# 白话: 以前考卷只管印出来, 没人负责批改 — 哪怕标注员填完了, 词典和 BERT
+# 的得分也算不出来。现在补上"批改"环节: 表填了就出 11 种方法的真实成绩单,
+# 没填就明确说"待标注", 绝不编造分数。
+
+#: 人工标注样本量低于此阈值时指标仅供参考 (CLT 经验下限)
+HUMAN_VERIFY_MIN_N = 30
+
+#: 三分类合法人工标签 (与编码指南/stage 33 评估口径一致)
+HUMAN_VERIFY_LABELS = ('正面', '中性', '负面')
+
+
+def _human_verify_track_note(track: str) -> str:
+    """被验证轨道的金标准构念口径说明 (随指标产物落盘, 防论文误读)。
+
+    与 stage 33 (32_human_samples, 全文构念 gold 同评两轨 → ctx 指标为混合
+    下界, 见 llms_evaluation.GOLD_CONSTRUCT_DISCLOSURE) 不同: 本工作台自
+    omni-g-val-tone-04 起按轨独立抽样, 编码者基于该轨"机器输入文本"判定,
+    金标准与机器口径构念对齐 — ctx 轨在此获得真正的窗口级金标准。
+    """
+    # fix(final-audit HV-P2-02/F2, 2026-06-13): 追加抽样设计 + 编码协议披露 —
+    # 指标基于 100一致+200分歧 的选择性抽样 (分歧 oversample), 且 gold 为
+    # 单编码者无信度检验, 论文引用时不可当总体准确率/双编码者共识口径
+    sampling_note = ('; 抽样=100一致+200分歧(分歧oversample, 选择性样本, '
+                     'accuracy 为保守下界不可外推总体, 分层指标见 '
+                     'Accuracy_一致/Accuracy_分歧 列); gold=单编码者'
+                     '(无编码者间信度, 区别于 stage 33 双编码者共识协议)')
+    if track == '_ctx':
+        return ('轨道级金标准: 编码者基于"机器输入文本"(标题+实体上下文窗口)判定, '
+                '与 ctx 轨机器口径构念对齐, 无全文-窗口构念混淆; 区别于 stage 33 '
+                '的 32_human_samples (全文构念 gold, 其 ctx 指标只能解读为混合下界)'
+                + sampling_note)
+    return ('轨道级金标准: 编码者基于"机器输入文本"(标题+正文全文)判定, '
+            '与 full 轨机器口径构念对齐' + sampling_note)
+
+
+def _count_nonempty(series: pd.Series) -> int:
+    """计数非空且非 NaN 字面量的单元格。
+
+    ⚠ pandas 3.0 起 astype(str) 保留 NaN (不再字符串化为 'nan') — 必须先
+    fillna('') 否则 NaN != '' 为 True, 空单元格被误计 (final-audit 实测)。
+    'nan'/'None' 字面量守卫保留, 防旧版 pandas 写出的字符串化残留。
+    """
+    s = series.fillna('').astype(str).str.strip()
+    return int(((s != '') & (s.str.lower() != 'nan') & (s != 'None')).sum())
+
+
+def count_human_annotations(verify_path: str) -> int:
+    """统计人工验证工作台中"人工动过"的单元格条数 (防覆盖守卫判据)。
+
+    fix(final-audit HV-P1-01/02, 2026-06-13) 守卫语义 = "有人动过这张表
+    就不许覆盖", 而非"有合法标签才不许覆盖":
+      - 计数口径: 人工判定_情感 + 人工判定_理由 两列的全部非空单元格
+        (标注员用错词汇如'积极'/数字编码、或只写了理由, 同样是不可再生
+        的人工劳动, 必须受保护);
+      - fail-closed: 文件存在但读取失败 (sheet 被改名/文件损坏) 或
+        结构异常 (人工判定列全部丢失) 返回 -1 — 读失败≠无标注,
+        宁可跳过重生也不冒销毁标注的风险。
+    返回: 0=确认空白(允许重生) / >0=有人工痕迹 / -1=读取失败或结构异常。
+    白话: 这张表只要有人写过一个字、或者打不开看不清, 都一律不准重印。
+    """
+    if not os.path.isfile(verify_path):
+        return 0
+    try:
+        verify_df = pd.read_excel(verify_path, sheet_name='验证数据')
+    except Exception:
+        return -1
+    human_cols = [c for c in ('人工判定_情感', '人工判定_理由')
+                  if c in verify_df.columns]
+    if not human_cols:
+        return -1
+    return sum(_count_nonempty(verify_df[c]) for c in human_cols)
+
+
+def evaluate_human_verification(verify_path: str, track: str,
+                                output_dir: str, logger_inst) -> dict:
+    """回读人工验证工作台, 对全部方法标签列 vs 人工判定计算分类指标。
+
+    覆盖全部 11 种情感方法 (词典 5 / BERT 3 / LLM 逐模型+投票) × 本轨道 —
+    这是全项目唯一能为词典/BERT 族产出人工验证指标的代码路径 (stage 33
+    评估循环只接 LLM 列)。
+
+    指标实现复用 stage 33 单一事实源 (compute_classification_metrics /
+    compute_cohens_kappa), 保证与 LLM 族在 32_human_samples 上的口径可比。
+
+    Args:
+        verify_path: 工作台路径 (09_sentiment_verify{track}.xlsx)。
+        track:       '_full' / '_ctx'。
+        output_dir:  指标 CSV 输出目录 (eval_reports/)。
+        logger_inst: 注入 logger。
+
+    Returns:
+        dict: status ∈ {'ok','insufficient','pending','error'} + 指标明细;
+              并入 stage 34 results JSON 的 'human_verification' 键。
+              pending/error 时【不写任何指标文件】— 防止空壳/合成产物被
+              误引为已完成的人工验证 (2026-05-31 demo 假产物的教训)。
+    """
+    note = _human_verify_track_note(track)
+    result = {'status': 'pending', 'track': track, 'n_annotated': 0,
+              'gold_construct_note': note}
+    csv_path = os.path.join(output_dir, f'human_verify_metrics{track}.csv')
+
+    def _cleanup_stale_csv(why: str):
+        # fix(final-audit T4-01, 2026-06-13): pending/error 不仅不写新指标,
+        # 还要清掉旧指标残留 — 否则"工作台被清空/重生"后陈旧 CSV 仍像
+        # 已完成的人工验证 (与 demo 假产物同型的误引风险)
+        if os.path.isfile(csv_path):
+            try:
+                os.remove(csv_path)
+                logger_inst.warning(
+                    f"  已清除陈旧指标文件 ({why}, 防误引): {csv_path}")
+            except OSError as e:
+                logger_inst.warning(f"  陈旧指标文件清除失败: {e}")
+
+    if not os.path.isfile(verify_path):
+        result['reason'] = f'工作台不存在: {verify_path}'
+        logger_inst.info(f"  人工标注回读: {result['reason']}")
+        _cleanup_stale_csv('工作台不存在')
+        return result
+    try:
+        verify_df = pd.read_excel(verify_path, sheet_name='验证数据')
+    except Exception as e:
+        result['status'] = 'error'
+        result['reason'] = f'工作台读取失败: {e}'
+        logger_inst.warning(f"  人工标注回读: {result['reason']}")
+        return result
+    if '人工判定_情感' not in verify_df.columns:
+        result['status'] = 'error'
+        result['reason'] = "工作台缺少'人工判定_情感'列"
+        logger_inst.warning(f"  人工标注回读: {result['reason']}")
+        return result
+
+    labels = list(HUMAN_VERIFY_LABELS)
+    gold = verify_df['人工判定_情感'].astype(str).str.strip()
+    annotated = gold.isin(labels)
+    n_annotated = int(annotated.sum())
+    result['n_annotated'] = n_annotated
+
+    # fix(final-audit HV-P1-02, 2026-06-13): 非空但不在词表的人工填写
+    # (如'积极'/'1') 显式告警, 不再静默当空表
+    n_invalid = _count_nonempty(verify_df['人工判定_情感']) - n_annotated
+    result['n_nonempty_invalid'] = n_invalid
+    if n_invalid > 0:
+        logger_inst.warning(
+            f"  [{track}] 发现 {n_invalid} 条非法人工标注值 (不在 "
+            f"{'/'.join(labels)} 词表, 不进评估) — 请修正后重跑")
+
+    if n_annotated == 0:
+        result['reason'] = ('人工标注未填写 (0 条合法标签) — 编码者填写'
+                            '"人工判定_情感"列后重跑 stage 34 即产出'
+                            '全部方法×本轨 vs 人工的真实指标')
+        logger_inst.info(f"  人工标注回读 [{track}]: {result['reason']}")
+        _cleanup_stale_csv('合法标注为 0')
+        return result
+
+    # 复用 stage 33 指标实现 (lazy import: 避免 import 期连带其日志初始化)
+    from news_process.validation.llms_evaluation import (
+        compute_classification_metrics,
+        compute_cohens_kappa,
+    )
+
+    label_to_int = {lab: i for i, lab in enumerate(labels)}
+    # fix(final-audit HV-INFO-03, 2026-06-13): 剔除 pandas 对 Excel 重复表头
+    # 自动改名产生的 '列名.1' 镜像列, 防同一方法重复计入
+    method_cols = [c for c in verify_df.columns
+                   if (c.startswith(('词典_', 'BERT_', 'LLM_'))
+                       or c == '多数投票标签')
+                   and not re.search(r'\.\d+$', c)]
+
+    if not method_cols:
+        # fix(final-audit HV-P2-05, 2026-06-13): schema 异常 (无任何方法列)
+        # 按 error 处理, 绝不写退化空 CSV 冒充已完成
+        result['status'] = 'error'
+        result['reason'] = '工作台无任何方法标签列 (词典_/BERT_/LLM_) — schema 异常'
+        logger_inst.warning(f"  人工标注回读: {result['reason']}")
+        return result
+
+    # 工作台生成时点透传 (final-audit HV-P2-03): 指标对应的是工作台冻结
+    # 时点的机器预测快照, 落盘供 staleness 追溯; 旧版工作台无此字段则空
+    workbook_ts = ''
+    try:
+        ov = pd.read_excel(verify_path, sheet_name='统计概览')
+        ts_rows = ov[ov['统计项'] == '生成时间']
+        if not ts_rows.empty:
+            workbook_ts = str(ts_rows['值'].iloc[0])
+    except Exception:
+        pass
+
+    # 分层掩码 (final-audit HV-P2-02): 一致/分歧 oversample 抽样下, 分层
+    # accuracy 是比合并 accuracy 更可解释的量
+    stype = (verify_df['样本类型'].astype(str).str.strip()
+             if '样本类型' in verify_df.columns else None)
+
+    csv_rows = []
+    per_method = {}
+    for col in method_cols:
+        pred = verify_df[col].astype(str).str.strip()
+        valid = annotated & pred.isin(labels)
+        n_valid = int(valid.sum())
+        if n_valid == 0:
+            csv_rows.append({'方法': col, '轨道': track,
+                             'n_标注': n_annotated, 'n_有效': 0,
+                             '状态': '无有效预测', '口径说明': note})
+            continue
+        y_true = gold[valid].to_numpy()
+        y_pred = pred[valid].to_numpy()
+        m = compute_classification_metrics(y_true, y_pred, labels=labels)
+        kappa = compute_cohens_kappa(
+            np.array([label_to_int[v] for v in y_true]),
+            np.array([label_to_int[v] for v in y_pred]))
+        # fix(final-audit HV-P2-04): 样本量状态按方法级 n_valid 判定,
+        # 不再沿用全表 n_annotated (各方法预测缺失程度不同)
+        method_status = ('正常' if n_valid >= HUMAN_VERIFY_MIN_N
+                         else f'样本不足(n<{HUMAN_VERIFY_MIN_N}) 仅供参考')
+        strat_acc = {}
+        if stype is not None:
+            for s_name in ('一致', '分歧'):
+                s_mask = valid & (stype == s_name)
+                n_s = int(s_mask.sum())
+                strat_acc[s_name] = (
+                    round(float((gold[s_mask] == pred[s_mask]).mean()), 4)
+                    if n_s > 0 else '')
+        csv_rows.append({
+            '方法': col,
+            '轨道': track,
+            'n_标注': n_annotated,
+            'n_有效': n_valid,
+            'Coverage': round(n_valid / n_annotated, 4),
+            'Accuracy': m['accuracy'],
+            'Accuracy_一致': strat_acc.get('一致', ''),
+            'Accuracy_分歧': strat_acc.get('分歧', ''),
+            'Macro_Precision': m['macro']['precision'],
+            'Macro_Recall': m['macro']['recall'],
+            'Macro_F1': m['macro']['f1'],
+            'Cohens_κ_vs_人工': kappa['kappa'],
+            '状态': method_status,
+            '工作台生成时间': workbook_ts,
+            '口径说明': note,
+        })
+        per_method[col] = {'n_valid': n_valid,
+                           'coverage': round(n_valid / n_annotated, 4),
+                           'accuracy': m['accuracy'],
+                           'accuracy_by_stratum': strat_acc,
+                           'macro': m['macro'],
+                           'per_class': m['per_class'],
+                           'kappa_vs_human': kappa['kappa'],
+                           'status': method_status}
+        logger_inst.info(
+            f"  [{track}] {col}: Acc={m['accuracy']:.4f} "
+            f"MacroF1={m['macro']['f1']:.4f} κ={kappa['kappa']:.4f} "
+            f"(n={n_valid}/{n_annotated})")
+
+    pd.DataFrame(csv_rows).to_csv(csv_path, index=False, encoding='utf-8-sig')
+    logger_inst.info(f"  人工验证指标已保存: {csv_path} ({len(per_method)} 个方法)")
+
+    result['status'] = ('ok' if n_annotated >= HUMAN_VERIFY_MIN_N
+                        else 'insufficient')
+    result['min_n'] = HUMAN_VERIFY_MIN_N
+    result['workbook_generated_at'] = workbook_ts
+    result['metrics'] = per_method
+    result['csv'] = csv_path
+    return result
 
 
 # ============================================================================
@@ -2004,10 +2294,36 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     # 同一 09_sentiment_verify.xlsx, _ctx 覆盖 _full, 文件内 词典_/BERT_/LLM_
     # 标签列实为后写轨道值但无轨道标识, 人工标注的归属轨道不可追溯
     verify_path = os.path.join(output_dir, f'09_sentiment_verify{track}.xlsx')
-    generate_validation_sample(
-        df, all_labels_df, vote_labels, verify_path, logger,
-        n_agree=100, n_disagree=200, seed=42, track=track
-    )
+    # 防覆盖守卫 (human-annot-readback, 2026-06-13; final-audit 收紧为
+    # fail-closed): 工作台只要有人工痕迹 (含非法词汇/只填理由) 或读取失败
+    # (-1, 可能藏有标注), 一律不重生 — 人工填写不可再生, 重抽样即销毁;
+    # 仅"确认空白" (=0) 允许刷新
+    n_existing = count_human_annotations(verify_path)
+    if n_existing < 0:
+        logger.error(
+            f"工作台存在但读取失败/结构异常 — fail-closed 跳过重生, 以防销毁"
+            f"潜在人工标注 (请人工检查 sheet/表头): {verify_path}")
+    elif n_existing > 0:
+        logger.warning(
+            f"检测到人工填写痕迹 ({n_existing} 个单元格), 跳过工作台重生以"
+            f"保护标注: {verify_path}")
+    else:
+        # final-audit F1 (2026-06-13): LLM 聚合投票列回灌工作台 — 主 spec
+        # llm_vote_tone{track} 的直接源必须可被人工验证; 仅作标注对象列,
+        # 不进 all_labels_df (不违反 omni-02 的互比剔除)
+        extra_labels = {}
+        if llm_aggregate_info and llm_aggregate_info.get('sentiment') in df.columns:
+            extra_labels['LLM_投票'] = df[llm_aggregate_info['sentiment']]
+        generate_validation_sample(
+            df, all_labels_df, vote_labels, verify_path, logger,
+            n_agree=100, n_disagree=200, seed=42, track=track,
+            extra_labels=extra_labels
+        )
+
+    # 回读比对 (human-annot-readback, 2026-06-13): 全项目唯一的
+    # 词典/BERT 族人工验证指标产出路径; 空表优雅 pending, 不合成数据
+    results['human_verification'] = evaluate_human_verification(
+        verify_path, track, output_dir, logger)
 
     # ======================================================================
     # Step 8: 生成全部报告

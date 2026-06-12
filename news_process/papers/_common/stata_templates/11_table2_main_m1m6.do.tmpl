@@ -13,13 +13,15 @@
 *   M5: + bank size / age 控制
 *   M6: + 交互项 (LOCUS × SUBST)
 *
-* ⚠️ 方向披露 fix(omni-g-templates-11, 2026-06-11):
-*   paper_spec.yaml (P1 bank_fintech_tone) 冻结的主识别是
-*     outcome.primary  = car_3day_window_tone_shock (CAR ~ tone, tone 为 treatment),
+* ⚠️ 方向披露 fix(omni-g-templates-11, 2026-06-11; 2026-06-13 outcome 重定位更新):
+*   paper_spec.yaml (P1 bank_fintech_tone) 的主识别现为
+*     outcome.primary  = funding_cost (资金成本 ~ tone, tone 为 treatment; 年度全样本,
+*     储户纪律范式; 原 car_3day_window_tone_shock 降级 listed_subsample_extension),
 *   而本表当前方程是 tone ~ digital_frontier (tone 作 DV) — 与 spec 主识别方向相反。
-*   本表是 pre-enrichment 占位规格: CAR 列 (M0.5.11 enrichment) 落地前, 以
-*   digital_frontier → tone 的描述性关联占住 Table 2 槽位。CAR 列落地后须重写为
-*   {MAIN_DV} ~ {MAIN_TREAT} 形式 (capture confirm 守卫), 论文不得以本占位表充当主结果。
+*   本表是 pre-enrichment 占位规格: funding_cost 列 (M0.5.11 财务面板 enrichment)
+*   落地前, 以 digital_frontier → tone 的描述性关联占住 Table 2 槽位。财务列落地后
+*   须重写为 funding_cost ~ {MAIN_TREAT} 形式 (capture confirm 守卫), 论文不得以本
+*   占位表充当主结果。
 * 白话: 论文真正承诺的主回归是"语调影响股价反应(CAR)", 但 CAR 数据还没接进面板,
 * 所以这张表暂时反过来跑"数字化程度与语调的关联"先占位; 等 CAR 数据到位必须改回正向, 这张占位表不能当正式结果用。
 

@@ -265,9 +265,12 @@ class TestDocSyncLocks:
     def test_threshold_closed_boundary_documented(self):
         src = _read_src(_SRC_PATH)
         assert '闭边界' in src, "阈值语义应注明 ≥ (闭边界), 与代码 >= 一致"
-        # 代码本体仍是闭边界 (防止文档修复时误改语义)
-        assert 'sim_matrix >= SIMILARITY_THRESHOLD' in src
-        assert 'sims >= SIMILARITY_THRESHOLD' in src
+        # 代码本体仍是闭边界 (防止文档修复时误改语义)。
+        # 2026-06-13 阈值敏感性: 比较对象由单值 SIMILARITY_THRESHOLD 改为
+        # thr_list 循环变量 thr (基线在第 0 列), 闭边界 >= 语义不变。
+        assert 'sim_matrix >= thr' in src
+        assert 'sims >= thr' in src
+        assert "thr_list = [SIMILARITY_THRESHOLD] if thresholds is None" in src
 
     def test_yaml_chunk_size_no_compute_semantics(self):
         yaml_src = _read_src(_YAML_PATH)

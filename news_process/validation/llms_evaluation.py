@@ -82,6 +82,19 @@ GOLD_CONSTRUCT_DISCLOSURE = (
 )
 
 
+def construct_disclosure_for(name: str) -> str:
+    """按分类器/模型键名返回该行应落盘的构念披露文案。
+
+    fix(final-audit HV-P1-03, 2026-06-13): 单一事实源 — 此前 CSV 落盘处
+    各自写 `name.endswith('_ctx')`, 但 classification_eval_summary 的键形如
+    'LLM 情感分析 (_ctx)' / 'gpt54nano_ctx (独立)' (以 ')' 结尾), endswith
+    恒 False → 披露列 100% 空 (死分支)。改为子串匹配并集中到本函数,
+    full/ctx 两轨文案跨 CSV 统一。
+    """
+    return (GOLD_CONSTRUCT_DISCLOSURE if '_ctx' in name
+            else '全文构念 gold 与 full 轨机器口径一致')
+
+
 # ============================================================================
 # 2. 统计指标计算函数
 # ============================================================================
@@ -1656,6 +1669,9 @@ def main():
                     'Accuracy': metrics['accuracy'],
                     # fix(omni-g-val-eval-01/05, 2026-06-11): coverage 入对比表
                     'Coverage': metrics.get('coverage', 1.0),
+                    # fix(human-annot-readback, 2026-06-13): 构念披露随行落盘 —
+                    # 此前仅在 results JSON + 日志, 单独引用本 CSV 时不可见
+                    '构念披露': construct_disclosure_for(model_name),
                 })
             sen_comp_df = pd.DataFrame(sen_comparison_rows)
             # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 产物加 _DEMO 后缀
@@ -1767,6 +1783,9 @@ def main():
             row[f'{cls_label}_Recall'] = cls_m.get('recall', '')
             row[f'{cls_label}_F1'] = cls_m.get('f1', '')
             row[f'{cls_label}_Support'] = cls_m.get('support', '')
+        # fix(human-annot-readback, 2026-06-13; final-audit HV-P1-03 修死分支:
+        # 本处键形如 'LLM 情感分析 (_ctx)', endswith('_ctx') 恒 False)
+        row['构念披露'] = construct_disclosure_for(name)
         csv_rows.append(row)
         
     if csv_rows:
@@ -1790,6 +1809,9 @@ def main():
         '数据模式': '模拟数据' if demo_mode else '真实数据',
         '验证样本总量 (N)': len(df_verify),
         '有效验证样本 (n_gold_ver)': n_gold_ver,
+        # fix(human-annot-readback, 2026-06-13): 构念披露入论文方法论报告 —
+        # _ctx 轨指标必须按混合下界解读, 不随 JSON 丢失
+        '构念披露 (_ctx 轨)': GOLD_CONSTRUCT_DISCLOSURE,
     }
 
     # 提取 κ 和 α

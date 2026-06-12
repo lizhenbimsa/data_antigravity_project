@@ -19,10 +19,18 @@ differentiation_claim: |
   - 与 strategic_diff: benefit_society 不做多文本表征比较, 仅 firm-level 态度
 
 outcome:
-  primary: roa
+  primary: roa  # PAP v1.0-final 锁定, 不可事后变更 (pre-registration commitment)
+  # car_3day 为 PAP 原列保留; 年度数据约束 (2026-06-13) 下需日频, 年度主线不跑,
+  # 留作上市行扩展 — PAP 完整性优先, 不从列表移除。
   secondary: [car_3day, token_adopt_kw_p50, hidden_adopt_kw_p50, subst_adopt_kw_p50]
+  # PAP 外扩展 (2026-06-13 顶刊组合定稿, 须在论文中明示为 exploratory/非预注册):
+  # "经营效益"叙事的社会功能对应物 — liquidity_creation (Berger & Bouwman 2009 RFS
+  # 流动性创造, 需资产负债表分项的 cat-fat 口径) + inclusive_loan_growth (普惠/小微
+  # 贷款增速, 信贷决策通道)。
+  exploratory_extension: [liquidity_creation, inclusive_loan_growth]
   enrichment_source: pipeline stage 21_tone_llms + 24_herd_decay + 40_panel_yearly
-    (benefit_mean_full 字段); ROA / CAR 从 CSMAR 补充
+    (benefit_mean_full 字段); ROA / CAR 从 CSMAR 补充; 扩展项需财务面板资产负债表
+    分项 + 普惠贷款披露 (M0.5.11)
 
 treatment:
   primary: benefit_mean_full   # 双极锚点投影态度均值
@@ -41,6 +49,15 @@ controls:
 
 identification:
   baseline: long_panel_within_bank_within_year
+  # 2026-06-13 IV 补全 (此前无 IV):
+  #   primary  = 同类型同业 leave-one-out 经营效益态度均值 (iv_extensions.py;
+  #              同业媒体态度冲击经行业渠道传导, 排他性局限按 Manski 1993 /
+  #              Leary-Roberts 2014 JF 披露, _lag1 滞后变体为稳健性)
+  #   fallback = 同经济圈 (跨省) leave-one-out 态度均值 (区域共同冲击粒度,
+  #              与 iv_did.compute_zone_leave1out 的 tone 版同构)
+  iv:
+    primary: leave_one_out_peer_benefit_iv
+    fallback: zone_leave1out_benefit_iv
 
 event_studies: []  # benefit_society 主回归不依赖外生 shock; cross-sectional within-bank within-year
 

@@ -27,6 +27,8 @@ _TABLE1_VARIABLES: list[str] = [
     # 对照基线
     'n_articles',
     'llm_vote_tone_full',
+    # outcome (2026-06-13 重定位: 主因变量 = 银行自身 fintech 报道强度, panel 实存列)
+    'avg_ft_intensity_full',
 ]
 
 

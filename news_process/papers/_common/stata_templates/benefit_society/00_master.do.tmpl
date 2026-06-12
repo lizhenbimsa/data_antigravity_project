@@ -67,6 +67,9 @@ capture noisily do 23_tableA10_placebo_business_lines.do
 if _rc display as error "[WARN] 23_tableA10_placebo_business_lines.do failed (rc=`=_rc'); Table A10 skipped (run 27c first?)"
 capture noisily do 24_tableA11_anchor_family_alternative.do
 if _rc display as error "[WARN] 24_tableA11_anchor_family_alternative.do failed (rc=`=_rc'); Table A11 skipped (run 27c first?)"
+* 2026-06-13 IV 补全: type/zone LOO 态度 IV (Table A12)
+capture noisily do 25_tableA12_iv_2sls.do
+if _rc display as error "[WARN] 25_tableA12_iv_2sls.do failed (rc=`=_rc'); Table A12 skipped"
 do 30_figure1_attitude_distribution.do
 capture noisily do 31_figure2_coefplot_dual.do
 if _rc display as error "[WARN] 31_figure2_coefplot_dual.do failed (rc=`=_rc'); Figure 2 skipped"

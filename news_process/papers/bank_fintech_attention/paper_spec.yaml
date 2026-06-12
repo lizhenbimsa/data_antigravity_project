@@ -22,10 +22,14 @@ differentiation_claim: |
   - 与现有 strategic_diff: P2 度量 firm 自身 attention 量; strategic_diff 度量 firm 在 N-邻群中的战略差异度 (distinctness)
 
 outcome:
-  primary: ln_fintech_investment  # 银行年报 fintech 投入披露
-  secondary: [m_and_a_fintech, patent_fintech_count, employee_growth_it]
+  primary: ln_fintech_investment  # 银行年报 fintech 投入披露 (年度; Hassan 2019 QJE "测度→企业响应"范式)
+  # outcome 扩充 (2026-06-13 顶刊组合定稿): 曝光压力的第二响应通道 = 业务结构调整 —
+  # fintech 竞争挤压利差 → 银行转向收费业务 (noninterest_income_share 多元化) 并
+  # 优化成本结构 (cost_income_ratio 水平值; 注意区分 P3 的 3 年前向变化量)。年度财务面板直接可构造。
+  secondary: [m_and_a_fintech, patent_fintech_count, employee_growth_it,
+    noninterest_income_share, cost_income_ratio]
   enrichment_source: M0.5.11 (CSMAR 年报 ln_fintech_investment / Tonghuashun M&A / IncoPat
-    patent / CSMAR employee)
+    patent / CSMAR employee / 财务面板 非利息收入占比+成本收入比)
 
 mediator:  # R8-M01 + R47-M01 + R63-M01: mediator 紧跟 outcome (与 §B.4 + schema 顺序一致)
   primary: ln_fintech_mdna_length
@@ -63,13 +67,15 @@ identification:
   baseline: cross_sectional_intensity_did  # main spec per §5.7.3 R8-M03
   baseline_legacy_label: staggered_did_callaway_santanna  # §B.2 historical label retained for traceability
   iv:
-    # fix(omni-g-papers-misc-12, 2026-06-11): 两 IV 标识符当前全管线零实现
-    # (0 builder / 0 panel 列) — PENDING M0.5.X derivation。模板
-    # 19_attention_iv_first_stage.do 以 capture confirm 探测、缺列时优雅跳过并
-    # 打印 'M0.5.X derivation pending' (模板层诚实, 此处补 spec 层同口径标注)。
-    # interim 现实可用替代: panel 已物化的 bartik_* 族 (如 bartik_type_iv_*)。
-    primary: leave_one_out_peer_attention_iv  # firm-level 兼容 (PENDING M0.5.X, 未物化)
-    fallback: bartik_attention_iv             # 需要 pre-2007 bank fintech-lending share (PENDING M0.5.X, 未物化)
+    # 2026-06-13 已物化 (iv_extensions.py — 替代 2026-06-11 PENDING M0.5.X
+    # 标注): primary = 同银行类型×年 LOO attention_index_full 均值 (含 _lag1
+    # 滞后稳健性变体, Manski 1993 反射披露); fallback = Bartik (基期类型共现
+    # 份额 × 同类 LOO 文章级 fintech_intensity_score 强度; 基期取全仓 7e
+    # 统一口径 max(panel.year.min(), 2010), 非原设想的 pre-2007 份额 —
+    # GPSS 2020 AER share 外生性视角)。模板 19_attention_iv_first_stage.do
+    # 的 capture confirm 探测在面板重生后自动转入正跑。
+    primary: leave_one_out_peer_attention_iv
+    fallback: bartik_attention_iv
     # R5-m03 与 llm_peer paper 区别: P2 leave-one-out peer = 银行类型 (国有 / 股份制 / 城商 / 农商)
     # 子样本内同类银行 attention 均值, 不依赖 LLM 语义判定; llm_peer paper 用 LLM-determined
     # semantic peer (Cao 2025 RAS 风格的语义相似度), 与 P2 的 4 类银行分类完全不同。

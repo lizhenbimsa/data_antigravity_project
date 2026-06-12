@@ -49,6 +49,17 @@ v3.6.0 (Plan E P1 B3) 双轨化升级:
       + n_similar_articles_full + n_similar_articles_ctx, 外加 herd_weight +
       n_similar_articles 两个单列 —— 后者作为 _full 轨的 NON-BREAKING 别名保留
       (v3.6.0 F-B 修, 见下方主路径), 供 v3.5.x 既有调用方继续读取, 不强制下游显式指定轨道)
+
+阈值敏感性 (2026-06-13, herd_detection.sensitivity_thresholds):
+  0.35 是研究者自由参数 — 构念锚 Tetlock (2011 RFS) 用连续 staleness 不设硬阈值,
+  故按预注册网格 (默认 τ ∈ {0.25, 0.30, 0.40, 0.45}) 在同一 TF-IDF/余弦矩阵上
+  一遍式复算前驱计数, 额外输出 herd_weight_{track}_thrNN + n_similar_articles_
+  {track}_thrNN (默认 +16 列), 并写 eval_reports/24_herd_threshold_sensitivity.csv
+  诊断摘要 (逐 τ flag 率 / 权重均值 / 对基线 Spearman ρ)。下游 runner 步骤 3d →
+  encode 把每个 τ 聚合成面板列 llm_vote_tone_hw_thrNN_{track}, 供 Stata 稳健性表
+  逐 τ 重估主回归 (网格单一事实源 = core.config.herd_sensitivity_grid)。
+  白话: 把"算抄稿"的门槛调松调紧各算一套打折权重, 一路带进最终 .dta,
+  论文里用一张表证明回归结论不靠 0.35 这个具体数字。
 """
 
 import os
@@ -66,7 +77,7 @@ _PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
 if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
-from news_process.core.config import load_config
+from news_process.core.config import herd_sensitivity_grid, load_config
 from news_process.core.logging import setup_logging
 
 # ============================================================================
@@ -87,6 +98,14 @@ MAX_FEATURES = HERD_CFG.get('max_features', 10000)
 MIN_DF = HERD_CFG.get('min_df', 5)
 MAX_DF = HERD_CFG.get('max_df', 0.9)
 CHUNK_SIZE = HERD_CFG.get('chunk_size', 1000)  # 仅用于日志显示; >2000 篇分支已改 7 天窗双指针分桶 (W1), 不再用 chunked working_memory
+
+# 阈值敏感性网格 (2026-06-13): 0.35 是研究者自由参数 (构念锚 Tetlock 2011 RFS 用
+# 连续 staleness 不设硬阈值), 故对网格内每个 τ 在**同一** TF-IDF/余弦矩阵上复算
+# 前驱计数 (零额外向量化成本), 输出 herd_weight_{track}_{tag} 供面板层做
+# llm_vote_tone_hw_{tag}_{track} 稳健性回归。单一事实源 = core.config.herd_sensitivity_grid。
+# 白话: "相似到多少算抄稿"是自己定的门槛, 这里把门槛调松调紧各算一套权重,
+# 论文用它证明结论不靠 0.35 这个数。
+SENS_THRESHOLDS, SENS_TAGS = herd_sensitivity_grid(CONFIG)
 
 
 # ============================================================================
@@ -178,13 +197,20 @@ def _fit_tfidf_with_fallback(texts: list, *, bank_name=None, track=None):
     return tfidf_matrix
 
 
-def _dense_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
+def _dense_similar_counts(tfidf_matrix, dates: list, thresholds=None) -> np.ndarray:
     """≤2000 篇稠密分支 (参照实现): 全 N×N 余弦 + 7 天窗下三角 mask 的前驱计数。
 
     语义: 对每篇 i, 计 {j : j<i (index, 已排序故=日期序), |date_i-date_j|<=window,
-    cos_sim(i,j) >= SIMILARITY_THRESHOLD}; NaT 篇不计数也不作候选。
+    cos_sim(i,j) >= 阈值}; NaT 篇不计数也不作候选。
+
+    Args:
+        thresholds: 阈值敏感性 (2026-06-13)。None (默认) → 单阈值
+            SIMILARITY_THRESHOLD, 返回 1D (n,) — 与历史签名/语义逐位兼容;
+            list[float] → 同一余弦矩阵上逐阈值计数, 返回 2D (n, len(thresholds)),
+            列序与入参一致 (多阈值零额外向量化成本, 只多 K-1 次比较)。
     """
     n_articles = len(dates)
+    thr_list = [SIMILARITY_THRESHOLD] if thresholds is None else list(thresholds)
     _epoch = pd.Timestamp('1970-01-01')
     dates_num = np.array(
         [(d - _epoch).days if pd.notna(d) else np.nan for d in dates],
@@ -194,12 +220,17 @@ def _dense_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
     valid_mask = (time_diff <= TIME_WINDOW_DAYS) & np.tril(
         np.ones((n_articles, n_articles), dtype=bool), k=-1)
     sim_matrix = 1.0 - pairwise_distances(tfidf_matrix, metric='cosine')
-    herd_mask = (sim_matrix >= SIMILARITY_THRESHOLD) & valid_mask
-    return herd_mask.sum(axis=1).astype(int)
+    counts = np.stack(
+        [((sim_matrix >= thr) & valid_mask).sum(axis=1) for thr in thr_list],
+        axis=1).astype(int)
+    return counts[:, 0] if thresholds is None else counts
 
 
-def _bucketed_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
+def _bucketed_similar_counts(tfidf_matrix, dates: list, thresholds=None) -> np.ndarray:
     """>2000 篇 M0 规模分支: 7 天窗双指针分桶, O(N·window), 与 _dense_similar_counts 数值逐位等价。
+
+    thresholds 语义与 _dense_similar_counts 一致: None → 1D 基线 (历史兼容);
+    list[float] → 2D (n, K), 同一窗内余弦向量上逐阈值计数。
 
     前置: dates 已升序排序 (NaT 末尾) — 由 compute_herd_weights 的 sort_values('日期')
     保证。因 index 序 = 日期序, 每篇 i 的候选前驱仅落在 [date_i-window, date_i] 的连续
@@ -213,11 +244,12 @@ def _bucketed_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
     (全两两比较) 逐位相同。
     """
     n_articles = len(dates)
+    thr_list = [SIMILARITY_THRESHOLD] if thresholds is None else list(thresholds)
     _epoch = pd.Timestamp('1970-01-01')
     dates_num = np.array(
         [(d - _epoch).days if pd.notna(d) else np.nan for d in dates],
         dtype=np.float64)
-    similar_counts = np.zeros(n_articles, dtype=int)
+    similar_counts = np.zeros((n_articles, len(thr_list)), dtype=int)
     lo = 0
     for i in range(n_articles):
         di = dates_num[i]
@@ -238,13 +270,15 @@ def _bucketed_similar_counts(tfidf_matrix, dates: list) -> np.ndarray:
         # (nan_to_num>window 已排除 NaT) 逐位对齐。生产 sort 使 NaT 末位故一般不触发, 但
         # 任意 NaT 排列下双指针窗 [lo,i) 可能含内部 NaT, 此守卫保证无条件等价 (3rd-layer P3)。
         _cand_valid = ~np.isnan(dates_num[lo:i])
-        similar_counts[i] = int(
-            np.count_nonzero((sims >= SIMILARITY_THRESHOLD) & _cand_valid))
-    return similar_counts
+        for k, thr in enumerate(thr_list):
+            similar_counts[i, k] = int(
+                np.count_nonzero((sims >= thr) & _cand_valid))
+    return similar_counts[:, 0] if thresholds is None else similar_counts
 
 
 def _compute_similar_counts_for_track(
-    bank_df: pd.DataFrame, text_col: str, dates: list, *, bank_name=None
+    bank_df: pd.DataFrame, text_col: str, dates: list, *, bank_name=None,
+    thresholds=None,
 ) -> np.ndarray | None:
     """对单一文本列计算同银行 + 时间窗口内的"前驱跟风计数"向量。
 
@@ -264,18 +298,22 @@ def _compute_similar_counts_for_track(
         text_col: 文本列名 ('content_full' for full, 'content_ctx' for ctx; 均含标题)。
         dates:    与 bank_df 对齐的日期列表 (含 NaT)。
         bank_name: 银行名, 仅用于降级/截断透明日志 (fix(omni-g-herd-03))。
+        thresholds: 阈值敏感性 (2026-06-13)。None → 单基线阈值, 返回 1D (历史
+            兼容); list[float] → 同一年度前缀 TF-IDF 空间上逐阈值计数, 返回
+            2D (n, K), 列序与入参一致。
 
     Returns:
-        np.ndarray[int] 长度 = len(bank_df), 每元素为 i 的"早于 i 且相似 ≥ 阈值"
+        np.ndarray[int] 形状 (n,) 或 (n, K), 每元素为 i 的"早于 i 且相似 ≥ 阈值"
         前驱数; 完全无法向量化 (全空文本) 返回 None。
     """
+    thr_list = [SIMILARITY_THRESHOLD] if thresholds is None else list(thresholds)
     texts = bank_df[text_col].fillna('').astype(str).tolist()
     non_empty = [t for t in texts if len(t.strip()) > 0]
     if len(non_empty) < 2:
         return None
 
     n_articles = len(texts)
-    counts = np.zeros(n_articles, dtype=int)
+    counts = np.zeros((n_articles, len(thr_list)), dtype=int)
 
     # 非 NaT 前缀: 调用方已按日期升序排序 (NaT 末位), 故有效日期文档构成连续前缀
     # [0, dated_n); 首个 NaT 即截断 (防御任意排列 — NaT 后的文档不进任何年度 fit)。
@@ -287,7 +325,7 @@ def _compute_similar_counts_for_track(
     dated_n = len(years)
     if dated_n < 2:
         # 可计数文档不足 2 篇 (其余皆 NaT): 与旧实现等价 (NaT 不计数), 全 0
-        return counts
+        return counts[:, 0] if thresholds is None else counts
 
     years_arr = np.asarray(years)
     for t in np.unique(years_arr):
@@ -305,16 +343,18 @@ def _compute_similar_counts_for_track(
             continue  # 该年度前缀 fit 失败 (已 warning): 本年文章保持 count=0
         sub_dates = dates[:prefix_end]
         if prefix_end <= 2000:
-            sub_counts = _dense_similar_counts(tfidf_matrix, sub_dates)
+            sub_counts = _dense_similar_counts(tfidf_matrix, sub_dates,
+                                               thresholds=thr_list)
         else:
             # M0 规模 (>2000 篇/前缀): 7 天窗双指针分桶替换原 O(N^2) 纯 Python 双循环。
             # 头部银行 (工农中建招) 全量 2007-2024 可达数十万篇, 原 O(N^2) 是 stage 24
             # 的 wall-clock cliff + N×N 余弦 OOM 悬崖。_bucketed 与 _dense 数值逐位等价,
             # 由 tests/test_24_herd_decay_bucketing.py 在 >2000 fixture 上对拍守护。
-            sub_counts = _bucketed_similar_counts(tfidf_matrix, sub_dates)
+            sub_counts = _bucketed_similar_counts(tfidf_matrix, sub_dates,
+                                                  thresholds=thr_list)
         # 仅采纳本年文章的计数 (前驱候选 = 前缀内更早文章, 跨年 7 天窗自然覆盖)
         counts[target_lo:prefix_end] = sub_counts[target_lo:prefix_end]
-    return counts
+    return counts[:, 0] if thresholds is None else counts
 
 
 def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
@@ -342,7 +382,10 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         df: 附加 'herd_weight_full' / 'herd_weight_ctx' /
-            'n_similar_articles_full' / 'n_similar_articles_ctx' 四列。
+            'n_similar_articles_full' / 'n_similar_articles_ctx' 四列;
+            另按 SENS_TAGS 网格 (2026-06-13 阈值敏感性) 附加
+            'herd_weight_{track}_{tag}' / 'n_similar_articles_{track}_{tag}'
+            每轨每 τ 两列 (默认网格 4 τ × 2 轨 = +16 列)。
 
     白话: 同一家银行的新闻常被各家媒体转抄, 同一条消息若被算 10 遍,
     情感指标就被注了水。这里给每篇文章数一数"它发布前 7 天内有几篇
@@ -356,6 +399,9 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"  参数: similarity_threshold={SIMILARITY_THRESHOLD}, "
                 f"time_window={TIME_WINDOW_DAYS}天, "
                 f"max_features={MAX_FEATURES}, chunk_size={CHUNK_SIZE}")
+    if SENS_TAGS:
+        logger.info(f"  阈值敏感性网格: {SENS_THRESHOLDS} → 列后缀 {SENS_TAGS} "
+                    f"(同一 TF-IDF/余弦一遍式复算, 基线列不变)")
 
     # 确保日期列为 datetime
     df['日期'] = pd.to_datetime(df['日期'], errors='coerce')
@@ -390,11 +436,15 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
             "不构成真双轨。建议先执行 stage 13 物化 content_ctx。"
         )
 
-    # 初始化结果列
+    # 初始化结果列 (基线 + 阈值敏感性网格; 无新闻/无法向量化组保持 weight=1.0)
     df['herd_weight_full'] = 1.0
     df['herd_weight_ctx'] = 1.0
     df['n_similar_articles_full'] = 0
     df['n_similar_articles_ctx'] = 0
+    for _tag in SENS_TAGS:
+        for _tn in ('full', 'ctx'):
+            df[f'herd_weight_{_tn}_{_tag}'] = 1.0
+            df[f'n_similar_articles_{_tn}_{_tag}'] = 0
 
     if 'target_bank' not in df.columns:
         logger.warning("  'target_bank' 列不存在, 所有 herd_weight 设为 1.0")
@@ -423,28 +473,35 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
         dates = bank_df['日期'].tolist()
 
         # full 轨计算 (bank_name 仅供降级/截断透明日志, fix(omni-g-herd-03, 2026-06-11))
+        # 阈值敏感性 (2026-06-13): 第 0 列 = 基线 SIMILARITY_THRESHOLD, 第 1.. 列
+        # = SENS_THRESHOLDS — 同一 TF-IDF/余弦矩阵一遍式复算, 不重复向量化。
+        _all_thr = [SIMILARITY_THRESHOLD] + SENS_THRESHOLDS
         full_counts = _compute_similar_counts_for_track(
-            bank_df, full_col, dates, bank_name=bank_name)
+            bank_df, full_col, dates, bank_name=bank_name, thresholds=_all_thr)
         # ctx 轨计算 (缺失时回退 = full)
         if has_ctx:
             ctx_counts = _compute_similar_counts_for_track(
-                bank_df, 'content_ctx', dates, bank_name=bank_name)
+                bank_df, 'content_ctx', dates, bank_name=bank_name,
+                thresholds=_all_thr)
         else:
             ctx_counts = full_counts  # 回退: 与 full 同值, 由 has_ctx 警告告知用户
 
-        for k, idx in enumerate(indices):
-            if full_counts is not None:
-                n_sim_f = int(full_counts[k])
-                df.at[idx, 'n_similar_articles_full'] = n_sim_f
-                df.at[idx, 'herd_weight_full'] = 1.0 / (1.0 + n_sim_f)
-                if n_sim_f > 0:
-                    total_herd_full += 1
-            if ctx_counts is not None:
-                n_sim_c = int(ctx_counts[k])
-                df.at[idx, 'n_similar_articles_ctx'] = n_sim_c
-                df.at[idx, 'herd_weight_ctx'] = 1.0 / (1.0 + n_sim_c)
-                if n_sim_c > 0:
-                    total_herd_ctx += 1
+        # 按银行向量化赋值 (.loc[标签列表] 与 counts 行序一致 — bank_df 排序序;
+        # 替换原逐行 .at 循环, 数值等价, 多阈值下避免 (1+K)×2 列 × n 行的逐格写)
+        for _tn, _counts in (('full', full_counts), ('ctx', ctx_counts)):
+            if _counts is None:
+                continue
+            _base = _counts[:, 0]
+            df.loc[indices, f'n_similar_articles_{_tn}'] = _base
+            df.loc[indices, f'herd_weight_{_tn}'] = 1.0 / (1.0 + _base)
+            if _tn == 'full':
+                total_herd_full += int((_base > 0).sum())
+            else:
+                total_herd_ctx += int((_base > 0).sum())
+            for _j, _tag in enumerate(SENS_TAGS, start=1):
+                _cj = _counts[:, _j]
+                df.loc[indices, f'n_similar_articles_{_tn}_{_tag}'] = _cj
+                df.loc[indices, f'herd_weight_{_tn}_{_tag}'] = 1.0 / (1.0 + _cj)
 
         if (bank_idx + 1) % 50 == 0:
             logger.info(f"  已处理 {bank_idx + 1}/{n_banks} 家银行")
@@ -531,6 +588,45 @@ def main():
 
     # 执行跟风检测
     df = compute_herd_weights(df)
+
+    # ── 阈值敏感性诊断摘要 (2026-06-13): 逐 τ flag 率 / 权重分布 / 对基线相关 ──
+    # 生产路径专属 (单测直调 compute_herd_weights 不落盘); 供论文 Appendix
+    # 阈值敏感性表引用。Spearman ρ 高 (≥0.9) ⇒ 文章级权重排序对 τ 不敏感。
+    if SENS_TAGS:
+        try:
+            from scipy.stats import spearmanr
+        except ImportError:
+            spearmanr = None
+        diag_rows = []
+        for _tn in ('full', 'ctx'):
+            base_w = df[f'herd_weight_{_tn}']
+            for _thr, _tag in zip(SENS_THRESHOLDS, SENS_TAGS):
+                w = df[f'herd_weight_{_tn}_{_tag}']
+                rho = np.nan
+                if (spearmanr is not None and base_w.nunique() > 1
+                        and w.nunique() > 1):
+                    rho = float(spearmanr(base_w, w)[0])
+                diag_rows.append({
+                    'track': _tn,
+                    'threshold': _thr,
+                    'baseline_threshold': SIMILARITY_THRESHOLD,
+                    'flag_rate': float(
+                        (df[f'n_similar_articles_{_tn}_{_tag}'] > 0).mean()),
+                    'mean_weight': float(w.mean()),
+                    'min_weight': float(w.min()),
+                    'spearman_vs_baseline': rho,
+                })
+                logger.info(
+                    f"  [阈值敏感性] track={_tn} τ={_thr}: "
+                    f"flag={diag_rows[-1]['flag_rate']:.1%}, "
+                    f"mean_w={diag_rows[-1]['mean_weight']:.4f}, "
+                    f"ρ_vs_baseline={rho if rho == rho else float('nan'):.4f}")
+        eval_dir = os.path.join(OUTPUT_DIR, 'eval_reports')
+        os.makedirs(eval_dir, exist_ok=True)
+        diag_path = os.path.join(eval_dir, '24_herd_threshold_sensitivity.csv')
+        pd.DataFrame(diag_rows).to_csv(diag_path, index=False,
+                                       encoding='utf-8-sig')
+        logger.info(f"  阈值敏感性诊断已写出: {diag_path}")
 
     # 保存 (追加 herd_weight 列后写入独立输出文件)
     # 使用数据版本控制保存

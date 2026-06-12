@@ -22,8 +22,16 @@ differentiation_claim: |
 
 outcome:
   primary: roa
-  secondary: [car_3day, loan_growth]
-  enrichment_source: pipeline + CSMAR ROA/CAR
+  # outcome 重定位 (2026-06-13, 顶刊组合定稿): 本篇身份 = 信息网络位置 → 同业风险
+  # 传染。年度数据约束下, 市场法系统性风险 (ΔCoVaR Adrian-Brunnermeier 2016 AER /
+  # SRISK Brownlees-Engle 2017 RFS) 需日频收益, 不纳入年度主线, 留作上市行扩展;
+  # 年度可构造的传染通道代理:
+  #   sigma_roa_5y_rolling   = 盈余波动共变 (网络中心位置 → 风险同步, 与 10/11 篇共享口径)
+  #   interbank_liability_share = 同业负债依存度 (年度资产负债表, 系统性关联敞口)
+  secondary: [loan_growth, sigma_roa_5y_rolling, interbank_liability_share]
+  listed_subsample_extension: [car_3day, delta_covar]  # 需日频, 非年度主线
+  enrichment_source: pipeline + 财务面板 ROA/同业负债分项 (M0.5.11); ΔCoVaR 扩展需
+    CSMAR daily returns
 
 treatment:
   primary: peer_tone_lag1_full   # 一阶同业溢出 (endogenous)

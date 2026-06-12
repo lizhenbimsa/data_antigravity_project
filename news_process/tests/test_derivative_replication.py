@@ -53,6 +53,10 @@ from news_process.papers._common.derivative_replication import (  # noqa: E402
 
 # RR9-1: 拆为 legacy 4 + B-route 3 — legacy 专属不变式
 # (ROA outcome, 11_table2 文件名) 仅适用于 legacy 4 篇.
+# 2026-06-13 outcome 重定位: legacy 4 中 llm_peer (avg_ft_intensity_full, 主规格
+# 重构) 与 strategic_diff (tobin_q, 特许权价值) 的 MAIN_DV 不再是 'ROA' 哨兵,
+# 改为与 spec.outcome.primary 动态对齐 (并入下方 SPEC_ALIGNED 检查); ROA 哨兵
+# 不变式仅余 benefit_society (PAP v1.0-final 锁定) + brokerage_network。
 EXPECTED_DERIVATIVE_PAPERS_LEGACY = frozenset({
     'benefit_society',
     'brokerage_network',
@@ -60,10 +64,22 @@ EXPECTED_DERIVATIVE_PAPERS_LEGACY = frozenset({
     'llm_peer',
 })
 
+EXPECTED_DERIVATIVE_PAPERS_ROA_SENTINEL = frozenset({
+    'benefit_society',
+    'brokerage_network',
+})
+
 EXPECTED_DERIVATIVE_PAPERS_B_ROUTE = frozenset({
     'bank_fintech_attention',
     'bank_fintech_substance',
     'bank_fintech_locus',
+})
+
+# MAIN_DV 须与 paper_spec.yaml outcome.primary 动态对齐的集合 (B-route 3 +
+# 2026-06-13 重定位的 legacy 2)。
+EXPECTED_DERIVATIVE_PAPERS_SPEC_ALIGNED = EXPECTED_DERIVATIVE_PAPERS_B_ROUTE | frozenset({
+    'llm_peer',
+    'strategic_diff',
 })
 
 EXPECTED_DERIVATIVE_PAPERS = EXPECTED_DERIVATIVE_PAPERS_LEGACY | EXPECTED_DERIVATIVE_PAPERS_B_ROUTE
@@ -105,19 +121,20 @@ def test_paper_defaults_paper_id_self_consistent(paper_id):
     assert _PAPER_DEFAULTS[paper_id]['PAPER_ID'] == paper_id
 
 
-@pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_LEGACY))
+@pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_ROA_SENTINEL))
 def test_paper_defaults_main_dv_is_roa(paper_id):
-    """legacy 4 篇衍生 paper 约定: ROA 是规范 DV.
+    """ROA 哨兵 2 篇 (benefit_society / brokerage_network) 约定: ROA 是规范 DV.
 
-    RR9-1: B-route 3 篇新 paper 按 spec 使用各自的 outcome.primary
-    (ln_fintech_investment / long_run_roa_change_3yr / car_5day_window),
-    不受此 legacy 不变式约束."""
+    RR9-1 原 legacy 4 篇不变式; 2026-06-13 outcome 重定位后 llm_peer /
+    strategic_diff 移入 SPEC_ALIGNED 动态对齐 (见下), 本不变式仅余 2 篇
+    (benefit_society 受 PAP v1.0-final 锁定; brokerage_network 维持 roa 主因变量)."""
     assert _PAPER_DEFAULTS[paper_id]['MAIN_DV'] == 'ROA'
 
 
-@pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_B_ROUTE))
+@pytest.mark.parametrize('paper_id', sorted(EXPECTED_DERIVATIVE_PAPERS_SPEC_ALIGNED))
 def test_b_route_paper_defaults_main_dv_from_spec(paper_id):
-    """RR9-1: B-route 3 篇新 paper 的 defaults 须与 paper_spec.yaml 的 outcome.primary 对齐."""
+    """RR9-1: spec-aligned 集合 (B-route 3 + 重定位 legacy 2) 的 defaults 须与
+    paper_spec.yaml 的 outcome.primary 对齐."""
     from news_process.papers._common.paper_registry import get_spec
     spec = get_spec(paper_id)
     expected_dv = spec.raw['outcome']['primary']

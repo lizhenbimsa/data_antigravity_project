@@ -323,6 +323,13 @@ herd_detection:
                                # 白话: 一个词至少要在若干篇文章里出现过才进词表; 文章很少时该门槛自动按比例降低, 不会出现"小样本词表被清空"的断崖。
   max_df: 0.9                  # TF-IDF 最大文档频率; 若 floor(max_df·n) ≤ min_df (df-band 退化) 运行期放开为 1.0
   chunk_size: 1000             # 仅日志显示 (legacy, 无运算语义 — >2000 篇分支已改 7 天窗双指针分桶, 不再分块控内存; fix(omni-g-herd-04))
+  # 阈值敏感性网格 (2026-06-13): similarity_threshold=0.35 是研究者自由参数 (无文献定值;
+  # 构念锚 Tetlock 2011 RFS 用连续 staleness 不设硬阈值), 故按 Simmons-Nelson-Simonsohn
+  # (2011, Psych Science) 的披露规范预注册固定网格, 同一 TF-IDF/余弦一遍式复算各 τ 下的
+  # 前驱计数 → herd_weight_{track}_thrNN 文章列 → 面板 llm_vote_tone_hw_thrNN_{track},
+  # 供 Stata 稳健性表逐 τ 重估主回归。基线 0.35 不在网格内 (即现 herd_weight_{track})。
+  # 白话: "相似到多少算抄稿"没有标准答案, 我们把门槛调松调紧各算一遍, 证明结论不靠 0.35 这个数。
+  sensitivity_thresholds: [0.25, 0.30, 0.40, 0.45]
 
 # ------------------------------------------------------------------------------
 # [模块二] 金融科技经营效益态度指数 - 阶段 27
