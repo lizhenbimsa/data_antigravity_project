@@ -51,7 +51,13 @@ def words_method_enabled(cfg: dict[str, Any]) -> bool:
 
 
 def berts_method_enabled(cfg: dict[str, Any]) -> bool:
-    """``enabled_when`` 谓词：当 ``sentiment_analysis.enabled_methods`` 含 ``tone_berts`` 时启用。"""
+    """谓词：``sentiment_analysis.enabled_methods`` 是否含 ``tone_berts``。
+
+    2026-06-12 变更: stage 23 (BERT 文章级情感) 与硬依赖它的 stage 24 已改为
+    **无条件 always-on** (用户决策: 全部启用, 不再条件启用)。本谓词因此不再挂在
+    任何 ``StageSpec.enabled_when`` 上, 也已从 ``METHOD_TO_PREDICATE`` 移除;
+    保留为纯函数, 仅供测试与 config 一致性提示复用。
+    """
     methods = (
         cfg.get('sentiment_analysis', {}).get('enabled_methods', []) or []
     )
@@ -181,7 +187,9 @@ STAGES_MAIN: list[StageSpec] = [
         group="main", kind="filter",
         timeout=7200,  # 阶段内含 Embedding API 调用
     ),
-    # ── 模块三：新闻情感模块 (由 sentiment_analysis.enabled_methods 配置条件性启停) ──
+    # ── 模块三：新闻情感模块 ──
+    # 21 (LLM) / 22 (词典) 由 sentiment_analysis.enabled_methods 配置条件性启停;
+    # 23 (BERT) / 24 (跟风衰减) 自 2026-06-12 起为无条件 always-on (见下方注释)。
     StageSpec(
         name="阶段21: 统一 LLM 语义精筛与情感分析",
         script="21_tone_llms.py",
@@ -200,33 +208,31 @@ STAGES_MAIN: list[StageSpec] = [
         group="main", kind="sentiment",
         enabled_when=words_method_enabled,
     ),
+    # 2026-06-12 用户决策: BERT 文章级情感"全部启用, 不再条件启用" — stage 23
+    # 改为无条件 always-on (省略 enabled_when, 取 StageSpec 默认 always_enabled,
+    # 同 stage 30a), 不再受 sentiment_analysis.enabled_methods 是否含 'tone_berts'
+    # 控制。berts_method_enabled 谓词已从 METHOD_TO_PREDICATE 一并移除。
     StageSpec(
         name="阶段23: BERT模型情感分析",
         script="23_tone_berts.py",
         group="main", kind="sentiment",
-        enabled_when=berts_method_enabled,
     ),
 
     # ── 模块四b：跟风衰减权重 (硬依赖 stage 23 BERT 输出) ──
-    # Plan P1-4: stage 24 内部硬编码读 23_bert_tone.parquet (见
-    # pipeline/sentiment/herd_decay.py:24/247-262), tone_berts 未启用时
-    # 它必须跟随跳过, 否则 SystemExit(1). 用 berts_method_enabled 谓词
-    # 把这个隐式契约提升为 DAG 显式声明; 同时让
-    # run_pipeline_function.py:268-278 的"无条件预清理 stage 24 输出"
-    # 特例可以撤销 (改由 OUTPUT_REGISTRY 统一驱动).
+    # stage 24 内部硬编码读 23_bert_tone.parquet (见
+    # pipeline/sentiment/herd_decay.py:24/247-262)。因 stage 23 自 2026-06-12 起
+    # 已是无条件 always-on, 其硬依赖者 stage 24 同样改为 always-on — 二者构成
+    # 结构性 always-on 链, 不再随 enabled_methods 启停。
     #
-    # ⚠ 已知设计耦合 (Plan P1-4 范围外): stage 45 panel runner 也硬依赖
-    # 24_herd_decay.parquet (见 pipeline/panel/runner.py:131-136), 因此
-    # 当前项目 *实际上* 要求 enabled_methods 必须包含 'tone_berts'.
-    # 仅启用 tone_llms / tone_words 时, stage 24 会被本谓词正确跳过,
-    # 但流水线会在 stage 45 因输入缺失再次 sys.exit(1). 解耦 stage 45
-    # 对 24 的硬依赖 (改为 21/22/23 任一可用即接) 留待 v3.0 panel 拆分
-    # 同期完成 (Plan P1-6 选项 B).
+    # 设计意义: stage 45 panel runner 亦硬依赖 24_herd_decay.parquet (见
+    # pipeline/panel/runner.py:131-136)。把 23/24 提升为 always-on 后, 无论
+    # enabled_methods 如何配置, 该输入始终生成, stage 45 不会再因缺输入而
+    # sys.exit(1) — 这正是本次"全部启用而非条件启用"决策消除的脆弱耦合
+    # (此前由 berts_method_enabled 谓词条件启停时存在该崩溃路径)。
     StageSpec(
         name="阶段24: 跟风衰减权重",
         script="24_herd_decay_processor.py",
         group="main", kind="sentiment",
-        enabled_when=berts_method_enabled,
     ),
 
     # ── 模块四c：text2vec 双轨稳健性指标 — 已退役 (2026-05-29 双模型重构) ──
@@ -443,10 +449,13 @@ def filter_enabled(stages: list[StageSpec],
 # Fix 2 把 method ↔ predicate 映射收回 dag.py (对称于已有的
 # ``_VALIDATION_PREDS``), 并通过 ``get_script_for_method()`` 公共函数把
 # script 名反查也封装在 dag.py 内部 — orchestrator 仅消费, 不再维护。
+#
+# 2026-06-12: ``tone_berts`` 从本映射移除 — stage 23/24 已改为无条件 always-on
+# (结构性阶段, 不再是可由 enabled_methods 切换的 method), 故不参与 orchestrator
+# 的"未启用 method 陈旧文件清理"循环。本映射现仅含真正可切换的 2 个 method。
 METHOD_TO_PREDICATE: dict[str, Callable[[dict[str, Any]], bool]] = {
     'tone_llms':  llm_method_enabled,
     'tone_words': words_method_enabled,
-    'tone_berts': berts_method_enabled,
 }
 
 

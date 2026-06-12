@@ -311,9 +311,10 @@ def load_config(config_path=None):
     # (落地 .env.example 头部第 7-12 行原本承诺但未实现的"Phase 1 校验").
     _validate_env_placeholders(project_root)
 
-    # P0-3 (cleanup/2026-05-13): cross-stage enabled_methods 一致性 warning.
-    # 早期暴露 stage 24 → 45 隐式硬依赖, 避免用户配错跑 8 小时才在 stage 45 崩.
-    # 真正解耦留待 v3.0 P2-2 (encode.py 让 herd_weight 可选).
+    # P0-3 (cleanup/2026-05-13): cross-stage enabled_methods 一致性提示.
+    # 原为暴露 stage 24 → 45 隐式硬依赖 (配错会跑 8 小时才在 stage 45 崩).
+    # 2026-06-12 起 stage 23/24 已改无条件 always-on, 该崩溃路径消除, 本检查
+    # 降级为纯信息提示 (见函数 docstring).
     _validate_enabled_methods_consistency(config)
 
     # P1-2 (cleanup/2026-05-13): 三域 YAML schema 校验
@@ -336,25 +337,22 @@ _PANEL_ACTIVE_KEYS: tuple[str, ...] = (
 
 
 def _validate_enabled_methods_consistency(config: dict) -> None:
-    """warn 如果启用 panel 但 enabled_methods 缺 tone_berts.
+    """软提示 (warning 级, 不阻断): 启用 panel 但 enabled_methods 未列 ``tone_berts`` 时提醒用户。
 
-    背景: ``pipeline/panel/runner.py::main()`` 入口 (加载 herd_decay 处, ~L173) 硬读
-    ``24_herd_decay.parquet``; stage 24 谓词是 ``berts_method_enabled``
-    (stage 24 StageSpec 见 ``core/dag.py`` L302; 谓词定义 L53). 仅启用 tone_llms / tone_words 时 stage 24
-    会被正确跳过, 但 stage 45 会在加载 herd_decay 输入时 ``sys.exit(1)``.
+    历史背景: 早期 stage 23/24 受 ``berts_method_enabled`` 谓词条件启停 ——
+    若禁用 tone_berts 而仍构建 panel, ``pipeline/panel/runner.py::main()`` 入口
+    会因缺 ``24_herd_decay.parquet`` 而 ``sys.exit(1)`` (配错跑 8 小时才崩)。
 
-    本函数把这个隐式约束提升为 config-load-time warning, 不 raise — 因为:
-    - v3.0 计划的 P2-2 会解耦 stage 45 ← stage 24, 届时本 warning 移除;
-    - raise 会让现有 baseline 配置不变更但启动失败, 过严.
-
-    用户可通过补全 ``sentiment_analysis.enabled_methods`` 或显式禁用 panel
-    构建 (panel_building.compute_*=False 全套) 来消除 warning.
+    2026-06-12 变更: stage 23 (BERT 文章级情感) 与硬依赖它的 stage 24 已改为
+    **无条件 always-on** (见 ``core/dag.py`` 二者均取 ``always_enabled`` 默认谓词)。
+    无论 enabled_methods 如何配置, BERT 与 herd_decay 输出始终生成 → 上述
+    ``sys.exit(1)`` 失败模式已消除。本函数因此降级为软提示 (仍走 ``logger.warning``,
+    但不再阻断): 当配置未显式列出 tone_berts 时, 提醒用户 BERT 轨实际仍会运行
+    (结构性阶段), 以免误以为已关闭。本提示不 raise, 也不再阻断任何配置。
 
     .. note:: maintenance
-       ``_PANEL_ACTIVE_KEYS`` 是 3 个 compute_* 标识的硬编码列表 (R3-2).
-       如果将来 ``panel_building`` 节加新 compute_* 主开关而该开关也能独立
-       触发 stage 45 运行, 必须扩本列表. 反之, 用户禁前 3 个但启用新的,
-       panel_active=False, warning 不触发, 但 stage 45 仍可能跑.
+       ``_PANEL_ACTIVE_KEYS`` 是 3 个 compute_* 标识的硬编码列表 (R3-2);
+       仍由 ``test_cleanup_2026_05_13`` 校验其为 PanelBuildingSchema 合法字段。
     """
     sentiment = config.get('sentiment_analysis', {}) or {}
     enabled_methods = sentiment.get('enabled_methods', []) or []
@@ -368,12 +366,11 @@ def _validate_enabled_methods_consistency(config: dict) -> None:
 
     if panel_active and 'tone_berts' not in enabled_methods:
         logging.getLogger(__name__).warning(
-            "sentiment_analysis.enabled_methods 不含 'tone_berts', 但 panel "
-            "构建已启用; stage 45 main() 入口硬依赖 ``24_herd_decay.parquet`` "
-            "(stage 24 谓词亦是 tone_berts), 当前配置会在 stage 45 启动时 "
-            "``sys.exit(1)``. 建议: (a) 把 'tone_berts' 加入 enabled_methods; "
-            "或 (b) 暂时禁用 panel_building.compute_* 全套. 本约束将在 v3.0 "
-            "P2-2 解耦 stage 45 ← stage 24 后移除."
+            "sentiment_analysis.enabled_methods 未列出 'tone_berts'; 注意 stage 23 "
+            "(BERT 文章级情感) 与 stage 24 (跟风衰减) 自 2026-06-12 起为无条件 "
+            "always-on 结构性阶段, 仍会照常运行并生成 24_herd_decay.parquet, "
+            "stage 45 不会因此 sys.exit(1)。如需保持配置自洽, 可在 enabled_methods "
+            "中补回 'tone_berts' 显式登记 BERT 轨。"
         )
 
 

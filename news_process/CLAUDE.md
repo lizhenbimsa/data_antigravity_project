@@ -67,7 +67,7 @@ The pipeline is a **declarative DAG** defined in `news_process/core/dag.py`. All
 ```
 `13_materialize_ctx` 物化 `content_ctx` 列, 让下游 14/15 在 stage 21 之前即可消费 ctx, 实现 fintech_intensity / policy_alignment 真双轨 (`*_full` / `*_ctx`)。stage 30 (`robustness_text2vec`) 已于 2026-05-29 退役 — `_t2v` 列改由 stage 15/25 inline 产出, 仅余 `30a_article_sbert`。
 
-Sentiment methods (21/22/23) are conditionally enabled via `config/sentiment.yaml::sentiment_analysis.enabled_methods`.
+Sentiment methods **21 (LLM) / 22 (词典)** are conditionally enabled via `config/sentiment.yaml::sentiment_analysis.enabled_methods`. **Stage 23 (BERT 文章级情感) 与硬依赖它的 stage 24 (跟风衰减) 自 2026-06-12 起为无条件 always-on** (用户决策"全部启用而非条件启用"): 二者 `enabled_when=always_enabled` (同 stage 30a), 不再随 `enabled_methods` 启停, `berts_method_enabled` 谓词也已从 `METHOD_TO_PREDICATE` 移除 (谓词函数保留供测试)。决策动机: 把 23/24 提升为结构性 always-on 后, 无论配置如何, `24_herd_decay.parquet` 始终生成 → 消除了 stage 45 因缺该输入而 `sys.exit(1)` 的脆弱耦合。
 
 ### Directory Layout
 

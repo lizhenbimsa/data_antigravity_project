@@ -421,11 +421,11 @@ def run_pipeline(args: argparse.Namespace | None = None):
                     except OSError as e:
                         logger.warning(f"  ⚠️ 清理残留文件失败: {filename} ({e})")
 
-        # Plan P1-4: stage 24 现已通过 enabled_when=berts_method_enabled 谓词
-        # 与 stage 23 同步启停 (见 core/dag.py StageSpec). 历史的"无条件预清理
-        # stage 24 输出"特例已撤销 — 它原是为补救"stage 24 在 tone_berts 未启用
-        # 但磁盘有残留 23_bert_tone.parquet 时静默用过期数据"这一缺陷而存在,
-        # 谓词化后该路径被 filter_enabled() 直接排除, 不再需要特例补丁.
+        # 2026-06-12: stage 23/24 已改为无条件 always-on (always_enabled), 不再
+        # 随 enabled_methods 启停; tone_berts 亦已从 METHOD_TO_PREDICATE 移除,
+        # 故上方"未启用 method 陈旧文件清理"循环不再涉及 stage 23/24。它们的输出
+        # 由下方通用 stage 预清理 (始终在 active_specs 内) 统一管理 — 历史"无条件
+        # 预清理 stage 24 输出"特例早已撤销, 此处无需特例补丁。
         # 通用 stage 输出预清理由下方 ``for script,...: _get_stage_output_files``
         # 循环 + STAGES 启用过滤共同覆盖, 维持 OUTPUT_REGISTRY 单一真值.
 

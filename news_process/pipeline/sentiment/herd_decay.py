@@ -493,7 +493,8 @@ def main():
     if not os.path.exists(input_file):
         logger.error(
             f"输入文件未找到: {input_file}。"
-            f"请确保阶段 23 (tone_berts) 已在 enabled_methods 中启用并成功执行。"
+            f"stage 23 (tone_berts) 自 2026-06-12 起为无条件 always-on, 正常应已产出"
+            f"该文件; 若缺失, 说明 stage 23 本次执行失败或被显式跳过, 请检查其日志。"
         )
         # 显式以非零返回码退出, 让上游编排器能感知"DAG 24 依赖 23"契约违规,
         # 避免父进程把 'silent return' 误判为 stage 24 成功 (详见 plan c2)。

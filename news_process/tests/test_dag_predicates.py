@@ -151,12 +151,16 @@ def test_filter_enabled_preserves_order_for_truthy_subset():
 
 
 def test_get_script_for_method_known_methods():
-    """METHOD_TO_PREDICATE 中的 3 个 method 都能找到 STAGES_MAIN 中 stage script."""
+    """METHOD_TO_PREDICATE 中的 method 都能找到 STAGES_MAIN 中 stage script.
+
+    2026-06-12: tone_berts 已移出 METHOD_TO_PREDICATE (stage 23 改 always-on),
+    映射现仅含 tone_llms / tone_words 两个可切换 method。
+    """
     from news_process.core.dag import METHOD_TO_PREDICATE, get_script_for_method
 
     for method in METHOD_TO_PREDICATE:
         script = get_script_for_method(method)
-        # 锚定: 21_tone_llms / 22_tone_words / 23_tone_berts 三个 stage 在 STAGES_MAIN
+        # 锚定: 21_tone_llms / 22_tone_words 两个 stage 在 STAGES_MAIN
         # 中以对应 method 名为前缀
         assert script is not None, f"method {method} maps to no STAGES_MAIN script"
         assert script.endswith('.py')

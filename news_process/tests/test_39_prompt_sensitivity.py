@@ -135,7 +135,7 @@ class TestPipelineValidationConsistency:
     def test_b2_validation_stage_count_is_dynamic(self, rpv_code):
         """B2: 验证阶段数量应由 stages 列表动态记录。"""
         assert 'logger.info(f"评估验证模块共 {len(stages)} 个阶段")' in rpv_code
-        assert 'logger.info("  📖 17 个验证阶段说明 (core/dag.py::STAGES_VALIDATION 为权威真源)")' in rpv_code
+        assert 'logger.info("  📖 16 个验证阶段说明 (core/dag.py::STAGES_VALIDATION 为权威真源)")' in rpv_code
 
     def test_b3_stages_list_includes_39(self, rpv_code):
         """B3: stages 列表包含 39_prompt_sensitivity.py"""

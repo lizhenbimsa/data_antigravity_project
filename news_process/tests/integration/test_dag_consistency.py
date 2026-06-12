@@ -187,9 +187,10 @@ def test_predicate_identity_module_scope(core_dag):
 def test_filter_enabled_respects_predicate(core_dag):
     """``filter_enabled()`` 须正确应用 ``enabled_when`` 谓词。
 
-    Plan P1-4 后的预期更新: stage 24 (herd_decay) 增加
-    ``enabled_when=berts_method_enabled`` 谓词, 与 stage 23 同步启停.
-    因此 cfg_llm_only / cfg_no_sentiment 下被排除的 stage 数 +1.
+    2026-06-12 后的预期更新: stage 23 (BERT) 与硬依赖它的 stage 24 (herd_decay)
+    已改为无条件 always-on (always_enabled), 不再随 enabled_methods 启停。
+    因此 cfg_llm_only / cfg_no_sentiment 下它们 *不再* 被排除 — 仅 21/22
+    (tone_llms / tone_words) 仍受配置条件控制。
     """
     # 三种情感方法全开 -> stage 18 (staleness) opt-in 默认 disabled.
     # 2026-05-29: stage 30 (always_enabled) 退役 → total 20 → 19.
@@ -205,20 +206,20 @@ def test_filter_enabled_respects_predicate(core_dag):
     }
     assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 14
 
-    # 仅 LLM -> 14 - 2 (words+berts) - 1 (24 跟随 berts) = 11
+    # 仅 LLM -> 14 - 1 (仅 words 排除; berts/24 已 always-on, 不再随 berts 启停) = 13
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 11
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 13
 
-    # 无情感方法 -> 14 - 3 (llm+words+berts) - 1 (24 跟随 berts) = 10
+    # 无情感方法 -> 14 - 2 (llm+words 排除; berts(23)/24 always-on 仍在) = 12
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 10
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 12
     )
 
     # O2 2026-05-25 (stage 17 已于 2026-06-09 移除): 仅 article_staleness opt-in 启用 → 14 + 1 = 15
@@ -288,11 +289,10 @@ def test_method_to_predicate_covers_sentiment_specs(core_dag):
     """v3 / Fix 2: METHOD_TO_PREDICATE 必须覆盖 STAGES_MAIN 中所有
     kind='sentiment' 且非 always_enabled 的 stage 谓词, 反之亦然.
 
-    Plan P1-4 修订: stage 24 (24_herd_decay_processor.py) kind='sentiment'
-    现在 enabled_when=berts_method_enabled (原为 always_enabled).
-    它复用与 stage 23 相同的 berts 谓词, 故集合层面 sentiment_predicates
-    仍是 {llm, words, berts} = METHOD_TO_PREDICATE.values() (集合自动去重).
-    本测试不变, 通过.
+    2026-06-12 修订: stage 23 (BERT) 与 stage 24 (herd_decay) 已改为无条件
+    always_enabled, 并从 METHOD_TO_PREDICATE 移除 'tone_berts'。故 kind='sentiment'
+    且非 always_enabled 的 stage 仅剩 21/22 → sentiment_predicates = {llm, words}
+    = METHOD_TO_PREDICATE.values()。本测试仍成立, 通过.
     """
     sentiment_predicates = {
         s.enabled_when for s in core_dag.STAGES_MAIN
