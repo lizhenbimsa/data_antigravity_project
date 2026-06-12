@@ -72,8 +72,6 @@ def _make_readme(paper_id: str, n_files: int) -> str:
 ### 前置准备（用户必做）
 
 1. **数据准备**:
-   - `data/processed/49_risk_taking_outcomes.dta` (stage 49 输出, V2 E2E 修复后)
-   - `data/processed/bank_metadata.dta` (stage 49 同步导出)
    - `data/processed/40_panel_yearly.dta` (stage 45/46 输出, 含 treatment 列)
 
 2. **Stata 19** 已安装并在 PATH (StataMP-64.exe 或 stata-mp).
@@ -106,7 +104,7 @@ orchestrator (`00_master.do`) + 包安装 + 数据准备 + 各表格/图脚本�
 
 ## 故障排除
 
-- **`use *.dta` fail**: 检查 stage 49 已跑且 .dta 已生成 (v3.7.0 V2 E2E 修复)
+- **`use *.dta` fail**: 检查 stage 45/46 已跑且 `40_panel_yearly.dta` 已生成
 - **`reghdfe not found`**: `00_install_packages.do` 失败, 手动 ssc install reghdfe
 - **encoding 错误**: Stata 19 默认 UTF-8, 旧版本需 `set unicode_locale_default zh-CN`
 
