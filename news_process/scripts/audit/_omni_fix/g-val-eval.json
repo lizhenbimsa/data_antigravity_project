@@ -1,0 +1,67 @@
+[
+ {
+  "id": "g-val-eval-01",
+  "severity": "P2",
+  "latent": false,
+  "title": "latent: 情感评估 fillna('中性') 把无预测行 (含 100% 未通过验证文章) 伪造成中性预测, 人工标注完成后将结构性扭曲论文 Panel B 准确率",
+  "file": "validation/llms_evaluation.py",
+  "line": "1390-1391 (LLM 双轨), 1429-1430 (逐模型)",
+  "claim": "y_pred = df[sen_col].fillna('中性') 且 np.where(isin(labels), y_pred, '中性'): 模型未输出情感的行 (NaN) 与解析失败行被静默替换为'中性'预测参与 accuracy/macro-F1/混淆矩阵, 而非从评估域剔除。情感评估域 df_eval_sen 仅按人工金标准 notna 过滤, 不条件于 llm_verified — 把'相关性筛选拒绝'与'情感判断错误'混为一谈。",
+  "evidence": "实读 21_tone_llms_full.parquet (stage 32 抽样框, 1170 行): llm_sentiment_full 在 llm_verified_full=False 的 328 行中 NaN 率 100% (328/328), verified=True 中另有 9 行 NaN; 盘上 32_human_samples.xlsx 1000 行样本含 276 行 unverified。一旦编码者按 Excel 下拉框为全部样本填写情感金标准, ~28% 评估行的'LLM 预测'将是代码伪造的'中性'。",
+  "suggested_fix": "评估前加 mask: 模型预测 notna 且 ∈ labels_sen (无效行剔除并单独报告 coverage%); 情感任务评估域应条件于 llm_verified==True (或分别报告 conditional/unconditional 两版)。",
+  "adjudication": "",
+  "unit": "validation-tone-llm"
+ },
+ {
+  "id": "g-val-eval-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "FIX-REGRESSION: 降级审计 F3 修复不完整 — demo_mode 仍把合成指标写入无任何标记的 publication-ready LaTeX/CSV (盘上现行即此状态)",
+  "file": "validation/llms_evaluation.py",
+  "line": "1633-1637 (F3 gate 仅盖日志) vs 404-558 (generate_latex_table 无 demo 标记) + 1512-1560 (JSON/CSV 输出)",
+  "claim": "F3 修复 (degradation 2026-06-09) 只在 demo_mode 下抑制了'论文建议表述'日志, 但 classification_eval_table.tex、classification_eval_summary.csv、per_model_*_comparison.csv、cm_*.png 仍以与真实运行完全相同的文件名/格式写出合成数据, caption/表体/文件名零 demo 标记 — 唯一标记埋在 JSON 的 demo_mode 字段。",
+  "evidence": "盘上现行: classification_eval_results.json 'demo_mode': true, 同目录 classification_eval_table.tex Panel A/B 含外观完全可信的合成数 (LLM 验证 F1=0.860, gpt54nano_full 情感 F1=0.904 等, 源自 _generate_demo_data seed=42 的噪声注入), caption='Validation and Sentiment Performance Evaluation' 无任何警示。32_human_samples.xlsx 编码列全空 → 当前每次跑 stage 33 都重写这批合成产物。",
+  "suggested_fix": "demo_mode 下: (a) caption/文件名加 [SYNTHETIC-DEMO] 前缀 (如 classification_eval_table.DEMO.tex), (b) 表内加 \\multicolumn 警示行, (c) CSV 加 demo_mode 列; 或 demo_mode 下直接不写 .tex/.csv 仅留日志。",
+  "adjudication": "",
+  "unit": "validation-tone-llm"
+ },
+ {
+  "id": "g-val-eval-03",
+  "severity": "P2",
+  "latent": false,
+  "title": "latent: merge_annotations 的待仲裁哨兵值 (-1/'待仲裁') 会作为伪金标准类别泄入 stage 33 全部分类指标",
+  "file": "validation/llms_evaluation.py",
+  "line": "1192 (has_gold_ver=notna), 1287 (astype(int)), 1380 (has_gold_sen) + llms_human.py:227-229,257-259 (哨兵写入)",
+  "claim": "llms_human.merge_annotations 把编码者分歧行写成 最终_验证=-1、最终_情感='待仲裁' (明示'待仲裁标记')。llms_evaluation 金标准提取仅 notna() (验证) / notna & !='' (情感), 不排除哨兵 → gold=-1 行进入 accuracy 分母且任何 0/1 预测必判错、对 labels=[0,1] 的 precision 构成虚假 FP; gold='待仲裁' 行同理拖低中性类 precision 与 accuracy。诊断函数 _gold 比较 ==0/==1 恰好排除 -1, 与主指标口径不一致。",
+  "evidence": "代码链: merge 写哨兵 → stage 33 verify_path 读 output_32_human_sample ('32_human_samples.xlsx', 注意从不读 *_merged.xlsx, 合并产物需手工改名才被消费) → y_gold_ver=astype(int) 含 -1 → sklearn accuracy_score 含全部行而 confusion_matrix/labels=[0,1] 不含 → 同一表内 accuracy 与 P/R/F1 口径分裂。当前标注全空故 latent。",
+  "suggested_fix": "金标准 mask 收紧: 验证任务 df[gold].isin([0,1]); 情感任务 df[gold].isin(['正面','中性','负面']); 并把待仲裁行数作为 attrition 单独报告; 同时让 stage 33 显式优先读取 *_merged.xlsx。",
+  "adjudication": "",
+  "unit": "validation-tone-llm"
+ },
+ {
+  "id": "g-val-eval-04",
+  "severity": "P3",
+  "latent": false,
+  "title": "latent crash: 'import math' 仅在验证任务 CI 分支内, 验证 ICR 缺失而情感 ICR 存在时 G-10 报告段 UnboundLocalError",
+  "file": "validation/llms_evaluation.py",
+  "line": "1595 (import math 在 if n_s>0 分支内) vs 1616 (math.sqrt 在独立分支)",
+  "claim": "L1595 的 import math 位于 'if icr_ver: ... if n_s>0 and p_e<1:' 内; L1616 情感任务 κ CI 计算在独立条件块用 math.sqrt。若 编码者A/B_验证 双标注数为 0 (icr_ver 为空 dict) 而情感双标注存在 (n_both_sen>0), 第一分支不执行 → math 是已声明未绑定的局部名 → L1616 UnboundLocalError, stage 33 在写出 JSON/LaTeX 报告前崩溃。",
+  "evidence": "函数级作用域分析: import 语句使 math 成为 main() 局部变量, 仅执行路径覆盖才绑定; '只做情感标注不做验证标注'是真实可达的部分标注状态 (两任务列相互独立)。",
+  "suggested_fix": "将 import math 提升到模块顶部 (或 main() 入口处), 与 numpy/pandas 并列。",
+  "adjudication": "",
+  "unit": "validation-tone-llm"
+ },
+ {
+  "id": "g-val-eval-05",
+  "severity": "P2",
+  "latent": true,
+  "title": "llms_evaluation 金标准情感评估把 LLM 调用失败/平局行 fillna('中性') 伪造成中性预测, 污染报告的 F1/Accuracy 且双轨不对称",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\validation\\llms_evaluation.py",
+  "line": "1390, 1429 (fillna('中性')); 1391, 1430 (np.where 非法标签→'中性')",
+  "claim": "情感任务金标准评估中 `y_pred_llm_sen = df_eval_sen[sen_col].fillna('中性').astype(str).values` 把 llm_sentiment{track} 为 NaN 的行 (调用失败/投票平局/undefined) 当作模型真实输出'中性'计入 compute_classification_metrics 的 Precision/Recall/F1/Accuracy。盘上 21_tone_llms.parquet: llm_sentiment_full NaN=24/857 (2.8%), llm_sentiment_ctx NaN=79/857 (9.2%) — 失败率双轨不对称, 该系统性伪造直接污染代码自身做的'双轨对比'结论 (ctx 轨被注入 3 倍多的伪中性预测)。逐模型独立评估 (L1429) 同病 (deepseekv4 3-4 行)。",
+  "evidence": "L1390 `y_pred_llm_sen = df_eval_sen[sen_col].fillna('中性').astype(str).values`。对照: 同仓 validation/tone_validation.py:188-198 在 2026-05-29 已为同一缺陷类显式修复并写明理由 ('未映射/缺失保留为 NaN, 不再 silently fillna(0) 当作真实中性…失败行会作为人造中性观测污染'), 且 pipeline/panel/encode.py v6/F2 契约规定测量失败 → <NA> 排除; llms_evaluation 与全项目 NA 语义相悖。",
+  "suggested_fix": "评估前过滤 `df_eval_sen[sen_col].notna()` 行并单独报告 coverage/失败率 (与 verification 任务的 fillna(False) 不同 — 后者与下游运营语义一致可保留); 双轨对比须在各自 valid 子样本 + 共同子样本两口径下分别报告。",
+  "adjudication": "llms_evaluation.py:1390-1391/1429-1430 现场属实; 实测 21_tone_llms NaN=24(full)/79(ctx)/857, 32_human_samples.xlsx 1000 行含 285/335 NaN 行→一旦评估必污染且双轨不对称。但盘上人工金标 (编码者A_情感) 1000/1000 全空→gold_sen_col 缺→当前走 demo 模式未产真报告, 故 latent。与 tone_validation.py:188-198 已修同类 NA 语义相悖。",
+  "unit": "sweep-fillna-weights"
+ }
+]

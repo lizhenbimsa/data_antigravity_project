@@ -1,0 +1,54 @@
+[
+ {
+  "id": "g-zscore-papers-01",
+  "severity": "P2",
+  "latent": false,
+  "title": "FIX-REGRESSION: z_score 'CAR 变体≠Laeven-Levine' 引文修复只改了 bank_news_clarity paper_spec 一处, 姊妹 paper_spec/tables.py/两套 Stata 表注/replication README 共 10+ 处仍直引 L&L 2009",
+  "file": "papers/bank_media_disagreement/paper_spec.yaml (及 11_table2 两模板/tables.py/replication)",
+  "line": "paper_spec.yaml:58; 11_table2_main_disagreement_risk.do.tmpl:4,71; bank_news_clarity/11_table2_main_clarity_risk.do.tmpl:4; 两 tables.py:24; 两 replication/README.md:54",
+  "claim": "已知台账称 'paper_spec z_score=监管CAR变体≠Laeven-Levine' 已修复, 但修复仅落在 papers/bank_news_clarity/paper_spec.yaml:65 (加了 '⚠ 锚点更正 2026-06-10: …CAR-based Z-score 变体, 非 Laeven-Levine 2009 JFE 原版')。同一 z_score 列在 bank_media_disagreement/paper_spec.yaml:58 仍写 'primary: z_score  # Roy (1952) + Laeven-Levine (2009 JFE) 标准' 且无任何变体披露; 更严重的是两篇 Table 2 Stata 模板的 esttab note 行 (11_table2_main_disagreement_risk.do.tmpl:71 'Z-score per Laeven-Levine 2009 JFE.') 会把错误归因直接渲染进发表表格脚注; 两 tables.py:24、两 replication/README.md:54、replication/code 实例化 .do 同样未改。",
+  "evidence": "grep 'Laeven' 全 papers/ 目录: 仅 bank_news_clarity/paper_spec.yaml:65 含更正文案; 其余 10+ 命中均为无披露直引, 含将进入成品表格的 esttab note 字符串 \"Z-score per Laeven-Levine 2009 JFE.\"; 而代码 risk_taking_outcomes.py:177-182 明确自认 'CAR-based 变体, 不应直接归因于 L&L 2009'。",
+  "suggested_fix": "把 bank_news_clarity paper_spec.yaml:65 的更正文案同步到 bank_media_disagreement/paper_spec.yaml:58、两套 11_table2 模板头注与 esttab note ('CAR-based Z-score variant; cf. Laeven-Levine 2009')、两 tables.py 注释、两 replication/README.md, 并重新 instantiate replication/code。",
+  "adjudication": "grep 实证: 更正文案仅 bank_news_clarity/paper_spec.yaml:65 一处; bank_media_disagreement/paper_spec.yaml:58、两 11_table2 模板:4、disagreement 模板:71 esttab note \"Z-score per Laeven-Levine 2009 JFE.\"(直渲染进成品表格脚注)、两 tables.py:24、两 replication README:54 及 replication/code 共 13 处无披露直引。FIX_CLOSURE 报告 L21 也只登记 paper_spec.yaml:65 — 修复不完整坐实。",
+  "unit": "risk-taking"
+ },
+ {
+  "id": "g-zscore-papers-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "bank_media_disagreement 主 treatment 同名异构: spec 规定全年 outlet 均值的 std, 盘上同名列实为 p90 事件窗内 outlet 方差的 n_outlets 加权年均",
+  "file": "papers/bank_media_disagreement/paper_spec.yaml",
+  "line": "80-88 (primary_construction) vs pipeline/audit/cross_media_alpha.py:105-107, 187, 233",
+  "claim": "paper_spec.yaml primary_construction Step 2-3: outlet_tone[b,t,m]=该 (bank,year,outlet) 单元全部文章均值; cross_outlet_tone_variance[b,t]=**std**(outlet_tone[b,t,*]) — 无条件全年口径。实现 (cross_media_alpha.py) 完全不同: 先检测日计数 ≥p90 的 coverage-spike 事件日 (:105-107), 仅在 ±EVENT_WINDOW_DAYS 事件窗内、且 ≥MIN_OUTLETS_PER_EVENT 个 outlet 时计算 outlet 间 **variance** (ddof=1, :187), 再按 n_outlets 加权平均到 bank-year (:233) 灌入同名列 `cross_outlet_tone_variance_{full,ctx}` (盘上已存在, 实测 True)。估计对象 (条件于报道高峰 vs 无条件)、矩 (方差 vs 标准差)、聚合 (事件加权 vs 单一截面) 三重不一致。",
+  "evidence": "spec:86 `cross_outlet_tone_variance[b,t] = std(outlet_tone[b,t,*])`; cross_media_alpha.py:187 `var = float(np.var(tones, ddof=1))`; :233 `f'cross_outlet_tone_variance_{suffix}': _wmean(g, 'variance')`; tables.py:23 把该列列为 treatment.primary 进 Table 1。",
+  "suggested_fix": "M2-M3 落地 spec 版构造时改用新列名或重命名 39f 产物 (如 event_window_outlet_tone_var); 并把 spec Step 3 的 std/variance 二选一明确化 (列名含 variance 则公式应为 var)。",
+  "adjudication": "paper_spec.yaml:86 = 无条件全年 outlet 均值 std; cross_media_alpha.py:105-107 p90 事件日+:140-144 ±窗口门控+:187 np.var(ddof=1)+:233 n_outlets 加权年均灌同名列(盘上36非空), tables.py:23 作 primary 进 Table 1。估计对象/矩/聚合三重不一致坐实; 已修 p90 项是另一缺陷。",
+  "unit": "papers-derivative"
+ },
+ {
+  "id": "g-zscore-papers-03",
+  "severity": "P3",
+  "latent": false,
+  "title": "spec 引用的表模板悬空: P3/P4/P5 t6 与 P1 tA9 仅存于归档目录且无任何 builder 可达; bank_news_clarity tA8 模板全仓不存在且无 \"待设计\" 标注",
+  "file": "papers/bank_fintech_substance/paper_spec.yaml:76-77; bank_fintech_locus:86-87; bank_fintech_collab:90-91; bank_fintech_tone:79-81; bank_news_clarity:290-292",
+  "line": "见 file 字段; 解析逻辑 derivative_replication.py:293-312",
+  "claim": "P3/P4/P5 spec `tables.t6.template: 19_table6_cell_decomposition` (D2 8-cell 主分解表) 与 P1 `tA9.template: 27_tableA9_num_intensity` 指向的 .do.tmpl 仅存在于历史归档 stata_templates/v3_5_0/ 与 v3_5_1/; 全 papers/*.py 0 处引用这两个模板名/归档目录, per-paper builder 只 glob `stata_templates/<paper_id>/*.do.tmpl` (derivative_replication.py:294,312), 主线 builder 只用根目录 14 模板 → spec 承诺的这些表在任何 build-replication 产物中都不会 instantiate。另: 归档 t6 模板回归 `i.cell_id_full` — 该列只在文章级存在, panel 上没有。bank_news_clarity tA8 `19_bnc_num_intensity_complementary` 全仓 0 命中且无诚实标注 (对照 tA7 同文件明注 '待 M7 设计')。",
+  "evidence": "ls stata_templates/: 19_table6_cell_decomposition.do.tmpl 仅在 v3_5_0/; 27_tableA9_num_intensity.do.tmpl 仅在 v3_5_1/; grep 'v3_5_0|v3_5_1|19_table6|27_tableA9' over papers/**/*.py → 0 hits; grep -i bnc over stata_templates → 0 hits。对照组: P3 tA7 21_substance_clarity_robustness、P5 tA7 20_collab_clarity_robustness、benefit jlm2026 22/23/24 模板均真实存在于各自 paper 目录 (核验通过)。",
+  "suggested_fix": "把归档模板复制/升级进各 paper 子目录 (并把 cell_id 回归改为 panel 真实列 n_articles_cell_{1..8}_full 构造的份额), 或在 spec tables 块标注 'archived v3_5_0, 当前 build 不产出'; bank_news_clarity tA8 补 '待设计' 注记。",
+  "adjudication": "亲验: 19_table6仅v3_5_0/、27_tableA9仅v3_5_1/(glob); papers/**/*.py对两名+归档目录0引用; derivative_replication.py:294,312仅glob paper子目录, 主线仅根14模板; 归档t6:35回归i.cell_id_full(panel无); 19_bnc_num_intensity全仓0命中而同文件tA7:289有'待M7设计'注, tA8无。",
+  "unit": "paper-spec-crosscheck"
+ },
+ {
+  "id": "g-zscore-papers-04",
+  "severity": "P1",
+  "latent": false,
+  "title": "papers 10/11 主回归模板绕过 working dataset: 主 treatment+全部控制在管道可产出的任何数据源中均不存在, M1 起 r(111); 唯一可跑的盘上数据是仓库外手工拼装 fixture",
+  "file": "papers/bank_media_disagreement/stata_templates/11_table2_main_disagreement_risk.do.tmpl",
+  "line": "22-58 (同病: bank_media_disagreement/13_table4:13-27; bank_news_clarity/11_table2:25-58; bank_news_clarity/13_table4:14-45)",
+  "claim": "两篇 frozen-spec 论文 (第10/11篇) 的 Table 2/Table 4 模板都 `use data/processed/49_risk_taking_outcomes.dta` 后直接回归 `cross_outlet_tone_variance_full` / `mean_clarity_score_ctx` + ln_assets/leverage/capital_ratio/deposit_growth/gdp_growth/m2_growth/shibor 等控制, 但管道唯一的 .dta 导出器 risk_taking_outcomes.py:459-470 只写 OUTPUT_OUTCOME_COLS 13 列 (实测 49_risk_taking_outcomes.parquet = 13 列 0 行, 无任何 treatment/控制) → M1 即 r(111)。01_data_prep 正确 merge 40_panel 生成 _paper10/11_working.dta, 但全仓 grep 证实无任何模板消费它 (只有 save 行) — 表模板全部重新 use 原始 49 .dta 绕过。盘上唯一能跑的 F:/.../data_antigravity_project/data/processed/49_risk_taking_outcomes.dta 是 24 列×40 行×5 银行 (2017-2024) 的手工拼装 fixture, 全仓无任何代码生成它。clarity 更甚: CTRL_B 含 credit_rating (11_table2:33)、Panel B 用 listed (13_table4:42-45), 这两列连手工 fixture 和 40_panel (1658 列) 里都不存在 → 即使 fixture 路径 M4-M6/M_BW/Panel B 也必 r(111)。",
+  "evidence": "实测: pd.read_parquet('49_risk_taking_outcomes.parquet') = ['bank_type_id','implicit_guarantee_tier','is_soe','loan_loss_provision_discretion','npl_formation_rate','npl_ratio','roa','rwa_to_ta_ratio','sigma_roa_5y_rolling','target_bank','writeoffs_imputed','year','z_score'] (0 行); risk_taking_outcomes.py:470 `pyreadstat.write_dta(df_out_dta, ...)` 只写同列集。模板 11_table2:33 `local TX cross_outlet_tone_variance_full`; :40 `eststo M1: reghdfe `DV' `TX'` 无任何 capture confirm。grep '_paper10_working|_paper11_working' 仅命中 save 行。父级 fixture 实读 24 列含 TX+控制但无 credit_rating/listed; 'listed' 在 40_panel 1658 列中也为 False。",
+  "suggested_fix": "11_table2/13_table4 改为 `use data/processed/_paper10_working.dta` (clarity 同理 _paper11), 让 01_data_prep 成为唯一数据装配点; 或在 risk_taking_outcomes.py .dta 导出中 merge treatment+控制。clarity 删除/守卫 credit_rating、listed 幻影引用。",
+  "adjudication": "实证: 49.parquet=13列0行; risk_taking_outcomes.py:76-89/470 只写13列.dta; 11_table2:22-40 use 49.dta 回归 TX+7控制全缺→M1 r(111); grep 证 _paper10/11_working 仅 save 无消费; credit_rating/listed 连 fixture(24列) 与 40_panel(1658列) 均无→clarity M4/Panel B(13_table4:42-45) fixture 上也崩。",
+  "unit": "stata-templates-mainline"
+ }
+]

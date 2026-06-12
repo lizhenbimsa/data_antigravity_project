@@ -1,0 +1,67 @@
+[
+ {
+  "id": "g-policy-01",
+  "severity": "P3",
+  "latent": false,
+  "title": "领导人姓名删除与政策语料不对称且删除不完全: 新闻侧删 '习近平'、authoritative_corpus.txt 保留 6 处, 政策对齐度系统性偏差",
+  "file": "pipeline/preprocess/normalize.py:95-96",
+  "line": "_clean_single_text 步骤 2.5",
+  "claim": "`text = text.replace('习近平', '')` 对全部标题/内容无条件删除领导人姓名 (推测为 LLM API 合规), 但 stage 15 政策语义对齐的参照语料 config/authoritative_corpus.txt 含 6 处该姓名且不经此管道 → 相似度计算的两侧文本经历了不对称预处理; 删除本身还留下残句 ('习近平主席强调'→'主席强调')。该改写与政策/监管主题强相关, 非随机。",
+  "evidence": "实测 authoritative_corpus.txt: count('习近平')==6; 盘上新闻语料 9427 篇中仅 2 篇残留 (即删除确已大面积执行, 残留系旧缓存, 见上条)。政策类文章 (十九大/中央经济工作会议报道) 是 policy_alignment 的高值区, 恰是姓名高频区。",
+  "suggested_fix": "最小修: 对 authoritative_corpus.txt 应用同一删除规则使两侧对称, 并在 codebook/数据附录披露该处理; 更优: 改为仅在送 LLM API 的 prompt 侧做合规替换 (如占位符 '[领导人]'), 落盘语料保持原文。",
+  "adjudication": "normalize.py:96删名 vs policy_alignment.py:449/policy_similarity.py:110裸读语料(亲测6处/48277字=0.037%),口径不对称属实,不可以设计开脱;但锚是全行共享常量,词级TFIDF/LDA年内排序不变,实测效应均值1e-4/最大3.2e-3,'系统性偏差'P2高估→P3披露+对称清洗级",
+  "unit": "preprocess"
+ },
+ {
+  "id": "g-policy-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "静态政策锚点含未来年份政策文本 — policy_cosine_sim 与 auth_sim_* 全族存在前视构造 (latent, 全量 T=18 更重)",
+  "file": "config/authoritative_corpus.txt (消费方 pipeline/filtering/policy_alignment.py + pipeline/features/policy_similarity.py)",
+  "line": "corpus L44-45/L121/L244/L299; policy_alignment.py:430-459 (4.1 加载) + 533 (4.4 分段); policy_similarity.py:101-117",
+  "claim": "两个 stage 共用同一份跨 2015-2025 发布年份拼接的静态权威语料作为锚点: 含 2021-12《金融科技发展规划(2022—2025年)》、2019-08《FinTech 发展规划(2019—2021)》、2022-01《银行业保险业数字化转型指导意见》、2025 年实施方案 (引 国办发〔2025〕8号) 等。盘上试跑样本 (2017-2018 新闻) 的每篇文章都在与至少 4/6 份发布于其后的政策文本算余弦; 全量语料 2007-2024 (T=18) 下 2007-2014 文章先于 5/6 份锚点文档, 且 2025 文档后于全部样本 — 时刻 t 的回归变量嵌入了 t 期不可知的未来政策语言。",
+  "evidence": "corpus L44-45: `金融科技发展规划(2022—2025年) / 2021年12月`; L244: `按照《关于做好金融\"五篇大文章\"的指导意见》（国办发〔2025〕8号）...特制定本实施方案`; 两 stage 均整体读入后 chunk/ghost-anchor, 无任何按文章年份的 vintage 切分; corpus 头部还声称该语料具备'时间连贯性'。",
+  "suggested_fix": "构造 vintage-aware 锚点: 年度 t 仅用发布日期 ≤ t 的政策文档累积语料 (各 stage 在 year 循环内换锚), 静态全语料版本降为稳健性; 至少在论文测度小节显式披露'静态基准对齐'语义及其前视属性。",
+  "adjudication": "corpus L44-45(2021-12)/L121-122(2019-08)/L244(国办发〔2025〕8号)实读确认; 两消费方整体读入无 vintage 切分(policy_alignment.py:449-451; policy_similarity.py:110-112)。盘上 2017-18 文章对 ≥4 份未来政策算余弦, 测度自称'响应国家政策'却嵌入 t 期不可知文本, T=18 更重。真构念缺陷非允许变体。",
+  "unit": "policy-alignment-similarity"
+ },
+ {
+  "id": "g-policy-03",
+  "severity": "P3",
+  "latent": false,
+  "title": "stage 15 对文章硬截断 8191 token 丢尾, 而同族 stage 25/26/27 对同一文本 chunk-pool 无损 — 截断理由已陈旧 (引擎本可自动分段池化)",
+  "file": "pipeline/filtering/policy_alignment.py",
+  "line": "504-525 (full 轨) + 535-547 (ctx 轨); 对照 pipeline/text/embedding_engine.py:316-330, 354-361",
+  "claim": "stage 15 在调 embed_texts 前用 _truncate_to_max_tokens 把超长文章硬截到 8191 token (注释称'API 硬性限制, 超限报 HTTP 400'), 超限部分语义直接丢弃; 但 _eng.embed_texts 自身已实现 Early Chunking + Mean Pooling (split_text_for_embedding), 同一篇长文在 stage 26 (bank-year 聚合文本) / stage 27 等路径走无损池化。同一构念族对长文的处理跨阶段不一致, 且截断的工程理由 (HTTP 400) 在引擎接管后已不成立; 锚点侧 (4.4 节) 自己也用 chunk+pool 无损, 文章侧却截断 — 同一相似度的两端口径不对称。",
+  "evidence": "L516-518 `if n_tok > _MAX_TOKENS_PER_INPUT: text = _truncate_to_max_tokens(...)`; 盘上实证: 试跑 1170 篇中 5 篇超 8191 token (最长 10,639, 截掉 ~23% 文本); 全量 1700 万篇下受影响篇数成比例放大。embedding_engine.py L104-110 对 >8191 token 自动切段, L359 mean pooling。",
+  "suggested_fix": "删除文章侧预截断, 直接把原文交给 embed_texts (其 chunk+pool 路径与锚点对称); 或保留截断但在 codebook 中披露'前 8191 token'口径。注意改动会使缓存键变化 (截断文本≠原文), 触发增量 embedding 费用, 需与 golden 重生一起排期。",
+  "adjudication": "policy_alignment.py:516-518/541-543 截断坐实; _eng.embed_texts 自动切段+池化(embedding_engine.py:104-110,354-361), 锚点侧自身池化(533)。盘上复现 5/1170 篇超限, max 10639(截 23%)。小更正: stage 27 同样截断(benefit_society.py:481), 不一致面=15/27 截 vs 25/26+锚点池化, 核心不对称仍成立。",
+  "unit": "policy-alignment-similarity"
+ },
+ {
+  "id": "g-policy-04",
+  "severity": "P3",
+  "latent": false,
+  "title": "stage 26/15 注释与实现漂移: '相同的 8000 字截断'已不存在、'4 种算法'实为 5 列、死代码 _get_embeddings_api_dynamic 描述已废弃的 '-ctx' 缓存命名空间",
+  "file": "pipeline/features/policy_similarity.py + pipeline/filtering/policy_alignment.py",
+  "line": "policy_similarity.py:27-28; policy_alignment.py:161-167, 170-312, 404, 505-508",
+  "claim": "复现包文档准确性缺陷集: (1) policy_similarity.py L27 称幽灵锚点与银行在'相同的 8000 字截断'下比对 — 全仓已无任何 8000 字符截断 (token chunk+pool 取代), 同段'4 种算法的相似度评分'实产 5 指标 (含 _t2v twin); (2) policy_alignment.py L161-163 称'Stage 25 使用固定每批 100 条 (L375)'、L507 称'与 Stage 25 的字符级粗略截断 (t[:8000]) 不同' — stage 25 现走同一 embedding_engine (2000 条/批, 无 t[:8000]); (3) L404 白话称'打一个 0~1 的分数'而实际值域/断言为 [-1,1]; (4) L170-312 _get_embeddings_api_dynamic 已是生产死代码 (仅测试引用, 生产走 _eng.embed_texts), 其 L213-215 注释描述的 ctx 轨 '-ctx' prompt_version 隔离在现行调用链中不存在, 误导缓存审计。",
+  "evidence": "grep 全 strategic_diff.py 无 '8000'/'[:8' 命中; _get_embeddings_api_dynamic 生产 0 调用 (仅 tests/test_pipeline_robustness.py); _cosine_for_spec L352-357 统一走 _eng.embed_texts。",
+  "suggested_fix": "更新两处 docstring 至 token-chunk+pool 现实 (5 指标 × 双轨); 删除或显式标注 _get_embeddings_api_dynamic 为 test-only legacy; 修正 0~1 → [-1,1] 表述。",
+  "adjudication": "逐项核实: policy_similarity.py:27 '相同的 8000 字截断'全仓无对应实现(grep 0 命中), 实产 5 指标×双轨(L189-193); policy_alignment.py:161-163 stage25 批量描述陈旧(生产走 _eng.embed_texts 2000/批, strategic_diff.py:647); L404 '0~1' vs L618 断言 [-1,1]; _get_embeddings_api_dynamic 生产 0 调用仅测试引用。复现包文档保真缺陷, P3。",
+  "unit": "policy-alignment-similarity"
+ },
+ {
+  "id": "g-policy-05",
+  "severity": "P3",
+  "latent": false,
+  "title": "降级透明性缺口: stage 26 对 <3 银行年份裸 continue 无日志 (stage 25 同守卫有 warning), 且两 stage 的 t2v '失败→NaN' 契约只覆盖 returns-None、不覆盖 raise 路径",
+  "file": "pipeline/features/policy_similarity.py + pipeline/filtering/policy_alignment.py",
+  "line": "policy_similarity.py:142-144, 177-182; policy_alignment.py:579-587; embedding_engine.py:147-148",
+  "claim": "(a) policy_similarity.py L143-144 `if len(banks) < 3: continue` 无任何日志, 对照 strategic_diff.py L1293-1295 同守卫带 warning — 全量 T=18 下早期年份 (2007-2010) 银行覆盖稀疏时, 整年 auth_sim_* 静默 NaN 且无法从日志区分'数据缺失'与'守卫跳过'; (b) 两 stage 的 ROBUSTNESS 轨注释承诺'失败不破坏 canonical, 仅 _t2v 置 NaN' (policy_alignment.py L579, L584-585), 但实现只拦截 embed_texts 返回 None 的失败; 若 embedding_robustness 配置缺失 ({}→走 API 分支) 或本地模型加载抛错, get_embeddings_api L148 `raise RuntimeError('missing base_url or api_key')` 会沿调用链炸掉整个 stage (canonical 列一并丢失), 与注释承诺的优雅降级不符。",
+  "evidence": "policy_similarity.py L143 裸 `continue`; embed_texts 无 try/except 包裹 asyncio.run(get_embeddings_api(...)); _cosine_for_spec 仅检查 `is None` (L359-360); CONFIG.get('embedding_robustness', {}) 缺键时 spec_uses_local({})=False → API 分支必 raise。",
+  "suggested_fix": "为 <3 银行跳过补 warning (镜像 stage 25); 在 _cosine_for_spec / _build_emb 的 ROBUSTNESS 调用处 try/except (Exception → 返回 None, 记 warning), 使实现与'仅 _t2v 置 NaN'契约一致。",
+  "adjudication": "(a) policy_similarity.py:143-144 裸 continue 无日志, 对照 strategic_diff.py:1293-1295 同守卫有 warning, T=18 早期稀疏年静默 NaN; (b) _cosine_for_spec 仅拦 is None(359-362), embed_texts 无 try/except(337-343), embedding_robustness 缺配 spec_uses_local({})=False→API 分支 get_embeddings_api:147-148 raise 炸掉整 stage 含 canonical, 与 L579/584 及 L307 docstring 承诺矛盾。",
+  "unit": "policy-alignment-similarity"
+ }
+]

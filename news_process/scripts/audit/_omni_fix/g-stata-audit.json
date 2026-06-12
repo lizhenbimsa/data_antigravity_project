@@ -1,0 +1,41 @@
+[
+ {
+  "id": "g-stata-audit-01",
+  "severity": "P1",
+  "latent": false,
+  "title": "FIX-REGRESSION: stata_audit 3e MW加权恒等式仍用物理分母, 在 valid-mask 修复后的重生面板上必然误 FAIL (实证 14/117 行, max diff=0.5)",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\audit\\stata_audit.py",
+  "line": "399-426 (audit_sentiment_consistency 3e)",
+  "claim": "2026-06-10 已落地的 VW/MW/HW valid-mask 权重修复 (encode.py:1453-1462, LLM 族分母改 sum_wd_{wtag}_llm_{track}) 未同步到 stata_audit 的加权恒等式检验: 3e 仍按 expected = llm_vote_score_mw_sum_full / sum_media_authority_weight (物理分母) 重算并与 llm_vote_tone_mw_full (valid-mask 分母) 比对, 任何含 LLM-invalid 文章的 bank-year 都 diff>1e-8 → record FAIL → main() 返回退出码 1。",
+  "evidence": "stata_audit.py:401-417: `('MW','mw','sum_media_authority_weight')...expected = p[sum_col] / denom; if max_diff > 1e-8: record(...,'FAIL')`。盘上只读实证 (40_panel_yearly.parquet, has_news 子集 117 行): 物理分母口径 max_diff=0.5, 14 行 >1e-8; 真实 valid-mask 分母 (sum_wd_mw_llm_full) 口径 max_diff=0.0 (恒等式精确成立)。即面板值正确而审计判错。",
+  "suggested_fix": "3e 改为优先用 sum_wd_{wtag}_llm_full 作 LLM 族期望分母 (缺列回退物理分母, 与 encode._llm_denom 同款回退契约), 并在 detail 中注明所用分母口径。",
+  "adjudication": "",
+  "unit": "pipeline-audit-family"
+ },
+ {
+  "id": "g-stata-audit-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "stata_audit 3e VW/HW 恒等式检查因列名陈旧静默死亡 — 审计声称覆盖 VW/MW/HW 三项, 实际只有 MW 在运行且无任何缺席记录",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\audit\\stata_audit.py",
+  "line": "401-426",
+  "claim": "VW 检验期望的分子列 `llm_vote_score_vw_sum_full` 在当前 schema 不存在 (真名是 llm_vote_score_w_sum_full, encode.py:1466); HW 检验期望的分母列 `sum_herd_weight` 自 v3.6.0 双轨化后已不存在 (真名 sum_herd_weight_full/_ctx)。两检查走 if 条件失败分支, 而 else 兜底仅在 `tone_col not in p.columns` 时报 WARN — tone 列存在 → 零记录输出, 审计报告里 VW/HW 恒等式凭空消失且无人察觉。",
+  "evidence": "盘上验证: 'llm_vote_score_vw_sum_full' in panel → False; 'llm_vote_tone_vw_full' in panel → True; 'sum_herd_weight' in panel → False; 'llm_vote_tone_hw_full' in panel → True。代码: line 407 `sum_col = f'llm_vote_score_{wt_sfx}_sum_full'`; line 421-426 else 分支条件 `wt_sfx in ('vw','mw') and tone_col not in p.columns` 对此情形不触发 ('hw' 更是被排除在兜底外)。",
+  "suggested_fix": "VW 分子列名改 llm_vote_score_w_sum_full; HW 分母改 sum_herd_weight_full (按轨); 并把 else 兜底改为三种权重缺任一所需列即 record WARN, 杜绝静默跳过。",
+  "adjudication": "",
+  "unit": "pipeline-audit-family"
+ },
+ {
+  "id": "g-stata-audit-03",
+  "severity": "P3",
+  "latent": false,
+  "title": "KNOWN-OPEN-STATUS: ⑥ pyreadstat Int8∈[101,126]→Stata 扩展缺失仍未修, 且本单元 stata_audit 6d 精度检查存在 NaN 非对称逃逸盲点, 恰好无法捕获该类 值→缺失 腐蚀",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\audit\\stata_audit.py",
+  "line": "643-654 (audit_stata_compatibility 6d); 关联 stata_export.py:110-121,551",
+  "claim": "现状核实: stata_export.py 仍以 Int8 编码 locus/substantiveness/collab (L110-121), pyreadstat 后端宣称支持 extended missing (L551) — KNOWN-OPEN ⑥ 未修 (latent, 当前盘上计数列 max=101 已触界)。新增观察: 与 ⑥ 配套的最后防线 stata_audit 6d '.dta 数值精度验证' 用 `(dta_vals - pq_vals).abs().max()` 逐位比对, 任一侧为 NaN 的位置 diff=NaN 被 .max() skipna 吞掉 — 值在 .dta 中被静默改写为缺失 (正是 ⑥ 的腐蚀模式) 时 max_diff=0.0 → record PASS, 审计对该腐蚀类结构性失明; 且检查未比对两侧非空计数。",
+  "evidence": "只读复现: pq=[105,1,2] vs dta=[NaN,1,2] → `(dta-pq).abs().max()` = 0.0 → `diff > 0.001` False → PASS '精度一致'。6d 仅检 3 列 (llm_vote_tone_full/n_articles/ln_news_coverage) 也未覆盖 Int8 编码列。",
+  "suggested_fix": "6d 增加非空计数一致性比对 (`dta.notna().sum() == pq.notna().sum()`) 与 NaN 位置对齐检查; stata_export 端按 ⑥ 台账修 Int8 上界或升 dtype。",
+  "adjudication": "",
+  "unit": "pipeline-audit-family"
+ }
+]

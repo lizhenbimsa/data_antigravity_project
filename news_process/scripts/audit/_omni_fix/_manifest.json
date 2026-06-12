@@ -1,0 +1,361 @@
+[
+ {
+  "group": "g-benefit",
+  "file": "scripts/audit/_omni_fix/g-benefit.json",
+  "n": 17,
+  "sev": {
+   "P2": 9,
+   "P3": 7,
+   "P1": 1
+  }
+ },
+ {
+  "group": "g-templates",
+  "file": "scripts/audit/_omni_fix/g-templates.json",
+  "n": 17,
+  "sev": {
+   "P3": 5,
+   "P2": 11,
+   "P1": 1
+  }
+ },
+ {
+  "group": "g-runner",
+  "file": "scripts/audit/_omni_fix/g-runner.json",
+  "n": 16,
+  "sev": {
+   "P3": 7,
+   "P1": 2,
+   "P2": 7
+  }
+ },
+ {
+  "group": "g-entity",
+  "file": "scripts/audit/_omni_fix/g-entity.json",
+  "n": 16,
+  "sev": {
+   "P1": 3,
+   "P2": 8,
+   "P3": 5
+  }
+ },
+ {
+  "group": "g-strategic",
+  "file": "scripts/audit/_omni_fix/g-strategic.json",
+  "n": 16,
+  "sev": {
+   "P2": 4,
+   "P3": 11,
+   "P1": 1
+  }
+ },
+ {
+  "group": "g-stata-export",
+  "file": "scripts/audit/_omni_fix/g-stata-export.json",
+  "n": 15,
+  "sev": {
+   "P3": 14,
+   "P2": 1
+  }
+ },
+ {
+  "group": "g-tonellms",
+  "file": "scripts/audit/_omni_fix/g-tonellms.json",
+  "n": 15,
+  "sev": {
+   "P2": 4,
+   "P3": 11
+  }
+ },
+ {
+  "group": "g-codebook",
+  "file": "scripts/audit/_omni_fix/g-codebook.json",
+  "n": 14,
+  "sev": {
+   "P2": 5,
+   "P3": 9
+  }
+ },
+ {
+  "group": "g-tonewords",
+  "file": "scripts/audit/_omni_fix/g-tonewords.json",
+  "n": 13,
+  "sev": {
+   "P2": 9,
+   "P3": 4
+  }
+ },
+ {
+  "group": "g-papers-misc",
+  "file": "scripts/audit/_omni_fix/g-papers-misc.json",
+  "n": 12,
+  "sev": {
+   "P2": 6,
+   "P3": 6
+  }
+ },
+ {
+  "group": "g-encode",
+  "file": "scripts/audit/_omni_fix/g-encode.json",
+  "n": 10,
+  "sev": {
+   "P3": 8,
+   "P2": 2
+  }
+ },
+ {
+  "group": "g-embed",
+  "file": "scripts/audit/_omni_fix/g-embed.json",
+  "n": 9,
+  "sev": {
+   "P1": 1,
+   "P2": 4,
+   "P3": 4
+  }
+ },
+ {
+  "group": "g-ivdid",
+  "file": "scripts/audit/_omni_fix/g-ivdid.json",
+  "n": 9,
+  "sev": {
+   "P1": 1,
+   "P2": 4,
+   "P3": 4
+  }
+ },
+ {
+  "group": "g-llm-peer",
+  "file": "scripts/audit/_omni_fix/g-llm-peer.json",
+  "n": 9,
+  "sev": {
+   "P2": 4,
+   "P3": 5
+  }
+ },
+ {
+  "group": "g-audit-family",
+  "file": "scripts/audit/_omni_fix/g-audit-family.json",
+  "n": 8,
+  "sev": {
+   "P2": 5,
+   "P3": 3
+  }
+ },
+ {
+  "group": "g-numlex",
+  "file": "scripts/audit/_omni_fix/g-numlex.json",
+  "n": 8,
+  "sev": {
+   "P1": 2,
+   "P2": 4,
+   "P3": 2
+  }
+ },
+ {
+  "group": "g-encode-collab",
+  "file": "scripts/audit/_omni_fix/g-encode-collab.json",
+  "n": 8,
+  "sev": {
+   "P2": 2,
+   "P3": 6
+  }
+ },
+ {
+  "group": "g-attention",
+  "file": "scripts/audit/_omni_fix/g-attention.json",
+  "n": 8,
+  "sev": {
+   "P2": 3,
+   "P3": 5
+  }
+ },
+ {
+  "group": "g-panel-export",
+  "file": "scripts/audit/_omni_fix/g-panel-export.json",
+  "n": 8,
+  "sev": {
+   "P2": 1,
+   "P3": 7
+  }
+ },
+ {
+  "group": "g-replication",
+  "file": "scripts/audit/_omni_fix/g-replication.json",
+  "n": 8,
+  "sev": {
+   "P1": 2,
+   "P3": 3,
+   "P2": 3
+  }
+ },
+ {
+  "group": "g-preprocess",
+  "file": "scripts/audit/_omni_fix/g-preprocess.json",
+  "n": 7,
+  "sev": {
+   "P1": 1,
+   "P2": 4,
+   "P3": 2
+  }
+ },
+ {
+  "group": "g-controls",
+  "file": "scripts/audit/_omni_fix/g-controls.json",
+  "n": 7,
+  "sev": {
+   "P1": 1,
+   "P2": 2,
+   "P3": 4
+  }
+ },
+ {
+  "group": "g-geography",
+  "file": "scripts/audit/_omni_fix/g-geography.json",
+  "n": 6,
+  "sev": {
+   "P3": 5,
+   "P2": 1
+  }
+ },
+ {
+  "group": "g-net-spill",
+  "file": "scripts/audit/_omni_fix/g-net-spill.json",
+  "n": 6,
+  "sev": {
+   "P1": 1,
+   "P2": 1,
+   "P3": 4
+  }
+ },
+ {
+  "group": "g-risk",
+  "file": "scripts/audit/_omni_fix/g-risk.json",
+  "n": 6,
+  "sev": {
+   "P1": 1,
+   "P2": 2,
+   "P3": 3
+  }
+ },
+ {
+  "group": "g-val-prompt",
+  "file": "scripts/audit/_omni_fix/g-val-prompt.json",
+  "n": 6,
+  "sev": {
+   "P2": 3,
+   "P3": 3
+  }
+ },
+ {
+  "group": "g-val-robust",
+  "file": "scripts/audit/_omni_fix/g-val-robust.json",
+  "n": 5,
+  "sev": {
+   "P2": 2,
+   "P3": 3
+  }
+ },
+ {
+  "group": "g-val-eval",
+  "file": "scripts/audit/_omni_fix/g-val-eval.json",
+  "n": 5,
+  "sev": {
+   "P2": 4,
+   "P3": 1
+  }
+ },
+ {
+  "group": "g-policy",
+  "file": "scripts/audit/_omni_fix/g-policy.json",
+  "n": 5,
+  "sev": {
+   "P3": 4,
+   "P2": 1
+  }
+ },
+ {
+  "group": "g-herd",
+  "file": "scripts/audit/_omni_fix/g-herd.json",
+  "n": 5,
+  "sev": {
+   "P2": 1,
+   "P3": 4
+  }
+ },
+ {
+  "group": "g-net-brok",
+  "file": "scripts/audit/_omni_fix/g-net-brok.json",
+  "n": 5,
+  "sev": {
+   "P2": 2,
+   "P3": 3
+  }
+ },
+ {
+  "group": "g-val-mask",
+  "file": "scripts/audit/_omni_fix/g-val-mask.json",
+  "n": 4,
+  "sev": {
+   "P2": 1,
+   "P3": 3
+  }
+ },
+ {
+  "group": "g-val-tone",
+  "file": "scripts/audit/_omni_fix/g-val-tone.json",
+  "n": 4,
+  "sev": {
+   "P1": 1,
+   "P2": 2,
+   "P3": 1
+  }
+ },
+ {
+  "group": "g-misc",
+  "file": "scripts/audit/_omni_fix/g-misc.json",
+  "n": 4,
+  "sev": {
+   "P2": 3,
+   "P3": 1
+  }
+ },
+ {
+  "group": "g-berts",
+  "file": "scripts/audit/_omni_fix/g-berts.json",
+  "n": 4,
+  "sev": {
+   "P1": 1,
+   "P2": 1,
+   "P3": 2
+  }
+ },
+ {
+  "group": "g-zscore-papers",
+  "file": "scripts/audit/_omni_fix/g-zscore-papers.json",
+  "n": 4,
+  "sev": {
+   "P2": 2,
+   "P3": 1,
+   "P1": 1
+  }
+ },
+ {
+  "group": "g-stata-audit",
+  "file": "scripts/audit/_omni_fix/g-stata-audit.json",
+  "n": 3,
+  "sev": {
+   "P1": 1,
+   "P2": 1,
+   "P3": 1
+  }
+ },
+ {
+  "group": "g-fintech",
+  "file": "scripts/audit/_omni_fix/g-fintech.json",
+  "n": 3,
+  "sev": {
+   "P3": 2,
+   "P2": 1
+  }
+ }
+]

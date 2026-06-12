@@ -1,0 +1,41 @@
+[
+ {
+  "id": "g-fintech-01",
+  "severity": "P3",
+  "latent": false,
+  "title": "IDF 参考语料按 bank-article 物理行计数: 同一文章 × k 家银行被当 k 篇文档, 与 fintech_share 新去重口径不一致",
+  "file": "pipeline/filtering/fintech_intensity.py:114-128 (_parse_global_df)",
+  "line": "114-128",
+  "claim": "_parse_global_df 逐行迭代 12_fintech_news_full.parquet 计 DF 与 N_total, 但该文件每行 = (文章 × target_bank) 爆炸行 + 跨媒体转载: 盘上 N_total=4054 行 vs unique(标题,日期)=3646 (10.1% 重复, 其中 385 行纯属同文配多银行)。同一物理文档在 DF 分子与 N_total 分母中被计数 k 次, 违背所引 Gentzkow-Kelly-Taddy (2019 JEL) 'IDF must be computed on the full reference corpus' 的文档语义, 且与项目 2026-06-10 刚为 fintech_share 确立的 (target_bank,标题,日期) 去重计数基不一致。",
+  "evidence": "只读实证: pd.read_parquet('12_fintech_news_full.parquet') → rows=4054, drop_duplicates(['标题','日期'])=3646, drop_duplicates(['target_bank','标题','日期'])=4031。代码无任何 drop_duplicates/docid 去重即 `keyword_doc_freq.update(doc_kw_set)`。",
+  "suggested_fix": "DF 解析前按 docid (或 ['标题','日期']) 去重 df_full 再计 Counter 与 N_total, 与 fintech_share 去重计数基对齐; 同时可在 bank-year 均值聚合处对 (target_bank,标题,日期) 重复转载行去重 (盘上已有 8 行组内重复, 5 个 bank-year 均值偏移最大 0.096)。",
+  "adjudication": "实证复现: 12_fintech_news_full=4054行, unique(标题,日期)=3646, unique(bank,标题,日期)=4031 — 385行纯同文多银行爆炸。fintech_intensity.py:114-124 无任何去重即 N_total=len(df_full)+逐行update DF, 同文档计k次, 违 GKT 文档语义且与已修 fintech_share 去重计数基不一致。台账无此site, 新发现, 量级温和P3。",
+  "unit": "fintech-intensity"
+ },
+ {
+  "id": "g-fintech-02",
+  "severity": "P3",
+  "latent": false,
+  "title": "'SIF 加权质心' 与 Arora et al. (2017) 引用名实不符: 实现为 IDF 加权平均质心, 无 SIF 频率权重亦无首主成分去除",
+  "file": "pipeline/filtering/fintech_intensity.py:6-7,34-35,188,197-198 (encode.py:792 重复同声称)",
+  "line": "188-198",
+  "claim": "docstring 与学术依据声称 'TF-IDF + SIF 词向量质心' 并引 Arora, Liang & Ma (2017, ICLR)。SIF 的两个定义性要素 — a/(a+p(w)) 平滑逆频率权重与公共成分(首奇异向量投影)去除 — 均未实现; 实际是 `np.average(embeddings, weights=idf_weights)` 的 IDF 加权普通质心。Ethayarajh (2019) 被引为'各向异性校准'依据, 但实现是 min-max+floor 的 ad hoc 重标定, 该文只是记录各向异性现象并非提出此校准法。",
+  "evidence": "L197-198: `weights_arr = np.array([idf_weights[kw] ...]); centroid = np.average(embeddings, axis=0, weights=weights_arr)` — 无 p(w) 估计、无 PCA/SVD 去公共成分。pipeline/panel/encode.py:792 注释 'TF-IDF + SIF 质心连续型技术强度得分' 重复同声称。",
+  "suggested_fix": "改述为 'IDF-weighted keyword embedding centroid'; 删除或降格 Arora et al. 引用为 '加权质心思想借鉴'; Ethayarajh 引用改为 '动机' 而非 '校准方法'; 或真正实现 SIF (频率权重+去首主成分)。同步修 encode.py:792 注释。",
+  "adjudication": "亲读 L197-198: np.average(embeddings, weights=idf_weights) — SIF两定义要素 a/(a+p(w)) 频率权重与首主成分去除均缺, 实为IDF加权普通质心; docstring L6/34-35 与 encode.py:792 仍称'SIF'引Arora 2017; Ethayarajh 2019被引为'校准法'但实现是min-max+floor。与已修引文族(difflib≠TNIC等)同类但此site不在台账, 不改数值, P3文档级。",
+  "unit": "fintech-intensity"
+ },
+ {
+  "id": "g-fintech-03",
+  "severity": "P2",
+  "latent": false,
+  "title": "stage 14 IDF 语料 (stage 12 AC 子串 DF) 与 TF (jieba 整词) 口径混用, 违反项目自身在 tone_words 已确立的同分词器原则",
+  "file": "pipeline/filtering/fintech_intensity.py (_parse_global_df L99-128 用 AC 产物 DF; _compute_intensity_scores L285-301 用 jieba TF)",
+  "line": "99-128, 285-301",
+  "claim": "fintech_intensity_score 的 IDF 权重 W_i 基于 stage 12 fintech_keyword_details 的 DF — 该 DF 来自 AC 子串扫描 (允许关键词作为更长词内子串命中, 且允许重叠命中); 而得分的 TF 来自 jieba.add_word 后的整词 token。同一关键词在两侧的'出现'定义不同: AC 计入 jieba 永远看不见的子串/重叠命中 → DF 偏大 → IDF/权重对子串高发关键词系统性偏低, 与所引 Gentzkow-Kelly-Taddy 同语料原则相悖。tone_words.py:582-584 已为同一问题'坚决废除 Aho-Corasick 子匹配', stage 14 未同步。",
+  "evidence": "实测 '商业银行积极发展互联网贷款业务, 推进大数据风控。': AC 命中 3 个关键词 ['网贷'(子串误命中于互联网贷款), '大数据', '数据风控'(与大数据重叠双计)]; 全关键词注入后的 jieba TF 仅 ['数据风控'] (大数据被切为 大/数据风控)。即 DF 端 3 vs TF 端 1。重叠双计 ('大数据'+'数据风控') 同时虚增 stage 12 的 distinct_count 多样性门槛 (≥3) 与 total_count。",
+  "suggested_fix": "DF 改用与 TF 同口径的 jieba 整词统计 (在 stage 14 对全量语料重算 DF, 如 tone_words.build_idf_weights 模式); 或 stage 12 改为非重叠最长匹配计数并据此重算 details。",
+  "adjudication": "实证复现: 同句 AC 命中 ['网贷'(子串于互联网贷款),'大数据','数据风控'(重叠双计)] vs 注入后 jieba TF 仅 ['数据风控'] — DF端3 vs TF端1。fintech_intensity.py:117-122 DF 来自 stage 12 fintech_keyword_details (news_fintech.py:144, 源于 analyze_fintech_matches AC 扫描无去重), L285-301 TF 走 jieba 整词 → 子串高发关键词 IDF 系统性偏低; 项目自身 tone_words.py:582-584 已为同问题废除 AC 子匹配, stage 14 未同步, 违反 GKT 同语料原则。台账'tone_words IDF改content_full'是语料列问题, 非重复。",
+  "unit": "sweep-chinese-text"
+ }
+]

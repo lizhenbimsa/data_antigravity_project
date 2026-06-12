@@ -1,0 +1,54 @@
+[
+ {
+  "id": "g-val-tone-01",
+  "severity": "P1",
+  "latent": false,
+  "title": "5 个 IDF 词典标签泄漏进 'BERT' 组: 三角验证全链 (Cronbach α/跨方法一致率/覆盖率稳健性/人工抽样分层) 被结构性污染",
+  "file": "validation/tone_validation.py",
+  "line": "155-175 (discover_sentiment_columns BERT 检测块, 排除检查 L161)",
+  "claim": "BERT 检测仅排除 result['words'] 与 llm 名, 未排除 result['words_idf'] → jiang_2021_idf 等 5 个 IDF 词典的 *_label_full 列被当作 'BERT 模型', 且因存在 {name}_zscore_full 列 probs 非空而进入 all_scores (label_to_numeric)。模块 3.1b 注释自己声明 'IDF 与等权是同源数据的不同加权…混入同一 Cronbach α 会虚假膨胀, 因此单独报告', 但该泄漏使其直接进入 BERT 组与全部跨方法统计。",
+  "evidence": "实读盘上 23_bert_tone.parquet 复刻 discover 逻辑: bert 组 = {finbert_cn, fin_sent_zh, finbert2} + {jiang/yao/bian/du/you}_2021_idf (probs={'zscore'})。盘上 eval_reports/cronbachs_alpha_summary_full.csv: 'BERT N Models=8, α=0.8940' — 实际仅 3 个 BERT 模型; 只读重算: 纯 3-BERT α=0.6986 vs 污染 8-item α=0.8943 (+0.196, 从'良好≥0.80'档跌到'需改进<0.70'档)。sentiment_validation_results_full.json: label_agreement n_methods=17 (5 词典 + 8 '伪BERT' + 4 LLM), 词典族实际持 10/17 张选票。覆盖率分层 '低覆盖率组 α(BERT+LLM)' 过滤条件是 not startswith('词典_') (L866-869), 而泄漏列名为 'BERT_*_idf' 照样通过 — 该分析的设计目的 (词典低覆盖时非词典方法是否稳健) 被 5 个词典测度直接打穿。",
+  "suggested_fix": "BERT 检测处补充排除: name not in words_names and name not in set(result['words_idf']) and name not in llm_names; 同时收紧 probs 匹配 (仅接受情感类别概率列, 排除 zscore 等)。重生 eval_reports 后核对 BERT N Models=3。",
+  "adjudication": "",
+  "unit": "validation-tone-llm"
+ },
+ {
+  "id": "g-val-tone-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "LLM 多数投票聚合列 'llm' 被当作第 4 个独立模型计入 Cronbach α/一致率/共识合成 (LLM α 0.70 阈值结论翻转)",
+  "file": "validation/tone_validation.py",
+  "line": "1640-1650 (LLM score/label 收集) + 1743-1752 (Step 3.3)",
+  "claim": "discover 的 llm 组含聚合投票列 short_name='llm' (llm_sentiment_full = 3 模型多数票)。诊断函数 diagnose_llm_category_bias/calibration 显式过滤 name!='llm', 但 _run_validation_for_track 构建 all_scores/all_labels (L1640-1650)、Step 3.3 LLM 内部一致性 α、Step 4.2 method_agg['LLM'] 均值、Step 4.3 标签一致率、Step 5.1 majority_vote 合成均未过滤 — 把成员模型的合成结果当独立测量, 经典 α 理论下机械抬高一致性。",
+  "evidence": "盘上 21/23 parquet 确认存在 llm_sentiment_full/_ctx 且无 llm_sentiment_confidence_* (conf=None → score=±1/0)。盘上 cronbachs_alpha_summary_full.csv: 'LLM N Models=4, α=0.7677'; 只读重算 (复刻模块的 numeric×conf 构分): 纯 3 模型 α=0.6933 vs 含投票列 0.7677 (+0.074)。模块自己在 L1869-1871 注释承认 'n_llm 包含聚合列…此处仅做粗筛', 但下游从未补真筛。",
+  "suggested_fix": "在 all_scores/all_labels 构建处过滤 short_name=='llm' (与诊断函数同一过滤), 聚合投票列仅作为对比基准单独报告; n_llm 计数与 LaTeX 'Number of Models' 同步改为独立模型数。",
+  "adjudication": "",
+  "unit": "validation-tone-llm"
+ },
+ {
+  "id": "g-val-tone-03",
+  "severity": "P2",
+  "latent": false,
+  "title": "ECE 校准用含被评模型自身的 3 模型多数票作 ground truth (leave-one-in 循环), 且人工金标准路径为死代码",
+  "file": "validation/tone_validation.py",
+  "line": "1271-1286 (gt 选择), 1309-1346 (ECE 主循环)",
+  "claim": "gt_col 回退到 llm_sentiment{track} (3 模型共识) 评估每个成员模型的 per-bin accuracy: 被评模型自己是 3 票之一, 仅当另两模型互相一致且都反对它时才判'错' — accuracy 机械抬高, ECE 对过自信模型系统性低估。优先路径 human_sentiment{track} 在全部 parquet 中不存在 (无任何 stage 回写), 即人工金标准分支永不触发。",
+  "evidence": "盘上 llm_calibration_full.csv + sentiment_validation_results_full.json: ground_truth_source='多数投票伪标准 (3-model consensus)', ECE: gpt54nano=0.1817, gemini31111=0.0358, deepseekv4=0.0655。grep 21/22/23 parquet 列名无 human_sentiment_*。代码注释仅以'伪标准'披露, 未披露成员参与共识的循环性。",
+  "suggested_fix": "成员模型 m 的伪 GT 改用 leave-one-out: 其余 2 模型一致时取共识、不一致行剔除; 或等 stage 33 人工金标准回写后用 human gold; 至少在输出中披露 leave-one-in 上偏方向。",
+  "adjudication": "",
+  "unit": "validation-tone-llm"
+ },
+ {
+  "id": "g-val-tone-04",
+  "severity": "P3",
+  "latent": false,
+  "title": "人工验证样本/编码协议与被验证构念错位: 双轨共写同一 09_sentiment_verify.xlsx 互相覆盖 + 编码指南'不受标题影响'与 v3.8.0 标题 prepend 矛盾 + 单一全文金标准同时评 ctx 轨",
+  "file": "validation/tone_validation.py",
+  "line": "1890 (verify_path 无 track 后缀), 566-571 (编码指南), llms_evaluation.py:1387-1394 (同一 gold 评双轨)",
+  "claim": "(a) _run_validation_for_track 对 _full/_ctx 两轨各生成人工验证样本却写同一路径 09_sentiment_verify.xlsx → _ctx 覆盖 _full, 文件内 '词典_/BERT_/LLM_' 标签列实为 ctx 轨值但无任何轨道标识, 人工标注的归属轨道不可追溯; (b) 编码指南明示'基于文章整体语调判断, 不受标题影响', 而 v3.8.0 起机器两轨文本均为 prepend_title 后的 标题+正文/标题+实体窗口 — 人类金标准被指示剔除标题信息, 与被验证测度的文本口径系统性错位; (c) stage 33 用同一份人工情感金标准 (整篇阅读) 同时评 _full 与 _ctx 轨 — ctx 轨 (主 spec llm_vote_tone_ctx) 的'误差'混入归因窗口与全文的真实分歧, ctx 准确率被结构性低估且不可解释。",
+  "evidence": "L1890 路径字符串无 {track}; 盘上 eval_reports 仅一份 09_sentiment_verify.xlsx; 编码指南文本 L569 '基于文章整体语调判断，不受标题影响'; CLAUDE.md v3.8.0 '标题改 prepend 进 full/ctx 两轨'; llms_evaluation L1387 对 ['_full','_ctx'] 循环用同一 y_gold_sen。",
+  "suggested_fix": "(a) 文件名加 track 后缀 09_sentiment_verify{track}.xlsx; (b) 指南改为'基于标题+正文整体语调判断'(full) 并为 ctx 轨提供实体窗口文本及窗口级指令; (c) ctx 轨评估或者用窗口文本采集独立金标准, 或者在报告中明示 gold 为全文构念。",
+  "adjudication": "",
+  "unit": "validation-tone-llm"
+ }
+]

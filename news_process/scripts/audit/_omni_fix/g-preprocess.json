@@ -1,0 +1,93 @@
+[
+ {
+  "id": "g-preprocess-01",
+  "severity": "P1",
+  "latent": false,
+  "title": "重复字符压缩正则吞掉数字量级: 1000亿→100亿、2000年→200年、股票代码600000→600, 全语料已被不可逆破坏",
+  "file": "pipeline/preprocess/normalize.py:53-54,109 + pipeline/preprocess/_constants.py:190-194",
+  "line": "TAIL_CLEANUP_PATTERN / _tail_cleanup_repl",
+  "claim": "TAIL_CLEANUP_PATTERN 第一支 `(.)\\1{2,}` 对任意字符(含数字)的 ≥3 连续重复一律压缩为 2 个 (`return m.group(1) * 2`), 注释自称'尾部清理'实际作用于全文。金融新闻中圆整金额/年份/指数/股票代码大量含 ≥3 连零, 全部被改写为错误数值。",
+  "evidence": "只读 python 实测: '净利润达1000亿元'→'100亿元', '注册资本5000万元'→'500万元', '2000年成立'→'200年成立', '1999年上市'→'199年上市', '增速30000%'→'300%', 'A股代码600000'→'600'。盘上实证 (data/processed/00_preprocessing.parquet, 9427 行): 0 篇内容含任何 3+ 连续重复字符、0 篇含字面 '000', 而 5320 篇含 '00' — 一个金融新闻语料中完全不存在 '000'/'3000点'/'10000亿' 在统计上不可能, 证明该破坏已落到生产数据且事后不可区分 (盘上 '2500亿元' 无法判断原文是 2500 还是 25000)。",
+  "suggested_fix": "将重复字符压缩支限定为非字母数字字符, 如 `([^\\w\\d])\\1{2,}` 或显式排除数字 `((?![0-9a-zA-Z]).)\\1{2,}`; 若保留对字母的压缩至少排除 [0-9]。修复后需重生 00_preprocessing 及全部下游 (注意 LLM 缓存失效成本, 建议作为 production run 前必修项)。",
+  "adjudication": "",
+  "unit": "preprocess"
+ },
+ {
+  "id": "g-preprocess-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "电话号码正则无边界锚定: 任意 10-12 位数字串被当电话删除, 长数字被部分截删留下错误残值 (138000000000元→0元)",
+  "file": "pipeline/preprocess/_constants.py:153",
+  "line": "phone_pattern",
+  "claim": "`(?:\\+?86)?1[3-9]\\d{9}|\\d{3,4}[-\\s]?\\d{7,8}` 两支均无 `(?<!\\d)`/`(?!\\d)` 或 \\b 守卫: 第二支因分隔符可选等价于匹配任意 10-12 位连续数字; 第一支匹配更长数字串中以 13-19 开头的 11 位子串, 删除后残留尾部数字拼出全新错误数值。",
+  "evidence": "只读 python 实测: '公司总资产138000000000元'→'公司总资产0元' (凭空造出 0 元), '市值1234567890元'→'市值元', '贷款余额13900000000元'→'贷款余额元', '注册资本20171231084500'→'注册资本00'。该删除发生在步骤 5 (UNIFIED_CLEANUP_PATTERN), 先于 finding 1 的压缩。",
+  "suggested_fix": "给两支加 `(?<!\\d)` 前瞻与 `(?!\\d)` 后顾; 第二支 (座机) 要求分隔符非可选 (`\\d{3,4}[-\\s]\\d{7,8}`) 或限定上下文 (前缀 电话/热线/拨打 等)。",
+  "adjudication": "",
+  "unit": "preprocess"
+ },
+ {
+  "id": "g-preprocess-03",
+  "severity": "P2",
+  "latent": false,
+  "title": "噪声词典互动计数模式族中句过删实质内容: '推荐30只银行股'→'只银行股'、'回复12条意见'→'意见'、'3/4季度'→'季度'",
+  "file": "config/noise_patterns.json:49,52-57 (经 _constants.py:163-187 合并, normalize.py:102-103 应用)",
+  "line": "pagination / like_count / comment_count / share_count / count_suffix",
+  "claim": "view_count/like_count/comment_count/share_count/pagination 等模式设计目标是删网页互动计数, 但无锚定地匹配 '(推荐|赞|回复|评论|分享|转发)\\s*[：:]?\\s*\\d+' 与 '\\d+\\s*/\\s*\\d+' 等, 在报纸正文 (本语料媒体类型=报纸, 根本没有网页互动计数) 中命中的是实质性陈述。",
+  "evidence": "用与生产完全一致的合并正则实测: '专家推荐30只银行股'→'专家只银行股'; '央行就此回复12条意见'→'央行就此意见'; '浏览4000次'整段删除; '不良率从3/4季度开始下降'→'不良率从季度开始下降' (pagination 支 `\\d+\\s*/\\s*\\d+`); '理财产品获机构推荐:8只入选'→'理财产品获机构只入选'。",
+  "suggested_fix": "对报纸语料禁用 _category_11 互动计数族与 pagination 的裸 `\\d+/\\d+` 支; 或为各支加结构锚定 (行首/行尾/前后无汉字正文上下文)。",
+  "adjudication": "",
+  "unit": "preprocess"
+ },
+ {
+  "id": "g-preprocess-04",
+  "severity": "P2",
+  "latent": false,
+  "title": "增量缓存键不含 normalization 配置段、noise_patterns/bank_keywords 资源内容与代码版本 — 注释自称已覆盖, 实未覆盖; 盘上已现混规则语料实证",
+  "file": "pipeline/preprocess/runner.py:127-166",
+  "line": "_compute_config_hash / 缓存有效性判断",
+  "claim": "缓存键 = compute_config_hash(PARAMS), 而 PARAMS=CONFIG['preprocessing'] 仅含 preprocessing 段。per-file 缓存结果实际还依赖: ① `normalization` 段 (opencc_config/html_removal_length_threshold, 是独立顶层段, 见 preprocessing.yaml:153-155); ② noise_patterns.json 与 bank_keywords.json 的文件内容 (路径在 paths 段, 内容更不在哈希); ③ 清洗代码本身的版本。runner.py:129-131 注释声称 plan m4 修复已把 'noise_patterns_file / media_weights_file / normalize*' 纳入哈希 — 与实现不符, 这些键根本不在 PARAMS 里。",
+  "evidence": "core/data_versioning.py:67-74: compute_config_hash 仅 json.dumps 传入 dict。盘上实证: 9427 行清洗后语料中仍有 2 篇含 '习近平' (docid 2017122500004248628 / 2017122300003209524), 而 normalize.py:96 的 replace('习近平','') 对这两段标准上下文 ('《习近平治国理政》'/'以习近平同志为核心') 不可能漏删 — 唯一合理解释是这两文件出自加入该步骤之前的旧缓存且哈希未失效, 即盘上语料已是不同清洗规则的混合体。",
+  "suggested_fix": "缓存键改为 hash(PARAMS + CONFIG['normalization'] + sha256(noise_patterns.json 内容) + sha256(bank_keywords.json 内容) + 清洗代码版本号常量); 同步更正 runner.py:127-134 注释。",
+  "adjudication": "",
+  "unit": "preprocess"
+ },
+ {
+  "id": "g-preprocess-05",
+  "severity": "P3",
+  "latent": false,
+  "title": "广告关键词过滤对标题/版面/栏名做无锚定子串匹配, 系统性删除真监管新闻 ('央行公告/风险提示/年度报告解读' 类标题盘上为 0)",
+  "file": "pipeline/preprocess/filter.py:87-96 + _constants.py:197-200 + config/preprocessing.yaml:93-147",
+  "line": "AD_PATTERN / 步骤 5 广告过滤",
+  "claim": "ad_keywords (公告/通知/声明/通报/风险提示/年度报告/业绩预告...) 以 `\\s*` 弹性插空后无锚定匹配标题任意子串。这把货币政策公告报道 ('央行公告下调存准率')、监管风险提示新闻 ('银保监会发布风险提示')、年报解读 ('上市银行年度报告显示...') 与子串误伤 ('流通知识产权'含'通知') 一并删除 — 对银行语料而言被删类与监管事件强度强相关, 是非随机样本选择; 日志仅报行数不报样本特征。",
+  "evidence": "盘上验证: 9427 篇标题中含 公告/通知/声明/通报/公示/风险提示/导读/遗失 者为 0 篇 (含弹性空白变体也为 0) — 证明该类标题被全量清除而非仅清除付费公告版面。业绩预告/风险提示恰是 tone/staleness 测度的高信息事件类新闻。",
+  "suggested_fix": "高误伤词 (公告/通知/声明/通报/风险提示/年度报告) 仅作用于 版面/栏名 字段或要求标题锚定模式 (如行尾'公告$'); 至少在 codebook/数据附录披露该排除规则及其对监管新闻覆盖的影响。",
+  "adjudication": "",
+  "unit": "preprocess"
+ },
+ {
+  "id": "g-preprocess-06",
+  "severity": "P3",
+  "latent": false,
+  "title": "精确去重保留最高媒体权重副本而非首发副本: 跨年转载致日期/年度错配, 与近似去重'保留首发'原则相互矛盾; 24% 行权重静默回退默认值",
+  "file": "pipeline/preprocess/dedup.py:64-65,167-177 (SORT_BY_COLS) + dedup.py:88-89,146-150",
+  "line": "_perform_exact_deduplication / _load_media_weights",
+  "claim": "精确去重按 [媒体权重↓, docid↑, 长度↓] 排序 keep='first' — 完全不看日期; 同文跨媒体转载时保留的是权重最高副本的日期。若低权重媒体 12-28 首发、人民日报 (权重100) 次年 1-02 转载, 该文被计入次年 → bank-year 面板年度归属错位。而近似去重 (dedup.py:262-268) 按日期升序保留最早副本, runner.py:344 文档统一宣称'保留首发源' — 两套规则口径不一致且仅近似侧符合声称。叠加: 媒体权重表实测仅覆盖盘上 90/164 个媒体名 (76% 行), 其余 24% 静默落入默认权重 10 且无覆盖率日志, 未覆盖媒体间的精确重复保留退化为 docid 序。",
+  "evidence": "SORT_BY_COLS = [COL_WEIGHT,'docid',COL_LENGTH], SORT_ASCENDING=[False,True,False], 不含 temp_datetime; 对照 _perform_near_deduplication 簇内排序 by=['temp_datetime',COL_WEIGHT,'docid']。媒体权重覆盖实测: media_weights.json 941 数值条目 (10-100), 盘上匹配 7135/9427 行; 未匹配含 北京晨报/法制晚报/武汉晚报 等真实大报。",
+  "suggested_fix": "精确去重排序键加入日期为第一键 (与近似去重对齐'保留首发'), 媒体权重仅作同日 tiebreak; _load_media_weights 增加覆盖率日志 (匹配行占比 + 高频未匹配名单) 并把未匹配清单落 sidecar。",
+  "adjudication": "",
+  "unit": "preprocess"
+ },
+ {
+  "id": "g-preprocess-07",
+  "severity": "P2",
+  "latent": true,
+  "title": "银行关键词保留过滤在文本规范化之前执行, 且 8223 关键词 0 个繁体变体 — 混合文字/OCR 噪声源文章被静默丢弃 (latent, 全量语料)",
+  "file": "pipeline/preprocess/load.py:120-129 + pipeline/preprocess/filter.py:98-110",
+  "line": "_process_single_file 处理顺序: _clean_and_filter_dataframe → clean_text_batch",
+  "claim": "决定样本存留的银行关键词 AC 过滤 (淘汰 30-50%) 在 ftfy 编码修复、OpenCC 繁→简、全角→半角、零宽字符清除之前对原始文本执行。bank_keywords.json 实测 8223 个关键词全部简体 ('銀/國/農/業' 0 命中); 原文若为繁体 ('中國銀行')、mojibake、或银行名被零宽/全角字符打断, AC 无法命中 → 整篇在规范化修复之前即被静默丢弃。另: REGION_PATTERN 含 '中国' 子串项, 若全量 Wisers 数据地区字段出现 '中国香港' 将经地域过滤放入 (繁体文章), 随后又被简体关键词过滤系统性杀掉。'联合银行(中国)' 是唯一无独立基名的半角括号关键词, 原文全角 '（中国）' 永不匹配。",
+  "evidence": "load.py:120 先调 _clean_and_filter_dataframe (内含 step 6 银行过滤), :129 才调 clean_text_batch (步骤1 ftfy/步骤2 t2s/步骤3 全半角/步骤5 零宽清除)。实测关键词表 traditional-script keywords == 0。盘上试跑样本地区均为大陆省份、简体, 故当前 176 行 panel 未现症; 全量 1700 万条 (含更多 OCR 噪声源与可能的混合文字源) 下为 latent 样本选择偏差。",
+  "suggested_fix": "把 clean_text_batch 提到 _clean_and_filter_dataframe 之前 (或至少把银行关键词过滤移到规范化之后); 替代廉价修法: 构建自动机时对关键词列表同时加入 opencc s2t 变体与全角括号变体。",
+  "adjudication": "缺陷真实: load.py:120过滤先于:129规范化,filter.py:102对原始内容AC匹配,8223词0繁体(亲测),AC仅lower(load.py:55,70),'联合银行(中国)'全角形态0词命中(亲测);但实测Wisers地区值='香港'非'中国香港'→繁体源步1按设计排除,主放大通道不存在;盘上切片仅2017-18清洁期,OCR/全角/mojibake通道仅全量2007-2024 latent,量级窄→P2降P3",
+  "unit": "preprocess"
+ }
+]

@@ -1,0 +1,54 @@
+[
+ {
+  "id": "g-misc-01",
+  "severity": "P2",
+  "latent": false,
+  "title": "FIX-PARTIAL: 2. network_spillover.py ~L299 peer_fintech_exposure 锚点改为 LeSage-Pace 2009 + Lear",
+  "file": "fix-verification",
+  "line": "",
+  "claim": "2. network_spillover.py ~L299 peer_fintech_exposure 锚点改为 LeSage-Pace 2009 + Leary-Roberts 2014, 清除 Berger 2022 误引",
+  "evidence": "pipeline/panel/network_spillover.py:309-316 锚点勘误注在位: '原注引 Berger et al. (2022, JFI 49)…与本构念不符…正确锚点是: LeSage, J. & Pace, R. K. (2009)…Leary, M. T. & Roberts, M. R. (2014)…JF 69(1), 139-178'; L270 计算注释亦引 'LeSage-Pace 2009; Leary-Roberts 2014'; L22 模块头引 Leary-Roberts。文件内 Berger 仅存于勘误说明语境, 不再作锚点。但全仓 grep 发现 pipeline/panel/export.py:959 Stata 标签段头注释仍写 '# === 同行金融科技溢出 (Berger et al. 2022) ===' 紧贴 peer_fintech_exposure_lag1 标签 (L960) — 同一构念的 Berger 2022 误引在生产代码残留 1 处。 | 命名文件 network_spillover.py 内修复语义完",
+  "suggested_fix": "",
+  "adjudication": "亲验: network_spillover.py:309-316 勘误完整(LeSage-Pace+Leary-Roberts), 但 export.py:959 段头注释仍写 '(Berger et al. 2022)' 紧贴 peer_fintech_exposure_lag1 标签(L960), 同构念误引残留。encode.py:560 Berger Kim & Ma 2024 是另一篇合法引文非残留。'清除误引'声称仓级不成立, 与原 P2 同类。",
+  "unit": "fix-citations"
+ },
+ {
+  "id": "g-misc-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "FIX-PARTIAL: 4. llm_peer_iv.py ~L691 与 ~L755 两处 difflib cutoff 澄清为串匹配严格度, 无 TNIC 标准误标残留",
+  "file": "fix-verification",
+  "line": "",
+  "claim": "4. llm_peer_iv.py ~L691 与 ~L755 两处 difflib cutoff 澄清为串匹配严格度, 无 TNIC 标准误标残留",
+  "evidence": "pipeline/panel/llm_peer_iv.py:692-695 '⚠ 命名勘误 (metric-audit 2026-06-10): 此 cutoff 是 difflib.get_close_matches 的字符串匹配严格度…不是 TNIC 的同行语义相似度阈值…勿将 cutoff 扫描标注为 TNIC/Cao 相似度阈值'; L755-756 '(⚠ 非 TNIC 相似度阈值, 与 L691 同口径勘误…)'。文件内其余 TNIC 提及 (L19/24/264/501/724) 均正确指 '10 closest peers' 数量上限, 无误标。但同一 difflib cutoff 的 TNIC 误标在仓内其他生产文件残留 3 处: pipeline/panel/export.py:966 '# 主回归变量 (cutoff=0.80 TNIC 标准, 无后缀)'; papers/llm_peer/paper_spec.yaml:49 'TNIC cutoff=0.75 robustness instrument'; papers/llm_peer/figures.py:",
+  "suggested_fix": "",
+  "adjudication": "亲验: llm_peer_iv.py:692-695/755-756 勘误在位, L19/264/501 等 TNIC 提及均正确指 10-peer 上限。但残留 3 处把 difflib 串匹配 cutoff 误标 TNIC: export.py:966 注释 'cutoff=0.80 TNIC 标准'; paper_spec.yaml:49 'TNIC cutoff=0.75'; figures.py:41 set_xlabel('TNIC similarity cutoff $c$') 直接印入出版图 fig1, 非注释级, P2 坐实。",
+  "unit": "fix-citations"
+ },
+ {
+  "id": "g-misc-03",
+  "severity": "P2",
+  "latent": false,
+  "title": "FIX-PARTIAL: (3) 抽查 ≥8 个关键测试断言体, 确认真锁定修复行为 (非 vacuous); 报告失败/vacuous 测试",
+  "file": "fix-verification",
+  "line": "",
+  "claim": "(3) 抽查 ≥8 个关键测试断言体, 确认真锁定修复行为 (非 vacuous); 报告失败/vacuous 测试",
+  "evidence": "抽查 12 个, 其中 9+ 个确认真锁 (直接 import 生产函数 + 断言修复前后可区分的具体数值): [1] test_vw_llm_tone_uses_valid_denominator: 调生产 runner.py:128 _build_llm_valid_masked_weights + encode.aggregate_panel, 断言 VW=1/3 (valid 分母) 非旧 bug 1/8 (physical), 生产消费链在位 (runner.py:298/341/401 三族调用 → encode.py:1460-1467 _llm_denom 用 sum_wd_{wtag} 列); [2] test_vw_dict_tone_keeps_physical_denominator: 断言 dict 族保持 1/8 physical (防过度修正, encode.py:1477 dict 仍 /denom); [3] test_fintech_share_uses_deduped_numerator: 调生产 controls.py:582 merge_to_",
+  "suggested_fix": "",
+  "adjudication": "补全验证: 定向跑6文件25/25绿; 抽查14断言体≥12真锁(调生产+可区分值: VW 1/3≠1/8 encode.py:1467链在位; fintech 8/13 controls.py:1223; prob 0.85≠0.283; herd [0,0,1,2]; peer_tone 0.8≠0.4)。残留小缺口: IDF仅锁机制不锁调用点tone_words.py:1302(golden-deferred期revert无锁); v3的W²/JF 3个demo体不调生产(有e2e测试+runner.py:1568运行时守卫兜底)。无失败/无实质vacuous→降P3。",
+  "unit": "fix-regression-locks"
+ },
+ {
+  "id": "g-misc-04",
+  "severity": "P3",
+  "latent": true,
+  "title": "latent: ctx_materializer 标题缺失处理 — np.nan 标题会注入字面 'nan。' 前缀, pd.NA 会 TypeError 崩溃 (当前被上游过滤守住)",
+  "file": "pipeline/text/ctx_materializer.py",
+  "line": "122 (主路径) vs 98 (旧 schema 路径)",
+  "claim": "主物化路径 L122 `title = str(row.get('标题', '') or '')`: 若 标题 为 np.nan (float, truthy) → title='nan' → content_full/content_ctx 获得字面 'nan。' 前缀进入全部情感/embedding 文本; 若为 pd.NA → `pd.NA or ''` 直接 raise TypeError。同函数旧 schema 分支 L98 用 `df['标题'].fillna('')` 正确处理 — 同文件两路径口径不一致。",
+  "evidence": "盘上验证当前无触发: 13_news_with_ctx.parquet 1170 行 标题 nulls=0, content_full/ctx 无 'nan' 前缀 — 因 preprocess/filter.py:75 '标题、内容、媒体名、日期任一为空则移除' 上游守卫。但该守卫属另一 stage 的可配置过滤, 全量 17M 语料重跑若过滤配置变化/字段映射异常, 此缺陷即激活且静默 (注入 'nan' 不报错)。",
+  "suggested_fix": "L122 改为与 L98 一致的显式缺失处理: `_t = row.get('标题', ''); title = '' if pd.isna(_t) else str(_t)`。",
+  "adjudication": "ctx_materializer.py:122 `str(row.get('标题','') or '')`: np.nan truthy→'nan'字面前缀静默入两轨情感文本; pd.NA→TypeError。同文件L98旧schema路径用fillna('')正确 — 口径不一致确凿。守卫filter.py:77-85属stage 00且KEY_COLUMNS=PARAMS.get('key_columns_for_na_check',[])(_constants.py:53)config驱动、默认空表=守卫整体失效 — 配置漂移即静默激活, confirm-latent成立。",
+  "unit": "ctx-materializer-coretext"
+ }
+]

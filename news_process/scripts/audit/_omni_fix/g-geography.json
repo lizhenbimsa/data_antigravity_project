@@ -1,0 +1,80 @@
+[
+ {
+  "id": "g-geography-01",
+  "severity": "P3",
+  "latent": true,
+  "title": "prox 双轨情感格 (tone/pos_frac/neg_frac) 全-NA 圈内均值返回 pd.NA → panel 列退化为 object dtype (latent)",
+  "file": "pipeline/panel/geography.py",
+  "line": "962-982 (源 dtype: encode.py:139,142-144)",
+  "claim": "文章级 llm_vote_score{track}/is_positive{track}/is_negative{track} 是 nullable Int8 (encode.py:139-144, NA=测量失败/平局)。compute_geo_proximity_buffers 在 n_within>0 但圈内文章该轨全 NA 时执行 within[col].mean(), pandas 3.0.3 返回 pd.NA (非 np.nan); pd.NA 混入 buf_rows 后 pd.DataFrame(buf_rows) 推断该列为 object dtype, merge 后 panel 内存中 prox_*_tone_*/pos_frac*/neg_frac* 为 object 列。",
+  "evidence": "实测 (pandas 3.0.3): pd.Series([pd.NA,pd.NA],dtype='Int8').mean() → <NA>; pd.DataFrame([{...:0.5},{...:pd.NA}]) → dtype object; merge 后仍 object。代码 L964-968: `if _tone_col in within.columns and n_within > 0: buf_results[key][...] = within[_tone_col].mean()` 无 float 归一。盘上当前为 float64 (52/46 非空) 说明试跑样本恰好未触发全-NA 圈; ctx 轨 NA 高发 (实体窗缺失), 全量 17M 语料下大概率触发。",
+  "suggested_fix": "聚合处统一归一: `v = within[_tone_col].astype('float64').mean()` 或 `float(m) if pd.notna(m) else np.nan`, 三个情感格同改。",
+  "adjudication": "实证: Int8全NA mean→pd.NA→DataFrame推object并存活merge(pandas 3.0.3); encode.py:139,142-144确为Int8; ctx轨NA率9.2%, T=18小圈必触发。但parquet写出coerce回float64且standardize先于buffers(runner.py:618/635), 危害限进程内dtype, P3恰当。",
+  "unit": "geography"
+ },
+ {
+  "id": "g-geography-02",
+  "severity": "P3",
+  "latent": true,
+  "title": "n_geocoded==0 时 is_local=0 / n_media=0 与 frac=NaN 自相矛盾 — 同一修复逻辑未覆盖兄弟列 (latent)",
+  "file": "pipeline/panel/geography.py",
+  "line": "942-953",
+  "claim": "2026-06-10 修复把 prox_frac 分母改为可定位文章数并在 n_geocoded==0 时给 NaN ('域未知'), 但同一格内的 prox_{d}km_is_local 仍走 `1 if n_within > 0 else 0` (L945-946)、n_media 走 nunique→0、n_articles→0: 当某 bank-year 的媒体全部无法地理编码时, frac 说'未知'(NaN) 而 is_local 断言'确知非本地'(0) — 同一信息状态两种编码, 且 is_local 构成差异性误分类。",
+  "evidence": "L943-944: `n_within / n_geocoded if n_geocoded > 0 else np.nan` (修复后); L945-946: `buf_results[key][f'{prefix}_is_local'] = (1 if n_within > 0 else 0)` 无 n_geocoded 守卫。盘上验证: 当前 0 行触发 (frac NaN ∧ is_local notna = 0; 试跑语料 857 篇 100% 可定位), 纯 latent。",
+  "suggested_fix": "n_geocoded==0 时 is_local/n_media (及可选 n_articles) 同样置 NaN, 与 frac 修复对齐; 或附 geocode 覆盖率列供下游过滤。",
+  "adjudication": "geography.py:943-944 frac有n_geocoded守卫给NaN, L945-946 is_local无守卫给0 — 同一'全不可定位'状态两种编码且is_local差异性误分类。盘上实测0行触发(frac NaN∧is_local notna=0, 56行NaN全为merge未命中)。属2026-06-10修复不完整, T=18可触发。",
+  "unit": "geography"
+ },
+ {
+  "id": "g-geography-03",
+  "severity": "P3",
+  "latent": true,
+  "title": "merge_bank_geography 回退路径解析到不存在的 pipeline/panel/config/ + 姊妹函数 None 路径 TypeError 守卫不对称 + '' 聚类 'Stata 安全忽略' 误述 (latent)",
+  "file": "pipeline/panel/geography.py",
+  "line": "432-441, 843/848, 413-415",
+  "claim": "三处 latent 配置/声称缺陷: (a) L434 回退默认路径 `os.path.join(os.path.dirname(__file__),'config','bank_addresses.json')` 解析为 pipeline/panel/config/ (不存在), 注释却声称回退到'项目默认路径 config/'; 触发时整段地理 (省/市聚类列+全部 LOO IV 前置) 仅 warning 后静默空列。(b) compute_geo_proximity_buffers L843 `os.path.exists(capital_path)`、L848 `os.path.exists(bank_addr_path)` 对未配置 (None) 直接 TypeError 崩溃, 而同文件 coord_path (L830) 与 compute_regional_imitation_pressure (L1096-1097) 均有 None 短路守卫 — 守卫不对称。(c) L413-415 注释声称未匹配银行填 '' 是因 'Stata 的 cluster() 对 NaN 会报错, 空字符串可被安全忽略' — Stata 中空字符串即字符串缺失值, vce(cluster) 会把这些观测从估计样本中剔除, 即省级聚类列的样本相对银行级聚类列静默缩小, 并非'安全忽略'。",
+  "evidence": "config/paths.yaml:18,28-29 三键当前均配置 (故全部 latent); 盘上 174/174 匹配率 100% 故 (c) 当前不触发; os.path.exists(None) 在 Python 3 抛 TypeError (仅吞 OSError/ValueError)。",
+  "suggested_fix": "(a) 回退路径改为包根 config/ (与 CONFIG 解析一致) 或直接删除假回退改 fail-fast; (b) 补 None 短路守卫与 L1096 对齐; (c) 更正注释并在未匹配>0 时输出样本一致性警告。",
+  "adjudication": "三处皆实: (a)L434 dirname(__file__)/config/不存在(Glob空)而L430-431注释称'项目config/'; (b)os.path.exists(None)实测TypeError, L843/848无None守卫而L830/L1096-1097有; (c)Stata中''=字符串缺失, cluster剔除观测致样本静默缩小非'安全忽略'。paths.yaml:18,28-29均已配→latent。",
+  "unit": "geography"
+ },
+ {
+  "id": "g-geography-04",
+  "severity": "P3",
+  "latent": false,
+  "title": "媒体坐标三级退化的省会回退注入与'银行是否在省会'相关的系统性距离误差, 且无 imputation 标记列 (当前 0.9% 触发, 全量放大)",
+  "file": "pipeline/panel/geography.py",
+  "line": "860-881 (_lookup_coords Level 3), 916-925",
+  "claim": "媒体仅省级可定位时被放到省会坐标: 省会银行与该省任意城市媒体的距离被压成 ≈0 (必落 50km 圈, is_local/frac/n_media 上偏), 非省会银行则一律得到到省会的距离 — 非经典测量误差且与银行区位 (省会 vs 非省会) 系统相关, 与 Gurun & Butler (2012) / Engelberg & Parsons (2011) 的精确媒体定位口径有实质差距; 代码未记录哪些文章经省会插补, 下游无法做剔除插补的稳健性切分。",
+  "evidence": "L874-881 Level-3 回退无任何标记; 实测当前语料 857 篇中 849 篇 L1/L2 城市精确解析、8 篇 (0.9%) 走省会回退、0 篇不可定位 — 行为活跃但试跑占比小; 全量 17M 篇媒体地理字段质量未知, 占比可能显著上升。",
+  "suggested_fix": "为每 (bank,year) 格记录省会插补文章占比 (如 prox_geo_imputed_frac), 或提供仅 L1/L2 解析文章的稳健性孪生列; 论文中披露插补率。",
+  "adjudication": "用真实config+_clean_geo_name复算857篇: L1/L2=849/省会回退=8(0.9%)/不可定位=0, 逐数吻合。L874-881无任何插补标记, 省会银行距离压0上偏is_local/frac, 误差非经典且与区位相关, 下游无法剔补稳健性切分。当前活跃非latent, 占比小定P3。",
+  "unit": "geography"
+ },
+ {
+  "id": "g-geography-05",
+  "severity": "P3",
+  "latent": false,
+  "title": "LOO IV 日志把 Manski (1993)/Bramoullé (2009) 标为'文献支撑' (反射问题文献恰是该同期组均值 IV 的识别威胁) + 模块头/Returns 仍写 '28 个' 距离缓冲变量 (实际 40)",
+  "file": "pipeline/panel/geography.py",
+  "line": "606-607, 11, 818",
+  "claim": "(a) compute_leave_one_out_sentiment 启动日志 L606-607 将 Manski 1993 (reflection problem) 与 Bramoullé 2009 列为 '[文献支撑 1/2]': Manski 证明的是线性均值模型下同期组均值*不可识别*, Bramoullé 的识别条件依赖网络非传递三元组结构 — 两文是该同期 LOO 组均值 IV 的威胁与限定条件, 当作支撑性引用与本仓已修的 network_brokerage '同期LOO不解Manski反射' 同族 (该修复未覆盖本文件); docstring 已有 T=2 弱 IV 披露 (L519-527) 但无反射问题披露。(b) 模块头 L11 '28 个媒体接近度指标' 与 compute_geo_proximity_buffers Returns 段 L818 '追加 28 个距离缓冲变量' 均为 2026-06-08 双轨化前陈值, 函数体 L792-793 已正确写 40, 盘上实数 40 列。",
+  "evidence": "L606: 'logger.info(\"  [文献支撑 1]: Manski, C. F. (1993). Identification of endogenous social effects: The reflection problem...\")'; 盘上 prox_ 前缀列 = 40 (实读 40_panel_yearly.parquet); L818: 'panel: 追加 28 个距离缓冲变量'。",
+  "suggested_fix": "日志改为 '[识别威胁披露]: Manski 1993 反射问题 — 本 IV 依赖 Luo & Li 2025 排他性论证, 同期组均值识别受限'; L11/L818 的 28→40。",
+  "adjudication": "L606-607原文确认'[文献支撑1]Manski 1993 reflection problem'; Manski证同期组均值不可识别、Bramoullé识别需非传递网络(地理完全组不满足), 标'支撑'属倒置; grep全文件无反射披露(L518-527仅弱IV)。台账修复仅network_brokerage未覆盖本文件。L11/L818写28, L792-793与盘上prox_列实数40。",
+  "unit": "geography"
+ },
+ {
+  "id": "g-geography-06",
+  "severity": "P2",
+  "latent": false,
+  "title": "bert_avg_pos/neg 把二分类 finbert2 与三分类模型直接平均: pos+neu+neg 全行≠1 (最大 1.33), pos 概率系统性上偏",
+  "file": "pipeline/panel/geography.py",
+  "line": "79-81 (bert_avg 系列构造)",
+  "claim": "bert_avg_pos/neg = mean over BERT_MODELS (含二分类 finbert2), 而 bert_avg_neu = mean over 仅 THREE_CLASS_MODELS (2 个)。finbert2 二分类把中性概率质量重归一进 pos/neg (pos+neg≡1), 其 pos 均值 0.912 远高于三分类的 0.690/0.817 — 直接平均混合两种类空间, 使 bert_avg_pos 作为'正面概率'被系统性上偏, 且 bert_avg_{pos,neu,neg} 不构成概率单纯形。",
+  "evidence": "盘上实测: bert_avg_pos+bert_avg_neu+bert_avg_neg 在全部 118 个非缺失行 ≠1, full 轨 max 1.177、ctx 轨 max 1.333 (而 fin_sent_zh/finbert_cn 各自三类和=1±1e-4 仅舍入)。逐列复算确认 bert_avg_pos_full == (finbert_cn_pos+fin_sent_zh_pos+finbert2_pos)/3 (maxdev=0.0), bert_avg_neu_full == 两个三分类均值 (maxdev=0.0)。模型均值: finbert2_pos 0.912 vs finbert_cn_pos 0.690, fin_sent_zh_pos 0.817。",
+  "suggested_fix": "bert_avg_pos/neg 仅在 THREE_CLASS_MODELS 上平均 (与 neu 同域), finbert2 单独保留为二分类稳健轨; 或先把三分类模型重归一为 pos/(pos+neg) 再与 finbert2 平均并改名 (如 bert_avg_pos_cond), 同时在 codebook 披露。",
+  "adjudication": "geography.py:79-81 pos/neg 平均全部 BERT_MODELS(含二分类 finbert2), neu 仅 THREE_CLASS_MODELS(encode.py:66-72) — 自身已承认类空间不同却仍混 pos/neg。盘上实证: finbert2 pos+neg≡1(dev 2e-16), pos 均值 0.912 vs 三分类 0.690/0.817; bert_avg_pos==三模型均值(maxdev=0); 三类和 max 1.325/1.333。声称的118行系非零新闻行口径, 实质完全成立。聚合域缺陷, 非台账已修项。",
+  "unit": "data-panel-invariants"
+ }
+]

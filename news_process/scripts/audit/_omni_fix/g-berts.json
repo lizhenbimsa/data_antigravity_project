@@ -1,0 +1,54 @@
+[
+ {
+  "id": "g-berts-01",
+  "severity": "P1",
+  "latent": false,
+  "title": "finbert2 全程使用 finbert_cn 的 tokenizer 推理 — 共享分词组仅按 max_length 分组, 无词表一致性校验",
+  "file": "pipeline/sentiment/tone_berts.py",
+  "line": "389-390 (分组), 437-454 (representative tokenizer), 479-497 (共享窗口), 514-524 (逐模型复用)",
+  "claim": "v5 '相同 max_length 的模型共享同一次批量分词' 优化把 tokenizer 等价性偷换成 max_length 相等。3 个模型 max_length 全为 512 → 同组, representative = 首个加载成功的 finbert_cn; finbert2 (valuesimplex FinBERT2, 词增强 BertTokenizer: vocab_size 34,932 含 ~13,800 个多字词 added_tokens, do_lower_case=true) 收到的却是 finbert_cn char-level、保留大小写的 token id (vocab 21,128)。finbert2 微调与预训练分布从未见过这种纯字级、未小写化的输入, 其全部情感输出是对错误 tokenization 的预测; 滑窗切分也按 char-level token 数进行 (token 数膨胀 ~60% → 窗口边界/数量与模型自身分词不符)。",
+  "evidence": "代码: `self._groups.setdefault(ml, []).append(short_name)` (L390, ml=max_length); `tokenizer = self.tokenizers[representative]` (L448) 后整组 Step1-2 仅用该 tokenizer 构造 windows_data, Step4 `for short_name in group_names` 直接复用。盘上证据: config/sentiment.yaml L262-280 三模型 max_length 均 512; HF 缓存与本地 FINBERT2_MODEL_DIR (FinBERT2-base_SC_2) config.json 实读 vocab_size=34932 / do_lower_case=true, 而 finbert_cn=bert-base-chinese 词表 21128 / do_lower_case=false (vocab.txt md5 相同的仅是 base 部分)。只读实证 (本地加载 finbert2, 40 篇 c",
+  "suggested_fix": "分组键由 max_length 改为 tokenizer 身份 (如 (vocab 文件 hash, do_lower_case, special_token_ids) 元组), 不同身份各自走 Step1-2 分词与窗口构造; 或最小修: load_all 时校验组内每个模型 tokenizer 与 representative 的 get_vocab()/init_kwargs 一致, 不一致者独立分词。修后需重跑 stage 23 finbert2 双轨并重生 panel/golden。",
+  "adjudication": "亲验坐实且比声称更严重: tone_berts.py:389-390 仅按 max_length 分组, L448/L514 整组复用 finbert_cn token id。实测 finbert2 基础词表 21128 条中 20785 条与 bert-base-chinese 不一致(整体错位1位: 银7214→7213), 喂入的每个 id 解析为另一个字=乱码输入; 13809 词级 added_tokens 从未被用。盘上 23_bert_tone.parquet finbert2 双轨列即此路径产出(815/857 判正), live 非 latent。",
+  "unit": "tone-berts"
+ },
+ {
+  "id": "g-berts-02",
+  "severity": "P2",
+  "latent": true,
+  "title": "批级推理异常把整批 200 篇 × 全部模型静默置为 '中性'+全 0 概率哨兵, 与空文本不可区分且下游无过滤",
+  "file": "pipeline/sentiment/tone_berts.py",
+  "line": "605-612 (_empty_result), 648-654 (except 兜底), 883-892 (num_windows 写盘)",
+  "claim": "process_all_models 的 `except Exception` 把任意推理异常 (CUDA OOM / 驱动抖动 / 编程错误) 降级为该批全部文章、全部已加载模型的 _empty_result: label='中性', 全类别概率 0.0 (非 NA), num_windows=0, 仅 logger.warning。三重缺陷: (1) 概率 0.0 是哨兵而非测量值, 下游 encode.py 对 BERT 概率列按 'mean/sum 全物理域' 聚合 (encode.py:1458 明示 'BERT prob=0(非 NA) 不改'), 该决策只考虑了真空文本, 未考虑异常批 — 受影响 bank-year 的 {sn}_pos/neg 双向衰减向 0; (2) label '中性' 对 2-class finbert2 是其标签空间外的类别, 且与真实中性预测在 label 列不可区分; (3) num_windows=0 同时编码 '空文本' 与 '推理失败' 两种语义, 无独立失败 flag 列。",
+  "evidence": "L648-654: `except Exception as e: logger.warning(...); new_results[sn] = [engine._empty_result(sn) for _ in batch_texts]` — 已成功算完的模型结果也被整批覆盖 (异常发生在组内第 2 个模型时, run_all_models 整体抛出)。L612: `return {'label': '中性', 'probabilities': prob_dict(全0.0), 'num_windows': 0}`。对照 LLM 族 v6/F2 契约 (encode.py:88-100): 测量失败→pd.NA 与真实中性严格区分; BERT 族无任何等价机制。盘上当前 857 行无哨兵 (prob-sum min=1.0000, num_windows min=1), 故为 latent: 17M 语料 ≈ 85,000 批 × 3 模型, 单次瞬态 GPU 故障即静默污染 200 篇 × 全模型。",
+  "suggested_fix": "异常路径与空文本路径分离: 增加 {sn}_valid{track} (或 bert_inference_failed) 标志列, 失败行概率写 NaN 而非 0.0 (pandas mean 自动跳过, 与 LLM 族 v6/F2 契约对齐); 至少对异常批做有限次重试并在 stage 末尾统计失败篇数, 超阈值时非零退出。",
+  "adjudication": "代码坐实: tone_berts.py:648-654 except Exception 整批×全模型覆盖 _empty_result(L612: 中性+全0概率+num_windows=0)仅 warning; encode.py:528-537 prob 全物理域 mean/sum, L1458 明示 BERT prob=0 不改→哨兵直进聚合, 无失败 flag, 与空文本共用 num_windows=0。盘上实测无哨兵(prob-sum min=1.0, num_windows min=1), 17M 全量 GPU 瞬态故障即触发→latent。",
+  "unit": "tone-berts"
+ },
+ {
+  "id": "g-berts-03",
+  "severity": "P3",
+  "latent": true,
+  "title": "num_labels 不匹配时回退 DEFAULT_LABEL_MAP 的顺序对两个 hub checkpoint 都是极性翻转, 守卫仅 warning 不阻断",
+  "file": "pipeline/sentiment/tone_berts.py",
+  "line": "350-360 (回退), 362-377 (warning-only 守卫), 175-176 (DEFAULT_LABEL_MAP)",
+  "claim": "当 checkpoint 实际 num_labels != 配置 label_map 条目数时, 代码以 DEFAULT_LABEL_MAP={0:负面,1:中性,2:正面} 整体覆盖配置映射。但两个在产 checkpoint 的真实顺序分别是 finbert_cn={0:Neutral,1:Positive,2:Negative}、fin_sent_zh={0:positive,1:neutral,2:negative} — 回退一旦触发 (config 漂移 / 换 checkpoint / FINBERT2_MODEL_DIR 指向 3-class 微调), 0↔2 极性完全对调 = tone 符号翻转。L368-377 的极性顺序守卫能识别这种对调, 但只 logger.warning 后照常用错误映射出数。",
+  "evidence": "L360: `label_map = DEFAULT_LABEL_MAP_2CLASS if actual == 2 else DEFAULT_LABEL_MAP` (\"以模型为准\"只修条数不修顺序); L370-377 检测到不一致时仅告警: '本步骤不自动重排, 仅告警'。checkpoint 真实 id2label 已从 HF 缓存 config.json 实读验证。当前三模型 config label_map 与各自 checkpoint 逐一核对一致, 故现状无错值 — 纯 latent 防线缺口。",
+  "suggested_fix": "回退顺序应优先采用 checkpoint 自带 id2label 经 _polarity_of 归一后的映射 (而非项目侧 DEFAULT 顺序); _label_order_consistent 失败时对该模型 raise 或 graceful skip, 不得继续以可疑映射出数。",
+  "adjudication": "实读 checkpoint config.json 验证: finbert_cn id2label={0:Neutral,1:Positive,2:Negative}, fin_sent_zh={0:positive,1:neutral,2:negative}, 与 DEFAULT_LABEL_MAP={0:负面,1:中性,2:正面}(L175)均为 0↔2 极性翻转; L360 回退只修条数不修顺序, L370-377 守卫检测到也仅告警照常出数。当前三模型 config 与 checkpoint 逐一吻合, 回退未触发→纯 latent 防线缺口。",
+  "unit": "tone-berts"
+ },
+ {
+  "id": "g-berts-04",
+  "severity": "P3",
+  "latent": true,
+  "title": "模型加载失败被 except 静默吞掉, 任一 hub 模型缺席仍 exit 0 → 输出 schema 静默漂移",
+  "file": "pipeline/sentiment/tone_berts.py",
+  "line": "394-395 (load_all except), 846-849 (仅全军覆没才退出)",
+  "claim": "load_all 对每个模型 `except Exception: logger.error` 后继续; main 仅在 0 个模型加载成功时 SystemExit(1)。文档化的 graceful-skip 契约只针对 FINBERT2_MODEL_DIR 缺失 (CLAUDE.md / sentiment.yaml L272-275), 但同一兜底同样吞掉 finbert_cn / fin_sent_zh 的瞬态故障 (HF 连接失败是本机已实测发生过的场景, 见 stage23 HF offline 记录): 该模型双轨全部列从输出 parquet 整体消失, 阶段照常 SUCCESS, 下游 encode.py 按列存在性静默跳过 → 面板少一个模型族而无任何 gate 拦截。",
+  "evidence": "L394-395: `except Exception as e: logger.error(f'  模型 {model_id} 加载失败: {e}')` — 不区分 '预期的 finbert2 路径未配' 与 '非预期的 hub 模型故障'; L847: `if not loaded_names: ... SystemExit(1)` 是唯一硬闸。encode.py BERT 聚合全部以 `if f'{short}_正面{track}' in df.columns` 风格条件注册, 缺列无声跳过。",
+  "suggested_fix": "区分预期跳过与意外失败: 仅 model_id 为空/路径不存在 (finbert2 未配) 时允许 skip; 其余模型加载失败默认 raise (或受 config 开关 strict_models 控制), 并在 stage summary 中显式记录 loaded/expected 计数供 gate 校验。",
+  "adjudication": "代码坐实: tone_berts.py:394-395 吞任意加载异常不区分 finbert2 预期缺席与 hub 瞬态故障, L847-849 仅 0 模型才 exit 1; encode.py:889-903 缺源列聚合仅 warning 跳过→面板整族消失而阶段 SUCCESS, 无 gate。HF 连接故障本机已实测发生(memory stage23 记录), 盘上当前 3 模型齐全未触发→latent 降级透明性缺口。",
+  "unit": "tone-berts"
+ }
+]

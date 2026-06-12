@@ -1,0 +1,80 @@
+[
+ {
+  "id": "g-val-prompt-01",
+  "severity": "P2",
+  "latent": false,
+  "title": "FIX-REGRESSION: prompt_sensitivity ctx 轨变体未剥离 prepend 标题 — 标题双重注入污染 baseline↔variant 对照 (tonellms-01 修复未传播)",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\validation\\prompt_sensitivity.py",
+  "line": "509, 514-520 (run_variant_llms)",
+  "claim": "生产 stage 21 构造 ctx 轨 prompt 时显式剥离 stage 13 prepend 进 content_ctx 的标题 (tone_llms.py:608-613 `content_ctx_body = _strip_prepended_title(content_ctx, title)`, fix tonellms-01 注释明言双重注入'污染 full↔ctx 对照'), 但 prompt_sensitivity.run_variant_llms 直接用 `content_ctx = str(row.get('content_ctx', content_full))` 喂变体 prompt, 且模板同时注入 `{title}` 字段 → 变体 ctx 输入 = 标题两次, baseline V0 ctx 输入 = 标题一次。盘上实证: 21_tone_llms_full.parquet 1170/1170 行 content_ctx 以标题开头 (而 `内容` 仅 7/1170 巧合开头) → 当前代码任何重跑必触发。",
+  "evidence": "prompt_sensitivity.py L509 `content_ctx = str(row.get('content_ctx', content_full))`; L514 `for track, content in [('full', content_full), ('ctx', content_ctx)]` + L516 `prompt = variant_prompt.format(title=title, content=content, ...)`; 对照 tone_llms.py L613 `content_ctx_body = _strip_prepended_title(content_ctx, title)`。盘上验证: python 读 parquet, content_ctx startswith(标题) = 1170/1170。",
+  "suggested_fix": "run_variant_llms 中复用生产同款剥离: `content_ctx = _tone_llms._strip_prepended_title(str(row.get('content_ctx', content_full)), title)`; 重生 eval_reports 4 个产物。",
+  "adjudication": "实证坐实: tone_llms.py:608-613 生产剥离 ctx 标题前缀, prompt_sensitivity.py:509+514-520 直接用 content_ctx 并另注 {title} → 变体 ctx 标题两次/V0 一次。盘上验证 1170/1170 行 content_ctx 以标题开头(内容仅7/1170)。任何重跑必污染 ctx 轨措辞敏感性指标, tonellms-01 修复未传播。",
+  "unit": "validation-sensitivity"
+ },
+ {
+  "id": "g-val-prompt-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "变体 prompt 滞留 v7 三阶段 schema, 缺 v8 第三维度 innovation_collab_mode — 覆盖缺口 + baseline↔variant schema 不一致 + 死阈值配置",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\validation\\prompt_sensitivity.py",
+  "line": "143-384 (VARIANT_PROMPTS), 117-118 (PASS_THRESHOLD_INNOVATION_COLLAB_MODE)",
+  "claim": "生产冻结 prompt v8 (config/prompts/unified_cot.txt:62 维度3, L111-113 JSON 含 innovation_collab_mode 三字段, Chesbrough 2003 自主研发/外部协同), 但 V1-V4 四个变体的 JSON schema 全部停在 v7 (仅 substantiveness + locus, 无 collab_mode 字段) → (a) 第三维度零敏感性覆盖, 尽管 PASS_THRESHOLD_INNOVATION_COLLAB_MODE 在 L118 已为其定义阈值却全文件仅出现一次 (grep 证实从未消费); (b) 变体输出 schema ≠ V0 baseline schema, 违反 L21-22 设计原则'不改变输出 JSON schema'; (c) V0 (v8 全 schema) 与变体 (v7 schema) 的差异部分可归因于 prompt 版本差而非措辞 — 盘上 prompt_sensitivity_results.json 显示全部 4 变体 true_rate (0.602-0.653) 相对 baseline (0.724/0.678) 同方向系统性下移, 与版本级混淆一致。",
+  "evidence": "VARIANT_PROMPTS 4 个模板的输出 JSON 块 (如 L185-201) 均止于 innovation_locus_confidence; unified_cot.txt L111-113 含 innovation_collab_mode/_reason/_confidence; grep 'COLLAB' 在 prompt_sensitivity.py 仅命中 L118 定义行; criteria dict (L1195-1204) 与 generate_reports thresholds (L852-859) 均无 collab 项。",
+  "suggested_fix": "将 4 个变体的 JSON schema 同步补齐 v8 三字段 (每变体在自身扰动维度内保持 collab 判定实质不变), 在 compute_pairwise_consistency 增加 collab 维度并接线 PASS_THRESHOLD_INNOVATION_COLLAB_MODE 进 criteria; 或在报告中显式披露 collab 维度未检验并删除死阈值。",
+  "adjudication": "亲验: V1-V4 输出 JSON 均止于 innovation_locus_confidence (如 prompt_sensitivity.py:185-201), unified_cot.txt:62/111-113 v8 含 collab_mode; PASS_THRESHOLD_INNOVATION_COLLAB_MODE 仅 L118 定义从未消费(grep 证实); criteria L1195-1204 无 collab。盘上 JSON 4 变体 true_rate 双轨同向下移(0.583-0.653 vs 0.678/0.724), 与版本混淆一致。P5 collab 论文第三维度零敏感性覆盖。",
+  "unit": "validation-sensitivity"
+ },
+ {
+  "id": "g-val-prompt-03",
+  "severity": "P2",
+  "latent": false,
+  "title": "Prompt 敏感性通过/未通过裁决仅基于 full 轨, ctx 轨 (论文主 spec 所在轨) 不进 gate",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\validation\\prompt_sensitivity.py",
+  "line": "1170-1206 (Step 7), 843-872 (json_report 单一 passed 字段)",
+  "claim": "Step 7 明示'通过/未通过判定（基于 full 轨道）': mean_v_agree/mean_s_agree/min_kappa/alpha/iss/il 全部取 pairwise_results['_full'] 与 multi_results['_full'], ctx 轨指标虽计算并写入 JSON 但对 `passed` 零贡献; 而 CLAUDE.md 与 paper spec 明确 P1 主线 main = llm_vote_tone_ctx (ctx 轨)。JSON 顶层单一 'passed' 字段与 LaTeX 表均以此裁决呈现。",
+  "evidence": "L1173-1179 `full_pw = pairwise_results['_full']; full_multi = multi_results['_full']; mean_v_agree = np.mean([full_pw[vk]['verification_agreement'] ...])`; L1206 `passed = all(criteria.values())`; generate_reports L862 `'passed': passed` 单字段。盘上 JSON 本次 passed=false (两轨都低), 但若 full 过而 ctx 不过 (盘上两轨 iss_k 各自最低 0.284/0.342, 在阈值边缘), 裁决会误报通过。",
+  "suggested_fix": "裁决改为双轨各自评估并取 AND (或至少以 ctx 轨为主裁决), JSON 输出 passed_full/passed_ctx/passed 三字段。",
+  "adjudication": "prompt_sensitivity.py:1173-1206 全部 criteria 取 pairwise_results['_full']/multi_results['_full'], passed=all(criteria) 单字段写 JSON (L861, 盘上 passed=false)。CLAUDE.md 明示 P1 main=llm_vote_tone_ctx。盘上 iss_κ ctx 最低 0.342 vs full 0.284, 两轨阈值边缘, full 过 ctx 不过时会误报通过。",
+  "unit": "validation-sensitivity"
+ },
+ {
+  "id": "g-val-prompt-04",
+  "severity": "P3",
+  "latent": false,
+  "title": "innovation_locus 聚合规则 baseline 与变体不一致: 生产是 LLM 多数票+keyword 分类器回退/交叉验证混合, 变体侧是纯 LLM 票 (空票→None)",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\validation\\prompt_sensitivity.py",
+  "line": "600-603 (aggregate_variant_results) vs tone_llms.py 1702-1722 (_resolve_locus_track)",
+  "claim": "V0 baseline 的 innovation_locus_full/_ctx 列 (extract_baseline L644-650 直读 parquet) 由生产 _resolve_locus_track 产出: majority_vote_categorical(..., empty_fallback=_kw_cat) 且 LLM 空票时直接返回 canonicalize_topic 的 keyword 类目 → baseline locus 永不为 None; 变体侧 aggregate_variant_results 用 empty_fallback=None (L600-603), LLM 空票/解析失败时产 None。compute_pairwise_consistency 对 verified∩verified 子集 astype(str) 比较 → baseline keyword 类目 vs 变体 'None' 必计为不一致, 该不一致源于聚合规则差而非措辞。substantiveness 侧两边一致 (均 empty_fallback=None), 唯 locus 不对称。",
+  "evidence": "prompt_sensitivity.py L600-603 `majority_vote_categorical(innov_loci, tie_strategy='conservative', tie_default='应用场景', empty_fallback=None)`; tone_llms.py L1709-1722 `empty_fallback=_kw_cat` + `if innov_loci_track: ... return _majority...; return _kw_cat, _kw_conf`; compute_pairwise_consistency L734-738 `astype(str)` 直接比较。",
+  "suggested_fix": "变体侧 locus 聚合复用与生产相同的 _resolve_locus_track 逻辑 (含 keyword 回退), 或在比较时剔除 LLM 空票行并披露 n。",
+  "adjudication": "tone_llms.py:1709-1722 生产 _resolve_locus_track 用 empty_fallback=_kw_cat 永不返 None; prompt_sensitivity.py:600-603 变体用 empty_fallback=None; extract_baseline L644-650 直读生产 parquet。compute_pairwise_consistency L734-738 astype(str) 比较 → 空票行 keyword 类目 vs 'None' 计为措辞不一致。仅 verified∩verified 内空 locus 票时触发, 窄但真实, P3 恰当。",
+  "unit": "validation-sensitivity"
+ },
+ {
+  "id": "g-val-prompt-05",
+  "severity": "P3",
+  "latent": false,
+  "title": "变体调用失败行未剔除/未标记 — API 失败噪声计入措辞不一致, 且变体重试次数 (1) 远低于生产",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\validation\\prompt_sensitivity.py",
+  "line": "109 (PROMPT_MAX_RETRIES), 583-616 (aggregate_variant_results)",
+  "claim": "PROMPT_MAX_RETRIES = max(1, min(MAX_RETRIES, cfg 默认 1)) → 变体每请求仅 1 次尝试 (生产 MAX_RETRIES 更高), 失败概率系统性更高; _aggregate_track 返回的 _call_failure/_undefined 逐行旗标在 L588-591 被弃 (下划线变量), 全失败行落到 final_v=False / final_s='中性' 默认值并原样进入 κ/agreement 比较, 被计作与 baseline 的'措辞不一致'。仅有全局 fail_rate>20% 的 log 提示 (L613-614), 不剔除、不进 detail CSV、不影响裁决。",
+  "evidence": "L109 `PROMPT_MAX_RETRIES = max(1, min(_tone_llms.MAX_RETRIES, int(PS_CFG.get('max_retries', 1))))`; L583-591 解包 `_call_failure, _undefined` 后未使用; L607-610 直接写入 verified/sentiment 列; compute_pairwise_consistency 无失败行掩码。",
+  "suggested_fix": "保留 _call_failure/_undefined 旗标列, 在一致性计算中剔除 (或敏感性分析含/不含两版), detail CSV 增加 call_failure 列; 将变体 max_retries 与生产对齐。",
+  "adjudication": "prompt_sensitivity.py:109 PROMPT_MAX_RETRIES 默认 1 vs 生产 MAX_RETRIES=5 (tone_llms.py:166); L587-591 _call_failure/_undefined 解包即弃; 全失败行 final_v=False/final_s=None (非声称的'中性', tone_llms.py:1159-1166), astype(str) 后仍计为不一致; compute_pairwise_consistency 无失败掩码, fail_rate>20% 仅 log (L613-614)。机制成立, 细节小errata不改结论。",
+  "unit": "validation-sensitivity"
+ },
+ {
+  "id": "g-val-prompt-06",
+  "severity": "P3",
+  "latent": true,
+  "title": "radius_sensitivity_llm 空泛真 pass: 全 NaN κ 时 passed=true; parse_track_results_from_cache 文档声称读缓存解析标签实则无条件返回全 None scaffold",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\validation\\radius_sensitivity_llm.py",
+  "line": "246-249 (write_radius_llm_report), 107-178 (parse_track_results_from_cache)",
+  "claim": "write_radius_llm_report 的 `passed: all(all(r['kappa'] >= 0.70 for r in dim_report.values() if not np.isnan(r['kappa'])) for ...)` — 当全部 κ 为 NaN (生成器为空) 时 all([]) == True → 输出 'passed': true、'pass_criterion': '全部 radius vs baseline κ ≥ 0.70' 的 JSON 报告, 而实际零个 κ 被检验。配套的 parse_track_results_from_cache 必然产生该场景: docstring 声称'从 LLMCache 读取指定 radius 下的篇章级 stage 3 标签', 实现 (L167-178) 对每行无条件返回 sentiment=None/n_models_responded=0 的占位行 (代码注释自认'lookup 接口可调用性证明'), 经 cohens_kappa_2cat 的 NaN mask 后 n=0 → 全维度 κ=NaN → 假阳性通过报告。",
+  "evidence": "L247-249 `all(all(r['kappa'] >= KAPPA_THRESHOLD_RADIUS for r in dim_report.values() if not np.isnan(r['kappa'])) for dim_report in report.values())`; L167-177 循环固定 append None/NaN 行; L59-64 cohens_kappa_2cat n<2 返回 NaN。latent: 模块无根 shim、未注册 DAG (Glob NN_*.py 无对应), --launch 路径也仅打 scaffold 警告。",
+  "suggested_fix": "passed 判定要求每维度至少 1 个非 NaN κ (如 `any(not isnan)` AND 全非 NaN 项达标), 全 NaN 时 passed=null/'insufficient_data'; parse_track_results_from_cache 在真实现落地前应 raise NotImplementedError 而非静默返回占位行。",
+  "adjudication": "radius_sensitivity_llm.py:246-249 all() 滤掉 NaN 后空生成器 → all([])==True 空泛通过; L167-178 无条件 append None/0 占位行与 docstring (L112-127) 矛盾。但 main() 从不调用二者 (--launch 在 L374-376 打 scaffold 警告即返), 模块无 shim/未注册 DAG → 盘上不产假报告, 缺陷真实但 latent。",
+  "unit": "validation-sensitivity"
+ }
+]

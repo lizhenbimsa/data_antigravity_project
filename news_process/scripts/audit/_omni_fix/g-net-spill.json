@@ -1,0 +1,80 @@
+[
+ {
+  "id": "g-net-spill-01",
+  "severity": "P1",
+  "latent": false,
+  "title": "共现网络边权口径不连贯: 在 verification 过滤后的展开帧上逐行双向计数, 边权为 1x/2x 任意混合且含 verification-拒绝的 phantom 边",
+  "file": "pipeline/panel/network_spillover.py",
+  "line": "139-157 (build_adjacency_matrix), 文档声称 L36-38/L107-109",
+  "claim": "docstring 声称 A[i,j]=两行在该年的'新闻共现次数'(每篇文章 +1)。实际实现对 stage-24 帧(已被 stage 21 `df[llm_verified_full | llm_verified_ctx]` 过滤, 1170→857 行)逐展开行(article×bank)对 co_mentioned_banks 双向 +1: 同一文章两 twin 行都幸存 → 该对计 2; 仅一行幸存(另一银行被 LLM verification 拒绝) → 计 1; 且 co_mentioned_banks 是 stage-11 的陈旧产物, 仍列出 verification 已拒绝的银行 → 这些'拒绝共现'照样入边。边权既不是 mention-based 共现数(需未过滤帧或统一计数), 也不是 verified-based 共现数(需双方均 verified 才入边), 而是与 LLM verification 结果纠缠的任意混合。",
+  "evidence": "盘上实证(2017 年网络, 24_herd_decay.parquet): 87 条边中 44 条(50.6%)为奇数计数(=至少一篇文章只有单 twin 幸存); 对照 both-verified-去重口径, 31/87(36%)边为 phantom(共现 token 指向的 twin 行被 verification 删除、从未双幸存); 行归一后 22/32 连通银行的 W 权重行 L1 差异 >0.01, 最大单元差 1.0(整行同行构成改变)。末端影响 peer_tone_lag1_full(2018): 32 个有值观测中 5 个(15.6%)仅因 phantom 边存在; 共同观测最大偏移 0.0344 ≈ 1.1×该测度自身 SD(0.0307)。stage-12 帧 1170 行中 64 个 (docid, co_bank) twin 键在 stage-24 缺失, 全部可在 12_fintech_news.parquet 找到 → 删除发生于 stage 21 verification 过滤(tone_llms.py:1893-1895)。",
+  "suggested_fix": "二选一并披露口径: (a) mention-based — 网络改在未过滤帧(12_fintech_news_full / 12_fintech_news)上构建, 或对当前帧按 docid 去重(每文章每无序对恰 +1, groupby('docid') 取 qualified 对集合); (b) verified-based — 仅当对内双方 (docid, bank) 行均幸存才入边且每文章 +1。两种口径都消除 1x/2x 混合与 phantom 边。",
+  "adjudication": "实证复现: tone_llms.py:1893-1895 union 过滤(1170→857)后, network_spillover.py:139-157 逐 twin 行计数→2017 年 87 边中 44 奇数(50.6%)、31 phantom(both-verified 口径下不存在); 42 个被引 twin 键在 d12 在场 d24 缺失; peer_tone_lag1_full 2018 的 32 观测中 5 个仅靠 phantom 边存在, 共同观测最大偏移 0.0344≈1.1×SD(0.0312)。docstring L107-109 '每篇文章+1' 与实现(双 twin 存活计 2)不符; 同矩阵还喂 22 中心度(L455)。非台账项。",
+  "unit": "network-spillover"
+ },
+ {
+  "id": "g-net-spill-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "Embedding 同业网超级文档前缀截断 8000 字符: 全量语料下 W_emb 退化为'最先若干篇文章前缀'的相似度 (latent, 试跑已 30% 现身)",
+  "file": "pipeline/panel/network_spillover.py",
+  "line": "1181 (MAX_CHARS=8000), 1220-1221 (texts = [t[:MAX_CHARS]])",
+  "claim": "bank-year 超级文档(该行该年全部 标题+内容 顺序拼接)在嵌入前硬截断为前 8000 字符。截断保留的是 df_exploded 行序最先到达的若干篇文章前缀, 而非代表性样本; docstring 声称'将每家银行每年的新闻文本编码为向量'与实现不符。",
+  "evidence": "盘上量化(24_herd_decay, 118 个 bank-year): 超级文档长度 mean=12,169 字符, max=151,249; 30.5% bank-year 超过 8000 截断阈值, 被截组中位仅保留 37.5% 文本; 文章数/bank-year 最高 101 篇。当前 0.055% 试跑已如此, T=18 全量(1700 万篇)下几乎所有 bank-year 将只剩最先 2-4 篇文章前缀 → W_emb、emb_peer_tone_lag1_*、bank_emb_sim_mean(_t2v) 实质度量'年初少数文章的相似度', 且取哪几篇取决于上游行序。对照: 同文件 compute_cognitive_proximity 的 TF-IDF 轨无截断(用全文), 两个邻近度测度信息集不一致。",
+  "suggested_fix": "分块嵌入后均值池化(把超级文档切成 ≤8000 字符块, embedding 取均值), 或复用 stage 30a 文章级 embedding 在 bank-year 内做(可加 mention_density 加权)均值聚合 — 后者零额外 API 成本且与缓存复用审计方向一致。",
+  "adjudication": "L1181 MAX_CHARS=8000 + L1221 t[:MAX_CHARS] 核实; 盘上复现: 118 bank-year 中 30.5%>8000, mean=12168/max=151248 字符, 被截组中位仅留 37.5%, 最多 101 篇/bank-year — 截断保留 df_lag 行序最先文章前缀, 非代表性。对照 compute_cognitive_proximity(L770+) TF-IDF 轨用全年全文, 两邻近度信息集不一致; docstring L1295 '每年的新闻文本' 与实现不符。盘上已现身故 confirm 而非 latent; T=18 下退化更剧。",
+  "unit": "network-spillover"
+ },
+ {
+  "id": "g-net-spill-03",
+  "severity": "P3",
+  "latent": false,
+  "title": "bank_emb_sim_mean 用 t-1 文本计算却无 lag1 命名/标注, 与 bank_cogn_mean(当年文本)口径不一致",
+  "file": "pipeline/panel/network_spillover.py",
+  "line": "1190 (sim_key), 1195-1197 (df_lag=lag_year), 1273-1280 (keyed at year t)",
+  "claim": "_compute_embedding_peer_network_pass 整个循环基于 lag_year=year-1 的文本(df_lag), sim_matrix 与 sim_mean 均由 t-1 超级文档算出, 但存储键为 (bank, year=t) 且列名 bank_emb_sim_mean / bank_emb_sim_mean_t2v 不含任何 lag 标记 — 同一 entry 内的 emb_peer_tone_lag1{suffix} 却显式带 lag1。同文件的孪生测度 bank_cogn_mean(compute_cognitive_proximity)用当年文本。stata_export.py:218 标签 'Bank Emb Sim Mean (T2V robust)' 亦未披露滞后。",
+  "evidence": "盘上验证: bank_emb_sim_mean 有效值分布 {2017: 0, 2018: 72}(2017 因无 2016 文本而全 NaN), 而 bank_cogn_mean 为 {2017: 72, 2018: 46} — 实证确认前者是 t-1 文本量, 后者是 t 文本量。两个'银行文本相似度'控制变量时间口径不同且未在列名/标签中区分。",
+  "suggested_fix": "列重命名为 bank_emb_sim_mean_lag1(及 _t2v), 或改为当年文本计算与 cogn_mean 对齐(嵌入已按年缓存, 额外成本仅首年); 至少在 export 标签与 codebook 中写明 'based on year t-1 text'。",
+  "adjudication": "L1196-1197 df_lag=year-1 文本, L1273-1280 存键 (bank, year=t), 列名 bank_emb_sim_mean 无 lag 标记(同 entry 的 emb_peer_tone_lag1 却显式带); compute_cognitive_proximity L827 用当年文本。盘上实证确认: emb_sim {2017:0, 2018:72} vs cogn {2017:72, 2018:46}。stata_export.py:218 标签亦未披露滞后。真实标签/口径缺陷, P3 恰当。",
+  "unit": "network-spillover"
+ },
+ {
+  "id": "g-net-spill-04",
+  "severity": "P3",
+  "latent": true,
+  "title": "bank_emb_sim_mean 的 sim_row>0 过滤把'排除对角线'与'按符号筛选'混同, 非正相似度被静默剔除且使 [0,1] 断言永不可触发",
+  "file": "pipeline/panel/network_spillover.py",
+  "line": "1274-1276 (sim_row[sim_row>0]), 1238 (fill_diagonal 0), 1240+1344-1347",
+  "claim": "对角线被置 0 后, 代码用 `np.mean(sim_row[sim_row > 0])` 求'与所有其他银行的余弦相似度均值'(L1274 注释)。该过滤同时剔除了任何真实 cosine ≤ 0 的同行(embedding 向量非负性无保证, text2vec/768d 轨与短文本下负 cosine 可发生), 实现的是'仅正相似度均值'而非声称的全同行均值; 由于均值只取正项, L1344-1347 的 [0,1] 范围断言在存在负相似度时也永不触发(自我掩蔽)。同根: row_stochastic_normalize(L1240) 直接对可能含负项的 sim 行做行和归一, 负'权重'下 W_emb 的加权均值语义破坏, 重归一分母 denom(L1268)可被负项侵蚀(denom≤0 时静默 NaN)。",
+  "evidence": "盘上当前值全为正(bank_emb_sim_mean ∈ [0.337, 0.685], _t2v ∈ [0.524, 0.736]), 故试跑无现值损坏 — 但机制上选择偏误存在且断言被过滤结构性绕过; latent 于 T=18 异质语料/稳健轨。",
+  "suggested_fix": "按索引排除对角: `sim_mean = np.mean(np.delete(sim_matrix[idx], idx))`; W_emb 构造前对 sim 做 `np.clip(sim, 0, None)`(并披露)或对负值显式守卫/告警; 断言改在过滤前的原始 sim 上检查。",
+  "adjudication": "L1238 对角置 0 后 L1276 mean(sim_row[sim_row>0]) 确实剔除一切非正 cosine, 与 L1274 注释'与所有其他银行均值'不符; sim_mean 恒>0 使 L1344-1347 下界断言结构性不可触发; L1240 row_stochastic_normalize 对可含负项的 sim 行行和归一, 负权重语义破坏。盘上当前值全正([0.337,0.685]/[0.523,0.736] 已验证)故不触发, t2v/异质语料下负 cosine 可发生 → latent 成立。",
+  "unit": "network-spillover"
+ },
+ {
+  "id": "g-net-spill-05",
+  "severity": "P3",
+  "latent": true,
+  "title": "eigenvector 中心度三级 fallback 跨年语义漂移: 收敛年非主分量银行得 ~0, fallback 年得 NaN",
+  "file": "pipeline/panel/network_spillover.py",
+  "line": "508-530",
+  "claim": "主路径 `nx.eigenvector_centrality(G,...)` 在断连图上对全部 bank_list 赋值(非主特征分量节点收敛到 ≈0, `ec.get(b, 0.0)` 兜底 0.0); 二级 fallback 改在 G_lcc 上算 `eigenvector_centrality_numpy` 且 `ec_lcc.get(b, np.nan)` — 非 LCC 银行变 NaN。同一列 bank_eigen_cent 在'某年 power 迭代收敛、另一年不收敛'时, 对结构上同类(非主分量)银行给出 0 与 NaN 两种不同语义, 缺失模式由数值收敛性而非网络结构决定。",
+  "evidence": "L511-514 主路径 `ec.get(b, 0.0)` vs L520-523 fallback `ec_lcc.get(b, np.nan)`; 触发条件 = PowerIterationFailedConvergence(共现网年度断连、多分量时更易发生; T=18 部分年份大网络下概率非零)。",
+  "suggested_fix": "统一退化语义: fallback 路径对非 LCC 银行同样赋 0.0(与主路径一致), 或主路径也仅对 LCC 赋值其余 NaN; 任选其一并在 codebook 披露。",
+  "adjudication": "L511-514 主路径全图 power 迭代 ec.get(b,0.0)(非主分量节点→≈0); L519-523 fallback 仅 G_lcc 上 numpy 求解且 ec_lcc.get(b,np.nan)→非 LCC 银行 NaN。同列 bank_eigen_cent 对结构同类银行的取值(0 vs NaN)由数值收敛性决定, 跨年缺失模式不一致属实。盘上小网未触发 fallback; T=18 大网断连多分量下 PowerIterationFailedConvergence 概率非零 → latent。不在降级修复台账(b0442124)清单内。",
+  "unit": "network-spillover"
+ },
+ {
+  "id": "g-net-spill-06",
+  "severity": "P3",
+  "latent": false,
+  "title": "NSP-B 注释把 W² 行特定重归一误称'2SLS 对工具的标度变换不变': 论证错误 (结论尚立)",
+  "file": "pipeline/panel/network_spillover.py",
+  "line": "285-291",
+  "claim": "注释以 '2SLS 对工具的标度变换不变 (相关性/排他性不变...)' 论证重归一不破坏识别。但去对角后按各行观测权重和的重归一是逐观测(row-specific)变换, 不是全局标量缩放: 2SLS 仅对工具的全局仿射变换不变, 行特定变换会改变工具的截面变异与第一阶段相关性('相关性不变'亦不成立)。识别有效性确实保住(确定性变换后的外生网络量仍是合法 IV), 但注释给出的两条理由均不准确, 会误导后续审计者以为估计值不变。",
+  "evidence": "L289-291: '2SLS 对工具的标度变换不变 (相关性/排他性不变, W² 去对角守住), 故不破坏识别' — 对照 L292-297 实现: denom2 = W2[:, obs_mask].sum(axis=1) 逐行不同 → peer_tone_2nd 从'路径概率加权和'变为'二阶邻居加权均值'是非平凡的逐观测重标度。",
+  "suggested_fix": "注释改为: '重归一是工具的逐观测确定性变换, 改变其截面变异(第一阶段系数与 F 统计量会变), 但工具外生性/排他性不受影响, 识别有效性保持'。",
+  "adjudication": "L288-291 注释以'2SLS 对工具的标度变换不变(相关性不变)'论证, 但 L294 denom2=W2[:,obs_mask].sum(axis=1) 是逐行(逐观测)除数 — 非全局标量缩放, 工具截面变异与第一阶段相关性都会变, '相关性不变'数学上不成立; 2SLS 不变性仅对工具集全局非奇异线性变换成立。识别有效性确实保住(外生确定性变换仍是合法 IV), 故仅注释论证错误。此为 2026-06-10 修复附带注释的新缺陷, 非台账重复(修复行为本身正确, 非 FIX-REGRESSION)。",
+  "unit": "network-spillover"
+ }
+]

@@ -1,0 +1,80 @@
+[
+ {
+  "id": "g-risk-01",
+  "severity": "P1",
+  "latent": true,
+  "title": "σ(ROA) 滚动窗与 NPL formation lag-1 均为位置语义, 缺年份连续性守卫 — gap year 下产出错误值而非 NaN (latent)",
+  "file": "pipeline/panel/risk_taking_outcomes.py",
+  "line": "158-170 (compute_sigma_roa_rolling), 202-219 (compute_npl_formation shift(1))",
+  "claim": "docstring 声称 sigma_roa_5y_rolling[b,t]=std(ROA[b,t-4..t]) (日历窗), 但实现是 groupby('target_bank').rolling(window=5) 的行位置窗; 同理 npl_lag1/loan_lag1 用 shift(1) 行位置滞后。当某 bank 的年度序列存在缺年 (无该 year 行) 时: (a) '5年'σ实际跨更长日历年; (b) NPL formation 把多年累计不良变动除以多年前的贷款余额, 产出错误数值而非 NaN。本人已实测: bank 年份 [2007,2008,2012,2013,2014] 时, 2012 年 npl_formation=(30-12+0)/110=0.1636 (lag 实为 2008 年), 日历正确答案应为 NaN; 2013 年 σ 标 '5y' 实跨 2007-2013 共 7 年。模块对输入既不 reindex 全年网格、不 assert (bank,year) 连续/唯一, 也无 year-diff==1 掩码。当前 dry_run 脚本恰好为缺失 bank-quarter 写 placeholder 行 (年网格完整时位置=日历), 但 full 模式加载器未实现, PDF fallback 只产 '找到的年份' 的 Q4 行 — 全量 T=18 + CBIRC 2018 后非公开 + Wind ~80% 覆盖下缺年几乎必然出现。latent: 触发条件=输入缺完整年网格。",
+  "evidence": "compute_npl_formation: `npl_lag1 = df_yearly.groupby('target_bank')['npl_balance'].shift(1)`; compute_sigma_roa_rolling: `.rolling(window=window, min_periods=min_periods).std()`。实测复现: df 年份 [2007,2008,2012,2013,2014] → npl_formation=[nan, 0.02, 0.16364, 0.005, 0.00952] (2012 错误地用 2008 作 lag); sigma=[nan,nan,nan,0.1291,0.1118] (2013 即出值, 窗跨 7 个日历年)。docstring L26 明写 'std(ROA[b, t-4..t])', L31 明写 'NPL_balance[b, t-1]' — 实现与声称公式在 gap 场景不一致。",
+  "suggested_fix": "在 build_risk_taking_outcomes Step 2 前对每个 bank reindex 到 [year_min..year_max] 完整年网格 (缺年填 NaN 行), 或在 shift/rolling 后用 `year - groupby.shift(year) == 1` (及窗口内 year span==window) 掩码无效观测; 同时 assert (target_bank,year) 无重复。",
+  "adjudication": "risk_taking_outcomes.py:166-169 rolling(5) 行位置窗、:203-204 shift(1) 行位置滞后, 全模块无 reindex 年网格/year-diff 校验; docstring L26/L31 明写日历语义。实测年份[2007,08,12,13,14]: 2012 npl_formation=0.16364(误用2008作lag), σ第4行即出值跨7日历年。dry_run 仅单季 placeholder, full 加载器未实现 — T=18 缺年下静默产错 DV 值, 坐实 latent P1。",
+  "unit": "risk-taking"
+ },
+ {
+  "id": "g-risk-02",
+  "severity": "P2",
+  "latent": true,
+  "title": "stock 类季度聚合每列独立取'最后可得季度' — 比率分子分母可来自不同季度 (rwa/TA、NPL/loans、LLP/loans 测量日错配) (latent)",
+  "file": "pipeline/panel/risk_taking_outcomes.py",
+  "line": "117-124 (aggregate_quarterly_to_yearly stock 路径) → 329-336 (rwa_to_ta/llp), 214-218 (npl formation)",
+  "claim": "M8 修复后 stock 列用 `g.ffill().iloc[-1]` 每列分别取该 bank-year 最后一个非 NaN 季度。结果是同一比率的分子分母可在不同日期测量: rwa 仅 Q1-Q2 可得而 total_assets 到 Q4 时, rwa_to_ta = rwa(Q2)/TA(Q4)。已实测: rwa=[50,52,NaN,NaN], TA=[100,104,108,112] → 年值 rwa=52, TA=112, 比率 0.4643, 而 Q2 同期一致值=0.5 (低估 7%, 增长越快偏差越大且永远向下)。同一机制污染 npl_balance(t)/total_loans(t-1) 与 LLP/loans 的口径一致性。当前盘上 49 输出为 0 行 (graceful-skip), 全量抓取后季度参差缺失下高频触发。",
+  "evidence": "代码注释自述 '每列分别取最大可得 quarter'; 实测 aggregate_quarterly_to_yearly 输出 {'rwa': 52.0, 'total_assets': 112.0} 同行, 0.4643 vs 0.5。",
+  "suggested_fix": "stock 聚合改为整行取 '该 bank-year 关键列均非 NaN 的最后一个季度' (行级 last-valid), 或至少对每个比率强制分子分母取同一季度; 并输出 quarter_used 指示列供下游稳健性。",
+  "adjudication": "risk_taking_outcomes.py:121-123 `g.ffill().iloc[-1]` 逐列独立取末个非NaN季度。实测 rwa=[50,52,NaN,NaN]/TA=[100,104,108,112] → rwa=52(Q2)/TA=112(Q4)=0.4643, 同期一致值0.5, 增长银行系统性向下偏。同机制污染 npl/loans、LLP/loans 口径。盘上 49 输出 0 行不触发, 全量季度参差缺失下高频触发 — latent P2 坐实。",
+  "unit": "risk-taking"
+ },
+ {
+  "id": "g-risk-03",
+  "severity": "P2",
+  "latent": true,
+  "title": "季度→年度聚合假设单季流量/时点比率, 与数据源 YTD 累计口径及 PDF '全年值记 Q4' 路径冲突 — writeoffs 年和可高估约 2 倍, ROA 年均值混口径 (latent)",
+  "file": "pipeline/panel/risk_taking_outcomes.py (+ scripts/data_acquisition/banking_outcome_dry_run.py)",
+  "line": "129-146 (intensive mean / flow sum); dry_run 脚本 442-449 (PDF 年报值 quarter=4), 210-241 (Wind 季末取数)",
+  "claim": "flow 列 loan_writeoffs 按年内 `.sum(min_count=1)`、intensive 列 roa/CAR/npl_ratio 按年内 `.mean()`, 隐含假设季度值是'单季流量/时点值'。但 (a) 中国银行业季报的核销/利润类流量按惯例为年初至今 (YTD) 累计, Wind 季末 wsd 取数即报表值 → sum(Q1..Q4 YTD) 可把全年核销高估至 ~2-2.5 倍, 直接灌入 npl_formation 分子; ROA (roa_avg2 常为 YTD 年化) 的 4 季均值≠全年 ROA; (b) 已确证的代码路径: fetch_from_annual_report_pdf 把'全年' 数值打成 quarter=4 的一条记录, 当同一年 Wind 提供 Q1-Q3 单季(或 YTD)而 Q4 来自 PDF 时, `.sum()` 把全年累计与季度值直接相加 (≥1.75×)。模块未按 data_source 区分口径, 也无任何 de-cumulation/口径守卫或文档披露。",
+  "evidence": "aggregate_quarterly_to_yearly L139-146: `groupby([...])[flow_avail].sum(min_count=1)` 无条件求和; dry_run 脚本 L445 `'quarter': 4,  # 年报数据归 Q4` + L466-486 acquire 级联说明同年可混源; _WIND_FIELD_MAP L124 'writeoff' 无单季换算。",
+  "suggested_fix": "在聚合层按 data_source/字段口径显式分流: YTD 字段取年内最后可得值 (= ffill last) 而非求和; 单季字段才求和; 至少在 docstring/codebook 披露当前假设并在抓取层统一为单季口径; 同年混源时优先同源整年。",
+  "adjudication": "代码坐实: aggregate L139-144 flow 无条件 sum(min_count=1); dry_run L445 PDF 年报值打 quarter=4, L466-484 级联允许同年 Wind Q1-Q3 + PDF Q4 混源 → 全年累计值与季度值直接相加; 模块不读 data_source、无 de-cumulation 守卫。中国银行季报核销/利润惯例 YTD (Wind 季末报表值) 下 sum 高估 ~2x 灌入 npl_formation 分子。盘上 0 行不触发 — latent P2。",
+  "unit": "risk-taking"
+ },
+ {
+  "id": "g-risk-04",
+  "severity": "P3",
+  "latent": false,
+  "title": "宣称的 σ(ROA) 3y robustness 路径必然崩溃: --rolling-window 3 时 min_periods 仍默认 4, pandas 直接 ValueError",
+  "file": "pipeline/panel/risk_taking_outcomes.py",
+  "line": "39 (docstring 'F5.2 默认 5y, 提供 3y/7y robustness'), 158-170, 402-403 (CLI defaults)",
+  "claim": "模块 docstring 与 V4 F5.2 承诺 3y/7y 窗口稳健性, 但 min_periods 独立默认 4 且与 window 无耦合校验: `--rolling-window 3` (不另传 --min-periods) → pandas `ValueError: min_periods 4 must be <= window 3`, 3 年窗稳健性检验无法按文档运行。实测 pandas 3.0.3 复现该异常。",
+  "evidence": "python 实测: pd.Series([...]).rolling(window=3, min_periods=4).std() → ValueError: min_periods 4 must be <= window 3; build_risk_taking_outcomes/main 均未做 min_periods=min(min_periods, window-?) 校验。",
+  "suggested_fix": "在 build_risk_taking_outcomes 入口加 `min_periods = min(min_periods, rolling_window)` (或按窗长比例缩放, 如 ceil(0.8*window)), 并在 CLI help 注明耦合关系。",
+  "adjudication": "docstring L39 承诺 '3y/7y robustness'; CLI L402-403 两参数独立默认 (window=5, min_periods=4) 无耦合校验, build_risk_taking_outcomes 亦无。pandas 3.0.3 实测 rolling(window=3, min_periods=4) → ValueError: min_periods 4 must be <= window 3。文档路径 `--rolling-window 3` 即崩 (7y 不受影响); 数据无关、随时触发, 但有 --min-periods 3 简单 workaround — P3 confirm。",
+  "unit": "risk-taking"
+ },
+ {
+  "id": "g-risk-05",
+  "severity": "P3",
+  "latent": false,
+  "title": "compute_llp_discretion 分母用当期 total_loans, 与其 docstring 声称喂给 BW2012 Eq.(2) 的 LHS 规格 LLP_t/Loans_{t-1} 相矛盾",
+  "file": "pipeline/panel/risk_taking_outcomes.py",
+  "line": "240 (docstring Eq: 'LLP_t / Loans_{t-1}') vs 243-247 (`loans = df_yearly['total_loans']` 当期)",
+  "claim": "函数 docstring 明写计划中的 Bushman-Williams 2012 Eq.(2) 为 'LLP_t / Loans_{t-1} = α + …' 且 '本 stage 仅产 raw ratio 作该 fundamentals model 的 LHS 输入', 但代码分母是当期 total_loans (LLP_t/Loans_t)。同文件 compute_npl_formation 已正确实现 loan_lag1 = shift(1), 证明滞后机制可用却未用于此处 — 同文件内自相矛盾。当未来 12_table3 BW2012 残差模板落地直接消费此列作 LHS 时, 分母口径即错 (高增长银行系统性压低比率)。与 KNOWN-OPEN ③ (残差未实现) 是不同缺陷: 这是 raw ratio 本身相对其声明角色的分母错配。",
+  "evidence": "L240 `LLP_t / Loans_{t-1} = α + β1·ΔNPL_t + …`; L245-247 `loans = df_yearly['total_loans']; np.where(invalid_loans, np.nan, llp / loans)` — 无 shift。当前唯一消费 = 11_table2 M_BW 把它直接当 DV 回归 (raw ratio 口径下当期分母尚可辩护但须披露)。",
+  "suggested_fix": "改用 `loan_lag1 = df_yearly.sort_values([...]).groupby('target_bank')['total_loans'].shift(1)` 作分母 (并继承发现1的年连续性掩码), 或修订 docstring/codebook 明示当期分母为刻意选择。",
+  "adjudication": "L240 docstring 明写 'LLP_t / Loans_{t-1} = α + …' 且 L235 自称'本 stage 仅产 raw ratio 作该 fundamentals model 的 LHS 输入'; L245-247 分母却是当期 total_loans 无 shift。同文件 compute_npl_formation L204 已实现 loan_lag1=shift(1), 机制可用未用 — 自相矛盾坐实。与 KNOWN-OPEN ③(残差未实现)不同维: 这是 raw ratio 相对其声明角色的分母错配; 11_table2:57 M_BW 已消费此列作 DV。P3 confirm。",
+  "unit": "risk-taking"
+ },
+ {
+  "id": "g-risk-06",
+  "severity": "P3",
+  "latent": true,
+  "title": "σ(ROA)<1e-6 → z_score 置 NaN: 把'最稳定银行'从 Z-score 样本中静默剔除 (对 DV 的选择性缺失)",
+  "file": "pipeline/panel/risk_taking_outcomes.py",
+  "line": "186-189 (compute_z_score invalid_denom)",
+  "claim": "`invalid_denom = denominator.isna() | (denominator.abs() < _DIV_EPS)` 把 σ≈0 的观测置 NaN。ROA 以 % 计且公开披露常仅 2 位小数, 5 年 ROA 完全相同 (σ 精确=0) 在政策性银行/数据粗粒度银行并非罕见 — 这些恰是 Z-score 理论上最大 (最稳定) 的观测, 被静默转为缺失等于在 DV 右尾做截断, 且缺失与稳定性 (DV 本身) 完全相关, 非随机。文献惯例是 winsorize σ 或用 ln(1+Z) 处理而非丢弃。",
+  "evidence": "L188-189: σ=0 → NaN, 无计数日志/指示列; summarize_outcomes 的 availability 也不区分 '数据缺失' 与 '零方差被剔'。",
+  "suggested_fix": "对 σ 做下侧 winsorize (如样本 p1 或固定 floor) 后再除, 或输出 zero_sigma_censored 指示列 + 日志计数, 论文中披露处理规则。",
+  "adjudication": "L188-189 实证: σ≈0 → NaN 无计数日志/指示列; summarize_outcomes L358-362 availability 不区分数据缺失 vs 零方差剔除。缺失与 DV(稳定性)完全相关=右尾截断非随机。NaN 本身是除零的合理处理(非数学错), 但同模块 M7 已为 writeoffs 设 imputed 指示列, 此处缺同等透明度属真实披露缺口; 触发需真实数据中零方差银行(PDF 粗粒度/政策行可能) — confirm-latent P3。",
+  "unit": "risk-taking"
+ }
+]

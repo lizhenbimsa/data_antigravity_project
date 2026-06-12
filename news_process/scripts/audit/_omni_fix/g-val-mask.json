@@ -1,0 +1,54 @@
+[
+ {
+  "id": "g-val-mask-01",
+  "severity": "P2",
+  "latent": false,
+  "title": "entity_masking ctx 轨掩码 prompt 标题双重注入, 与生产 baseline prompt 构造不一致 → 掩码一致性指标被格式变更混杂",
+  "file": "validation/entity_masking.py",
+  "line": "619-633 (ctx 掩码) + 256-263 (prompt 构造); 对照 pipeline/sentiment/tone_llms.py:608-613",
+  "claim": "生产 stage 21 的 ctx 轨 prompt 经 fix(tonellms-01) 用 _strip_prepended_title 剥离 content_ctx 的标题前缀, 保证标题仅经 {title} 字段注入 1 次; entity_masking 的 ctx 轨直接对盘上 content_ctx (=标题+实体窗口) 整体掩码后填入 {content}, 同时 {title} 又填 masked_title → 掩码后 ctx prompt 标题出现 2 次, 而 baseline (生产缓存) 判定时只出现 1 次。掩码前后判定差异因此混杂了 '实体匿名化' 与 'prompt 结构变化' 两个处理, ctx 轨的 verification/sentiment 一致率与 Cohen κ 不再是纯掩码效应; full 轨 (masks 原始 '内容', 与生产 full 轨同构) 不受影响 → 双轨 Δ<5pp 诊断与 '双轨均须通过' 综合判定同被污染。",
+  "evidence": "entity_masking.py L620-624: `content_ctx = str(row.get('content_ctx', row['内容'])); result_ctx = mask_entity(content_ctx, ...)`; L258-262: `prompt = PROMPT_TEMPLATE.format(title=row['masked_title'], content=row[content_col], ...)` — 全文件 0 处引用 _strip_prepended_title。tone_llms.py L613: `content_ctx_body = _strip_prepended_title(content_ctx, title)` 并注释 '若再把 {title} 作独立字段注入会致 ctx 轨标题双重注入...污染 full↔ctx 对照'。盘上实证: 21_tone_llms_full.parquet 1170 行 content_ctx startswith(标题) 比例 = 100.0%。",
+  "suggested_fix": "在 ctx 轨掩码前复用生产同一剥离逻辑: `content_ctx_body = _tone_llms._strip_prepended_title(content_ctx, str(row['标题']))` 再 mask_entity(content_ctx_body, ...), 使掩码 prompt 与 baseline prompt 仅差实体占位符。",
+  "adjudication": "",
+  "unit": "validation-robustness"
+ },
+ {
+  "id": "g-val-mask-02",
+  "severity": "P3",
+  "latent": false,
+  "title": "entity_masking 聚合一致性分母含 LLM 调用全失败行 (masked_verified 被空票判 False), 与逐模型分解的 valid 分母口径不一致",
+  "file": "validation/entity_masking.py",
+  "line": "325 (ver_match) + 337-340 (kappa) vs 348-353 (per-model notna 过滤); tone_llms.py:729",
+  "claim": "掩码重判若某行全部模型调用失败, _aggregate_track 的 majority_vote_bool([]) 返回 False (tone_llms.py L729 `if not bools: return False`) → masked_verified_{track}=False 且 call_failure=1; compute_masking_consistency 的验证一致率 (L325) 与 Cohen κ (L337-340) 在全部 n_replacements>0 行上计算, 不排除 masked_call_failure 行 — baseline_verified=True 的失败行被计为 '掩码翻转'。逐模型分解 (L348-353) 却用 notna 过滤掉失败模型 → 同一张表内聚合指标分母=physical、逐模型指标分母=valid, 口径不一致。叠加 ENTITY_MASKING_MAX_RETRIES 默认 1 (L111, 低于生产 MAX_RETRIES), 瞬时 API 故障直接压低 verification_consistency/κ。",
+  "evidence": "L325: `ver_match = (df_result[b_ver] == df_result[m_ver]).mean()` 无 call_failure/notna 过滤; L363 已统计 n_zero_replacements 但结果字典从不报告 n_call_failure; L674 存了 masked_call_failure_{track} 列却无任何消费。",
+  "suggested_fix": "聚合指标分母排除 masked_call_failure_{track}==1 (或 masked_n_valid_votes==0) 行, 并在 JSON 结果中报告 n_call_failure; κ 同步过滤。",
+  "adjudication": "",
+  "unit": "validation-robustness"
+ },
+ {
+  "id": "g-val-mask-03",
+  "severity": "P3",
+  "latent": false,
+  "title": "entity_masking 残留检测 (漏遮审计) 只扫描正文不扫描标题, 且 peer 替换计数漏计标题命中",
+  "file": "validation/entity_masking.py",
+  "line": null,
+  "claim": "",
+  "evidence": "",
+  "suggested_fix": "",
+  "adjudication": "",
+  "unit": "validation-robustness"
+ },
+ {
+  "id": "g-val-mask-04",
+  "severity": "P3",
+  "latent": true,
+  "title": "entity_masking 验证一致率: 掩码轨 LLM 调用全失败 → final_v=False 被计为'掩码翻转', 失败行留在分母",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\validation\\entity_masking.py",
+  "line": "325-340 (compute_masking_consistency), 692 (仅排除零替换行)",
+  "claim": "verification_consistency = (baseline_verified == masked_verified).mean() 的样本仅排除 n_replacements=0 行 (L692), 不排除 masked_call_failure=1 行。掩码轨 API 全失败时 _aggregate_track 的 majority_vote_bool([]) 返回 False (tone_llms.py:729) → masked_verified=False; 若 baseline_verified=True, 该行被计为掩码导致的判定翻转 (分子失配), 而它实为测量缺失 — 测量失败行坐在分母、真一致只能来自有效测量。Cohen's κ (L337-339) 同样吃进失败行。对照同函数 L349 逐模型分解已正确用 notna() 双侧过滤 — 聚合级与模型级口径不一致。",
+  "evidence": "entity_masking.py:325 `ver_match = (df_result[b_ver] == df_result[m_ver]).mean()` 无 call_failure 过滤; :674 `masked_call_failure_{track}` 列已生成但从未被 compute_masking_consistency 消费; tone_llms.py:729 `if not bools: return False`。",
+  "suggested_fix": "compute_masking_consistency 入口先过滤 `masked_call_failure_{track}==1` (及 baseline 对应失败行), 并把排除数写入返回 dict / 报告; κ 同步用过滤后样本。",
+  "adjudication": "entity_masking.py:325/337-339 聚合一致率与 κ 无 call_failure 过滤, L692 仅排零替换; L674 masked_call_failure 生成后从未消费; 同函数 L349 逐模型却 notna 双侧过滤 — 口径自不一致坐实。tone_llms.py:729 空票返 False 属实。盘上 detail.csv 1000 行 0 行三模型全失败 → 未触发, 全量规模 API 失败必现 → latent。",
+  "unit": "sweep-valid-physical-denom"
+ }
+]

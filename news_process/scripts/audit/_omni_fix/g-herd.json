@@ -1,0 +1,67 @@
+[
+ {
+  "id": "g-herd-01",
+  "severity": "P2",
+  "latent": false,
+  "title": "TF-IDF df-band 随组规模退化: min_df=5(绝对计数)+max_df=0.9 在小/中型银行组把词表压缩到近全员共现的 boilerplate 子空间, 相似度系统性膨胀, 0.35 阈值跨银行不可比",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\sentiment\\herd_decay.py",
+  "line": "83-103 (_build_tfidf_vectorizer), 与 config/sentiment.yaml:298-299",
+  "claim": "min_df=5 是绝对文档数: 对 n=6 的组, 配合 max_df=0.9 (floor(0.9*6)=5) 特征必须恰好出现在 5/6 篇中; 对 n=8 组特征带为 [5,7]/8。存活词表只剩近全员共享的常见 char-ngram, 全部判别性稀有特征被剪除, 任意两篇在该子空间的余弦被强行抬高 → 不相干文章被标为'跟风'。同一对文本是否触发 0.35 阈值取决于其银行有多少篇报道 (测量非不变性); 且 n≤5 走 relaxed(min_df=1) 与 n=6 的 [5,5] 退化带之间存在断崖不连续。",
+  "evidence": "盘上实证 (857 篇/87 银行, 复刻模块逻辑逐组对比生产参数 vs 统一全词表 min_df=1/max_df=1.0): n=8 组 flags 5 vs 0 (vocab 105 vs 10000); n=8 另一组 7 vs 3; n=19 组 11 vs 2 (vocab 1358); n=9 组 2 vs 0; n=54 农行组 29 vs 15 (近 2 倍); 全样本 flag 总数 715 vs 609 (+17%)。代码: `min_df = min(MIN_DF, n_docs)` (L89) 用绝对计数, `max_allowed_df = int(np.floor(max_df * n_docs))` (L92) 在小 n 下把允许带收窄到退化区间。",
+  "suggested_fix": "改比例化 min_df (如 max(2, ceil(0.005*n)) 并设上限) 或对全部组统一 min_df=1/max_df=1.0 (退化组实证显示 relaxed 才是无偏基准); 更彻底的做法是 fit 一次全语料 (跨银行) 共享词表/IDF 再按组切片计算相似度, 使 0.35 在所有银行含义一致; 改后需重生 24_herd_decay.parquet 与 golden。",
+  "adjudication": "herd_decay.py:89 min_df 绝对计数+L92 floor 收带: n=6 存活带 df∈[5,5.4] 即恰好 5/6 篇, n≤5 relaxed 与 n=6 断崖。盘上独立复现: full 轨 flags 313 vs 253(+24%), n=8 组 5 vs 0(vocab 293 vs 10000), vocab 105/1358 与证据吻合。跨组测度非不变性坐实, P2 成立。",
+  "unit": "herd-decay"
+ },
+ {
+  "id": "g-herd-02",
+  "severity": "P3",
+  "latent": true,
+  "title": "latent: max_features=10000 按词频截断在全量语料下把头部银行的相似度计算压入最高频 ngram 子空间",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\sentiment\\herd_decay.py",
+  "line": "73, 96-97",
+  "claim": "TfidfVectorizer(max_features=10000) 按语料词频保留 top-10k char 2-4 gram。试跑样本最大组 117 篇时词表仅 10630 → 截断几乎不咬合 (flags 207 vs 204)。但全量 2007-2024 头部银行 (工农中建招) 单组数十万篇, char 2-4 gram 原始词表达百万级, top-10k 全是高频 boilerplate ngram → 判别性长尾整体缺席, 余弦相似度对大银行系统性膨胀, 与发现1相反方向再次破坏 0.35 阈值的跨行可比性 (小行被 min_df 退化抬高、大行被 max_features 截断抬高, 中型行最'干净')。",
+  "evidence": "盘上实证: n=117 组 capped vocab=10000 vs uncapped=10630, flags 207 vs 204 (当前几乎无影响, 确认为 latent); 全量下 vocab/cap 比将达 100:1 量级。代码 L97 `max_features=MAX_FEATURES` 注释自称'维度封锁'仅作内存动机, 未披露其对相似度刻度的规模依赖效应。",
+  "suggested_fix": "全量 run 前与发现1一并处理: 共享全语料词表 + 用 hashing trick 或按 IDF (而非原始词频) 选 top-k 保留判别性特征; 至少在 codebook/披露中说明截断对大组相似度的影响并做 max_features 敏感性检验。",
+  "adjudication": "实测 n=117 组 capped 10000 vs uncapped 10630, flags 62 vs 62 — 盘上不咬合确为 latent。herd_decay.py:97 注释仅作内存动机; 全量头部银行数十万篇时 char 2-4 gram 词表百万级, top-10k 截断必咬合, 与 idx0 反向破坏阈值可比性, 未披露。",
+  "unit": "herd-decay"
+ },
+ {
+  "id": "g-herd-03",
+  "severity": "P3",
+  "latent": true,
+  "title": "relaxed 向量化降级路径静默触发: ValueError 重试改用 min_df=1/max_df=1.0 但零日志, 违反项目降级透明红线",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\sentiment\\herd_decay.py",
+  "line": "187-195 (_compute_similar_counts_for_track)",
+  "claim": "首次 fit 抛 ValueError (如剪枝后无词项) 时静默改用 relaxed 参数重试 — 该 (bank, track) 的相似度刻度与其余组不同 (词表从退化带跳到全词表), 但既不 logger.warning 也不在输出中留痕, 用户无法知道哪些组走了降级参数。本项目 2026-06-09 降级审计已确立 F7/F16/F21/F22 等'降级必须透明'红线, 此处是同类未覆盖点。第二次 ValueError 返回 None → 整组 weight 保持 1.0, 同样无日志 (对比: 缺列场景 L253/L264 均有 warning)。",
+  "evidence": "L189-195: `except ValueError: try: tfidf_matrix = _build_tfidf_vectorizer(len(texts), relaxed=True).fit_transform(texts) except ValueError: return None` — 两层 fallback 均无任何 logger 调用。盘上试跑 47 组 0 次触发 (复刻验证 fellback=0), 全量小语种/短文本组可触发。",
+  "suggested_fix": "两个 fallback 分支各加 logger.warning(bank/track/n_docs/原因), 可选在输出加 herd_vectorizer_relaxed_{track} 布尔列供审计。",
+  "adjudication": "herd_decay.py:187-195 两层 fallback 均无 logger 调用(对比 L253/L264 缺列有 warning), 二次失败 return None 整组 weight=1.0 同样无痕。实测双轨 94 组 0 次触发→盘上 latent; 全量 n=6 退化带空词表 ValueError 可触发。非台账已修项。",
+  "unit": "herd-decay"
+ },
+ {
+  "id": "g-herd-04",
+  "severity": "P3",
+  "latent": false,
+  "title": "模块文档三处与实现/现行架构不符: ctx 物化阶段错标 stage 21、docstring 仍称轨1用'内容'、阈值边界'高于/>'与代码 >= 不一致 (含 chunk_size 死参数 YAML 注释误导)",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\sentiment\\herd_decay.py",
+  "line": "34, 212, 214-215, 249; 另 config/sentiment.yaml:300",
+  "claim": "(a) L34 '输入: 23_bert_tone.parquet (含 content_ctx 列, 由 stage 21 物化后下传)' 与 L249 注释 'ctx 轨: 来自 stage 21 _materialize_content_ctx' 均为陈旧归属 — 现行架构 content_ctx/content_full 由 stage 13 ctx_materializer 物化 (本文件 L31-32 头部及 CLAUDE.md 均如此声明, 模块内部自相矛盾)。(b) compute_herd_weights docstring L212 '轨 1 用 内容' 与实现 L245-247 优先 content_full 不符 (病根A修复后未同步)。(c) L29 '高于此值视为跟风' 与 L214-215 '相似度 > 阈值' vs 代码 L122/L161 实为 `>=` (闭边界)。(d) sentiment.yaml:300 注释 chunk_size '分块运算大小 (控制内存)' 与 herd_decay.py:76 实情 '仅用于日志显示' 矛盾 — 死配置旋钮在 YAML 层仍宣称有运算语义。",
+  "evidence": "L34 vs L31-32 同文件互斥表述; L212 `轨 1 用 '内容'` vs L245 `full_col = 'content_full' if ...`; L122 `sim_matrix >= SIMILARITY_THRESHOLD` vs L29/L214 的'高于/>'; herd_decay.py:76 `# 仅用于日志显示; ... 不再用 chunked working_memory` vs sentiment.yaml:300 `chunk_size: 1000  # 分块运算大小 (控制内存)`。",
+  "suggested_fix": "L34/L249 改 stage 13; L212 改 content_full(标题+全文); L29/L214 改 '≥ 阈值'; sentiment.yaml chunk_size 注释改 '仅日志显示 (legacy, 无运算语义)' 或从 schema 移除。",
+  "adjudication": "四处全部直读核实: L34/L249(及 L266 警告文)称 stage 21 物化 vs 同文件 L31-32 称 stage 13 自相矛盾; L212 '轨1用内容' vs L245 优先 content_full; L29/L214 '高于/>' vs L122/L161 实为 >=; sentiment.yaml:300 chunk_size 注释'分块运算(控内存)' vs herd_decay.py:76 '仅用于日志显示'。",
+  "unit": "herd-decay"
+ },
+ {
+  "id": "g-herd-05",
+  "severity": "P3",
+  "latent": true,
+  "title": "herd_decay 前驱跟风计数的 TF-IDF 在单银行全历史 (含未来文档) 上 fit — 纯后视构念使用了含前视 DF 的向量空间 [latent]",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\sentiment\\herd_decay.py",
+  "line": "188 (_compute_similar_counts_for_track: fit_transform(texts))",
+  "claim": "herd 计数语义是严格后视的 ('早于 i 且 7 天窗内相似 ≥0.35 的前驱数', L106-123 下三角 mask), 但 TF-IDF 向量化在该银行**全部年份**文章上一次性 fit (L188) — 2010 年文章对的余弦相似度使用了由 2011-2024 文档频率决定的 IDF 权重与 max_df=0.9/min_df=5 词表裁剪。herd_weight=1/(1+count) 进而作为 stage21 权重 (媒体权威×herd) 加权主 tone 聚合及 hw_* 列。注意: 全语料 IDF 加权本身属既有审计裁定的可接受类 (LM 2011 先例, tone_words IDF 泄漏曾被推翻); 此处单列的理由是构念声称'前驱计数'(无未来信息), 而实现的相似度空间依赖未来语料 → 样本扩展时历史 herd_weight 非不变 (阈值 0.35 附近计数可翻转), 与'确定性锚点/可复现'叙事不一致。",
+  "evidence": "herd_decay.py L188: `tfidf_matrix = _build_tfidf_vectorizer(len(texts)).fit_transform(texts)` — texts 为单银行全历史; L119-122: `valid_mask = (time_diff <= TIME_WINDOW_DAYS) & np.tril(..., k=-1); herd_mask = (sim_matrix >= SIMILARITY_THRESHOLD) & valid_mask` (计数后视, 向量空间全样本)。",
+  "suggested_fix": "披露口径即可 (与 LM-IDF 同等处理); 严格修法是对每篇 i 仅用 ≤date_i 文档 fit 向量空间 (expanding, 成本高) 或冻结基期词表+IDF。",
+  "adjudication": "herd_decay.py:188 fit_transform(texts)=单银行全历史实证, L119-122计数严格后视但IDF/min_df=5/max_df=0.9词表(L96-99)依赖未来语料。与已推翻的tone_words IDF不同: 后者有LM2011全语料IDF直接先例, 而前驱相似度的最近文献锚(Tetlock 2011 RFS词重叠/Hoberg-Phillips逐年vocab)均避免全历史fit; 阈值0.35附近计数随样本扩展可翻转→hw_*历史值非不变。T=2盘上影响微弱, T=18实质化。P3恰当。",
+  "unit": "sweep-insample-leakage"
+ }
+]

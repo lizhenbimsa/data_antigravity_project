@@ -1,0 +1,67 @@
+[
+ {
+  "id": "g-net-brok-01",
+  "severity": "P2",
+  "latent": false,
+  "title": "industry_neg_shock 同期 LOO 均值在年 FE 下与自身 neg_ratio 精确共线 (within-year corr = -1.0), 行业冲击解释在标准规格下结构性失效",
+  "file": "pipeline/panel/network_brokerage.py",
+  "line": "345-359 (公式), 302-307 (docstring 声称), 41-42/394-396 (Stata 示例)",
+  "claim": "LOO 均值是组内常数减自身值的仿射变换: shock_i,t = S_t/(N_t-1) - r_i,t/(N_t-1)。在含 year FE 的回归中 (项目全部 paper_spec 的 fixed_effects 均为 [bank_fe, year_fe]), S_t/(N_t-1) 被年 FE 吸收, industry_neg_shock 的唯一识别变异 = 银行自身负面比率的符号翻转重标度 — 恰恰是 docstring (L302-304) 声称 LOO '消除'的机械性自身相关以纯粹形式回归。'行业负面冲击'系数实为 -own_ratio 效应/(N_t-1), 解释方向反转; brokerage_fire_sale 的 shock 主效应项同染。",
+  "evidence": "盘上逐位验证: 仿射恒等式 max abs err = 0.0 (2017/2018 两年); within-year corr(industry_neg_shock, own neg_ratio) = -1.0 精确 (两年均是)。这是 LOO 组均值的代数必然 (Angrist 2014 'The perils of peer effects' 经典陷阱), 与已修复的 Manski 反射 docstring 更正 (L305-307, 仅讲同时性/排他性) 是不同且更尖锐的机械事实 — 模块头部 Stata 示例 (L41-42) 仍推荐 'reg Y industry_neg_shock X, cluster(province)' 而无任何年 FE 共线警示。",
+  "suggested_fix": "三选一: (1) 在 docstring/codebook 显式披露 '与年 FE 共线, 水平项不可与年 FE 同入'; (2) 改用比 FE 组更细的外部分组 (区域/规模组内 LOO); (3) 滞后至 t-1 (年 FE 下仍保留跨期变异)。fire_sale 交乘项本身不受完全共线影响, 但应在注释中区分。",
+  "adjudication": "盘上验证仿射恒等式 max err=0.0, 两年 within-year corr 均精确 -1.0。paper_spec.yaml:36 与全部 brokerage 模板均 absorb(bank_id year), 年FE下识别变异=−own_ratio/(N−1), docstring L302-304 '消除机械自相关'恰反。与台账 Manski 反射 docstring 修正(L305-307)是不同缺陷, 非重复。",
+  "unit": "network-brokerage"
+ },
+ {
+  "id": "g-net-brok-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "brokerage_eigen_cent 非连通图走迭代路径, 非主分量银行获得 1e-180~1e-30 的幂迭代衰减伪值 (networkx 的 AmbiguousSolution 守卫被刻意绕过)",
+  "file": "pipeline/panel/network_brokerage.py",
+  "line": "222-245 (is_connected 分流 + 迭代 fallback)",
+  "claim": "代码在 nx.is_connected(G)==False 时直接改走 nx.eigenvector_centrality 迭代法 (L232-238), 而 networkx numpy 路径对非连通图主动 raise AmbiguousSolution (gh-6888) 正是因为非连通图的特征向量中心度解不唯一。幂迭代 (A+I) 在非连通图上收敛到主分量的特征向量, 非主分量节点的值是随迭代次数指数衰减的数值残渣 — 不是中心度, 量级纯由收敛所需迭代步数决定。",
+  "evidence": "盘上实证 (逐位复现): 2017 图 2 个连通分量 / 2018 图 6 个分量, 两年均走迭代路径; 118 个有效值中 6 个 ∈ [3.244e-180, 5.199e-30]。同样结构位置 (2 节点小分量中的银行) 在 2017 得 3.244e-180、在 2018 得 1.917e-33 — 同一回归列内相差 147 个数量级的纯迭代噪声; 2018 年内 5.199e-30 vs 1.917e-33 的'排序'也是初值×衰减残影, 无任何网络含义。盘上 min(brokerage_eigen_cent)=3.24e-180 即此 artifact。",
+  "suggested_fix": "对每个连通分量分别计算特征向量中心度 (分量内归一), 或限定主分量计算、其余银行显式置 NaN (或 0) 并加 _giant_component flag 列; 至少在 codebook 披露非主分量值为数值残渣。",
+  "adjudication": "逐位复现: 2017 图 2 分量/2018 图 6 分量均走 L232-239 迭代路径; 重算值 3.244e-180/1.917e-33/5.199e-30 与盘上 panel 6 个 tiny 值完全一致。非主分量值是 (I+A) 幂迭代指数衰减残渣, 同结构位置跨年差 147 个数量级, 无网络含义却进同一回归列。",
+  "unit": "network-brokerage"
+ },
+ {
+  "id": "g-net-brok-03",
+  "severity": "P3",
+  "latent": false,
+  "title": "neg_ratio 无最小篇数守门: 等权 mean-of-ratios 让 1 篇文章的银行 (ratio 恰为 0/1) 独家设定全行业冲击指数水平",
+  "file": "pipeline/panel/network_brokerage.py",
+  "line": "342-359",
+  "claim": "industry_neg_shock 是各行 neg_ratio 的等权 LOO 均值, 对 n_articles_llm_valid=1 的银行其 ratio 只能取 {0,1} 极值, 却与 100 篇银行等权进入指数; 项目其他测度族 (tone_gap 六处) 均有 min-n>=5 守门, 此处缺失。",
+  "evidence": "盘上实证: 2018 年 45 家有效银行中唯一非零 ratio 是某银行 1/1=1.0 (单篇负面) → 全行业指数 = 1.0/44 = 0.0227 完全由这一篇文章设定; 2017 唯一非零 ratio 为 1/15=0.0667 → 指数 0.00094。两年指数水平差 24 倍纯系单篇小分母噪声, 而非行业舆论环境差异。",
+  "suggested_fix": "改 pooled LOO 比率 Σ_{j≠i} neg_j / Σ_{j≠i} valid_j (按篇数自然加权), 或对 neg_ratio 加 min-n>=5 守门 (对齐项目惯例), 或按 n_articles_llm_valid 加权均值。",
+  "adjudication": "盘上证实: 2018 唯一非零 ratio=1/1=1.0(单篇负面)→全行业指数=1/44=0.0227; 2017 为 1/15→0.00094, 两年差24倍纯系小分母噪声。项目同类测度普遍 min-n≥5 (attention_media.py:194, encode.py:849/1198/1318), network_brokerage.py:342-359 独缺。",
+  "unit": "network-brokerage"
+ },
+ {
+  "id": "g-net-brok-04",
+  "severity": "P3",
+  "latent": true,
+  "title": "latent: 连通年份 numpy 路径 (scipy ARPACK 随机 v0) 跨 run 非逐位可复现, 该列不在已知 3 列非确定性台账内",
+  "file": "pipeline/panel/network_brokerage.py",
+  "line": "225-231 (Level 1 numpy 路径)",
+  "claim": "nx.eigenvector_centrality_numpy (nx 3.6.1) 调 scipy.sparse.linalg.eigs(M.T, k=1, ...) 且不传 v0 → ARPACK 用随机初始向量, 同一图同进程重算结果即不逐位一致。当前试跑样本两年图均非连通 → 走确定性迭代路径而被掩蔽; 全量语料 (1700万篇) 下年度图大概率连通 → 翻到 numpy 路径, brokerage_eigen_cent 将加入 BLAS-FP 漂移家族, 但已知非确定性台账只登记 bank_clustering/cfbetween/harmonic 三列。",
+  "evidence": "实证: 对 2017 主分量子图 (连通) 同进程跑 4 次 eigenvector_centrality_numpy, 两两 max abs diff 达 8.3e-16, bitwise identical = False。已读 nx 3.6.1 源码确认 eigs 调用无 v0 参数。",
+  "suggested_fix": "切换前在 numpy 路径显式构造确定性初值 (如改用迭代法统一路径, 或 monkeypatch 传 v0=ones), 或把 brokerage_eigen_cent 预先登记进非确定性列允许名单。",
+  "adjudication": "nx 3.6.1 源码亲验: eigs(M.T,k=1,which='LR',maxiter,tol) 无 v0 → ARPACK 随机初始向量; 对 2017 连通主分量同进程 4 次重算 pairwise diff 达 5.55e-16, 非逐位一致。盘上两年图非连通走确定性迭代路径被掩蔽; T=18 全量图大概率连通即翻 numpy 路径, 台账仅登记 3 列。",
+  "unit": "network-brokerage"
+ },
+ {
+  "id": "g-net-brok-05",
+  "severity": "P3",
+  "latent": false,
+  "title": "own ratio 为 NaN 时 industry_neg_shock 被整体置 NaN, 尽管同行 LOO 均值完全可计算 — 行业级回归元无谓缺失",
+  "file": "pipeline/panel/network_brokerage.py",
+  "line": "355-359 (`if pd.notna(own) and total_n > 1`)",
+  "claim": "对自身 neg_ratio 缺失的银行 (零 LLM-valid 文章), '行业其余银行的均值'依然良定义且更干净 (本就不含自身): shock = total_sum/total_n。代码却要求 pd.notna(own) 才赋值, 把行业级变量的缺失与银行自身覆盖缺失绑定。",
+  "evidence": "盘上 174 行中 57 行 industry_neg_shock=NaN 而当年存在 >=44 家有效同行 (其中 1 行 n_articles>0 即有物理报道仅 LLM 无效); 这些行在任何含该变量的回归中被 listwise 剔除。",
+  "suggested_fix": "own 为 NaN 且 total_n>=1 时赋 total_sum/total_n (天然 leave-out); 若刻意保留现行为, 在 docstring 边界处理段写明理由。",
+  "adjudication": "network_brokerage.py:358 `pd.notna(own) and total_n>1` 把行业级变量缺失绑定自身覆盖。盘上 57/174 行 shock=NaN 全与 own NaN 重合, 而当年有效同行 72/45 家, total_sum/total_n 良定义可算。spec 主因变量是 CSMAR roa, 这些行被无谓 listwise 剔除。",
+  "unit": "network-brokerage"
+ }
+]

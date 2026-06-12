@@ -1,0 +1,93 @@
+[
+ {
+  "id": "g-controls-01",
+  "severity": "P1",
+  "latent": true,
+  "title": "Placebo DID 伪处理窗口包含真实处理后期间 — placebo 检验机械性显著, 必假阳性 (latent, 当前未接线)",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\falsification\\controls.py",
+  "line": "1024-1058 (generate_placebo_did_variables)",
+  "claim": "placebo{k}_post = 1{year >= treat_year-k} 是真实 post=1{year >= treat_year} 的严格超集; 建议的 Stata 回归 (L1055: reghdfe Y {prefix}_placebo{k}_did X, absorb(bank_id year)) 既不限样本于处理前期间, 也不控制真实 DID 项。placebo 系数 = [ty-k, ty) 前趋势效应与 [ty, T] 真实处理效应的加权平均; 全量 T=18 下处理后年份占 placebo 窗口主导 → 只要真实效应存在, placebo 必显著 → 按 L1057-1058 的解读 ('若显著: 平行趋势假设可能不成立') 会错误否定平行趋势。标准做法 (Callaway-Sant'Anna 2021 pre-trends; La Ferrara et al. 2012) 是 placebo 窗口限 [ty-k, ty) 或样本限 year < ty。另: 注释块 (L966-976, L1008-1009) 把此 placebo-in-time 设计引为 'Hassan et al. 2019 QJE Table 7' — Hassan Table 7 是 PRisk/NPRisk 伪造检验, 与时点 placebo 无关, 引文错配。",
+  "evidence": "L1025-1029: placebo_ty = np.where(panel[ty_col] > 0, panel[ty_col] - k, 0); L1033-1037: panel[plac_post_col] = np.where(placebo_ty > 0, (panel['year'] >= placebo_ty).astype(int), 0) — 无 year < treat_year 上界; L1043-1045: plac_did = treated * plac_post。盘上验证: 51_panel_with_controls.parquet 无任何 *_placebo* 列, 但有 dcep_treat_year/sandbox_treat_year — 函数 main() 不调用 (grep 全仓无生产调用点), 当前为死代码; 但 REDUNDANCY_AUDIT v2 FULLCORPUS 已将 placebo 列入全量 T=18 REINSTATE 清单, 接线前必须修。",
+  "suggested_fix": "改 plac_post = 1{placebo_ty <= year < panel[ty_col]} (窗口截断于真实处理年), 并在 Stata 用法注释中加 'keep if year < treat_year' 或同时纳入真实 post; 同步把引文改为 Callaway & Sant'Anna (2021) / 事件研究 pre-trend 文献, 移除 Hassan Table 7 错配。",
+  "adjudication": "controls.py:1033-1037 placebo_post=1{year>=ty-k} 无 year<ty 上界, 是真 post 严格超集; L997/L1055 建议回归不控真 DID 不限前期 → 真效应存在则 placebo 必显著, L1057-1058 解读错误否定平行趋势。grep 证实零生产调用 (死代码), 但列入全量 REINSTATE, 接线前必修。Hassan QJE Table 7 非时点 placebo, 引文错配属实。",
+  "unit": "falsification-controls"
+ },
+ {
+  "id": "g-controls-02",
+  "severity": "P2",
+  "latent": false,
+  "title": "复合键去重在 NF 聚合前折叠跨媒体转载副本 — nf_media_breadth (Bushee 2010 媒体广度构念) 系统性低估 (latent 放大)",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\falsification\\controls.py",
+  "line": "339-343 (dedup) + 530-536 (nunique)",
+  "claim": "plan s2 修复为 anti-join 集合语义引入的双侧 drop_duplicates(subset=[target_bank, 标题, _date_str]) (键不含媒体列) 在 NF 聚合**之前**执行, keep='first' 只保留首个媒体的副本; 下游 nf_media_breadth = groupby nunique('媒体(中文)') 在去重后的 df_nf 上计算 → 同稿多媒体转载的其余媒体全部从 distinct-outlet 计数中消失。Bushee et al. (2010 JAR) 的媒体广度构念正是'多少家不同信息中介覆盖该银行', 转载恰是广度的体现, 不应被'同一稿件'集合语义吞掉。",
+  "evidence": "盘上实证 (12_fintech_news_full, 4054 行试跑样本): 20 个重复复合键中 19 个横跨 >1 家媒体, 共丢 22 个媒体观测; 复算 NF 媒体广度 (去重 vs 物理 anti-join) 已有 1/321 bank-year 被低估。试跑样本仅全量 0.055%; 全量 1700 万篇中文新闻转载 (新华社/财经通稿跨数十家媒体同日同题) 占比极高, 且转载量与银行规模/新闻显著性正相关 → 低估非经典 (与回归变量相关的测量误差)。",
+  "suggested_fix": "nf_media_breadth 改在去重前的物理 NF 行集上计算 (anti-join 本身可在物理 df_full 上用去重后 df_art 的键集执行, 不必先物理去重 df_full), 或为 breadth 单独使用含媒体列的去重键; nf_n_articles 维持'同稿件'集合语义不变。",
+  "adjudication": "controls.py:335 去重键无媒体列, L339/343 keep='first' 在 L530-536 nunique 之前执行。盘上实证: 20 重复键 19 个跨>1媒体, 复算 1/321 bank-year 广度被低估。Bushee 2010 构念=不同中介覆盖数, 转载即广度, 集合语义不能开脱口径错; 全量转载占比高且与显著性相关 → 非经典测量误差。",
+  "unit": "falsification-controls"
+ },
+ {
+  "id": "g-controls-03",
+  "severity": "P2",
+  "latent": false,
+  "title": "all_n_articles / ln_ft_articles vs ln_nf_articles 混合计数基: fintech 侧物理、NF 侧去重 — 2026-06-10 修复只修了 fintech_share, 注释把混合基误称'物理覆盖'",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\falsification\\controls.py",
+  "line": "623-661 (构造) + 630-635 (注释) + 787-803 (弹性诊断)",
+  "claim": "all_n_articles = n_articles(物理) + nf_n_articles(去重) (L623); ln_ft_articles = log1p(物理 n_articles) vs ln_nf_articles = log1p(去重 nf_n_articles) (L657-658) — '挤出效应弹性'对 (ln_nf ~ ln_ft 及 L791 的 r(ln_ft, ln_nf) 校验) 两端口径不同。fix 注释 (L633-634) 声称 'all_n_articles 维持 n_articles+nf (物理覆盖...) 不变' — 但 NF 侧来自 L343 去重后的 df_full, 并非物理覆盖, 注释声称与实现不符。与已修复的 fintech_share 分子分母不一致是同一病根, 修复范围未覆盖这两族。",
+  "evidence": "盘上实证: panel n_articles 与物理 df_art bank-year 行数 174/174 逐行相等 (确认物理基); n_articles mean=4.925 vs ft_n_articles_dedup mean=4.879, 5/174 行不等; df_full 物理 4054 → 去重 4031 (NF 侧 3193→3182)。试跑差异小, 但全量转载场景下 fintech 与 NF 两侧的去重收缩率不同 (转载强度随主题/银行而异), ln 弹性回归与 Fang-Peress all_ln_coverage 的混合基误差随之放大。",
+  "suggested_fix": "统一基: ln_ft_articles 改用 ft_n_articles_dedup, all_n_articles 改 ft_dedup + nf_dedup (或两侧都改物理口径并同步 fintech_share); 至少修正 L633-634 注释不再声称 NF 侧是物理覆盖。",
+  "adjudication": "实证: panel n_articles=物理 (174/174 匹配), nf_n_articles 经 L343 去重 (4054→4031, NF 3193→3182), L623 all_n_articles 混基; L657-658 弹性对两端口径不同 (5/174 行已不等)。L633-634 注释称 'n_articles+nf (物理覆盖)' 与实现不符。非 fintech_share 已修项重复 — fix 注自认仅改 share。",
+  "unit": "falsification-controls"
+ },
+ {
+  "id": "g-controls-04",
+  "severity": "P3",
+  "latent": false,
+  "title": "L663-669 '恒等式校验' 是同义反复 — 把刚算出的和与自身比较, 永不可能检出数据不一致",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\falsification\\controls.py",
+  "line": "663-669",
+  "claim": "eq_check = (panel['all_n_articles'] == panel['n_articles'] + panel['nf_n_articles']).all() 在 L623 刚执行 panel['all_n_articles'] = panel['n_articles'] + panel['nf_n_articles'] 之后立即运行 — 纯同义反复, 唯一可能为 False 的途径是 NaN (NaN != NaN), 而 nf 侧 L615 已 fillna(0)。日志将其呈现为数据一致性闸门 ('✗ 恒等式校验失败! 请检查数据一致性'), 给复现包审阅者虚假的验证保证。真正有信息量的恒等式 (panel + nf == total, 文章级) 在 build_non_fintech L399-411 已正确检查。",
+  "evidence": "L623: panel['all_n_articles'] = panel['n_articles'] + panel['nf_n_articles']; L666: eq_check = (panel['all_n_articles'] == panel['n_articles'] + panel['nf_n_articles']).all() — 同一表达式, 中间无任何可改变三列的操作。",
+  "suggested_fix": "删除该校验, 或改为有信息量的跨文件校验 (如 panel 级 nf_n_articles 总和 == build_non_fintech 报告的 n_nf 经年份过滤后的总和)。",
+  "adjudication": "controls.py:623 赋值 all_n_articles=n_articles+nf_n_articles, L666 用同一表达式比较, 中间 (L626/L636-652) 仅新增列不改三列值; nf 侧 L615 已 fillna(0), 唯 NaN 可破。日志 L669 呈现为数据一致性闸门, 虚假保证属实; 真校验在 L399-411 文章级已存在。",
+  "unit": "falsification-controls"
+ },
+ {
+  "id": "g-controls-05",
+  "severity": "P3",
+  "latent": false,
+  "title": "fintech_share 对零新闻 bank-year 填 0 — 未定义比率 (23/174 行) 与真实零份额 (33/174 行) 同值混淆",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\falsification\\controls.py",
+  "line": "642, 647-651 (+ 609-616 fillna)",
+  "claim": "np.where(_ft_den > 0, _ft_num/_ft_den, 0) 把分母为 0 (该 bank-year 全年零新闻, 份额无定义) 的行赋 0, 与'有新闻但全为非金融科技' (份额真为 0) 的行不可区分。盘上 23/174 行 (13.2%) 是未定义→0 的填补, 另 33 行是真实 0。fintech_share 进入模板检验 5 交互 (c.llm_vote_tone_full##c.fintech_share, L47) 及任何独立使用 — 虽然零新闻行的 tone 同为缺失会被 reghdfe 剔除大部分, 但 fintech_share 作为独立 RHS/调节变量出现在其他 spec 时, 13% 的人造 0 会拉低均值并衰减交互系数。",
+  "evidence": "盘上: (all_n_articles==0).sum()=23, (ft_dedup==0 & nf>0).sum()=33, len(panel)=174。L642: panel['fintech_share'] = np.where(_ft_den > 0, _ft_num / _ft_den, 0)。",
+  "suggested_fix": "分母为 0 时设 NaN (让回归自然剔除) 或保留 0 但在 codebook 与模板注释中显式披露填补规则; 至少加一列 has_any_news 指示哑变量供使用者条件化。",
+  "adjudication": "controls.py:642 np.where(_ft_den>0,...,0) 把分母0赋0。盘上验证精确吻合: 23/174 行 all_n_articles==0 (未定义→0) 与 33 行真零 (ft_dedup==0&nf>0) 同值, 共56个0不可区分, 无缺失标志列。模板检验5 (tmpl:47) 用作调节变量, 13%人造0衰减交互。非 N6 Bartik (不同变量) 重复。",
+  "unit": "falsification-controls"
+ },
+ {
+  "id": "g-controls-06",
+  "severity": "P3",
+  "latent": false,
+  "title": "变量标签在三套 .dta 交付物间断崖式丢失: 40.dta=666 条 → 46_*.dta=124 条 → 51.dta=9/1668 条; 1614 列标签跨文件不一致",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\falsification\\controls.py",
+  "line": "891-892 (to_stata 仅传 labels_41); 对照 pipeline/panel/export.py 666 条标签字典与 stata_export.py:650 build_variable_labels",
+  "claim": "stage 45 写 40_panel_yearly.dta 时带 666 条人工策展英文标签; stage 46 build_variable_labels 因 codebook 元数据空洞回落到列名, 仅 124 条有内容; stage 51 (controls.py:891) 从 parquet 重读后 to_stata 只传自家 labels_41 字典 → 51_panel_with_controls.dta 仅 9/1668 列有标签。CLAUDE.md 推荐 MP 用户直接读 *_full.dta 或 51_panel_with_controls.dta — 恰是标签最贫瘠的两个文件。",
+  "evidence": "pyreadstat 元数据实测: 非 fallback 标签数 40.dta=666 / 46_full=124 / 51=9; 同列标签 46 vs 40 不一致 1614 列 (绝大多数为 46=列名 fallback vs 40=有内容或 None)。controls.py:891: panel_stata.to_stata(dta_path, write_index=False, version=118, variable_labels=labels_41)。",
+  "suggested_fix": "把 export.py 的 666 条标签字典抽成单一事实源 (papers/_common 或 panel/labels.py), stage 46 build_variable_labels 与 stage 51 to_stata 共同消费, 51 用 {**shared_labels, **labels_41} 合并。",
+  "adjudication": "pyreadstat元数据亲测: 非fallback标签 40.dta=666 / 46_full=124 / 51=9, 与声称逐数吻合。controls.py:889-892 仅传17键 STATA_LABELS_41(9命中); export.py:1124-1127 传策展大字典; stata_export.py:127+ 回落列名。机制与数字均坐实。46标签贫瘠的根因含台账⑤codebook空洞, 但跨交付物不一致+stage 51仅9条为新发现, 不构成duplicate。",
+  "unit": "data-dta-parity"
+ },
+ {
+  "id": "g-controls-07",
+  "severity": "P3",
+  "latent": false,
+  "title": "all_n_articles / all_ln_coverage 混合计数基: 物理口径 fintech 篇数 + 去重口径 non-fintech 篇数相加 (fintech_share 修复后的残留不一致)",
+  "file": "F:\\WiseSearch\\data_antigravity_project\\news_process\\pipeline\\falsification\\controls.py",
+  "line": "623-627 (merge_to_panel); 339-344 (双侧去重)",
+  "claim": "`all_n_articles = n_articles + nf_n_articles` 中 n_articles 是 panel 物理篇数 (无复合键去重, 试跑 857), nf_n_articles 来自按 (target_bank,标题,日期) 去重后的 anti-join (去重基 849 侧) → 总覆盖量把 fintech 侧的复合键重复稿计入而 NF 侧剔除, 同一'总报道量'构念内两个加数口径不同。2026-06-10 修复仅将 fintech_share 改为同基去重 (ft_dedup/(ft_dedup+nf)), 修复注释 (L633-635) 明示 all_n_articles '维持不变' — 残留不一致被有意保留但未在 codebook 披露; L666 恒等式校验 all==n+nf 是按定义恒真的同义反复, 无校验力。",
+  "evidence": "controls.py:623 `panel['all_n_articles'] = panel['n_articles'] + panel['nf_n_articles']`; :433 ft_dedup_agg 显示同语料去重后 fintech 计数 ≠ 物理 n_articles (857 vs 849); :666 `eq_check = (panel['all_n_articles'] == panel['n_articles'] + panel['nf_n_articles']).all()` 按构造恒真。",
+  "suggested_fix": "统一口径: all_n_articles = ft_n_articles_dedup + nf_n_articles (新增列, 保留旧列向后兼容), 或在 codebook notes 显式披露混合基; 删除/替换恒真校验为跨口径差异率报告。",
+  "adjudication": "controls.py:623 属实: n_articles 物理 (857) + nf_n_articles 去重基 anti-join (L339-343 双侧去重后 849 侧), 同一总覆盖构念两加数口径不同; L633-635 注释以'物理覆盖'辩护但 NF 侧并非物理, 理由自不一致且 codebook 未披露; L666 校验恒真无校验力。量级 ~8/1700 篇极小, 控制变量用途, P3 恰当, 非 fintech_share 修复重复。",
+  "unit": "sweep-valid-physical-denom"
+ }
+]
