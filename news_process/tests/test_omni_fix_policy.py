@@ -3,7 +3,8 @@
 锁定 5 条 finding 的修复后行为 (mock 外部 API, 合成语料/DataFrame, 不触网):
   - g-policy-01: 权威语料对称清洗 (与新闻侧 normalize 步骤 2.5 同规则删领导人姓名)
   - g-policy-02: vintage-aware 政策锚点 (stage 15 + 26, 前视守卫: 年度 t 只用 ≤t 文档)
-  - g-policy-03: stage 15 文章 8191 token 截断口径披露 (保留截断, 显式披露)
+  - g-policy-03: stage 15 文章侧 8191-token 预截断 (后于 2026-06-12 选项 B 移除 —
+    引擎 chunk+pool 接管, 两侧对称; 本组测试改锁 "无预截断" 行为)
   - g-policy-04: 注释/docstring 漂移修复 (8000 字截断 / 4 种算法 / 0~1 / legacy 标注)
   - g-policy-05: 降级透明 (<3 银行 warning; t2v 稳健轨 raise 不炸 canonical)
 """
@@ -382,18 +383,69 @@ def test_stage26_t2v_build_emb_raise_guard(tmp_path, monkeypatch):
 # g-policy-03 / 04: 截断披露 + 注释漂移修复 (源码级回归锁, 防静默 revert)
 # ---------------------------------------------------------------------------
 
-def test_truncation_disclosure_present_and_stale_claims_removed():
-    """stage 15: 8191 截断保留 + 'omni-g-policy-03' 披露在位;
-    陈旧的 't[:8000]' / 'HTTP 400' 截断理由不再以事实陈述存在。"""
+def test_article_pretruncation_removed_engine_chunkpools():
+    """stage 15 (选项 B, 2026-06-12): 文章侧 8191-token 预截断已移除 — 统一引擎
+    embed_texts 的 Early Chunking + Mean Pooling 接管超长文章, 两侧 (文章/锚点)
+    对称 (镜像 stage 27 omni-g-benefit-04)。源码级回归锁: 防静默 revert 回预截断。"""
     import inspect
 
     from news_process.pipeline.filtering import policy_alignment as pa
     src = inspect.getsource(pa.compute_article_policy_alignment)
-    # 截断本体保留 (主控决定: 披露而非移除, 防缓存键变化触发付费重嵌入)
-    assert '_truncate_to_max_tokens' in src
-    assert 'omni-g-policy-03' in src, "缺 8191 截断口径披露标记"
-    assert '前 8191 token' in src, "缺 '前 8191 token' 口径披露"
+    # 主流程不得再调用预截断 (注释里提及 'omni-g-policy-03'/'选项 B' 等字样不算)
+    body = src.replace('omni-g-policy-03', '').replace('选项 B', '')
+    assert '_truncate_to_max_tokens(' not in body, \
+        "文章侧不得恢复 8191-token 预截断 (选项 B: 引擎 chunk+pool 接管)"
+    # 全文直送引擎 (传 full_texts / ctx_texts, 非预截断版本)
+    assert 'full_texts, ctx_texts' in src, \
+        "应把全文 full_texts/ctx_texts 直送 _cosine_for_spec (两侧对称)"
+    # 口径变更披露在位 (显式 supersede 旧的 omni-g-policy-03 截断决定)
+    assert 'omni-g-policy-03' in src, "缺 supersede omni-g-policy-03 的口径变更披露"
+    assert 'supersede' in src.lower(), "口径变更应显式标 supersede (防误读为新增)"
     assert 't[:8000]' not in src, "陈旧的 stage 25 字符级截断表述应已移除"
+
+
+def test_long_article_reaches_engine_untruncated(monkeypatch):
+    """行为级回归锁 (选项 B): 一篇 >8191 cl100k token 的文章, 送入统一引擎
+    embed_texts 前**逐字不得被截断** (chunk+pool 由引擎负责)。
+
+    补强源码级锁 test_article_pretruncation_removed_engine_chunkpools 的盲区:
+    源码字符串匹配挡不住"换写法重新截断"(改函数名 / 内联 decode(encode[:N]) /
+    新 helper) 的假阴性 — 本测试捕获**真实送入引擎的文本**, 任何形式的预截断都会
+    使长文本变短而被逮到。镜像 stage 27 test_omni_fix_benefit.TestNoPretruncation。"""
+    import os
+
+    from news_process.pipeline.filtering import policy_alignment as pa
+
+    auth_path = pa.CONFIG['paths'].get('authoritative_corpus_file', '')
+    if not os.path.exists(auth_path):
+        pytest.skip(f"auth corpus not found: {auth_path}")
+
+    long_text = '银行金融科技数字化转型' * 1500  # 远超 8191 cl100k tokens
+    df = pd.DataFrame({
+        '标题': ['标题'],
+        '内容': [long_text],
+        'content_ctx': ['工行 ctx'],
+        'year': [2017],
+    })
+
+    calls: list[list[str]] = []
+
+    def _capture_embed(texts, spec, **kwargs):
+        texts = list(texts)
+        calls.append(texts)
+        return np.array([[1.0] + [0.0] * 1535] * len(texts), dtype=np.float32)
+
+    # 捕获所有送入引擎的文本 (full / ctx / auth 各轨 × MAIN/ROBUSTNESS spec)
+    monkeypatch.setattr(pa._eng, 'embed_texts', _capture_embed)
+
+    pa.compute_article_policy_alignment(df)
+
+    flat = [t for call in calls for t in call]
+    article_texts = [t for t in flat if '银行金融科技数字化转型' in t]
+    assert article_texts, "未捕获到 full 轨文章文本送入引擎 (调用链异常)"
+    # 整篇 long_text 必须逐字出现在送入引擎的文本中 (预截断会让它变短/截尾)
+    assert any(long_text in t for t in article_texts), \
+        "长文章送引擎前被截断 (选项 B 违规: 预截断复活, 含任意换写法绕过)"
 
 
 def test_legacy_embeddings_fn_marked_test_only():
