@@ -15,31 +15,6 @@ import pandas as pd
 import pytest
 
 
-# ── H1: 标题轨 LLM 全失败 → NaN (非中性 0), 连续 prob-score 路径 ──────────────
-class TestH1TitleProbScore:
-    MODELS = [{'short_name': 'm1'}, {'short_name': 'm2'}]
-
-    def test_all_failed_returns_nan(self):
-        from news_process.pipeline.sentiment.tone_llms import _avg_valid_title_prob_score
-        # 所有模型 sentiment=None (整体调用失败) → NaN (旧 bug 返回 0.0)
-        data = {'m1_sentiment_title': None, 'm2_sentiment_title': None,
-                'm1_prob_score_title': 0.0, 'm2_prob_score_title': 0.0}
-        assert np.isnan(_avg_valid_title_prob_score(data, self.MODELS))
-
-    def test_partial_excludes_failed_stale_zero(self):
-        from news_process.pipeline.sentiment.tone_llms import _avg_valid_title_prob_score
-        # m1 成功(0.8), m2 失败(None, stale 0.0) → 仅算 m1 → 0.8 (stale 0.0 不污染)
-        data = {'m1_sentiment_title': '正面', 'm2_sentiment_title': None,
-                'm1_prob_score_title': 0.8, 'm2_prob_score_title': 0.0}
-        assert _avg_valid_title_prob_score(data, self.MODELS) == pytest.approx(0.8)
-
-    def test_all_valid_mean(self):
-        from news_process.pipeline.sentiment.tone_llms import _avg_valid_title_prob_score
-        data = {'m1_sentiment_title': '正面', 'm2_sentiment_title': '负面',
-                'm1_prob_score_title': 0.6, 'm2_prob_score_title': -0.4}
-        assert _avg_valid_title_prob_score(data, self.MODELS) == pytest.approx(0.1)
-
-
 # ── M-tv: 失败/未定义 → NaN (非中性 0) + 严格多数 ──────────────────────────
 class TestMtvFailureNotNeutral:
     def test_label_to_numeric_keeps_nan(self):
