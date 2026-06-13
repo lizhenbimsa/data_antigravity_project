@@ -480,7 +480,7 @@ def compute_iv_extensions(panel: pd.DataFrame,
       P5  collab:    leave_one_out_peer_collab_iv(_lag1)
                      + bartik_collab_iv_full/_ctx
       BS  benefit_society: leave_one_out_peer_benefit_iv(_lag1)
-                     + zone_leave1out_benefit_iv
+                     + zone_leave1out_benefit_iv (+ zone_leave1out_benefit_iv_ctx)
       P10 disagreement: outlet_disp_exposure_iv_full/_ctx
       P11 clarity:   outlet_style_clarity_iv_full/_ctx
     (P1/llm_peer/brokerage/strategic_diff 既有 IV 不在此处, 见 geography.py /
@@ -492,7 +492,9 @@ def compute_iv_extensions(panel: pd.DataFrame,
       lpeer_locus_iv_ctx(_lag1)      ← tech_frac_lc
       lpeer_collab_iv_ctx(_lag1)     ← collab_frac_cm
       lpeer_benefit_iv_ctx(_lag1)    ← benefit_mean_ctx
-    与各论文 full 轨 LOO (leave_one_out_peer_*_iv) 一一镜像; 紧凑前缀 lpeer_
+      zone_leave1out_benefit_iv_ctx  ← benefit_mean_ctx (bank_zone 分组, 无 _lag1)
+    与各论文 full 轨 LOO (leave_one_out_peer_*_iv / zone_leave1out_benefit_iv) 一一
+    镜像; 紧凑前缀 lpeer_
     使全部 ≤32 字符 (含 _ctx_lag1=27), 绕开 stata_export 32-char 截断歧义、
     模板可直接引名 (codebook 约定见 stata_export HEURISTIC_LABELS)。
     用法 (审计裁决): ctx 轨内生变量 (sub_frac_sc 等) 配 ctx LOO 工具, 与 full
@@ -561,10 +563,21 @@ def compute_iv_extensions(panel: pd.DataFrame,
         panel = compute_peer_loo_iv(panel, 'benefit_mean_full',
                                     'zone_leave1out_benefit_iv',
                                     group_col='bank_zone', add_lag1=False)
+        # ctx 轨镜像 (2026-06-13 缺口补全): 内生孪生 benefit_mean_ctx 配同经济圈
+        # ctx LOO 工具, 与 full 轨 zone LOO【各自 just-identified、并排成列】表达双轨
+        # 互为稳健性 (实体窗口 vs 全文归因); 严禁与 full 轨 zone LOO 合成 overid —
+        # 同篇两窗共同冲击同污染, Hansen J 零功效 (Parente & Santos Silva 2012 EL)。
+        # benefit_mean_ctx 缺列时 compute_peer_loo_iv 内置守卫优雅置 NaN。
+        # ⚠ zone_leave1out_benefit_iv_ctx 是真新面板列 → 落盘须重跑 stage 45/46 +
+        #   golden 重生 (CLAUDE.md 约束 6; 本机不可安全 regen, 留受控生产 run)。
+        panel = compute_peer_loo_iv(panel, 'benefit_mean_ctx',
+                                    'zone_leave1out_benefit_iv_ctx',
+                                    group_col='bank_zone', add_lag1=False)
     else:
         panel['zone_leave1out_benefit_iv'] = np.nan
+        panel['zone_leave1out_benefit_iv_ctx'] = np.nan
         logger.warning("  bank_zone 缺失 (7f 未运行?), "
-                       "zone_leave1out_benefit_iv 置 NaN")
+                       "zone_leave1out_benefit_iv(_ctx) 置 NaN")
 
     # ── P10: 跨媒体分歧 — 媒体组合"立场离散度"暴露 ──
     # 文章级 style = |tone − 该年全样本均值| (媒体 house-style 极端度;

@@ -15,6 +15,9 @@ if TYPE_CHECKING:
 _TABLE1_VARIABLES: list[str] = [
     # LLM 同业 IV 主变量 (cutoff=0.80 标准)
     'llm_peer_tone_iv_full',
+    # ctx 轨双轨稳健性镜像 (2026-06-13): Table 2 M5 列 (llm_vote_tone_ctx =
+    # llm_peer_tone_iv_ctx) 对应的描述统计, 与 full 轨 IV 并列, 使 ctx 规格自洽
+    'llm_peer_tone_iv_ctx',
     'llm_peer_coverage_iv',
     'llm_peer_count',
     'peer_compete_idx',
@@ -24,9 +27,10 @@ _TABLE1_VARIABLES: list[str] = [
     'llm_peer_tone_iv_full_80',
     'llm_peer_tone_iv_full_85',
     'llm_peer_tone_iv_full_90',
-    # 对照基线
+    # 对照基线 (内生变量双轨: full=主规格, ctx=M5 稳健性)
     'n_articles',
     'llm_vote_tone_full',
+    'llm_vote_tone_ctx',
     # outcome (2026-06-13 重定位: 主因变量 = 银行自身 fintech 报道强度, panel 实存列)
     'avg_ft_intensity_full',
 ]

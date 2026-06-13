@@ -1045,7 +1045,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'leave_one_out_peer_benefit_iv': 'Peer LOO Benefit-Attitude IV',
                 'leave_one_out_peer_benefit_iv_lag1':
                     'Peer LOO Benefit-Attitude IV (lag 1)',
-                'zone_leave1out_benefit_iv':    'Zone LOO Benefit-Attitude IV',
+                'zone_leave1out_benefit_iv':    'Zone LOO Benefit-Attitude IV (Full)',
+                'zone_leave1out_benefit_iv_ctx': 'Zone LOO Benefit-Attitude IV (Ctx)',
                 'outlet_disp_exposure_iv_full': 'Outlet Dispersion Exposure IV (Full)',
                 'outlet_disp_exposure_iv_ctx':  'Outlet Dispersion Exposure IV (Ctx)',
                 'outlet_style_clarity_iv_full': 'Outlet Style Clarity IV (Full)',

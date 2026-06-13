@@ -23,6 +23,7 @@ set linesize 120
 
 if "$data_dir" == ""    global data_dir "../data"
 if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir"   * 防 esttab 写出目录不存在 r(603) (与 11_table2 模板对齐)
 
 use "$data_dir/_prepared_panel.dta", clear
 
@@ -37,6 +38,7 @@ local DV   roa
 * 分组 (bank_type vs bank_zone) 的合法跨族 overid, 与被否决的 full×ctx 无关。
 local TXC  benefit_mean_ctx
 local IVC  lpeer_benefit_iv_ctx
+local IV2C zone_leave1out_benefit_iv_ctx
 
 * ⚠ FE 锁定 = bank FE + year FE; 严禁 bank_type×year 交互 FE — 同业 LOO 工具
 *   格内残余 = 自身内生变量的负镜像, type×year FE 下工具退化、排他性按构造违反。
@@ -62,10 +64,16 @@ if !_rc {
     eststo first_zone: reghdfe `TX' `IV2' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
-* ctx 轨一阶段 (benefit_mean_ctx ~ ctx LOO 工具; 缺列优雅跳过)
+* ctx 轨一阶段 (benefit_mean_ctx ~ ctx 同业 LOO 工具; 缺列优雅跳过)
 capture confirm variable `TXC' `IVC'
 if !_rc {
     eststo first_ctx: reghdfe `TXC' `IVC' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+* ctx 轨 zone 一阶段 (benefit_mean_ctx ~ ctx 经济圈 LOO 工具; 2026-06-13 双轨补全)
+capture confirm variable `TXC' `IV2C'
+if !_rc {
+    eststo first_zone_ctx: reghdfe `TXC' `IV2C' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
 
@@ -93,13 +101,39 @@ else {
         eststo tsls_ctx: ivreg2 `DV' (`TXC' = `IVC') $controls ///
             i.bank_id i.year, cluster(bank_id) first
     }
+    * ctx 轨过度识别列 (ctx 同业-LOO × ctx 经济圈-LOO 两套不同分组 = 合法跨族
+    * overid, Hansen J df=1; 与 full 轨 tsls_overid 镜像, 同样区别于被否决的
+    * full×ctx 同文双窗)
+    capture confirm variable `TXC' `IVC' `IV2C'
+    if !_rc {
+        eststo tsls_overid_ctx: ivreg2 `DV' (`TXC' = `IVC' `IV2C') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
 }
+
+* ── 跨族 over-id 工具相关性诊断 (GPSS 2020 AER §5: overid 须报告工具间相关性) ──
+* full 轨 (type-LOO × zone-LOO) 与 ctx 轨 (type-LOO × zone-LOO) 各算一对 pairwise
+* corr。合法跨族 overid 的前提是两【分组维度】近正交; |rho| 高 → Hansen J (df=1)
+* 欠功效 (与被否决的 full×ctx 同文双窗同病灶, Parente-Santos Silva 2012)。缺列 → n/a。
+local rho_full "n/a"
+local rho_ctx  "n/a"
+capture confirm variable `IV1' `IV2'
+if !_rc {
+    qui correlate `IV1' `IV2'
+    local rho_full : display %5.3f r(rho)
+}
+capture confirm variable `IVC' `IV2C'
+if !_rc {
+    qui correlate `IVC' `IV2C'
+    local rho_ctx : display %5.3f r(rho)
+}
+display "  [over-id 工具相关性] full type-zone rho=`rho_full'  ctx type-zone rho=`rho_ctx'"
 
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_type first_zone first_ctx tsls_type tsls_overid tsls_ctx
-local cand_titles `""1st Type-LOO" "1st Zone-LOO" "1st LOO ctx" "2SLS Type" "2SLS Overid" "2SLS LOO ctx""'
+local cand_models first_type first_zone first_ctx first_zone_ctx tsls_type tsls_overid tsls_ctx tsls_overid_ctx
+local cand_titles `""1st Type-LOO" "1st Zone-LOO" "1st LOO ctx" "1st Zone ctx" "2SLS Type" "2SLS Overid" "2SLS LOO ctx" "2SLS Overid ctx""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -123,7 +157,8 @@ else {
         mtitles(`mtitles') ///
         addnotes("IV1 = same-bank-type leave-one-out benefit-attitude mean; IV2 = same-economic-zone (cross-province) leave-one-out mean (regional common shocks; cf. iv_did.compute_zone_leave1out)." ///
                  "Exclusion caveats for peer-mean instruments (Manski 1993; Leary-Roberts 2014 JF) must be disclosed; lag-1 variant leave_one_out_peer_benefit_iv_lag1 as robustness." ///
-                 "ctx column: entity-window twin benefit_mean_ctx instrumented by lpeer_benefit_iv_ctx, just-identified, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
+                 "ctx columns: entity-window twin benefit_mean_ctx instrumented by ctx peer-LOO (lpeer_benefit_iv_ctx) and ctx zone-LOO (zone_leave1out_benefit_iv_ctx); just-identified + cross-family ctx over-id, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
+                 "Cross-family over-id instrument correlations (GPSS 2020 AER sec.5): full type-LOO x zone-LOO rho=`rho_full'; ctx rho=`rho_ctx'. Distinct grouping dimensions (bank_type vs bank_zone) are near-orthogonal by construction; high |rho| would render the df=1 Hansen J underpowered." ///
                  "KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005), use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified column.")
 
     display "[OK] 25_tableA12_iv_2sls → $tables_dir/tableA12_benefit_iv_2sls.tex"

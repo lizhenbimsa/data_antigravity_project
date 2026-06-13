@@ -104,6 +104,27 @@ class TestPeerLooIV:
         assert out['iv'].isna().all()
         assert out['iv_lag1'].isna().all()
 
+    def test_zone_grouped_loo_math_exact(self):
+        # group_col 通用性: 用 bank_zone 分组验证 zone-LOO 数值闭合 —
+        # zone_leave1out_benefit_iv(_ctx) 走同一引擎 group_col='bank_zone'/add_lag1=False
+        panel = pd.DataFrame([
+            {'target_bank': 'A', 'year': 2018, 'bank_zone': '长三角', 'v': 1.0},
+            {'target_bank': 'B', 'year': 2018, 'bank_zone': '长三角', 'v': 2.0},
+            {'target_bank': 'C', 'year': 2018, 'bank_zone': '长三角', 'v': 3.0},
+            {'target_bank': 'D', 'year': 2018, 'bank_zone': '珠三角', 'v': 9.0},
+        ])
+        out = compute_peer_loo_iv(panel, 'v', 'ziv', group_col='bank_zone',
+                                  min_peers=2, add_lag1=False)
+        got = out.set_index(['target_bank', 'year'])['ziv']
+        # 长三角: A=mean(B,C)=2.5; B=mean(A,C)=2.0; C=mean(A,B)=1.5
+        assert got[('A', 2018)] == pytest.approx(2.5)
+        assert got[('B', 2018)] == pytest.approx(2.0)
+        assert got[('C', 2018)] == pytest.approx(1.5)
+        # 珠三角仅 1 家 → LOO 后剩 0 < min_peers=2 → NaN
+        assert np.isnan(got[('D', 2018)])
+        # add_lag1=False → 不产 _lag1 列 (与 zone IV 调用口径一致)
+        assert 'ziv_lag1' not in out.columns
+
 
 # ============================================================================
 # 2. compute_bartik_shift_iv
@@ -349,7 +370,7 @@ class TestComputeIvExtensionsSmoke:
             'leave_one_out_peer_collab_iv',
             'bartik_collab_iv_full', 'bartik_collab_iv_ctx',
             'leave_one_out_peer_benefit_iv',
-            'zone_leave1out_benefit_iv',
+            'zone_leave1out_benefit_iv', 'zone_leave1out_benefit_iv_ctx',
             'outlet_disp_exposure_iv_full', 'outlet_disp_exposure_iv_ctx',
             'outlet_style_clarity_iv_full', 'outlet_style_clarity_iv_ctx',
             # ctx 轨同业 LOO 工具镜像 (lpeer_* 前缀; 2026-06-13 终审落地) +
@@ -364,3 +385,29 @@ class TestComputeIvExtensionsSmoke:
         assert not missing, f"编排入口缺契约列: {missing}"
         # 行数不变 (全程 merge-based)
         assert len(out) == len(panel)
+
+    def test_orchestrator_missing_bank_zone_nan_both_tracks(self):
+        # bank_zone 缺失 (7f 未运行) → zone_leave1out_benefit_iv 与其 _ctx 孪生
+        # 两列均存在且全 NaN (iv_extensions.py else 分支防御; 防 zone IV KeyError)
+        from news_process.pipeline.panel.iv_extensions import compute_iv_extensions
+        panel = _mk_panel().rename(columns={'x': 'attention_index_full'})
+        for c in ['sub_frac', 'tech_frac', 'collab_frac']:
+            panel[c] = 0.5
+        panel['benefit_mean_full'] = 0.1
+        panel['attention_index_ctx'] = 0.4
+        panel['sub_frac_sc'] = 0.45
+        panel['tech_frac_lc'] = 0.55
+        panel['collab_frac_cm'] = 0.5
+        panel['benefit_mean_ctx'] = 0.12
+        panel['bartik_type_share_city'] = 1.0
+        # 刻意不设 bank_zone → 走 else 分支
+        arts = pd.DataFrame([
+            {'target_bank': 'A', 'year': 2017, '媒体(中文)': 'O1',
+             'llm_vote_score_full': 0.5, 'llm_vote_score_ctx': 0.5},
+        ])
+        out = compute_iv_extensions(
+            panel, arts, {'A': 'city', 'B': 'city', 'C': 'city'},
+            base_years=[2017])
+        for col in ('zone_leave1out_benefit_iv', 'zone_leave1out_benefit_iv_ctx'):
+            assert col in out.columns, f"缺 zone 列 {col}"
+            assert out[col].isna().all(), f"{col} 在 bank_zone 缺失时应全 NaN"

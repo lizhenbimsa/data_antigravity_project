@@ -51,42 +51,120 @@ eststo M2
 * ----------------------------------------------------------------------------
 * M3: IV 2SLS (Cao 2025 LLM-Peer 工具变量)
 * ----------------------------------------------------------------------------
+* 估计器选择 + 运行期鲁棒回退: 优先 ivreghdfe (HDFE 高效); 若 ivreghdfe 缺失【或
+* 运行期失败】→ 自动回退 ivreg2 + 显式 i.bank_id i.year。⚠ 本机 StataNow 19.5 实测
+* ivreghdfe 因 ftools/reghdfe Mata 版本不兼容恒 r(301) (reghdfe/ivreg2 均正常) →
+* 旧"仅 ivreghdfe 缺失才回退"会让全部 IV 列空缺; 改为运行期失败亦回退, IV 列经
+* ivreg2 照常填充。capture noisily 防弱识别/退化样本 abort; 两估计器皆失败 → 该列
+* 优雅缺席 (动态 esttab 仅呈现已收敛规格, 同 benefit_society/25 的 T=2 graceful-skip)。
+local _m3 = 0
 capture which ivreghdfe
 if !_rc {
-    ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
+    capture noisily ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
         absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo M3
+    if !_rc {
+        eststo M3
+        local _m3 = 1
+    }
 }
-else {
-    display "[WARN] ivreghdfe not installed (ssc install ivreghdfe). M3 skipped."
-    * 兜底: 改用 ivreg2 不带 absorb (效率较低)。
+if !`_m3' {
     capture which ivreg2
     if !_rc {
-        ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls i.bank_id i.year, ///
-            cluster({{CLUSTER_VAR}}) ffirst
-        eststo M3
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo M3
     }
+    else display "[WARN] ivreghdfe 与 ivreg2 均不可用; M3 跳过"
 }
 
 * ----------------------------------------------------------------------------
 * M4: IV 2SLS + 竞争指数控制 (扩展)
 * ----------------------------------------------------------------------------
+local _m4 = 0
 capture which ivreghdfe
 if !_rc {
-    ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) {{COMPETE_IDX}} $controls, ///
+    capture noisily ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) {{COMPETE_IDX}} $controls, ///
         absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo M4
+    if !_rc {
+        eststo M4
+        local _m4 = 1
+    }
+}
+if !`_m4' {
+    capture which ivreg2
+    if !_rc {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) {{COMPETE_IDX}} $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo M4
+    }
 }
 
 * ----------------------------------------------------------------------------
-* 输出表格
+* M5: IV 2SLS — ctx 轨双轨稳健性 (2026-06-13 缺口补全)
+*   内生孪生 llm_vote_tone_ctx (实体窗口归因) 配 ctx 同业 LOO 工具
+*   llm_peer_tone_iv_ctx (llm_peer_iv.py dual-track parity 已物化), 与 full 轨 M3
+*   【各自 just-identified、并排成列】表达对归因窗口 (全文 vs 实体窗口) 的稳健性。
+*   严禁 full×ctx 合成 Hansen J overid — 同篇两窗共同冲击同污染, J 零功效
+*   (Parente & Santos Silva 2012 EL)。ctx 列名硬编码 (非 spec 参数, 轨道恒定),
+*   缺列优雅跳过 (旧复现包 / ctx 未落盘时不丢整表); ivreghdfe 失败同 M3 回退 ivreg2。
 * ----------------------------------------------------------------------------
-esttab M1 M2 M3 M4 using "$tables_dir/table2_main_iv_2sls.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
-    label compress b(3) ///
-    title("Main IV 2SLS Results --- llm_peer (Cao et al. 2025)") ///
-    mtitles("OLS" "OLS+X" "2SLS" "2SLS+CompIdx") ///
-    addnotes("Bank and year fixed effects in all columns. Cluster-robust SE at {{CLUSTER_VAR}} level." ///
-             "{{LLM_PEER_IV}} = LLM-defined peer leave-one-out tone (cutoff=0.80).")
+* 合并单次多变量 confirm (避免相邻双 confirm 后者覆盖 _rc; 同 14_table5 R3 idiom)
+capture confirm variable llm_vote_tone_ctx llm_peer_tone_iv_ctx
+if !_rc {
+    local _m5 = 0
+    capture which ivreghdfe
+    if !_rc {
+        capture noisily ivreghdfe {{MAIN_DV}}_w (llm_vote_tone_ctx = llm_peer_tone_iv_ctx) $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo M5
+            local _m5 = 1
+        }
+    }
+    if !`_m5' {
+        capture which ivreg2
+        if !_rc {
+            capture noisily ivreg2 {{MAIN_DV}}_w (llm_vote_tone_ctx = llm_peer_tone_iv_ctx) $controls i.bank_id i.year, ///
+                cluster({{CLUSTER_VAR}}) first
+            if !_rc eststo M5
+        }
+    }
+}
+else {
+    display "[WARN] ctx 轨列 (llm_vote_tone_ctx / llm_peer_tone_iv_ctx) 不在面板; M5 跳过"
+}
 
-display "[OK] Table 2 written to $tables_dir/table2_main_iv_2sls.tex"
+* ----------------------------------------------------------------------------
+* 输出表格 (名单动态化: M3/M4 依赖 ivreghdfe/ivreg2、M5 依赖 ctx 列在盘;
+*   任一缺失时该列自动从表剔除而非触发 r(111) 丢整表)
+* ----------------------------------------------------------------------------
+qui estimates dir
+local stored `r(names)'
+local cand_models M1 M2 M3 M4 M5
+local cand_titles `""OLS" "OLS+X" "2SLS" "2SLS+CompIdx" "2SLS ctx""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] Table 2 无任何已存储估计, 表跳过"
+}
+else {
+    esttab `models' using "$tables_dir/table2_main_iv_2sls.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
+        label compress b(3) ///
+        title("Main IV 2SLS Results --- llm_peer (Cao et al. 2025)") ///
+        mtitles(`mtitles') ///
+        addnotes("Bank and year fixed effects in all columns. Cluster-robust SE at {{CLUSTER_VAR}} level." ///
+                 "{{LLM_PEER_IV}} = LLM-defined peer leave-one-out tone (cutoff=0.80, full track)." ///
+                 "M5 (2SLS ctx): entity-window twin llm_vote_tone_ctx instrumented by llm_peer_tone_iv_ctx, just-identified side-by-side dual-track robustness --- NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012).")
+
+    display "[OK] Table 2 written to $tables_dir/table2_main_iv_2sls.tex"
+}

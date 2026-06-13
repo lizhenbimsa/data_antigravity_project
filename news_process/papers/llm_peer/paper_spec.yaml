@@ -64,6 +64,13 @@ identification:
     # fix(omni-g-misc-02, 2026-06-11): cutoff=0.75 是 difflib.get_close_matches 的字符串
     # 匹配严格度 (LLM 同行名归一), 非 TNIC 相似度阈值 — 口径勘误同 llm_peer_iv.py:692。
     fallback: llm_peer_tone_iv_full_75   # difflib name-matching cutoff=0.75 robustness instrument (real, on panel)
+    # ctx 轨稳健性镜像 (2026-06-13 双轨补全): 内生孪生 llm_vote_tone_ctx (treatment.alternative)
+    # 配 ctx 同业 LOO 工具 llm_peer_tone_iv_ctx — 该列 llm_peer_iv.py:914-916 dual-track
+    # parity 早已物化 (源 llm_vote_score_ctx), 此前仅缺 spec 声明。与 full 轨主规格
+    # 【各自 just-identified、并排成列】表达对归因窗口 (全文 vs 实体窗口) 的稳健性;
+    # 严禁 full×ctx 合成 Hansen J overid (同篇两窗共同冲击同污染, J 零功效,
+    # Parente & Santos Silva 2012 EL)。模板 11_table2_main_iv_2sls (M5 列)。
+    ctx_mirror: [llm_peer_tone_iv_ctx]   # list 形式与 benefit_society spec 对齐
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
 # 方法学卖点: 共现网作"传统网络位置 baseline" 证 LLM 语义同业 IV 增量识别力。golden-safe; schema no-op。

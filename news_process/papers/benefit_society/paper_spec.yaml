@@ -58,9 +58,11 @@ identification:
   iv:
     primary: leave_one_out_peer_benefit_iv
     fallback: zone_leave1out_benefit_iv
-    # ctx 轨稳健性镜像 (2026-06-13 终审, iv_extensions.py lpeer_*): 内生孪生
-    # benefit_mean_ctx 配 ctx 同业 LOO 工具 lpeer_benefit_iv_ctx, 与 full 轨各自
+    # ctx 轨稳健性镜像 (2026-06-13 终审, iv_extensions.py lpeer_* / zone_*_ctx): 内生
+    # 孪生 benefit_mean_ctx 配 ctx 工具 — 同业 LOO = lpeer_benefit_iv_ctx, 同经济圈
+    # LOO = zone_leave1out_benefit_iv_ctx (2026-06-13 双轨补全), 与 full 轨各自
     # just-identified 并排 (双轨互为稳健性); 非 full×ctx overid。模板 25_tableA12_iv_2sls。
+    ctx_mirror: [lpeer_benefit_iv_ctx, zone_leave1out_benefit_iv_ctx]
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
 # ⚠ PAP v1.0-final 锁 outcome=roa/treatment=benefit_mean → 网络严禁进 primary, 仅 controls/exploratory。golden-safe; schema no-op。
