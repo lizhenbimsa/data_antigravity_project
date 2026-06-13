@@ -499,7 +499,8 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         ('_ctx', '上下文', 'Entity-context'),
     ]:
         _trk = _suffix.lstrip('_')  # 'full' / 'ctx' 标准枚举值
-        # ─── Plan v1.37 P2: 每轨 4 个 binary prob_score 列 (两轨共 8 列) ───
+        # ─── Plan v1.37 P2 + 三维对称 (2026-06-14): 每轨 6 个 binary prob_score
+        #     列 (subst/locus/collab × {mean,std}), 两轨共 12 列 ───
         metadata[f'avg_subst_prob_score{_suffix}'] = VariableMetadata(
             var_name=f'avg_subst_prob_score{_suffix}',
             label=f'Avg Subst P_BIN ({_track_en}, 1=symbolic)',
@@ -554,6 +555,36 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             reference='Plan v1.37 P2 §5.3.2',
             notes=_PROB_STD_NOTE,
             category='prob_score-locus',
+            track=_trk,
+        )
+        # 三维对称补全 (2026-06-14): collab 维 prob_score (Chesbrough 2003 开放创新;
+        # positive_class=外部协同 与 stata_export 1=对照 一致), 与 subst/locus 同构。
+        metadata[f'avg_collab_prob_score{_suffix}'] = VariableMetadata(
+            var_name=f'avg_collab_prob_score{_suffix}',
+            label=f'Avg Collab P_BIN ({_track_en}, 1=external/open)',
+            description=f'平均 binary prob_score for innovation_collab_mode {_track_zh}轨',
+            data_type='float',
+            unit='概率',
+            value_range='[0, 1]',
+            formula=f'mean(compute_prob_score_binary(label, conf, positive_class="外部协同")) over models on innovation_collab_mode{_suffix}',
+            source_stage='Stage 21 (article-level) → Stage 45 (bank-year mean)',
+            reference='Chesbrough (2003) Open Innovation; Laursen & Salter (2006 SMJ); Cover & Thomas (2006) §2; Jaynes (1957)',
+            notes='三维对称 2026-06-14; positive_class=外部协同 aligns with stata_export 1=对照 encoding',
+            category='prob_score-collab',
+            track=_trk,
+        )
+        metadata[f'avg_collab_prob_score_std{_suffix}'] = VariableMetadata(
+            var_name=f'avg_collab_prob_score_std{_suffix}',
+            label=f'Std Collab P_BIN ({_track_en}, bank-year SD)',
+            description=f'avg_collab_prob_score{_suffix} 的 bank-year 标准差',
+            data_type='float',
+            unit='概率SD',
+            value_range=_PROB_STD_RANGE,
+            formula=f'std(avg_collab_prob_score{_suffix}) over articles per (target_bank, year)',
+            source_stage='Stage 45 panel aggregation',
+            reference='Plan v1.37 P2 §5.3.2; 三维对称 2026-06-14',
+            notes=_PROB_STD_NOTE,
+            category='prob_score-collab',
             track=_trk,
         )
 

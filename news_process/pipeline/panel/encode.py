@@ -910,15 +910,20 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
             for grp in ['llm', *LLM_MODELS, 'prob']:
                 agg[f'sum_wd_{wtag}_{grp}{track}'] = (f'_wd_{wtag}_{grp}{track}', 'sum')
 
-    # Plan v1.37 P2 §5.3.2: 8 个新增 bank-year 列, 二分类 prob_score
-    # (avg_{subst,locus}_prob_score_{full,ctx} 的 mean + std)。正类编码:
-    # 1 = 象征性 / 应用场景 (stata_export.py:40-50)。NaN 安全:
+    # Plan v1.37 P2 §5.3.2: 二分类 prob_score 的 bank-year mean + std。正类编码:
+    # 1 = 象征性 / 应用场景 / 外部协同 (stata_export.py:40-71)。NaN 安全:
     # 走 pandas mean/std (默认 ddof=1)。
+    # 三维对称补全 (2026-06-14): collab 维原缺 panel 聚合 (subst/locus 有), 文章级
+    # avg_collab_prob_score_{full,ctx} 在盘 (stage 21, positive_class=外部协同) →
+    # 补 mean+std 使 collab 与 subst/locus 三维对称 (12 列 = 3 维 × 2 轨 × {mean,std})。
+    # 源列缺失时由 aggregate_panel 的 valid_agg 自动过滤 (graceful)。
     for track in ['_full', '_ctx']:
         agg[f'avg_subst_prob_score{track}'] = (f'avg_subst_prob_score{track}', 'mean')
         agg[f'avg_subst_prob_score_std{track}'] = (f'avg_subst_prob_score{track}', 'std')
         agg[f'avg_locus_prob_score{track}'] = (f'avg_locus_prob_score{track}', 'mean')
         agg[f'avg_locus_prob_score_std{track}'] = (f'avg_locus_prob_score{track}', 'std')
+        agg[f'avg_collab_prob_score{track}'] = (f'avg_collab_prob_score{track}', 'mean')
+        agg[f'avg_collab_prob_score_std{track}'] = (f'avg_collab_prob_score{track}', 'std')
 
     return agg
 

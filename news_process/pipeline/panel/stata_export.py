@@ -213,9 +213,9 @@ def build_variable_labels(
         'app_frac_lc':                      "Frac of App-locus articles (ctx classification)",
         'sub_frac_sc':                      "Frac of Substantive articles (ctx classification)",
         'symb_frac_sc':                     "Frac of Symbolic articles (ctx classification)",
-        # Plan v1.37 P2 §5.3.4: 8 个二元 prob_score 列的标签 (每条 ≤ 80 UTF-8
-        # 字节; em-dash 占 3 字节; positive_class = 象征性 / 应用场景, 与
-        # stata_export 编码 1=对照 一致)。
+        # Plan v1.37 P2 §5.3.4: 二元 prob_score 列的标签 (每条 ≤ 80 UTF-8
+        # 字节; em-dash 占 3 字节; positive_class = 象征性 / 应用场景 / 外部协同, 与
+        # stata_export 编码 1=对照 一致)。三维对称补 collab (2026-06-14)。
         'avg_subst_prob_score_full':        "Avg Subst P_BIN (full-track) — 1=symbolic, max-ent map",
         'avg_subst_prob_score_std_full':    "Std Subst P_BIN (full-track, bank-year SD)",
         'avg_subst_prob_score_ctx':         "Avg Subst P_BIN (ctx-track) — 1=symbolic, max-ent map",
@@ -224,6 +224,10 @@ def build_variable_labels(
         'avg_locus_prob_score_std_full':    "Std Locus P_BIN (full-track, bank-year SD)",
         'avg_locus_prob_score_ctx':         "Avg Locus P_BIN (ctx-track) — 1=application, max-ent map",
         'avg_locus_prob_score_std_ctx':     "Std Locus P_BIN (ctx-track, bank-year SD)",
+        'avg_collab_prob_score_full':       "Avg Collab P_BIN (full-track) — 1=external/open, max-ent map",
+        'avg_collab_prob_score_std_full':   "Std Collab P_BIN (full-track, bank-year SD)",
+        'avg_collab_prob_score_ctx':        "Avg Collab P_BIN (ctx-track) — 1=external/open, max-ent map",
+        'avg_collab_prob_score_std_ctx':    "Std Collab P_BIN (ctx-track, bank-year SD)",
         # v3.5.1 A1 Lexical Clarity (LM 2011 JF 66:1; You 2018 hhx055 Panel C/D)
         # 真双轨独立扫描; 每条 ≤ 80 UTF-8 bytes (per plan v0.3 §2.4.1 frozen at D0).
         'mean_clarity_score_full':          "Mean Clarity Score from indep Full-text scan (LM 2011 JF; You 2018)",
@@ -392,11 +396,14 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # 主洗稿率 count (sentiment × _full)
         'pos_symb_count_full', 'pos_symb_count_ctx',
         'neg_sub_count_full', 'neg_sub_count_ctx',
-        # Plan v1.37 P2 §5.3.4: 8 个二元 prob_score 列 (归入分析核心列, 非 aux)。
+        # Plan v1.37 P2 §5.3.4: 二元 prob_score 列 (归入分析核心列, 非 aux);
+        # 三维对称补 collab (2026-06-14) → 12 列 = 3 维 × 2 轨 × {mean, std}。
         'avg_subst_prob_score_full', 'avg_subst_prob_score_ctx',
         'avg_subst_prob_score_std_full', 'avg_subst_prob_score_std_ctx',
         'avg_locus_prob_score_full', 'avg_locus_prob_score_ctx',
         'avg_locus_prob_score_std_full', 'avg_locus_prob_score_std_ctx',
+        'avg_collab_prob_score_full', 'avg_collab_prob_score_ctx',
+        'avg_collab_prob_score_std_full', 'avg_collab_prob_score_std_ctx',
         # v3.5.1 A1 Lexical Clarity (LM 2011 JF; You 2018) — 6 列全进 core
         # (per plan v0.3 §1.3 invariant + §2.4.1; core 当前 ~95+8=103 远低于 IC 2048).
         'mean_clarity_score_full', 'mean_clarity_score_ctx',

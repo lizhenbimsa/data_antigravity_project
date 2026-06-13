@@ -119,16 +119,17 @@ treatment:
     - avg_msent_std_full              # 计数级 MSENT 离散度
     - avg_subst_prob_score_std_full   # substantiveness 概率离散度
     - avg_locus_prob_score_std_full   # locus 概率离散度
+    - avg_collab_prob_score_std_full  # collab 概率离散度 (三维对称 2026-06-14)
 
   composite_pca:  # V4 F6.2 multiple testing 处理
-    method: "PCA on 10 alt disagreement measures → 第一主成分作 composite_disagreement_index"
+    method: "PCA on 11 alt disagreement measures → 第一主成分作 composite_disagreement_index"
     explained_variance_min: 0.40
 
   measurement_validity_checks:
     - F-P2.1: "LLM raw response archive (DC3 必修, v3.5.1 prompt frozen → v3.7.0 response frozen)"
     - F-Adv.2: "LLM training data contamination test (DC4 必修, pre/post cutoff holdout)"
     - shapiro_2022_correction: "measurement-error correction (JoE 228 框架)"
-    - htmt_cronbach_alpha: "convergent validity 跨 10 alt measures (stage 39d 扩展)"
+    - htmt_cronbach_alpha: "convergent validity 跨 11 alt measures (stage 39d 扩展)"
     - outlet_normalization: "媒体源 normalization 规范 (V4 F3.1 必修, M2-M3 outlet_dict 建立)"
 
 controls:
@@ -233,7 +234,7 @@ heterogeneity:  # V4 F2.2 修复 boundary condition
     rationale: "regime shift (V4 F-Comp.3)"
 
 robustness_battery:
-  - multi_treatment_measure: "10 alt disagreement measures (PCA composite + 各分量稳健性)"
+  - multi_treatment_measure: "11 alt disagreement measures (PCA composite + 各分量稳健性)"
   - multi_outcome: "Z-score / NPL formation / RWA ratio / σ(ROA) 横向交叉验证"
   - alt_iv: "5 IV cross-validation"
   - placebo_random_bank_id: "randomize bank ID 1000 次, 报告 empirical p-value 分布"

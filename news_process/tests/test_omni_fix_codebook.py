@@ -165,12 +165,16 @@ class TestTrackEnum:
         assert not bad, f'track 编码混编仍在: {bad}'
 
     def test_prob_score_entries_use_standard_track(self):
-        """原 8 个 prob_score 条目误用中文 '全文'/'上下文' — 已改标准枚举。"""
+        """prob_score 条目用标准 track 枚举 (原 8 误用中文 '全文'/'上下文')。
+
+        三维对称补全 (2026-06-14): collab 维同 subst/locus 一并断言。"""
         meta = cb.get_variable_metadata_dict()
         assert meta['avg_subst_prob_score_full'].track == 'full'
         assert meta['avg_subst_prob_score_std_full'].track == 'full'
         assert meta['avg_locus_prob_score_ctx'].track == 'ctx'
         assert meta['avg_locus_prob_score_std_ctx'].track == 'ctx'
+        assert meta['avg_collab_prob_score_full'].track == 'full'
+        assert meta['avg_collab_prob_score_std_ctx'].track == 'ctx'
 
     def test_single_text_specs_use_empty_not_dash(self):
         """_SINGLE_TEXT_SPECS 的 track-agnostic 空值统一 '' (原 '—')。"""
@@ -316,7 +320,8 @@ class TestProbScoreStdRange:
     def test_range_no_longer_claims_half(self):
         meta = cb.get_variable_metadata_dict()
         for col in ('avg_subst_prob_score_std_full', 'avg_subst_prob_score_std_ctx',
-                    'avg_locus_prob_score_std_full', 'avg_locus_prob_score_std_ctx'):
+                    'avg_locus_prob_score_std_full', 'avg_locus_prob_score_std_ctx',
+                    'avg_collab_prob_score_std_full', 'avg_collab_prob_score_std_ctx'):
             vr = meta[col].value_range
             assert vr != '[0, 0.5]', f'{col} 仍声称越界旧范围 [0, 0.5]'
             assert '0.7071' in vr or '1/√2' in vr, (

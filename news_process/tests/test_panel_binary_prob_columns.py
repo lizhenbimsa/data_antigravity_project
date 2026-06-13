@@ -2,8 +2,9 @@
 
 4 个测试函数; 5 个用例 (positive-class 编码测试参数化 ×2)。
 
-# 白话: prob_score 是把 LLM 对文章的二元分类 (实质/象征、底层/应用) 连同置信度
-# 折算成 0~1 概率分数; 这组测试确保它正确聚合进 bank-year 面板的 8 个新列。
+# 白话: prob_score 是把 LLM 对文章的二元分类 (实质/象征、底层/应用、自主/外部协同)
+# 连同置信度折算成 0~1 概率分数; 这组测试确保它正确聚合进 bank-year 面板的 12 个列
+# (三维 × 2 轨 × {mean,std}; 三维对称补全 2026-06-14)。
 """
 import numpy as np
 import pandas as pd
@@ -11,7 +12,10 @@ import pytest
 
 
 def test_eight_new_columns_present():
-    """Item 2: encode.py 聚合产出的 8 个新 bank-year 列。"""
+    """Item 2: encode.py 聚合产出的二元 prob_score bank-year 列。
+
+    三维对称补全 (2026-06-14): subst/locus/collab 三维 × 2 轨 × {mean,std} = 12 列。
+    源列 collab 维 mean 映射 (out_col == src_col) 与 subst/locus 同构。"""
     from news_process.pipeline.panel.encode import build_aggregation_dict
     agg = build_aggregation_dict()
     expected = {
@@ -19,8 +23,13 @@ def test_eight_new_columns_present():
         'avg_subst_prob_score_std_full', 'avg_subst_prob_score_std_ctx',
         'avg_locus_prob_score_full', 'avg_locus_prob_score_ctx',
         'avg_locus_prob_score_std_full', 'avg_locus_prob_score_std_ctx',
+        'avg_collab_prob_score_full', 'avg_collab_prob_score_ctx',
+        'avg_collab_prob_score_std_full', 'avg_collab_prob_score_std_ctx',
     }
     assert expected.issubset(set(agg.keys()))
+    # 三维对称: collab 维 source-col 映射与 subst/locus 同构 (mean: out==src, std: std of mean-col)
+    assert agg['avg_collab_prob_score_full'] == ('avg_collab_prob_score_full', 'mean')
+    assert agg['avg_collab_prob_score_std_ctx'] == ('avg_collab_prob_score_ctx', 'std')
 
 
 def test_zero_article_bank_year_nan():
@@ -56,6 +65,7 @@ def test_zero_article_bank_year_nan():
     [
         ("象征性", "象征性", 1.0),       # subst 维度, 正类
         ("应用场景", "应用场景", 1.0),    # locus 维度, 正类
+        ("外部协同", "外部协同", 1.0),    # collab 维度, 正类 (三维对称 2026-06-14)
     ],
 )
 def test_positive_class_encoding_assertion(label, positive_class, expected_score):
@@ -96,3 +106,16 @@ def test_golden_baseline_diff_scope():
     assert len(expected_p2_article_cols) == 4
     # panel 级: 新增 8 列 (4 个均值 + 4 个标准差)
     assert len(expected_p2_panel_cols) == 8
+
+    # 三维对称补全 (2026-06-14): collab 维 panel 聚合。collab 文章级列
+    # (avg_collab_prob_score_{full,ctx}) 在 v3.4.0 stage 21 即已落盘 → 本次新增
+    # 0 文章列, 仅 +4 panel 列 (mean + std × 2 轨)。下次 golden 重生时:
+    #   - 21_tone_llms{,_full}.parquet: +0 (collab 文章列已存)
+    #   - 40_panel_yearly / 51_panel_with_controls: +4 (avg_collab_prob_score{,_std}_{full,ctx})
+    expected_collab_panel_cols = {
+        'avg_collab_prob_score_full', 'avg_collab_prob_score_ctx',
+        'avg_collab_prob_score_std_full', 'avg_collab_prob_score_std_ctx',
+    }
+    assert len(expected_collab_panel_cols) == 4
+    # 三维总计: prob_score panel 列 = 12 (subst/locus/collab × 2 轨 × {mean,std})
+    assert len(expected_p2_panel_cols | expected_collab_panel_cols) == 12
