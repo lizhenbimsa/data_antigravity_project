@@ -128,6 +128,127 @@ if BANK_KW_AUTOMATON is not None:
 # ============================================================================
 
 
+# ============================================================================
+# 长度过滤诊断 (log-only, 零行为变更)
+# ============================================================================
+# 动机 (2026-06-13 长度区间顶刊合规化): 顶刊对长度过滤的要求不是某个标准数字,
+# 而是 (a) 下限的测量可靠性论证 + (b) 上限的文体噪声排除论证 + (c) data appendix
+# 分布披露与截断敏感性。本诊断为 (c) 供数: 每个源文件记录内容长度分布分位数 +
+# 替代阈值矩阵下的保留行数, 论文附录直接从生产 run 日志汇总, 无需重跑语料。
+# 文献锚点: Tetlock/Saar-Tsechansky/Macskassy 2008 JF 要求每篇 ≥50 词 (引文出自
+# 其 Columbia 工作论文版 p.9, 非刊印版页码; 排除表格/列表残片 + 限制比值型语调
+# 指标的离群影响), 且**不设上限** (长文影响靠语调按年标准化压制; 其 1% winsorize
+# 的对象是 SUE/分析师预测等结果变量, 非语调) —
+# 详见 scripts/audit/LENGTH_FILTER_JUSTIFICATION_2026-06-13.md。
+# ⚠ 供数前提: stage 00 增量缓存命中时 worker 被跳过, 不产生本诊断日志;
+# [长度诊断] 行仅在冷缓存/重算路径出现 (全量生产 run 为新语料 → 天然冷缓存)。
+# 白话: 不动现有的 100~10000 字门槛, 只在日志里多记一笔"如果门槛换成别的数,
+# 会留下多少篇" — 将来论文附录要做"门槛换了结果也不变"的检验时, 数据现成。
+
+# 替代阈值矩阵: min 50 = TSM 2008 ≥50 词的字面数字 (注: 此处比较的是汉字数,
+# 50 词信息量约对应 75-100 字, 故 50-汉字是比 TSM 更宽松的下限, 取作敏感性边界);
+# 200 = 加倍保守; max 包围生产值 10000; None = 不设上限 (TSM 2008 实际做法)。
+_DIAG_MIN_CUTOFFS = (50, 100, 200)
+_DIAG_MAX_CUTOFFS = (5000, 10000, 20000, None)
+
+
+def _length_filter_diagnostics(content_len: pd.Series) -> dict:
+    """计算内容汉字数分布与替代截断阈值下的保留行数 (纯诊断, 不过滤).
+
+    Args:
+        content_len: 每行内容的汉字计数 Series (调用方已算好, 此处零额外扫描)。
+
+    Returns:
+        dict: ``{'n', 'pctiles', 'min', 'max', 'kept'}``;
+        ``kept`` 键为 ``(min_cutoff, max_cutoff)`` 元组 (max=None 表示不设上限),
+        值为该组合下保留的行数。空 Series 或全 NaN 时仅含 ``{'n': 0}``。
+    """
+    # 全 NaN 守卫: 生产路径 (filter.py dropna + normalize.py fillna) 下 content_len
+    # 恒为 int64 无 NaN, 此守卫为 no-op; 仅防御病理性全 NaN 输入致 int(min())=int(NaN)
+    # 崩溃 (与改前一致: 该文件本就会被过滤为空 → 返回 None, 此处仅免去 ERROR traceback)。
+    n = len(content_len)
+    if n == 0 or content_len.notna().sum() == 0:
+        return {'n': 0}
+    pct = content_len.quantile([0.01, 0.05, 0.50, 0.95, 0.99])
+    kept = {}
+    for lo in _DIAG_MIN_CUTOFFS:
+        for hi in _DIAG_MAX_CUTOFFS:
+            mask = content_len >= lo
+            if hi is not None:
+                mask &= content_len <= hi
+            kept[(lo, hi)] = int(mask.sum())
+    return {
+        'n': n,
+        'pctiles': {float(p): int(v) for p, v in pct.items()},
+        'min': int(content_len.min()),
+        'max': int(content_len.max()),
+        'kept': kept,
+    }
+
+
+def _log_length_filter_diagnostics(content_len: pd.Series) -> None:
+    """将 ``_length_filter_diagnostics`` 结果格式化为两行紧凑日志."""
+    diag = _length_filter_diagnostics(content_len)
+    if diag['n'] == 0:
+        return
+    p = diag['pctiles']
+    logger.info(
+        f"  [长度诊断] 内容汉字数分布 (n={diag['n']:,}): "
+        f"min={diag['min']} p1={p[0.01]} p5={p[0.05]} p50={p[0.5]} "
+        f"p95={p[0.95]} p99={p[0.99]} max={diag['max']}"
+    )
+    kept_str = ' | '.join(
+        f"≥{lo}~{'∞' if hi is None else hi}:{cnt:,}"
+        for (lo, hi), cnt in diag['kept'].items()
+    )
+    logger.info(f"  [长度诊断] 替代阈值保留行数: {kept_str}")
+
+
+# 标题长度替代阈值: 1/2/3 字, 用于支撑"≥2 删的是损坏行而非真标题"的披露主张。
+_DIAG_TITLE_CUTOFFS = (1, 2, 3)
+
+
+def _title_filter_diagnostics(title_len: pd.Series) -> dict:
+    """计算标题汉字数过滤的删除构成 (纯诊断, 不过滤).
+
+    动机 (2026-06-13 第三轮终审): 标题 ≥2 字被定性为"数据完整性过滤, 非样本选择",
+    但该定性须由删除构成数据支撑 — 须证明被 ≥2 删除的标题以 0 字 (空/损坏) 为主、
+    而非大量 1 字真标题。本诊断按 ≥1/≥2/≥3 替代阈值记保留行数 + 拆出被 ≥2 删除者
+    中 0 字 / 1 字各几行, 供 data appendix 坐实"无样本选择风险"。
+
+    Args:
+        title_len: 每行标题的汉字计数 Series (调用方已算好, 零额外扫描)。
+
+    Returns:
+        dict: ``{'n', 'kept', 'removed_lt2', 'n_zero', 'n_one'}``;
+        ``kept`` 键为阈值 (1/2/3) → 保留行数。空 Series 或全 NaN 时仅含 ``{'n': 0}``。
+    """
+    n = len(title_len)
+    if n == 0 or title_len.notna().sum() == 0:
+        return {'n': 0}
+    kept = {c: int((title_len >= c).sum()) for c in _DIAG_TITLE_CUTOFFS}
+    return {
+        'n': n,
+        'kept': kept,
+        'removed_lt2': n - kept[2],
+        'n_zero': int((title_len == 0).sum()),
+        'n_one': int((title_len == 1).sum()),
+    }
+
+
+def _log_title_filter_diagnostics(title_len: pd.Series) -> None:
+    """将 ``_title_filter_diagnostics`` 结果格式化为一行紧凑日志."""
+    d = _title_filter_diagnostics(title_len)
+    if d['n'] == 0:
+        return
+    k = d['kept']
+    logger.info(
+        f"  [长度诊断] 标题汉字数 (n={d['n']:,}): "
+        f"保留 ≥1:{k[1]:,} ≥2:{k[2]:,} ≥3:{k[3]:,} | "
+        f"被≥2删除 {d['removed_lt2']:,} (其中 0字:{d['n_zero']:,} 1字:{d['n_one']:,})"
+    )
+
+
 def _process_single_file(file_path: str) -> pd.DataFrame | None:
     """读取并清洗单个 XLSX 文件.
 
@@ -193,6 +314,8 @@ def _process_single_file(file_path: str) -> pd.DataFrame | None:
         # 标题汉字数过滤
         rows_before = len(df_cleaned)
         title_chinese_len = df_cleaned['标题'].astype(str).str.count(CHINESE_CHAR_PATTERN)
+        # 过滤前记标题删除构成诊断 (log-only; 支撑"≥2 删的是损坏行"披露)
+        _log_title_filter_diagnostics(title_chinese_len)
         df_cleaned = df_cleaned[title_chinese_len >= TITLE_MIN_LEN]
         logger.info(
             f"  [标题长度≥{TITLE_MIN_LEN}] "
@@ -202,6 +325,8 @@ def _process_single_file(file_path: str) -> pd.DataFrame | None:
         # 内容汉字数过滤(上下限合并为一次计算, 避免创建两个中间布尔 Series)
         rows_before = len(df_cleaned)
         content_chinese_len = df_cleaned['内容'].astype(str).str.count(CHINESE_CHAR_PATTERN)
+        # 过滤前先记分布与替代阈值诊断 (log-only; data appendix 截断敏感性供数)
+        _log_length_filter_diagnostics(content_chinese_len)
         df_cleaned = df_cleaned[
             (content_chinese_len >= CONTENT_MIN_LEN) & (content_chinese_len <= CONTENT_MAX_LEN)
         ]
@@ -238,5 +363,9 @@ __all__ = [
     '_ac_contains_any',
     '_expand_keyword_variants',
     'BANK_KW_AUTOMATON',
+    '_length_filter_diagnostics',
+    '_log_length_filter_diagnostics',
+    '_log_title_filter_diagnostics',
+    '_title_filter_diagnostics',
     '_process_single_file',
 ]
