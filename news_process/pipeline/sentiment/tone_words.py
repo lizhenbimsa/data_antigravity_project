@@ -95,6 +95,7 @@ from news_process.pipeline.sentiment.forward_looking import (  # noqa: E402
     compute_fls_for_text,
 )
 from news_process.pipeline.sentiment.lexical_complexity import (  # noqa: E402
+    HAN_COUNT_KEY,
     LEXICAL_COMPLEXITY_KEYS,
     WORD_COUNT_KEY,
     compute_lexical_complexity,
@@ -1424,8 +1425,9 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
                 lambda r, k=col_key: r.get(k, float('nan'))
             )
 
-    # ── 词汇/句法复杂度 $0 测度族 (批 #2–#6) + 词级长度 n_words_real (批 #7) 双轨列提取 ──
-    for col in (*LEXICAL_COMPLEXITY_KEYS, WORD_COUNT_KEY):
+    # ── 词汇/句法复杂度 $0 测度族 (批 #2–#6) + 词级长度 n_words_real (批 #7)
+    #    + 汉字级长度 n_han_real (HAN_COUNT_KEY, hanzi-char-dual 2026-06-13) 双轨列提取 ──
+    for col in (*LEXICAL_COMPLEXITY_KEYS, WORD_COUNT_KEY, HAN_COUNT_KEY):
         for track in ['_full', '_ctx']:
             col_key = f'{col}{track}'
             new_columns[col_key] = results.apply(

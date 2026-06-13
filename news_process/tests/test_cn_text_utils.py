@@ -9,8 +9,11 @@ import pytest
 
 from news_process.core.text.cn_text_utils import (
     CN_FIN_STOPWORDS,
+    cn_char_count,
+    cn_han_count,
     cn_split_sentence,
     cn_tokenize,
+    is_cjk,
 )
 
 pytestmark = pytest.mark.fast
@@ -271,3 +274,62 @@ class TestIntegration:
         # "2024" / "GDP" / 数字小数都被过滤; 中文 token 保留
         assert "2024" not in tokens
         assert "GDP" not in tokens
+
+
+# ── CJK 汉字/字符计数原语 (fix hanzi-char-dual 2026-06-13) ────────────
+class TestCjkPrimitives:
+    def test_is_cjk_basic(self):
+        assert is_cjk("银") is True
+        assert is_cjk("行") is True
+        for non in ("A", "z", "1", "。", "，", " ", "%", "α"):
+            assert is_cjk(non) is False, f"{non!r} 不应判为汉字"
+
+    def test_is_cjk_boundary(self):
+        # 基本区上下界 U+4E00 ('一') / U+9FFF ('鿿') 均含
+        assert is_cjk("一") is True   # U+4E00 下界
+        assert is_cjk("鿿") is True   # U+9FFF 上界
+        # 紧邻边界外: U+4DFF / U+A000 不含
+        assert is_cjk("䷿") is False
+        assert is_cjk("ꀀ") is False
+        # fix(L6-3 final-audit): 扩展区 A (U+3400–U+4DBF) 不属基本区 → 钉死"仅基本区"契约
+        assert is_cjk(chr(0x3400)) is False  # 扩展区 A 起点
+        assert is_cjk(chr(0x4DBF)) is False  # 扩展区 A 终点
+
+    def test_is_cjk_byte_equivalent_to_legacy_predicate(self):
+        """golden-safety 锁: is_cjk 必须与旧内联谓词 '一'<=ch<='鿿' 字节等价。
+
+        lexical_complexity 把 hard_char_ratio / _common_char_set 的内联谓词重构为
+        is_cjk —— 任何范围漂移都会悄悄改变已落盘的 hard_char_ratio。逐码点比对一段
+        覆盖边界内外的码点区间, 防回归。
+        fix(L6-2 final-audit): 上界扩到 0xA010 (越过 U+9FFF 上界 + U+A000 外侧),
+        确保上边界翻转点被逐点覆盖, 不止停在基本区中段。
+        """
+        for cp in range(0x4DF0, 0xA010, 7):  # 下界附近 → 越过 U+9FFF 上界翻转点
+            ch = chr(cp)
+            assert is_cjk(ch) == ('一' <= ch <= '鿿')
+        for cp in (0x0041, 0x0039, 0x3002, 0xFF0C, 0x4DFF, 0x4E00, 0x9FFF, 0xA000):  # 边界采样
+            ch = chr(cp)
+            assert is_cjk(ch) == ('一' <= ch <= '鿿')
+
+    def test_cn_han_count(self):
+        assert cn_han_count("银行A1。") == 2     # 银, 行
+        assert cn_han_count("中国工商银行") == 6
+        assert cn_han_count("ABC123 %.,") == 0
+        assert cn_han_count("") == 0
+        assert cn_han_count("䷿ꀀ") == 0  # 紧邻边界外
+
+    def test_cn_char_count_strip_whitespace_default(self):
+        # 默认去空白: "银行 A 1。" → 银,行,A,1,。 = 5
+        assert cn_char_count("银行 A 1。") == 5
+        assert cn_char_count("  银\t行\n  ") == 2  # 各类空白全剔
+        assert cn_char_count("") == 0
+
+    def test_cn_char_count_keep_whitespace(self):
+        assert cn_char_count("银 行", strip_whitespace=False) == 3  # 含 1 空格
+
+    def test_han_vs_char_dual_caliber(self):
+        # "字符 vs 汉字"双口径: 含数字标点时两者不同, 纯汉字时相等
+        mixed = "银行2024年GDP增长5.2%"
+        assert cn_han_count(mixed) < cn_char_count(mixed)  # 数字/拉丁/标点拉开差距
+        pure = "中国工商银行净利润增长"
+        assert cn_han_count(pure) == cn_char_count(pure)   # 纯汉字 → 两口径一致

@@ -34,6 +34,24 @@
     长度五分位组均值 0.119→0.228 严格单调; full 轨 (中位 ~1553 字) vs ctx 轨 (~725 字)
     的轨间 redundancy 差异首先是长度伪差异。**回归中必须同时控制长度** — 本模块配套
     输出 'redundancy_log_length' (= ln 去空白字符数, 与 redundancy 同定义域) 作控制变量。
+  - within_doc_redundancy_han **汉字口径孪生** (fix(hanzi-char-dual, 2026-06-13)): 字符版
+    within_doc_redundancy 的 3-gram 含数字/标点/拉丁, 当一篇数字标点占比异常时其"重复"
+    部分来自非汉字符号而非中文行文复读。孪生列先抽**纯汉字子序列** (is_cjk 过滤) 再切
+    3-gram, 分子(唯一汉字3-gram)/分母(全部汉字3-gram)同为汉字口径。
+    ⚠ **定位 (顶刊终审 L1-1, 须如实披露)**: 实测全量 1170 篇 content_full 上
+    corr(within_doc_redundancy, within_doc_redundancy_han)=**0.99** (mean char 0.168 vs
+    han 0.154, 仅 26.8% 文 |diff|>0.02)。故本列**不是**与字符版互补的第二独立构念, 而是
+    "字符口径对非汉字符号扰动的**敏感性诊断**"; 论文报告须披露该 r≈0.99, 且**不**与字符版
+    同进一回归 (近完美共线)。注: 这兑现的是用户指令的**「双口径」面 (汉字 vs 字符)**;
+    指令的「分子分母口径一致」面由 hard_char_ratio (分子分母同为汉字) 代表 —— 字符版
+    within_doc_redundancy 本就分子分母同口径 (字符3-gram), 从不违反一致性, 故 _han 孪生
+    并非"修复不一致"。
+  - 锚点 Dyer-Lang-Stice-Lawrence (2017) JAE / Cazier-Pfeiffer (2016) 系英文 10-K 文本
+    冗余构念; 汉字口径为本项目据该构念之**中文落地** (原文非汉字 operationalization),
+    属概念同源, 论文措辞勿声称等同原文做法 (与 hard_char_ratio 的"丘心颖 2016 本土锚"同理)。
+    配套 'redundancy_han_log_length' (= ln 汉字数) 作汉字口径长度控制 (同 redundancy_log_length
+    之于字符版); 二者均 < 3 个对应单位 → 双 nan。汉字口径纯字符级、零分词器依赖, 对 jieba
+    全局注入 byte 级不变, 确定性强于 jieba-based 测度。
   - rare_word 阈值 (RARE_WORD_PERCENTILE=20) 确定性派生, 但低频侧巨量 tie 致实测覆盖约
     57% distinct 词 (非紧致 20% 尾部), 实为"非高频词率"; spec/论文须如实表述。
   - rare_word 分子已排除纯数字/纯拉丁 token (fix(omni-g-numlex-04, 2026-06-11)): 阿拉伯
@@ -60,6 +78,12 @@ import threading
 
 import jieba
 import jieba.posseg as pseg
+
+# fix(hanzi-char-dual, 2026-06-13): 汉字判定走 cn_text_utils 单一事实源原语 (is_cjk),
+# 取代本模块历史散落的 `'一' <= ch <= '鿿'` 内联谓词 —— 字节等价纯重构, 不改任何
+# 已落盘值; 同时新增的汉字口径篇内冗余 within_doc_redundancy_han 也据此与字符口径
+# within_doc_redundancy 互为"字符 vs 汉字"双口径稳健性 (双轨纪律)。
+from news_process.core.text.cn_text_utils import is_cjk
 
 # ── 常量 (spec 固定) ─────────────────────────────────────────────────────────
 # 低频词阈值: jieba 冻结词典正词频分布的第 P 百分位 (确定性、可复现)。
@@ -176,7 +200,7 @@ def _common_char_set() -> frozenset[str]:
         if not freq:
             continue
         for ch in word:
-            if '一' <= ch <= '鿿':  # CJK 统一表意文字
+            if is_cjk(ch):  # CJK 统一表意文字 (SSOT 原语, 字节等价旧 '一'<=ch<='鿿')
                 char_freq[ch] = char_freq.get(ch, 0) + freq
     if not char_freq:
         return frozenset()
@@ -222,8 +246,11 @@ def _empty_result() -> dict[str, float]:
         'specificity_index': float('nan'),
         'within_doc_redundancy': float('nan'),
         'redundancy_log_length': float('nan'),
+        'within_doc_redundancy_han': float('nan'),
+        'redundancy_han_log_length': float('nan'),
         'adversative_ratio': float('nan'),
         'n_words_real': float('nan'),
+        'n_han_real': float('nan'),
     }
 
 
@@ -232,15 +259,27 @@ def _empty_result() -> dict[str, float]:
 # 与 within_doc_redundancy 同定义域) — redundancy 强机械长度依赖 (corr=0.50, 五分位
 # 均值 0.119→0.228 严格单调, 见模块 docstring 诚实限定段), 回归用 redundancy 时必须
 # 同时控制该列。⚠ 非 [0,1] 比率列 (是 log 字符数), 下游聚合/检验勿按比率断言。
+# fix(hanzi-char-dual, 2026-06-13): 新增 'within_doc_redundancy_han' (汉字口径篇内冗余,
+# 与字符口径 within_doc_redundancy 互为双口径) + 'redundancy_han_log_length' (ln 汉字数,
+# 汉字口径长度控制, 同样非 [0,1] 比率列)。两键经 LEXICAL_COMPLEXITY_KEYS 自动物化为
+# *_full/*_ctx 文章列 (tone_words), within_doc_redundancy_han 再由 encode 聚合到面板。
 LEXICAL_COMPLEXITY_KEYS = (
     'rare_word_ratio', 'hard_char_ratio', 'nominalization_ratio',
     'function_word_ratio', 'specificity_index', 'within_doc_redundancy',
-    'redundancy_log_length', 'adversative_ratio',
+    'redundancy_log_length', 'within_doc_redundancy_han',
+    'redundancy_han_log_length', 'adversative_ratio',
 )
 
 # 词级文章长度原始计数 (非比率): mean 聚合后由 geography 做 ln 变换得 ln_word_count
 # (Li 2008 JAE 真 MLENGTH 词口径, 补 avg_article_length 的字符口径; 批 #7)。
 WORD_COUNT_KEY = 'n_words_real'
+
+# fix(hanzi-char-dual, 2026-06-13): 汉字级文章长度原始计数 (非比率) = 该文 CJK 汉字数
+# (= is_cjk 过滤计数, 与 hard_char 的 n_han 同源同值)。mean 聚合 (encode → avg_han_count)
+# 后由 geography 做 ln 变换得 ln_han_count —— 补齐文章长度族的**第三口径**: 字符口径
+# avg_article_length / 词口径 ln_word_count / 汉字口径 ln_han_count 三者并存, 兑现用户
+# "既要考虑汉字也要考虑字符"指令 (中文场景字符含数字标点拉丁, 汉字口径剔除之, 更纯)。
+HAN_COUNT_KEY = 'n_han_real'
 
 
 def _char_trigram_redundancy(content: str) -> tuple[float, float]:
@@ -268,6 +307,35 @@ def _char_trigram_redundancy(content: str) -> tuple[float, float]:
     uniq = len(set(grams))
     redundancy = round(1.0 - uniq / total, 6) if total > 0 else float('nan')
     return (redundancy, round(math.log(len(s)), 6))
+
+
+def _han_trigram_redundancy(content: str) -> tuple[float, float]:
+    """汉字口径篇内冗余: 返回 (redundancy_han, han_log_length)。
+
+    fix(hanzi-char-dual, 2026-06-13): 字符口径 _char_trigram_redundancy 的孪生版。
+    先抽取**纯汉字子序列** (is_cjk 过滤掉数字/标点/拉丁/空白) 再切字符 3-gram ——
+    分子(唯一汉字3-gram)与分母(全部汉字3-gram)同为汉字口径, 满足"分子分母口径
+    一致" (与 hard_char_ratio 同范式)。与字符版互为"字符 vs 汉字"双口径稳健性
+    (双轨纪律: 不以相关性取舍, 两版各自进回归)。
+
+    redundancy_han = 1 − (唯一汉字3-gram / 全部汉字3-gram); 汉字数 < 3 → 双 nan。
+    han_log_length = ln(汉字数); 与 redundancy_han 同定义域, 作汉字口径长度控制
+    (篇内冗余 TTR 族对长度强机械依赖, 见模块 docstring; 回归用 redundancy_han 时
+    须同时控制本列, 同 redundancy_log_length 之于字符版)。
+
+    白话: 和字符版冗余一个意思 (数重复的小片段, 越多越啰嗦), 区别是这版只盯方块
+    汉字, 把数字标点英文全扔掉再数 —— 这样"分子分母都是汉字", 口径干净, 也不会
+    被一篇里塞满数字/符号撑出来的假重复带偏; 两版一起看互相印证。
+    """
+    han_str = ''.join(ch for ch in content if is_cjk(ch))
+    n_han = len(han_str)
+    if n_han < 3:
+        return (float('nan'), float('nan'))
+    grams = [han_str[i:i + 3] for i in range(n_han - 2)]
+    total = len(grams)
+    uniq = len(set(grams))
+    redundancy = round(1.0 - uniq / total, 6) if total > 0 else float('nan')
+    return (redundancy, round(math.log(n_han), 6))
 
 
 def compute_lexical_complexity(content: str) -> dict[str, float]:
@@ -324,8 +392,8 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
         if w in _ADVERSATIVE_WORDS:
             n_adversative += 1
 
-    # 2) hard_char: 非常用 Han 字 / 全部 Han 字
-    han = [ch for ch in content if '一' <= ch <= '鿿']
+    # 2) hard_char: 非常用 Han 字 / 全部 Han 字 (分子分母同为汉字口径, is_cjk SSOT)
+    han = [ch for ch in content if is_cjk(ch)]
     n_han = len(han)
     if n_han >= _MIN_HAN_CHARS:
         n_hard = sum(1 for ch in han if ch not in common_chars)
@@ -334,6 +402,8 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
         hard_char_ratio = float('nan')
 
     redundancy, redundancy_log_len = _char_trigram_redundancy(content)
+    # fix(hanzi-char-dual, 2026-06-13): 汉字口径篇内冗余孪生 (与字符版双口径)
+    redundancy_han, redundancy_han_log_len = _han_trigram_redundancy(content)
 
     return {
         'rare_word_ratio': _safe_div(n_rare, n_real),
@@ -344,6 +414,17 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
         'within_doc_redundancy': redundancy,
         # fix(omni-g-numlex-05): redundancy 的 log-length 控制变体 (非比率列)
         'redundancy_log_length': redundancy_log_len,
+        # fix(hanzi-char-dual, 2026-06-13): 汉字口径冗余 + 其 log-length 控制 (非比率列)
+        'within_doc_redundancy_han': redundancy_han,
+        'redundancy_han_log_length': redundancy_han_log_len,
         'adversative_ratio': _safe_div(n_adversative, n_real),
         'n_words_real': float(n_real),  # 词级文章长度 (批 #7, 供 ln_word_count)
+        # fix(hanzi-char-dual, 2026-06-13): 汉字级文章长度 (供 ln_han_count); 复用上方
+        # hard_char 已算的 n_han (= is_cjk 过滤计数, 定义上 == cn_han_count(content)),
+        # 不重复扫描。无标题/正文均 prepend 标题轨, 与 n_words_real 同口径文本。
+        # fix(hanzi-char-dual final-audit, 2026-06-13): n_han==0 (零汉字文章, 如纯数字/
+        # 拉丁残片) → nan 而非 0.0 —— 否则该文在 avg_han_count 被当有效 0 长度计入分母,
+        # 而同文在 avg_within_doc_redund_han 是 nan 被跳过, 造成汉字口径族 bank-year
+        # 聚合的零汉字边界 NaN 语义不对称 (顶刊终审 Gap#4)。"无汉字 → 汉字长度不适用"。
+        'n_han_real': float(n_han) if n_han > 0 else float('nan'),
     }

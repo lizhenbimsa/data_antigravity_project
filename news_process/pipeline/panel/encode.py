@@ -583,9 +583,16 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         agg[f'avg_function_word{track}'] = (f'function_word_ratio{track}', 'mean')
         agg[f'avg_specificity{track}'] = (f'specificity_index{track}', 'mean')
         agg[f'avg_within_doc_redund{track}'] = (f'within_doc_redundancy{track}', 'mean')
+        # fix(hanzi-char-dual, 2026-06-13): 汉字口径篇内冗余 (剔数字/标点/拉丁后切3-gram),
+        # 与上方字符口径 avg_within_doc_redund 互为"字符 vs 汉字"双口径稳健性。
+        agg[f'avg_within_doc_redund_han{track}'] = (f'within_doc_redundancy_han{track}', 'mean')
         agg[f'avg_adversative{track}'] = (f'adversative_ratio{track}', 'mean')
         # 词级文章长度 (批 #7): bank-year 平均 jieba 词数; geography 再做 ln → ln_word_count
         agg[f'avg_word_count{track}'] = (f'n_words_real{track}', 'mean')
+        # fix(hanzi-char-dual, 2026-06-13): 汉字级文章长度 bank-year 平均汉字数; geography
+        # 再做 ln → ln_han_count (文章长度第三口径: 字符 avg_article_length / 词 ln_word_count
+        # / 汉字 ln_han_count 三者并存, 兑现"既要汉字也要字符")。
+        agg[f'avg_han_count{track}'] = (f'n_han_real{track}', 'mean')
 
         # --- I. 正/负面词频分离 (Berger, Kim & Ma 2024, CAR;
         #        Loughran & McDonald 2011, JF) ---

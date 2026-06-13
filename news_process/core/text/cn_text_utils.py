@@ -89,6 +89,61 @@ _FINANCIAL_STOPWORDS = frozenset([
 CN_FIN_STOPWORDS: frozenset[str] = _GENERIC_STOPWORDS | _FINANCIAL_STOPWORDS
 
 
+# ── CJK 汉字判定 + 字符/汉字计数原语 (单一事实源) ─────────────────────
+# **文本测度计数口径**的单一定义点 (限定范围, 顶刊终审 Gap#7 收敛措辞)。下游文本
+# 测度 (lexical_complexity 难字率 hard_char_ratio / 篇内冗余 within_doc_redundancy[_han]
+# / 汉字长度 n_han_real 等) 的"汉字 vs 字符"计数统一引用这三个原语, 避免各模块各自
+# 硬编码 `'一' <= ch <= '鿿'` 或裸 `len()` 导致**计数口径**漂移 —— 历史教训:
+# avg_article_length 曾把"字符数"误标为"词数" (见 geography.py:132 单位勘误)。
+# 范围 = CJK 统一表意文字基本区 U+4E00–U+9FFF ('一'..'鿿'), 与 _constants.py /
+# _extract_hhx055.py 的 [一-鿿] 一致, 纯重构不改任何已落盘值。
+# ⚠ 项目另有 preprocess/filter.py 用窄区间 `[一-龥]` (U+9FA5, 窄 90 码点) 做
+# **标题清洗正则** (剥离作者/尾随英文), 那是"此处有无中文字符"的清洗判定、**非计数
+# 口径**, 不在本 SSOT 范围内 (两者在 U+9FA6–U+9FFF 这 90 个汉字上分歧, 但用途不同
+# 不互相污染)。本 SSOT 仅声明覆盖文本测度的汉字/字符计数, 不声明覆盖全仓所有 CJK 正则。
+# 白话: 中文文本里"算长度"有两把尺子 —— 一把只数方块汉字 (cn_han_count), 一把
+# 数所有字符含数字标点英文 (cn_char_count)。以前每个文件各画各的尺子, 容易画歪
+# (出过"字符冒充词数"的乌龙); 现在尺子只在这里画一次, 谁要用都来这取, 从源头杜绝
+# 口径分裂。要"分子是汉字、分母也是汉字"就两端都用 cn_han_count。
+_CJK_LO = '一'  # '一'
+_CJK_HI = '鿿'  # '鿿'
+
+
+def is_cjk(ch: str) -> bool:
+    """单字符是否为 CJK 统一表意文字 (基本区 U+4E00–U+9FFF, 即"汉字")。
+
+    与 lexical_complexity 历史谓词 ``'一' <= ch <= '鿿'`` 字节等价 (纯重构, 不改值)。
+    仅判基本区, 不含扩展区 A/B… (项目中文新闻语料基本区已覆盖, 与既有口径一致)。
+    """
+    return _CJK_LO <= ch <= _CJK_HI
+
+
+def cn_han_count(text: str) -> int:
+    """文本中 CJK 汉字 (基本区) 个数 —— "汉字"口径长度原语。
+
+    分子分母同取此口径即满足"分子是汉字、分母也是汉字" (见 hard_char_ratio /
+    within_doc_redundancy_han)。``None``/空串 → 0。
+    """
+    if not text:
+        return 0
+    return sum(1 for ch in text if _CJK_LO <= ch <= _CJK_HI)
+
+
+def cn_char_count(text: str, *, strip_whitespace: bool = True) -> int:
+    """文本中字符个数 (默认去空白) —— "字符"口径长度原语。
+
+    "字符"含汉字 + 数字 + 标点 + 拉丁等任意 Unicode 字符, 与 ``cn_han_count`` 互为
+    "字符 vs 汉字"双口径。``strip_whitespace=True`` (默认) 剔除全部空白字符, 与
+    lexical_complexity 篇内冗余 ``len(re.sub(r'\\s+', '', content))`` 口径一致;
+    传 ``False`` 则按原始 ``len()`` 计 (含空白)。``None``/空串 → 0。
+    """
+    if not text:
+        return 0
+    if strip_whitespace:
+        return len(re.sub(r'\s+', '', text))
+    return len(text)
+
+
 # ── 中文分句器 ───────────────────────────────────────────────────────
 # 主分隔: [。！？] (含中英文双形);
 # 引号配对内不切分; 行尾 \n 作辅助切分;
@@ -167,4 +222,7 @@ def cn_tokenize(text: str) -> list[str]:
     return [t for t in jieba.cut(text) if _is_valid_token(t)]
 
 
-__all__ = ["cn_split_sentence", "cn_tokenize", "CN_FIN_STOPWORDS"]
+__all__ = [
+    "cn_split_sentence", "cn_tokenize", "CN_FIN_STOPWORDS",
+    "is_cjk", "cn_han_count", "cn_char_count",
+]

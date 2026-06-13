@@ -100,6 +100,8 @@ class TestBertAvgThreeClassDomain:
         data = {
             'target_bank': ['A行', 'B行'], 'year': [2017, 2017],
             'n_articles': [5, 3],
+            # hanzi-char-dual: 汉字口径文章长度聚合源 (geography → ln_han_count)
+            'avg_han_count_full': [800.0, 600.0], 'avg_han_count_ctx': [400.0, 300.0],
             'finbert_cn_pos_full': [0.6] * n, 'finbert_cn_neg_full': [0.1] * n,
             'finbert_cn_neu_full': [0.3] * n,
             'fin_sent_zh_pos_full': [0.5] * n, 'fin_sent_zh_neg_full': [0.25] * n,
@@ -140,6 +142,13 @@ class TestBertAvgThreeClassDomain:
     def test_pos_excludes_binary_finbert2(self, composite_panel):
         # 旧 (混入 finbert2): (.6+.5+.9)/3 = .6667; 新: (.6+.5)/2 = .55
         assert composite_panel['bert_avg_pos_full'].iloc[0] == pytest.approx(0.55)
+
+    def test_ln_han_count_from_avg_han_count(self, composite_panel):
+        # hanzi-char-dual: 汉字口径文章长度 ln_han_count = log1p(avg_han_count), 双轨
+        assert 'ln_han_count_full' in composite_panel.columns
+        assert 'ln_han_count_ctx' in composite_panel.columns
+        assert composite_panel['ln_han_count_full'].iloc[0] == pytest.approx(np.log1p(800.0))
+        assert composite_panel['ln_han_count_ctx'].iloc[0] == pytest.approx(np.log1p(400.0))
 
     def test_neg_excludes_binary_finbert2(self, composite_panel):
         assert composite_panel['bert_avg_neg_full'].iloc[0] == pytest.approx(0.175)
