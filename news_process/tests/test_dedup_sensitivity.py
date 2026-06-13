@@ -328,3 +328,22 @@ class TestPanelContract:
             if z.any():
                 assert (out.loc[z, f'attention_index_full_{sfx}'] == 0).all()
                 assert (out.loc[z, f'attention_pct_full_{sfx}'] == 0).all()
+
+    def test_variant_n_ft_within_verified(self, out):
+        # DEDUP-1 fix (panel-universe-consistency-audit 2026-06-13): 变体分子
+        # = verified ∩ survivor ⊆ verified → 每变体 Σn_ft ≤ verified (docid,target_bank)
+        # 总数。未门控时 Σn_ft 可达未门控 s14 唯一对数 (> verified), 故本断言实质检验
+        # dedup 镜像的 verified 门控已生效 (与生产锚点 compute_attention_treatments 同域)。
+        _herd = os.path.join(OUTPUT_DIR, FILENAMES.get(
+            'output_24_herd_decay', '24_herd_decay.parquet'))
+        if not os.path.exists(_herd):
+            pytest.skip('需 24_herd_decay 试跑产物 (verified 门控)')
+        n_verified = (pd.read_parquet(_herd, columns=['docid', 'target_bank'])
+                      .drop_duplicates().shape[0])
+        for sfx in _SUFFIXES:
+            col = f'n_ft_articles_{sfx}'
+            if col not in out.columns:
+                continue
+            tot = int(out[col].fillna(0).sum())
+            assert tot <= n_verified, \
+                f'{sfx}: Σn_ft={tot} > verified {n_verified} (dedup verified 门控失效?)'

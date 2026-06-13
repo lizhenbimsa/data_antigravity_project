@@ -152,3 +152,35 @@ def test_panel_superset_rows_are_nan():
     assert len(row) == 1, '伪银行行应保留 (LEFT-join 不丢)'
     for c in _OUT_COLS:
         assert row[c].isna().all(), f'{c} 应为 NaN (panel⊋universe 无新闻不可测), 实得 {row[c].values}'
+
+
+_HERD = os.path.join(OUTPUT_DIR, FILENAMES.get(
+    'output_24_herd_decay', '24_herd_decay.parquet'))
+
+
+@pytest.mark.skipif(not os.path.exists(_HERD),
+                    reason='需 24_herd_decay 试跑产物 (verified 域门控)')
+def test_verified_gate_applied(out):
+    """panel-universe-consistency-audit ATT-1/ATT-2: fintech 分子收敛到 stage-21 verified
+    集 (24_herd_decay)。实测 Σn_fintech_articles 应等于 verified (docid,target_bank) 行数,
+    且严格 < 未门控的 14_fintech_intensity 唯一对数 — 后者实质检验门控真生效 (未门控会泄漏
+    约 26.8% 被 stage 21 判伪文章)。"""
+    n_verified = (pd.read_parquet(_HERD, columns=['docid', 'target_bank'])
+                  .drop_duplicates().shape[0])
+    n_ungated = (pd.read_parquet(_S14, columns=['docid', 'target_bank'])
+                 .drop_duplicates().shape[0])
+    total_ft = int(out['n_fintech_articles'].sum())
+    assert total_ft == n_verified, \
+        f'门控后 Σn_fintech_articles={total_ft} 应 == verified 行数 {n_verified}'
+    assert total_ft < n_ungated, \
+        f'门控应剔除假阳性: Σn_fintech={total_ft} 应 < 未门控 s14 {n_ungated}'
+
+
+def test_verified_gate_preserves_nan_zero_contract(out):
+    """门控后 n_ft 与 disp/sd 的 NaN-vs-0 一致性必须保持 (gated s14 与 gated f12_ft 同收敛
+    到 verified 集 → 非空 bank-year 集恒一致)。冗余于 test_zero_fintech_semantics, 但显式
+    锁定"同时门控两个分子源"这一设计点 (只门控一边会产生契约违反)。"""
+    z = out['n_fintech_articles'] == 0
+    assert out.loc[z, 'attention_disp_full'].isna().all(), 'n_ft=0 但 disp 非 NaN (分子源未同域门控?)'
+    assert out.loc[z, 'attention_intensity_sd_full'].isna().all()
+    assert (out.loc[z, 'attention_index_full'] == 0).all()

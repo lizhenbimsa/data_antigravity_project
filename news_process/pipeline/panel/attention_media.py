@@ -23,6 +23,10 @@ from news_process.pipeline.panel.encode import (
     OUTPUT_DIR,
     logger,
 )
+from news_process.pipeline.panel.verified_universe import (
+    parquet_has_columns,
+    restrict_to_verified,
+)
 
 # ── 停刊检测的情感列前缀（动态发现用） ──
 # 覆盖: LLM 投票 + 各大模型 + 词典法 + BERT
@@ -298,9 +302,15 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
 
     回归用法: index/density/sd 各产 _full/_ctx, main=full、robustness=ctx 分离复跑, 不同进一个 RHS。
 
-    防选择偏差 (B1/B2): 分子(强度/计数)取自 14_fintech_intensity (article×bank, is_fintech 子集);
-      分母 N_all + outlet 分布取自 12_fintech_news_full (全部银行新闻含非 fintech)。在 12_full 全
-      bank-year 全集上 LEFT-join 分子, 零-fintech bank-year: index/pct/density → 0 (真零曝光),
+    防选择偏差 (B1/B2) + verified 域门控 (panel-universe-consistency-audit 2026-06-13,
+      ATT-1/ATT-2): 分子(强度/计数, 取自 14_fintech_intensity)与 HHI 的 outlet 分布
+      (取自 12_fintech_news_full is_fintech 子集)经 (docid,target_bank) semi-join 收敛到
+      stage-21 verified 集 (24_herd_decay; 与面板政策对齐族 runner.py:_filter_to_verified_universe
+      同域, 剔除约 26.8% 被 stage 21 判伪的非真实银行-金融科技文章)。⚠ 而 **分母 N_all +
+      全集脊柱 universe** 取自 12_fintech_news_full 全部银行新闻 (含非 fintech), **保持未门控**
+      (非 fintech 行从不经 stage 21 验证, 物理不可门控; Fang-Peress 关注度分母; attention_pct =
+      已验证 fintech / 全部银行新闻 才是干净的议程份额)。在 12_full 全 bank-year 全集上 LEFT-join
+      分子, 零-(verified-)fintech bank-year: index/pct/density → 0 (真零曝光),
       disp/sd/gap/share → NaN (无报道无离散度/借位)。时间维方法 (Da异常/AR/burstiness/月度) 全量后
       opt-in, 此处不产 (T=2 试跑样本不可估, H2)。
 
@@ -332,8 +342,13 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         logger.warning(f"  14_fintech_intensity 缺强度列 {need_intensity - set(s14.columns)}, "
                        f"跳过 attention 处理变量")
         return panel
-    f12 = pd.read_parquet(f12_path, columns=[
-        'target_bank', '日期', 'is_fintech_news', '媒体(中文)'])
+    # fix(panel-universe-consistency-audit 2026-06-13, ATT-1/ATT-2): 防御式取 docid
+    # (verified 域门控需要)。合成测试帧无 docid → 不投影该列, 后续 restrict_to_verified
+    # 因缺键 fail-open 未门控 (旧行为不变), 不触发 ArrowInvalid。
+    _f12_cols = ['target_bank', '日期', 'is_fintech_news', '媒体(中文)']
+    if parquet_has_columns(f12_path, ['docid']):
+        _f12_cols = ['docid'] + _f12_cols
+    f12 = pd.read_parquet(f12_path, columns=_f12_cols)
 
     GK = ['target_bank', 'year']
     for df in (s14, f12):  # year 派生 (镜像 attention_media.py:255, 防 groupby KeyError)
@@ -346,6 +361,12 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     n_all = f12.groupby(GK).size().rename('_n_all')
 
     # ── 分子: 14_fintech_intensity (有双轨强度分) ──
+    # fix(panel-universe-consistency-audit 2026-06-13, ATT-1): 分子收敛到 stage-21
+    # verified 集 (与政策对齐族 runner.py:_filter_to_verified_universe 同域), 剔除约
+    # 26.8% 被 stage 21 判伪文章。⚠ 仅门控分子; 上方 universe/n_all (分母与全集脊柱)
+    # 取自全部银行新闻 12_full, 保持未门控 (保 NaN-vs-0 契约与议程份额语义)。
+    s14 = restrict_to_verified(s14, OUTPUT_DIR, FILENAMES,
+                               logger=logger, label='attention.s14')
     g = s14.groupby(GK)
     num = pd.DataFrame({
         'sum_full': g['fintech_intensity_score_full'].sum(),
@@ -359,6 +380,11 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
 
     # ── 跨媒体 HHI (vectorized, 防 H4 groupby-apply 性能炸弹) ──
     f12_ft = f12[f12['is_fintech_news'] == True]
+    # fix(ATT-2): HHI/n_outlets 的 outlet 分布同样收敛到 verified 集 (与分子 s14 同域)。
+    # verified ⊆ f12_ft 经盘面实测 → 门控后 f12_ft 的非空 bank-year 集与门控后 s14 恒一致,
+    # 保 n_fintech_articles==0 ⇔ disp_hhi=NaN 契约 (test_disp_hhi_bounded / test_zero_fintech_semantics)。
+    f12_ft = restrict_to_verified(f12_ft, OUTPUT_DIR, FILENAMES,
+                                  logger=logger, label='attention.f12_ft')
     oc = f12_ft.groupby(GK + ['媒体(中文)']).size().reset_index(name='n')
     oc['_tot'] = oc.groupby(GK)['n'].transform('sum')
     oc['_s2'] = (oc['n'] / oc['_tot']) ** 2

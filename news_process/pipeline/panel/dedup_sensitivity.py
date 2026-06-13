@@ -47,6 +47,14 @@
       j70w10  Jaccard 0.70 × 10 工作日  (双向最严格)
     生产锚点 j80w5 = 既有 attention_index_full / attention_pct_full 等列本身。
 
+  ⚠ verified 域门控 (DEDUP-1, panel-universe-consistency-audit 2026-06-13): 自该日起本
+    模块的 fintech 分子源 s14 与生产锚点 compute_attention_treatments 一致, 经
+    (docid,target_bank) semi-join 收敛到 stage-21 verified 集 → n_ft_articles_<v> =
+    (verified ∩ 变体存活)。分母 n_all_articles_<v> 与全集脊柱仍取 12_full 全部银行新闻
+    (未门控)。注意 sidecar 的 surviving_articles / retained_share 仍是**全 docid 域**的
+    去重存活率诊断 (与 n_ft 的 verified∩survivor 域不同, 勿混读)。生产锚点本身亦已 verified
+    门控, 故 corr_index_full_vs_production 两侧同域 (DEDUP-2 同域不变量)。
+
   每变体产 5 列 (suffix = 变体名):
     attention_index_full_<v> / attention_index_ctx_<v>   ln(1+Σ intensity) (变体存活集)
     attention_pct_full_<v>                               N_ft/N_all (分子分母同基, 同变体)
@@ -89,6 +97,7 @@ from news_process.pipeline.panel.encode import (
     OUTPUT_DIR,
     logger,
 )
+from news_process.pipeline.panel.verified_universe import restrict_to_verified
 from news_process.pipeline.preprocess.dedup import ArticleDeduplicator
 
 # 默认网格: (jaccard_threshold, window_busdays), 仅严格方向 (见模块 docstring)
@@ -169,6 +178,15 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         df['year'] = pd.to_datetime(df['日期'], errors='coerce').dt.year
         df.dropna(subset=['year'], inplace=True)
         df['year'] = df['year'].astype(int)
+
+    # fix(panel-universe-consistency-audit 2026-06-13, DEDUP-1): 分子源 s14 一次性收敛到
+    # stage-21 verified 集 (与生产锚点 compute_attention_treatments 同域, 见 ATT-1)。
+    # ⚠ 仅门控 s14(分子); arts/f12 (MinHash 判重语料 + 分母/全集脊柱) 保持 12_full 全集
+    # — 去重判定如 IDF 须在全语料上做, 分母为全部银行新闻。下游 n_ft_articles_<v> 因此
+    # = (verified ∩ survivor); 而 sidecar 的 surviving_articles / retained_share 仍是全
+    # docid 域诊断 (去重存活率, 与 n_ft 的 verified∩survivor 不同域, 勿混读)。
+    s14 = restrict_to_verified(s14, OUTPUT_DIR, FILENAMES,
+                               logger=logger, label='dedup.s14')
 
     # ── 文章全集 (docid 粒度; 12_full 是 article×bank, 同 docid 多银行行去重) ──
     arts = f12.drop_duplicates('docid')[
