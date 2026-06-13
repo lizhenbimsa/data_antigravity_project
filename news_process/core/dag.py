@@ -11,10 +11,11 @@ Phase 1 交付物: ``StageSpec`` 数据类 + ``STAGES_MAIN`` / ``STAGES_VALIDATI
 刻意与未来某 phase 将在 ``core/stage.py`` 引入的 *运行时* ``Stage``
 抽象基类区分开, 以避免命名冲突。
 
-配置条件性动态分支 (例如 sentiment.enabled_methods 决定 21/22/23 启停)
-通过 ``enabled_when`` 谓词捕获, 而非 orchestrator 内部分支。谓词必须是
-模块级 Python callable, 这样在多个 import 站点之间 ``is`` 身份比对才有
-意义 — DAG 一致性测试依赖这一点。
+``enabled_when`` 谓词机制保留供未来扩展, 但自 2026-06-13 起 **所有 StageSpec 均使用
+默认 ``always_enabled``** (用户决策"全部启用而非条件启用": stage 21/22/23/24/18 与全部
+14 个验证阶段均无条件常开, 对齐 2026-06-12 的 stage 23/24 先例)。各谓词函数保留为纯函数
+仅供测试 / config 一致性提示复用。谓词必须是模块级 Python callable, 这样在多个 import
+站点之间 ``is`` 身份比对才有意义 — DAG 一致性测试依赖这一点。
 """
 
 from __future__ import annotations
@@ -35,7 +36,12 @@ def always_enabled(_cfg: dict[str, Any]) -> bool:
 
 
 def llm_method_enabled(cfg: dict[str, Any]) -> bool:
-    """``enabled_when`` 谓词：当 ``sentiment_analysis.enabled_methods`` 含 ``tone_llms`` 时启用。"""
+    """谓词：``sentiment_analysis.enabled_methods`` 是否含 ``tone_llms``。
+
+    2026-06-13: stage 21 已改为无条件 always-on (用户决策: 全部启用而非条件启用,
+    同 23/24 先例), 本谓词不再挂在任何 ``StageSpec.enabled_when`` 上, 也已从
+    ``METHOD_TO_PREDICATE`` 移除; 保留为纯函数, 仅供测试与 config 一致性提示复用。
+    """
     methods = (
         cfg.get('sentiment_analysis', {}).get('enabled_methods', []) or []
     )
@@ -43,7 +49,12 @@ def llm_method_enabled(cfg: dict[str, Any]) -> bool:
 
 
 def words_method_enabled(cfg: dict[str, Any]) -> bool:
-    """``enabled_when`` 谓词：当 ``sentiment_analysis.enabled_methods`` 含 ``tone_words`` 时启用。"""
+    """谓词：``sentiment_analysis.enabled_methods`` 是否含 ``tone_words``。
+
+    2026-06-13: stage 22 已改为无条件 always-on (用户决策: 全部启用而非条件启用,
+    同 23/24 先例), 本谓词不再挂在任何 ``StageSpec.enabled_when`` 上, 也已从
+    ``METHOD_TO_PREDICATE`` 移除; 保留为纯函数, 仅供测试与 config 一致性提示复用。
+    """
     methods = (
         cfg.get('sentiment_analysis', {}).get('enabled_methods', []) or []
     )
@@ -74,23 +85,24 @@ def _validation_flag(key: str, default: bool = True
 
 
 def article_staleness_enabled(cfg: dict[str, Any]) -> bool:
-    """O2 sample-run finding (2026-05-25): stage 18 (staleness D2) 改为 opt-in.
+    """谓词：``article_staleness.enabled`` (历史 opt-in flag, 默认 False)。
 
-    设计原因: stage 18 (semantic Faiss + surface MinHash 双指标) 依赖 faiss-cpu
-    + datasketch 两个 v3.7.0 启用前置包. requirements.txt 中这些行被注释,
-    用户须先 pip install 才能启用. 采用 config flag 显式 opt-in pattern
-    (默认 disabled, 避免缺前置包时阻塞 pipeline)。
+    历史 (O2 sample-run finding 2026-05-25): stage 18 (semantic Faiss + surface
+    MinHash 双指标) 依赖 faiss-cpu + datasketch 两个前置包, 曾以 config flag 显式
+    opt-in (默认 disabled) 避免缺前置包时阻塞 pipeline; 依赖已于 2026-06-01 pip
+    安装到位。
 
-    用户启用方式:
-        1. pip install faiss-cpu>=1.7.4 datasketch>=1.6.0
-        2. config/sentiment.yaml::article_staleness::enabled: true
+    2026-06-13: stage 18 已改为无条件 always-on (用户决策: 全部启用而非条件启用),
+    本谓词不再挂在 ``StageSpec.enabled_when`` 上, 保留为纯函数仅供测试复用。
+    ⚠ always-on 后若 faiss-cpu / datasketch 缺失, stage 18 会真崩 (不再优雅跳过) —
+    运行环境须确保两包已安装。
     """
     return cfg.get('article_staleness', {}).get('enabled', False)
 
 
-# 验证模块谓词句柄集 — 仅在模块作用域声明一次, 以使
-# core/dag.STAGES_VALIDATION 与 run_pipeline_validation.STAGES 复用同一
-# 个 callable 对象。
+# 验证模块谓词句柄集 — 仅在模块作用域声明一次, 以使 `is` 身份比对跨 import 站点成立。
+# 2026-06-13: 全部 14 个验证阶段已改为无条件 always-on (用户决策: 全部启用而非条件启用),
+# 这些句柄不再挂在任何 StageSpec.enabled_when 上, 保留为纯机械件仅供测试 / config 一致性复用。
 _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'threshold_sensitivity': _validation_flag('threshold_sensitivity'),
     'dedup_sensitivity': _validation_flag('dedup_sensitivity'),
@@ -188,13 +200,13 @@ STAGES_MAIN: list[StageSpec] = [
         timeout=7200,  # 阶段内含 Embedding API 调用
     ),
     # ── 模块三：新闻情感模块 ──
-    # 21 (LLM) / 22 (词典) 由 sentiment_analysis.enabled_methods 配置条件性启停;
-    # 23 (BERT) / 24 (跟风衰减) 自 2026-06-12 起为无条件 always-on (见下方注释)。
+    # 21 (LLM) / 22 (词典) / 23 (BERT) / 24 (跟风衰减) 自 2026-06-13 起全部为无条件
+    # always-on (用户决策"全部启用而非条件启用", 对齐 2026-06-12 的 23/24 先例);
+    # 不再受 sentiment_analysis.enabled_methods 控制 (见下方注释)。
     StageSpec(
         name="阶段21: 统一 LLM 语义精筛与情感分析",
         script="21_tone_llms.py",
         group="main", kind="sentiment",
-        enabled_when=llm_method_enabled,
         # v3 / Fix 1: 6h 子进程硬超时. 已知工况 ~7200s (run_pipeline_function
         # CLI help 自承), 留 3x 安全余量覆盖冷缓存 / 全样本 / 单 yunwu 账户雪崩
         # 后的指数退避. 若全样本冷缓存仍不够, 调高此值即可 (一行修改).
@@ -206,7 +218,6 @@ STAGES_MAIN: list[StageSpec] = [
         name="阶段22: 词典法情感分析",
         script="22_tone_words.py",
         group="main", kind="sentiment",
-        enabled_when=words_method_enabled,
     ),
     # 2026-06-12 用户决策: BERT 文章级情感"全部启用, 不再条件启用" — stage 23
     # 改为无条件 always-on (省略 enabled_when, 取 StageSpec 默认 always_enabled,
@@ -252,12 +263,14 @@ STAGES_MAIN: list[StageSpec] = [
     ),
     # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标.
     # 学术依据: Tetlock (2011) RFS 24(5):1481-1512; Gentzkow-Shapiro-Taddy (2019) JEL.
+    # 2026-06-13: 改为无条件 always-on (用户决策: 全部启用而非条件启用); 历史 opt-in flag
+    # article_staleness.enabled 仅作记录。⚠ 依赖 faiss-cpu + datasketch (已于 2026-06-01
+    # pip 安装到位); always-on 后若缺包会真崩, 运行环境须确保两包已安装。
     StageSpec(
         name="阶段18: Article-level staleness 双指标 (surface MinHash + semantic Faiss)",
         script="18_article_staleness.py",
         group="main", kind="robustness",
         timeout=21600,  # MinHash + Faiss 在 400k 文章上 4 h
-        enabled_when=article_staleness_enabled,  # O2 finding 2026-05-25: opt-in (faiss-cpu + datasketch 依赖未装)
     ),
 
     # ── 模块五：面板数据构建 (单文件入口, 内部串行执行 7 个子步) ──
@@ -299,8 +312,10 @@ STAGES_MAIN: list[StageSpec] = [
 
 # ----------------------------------------------------------------------------
 # STAGES_VALIDATION — 稳健性/验证执行器 (run_pipeline_validation)。
-# 所有谓词复用 _VALIDATION_PREDS 中的模块级句柄, 以使 `is` 身份比对
-# 跨 import 站点成立。
+# 2026-06-13: 全部 16 个验证阶段均为无条件 always-on (用户决策: 全部启用而非条件启用);
+# 此前 14 个由 _VALIDATION_PREDS 谓词条件启停的阶段已全部省略 enabled_when, 取 StageSpec
+# 默认 always_enabled (另 32 / 38b 本就无 flag)。_VALIDATION_PREDS 句柄保留为纯机械件供
+# 测试复用, 不再挂在任何 StageSpec 上。
 # ----------------------------------------------------------------------------
 
 
@@ -309,7 +324,6 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段31: 阈值敏感性分析",
         script="31_bank_fintech_threshold.py",
         group="validation", kind="sensitivity",
-        enabled_when=_VALIDATION_PREDS['threshold_sensitivity'],
     ),
     StageSpec(
         name="阶段32: 人工抽样验证样本生成",
@@ -321,25 +335,21 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段32a: 去重阈值敏感性分析",
         script="32a_dedup_threshold_sensitivity.py",
         group="validation", kind="sensitivity",
-        enabled_when=_VALIDATION_PREDS['dedup_sensitivity'],
     ),
     StageSpec(
         name="阶段33: 分类有效性评估",
         script="33_news_llms_evaluation.py",
         group="validation", kind="evaluation",
-        enabled_when=_VALIDATION_PREDS['classification_eval'],
     ),
     StageSpec(
         name="阶段34: 情感三角验证",
         script="34_tone_validation.py",
         group="validation", kind="evaluation",
-        enabled_when=_VALIDATION_PREDS['sentiment_validation'],
     ),
     StageSpec(
         name="阶段35: 窗口半径敏感性检验",
         script="35_radius_sensitivity.py",
         group="validation", kind="sensitivity",
-        enabled_when=_VALIDATION_PREDS['radius_sensitivity'],
     ),
     StageSpec(
         name="阶段36: Entity Masking 稳健性测试",
@@ -348,19 +358,16 @@ STAGES_VALIDATION: list[StageSpec] = [
         # 双轨掩码复判最多 1,000 × 3 × 2 = 6,000 次 LLM 请求。
         # 冷缓存 + 网关限流下会超过默认 3,600s, 必须显式放宽。
         timeout=21600,
-        enabled_when=_VALIDATION_PREDS['entity_masking'],
     ),
     StageSpec(
         name="阶段37: 金融科技词典覆盖率审计",
         script="37_dict_coverage_audit.py",
         group="validation", kind="audit",
-        enabled_when=_VALIDATION_PREDS['dict_coverage_audit'],
     ),
     StageSpec(
         name="阶段38: 媒体名称与地域多样性审计",
         script="38_media_diversity.py",
         group="validation", kind="audit",
-        enabled_when=_VALIDATION_PREDS['media_diversity'],
     ),
     StageSpec(
         name="阶段38b: 距离衰减权重敏感性检验",
@@ -375,14 +382,12 @@ STAGES_VALIDATION: list[StageSpec] = [
         # 4 个 prompt 变体 × 1,000 样本 × 3 模型 × 2 轨道 = 24,000
         # 次请求。该阶段有增量 LLM 缓存, 但冷缓存完整跑通需要长超时。
         timeout=43200,
-        enabled_when=_VALIDATION_PREDS['prompt_sensitivity'],
     ),
     StageSpec(
         name="阶段39a: Inter-track Cohen's κ for innovation dimensions",
         script="39a_inter_track_kappa.py",
         group="validation", kind="audit",
         # 仅 article-level κ + bootstrap CI; 一秒级运行
-        enabled_when=_VALIDATION_PREDS['inter_track_kappa'],
     ),
     StageSpec(
         name="阶段39c: NMI 三 construct 正交性测度 + permutation null (v3.5.0 D3)",
@@ -392,7 +397,6 @@ STAGES_VALIDATION: list[StageSpec] = [
         # 单线程约 70 分钟, 64 核 MP 上 n_jobs=16 约 5 分钟
         # (依据 plan §2.2.2 性能估算 + F31 推荐默认值)。
         timeout=10800,  # 3 小时上限 — 覆盖最坏情况并留余量
-        enabled_when=_VALIDATION_PREDS['construct_orthogonality'],
     ),
     StageSpec(
         name="阶段39d: A1/A3 lexical discriminant validity (HTMT + AVE + κ + α; v3.5.1)",
@@ -402,7 +406,6 @@ STAGES_VALIDATION: list[StageSpec] = [
         # 单线程 < 1 分钟的轻量任务 (依据 plan v0.3 §2.3 修 R7-H3 + R8-H3)。
         # Permutation 1000 次, seed=42 (修 R9-H3)。
         timeout=900,  # 15 分钟上限
-        enabled_when=_VALIDATION_PREDS['lexical_discriminant_validity'],
     ),
     # v3.5.2 PR #4: LM 4 子词典 (uncert/litig/constr/modal_strong) HTMT.
     # Henseler-Ringle-Sarstedt (2015) JAMS 43(1) 双 cutoff 0.85/0.90.
@@ -411,7 +414,6 @@ STAGES_VALIDATION: list[StageSpec] = [
         script="39e_lm_discriminant_validity.py",
         group="validation", kind="audit",
         timeout=900,  # 15 分钟上限, 仿 39d
-        enabled_when=_VALIDATION_PREDS['lm_discriminant_validity'],
     ),
     # v3.7.0 PR #12 (D3): Cross-media tone variance + Krippendorff α.
     # ⚠ 与第 10 篇 bank_media_disagreement 重叠; 同时输出 variance (main 候选)
@@ -421,7 +423,6 @@ STAGES_VALIDATION: list[StageSpec] = [
         script="39f_cross_media_alpha.py",
         group="validation", kind="audit",
         timeout=3600,  # 60 分钟上限, 含事件检测 + 媒体源聚合
-        enabled_when=_VALIDATION_PREDS['cross_media_alpha'],
     ),
 ]
 
@@ -452,15 +453,23 @@ def filter_enabled(stages: list[StageSpec],
 #
 # 2026-06-12: ``tone_berts`` 从本映射移除 — stage 23/24 已改为无条件 always-on
 # (结构性阶段, 不再是可由 enabled_methods 切换的 method), 故不参与 orchestrator
-# 的"未启用 method 陈旧文件清理"循环。本映射现仅含真正可切换的 2 个 method。
-METHOD_TO_PREDICATE: dict[str, Callable[[dict[str, Any]], bool]] = {
-    'tone_llms':  llm_method_enabled,
-    'tone_words': words_method_enabled,
-}
+# 的"未启用 method 陈旧文件清理"循环。
+#
+# 2026-06-13: ``tone_llms`` / ``tone_words`` 亦一并移除 — stage 21/22 已改为
+# 无条件 always-on (用户决策"全部启用而非条件启用", 对齐 23/24 先例), 不再受
+# sentiment_analysis.enabled_methods 控制。三种情感方法现全部为结构性 always-on,
+# 本映射因此为空 {}; ``get_script_for_method`` 恒返回 None, orchestrator 的
+# "未启用 method 陈旧文件清理"循环已随 run_pipeline_function.py 一并退役。
+# 白话: LLM / 词典 / BERT 三种情感方法现在都"焊死常开", 配置清单关不掉它们,
+#       这个映射就空了 — 没有"被关掉的方法"需要清理残留文件。
+METHOD_TO_PREDICATE: dict[str, Callable[[dict[str, Any]], bool]] = {}
 
 
 def get_script_for_method(method: str) -> Optional[str]:
     """根据 sentiment method 名反查 STAGES_MAIN 中对应 stage 的 script.
+
+    2026-06-13: ``METHOD_TO_PREDICATE`` 已为空 (三种情感方法全部 always-on),
+    故本函数当前恒返回 None; 保留供未来扩展与测试复用。
 
     依赖性质: ``StageSpec.enabled_when`` 必须是 ``METHOD_TO_PREDICATE``
     中登记的某个模块级谓词 (``is`` 身份比对); 这一性质由

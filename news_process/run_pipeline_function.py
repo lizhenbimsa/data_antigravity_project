@@ -35,9 +35,9 @@ run_pipeline_function.py — 新闻处理流水线调度器
                       ↓
                 pipeline_summary
 
-    情感分析中 LLM (21) 与词典 (22) 两个变体由 config/sentiment.yaml 中
-    sentiment_analysis.enabled_methods 控制启停; BERT (23) 与跟风衰减 (24)
-    自 2026-06-12 起为无条件 always-on, 不再随该配置启停。
+    情感分析的 LLM (21) / 词典 (22) / BERT (23) / 跟风衰减 (24) 自 2026-06-13 起
+    全部为无条件 always-on (用户决策"全部启用而非条件启用", 对齐 2026-06-12 的
+    23/24 先例); sentiment_analysis.enabled_methods 仅作启用记录, 不再驱动启停。
     文本嵌入与新颖度 (D 组: 30a_article_sbert / 18_article_staleness)
     在情感模块后、面板构建前执行。
 
@@ -66,19 +66,15 @@ if _PROJECT_PARENT not in sys.path:
 
 # Phase 6a: utils.* → news_process.core.*
 from news_process.core.config import load_config
-from news_process.core.dag import (
-    METHOD_TO_PREDICATE,
-    filter_enabled,
-    get_script_for_method,
-)
 
 # Phase 1: 自单一真源导入 DAG, 使本编排器与 core/dag.py 共用同一份阶段定义。
 # STAGES 作为模块级常量暴露, 供 tests/integration/test_dag_consistency.py 做静态一致性校验。
-# v3 / Fix 2: METHOD_TO_PREDICATE / get_script_for_method 由 dag.py 单源维护,
-# orchestrator 仅消费 (取代历史的本地 _sentiment_method_to_script 字典).
+# 2026-06-13: 三种情感方法全部 always-on 后 METHOD_TO_PREDICATE 变空, 历史"未启用
+# method 陈旧文件清理"循环退役 — 不再 import METHOD_TO_PREDICATE / get_script_for_method。
 from news_process.core.dag import (
     STAGES_MAIN as STAGES,
 )
+from news_process.core.dag import filter_enabled
 from news_process.core.locking import PipelineLock
 from news_process.core.logging import log_memory_usage, setup_logging
 from news_process.core.stage import run_stage
@@ -355,7 +351,7 @@ def run_pipeline(args: argparse.Namespace | None = None):
     流程：
       1. 执行模块一：新闻预处理模块 (00)
       2. 执行模块二：新闻筛选模块 (11, 12, 14, 15)
-      3. 执行模块三：新闻情感模块 (21, 22 视配置启停; 23, 24 always-on)
+      3. 执行模块三：新闻情感模块 (21/22/23/24 全部无条件 always-on)
       4. 执行模块五：面板数据构建 (41-45)
       5. 执行模块六：伪造检验对照变量构建 (51)
       6. 生成管道执行摘要报告和耗时统计
@@ -392,49 +388,17 @@ def run_pipeline(args: argparse.Namespace | None = None):
         enabled_methods = CONFIG.get('sentiment_analysis', {}).get('enabled_methods', [])
         logger.info(f"启用的情感分析方法: {enabled_methods}")
 
-        # ── 数据流防护：清理未启用的情感分析阶段的残留输出 ──
-        # 历史动机: 早年 stage 23 还受 enabled_methods 启停时, 磁盘残留的旧
-        # 23 输出会被硬依赖它的 stage 24 静默读取 (23/24 现已 always-on,
-        # 该例不再发生; 但 21/22 仍可切换, 本清理循环对它们依然必要)。
-        #
-        # plan m5 修复: 改用 OUTPUT_REGISTRY 取阶段全部输出 (含 _full 变体),
-        # 否则 21_tone_llms_full.parquet 会被遗漏 → 验证阶段 32/36/37/39
-        # 静默读取上一次 LLM 的旧结果, 与本次配置不一致。
-        #
-        # v3 / Fix 2: method → script 映射统一从 dag.METHOD_TO_PREDICATE
-        # + get_script_for_method() 反推, 不再在本文件内重复维护字典.
-        for method in METHOD_TO_PREDICATE:
-            if method in enabled_methods:
-                continue
-            _script = get_script_for_method(method)
-            if _script is None:
-                # 防御性: METHOD_TO_PREDICATE 与 STAGES_MAIN 漂移由
-                # test_method_to_predicate_covers_sentiment_specs 守护;
-                # 这里仅做 best-effort 跳过, 避免单点失败阻塞清理流程.
-                logger.warning(
-                    f"  ⚠️ method '{method}' 在 dag.METHOD_TO_PREDICATE 已登记 "
-                    f"但 STAGES_MAIN 中找不到对应 stage; 跳过陈旧文件清理"
-                )
-                continue
-            for filename in _get_stage_output_files(_script):
-                stale_path = os.path.join(
-                    CONFIG['paths']['output_dir'], filename)
-                if os.path.exists(stale_path):
-                    try:
-                        os.remove(stale_path)
-                        logger.info(f"  🧹 已清理未启用阶段的残留文件: {filename}")
-                    except OSError as e:
-                        logger.warning(f"  ⚠️ 清理残留文件失败: {filename} ({e})")
+        # ── 数据流防护：通用 stage 输出预清理 ──
+        # 2026-06-13: 三种情感方法 (21 LLM / 22 词典 / 23 BERT) 已全部 always-on,
+        # 不再有"被配置关掉"的 method → 历史"未启用 method 陈旧文件清理"循环
+        # (依赖 dag.METHOD_TO_PREDICATE + get_script_for_method) 已退役。所有 stage
+        # 的输出预清理统一由下方通用循环 (``for script,...: _get_stage_output_files``)
+        # + STAGES 启用过滤覆盖, 维持 OUTPUT_REGISTRY 单一真值。
+        # 白话: 以前要把"被关掉的情感方法"留在硬盘上的旧结果删掉; 现在三种方法都
+        #       焊死常开, 没有被关掉的方法了, 这段专门的清理循环就不需要了。
 
-        # 2026-06-12: stage 23/24 已改为无条件 always-on (always_enabled), 不再
-        # 随 enabled_methods 启停; tone_berts 亦已从 METHOD_TO_PREDICATE 移除,
-        # 故上方"未启用 method 陈旧文件清理"循环不再涉及 stage 23/24。它们的输出
-        # 由下方通用 stage 预清理 (始终在 active_specs 内) 统一管理 — 历史"无条件
-        # 预清理 stage 24 输出"特例早已撤销, 此处无需特例补丁。
-        # 通用 stage 输出预清理由下方 ``for script,...: _get_stage_output_files``
-        # 循环 + STAGES 启用过滤共同覆盖, 维持 OUTPUT_REGISTRY 单一真值.
-
-        # ── Phase 1: 从 core/dag.py 加载完整 DAG，按 enabled_when 谓词过滤 ──
+        # ── Phase 1: 从 core/dag.py 加载完整 DAG (主线阶段现已全部 always_enabled,
+        #    filter_enabled 恒返回全集; 机制保留供未来扩展 / 对称 validation) ──
         active_specs = filter_enabled(STAGES, CONFIG)
         # 兼容下方既有迭代结构: 每条 (script, name, timeout)。
         stages = [(s.script, s.name, s.timeout) for s in active_specs]

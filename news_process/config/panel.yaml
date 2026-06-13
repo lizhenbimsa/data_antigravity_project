@@ -10,6 +10,9 @@
 #       中性, 而是单独标记为"未定" — 三个比例加起来可以不到 100%。
 
 panel_building:
+  # [compute_* 已 always-on] 2026-06-13 起 runner.py 移除了 if PANEL_CFG.get('compute_*')
+  # 运行期守卫 (用户决策: 全部启用而非条件启用), 下列 compute_* 步骤结构性常开;
+  # 各 flag 仅作记录, 改 false 不再跳过对应步骤。
   aggregation_frequency: yearly
   export_stata: true
   compute_attention_index: true      # 6b. 金融科技注意力指数 (三级地理维度)

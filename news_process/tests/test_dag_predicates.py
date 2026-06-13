@@ -153,8 +153,10 @@ def test_filter_enabled_preserves_order_for_truthy_subset():
 def test_get_script_for_method_known_methods():
     """METHOD_TO_PREDICATE 中的 method 都能找到 STAGES_MAIN 中 stage script.
 
-    2026-06-12: tone_berts 已移出 METHOD_TO_PREDICATE (stage 23 改 always-on),
-    映射现仅含 tone_llms / tone_words 两个可切换 method。
+    2026-06-13: 三种情感方法 (tone_llms / tone_words / tone_berts) 全部改为无条件
+    always-on, METHOD_TO_PREDICATE 已为空 {} → 本循环 0 次迭代, 断言体不执行
+    (vacuously true)。保留作回归守卫: 若未来重新登记可切换 method, method ↔ script
+    命名约定仍须成立。
     """
     from news_process.core.dag import METHOD_TO_PREDICATE, get_script_for_method
 

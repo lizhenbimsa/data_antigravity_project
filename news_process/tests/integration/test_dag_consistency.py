@@ -194,44 +194,40 @@ def test_predicate_identity_module_scope(core_dag):
 
 
 def test_filter_enabled_respects_predicate(core_dag):
-    """``filter_enabled()`` 须正确应用 ``enabled_when`` 谓词。
+    """``filter_enabled()`` 在全 always-on 后恒返回 STAGES_MAIN 全集 (15)。
 
-    2026-06-12 后的预期更新: stage 23 (BERT) 与硬依赖它的 stage 24 (herd_decay)
-    已改为无条件 always-on (always_enabled), 不再随 enabled_methods 启停。
-    因此 cfg_llm_only / cfg_no_sentiment 下它们 *不再* 被排除 — 仅 21/22
-    (tone_llms / tone_words) 仍受配置条件控制。
+    2026-06-13 更新: 三种情感方法 (21/22/23/24) 与 stage 18 (staleness) 均已改为
+    无条件 always_enabled (用户决策: 全部启用而非条件启用), 不再随 enabled_methods /
+    article_staleness.enabled 启停。因此无论 cfg 如何配置, filter_enabled 都返回
+    全部 15 个 main stage。(历史上 21/22 随 enabled_methods、18 随 opt-in 条件启停,
+    计数曾随 cfg 在不同配置下漂移; 全 always-on 后统一为 15。)
     """
-    # 三种情感方法全开 -> stage 18 (staleness) opt-in 默认 disabled.
-    # 2026-05-29: stage 30 (always_enabled) 退役 → total 20 → 19.
-    # 2026-06-05: stage 16 (always_enabled) 移除 → total 19 → 18.
-    # 2026-06-09: stage 17 (D1 BERTopic) + stage 19 (D4 NER) 移除 → total 18 → 16.
-    # 2026-06-12: stage 49 (risk_taking_outcomes) 移除 → total 16 → 15.
-    # 故全开 enabled count = 15 - 1 (18 opt-in) = 14.
+    # STAGES_MAIN 当前 15 个 stage, 全部 always_enabled → 任何 cfg 下都恒选中全集。
     cfg_full = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],
         },
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 14
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_full)) == 15
 
-    # 仅 LLM -> 14 - 1 (仅 words 排除; berts/24 已 always-on, 不再随 berts 启停) = 13
+    # 仅 LLM: 21/22/23/24 全 always-on, words 不再被排除 → 仍 15
     cfg_llm_only = {
         "sentiment_analysis": {"enabled_methods": ["tone_llms"]},
         "validation": {},
     }
-    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 13
+    assert len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_llm_only)) == 15
 
-    # 无情感方法 -> 14 - 2 (llm+words 排除; berts(23)/24 always-on 仍在) = 12
+    # 无情感方法: 三种方法均 always-on, 不再被排除 → 仍 15
     cfg_no_sentiment = {
         "sentiment_analysis": {"enabled_methods": []},
         "validation": {},
     }
     assert (
-        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 12
+        len(core_dag.filter_enabled(core_dag.STAGES_MAIN, cfg_no_sentiment)) == 15
     )
 
-    # O2 2026-05-25 (stage 17 已于 2026-06-09 移除): 仅 article_staleness opt-in 启用 → 14 + 1 = 15
+    # article_staleness 显式启用: stage 18 本就 always-on → 仍 15 (与上方一致)
     cfg_with_d_group = {
         "sentiment_analysis": {
             "enabled_methods": ["tone_llms", "tone_words", "tone_berts"],

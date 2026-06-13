@@ -3,7 +3,7 @@
 # 原始段落归属保持不变; 注释在往返转换中可能被重排 (re-flow)。
 
 tone_llm_processing:
-  enabled: true                                     # 是否启用统一 LLM 处理
+  enabled: true                                     # [已 always-on] stage 21 不再读此 flag 早退 (2026-06-13 全启用, 对齐 23/24); 仅作记录, 改 false 不会停掉 LLM 情感阶段
   timeout: 600                                      # 请求超时时间（秒）
   connect_timeout: 120                              # TCP/TLS 建连超时（秒）
   sock_connect_timeout: 120                         # socket 建连超时（秒）
@@ -60,12 +60,13 @@ tone_llm_processing:
   # remove-title-track: title_sentiment_prompt_template_file 已移除 (标题轨取消)
 sentiment_analysis:
   # 启用的情感分析方法（可选: tone_llms, tone_words, tone_berts）
-  # ⚠ 2026-06-12 起本列表实际只控制 stage 21 (tone_llms) / 22 (tone_words) 的启停;
-  #   stage 23 (tone_berts) 及硬依赖它的 stage 24 (跟风衰减) 已改为无条件 always-on
-  #   (core/dag.py 取 StageSpec 默认 always_enabled), 此处列出 tone_berts 仅作记录,
-  #   删掉它也不会停掉 stage 23。
-  # 白话: 以前从这个清单里去掉 tone_berts 就能关掉 BERT 情感阶段; 现在 BERT 阶段
-  #       是"焊死常开"的, 这个清单只能开关 LLM 和词典两种方法。
+  # ⚠ [已全部 always-on] 2026-06-13 起 stage 21 (tone_llms) / 22 (tone_words) / 23
+  #   (tone_berts) 及硬依赖 23 的 stage 24 (跟风衰减) 全部改为无条件 always-on
+  #   (core/dag.py 取 StageSpec 默认 always_enabled; llm/words/berts 三谓词均已从
+  #   METHOD_TO_PREDICATE 移除)。本列表仅作启用记录: 删任一项或清空本列表都不再
+  #   停掉对应阶段。
+  # 白话: 以前从清单里去掉某个方法就能关掉对应情感阶段; 现在 LLM / 词典 / BERT
+  #       三种方法全部"焊死常开", 这个清单只是留个账, 关不掉它们。
   enabled_methods:
     - tone_llms
     - tone_words
@@ -308,10 +309,10 @@ sentiment_analysis:
 # ------------------------------------------------------------------------------
 # [模块二 D-group] Stage 18 Article-level staleness 双指标 (surface MinHash + semantic Faiss) (D2)
 # ------------------------------------------------------------------------------
-# O2 finding (2026-05-25): 改 opt-in (faiss-cpu + datasketch 依赖). 启用前置依赖已
-# pip 安装到位 (2026-06-01). 学术依据: Tetlock (2011) RFS 24(5):1481-1512; Gentzkow-Shapiro-Taddy (2019) JEL.
+# 依赖 faiss-cpu + datasketch 已 pip 安装到位 (2026-06-01)。学术依据: Tetlock (2011)
+# RFS 24(5):1481-1512; Gentzkow-Shapiro-Taddy (2019) JEL.
 article_staleness:
-  enabled: true                # opt-in 显式启用 (2026-06-01 全功能打开)
+  enabled: true                # [已 always-on] stage 18 谓词改 always_enabled (2026-06-13); 仅作记录, 改 false 不再停掉本阶段
 
 herd_detection:
   similarity_threshold: 0.35   # 余弦相似度阈值, ≥ 此值视为跟风 (闭边界, 代码 >=; fix(omni-g-herd-04, 2026-06-11))

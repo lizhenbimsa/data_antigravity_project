@@ -142,8 +142,12 @@ _PAGINATION_PROD_VALUE = r'(第\s*\d+\s*页|共\s*\d+\s*页|\d+\s*/\s*\d+|页码
 
 
 class TestOmni03InteractionNoiseGating:
+    # 2026-06-13: filter_noise_patterns 的 interaction_enabled 参数已移除 — 本项目无
+    # 网页语料, 互动计数族 + pagination 裸分数支改为无条件永久排除 (等价旧 false 路径)。
+    # 配套删除 test_enabled_keeps_everything (interaction_enabled=True 路径已不存在) 与
+    # test_production_default_is_disabled (INTERACTION_NOISE_ENABLED 符号已删)。
 
-    def test_disabled_removes_interaction_family_and_bare_fraction(self):
+    def test_interaction_family_and_bare_fraction_always_removed(self):
         from news_process.pipeline.preprocess._constants import filter_noise_patterns
         noise_data = {
             '_comment': '注释键应跳过',
@@ -156,7 +160,7 @@ class TestOmni03InteractionNoiseGating:
             'pagination': _PAGINATION_PROD_VALUE,
             'navigation': 'NAV_RE',
         }
-        out = filter_noise_patterns(noise_data, interaction_enabled=False)
+        out = filter_noise_patterns(noise_data)
         for gated in ('VIEW_RE', 'LIKE_RE', 'COMMENT_RE', 'SHARE_RE',
                       'COLLECT_RE', 'SUFFIX_RE'):
             assert gated not in out
@@ -166,21 +170,6 @@ class TestOmni03InteractionNoiseGating:
         assert r'\d+\s*/\s*\d+' not in pag
         assert re.search(pag, '第 3 页') is not None    # 锚定支保留
         assert re.search(pag, '3/4季度') is None        # 裸分数支已摘除
-
-    def test_enabled_keeps_everything(self):
-        from news_process.pipeline.preprocess._constants import filter_noise_patterns
-        noise_data = {
-            '_comment': 'x',
-            'view_count': 'VIEW_RE',
-            'pagination': _PAGINATION_PROD_VALUE,
-        }
-        out = filter_noise_patterns(noise_data, interaction_enabled=True)
-        assert 'VIEW_RE' in out
-        assert _PAGINATION_PROD_VALUE in out  # 原样保留
-
-    def test_production_default_is_disabled_for_newspaper_corpus(self):
-        from news_process.pipeline.preprocess._constants import INTERACTION_NOISE_ENABLED
-        assert INTERACTION_NOISE_ENABLED is False
 
     def test_production_combined_pattern_preserves_substance(self):
         # 报纸正文实质性陈述不再被互动计数族误删 (finding 实测样例)
