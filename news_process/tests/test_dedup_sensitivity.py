@@ -1,12 +1,16 @@
 """去重阈值敏感性 (panel/dedup_sensitivity.py + preprocess/dedup.py 参数化重构) 守护测试。
 
 覆盖:
-  A. dedup.py 重构等价性: compute_minhashes + find_near_duplicate_indices(默认参数)
-     == 旧 _perform_near_deduplication 行为 (窗口 5 工作日, self.threshold);
-     window_busdays/threshold 参数化方向正确 (更长窗口/更低阈值 ⇒ 删得更多)。
-  B. compute_dedup_sensitivity_treatments 在真实试跑产物上的契约:
-     列齐全 / pct∈[0,1] / index≥0 / 计数单调 (变体 ≤ 生产, 更严变体 ≤ 较宽变体)
-     / 宽松方向变体被拒绝。
+  A. dedup.py 重构默认参数锚点 (诚实表述, fix test-2 2026-06-13):
+     _perform_near_deduplication 薄包装 == compute_minhashes + find(默认参数) 串联,
+     并把默认参数 (W=5, self.threshold) 的剔除结果**钉为行为锚点** (synthetic fixture
+     上 drop=={d2})。注: 拆分前后等价由"纯方法抽取"(git diff 仅参数化两处) 在构造层
+     保证, 本测试不持有拆分前旧代码副本, 故名为"默认参数锚点 + 自洽"而非"逐位金值对比";
+     window_busdays/threshold 参数化方向 (更长窗口/更低阈值 ⇒ 剔除集为超集) 由子集关系断言。
+  B. compute_dedup_sensitivity_treatments 契约:
+     - B1 合成 12_full+14 fixture (不依赖盘上试跑产物, fix test-3/4/5):
+       列齐全 / pct∈[0,1] / index≥0 / 零-fintech→0 (显式) / 全集外→NaN / 更严窗口单调;
+     - B2 真实试跑产物 (盘上有则跑, 否则 skip): 同契约在真实分布上复核。
 """
 
 from __future__ import annotations
@@ -101,13 +105,18 @@ class TestDedupRefactorEquivalence:
         survivors10 = set(prep.loc[~prep.index.isin(drop10), 'docid'])
         assert survivors10 == {'d1'}  # 10 工作日窗口连 d3 一起删
 
-    def test_lower_threshold_drops_at_least_as_much(self, tmp_path, near_dup_df):
+    def test_lower_threshold_drops_superset(self, tmp_path, near_dup_df):
+        # fix(test-1 2026-06-13): 原 `len(drop_lo) >= len(drop_hi)` 在 drop_hi 恒空时
+        # 退化为 len>=0 近乎恒真, 无法捕捉方向反转。改为子集关系 + 非平凡性钉桩:
+        # 低阈值的 LSH 簇是高阈值簇的超集 → 剔除索引集为超集 (drop_hi ⊆ drop_lo),
+        # 且低阈值在该高相似 fixture 上至少删 1 篇 (否则断言空过)。
         dd = _make_dedup(tmp_path)
         prep = dd._prepare_dataframe(near_dup_df.copy())
         mh = dd.compute_minhashes(prep)
         drop_hi = dd.find_near_duplicate_indices(prep, mh, threshold=0.9)
         drop_lo = dd.find_near_duplicate_indices(prep, mh, threshold=0.5)
-        assert len(drop_lo) >= len(drop_hi)
+        assert drop_hi.issubset(drop_lo), f'方向反转: drop_hi={drop_hi} ⊄ drop_lo={drop_lo}'
+        assert len(drop_lo) >= 1, '低阈值在高相似 fixture 上应至少删 1 篇 (防恒真空过)'
 
     def test_empty_minhashes_returns_empty_set(self, tmp_path):
         dd = _make_dedup(tmp_path)
@@ -135,7 +144,111 @@ class TestVariantConfig:
 
 
 # ============================================================================
-# B. 真实试跑产物上的面板契约 (缺产物则 skip, 同 test_attention_treatments)
+# B1. 合成 12_full + 14 fixture 上的面板契约 (不依赖盘上试跑产物)
+#     fix(test-3/4/5 2026-06-13): 闭合 "@_disk skip-if-missing → 干净 checkout/CI
+#     上契约零覆盖" 盲区; 并显式覆盖 docstring 承诺的 NaN 契约 (全集外→NaN) 与
+#     零契约 (零-fintech→0), 不再靠 if z.any() 守卫可能静默空过。
+# ============================================================================
+
+# 长文本 (确保 a1/a2 的 3-gram Jaccard 远高于 0.70, LSH 必聚簇)
+_SYN_BODY = (
+    '中国人民银行宣布下调金融机构存款准备金率以支持实体经济发展并保持流动性合理充裕，'
+    '同时引导金融机构加大对小微企业和民营企业的信贷投放力度优化金融资源配置结构。'
+)
+
+
+@pytest.fixture()
+def synthetic_corpus(tmp_path, monkeypatch):
+    """写合成 12_full + 14_intensity 到 tmp, 并重定向 dedup_sensitivity 的读盘路径。
+
+    构造覆盖三类 bank-year:
+      BankA/2017 — a1(ft)+a2(ft, a1 的 7 工作日后近似转载)+a3(非ft) → 窗口敏感
+      BankB/2017 — b1(非ft 银行新闻) → 零-fintech (有新闻无 fintech) → 零契约
+      BankA/2018 — a4(ft) → 正常有曝光
+    变体网格 [(0.70,5),(0.70,10)]: w5 不删 (a1-a2 隔 7 工作日>5), w10 删 a2。
+    """
+    import news_process.pipeline.panel.dedup_sensitivity as ds
+    f12 = pd.DataFrame({
+        'docid': ['a1', 'a2', 'a3', 'b1', 'a4'],
+        'target_bank': ['BankA', 'BankA', 'BankA', 'BankB', 'BankA'],
+        '日期': ['2017-03-01', '2017-03-10', '2017-05-01', '2017-04-01', '2018-03-01'],
+        '媒体(中文)': ['新华社', '地方小报', '某晚报', '某报', '某网'],
+        '标题': ['降准公告', '降准公告', '理财产品', '新设网点', '降准回顾'],
+        '内容': [_SYN_BODY, _SYN_BODY + '(本报记者报道)', '某行理财产品年化收益走高',
+                 '某行在县域新设两家网点', _SYN_BODY + '年度综述'],
+        'is_fintech_news': [True, True, False, False, True],
+    })
+    s14 = pd.DataFrame({  # 14_intensity 仅 fintech 文章带强度分
+        'docid': ['a1', 'a2', 'a4'],
+        'target_bank': ['BankA', 'BankA', 'BankA'],
+        '日期': ['2017-03-01', '2017-03-10', '2018-03-01'],
+        'fintech_intensity_score_full': [1.0, 1.0, 2.0],
+        'fintech_intensity_score_ctx': [0.8, 0.8, 1.5],
+    })
+    f12.to_parquet(tmp_path / '12_fintech_news_full.parquet')
+    s14.to_parquet(tmp_path / '14_fintech_intensity.parquet')
+    monkeypatch.setattr(ds, 'OUTPUT_DIR', str(tmp_path))
+    monkeypatch.setattr(ds, 'FILENAMES', {})
+    monkeypatch.setitem(ds.CONFIG.setdefault('panel_building', {}),
+                        'dedup_sensitivity', {'variants': [[0.70, 5], [0.70, 10]]})
+    return tmp_path
+
+
+def _syn_panel() -> pd.DataFrame:
+    # 末行 GHOST/2099 = 12_full 全集外 bank-year → 触发 NaN 契约
+    return pd.DataFrame({
+        'target_bank': ['BankA', 'BankA', 'BankB', 'GHOST'],
+        'year': [2017, 2018, 2017, 2099],
+    })
+
+
+class TestSyntheticPanelContract:
+
+    def test_columns_present_and_bounds(self, synthetic_corpus):
+        out = compute_dedup_sensitivity_treatments(_syn_panel())
+        for sfx in ('j70w5', 'j70w10'):
+            for m in ('attention_index_full', 'attention_index_ctx',
+                      'attention_pct_full', 'n_ft_articles', 'n_all_articles'):
+                assert f'{m}_{sfx}' in out.columns, f'缺列 {m}_{sfx}'
+            p = out[f'attention_pct_full_{sfx}'].dropna()
+            assert p.between(0, 1).all(), f'pct_{sfx} 越界 [{p.min()},{p.max()}]'
+            idx = out[f'attention_index_full_{sfx}'].dropna()
+            assert (idx >= 0).all() and np.isfinite(idx).all()
+
+    def test_zero_fintech_contract_explicit(self, synthetic_corpus):
+        # BankB/2017: 有银行新闻(b1)但零 fintech → index/pct == 0 (真零曝光, 非 NaN)。
+        # 显式定位该行断言, 不靠 if z.any() (fix test-5: 防数据变化致守卫静默空过)。
+        out = compute_dedup_sensitivity_treatments(_syn_panel())
+        row = out[(out['target_bank'] == 'BankB') & (out['year'] == 2017)]
+        assert len(row) == 1
+        for sfx in ('j70w5', 'j70w10'):
+            assert row[f'n_ft_articles_{sfx}'].iloc[0] == 0
+            assert row[f'attention_index_full_{sfx}'].iloc[0] == 0
+            assert row[f'attention_pct_full_{sfx}'].iloc[0] == 0
+
+    def test_out_of_universe_nan_contract(self, synthetic_corpus):
+        # fix(test-4): GHOST/2099 不在 12_full 全集 → LEFT-merge 后全部变体列 NaN。
+        out = compute_dedup_sensitivity_treatments(_syn_panel())
+        row = out[(out['target_bank'] == 'GHOST') & (out['year'] == 2099)]
+        assert len(row) == 1
+        for sfx in ('j70w5', 'j70w10'):
+            for m in ('attention_index_full', 'attention_index_ctx',
+                      'attention_pct_full', 'n_ft_articles', 'n_all_articles'):
+                assert pd.isna(row[f'{m}_{sfx}'].iloc[0]), f'{m}_{sfx} 应为 NaN'
+
+    def test_stricter_window_drops_more_monotone(self, synthetic_corpus):
+        # j70w10 (W=10 捕获 a1-a2 的 7 工作日窗口) 比 j70w5 (W=5 不删) 在 BankA/2017
+        # 少 1 篇 fintech — 单调性非平凡 (真发生删除, 非两侧恒等空过)。
+        out = compute_dedup_sensitivity_treatments(_syn_panel())
+        row = out[(out['target_bank'] == 'BankA') & (out['year'] == 2017)]
+        w5 = row['n_ft_articles_j70w5'].iloc[0]
+        w10 = row['n_ft_articles_j70w10'].iloc[0]
+        assert w10 <= w5
+        assert w10 == w5 - 1, f'期望 w10 比 w5 少 1 篇 (a2 被删), 实得 w5={w5}, w10={w10}'
+
+
+# ============================================================================
+# B2. 真实试跑产物上的面板契约 (缺产物则 skip, 同 test_attention_treatments)
 # ============================================================================
 
 _S14 = os.path.join(OUTPUT_DIR, FILENAMES.get(

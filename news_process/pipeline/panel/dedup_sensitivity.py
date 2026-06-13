@@ -10,15 +10,35 @@
       去重不足 → 信息到达构念被系统性高估;
     - Hassan/Hollander/van Lent/Tahoun (2019 QJE, doi:10.1093/qje/qjz021):
       份额归一化测度隐含排斥机械重复计数;
-    - Fang & Peress (2009 JF) / Bushee et al. (2010 JAR): 传播广度构念则不去重
-      (由 falsification/controls.py::nf_media_breadth 另行实现, 不在本模块)。
+    - Fang & Peress (2009 JF, doi:10.1111/j.1540-6261.2009.01493.x) /
+      Bushee, Core, Guay & Hamm (2010 JAR, doi:10.1111/j.1475-679X.2009.00357.x):
+      传播广度构念则不去重 (由 falsification/controls.py::nf_media_breadth
+      另行实现, 不在本模块)。
 
-设计 — 单调"更严格方向"网格 (monotone re-dedup):
+设计 — "更严格方向"的两阶段近似扰动 (two-stage stricter re-dedup):
   生产语料已按 (J=0.8, W=5 工作日) 去重落盘 (stage 00), 被剔除的原文不可恢复
   → **宽松方向 (J=0.85/0.9, W=3) 需从 data/raw 重跑 stage 00, 本模块不做**,
   论文中如实披露此限制。本模块在 12_fintech_news_full 的文章全集上, 复用
   ArticleDeduplicator 的 MinHash 签名 (一次计算, 参数无关) 按更严格参数网格
-  追加判重, 再按 bank-year 重算关注度指标:
+  追加判重, 再按 bank-year 重算关注度指标。
+
+  ⚠ 口径诚实声明 (METHOD-1, 审稿人视角): 本模块在**已去重产物**上叠加更严去重,
+    其存活集 **不严格等于** 在 data/raw 上直接按该严参数 dedup 的存活集。机理:
+    时间窗口判重是 keep-greedy (簇内按日期升序, 后发文若落在任一**已保留**文的
+    窗口内即删), 而低阈值下 LSH 簇是高阈值簇的超集; 某文档可能在生产 (0.8) 小簇
+    里被删, 而在 raw-direct (0.7) 大簇里因锚点更早/超窗反而存活 — 两阶段已永久
+    丢弃它无法复活。故本结果应表述为 **"在生产去重之上施加更严扰动的保守下界"**,
+    而非 "等价于从 raw 重跑"。它仍是合法稳健性探针 (直接回答"去重更激进时结论是否
+    稳"), 只是不可解释为 from-scratch 重导。sidecar 落 two_stage_approximation 标记
+    供 Stata 表脚注引用。
+
+  ⚠ 跨语料盲区 (METHOD-2): 生产去重在 **全语料** (stage 00, 银行/fintech 分类之前)
+    上做; 本模块只在 12_fintech_news_full (银行新闻子集) 上重判重。故"银行新闻 ×
+    非银行新闻"的跨子集近似重复 (某银行稿是某非银行稿的 0.7–0.8 近似副本) 在本
+    敏感性里**看不到**, 会系统性低估 raw-direct 严格去重本会捕获的剔除量。属本
+    模块对 attention (银行新闻覆盖) 构念的有意范围限定, 论文须如实披露。
+
+  变体重算关注度指标:
 
     变体 (默认, config/panel.yaml::panel_building.dedup_sensitivity.variants 可覆盖):
       j70w5   Jaccard 0.70 × 5 工作日   (更低相似度阈值 → 更激进合并)
@@ -42,8 +62,17 @@ Stata 用法 (敏感性检验本体): 主回归逐一以 attention_index_full_<v
 
 白话: 生产线把"5 个工作日内、相似度 80% 以上"的转载当重复删掉了。审稿人会问
   "你这 80% 和 5 天是拍脑袋定的吗?" — 本模块把刀拧得更狠 (70%/75%、10 天) 各算
-  一遍关注度, 如果回归结论不变, 就证明结果不是靠这两个参数凑出来的。注意只能
-  往"删得更多"方向拧 — 已经删掉的原文找不回来, 想往松了拧得从原始数据重跑。
+  一遍关注度, 如果回归结论不变, 就证明结果不是靠这两个参数凑出来的。三个诚实提醒:
+  ① 只能往"删得更多"方向拧 — 已经删掉的原文找不回来, 想往松了拧得从原始数据重跑;
+  ② 这是"在已删基础上再多删"的近似, 跟"一开始就用 70% 删"不完全是一回事 (个别
+     文章的去留可能不同), 是个保守的扰动检验而非精确重来;
+  ③ 试跑样本只动了 1–3% 文章, 所以算出来的相关性高到 0.999 是必然的、不算"强稳健
+     性证据" — 真正的证据是把每个变体的列丢进主回归, 看系数符号和显著性稳不稳。
+
+⚠ 试跑样本 caveat (METHOD-3): 当前盘上 T=2 / ~176 bank-year, 变体仅追加剔除 1–3%
+  文章 → 与生产锚点的 Pearson 相关接近 1.0 是低剔除率下的**预期平凡结果**, 非充分
+  稳健性证据。真正的稳健性结论须来自主回归系数在各变体下的稳定性 (Stata Table A),
+  而非面板内相关性; 全量 17M/T=18 下剔除率与相关性都可能很不同, 当前数字不可外推。
 """
 
 from __future__ import annotations
@@ -210,21 +239,45 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
             'extra_dropped_articles': len(dropped_docids),
             'surviving_articles': len(survivors),
             'retained_share': round(retained, 4),
+            # METHOD-1: 本结果是"生产去重之上的更严两阶段近似", 非 raw-direct 等价
+            'two_stage_approximation': True,
+            'raw_equivalent': False,
         }
-        # 与生产锚点指标的相关性 (面板内快速诊断; 高相关 = 对参数稳健的初证)
+        # 与生产锚点指标的相关性 + 逐 bank-year Δ 分布 (METHOD-3/4: 单一相关性在低
+        # 剔除率/T=2 下接近平凡, 故并报 Δ 分布"谁受影响多大"; 真稳健性证据须来自
+        # 主回归系数稳定性 (Stata Table A), 非面板内相关性)。
         if 'attention_index_full' in merged.columns:
-            corr = merged['attention_index_full'].corr(
-                merged[f'attention_index_full_{sfx}'])
+            base = merged['attention_index_full']
+            var = merged[f'attention_index_full_{sfx}']
+            corr = base.corr(var)
+            delta = (var - base).abs()
+            _pair = base.notna() & var.notna()
             summary[sfx]['corr_index_full_vs_production'] = (
                 round(float(corr), 4) if pd.notna(corr) else None)
+            summary[sfx]['delta_index_full'] = {
+                'n_pairs': int(_pair.sum()),
+                'n_changed': int((delta[_pair] > 1e-9).sum()),
+                'mean_abs': round(float(delta[_pair].mean()), 6) if _pair.any() else None,
+                'p90_abs': round(float(delta[_pair].quantile(0.90)), 6) if _pair.any() else None,
+                'max_abs': round(float(delta[_pair].max()), 6) if _pair.any() else None,
+            }
             logger.info(f"    corr(attention_index_full, _{sfx}) = "
-                        f"{corr if pd.notna(corr) else float('nan'):.4f}")
+                        f"{corr if pd.notna(corr) else float('nan'):.4f} "
+                        f"[低剔除率下接近平凡, 非充分稳健性证据 — 见 docstring METHOD-3]; "
+                        f"Δ: {int((delta[_pair] > 1e-9).sum())} bank-year 变化, "
+                        f"max|Δ|={float(delta[_pair].max()) if _pair.any() else 0:.4f}")
 
     _validate(merged, new_cols)
     _write_summary_sidecar(summary)
-    matched = merged[new_cols[0]].notna().sum()
+    # METHOD-6: matched 把"真零曝光(index=0)"与"有 fintech(index>0)"同计为匹配,
+    # 只排除"无任何银行新闻(NaN)"; 三分报告便于审计 (镜像 attention_treatments 口径)。
+    _first = merged[new_cols[0]]
+    matched = int(_first.notna().sum())
+    _pos = int((_first > 0).sum())
     logger.info(f"  去重敏感性: {len(variants)} 变体 × 5 列 = {len(new_cols)} 列并入 "
-                f"panel; 首列匹配 {matched}/{len(merged)} bank-year")
+                f"panel; 首列匹配 {matched}/{len(merged)} bank-year "
+                f"(其中 index>0 有曝光 {_pos}, index=0 真零 {matched - _pos}, "
+                f"NaN 全集外 {len(merged) - matched})")
     return merged
 
 

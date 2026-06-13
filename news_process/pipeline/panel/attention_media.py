@@ -261,14 +261,20 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
           文本内份额归一化隐含排斥机械重复计数)。本函数的 attention_index /
           attention_pct / density 属此类, 故用去重基 ✓。
       ② "传播广度/可见度"构念不应去重 — 转载本身就是构念
-         (Bushee/Core/Guay/Hamm 2010 JAR press dissemination; Fang & Peress 2009 JF
-          coverage 计数); 该口径由 falsification/controls.py::nf_media_breadth 以
-          去重**前**物理行集另行实现, 勿在本函数混用。
+         (Bushee/Core/Guay/Hamm 2010 JAR press dissemination,
+          doi:10.1111/j.1475-679X.2009.00357.x; Fang & Peress 2009 JF coverage 计数,
+          doi:10.1111/j.1540-6261.2009.01493.x); 该口径由
+          falsification/controls.py::nf_media_breadth 以去重**前**物理行集另行实现,
+          勿在本函数混用。
       ③ 时间归属: 跨期转载若保留后发副本日期会错配 bank-year — 去重层已按
          "日期升序保留首发" 消除 (fix omni-g-preprocess-06)。
       ⚠ 含义: 水平类计数 (n_fintech_articles 等) 对去重参数 (Jaccard 0.8 / 5 工作日)
         敏感, 论文须披露去重规则与剔除比例, 并配阈值敏感性稳健性; 份额类
         (attention_pct) 分子分母同基, 去重影响部分相消但非完全免疫。
+        阈值敏感性已由 panel/dedup_sensitivity.py (步骤 6b-3) 物化为 attention_*_jXXwY
+        变体列; 注意其两处口径限定 (见该模块 docstring METHOD-1/2): 它是"生产去重
+        之上的更严两阶段近似"(非 raw-direct 等价), 且只在银行新闻子集重判重 (跨语料
+        近似重复不可见)。
       白话: 一条新闻被 50 家网站转载 — 测"发生了多少事"只能算 1 件 (本函数口径,
         不去重会虚增); 测"传得多广"恰恰要数 50 次 (nf_media_breadth 口径)。两套
         口径并存、各管各的, 不是矛盾而是分工。
