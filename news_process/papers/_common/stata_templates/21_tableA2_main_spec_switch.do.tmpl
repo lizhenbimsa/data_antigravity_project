@@ -11,15 +11,15 @@ version 19
 set maxvar 32767
 
 * M2/Bartik fix (2026-05-30): 加载 01_data_prep 存的 full _prepared_panel.dta
-* (2129 列, 含 aux-only 的 bartik_fintech_lf/lc_iv_*); 历史上的 46_panel_yearly_core.dta
-* (81 列 IC 子集) 已于 2026-06-12 随单一全列导出移除。22_tableA3 (00_master 中紧随其后, 无自己的 use) 在本 in-memory 状态上
-* `capture confirm` Bartik IV; 此前 use core 让整块 IV 回归静默跳过, Table A3 仅剩 OLS。
-* set maxvar 32767 必需 (2129 > IC 默认 2048; core 81 列时无需而掩盖了此要求)。
+* (全列版, 含原 aux-only 的 bartik_fintech_lf/lc_iv_*)。历史上的 46_panel_yearly
+* core/aux IC 双切分 (≤2048 列子集 + 互补) 已于 2026-06-12 随单一全列导出整体移除。
+* 22_tableA3 (00_master 中紧随其后, 无自己的 use) 在本 in-memory 状态上
+* `capture confirm` Bartik IV; 此前若 use IC 子集会让整块 IV 回归静默跳过, Table A3 仅剩 OLS。
+* set maxvar 32767 防御性保留 (面板列数随每次 regen 漂移; 防未来突破 IC 默认 2048)。
 * 副作用: 22/23/24 均无自己的 use, 现继承本 full in-memory 状态 — 23 不碰数据,
-* 24 为 full⊇core 严格超集 (所需列仍在), 均安全。
+* 24 所需列仍在全列面板内, 均安全。
 * 路径: honor $data_dir; 主链 $data_dir="" → data/processed;
-* _prepared_panel 缺失时回退 full (防御; 2026-06-12 stage 46 改单一全列 full.dta,
-* 不再产 core/aux, 回退指向 full)。
+* _prepared_panel 缺失时回退 full.dta (防御; stage 46 自 2026-06-12 起只产单一全列 full.dta)。
 if "$data_dir" == "" global data_dir "data/processed"
 capture confirm file "$data_dir/_prepared_panel.dta"
 if !_rc {
