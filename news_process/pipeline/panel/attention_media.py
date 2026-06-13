@@ -303,7 +303,7 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     回归用法: index/density/sd 各产 _full/_ctx, main=full、robustness=ctx 分离复跑, 不同进一个 RHS。
 
     防选择偏差 (B1/B2) + verified 域门控 (panel-universe-consistency-audit 2026-06-13,
-      ATT-1/ATT-2): 分子(强度/计数, 取自 14_fintech_intensity)与 HHI 的 outlet 分布
+      ATT-1, 含同函数 HHI 分支): 分子(强度/计数, 取自 14_fintech_intensity)与 HHI 的 outlet 分布
       (取自 12_fintech_news_full is_fintech 子集)经 (docid,target_bank) semi-join 收敛到
       stage-21 verified 集 (24_herd_decay; 与面板政策对齐族 runner.py:_filter_to_verified_universe
       同域, 剔除约 26.8% 被 stage 21 判伪的非真实银行-金融科技文章)。⚠ 而 **分母 N_all +
@@ -313,6 +313,14 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
       分子, 零-(verified-)fintech bank-year: index/pct/density → 0 (真零曝光),
       disp/sd/gap/share → NaN (无报道无离散度/借位)。时间维方法 (Da异常/AR/burstiness/月度) 全量后
       opt-in, 此处不产 (T=2 试跑样本不可估, H2)。
+
+    ⚠ 顶刊披露 (P2 data/sample): 门控后本族估计样本宇宙 = stage-21 verified 集
+      (N≈857 article-bank pairs, 较 1170 候选集剔除约 26.8% LLM 判伪文章); 论文须在
+      data/sample 段与 Table 1 注报告该 verified 宇宙与剔除率 (与去重披露义务同级)。
+    ⚠ 范围 (勿混): 地理注意力指数族 (compute_fintech_attention_index 的 ft_attn_yr/prov/city)
+      是**另一支**, 其 is_fintech_news 分子取自未经 stage-21 验证的 12_full, 仍**未门控**
+      (审计 ATT-2, deferred 待决: gate-or-披露); 本函数 (含 HHI 分支) 仅覆盖 firm-level
+      attention 处理变量族, 不要据此误判 ft_attn_* 已修。
 
     NaN 非对称契约 (须知): panel 是 balance_panel 笛卡尔积, 可含 12_full universe 之外的
       bank-year (该银行该年**完全无银行新闻**, has_coverage=0)。这些行最终 panel.merge LEFT-join
@@ -380,7 +388,8 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
 
     # ── 跨媒体 HHI (vectorized, 防 H4 groupby-apply 性能炸弹) ──
     f12_ft = f12[f12['is_fintech_news'] == True]
-    # fix(ATT-2): HHI/n_outlets 的 outlet 分布同样收敛到 verified 集 (与分子 s14 同域)。
+    # fix(ATT-1, HHI 分支): HHI/n_outlets 的 outlet 分布同样收敛到 verified 集 (与分子 s14 同域)。
+    # (审计 ATT-2 = 另一支 compute_fintech_attention_index ft_attn_*, 仍未门控/deferred, 勿混。)
     # verified ⊆ f12_ft 经盘面实测 → 门控后 f12_ft 的非空 bank-year 集与门控后 s14 恒一致,
     # 保 n_fintech_articles==0 ⇔ disp_hhi=NaN 契约 (test_disp_hhi_bounded / test_zero_fintech_semantics)。
     f12_ft = restrict_to_verified(f12_ft, OUTPUT_DIR, FILENAMES,
