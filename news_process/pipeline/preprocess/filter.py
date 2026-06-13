@@ -115,7 +115,7 @@ def _clean_and_filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     # 5. 广告关键词过滤(检查标题、版面、栏名三个字段)
     # fix(omni-g-preprocess-05, 2026-06-11): 标题字段改用 AD_PATTERN_TITLE —
-    # 高误伤词 (ad_keywords_title_anchored, 2026-06-13 两批扩 6→22 词) 对标题
+    # 高误伤词 (ad_keywords_title_anchored, 2026-06-13 三批扩 6→27 词) 对标题
     # 要求行尾锚定, 不再把 '央行公告下调存准率' / '上市银行三季度报告显示…' /
     # 'XX银行收到行政处罚事先告知书 拟被罚没…' 等监管/财经新闻整篇误删;
     # 版面/栏名仍用无锚定 AD_PATTERN (付费公告版面全量排除, 行为不变)。

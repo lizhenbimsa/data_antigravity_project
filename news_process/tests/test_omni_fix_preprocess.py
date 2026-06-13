@@ -291,7 +291,9 @@ class TestOmni05AdTitleAnchoring:
         assert AD_PATTERN_TITLE.search('XX银行关于变更注册地址的公告') is not None
         assert AD_PATTERN_TITLE.search('2017年度第三期金融债券发行公告') is not None
         # 低误伤词无锚定 → 任意位置仍删
-        assert AD_PATTERN_TITLE.search('XX银行半年报摘要发布') is not None
+        # (2026-06-13 三批后例词换用仍未锚定的'招募说明书' — 原例词
+        # '半年报摘要'已随三批成对锚定, 不再中段命中)
+        assert AD_PATTERN_TITLE.search('XX银行理财产品招募说明书发布') is not None
 
     def test_layout_pattern_unchanged_unanchored(self):
         # 版面/栏名用 AD_PATTERN 仍无锚定 (付费公告版面全量排除)
@@ -513,7 +515,7 @@ class TestOmni07BankKeywordVariants:
 
 
 # ============================================================================
-# 2026-06-13 — 广告排除过度性复查: 锚定清单 6→12 词 + 词级命中计数日志
+# 2026-06-13 — 广告排除过度性复查 (三批): 锚定清单 6→12→22→27 词 + 词级命中计数日志
 # ============================================================================
 
 class TestAdAnchoredExpansion20260613:
@@ -596,7 +598,7 @@ class TestAdAnchoredExpansionR2_20260613:
         )
         for w in self.EXPANSION_WORDS_R2:
             assert w in AD_KEYWORDS_TITLE_ANCHORED, f'{w!r} 应已加入锚定清单'
-        assert len(AD_KEYWORDS_TITLE_ANCHORED) == 22
+        assert len(AD_KEYWORDS_TITLE_ANCHORED) == 27
 
     def test_typo_twin_deliberately_unanchored(self):
         # 决策锁定: '半年度度报告' (源数据拼写错误孪生词) 刻意不锚定 —
@@ -645,6 +647,71 @@ class TestAdAnchoredExpansionR2_20260613:
         from news_process.pipeline.preprocess._constants import AD_PATTERN
         assert AD_PATTERN.search('广告专版') is not None
         assert AD_PATTERN.search('特别提示栏') is not None
+
+
+class TestAdAnchoredExpansionR3_20260613:
+    """守卫: 三批锚定 (22→27, 二批对抗复核净裁决) — 遗失/股票预案/
+    年报摘要+半年报摘要(成对)/转债行情。"""
+
+    EXPANSION_WORDS_R3 = ['遗失', '股票预案', '年报摘要', '半年报摘要', '转债行情']
+
+    def test_r3_words_in_anchored_list(self):
+        from news_process.pipeline.preprocess._constants import (
+            AD_KEYWORDS_TITLE_ANCHORED,
+        )
+        for w in self.EXPANSION_WORDS_R3:
+            assert w in AD_KEYWORDS_TITLE_ANCHORED, f'{w!r} 应已加入锚定清单'
+
+    def test_cooccurrence_rescue_guashi_yishi(self):
+        # 三批核心动机: '遗失'不锚定时, 二批'挂失'的中段救活在最常见
+        # 共现句式下被'遗失'击杀 (半成品)。锚定后该句式须存活。
+        from news_process.pipeline.preprocess._constants import AD_PATTERN_TITLE
+        assert AD_PATTERN_TITLE.search('银行卡遗失后挂失费引争议') is None
+
+    def test_pair_anchoring_invariant_nianbao_zhaiyao(self):
+        # 子串不变量: '年报摘要'⊆'半年报摘要', 必须成对锚定 — 否则中段
+        # '半年报摘要' 被未锚定的 '年报摘要' 击杀, 后者锚定虚设
+        from news_process.pipeline.preprocess._constants import (
+            AD_KEYWORDS_TITLE_ANCHORED,
+            AD_PATTERN_TITLE,
+        )
+        anchored = set(AD_KEYWORDS_TITLE_ANCHORED)
+        assert {'年报摘要', '半年报摘要'} <= anchored
+        assert AD_PATTERN_TITLE.search('多家银行半年报摘要显示净息差企稳') is None
+
+    def test_r3_midtitle_genuine_news_survive(self):
+        from news_process.pipeline.preprocess._constants import AD_PATTERN_TITLE
+        for title in (
+            '储户银行卡遗失后被盗刷银行担责几何',
+            'XX银行抛出百亿定增股票预案补充资本',
+            '上市银行年报摘要密集披露不良率走势分化',
+            '银行转债行情回暖机构看好补涨空间',
+        ):
+            assert AD_PATTERN_TITLE.search(title) is None, title
+
+    def test_r3_title_ending_announcements_still_matched(self):
+        from news_process.pipeline.preprocess._constants import AD_PATTERN_TITLE
+        for title in (
+            '存单遗失',
+            'XX银行非公开发行股票预案',
+            'XX银行2017年年报摘要',
+            'XX银行2018年半年报摘要',
+            '今日转债行情',
+            '身份证遗失声明',     # 行尾'声明'锚定兜底, 分类广告族仍删
+        ):
+            assert AD_PATTERN_TITLE.search(title) is not None, title
+
+    def test_fund_doc_words_deliberately_unanchored(self):
+        # 决策锁定: 招募说明书/风险揭示书/草案摘要 (基金/券商域) 与
+        # 专项说明 (审计/问询函域) 刻意不锚定 — 中段误伤属一般噪声,
+        # 与银行事件强度弱相关 (四轮终审复核豁免理由成立)
+        from news_process.pipeline.preprocess._constants import (
+            AD_KEYWORDS,
+            AD_KEYWORDS_TITLE_ANCHORED,
+        )
+        for w in ('招募说明书', '风险揭示书', '专项说明', '草案摘要'):
+            assert w in AD_KEYWORDS
+            assert w not in AD_KEYWORDS_TITLE_ANCHORED, f'{w!r} 应保持未锚定'
 
 
 class TestAdKeywordHitCounts:
