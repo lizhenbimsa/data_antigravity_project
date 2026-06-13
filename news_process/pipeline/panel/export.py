@@ -479,6 +479,12 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_msent_ctx':                  'MSENT (Neg-Pos)/(Neg+Pos) EW Mean (Ctx)',
                 'avg_msent_std_full':              'MSENT Std Dev (Full)',
                 'avg_msent_std_ctx':               'MSENT Std Dev (Ctx)',
+                # 规则消融稳健性: 仅否定 (rule-ablation negation-only, 2026-06-13)
+                # 三点 ablation 谱: avg_msent(零规则) → *_negonly(仅否定) → 全规则 dict_avg_tone
+                'dict_avg_negonly_tone_full':     'Dict Avg Tone (Negation-Only, Full)',
+                'dict_avg_negonly_tone_ctx':      'Dict Avg Tone (Negation-Only, Ctx)',
+                'avg_msent_negonly_full':         'MSENT (Negation-Only Count) EW Mean (Full)',
+                'avg_msent_negonly_ctx':          'MSENT (Negation-Only Count) EW Mean (Ctx)',
                 # 文章长度: avg_article_length=字符口径 ln(1+avg_chars) (2026-06-05 单位勘误,
                 # 原标 avg_words 系误标, 底层 doc_length=字符数); ln_word_count=词口径 (Li 2008)
                 'avg_article_length':             'Article Length ln(1+avg_chars)',
@@ -497,12 +503,20 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'avg_specificity_ctx':           'Specificity Hard-Info Density (Ctx)',
                 'avg_within_doc_redund_full':    'Within-Doc Redundancy (Full)',
                 'avg_within_doc_redund_ctx':     'Within-Doc Redundancy (Ctx)',
+                # 汉字口径冗余孪生 (剔数字/标点/拉丁; 与上方字符口径双口径, hanzi-char-dual 2026-06-13)
+                'avg_within_doc_redund_han_full': 'Within-Doc Redundancy Han-char (Full)',
+                'avg_within_doc_redund_han_ctx':  'Within-Doc Redundancy Han-char (Ctx)',
                 'avg_adversative_full':          'Adversative-Conjunction Ratio (Full)',
                 'avg_adversative_ctx':           'Adversative-Conjunction Ratio (Ctx)',
                 'avg_word_count_full':           'Avg Word Count (Full)',
                 'avg_word_count_ctx':            'Avg Word Count (Ctx)',
                 'ln_word_count_full':            'Article Length ln(1+avg_words) (Full)',
                 'ln_word_count_ctx':             'Article Length ln(1+avg_words) (Ctx)',
+                # 汉字口径文章长度 (第三口径; 剔数字/标点/拉丁, hanzi-char-dual 2026-06-13)
+                'avg_han_count_full':            'Avg Han-Char Count (Full)',
+                'avg_han_count_ctx':             'Avg Han-Char Count (Ctx)',
+                'ln_han_count_full':             'Article Length ln(1+avg_hanchars) (Full)',
+                'ln_han_count_ctx':              'Article Length ln(1+avg_hanchars) (Ctx)',
                 'frac_front_page':               'Front-Page Coverage Frac',
                 'frac_front_section':            'Front-Section Coverage Frac',
                 'avg_page_rank':                 'Avg Page Prominence (lower=front)',
@@ -679,7 +693,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'benefit_neg_frac_t2v_ctx':            'Benefit Neg Frac (T2V robust, ctx)',
                 'emb_peer_tone_lag1_t2v_full':         'Emb Peer Tone Lag1 (T2V robust, full)',
                 'emb_peer_tone_lag1_t2v_ctx':          'Emb Peer Tone Lag1 (T2V robust, ctx)',
-                'bank_emb_sim_mean_t2v':               'Bank Emb Sim Mean (T2V robust)',
+                'bank_emb_sim_mean_lag1_t2v':          'Bank Emb Sim Mean (L1, T2V robust)',
                 # Event Study 动态效应 (Callaway & Sant'Anna 2021, JoE)
                 'dcep_rel_year':                       'DCEP Relative Year to Treatment',
                 'dcep_lead3':                          'DCEP Lead 3 Periods (k=-3)',
@@ -764,7 +778,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # ═══ 银行共现网络: Part A (11) ═══
                 'bank_degree_cent':     'Co-mention Degree Centrality (Freeman 1979)',
                 'bank_strength_cent':   'Co-mention Strength Centrality (Opsahl 2010)',
-                'bank_between_cent':    'Co-mention Betweenness (Battiston 2012)',
+                'bank_between_cent':    'Co-mention Betweenness (Freeman 1979)',
                 'bank_harmonic_cent':   'Co-mention Harmonic Centrality (Boldi 2014)',
                 'bank_eigen_cent':      'Co-mention Eigenvec Centrality (Bonacich 1972)',
                 'bank_katz_cent':       'Co-mention Katz Centrality (Acemoglu 2012)',
@@ -982,7 +996,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'bank_cogn_mean':                'Cognitive Proximity (TF-IDF)',
                 # === 信息经纪网络 (Han et al. 2024) ===
                 'brokerage_eigen_cent':          'Brokerage Eigenvector Cent',
-                'industry_neg_shock':            'Industry Neg Shock (LOO)',
+                'industry_neg_shock':            'Industry Neg Shock (LOO, same-period; year-FE collinear)',
+                'industry_neg_shock_lag1':       'Industry Neg Shock LOO (L1, year-FE-safe)',
                 'brokerage_fire_sale':           'Brokerage x Neg Shock',
                 # === 同行金融科技溢出 (LeSage & Pace 2009; Leary & Roberts 2014 JF) ===
                 # fix(omni-g-misc-01, 2026-06-11): 原误引 Berger et al. (2022, JFI) — 该文研究
@@ -992,7 +1007,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # === Embedding 同业网络 (Hoberg & Phillips 2016) ===
                 'emb_peer_tone_lag1_full':      'Emb Peer Tone L1 (Full)',
                 'emb_peer_tone_lag1_ctx':       'Emb Peer Tone L1 (Ctx)',
-                'bank_emb_sim_mean':            'Bank Embedding Sim Mean',
+                'bank_emb_sim_mean_lag1':       'Bank Embedding Sim Mean (L1)',
                 # === LLM-Peer 竞争网络 IV (Cao et al. 2025) ===
                 # 主回归变量 (无后缀, difflib 名归一 cutoff=0.80)
                 # fix(omni-g-misc-02, 2026-06-11): cutoff 是 difflib.get_close_matches 的

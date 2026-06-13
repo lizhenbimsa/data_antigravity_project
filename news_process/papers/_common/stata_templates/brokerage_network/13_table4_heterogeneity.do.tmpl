@@ -40,10 +40,17 @@ ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
 eststo H2_SOE
 restore
 
+* fix(network-metrics-audit, 2026-06-13, P1-2): 补弱工具诊断 (KP rk Wald F + Stock-Yogo/AR-CI)
+* — 分样本 2SLS 在小子样本上弱工具风险更高, 必须报第一阶段 F。
 esttab H1_nonSOE H2_SOE using "$tables_dir/table4_heterogeneity.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
     title("Heterogeneity by {{HET_VAR}} --- brokerage_network 2SLS") ///
     mtitles("Non-SOE" "SOE") ///
-    addnotes("Split-sample 2SLS; bank/year FE; SE clustered at province.")
+    addnotes("Split-sample 2SLS; bank/year FE; SE clustered at province." ///
+             "KP rk Wald F = Kleibergen-Paap rk Wald first-stage F (e(widstat), reported by ivreghdfe under cluster VCE; ffirst adds per-instrument first stage)." ///
+             "Just-identified (1 IV W2*tone / 1 endogenous) -> Hansen J undefined (df=0)." ///
+             "Stock-Yogo 10% maximal-size critical value (1 instrument) = 16.38; KP F below it => weak IV;" ///
+             "split-sample F is typically lower, read Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019).")
 
 display "[OK] Table 4 → $tables_dir/table4_heterogeneity.tex"
