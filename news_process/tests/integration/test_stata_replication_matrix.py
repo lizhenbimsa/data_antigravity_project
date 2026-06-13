@@ -2,7 +2,7 @@
 
 测试范围:
     - 8-spec matrix (2 locus × 2 subst × 2 sent) build_replication_package 全部成功
-    - 15 .do 文件正确实例化 (占位符 0 残留, 主要 locals 正确替换)
+    - 16 .do 文件正确实例化 (占位符 0 残留, 主要 locals 正确替换)
     - 复现包目录结构一致 (code/ data/ output/{tables,figures}/)
     - README.md 含 spec 信息 + git commit hash
     - 多 spec 并存目录命名 R54-A: replication_v3.2.0_{locus}_{subst}_{sent}/
@@ -39,10 +39,10 @@ def test_build_replication_8spec_matrix(tmp_path, locus, subst, sent):
     # 必备子目录
     for sub in ['code', 'data', 'output/tables', 'output/figures']:
         assert (pkg / sub).exists(), f"spec {locus}_{subst}_{sent}: 缺 {sub}/"
-    # 15 个 .do 文件全部实例化 (remove-title-track 后 14; 2026-06-13 IV 补全
-    # +25_tableA6_tone_iv_2sls → 15)
+    # 16 个 .do 文件全部实例化 (remove-title-track 后 14; 2026-06-13 IV 补全
+    # +25_tableA6_tone_iv_2sls → 15; agg-toptier-audit +26_tableA7_aggregation_robustness → 16)
     do_files = list((pkg / 'code').glob('*.do'))
-    assert len(do_files) == 15, f"spec {locus}_{subst}_{sent}: 应 15 .do, 实际 {len(do_files)}"
+    assert len(do_files) == 16, f"spec {locus}_{subst}_{sent}: 应 16 .do, 实际 {len(do_files)}"
     # README.md 含 spec 信息
     readme = (pkg / 'README.md').read_text(encoding='utf-8')
     assert locus in readme
@@ -68,7 +68,7 @@ def test_table2_locals_match_spec(tmp_path, locus, subst, sent):
 
 @pytest.mark.parametrize("locus,subst,sent", ALL_SPECS)
 def test_no_placeholder_residue_across_specs(tmp_path, locus, subst, sent):
-    """plan v14 §9.5: 15 .do 文件占位符零残留 (跨 8 specs)."""
+    """plan v14 §9.5: 16 .do 文件占位符零残留 (跨 8 specs)."""
     from news_process.papers._common.stata_runner import build_replication_package
     pkg = build_replication_package({
         'MAIN_LOCUS_TRACK': locus, 'MAIN_SUBST_TRACK': subst,

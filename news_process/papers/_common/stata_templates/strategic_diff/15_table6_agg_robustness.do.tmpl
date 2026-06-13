@@ -1,0 +1,164 @@
+* ============================================================================
+* 15_table6_agg_robustness.do — 推断与覆盖稳健性 (strategic_diff)
+* Paper: {{PAPER_ID}}
+*
+* fix(agg-toptier-audit 2026-06-13): stage-45 聚合层审计 #2/#3 必修 wire-ahead 桩 ($0):
+*   Panel B 推断层: 主回归单向 cluster({{CLUSTER_VAR}}) 旁补双向 cluster(bank_id year)
+*           + 野聚类自助法 boottest (Cameron-Gelbach-Miller 2008 REStat; Roodman et al. 2019)。
+*   Panel C 覆盖筛选: min-coverage keep if n_articles_llm_valid>=k (k=3,5) +
+*           覆盖分布披露 (Tetlock 2007 JF; 单文章 bank-year = 纯噪声点估计)。
+*   注 Panel A (加权聚合 EW vs VW/MW/HW) 不适用本篇 — 主处理变量 strat_diff_n5 (TF-IDF text distance) 无 VW/MW/HW 加权孪生
+*     (仅 tone-mean 主变量有: P1 见 root/26_tableA7, llm_peer 见 15_tableA6)。
+*   注 wire-ahead 桩: 主回归 outcome {{MAIN_DV}} 当前为待接入财务哨兵 -> 财务面板接入前
+*     优雅 no-op; 接入并跑 01_data_prep 后自动激活 (审计 needs-data-then-0 延后项)。
+* 全 capture 守卫 + 动态列名 (不硬点名缺估计) + 嵌套 mkdir, 绝不 r(111) 崩主链。
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* nested mkdir (主链 master 已建; 独立重跑/dry-run 防御 — Stata mkdir 不递归)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+local DV   {{MAIN_DV}}
+local CL   {{CLUSTER_VAR}}
+local X    strat_diff_n5
+local BV   strat_diff_n5
+
+* DV 解析: 缩尾 _w -> 裸名 -> 缺则 no-op (wire-ahead 桩, 财务哨兵未接入)
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display "  WARN 结果变量 `DV'(_w) 待接入财务面板, Table 6-strat no-op (wire-ahead 桩)"
+        exit 0
+    }
+}
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+* 主处理变量解析 (部分为 01_data_prep gen 的衍生变量; 缺则 degrade)
+capture confirm variable `X'
+if _rc {
+    display "  WARN 主处理变量 (`X') 缺 (须先跑 01_data_prep); Table 6-strat degrade"
+    exit 0
+}
+
+* ==========================================================================
+* Panel B — 推断层 (单向 vs 双向聚类 + 野聚类自助法)
+* ==========================================================================
+eststo clear
+local infcols ""
+local inflabs ""
+capture eststo B_oneway: reghdfe `DVUSE' `X' $controls, absorb(bank_id year) vce(cluster `CL')
+if !_rc {
+    local infcols "`infcols' B_oneway"
+    local inflabs `"`inflabs' "Cluster: `CL'""'
+}
+capture eststo B_twoway: reghdfe `DVUSE' `X' $controls, absorb(bank_id year) vce(cluster bank_id year)
+if !_rc {
+    local infcols "`infcols' B_twoway"
+    local inflabs `"`inflabs' "Cluster: bank & year""'
+}
+else {
+    display "  WARN Panel B: 双向聚类失败 (year 簇过少? T=2 试跑盘正常), 跳过 B2"
+}
+local boot_note "boottest unavailable"
+capture which boottest
+if !_rc {
+    capture quietly reghdfe `DVUSE' `X' $controls, absorb(bank_id year) vce(cluster bank_id)
+    if !_rc {
+        capture boottest `BV', reps(9999) cluster(bank_id) nograph
+        if !_rc {
+            local boot_p = r(p)
+            local boot_note "wild-cluster bootstrap p(`BV')=`boot_p' (boottest, 9999 reps; Roodman et al. 2019)"
+            display "  OK Panel B: `boot_note'"
+        }
+    }
+}
+if "`infcols'" != "" {
+    esttab `infcols' using "$tables_dir/table6_strat_inference_clustering.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        title("Table 6-strat-B: Inference Robustness (one-way vs two-way clustering)") ///
+        mtitles(`inflabs') ///
+        addnotes("Headline clusters one-way; companion papers use two-way clustering. `boot_note'.")
+    estout `infcols' using "$tables_dir/table6_strat_inference_clustering.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table 6-strat-B (inference / clustering) written"
+}
+
+* ==========================================================================
+* Panel C — 最低覆盖筛选 + 覆盖分布披露
+* ==========================================================================
+eststo clear
+local covcols ""
+local covlabs ""
+capture confirm variable n_articles_llm_valid
+if !_rc {
+    foreach k in 1 3 5 {
+        preserve
+        quietly keep if n_articles_llm_valid >= `k'
+        capture eststo C_k`k': reghdfe `DVUSE' `X' $controls, absorb(bank_id year) vce(cluster `CL')
+        local _crc = _rc
+        restore
+        if `_crc' == 0 {
+            local covcols "`covcols' C_k`k'"
+            if `k' == 1 {
+                local covlabs `"`covlabs' "All (k>=1)""'
+            }
+            else {
+                local covlabs `"`covlabs' "k>=`k'""'
+            }
+        }
+        else {
+            display "  WARN Panel C: k>=`k' 子样本失败, 跳过"
+        }
+    }
+    if "`covcols'" != "" {
+        esttab `covcols' using "$tables_dir/table6_strat_min_coverage.tex", replace ///
+            se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+            title("Table 6-strat-C: Minimum-Coverage Screen Robustness") ///
+            mtitles(`covlabs') ///
+            addnotes("Drop low-coverage bank-years (n_articles_llm_valid < k). Single-article cells = pure-noise estimate (Tetlock 2007 JF).")
+        estout `covcols' using "$tables_dir/table6_strat_min_coverage.csv", replace delimiter(",") ///
+            cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+            starlevels(* 0.10 ** 0.05 *** 0.01)
+        display "[OK] Table 6-strat-C (min-coverage) written"
+    }
+}
+else {
+    display "  WARN Panel C: n_articles_llm_valid 缺, 跳过覆盖筛选"
+}
+
+display "[OK] Table 6-strat (inference & coverage robustness) — strategic_diff 完成"

@@ -1,0 +1,232 @@
+* news_process — Table A7: 聚合与推断稳健性 (Aggregation & Inference Robustness)
+*
+* fix(agg-toptier-audit 2026-06-13): stage-45 聚合层顶刊级审计的三项必修补全
+* (全 $0, 列已在面板/golden-safe, 纯 Stata):
+*   Panel A 加权聚合: EW(等权算术均值, 主) vs 三套加权聚合稳健性 —
+*           VW=提及密度/显著性加权 (Hassan 2019 QJE),
+*           MW=媒体权威加权 (Holzman et al. 2023 TAR),
+*           HW=跟风衰减加权 (Tetlock 2011 RFS; 文本相似度曝光 Sautner et al. 2023 JF)。
+*           (注: Edwards 2001 ORM 是 full/ctx 双轨 measurement-treatment matching 的锚点,
+*            非衰减加权来源 — 与 herd_decay.py:21-24 锚点分工对齐, 勿混挂于 HW。)
+*           回应审稿人"结果对加权方案是否稳健" + 消解加权列 materialized-but-unreported
+*           ("变量农场") 质疑 (这些列此前在 .dta 中存在却无任一表消费)。
+*   Panel B 推断层: 主表 11_table2 单向 vce(cluster bank_id) 旁补 双向
+*           vce(cluster bank_id year) + 野聚类自助法 boottest
+*           (银行簇数有限 G≈84; Cameron-Gelbach-Miller 2008 REStat;
+*            Roodman et al. 2019 Stata J boottest)。与姐妹篇
+*           (benefit_society 11b_table2_boottest / clarity / disagreement 双向聚类) 口径对齐。
+*   Panel C 覆盖筛选: 单文章 bank-year 是覆盖驱动的纯噪声点估计 (DV∈{-1,0,+1} 无组内平均),
+*           补 min-coverage keep if n_articles_llm_valid>=k (k=3,5) 稳健性 +
+*           覆盖分布披露 (Tetlock 2007 JF 覆盖/精度; benefit_society 已有 Bayesian shrinkage)。
+*
+* 白话: 这张附录表回答审稿人三个常问的"换个算法还成立吗":
+*   A 把"每篇文章一票"换成"权威媒体/被多家转载/显著提及的文章票更重", 看结论变不变;
+*   B 把"误差棒只按银行算"换成"按银行和年份双向算"并用自助法重测显著性 (银行家数不多时更稳);
+*   C 把"一年只有一两篇新闻的银行"剔掉再跑, 因为这种格子的情感分基本是噪声。
+*
+* 全部 capture-confirm / capture 守卫: 缺列、缺包 (boottest/winsor2)、簇过少 (T=2 试跑盘
+* 的 year 仅 2 簇) 时优雅 degrade 并告警, 绝不 r(111) 崩主链 (动态列名, 不硬点名缺失估计)。
+*
+* Main spec: sent={{MAIN_SENT_TRACK}} (locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}})
+
+version 19
+
+* fix(omni-g-templates-14): 每表开头 eststo clear 隔离估计命名空间 (master 共享 session)。
+eststo clear
+
+* 载入与主表同口径的缩尾面板 (_prepared_panel; 缺失回退未缩尾 full.dta)
+capture confirm file "data/processed/_prepared_panel.dta"
+if !_rc {
+    use "data/processed/_prepared_panel.dta", clear
+}
+else {
+    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep); 回退未缩尾 full.dta"
+    use "data/processed/46_panel_yearly_full.dta", clear
+}
+
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+capture do "data/processed/46_panel_yearly_labels.do"
+
+local T      {{MAIN_SENT_TRACK}}
+local EXPL   digital_frontier
+local DV_EW  llm_vote_tone_`T'
+
+* EXPL 存在性守卫 (缺 digital_frontier 则整表无意义, 优雅退出)
+capture confirm variable `EXPL'
+if _rc {
+    display as error "  ⚠️ `EXPL' 不在面板, Table A7 整表跳过 (degrade)"
+    exit 0
+}
+
+* ==========================================================================
+* Panel A — 加权聚合稳健性 (EW 主 vs VW / MW / HW)
+* ==========================================================================
+eststo clear
+local aggcols ""
+local agglabs ""
+
+* EW 基线 (等权算术均值 = 主规格聚合)
+capture confirm variable `DV_EW'
+if !_rc {
+    eststo A_ew: reghdfe `DV_EW' `EXPL', absorb(bank_id year) vce(cluster bank_id)
+    local aggcols "`aggcols' A_ew"
+    local agglabs `"`agglabs' "EW (main)""'
+}
+else {
+    display "  ⚠️ Panel A: EW 主列 `DV_EW' 缺, 跳过"
+}
+
+* 三套加权聚合 (VW=提及密度 / MW=媒体权威 / HW=跟风衰减)
+foreach w in vw mw hw {
+    local DV_W llm_vote_tone_`w'_`T'
+    capture confirm variable `DV_W'
+    if !_rc {
+        eststo A_`w': reghdfe `DV_W' `EXPL', absorb(bank_id year) vce(cluster bank_id)
+        local aggcols "`aggcols' A_`w'"
+        local agglabs `"`agglabs' "`=upper("`w'")'""'
+    }
+    else {
+        display "  ⚠️ Panel A: 加权聚合列 `DV_W' 不在面板, 跳过 (`w')"
+    }
+}
+
+if "`aggcols'" != "" {
+    esttab `aggcols' using "output/tables/tableA7a_weighted_aggregation.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
+        title("Table A7-A: Aggregation Weighting Robustness (EW vs VW/MW/HW)") ///
+        mtitles(`agglabs') ///
+        note("DV = bank-year tone aggregated equal-weighted (EW, main spec) vs mention-density/salience-weighted (VW; Hassan 2019 QJE), media-authority-weighted (MW; Holzman et al. 2023 TAR), herd-decay-weighted (HW; Tetlock 2011 RFS). Identical RHS, bank+year FE, SE clustered at bank.")
+    estout `aggcols' using "output/tables/tableA7a_weighted_aggregation.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "✅ Table A7-A (weighted aggregation EW/VW/MW/HW) written"
+}
+else {
+    display "  ⚠️ Panel A 无任何可用列, 跳过整张 A7-A"
+}
+
+* ==========================================================================
+* Panel B — 推断层稳健性 (单向 vs 双向聚类 + 野聚类自助法)
+* ==========================================================================
+eststo clear
+local infcols ""
+local inflabs ""
+capture confirm variable `DV_EW'
+if !_rc {
+    * B1: 主表口径 单向 cluster(bank_id) (对照基线)
+    eststo B_oneway: reghdfe `DV_EW' `EXPL', absorb(bank_id year) vce(cluster bank_id)
+    local infcols "`infcols' B_oneway"
+    local inflabs `"`inflabs' "Cluster: bank""'
+
+    * B2: 双向 cluster(bank_id year) — T=2 试跑盘 year 仅 2 簇可能失败, capture 守卫
+    capture eststo B_twoway: reghdfe `DV_EW' `EXPL', absorb(bank_id year) vce(cluster bank_id year)
+    if !_rc {
+        local infcols "`infcols' B_twoway"
+        local inflabs `"`inflabs' "Cluster: bank & year""'
+    }
+    else {
+        display "  ⚠️ Panel B: 双向聚类失败 (year 簇过少? T=2 试跑盘正常), 跳过 B2 — 全量 T=18 下应成立"
+    }
+
+    * B3: 野聚类自助法 (boottest; bank 簇有限 G≈84). 报自助 p 值/CI 入 log + 脚注.
+    local boot_note "boottest unavailable"
+    capture which boottest
+    if !_rc {
+        quietly reghdfe `DV_EW' `EXPL', absorb(bank_id year) vce(cluster bank_id)
+        capture boottest `EXPL', reps(9999) cluster(bank_id) nograph
+        if !_rc {
+            local boot_p = r(p)
+            local boot_note "wild-cluster bootstrap p(`EXPL')=`boot_p' (boottest, 9999 reps, cluster bank; Roodman et al. 2019)"
+            display "  ✅ Panel B: `boot_note'"
+        }
+        else {
+            display "  ⚠️ Panel B: boottest 运行失败 (簇过少?), 跳过野聚类自助法"
+        }
+    }
+    else {
+        display "  ⚠️ Panel B: boottest 未安装 (ssc install boottest), 跳过 B3"
+    }
+
+    if "`infcols'" != "" {
+        esttab `infcols' using "output/tables/tableA7b_inference_clustering.tex", ///
+            se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
+            title("Table A7-B: Inference Robustness (one-way vs two-way clustering)") ///
+            mtitles(`inflabs') ///
+            note("Headline 11_table2 clusters on bank only; companion clarity/disagreement/benefit_society papers use two-way. `boot_note'.")
+        estout `infcols' using "output/tables/tableA7b_inference_clustering.csv", replace delimiter(",") ///
+            cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+            starlevels(* 0.10 ** 0.05 *** 0.01)
+        display "✅ Table A7-B (inference / clustering) written"
+    }
+}
+else {
+    display "  ⚠️ Panel B: EW DV `DV_EW' 缺, 跳过推断稳健性"
+}
+
+* ==========================================================================
+* Panel C — 最低覆盖筛选 + 覆盖分布披露
+* ==========================================================================
+eststo clear
+local covcols ""
+local covlabs ""
+capture confirm variable n_articles_llm_valid
+if !_rc & "`DV_EW'" != "" {
+    capture confirm variable `DV_EW'
+    if !_rc {
+        foreach k in 1 3 5 {
+            preserve
+            quietly keep if n_articles_llm_valid >= `k'
+            capture eststo C_k`k': reghdfe `DV_EW' `EXPL', absorb(bank_id year) vce(cluster bank_id)
+            local _crc = _rc
+            restore
+            if `_crc' == 0 {
+                local covcols "`covcols' C_k`k'"
+                if `k' == 1 {
+                    local covlabs `"`covlabs' "All (k>=1)""'
+                }
+                else {
+                    local covlabs `"`covlabs' "k>=`k'""'
+                }
+            }
+            else {
+                display "  ⚠️ Panel C: k>=`k' 子样本回归失败 (样本/FE 退化), 跳过"
+            }
+        }
+        if "`covcols'" != "" {
+            esttab `covcols' using "output/tables/tableA7c_min_coverage.tex", ///
+                se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
+                title("Table A7-C: Minimum-Coverage Screen Robustness") ///
+                mtitles(`covlabs') ///
+                note("Re-estimate main spec dropping low-coverage bank-years (n_articles_llm_valid < k). Single-article cells give a pure-noise point estimate of bank-year tone (DV in {-1,0,+1}); Tetlock (2007 JF) coverage/precision. benefit_society uses Bayesian shrinkage instead.")
+            estout `covcols' using "output/tables/tableA7c_min_coverage.csv", replace delimiter(",") ///
+                cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+                starlevels(* 0.10 ** 0.05 *** 0.01)
+            display "✅ Table A7-C (min-coverage screen) written"
+        }
+    }
+}
+else {
+    display "  ⚠️ Panel C: n_articles_llm_valid 缺, 跳过覆盖筛选"
+}
+
+* 覆盖分布披露 (Table 1 脚注用; 让审稿人看到单文章格子占比)
+capture confirm variable n_articles
+if !_rc {
+    display "  --- 覆盖分布披露 (供 Table 1 脚注 / 数据描述) ---"
+    quietly count
+    local _ntot = r(N)
+    quietly count if n_articles == 1
+    local _n1 = r(N)
+    quietly count if n_articles <= 2
+    local _n2 = r(N)
+    quietly count if n_articles < 5
+    local _n5 = r(N)
+    display "  bank-year 行数=`_ntot'; 单文章(=1)=`_n1'; <=2=`_n2'; <5=`_n5'"
+    tabstat n_articles, stats(mean p25 p50 p75 max) columns(statistics)
+}
+
+display "✅ Table A7 (aggregation & inference robustness) 完成 — A加权聚合 / B推断聚类 / C覆盖筛选"

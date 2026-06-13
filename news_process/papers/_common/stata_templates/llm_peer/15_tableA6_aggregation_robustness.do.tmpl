@@ -1,0 +1,250 @@
+* ============================================================================
+* 15_tableA6_aggregation_robustness.do — 聚合与推断稳健性 (llm_peer)
+* Paper: {{PAPER_ID}}
+*
+* fix(agg-toptier-audit 2026-06-13): stage-45 聚合层顶刊级审计三项必修补全 ($0, golden-safe):
+*   Panel A 加权聚合: 主 2SLS 的内生自身语调 {{TONE_VAR}} (等权 EW) 换为三套加权聚合 —
+*           VW=提及密度/显著性 (Hassan 2019 QJE), MW=媒体权威 (Holzman 2023 TAR),
+*           HW=跟风衰减 (Tetlock 2011 RFS), 同一 LLM-peer 工具 {{LLM_PEER_IV}} 工具化
+*           (该 IV 为同业 EW 留一法语调; 自身轨加权而工具沿用 EW-peer 是披露的近似 —
+*            外生性来自同业身份, 与自身加权方案无关; Cao et al. 2025 RAS / Leary-Roberts 2014 JF)。
+*           回应"结果对加权聚合是否稳健" + 消解 _vw/_mw/_hw 列 materialized-but-unreported。
+*   Panel B 推断层: 主表单向 cluster({{CLUSTER_VAR}}) 旁补 双向 cluster(bank_id year) +
+*           野聚类自助法 boottest (Cameron-Gelbach-Miller 2008; Roodman et al. 2019)。
+*   Panel C 覆盖筛选: 单文章 bank-year 是纯噪声点估计; min-coverage keep if
+*           n_articles_llm_valid>=k (k=3,5) + 覆盖分布披露 (Tetlock 2007 JF)。
+*
+* 全部 capture / capture-confirm 守卫: 缺列/缺包 (ivreghdfe/boottest)/簇过少 时优雅
+* degrade, 动态列名不硬点名, 绝不 r(111) 崩主链。
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* 确保输出目录存在 (nested; 主链 00_master 已建, 此为独立重跑/dry-run 防御 — Stata mkdir 不递归)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* 载入 prepared panel; 缺失时回退 (使本表可独立 dry-run / 主链外重跑)
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        display "  ⚠️ _prepared_panel.dta 缺, 回退 46_panel_yearly_full.dta (未缩尾)"
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+local DV     {{MAIN_DV}}
+local TONE   {{TONE_VAR}}
+local IV     {{LLM_PEER_IV}}
+local CL     {{CLUSTER_VAR}}
+
+* DV 兼容: 主模板用 {{MAIN_DV}}_w (缩尾); _w 缺则回退裸名 (dry-run/未缩尾盘)
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display as error "  ⚠️ 结果变量 `DV'(_w) 不在面板 (财务/强度哨兵未接入), Table A6 整表跳过 (degrade)"
+        exit 0
+    }
+}
+
+* CLUSTER 兜底: 占位符未解析或列缺 → bank_id
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+
+capture which ivreghdfe
+local HAS_IV = (_rc == 0)
+
+* ==========================================================================
+* Panel A — 加权聚合稳健性 (内生自身语调 EW vs VW/MW/HW; 同一 peer IV)
+* ==========================================================================
+eststo clear
+local aggcols ""
+local agglabs ""
+
+* EW 基线 2SLS (= 主规格)
+capture confirm variable `TONE' `IV'
+if !_rc & `HAS_IV' {
+    capture eststo A_ew: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+        absorb(bank_id year) cluster(`CL') ffirst
+    if !_rc {
+        local aggcols "`aggcols' A_ew"
+        local agglabs `"`agglabs' "EW (main)""'
+    }
+}
+
+* 三套加权自身语调 (vw/mw/hw), 同 EW-peer 工具
+if `HAS_IV' {
+    foreach w in vw mw hw {
+        * {{TONE_VAR}} 形如 llm_vote_tone_full → 插入 _`w' 得 llm_vote_tone_`w'_full
+        local TONE_W = subinstr("`TONE'", "llm_vote_tone_", "llm_vote_tone_`w'_", 1)
+        capture confirm variable `TONE_W'
+        if !_rc {
+            capture eststo A_`w': ivreghdfe `DVUSE' (`TONE_W' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            if !_rc {
+                local aggcols "`aggcols' A_`w'"
+                local agglabs `"`agglabs' "`=upper("`w'")'""'
+            }
+            else {
+                display "  ⚠️ Panel A: 加权 2SLS (`w') 失败, 跳过"
+            }
+        }
+        else {
+            display "  ⚠️ Panel A: 加权列 `TONE_W' 不在面板, 跳过 (`w')"
+        }
+    }
+}
+else {
+    display "  ⚠️ Panel A: ivreghdfe 未安装, 跳过加权 2SLS"
+}
+
+if "`aggcols'" != "" {
+    esttab `aggcols' using "$tables_dir/tableA6a_weighted_aggregation.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
+        title("Table A6-A: Aggregation Weighting Robustness (2SLS; EW vs VW/MW/HW own-tone)") ///
+        mtitles(`agglabs') ///
+        addnotes("Endogenous own-firm tone aggregated equal-weighted (EW, main) vs mention-density (VW; Hassan 2019 QJE), media-authority (MW; Holzman 2023 TAR), herd-decay (HW; Tetlock 2011 RFS)." ///
+                 "All instrumented by the same LLM-peer leave-one-out EW tone (Cao 2025 RAS); peer IV is EW regardless of own weighting (disclosed approximation). Bank/year FE; SE clustered at `CL'.")
+    estout `aggcols' using "$tables_dir/tableA6a_weighted_aggregation.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 widstat, fmt(0 3 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A6-A (weighted aggregation 2SLS) written"
+}
+else {
+    display "  ⚠️ Panel A 无可用列 (ivreghdfe/列/IV 缺), 跳过 A6-A"
+}
+
+* ==========================================================================
+* Panel B — 推断层 (单向 vs 双向聚类 + 野聚类自助法), OLS 简化式上做以保稳定
+* ==========================================================================
+eststo clear
+local infcols ""
+local inflabs ""
+capture confirm variable `TONE'
+if !_rc {
+    * B1: 主表口径单向聚类 (OLS 简化式, 内生性见 Panel A 的 2SLS)
+    capture eststo B_oneway: reghdfe `DVUSE' `TONE' $controls, absorb(bank_id year) vce(cluster `CL')
+    if !_rc {
+        local infcols "`infcols' B_oneway"
+        local inflabs `"`inflabs' "Cluster: `CL'""'
+    }
+    * B2: 双向 cluster(bank_id year)
+    capture eststo B_twoway: reghdfe `DVUSE' `TONE' $controls, absorb(bank_id year) vce(cluster bank_id year)
+    if !_rc {
+        local infcols "`infcols' B_twoway"
+        local inflabs `"`inflabs' "Cluster: bank & year""'
+    }
+    else {
+        display "  ⚠️ Panel B: 双向聚类失败 (year 簇过少? T=2 试跑盘正常), 跳过 B2"
+    }
+    * B3: 野聚类自助法
+    local boot_note "boottest unavailable"
+    capture which boottest
+    if !_rc {
+        capture quietly reghdfe `DVUSE' `TONE' $controls, absorb(bank_id year) vce(cluster bank_id)
+        if !_rc {
+            capture boottest `TONE', reps(9999) cluster(bank_id) nograph
+            if !_rc {
+                local boot_p = r(p)
+                local boot_note "wild-cluster bootstrap p(`TONE')=`boot_p' (boottest, 9999 reps; Roodman et al. 2019)"
+                display "  [OK] Panel B: `boot_note'"
+            }
+        }
+    }
+    if "`infcols'" != "" {
+        esttab `infcols' using "$tables_dir/tableA6b_inference_clustering.tex", replace ///
+            se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+            title("Table A6-B: Inference Robustness (one-way vs two-way clustering)") ///
+            mtitles(`inflabs') ///
+            addnotes("Reduced-form OLS of `DVUSE' on own tone. Headline 2SLS clusters one-way; companion papers use two-way. `boot_note'.")
+        estout `infcols' using "$tables_dir/tableA6b_inference_clustering.csv", replace delimiter(",") ///
+            cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+            starlevels(* 0.10 ** 0.05 *** 0.01)
+        display "[OK] Table A6-B (inference / clustering) written"
+    }
+}
+
+* ==========================================================================
+* Panel C — 最低覆盖筛选 + 覆盖分布披露
+* ==========================================================================
+eststo clear
+local covcols ""
+local covlabs ""
+capture confirm variable n_articles_llm_valid
+if !_rc {
+    capture confirm variable `TONE'
+    if !_rc {
+        foreach k in 1 3 5 {
+            preserve
+            quietly keep if n_articles_llm_valid >= `k'
+            capture eststo C_k`k': reghdfe `DVUSE' `TONE' $controls, absorb(bank_id year) vce(cluster `CL')
+            local _crc = _rc
+            restore
+            if `_crc' == 0 {
+                local covcols "`covcols' C_k`k'"
+                if `k' == 1 {
+                    local covlabs `"`covlabs' "All (k>=1)""'
+                }
+                else {
+                    local covlabs `"`covlabs' "k>=`k'""'
+                }
+            }
+            else {
+                display "  ⚠️ Panel C: k>=`k' 子样本失败, 跳过"
+            }
+        }
+        if "`covcols'" != "" {
+            esttab `covcols' using "$tables_dir/tableA6c_min_coverage.tex", replace ///
+                se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+                title("Table A6-C: Minimum-Coverage Screen Robustness") ///
+                mtitles(`covlabs') ///
+                addnotes("Reduced-form OLS dropping low-coverage bank-years (n_articles_llm_valid < k). Single-article cells = pure-noise tone estimate (Tetlock 2007 JF coverage/precision).")
+            estout `covcols' using "$tables_dir/tableA6c_min_coverage.csv", replace delimiter(",") ///
+                cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+                starlevels(* 0.10 ** 0.05 *** 0.01)
+            display "[OK] Table A6-C (min-coverage screen) written"
+        }
+    }
+}
+else {
+    display "  ⚠️ Panel C: n_articles_llm_valid 缺, 跳过覆盖筛选"
+}
+
+capture confirm variable n_articles
+if !_rc {
+    quietly count
+    local _ntot = r(N)
+    quietly count if n_articles == 1
+    local _n1 = r(N)
+    quietly count if n_articles < 5
+    local _n5 = r(N)
+    display "  覆盖分布披露: bank-year=`_ntot'; 单文章=`_n1'; <5=`_n5'"
+}
+
+display "[OK] Table A6 (aggregation & inference robustness) — llm_peer 完成"

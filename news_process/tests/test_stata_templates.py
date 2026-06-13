@@ -291,9 +291,9 @@ def test_cli_verify_replication_on_valid_package(tmp_path, capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert '[1/5] 目录结构' in out
-    # remove-title-track 后 14; 2026-06-13 IV 补全 (+25_tableA6_tone_iv_2sls) → 15
-    assert '15/15 完整' in out  # 15 .do (含语调 2SLS IV 模板)
-    assert '14/14 子 .do' in out  # master.do 引用 14 个子 .do
+    # remove-title-track 后 14; IV 补全 (+25_tableA6) → 15; agg-audit (+26_tableA7) → 16
+    assert '16/16 完整' in out  # 16 .do (含语调 2SLS IV + 聚合稳健性模板)
+    assert '15/15 子 .do' in out  # master.do 引用 15 个子 .do
     assert 'Summary: 8 OK' in out
 
 

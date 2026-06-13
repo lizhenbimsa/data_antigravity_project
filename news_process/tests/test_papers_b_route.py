@@ -143,10 +143,16 @@ def test_total_template_count_77() -> None:
     # 2026-06-13 IV 物化: +5 个 2SLS 模板 (root/25_tableA6_tone_iv_2sls +
     # substance/22_substance_iv_2sls + locus/20_locus_iv_2sls +
     # collab/21_collab_iv_2sls + benefit_society/25_tableA12_iv_2sls) → 共 100。
-    expected_count = 100  # 95 (remove-title-track 后) + 5 (2026-06-13 IV 2SLS 族)
+    # 2026-06-13 agg-toptier-audit: +7 个聚合/推断稳健性模板 → 共 107。
+    #   P1/llm_peer 两篇 tone-mean 论文 (root/26_tableA7 + llm_peer/15_tableA6): 加权聚合
+    #     EW vs VW/MW/HW (Panel A) + 双向聚类/boottest (B) + 覆盖筛选 (C), 已 Stata 实跑验证;
+    #   brokerage/substance/locus/collab/strategic_diff 5 篇: 主变量无 VW/MW/HW 孪生 → 仅
+    #     Panel B+C wire-ahead 桩, 主回归 outcome 为待接入财务哨兵 (no-op), 财务面板接入跑
+    #     01_data_prep 后自动激活。
+    expected_count = 107  # 100 (IV 2SLS baseline) + 7 (2026-06-13 聚合层审计稳健性模板)
     assert len(templates) == expected_count, (
         f"Expected {expected_count} total templates, found {len(templates)}: "
-        f"= 95 (remove-title-track baseline) + 5 (2026-06-13 IV 2SLS 模板族)"
+        f"= 100 (IV 2SLS baseline) + 7 (2026-06-13 聚合层审计: P1/llm_peer A+B+C + 5 篇 B+C 桩)"
     )
 
 

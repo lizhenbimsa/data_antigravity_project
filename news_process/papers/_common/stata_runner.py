@@ -549,7 +549,7 @@ def _cli_verify_replication(args) -> int:
 
     检查:
         1. 目录结构 (code/ data/ output/{tables,figures}/)
-        2. 15 .do 文件全部存在
+        2. 16 .do 文件全部存在
         3. 各 .do 无占位符残留 ({{ / }})
         4. README.md 含 spec 信息 + commit hash
         5. master.do 引用所有子 .do
@@ -580,16 +580,18 @@ def _cli_verify_replication(args) -> int:
             print(f"   [ERR] {sub}/ 缺失")
             n_err += 1
 
-    # 2. 15 .do 文件 (remove-title-track 后 14; 2026-06-13 IV 补全 +25_tableA6 → 15)
-    print("\n[2/5] Stata .do 文件 (15 expected)")
+    # 2. 16 .do 文件 (remove-title-track 后 14; 2026-06-13 IV 补全 +25_tableA6 → 15;
+    #    agg-toptier-audit 2026-06-13 +26_tableA7_aggregation_robustness → 16)
+    _EXPECTED_ROOT_DO = 16
+    print(f"\n[2/5] Stata .do 文件 ({_EXPECTED_ROOT_DO} expected)")
     code_dir = pkg_dir / 'code'
     if code_dir.is_dir():
         do_files = sorted(code_dir.glob('*.do'))
-        if len(do_files) == 15:
-            print(f"   [OK] {len(do_files)} .do files (15/15 完整)")
+        if len(do_files) == _EXPECTED_ROOT_DO:
+            print(f"   [OK] {len(do_files)} .do files ({_EXPECTED_ROOT_DO}/{_EXPECTED_ROOT_DO} 完整)")
             n_ok += 1
         else:
-            print(f"   [ERR] {len(do_files)} .do files (expected 15)")
+            print(f"   [ERR] {len(do_files)} .do files (expected {_EXPECTED_ROOT_DO})")
             n_err += 1
 
     # 3. 占位符残留检测
@@ -624,9 +626,9 @@ def _cli_verify_replication(args) -> int:
         print("   [ERR] README.md 不存在")
         n_err += 1
 
-    # 5. master.do 引用 14 子 .do (remove-title-track 后 13; 2026-06-13 IV 补全
-    #    +25_tableA6_tone_iv_2sls → 14)
-    print("\n[5/5] master.do 引用 14 子 .do")
+    # 5. master.do 引用 15 子 .do (remove-title-track 后 13; 2026-06-13 IV 补全
+    #    +25_tableA6_tone_iv_2sls → 14; agg-toptier-audit +26_tableA7_aggregation_robustness → 15)
+    print("\n[5/5] master.do 引用 15 子 .do")
     master = code_dir / '00_master.do'
     if master.exists():
         content = master.read_text(encoding='utf-8')
@@ -637,11 +639,12 @@ def _cli_verify_replication(args) -> int:
             '20_tableA1_inter_track_kappa.do', '21_tableA2_main_spec_switch.do',
             '22_tableA3_bartik_iv.do', '23_tableA4_radius_sensitivity.do',
             '24_tableA5_dictionary_method.do', '25_tableA6_tone_iv_2sls.do',
+            '26_tableA7_aggregation_robustness.do',
             '30_figure1_event_study.do', '31_figure_coefplot_dual.do',
         ]
         missing = [s for s in expected if s not in content]
         if not missing:
-            print(f"   [OK] master.do 引用 14/14 子 .do")
+            print(f"   [OK] master.do 引用 15/15 子 .do")
             n_ok += 1
         else:
             print(f"   [ERR] master.do 缺引用: {missing}")
