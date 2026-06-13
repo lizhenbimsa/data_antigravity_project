@@ -247,6 +247,12 @@ normalization:
 deduplication:
   jaccard_similarity_threshold: 0.8                 # Jaccard 相似度阈值（超过此值视为重复）
                                                     # 白话: 两篇文章的"字块重合度"超过 80% 就当作同一篇转载稿, 只留一份。
+  # ⚠ LSH banding 有效阈值披露 (datasketch==1.10.0, MinHashLSH 默认 FP/FN 权重 (0.5,0.5)):
+  #   配置的 0.8 是【概率性近似阈值】非硬阈值。datasketch 对 (threshold=0.8, num_perm=128)
+  #   自动分带为 b=9 带 × r=13 行 (仅用 117/128 个排列), 故: 有效 50%-检出阈值 ≈ 0.819,
+  #   对真 Jaccard=0.80 的单对检出概率仅 ≈ 0.40, 检出 10%→90% 散布在真 Jaccard∈[0.71,0.89]。
+  #   含义: 去重偏保守 (偏向漏删轻度改写的转载, 而非误删独立文章)。⚠ 换 datasketch 版本或
+  #   FP/FN 权重会使 b/r 及上述数字漂移 —— 论文/复现披露须连同版本与权重一并钉死。
   minhash_permutations: 128                         # MinHash 排列数（越大越精确，但越慢）
                                                     # 白话: MinHash 是给文章算"指纹"的快速近似法; 128 次哈希是精度和速度的折中。
   ngram_size: 3                                     # 字符级 n-gram 大小（用于 MinHash 特征提取）

@@ -47,7 +47,19 @@ class ArticleDeduplicator:
            1) English Lit: 相似度 > 0.8 常用作剔除冗余信息的安全学术门槛。
            2) Chinese Lit: 胡俊 (2021) 验证了 0.8 作为金融文本极高相似度的基准,
                             有效过滤通稿 / 转载。
-         - 在每个重复簇内, 按日期排序, 5 个工作日内的后发文章标记为重复。
+           ⚠ LSH banding 有效阈值披露 (datasketch==1.10.0, MinHashLSH 默认 FP/FN 权重
+              (0.5,0.5), num_perm=128, threshold=0.8): datasketch 自动分带为 b=9 带 ×
+              r=13 行 (仅用 117/128 个排列), 故 "0.8" 是【概率性近似阈值】非硬阈值 ——
+              有效 50%-检出阈值 ≈ 0.819, 对真 Jaccard=0.80 单对检出概率仅 ≈ 0.40, 检出
+              10%→90% 散布在真 Jaccard∈[0.71, 0.89]。含义: 去重偏保守 (偏向漏删轻度改写
+              的转载, 而非误删独立文章); 换 datasketch 版本/权重会使上述数字漂移。
+         - 在每个重复簇内, 按日期排序, 5 个工作日 (busday) 内的后发文章标记为重复。
+           注: "5 个工作日" 按发文星期不同, 实际覆盖发文日起 7~9 个自然日 (工作日发文最多
+           7 天; 周末发文跨两个完整周末最多 9 天, numpy 默认周一至周五 weekmask)。
+         - ⚠ 删除前做 pairwise 真 Jaccard 复核 (fix N4, 见 find_near_duplicate_indices):
+           LSH 簇仅作【候选】, 簇内成员仅当其与触发它的已保留文的真实 char-3gram Jaccard
+           ≥ threshold 时才删 —— 防止 banding 传递连边把真 J<threshold 的成员误删 (该误删
+           亦是去重对输入集合非幂等的根源)。
 
     复杂度分析:
       - 精确去重: O(n log n) (排序) + O(n) (去重) = O(n log n)
@@ -68,10 +80,16 @@ class ArticleDeduplicator:
     下游口径注意 (对银行关注度指标的影响, 顶刊依据见
     panel/attention_media.py::compute_attention_treatments docstring):
         去重基适配 "信息到达" 构念 (Tetlock 2011 RFS; Hassan et al. 2019 QJE) —
-        attention_index/pct/density 等关注度指标消费本层输出 ✓; "传播广度"
-        构念 (Bushee et al. 2010 JAR; Fang & Peress 2009 JF) 需要转载,
-        由 falsification/controls.py::nf_media_breadth 用去重**前**物理行集
-        另行计算。"保留首发" 排序键防止跨期转载错配 bank-year 年度归属。
+        attention_index/pct/density 等关注度指标消费本层输出 ✓; "保留首发" 排序键
+        防止跨期转载错配 bank-year 年度归属。
+        ⚠ 更正 (2026-06-13 审核): 此前注释称 "传播广度" 构念由
+        falsification/controls.py::nf_media_breadth 用【去重前物理行集】另算 —— 该函数
+        【不存在】; 现行 media_breadth (panel/encode.py, groupby nunique '媒体(中文)') 实际
+        算在【去重后】面板上 (controls.py 的 _df_full_physical 仅是该模块自身复合键折叠前,
+        非 stage-00 去重前)。如需真正 "去重前" 口径的传播广度/outlet 构成对照 (Bushee 2010
+        JAR; Fang & Peress 2009 JF), 去重前语料经 validation/dedup_threshold.py::
+        _load_pre_dedup_corpus 从 _cache/*.parquet 重建 (normalize+filter 后、去重前; 含全部
+        非银行新闻, 用前须重放银行/长度过滤)。
     """
 
     COL_WEIGHT = 'temp_media_weight'
@@ -110,20 +128,23 @@ class ArticleDeduplicator:
         self.default_weight = self.media_weights.get("其他媒体", 10)
 
         self.num_perm = self.params.get('minhash_permutations', 128)
-        # 生产默认阈值 = 0.8 (config/preprocessing.yaml: jaccard_similarity_threshold);
-        # 下方 0.85 仅是 config 缺失时的保守 fallback, 非生产默认。
-        # 文献支持: 相似度 ≥ 0.8/0.85 是学术界 (胡俊 2021 等) 公认的去重与信息冗余剔除标准。
-        self.threshold = self.params.get('jaccard_similarity_threshold', 0.85)
+        # 生产默认阈值 = 0.8 (config/preprocessing.yaml: jaccard_similarity_threshold)。
+        # fix(N4-audit, 2026-06-13): 下方 fallback 默认值由 0.85 统一为 0.80 = 生产值。
+        # 仅 config 缺 'jaccard_similarity_threshold' 键时命中; 当前 5 个构造点传入的 config
+        # 均含该键, 故 fallback 不可达, 改此值对所有现有产物零影响 —— 目的是消除 "代码默认值 (0.85) ≠
+        # 生产值 (0.80)" 的复现性陷阱 (他人无 config 复现时不再静默用更松的 0.85)。
+        # 文献支持: 相似度 ≥ 0.8 是学术界 (胡俊 2021 等) 公认的去重门槛。
+        self.threshold = self.params.get('jaccard_similarity_threshold', 0.80)
         self.ngram_size = self.params.get('ngram_size', 3)
 
         # 参数边界校验
         if not (0 < self.threshold < 1):
             self.logger.warning(
                 f"jaccard_similarity_threshold={self.threshold} 超出合理范围 (0, 1), "
-                f"已回退到默认值 0.85。"
+                f"已回退到默认值 0.80。"
                 f"(threshold=0 会将所有文档视为重复, threshold=1 不去除任何重复)"
             )
-            self.threshold = 0.85
+            self.threshold = 0.80
 
     def _load_media_weights(self) -> Dict[str, int]:
         """从 JSON 文件加载媒体权重评分表."""
@@ -316,12 +337,33 @@ class ArticleDeduplicator:
         生产默认 = (self.threshold, 5 工作日); 去重敏感性检验传入备选参数网格。
         前置: df 须已经 ``_prepare_dataframe`` (依赖 temp_datetime / COL_WEIGHT /
         docid 列做簇内排序)。
+
+        fix(N4, 2026-06-13): 簇内删除前加 pairwise 真 Jaccard 复核 —— LSH 簇仅作
+        【候选】(banding 在 J=0.80 处召回率仅 ~0.40 且可经传递连边把真 J<threshold 的
+        成员拉进同簇), 某成员仅当其与触发它的已保留文的真实 char-3gram Jaccard ≥ threshold
+        时才删。消除 sub-threshold 过删 (及由此引发的去重对输入集合非幂等); 不影响真转载
+        (真 J≥threshold) 的正常剔除。
         """
         if threshold is None:
             threshold = self.threshold
         if minhashes.empty:
             self.logger.warning("无有效 MinHash, 跳过近似去重")
             return set()
+
+        # fix(N4): pairwise 真 Jaccard 复核所需的 token 缓存 (按 index 惰性物化, 复用)
+        _tok_cache: Dict[Any, Set[str]] = {}
+
+        def _toks(i):
+            t = _tok_cache.get(i)
+            if t is None:
+                t = self._clean_and_tokenize(str(df.loc[i, self.COL_COMBINED]))
+                _tok_cache[i] = t
+            return t
+
+        def _true_jaccard(i: Any, j: Any) -> float:
+            a, b = _toks(i), _toks(j)
+            u = a | b
+            return (len(a & b) / len(u)) if u else 0.0
 
         # ── Step 2: 构建 LSH 索引 ──
         self.logger.info(
@@ -393,11 +435,17 @@ class ArticleDeduplicator:
                     try:
                         d1 = np.datetime64(kept_date, 'D')
                         d2 = np.datetime64(current_date, 'D')
-                        if 0 <= np.busday_count(d1, d2) <= window_busdays:
-                            is_redundant = True
-                            break
+                        within_window = 0 <= np.busday_count(d1, d2) <= window_busdays
                     except Exception:
-                        pass
+                        within_window = False
+                    if not within_window:
+                        continue
+                    # fix(N4, 2026-06-13): LSH 簇是【候选】非等价类; 删除前复核被删文与触发
+                    # 它的已保留文的【真实 char-3gram Jaccard】≥ threshold 才删, 否则继续看
+                    # 其它已保留文。防止 banding 传递连边把真 J<threshold 的成员误删。
+                    if _true_jaccard(current_idx, kept_idx) >= threshold:
+                        is_redundant = True
+                        break
 
                 if is_redundant:
                     all_indices_to_drop.add(current_idx)
@@ -414,7 +462,10 @@ class ArticleDeduplicator:
 
         重构 (2026-06-13, 去重敏感性): 拆为 compute_minhashes (签名, 参数无关) +
         find_near_duplicate_indices (判重, 参数化) 两个可复用方法, 本方法以生产
-        默认参数 (self.threshold, window=5) 串联二者 — 行为与拆分前逐位一致。
+        默认参数 (self.threshold, window=5) 串联二者。⚠ 注: find_near_duplicate_indices
+        已含 N4 pairwise 真 Jaccard 复核 (2026-06-13), 故对 sub-threshold 边界簇成员的
+        行为与该复核引入前【不再逐位一致】(刻意的正确性修复, 仅影响真 J<threshold 的罕见
+        传递误删); 真转载 (真 J≥threshold) 剔除不变。
         """
         self.logger.info("执行近似去重(LSH + 时间窗口)...")
         minhashes = self.compute_minhashes(df)
