@@ -385,6 +385,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'ft_attn_yr':    'Fintech Attention Index (Year)',
                 'ft_attn_prov':  'Fintech Attention (Province, Exp-Wt)',
                 'ft_attn_city':  'Fintech Attention (City, Exp-Wt)',
+                # 总量孪生 (互为稳健性, 2026-06-13): ln(1+fintech 覆盖篇数), extensive 规模
+                'ft_vol_yr':     'Fintech Coverage Volume (Year, ln)',
+                'ft_vol_prov':   'Fintech Coverage Volume (Province, Exp-Wt, ln)',
+                'ft_vol_city':   'Fintech Coverage Volume (City, Exp-Wt, ln)',
                 # P2 attention 处理变量 (W2 2026-06-05; Hassan 2019 QJE; 双轨)
                 'attention_index_full':             'Fintech Attention Index (full)',
                 'attention_index_ctx':              'Fintech Attention Index (ctx)',

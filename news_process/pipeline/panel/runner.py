@@ -930,7 +930,9 @@ def main():
     logger.info(f"  has_coverage: 有报道={panel['has_coverage'].sum()}, "
                 f"无报道={len(panel) - panel['has_coverage'].sum()}")
 
-    # --- 6b. 金融科技注意力指数 (三级) ---
+    # --- 6b. 金融科技注意力指数 (三级地理: 年/省/市) ---
+    # 每档并行产 比值 ft_attn_* (fintech/total, intensive 份额) 与 总量 ft_vol_*
+    #   (ln(1+fintech 篇数), extensive 规模) 互为稳健性 (2026-06-13)。
     # ⚠️ 必须在 balance_panel() 之后调用 (确保完全笛卡尔积)
     # ⚠️ 不使用 df_exploded (仅含 fintech 文章), 而是直接读取
     #    12_fintech_news_full.parquet (含全量银行新闻)

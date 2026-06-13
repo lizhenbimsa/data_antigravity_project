@@ -287,7 +287,7 @@ class TestGeoAttentionLeaveOneOut:
         out = am._merge_geo_index_to_panel(
             df_all, panel,
             idx[[self.GEO, 'year', '_total', '_ft', 'ft_attn_prov']],
-            self.GEO, 'ft_attn_prov')
+            self.GEO, 'ft_attn_prov', vol_col='ft_vol_prov')
         return out.set_index('target_bank')
 
     def test_loo_excludes_own_articles(self, panel):
@@ -303,6 +303,44 @@ class TestGeoAttentionLeaveOneOut:
     def test_loo_values_stay_bounded(self, panel):
         v = panel['ft_attn_prov'].dropna()
         assert v.between(0, 1).all()
+
+    # ── 总量孪生 ft_vol_* (互为稳健性, 2026-06-13) ──
+    def test_volume_twin_loo_counts(self, panel):
+        # 总量 = ln(1 + LOO fintech 篇数) (分子, 不除分母):
+        #   A: cell_ft − own_ft = 4 − 1 = 3 → ln(1+3)
+        #   B: 4 − 0 = 4               → ln(1+4)
+        assert panel.loc['A', 'ft_vol_prov'] == pytest.approx(np.log1p(3))
+        assert panel.loc['B', 'ft_vol_prov'] == pytest.approx(np.log1p(4))
+
+    def test_volume_twin_same_nan_sample_as_ratio(self, panel):
+        # 互为稳健性前提: 总量与比值共享 min_articles 守卫 → 同非缺样本
+        assert pd.isna(panel.loc['C', 'ft_vol_prov'])  # 同比值 C → NaN
+        ratio_na = panel['ft_attn_prov'].isna()
+        vol_na = panel['ft_vol_prov'].isna()
+        assert (ratio_na == vol_na).all(), '总量与比值的 NaN 模式必须一致 (同样本)'
+
+    def test_volume_twin_nonnegative(self, panel):
+        # ln(1+篇数) 结构性 ≥0 (extensive 规模, 非 [0,1] share)
+        v = panel['ft_vol_prov'].dropna()
+        assert (v >= 0).all()
+
+    def test_ratio_only_backward_compatible(self):
+        # vol_col 默认 None → 仅产比值, 不产 ft_vol_* (历史调用零行为变更)
+        df_all = pd.DataFrame({
+            'docid': ['d1', 'd2', 'd3', 'd4', 'd5'],
+            'target_bank': ['A', 'A', 'B', 'B', 'B'],
+            'is_fintech_news': [True, False, True, False, False],
+            'year': 2020, self.GEO: 'G1',
+        })
+        idx = am._build_geo_index(df_all.drop_duplicates('docid'), self.GEO,
+                                  'ft_attn_prov', min_articles=5)
+        panel = pd.DataFrame({'target_bank': ['A', 'B'], 'year': [2020, 2020]})
+        out = am._merge_geo_index_to_panel(
+            df_all, panel,
+            idx[[self.GEO, 'year', '_total', '_ft', 'ft_attn_prov']],
+            self.GEO, 'ft_attn_prov')
+        assert 'ft_attn_prov' in out.columns
+        assert 'ft_vol_prov' not in out.columns
 
 
 # ============================================================================

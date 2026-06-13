@@ -489,11 +489,24 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
       某 Bank-Year 的全部文章均缺失地理信息时，
       ft_attn_prov / ft_attn_city 为 NaN (不填充)。
 
+    比值 vs 总量 两测度互为稳健性 (2026-06-13, 用户裁定; 双轨=互为稳健性同源原则,
+    memory dualtrack-is-mutual-robustness):
+      每档 (年/省/市) 除产 **比值** ft_attn_* (= fintech/total, intensive 议程份额,
+      ∈[0,1]) 外, 再并行产一个 **总量** ft_vol_* (= ln(1+fintech 覆盖篇数), extensive
+      覆盖规模, ∈[0,+∞), Fang & Peress 2009 JF 覆盖计数范式):
+        ft_vol_yr   = ln(1 + 当年 fintech 唯一篇数)              (year-level 常量, 无 LOO)
+        ft_vol_prov = ln(1 + 曝露加权 LOO fintech 篇数, 省级)     (与 ft_attn_prov 同样本)
+        ft_vol_city = ln(1 + 曝露加权 LOO fintech 篇数, 市级)     (与 ft_attn_city 同样本)
+      比值对样本规模不敏感但忽略绝对热度; 总量反之。两者分别进各自回归、不同进一
+      个 RHS (避免与比值高度共线), 互为稳健性。prov/city 的总量复用与比值**完全相同**
+      的 geo×year 单元 / min_articles=5 守卫 / 曝露加权 LOO 映射 → 两测度同非缺样本,
+      可直接对照。
+
     操作序列:
       在 balance_panel() 之后、compute_composite_indicators() 之前调用。
 
     Returns:
-        panel: 附加 ft_attn_yr, ft_attn_prov, ft_attn_city 三列的面板。
+        panel: 附加 ft_attn_yr/prov/city (比值) + ft_vol_yr/prov/city (总量) 六列的面板。
     """
     full_path = os.path.join(OUTPUT_DIR, FILENAMES.get(
         'output_12_fintech_full', '12_fintech_news_full.parquet'))
@@ -546,6 +559,9 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
              .groupby('year').size().rename('_ft'))
     idx_yr = pd.concat([yr_total, yr_ft], axis=1).fillna(0)
     idx_yr['ft_attn_yr'] = idx_yr['_ft'] / idx_yr['_total']
+    # 总量孪生 (互为稳健性): ft_vol_yr = ln(1 + 当年 fintech 唯一篇数) — 绝对覆盖规模,
+    # year-level 常量、无 LOO (与 ft_attn_yr 同口径: 宏观年度序列, 不按 bank 留一)。
+    idx_yr['ft_vol_yr'] = np.log1p(idx_yr['_ft'])
     idx_yr = idx_yr.reset_index()
 
     logger.info("  ─── Year-level ───")
@@ -559,7 +575,7 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
                                              '_ft': 'fintech_articles'}),
                      '40_attn_index_year')
 
-    panel = panel.merge(idx_yr[['year', 'ft_attn_yr']],
+    panel = panel.merge(idx_yr[['year', 'ft_attn_yr', 'ft_vol_yr']],
                         on='year', how='left')
 
     # ═══════════════════════════════════════════════════════
@@ -575,10 +591,11 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
             '_ft': 'fintech_articles'}), '40_attn_index_province_year')
 
         # fix(omni-g-attention-05, 2026-06-11): 传入 _total/_ft 全单元计数供 LOO 扣减
+        # vol_col: 同一 LOO 映射并行产总量孪生 ft_vol_prov (互为稳健性, 2026-06-13)
         panel = _merge_geo_index_to_panel(
             df_all, panel,
             idx_prov[[prov_col, 'year', '_total', '_ft', 'ft_attn_prov']],
-            prov_col, 'ft_attn_prov')
+            prov_col, 'ft_attn_prov', vol_col='ft_vol_prov')
         n_prov = idx_prov[prov_col].nunique()
         logger.info(f"  Province × Year: {n_prov} 省 × "
                      f"{idx_prov['year'].nunique()} 年 "
@@ -599,10 +616,11 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
             '_ft': 'fintech_articles'}), '40_attn_index_city_year')
 
         # fix(omni-g-attention-05, 2026-06-11): 传入 _total/_ft 全单元计数供 LOO 扣减
+        # vol_col: 同一 LOO 映射并行产总量孪生 ft_vol_city (互为稳健性, 2026-06-13)
         panel = _merge_geo_index_to_panel(
             df_all, panel,
             idx_city[[city_col, 'year', '_total', '_ft', 'ft_attn_city']],
-            city_col, 'ft_attn_city')
+            city_col, 'ft_attn_city', vol_col='ft_vol_city')
         n_city = idx_city[city_col].nunique()
         logger.info(f"  City × Year: {n_city} 市 × "
                      f"{idx_city['year'].nunique()} 年 "
@@ -676,7 +694,8 @@ def _save_attn_index(df, basename):
 
 def _merge_geo_index_to_panel(df_all, panel, idx_geo,
                                geo_col, target_col,
-                               min_articles=_ATTN_MIN_ARTICLES):
+                               min_articles=_ATTN_MIN_ARTICLES,
+                               vol_col=None):
     """将地理注意力指数通过曝露度加权合并到 Bank-Year 面板 (leave-one-out)。
 
     语义变更披露 fix(omni-g-attention-05, 2026-06-11): geo×year 指数由全单元值改为
@@ -696,12 +715,20 @@ def _merge_geo_index_to_panel(df_all, panel, idx_geo,
     注意: 权重基于 df_all (含 fintech + non-fintech 全量银行新闻),
        确保地理曝露反映银行的真实媒体环境, 而非仅金融科技新闻的分布。
 
+    总量孪生 vol_col (互为稳健性, 2026-06-13): 给定 vol_col 时, 复用**完全相同**的
+      LOO 分子 (cell_ft − own_ft) 与 **同一 min_articles 守卫** (而非除以分母), 按
+      (target_bank, year) 曝露加权均值后取 ln(1+·) → 绝对覆盖总量列。与比值 target_col
+      共享分母守卫 → 两列同非缺样本 (互为稳健性可比性前提); 曝露加权天然由 df_all 未
+      去重的 article×bank 行频次提供 (报道越多的地区在均值里权重越大)。
+
     Args:
         idx_geo: 含 [geo_col, 'year', '_total', '_ft', target_col] 的指数表
                  (_total/_ft 为该 geo×year 全单元唯一文章计数, 供 LOO 扣减)。
+        vol_col: 可选; 给定则并行产 ln(1+LOO fintech 篇数) 总量孪生列 (默认 None →
+                 仅产比值, 行为与历史完全一致, 保持向后兼容)。
 
     Returns:
-        panel: 附加 target_col 列的面板。
+        panel: 附加 target_col (+ vol_col, 若给定) 列的面板。
     """
     # 1. 选取需要的列并清洗
     work = df_all[['docid', 'target_bank', 'year', geo_col,
@@ -724,23 +751,46 @@ def _merge_geo_index_to_panel(df_all, panel, idx_geo,
     work = work.merge(own_ft, on=[geo_col, 'year', 'target_bank'], how='left')
     _loo_den = work['_total'] - work['_own_total'].fillna(0)
     _loo_num = work['_ft'] - work['_own_ft'].fillna(0)
+    # 防御性下界 (review 2026-06-13, 同 compute_attention_treatments 的 clip 先例):
+    # _loo_num 的非负性依赖一条未显式断言的不变量 — docid 内 geo 与 is_fintech 恒定
+    # (⇒ own ⊆ cell ⇒ own_ft ≤ cell_ft)。当前语料经核 0 例违反 → clip 为 no-op (min=0)。
+    # 但若未来数据源破坏该不变量 (同 docid 跨 geo/标记), own_ft>cell_ft 会令 _loo_num<0,
+    # 进而比值转负 (逃过 [0,1] 校验) 且 ln1p(负)→NaN 污染总量孪生; clip 从根上封死。
+    _loo_num = _loo_num.clip(lower=0)
     with np.errstate(divide='ignore', invalid='ignore'):
         # NaN >= min_articles → False → NaN (被 cell 级过滤的单元保持 NaN)
         work[target_col] = np.where(
             _loo_den >= min_articles, _loo_num / _loo_den, np.nan)
+        if vol_col is not None:
+            # 总量孪生: LOO fintech 篇数 (分子, 不除分母); 同 min_articles 守卫 →
+            # 与比值 target_col 同 NaN 模式 / 同非缺样本 (互为稳健性可比性)。
+            work['_loo_ft'] = np.where(
+                _loo_den >= min_articles, _loo_num, np.nan)
 
-    # 4. Bank-Year 均值
-    bank_yr = (work.groupby(['target_bank', 'year'])[target_col]
+    # 4. Bank-Year 均值 (vol_col 给定时一并聚合 LOO 篇数, 再 ln(1+·))
+    _agg = [target_col] + (['_loo_ft'] if vol_col is not None else [])
+    bank_yr = (work.groupby(['target_bank', 'year'])[_agg]
                .mean().reset_index())
+    if vol_col is not None:
+        # 曝露加权 LOO 篇数均值 → ln(1+·) (extensive 总量, 镜像 attention_index 口径)
+        bank_yr[vol_col] = np.log1p(bank_yr['_loo_ft'])
+        bank_yr = bank_yr.drop(columns=['_loo_ft'])
 
     # 5. 安全合并到 panel (避免 .values 位置赋值的脆弱性)
-    if target_col in panel.columns:
-        panel = panel.drop(columns=[target_col])
-    panel = panel.merge(bank_yr, on=['target_bank', 'year'], how='left')
+    _out_cols = [c for c in [target_col, vol_col] if c is not None]
+    drop = [c for c in _out_cols if c in panel.columns]
+    if drop:
+        panel = panel.drop(columns=drop)
+    panel = panel.merge(bank_yr[['target_bank', 'year'] + _out_cols],
+                        on=['target_bank', 'year'], how='left')
 
     matched = panel[target_col].notna().sum()
     logger.info(f"    {target_col}: 匹配 {matched}/{len(panel)} "
                 f"({matched/len(panel)*100:.1f}%) [leave-one-out]")
+    if vol_col is not None:
+        vmatched = panel[vol_col].notna().sum()
+        logger.info(f"    {vol_col}: 匹配 {vmatched}/{len(panel)} "
+                    f"({vmatched/len(panel)*100:.1f}%) [LOO 总量 ln(1+篇数)]")
     return panel
 
 
@@ -760,15 +810,32 @@ def _validate_attention_index(panel):
                          f"std={valid.std():.4f}, "
                          f"[{valid.min():.4f}, {valid.max():.4f}]")
 
-    # year-level 常量校验
-    if 'ft_attn_yr' in panel.columns:
-        _std = (panel.dropna(subset=['ft_attn_yr'])
-                .groupby('year')['ft_attn_yr'].std())
+    # 总量孪生校验 ([0, +∞), ln(1+篇数) 故 ≥0; 非 share 不查上界 1)
+    for col in ['ft_vol_yr', 'ft_vol_prov', 'ft_vol_city']:
+        if col not in panel.columns:
+            continue
+        valid = panel[col].dropna()
+        if len(valid) == 0:
+            logger.warning(f"  {col}: 全为 NaN")
+            continue
+        if (valid < -1e-9).any():
+            logger.error(f"  ✗ {col}: 含负值 (ln(1+篇数) 应 ≥0)!")
+        else:
+            logger.info(f"  ✓ {col}: mean={valid.mean():.4f}, "
+                         f"std={valid.std():.4f}, "
+                         f"[{valid.min():.4f}, {valid.max():.4f}]")
+
+    # year-level 常量校验 (比值与总量两个 year 档均应同年常量)
+    for _yc in ['ft_attn_yr', 'ft_vol_yr']:
+        if _yc not in panel.columns:
+            continue
+        _std = (panel.dropna(subset=[_yc])
+                .groupby('year')[_yc].std())
         max_std = _std.max()  # 若所有分组均仅 1 个观测则为 NaN
         if pd.isna(max_std) or max_std <= 1e-10:
-            logger.info("  ✓ ft_attn_yr 为 year-level 常量")
+            logger.info(f"  ✓ {_yc} 为 year-level 常量")
         else:
-            logger.error("  ✗ ft_attn_yr 在同年内取值不一致!")
+            logger.error(f"  ✗ {_yc} 在同年内取值不一致!")
 
     # 地理指数截面变异校验
     for col in ['ft_attn_prov', 'ft_attn_city']:

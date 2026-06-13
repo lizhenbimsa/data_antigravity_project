@@ -201,6 +201,43 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='',
     )
 
+    # ═══ 地理注意力: 省/市 比值 (ft_attn_*) + 三档总量孪生 (ft_vol_*) ═══
+    # 2026-06-13 (互为稳健性): 三档 (年/省/市) 各产 比值 ft_attn_* (intensive 议程份额
+    # fintech/total ∈[0,1]) 与 总量 ft_vol_* (extensive 覆盖规模 ln(1+fintech 篇数)
+    # ∈[0,+∞), Fang & Peress 2009 JF 覆盖计数)。省/市经曝露加权 leave-one-out 映射到
+    # bank-year (剔除焦点银行自身报道, 反身性内生守卫), 比值与总量共享 min_articles=5
+    # 守卫 → 同非缺样本。yr 为 year-level 常量、无 LOO。两测度分别进各自回归互为稳健性。
+    # (同时补 ft_attn_prov/city 此前自动推断占位 → 精修元数据。)
+    _GEO_ATTN = [
+        ('ft_attn_prov', 'Fintech Attention (Province, Exp-Wt)', '比率', '[0, 1]',
+         '(cell_ft − own_ft)/(cell_total − own_total) 按 (省,年) LOO, 再 bank-year 曝露加权均值',
+         '省级金融科技注意力比值 = 报道该行的媒体来源省份 (剔除自身报道后) 的 fintech 议程份额; '
+         '曝露加权 leave-one-out (反身性内生守卫); LOO 余分母 < 5 → NaN'),
+        ('ft_attn_city', 'Fintech Attention (City, Exp-Wt)', '比率', '[0, 1]',
+         '(cell_ft − own_ft)/(cell_total − own_total) 按 (市,年) LOO, 再 bank-year 曝露加权均值',
+         '市级金融科技注意力比值; 口径同 ft_attn_prov, 地理粒度细化到城市; 小单元更易退化 → NaN 守卫'),
+        ('ft_vol_yr', 'Fintech Coverage Volume (Year, ln)', '', '[0, +inf)',
+         'ln(1 + 当年 fintech 唯一篇数)',
+         '年度金融科技覆盖总量 (extensive 规模, year-level 常量, 无 LOO); ft_attn_yr 比值的总量孪生, 互为稳健性'),
+        ('ft_vol_prov', 'Fintech Coverage Volume (Province, Exp-Wt, ln)', '', '[0, +inf)',
+         'ln(1 + 曝露加权 LOO fintech 篇数, 按 (省,年))',
+         '省级金融科技覆盖总量; ft_attn_prov 比值的总量孪生 (同 LOO 样本/守卫), 互为稳健性'),
+        ('ft_vol_city', 'Fintech Coverage Volume (City, Exp-Wt, ln)', '', '[0, +inf)',
+         'ln(1 + 曝露加权 LOO fintech 篇数, 按 (市,年))',
+         '市级金融科技覆盖总量; ft_attn_city 比值的总量孪生 (同 LOO 样本/守卫), 互为稳健性'),
+    ]
+    for _vn, _lbl, _unit, _rng, _fml, _desc in _GEO_ATTN:
+        metadata[_vn] = VariableMetadata(
+            var_name=_vn, label=_lbl, description=_desc, data_type='float',
+            unit=_unit, value_range=_rng, formula=_fml,
+            source_stage='Stage 45 (panel/encode compute_fintech_attention_index)',
+            reference='Da et al. (2011, JF); Fang & Peress (2009, JF)',
+            notes='三档 (年/省/市) 比值 ft_attn_* 与总量 ft_vol_* 互为稳健性 '
+                  '(2026-06-13); prov/city 曝露加权 LOO 映射, 与对应测度同非缺样本; '
+                  '比值与总量分别进各自回归、不同进一个 RHS',
+            category='注意力指数', track='',
+        )
+
     # ═══ P2 attention 处理变量 (bank_fintech_attention) ═══
     # fix(omni-g-codebook-03, 2026-06-11): 族级锚点与 attention_media.py:227-231 更正对齐 —
     # 主处理 attention_index = ln(1+Σ intensity) 是 **extensive 累积曝光** (Fang & Peress 2009 JF),
@@ -1277,7 +1314,8 @@ def _infer_source_stage(var_name: str) -> str:
         return 'Stage 23'
     elif 'dict' in var_name or 'jiang' in var_name or 'yao' in var_name:
         return 'Stage 22'
-    elif 'attn' in var_name:
+    elif 'attn' in var_name or var_name.startswith('ft_vol'):
+        # ft_vol_* = 地理注意力总量孪生 (compute_fintech_attention_index, 2026-06-13)
         return 'Stage 45 (panel/attention_media·encode)'
     elif 'network' in var_name or 'cent' in var_name:
         return 'Stage 45 (panel/network_spillover)'
@@ -1293,7 +1331,7 @@ def _infer_category(var_name: str) -> str:
         return '主键'
     elif 'tone' in var_name or 'sent' in var_name:
         return '情感指标'
-    elif 'attn' in var_name:
+    elif 'attn' in var_name or var_name.startswith('ft_vol'):
         return '注意力指数'
     elif 'cent' in var_name or 'network' in var_name:
         return '网络指标'
