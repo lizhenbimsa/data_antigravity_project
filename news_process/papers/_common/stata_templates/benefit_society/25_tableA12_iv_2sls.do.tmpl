@@ -30,7 +30,16 @@ local TX   benefit_mean_full
 local IV1  leave_one_out_peer_benefit_iv
 local IV2  zone_leave1out_benefit_iv
 local DV   roa
+* ctx 轨镜像 (2026-06-13 终审): 内生孪生 benefit_mean_ctx 配 ctx 同业 LOO 工具
+* lpeer_benefit_iv_ctx, 与 full 轨【各自 just-identified、并排成列】表达双轨互为
+* 稳健性; 勿与 full 轨 LOO 合成 overid — 同文两窗共同冲击同污染, Hansen J
+* 零功效 (Parente & Santos Silva 2012 EL)。注: 既有 type×zone overid 是两套不同
+* 分组 (bank_type vs bank_zone) 的合法跨族 overid, 与被否决的 full×ctx 无关。
+local TXC  benefit_mean_ctx
+local IVC  lpeer_benefit_iv_ctx
 
+* ⚠ FE 锁定 = bank FE + year FE; 严禁 bank_type×year 交互 FE — 同业 LOO 工具
+*   格内残余 = 自身内生变量的负镜像, type×year FE 下工具退化、排他性按构造违反。
 capture confirm variable `TX'
 if _rc {
     display "  [WARN] 内生变量 `TX' 不在面板; 表跳过"
@@ -53,6 +62,12 @@ if !_rc {
     eststo first_zone: reghdfe `TX' `IV2' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
+* ctx 轨一阶段 (benefit_mean_ctx ~ ctx LOO 工具; 缺列优雅跳过)
+capture confirm variable `TXC' `IVC'
+if !_rc {
+    eststo first_ctx: reghdfe `TXC' `IVC' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
 
 * 2SLS (DV 待外部财务数据; 缺列优雅跳过)
 capture confirm variable `DV'
@@ -67,8 +82,15 @@ else {
     }
     capture confirm variable `IV1' `IV2'
     if !_rc {
-        * 过度识别列 (2 工具 1 内生 → Hansen J df=1)
+        * 过度识别列 (跨族 2 工具 1 内生 → Hansen J df=1; type-LOO×zone-LOO 两套
+        * 不同分组、识别假设异质, 合法 overid — 区别于被否决的 full×ctx 同文双窗)
         eststo tsls_overid: ivreg2 `DV' (`TX' = `IV1' `IV2') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
+    * ctx 轨 just-identified 2SLS (与 full 轨 tsls_type 并排; 同一 DV, 双轨各自工具)
+    capture confirm variable `TXC' `IVC'
+    if !_rc {
+        eststo tsls_ctx: ivreg2 `DV' (`TXC' = `IVC') $controls ///
             i.bank_id i.year, cluster(bank_id) first
     }
 }
@@ -76,8 +98,8 @@ else {
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_type first_zone tsls_type tsls_overid
-local cand_titles `""1st Type-LOO" "1st Zone-LOO" "2SLS Type" "2SLS Overid""'
+local cand_models first_type first_zone first_ctx tsls_type tsls_overid tsls_ctx
+local cand_titles `""1st Type-LOO" "1st Zone-LOO" "1st LOO ctx" "2SLS Type" "2SLS Overid" "2SLS LOO ctx""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -101,6 +123,7 @@ else {
         mtitles(`mtitles') ///
         addnotes("IV1 = same-bank-type leave-one-out benefit-attitude mean; IV2 = same-economic-zone (cross-province) leave-one-out mean (regional common shocks; cf. iv_did.compute_zone_leave1out)." ///
                  "Exclusion caveats for peer-mean instruments (Manski 1993; Leary-Roberts 2014 JF) must be disclosed; lag-1 variant leave_one_out_peer_benefit_iv_lag1 as robustness." ///
+                 "ctx column: entity-window twin benefit_mean_ctx instrumented by lpeer_benefit_iv_ctx, just-identified, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
                  "KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005), use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified column.")
 
     display "[OK] 25_tableA12_iv_2sls → $tables_dir/tableA12_benefit_iv_2sls.tex"

@@ -70,7 +70,19 @@ identification:
     # 2026-06-13 已物化 (iv_extensions.py): 同银行类型×年 LOO tech_frac 均值
     # (含 _lag1 滞后变体; Manski 1993 / Leary-Roberts 2014 JF 排他性披露)
     primary: leave_one_out_peer_locus_iv  # Cao 2025 RAS 风格
-    fallback: layer_scenario_industry_event_iv  # E1/E4 events 作为 instrument for locus
+    # fix(iv-final-audit CONS-6/CONS-3, 2026-06-13): 原 fallback
+    # layer_scenario_industry_event_iv 是幻影 (引擎 compute_iv_extensions 不产、
+    # 模板不引、全仓 0 命中) — 删除。该 "E1/E4 事件作 locus 工具" 的
+    # event-as-instrument 设计延期至 M5 (须先在 iv_extensions.py 实现事件×locus
+    # 构造才能复活, 当前不存在)。fallback 改为引擎真产的 full 轨滞后变体。
+    fallback: leave_one_out_peer_locus_iv_lag1  # full 轨滞后 (规避同期反射稳健性)
+    # ctx 轨稳健性镜像 (2026-06-13 终审, iv_extensions.py lpeer_*): 内生孪生
+    # tech_frac_lc 配 ctx 同业 LOO 工具 lpeer_locus_iv_ctx, 与 full 轨各自
+    # just-identified 并排 (双轨互为稳健性); 非 full×ctx overid。模板 20_locus_iv_2sls。
+    secondary:  # 引擎真产的双轨变体 (与 primary 各自 just-identified, 勿合成 overid)
+      - leave_one_out_peer_locus_iv_lag1   # full 轨滞后
+      - lpeer_locus_iv_ctx                 # ctx 轨同期 (32 字符约束用 lpeer_ 紧凑前缀)
+      - lpeer_locus_iv_ctx_lag1            # ctx 轨滞后
 
 event_studies:  # P4 applicable events
   - E1   # 2013-06-13 yuebao_launch

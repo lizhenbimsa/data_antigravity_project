@@ -485,6 +485,23 @@ def compute_iv_extensions(panel: pd.DataFrame,
       P11 clarity:   outlet_style_clarity_iv_full/_ctx
     (P1/llm_peer/brokerage/strategic_diff 既有 IV 不在此处, 见 geography.py /
      llm_peer_iv.py / network_spillover.py / iv_did.py。)
+
+    ctx 轨同业 LOO 工具 (2026-06-13 四 agent 对抗终审落地, lpeer_* 前缀):
+      lpeer_attention_iv_ctx(_lag1)  ← attention_index_ctx
+      lpeer_subst_iv_ctx(_lag1)      ← sub_frac_sc
+      lpeer_locus_iv_ctx(_lag1)      ← tech_frac_lc
+      lpeer_collab_iv_ctx(_lag1)     ← collab_frac_cm
+      lpeer_benefit_iv_ctx(_lag1)    ← benefit_mean_ctx
+    与各论文 full 轨 LOO (leave_one_out_peer_*_iv) 一一镜像; 紧凑前缀 lpeer_
+    使全部 ≤32 字符 (含 _ctx_lag1=27), 绕开 stata_export 32-char 截断歧义、
+    模板可直接引名 (codebook 约定见 stata_export HEURISTIC_LABELS)。
+    用法 (审计裁决): ctx 轨内生变量 (sub_frac_sc 等) 配 ctx LOO 工具, 与 full
+    轨【各自 just-identified、并排成列】表达双轨互为稳健性 (dualtrack-is-
+    mutual-robustness); 严禁把 full+ctx 两支 LOO 拼成一对工具跑 Hansen J —
+    二者源自同一篇文章的两个剪裁窗口 (full=标题+全文 / ctx=标题+实体窗口),
+    bank_type×year 共同冲击逐字同污染两轨 → J 对真实威胁功效≈0、近共线还拖垮
+    KP rk F (Parente & Santos Silva 2012 EL)。要做 overid 用跨族工具 (LOO ×
+    Bartik / LOO × zone-LOO, 见各 2SLS 模板既有 overid 列)。
     """
     logger.info("=" * 60)
     logger.info("步骤 8z: IV 扩展族 (11 论文工具变量补全, 2026-06-13)")
@@ -493,6 +510,9 @@ def compute_iv_extensions(panel: pd.DataFrame,
     # ── P2: attention (Hassan et al. 2019 QJE 注意力测度的同业/Bartik 工具) ──
     panel = compute_peer_loo_iv(panel, 'attention_index_full',
                                 'leave_one_out_peer_attention_iv')
+    # ctx 轨镜像 (实体窗口归因; 与 full 轨各自 just-identified 并排, 勿合成 overid)
+    panel = compute_peer_loo_iv(panel, 'attention_index_ctx',
+                                'lpeer_attention_iv_ctx')
     panel = compute_bartik_shift_iv(
         panel, df_exploded, type_map, 'attention',
         {'_full': 'fintech_intensity_score_full',
@@ -505,6 +525,8 @@ def compute_iv_extensions(panel: pd.DataFrame,
     # ── P3: substance (W&Z 实质性 vs 象征性) ──
     panel = compute_peer_loo_iv(panel, 'sub_frac',
                                 'leave_one_out_peer_subst_iv')
+    panel = compute_peer_loo_iv(panel, 'sub_frac_sc',
+                                'lpeer_subst_iv_ctx')
     panel = compute_bartik_shift_iv(
         panel, df_exploded, type_map, 'subst',
         {'_full': 'innovation_substantiveness_full',
@@ -515,10 +537,14 @@ def compute_iv_extensions(panel: pd.DataFrame,
     # ── P4: locus (Gomber 底层技术 vs 应用场景; spec primary) ──
     panel = compute_peer_loo_iv(panel, 'tech_frac',
                                 'leave_one_out_peer_locus_iv')
+    panel = compute_peer_loo_iv(panel, 'tech_frac_lc',
+                                'lpeer_locus_iv_ctx')
 
     # ── P5: collab (Chesbrough 自主研发 vs 外部协同) ──
     panel = compute_peer_loo_iv(panel, 'collab_frac',
                                 'leave_one_out_peer_collab_iv')
+    panel = compute_peer_loo_iv(panel, 'collab_frac_cm',
+                                'lpeer_collab_iv_ctx')
     panel = compute_bartik_shift_iv(
         panel, df_exploded, type_map, 'collab',
         {'_full': 'innovation_collab_mode_full',
@@ -529,6 +555,8 @@ def compute_iv_extensions(panel: pd.DataFrame,
     # ── benefit_society: 经营效益态度 (Jha, Liu & Manela 2026 RFS 测度) ──
     panel = compute_peer_loo_iv(panel, 'benefit_mean_full',
                                 'leave_one_out_peer_benefit_iv')
+    panel = compute_peer_loo_iv(panel, 'benefit_mean_ctx',
+                                'lpeer_benefit_iv_ctx')
     if 'bank_zone' in panel.columns:
         panel = compute_peer_loo_iv(panel, 'benefit_mean_full',
                                     'zone_leave1out_benefit_iv',

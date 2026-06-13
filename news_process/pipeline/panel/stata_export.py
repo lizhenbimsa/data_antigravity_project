@@ -264,6 +264,19 @@ def build_variable_labels(
         'benefit_neg_frac_t2v_ctx':         "Benefit Neg Frac (T2V robust, ctx)",
         'emb_peer_tone_lag1_t2v_full':      "Emb Peer Tone Lag1 (T2V robust, full)",
         'bank_emb_sim_mean_t2v':            "Bank Emb Sim Mean (T2V robust)",
+        # IV 扩展族 LOO 同业工具 (2026-06-13): full 轨 leave_one_out_peer_* +
+        # ctx 轨镜像 lpeer_*_ctx (实体窗口归因, Hassan 2019 QJE). 各 ≤ 80 字节.
+        'leave_one_out_peer_attention_iv':  "Same-type peer LOO attention IV (full; Manski 1993 caveat)",
+        'leave_one_out_peer_subst_iv':      "Same-type peer LOO substantive-share IV (full)",
+        'leave_one_out_peer_locus_iv':      "Same-type peer LOO tech-locus IV (full)",
+        'leave_one_out_peer_collab_iv':     "Same-type peer LOO collaboration-share IV (full)",
+        'leave_one_out_peer_benefit_iv':    "Same-type peer LOO benefit-attitude IV (full)",
+        'zone_leave1out_benefit_iv':        "Same-zone (cross-prov) LOO benefit-attitude IV",
+        'lpeer_attention_iv_ctx':           "Same-type peer LOO attention IV (ctx/entity-window)",
+        'lpeer_subst_iv_ctx':               "Same-type peer LOO substantive-share IV (ctx)",
+        'lpeer_locus_iv_ctx':               "Same-type peer LOO tech-locus IV (ctx)",
+        'lpeer_collab_iv_ctx':              "Same-type peer LOO collaboration-share IV (ctx)",
+        'lpeer_benefit_iv_ctx':             "Same-type peer LOO benefit-attitude IV (ctx)",
     }
 
     for col in df.columns:
@@ -425,6 +438,23 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # D3 Krippendorff α (与第 10 篇 bank_media_disagreement 对齐)
         'cross_outlet_tone_variance_full', 'cross_outlet_tone_variance_ctx',
         'cross_media_alpha_full', 'cross_media_alpha_ctx',
+        # ─────────────────────────────────────────────────────────────
+        # IV 扩展族 LOO 同业工具 (2026-06-13 iv_extensions.py; 单一 .dta 下
+        # 仅作 is_core 标记 + 计数守卫, 不影响落盘)。名以"原始 panel 名"声明:
+        # full 轨 _lag1 (>32 字符) 经 rename_map 反查短名匹配; ctx 轨 lpeer_*
+        # (≤32) 直名匹配。full+ctx 镜像各自 just-identified 并排, 非 overid。
+        # ─────────────────────────────────────────────────────────────
+        'leave_one_out_peer_attention_iv', 'leave_one_out_peer_attention_iv_lag1',
+        'leave_one_out_peer_subst_iv', 'leave_one_out_peer_subst_iv_lag1',
+        'leave_one_out_peer_locus_iv', 'leave_one_out_peer_locus_iv_lag1',
+        'leave_one_out_peer_collab_iv', 'leave_one_out_peer_collab_iv_lag1',
+        'leave_one_out_peer_benefit_iv', 'leave_one_out_peer_benefit_iv_lag1',
+        'zone_leave1out_benefit_iv',
+        'lpeer_attention_iv_ctx', 'lpeer_attention_iv_ctx_lag1',
+        'lpeer_subst_iv_ctx', 'lpeer_subst_iv_ctx_lag1',
+        'lpeer_locus_iv_ctx', 'lpeer_locus_iv_ctx_lag1',
+        'lpeer_collab_iv_ctx', 'lpeer_collab_iv_ctx_lag1',
+        'lpeer_benefit_iv_ctx', 'lpeer_benefit_iv_ctx_lag1',
     ]
 
     # fix(omni-g-stata-export-09, 2026-06-11): 改名列经 rename_map 反查原名匹配 —
@@ -456,8 +486,10 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
 
     if len(core) > STATA_IC_MAX_VARS:
         raise ValueError(
-            f"Core column count {len(core)} exceeds Stata IC max {STATA_IC_MAX_VARS}. "
-            f"plan v14 §9.5 R42-A 验收门违反, 需要拆 core/aux 再分配."
+            f"分析核心列数 {len(core)} 超过 STATA_IC_MAX_VARS={STATA_IC_MAX_VARS} 守卫上限. "
+            f"core/aux 双切分已于 2026-06-12 移除, 此守卫现仅防 codebook is_core 的"
+            f"分析核心列清单无节制膨胀 — 请精简 assign_core_columns 的 core_patterns "
+            f"或上调 STATA_IC_MAX_VARS (本机 StataNow/MP 19.5 直读全列, 无 IC 列数约束)."
         )
 
     logger.info(f"  Core 列数: {len(core)} / {len(df.columns)} (IC 余量 {STATA_IC_MAX_VARS - len(core)})")
@@ -487,6 +519,14 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
     abbreviations = [
         ('_idf_score_', '_idfsc_'),
         ('_leave1out_', '_l1o_'),
+        # fix(iv-final-audit CONS-6, 2026-06-13): IV 扩展族 full 轨 _lag1 缩写。
+        # leave_one_out_peer_{attention,collab,benefit}_iv_lag1 = 36/33/34 字符
+        # (>32), 旧裸截断丢失 lag1 判别符 (..._iv_ / ..._iv_la)。此规则仅命中
+        # 这 3 个溢出 _lag1 列 (base 名 ≤31 不进 shorten 循环, 故 19_attention
+        # 等模板对 base 名的 live confirm 引用零影响), 缩为
+        # l1o_peer_attention_iv_lag1(26) 等, 完整保留 lag1 语义; rename_map 回传
+        # 原名供 HEURISTIC_LABELS / export.py 标签反查, codebook 记原名。
+        ('leave_one_out_peer_', 'l1o_peer_'),
         ('_dict_avg_tone_', '_davg_t_'),
         ('_bert_avg_pos_', '_bavg_p_'),
         # fix(omni-g-stata-export, 2026-06-11) 模板组约定: 36-char 事件研究列

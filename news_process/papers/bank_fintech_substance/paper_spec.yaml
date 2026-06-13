@@ -73,6 +73,9 @@ identification:
   iv:
     primary: leave_one_out_peer_subst_iv
     fallback: bartik_subst_iv_full
+    # ctx 轨稳健性镜像 (2026-06-13 终审, iv_extensions.py lpeer_*): 内生孪生
+    # sub_frac_sc 配 ctx 同业 LOO 工具 lpeer_subst_iv_ctx, 与 full 轨各自
+    # just-identified 并排 (双轨互为稳健性); 非 full×ctx overid。模板 22_substance_iv_2sls。
 
 event_studies:  # P3 applicable events
   - E1  # 2013-06-13 yuebao_launch

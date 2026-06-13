@@ -304,6 +304,12 @@ class TestComputeIvExtensionsSmoke:
         panel['tech_frac'] = 0.5
         panel['collab_frac'] = 0.5
         panel['benefit_mean_full'] = 0.1
+        # ctx 轨内生孪生 (lpeer_* ctx LOO 工具的源列; 2026-06-13)
+        panel['attention_index_ctx'] = 0.4
+        panel['sub_frac_sc'] = 0.45
+        panel['tech_frac_lc'] = 0.55
+        panel['collab_frac_cm'] = 0.5
+        panel['benefit_mean_ctx'] = 0.12
         panel['bank_zone'] = '长三角'
         # 7e share 列 (city 单组)
         panel['bartik_type_share_city'] = 1.0
@@ -346,6 +352,13 @@ class TestComputeIvExtensionsSmoke:
             'zone_leave1out_benefit_iv',
             'outlet_disp_exposure_iv_full', 'outlet_disp_exposure_iv_ctx',
             'outlet_style_clarity_iv_full', 'outlet_style_clarity_iv_ctx',
+            # ctx 轨同业 LOO 工具镜像 (lpeer_* 前缀; 2026-06-13 终审落地) +
+            # _lag1 滞后变体 (compute_peer_loo_iv add_lag1=True 默认产出)
+            'lpeer_attention_iv_ctx', 'lpeer_attention_iv_ctx_lag1',
+            'lpeer_subst_iv_ctx', 'lpeer_subst_iv_ctx_lag1',
+            'lpeer_locus_iv_ctx', 'lpeer_locus_iv_ctx_lag1',
+            'lpeer_collab_iv_ctx', 'lpeer_collab_iv_ctx_lag1',
+            'lpeer_benefit_iv_ctx', 'lpeer_benefit_iv_ctx_lag1',
         ]
         missing = [c for c in expected_cols if c not in out.columns]
         assert not missing, f"编排入口缺契约列: {missing}"

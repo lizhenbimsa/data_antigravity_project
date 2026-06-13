@@ -34,7 +34,15 @@ local IV1L leave_one_out_peer_locus_iv_lag1
 * 2026-06-13 outcome 重定位同步: spec.outcome.primary = citation_weighted_patent
 * (Kogan 2017 谱系; 年度数据约束下 car_5day_window 已降级上市行扩展)。
 local DV   citation_weighted_patent
+* ctx 轨镜像 (2026-06-13 终审): 内生孪生 tech_frac_lc 配 ctx 同业 LOO 工具
+* lpeer_locus_iv_ctx, 与 full 轨【各自 just-identified、并排成列】表达双轨互为
+* 稳健性; 勿与 full 轨 LOO 合成 overid — 同文两窗共同冲击同污染, Hansen J
+* 零功效 (Parente & Santos Silva 2012 EL)。
+local TXC  tech_frac_lc
+local IVC  lpeer_locus_iv_ctx
 
+* ⚠ FE 锁定 = bank FE + year FE; 严禁 bank_type×year 交互 FE — 同业 LOO 工具
+*   格内残余 = 自身内生变量的负镜像, type×year FE 下工具退化、排他性按构造违反。
 capture confirm variable `TX'
 if _rc {
     display "  [WARN] 内生变量 `TX' 不在面板; 表跳过"
@@ -57,6 +65,12 @@ if !_rc {
     eststo first_lag: reghdfe `TX' `IV1L' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
+* ctx 轨一阶段 (tech_frac_lc ~ ctx LOO 工具; 缺列优雅跳过)
+capture confirm variable `TXC' `IVC'
+if !_rc {
+    eststo first_ctx: reghdfe `TXC' `IVC' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
 
 * 2SLS (DV 待外部行情数据; 缺列优雅跳过)
 capture confirm variable `DV'
@@ -74,13 +88,19 @@ else {
         eststo tsls_lag: ivreg2 `DV' (`TX' = `IV1L') $controls ///
             i.bank_id i.year, cluster(bank_id) first
     }
+    * ctx 轨 just-identified 2SLS (与 full 轨 tsls_loo 并排; 同一 DV, 双轨各自工具)
+    capture confirm variable `TXC' `IVC'
+    if !_rc {
+        eststo tsls_ctx: ivreg2 `DV' (`TXC' = `IVC') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
 }
 
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_loo first_lag tsls_loo tsls_lag
-local cand_titles `""1st LOO" "1st LOO lag1" "2SLS LOO" "2SLS LOO lag1""'
+local cand_models first_loo first_lag first_ctx tsls_loo tsls_lag tsls_ctx
+local cand_titles `""1st LOO" "1st LOO lag1" "1st LOO ctx" "2SLS LOO" "2SLS LOO lag1" "2SLS LOO ctx""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -103,6 +123,7 @@ else {
         title("P4 Locus IV: Same-Type Peer LOO Tech Exposure (First Stage + 2SLS)") ///
         mtitles(`mtitles') ///
         addnotes("IV = same-bank-type leave-one-out mean of peers' tech_frac (contemporaneous + lag-1 robustness; reflection/exclusion caveats per Manski 1993; Leary-Roberts 2014 JF — disclose in text)." ///
+                 "ctx column: entity-window twin tech_frac_lc instrumented by lpeer_locus_iv_ctx, just-identified, side-by-side dual-track robustness (NOT pooled with full-track IV; Parente-Santos Silva 2012)." ///
                  "Just-identified columns: Hansen J not computable (df=0), not reported. KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005); if below, use Anderson-Rubin CI (Andrews-Stock-Sun 2019).")
 
     display "[OK] 20_locus_iv_2sls → $tables_dir/tableA_locus_iv_2sls.tex"
