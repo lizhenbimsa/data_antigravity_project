@@ -58,12 +58,21 @@ ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) L_broker L2_broker $contr
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo R4_l2
 
+* === Winsorization sensitivity (主 2SLS 基准=1% 缩尾; 此处补 raw 与 5% 两档; Fama-French 1993 / Loughran-McDonald 2011) ===
+* {{MAIN_DV}} 为 levels-ratio outcome (ROA); 与主 2SLS 同 (endog=IV) 与 ffirst, 仅切换 DV 缩尾力度
+ivreghdfe {{MAIN_DV}} ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo wsens_raw
+ivreghdfe {{MAIN_DV}}_w5 ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo wsens_w5
+
 * fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — R1_ctx 被守卫跳过后
 * 旧版硬点名 → r(111) 整表丢失; 仅引用实际已存储估计, mtitle 同步删列防错位。
 qui estimates dir
 local stored `r(names)'
-local cand_models R1_ctx R2_bank_cluster R3_kept R4_l2
-local cand_titles `""Ctx" "Bank-cluster" "Drop singletons" "L2.Broker""'
+local cand_models R1_ctx R2_bank_cluster R3_kept R4_l2 wsens_raw wsens_w5
+local cand_titles `""Ctx" "Bank-cluster" "Drop singletons" "L2.Broker" "No-Winsor" "Winsor 5%""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'

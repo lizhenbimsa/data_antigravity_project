@@ -62,12 +62,21 @@ if !_rc {
     eststo R4
 }
 
+* === Winsorization sensitivity (主 2SLS 基准=1% 缩尾; 此处补 raw 与 5% 两档; Fama-French 1993 / Loughran-McDonald 2011) ===
+* 与主 2SLS (M3) 同 ({{TONE_VAR}} = {{LLM_PEER_IV}}) 与 ffirst, 仅切换 DV 缩尾力度
+ivreghdfe {{MAIN_DV}} ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo wsens_raw
+ivreghdfe {{MAIN_DV}}_w5 ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo wsens_w5
+
 * fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — R3/R4 守卫跳过后旧版硬
 * 点名 → r(111) 整表丢失; 仅引用实际已存储估计, mtitle 同步删列防错位。
 qui estimates dir
 local stored `r(names)'
-local cand_models R1 R2 R3 R4
-local cand_titles `""Cov-IV" "+CompIdx" "Ctx-track" "Prov-cluster""'
+local cand_models R1 R2 R3 R4 wsens_raw wsens_w5
+local cand_titles `""Cov-IV" "+CompIdx" "Ctx-track" "Prov-cluster" "No-Winsor" "Winsor 5%""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'

@@ -15,7 +15,8 @@ capture mkdir "$tables_dir"
 use "$data_dir/_prepared_panel.dta", clear
 
 * 汇总变量: MAIN_DV + 主 IV/内生变量 + cutoff 变体 + controls。
-local desc_vars {{MAIN_DV}} {{TONE_VAR}} {{LLM_PEER_IV}} {{LLM_PEER_COVERAGE_IV}} {{COMPETE_IDX}} {{CUTOFF_VARS}} $controls
+* P0-3 口径一致: 描述统计报告回归实际使用的缩尾后 DV ({{MAIN_DV}}_w), 与主 2SLS 同口径
+local desc_vars {{MAIN_DV}}_w {{TONE_VAR}} {{LLM_PEER_IV}} {{LLM_PEER_COVERAGE_IV}} {{COMPETE_IDX}} {{CUTOFF_VARS}} $controls
 
 * st-descriptives-01 fix (2026-06-03): 本表独立 use 全面板后直接 estpost summarize,
 * 无先行回归留下 e(sample), 故描述统计覆盖全面板 (含零新闻 bank-year), 与主回归
@@ -27,7 +28,7 @@ esttab using "$tables_dir/table1_descriptives.tex", replace ///
     cells("count mean(fmt(3)) sd(fmt(3)) min(fmt(3)) p25(fmt(3)) p50(fmt(3)) p75(fmt(3)) max(fmt(3))") ///
     label nomtitle nonumber booktabs ///
     title("Descriptive Statistics --- llm_peer panel") ///
-    addnotes("Bank-year panel. {{MAIN_DV}} winsorized at 1%/99% if winsor2 installed." ///
+    addnotes("Bank-year panel. Reported DV is {{MAIN_DV}}_w = {{MAIN_DV}} winsorized at 1%/99% (the regression-used DV; winsor2)." ///
              "Descriptives over the full panel (incl. zero-news bank-years); regression sample (if e(sample)) differs in N.")
 
 display "[OK] Table 1 written to $tables_dir/table1_descriptives.tex"

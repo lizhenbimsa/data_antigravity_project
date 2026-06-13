@@ -115,13 +115,22 @@ if !_rc {
     display "  [TODO] did_imputation requires SSC; see §5.7.3 prereqs"
 }
 
+* === Winsorization sensitivity (主回归用 raw DV: citation_weighted_patent 为专利计数 outcome, JF/JFE 惯例下计数/log/差分 outcome 主回归不缩尾; 缩尾仅作稳健性, 故与 cohort-A levels-ratio _w 基准口径不同) ===
+reghdfe {{MAIN_DV}}_w locus_layer_full locus_scenario_full $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo wsens_w1
+reghdfe {{MAIN_DV}}_w5 locus_layer_full locus_scenario_full $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo wsens_w5
+
 * fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — alt_ctx 在守卫块内,
 * 旧版硬点名缺名 → r(111) 丢整张 Table 5; ritest_ri 仍按原设计只留 log 不进表。
+* 2026-06-13: 缩尾敏感性 wsens_w1/wsens_w5 加入 inlist 白名单 (此过滤器无 strmatch 兜底, 不加则新列静默不进表, MF9)
 qui estimates dir
 local stored `r(names)'
 local models ""
 foreach m of local stored {
-    if inlist("`m'", "wild_boot", "excl_soe6", "excl_rural", "excl_pre", "alt_ctx") {
+    if inlist("`m'", "wild_boot", "excl_soe6", "excl_rural", "excl_pre", "alt_ctx", "wsens_w1", "wsens_w5") {
         local models `models' `m'
     }
 }

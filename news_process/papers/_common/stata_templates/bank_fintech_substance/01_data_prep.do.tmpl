@@ -71,5 +71,10 @@ capture which winsor2
 if !_rc winsor2 {{MAIN_DV}}, cuts(1 99) suffix(_w)
 else gen {{MAIN_DV}}_w = {{MAIN_DV}}
 
+* 缩尾敏感性 (winsorization-sensitivity 稳健性): 额外 5% 档 _w5 (主回归用 raw DV, 缩尾仅作稳健性对照; {{MAIN_DV}}_w5 = 31 字符 < 32 上限)
+capture which winsor2
+if !_rc winsor2 {{MAIN_DV}}, cuts(5 95) suffix(_w5)
+else gen {{MAIN_DV}}_w5 = {{MAIN_DV}}
+
 save "$data_dir/_prepared_panel.dta", replace
 display "[OK] P3 data prep N=" _N

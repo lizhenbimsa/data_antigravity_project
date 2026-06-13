@@ -71,6 +71,18 @@ if _rc {
     }
 }
 
+* 缩尾敏感性 (winsorization-sensitivity 稳健性): 额外 5% 档 _w5 (raw {{MAIN_DV}} 由 suffix 保留, 仅作稳健性对照)
+capture confirm variable {{MAIN_DV}}_w5
+if _rc {
+    capture which winsor2
+    if !_rc {
+        winsor2 {{MAIN_DV}}, cuts(5 95) suffix(_w5)
+    }
+    else {
+        gen {{MAIN_DV}}_w5 = {{MAIN_DV}}
+    }
+}
+
 display "[OK] 01_data_prep complete. N=" _N ", controls=$controls"
 
 * 保存准备好的 panel 供后续 .do 使用 (避免重复 encode)。
