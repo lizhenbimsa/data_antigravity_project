@@ -78,6 +78,31 @@ SCHEMA_VERSION 保持 v1 (无需再 bump): 现有 LLMCache 中以 (v1, "v0", 0.0
 ---------
 sqlite3.connect(db_path, check_same_thread=False) + WAL 日志模式。
 
+查询复杂度与生命周期 (为什么"删光缓存、第一次运行也不会遍历全库")
+------------------------------------------------------------------
+缓存键 (上文 sha256(...)) 落在 ``cache_key TEXT PRIMARY KEY`` 上。SQLite
+对非-INTEGER 主键自动建一棵唯一 B-tree 索引, 因此每次 ``get()`` 都是
+``WHERE cache_key = ?`` 的**索引点查 (point lookup)**, 复杂度 ≈ O(log n):
+库里有 133,687 条还是 0 条, 单次查找成本同量级 — **从不逐条扫描全表**。
+
+- 全模块无任何 ``SELECT *`` / ``fetchall`` / 游标遍历; 唯一的全表聚合是
+  ``size()`` 的 ``COUNT(*)``, 仅供 run 末尾打统计日志, 不在处理热路径。
+- ``__init__`` 不把任何行读进内存: 只 ``CREATE TABLE IF NOT EXISTS`` +
+  设 WAL。所谓"第一次运行"不存在"先扫一遍全库"的冷启动步骤。
+- 删掉 ``_llm_cache.db`` 后第一次运行: 自动新建**空表**, 每条 ``get()``
+  都是空表 miss (瞬时返回 None) → 调付费 API → ``put()`` 回填。全程零遍历。
+
+⚠ 删缓存省不掉任何"遍历开销" (本就没有遍历); 真正的代价是 **13 万条全部
+miss → 重新付费调 LLM/embedding API 重建**, 且破坏 golden 跨-run 字节级
+可复现 (见上文"设计意图"与 CLAUDE.md "勿删 _llm_cache.db 铁律")。
+
+大白话
+~~~~~~
+把这库想成"带目录索引的字典": 查一个词是拿指纹 (cache_key) 直接翻到那一
+页, 不是从第一条往后一条条找。字典里有多少词, 翻这一下都一样快。把字典
+全删了再跑, 等于拿到一本空字典 —— 每查必空、秒回, 然后去花钱重新问大模型、
+再把答案抄进去。慢和贵都来自"重新调 API", 跟"遍历"没关系。
+
 学术依据
 ---------
 Carlson & Burbano (2026, SMJ §3.3) — LLM 实验可复现性要求确定性缓存.
@@ -165,6 +190,11 @@ class LLMCache:
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         # WAL 模式: 支持并发读，写入不阻塞读取
         self._conn.execute("PRAGMA journal_mode=WAL")
+        # cache_key 为 TEXT PRIMARY KEY → SQLite 自动建唯一 B-tree 索引, 故
+        # get() 的 ``WHERE cache_key = ?`` 是索引点查 (O(log n)), 不随库增大
+        # 而变慢、永不全表扫描 (详见模块 docstring "查询复杂度与生命周期")。
+        # __init__ 仅建表 + 设 WAL, 不读取任何行入内存 — "第一次运行"无冷启动
+        # 全库遍历; 即便删库重建, 新空表的逐条 get() 也是瞬时 miss, 不遍历。
         self._conn.execute("""
             CREATE TABLE IF NOT EXISTS llm_cache (
                 cache_key   TEXT PRIMARY KEY,
@@ -288,6 +318,8 @@ class LLMCache:
                              prompt_version=prompt_version,
                              temperature=temperature,
                              random_seed=random_seed)
+        # 索引点查 (point lookup): 按 cache_key 主键 B-tree 直达, 非全表扫描;
+        # 命中与否成本 ≈ O(log n), 与库中总条目数 (13 万 vs 0) 几乎无关。
         with self._lock:
             cursor = self._conn.execute(
                 "SELECT response FROM llm_cache WHERE cache_key = ?", (key,)
@@ -421,6 +453,12 @@ class LLMCache:
 
         Returns:
             int: 缓存条目数。
+
+        Note:
+            这是本模块**唯一**的全表聚合 (``COUNT(*)``), 仅用于 run 末尾打
+            统计日志, **不在 get()/put() 热路径上**。情感/embedding 处理逐条
+            走主键索引点查, 不依赖本方法, 也不会因库增大而变慢 (见模块
+            docstring "查询复杂度与生命周期")。
         """
         with self._lock:
             cursor = self._conn.execute("SELECT COUNT(*) FROM llm_cache")
