@@ -742,6 +742,11 @@ def merge_to_panel(panel: pd.DataFrame,
     # fix(fintech-share-counting-basis, metric-audit 2026-06-10): 分子用**去重口径**
     # ft_n_articles_dedup (与分母 NF 同基), 消除分子(物理)/分母(去重)计数基不一致
     # (Hassan 2019 QJE Table 7 要求 PRisk/(PRisk+NPRisk) 同一计数域)。
+    # 数据来源澄清 (2026-06-13): 分母"全部银行新闻"不读单一文件, 而是
+    # fintech(40_article_bank_level.parquet 去重) + NF(12_fintech_news_full.parquet
+    # 过滤前全量银行新闻 anti-join 减去面板文章后去重) 两块同基相加 —
+    # 即"全量底库" = 12_fintech_news_full.parquet (与 11_bank_news 行集 1:1,
+    # 详见模块 docstring「命名澄清」段, 勿因文件名 "fintech" 误判)。
     # fix(omni-g-controls-05, 2026-06-11): 分母为 0 (该 bank-year 全年零新闻, 份额
     # 无定义) → NaN (回归自然剔除), 不再填 0 与"有新闻但全为非金融科技"的真实
     # 0 份额同值混淆; 配套 zero_coverage 指示列供使用者条件化/诊断。
