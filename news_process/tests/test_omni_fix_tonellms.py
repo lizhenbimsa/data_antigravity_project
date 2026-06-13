@@ -614,12 +614,17 @@ class TestStripPrependedTitleDisclosure:
 
 class TestMainInlineFixesSourceLock:
 
-    def test_g06_disabled_branch_has_collab_columns_and_nan_placeholders(self):
+    def test_g06_stage21_always_on_no_disabled_passthrough(self):
+        # 2026-06-13: stage 21 已改为无条件 always-on (用户决策: 全部启用而非条件启用),
+        # 删除了历史 `if not LLM_CONFIG.get('enabled')` 禁用透传分支 (连同其
+        # avg_collab_prob_score / llm_prob_score NaN 占位)。本测试由"禁用分支占位源锁"
+        # 改为"禁用分支已移除"的回归守卫 — 防止未来误重新引入条件启停。
         src = inspect.getsource(T.main)
-        assert "df[f'avg_collab_prob_score{track}'] = _np.nan" in src, \
-            "禁用分支必须补 avg_collab_prob_score 双列 (三配置态 schema 等价)"
-        assert "df[f'llm_prob_score{track}'] = _np.nan" in src, \
-            "禁用分支 llm_prob_score 占位必须 NaN (0.0 与合法中性不可区分)"
+        assert "if not LLM_CONFIG.get('enabled'" not in src, \
+            "stage 21 应无条件 always-on; 不应再有 enabled 早退 / 禁用透传分支"
+        assert "统一 LLM 处理已在 config.yaml 中禁用" not in src, \
+            "禁用透传分支的日志文案不应再存在 (always-on 后该分支已删)"
+        # llm_prob_score 占位 0.0 历来禁止 (与合法中性不可区分); 主路径仍不得出现
         assert "df[f'llm_prob_score{track}'] = 0.0" not in src
 
     def test_g12_per_model_archive_defaults_nan_missing(self):

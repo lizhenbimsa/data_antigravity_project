@@ -4,7 +4,7 @@ run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
 
 功能:
     单独执行流水线的模块四: 评估验证模块。
-    包含以下阶段(由 config/validation.yaml 的 validation 节点控制):
+    包含以下阶段 (2026-06-13 起全部无条件 always-on; validation.* flag 仅作启用记录):
       - 阶段31:  阈值敏感性分析         (31_bank_fintech_threshold.py)
       - 阶段32:  人工抽样验证样本生成   (32_news_llms_human.py)
       - 阶段32a: 去重阈值敏感性分析     (32a_dedup_threshold_sensitivity.py)
@@ -84,17 +84,17 @@ def run_validation():
     """执行模块四：评估验证模块。
 
     流程：
-      1. 阶段31: 阈值敏感性分析（由 validation.threshold_sensitivity 控制）
-      2. 阶段32: 人工抽样验证样本生成
-      2a.阶段32a: 去重阈值敏感性分析（由 validation.dedup_sensitivity 控制）
-      3. 阶段33: 分类有效性评估（由 validation.classification_eval 控制）
-      4. 阶段34: 情感三角验证（由 validation.sentiment_validation 控制）
-      5. 阶段35: 窗口半径敏感性检验（由 validation.radius_sensitivity 控制）
-      6. 阶段36: Entity Masking 稳健性测试（由 validation.entity_masking 控制）
-      7. 阶段37: 金融科技词典覆盖率审计（由 validation.dict_coverage_audit 控制）
-      8. 阶段38: 媒体名称与地域多样性审计（由 validation.media_diversity 控制）
-      9. 阶段38b: 距离衰减权重敏感性检验（始终执行）
-     10. 阶段39: Prompt 措辞敏感度测试（由 validation.prompt_sensitivity 控制）
+      1. 阶段31: 阈值敏感性分析（always-on）
+      2. 阶段32: 人工抽样验证样本生成（always-on）
+      2a.阶段32a: 去重阈值敏感性分析（always-on）
+      3. 阶段33: 分类有效性评估（always-on）
+      4. 阶段34: 情感三角验证（always-on）
+      5. 阶段35: 窗口半径敏感性检验（always-on）
+      6. 阶段36: Entity Masking 稳健性测试（always-on）
+      7. 阶段37: 金融科技词典覆盖率审计（always-on）
+      8. 阶段38: 媒体名称与地域多样性审计（always-on）
+      9. 阶段38b: 距离衰减权重敏感性检验（always-on）
+     10. 阶段39: Prompt 措辞敏感度测试（always-on）
      11. 阶段39a: 轨间一致性 Cohen's κ
      12. 阶段39c: NMI construct 正交性
      13. 阶段39d: lexical HTMT+AVE+κ+α
@@ -102,7 +102,9 @@ def run_validation():
      15. 阶段39f: cross-media Krippendorff α
 
     阶段清单以 core/dag.py::STAGES_VALIDATION 为权威真源, 共 16 个;
-    实际执行集由 filter_enabled(STAGES, CONFIG) 按 enabled_when 谓词裁剪。
+    2026-06-13: 全部 16 阶段均为无条件 always-on (用户决策: 全部启用而非条件启用),
+    filter_enabled(STAGES, CONFIG) 恒返回全集 (机制保留供未来扩展); validation.* flag
+    仅作启用记录, 不再驱动启停。
     """
     module_start = time.time()
 
@@ -142,8 +144,9 @@ def run_validation():
 
         # ── 模块四: 评估验证模块 ──
         # Phase 1 重构: 阶段定义已迁移至 news_process/core/dag.py:STAGES_VALIDATION,
-        # 每条 StageSpec.enabled_when 谓词承接旧的 validation_config.get(...) 分支判定。
         # 旧的内联 12 处 if-append 链已被 filter_enabled() 取代。
+        # 2026-06-13: 全部验证阶段谓词改为 always_enabled (用户决策: 全部启用而非条件
+        # 启用), filter_enabled 恒返回全集; 旧 validation.* flag 仅作配置记录保留。
         active_specs = filter_enabled(STAGES, CONFIG)
         stages = [(s.script, s.name, s.timeout) for s in active_specs]
 

@@ -1348,10 +1348,9 @@ def main():
     logger.info("")
     log_memory_usage(logger, "模块启动")
 
-    # ── 检查 enabled ──
-    if not PS_CFG.get('enabled', True):
-        logger.info("⏭ prompt_sensitivity_test.enabled = false，跳过本阶段")
-        return
+    # 2026-06-13: stage 39 已改为无条件 always-on (用户决策: 全部启用而非条件启用),
+    # 移除 prompt_sensitivity_test.enabled 早退门; enabled flag 仅作记录, 启停由
+    # core/dag.py 的 always_enabled 谓词决定。
 
     # ── Step 1: 加载数据 ──
     logger.info("Step 1: 加载 21_tone_llms_full.parquet ...")

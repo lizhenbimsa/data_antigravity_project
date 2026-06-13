@@ -131,40 +131,43 @@ TEXT_COLUMNS = ['标题', '内容']
 # view/like/comment/share/collect/count_suffix) 与 pagination 的裸 `\d+/\d+` 支
 # 设计目标是删网页互动计数, 但在报纸正文 (本语料媒体类型=报纸, 无互动计数) 中
 # 无锚定地命中实质内容 ('专家推荐30只银行股'→'专家只银行股', '不良率从3/4季度
-# 开始下降'→'不良率从季度开始下降')。按媒体类型条件启用: config 开关
-# preprocessing.interaction_noise_patterns_enabled, 默认 false (报纸语料关闭);
-# 网页/APP 语料可显式打开。
+# 开始下降'→'不良率从季度开始下降')。
+# 2026-06-13: 本项目不含网页/APP 语料, 故这些模式 **永久排除** — 删去历史 config 开关
+# preprocessing.interaction_noise_patterns_enabled (及常量 INTERACTION_NOISE_ENABLED),
+# filter_noise_patterns 无条件剔除互动计数族 + 摘 pagination 裸分数支 (等价旧 false 路径)。
+# 白话: 这些"点赞/评论/分页"清洗规则只对网页有用; 本项目全是报纸, 用不上且会误删
+#       正文数字, 所以直接固定关掉, 不再留开关。
 INTERACTION_NOISE_KEYS = frozenset({
     'view_count', 'count_suffix', 'comment_count',
     'like_count', 'collect_count', 'share_count',
 })
-# pagination 中匹配任意 `数字/数字` 的裸分数支 (如 '3/4季度') — 与互动计数族同开关
+# pagination 中匹配任意 `数字/数字` 的裸分数支 (如 '3/4季度') — 与互动计数族一并永久排除
 _PAGINATION_BARE_FRACTION_BRANCH = r'|\d+\s*/\s*\d+'
-INTERACTION_NOISE_ENABLED = bool(PARAMS.get('interaction_noise_patterns_enabled', False))
 
 
-def filter_noise_patterns(noise_data: dict, interaction_enabled: bool) -> list:
+def filter_noise_patterns(noise_data: dict) -> list:
     """从 noise_patterns.json 数据中选取生效的噪声模式 (跳过 ``_`` 注释键).
 
-    fix(omni-g-preprocess-03, 2026-06-11): ``interaction_enabled=False`` (报纸
-    语料默认) 时整键剔除互动计数族 (INTERACTION_NOISE_KEYS) 并从 pagination
-    模式中摘除裸 ``\\d+/\\d+`` 支, 防止报纸正文实质内容被误删。
+    fix(omni-g-preprocess-03, 2026-06-11): 整键剔除网页互动计数族
+    (INTERACTION_NOISE_KEYS) 并从 pagination 模式中摘除裸 ``\\d+/\\d+`` 支,
+    防止报纸正文实质内容被误删。
+    2026-06-13: 本项目无网页语料, 该剔除已由历史 config 开关改为无条件执行
+    (等价于旧 ``interaction_enabled=False`` 路径, 行为不变)。
     """
     patterns = []
     for k, v in noise_data.items():
         if k.startswith('_'):
             continue
-        if not interaction_enabled:
-            if k in INTERACTION_NOISE_KEYS:
-                continue
-            if k == 'pagination':
-                stripped = v.replace(_PAGINATION_BARE_FRACTION_BRANCH, '')
-                if stripped == v:
-                    logger.warning(
-                        "pagination 模式中未找到预期的裸 \\d+/\\d+ 支 "
-                        "(noise_patterns.json 已变更?), 保留原模式"
-                    )
-                v = stripped
+        if k in INTERACTION_NOISE_KEYS:
+            continue
+        if k == 'pagination':
+            stripped = v.replace(_PAGINATION_BARE_FRACTION_BRANCH, '')
+            if stripped == v:
+                logger.warning(
+                    "pagination 模式中未找到预期的裸 \\d+/\\d+ 支 "
+                    "(noise_patterns.json 已变更?), 保留原模式"
+                )
+            v = stripped
         patterns.append(v)
     return patterns
 
@@ -173,10 +176,10 @@ def filter_noise_patterns(noise_data: dict, interaction_enabled: bool) -> list:
 try:
     with open(CONFIG['paths']['noise_patterns_file'], 'r', encoding='utf-8') as f:
         noise_data = json.load(f)
-        noise_patterns_list = filter_noise_patterns(noise_data, INTERACTION_NOISE_ENABLED)
+        noise_patterns_list = filter_noise_patterns(noise_data)
         logger.info(
             f"已加载 {len(noise_patterns_list)} 个噪声模式 "
-            f"(互动计数族{'启用' if INTERACTION_NOISE_ENABLED else '关闭 — 报纸语料默认'})"
+            f"(网页互动计数族已永久排除 — 报纸语料)"
         )
 except Exception as e:
     logger.error(f"无法加载噪声模式文件: {e}")
@@ -348,8 +351,8 @@ __all__ = [
     'PREPROCESS_CODE_VERSION',
     # raw resource lists
     'noise_patterns_list', 'BANK_KEYWORDS',
-    # noise gating (fix omni-g-preprocess-03)
-    'INTERACTION_NOISE_KEYS', 'INTERACTION_NOISE_ENABLED', 'filter_noise_patterns',
+    # noise gating (fix omni-g-preprocess-03; interaction 族 2026-06-13 改永久排除)
+    'INTERACTION_NOISE_KEYS', 'filter_noise_patterns',
     # translation table
     'COMBINED_TRANS',
     # compiled regexes

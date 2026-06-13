@@ -667,10 +667,9 @@ def main():
     logger.info("")
 
     # ── 配置 ──
-    if not EM_CFG.get('enabled', False):
-        logger.info("Entity Masking 测试已禁用 (enabled=false)，跳过")
-        return
-
+    # 2026-06-13: stage 36 已改为无条件 always-on (用户决策: 全部启用而非条件启用),
+    # 移除 entity_masking_test.enabled 早退门; enabled flag 仅作记录, 启停由
+    # core/dag.py 的 always_enabled 谓词决定。
     sample_size = EM_CFG.get('sample_size', 1000)
     seed = EM_CFG.get('random_seed', 42)
     bnf = CONFIG['paths'].get('bank_names_file', '')

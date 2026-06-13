@@ -9,9 +9,10 @@ human_validation:
 # ------------------------------------------------------------------------------
 # [模块四：评估验证模块] 验证与评估配置 (Validation & Evaluation) - 阶段 31-39 (含38b)
 # ------------------------------------------------------------------------------
-# 控制是否启用各验证阶段（默认全部启用）。
-# 阶段32始终执行，无开关控制。
-# 阶段38b始终执行（无开关）。
+# [已全部 always-on] 2026-06-13 起全部验证阶段无条件常开 (core/dag.py 取 always_enabled,
+# _VALIDATION_PREDS 谓词不再被 DAG 消费); 下列 flag 仅作启用记录, 改 false 不再停掉对应阶段。
+# 阶段32 / 38b 本就始终执行（无开关）。
+# 白话: 这些验证检验现在都"焊死常开", 这张清单只是留个账, 关不掉。
 validation:
   classification_eval: true                         # 阶段33: 分类有效性评估 (Cohen's Kappa, P/R/F1)
   threshold_sensitivity: true                       # 阶段31: 阈值敏感性分析
@@ -28,7 +29,7 @@ validation:
 # ------------------------------------------------------------------------------
 # 通过将银行名替换为匿名占位符，验证 LLM 判定是否依赖文本语义而非实体先验。
 entity_masking_test:
-  enabled: true
+  enabled: true                                     # [已 always-on] stage 36 移除 enabled 早退 (2026-06-13); 仅作记录, 启停由 always_enabled 谓词决定
   sample_size: 1000                                 # 随机抽样数量
   random_seed: 42                                   # 随机种子（保证可复现）
   max_concurrency: 100                              # 2026-05-14 用户决策: 项目统一 100 并发 (原阶段36=8); 监控 yunwu 网关 429, 若批量掩码复判抖动回退至 8
@@ -50,7 +51,7 @@ entity_masking_test:
 # 学术依据: Carlson & Burbano (2026, SMJ §3.5): "generating families of
 # related prompts... testing their impact on downstream analyses"
 prompt_sensitivity_test:
-  enabled: true
+  enabled: true                                     # [已 always-on] stage 39 移除 enabled 早退 (2026-06-13); 仅作记录, 启停由 always_enabled 谓词决定
   sample_size: 1000                                 # 随机抽样数量
   random_seed: 42                                   # 随机种子（保证可复现）
   max_concurrency: 100                              # 2026-05-14 用户决策: 项目统一 100 并发 (原阶段39=8); ⚠️ 注意: 24k 请求 + 100 并发可能触发 yunwu 网关 429 雪崩, 重跑前需监控; 若雪崩回退至 8

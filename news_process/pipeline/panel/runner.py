@@ -548,45 +548,44 @@ def main():
         logger.info("  mention_density 列不存在, 跳过加权列预计算")
 
     # --- 3c. 媒体权威性加权列预计算 (Holzman et al. 2023, TAR) ---
-    if PANEL_CFG.get('compute_media_authority_weighting', False):
-        df = compute_media_authority_weights(df)
-        # v3.6.1 PR #6 (C1): 媒体 3 级 tier 权重并行列 (Solomon 2012 RFS;
-        # Engelberg-Parsons 2011 JF). 不替换 'media_authority_weight' main,
-        # 仅追加 'media_authority_weight_tier' + 'media_tier_label' 作
-        # paper Table A8 sensitivity. Append-only 不破坏现契约.
-        df = compute_media_tier_weights(df)
-        mw = df['media_authority_weight'].fillna(1.0)
-        weighted_cols = {}
-        for track in ['_full', '_ctx']:
-            if f'llm_vote_score{track}' not in df.columns:
-                continue
-            weighted_cols[f'llm_vote_score_mw{track}'] = df[f'llm_vote_score{track}'] * mw
-            weighted_cols[f'llm_vote_cont_mw{track}'] = df[f'llm_vote_cont{track}'] * mw
-            for short in LLM_MODELS:
-                for sfx in ['_score', '_cont']:
-                    src = f'{short}{sfx}{track}'
-                    if src in df.columns:
-                        weighted_cols[f'{short}{sfx}_mw{track}'] = df[src] * mw
-            for d in DICT_NAMES:
-                src = f'{d}_score{track}'
+    df = compute_media_authority_weights(df)
+    # v3.6.1 PR #6 (C1): 媒体 3 级 tier 权重并行列 (Solomon 2012 RFS;
+    # Engelberg-Parsons 2011 JF). 不替换 'media_authority_weight' main,
+    # 仅追加 'media_authority_weight_tier' + 'media_tier_label' 作
+    # paper Table A8 sensitivity. Append-only 不破坏现契约.
+    df = compute_media_tier_weights(df)
+    mw = df['media_authority_weight'].fillna(1.0)
+    weighted_cols = {}
+    for track in ['_full', '_ctx']:
+        if f'llm_vote_score{track}' not in df.columns:
+            continue
+        weighted_cols[f'llm_vote_score_mw{track}'] = df[f'llm_vote_score{track}'] * mw
+        weighted_cols[f'llm_vote_cont_mw{track}'] = df[f'llm_vote_cont{track}'] * mw
+        for short in LLM_MODELS:
+            for sfx in ['_score', '_cont']:
+                src = f'{short}{sfx}{track}'
                 if src in df.columns:
-                    weighted_cols[f'{d}_score_mw{track}'] = df[src] * mw
-                src_idf = f'{d}_idf_score{track}'
-                if src_idf in df.columns:
-                    weighted_cols[f'{d}_idf_score_mw{track}'] = df[src_idf] * mw
-            for b in BERT_MODELS:
-                for label in ['_正面', '_负面']:
-                    src = f'{b}{label}{track}'
-                    if src in df.columns:
-                        weighted_cols[f'{b}{label}_mw{track}'] = df[src] * mw
-            # Logit-to-Score 概率分数
-            src_prob = f'llm_prob_score{track}'
-            if src_prob in df.columns:
-                weighted_cols[f'llm_prob_score_mw{track}'] = df[src_prob] * mw
-        # fix(encode-01, 2026-06-10): LLM 族 valid-mask 媒体权威权重分母
-        weighted_cols.update(_build_llm_valid_masked_weights(df, mw, 'mw'))
-        df = _append_columns(df, weighted_cols)
-        logger.info(f"  已生成 {len(weighted_cols)} 个媒体权威性加权列")
+                    weighted_cols[f'{short}{sfx}_mw{track}'] = df[src] * mw
+        for d in DICT_NAMES:
+            src = f'{d}_score{track}'
+            if src in df.columns:
+                weighted_cols[f'{d}_score_mw{track}'] = df[src] * mw
+            src_idf = f'{d}_idf_score{track}'
+            if src_idf in df.columns:
+                weighted_cols[f'{d}_idf_score_mw{track}'] = df[src_idf] * mw
+        for b in BERT_MODELS:
+            for label in ['_正面', '_负面']:
+                src = f'{b}{label}{track}'
+                if src in df.columns:
+                    weighted_cols[f'{b}{label}_mw{track}'] = df[src] * mw
+        # Logit-to-Score 概率分数
+        src_prob = f'llm_prob_score{track}'
+        if src_prob in df.columns:
+            weighted_cols[f'llm_prob_score_mw{track}'] = df[src_prob] * mw
+    # fix(encode-01, 2026-06-10): LLM 族 valid-mask 媒体权威权重分母
+    weighted_cols.update(_build_llm_valid_masked_weights(df, mw, 'mw'))
+    df = _append_columns(df, weighted_cols)
+    logger.info(f"  已生成 {len(weighted_cols)} 个媒体权威性加权列")
 
     # --- 3d. 跟风衰减加权列预计算 (Tetlock 2011, RFS; Edwards 2001 ORM) ---
     # v3.6.0 (Plan E P1 B3): 双轨权重独立施加 (remove-title-track 后收为 _full / _ctx)
@@ -935,26 +934,22 @@ def main():
     # ⚠️ 必须在 balance_panel() 之后调用 (确保完全笛卡尔积)
     # ⚠️ 不使用 df_exploded (仅含 fintech 文章), 而是直接读取
     #    12_fintech_news_full.parquet (含全量银行新闻)
-    if PANEL_CFG.get('compute_attention_index', True):
-        panel = compute_fintech_attention_index(panel)
+    panel = compute_fintech_attention_index(panel)
 
     # --- 6b-2. P2 attention 处理变量 (Fang-Peress 2009 JF extensive 覆盖加权曝光;
     #     Hassan 2019 QJE 仅限 pct/density/ctx 归因 — fix(omni-g-papers-misc-09, 2026-06-11)
     #     锚点更正, 同步 attention_media.py docstring; 双轨=互为稳健性) ---
     # spec 钦定 attention_index_full/ctx + attention_pct_full + attention_disp_full +
     # 双轨派生 (density/sd/gap/share)。防选择偏差: 全集脊柱 LEFT-join + 零-fintech 填 0 (index/pct)。
-    if PANEL_CFG.get('compute_attention_treatments', True):
-        panel = compute_attention_treatments(panel)
+    panel = compute_attention_treatments(panel)
 
     # --- 6b-3. 去重阈值敏感性处理变量 (Tetlock 2011 RFS; Hassan 2019 QJE) ---
     # 严格方向网格 (J×W) 在 12_full 文章全集上追加判重 → 重算 index/pct/计数,
     # 每变体 5 列 (_j70w5 等)。宽松方向需从 raw 重跑 stage 00, 模块 docstring 披露。
-    if PANEL_CFG.get('compute_dedup_sensitivity', True):
-        panel = compute_dedup_sensitivity_treatments(panel)
+    panel = compute_dedup_sensitivity_treatments(panel)
 
     # --- 6c. 媒体异质性变量 (四维度) ---
-    if PANEL_CFG.get('compute_media_heterogeneity', True):
-        panel = compute_media_heterogeneity(df_exploded, panel)
+    panel = compute_media_heterogeneity(df_exploded, panel)
 
     # --- 7. 综合指标 ---
     panel = compute_composite_indicators(panel)
@@ -997,265 +992,262 @@ def main():
     #   IV 数量 ≥ 6 类 → 论文主表强制使用 Romano-Wolf step-down p 值校正。
     # 基期约束 (v6/F4-3): bartik_base_year = max(panel.year.min(), 2010)；
     #   若计算所得基期 ≥ 2019 (DCEP 沙盒里程碑) 强制抛错。
-    if PANEL_CFG.get('compute_bartik_iv', True):
-        logger.info("=" * 60)
-        logger.info("步骤 7e: Bartik Shift-Share IV (v3: 6 类核心)")
-        logger.info("=" * 60)
-        type_map, scale_map = load_bank_group_maps()
-        # v6/F4-3 基期参数化：取 panel 起始年与 2010 中较晚者；强制 < 2019
-        _bartik_base_year_cfg = PANEL_CFG.get('bartik_base_year', 'auto')
-        _bartik_pre_cutoff = PANEL_CFG.get('bartik_pre_treatment_cutoff', 2019)
-        _panel_min = int(panel['year'].min())
-        if _bartik_base_year_cfg == 'auto' or _bartik_base_year_cfg is None:
-            T0 = max(_panel_min, 2010)
-        else:
-            T0 = int(_bartik_base_year_cfg)
-        if _bartik_pre_cutoff <= T0:
-            raise RuntimeError(
-                f"Bartik 基期 T0={T0} ≥ 政策冲击里程碑 {_bartik_pre_cutoff}：share "
-                f"已在 post-treatment 区间，违反 Goldsmith-Pinkham et al. (2020) "
-                f"外生性公理。请检查 panel.yaml::panel_building.bartik_base_year 设置。"
-            )
-        logger.info(f"  Bartik 基期: T0={T0} (panel.year.min={_panel_min}, "
-                    f"cfg={_bartik_base_year_cfg}, cutoff={_bartik_pre_cutoff})")
+    logger.info("=" * 60)
+    logger.info("步骤 7e: Bartik Shift-Share IV (v3: 6 类核心)")
+    logger.info("=" * 60)
+    type_map, scale_map = load_bank_group_maps()
+    # v6/F4-3 基期参数化：取 panel 起始年与 2010 中较晚者；强制 < 2019
+    _bartik_base_year_cfg = PANEL_CFG.get('bartik_base_year', 'auto')
+    _bartik_pre_cutoff = PANEL_CFG.get('bartik_pre_treatment_cutoff', 2019)
+    _panel_min = int(panel['year'].min())
+    if _bartik_base_year_cfg == 'auto' or _bartik_base_year_cfg is None:
+        T0 = max(_panel_min, 2010)
+    else:
+        T0 = int(_bartik_base_year_cfg)
+    if _bartik_pre_cutoff <= T0:
+        raise RuntimeError(
+            f"Bartik 基期 T0={T0} ≥ 政策冲击里程碑 {_bartik_pre_cutoff}：share "
+            f"已在 post-treatment 区间，违反 Goldsmith-Pinkham et al. (2020) "
+            f"外生性公理。请检查 panel.yaml::panel_building.bartik_base_year 设置。"
+        )
+    logger.info(f"  Bartik 基期: T0={T0} (panel.year.min={_panel_min}, "
+                f"cfg={_bartik_base_year_cfg}, cutoff={_bartik_pre_cutoff})")
 
-        # --- 主 Bartik: 银行类型 (6类, 5有效IV) ---
-        # v3: 显式传基期 T0
-        panel = compute_bartik_iv(panel, df_exploded, type_map, 'type',
-                                   base_year=T0)
-        # 基期敏感性 (T0, T0+1, T0&T0+1) — 检验 IV 对基期选择的稳健性
-        # ⚠️ 使用 merge-based 赋值，避免 .values 行序错配
-        for suffix, base_yr in [('_t0', T0), ('_t1', T0+1)]:
-            # fix(omni-g-runner-04, 2026-06-11): _t1 基期外生性守卫 — 主 IV 仅检
-            # T0 < cutoff, _t1 基期=T0+1 可落入 post-treatment 区间 (panel 起始
-            # 2018 时 _t1 基期=2019 绕过红线)。基期 ≥ cutoff → 该敏感性变体置
-            # NaN 并告警 (share 已在 post-treatment, 违反 GPSS 2020 公理)。
-            if base_yr >= _bartik_pre_cutoff:
-                logger.warning(
-                    f"  Bartik {suffix} 变体基期 {base_yr} ≥ 政策冲击里程碑 "
-                    f"{_bartik_pre_cutoff}, 违反外生性公理 → 置 NaN 跳过 "
-                    f"(fix(omni-g-runner-04))")
-                for track in ['_full', '_ctx']:
-                    panel[f'bartik_type_iv{track}{suffix}'] = np.nan
-                continue
-            ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
-                                     df_exploded, type_map, 'type',
-                                     base_year=base_yr)
-            for track in ['_full', '_ctx']:
-                src_col = f'bartik_type_iv{track}'
-                dst_col = f'bartik_type_iv{track}{suffix}'
-                ptmp = ptmp.rename(columns={src_col: dst_col})
-            panel = panel.merge(
-                ptmp[['target_bank', 'year',
-                      f'bartik_type_iv_full{suffix}',
-                      f'bartik_type_iv_ctx{suffix}']],
-                on=['target_bank', 'year'], how='left')
-        # fix(omni-g-runner-04, 2026-06-11): 真·池化基期 _t01 — 旧实现把 {T0,T0+1}
-        # 年份子集当全量文章传入, 而 compute_bartik_iv 内部 share 仍只取 year==T0
-        # (池化从未发生, _t01 与 _t0 字节级相同的幻影变体); 且 shift 聚合域被截断
-        # 到基期两年, 其余年份 shift NaN 经旧 fillna(0) 制成 IV 精确伪零。改为传
-        # 全量 df_exploded + base_years=[T0, T0+1] (iv_did 池化基期接口,
-        # fix(omni-g-ivdid-02) 实现)。池化基期含 T0+1 → 同样受 cutoff 外生性守卫。
-        if _bartik_pre_cutoff <= T0 + 1:
+    # --- 主 Bartik: 银行类型 (6类, 5有效IV) ---
+    # v3: 显式传基期 T0
+    panel = compute_bartik_iv(panel, df_exploded, type_map, 'type',
+                               base_year=T0)
+    # 基期敏感性 (T0, T0+1, T0&T0+1) — 检验 IV 对基期选择的稳健性
+    # ⚠️ 使用 merge-based 赋值，避免 .values 行序错配
+    for suffix, base_yr in [('_t0', T0), ('_t1', T0+1)]:
+        # fix(omni-g-runner-04, 2026-06-11): _t1 基期外生性守卫 — 主 IV 仅检
+        # T0 < cutoff, _t1 基期=T0+1 可落入 post-treatment 区间 (panel 起始
+        # 2018 时 _t1 基期=2019 绕过红线)。基期 ≥ cutoff → 该敏感性变体置
+        # NaN 并告警 (share 已在 post-treatment, 违反 GPSS 2020 公理)。
+        if base_yr >= _bartik_pre_cutoff:
             logger.warning(
-                f"  Bartik _t01 池化基期含 {T0 + 1} ≥ 政策冲击里程碑 "
+                f"  Bartik {suffix} 变体基期 {base_yr} ≥ 政策冲击里程碑 "
                 f"{_bartik_pre_cutoff}, 违反外生性公理 → 置 NaN 跳过 "
                 f"(fix(omni-g-runner-04))")
             for track in ['_full', '_ctx']:
-                panel[f'bartik_type_iv{track}_t01'] = np.nan
-        else:
-            ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
-                                     df_exploded, type_map, 'type',
-                                     base_years=[T0, T0 + 1])
-            for track in ['_full', '_ctx']:
-                src_col = f'bartik_type_iv{track}'
-                ptmp = ptmp.rename(columns={src_col: f'bartik_type_iv{track}_t01'})
-            panel = panel.merge(
-                ptmp[['target_bank', 'year',
-                      'bartik_type_iv_full_t01',
-                      'bartik_type_iv_ctx_t01']],
-                on=['target_bank', 'year'], how='left')
+                panel[f'bartik_type_iv{track}{suffix}'] = np.nan
+            continue
+        ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
+                                 df_exploded, type_map, 'type',
+                                 base_year=base_yr)
+        for track in ['_full', '_ctx']:
+            src_col = f'bartik_type_iv{track}'
+            dst_col = f'bartik_type_iv{track}{suffix}'
+            ptmp = ptmp.rename(columns={src_col: dst_col})
+        panel = panel.merge(
+            ptmp[['target_bank', 'year',
+                  f'bartik_type_iv_full{suffix}',
+                  f'bartik_type_iv_ctx{suffix}']],
+            on=['target_bank', 'year'], how='left')
+    # fix(omni-g-runner-04, 2026-06-11): 真·池化基期 _t01 — 旧实现把 {T0,T0+1}
+    # 年份子集当全量文章传入, 而 compute_bartik_iv 内部 share 仍只取 year==T0
+    # (池化从未发生, _t01 与 _t0 字节级相同的幻影变体); 且 shift 聚合域被截断
+    # 到基期两年, 其余年份 shift NaN 经旧 fillna(0) 制成 IV 精确伪零。改为传
+    # 全量 df_exploded + base_years=[T0, T0+1] (iv_did 池化基期接口,
+    # fix(omni-g-ivdid-02) 实现)。池化基期含 T0+1 → 同样受 cutoff 外生性守卫。
+    if _bartik_pre_cutoff <= T0 + 1:
+        logger.warning(
+            f"  Bartik _t01 池化基期含 {T0 + 1} ≥ 政策冲击里程碑 "
+            f"{_bartik_pre_cutoff}, 违反外生性公理 → 置 NaN 跳过 "
+            f"(fix(omni-g-runner-04))")
+        for track in ['_full', '_ctx']:
+            panel[f'bartik_type_iv{track}_t01'] = np.nan
+    else:
+        ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
+                                 df_exploded, type_map, 'type',
+                                 base_years=[T0, T0 + 1])
+        for track in ['_full', '_ctx']:
+            src_col = f'bartik_type_iv{track}'
+            ptmp = ptmp.rename(columns={src_col: f'bartik_type_iv{track}_t01'})
+        panel = panel.merge(
+            ptmp[['target_bank', 'year',
+                  'bartik_type_iv_full_t01',
+                  'bartik_type_iv_ctx_t01']],
+            on=['target_bank', 'year'], how='left')
 
-        # --- 稳健性 1: 银行规模 (4类, 3有效IV) — v3: 显式基期 T0 ---
-        panel = compute_bartik_iv(panel, df_exploded, scale_map, 'scale',
-                                   base_year=T0)
+    # --- 稳健性 1: 银行规模 (4类, 3有效IV) — v3: 显式基期 T0 ---
+    panel = compute_bartik_iv(panel, df_exploded, scale_map, 'scale',
+                               base_year=T0)
 
-        # --- 7e-digfront. 数字化前沿距离代理变量 ---
-        # 按同类型银行【基年】中位数新闻覆盖量划分一次, 组员资格跨年固定
-        # (仅基年有新闻覆盖的银行参与切分; 基年零覆盖 → 0)
-        # 概念迁移自:
-        #   Goldfarb, A. & Tucker, C. (2019). Digital economics.
-        #   Journal of Economic Literature, 57(1), 3-43.
-        #   https://doi.org/10.1257/jel.20171452
-        # 用途: DDD 三重差分 — 数字化前沿 × 政策冲击 (步骤 7g 后构建)
-        # fix(omni-g-runner-12, 2026-06-11): 旧实现按【同年】中位数切分, frontier
-        # 身份逐年随内生覆盖量翻转 (盘上 43/87 银行 2017→2018 翻转), post 期身份由
-        # post 期自身实现值决定 — 与上方 Bartik 的 pre-treatment 固定公理 (GPSS
-        # 2020 AER) 自相矛盾。改为 pre-period 固定切分 (见 _base_year_median_split)。
-        if 'bank_type' in panel.columns:
-            panel['digital_frontier'] = _base_year_median_split(
-                panel, value_col='n_articles', by='bank_type')
-            logger.info(f"  digital_frontier (基年 {int(panel['year'].min())} "
-                        f"固定切分): "
-                        f"1={panel['digital_frontier'].sum()}, "
-                        f"0={(panel['digital_frontier'] == 0).sum()}")
-        else:
-            logger.warning("  bank_type 不存在, 跳过 digital_frontier 构建")
+    # --- 7e-digfront. 数字化前沿距离代理变量 ---
+    # 按同类型银行【基年】中位数新闻覆盖量划分一次, 组员资格跨年固定
+    # (仅基年有新闻覆盖的银行参与切分; 基年零覆盖 → 0)
+    # 概念迁移自:
+    #   Goldfarb, A. & Tucker, C. (2019). Digital economics.
+    #   Journal of Economic Literature, 57(1), 3-43.
+    #   https://doi.org/10.1257/jel.20171452
+    # 用途: DDD 三重差分 — 数字化前沿 × 政策冲击 (步骤 7g 后构建)
+    # fix(omni-g-runner-12, 2026-06-11): 旧实现按【同年】中位数切分, frontier
+    # 身份逐年随内生覆盖量翻转 (盘上 43/87 银行 2017→2018 翻转), post 期身份由
+    # post 期自身实现值决定 — 与上方 Bartik 的 pre-treatment 固定公理 (GPSS
+    # 2020 AER) 自相矛盾。改为 pre-period 固定切分 (见 _base_year_median_split)。
+    if 'bank_type' in panel.columns:
+        panel['digital_frontier'] = _base_year_median_split(
+            panel, value_col='n_articles', by='bank_type')
+        logger.info(f"  digital_frontier (基年 {int(panel['year'].min())} "
+                    f"固定切分): "
+                    f"1={panel['digital_frontier'].sum()}, "
+                    f"0={(panel['digital_frontier'] == 0).sum()}")
+    else:
+        logger.warning("  bank_type 不存在, 跳过 digital_frontier 构建")
 
-        # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) — v3: 显式基期 T0 ---
-        # 注意: innovation_locus_full (v7, 原 fintech_category) 由 LLM 决定，须配合论证 (v6/F4-2 须论证清单)
-        # v3.2.0 M3 P4 (plan v14 §3.4): Bartik IV 双套独立
-        #   - bartik_fintech_lf_*: share = innovation_locus_full 基期占比 (与 Sautner 2023 JF 不同框架)
-        #   - bartik_fintech_lc_*: share = innovation_locus_ctx 基期占比 (Hassan 2019 QJE entity-proximity)
-        # 论文用法: main spec 选 _lf 或 _lc 之一 (Methods §4 决定), 另一作 robustness
-        fintech_map = {'底层技术': 'tech', '应用场景': 'app'}
-        panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech_lf',
+    # --- 稳健性 2: 金融科技类型 (2类, 1有效IV) — v3: 显式基期 T0 ---
+    # 注意: innovation_locus_full (v7, 原 fintech_category) 由 LLM 决定，须配合论证 (v6/F4-2 须论证清单)
+    # v3.2.0 M3 P4 (plan v14 §3.4): Bartik IV 双套独立
+    #   - bartik_fintech_lf_*: share = innovation_locus_full 基期占比 (与 Sautner 2023 JF 不同框架)
+    #   - bartik_fintech_lc_*: share = innovation_locus_ctx 基期占比 (Hassan 2019 QJE entity-proximity)
+    # 论文用法: main spec 选 _lf 或 _lc 之一 (Methods §4 决定), 另一作 robustness
+    fintech_map = {'底层技术': 'tech', '应用场景': 'app'}
+    panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech_lf',
+                                      base_year=T0,
+                                      category_col='innovation_locus_full')
+    if 'innovation_locus_ctx' in df_exploded.columns:
+        panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech_lc',
                                           base_year=T0,
-                                          category_col='innovation_locus_full')
-        if 'innovation_locus_ctx' in df_exploded.columns:
-            panel = compute_bartik_iv_fintech(panel, df_exploded, fintech_map, 'fintech_lc',
-                                              base_year=T0,
-                                              category_col='innovation_locus_ctx')
-        else:
-            logger.warning("  innovation_locus_ctx 不存在, 跳过 lc Bartik IV (M2 P2 加性后应已存在)")
+                                          category_col='innovation_locus_ctx')
+    else:
+        logger.warning("  innovation_locus_ctx 不存在, 跳过 lc Bartik IV (M2 P2 加性后应已存在)")
 
-        # --- 稳健性 3: 媒体三方分类 Bartik (财经/综合/其他) ---
-        # v6/F4: 仅保留 3a 三方分类。删除 3b/3c/3d/3e/3f/3g/3h/3i 等 8 类
-        #   二分变体（文献依据：与 3a 高度相关，且二分组对处理变量的外生性
-        #   通道未在文献中独立验证；删除以避免 multiple testing inflation）。
-        # 学术依据 Snyder & Strömberg (2010, JPE 118(2)) — 媒体类型分布在
-        #   pre-treatment 期固定时可作为 share。
-        cls_path = CONFIG['paths'].get(
-            'media_classification_file',
-            os.path.join(os.path.dirname(__file__),
-                         'config', 'media_classification.json'),
-        )
-        if os.path.exists(cls_path):
-            with open(cls_path, 'r', encoding='utf-8') as f:
-                media_cls = json.load(f)
-            FIN = set(media_cls.get('financial_media', []))
-            COMP = set(media_cls.get('comprehensive_media', []))
-            media_col = '媒体(中文)'
+    # --- 稳健性 3: 媒体三方分类 Bartik (财经/综合/其他) ---
+    # v6/F4: 仅保留 3a 三方分类。删除 3b/3c/3d/3e/3f/3g/3h/3i 等 8 类
+    #   二分变体（文献依据：与 3a 高度相关，且二分组对处理变量的外生性
+    #   通道未在文献中独立验证；删除以避免 multiple testing inflation）。
+    # 学术依据 Snyder & Strömberg (2010, JPE 118(2)) — 媒体类型分布在
+    #   pre-treatment 期固定时可作为 share。
+    cls_path = CONFIG['paths'].get(
+        'media_classification_file',
+        os.path.join(os.path.dirname(__file__),
+                     'config', 'media_classification.json'),
+    )
+    if os.path.exists(cls_path):
+        with open(cls_path, 'r', encoding='utf-8') as f:
+            media_cls = json.load(f)
+        FIN = set(media_cls.get('financial_media', []))
+        COMP = set(media_cls.get('comprehensive_media', []))
+        media_col = '媒体(中文)'
 
-            if '_media_type' not in df_exploded.columns:
-                df_exploded = _append_columns(df_exploded, {
-                    '_media_type': df_exploded[media_col].apply(
-                        lambda x: 'fin' if x in FIN else ('comp' if x in COMP else 'other')
-                    )
-                })
-            media_map = {'fin': 'fin', 'comp': 'comp', 'other': 'other'}
-            panel = compute_bartik_iv_fintech(
-                panel, df_exploded, media_map, 'media',
-                base_year=T0,
-                category_col='_media_type'
-            )
-            logger.info(f"  媒体分类 Bartik: 3a(fin/comp/other) — v6 仅保留三方")
-        else:
-            logger.warning("  media_classification.json 不存在, 跳过媒体分类 Bartik")
-
-        # --- 稳健性 4: 媒体权威性 (Holzman et al. 2023, TAR) ---
-        # v6/F4: 保留。媒体权威性档位由 media_weights.json 评分决定，
-        #   档位划分 (high≥80 / mid≥60 / low) 在 pre-treatment 期固定。
-        # Phase 1 重构: 优先读取 CONFIG['paths']['media_weights_file']。
-        mw_path = CONFIG['paths'].get(
-            'media_weights_file',
-            os.path.join(os.path.dirname(__file__),
-                         'config', 'media_weights.json'),
-        )
-        if os.path.exists(mw_path):
-            with open(mw_path, 'r', encoding='utf-8') as f:
-                mw = json.load(f)
-            mw = {k: v for k, v in mw.items() if not k.startswith('//')}
-            media_col = '媒体(中文)'
-            if '_media_authority' in df_exploded.columns:
-                df_exploded = df_exploded.drop(columns=['_media_authority'])
+        if '_media_type' not in df_exploded.columns:
             df_exploded = _append_columns(df_exploded, {
-                '_media_authority': df_exploded[media_col].apply(
-                    lambda x: 'high' if mw.get(x, 10) >= 80
-                    else ('mid' if mw.get(x, 10) >= 60 else 'low')
+                '_media_type': df_exploded[media_col].apply(
+                    lambda x: 'fin' if x in FIN else ('comp' if x in COMP else 'other')
                 )
             })
-            mauth_map = {'high': 'high', 'mid': 'mid', 'low': 'low'}
+        media_map = {'fin': 'fin', 'comp': 'comp', 'other': 'other'}
+        panel = compute_bartik_iv_fintech(
+            panel, df_exploded, media_map, 'media',
+            base_year=T0,
+            category_col='_media_type'
+        )
+        logger.info(f"  媒体分类 Bartik: 3a(fin/comp/other) — v6 仅保留三方")
+    else:
+        logger.warning("  media_classification.json 不存在, 跳过媒体分类 Bartik")
+
+    # --- 稳健性 4: 媒体权威性 (Holzman et al. 2023, TAR) ---
+    # v6/F4: 保留。媒体权威性档位由 media_weights.json 评分决定，
+    #   档位划分 (high≥80 / mid≥60 / low) 在 pre-treatment 期固定。
+    # Phase 1 重构: 优先读取 CONFIG['paths']['media_weights_file']。
+    mw_path = CONFIG['paths'].get(
+        'media_weights_file',
+        os.path.join(os.path.dirname(__file__),
+                     'config', 'media_weights.json'),
+    )
+    if os.path.exists(mw_path):
+        with open(mw_path, 'r', encoding='utf-8') as f:
+            mw = json.load(f)
+        mw = {k: v for k, v in mw.items() if not k.startswith('//')}
+        media_col = '媒体(中文)'
+        if '_media_authority' in df_exploded.columns:
+            df_exploded = df_exploded.drop(columns=['_media_authority'])
+        df_exploded = _append_columns(df_exploded, {
+            '_media_authority': df_exploded[media_col].apply(
+                lambda x: 'high' if mw.get(x, 10) >= 80
+                else ('mid' if mw.get(x, 10) >= 60 else 'low')
+            )
+        })
+        mauth_map = {'high': 'high', 'mid': 'mid', 'low': 'low'}
+        panel = compute_bartik_iv_fintech(
+            panel, df_exploded, mauth_map, 'mauth',
+            base_year=T0,
+            category_col='_media_authority'
+        )
+    else:
+        logger.warning("  media_weights.json 不存在, 跳过媒体权威性 Bartik")
+
+    # --- 稳健性 5: 地理邻近性 (Engelberg & Parsons 2011, JF) ---
+    # v6/F4: 保留。银行注册地 pre-treatment 固定，媒体省份是文章属性，
+    #   两者交叉的二分变量 (local/nonlocal) 在 pre-treatment 期固定。
+    media_prov_col = '国家地区/省份'
+    if media_prov_col in df_exploded.columns:
+        addr_path = CONFIG['paths'].get(
+            'bank_addresses_file',
+            os.path.join(os.path.dirname(__file__),
+                         'config', 'bank_addresses.json'),
+        )
+        if os.path.exists(addr_path):
+            with open(addr_path, 'r', encoding='utf-8') as f:
+                _addr = json.load(f)
+            _prov_map = {k: v.get('province', '') for k, v in _addr.items()}
+            _bank_prov = df_exploded['target_bank'].map(_prov_map)
+            df_exploded = df_exploded.drop(
+                columns=[c for c in ['_bank_prov', '_geo_proximity']
+                         if c in df_exploded.columns]
+            )
+            df_exploded = _append_columns(df_exploded, {
+                '_bank_prov': _bank_prov,
+                '_geo_proximity': np.where(
+                    df_exploded[media_prov_col] == _bank_prov,
+                    'local', 'nonlocal'
+                )
+            })
+            geoprox_map = {'local': 'local', 'nonlocal': 'nonlocal'}
             panel = compute_bartik_iv_fintech(
-                panel, df_exploded, mauth_map, 'mauth',
+                panel, df_exploded, geoprox_map, 'geoprox',
                 base_year=T0,
-                category_col='_media_authority'
+                category_col='_geo_proximity'
             )
-        else:
-            logger.warning("  media_weights.json 不存在, 跳过媒体权威性 Bartik")
 
-        # --- 稳健性 5: 地理邻近性 (Engelberg & Parsons 2011, JF) ---
-        # v6/F4: 保留。银行注册地 pre-treatment 固定，媒体省份是文章属性，
-        #   两者交叉的二分变量 (local/nonlocal) 在 pre-treatment 期固定。
-        media_prov_col = '国家地区/省份'
-        if media_prov_col in df_exploded.columns:
-            addr_path = CONFIG['paths'].get(
-                'bank_addresses_file',
-                os.path.join(os.path.dirname(__file__),
-                             'config', 'bank_addresses.json'),
-            )
-            if os.path.exists(addr_path):
-                with open(addr_path, 'r', encoding='utf-8') as f:
-                    _addr = json.load(f)
-                _prov_map = {k: v.get('province', '') for k, v in _addr.items()}
-                _bank_prov = df_exploded['target_bank'].map(_prov_map)
-                df_exploded = df_exploded.drop(
-                    columns=[c for c in ['_bank_prov', '_geo_proximity']
-                             if c in df_exploded.columns]
-                )
-                df_exploded = _append_columns(df_exploded, {
-                    '_bank_prov': _bank_prov,
-                    '_geo_proximity': np.where(
-                        df_exploded[media_prov_col] == _bank_prov,
-                        'local', 'nonlocal'
-                    )
-                })
-                geoprox_map = {'local': 'local', 'nonlocal': 'nonlocal'}
-                panel = compute_bartik_iv_fintech(
-                    panel, df_exploded, geoprox_map, 'geoprox',
-                    base_year=T0,
-                    category_col='_geo_proximity'
-                )
-
-        # ============================================================
-        # v6/F4 删除清单 (28 类违反外生性公理的 IV，已从 panel 输出移除)
-        # ------------------------------------------------------------
-        # 删除原因 (Goldsmith-Pinkham, Sorkin & Swift 2020, AER §2):
-        #   share 必须在 pre-treatment 期固定且独立于结果变量。
-        #   下列 IV 维度均违反此约束：
-        #     - doclen / kwdiv / kwden / mden / sentlen / ttr
-        #         → 文章特征是结果变量属性 (post-treatment article-level)
-        #     - author / page / pgnum
-        #         → 编辑事后决策 (post-treatment editorial decisions)
-        #     - half / qtr / month / wkday
-        #         → 时间切分与处理变量无清晰因果通道
-        #     - excl / title / mcount
-        #         → 编辑事后决策 + 直接结果变量
-        #     - mcentral / mfin / mcomp / mofficial / mmarket /
-        #       mfreq / mdeep / mdaily
-        #         → 媒体类型二分组与已保留的三方分类 (media) 高度相关，
-        #           multiple testing 通胀；删除以避免 p-hacking
-        #     - mprov
-        #         → 媒体省份与 geoprox 已保留的二分形式相关
-        #     - breadth / pubfmt
-        #         → 与 media / mauth 已保留维度高度相关
-        # ============================================================
-        logger.info(f"  Bartik IV (v6 修剪版): 6 类核心维度已完成 "
-                    f"(type/scale/fintech/media/geoprox/mauth)")
+    # ============================================================
+    # v6/F4 删除清单 (28 类违反外生性公理的 IV，已从 panel 输出移除)
+    # ------------------------------------------------------------
+    # 删除原因 (Goldsmith-Pinkham, Sorkin & Swift 2020, AER §2):
+    #   share 必须在 pre-treatment 期固定且独立于结果变量。
+    #   下列 IV 维度均违反此约束：
+    #     - doclen / kwdiv / kwden / mden / sentlen / ttr
+    #         → 文章特征是结果变量属性 (post-treatment article-level)
+    #     - author / page / pgnum
+    #         → 编辑事后决策 (post-treatment editorial decisions)
+    #     - half / qtr / month / wkday
+    #         → 时间切分与处理变量无清晰因果通道
+    #     - excl / title / mcount
+    #         → 编辑事后决策 + 直接结果变量
+    #     - mcentral / mfin / mcomp / mofficial / mmarket /
+    #       mfreq / mdeep / mdaily
+    #         → 媒体类型二分组与已保留的三方分类 (media) 高度相关，
+    #           multiple testing 通胀；删除以避免 p-hacking
+    #     - mprov
+    #         → 媒体省份与 geoprox 已保留的二分形式相关
+    #     - breadth / pubfmt
+    #         → 与 media / mauth 已保留维度高度相关
+    # ============================================================
+    logger.info(f"  Bartik IV (v6 修剪版): 6 类核心维度已完成 "
+                f"(type/scale/fintech/media/geoprox/mauth)")
 
     # --- 7f. 经济圈 Leave-One-Out IV ---
-    if PANEL_CFG.get('compute_bartik_iv', True):
-        logger.info("=" * 60)
-        logger.info("步骤 7f: 经济圈 Leave-One-Out IV")
-        logger.info("=" * 60)
-        panel = compute_zone_leave1out(panel, df_exploded)
+    logger.info("=" * 60)
+    logger.info("步骤 7f: 经济圈 Leave-One-Out IV")
+    logger.info("=" * 60)
+    panel = compute_zone_leave1out(panel, df_exploded)
 
     # --- 7g. DID 政策冲击变量 ---
-    if PANEL_CFG.get('compute_policy_shocks', True):
-        logger.info("=" * 60)
-        logger.info("步骤 7g: DID 政策冲击变量 (DCEP + Sandbox)")
-        logger.info("=" * 60)
-        panel = merge_policy_shocks(panel)
+    logger.info("=" * 60)
+    logger.info("步骤 7g: DID 政策冲击变量 (DCEP + Sandbox)")
+    logger.info("=" * 60)
+    panel = merge_policy_shocks(panel)
 
     # =========================================================================
     # 步骤 7g-het: 异质性分析交互项预计算
@@ -2173,16 +2165,15 @@ def main():
     # 必须在全部面板 merge 之后: 消费 attention_index (步骤 6) / sub_frac 等
     # 分类 frac (步骤 5) / benefit_mean_full (7h-benefit) / bank_type+share
     # (7e) / bank_zone (7f)。引擎与引用见 pipeline/panel/iv_extensions.py。
-    if PANEL_CFG.get('compute_iv_extensions', True):
-        _ivx_type_map, _ = load_bank_group_maps()
-        # 基期解析与步骤 7e 完全同口径 (share 复用 7e 产物, 掩码须一致)
-        _ivx_base_cfg = PANEL_CFG.get('bartik_base_year', 'auto')
-        if _ivx_base_cfg == 'auto' or _ivx_base_cfg is None:
-            _ivx_T0 = max(int(panel['year'].min()), 2010)
-        else:
-            _ivx_T0 = int(_ivx_base_cfg)
-        panel = compute_iv_extensions(panel, df_exploded,
-                                      _ivx_type_map, [_ivx_T0])
+    _ivx_type_map, _ = load_bank_group_maps()
+    # 基期解析与步骤 7e 完全同口径 (share 复用 7e 产物, 掩码须一致)
+    _ivx_base_cfg = PANEL_CFG.get('bartik_base_year', 'auto')
+    if _ivx_base_cfg == 'auto' or _ivx_base_cfg is None:
+        _ivx_T0 = max(int(panel['year'].min()), 2010)
+    else:
+        _ivx_T0 = int(_ivx_base_cfg)
+    panel = compute_iv_extensions(panel, df_exploded,
+                                  _ivx_type_map, [_ivx_T0])
 
     log_diagnostics(panel, df_exploded)
 
