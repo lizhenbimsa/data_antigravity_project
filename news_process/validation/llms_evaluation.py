@@ -218,13 +218,24 @@ def compute_krippendorffs_alpha(ratings_matrix: np.ndarray) -> float:
     D_o /= n_pairable
 
     # 计算期望的不一致度 D_e
+    # fix(measurement-validation-audit 2026-06-13, B2-krippendorff-de): D_e 必须
+    # 与 D_o 同口径, 仅基于 *可配对单元* (m_u>=2) 的取值分布。此前 total_counter
+    # 计入了单编码者单元 (m_u<2) 的取值, 而 D_o 已 `continue` 跳过这些单元 →
+    # D_o/D_e 值集不一致, 偏离 Krippendorff (2004, Content Analysis §11) 标准
+    # 系数定义。完整数据 (每单元都有 >=2 编码者) 下与原结果逐位一致, 仅在存在
+    # 缺标/单编码者单元时给出修正值。Krippendorff α 的一个定义性质是: 仅被单一
+    # 编码者评过的单元对 α 无任何贡献 (见配套测试的不变性断言)。
     total_counter = Counter()
-    for c in range(n_coders):
-        for i in range(n_items):
-            if valid_mask[c, i]:
-                val = int(ratings_matrix[c, i])
-                total_counter[val] = total_counter.get(val, 0) + 1
+    for i in range(n_items):
+        item_vals = [int(ratings_matrix[c, i]) for c in range(n_coders)
+                     if valid_mask[c, i]]
+        if len(item_vals) < 2:
+            continue
+        for val in item_vals:
+            total_counter[val] = total_counter.get(val, 0) + 1
     n_total = sum(int(x) for x in total_counter.values())
+    if n_total < 2:
+        return 0.0
 
     D_e = 0.0
     for v1 in all_values:
@@ -266,9 +277,26 @@ def compute_classification_metrics(y_true: np.ndarray, y_pred: np.ndarray, label
 
     acc = accuracy_score(y_true, y_pred)
     cm = confusion_matrix(y_true, y_pred, labels=labels)
-    
+
+    # fix(measurement-validation-audit 2026-06-13, A1-accuracy-ci): 顶刊要求验证
+    # 统计量附不确定性, 而非裸点估计。对 accuracy 附 Wilson score 95% CI
+    # (Wilson 1927; 本仓 validation/dict_coverage.py::wilson_ci 同式), 因人工
+    # 金标准样本经分歧排除/覆盖率剔除后 n 可能仅数百, 点估计噪声不可忽略。
+    # 新增 'accuracy_ci' 键, 不改动既有键 → 向后兼容。
+    _n = int(len(y_true))
+    if _n > 0:
+        _z = 1.96
+        _denom = 1 + _z ** 2 / _n
+        _center = (acc + _z ** 2 / (2 * _n)) / _denom
+        _margin = _z * ((acc * (1 - acc) + _z ** 2 / (4 * _n)) / _n) ** 0.5 / _denom
+        acc_ci = [round(max(0.0, _center - _margin), 4),
+                  round(min(1.0, _center + _margin), 4)]
+    else:
+        acc_ci = [0.0, 1.0]
+
     metrics = {
         'accuracy': round(float(acc), 4),
+        'accuracy_ci': acc_ci,
         'confusion_matrix': cm.tolist(),
         'labels': labels.tolist() if hasattr(labels, 'tolist') else list(labels),
         'total': len(y_true)
@@ -329,24 +357,43 @@ def compute_mcnemar_test(y_true: np.ndarray,
     b = int(np.sum(correct_a & ~correct_b))
     c = int(np.sum(~correct_a & correct_b))
 
-    if (b + c) == 0:
+    n_discordant = b + c
+    if n_discordant == 0:
         return {'chi2_statistic': 0.0, 'p_value': 1.0, 'significant': False,
-                'b_count': b, 'c_count': c}
+                'b_count': b, 'c_count': c, 'test_type': 'none(b+c=0)'}
 
-    # McNemar 统计量（带连续性校正）
-    chi2_stat = (abs(b - c) - 1) ** 2 / (b + c)
+    # McNemar 统计量（带连续性校正）—— 始终计算供参考
+    chi2_stat = (abs(b - c) - 1) ** 2 / n_discordant
 
-    # chi2(df=1) 的 p 值近似——使用 scipy 不一定可用，手动近似
-    # 对 df=1 的卡方分布：p ≈ erfc(sqrt(chi2/2)) (正态近似)
-    # 精确做法：使用正则化不完全 Gamma 函数
-    try:
-        from scipy.stats import chi2 as chi2_dist
-        p_value = float(chi2_dist.sf(chi2_stat, df=1))
-    except ImportError:
-        # 正态近似回退
-        import math
-        z = math.sqrt(chi2_stat)
-        p_value = 2 * (1 - 0.5 * (1 + math.erf(z / math.sqrt(2))))
+    # fix(measurement-validation-audit 2026-06-13, B1-mcnemar-exact): 分歧样本
+    # 数 (b+c) 较小时, 连续性校正卡方近似的 p 值不可靠 (small-sample); 顶刊
+    # 标准做法是改用 *精确* 二项检验 (在 H0 下 b ~ Binomial(b+c, 0.5))。
+    # 仅当 b+c >= EXACT_CUTOFF 才退回卡方渐近近似。chi2_statistic 仍一并返回
+    # 供读者参考, 但 significant 判定以所选检验的 p 值为准。返回新增
+    # 'test_type' 字段标明实际所用检验 (向后兼容: 旧字段全部保留)。
+    EXACT_CUTOFF = 25
+    if n_discordant < EXACT_CUTOFF:
+        try:
+            from scipy.stats import binomtest
+            p_value = float(binomtest(min(b, c), n=n_discordant, p=0.5,
+                                      alternative='two-sided').pvalue)
+        except ImportError:
+            # 无 scipy 时手算两侧精确二项 p 值
+            from math import comb
+            k = min(b, c)
+            tail = sum(comb(n_discordant, i) for i in range(0, k + 1)) * (0.5 ** n_discordant)
+            p_value = min(1.0, 2.0 * tail)
+        test_type = 'exact_binomial'
+    else:
+        # chi2(df=1) 的 p 值——scipy 优先, 否则正态近似回退
+        try:
+            from scipy.stats import chi2 as chi2_dist
+            p_value = float(chi2_dist.sf(chi2_stat, df=1))
+        except ImportError:
+            import math
+            z = math.sqrt(chi2_stat)
+            p_value = 2 * (1 - 0.5 * (1 + math.erf(z / math.sqrt(2))))
+        test_type = 'continuity_corrected_chi2'
 
     return {
         'chi2_statistic': round(chi2_stat, 4),
@@ -354,6 +401,7 @@ def compute_mcnemar_test(y_true: np.ndarray,
         'significant': p_value < 0.05,
         'b_count': b,
         'c_count': c,
+        'test_type': test_type,
     }
 
 
@@ -736,6 +784,7 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
     from news_process.validation.manual_validation_schema import (
         R_COLUMNS_BY_RATER,
         merge_three_rater_majority,
+        normalize_rater_value,
     )
 
     config = load_config()
@@ -787,6 +836,41 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
 
     n_gold_subst = df_mv['gold_substantiveness'].notna().sum()
     n_gold_locus = df_mv['gold_locus'].notna().sum()
+
+    # fix(measurement-validation-audit 2026-06-13, P1-percoder-reliability): 在折叠成
+    # 多数票 gold 之外, 对原始 3 编码者 (R1/R2/R3) 计算 Krippendorff α 并落盘。
+    # 顶刊 (ASQ/SMJ; Krippendorff 2018) 要求: 即便用多编码者共识作 gold, 仍须报告
+    # 构念本身的编码者间信度。此前 R 列经 merge_three_rater_majority 折叠后 α 信息
+    # 丢失, 注释把它甩给已删除的 study-plan 工作流 → 创新维度永无信度数字。
+    # 独立 results 键, 不触 inter_coder_reliability 的 2-键不变量 (R27B-02)。
+    _INNOV_LABEL_CODE = {
+        'substantiveness': {'实质性': 0, '象征性': 1},
+        'locus': {'底层技术': 0, '应用场景': 1},
+    }
+    innov_icr = {}
+    for _dim, _rcols in (('substantiveness', R_COLUMNS_BY_RATER['substantiveness']),
+                         ('locus', R_COLUMNS_BY_RATER['locus'])):
+        _code_map = _INNOV_LABEL_CODE[_dim]
+        # (n_coders, n_items) 矩阵; 缺失/不可识别 = -1 (compute_krippendorffs_alpha 约定)
+        _mat = np.full((len(_rcols), len(df_mv)), -1, dtype=int)
+        for _ci, _col in enumerate(_rcols):
+            for _ii, _raw in enumerate(df_mv[_col].tolist()):
+                _canon = normalize_rater_value(_raw)
+                if _canon in _code_map:
+                    _mat[_ci, _ii] = _code_map[_canon]
+        _n_pairable = int(((_mat >= 0).sum(axis=0) >= 2).sum())
+        if _n_pairable < 1:
+            innov_icr[_dim] = {'krippendorffs_alpha': None, 'n_pairable_items': 0,
+                               'n_coders': len(_rcols), 'status': 'pending(无≥2编码者共评单元)'}
+        else:
+            innov_icr[_dim] = {
+                'krippendorffs_alpha': compute_krippendorffs_alpha(_mat),
+                'n_pairable_items': _n_pairable,
+                'n_coders': len(_rcols),
+                'status': 'ok',
+            }
+    results['innovation_inter_coder_reliability'] = innov_icr
+    logger_inst.info(f"  创新维度 3 编码者 Krippendorff α (折叠前): {innov_icr}")
 
     # 可达性检查 3 (Reachability check 3): 全部 R 列单元格为 NaN
     if n_gold_subst == 0 and n_gold_locus == 0:
@@ -848,6 +932,32 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
             y_true = df_joined.loc[mask, gold_col].astype(str).to_numpy()
             y_pred = df_joined.loc[mask, pred_col].astype(str).to_numpy()
             metrics = compute_classification_metrics(y_true, y_pred, labels=class_labels)
+            # fix(measurement-validation-audit 2026-06-13, P1-population-weight): 样本按
+            # LLM 预测分层过采样(稀有类相对总体被高估), 未加权 accuracy 是
+            # stratum-conditional, 不可外推总体 (Manski-Lerman 1977 choice-based sample)。
+            # 工作簿带 population_weight 时附【总体后分层加权 accuracy】(精确加权均值,
+            # 不改 compute_classification_metrics 签名/CI), 并显式标注两者口径。
+            if 'population_weight' in df_joined.columns:
+                _w = pd.to_numeric(df_joined.loc[mask, 'population_weight'],
+                                   errors='coerce').to_numpy()
+                _correct = (y_true == y_pred).astype(float)
+                _wsum = float(np.nansum(_w))
+                # fix(measurement-validation-audit 2026-06-13, re-audit): 仅在权重全部
+                # 有限且非负时计加权 accuracy。否则 partial-NaN 会让加权/未加权落在不同
+                # 行集 (静默分叉), 负权重还会使 accuracy 越界 [0,1]。生产权重恒=pop/sample
+                # >0 (sampling.py:132), 此守卫纯防御工作簿被手改/污染。
+                _w_valid = bool(np.isfinite(_w).all() and (_w >= 0).all())
+                if _w_valid and _wsum > 0:
+                    metrics['accuracy_weighted_corpus'] = round(
+                        float(np.nansum(_w * _correct) / _wsum), 4)
+                    metrics['accuracy_note'] = (
+                        'accuracy=未加权(stratum-conditional, 不可外推总体); '
+                        'accuracy_weighted_corpus=按 population_weight 后分层加权(总体口径)')
+                else:
+                    metrics['accuracy_weighted_corpus'] = None
+                    metrics['accuracy_note'] = (
+                        'accuracy=未加权; 加权 accuracy 不可计 (population_weight 含 '
+                        'NaN/负值/全零, 与未加权口径不一致 → 置 None)')
             results['classifier_metrics'][task_name][f'LLM ({track})'] = metrics
             try:
                 save_confusion_matrix_plot(
@@ -1303,11 +1413,24 @@ def main():
     # 先将 gold_sen_col 初始化为 None，防止后续分支遗漏赋值导致 UnboundLocalError
     gold_sen_col = None
 
+    # fix(measurement-validation-audit 2026-06-13, A1-single-coder-gold): 记录金标准
+    # 来源, 防"双编码者共识"方法学表述与实际单编码者金标准不符 (misreporting hazard)。
+    # two_coder_consensus = 最终_验证 (merge_annotations 共识) / single_coder_A =
+    # 缺共识列时回退编码者A单人 / demo_synthetic = 合成。
+    gold_source_ver = 'demo_synthetic'
+    gold_source_sen = 'demo_synthetic'
+
     # 黄金标准（验证）
     if final_ver in df_verify.columns and df_verify[final_ver].notna().sum() > 0:
         gold_ver_col = final_ver
+        gold_source_ver = 'two_coder_consensus'
     elif coder_a_ver in df_verify.columns and df_verify[coder_a_ver].notna().sum() > 0:
         gold_ver_col = coder_a_ver
+        gold_source_ver = 'single_coder_A'
+        logger.warning(
+            "  [验证] 未找到双编码者共识列 '最终_验证', 金标准回退至单编码者(编码者A) — "
+            "编码者间信度(κ/α)不可得; 论文不得表述为'双编码者共识', 已记录 "
+            "gold_source=single_coder_A")
     else:
         logger.info("验证黄金标准缺失，切换至模拟模式")
         df_verify = _generate_demo_data()
@@ -1324,10 +1447,26 @@ def main():
     elif not demo_mode:
         if final_sen in df_verify.columns and df_verify[final_sen].notna().sum() > 0:
             gold_sen_col = final_sen
+            gold_source_sen = 'two_coder_consensus'
         elif coder_a_sen in df_verify.columns and df_verify[coder_a_sen].notna().sum() > 0:
             gold_sen_col = coder_a_sen
+            gold_source_sen = 'single_coder_A'
+            logger.warning(
+                "  [情感] 未找到双编码者共识列 '最终_情感', 金标准回退至单编码者(编码者A) — "
+                "编码者间信度(κ/α)不可得; 论文不得表述为'双编码者共识', 已记录 "
+                "gold_source=single_coder_A")
         else:
             gold_sen_col = None
+            gold_source_sen = 'none'
+
+    # fix(measurement-validation-audit 2026-06-13, re-audit): demo 模式下
+    # _generate_demo_data 合成的 最终_验证 列会让上面 verification 分支把
+    # gold_source_ver 误标 'two_coder_consensus' (与 数据模式=模拟数据 自相矛盾,
+    # 且同一 demo 帧的 gold_source_sen 仍为 demo_synthetic → 两标签不一致)。
+    # demo 一律标 demo_synthetic, 消除该不一致 (该字段本就为防 misreporting)。
+    if demo_mode:
+        gold_source_ver = 'demo_synthetic'
+        gold_source_sen = 'demo_synthetic'
 
     # fix(omni-g-val-eval-03, 2026-06-11): 金标准提取排除待仲裁哨兵值。
     # merge_annotations 把编码者分歧行写成 最终_验证=-1 (llms_human.py:229);
@@ -1815,6 +1954,10 @@ def main():
         '数据模式': '模拟数据' if demo_mode else '真实数据',
         '验证样本总量 (N)': len(df_verify),
         '有效验证样本 (n_gold_ver)': n_gold_ver,
+        # fix(measurement-validation-audit 2026-06-13, A1-single-coder-gold): 金标准
+        # 来源透传, 供论文方法学表述自检 (single_coder_A 时不得称双编码者共识)。
+        '验证任务_gold来源': gold_source_ver,
+        '情感任务_gold来源': gold_source_sen,
         # fix(human-annot-readback, 2026-06-13): 构念披露入论文方法论报告 —
         # _ctx 轨指标必须按混合下界解读, 不随 JSON 丢失
         '构念披露 (_ctx 轨)': GOLD_CONSTRUCT_DISCLOSURE,
@@ -1840,9 +1983,14 @@ def main():
             # fix(omni-g-val-eval-04, 2026-06-11): import math 已提升至模块级,
             # 此处不再局部 import (防止情感分支单独执行时未绑定)
             se_kappa = math.sqrt(p_o * (1 - p_o) / (n_s * (1 - p_e) ** 2))
-            ci_low = round(kappa_val - 1.96 * se_kappa, 4)
-            ci_high = round(kappa_val + 1.96 * se_kappa, 4)
+            # fix(measurement-validation-audit 2026-06-13, A1/B2-kappa-ci): κ∈[-1,1],
+            # 此处用 Fleiss 简化渐近 SE, κ 接近 ±1 时正态 CI 会越界 → 截断到 [-1,1];
+            # 并显式标注 CI 方法 (顶刊更稳健做法是 bootstrap, 见
+            # pipeline/audit/inter_track_kappa.py::_compute_kappa_with_bootstrap)。
+            ci_low = round(max(-1.0, kappa_val - 1.96 * se_kappa), 4)
+            ci_high = round(min(1.0, kappa_val + 1.96 * se_kappa), 4)
             std_report['验证任务_κ_95%CI'] = f"[{ci_low}, {ci_high}]"
+            std_report['验证任务_κ_CI方法'] = '渐近近似(Fleiss简化SE,截断至[-1,1]);建议bootstrap'
             logger.info(f"  验证任务: κ = {kappa_val:.4f}, 95% CI = [{ci_low:.4f}, {ci_high:.4f}]")
             logger.info(f"  验证任务: α = {alpha_ver}, N = {n_s}")
 
@@ -1860,9 +2008,12 @@ def main():
         n_s_s = kappa_sen.get('n_samples', 0)
         if n_s_s > 0 and p_e_s < 1:
             se_s = math.sqrt(p_o_s * (1 - p_o_s) / (n_s_s * (1 - p_e_s) ** 2))
-            ci_low_s = round(kappa_val_s - 1.96 * se_s, 4)
-            ci_high_s = round(kappa_val_s + 1.96 * se_s, 4)
+            # fix(measurement-validation-audit 2026-06-13, A1/B2-kappa-ci): 同验证任务,
+            # 截断 κ CI 至 [-1,1] + 标注方法 (bootstrap 为推荐升级)。
+            ci_low_s = round(max(-1.0, kappa_val_s - 1.96 * se_s), 4)
+            ci_high_s = round(min(1.0, kappa_val_s + 1.96 * se_s), 4)
             std_report['情感任务_κ_95%CI'] = f"[{ci_low_s}, {ci_high_s}]"
+            std_report['情感任务_κ_CI方法'] = '渐近近似(Fleiss简化SE,截断至[-1,1]);建议bootstrap'
             logger.info(f"  情感任务: κ = {kappa_val_s:.4f}, 95% CI = [{ci_low_s:.4f}, {ci_high_s:.4f}]")
             logger.info(f"  情感任务: α = {alpha_sen}, N = {n_s_s}")
 
@@ -1882,6 +2033,12 @@ def main():
             "  [demo_mode] 当前为模拟标注数据 — 已抑制'论文建议表述'输出; "
             "κ/F1/混淆矩阵均为合成噪声, 严禁用于论文报告。请在人工编码完成后重跑。"
         )
+    elif gold_source_ver == 'single_coder_A':
+        # fix(measurement-validation-audit 2026-06-13, A1-single-coder-gold): 单编码者
+        # 金标准下绝不打印"双编码者共识"表述 (与实际不符), 改给单编码者诚实模板。
+        logger.warning(
+            "  [single_coder] 金标准为单编码者(编码者A), 无编码者间信度 — 已抑制"
+            "'双编码者共识'方法学表述; 请补充第二编码者后重跑, 或如实表述为单编码者验证。")
     else:
         logger.info("")
         logger.info("  ── 论文方法论章节建议表述 ──")

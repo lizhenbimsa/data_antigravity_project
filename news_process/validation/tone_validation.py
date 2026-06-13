@@ -9,7 +9,11 @@ news_process.validation.tone_validation — 阶段34：情感分析三角验证�
 
 功能：
     对三种情感分析方法（词典法/BERT/LLM）进行系统性交叉验证，
-    以确保情感度量的构建效度符合国际顶级期刊标准。
+    提供情感度量的【收敛效度 / convergent validity】证据（方法间趋同）。
+    注 (measurement-validation-audit 2026-06-13): 本阶段为收敛效度，不等于
+    【效标效度 / criterion validity】（vs 人工金标准）——后者由人工回读
+    evaluate_human_verification 与 stage 33 提供，人工标注未填时为 pending；
+    不得仅凭方法间一致性宣称"构念效度达顶刊标准"。
 
     验证内容：
     ┌────────────────────────────────────────────────────────────┐
@@ -1887,8 +1891,14 @@ def main():
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
     logger.info("")
     logger.info("  📌 阶段目的")
-    logger.info("     对三种情感分析方法(词典法/BERT/LLM)进行系统性交叉验证,")
-    logger.info("     以确保情感度量的构建效度(Construct Validity)符合顶级期刊标准。")
+    logger.info("     对三种情感分析方法(词典法/BERT/LLM)进行系统性交叉验证。")
+    # fix(measurement-validation-audit 2026-06-13, P1-convergent-vs-criterion): 本阶段
+    # 产出的是【收敛效度/convergent validity】证据 (跨方法 Cronbach α / Spearman ρ /
+    # 标签一致率 = 方法间趋同), 不等于【效标效度/criterion validity】(vs 人工金标准)。
+    # 后者由 evaluate_human_verification (回读 09_sentiment_verify) 与 stage 33 提供,
+    # 人工标注未填时恒为 pending。故此处不得单凭方法间一致性宣称"构念效度达顶刊标准"。
+    logger.info("     注: 本阶段 = 收敛效度(方法间趋同); 效标效度(vs 人工金标准)由人工")
+    logger.info("     回读 (evaluate_human_verification) / stage 33 提供, 未填表时 pending。")
     logger.info("     双轨模式: 全文(_full)和上下文片段(_ctx)分别执行完整验证。")
     logger.info("")
     logger.info("  📖 方法论依据")
