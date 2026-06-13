@@ -89,6 +89,20 @@ identification:
     # collab_frac_cm 配 ctx 同业 LOO 工具 lpeer_collab_iv_ctx, 与 full 轨各自
     # just-identified 并排 (双轨互为稳健性); 非 full×ctx overid。模板 21_collab_iv_2sls。
 
+# 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# 消费 panel 实存共现中心度列 → golden-safe; mediator/moderator 须 production T=18; schema 对本块 no-op。
+network_roles:
+  mediator:
+    column: brokerage_eigen_cent   # collab_frac → 成为合作枢纽 → m_and_a_fintech (Chesbrough 开放创新可观测网络代理, 胜纯文本占比)
+    framing: association_decomposition   # 中介内生 → Imai ρ 敏感性; 探索性附录
+    status: exploratory_appendix
+    lit: [Chesbrough 2003, Burt 1992, Imai-Keele-Yamamoto 2010 Stat.Sci.]
+  moderator:
+    interaction: collab_x_btwn   # = collab_frac × L.bank_between_cent (已是经纪位置的行外部协同→M&A 转化率更高)
+    framing: production_t18
+    lit: [Chesbrough 2003, Grieser et al. 2022 JFE]
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
+
 event_studies:
   - E1   # 2013-06-13 yuebao_launch (fintech ecosystem 开启, 与 P4 locus 同 events)
   - E3   # 2017-04-27 asset_management_rules

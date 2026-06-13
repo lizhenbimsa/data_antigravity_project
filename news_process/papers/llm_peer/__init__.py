@@ -4,7 +4,8 @@
 --------
 LLM-Peer — 基于大语言模型构造的同业竞争 IV (LLM-Generated Peer Competition IV).
 衍生自 ``pipeline/panel/llm_peer_iv.py`` (原 48_panel_llm_peer_iv.py),
-学术依据 Cao, Li, Wang & Zhao 2025 — *Can Generative AI Help Identify Peer Firms?*
+学术依据 Cao, Chen, Tucker & Wan 2025 (RAS) — *Can Generative AI Help Identify Peer Firms?*
+(canonical: refs.bib:48 / llm_peer_iv.py:19; 旧 "Cao, Li, Wang & Zhao" 为幻觉作者已订正)
 
 核心变量
 --------

@@ -8,7 +8,7 @@ status: existing
 differentiation_claim: |
   llm_peer 用 LLM 判定的语义同业关系 (vs 传统 SIC 行业代码) 构造 leave-one-out
   工具变量, 估计同业语调溢出对银行 fintech 战略响应的因果效应。
-  锚定: Cao, Li, Wang & Zhao 2025 RAS + Stock-Yogo 2005 + Kleibergen-Paap 2006 + Manski 1993 RES。
+  锚定: Cao, Chen, Tucker & Wan 2025 RAS + Stock-Yogo 2005 + Kleibergen-Paap 2006 + Manski 1993 RES。
   跨 paper 区分:
   - 与 P1 (tone): llm_peer 用 LLM peer 网络 IV; P1 仅 firm-level tone
   - 与 P2 (attention): llm_peer 用 LLM peer IV (语义同业); P2 fallback Bartik (银行类型分类)
@@ -64,6 +64,19 @@ identification:
     # fix(omni-g-misc-02, 2026-06-11): cutoff=0.75 是 difflib.get_close_matches 的字符串
     # 匹配严格度 (LLM 同行名归一), 非 TNIC 相似度阈值 — 口径勘误同 llm_peer_iv.py:692。
     fallback: llm_peer_tone_iv_full_75   # difflib name-matching cutoff=0.75 robustness instrument (real, on panel)
+
+# 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# 方法学卖点: 共现网作"传统网络位置 baseline" 证 LLM 语义同业 IV 增量识别力。golden-safe; schema no-op。
+network_roles:
+  control:
+    columns: [bank_between_cent, brokerage_eigen_cent]   # 控制共现网位置后 LLM 语义同业 IV 仍有增量 → 直接回应 referee "语义网 vs 共现网谁优"
+    framing: incremental_validity_baseline
+    discriminant_check: "corr(llm_peer_count, bank_degree_cent) = 语义同业数 vs 共现同业数"
+    lit: [Cao et al. 2025 RAS, Burt 1992, Bonacich 1972]
+    note: "⚠ N-02: bank_between_cent(0兜底) + brokerage_eigen_cent(NaN兜底) 同入须先统一缺失约定; llm_peer 是 2SLS 不能用 reghdfe"
+  moderator:
+    status: deferred   # lpeer_tone_iv × 网密度交乘工具化第一阶段双工具识别过复杂, T=18 才稳 (审计 LLMPEER-MOD-1 reject-fatal)
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
 
 event_studies: []  # cross-sectional IV identification; no policy shocks
 

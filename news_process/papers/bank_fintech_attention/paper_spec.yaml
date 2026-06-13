@@ -84,6 +84,19 @@ identification:
     # 子样本内同类银行 attention 均值, 不依赖 LLM 语义判定; llm_peer paper 用 LLM-determined
     # semantic peer (Cao 2025 RAS 风格的语义相似度), 与 P2 的 4 类银行分类完全不同。
 
+# 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# 消费 panel 实存共现中心度列 → golden-safe; control 立即生效; schema 对本块 no-op。
+network_roles:
+  control:
+    columns: [bank_degree_cent, net_density_yr]   # attention 与共现度机械同源, 必控; bank_strength_cent 仅副控 (跨年不可比 P2-7)
+    framing: mechanical_coexposure   # 不控则主系数 = 纯曝光强度 + 枢纽地位混合
+    lit: [Fang-Peress 2009 JF, Hassan 2019 QJE]
+  iv:
+    instruments: [leave_one_out_peer_attention_iv, bartik_attention_iv]   # 既有跨族 over-id (LOO × Bartik), 解 P1-6 恰好识别 → Hansen J
+    forbidden: cooccur_peer_loo_new_column   # 勿新建共现 peer-LOO 工具 = 复活已撤回双工具 (corr 0.998, 审计 P2-PEERIV-1 reject)
+    note: "production T=18 报 KP rk F + Hansen J + 两工具 corr/VIF (Parente-Santos-Silva 2012)"
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
+
 event_studies:  # P2 applicable events 引用 Appendix C event id
   - E1   # 2013-06-13 yuebao_launch
   - E2   # 2016-08-24 p2p_regulation

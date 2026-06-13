@@ -17,7 +17,8 @@ differentiation_claim: |
     不同框架 (technology layer vs organization source); 二维交叉但独立 (2² cross-tab cells);
     P4 主回归保持 locus pair 作 treatment, collab_mode 仅作 robustness control (Table 5 alternative spec).
   - 与现有 llm_peer: P4 用 leave-one-out peer locus IV (4 银行类型分类同业), llm_peer 用 LLM-determined 语义同业; 命名 surface-相似但 peer 定义机制完全不同
-  - 与现有 brokerage_network: P4 不构造网络中心性 / 二阶语调 IV, 仅 firm-level locus 二元对照
+  - 与现有 brokerage_network: P4 **主识别**不构造网络中心性 / 二阶语调 IV (区别 brokerage), 仅 firm-level locus 二元对照;
+    network_roles 块仅在附录探索性地用 bank_between_cent 作中介 (跨群知识经纪通道 → 专利, 区别 brokerage 的风险传染通道 → roa) / 异质性, 非主回归 (network-metrics-elevation 2026-06-13)
   - 与现有 benefit_society: P4 度量 locus (二元层属性), benefit_society 度量态度 (LLM-Embedding 投影强度), 维度完全不同
   - 与现有 strategic_diff: P4 度量 locus 自身属性, strategic_diff 度量 firm 在 N-邻群中的战略差异度
 
@@ -83,6 +84,20 @@ identification:
       - leave_one_out_peer_locus_iv_lag1   # full 轨滞后
       - lpeer_locus_iv_ctx                 # ctx 轨同期 (32 字符约束用 lpeer_ 紧凑前缀)
       - lpeer_locus_iv_ctx_lag1            # ctx 轨滞后
+
+# 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# 消费 panel 实存共现中心度列 → golden-safe; mediator/heterogeneity 须 production T=18; schema 对本块 no-op。
+network_roles:
+  mediator:
+    column: bank_between_cent   # tech_frac → between (跨群知识经纪) → citation_weighted_patent
+    framing: association_decomposition   # 中介内生 (P1-5) → Imai-Keele-Yamamoto ρ 敏感性必报; 探索性附录非因果中介
+    status: exploratory_appendix
+    lit: [Gomber et al. 2018 JMIS, Burt 1992, Imai-Keele-Yamamoto 2010 Stat.Sci.]
+  heterogeneity:
+    column: bank_is_hub   # within-year decile (N-08)
+    framing: production_t18
+    lit: [El-Khatib-Fogel-Jandik 2015 JFE]
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
 
 event_studies:  # P4 applicable events
   - E1   # 2013-06-13 yuebao_launch

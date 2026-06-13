@@ -246,6 +246,15 @@ robustness_battery:
   - covid_drop_2020Q2_2021Q2: "外生 COVID shock 排除 (V4 F-Edge.3)"
   - bank_ma_corporate_action_drop: "M&A / 改制银行排除 robustness"
 
+# 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# provisional; 主因变量待 onboarding, 网络控制先入骨架。golden-safe; schema no-op。
+network_roles:
+  control:
+    columns: [bank_degree_cent, brokerage_eigen_cent]   # cross_outlet_variance 随 outlet 数机械膨胀 → 控网络曝光位置防"分歧度=覆盖广度"伪信号
+    framing: coverage_breadth_confounder
+    lit: [Diether-Malloy-Scherbina 2002 JF, Cookson-Niessner 2020 JF, Bushee et al. 2010]
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
+
 event_studies:
   - E1   # 2013-06-13 yuebao_launch
   - E2   # 2016-08-24 p2p_regulation

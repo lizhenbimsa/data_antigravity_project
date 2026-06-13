@@ -1,0 +1,84 @@
+* ============================================================================
+* 20_table11_fwer_battery.do — 22 中心度 battery + 多重检验校正 (横切: 防 22 选 3 p-hacking)
+* Paper: {{PAPER_ID}}
+*
+* network-metrics-elevation 2026-06-13.
+* 命门 (审计 P2-12): 22 共现中心度仅 3 进回归, 无主指标预注册/FWER → "22 选 3"
+*   garden-of-forking-paths p-hacking 嫌疑。本表: (1) 对预注册的 3 个中心度族
+*   (primary=betweenness / secondary=brokerage-eigen / structural-hole=constraint)
+*   做 family-wise error 校正; (2) 对全 22 battery 做描述性筛查 + 朴素 p 落 CSV (附录用,
+*   只可读 FWER 校正后 p)。
+* ⚠⚠ 语法修正 (审计 BRK-PRIMARY-1 B 部分): **rwolf 无 iv()/不支持 ivreghdfe** → 用
+*    **wyoung** (Jones-Molitor-Reif 2019, cmd() 支持任意命令) 或 sharpened-FDR (Anderson 2008)。
+*    wyoung 对 reghdfe 描述性回归族适用; 2SLS 系数族须 boottest-based rwolf2。
+* ⚠ T=2 盘面 bootstrap 无功效 (样本饱和); 仅 production T=18 + ROA 接入后激活。
+*    本表纯描述性 reghdfe (非主识别) → 标注"条件相关筛查", 不主张因果。
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture confirm variable {{MAIN_DV}}_w
+if _rc {
+    display "[INFO] {{MAIN_DV}}_w not in panel (financial outcome pending); Table 11 skipped."
+    exit 0
+}
+
+* ── (1) 全 22 battery 描述性筛查 → 朴素 p 落 CSV (附录; 只可读 FWER 校正后 p) ──
+local battery bank_degree_cent bank_strength_cent bank_between_cent bank_harmonic_cent ///
+    bank_eigen_cent bank_katz_cent bank_subgraph_cent bank_cfbetween_cent bank_clustering ///
+    bank_constraint bank_is_hub bank_ego_density bank_ci bank_effective_size ///
+    bank_closeness_cent bank_eccentricity bank_avg_nbr_deg bank_coreness ///
+    net_density_yr net_avg_cluster_yr net_avg_path_yr net_degree_gini_yr
+
+tempname pf
+capture postclose `pf'
+postfile `pf' str24 centrality double(coef se pval nobs) using "$tables_dir/table11_battery_naive.dta", replace
+foreach v of local battery {
+    capture confirm variable `v'
+    if !_rc {
+        capture noisily reghdfe {{MAIN_DV}}_w `v' $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        if !_rc {
+            local b = _b[`v']
+            local s = _se[`v']
+            local p = 2*ttail(e(df_r), abs(_b[`v']/_se[`v']))
+            post `pf' ("`v'") (`b') (`s') (`p') (e(N))
+        }
+    }
+}
+postclose `pf'
+display "[OK] battery naive screen -> $tables_dir/table11_battery_naive.dta (read FWER-adjusted p only)"
+
+* ── (2) 预注册 3 族 FWER 校正 (wyoung; 失败/未装则优雅跳过) ──
+* wyoung family = {primary betweenness, secondary brokerage-eigen, structural-hole constraint};
+* familyp() 取各回归中对应中心度系数的 p, step-down 自助校正控制 FWER。
+capture which wyoung
+if _rc {
+    display "[INFO] wyoung not installed (ssc install wyoung); FWER step skipped. Naive p in CSV is NOT FWER-corrected."
+}
+else {
+    capture confirm variable {{PRIMARY_CENT}} {{SECONDARY_CENT}} {{CENTRALITY_CONS}}
+    if !_rc {
+        capture noisily wyoung, ///
+            cmd("reghdfe {{MAIN_DV}}_w {{PRIMARY_CENT}} $controls, absorb(bank_id year) cluster({{CLUSTER_VAR}})" ///
+                "reghdfe {{MAIN_DV}}_w {{SECONDARY_CENT}} $controls, absorb(bank_id year) cluster({{CLUSTER_VAR}})" ///
+                "reghdfe {{MAIN_DV}}_w {{CENTRALITY_CONS}} $controls, absorb(bank_id year) cluster({{CLUSTER_VAR}})") ///
+            familyp("{{PRIMARY_CENT}}" "{{SECONDARY_CENT}}" "{{CENTRALITY_CONS}}") ///
+            bootstraps(999) seed({{RANDOM_SEED}})
+        if !_rc {
+            matrix _wy = r(table)
+            matrix list _wy
+            display "[OK] wyoung FWER over pre-registered 3-centrality family complete."
+        }
+        else display "[INFO] wyoung run failed (likely T=2 degenerate / no within variation); production T=18 required."
+    }
+}
+
+display "[OK] Table 11 (FWER battery) complete. Only pre-registered centralities enter primary inference;"
+display "     remaining 19 are exploratory (audit P2-12). rwolf has no iv()/ivreghdfe -> use wyoung/rwolf2 for 2SLS families."

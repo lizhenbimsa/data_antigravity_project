@@ -74,6 +74,21 @@ identification:
     # 已知缺口披露: P1 复现包现行唯一 IV 表 22_tableA3_bartik_iv.do 工具化的
     # 内生变量是 LOCUS 占比 (tech_frac), 不是 tone — tone-IV .do 模板待 M5 接线。
 
+# 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# 消费 panel 实存共现中心度列 → golden-safe; control 立即生效, moderator/het/mediator 须 production T=18; schema 对本块 no-op。
+network_roles:
+  control:
+    columns: [bank_between_cent, bank_degree_cent]
+    framing: visibility_confounder_robustness   # ⚠ 仅作 robustness 附表对照, 非默认进 $controls
+    bad_control_caveat: "可见度可能是 tone 的中介 (tone→可见度→funding_cost) → 默认控制=post-treatment bad control 会吸主效应; 报含/不含两版, 主系数以不控网络为基准"
+    lit: [Fang-Peress 2009 JF]
+  heterogeneity:
+    column: bank_is_hub   # within-year decile (非绝对阈值 N-08)
+    framing: production_t18
+    lit: [El-Khatib-Fogel-Jandik 2015 JFE]
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
+  note: "P1 spec 明确不构造同业网络/仅 firm-level tone; 网络仅最小角色, 不触主识别 (区隔 brokerage)"
+
 event_studies:  # 引用 Appendix C events by id
   - E1   # 2013-06-13 yuebao_launch
   - E2   # 2016-08-24 p2p_regulation

@@ -149,10 +149,14 @@ def test_total_template_count_77() -> None:
     #   brokerage/substance/locus/collab/strategic_diff 5 篇: 主变量无 VW/MW/HW 孪生 → 仅
     #     Panel B+C wire-ahead 桩, 主回归 outcome 为待接入财务哨兵 (no-op), 财务面板接入跑
     #     01_data_prep 后自动激活。
-    expected_count = 107  # 100 (IV 2SLS baseline) + 7 (2026-06-13 聚合层审计稳健性模板)
+    # 2026-06-13 network-metrics-elevation: +6 个 brokerage_network 网络位置五角色化表
+    # (15_table6_centrality_outcome 解释 + 16_table7_mediation 中介 + 17_table8_overid_iv 工具
+    #  + 18_table9_moderation 调节 + 19_table10_network_het 异质性 + 20_table11_fwer_battery FWER)
+    # → 共 113。蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md。
+    expected_count = 113  # 100 (IV 2SLS) + 7 (聚合层审计) + 6 (网络位置五角色化)
     assert len(templates) == expected_count, (
         f"Expected {expected_count} total templates, found {len(templates)}: "
-        f"= 100 (IV 2SLS baseline) + 7 (2026-06-13 聚合层审计: P1/llm_peer A+B+C + 5 篇 B+C 桩)"
+        f"= 100 (IV 2SLS) + 7 (2026-06-13 聚合层审计) + 6 (2026-06-13 网络位置五角色化)"
     )
 
 
