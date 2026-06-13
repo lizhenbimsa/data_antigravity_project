@@ -386,6 +386,9 @@ class TestEmptyTextContract:
             assert math.isnan(res['neg_ratio'])
             assert math.isnan(res['msent_score'])
             assert math.isnan(res['a_idf_score'])
+            # rule-ablation negonly: 空文本同样 NaN (守护 audit ENG-5 — 防回填 0.0 伪零分)
+            assert math.isnan(res['a_score_negonly'])
+            assert math.isnan(res['msent_negonly'])
             # 类别/长度列保持真值语义
             assert res['a_label'] == '中性'
             assert res['avg_sentence_len'] == 0.0
@@ -397,3 +400,120 @@ class TestEmptyTextContract:
         res = tone._analyze_single_article('。。！！2023')
         assert math.isnan(res['pos_ratio'])
         assert math.isnan(res['msent_score'])
+        assert math.isnan(res['msent_negonly'])
+
+
+# ════════════════════════════════════════════════════════════════════════
+# rule-ablation negonly (2026-06-13): 仅否定规则消融稳健性变体
+#   _compute_sentiment_with_rules(apply_degree=False, apply_adversative=False)
+#   方案 a — 保留程度/转折 token 识别 + continue/句末重置骨架, 仅锁数值效应。
+#   按顶刊 (LM 2011 JF / Tetlock 2007 JF / Garcia 2013 JF) 轻规则惯例, 作为
+#   与 msent_score (零规则) + {dict}_score (全规则) 配对的三点 ablation 谱。
+# ════════════════════════════════════════════════════════════════════════
+
+class TestRuleAblationNegOnly:
+    @pytest.fixture(autouse=True)
+    def _rules(self, monkeypatch):
+        monkeypatch.setattr(tone, 'NEGATION_WORDS', frozenset(['不']))
+        monkeypatch.setattr(tone, 'DEGREE_WORDS', {'非常': 2.0, '极其': 3.0})
+        monkeypatch.setattr(tone, 'ADVERSATIVE_WORDS', frozenset(['但是']))
+        monkeypatch.setattr(tone, 'SENTENCE_END_MARKERS', frozenset(['。']))
+        monkeypatch.setattr(tone, 'ADVERSATIVE_BOOST', 1.5)
+        monkeypatch.setattr(tone, 'NEGATION_WINDOW', 2)
+
+    def test_degree_multiplier_locked_to_one(self):
+        """apply_degree=False → 程度倍率锁 1.0 (全规则 3.0 → 仅否定 1.0)."""
+        sd = {'好': 1.0}
+        total_full, *_ = tone._compute_sentiment_with_rules(['极其', '好', '。'], sd)
+        assert total_full == pytest.approx(3.0)  # 全规则: ×3.0
+        total_neg, norm_neg, p, n, _ = tone._compute_sentiment_with_rules(
+            ['极其', '好', '。'], sd, apply_degree=False, apply_adversative=False)
+        assert total_neg == pytest.approx(1.0)   # 仅否定: 倍率锁 1.0
+        assert norm_neg == pytest.approx(1.0)
+        assert p == 1 and n == 0
+
+    def test_adversative_boost_dropped(self):
+        """apply_adversative=False → 转折后不放大 (全规则 0.2 → 仅否定 0.0)."""
+        sd = {'好': 1.0, '差': -1.0}
+        _, norm_full, *_ = tone._compute_sentiment_with_rules(['差', '但是', '好'], sd)
+        assert norm_full == pytest.approx(0.5 / 2.5)  # 全规则: 好 ×1.5
+        _, norm_neg, *_ = tone._compute_sentiment_with_rules(
+            ['差', '但是', '好'], sd, apply_degree=False, apply_adversative=False)
+        assert norm_neg == pytest.approx(0.0)         # 仅否定: 不放大 → (-1+1)/2
+
+    def test_negation_still_flips(self):
+        """否定规则在 negonly 下仍生效 (这正是"仅否定"保留的唯一规则)."""
+        sd = {'好': 1.0}
+        _, norm, p, n, _ = tone._compute_sentiment_with_rules(
+            ['不', '好', '。'], sd, apply_degree=False, apply_adversative=False)
+        assert norm == pytest.approx(-1.0)
+        assert n == 1 and p == 0
+
+    def test_degree_token_does_not_consume_negation_window(self):
+        """方案 a 关键回归: 程度 token 被识别+continue, 不消费否定窗口。
+
+        '不' '非常' '填充' '好' (NEGATION_WINDOW=2): '非常' 走 degree 分支 continue
+        (不递减窗口), '填充' 走 else 递减 2→1, '好' 在 window=1 仍被翻转为负。
+        若误用方案 b (删 degree 检测), '非常' 落 else 提前递减窗口 → '好' window=0
+        不翻转 → 正值 (污染纯否定语义)。本测试即守护方案 a 不退化为方案 b。
+        """
+        sd = {'好': 1.0}
+        _, norm, p, n, _ = tone._compute_sentiment_with_rules(
+            ['不', '非常', '填充', '好'], sd, apply_degree=False, apply_adversative=False)
+        assert norm == pytest.approx(-1.0), "方案a: degree token 不消费否定窗口, '好' 应仍翻转为负"
+        assert n == 1 and p == 0
+
+    def test_default_kwargs_preserve_full_rules(self):
+        """向后兼容: 不传 kwarg = 全规则 (现有测试以位置参数调用, 数值不变)."""
+        sd = {'好': 1.0}
+        total, *_ = tone._compute_sentiment_with_rules(['极其', '好', '。'], sd)
+        assert total == pytest.approx(3.0)
+
+    def test_article_level_negonly_columns_present(self, monkeypatch):
+        """_analyze_single_article 产出 {dict}_score_negonly + msent_negonly 列。"""
+        monkeypatch.setattr(tone, 'ALL_DICTIONARIES', [('a', {'好': 1.0, '差': -1.0})])
+        monkeypatch.setattr(tone, 'IDF_DICTIONARIES', None)
+        monkeypatch.setattr(tone, '_UNION_DICT_CACHE', None)
+        res = tone._analyze_single_article('业绩 非常 好 。')
+        assert 'a_score_negonly' in res
+        assert 'msent_negonly' in res
+        # 仅否定: '非常' 倍率锁 1.0 → '好' final=+1 → norm=+1.0
+        assert res['a_score_negonly'] == pytest.approx(1.0)
+
+    def test_msent_negonly_sign_and_denominator(self, monkeypatch):
+        """守护 audit ENG-1(M2 符号) + ENG-2(M6 分母口径)。
+
+        msent_negonly = (neg − pos)/(pos + neg), 计数=否定翻转后极性, 分母=matched 词数
+        (非 word-token 数)。用同含正负+否定+非情感填充词的文本锁死符号与分母:
+        '不 好 业绩 差 经济 发展 。' → '好'(+1)经'不'翻成负, '差'(-1)无否定保持负 →
+        neg=2/pos=0 → msent_negonly=+1.0 (而非符号写反的 -1.0, 也非 word-token 分母的 2/6)。
+        """
+        monkeypatch.setattr(tone, 'ALL_DICTIONARIES', [('a', {'好': 1.0, '差': -1.0})])
+        monkeypatch.setattr(tone, 'IDF_DICTIONARIES', None)
+        monkeypatch.setattr(tone, '_UNION_DICT_CACHE', None)
+        res = tone._analyze_single_article('不 好 业绩 差 经济 发展 。')
+        # 符号方向 (M2): neg 占优 → +1.0; 若写成 (pos-neg) 会得 -1.0
+        # 分母口径 (M6): matched=2 → 1.0; 若误用 word-token 分母会得 (2-0)/5≈0.4
+        assert res['msent_negonly'] == pytest.approx(1.0)
+        # 反向极性文本: '不 差'→'差'翻正, '好'保持正 → pos=2/neg=0 → -1.0 (再锁符号方向)
+        res2 = tone._analyze_single_article('不 差 业绩 好 经济 发展 。')
+        assert res2['msent_negonly'] == pytest.approx(-1.0)
+
+    def test_classify_batch_dual_track_negonly_extraction(self, monkeypatch):
+        """守护 audit ENG-3: classify_batch 须把 negonly 列双轨 (_full/_ctx) 落进输出 DF。"""
+        monkeypatch.setattr(tone, 'ALL_DICTIONARIES', [('a', {'好': 1.0, '差': -1.0})])
+        monkeypatch.setattr(tone, 'IDF_DICTIONARIES', None)
+        monkeypatch.setattr(tone, '_UNION_DICT_CACHE', None)
+        # full 轨与 ctx 轨给不同文本, 验证两轨独立落列且数值可不同
+        df = pd.DataFrame({
+            '标题': ['', ''],
+            '内容': ['不 好 。', '业绩 非常 好 。'],
+            'content_ctx': ['业绩 非常 好 。', '不 好 。'],
+        })
+        out, _ = tone.classify_batch(df)
+        for col in ('a_score_negonly_full', 'a_score_negonly_ctx',
+                    'msent_negonly_full', 'msent_negonly_ctx'):
+            assert col in out.columns, f"classify_batch 漏落 {col}"
+        # full 轨 row0 = '不 好' → 否定翻负; ctx 轨 row0 = '非常 好' → 正 → 两轨可独立
+        assert out['a_score_negonly_full'].iloc[0] == pytest.approx(-1.0)
+        assert out['a_score_negonly_ctx'].iloc[0] == pytest.approx(1.0)

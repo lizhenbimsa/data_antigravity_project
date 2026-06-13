@@ -53,7 +53,11 @@ def test_compute_sentiment_with_rules(mock_sentiment_dict):
     original_deg = tone.DEGREE_WORDS
     original_adv = tone.ADVERSATIVE_WORDS
     original_end = tone.SENTENCE_END_MARKERS
-    
+    # fix(audit ENG-2, 2026-06-13): 一并保存 WINDOW/BOOST — 旧版还原块遗漏这两个标量,
+    # 形成 module-global 泄漏 (当前泄漏值==config 默认 2/1.5 故无害, 但属测试卫生缺陷)。
+    original_window = tone.NEGATION_WINDOW
+    original_boost = tone.ADVERSATIVE_BOOST
+
     tone.NEGATION_WORDS = frozenset(['不', '没'])
     tone.DEGREE_WORDS = {'非常': 2.0, '稍微': 0.5}
     tone.ADVERSATIVE_WORDS = frozenset(['但是', '然而'])
@@ -91,6 +95,8 @@ def test_compute_sentiment_with_rules(mock_sentiment_dict):
     tone.DEGREE_WORDS = original_deg
     tone.ADVERSATIVE_WORDS = original_adv
     tone.SENTENCE_END_MARKERS = original_end
+    tone.NEGATION_WINDOW = original_window      # fix(audit ENG-2): 补还原, 消除泄漏
+    tone.ADVERSATIVE_BOOST = original_boost
 
 def test_build_idf_weights():
     # 测试 IDF 生成

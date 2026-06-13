@@ -555,6 +555,19 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
             agg[f'{d}_idf_tone_sum{track}'] = (f'{d}_idf_score{track}', 'sum')
             agg[f'{d}_idf_tone_std{track}'] = (f'{d}_idf_score{track}', 'std')
 
+        # --- C3. 词典法规则消融稳健性: 仅否定 (negation-only, 2026-06-13) ---
+        # 轻规则(仅否定) vs 全规则 稳健性对照 (negonly≈LM 2011 JF 计数+否定档;
+        # avg_msent≈Tetlock 2007/Garcia 2013 纯计数档; {d}_tone=全规则 + degree/转折)。
+        # 关程度副词加权 + 转折 boost, 仅保留否定翻转。{d}_negonly_tone = bank-year 均值;
+        # 与 {d}_tone (全规则) + avg_msent (零规则) 构成三点 ablation 谱。注意 (full−negonly)
+        # 是 degree+adversative 的**联合净效应** (非可加分解, 含 negation×degree 交互+自归一化
+        # 分母变更, audit MATH-1)。⚠ 实测 corr(full,negonly)≈0.999 高度共线 → 该列证明"主结果
+        # 对去这两条规则不敏感", 非独立信号; 视作稳健性对照而非主测度 (audit MATH-3)。
+        # 主口径 Σ|final| (与 {d}_tone 同口径, 为可比性)。
+        # 仅落 mean (jiang_2021_negonly_tone_*=28 字符 ≤32; sum/std 后缀会贴 32 边界, 略)。
+        for d in DICT_NAMES:
+            agg[f'{d}_negonly_tone{track}'] = (f'{d}_score_negonly{track}', 'mean')
+
         # --- D. BERT 逐模型 ---
         for short in BERT_MODELS:
             agg[f'{short}_pos{track}'] = (f'{short}_正面{track}', 'mean')
@@ -606,6 +619,11 @@ def build_aggregation_dict(df: pd.DataFrame | None = None) -> dict:
         agg[f'avg_msent{track}'] = (f'msent_score{track}', 'mean')
         agg[f'avg_msent_std{track}'] = (f'msent_score{track}', 'std')
         agg[f'msent_sum{track}'] = (f'msent_score{track}', 'sum')
+
+        # --- I3. MSENT 仅否定计数口径 (rule-ablation, 2026-06-13) ---
+        # 与 avg_msent (零规则原始极性) 配对 → (avg_msent_negonly − avg_msent) = 纯否定
+        # 边际贡献 (计数口径, 不混入 Σ|final| 归一化口径差; 见 tone_words msent_negonly)。
+        agg[f'avg_msent_negonly{track}'] = (f'msent_negonly{track}', 'mean')
 
     # --- J. LLM 置信度聚合 (Shapiro, Sudhof & Wilson 2022, JoE;
     #        Baker et al. 2024, JAR — 信号清晰度/衰减偏误调节) ---
