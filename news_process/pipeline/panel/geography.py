@@ -724,10 +724,16 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
             valid_idx = subset.index[grp_cnt > 1]
             
             # [白盒安全加固] 强校验：绝不信任外部 groupby 广播的返回，确保参与计算的值无任何空值或负分母
+            # fix(network-metrics-reaudit 2026-06-13, N-10): 裸 assert 在 python -O 下被剥离 →
+            # 这些直接保护 LOO IV 分母非零的前置校验会静默失效。改显式 raise (同 network_spillover/
+            # network_brokerage 的 -O 加固口径); LOO IV 分母守卫比建图断言更需在 -O 下存活。
             if len(valid_idx) > 0:
-                assert subset.loc[valid_idx, tone_col].notna().all(), "LOO IV 计算前置校验失败: 存在空值情感分数"
-                assert grp_cnt.loc[valid_idx].notna().all(), "LOO IV 计算前置校验失败: 组频数存在 NaN"
-                assert (grp_cnt.loc[valid_idx] - 1 > 0).all(), "LOO IV 分母出现非法非正值！"
+                if not subset.loc[valid_idx, tone_col].notna().all():
+                    raise ValueError("LOO IV 计算前置校验失败: 存在空值情感分数")
+                if not grp_cnt.loc[valid_idx].notna().all():
+                    raise ValueError("LOO IV 计算前置校验失败: 组频数存在 NaN")
+                if not (grp_cnt.loc[valid_idx] - 1 > 0).all():
+                    raise ValueError("LOO IV 分母出现非法非正值！")
                 
             out_series.loc[valid_idx] = (
                 (grp_sum.loc[valid_idx]

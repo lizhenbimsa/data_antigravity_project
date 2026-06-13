@@ -362,8 +362,8 @@ def test_all_four_papers_have_winsor_in_data_prep(tmp_path):
 def test_substitute_raises_value_error_on_residue():
     """_substitute 检测残留 {{UNFILLED_KEY}} → ValueError (line 233)."""
     from news_process.papers._common.derivative_replication import _substitute
-    # 注意: _PLACEHOLDER_RE = \{\{([A-Z_]+)\}\} — 只匹配 大写字母+下划线,
-    # 不含数字 (e.g. "KEY2" 不会被识别为 placeholder).
+    # 注意: _PLACEHOLDER_RE = \{\{([A-Z0-9_]+)\}\} — 匹配大写字母/数字/下划线
+    # (network-metrics-elevation 2026-06-13 起含数字, 如 OVERID_IV2 / "KEY2" 均会被识别为 placeholder).
     with pytest.raises(ValueError, match="unsubstituted placeholders"):
         _substitute(
             content="hello {{KEY_A}} {{KEY_B}} world",

@@ -143,20 +143,22 @@ def test_total_template_count_77() -> None:
     # 2026-06-13 IV 物化: +5 个 2SLS 模板 (root/25_tableA6_tone_iv_2sls +
     # substance/22_substance_iv_2sls + locus/20_locus_iv_2sls +
     # collab/21_collab_iv_2sls + benefit_society/25_tableA12_iv_2sls) → 共 100。
-    # 2026-06-13 agg-toptier-audit: +7 个聚合/推断稳健性模板 → 共 107。
-    #   P1/llm_peer 两篇 tone-mean 论文 (root/26_tableA7 + llm_peer/15_tableA6): 加权聚合
-    #     EW vs VW/MW/HW (Panel A) + 双向聚类/boottest (B) + 覆盖筛选 (C), 已 Stata 实跑验证;
-    #   brokerage/substance/locus/collab/strategic_diff 5 篇: 主变量无 VW/MW/HW 孪生 → 仅
-    #     Panel B+C wire-ahead 桩, 主回归 outcome 为待接入财务哨兵 (no-op), 财务面板接入跑
-    #     01_data_prep 后自动激活。
     # 2026-06-13 network-metrics-elevation: +6 个 brokerage_network 网络位置五角色化表
     # (15_table6_centrality_outcome 解释 + 16_table7_mediation 中介 + 17_table8_overid_iv 工具
     #  + 18_table9_moderation 调节 + 19_table10_network_het 异质性 + 20_table11_fwer_battery FWER)
-    # → 共 113。蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md。
-    expected_count = 113  # 100 (IV 2SLS) + 7 (聚合层审计) + 6 (网络位置五角色化)
+    # → 共 106。蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md。
+    # 2026-06-13 agg-toptier-audit: +2 个聚合/推断稳健性模板
+    # (root/26_tableA7_aggregation_robustness — P1 tone EW vs VW/MW/HW + 双向聚类/boottest +
+    #  覆盖筛选; llm_peer/15_tableA6_aggregation_robustness — 加权内生 2SLS + 同) → 共 108。
+    # P1/llm_peer 两篇 tone-mean 论文有加权聚合孪生 (Panel A+B+C, 实跑验证);
+    # 其余 5 篇 (brokerage/substance/locus/collab/strategic_diff) 主变量无 VW/MW/HW 孪生
+    # → 仅 Panel B(双向cluster/boottest)+C(覆盖筛选) wire-ahead 桩, 主回归 outcome 为
+    # 待接入财务哨兵 (no-op), 财务面板接入并跑 01_data_prep 后自动激活。共 +5。
+    expected_count = 113  # 108 + 5 (聚合层审计 B+C 桩: brokerage/substance/locus/collab/strategic)
     assert len(templates) == expected_count, (
         f"Expected {expected_count} total templates, found {len(templates)}: "
-        f"= 100 (IV 2SLS) + 7 (2026-06-13 聚合层审计) + 6 (2026-06-13 网络位置五角色化)"
+        f"= 95 (baseline) + 5 (IV 2SLS) + 6 (网络五角色化) + 2 (聚合审计 P1/llm_peer A+B+C) "
+        f"+ 5 (聚合审计 B+C wire-ahead 桩)"
     )
 
 

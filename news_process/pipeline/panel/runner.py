@@ -1486,7 +1486,7 @@ def main():
     else:
         logger.info("  compute_bank_network_centrality 不可用, 跳过")
 
-    # --- 7h-cogn. 认知邻近度 (Boschma 2005; Dahlke et al. 2024) ---
+    # --- 7h-cogn. 认知邻近度 (Boschma 2005; 操作化=本项目自定义 TF-IDF cosine) ---
     if compute_cognitive_proximity is not None:
         panel = compute_cognitive_proximity(df_exploded, panel)
     else:

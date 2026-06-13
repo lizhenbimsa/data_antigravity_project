@@ -141,7 +141,7 @@ esttab `models' using "output/tables/tableA6_tone_iv_2sls.tex", ///
     mtitles(`mtitles') ///
     note("Endogenous: media tone. IV1 = province leave-one-out peer tone (Gurun-Butler 2012 JF local-media logic); IV2 = Bartik type-share IV (Goldsmith-Pinkham et al. 2020 AER, base-period share exogeneity view only — shift is a LOO group mean, not quasi-random; do NOT claim BHJ identification). " ///
          "KP F: Kleibergen-Paap rk Wald F (Kleibergen-Paap 2006). Hansen J reported only in the overidentified column (df=1). " ///
-         "If KP F < 10, interpret via Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE). " ///
+         "If KP F is below the Stock-Yogo critical value (16.38 for 5% maximal IV bias, 13.91 for 10%), instruments are weak: a non-rejecting Hansen J (p>0.05) then has LOW POWER and must NOT be read as confirming instrument validity — interpret via Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE). " ///
          "Exclusion caveats (peer-mean instruments; Manski 1993, Leary-Roberts 2014 JF) must be disclosed in the paper text.")
 
 display "✅ Table A6 written to output/tables/tableA6_tone_iv_2sls.tex"
