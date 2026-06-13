@@ -77,10 +77,12 @@ else {
         eststo tsls_ctx: ivreg2 `DV' (`TX' = `IV1') i.bank_id i.year, ///
             cluster(bank_id) first
     }
-    capture confirm variable `IV1' `IV2'
+    * ctx 与 full 轨各自 just-identified 并排 (终审裁决 2026-06-13): 同一内生变量
+    * 分别用 ctx 窗口 / full 文本窗口的 outlet 工具, 作测量窗口稳健性对比; 不合成
+    * overid — 同文双窗共同冲击使 Hansen J 无信息量 (Parente & Santos Silva 2012)。
+    capture confirm variable `IV2'
     if !_rc {
-        * 过度识别列 (双轨 IV → Hansen J df=1; 双轨=互为稳健性)
-        eststo tsls_overid: ivreg2 `DV' (`TX' = `IV1' `IV2') i.bank_id i.year, ///
+        eststo tsls_full: ivreg2 `DV' (`TX' = `IV2') i.bank_id i.year, ///
             cluster(bank_id) first
     }
 }
@@ -88,8 +90,8 @@ else {
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_ctx first_full tsls_ctx tsls_overid
-local cand_titles `""1st (ctx)" "1st (full)" "2SLS (ctx)" "2SLS Overid""'
+local cand_models first_ctx first_full tsls_ctx tsls_full
+local cand_titles `""1st (ctx)" "1st (full)" "2SLS (ctx)" "2SLS (full)""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -108,12 +110,13 @@ else {
     esttab `models' ///
         using "output/tables/table3_clarity_iv_2sls.tex", replace ///
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-        stats(N r2 widstat jp, fmt(0 3 3 3) labels("N" "R²" "KP F" "Hansen J p")) ///
+        stats(N r2 widstat, fmt(0 3 3) labels("N" "R²" "KP F")) ///
         title("Table 3: News Clarity IV — Outlet-Composition Writing-Style Exposure") ///
         mtitles(`mtitles') ///
         addnotes("IV = base-period outlet portfolio shares x outlet-year leave-one-out mean clarity score (focal bank's own articles excluded)." ///
                  "Identification: journalist/outlet writing-style exogeneity (Dougal et al. 2012 RFS); outlet style persistence (Gentzkow-Shapiro 2010 Econometrica); base-period share exogeneity (Goldsmith-Pinkham et al. 2020 AER)." ///
-                 "KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005), use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified (dual-track) column.")
+                 "2SLS (ctx) and 2SLS (full) are just-identified, each using the ctx-window vs full-text-window version of the outlet-style instrument for the same endogenous variable — a measurement-window robustness comparison, side by side, NOT an overidentified pair." ///
+                 "No Hansen J is reported: same-text-window instruments share common shocks, making the overID test uninformative (Parente & Santos Silva 2012). KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%), use Anderson-Rubin CI (Andrews-Stock-Sun 2019).")
 
     display "[OK] 12_table3_iv_2sls → output/tables/table3_clarity_iv_2sls.tex"
 }
