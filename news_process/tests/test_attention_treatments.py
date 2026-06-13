@@ -184,3 +184,23 @@ def test_verified_gate_preserves_nan_zero_contract(out):
     assert out.loc[z, 'attention_disp_full'].isna().all(), 'n_ft=0 但 disp 非 NaN (分子源未同域门控?)'
     assert out.loc[z, 'attention_intensity_sd_full'].isna().all()
     assert (out.loc[z, 'attention_index_full'] == 0).all()
+
+
+def test_denominator_is_full_bank_news_universe(out):
+    """守卫: 门控只作用于分子, 分母 (n_all) 必须保持 12_full 全部银行新闻全集 (未门控)。
+    attention_pct_full = n_fintech_articles / n_all, 故用**全集** n_all 反推
+    pct*n_all == n_fintech_articles 应成立。若有人误把分母也门控到 verified 集
+    (n_all 从全集塌缩到 857), 该恒等式破裂 → 本测试是唯一能逮住"分母被误门控"的守卫
+    (其余测试只查分子/边界, 见 verification wf_c1e23964-a18 completeness-honesty)。"""
+    f12 = pd.read_parquet(_F12, columns=['target_bank', '日期'])
+    f12['year'] = pd.to_datetime(f12['日期'], errors='coerce').dt.year
+    f12 = f12.dropna(subset=['year'])
+    f12['year'] = f12['year'].astype(int)
+    n_all_full = (f12.groupby(['target_bank', 'year']).size()
+                  .rename('_n_all_full').reset_index())
+    m = out.merge(n_all_full, on=['target_bank', 'year'], how='inner')
+    nz = m['n_fintech_articles'] > 0
+    assert nz.any(), '需至少一个非零-fintech bank-year 才有判别力'
+    recon = m.loc[nz, 'attention_pct_full'] * m.loc[nz, '_n_all_full']
+    assert np.allclose(recon, m.loc[nz, 'n_fintech_articles'], atol=1e-6), \
+        '分母非 12_full 全集 (n_all 被误门控?): pct*n_all_full != n_fintech_articles'
