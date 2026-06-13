@@ -1527,6 +1527,9 @@ def main():
                 'Recall': metrics['macro']['recall'],
                 'F1-Score': metrics['macro']['f1'],
                 'Accuracy': metrics['accuracy'],
+                # fix(re-audit FV-P2-01, 2026-06-13): 验证任务同受全文构念
+                # gold 影响 (ctx 模型 vs 整篇阅读判定), 披露随行落盘
+                '构念披露': construct_disclosure_for(model_name),
             })
         comp_df = pd.DataFrame(comparison_rows)
         # fix(omni-g-val-eval-02, 2026-06-11): demo_mode 产物加 _DEMO 后缀
@@ -1761,7 +1764,10 @@ def main():
             'Macro Precision': macro.get('precision', 0),
             'Macro Recall': macro.get('recall', 0),
             'Macro F1-Score': macro.get('f1', 0),
-            'Accuracy': m.get('accuracy', 0)
+            'Accuracy': m.get('accuracy', 0),
+            # fix(re-audit T3-03, 2026-06-13): 验证任务行同附构念披露,
+            # 与情感行列对齐 (此前该列在验证行为 NaN)
+            '构念披露': construct_disclosure_for(name),
         })
         
     # 汇总情感分类器（含逐类别 Recall）

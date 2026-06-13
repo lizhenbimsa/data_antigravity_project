@@ -720,11 +720,15 @@ def _count_nonempty(series: pd.Series) -> int:
     """计数非空且非 NaN 字面量的单元格。
 
     ⚠ pandas 3.0 起 astype(str) 保留 NaN (不再字符串化为 'nan') — 必须先
-    fillna('') 否则 NaN != '' 为 True, 空单元格被误计 (final-audit 实测)。
-    'nan'/'None' 字面量守卫保留, 防旧版 pandas 写出的字符串化残留。
+    把缺失置 '' 否则 NaN != '' 为 True, 空单元格被误计 (final-audit 实测)。
+    fix(re-audit ATK-P2-01, 2026-06-13): 改 dtype 无关写法 — fillna('') 对
+    datetime64 列是静默 no-op (NaT 原样保留→被误计); 先 astype('object')
+    再 where 对任意 dtype 都正确置空。'nan'/'none'/'nat' 字面量守卫防
+    旧版 pandas 字符串化残留。
     """
-    s = series.fillna('').astype(str).str.strip()
-    return int(((s != '') & (s.str.lower() != 'nan') & (s != 'None')).sum())
+    obj = series.astype('object')
+    s = obj.where(obj.notna(), '').astype(str).str.strip()
+    return int(((s != '') & (~s.str.lower().isin(('nan', 'none', 'nat')))).sum())
 
 
 def count_human_annotations(verify_path: str) -> int:
@@ -783,9 +787,12 @@ def evaluate_human_verification(verify_path: str, track: str,
     csv_path = os.path.join(output_dir, f'human_verify_metrics{track}.csv')
 
     def _cleanup_stale_csv(why: str):
-        # fix(final-audit T4-01, 2026-06-13): pending/error 不仅不写新指标,
-        # 还要清掉旧指标残留 — 否则"工作台被清空/重生"后陈旧 CSV 仍像
-        # 已完成的人工验证 (与 demo 假产物同型的误引风险)
+        # fix(final-audit T4-01, 2026-06-13): pending (确认无标注) 时不仅
+        # 不写新指标, 还要清掉旧指标残留 — 否则"工作台被清空/重生"后陈旧
+        # CSV 仍像已完成的人工验证 (与 demo 假产物同型的误引风险)。
+        # 刻意不对称 (re-audit T3-02 裁决): error 路径【保留】旧 CSV —
+        # error=不可判定 (工作台可能损坏但曾有真实标注), 旧 CSV 可能正是
+        # 那批标注的唯一合法指标记录, 删除反而销毁; 状态以 JSON error 为准
         if os.path.isfile(csv_path):
             try:
                 os.remove(csv_path)
@@ -843,11 +850,17 @@ def evaluate_human_verification(verify_path: str, track: str,
 
     label_to_int = {lab: i for i, lab in enumerate(labels)}
     # fix(final-audit HV-INFO-03, 2026-06-13): 剔除 pandas 对 Excel 重复表头
-    # 自动改名产生的 '列名.1' 镜像列, 防同一方法重复计入
+    # 自动改名产生的 '列名.1' 镜像列, 防同一方法重复计入。
+    # re-audit ATK-INFO-02: 仅当去掉 .N 后缀的基名也在列集合中才视为
+    # mangle (真 mangle 必有同名基列), 防误杀含点号的真实方法名 (如 gpt4.1)
+    def _is_mangled_dup(col: str) -> bool:
+        m = re.search(r'\.\d+$', col)
+        return bool(m) and col[:m.start()] in verify_df.columns
+
     method_cols = [c for c in verify_df.columns
                    if (c.startswith(('词典_', 'BERT_', 'LLM_'))
                        or c == '多数投票标签')
-                   and not re.search(r'\.\d+$', c)]
+                   and not _is_mangled_dup(c)]
 
     if not method_cols:
         # fix(final-audit HV-P2-05, 2026-06-13): schema 异常 (无任何方法列)
@@ -2302,7 +2315,8 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     if n_existing < 0:
         logger.error(
             f"工作台存在但读取失败/结构异常 — fail-closed 跳过重生, 以防销毁"
-            f"潜在人工标注 (请人工检查 sheet/表头): {verify_path}")
+            f"潜在人工标注 (请人工检查 sheet/表头; 确认无人工标注后手动删除"
+            f"该文件即可恢复重生): {verify_path}")
     elif n_existing > 0:
         logger.warning(
             f"检测到人工填写痕迹 ({n_existing} 个单元格), 跳过工作台重生以"

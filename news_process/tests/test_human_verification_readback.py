@@ -18,6 +18,7 @@ tests/test_human_verification_readback.py — 人工标注回读比对回归锁 
 """
 
 import inspect
+import logging
 import os
 
 import pandas as pd
@@ -295,6 +296,7 @@ class TestFinalAuditFixes:
             '标题': [f't{i}' for i in range(n)],
             '词典_jiang_2021': gold,
             '词典_jiang_2021.1': gold,  # 模拟 mangle 产物
+            'LLM_gpt4.1': gold,  # ATK-INFO-02: 含点号真实方法名, 无基列勿误杀
             '人工判定_情感': gold,
             '人工判定_理由': [''] * n,
         })
@@ -304,6 +306,46 @@ class TestFinalAuditFixes:
                                           silent_logger)
         assert '词典_jiang_2021' in res['metrics']
         assert '词典_jiang_2021.1' not in res['metrics']
+        assert 'LLM_gpt4.1' in res['metrics'], '含点号真实方法名被误杀'
+
+    # ---- re-audit T3-02/T3-04: error 路径语义锁 ----
+
+    def test_error_keeps_stale_csv_and_writes_nothing(self, tmp_path,
+                                                      silent_logger):
+        """T3-02 裁决语义: error=不可判定 → 保留旧 CSV (可能是唯一合法
+        指标记录), 但绝不写新内容。"""
+        p = str(tmp_path / 'v.xlsx')
+        out = str(tmp_path)
+        csv_path = os.path.join(out, 'human_verify_metrics_full.csv')
+        _write_workbook(p, n=40, fill_human=True)
+        evaluate_human_verification(p, '_full', out, silent_logger)
+        bytes_before = open(csv_path, 'rb').read()
+        # 工作台损坏 → error → 旧 CSV 原样保留
+        with open(p, 'wb') as f:
+            f.write(b'PK\x03\x04' + b'\x00' * 64)
+        res = evaluate_human_verification(p, '_full', out, silent_logger)
+        assert res['status'] == 'error'
+        assert open(csv_path, 'rb').read() == bytes_before
+
+    def test_corrupt_file_evaluates_to_error(self, tmp_path, silent_logger):
+        """T3-04: 评估端读失败 → status='error' (非 pending/崩溃)。"""
+        p = tmp_path / 'v.xlsx'
+        p.write_bytes(b'PK\x03\x04' + b'\x00' * 64)
+        res = evaluate_human_verification(str(p), '_full', str(tmp_path),
+                                          silent_logger)
+        assert res['status'] == 'error'
+        assert '读取失败' in res['reason']
+
+    def test_missing_gold_column_evaluates_to_error(self, tmp_path,
+                                                    silent_logger):
+        """T3-04: 缺'人工判定_情感'列 → status='error'。"""
+        p = str(tmp_path / 'v.xlsx')
+        df = pd.DataFrame({'标题': ['a'], '词典_x': ['正面']})
+        with pd.ExcelWriter(p, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='验证数据', index=False)
+        res = evaluate_human_verification(p, '_full', str(tmp_path),
+                                          silent_logger)
+        assert res['status'] == 'error'
 
     def test_sampling_disclosure_in_note(self, tmp_path, silent_logger):
         """HV-P2-02/F2: 口径说明必须披露选择性抽样与单编码者协议。"""
@@ -322,14 +364,64 @@ class TestFinalAuditFixes:
 class TestOverwriteGuardWired:
     def test_step7_guards_and_evaluates(self):
         src = inspect.getsource(_run_validation_for_track)
-        # 重生前必须先查人工痕迹; fail-closed 分支必须存在;
+        # 重生前必须先查人工痕迹; fail-closed 与 >0 保护分支都必须存在;
         # 无论生成与否都必须回读评估并入 results
         assert 'count_human_annotations' in src
         assert 'n_existing < 0' in src, 'fail-closed 分支被移除'
+        assert 'n_existing > 0' in src, '已标注保护分支被移除 (re-audit T3-01)'
         assert "results['human_verification']" in src
         assert 'evaluate_human_verification' in src
         # 仅"确认空白"(==0) 才允许走重生分支 (else 在 <0 / >0 之后)
-        assert 'generate_validation_sample' in src.split('n_existing < 0')[1]
+        assert 'generate_validation_sample' in src.split('n_existing > 0')[1]
+
+    def test_annotated_workbook_survives_full_track_rerun(self, tmp_path):
+        """re-audit T3-01 行为锁 (守卫核心承诺): 已标注工作台经整轨重跑
+        必须【字节级不变】, 且回读指标如实产出 — 源码锁挡不住的变异
+        (如删掉保护分支) 在此必然现形。同时锁 T3-05 (生成时间透传非空)
+        与 T3-06 (LLM_投票 回灌列在产)。"""
+        import json as _json
+
+        import openpyxl
+
+        from news_process.tests.test_omni_fix_val_tone import _make_track_df
+        lg = logging.getLogger('guard_behavior')
+        if not lg.handlers:
+            lg.addHandler(logging.NullHandler())
+        lg.propagate = False
+        out = str(tmp_path)
+        df = _make_track_df()
+        # 第一跑: 生成空白工作台 (应含 LLM_投票 回灌列)
+        _run_validation_for_track(df, '_full', out, lg, {})
+        wb_path = os.path.join(out, '09_sentiment_verify_full.xlsx')
+        assert os.path.isfile(wb_path)
+        wb = openpyxl.load_workbook(wb_path)
+        ws = wb['验证数据']
+        header = [c.value for c in ws[1]]
+        assert 'LLM_投票' in header, '聚合票回灌列缺失 (T3-06)'
+        # 模拟编码者填入 40 条标注 (原位写, 不动其它 sheet)
+        col_idx = header.index('人工判定_情感') + 1
+        labels = ['正面', '中性', '负面']
+        n_fill = min(40, ws.max_row - 1)
+        for i in range(n_fill):
+            ws.cell(row=2 + i, column=col_idx, value=labels[i % 3])
+        wb.save(wb_path)
+        bytes_before = open(wb_path, 'rb').read()
+        # 第二跑: 守卫必须拦截重生
+        _run_validation_for_track(df, '_full', out, lg, {})
+        assert open(wb_path, 'rb').read() == bytes_before, \
+            '已标注工作台被整轨重跑覆盖 — 守卫失效!'
+        # 回读指标如实产出
+        with open(os.path.join(out, 'sentiment_validation_results_full.json'),
+                  encoding='utf-8') as f:
+            hv = _json.load(f)['human_verification']
+        assert hv['n_annotated'] == n_fill
+        assert hv['status'] in ('ok', 'insufficient')
+        assert hv['workbook_generated_at'] != '', '生成时间透传为空 (T3-05)'
+        assert 'LLM_投票' in hv['metrics']
+        csv_df = pd.read_csv(
+            os.path.join(out, 'human_verify_metrics_full.csv'),
+            encoding='utf-8-sig')
+        assert (csv_df['工作台生成时间'].astype(str).str.len() > 0).all()
 
 
 # ============================================================================
