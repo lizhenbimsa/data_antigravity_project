@@ -21,6 +21,9 @@ _TABLE1_VARIABLES: list[str] = [
     # 共现网络补充 (节点级)
     'bank_degree_cent',
     'bank_strength_cent',
+    # ⚠ NB-04 (network-metrics-reaudit 2026-06-13): bank_eigen_cent 自 P1-1 起按连通分量
+    #   内 L2 归一 → 跨分量水平不可比; 此处池化 mean/sd 混合不同分量标尺, 仅作粗略描述,
+    #   非回归 RHS (回归用 brokerage_eigen_cent)。表注宜注明"分量内归一"。
     'bank_eigen_cent',
     'bank_clustering',
     'bank_constraint',

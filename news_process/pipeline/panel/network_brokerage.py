@@ -165,7 +165,10 @@ def build_media_bank_bipartite(
                    weight=int(row['weight']))
 
     # 二分图断言
-    assert nx.is_bipartite(G), f"年份 {year}: 图不是二分图!"
+    # fix(network-metrics-reaudit 2026-06-13, N-10): 裸 assert 在 python -O 下被剥离 →
+    # 守卫静默失效。改显式 raise, 与 network_spillover.py 两处 -O 加固同口径。
+    if not nx.is_bipartite(G):
+        raise ValueError(f"年份 {year}: 图不是二分图!")
 
     return G
 

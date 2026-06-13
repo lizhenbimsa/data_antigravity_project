@@ -263,7 +263,9 @@ def build_variable_labels(
         'benefit_neg_frac_t2v_full':        "Benefit Neg Frac (T2V robust, full)",
         'benefit_neg_frac_t2v_ctx':         "Benefit Neg Frac (T2V robust, ctx)",
         'emb_peer_tone_lag1_t2v_full':      "Emb Peer Tone Lag1 (T2V robust, full)",
-        'bank_emb_sim_mean_t2v':            "Bank Emb Sim Mean (T2V robust)",
+        'bank_emb_sim_mean_lag1':           "Bank Emb Sim Mean (L1)",
+        'bank_emb_sim_mean_lag1_t2v':       "Bank Emb Sim Mean (L1, T2V robust)",
+        'industry_neg_shock_lag1':          "Industry Neg Shock LOO (L1, year-FE-safe)",
         # IV 扩展族 LOO 同业工具 (2026-06-13): full 轨 leave_one_out_peer_* +
         # ctx 轨镜像 lpeer_*_ctx (实体窗口归因, Hassan 2019 QJE). 各 ≤ 80 字节.
         'leave_one_out_peer_attention_iv':  "Same-type peer LOO attention IV (full; Manski 1993 caveat)",

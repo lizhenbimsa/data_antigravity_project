@@ -92,6 +92,11 @@ CONFIG = load_config()
 STAGE_NAME = "46_network_spillovers"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
+# fix(network-metrics-audit 2026-06-13, P1-1): 共现网 bank_eigen_cent 按连通分量计算时
+# 的微小分量门槛 (孤立点 / 单边对 → 特征向量平凡, 置 NaN); 与
+# network_brokerage._MIN_COMPONENT_SIZE 语义一致 (3 = 最小三角)。
+_CMNT_MIN_COMPONENT_SIZE = 3
+
 
 # ============================================================================
 # 2. 邻接矩阵构建
@@ -104,7 +109,9 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 def build_adjacency_matrix(
     df_exploded: pd.DataFrame,
-    year: int
+    year: int,
+    *,
+    hyperedge_normalize: bool = False,
 ) -> tuple[pd.DataFrame, list[str]]:
     """构建年度银行共现邻接矩阵 (both-verified, 每篇文章每对 +1)。
 
@@ -116,9 +123,11 @@ def build_adjacency_matrix(
     target_bank 集合 (即均通过 verification 的银行) 内每无序对 {A,B}
     恰好 A[A,B] += 1, A[B,A] += 1 (对称, 每篇文章 +1)。
 
-    注: 由此矩阵计算的 bank_degree_cent (Freeman 1979 度中心度)
-    在传染病扩散框架中等价于 Dahlke et al. (2024, RP) 的 degree_ai,
-    即银行在金融科技信息网络中的连接程度。
+    注: 由此矩阵计算的 bank_degree_cent 是 Freeman (1979) 度中心度,
+    衡量银行在金融科技信息网络中的连接程度。
+    (引文勘误 network-metrics-audit 2026-06-13, P2-16: 旧注称"等价于 Dahlke et al.
+    2024 RP 的 degree_ai"过强 — Dahlke 的 degree_ai 是企业**超链接**网络度中心度,
+    图基底与新闻共现图不同, 仅思想同源、非等价; 删除等价声称。)
 
     Args:
         df_exploded: 篇章级 DataFrame, 须含 docid 列 (both-verified 主路径);
@@ -148,14 +157,33 @@ def build_adjacency_matrix(
     if 'docid' in df_year.columns:
         # fix(omni-g-net-spill-01, 2026-06-11): both-verified 主路径 —
         # 同 docid 下幸存的 target_bank 行集合内逐无序对 +1 (每篇文章每对恰 1 次)。
+        # ── 超边规模诊断 + Newman 归一选项 (network-metrics-audit 2026-06-13, P1-4) ──
+        # 一篇提及 N 家银行的文章 (榜单/批量监管通报) 贡献 C(N,2) 条**等权**边, 大-N 文章
+        # 可凭边数膨胀主导网络 (污染 W/W²/全部中心度)。默认仍 +1 (golden-safe);
+        # hyperedge_normalize=True 时改 Newman (2001 PRE) degree-preserving 归一 —
+        # 每对贡献 1/(N-1) 使单篇总度贡献守恒。
+        # ⚠ 接线状态披露 (network-metrics-reaudit 2026-06-13, NB-01): hyperedge_normalize 目前是
+        # **预留参数, 尚未接线**到 config/runner — 两个生产调用方 (compute_network_spillovers /
+        # compute_bank_network_centrality) 及其外层签名与 runner 均不透传该参数, 故 True 分支在
+        # 生产流水线中不可达。要真正产出"加权 vs 未加权 IV"稳健性对照, 须接 config 键 +
+        # runner 透传 + 第二套 *_hn 列 (改值, 需重生 golden)。当前仅供直接调用 / 单测使用;
+        # 默认 False 路径 (现行 +1) 不受影响。Newman 语义由 test_omni_fix_net_spill 锁定。
+        _grp_sizes = df_year.groupby('docid')['target_bank'].nunique()
+        _n_big = int((_grp_sizes > 10).sum())
+        if _n_big:
+            logger.info(
+                f"  年份 {year}: {_n_big} 篇大-N 文章 (>10 家银行, "
+                f"max={int(_grp_sizes.max())}) — 等权 clique 投影下可能主导网络 "
+                f"(P1-4; hyperedge_normalize={hyperedge_normalize})")
         for _docid, banks in df_year.groupby('docid')['target_bank']:
             uniq = sorted(set(banks))
+            _w = (1.0 / (len(uniq) - 1)) if (hyperedge_normalize and len(uniq) > 1) else 1.0
             for a_pos in range(len(uniq)):
                 i = bank_to_idx[uniq[a_pos]]
                 for b_pos in range(a_pos + 1, len(uniq)):
                     j = bank_to_idx[uniq[b_pos]]
-                    adj[i, j] += 1
-                    adj[j, i] += 1  # 对称
+                    adj[i, j] += _w
+                    adj[j, i] += _w  # 对称
     else:
         # ⚠ 口径降级 (兼容兜底, 仅旧 schema/合成帧): 无 docid 键无法按文章聚合 →
         # 退回 co_mentioned_banks 逐行双向计数 (含 1x/2x 混合与 phantom 边)。
@@ -326,8 +354,16 @@ def compute_network_spillovers(
             # fix(omni-g-net-spill-06, 2026-06-11) 标度声明勘误: 本重归一是对工具的
             # **逐观测 (row-specific) 确定性变换**, 不是全局标量缩放 — 2SLS 仅对工具集的
             # 全局非奇异线性变换不变, 行特定除数会改变工具的截面变异、第一阶段系数与
-            # F 统计量 (旧注释"相关性不变"不成立)。但除数由外生网络结构确定, 工具
-            # 外生性/排他性不受影响 (W² 去对角守住), 识别有效性保持。
+            # F 统计量 (旧注释"相关性不变"不成立)。
+            # ⚠ 识别勘误 (network-metrics-audit 2026-06-13, P1-5): 旧注"除数由外生网络结构
+            # 确定 → 外生性不受影响"在重归一估计量下**技术不准确**。除数 = 仅对 observed-tone
+            # 同行 (obs_mask=~isnan(tone), 即"去年被媒体充分报道并产出 valid 票"的同行) 的权重
+            # 和 → 该**求和索引集是数据可观测性/覆盖选择集, 非纯网络结构**。媒体覆盖与银行规模/
+            # 事件强度系统相关 → 空间权重 W 的有效支撑内生于结果相关的选择变量 (违 SLX/peer-
+            # effects 固定外生 W 前提)。须区分"行特定确定性缩放"(保外生) 与"支撑集选择性"
+            # (obs_mask 内生于覆盖, 引入选择偏误)。生产 run 须提供"全在网同行/平衡覆盖子样本"
+            # 稳健性对照 + 论证 W 条件下 MAR。W² 去对角守住的只是**机械**排他 (不含本行自身
+            # 滞后 tone), 不涵盖此覆盖选择问题。
             W2 = W_arr @ W_arr
             np.fill_diagonal(W2, 0.0)
             denom2 = W2[:, obs_mask].sum(axis=1)
@@ -546,7 +582,15 @@ def compute_bank_network_centrality(
         for b in bank_list:
             metrics[b]['bank_degree_cent'] = dc.get(b, 0.0)
 
-        # (2) Strength Centrality — 加权度, max-normalize
+        # (2) Strength Centrality — 加权度 (node strength, Opsahl-Agneessens-Skvoretz
+        # 2010), 再除以**年内最大加权度** max-normalize。
+        # ⚠ 口径披露 (network-metrics-audit 2026-06-13, P2-7): (a) Opsahl 2010 只定义
+        #   node strength=Σw_ij, **不**按网络内最大值归一 → max-normalize 是本项目 ad-hoc
+        #   实现细节、非 Opsahl 口径 (export 标签 "Opsahl 2010" 仅指 strength 构念本身);
+        #   (b) 该归一是**年相对**度量 (每年最大加权度银行恒=1.0), 跨年水平不可比, 且除以
+        #   年特定标量在含年 FE 回归中是乘性重标度、无法被加性年 FE 吸收 → 若升为回归 RHS
+        #   须先改结构性归一 (ln(strength)/全样本归一/within-bank z)。当前仅 Table 1
+        #   描述统计消费, 无 Stata 模板 RHS 引用。
         strength = dict(G.degree(weight='weight'))
         max_str = max(strength.values()) if strength else 1.0
         if max_str == 0:
@@ -554,33 +598,39 @@ def compute_bank_network_centrality(
         for b in bank_list:
             metrics[b]['bank_strength_cent'] = strength.get(b, 0.0) / max_str
 
-        # (5) Eigenvector Centrality — 三级 fallback
-        eigen_done = False
-        try:
-            ec = nx.eigenvector_centrality(
-                G, weight='weight', max_iter=1000, tol=1e-06)
-            for b in bank_list:
-                metrics[b]['bank_eigen_cent'] = ec.get(b, 0.0)
-            eigen_done = True
-        except nx.PowerIterationFailedConvergence:
-            pass
-        if not eigen_done:
+        # (5) Eigenvector Centrality — 按连通分量分别计算 (分量内归一)
+        # fix(network-metrics-audit 2026-06-13, P1-1): 旧实现在**整图 G** 上跑 power 迭代,
+        # 断连图下不抛 PowerIterationFailedConvergence 而是收敛, 把特征向量质量全压到谱半径
+        # 最大的分量 → 其余分量 (含 LCC, 若 LCC 谱半径非最大) 银行得 ~1e-42 数值残渣 (非 NaN,
+        # 被回归当"中心度极低的真银行"); 且 eigen_done=True 锁死, numpy(LCC) fallback 永不触发。
+        # 主控实证: 断连图非主导分量节点得 3e-42~5e-42 残渣。全量 T=18 共现网几乎必然断连 →
+        # 大面积污染。同型 bug 在 network_brokerage._eigenvector_centrality_by_component 已修,
+        # 此处移植同款逻辑: 每连通分量 (≥_CMNT_MIN_COMPONENT_SIZE 节点) 内单独确定性 eigenvector
+        # + 分量内归一; 微小分量置 NaN (left-join 后缺失, 与 brokerage 侧 NaN 约定一致, 不再写
+        # 0/残渣)。⚠ 披露: 中心度水平仅**分量内**可比 (networkx 在子图范围内 L2 归一); 跨分量
+        # 比较只在"是否处于大分量"意义上成立。复用上方已算的 components (L4 步)。
+        eig_vals: dict = {}
+        _n_tiny_eig = 0
+        for _comp in components:
+            if len(_comp) < _CMNT_MIN_COMPONENT_SIZE:
+                _n_tiny_eig += 1
+                continue
+            _sub = G.subgraph(_comp)
             try:
-                ec_lcc = nx.eigenvector_centrality_numpy(
-                    G_lcc, weight='weight')
-                # fix(omni-g-net-spill-05, 2026-06-11): 非 LCC 银行兜底 0.0 (原 np.nan) —
-                # 主路径全图 power 迭代下非主特征分量节点收敛到 ≈0, fallback 改 NaN 会让
-                # 同列 bank_eigen_cent 对结构同类银行的取值 (0 vs NaN) 由数值收敛性
-                # 而非网络结构决定 (跨年缺失模式漂移)。统一退化语义为 0.0。
-                for b in bank_list:
-                    metrics[b]['bank_eigen_cent'] = ec_lcc.get(b, 0.0)
-                eigen_done = True
-            except Exception:
-                pass
-        if not eigen_done:
-            for b in bank_list:
-                metrics[b]['bank_eigen_cent'] = np.nan
-            logger.warning(f"  年份 {year}: eigenvector 三级 fallback 均失败")
+                _ec = nx.eigenvector_centrality(
+                    _sub, weight='weight', max_iter=2000, tol=1e-06)
+            except nx.PowerIterationFailedConvergence:
+                # 分量内 degree 兜底 (仅极端退化分量); 与特征向量构念不同, 升 CRITICAL
+                logger.critical(
+                    f"  年份 {year}: {len(_comp)} 节点分量幂迭代不收敛, "
+                    f"该分量 bank_eigen_cent 用 degree_centrality 兜底")
+                _ec = nx.degree_centrality(_sub)
+            eig_vals.update(_ec)
+        for b in bank_list:
+            metrics[b]['bank_eigen_cent'] = eig_vals.get(b, np.nan)
+        if _n_tiny_eig:
+            logger.info(f"  年份 {year}: {_n_tiny_eig} 个微小分量 "
+                        f"(<{_CMNT_MIN_COMPONENT_SIZE} 节点) 的 bank_eigen_cent 置 NaN")
 
         # (6) Katz Centrality — α = 0.9 / λ_max
         try:
@@ -718,13 +768,28 @@ def compute_bank_network_centrality(
             else:
                 metrics[b]['bank_ci'] = np.nan
 
-        # (11) Hub (Top 10% degree)
-        deg_values = [(b, metrics[b]['bank_degree_cent']) for b in bank_list]
-        deg_values.sort(key=lambda x: x[1], reverse=True)
-        top10_count = max(1, int(len(deg_values) * 0.10))
-        top10_banks = {b for b, _ in deg_values[:top10_count]}
+        # (11) Hub (Top ~10% by degree)
+        # fix(network-metrics-audit 2026-06-13, N-08): 旧实现按 degree 降序硬切前 top10_count
+        # 家 → 边界并列度银行 (第 k/k+1 名同 degree) 由 sort 字典序任意决定 hub=1/0。改阈值法:
+        # 取第 top10_count 名 degree 为 cutoff, 所有 degree>=cutoff 银行均 hub=1 (并列同判,
+        # 确定且不任意)。⚠ 跨年 N 变化下"~10%"绝对阈值仍漂移 → bank_is_hub 跨年不可比,
+        # 宜作年内相对指示而非跨年水平变量。
+        # fix(network-metrics-reaudit 2026-06-13, N-08/NB-05 退化 guard): 若 cutoff<=0
+        # (全孤立年: 该年无共现对, 全部 degree=0) 或 degree 分布退化为单一值 (正则图,
+        # 所有银行同 degree), 则 ">=cutoff" 会把**全部**银行收入 → bank_is_hub 沦为常数列
+        # (零方差, 进回归被吸收且"人人皆枢纽"违构念)。此时置 0 (该年无明确 hub), 严格优于
+        # 旧 top-k 实现在此退化下的任意 1 家。全量 T=18 稀疏早年 / 试跑样本均可命中。
+        deg_sorted = sorted((metrics[b]['bank_degree_cent'] for b in bank_list),
+                            reverse=True)
+        top10_count = max(1, int(len(deg_sorted) * 0.10))
+        _hub_cutoff = deg_sorted[top10_count - 1]
+        _hub_degenerate = (_hub_cutoff <= 0) or (len(set(deg_sorted)) == 1)
         for b in bank_list:
-            metrics[b]['bank_is_hub'] = 1 if b in top10_banks else 0
+            if _hub_degenerate:
+                metrics[b]['bank_is_hub'] = 0
+            else:
+                metrics[b]['bank_is_hub'] = (
+                    1 if metrics[b]['bank_degree_cent'] >= _hub_cutoff else 0)
 
         # 存储节点级结果
         for b in bank_list:
@@ -753,6 +818,11 @@ def compute_bank_network_centrality(
             net_yr['net_avg_path_yr'] = np.nan
 
         # N4. 度分布 Gini 系数
+        # ⚠ 口径披露 (network-metrics-audit 2026-06-13, N-04): 此处用**无权**度
+        # (G.degree(b)=邻居数), 故 net_degree_gini_yr 衡量"连接数(degree)不平等",
+        # **不是**加权共现网的"强度(strength)分布不平等"(后者需 weight='weight')。
+        # 这是有意选择(拓扑连接集中度), 与 bank_strength_cent 加权口径不同, 勿混读;
+        # codebook 标签宜明确为 connection-count Gini。
         degree_seq = np.array([G.degree(b) for b in bank_list],
                               dtype=np.float64)
         net_yr['net_degree_gini_yr'] = _gini(degree_seq)
@@ -832,11 +902,15 @@ def compute_cognitive_proximity(
       DOI: 10.1080/0034340052000320887
       → 认知邻近度 = 知识基础的相似度, Cosine Similarity 为标准操作化
 
-    操作化:
-      Dahlke, J., et al. (2024). Epidemic effects in the diffusion
-      of emerging digital technologies. Research Policy, 53(2), 104917.
-      DOI: 10.1016/j.respol.2023.104917
-      → cogn_mean: 每家银行与所有其他银行的 TF-IDF cosine 均值
+    操作化 (项目自定义 — 引文勘误 network-metrics-audit 2026-06-13, P2-16):
+      cogn_mean = 每家银行与所有其他银行的 TF-IDF char-ngram cosine 均值,
+      作为 Boschma (2005) 认知邻近度构念的**本项目自定义操作化**。
+      ⚠ 旧注把该操作化归因于 Dahlke et al. (2024, RP) 不成立: 该文方法是用
+      transformer 从企业网站文本识别 AI 采纳 + 构建企业间**超链接**网络度中心度,
+      全文不含"两两 TF-IDF 余弦相似度求均值=cognitive proximity"操作化。
+      TF-IDF cosine 衡量"新闻话语相似度", 是否等同"知识基础相似度"须经业务相似度
+      基准外部效度验证 (Jaffe 1989 技术邻近 / Bloom-Schankerman-Van Reenen 2013
+      ECMA technology closeness 为可选对照锚点)。
 
     设计决策:
       - 逐年计算 (避免跨年词汇漂移)
@@ -858,7 +932,7 @@ def compute_cognitive_proximity(
         return panel
 
     logger.info("=" * 60)
-    logger.info("步骤: 认知邻近度计算 (Boschma 2005; Dahlke et al. 2024)")
+    logger.info("步骤: 认知邻近度计算 (Boschma 2005; 操作化=本项目自定义 TF-IDF cosine)")
     logger.info("=" * 60)
 
     # 文本列发现 (复用 24_herd_decay_processor.py L86-87 逻辑)
@@ -957,8 +1031,13 @@ def compute_cognitive_proximity(
         # 范围断言: TF-IDF 向量非负 → cosine ∈ [0, 1]
         valid_vals = panel['bank_cogn_mean'].dropna()
         if len(valid_vals) > 0:
-            assert (valid_vals >= -1e-10).all() and (valid_vals <= 1 + 1e-10).all(), \
-                f"bank_cogn_mean 超出 [0,1]: [{valid_vals.min():.6f}, {valid_vals.max():.6f}]"
+            # network-metrics-audit 2026-06-13 (N-10 + rank-18): 裸 assert → 显式 raise
+            # (python -O 下 assert 被剥离 → 守卫静默失效, 错误值悄悄落盘); 容差 1e-10→1e-6
+            # 适配 float32 cosine 舍入 (避免边界 1.0000001 误触发)。值域语义不变, golden-safe。
+            if not ((valid_vals >= -1e-6).all() and (valid_vals <= 1 + 1e-6).all()):
+                raise ValueError(
+                    f"bank_cogn_mean 超出 [0,1]: "
+                    f"[{valid_vals.min():.6f}, {valid_vals.max():.6f}]")
             n_valid_total = valid_vals.notna().sum()
             logger.info(f"  认知邻近度已合并: {n_valid_total:,} 有效值, "
                         f"mean={valid_vals.mean():.4f}, std={valid_vals.std():.4f}")
@@ -1438,8 +1517,12 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         # 符号筛选结构性不可触发, 属自我掩蔽断言)。
         valid_sim = panel['bank_emb_sim_mean_lag1'].dropna()
         if len(valid_sim) > 0:
-            assert (valid_sim >= -1 - 1e-10).all() and (valid_sim <= 1 + 1e-10).all(), \
-                f"bank_emb_sim_mean_lag1 超出 [-1,1]: [{valid_sim.min():.6f}, {valid_sim.max():.6f}]"
+            # network-metrics-audit 2026-06-13 (N-10): 裸 assert → 显式 raise (python -O 安全),
+            # 容差 1e-10→1e-6 适配 float32。值域语义不变, golden-safe。
+            if not ((valid_sim >= -1 - 1e-6).all() and (valid_sim <= 1 + 1e-6).all()):
+                raise ValueError(
+                    f"bank_emb_sim_mean_lag1 超出 [-1,1]: "
+                    f"[{valid_sim.min():.6f}, {valid_sim.max():.6f}]")
             logger.info(f"  Embedding 同业网络已合并: {len(valid_sim):,} 有效值, "
                         f"sim_mean={valid_sim.mean():.4f}")
     else:

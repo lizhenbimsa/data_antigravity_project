@@ -84,12 +84,21 @@ forvalues i = 1/`nmod' {
         local mtitles `"`mtitles' "`t'""'
     }
 }
+* fix(network-metrics-audit, 2026-06-13, P1-2): 补弱工具诊断 (KP rk Wald F + Stock-Yogo/AR-CI)
+* — R1-R4 全为 ffirst 2SLS, 旧表未提取 e(widstat)。补 widstat + 脚注。
+* 注(reaudit P1-2b): 本族脚注采用 K=1 恰好识别下唯一有定义的 Stock-Yogo "10% maximal-size=16.38"
+*   判据 (maximal-bias 表对单工具不存在); 主线 25_tableA6 的 "5% maximal bias" 措辞待该会话同步订正。
 esttab `models' ///
     using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
     title("Robustness Battery --- brokerage_network") ///
     mtitles(`mtitles') ///
     addnotes("Bank/year FE; cluster varies per column." ///
-             "Drop-singletons column re-estimates after excluding banks with a single observation.")
+             "Drop-singletons column re-estimates after excluding banks with a single observation." ///
+             "KP rk Wald F = Kleibergen-Paap rk Wald first-stage F (e(widstat), reported by ivreghdfe under cluster VCE; ffirst adds per-instrument first stage)." ///
+             "Just-identified (1 IV W2*tone / 1 endogenous) -> Hansen J undefined (df=0)." ///
+             "Stock-Yogo 10% maximal-size critical value (1 instrument) = 16.38; KP F below it => weak IV =>" ///
+             "read Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE), not the 2SLS point/SE.")
 
 display "[OK] Table 5 → $tables_dir/table5_robustness.tex"

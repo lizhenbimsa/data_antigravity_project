@@ -183,6 +183,32 @@ class TestAdjacencyBothVerified:
         """docstring '每篇文章每对 +1' 与实现对齐 (组级裁决要求)。"""
         assert '每篇文章每对 +1' in ns.build_adjacency_matrix.__doc__
 
+    def test_hyperedge_normalize_newman_degree_preserving(self):
+        """P1-4/NB-01: hyperedge_normalize=True → Newman (2001) degree-preserving 归一
+        每篇 N 银行文章每对贡献 1/(N-1), 单篇内每节点行和贡献=1.0; 默认 False 仍 +1
+        (golden-safe)。锁定 True 分支语义, 防其作为休眠 opt-in 参数零覆盖回归。"""
+        # 单篇 3 银行文章 {A,B,C}: 每对应得 1/(3-1)=0.5
+        df_ex = pd.DataFrame([
+            {'year': 2017, 'docid': 'd1', 'target_bank': 'A银行'},
+            {'year': 2017, 'docid': 'd1', 'target_bank': 'B银行'},
+            {'year': 2017, 'docid': 'd1', 'target_bank': 'C银行'},
+        ])
+        adj_hn, _ = ns.build_adjacency_matrix(df_ex, 2017, hyperedge_normalize=True)
+        assert abs(adj_hn.loc['A银行', 'B银行'] - 0.5) < 1e-12
+        assert abs(adj_hn.loc['A银行', 'C银行'] - 0.5) < 1e-12
+        # degree-preserving: 每节点行和 = (N-1) 对 × 1/(N-1) = 1.0
+        assert abs(adj_hn.loc['A银行'].sum() - 1.0) < 1e-12
+        # 默认 False = 旧 +1 行为 (golden-safe 逐位等价)
+        adj_def, _ = ns.build_adjacency_matrix(df_ex, 2017)
+        assert adj_def.loc['A银行', 'B银行'] == 1.0
+        # N=2 文章: 1/(2-1)=1.0, 与 +1 等价 (len(uniq)>1 守卫)
+        df2 = pd.DataFrame([
+            {'year': 2017, 'docid': 'p1', 'target_bank': 'A银行'},
+            {'year': 2017, 'docid': 'p1', 'target_bank': 'B银行'},
+        ])
+        adj2, _ = ns.build_adjacency_matrix(df2, 2017, hyperedge_normalize=True)
+        assert abs(adj2.loc['A银行', 'B银行'] - 1.0) < 1e-12
+
 
 # ============================================================================
 # fix omni-g-net-spill-02: 去 8000 字符前缀截断 + 确定性拼接
@@ -303,41 +329,79 @@ class TestSimMeanRenameAndTrueCosine:
 
 
 # ============================================================================
-# fix omni-g-net-spill-05: eigenvector fallback 非 LCC 银行兜底 0.0
+# fix(network-metrics-audit 2026-06-13, P1-1): bank_eigen_cent 改按连通分量计算
+# (取代 omni-g-net-spill-05 的"非 LCC 银行兜底 0.0"): 整图 power 迭代在断连图上给
+# 非主导分量银行写 ~1e-42 数值残渣 → 改每分量 (≥_CMNT_MIN_COMPONENT_SIZE 节点) 内
+# 单独 eigenvector + 分量内归一, 微小分量置 NaN (与 network_brokerage NaN 约定一致)。
 # ============================================================================
 
-class TestEigenvectorFallbackSemantics:
+class TestEigenvectorByComponent:
 
-    def test_non_lcc_banks_zero_not_nan_on_numpy_fallback(self, monkeypatch):
-        """主路径 power 迭代不收敛 → numpy(LCC) fallback: 非 LCC 银行应得 0.0
-        (与主路径非主分量 ≈0 语义一致), 不得随收敛性漂移为 NaN。"""
-        def _raise(*args, **kwargs):
-            raise nx.PowerIterationFailedConvergence(1000)
-        monkeypatch.setattr(ns.nx, 'eigenvector_centrality', _raise)
-
-        # 三角形 {A,B,C} (LCC) + 独立边 {D,E} (非 LCC 分量)
-        df_ex = pd.DataFrame([
-            {'year': 2017, 'docid': 'x1', 'target_bank': 'A银行'},
-            {'year': 2017, 'docid': 'x1', 'target_bank': 'B银行'},
-            {'year': 2017, 'docid': 'x2', 'target_bank': 'B银行'},
-            {'year': 2017, 'docid': 'x2', 'target_bank': 'C银行'},
-            {'year': 2017, 'docid': 'x3', 'target_bank': 'A银行'},
-            {'year': 2017, 'docid': 'x3', 'target_bank': 'C银行'},
-            {'year': 2017, 'docid': 'x4', 'target_bank': 'D银行'},
-            {'year': 2017, 'docid': 'x4', 'target_bank': 'E银行'},
-        ])
-        banks = ['A银行', 'B银行', 'C银行', 'D银行', 'E银行']
-        panel = pd.DataFrame({'target_bank': banks, 'year': [2017] * 5})
+    def test_non_dominant_component_gets_real_values_not_residue(self):
+        """P1-1 核心回归: 断连图上**非主导**大分量 (谱半径较小) 银行应得分量内真实
+        中心度 (triangle ≈0.577), 而非旧整图 power 迭代的 ~1e-42 数值残渣;
+        微小分量 (<3 节点) 银行 NaN。"""
+        rows = []
+        # 分量1: 重权三角 {A,B,C} (每对 5 篇 → 谱半径大, 主导)
+        for k in range(5):
+            rows += [
+                {'year': 2017, 'docid': f'a{k}1', 'target_bank': 'A银行'},
+                {'year': 2017, 'docid': f'a{k}1', 'target_bank': 'B银行'},
+                {'year': 2017, 'docid': f'a{k}2', 'target_bank': 'B银行'},
+                {'year': 2017, 'docid': f'a{k}2', 'target_bank': 'C银行'},
+                {'year': 2017, 'docid': f'a{k}3', 'target_bank': 'A银行'},
+                {'year': 2017, 'docid': f'a{k}3', 'target_bank': 'C银行'},
+            ]
+        # 分量2: 轻权三角 {D,E,F} (每对 1 篇 → 谱半径小, 非主导)
+        rows += [
+            {'year': 2017, 'docid': 'd1', 'target_bank': 'D银行'},
+            {'year': 2017, 'docid': 'd1', 'target_bank': 'E银行'},
+            {'year': 2017, 'docid': 'd2', 'target_bank': 'E银行'},
+            {'year': 2017, 'docid': 'd2', 'target_bank': 'F银行'},
+            {'year': 2017, 'docid': 'd3', 'target_bank': 'D银行'},
+            {'year': 2017, 'docid': 'd3', 'target_bank': 'F银行'},
+        ]
+        # 分量3: 单边 {G,H} (微小, <3 节点)
+        rows += [
+            {'year': 2017, 'docid': 'g1', 'target_bank': 'G银行'},
+            {'year': 2017, 'docid': 'g1', 'target_bank': 'H银行'},
+        ]
+        df_ex = pd.DataFrame(rows)
+        banks = ['A银行', 'B银行', 'C银行', 'D银行', 'E银行', 'F银行', 'G银行', 'H银行']
+        panel = pd.DataFrame({'target_bank': banks, 'year': [2017] * len(banks)})
 
         out = ns.compute_bank_network_centrality(panel.copy(), df_ex)
         idx = out.set_index('target_bank')['bank_eigen_cent']
 
-        # LCC 内银行: numpy 解出正中心度
-        assert idx.loc['A银行'] > 0
-        # 非 LCC 银行: 兜底 0.0 (修复前 NaN → 缺失模式随收敛性漂移)
-        assert idx.loc['D银行'] == 0.0
-        assert idx.loc['E银行'] == 0.0
-        assert not pd.isna(idx.loc['D银行'])
+        # 主导分量内银行: 分量内归一正中心度
+        assert idx.loc['A银行'] > 0.1
+        # 非主导大分量 (D/E/F): 真实分量内中心度, **不是** ~1e-42 残渣 (P1-1 修复点)
+        assert idx.loc['D银行'] > 0.1, (
+            f"非主导分量 bank_eigen_cent={idx.loc['D银行']:.2e} 像数值残渣 → P1-1 回归")
+        assert idx.loc['F银行'] > 0.1
+        # 微小分量 (<3 节点): NaN (不再写 0/残渣)
+        assert pd.isna(idx.loc['G银行'])
+        assert pd.isna(idx.loc['H银行'])
+
+    def test_tiny_component_banks_are_nan(self):
+        """孤立/微小分量 (<_CMNT_MIN_COMPONENT_SIZE 节点) 的 bank_eigen_cent 置 NaN。"""
+        df_ex = pd.DataFrame([
+            {'year': 2017, 'docid': 'a1', 'target_bank': 'A银行'},
+            {'year': 2017, 'docid': 'a1', 'target_bank': 'B银行'},
+            {'year': 2017, 'docid': 'a2', 'target_bank': 'B银行'},
+            {'year': 2017, 'docid': 'a2', 'target_bank': 'C银行'},
+            {'year': 2017, 'docid': 'a3', 'target_bank': 'A银行'},
+            {'year': 2017, 'docid': 'a3', 'target_bank': 'C银行'},
+            {'year': 2017, 'docid': 'z1', 'target_bank': 'Z银行'},
+            {'year': 2017, 'docid': 'z1', 'target_bank': 'Y银行'},
+        ])
+        banks = ['A银行', 'B银行', 'C银行', 'Z银行', 'Y银行']
+        panel = pd.DataFrame({'target_bank': banks, 'year': [2017] * 5})
+        out = ns.compute_bank_network_centrality(panel.copy(), df_ex)
+        idx = out.set_index('target_bank')['bank_eigen_cent']
+        assert idx.loc['A银行'] > 0.1
+        assert pd.isna(idx.loc['Z银行'])
+        assert pd.isna(idx.loc['Y银行'])
 
 
 # ============================================================================
@@ -354,8 +418,11 @@ class TestNspBCommentCorrection:
             'NSP-B 旧错误论证回归: 行特定重归一不是 2SLS 不变的标度变换')
 
     def test_corrected_rowwise_transform_disclosure_present(self):
-        """新声明: 逐观测确定性变换 + 第一阶段统计量会变 + 识别有效性保持。"""
+        """新声明: 逐观测确定性变换 + 第一阶段统计量会变; P1-5 进一步勘误旧
+        "外生性不受影响/识别有效性保持"为技术不准确 (支撑集 obs_mask 内生于媒体覆盖)。"""
         src = Path(ns.__file__).read_text(encoding='utf-8')
         assert '逐观测 (row-specific) 确定性变换' in src
         assert '旧注释"相关性不变"不成立' in src
-        assert '识别有效性保持' in src
+        # P1-5 (network-metrics-audit 2026-06-13): 取代旧"识别有效性保持"笼统声称
+        assert '支撑集选择性' in src
+        assert 'P1-5' in src

@@ -42,11 +42,21 @@ ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) L_btw L_cons L_broker $co
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo M3_2sls_cent
 
+* fix(network-metrics-audit, 2026-06-13, P1-2): 弱工具诊断 — M2/M3 的 ffirst 让 ivreghdfe
+* 内部算第一阶段, 但旧 esttab 从不在 stats() 提取 e(widstat)=KP rk Wald F → 表内无弱工具
+* 证据, 与同日主线 25_tableA6:138-145 标准不一致。补 widstat + Stock-Yogo/AR-CI 脚注。
 esttab M1_ols M2_net2sls M3_2sls_cent ///
     using "$tables_dir/table2_main_iv_2sls.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
     title("Main IV 2SLS --- brokerage_network (Bramoulle 2009)") ///
     mtitles("OLS" "Net-2SLS" "2SLS+Cent") ///
-    addnotes("Bank/year FE; SE clustered at province ({{CLUSTER_VAR}}).")
+    addnotes("Bank/year FE; SE clustered at province ({{CLUSTER_VAR}})." ///
+             "KP rk Wald F = Kleibergen-Paap rk Wald first-stage F (e(widstat), reported by ivreghdfe under cluster VCE; ffirst adds per-instrument first stage); blank for OLS." ///
+             "Single instrument W2*tone, just-identified (1 IV / 1 endogenous) -> Hansen J undefined (df=0)." ///
+             "Stock-Yogo 10% maximal-size critical value (1 instrument) = 16.38; KP F below it => weak IV =>" ///
+             "read Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE), NOT the 2SLS point/SE." ///
+             "Exclusion of W2*tone (Bramoulle-Djebbari-Fortin 2009; Manski 1993) is asserted on the mechanical" ///
+             "friends-of-friends-only-via-friends argument and must be defended economically in the paper text.")
 
 display "[OK] Table 2 → $tables_dir/table2_main_iv_2sls.tex"
