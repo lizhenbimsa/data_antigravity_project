@@ -149,23 +149,40 @@ def test_b_route_controls_self_validated(paper_id):
 
 
 # ============================================================================
-# omni-g-replication-02 — 主线 01_data_prep IC 回退 merge 完整性
+# omni-g-replication-02 (改判 2026-06-13) — 主线 01_data_prep 不再有 core/aux
+# IC 回退分支: stage 46 自 2026-06-12 起只产单一全列 full.dta, 模板对缺失
+# full.dta fail-loud (原 aux merge 完整性测试随回退分支删除而退役)
 # ============================================================================
 
 
-def test_mainline_aux_merge_keeps_master_match_and_diagnoses():
+def test_mainline_data_prep_loads_full_only_no_core_aux_fallback():
     content = _read(TEMPLATES / '01_data_prep.do.tmpl')
-    m = re.search(
-        r'capture merge 1:1 target_bank year using '
-        r'"data/processed/46_panel_yearly_aux\.dta", ([^\n]*)', content)
-    assert m, "mainline 01_data_prep: aux merge 行缺失"
-    opts = m.group(1)
-    assert 'keep(master match)' in opts, (
-        "aux merge 缺 keep(master match) — using-only 幻影 bank-year 会被静默追加"
+    # 全名形式
+    assert '46_panel_yearly_core.dta' not in content, (
+        "mainline 01_data_prep: core/aux IC 回退分支已移除, 不应再引用 core.dta"
     )
-    # _rc 诊断: 601 优雅降级, 其余 fail-loud
-    assert '601' in content
-    assert re.search(r"exit\s+`_aux_rc'", content), "非 601 的 merge 失败须 fail-loud"
+    assert '46_panel_yearly_aux.dta' not in content, (
+        "mainline 01_data_prep: core/aux IC 回退分支已移除, 不应再引用 aux.dta"
+    )
+    # 裸文件名形式 (防未来以 'core.dta'/'aux.dta' 简写重新引入 — 含注释)
+    assert 'core.dta' not in content, (
+        "mainline 01_data_prep: 不应残留任何 core.dta 引用 (含注释)"
+    )
+    assert 'aux.dta' not in content, (
+        "mainline 01_data_prep: 不应残留任何 aux.dta 引用 (含注释)"
+    )
+    assert 'use "data/processed/46_panel_yearly_full.dta", clear' in content
+    # full.dta 缺失须 fail-loud — exit 601 必须落在 `capture confirm` 之后的 `if _rc {...}`
+    # 守卫块内 (结构性校验, 防 exit 601 仅作为游离字符串存在却不在缺失分支里)。
+    assert re.search(
+        r'capture confirm file "data/processed/46_panel_yearly_full\.dta"\s*'
+        r'\n\s*if _rc \{[^}]*\bexit\s+601\b',
+        content,
+    ), "full.dta 缺失须在 `if _rc { ... exit 601 }` 守卫块内 fail-loud"
+    # 不允许任何 merge (核心特征: core/aux 双切分依赖 core+aux merge; 单文件无 merge)
+    assert not re.search(r'^\s*(capture\s+)?merge\b', content, flags=re.M), (
+        "mainline 01_data_prep: 单一全列 full.dta 加载不应含任何 merge (core/aux 合并已移除)"
+    )
 
 
 # ============================================================================

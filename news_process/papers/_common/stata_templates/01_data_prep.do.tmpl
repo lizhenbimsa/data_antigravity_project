@@ -8,35 +8,18 @@ clear all
 set maxvar 32767
 
 * 1. 加载面板 .dta
-* M2 fix (2026-05-30): 优先加载 full (含 aux-only 的稳健性情感变量), 使保存的
-* _prepared_panel.dta 让下游稳健性表真正运行, 而非经 `capture confirm` 静默跳过
-* 整块回归 (主表 Table2 仅用 core 列, 不受影响)。
 * remove-title-track: 原 _title 轨稳健性 (25_tableA8 / llm_vote_tone_title /
 * tone_gap_title_full) 已取消, 不再加载/回归。
 * 注: 21_tableA2 现已改读本 _prepared_panel.dta (2026-05-30 fix + set maxvar 32767),
 * 故 master 链的 22_tableA3 Bartik lf/lc-IV 在其 in-memory full 状态上可正常 run (不再静默跳过)。
-* CLAUDE.md: 本机 MP (set maxvar 32767) 应直读 full; 仅 IC 协作者回退 core+aux merge。
+* 2026-06-13: 移除 core/aux IC 回退分支 — stage 46 自 2026-06-12 起只产单一全列
+* 46_panel_yearly_full.dta (不再为 Stata IC ≤2048 列做双切分); 文件缺失即 fail-loud。
 capture confirm file "data/processed/46_panel_yearly_full.dta"
-if !_rc {
-    use "data/processed/46_panel_yearly_full.dta", clear
+if _rc {
+    display as error "[ERROR] 46_panel_yearly_full.dta 不存在 — 请先跑 stage 46 (46_stata_export) 重生导出三件套"
+    exit 601
 }
-else {
-    use "data/processed/46_panel_yearly_core.dta", clear
-    * fix(omni-g-replication-02, 2026-06-11): 加 keep(master match) — Stata merge 默认
-    * 保留 _merge==2 (using-only) 行, 陈旧/错代际 aux.dta 的 using-only bank-year 会被
-    * 静默追加为 core 变量全缺失的幻影观测进 _prepared_panel.dta (paper-10/11 模板同类
-    * merge 均已写 keep(master match), 此处遗漏)。capture 仅容忍 aux 文件缺失 (601, IC
-    * 协作者只有 core 的合法回退); 其余真实失败 (如 459 键非唯一) fail-loud 而非静默吞掉。
-    capture merge 1:1 target_bank year using "data/processed/46_panel_yearly_aux.dta", keep(master match) nogen
-    local _aux_rc = _rc
-    if `_aux_rc' == 601 {
-        display "  [INFO] 46_panel_yearly_aux.dta 不存在 — aux-only 稳健性列不可用 (IC 回退仅 core)"
-    }
-    else if `_aux_rc' {
-        display as error "[ERROR] core+aux merge 失败 (rc=`_aux_rc') — aux.dta 可能与 core 不同代际或键非唯一 (r459); 请重跑 stage 46 重生三件套"
-        exit `_aux_rc'
-    }
-}
+use "data/processed/46_panel_yearly_full.dta", clear
 display "  Loaded: `=_N' bank-year obs × `=c(k)' variables"
 
 * 2. 加载 variable + value labels
@@ -110,8 +93,8 @@ if !_rc {
 
 * 6. (R1-R5 audit fix A3): 保存 _prepared_panel.dta 供下游稳健性模板
 * (19_*_clarity_robustness 等) 使用. 此前在主线 run 链下 file-not-found, 因主线
-* 01_data_prep 加载 core.dta 后无 save。(remove-title-track: 原 25_tableA8/26_bs
-* 标题轨表已删, 不再是消费方。)
+* 01_data_prep 加载面板后无 save (旧 IC 回退分支已于 2026-06-13 移除)。(remove-title-track:
+* 原 25_tableA8/26_bs 标题轨表已删, 不再是消费方。)
 capture mkdir "data/processed"
 if "$data_dir" == "" {
     save "data/processed/_prepared_panel.dta", replace

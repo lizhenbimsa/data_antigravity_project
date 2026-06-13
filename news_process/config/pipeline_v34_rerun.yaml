@@ -92,9 +92,7 @@ panel_build:
   resource: cpu
   output_layout:
     - "data/processed/v34/46_panel_yearly_full.parquet"
-    - "data/processed/v34/46_panel_yearly_full.dta"
-    - "data/processed/v34/46_panel_yearly_core.dta"      # ≤ 2048 cols (IC 兼容)
-    - "data/processed/v34/46_panel_yearly_aux.dta"       # 互补
+    - "data/processed/v34/46_panel_yearly_full.dta"      # 单一全列 (2026-06-12 起移除 core/aux IC 双切分)
     - "data/processed/v34/46_panel_yearly_v34_balanced.dta"
     - "data/processed/v34/46_panel_yearly_v34_unbalanced.dta"
     - "data/processed/v34/46_codebook_v34.xlsx"
