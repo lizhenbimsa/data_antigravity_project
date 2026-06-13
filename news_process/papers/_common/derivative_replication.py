@@ -131,11 +131,22 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CENTRALITY_BTW': 'bank_between_cent',
         'CENTRALITY_CONS': 'bank_constraint',
         'CENTRALITY_BROKER': 'brokerage_eigen_cent',
-        # 残留默认值: MAIN_TREAT/RANDOM_SEED 原供已删的 _title robustness 模板
-        # (25_tableA8_title_robustness, remove-title-track 已删) 使用; 现
-        # brokerage_network 无存活模板消费此二 placeholder, 保留为无害默认值。
-        'MAIN_TREAT': 'peer_tone_lag1_full',  # MAIN_ENDOG 的别名
-        'RANDOM_SEED': '20260516',
+        # ── network-metrics-elevation 2026-06-13: 五角色化新表 (15-20) 占位符 ──
+        # 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md;
+        # 全部消费 panel 实存列 → golden-safe; 角色 production T=18 才有功效 (盘面退化, 模板 N-守卫跳过)。
+        'PRIMARY_CENT': 'bank_between_cent',          # 角色1/5 主中心度 (Freeman 1979 介数=经纪/桥接)
+        'SECONDARY_CENT': 'brokerage_eigen_cent',     # 信息枢纽对照 (Bonacich 1972 / Han 2024 RFS)
+        'MEDIATOR_CENT': 'bank_between_cent',          # 角色2 中介通道 (与 PRIMARY 同列, 语义独立防分叉)
+        'OVERID_IV2': 'prov_leave1out_tone_full',      # 角色3 跨族第二工具 (地理族同省 LOO; ctx fallback 模板内 capture confirm)
+        'MOD_CENT': 'brokerage_eigen_cent',            # 角色4 调节交乘中心度 (信息枢纽放大溢出)
+        'NET_HET_VAR': 'bank_is_hub',                  # 角色5 网络分组 (区别于 HET_VAR=is_soe)
+        # MAIN_TREAT (= MAIN_ENDOG 别名) 现无存活模板消费, 仅作无害闲置默认值
+        # (原供已删的 _title robustness 模板 25_tableA8_title_robustness, remove-title-track 已删)。
+        # ⚠ RANDOM_SEED 现被 20_table11_fwer_battery.do.tmpl:73 的 wyoung seed() 消费 (FWER
+        # bootstrap 复现锚点, **勿删**; 删则 _substitute 触发残留 {{RANDOM_SEED}} ValueError +
+        # test_derivative_replication 红测, 非静默)。(network-metrics-elevation 2026-06-13 订正)
+        'MAIN_TREAT': 'peer_tone_lag1_full',  # MAIN_ENDOG 的别名 (无消费者)
+        'RANDOM_SEED': '20260516',  # 被 20_table11 wyoung seed 消费 (FWER 复现锚, 勿删)
     },
     'strategic_diff': {
         'PAPER_ID': 'strategic_diff',
@@ -270,7 +281,7 @@ def get_paper_defaults(paper_id: str) -> dict[str, str]:
 # 占位符替换 (残留即 fail-fast)。
 # ============================================================================
 
-_PLACEHOLDER_RE = re.compile(r'\{\{([A-Z_]+)\}\}')
+_PLACEHOLDER_RE = re.compile(r'\{\{([A-Z0-9_]+)\}\}')  # 含数字 (如 OVERID_IV2) — 残留检测网 (network-metrics-elevation 2026-06-13: 旧 [A-Z_]+ 漏检数字 token)
 
 
 def _substitute(content: str, choices: Mapping[str, str]) -> str:

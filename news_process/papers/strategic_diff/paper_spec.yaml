@@ -52,6 +52,21 @@ identification:
     primary: bartik_type_iv_full   # Bartik IV (instrument for llm_vote_tone_full per README)
     fallback: bartik_type_iv_ctx
 
+# 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# 与 brokerage 区隔: strategic_diff 用 constraint(嵌入度), brokerage 用 between(经纪位置)。golden-safe; schema no-op。
+network_roles:
+  control:
+    column: bank_constraint   # Burt 结构约束=网络嵌入度 → 区分"文本战略差异"vs"网络孤立"两混淆构念
+    framing: embeddedness_confounder
+    lit: [Hoberg-Phillips 2016 JPE, Keeley 1990 AER, Burt 1992]
+    note: "bank_constraint deg<2→NaN (N-02), listwise 损样本须披露"
+  moderator:
+    interaction: diff_x_btwn   # = strat_diff_n5 × L.bank_between_cent (既差异化又枢纽=最强护城河)
+    status: exploratory   # 交乘内生 → 条件关联 framing 非因果 (审计 STRATDIFF-MOD-1 reject-as-causal)
+    framing: production_t18
+    lit: [Hoberg-Phillips 2016 JPE, Keeley 1990 AER]
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
+
 event_studies: []  # strategic_diff 主回归是 cross-sectional + Bartik IV; 无 paper-specific event
 
 targets:

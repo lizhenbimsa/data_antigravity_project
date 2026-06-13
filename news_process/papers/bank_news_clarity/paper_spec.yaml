@@ -253,6 +253,15 @@ robustness_battery:
   - dual_track_full_vs_ctx: "_full 与 _ctx 主回归对照"
   - genre_concern_subsample: "drop short articles (n_tokens < 100) 测试词表 noise"
 
+# 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# provisional; 与第10篇共享 outlet-style IV 须互斥论证 (F12.2)。golden-safe; schema no-op。
+network_roles:
+  control:
+    columns: [bank_degree_cent, brokerage_eigen_cent]   # 清晰度部分由"哪些媒体报道你"驱动 → 控网络曝光位置后 clarity→risk 才干净 (信息中介)
+    framing: information_environment_confounder
+    lit: [Bushman-Williams 2012 JAE, Bushee et al. 2010]
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
+
 event_studies:
   - 2017-01-01  # IFRS 9 / 金融工具准则 (clarity exogenous shock)
   - 2018-04-27  # 资管新规

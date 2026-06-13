@@ -1,0 +1,101 @@
+* ============================================================================
+* 18_table9_moderation.do — 网络位置调节同业语调溢出 (角色4 调节)
+* Paper: {{PAPER_ID}}
+*
+* network-metrics-elevation 2026-06-13.
+* 命门 (审计 BRK-MOD-4 裁决): 主表 peer_tone_lag1 是被工具化的内生回归元 → 其与中心度
+*   的交乘项**同样内生**。**禁用 OLS 调节** (主表都不敢用 OLS); 必须 **2SLS 交乘**:
+*   交乘项与主项各配工具 (Wooldridge 交乘内生标准做法)。
+*   内生: peer_tone_lag1 + peer_tone_lag1×L.cent; 工具: W²·tone + W²·tone×L.cent。
+* MOD_CENT = brokerage_eigen_cent (信息枢纽最对应"放大溢出")。交乘列名 ≤32 字符。
+* 文献: Grieser et al. 2022 JFE (异质暴露放大溢出) / Jackson-Pernoud 2021 ARE /
+*       Brambor-Clark-Golder 2006 PA (交乘规范)。
+* ⚠ T=2 交乘恒共线退化; 仅 production T=18 激活。中心度内生 (P1-5) 继承到交乘 → 仍须
+*   条件外生论证 (L. 滞后不足以救回); brokerage_eigen 分量内归一+within=换岛噪声 (N-11)。
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required for Table 9"
+    exit 199
+}
+capture confirm variable {{MAIN_ENDOG}} {{MAIN_IV}}
+if _rc {
+    display "[INFO] {{MAIN_ENDOG}} / {{MAIN_IV}} not in panel; Table 9 (moderation) skipped."
+    exit 0
+}
+
+* MOD1: 信息枢纽放大 (brokerage_eigen, 主调节) — 交乘 2SLS (交乘项工具化)
+capture confirm variable L_broker
+if !_rc {
+    capture drop pt_x_brkr iv_x_brkr
+    gen double pt_x_brkr = {{MAIN_ENDOG}} * L_broker
+    gen double iv_x_brkr = {{MAIN_IV}} * L_broker
+    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_brkr = {{MAIN_IV}} iv_x_brkr) L_broker $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo MOD1_brkr
+}
+* MOD2: 桥接放大 (betweenness)
+capture confirm variable L_btw
+if !_rc {
+    capture drop pt_x_btw iv_x_btw
+    gen double pt_x_btw = {{MAIN_ENDOG}} * L_btw
+    gen double iv_x_btw = {{MAIN_IV}} * L_btw
+    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_btw = {{MAIN_IV}} iv_x_btw) L_btw $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo MOD2_btw
+}
+* MOD3: 结构洞调节 (constraint)
+capture confirm variable L_cons
+if !_rc {
+    capture drop pt_x_cons iv_x_cons
+    gen double pt_x_cons = {{MAIN_ENDOG}} * L_cons
+    gen double iv_x_cons = {{MAIN_IV}} * L_cons
+    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_cons = {{MAIN_IV}} iv_x_cons) L_cons $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo MOD3_cons
+}
+
+qui estimates dir
+local stored `r(names)'
+local cand_models MOD1_brkr MOD2_btw MOD3_cons
+local cand_titles `""x Brokerage-eigen" "x Betweenness" "x Constraint""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display "[INFO] Table 9 skipped — no lagged centrality columns available."
+    exit 0
+}
+esttab `models' using "$tables_dir/table9_moderation.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
+    title("Network Position Moderates Peer-Tone Spillover (2SLS interaction) --- {{PAPER_ID}}") ///
+    mtitles(`mtitles') ///
+    addnotes("Bank/year FE; SE clustered at province ({{CLUSTER_VAR}}); lagged moderator (t-1)." ///
+             "2SLS INTERACTION (NOT OLS): peer_tone & peer_tone x L.centrality both endogenous," ///
+             "instrumented by W2*tone & W2*tone x L.centrality (Wooldridge endogenous-interaction)." ///
+             "Each column 2 endog / 2 IV = just-identified -> Hansen J df=0 (undefined)." ///
+             "KP rk Wald F = e(widstat); F<19.93 (2 IV Stock-Yogo) => weak IV => Anderson-Rubin CI (ASS 2019)." ///
+             "Moderator endogenous to coverage (P1-5); L.lag insufficient -> interpret as conditional, not causal amplification." ///
+             "brokerage_eigen_cent is within-component normalized; within-bank time variation mixes 'island switching' noise (N-11)." ///
+             "Columns differ in N (NaN vs 0 fill, audit N-02); multiple interactions -> Romano-Wolf/sharpened-FDR over family (P2-12).")
+
+display "[OK] Table 9 -> $tables_dir/table9_moderation.tex"

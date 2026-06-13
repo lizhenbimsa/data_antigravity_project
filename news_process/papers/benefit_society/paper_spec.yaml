@@ -62,6 +62,16 @@ identification:
     # benefit_mean_ctx 配 ctx 同业 LOO 工具 lpeer_benefit_iv_ctx, 与 full 轨各自
     # just-identified 并排 (双轨互为稳健性); 非 full×ctx overid。模板 25_tableA12_iv_2sls。
 
+# 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# ⚠ PAP v1.0-final 锁 outcome=roa/treatment=benefit_mean → 网络严禁进 primary, 仅 controls/exploratory。golden-safe; schema no-op。
+network_roles:
+  control:
+    columns: [bank_between_cent, bank_degree_cent]   # 净化"正面态度多因被密集正面报道"可见度混淆
+    framing: visibility_confounder
+    pap_locked: true   # 不可改 primary (PAP v1.0-final)
+    lit: [Fang-Peress 2009 JF, Burt 1992]
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
+
 event_studies: []  # benefit_society 主回归不依赖外生 shock; cross-sectional within-bank within-year
 
 targets:

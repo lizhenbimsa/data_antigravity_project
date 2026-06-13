@@ -1,0 +1,91 @@
+* ============================================================================
+* 15_table6_centrality_outcome.do — 网络位置 → 绩效 (角色1 解释变量) + 火灾甩卖机制
+* Paper: {{PAPER_ID}}
+*
+* network-metrics-elevation 2026-06-13 (蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)
+* ⚠⚠ 识别定位 (审计 BRK-EXPL-1 裁决 fatal-as-causal): 本表把网络位置中心度作 RHS,
+*    但**仅解读为"网络可见度与绩效的条件相关 (conditional association)", 非因果效应**。
+*    中心度内生于媒体覆盖 (P1-5), 反向因果 (绩效→事件→被多媒体共提→共现度↑) 无法用
+*    bank+year FE + L. 滞后挡住。已**删除**原设计的 L2-IV 列 (L2 工具排他必败 + 强自相关)。
+* M1-M3: 三类网络位置 (betweenness 桥接 / brokerage-eigen 信息枢纽 / constraint 结构洞)。
+* M4: 火灾甩卖机制 — 激活休眠的 brokerage_fire_sale + industry_neg_shock_lag1 (审计 N-03/P3-23)。
+*     只用 industry_neg_shock_lag1; 同期版年 FE 下与自身负面率精确共线 (禁用)。
+* 文献: Hochberg-Ljungqvist-Lu 2007 JF / El-Khatib-Fogel-Jandik 2015 JFE /
+*       Larcker-So-Wang 2013 JAE / Freeman 1979 / Han-Kim-Nanda 2024 RFS。
+* ⚠ T=2 盘面: bank+year FE 下中心度仅 1 个一阶差分, 无识别功效; 仅 production T=18 激活。
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+* L_btw / L_broker / L_cons 由 01_data_prep 生成并持久化在 _prepared_panel.dta。
+* 缺失约定披露 (审计 N-02): bank_between_cent/bank_constraint 不在网兜底 0.0,
+* brokerage_eigen_cent 微小分量兜底 NaN → 各列有效 N 不同 (esttab 报 N 让审稿人看到)。
+
+* M1: betweenness (primary_centrality) — 条件相关, 非因果
+capture confirm variable L_btw
+if !_rc {
+    reghdfe {{MAIN_DV}}_w L_btw $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo C1_btw
+}
+* M2: brokerage eigenvector (secondary, 信息枢纽对照)
+capture confirm variable L_broker
+if !_rc {
+    reghdfe {{MAIN_DV}}_w L_broker $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo C2_brkr
+}
+* M3: structural-hole constraint (Burt 1992)
+capture confirm variable L_cons
+if !_rc {
+    reghdfe {{MAIN_DV}}_w L_cons $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo C3_cons
+}
+* M4: 火灾甩卖机制 — 网络枢纽 × 行业负面冲击 (经纪网络框架锚 = Han-Kim-Nanda 2024 RFS; fire-sale 放大机制锚 = Jackson-Pernoud 2021 ARE)
+capture confirm variable brokerage_fire_sale industry_neg_shock_lag1
+if !_rc {
+    reghdfe {{MAIN_DV}}_w brokerage_fire_sale industry_neg_shock_lag1 L_broker $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo C4_firesale
+}
+
+* esttab 动态名单 (估计被守卫跳过时不 r(111))
+qui estimates dir
+local stored `r(names)'
+local cand_models C1_btw C2_brkr C3_cons C4_firesale
+local cand_titles `""Betweenness" "Brokerage-eigen" "Constraint" "Fire-sale""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display "[INFO] Table 6 skipped — no centrality columns available (run stage 46 network first)."
+    exit 0
+}
+esttab `models' using "$tables_dir/table6_centrality_outcome.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2, fmt(0 3) labels("N" "R-squared")) ///
+    title("Network Position and Bank Performance --- {{PAPER_ID}} (conditional association)") ///
+    mtitles(`mtitles') ///
+    addnotes("Bank/year FE; SE clustered at province ({{CLUSTER_VAR}}); lagged centrality (t-1)." ///
+             "CONDITIONAL ASSOCIATION, NOT causal: centrality is endogenous to media coverage (network audit P1-5);" ///
+             "reverse causality (performance -> events -> co-mention) not ruled out by FE+lag. No causal claim." ///
+             "Columns differ in N: bank_*_cent fill 0 off-network vs brokerage_eigen_cent NaN (audit N-02)." ///
+             "Co-mention network is NOT externally validated against any known economic peer network (P1-3):" ///
+             "see _shared/A_network_robustness for QAP/dyadic external-validity. Battery of 22 centralities:" ///
+             "only primary (betweenness) pre-registered; appendix use requires Romano-Wolf/sharpened-FDR (P2-12)." ///
+             "Fire-sale = brokerage_eigen(t-1) x industry_neg_shock(t); lagged shock only (contemporaneous collinear w/ own neg-ratio under year FE).")
+
+display "[OK] Table 6 -> $tables_dir/table6_centrality_outcome.tex"

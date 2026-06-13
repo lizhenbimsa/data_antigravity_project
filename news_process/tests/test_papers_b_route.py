@@ -143,10 +143,14 @@ def test_total_template_count_77() -> None:
     # 2026-06-13 IV 物化: +5 个 2SLS 模板 (root/25_tableA6_tone_iv_2sls +
     # substance/22_substance_iv_2sls + locus/20_locus_iv_2sls +
     # collab/21_collab_iv_2sls + benefit_society/25_tableA12_iv_2sls) → 共 100。
-    expected_count = 100  # 95 (remove-title-track 后) + 5 (2026-06-13 IV 2SLS 族)
+    # 2026-06-13 network-metrics-elevation: +6 个 brokerage_network 网络位置五角色化表
+    # (15_table6_centrality_outcome 解释 + 16_table7_mediation 中介 + 17_table8_overid_iv 工具
+    #  + 18_table9_moderation 调节 + 19_table10_network_het 异质性 + 20_table11_fwer_battery FWER)
+    # → 共 106。蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md。
+    expected_count = 106  # 95 (baseline) + 5 (IV 2SLS) + 6 (网络位置五角色化)
     assert len(templates) == expected_count, (
         f"Expected {expected_count} total templates, found {len(templates)}: "
-        f"= 95 (remove-title-track baseline) + 5 (2026-06-13 IV 2SLS 模板族)"
+        f"= 95 (baseline) + 5 (2026-06-13 IV 2SLS) + 6 (网络位置五角色化)"
     )
 
 

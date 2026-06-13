@@ -55,6 +55,70 @@ identification:
   iv:
     primary: peer_tone_2nd_lag1_full   # 二阶溢出 (Bramoullé 排他性约束)
     fallback: peer_tone_2nd_lag1_ctx
+  # ── 网络位置度量层 (network-metrics-elevation 2026-06-13) ──
+  # ⚠ 区分两层 (审计 BRK-PRIMARY-1 裁决): 本篇**主识别引擎** = W·tone(endogenous,
+  #   treatment.primary) / W²·tone(IV, 上方 iv.primary) 谱滞后; 下列中心度是**网络
+  #   位置度量** (不是溢出引擎), 作解释/调节/异质性载体。声明 primary_centrality
+  #   是为防审计 P2-12『22 选 3』p-hacking (预注册一个, 其余明确降附录稳健集)。
+  primary_centrality: bank_between_cent     # Freeman 1979 介数/桥接 = 唯一直接量化"跨群信息中介(经纪)"的中心度, 与 W·tone 溢出传导同构
+  secondary_centrality: brokerage_eigen_cent  # Bonacich 1972 特征向量; 二分图信息枢纽对照 (Han et al. 2024 RFS)
+  structural_hole_centrality: bank_constraint  # Burt 1992 结构洞约束 (稳健对照)
+  # 其余 19 中心度 = 附录稳健集 (exploratory, 非主检验目标; 任何附录使用须报 Romano-Wolf/sharpened-FDR)
+  centrality_battery: [bank_degree_cent, bank_strength_cent, bank_between_cent,
+    bank_harmonic_cent, bank_eigen_cent, bank_katz_cent, bank_subgraph_cent,
+    bank_cfbetween_cent, bank_clustering, bank_constraint, bank_is_hub,
+    bank_ego_density, bank_ci, bank_effective_size, bank_closeness_cent,
+    bank_eccentricity, bank_avg_nbr_deg, bank_coreness, net_density_yr,
+    net_avg_cluster_yr, net_avg_path_yr, net_degree_gini_yr]
+
+# 网络位置多角色化 (network-metrics-elevation 2026-06-13; 蓝图见
+# scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
+# 全部消费已落 40/51 panel .dta 的既有列 → golden-safe (零面板数值改动);
+# 全部角色 (除 control) **production T=18 (2007-2024) 才有识别功效**, 盘面 T=2 退化
+# (实测 endog+IV 双非空仅 28 行单年, hub 子样本 N=4), 模板均 capture-confirm/N-守卫
+# 优雅跳过。schema (paper_spec_schema.py) 对本块 no-op → 纯增字段零破坏。
+network_roles:
+  explanatory:        # 角色1 解释变量 (15_table6) — ⚠ 仅作描述性条件关联, 非因果 (审计 BRK-EXPL-1)
+    column: bank_between_cent
+    estimator: reghdfe
+    framing: conditional_association   # 网络位置内生于媒体覆盖 (P1-5) → 不主张因果
+    lit: [Hochberg-Ljungqvist-Lu 2007 JF, El-Khatib-Fogel-Jandik 2015 JFE, Larcker-So-Wang 2013 JAE]
+  mediator:           # 角色2 中介 (16_table7) — 探索性附录, 关联分解非因果中介 (审计 BRK-MED-2)
+    column: bank_between_cent
+    estimator: three_step_regression
+    framing: association_decomposition   # 中介内生 → Imai-Keele-Yamamoto 2010 ρ 敏感性必报
+    status: exploratory_appendix
+    lit: [Imai-Keele-Yamamoto 2010 Stat.Sci., Burt 1992]
+  iv:                 # 角色3 工具 (17_table8) — 跨族 over-id, 破解 P1-6 恰好识别不可检验
+    endogenous: peer_tone_lag1_full
+    instruments: [peer_tone_2nd_lag1_full, prov_leave1out_tone_full]  # 共现族 W² + 地理族同省 LOO (跨族!)
+    estimator: ivreghdfe_overid
+    forbidden: full_ctx_pooled_J        # 严禁 full+ctx 双支拼一对工具 (同污染→J 零功效, memory loo-ctx-iv)
+    lit: [Bramoullé-Djebbari-Fortin 2009 JoE, Leary-Roberts 2014 JF, GPSS 2020 AER, Andrews-Stock-Sun 2019 ARE]
+  moderator:          # 角色4 调节 (18_table9) — 2SLS 交乘 (交乘项工具化), 非 OLS (审计 BRK-MOD-4)
+    column: brokerage_eigen_cent        # 信息枢纽放大溢出
+    interaction: pt_x_brkr              # = peer_tone_lag1 × L.brokerage_eigen_cent (≤32 字符)
+    estimator: ivreghdfe_interaction    # 交乘项与主项各配工具 (W²·tone × L.cent)
+    lit: [Grieser et al. 2022 JFE, Jackson-Pernoud 2021 ARE, Brambor-Clark-Golder 2006 PA]
+  heterogeneity:      # 角色5 异质性 (19_table10) — within-year 分位 + pooled 交乘 2SLS 组间检验
+    column: bank_is_hub                 # 主分组 (within-year decile, 非绝对阈值 N-08)
+    alternative: bank_constraint        # 结构洞富/贫分位
+    estimator: pooled_interaction_2sls  # 组间系数差用交乘 t, 非两列并排
+    lit: [Burt 1992, El-Khatib-Fogel-Jandik 2015 JFE, Stock-Yogo 2005]
+  firesale:           # 机制 (15_table6b) — 激活休眠孤儿 (审计 N-03/P3-23)
+    columns: [brokerage_fire_sale, industry_neg_shock_lag1]  # 同期 industry_neg_shock 年FE下与自身负面率精确共线, 禁用
+    estimator: reghdfe
+    lit: [Han-Kim-Nanda 2024 RFS, Jackson-Pernoud 2021 ARE]
+  # 缺失约定 (审计 N-02): bank_*_cent 不在网兜底 0.0 vs brokerage_eigen_cent 兜底 NaN
+  # → 同入一回归致 listwise 样本漂移; 模板须先统一 (01_data_prep replace ... if missing) 或显式披露 N。
+  centrality_missing_convention: zero_fill_offnetwork_disclose_N
+  external_validity_ref: _shared/A_network_robustness   # P1-3 共现≈peer 外部效度 QAP/dyadic (NET-SHARED-2)
+
+robustness:
+  # 22 选 3 p-hacking 防御 (审计 P2-12): 核心系数附录用 wyoung/rwolf2/sharpened-FDR
+  # (⚠ rwolf 无 iv()/不支持 ivreghdfe → 用 wyoung 或 rwolf2; T=18 才激活, 盘面注释).
+  fwer: romano_wolf
+  fwer_impl: [wyoung, rwolf2, sharpened_fdr_anderson_2008]
 
 event_studies:  # DCEP / Sandbox policy shocks (paper-specific)
   - dcep_post   # 数字人民币 (DCEP) 试点扩围

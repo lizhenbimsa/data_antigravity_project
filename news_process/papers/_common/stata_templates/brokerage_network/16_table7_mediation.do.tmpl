@@ -1,0 +1,74 @@
+* ============================================================================
+* 16_table7_mediation.do — 同业语调溢出 → 网络位置 → 绩效 (角色2 中介)
+* Paper: {{PAPER_ID}}
+*
+* network-metrics-elevation 2026-06-13.
+* ⚠⚠ 识别定位 (审计 BRK-MED-2 裁决 reject-as-causal → 降为探索性附录):
+*    中介 (网络位置) 内生于媒体覆盖 (P1-5) → Imai-Keele-Yamamoto (2010) sequential
+*    ignorability (中介给定协变量对处理外生) **不可信**。本表是**关联分解 (association
+*    decomposition), 非因果中介**; 论文以角色4 (调节, 18_table9) 为主, 本表附录探索。
+* 中介链: 处理 peer_tone_lag1 → 中介 {{MEDIATOR_CENT}} (a-path) → 绩效 (b-path, 控处理)。
+* 间接效应 = a×b (Sobel/bootstrap); medsem 不支持 reghdfe → 手算 + 披露 + ρ 敏感性提示。
+* 文献: Imai-Keele-Yamamoto 2010 Stat.Sci. / Baron-Kenny 1986 JPSP (须配 Imai 修正) / Burt 1992。
+* ⚠ T=2 无法分离 a/b path; 仅 production T=18 激活。
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture confirm variable {{MAIN_ENDOG}} {{MEDIATOR_CENT}}
+if _rc {
+    display "[INFO] {{MAIN_ENDOG}} / {{MEDIATOR_CENT}} not in panel; Table 7 (mediation) skipped."
+    exit 0
+}
+
+* a-path: 处理 → 中介 (网络位置)
+reghdfe {{MEDIATOR_CENT}} {{MAIN_ENDOG}} $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo A_path
+scalar a_coef = _b[{{MAIN_ENDOG}}]
+
+* total: 处理 → 绩效
+reghdfe {{MAIN_DV}}_w {{MAIN_ENDOG}} $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo Total
+
+* b-path + direct: 处理 + 中介 → 绩效
+reghdfe {{MAIN_DV}}_w {{MAIN_ENDOG}} {{MEDIATOR_CENT}} $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+eststo Direct
+scalar b_coef = _b[{{MEDIATOR_CENT}}]
+scalar indirect = a_coef * b_coef
+display "[mediation] indirect effect (a*b) = " indirect " (association decomposition, NOT causal mediation)"
+
+qui estimates dir
+local stored `r(names)'
+local cand_models A_path Total Direct
+local cand_titles `""a-path (Med)" "Total" "Direct+b-path""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' using "$tables_dir/table7_mediation.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2, fmt(0 3) labels("N" "R-squared")) ///
+    title("Spillover -> Network Position -> Performance (association decomposition) --- {{PAPER_ID}}") ///
+    mtitles(`mtitles') ///
+    addnotes("EXPLORATORY appendix; bank/year FE; SE clustered at province." ///
+             "ASSOCIATION DECOMPOSITION, NOT causal mediation: mediator (network position) is endogenous" ///
+             "to media coverage (audit P1-5); Imai-Keele-Yamamoto (2010) sequential ignorability is not credible." ///
+             "Report Imai-Keele-Yamamoto rho-sensitivity (medsem unsupported under reghdfe -> hand-computed a*b)." ///
+             "Mediator sample may be smaller than main sample (NaN convention, audit N-02) -> N reported per column." ///
+             "Main moderation evidence is in Table 9 (2SLS interaction); this table is exploratory only.")
+
+display "[OK] Table 7 -> $tables_dir/table7_mediation.tex"

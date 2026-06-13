@@ -1,0 +1,86 @@
+* ============================================================================
+* 17_table8_overid_iv.do — 跨族过度识别 IV (角色3 工具): 破解恰好识别不可检验
+* Paper: {{PAPER_ID}}
+*
+* network-metrics-elevation 2026-06-13.
+* 命门 (审计 P1-6): 主表 11_table2 单工具 W²·tone 恰好识别 (1 IV / 1 内生) →
+*   Hansen J 自由度=0, 排他性统计上不可检验。本表加**跨族**第二工具构成 over-id,
+*   使 Hansen J 可检验。
+* ⚠⚠ 红线 (memory loo-ctx-iv-final-audit): 严禁拼 full+ctx 两支同篇 LOO 作一对工具
+*    (两剪裁窗口共同污染 → corr≈0.998 / J 零功效 + 拖垮 KP rk F)。必须**跨族**:
+*    共现族 W²·tone (peer_tone_2nd_lag1) + 地理族同省 LOO tone (prov_leave1out_tone)。
+* O1: 单工具恰好识别基线 (对照, J undefined)。
+* O2: 跨族 over-id (W² 共现 + 同省 LOO 地理) → Hansen J + KP rk F + Stock-Yogo + AR CI。
+* 文献: Bramoulle-Djebbari-Fortin 2009 JoE / Manski 1993 RES / Leary-Roberts 2014 JF /
+*       GPSS 2020 AER / Stock-Yogo 2005 / Andrews-Stock-Sun 2019 ARE。
+* ⚠ T=2 有效 N≈22 bank FE 饱和不可识别; 仅 production T=18 激活; 省级聚类 G≈31<40 →
+*   全量须 wild cluster bootstrap (boottest)。
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required for Table 8"
+    exit 199
+}
+
+* O1: 单工具恰好识别基线 (W²·tone), 对照 — Hansen J undefined (df=0)
+ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+eststo O1_just
+
+* O2: 跨族 over-id — W²·tone (共现族) + 同省 LOO tone (地理族) → Hansen J 可检验
+capture confirm variable {{OVERID_IV2}}
+if !_rc {
+    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}} {{OVERID_IV2}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo O2_overid_full
+}
+
+* O3: ctx 轨跨族 over-id (稳健; 单次 confirm, 任一缺即跳过避免守卫穿透 r(111))
+capture confirm variable peer_tone_lag1_ctx peer_tone_2nd_lag1_ctx prov_leave1out_tone_ctx
+if !_rc {
+    ivreghdfe {{MAIN_DV}}_w (peer_tone_lag1_ctx = peer_tone_2nd_lag1_ctx prov_leave1out_tone_ctx) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo O3_overid_ctx
+}
+
+qui estimates dir
+local stored `r(names)'
+local cand_models O1_just O2_overid_full O3_overid_ctx
+local cand_titles `""Just-id (W2)" "Over-id full" "Over-id ctx""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+esttab `models' using "$tables_dir/table8_overid_iv.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 widstat jp, fmt(0 3 3 3) ///
+        labels("N" "R-squared" "KP rk Wald F" "Hansen J p")) ///
+    title("Cross-Family Over-identified IV --- {{PAPER_ID}} (Bramoulle 2009)") ///
+    mtitles(`mtitles') ///
+    addnotes("Bank/year FE; SE clustered at province ({{CLUSTER_VAR}})." ///
+             "Cross-family over-id: W2*tone (co-mention) + same-province LOO tone (geography) -> Hansen J testable." ///
+             "FORBIDDEN: full+ctx LOO as one instrument pair (same contamination -> J no power; corr~0.998)." ///
+             "KP rk Wald F = e(widstat); Stock-Yogo 10% maximal-size crit (2 IV) ~ 19.93; F below => weak IV =>" ///
+             "read Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE), not the 2SLS point/SE." ///
+             "Hansen J tests exclusion ONLY if the two instruments are not co-contaminated (Parente-Santos-Silva 2012);" ///
+             "report corr(instruments) and VIF. Co-mention network external validity: see _shared/A_network_robustness (P1-3)." ///
+             "Province clusters G~31 < 40 (Cameron-Miller): production run uses wild cluster bootstrap (boottest).")
+
+display "[OK] Table 8 -> $tables_dir/table8_overid_iv.tex"

@@ -1,0 +1,126 @@
+* ============================================================================
+* 19_table10_network_het.do — 按网络位置异质性 (角色5 异质性)
+* Paper: {{PAPER_ID}}
+*
+* network-metrics-elevation 2026-06-13.
+* 现有 13_table4 按 is_soe (国企) 分样本; 本表加**网络位置**异质维度 (枢纽 vs 非枢纽 /
+*   结构洞富 vs 贫), 这是 brokerage 旗舰篇的核心叙事。
+* 命门修正 (审计 BRK-HET-5):
+*  (1) 分组变量改 **within-year 分位** — bank_is_hub 10% 绝对阈值跨年不可比 (N-08)。
+*  (2) 组间差异用 **pooled 交乘 2SLS 的交乘项 t 检验** — 非两列 esttab 并排 (suest 不支持 ivreghdfe)。
+*  (3) **N-守卫**: 子样本 N<30 优雅跳过 (盘面 hub 子样本 N=4 不可跑)。
+*  (4) 弱工具: W² 分样本 N 减半 → KP F 必跌破临界 → AR CI 为主推断。
+* 文献: Burt 1992 (结构洞) / El-Khatib-Fogel-Jandik 2015 JFE / Stock-Yogo 2005 / Andrews-Stock-Sun 2019。
+* ⚠ 异质性以主识别成立为条件 (P1-3/P1-6 上游未决同样制约本表); 仅 production T=18 激活。
+* ⚠ splitter 内生 (P1-5, 与 18_table9 同口径): _hub_q 源自 bank_degree_cent (内生于媒体覆盖) 且
+*   既作分组又进工具 iv_x_hub → 组间差异读作"条件异质性"而非"枢纽地位的因果放大"。
+* ============================================================================
+
+version 19
+clear all
+set more off
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+capture which ivreghdfe
+if _rc {
+    display as error "[ERROR] ivreghdfe required for Table 10"
+    exit 199
+}
+capture confirm variable {{NET_HET_VAR}} {{MAIN_ENDOG}} {{MAIN_IV}}
+if _rc {
+    display "[INFO] {{NET_HET_VAR}} / endog / IV not in panel; Table 10 skipped."
+    exit 0
+}
+
+* within-year hub 分组 (年内 degree 上半分位) — 取代 bank_is_hub 绝对阈值 (N-08)
+capture drop _hub_q
+capture confirm variable bank_degree_cent
+if !_rc {
+    bysort year: egen double _deg_med = median(bank_degree_cent)
+    gen byte _hub_q = (bank_degree_cent >= _deg_med) if !missing(bank_degree_cent)
+    drop _deg_med
+}
+else {
+    * fix(network-elevation-audit NET-HET-FALLBACK): 不回退到 {{NET_HET_VAR}}=bank_is_hub
+    * 绝对阈值 (N-08 跨年不可比) — within-year 分位是本异质性表的全部意义, 缺 bank_degree_cent
+    * 则优雅跳过 (镜像 N-守卫 exit 0 模式), 而非用被红线禁的绝对阈值悄悄分组。
+    display as text "[SKIP] Table 10 — bank_degree_cent unavailable; within-year hub quantile cannot be built; absolute-threshold bank_is_hub is cross-year non-comparable (N-08) -> skipping (production T=18 + stage46 network required)."
+    exit 0
+}
+
+* N-守卫宏: 子样本估计样本 < 30 时跳过 (盘面退化保护)
+* G1: 非枢纽子样本 2SLS
+preserve
+keep if _hub_q == 0
+count if !missing({{MAIN_ENDOG}}, {{MAIN_IV}}, {{MAIN_DV}}_w)
+if r(N) >= 30 {
+    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo G1_nonhub
+}
+else display "[SKIP] non-hub subsample N=" r(N) " < 30 (T=2 degenerate)"
+restore
+
+* G2: 枢纽子样本 2SLS
+preserve
+keep if _hub_q == 1
+count if !missing({{MAIN_ENDOG}}, {{MAIN_IV}}, {{MAIN_DV}}_w)
+if r(N) >= 30 {
+    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo G2_hub
+}
+else display "[SKIP] hub subsample N=" r(N) " < 30 (T=2 degenerate)"
+restore
+
+* H_pooled: 组间差异的正式检验 — pooled 交乘 2SLS (交乘项 = 组间 LATE 差)
+capture drop pt_x_hub iv_x_hub
+gen double pt_x_hub = {{MAIN_ENDOG}} * _hub_q
+gen double iv_x_hub = {{MAIN_IV}} * _hub_q
+count if !missing({{MAIN_ENDOG}}, {{MAIN_IV}}, {{MAIN_DV}}_w, _hub_q)
+if r(N) >= 40 {
+    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_hub = {{MAIN_IV}} iv_x_hub) _hub_q $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    eststo H_pooled
+}
+else display "[SKIP] pooled-interaction N=" r(N) " < 40 (T=2 degenerate)"
+
+qui estimates dir
+local stored `r(names)'
+local cand_models G1_nonhub G2_hub H_pooled
+local cand_titles `""Non-hub" "Hub" "Pooled interaction""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display "[INFO] Table 10 skipped — all subsamples degenerate (need production T=18)."
+    exit 0
+}
+esttab `models' using "$tables_dir/table10_network_het.tex", replace ///
+    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
+    title("Heterogeneity by Network Position (hub, within-year) --- {{PAPER_ID}}") ///
+    mtitles(`mtitles') ///
+    addnotes("Split-sample 2SLS by within-year degree median (hub); bank/year FE; province cluster." ///
+             "Between-group difference is the pt_x_hub coefficient in the POOLED-interaction column," ///
+             "NOT the eyeballed gap between split columns (suest unsupported for ivreghdfe)." ///
+             "hub uses within-year median (not 10% absolute threshold, audit N-08); cross-year comparable within year only." ///
+             "Subsample N halves -> KP rk Wald F typically < Stock-Yogo 16.38 => Anderson-Rubin CI primary (ASS 2019)." ///
+             "Subsamples with effective N<30 are skipped (T=2 panel degenerate; production T=18 required)." ///
+             "Grouping var _hub_q derives from bank_degree_cent (endogenous to media coverage, P1-5) and also enters instrument iv_x_hub:" ///
+             "between-group difference is CONDITIONAL heterogeneity, NOT causal amplification by hub status (mirrors Table 9 P1-5 caveat)." ///
+             "Heterogeneity conditional on main identification (W2*tone exclusion P1-6, co-mention validity P1-3 unresolved upstream).")
+
+display "[OK] Table 10 -> $tables_dir/table10_network_het.tex"
