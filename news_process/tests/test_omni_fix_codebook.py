@@ -404,3 +404,20 @@ def test_generate_codebook_all_formats_end_to_end(tmp_path, synthetic_panel):
     rows = json.loads(Path(out['json']).read_text(encoding='utf-8'))
     # 每个 panel 列恰好一行 — 无幻影行 (列不在 panel 则不发射) 的结构性保证
     assert len(rows) == len(synthetic_panel.columns)
+
+
+# ============================================================================
+# toptier-audit D4-1 / F5 (2026-06-13): attention_attr_share 公式 codebook 端锁
+# ============================================================================
+
+def test_attr_share_formula_synced_to_live_estimator():
+    """codebook attention_attr_share 公式须为撤回 clip 后的有界 share
+    Σctx/(Σctx+Σfull), 防 codebook 端静默回退旧 clip 删失版 (源端
+    attention_media 已有锁, codebook 端此前无锁 → F5 补)。"""
+    meta = cb.get_variable_metadata_dict()['attention_attr_share']
+    f = meta.formula
+    assert 'Σ_d ctx + Σ_d full' in f, \
+        f'attr_share 公式应为 Σctx/(Σctx+Σfull) 有界 share, got: {f!r}'
+    # 撤回的 clip 删失版不得作为活公式 (仅可出现在解释性注释, 不在 formula 字段)
+    assert 'clip(' not in f, f'attr_share formula 不得含已撤回的 clip 删失构造: {f!r}'
+    assert meta.value_range == '[0, 1]'

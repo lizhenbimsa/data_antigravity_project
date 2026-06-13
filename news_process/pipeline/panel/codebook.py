@@ -208,6 +208,11 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # bank-year (剔除焦点银行自身报道, 反身性内生守卫), 比值与总量共享 min_articles=5
     # 守卫 → 同非缺样本。yr 为 year-level 常量、无 LOO。两测度分别进各自回归互为稳健性。
     # (同时补 ft_attn_prov/city 此前自动推断占位 → 精修元数据。)
+    # ⚠ 样本宇宙 (ATT-2, panel-universe-consistency-audit 2026-06-13): 本地理族
+    # (ft_attn_*/ft_vol_*) 的 is_fintech 分子取自**未经 stage-21 验证**的 12_full 全集
+    # (地理支系未门控, deferred 待决 gate-or-disclose) — 与 firm-level attention 处理变量族
+    # (compute_attention_treatments, 已门控 verified 集) 刻意不同; 可能含 LLM 判伪文章,
+    # 论文 data/sample 段须披露该口径。注 notes 字段同载此披露。
     _GEO_ATTN = [
         ('ft_attn_prov', 'Fintech Attention (Province, Exp-Wt)', '比率', '[0, 1]',
          '(cell_ft − own_ft)/(cell_total − own_total) 按 (省,年) LOO, 再 bank-year 曝露加权均值',
@@ -234,7 +239,13 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             reference='Da et al. (2011, JF); Fang & Peress (2009, JF)',
             notes='三档 (年/省/市) 比值 ft_attn_* 与总量 ft_vol_* 互为稳健性 '
                   '(2026-06-13); prov/city 曝露加权 LOO 映射, 与对应测度同非缺样本; '
-                  '比值与总量分别进各自回归、不同进一个 RHS',
+                  '比值与总量分别进各自回归、不同进一个 RHS。'
+                  '⚠ 构念界定 (toptier-audit 2026-06-13): prov/city 的总量是银行媒体'
+                  '**邻域** (报道它的省/市) 曝露加权平均 fintech 篇数 = 二阶邻域曝露量, '
+                  '非银行自身覆盖计数; Fang-Peress 2009 firm-own-count 范式更贴 yr 档 '
+                  '(ft_vol_yr = 当年 fintech 总篇数, 真覆盖计数), prov/city 系地理曝露工具。'
+                  '⚠ 样本宇宙 (ATT-2): is_fintech 分子取自未经 stage-21 验证的 12_full '
+                  '(地理族未门控, deferred), 可能含 LLM 判伪文章, 论文 data/sample 须披露',
             category='注意力指数', track='',
         )
 
@@ -275,8 +286,11 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'mean_d(intensity_full − intensity_ctx)', '(-inf, +inf)',
          '双轨派生: 注意力借位/稀释度 (full 相对 ctx 的非本行归因量); 机制变量'),
         ('attention_attr_share', 'Attention Attribution Purity', '',
-         'clip(Σ_d ctx / Σ_d full, 0, 1)', '[0, 1]',
-         '双轨派生: 归因纯度 (指向本行的 fintech 注意力占比); Σfull=0→NaN'),
+         # fix(toptier-audit D4-1, 2026-06-13): 同步 attention_media.py:438 的有界 share
+         # 构造 — 旧 clip(Σctx/Σfull,0,1) 右删失版已于 2026-06-12 撤回 (见该处 fix 注),
+         # codebook 此前漏同步 (docstring:433 承诺的集中重生未落)。
+         'Σ_d ctx / (Σ_d ctx + Σ_d full)  (= r/(1+r), 保序无删失)', '[0, 1]',
+         '双轨派生: 归因纯度 (指向本行的 fintech 注意力占比); Σctx+Σfull=0→NaN'),
         ('n_fintech_articles', 'N fintech articles', '',
          'count(fintech 文章 in bank-year)', '[0, +inf)',
          'extensive-margin baseline 计数 (诊断/对照, track-agnostic)'),
@@ -1281,7 +1295,7 @@ def _infer_label(var_name: str) -> str:
     # 基础标签推断
     if 'tone' in var_name:
         return f'Sentiment Tone{track_suffix}'
-    elif 'attn' in var_name:
+    elif 'attn' in var_name or var_name.startswith('ft_vol'):
         return f'Attention Index{track_suffix}'
     elif 'cent' in var_name:
         return f'Network Centrality{track_suffix}'

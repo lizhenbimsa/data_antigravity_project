@@ -342,6 +342,59 @@ class TestGeoAttentionLeaveOneOut:
         assert 'ft_attn_prov' in out.columns
         assert 'ft_vol_prov' not in out.columns
 
+    # ── toptier-audit D3-3 / D6-3: 年档 + 市档 + clip 守卫覆盖 ──
+    def test_city_tier_and_clip_guard_negative_loo_to_zero(self):
+        """市档 vol_col='ft_vol_city' 接线 + clip 守卫: 违反 'docid 内 geo 恒定' 不变量
+        (同 docid 跨 geo + 多 bank) → own_ft>cell_ft → _loo_num<0; clip(lower=0) 须令
+        ft_vol→0 (非 ln1p(负)=NaN)、ft_attn→0 (非负值逃过 [0,1] 校验)。"""
+        GEO = '城市'
+        # 2 个 fintech 幽灵 docid 首现于 G2 (df_unique 归 G2), bank A 在 G1 也引用之
+        rows = [
+            {'docid': 'X1', 'target_bank': 'Z', GEO: 'G2', 'is_fintech_news': True},
+            {'docid': 'X2', 'target_bank': 'Z', GEO: 'G2', 'is_fintech_news': True},
+            {'docid': 'X1', 'target_bank': 'A', GEO: 'G1', 'is_fintech_news': True},
+            {'docid': 'X2', 'target_bank': 'A', GEO: 'G1', 'is_fintech_news': True},
+        ]
+        # G1 cell: 8 篇非 fintech (bank B) → cell_ft=0, cell_total=8
+        rows += [{'docid': f'g{i}', 'target_bank': 'B', GEO: 'G1',
+                  'is_fintech_news': False} for i in range(8)]
+        df_all = pd.DataFrame(rows)
+        df_all['year'] = 2020
+        df_unique = df_all.drop_duplicates('docid')
+        idx = am._build_geo_index(df_unique, GEO, 'ft_attn_city', min_articles=5)
+        panel = pd.DataFrame({'target_bank': ['A'], 'year': [2020]})
+        out = am._merge_geo_index_to_panel(
+            df_all, panel,
+            idx[[GEO, 'year', '_total', '_ft', 'ft_attn_city']],
+            GEO, 'ft_attn_city', vol_col='ft_vol_city').set_index('target_bank')
+        # A: _loo_den = cell_total(8) − own_total(2) = 6 ≥ 5 (过门, 非 NaN);
+        #    _loo_num = cell_ft(0) − own_ft(2) = −2 → clip(0) → 两列均 0
+        assert 'ft_vol_city' in out.columns                 # 市档接线
+        assert not pd.isna(out.loc['A', 'ft_vol_city'])     # 非 NaN (clip 而非 ln1p(负))
+        assert out.loc['A', 'ft_vol_city'] == pytest.approx(0.0)
+        assert out.loc['A', 'ft_attn_city'] == pytest.approx(0.0)   # 非负值
+        assert out.loc['A', 'ft_attn_city'] >= 0
+
+    def test_year_tier_volume_and_orchestrator(self, tmp_path, monkeypatch):
+        """年档 ft_vol_yr = ln1p(当年 fintech 唯一篇数), year-constant、无 LOO; 同时端到端
+        锁 compute_fintech_attention_index orchestrator (此前仅 smoke 不验行为)。"""
+        GP, GC = '国家地区/省份', '城市'
+        rows = [{'docid': d, 'target_bank': 'A', '日期': '2020-01-01',
+                 'is_fintech_news': ft, GP: 'P1', GC: 'C1'}
+                for d, ft in [('d1', True), ('d2', True), ('d3', True),
+                              ('d4', False), ('d5', False), ('d6', False)]]
+        pd.DataFrame(rows).to_parquet(tmp_path / '12_fintech_news_full.parquet')
+        monkeypatch.setattr(am, 'OUTPUT_DIR', str(tmp_path))
+        monkeypatch.setattr(am, 'FILENAMES',
+                            {'output_12_fintech_full': '12_fintech_news_full.parquet'})
+        monkeypatch.setattr(am, '_save_attn_index', lambda *a, **k: None)
+        panel = pd.DataFrame({'target_bank': ['A', 'B'], 'year': [2020, 2020]})
+        out = am.compute_fintech_attention_index(panel)
+        assert 'ft_vol_yr' in out.columns
+        v = out['ft_vol_yr'].dropna()
+        assert v.nunique() == 1                              # year-constant (无 LOO)
+        assert v.iloc[0] == pytest.approx(np.log1p(3))       # 3 fintech 唯一篇 → ln1p(3)
+
 
 # ============================================================================
 # g-attention-06: attention_disp_full = 集中度 HHI (披露锁 + 方向功能锁)

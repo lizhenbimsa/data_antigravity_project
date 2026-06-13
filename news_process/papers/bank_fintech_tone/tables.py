@@ -46,9 +46,13 @@ _TABLE1_VARIABLES: list[str] = [
     # 异质性变量
     'fin_media_frac',
     'central_media_frac',
-    # 注意力指数
+    # 注意力指数 — 比值 (议程份额) + 总量孪生 (extensive 覆盖量, 互为稳健性 2026-06-13;
+    # ft_vol_* 为新增列, golden 重生重跑 stage 45/46 后落盘, 在盘前由 build_summary_table
+    # 以 NaN 占位行可见保留, 同 funding_cost enrichment 待落盘惯例)
     'ft_attn_yr',
     'ft_attn_prov',
+    'ft_vol_yr',
+    'ft_vol_prov',
     # 战略响应
     'auth_sim_emb_full',
     'auth_sim_emb_ctx',
@@ -92,9 +96,21 @@ def write_table1(paper_config: PaperConfig | None = None,
     Returns:
         CSV 文件路径。
     """
+    # fix(toptier-audit D5-3, 2026-06-13): 年档 ft_attn_yr/ft_vol_yr 为 year-level 常量
+    # (同年所有 bank 同值), summary_stats 报的是 POOLED SD (仅反映 between-year, T=2),
+    # 易被审稿误读为截面离散 → 表尾脚注显式披露 (亦适用其在 year FE 下被吸收, 仅作描述)。
+    _footnote = (
+        'ft_attn_yr / ft_vol_yr are year-level constants (identical across banks within '
+        'a year); their reported SD reflects between-year variation only, not '
+        'cross-sectional dispersion (N counts bank-year cells; #distinct values = #years). '
+        'These year-tier rows are descriptive; they are absorbed by year fixed effects '
+        'and carry no within-estimator identifying variation. ft_vol_* are NaN-placeholder '
+        'until the panel is rebuilt (golden regen, stage 45/46).'
+    )
     return write_summary_table('bank_fintech_tone', _TABLE1_VARIABLES,
                                paper_config=paper_config,
-                               filename=filename, dta_filename=dta_filename)
+                               filename=filename, dta_filename=dta_filename,
+                               footnote=_footnote)
 
 
 __all__ = ['build_table1', 'write_table1']

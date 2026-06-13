@@ -82,11 +82,13 @@ def test_write_table1_custom_filenames_propagate():
 
 
 def test_table1_variables_inventory_stable():
-    """_TABLE1_VARIABLES 锚定核心 19 变量 — 任何无意修改 (rename/drop) 立即报错.
+    """_TABLE1_VARIABLES 锚定核心 21 变量 — 任何无意修改 (rename/drop) 立即报错.
 
     fix(omni-g-papers-misc-06, 2026-06-11): 16 → 19 — 增补主轨 (ctx) 的连续分
     与 IV (llm_vote_cont_ctx / prov_leave1out_tone_ctx / bartik_type_iv_ctx);
     旧契约只列 full 轨, 与 spec main=ctx 不对齐。
+    fix(geo-attention-volume-twin, 2026-06-13): 19 → 21 — 注意力指数加总量孪生
+    (ft_vol_yr / ft_vol_prov), 与既有比值 ft_attn_yr / ft_attn_prov 互为稳健性。
     """
     from news_process.papers.bank_fintech_tone.tables import _TABLE1_VARIABLES
 
@@ -104,12 +106,17 @@ def test_table1_variables_inventory_stable():
         'prov_leave1out_tone_full',
         'bartik_type_iv_ctx',
         'bartik_type_iv_full',
+        # 注意力指数: 比值 + 总量孪生 (geo-attention-volume-twin, 2026-06-13)
+        'ft_attn_yr',
+        'ft_attn_prov',
+        'ft_vol_yr',
+        'ft_vol_prov',
     }
     actual = set(_TABLE1_VARIABLES)
     missing = must_have - actual
     assert not missing, f"_TABLE1_VARIABLES 丢失锚定变量: {missing}"
-    # 总数 == 19 (16 Phase 3c 契约 + 3 ctx 轨增补, fix(omni-g-papers-misc-06))
-    assert len(_TABLE1_VARIABLES) == 19
+    # 总数 == 21 (19 + ft_vol_yr / ft_vol_prov 总量孪生, 2026-06-13)
+    assert len(_TABLE1_VARIABLES) == 21
 
 
 def test_module_exports_only_two_public_names():

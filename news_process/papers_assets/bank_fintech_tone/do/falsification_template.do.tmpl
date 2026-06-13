@@ -346,6 +346,60 @@ ivreghdfe Y (llm_vote_tone_full = ft_attn_city) X, ///
   absorb(target_bank year) cluster(target_bank) first
   est store iv_attn_city
 
+* ─── 维度 1b: 媒体关注度「总量」IV 稳健性 (extensive 覆盖量, 2026-06-13) ───
+*   ft_vol_prov / ft_vol_city = ln(1 + 报道该银行的媒体来源省/市的金融科技覆盖篇数)
+*   与维度 1 的比值 (intensive 议程份额 ft_attn_*) 互为稳健性: 同一 geo×year 单元、
+*   同一曝露加权 leave-one-out 映射、同 min_articles=5 守卫 → 与 ft_attn_prov/city
+*   **同非缺样本** (两轨非缺单元数逐位一致, 锁于 test_volume_twin_same_nan_sample_as_ratio;
+*   盘面单元计数随重生漂移, 不硬编码), 仅"份额 vs 总量"测度口径之别。
+*   ⚠ 样本宇宙 (ATT-2, panel-universe-consistency-audit): 本族 (ft_attn_*/ft_vol_*) 的
+*     is_fintech 分子取自**未经 stage-21 验证**的 12_full 全集 (地理支系未门控, deferred),
+*     可能含 LLM 判伪文章 — 与 firm-level attention 处理变量族 (已门控) 不同; 论文 data/
+*     sample 段须披露该口径 (gate-or-disclose 待决)。
+*   ⚠ 排他性 (exclusion) 提示: 总量 (绝对覆盖篇数) 与银行规模/媒体可见度的相关性
+*     强于份额 — 大行天然被更多报道 → 总量更可能经"规模"旁路直接影响 Y, exclusion
+*     restriction 比份额脆弱。故 ft_vol_* 仅作维度 1 的**稳健性对照** (检验关注度 IV
+*     结论对"份额 vs 总量"口径是否敏感), 不替代 ft_attn_* 作主工具; 期望与比值 IV
+*     系数同向、第一阶段同样强 (KP rk F > 10) 方为稳健。
+*   ⚠ 共享混淆 (维度 1 比值 IV **同患**, 地理/shift-share IV 通病 — Goldsmith-Pinkham,
+*     Sorkin & Swift 2020 AER; Borusyak, Hull & Jaravel 2022 REStud): 地区本地金融科技
+*     发展水平可同时驱动 (a) 该地区 fintech 媒体关注度 IV (份额与总量皆然) 与 (b) 被报
+*     银行的 fintech 结果 Y → leave-one-out 仅剔本行、不剔地区共同冲击, 仅部分缓解。须
+*     配 year FE + 地理 (省/市) 聚类 SE (检验 10) 与 Oster (2019, 检验 9) 界定其残余偏误;
+*     该威胁是整个地理 IV 策略 (维度 1) 的属性, 非总量孪生独有。
+*   守卫: ft_vol_* 系 2026-06-13 新增列, 须 golden 重生重跑 stage 45/46 后方落盘 —
+*     capture confirm 在列缺失时优雅跳过 (与比值 IV 8a/8b 解耦, 不阻断主流程)。
+capture confirm variable ft_vol_prov
+if _rc == 0 {
+  ivreghdfe Y (llm_vote_tone_full = ft_vol_prov) X, ///
+    absorb(target_bank year) cluster(target_bank) first
+  est store iv_vol_prov
+}
+else {
+  display as text "[skip] ft_vol_prov 不存在 (golden 未重生, 待 stage 45/46 落盘), 跳过省级总量 IV"
+}
+capture confirm variable ft_vol_city
+if _rc == 0 {
+  ivreghdfe Y (llm_vote_tone_full = ft_vol_city) X, ///
+    absorb(target_bank year) cluster(target_bank) first
+  est store iv_vol_city
+}
+else {
+  display as text "[skip] ft_vol_city 不存在 (golden 未重生, 待 stage 45/46 落盘), 跳过市级总量 IV"
+}
+
+* 维度 1b 总量 IV 稳健性表 (仅当 ft_vol_* 在盘 → iv_vol_* 已存储时输出, 否则 capture 吞错跳过)
+*   surfaces the est-stored volume-IV columns; 与维度 1 比值 IV (Table 3) 并列对照,
+*   系数应同向、第一阶段同样强 (KP rk F) 方证关注度 IV 结论对"份额 vs 总量"口径稳健。
+capture esttab iv_vol_prov iv_vol_city ///
+  using "table_volume_iv_robustness.tex", ///
+  star(* 0.10 ** 0.05 *** 0.01) se replace ///
+  mtitles("Vol IV (Prov)" "Vol IV (City)") ///
+  title("维度 1b: 媒体关注度总量 IV 稳健性 (extensive 覆盖量, 对照维度 1 比值 IV)")
+if _rc != 0 {
+  display as text "[skip] 总量 IV 稳健性表跳过 (rc=" _rc "): iv_vol_* 未存储 (ft_vol_* 未落盘, r(111)) 或 estout 未安装 (r(199), 需 ssc install estout)"
+}
+
 * ─── 维度 2: 情感溢出 IV (直接对标论文) ───
 
 * (8c) 省级情感 IV — 精确对标 Luo & Li (2025, Table 3)
