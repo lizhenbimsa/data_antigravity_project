@@ -86,11 +86,13 @@ if !_rc {
         display "  [weakiv] Bartik 2SLS — Anderson-Rubin 弱工具稳健检验/置信集:"
         capture noisily weakiv
     }
-    * ID-4 披露 (审计 2026-06-14): Bartik 识别 = GPSS 2020 基期份额外生性 (非 BHJ 冲击层
-    * 外生)。基期份额 = 焦点行同类型共现频率, 可能相关于 T0 媒体显著性 → 须以 Rotemberg
-    * 权重诊断 + 高权重份额 placebo + share-vs-pretrend 核验 (需暴露 bartik_type_share_*
-    * 份额矩阵; 当前为预合成单列 IV → Rotemberg 诊断 deferred; 论文须披露此识别假设)。
-    display "  [ID-4] Bartik 识别依赖 GPSS 基期份额外生性; Rotemberg 诊断待份额矩阵暴露 (披露项)"
+    * ID-4 披露 (审计 2026-06-14, 核验修订): Bartik 识别 = GPSS 2020 基期份额外生性 (非 BHJ
+    * 冲击层外生)。基期份额 = 焦点行同类型共现频率, 可能相关于 T0 媒体显著性 → 须以 Rotemberg
+    * 权重诊断 + 高权重份额 placebo + share-vs-pretrend 核验。⚠ Rotemberg 诊断 deferred 的
+    * 真实原因: bartik_type_share_* 6 列份额矩阵虽已在面板, 但 per-group 的 shift×share
+    * **分量工具** (iv_extensions shift_g) 已坍缩进单列 bartik_attention_iv = Σ_g share_g·shift_g
+    * — 面板只留份额矩阵不留分量工具列 → Rotemberg 分解须先暴露 per-group 分量; 论文须披露假设。
+    display "  [ID-4] Bartik 识别依赖 GPSS 基期份额外生性; Rotemberg 诊断待暴露 per-group shift×share 分量 (份额矩阵已在盘, 缺分量工具列)"
 }
 
 * ============================================================================
@@ -144,7 +146,7 @@ else {
         title("P2 IV First Stage + 2SLS") ///
         mtitles(`mtitles') ///
         addnotes("Kleibergen-Paap rk-F-stat reported by ivreg2; weak-IV threshold = 16.38 (Stock-Yogo 2005). When KP F<16.38, Anderson-Rubin weak-IV-robust confidence sets are computed via weakiv (Andrews-Stock-Sun 2019 ARE) and logged per 2SLS column (ssc install weakiv to enable)." ///
-                 "Bartik identification rests on GPSS (2020) base-period share exogeneity (NOT BHJ shock-level); the Rotemberg-weight diagnostic is pending exposure of the bartik_type_share_* matrix — disclose the base-share assumption." ///
+                 "Bartik identification rests on GPSS (2020) base-period share exogeneity (NOT BHJ shock-level); the Rotemberg-weight diagnostic is deferred because the per-group shift x share component instruments are collapsed into the single pre-synthesized bartik_attention_iv (the share matrix survives to the panel, the component instruments do not) — disclose the base-share assumption." ///
                  "ctx column: entity-window twin attention_index_ctx instrumented by lpeer_attention_iv_ctx, just-identified, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012).")
 
     display "[OK] 19_attention_iv_first_stage → $tables_dir/tableA_iv_first_stage.tex"

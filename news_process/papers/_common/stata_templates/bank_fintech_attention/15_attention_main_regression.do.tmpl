@@ -13,18 +13,20 @@
 * M3: + bank FE + year FE (银行+年份双固定效应)
 * M4: + 标准银行层面控制变量
 * M5: + 宏观控制 (gdp_growth / m2_growth)
-* M6: + attention × post-event 交互 (对应 spec.event_studies 的事件设定)
+* M6: + treatment × DCEP-post 交互 (staggered 央行数字货币试点; 见下方 reconcile 注)
 *
 * 识别策略 (面板设计 reconcile, 审计 2026-06-14 ID-1/ID-3/ID-7):
 *   基线 = 双向固定效应 (TWFE) 面板回归 (bank FE + year FE) via reghdfe (M1-M6)。
 *   M6 = treatment × DCEP 试点 post 交互 (staggered 央行数字货币试点; dcep_post 来自
 *        iv_did.merge_policy_shocks 已物化列, 替换此前无管道生产者的 post_E1)。
-*   M7 = staggered DiD (Callaway-Sant'Anna 2021 JoE) 作稳健性, **数据驱动启用**:
-*        仅当面板 distinct year >=3 且 csdid 已安装时运行, 消费 iv_did 物化的
-*        dcep_treat_year (gvar) / dcep_rel_year (event-study); 控制组用 notyet
-*        (not-yet-treated; never-treated 在央行试点广覆盖下仅 ~2/87 家, 见 iv_did.py:779)。
-*        当前 T=2 试跑面板 (2017-2018) distinct year=2 < 3 → M7/csdid 优雅跳过, 退化纯
-*        TWFE; production run 扩到 T>=3 后 M7 **自动激活** (不再硬编码永久禁用)。
+*   M7 = DCEP 试点错时 DiD 辅助 (Callaway-Sant'Anna 2021 JoE csdid), **正交政策冲击稳健性**
+*        — ⚠ 非本文注意力主设计 (本文 baseline = cross_sectional_intensity_did; staggered
+*        csdid 系 spec 的 legacy_label 承诺)。处理 cohort = DCEP 试点 (gvar=dcep_treat_year),
+*        估计 DCEP 政策对 outcome 的 ATT; 注意力变量 **不进** csdid 协变量 (避免把利益渠道
+*        当 bad-control), 仅 $controls 作协变量。数据驱动启用: distinct year >=3 且 csdid 已
+*        安装时运行, 消费 iv_did 物化的 dcep_treat_year / dcep_rel_year; 控制组 notyet
+*        (保守默认, 含 never-treated, 无 no-anticipation 偏倚)。T=2 盘面 distinct year=2 <3
+*        → 优雅跳过; T>=3 自动激活 (不再硬编码永久禁用)。
 *   HQ-based 处理分配披露 (iv_did.py:633): soe/joint 总部≠业务暴露, robustness 见 17_。
 *   IV: leave-one-out 同业 attention (19_attention_iv_first_stage + 22_tableA3_bartik_iv)。
 * 白话: 基线用普通双向固定效应回归; 另跑一个"分期 DiD"作稳健性, 它至少要三年数据 —
@@ -122,7 +124,7 @@ esttab `models' using "$tables_dir/table2_main.tex", replace ///
     mtitles(`mtitles') ///
     addnotes("Baseline: two-way fixed-effects (TWFE) panel regression; bank and year FE; SE clustered at {{CLUSTER_VAR}}." ///
              "M6 = treatment x DCEP-pilot post (staggered shock; dcep_post from iv_did.merge_policy_shocks, replaces the non-produced post_E1)." ///
-             "M7 staggered DiD (Callaway-Sant'Anna 2021) runs when distinct years >=3 and csdid installed (gvar=dcep_treat_year, control=notyet); skipped on T=2 pilot, auto-activates at T>=3." ///
+             "M7 = DCEP-pilot staggered DiD auxiliary (Callaway-Sant'Anna 2021 csdid, gvar=dcep_treat_year, control=notyet, attention NOT a covariate) — an orthogonal policy-shock robustness, NOT the paper's attention identification (baseline=cross_sectional_intensity_did); runs when distinct years>=3 & csdid installed, skipped on T=2." ///
              "IV first stage in 19_attention_iv_first_stage.do; Bartik fallback in 22_tableA3_bartik_iv.")
 
 * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_attention/
@@ -136,14 +138,17 @@ estout `models' using "$tables_dir/table2_main.csv", replace delimiter(",") ///
 display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex (+ .csv side-channel)"
 
 * ============================================================================
-* M7 (staggered DiD 稳健性, 审计 2026-06-14 ID-1/ID-7 修复):
-*   Callaway-Sant'Anna (2021 JoE) csdid + event-study。spec.identification 概念锚定
-*   staggered DiD, 但此前模板无任何 csdid 调用 = 空头承诺 (referee 必逮)。现消费
-*   iv_did.merge_policy_shocks 已物化的 dcep_treat_year (gvar) + dcep_rel_year。
-*   数据驱动门控: 仅当 distinct year >=3 且 csdid 已安装且存在处理组时运行;
-*   T=2 盘面 (distinct year=2) 优雅跳过 → production T>=3 自动激活 (非硬编码永久禁用)。
-*   控制组 = notyet (not-yet-treated); never-treated 在央行试点广覆盖下仅 ~2/87 家
-*   (iv_did.py:779 守卫), 默认 never-treated baseline 不可靠 → 强制 notyet。
+* M7 (DCEP 试点错时 DiD 辅助稳健性, 审计 2026-06-14 ID-1/ID-7 + 核验修订):
+*   Callaway-Sant'Anna (2021 JoE) csdid + event-study, 兑现 spec legacy_label
+*   (staggered_did_callaway_santanna) 承诺。⚠ 这是 **正交政策冲击** 稳健性 (DCEP 央行数字
+*   货币试点错时铺开), **非** 本文注意力主设计 (本文 baseline = cross_sectional_intensity_did;
+*   exogenous_shocks.yaml 自述 E1-E5b 系同步强度 DiD 非错时)。处理 cohort = dcep_treat_year
+*   (DCEP 政策), csdid 估计 DCEP 政策对 outcome 的 ATT; 注意力变量 **不进** csdid 协变量
+*   (它是利益渠道, 进协变量会 bad-control / over-condition), 仅 $controls。
+*   数据驱动门控: distinct year >=3 且 csdid 已安装且存在处理组时运行; T=2 盘面优雅跳过。
+*   控制组 = notyet (not-yet-treated; 保守默认, 含 never-treated, 无 no-anticipation 偏倚)。
+*   注: DCEP never-treated 非 sandbox 的 ~2/87 稀疏情形 (iv_did.py:779 的 2/87 是 sandbox);
+*   notyet 在 DCEP 下仍是稳健默认 (效率 + 无预期), 非因 never-treated 稀缺被迫选择。
 * ============================================================================
 qui levelsof year, local(_yrs)
 local _n_years : word count `_yrs'
@@ -154,8 +159,8 @@ local _has_gvar = (_rc == 0)
 if (`_n_years' >= 3) & `_has_csdid' & `_has_gvar' {
     qui count if dcep_treat_year > 0 & dcep_treat_year < .
     if r(N) > 0 {
-        display "  [M7 csdid] staggered DiD: gvar=dcep_treat_year, control=notyet"
-        capture noisily csdid {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+        display "  [M7 csdid] DCEP-policy 错时 DiD 辅助: gvar=dcep_treat_year, notyet (注意力不进协变量)"
+        capture noisily csdid {{MAIN_DV}} $controls, ///
             ivar(bank_id) time(year) gvar(dcep_treat_year) notyet
         if !_rc {
             capture noisily estat event

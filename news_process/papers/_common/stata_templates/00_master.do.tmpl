@@ -8,7 +8,10 @@
 *   SENT_TRACK:   {{MAIN_SENT_TRACK}}     (full / ctx)
 *
 * Stata 版本要求: ≥ 19 (项目策略 2026-05-16: Stata 19+ only, 无需向下兼容)
-* 必需包: ssc install reghdfe ivreg2 estout coefplot asdoc
+* 必需包: ssc install reghdfe ivreg2 ranktest estout coefplot asdoc
+*   稳健性/IV/DiD 附加包 (审计 2026-06-14 补): csdid drdid (15_M7 错时 DiD), weakiv
+*   (19_ 弱工具稳健 AR CI), boottest rwolf wyoung (推断/FWER)。缺则相应稳健性表 capture
+*   守卫优雅跳过 (复现包会静默缺该对象), 复现前请 ssc install。
 
 version 19
 clear all
