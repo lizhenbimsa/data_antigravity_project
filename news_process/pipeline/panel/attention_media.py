@@ -3,7 +3,7 @@
 ==========================================================
 
 功能:
-  - 金融科技公众注意力指数 (Da et al. 2011, JF; Fang & Peress 2009, JF)
+  - 金融科技公众注意力指数 (主锚 Fang & Peress 2009, JF; 对照 Da et al. 2011)
   - 媒体信息中介异质性 (四维度分析)
 
 拆分自: 40_build_panel.py (L1207-1631)
@@ -212,7 +212,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
     return panel
 
 # ============================================================================
-# 6b. 金融科技公众注意力指数 (Da et al. 2011, JF; Fang & Peress 2009, JF)
+# 6b. 金融科技公众注意力指数 (主锚 Fang & Peress 2009, JF; 对照 Da et al. 2011)
 # ============================================================================
 
 # 小地理单元最低文章数阈值 (低于此值的 geo×year 不参与指数计算)
@@ -466,15 +466,18 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
 def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
     """构建金融科技公众注意力指数 — 三级地理维度。
 
-    对标: Da, Z., Engelberg, J. & Gao, P. (2011). In Search of Attention.
-          The Journal of Finance, 66(5), 1461-1499.
-          https://doi.org/10.1111/j.1540-6261.2011.01679.x
-          → 公众注意力代理变量 (attention proxy) 的经典范式
-
-          Fang, L. & Peress, J. (2009). Media Coverage and the Cross-Section
+    锚点 (claim-fit 已订正, 审计 2026-06-14 CIT-2/3):
+      主锚 — Fang, L. & Peress, J. (2009). Media Coverage and the Cross-Section
           of Stock Returns. The Journal of Finance, 64(5), 2023-2052.
           https://doi.org/10.1111/j.1540-6261.2009.01493.x
-          → 媒体覆盖率 (coverage ratio) 作为信息中介的度量
+          → 报纸覆盖率 (coverage ratio) 作为信息中介/关注度的度量, 本指数据此构建。
+
+      对照 (非主锚) — Da, Z., Engelberg, J. & Gao, P. (2011). In Search of
+          Attention. The Journal of Finance, 66(5), 1461-1499.
+          https://doi.org/10.1111/j.1540-6261.2011.01679.x
+          → DEG 以 Google 搜索量 (SVI) 作 *直接* 注意力代理, 并论证报纸覆盖是其取代的
+            *间接* 代理。本项目无搜索量数据 (报纸语料), 以报纸覆盖作间接关注度代理,
+            DEG 仅作搜索量替代方案的 *对照* 引用, 非本覆盖比值的奠基范式。
 
     数据源:
       12_fintech_news_full.parquet — 全量银行新闻 (含 is_fintech_news 标记)。
@@ -515,7 +518,7 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
         return panel
 
     logger.info("=" * 60)
-    logger.info("步骤 6b: 金融科技公众注意力指数 (Da et al. 2011; Fang & Peress 2009)")
+    logger.info("步骤 6b: 金融科技公众注意力指数 (主锚 Fang & Peress 2009; 对照 Da et al. 2011)")
     logger.info("=" * 60)
 
     # ── 加载 ──

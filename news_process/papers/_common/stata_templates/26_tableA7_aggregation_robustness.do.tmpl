@@ -99,7 +99,7 @@ if "`aggcols'" != "" {
         se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
         title("Table A7-A: Aggregation Weighting Robustness (EW vs VW/MW/HW)") ///
         mtitles(`agglabs') ///
-        note("DV = bank-year tone aggregated equal-weighted (EW, main spec) vs mention-density/salience-weighted (VW; Hassan 2019 QJE), media-authority-weighted (MW; Holzman et al. 2023 TAR), herd-decay-weighted (HW; Tetlock 2011 RFS). Identical RHS, bank+year FE, SE clustered at bank.")
+        note("DV = bank-year tone aggregated equal-weighted (EW, main spec) vs mention-density-weighted (VW; Hassan 2019 QJE), media-authority-weighted (MW; Holzman et al. 2023 TAR), herd-decay-weighted (HW; Tetlock 2011 RFS). VW uses mention density only (NOT placement salience). Identical RHS, bank+year FE, SE clustered at bank.")
     estout `aggcols' using "output/tables/tableA7a_weighted_aggregation.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
         starlevels(* 0.10 ** 0.05 *** 0.01)

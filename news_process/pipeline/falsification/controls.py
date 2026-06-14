@@ -111,7 +111,8 @@ REFERENCES = {
     'Bushee2010': (
         'Bushee, B.J., Core, J.E., Guay, W. & Hamm, S.J.W. (2010). '
         '"The Role of the Business Press as an Information Intermediary." '
-        'Journal of Accounting Research, 48(1), 1-19.'
+        'Journal of Accounting Research, 48(1), 1-19. '
+        'doi:10.1111/j.1475-679X.2009.00357.x'  # 审计 2026-06-14 CIT-6: 锁定正确 DOI, 防 .00382 误植回归
     ),
     'Garcia2013': (
         'Garcia, D. (2013). '

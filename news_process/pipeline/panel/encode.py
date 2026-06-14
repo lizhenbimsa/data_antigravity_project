@@ -366,7 +366,10 @@ def compute_media_authority_weights(df: pd.DataFrame) -> pd.DataFrame:
 #     → IR 选择高 prestige 媒体投放; outlet effect 显著
 #   Engelberg & Parsons (2011). Journal of Finance, 66(1), 67-97.
 #     → 局部报纸覆盖的因果识别 (地理 IV)
-#   Hillert, Jacobs & Müller (2014). Journal of Finance, 69(5), 2095-2143.
+#   Hillert, Jacobs & Müller (2014). Media Makes Momentum.
+#     The Review of Financial Studies, 27(12), 3467-3501.
+#     https://doi.org/10.1093/rfs/hhu061
+#     (审计 2026-06-14 CIT-1 订正: 原条目卷期页错指向 JF 而非 RFS, 系误植)
 # 数据源:
 #   config/media_classification.json (3 级名录, central 171 / financial 15 /
 #   comprehensive 27).

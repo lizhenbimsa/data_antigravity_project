@@ -194,6 +194,8 @@
   - *锚定*: 经济学文本方法的 JEL 规范综述: 给出'文本→数值表示→回归输入'三步框架及稀疏计数表示的统计性质, 为项目整条'新闻文本→关键词份额→面板变量'流水线提供方法学总纲。
 - Hassan, T. A., Hollander, S., van Lent, L., & Tahoun, A. (2019). Firm-level political risk: Measurement and effects. *The Quarterly Journal of Economics*, 134(4), 2135–2202. https://doi.org/10.1093/qje/qjz021
   - *锚定*: 项目 stage 14 fintech attention intensity 的直接奠基范式: 用文本中主题词命中份额 (share of text devoted to topic) 构造公司层面暴露度, 并提供 human audit 效度验证模板, 正是项目'关键词命中 share'做法的方法学源头。
+- Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. *The Journal of Finance*, 66(5), 1461–1499. https://doi.org/10.1111/j.1540-6261.2011.01679.x
+  - *锚定 (对照锚, 非主锚 — 补录 2026-06-14 审计 CIT-2/3)*: DEG 以 Google 搜索量 (SVI) 作 **直接** 投资者注意力代理, 并明确论证报纸覆盖是其取代的 **间接/含噪** 代理。项目地理三档 ft_attn_*/ft_vol_* 系报纸覆盖比值/总量, 无搜索量数据 → DEG 仅作"搜索量替代方案"的 **对照** 引用, 覆盖比值的主锚为 Fang & Peress (2009 JF); **勿** 将 DEG 表述为本覆盖测度的奠基范式 (claim-fit 修正, 见 attention_media.py::compute_fintech_attention_index docstring)。
 - Loughran, T., & McDonald, B. (2016). Textual analysis in accounting and finance: A survey. *Journal of Accounting Research*, 54(4), 1187–1230. https://doi.org/10.1111/1475-679X.12123
   - *锚定*: 文本测度效度规范的经典综述: 系统讨论词典构建、词频归一化分母选择与测度验证陷阱, 直接支撑项目对 attention share 分母口径与 audit/human validation 流程的设计辩护。
 
@@ -426,7 +428,9 @@
 
 ---
 
-## 三、合并参考文献总表（去重后 140 条, APA 第 7 版, 按第一作者字母序）
+## 三、合并参考文献总表（去重后 141 条, APA 第 7 版, 按第一作者字母序）
+<!-- 2026-06-14 审计 CIT-3 补录: +Da-Engelberg-Gao 2011 (In Search of Attention) 作 ft_attn_* 对照锚, 140→141 -->
+
 
 - 姜富伟, 孟令超, 唐国豪. (2021). 媒体文本情绪与股票回报预测. *经济学(季刊)*, 21(4), 1323-1344. https://doi.org/10.13821/j.cnki.ceq.2021.04.10
 - Algaba, A., Ardia, D., Bluteau, K., Borms, S., & Boudt, K. (2020). Econometrics meets sentiment: An overview of methodology and applications. *Journal of Economic Surveys*, 34(3), 512-547. https://doi.org/10.1111/joes.12370
@@ -465,6 +469,7 @@
 - Cookson, J. A., & Niessner, M. (2020). Why don't we agree? Evidence from a social network of investors. *The Journal of Finance*, 75(1), 173–228. https://doi.org/10.1111/jofi.12852
 - Cookson, J. A., Engelberg, J. E., & Mullins, W. (2023). Echo chambers. *The Review of Financial Studies*, 36(2), 450–500. https://doi.org/10.1093/rfs/hhac058
 - Cookson, J. A., & Niessner, M. (2023). Investor disagreement: Daily measures from social media (SSRN Working Paper No. 4529594). SSRN. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4529594
+- Da, Z., Engelberg, J., & Gao, P. (2011). In search of attention. *The Journal of Finance*, 66(5), 1461–1499. https://doi.org/10.1111/j.1540-6261.2011.01679.x
 - Da, Z., Gurun, U. G., & Warachka, M. (2014). Frog in the pan: Continuous information and momentum. *Review of Financial Studies*, 27(7), 2171–2218. https://doi.org/10.1093/rfs/hhu003
 - Davis, S. J., Hansen, S., & Seminario-Amez, C. (2021). Firm-level risk exposures and stock returns in the wake of COVID-19 (NBER Working Paper No. 27867, rev. February 2021). National Bureau of Economic Research. https://www.nber.org/papers/w27867
 - de Kok, T. (2025). ChatGPT for textual analysis? How to use generative LLMs in accounting research. *Management Science*, 71(9), 7888-7906. https://doi.org/10.1287/mnsc.2023.03253

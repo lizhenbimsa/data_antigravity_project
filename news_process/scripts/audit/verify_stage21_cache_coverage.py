@@ -51,32 +51,54 @@ from news_process.core.caching import LLMCache
 from news_process.pipeline.sentiment import tone_llms
 
 
-def _load_stage21_input() -> pd.DataFrame:
-    """复刻 stage 21 main(): 读 14_fintech_intensity, idempotent 物化 content_ctx。"""
+def _load_stage21_input(input_path: str | None = None) -> tuple[pd.DataFrame, str]:
+    """复刻 stage 21 main(): 读 14_fintech_intensity, idempotent 物化 content_ctx。
+
+    fix(2026-06-14 审计 DET-1): 支持 ``input_path`` 覆盖 — 缺省读配置的盘面
+    14_fintech_intensity (在裸机上即 T=2 试跑帧), 生产端须传全量 17M 语料帧
+    以使覆盖率证明对生产规模有效。返回 (df, 实际路径)。
+    """
     cfg = tone_llms.CONFIG
-    input_14 = cfg['filenames'].get('output_14_fintech_intensity',
-                                    '14_fintech_intensity.parquet')
-    path_14 = os.path.join(cfg['paths']['output_dir'], input_14)
-    if not os.path.exists(path_14):
-        raise SystemExit(f"[verify] stage 21 输入缺失: {path_14} — 请先跑 stage 14。")
-    df = pd.read_parquet(path_14)
+    if input_path is None:
+        input_14 = cfg['filenames'].get('output_14_fintech_intensity',
+                                        '14_fintech_intensity.parquet')
+        input_path = os.path.join(cfg['paths']['output_dir'], input_14)
+    if not os.path.exists(input_path):
+        raise SystemExit(
+            f"[verify] stage 21 输入缺失: {input_path} — 请先跑 stage 14, "
+            f"或用 --input 指定全量语料帧。")
+    df = pd.read_parquet(input_path)
     # 与 main() 同款 idempotent 物化 (stage 13 上游通常已物化, 此处兜底)
     if 'content_ctx' not in df.columns:
         df = tone_llms._materialize_content_ctx(df)
-    return df
+    return df, input_path
 
 
-def verify_cache_coverage(max_show: int = 10) -> int:
-    """测量缓存覆盖率, 返回退出码 (0=全覆盖, 2=有缺口)。"""
-    df = _load_stage21_input()
+def verify_cache_coverage(max_show: int = 10, input_path: str | None = None,
+                          min_rows: int = 0) -> int:
+    """测量缓存覆盖率, 返回退出码。
+
+    退出码: 0=全覆盖且帧达生产门槛; 2=有缺口; 3=零 miss 但帧行数 < ``min_rows``
+    (覆盖率证明仅对该 *子生产* 帧有效, 不足以 bless 全量 golden — DET-1)。
+
+    fix(2026-06-14 审计 DET-1): 新增 ``input_path`` (指定语料帧) 与 ``min_rows``
+    (生产规模门槛)。原实现对盘面任意帧报绝对命中, 在 T=2 试跑帧上恒打印
+    7020/7020 PASS, 即便 17M 生产帧未覆盖 → 确定性证明在生产规模上空洞。
+    现要求显式传全量帧并以 ``min_rows`` 把关。
+    """
+    df, input_path = _load_stage21_input(input_path)
     models = tone_llms.MODELS
     cache_db = os.path.join(tone_llms.CONFIG['paths']['output_dir'], '_llm_cache.db')
     if not os.path.exists(cache_db):
         raise SystemExit(f"[verify] 缓存缺失: {cache_db}")
 
     n_rows = len(df)
+    print(f"[verify] 输入帧: {input_path}")
     print(f"[verify] 语料: {n_rows} 行 × {len(models)} 模型 × 2 轨 "
           f"= {n_rows * len(models) * 2} 次查找")
+    if min_rows > 0 and n_rows < min_rows:
+        print(f"[verify] ⚠ 帧行数 {n_rows:,} < 生产门槛 --min-rows={min_rows:,} — "
+              f"覆盖率证明仅对此 *子生产* 帧有效, 不足以 bless 全量 T=18 golden。")
     print(f"[verify] 缓存: {cache_db}")
     print(f"[verify] 键参数: prompt_version={tone_llms.PROMPT_VERSION!r} "
           f"temperature={tone_llms.TEMPERATURE} random_seed={tone_llms.RANDOM_SEED}")
@@ -112,6 +134,11 @@ def verify_cache_coverage(max_show: int = 10) -> int:
         print(f"[verify]   {mid}: misses={mc}")
 
     if misses == 0:
+        if min_rows > 0 and n_rows < min_rows:
+            print(f"\n[verify] ⚠ 0 miss 但帧行数 {n_rows:,} < --min-rows={min_rows:,} — "
+                  "覆盖率证明仅对该子生产帧有效, **不足以** 在 $0 下确定性复现全量 T=18 "
+                  "golden。请对全量 17M 语料帧重跑本检查 (--input <全量 14_fintech_intensity>)。")
+            return 3
         print("\n[verify] ✅ 0 miss — golden 语料完全被缓存覆盖, stage 21 可 $0 "
               "确定性复现 (缓存即确定性锚点, 勿删 _llm_cache.db)。")
         return 0
@@ -128,8 +155,15 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="验证 stage 21 LLM 缓存覆盖率 (问题3 确定性)")
     ap.add_argument('--max-show', type=int, default=10,
                     help="最多打印多少个 miss 样本 (默认 10)")
+    ap.add_argument('--input', type=str, default=None,
+                    help="指定语料帧 parquet (缺省=配置的 14_fintech_intensity; "
+                         "生产端须传全量 17M 语料帧, DET-1)")
+    ap.add_argument('--min-rows', type=int, default=0,
+                    help="生产规模门槛: 帧行数 < 此值时, 即便 0 miss 也判退出码 3 "
+                         "(覆盖率证明不足以 bless 全量 golden, DET-1)")
     args = ap.parse_args()
-    sys.exit(verify_cache_coverage(max_show=args.max_show))
+    sys.exit(verify_cache_coverage(max_show=args.max_show, input_path=args.input,
+                                   min_rows=args.min_rows))
 
 
 if __name__ == '__main__':

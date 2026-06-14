@@ -42,8 +42,9 @@ staleness 的 *参照窗口* (过去 7d 信息环境基准) 用 stage 13 预筛�
 21_tone_llms), 与面板兄弟列 (tone/herd/intensity, 聚合自 verified-union) 口径
 一致。见 ``_restrict_to_panel_domain``。
 
-Gentzkow, M., Shapiro, J. M., & Taddy, M. (2019). Text as data. Journal of
-Economic Literature, 57(3), 535-574.
+Gentzkow, M., Kelly, B., & Taddy, M. (2019). Text as data. Journal of
+Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
+(审计 2026-06-14 DI-7 订正: 第二作者原误作 Shapiro, 实为 Kelly)
 
 设计
 ----

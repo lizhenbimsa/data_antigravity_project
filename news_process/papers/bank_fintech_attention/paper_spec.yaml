@@ -7,10 +7,13 @@ spec_version: 2.0.0
 status: new
 differentiation_claim: |
   P2 度量银行被 fintech 媒体话题"曝光"的强度，独立于情感方向。
-  锚点更正 (fix(omni-g-papers-misc-09, 2026-06-11), 同步 attention_media.py 2026-06-10 更正):
-  主处理 attention_index = ln(1+Σ intensity) 是 Fang & Peress (2009 JF) 式 **extensive
-  覆盖加权曝光** (未按文章数/token 归一), 不是 Hassan et al. (2019 QJE) 的 intensive
-  归一化份额 (PRisk = 命中 bigram / 总 bigram); Hassan 对标仅限归一化度量
+  锚点更正 (fix(omni-g-papers-misc-09, 2026-06-11), 同步 attention_media.py 2026-06-10 更正;
+  claim-fit 二次收口 2026-06-14 审计 CIT-4):
+  主处理 attention_index = ln(1+Σ intensity) 是对 Fang & Peress (2009 JF) **extensive 覆盖**
+  构念的 **intensity 加权扩展** — 区别于其无权文章计数 (count/dummy), 本指数按
+  fintech_intensity_score (TF·IDF·语义) 给每篇加权; 亦不是 Hassan et al. (2019 QJE) 的
+  intensive 归一化份额 (PRisk = 命中 bigram / 总 bigram)。撰稿须在测度节披露
+  "计数 vs intensity 加权和" 的区别。Hassan 对标仅限归一化度量
   (attention_pct / attention_intensity_density) 与 ctx 轨 entity-proximity 归因。
   R17-m01 + R21-m01 跨 paper 区分 (B-route 3 + existing 4 paper, 共 7 对照):
   - 与 P1 (tone): P2 度量曝光强度 (cumulative attention without sign); P1 度量情感方向 (sign + magnitude); 二者独立 channel
