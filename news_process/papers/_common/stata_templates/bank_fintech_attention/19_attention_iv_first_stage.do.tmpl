@@ -27,6 +27,14 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
+* ID-1 修复 (审计 2026-06-14): 弱工具稳健 AR 置信集 — 模板注释一贯写 "KP F<16.38 时看
+* Anderson-Rubin CI", 但此前从不计算 → 复现包无任何弱工具稳健对象。weakiv (Finlay-
+* Magnusson-Schaffer; Andrews-Stock-Sun 2019 ARE 11:727-753) 作后估对最近一次 ivreg2
+* 计算 AR/CLR/LM 弱工具稳健检验与置信集 (just-identified 列 AR=CLR=LM)。缺 ado 优雅跳过。
+capture which weakiv
+local has_weakiv = (_rc == 0)
+if !`has_weakiv' display "  [INFO] weakiv 未安装 — 弱工具稳健 AR CI 跳过 (复现前: ssc install weakiv)"
+
 * ⚠ FE 锁定 = bank FE + year FE (absorb(bank_id year) / i.bank_id i.year);
 *   严禁 bank_type×year 交互 FE — 同业 LOO 工具格内残余 = 自身内生变量的负镜像
 *   (实测格内 corr −0.67~−0.84), type×year FE 下工具退化为内生变量镜像、一阶段
@@ -51,6 +59,11 @@ if !_rc {
     ivreg2 {{MAIN_DV}} ({{MAIN_TREAT}} = leave_one_out_peer_attention_iv) $controls ///
         i.bank_id i.year, cluster({{CLUSTER_VAR}}) first
     eststo tsls_loo
+    * ID-1: LOO 2SLS 弱工具稳健 AR 置信集 (KP F<16.38 时主推断对象)
+    if `has_weakiv' {
+        display "  [weakiv] LOO 2SLS — Anderson-Rubin 弱工具稳健检验/置信集:"
+        capture noisily weakiv
+    }
 }
 else {
     display "  [WARN] leave_one_out_peer_attention_iv not in panel (M0.5.X derivation pending)"
@@ -68,6 +81,16 @@ if !_rc {
     ivreg2 {{MAIN_DV}} ({{MAIN_TREAT}} = bartik_attention_iv) $controls ///
         i.bank_id i.year, cluster({{CLUSTER_VAR}}) first
     eststo tsls_bartik
+    * ID-1: Bartik 2SLS 弱工具稳健 AR 置信集
+    if `has_weakiv' {
+        display "  [weakiv] Bartik 2SLS — Anderson-Rubin 弱工具稳健检验/置信集:"
+        capture noisily weakiv
+    }
+    * ID-4 披露 (审计 2026-06-14): Bartik 识别 = GPSS 2020 基期份额外生性 (非 BHJ 冲击层
+    * 外生)。基期份额 = 焦点行同类型共现频率, 可能相关于 T0 媒体显著性 → 须以 Rotemberg
+    * 权重诊断 + 高权重份额 placebo + share-vs-pretrend 核验 (需暴露 bartik_type_share_*
+    * 份额矩阵; 当前为预合成单列 IV → Rotemberg 诊断 deferred; 论文须披露此识别假设)。
+    display "  [ID-4] Bartik 识别依赖 GPSS 基期份额外生性; Rotemberg 诊断待份额矩阵暴露 (披露项)"
 }
 
 * ============================================================================
@@ -86,6 +109,11 @@ if !_rc {
     ivreg2 {{MAIN_DV}} (attention_index_ctx = lpeer_attention_iv_ctx) $controls ///
         i.bank_id i.year, cluster({{CLUSTER_VAR}}) first
     eststo tsls_ctx
+    * ID-1: ctx 轨 2SLS 弱工具稳健 AR 置信集 (just-identified, 与 full 轨并排)
+    if `has_weakiv' {
+        display "  [weakiv] ctx 2SLS — Anderson-Rubin 弱工具稳健检验/置信集:"
+        capture noisily weakiv
+    }
 }
 
 * fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — 全部 5 个估计都在守卫
@@ -115,7 +143,8 @@ else {
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
         title("P2 IV First Stage + 2SLS") ///
         mtitles(`mtitles') ///
-        addnotes("Kleibergen-Paap rk-F-stat reported by ivreg2; weak-IV threshold = 16.38 (Stock-Yogo 2005)." ///
+        addnotes("Kleibergen-Paap rk-F-stat reported by ivreg2; weak-IV threshold = 16.38 (Stock-Yogo 2005). When KP F<16.38, Anderson-Rubin weak-IV-robust confidence sets are computed via weakiv (Andrews-Stock-Sun 2019 ARE) and logged per 2SLS column (ssc install weakiv to enable)." ///
+                 "Bartik identification rests on GPSS (2020) base-period share exogeneity (NOT BHJ shock-level); the Rotemberg-weight diagnostic is pending exposure of the bartik_type_share_* matrix — disclose the base-share assumption." ///
                  "ctx column: entity-window twin attention_index_ctx instrumented by lpeer_attention_iv_ctx, just-identified, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012).")
 
     display "[OK] 19_attention_iv_first_stage → $tables_dir/tableA_iv_first_stage.tex"
