@@ -168,3 +168,19 @@
 - 2 条 false-positive(severity drop)已从清单剔除。
 
 **验证状态**: 41/68 经独立对抗核验;27/68 finder-flagged(会话 token 上限中断核验阶段),其中 ATT-2 门控 / 引文 / dedup N4 / balance spine 等关键项被终裁 grep 或项目 memory 交叉佐证。建议会话额度恢复后 resume workflow(`resumeFromRunId`)补齐 27 条对抗核验。
+
+---
+
+## 11. 核验后修订(2026-06-14,9-agent 顶刊对抗核验 wf_30f775dc 终裁后)
+
+对已落地修复(worktree commits 9460f3d9 + bf1fb393 + 43476f3a)做的多智能体核验**终裁 = minor-issues,三 commit 安全保留**:引文 6 条全 web 核验 clean(Hillert RFS 27(12):3467-3501 / Gentzkow-**Kelly**-Taddy / Bushee .00357 / DEG reframe 与原文"news 是 SVI 取代的间接代理"一致 / Fang-Peress / Andrews-Stock-Sun 全对),golden 安全 clean,DET-1/测试 clean,`weakiv`-after-`eststo` e() 完整性正确,hollow-fix 风险已清(`dcep_post`/`dcep_treat_year` 确在 `.dta`)。已就地整改的 P2/P3(commit 43476f3a):M7 csdid 把注意力移出协变量+改标"DCEP 正交政策辅助"、never-treated 论据订正、ID-4 deferral 原因订正、引文计数一致、00_master 补 ado。
+
+**核验另逮出两条 PLAN 级 P1(属计划而非已落地代码,须并入待办)**:
+
+- **P1-PLAN-1 locus 事件研究传染未修**: P1-B/ID-3 在原审计是**一个**发现(attention M6 + locus/collab 事件研究 + spec E1-E5b),但 batch-2 只修了 attention `15_` M6。`bank_fintech_locus/19_locus_event_study.do.tmpl:36` 仍消费**零生产者**的 `post_E*/treat_E*_year/never_treated_E*`(`locus/00_master:44` LIVE 调用),`eventstudyinteract` 静默 capture-skip → P4 事件研究是空头承诺。(核验确认 `collab/19` **不**受影响,用真实列 `collab_open_full`,故范围仅 locus。)**待办**:把 `locus/19` 重指到已物化 `dcep_/sandbox_` 生产者(+ Sun-Abraham/csdid notyet,镜像 `15_` 修复),或在文件内显式披露 P4 事件研究非operational + reconcile attention `paper_spec.yaml` 的 `event_studies:[E1-E5b]` 到同步 post-dummy 生产者。
+
+- **P1-PLAN-2 ATT-2 §5 下调前提经实证为假 → 应回 P1**: §5 把 ATT-2 下调 P2 的理由是"geo attention 仅喂 Table 1 描述行,不喂任何 IV/系数"。**该前提错**:`falsification_template.do.tmpl:336/345` 已用**未门控**的 `ft_attn_prov`/`ft_attn_city` 在 2SLS 工具化 `llm_vote_tone_full`,:427 还把两者做 Hansen-J overid;且三列在**盘面 T=2 实存**(`ft_attn_prov`/`city` nonnull=150,`llm_vote_tone_full`=117)→ `ivreghdfe Y (llm_vote_tone_full = ft_attn_prov)` **今天即可跑**,26.8% 未门控假 fintech 污染**当前就流入识别**,非 T=18 未来风险。**待办**:ATT-2 回 P1;geo 数值门控(`compute_fintech_attention_index` 分子 `restrict_to_verified`)须在任何 geo-IV 表(含 falsification 表)发表前落地,**不**作 Tier-2 延后列。
+
+**核验逮出的 plan 遗漏(并入待办)**:① ID-1 AR-CI 推广清单漏 `llm_peer/11_table2_main_iv_2sls`(且"6 个"实列 7 个,应为含 llm_peer 共 8 个 live 2SLS 模板)+ doctor 须补 ado 依赖检查(否则 capture-which-weakiv 在复现包静默吞掉 AR-CI);② §6 漏的 $0 构念 #5 有符号/不对称语调加权注意力(Σ intensity·sign(tone),Soroka,**区别于** GEO-4 的地理本地-非本地)+ #6 银行×fintech 实体共注意,应进 Tier-2;③ 注意力指数**外部/criterion 效度**(区别于 P1-C 的 11 情感测度人工金标准)+ 测量误差衰减 reliability-ratio/split-half(T=18 $0);④ §7 数据完整性 DI-5(10000 字上限矛盾 TSM 2008)/ DI-8(format-free 日期解析逐年 NaT 漂移)/ FRESH-1(分子 14/12 比门控 24 旧无 mtime 守卫,**盘面实证**:`40_panel_yearly` Jun10 旧于 `24_herd_decay` Jun13,且 4f4e725b 的 IV 列**未落盘**)须进生产 run 检查单;⑤ ID-2 `_lag1` 的 $0 分类须注明基线:**已重生面板**上 `_lag1` 已物化=$0,**当前陈旧盘面**上 IV 列缺失,接 esttab 须先重生(`leave_one_out_peer_*_iv*` 当前不在盘)。
+
+**核验诚实披露**:batch-2 两修复在**盘面 T=2 全部 inert**(M6 `dcep_post` 全 0 → 跳过;19_ 三 IV 列均缺 → weakiv 不触发),仅在合成 smoke 盘验证过;真实数据验证须 gate 到 T=18 生产 run(勿把 gitignored `build/` 绿 smoke 当真实数据正确性证明)。
