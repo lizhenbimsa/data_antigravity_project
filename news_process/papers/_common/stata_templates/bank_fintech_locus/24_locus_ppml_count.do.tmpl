@@ -1,0 +1,174 @@
+* ============================================================================
+* 24_locus_ppml_count.do — Table C (bank_fintech_locus / P4)
+* Paper: {{PAPER_ID}}
+*
+* PPML 计数模型表 (Poisson pseudo-maximum-likelihood, count-outcome 专用)。
+* 仅本计数篇适用: 主 outcome citation_weighted_patent 被 spec + 任务双重标注为
+* COUNT 类型 (Kogan 2017 QJE 谱系, 引用加权专利计数), 但 locus 全部现有模板
+* (15 主回归 / 16-21 稳健性 / 20 IV) 一律用 reghdfe 线性 OLS/2SLS。
+*
+* ── 大白话 ────────────────────────────────────────────────────────────────
+*   是什么: 把"引用加权专利"这种"计数型、大量零值、右偏极重"的结果变量, 改用
+*           泊松伪极大似然 (ppmlhdfe) 重估一遍, 与现有线性 OLS 主回归并排对照。
+*   为什么: 计数 outcome 用线性模型 (OLS / log(1+y)) 在大量零值与右偏下系数有偏,
+*           且 log 变换引入 Jensen 不等式偏误 (E[log y] ≠ log E[y]); ppmlhdfe 在
+*           条件均值为指数型时对零值/异方差稳健, 是金融计数数据的推荐做法。这是
+*           顶刊明确指出的 outcome-method 错配缺口 (本篇用线性模型估计计数 outcome)。
+*   影响:   ppmlhdfe 为 SSC 命令 → capture which 守卫, 未装则整表跳过 (视为正常,
+*           非失败); financial DV (citation_weighted_patent) 当前为外部数据
+*           sentinel → 缺列时优雅跳过 (wire-ahead), golden-safe, 接入后自动激活,
+*           绝不写盘列 / 改 panel / 触 golden, 也绝不 r(111)/r(198) 崩主链。
+*
+* ── 文献锚点 (DOI 均已核验) ────────────────────────────────────────────────
+*   Cohn, J. B., Liu, Z., & Wardlaw, M. I. (2022). Count (and count-like) data
+*   in finance. Journal of Financial Economics, 146(2), 529-551.
+*   doi:10.1016/j.jfineco.2022.08.004
+*     → 金融计数 (count-like) outcome 应优先用 PPML 而非 OLS / log-OLS。
+*   方法基础: Silva, J. M. C. S., & Tenreyro, S. (2006). The log of gravity.
+*   Review of Economics and Statistics, 88(4), 641-658.
+*   doi:10.1162/rest.88.4.641  (PPML 一致性 / Jensen 偏误论证)
+*   outcome 谱系: Kogan, L., Papanikolaou, D., Seru, A., & Stoffman, N. (2017).
+*   Technological innovation, resource allocation, and growth. Quarterly
+*   Journal of Economics, 132(2), 665-712. doi:10.1093/qje/qjw040
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+eststo clear
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* nested mkdir (主链 master 已建; 独立重跑/dry-run 防御)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* 载入已 prepped 面板; 独立重跑兜底回退原盘 + 现场 encode + 派生主处理。
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc use "data/processed/_prepared_panel.dta", clear
+    else    use "data/processed/46_panel_yearly_full.dta", clear
+    capture confirm variable bank_id
+    if _rc encode target_bank, gen(bank_id)
+    capture confirm variable locus_layer_full
+    if _rc {
+        capture confirm variable tech_frac
+        capture confirm variable app_frac
+        capture gen locus_layer_full    = (tech_frac > app_frac) if !missing(tech_frac, app_frac)
+        capture gen locus_scenario_full = (app_frac > tech_frac) if !missing(tech_frac, app_frac)
+    }
+    xtset bank_id year
+}
+
+set seed {{RANDOM_SEED}}
+
+* ----------------------------------------------------------------------------
+* 公共守卫: ppmlhdfe (SSC) 是否已装 + outcome / treatment 在不在盘
+* ----------------------------------------------------------------------------
+capture which ppmlhdfe
+local have_ppml = (_rc == 0)
+local have_dv = 0
+capture confirm variable {{MAIN_DV}}
+if !_rc local have_dv = 1
+local have_treat = 0
+capture confirm variable locus_layer_full
+if !_rc local have_treat = 1
+
+if `have_ppml' == 0 {
+    display as text "  [SKIP] ppmlhdfe 未装 (ssc install ppmlhdfe) — Table C PPML 整表跳过 (视为正常, 非失败)"
+}
+if `have_dv' == 0 {
+    display as text "  [WIRE-AHEAD] {{MAIN_DV}} 不在盘 (外部财务/专利计数面板待接入); Table C 优雅跳过, 仅写空表占位"
+}
+if `have_treat' == 0 {
+    display as error "  [WARN] locus_layer_full 不在盘 — 须先跑 01_data_prep 派生主处理, Table C 跳过"
+}
+
+* PPML 要求 outcome 非负 (计数). 财务 sentinel 接入后若出现负值 (不应该), 守卫
+* 报告并跳过 PPML 列 (改用线性对照), 避免 ppmlhdfe r(2000)/收敛失败。
+local dv_nonneg = 1
+if `have_dv' {
+    quietly count if {{MAIN_DV}} < 0 & !missing({{MAIN_DV}})
+    if r(N) > 0 {
+        local dv_nonneg = 0
+        display as text "  [WARN] {{MAIN_DV}} 存在 " r(N) " 个负值 — 不符合 PPML 计数 outcome 假设; PPML 列跳过, 仅留线性对照"
+    }
+}
+
+* ============================================================================
+* (A) 线性 OLS 对照 (reghdfe) — 与现有主回归同设定, 供与 PPML 并排对比
+* 白话: 先把现有的线性回归再跑一遍当基准列, 让审稿人直接看到换成 PPML 后系数
+*       (半弹性) 的变化方向与显著性。
+* ============================================================================
+if `have_dv' & `have_treat' {
+    capture noisily reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    if !_rc eststo c_ols
+}
+
+* ============================================================================
+* (B) PPML 计数模型 (ppmlhdfe) — Cohn-Liu-Wardlaw 2022 推荐的金融计数标准做法
+* 白话: ppmlhdfe 假设条件均值是指数型, 对零值与异方差稳健; 系数解释为半弹性
+*       (近似处理变量从 0→1 时 outcome 的百分比变化)。FE 用 bank_id + year,
+*       SE 聚类到 bank_id, 与线性主回归对齐。
+* ============================================================================
+if `have_ppml' & `have_dv' & `have_treat' & `dv_nonneg' {
+    * B1: bank + year FE (与主回归同设定)
+    capture noisily ppmlhdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    if !_rc eststo c_ppml_fe
+    else display as text "  [SKIP] PPML (bank+year FE): ppmlhdfe 未收敛或全 separation (T=2 退化可能; production T=18 激活)"
+
+    * B2: 仅 year FE + i.bank_type 哑 (FE 更稀疏, 缓解小样本 perfect-prediction 丢观测)
+    *     bank_type 字符串先数值化; T=2 下 bank FE 易把大量单元完美预测掉。
+    capture confirm numeric variable bank_type
+    if _rc capture encode bank_type, gen(_btype_id)
+    else gen long _btype_id = bank_type
+    capture confirm variable _btype_id
+    if !_rc {
+        capture noisily ppmlhdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls, ///
+            absorb(year _btype_id) vce(cluster {{CLUSTER_VAR}})
+        if !_rc eststo c_ppml_yt
+        else display as text "  [SKIP] PPML (year + bank_type FE): 未收敛或 separation"
+    }
+}
+
+* ============================================================================
+* 输出: esttab 动态名单 (缺名不点名) + CSV side-channel
+* ============================================================================
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if strmatch("`m'", "c_*") {
+        local models `models' `m'
+    }
+}
+
+if "`models'" == "" {
+    display as text "  [WIRE-AHEAD] Table C 无任何已存储估计 (ppmlhdfe 未装 / financial DV 待接入 / 全 Panel 守卫跳过); 表跳过, 非失败"
+}
+else {
+    esttab `models' using "$tables_dir/tableC_locus_ppml_count.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N, fmt(0) labels("N")) ///
+        title("Table C --- Count-Outcome Robustness: PPML vs OLS (P4 locus)") ///
+        addnotes("Outcome citation\_weighted\_patent is count-like (Kogan 2017 QJE lineage); linear OLS biased under mass zeros / Jensen." ///
+                 "c\_ols: reghdfe linear baseline (bank+year FE). c\_ppml\_fe: ppmlhdfe bank+year FE. c\_ppml\_yt: ppmlhdfe year + bank\_type FE." ///
+                 "PPML coefficients are semi-elasticities (Cohn, Liu \& Wardlaw 2022 JFE; Silva \& Tenreyro 2006 REStat)." ///
+                 "Fit stat omitted: ppmlhdfe stores a pseudo-R2 (e(r2\_p), no e(r2)) and reghdfe stores no e(ll), so neither R2 nor log-lik. is comparable across columns; only N is reported." ///
+                 "ppmlhdfe is an SSC command; table skipped gracefully if not installed.")
+
+    * CSV side-channel — parse_esttab_csv 消费 (tables.py read_paper_esttab)
+    estout `models' using "$tables_dir/tableC_locus_ppml_count.csv", replace ///
+        delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) ///
+        stats(N, fmt(0)) starlevels(* 0.10 ** 0.05 *** 0.01)
+
+    display "[OK] Table C (PPML count model) → $tables_dir/tableC_locus_ppml_count.tex (+ .csv side-channel)"
+}

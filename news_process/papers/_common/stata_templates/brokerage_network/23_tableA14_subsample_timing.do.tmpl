@@ -1,0 +1,321 @@
+* ============================================================================
+* 23_tableA14_subsample_timing.do — 子样本外部效度 + 前向安慰剂时序
+*   (brokerage_network, Table A14)
+* Paper: {{PAPER_ID}}
+*
+* ── 是什么 (一行白话) ───────────────────────────────────────────────────────
+*   两件事: (1) 同业语调→ROA 的溢出是不是只在某一类银行里成立? 按"组织形态
+*   (城商/农商/股份/国有...)"和"网络资源量(大行 vs 小行)"分样本看系数是否一致
+*   (外部效度)。(2) 时序排他性检验: 用"未来的"同业语调当右侧 (lead 安慰剂),
+*   如果它能预测今天的 ROA, 说明我们的滞后识别有问题; 它应当不显著。
+*
+* ── Bundle B (subsample + timing) — 两 Panel 合一 ────────────────────────────
+*   Panel A  SUBSAMPLE: 新增两分组维度 (区别于已有 Table 4 SOE / Table 10 hub):
+*                       (1) 按 bank_type 组织形态逐类 2SLS;
+*                       (2) 按 bank_effective_size 中位切 (网络资源量大行 vs 小行)。
+*                       外部效度/构成稳健性 (Angrist & Pischke 2009 MHE 子样本讨论)。
+*   Panel B  TIMING   : 前向 (lead) 安慰剂 — 主识别用一阶滞后同业语调
+*                       (peer_tone_lag1) 避同期反向因果; 此处加 F.peer_tone_lag1
+*                       (= 当期同业语调) 作右侧。若对当期 ROA 显著 => 违反时序排他
+*                       (未来溢出不应预测今日绩效)。Bertrand-Duflo-Mullainathan
+*                       2004 QJE 的序列相关警示亦支持报动态时序对照。
+*
+* ── golden-safe / 退化守卫 ──────────────────────────────────────────────────
+*   - DV={{MAIN_DV}}_w (ROA sentinel): 全程 capture confirm; 财务面板未接入时
+*     各 Panel 优雅 no-op (wire-ahead 桩), 接入并跑 01_data_prep 后自动激活。
+*   - SSC 命令 ivreghdfe: capture which 守卫 (本篇 IV 主估计器, 视为已装)。
+*   - T=2 退化盘: F. lead 算子多为缺失 -> N-守卫优雅跳过 (production T=18 才全功效);
+*     bank_type 逐类 / size 中位切子样本 N<30 同样 N-守卫跳过。
+*   - esttab 名单动态化 (不硬点名缺估计)。
+*
+* ── 文献锚点 ────────────────────────────────────────────────────────────────
+*   Bertrand, Duflo & Mullainathan (2004) QJE  10.1162/003355304772839588 — 序列相关/动态时序
+*   Angrist & Pischke (2009) Mostly Harmless Econometrics — 子样本外部效度 (一般性锚点;
+*       Princeton University Press, ISBN 978-0691120355 — book, no journal DOI)
+* ============================================================================
+
+version 19
+clear all
+set more off
+eststo clear
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* nested mkdir (独立重跑/dry-run 防御 — Stata mkdir 不递归)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* ── 数据加载 (主链经 01_data_prep 产出 _prepared_panel; 独立跑则回退真盘) ──
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+* ── 局部宏定义 ─────────────────────────────────────────────────────────────
+local ENDOG {{MAIN_ENDOG}}
+local IV    {{MAIN_IV}}
+local DV    {{MAIN_DV}}
+local CL    {{CLUSTER_VAR}}
+if "$controls" == "" global controls {{CONTROLS}}
+
+* DV 解析: 缩尾 _w -> 裸名 -> 缺则整表 no-op (wire-ahead 桩, 财务哨兵未接入)
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display "  WARN 结果变量 `DV'(_w) 待接入财务面板, Table A14 no-op (wire-ahead 桩)"
+        exit 0
+    }
+}
+* 内生/IV 解析 (缺则整表 degrade)
+capture confirm variable `ENDOG' `IV'
+if _rc {
+    display "  WARN 内生/IV (`ENDOG' / `IV') 缺 (须先跑 01_data_prep 或上游 stage 24/45); Table A14 degrade"
+    exit 0
+}
+* 聚类变量解析 (prov_id 由 01_data_prep encode; 独立跑回退 bank_id)
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+
+capture which ivreghdfe
+if _rc {
+    display "  WARN ivreghdfe 未装 — Table A14 无法估计 (视为环境跳过)"
+    exit 0
+}
+
+* ==========================================================================
+* Panel A — 子样本外部效度 (bank_type 逐类 + bank_effective_size 中位切)
+*   区别于已有 Table 4 (is_soe) / Table 10 (bank_is_hub): 这里是组织形态与
+*   网络资源规模两维, 既非所有制也非枢纽地位。
+* ==========================================================================
+local subcols ""
+local sublabs ""
+
+* ── A 维度 1: 按 bank_type 组织形态逐类 2SLS ──
+capture confirm string variable bank_type
+if !_rc {
+    capture drop _type_fe
+    encode bank_type, gen(_type_fe)
+}
+else {
+    capture confirm variable bank_type
+    if !_rc {
+        capture drop _type_fe
+        capture gen long _type_fe = bank_type
+    }
+}
+capture confirm variable _type_fe
+if !_rc {
+    quietly levelsof _type_fe, local(_types)
+    local _ti = 0
+    foreach t of local _types {
+        local _ti = `_ti' + 1
+        * 取该类型的可读标签 (encode value label) 作 mtitle
+        local _tlab : label (_type_fe) `t'
+        if "`_tlab'" == "" local _tlab "type`t'"
+        * 单 pass 风格 (BRK-A14-PANELA-DOUBLE): 与下方 size 切样本 / llm_peer 17 一致 —
+        *   preserve 内 count + (N 够则) 估计 + eststo 一次完成, 用 _trc 透传 restore;
+        *   eststo 在 preserve 内 estimates_dir 存储是 frame-global, restore 不出栈 (与 data
+        *   preserve/restore 解耦), 故无需 restore 后重估的双跑。
+        local _Nt = 0
+        preserve
+        quietly keep if _type_fe == `t'
+        quietly count if !missing(`ENDOG', `IV', `DVUSE')
+        local _Nt = r(N)
+        if `_Nt' >= 30 {
+            capture ivreghdfe `DVUSE' (`ENDOG' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            if !_rc eststo S_type`t'
+            local _trc = _rc
+        }
+        else {
+            local _trc = 999
+        }
+        restore
+        if `_trc' == 0 {
+            local subcols "`subcols' S_type`t'"
+            local sublabs `"`sublabs' "`_tlab'""'
+        }
+        else {
+            display "[SKIP] Panel A type=`_tlab' subsample N=`_Nt' < 30 or est failed (T=2 degenerate; production T=18)."
+        }
+    }
+}
+else {
+    display "  WARN Panel A: bank_type 缺, 组织形态子样本跳过"
+}
+
+* ── A 维度 2: 按 bank_effective_size 中位切 (网络资源量大行 vs 小行) ──
+* fix(BRK-A14-DESC-DUP-19): 中位切口径与 19_table10 内异质性对齐 = **within-year 分位**
+*   (bysort year: egen median), 而非全样本 pooled p50 — 绝对/pooled 阈值跨年不可比 (审计 N-08;
+*   规模随网络增长逐年漂移, pooled 中位会把后期普遍变大的银行系统性归入"大行")。
+capture confirm variable bank_effective_size
+if !_rc {
+    capture drop _size_hi
+    capture drop _size_med_yr
+    bysort year: egen double _size_med_yr = median(bank_effective_size)
+    gen byte _size_hi = (bank_effective_size >= _size_med_yr) if !missing(bank_effective_size)
+    drop _size_med_yr
+    * 小行 (size 年内中位以下)
+    preserve
+    quietly keep if _size_hi == 0
+    count if !missing(`ENDOG', `IV', `DVUSE')
+    if r(N) >= 30 {
+        capture ivreghdfe `DVUSE' (`ENDOG' = `IV') $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        if !_rc {
+            eststo S_small
+            local subcols "`subcols' S_small"
+            local sublabs `"`sublabs' "Small (size<yr-med)""'
+        }
+    }
+    else display "[SKIP] Panel A small-size subsample N=" r(N) " < 30 (T=2 degenerate)."
+    restore
+    * 大行 (size 中位及以上)
+    preserve
+    quietly keep if _size_hi == 1
+    count if !missing(`ENDOG', `IV', `DVUSE')
+    if r(N) >= 30 {
+        capture ivreghdfe `DVUSE' (`ENDOG' = `IV') $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        if !_rc {
+            eststo S_large
+            local subcols "`subcols' S_large"
+            local sublabs `"`sublabs' "Large (size>=yr-med)""'
+        }
+    }
+    else display "[SKIP] Panel A large-size subsample N=" r(N) " < 30 (T=2 degenerate)."
+    restore
+}
+else {
+    display "  WARN Panel A: bank_effective_size 缺, 规模中位切子样本跳过"
+}
+
+* 子样本结果动态名单 esttab
+qui estimates dir
+local stored `r(names)'
+local outcols ""
+local outlabs `""'
+local ncols : word count `subcols'
+forvalues i = 1/`ncols' {
+    local m : word `i' of `subcols'
+    if `: list m in stored' {
+        local outcols `outcols' `m'
+        local t : word `i' of `sublabs'
+        local outlabs `"`outlabs' "`t'""'
+    }
+}
+if "`outcols'" != "" {
+    esttab `outcols' using "$tables_dir/tableA14_brok_subsample.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
+        title("Table A14-A: Subsample External Validity (bank type & network size) --- {{PAPER_ID}}") ///
+        mtitles(`outlabs') ///
+        addnotes("Split-sample 2SLS; bank/year FE; cluster at `CL'. New dimensions vs Table 4 (is_soe) / Table 10 (hub)." ///
+                 "bank_type = organizational form (city/rural/joint/SOE/foreign...); bank_effective_size = network resource (WITHIN-YEAR median split, audit N-08; not pooled p50)." ///
+                 "KP rk Wald F = e(widstat); subsample F typically below Stock-Yogo 16.38 => instruments weak. [TODO/SKIP: Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE) NOT yet computed in this table — to be added at production T=18; do NOT read split-sample point estimates as identified until AR CI reported]." ///
+                 "Subsamples with effective N<30 skipped (T=2 panel degenerate; production T=18 required, external-validity discussion in Angrist & Pischke 2009, Mostly Harmless Econometrics, Princeton University Press, ISBN 978-0691120355 — book, no journal DOI).")
+    estout `outcols' using "$tables_dir/tableA14_brok_subsample.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A14-A (subsample) written"
+}
+else {
+    display "  WARN Panel A: 所有子样本退化 (T=2; production T=18 才有功效), 跳过"
+}
+
+* ==========================================================================
+* Panel B — 前向 (lead) 安慰剂时序 (Bertrand-Duflo-Mullainathan 2004 QJE)
+*   主: peer_tone_lag1 (= L., 已是滞后). 安慰剂: F.peer_tone_lag1 (= 当期同业语调)。
+*   若 F. lead 对当期 ROA 显著 => 违反时序排他 (未来不应预测今日)。
+*   T=2 退化盘 F. 多为缺失 -> N-守卫优雅跳过。
+* ==========================================================================
+eststo clear
+local tmcols ""
+local tmlabs ""
+
+* ⚠ fix(BRK-A14-r5-not-sorted): Panel A 维度2 的 `bysort year: egen` (line 178) 把物理排序
+*   改为仅 year, 其后 preserve/restore 维持该 year-only 排序 → 本 Panel 前向时序算子 F./L.
+*   需 panelvar×timevar (bank_id year) 排序, 否则抛 r(5) 'not sorted' 并 abort 整个 do-file
+*   (bank_effective_size 在真盘存在 → size 分支必跑 → 必崩, 非 T=2 退化)。重申 xtset 恢复排序。
+capture xtset bank_id year
+
+* B1: 主设定 (滞后同业语调; 用 reghdfe OLS 简化时序对照, 与 IV 主表互补)
+*   ⚠ 审计 BRK-A14-TIMING: 本 Panel 三列均为 reduced-form OLS (`ENDOG' 未工具化),
+*     与主识别的 2SLS 不同 → lead 安慰剂是"约简式时序泄漏检验", 对 IV 排他性仅间接支持
+*     (不重估结构 2SLS); 见下方 esttab addnotes 显式披露。
+capture eststo T1_lag: reghdfe `DVUSE' `ENDOG' $controls, absorb(bank_id year) vce(cluster `CL')
+if !_rc {
+    local tmcols "`tmcols' T1_lag"
+    local tmlabs `"`tmlabs' "Lag (main)""'
+}
+
+* B2: lead 安慰剂 (F.peer_tone_lag1 = 当期同业语调; 应不显著)
+capture drop _lead_peer
+gen double _lead_peer = F.`ENDOG'
+quietly count if !missing(_lead_peer, `DVUSE')
+local _Nl = r(N)
+if `_Nl' >= 30 {
+    capture eststo T2_lead: reghdfe `DVUSE' _lead_peer $controls, absorb(bank_id year) vce(cluster `CL')
+    if !_rc {
+        local tmcols "`tmcols' T2_lead"
+        local tmlabs `"`tmlabs' "Lead placebo""'
+    }
+    else display "  WARN Panel B: lead 安慰剂回归失败 (退化), 跳过"
+}
+else {
+    display "[SKIP] Panel B lead placebo — F. forward operator N=`_Nl' < 30 (T=2 degenerate; production T=18)."
+}
+
+* B3: 同时含 lag 主 + lead 安慰剂 (条件竞争: lead 在控制 lag 后应仍不显著)
+if `_Nl' >= 30 {
+    capture eststo T3_both: reghdfe `DVUSE' `ENDOG' _lead_peer $controls, absorb(bank_id year) vce(cluster `CL')
+    if !_rc {
+        local tmcols "`tmcols' T3_both"
+        local tmlabs `"`tmlabs' "Lag+Lead""'
+    }
+}
+
+if "`tmcols'" != "" {
+    esttab `tmcols' using "$tables_dir/tableA14_brok_timing.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        stats(N r2, fmt(0 3) labels("N" "R-squared")) ///
+        title("Table A14-B: Forward (Lead) Placebo Timing --- {{PAPER_ID}}") ///
+        mtitles(`tmlabs') ///
+        addnotes("Main uses lagged peer tone (`ENDOG') to avoid contemporaneous reverse causality." ///
+                 "Lead placebo F.`ENDOG' (= current peer tone) should NOT predict current ROA (temporal exclusion)." ///
+                 "ESTIMATOR NOTE (audit BRK-A14-TIMING): these timing columns are reduced-form reghdfe OLS — the treatment (`ENDOG') is NOT instrumented here, unlike the main 2SLS identification. The lead placebo is therefore a REDUCED-FORM temporal-leakage check (does future peer tone load on current ROA?), which provides only INDIRECT support for the IV exclusion restriction (it does not re-estimate the structural 2SLS)." ///
+                 "Significant lead => violation of timing exclusion (Bertrand-Duflo-Mullainathan 2004 QJE, doi:10.1162/003355304772839588)." ///
+                 "F. forward operator largely missing on T=2 panel -> N-guarded skip (production T=18 required).")
+    estout `tmcols' using "$tables_dir/tableA14_brok_timing.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A14-B (lead-placebo timing) written"
+}
+else {
+    display "  WARN Panel B: 时序对照全退化 (T=2 lead 缺失; production T=18 才有功效), 跳过"
+}
+
+display "[OK] Table A14 (subsample external validity & lead-placebo timing) — brokerage_network 完成"

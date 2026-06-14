@@ -1,0 +1,205 @@
+* ============================================================================
+* 27_tableA14_subsample_composition.do — Table A14 构成稳健性子样本 (benefit_society)
+* Paper: {{PAPER_ID}}
+*
+* 多维"构成稳健性"子样本切分: 主系数 {{ATTITUDE_VAR}} (benefit_mean_full) →
+* {{MAIN_DV}}_w (ROA_w) 在各银行构成子样本是否同号、同量级。
+*   (1) 所有制: 国有 (is_soe==1) vs 非国有 (is_soe==0)
+*   (2) 类型: 按 bank_type 分 (city / rural / joint / ... 各跑一格, N 守卫)
+*   (3) 枢纽: 网络枢纽行 (bank_is_hub==1) vs 非枢纽 (bank_is_hub==0)
+*   (4) 规模: 大行 vs 小行 (按 bank_effective_size 中位数切; xtile 二分)
+* 白话: 把样本按"国企/类型/是否枢纽/大小行"分组各跑一遍主回归, 看
+*       态度→ROA 的系数在哪一类银行里都站得住, 排除"结论只由某一类银行撑起来"。
+*
+* 与 Table 4 (13_table4_heterogeneity) 不重复:
+*   Table 4 = 单一 is_listed 维度的交互式异质性 (探索性, β 是否随上市状态变化);
+*   本表    = 多维构成稳健性 (主 β 在 SOE/type/hub/size 各子样本是否一致存在)。
+* 文献锚: 子样本构成稳健性为标准做法; 概念锚 Gormley & Matsa (2014), RFS,
+*         "Common errors...", DOI 10.1093/rfs/hht047 (子样本切分以验稳健性, 而非
+*         以单一交互项捕捉异质性)。
+*
+* ⚠ golden-safe: 仅消费在盘 treatment ({{ATTITUDE_VAR}}) + 在盘分组列
+*   (is_soe / bank_type / bank_is_hub / bank_effective_size) + 在盘控制 ($controls)。
+*   outcome {{MAIN_DV}}_w (=ROA_w) 为外部财务 sentinel — capture confirm 守卫,
+*   缺列时全表优雅跳过 (wire-ahead)。
+* ⚠ T=2 子样本: 每格 N 可能很小 → quietly count + N 守卫优雅跳过, 不点名缺名列。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+eststo clear
+
+* outcome sentinel 守卫: {{MAIN_DV}}_w (=ROA_w) 缺列 → 全表 wire-ahead 跳过
+capture confirm variable {{MAIN_DV}}_w
+if _rc {
+    display "  [WARN] outcome {{MAIN_DV}}_w 不在面板 (外部财务面板未接入); Table A14 全表跳过 (wire-ahead)"
+    display "[OK] Table A14 (subsample composition) → 跳过 (sentinel DV 缺失, 非失败)"
+    exit 0
+}
+
+* 子样本回归小程序: 在给定条件下跑主回归, N 守卫优雅跳过, eststo 命名。
+* 用 i.year (+ i.type_id 若可用且组内有≥2 类型) 作 LSDV FE; 子样本内 absorb
+* 高维 FE 易塌缩, 故用轻量 i.year 设定 (与子样本 N 守卫配套)。
+capture program drop _bs_sub
+program define _bs_sub
+    args tag cond fenote
+    quietly count if `cond' & !missing({{MAIN_DV}}_w) & !missing({{ATTITUDE_VAR}})
+    if r(N) < 10 {
+        display "  [INFO] 子样本 `tag' N=" r(N) " < 10; 跳过 (T=2 退化, production T=18 才足量)"
+        exit 0
+    }
+    * 子样本内年份数 ≥2 才放 i.year; 类型数 ≥2 才放 i.type_id
+    capture noisily reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls if `cond', ///
+        absorb(year) vce(cluster {{CLUSTER_VAR}})
+    if _rc {
+        * reghdfe 在极小子样本塌缩时回退到 OLS + i.year LSDV
+        capture noisily regress {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls i.year if `cond', ///
+            vce(cluster {{CLUSTER_VAR}})
+    }
+    if !_rc {
+        eststo sub_`tag'
+        display "  [OK] 子样本 `tag' (`fenote') N=" e(N)
+    }
+    else {
+        display "  [WARN] 子样本 `tag' 回归失败 (完全共线/单组); 跳过"
+    }
+end
+
+* ----------------------------------------------------------------------------
+* (1) 所有制: SOE vs 非SOE
+* ----------------------------------------------------------------------------
+capture confirm variable is_soe
+if !_rc {
+    _bs_sub soe   "is_soe == 1" "SOE banks"
+    _bs_sub nonsoe "is_soe == 0" "non-SOE banks"
+}
+else {
+    display "  [WARN] is_soe 不在面板; 所有制子样本跳过"
+}
+
+* ----------------------------------------------------------------------------
+* (2) 类型: 按 bank_type 分 (字符串列, 逐取值切分)
+* ----------------------------------------------------------------------------
+capture confirm variable bank_type
+if !_rc {
+    * bank_type 在盘为 str; levelsof 取唯一值逐格回归 (N 守卫)
+    quietly levelsof bank_type, local(_btypes)
+    local _k 0
+    foreach bt of local _btypes {
+        local _k = `_k' + 1
+        * 子样本名用序号 (类型值多为英文短词 soe/city/rural/..., 但防特殊字符用序号)
+        _bs_sub type`_k' `"bank_type == "`bt'""' "type=`bt'"
+    }
+}
+else {
+    display "  [WARN] bank_type 不在面板; 类型子样本跳过"
+}
+
+* ----------------------------------------------------------------------------
+* (3) 枢纽: hub vs 非hub
+* ----------------------------------------------------------------------------
+capture confirm variable bank_is_hub
+if !_rc {
+    * BS-A14-005: bank_is_hub 缺失 (off-network 银行无中心度) 在盘为 . (Stata missing)。
+    *   Stata 里 missing > 任何数值, 故 'bank_is_hub == 0' 对 NaN 判 false → 56 个
+    *   off-network 银行被静默丢出非枢纽组 (~32% 损失)。按 paper_spec
+    *   centrality_missing_convention=zero_fill_offnetwork_disclose_N: 把缺失归 off-network
+    *   (非枢纽 = 0), 并披露填充 N。
+    quietly count if missing(bank_is_hub)
+    local _n_hub_miss = r(N)
+    capture drop _bank_is_hub_f
+    gen byte _bank_is_hub_f = bank_is_hub
+    replace _bank_is_hub_f = 0 if missing(bank_is_hub)
+    display "  [INFO] bank_is_hub 缺失 `_n_hub_miss' 行 → 归 off-network (非枢纽=0); zero_fill_offnetwork_disclose_N"
+    _bs_sub hub    "_bank_is_hub_f == 1" "network hub banks"
+    _bs_sub nonhub "_bank_is_hub_f == 0" "non-hub banks (incl off-network missing-as-0)"
+}
+else {
+    display "  [WARN] bank_is_hub 不在面板; 枢纽子样本跳过"
+}
+
+* ----------------------------------------------------------------------------
+* (4) 规模: 大行 vs 小行 (bank_effective_size 中位数二分)
+* ----------------------------------------------------------------------------
+capture confirm variable bank_effective_size
+if !_rc {
+    capture drop _size_grp
+    * xtile 中位切: 2 分位 → 1=小, 2=大 (bank_effective_size 连续)
+    capture noisily xtile _size_grp = bank_effective_size, nquantiles(2)
+    if !_rc {
+        _bs_sub small "_size_grp == 1" "small banks (below-median size)"
+        _bs_sub large "_size_grp == 2" "large banks (above-median size)"
+    }
+    else {
+        display "  [WARN] xtile 二分失败 (bank_effective_size 退化); 规模子样本跳过"
+    }
+}
+else {
+    display "  [WARN] bank_effective_size 不在面板; 规模子样本跳过"
+}
+
+* ============================================================================
+* 导出 — esttab 名单动态化 (子样本 N 守卫后缺名不点名, 防 r(111)) + CSV side-channel
+* ============================================================================
+* 类型子样本 sub_type1.. 数量不定 → 用通配 + 固定名混合收集已存储估计。
+qui estimates dir
+local stored `r(names)'
+local models ""
+local mtitles `""'
+* 固定维度优先 (有序), 类型维度用通配补在后面。
+local cand_fixed soe nonsoe hub nonhub small large
+local cand_ftitle `""SOE" "non-SOE" "Hub" "non-Hub" "Small" "Large""'
+local nf : word count `cand_fixed'
+forvalues i = 1/`nf' {
+    local g : word `i' of `cand_fixed'
+    local cm sub_`g'
+    if `: list cm in stored' {
+        local models `models' `cm'
+        local t : word `i' of `cand_ftitle'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+* 类型子样本 (sub_type1, sub_type2, ...) 动态追加
+foreach m of local stored {
+    if strmatch("`m'", "sub_type*") {
+        local models `models' `m'
+        local _n = subinstr("`m'", "sub_type", "Type", .)
+        local mtitles `"`mtitles' "`_n'""'
+    }
+}
+
+if "`models'" == "" {
+    display as error "  [WARN] Table A14 无任何已存储子样本估计 (全被 N 守卫跳过), 表跳过"
+    display "[OK] Table A14 (subsample composition) → 全子样本退化跳过 (T=2; production T=18 激活)"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA14_subsample_composition.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        keep({{ATTITUDE_VAR}}) ///
+        stats(N r2, fmt(0 3) labels("N" "R-squared")) ///
+        title("Table A14: Composition Robustness --- Subsamples (SOE/Type/Hub/Size) --- benefit_society") ///
+        mtitles(`mtitles') ///
+        addnotes("Each column re-estimates the main {{ATTITUDE_VAR}} -> {{MAIN_DV}}_w relation on a composition subsample; year FE; SE clustered at {{CLUSTER_VAR}}." ///
+                 "Size split = bank_effective_size median (xtile, 2 groups). Subsample composition robustness (standard practice; concept anchor Gormley-Matsa 2014 RFS)." ///
+                 "Hub split: off-network banks with missing centrality are assigned to the non-hub group (zero_fill_offnetwork_disclose_N convention); see log for the filled N." ///
+                 "Distinct from Table 4 (is_listed interaction heterogeneity). Subsample N small under T=2; production T=18 gives full power.")
+
+    * CSV side-channel (parse_esttab_csv 格式)
+    estout `models' using "$tables_dir/tableA14_subsample_composition.csv", replace delimiter(",") ///
+        keep({{ATTITUDE_VAR}}) ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+    display "[OK] Table A14 → $tables_dir/tableA14_subsample_composition.tex (+ .csv side-channel)"
+}

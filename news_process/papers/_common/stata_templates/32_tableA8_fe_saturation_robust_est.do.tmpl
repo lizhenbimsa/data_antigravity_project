@@ -1,0 +1,307 @@
+* news_process — Table A8: 固定效应饱和阶梯 + 离群稳健估计量
+*                           (FE Saturation Ladder + Outlier-Robust Estimators)
+*
+* Bundle A (bank_fintech_tone P1 稳健性缺口补全; 全 $0, 列均在盘/golden-safe, 纯 Stata):
+*   Panel A — 替代固定效应饱和阶梯 (FE-SAT, 5 列):
+*     M0 银行 + 年 (bank_id + year, = 主表 11_table2 基线 TWFE)
+*     M1 + 省份×年 (i.bank_province#i.year, 吸收地方时变冲击: 区域监管/经济周期)
+*     M2 + 银行类型×年 (i.bank_type#i.year, 吸收国有/股份/城商等所有制时变政策)
+*     M3 + 区域×年 (i.bank_zone#i.year, 吸收沿海/内陆等地带时变冲击)
+*     M4 + 银行特定线性趋势 (c.year#i.bank_id, 吸收银行各自的平滑时间路径)
+*   Panel B — 离群稳健估计量 (ROBUST-EST, 3 列对照):
+*     OLS (reghdfe 基线, 主表口径) vs 中位数回归 qreg(.5) vs
+*       Huber+Tukey biweight IRLS 有界影响 M-估计 rreg (非 Yohai 1987 MM-估计)
+*
+* 为什么 (大白话):
+*   A 这一组回答审稿人对双向固定效应 (TWFE) 设计的标准追问 "你的系数是不是被某种
+*     没控住的、随时间变动的地区/所有制/地带差异带出来的?" —— 逐级把更细的"组×年"
+*     固定效应塞进去, 若主系数还稳, 说明结论对未观测时变异质性是饱和稳健的。
+*   B 这一组回答 "结果是不是被个别离群的银行-年数据点带出来的?" —— 缩尾 (winsor)
+*     是改数据的值, 而中位数回归/稳健回归是换估计量 (对离群点降权), 两者互补。
+*
+* 文献锚点 (DOI 已核验):
+*   Gormley, T. A., & Matsa, D. A. (2014). Common Errors: How to (and Not to)
+*     Control for Unobserved Heterogeneity. Review of Financial Studies, 27(2),
+*     617-661. https://doi.org/10.1093/rfs/hht047        [Panel A 固定效应饱和]
+*   Leone, A. J., Minutti-Meza, M., & Wasley, C. E. (2019). Influential
+*     Observations and Inference in Accounting Research. The Accounting Review,
+*     94(6), 337-364. https://doi.org/10.2308/accr-52396  [Panel B 离群稳健估计]
+*   Koenker, R., & Bassett, G. (1978). Regression Quantiles. Econometrica,
+*     46(1), 33-50. https://doi.org/10.2307/1913643        [qreg 分位回归]
+*
+* T=2 退化守卫: 当前试跑盘 years={2017,2018} (~174 行, T=2)。c.year#i.bank_id 银行
+*   线性趋势在 T=2 下与 bank+year FE 完全共线 → reghdfe 自动吸收/或回归退化, 用
+*   capture + N/df 守卫优雅跳过 (production T=18 才有功效)。qreg/rreg 在小样本仅近似
+*   FE (i.year, T 充足时加 i.bank_type 哑变量), 同样 capture 守卫。
+*
+* ⚠ 披露 (FUNDINGCOST-NOT-WINSORIZED): 本表载入 _prepared_panel ("同口径缩尾面板"),
+*   但该口径的 winsor 清单 (root 01_data_prep) 只缩尾在盘的情感/控制变量。本表 Panel B
+*   的 DV (llm_vote_tone) 已在缩尾清单内; 而本论文族 (含 33_tableA9) 用作财务 outcome
+*   的 funding_cost 不在 01_data_prep winsor 清单 → 财务面板接入后, funding_cost 仍是
+*   "未缩尾"状态 (本表不改 01_data_prep)。Panel B 的离群稳健估计 (qreg/rreg) 正好
+*   补位: 不依赖缩尾即可对离群点降权。
+*
+* Main spec: sent={{MAIN_SENT_TRACK}} (locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}})
+
+version 19
+
+* fix(omni-g-templates-14): 每表开头 eststo clear 隔离估计命名空间 (master 共享 session)。
+eststo clear
+
+* 载入与主表同口径的缩尾面板 (_prepared_panel; 缺失回退未缩尾 full.dta)
+capture confirm file "data/processed/_prepared_panel.dta"
+if !_rc {
+    use "data/processed/_prepared_panel.dta", clear
+}
+else {
+    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep); 回退未缩尾 full.dta"
+    use "data/processed/46_panel_yearly_full.dta", clear
+}
+
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+capture do "data/processed/46_panel_yearly_labels.do"
+
+local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
+local EXPL   digital_frontier
+local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
+local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
+
+* DV / EXPL 存在性守卫 (缺则整表无意义, 优雅退出)
+capture confirm variable `DV' `EXPL'
+if _rc {
+    display as error "  ⚠️ DV (`DV') 或 EXPL (`EXPL') 不在面板, Table A8 整表跳过 (degrade)"
+    exit 0
+}
+
+* LOCUS/SUBST ctx 控制守卫 (full 轨展开成幻影列 tech_frac_lf/symb_frac_sf 时缺失)。
+capture confirm variable `LOCUS' `SUBST'
+if _rc {
+    display "  ⚠️ LOCUS/SUBST 列缺 (`LOCUS' / `SUBST'): 回归 degrade 为不含 LOCUS/SUBST"
+    local LOCUS
+    local SUBST
+}
+
+* 字符型分组列编码为数值 (reghdfe 的 i.var#i.year 交互需数值因子; bank_province/
+* bank_type/bank_zone 在盘均为 string)。capture confirm 守卫缺列。
+capture confirm variable bank_province
+if !_rc {
+    capture confirm variable _prov_id
+    if _rc encode bank_province, gen(_prov_id)
+}
+capture confirm variable bank_type
+if !_rc {
+    capture confirm variable _type_id
+    if _rc encode bank_type, gen(_type_id)
+}
+capture confirm variable bank_zone
+if !_rc {
+    capture confirm variable _zone_id
+    if _rc encode bank_zone, gen(_zone_id)
+}
+
+* ==========================================================================
+* Panel A — 固定效应饱和阶梯 (FE-SAT)
+* ==========================================================================
+* 逐级把更细的 group×year 固定效应吸收进去, 看主系数 β(digital_frontier) 稳不稳。
+eststo clear
+local fecols ""
+local felabs ""
+
+* M0 基线: bank + year (= 主表 11_table2 双向固定效应)
+capture eststo FE0: reghdfe `DV' `EXPL' `LOCUS' `SUBST', ///
+    absorb(bank_id year) vce(cluster bank_id)
+if !_rc {
+    local fecols "`fecols' FE0"
+    local felabs `"`felabs' "Bank+Year""'
+}
+else {
+    display "  ⚠️ Panel A M0 基线回归失败, 跳过"
+}
+
+* M1 + 省份×年
+capture confirm variable _prov_id
+if !_rc {
+    capture eststo FE1: reghdfe `DV' `EXPL' `LOCUS' `SUBST', ///
+        absorb(bank_id year i.year#i._prov_id) vce(cluster bank_id)
+    if !_rc {
+        local fecols "`fecols' FE1"
+        local felabs `"`felabs' "+Prov×Yr""'
+    }
+    else {
+        display "  ⚠️ Panel A M1 (+省份×年) 回归失败/退化, 跳过 (T=2 试跑盘可能共线)"
+    }
+}
+
+* M2 + 银行类型×年
+capture confirm variable _type_id
+if !_rc {
+    capture eststo FE2: reghdfe `DV' `EXPL' `LOCUS' `SUBST', ///
+        absorb(bank_id year i.year#i._type_id) vce(cluster bank_id)
+    if !_rc {
+        local fecols "`fecols' FE2"
+        local felabs `"`felabs' "+Type×Yr""'
+    }
+    else {
+        display "  ⚠️ Panel A M2 (+类型×年) 回归失败/退化, 跳过"
+    }
+}
+
+* M3 + 区域×年
+capture confirm variable _zone_id
+if !_rc {
+    capture eststo FE3: reghdfe `DV' `EXPL' `LOCUS' `SUBST', ///
+        absorb(bank_id year i.year#i._zone_id) vce(cluster bank_id)
+    if !_rc {
+        local fecols "`fecols' FE3"
+        local felabs `"`felabs' "+Zone×Yr""'
+    }
+    else {
+        display "  ⚠️ Panel A M3 (+区域×年) 回归失败/退化, 跳过"
+    }
+}
+
+* M4 + 银行特定线性趋势 (c.year#i.bank_id) — 需 T≥3 才可识别 (T=2 与 bank+year FE 共线)
+quietly levelsof year, local(_yrs)
+local _T : word count `_yrs'
+if `_T' >= 3 {
+    capture eststo FE4: reghdfe `DV' `EXPL' `LOCUS' `SUBST', ///
+        absorb(bank_id year c.year#i.bank_id) vce(cluster bank_id)
+    if !_rc {
+        local fecols "`fecols' FE4"
+        local felabs `"`felabs' "+Bank trend""'
+    }
+    else {
+        display "  ⚠️ Panel A M4 (+银行线性趋势) 回归失败, 跳过"
+    }
+}
+else {
+    display "  ⚠️ Panel A M4 跳过: 银行特定线性趋势需 T>=3 (当前 T=`_T'); 全量 T=18 下有功效"
+}
+
+* 输出 Panel A (动态名单, 缺列不点名)
+if "`fecols'" != "" {
+    esttab `fecols' using "output/tables/tableA8a_fe_saturation.tex", ///
+        keep(`EXPL') se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
+        title("Table A8-A: Fixed-Effects Saturation Ladder (Gormley & Matsa 2014 RFS)") ///
+        mtitles(`felabs') ///
+        note("DV = bank-year tone (`DV'). Each column adds a finer group-by-year FE set: " ///
+             "province×year, bank-type×year, zone×year, and bank-specific linear trend. " ///
+             "SE clustered at bank. Stability of beta(digital_frontier) across the ladder " ///
+             "addresses unobserved time-varying heterogeneity (Gormley & Matsa 2014 RFS, 10.1093/rfs/hht047). " ///
+             "Note: this is an OLS descriptive equation (tone ~ digital_frontier); the M2 bank-type×year " ///
+             "FE here is NOT imposed on the Table A6 2SLS, whose Bartik bank-type instrument requires " ///
+             "type×year variation to remain excluded. The two are complementary, not in conflict: A8-A " ///
+             "saturates type×year as a descriptive robustness check; A6 leaves it out for IV identification.")
+    estout `fecols' using "output/tables/tableA8a_fe_saturation.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) keep(`EXPL')
+    display "✅ Table A8-A (FE saturation ladder) written"
+}
+else {
+    display "  ⚠️ Panel A 无任何可用列, 跳过整张 A8-A"
+}
+
+* ==========================================================================
+* Panel B — 离群稳健估计量 (ROBUST-EST: OLS vs qreg vs rreg)
+* ==========================================================================
+* OLS 主表口径 vs 中位数回归 qreg(.5) vs Huber+Tukey biweight IRLS 有界影响 M-估计 rreg。
+* (rreg = Huber + Tukey biweight 迭代加权 M-估计, 非 Yohai 1987 MM-估计。)
+* qreg/rreg 不能吸收高维 FE → 用 i.year (T 充足时加 i.bank_type 哑变量) 近似。
+eststo clear
+local rcols ""
+local rlabs ""
+
+* B1: OLS 对照 (reghdfe 基线, bank+year FE)
+capture eststo RB_ols: reghdfe `DV' `EXPL' `LOCUS' `SUBST', ///
+    absorb(bank_id year) vce(cluster bank_id)
+if !_rc {
+    local rcols "`rcols' RB_ols"
+    local rlabs `"`rlabs' "OLS (FE)""'
+}
+
+* 近似 FE 列表 (i.year 总是; bank_type 多类别哑变量, T 足够大才不过参数化)
+local approx_fe i.year
+capture confirm variable _type_id
+if !_rc {
+    quietly levelsof _type_id, local(_types)
+    local _ntype : word count `_types'
+    quietly count
+    * 仅当样本数足够支撑类型哑变量时加入 (粗略: N > 5×类别数)
+    if r(N) > 5 * `_ntype' {
+        local approx_fe i.year i.bank_type
+    }
+}
+
+* B2: 中位数回归 qreg(.5) (Koenker & Bassett 1978 ECMA)
+* 先试富 FE (`approx_fe' = i.year [+ i.bank_type]); 若小样本下因哑变量过参数化失败,
+* 退回仅 i.year 重试 (T=2 试跑盘加 i.bank_type 可能共线 → 回退仍可产出主系数)。
+capture which qreg
+if !_rc {
+    capture eststo RB_qreg: qreg `DV' `EXPL' `LOCUS' `SUBST' `approx_fe', quantile(0.5)
+    if _rc {
+        display "  ⚠️ Panel B: qreg(.5) 富 FE 失败 (rc=`=_rc'), 退回仅 i.year 重试"
+        capture eststo RB_qreg: qreg `DV' `EXPL' `LOCUS' `SUBST' i.year, quantile(0.5)
+    }
+    if !_rc {
+        local rcols "`rcols' RB_qreg"
+        local rlabs `"`rlabs' "Median (qreg .5)""'
+    }
+    else {
+        display "  ⚠️ Panel B: qreg(.5) 仍失败 (样本/退化?), 跳过中位数回归"
+    }
+}
+else {
+    display "  ⚠️ Panel B: qreg 未找到 (Stata 自带, 异常); 跳过中位数回归"
+}
+
+* B3: Huber+Tukey biweight IRLS 有界影响 M-估计 rreg (对离群点迭代降权; 非 MM-估计)
+* 同 qreg: 富 FE 失败则退回 i.year 重试。rreg 先按 Cook's D 剔除强影响点再迭代,
+* T=2 + 缺值模式下可能把全部观测剔光 (rc=2000 "no observations") → 优雅跳过,
+* 全量 T=18 下有功效。
+capture which rreg
+if !_rc {
+    capture eststo RB_rreg: rreg `DV' `EXPL' `LOCUS' `SUBST' `approx_fe'
+    if _rc {
+        display "  ⚠️ Panel B: rreg 富 FE 失败 (rc=`=_rc'), 退回仅 i.year 重试"
+        capture eststo RB_rreg: rreg `DV' `EXPL' `LOCUS' `SUBST' i.year
+    }
+    if !_rc {
+        local rcols "`rcols' RB_rreg"
+        local rlabs `"`rlabs' "Robust (rreg)""'
+    }
+    else {
+        display "  ⚠️ Panel B: rreg 仍失败 (T=2 强影响点剔除致无观测?), 跳过稳健回归 (全量 T=18 有功效)"
+    }
+}
+else {
+    display "  ⚠️ Panel B: rreg 未找到 (Stata 自带, 异常); 跳过稳健回归"
+}
+
+* 输出 Panel B (动态名单)
+if "`rcols'" != "" {
+    esttab `rcols' using "output/tables/tableA8b_robust_estimators.tex", ///
+        keep(`EXPL') se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
+        title("Table A8-B: Outlier-Robust Estimators (Leone et al. 2019 TAR)") ///
+        mtitles(`rlabs') ///
+        note("DV = `DV'. OLS = reghdfe with bank+year FE (main spec). Median = qreg(.5); " ///
+             "Robust = rreg (Huber + Tukey biweight IRLS, bounded-influence M-estimator; NOT a " ///
+             "Yohai 1987 MM-estimator). qreg/rreg approximate FE with year (and bank-type when " ///
+             "sample permits) dummies. Beyond winsorizing (which alters values), these change the " ///
+             "estimator to downweight influential observations " ///
+             "(Leone et al. 2019 TAR, 10.2308/accr-52396; Koenker & Bassett 1978 ECMA, 10.2307/1913643). " ///
+             "SE bases are NOT comparable across columns: OLS uses bank-clustered SE, qreg uses iid " ///
+             "sparsity-based SE, rreg uses IRLS SE; read significance within-column, not across.")
+    estout `rcols' using "output/tables/tableA8b_robust_estimators.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N, fmt(0)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) keep(`EXPL')
+    display "✅ Table A8-B (outlier-robust estimators) written"
+}
+else {
+    display "  ⚠️ Panel B 无任何可用列, 跳过整张 A8-B"
+}
+
+display "✅ Table A8 (FE 饱和阶梯 + 离群稳健估计量) 完成 — A 固定效应饱和 / B 离群稳健估计"

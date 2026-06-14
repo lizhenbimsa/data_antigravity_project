@@ -1,0 +1,365 @@
+* ============================================================================
+* 22_tableA13_selection_robustness.do — 遗漏变量/离群/选择偏误稳健性
+*   (brokerage_network, Table A13)
+* Paper: {{PAPER_ID}}
+*
+* ── 是什么 (一行白话) ───────────────────────────────────────────────────────
+*   这张表回答三个"会不会是别的东西在捣鬼"的质疑: (A) 同业语调→ROA 的溢出
+*   会不会其实只是"同省同年的共同冲击 / 同类型银行同年的监管变化"在背后驱动?
+*   (B) 会不会只是个别极端 bank-year 把均值带歪了? (C) 没被我们观测到的混淆
+*   变量(如管理能力)能不能解释掉这个系数? 三个 Panel 各自给出排除性证据。
+*
+* ── Bundle A (selection_robustness) — 三 Panel 合一 ──────────────────────────
+*   Panel A  FE-SAT   : FE 饱和阶梯 (Gormley & Matsa 2014 RFS)。逐层加
+*                       i.bank_province#i.year / i.bank_type#i.year /
+*                       i.bank_zone#i.year, 再加银行特定线性趋势 c.year#i.bank_id
+*                       (需 T>=3, T=2 退化盘 N-守卫跳过)。spatial-lag 同业溢出
+*                       最大的替代解释 = "同省同年共同冲击" → 省份×年 FE 直接吸收。
+*   Panel B  ROBUST-EST: 离群稳健估计 (Koenker & Bassett 1978 ECMA 分位回归;
+*                       Huber M-估计)。winsor 是"削数据后再 OLS", 与 qreg(.5)/rreg
+*                       "改损失函数本身"统计上不等价 → 证主系数非高杠杆点驱动。
+*                       absorb 高维 FE 与 qreg 不兼容 → 用 i.year(+i.bank_type 哑变量)。
+*   Panel C  OSTER    : Oster (2019) JBES δ 选择性偏误界。以可观测控制
+*                       ($controls + 滞后中心度) 推断不可观测选择, 给出 δ=1 / β=0
+*                       下的 rmax(1.3·R²) 界。IV 仅破逆向因果, Oster 互补约束遗漏选择。
+*
+* ── golden-safe / 退化守卫 ──────────────────────────────────────────────────
+*   - DV={{MAIN_DV}}_w (ROA sentinel): 全程 capture confirm; 财务面板未接入时
+*     各 Panel 优雅 no-op (wire-ahead 桩), 接入并跑 01_data_prep 后自动激活。
+*   - SSC 命令 psacalc: capture which 守卫, 未装则 Panel C 跳过 (视为正常)。
+*   - T=2 退化盘: 银行线性趋势 / qreg 大样本设定有 quietly count + N 守卫。
+*   - 全部 reghdfe/qreg/rreg/psacalc 用 capture, esttab 名单动态化 (不硬点名缺估计)。
+*
+* ── 文献锚点 (DOI 已核验) ───────────────────────────────────────────────────
+*   Gormley & Matsa (2014) RFS  10.1093/rfs/hht047   — FE 饱和/共同误差
+*   Koenker & Bassett (1978) ECMA 10.2307/1913643    — 分位回归
+*   Oster (2019) JBES           10.1080/07350015.2016.1227711 — 选择性偏误界
+* ============================================================================
+
+version 19
+clear all
+set more off
+eststo clear
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* nested mkdir (独立重跑/dry-run 防御 — Stata mkdir 不递归)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* ── 数据加载 (主链经 01_data_prep 产出 _prepared_panel; 独立跑则回退真盘) ──
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+* ── 局部宏定义 (主处理 / 控制 / 聚类) ──────────────────────────────────────
+local TREAT {{MAIN_ENDOG}}
+local DV    {{MAIN_DV}}
+local CL    {{CLUSTER_VAR}}
+if "$controls" == "" global controls {{CONTROLS}}
+
+* DV 解析: 缩尾 _w -> 裸名 -> 缺则整表 no-op (wire-ahead 桩, 财务哨兵未接入)
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display "  WARN 结果变量 `DV'(_w) 待接入财务面板, Table A13 no-op (wire-ahead 桩)"
+        exit 0
+    }
+}
+* 主处理变量解析 (缺则整表 degrade)
+capture confirm variable `TREAT'
+if _rc {
+    display "  WARN 主处理变量 (`TREAT') 缺 (须先跑 01_data_prep 或上游 stage 24/45); Table A13 degrade"
+    exit 0
+}
+* 聚类变量解析 (prov_id 由 01_data_prep encode; 独立跑回退 bank_id)
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+
+* FE 交互维度需为 numeric (reghdfe absorb / i. 因子) — string 列先 encode。
+capture confirm variable _prov_fe
+if _rc {
+    capture confirm string variable bank_province
+    if !_rc {
+        encode bank_province, gen(_prov_fe)
+    }
+    else {
+        capture gen long _prov_fe = bank_province
+    }
+}
+capture confirm variable _type_fe
+if _rc {
+    capture confirm string variable bank_type
+    if !_rc {
+        encode bank_type, gen(_type_fe)
+    }
+    else {
+        capture gen long _type_fe = bank_type
+    }
+}
+capture confirm variable _zone_fe
+if _rc {
+    capture confirm string variable bank_zone
+    if !_rc {
+        encode bank_zone, gen(_zone_fe)
+    }
+    else {
+        capture gen long _zone_fe = bank_zone
+    }
+}
+
+* T 维度计数 (银行特定线性趋势 / 部分设定需 T>=3)
+quietly levelsof year, local(_yrs)
+local Tn : word count `_yrs'
+
+capture which reghdfe
+if _rc {
+    display "  WARN reghdfe 未装 — Table A13 无法估计 (视为环境跳过)"
+    exit 0
+}
+
+* ==========================================================================
+* Panel A — FE 饱和阶梯 (Gormley & Matsa 2014 RFS)
+*   逐层吸收时变共同冲击: bank+year -> +prov#year -> +type#year -> +zone#year
+*   -> +bank 线性趋势。系数若跨列稳定 = 溢出非被遗漏的时变省/类型/区域冲击驱动。
+* ==========================================================================
+local fecols ""
+local felabs ""
+
+* A0: 基线 bank + year 双向 FE
+capture eststo A0_base: reghdfe `DVUSE' `TREAT' $controls, absorb(bank_id year) vce(cluster `CL')
+if !_rc {
+    local fecols "`fecols' A0_base"
+    local felabs `"`felabs' "Bank+Year""'
+}
+
+* A1: + 省份×年 FE (吸收同省同年共同冲击 — spatial-lag 最大替代解释)
+capture confirm variable _prov_fe
+if !_rc {
+    capture eststo A1_provyr: reghdfe `DVUSE' `TREAT' $controls, ///
+        absorb(bank_id year _prov_fe#year) vce(cluster `CL')
+    if !_rc {
+        local fecols "`fecols' A1_provyr"
+        local felabs `"`felabs' "+Prov#Year""'
+    }
+}
+
+* A2: + 银行类型×年 FE (吸收同类型银行同年监管/景气)
+capture confirm variable _type_fe
+if !_rc {
+    capture eststo A2_typeyr: reghdfe `DVUSE' `TREAT' $controls, ///
+        absorb(bank_id year _prov_fe#year _type_fe#year) vce(cluster `CL')
+    if !_rc {
+        local fecols "`fecols' A2_typeyr"
+        local felabs `"`felabs' "+Type#Year""'
+    }
+}
+
+* A3: + 区域×年 FE (吸收区域产业景气共同误差)
+capture confirm variable _zone_fe
+if !_rc {
+    capture eststo A3_zoneyr: reghdfe `DVUSE' `TREAT' $controls, ///
+        absorb(bank_id year _prov_fe#year _type_fe#year _zone_fe#year) vce(cluster `CL')
+    if !_rc {
+        local fecols "`fecols' A3_zoneyr"
+        local felabs `"`felabs' "+Zone#Year""'
+    }
+}
+
+* A4: + 银行特定线性趋势 c.year#i.bank_id (需 T>=3; T=2 不可识别 -> N-守卫跳过)
+if `Tn' >= 3 {
+    capture eststo A4_trend: reghdfe `DVUSE' `TREAT' $controls, ///
+        absorb(bank_id year _prov_fe#year c.year#i.bank_id) vce(cluster `CL')
+    if !_rc {
+        local fecols "`fecols' A4_trend"
+        local felabs `"`felabs' "+Bank trend""'
+    }
+}
+else {
+    display "[SKIP] Panel A A4 — bank linear trend needs T>=3 (current T=`Tn', degenerate; production T=18)."
+}
+
+if "`fecols'" != "" {
+    esttab `fecols' using "$tables_dir/tableA13_brok_fe_saturation.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) keep(`TREAT') ///
+        stats(N r2, fmt(0 3) labels("N" "R-squared")) ///
+        title("Table A13-A: FE Saturation Ladder (common-shock robustness) --- {{PAPER_ID}}") ///
+        mtitles(`felabs') ///
+        addnotes("OLS reghdfe; coefficient on `TREAT' across progressively saturated FE (Gormley & Matsa 2014 RFS, doi:10.1093/rfs/hht047)." ///
+                 "Prov#Year FE absorbs same-province-same-year common shocks (the leading alternative for spatial-lag spillover)." ///
+                 "Type#Year / Zone#Year FE absorb type-time regulatory and zone-time industry-cycle common errors." ///
+                 "Bank linear trend (c.year#i.bank_id) needs T>=3; skipped on T=2 degenerate panel (production T=18).")
+    estout `fecols' using "$tables_dir/tableA13_brok_fe_saturation.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) keep(`TREAT') ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A13-A (FE saturation) written"
+}
+else {
+    display "  WARN Panel A: 所有 FE 阶梯设定退化 (DV/共线?), 跳过"
+}
+
+* ==========================================================================
+* Panel B — 离群稳健估计 (Koenker & Bassett 1978 ECMA; Huber M-估计)
+*   absorb 高维 FE 与 qreg/rreg 不兼容 -> 用 i.year (+i.bank_type 哑变量)。
+*   B1 OLS(同设定基准) vs B2 qreg(.5) 中位数回归 vs B3 rreg Huber M-估计。
+* ==========================================================================
+eststo clear
+local rbcols ""
+local rblabs ""
+
+* 离群稳健回归用同一可见控制集 + i.year (T 小时不加 bank_type 哑以省自由度)
+local rbX `TREAT' $controls i.year
+* 大样本 (N>=200 且 类型多) 才加 i.bank_type 哑变量
+quietly count if !missing(`DVUSE', `TREAT')
+local _Nrb = r(N)
+
+* B1: OLS 基准 (同损失函数对照, 不 absorb 以与 qreg 可比)
+capture eststo B1_ols: regress `DVUSE' `rbX', vce(cluster `CL')
+if !_rc {
+    local rbcols "`rbcols' B1_ols"
+    local rblabs `"`rblabs' "OLS""'
+}
+
+* B2: qreg(.5) 中位数回归 (改损失函数: 绝对偏差; 对尾部离群稳健)
+if `_Nrb' >= 30 {
+    capture eststo B2_qreg: qreg `DVUSE' `rbX', quantile(0.5)
+    if !_rc {
+        local rbcols "`rbcols' B2_qreg"
+        local rblabs `"`rblabs' "qreg(.5)""'
+    }
+    else display "  WARN Panel B: qreg(.5) 失败 (共线/退化), 跳过"
+}
+else {
+    display "[SKIP] Panel B B2 — qreg estimation N=`_Nrb' < 30 (degenerate)."
+}
+
+* B3: rreg Huber/Tukey 迭代加权 M-估计 (高杠杆点降权)
+if `_Nrb' >= 30 {
+    capture eststo B3_rreg: rreg `DVUSE' `rbX'
+    if !_rc {
+        local rbcols "`rbcols' B3_rreg"
+        local rblabs `"`rblabs' "rreg(Huber)""'
+    }
+    else display "  WARN Panel B: rreg 失败 (退化), 跳过"
+}
+
+if "`rbcols'" != "" {
+    esttab `rbcols' using "$tables_dir/tableA13_brok_robust_est.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) keep(`TREAT') ///
+        stats(N r2, fmt(0 3) labels("N" "(pseudo-)R2")) ///
+        title("Table A13-B: Outlier-Robust Estimators (OLS vs qreg vs rreg) --- {{PAPER_ID}}") ///
+        mtitles(`rblabs') ///
+        addnotes("qreg(.5) = median (LAD) regression (Koenker & Bassett 1978 ECMA, doi:10.2307/1913643); rreg = Huber/Tukey biweight IRLS bounded-influence M-estimator (NOT a Yohai 1987 MM-estimator)." ///
+                 "Winsorization (raw/1%/5% in Table 5) reshapes data then runs OLS; qreg/rreg change the loss function itself -> not statistically equivalent." ///
+                 "Year dummies in lieu of absorbed high-dim FE (qreg/rreg incompatible with reghdfe absorb)." ///
+                 "SE BASIS DIFFERS ACROSS COLUMNS: OLS reports cluster(`CL') SE, qreg(.5) reports iid sparsity-based SE, rreg reports IRLS SE. Point estimates ARE comparable across columns; stars/significance are NOT horizontally comparable (different SE bases)." ///
+                 "Stable `TREAT' across columns => main estimate not driven by individual high-leverage bank-years.")
+    estout `rbcols' using "$tables_dir/tableA13_brok_robust_est.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N, fmt(0)) keep(`TREAT') ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A13-B (outlier-robust estimators) written"
+}
+else {
+    display "  WARN Panel B: 所有离群稳健估计退化, 跳过"
+}
+
+* ==========================================================================
+* Panel C — Oster (2019) JBES δ 选择性偏误界
+*   psacalc delta `TREAT', rmax(1.3*R2_controlled) mcontrol(`osterX')
+*   δ>1 (或 [δ=1 下] β 不变号) = 主系数对不可观测选择稳健。
+*
+* ⚠ mcontrol 口径 (审计 BRK-A13-OSTER-MCONTROL, 可辩护规格, 刻意保留):
+*   受控回归 = regress DVUSE TREAT `osterX' i.year; 而 mcontrol(`osterX') **不含**
+*   i.year FE 哑变量项。此处刻意把 year FE 当 "可观测控制" (= psacalc 视角下参与识别
+*   R²-movement 的 nuisance), 即 Oster 界条件于把 year FE 当可观测控制 (而非把 FE 当
+*   恒含不参与识别的 nuisance)。这是 Oster (2019) 的一种可辩护实现路径 (FE 也是观测到的
+*   控制), 与 substance/24·attention/20 把 substantive 控制塞进 mcontrol 的口径不同 →
+*   **不改本表 mcontrol**, 仅脚注披露此条件化口径。
+* ==========================================================================
+eststo clear
+capture which psacalc
+if _rc {
+    display "  WARN Panel C: psacalc 未装 (ssc install psacalc) — Oster 界跳过 (视为正常)"
+}
+else {
+    * Oster 需"无控制"与"有控制"两个 R^2; 用 OLS (psacalc 读 e())。
+    * 受控回归 (含可观测控制 + 滞后中心度作为额外可观测协变量)。
+    local osterX $controls
+    capture confirm variable L_broker
+    if !_rc local osterX `osterX' L_broker
+    capture confirm variable L_btw
+    if !_rc local osterX `osterX' L_btw
+
+    quietly count if !missing(`DVUSE', `TREAT')
+    local _Nos = r(N)
+    if `_Nos' >= 30 {
+        capture regress `DVUSE' `TREAT' `osterX' i.year, vce(cluster `CL')
+        if !_rc {
+            * rmax = 1.3 * 受控 R^2 (Oster 2019 经验法则, 上界裁 1)
+            local _r2 = e(r2)
+            local _rmax = min(1.3*`_r2', 1)
+            * psacalc: δ at β=0 (排除主系数的不可观测选择强度), beta at δ=1。
+            capture psacalc delta `TREAT', rmax(`_rmax') mcontrol(`osterX')
+            if !_rc {
+                local _delta = r(delta)
+                display as result "  OK Panel C: Oster delta(beta=0)=`_delta' (rmax=`_rmax', |delta|>1 => robust)"
+            }
+            else {
+                local _delta .
+            }
+            capture psacalc beta `TREAT', rmax(`_rmax') mcontrol(`osterX')
+            if !_rc {
+                local _betao = r(beta)
+                display as result "  OK Panel C: Oster beta(delta=1)=`_betao' (identified set [beta_controlled, `_betao'])"
+            }
+            else {
+                local _betao .
+            }
+            * Oster 标量 side-channel CSV (parse_esttab_csv 不读 esttab 时的旁路)
+            capture file close _ostf
+            file open _ostf using "$tables_dir/tableA13_brok_oster.csv", write replace
+            file write _ostf "stat,value" _n
+            file write _ostf "rmax,`_rmax'" _n
+            file write _ostf "delta_at_beta0,`_delta'" _n
+            file write _ostf "beta_at_delta1,`_betao'" _n
+            file write _ostf "r2_controlled,`_r2'" _n
+            file write _ostf "N,`_Nos'" _n
+            * 脚注 (BRK-A13-OSTER-MCONTROL): mcontrol 不含 i.year → Oster 界条件于把 year FE 当可观测控制
+            file write _ostf "mcontrol_note,Oster bound conditions on treating year FE as an observed control (i.year excluded from mcontrol; defensible Oster 2019 regime)" _n
+            file close _ostf
+            display "[OK] Table A13-C (Oster bounds) -> tableA13_brok_oster.csv"
+        }
+        else {
+            display "  WARN Panel C: 受控 OLS 失败 (退化), Oster 界跳过"
+        }
+    }
+    else {
+        display "[SKIP] Panel C — Oster needs N>=30 (current N=`_Nos', degenerate; production T=18)."
+    }
+}
+
+display "[OK] Table A13 (selection / outlier / common-shock robustness) — brokerage_network 完成"

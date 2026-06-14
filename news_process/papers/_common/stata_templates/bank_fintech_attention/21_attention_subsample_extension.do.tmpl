@@ -1,0 +1,155 @@
+* ============================================================================
+* 21_attention_subsample_extension.do — Table A9 (bank_fintech_attention / P2)
+* Paper: {{PAPER_ID}}
+*
+* 子样本外部效度扩展 (subsample / external-validity extension)。
+* 仅补 17_attention_heterogeneity / 18_attention_robustness 未覆盖的 2 个新切分:
+*   (1) HUB-SPLIT   网络枢纽 vs 非枢纽 (bank_is_hub == 1 / 0)
+*   (2) SIZE-SPLIT  大行 vs 小行 (bank_effective_size 中位数二分)
+*
+* ⚠ 刻意不重复已有切分:
+*     bank_type 4-split ........ 已在 17_attention_heterogeneity (Panel a)
+*     SOE × 非SOE split ........ 已在 17_attention_heterogeneity (Panel c)
+*     excl-SOE6 / excl-pre2013 . 已在 18_attention_robustness (Panel 7)
+*
+* ── 大白话 ────────────────────────────────────────────────────────────────
+*   是什么: 把样本按"是不是网络枢纽银行""规模大不大"各切两半, 分别重跑主回归,
+*           看注意力效应在两边是否都站得住。
+*   为什么: 审稿人关心结论的外部效度——是不是只在某一类银行 (大行 / 枢纽行)
+*           才成立。这是构成稳健性 (compositional robustness) 的标配。
+*   影响:   只读在盘列 (bank_is_hub / bank_effective_size 已核 174 行 panel),
+*           treatment 侧即可跑; financial DV 缺列时 capture 守卫优雅跳过 (wire-ahead),
+*           golden-safe, 接入后自动激活。
+*
+* ── 文献锚点 ───────────────────────────────────────────────────────────────
+*   构成稳健性 / 外部效度子样本稳定性为标准实证做法, 无单一权威 DOI。
+*   网络枢纽口径背景: Bramoullé, Y., Djebbari, H., & Fortin, B. (2009).
+*   Identification of peer effects through social networks. Journal of
+*   Econometrics, 150(1), 41-55. doi:10.1016/j.jeconom.2008.12.021
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+eststo clear
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+
+* ----------------------------------------------------------------------------
+* 公共守卫: outcome / treatment 在不在盘
+* ----------------------------------------------------------------------------
+local have_dv = 0
+capture confirm variable {{MAIN_DV}}
+if !_rc local have_dv = 1
+local have_treat = 0
+capture confirm variable {{MAIN_TREAT}}
+if !_rc local have_treat = 1
+if `have_dv' == 0 {
+    display as text "  [WIRE-AHEAD] {{MAIN_DV}} 不在盘 (外部财务面板待接入); Table A9 子样本回归优雅跳过, 仅写空表占位"
+}
+if `have_treat' == 0 {
+    display as error "  [WARN] {{MAIN_TREAT}} 不在盘 — 上游未产出 treatment, Table A9 跳过"
+}
+
+* 每个子样本最低观测数门控 (小单元不跑, 对齐 17 的 R7-m01 small-cell 守卫)
+local min_n = 10
+
+* ============================================================================
+* (1) HUB-SPLIT — 网络枢纽 vs 非枢纽
+* 白话: bank_is_hub==1 的是网络枢纽银行 (媒体/同业关注集中度高), 看注意力效应
+*       在枢纽与非枢纽两类银行里是否一致。
+* ============================================================================
+capture confirm variable bank_is_hub
+if !_rc & `have_dv' & `have_treat' {
+    foreach h in 1 0 {
+        quietly count if bank_is_hub == `h' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= `min_n' {
+            capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_is_hub == `h', ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if !_rc eststo hub_`h'
+        }
+        else {
+            display as text "  [SKIP] HUB-SPLIT bank_is_hub==`h': N=" r(N) " < `min_n' (small-cell; production 全样本激活)"
+        }
+    }
+}
+else if _rc {
+    display as text "  [SKIP] HUB-SPLIT: bank_is_hub 不在盘"
+}
+
+* ============================================================================
+* (2) SIZE-SPLIT — 大行 vs 小行 (bank_effective_size 中位数二分)
+* 白话: bank_effective_size 是银行有效规模, 按中位数切成大行/小行两组, 看注意力
+*       效应是不是只在某个规模档成立。
+* 实现: summarize 取 p50 → gen 二元 _size_big; 非缺失值上做 median split。
+* ============================================================================
+capture confirm variable bank_effective_size
+if !_rc & `have_dv' & `have_treat' {
+    quietly count if !missing(bank_effective_size)
+    if r(N) >= (2 * `min_n') {
+        quietly summarize bank_effective_size, detail
+        local _med = r(p50)
+        gen byte _size_big = .
+        replace _size_big = 1 if bank_effective_size >  `_med' & !missing(bank_effective_size)
+        replace _size_big = 0 if bank_effective_size <= `_med' & !missing(bank_effective_size)
+
+        foreach s in 1 0 {
+            quietly count if _size_big == `s' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+            if r(N) >= `min_n' {
+                capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if _size_big == `s', ///
+                    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+                if !_rc eststo size_`s'
+            }
+            else {
+                display as text "  [SKIP] SIZE-SPLIT _size_big==`s': N=" r(N) " < `min_n' (small-cell; production 全样本激活)"
+            }
+        }
+    }
+    else {
+        display as text "  [SKIP] SIZE-SPLIT: bank_effective_size 非缺失 N=" r(N) " 不足二分 (< " (2*`min_n') "); production 全样本激活"
+    }
+}
+else if _rc {
+    display as text "  [SKIP] SIZE-SPLIT: bank_effective_size 不在盘"
+}
+
+* ============================================================================
+* 输出: esttab 动态名单 (缺名不点名) + CSV side-channel
+* ============================================================================
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if strmatch("`m'", "hub_*") | strmatch("`m'", "size_*") {
+        local models `models' `m'
+    }
+}
+
+if "`models'" == "" {
+    display as text "  [WIRE-AHEAD] Table A9 无任何已存储估计 (financial DV 待接入 / 全子样本守卫跳过); 表跳过, 非失败"
+}
+else {
+    esttab `models' using "$tables_dir/tableA9_subsample_extension.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2, fmt(0 3) labels("N" "R\textsuperscript{2}")) ///
+        mgroups("Hub vs Non-hub" "Large vs Small", pattern(1 0 1 0)) ///
+        title("Table A9 — Subsample Extension: Hub \& Size Splits (P2 attention)") ///
+        addnotes("Hub split: bank\_is\_hub network-centrality indicator (1 = hub)." ///
+                 "Size split: bank\_effective\_size median split (1 = large)." ///
+                 "Excludes splits already in Tables 4 (bank type, SOE) and 5 (excl-SOE6, excl-pre2013)." ///
+                 "Cells with N < 10 skipped (R7-m01 small-cell warning).")
+
+    * CSV side-channel — parse_esttab_csv 消费 (tables.py read_paper_esttab)
+    estout `models' using "$tables_dir/tableA9_subsample_extension.csv", replace ///
+        delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) ///
+        stats(N r2, fmt(0 3)) starlevels(* 0.10 ** 0.05 *** 0.01)
+
+    display "[OK] Table A9 (subsample: hub / size) → $tables_dir/tableA9_subsample_extension.tex (+ .csv side-channel)"
+}

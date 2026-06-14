@@ -1,0 +1,317 @@
+* ============================================================================
+* 26_tableA13_fe_robust_oster.do — Table A13 多 Panel 稳健性 (benefit_society)
+* Paper: {{PAPER_ID}}
+*
+* 三 Panel 共享一张表, 全部围绕主关系 {{ATTITUDE_VAR}} (benefit_mean_full) → {{MAIN_DV}}_w (ROA_w):
+*   Panel A — 固定效应饱和阶梯 (FE saturation):
+*       M0 bank+year → +province×year → +type×year → +zone×year → +bank linear trend
+*       白话: 主回归只控制了"银行不变特征 + 年份共同冲击"。这里逐级加上"省份/类型/
+*       区域各自随年份变化的看不见的冲击"以及"每家银行各自的线性时间趋势", 看
+*       态度→ROA 的系数会不会被这些更细的时变冲击吃掉。能扛住 = 结论更可信。
+*       文献锚: Gormley & Matsa (2014), RFS, "Common errors: How to (and not to)
+*               control for unobserved heterogeneity", DOI 10.1093/rfs/hht047.
+*   Panel B — 稳健估计量 (robust estimators, 超越缩尾):
+*       OLS(LSDV) vs qreg(.5 中位数回归) vs rreg(Huber/Tukey MM 稳健回归)
+*       白话: 缩尾只是"削掉极端值的尖", 仍可能被个别离群"银行-年"带跑。中位数回归
+*       与稳健回归从估计量层面降权离群点, 看主系数符号/量级是否一致。
+*       文献锚: Koenker & Bassett (1978), Econometrica, "Regression Quantiles",
+*               DOI 10.2307/1913643.
+*   Panel C — Oster (2019) δ 选择性偏误界 (psacalc):
+*       psacalc delta {{ATTITUDE_VAR}}, rmax(1.3·R²_controlled) mcontrol(展开的 FE 哑变量, 非 $controls)
+*       白话: 量化"一个看不见的遗漏变量得比已控制变量强多少倍, 才能把
+*       态度→ROA 的系数推到 0"。δ 越大越稳 (δ≥1 通常视为对遗漏变量稳健)。
+*       文献锚: Oster (2019), JBES, "Unobservable Selection and Coefficient
+*               Stability", DOI 10.1080/07350015.2016.1227711.
+*
+* ⚠ golden-safe: 仅消费在盘 treatment ({{ATTITUDE_VAR}}) + 在盘 FE/分组列
+*   (bank_province/bank_type/bank_zone) + 在盘控制 ($controls)。outcome
+*   {{MAIN_DV}}_w (=ROA_w) 为外部财务 sentinel — 经 capture confirm 守卫, 缺列时
+*   全表优雅跳过 (wire-ahead, 不报错中断)。
+* ⚠ T=2 退化守卫: 现盘 T=2 (2017–2018, ~176 行)。高维交互 FE 在试跑样本会被
+*   reghdfe 自动 drop 共线维度; 银行线性趋势 (c.year#i.bank_id) 需 T≥3, 用
+*   quietly count + N 守卫优雅跳过。production T=18 才有完整功效。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+eststo clear
+
+* ----------------------------------------------------------------------------
+* 0) 前置: 把字符串分组列 encode 成数值 ID (i. 因子变量 / reghdfe 交互 FE 需数值)
+*    bank_province / bank_zone / bank_type 在盘为 str 列 → encode 出 *_id。
+* ----------------------------------------------------------------------------
+capture confirm string variable bank_province
+if !_rc {
+    capture drop prov_id
+    encode bank_province, gen(prov_id)
+}
+else {
+    capture confirm variable bank_province
+    if !_rc gen prov_id = bank_province
+}
+capture confirm string variable bank_zone
+if !_rc {
+    capture drop zone_id
+    encode bank_zone, gen(zone_id)
+}
+else {
+    capture confirm variable bank_zone
+    if !_rc gen zone_id = bank_zone
+}
+capture confirm string variable bank_type
+if !_rc {
+    capture drop type_id
+    encode bank_type, gen(type_id)
+}
+else {
+    capture confirm variable bank_type
+    if !_rc gen type_id = bank_type
+}
+
+* ----------------------------------------------------------------------------
+* outcome sentinel 守卫: {{MAIN_DV}}_w (=ROA_w) 缺列 → 全表 wire-ahead 跳过
+* ----------------------------------------------------------------------------
+capture confirm variable {{MAIN_DV}}_w
+if _rc {
+    display "  [WARN] outcome {{MAIN_DV}}_w 不在面板 (外部财务面板未接入); Table A13 全表跳过 (wire-ahead)"
+    display "[OK] Table A13 (FE/robust/Oster) → 跳过 (sentinel DV 缺失, 非失败)"
+    exit 0
+}
+
+* ============================================================================
+* Panel A — 固定效应饱和阶梯 (FE saturation ladder)
+* ============================================================================
+* M0: 更严格 bank FE over-baseline 检验 (NOT 主回归基线)
+* ⚠ 订正 (BS-A13-001): 本篇主表基线是 bank_type FE (见 11_table2 / 13_table4:7
+*   'NOT absorb(bank_id year)'), 非 bank+year 双向 FE。这里的 absorb(bank_id year)
+*   是刻意比主表更严格的 over-baseline 稳健性检验 — 用最严的 bank FE 吸收所有
+*   银行不变特征 + year FE 吸收共同冲击, 看主系数能否在比主规格更狠的设定下扛住。
+*   刻意偏离 F-R5-H2 (主表用 bank_type FE) 的理由: bank_type FE 是为保留 T=2 试跑盘
+*   的 within-type 变异 (bank FE 在 T=2 + singleton drop 后有效银行数骤降, 见表注);
+*   本稳健性表 production T=18 下用 bank FE 才有功效, 故在此作 over-baseline 而非主基线。
+* (capture 守卫: 财务列接入后若 M0 退化共线也不中断本表, Panel B/C 仍可跑)
+capture noisily reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+if !_rc {
+    eststo feA_m0
+    * BS-A13-003: T=2 + bank FE 下, 仅单年出现的银行成 singleton 被 reghdfe 丢弃 →
+    *   有效识别银行数远低于面板银行总数。报告之以披露 over-baseline 检验的真实功效。
+    *   (e(N_clust) 为聚类数 = 进入估计的 bank_id 数; e(N) 为有效观测数。)
+    capture local _m0_nclust = e(N_clust)
+    capture local _m0_nobs   = e(N)
+    quietly levelsof {{CLUSTER_VAR}}, local(_all_clust)
+    local _n_all_clust : word count `_all_clust'
+    display "  [INFO] M0 over-baseline: 有效识别银行(聚类)数 = `_m0_nclust' (面板银行总数 = `_n_all_clust'); T=2 + bank FE 下单年 singleton 被丢弃, 有效样本骤降。"
+}
+else {
+    display "  [WARN] Panel A M0 基线回归失败 (degenerate?); 跳过 (后续 Panel 不受影响)"
+    local _m0_nclust .
+}
+
+* M1: + province × year FE (省份层时变冲击)
+capture confirm variable prov_id
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+        absorb(bank_id year prov_id#year) vce(cluster {{CLUSTER_VAR}})
+    eststo feA_provyr
+}
+else {
+    display "  [WARN] prov_id 不可用; province×year FE 跳过"
+}
+
+* M2: + type × year FE (银行类型层时变冲击)
+capture confirm variable type_id
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+        absorb(bank_id year type_id#year) vce(cluster {{CLUSTER_VAR}})
+    eststo feA_typeyr
+}
+else {
+    display "  [WARN] type_id 不可用; type×year FE 跳过"
+}
+
+* M3: + zone × year FE (经济圈/区域层时变冲击)
+capture confirm variable zone_id
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+        absorb(bank_id year zone_id#year) vce(cluster {{CLUSTER_VAR}})
+    eststo feA_zoneyr
+}
+else {
+    display "  [WARN] zone_id 不可用; zone×year FE 跳过"
+}
+
+* M4: + 银行特定线性趋势 (bank-specific linear trend) — 需 T≥3
+* 白话: 让每家银行有自己的一条时间斜率, 吸收"某行业绩本就在逐年走高/走低"的趋势。
+* 须 T≥3 才能在 within-bank 估出斜率; T=2 时与 bank FE 共线 → 守卫跳过。
+quietly levelsof year, local(_years)
+local _nyear : word count `_years'
+if `_nyear' >= 3 {
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
+        absorb(bank_id year c.year#i.bank_id) vce(cluster {{CLUSTER_VAR}})
+    eststo feA_trend
+}
+else {
+    display "  [INFO] T=`_nyear' < 3; 银行线性趋势 (c.year#i.bank_id) 跳过 (production T=18 才激活)"
+}
+
+* ============================================================================
+* Panel B — 稳健估计量 (robust estimators)
+* ============================================================================
+* qreg / rreg 无法 absorb 高维 FE → 用 LSDV (i.year + i.type_id 哑变量) 作设定。
+* 现盘 T 小, 主用 i.year (+ i.type_id 若可用); 对照同设定的 OLS。
+local _lsdv_fe i.year
+capture confirm variable type_id
+if !_rc local _lsdv_fe `_lsdv_fe' i.type_id
+
+* B0: OLS (LSDV) 同设定基准 (capture 守卫: 与 Panel A M0 对称, degenerate 时不中断)
+capture noisily regress {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls `_lsdv_fe', vce(cluster {{CLUSTER_VAR}})
+if !_rc eststo feB_ols
+else display "  [WARN] Panel B B0 (OLS LSDV) 失败; 跳过"
+
+* B1: 中位数 (LAD) 分位回归 .5
+* 白话: 拟合"中位数"而非"均值", 天然不被极端 ROA 离群点拉动。
+* ⚠ BS-A13-004: qreg 默认 iid sparsity-based SE (非聚类), 与 B0 OLS 的
+*   bank-cluster SE 不可比 → 三列 SE 基准不同, 见表注显式披露。
+capture noisily qreg {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls `_lsdv_fe', quantile(0.5)
+if !_rc eststo feB_qreg
+else display "  [WARN] qreg(.5) 未收敛/失败 (小样本退化); Panel B 中位数回归跳过"
+
+* B2: Huber + Tukey biweight IRLS 稳健回归 (rreg)
+* ⚠ rreg = Huber 起始 + Tukey biweight 迭代重加权最小二乘 (IRLS) 的有界影响
+*   M-估计 — 非 Yohai (1987) MM-估计 (订正旧 'MM' 误标)。
+* 白话: 迭代加权, 自动给离群银行-年更低权重, 在保留主体样本的同时降权异常点。
+* ⚠ BS-A13-004: rreg 报 IRLS SE (非聚类), 与 B0/qreg 的 SE 基准均不同, 见表注。
+capture noisily rreg {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls `_lsdv_fe'
+if !_rc eststo feB_rreg
+else display "  [WARN] rreg 失败 (小样本/完全分离); Panel B 稳健回归跳过"
+
+* ============================================================================
+* Panel C — Oster (2019) δ 选择性偏误界 (psacalc, SSC 守卫)
+* ============================================================================
+* psacalc 是 SSC 包 (ssc install psacalc) → capture which 守卫, 未装则跳过该 Panel。
+* 前提: ≥1 控制 ($controls = ln_news_coverage media_breadth n_articles, 3 项) + DV。
+* rmax = 1.3 × 受控 R² (Oster 2019 建议的保守 R²_max 上界)。
+* ⚠ 核心识别口径订正 (P1 family-wide Oster mcontrol fix): psacalc 的 mcontrol =
+*   "始终包含、不参与识别 δ 的 nuisance"。要让 δ 由可观测 substantive 控制
+*   ($controls) 相对 FE 基线的 R²-movement 驱动, mcontrol 必须**只放 FE 哑变量项
+*   (year/type 哑变量), 不放 substantive 控制。旧 mcontrol($controls) 把 substantive
+*   控制塞进 nuisance → δ 几乎不被任何可观测控制驱动 (误, 实测 δ=0.38)。改为
+*   mcontrol(FE 哑变量) 后 δ 界定为"不可观测因素相对 $controls 的 R²-movement"
+*   (实测 δ=17.0; 显著区别于旧值, 证修复生效)。
+* ⚠ psacalc 的 mcontrol() **不接受 i. factor 语法** (会报 rc=5001 "Unrelated control
+*   not in regression"); 必须先 tab ... gen() 物化成具名哑变量, 受控回归与
+*   mcontrol() 都用同一批具名哑变量 (regress 自动 omit 共线 base, psacalc 接受完整集)。
+capture which psacalc
+if _rc {
+    display "  [WARN] psacalc 未安装 (ssc install psacalc); Panel C (Oster δ) 跳过"
+    scalar oster_delta = .
+}
+else {
+    * 物化 year / type 具名哑变量 (psacalc mcontrol 需具名变量, 不接受 i. factor)。
+    * 不手动 drop base — regress 自动 omit 共线哑变量 (含 base), psacalc 接受完整
+    *   哑变量集作 mcontrol (omit 的不影响 δ; 实测 rc=0, δ 与受控回归一致)。
+    capture drop _oy_*
+    capture drop _ot_*
+    quietly tab year, gen(_oy_)
+    local _fe_dums _oy_*
+    capture confirm variable type_id
+    if !_rc {
+        quietly tab type_id, gen(_ot_)
+        local _fe_dums `_fe_dums' _ot_*
+    }
+    * unab 展开通配为具名变量清单 (psacalc mcontrol 需逐名变量, 不接受 _oy_* 通配)。
+    unab _fe_dums : `_fe_dums'
+    * 受控回归 (controls + 具名 FE 哑变量); psacalc 读 e()。
+    capture noisily regress {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls `_fe_dums'
+    if _rc {
+        display "  [WARN] Panel C 受控回归失败; Oster δ 跳过"
+        scalar oster_delta = .
+    }
+    else {
+        scalar _r2c = e(r2)
+        local _rmax = min(1, 1.3 * _r2c)
+        * mcontrol = 仅 FE 具名哑变量 (`_fe_dums'), 不含 $controls → δ 由可观测
+        *   substantive 控制相对 FE 基线移动界定。
+        capture noisily psacalc delta {{ATTITUDE_VAR}}, rmax(`_rmax') mcontrol(`_fe_dums')
+        if !_rc {
+            * r(delta) 须在任何 estimates restore 之前先捕获 (restore 清空 r())。
+            scalar oster_delta = r(delta)
+            display "  [OK] Oster δ = " oster_delta " (rmax = `_rmax' = 1.3 × R²_controlled = " _r2c ")"
+        }
+        else {
+            display "  [WARN] psacalc delta 计算失败 (小样本/共线); Oster δ 缺失"
+            scalar oster_delta = .
+        }
+    }
+}
+
+* ============================================================================
+* 导出 — esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表) + CSV side-channel
+* ============================================================================
+qui estimates dir
+local stored `r(names)'
+local cand_models feA_m0 feA_provyr feA_typeyr feA_zoneyr feA_trend feB_ols feB_qreg feB_rreg
+local cand_titles `""bank+year" "+prov#yr" "+type#yr" "+zone#yr" "+bank trend" "OLS(LSDV)" "qreg(.5)" "rreg""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+
+if "`models'" == "" {
+    display as error "  [WARN] Table A13 无任何已存储估计 (全被守卫跳过), 表跳过"
+}
+else {
+    local _osternote "Oster (2019) delta not computed (psacalc unavailable or degenerate)."
+    capture scalar _od = oster_delta
+    if !_rc & !missing(oster_delta) {
+        * BS-A13-002 fix: 加 = 使 RHS 求值 (无 = 时 local 存字面代码串 "...string(...)..."
+        *   而非真实 δ 数值, 脚注会打印 'string(oster_delta,...)' 字面)。
+        local _osternote = "Oster (2019) delta = " + string(oster_delta, "%5.2f") + " (rmax = 1.3 x controlled R-squared); delta >= 1 indicates robustness to unobserved selection."
+    }
+    * BS-A13-003: M0 over-baseline 有效识别银行(聚类)数表注 (T=2 + bank FE singleton drop)。
+    *   _m0_nclust / _n_all_clust 为 Panel A 内设的 local (do-file 单作用域内持续可见);
+    *   非空且非 missing 时才追加有效银行数披露。
+    local _m0note "M0 uses stricter bank FE as an OVER-BASELINE robustness check (the main tables use bank_type FE, NOT bank+year); see header for the deliberate deviation rationale."
+    if "`_m0_nclust'" != "" & "`_m0_nclust'" != "." {
+        local _m0note = "`_m0note' Under T=2 + bank FE, single-year banks drop as singletons: effective identifying banks = `_m0_nclust' (vs `_n_all_clust' panel banks)."
+    }
+    esttab `models' ///
+        using "$tables_dir/tableA13_fe_robust_oster.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        keep({{ATTITUDE_VAR}}) ///
+        stats(N r2, fmt(0 3) labels("N" "R-squared")) ///
+        title("Table A13: FE over-baseline + Robust Estimators + Oster delta --- benefit_society") ///
+        mtitles(`mtitles') ///
+        addnotes("Panel A (cols bank+year .. +bank trend): FE saturation ladder over a stricter bank-FE over-baseline (Gormley & Matsa 2014 RFS); SE clustered at {{CLUSTER_VAR}}." ///
+                 "`_m0note'" ///
+                 "Panel B (OLS/qreg/rreg): LSDV i.year(+i.type) design; qreg(.5) = median regression (Koenker-Bassett 1978); rreg = Huber + Tukey-biweight IRLS bounded-influence M-estimator (NOT Yohai MM)." ///
+                 "Panel B SE bases DIFFER across columns and are not directly comparable: OLS = bank-clustered; qreg(.5) = iid sparsity-based; rreg = IRLS." ///
+                 "Panel C: `_osternote' Oster delta is defined by the R-squared movement of observable controls (\$controls) relative to the FE baseline (mcontrol = FE dummies only, NOT substantive controls)." ///
+                 "Bank linear trend (c.year#i.bank_id) requires T>=3; skipped under T=2 sample.")
+
+    * CSV side-channel (parse_esttab_csv 格式; tables.py 可经 read_paper_esttab 消费)
+    estout `models' using "$tables_dir/tableA13_fe_robust_oster.csv", replace delimiter(",") ///
+        keep({{ATTITUDE_VAR}}) ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+    display "[OK] Table A13 → $tables_dir/tableA13_fe_robust_oster.tex (+ .csv side-channel)"
+}

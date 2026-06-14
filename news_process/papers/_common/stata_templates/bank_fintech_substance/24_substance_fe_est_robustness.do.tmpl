@@ -1,0 +1,291 @@
+* ============================================================================
+* 24_substance_fe_est_robustness.do — 进阶稳健性 (P3 bank_fintech_substance)
+*   Panel A: 替代固定效应饱和阶梯 (alternative FE saturation ladder)
+*   Panel B: 离群稳健估计 (median / robust regression vs OLS)
+*   Panel C: Oster (2019) δ 选择性偏误界 (coefficient-stability bound)
+* Paper: {{PAPER_ID}}
+* ----------------------------------------------------------------------------
+* 是什么 (大白话):
+*   这张表用三种互补的方式回答同一个 referee 质疑 —— "sub_frac→成本收入比的关系
+*   会不会是别的东西冒充的?":
+*   A) 逐步加更严的固定效应 (省份×年 / 类型×年 / 区域×年 / 银行自己的线性趋势),
+*      把"某个省/某类银行/某年代特有的时变冲击"全吸收掉, 看主系数是否还在;
+*   B) 不用普通最小二乘, 改用对离群值不敏感的中位数回归 / Huber-Tukey 稳健回归,
+*      看结论是不是被个别极端银行年拖出来的;
+*   C) 用 Oster δ 量化"看不见的遗漏变量得比已控制变量强多少倍才能把结论翻盘"。
+* ----------------------------------------------------------------------------
+* 文献锚点 (literature anchors, DOI 已核验):
+*   - FE 饱和阶梯: Gormley & Matsa (2014), RFS 27(2):617-661. DOI 10.1093/rfs/hht047
+*   - 离群稳健 / 分位回归: Koenker & Bassett (1978), Econometrica 46(1):33-50.
+*       DOI 10.2307/1913643; 配合 Leone, Minutti-Meza & Wasley (2019) TAR 94(6):337-364.
+*       DOI 10.2308/accr-52396
+*       (winsorization 删尾 vs 稳健估计量加权, 两者机制不同, 互补而非替代)
+*   - Oster δ 系数稳定性界: Oster (2019), JBES 37(2):187-204.
+*       DOI 10.1080/07350015.2016.1227711
+* ----------------------------------------------------------------------------
+* golden-safe 铁律: 主 outcome cost_income_ratio_change_3yr 为外部财务 sentinel
+*   (config/银行面板2007-2025年.xlsx 待接入); 全部回归 capture confirm 守卫, 缺 DV
+*   则该 panel 优雅跳过 (wire-ahead), 绝不中断。FE grouping 列 (bank_province/
+*   bank_type/bank_zone) 在盘但为 str → egen group() 转 numeric 再做 i.X#i.year。
+* T=2 退化守卫: 当前盘 years 2017-2018 (T=2); 银行特定线性趋势 c.year#i.bank_id
+*   需 T>=3 → quietly count distinct year + 守卫优雅跳过 (production T=18 才激活)。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+eststo clear
+
+* ----------------------------------------------------------------------------
+* 前置: DV sentinel 门控 (整文件三 Panel 全部依赖 DV; 缺则优雅 no-op)
+* ----------------------------------------------------------------------------
+capture confirm variable {{MAIN_DV}}
+local _have_dv = (_rc == 0)
+if !`_have_dv' {
+    display "  [WARN] {{MAIN_DV}} 不在面板 (外部财务 sentinel 待接入); 24_* 三 Panel 全部 wire-ahead 跳过"
+}
+
+* numeric group 版本 (str 列不能直接进 i.X#i.year 因子运算; reghdfe absorb 亦更稳)
+capture confirm variable bank_province
+if !_rc {
+    capture confirm string variable bank_province
+    if !_rc egen long _prov_g = group(bank_province)
+    else    gen long _prov_g = bank_province
+}
+capture confirm variable bank_type
+if !_rc {
+    capture confirm string variable bank_type
+    if !_rc egen long _type_g = group(bank_type)
+    else    gen long _type_g = bank_type
+}
+capture confirm variable bank_zone
+if !_rc {
+    capture confirm string variable bank_zone
+    if !_rc egen long _zone_g = group(bank_zone)
+    else    gen long _zone_g = bank_zone
+}
+
+* T 维度计数 (用于线性趋势守卫)
+quietly levelsof year, local(_yrs)
+local _T : word count `_yrs'
+
+* ============================================================================
+* Panel A — 替代固定效应饱和阶梯 (Gormley-Matsa 2014)
+*   M0  : bank FE + year FE                       (= 主规格基线)
+*   M1  : + province × year FE   (吸收省级时变冲击, 如地方 fintech 政策波动)
+*   M2  : + bank_type × year FE  (吸收类型级时变冲击, 如区域监管)
+*   M3  : + zone × year FE       (吸收区域级时变冲击)
+*   M4  : + bank 线性趋势 c.year#i.bank_id  (需 T>=3; T=2 退化跳过)
+* ============================================================================
+if `_have_dv' {
+    * M0 基线 (双向 FE)
+    capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    if !_rc eststo feA_m0_base
+
+    * M1 + province#year
+    capture confirm variable _prov_g
+    if !_rc {
+        capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+            absorb(bank_id year _prov_g#year) vce(cluster {{CLUSTER_VAR}})
+        if !_rc eststo feA_m1_provyr
+    }
+
+    * M2 + bank_type#year
+    capture confirm variable _type_g
+    if !_rc {
+        capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+            absorb(bank_id year _type_g#year) vce(cluster {{CLUSTER_VAR}})
+        if !_rc eststo feA_m2_typeyr
+    }
+
+    * M3 + zone#year
+    capture confirm variable _zone_g
+    if !_rc {
+        capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+            absorb(bank_id year _zone_g#year) vce(cluster {{CLUSTER_VAR}})
+        if !_rc eststo feA_m3_zoneyr
+    }
+
+    * M4 + bank-specific linear trend (需 T>=3; 白话: 每家银行允许有自己
+    *     的增长斜率, 把"这家本来就在往好走"的趋势剔掉。T=2 时趋势与个体 FE
+    *     完全共线无法识别 → 守卫跳过, production T=18 才激活)
+    if `_T' >= 3 {
+        capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+            absorb(bank_id year c.year#i.bank_id) vce(cluster {{CLUSTER_VAR}})
+        if !_rc eststo feA_m4_btrend
+    }
+    else {
+        display "  [SKIP] Panel A M4 银行线性趋势: T=`_T' < 3 (盘面 2017-2018 退化); production T=18 激活"
+    }
+}
+
+* ============================================================================
+* Panel B — 离群稳健估计 (Koenker-Bassett 1978; Leone et al. 2019)
+*   qreg (.5) 中位数回归 + rreg (Huber 起始 + Tukey biweight IRLS 有界影响 M-估计;
+*   非 Yohai 1987 MM-估计) vs OLS。
+*   T 小且 qreg/rreg 不能 absorb 高维 FE → 用 i.year (+ i._type_g 哑变量) 规格
+*   (菜单建议的 T 小择简路径); 与 Panel A 高维吸收互补。
+*   ⚠ 三列 SE 基准不可横比: OLS=bank-cluster; qreg=默认 iid sparsity; rreg=IRLS
+*     解析 SE → 星号仅列内有效, addnotes 显式披露 (SUBST-24-ECON-02)。
+* ============================================================================
+if `_have_dv' {
+    * OLS 对照基准 (同 i.year + i._type_g 规格, 与 qreg/rreg 可比)
+    local _bspec "{{MAIN_DV}} {{MAIN_TREAT}} $controls i.year"
+    capture confirm variable _type_g
+    if !_rc local _bspec "`_bspec' i._type_g"
+
+    capture noisily regress `_bspec', vce(cluster {{CLUSTER_VAR}})
+    if !_rc eststo feB_ols
+
+    * 中位数回归 (median / LAD)
+    capture noisily qreg `_bspec', quantile(0.5)
+    if !_rc eststo feB_qreg50
+    else display "  [SKIP] Panel B qreg(.5): 估计失败 (可能单元过小 / 共线)"
+
+    * 稳健回归 (rreg: Huber 起始 + Tukey biweight 迭代; 注: rreg 不支持
+    *   factor-variable i. 算符, 需先展开成哑变量。T 小直接放 year 数值哑变量集)
+    *   ⚠ dummy trap 防御 (SUBST-24-ROB-03): tab year, gen() 产出**全** T 个哑变量,
+    *     与 rreg 隐含常数项完全共线 → 须显式去一个基准档 (omit base year)。
+    *     这里跳过第一个哑变量 _yd_1 作基准 (等价 i.year 的默认基准档); rreg 保留常数。
+    capture drop _yd_*
+    quietly tab year, gen(_yd_)
+    local _rspec "{{MAIN_DV}} {{MAIN_TREAT}} $controls"
+    local _yd_first 1
+    foreach yd of varlist _yd_* {
+        if `_yd_first' {
+            * 第一个哑变量 = 基准年度档, 不入回归 (防与常数项 dummy trap)
+            local _yd_first 0
+        }
+        else {
+            local _rspec "`_rspec' `yd'"
+        }
+    }
+    capture noisily rreg `_rspec'
+    if !_rc eststo feB_rreg
+    else display "  [SKIP] Panel B rreg: 估计失败 (可能单元过小 / 共线 / 全缺 DV)"
+}
+
+* ============================================================================
+* Panel C — Oster (2019) δ 选择性偏误界
+*   psacalc delta {{MAIN_TREAT}}, rmax(1.3·R²_controlled) mcontrol(year-FE 哑变量)
+*   白话: 已观测控制变量解释了一部分; Oster 估算"看不见的遗漏因素得比这些
+*   已控制的还强多少倍 (δ), 才能把 sub_frac 系数压到 0"。δ>1 (常用阈值) 表示
+*   遗漏变量得比所有观测控制更强才能翻盘 → 结论对选择性偏误稳健。
+*   ⚠ 识别口径 (2026-06-14 修正): mcontrol 只放 year-FE 哑变量 (= 受控回归里被当
+*     "始终包含、不进 δ" 的 nuisance), $controls 留在回归而不进 mcontrol → δ 由
+*     substantive 控制相对 year-FE 基线的 R²-movement 界定。把 $controls 塞进
+*     mcontrol 会使其退出 R² 移动、δ 失去"控制变量解释力外推"的语义。psacalc 的
+*     mcontrol() 按变量名匹配, 不接受 factor 记号 i.year → 必须用展开的 _yc_*
+*     显式哑变量 (去基准档)。
+*   依赖: (i) psacalc 已装 (capture which); (ii) DV + 至少 1 个控制变量存在
+*   (rmax 锚定受控 R²); 任一不满足优雅跳过。
+*   ⚠ psacalc **只在普通 regress/areg 之后可用** (不支持 reghdfe e() 的简化形式;
+*     reghdfe 后调 psacalc 报 "only works after linear regression")。故受控模型
+*     用 regress + i.year FE 哑变量 (T=2 不放 i.bank_id 防完全吸收掉变异; production
+*     T=18 可改 areg ..., absorb(bank_id) 同样兼容 psacalc), 既给 rmax 的 R² 也作
+*     psacalc 读取的承载回归。
+* ============================================================================
+capture which psacalc
+local _have_psacalc = (_rc == 0)
+* $controls 是否非空 (Oster 需可观测控制以计算 R² movement)
+local _nctrl : word count $controls
+if `_have_dv' & `_have_psacalc' & `_nctrl' >= 1 {
+    * year-FE 须以**显式哑变量**进回归并传 mcontrol: psacalc 的 mcontrol() 按
+    *   变量名匹配 e(b) 里的项, 不接受 factor 记号 i.year (会报 "Unrelated control
+    *   not in regression")。故先 tab year 展开哑变量, 去基准档 _yc_1 防共线, 把
+    *   _yc_2.. 既放进受控 regress 也作 mcontrol 的 year-FE nuisance 集。
+    capture drop _yc_*
+    quietly tab year, gen(_yc_)
+    local _yfe ""
+    local _yc_first 1
+    foreach yc of varlist _yc_* {
+        if `_yc_first' {
+            local _yc_first 0
+        }
+        else {
+            local _yfe "`_yfe' `yc'"
+        }
+    }
+    * 受控回归 (普通 regress, psacalc 可承接): year-FE 显式哑变量 + $controls。
+    capture noisily regress {{MAIN_DV}} {{MAIN_TREAT}} $controls `_yfe', vce(cluster {{CLUSTER_VAR}})
+    if !_rc {
+        local _r2c = e(r2)
+        local _rmax = min(1, 1.3 * `_r2c')
+        * psacalc 读取上一条 regress 的 e()。mcontrol(<集合>) = "始终包含、不参与
+        *   识别 δ 的 nuisance"; 必须**只放受控回归里的 FE 哑变量项 (year-FE 哑变量
+        *   _yc_*)**, 绝不放 substantive 财务控制 ($controls)。这样 δ 就由可观测
+        *   substantive 控制相对 year-FE 基线的 R²-movement 驱动 (Oster 2019 的
+        *   可观测↔不可观测选择对称假设的正确口径); 把 $controls 塞进 mcontrol 会令
+        *   其退出 R² 移动、δ 仅由 treatment 自身解释力界定, 失去"控制变量解释力
+        *   外推"的语义。`_yfe' 为空 (单年退化) 时 mcontrol() 退化为无 nuisance, 仍
+        *   把 $controls 全留在识别集 → δ 由全部 $controls 驱动 (口径仍正确)。
+        if "`_yfe'" != "" {
+            capture noisily psacalc delta {{MAIN_TREAT}}, rmax(`_rmax') mcontrol(`_yfe')
+        }
+        else {
+            capture noisily psacalc delta {{MAIN_TREAT}}, rmax(`_rmax')
+        }
+        if !_rc {
+            display "  [OK] Oster delta = " r(delta) " (rmax=`_rmax', beta=" r(beta) ")"
+            * δ 是 r() 标量; 重跑同一受控 regress 作 δ 的承载估计 (eststo 不能承载裸标量),
+            * 用 estadd 把 δ 注入 e() 供表 stats 行展示。
+            local _oster_d = r(delta)
+            capture noisily regress {{MAIN_DV}} {{MAIN_TREAT}} $controls `_yfe', vce(cluster {{CLUSTER_VAR}})
+            if !_rc {
+                estadd scalar oster_delta = `_oster_d'
+                eststo feC_oster
+            }
+        }
+        else display "  [SKIP] Panel C psacalc 执行失败 (样本不足 / R² 退化)"
+    }
+}
+else {
+    if !`_have_psacalc' display "  [SKIP] Panel C Oster δ: psacalc 未装 (ssc install psacalc)"
+    else if !`_have_dv'  display "  [SKIP] Panel C Oster δ: {{MAIN_DV}} 缺 (外部财务 sentinel 待接入)"
+    else                 display "  [SKIP] Panel C Oster δ: 无可观测控制变量 (\$controls 为空; 财务面板待接入)"
+}
+
+* ============================================================================
+* 输出 — esttab/estout 名单动态化 (golden-safe: 缺名不点名, 防 r(111) 丢整表)
+* ============================================================================
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if strmatch("`m'", "feA_*") | strmatch("`m'", "feB_*") | strmatch("`m'", "feC_*") {
+        local models `models' `m'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] 24_* 无任何已存储估计 (DV sentinel 缺 / 全部守卫跳过); 表跳过 (wire-ahead 正常)"
+}
+else {
+    esttab `models' using "$tables_dir/table_fe_est_robustness.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 oster_delta, fmt(0 3 3) ///
+            labels("N" "R²" "Oster δ (rmax=1.3R²)")) ///
+        title("Advanced Robustness (P3 substance): FE saturation / robust estimators / Oster δ") ///
+        mgroups("Panel A: FE saturation ladder" "Panel B: robust estimators" "Panel C: Oster", ///
+            pattern(0 0 0 0 0 1 0 0 1) span erepeat(\cmidrule(lr){2-2})) ///
+        addnotes("Panel A (Gormley-Matsa 2014 RFS): bank+year FE → +province#year → +type#year → +zone#year → +bank linear trend (last needs T>=3)." ///
+                 "Panel B (Koenker-Bassett 1978; Leone et al. 2019 TAR): qreg(.5) median + rreg Huber/Tukey biweight (IRLS, bounded-influence M-estimator) vs OLS, i.year(+i.type) spec (T small)." ///
+                 "Panel B SE bases are NOT comparable across columns: OLS = bank-clustered (vce cluster); qreg = default i.i.d. sparsity SE; rreg = IRLS analytic SE. Stars are within-column only and must not be compared across the three estimators." ///
+                 "Panel C (Oster 2019 JBES): psacalc delta, rmax=min(1,1.3*controlled R²), mcontrol = explicit year-FE dummies only (not \$controls); δ identified by R²-movement of observable substantive controls relative to the year-FE baseline; δ>1 = robust to selection on unobservables." ///
+                 "Outcome cost_income_ratio_change_3yr is an external financial sentinel; panels wire-ahead-skip until enrichment.")
+
+    estout `models' using "$tables_dir/table_fe_est_robustness.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 oster_delta, fmt(0 3 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+
+    display "[OK] 24_* FE/robust/Oster → $tables_dir/table_fe_est_robustness.tex (+ .csv side-channel)"
+}

@@ -1,0 +1,360 @@
+* ============================================================================
+* 17_tableA8_subsample_timing.do — 构成子样本 + 时序/动态稳健性 (llm_peer)
+* Paper: {{PAPER_ID}}
+*
+* Bundle B (robustness-gap audit 2026-06-13): 外部效度 + 时序方向两族合一张表 ($0, golden-safe)。
+*   Panel A — SUBSAMPLE 构成稳健性: 刻意排除已被 Table 4 (H3/H4) 覆盖的 SOE 维度, 仅补在盘但
+*             未覆盖的三构成维度 — 枢纽 vs 非枢纽 (bank_is_hub)、大行 vs 小行 (bank_effective_size
+*             中位切)、按 bank_type 分。每子样本跑主 2SLS, 证 LLM-peer IV 效应不被单一银行
+*             子群驱动 (尤其大行/枢纽行可能主导语义同业网)。
+*   Panel B — TIMING 时序/动态: 同期处理 vs L1 滞后处理对照 + 前向 (lead) 安慰剂。
+*             检验反向因果时序方向 — 同期语调溢出应显著, 未来语调对当期 outcome 不应有效应
+*             (reflection 问题的时序结构是审稿核心关切; Bertrand-Duflo-Mullainathan 2004)。
+*
+* 白话:
+*   (A) "会不会只有大银行 / 枢纽行 / 某类银行在起作用?" → 分子样本各跑一遍, 看系数还在不在。
+*   (B) "你确定是同行的当期语调影响了银行当期决策, 而不是反过来 / 时间错位?"
+*       → 当期 vs 上一年 vs (安慰剂) 下一年 各跑一遍; 如果"未来"的同行语调能预测"当下"的
+*         结果, 那就是伪相关的警报 (placebo 应该不显著)。
+*
+* 文献锚点 (DOI 已核验):
+*   Bertrand, M., Duflo, E., & Mullainathan, S. (2004). How much should we trust
+*     differences-in-differences estimates? QJE 119(1), 249-275.
+*     DOI 10.1162/003355304772839588 (序列相关警示 + 时序安慰剂范式)
+*   Gormley, T.A., & Matsa, D.A. (2014). Common errors... RFS 27(2), 617-661.
+*     DOI 10.1093/rfs/hht047 (子样本异质性诊断)
+*
+* 全部 capture / capture-confirm 守卫: 缺列/缺包/T=2 退化 (滞后-lead 大幅塌缩单元)/
+* 子样本 N 过小 时优雅跳过, esttab 动态列名不硬点名, 绝不 r(111) 崩主链。
+* 新列零产出 (滞后/lead 用 L./F. 算子即时构造, 不落盘) → golden-safe。
+*
+* 输出: $tables_dir/tableA8_subsample_timing.{tex,csv}
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+eststo clear
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* 载入 prepared panel; 缺失时回退 46_panel_yearly_full.dta (使本表可独立 dry-run)
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        display "  ⚠️ _prepared_panel.dta 缺, 回退 46_panel_yearly_full.dta (未缩尾)"
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+local DV     {{MAIN_DV}}
+local TONE   {{TONE_VAR}}
+local IV     {{LLM_PEER_IV}}
+local CL     {{CLUSTER_VAR}}
+
+* DV 兼容: 主模板用 {{MAIN_DV}}_w (缩尾); _w 缺则回退裸名
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display as error "  ⚠️ 结果变量 `DV'(_w) 不在面板 (财务/强度哨兵未接入), Table A8 整表跳过 (degrade)"
+        exit 0
+    }
+}
+
+* CLUSTER 兜底
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+
+capture which ivreghdfe
+local HAS_IV = (_rc == 0)
+if !`HAS_IV' {
+    display as error "  ⚠️ ivreghdfe 未安装, Table A8 整表跳过 (主估计量为 2SLS)"
+    exit 0
+}
+
+* N-守卫宏: 子样本/时序规格的有效 2SLS 样本须 >= N_MIN, 否则优雅跳过 (盘面 T=2 退化保护)
+local N_MIN 20
+
+* ==========================================================================
+* Panel A — 构成子样本 (hub / effective_size 中位切 / bank_type; 排除已覆盖 SOE)
+* ==========================================================================
+local sscols ""
+local sslabs ""
+
+capture confirm variable `TONE' `IV'
+if _rc {
+    display "  ⚠️ Panel A: `TONE' / `IV' 缺, 整 Panel A 跳过"
+}
+else {
+    * --- A1/A2: 枢纽 vs 非枢纽 (bank_is_hub) ---
+    capture confirm variable bank_is_hub
+    if !_rc {
+        * 非枢纽
+        preserve
+        quietly keep if bank_is_hub == 0
+        quietly count if !missing(`DVUSE', `TONE', `IV')
+        local _n = r(N)
+        if `_n' >= `N_MIN' {
+            capture eststo A_nonhub: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        else {
+            local _crc = 1
+        }
+        restore
+        if `_crc' == 0 {
+            local sscols "`sscols' A_nonhub"
+            local sslabs `"`sslabs' "Non-hub""'
+        }
+        else {
+            display "  ⚠️ Panel A: 非枢纽子样本 N<`N_MIN' 或失败, 跳过 (T=2 退化)"
+        }
+        * 枢纽
+        preserve
+        quietly keep if bank_is_hub == 1
+        quietly count if !missing(`DVUSE', `TONE', `IV')
+        local _n = r(N)
+        if `_n' >= `N_MIN' {
+            capture eststo A_hub: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        else {
+            local _crc = 1
+        }
+        restore
+        if `_crc' == 0 {
+            local sscols "`sscols' A_hub"
+            local sslabs `"`sslabs' "Hub""'
+        }
+        else {
+            display "  ⚠️ Panel A: 枢纽子样本 N<`N_MIN' 或失败, 跳过 (盘面 hub 单元极少)"
+        }
+    }
+    else {
+        display "  ⚠️ Panel A: bank_is_hub 缺, 跳过 hub 维度"
+    }
+
+    * --- A3/A4: 大行 vs 小行 (bank_effective_size 全样本中位切) ---
+    capture confirm variable bank_effective_size
+    if !_rc {
+        quietly summarize bank_effective_size, detail
+        local _med = r(p50)
+        * 小行 (<= 中位)
+        preserve
+        quietly keep if bank_effective_size <= `_med' & !missing(bank_effective_size)
+        quietly count if !missing(`DVUSE', `TONE', `IV')
+        local _n = r(N)
+        if `_n' >= `N_MIN' {
+            capture eststo A_small: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        else {
+            local _crc = 1
+        }
+        restore
+        if `_crc' == 0 {
+            local sscols "`sscols' A_small"
+            local sslabs `"`sslabs' "Small""'
+        }
+        else {
+            display "  ⚠️ Panel A: 小行子样本 N<`N_MIN' 或失败, 跳过"
+        }
+        * 大行 (> 中位)
+        preserve
+        quietly keep if bank_effective_size > `_med' & !missing(bank_effective_size)
+        quietly count if !missing(`DVUSE', `TONE', `IV')
+        local _n = r(N)
+        if `_n' >= `N_MIN' {
+            capture eststo A_large: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        else {
+            local _crc = 1
+        }
+        restore
+        if `_crc' == 0 {
+            local sscols "`sscols' A_large"
+            local sslabs `"`sslabs' "Large""'
+        }
+        else {
+            display "  ⚠️ Panel A: 大行子样本 N<`N_MIN' 或失败, 跳过"
+        }
+    }
+    else {
+        display "  ⚠️ Panel A: bank_effective_size 缺, 跳过 size 维度"
+    }
+
+    * --- A5: 城商行子样本 (bank_type=='city'; 单类示例, 其余类样本太小不逐列) ---
+    capture confirm variable bank_type
+    if !_rc {
+        preserve
+        quietly keep if bank_type == "city"
+        quietly count if !missing(`DVUSE', `TONE', `IV')
+        local _n = r(N)
+        if `_n' >= `N_MIN' {
+            capture eststo A_city: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        else {
+            local _crc = 1
+        }
+        restore
+        if `_crc' == 0 {
+            local sscols "`sscols' A_city"
+            local sslabs `"`sslabs' "City banks""'
+        }
+        else {
+            display "  ⚠️ Panel A: 城商行子样本 N<`N_MIN' 或失败, 跳过 (其余 bank_type 同理样本不足)"
+        }
+    }
+    else {
+        display "  ⚠️ Panel A: bank_type 缺, 跳过类型维度"
+    }
+}
+
+if "`sscols'" != "" {
+    esttab `sscols' using "$tables_dir/tableA8_subsample_timing.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        keep(`TONE') ///
+        stats(N widstat, fmt(0 3) labels("N" "KP rk Wald F")) ///
+        title("Table A8: Compositional Subsamples & Dynamic Timing (2SLS; LLM-peer IV)") ///
+        mgroups("Panel A: Compositional subsamples", pattern(1) prefix(\multicolumn{@span}{c}{) suffix(}) span erepeat(\cmidrule(lr){@span})) ///
+        mtitles(`sslabs') ///
+        addnotes("Panel A splits by hub status / size (median of bank_effective_size) / bank type; SOE split is in Table 4 (excluded here)." ///
+                 "Each column = main 2SLS (`TONE' = `IV'), bank+year FE, SE clustered at `CL'. Sub-samples with N<`N_MIN' skipped (T=2 trial; production T=18).")
+    estout `sscols' using "$tables_dir/tableA8_subsample_timing.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///
+        keep(`TONE') starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A8 Panel A (compositional subsamples) written"
+}
+else {
+    display "  ⚠️ Panel A 无可用列 (T=2 子样本全塌缩), 跳过 A8 Panel A 主表 (production T=18 才有功效)"
+}
+
+* ==========================================================================
+* Panel B — 时序/动态 (同期 vs L1 滞后处理 + lead 安慰剂)
+* ==========================================================================
+* xtset 已设; 用 L./F. 算子即时构造滞后/前向 (不落盘 → golden-safe)。
+eststo clear
+local tmcols ""
+local tmlabs ""
+
+* B1: 同期处理 2SLS (= 主规格基准, 供时序对照锚点)
+capture confirm variable `TONE' `IV'
+if !_rc {
+    quietly count if !missing(`DVUSE', `TONE', `IV')
+    if r(N) >= `N_MIN' {
+        capture eststo B_contemp: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        if !_rc {
+            local tmcols "`tmcols' B_contemp"
+            local tmlabs `"`tmlabs' "Contemp (t)""'
+        }
+    }
+}
+
+* B2: L1 滞后处理 — 用在盘滞后列 llm_vote_tone_full_lag1 (= L.{{TONE_VAR}}) 工具用 peer_tone_lag1_full
+*     (在盘滞后 IV); 缺则回退 L./F. 算子构造。检验上一年同行风向对当年决策的影响。
+capture confirm variable llm_vote_tone_full_lag1 peer_tone_lag1_full
+if !_rc {
+    quietly count if !missing(`DVUSE', llm_vote_tone_full_lag1, peer_tone_lag1_full)
+    if r(N) >= `N_MIN' {
+        capture eststo B_lag1: ivreghdfe `DVUSE' (llm_vote_tone_full_lag1 = peer_tone_lag1_full) $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        if !_rc {
+            local tmcols "`tmcols' B_lag1"
+            local tmlabs `"`tmlabs' "Lagged (t-1)""'
+        }
+        else {
+            display "  ⚠️ Panel B: L1 滞后 2SLS 失败 (T=2 滞后塌缩仅留 1 期), 跳过 B2"
+        }
+    }
+    else {
+        display "  ⚠️ Panel B: L1 滞后有效 N<`N_MIN' (T=2 滞后后仅 2018 年留存), 跳过 B2 (production T=18)"
+    }
+}
+else {
+    * 回退: 用 L. 算子即时构造 (无在盘滞后 IV 列时)
+    quietly count if !missing(`DVUSE') & !missing(L.`TONE') & !missing(L.`IV')
+    if r(N) >= `N_MIN' {
+        capture eststo B_lag1: ivreghdfe `DVUSE' (L.`TONE' = L.`IV') $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        if !_rc {
+            local tmcols "`tmcols' B_lag1"
+            local tmlabs `"`tmlabs' "Lagged (t-1)""'
+        }
+    }
+    else {
+        display "  ⚠️ Panel B: 滞后列缺且 L. 算子有效 N<`N_MIN' (T=2 退化), 跳过 B2"
+    }
+}
+
+* B3: lead 安慰剂 — F.{{TONE_VAR}} 工具用 F.{{LLM_PEER_IV}}。
+*     反向因果检验: 未来同行语调若对当期 outcome 有效应 → 警报 (placebo 应不显著)。
+quietly count if !missing(`DVUSE') & !missing(F.`TONE') & !missing(F.`IV')
+if r(N) >= `N_MIN' {
+    capture eststo B_lead: ivreghdfe `DVUSE' (F.`TONE' = F.`IV') $controls, ///
+        absorb(bank_id year) cluster(`CL') ffirst
+    if !_rc {
+        local tmcols "`tmcols' B_lead"
+        local tmlabs `"`tmlabs' "Lead placebo (t+1)""'
+    }
+    else {
+        display "  ⚠️ Panel B: lead 安慰剂 2SLS 失败, 跳过 B3"
+    }
+}
+else {
+    display "  ⚠️ Panel B: lead (F.) 有效 N<`N_MIN' (T=2 前向后仅 2017 年留存), 跳过 B3 (production T=18 才有功效)"
+}
+
+if "`tmcols'" != "" {
+    esttab `tmcols' using "$tables_dir/tableA8b_timing.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        stats(N widstat, fmt(0 3) labels("N" "KP rk Wald F")) ///
+        title("Table A8-B: Dynamic Timing & Lead Placebo (2SLS; LLM-peer IV)") ///
+        mtitles(`tmlabs') ///
+        addnotes("Contemporaneous (t) vs lagged (t-1) treatment vs lead placebo (t+1)." ///
+                 "Lead placebo should be insignificant; a significant lead flags reverse-causality / reflection (Manski 1993; BDM 2004 QJE serial-correlation framework)." ///
+                 "⚠ Lag/lead construction is asymmetric: the lag column (t-1) prefers the pipeline-pre-aggregated on-panel columns llm_vote_tone_full_lag1 / peer_tone_lag1_full (built at panel-build time), whereas the lead placebo (t+1) is built on-the-fly via the F. time-series operator (no pre-aggregated lead column on panel). On a balanced T>=3 panel with xtset these coincide year-over-year; in production verify the on-panel _lag1 equals L. of the contemporaneous column (assert no off-by-one) before reading the placebo." ///
+                 "All require T>=3 to populate lag+lead; T=2 trial panel collapses these (production T=18).")
+    estout `tmcols' using "$tables_dir/tableA8b_timing.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A8-B (dynamic timing / lead placebo) written"
+}
+else {
+    display "  ⚠️ Panel B 无可用列 (T=2 滞后/lead 全塌缩), 跳过 A8-B (production T=18 才有功效)"
+}
+
+display "[OK] Table A8 (compositional subsamples + dynamic timing) — llm_peer 完成"

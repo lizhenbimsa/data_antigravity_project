@@ -1,0 +1,327 @@
+* news_process — Table A9: 网络/类型子样本 + 时序对照与前向安慰剂
+*                           (Network/Type Subsamples + Timing & Lead-Placebo)
+*
+* Bundle B (bank_fintech_tone P1 稳健性缺口补全; 全 $0, 列均在盘/golden-safe, 纯 Stata):
+*   Panel A — 子样本稳定性 (SUBSAMPLE, 外部效度/构成稳健性):
+*     刻意避开已被 Table 4 (13_table4_heterogeneity: bank_size / digital_frontier /
+*     bank_zone) 与 falsification 检验 11 (is_soe / bank_scale_ord / high_coverage)
+*     切过的维度, 只取三个未被任何 P1 检验切过的维度:
+*       (1) 信息中介地位: hub vs 非hub (bank_is_hub)
+*       (2) 结构性网络规模: 大 vs 小有效网络规模 (bank_effective_size 中位切;
+*           注意这是结构而非会计规模, 与 T4 的 bank_size 正交)
+*       (3) 银行类型分类: 国有/股份/城商/农商... (bank_type, 多类别分样本)
+*   Panel B — 时序对照与前向安慰剂 (TIMING):
+*     刻意区别于 falsification 检验 14 (仅 _full 轨, llm_vote_tone_full_lag1) —
+*     本表补主轨 (ctx) 的时序对照 + 处理变量的前向 (lead) 安慰剂:
+*       (1) 同期处理: 当期结果 ~ 当期 tone (ctx)
+*       (2) L1 滞后处理: 当期结果 ~ 上期 tone (llm_vote_tone_ctx_lag1)
+*       (3) 前向 lead 安慰剂: 当期结果 ~ 未来 tone (F.llm_vote_tone_ctx) —
+*           "未来不应预测当期", 系数应不显著 (反向因果/预期效应排除)。
+*
+* 为什么 (大白话):
+*   A 把样本按"是不是信息枢纽银行 / 网络上是否势力大 / 属于哪类银行"分别切开重跑,
+*     看主结论在不同子群里是不是都成立 (外部效度); 这三刀都是 T4/证伪11 没切过的角度。
+*   B 看"当期的媒体语调"和"上一期的语调"哪个更能解释结果, 再放一个"用未来语调预测
+*     当期结果"的安慰剂 —— 如果未来也能预测当期, 说明可能有反向因果或预期效应混进来。
+*
+* 主结果 = funding_cost (连续, sentinel; 财务面板接入前缺列 → wire-ahead capture 守卫:
+*   Panel B 缺 funding_cost 时优雅跳过, 不报错; 财务列到位后自动激活)。
+*
+* ⚠ 披露 (FUNDINGCOST-NOT-WINSORIZED): 本表载入 _prepared_panel ("同口径缩尾面板"),
+*   但 root 01_data_prep 的 winsor 清单只覆盖在盘的情感/控制变量。Panel B 的 outcome
+*   funding_cost 不在该 winsor 清单 → 财务面板接入后, funding_cost 仍是"未缩尾"状态
+*   (本表不改 01_data_prep)。该 outcome 的离群稳健性由同篇 32_tableA8 Panel B 的
+*   qreg/rreg 估计量补位 (本表不重复)。
+*
+* ⚠ 元数据 (TABLE-NUMBER-COLLISION): 本表显示标题/输出名沿用 "A9", 而 paper_spec 的
+*   tA9 槽实际指向 27_num_intensity (数值强度稳健性), 二者编号撞车但内容不同。复现包
+*   instantiate 用非递归 glob, 不会拾取 27 → 实际只产本表一张 A9 (subsample/timing)。
+*   勿因编号相同误判重复; 不改 spec、不改文件名 (主控统一处理编号)。
+*
+* 文献锚点 (DOI 已核验):
+*   Gormley, T. A., & Matsa, D. A. (2014). Common Errors: How to (and Not to)
+*     Control for Unobserved Heterogeneity. Review of Financial Studies, 27(2),
+*     617-661. https://doi.org/10.1093/rfs/hht047    [Panel A 分组稳健性框架]
+*   Bertrand, M., Duflo, E., & Mullainathan, S. (2004). How Much Should We Trust
+*     Differences-In-Differences Estimates? Quarterly Journal of Economics,
+*     119(1), 249-275. https://doi.org/10.1162/003355304772839588
+*                                                    [Panel B 序列相关 + 时序安慰剂]
+*
+* T=2 退化守卫: 子样本切分后若某子群行数/簇数过少, reghdfe 退化, capture + N 守卫
+*   优雅跳过 (production T=18 才有完整功效)。F. lead 算子需 xtset 后 T>=2 才有非缺值。
+*
+* Main spec: sent={{MAIN_SENT_TRACK}} (locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}})
+
+version 19
+
+* fix(omni-g-templates-14): 每表开头 eststo clear 隔离估计命名空间 (master 共享 session)。
+eststo clear
+
+* 载入与主表同口径的缩尾面板 (_prepared_panel; 缺失回退未缩尾 full.dta)
+capture confirm file "data/processed/_prepared_panel.dta"
+if !_rc {
+    use "data/processed/_prepared_panel.dta", clear
+}
+else {
+    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep); 回退未缩尾 full.dta"
+    use "data/processed/46_panel_yearly_full.dta", clear
+}
+
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+capture do "data/processed/46_panel_yearly_labels.do"
+
+local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
+local EXPL   digital_frontier
+local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
+local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
+
+* DV / EXPL 存在性守卫
+capture confirm variable `DV' `EXPL'
+if _rc {
+    display as error "  ⚠️ DV (`DV') 或 EXPL (`EXPL') 不在面板, Table A9 整表跳过 (degrade)"
+    exit 0
+}
+
+* LOCUS/SUBST ctx 控制守卫
+capture confirm variable `LOCUS' `SUBST'
+if _rc {
+    display "  ⚠️ LOCUS/SUBST 列缺 (`LOCUS' / `SUBST'): 回归 degrade 为不含 LOCUS/SUBST"
+    local LOCUS
+    local SUBST
+}
+
+* ==========================================================================
+* Panel A — 网络结构 + 银行类型子样本 (SUBSAMPLE)
+* ==========================================================================
+* DV = bank-year tone, TREAT = digital_frontier, FE = bank+year, cluster bank。
+* 每个子群足够行数才跑 (capture + count 守卫); 缺分组列则跳过该维度。
+eststo clear
+local subcols ""
+local sublabs ""
+
+* --- 维度 1: 信息枢纽地位 hub vs 非hub (bank_is_hub) ---
+capture confirm variable bank_is_hub
+if !_rc {
+    foreach grp in 1 0 {
+        quietly count if bank_is_hub == `grp' & !missing(`DV')
+        if r(N) > 10 {
+            capture eststo SUB_hub`grp': reghdfe `DV' `EXPL' `LOCUS' `SUBST' ///
+                if bank_is_hub == `grp', absorb(bank_id year) vce(cluster bank_id)
+            if !_rc {
+                local subcols "`subcols' SUB_hub`grp'"
+                if `grp' == 1 {
+                    local sublabs `"`sublabs' "Hub""'
+                }
+                else {
+                    local sublabs `"`sublabs' "Non-hub""'
+                }
+            }
+            else {
+                display "  ⚠️ Panel A hub=`grp' 子样本回归退化, 跳过"
+            }
+        }
+        else {
+            display "  ⚠️ Panel A hub=`grp' 子样本 N=`r(N)' 过少 (<=10), 跳过 (T=2 试跑盘正常)"
+        }
+    }
+}
+else {
+    display "  ⚠️ Panel A 维度1: bank_is_hub 缺, 跳过 hub/非hub 切分"
+}
+
+* --- 维度 2: 有效网络规模 大 vs 小 (bank_effective_size 中位切; 结构性非会计规模) ---
+capture confirm variable bank_effective_size
+if !_rc {
+    quietly summarize bank_effective_size, detail
+    local _med = r(p50)
+    if !missing(`_med') {
+        * 大: > 中位; 小: <= 中位 (仅在有 effective_size 取值的样本内切)
+        foreach grp in big small {
+            if "`grp'" == "big" {
+                local _cond bank_effective_size > `_med' & !missing(bank_effective_size)
+            }
+            else {
+                local _cond bank_effective_size <= `_med' & !missing(bank_effective_size)
+            }
+            quietly count if `_cond' & !missing(`DV')
+            if r(N) > 10 {
+                capture eststo SUB_es_`grp': reghdfe `DV' `EXPL' `LOCUS' `SUBST' ///
+                    if `_cond', absorb(bank_id year) vce(cluster bank_id)
+                if !_rc {
+                    local subcols "`subcols' SUB_es_`grp'"
+                    if "`grp'" == "big" {
+                        local sublabs `"`sublabs' "Large ENS""'
+                    }
+                    else {
+                        local sublabs `"`sublabs' "Small ENS""'
+                    }
+                }
+                else {
+                    display "  ⚠️ Panel A effective_size=`grp' 子样本回归退化, 跳过"
+                }
+            }
+            else {
+                display "  ⚠️ Panel A effective_size=`grp' 子样本 N=`r(N)' 过少, 跳过"
+            }
+        }
+    }
+}
+else {
+    display "  ⚠️ Panel A 维度2: bank_effective_size 缺, 跳过有效规模切分"
+}
+
+* --- 维度 3: 银行类型分类 (bank_type, 多类别分样本) ---
+* 每类别独立子样本; 类别足够行数才跑。bank_type 在盘为 string (city/rural/joint/...)。
+capture confirm variable bank_type
+if !_rc {
+    quietly levelsof bank_type, local(_btypes)
+    local _ti = 0
+    foreach bt of local _btypes {
+        local _ti = `_ti' + 1
+        quietly count if bank_type == "`bt'" & !missing(`DV')
+        if r(N) > 15 {
+            capture eststo SUB_bt`_ti': reghdfe `DV' `EXPL' `LOCUS' `SUBST' ///
+                if bank_type == "`bt'", absorb(bank_id year) vce(cluster bank_id)
+            if !_rc {
+                local subcols "`subcols' SUB_bt`_ti'"
+                local sublabs `"`sublabs' "`bt'""'
+            }
+            else {
+                display "  ⚠️ Panel A bank_type=`bt' 子样本回归退化, 跳过"
+            }
+        }
+        else {
+            display "  ⚠️ Panel A bank_type=`bt' 子样本 N=`r(N)' 过少 (<=15), 跳过"
+        }
+    }
+}
+else {
+    display "  ⚠️ Panel A 维度3: bank_type 缺, 跳过类型切分"
+}
+
+* 输出 Panel A (动态名单, 缺列不点名)
+if "`subcols'" != "" {
+    esttab `subcols' using "output/tables/tableA9a_subsample.tex", ///
+        keep(`EXPL') se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
+        title("Table A9-A: Network & Bank-Type Subsample Stability") ///
+        mtitles(`sublabs') ///
+        note("DV = `DV'; TREAT = digital_frontier; bank+year FE; SE clustered at bank. " ///
+             "Dimensions chosen to be orthogonal to Table 4 (size/zone/frontier) and " ///
+             "falsification test 11 (SOE/scale/coverage): information-hub status (bank_is_hub), " ///
+             "structural effective network size (median split), and bank-type categories. " ///
+             "External-validity / compositional robustness (Gormley & Matsa 2014 RFS, 10.1093/rfs/hht047).")
+    estout `subcols' using "output/tables/tableA9a_subsample.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) keep(`EXPL')
+    display "✅ Table A9-A (network/type subsample) written"
+}
+else {
+    display "  ⚠️ Panel A 无任何可用子样本列, 跳过整张 A9-A"
+}
+
+* ==========================================================================
+* Panel B — 主轨 (ctx) 时序对照 + 前向 lead 安慰剂 (TIMING)
+* ==========================================================================
+* 主结果 OUTCOME = funding_cost (连续 sentinel; 财务面板接入前缺列 → 整 Panel 跳过)。
+* 同期 tone vs L1 滞后 tone vs 前向 (lead) tone 安慰剂; 未来 tone 不应预测当期结果。
+eststo clear
+local OUTCOME funding_cost
+capture confirm variable `OUTCOME'
+if _rc {
+    display "  ⚠️ Panel B: 主结果 `OUTCOME' 不在面板 (财务 sentinel, wire-ahead); 整 Panel B 跳过"
+    display "       财务面板接入并构造 `OUTCOME' 列后本 Panel 自动激活 (同期/滞后/lead 对照)。"
+}
+else {
+    local tcols ""
+    local tlabs ""
+
+    * B1: 同期处理 (当期结果 ~ 当期 tone)
+    capture eststo TM_now: reghdfe `OUTCOME' `DV' `LOCUS' `SUBST', ///
+        absorb(bank_id year) vce(cluster bank_id)
+    if !_rc {
+        local tcols "`tcols' TM_now"
+        local tlabs `"`tlabs' "Contemp.""'
+    }
+
+    * B2: L1 滞后处理 (当期结果 ~ 上期 tone) — 优先用在盘 lag1 列, 否则用 L. 算子
+    local LAGVAR llm_vote_tone_{{MAIN_SENT_TRACK}}_lag1
+    capture confirm variable `LAGVAR'
+    if !_rc {
+        capture eststo TM_lag: reghdfe `OUTCOME' `LAGVAR' `LOCUS' `SUBST', ///
+            absorb(bank_id year) vce(cluster bank_id)
+    }
+    else {
+        capture eststo TM_lag: reghdfe `OUTCOME' L.`DV' `LOCUS' `SUBST', ///
+            absorb(bank_id year) vce(cluster bank_id)
+    }
+    if !_rc {
+        local tcols "`tcols' TM_lag"
+        local tlabs `"`tlabs' "L1 lag""'
+    }
+    else {
+        display "  ⚠️ Panel B: L1 滞后回归退化 (T=2 滞后致样本缩为单期?), 跳过 (全量 T=18 正常)"
+    }
+
+    * B3: 前向 lead 安慰剂 (当期结果 ~ 未来 tone, F. 算子) — 应不显著
+    capture eststo TM_lead: reghdfe `OUTCOME' F.`DV' `LOCUS' `SUBST', ///
+        absorb(bank_id year) vce(cluster bank_id)
+    if !_rc {
+        local tcols "`tcols' TM_lead"
+        local tlabs `"`tlabs' "F1 lead (placebo)""'
+    }
+    else {
+        display "  ⚠️ Panel B: 前向 lead 安慰剂退化 (T=2 lead 致样本缩为单期?), 跳过 (全量 T=18 正常)"
+    }
+
+    if "`tcols'" != "" {
+        * --- 动态拼 keepvars: 只保留至少一个存活模型实含的处理系数 ---
+        * 退化时 (例如只剩 TM_now) lag/lead 系数名根本不存在 → 硬列 keep() 会 r(111) 中断,
+        * 使下方 sentinel (display "✅ ...") 不可达。改为逐候选名探测各存活模型的 e(b) 列,
+        * 任一模型含该系数则纳入 keepvars; 全无则留空 (esttab 退回输出全部系数, 不报错)。
+        local cand_names `DV' `LAGVAR' L.`DV' F.`DV'
+        local keepvars ""
+        foreach cn of local cand_names {
+            local _hit = 0
+            foreach m of local tcols {
+                capture estimates restore `m'
+                if !_rc {
+                    capture local _bv = _b[`cn']
+                    if !_rc local _hit = 1
+                }
+            }
+            if `_hit' & `: list posof "`cn'" in keepvars' == 0 {
+                local keepvars `keepvars' `cn'
+            }
+        }
+        local keepopt ""
+        if "`keepvars'" != "" local keepopt keep(`keepvars')
+
+        * esttab/estout 包 capture noisily: 即便 keepvars 拼空 / 某退化边角抛 r(111),
+        * 也不中断 do-file, sentinel 始终可达。
+        capture noisily esttab `tcols' using "output/tables/tableA9b_timing.tex", ///
+            `keepopt' se star(* 0.10 ** 0.05 *** 0.01) ///
+            booktabs replace fragment ///
+            title("Table A9-B: Timing — Contemporaneous vs Lag vs Forward Lead Placebo") ///
+            mtitles(`tlabs') ///
+            note("OUTCOME = `OUTCOME'; main-track (ctx) tone. Contemporaneous vs L1 lag vs F1 " ///
+                 "forward-lead placebo (future tone should not predict current outcome — rules out " ///
+                 "reverse causality / anticipation). bank+year FE, SE clustered at bank. Complements " ///
+                 "falsification test 14 (full track only). Bertrand et al. 2004 QJE, 10.1162/003355304772839588.")
+        if _rc display "  ⚠️ Panel B esttab .tex 退化跳过 (rc=`=_rc'); CSV side-channel 仍尝试输出"
+        * CSV side-channel 与 .tex keep() 对称 (A9-CSV-NO-KEEP), 同样 capture noisily 守卫。
+        capture noisily estout `tcols' using "output/tables/tableA9b_timing.csv", replace delimiter(",") ///
+            `keepopt' cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+            starlevels(* 0.10 ** 0.05 *** 0.01)
+        if _rc display "  ⚠️ Panel B estout .csv 退化跳过 (rc=`=_rc')"
+        display "✅ Table A9-B (timing / lead-placebo) written"
+    }
+    else {
+        display "  ⚠️ Panel B 无任何可用列, 跳过整张 A9-B"
+    }
+}
+
+display "✅ Table A9 (子样本稳健性 + 时序安慰剂) 完成 — A 网络/类型子样本 / B 时序对照"

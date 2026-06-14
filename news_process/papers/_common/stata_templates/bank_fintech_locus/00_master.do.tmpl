@@ -53,5 +53,9 @@ capture do 20_locus_iv_2sls.do
 
 * agg-toptier-audit 2026-06-13: 推断(双向cluster/boottest)+覆盖筛选 wire-ahead 桩 (财务接入后激活)
 capture do 21_locus_agg_robustness.do
+* 2026-06-14 顶刊稳健性扩充: FE 饱和 + 离群稳健估计 + Oster δ (22) / Hub·规模子样本 (23) / PPML 计数模型 (24)
+capture do 22_locus_fe_saturation_oster.do
+capture do 23_locus_subsample_extension.do
+capture do 24_locus_ppml_count.do
 
 display "[OK] bank_fintech_locus master.do complete (B-route P4)"

@@ -154,11 +154,19 @@ def test_total_template_count_77() -> None:
     # 其余 5 篇 (brokerage/substance/locus/collab/strategic_diff) 主变量无 VW/MW/HW 孪生
     # → 仅 Panel B(双向cluster/boottest)+C(覆盖筛选) wire-ahead 桩, 主回归 outcome 为
     # 待接入财务哨兵 (no-op), 财务面板接入并跑 01_data_prep 后自动激活。共 +5。
-    expected_count = 113  # 108 + 5 (聚合层审计 B+C 桩: brokerage/substance/locus/collab/strategic)
+    # 2026-06-14 顶刊稳健性扩充 (FE-SAT / ROBUST-EST / OSTER / SUBSAMPLE / TIMING / PPML 六族): +20 个
+    #   _common 模板 — root +2 (32_tableA8_fe_saturation_robust_est + 33_tableA9_subsample_timing);
+    #   attention +2 (20/21) / substance +2 (24/25) / locus +3 (22/23/24, 含 PPML 计数) /
+    #   collab +3 (23/24/25, 含 PPML 计数) / benefit_society +2 (26/27) / brokerage_network +2 (22/23) /
+    #   llm_peer +2 (16/17) / strategic_diff +2 (16/17)。全部仅消费在盘列, 财务/计数 outcome 与 SSC
+    #   命令 (psacalc/ppmlhdfe) 一律 capture confirm/which 守卫 (wire-ahead) → golden-safe, 不触 panel。
+    #   provisional 两篇 (MD +1 / NC +2) 写入 papers/<id>/stata_templates, 不计入此 _common rglob 口径。
+    expected_count = 133  # 113 + 20 (2026-06-14 顶刊稳健性扩充六族)
     assert len(templates) == expected_count, (
         f"Expected {expected_count} total templates, found {len(templates)}: "
         f"= 95 (baseline) + 5 (IV 2SLS) + 6 (网络五角色化) + 2 (聚合审计 P1/llm_peer A+B+C) "
-        f"+ 5 (聚合审计 B+C wire-ahead 桩)"
+        f"+ 5 (聚合审计 B+C wire-ahead 桩) "
+        f"+ 20 (顶刊稳健性扩充: FE-SAT/ROBUST-EST/OSTER/SUBSAMPLE/TIMING/PPML)"
     )
 
 

@@ -1,0 +1,175 @@
+* ============================================================================
+* 25_substance_subsamples.do — 子样本构成稳健性 (P3 bank_fintech_substance)
+*   (a) hub vs 非hub      (网络位置: bank_is_hub 二元 0/1)
+*   (b) 大行 vs 小行       (银行规模: bank_effective_size 年内中位切)
+*   (c) SOE vs 非SOE       (产权: is_soe 二元 0/1)
+* Paper: {{PAPER_ID}}
+* ----------------------------------------------------------------------------
+* 是什么 (大白话):
+*   把样本按三个银行特征各自一刀切两半, 分别重跑主回归 (sub_frac→成本收入比),
+*   看主结论是不是只在某一类银行里成立 —— 外部效度 / 构成稳健性的标准做法。
+*   三个维度都与现有异质性表 (17_substance_heterogeneity) 不重叠:
+*     17 做的是 bank_type×SOE 笛卡尔积 / fintech wave 分段 / capital 四分位 /
+*     pre-2013 连续交互 (二维交叉单元); 本表做的是 网络位置 / 规模 / 产权 三个
+*     一维全样本切分 (估计对象不同)。仅 is_soe 与 17 的 (a) 块相邻 (17 是
+*     bank_type×is_soe 二维单元, 本表是 is_soe 一维全样本切分)。
+* ----------------------------------------------------------------------------
+* 文献锚点 (literature anchors):
+*   - 子样本 / 外部效度: 标准做法 (无单一 canonical DOI)。
+*   - 银行规模异质性可锚 Berger & Bouwman (2013), JFE 109(1):146-176.
+*       DOI 10.1016/j.jfineco.2013.02.008 (bank capital/size 与表现)
+* ----------------------------------------------------------------------------
+* golden-safe 铁律: 主 outcome cost_income_ratio_change_3yr 为外部财务 sentinel;
+*   全部回归 capture confirm 守卫, 缺 DV 则整表优雅跳过 (wire-ahead)。grouping 列
+*   bank_is_hub (118 非缺) / bank_effective_size (46 非缺) / is_soe (174) 全在盘。
+* 小单元守卫 (两段, SUBST-25-ECON-04): (1) 估计前 quietly count raw N>=10 (对齐 17
+*   的 R7-m01); (2) reghdfe 后再查 post-absorb e(N)>=10 — raw count 不保证吸收
+*   bank+year FE 后仍有自由度, 退化单元 (e(N)=4 / R²=1.0) 经二次门控不入表。
+* esttab 名单动态化: estimates dir → 缺名不点名, 防 r(111) 丢整表。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+eststo clear
+
+* 前置: DV sentinel 门控 (整表依赖 DV; 缺则优雅 no-op)
+capture confirm variable {{MAIN_DV}}
+local _have_dv = (_rc == 0)
+if !`_have_dv' {
+    display "  [WARN] {{MAIN_DV}} 不在面板 (外部财务 sentinel 待接入); 25_* 子样本表 wire-ahead 跳过"
+}
+
+if `_have_dv' {
+
+    * ------------------------------------------------------------------------
+    * (a) hub vs 非hub  (网络位置)
+    * ------------------------------------------------------------------------
+    capture confirm variable bank_is_hub
+    if !_rc {
+        * hub == 1
+        quietly count if bank_is_hub == 1 & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_is_hub == 1, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            * 二次门控 (SUBST-25-ECON-04): raw count>=10 不保证吸收 FE 后仍有自由度;
+            *   退化单元 (post-absorb e(N) 极小 / R²=1.0) 不入表, 防 spurious 列。
+            if _rc                  display "  [SKIP] sub_hub1: reghdfe 估计失败 (共线 / 退化)"
+            else if e(N) < 10       display "  [SKIP] sub_hub1: post-absorb e(N)=" e(N) " (< 10; 自由度耗尽 / 退化单元)"
+            else                    eststo sub_hub1
+        }
+        else display "  [SKIP] sub_hub1: N=" r(N) " (< 10; small-cell guard)"
+        * hub == 0
+        quietly count if bank_is_hub == 0 & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if bank_is_hub == 0, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if _rc                  display "  [SKIP] sub_hub0: reghdfe 估计失败 (共线 / 退化)"
+            else if e(N) < 10       display "  [SKIP] sub_hub0: post-absorb e(N)=" e(N) " (< 10; 自由度耗尽 / 退化单元)"
+            else                    eststo sub_hub0
+        }
+        else display "  [SKIP] sub_hub0: N=" r(N) " (< 10; small-cell guard)"
+    }
+    else display "  [SKIP] (a) hub: bank_is_hub 不在面板"
+
+    * ------------------------------------------------------------------------
+    * (b) 大行 vs 小行  (bank_effective_size 年内中位切)
+    *   白话: 每一年单独按规模中位数把银行分大/小两半, 而不是把全部年份混在一起切
+    *   (否则比的是年代不是规模)。对齐 17 的 by-year quartile 防 cohort confounding。
+    * ------------------------------------------------------------------------
+    capture confirm variable bank_effective_size
+    if !_rc {
+        capture drop _size_med _is_large
+        bysort year: egen _size_med = median(bank_effective_size)
+        gen _is_large = (bank_effective_size > _size_med) if !missing(bank_effective_size, _size_med)
+        * large
+        quietly count if _is_large == 1 & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if _is_large == 1, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if _rc                  display "  [SKIP] sub_large: reghdfe 估计失败 (共线 / 退化)"
+            else if e(N) < 10       display "  [SKIP] sub_large: post-absorb e(N)=" e(N) " (< 10; 自由度耗尽 / 退化单元)"
+            else                    eststo sub_large
+        }
+        else display "  [SKIP] sub_large: N=" r(N) " (< 10; small-cell guard)"
+        * small
+        quietly count if _is_large == 0 & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if _is_large == 0, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if _rc                  display "  [SKIP] sub_small: reghdfe 估计失败 (共线 / 退化)"
+            else if e(N) < 10       display "  [SKIP] sub_small: post-absorb e(N)=" e(N) " (< 10; 自由度耗尽 / 退化单元)"
+            else                    eststo sub_small
+        }
+        else display "  [SKIP] sub_small: N=" r(N) " (< 10; small-cell guard)"
+    }
+    else display "  [SKIP] (b) size: bank_effective_size 不在面板"
+
+    * ------------------------------------------------------------------------
+    * (c) SOE vs 非SOE  (产权)
+    * ------------------------------------------------------------------------
+    capture confirm variable is_soe
+    if !_rc {
+        * SOE
+        quietly count if is_soe == 1 & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if is_soe == 1, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if _rc                  display "  [SKIP] sub_soe1: reghdfe 估计失败 (共线 / 退化)"
+            else if e(N) < 10       display "  [SKIP] sub_soe1: post-absorb e(N)=" e(N) " (< 10; 自由度耗尽 / 退化单元)"
+            else                    eststo sub_soe1
+        }
+        else display "  [SKIP] sub_soe1: N=" r(N) " (< 10; small-cell guard)"
+        * 非 SOE
+        quietly count if is_soe == 0 & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if is_soe == 0, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if _rc                  display "  [SKIP] sub_soe0: reghdfe 估计失败 (共线 / 退化)"
+            else if e(N) < 10       display "  [SKIP] sub_soe0: post-absorb e(N)=" e(N) " (< 10; 自由度耗尽 / 退化单元)"
+            else                    eststo sub_soe0
+        }
+        else display "  [SKIP] sub_soe0: N=" r(N) " (< 10; small-cell guard)"
+    }
+    else display "  [SKIP] (c) SOE: is_soe 不在面板"
+}
+
+* ============================================================================
+* 输出 — esttab/estout 名单动态化
+* ============================================================================
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if strmatch("`m'", "sub_*") {
+        local models `models' `m'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] 25_* 无任何已存储估计 (DV sentinel 缺 / 全部小单元/守卫跳过); 表跳过 (wire-ahead 正常)"
+}
+else {
+    esttab `models' using "$tables_dir/table_subsamples.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2, fmt(0 3) labels("N" "R²")) ///
+        title("Subsample Robustness (P3 substance): hub / size / SOE splits") ///
+        addnotes("Three orthogonal one-dimensional splits, non-overlapping with Table 4 heterogeneity (bank_type×SOE / wave / capital quartile)." ///
+                 "(a) bank_is_hub network position; (b) bank_effective_size split at within-year median (avoids cohort confounding); (c) is_soe ownership." ///
+                 "Each cell guarded N>=10 (small-cell). Outcome cost_income_ratio_change_3yr is an external financial sentinel; table wire-ahead-skips until enrichment." ///
+                 "Bank size heterogeneity anchor: Berger & Bouwman (2013) JFE 109(1).")
+
+    estout `models' using "$tables_dir/table_subsamples.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+
+    display "[OK] 25_* subsamples → $tables_dir/table_subsamples.tex (+ .csv side-channel)"
+}

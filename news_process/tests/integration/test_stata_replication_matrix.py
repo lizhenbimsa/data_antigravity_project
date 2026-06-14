@@ -2,7 +2,7 @@
 
 测试范围:
     - 8-spec matrix (2 locus × 2 subst × 2 sent) build_replication_package 全部成功
-    - 16 .do 文件正确实例化 (占位符 0 残留, 主要 locals 正确替换)
+    - 18 .do 文件正确实例化 (占位符 0 残留, 主要 locals 正确替换)
     - 复现包目录结构一致 (code/ data/ output/{tables,figures}/)
     - README.md 含 spec 信息 + git commit hash
     - 多 spec 并存目录命名 R54-A: replication_v3.2.0_{locus}_{subst}_{sent}/
@@ -39,10 +39,11 @@ def test_build_replication_8spec_matrix(tmp_path, locus, subst, sent):
     # 必备子目录
     for sub in ['code', 'data', 'output/tables', 'output/figures']:
         assert (pkg / sub).exists(), f"spec {locus}_{subst}_{sent}: 缺 {sub}/"
-    # 16 个 .do 文件全部实例化 (remove-title-track 后 14; 2026-06-13 IV 补全
-    # +25_tableA6_tone_iv_2sls → 15; agg-toptier-audit +26_tableA7_aggregation_robustness → 16)
+    # 18 个 .do 文件全部实例化 (remove-title-track 后 14; 2026-06-13 IV 补全
+    # +25_tableA6_tone_iv_2sls → 15; agg-toptier-audit +26_tableA7_aggregation_robustness → 16;
+    # 2026-06-14 顶刊稳健性扩充 +32_tableA8_fe_saturation_robust_est +33_tableA9_subsample_timing → 18)
     do_files = list((pkg / 'code').glob('*.do'))
-    assert len(do_files) == 16, f"spec {locus}_{subst}_{sent}: 应 16 .do, 实际 {len(do_files)}"
+    assert len(do_files) == 18, f"spec {locus}_{subst}_{sent}: 应 18 .do, 实际 {len(do_files)}"
     # README.md 含 spec 信息
     readme = (pkg / 'README.md').read_text(encoding='utf-8')
     assert locus in readme
@@ -68,7 +69,7 @@ def test_table2_locals_match_spec(tmp_path, locus, subst, sent):
 
 @pytest.mark.parametrize("locus,subst,sent", ALL_SPECS)
 def test_no_placeholder_residue_across_specs(tmp_path, locus, subst, sent):
-    """plan v14 §9.5: 16 .do 文件占位符零残留 (跨 8 specs)."""
+    """plan v14 §9.5: 18 .do 文件占位符零残留 (跨 8 specs)."""
     from news_process.papers._common.stata_runner import build_replication_package
     pkg = build_replication_package({
         'MAIN_LOCUS_TRACK': locus, 'MAIN_SUBST_TRACK': subst,
@@ -82,8 +83,9 @@ def test_no_placeholder_residue_across_specs(tmp_path, locus, subst, sent):
     assert not issues, f"spec {locus}_{subst}_{sent}: 占位符残留 in {issues}"
 
 
-def test_master_do_references_all_14_subdo(tmp_path):
-    """plan v14 §9.2: 00_master.do.tmpl 引用全部 13 子模板 (除 master 自己)."""
+def test_master_do_references_all_17_subdo(tmp_path):
+    """plan v14 §9.2: 00_master.do.tmpl 引用全部 17 子模板 (除 master 自己;
+    2026-06-13 IV +25_tableA6 / agg +26_tableA7; 2026-06-14 顶刊稳健性扩充 +32_tableA8 +33_tableA9)."""
     from news_process.papers._common.stata_runner import build_replication_package
     pkg = build_replication_package({
         'MAIN_LOCUS_TRACK': 'lc', 'MAIN_SUBST_TRACK': 'sf',
@@ -96,7 +98,9 @@ def test_master_do_references_all_14_subdo(tmp_path):
         '13_table4_heterogeneity.do', '14_table5_advanced_robustness.do',
         '20_tableA1_inter_track_kappa.do', '21_tableA2_main_spec_switch.do',
         '22_tableA3_bartik_iv.do', '23_tableA4_radius_sensitivity.do',
-        '24_tableA5_dictionary_method.do',
+        '24_tableA5_dictionary_method.do', '25_tableA6_tone_iv_2sls.do',
+        '26_tableA7_aggregation_robustness.do',
+        '32_tableA8_fe_saturation_robust_est.do', '33_tableA9_subsample_timing.do',
         '30_figure1_event_study.do', '31_figure_coefplot_dual.do',
     ]
     for sub_name in expected_subdo:

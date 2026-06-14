@@ -1,0 +1,381 @@
+* ============================================================================
+* 16_tableA7_fe_oster_robust.do — 替代固定效应饱和 + Oster δ + 离群稳健 (llm_peer)
+* Paper: {{PAPER_ID}}
+*
+* Bundle A (robustness-gap audit 2026-06-13): 三族稳健性合一张多 Panel 表 ($0, golden-safe)。
+*   Panel A — FE-SAT 替代固定效应饱和: 主 2SLS (内生 {{TONE_VAR}} = 工具 {{LLM_PEER_IV}})
+*             逐步加 i.bank_province#i.year / i.bank_type#i.year / i.bank_zone#i.year 交乘 FE
+*             + 银行特定线性趋势 c.year#i.bank_id (T≥3 守卫)。证 peer-IV 系数非来自省份/
+*             类型/区域层时变共同冲击 (Manski 1993 reflection 的 FE 侧防线; Gormley-Matsa 2014)。
+*   Panel B — OSTER 选择性偏误: psacalc δ 挂在 OLS M2 规格 ({{TONE_VAR}} on {{MAIN_DV}}_w +
+*             controls), framing="即便完全不依赖 IV, 需多大不可观测选择才能翻转 OLS 关联",
+*             与 2SLS 互补回应 referee "语义同业 IV 是否只是在洗白一个本就脆弱的 OLS"。
+*   Panel C — ROBUST-EST 离群稳健: 中位数回归 qreg(.5) + 稳健回归 rreg (Huber/Tukey MM)
+*             对照 OLS, 证主系数非个别离群银行-年驱动 (超越缩尾的更强声明)。qreg/rreg 不能
+*             absorb 高维 FE 也不做 2SLS → 仅挂 OLS 规格 (i.year + i.bank_type 哑变量替 absorb)。
+*
+* 白话: 这张表回答三个审稿质疑 —
+*   (A) "你的同业工具会不会只是捡到了省里/同类银行/同区域那一年的共同风向?"
+*       → 把这些"地区×年"的固定效应全吸走, 看系数还在不在。
+*   (B) "就算不用工具, 你那个最朴素的相关性靠谱吗? 漏掉的变量能不能把它推翻?"
+*       → Oster δ 算出"需要多强的隐藏选择才能让系数归零"。
+*   (C) "会不会就是几家奇葩银行把结果带偏了?"
+*       → 用对离群点不敏感的中位数回归/稳健回归再跑一遍。
+*
+* 文献锚点 (DOI 已核验):
+*   Oster, E. (2019). Unobservable selection and coefficient stability:
+*     Theory and evidence. JBES 37(2), 187-204. DOI 10.1080/07350015.2016.1227711
+*   Altonji, Elder & Taber (2005). JPE 113(1), 151-184. DOI 10.1086/426036 (Oster 理论前身)
+*   Gormley, T.A., & Matsa, D.A. (2014). Common errors: How to (and not to)
+*     control for unobserved heterogeneity. RFS 27(2), 617-661. DOI 10.1093/rfs/hht047
+*   Koenker, R., & Bassett, G. (1978). Regression quantiles. Econometrica 46(1),
+*     33-50. DOI 10.2307/1913643
+*   Leone, Minutti-Meza & Wasley (2019). Influential observations and inference
+*     in accounting research. TAR 94(6), 337-364. DOI 10.2308/accr-52396
+*
+* 全部 capture / capture-confirm 守卫: 缺列/缺包 (ivreghdfe/psacalc)/T=2 退化/簇过少 时
+* 优雅 degrade, esttab 动态列名不硬点名, 绝不 r(111) 崩主链。新列零产出 → golden-safe。
+*
+* 输出: $tables_dir/tableA7_fe_oster_robust.{tex,csv} (+ Panel C 单列子表)
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+eststo clear
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* nested mkdir 防御 (Stata mkdir 不递归; 独立 dry-run / 主链外重跑)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* 载入 prepared panel; 缺失时回退 46_panel_yearly_full.dta (使本表可独立 dry-run)
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        display "  ⚠️ _prepared_panel.dta 缺, 回退 46_panel_yearly_full.dta (未缩尾)"
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+local DV     {{MAIN_DV}}
+local TONE   {{TONE_VAR}}
+local IV     {{LLM_PEER_IV}}
+local CL     {{CLUSTER_VAR}}
+
+* DV 兼容: 主模板用 {{MAIN_DV}}_w (缩尾); _w 缺则回退裸名 (dry-run/未缩尾盘)
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display as error "  ⚠️ 结果变量 `DV'(_w) 不在面板 (财务/强度哨兵未接入), Table A7 整表跳过 (degrade)"
+        exit 0
+    }
+}
+
+* CLUSTER 兜底: 占位符未解析或列缺 → bank_id
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+
+* 交乘 FE 维度须为数值因子: bank_province / bank_type / bank_zone 在盘为字符串 → encode。
+* (i.var#i.year 要求 var 为数值; encode 后用 _grp 后缀的数值版本)
+foreach g in bank_province bank_type bank_zone {
+    capture confirm numeric variable `g'
+    if _rc {
+        capture confirm variable `g'
+        if !_rc {
+            capture confirm variable `g'_grp
+            if _rc {
+                encode `g', gen(`g'_grp)
+            }
+        }
+    }
+    else {
+        * 已是数值, 直接别名为 _grp 供下游统一引用
+        capture confirm variable `g'_grp
+        if _rc {
+            gen `g'_grp = `g'
+        }
+    }
+}
+
+* ==========================================================================
+* Panel A — 替代固定效应饱和 (主 2SLS 逐步加交乘 FE)
+* ==========================================================================
+capture which ivreghdfe
+local HAS_IV = (_rc == 0)
+local fecols ""
+local felabs ""
+
+if `HAS_IV' {
+    capture confirm variable `TONE' `IV'
+    if !_rc {
+        * A0: 基线 2SLS = bank + year FE (= 主规格)
+        capture eststo A_base: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        if !_rc {
+            local fecols "`fecols' A_base"
+            local felabs `"`felabs' "Bank+Year""'
+        }
+
+        * A1: + 省份×年 交乘 FE
+        capture confirm variable bank_province_grp
+        if !_rc {
+            capture eststo A_prov: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year i.bank_province_grp#i.year) cluster(`CL') ffirst
+            if !_rc {
+                local fecols "`fecols' A_prov"
+                local felabs `"`felabs' "+Prov×Year""'
+            }
+            else {
+                display "  ⚠️ Panel A: 省份×年 FE 失败 (T=2 共线?), 跳过 A1"
+            }
+        }
+
+        * A2: + 银行类型×年 交乘 FE
+        capture confirm variable bank_type_grp
+        if !_rc {
+            capture eststo A_type: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year i.bank_type_grp#i.year) cluster(`CL') ffirst
+            if !_rc {
+                local fecols "`fecols' A_type"
+                local felabs `"`felabs' "+Type×Year""'
+            }
+            else {
+                display "  ⚠️ Panel A: 类型×年 FE 失败, 跳过 A2"
+            }
+        }
+
+        * A3: + 区域×年 交乘 FE
+        capture confirm variable bank_zone_grp
+        if !_rc {
+            capture eststo A_zone: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year i.bank_zone_grp#i.year) cluster(`CL') ffirst
+            if !_rc {
+                local fecols "`fecols' A_zone"
+                local felabs `"`felabs' "+Zone×Year""'
+            }
+            else {
+                display "  ⚠️ Panel A: 区域×年 FE 失败, 跳过 A3"
+            }
+        }
+
+        * A4: + 银行特定线性趋势 c.year#i.bank_id (T≥3 守卫: T=2 时趋势与 FE 完全共线)
+        quietly levelsof year, local(_yrs)
+        local _nyr : word count `_yrs'
+        if `_nyr' >= 3 {
+            capture eststo A_trend: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year c.year#i.bank_id) cluster(`CL') ffirst
+            if !_rc {
+                local fecols "`fecols' A_trend"
+                local felabs `"`felabs' "+BankTrend""'
+            }
+            else {
+                display "  ⚠️ Panel A: 银行线性趋势失败, 跳过 A4"
+            }
+        }
+        else {
+            display "  ⚠️ Panel A: T=`_nyr' < 3, 银行特定线性趋势 (c.year#i.bank_id) 与 FE 共线, 跳过 A4 (production T=18 才有功效)"
+        }
+    }
+    else {
+        display "  ⚠️ Panel A: `TONE' / `IV' 缺, 跳过替代 FE 饱和"
+    }
+}
+else {
+    display "  ⚠️ Panel A: ivreghdfe 未安装, 跳过替代 FE 2SLS"
+}
+
+if "`fecols'" != "" {
+    esttab `fecols' using "$tables_dir/tableA7_fe_oster_robust.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        keep(`TONE') ///
+        stats(N widstat, fmt(0 3) labels("N" "KP rk Wald F")) ///
+        title("Table A7-A: Alternative Fixed-Effect Saturation (2SLS; LLM-peer IV)") ///
+        mtitles(`felabs') ///
+        addnotes("Endogenous own tone `TONE' instrumented by LLM-peer leave-one-out tone `IV'." ///
+                 "Each column adds interacted FE to absorb region/type/zone-by-year common shocks (Gormley-Matsa 2014 RFS); SE clustered at `CL'." ///
+                 "Bank-specific linear trends require T>=3 (production T=18); skipped on T=2 trial panel.")
+    estout `fecols' using "$tables_dir/tableA7_fe_oster_robust.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///
+        keep(`TONE') starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A7-A (alternative FE saturation 2SLS) written"
+}
+else {
+    display "  ⚠️ Panel A 无可用列, 跳过 A7-A"
+}
+
+* ==========================================================================
+* Panel B — Oster δ 选择性偏误 (psacalc 挂受控 areg, 对齐 headline bank FE)
+* ==========================================================================
+* 识别口径 (fix LP-OSTER-MCONTROL-01 / LP-OSTER-SPEC-MISMATCH-02, 2026-06-13 family-wide):
+*   psacalc 的 mcontrol = "始终包含、不参与 δ 识别的 nuisance 协变量"; δ 由
+*   **可观测 substantive 控制 (ln_news_coverage / media_hhi / n_articles) 相对 FE
+*   基线的 R²-movement** 界定。因此:
+*   (1) 受控回归改用 areg ..., absorb(bank_id) 以对齐 headline 的银行 FE
+*       (psacalc 支持 areg; 旧版用 i.year+i.bank_type_grp 低维 FE 替代 absorb(bank_id),
+*       与 11_table2 主规格的银行 FE 不一致 → SPEC-MISMATCH)。
+*   (2) mcontrol 仅放受控回归里的 FE 哑变量项 (year 哑变量集; 银行 FE 已被 areg
+*       absorb 吸收), **不**把 3 个经济控制塞进 mcontrol — 让它们驱动 δ 的 R²-movement
+*       (旧版 mcontrol($controls) 把 substantive 控制当 nuisance, δ 退化为仅 FE 驱动)。
+*       ⚠ psacalc 的 mcontrol() 不接受 factor-variable i.year 算符 (实测 r(5001));
+*       须把 i.year 现场 tab 展开成哑变量集 (_yd_*) 再传入 mcontrol。
+*   rmax = min(1, 1.3 × R²(controlled)) (Oster 2019 经验法则); |δ|>1 即可放心
+*   (Altonji et al. 2005 / Oster 2019)。
+* ⚠ T=2 退化披露: 盘面 years 2017-2018 (T=2), 银行 FE areg 后剩余自由度极少,
+*   δ 估计仅 production T=18 全样本下有功效; T=2 时 psacalc 优雅跳过。
+local oster_note "psacalc unavailable"
+capture which psacalc
+if !_rc {
+    capture confirm variable `TONE' $controls
+    if !_rc {
+        * year FE 展开为哑变量集 (psacalc mcontrol 不吃 i.year factor; 见上注)。
+        capture drop _ydos_*
+        quietly tab year, gen(_ydos_)
+        local _ydums ""
+        foreach yd of varlist _ydos_* {
+            local _ydums "`_ydums' `yd'"
+        }
+        * 受控 areg: 银行 FE absorb (对齐 headline) + year 哑变量集 (= 显式 FE)。
+        * psacalc 读 e() 里的受控估计与 R²; mcontrol 仅标注 year 哑变量为 nuisance FE。
+        capture areg `DVUSE' `TONE' $controls `_ydums', absorb(bank_id) vce(cluster `CL')
+        if !_rc {
+            local _r2c = e(r2)
+            local _rmax = min(1, 1.3 * `_r2c')
+            capture psacalc delta `TONE', rmax(`_rmax') mcontrol(`_ydums')
+            if !_rc {
+                * r(delta) 须在任何 estimates restore 之前先 local 捕获 (restore 清空 r())
+                local _delta = r(delta)
+                local _beta  = r(beta)
+                local oster_note = "Oster delta(`TONE')=" + string(`_delta',"%6.3f") + " (rmax=min(1,1.3*R2c)=" + string(`_rmax',"%5.3f") + "; areg absorb(bank_id), mcontrol=year dummies only). delta driven by observable substantive controls' R2-movement vs the bank+year FE baseline; |delta|>1 => selection on unobservables must exceed observables to overturn (Oster 2019 JBES)."
+                display "  [OK] Panel B: `oster_note'"
+            }
+            else {
+                display "  ⚠️ Panel B: psacalc 计算失败 (T=2 共线/样本不足?), 跳过 Oster"
+            }
+        }
+        else {
+            display "  ⚠️ Panel B: controlled areg 估计失败, 跳过 Oster"
+        }
+    }
+    else {
+        display "  ⚠️ Panel B: `TONE' / controls 缺, 跳过 Oster"
+    }
+}
+else {
+    display "  ⚠️ Panel B: psacalc 未安装 (ssc install psacalc), 跳过 Oster δ"
+}
+* Oster δ 是标量诊断 → 写入文本 side-channel (供 parse_esttab_csv 之外的诊断收集)
+capture file close _ofh
+file open _ofh using "$tables_dir/tableA7b_oster_delta.txt", write replace
+file write _ofh "`oster_note'" _n
+file close _ofh
+
+* ==========================================================================
+* Panel C — 离群稳健估计 (qreg(.5) + rreg vs OLS)
+* ==========================================================================
+eststo clear
+local rbcols ""
+local rblabs ""
+capture confirm variable `TONE' $controls
+if !_rc {
+    * 决定 FE 哑变量集: T 足够才加 i.bank_type, T=2 时只 i.year (防过度共线)
+    capture confirm variable bank_type_grp
+    local _has_type = (_rc == 0)
+    if `_has_type' {
+        local FEDUM "i.year i.bank_type_grp"
+    }
+    else {
+        local FEDUM "i.year"
+    }
+
+    * C1: OLS 参照 (同 FE 哑变量集)
+    capture eststo C_ols: regress `DVUSE' `TONE' $controls `FEDUM', vce(cluster `CL')
+    if !_rc {
+        local rbcols "`rbcols' C_ols"
+        local rblabs `"`rblabs' "OLS""'
+    }
+
+    * C2: 中位数回归 qreg(.5) — 对离群 outcome 不敏感 (Koenker-Bassett 1978)
+    capture eststo C_qreg: qreg `DVUSE' `TONE' $controls `FEDUM'
+    if !_rc {
+        local rbcols "`rbcols' C_qreg"
+        local rblabs `"`rblabs' "Median (qreg)""'
+    }
+    else {
+        display "  ⚠️ Panel C: qreg 失败 (样本不足/共线?), 跳过中位数回归"
+    }
+
+    * C3: 稳健回归 rreg (Huber 起始 + Tukey biweight IRLS 有界影响 M-估计; 对离群
+    *     银行-年降权)。⚠ rreg 不接受 factor-variable i. 算符 → 把 `FEDUM' 的 i.year
+    *     (+i.bank_type_grp) 现场展开成哑变量集 (对齐 substance/24 / locus/22 范式)。
+    quietly tab year, gen(_yd_)
+    local _rfe ""
+    foreach yd of varlist _yd_* {
+        local _rfe "`_rfe' `yd'"
+    }
+    if `_has_type' {
+        capture confirm variable bank_type_grp
+        if !_rc {
+            quietly tab bank_type_grp, gen(_td_)
+            foreach td of varlist _td_* {
+                local _rfe "`_rfe' `td'"
+            }
+        }
+    }
+    capture eststo C_rreg: rreg `DVUSE' `TONE' $controls `_rfe'
+    if !_rc {
+        local rbcols "`rbcols' C_rreg"
+        local rblabs `"`rblabs' "Robust (rreg)""'
+    }
+    else {
+        display "  ⚠️ Panel C: rreg 失败, 跳过稳健回归"
+    }
+
+    if "`rbcols'" != "" {
+        esttab `rbcols' using "$tables_dir/tableA7c_robust_estimator.tex", replace ///
+            se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+            keep(`TONE') ///
+            title("Table A7-C: Outlier-Robust Estimators (OLS vs qreg vs rreg)") ///
+            mtitles(`rblabs') ///
+            addnotes("OLS-side outlier robustness on `DVUSE' (cannot carry 2SLS/high-dim FE)." ///
+                     "qreg = median (LAD) regression (Koenker-Bassett 1978 ECMA); rreg = Huber start + Tukey biweight IRLS bounded-influence M-estimator (NOT Yohai 1987 MM)." ///
+                     "Year (and bank-type) dummies replace absorb(); stronger claim than winsorization." ///
+                     "⚠ SE bases are NOT comparable across columns: OLS column SE = bank-clustered (vce cluster `CL'); qreg SE = default iid sparsity estimate; rreg SE = IRLS asymptotic. Compare point estimates, not significance stars, across estimators.")
+        estout `rbcols' using "$tables_dir/tableA7c_robust_estimator.csv", replace delimiter(",") ///
+            cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+            keep(`TONE') starlevels(* 0.10 ** 0.05 *** 0.01)
+        display "[OK] Table A7-C (outlier-robust estimators) written"
+    }
+    else {
+        display "  ⚠️ Panel C 无可用列, 跳过 A7-C"
+    }
+}
+else {
+    display "  ⚠️ Panel C: `TONE' / controls 缺, 跳过离群稳健估计"
+}
+
+display "[OK] Table A7 (FE saturation + Oster delta + outlier-robust) — llm_peer 完成"

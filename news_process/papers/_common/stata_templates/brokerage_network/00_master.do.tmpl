@@ -43,6 +43,11 @@ do 19_table10_network_het.do
 do 20_table11_fwer_battery.do
 * agg-toptier-audit 2026-06-13: 推断(双向cluster/boottest)+覆盖筛选 wire-ahead 桩 (财务接入后激活)
 do 21_table12_agg_robustness.do
+* 2026-06-14 顶刊稳健性扩充: 选择性稳健 (FE 饱和/离群稳健估计/Oster δ, Table A13) / 子样本-lead 时序 (Table A14)
+capture noisily do 22_tableA13_selection_robustness.do
+if _rc display as error "[WARN] 22_tableA13_selection_robustness.do failed (rc=`=_rc'); Table A13 skipped"
+capture noisily do 23_tableA14_subsample_timing.do
+if _rc display as error "[WARN] 23_tableA14_subsample_timing.do failed (rc=`=_rc'); Table A14 skipped"
 do 30_figure1_centrality_distribution.do
 
 display "[OK] brokerage_network master.do complete"

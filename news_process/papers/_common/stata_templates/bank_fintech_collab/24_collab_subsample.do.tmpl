@@ -1,0 +1,178 @@
+* ============================================================================
+* 24_collab_subsample.do — 子样本构成稳健性 (SUBSAMPLE, P5)
+* Paper: {{PAPER_ID}}  (Innovation Collaboration Mode — Chesbrough 2003)
+*
+* 四分组维度并排, 检验外部效度 / 样本构成稳健性 (external validity / composition):
+*   SS1 — is_soe          国有 vs 非国有 (产权属性; 中国银行业实证惯例)
+*   SS2 — bank_is_hub     网络枢纽行 vs 非枢纽行 (网络地位; Burt 1992 结构洞)
+*   SS3 — bank_effective_size 中位切: 大行 vs 小行 (规模异质)
+*   SS4 — bank_type       银行类型逐组 (与 17_collab_heterogeneity 同维, 此处仅作并排参照)
+*
+* ⚠ 与现有 17_collab_heterogeneity (Table 4, 仅 bank_type 一维) 不等价: 本表补
+*   is_soe (产权) / bank_is_hub (网络枢纽) / bank_effective_size (规模) 三个不同分组
+*   变量、不同经济含义, 是构成稳健性而非重复异质性。SS4 (bank_type) 仅为对照锚点。
+*
+* 白话: 把样本按不同标准切成几组分别重跑回归 — 国有/非国有、是不是网络枢纽、大行/小行 —
+*   看核心结论在哪类银行里都成立 (而不是只在某一类银行里有效, 那样就只是巧合)。
+*
+* golden-safe: 仅消费在盘分组列 (is_soe/bank_is_hub/bank_effective_size/bank_type 已核
+*   在盘); DV {{MAIN_DV}} + $controls 为待接入财务哨兵 → capture confirm 守卫,
+*   缺列则整表 no-op (wire-ahead 桩)。每个子样本回归用 quietly count + N 守卫防 T=2
+*   分组后样本过小崩溃 (优雅跳过该组)。TIMING 不纳入 (has_lag=false, 年度面板无滞后窗)。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+eststo clear
+
+local DV   {{MAIN_DV}}
+local CL   {{CLUSTER_VAR}}
+local X    collab_open_full collab_closed_full
+
+* DV 解析 (缩尾 _w → 裸名 → 缺则整表 no-op wire-ahead 桩)
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display "  WARN 结果变量 `DV'(_w) 待接入财务面板; Table A-collab-SUBSAMPLE 整表 no-op (wire-ahead 桩)"
+        exit 0
+    }
+}
+capture confirm variable `CL'
+if _rc local CL bank_id
+capture confirm variable `X'
+if _rc {
+    display "  WARN 主处理变量 (`X') 缺 (须先跑 01_data_prep); Table A-collab-SUBSAMPLE degrade"
+    exit 0
+}
+
+* --------------------------------------------------------------------------
+* 单组子样本回归子程序 (内联宏): 守卫 N → reghdfe → eststo 存名 → 累积列名/标题。
+* 最小观测守卫: 子样本需 N≥10 (粗略防 T=2 分组后退化崩溃; production T=18 充裕)。
+* --------------------------------------------------------------------------
+local subcols ""
+local sublabs ""
+
+* === SS1: is_soe 国有 vs 非国有 (产权) ===
+capture confirm variable is_soe
+if !_rc {
+    foreach g in 0 1 {
+        quietly count if is_soe == `g' & !missing(`DVUSE')
+        if r(N) >= 10 {
+            capture eststo SS1_soe`g': reghdfe `DVUSE' `X' $controls if is_soe == `g', ///
+                absorb(bank_id year) vce(cluster `CL')
+            if !_rc {
+                local subcols "`subcols' SS1_soe`g'"
+                if `g' == 1 local sublabs `"`sublabs' "SOE""'
+                else        local sublabs `"`sublabs' "Non-SOE""'
+            }
+            else display "  WARN SS1 is_soe==`g' 回归失败 (共线/退化), 跳过"
+        }
+        else display "  WARN SS1 is_soe==`g' 子样本 N<10 (T=2 退化), 跳过"
+    }
+}
+else display "  WARN SS1: is_soe 缺, 跳过产权分组"
+
+* === SS2: bank_is_hub 网络枢纽 vs 非枢纽 ===
+capture confirm variable bank_is_hub
+if !_rc {
+    foreach g in 0 1 {
+        quietly count if bank_is_hub == `g' & !missing(`DVUSE')
+        if r(N) >= 10 {
+            capture eststo SS2_hub`g': reghdfe `DVUSE' `X' $controls if bank_is_hub == `g', ///
+                absorb(bank_id year) vce(cluster `CL')
+            if !_rc {
+                local subcols "`subcols' SS2_hub`g'"
+                if `g' == 1 local sublabs `"`sublabs' "Hub""'
+                else        local sublabs `"`sublabs' "Non-hub""'
+            }
+            else display "  WARN SS2 bank_is_hub==`g' 回归失败, 跳过"
+        }
+        else display "  WARN SS2 bank_is_hub==`g' 子样本 N<10 (T=2 退化), 跳过"
+    }
+}
+else display "  WARN SS2: bank_is_hub 缺, 跳过枢纽分组"
+
+* === SS3: bank_effective_size 中位切 (大行 vs 小行) ===
+capture confirm variable bank_effective_size
+if !_rc {
+    quietly summarize bank_effective_size, detail
+    local _med = r(p50)
+    capture drop _size_big
+    gen byte _size_big = (bank_effective_size > `_med') if !missing(bank_effective_size)
+    foreach g in 0 1 {
+        quietly count if _size_big == `g' & !missing(`DVUSE')
+        if r(N) >= 10 {
+            capture eststo SS3_sz`g': reghdfe `DVUSE' `X' $controls if _size_big == `g', ///
+                absorb(bank_id year) vce(cluster `CL')
+            if !_rc {
+                local subcols "`subcols' SS3_sz`g'"
+                if `g' == 1 local sublabs `"`sublabs' "Large""'
+                else        local sublabs `"`sublabs' "Small""'
+            }
+            else display "  WARN SS3 size==`g' 回归失败, 跳过"
+        }
+        else display "  WARN SS3 size==`g' 子样本 N<10 (T=2 退化), 跳过"
+    }
+    capture drop _size_big
+}
+else display "  WARN SS3: bank_effective_size 缺, 跳过规模分组"
+
+* === SS4: bank_type 逐组 (字符串列, 与 17 同维, 仅作并排参照) ===
+capture confirm variable bank_type
+if !_rc {
+    levelsof bank_type, local(_types)
+    foreach t of local _types {
+        quietly count if bank_type == "`t'" & !missing(`DVUSE')
+        if r(N) >= 10 {
+            capture eststo SS4_`t': reghdfe `DVUSE' `X' $controls if bank_type == "`t'", ///
+                absorb(bank_id year) vce(cluster `CL')
+            if !_rc {
+                local subcols "`subcols' SS4_`t'"
+                local sublabs `"`sublabs' "`t'""'
+            }
+            else display "  WARN SS4 bank_type==`t' 回归失败, 跳过"
+        }
+        else display "  WARN SS4 bank_type==`t' 子样本 N<10 (T=2 退化), 跳过"
+    }
+}
+else display "  WARN SS4: bank_type 缺, 跳过类型分组"
+
+* --------------------------------------------------------------------------
+* esttab 动态名单 (任一子样本被守卫跳过则不点名, 防 r(111) 丢整表)
+* --------------------------------------------------------------------------
+if "`subcols'" != "" {
+    esttab `subcols' using "$tables_dir/tableA_collab_subsample.tex", replace ///
+        keep(`X') se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        stats(N r2, fmt(0 3) labels("N" "R²")) ///
+        title("Table A-collab-SUBSAMPLE: Sub-sample composition robustness") ///
+        mtitles(`sublabs') ///
+        addnotes("Split by ownership (SOE), network hub status, bank size (median split), and bank type. bank/year FE; SE clustered at `CL'.")
+    estout `subcols' using "$tables_dir/tableA_collab_subsample.csv", replace delimiter(",") ///
+        keep(`X') cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`sublabs')
+    display "[OK] Table A-collab-SUBSAMPLE → tableA_collab_subsample.tex (+ .csv)"
+}
+else {
+    display "  WARN Table A-collab-SUBSAMPLE 无任何子样本估计 (DV 哨兵未接入 / T=2 全退化), 表 no-op"
+}
+
+display "[OK] bank_fintech_collab 24_collab_subsample 完成 (SOE / hub / size / type 四分组)"

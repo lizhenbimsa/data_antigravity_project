@@ -34,6 +34,11 @@ do 13_table4_heterogeneity.do
 do 14_table5_robustness.do
 * agg-toptier-audit 2026-06-13: 推断(双向cluster/boottest)+覆盖筛选 wire-ahead 桩 (财务接入后激活)
 do 15_table6_agg_robustness.do
+* 2026-06-14 顶刊稳健性扩充: FE 饱和/离群稳健估计/Oster δ (Table 7) / Hub·规模·类型子样本 (Table 8)
+capture noisily do 16_table7_fe_robustness.do
+if _rc display as error "[WARN] 16_table7_fe_robustness.do failed (rc=`=_rc'); Table 7 skipped"
+capture noisily do 17_table8_subsample.do
+if _rc display as error "[WARN] 17_table8_subsample.do failed (rc=`=_rc'); Table 8 skipped"
 do 30_figure1_n_sensitivity.do
 
 display "[OK] strategic_diff master.do complete"

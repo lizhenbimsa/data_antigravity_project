@@ -1,0 +1,131 @@
+* ============================================================================
+* 25_collab_ppml.do — Poisson 伪极大似然计数模型 (PPML, P5)
+* Paper: {{PAPER_ID}}  (Innovation Collaboration Mode — Chesbrough 2003)
+*
+* PPML 计数 outcome 金标准对照 (count-outcome gold-standard):
+*   主结果 {{MAIN_DV}} = m_and_a_fintech 是 COUNT 类型 (M&A 事件计数, spec.outcome.primary),
+*   但本篇 15/16/17/18 全部用 reghdfe 线性 FE。对计数 outcome 用 OLS 是文献公认的
+*   misspecification (log(1+y) 偏误 / 边界 0 堆积 / 异方差)。ppmlhdfe 用 Poisson
+*   pseudo-ML + 高维 FE 吸收, 系数可直接作半弹性 (semi-elasticity) 解读, 与 OLS 主表
+*   并排做 misspecification 对照。
+*
+*   理论锚点 (Theory anchor):
+*     Cohn, Liu & Wardlaw (2022) "Count (and count-like) data in finance",
+*       Journal of Financial Economics 146(2):529-551, doi:10.1016/j.jfineco.2022.08.004
+*     Silva & Tenreyro (2006) "The log of gravity",
+*       Review of Economics and Statistics 88(4):641-658, doi:10.1162/rest.88.4.641
+*     Correia, Guimarães & Zylkin (2020) "Fast Poisson estimation with high-dimensional
+*       fixed effects", Stata Journal 20(1):95-115 (ppmlhdfe 实现)
+*
+* 白话: 主结果是"并购了几起金融科技标的"这种计数 (0,1,2...), 用普通线性回归会有系统
+*   性偏差 (尤其很多 0 的时候)。这里换成 Poisson 计数专用模型 ppmlhdfe 重跑, 系数能
+*   直接读成"百分比变化", 和线性主表对照, 证明结论不是模型选错带来的假象。
+*
+* golden-safe: 仅消费在盘列; DV {{MAIN_DV}} (计数, 待接入财务哨兵) + $controls →
+*   capture confirm 守卫, 缺列则整表 no-op (wire-ahead 桩, 不触发任何计算)。
+*   ppmlhdfe 经 capture which + ssc install 守卫, 未装则跳过 (视为正常, 非失败)。
+*   ⚠ PPML 须用计数原值 (非缩尾 _w / 非 log), 故 DV 用裸 {{MAIN_DV}} 不用 _w。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+eststo clear
+
+local CL   {{CLUSTER_VAR}}
+local X    collab_open_full collab_closed_full
+
+* --------------------------------------------------------------------------
+* 守卫 1: DV 必须是裸计数原值 (PPML 不能用缩尾/log; 缺则整表 no-op wire-ahead 桩)
+* --------------------------------------------------------------------------
+capture confirm variable {{MAIN_DV}}
+if _rc {
+    display "  WARN 计数结果变量 {{MAIN_DV}} 待接入财务面板 (M0.5.11 Tonghuashun M&A); Table A-collab-PPML 整表 no-op (wire-ahead 桩)"
+    exit 0
+}
+capture confirm variable `CL'
+if _rc local CL bank_id
+capture confirm variable `X'
+if _rc {
+    display "  WARN 主处理变量 (`X') 缺 (须先跑 01_data_prep); Table A-collab-PPML degrade"
+    exit 0
+}
+
+* --------------------------------------------------------------------------
+* 守卫 2: ppmlhdfe SSC 依赖 (capture which + ssc install; 未装则整表跳过, 视为正常)
+* --------------------------------------------------------------------------
+capture which ppmlhdfe
+if _rc {
+    capture ssc install ppmlhdfe, replace
+    capture ssc install ftools, replace   // ppmlhdfe 依赖 ftools/reghdfe Mata 库
+}
+capture which ppmlhdfe
+if _rc {
+    display "  WARN ppmlhdfe 未安装 (ssc install ppmlhdfe); PPML count model 整表跳过 (视为正常)"
+    exit 0
+}
+
+* --------------------------------------------------------------------------
+* P1: PPML 基线 — Poisson PML + bank/year 高维 FE 吸收
+*   ppmlhdfe 自动剔除完美预测 0 的固定效应组 (separation), 系数 = 半弹性。
+* --------------------------------------------------------------------------
+local ppmlcols ""
+local ppmllabs ""
+
+capture eststo PPML1: ppmlhdfe {{MAIN_DV}} `X', absorb(bank_id year) vce(cluster `CL')
+if !_rc {
+    local ppmlcols "`ppmlcols' PPML1"
+    local ppmllabs `"`ppmllabs' "PPML bare""'
+}
+else display "  WARN PPML1 (裸) 失败 (separation / T=2 退化?), 跳过"
+
+* P2: + 财务控制 (capture confirm 守卫; $controls 缺则等同 P1, 故仅在非空时跑)
+if "$controls" != "" {
+    capture eststo PPML2: ppmlhdfe {{MAIN_DV}} `X' $controls, absorb(bank_id year) vce(cluster `CL')
+    if !_rc {
+        local ppmlcols "`ppmlcols' PPML2"
+        local ppmllabs `"`ppmllabs' "PPML +ctrl""'
+    }
+    else display "  WARN PPML2 (+控制) 失败, 跳过"
+}
+else display "  [INFO] $controls 为空 (财务控制未接入); PPML2 +ctrl 列省略 (= PPML1)"
+
+* P3: OLS 对照列 (同设定 reghdfe, 计数 outcome 上的 misspecified 线性基准 — 供并排对比)
+capture eststo PPML_OLS: reghdfe {{MAIN_DV}} `X' $controls, absorb(bank_id year) vce(cluster `CL')
+if !_rc {
+    local ppmlcols "`ppmlcols' PPML_OLS"
+    local ppmllabs `"`ppmllabs' "OLS (ref.)""'
+}
+else display "  WARN PPML_OLS 线性对照列失败, 跳过"
+
+* --------------------------------------------------------------------------
+* esttab 动态名单 (任一列被守卫跳过则不点名, 防 r(111) 丢整表) + CSV side-channel
+* --------------------------------------------------------------------------
+if "`ppmlcols'" != "" {
+    esttab `ppmlcols' using "$tables_dir/tableA_collab_ppml.tex", replace ///
+        keep(`X') se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        stats(N, fmt(0) labels("N")) ///
+        title("Table A-collab-PPML: Count model (Poisson PML, Cohn-Liu-Wardlaw 2022 JFE)") ///
+        mtitles(`ppmllabs') ///
+        addnotes("m_and_a_fintech is a count outcome; PPML (ppmlhdfe) corrects log(1+y) bias and 0-mass; coefficients read as semi-elasticities. OLS column shown for contrast.")
+    estout `ppmlcols' using "$tables_dir/tableA_collab_ppml.csv", replace delimiter(",") ///
+        keep(`X') cells(b(star fmt(3)) se(par fmt(3))) stats(N, fmt(0)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`ppmllabs')
+    display "[OK] Table A-collab-PPML → tableA_collab_ppml.tex (+ .csv)"
+}
+else {
+    display "  WARN Table A-collab-PPML 无任何估计成功 (DV 哨兵未接入 / separation / T=2 退化), 表 no-op"
+}
+
+display "[OK] bank_fintech_collab 25_collab_ppml 完成 (Poisson PML 计数模型对照 OLS)"

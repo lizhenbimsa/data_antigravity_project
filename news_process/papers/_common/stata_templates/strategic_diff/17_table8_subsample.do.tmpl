@@ -1,0 +1,305 @@
+* ============================================================================
+* 17_table8_subsample.do — 子样本外部效度稳健性 (strategic_diff)
+* Paper: {{PAPER_ID}}  (Guzman-Li 2023 + Hoberg-Phillips 2016)
+*
+* 子样本切分稳健性 (subsample / external-validity robustness): 证策略差异化-特许权
+* 价值关系在不同银行结构子样本中稳健。三个外部效度维度 (与 13_table4 的 SOE 异质性
+* 维度互补、不重叠 — 本表刻意不做 is_soe 切分以免与 Table 4 重复):
+*   维度 1 — 枢纽 vs 非枢纽 (hub vs non-hub, by bank_is_hub): 网络枢纽行 vs 边缘行。
+*   维度 2 — 大行 vs 小行 (large vs small, by bank_effective_size 中位切): 规模子样本。
+*   维度 3 — 按银行类型分组 (by bank_type): 国有/股份/城商/农商/外资/民营 逐类。
+*   白话: 把样本按"是不是网络枢纽""规模大小""银行类型"切开分别跑同一主回归,
+*         看主系数 (策略差异化对特许权价值的关系) 在各子样本里是否一致, 这是回应
+*         "结论会不会只在某类银行成立"的标准外部效度检验。
+*
+* golden-safe 铁律:
+*   - 主结果 {{MAIN_DV}}=tobin_q 当前为外部财务哨兵列 (上市行特许权价值, 待接入
+*     config/银行面板2007-2025年.xlsx); 缺列时全表优雅 no-op (capture confirm 守卫),
+*     绝不 r(198) 中断, 财务面板接入并跑 01_data_prep 后自动激活。
+*   - 全部切分维度列均在盘 (bank_is_hub / bank_effective_size / bank_type) +
+*     处理 (strat_diff_n5) + $controls; 仅消费在盘列。
+*   - 各子样本回归 capture 守卫 + esttab/estout 名单动态化 (缺名不点名防 r(111)),
+*     带 CSV side-channel。
+*   - T=2 试跑盘 (years 2017-2018, ~174 行) + 子样本切薄: bank+year FE 在过小子样本
+*     可能吸收殆尽 → capture 回归失败优雅跳过 (production T=18 才全功效)。
+*
+* 文献锚点: 子样本/外部效度为标准做法 (无单一典范 DOI; 见 Roberts & Whited 2013,
+*           "Endogeneity in Empirical Corporate Finance", Handbook of the Economics
+*           of Finance, doi:10.1016/B978-0-44-453594-8.00007-0, §heterogeneity)。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* nested mkdir (独立重跑/dry-run 防御 — Stata mkdir 不递归)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* ----- 载入面板 (优先 01_data_prep 产物, 回退裸面板; 与 15/16 同口径) -----
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+if "$controls" == "" {
+    global controls "{{CONTROLS}}"
+}
+
+local DV   {{MAIN_DV}}
+local X     strat_diff_n5
+local CL   {{CLUSTER_VAR}}
+
+* ----- DV 解析: 缩尾 _w -> 裸名 -> 缺则整表 no-op (wire-ahead 桩) -----
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display "  WARN 结果变量 `DV'(_w) 待接入财务面板, Table 8-strat 全表 no-op (wire-ahead 桩)"
+        display "[OK] Table 8-strat (subsample) — wire-ahead no-op, 财务列接入后自动激活"
+        exit 0
+    }
+}
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+capture confirm variable `X'
+if _rc {
+    display "  WARN 主处理变量 (`X') 缺 (须先跑 stage 24/45 + 01_data_prep); Table 8-strat degrade"
+    exit 0
+}
+
+* 子样本切薄后 bank+year FE 易共线/吸收殆尽 → 用 reghdfe 但 capture 守卫优雅跳过。
+* small-N 守卫阈值: 子样本内有效观测 >= 8 才尝试回归 (否则 esttab 列必崩)。
+local NMIN 8
+
+* ==========================================================================
+* 维度 1 — 枢纽 vs 非枢纽 (bank_is_hub)
+* ==========================================================================
+eststo clear
+local Hcols ""
+local Hlabs ""
+capture confirm variable bank_is_hub
+if !_rc {
+    * 非枢纽 (bank_is_hub == 0)
+    quietly count if bank_is_hub == 0 & !missing(`DVUSE', `X')
+    if r(N) >= `NMIN' {
+        capture eststo H_non: reghdfe `DVUSE' `X' $controls if bank_is_hub == 0, ///
+            absorb(bank_id year) vce(cluster `CL')
+        if !_rc {
+            local Hcols "`Hcols' H_non"
+            local Hlabs `"`Hlabs' "Non-hub""'
+        }
+    }
+    else {
+        display "  SKIP 维度1: 非枢纽子样本 N=`r(N)' < `NMIN', 跳过"
+    }
+    * 枢纽 (bank_is_hub == 1)
+    quietly count if bank_is_hub == 1 & !missing(`DVUSE', `X')
+    if r(N) >= `NMIN' {
+        capture eststo H_hub: reghdfe `DVUSE' `X' $controls if bank_is_hub == 1, ///
+            absorb(bank_id year) vce(cluster `CL')
+        if !_rc {
+            local Hcols "`Hcols' H_hub"
+            local Hlabs `"`Hlabs' "Hub""'
+        }
+    }
+    else {
+        display "  SKIP 维度1: 枢纽子样本 N=`r(N)' < `NMIN', 跳过 (T=2 试跑盘 hub 仅 11 行, 预期退化)"
+    }
+}
+else {
+    display "  WARN 维度1: bank_is_hub 列缺, 跳过枢纽切分"
+}
+
+qui estimates dir
+local stored `r(names)'
+local Hm ""
+local Ht `""'
+local Hcand H_non H_hub
+local Hlb `""Non-hub" "Hub""'
+local nH : word count `Hcand'
+forvalues i = 1/`nH' {
+    local mm : word `i' of `Hcand'
+    if `: list mm in stored' {
+        local Hm `Hm' `mm'
+        local tt : word `i' of `Hlb'
+        local Ht `"`Ht' "`tt'""'
+    }
+}
+if "`Hm'" != "" {
+    esttab `Hm' using "$tables_dir/table8a_subsample_hub.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) keep(`X') ///
+        title("Table 8-strat-A: Subsample by Network Hub Status") ///
+        mtitles(`Ht') ///
+        addnotes("Split by bank_is_hub; reghdfe absorb(bank_id year), cluster `CL'.")
+    estout `Hm' using "$tables_dir/table8a_subsample_hub.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) keep(`X')
+    display "[OK] Table 8-strat-A (hub subsample) written"
+}
+else {
+    display "  WARN Table 8-strat-A 无任何 hub 子样本估计; 表跳过"
+}
+
+* ==========================================================================
+* 维度 2 — 大行 vs 小行 (bank_effective_size 中位切)
+* ==========================================================================
+eststo clear
+local Scols ""
+local Slabs ""
+capture confirm variable bank_effective_size
+if !_rc {
+    * 中位数切分 (within 非缺样本); 用 summarize, detail 取 p50
+    quietly summarize bank_effective_size if !missing(`DVUSE', `X'), detail
+    local _med = r(p50)
+    if `_med' < . {
+        * 小行 (<= 中位)
+        quietly count if bank_effective_size <= `_med' & !missing(`DVUSE', `X', bank_effective_size)
+        if r(N) >= `NMIN' {
+            capture eststo S_small: reghdfe `DVUSE' `X' $controls if bank_effective_size <= `_med', ///
+                absorb(bank_id year) vce(cluster `CL')
+            if !_rc {
+                local Scols "`Scols' S_small"
+                local Slabs `"`Slabs' "Small""'
+            }
+        }
+        else {
+            display "  SKIP 维度2: 小行子样本 N=`r(N)' < `NMIN', 跳过"
+        }
+        * 大行 (> 中位)
+        quietly count if bank_effective_size > `_med' & !missing(`DVUSE', `X', bank_effective_size)
+        if r(N) >= `NMIN' {
+            capture eststo S_large: reghdfe `DVUSE' `X' $controls if bank_effective_size > `_med' & !missing(bank_effective_size), ///
+                absorb(bank_id year) vce(cluster `CL')
+            if !_rc {
+                local Scols "`Scols' S_large"
+                local Slabs `"`Slabs' "Large""'
+            }
+        }
+        else {
+            display "  SKIP 维度2: 大行子样本 N=`r(N)' < `NMIN', 跳过"
+        }
+    }
+    else {
+        display "  WARN 维度2: bank_effective_size 中位数缺 (全缺?), 跳过规模切分"
+    }
+}
+else {
+    display "  WARN 维度2: bank_effective_size 列缺, 跳过规模切分"
+}
+
+qui estimates dir
+local stored `r(names)'
+local Sm ""
+local St `""'
+local Scand S_small S_large
+local Slb `""Small" "Large""'
+local nS : word count `Scand'
+forvalues i = 1/`nS' {
+    local mm : word `i' of `Scand'
+    if `: list mm in stored' {
+        local Sm `Sm' `mm'
+        local tt : word `i' of `Slb'
+        local St `"`St' "`tt'""'
+    }
+}
+if "`Sm'" != "" {
+    esttab `Sm' using "$tables_dir/table8b_subsample_size.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) keep(`X') ///
+        title("Table 8-strat-B: Subsample by Bank Size (effective-size median split)") ///
+        mtitles(`St') ///
+        addnotes("Median split on bank_effective_size; reghdfe absorb(bank_id year), cluster `CL'.")
+    estout `Sm' using "$tables_dir/table8b_subsample_size.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) keep(`X')
+    display "[OK] Table 8-strat-B (size subsample) written"
+}
+else {
+    display "  WARN Table 8-strat-B 无任何规模子样本估计; 表跳过"
+}
+
+* ==========================================================================
+* 维度 3 — 按银行类型分组 (bank_type, 字符串列逐类)
+* ==========================================================================
+eststo clear
+local Tcols ""
+local Tlabs ""
+capture confirm variable bank_type
+if !_rc {
+    * encode 取类型清单 (字符串 levelsof)
+    quietly levelsof bank_type, local(_btypes)
+    local _ti 0
+    foreach bt of local _btypes {
+        local ++_ti
+        quietly count if bank_type == "`bt'" & !missing(`DVUSE', `X')
+        if r(N) >= `NMIN' {
+            capture eststo T_`_ti': reghdfe `DVUSE' `X' $controls if bank_type == "`bt'", ///
+                absorb(bank_id year) vce(cluster `CL')
+            if !_rc {
+                local Tcols "`Tcols' T_`_ti'"
+                local Tlabs `"`Tlabs' "`bt'""'
+            }
+            else {
+                display "  SKIP 维度3: 类型=`bt' 回归失败 (子样本退化), 跳过"
+            }
+        }
+        else {
+            display "  SKIP 维度3: 类型=`bt' 子样本 N=`r(N)' < `NMIN', 跳过"
+        }
+    }
+}
+else {
+    display "  WARN 维度3: bank_type 列缺, 跳过类型分组"
+}
+
+qui estimates dir
+local stored `r(names)'
+local Tm ""
+foreach mm of local stored {
+    if strmatch("`mm'", "T_*") {
+        local Tm `Tm' `mm'
+    }
+}
+if "`Tm'" != "" {
+    * mtitles 用累积的 `Tlabs' (与存活 T_* 列同序)
+    esttab `Tm' using "$tables_dir/table8c_subsample_banktype.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) keep(`X') ///
+        title("Table 8-strat-C: Subsample by Bank Type") ///
+        mtitles(`Tlabs') ///
+        addnotes("Per-bank-type subsample (only groups with N>=`NMIN'); reghdfe absorb(bank_id year), cluster `CL'.")
+    estout `Tm' using "$tables_dir/table8c_subsample_banktype.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) keep(`X')
+    display "[OK] Table 8-strat-C (bank-type subsample) written"
+}
+else {
+    display "  WARN Table 8-strat-C 无任何类型子样本估计; 表跳过 (T=2 试跑盘多数类型 within-bank 退化, 预期)"
+}
+
+display "[OK] Table 8-strat (subsample external validity: hub / size / bank-type) — strategic_diff 完成"
