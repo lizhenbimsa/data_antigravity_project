@@ -94,6 +94,7 @@ class PanelBuildingSchema:
     aggregation_frequency: str = "yearly"
     export_stata: bool = True
     compute_attention_index: bool = True
+    compute_attention_treatments: bool = True  # 6b-2. P2 attention 处理变量 (Fang-Peress 2009 JF; 三轨)
     compute_dedup_sensitivity: bool = True  # 6b-3. 去重阈值敏感性 (Tetlock 2011 RFS)
     # 严格方向 (jaccard, window_busdays) 变体网格; None → 模块 DEFAULT_VARIANTS
     dedup_sensitivity: Any = None
@@ -102,6 +103,7 @@ class PanelBuildingSchema:
     compute_bartik_iv: bool = True
     bartik_base_year: Any = "auto"  # int 或 'auto'
     bartik_pre_treatment_cutoff: int = 2019
+    compute_iv_extensions: bool = True  # 8z. IV 扩展族 (GPSS 2020 AER 等, 见 iv_extensions.py 模块头)
     compute_policy_shocks: bool = True
 
 

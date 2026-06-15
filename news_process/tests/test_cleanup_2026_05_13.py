@@ -146,11 +146,13 @@ class TestSchemaValidation:
             "aggregation_frequency": "yearly",
             "export_stata": True,
             "compute_attention_index": True,
+            "compute_attention_treatments": True,
             "compute_media_heterogeneity": True,
             "compute_media_authority_weighting": True,
             "compute_bartik_iv": True,
             "bartik_base_year": "auto",
             "bartik_pre_treatment_cutoff": 2019,
+            "compute_iv_extensions": True,
             "compute_policy_shocks": True,
         }
         validate_config_schema({"panel_building": cfg_section})
@@ -190,6 +192,28 @@ class TestSchemaSelfConsistency:
                 f"_PANEL_ACTIVE_KEYS 含 {key!r}, 但 PanelBuildingSchema 未登记; "
                 f"任一处漂移会让 P0-3 warning 与 schema 校验不一致."
             )
+
+    def test_real_panel_yaml_fully_registered(self):
+        """on-disk ``config/panel.yaml::panel_building`` 不得含 schema 未登记字段.
+
+        防漂移守卫: 给 YAML 加新 ``compute_*`` 字段时若忘了同步
+        ``PanelBuildingSchema``, 运行期只 emit warning (不阻塞); 此测试把
+        "未登记字段" 升级为 CI 红线, 强制 schema 与真实配置同步。
+        (2026-06-15: compute_attention_treatments / compute_iv_extensions 漏登记
+        触发运行期 warning 后补此守卫。)
+        """
+        from dataclasses import fields
+
+        from news_process.core.config import load_config
+
+        config = load_config()
+        panel_section = config.get("panel_building", {})
+        schema_fields = {f.name for f in fields(PanelBuildingSchema)}
+        unregistered = sorted(set(panel_section.keys()) - schema_fields)
+        assert not unregistered, (
+            f"config/panel.yaml::panel_building 含未登记字段 {unregistered}; "
+            f"请补进 core/schemas_yaml.py::PanelBuildingSchema (或修 YAML typo)."
+        )
 
     def test_tone_llm_schema_has_prompt_version_fields(self):
         """schema 必须登记 ``prompt_template_version`` 等 P3-17 生成字段."""
