@@ -57,6 +57,37 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
     这不是稳健, 是数据早被剪过了。所以本模块优先读去重之前的原始快照
     (_cache/), 实在拿不到才退回旧输入, 并在报告里逐行标明哪些数字是
     机械结果不可当证据。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 32a_dedup_threshold_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**⚠ 与任务描述的偏差订正**: 任务要点写的 'attention_*_jXXwY 20列演示' 实际属于另一个模块 `pipeline/panel/dedup_sensitivity.py` (runner 步骤 6b-3, 在面板上派生 20 个 `attention_*_jXXwY` 列)。本 shim (32a) 转发的是 `validation/dedup_threshold.py`, 它产出的是 `dedup_sensitivity_report.csv` (4 阈值×7 列), 与 jXXwY 列无关, 不要混淆。
+
+**输入 (双口径, 关键)**: 优先 `data/processed/_cache/*.parquet` — 这是 stage 00 在去重**之前**写的 per-file 增量快照 (normalize+filter 后), 经 `_load_pre_dedup_corpus` 仅读 5 列 ['docid','标题','内容','日期','媒体(中文)']。缓存目录缺失/为空/任一文件缺列或读取失败时回退 `21_tone_llms.parquet` (CONFIG['filenames']['output_21_tone_llms']; 已按生产阈值去过重的下游产物)。
+
+**处理步骤**:
+1. 读生产阈值 `deduplication.jaccard_similarity_threshold` (默认 0.80) 作基准标注。
+2. 实例化 `ArticleDeduplicator(config, logger)` (canonical path = `news_process.pipeline.preprocess.dedup`, 与生产 stage 00 同一类), 先 `_prepare_dataframe` + `_perform_exact_deduplication` 做一次精确去重 (作近似去重基数)。
+3. 对 thresholds=[0.75, 0.80, 0.85, 0.90] 逐个覆写 `dedup.threshold` 并 `_perform_near_deduplication`, 记录 Retained/Dropped/Retained_Ratio, 每轮 `del df_near; gc.collect()` 防 OOM。
+
+**关键算法**: Jaccard MinHash LSH 近似去重 (Broder 1997 IEEE SEQUENCES, DOI:10.1109/SEQUEN.1997.666900)。`_annotate_censoring` 追加披露列: pre_dedup_cache 口径双向有效 (Mechanically_Censored 全 False); post_dedup_fallback 口径下 `Threshold >= 生产阈值` 的行 Dropped≈0 是'机械截尾'而非稳健性 (逐行标 Mechanically_Censored=True) — 这是 fix(omni-g-val-robust-01, 2026-06-11) 的核心: 旧实现读已去重数据扫更高阈值必然 Retained≈100%, 是数据被剪过的假象, 现改读去重前快照真实重去重。
+
+**外部依赖**: 无 LLM; ArticleDeduplicator 内部用 MinHash (datasketch)、pyarrow.parquet (读 schema/列子集)。无显式 timeout。确定性: MinHash 用固定 permutation, 结果确定。
+
+**上下游**: 纯诊断, 不写回主链, golden 不受影响。
+
+■ 白话说明
+
+**这一步在做什么**: 同一条新闻常被多家媒体转载, 流水线会把高度相似的稿子合并成一条 (去重)。'相似到什么程度算重复' 是个门槛 (现在用 0.80, 即 80% 相似)。这一步把门槛换成 0.75/0.80/0.85/0.90 各跑一遍, 看每个门槛下还剩多少篇文章。
+
+**为什么需要它**: 防止有人质疑'你定 0.80 是为了凑数据'。如果门槛上下挪保留的文章数变化不大, 就说明去重不会人为操纵样本。这里有个大坑模块特意防住了: 如果拿'已经去过重的数据'去测更严的门槛, 肯定测不出新重复 — 不是因为门槛好, 而是数据早被剪过了。所以它优先去读'去重之前的原始快照'来真测, 实在拿不到才退而求其次并在报告里逐行老实标明'这个数字是机械结果, 别当证据'。
+
+**对面板和论文的影响**: 去重直接决定每条新闻只数一次还是被重复计入。去重门槛若不稳, 银行某一年的'新闻热度/情感'就会被转载量人为放大或缩小, 进而扭曲银行-年度面板的核心变量。这一步给出的就是'去重门槛不影响结论'的书面证据。
+========================================================================
 """
 
 import gc

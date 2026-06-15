@@ -23,6 +23,44 @@
 
 运行方式:
   python 45_panel_export_main.py
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 45_panel_export_main.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 主读 `24_herd_decay.parquet` (df_exploded, stage 21 语义精筛后 article×bank 级 verified 集; 缺则 sys.exit(1)); 步骤 7h-token 段硬读 `15_article_alignment.parquet` (policy_cosine_sim; 缺则 raise RuntimeError, 非静默 skip); 步骤 6b `compute_fintech_attention_index` 内读 `12_fintech_news_full.parquet` (全量银行新闻, 注意力分母); 步骤 8c `_merge_optin_feature_panels` 条件 merge `18_staleness_panel.parquet` / `39f_cross_media_alpha.parquet` (含新鲜度 mtime 守卫 + 重复键 fail-loud)。入口处校验关键列 `target_bank` / `llm_sentiment_full` / `日期` / `llm_agreement_rate_full` (main() 数据加载段, 缺则 sys.exit(1))。
+
+**处理步骤 (runner.main(), 串行子步, StageSpec.name 对应 41→42→43→44→46→47→45)**:
+- 步骤2 `encode_sentiment` 篇章级情感数值编码。
+- 步骤3 多银行特征 (bank_count/is_multi_bank/in_title); 步骤3b/3c/3d 预计算加权列 — VW(mention_density)/MW(media_authority, +tier 并行列)/HW(herd_weight 三轨独立, 缺则 legacy 单轨退化) × 全测度族, 含 `_build_llm_valid_masked_weights` 的 valid-mask 分母列 (`_wd_*`, 修 encode-01 向零衰减); 步骤3d-2 阈值敏感性 HW (`herd_sensitivity_grid`, 仅施于 LLM 投票主测度)。
+- 洗稿率前置: 多方法 (A LLM投票/A2 单LLM/B 反向/D/D2 词典/E/E2 BERT argmax/F 高置信) × 三轨篇章级 `_is_*` 标记 + `_svd_*` subst-valid 分母指示 (+ M2 P3 的 sentiment×subst_ctx `_sc` 4-way)。
+- 步骤5 `aggregate_panel` → bank-year panel + `_pool_svd_substvalid_counts` 同域分母聚合; 步骤6 `balance_panel` 笛卡尔积补全 + 6a has_coverage。
+- 步骤6b `compute_fintech_attention_index` (比值 ft_attn + 总量 ft_vol, 三级地理, 落 3 parquet); 6b-2 `compute_attention_treatments` (verified 域门控); 6b-3 `compute_dedup_sensitivity_treatments`; 6c `compute_media_heterogeneity`。
+- 步骤7 综合指标/7b 截面标准化/7c 地理 merge/7d LOO 情感 IV/7d-geo 地理距离缓冲 (`_m43.compute_geo_proximity_buffers`)/7d-imit 区域模仿渗透 (`compute_regional_imitation_pressure`)。
+- 步骤7e Bartik shift-share IV (6 类核心: type/scale/fintech_lf+lc/media/mauth/geoprox; GPSS 2020 pre-treatment 基期 T0=max(year.min,2010), cutoff≤T0 强制 raise; _t0/_t1/_t01 基期敏感性带外生性守卫)。7f 经济圈 LOO (`compute_zone_leave1out`); 7g DID 政策冲击 (`merge_policy_shocks`, DCEP+Sandbox)。
+- 步骤7g-het 异质性交互 (Tone×SOE/Scale/HighCov, `_base_year_median_split` pre-period 固定切分, DDD 三重差, stress/depins 断点, lag/reversal/rolling SD 波动率, abnormal_tone 残差 dormant 仅当面板含财务基本面列时产出)。
+- 步骤7h 网络族: `compute_network_spillovers`/`compute_bank_network_centrality`(22 中心度)/`compute_cognitive_proximity`/`compute_strategic_differentiation`/`compute_authoritative_similarity`/`compute_benefit_society_panel`/四象限政策对齐(`_classify_policy_quadrants` NaN 掩码 + `_filter_to_verified_universe` semi-join)/`compute_brokerage_centrality`/`compute_industry_neg_shock`/`compute_fire_sale_interaction`/`compute_embedding_peer_network`/`compute_llm_peer_iv`。
+- 步骤7h 洗稿率 `_safe_ratio`(分子 pos_symb / 分母 `_svd_denom` substvalid 同域); 7i Janis-Fadner; 8b disag; 8c log_sent(`_gated_log_sent` 零覆盖→NaN); 8d algo_cater; 8e 内联 t2v 双模型存在性诊断 (不读外部 parquet)。
+- 步骤8z `compute_iv_extensions`(LOO/广义 Bartik/outlet 构成三引擎 IV 族, 须在全部 merge 之后)。
+- `log_diagnostics`(只读) → `export_panel`(REQUIRED_PANEL_COLUMNS 缺列 raise; 物化 low_conf_flag; 写 parquet/csv + sanitize 列名后的 .dta + 启发式标签)。
+
+**关键公式**: J-F: P>N → (P²−PN)/t², N>P → (PN−N²)/t², P=N → 0 (t = n_articles_llm_valid = 正+负+中性有效投票数, 旧 schema 缺该列时回退 t=P+N); disag=√(1−((P−N)/(P+N))²); concern_score=ln_news_coverage×(senti_ratio+1)/2, 其中 senti_ratio=(neg−pos)/(neg+pos); Bartik=Σ_k(base-period share × year-shift)。
+
+**外部依赖**: 本阶段不直接调 LLM (消费 stage 21 缓存产物); 7h-emb/llmpeer + 内联 stage 25/27 含 Sentence-Embedding 相似度 (可能触发 embedding API, 故 timeout=7200 留 buffer)。无 NEWS_PROCESS_LLM_OFFLINE 守卫 (那是 stage 21 的)。
+
+**DAG 位置**: 上游 24_herd_decay(主)+15(硬)+12_full+18/39f(条件); 下游 46_stata_export (读 40_panel_yearly) + 51_falsification (读 40_panel_yearly + 40_article_bank_level + 12_fintech_news_full)。是流水线的扇入汇聚点 (fan-in)。
+
+■ 白话说明
+
+**这一步是什么**: 这是整条流水线的"总装车间"。前面各阶段把每一篇新闻都打好了分 (语调、是不是金融科技、跟政策像不像、谁和谁一起被提到), 这一步把成千上万条 article 级的记录按"哪家银行、哪一年"归拢压缩成一张规整的银行-年度表格 (panel), 每家银行每一年一行, 一行里有上千列指标。可以理解为把一大筐零散单据汇总成一张年度报表。
+
+**为什么需要它**: 经济学论文跑回归必须是"银行×年"这种结构化面板, 不能直接喂原始新闻。所有论文最终用的那张数据表就是这里生出来的; 它还顺手算了几十种稳健性指标 (换语调算法、换聚合权重、换工具变量), 让论文能证明结论不是靠某一个口径碰巧。
+
+**做得好不好的影响**: 这一步是承上启下的咽喉——上游任何阶段缺数据它就报错停下 (故意不让它带病生成残缺面板), 避免论文用错误数据跑出假结论。它把"按比例/计数"的分子分母口径对齐、把没报道的银行年份标成"缺失"而不是"零", 这些细节直接决定回归系数是否可信; 一旦这里口径错了, 后面所有表格和结论都会跟着错。
+========================================================================
 """
 
 import json

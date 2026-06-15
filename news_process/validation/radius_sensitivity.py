@@ -36,6 +36,37 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
     那一句) 是故意的极端压力测试, 它偏差大是预期内的 — 上下文被砍没了,
     不能据此否定默认窗口。另注意"Kappa 悖论": 当 90% 以上文章都是同一个
     标签时, κ 会被数学机制压得很低, 此时一致率和相关系数更可靠。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 35_radius_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**核心问题**: ctx 轨提取'银行名前后几句'时, 半径 (`sentence_radius`, 生产=1) 是人为参数。本阶段在 radius ∈ {0,1,2,3} (`RADII`) 上扫描, 验证词典情感结论对窗口大小是否稳健。
+
+**输入 (订正)**: 优先 `21_tone_llms.parquet` (CONFIG['filenames']['output_21_tone_llms'] — 经 LLM 精筛、仅 llm_verified=True 的下游产物, 含 `target_bank` 列), 回退 `12_fintech_news.parquet`。⚠ 注意是 `21_tone_llms.parquet` 而非 `_full` 版本。必需列 `target_bank` + `内容`。
+
+**处理步骤**:
+1. 加载 5 套中文金融情感词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018; 正面+1/负面-1/政治正面+0.5), 注入 jieba (词典词+银行名+金科词+否定/程度/转折词)。
+2. 对每篇文章, `analyze_single_article_multi_radius`: 每个 radius 调 `core.text.entity_context.extract_entity_context(sentence_radius=r, fallback_char_radius=150)` 提上下文 (未命中回退原文), jieba 分词, 对 5 词典各算 `_compute_sentiment_with_rules` (否定窗口翻转/程度副词缩放/转折增强/句末标点重置状态机, 与 22_tone_words 逐行对齐) → 归一化得分 + 三分类标签 (正/中/负, 阈值 ±0.1)。
+3. 跨半径对比 (基准 r=1): 对每词典算标签一致率、Cohen's κ、Pearson/Spearman 相关、配对 t 检验 (ttest_1samp 得分差)。
+
+**关键算法/公式**: 归一化得分 = total_score / (pos_count+neg_count)。Cohen's κ = (p_o−p_e)/(1−p_e)。零方差守卫 (radius-zerovar-guard, 2026-06-10): 常量分数 (词典零命中/空窗口/样本退化) 或 n≤2 下 pearsonr/spearmanr 置 NaN (语义=相关无定义), 下游裁决用 np.nanmin/np.nanmean (`_compute_pairwise_radius_corr` 热力图同款守卫, NaN 渲染为 'n/a')。'Kappa 悖论' 检测: 主导标签占比 ≥90% 时 κ 被数学压低, 此时一致率/Pearson 更可靠。判定: 邻近窗口 (r=1 vs 2/3) min κ≥0.80 = 强稳健; r=0 (仅实体所在句) 是故意极端压力测试, 偏差大属预期。
+
+**外部依赖**: jieba (必需, 缺则 raise ImportError); scipy.stats; matplotlib (经 HAS_MATPLOTLIB 守卫, 缺则跳图)。无 LLM/缓存。无显式 timeout。确定性: 纯词典+确定提取, 无随机性 (不抽样, 全量处理)。
+
+**学术依据**: Hassan et al. (2019, QJE) proximity-based attribution 参数敏感性。
+
+■ 白话说明
+
+**这一步在做什么**: 判断一篇长新闻对某银行是褒是贬时, 流水线不读整篇, 只截取'银行名字出现的那句话, 加上下各 N 句'这一小段来打分 (现在 N=1, 即前后各 1 句)。这个'前后几句'的窗口大小是人定的。这一步把窗口改成 0/1/2/3 句各算一遍情感分, 看分数变不变。
+
+**为什么需要它**: 防审稿人质疑'你只截前后 1 句, 换 2 句结果会不会完全不同?'。如果 1 句和 2/3 句算出来高度一致 (相关 ≥0.8、标签几乎不变), 就证明窗口怎么选都不影响结论。其中 0 句 (只留银行名那一句、上下文全砍掉) 是故意做的极端压力测试, 它偏差大是正常的, 不能拿它否定默认设置。
+
+**对面板和论文的影响**: ctx 轨 (实体上下文情感) 是 P1 主线论文的主变量来源。窗口若选得不稳, 银行情感打分就会随'截多少句'飘忽, 银行-年度面板里的语调变量就不可信。这一步给出的是'情感测量对截取范围稳健'的附录证据, 是 ctx 主结果可信度的支柱之一。
+========================================================================
 """
 
 import json

@@ -8,6 +8,8 @@ V2.0 J-L-M 2026 robustness alignment plan §3 Phase 1 P1.6:
 只写单一产物 `data/processed/27c_alt_anchor_and_placebo_panel.parquet`,
 供下游 Stata 模板 (P2.S1, P2.A2) 消费。**不**修改主面板
 `40_panel_yearly.parquet` 及其 golden snapshot。
+
+详见底层模块 news_process/pipeline/features/benefit_society_audit_combined.py 的模块 docstring 末「阶段功能权威说明」段（摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md）。
 """
 
 from __future__ import annotations

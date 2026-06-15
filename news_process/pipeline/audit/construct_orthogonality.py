@@ -40,6 +40,38 @@ Logging 约定 (修 F13):
 真的在测三件不同的事。NMI (归一化互信息) 衡量两个标签之间"互相能猜出
 多少"; 如果两两 NMI 都低 (与随机打乱后的水平差不多), 说明三个测度各管
 各的、没有重复计量, 论文附录就能放心声称"构念正交"。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 39c_construct_orthogonality.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 读 `21_tone_llms.parquet`(文章级, 可经 STAGE_21_PARQUET 环境变量覆盖; 可复现锚点=v3.4.0 commit 450c1aa7, 见 docstring/summary.json)。用三个创新构念列的三轨版: substantiveness / locus / collab_mode 的 _full/_ctx/_ss。
+
+**处理步骤**(`run_stage`):
+- 用 `np.random.SeedSequence(seed=42)` 派生根序列, `.spawn(2)` 取 bootstrap 与 permutation 两个独立子种子状态(避免 seed+1 耦合; 实际 compute_nmi_matrix 内部又各自 SeedSequence.spawn(bootstrap_n) 派生整行 resample 种子)。
+- `compute_nmi_matrix` 对 full/ctx/ss 各算 3×3、对 ALL_DIMS(=DIMS_FULL+DIMS_CTX, 6 维)算 6×6 cross: 默认 sample_strategy='listwise_complete'(全 dims 同时非缺整行剔除, 保证所有格子同样本可比); 对角线 NMI=1.0 直接填(跳 bootstrap); 非对角格用 sklearn `normalized_mutual_info_score(average_method='arithmetic')` 算点估计, 再对该 pair 的两列 [d1,d2] 做 1000 次有放回 row resample(SeedSequence.spawn 跨 numpy 版本可复现)取 2.5%/97.5% 为 CI; 守卫: 缺列→全 NaN 矩阵 + warning、样本<100 跳过、退化常量列(nunique<2)跳过并 logger.error、bootstrap 退化>5% warning。
+- `compute_permutation_null` 对 ALL_DIMS(落盘 null_p95/p99)与(另单独对 DIMS_FULL 同域, 仅供分类)各算 1000 次置换: 打乱 d2 标签算 null NMI, 取 95%/99% 分位(默认 seed=43, run_stage 传 perm_seed_state)。
+- `classify_orthogonality` 只对 full 3×3, 且与 DIMS_FULL 同 listwise 域的 null 比: obs≤null_p95→'strong'、≤p99→'moderate'、>p99→'weak'(关键修复 omni-g-audit-family-04: 观测 point_f 与 null 必须同 DIMS_FULL 3 列 listwise 域, 否则 NMI 有限样本偏差随 N 错配)。
+
+**关键算法/公式**: Vinh-Epps-Bailey(2010 JMLR) 算术平均归一化互信息 NMI=MI(X,Y)/mean(H(X),H(Y)); 阈值口径=置换 null 的**单侧** 95%/99% 分位(≈单侧 Z 1.645/2.326, 非旧注释宣称的双侧 1.96/2.58, 旧未引用常量已删)。
+
+**输出**: 上列 7 件; summary.json 含 max_off_diag_nmi、classify_full_3x3、interpretation(strong/moderate/mixed/undefined; 修复了 classify 全 undefined 时"空真"错报 strong 的 bug, CR-15)、classify_threshold_scale 口径披露、reproducibility 锚点。
+
+**外部依赖/超时/性能**: 依赖 sklearn(1.5–1.8 已验证, lazy import); 无 LLM/Embedding/_llm_cache.db。docstring 估算 N≈40 万标签单线程约 77 分钟(bootstrap 1000 + permutation 1000), 故 DAG timeout=10800(3 小时上限); 64 核 MP 上 n_jobs=16 约 5 分钟(注: 当前实现为 single-thread 串行, n_jobs 并行为 docstring 给出的可选加速路径, 代码默认不并行)。
+
+**DAG 位置**: 验证阶段 39c(STAGES_VALIDATION, 紧跟 39a/39 序列, 避开 40 panel_export), 上游=stage 21, 产物供论文 Appendix A.2 "Construct Validity Evidence"。
+
+■ 白话说明
+
+**这一步在做什么**: 我们造了三把"创新尺子"——一把量这家银行的创新是真干实事还是喊口号(实质性)、一把量是底层技术还是表面应用(落点)、一把量是自研还是合作(协同模式)。这一步像质检员检查"这三把尺子是不是真的在量三件不同的事, 还是其实有两把量的是同一个东西"。它用一个叫 NMI(归一化互信息)的指标衡量"知道一把尺子的读数, 能猜出另一把多少", 再把标签随机打乱一千遍看"纯属巧合时能有多像", 只有比巧合明显更像才算"真有重叠"。
+
+**为什么需要它**: 顶刊审稿人会质疑"你这三个新指标会不会是换汤不换药、在重复计量同一件事"。这一步用统计证据回答: 如果三把尺子两两的关联都只跟随机打乱差不多(正交), 就能在论文附录理直气壮地写"三个构念各自独立、没有重复造轮子"。
+
+**对最终面板/论文的影响**: 它不往银行-年度面板里加任何主回归用的列(产物只是诊断矩阵和一份小结), 但它直接决定论文"我们的三维创新测度是有效、可区分的构念"这一方法学主张能不能站住。做得好, 三个指标可以放心分别进各自的回归; 做得不好(发现高度重叠), 论文就得暂缓那部分构念效度声明、请专家复核。
+========================================================================
 """
 from __future__ import annotations
 

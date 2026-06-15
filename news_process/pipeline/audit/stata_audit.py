@@ -35,6 +35,41 @@ news_process.pipeline.audit.stata_audit — Stata 用面板数据最高标准审
 输出:
   data/processed/eval_reports/52_stata_data_audit.csv    (审核摘要表)
   logs/52_stata_data_audit.log                           (详细日志)
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 52_stata_data_audit.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 读最终交付 Stata 的面板数据 — 40_panel_yearly.parquet 与同名 .dta、51_panel_with_controls.parquet 与同名 .dta (按存在性消费; 40 缺则 error, 51 缺则 warning 跳过该半套审核)。40_article_bank_level 在本模块 docstring 提及但 main() 实际只加载 40/51 两套面板。
+
+**处理步骤 (main, 顶刊级面板审核)**: 对 40 / 51 各跑 9 个 per-file 只读审核函数, 再加 1 个跨文件函数, 共 **10 类**检查 (草稿原列 7 类有遗漏)。经 `record(category, check_name, status, detail, severity='INFO')` 收集 PASS/WARN/FAIL —
+1. 面板结构完整性 (`audit_panel_structure`): (target_bank, year) 唯一键 (Wooldridge 2010) + 平衡率 (实际行/理论行 n_banks×年跨度, Baltagi 2021) + 银行名/年份合理性 + 列数。
+2. 变量质量 (`audit_variable_quality`): 缺失率/异常值(5σ)/值域合规/哑变量0-1/Inf。
+3. 情感指标一致性 (`audit_sentiment_consistency`): pos+neg+neutral frac 恒等、全 *_frac∈[0,1]、情感计数≤物理篇数、三轨 pairwise 相关、LLM 模型间相关、VW/MW/HW 加权恒等式、fintech 分类恒等式。
+4. IV 有效性预检 (`audit_iv_variables`): Bartik 份额和≤1(排除 other 类, GPSS 2020)、LOO 排除自身、Bartik IV 变异性。
+5. DID 变量合规 (`audit_did_variables`): treated/post 0-1 编码、treated-post 时间逻辑、event-study lead/lag 互斥。
+6. Stata 兼容性 (`audit_stata_compatibility`): 列名合规、.dta 可读性/行数一致/数值精度(含 NaN 对齐对称校验)、nullable dtype。
+7. 网络变量 (`audit_network_variables`): 中心度列存在性/值域/年度常量校验。
+8. 地理变量 (`audit_geography_variables`): bank_province/city 跨年一致性、bank_zone 覆盖率。
+9. 描述性统计 (`audit_descriptive_stats`): 核心变量 describe + 零新闻占比。
+10. 跨文件一致性 (`audit_cross_file_consistency`, 仅 40+51 均存在时): 行数/键集/核心变量值/51 含 nf_ 列。
+汇总 audit_results → DataFrame → to_csv (eval_reports/52_stata_data_audit.csv)。
+
+**外部依赖**: 纯 pandas/numpy 只读; 无 LLM/Embedding/网络。无 timeout 约束 (不在 DAG)。确定性强 (只读校验)。规范调用: `python -m news_process.pipeline.audit.stata_audit` 或 `python news_process/52_stata_data_audit.py`。
+
+**DAG 位置**: 不在 DAG。逻辑上是 stage 45/46/51 的下游质检关卡, 但作为 user-CLI 手动触发, 与流水线主链解耦。
+
+■ 白话说明
+
+**这一步是什么**: 这是数据交付前的质检员。当面板表格和 .dta 文件都做好、准备交给经济学家跑回归之前, 这个工具会把它们从头到脚体检一遍: 有没有同一家银行同一年出现两行 (重复)、面板缺了多少格、各种情感指标算得自不自洽、工具变量的份额加起来是不是 ≤1、DID 的处理前后标记有没有搞反、列名符不符合 Stata 规矩、网络/地理变量稳不稳、两张表 (主面板和加了对照变量的面板) 对得上对不上。最后出一张体检报告 (CSV) 列出每一项是通过、警告还是失败。
+
+**为什么需要它**: 流水线自动跑出来的数据可能藏着不易察觉的毛病, 一旦带病进了回归, 论文结果就不可信。这个工具相当于交付前的安检, 把问题拦在送进 Stata 之前, 省得跑出一堆表才发现数据有坑。它是用户想用的时候手动跑的, 不是流水线自动环节。
+
+**做得好不好的影响**: 它不改数据、只挑毛病, 所以不会直接影响面板数值。但它是最后一道人工眼睛: 如果它能抓出重复键、缺失异常、变量不自洽这些问题, 研究者就能在写论文前修好; 如果跳过这一步, 一些隐蔽错误可能一路带到发表。可以理解为买保险——平时用不上, 出事时能救命。
+========================================================================
 """
 
 import os

@@ -84,6 +84,39 @@ v3.6.0 (Plan E P7 C4 stub):
     不影响结论, 论文附录交代一句即可。注意: 这里的"不打折"版本和生产
     主指标在窗口大小、算法、输入文本上都有差别, 所以只能说"打折方式
     不敏感", 不能说"主结果不敏感"。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 38b_decay_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**核心问题**: 计算情感时, 离银行名越远的句子是否该按距离'打折'计权? 本阶段比较 3 种距离衰减权重方案下词典情感得分的相关性。
+
+**输入**: `21_tone_llms_full.parquet` (CONFIG['filenames']['output_21_tone_llms_full'], 回退 glob `21_*.parquet` 取字典序末位)。过滤 `llm_verified_full == True` 仅保留已验证的金科新闻。
+
+**处理步骤**:
+1. 加载 5 套词典 (jiang/yao/bian/du/you; 正面+1/负面-1/政治正面+0.5) + 注入 jieba (与 22_tone_words/35 一致)。
+2. `run_analysis` 逐文: `core.text.entity_context.extract_entity_context_with_distances(content, aliases, sentence_radius=2)` 提取 [(句文本, 句级距离 d), ...] (radius=2 大于生产 ctx 的 1, 给衰减留空间); 每句 jieba 分词一次 (3 衰减函数共享预分词)。
+3. 对 5 词典 × 3 衰减函数 = 15 组合调 `compute_decay_sentiment`。
+
+**关键算法/公式**: 衰减函数 (3 种固定形式, 不做超参搜索以避免研究者自由度, DECAY_FUNCTIONS): uniform w(d)=1 / inverse w(d)=1/(1+d) / exponential w(d)=exp(−0.5d)。距离加权得分 = Σ w(d_s)·tone(s) / Σ w(d_s), 其中 tone(s)=单句归一化得分 (`_sentence_tone`, 否定/转折/程度三规则状态机, 与 22_tone_words 对齐)。`log_correlation_report` 算 uniform vs inverse/exponential 的 Pearson/Spearman + 均值差; 零方差/有效样本<10 守卫置 0.0 (注: 与 35 选 NaN 路线不同, 这里是 0.0 sentinel)。判定: min Pearson≥0.95 高度不敏感 / ≥0.90 基本不敏感 / <0.90 正文讨论。
+
+**重要口径披露 (fix omni-g-val-robust-04)**: uniform 列**不是**生产 ctx 测度的数值锚点 — 三重差异: ①半径 2 vs 生产 1 ②估计量 mean-of-ratios vs 生产 ratio-of-sums ③读原始 `内容` vs 生产读 prepend_title 文本。故结论只能表述为'词典得分在 radius=2 衰减权重族内稳健', 不可说'主结果对权重不敏感'。
+
+**外部依赖**: jieba (必需, 缺则 raise); scipy.stats。无 LLM/缓存/timeout。确定性: 纯词典+确定提取, 全确定。
+
+**学术依据**: Sautner et al. (2023, JF §2.2) 倒数距离衰减; Hassan et al. (2019, QJE) proximity attribution; Loughran & McDonald (2016, JAR) 加权方案稳健性; Simmons et al. (2011) 研究者自由度。
+
+■ 白话说明
+
+**这一步在做什么**: 给一篇新闻算银行情感分时, 银行名字所在那句话和离它三句远的句子, 该不该一视同仁? 直觉上越近越相关。这一步用三种打折方式各算一遍: '不打折'(远近句子一样重)、'按距离倒数打折'、'按指数打折', 再看三套分数的相关性高不高。
+
+**为什么需要它**: '远的句子要不要打折、打多少折'又是一个人为选择, 审稿人会问。如果三种打折方式算出的分数高度相关 (≥0.9), 说明怎么打折都不影响结论, 论文附录交代一句即可。模块特别老实地标注了一点: 这里的'不打折'版本和论文真正用的主指标在窗口大小、算法、是否含标题上都有差别, 所以只能说'打折方式不敏感', 不能偷换成'主结果不敏感'。
+
+**对面板和论文的影响**: 它是情感测量的又一道稳健性检查, 确保银行-年度面板里的语调变量不是靠某种'巧妙的加权技巧'凑出来的。做得好, 论文能多一条'我们对句子加权方案做了敏感性分析'的方法论背书; 做得草率或夸大口径, 反而会被审稿人抓住'过度声称'的把柄。
+========================================================================
 """
 
 import json

@@ -54,6 +54,41 @@ news_process.pipeline.filtering.news_bank — 阶段11：银行新闻判断
     本模块由原 root script ``11_news_bank.py`` body 迁入。原 root 现为 thin
     shim，仅负责 ``python 11_news_bank.py`` 历史调用契约。规范调用方式：
         python -m news_process.pipeline.filtering.news_bank
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 11_news_bank.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: `00_preprocessing.parquet` (config 键 output_00_preprocessing) 的 内容/标题/版面/页号/作者 等列。
+
+**处理步骤** (`main` → joblib `Parallel` 分批 → `classify_batch` → 委托 `core.text.ahocorasick.analyze_bank_matches`):
+1. 按 `parallel.batch_size` (默认 5000) 切批, `n_jobs` 默认满核-1 (psutil), joblib 并行。
+2. 每篇文章按 `split_ratio` (默认 0.5) 把'内容'按字符数等分上下两半; 用全局 Aho-Corasick 自动机一次线性扫描所有银行别名 (`load_bank_names` → BANKS/BANK_AC_AUTOMATON/VARIANT_TO_BANK)。
+3. **firm-document 展开**: 一篇可同时命中多家银行 → 每家合格银行生成一条独立物理行 (故输出行数可多于输入)。
+
+**关键算法/判定公式** (`analyze_bank_matches`, 每家银行; classify_batch 复用同一阈值):
+- 前置: 任一别名 总计 (含标题, `total_with_title`) ≥ `MIN_NAME_OCCURRENCES` (默认 3);
+- 分布条件 (满足其一): (a) 上半 ≥ `MIN_UPPER` (默认 1) ∧ 下半 ≥ `MIN_LOWER` (默认 1); 或 (b) 别名出现在标题 ∧ 全文合计 `total_count` ≥ `MIN_UPPER`。
+- **不对称口径的假阳性排除**: ① 否定模式排除 ('务农行列''交通行业'命中'农行' → 排除, NEGATION_AC); ② 短名歧义消解 (≤2 字简称如'工行''中行', 检查前后 context_window 字符, 命中排除词则剔除该次匹配)。这套排除规则与 stage 13 ctx/ss 锚定共用同一事实源 (core/text/ahocorasick)。
+
+**输出列** (合格行追加 9 列): `is_bank_news`, `target_bank`, `co_mentioned_banks`, `target_bank_in_title` (int 0/1, 显著性/β 信号, 刻意保留非情感轨), `matched_banks_info` (json), `matched_bank_names`, `doc_length`, `target_bank_mention_count`, `mention_density` (= total_count / max(len(str(内容)),1), 即 提及次数/文档字符数, value-weighted exposure)。另经 `compute_news_salience` 追加 NEWS_SALIENCE_KEYS (版位/导语命中 target_in_lead/署名 has_byline 等, 用全部别名 + 同款否定/短名排除)。
+注: classify_batch 内某批次无任何银行新闻时, 空回退 DataFrame 仍含全部 9 列 + NEWS_SALIENCE_KEYS (见 classify_batch 空批次分支); 仅当**全部批次**均无银行新闻时, main() 最终回退到只含 is_bank_news/matched_banks_info 两列的空 DataFrame (见 main() 全空回退分支)。
+
+**外部依赖/确定性**: 纯 CPU (ahocorasick / joblib / psutil), 无 LLM/Embedding/网络。确定性: 给定语料+词典逐位可复现。词典文件纳入 parquet 血缘 input_hashes (防词典内容篡改而路径不变导致完整性校验失明)。
+
+**DAG 位置**: 上游 stage 00, 下游 stage 12 (金科判定) 读其输出。学术依据 Hassan 2019 QJE (firm-level exposure) + Gentzkow-Kelly-Taddy 2019 JEL (Text as Data; 见模块 docstring)。
+
+■ 白话说明
+
+**这一步在做什么**: 从全部新闻里挑出'真的在讲某家银行'的那些, 并标注是哪家银行。打个比方: 像图书管理员把一摞剪报里凡是讲'工商银行''建设银行'的挑出来, 还在每篇上贴标签写明主角是谁; 如果一篇同时认真讲了工行和建行, 就复印成两份各自归档 (这就是'按银行展开成独立行')。
+
+**为什么需要它**: 后面研究的是'每家银行每年的媒体形象', 所以必须先确定每篇新闻属于哪家银行。难点在于中文简称会误伤——'农行'可能其实是'务农行列', '中行'可能是'居中行驶'。这步特意加了两道'防误判'闸门 (否定短语排除 + 短名前后文检查), 还要求银行名在文章上半段和下半段都出现 (说明是主角而非一笔带过), 才算数。
+
+**做得好不好的影响**: 这步决定了每家银行'有多少篇新闻'——这是整个银行-年度面板的样本来源。挑太松会把不相关的稿件算进某家银行 (污染情感、注意力指标, 系数失真); 挑太严会漏掉真实报道 (样本变小、估计不稳)。它顺手算的'提及密度''是否上标题'还会被后面用作加权和稳健性信号, 影响主回归与显著性。
+========================================================================
 """
 
 import json

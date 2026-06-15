@@ -56,6 +56,38 @@ Economic Literature, 57(3), 535-574.
 D-0 实测项 (v2.3 G-D2.1)
 ------------------------
 surface 与 semantic staleness 相关性 ∈ [0.3, 0.7] (互补 ≠ 冗余).
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 18_article_staleness.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**在 DAG 中的位置**: STAGES_MAIN 阶段18, kind=robustness, timeout=21600(6h)。上游 = stage 13(13_news_with_ctx.parquet) + stage 30a(30a_article_embeddings.parquet, semantic 轨依赖, 缺则仅 surface 轨) + stage 21/24(聚合域门控, _restrict_to_panel_domain 内连)。产出供下游 panel/稳健性消费。学术锚点 Tetlock 2011 RFS(陈旧信息 return reversal)。
+
+**输入**: `13_news_with_ctx.parquet`(article 级; 缺 year 则从 日期 派生); `30a_article_embeddings.parquet`(可选, 缺则只输出 surface 轨)。
+
+**双指标算法**(对每篇文章求'过去7天内最相似旧文章'的最大相似度):
+1. **surface_staleness** `compute_surface_staleness`: 字符级 3-gram shingle(_char_shingles, 中文友好不依赖分词)→ MinHash(num_perm=128) → MinHashLSHForest。按 unique-day 分组的滚动 LSH(每个'天'重建一次 forest, 窗口 = [d-7d, d) **严格排除同日行**), 把原 O(N²) 降到约 7N。返回前按 stable argsort 的逆置换还原原始行序(P0 修复, 防整列错位)。第一周/空窗口 → NaN; 有窗口但 LSH 查询无命中 → 0.0。
+2. **semantic_staleness** `compute_semantic_staleness`: Faiss IndexFlatIP(归一化内积 = cosine), 复用 stage 30a 的 SBERT 768维嵌入, 同样日粒度7天滚动窗口、严格排除同日行(修同 docid 跨 bank 复制行 cosine=1.0 的 artifact), 取窗内 top-1 相似度。stable argsort 保证可复现。
+
+**嵌入对齐** `_load_aligned_embeddings`: 按 article_id 显式 join(非裸位置对齐), 行数不等/键缺失/键重复/辅键(target_bank/日期)逐行不一致时 fail-loud sys.exit(1) 提示重跑 30a(防 30a 陈旧静默错位)。
+
+**聚合** `aggregate_to_bank_year`: 每轨 staleness 列 → bank-year mean + highstale(>0.9 占比) 列, `if col in df.columns` 守卫(缺列即跳过, 故 semantic_staleness_ss 在 30a ss 未上线时不会误产空列)。聚合前 `_restrict_to_panel_domain` 把 **平均域** 收缩到 verified 面板语料((docid,target_bank) 内连 24_herd_decay, 缺则 21_tone_llms; 都缺则 ERROR 披露并退回全集)——与面板兄弟列(tone/herd/intensity 聚合自 verified-union ~857篇)口径一致; 但 **参照窗口**(过去7天信息环境)刻意保留全集。
+
+**外部依赖**: faiss-cpu + datasketch(always-on 后缺包会真崩, ImportError raise)。无 LLM/Embedding API、$0。**构念保真披露**: 与 Tetlock 2011 两点刻意偏离——匹配域是 corpus-level 全银行混池7天窗(非同公司72h最近10篇), semantic 轨 SBERT cosine 是扩展(2011年无 SBERT)。G-D2.1 诊断: surface vs semantic corr 期望 [0.3,0.7](互补≠冗余)。
+
+■ 白话说明
+
+这一步给每篇新闻打一个'陈旧度'分: 这篇新闻在过去7天里, 有没有和某篇更早的旧新闻高度雷同?
+
+打个比方: 报社里经常有'新瓶装旧酒'——同一件事换个说法又发一遍, 或者通稿被多家媒体转载。这一步就是给每篇新闻查'查重': 翻出它发表前7天内最像它的那篇旧文, 雷同度越高, 这篇就越'陈旧'(信息含量越低)。它用两把尺子量: 一把看'字面像不像'(用一种叫 MinHash 的快速指纹技术, 哪怕几十万篇也能很快两两比对), 另一把看'意思像不像'(用 stage 30a 算好的语义向量, 字面不同但说的是一回事也能抓到)。两把尺子互补, 一篇真正的旧闻重印通常两边都高。
+
+为什么需要它: 投资者对'炒冷饭'的新闻反应较弱(Tetlock 2011 的经典发现), 所以衡量'媒体到底是在传递新信息还是重复旧信息'对解读银行相关报道很重要。
+
+对最终面板/论文的影响: 陈旧度会聚合成银行-年度指标, 主要用作稳健性检验——验证主结论不是被'重复报道的噪音'驱动的。这里有个关键讲究: 算'最近7天有没有旧闻'时用的是全部新闻当背景, 但最后求银行年度平均时, 只把'经过严格验证、确实是关于这家银行'的文章算进去, 跟面板里别的指标口径一致, 否则会混进约26.8%其实不是真讲这家银行的文章, 把平均值带偏。做不好会让稳健性表里的陈旧度指标失真, 削弱论文'结果不是旧闻噪音造成的'这一辩护。
+========================================================================
 """
 
 from __future__ import annotations

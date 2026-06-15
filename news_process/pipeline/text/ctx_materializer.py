@@ -30,6 +30,41 @@ Plan E P4 A1 (v3.6.0):
     content_ctx = "标题 + 只跟目标银行相关的那几句话" (按实体出现位置截窗口,
     截不到就退回全文)。后面的情感/强度阶段直接读这两列; 原始 '内容' 列
     原样保留, 不被改动。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 13_materialize_ctx.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: `12_fintech_news.parquet` (config 键 output_12_fintech_news) 的 '内容'/'标题'/'target_bank' 等列。模块导入时全局加载: 银行否定/短名排除配置 (`load_exclusion_patterns` → NEGATION_AC/SHORT_NAME_EXCLUSIONS/CONTEXT_WINDOW) 与金科 AC 自动机 (`load_fintech_dict` → FINTECH_AC; 加载失败 try/except 兜底为 None → content_ss 全回退)。
+
+**处理步骤** (`main` → `materialize_content_ctx`, idempotent):
+1. 幂等短路: 若五列俱全直接返回; 旧 schema (仅有 content_ctx) 走兼容回填路径——补 content_full/ctx_is_fallback, 并以**哨兵**填 content_ss=content_full、ss_is_fallback=True (保幂等, 不重算 ss; 删 content_ctx 可触发全量重算)。
+2. 全量路径逐行: 取 body_full='内容', title (缺失显式 pd.isna→空, 不注入字面 'nan'), target_bank。
+3. **ctx 轨** = `extract_entity_context(body, 别名, sentence_radius=配置 context_window.sentence_radius 默认1, fallback_char_radius=150, +否定/短名排除)`: 分句→定位银行别名命中句 (经否定/短名排除, has_unexcluded_occurrence)→前后各 radius 句扩窗→O(N log N) 区间合并→' [...] ' 拼接; 无命中回退全文 body (回退公理)。
+4. **ss 轨** = `extract_bank_fintech_cooccurrence(body, 别名, FINTECH_AC, sentence_radius=配置 ss_sentence_radius 默认同ctx, fallback_char_radius=150, +否定/短名排除)`: 命中句 = (该句银行别名经排除后仍在) ∧ (含 ≥1 金科词); **不对称口径**——银行侧套否定/短名排除, 金科侧裸 AC (1506 词); 无共现回退全文 body (镜像 ctx); FINTECH_AC=None 时直接全回退。
+5. 三轨文本均经 `prepend_title` 注入标题 (body 已以标题开头则不重复; 标题非句末标点则插中文句号)。
+
+**关键公式/算法** (core/text/entity_context.py): 分句 `_split_sentences` 硬边界正则 `[。！？!?；;]` (逗号/顿号不切); 窗口 `_merge_intervals` O(N log N) 区间合并; 短文本(<3 句)退化为字符级窗口 (`_char_level_fallback`, radius=150, ss 路径额外传 fintech_ac 要求同窗共现)。
+
+**输出列** (5 列): `content_full`, `content_ctx`, `content_ss` (三轨文本); `ctx_is_fallback` = (ctx_body == 全文 body) bool; `ss_is_fallback` = (ss_body == 全文 body) bool。两旗标判定都比较'去标题后的 body' (标题前缀对三轨相同, 不影响 entity-miss 语义), 并有 assert 校验列计数与 batch 统计一致。原始 '内容' 列原样保留 (供 doc_length/去重/上下半切分/强度分母/staleness 复用)。
+
+**三轨体现**: 这是 full/ctx/ss 三条文本轨的唯一物化点; v3.6.0 前置 ctx 物化让 stage 14/15 在 stage 21 前即可三轨化, stage 21 直接消费已物化的 content_ctx/ss (tone_llms._materialize_content_ctx 仍存, 保留为幂等向后兼容)。
+
+**外部依赖/确定性**: 纯 CPU (pandas + ahocorasick + 正则分句), **不调 LLM/Embedding/BERT**, 无网络, 逐位可复现。ss 词典加载失败优雅降级 (FINTECH_AC=None → ss 全回退, 不崩管道)。
+
+**DAG 位置**: 上游 stage 12, 下游 stage 14 (fintech_intensity 三轨)/15 (policy_alignment 三轨)/21 (tone_llms 三轨) 全部消费三列文本。实测 (disk 1170 篇): ss 零共现回退 ~14.27%, 主题漂移 65.76% (银行句仅 34% 同时提金科 → ss 与 ctx 是独立信号)。
+
+■ 白话说明
+
+**这一步在做什么**: 给每篇新闻额外造三段文本, 供后面不同口径地'读'同一篇文章。第一段 content_full = 标题+整篇正文 (全文视角); 第二段 content_ctx = 标题+只跟这家银行有关的那几句话 (聚焦视角); 第三段 content_ss = 标题+'银行和金融科技出现在同一句'的那几句话 (银行×金科共现视角)。打个比方: 同一篇报道, 一份是整页复印, 一份是只把提到'工行'的段落剪下来, 第三份是只把'工行同时谈到移动支付'的句子剪下来——截不到就退回整篇。原始正文一字不动地保留着。
+
+**为什么需要它**: 同一篇文章, '从全文看的态度'和'只看跟这家银行直接相关那几句的态度'可能不同; 而'银行专门在谈金融科技时的态度'又是另一回事 (很多银行新闻其实在讲罚款、坏账, 跟金科无关)。三条轨道让后面的情感/强度分析能从三个角度各算一遍, 互相印证 (这叫'互为稳健性'——结论不依赖某一种截取方式才靠得住)。
+
+**做得好不好的影响**: 这三段文本是后面情感打分、金科强度、政策契合度等核心变量的**直接输入**。如果上下文窗口截得太碎或截错句子, 后面算出来的'银行对金科的态度'就会失真; 实测显示同句共现轨 (ss) 和聚焦轨 (ctx) 有六成多的差异, 说明它确实带来一条独立的新信息, 能支撑论文的稳健性检验。回退旗标 (ctx_is_fallback/ss_is_fallback) 还会告诉后面'这篇有没有截到相关内容', 是判断信号质量的依据, 间接影响银行-年度面板里这些变量的可信度。
+========================================================================
 """
 from __future__ import annotations
 

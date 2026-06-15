@@ -54,6 +54,38 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
     意思完全不变, 再让 LLM 对同一批文章重判。如果 5 个版本 (原版+4 变体)
     给出的答案高度一致 (一致率/κ/α 全过阈值, 且 full 和 ctx 两条轨道都要
     过), 就说明结果反映的是文章本身, 不是 prompt 措辞的偶然产物。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 39_prompt_sensitivity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**核心问题**: 量化 LLM 标注对 prompt 措辞选择的敏感度 — 同一任务用不同说法重写, 答案变不变。
+
+**输入**: `21_tone_llms_full.parquet` (CONFIG['filenames']['output_21_tone_llms_full']; 含三轨 LLM 判定列, 必需列 llm_verified_full/ctx + llm_sentiment_full/ctx)。随机抽样 N=1000 (PS_CFG sample_size, seed=42)。
+
+**处理步骤**:
+1. `extract_baseline` 取 V0 (= 生产 prompt v8, PROMPT_TEMPLATE) 的三轨判定 + 三创新维度 (substantiveness/locus/collab_mode) baseline。
+2. 4 个硬编码变体 VARIANT_PROMPTS: V1_role (角色改写) / V2_structure (调换前两阶段顺序+Markdown) / V3_concise (精简) / V4_paraphrase (整句改写+XML `<role>` 标签)。每变体仅改表述, 保持任务语义 + 输出 JSON schema 不变 (v8 已补齐第三维度 innovation_collab_mode 三字段, 消除 baseline v8 vs 变体 v7 的 schema 不一致)。
+3. 对每变体 `run_variant_llms` 异步发三轨 × 3 模型请求; `aggregate_variant_results` 用 `_aggregate_track` 聚合 (locus 直接复用生产模块级 `_resolve_locus_track` 保证规则同源; substantiveness/collab 用 majority_vote_categorical conservative); call_failure/undefined 旗标保留。
+4. 分轨算: pairwise (变体 vs V0 的验证一致率/情感一致率/Cohen's κ + 三创新维度 κ) + 多变体 (5 编码者 = V0+4 变体的 Krippendorff's α + Fleiss' κ, `compute_fleiss_kappa` 内联实现 line 472) + 跨变体方差。
+
+**关键算法/公式**: Fleiss' κ = (P̄−P_e)/(1−P_e) 推广到 5 编码者。compute_cohens_kappa / compute_krippendorffs_alpha 复用 `validation.llms_evaluation`。失败行掩码 (fix omni-g-val-prompt-05): 变体 API 全失败行剔除, 不计为'措辞不一致'; 全失败→指标 NaN (fail-loud)。阈值: 验证一致率≥0.85 / 情感≥0.80 / κ≥0.70 / α≥0.667 / substantiveness≥0.75 / locus≥0.80 / collab≥0.70。gate = full/ctx/ss 三轨各自全 criteria AND (fix omni-g-val-prompt-03: 此前仅 full 进 gate, 而 P1 主 spec=ctx 轨, 会误报)。
+
+**外部依赖**: LLM API, 4 变体 × 1000 × 3 模型 × 3 轨 = 最多 36000 请求; aiohttp 异步限流。确定性锚点 = `_llm_cache.db` (LLMCache; 变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑)。PROMPT_MAX_RETRIES 缺省已对齐生产 MAX_RETRIES (validation.yaml 可显式取 1 防长尾卡死, 已披露)。timeout=43200s (12h)。matplotlib κ 热力图 (5 编码者 panel)。
+
+**学术依据**: Carlson & Burbano (2026, SMJ §3.5) generating families of related prompts; 框架引 Westphal & Zajac 1994/1998 ASQ + Gomber 2018 JMIS + Chesbrough 2003 + Laursen & Salter 2006 SMJ。
+
+■ 白话说明
+
+**这一步在做什么**: 同一道判断题, 用 5 种不同的问法去问 AI — 原版问法, 加上换个口吻、换段落顺序、大幅精简、整句重写这 4 个变体, 意思一字不差。然后看 AI 对同一批新闻给出的 5 套答案一不一致。
+
+**为什么需要它**: 用 AI 做研究有个隐忧: 结果会不会只是'指令 (prompt) 碰巧那么写'才出来的? 换个说法就翻盘? 这就像同一道题, 老师换个措辞问, 学生答案就全变了, 那这答案就不可靠。如果 5 个版本的答案高度一致 (各项一致率、κ、α 都过线, 而且整篇/上下文/同句三条文本轨道都要过), 就证明结果反映的是新闻本身, 不是问法的偶然产物。
+
+**对面板和论文的影响**: 这是 AI 标注可信度的另一根支柱 (和涂名检验互补: 涂名查'是否看名字', 这里查'是否看问法')。如果 AI 判定随 prompt 措辞飘忽, 那银行-年度面板里所有 AI 派生的情感、创新属性变量都成了'问法的产物', 论文核心结论会崩。通过这一关, 才能在论文里写'我们的 LLM 标注对 prompt 措辞稳健'。它是全流水线最贵的检验 (要跑约 3.6 万次 AI 调用), 因此配了 12 小时的超长超时。
+========================================================================
 """
 
 import asyncio

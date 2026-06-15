@@ -53,6 +53,40 @@ news_process.validation.tone_validation — 阶段34：情感分析三角验证�
 
 输出：
     验证报告（CSV + PNG + LaTeX）+ 人工验证样本 Excel
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 34_tone_validation.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**职责**: 对三种情感方法 (词典法/BERT/LLM) 做系统交叉验证, 提供"方法间趋同"的**收敛效度** (convergent validity) 证据 —— 代码明确声明这不等于"效标效度"(vs 人工金标准), 后者靠人工回读 (evaluate_human_verification) 和 stage 33。
+
+**输入**: `23_bert_tone.parquet` (含逐级累积的全部词典/BERT/LLM 列, config 键 output_23_bert_tone), 回退 `22_words_tone.parquet` (output_22_words_tone); 两者皆缺则 logger.error 并 return。
+
+**处理步骤** (每轨 `_run_validation_for_track`):
+1. `discover_sentiment_columns(df, track_suffix)` 按列名后缀自动识别词典 (`*_score{track}`/`*_label{track}`, IDF 词典单独分 words_idf 组防虚高)、BERT (`*_label{track}` + 正面/中性/负面概率列)、LLM (`*_sentiment{track}` + confidence) 三族列。聚合投票列 short_name=='llm' 被剔除出跨方法统计 (否则把成员模型合成票当第 4 个独立模型, 机械抬高一致性)。
+2. **内部一致性**: 各族算 Cronbach's α `(k/(k-1))(1-Σσ²ᵢ/σ²ₜ)` + Spearman 相关矩阵 + 热力图。
+3. **跨方法一致性**: 词典综合 vs BERT vs LLM 的 Spearman/Pearson; 标签一致率 (完全一致 = nunique==1; 多数一致 = 众数票数 > 方法数/2 的严格多数)。
+4. **分层稳健性** `stratified_analysis`: 按新闻长度 (33/66 分位)、年度、词典覆盖率分层, 每层算 α + 观测一致率; 年度 α 序列 ≥5 年做 Spearman 趋势检验 (预警 temporal drift)。
+5. **LLM 概率诊断**: 类别偏向 (chi-square + Jensen-Shannon) + 置信度校准 ECE。
+6. **人工验证样本生成** `generate_validation_sample`: 一致样本随机抽 n_agree=100 + 分歧样本随机抽 n_disagree=200 (对分歧案例 2:1 过采样, 经 RandomState(seed) 简单 choice — **非几何/邻域加密**, 只是对存在分歧的文章集做无放回随机抽样并放大配额), 附"机器输入文本"列 (content_full/ctx/ss) 与轨道专属编码指南, 写 `09_sentiment_verify{track}.xlsx`。配套 `evaluate_human_verification` 回读端: 对工作台内全部 11 方法列 (词典 5 / BERT 3 / LLM 逐模型+多数投票) vs 人工判定算 accuracy/macro-P/R/F1 + Cohen κ (复用 stage 33 的 compute_classification_metrics / compute_cohens_kappa, 这是全项目唯一能给词典/BERT 族产出人工指标的路径); 空表 pending 绝不合成, `count_human_annotations` 做 fail-closed 防覆盖守卫 (pending 时清陈旧 CSV, error 时保留)。
+
+**关键公式**: Cronbach α / Spearman ρ / Krippendorff (复用) / Jensen-Shannon 散度 / ECE / Cohen κ。标签数值化: 正面=+1/中性=0/负面=-1, 缺失保 NaN (不 fillna(0) 伪造中性)。
+
+**外部依赖**: pandas/numpy/scipy (spearmanr 等, 有回退) / matplotlib / openpyxl。无 LLM/Embedding API, $0。
+
+**DAG 位置**: 验证支线 stage 34, 上游 = stage 21/22/23 三方法文章级产出; 下游 = 人工回读 (跨阶段闭环到 stage 33 口径)。
+
+■ 白话说明
+
+这一步是"三个裁判交叉验票": 我们用三种完全不同的方法给每篇新闻判情感 —— 一是查情感词典 (数好词坏词), 二是 BERT 神经网络模型, 三是 LLM 大模型。这一步检查三者打分一致不一致。如果三种风马牛不相及的方法都说"这篇是负面", 那这个结论就非常可信; 如果它们经常吵架, 说明情感测量本身不稳。
+
+用到的指标都很直观: Cronbach's α 衡量"几个测量是否在量同一件事"(≥0.7 算可接受), Spearman ρ 衡量两种方法排序是否一致, 还会按新闻长短、按年份分组看一致性稳不稳 (防止 AI 模型"随年代越用越漂")。它还会出一张人工抽查表, 专门多抽"三裁判吵架"的疑难篇 (分歧篇配额是一致篇的两倍) 让人裁决。
+
+关键诚实声明: 三种机器方法互相一致, 只能说"它们彼此趋同"(收敛效度), 不能直接等于"它们都对"(那要跟人工答案比, 叫效标效度) —— 代码里反复强调这一点, 防止论文夸大。对最终面板的影响: 不直接改情感数据, 但它给"我们的情感测量可靠"提供了证据链; 三轨各出一份报告, 让 full/ctx/ss 三个版本的情感测度都各自有可信度背书, 主回归用哪一轨都有据可依。
+========================================================================
 """
 
 import json

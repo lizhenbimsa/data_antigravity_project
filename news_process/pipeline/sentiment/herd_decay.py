@@ -60,6 +60,32 @@ v3.6.0 (Plan E P1 B3) 双轨化升级:
   逐 τ 重估主回归 (网格单一事实源 = core.config.herd_sensitivity_grid)。
   白话: 把"算抄稿"的门槛调松调紧各算一套打折权重, 一路带进最终 .dta,
   论文里用一张表证明回归结论不靠 0.35 这个具体数字。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 24_herd_decay_processor.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: **硬依赖** stage 23 输出 `23_bert_tone.parquet` (代码显式禁止回退读 22/21 防磁盘残留污染, 见 main() 顶部硬依赖检查; 缺失即 `raise SystemExit(1)` 让编排器感知 DAG 契约违规; 取 `target_bank`/`日期`/`content_full`(或 '内容')/`content_ctx`/`content_ss`/`ss_is_fallback` 列)。
+
+**处理步骤**: ①`compute_herd_weights(df)`: 按 `target_bank` 分组; ②对每组三轨各做 TF-IDF 向量化 (`max_features=MAX_FEATURES`=10000 按原始词频截断, `min_df` 比例化 min(MIN_DF, max(2, ceil(0.01·n))) 防套话词污染, as-of yearly vocab fit——年 t 文章的前驱计数只用 year≤t 文档拟合的向量空间保证历史不变); ③≤2000 篇/前缀 dense pairwise 余弦 / >2000 篇 7 天窗双指针分桶 O(N·window) 算余弦; ④时间窗 (`TIME_WINDOW_DAYS` 默认 7 天) 内文章 j 与更早文章 i 相似度 ≥ `SIMILARITY_THRESHOLD`(0.35, 闭边界 >=) 记为跟风前驱; ⑤生产路径输出阈值敏感性诊断 CSV (预注册 τ 网格默认 {0.25,0.30,0.40,0.45}, 逐 τ flag 率/权重分布/Spearman ρ vs 基线); ⑥保存。
+
+**关键公式**: 衰减权重 `weight_j = 1 / (1 + n_similar_predecessors)` —— 原创首篇权重 1, 第 10 篇抄稿约 1/10, 防同一消息被各家转抄重复计数给情感指标注水。
+
+**输出列**: `herd_weight_{full/ctx/ss}` + `n_similar_articles_{full/ctx/ss}` (6 列) + `herd_weight`/`n_similar_articles` (full 轨 NON-BREAKING 别名 2 列, v3.6.0 兼容) + 敏感性网格 `herd_weight_{track}_{tag}`/`n_similar_articles_{track}_{tag}` (默认 4 τ × 3 轨 × 2 = 24 列)。
+
+**verified-universe 域门控**: 本阶段对**全部**文章 (含 stage 21 verified=False 的) 算 herd 权重——域门控不在此发生; 真正的'只保留 stage 21 verified 集'的 (docid, target_bank) semi-join 在下游 stage 45 panel runner 里完成 (见 memory panel-universe-consistency-audit: attention 族曾因分子绕过该 semi-join 泄漏 26.8% 伪文章)。本阶段产出是面板聚合情感时的逐文章降权乘子。
+
+**外部依赖**: scikit-learn TfidfVectorizer + scipy (余弦/spearman); 纯 CPU, $0, 无 LLM/网络。确定性来自固定 TF-IDF 参数 + as-of vocab fit。
+
+**DAG 位置**: 上游 stage 23 (硬依赖); 下游 **stage 45 panel runner 硬依赖** `24_herd_decay.parquet` (pipeline/panel/runner.py 的 main() 读取, 缺文件或缺关键列 target_bank/llm_sentiment_full/日期/llm_agreement_rate_full 即 sys.exit(1))——23→24→45 是结构性 always-on 链, 这正是把 23/24 提为 always-on 要消除的脆弱耦合。STAGES_MAIN 阶段24。
+
+■ 白话说明
+
+这一步在解决'同一条新闻被各家媒体抄来抄去导致情绪被重复计算'的问题。同一家银行的一条消息, 往往当天被几十家媒体转载、改写, 内容大同小异。如果把这几十篇都当成独立的'情绪表态'加起来, 这家银行那段时间的情绪就被严重注水了。这一步给每篇新闻数一数'它发出来之前 7 天内, 有几篇内容长得很像的旧文', 然后按这个数量打折: 头一篇原创算满分权重 1, 第十篇抄稿只算约 1/10。打比方就像开会发言, 同一个观点被十个人复述, 只能算一票多一点, 不能算十票。为什么需要它: 没有这个降权, 越是被疯狂转载的大事件 (往往情绪也越极端) 越会主导面板, 让结论被'转载量'而不是'真实信息量'带偏, 这是审稿人会盯的硬伤。它的产出 (每篇的折扣系数) 是后面把逐篇情绪汇总成'银行-年度'面板时必须乘上去的, 所以后续的面板构建那一步硬性依赖它——它一旦缺失或算错, 整张面板和论文里几乎所有回归都会受影响。注意: 这一步对所有文章都算折扣, 而'只统计真正讲银行-金科关系的那批文章'这道筛选是放在更下游的面板汇总环节做的。它同样按全文/银行相关段/银行金科同句段三种范围各算一套折扣, 各算各的不混用。
+========================================================================
 """
 
 import os

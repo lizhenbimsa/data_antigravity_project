@@ -51,6 +51,39 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
     基本一致 (一致率 ≥90%、κ ≥0.8), 就证明 LLM 靠的是文本语义而非对银行
     的刻板印象。混淆矩阵图展示"涂名前判真/假 × 涂名后判真/假"四格的分布,
     对角线占比越高越好。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 36_entity_masking_test.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**核心问题**: 验证 LLM 是否靠'读懂文本'而非'看到银行名的刻板印象' (如'工商银行→国有大行→稳健') 下判定。
+
+**输入**: `21_tone_llms_full.parquet` (CONFIG['filenames']['output_21_tone_llms_full']; 全量含 verified=True/False, 三轨 full/ctx/ss 列)。随机抽样 N=1000 (EM_CFG sample_size, seed=42)。
+
+**处理步骤**:
+1. `extract_baseline` 取样本已有的 full/ctx/ss 三轨 LLM 判定 (整体投票 llm_verified/llm_sentiment + 逐模型)。
+2. `mask_entity` 三轨各做掩码: 目标银行别名→'目标银行A' (PLACEHOLDER, EM_CFG 可配); 共提银行→'同业银行B/C/D...'; 别名按长度降序替换防短名先匹配; 正文+标题双覆盖; `verify_masking_completeness` 扫正文+标题残留 (残留则 warning)。
+3. `run_masked_llms` 异步对掩码文本调 3 模型 × 3 轨 LLM 重判 (PROMPT_TEMPLATE 字节级冻结, 只换 title/content/target_bank/co_mentioned_banks 实参), 走 `fetch_llm_async`。
+4. `_aggregate_track` 把三模型应答聚合为 masked_verified/sentiment 等 (18-tuple, v3.4.0 BREAKING)。
+5. `compute_masking_consistency` 算四维指标 × 三轨: ①验证一致率 ②情感一致率 (双方均判真子集) ③Cohen's κ ④逐模型一致率。
+
+**关键算法/分母双口径**: 主口径 per-protocol (valid 分母, `_call_failure_mask` 剔除掩码重判或 baseline 调用全失败行 — 空票被默认判 False 属测量缺失非翻转); ITT (physical 分母, 含失败行) 以 `*_itt` 键并行披露。混淆矩阵与主口径对齐 (失败行不进图)。`compute_cohens_kappa` 复用 `news_process.validation.llms_evaluation` (返回含 'kappa' 键的 dict)。判定: 三轨各须 验证一致率≥0.90 + 情感一致率≥0.85 + κ≥0.80, 整体 = full/ctx/ss AND; sentiment_consistency is None (n_both_true==0 子集空) 视为'不可判定'不计通过 (degradation F24 修复, 防伪装通过)。三轨两两 pairwise (combinations) 验证一致率/κ 差异 >5pp 则提示文本粒度敏感。
+
+**外部依赖**: LLM API (yunwu, 经 tone_llms.fetch_llm_async), 3 模型 × 3 轨 × 1000 = 最多 9000 请求; aiohttp 异步, ENTITY_MASKING_MAX_CONCURRENCY 限流。确定性锚点 = `_llm_cache.db` (用 LLMCache 命中缓存; 但掩码文本 prompt 与生产不同 → 这些是增量 LLM 请求, 冷缓存需付费跑)。timeout=21600s (6h) 因冷缓存+限流。matplotlib 三轨混淆矩阵。
+
+**学术依据**: SSRN-4558295 §7.2 entity substitution; Landis & Koch (1977, Biometrics) κ 解释阈值。
+
+■ 白话说明
+
+**这一步在做什么**: 把每篇新闻里的银行名字全部涂掉换成匿名代号 ('目标银行A'、'同业银行B'), 再让同一批 AI 模型重新判一遍这篇新闻的真伪和褒贬。然后对比涂名前后 AI 的答案变没变。
+
+**为什么需要它**: 用 AI (大语言模型) 给新闻打情感分, 最怕 AI 不是真读懂文章, 而是一看到'工商银行'就条件反射地觉得'国有大行肯定稳健'。这就好比考试时学生不解题、光看题目里的名字猜答案。涂掉名字后如果 AI 给出的判定还基本一致 (一致率≥90%、扣掉碰巧一致后的 κ≥0.8), 就证明 AI 靠的是文章内容而非对银行的成见。
+
+**对面板和论文的影响**: 整篇论文的情感/注意力指标都建立在'AI 判定可信'之上。如果 AI 其实在凭银行名字下结论, 那银行-年度面板里所有情感变量都掺了'银行身份偏见', 因果推断会被严重质疑。这一步是核心方法论防线之一: 三条文本轨道 (整篇/上下文/同句) 都通过, 才能在论文里宣称'AI 标注稳健、不受银行身份干扰'。它要真跑会花钱 (调 AI 接口), 所以放在最长的 6 小时超时阶段。
+========================================================================
 """
 
 import asyncio

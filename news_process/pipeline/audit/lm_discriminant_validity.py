@@ -47,6 +47,37 @@ PR #3 (lm_non_sentiment) 输出的 panel 列存在; G-A1.2 准入门控
 白话: LM 词典给文本打了 4 类标签 (不确定性/诉讼/约束/强情态), 我们又造了
 清晰度和数字密集度两个测度。这一步检查这 6 个测度两两相关是否都低于
 0.85 — 低才说明它们各测各的、没有重复造轮子; 否则要请专家复核。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 39e_lm_discriminant_validity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 读 `40_panel_yearly.parquet`(银行-年度面板)。每轨 6 个 indicator: LM 4 子词典频率 uncert_frac / litig_frac / constr_frac / modal_strong_frac, 加 v3.5.1 的 mean_clarity_score、mean_num_intensity(各带 _ctx/_full/_ss 后缀)。panel 缺失时 sys.exit(0) 优雅跳过。
+
+**处理步骤**(`main`):
+- `_apply_llm_valid_mask`: 与 39d 统一, 优先 `n_articles_llm_valid ≥ 2`(缺该列回退 n_articles, 两列均缺则不过滤)以保证 HTMT/α/permutation 同样本可比(修 omni-g-audit-family-05)。
+- 三轨循环, 每轨: `compute_htmt_matrix` 取 present 列(<2 列跳过)算 `panel[present].corr().abs()`(单 item HTMT 退化为 |Pearson r|); `compute_cronbach_alpha` 跨 6 item α=(k/(k−1))(1−Σσ²_i/σ²_total); `permutation_null` 在 listwise-complete 子样本(观测与 null 同域; len(sub)<4 则跳过)上对每列洗牌 1000 次(seed=42)算 HTMT 上限 null 分布, 报 obs_htmt_max、perm_htmt_max_p95、p_empirical、n_listwise、note(披露行置换未处理 bank 聚类); `_offdiag_max` 用 to_numpy(copy=True) 取非对角最大值(pandas 3.0 Copy-on-Write 下只读数组守卫, 修 P0 崩溃)。
+- G-A1.2 准入门控: max off-diagonal HTMT < 0.85 → PASS, 否则 FAIL(need expert audit), 仅写日志。
+
+**关键算法/公式**: Henseler-Ringle-Sarstedt(2015) HTMT 双 cutoff 0.85/0.90; Cronbach(1951) α; 1000-rep permutation(与 39d 基线对齐, Henseler 建议≥500)。预期 6×6 中 LM 4 子集互相及与 clarity/num_intensity 的 HTMT 均<0.85。
+
+**输出**: 上列 CSV; α 与 G-A1.2 判定仅入日志。
+
+**外部依赖/超时/确定性**: 纯 numpy/pandas, 无 sklearn/LLM/Embedding/_llm_cache.db; seed=42; DAG timeout=900(15 分钟, 仿 39d)。
+
+**DAG 位置**: 验证阶段 39e(STAGES_VALIDATION), 上游=stage 40 panel(及上游 LM 子词典/clarity/num_intensity 列), 与 39d 测同一对 clarity/num_intensity 构念但扩到 LM 6 维, 互补不冲突; 服务 G-A1.2 准入门控与论文判别效度披露。
+
+■ 白话说明
+
+**这一步在做什么**: Loughran-McDonald(LM)金融词典会给文本贴四类标签——不确定性、诉讼、约束、强语气情态; 我们又加了"表述清晰度"和"数字密集度"两把尺子, 一共 6 个测度。这一步像检查"这 6 个测度是不是各管各的、有没有谁跟谁其实在量同一件事": 它把 6 个测度两两的相关排成一张 6×6 表, 看是不是都低于 0.85; 再用随机打乱一千次确认"这个判断不是碰巧"。
+
+**为什么需要它**: 这 6 个词典/文本指标如果彼此高度相关, 同时塞进回归就是重复计量、会误导结论。这一步设了一个"准入门"(G-A1.2): 只有最大相关低于 0.85 才算通过, 否则要请专家人工复核。它和 39d 测的是同一对清晰度/数字密集度, 用同一套样本过滤, 保证两份报告互相可比。
+
+**对最终面板/论文的影响**: 它不改主回归面板(只产几张 CSV 诊断表和日志), 但它是这些文本指标能否进论文的"安检"。安检通过, 论文可以放心声称这些词典测度各自独立有效; 不通过, 就得砍掉或合并冗余指标, 直接影响论文用哪些自变量、结论的可信度。
+========================================================================
 """
 
 from __future__ import annotations

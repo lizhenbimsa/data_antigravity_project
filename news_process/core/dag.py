@@ -236,7 +236,7 @@ STAGES_MAIN: list[StageSpec] = [
     # 结构性 always-on 链, 不再随 enabled_methods 启停。
     #
     # 设计意义: stage 45 panel runner 亦硬依赖 24_herd_decay.parquet (见
-    # pipeline/panel/runner.py:131-136)。把 23/24 提升为 always-on 后, 无论
+    # pipeline/panel/runner.py 的 main(): 读 24_herd_decay.parquet, 缺文件即 sys.exit(1))。把 23/24 提升为 always-on 后, 无论
     # enabled_methods 如何配置, 该输入始终生成, stage 45 不会再因缺输入而
     # sys.exit(1) — 这正是本次"全部启用而非条件启用"决策消除的脆弱耦合
     # (此前由 berts_method_enabled 谓词条件启停时存在该崩溃路径)。

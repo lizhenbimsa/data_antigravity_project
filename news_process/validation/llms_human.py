@@ -14,6 +14,41 @@ news_process.validation.llms_human — 阶段32：生成人工“金标准”双
     
 输出：
     一站式标注工作台 Excel 文件：`32_news_llms_human_samples.xlsx`
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 32_news_llms_human.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**职责**: stage 21 LLM 投票结果的人工"金标准"采样器 —— 抽一批文章给人类编码员复核, 产出可直接填写的 Excel 工作台, 是 stage 33/34 效标效度评估的上游。
+
+**输入 (三级回退, 取第一个存在者)**: ① `21_tone_llms_full.parquet` (config.filenames.output_21_tone_llms_full) → ② `23_bert_tone.parquet` (output_23_bert_tone) → ③ `21_tone_llms.parquet` (output_21_tone_llms)。三者皆缺则 logger.error 并 return (不抛异常)。
+
+**处理步骤** (`main()`):
+- `load_config()` 读 `human_validation.sample_size` (默认 500) / `random_seed` (默认 42)。
+- 简单随机抽样 `df.sample(n=min(SAMPLE_SIZE,len(df)), random_state=RANDOM_SEED)`; 行数 ≤ 目标量则全选 (`df.copy()`)。确定性由固定 seed 保证。
+- 追加 4 个空标注列: `编码者A_验证`/`编码者B_验证` (取值 1/0 = 真/伪) + `编码者A_情感`/`编码者B_情感` (正面/中性/负面)。初值均为空字符串 `''`。
+- 列重排: 把 4 个标注列 + 关键展示列 (日期/媒体类型(中文)/标题/内容/target_bank/co_mentioned_banks/fintech_keyword_details, 取存在者) 提到最前。
+- 用 `xlsxwriter` 写 Excel (sheet 名 `验证数据`), 并经 `set_excel_data_validation()` 对验证列下拉锁定为 {'1','0'}、情感列锁定为 {正面,中性,负面} (动态范围 行2:行10000); 引擎不可用/写盘异常时回退普通 `to_excel`。
+
+**合并函数 `merge_annotations()`** (编码完成后手动调用): 读回填好的 xlsx, 逐行比对两编码者 —— 验证/情感各自: 两人皆有效且一致 → 写共识 `最终_验证`/`最终_情感`; 分歧 → 写哨兵 (`最终_验证`=-1, `最终_情感`='待仲裁'); 另加空 `裁定备注` 列; 输出 `*_merged.xlsx` + 一致率/分歧数/待仲裁数日志。这些哨兵正是 stage 33 评估时要剔除的 attrition。⚠ **该 merge 子命令仅经模块入口可达** —— `python -m news_process.validation.llms_human merge [in.xlsx] [out.xlsx]` (模块 `__main__` 解析 argv[1]=='merge'); 根 shim `32_news_llms_human.py` 的 `__main__` 只调 `main()` 且不透传 argv, 故 `python 32_news_llms_human.py merge` **不会** 触发合并 (只会跑抽样)。
+
+**关键算法/公式**: 无统计计算, 核心是确定性随机抽样 (pandas `df.sample` + 固定 random_state) + Excel 数据校验下拉规则。
+
+**外部依赖**: pandas / numpy / xlsxwriter (写校验下拉) / openpyxl (回退路径与 merge 读 xlsx)。无 LLM/Embedding API 调用, 无 _llm_cache.db, 无网络, $0。
+
+**DAG 位置**: 验证支线 stage 32, 上游 = stage 21 (LLM) / 23 (BERT) 的文章级产出; 下游 = stage 33 (`llms_evaluation.main` 读 32 产出的填好 Excel 算 precision/recall/κ)。shim 仅 `sys.path` 注入后 `from ...llms_human import main; main()`, 零业务逻辑。
+
+■ 白话说明
+
+这一步是"出考卷": 从全部新闻里随机抽 500 篇 (固定随机种子, 每次抽的都一样), 做成一张 Excel 表 (默认文件名 32_human_samples.xlsx) 发给两位人工编码员, 让他们逐篇判断 ①这条新闻是不是真的银行金融科技新闻 ②它的语气是正面/中性/负面。表格里的判断列被锁成下拉菜单, 防止有人手滑填错格式。
+
+为什么需要它: 流水线主要靠 AI 大模型 (LLM) 给每篇新闻打标签, 但我们必须证明"机器打的标签跟人判断的一致", 否则审稿人不信。这张人工答卷就是后面给机器打分用的"标准答案"。编码员填完后, 还有个合并环节把两人的答案对齐 (一致就采纳, 吵架就标"待仲裁")—— 注意这个合并要用模块入口 `python -m news_process.validation.llms_human merge` 触发, 直接跑根脚本带 merge 参数是无效的。
+
+对最终结果的影响: 它本身不直接进银行-年度面板, 也不改任何论文数字。但它的抽样质量决定了 stage 33/34 算出的"机器准确率/κ 一致性"可不可信 —— 抽得有代表性, 验证结论才站得住; 抽偏了 (比如全抽到容易判的), 会高估机器水平。
+========================================================================
 """
 
 import os

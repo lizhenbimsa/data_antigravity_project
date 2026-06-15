@@ -20,6 +20,39 @@ substantiveness, collab_mode) 计算 full 轨与 ctx 轨之间的文章级 Cohen
 是同一个东西; 太不一致 (<0.30) 提示至少有一轨是噪声。落在中间区间说明
 双轨互补、各有信息。注意: 这只是诊断披露 (供论文中讨论), 双轨的去留不由
 相关性决定 — 项目立场是 full/ctx 互为稳健性, 高相关 = 对归因窗口稳健。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 39a_inter_track_kappa.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 从 config['paths']['output_dir'] 读 `21_tone_llms.parquet`(文章级 LLM 标注), 按 `llm_verified_dual_both == True` 过滤到"双向验证 both"子集。读三个创新维度的三轨列: `innovation_locus_{full,ctx,ss}` / `innovation_substantiveness_{full,ctx,ss}` / `innovation_collab_mode_{full,ctx,ss}`。输入缺失 / 缺 llm_verified_dual_both 列 / dual_both 子集为空 → 发空占位表(全 NaN / n_obs=0 行)而非崩溃。
+
+**处理步骤**(`run_stage` → `compute_inter_track_kappa`):
+- 对每个维度 × 每个轨道 pair, 取两列 dropna() 后调 `_compute_kappa_with_bootstrap(return_pvalue=True)`(返回 5 元组 kp/lo/hi/n/pv)。
+- 点估计 κ 经 `validation.radius_sensitivity_llm.cohens_kappa_2cat(y1,y2)['kappa']`。
+- Bootstrap: `np.random.default_rng(seed=42)`, n_boot=1000 次有放回重抽, 每次重算 κ; 取 2.5%/97.5% nanpercentile 为 95% CI; 守卫: n_obs<3 或点估计常量列 NaN → 直接 NaN 元组; 有限重抽 <50% → CI 报 NaN + RuntimeWarning。
+- 单侧 bootstrap p 值: H0 κ=0 vs κ>0, = 有限重抽中 κ≤0 的占比。
+- 同维度内对 3 个 pair 的 raw p 值做 Holm(1979) step-down FWER 校正(`_holm_correct`, family=3; NaN 不参与排序, clip 到 [0,1] 并强制单调非降)。
+
+**关键算法/公式**: Cohen(1960) κ=(p_o−p_e)/(1−p_e); Landis&Koch(1977) 解释阈值; 预期 κ∈[0.50,0.70](非越高越好, >0.70 提示轨间冗余、<0.30 提示某轨噪声); Holm step-down(第 k 小 p 值 ×(m−rank) 并强制单调非降)。阈值 _THRESHOLDS: locus 0.50 / substantiveness 0.45 / collab_mode 0.45。
+
+**输出列**(9 行表): field, pair, kappa_point, ci_95_low, ci_95_high, n_obs, threshold, passes_threshold, p_value, p_value_holm。κ 落在 [0.30,0.70] 之外时 warnings.warn(RuntimeWarning)+ logger.warning。
+
+**外部依赖/确定性**: 纯 numpy/pandas, 无 LLM/Embedding API、无 BERT/faiss; seed=42 + NaN-aware 守卫保证确定性可复现; 不触 _llm_cache.db(只读上游已落盘的 stage 21 parquet)。
+
+**DAG 位置**: 验证阶段 39a(STAGES_VALIDATION), 上游=stage 21 tone_llms, 下游=Stata 表 20_tableA1(诊断披露用, 不进主面板)。
+
+■ 白话说明
+
+**这一步在做什么**: 同一篇新闻, 我们用三种不同"取景方式"读它——full(读全文)、ctx(只读目标银行附近那一小段)、ss(只读"银行和金融科技出现在同一句"的那几句)——然后各自给它打三个创新标签(这家银行报道讲的是真创新还是装样子、是底层技术还是表层应用、是自己研发还是找外人合作)。这一步像"让三位评委独立打分, 再两两比对他们的吻合程度"。这个吻合程度叫 Cohen's κ(一个一致性分数)。
+
+**为什么需要它**: 如果三种取景方式打出来的标签几乎一模一样(κ>0.70), 说明它们其实在量同一个东西、白白多算了一遍; 如果差得离谱(κ<0.30), 说明至少有一种取景方式在乱打、是噪声。落在中间才说明三种口径各有各的信息、互相补充。bootstrap 和 Holm 校正是为了说"这个吻合程度不是碰巧得来的", 让审稿人信服。
+
+**对最终面板/论文的影响**: 它本身不改银行-年度面板里的任何数字, 只产一张诊断表放进论文附录。它的价值是为论文"三轨互为稳健性"这个核心主张背书——证明三种文本口径既不是冗余重复, 也不是某一轨在添乱, 从而让主回归结论更可信。
+========================================================================
 """
 import os
 import warnings

@@ -5,6 +5,8 @@
 
 建议外部工具改用:
     python -m news_process.validation.entity_masking
+
+详见底层模块 news_process/validation/entity_masking.py 的模块 docstring 末「阶段功能权威说明」段（摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md）。
 """
 
 import pathlib

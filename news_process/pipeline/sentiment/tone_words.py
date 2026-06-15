@@ -61,6 +61,30 @@ news_process.pipeline.sentiment.tone_words — 阶段22：基于词典的情感�
 
 输出：
     追加各词典的得分、标签和匹配详情列
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 22_tone_words.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 读 stage 21 输出 `21_tone_llms.parquet` (config 键 output_21_tone_llms; 取其 `content_full`/`content_ctx`/`content_ss`/`内容`/`标题` 等列)。
+
+**处理步骤**: ①`load_all_dictionaries()` 延迟加载五部中文金融情感词典 (jiang_2021 / yao_2021 / bian_2021 / du_2022 / you_2018) + 跨类重叠词双侧剔除 + `_inject_custom_dicts_to_jieba` 注入 jieba 自定义词; ②可选 `build_idf_weights` 在与 TF 同一语料 (caller 传 content_full, 缺则回退 '内容') 上算 IDF 文档频率 (Gentzkow-Kelly-Taddy 2019 JEL §2.2), 公式 `log10(N/(1+df(w)))`, 均值归一(mean→1) 后 P1/P99 Winsorize, 文档级去重统计 N/df, 存 22_idf_weights.json; ③joblib 线程并行分批 `classify_batch`, 每批对每篇文章三轨调用打分; ④对每部词典每轨的 score 列做 Z-score 标准化 (`_zscore_or_nan`, σ 退化→整列 NaN); ⑤调 `enrich_with_num_intensity_dual_track` (外部模块导入) 三轨派生 `num_intensity_{full,ctx,ss}` (数值披露强度, Davis & Tama-Sweet 2012 CAR); ⑥写 parquet + 预览 CSV + 三轨分类报告。
+
+**关键算法/公式**: 核心是 `_compute_sentiment_with_rules(tokens, dict, apply_degree, apply_adversative)` —— 逐 token 状态机施加语言学规则: 否定词翻转极性 (窗口 NEGATION_WINDOW=2 个分词单元)、程度副词六级权重缩放 (HowNet 六级体系 + Liu 2012, DEGREE_WORDS 由 config 注入)、转折连词后权重 ×ADVERSATIVE_BOOST(默认 1.5)、句末标点重置作用域 (Ding 2008 从句级)。最终分 = self-normalized Σ(final)/Σ|final| ∈ [-1,+1]。**negonly 消融变体**: `apply_degree=False & apply_adversative=False` 只保留否定翻转, 产 `{dict}_score_negonly`/`msent_negonly`, 用作'主结果对去掉程度/转折两条规则是否敏感'的稳健性 (实测 corr(full,negonly)≈0.998-0.999 高度共线, 是稳健性对照非独立信号)。另产 `pos_ratio`/`neg_ratio` (固定 union 词典计数 / word-token 数)、`msent_score`=(raw_neg−raw_pos)/(raw_pos+raw_neg) 原始极性计数 (零规则; framing ≈ Tetlock 2007/Garcia 2013/Henry 2008; 代码注 He et al. 2024 IRFA Eq.1)、clarity/可读性/词汇复杂度等 $0 测度族。
+
+**输出列**: 每部词典 × 三轨的 `{dict}_score/zscore/idf_score/idf_zscore`、`{dict}_score_negonly`、跨词典 `pos_ratio/neg_ratio/msent_score/msent_negonly`、`num_intensity_{full,ctx,ss}`、可读性/复杂度列。
+
+**外部依赖**: jieba (`==0.42.1` 冻结); 纯 CPU, 无 LLM/网络/API, $0; 无缓存锚点 (确定性来自 jieba 版本 + 词典文件)。
+
+**DAG 位置**: 上游 stage 21 (`21_tone_llms.parquet`); 下游 stage 23 (BERT 读 `22_words_tone.parquet`)。STAGES_MAIN 阶段22。
+
+■ 白话说明
+
+这一步是'查字典版'的情绪打分: 准备好五本专门的中文金融情绪词典 (里面标好哪些词是褒义、哪些是贬义), 然后逐字逐词扫每篇新闻, 数褒义词、贬义词, 还会按中文语法做修正——遇到'不'就把后面词的好坏反过来 (不乐观=负面), 遇到'非常'就把强度放大, 遇到'但是/然而'就更看重转折后那半句话 (因为作者真实立场常在转折之后)。为什么需要它: 大模型那一步虽然聪明但也可能有偏差或'幻觉', 用一套透明、可解释、谁来跑都一样的词典法另算一遍, 等于给大模型的结论找了个独立的旁证 (论文里叫'稳健性检验')。如果两种方法算出的银行情绪走势一致, 结论就更可信; 如果只用一种, 审稿人会质疑是不是方法本身的偏差。它还专门留了一个'只做否定、不做程度和转折'的简化版本, 用来回答'我的主结果是不是过度依赖那两条修饰规则'——实测发现两者几乎一模一样, 正好证明结论稳。这一步不花钱、不联网, 同样按全文/银行相关段落/银行金科同句段落三种范围各算一遍。
+========================================================================
 """
 
 import json

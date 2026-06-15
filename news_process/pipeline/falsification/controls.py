@@ -54,6 +54,40 @@
   data/processed/51_panel_with_controls.parquet
   data/processed/51_panel_with_controls.dta
   data/processed/51_falsification_diagnostics.csv
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 51_falsification_test.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入 (load_data, 三个文件硬读, 缺则 sys.exit(1))**: (a) `12_fintech_news_full.parquet` (stage 12 过滤前全量银行新闻, 与 11_bank_news 逐行 1:1, 含 is_fintech_news 标注; 命名带 fintech 但是全量底库); (b) `40_article_bank_level.parquet` (已进面板的金融科技文章); (c) `40_panel_yearly.parquet` (待挂控制变量的 bank-year 面板)。
+
+**处理步骤 (main)**:
+1. `build_non_fintech`(anti-join): Non-Fintech = 全量银行新闻 MINUS 面板文章, 复合键 (target_bank, 标题, _date_str) 双侧 drop_duplicates 后集合差集 (Hassan 2019 QJE Table 7 互补划分); 经 attrs 暴露 `nf_media_breadth_physical`(去重前物理口径 distinct-outlet 媒体广度, 转载计入广度) 与 `ft_dedup_agg`(去重 fintech 计数, fintech_share 同基分子)。
+2. `aggregate_non_fintech`: 按 (target_bank, year) 聚合 — nf_n_articles(=count, 去重'同稿件'基) / nf_ln_coverage=ln(1+count)(Fang-Peress 2009) / nf_media_breadth(优先 attrs 物理口径 nunique, 缺则去重基回退) / nf_headline_frac=mean(target_bank_in_title)。
+3. `merge_to_panel`: left join 挂面板 + 总量变量 — all_n_articles=ft_dedup+nf(同基, 缺 ft_dedup 时回退物理 n_articles+nf 混合基) / all_ln_coverage / fintech_share=ft_dedup/all_n_articles(分母0→NaN, zero_coverage 指示) / ln_ft_articles & ln_nf_articles(挤出弹性对, 两端同基) + 跨源一致性校验(去重 fintech 计数 ≤ 物理 n_articles 逐行)。
+4. `run_diagnostics`: Pearson/Spearman 相关矩阵 (情感三轨 × nf_coverage; |r|<0.3 弱相关支持 H1) + 挤出弹性 r(ln_ft,ln_nf) 机械关联检测; 可用诊断列 <2 时返回 None。
+5. `export_results`: save_dataset 写 parquet (input_files 记全 3 个 fan-in 源) + sanitize 列名写 .dta (失败 raise 不 swallow, 先删旧 .dta) + 诊断 CSV。
+6. `print_stata_template` (读 papers_assets/bank_fintech_tone/do/falsification_template.do.tmpl) + `print_references`。
+
+**注**: 模块还含三个 main() **未调用**的辅助函数 (供下游/测试): `generate_placebo_did_variables`(G-13 安慰剂时点 DID, 窗口截断于真处理年 [ty-k, ty), Callaway-Sant'Anna 2021) / `diagnose_fintech_classification_consistency`(G-09 收敛效度) / `diagnose_alias_matching_quality`(G-11 别名匹配质量)。
+
+**假设框架**: H0 fintech tone 解释力全来自一般媒体关注度 vs H1 含金融科技特异性增量信息 (Hassan 2019 PRisk/NPRisk 范式)。
+
+**外部依赖**: 无 LLM/Embedding/网络; 纯 pandas/numpy。确定性强。默认 timeout=7200。
+
+**DAG 位置**: 上游 stage 12_full + stage 45 (40_panel_yearly + 40_article_bank_level), 三方 fan-in; 是主链末端阶段, 下游为 bank_fintech_tone 论文的 falsification_template.do 消费。
+
+■ 白话说明
+
+**这一步是什么**: 这是给核心结论做打假对照实验的一步。论文想说金融科技新闻的语调对银行有独特影响, 但有人会质疑: 是不是只要新闻多 (不管什么内容) 都有这个效果? 这一步就专门造一个对照组——把所有不是金融科技的银行新闻挑出来 (用减法: 全部银行新闻减掉已算进面板的金融科技新闻), 数一数每家银行每年有多少这种普通新闻、多少家媒体报道过, 当作安慰剂变量挂回面板。
+
+**为什么需要它**: 做对比赛马: 把金融科技语调和普通新闻数量一起放进回归。如果控制了普通新闻量之后, 金融科技语调依然显著, 就证明它确实带了金融科技这一维度的独特信息, 而不只是新闻多的副产品。这是顶刊审稿人必问的稳健性检验。
+
+**做得好不好的影响**: 这一步直接关系到论文核心论点站不站得住。它特别讲究数新闻要用同一把尺子——分子分母如果一个按物理篇数、一个按去重后的稿件数, 算出来的份额就会系统性偏大, 对比就失真。它还把全年没有任何新闻的银行年份标成未定义而不是零份额, 避免污染回归。做得好, 审稿人信服你的指标有独立价值; 做得粗糙, 这道防线一破, 整篇文章的因果解释都会被打问号。
+========================================================================
 """
 
 import os
