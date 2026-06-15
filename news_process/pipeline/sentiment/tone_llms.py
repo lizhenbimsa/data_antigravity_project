@@ -48,6 +48,30 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
     
 输出：
     筛选后的合法新闻 `21_tone_llms.parquet`
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 21_tone_llms.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 读 stage 14 输出 `14_fintech_intensity.parquet` (硬依赖, 缺失即报错终止, 不再静默回退 stage 12; main() Step 4(a) 硬化; 因 LLM 需 stage 14 的 `fintech_intensity_score`/`intensity_verified` 列)。关键输入列: `内容`(全文)、`标题`、`content_ctx`(stage 13 物化, 缺则 main() 调 `_materialize_content_ctx` 兜底)、`content_ss`(stage 13 单一事实源物化, 缺则 `iter_article_track_prompts` 优雅回退 content_full)、`target_bank`、`co_mentioned_banks`。
+
+**处理步骤**: ①`main()` 加载 parquet + schema 守护; ②`LLMCache(_llm_cache.db)` 打开 SQLite 缓存; ③`asyncio.run(run_all_llms(...))` 对每篇文章 × 三轨 × 三个 LLM 家族异步并发请求 (信号量 MAX_CONCURRENCY 控并发); ④`_aggregate_track` 对每轨返回 18 元组聚合 (verified 三角验证投票 + sentiment 投票 + locus/substantiveness/collab_mode 三维分类投票 + logit-to-score 概率分数); ⑤逐模型存档列 + 轨级聚合列写回 DataFrame; ⑥verified 并集过滤后写 `21_tone_llms.parquet`, 全量写 `21_tone_llms_full.parquet`。
+
+**关键算法/公式**: 三模型 ensemble 多数决 (`majority_vote_bool` 严格多数 >50%; `majority_vote_sentiment`/`majority_vote_categorical` 分类决); 平局策略可配 (sentiment 平局 tie_strategy='undefined'→None 防中性污染; substantiveness 平局 tie_default='象征性'; locus 平局 tie_default='应用场景'; collab_mode 平局 tie_default='自主研发', 均 conservative=uniform-prior MAP 保守降级); `compute_prob_score(label, confidence)` 把 3 类情感标签+置信度映射到 [-1,+1] 连续分 (logit-to-score, config `logit_to_score.enabled=true`; NaN/越界 confidence→P3_INV 拒绝); `compute_prob_score_binary` 对三维创新标签产 [0,1] 二分类分 (P2_BIN/P3_BIN)。verified gate 用并集 `verified_full | verified_ctx | verified_ss` (非交集), 并产 triple-gate 7 互斥态诊断列 (`llm_verified_triple_*`)。
+
+**输出列** (每轨 _full/_ctx/_ss 各一套): `llm_verified_*`、`llm_sentiment_*`、`llm_agreement_rate_v/s_*`、`n_valid_votes_*`/`n_verifying_votes_*`、`innovation_locus_*`(Gomber 2018 JMIS)、`innovation_substantiveness_*`(W&Z 1994/1998 ASQ)、`innovation_collab_mode_*`(Chesbrough 2003 + L&S 2006 SMJ)、各维度 `*_confidence_*`、`llm_prob_score`(avg_prob_score, 轨级聚合主列)、per-model `{short}_prob_score_*`、`avg_subst/locus/collab_prob_score_*`、逐模型 `{short}_verified/sentiment_*` 存档列; 另产 `llm_verified_dual_*`(3 态) / `llm_verified_triple_*`(7 态) 互斥指示列。
+
+**外部依赖**: 三个 LLM 家族经 config/sentiment.yaml 锁定 = gpt-5.4-nano(short_name gpt54nano) / gemini-3.1-flash-lite(gemini31111) / deepseek-v4-flash(deepseekv4, 走 api.deepseek.com 直连, 其余两家走 yunwu.ai/v1); 需 YUNWU_API_KEY / DEEPSEEK_API_KEY。**Prompt v8 字节级冻结** (`iter_article_track_prompts` 为生产与缓存覆盖审计共用单一事实源; 缓存键 = 模型名+prompt 文本+prompt_version+temperature+seed)。**确定性锚点 = _llm_cache.db** (~407MB/13.3 万条): 命中即 $0 字节级复现; `NEWS_PROCESS_LLM_OFFLINE=1` 离线守卫下缓存 miss 抛 `LLMCacheMissError` 而非调 API + 跳 preflight 探针。**超时**: 父端子进程硬超时 21600s (3x 安全余量覆盖冷缓存/雪崩退避)。
+
+**DAG 位置**: 上游 stage 14 (fintech_intensity) + stage 13 (content_ctx/content_ss 物化); 下游 stage 22 (词典法读 21 输出 `21_tone_llms.parquet`)、最终经 stage 24/45 进面板。本阶段是全流水线唯一核心付费阶段。
+
+■ 白话说明
+
+这一步是整条流水线里最贵、最关键的一环: 让三个大语言模型 (相当于三位独立的金融分析员) 各自读同一篇新闻, 先判断这篇报道是不是真的在讲'某家银行和金融科技的关系'(精筛/把关), 再判断它的语气是正面、负面还是中性, 顺带给出这条创新是'实质性还是象征性'、'底层技术还是应用场景'、'自己研发还是对外合作'等标签。三位分析员投票, 少数服从多数, 谁都说不准的就标成'未定'而不是硬塞成'中性'。为什么需要它: 后面要算每家银行每年被媒体报道的整体情绪, 必须先有一个可靠、可复盘的逐篇打分, 而大模型比关键词词典更懂上下文 (比如能分清'不看好'是负面)。它做得好不好直接决定面板里'媒体语调'这个主变量的质量, 也就是论文最核心的结论靠不靠得住。为保证'同一篇文章每次跑出来分数都一样'(论文复现的命脉), 项目把每次问大模型的结果都存进一个叫 _llm_cache.db 的账本, 之后离线照查账本就能零成本、一字不差地重跑——所以这个账本千万不能删。它还把同一篇文章按三种取材范围 (全文 / 只看跟银行相关的句子 / 只看银行和金科同句出现的片段) 各算一遍, 互为稳健性印证; 三种范围里只要有一种判定'确实在讲银行-金科'就把这篇保留下来。
+========================================================================
 """
 
 import asyncio

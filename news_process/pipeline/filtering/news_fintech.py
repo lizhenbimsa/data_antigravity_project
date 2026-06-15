@@ -39,6 +39,43 @@ news_process.pipeline.filtering.news_fintech — 阶段12：金融科技新闻�
     本模块由原 root script ``12_news_fintech.py`` body 迁入。
     规范调用方式：
         python -m news_process.pipeline.filtering.news_fintech
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 12_news_fintech.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: `11_bank_news.parquet` (config 键 output_11_bank_news) 全列 + 内容/标题。
+
+**处理步骤** (`main` → joblib `Parallel` 分批 → `classify_batch` → 委托 `analyze_fintech_matches`):
+1. 同 stage 11 的分批/并行框架 (batch_size 默认 5000, n_jobs 满核-1)。
+2. 每篇按 split_ratio (默认 0.5) 按字符数等分上下半; 用全局 Aho-Corasick (`load_fintech_dict`, 1506 词金科词典) 一次线性扫描。
+
+**关键判定公式** (`analyze_fintech_matches`, 整篇判定——stage 12 **不再** firm-document 展开, 沿用 stage 11 已展开的行):
+- 前置 (多样性): 标题或全文出现 ≥ `MIN_DISTINCT_KEYWORDS` (默认 3) 个**不同**金科词;
+- 分布条件 (其一): (a) 全部词上半合计 ≥ `MIN_UPPER` (默认 1) ∧ 下半合计 ≥ `MIN_LOWER` (默认 1); 或 (b) 任一词在标题 ∧ 全文合计 ≥ `MIN_UPPER`。
+- 金科侧为**裸 AC 匹配** (不做否定/短名排除), 与 stage 13 ss 轨'不对称口径'的金科侧一致 (单一事实源 core/text/ahocorasick)。
+
+**输出列** (对每行追加 7 列): `is_fintech_news` (bool), `fintech_total_count`, `fintech_upper_count`, `fintech_lower_count`, `fintech_in_title` (供下游显著性, 刻意保留), `fintech_distinct_keywords`, `fintech_keyword_details` (json)。
+
+**双产出语义**:
+- `12_fintech_news_full.parquet`: 写在过滤**之前** (见 main() full 落盘段), 含全部 stage 11 银行新闻行 (含非金科) + 上述 7 列, 与 stage 11 输出 1:1 行对应 (供人工验证抽样)。注: 任务简述'_full=过滤前全量银行新闻(与 11 1:1)'成立——它就是'银行新闻全集 + 金科分类标记', 未做金科过滤。下游 controls.py 用其'减面板后去重'部分作 fintech_share 分母的一块 (见 memory fintech-share-denominator)。
+- `12_fintech_news.parquet`: 对 full 做 `is_fintech_news==True` 过滤后的子集 (见 main() 过滤落盘段), 即'既是银行新闻又是金科新闻'的稿件, 供 stage 13+ 三轨/强度/情感消费。
+
+**外部依赖/确定性**: 纯 CPU (ahocorasick/joblib/psutil), 无 LLM/网络, 逐位可复现。fintech_dict.json 纳入两个 parquet 的 input_hashes 血缘 (防词典内容篡改失明)。
+
+**DAG 位置**: 上游 stage 11, 下游 stage 13 (ctx_materializer) 读 12_fintech_news.parquet。学术依据 胡俊等 2024 中国管理科学 + Loughran-McDonald 2011 JF (见模块 docstring)。
+
+■ 白话说明
+
+**这一步在做什么**: 在'已经是银行新闻'的稿件里, 再判断哪几篇是真的在谈'金融科技'(手机银行、移动支付、大数据风控、区块链这类)。它会输出两份: 一份是'银行新闻全集, 每篇都打上是不是金科的标记'(供抽查核对), 另一份是'确实是金科的那个子集'(交给后面用)。打个比方: 先有一摞银行剪报, 这步给每篇盖个章——'涉金融科技'或'不涉', 然后把盖章'涉'的单独抽出来一叠。
+
+**为什么需要它**: 整个项目研究的是'媒体怎么报道银行与金融科技的关系', 所以必须先框定'银行×金科'这个话题范围。判定要求一篇里出现至少 3 个不同的金科词 (而不是偶然蹦一个), 避免把只顺嘴提一句'扫码支付'的普通银行新闻误算进来。
+
+**做得好不好的影响**: 这步圈定的金科新闻子集, 是后面所有'银行金融科技注意力/态度/实质性'指标的原料。框太宽会把噪声稿件灌进来, 框太窄会漏掉真实的金科报道, 都会让银行-年度面板里的核心解释变量偏移。它保留的那份'全量+标记'还充当 fintech_share (银行新闻里金科占比) 指标的分母来源之一, 直接影响该比例型变量的口径; 同时它的金科词典就是后面'银行和金科出现在同一句'(第三条文本轨) 用来认定共现的金科词源。
+========================================================================
 """
 
 import json

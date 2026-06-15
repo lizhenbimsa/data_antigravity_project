@@ -64,6 +64,30 @@ config.yaml 已是 legacy stub, 配置拆分后单一真值在 7 域 split YAML�
 
 输出：
     追加各模型的情感标签和概率列（output_23_bert_tone）
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 23_tone_berts.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 读 stage 22 输出 `22_words_tone.parquet` (config 键 output_22_words_tone; 取 `标题`/`内容`/`content_ctx`/`content_ss` 列)。
+
+**处理步骤**: ①`_build_model_configs()` 从 config/sentiment.yaml::sentiment_analysis.tone_berts.models 读 3 个 BERT 模型配置; ②`MultiModelSentimentEngine.load_all()` 一次性加载到 GPU (FP32 权重 + AMP autocast 动态混合精度推理); ③Step 1 用 `prepend_title` 拼三轨文本列表 (full=标题+内容, ctx=标题+content_ctx, ss=标题+content_ss); ④`process_all_models` 对 ctx/full/(ss) 各跑批量推理 (物理隔离防 OOM); ⑤超长文本滑动窗口切片 (`WINDOW_STRIDE_RATIO=0.5` 50% 重叠, 单窗 ≤max_length 512 含特殊 token, 有效正文 ≤510 token) + 置信度加权池化聚合各窗 logits (logits*=Σ(conf_k·logits_k)/Σconf_k); ⑥三轨结果带后缀写回 DataFrame; ⑦写 `bert_num_windows_{track}` (≥1 正常 / 0 空文本 / -1 推理失败哨兵); ⑧保存 parquet, 释放显存, 打三轨分类报告。
+
+**关键算法**: 各模型按自身 tokenizer 分窗 (fix g-berts-01 后词表不同模型不共享分词); argmax 分类 + 置信度加权窗口池化 (高置信窗口更大权重)。批级异常 → 逐篇重试一次 → 仍失败才写失败哨兵 (label=None/概率 NaN/num_windows=-1, 与空文本 num_windows=0 严格区分)。
+
+**输出列**: 每模型 (finbert_cn/fin_sent_zh/finbert2) × 三轨的 `{sn}_label` + 各标签概率列 (含 2-class 模型补 `{sn}_中性`=NaN)、`{sn}_infer_failed_{track}` 哨兵、`bert_num_windows_{full/ctx/ss}`。
+
+**外部依赖与降级**: 3 模型 = (1) yiyanghkust/finbert-tone-chinese (finbert_cn, HF, 3-class 中性/正面/负面), (2) bardsai/finance-sentiment-zh-base (fin_sent_zh, HF, 基于 Financial PhraseBank 微调, 3-class), (3) FinBERT2 (finbert2, 本地私有, 2-class 负面/正面, 经 .env `FINBERT2_MODEL_DIR` 解析; 留空或路径不存在则**优雅跳过该模型**, 另两个 HF 模型照跑)。`strict_models=true` 默认下两个 HF 模型非预期加载失败会 fail-loud raise; FINBERT2_MODEL_DIR 未配是预期 graceful skip。**须 HF_HUB_OFFLINE=1 / TRANSFORMERS_OFFLINE=1** 本地重跑 (两 HF 模型连不上 hf.co 但有本地缓存; 见 memory)。依赖 torch/transformers + GPU; 无 LLM API、无 _llm_cache.db (确定性来自模型权重 + AMP argmax 对分类结果无影响)。
+
+**DAG 位置**: 上游 stage 22 (`22_words_tone.parquet`); 下游 stage 24 (herd_decay 硬依赖 23_bert_tone.parquet)。STAGES_MAIN 阶段23, always-on。
+
+■ 白话说明
+
+这一步是'AI 神经网络版'的情绪打分: 用三个已经在大量金融文本上训练过的小型语言模型 (BERT 系列, 可以理解为'专门读金融新闻的情绪识别器') 给每篇新闻判正面/负面/中性。它和前两步 (大模型、查字典) 是三条独立路线, 各有所长——BERT 不靠关键词硬数, 而是整体理解一段话的语气。新闻太长超出模型一次能读的长度时, 它像翻书一样用滑动窗口分段读, 每段都有 50% 重叠不漏信息, 最后按'读得有多确定'加权合并。为什么需要它: 同样是给媒体语调找旁证, 三种方法 (大模型 + 词典 + BERT) 互相印证, 结论越稳越能上顶刊。其中一个叫 FinBERT2 的模型是项目自己训练的私货, 别人机器上没有也没关系, 程序会自动跳过它、用另外两个公开模型继续跑, 不会卡死。一个实操坑: 本地重跑要先把'离线模式'开关打开, 否则它会去外网下模型结果连不上而失败。这一步同样按全文/银行相关段/银行金科同句段三种范围各推理一遍 (同句段那一路如果上游没准备好就自动只跑前两路)。
+========================================================================
 """
 
 import gc

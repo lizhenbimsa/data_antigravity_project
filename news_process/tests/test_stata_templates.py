@@ -340,7 +340,7 @@ def test_cli_doctor_callable():
 
 
 def test_cli_doctor_runs_with_no_args(capsys):
-    """M2/7: doctor 端到端 stdout 含 5 检查段."""
+    """M2/7: doctor 端到端 stdout 含 6 检查段 (reaudit-t18-2026-06-15: +Stata ado 段)."""
     from types import SimpleNamespace
 
     import news_process.papers._common.stata_runner as mod
@@ -350,12 +350,13 @@ def test_cli_doctor_runs_with_no_args(capsys):
     # 返回 0 (全 OK) 或 1 (有 ERR); doctor 不应 crash
     assert rc in (0, 1)
     out = capsys.readouterr().out
-    # 5 检查段标题出现
-    assert '[1/5] Python 依赖' in out
-    assert '[2/5] Pipeline 数据' in out
-    assert '[3/5] LLM cache' in out
-    assert '[4/5] LLM API access' in out
-    assert '[5/5] Stata' in out
+    # 6 检查段标题出现
+    assert '[1/6] Python 依赖' in out
+    assert '[2/6] Pipeline 数据' in out
+    assert '[3/6] LLM cache' in out
+    assert '[4/6] LLM API access' in out
+    assert '[5/6] Stata' in out
+    assert '[6/6] Stata ado' in out
     # Summary 行
     assert 'Summary:' in out
     assert 'OK' in out

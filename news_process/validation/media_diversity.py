@@ -84,6 +84,41 @@ news_process.validation.media_diversity — 媒体名称与地域多样性审计
     Shannon 熵和 Pielou 均匀度衡量报道量在各媒体间摊得匀不匀; Gini 衡量
     贫富差距式的不均; 再逐年看媒体名单变没变 (Jaccard 重叠度), 以及流水
     线每过一道筛子媒体多样性掉了多少。全部指标自动判阈值并出 Excel 报告。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 38_media_diversity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**职责**: 量化每道流水线筛子后"媒体来源"和"地域覆盖"的多样性, 回答审稿人"你的新闻是不是都来自一两家媒体/一两个省", 为论文"数据来源客观性"辩护。
+
+**输入 (跨 6 阶段遍历)**: `00_preprocessing` / `11_bank_news` / `12_fintech_news` / `21_tone_llms` / `23_bert_tone` / `40_article_bank_level` 的 parquet; 列 `媒体(中文)` / `国家地区/省份` / `城市` / `target_bank` / `日期`。另读 config/media_weights.json (媒体权威权重, 经 load_media_weights) + config 的 mainland_china_regions。文件缺则跳过该阶段。
+
+**处理步骤 + 算法** (每阶段):
+- **媒体名称多样性** `analyze_media_names`: HHI = Σ份额²; 等效媒体数 ENM = 1/HHI (Laakso-Taagepera); **Shannon 熵** H = -Σpᵢlog₂pᵢ; **Pielou 均匀度** J' = H/log₂(N) (compute_pielou_evenness; S=1 单一媒体返回 NaN 而非误导性 1.0); **Gini 系数** (compute_gini); 加权 HHI (compute_weighted_hhi, 按权威权重); 集中率 CR1/CR3/CR5/CR10/CR20; 长尾 (仅 1 篇/≤5/≤10 的媒体数); 6 层 Tier 分布。
+- **地域多样性** `analyze_regions`: 省份级 HHI/Shannon/Gini/Pielou + 东中西部分组 (国统局标准) + 城市分布 + 未覆盖省份识别 + 省份覆盖率。
+- **按银行** `analyze_bank_media` (仅 40_ 阶段): 每行 media breadth (唯一媒体数, Bushee2010) + Shannon 熵 + 层级加权得分 + `Tier1-3覆盖率(%)` (权重 w≥80 视为 Tier 1-3 高权威覆盖)。
+- **时序稳定性** `analyze_temporal_stability`: 逐年唯一媒体数/HHI/熵 + 新进/退出媒体 + **年际 Jaccard 相似度** (|交|/|并|, 媒体名单跨年重叠度, 平均 ≥0.7 稳定)。
+- **权重覆盖诊断**: 识别高频但未评级媒体 (不在 media_weights 且非 default/其他媒体/未知), 供权重表维护。
+- **跨阶段差异** `compute_cross_stage_delta`: 相邻阶段 HHI 变化率 + 媒体存留率 + Jaccard。
+- **综合结论** `log_comprehensive_summary`: 对最终阶段指标自动判阈值 (HHI≥0.10 / J'<0.70 / Gini≥0.80 / 已评级报道占比<40% / 省份覆盖<80% / 地域HHI≥0.15 报警; J' 为 NaN 时不触发均匀度判定)。
+
+所有结果汇入 12 Sheet Excel (`export_to_excel`, openpyxl)。
+
+**外部依赖**: pandas/numpy/openpyxl。无 LLM/Embedding API, $0。
+
+**DAG 位置**: 验证支线 stage 38, 上游 = 6 个主线阶段产出; 纯诊断终点, 不改任何管道数据。
+
+■ 白话说明
+
+这一步是"查新闻来源的家底": 审稿人最爱挑刺的一句话是"你的新闻是不是都来自《人民日报》一家、都报道北京一个省"。这一步就用一整套经典的"分散度"指标量化回答 —— HHI 越小说明来源越分散 (好), "等效媒体数"告诉你实际上相当于几家媒体在干活, Shannon 熵和 Pielou 均匀度衡量报道量在各家媒体间摊得匀不匀, Gini 系数衡量"贫富差距式"的不均, 还按东中西部看地域覆盖全不全。再逐年看媒体名单变没变 (Jaccard 重叠度), 以及流水线每过一道筛子、媒体多样性掉了多少。
+
+为什么需要它: 如果数据高度集中在少数媒体或少数地区, 那"媒体关注度""媒体语调"这些核心变量就可能只反映个别媒体的口味, 而非真实舆论, 实证结论的外部有效性 (能不能推广) 就成问题。
+
+对最终结果的影响: 它不改面板数字, 但它出的这份多样性体检报告是论文"样本代表性"段落的证据。指标健康 (来源够分散、地域够广) 就能挡住"样本有偏"的质疑; 如果发现某道筛子把多样性砍得太狠, 就提示需要回头检查那个环节是不是过度过滤了。全部自动判阈值、出一个 12 页的 Excel 报告。
+========================================================================
 """
 
 import json

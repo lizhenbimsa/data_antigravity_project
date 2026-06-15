@@ -10,6 +10,35 @@ Phase 1 状态: 此处为规范实现体。根目录 ``news_process/53_export_st
 Phase 2 规划: (a) 将其余 23 个简易 CLI 正文迁入子包; (b) 将 22/23/35/38b/39
 中依赖 ``__file__`` 的资源路径改为 ``CONFIG['paths'][...]`` (并在 ``paths.yaml``
 增补 ``models_dir`` / ``eval_reports_dir`` 等键); (c) 原子迁移 15/45/库文件路径。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 53_export_stats_excel.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 按 4 个阶段读对应 parquet 的 3 个元数据列 (columns 限定读, 省内存) — 00_preprocessing / 11_bank_news / 12_fintech_news / 21_tone_llms (文件名经 config['filenames'] 的 output_00_preprocessing / output_11_bank_news / output_12_fintech_news / output_21_tone_llms 解析); 缺文件则 print 跳过该阶段。
+
+**处理步骤 (main)**:
+1. Windows 控制台 utf-8 重配 (失败静默 pass)。
+2. 对每个阶段 × 每个统计字段 (媒体(中文) / 国家地区/省份 / 城市) 做 `df[col].fillna('(空值)').value_counts().reset_index()`, 列名命名为 [原字段名, 数量]; 字段列不存在则 print 警告跳过。
+3. 经 openpyxl ExcelWriter 各写一个 sheet (sheet 名 `{label}_{中文后缀}` 截断 31 字符, Excel 上限), 输出单一 Excel `各阶段_媒体_地区_城市_统计.xlsx`。
+
+**关键算法**: 纯 value_counts 频次分布, 无回归/聚合公式。
+
+**外部依赖**: pandas + openpyxl; 无 LLM/Embedding/网络。无 timeout (不在 DAG)。确定性强。规范调用: `python -m news_process.pipeline.audit.stats_excel` 或 `python news_process/53_export_stats_excel.py`。
+
+**DAG 位置**: 不在 DAG。是横切多阶段的描述性统计便利工具, 由用户手动触发, 与主链解耦。
+
+■ 白话说明
+
+**这一步是什么**: 这是个统计小帮手。它把流水线四个关键阶段 (原始预处理、银行新闻、金融科技新闻、LLM 打分后) 的新闻, 按哪家媒体发的、来自哪个省、哪个城市分别数一数各有多少条, 然后整理成一个多页的 Excel 表格, 每一页是一个阶段、一个维度的分布清单。打个比方: 就是把一大堆新闻按媒体/地区/城市分类点名, 做成一份花名册。
+
+**为什么需要它**: 研究者想快速了解我的新闻数据都来自哪些媒体、覆盖哪些地区、各阶段筛选后样本怎么变化, 不用自己写代码, 跑一下就能拿到一份现成的 Excel 概览。论文的样本描述、数据来源说明、附录里的覆盖范围表常常要用到这些数字。
+
+**做得好不好的影响**: 它不参与任何回归计算, 也不改面板数据, 纯粹是给人看的描述性统计。所以它好不好不会影响论文的核心结果, 但它能帮研究者快速发现样本是否偏向某几家媒体或某个地区 (代表性问题), 以及各阶段筛选掉了多少数据。属于了解自己数据家底的辅助工具, 想用就用、不用也不影响主流程。
+========================================================================
 """
 
 from __future__ import annotations

@@ -69,6 +69,43 @@
   注: ss 轨 = content_ss (标题 + 银行∧金科同句共现窗), 上游 stage 13 物化;
       回退 (无共现) → 全文 body (镜像 ctx 回退公理, ss_is_fallback=True)。
 ============================================================================
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 15_article_policy_alignment.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**在 DAG 中的位置**: STAGES_MAIN 阶段15, kind=filter, timeout=7200(因含 Embedding API)。上游 = stage 14(直接读 14_fintech_intensity.parquet), 下游被 stage 45 panel runner 的四象限分类(Token/Hidden/Substantive/Irrelevant)消费。
+
+**输入**:
+- `14_fintech_intensity.parquet`(含 标题/内容/content_full/content_ctx/content_ss/year/日期 等)。
+- `config/authoritative_corpus.txt`(权威政策语料, 经 CONFIG['paths']['authoritative_corpus_file'] 读取, 与 stage 26 共享同一份)。
+
+**核心度量**: `policy_cosine_sim_i = cos(emb(article_i), emb(auth_anchor))`, 理论值域 [-1,1], 实务多落 0~1。
+
+**处理步骤**:
+1. **语料加载** `load_policy_corpus_docs`: 按 `# [VINTAGE YYYY]` 标注行 / 落款日期行(YYYY年M月)/ 文号〔YYYY〕N号 解析各政策文档发布年份(vintage); 经 `_strip_leader_names` 镜像新闻侧 normalize 步骤2.5 做敏感词('习近平')对称清洗; 无 VINTAGE 标注时按 ≥3 连续空行切文档。
+2. **Vintage-aware 前视守卫**(默认开, config: article_alignment.vintage_aware, 函数 vintage_aware_enabled): 年度 t 的文章只与 **发布年份 ≤ t** 的政策文档段拼成锚点算余弦(消除'2017年新闻比2022年才发布的政策'前视构造)。文章年份从 year 列或 日期 列派生; 年份未知或早于全部政策文档 → 该篇置 NaN。无年份信息或 opt-out 时降级为静态全语料锚点并 WARNING 披露。
+3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档 Early Chunking(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(API 1536维 vs text2vec 768维, 严禁混算)。
+4. **双模型**: MAIN = text-embedding-3-small(config embedding_api, yunwu OpenAI-compat API)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; ROBUSTNESS = shibing624/text2vec-base-chinese(本地, config embedding_robustness)→ `policy_cosine_sim_t2v_{full,ctx,ss}`。_t2v 失败(try/except 守卫)仅置 NaN 不破坏 canonical。
+5. 统计/断言全部 NaN-安全(nanmin/nanmax/nanmean); full↔ctx Spearman ρ 轨间独立性诊断。
+
+**外部依赖/缓存**: 生产嵌入统一走 `pipeline/text/embedding_engine.embed_texts`(LLMCache 穿透 + 动态分批 + chunk-pool); 缓存键含逐字文本(故三轨 content_full/ctx/ss 文本不同字节天然隔离缓存项), 缓存库 = _llm_cache.db。content_full 与 stage 27(benefit_society)逐篇嵌入同源, 同篇文章 API 向量只付费一次。模块内 `_get_embeddings_api_dynamic` 是 legacy(仅 tests/test_pipeline_robustness.py 引用, 生产0调用)。**API 离线守卫**: 嵌入 miss 即付费调 API(不受 NEWS_PROCESS_LLM_OFFLINE 的 stage 21 守卫保护; 裸环境须设 SSL_CERT_FILE=certifi 修 yunwu.ai 证书)。timeout=7200。
+
+■ 白话说明
+
+这一步给每篇金科新闻打一个'政策对齐分'——衡量这篇新闻跟国家金融科技政策'像不像'。
+
+打个比方: 先把国家发布的一摞重磅金科政策文件读进来, 浓缩成一份'标准答案'; 再把每篇新闻也变成一串数字(向量), 算它跟'标准答案'的夹角余弦——越接近1说明这篇新闻越贴政策方向, 越低说明越不沾边。这里有个很讲究的细节: 算2017年的新闻时, 只拿'2017年(含)之前已经发布'的政策当标准答案, 绝不拿几年后才出台的政策来比——否则就成了'用未来的信息预测过去', 是学术大忌(叫前视偏误)。
+
+它还同时用两套不同的'翻译机'(一套联网的大模型 API, 一套本地小模型)各算一遍, 互为稳健性对照: 如果两套都给出类似结论, 结果就更可信。
+
+为什么需要它: 后面要把每篇新闻分到四个格子里——'关键词刷得多但其实不贴政策'(洗科技/喊口号)、'关键词不多但很贴政策'(闷声干事)、'又多又贴'(言行一致)、'又少又不贴'(无关)。要分格子, 就必须先有这个'贴不贴政策'的对齐分(配合 stage 14 的'关键词强度')。
+
+对最终面板/论文的影响: 这是把'象征性 vs 实质性采纳'这个核心构念落地的关键一步。若政策语料选错、前视守卫没做、或嵌入算偏, 银行被错分进'洗科技'还是'真干事'就会反转, 直接动摇 P1/P3 等论文关于'媒体语调/政策实质'的主结论。它的输出还会经年度内分位阈值定四象限, 所以哪怕单篇分数小变动, 也可能让整年阈值移动、连带多篇文章翻类, 需要谨慎重生面板。
+========================================================================
 """
 
 import asyncio

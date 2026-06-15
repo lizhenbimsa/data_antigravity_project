@@ -62,6 +62,39 @@ valid (bank, event) 三元组覆盖 ≥ 60% bank-year.
 它们打分有多一致"。一致说明信号可靠; 分歧本身也是信息 (媒体分歧度)。
 注意: 这里算的是"事件窗口内"的口径, 和第 10 篇论文承诺的"全年口径"
 同名不同义, 用之前必须先对齐, 详见顶部披露。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 39f_cross_media_alpha.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 优先读 `21_tone_llms_full.parquet`, 回退 `21_tone_llms.parquet`(文章级); 两者均缺 → sys.exit(1)。用列: target_bank、日期、媒体(中文)、llm_vote_tone_{full,ctx,ss}(若该列无但 llm_sentiment_{trk} 存在, 则按 `_SENT_TO_TONE`={'正面':1.0,'中性':0.0,'负面':-1.0}(与 encode.py SENTIMENT_MAP 一致)派生数值 tone, 这是 panel 聚合才有的列在 article 级的补派生; 其它标签 → NaN)。
+
+**处理步骤**(`main`):
+- `detect_bank_events`: 按 bank-day 计文章数, 取该 bank 的 p90(N_ARTICLE_PERCENTILE=0.90)峰值日(n_per_day≥p90 且 p90>pmin 排除常量分布), 经 `_merge_overlapping_events` 把相邻 gap≤2×window 的传递重叠 ±3d 窗合并为单一 episode(防同文章跨事件重复计入、防 n_events 高估; 修 omni-g-audit-family-01)。
+- 三轨循环: `compute_outlet_tone_aggregates` 对每个 (bank,event_date) 在 episode 并集窗内收集 outlet×day 结构(outlet_tones 1D 供方差、daily_matrix 2D 供 α、n_articles 供加权; 要求 outlet 数≥2)。
+- `compute_variance_and_alpha`: variance=np.var(outlet_tones, ddof=1)(事件窗条件 outlet 间方差); Krippendorff α(interval scale, reliability_data=outlet×day matrix, NaN 作 missing, 需至少 1 个 item 有≥2 outlets)。
+- `aggregate_to_bank_year`: 按 episode 内 n_articles 加权均值聚到 bank-year(修: 旧版误按 n_outlets, 缺 n_articles 列回退 n_outlets+warning), 三轨 panel outer-merge。
+- G-D3.1 诊断: valid bank 覆盖 ≥60% → PASS 否则 WARN(仅日志)。
+
+**关键算法/公式**: Krippendorff(2004) α(多评分员、任意尺度, 比 Cohen κ 稳健); Tetlock(2007) 跨源 tone 一致性作信号质量代理; 事件窗 ±3d、min 2 outlets、p90 峰值。
+
+**输出**: 9 列(见三轨段)。⚠ 同名异构披露: cross_outlet_tone_variance_{full,ctx}(注: 披露仅列 full/ctx 两轨)与第 10 篇 bank_media_disagreement paper_spec 冻结的 main treatment **同名但不同构**(本模块=事件窗条件子样本逐 episode 方差再加权; spec=全年无条件截面 outlet 均值的跨 outlet var)——第 10 篇采用前必须对齐 spec 或重命名释放保留名。
+
+**外部依赖/超时**: 依赖 `krippendorff>=0.5.0`(默认在 requirements.txt 注释化, 未装时 α 输出 NaN、仅 variance 可用); 无 LLM/Embedding/_llm_cache.db(只读已落盘 stage 21 + 确定性 _SENT_TO_TONE 派生); DAG timeout=3600(60 分钟, 含事件检测+媒体源聚合)。
+
+**DAG 位置**: 验证阶段 39f(STAGES_VALIDATION), 上游=stage 21 tone_llms, 下游与第 10 篇 bank_media_disagreement 论文重叠(启用前须对齐 spec, 当前仅 validation)。
+
+■ 白话说明
+
+**这一步在做什么**: 同一家银行出大新闻的那几天, 不同媒体打出来的语调一致吗? 这一步先找出每家银行"上头条"的高峰日(某天报道数特别多), 把相邻的高峰并成一个"事件", 然后看这个事件窗口里各家媒体的语调差多远。它算两个东西: 方差(各家媒体说法分歧有多大)和 Krippendorff α(把媒体当评分员、看它们打分有多吻合的一个一致性分数)。
+
+**为什么需要它**: 媒体说法越一致, 说明这条情感信号越可靠(不是某一家媒体的偏见); 反过来, 媒体之间的分歧本身也是有价值的信息("媒体分歧度"恰好是第 10 篇论文的核心变量)。这一步既给主线情感测度提供"信号质量"的稳健性证据, 又为媒体分歧那篇论文铺路。
+
+**对最终面板/论文的影响**: 它给银行-年度面板加了 9 列(语调方差、媒体一致性 α、事件数, 三种文本口径各一份)。一个重要警示: 它产的"跨媒体语调方差"列和第 10 篇论文承诺的主变量"名字一样但算法不一样"(这里是"事件窗口内"算的, 论文要的是"全年"算的)——所以第 10 篇真正动用前, 必须先把口径对齐或改名, 否则会张冠李戴、影响那篇论文的核心识别。
+========================================================================
 """
 
 from __future__ import annotations

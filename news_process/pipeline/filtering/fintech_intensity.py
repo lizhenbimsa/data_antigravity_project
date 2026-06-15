@@ -54,6 +54,47 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
     本模块由原 root script ``14_fintech_intensity.py`` body 迁入。
     规范调用方式：
         python -m news_process.pipeline.filtering.fintech_intensity
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 14_fintech_intensity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**在 DAG 中的位置**: STAGES_MAIN 阶段14, kind=filter, 无显式 timeout (取 StageSpec 默认)。上游 = stage 12 (news_fintech) + stage 13 (materialize_ctx), 下游 = stage 15 (policy_alignment, 直接读 14 的 parquet)。
+
+**输入**:
+- `12_fintech_news_full.parquet` — 全量(含非金科)新闻, 仅用作全局 IDF 参考语料(Gentzkow-Kelly-Taddy 2019 JEL §2.2 "full reference corpus" 语义)。⚠ 注释明确警告勿改用 13_news_with_ctx(它只含 is_fintech_news=True 子集会塌缩 IDF 区分度)。
+- 逐篇打分语料: 优先 `13_news_with_ctx.parquet`(含 content_ctx/content_ss, 读后按 `is_fintech_news==True` 筛金科子集), 缺失则回退 `12_fintech_news.parquet`。
+- 金科词典经 `core.text.ahocorasick.load_fintech_dict` 加载(与 stage 12 共享同一份)。
+
+**处理步骤**:
+1. **全局 DF (Module A)** `_compute_global_df_jieba`: 把词典全部关键词 `jieba.add_word` 注入, `_ensure_keywords_injected` 划分 matchable / unmatchable(代码注释记 6/1506 含空格顿号的词 jieba 整词永不可命中, 实际剔除数由 `len(unmatchable)` 运行期计算 → 从权重宇宙剔除并 WARNING 披露)。在全量参考语料上按 **(标题,日期) 去重的唯一文档** 用 jieba 整词统计每个关键词的文档频率 DF 与 N_total(joblib `prefer='threads'` 并行, 分批 2000)。DF 语料列经 `_materialize_df_corpus_column` 在线物化 content_full(prepend_title) 与 TF 端同口径。
+2. **综合权重 (Module B)** `_build_intensity_weights`:
+   - 步骤A IDF: `raw_idf = log10(N_total/(1+df))` → 均值归一化 → Winsorize(默认 [1,99] 分位)。
+   - 步骤B 语义纯度: 用 SentenceTransformer(默认 shibing624/text2vec-base-chinese) 编码每个关键词 → IDF 加权普通质心 `np.average(embeddings, axis=0, weights=idf)`(代码注释明确订正: 名为 "SIF" 实非 SIF, 无 a/(a+p(w)) 平滑与首主成分去除) → 各关键词对质心余弦 → min-max + floor(anisotropy_floor 默认 0.1) 重标定。
+   - 步骤C: `W_i = IDF_i × CosSim_scaled_i` 预乘。
+   - 多处降级守卫(DF 空 / IDF 均值≤0 / CosSim 全相同 / sentence_transformers ImportError 或运行期 Exception)统一 logger.error 披露口径降级为纯词频或纯 IDF, 防同名列静默漂移。
+3. **逐文档打分 (Module C)** `_compute_intensity_scores`, 双重对数核公式:
+   `Score_d = Σ_{i:TF>0} [(1 + ln(TF_{d,i})) / (1 + ln(L_d))] × W_i`
+   - 防长文偏差(分母 1+ln(L_d))、防复读机刷分(对 TF 取对数)。
+   - **二次熔断**: distinct 关键词数 < min_distinct_keywords_jieba(默认 2) → score=NaN, verified=False(NaN 在下游 bank-year 均值中自动剔除, 避免把未验证文章当零强度系统性拉低均值)。
+
+**输出列**: `fintech_intensity_score_{full,ctx,ss}` + `intensity_verified_{full,ctx,ss}`, 加无后缀 `fintech_intensity_score` / `intensity_verified`(= _full 别名)。
+
+**外部依赖/确定性**: jieba(整词分词, 注入态单源, 锁 jieba==0.42.1)、joblib 线程并行、sentence-transformers + text2vec 本地模型(仅用于关键词级语义权重, 非文章嵌入, 不调任何 API, 不进 _llm_cache.db)。**无 LLM/Embedding API、无网络付费**, 本阶段 $0, 确定性取决于 jieba 版本与本地词向量模型。配置节 = config/filtering.yaml::fintech_intensity (代码 CONFIG.get('fintech_intensity'))。
+
+■ 白话说明
+
+这一步给每篇'金融科技'新闻打一个连续的'技术含金量分数'。
+
+打个比方: stage 12 只是判断一篇新闻'是不是'谈金融科技(是/否的开关); 这一步则进一步衡量它谈得'有多硬核'。它给每个金科关键词配一个'权重': 越稀有的词(很多文章不提的, 比如'联邦学习')权重越高, 越泛泛的词(篇篇都有的)权重越低; 同时还看这个词在语义上'是不是真的很金科'。然后把一篇文章里出现的关键词按权重加起来, 还特意做两件事: 长文章不会因为字多就自动得高分, 同一个词重复刷十遍也不会线性加分(防'复读机刷分')。如果一篇文章翻来覆去只提一两个孤立的金科词(很可能是顺带一提), 就判定为'没通过验证', 分数记为空缺而不是0, 免得把它当成'零强度'拖累整体平均。
+
+为什么需要它: 后面要研究'银行对金融科技的关注/实质投入'到底强不强, 光数关键词容易被注水的稿件骗到。这个连续分数让'真干事'和'喊口号'能被区分开。
+
+对最终面板/论文的影响: 这个分数(三条轨道的版本)会被聚合成银行-年度的平均金科强度, 直接进入 P2(注意力强度)等论文的核心解释变量。如果权重算偏了或验证门槛没把住, 银行的'金科活跃度'就会被高估或低估, 回归系数随之失真; 反过来, 做扎实了, 论文里'媒体对某银行金科报道越强 → 后续某结果'这类结论才站得住。
+========================================================================
 """
 
 import logging

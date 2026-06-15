@@ -28,3 +28,6 @@ display "=========================================="
 display "第 11 篇 bank_news_clarity 全部 .do 跑完"
 display "  输出: papers/bank_news_clarity/output/"
 display "=========================================="
+
+* 2026-06-14 终端守卫: exit 让 /e 或双击裸起动也立即退出, 不弹「已完成」模态框 (见 CLAUDE.md "Stata Environment")
+exit, clear

@@ -36,6 +36,41 @@ A1/A3 vs LLM substance 的 discriminant validity 检验 — 3 × 3 矩阵:
 量三件不同的事? HTMT 看任意两把尺子的相关有多高 (低于 0.85/0.90 才算
 "各量各的"); Cronbach α 看把三者合成一个量表是否内部一致; Cohen κ 专门
 看"象征性"标签与"表述含糊"是否如理论预期正相关。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 39d_lexical_discriminant_validity.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 读 `40_panel_yearly.parquet`(银行-年度面板)。每轨用 3 个指标列(单 indicator 构念): T1=LLM 实质性概率 `avg_subst_prob_score_{full,ctx,ss}`、T2=词典清晰度 `mean_clarity_score_*`、T3=数字密集度 `mean_num_intensity_*`。
+
+**处理步骤**(`main` → 三轨循环 `run_discriminant_validity`):
+- 样本 mask: 优先 `n_articles_llm_valid ≥ 2`(该列缺失时回退 n_articles_col, 默认 'n_articles'), 与 39e 同口径(修 R8-H2); mask 后 <10 obs → status=insufficient_obs 跳过。
+- `compute_htmt`: 单 indicator 退化为 HTMT_ij=|corr(T_i,T_j)|(`_safe_corrcoef` Pearson r, 缺值/方差 0 → NaN)。
+- `compute_ave_and_phi_squared`: 单 item AVE=1.0, φ²_ij=r²(Fornell-Larcker 1981)。
+- `compute_cronbach_alpha_across_indicators`: 跨 3 个 item α=(k/(k−1))(1−Σσ²_i/σ²_total)(跨全部 indicator 而非 within track, 避单 item 退化)。
+- `compute_cohen_kappa_substance_vs_clarity`: 二分化(substance≥0.5→象征性 1; clarity<median→含糊 1), 方向锁定预期正 κ; mask.sum()<4 或常量轴守卫(任一二分轴无变异 → 显式 NaN, 避 vacuous κ=0)。
+- `compute_spearman_substance_clarity`: 同报 Spearman ρ 避二分化丢信息。
+- `compute_permutation_null`: 每对 indicator 打乱 1000 次(seed=42, np.random.default_rng)取 |corr| 的 p95/p99/mean/std。
+
+**关键算法/公式**: Henseler-Ringle-Sarstedt(2015) HTMT 双 cutoff(strict<0.85 / lenient<0.90, 三档 verdict strict_pass/lenient_pass/fail/nan); Cohen(1960) κ; Cronbach(1951) α; Fornell-Larcker(1981) √AVE>max(φ)。注: docstring 标 "算法路径 pairwise on-disk"(为 R7-H3/R8-H3 OOM 设计), 实际 main 一次性 read_parquet 全表入内存逐对计算(面板仅约 9000 bank-year, 内存无压力)。
+
+**输出**: report dict 落两份: parquet(每个非 dict 标量一行 metric/value, 统一 str 化避 pyarrow ArrowTypeError)+ JSON(全报告含 htmt/htmt_verdict/ave_phi_squared/cronbach_alpha_across/cohen_kappa_substance_clarity/spearman/permutation_null/permutation_seed)。
+
+**外部依赖/超时/确定性**: 纯 numpy/pandas, 无 sklearn/LLM/Embedding/_llm_cache.db; permutation seed=42 保证确定性; DAG timeout=900(15 分钟, 实际 N≈9000 bank-year 单线程<1 分钟)。
+
+**DAG 位置**: 验证阶段 39d(STAGES_VALIDATION), 上游=stage 40 panel(及上游 14/15 物化的 clarity/num_intensity 列), 与 39e(LM 子词典 6 维 HTMT)互补, 服务论文 §3.4 判别效度披露。注: R8-H1 ctx-fallback HTMT mask 文档锁定但本 stage 推迟实施(validation-only ROI 低), 论文层若需可在 Stata 用 frac_ctx_fallback<0.30 等价处理。
+
+■ 白话说明
+
+**这一步在做什么**: 我们有三把不同的"尺子"量同一批银行新闻——LLM 判的"实质性"(讲的是真创新还是装样子)、词典算的"表述清晰度"(话说得清不清楚)、"数字密集度"(文章里堆了多少数据)。这一步像检查"这三把尺子量的是不是三件不同的事": 它算任意两把尺子读数的相关高不高(低于 0.85/0.90 才算各量各的), 还专门检查理论预期——"装样子"的报道是不是真的更"含糊"。
+
+**为什么需要它**: 一篇严谨的论文不能让人觉得"你这几个文本指标其实在重复量同一个东西"。这一步用判别效度检验给出统计证据: 三把尺子相关都够低、且能合成一个内部一致的量表, 就证明它们是独立有效的测度, 论文可以放心分别使用。
+
+**对最终面板/论文的影响**: 它不改主回归用的面板列(只产摘要表和 JSON), 但它支撑论文方法学部分"我们的清晰度、数字密集度指标和 LLM 实质性判断是可区分的有效构念"这一关键声明。如果检验发现两把尺子高度重叠, 论文就要重新考虑是否同时用、或在稳健性里披露这个重叠。
+========================================================================
 """
 from __future__ import annotations
 

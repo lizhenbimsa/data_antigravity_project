@@ -58,6 +58,39 @@ news_process.validation.dict_coverage — 金融科技词典覆盖率审计
     = 词典覆盖勉强); ② 词典里的词是不是只有少数几个在真正干活 (HHI/ENK
     集中度); ③ 词典会不会随时间"过时" (新术语出现但词典没收录, 表现为
     踩线率逐年升高)。全程纯统计、零人工、零 LLM 付费。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 37_dict_coverage_audit.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**职责**: 量化诊断静态金融科技词典 (`fintech_dict.json`, ~1500 词) 是否够用 —— 从 Precision (踩线噪声)、Coverage (词典遗漏/死词)、Stability (时间老化) 三维全自动审计, 零人工零 LLM 付费。
+
+**输入 (两文件)**: ① `21_tone_llms_full.parquet` (分析 1/2/3, 已过 distinct≥T 阈值的金科文章, 选择后样本; config 键 output_21_tone_llms_full) → 列 `fintech_distinct_keywords` / `llm_verified_full` / `fintech_keyword_details`; ② `12_fintech_news_full.parquet` (分析 4/5, 全量银行新闻含被拒行; output_12_fintech_full) → `is_fintech_news` / `日期`。任一缺则 `sys.exit(1)`。阈值 T = `fintech_news_classification.min_distinct_keywords` (默认 3, 实读自 config/filtering.yaml:20)。
+
+**处理步骤 + 算法**:
+1. **边际通过率分布** (analysis_1): `fintech_distinct_keywords` 频次分布; 边际率 = 恰好命中 T 个 (刚踩线) 占比, >15% 报警 (词典覆盖勉强)。
+2. **LLM 验证率单调性** (analysis_2): 按命中数分组 (=T/=T+1/=T+2/≥T+3) 算 LLM 二次验证通过率 + Wilson CI; 边际组 vs 高命中组差值 (Wald CI); **Cochran-Armitage 趋势检验** (cochran_armitage_trend_test, z 统计量 + p 值) + Fisher 精确检验辅助。
+3. **关键词集中度** (analysis_3): 解析 `fintech_keyword_details` JSON 算 article-level 词频; **HHI** = Σ(份额²) (compute_hhi), **有效关键词数 ENK** = 1/HHI (<50 报警, 词典靠少数高频词撑场); 零命中词清单 (口径披露: 选择后样本, 系统性高估死词数, 删词前须在全量语料 12_fintech_news_full 复核)。
+4. **时间稳定性** (analysis_4): 逐年总体通过率/边际率/平均命中词; `np.polyfit` 一阶斜率判老化 (边际率↑ + 总体率↓ = 词典老化, 阈值各 ±0.005)。
+5a. **灰色地带统计** (analysis_5a): 被拒文章中 1≤distinct<T 的篇数占比 (可能是被漏掉的真金科新闻); 5b (analysis_5b, 仅 --run-llm-check 触发) = 从未实装的死功能 (历史依赖不存在的 utils.llm_clients 模块), 2026-06-11 移除死分支, 仅输出诚实披露, 不产 CSV。
+
+**关键公式**: Wilson score CI / Cochran-Armitage z 统计量 / HHI + ENK (Laakso-Taagepera 等效数)。
+
+**外部依赖**: pandas/numpy/scipy (norm.cdf/fisher_exact, 缺则跳趋势/Fisher 检验)。**无 LLM/Embedding API** (5b 死功能除外), $0。
+
+**DAG 位置**: 验证支线 stage 37, 上游 = stage 21 (full LLM) + stage 12 (全量金科分类); 纯诊断终点, 不修改任何管道数据。
+
+■ 白话说明
+
+这一步是"给词典做体检": 判断一篇新闻是不是"金融科技新闻", 靠的是一本人工编的关键词词典 (约 1500 个词)。这一步回答三个问题 —— ① 有多少文章是"刚好踩线"通过的 (比如规定至少命中 3 个词, 很多文章正好只命中 3 个, 说明词典对这批文章覆盖很勉强); ② 这 1500 个词里是不是只有几十个在真正干活、其余都是"摆设死词"(用 HHI 集中度和"有效关键词数"衡量); ③ 词典会不会过时 (金融科技每年冒新词如"数字人民币", 词典没跟上就会表现为踩线率逐年升高)。
+
+为什么需要它: 整个研究的样本边界 (哪些新闻算金融科技新闻) 由这本词典划定。如果词典有系统性漏洞, 样本就会偏 —— 要么放进太多噪声 (伪金科新闻), 要么漏掉大量真金科新闻, 两者都会污染下游的银行-年度面板。
+
+对最终结果的影响: 它不改任何数据, 但它的结论决定"样本可不可信"。如果体检发现词典老化或覆盖不足, 就要扩词典或调阈值后重跑 —— 这会直接影响哪些新闻进入面板、每家银行每年有多少篇金科新闻, 进而影响所有以"金科关注度"为变量的回归。全程纯统计、零付费。
+========================================================================
 """
 
 import argparse

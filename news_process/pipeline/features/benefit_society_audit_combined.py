@@ -30,6 +30,41 @@ fix(omni-g-benefit-01, 2026-06-11) 链路重接线 (2026-05-29 主轨换模后�
   ``--main-direction-npy`` 的产出方 = stage 27 ``27_benefit_direction.npy``;
 - 显式 seed (np.random.seed + sidecar 记录): 当前链路确定性, seed 守卫
   未来抽样步; 嵌入真重算 deferred 到下次生产 run (锚点 ~10 句, $≈0)。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 27c_placebo_and_alt_anchor.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**职责**: benefit_society (银行普惠/服务社会) 论文的 audit-only 稳健性管线, 把两项检验合成单一产物 —— ① **替代锚点** (J-L-M canonical 5 对正/负锚点, 换一组定义"惠及社会"的锚句, 测主测度对锚点选择的敏感性); ② **安慰剂** (4 条业务线 housing_loans/credit_cards/intermediate_business/branch_channel + 1 中性基线 general_corporate, 测主信号是否"在不该出现的地方也出现"=伪相关)。
+
+**输入** (CLI 参数, `main(argv)`): `--text-embeddings-full` (stage 27 `27_benefit_embeddings_full.npy`, 必带 .sidecar.json 否则 fail-loud) + `--df-exploded` (文章-银行级 parquet, 含 target_bank/year/标题/内容) + `--main-direction-npy` (stage 27 `27_benefit_direction.npy`, 主 10 锚点金科方向向量); 可选 `--text-embeddings-ctx/ss` + `--seed` (默认 DEFAULT_SEED=20260516) + `--output` + `--validate-only`。
+
+**处理步骤** (`build_audit_panel`):
+1. 长度/维度守卫: df 行数 == 嵌入行数; main_direction 维度 == 文章嵌入维度 (防 2026-05-29 换模后方向向量与文章不同空间的根因错配); ctx/ss 同步长度校验。
+2. 显式 `np.random.seed(seed)` (当前链路确定性, seed 守卫未来抽样步)。
+3. **替代锚点**: `load_jlm_zh_anchors` 读 5 对锚句 → 经统一引擎 `make_anchor_embedding_fn(resolve_embedding_spec(model_id))` 嵌入 (与文章同空间) → `compute_direction_vector` 算锚点方向 → `project_texts` 投影文章嵌入 → `aggregate_to_bank_year` 聚合为 `benefit_jlm_zh_mean/std/pos_frac/neg_frac` (+ ctx/ss twin)。
+4. **安慰剂**: `load_placebo_keywords` 读 4 业务线 + 1 中性的关键词集 → `compute_placebo_projection` (关键词掩码 track-agnostic + 文章嵌入投影到**主**方向向量) → `benefit_placebo_{业务线}_mean` (+ ctx/ss twin)。
+5. 按 (target_bank, year) outer-merge 合并 alt + placebo → 写 parquet + sidecar。
+
+**关键算法**: 句嵌入余弦/方向投影 (锚点对方向向量 + 文章嵌入点积投影) + bank-year 聚合 (mean/std/正负分数比例, pos/neg_frac 默认以 in-sample median 为 center)。
+
+**外部依赖**: 统一 embedding 引擎 (`embedding_engine.embed_texts`, 经 make_anchor_embedding_fn 闭包穿透 LLMCache; 锚点仅 ~10 句, 嵌入成本 ≈$0, 真重算 deferred 到生产 run); 文章嵌入须 stage 27 预先落盘 (本脚本不调嵌入 API 跑全量文章, 只嵌锚点)。读 yaml (锚点/placebo 关键词)。
+
+**DAG 位置**: stage 27 (benefit 嵌入) 的审计旁支, 上游 = stage 27 的 .npy + sidecar; 下游 = benefit_society 论文 Stata 模板 (P2.S1/P2.A2)。shim 仅 `from ...benefit_society_audit_combined import main; sys.exit(main())`, 零逻辑。
+
+■ 白话说明
+
+这一步是"给银行普惠测度做两项打假实验", 而且是专门为 benefit_society 这篇论文服务的、独立于主流水线的旁支 (它故意不接进主面板, 保证万一出错也不会污染正式数据)。
+
+两项实验打个比方: 主测度是用一组"标准锚句"(比如"服务实体经济"算正、"过度逐利"算负) 来给每家银行的新闻打"惠及社会"的分。实验一 (替代锚点) = 换一组同义但措辞不同的锚句重打分, 看结论变不变 —— 如果换了锚句分数就翻盘, 说明主测度太脆弱、是"挑词凑出来的"。实验二 (安慰剂) = 故意拿"住房贷款""信用卡""中间业务"这些跟"惠及社会"无关的普通业务线去打同样的分, 还放一条纯中性基线 —— 如果这些不该有信号的地方也冒出强信号, 说明主测度在乱抓相关性 (伪相关), 不可信。
+
+为什么需要它: 顶刊审稿人会追问"你这个'银行惠及社会'的分数是真有内容, 还是你锚句选得巧/纯属噪声"。这两项检验就是正面回应。
+
+对最终结果的影响: 它本身不进主银行-年度面板、不动任何主回归数字; 它产出一张独立的审计面板, 喂给 benefit_society 论文的稳健性表格。做得好, 就能证明"惠及社会"测度经得起换锚句、扛得住安慰剂, 主结论站得稳; 做得不好 (实验暴露脆弱), 就提示这篇论文的核心测度需要重新设计。
+========================================================================
 """
 
 from __future__ import annotations

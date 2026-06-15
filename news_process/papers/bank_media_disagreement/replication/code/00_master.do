@@ -31,3 +31,6 @@ display "=========================================="
 display "第 10 篇 bank_media_disagreement 全部 .do 跑完"
 display "  输出: papers/bank_media_disagreement/output/"
 display "=========================================="
+
+* 2026-06-14 终端守卫: exit 让 /e 或双击裸起动也立即退出, 不弹「已完成」模态框 (见 CLAUDE.md "Stata Environment")
+exit, clear

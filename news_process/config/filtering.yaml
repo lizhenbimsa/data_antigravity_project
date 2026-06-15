@@ -96,8 +96,10 @@ context_window:
 # (core/text/entity_context.has_bank_fintech_cooccurrence_within_radius); 与 _ss
 # 轨的严格同句口径【不同】(后者是前者 radius=0 的子集)。
 # 路线 A (纯接受-披露): 12b 仅丢行, 下游 controls.py/encode.py 零改动; 派生量
-# (n_articles/fintech_share/attention/NF) 统计宇宙平移为 "近邻相关金科" 口径, 在
-# manuscript/codebook 披露。fallback_char_radius 复用上方 context_window 同名键。
+# (n_articles/fintech_share/attention 族①(firm-level)/NF) 统计宇宙平移为 "近邻相关金科"
+# 口径, 在 manuscript/codebook 披露。⚠ 地理 attention 族 (ft_attn_*/ft_vol_*) 直读
+# 12_fintech_news_full、不经 12b → 仍原始关键词口径 (与 12b 正交, 须单独披露)。
+# fallback_char_radius 复用上方 context_window 同名键。
 cooccurrence_filter:
   sentence_radius: 1                                    # 邻近窗口半径; ⚠ 生产默认 ≥1 是保 _ss 轨 frac_ss_fallback∈(0,1) 不坍缩的硬前提; radius=0 等价严格同句、_ss 退化
   min_keep_frac: 0.001                                  # 保留率下限守卫 (仅防全库误删; 真实阈值由生产 keep 率 gate 实测后回写)

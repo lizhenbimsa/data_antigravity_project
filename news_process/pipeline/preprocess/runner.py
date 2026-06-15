@@ -50,6 +50,41 @@
 ----
     config.yaml 中 ``paths.output_dir / filenames.output_00_preprocessing``
     指定的 Parquet 文件
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 00_preprocessing.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: `config paths.raw_data_dir` 目录下全部 `*.xlsx` (生产规模 ~176 文件 / ~37GB / ~1700 万条媒体报道; 数字取自 runner.py 模块 docstring 与 main() 日志)。无上游 parquet, 是 DAG 的根阶段。
+
+**处理步骤** (`runner.main` → `load_and_process_data` → 媒体名兜底映射 → `ArticleDeduplicator.run`):
+1. `glob` 扫描 XLSX 列表; 对每个源文件检查增量缓存 (`_cache/*.parquet`): 缓存有效需同时满足 缓存文件存在 ∧ 缓存 mtime 晚于源 XLSX ∧ schema metadata 的 `config_hash` 与当前一致 (见 runner.py 增量缓存有效性校验); 任一不满足则入待处理列表。
+2. 未命中文件经 `ProcessPoolExecutor` 并行调用 `load._process_single_file` (worker 数 `num_workers = PARAMS.get('num_workers', min(cpu_count, 32))` — 配置缺省时取 min(cpu_count, 32), 配置存在时直接用配置值)。单文件内: calamine 加载 → `filter._clean_and_filter_dataframe` 的 **8 步初步过滤** (地域 / 媒体类型 / 媒体名称黑名单 / 缺失值 / 广告 / 银行关键词保留 / Schema 统一 / 媒体名清理) → 文本标准化 (`normalize.clean_text_batch`: 编码修复/OpenCC 繁简/全角半角/HTML 清洗/噪声去除) → 长度过滤 (标题汉字数 ≥2, 内容汉字数 100~10000)。worker 内异常 catch→return None (整源丢失, 但落入零贡献对账)。
+3. 处理结果以 `pq.ParquetWriter` 流式追加写主 parquet, 同时写逐源缓存 (缓存 schema metadata 写入 config_hash)。
+4. 全量读回后做媒体名全局映射兜底 (`MEDIA_NAME_OVERRIDES`), 再执行去重。
+
+**关键算法/公式**:
+- **Aho-Corasick 自动机** (load.py): O(n) 一次线性扫描多模式匹配, 用于第 6 步银行关键词保留过滤 (复杂度从 O(文本×词数) 降到 O(文本)); 自动机注入繁体 (OpenCC s2t) + 全角括号变体以兼容规范化前原文 (fix omni-g-preprocess-07)。
+- **精确去重** (dedup.py): 基于 标题+内容 字符串完全匹配, 排序键 [日期↑, 媒体权重↓, docid↑, 内容长度↓], 保留首发 (日期为第一排序键, 媒体权重仅同日 tiebreak; fix omni-g-preprocess-06)。
+- **近似去重 (MinHash LSH, Broder 1997)**: 默认 128 个置换函数 (Jaccard 估计 std ≈ 1/√128 ≈ 8.8%), 字符级 3-gram 作特征, `datasketch.MinHashLSH(threshold, num_perm)` banding 分桶; 簇内按 [日期↑, 权重↓, docid↑] 排序, **5 工作日时间窗** (`np.busday_count`) 内的后发相似稿 (Jaccard ≥ 0.8) 判为转载删除。生产阈值 0.8 来自 config; 0.85 仅 config 缺失时的保守 fallback (有效阈值实测略偏保守 ~0.82, 见 memory dedup-banding-n4)。
+
+**输出列**: 不新增分析列, 产出统一 schema 的清洗后语料 (含 内容/标题/媒体/版面/页号/作者/日期 等)。写 `00_preprocessing.parquet`。
+
+**外部依赖/缓存/确定性**: 纯 CPU (calamine/pyarrow/multiprocessing/datasketch/ahocorasick), 不调任何 LLM/Embedding/BERT, 无网络。`timeout=10000` 秒 (dag.py:170, 高于 StageSpec 默认 7200, 因全量加载 37GB)。**增量缓存键 (`compute_preprocess_cache_key`) = SHA-256(preprocessing 段 + normalization 段 + noise_patterns.json 内容 sha256 + bank_keywords.json 内容 sha256 + PREPROCESS_CODE_VERSION)** (omni-g-preprocess-04: 资源文件内容入哈希, 改词典后缓存自动失效; 资源缺失以 `missing:<文件名>` 哨兵入哈希)。`NEWS_PROCESS_STRICT_SOURCES=1` 可在有失败/零贡献源时 fail-loud。
+
+**DAG 位置**: STAGES_MAIN 首阶段, 下游 11/12/13… 全部依赖其 parquet。
+
+■ 白话说明
+
+**这一步在做什么**: 把上百个原始 Excel 表格 (上千万条新闻) 倒进一台'洗衣机+分拣机', 统一格式、修乱码、繁体转简体、去掉广告和网页噪声, 再把'同一篇新闻被多家媒体转载'的重复稿件删到只剩最早那一份。打个比方: 原始数据像一堆来自不同报社、字体大小不一、还夹着传单的剪报, 这步把它们裁齐、去重、装订成一本干净的剪报册。
+
+**为什么需要它**: 后面所有分析都建立在这本'干净剪报册'上。如果不去重, 同一条新闻被 50 家媒体转载就会被当成 50 条独立证据, 银行的'媒体关注度'会被严重虚高; 如果不规范化, 繁简体和乱码会让后面的关键词匹配漏判。它是整条流水线的地基。
+
+**做得好不好的影响**: 去重门槛 (5 个工作日内、相似度 0.8) 直接决定每家银行每年被算成'多少篇独立报道'——这是银行-年度面板里注意力、情感等核心指标的分母。删多了会丢掉真实报道、删少了会把转载灌水进面板, 两种都会让回归系数偏掉, 影响论文结论的可信度。它还会输出一份'源文件对账单', 万一某个 Excel 整个读取失败、悄悄从面板里消失, 审稿人能查得到。
+========================================================================
 """
 
 from __future__ import annotations

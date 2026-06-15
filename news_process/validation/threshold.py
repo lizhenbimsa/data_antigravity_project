@@ -39,6 +39,38 @@ news_process.validation.threshold — 阶段31：分类阈值敏感性分析
     本脚本独立于主分类流程，不修改任何中间数据文件。
     它读取阶段 00 的原始输出，用不同阈值"模拟"阶段 11/12，
     从而评估阈值对最终样本量的影响。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 31_bank_fintech_threshold.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**位置与角色**: 验证流水线诊断阶段, 不修改任何主链中间数据。shim (31_bank_fintech_threshold.py) 仅 `sys.path` 注入后 `from news_process.validation.threshold import main; main()`。
+
+**输入**: `data/processed/00_preprocessing.parquet` (CONFIG['filenames']['output_00_preprocessing']; 人民日报+Wisers 全量预处理语料), 取 `内容`/`标题` 两列。为提速做抽样: `sample_n = min(sample_max=10000, max(1000, int(总行数×sample_fraction=0.10)))`, `random_state=42`; 抽样量 ≥ 总行数时改全量。
+
+**处理步骤**:
+1. 银行分类阈值扫描 — 复用与 stage 11 完全一致的匹配逻辑 (`core/text/ahocorasick.analyze_bank_matches`, 含否定模式 `negation_ac` + 短名歧义消解 `short_name_exclusions` + `context_window`)。先 `_precompute_bank_matches` 一次遍历预计算每篇 upper/lower/title 命中计数, 再对 `min_name_occurrences ∈ threshold_range (默认 1..10)` 网格用 `simulate_bank_classification_from_precomputed` 快速过滤。
+2. 金融科技分类阈值扫描 — `_precompute_fintech_matches` (Aho-Corasick `fintech_ac.iter` 上/下半区+标题命中) + `simulate_fintech_classification_vectorized` 对 `min_distinct_keywords ∈ 1..10` 网格过滤。
+
+**关键算法/公式**: 银行判正 = `total (=total_with_title) >= threshold` 且 (`cond_a`: upper>=min_upper 且 lower>=min_lower; 或 `cond_b`: 标题命中 且 正文 (upper+lower)>=min_upper)。注意 fix(omni-extra-threshold-condb, 2026-06-11): cond_b 比较基数从含标题的 total_with_title 改为正文 (upper+lower), 对齐生产 analyze_bank_matches; 前置 `total>=threshold` 仍用 total_with_title (与生产 meets_occurrence 一致, 勿改)。每个阈值算 count / ratio(%) / estimated_total (=int(count/sample_n×total_rows) 按抽样比例外推全量) / is_current。'拐点'建议 = `np.argmin(相邻 count 差分 diffs)` 找样本量下降最剧烈点 (报告 diffs argmin 的右侧阈值)。
+
+**输出列/产物**: CSV 列 = threshold / count / ratio / estimated_total / is_current; 另出双面板 (Panel A 银行 / Panel B 金科, 含 Δ Count) LaTeX 表 + 双子图 PNG (左=样本量柱状, 右=保留率曲线)。
+
+**外部依赖**: 无 LLM/Embedding/BERT; 仅 matplotlib (缺失则 ImportError 捕获后跳图)、pyahocorasick (经 core/text/ahocorasick)。无超时配置 (StageSpec 未设 timeout), 无 _llm_cache.db 锚点。确定性: 抽样 seed 固定=42, 算法纯计数, 完全确定。
+
+**学术依据 (模块 docstring)**: Loughran & McDonald (2011, JF) 阈值稳健性范式; Gentzkow, Kelly & Taddy (2019, JEL) 文本分析人为选择须报告稳健性。
+
+■ 白话说明
+
+**这一步在做什么**: 想象你用'文章里出现某银行名字几次'来判定'这是不是这家银行的新闻'。'几次'这个门槛是人为定的 (现在银行用3次、金融科技新闻用3个不同关键词)。这一步就是把门槛从1一直试到10, 每个门槛下数一数还剩多少篇新闻被判为'是', 画成曲线。
+
+**为什么需要它**: 审稿人会问'你为什么挑3而不是2或4? 是不是凑出来的好看结果?'。这一步用证据回答: 如果门槛在3附近上下挪一点, 入选新闻数几乎不变 (处在平坦区), 就说明结论稳, 不是挑出来的; 如果一挪就剧烈变化, 就得谨慎。
+
+**对面板和论文的影响**: 它本身不改任何数据, 只生成附录里的稳健性表格和图。它影响的是'可信度'而非数字 — 让最终银行-年度面板里'哪些新闻算数'这个最底层的过滤决策站得住脚。门槛选得稳, 后续所有情感、注意力指标的样本基础就稳; 选得不稳, 整篇论文的样本都可能被质疑。
+========================================================================
 """
 
 import os
