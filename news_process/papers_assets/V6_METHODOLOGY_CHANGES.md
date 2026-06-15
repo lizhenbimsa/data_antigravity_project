@@ -144,7 +144,7 @@
 |---|---|---|
 | **N4** 并发降级 | `max_concurrency: 300 → 40 (v6/N4)`（后于 2026-05-14 用户决策统一调至 100）+ 指数退避（cap 600s） | `config/sentiment.yaml` |
 | **N7** 统一 API key | 新增 `YUNWU_API_KEY`，三 slot 全部引用 | `.env` + `sentiment.yaml` |
-| **N8** lineage 元数据 | 每次 stage 21 重跑写入 `21_tone_llms_lineage_<ts>.json` | `data/processed/` |
+| **N8** lineage 元数据 | 每次 stage 21 重跑覆盖写入固定文件名 `21_tone_llms_lineage.json`（只保留最新一次快照；运行时间见文件内 `run_start_iso` 字段） | `data/processed/` |
 | Stata 兼容 | export.py / controls.py 内联把 pandas nullable Int*/boolean dtypes 转 Float64（NaN 保留），Stata 端用 `mvdecode` 处理 | `pipeline/panel/export.py`、`pipeline/falsification/controls.py` |
 
 ---

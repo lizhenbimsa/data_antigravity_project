@@ -1668,8 +1668,10 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
 def _write_run_lineage(stage_start: float):
     """v6/N8: 写入本次 stage 21 运行的 LLM 配置 lineage 清单。
 
-    解决"换模型不留痕"问题：每次重跑生成 21_tone_llms_lineage_<timestamp>.json，
+    解决"换模型不留痕"问题：每次重跑覆盖写入固定文件名 21_tone_llms_lineage.json，
     持久化记录 (slot, model_name, base_url, run_start_ts) 三元组。
+    文件名不再带时间戳 (避免每次重跑堆积新文件)；本次运行时间已记录在
+    run_start_iso / run_start_ts 字段内, 只保留最新一次运行的快照。
     """
     lineage = {
         "stage": STAGE_NAME,
@@ -1695,8 +1697,9 @@ def _write_run_lineage(stage_start: float):
         "logit_to_score_enabled": LOGIT_SCORE_ENABLED,
     }
     out_dir = CONFIG["paths"]["output_dir"]
-    ts = time.strftime("%Y%m%d_%H%M%S", time.localtime(stage_start))
-    out_path = os.path.join(out_dir, f"21_tone_llms_lineage_{ts}.json")
+    # 固定文件名 → 每次重跑覆盖旧文件, 只保留最新一次运行的 lineage 快照
+    # (原 21_tone_llms_lineage_<ts>.json 带时间戳会无限堆积; run_start_ts 字段内已留痕).
+    out_path = os.path.join(out_dir, "21_tone_llms_lineage.json")
     try:
         with open(out_path, 'w', encoding='utf-8') as f:
             json.dump(lineage, f, ensure_ascii=False, indent=2)
