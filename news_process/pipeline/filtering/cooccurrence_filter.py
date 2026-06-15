@@ -1,0 +1,268 @@
+"""news_process.pipeline.filtering.cooccurrence_filter — stage 12b 银行×金科邻近共现预过滤.
+
+在 stage 12 (news_fintech) 与 stage 13 (materialize_ctx) 之间插入一道【硬过滤】:
+**只保留 "目标银行与 ≥1 金融科技词在 ±sentence_radius 句窗口内邻近共现" 的文章行,
+丢弃其余** —— 压降 stage 12 "出现金科词即判金科" 造成的虚假相关 (False Positives)。
+
+学术依据:
+    Andreou et al. (2026). Research Policy. core-contextual word-pairing within a
+    span —— 邻近配对作为主题相关性归因过滤。本实现是其【句级窗口】操作化
+    (银行锚句 ±sentence_radius 句; 比 10-lexical-token span 更宽, 详见 manuscript 披露)。
+    Hassan, T. A., et al. (2019). QJE 134(4), 2135-2202. §III.B proximity-based attribution。
+
+工作流:
+    stage 12 (news_fintech)  → 12_fintech_news.parquet      (is_fintech_news==True 关键词金科)
+    stage 12b (本模块)       → 12b_cooccurrence_filtered.parquet (= 12 的近邻相关子集, 丢行)
+    stage 13 (materialize_ctx) → 读 12b 输出 (ctx_materializer.py:339 重指针)
+
+口径 (与 stage 13 _ss 轨【不同】, 见 entity_context.has_bank_fintech_cooccurrence_within_radius):
+    - 保留判据 = 窗口邻近 (银行锚句 i ∧ 金科∈[i±radius] 邻句); 严格同句 (_ss) 是其子集。
+    - 不对称匹配: 银行侧否定/短名排除 (has_unexcluded_occurrence); 金科侧裸 AC (1506 词)。
+
+路线 A (纯接受-披露, 四轮审计定稿): 12b 仅丢行, 下游 controls.py/encode.py 零改动;
+    n_articles/fintech_share/attention 族①(firm-level, 经 14→verified 门控)/NF 对照组的
+    统计宇宙统一平移为 "近邻相关金科" 口径 (⚠ 地理 attention 族 ft_attn_*/ft_vol_* 直读
+    12_fintech_news_full、不经 12b → 仍原始关键词口径, pre-existing 未门控, 与 12b 正交),
+    在 manuscript/codebook 披露 (fintech_share 分母经 "望远镜式坍缩" 恒不变, 不受 12b 影响)。
+
+安全 (铁律):
+    - FINTECH_AC=None (词典加载失败) → **保留全部行 + loud WARNING** (绝不静默清空整库)。
+    - keep 率低于 cooccurrence_filter.min_keep_frac (或 0 行) → SystemExit(1) + loud。
+
+规范调用:
+    python -m news_process.pipeline.filtering.cooccurrence_filter
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import sys
+import time
+
+import pandas as pd
+
+# 路径注入: 让 ``news_process.core.*`` 在任意 cwd 下可解析
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_PARENT = os.path.dirname(os.path.dirname(os.path.dirname(_HERE)))
+if _PROJECT_PARENT not in sys.path:
+    sys.path.insert(0, _PROJECT_PARENT)
+
+from news_process.core.config import load_config  # noqa: E402
+from news_process.core.logging import log_stage_summary, setup_logging  # noqa: E402
+from news_process.core.text.ahocorasick import (  # noqa: E402
+    load_exclusion_patterns,
+    load_fintech_dict,
+)
+from news_process.core.text.entity_context import (  # noqa: E402
+    get_target_aliases,
+    has_bank_fintech_cooccurrence_within_radius,
+)
+
+CONFIG = load_config()
+STAGE_NAME = "12b_cooccurrence_filter"
+logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
+
+# 模块级加载 (镜像 ctx_materializer.py:106-136, 单一匹配语义事实源):
+#   - 银行否定/短名排除配置 (与 stage 11/13 同口径)
+#   - 金科 AC 自动机 (加载失败 → FINTECH_AC=None → SAFE-1 保留全部行)
+_EXCLUSION_FILE = CONFIG['paths'].get(
+    'bank_name_exclusions_file',
+    os.path.join(os.path.dirname(CONFIG['paths'].get('bank_names_file', '')),
+                 'bank_name_exclusions.json'),
+)
+NEGATION_AC, SHORT_NAME_EXCLUSIONS, CONTEXT_WINDOW = load_exclusion_patterns(
+    _EXCLUSION_FILE
+)
+
+_FINTECH_DICT_FILE = CONFIG['paths'].get(
+    'fintech_dict_file',
+    os.path.join(os.path.dirname(CONFIG['paths'].get('bank_names_file', '')),
+                 'fintech_dict.json'),
+)
+try:
+    _FINTECH_KEYWORDS, FINTECH_AC = load_fintech_dict(_FINTECH_DICT_FILE)
+    logger.info(f"  12b 金科词典已加载: {len(_FINTECH_KEYWORDS)} 词 "
+                f"(from {_FINTECH_DICT_FILE})")
+except Exception as e:  # noqa: BLE001 — 任何加载失败均优雅降级, 不阻断管道
+    logger.warning(f"  12b 金科词典加载失败 ({e}); SAFE-1: 保留全部行 (不过滤)")
+    _FINTECH_KEYWORDS, FINTECH_AC = [], None
+
+
+def _is_valid_bank(target_bank: str) -> bool:
+    """非空且非空值哨兵的 target_bank 才可锚定 (否则丢弃)。
+
+    哨兵集覆盖 np.nan→'nan' / None→'None' / pd.NA→'<NA>' / pd.NaT→'NaT'
+    的 str() 形态 (CF-03 防御性封闭; 误判方向恒为安全丢弃)。
+    """
+    s = str(target_bank).strip()
+    return bool(s) and s not in ('nan', 'None', '<NA>', 'NaT')
+
+
+def filter_cooccurrence(df: pd.DataFrame) -> pd.DataFrame:
+    """对每个 (文章, target_bank) 行判定窗口邻近共现, 保留命中行 (稳定布尔掩码)。
+
+    SAFE-1: FINTECH_AC=None → 保留全部行 (绝不静默清空)。
+    """
+    if FINTECH_AC is None:
+        logger.warning(
+            "  ⚠ SAFE-1: FINTECH_AC=None (词典缺失), 12b 不过滤, 原样保留 "
+            f"{len(df)} 行"
+        )
+        return df.reset_index(drop=True)
+
+    _cfg = CONFIG.get('cooccurrence_filter', {})
+    _sentence_radius = _cfg.get('sentence_radius', 1)
+    _fallback_char_radius = CONFIG.get('context_window', {}).get(
+        'fallback_char_radius', 150
+    )
+    _bnf = CONFIG['paths'].get('bank_names_file', '')
+    _alias_cache: dict = {}
+
+    logger.info(
+        f"  12b 窗口邻近共现过滤: sentence_radius={_sentence_radius}, "
+        f"fallback_char_radius={_fallback_char_radius}, "
+        f"金科词典={len(_FINTECH_KEYWORDS)} 词"
+    )
+
+    # 性能 (CF-01): 先 tolist 取出两列再纯 Python 列表 zip 循环, 避开 df.iterrows()
+    # 每行构造 Series 的开销 (全量 17M 语料下显著); 语义与逐行等价 (同序、同 mask)。
+    _banks = (
+        df['target_bank'].tolist() if 'target_bank' in df.columns
+        else [None] * len(df)
+    )
+    _bodies = (
+        df['内容'].astype(str).tolist() if '内容' in df.columns
+        else [''] * len(df)
+    )
+    keep = []
+    for target_bank, body_full in zip(_banks, _bodies):
+        if not _is_valid_bank(target_bank):
+            keep.append(False)
+            continue
+        tb = str(target_bank).strip()
+        if tb not in _alias_cache:
+            _alias_cache[tb] = get_target_aliases(tb, _bnf)
+        keep.append(
+            has_bank_fintech_cooccurrence_within_radius(
+                body_full, _alias_cache[tb], FINTECH_AC,
+                sentence_radius=_sentence_radius,
+                negation_ac=NEGATION_AC,
+                short_name_exclusions=SHORT_NAME_EXCLUSIONS,
+                context_window=CONTEXT_WINDOW,
+                fallback_char_radius=_fallback_char_radius,
+            )
+        )
+
+    mask = pd.Series(keep, index=df.index)
+    # 稳定布尔掩码: 保留 stage 12 原序, 刻意不 sort_values。
+    return df[mask].reset_index(drop=True)
+
+
+def _write_sidecar_meta(out_path: str, n_in: int, n_out: int) -> None:
+    """落盘 provenance sidecar (判据元数据), 供审稿复算追溯丢行依据。
+
+    写前 unlink 保幂等; 刻意不含 wall-clock 时间戳 (保确定性)。
+    """
+    _cfg = CONFIG.get('cooccurrence_filter', {})
+    criterion = (
+        f"windowed_cooccurrence|radius={_cfg.get('sentence_radius', 1)}"
+        f"|fallback_char_radius="
+        f"{CONFIG.get('context_window', {}).get('fallback_char_radius', 150)}"
+        f"|fintech_dict={os.path.basename(_FINTECH_DICT_FILE)}"
+        f"|n_keywords={len(_FINTECH_KEYWORDS)}"
+    )
+    meta = {
+        "stage": STAGE_NAME,
+        "criterion": criterion,
+        "criterion_sha256": hashlib.sha256(criterion.encode("utf-8")).hexdigest(),
+        "sentence_radius": _cfg.get('sentence_radius', 1),
+        "fintech_dict_file": _FINTECH_DICT_FILE,
+        "n_fintech_keywords": len(_FINTECH_KEYWORDS),
+        "fintech_ac_loaded": FINTECH_AC is not None,
+        "n_rows_in": int(n_in),
+        "n_rows_out": int(n_out),
+        "n_dropped": int(n_in - n_out),
+    }
+    meta_path = os.path.splitext(out_path)[0] + ".meta.json"
+    if os.path.exists(meta_path):
+        os.remove(meta_path)
+    with open(meta_path, 'w', encoding='utf-8') as f:
+        json.dump(meta, f, ensure_ascii=False, indent=2, sort_keys=True)
+    logger.info(f"  provenance sidecar 已写出: {meta_path}")
+
+
+def main():
+    """Stage 12b 入口: 读 12_fintech_news.parquet → 写 12b_cooccurrence_filtered.parquet."""
+    stage_start = time.time()
+    logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
+    output_dir = CONFIG['paths']['output_dir']
+    filenames = CONFIG.get('filenames', {})
+    in_name = filenames.get('output_12_fintech_news', '12_fintech_news.parquet')
+    out_name = filenames.get(
+        'output_12b_cooccurrence', '12b_cooccurrence_filtered.parquet'
+    )
+    in_path = os.path.join(output_dir, in_name)
+    out_path = os.path.join(output_dir, out_name)
+
+    if not os.path.exists(in_path):
+        logger.error(f"输入未找到: {in_path}")
+        raise SystemExit(1)
+
+    df = pd.read_parquet(in_path)
+    n_in = len(df)
+    n_banks_in = (
+        df['target_bank'].astype(str).str.strip().loc[
+            lambda s: s.map(lambda x: x not in ('', 'nan', 'None'))
+        ].nunique()
+        if 'target_bank' in df.columns else 0
+    )
+    logger.info(f"加载 stage 12 输出: {n_in} 行, {n_banks_in} 家银行")
+
+    df_kept = filter_cooccurrence(df)
+    n_out = len(df_kept)
+    n_banks_out = (
+        df_kept['target_bank'].astype(str).str.strip().loc[
+            lambda s: s.map(lambda x: x not in ('', 'nan', 'None'))
+        ].nunique()
+        if 'target_bank' in df_kept.columns else 0
+    )
+    keep_frac = (n_out / n_in) if n_in else 0.0
+    logger.info(
+        f"  邻近共现过滤: 保留 {n_out}/{n_in} 行 (keep={keep_frac:.4f}), "
+        f"丢弃 {n_in - n_out} 行; 银行 {n_banks_in}→{n_banks_out}"
+    )
+
+    # min-N 守卫: 仅当 FINTECH_AC 实际生效 (非 SAFE-1 全保留) 才校验, 防止真实
+    # 零共现把整库清空 (词典缺失走 SAFE-1, keep==1.0, 不触发)。
+    if FINTECH_AC is not None:
+        min_keep_frac = CONFIG.get('cooccurrence_filter', {}).get(
+            'min_keep_frac', 0.001
+        )
+        if n_out == 0 or keep_frac < min_keep_frac:
+            logger.error(
+                f"  ✗ keep 率 {keep_frac:.4f} 低于 min_keep_frac={min_keep_frac} "
+                f"(或 0 行): 疑似全库误删, 中止以防污染下游。请核对金科词典/语料/"
+                f"sentence_radius。"
+            )
+            raise SystemExit(1)
+
+    from news_process.core.reporting import save_dataset
+    _lineage = [
+        p for p in (in_path, _FINTECH_DICT_FILE, _EXCLUSION_FILE,
+                    CONFIG['paths'].get('bank_names_file', ''))
+        if p and os.path.exists(p)
+    ]
+    save_dataset(df=df_kept, output_path=out_path, logger=logger,
+                 stage_name=STAGE_NAME, config=CONFIG, input_files=_lineage)
+
+    # CF-02: parquet 成功落盘【之后】再写 provenance sidecar, 保证 sidecar 永远
+    # 描述一个真实存在且最新的 parquet (save_dataset 若抛错则不留陈旧 sidecar)。
+    _write_sidecar_meta(out_path, n_in, n_out)
+
+    log_stage_summary(logger, STAGE_NAME, stage_start, n_in, n_out)
+    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")
+
+
+if __name__ == "__main__":
+    main()

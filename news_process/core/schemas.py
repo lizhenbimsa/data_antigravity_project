@@ -49,7 +49,9 @@ OUTPUT_REGISTRY: Mapping[str, list[str]] = {
         "12_fintech_news.parquet",
         "12_fintech_news_full.parquet",
     ],
-    # v3.6.0 (Plan E P4 A1): stage 13 = 12 + content_ctx 列, 供 stage 14/15 双轨化
+    # 2026-06-15: stage 12b 银行×金科邻近共现硬过滤 (= 12 的近邻相关子集, 丢行)
+    "12b_cooccurrence_filter.py": ["12b_cooccurrence_filtered.parquet"],
+    # v3.6.0 (Plan E P4 A1): stage 13 = 12b + content_ctx 列, 供 stage 14/15 双轨化
     "13_materialize_ctx.py": ["13_news_with_ctx.parquet"],
     "14_fintech_intensity.py": ["14_fintech_intensity.parquet"],
     "15_article_policy_alignment.py": ["15_article_alignment.parquet"],
@@ -112,6 +114,8 @@ _OUTPUT_FILENAME_KEYS: Mapping[tuple[str, str], Optional[str]] = {
     ("11_news_bank.py", "11_bank_news.parquet"): "output_11_bank_news",
     ("12_news_fintech.py", "12_fintech_news.parquet"): "output_12_fintech_news",
     ("12_news_fintech.py", "12_fintech_news_full.parquet"): "output_12_fintech_full",
+    # 2026-06-15: stage 12b 银行×金科邻近共现硬过滤
+    ("12b_cooccurrence_filter.py", "12b_cooccurrence_filtered.parquet"): "output_12b_cooccurrence",
     # v3.6.0 (Plan E P4 A1)
     ("13_materialize_ctx.py", "13_news_with_ctx.parquet"): "output_13_news_with_ctx",
     ("14_fintech_intensity.py", "14_fintech_intensity.parquet"): "output_14_fintech_intensity",
@@ -235,7 +239,7 @@ def _validate_registry_invariant() -> None:
         )
 
     # ── 校验 4: 跨 stage 文件名唯一性 (recode round 2) ──
-    # 现状: 21 个 parquet + 3 个 stage46 导出 = 24 个文件名两两不同; 校验防御未来 copy-paste 笔误.
+    # 现状: 22 个 parquet (含 2026-06-15 stage 12b) + 3 个 stage46 导出 = 25 个文件名两两不同; 校验防御未来 copy-paste 笔误.
     all_files = [f for files in OUTPUT_REGISTRY.values() for f in files]
     if len(all_files) != len(set(all_files)):
         from collections import Counter as _Counter
