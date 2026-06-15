@@ -121,7 +121,7 @@ news_process/
 - **Input**: `data/raw/*.xlsx` (raw news articles)
 - **Intermediate**: `data/processed/*.parquet` (one per stage, e.g., `21_tone_llms.parquet`)
 - **Final**: `data/processed/40_panel_yearly.parquet` (bank-year panel for Stata)
-- **Logs**: `logs/runs/<run_id>/<stage>.log` (one run_id per pipeline execution)
+- **Logs**: `logs/<stage>.log` (扁平布局, 每阶段一个文件; 每次运行覆盖同名日志 — 只保留最新一次运行, 不再累积历次运行日志。2026-06-15 决策)
 
 ## Development Commands
 
@@ -226,7 +226,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Debugging Pipeline Failures
 
-1. Check `logs/runs/<run_id>/<stage>.log` for the failed stage
+1. Check `logs/<stage>.log` for the failed stage (只保留最新一次运行的日志, 新运行会覆盖)
 2. Run the stage in isolation: `python news_process/NN_<stage>.py`
 3. Use `pytest tests/test_XX_<stage>.py -v` to reproduce in test environment
 4. Check `data/processed/` for intermediate outputs

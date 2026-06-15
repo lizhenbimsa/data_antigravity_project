@@ -87,12 +87,11 @@ from news_process.core.stage import run_stage
 # 加载顺序:
 #   1. load_config(): 解析 config.yaml + .env 环境变量
 #   2. _generate_run_id(): 生成本次运行的唯一 ID 并写入 NEWS_PROCESS_RUN_ID 环境变量
-#                          (Phase 1.5; 子进程通过环境变量继承, 共享同一个 logs/runs/<run_id>/)
-#   3. setup_logging(): 创建带时间戳的日志文件 + 控制台输出
-#                       (若 NEWS_PROCESS_RUN_ID 已设置, 路径解析为 <log_dir>/runs/<run_id>/<stage>.log;
-#                        否则回退至 legacy <log_dir>/<stage>.log)
+#                          (子进程经环境变量继承同一 ID, 仅作日志行内的运行关联标记)
+#   3. setup_logging(): 创建日志文件 + 控制台输出
+#                       (扁平路径 <log_dir>/<stage>.log; 每次运行覆盖同名日志, 只保留最新一次运行)
 # 注意: 这是主调度器进程, 使用完整的文件+控制台双通道日志。
-# 各阶段子进程会各自创建独立的日志文件 (相同 run_id 子目录内).
+# 各阶段子进程各自写独立的 <log_dir>/<stage>.log (本次运行从头截断上一次同名日志).
 # ============================================================================
 
 CONFIG = load_config()

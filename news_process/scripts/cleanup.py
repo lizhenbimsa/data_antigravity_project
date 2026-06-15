@@ -159,6 +159,10 @@ def cmd_prune_logs(args: argparse.Namespace) -> int:
 
     与 clean-logs (核选项, 整目录 rmtree) 互补: prune-logs 只删 run_id 子目录,
     保留 logs/ 根的 stage.log 等运行时文件; 适合日常 cron / 手动 rotation.
+
+    ⚠ 2026-06-15 起本命令为 legacy 兜底: setup_logging 已改为扁平布局
+    (logs/<stage>.log, 每次运行覆盖, 只保留最新一次), 不再创建 logs/runs/
+    子目录。本命令仅用于清理历史遗留的 runs/ 累积; 无遗留时优雅 no-op。
     """
     import time
 

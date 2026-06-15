@@ -40,7 +40,8 @@ def _load_orchestrator(filename: str, module_name: str):
     spec = _iu.spec_from_file_location(module_name, path)
     mod = _iu.module_from_spec(spec)
     sys.modules[module_name] = mod
-    # 预设 NEWS_PROCESS_RUN_ID, 避免日志目录解析污染宿主环境。
+    # 预设 NEWS_PROCESS_RUN_ID, 锁定运行关联标记避免每个测试进程重新生成。
+    # (日志已扁平化为 logs/<stage>.log, 此 ID 不再影响落盘路径, 仅作关联标记。)
     os.environ.setdefault("NEWS_PROCESS_RUN_ID", "test_dag_consistency")
     spec.loader.exec_module(mod)
     return mod

@@ -4,10 +4,13 @@
 保留的公开 API: ``setup_logging``、``log_and_time``、``log_memory_usage``、
 ``log_stage_summary``、``_ColoredFormatter``。
 
-Phase 1 规划要求的日志目录布局为 ``logs/runs/<run_id>/<stage>.log``;
-``setup_logging`` 通过读取 ``NEWS_PROCESS_RUN_ID`` 环境变量决定具体路径:
-存在时日志写入 ``<log_dir>/runs/<run_id>/<stage>.log``;
-否则回退到 ``<log_dir>/<stage>.log`` (legacy fallback)。
+日志目录布局为扁平的 ``logs/<stage>.log`` (每个阶段固定一个文件);
+``setup_logging`` 不再按 ``NEWS_PROCESS_RUN_ID`` 分 per-run 子目录
+(用户决策 2026-06-15: 只保留最新一次运行的日志, 新的覆盖旧的,
+不再累积历次运行日志)。配合 ``file_mode='w'`` 的首写截断
+(见 ``_DelayedTruncatingRotatingHandler``), 每次运行从头截断上一次
+同名日志 —— 天然实现"只留最新"。``NEWS_PROCESS_RUN_ID`` 仍生成并随
+子进程传播, 但仅作为日志行内的运行关联标记, 不再影响落盘路径。
 """
 
 from __future__ import annotations
@@ -152,10 +155,11 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
 
     Args:
         stage_name:    Logger 命名空间, 同时作为日志文件名词干。
-        log_dir:       日志根目录。当 ``NEWS_PROCESS_RUN_ID`` 环境变量已
-                       设置时, 实际写入路径为
-                       ``<log_dir>/runs/<run_id>/<stage_name>.log``;
-                       否则为 ``<log_dir>/<stage_name>.log``。
+        log_dir:       日志根目录。日志固定写入扁平路径
+                       ``<log_dir>/<stage_name>.log`` (每阶段一个文件)。
+                       配合 ``file_mode='w'`` 的首写截断, 每次运行覆盖
+                       上一次同名日志 —— 只保留最新一次运行 (不再按
+                       ``NEWS_PROCESS_RUN_ID`` 分 per-run 子目录)。
         file_mode:     ``'w'`` (首次写入日志时截断, 见下方 delay 说明) 或
                        ``'a'`` (追加)。
         console_only:  若为 True, 不创建文件 handler。用于子进程, 避免
@@ -172,12 +176,12 @@ def setup_logging(stage_name, log_dir, file_mode='w', console_only=False,
     _configure_standard_streams()
     _configure_third_party_loggers()
 
-    # 解析实际的日志目录: 若 NEWS_PROCESS_RUN_ID 已设置, 用 per-run 子目录。
-    run_id = get_run_id()
-    if run_id and not console_only:
-        actual_log_dir = os.path.join(log_dir, 'runs', run_id)
-    else:
-        actual_log_dir = log_dir
+    # 日志一律写入扁平的 <log_dir>/<stage>.log: 每个阶段固定一个文件, 不再按
+    # NEWS_PROCESS_RUN_ID 分 per-run 子目录 (用户决策 2026-06-15: 只保留最新一次
+    # 运行, 新覆盖旧, 不再累积历次运行日志)。"只留最新"由 file_mode='w' 的首写
+    # 截断 (见 _DelayedTruncatingRotatingHandler) 实现 —— 本次运行从头截断上一次
+    # 同名日志, 因此无需 per-run 子目录即可天然避免跨运行累积。
+    actual_log_dir = log_dir
     os.makedirs(actual_log_dir, exist_ok=True)
 
     logger = logging.getLogger(stage_name)
