@@ -19,7 +19,9 @@ spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` 或 ``embedd
 
 历史: 本引擎把原先散落在 4 个 feature 模块里近重复的
 ``_get_embeddings_api`` / ``_encode_embeddings_local`` / ``_embed_texts_with_chunk_pooling``
-统一为 spec 参数化的公共函数 (DRY + 让双轨成为一等公民)。
+统一为 spec 参数化的公共函数 (DRY + 让 MAIN/ROBUSTNESS 两个嵌入模型成为一等公民)。
+注: 此处 "两个模型" 指 text-embedding-3-small 主轨 vs text2vec ``_t2v`` 稳健轨这一
+**模型** 维度, 与情感文本的 full/ctx/ss 三轨是两个独立维度。
 
 学术依据 (沿用 strategic_diff/policy_alignment 既有锚点):
   - Reimers & Gurevych (2019, EMNLP) Sentence-BERT mean pooling, DOI 10.18653/v1/D19-1410

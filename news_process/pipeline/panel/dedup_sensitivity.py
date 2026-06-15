@@ -55,8 +55,9 @@
     去重存活率诊断 (与 n_ft 的 verified∩survivor 域不同, 勿混读)。生产锚点本身亦已 verified
     门控, 故 corr_index_full_vs_production 两侧同域 (DEDUP-2 同域不变量)。
 
-  每变体产 5 列 (suffix = 变体名):
+  每变体产 5 列 (无 ss schema) / 6 列 (含三轨 ss schema, suffix = 变体名):
     attention_index_full_<v> / attention_index_ctx_<v>   ln(1+Σ intensity) (变体存活集)
+    attention_index_ss_<v>   (三轨, 银行+金科同句共现; 旧 schema 无 ss 列时跳过)
     attention_pct_full_<v>                               N_ft/N_all (分子分母同基, 同变体)
     n_ft_articles_<v> / n_all_articles_<v>               水平计数 (披露用)
 
@@ -97,7 +98,10 @@ from news_process.pipeline.panel.encode import (
     OUTPUT_DIR,
     logger,
 )
-from news_process.pipeline.panel.verified_universe import restrict_to_verified
+from news_process.pipeline.panel.verified_universe import (
+    parquet_has_columns,
+    restrict_to_verified,
+)
 from news_process.pipeline.preprocess.dedup import ArticleDeduplicator
 
 # 默认网格: (jaccard_threshold, window_busdays), 仅严格方向 (见模块 docstring)
@@ -169,9 +173,19 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     f12 = pd.read_parquet(f12_path, columns=[
         'docid', 'target_bank', '日期', '媒体(中文)', '标题', '内容',
         'is_fintech_news'])
-    s14 = pd.read_parquet(s14_path, columns=[
-        'docid', 'target_bank', '日期',
-        'fintech_intensity_score_full', 'fintech_intensity_score_ctx'])
+    # 三轨 (full/ctx/ss): ss = 银行+金科同句共现强度轨 (fintech_intensity_score_ss;
+    # 由 stage 14 在 content_ss 上算出, 回退=镜像 ctx)。旧 schema 的 14_fintech_intensity
+    # 可能尚无 ss 列 → 用 parquet_has_columns 探 schema, 缺列则优雅跳过 ss 变体 (镜像
+    # ctx 守卫风格), 不抛 ArrowInvalid。
+    _s14_cols = ['docid', 'target_bank', '日期',
+                 'fintech_intensity_score_full', 'fintech_intensity_score_ctx']
+    _has_ss = parquet_has_columns(s14_path, ['fintech_intensity_score_ss'])
+    if _has_ss:
+        _s14_cols.append('fintech_intensity_score_ss')
+    else:
+        logger.info("  14_fintech_intensity 无 fintech_intensity_score_ss 列, "
+                    "去重敏感性 ss 变体优雅跳过 (旧 schema)")
+    s14 = pd.read_parquet(s14_path, columns=_s14_cols)
 
     GK = ['target_bank', 'year']
     for df in (s14, f12):  # year 派生 (镜像 attention_media.py compute_attention_treatments)
@@ -225,27 +239,38 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         universe_v = f12_v.drop_duplicates(GK)[GK].copy()
         n_all_v = f12_v.groupby(GK).size().rename('_n_all')
         g = s14_v.groupby(GK)
-        num_v = pd.DataFrame({
+        # 三轨 (full/ctx/ss) 强度求和; ss 列在旧 schema 缺失时 (_has_ss=False) 不构建,
+        # attention_index_ss_<v> 随之优雅跳过 (镜像 ctx 守卫风格)。
+        _num_spec = {
             'sum_full': g['fintech_intensity_score_full'].sum(),
             'sum_ctx': g['fintech_intensity_score_ctx'].sum(),
             'n_ft': g.size(),
-        })
+        }
+        if _has_ss:
+            _num_spec['sum_ss'] = g['fintech_intensity_score_ss'].sum()
+        num_v = pd.DataFrame(_num_spec)
         t = universe_v.set_index(GK).join(n_all_v).join(num_v)
-        for c in ('sum_full', 'sum_ctx', 'n_ft'):
+        _sum_cols = ['sum_full', 'sum_ctx'] + (['sum_ss'] if _has_ss else [])
+        for c in (*_sum_cols, 'n_ft'):
             t[c] = t[c].fillna(0)  # 在-全集零-fintech → 真零曝光
         # 防御性下界 (镜像 attention_media.py W2 复核: IDF 理论可负 → sum 可负)
-        t['sum_full'] = t['sum_full'].clip(lower=0)
-        t['sum_ctx'] = t['sum_ctx'].clip(lower=0)
+        for c in _sum_cols:
+            t[c] = t[c].clip(lower=0)
 
         t[f'attention_index_full_{sfx}'] = np.log1p(t['sum_full'])
         t[f'attention_index_ctx_{sfx}'] = np.log1p(t['sum_ctx'])
+        if _has_ss:
+            # 银行+金科同句共现轨的去重敏感性强度指数 (镜像 _full/_ctx 构建)
+            t[f'attention_index_ss_{sfx}'] = np.log1p(t['sum_ss'])
         t[f'attention_pct_full_{sfx}'] = t['n_ft'] / t['_n_all']  # _n_all≥1 (脊柱来自 f12_v)
         t[f'n_ft_articles_{sfx}'] = t['n_ft'].astype(int)
         t[f'n_all_articles_{sfx}'] = t['_n_all'].astype(int)
 
-        cols = [f'attention_index_full_{sfx}', f'attention_index_ctx_{sfx}',
-                f'attention_pct_full_{sfx}', f'n_ft_articles_{sfx}',
-                f'n_all_articles_{sfx}']
+        cols = [f'attention_index_full_{sfx}', f'attention_index_ctx_{sfx}']
+        if _has_ss:
+            cols.append(f'attention_index_ss_{sfx}')
+        cols += [f'attention_pct_full_{sfx}', f'n_ft_articles_{sfx}',
+                 f'n_all_articles_{sfx}']
         new_cols.extend(cols)
         treat = t.reset_index()[GK + cols]
         merged = merged.drop(
@@ -292,10 +317,12 @@ def compute_dedup_sensitivity_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     _first = merged[new_cols[0]]
     matched = int(_first.notna().sum())
     _pos = int((_first > 0).sum())
-    logger.info(f"  去重敏感性: {len(variants)} 变体 × 5 列 = {len(new_cols)} 列并入 "
-                f"panel; 首列匹配 {matched}/{len(merged)} bank-year "
-                f"(其中 index>0 有曝光 {_pos}, index=0 真零 {matched - _pos}, "
-                f"NaN 全集外 {len(merged) - matched})")
+    # 每变体列数 = 5 (无 ss schema) 或 6 (含三轨 ss); 动态算避免硬编码漂移。
+    _per_variant = len(new_cols) // len(variants) if variants else 0
+    logger.info(f"  去重敏感性: {len(variants)} 变体 × {_per_variant} 列 = "
+                f"{len(new_cols)} 列并入 panel; 首列匹配 {matched}/{len(merged)} "
+                f"bank-year (其中 index>0 有曝光 {_pos}, index=0 真零 "
+                f"{matched - _pos}, NaN 全集外 {len(merged) - matched})")
     return merged
 
 

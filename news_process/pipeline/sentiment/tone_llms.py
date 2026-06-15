@@ -1,5 +1,5 @@
 """
-news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛与情感分析（双轨版）
+news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛与情感分析（三轨版）
 ==========================================================================================
 
 迁移说明 (Phase 7a-4)：
@@ -13,10 +13,19 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
     合成最终共识，满足顶级学术期刊的交叉验证和三角验证标准。
     每条新闻独立请求各模型，通过信号量控制并发。
 
-    【双轨输入】每条新闻同时以全文 (_full) 和上下文片段 (_ctx) 两种输入分别请求模型，
-    生成两套完整的验证与情感判定结果，供下游消融研究和三角验证使用。
-    标题已在上游 (ctx_materializer / prepend_title) 拼接进 full 与 ctx 两轨，
-    不再存在独立的标题情感轨道 (remove-title-track 终态)。
+    【三轨输入】每条新闻同时以全文 (_full)、上下文片段 (_ctx) 和银行+金科同句
+    片段 (_ss) 三种输入分别请求模型，生成三套完整的验证与情感判定结果，供下游
+    消融研究和三角验证使用。
+    - full: content_full = 标题 + 全文。
+    - ctx:  content_ctx  = 标题 + 含目标银行句 ±窗口 (Hassan 2019 QJE proximity)。
+    - ss:   content_ss   = 标题 + 同句内同时含 目标银行∧金科词 的句 ±窗口
+            (银行+金科同句共现; 无共现→镜像 ctx 回退全文 body, ss_is_fallback=True)。
+    三轨经 ctx_materializer / prepend_title 上游物化, content_ss 由 stage 13
+    单一事实源产出 (本模块仅消费); 缺 content_ss 列时 iter_article_track_prompts
+    优雅回退 content_full。标题已拼进三轨, 不再存在独立的标题情感轨道
+    (remove-title-track 终态)。
+    ⚠ 铁律: full × ctx × ss 三轨互为稳健性, 严禁混进同一 over-id Hansen J;
+    各轨各自 just-identified 并排 (见 iv_extensions.py 红线注释)。
 
 方法论依据：
     多模型投票共识机制:
@@ -480,10 +489,10 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     每个模型可独立指定 base_url 和 api_key。
 
     Args:
-        track: 'full' 或 'ctx'，标识本次请求使用的文本轨道。
+        track: 'full' / 'ctx' / 'ss'，标识本次请求使用的文本轨道。
         cache: LLMCache 实例，用于查询/写入缓存。
         prompt_version: prompt 模板版本字符串 (例如 ``"v6-2026-05-13"``),
-            传给 ``LLMCache.get/put`` 用作缓存键命名空间。full/ctx 轨
+            传给 ``LLMCache.get/put`` 用作缓存键命名空间。full/ctx/ss 三轨
             统一使用 PROMPT_VERSION。
 
     Returns:
@@ -665,26 +674,45 @@ def iter_article_track_prompts(df: pd.DataFrame):
     (缓存全命中 ⟺ golden 可 $0 复现) 可被审计如实证明, 不会因 prompt
     构造在两处各写一遍而悄悄漂移。
 
-    要求 df 含 ``content_ctx`` 列 (stage 13 物化); 缺失时回退到 ``内容``。
-    与历史行为字节级等价 (原 run_all_llms 内联构造), 不改任何缓存键。
+    要求 df 含 ``content_ctx`` / ``content_ss`` 列 (stage 13 物化); 缺失时分别
+    回退到 ``内容`` (content_full)。
+    与历史 full/ctx 行为字节级等价 (原 run_all_llms 内联构造), 不改任何既有
+    缓存键; 第三轨 ss (银行+金科同句共现) 是纯加性新增, 仅多 yield 一组
+    ('ss', ...) prompt, 不触动 full/ctx 既有命中路径。
     """
     for idx, row in df.iterrows():
         content_full = str(row.get('内容', ''))
         content_ctx = str(row.get('content_ctx', content_full))
+        # ss 轨 (银行+金科同句共现): 缺 content_ss 列时优雅回退 content_full
+        # (镜像 ctx 的 content_full 回退, 兼容跳过 stage 13 的非标准跑)。
+        content_ss = str(row.get('content_ss', content_full))
         target_bank = str(row.get('target_bank', ''))
         title = str(row.get('标题', ''))
         # fix(tonellms-01): content_ctx 已由 stage13 prepend 标题, 若再把 {title} 作独立
         # 字段注入会致 ctx 轨标题双重注入 (full 轨 1 次 / ctx 轨 2 次), 污染 full↔ctx
         # 对照 — 而 llm_vote_tone_ctx 是 P1 G3 主处理。剥离 content_ctx 的标题前缀, 使
-        # 两轨**近似**对称: 均由 {title} 字段提供标题 1 次 + content 提供去标题正文/窗口。
+        # 三轨 (full/ctx/ss)**近似**对称: 均由 {title} 字段提供标题 1 次 + content
+        # 提供去标题正文/窗口 (ss 轨剥离见下方)。
         # fix(omni-g-tonellms-03, 2026-06-11) 披露: "full 轨 (内容 无标题)" 的原声称
         # 仅近似成立 — 实测 7/1170 (0.6%) 文章的原始 `内容` 本身以 `标题` 开头, 这些
         # 文章 full 轨 prompt 标题注入 2 次而 ctx 轨 1 次 (full 轨 content 不经剥离)。
         # Prompt 构造已字节级冻结 (v8 缓存键铁律, $0), 不可改行为修正, 仅如实披露;
         # _strip_prepended_title 的非精确逆局限见该函数 docstring。
         content_ctx_body = _strip_prepended_title(content_ctx, title)
+        # ss 轨与 ctx 轨同源 prepend_title (stage 13): content_ss 同样以 {title}
+        # 开头, 须按同一逻辑剥离前缀, 使 ss 轨与 ctx/full 三轨**近似**对称 —
+        # 均由 {title} 字段提供标题 1 次 + content 提供去标题正文/窗口
+        # (_strip_prepended_title 的非精确逆局限见其 docstring, 同样适用 ss)。
+        content_ss_body = _strip_prepended_title(content_ss, title)
 
-        for track, content in [('full', content_full), ('ctx', content_ctx_body)]:
+        # frozen prompt v8: 三轨共用同一 PROMPT_TEMPLATE, content 是唯一变参
+        # (full/ctx/ss 交换 content 实参不触模板文本) → 缓存键仅随 content 文本
+        # 与 track 命名空间分区, ss 为纯加性新增、不污染 full/ctx 既有命中。
+        for track, content in [
+            ('full', content_full),
+            ('ctx', content_ctx_body),
+            ('ss', content_ss_body),  # 银行+金科同句共现轨
+        ]:
             prompt = PROMPT_TEMPLATE.format(
                 title=title,
                 content=content,
@@ -695,20 +723,23 @@ def iter_article_track_prompts(df: pd.DataFrame):
 
 
 async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -> dict:
-    """逐条并发执行 DataFrame 中所有行对所有配置模型的双轨请求。
-    
+    """逐条并发执行 DataFrame 中所有行对所有配置模型的三轨请求。
+
     为每行 × 每模型 × 每轨道 生成独立 prompt，通过信号量控制并发数。
-    要求 df 中已包含 'content_ctx' 列（标准 DAG 由 stage 13 ctx_materializer
-    物化; 跳过 stage 13 时由 main() 的备援路径兜底物化）。
-    
+    要求 df 中已包含 'content_ctx' / 'content_ss' 列（标准 DAG 由 stage 13
+    ctx_materializer 物化; 跳过 stage 13 时由 main() 备援路径兜底物化 ctx /
+    由 iter_article_track_prompts 把 content_ss 回退 content_full）。
+
     Returns:
-        dict: {row_idx: {'full': {model_id: res_text}, 'ctx': {model_id: res_text}}}
+        dict: {row_idx: {'full': {model_id: res_text}, 'ctx': {...}, 'ss': {...}}}
     """
     semaphore = asyncio.Semaphore(MAX_CONCURRENCY)
-    results_map = {i: {'full': {}, 'ctx': {}} for i in df.index}
-    
-    total_tasks = len(df) * len(models) * 2  # ×2 因为双轨
-    logger.info(f"逐条请求: {len(df)} 条新闻 × {len(models)} 模型 × 2 轨道 = {total_tasks} 个请求")
+    # B3: results_map 三键初始化 — ss 键必须预置, 否则 as_completed 回填
+    # results_map[row_idx]['ss'] 时 KeyError。镜像 full/ctx。
+    results_map = {i: {'full': {}, 'ctx': {}, 'ss': {}} for i in df.index}
+
+    total_tasks = len(df) * len(models) * 3  # ×3 因为三轨 (full/ctx/ss)
+    logger.info(f"逐条请求: {len(df)} 条新闻 × {len(models)} 模型 × 3 轨道 = {total_tasks} 个请求")
     
     # 连接池优化：复用 TCP 连接 + keepalive，减少握手和 TLS 协商开销
     connector = build_llm_connector(MAX_CONCURRENCY)
@@ -738,7 +769,7 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
         total = len(real_tasks)
         report_interval = max(1, total // 20)  # 每 5% 汇报一次
         next_report = report_interval
-        logger.info(f"📡 LLM 双轨逐条请求开始: 共 {total} 个请求")
+        logger.info(f"📡 LLM 三轨逐条请求开始: 共 {total} 个请求")
         
         for coro in asyncio.as_completed(real_tasks):
             row_idx, model_id, res_text, track = await coro
@@ -749,7 +780,7 @@ async def run_all_llms(df: pd.DataFrame, models: list, cache: LLMCache = None) -
                 logger.info(f"📡 LLM 请求进度: {completed}/{total} ({pct:.1f}%)")
                 next_report += report_interval
         
-        logger.info(f"📡 LLM 双轨逐条请求完成: 共 {total} 个请求全部处理完毕")
+        logger.info(f"📡 LLM 三轨逐条请求完成: 共 {total} 个请求全部处理完毕")
     
     return results_map
 
@@ -864,9 +895,9 @@ def majority_vote_categorical(
 
 
 def _resolve_locus_track(innov_loci_track: list, topics_track: list) -> tuple:
-    """解析单一轨道 (full 或 ctx) 的 locus 标签 + 置信度。
+    """解析单一轨道 (full / ctx / ss) 的 locus 标签 + 置信度。
 
-    Returns (label, confidence)。Plan v14 §3.1 P1.5: 双轨平局策略对称。
+    Returns (label, confidence)。Plan v14 §3.1 P1.5: 三轨 (full/ctx/ss) 平局策略对称。
     原为 main() 内联闭包, 提取为模块级以便 import-based 回归测试。
 
     fix(omni-g-tonellms-10, 2026-06-11): 零证据路径返回 (None, 0.0) —
@@ -906,7 +937,7 @@ def _resolve_locus_track(innov_loci_track: list, topics_track: list) -> tuple:
 
 
 def _avg_innovation_confidence(parsed: dict, dim: str, models: list) -> float:
-    """行级创新维度置信度均值 (W&Z + Gomber + Chesbrough 维度, 双轨独立)。
+    """行级创新维度置信度均值 (W&Z + Gomber + Chesbrough 维度, 三轨 full/ctx/ss 独立)。
 
     原为 main() 内联闭包 ``_avg_conf``, 提取为模块级以便 import-based 回归测试。
 
@@ -1497,12 +1528,18 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
 
 
 def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
-    """预计算并物化 content_full / content_ctx 列，供双轨分析和下游阶段复用。
+    """预计算并物化 content_full / content_ctx 列，供 full/ctx 轨分析和下游阶段复用。
 
     对每个 (文章, 目标银行) 对调用 extract_entity_context() 提取
     实体特异性上下文片段，结果存入 'content_ctx' 列。下游阶段
     22_tone_words 和 23_tone_berts 直接读取此列，避免重复计算
-    并确保三种情感分析方法对完全一致的文本进行分析。
+    并确保多种情感分析方法对完全一致的文本进行分析。
+
+    ⚠ 第三轨 ss (content_ss, 银行+金科同句共现) 的单一事实源是 **stage 13**
+    (ctx_materializer.materialize_content_ctx), 本备援路径**不产** content_ss —
+    仅在跳过 stage 13 的非标准跑触发, 此时 iter_article_track_prompts 对缺失的
+    content_ss 优雅回退 content_full (ss 轨退化为 full 轨)。标准 DAG 由 stage 13
+    在前物化三轨, 本备援不触发, 故无需在此重复 ss 抽取逻辑。
 
     窗口参数从 config/filtering.yaml 的 context_window 节读取 (经
     load_config 合并; legacy 单文件 config.yaml 仅为 stub)，确保参数
@@ -1545,7 +1582,9 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     _alias_cache = {}
 
     # fix(omni-g-tonellms-14, 2026-06-11): 与 ctx_materializer 同语义 —
-    # 两轨文本均经 prepend_title 注入标题; 缺失标题 (NaN/None) 按空标题处理
+    # legacy (full/ctx) 示例 — 本备援路径仅产 full/ctx 两路文本, content_ss
+    # 由 stage 13 ctx_materializer 物化 (非此备援), 故此处不补 ss 轨 (# no-ss-track)。
+    # full/ctx 两路文本均经 prepend_title 注入标题; 缺失标题 (NaN/None) 按空标题处理
     # (与 ctx_materializer fix omni-g-misc-04 口径一致)。
     from news_process.core.text.entity_context import prepend_title
 
@@ -1581,8 +1620,8 @@ def _materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     df['content_ctx'] = ctx_list
     # v3.7.2 R8-H1 全管道延伸: 与 ctx_materializer.py 同源 (R8 audit 锚定)
     # 双路径必须产同名同语义列, 防止"跳过 stage 13 直接跑 stage 21"导致列缺失
-    # fix(omni-g-tonellms-14): 两轨均含标题后, fallback 判定改比较去标题 body
-    # (ctx_body vs 全文 body), 与 ctx_materializer.py 的判定口径一致。
+    # fix(omni-g-tonellms-14): full/ctx 两路均含标题后, fallback 判定改比较去标题
+    # body (ctx_body vs 全文 body), 与 ctx_materializer.py 的判定口径一致。  # no-ss-track
     _bodies = df['内容'].astype(str).tolist()
     df['ctx_is_fallback'] = pd.Series(
         [cb == fb for cb, fb in zip(ctx_body_list, _bodies)],
@@ -1647,25 +1686,25 @@ def main():
 
     .. todo:: v3.0-split (Plan-r3 P1-7 锚点, god function)
 
-        本函数是 stage 21 的双轨 (full + ctx) LLM 调用主流程, 内部职责:
+        本函数是 stage 21 的三轨 (full + ctx + ss) LLM 调用主流程, 内部职责:
         1. 加载 stage 12/14 上游 + schema 守护 (含 ``stage 14 fallback to 12``
            硬化反模式根除, 见下方 "Step 4(a) 硬化" 注释)
-        2. 双轨数据准备 + content/ctx 物化
+        2. 三轨数据准备 + content/ctx/ss 物化 (content_ss 由 stage 13 单一事实源)
         3. 三家族 LLM (gpt54nano / gemini31111 / deepseekv4) 并发请求 +
            majority-vote ensemble (logit-to-score)
         4. SQLite 缓存读写 (缓存键含 prompt_version 命名空间, 已实现于 fetch_llm_async)
-        5. N8 lineage 记录 + parquet 双轨输出
+        5. N8 lineage 记录 + parquet 三轨 (full/ctx/ss) 输出
 
         v3.0 拆分应让 LLM 调用层独立可测 (mock yunwu API), 与上下游
         IO 解耦.
     """
     stage_start = time.time()
-    logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
+    logger.info(f"--- 开始执行阶段: {STAGE_NAME} (三轨模式 full/ctx/ss) ---")
     _write_run_lineage(stage_start)
 
     # Step 4(a) 硬化 (致命问题 5 / 红队 v6 修订): 删除"14 不存在则回退 12"的
     # 静默 fallback。Stage 14 输出 fintech_intensity_score / intensity_verified
-    # 是 LLM 双轨语义筛选的关键信号; fallback 到 12 会让 LLM 失去 TF-IDF 强度
+    # 是 LLM 三轨语义筛选的关键信号; fallback 到 12 会让 LLM 失去 TF-IDF 强度
     # 锚点, 静默降级为旧版"无强度筛选"模式, 与 v6 三家族 LLM 设计假设矛盾。
     # 若 stage 14 真的缺失, 必须通过 raise 让 orchestrator 立即停止并修复上游,
     # 而非继续生产含有"未见过的隐性降级"标签的 21_tone_llms.parquet。
@@ -1675,7 +1714,7 @@ def main():
     if not os.path.exists(path_14):
         raise RuntimeError(
             f"[stage 21] 上游输入缺失: {path_14} 不存在。"
-            f" Stage 21 (LLM 双轨情感分析) 硬依赖 stage 14 输出的 "
+            f" Stage 21 (LLM 三轨情感分析) 硬依赖 stage 14 输出的 "
             f"fintech_intensity_score 列。请先运行 "
             f"`python -m news_process.pipeline.filtering.fintech_intensity` "
             f"产出 {input_14} 后再重试。"
@@ -1688,9 +1727,11 @@ def main():
     logger.info(f"总计候选新闻: {len(df)}")
     log_memory_usage(logger, "数据加载完成")
     
-    # 物化 content_ctx 列（供 LLM 双轨请求 + 下游阶段 22/23 直接复用）
+    # 物化 content_ctx 列（供 LLM 三轨请求的 ctx 轨 + 下游阶段 22/23 直接复用）
     # v3.6.0 (Plan E P4 A1): idempotent — 若 stage 13 已物化, 跳过重复计算
     # (避免 stage 13/21 用不同参数算两次 ctx 造成下游 _ctx 列内部不一致)
+    # 注: 第三轨 content_ss 的单一事实源是 stage 13 (本备援只兜底 ctx); 缺
+    # content_ss 时由 iter_article_track_prompts 回退 content_full (ss→full)。
     if 'content_ctx' in df.columns:
         logger.info("  'content_ctx' 已存在 (v3.6.0 stage 13 上游已物化), 跳过重复物化")
     else:
@@ -1701,8 +1742,8 @@ def main():
     with LLMCache(cache_db) as cache:
         logger.info(f"LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
 
-        # 异步并发大模型（双轨）
-        logger.info(f"开始分发双轨组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")
+        # 异步并发大模型（三轨 full/ctx/ss）
+        logger.info(f"开始分发三轨组合模型处理任务，包含模型: {[m['short_name'] for m in MODELS]}")
         results_map = asyncio.run(run_all_llms(df, MODELS, cache=cache))
 
         # 问题3: 缓存命中统计摘要 — 让确定性可观测。misses=0 & writes=0
@@ -1717,50 +1758,66 @@ def main():
             + ("  [OFFLINE 确定性模式]" if LLM_OFFLINE else "")
         )
 
-        # 提取与投票（双轨）
-        logger.info("开始聚合各模型 JSON 响应并执行双轨多数投票三角验证...")
+        # 提取与投票（三轨 full/ctx/ss）
+        logger.info("开始聚合各模型 JSON 响应并执行三轨多数投票三角验证...")
 
         llm_verified_full_arr = []
         llm_verified_ctx_arr = []
+        llm_verified_ss_arr = []           # ss 轨 (银行+金科同句共现)
         llm_sentiment_full_arr = []
         llm_sentiment_ctx_arr = []
+        llm_sentiment_ss_arr = []
         agreement_rate_full_arr = []
         agreement_rate_ctx_arr = []
+        agreement_rate_ss_arr = []
         # v6/F2 新增掩码列
         agreement_rate_s_full_arr = []
         agreement_rate_s_ctx_arr = []
+        agreement_rate_s_ss_arr = []
         n_valid_votes_full_arr = []
         n_valid_votes_ctx_arr = []
+        n_valid_votes_ss_arr = []
         n_verifying_votes_full_arr = []
         n_verifying_votes_ctx_arr = []
+        n_verifying_votes_ss_arr = []
         call_failure_full_arr = []
         call_failure_ctx_arr = []
+        call_failure_ss_arr = []
         undefined_full_arr = []
         undefined_ctx_arr = []
-        # v3.2.0 双轨化 (plan v14 §3.1 P1): innovation_locus / substantiveness 各自双轨独立产出
+        undefined_ss_arr = []
+        # v3.2.0 双轨化 (plan v14 §3.1 P1) + v3.9.0 三轨化: innovation_locus /
+        # substantiveness 各自 full/ctx/ss 独立产出
         innovation_locus_full_arr = []     # Gomber 2018 JMIS, full-text classification
         innovation_locus_ctx_arr = []      # Gomber 2018 JMIS, entity-context classification (Hassan 2019 QJE)
+        innovation_locus_ss_arr = []       # Gomber 2018 JMIS, 银行+金科同句共现 classification
         category_confidence_full_arr = []  # LLM × keyword cross-validation, full track
         category_confidence_ctx_arr = []   # LLM × keyword cross-validation, ctx track
+        category_confidence_ss_arr = []    # LLM × keyword cross-validation, ss track (同句共现)
         innov_subst_full_arr = []          # W&Z 1994/1998 ASQ, full-text judgment
         innov_subst_ctx_arr = []           # W&Z 1994/1998 ASQ, entity-context judgment
+        innov_subst_ss_arr = []            # W&Z 1994/1998 ASQ, 银行+金科同句共现 judgment
         # v3.4.0 第三维度 (Chesbrough 2003 + L&S 2006 SMJ, additive supplementation):
         innov_collab_full_arr = []         # 自主研发 / 外部协同 (full track)
         innov_collab_ctx_arr = []          # 自主研发 / 外部协同 (ctx track)
+        innov_collab_ss_arr = []           # 自主研发 / 外部协同 (ss track, 同句共现)
         # v7 (保留): row-level avg confidence per track per dimension (R6-H 下游聚合源)
         innov_subst_conf_full_arr = []
         innov_subst_conf_ctx_arr = []
+        innov_subst_conf_ss_arr = []
         innov_locus_conf_full_arr = []
         innov_locus_conf_ctx_arr = []
+        innov_locus_conf_ss_arr = []
         # v3.4.0 第三维度 row-level avg confidence
         innov_collab_conf_full_arr = []
         innov_collab_conf_ctx_arr = []
+        innov_collab_conf_ss_arr = []
 
-        # 预分配每个模型 × 每轨道的独立判断列表
+        # 预分配每个模型 × 每轨道的独立判断列表 (三轨 full/ctx/ss)
         per_model_cols = {}
         for m in MODELS:
             short = m['short_name']
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_ss']:  # _ss = 银行+金科同句共现轨
                 per_model_cols[f"{short}_verified{track}"] = []
                 per_model_cols[f"{short}_sentiment{track}"] = []
                 per_model_cols[f"{short}_verification_confidence{track}"] = []
@@ -1769,23 +1826,27 @@ def main():
                     per_model_cols[f"{short}_prob_score{track}"] = []
                     per_model_cols[f"{short}_prob_source{track}"] = []
 
-        # Logit-to-Score 轨道级数组
+        # Logit-to-Score 轨道级数组 (三轨 full/ctx/ss)
         prob_score_full_arr = []
         prob_score_ctx_arr = []
-        # Plan v1.37 P2: 4 个文章级 binary prob_score 数组
-        # (avg_subst_prob_score_{full,ctx} + avg_locus_prob_score_{full,ctx})。
-        # v3.4.0: 另加 2 个 collab_prob_score 数组 (Chesbrough 2003)
+        prob_score_ss_arr = []
+        # Plan v1.37 P2: 文章级 binary prob_score 数组
+        # (avg_subst_prob_score_{full,ctx,ss} + avg_locus_prob_score_{full,ctx,ss})。
+        # v3.4.0: 另加 collab_prob_score 数组 (Chesbrough 2003); v3.9.0 三轨化。
         subst_prob_score_full_arr = []
         subst_prob_score_ctx_arr = []
+        subst_prob_score_ss_arr = []
         locus_prob_score_full_arr = []
         locus_prob_score_ctx_arr = []
+        locus_prob_score_ss_arr = []
         collab_prob_score_full_arr = []
         collab_prob_score_ctx_arr = []
+        collab_prob_score_ss_arr = []
 
         n_api_failures = 0
 
         for idx, row in df.iterrows():
-            row_results = results_map.get(idx, {'full': {}, 'ctx': {}})
+            row_results = results_map.get(idx, {'full': {}, 'ctx': {}, 'ss': {}})
 
             # ── Full 轨道聚合 (v6/F2: 14 元组; plan v1.37 P2: 16 元组; v3.4.0: 18 元组 + collab_mode) ──
             (final_v_full, final_s_full,
@@ -1862,9 +1923,46 @@ def main():
             locus_prob_score_ctx_arr.append(avg_locus_prob_ctx)
             collab_prob_score_ctx_arr.append(avg_collab_prob_ctx)
 
-            # ── 金融科技主题标准化分类（v3.2.0 双轨独立，plan v14 §3.1 P1）──
-            # 双轨平局策略对称：locus → 应用场景；substantiveness → 象征性（plan v14 §3.1 P1.5）
-            # 双轨各自独立运行关键词分类器 (canonicalize_topic) 交叉验证 (R3-B)
+            # ── SS 轨道聚合 (银行+金科同句共现; _aggregate_track 第三次调用,
+            #    与 full/ctx 同 18 元组契约; v3.9.0 三轨化) ──
+            (final_v_ss, final_s_ss,
+             agree_rate_ss, agree_rate_s_ss,
+             n_valid_ss, n_verifying_ss,
+             call_failure_ss, undefined_ss,
+             parsed_ss, topics_ss, innov_loci_ss, innov_substs_ss,
+             n_fail_ss, avg_prob_ss,
+             avg_subst_prob_ss, avg_locus_prob_ss,
+             innov_collab_modes_ss, avg_collab_prob_ss) = _aggregate_track(row_results.get('ss', {}), MODELS)
+            n_api_failures += n_fail_ss
+
+            llm_verified_ss_arr.append(final_v_ss)
+            llm_sentiment_ss_arr.append(final_s_ss)
+            agreement_rate_ss_arr.append(agree_rate_ss)
+            agreement_rate_s_ss_arr.append(agree_rate_s_ss)
+            n_valid_votes_ss_arr.append(n_valid_ss)
+            n_verifying_votes_ss_arr.append(n_verifying_ss)
+            call_failure_ss_arr.append(call_failure_ss)
+            undefined_ss_arr.append(undefined_ss)
+
+            for m in MODELS:
+                short = m['short_name']
+                per_model_cols[f"{short}_verified_ss"].append(parsed_ss.get(f"{short}_verified"))
+                per_model_cols[f"{short}_sentiment_ss"].append(parsed_ss.get(f"{short}_sentiment"))
+                per_model_cols[f"{short}_verification_confidence_ss"].append(parsed_ss.get(f"{short}_verification_confidence", 0.0))
+                per_model_cols[f"{short}_sentiment_confidence_ss"].append(parsed_ss.get(f"{short}_sentiment_confidence", 0.0))
+                if LOGIT_SCORE_ENABLED:
+                    # fix(omni-g-tonellms-12, 2026-06-11): 同上 full/ctx 轨 — 缺席模型
+                    # 存档列 (NaN, 'MISSING'), 与真实 P3 零置信中性可区分。
+                    per_model_cols[f"{short}_prob_score_ss"].append(parsed_ss.get(f"{short}_prob_score", float('nan')))
+                    per_model_cols[f"{short}_prob_source_ss"].append(parsed_ss.get(f"{short}_prob_source", 'MISSING'))
+            prob_score_ss_arr.append(avg_prob_ss)
+            subst_prob_score_ss_arr.append(avg_subst_prob_ss)
+            locus_prob_score_ss_arr.append(avg_locus_prob_ss)
+            collab_prob_score_ss_arr.append(avg_collab_prob_ss)
+
+            # ── 金融科技主题标准化分类（v3.2.0 双轨独立 + v3.9.0 三轨 full/ctx/ss，plan v14 §3.1 P1）──
+            # 三轨平局策略对称：locus → 应用场景；substantiveness → 象征性（plan v14 §3.1 P1.5）
+            # 三轨各自独立运行关键词分类器 (canonicalize_topic) 交叉验证 (R3-B)
             # fix(omni-g-tonellms-10): _resolve_locus_track 已提取为模块级
             # (import-based 回归测试), 行为见该函数 docstring。
 
@@ -1878,8 +1976,13 @@ def main():
             innovation_locus_ctx_arr.append(_loc_ctx)
             category_confidence_ctx_arr.append(_conf_ctx)
 
-            # ── 创新实质性分类多数决（v3.2.0 双轨独立; W&Z 1994/1998 ASQ; 二分类） ──
-            # 双轨平局策略对称: 平局保守降为 '象征性' (W&Z framework 下实质性需充分证据,
+            # Ss 轨 locus + confidence (独立运行 canonicalize_topic(topics_ss), 同句共现)
+            _loc_ss, _conf_ss = _resolve_locus_track(innov_loci_ss, topics_ss)
+            innovation_locus_ss_arr.append(_loc_ss)
+            category_confidence_ss_arr.append(_conf_ss)
+
+            # ── 创新实质性分类多数决（v3.2.0 双轨独立 + v3.9.0 三轨 full/ctx/ss; W&Z 1994/1998 ASQ; 二分类） ──
+            # 三轨平局策略对称: 平局保守降为 '象征性' (W&Z framework 下实质性需充分证据,
             # 平局倾向象征性是保守审慎判定; MAP under uniform prior); 空票返回 None.
             innov_subst_full_arr.append(majority_vote_categorical(
                 innov_substs_full,
@@ -1893,15 +1996,23 @@ def main():
                 tie_default='象征性',
                 empty_fallback=None,
             ))
+            innov_subst_ss_arr.append(majority_vote_categorical(
+                innov_substs_ss,
+                tie_strategy='conservative',
+                tie_default='象征性',
+                empty_fallback=None,
+            ))
 
-            # v7 R6-H: row-level avg per-model confidence (W&Z + Gomber 维度), 双轨独立
+            # v7 R6-H: row-level avg per-model confidence (W&Z + Gomber 维度), 三轨独立
             # fix(omni-g-tonellms-13, 2026-06-11): 原内联闭包 _avg_conf 提取为
             # 模块级 _avg_innovation_confidence (聚合域与标签域对齐, 行为见其
             # docstring; import-based 回归测试)。
             innov_subst_conf_full_arr.append(_avg_innovation_confidence(parsed_full, 'innovation_substantiveness', MODELS))
             innov_subst_conf_ctx_arr.append(_avg_innovation_confidence(parsed_ctx, 'innovation_substantiveness', MODELS))
+            innov_subst_conf_ss_arr.append(_avg_innovation_confidence(parsed_ss, 'innovation_substantiveness', MODELS))
             innov_locus_conf_full_arr.append(_avg_innovation_confidence(parsed_full, 'innovation_locus', MODELS))
             innov_locus_conf_ctx_arr.append(_avg_innovation_confidence(parsed_ctx, 'innovation_locus', MODELS))
+            innov_locus_conf_ss_arr.append(_avg_innovation_confidence(parsed_ss, 'innovation_locus', MODELS))
 
             # v3.4.0: 第三维度 innovation_collab_mode 多数决 + confidence (Chesbrough 2003)
             # tie_strategy: 保守 fallback 至 "自主研发" (与 W&Z substantiveness tie→"象征性" 同样
@@ -1919,8 +2030,15 @@ def main():
                 tie_default='自主研发',
                 empty_fallback=None,
             ))
+            innov_collab_ss_arr.append(majority_vote_categorical(
+                innov_collab_modes_ss,
+                tie_strategy='conservative',
+                tie_default='自主研发',
+                empty_fallback=None,
+            ))
             innov_collab_conf_full_arr.append(_avg_innovation_confidence(parsed_full, 'innovation_collab_mode', MODELS))
             innov_collab_conf_ctx_arr.append(_avg_innovation_confidence(parsed_ctx, 'innovation_collab_mode', MODELS))
+            innov_collab_conf_ss_arr.append(_avg_innovation_confidence(parsed_ss, 'innovation_collab_mode', MODELS))
 
 
 
@@ -1930,76 +2048,108 @@ def main():
 
         df['llm_verified_full'] = llm_verified_full_arr
         df['llm_verified_ctx'] = llm_verified_ctx_arr
+        df['llm_verified_ss'] = llm_verified_ss_arr            # ss 轨 (银行+金科同句共现)
         df['llm_sentiment_full'] = llm_sentiment_full_arr
         df['llm_sentiment_ctx'] = llm_sentiment_ctx_arr
+        df['llm_sentiment_ss'] = llm_sentiment_ss_arr
         df['llm_agreement_rate_full'] = agreement_rate_full_arr
         df['llm_agreement_rate_ctx'] = agreement_rate_ctx_arr
+        df['llm_agreement_rate_ss'] = agreement_rate_ss_arr
         # v6/F2 新增掩码 / 元数据列
         df['llm_agreement_rate_s_full'] = agreement_rate_s_full_arr
         df['llm_agreement_rate_s_ctx'] = agreement_rate_s_ctx_arr
+        df['llm_agreement_rate_s_ss'] = agreement_rate_s_ss_arr
         df['n_valid_votes_full'] = n_valid_votes_full_arr
         df['n_valid_votes_ctx'] = n_valid_votes_ctx_arr
+        df['n_valid_votes_ss'] = n_valid_votes_ss_arr
         df['n_verifying_votes_full'] = n_verifying_votes_full_arr
         df['n_verifying_votes_ctx'] = n_verifying_votes_ctx_arr
+        df['n_verifying_votes_ss'] = n_verifying_votes_ss_arr
         df['llm_call_failure_full'] = call_failure_full_arr
         df['llm_call_failure_ctx'] = call_failure_ctx_arr
+        df['llm_call_failure_ss'] = call_failure_ss_arr
         df['llm_undefined_full'] = undefined_full_arr
         df['llm_undefined_ctx'] = undefined_ctx_arr
+        df['llm_undefined_ss'] = undefined_ss_arr
         # v3.2.0 BREAKING (plan v14 §2.1 Action #2): bare innovation_locus / innovation_substantiveness 删除,
-        # 重命名为 _full / _ctx 双轨独立列 (W&Z 1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE)
+        # 重命名为 _full / _ctx 双轨独立列 (W&Z 1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE);
+        # v3.9.0 三轨化: 追加 _ss (银行+金科同句共现) 独立列。
         df['innovation_locus_full'] = innovation_locus_full_arr
         df['innovation_locus_ctx'] = innovation_locus_ctx_arr
+        df['innovation_locus_ss'] = innovation_locus_ss_arr
         df['category_confidence_full'] = category_confidence_full_arr
         df['category_confidence_ctx'] = category_confidence_ctx_arr
+        df['category_confidence_ss'] = category_confidence_ss_arr
         df['innovation_substantiveness_full'] = innov_subst_full_arr
         df['innovation_substantiveness_ctx'] = innov_subst_ctx_arr
-        # plan v14 §3.1 P1 (Action #6): dual gate 三互斥指示列
-        # llm_verified_dual_full_only: verified_full=True ∧ verified_ctx=False
-        # llm_verified_dual_ctx_only:  verified_full=False ∧ verified_ctx=True
-        # llm_verified_dual_both:      verified_full=True ∧ verified_ctx=True
+        df['innovation_substantiveness_ss'] = innov_subst_ss_arr
+        # plan v14 §3.1 P1 (Action #6) + v3.9.0 三轨化: triple gate 7 互斥指示列。
+        # 历史保留 dual (full/ctx) 三列名 (下游消费), 加性扩 7 态三轨互斥指示
+        # (full_only/ctx_only/ss_only/full_ctx/full_ss/ctx_ss/all_three), 与下方
+        # 7 行诊断日志同口径。
         _vf = pd.Series(llm_verified_full_arr).astype(bool)
         _vc = pd.Series(llm_verified_ctx_arr).astype(bool)
+        _vs = pd.Series(llm_verified_ss_arr).astype(bool)
+        # 既有 dual 列 (向后兼容, 仅 full↔ctx 二元, 不含 ss): 下游 encode 仍消费
         df['llm_verified_dual_full_only'] = (_vf & ~_vc).values
         df['llm_verified_dual_ctx_only']  = (~_vf & _vc).values
         df['llm_verified_dual_both']      = (_vf & _vc).values
-        # v7 R6-H: 双轨 × 双维度的 row-level avg confidence (encode.py 下游聚合源)
+        # v3.9.0 triple gate 7 互斥态 (full/ctx/ss verified 的 7 种非空组合)
+        df['llm_verified_triple_full_only'] = (_vf & ~_vc & ~_vs).values
+        df['llm_verified_triple_ctx_only']  = (~_vf & _vc & ~_vs).values
+        df['llm_verified_triple_ss_only']   = (~_vf & ~_vc & _vs).values
+        df['llm_verified_triple_full_ctx']  = (_vf & _vc & ~_vs).values
+        df['llm_verified_triple_full_ss']   = (_vf & ~_vc & _vs).values
+        df['llm_verified_triple_ctx_ss']    = (~_vf & _vc & _vs).values
+        df['llm_verified_triple_all_three'] = (_vf & _vc & _vs).values
+        # v7 R6-H: 三轨 × 三维度的 row-level avg confidence (encode.py 下游聚合源)
         df['innovation_substantiveness_confidence_full'] = innov_subst_conf_full_arr
         df['innovation_substantiveness_confidence_ctx'] = innov_subst_conf_ctx_arr
+        df['innovation_substantiveness_confidence_ss'] = innov_subst_conf_ss_arr
         df['innovation_locus_confidence_full'] = innov_locus_conf_full_arr
         df['innovation_locus_confidence_ctx'] = innov_locus_conf_ctx_arr
-        # v3.4.0: 第三维度 innovation_collab_mode 双轨写回 (additive supplementation,
+        df['innovation_locus_confidence_ss'] = innov_locus_conf_ss_arr
+        # v3.4.0: 第三维度 innovation_collab_mode 三轨写回 (additive supplementation,
         # Chesbrough 2003 + L&S 2006 SMJ; v7 dual gate (locus 闸门) 语义不变)
         df['innovation_collab_mode_full'] = innov_collab_full_arr
         df['innovation_collab_mode_ctx'] = innov_collab_ctx_arr
+        df['innovation_collab_mode_ss'] = innov_collab_ss_arr
         df['innovation_collab_mode_confidence_full'] = innov_collab_conf_full_arr
         df['innovation_collab_mode_confidence_ctx'] = innov_collab_conf_ctx_arr
+        df['innovation_collab_mode_confidence_ss'] = innov_collab_conf_ss_arr
 
-        # ── Logit-to-Score 概率分数写入 DataFrame ──
+        # ── Logit-to-Score 概率分数写入 DataFrame (三轨 full/ctx/ss) ──
         if LOGIT_SCORE_ENABLED:
             df['llm_prob_score_full'] = prob_score_full_arr
             df['llm_prob_score_ctx'] = prob_score_ctx_arr
-            # Plan v1.37 P2: 4 个文章级 binary prob_score 列
-            # v3.4.0: + 2 个 collab_mode prob_score 列 (Chesbrough 2003 + L&S 2006)
+            df['llm_prob_score_ss'] = prob_score_ss_arr
+            # Plan v1.37 P2: 文章级 binary prob_score 列 (subst / locus, 三轨)
+            # v3.4.0: + collab_mode prob_score 列 (Chesbrough 2003 + L&S 2006)
             df['avg_subst_prob_score_full'] = subst_prob_score_full_arr
             df['avg_subst_prob_score_ctx'] = subst_prob_score_ctx_arr
+            df['avg_subst_prob_score_ss'] = subst_prob_score_ss_arr
             df['avg_locus_prob_score_full'] = locus_prob_score_full_arr
             df['avg_locus_prob_score_ctx'] = locus_prob_score_ctx_arr
+            df['avg_locus_prob_score_ss'] = locus_prob_score_ss_arr
             df['avg_collab_prob_score_full'] = collab_prob_score_full_arr
             df['avg_collab_prob_score_ctx'] = collab_prob_score_ctx_arr
+            df['avg_collab_prob_score_ss'] = collab_prob_score_ss_arr
             n_rows = len(prob_score_full_arr)
             mean_full = sum(prob_score_full_arr) / max(n_rows, 1)
             mean_ctx = sum(prob_score_ctx_arr) / max(n_rows, 1)
+            mean_ss = sum(prob_score_ss_arr) / max(n_rows, 1)
             logger.info(f"Logit-to-Score: "
                         f"full mean={mean_full:.4f}, ctx mean={mean_ctx:.4f}, "
-                        f"n={n_rows}")
+                        f"ss mean={mean_ss:.4f}, n={n_rows}")
 
         if n_api_failures > 0:
             logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
 
-        # 统计创新位点分布 (v3.2.0 双轨独立; Gomber 2018 JMIS + Hassan 2019 QJE)
+        # 统计创新位点分布 (v3.2.0 双轨独立 + v3.9.0 三轨; Gomber 2018 JMIS + Hassan 2019 QJE)
         for _track, _ver_col, _loc_col in [
             ('full', 'llm_verified_full', 'innovation_locus_full'),
             ('ctx',  'llm_verified_ctx',  'innovation_locus_ctx'),
+            ('ss',   'llm_verified_ss',   'innovation_locus_ss'),  # 银行+金科同句共现
         ]:
             if df[_ver_col].sum() > 0:
                 _vdf = df[df[_ver_col]]
@@ -2007,9 +2157,9 @@ def main():
                 for _label, _cnt in _counts.items():
                     logger.info(f"  创新位点 [{_track}] [{_label}]: {_cnt}")
 
-        # 结果统计（双轨对比）
+        # 结果统计（三轨对比 full/ctx/ss）
         total_len = len(df)
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             ver_col = f'llm_verified{track}'
             sent_col = f'llm_sentiment{track}'
             passed_len = df[ver_col].sum()
@@ -2032,21 +2182,44 @@ def main():
                     input_files=[input_file])
         logger.info(f"全量 LLM 结果已保存: {full_output_path} ({len(df)} 行)")
 
-        # v3.2.0 R1-A (致命修复, plan v14 §3.1 P1 Action #6):
-        # 改并集 verified_full | verified_ctx, 让 ctx 轨独立可作为 main spec
-        # (Hassan 2019 QJE entity-proximity 独立判定; 原单 full 轨过滤使 ctx 轨永远 conditional on full)
+        # v3.2.0 R1-A (致命修复, plan v14 §3.1 P1 Action #6) + v3.9.0 三轨化:
+        # 改并集 verified_full | verified_ctx | verified_ss, 让 ctx / ss 轨各自
+        # 独立可作为 main spec (Hassan 2019 QJE entity-proximity / 银行+金科同句
+        # 共现 独立判定; 原单 full 轨过滤使 ctx/ss 轨永远 conditional on full)。
+        #
+        # 为何并集 (任一轨过即过) 而非交集 (AND, 三轨全过才过):
+        #   三轨是同一篇文章的三种归因窗口 (全文 / 实体邻近句 / 同句共现), 互为
+        #   稳健性而非穷尽对——某轨判 verified 即说明该窗口内有金科证据, 应保留
+        #   供该轨自己的回归消费。若用 AND, ss 轨 (最窄窗口, 回退前覆盖最少) 会
+        #   把样本砍到三轨交集, 抹掉 full/ctx 各自独立可识别的样本, 与"三轨各自
+        #   just-identified 并排、不混同一 Hansen J"的铁律相悖。
         df_filtered = df[
-            (df['llm_verified_full'] == True) | (df['llm_verified_ctx'] == True)
+            (df['llm_verified_full'] == True)
+            | (df['llm_verified_ctx'] == True)
+            | (df['llm_verified_ss'] == True)
         ].copy()
-        _n_full_only = int(df['llm_verified_dual_full_only'].sum())
-        _n_ctx_only  = int(df['llm_verified_dual_ctx_only'].sum())
-        _n_both      = int(df['llm_verified_dual_both'].sum())
-        logger.info(f"  Dual gate: full-only={_n_full_only}, ctx-only={_n_ctx_only}, "
-                    f"both={_n_both}, union total={len(df_filtered)}")
+        # Triple gate 7 互斥态诊断 (full/ctx/ss verified 的 7 种非空组合;
+        # 互斥且穷尽并集样本, 7 计数之和 == union total)。
+        _n_full_only = int(df['llm_verified_triple_full_only'].sum())
+        _n_ctx_only  = int(df['llm_verified_triple_ctx_only'].sum())
+        _n_ss_only   = int(df['llm_verified_triple_ss_only'].sum())
+        _n_full_ctx  = int(df['llm_verified_triple_full_ctx'].sum())
+        _n_full_ss   = int(df['llm_verified_triple_full_ss'].sum())
+        _n_ctx_ss    = int(df['llm_verified_triple_ctx_ss'].sum())
+        _n_all_three = int(df['llm_verified_triple_all_three'].sum())
+        logger.info("  Triple gate (并集; 7 互斥态分解):")
+        logger.info(f"    full-only  = {_n_full_only}")
+        logger.info(f"    ctx-only   = {_n_ctx_only}")
+        logger.info(f"    ss-only    = {_n_ss_only}")
+        logger.info(f"    full+ctx   = {_n_full_ctx}")
+        logger.info(f"    full+ss    = {_n_full_ss}")
+        logger.info(f"    ctx+ss     = {_n_ctx_ss}")
+        logger.info(f"    all-three  = {_n_all_three}")
+        logger.info(f"  Triple gate union total = {len(df_filtered)}")
 
         # remove-title-track (v3.8.0): 独立标题情感轨已移除, 标题改 prepend 进
-        # full/ctx 两轨; 原 B1-2 标题批量提取块在 TITLE_PROMPT_TEMPLATE='' 守卫下
-        # 永不执行 (死代码, 无下游消费), 连同 _avg_valid_title_prob_score helper 清理。
+        # full/ctx/ss 三轨 (v3.9.0); 原 B1-2 标题批量提取块在 TITLE_PROMPT_TEMPLATE=''
+        # 守卫下永不执行 (死代码, 无下游消费), 连同 _avg_valid_title_prob_score helper 清理。
 
         # ======================================================================
         # 4. 保存文件与报告

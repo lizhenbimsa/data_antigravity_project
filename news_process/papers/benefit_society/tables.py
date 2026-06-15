@@ -12,16 +12,25 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
+# 三轨 (full/ctx/ss) 平价 (third-track-ss 2026-06-14): _ss = 银行+金科同句共现轨
+# (benefit_society.py 产 benefit_mean_full/ctx/ss 三轨, 标签 "(银行+金科同句)"; 机械
+# _ctx→_ss 后缀 swap)。ss 列 stage 21 三轨产出后落盘, 落盘前 build_summary_table(
+# strict=False) 以 NaN 占位行可见保留 (golden-safe)。PAP v1.0-final 锁 treatment=
+# benefit_mean_full / outcome=roa, ss 轨仅作三轨稳健性 (与 full/ctx 互为稳健性, 非 primary)。
 _TABLE1_VARIABLES: list[str] = [
-    # 经营效益态度 (Jha, Liu & Manela 2026, RFS §1.3.2)
+    # 经营效益态度 (Jha, Liu & Manela 2026, RFS §1.3.2; +ss 同句共现轨)
     'benefit_mean_full',
     'benefit_mean_ctx',
+    'benefit_mean_ss',
     'benefit_std_full',
     'benefit_std_ctx',
+    'benefit_std_ss',
     'benefit_pos_frac_full',
     'benefit_pos_frac_ctx',
+    'benefit_pos_frac_ss',
     'benefit_neg_frac_full',
     'benefit_neg_frac_ctx',
+    'benefit_neg_frac_ss',
     # 信息环境对照
     'n_articles',
     'ln_news_coverage',
@@ -71,18 +80,25 @@ def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataF
 
 
 # ============================================================================
-# Plan v2.12 — Tier-A 双轨表 (PAP v1.0-final §2 H3 证据)
+# Plan v2.12 — Tier-A 三轨表 (full/ctx/ss; PAP v1.0-final §2 H3 证据;
+# third-track-ss 2026-06-14 由双轨扩为三轨)
 # ============================================================================
 
 
 def build_table_a1_inter_track_kappa(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table A1: 轨间一致性 (文章级 rho + bank-year 级 rho)."""
+    """Table A1: 轨间一致性 (文章级 rho + bank-year 级 rho; full/ctx/ss 三轨 pairwise).
+
+    third-track-ss 2026-06-14: 由 2 轨 (full/ctx) 扩为 3 轨 (full/ctx/ss) pairwise
+    一致性 (full-ctx / full-ss / ctx-ss 三对), Holm 跨 3 对 FWER 校正 (per plan §⑧)。"""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('benefit_society', 'tableA1_inter_track_kappa.csv', paper_config)
 
 
 def build_table_a2_attitude_track_switch(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table A2: 双轨切换敏感性 (6 specs: 2 轨 x 3 维度)."""
+    """Table A2: 三轨切换敏感性 (9 specs: full/ctx/ss 3 轨 x 3 维度).
+
+    third-track-ss 2026-06-14: 新增 ss = 银行+金科同句共现轨 (旧 6 specs = 2 轨 x 3 维度
+    → 9 specs); ss 列缺失时 Stata 模板 capture confirm 守卫优雅降级 (不崩表)。"""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('benefit_society', 'tableA2_attitude_track_switch.csv', paper_config)
 

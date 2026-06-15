@@ -73,11 +73,34 @@ article_alignment:
 #   Andreou, P. C., Lambertides, N., Magidou, M., & Maruska, A. E. (2026).
 #     Measuring R&D activity through 10-K narrative disclosures.
 #     Research Policy, 55(3), 105409. DOI: 10.1016/j.respol.2025.105409
-#     → Core-contextual word-pairing within a span of 10 lexical tokens
+#     → Core-contextual word-pairing within a span (思想锚点)。
+#     ⚠ 本项目 stage 12b 的操作化 = 【句级窗口邻近】(银行锚句 ±sentence_radius 句),
+#       比 Andreou 的 "10 lexical tokens span" 更宽(broader), 非逐字复刻、亦非近似;
+#       须在 manuscript 如实披露此口径差异 (见 cooccurrence_filter 下方)。
 # 敏感性检验: 35_radius_sensitivity.py 对 radius ∈ {0,1,2,3} 执行完整稳健性检验
+#
+# 三轨 (ss 银行+金科同句共现轨, 2026-06-14): content_ss 由同一阶段 13 物化,
+#   锚点为"同句内 目标银行 ∧ 金科词 共现"(extract_bank_fintech_cooccurrence)。
+#   ss_sentence_radius 控制命中句前后扩窗句数 (默认同 sentence_radius=1)。
+#   回退=镜像 ctx: 无共现→content_ss=全文 body, ss_is_fallback=True。
 context_window:
   sentence_radius: 1                                    # 句子级窗口半径（1 = 命中句前后各1句，共3句）
   fallback_char_radius: 150                             # 回退时的字符级窗口半径（文本过短无法分句时启用）
+  ss_sentence_radius: 1                                 # ss 轨(银行+金科同句)命中句前后扩窗半径（默认同 sentence_radius）
+
+# ------------------------------------------------------------------------------
+# [模块二：stage 12b] 银行×金科邻近共现硬过滤 (Andreou et al. 2026)
+# ------------------------------------------------------------------------------
+# 只保留 "目标银行与 ≥1 金科词在 ±sentence_radius 句窗口内邻近共现" 的文章行, 丢弃
+# 其余, 降低 stage 12 关键词判定的虚假相关 (False Positives)。判据 = 窗口邻近
+# (core/text/entity_context.has_bank_fintech_cooccurrence_within_radius); 与 _ss
+# 轨的严格同句口径【不同】(后者是前者 radius=0 的子集)。
+# 路线 A (纯接受-披露): 12b 仅丢行, 下游 controls.py/encode.py 零改动; 派生量
+# (n_articles/fintech_share/attention/NF) 统计宇宙平移为 "近邻相关金科" 口径, 在
+# manuscript/codebook 披露。fallback_char_radius 复用上方 context_window 同名键。
+cooccurrence_filter:
+  sentence_radius: 1                                    # 邻近窗口半径; ⚠ 生产默认 ≥1 是保 _ss 轨 frac_ss_fallback∈(0,1) 不坍缩的硬前提; radius=0 等价严格同句、_ss 退化
+  min_keep_frac: 0.001                                  # 保留率下限守卫 (仅防全库误删; 真实阈值由生产 keep 率 gate 实测后回写)
 
 # ------------------------------------------------------------------------------
 # [模块三：新闻情感模块] 统一 LLM 语义精筛与情感分析 (Tone LLM Processing) - 阶段 21

@@ -99,7 +99,7 @@ def discover_sentiment_columns(df: pd.DataFrame, track_suffix: str = '') -> dict
 
     Args:
         df:           DataFrame
-        track_suffix: 轨道后缀，如 '_full' 或 '_ctx'。为空则匹配无后缀列(向后兼容)。
+        track_suffix: 轨道后缀，如 '_full' / '_ctx' / '_ss'。为空则匹配无后缀列(向后兼容)。
 
     Returns:
         dict: {
@@ -503,13 +503,14 @@ def generate_validation_sample(df: pd.DataFrame,
       - 不一致样本：存在分歧的文章中随机抽取 n_disagree 篇
 
     fix(omni-g-val-tone-04, 2026-06-11): 编码协议与被验证构念对齐 —
-      (a) 调用方按 track 写独立文件 (此前双轨共写同一 xlsx, _ctx 覆盖 _full,
+      (a) 调用方按 track 写独立文件 (此前共写同一 xlsx, _ctx 覆盖 _full,
           标注归属轨道不可追溯);
-      (b) 编码指南随 track 切换: v3.8.0 起两轨机器输入均为 prepend_title 后
-          文本 (full=标题+正文, ctx=标题+实体上下文窗口), 旧指南"不受标题影响"
-          指示人类剔除标题信息, 与机器口径系统性错位;
-      (c) 样本附带被验证轨道的机器输入文本列 (content_full / content_ctx,
-          若存在), 让人工阅读与机器消费同一文本。
+      (b) 编码指南随 track 切换: v3.8.0 起三轨机器输入均为 prepend_title 后
+          文本 (full=标题+正文, ctx=标题+实体上下文窗口, ss=标题+银行+金科同句
+          共现片段), 旧指南"不受标题影响"指示人类剔除标题信息, 与机器口径
+          系统性错位;
+      (c) 样本附带被验证轨道的机器输入文本列 (content_full / content_ctx /
+          content_ss, 若存在), 让人工阅读与机器消费同一文本。
 
     Args:
         df:              原始 DataFrame（含标题、内容等）。
@@ -520,7 +521,7 @@ def generate_validation_sample(df: pd.DataFrame,
         n_agree:         一致样本抽样数。
         n_disagree:      不一致样本抽样数。
         seed:            随机种子。
-        track:           被验证轨道 ('_full' / '_ctx'), 决定编码指南口径与
+        track:           被验证轨道 ('_full' / '_ctx' / '_ss'), 决定编码指南口径与
                          机器输入文本列。
         extra_labels:    附加标签列 {列名: pd.Series} — 仅写入工作台供人工
                          比对, 不参与一致/分歧抽样判定。用途 (final-audit F1,
@@ -584,7 +585,11 @@ def generate_validation_sample(df: pd.DataFrame,
 
     # fix(omni-g-val-tone-04, 2026-06-11): 附上被验证轨道的机器输入文本
     # (prepend_title 后), 让人工标注口径与机器口径一致
-    track_text_col = 'content_ctx' if track == '_ctx' else 'content_full'
+    # 三轨映射: _ctx→content_ctx / _ss→content_ss / 其余(_full)→content_full
+    track_text_col = {
+        '_ctx': 'content_ctx',
+        '_ss': 'content_ss',
+    }.get(track, 'content_full')
     if track_text_col in sample_df.columns:
         sample_df['机器输入文本'] = sample_df[track_text_col]
     else:
@@ -609,12 +614,19 @@ def generate_validation_sample(df: pd.DataFrame,
 
     # fix(omni-g-val-tone-04, 2026-06-11): 编码指南与机器文本口径对齐 —
     # v3.8.0 起 full=标题+正文 / ctx=标题+实体上下文窗口 (均 prepend_title),
+    # 三轨扩展: ss=标题+银行+金科同句共现片段 (镜像 ctx 口径, 窗口收窄到同句),
     # 旧指南"不受标题影响"与被验证测度的文本口径系统性错位
     if track == '_ctx':
         track_desc = ('ctx 轨 (上下文窗口): 机器输入 = 标题+目标实体上下文窗口 '
                       '(见"机器输入文本"列), 请基于该窗口文本判断, 勿引入'
                       '窗口外的全文信息')
         coding_note = ('基于"标题+实体上下文窗口"文本(见"机器输入文本"列)的'
+                       '整体语调判断, 标题计入判断; 客观报道标为中性')
+    elif track == '_ss':
+        track_desc = ('ss 轨 (银行+金科同句): 机器输入 = 标题+银行与金科同句共现片段 '
+                      '(见"机器输入文本"列), 请基于该同句片段判断, 勿引入'
+                      '片段外的全文信息')
+        coding_note = ('基于"标题+银行+金科同句共现片段"文本(见"机器输入文本"列)的'
                        '整体语调判断, 标题计入判断; 客观报道标为中性')
     else:
         track_desc = ('full 轨 (全文): 机器输入 = 标题+正文全文 '
@@ -699,10 +711,10 @@ HUMAN_VERIFY_LABELS = ('正面', '中性', '负面')
 def _human_verify_track_note(track: str) -> str:
     """被验证轨道的金标准构念口径说明 (随指标产物落盘, 防论文误读)。
 
-    与 stage 33 (32_human_samples, 全文构念 gold 同评两轨 → ctx 指标为混合
+    与 stage 33 (32_human_samples, 全文构念 gold 同评三轨 → ctx/ss 指标为混合
     下界, 见 llms_evaluation.GOLD_CONSTRUCT_DISCLOSURE) 不同: 本工作台自
     omni-g-val-tone-04 起按轨独立抽样, 编码者基于该轨"机器输入文本"判定,
-    金标准与机器口径构念对齐 — ctx 轨在此获得真正的窗口级金标准。
+    金标准与机器口径构念对齐 — ctx/ss 轨在此获得真正的窗口级金标准。
     """
     # fix(final-audit HV-P2-02/F2, 2026-06-13): 追加抽样设计 + 编码协议披露 —
     # 指标基于 100一致+200分歧 的选择性抽样 (分歧 oversample), 且 gold 为
@@ -715,6 +727,11 @@ def _human_verify_track_note(track: str) -> str:
         return ('轨道级金标准: 编码者基于"机器输入文本"(标题+实体上下文窗口)判定, '
                 '与 ctx 轨机器口径构念对齐, 无全文-窗口构念混淆; 区别于 stage 33 '
                 '的 32_human_samples (全文构念 gold, 其 ctx 指标只能解读为混合下界)'
+                + sampling_note)
+    if track == '_ss':
+        return ('轨道级金标准: 编码者基于"机器输入文本"(标题+银行+金科同句共现片段)判定, '
+                '与 ss 轨机器口径构念对齐, 无全文-同句构念混淆; 区别于 stage 33 '
+                '的 32_human_samples (全文构念 gold, 其 ss 指标只能解读为混合下界)'
                 + sampling_note)
     return ('轨道级金标准: 编码者基于"机器输入文本"(标题+正文全文)判定, '
             '与 full 轨机器口径构念对齐' + sampling_note)
@@ -775,7 +792,7 @@ def evaluate_human_verification(verify_path: str, track: str,
 
     Args:
         verify_path: 工作台路径 (09_sentiment_verify{track}.xlsx)。
-        track:       '_full' / '_ctx'。
+        track:       '_full' / '_ctx' / '_ss'。
         output_dir:  指标 CSV 输出目录 (eval_reports/)。
         logger_inst: 注入 logger。
 
@@ -985,7 +1002,7 @@ def stratified_analysis(df: pd.DataFrame, all_scores_df: pd.DataFrame,
         all_scores_df:   同 df, 但只保留情感分数列, 与 all_labels_df 1:1 对齐
         all_labels_df:   同 df, 只保留 LLM/词典/BERT label 列
         logger_inst:     注入的 logger (避免顶层 logger 多进程串扰)
-        track:           '_full' (全文) / '_ctx' (上下文)
+        track:           '_full' (全文) / '_ctx' (上下文) / '_ss' (银行+金科同句)
 
     Returns:
         dict: ``{strata_kind: {strata_value: {n_samples, cronbach_alpha,
@@ -1369,7 +1386,7 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
         llm_cols:    sentiment_cols['llm'] 的值，结构为
                      {short_name: {'sentiment': col, 'confidence': col|None}}。
                      注意：包含投票聚合列 short_name='llm'，需过滤。
-        track:       轨道后缀（'_full' 或 '_ctx'）。
+        track:       轨道后缀（'_full' / '_ctx' / '_ss'）。
         output_dir:  输出目录（eval_reports/）。
         logger_inst: 日志记录器。
 
@@ -1886,9 +1903,9 @@ def diagnose_confidence_calibration(df: pd.DataFrame, llm_cols: dict,
 # ============================================================================
 
 def main():
-    """情感三角验证主入口（双轨模式）。"""
+    """情感三角验证主入口（三轨模式 full/ctx/ss）。"""
     stage_start = time.time()
-    logger.info(f"--- 开始执行阶段: {STAGE_NAME} (双轨模式) ---")
+    logger.info(f"--- 开始执行阶段: {STAGE_NAME} (三轨模式) ---")
     logger.info("")
     logger.info("  📌 阶段目的")
     logger.info("     对三种情感分析方法(词典法/BERT/LLM)进行系统性交叉验证。")
@@ -1899,7 +1916,7 @@ def main():
     # 人工标注未填时恒为 pending。故此处不得单凭方法间一致性宣称"构念效度达顶刊标准"。
     logger.info("     注: 本阶段 = 收敛效度(方法间趋同); 效标效度(vs 人工金标准)由人工")
     logger.info("     回读 (evaluate_human_verification) / stage 33 提供, 未填表时 pending。")
-    logger.info("     双轨模式: 全文(_full)和上下文片段(_ctx)分别执行完整验证。")
+    logger.info("     三轨模式: 全文(_full)、上下文片段(_ctx)和银行+金科同句(_ss)分别执行完整验证。")
     logger.info("")
     logger.info("  📖 方法论依据")
     logger.info("     · Loughran & McDonald (2016, JAR 54(4):1187-1230):")
@@ -1941,11 +1958,16 @@ def main():
     log_memory_usage(logger, "数据加载完成")
 
     # ======================================================================
-    # Step 2: 双轨三角验证循环
+    # Step 2: 三轨三角验证循环
     # ======================================================================
-    # 对 _full 和 _ctx 两条轨道分别执行完整的三角验证流水线
-    for track in ['_full', '_ctx']:
-        track_label = '全文' if track == '_full' else '上下文片段'
+    # 对 _full / _ctx / _ss 三条轨道分别执行完整的三角验证流水线
+    _TRACK_LABELS = {
+        '_full': '全文',
+        '_ctx': '上下文片段',
+        '_ss': '银行+金科同句',  # ss 轨人类可读标签 (镜像 ctx 标签 + 同句共现口径)
+    }
+    for track in ['_full', '_ctx', '_ss']:
+        track_label = _TRACK_LABELS.get(track, track)
         logger.info("\n" + "#" * 70)
         logger.info(f"#####  三角验证轨道: [{track_label}] ({track})  #####")
         logger.info("#" * 70)
@@ -1953,14 +1975,14 @@ def main():
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=len(df))
-    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (双轨模式) ---")
+    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (三轨模式) ---")
 
 
 def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     """对指定轨道执行完整的三角验证流水线 (Plan-r3 P3-16 docstring 扩充)。
 
-    Stage 34 双轨执行的内部主入口. 接到 ``main()`` 的 dispatch, 对单一
-    track 跑完 6 步:
+    Stage 34 三轨 (full/ctx/ss) 执行的内部主入口. 接到 ``main()`` 的 dispatch,
+    对单一 track 跑完 6 步:
 
         1. discover_sentiment_columns -- 自动发现 LLM/dict/BERT 情感列
         2. 相关/一致性矩阵            -- Spearman/Pearson 相关 + Cronbach α +
@@ -1976,8 +1998,8 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
            人工验证样本 ``09_sentiment_verify<track>.xlsx``
 
     Args:
-        df:         track 已过滤的双轨 panel
-        track:      '_full' / '_ctx' (匹配双轨命名约定)
+        df:         track 已过滤的三轨 panel
+        track:      '_full' / '_ctx' / '_ss' (匹配三轨命名约定)
         output_dir: 报告输出目录 (一般 ``data/processed/eval_reports/``)
         logger:     注入 logger
         CONFIG:     已加载的项目 cfg
@@ -2313,9 +2335,10 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     logger.info("===    五、人工验证样本生成    ===")
     logger.info("=" * 70)
 
-    # fix(omni-g-val-tone-04, 2026-06-11): 文件名加 track 后缀 — 此前双轨共写
-    # 同一 09_sentiment_verify.xlsx, _ctx 覆盖 _full, 文件内 词典_/BERT_/LLM_
+    # fix(omni-g-val-tone-04, 2026-06-11): 文件名加 track 后缀 — 此前各轨共写
+    # 同一 09_sentiment_verify.xlsx, 后写轨道覆盖前者, 文件内 词典_/BERT_/LLM_
     # 标签列实为后写轨道值但无轨道标识, 人工标注的归属轨道不可追溯
+    # (三轨化后 full/ctx/ss 各写独立 09_sentiment_verify{_full,_ctx,_ss}.xlsx)
     verify_path = os.path.join(output_dir, f'09_sentiment_verify{track}.xlsx')
     # 防覆盖守卫 (human-annot-readback, 2026-06-13; final-audit 收紧为
     # fail-closed): 工作台只要有人工痕迹 (含非法词汇/只填理由) 或读取失败

@@ -14,8 +14,10 @@ print(f'需要生成标签的变量数: {len(unlabeled_vars)}')
 def infer_label(var):
     """根据变量名推断中文标签"""
 
-    # 轨道映射
-    # 注: _title 情感轨已废 (remove-title-track); 面板三轨循环已收为 [_full, _ctx],
+    # 轨道映射 (三轨: full / ctx / ss)
+    # 注: _ss = 银行+金科同句共现轨 (content_ss / suffix _ss), 与 _ctx 并列第三主轨,
+    #     标签后缀 '(同句共现)' 镜像 _ctx 的 '(上下文)' (full/ctx/ss 三轨各自独立进回归)。
+    # 注: _title 情感轨已废 (remove-title-track); 面板三轨循环为 [_full, _ctx, _ss],
     # 不再产出 _title 后缀情感列。下方 _title 分支仅作旧 panel 兼容兜底。
     # (保留的显著性信号 in_title / target_bank_in_title / fintech_in_title 虽以 _title 结尾,
     #  但属 salience 而非情感轨; in_title 在面板层通常已聚合为 headline_frac, 一般不以原名作 panel 列;
@@ -24,6 +26,8 @@ def infer_label(var):
         track = '(全文)'
     elif var.endswith('_ctx'):
         track = '(上下文)'
+    elif var.endswith('_ss'):
+        track = '(同句共现)'
     elif var.endswith('_title'):
         track = '(标题)'
     else:

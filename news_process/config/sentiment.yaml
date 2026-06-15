@@ -65,6 +65,13 @@ sentiment_analysis:
   #   (core/dag.py 取 StageSpec 默认 always_enabled; llm/words/berts 三谓词均已从
   #   METHOD_TO_PREDICATE 移除)。本列表仅作启用记录: 删任一项或清空本列表都不再
   #   停掉对应阶段。
+  # ⚠ [三轨结构性 always-on] v3.9.0 (2026-06-14) 起情感分析全部三轨化 (full / ctx /
+  #   ss): 第三轨 _ss (银行+金科同句共现轨) 读 stage 13 物化的 content_ss, 是结构性
+  #   always-on 列扩展, **无独立 compute / enabled 开关** — 一旦 content_ss 列存在,
+  #   stage 21/22/23/24 即对其逐轨产出 _ss 列, 与 full/ctx 并列。关不掉 (镜像 ctx
+  #   回退公理: 无共现→content_ss=全文 body, flag ss_is_fallback=True)。
+  # 白话: 又加了第三种"看文本的视角"(只看银行和金科出现在同一句的句子), 它不是
+  #       可选项, 是焊死常开的、和前两轨并排。
   # 白话: 以前从清单里去掉某个方法就能关掉对应情感阶段; 现在 LLM / 词典 / BERT
   #       三种方法全部"焊死常开", 这个清单只是留个账, 关不掉它们。
   enabled_methods:
@@ -274,7 +281,7 @@ sentiment_analysis:
     # fix(omni-g-berts-04, 2026-06-11): 非预期模型加载失败是否 fail-loud。
     # true (默认): 仅"本地私有模型未配置" (model_id 为空 = FINBERT2_MODEL_DIR 未设,
     #   或解析为本地路径但不存在) 允许 graceful skip; hub 模型瞬态故障 (如 HF 不可达
-    #   且无本地缓存) 直接 raise — 防止该模型双轨列从输出 parquet 整体消失而阶段仍
+    #   且无本地缓存) 直接 raise — 防止该模型三轨 (full/ctx/ss) 列从输出 parquet 整体消失而阶段仍
     #   SUCCESS (下游 encode 按列存在性静默跳过, 面板少一个模型族而无 gate 拦截)。
     # false: 容忍缺席 (失败记入 engine.failed_models, 仅日志)。
     strict_models: true

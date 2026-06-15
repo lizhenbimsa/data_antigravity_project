@@ -387,10 +387,11 @@ class TestSourceLevelDisclosures:
         assert 'Manski' in SRC and 'reflection problem' in SRC
 
     def test_stale_28_count_corrected(self):
-        # 模块头与 Returns 段的陈旧 "28 个" 计数 (双轨化后实为 40)
+        # 模块头与 Returns 段的陈旧 "28 个" 计数 (full/ctx 化后 40, v3.9.0 三轨 ss → 52)
         assert '28 个媒体接近度指标' not in SRC
         assert '追加 28 个距离缓冲变量' not in SRC
-        assert '40 个媒体接近度指标' in SRC
+        # v3.9.0 三轨: full/ctx 化 28→40, ss 情感三项各补 _ss 孪生 40→52
+        assert '40→52' in SRC
 
     def test_imputation_column_disclosed_in_docstring(self):
         assert 'prox_geo_imputed_frac' in SRC

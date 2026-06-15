@@ -20,6 +20,13 @@ v3.7.0 breaking 备忘: 若未来 collab_mode 升级为 6-class (multi-class A1)
 落进 2×2×2=8 个格子, 像三位二进制编号, 回归时可以"饱和地"比较任意格子
 组合而不必预设哪两维交互。D4 残差则看两个文本口径 (full/ctx) 对同一篇
 文章判得是否一致 — 不一致本身就是有信息量的信号。
+
+三轨 (full/ctx/ss) 范围说明 (plan §7.3-A1 决策): D2/D4 collab-cell 分解**有意仅
+full/ctx 两轨**, 第三轨 ss (银行+金科同句) 不参与 — cell_id 分类的是
+substantiveness/locus/collab 这类 full/ctx 锚定的 LLM 属性, ss 是纯情感轨,
+不做属性分解 (故无 cell_id_ss / n_articles_cell_*_ss 列, 见各函数内 intentionally
+NOT produced 注释)。本模块内**仅 clarity / num_intensity 等情感族**聚合得 `_ss`
+三轨; LM 4 子词典 / FLS 等非情感 lexicon 族同 cell_id 保持 full/ctx 两轨。
 """
 from __future__ import annotations
 
@@ -80,7 +87,9 @@ def _is_nan(v) -> bool:
 
 def _both_valid_mask(full_norm: pd.Series, ctx_norm: pd.Series,
                      baseline: str, contrast: str) -> pd.Series:
-    """D4 dim-level both_valid: 两轨归一化标签均为 canonical (baseline/contrast).
+    """D4 dim-level both_valid: full 与 ctx 两路归一化标签均为 canonical (baseline/contrast).
+
+    cell_id 仅 full/ctx (ss 不分解 — ss 是纯情感轨, 不产属性标签)。
 
     fix(omni-g-encode-collab-02, 2026-06-11): 用 isin 白名单 (与 compute_cell_id 校验
     口径对齐) 取代 notna() — 非 canonical 但非 NaN 的脏标签不再计入 both_valid, 否则
@@ -93,6 +102,10 @@ def _both_valid_mask(full_norm: pd.Series, ctx_norm: pd.Series,
 
 def compute_cell_id(df: pd.DataFrame, track: str) -> pd.Series:
     """计算指定轨道 ('full' 或 'ctx') 的文章级 cell_id ∈ {1..8}。
+
+    # cell_id_ss intentionally NOT produced: track 仅取 full/ctx — D2/D4 cells 分类的是
+    # full/ctx-anchored 属性 (substantiveness/locus/collab), ss 是纯情感轨不分解
+    # (plan §7.3-A1)。故本函数永不以 track='ss' 调用。
 
     返回 Int8 nullable Series:
         - 三个维度标签均合法 (归一化后落在 VALID_* 集合) 时取有效值 1..8
@@ -156,10 +169,14 @@ def derive_residual_signals(df: pd.DataFrame) -> list[str]:
 
     Returns: 新增列名 list (供下游 panel 聚合登记)。
 
-    白话: 对每个维度比较两个文本口径的标签 — "disagree"=两轨说法不一;
+    白话: 对每个维度比较两个文本口径的标签 — "disagree"=full 与 ctx 两路说法不一;
     "freerider"=全文看着像基线类、贴近实体的上下文却是对照类 (说一套
     做一套的疑似信号); "quietworker"=反过来 (做了不说)。这些差异本身
     就是研究变量。
+
+    # ss 残差 intentionally NOT produced: D4 比较的是 full vs ctx 两个属性口径的
+    # 标签一致性 (substantiveness/locus/collab), ss 是纯情感轨不产属性标签, 故无
+    # {dim}_*_ss 残差列 (plan §7.3-A1, 本族有意仅 full/ctx 两轨)。
     """
     added_cols: list[str] = []
     for short, base, baseline, contrast in DIMS_D4:
@@ -205,6 +222,9 @@ def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
 
     返回含恒等式校验失败计数的 dict (per plan §2.1.2 F27/C-NEW-2
     + R6 F-CR-cell-NA: na_bucket_fail / n_articles_cell_NA_total / na_bucket_pct)。
+
+    # n_articles_cell_*_ss intentionally NOT produced: 8 格分解只读 cell_id_full
+    # (full/ctx-anchored 属性), ss 是纯情感轨不分解 (plan §7.3-A1, 有意仅 full 锚)。
     """
     # CR-3 / CR-4 (CRITICAL fix): 与 production encode.py 对齐 — panel 是 flat
     # DataFrame, target_bank + year 是**列**而非 MultiIndex (参 encode.py:666
@@ -375,7 +395,7 @@ def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
         18 个 panel 列: {dim}_{signal}_frac + n_articles_{dim}_{signal}
             (3 维度 × 3 信号 × 2 度量)
         + 3 个覆盖列: n_articles_{dim}_bothvalid (论文披露 both_valid 覆盖率)
-        *_frac = Σ signal / n_bothvalid — 分母为该维 both_valid (两轨 canonical 标签)
+        *_frac = Σ signal / n_bothvalid — 分母为该维 both_valid (full/ctx 两路 canonical 标签)
             文章数, 与分子同域; n_bothvalid == 0 → NaN (非假零)。
         小样本限制: n_bothvalid < 5 → *_frac 强制 NaN
             (valid 域门; 上游标签列缺失时回退 legacy 物理分母 + n_articles < 5 门)
@@ -396,6 +416,10 @@ def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
     不一信号) 只可能在这类文章上为真。如果拿全部物理文章数当分母, 没
     标签的文章会被当成"无分歧", 把分歧率系统性压低; 样本不足 5 篇时
     占比噪声太大, 直接记缺失。
+
+    # ss frac/count intentionally NOT produced: D4 残差只比 full vs ctx 两个属性口径
+    # (DIMS_D4 维度全是 full/ctx-anchored), ss 是纯情感轨不产属性标签 (plan §7.3-A1,
+    # cell_id 仅 full/ctx, ss 不分解 — 本族有意只走 full/ctx 两路)。  # no-ss-track
     """
     # CR-4: column invariant (与 aggregate_d2_panel 对称 — flat panel with target_bank/year cols)
     for required_col in ('target_bank', 'year'):
@@ -440,8 +464,8 @@ def aggregate_d4_panel(df: pd.DataFrame, panel: pd.DataFrame,
             panel[f'n_articles_{short}_bothvalid'] = bv_count.values
         else:
             logger.warning(
-                f"  v3.5.0 D4: {base} 双轨源列缺失, {short}_*_frac 回退 legacy 物理分母 "
-                "(both_valid 不可重建)"
+                f"  v3.5.0 D4: {base} full/ctx 源列缺失, {short}_*_frac 回退 legacy 物理分母 "
+                "(both_valid 不可重建)"  # no-ss-track: cell_id 仅 full/ctx, ss 不分解
             )
 
         for col in signal_cols:
@@ -519,6 +543,9 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
     返回汇总诊断 dict, 供 audit log §A。
     """
     # 文章级 D2
+    # cell_id_ss intentionally NOT produced: D2/D4 collab cells classify full/ctx-anchored
+    # attributes (substantiveness/locus/collab_mode); ss 是纯情感轨, 不分解属性
+    # (plan §7.3-A1 决策, cell_id 仅 full/ctx, ss 不分解)。  # no-ss-track
     df['cell_id_full'] = compute_cell_id(df, 'full')
     df['cell_id_ctx'] = compute_cell_id(df, 'ctx')
 
@@ -540,7 +567,9 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
 
 
 # ============================================================================
-# v3.5.1 A1 + A3 真双轨补强 (per stage3_v3_5_1 plan v0.3 §2.1.2 + §2.2.2).
+# v3.5.1 A1 + A3 真三轨补强 (per stage3_v3_5_1 plan v0.3 §2.1.2 + §2.2.2;
+# 三轨 full/ctx/ss 见 third-track plan §⑥/§7.3-A1: clarity / num_intensity 属情感族,
+# 与 ctx 平价得第三轨 ss 银行+金科同句; ss 列缺失时各 aggregate_* 内部优雅跳过 ss)。
 # `apply_v3_5_1` 与 `apply_v3_5_0` **并存** (修 C2); v3.6.0 合并方案: 新建
 # `apply_supplementation` 统一入口, v3.5.0 entry 保留 deprecation alias 至 v3.7.0.
 # ============================================================================
@@ -548,35 +577,44 @@ def apply_v3_5_0(df: pd.DataFrame, panel: pd.DataFrame,
 
 def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
                             median_amb_d0: Optional[float] = None,
-                            median_amb_d0_ctx: Optional[float] = None) -> dict:
-    """v3.5.1 A1: 聚合 article 层 clarity 列到 bank-year panel (6 列).
+                            median_amb_d0_ctx: Optional[float] = None,
+                            median_amb_d0_ss: Optional[float] = None) -> dict:
+    """v3.5.1 A1: 聚合 article 层 clarity 列到 bank-year panel (full/ctx 6 列 + ss 3 列).
 
     Per plan v0.3 §2.1.4 公式 (修 H2 + R8-H2 + R9-M3; 分母口径修订 omni 2026-06-11):
         mean_clarity_score_full[b,t] = Σ_valid w_i × clarity_score_full_i / Σ_valid w_i
         mean_frac_definite_full[b,t] = Σ_valid w_i × frac_definite_full_i / Σ_valid w_i
         frac_amb_articles_full[b,t]  = #{i: frac_ambiguous_full_i ≥ median_amb_d0}
                                        / n_clarity_valid_full   (n_clarity_valid ≥ 2 门)
-        (同 ctx 双轨; frac_amb 分母 = 该轨 clarity 非缺失文章数, 与分子同域 —
+        (同 ctx/ss 三轨; frac_amb 分母 = 该轨 clarity 非缺失文章数, 与分子同域 —
          空文/零 token 文章 (tone_words 显式 NaN) 不再进物理分母造成系统性下偏;
          n_clarity_valid < 2 或 median 为 NaN (全 NaN 轨) → NaN 而非假零)
 
+    三轨 (full/ctx/ss): clarity 属情感/文本测度族 (lexical_complexity), 第三轨
+    ss (银行+金科同句) 与 ctx 完全平价 (plan §④/§7.3-A1 "仅情感族得 _ss")。ss 列
+    源自 stage 22 ss 轨, 缺失时 (旧 parquet 无 clarity_*_ss) 优雅跳过 ss 部分。
+
     Args:
-        df: article-level DataFrame (含 clarity_* 双轨 article 列, 来自 stage 22).
+        df: article-level DataFrame (含 clarity_* 三轨 article 列, 来自 stage 22).
         panel: bank-year panel DataFrame (含 target_bank + year).
         median_amb_d0: D0 frozen full 轨全样本中位数 (生产经 apply_v3_5_1 从 sidecar
             冻结值传入); if None, in-sample 计算 (首跑 freeze / 测试).
         median_amb_d0_ctx: D0 frozen ctx 轨中位数, 语义同上 (ctx 轨用自身分布阈值).
+        median_amb_d0_ss: D0 frozen ss 轨中位数 (银行+金科同句), 语义同 ctx
+            (ss 轨用自身分布阈值); ss 列缺失时不使用。
 
     Returns:
-        dict: diagnostics + median_amb_d0 / median_amb_d0_ctx actual used.
+        dict: diagnostics + median_amb_d0 / median_amb_d0_ctx / median_amb_d0_ss actual used.
     """
     for required_col in ('target_bank', 'year'):
         if required_col not in panel.columns or required_col not in df.columns:
             logger.warning(f"v3.5.1 A1: 缺 '{required_col}' 列, clarity panel 聚合跳过")
             return {'v3_5_1_clarity_added': [], 'median_amb_d0': float('nan'),
-                    'median_amb_d0_ctx': float('nan')}
+                    'median_amb_d0_ctx': float('nan'), 'median_amb_d0_ss': float('nan')}
 
-    # 检查 article 层 clarity 列存在性 (graceful)
+    # 检查 article 层 clarity 列存在性 (graceful)。full/ctx 为硬必需 (任缺则整体跳过);
+    # ss 三轨为加性可选 — ss 列齐则平价聚合, 缺则仅 full/ctx (旧 parquet 无 clarity_*_ss
+    # 时优雅降级, 不阻塞主轨, 镜像约定 #3 的 ss guard)。
     required_article_cols = [
         'clarity_frac_ambiguous_full', 'clarity_frac_definite_full',
         'clarity_clarity_score_full',
@@ -587,7 +625,12 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
     if missing:
         logger.info(f"v3.5.1 A1: article 层 clarity 列缺 {missing}, 跳过 panel 聚合 (graceful)")
         return {'v3_5_1_clarity_added': [], 'median_amb_d0': float('nan'),
-                'median_amb_d0_ctx': float('nan')}
+                'median_amb_d0_ctx': float('nan'), 'median_amb_d0_ss': float('nan')}
+
+    # ss 轨可用性: 三个 ss article 列齐备才聚合 ss (银行+金科同句, 平价第三轨)
+    ss_article_cols = ['clarity_frac_ambiguous_ss', 'clarity_frac_definite_ss',
+                       'clarity_clarity_score_ss']
+    has_ss = all(c in df.columns for c in ss_article_cols)
 
     # D0 frozen median (修 H2 + R7-H1): 若未给, in-sample 算 (首跑 freeze);
     # 生产由 apply_v3_5_1 从 sidecar JSON 读冻结值传入 (fix(omni-known-open-2, 2026-06-11))
@@ -598,10 +641,14 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
     if median_amb_d0_ctx is None:
         median_amb_d0_ctx = float(df['clarity_frac_ambiguous_ctx'].dropna().median())
         logger.info(f"v3.5.1 A1: D0 median_amb(ctx) 实测 = {median_amb_d0_ctx:.6f}")
+    # ss 轨 (银行+金科同句) 用 ss 自身分布的 median 二值化 (镜像 ctx, 各轨独立阈值)
+    if has_ss and median_amb_d0_ss is None:
+        median_amb_d0_ss = float(df['clarity_frac_ambiguous_ss'].dropna().median())
+        logger.info(f"v3.5.1 A1: D0 median_amb(ss) 实测 = {median_amb_d0_ss:.6f}")
 
     # weight = stage21 media_authority × herd_decay
-    # fix(herd-ghost-01): full/ctx 双轨各配自己的 herd 权重 (Edwards 2001 measurement-treatment
-    # matching), 不再让 ctx 轨借用 herd_weight_full。herd_weight_ctx 缺失时优雅回退 full。
+    # fix(herd-ghost-01): full/ctx/ss 三轨各配自己的 herd 权重 (Edwards 2001 measurement-treatment
+    # matching), 不再让 ctx/ss 轨借用 herd_weight_full。herd_weight_{ctx,ss} 缺失时优雅回退 full。
     def _track_weight(track: str) -> pd.Series:
         wt = pd.Series(1.0, index=df.index)
         if 'media_authority_weight' in df.columns:
@@ -614,14 +661,16 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
         return wt
     w_full = _track_weight('_full')
     w_ctx = _track_weight('_ctx')
+    # ss 轨权重: 仅 ss 列齐备时计算 (与 ctx 同口径, 银行+金科同句平价第三轨)
+    w_ss = _track_weight('_ss') if has_ss else None
 
     added_cols = []
     # 加 weighted columns 给 article level
     # 单次 assign 写入临时列, 避免逐列 insert 触发 pandas PerformanceWarning
     # fix(clarity-weighted-denom, metric-audit 2026-06-10): 加权均值分母须 mask 到各指标
     # valid 集, 否则 clarity 缺失文章的权重仍进物理分母 → Σ_valid(w·x)/Σ_all(w) 系统性下偏
-    # (VW/MW/HW 同型未标记兄弟)。各指标(clarity/frac_definite × full/ctx)用自己的 valid 分母。
-    df = df.assign(
+    # (VW/MW/HW 同型未标记兄弟)。各指标(clarity/frac_definite × full/ctx/ss)用自己的 valid 分母。
+    assign_kwargs = dict(
         _w_clarity_full=df['clarity_clarity_score_full'] * w_full,
         _w_clarity_ctx=df['clarity_clarity_score_ctx'] * w_ctx,
         _w_def_full=df['clarity_frac_definite_full'] * w_full,
@@ -633,8 +682,18 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
         _w_full=w_full,
         _w_ctx=w_ctx,
     )
+    # ss 轨临时列 (镜像 ctx, 平价第三轨; 仅 ss 列齐备时加)
+    if has_ss:
+        assign_kwargs.update(
+            _w_clarity_ss=df['clarity_clarity_score_ss'] * w_ss,
+            _w_def_ss=df['clarity_frac_definite_ss'] * w_ss,
+            _wd_clarity_ss=w_ss.where(df['clarity_clarity_score_ss'].notna()),
+            _wd_def_ss=w_ss.where(df['clarity_frac_definite_ss'].notna()),
+            _w_ss=w_ss,
+        )
+    df = df.assign(**assign_kwargs)
 
-    agg = df.groupby(['target_bank', 'year']).agg(
+    agg_kwargs = dict(
         _sum_w_clarity_full=('_w_clarity_full', 'sum'),
         _sum_w_clarity_ctx=('_w_clarity_ctx', 'sum'),
         _sum_w_def_full=('_w_def_full', 'sum'),
@@ -654,7 +713,20 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
                      lambda s: int((s >= median_amb_d0).sum())),
         _n_amb_ctx=('clarity_frac_ambiguous_ctx',
                     lambda s: int((s >= median_amb_d0_ctx).sum())),
-    ).reset_index()
+    )
+    # ss 轨聚合项 (镜像 ctx; 闭包捕获 median_amb_d0_ss, 仅 ss 齐备时加入)
+    if has_ss:
+        agg_kwargs.update(
+            _sum_w_clarity_ss=('_w_clarity_ss', 'sum'),
+            _sum_w_def_ss=('_w_def_ss', 'sum'),
+            _sum_wd_clarity_ss=('_wd_clarity_ss', 'sum'),
+            _sum_wd_def_ss=('_wd_def_ss', 'sum'),
+            _sum_w_ss=('_w_ss', 'sum'),
+            _n_clar_valid_ss=('clarity_frac_ambiguous_ss', 'count'),
+            _n_amb_ss=('clarity_frac_ambiguous_ss',
+                       lambda s: int((s >= median_amb_d0_ss).sum())),
+        )
+    agg = df.groupby(['target_bank', 'year']).agg(**agg_kwargs).reset_index()
 
     # 派生 panel 列 (各指标用自己 valid-mask 的权重和作分母, 域与分子一致)
     agg['mean_clarity_score_full'] = agg['_sum_w_clarity_full'] / agg['_sum_wd_clarity_full'].replace(0, float('nan'))
@@ -680,6 +752,17 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
                 'mean_frac_definite_full', 'mean_frac_definite_ctx',
                 'frac_amb_articles_full', 'frac_amb_articles_ctx']
 
+    # ss 轨 (银行+金科同句) 派生 panel 列 (镜像 ctx, 平价第三轨; 仅 ss 齐备时)
+    if has_ss:
+        agg['mean_clarity_score_ss'] = agg['_sum_w_clarity_ss'] / agg['_sum_wd_clarity_ss'].replace(0, float('nan'))
+        agg['mean_frac_definite_ss'] = agg['_sum_w_def_ss'] / agg['_sum_wd_def_ss'].replace(0, float('nan'))
+        mask_ss = agg['_n_clar_valid_ss'] >= 2
+        agg['frac_amb_articles_ss'] = agg['_n_amb_ss'] / agg['_n_clar_valid_ss'].where(mask_ss)
+        if _is_nan(median_amb_d0_ss):
+            agg['frac_amb_articles_ss'] = float('nan')
+        out_cols += ['mean_clarity_score_ss', 'mean_frac_definite_ss',
+                     'frac_amb_articles_ss']
+
     # idempotent: 先 drop panel 已有的 out_cols (避免 merge 后 _x/_y 后缀冲突)
     for c in out_cols:
         if c in panel.columns:
@@ -692,22 +775,27 @@ def aggregate_clarity_panel(df: pd.DataFrame, panel: pd.DataFrame,
         panel[c] = panel_merged[c].values
         added_cols.append(c)
 
-    # cleanup
+    # cleanup (含 ss 临时列, 仅 ss 聚合过才存在)
     for tmp in ('_w_clarity_full', '_w_clarity_ctx', '_w_def_full', '_w_def_ctx',
-                '_w_full', '_w_ctx'):
+                '_w_full', '_w_ctx',
+                '_w_clarity_ss', '_w_def_ss', '_w_ss'):
         if tmp in df.columns:
             del df[tmp]
 
     return {'v3_5_1_clarity_added': added_cols, 'median_amb_d0': median_amb_d0,
-            'median_amb_d0_ctx': median_amb_d0_ctx}
+            'median_amb_d0_ctx': median_amb_d0_ctx, 'median_amb_d0_ss': median_amb_d0_ss}
 
 
 def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     """v3.5.1 A3: 聚合 article 层 num_intensity 列到 bank-year panel.
 
-    句级 2 列 (mean_num_intensity_{full,ctx}) + 词级替代版 2 列
-    (mean_num_intensity_word_{full,ctx}, §4.3, 2026-06-05 新增) = 共 4 列。
+    句级 (mean_num_intensity_{full,ctx,ss}) + 词级替代版
+    (mean_num_intensity_word_{full,ctx,ss}, §4.3, 2026-06-05 新增)。
     Per plan v0.3 §2.2.4 公式: weighted mean by stage21 weights (媒体权威×herd)。
+
+    三轨 (full/ctx/ss): num_intensity 属情感/文本测度族 (numerical_intensity), 第三轨
+    ss (银行+金科同句) 与 ctx 完全平价 (plan §④/§7.3-A1 "仅情感族得 _ss")。ss 句级/词级
+    列源自 stage 22 ss 轨, 缺失时 (旧 parquet 无 num_intensity[_word]_ss) 优雅跳过 ss 部分。
     """
     for required_col in ('target_bank', 'year'):
         if required_col not in panel.columns or required_col not in df.columns:
@@ -717,7 +805,7 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
         logger.info("v3.5.1 A3: num_intensity article 列缺, 跳过 panel 聚合 (graceful)")
         return {'v3_5_1_num_intensity_added': []}
 
-    # fix(herd-ghost-01): full/ctx 双轨各配自己的 herd 权重 (与 clarity 聚合同口径)
+    # fix(herd-ghost-01): full/ctx/ss 三轨各配自己的 herd 权重 (与 clarity 聚合同口径)
     def _track_weight(track: str) -> pd.Series:
         wt = pd.Series(1.0, index=df.index)
         if 'media_authority_weight' in df.columns:
@@ -731,9 +819,15 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
     w_full = _track_weight('_full')
     w_ctx = _track_weight('_ctx')
 
+    # ss 轨 (银行+金科同句, 平价第三轨) 句级列是否就位 (graceful: 旧 parquet 无 ss 时仅聚 full/ctx)
+    has_ss = 'num_intensity_ss' in df.columns
+    w_ss = _track_weight('_ss') if has_ss else None
+
     # word-level 替代版 (§4.3) 列是否就位 (graceful: 旧 parquet 无此列时仅聚句级版)
     has_word = ('num_intensity_word_full' in df.columns
                 and 'num_intensity_word_ctx' in df.columns)
+    # ss 词级替代版 (须 ss 句级先就位; 镜像 has_word 的 full/ctx 守卫)
+    has_word_ss = has_ss and ('num_intensity_word_ss' in df.columns)
 
     # 单次 assign 写入临时列, 避免逐列 insert 触发 pandas PerformanceWarning
     # fix(numint-weighted-denom, metric-audit 2026-06-10): 加权均值分母须 mask 到各指标的
@@ -753,6 +847,15 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
         assign_kwargs['_w_niw_ctx'] = df['num_intensity_word_ctx'] * w_ctx
         assign_kwargs['_wd_niw_full'] = w_full.where(df['num_intensity_word_full'].notna())
         assign_kwargs['_wd_niw_ctx'] = w_ctx.where(df['num_intensity_word_ctx'].notna())
+    if has_ss:
+        # ss 句级临时列 (镜像 ctx, 平价第三轨)
+        assign_kwargs['_w_ni_ss'] = df['num_intensity_ss'] * w_ss
+        assign_kwargs['_wd_ni_ss'] = w_ss.where(df['num_intensity_ss'].notna())
+        assign_kwargs['_w_ss'] = w_ss
+    if has_word_ss:
+        # ss 词级替代版临时列
+        assign_kwargs['_w_niw_ss'] = df['num_intensity_word_ss'] * w_ss
+        assign_kwargs['_wd_niw_ss'] = w_ss.where(df['num_intensity_word_ss'].notna())
     df = df.assign(**assign_kwargs)
 
     agg_kwargs = dict(
@@ -768,6 +871,13 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
         agg_kwargs['_sum_w_niw_ctx'] = ('_w_niw_ctx', 'sum')
         agg_kwargs['_sum_wd_niw_full'] = ('_wd_niw_full', 'sum')
         agg_kwargs['_sum_wd_niw_ctx'] = ('_wd_niw_ctx', 'sum')
+    if has_ss:
+        agg_kwargs['_sum_w_ni_ss'] = ('_w_ni_ss', 'sum')
+        agg_kwargs['_sum_wd_ni_ss'] = ('_wd_ni_ss', 'sum')
+        agg_kwargs['_sum_w_ss'] = ('_w_ss', 'sum')
+    if has_word_ss:
+        agg_kwargs['_sum_w_niw_ss'] = ('_w_niw_ss', 'sum')
+        agg_kwargs['_sum_wd_niw_ss'] = ('_wd_niw_ss', 'sum')
     agg = df.groupby(['target_bank', 'year']).agg(**agg_kwargs).reset_index()
     # 分母 = 各指标 valid-mask 后的权重和 (域与分子一致)
     swd_ni_full = agg['_sum_wd_ni_full'].replace(0, float('nan'))
@@ -776,6 +886,11 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
     agg['mean_num_intensity_ctx'] = agg['_sum_w_ni_ctx'] / swd_ni_ctx
 
     out_cols = ['mean_num_intensity_full', 'mean_num_intensity_ctx']
+    if has_ss:
+        # ss 句级数字密度 bank-year 加权均值 (镜像 ctx, 平价第三轨)
+        swd_ni_ss = agg['_sum_wd_ni_ss'].replace(0, float('nan'))
+        agg['mean_num_intensity_ss'] = agg['_sum_w_ni_ss'] / swd_ni_ss
+        out_cols += ['mean_num_intensity_ss']
     if has_word:
         # 兑现 §4.3: 词级数字密度 bank-year 加权均值 (分母词数, 对中文句读 sparse 稳健)
         swd_niw_full = agg['_sum_wd_niw_full'].replace(0, float('nan'))
@@ -783,6 +898,11 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
         agg['mean_num_intensity_word_full'] = agg['_sum_w_niw_full'] / swd_niw_full
         agg['mean_num_intensity_word_ctx'] = agg['_sum_w_niw_ctx'] / swd_niw_ctx
         out_cols += ['mean_num_intensity_word_full', 'mean_num_intensity_word_ctx']
+    if has_word_ss:
+        # ss 词级数字密度 (镜像 full/ctx 词级版)
+        swd_niw_ss = agg['_sum_wd_niw_ss'].replace(0, float('nan'))
+        agg['mean_num_intensity_word_ss'] = agg['_sum_w_niw_ss'] / swd_niw_ss
+        out_cols += ['mean_num_intensity_word_ss']
     # idempotent: 先 drop panel 已有的 out_cols (避免 merge _x/_y 后缀冲突)
     for c in out_cols:
         if c in panel.columns:
@@ -792,7 +912,8 @@ def aggregate_num_intensity_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict
     for c in out_cols:
         panel[c] = panel_merged[c].values
 
-    for tmp in ('_w_ni_full', '_w_ni_ctx', '_w_niw_full', '_w_niw_ctx', '_w_full', '_w_ctx'):
+    for tmp in ('_w_ni_full', '_w_ni_ctx', '_w_niw_full', '_w_niw_ctx', '_w_full', '_w_ctx',
+                '_w_ni_ss', '_w_niw_ss', '_w_ss'):
         if tmp in df.columns:
             del df[tmp]
 
@@ -809,17 +930,20 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
     双 anchor: prompt_v8_sha256 + stage21_last_run_timestamp).
 
     fix(omni-known-open-2, 2026-06-11) frozen-median 接线 (防泄漏机制): clarity 二值化
-    阈值 median_amb_d0 / median_amb_d0_ctx 优先读 sidecar 已冻结值传入聚合; sidecar 不
-    存在 (或锚值缺失/NaN) 则首跑 in-sample 计算并持久化, 后续跑一律读冻结值 — 阈值不再
-    随每次重跑的样本组成漂移 (look-ahead / 全样本中位数泄漏防护, D0 freeze 语义)。
+    阈值 median_amb_d0 / median_amb_d0_ctx / median_amb_d0_ss 优先读 sidecar 已冻结值传入
+    聚合; sidecar 不存在 (或锚值缺失/NaN) 则首跑 in-sample 计算并持久化, 后续跑一律读冻结
+    值 — 阈值不再随每次重跑的样本组成漂移 (look-ahead / 全样本中位数泄漏防护, D0 freeze
+    语义)。ss 轨 (银行+金科同句) 阈值同 ctx 平价冻结 (用自身分布, plan §7.3-A1)。
 
     Args:
-        df: article-level DataFrame (含 clarity_* 6 双轨列 + num_intensity 双轨列).
+        df: article-level DataFrame (含 clarity_* 三轨列 + num_intensity 三轨列;
+            ss 列缺失时 aggregate_* 内部优雅跳过 ss 部分).
         panel: bank-year panel DataFrame.
         prompt_v8_sha256: optional anchor (写入 sidecar).
 
     Returns:
-        dict: {v3_5_1_clarity_added, v3_5_1_num_intensity_added, median_amb_d0, sidecar_path}.
+        dict: {v3_5_1_clarity_added, v3_5_1_num_intensity_added, median_amb_d0,
+        median_amb_d0_ctx, median_amb_d0_ss, sidecar_path}.
     """
     import os
     from datetime import datetime, timezone
@@ -837,6 +961,7 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
     existing_sha = None
     existing_median = None
     existing_median_ctx = None
+    existing_median_ss = None
     existing_clarity_cols = None
     existing_ni_cols = None
     if os.path.exists(sidecar_path):
@@ -846,6 +971,8 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
             existing_sha = _prev.get('prompt_v8_sha256')
             existing_median = _prev.get('median_amb_d0')
             existing_median_ctx = _prev.get('median_amb_d0_ctx')
+            # ss 轨冻结阈值 (银行+金科同句, 平价第三轨; 旧 sidecar 无此键 → None)
+            existing_median_ss = _prev.get('median_amb_d0_ss')
             existing_clarity_cols = _prev.get('a1_clarity_panel_cols')
             existing_ni_cols = _prev.get('a3_num_intensity_panel_cols')
         except Exception:  # noqa: BLE001
@@ -854,8 +981,10 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
     # A1 clarity panel 聚合 (D0 frozen median: sidecar 有值用冻结值, 否则首跑 in-sample)
     frozen_median = existing_median if not _is_nan(existing_median) else None
     frozen_median_ctx = existing_median_ctx if not _is_nan(existing_median_ctx) else None
+    frozen_median_ss = existing_median_ss if not _is_nan(existing_median_ss) else None
     clarity_diag = aggregate_clarity_panel(df, panel, median_amb_d0=frozen_median,
-                                           median_amb_d0_ctx=frozen_median_ctx)
+                                           median_amb_d0_ctx=frozen_median_ctx,
+                                           median_amb_d0_ss=frozen_median_ss)
 
     # A3 num_intensity panel 聚合
     ni_diag = aggregate_num_intensity_panel(df, panel)
@@ -874,6 +1003,13 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
         else (existing_median_ctx if not _is_nan(existing_median_ctx)
               else _recomputed_median_ctx)
     )
+    # ss 轨阈值 preserve-if-set (镜像 ctx; ss 列缺失时 clarity_diag 返回 NaN → 保留旧锚值)
+    _recomputed_median_ss = clarity_diag.get('median_amb_d0_ss', float('nan'))
+    effective_median_ss = (
+        _recomputed_median_ss if not _is_nan(_recomputed_median_ss)
+        else (existing_median_ss if not _is_nan(existing_median_ss)
+              else _recomputed_median_ss)
+    )
     _recomputed_clarity = clarity_diag.get('v3_5_1_clarity_added', []) or []
     effective_clarity_cols = _recomputed_clarity or (existing_clarity_cols or [])
     _recomputed_ni = ni_diag.get('v3_5_1_num_intensity_added', []) or []
@@ -885,6 +1021,8 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
             'median_amb_d0': effective_median,
             # fix(omni-known-open-2, 2026-06-11): ctx 轨阈值同步冻结 (ctx 用自身分布)
             'median_amb_d0_ctx': effective_median_ctx,
+            # ss 轨阈值同步冻结 (银行+金科同句, 平价第三轨, 用自身分布; plan §7.3-A1)
+            'median_amb_d0_ss': effective_median_ss,
             'prompt_v8_sha256': effective_sha,
             'stage21_last_run_timestamp': datetime.now(timezone.utc).isoformat(),
             'a1_clarity_panel_cols': effective_clarity_cols,
@@ -925,6 +1063,11 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     这 10 个 panel 列已在 stata_export.py 注册 core_patterns
     (即下游 Stata 已期待这些列存在)。
 
+    # _ss intentionally NOT produced (plan §7.3-A1 line 936 TRACKS): LM 4 子词典
+    # (uncert/litig/constr/modal_strong, Loughran-McDonald) + FLS 是**非情感** lexicon
+    # 族, 同 cell_id 保持 full/ctx 两轨; 第三轨 ss (银行+金科同句) 仅情感族 (clarity /
+    # num_intensity) 得 _ss。故本聚合不产 uncert_frac_ss / frac_fls_ss 等 ss 列。
+
     Args:
         df: article 级 DataFrame (含 8 LM + 2 FLS article 列)。
         panel: bank-year panel DataFrame (原地新增 10 列)。
@@ -933,6 +1076,8 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
         dict: {v3_5_2_lm_added, v3_5_2_fls_added, v3_5_2_skipped_reason}。
     """
     LM_KEYS = ('uncert', 'litig', 'constr', 'modal_strong')
+    # _ss intentionally NOT produced: LM/FLS 非情感 lexicon 族保持 full/ctx 两轨
+    # (plan §7.3-A1; 仅情感族 clarity/num_intensity 得第三轨 ss 银行+金科同句)。
     TRACKS = ('full', 'ctx')
 
     added_cols: list[str] = []

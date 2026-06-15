@@ -4,10 +4,15 @@ tests/test_content_ctx_materialization.py — content_ctx 物化逻辑测试
 
 验证 content_ctx 列被正确物化（规范物化在 stage 13 ctx_materializer，stage 21 保留 idempotent fallback），且阶段 22/23 正确消费该列。
 
+三轨 (ss 银行+金科同句共现轨, 2026-06-14): content_ss 与 content_ctx 平价并列,
+下游 22/23 以 ['_full','_ctx','_ss'] 三轨消费; ss 回退公理镜像 ctx (无银行∧金科
+同句共现 → content_ss 退回全文 body, ss_is_fallback=True)。本测试为 ss 的下游
+读取契约补结构平价断言 (与 content_ctx 读取方式同形)。
+
 测试策略：
   1. 直接测试 _materialize_content_ctx 函数（核心逻辑）
-  2. 测试 22_tone_words.classify_batch 对 content_ctx 列的消费
-  3. 测试 23_tone_berts 双轨列表构建对 content_ctx 列的消费
+  2. 测试 22_tone_words.classify_batch 对 content_ctx / content_ss 列的消费
+  3. 测试 23_tone_berts 三轨列表构建对 content_ctx / content_ss 列的消费
   4. 边界条件：列不存在、NaN、空字符串、空 target_bank
 """
 
@@ -265,6 +270,24 @@ class TestDownstreamConsumption22:
         # 空字符串是合法的 get 返回值，不触发 fallback
         assert content_ctx == ''
 
+    def test_with_content_ss_column(self):
+        """三轨 (ss): 有 content_ss 列时应使用该列 (读取方式镜像 content_ctx)。"""
+        row = pd.Series({
+            '内容': '全文内容很长很长的文章。',
+            'content_ctx': '上下文片段。',
+            'content_ss': '银行与金科同句片段。',
+        })
+        content_full = str(row.get('内容', ''))
+        content_ss = str(row.get('content_ss', content_full))
+        assert content_ss == '银行与金科同句片段。'
+
+    def test_without_content_ss_column(self):
+        """三轨 (ss): 无 content_ss 列时应回退到全文 (与 ctx 回退口径一致)。"""
+        row = pd.Series({'内容': '全文内容。'})
+        content_full = str(row.get('内容', ''))
+        content_ss = str(row.get('content_ss', content_full))
+        assert content_ss == content_full
+
 
 # ============================================================================
 # 4. 下游消费测试：23_tone_berts 的 content_ctx 读取
@@ -303,14 +326,26 @@ class TestDownstreamConsumption23:
             _ = df['content_ctx']
 
     def test_consistency_between_full_and_ctx(self):
-        """content_full_list 和 content_ctx_list 长度必须一致。"""
+        """三轨: content_full / content_ctx / content_ss 列表长度必须一致。"""
         df = pd.DataFrame({
             '内容': ['A', 'B', 'C'],
             'content_ctx': ['X', 'Y', 'Z'],
+            'content_ss': ['P', 'Q', 'R'],
         })
         content_full_list = df['内容'].fillna('').astype(str).tolist()
         content_ctx_list = df['content_ctx'].fillna(df['内容']).astype(str).tolist()
-        assert len(content_full_list) == len(content_ctx_list) == 3
+        content_ss_list = df['content_ss'].fillna(df['内容']).astype(str).tolist()
+        assert len(content_full_list) == len(content_ctx_list) \
+            == len(content_ss_list) == 3
+
+    def test_ss_fillna_behavior(self):
+        """三轨 (ss): fillna 正确处理 NaN 回退到全文 (镜像 content_ctx fillna 行为)。"""
+        df = pd.DataFrame({
+            '内容': ['全文A', '全文B', '全文C'],
+            'content_ss': ['同句A', np.nan, '同句C'],
+        })
+        content_ss_list = df['content_ss'].fillna(df['内容']).astype(str).tolist()
+        assert content_ss_list == ['同句A', '全文B', '同句C']
 
 
 # ============================================================================
@@ -338,7 +373,7 @@ class TestEndToEndConsistency:
                direct_ctx == text  # 回退情况
 
     def test_three_methods_see_same_ctx(self):
-        """模拟三种方法读取同一 content_ctx 列的场景。"""
+        """模拟三种方法读取同一 content_ctx / content_ss 列的场景 (三轨平价)。"""
         df = pd.DataFrame({
             '内容': [
                 "工商银行发布年报。建设银行盈利增长。农业银行推出新产品。",
@@ -348,16 +383,24 @@ class TestEndToEndConsistency:
                 "工商银行发布年报。建设银行盈利增长。",
                 "中国银行创新。交通银行改革。中国银行扩张。",
             ],
+            'content_ss': [
+                "工商银行发布年报金融科技。",
+                "中国银行创新区块链。",
+            ],
         })
 
-        # 模拟 22 (词典法) 的读取方式
-        ctx_22 = []
+        # 模拟 22 (词典法) 的读取方式 (ctx 与 ss 同形, 三轨平价)
+        ctx_22, ss_22 = [], []
         for _, row in df.iterrows():
             content_ctx = str(row.get('content_ctx', str(row.get('内容', ''))))
+            content_ss = str(row.get('content_ss', str(row.get('内容', ''))))
             ctx_22.append(content_ctx)
+            ss_22.append(content_ss)
 
         # 模拟 23 (BERT) 的读取方式
         ctx_23 = df['content_ctx'].fillna(df['内容']).astype(str).tolist()
+        ss_23 = df['content_ss'].fillna(df['内容']).astype(str).tolist()
 
-        # 两种读取方式结果一致
+        # 两种读取方式结果一致 (ctx / ss 各自平价)
         assert ctx_22 == ctx_23
+        assert ss_22 == ss_23

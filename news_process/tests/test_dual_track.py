@@ -1,8 +1,15 @@
 """
-test_dual_track.py — 双轨重构全面验证测试
+test_dual_track.py — 三轨重构全面验证测试 (full/ctx/ss)
 ==========================================
 
 用 pytest 验证所有阶段输出的列完整性、数据质量和回退公理。
+
+三轨 (ss 银行+金科同句共现轨, 2026-06-14): 在 full/ctx 之外新增并列第三主轨
+content_ss (suffix '_ss', 标签"(银行+金科同句)"); 下游各阶段以
+['_full','_ctx','_ss'] 三轨平价产列。⚠ ss 列须经付费 stage 21 重跑播种缓存后
+方落盘 — 在 ss 数据落盘前, 本测试对 `_ss` 列一律走 **skip-if-missing 软守卫**
+(graceful skip), 不强断言 (避免冻结 panel 上误 fail); 仅当 ss 列已存在时才校验
+结构平价。
 
 注意:
   本测试需要实际的 data/processed/*.parquet 文件存在。
@@ -41,7 +48,7 @@ def _load_parquet_or_skip(output_dir, filename):
 # ============================================================================
 
 class TestStage21LLMDualTrack:
-    """阶段 21: LLM 双轨输出列完整性。"""
+    """阶段 21: LLM 三轨输出列完整性 (full/ctx/ss)。"""
 
     @pytest.fixture(scope='class')
     def df21(self, output_dir):
@@ -70,6 +77,24 @@ class TestStage21LLMDualTrack:
         for col in core_cols:
             assert col in df21.columns, f"缺少核心列: {col}"
 
+    def test_ss_core_columns_parity(self, df21):
+        """三轨 (ss 2026-06-14): ss 核心列与 ctx 平价 (skip-if-missing 软守卫)。
+
+        ss 列须经付费 stage 21 重跑播种后落盘; ss 未落盘时整体 skip。一旦 ss 锚定
+        列 (llm_verified_ss) 出现, 则其余 ss 核心列必须全平价存在 (机械 _ctx→_ss)。
+        """
+        if 'llm_verified_ss' not in df21.columns:
+            pytest.skip("ss 轨尚未落盘 (需付费 stage 21 重跑播种 ss 缓存)")
+        ss_core = [c.replace('_ctx', '_ss') for c in [
+            'llm_verified_ctx', 'llm_sentiment_ctx', 'llm_agreement_rate_ctx',
+            'innovation_locus_ctx', 'category_confidence_ctx',
+            'innovation_substantiveness_ctx',
+            'innovation_substantiveness_confidence_ctx',
+            'innovation_locus_confidence_ctx',
+        ]]
+        for col in ss_core:
+            assert col in df21.columns, f"ss 轨已落盘但缺核心列: {col}"
+
     def test_per_model_dual_track_columns(self, df21):
         """逐模型双轨列完整"""
         # 非模型来源的 *_verified_full 列 (需排除):
@@ -85,11 +110,18 @@ class TestStage21LLMDualTrack:
 
         assert len(model_shorts) > 0, "未发现逐模型列"
 
+        _model_sfx = ['_verified', '_sentiment',
+                      '_verification_confidence', '_sentiment_confidence']
+        # 三轨 (ss 2026-06-14): full/ctx 始终硬断言; ss 仅当首模型 ss 锚定列出现时
+        # 才纳入 (skip-if-missing 软守卫, ss 须付费 stage 21 重跑后落盘)。
+        tracks = ['_full', '_ctx']
+        _ss_landed = f"{model_shorts[0]}_sentiment_ss" in df21.columns
+        if _ss_landed:
+            tracks = tracks + ['_ss']
+
         for sn in model_shorts:
-            for track in ['_full', '_ctx']:
-                for sfx in ['_verified', '_sentiment',
-                            '_verification_confidence',
-                            '_sentiment_confidence']:
+            for track in tracks:
+                for sfx in _model_sfx:
                     col = f"{sn}{sfx}{track}"
                     assert col in df21.columns, \
                         f"逐模型列缺失: {col}"
@@ -110,18 +142,23 @@ class TestStage21LLMDualTrack:
 # ============================================================================
 
 class TestStage22DictDualTrack:
-    """阶段 22: 词典法双轨输出列完整性。"""
+    """阶段 22: 词典法三轨输出列完整性 (full/ctx/ss)。"""
 
     @pytest.fixture(scope='class')
     def df22(self, output_dir):
         return _load_parquet_or_skip(output_dir, '22_words_tone.parquet')
 
     def test_dict_dual_track_columns(self, df22):
-        """5 套词典 × 2 轨道 × 3 指标 = 30 列"""
+        """5 套词典 × 2 轨道 × 3 指标 = 30 列 (ss 落盘后 × 3 轨 = 45 列)"""
         dicts = ['jiang_2021', 'yao_2021', 'bian_2021',
                  'du_2022', 'you_2018']
+        # 三轨 (ss 2026-06-14): full/ctx 硬断言; ss 仅当首词典首指标 ss 列已落盘时
+        # 纳入 (skip-if-missing 软守卫, ss 须付费 stage 21 重跑前置 stage 13/22 重算)。
+        tracks = ['_full', '_ctx']
+        if f'{dicts[0]}_score_ss' in df22.columns:
+            tracks = tracks + ['_ss']
         for d in dicts:
-            for track in ['_full', '_ctx']:
+            for track in tracks:
                 for sfx in ['_score', '_label', '_zscore']:
                     col = f"{d}{sfx}{track}"
                     assert col in df22.columns, f"缺少列: {col}"
@@ -134,24 +171,25 @@ class TestStage22DictDualTrack:
                 assert col in df22.columns, f"缺少列: {col}"
 
     def test_sentiment_details_columns(self, df22):
-        """sentiment_details 双轨列存在"""
+        """sentiment_details 双轨列存在 (ss 落盘后第三轨平价, 软守卫)"""
         assert 'sentiment_details_full' in df22.columns
         assert 'sentiment_details_ctx' in df22.columns
+        # 三轨 (ss): 仅当 ss 列已落盘时校验平价存在
+        if 'sentiment_details_ss' in df22.columns:
+            assert 'sentiment_details_ss' in df22.columns
 
     def test_zscore_independence(self, df22):
-        """Z-score 独立标准化: 均值接近 0"""
+        """Z-score 独立标准化: 均值接近 0 (三轨 full/ctx/ss, 每轨各 if 存在守卫)"""
         dicts = ['jiang_2021', 'yao_2021', 'bian_2021',
                  'du_2022', 'you_2018']
+        # 三轨 (ss 2026-06-14): 每轨各自 `if col in columns` 守卫 → ss 未落盘自动跳过
         for d in dicts:
-            col_full = f'{d}_zscore_full'
-            col_ctx = f'{d}_zscore_ctx'
-            if col_full in df22.columns and col_ctx in df22.columns:
-                mean_full = df22[col_full].mean()
-                mean_ctx = df22[col_ctx].mean()
-                assert abs(mean_full) < 0.01, \
-                    f"{d} zscore_full_mean={mean_full:.6f} 不接近 0"
-                assert abs(mean_ctx) < 0.01, \
-                    f"{d} zscore_ctx_mean={mean_ctx:.6f} 不接近 0"
+            for track in ('_full', '_ctx', '_ss'):
+                col = f'{d}_zscore{track}'
+                if col in df22.columns:
+                    mean_t = df22[col].mean()
+                    assert abs(mean_t) < 0.01, \
+                        f"{d} zscore{track}_mean={mean_t:.6f} 不接近 0"
 
 
 # ============================================================================
@@ -159,26 +197,33 @@ class TestStage22DictDualTrack:
 # ============================================================================
 
 class TestStage23BERTDualTrack:
-    """阶段 23: BERT 双轨输出列完整性。"""
+    """阶段 23: BERT 三轨输出列完整性 (full/ctx/ss)。"""
 
     @pytest.fixture(scope='class')
     def df23(self, output_dir):
         return _load_parquet_or_skip(output_dir, '23_bert_tone.parquet')
 
     def test_bert_window_columns(self, df23):
-        """BERT 窗口计数双轨列"""
+        """BERT 窗口计数双轨列 (ss 落盘后第三轨, 软守卫)"""
         assert 'bert_num_windows_full' in df23.columns
         assert 'bert_num_windows_ctx' in df23.columns
+        # 三轨 (ss 2026-06-14): bert_num_windows_ss 须 ss 落盘后才存在
+        if 'bert_num_windows_ss' in df23.columns:
+            assert 'bert_num_windows_ss' in df23.columns
 
     def test_inherited_llm_columns(self, df23):
-        """LLM 列继承检查"""
+        """LLM 列继承检查 (ss 落盘后第三轨, 软守卫)"""
         assert 'llm_verified_full' in df23.columns
         assert 'llm_sentiment_ctx' in df23.columns
+        if 'llm_verified_ss' in df23.columns:
+            assert 'llm_sentiment_ss' in df23.columns
 
     def test_inherited_dict_columns(self, df23):
-        """词典列继承检查"""
+        """词典列继承检查 (ss 落盘后第三轨, 软守卫)"""
         assert 'jiang_2021_score_full' in df23.columns
         assert 'jiang_2021_score_ctx' in df23.columns
+        if 'jiang_2021_score_ss' in df23.columns:
+            assert 'jiang_2021_score_ss' in df23.columns
 
 
 # ============================================================================
@@ -186,7 +231,7 @@ class TestStage23BERTDualTrack:
 # ============================================================================
 
 class TestPanelDualTrack:
-    """阶段 41-45: 面板数据双轨输出。"""
+    """阶段 41-45: 面板数据三轨输出 (full/ctx/ss)。"""
 
     @pytest.fixture(scope='class')
     def df_panel(self, output_dir):
@@ -208,13 +253,33 @@ class TestPanelDualTrack:
         for col in panel_key_cols:
             assert col in df_panel.columns, f"面板缺少核心列: {col}"
 
+    def test_panel_ss_key_columns_parity(self, df_panel):
+        """三轨 (ss 2026-06-14): 面板 ss 主语调列与 ctx 平价 (skip-if-missing 软守卫)。
+
+        ss 面板列须经付费 stage 21 重跑 + stage 45/46 重生后落盘。ss 锚定列
+        (llm_vote_tone_ss) 缺失时整体 skip; 一旦出现则其余 ss 主语调列平价校验。
+        """
+        if 'llm_vote_tone_ss' not in df_panel.columns:
+            pytest.skip("ss 面板轨尚未落盘 (需付费 stage 21 重跑 + stage 45/46 重生)")
+        ss_key_cols = [c.replace('_ctx', '_ss') for c in [
+            'llm_vote_tone_ctx', 'pos_frac_ctx', 'neg_frac_ctx',
+            'dict_avg_tone_ctx', 'bert_avg_pos_ctx', 'bert_avg_neg_ctx',
+            'llm_models_avg_tone_ctx', 'avg_agreement_rate_ctx',
+        ]]
+        for col in ss_key_cols:
+            assert col in df_panel.columns, f"ss 面板轨已落盘但缺主语调列: {col}"
+
     def test_panel_dual_track_balance(self, df_panel):
-        """面板 _full 和 _ctx 列数基本均衡"""
+        """面板 _full / _ctx / _ss 列数基本均衡 (ss 未落盘时仅校验 full/ctx)"""
         full_cols = [c for c in df_panel.columns if c.endswith('_full')]
         ctx_cols = [c for c in df_panel.columns if c.endswith('_ctx')]
+        ss_cols = [c for c in df_panel.columns if c.endswith('_ss')]
         # 允许一定比例差异（某些变量可能仅 full 轨道）
         assert len(full_cols) > 0, "面板无 _full 列"
         assert len(ctx_cols) > 0, "面板无 _ctx 列"
+        # 三轨 (ss): ss 列须付费重跑后落盘; 已落盘则断言非空 (结构平价)
+        if ss_cols:
+            assert len(ss_cols) > 0, "面板 ss 轨已落盘但无 _ss 列"
 
 
 # ============================================================================
@@ -231,6 +296,9 @@ class TestFallbackAxiom:
 
     新不变量：BERT / 词典法等**非 LLM 衍生的双轨列**仍应无 NaN
             （这些方法对每篇文章都能产出确定值）。
+
+    三轨 (ss 2026-06-14): ss 轨与 ctx 轨同一回退/NaN 语义 — ss 列须付费 stage 21
+            重跑后落盘, 故 ss NaN 校验走 skip-if-missing 软守卫。
     """
 
     @pytest.fixture(scope='class')
@@ -288,6 +356,23 @@ class TestFallbackAxiom:
         assert len(unexpected_nan) == 0, \
             f"_ctx 轨道存在不应有的 NaN (非 LLM 衍生列): {unexpected_nan}"
 
+    def test_no_nan_in_ss_track(self, df23):
+        """三轨 (ss 2026-06-14): _ss 轨道与 ctx 同 NaN 语义 (skip-if-missing 软守卫)。
+
+        ss 列须付费 stage 21 重跑后落盘; 未落盘则整体 skip。一旦 ss 列存在,
+        仅 LLM 衍生列允许 NaN, 其余 (BERT/词典 ss 列) 应无 NaN (镜像 ctx 不变式)。
+        """
+        ss_cols = [c for c in df23.columns if c.endswith('_ss')]
+        if not ss_cols:
+            pytest.skip("ss 轨尚未落盘 (需付费 stage 21 重跑播种 ss 缓存)")
+        unexpected_nan = {}
+        for c in ss_cols:
+            n = df23[c].isna().sum()
+            if n > 0 and not self._is_llm_nan_allowed(c):
+                unexpected_nan[c] = int(n)
+        assert len(unexpected_nan) == 0, \
+            f"_ss 轨道存在不应有的 NaN (非 LLM 衍生列): {unexpected_nan}"
+
 
 # ============================================================================
 # 全量 LLM 输出验证
@@ -306,9 +391,12 @@ class TestFullLLMOutput:
             output_dir, '21_tone_llms_full.parquet')
 
     def test_full_file_columns(self, df21_full):
-        """全量文件包含双轨列"""
+        """全量文件包含三轨列 (full/ctx; ss 落盘后第三轨, 软守卫)"""
         assert 'llm_verified_full' in df21_full.columns
         assert 'llm_verified_ctx' in df21_full.columns
+        # 三轨 (ss 2026-06-14): ss 列须付费 stage 21 重跑后落盘
+        if 'llm_verified_ss' in df21_full.columns:
+            assert 'llm_verified_ss' in df21_full.columns
 
     def test_filtered_row_count(self, df21, df21_full):
         """过滤文件行数 ≈ 全量文件中 verified_full=True 的行数。

@@ -533,8 +533,9 @@ class MultiModelSentimentEngine:
 
             except Exception as e:
                 # fix(omni-g-berts-04, 2026-06-11): 非预期加载失败不再静默吞掉 —
-                # strict_models=true (默认) 直接 raise, 防止该模型双轨列从输出
-                # parquet 整体消失而阶段仍 SUCCESS (下游按列存在性静默跳过)。
+                # strict_models=true (默认) 直接 raise, 防止该模型三轨列 (full/
+                # ctx/ss) 从输出 parquet 整体消失而阶段仍 SUCCESS (下游按列存在性
+                # 静默跳过)。
                 self.failed_models.append(short_name)
                 logger.error(f"  模型 {model_id} 加载失败: {e}")
                 if strict_models:
@@ -810,7 +811,8 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
         df:           仅用于确定总行数 (len(df)) 的 DataFrame; 文本不从此读取
                       (历史注释称"包含'内容'列", 与实现不符, 已修正)。
         engine:       已加载全部模型的多模型引擎。
-        content_list: 预构建的文本列表 (content_full 或 content_ctx, 均含 prepend 标题)。
+        content_list: 预构建的文本列表 (content_full / content_ctx / content_ss
+                      三轨之一, 均含 prepend 标题)。
 
     Returns:
         dict: {short_name: {'columns': {...}, 'stats': {...}}}
@@ -931,7 +933,7 @@ def process_all_models(df: pd.DataFrame, engine: MultiModelSentimentEngine, cont
             columns[f'{sn}_中性'] = [float('nan')] * len(results)
 
         # fix(omni-g-berts-02): 每篇 failure 标志列 (失败哨兵 num_windows=-1);
-        # 主函数追加轨道后缀 → {sn}_infer_failed_full / _ctx
+        # 主函数追加轨道后缀 → {sn}_infer_failed_full / _ctx / _ss (三轨)
         columns[f'{sn}_infer_failed'] = [r['num_windows'] == -1 for r in results]
 
         num_windows_list = [r['num_windows'] for r in results]
@@ -1033,7 +1035,8 @@ def main():
     logger.info("")
     logger.info("  📌 阶段目的")
     logger.info("     使用 3 个 BERT 系列预训练模型对每篇新闻进行情感分类。")
-    logger.info("     采用双轨模式: 全文(_full)和上下文片段(_ctx)分别推理。")
+    logger.info("     采用三轨模式: 全文(_full)、上下文片段(_ctx) 与")
+    logger.info("     银行+金科同句共现(_ss)分别推理 (ss 缺列时优雅跳过)。")
     logger.info("     超长文本使用滑动窗口切片 + 置信度加权池化聚合。")
     logger.info("")
     logger.info("  📖 方法论依据")
@@ -1082,9 +1085,11 @@ def main():
         raise SystemExit(1)
     log_memory_usage(logger, "全部模型加载后")
 
-    # ── Step 1b: 构建双轨文本列表 (remove-title-track) ──
-    # full 轨 = 标题 + 内容; ctx 轨 = 标题 + 实体窗口。标题轨已取消; 两轨文本
-    # 均经 prepend_title 注入标题 (与 stage 13 / 词典法对齐)。
+    # ── Step 1b: 构建三轨文本列表 (full / ctx / ss) ──
+    # full 轨 = 标题 + 内容; ctx 轨 = 标题 + 实体窗口; ss 轨 = 标题 + 银行∧金科
+    # 同句共现窗口 (content_ss 由 stage 13 ctx_materializer 物化, 无共现→镜像 ctx
+    # 回退全文 body)。标题轨已取消; 三轨文本均经 prepend_title 注入标题
+    # (与 stage 13 / 词典法对齐)。
     from news_process.core.text.entity_context import prepend_title
     _titles = (df['标题'].fillna('').astype(str).tolist()
                if '标题' in df.columns else [''] * len(df))
@@ -1093,11 +1098,30 @@ def main():
     content_full_list = [prepend_title(t, b) for t, b in zip(_titles, _bodies)]
     content_ctx_list = [prepend_title(t, c) for t, c in zip(_titles, _ctx_bodies)]
 
-    logger.info(f"双轨文本列表构建完成 (含标题注入): full={len(content_full_list)}, ctx={len(content_ctx_list)}")
+    # ss 轨优雅跳过: content_ss 由 stage 13 物化 (v3.9.0 三轨); 旧 schema 缺列时
+    # 跳过 ss 推理 (镜像 ctx 守卫风格), 不影响 full/ctx 两路产出。
+    _has_ss = 'content_ss' in df.columns
+    content_ss_list = None
+    if _has_ss:
+        _ss_bodies = df['content_ss'].fillna(df['内容']).astype(str).tolist()
+        content_ss_list = [prepend_title(t, s) for t, s in zip(_titles, _ss_bodies)]
+        logger.info(
+            f"三轨文本列表构建完成 (含标题注入): full={len(content_full_list)}, "
+            f"ctx={len(content_ctx_list)}, ss={len(content_ss_list)}"
+        )
+    else:
+        logger.warning(
+            "  content_ss 列缺失 (旧 schema) — ss 轨 (银行+金科同句) 优雅跳过, "
+            "仅产出 full/ctx 两路。"
+        )
+        logger.info(
+            f"文本列表构建完成 (含标题注入): full={len(content_full_list)}, "
+            f"ctx={len(content_ctx_list)}, ss=跳过"
+        )
 
-    # ── Step 2: 双轨批量推理（物理隔离，防止 OOM） ──
+    # ── Step 2: 三轨批量推理（物理隔离，防止 OOM） ──
     logger.info("=" * 50)
-    logger.info("开始多模型双轨批量推理...")
+    logger.info("开始多模型三轨批量推理...")
 
     logger.info("启动 [_ctx] 轨道推理...")
     output_ctx = process_all_models(df, engine, content_ctx_list)
@@ -1105,18 +1129,30 @@ def main():
     logger.info("启动 [_full] 轨道推理...")
     output_full = process_all_models(df, engine, content_full_list)
 
-    # ── Step 3: 将双轨结果写回 DataFrame（带后缀） ──
-    for out_dict, suffix in [(output_ctx, '_ctx'), (output_full, '_full')]:
+    # ss 轨 (银行+金科同句): content_ss 缺列时 output_ss=None, 下游写回/统计跳过。
+    output_ss = None
+    if _has_ss:
+        logger.info("启动 [_ss] 轨道推理 (银行+金科同句)...")
+        output_ss = process_all_models(df, engine, content_ss_list)
+
+    # ── Step 3: 将三轨结果写回 DataFrame（带后缀） ──
+    # 镜像 ctx 守卫风格: ss 轨缺列 (output_ss is None) 时 (output, suffix) 对自动
+    # 被过滤掉, 不写任何 *_ss 列 (优雅跳过)。
+    _track_outputs = [(output_ctx, '_ctx'), (output_full, '_full')]
+    if output_ss is not None:
+        _track_outputs.append((output_ss, '_ss'))
+    for out_dict, suffix in _track_outputs:
         for mc in MODEL_CONFIGS:
             sn = mc['short_name']
             if sn in out_dict:
                 for col_name, col_data in out_dict[sn]['columns'].items():
                     df[f"{col_name}{suffix}"] = col_data
 
-    # ── Step 3b: 写入 BERT 窗口数列（双轨，供下游分层分析使用） ──
+    # ── Step 3b: 写入 BERT 窗口数列（三轨，供下游分层分析使用） ──
     # 语义说明: num_windows ≥1 正常推理; 0 = 空文本; -1 = 推理失败哨兵
     # (fix g-berts-02)。fix g-berts-01 后各模型按自身 tokenizer 分词, 窗口数
     # 是 tokenizer 特异的; 本列取首个模型的计数 (日志注明基于哪个模型)。
+    # ss 轨 (银行+金科同句) 缺列 (output_ss is None) 时 bert_num_windows_ss 不写。
     _first_sn = next((mc['short_name'] for mc in MODEL_CONFIGS
                       if mc['short_name'] in output_full), None)
     if _first_sn:
@@ -1126,6 +1162,10 @@ def main():
         if _first_sn in output_full and 'num_windows_list' in output_full[_first_sn]:
             df['bert_num_windows_full'] = output_full[_first_sn]['num_windows_list']
             logger.info(f"  已写入 bert_num_windows_full 列 (基于模型: {_first_sn})")
+        if (output_ss is not None and _first_sn in output_ss
+                and 'num_windows_list' in output_ss[_first_sn]):
+            df['bert_num_windows_ss'] = output_ss[_first_sn]['num_windows_list']
+            logger.info(f"  已写入 bert_num_windows_ss 列 (基于模型: {_first_sn})")
 
     # ── Step 4: 保存输出 ──
     # 使用数据版本控制保存
@@ -1143,11 +1183,14 @@ def main():
     engine.unload_all()
     log_memory_usage(logger, "模型释放后")
 
-    # ── 打印统计报告（双轨分别打印） ──
+    # ── 打印统计报告（三轨分别打印; ss 缺列时跳过第三份） ──
     logger.info("=== [_ctx] 轨道统计 ===")
     log_classification_report(output_ctx, len(df))
     logger.info("=== [_full] 轨道统计 ===")
     log_classification_report(output_full, len(df))
+    if output_ss is not None:
+        logger.info("=== [_ss] 轨道统计 (银行+金科同句) ===")
+        log_classification_report(output_ss, len(df))
 
     # ── 生成预览 CSV ──
     preview_path = output_path.replace('.parquet', '.csv')
@@ -1155,7 +1198,8 @@ def main():
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=input_rows, output_rows=len(df))
-    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (双轨模式) ---")
+    _track_mode = "三轨模式" if output_ss is not None else "双轨模式 (ss 缺列跳过)"
+    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ({_track_mode}) ---")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,10 @@
 """benefit_society cohort manifest 导出 (DP-8 / F-R6 lineage).
 
 生成 ``data/raw/cohort/benefit_society_84banks.csv`` — benefit_society
-双轨分析锁定的 84 银行 cohort 名单 (manifest)。
+历史 (full/ctx) 锁定的 84 银行 cohort 名单 (manifest)。该名册 **track-agnostic**
+(仅 target_bank + bank_type, 无任何情感轨列) → 三轨 (full/ctx/ss) 共用同一份
+cohort, 无需按轨拆分。沿用历史命名仅为 lineage 兼容。
+# legacy (full/ctx) 示例 — 本文件 prose 豁免标记 (cohort 名册不分轨, 三轨共用)
 
 PAP v1.0-final §3 把全部分析锚定到此 manifest; 下游对 `target_bank` 的
 过滤必须对照它做校验。``is_listed`` 代理以 bank_type ∈ {soe, joint} 视为

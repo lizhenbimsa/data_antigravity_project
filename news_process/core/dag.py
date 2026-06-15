@@ -181,15 +181,26 @@ STAGES_MAIN: list[StageSpec] = [
         script="12_news_fintech.py",
         group="main", kind="filter",
     ),
-    # v3.6.0 (Plan E P4 A1): stage 13 物化 content_ctx 列, 让下游 14/15
-    # 在 stage 21 之前即可消费 ctx, 实现真双轨化 (B1 + B2 闭合)。
+    # 2026-06-15: stage 12b 银行×金科邻近共现硬过滤 (Andreou et al. 2026) — 只保留
+    # 目标银行与 ≥1 金科词在 ±sentence_radius 句窗口内邻近共现的文章行, 降低 stage 12
+    # 关键词判定的虚假相关; 下游 stage 13 改读其输出, 三轨情感/强度链天然继承过滤。
     StageSpec(
-        name="阶段13: 实体特异性上下文物化 (content_ctx)",
+        name="阶段12b: 银行×金科邻近共现预过滤 (Andreou et al. 2026)",
+        script="12b_cooccurrence_filter.py",
+        group="main", kind="filter",
+    ),
+    # v3.6.0 (Plan E P4 A1): stage 13 物化 content_ctx 列, 让下游 14/15
+    # 在 stage 21 之前即可消费 ctx, 实现真双轨化 (B1 + B2 闭合; 后于 v3.9.0 扩为三轨)。
+    # v3.9.0 (2026-06-14): 同一阶段再物化第三轨 content_ss (银行+金科同句共现轨)
+    # + ss_is_fallback 旗标 — 取"标题 + 含目标银行∧金科词同句 ±N 句窗"; 无共现→
+    # 镜像 ctx 回退公理写全文 body。下游 14/15 自此消费 full/ctx/ss 三轨。
+    StageSpec(
+        name="阶段13: 实体特异性上下文物化 (content_ctx / content_ss 三轨)",
         script="13_materialize_ctx.py",
         group="main", kind="filter",
     ),
     StageSpec(
-        name="阶段14: 金融科技技术重度评分 (TF-IDF, 双轨)",
+        name="阶段14: 金融科技技术重度评分 (TF-IDF, 三轨 full/ctx/ss)",
         script="14_fintech_intensity.py",
         group="main", kind="filter",
     ),
@@ -203,8 +214,11 @@ STAGES_MAIN: list[StageSpec] = [
     # 21 (LLM) / 22 (词典) / 23 (BERT) / 24 (跟风衰减) 自 2026-06-13 起全部为无条件
     # always-on (用户决策"全部启用而非条件启用", 对齐 2026-06-12 的 23/24 先例);
     # 不再受 sentiment_analysis.enabled_methods 控制 (见下方注释)。
+    # v3.9.0 (2026-06-14): stage 21-24 全部三轨化 (full/ctx/ss) — 第三轨 _ss 读
+    # stage 13 物化的 content_ss; LLM prompt v8 字节冻结, 仅 content 实参换 content_ss;
+    # ss 为结构性 always-on (无独立 compute 开关), 与 full/ctx 并列第三主轨。
     StageSpec(
-        name="阶段21: 统一 LLM 语义精筛与情感分析",
+        name="阶段21: 统一 LLM 语义精筛与情感分析 (三轨 full/ctx/ss)",
         script="21_tone_llms.py",
         group="main", kind="sentiment",
         # v3 / Fix 1: 6h 子进程硬超时. 已知工况 ~7200s (run_pipeline_function
@@ -246,7 +260,10 @@ STAGES_MAIN: list[StageSpec] = [
         group="main", kind="sentiment",
     ),
 
-    # ── 模块四c：text2vec 双轨稳健性指标 — 已退役 (2026-05-29 双模型重构) ──
+    # ── 模块四c：text2vec 稳健性指标 — 已退役 (2026-05-29 双模型重构) ──
+    # legacy (main vs _t2v) by design: 此处"双轨"指 main embedding × text2vec 稳健 twin
+    # 这条嵌入模型轴 (strat_diff_t2v / policy_cosine_sim_t2v), 与 full/ctx/ss 文本轨
+    # 是两个独立编号空间, 勿混淆; 阶段已退役, 不参与 v3.9.0 三轨化。
     # 原 stage 30 (30_robustness_text2vec) 单独用 text2vec 计算 strat_diff_t2v /
     # policy_cosine_sim_t2v 4 列稳健 twin。改为"主阶段内联双模型计算"后, 这些 _t2v
     # 列由 stage 15 (policy_alignment) + stage 25 (strategic_diff) 在主流程内直接产出
@@ -355,7 +372,8 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段36: Entity Masking 稳健性测试",
         script="36_entity_masking_test.py",
         group="validation", kind="robustness",
-        # 双轨掩码复判最多 1,000 × 3 × 2 = 6,000 次 LLM 请求。
+        # 三轨 (full/ctx/ss) 掩码复判最多 1,000 × 3 × 3 = 9,000 次 LLM 请求
+        # (v3.9.0: entity_masking TRACKS 由 full/ctx 扩为 full/ctx/ss)。
         # 冷缓存 + 网关限流下会超过默认 3,600s, 必须显式放宽。
         timeout=21600,
     ),
@@ -379,8 +397,9 @@ STAGES_VALIDATION: list[StageSpec] = [
         name="阶段39: Prompt措辞敏感度测试",
         script="39_prompt_sensitivity.py",
         group="validation", kind="robustness",
-        # 4 个 prompt 变体 × 1,000 样本 × 3 模型 × 2 轨道 = 24,000
-        # 次请求。该阶段有增量 LLM 缓存, 但冷缓存完整跑通需要长超时。
+        # 4 个 prompt 变体 × 1,000 样本 × 3 模型 × 3 轨道 (full/ctx/ss) = 36,000
+        # 次请求 (v3.9.0: prompt_sensitivity 由 2 轨扩为三轨)。该阶段有增量 LLM
+        # 缓存, 但冷缓存完整跑通需要长超时。
         timeout=43200,
     ),
     StageSpec(

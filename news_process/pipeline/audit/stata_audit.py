@@ -173,11 +173,12 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
             record(cat, '高缺失率变量(>50%)', 'WARN',
                    f'{len(high_miss)} 个变量: {detail}')
 
-        # 关键变量缺失检查
+        # 关键变量缺失检查 (三轨: full/ctx/ss)
         key_vars = [
             ('n_articles', 0.0, '新闻篇数'),
             ('llm_vote_tone_full', None, 'LLM投票情感(全文)'),
             ('llm_vote_tone_ctx', None, 'LLM投票情感(上下文)'),
+            ('llm_vote_tone_ss', None, 'LLM投票情感(银行+金科同句)'),
             ('ln_news_coverage', None, '新闻覆盖度对数'),
         ]
         for var, expected_miss, label in key_vars:
@@ -229,8 +230,8 @@ def audit_variable_quality(panel: pd.DataFrame, name: str):
         else:
             record(cat, 'n_articles值域', 'PASS', f'min={panel["n_articles"].min()}, max={panel["n_articles"].max()}')
 
-    # 离散情感 tone 应在 [-1, 1]
-    for col in ['llm_vote_tone_full', 'llm_vote_tone_ctx']:
+    # 离散情感 tone 应在 [-1, 1] (三轨: full/ctx/ss; ss 列缺失时该轨自动跳过)
+    for col in ['llm_vote_tone_full', 'llm_vote_tone_ctx', 'llm_vote_tone_ss']:
         if col in panel.columns:
             valid = panel[col].dropna()
             if len(valid) > 0:
@@ -305,8 +306,9 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
     has_news = panel[_nac] > 0 if _nac in panel.columns else pd.Series(True, index=panel.index)
     p = panel[has_news]
 
-    # 3a. pos_frac + neg_frac + neutral_frac 恒等式
-    for track in ['_full', '_ctx']:
+    # 3a. pos_frac + neg_frac + neutral_frac 恒等式 (三轨: full/ctx/ss;
+    # ss = 银行+金科同句共现轨, 列缺失时该轨经下方 in-columns 守卫自动跳过)
+    for track in ['_full', '_ctx', '_ss']:
         pos_col = f'pos_frac{track}'
         neg_col = f'neg_frac{track}'
         if pos_col in p.columns and neg_col in p.columns:
@@ -345,12 +347,13 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
     # (重构后 = 物理 size) 而非 _nac (= full 轨 LLM 有效计数). 否则 _ctx 轨在
     # "full 失败但 ctx 成功"的文章上 ctx-valid > full-valid → 拿 full 计数当上界会
     # 误报 (实测冻结 panel 4/176 行 pos_count_ctx+neg_count_ctx > n_articles; 但其
-    # 物理篇数 14/4/1/2 ≥ ctx pos+neg 13/2/1/2, 是合法两轨独立成功率差异, 非双计 bug).
+    # 物理篇数 14/4/1/2 ≥ ctx pos+neg 13/2/1/2, 是合法轨间独立成功率差异, 非双计 bug).
     # 旧冻结 panel (无 n_articles_llm_valid → n_articles 实为 full-valid 非物理) 下该
     # 上界本身偏小, _ctx 越界为已知口径限制 → WARN; 重生 panel (n_articles=物理) 上
     # 仍越界才是真双重计数 → FAIL.
+    # 三轨 (full/ctx/ss); ss = 银行+金科同句共现轨, 列缺失时经 in-columns 守卫跳过。
     _is_physical_count = 'n_articles_llm_valid' in panel.columns
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:
         pos_col = f'pos_count{track}'
         neg_col = f'neg_count{track}'
         if pos_col in p.columns and neg_col in p.columns:
@@ -365,24 +368,32 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
             if neg_neutral > 0:
                 _status = 'FAIL' if _is_physical_count else 'WARN'
                 _note = ('' if _is_physical_count
-                         else ' (旧 panel n_articles=full-valid 非物理, 两轨独立成功率差异已知, 降 WARN; 重生后复测)')
+                         else ' (旧 panel n_articles=full-valid 非物理, 轨间独立成功率差异已知, 降 WARN; 重生后复测)')
                 record(cat, f'情感计数恒等式 ({track})', _status,
                        f'{neg_neutral} 行 pos+neg > n_articles{_note}')
             else:
                 record(cat, f'情感计数恒等式 ({track})', 'PASS',
                        '所有行满足 pos+neg ≤ n_articles')
 
-    # 3c. 跨轨道相关性 (full vs ctx)
-    if 'llm_vote_tone_full' in p.columns and 'llm_vote_tone_ctx' in p.columns:
-        valid = p[['llm_vote_tone_full', 'llm_vote_tone_ctx']].dropna()
-        if len(valid) > 10:
-            r = valid['llm_vote_tone_full'].corr(valid['llm_vote_tone_ctx'])
-            if r < 0.5:
-                record(cat, 'Full-Ctx 跨轨道相关', 'WARN',
-                       f'Pearson r={r:.4f} < 0.5, 两轨道分歧较大')
-            else:
-                record(cat, 'Full-Ctx 跨轨道相关', 'PASS',
-                       f'Pearson r={r:.4f}')
+    # 3c. 跨轨道相关性 — 三轨两两 pairwise (full_ctx / full_ss / ctx_ss)
+    # ss = 银行+金科同句共现轨; 任一轨 tone 列缺失时该 pair 自动跳过 (graceful)。
+    # 注意: 这是诊断披露 (相关高=对归因窗口稳健), 三轨互为稳健性, 去留不由相关性决定。
+    _tone_pairs = [
+        ('llm_vote_tone_full', 'llm_vote_tone_ctx', 'Full-Ctx'),
+        ('llm_vote_tone_full', 'llm_vote_tone_ss', 'Full-SS'),
+        ('llm_vote_tone_ctx', 'llm_vote_tone_ss', 'Ctx-SS'),
+    ]
+    for col_a, col_b, pair_label in _tone_pairs:
+        if col_a in p.columns and col_b in p.columns:
+            valid = p[[col_a, col_b]].dropna()
+            if len(valid) > 10:
+                r = valid[col_a].corr(valid[col_b])
+                if r < 0.5:
+                    record(cat, f'{pair_label} 跨轨道相关', 'WARN',
+                           f'Pearson r={r:.4f} < 0.5, 该对轨道分歧较大')
+                else:
+                    record(cat, f'{pair_label} 跨轨道相关', 'PASS',
+                           f'Pearson r={r:.4f}')
 
     # 3d. LLM 模型间情感一致性
     llm_models = ['gpt54nano', 'gemini31111', 'deepseekv4']  # v3: 真三家族 (OpenAI + Google + DeepSeek)
@@ -395,7 +406,7 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
         record(cat, 'LLM模型间一致性', 'PASS' if min_pair_corr > 0.5 else 'WARN',
                f'最小成对相关={min_pair_corr:.4f} ({len(llm_tone_cols)}个模型)')
 
-    # 3e. 加权均值恒等式 (VW, MW, HW) — 双轨
+    # 3e. 加权均值恒等式 (VW, MW, HW) — 三轨 (full/ctx/ss)
     # 列名模式 (与 encode.py 实际产出对齐):
     #   VW: tone=llm_vote_tone_vw{track}, 分子=llm_vote_score_w_sum{track}
     #       (⚠ 分子真名带 _w_ 而非 _vw_, 见 encode.py 聚合 llm_vote_score_w_sum)
@@ -408,9 +419,10 @@ def audit_sentiment_consistency(panel: pd.DataFrame, name: str):
     # (同 encode 回退契约, 旧冻结 panel 兼容), detail 注明所用分母口径。
     # fix(omni-g-stata-audit-02, 2026-06-11): 修正两处陈旧列名导致的静默死亡 —
     # VW 分子 llm_vote_score_vw_sum_full → llm_vote_score_w_sum{track}; HW 物理
-    # 分母 sum_herd_weight → sum_herd_weight_full/_ctx (v3.6.0 双轨化后单列已不
-    # 存在)。并把 else 兜底改为: 三种权重缺任一所需列即 record WARN, 杜绝静默跳过。
-    for track in ['_full', '_ctx']:
+    # 分母 sum_herd_weight → sum_herd_weight_full/_ctx/_ss (v3.6.0 多轨化后无后缀
+    # 单列已不存在)。并把 else 兜底改为: 三种权重缺任一所需列即 record WARN, 杜绝静默跳过。
+    # 三轨 (full/ctx/ss); ss 轨缺所需列时经 else 分支 record WARN (不静默跳过)。
+    for track in ['_full', '_ctx', '_ss']:
         for wt_type, num_tpl, phys_denom_tpl in [
             ('VW', 'llm_vote_score_w_sum{track}', 'sum_mention_density'),
             ('MW', 'llm_vote_score_mw_sum{track}', 'sum_media_authority_weight'),
@@ -777,18 +789,21 @@ def audit_descriptive_stats(panel: pd.DataFrame, name: str):
     logger.info("=" * 70)
     cat = f"{name}/描述统计"
 
+    # 核心变量描述统计 (三轨 full/ctx/ss; ss 列缺失时经下方 `if c in panel.columns`
+    # 静默过滤, 不报缺失 — 镜像 ctx 既有行为)。
     core_vars = [
         'n_articles', 'ln_news_coverage', 'media_breadth',
-        'llm_vote_tone_full', 'llm_vote_tone_ctx',
-        'llm_vote_cont_full', 'llm_vote_cont_ctx',
+        'llm_vote_tone_full', 'llm_vote_tone_ctx', 'llm_vote_tone_ss',
+        'llm_vote_cont_full', 'llm_vote_cont_ctx', 'llm_vote_cont_ss',
         'pos_frac_full', 'neg_frac_full',
         'dict_avg_tone_full', 'bert_avg_pos_full',
         'llm_vote_tone_vw_full', 'llm_vote_tone_mw_full', 'llm_vote_tone_hw_full',
         'fintech_share', 'nf_ln_coverage', 'all_ln_coverage',
-        # fix(omni-g-panel-export-02, 2026-06-11): v3.6.0 双轨化后无后缀
-        # avg_herd_weight 列已不存在 (encode.py 产出 *_full/_ctx), 陈旧名被
-        # `if c in panel.columns` 静默过滤 → herd 权重从未进描述统计; 改双轨名。
-        'avg_herd_weight_full', 'avg_herd_weight_ctx', 'avg_llm_conf_full',
+        # fix(omni-g-panel-export-02, 2026-06-11): v3.6.0 多轨化后无后缀
+        # avg_herd_weight 列已不存在 (encode.py 产出 *_full/_ctx/_ss), 陈旧名被
+        # `if c in panel.columns` 静默过滤 → herd 权重从未进描述统计; 改三轨名。
+        'avg_herd_weight_full', 'avg_herd_weight_ctx', 'avg_herd_weight_ss',
+        'avg_llm_conf_full',
         'washing_ratio', 'jf_coefficient_full',
     ]
 

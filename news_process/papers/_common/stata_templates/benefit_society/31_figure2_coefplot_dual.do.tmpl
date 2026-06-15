@@ -1,9 +1,12 @@
 * ============================================================================
-* 31_figure2_coefplot_dual.do — 双轨系数对比图 Coefplot (benefit_society)
+* 31_figure2_coefplot_dual.do — 三轨系数对比图 Coefplot (benefit_society)
 * Paper: {{PAPER_ID}}
 *
 * PAP v1.0-final §2 H3 视觉证据:
-*   2 轨 × 3 维度共 6 根系数 × CI 误差条。
+*   3 轨 (full / ctx / ss) × 3 维度共最多 9 根系数 × CI 误差条。
+* v3.9.0: 加入第三轨 ss (银行+金科同句共现, {{ATTITUDE_SS}} 等); ss 列由 stage 21 ss
+*   产出, 首跑前缺失时含 ss 的 3 根系数经 `capture confirm variable *_ss` 守卫
+*   不入 eststo → coefplot 仅画 full/ctx 6 根 (优雅降级)。
 * 输出: PDF + PNG 双格式 (F-R10-L1)。
 * ============================================================================
 
@@ -52,22 +55,58 @@ if !_rc {
     eststo M_neg_ctx
 }
 
+* v3.9.0: 第三轨 ss (银行+金科同句共现) 3 维回归 — 镜像 full/ctx 块, 缺列时优雅跳过
+local has_mean_ss 0
+local has_pos_ss 0
+local has_neg_ss 0
+capture confirm variable {{ATTITUDE_SS}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_SS}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_mean_ss
+    local has_mean_ss 1
+}
+capture confirm variable {{BENEFIT_POS_FRAC_SS}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_SS}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_pos_ss
+    local has_pos_ss 1
+}
+capture confirm variable {{BENEFIT_NEG_FRAC_SS}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_NEG_FRAC_SS}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M_neg_ss
+    local has_neg_ss 1
+}
+
 capture which coefplot
 if !_rc {
+    * 三轨 coefplot: full/ctx 6 根恒画, ss 3 根条件追加 (has_*_ss 守卫, 防 keep 缺估计崩)
+    local ss_plots ""
+    if `has_mean_ss' ///
+        local ss_plots `"`ss_plots' (M_mean_ss, label("benefit_mean SS(同句共现)") keep({{ATTITUDE_SS}}))"'
+    if `has_pos_ss' ///
+        local ss_plots `"`ss_plots' (M_pos_ss, label("pos_frac SS(同句共现)") keep({{BENEFIT_POS_FRAC_SS}}))"'
+    if `has_neg_ss' ///
+        local ss_plots `"`ss_plots' (M_neg_ss, label("neg_frac SS(同句共现)") keep({{BENEFIT_NEG_FRAC_SS}}))"'
     coefplot ///
         (M_mean_full, label("benefit_mean Full") keep({{ATTITUDE_FULL}})) ///
         (M_mean_ctx,  label("benefit_mean Ctx")  keep({{ATTITUDE_CTX}})) ///
         (M_pos_full,  label("pos_frac Full")     keep({{BENEFIT_POS_FRAC_FULL}})) ///
         (M_pos_ctx,   label("pos_frac Ctx")      keep({{BENEFIT_POS_FRAC_CTX}})) ///
         (M_neg_full,  label("neg_frac Full")     keep({{BENEFIT_NEG_FRAC_FULL}})) ///
-        (M_neg_ctx,   label("neg_frac Ctx")      keep({{BENEFIT_NEG_FRAC_CTX}})), ///
+        (M_neg_ctx,   label("neg_frac Ctx")      keep({{BENEFIT_NEG_FRAC_CTX}})) ///
+        `ss_plots', ///
         vertical xline(0) ///
         ytitle("beta on {{MAIN_DV}}_w") ///
-        title("Figure 2: Dual-Track Coefficient Comparison") ///
-        subtitle("benefit_society --- PAP v1.0-final {section}2 H3 evidence") ///
+        title("Figure 2: Tri-Track Coefficient Comparison (full / ctx / ss)") ///
+        subtitle("benefit_society --- PAP v1.0-final {section}2 H3 evidence (+ ss 银行+金科同句)") ///
         note("95% CI: asymptotic cluster-robust (cluster {{CLUSTER_VAR}}); wild cluster bootstrap" ///
              "p-values per spec in Table A2 (boottest, B={{BOOTSTRAP_REPS}})." ///
-             "H3 acceptance: sign match + min/max ratio > 0.5 across >=2/3 dimensions.")
+             "H3 acceptance (full×ctx): sign match + min/max ratio > 0.5 across >=2/3 dimensions;" ///
+             "ss (银行+金科同句) = v3.9.0 并列第三轨, 补充佐证, 不入 H3 判定。")
     * fix(omni-gapfill-16, 2026-06-12): 图注去 WCB 名实不符声称 — coefplot 画的是
     * 渐近 cluster CI (boottest 置信集从未进图), 旧注 'Wild cluster bootstrap
     * inference' 与图内 CI 来源不符; WCB p 由 21_tableA2 estadd 进表后在表层呈现。

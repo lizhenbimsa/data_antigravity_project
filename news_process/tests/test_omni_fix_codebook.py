@@ -159,9 +159,12 @@ class TestSourceStage:
 
 class TestTrackEnum:
     def test_all_curated_tracks_in_allowed_enum(self):
+        # v3.9.0 三轨: 直接读 codebook._ALLOWED_TRACKS (含 'ss') 而非硬编码,
+        # 让本断言随 _ALLOWED_TRACKS 自维护 (新增 _ss 元数据不再误判为混编)。
+        allowed = cb._ALLOWED_TRACKS
         meta = cb.get_variable_metadata_dict()
         bad = {k: v.track for k, v in meta.items()
-               if v.track not in ('', 'full', 'ctx', 'dual')}
+               if v.track not in allowed}
         assert not bad, f'track 编码混编仍在: {bad}'
 
     def test_prob_score_entries_use_standard_track(self):

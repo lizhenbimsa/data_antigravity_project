@@ -1,7 +1,8 @@
 """news_process.pipeline.audit.inter_track_kappa — Stage 39a (三维借用计划 v1.37 的 P1)。
 
 在 ``llm_verified_dual_both == True`` 子集上, 对三个创新维度 (locus,
-substantiveness, collab_mode) 计算 full 轨与 ctx 轨之间的文章级 Cohen's κ;
+substantiveness, collab_mode) 计算三轨 (full / ctx / ss) 两两之间的文章级
+Cohen's κ; 三轨共 3 个 pair (full_ctx / full_ss / ctx_ss) × 3 维 = 9 行,
 输出机器可读 CSV + 论文可用 TeX 到 ``eval_reports/``。
 
 与 Stata 模板 ``20_tableA1_inter_track_kappa.do.tmpl`` 互为镜像。
@@ -9,17 +10,53 @@ substantiveness, collab_mode) 计算 full 轨与 ctx 轨之间的文章级 Cohen
 学术锚点:
   - Cohen (1960) — κ 公式。
   - Landis & Koch (1977) — κ 解释阈值。
-  - 预期 κ ∈ [0.50, 0.70] (不是"越高越好"); κ > 0.70 提示双轨冗余;
+  - 预期 κ ∈ [0.50, 0.70] (不是"越高越好"); κ > 0.70 提示轨间冗余;
     κ < 0.30 提示噪声 (Landis & Koch 1977 区间 + 项目内部约定;
     原解释文档随 docs/ 目录于 commit 1698bda5 删除)。
   - Plan v1.37 §4.3.1: bootstrap CI, NaN-aware percentile + 50%
     有限值占比守卫 (R30A-01/R30B-01)。
+  - Holm (1979) — 跨 3 个 pair 的 FWER step-down 校正 (每维度 family=3 pair)。
 
-白话: 同一篇文章我们用两种文本口径 (full=全文, ctx=实体上下文窗口) 各打
-一次标签。κ 衡量两套标签的一致程度。太一致 (>0.70) 提示两个口径可能测的
-是同一个东西; 太不一致 (<0.30) 提示至少有一轨是噪声。落在中间区间说明
-双轨互补、各有信息。注意: 这只是诊断披露 (供论文中讨论), 双轨的去留不由
-相关性决定 — 项目立场是 full/ctx 互为稳健性, 高相关 = 对归因窗口稳健。
+白话: 同一篇文章我们用三种文本口径 (full=全文, ctx=目标银行实体上下文窗口,
+ss=银行+金科同句共现窗口) 各打一次标签。κ 衡量任意两套标签的一致程度。
+太一致 (>0.70) 提示这两个口径可能测的是同一个东西; 太不一致 (<0.30) 提示
+至少有一轨是噪声。落在中间区间说明三轨互补、各有信息。注意: 这只是诊断披露
+(供论文中讨论), 三轨的去留不由相关性决定 — 项目立场是 full/ctx/ss 互为
+稳健性, 高相关 = 对归因窗口稳健。bootstrap p 值检验 H0: κ=0 (单侧), 同维度
+3 个 pair 之间用 Holm step-down 控制族错误率 (FWER)。
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 39a_inter_track_kappa.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**输入**: 从 config['paths']['output_dir'] 读 `21_tone_llms.parquet`(文章级 LLM 标注), 按 `llm_verified_dual_both == True` 过滤到"双向验证 both"子集。读三个创新维度的三轨列: `innovation_locus_{full,ctx,ss}` / `innovation_substantiveness_{full,ctx,ss}` / `innovation_collab_mode_{full,ctx,ss}`。输入缺失 / 缺 llm_verified_dual_both 列 / dual_both 子集为空 → 发空占位表(全 NaN / n_obs=0 行)而非崩溃。
+
+**处理步骤**(`run_stage` → `compute_inter_track_kappa`):
+- 对每个维度 × 每个轨道 pair, 取两列 dropna() 后调 `_compute_kappa_with_bootstrap(return_pvalue=True)`(返回 5 元组 kp/lo/hi/n/pv)。
+- 点估计 κ 经 `validation.radius_sensitivity_llm.cohens_kappa_2cat(y1,y2)['kappa']`。
+- Bootstrap: `np.random.default_rng(seed=42)`, n_boot=1000 次有放回重抽, 每次重算 κ; 取 2.5%/97.5% nanpercentile 为 95% CI; 守卫: n_obs<3 或点估计常量列 NaN → 直接 NaN 元组; 有限重抽 <50% → CI 报 NaN + RuntimeWarning。
+- 单侧 bootstrap p 值: H0 κ=0 vs κ>0, = 有限重抽中 κ≤0 的占比。
+- 同维度内对 3 个 pair 的 raw p 值做 Holm(1979) step-down FWER 校正(`_holm_correct`, family=3; NaN 不参与排序, clip 到 [0,1] 并强制单调非降)。
+
+**关键算法/公式**: Cohen(1960) κ=(p_o−p_e)/(1−p_e); Landis&Koch(1977) 解释阈值; 预期 κ∈[0.50,0.70](非越高越好, >0.70 提示轨间冗余、<0.30 提示某轨噪声); Holm step-down(第 k 小 p 值 ×(m−rank) 并强制单调非降)。阈值 _THRESHOLDS: locus 0.50 / substantiveness 0.45 / collab_mode 0.45。
+
+**输出列**(9 行表): field, pair, kappa_point, ci_95_low, ci_95_high, n_obs, threshold, passes_threshold, p_value, p_value_holm。κ 落在 [0.30,0.70] 之外时 warnings.warn(RuntimeWarning)+ logger.warning。
+
+**外部依赖/确定性**: 纯 numpy/pandas, 无 LLM/Embedding API、无 BERT/faiss; seed=42 + NaN-aware 守卫保证确定性可复现; 不触 _llm_cache.db(只读上游已落盘的 stage 21 parquet)。
+
+**DAG 位置**: 验证阶段 39a(STAGES_VALIDATION), 上游=stage 21 tone_llms, 下游=Stata 表 20_tableA1(诊断披露用, 不进主面板)。
+
+■ 白话说明
+
+**这一步在做什么**: 同一篇新闻, 我们用三种不同"取景方式"读它——full(读全文)、ctx(只读目标银行附近那一小段)、ss(只读"银行和金融科技出现在同一句"的那几句)——然后各自给它打三个创新标签(这家银行报道讲的是真创新还是装样子、是底层技术还是表层应用、是自己研发还是找外人合作)。这一步像"让三位评委独立打分, 再两两比对他们的吻合程度"。这个吻合程度叫 Cohen's κ(一个一致性分数)。
+
+**为什么需要它**: 如果三种取景方式打出来的标签几乎一模一样(κ>0.70), 说明它们其实在量同一个东西、白白多算了一遍; 如果差得离谱(κ<0.30), 说明至少有一种取景方式在乱打、是噪声。落在中间才说明三种口径各有各的信息、互相补充。bootstrap 和 Holm 校正是为了说"这个吻合程度不是碰巧得来的", 让审稿人信服。
+
+**对最终面板/论文的影响**: 它本身不改银行-年度面板里的任何数字, 只产一张诊断表放进论文附录。它的价值是为论文"三轨互为稳健性"这个核心主张背书——证明三种文本口径既不是冗余重复, 也不是某一轨在添乱, 从而让主回归结论更可信。
+========================================================================
 """
 import os
 import warnings
@@ -42,9 +79,48 @@ _THRESHOLDS = {
     'innovation_collab_mode': 0.45,
 }
 
+# 三轨两两 pair (plan §⑧ / §7.3-A3): 每个 pair = (左轨后缀, 右轨后缀, pair 标签)。
+# ss = 银行+金科同句共现轨 (content_ss / suffix _ss); 三轨 → 3 个 pair。
+# 每维度对这 3 个 pair 各算一行 κ → 9 行总表 (含 'pair' 列)。
+_TRACK_PAIRS = [
+    ('_full', '_ctx', 'full_ctx'),
+    ('_full', '_ss', 'full_ss'),
+    ('_ctx', '_ss', 'ctx_ss'),
+]
 
-def _compute_kappa_with_bootstrap(y1, y2, n_boot=1000, seed=42):
-    """返回 (kappa_point, ci_low, ci_high, n_obs), bootstrap 对 NaN 安全。
+
+def _holm_correct(pvals):
+    """Holm (1979) step-down FWER 校正。
+
+    输入原始 p 值列表 (可含 NaN; NaN 不参与排序与计数, 输出仍 NaN);
+    返回与输入等长的校正后 p 值列表 (已 clip 到 [0, 1], 强制单调非降)。
+
+    白话: 同一维度下我们对 3 个轨道 pair 各做一次"κ 是否 > 0"的检验, 做了
+    多次检验就更容易碰巧显著。Holm 把 p 值从小到大排, 第 k 小的乘以 (m-k+1)
+    (m=有效检验数), 再保证序列不下降 — 比 Bonferroni 更不保守但同样控制 FWER。
+    """
+    idx_valid = [i for i, p in enumerate(pvals) if p is not None and not np.isnan(p)]
+    m = len(idx_valid)
+    out = [float('nan')] * len(pvals)
+    if m == 0:
+        return out
+    # 按原始 p 升序排序有效项
+    order = sorted(idx_valid, key=lambda i: pvals[i])
+    prev = 0.0
+    for rank, i in enumerate(order):
+        adj = (m - rank) * pvals[i]
+        adj = min(1.0, max(adj, prev))  # 单调非降 + clip 上界 1
+        out[i] = float(adj)
+        prev = adj
+    return out
+
+
+def _compute_kappa_with_bootstrap(y1, y2, n_boot=1000, seed=42, return_pvalue=False):
+    """返回 (kappa_point, ci_low, ci_high, n_obs) 4 元组, bootstrap 对 NaN 安全。
+
+    ``return_pvalue=True`` 时返回 5 元组 (..., p_value) — 单侧 bootstrap p 值
+    供 Holm FWER 用 (plan §⑧ 三轨化新增; 默认 False 保持旧 4 元组契约, 不破
+    既有 4 元组解包调用方 / 测试)。
 
     实现遵循 plan v1.37 §4.3.1 步骤 1-5:
       1. n_obs < 3 时短路 → (nan, nan, nan, n_obs)。
@@ -53,22 +129,27 @@ def _compute_kappa_with_bootstrap(y1, y2, n_boot=1000, seed=42):
       4. NaN-aware percentile (R30A-01/R30B-01): 要求 ≥50% 的 κ 为有限值,
          否则返回 (kappa_point, nan, nan, n_obs) + WARN。
       5. 边界: 原始输入某列为常量 → (nan, nan, nan, n_obs)。
+      6. p_value (return_pvalue=True): 单侧 bootstrap 检验 H0: κ=0 vs κ>0,
+         = 有限重抽中 κ ≤ 0 的比例 (供 Holm step-down 跨 3 个 pair 校正)。
 
     白话: bootstrap 就是"有放回地反复抽自己的样本再算一遍 κ", 用上千次
     结果的 2.5%/97.5% 分位数当置信区间。如果一半以上的重抽算不出有效 κ
     (比如抽到的子样本里某个标签全是同一个值), 区间就不可信, 直接报 NaN。
+    p 值则数"有多少次重抽的 κ ≤ 0", 占比越小说明 κ 越稳健地大于 0。
     """
     y1 = np.asarray(y1)
     y2 = np.asarray(y2)
     n_obs = len(y1)
     if n_obs < 3:
-        return (float('nan'), float('nan'), float('nan'), int(n_obs))
+        base = (float('nan'), float('nan'), float('nan'), int(n_obs))
+        return (*base, float('nan')) if return_pvalue else base
 
     point = cohens_kappa_2cat(y1, y2)
     kappa_point = point['kappa']
     # 原始输入常量列边界 (点估计已是 NaN → 直接返回 NaN 元组)
     if np.isnan(kappa_point):
-        return (float('nan'), float('nan'), float('nan'), int(n_obs))
+        base = (float('nan'), float('nan'), float('nan'), int(n_obs))
+        return (*base, float('nan')) if return_pvalue else base
 
     rng = np.random.default_rng(seed)
     kappas = []
@@ -85,59 +166,88 @@ def _compute_kappa_with_bootstrap(y1, y2, n_boot=1000, seed=42):
             RuntimeWarning,
             stacklevel=2,
         )
-        return (float(kappa_point), float('nan'), float('nan'), int(n_obs))
+        base = (float(kappa_point), float('nan'), float('nan'), int(n_obs))
+        return (*base, float('nan')) if return_pvalue else base
 
     ci_low = float(np.nanpercentile(kappas, 2.5))
     ci_high = float(np.nanpercentile(kappas, 97.5))
-    return (float(kappa_point), ci_low, ci_high, int(n_obs))
+    base = (float(kappa_point), ci_low, ci_high, int(n_obs))
+    if not return_pvalue:
+        return base
+    # 单侧 bootstrap p 值: H0 κ=0; = 有限重抽中 κ ≤ 0 的占比
+    p_value = float(sum(1 for k in finite if k <= 0.0) / len(finite))
+    return (*base, p_value)
 
 
 def compute_inter_track_kappa(df):
-    """返回 7 列 DataFrame: field, kappa_point, ci_95_low,
-    ci_95_high, n_obs, threshold, passes_threshold。
+    """返回 9 行 DataFrame: field, pair, kappa_point, ci_95_low, ci_95_high,
+    n_obs, threshold, passes_threshold, p_value, p_value_holm。
 
-    每个创新维度一行 (locus, substantiveness, collab_mode [v3.4.0])。"""
+    每个创新维度 (locus, substantiveness, collab_mode [v3.4.0]) × 3 个轨道
+    pair (full_ctx / full_ss / ctx_ss) = 9 行 (plan §⑧ 三轨化)。p_value_holm
+    在同维度的 3 个 pair 之间做 Holm step-down FWER 校正。
+
+    ss = 银行+金科同句共现轨 (content_ss); ss 列缺失时该 pair 行优雅退化为
+    NaN κ (镜像 col_full/col_ctx 缺失守卫)。"""
     rows = []
     for field, threshold in _THRESHOLDS.items():
-        col_full = f"{field}_full"
-        col_ctx = f"{field}_ctx"
-        if col_full not in df.columns or col_ctx not in df.columns:
-            rows.append({
+        # 同维度内逐 pair 计算 κ, 收集 p 值后再 Holm 校正 (family = 3 pair)
+        field_rows = []
+        raw_pvals = []
+        for left_sfx, right_sfx, pair_label in _TRACK_PAIRS:
+            col_l = f"{field}{left_sfx}"
+            col_r = f"{field}{right_sfx}"
+            if col_l not in df.columns or col_r not in df.columns:
+                # 任一轨列缺失 (典型: ss 列尚未物化) → NaN 行优雅跳过
+                field_rows.append({
+                    'field': field,
+                    'pair': pair_label,
+                    'kappa_point': float('nan'),
+                    'ci_95_low': float('nan'),
+                    'ci_95_high': float('nan'),
+                    'n_obs': 0,
+                    'threshold': threshold,
+                    'passes_threshold': False,
+                    'p_value': float('nan'),
+                })
+                raw_pvals.append(float('nan'))
+                continue
+            # 丢弃任一轨为 NaN 的成对行
+            sub = df[[col_l, col_r]].dropna()
+            kp, lo, hi, n, pv = _compute_kappa_with_bootstrap(
+                sub[col_l].to_numpy(),
+                sub[col_r].to_numpy(),
+                return_pvalue=True,
+            )
+            passes = (not np.isnan(kp)) and (kp >= threshold)
+            field_rows.append({
                 'field': field,
-                'kappa_point': float('nan'),
-                'ci_95_low': float('nan'),
-                'ci_95_high': float('nan'),
-                'n_obs': 0,
+                'pair': pair_label,
+                'kappa_point': kp,
+                'ci_95_low': lo,
+                'ci_95_high': hi,
+                'n_obs': n,
                 'threshold': threshold,
-                'passes_threshold': False,
+                'passes_threshold': bool(passes),
+                'p_value': pv,
             })
-            continue
-        # 丢弃任一轨为 NaN 的成对行
-        sub = df[[col_full, col_ctx]].dropna()
-        kp, lo, hi, n = _compute_kappa_with_bootstrap(
-            sub[col_full].to_numpy(),
-            sub[col_ctx].to_numpy(),
-        )
-        passes = (not np.isnan(kp)) and (kp >= threshold)
-        rows.append({
-            'field': field,
-            'kappa_point': kp,
-            'ci_95_low': lo,
-            'ci_95_high': hi,
-            'n_obs': n,
-            'threshold': threshold,
-            'passes_threshold': bool(passes),
-        })
+            raw_pvals.append(pv)
+        # Holm step-down 跨同维度 3 个 pair (plan §7.3-A3 FWER)
+        holm = _holm_correct(raw_pvals)
+        for r, ph in zip(field_rows, holm):
+            r['p_value_holm'] = ph
+        rows.extend(field_rows)
     return pd.DataFrame(rows, columns=[
-        'field', 'kappa_point', 'ci_95_low', 'ci_95_high',
-        'n_obs', 'threshold', 'passes_threshold',
+        'field', 'pair', 'kappa_point', 'ci_95_low', 'ci_95_high',
+        'n_obs', 'threshold', 'passes_threshold', 'p_value', 'p_value_holm',
     ])
 
 
 def _render_tex(table_df, out_path):
     """Booktabs 风格 TeX 表; 满足 plan v1.37 §4.7 验收正则
-    (\\toprule / \\midrule / \\bottomrule; 7 列; plan 原文写 2 数据行,
-    v3.4.0 增 collab_mode 维度后实际为每维度一行 = 3 行)。"""
+    (\\toprule / \\midrule / \\bottomrule; 列数随 schema, 现 10 列含 pair/p_value/
+    p_value_holm; plan 原文写 2 数据行, v3.4.0 增 collab_mode → 每维度一行,
+    第三轨 ss 三轨化后为 3 维 × 3 个 pair (full_ctx/full_ss/ctx_ss) = 9 行)。"""
     cols = list(table_df.columns)
     n_cols = len(cols)
     lines = [
@@ -181,10 +291,13 @@ def run_stage(config=None, logger=None):
 
     if not os.path.exists(input_path):
         logger.warning(f"Input not found: {input_path}; emitting NaN row table.")
+        # 三轨占位列 (full/ctx/ss); ss = 银行+金科同句共现轨
         df_subset = pd.DataFrame(columns=[
-            'innovation_locus_full', 'innovation_locus_ctx',
+            'innovation_locus_full', 'innovation_locus_ctx', 'innovation_locus_ss',
             'innovation_substantiveness_full', 'innovation_substantiveness_ctx',
+            'innovation_substantiveness_ss',
             'innovation_collab_mode_full', 'innovation_collab_mode_ctx',
+            'innovation_collab_mode_ss',
             'llm_verified_dual_both',
         ])
     else:
@@ -209,18 +322,18 @@ def run_stage(config=None, logger=None):
     table.to_csv(csv_path, index=False, encoding='utf-8')
     _render_tex(table, tex_path)
 
-    # 阈值区间告警, 按 plan v1.37 §4.3.1 step 6
+    # 阈值区间告警, 按 plan v1.37 §4.3.1 step 6 (三轨化: 含 pair 标签)
     for _, r in table.iterrows():
         k = r['kappa_point']
         if not np.isnan(k) and (k < 0.30 or k > 0.70):
             warnings.warn(
-                f"{r['field']} κ={k:.4f} outside expected [0.30, 0.70]; "
-                f"<0.30 = one track noise; >0.70 = dual-track redundant.",
+                f"{r['field']} [{r['pair']}] κ={k:.4f} outside expected "
+                f"[0.30, 0.70]; <0.30 = one track noise; >0.70 = tracks redundant.",
                 RuntimeWarning,
                 stacklevel=2,
             )
             logger.warning(
-                f"{r['field']} κ={k:.4f} outside [0.30, 0.70] sentinel range."
+                f"{r['field']} [{r['pair']}] κ={k:.4f} outside [0.30, 0.70] sentinel range."
             )
 
     logger.info(f"Wrote {csv_path} + {tex_path} (n_obs={int(table['n_obs'].iloc[0] if len(table) else 0)})")

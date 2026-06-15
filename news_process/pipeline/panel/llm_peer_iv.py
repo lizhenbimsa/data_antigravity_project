@@ -41,7 +41,9 @@
     对焦点银行 t 期结果仅经同行渠道起作用) 须在论文中明确披露。
 
 输出:
-  llm_peer_tone_iv_full/ctx: LLM-Peer 等权情感均值 IV (文章级 leave-out; 核心 IV)
+  llm_peer_tone_iv_full/ctx/ss: LLM-Peer 等权情感均值 IV (文章级 leave-out; 核心 IV;
+                         三轨 full/ctx/ss=银行+金科同句, 各自 just-identified 并排,
+                         ⚠ 禁混进同一 over-id Hansen J)
   llm_peer_coverage_iv:  LLM-Peer 等权声量均值 IV (辅助 IV; panel 级均值,
                          未做文章级 leave-out — 共享报道声量的披露项)
   llm_peer_count:        LLM-Peer 网络连通度 (诊断变量; 计全部归一化同行,
@@ -649,13 +651,14 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
 
     Args:
         panel: 银行-年份面板 DataFrame
-        df_exploded: 文章级 DataFrame (含 llm_vote_score_full/_ctx 时启用
+        df_exploded: 文章级 DataFrame (含 llm_vote_score_full/_ctx/_ss 时启用
             文章级 leave-out; 缺失时回退 panel 级均值并 loud 披露)
 
     Returns:
-        panel: 追加 llm_peer_tone_iv_full/_ctx, llm_peer_coverage_iv,
+        panel: 追加 llm_peer_tone_iv_full/_ctx/_ss, llm_peer_coverage_iv,
                llm_peer_count, llm_peer_n_effective, llm_peer_queried
-               (及五档 cutoff 后缀列) 的面板
+               (及五档 cutoff 后缀列) 的面板。三轨 (full/ctx/ss) 并排各自
+               just-identified, ⚠ 禁混进同一 over-id Hansen J。
 
     References:
         Cao, Y. et al. (2025). RAS, 30(4), 3344-3386.
@@ -831,6 +834,9 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
     _ART_TONE_BY_TRACK = {
         'full': 'llm_vote_score_full',  # 文章级列, 聚合后即 panel llm_vote_tone_full
         'ctx': 'llm_vote_score_ctx',
+        # 第三轨 ss (银行+金科同句): content_ss 的文章级 LLM 投票分, 聚合后即
+        # panel llm_vote_tone_ss; 镜像 ctx 键 (stage 21 ss 轨产 llm_vote_score_ss)。
+        'ss': 'llm_vote_score_ss',
     }
     art_tone_cols = [c for c in _ART_TONE_BY_TRACK.values()
                      if c in df_exploded.columns]
@@ -867,7 +873,11 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
 
                 # 取 t-1 年 LLM-peers 的情感均值 (规避同期反射问题 Manski, 1993)
                 peer_mask = (panel['year'] == lag_year) & (panel['target_bank'].isin(peers))
-                for _track in ('full', 'ctx'):
+                # 三轨 (full/ctx/ss) 并排各自 just-identified — ⚠ 铁律: full×ctx×ss
+                # 禁混进同一 over-id Hansen J (三轨高度共线, 见 iv_extensions Hansen J 段);
+                # ss 轨 (银行+金科同句) llm_vote_score_ss 缺列时 _art_col/_panel_tone_col
+                # 两守卫自动优雅跳过 (镜像 ctx 缺列行为)。
+                for _track in ('full', 'ctx', 'ss'):
                     _panel_tone_col = f'llm_vote_tone_{_track}'
                     _art_col = _ART_TONE_BY_TRACK[_track]
                     _out_col = f'llm_peer_tone_iv_{_track}_{c_str}'
@@ -910,10 +920,15 @@ def compute_llm_peer_iv(panel: pd.DataFrame,
                 ('llm_peer_tone_iv_full', 'llm_peer_tone_iv_full_80'),
                 ('llm_peer_coverage_iv', 'llm_peer_coverage_iv_80'),
             ]
-            # dual-track parity (2026-06-08): ctx 轨主回归无后缀变量 = cutoff=0.80
+            # 三轨 (full/ctx/ss) parity: ctx/ss 轨主回归无后缀变量 = cutoff=0.80
+            # (2026-06-08 ctx; 2026-06-14 +ss 银行+金科同句轨)
             if 'llm_vote_tone_ctx' in panel.columns:
                 _primary_maps.append(
                     ('llm_peer_tone_iv_ctx', 'llm_peer_tone_iv_ctx_80'))
+            # ss 轨主回归无后缀变量 = cutoff=0.80; 缺列 (stage 21 未产 ss) 时优雅跳过
+            if 'llm_vote_tone_ss' in panel.columns:
+                _primary_maps.append(
+                    ('llm_peer_tone_iv_ss', 'llm_peer_tone_iv_ss_80'))
             for primary_col, suffixed_col in _primary_maps:
                 if suffixed_col in iv_entry:
                     iv_entry[primary_col] = iv_entry[suffixed_col]

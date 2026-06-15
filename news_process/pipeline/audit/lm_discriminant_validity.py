@@ -32,11 +32,11 @@ HTMT < 0.85 (判别效度通过).
 输入 / 输出
 -----------
 输入: ``data/processed/40_panel_yearly.parquet`` (含 v3.5.1 + v3.5.2 全部列)
-输出 (按 _full / _ctx 双轨各写一份):
-    ``eval_reports/39e_lm_htmt_matrix_{ctx,full}.csv``   6×6 HTMT 矩阵
-    ``eval_reports/39e_lm_permutation_{ctx,full}.csv``   1000-rep permutation null (seed=42)
+输出 (按 full / ctx / ss 三轨各写一份):
+    ``eval_reports/39e_lm_htmt_matrix_{ctx,full,ss}.csv``   6×6 HTMT 矩阵
+    ``eval_reports/39e_lm_permutation_{ctx,full,ss}.csv``   1000-rep permutation null (seed=42)
     (仅产上述 CSV — 与 core/schemas.py 登记的契约一致; 不单独落盘 Cohen κ /
-     Cronbach α CSV, 亦不产 parquet)
+     Cronbach α CSV, 亦不产 parquet; ss = 银行+金科同句共现轨, 列缺失时该轨优雅跳过)
 
 实现状态
 --------
@@ -71,7 +71,7 @@ CONFIG = load_config()
 STAGE_NAME = "39e_lm_discriminant_validity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
-# 6 个 indicator 列 (双轨各一组; main spec 用 _ctx 与 P1 v3.6.0 G3 对齐)
+# 6 个 indicator 列 (三轨各一组; main spec 用 _ctx 与 P1 v3.6.0 G3 对齐)
 INDICATORS_CTX = [
     'uncert_frac_ctx',
     'litig_frac_ctx',
@@ -88,6 +88,9 @@ INDICATORS_FULL = [
     'mean_clarity_score_full',
     'mean_num_intensity_full',
 ]
+# 第三轨 ss = 银行+金科同句共现轨 (suffix _ss): 机械 _full→_ss swap (继承同 6 维度);
+# ss 列尚未物化时下游 compute_htmt_matrix 缺列优雅跳过 (present < 2 → 空矩阵)。
+INDICATORS_SS = [c.replace('_full', '_ss') for c in INDICATORS_FULL]
 
 HTMT_STRICT = 0.85
 HTMT_LENIENT = 0.90
@@ -245,8 +248,14 @@ def main():
     # 样本过滤 (HTMT / Cronbach α / permutation 全部在同一过滤后样本上计算)
     panel = _apply_llm_valid_mask(panel)
 
-    # 双轨各跑一次 (与 v3.5.1 stage 39d 对齐)
-    for suffix, indicators in (('ctx', INDICATORS_CTX), ('full', INDICATORS_FULL)):
+    # 三轨各跑一次 (full / ctx / ss; 与 v3.5.1 stage 39d 对齐)
+    # ss = 银行+金科同句共现轨; INDICATORS_SS 列尚未物化时 compute_htmt_matrix
+    # 内部 present < 2 → 返回空矩阵, 本轮 continue 优雅跳过 (镜像 ctx/full 缺列守卫)。
+    for suffix, indicators in (
+        ('ctx', INDICATORS_CTX),
+        ('full', INDICATORS_FULL),
+        ('ss', INDICATORS_SS),
+    ):
         logger.info(f"  ── 轨道 {suffix} ──")
         htmt = compute_htmt_matrix(panel, indicators)
         if htmt.empty:

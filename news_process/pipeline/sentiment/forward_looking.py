@@ -22,14 +22,16 @@ Accounting Studies, 23(1), 1-26.
 D_future = {将, 拟, 预计, 计划, 望, 展望, 期待, 着力, 力争, 致力于, 有望, ...}
 D_time   = {未来, 明年, 下季, 三年内, 中长期, 下一阶段, ...}
 
-panel 新增 2 列
----------------
-``frac_fls_{full,ctx}`` = (FLS 句数) / (总句数) ∈ [0, 1]
+panel 新增 3 列 (v3.9.0 三轨, +ss)
+---------------------------------
+``frac_fls_{full,ctx,ss}`` = (FLS 句数) / (总句数) ∈ [0, 1]
+(ss = 银行+金科同句共现轨; ``compute_fls_for_text`` 本身 track-agnostic,
+第三轨由调用方用 content_ss 文本驱动, 本模块无需改动)
 
 集成点 (PR #14)
 ---------------
-``pipeline.sentiment.tone_words::_dual_analyze`` 内对 content_full / content_ctx
-各调用一次本模块的 ``compute_fls_for_text``.
+``pipeline.sentiment.tone_words::_dual_analyze`` 内对 content_full / content_ctx /
+content_ss 各调用一次本模块的 ``compute_fls_for_text`` (三轨).
 
 G-A2.1 准入门控
 ---------------
@@ -187,10 +189,12 @@ def compute_fls_for_text(text: str) -> dict[str, float]:
 
 
 def get_panel_columns(suffix: str) -> list[str]:
-    """返回 panel 应追加的 1 列名 (按指定后缀; 双轨各 1 列, 共 2 列).
+    """返回 panel 应追加的 1 列名 (按指定后缀; 三轨各 1 列, 共 3 列, v3.9.0 +ss).
+
+    suffix-parameterized → 本函数 track-agnostic, 调用方传 '_ss' 即得同句共现轨列名。
 
     Args:
-        suffix: '_full' 或 '_ctx'.
+        suffix: '_full' / '_ctx' / '_ss' (ss = 银行+金科同句共现轨).
 
     Returns:
         [f'frac_fls{suffix}']

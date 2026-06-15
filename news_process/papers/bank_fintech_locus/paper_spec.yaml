@@ -84,10 +84,11 @@ inference:
     family: locus_pair          # {locus_layer_full, locus_scenario_full} 双处理同族
   exploratory:                  # 以下全标 robustness/exploratory, 非 co-equal headline
     - ctx_track_twin            # tech_frac_lc 双轨互为稳健性 (高相关孪生, 非独立假设)
+    - ss_track_twin             # tech_frac_ls 三轨第三主轨 (银行+金科同句共现轨; full/ctx/ss 互为稳健性, 非独立假设)
     - secondary_outcomes        # patent_fintech_count / noninterest_income_share / car (上市行扩展)
     - heterogeneity_splits      # 三波 fintech / SOE / bank_type / hub / size
     - network_roles             # bank_between_cent 中介/调节 (探索性附录)
-    - alternative_classifier    # locus_layer_ctx 替代分类器 (双轨 full/ctx)
+    - alternative_classifier    # locus_layer_ctx / locus_layer_ss 替代分类器 (三轨 full/ctx/ss)
   fwer_correction:
     method: romano_wolf         # rwolf step-down over locus_pair family (18_locus_robustness)
     family_def: "locus_layer_full + locus_scenario_full (treatment family)"
@@ -126,10 +127,15 @@ identification:
     # ctx 轨稳健性镜像 (2026-06-13 终审, iv_extensions.py lpeer_*): 内生孪生
     # tech_frac_lc 配 ctx 同业 LOO 工具 lpeer_locus_iv_ctx, 与 full 轨各自
     # just-identified 并排 (双轨互为稳健性); 非 full×ctx overid。模板 20_locus_iv_2sls。
-    secondary:  # 引擎真产的双轨变体 (与 primary 各自 just-identified, 勿合成 overid)
+    # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨): 内生孪生
+    # tech_frac_ls 配同句同业 LOO 工具 lpeer_locus_iv_ss, 与 full/ctx 轨各自
+    # just-identified 并排; 严禁 full×ctx×ss 合成 Hansen J overid (机械 _ctx→_ss swap)。
+    secondary:  # 引擎真产的三轨变体 (full/ctx/ss 各自 just-identified, 勿合成 overid)
       - leave_one_out_peer_locus_iv_lag1   # full 轨滞后
       - lpeer_locus_iv_ctx                 # ctx 轨同期 (32 字符约束用 lpeer_ 紧凑前缀)
       - lpeer_locus_iv_ctx_lag1            # ctx 轨滞后
+      - lpeer_locus_iv_ss                  # ss 轨同期 (银行+金科同句共现轨)
+      - lpeer_locus_iv_ss_lag1             # ss 轨滞后
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
 # 消费 panel 实存共现中心度列 → golden-safe; mediator/heterogeneity 须 production T=18; schema 对本块 no-op。

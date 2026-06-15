@@ -289,8 +289,11 @@ def compute_network_spillovers(
     logger.info(f"  面板年份范围: {min(years)}-{max(years)}, 共 {len(years)} 年")
 
     # 情感列: 使用 llm_vote_tone_full 作为核心情感指标
+    # 三轨 (full/ctx/ss): ss = 银行+金科同句共现轨 (content_ss; 回退=镜像 ctx→全文 body)。
+    # 同行网络 W 由共现邻接矩阵决定 (track-agnostic), 故 ss 轨复用同一 W 传播 llm_vote_tone_ss,
+    # 零额外计算 ($0); 缺 llm_vote_tone_ss 列时该轨经下方 `if col in panel.columns` 守卫优雅跳过。
     tone_cols = []
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:
         col = f'llm_vote_tone{track}'
         if col in panel.columns:
             tone_cols.append(col)
@@ -1304,7 +1307,7 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
     """单 spec 的 Embedding 同业网络构建 (一遍), 返回 (bank, year) → 指标 dict。
 
     suffix 在指标名上注入轨道标识 (canonical 主轨 = ""; ROBUSTNESS 稳健轨 = "_t2v"),
-    插在 ``_full``/``_ctx`` 之类的轨道后缀之前 (无轨道后缀时直接追加在末尾):
+    插在 ``_full``/``_ctx``/``_ss`` 之类的轨道后缀之前 (无轨道后缀时直接追加在末尾):
       emb_peer_tone_lag1_full  →  emb_peer_tone_lag1{suffix}_full
       bank_emb_sim_mean_lag1   →  bank_emb_sim_mean_lag1{suffix}
 
@@ -1325,13 +1328,16 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
     text_col = '内容'
     title_col = '标题'
 
-    # dual-track parity (2026-06-08): W_emb 同业网基于文本相似度 (track-agnostic), 与被传播
-    # 的 tone 无关 → 用同一 W_emb 同时传播 full / ctx 两轨 tone, 零额外嵌入 ($0)。此前仅
-    # _full (emb_peer_tone_lag1{suffix}_full), 缺 _ctx 孪生; panel 已有 llm_vote_tone_ctx
-    # 可直接喂入。sim_key (bank_emb_sim_mean_lag1) 是文本相似度均值, track-agnostic, 不分轨。
+    # 三轨 parity (full/ctx/ss, 原 dual-track 2026-06-08): W_emb 同业网基于文本相似度
+    # (track-agnostic), 与被传播的 tone 无关 → 用同一 W_emb 同时传播 full / ctx / ss 三轨
+    # tone, 零额外嵌入 ($0)。ss = 银行+金科同句共现轨 (llm_vote_tone_ss; 回退=镜像 ctx→全文
+    # body)。panel 已有 llm_vote_tone_ctx/ss 可直接喂入; 缺列时各自 `in panel.columns` 守卫
+    # 优雅跳过。sim_key (bank_emb_sim_mean_lag1) 是文本相似度均值, track-agnostic, 不分轨。
     _tone_tracks = [('_full', 'llm_vote_tone_full')]
     if 'llm_vote_tone_ctx' in panel.columns:
         _tone_tracks.append(('_ctx', 'llm_vote_tone_ctx'))
+    if 'llm_vote_tone_ss' in panel.columns:
+        _tone_tracks.append(('_ss', 'llm_vote_tone_ss'))
     sim_key = f'bank_emb_sim_mean_lag1{suffix}'  # fix(omni-g-net-spill-03, 2026-06-11)
 
     years = sorted(panel['year'].unique())
@@ -1403,7 +1409,7 @@ def _compute_embedding_peer_network_pass(df_exploded: pd.DataFrame,
         sim_df = pd.DataFrame(sim_w, index=bank_list, columns=bank_list)
         W_emb = row_stochastic_normalize(sim_df)
 
-        # ── 5. emb_peer_tone = W_emb(t-1) × tone(t-1), 两轨共享同一 W_emb ──
+        # ── 5. emb_peer_tone = W_emb(t-1) × tone(t-1), 三轨 (full/ctx/ss) 共享同一 W_emb ──
         panel_lag = panel[panel['year'] == lag_year].set_index('target_bank')
         # fix(netspill-embpeertone-fillna, metric-audit 2026-06-10 review-closure NSP-1):
         # 与 peer_tone/peer_cov 同型修复 (原 completeness-06 仅守孤立行)。嵌入网 W_emb 稠密
@@ -1463,11 +1469,16 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
     通过余弦相似度构建动态同业网络权重矩阵, 计算加权同行情感
     作为内生性处理的控制变量。
 
-    双轨 (v3.7.x): 主轨 (MAIN spec = text-embedding-3-small) 写 canonical 列
-    (emb_peer_tone_lag1_full / bank_emb_sim_mean_lag1); 稳健轨 (ROBUSTNESS spec =
-    shibing624/text2vec) 用 **各自独立的 spec 嵌入各自的文本** 写同名 + '_t2v' 列
+    嵌入双模型 (v3.7.x, 与情感三轨正交的另一维): 主轨 (MAIN spec =
+    text-embedding-3-small) 写 canonical 列 (emb_peer_tone_lag1_full /
+    bank_emb_sim_mean_lag1); 稳健轨 (ROBUSTNESS spec = shibing624/text2vec) 用
+    **各自独立的 spec 嵌入各自的文本** 写同名 + '_t2v' 列
     (emb_peer_tone_lag1_t2v_full / bank_emb_sim_mean_lag1_t2v)。稳健轨失败时其
     '_t2v' 列填 NaN 并记日志, 不影响 canonical 主轨。
+    ⚠ 区分两个独立轴: ① 嵌入模型轴 (canonical / _t2v); ② 情感三轨 (full/ctx/ss,
+    ss=银行+金科同句共现)。每个嵌入模型轴下, emb_peer_tone 对全部存在的情感轨
+    (llm_vote_tone_full/ctx/ss) 各产一列 → emb_peer_tone_lag1{_t2v?}{_full|_ctx|_ss};
+    sim_mean 是文本相似度均值, track-agnostic, 不分情感轨。
 
     fix(omni-g-net-spill-02/03/04, 2026-06-11): 完整超级文档分块嵌入 (去 8000 字符
     前缀截断) + sim 列加 _lag1 显式披露 t-1 文本口径 + sim_mean 按索引去对角
@@ -1529,11 +1540,14 @@ def compute_embedding_peer_network(df_exploded: pd.DataFrame,
         logger.warning("  未生成任何 Embedding 同业网络变量")
 
     # ── 稳健轨 (ROBUSTNESS twin): text2vec → *_t2v* 列 (失败仅填 NaN, 不阻塞主轨) ──
-    # dual-track parity (2026-06-08): _t2v 轨复用同一 pass → 自动产 _full + _ctx 孪生;
-    # 失败兜底亦需对两轨同时 NaN 填充, 保持降级对称。
+    # 三轨 parity (full/ctx/ss, 原 dual-track 2026-06-08): _t2v 轨复用同一 pass → 自动产
+    # _full + _ctx + _ss 孪生; 失败兜底亦需对三轨同时 NaN 填充, 保持降级对称。ss 列在缺
+    # llm_vote_tone_ss 时不追加 (与 _compute_embedding_peer_network_pass 的轨守卫同口径)。
     t2v_tone_cols = ['emb_peer_tone_lag1_t2v_full']
     if 'llm_vote_tone_ctx' in panel.columns:
         t2v_tone_cols.append('emb_peer_tone_lag1_t2v_ctx')
+    if 'llm_vote_tone_ss' in panel.columns:
+        t2v_tone_cols.append('emb_peer_tone_lag1_t2v_ss')
     t2v_sim_col = 'bank_emb_sim_mean_lag1_t2v'  # fix(omni-g-net-spill-03, 2026-06-11)
     if not _ROBUSTNESS_SPEC:
         logger.info("  无 embedding_robustness spec, 跳过 _t2v 稳健轨")

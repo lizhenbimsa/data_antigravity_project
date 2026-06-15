@@ -853,9 +853,9 @@ def run_diagnostics(panel: pd.DataFrame):
     logger.info(f"    → Tetlock (2007) 指出新闻 volume 和 content 是独立维度。")
     logger.info(f"    → 如果 |r(tone, nf_coverage)| 较低, 支持 H1。")
 
-    # 选取核心变量
+    # 选取核心变量 (情感 LLM 三轨 full/ctx/ss; ss=银行+金科同句共现, 缺列优雅跳过)
     diag_cols = []
-    for c in ['llm_vote_tone_full', 'llm_vote_tone_ctx',
+    for c in ['llm_vote_tone_full', 'llm_vote_tone_ctx', 'llm_vote_tone_ss',
               'dict_avg_tone_full', 'bert_avg_pos_full']:
         if c in panel.columns:
             diag_cols.append(c)
@@ -899,7 +899,9 @@ def run_diagnostics(panel: pd.DataFrame):
     for c in ['nf_ln_coverage', 'nf_media_breadth']:
         if c not in pearson.columns:
             continue
-        for tone_col in ['llm_vote_tone_full', 'dict_avg_tone_full']:
+        # 情感 LLM 三轨 full/ctx/ss (ss=银行+金科同句共现) + 词典 full; 缺列优雅跳过
+        for tone_col in ['llm_vote_tone_full', 'llm_vote_tone_ctx',
+                         'llm_vote_tone_ss', 'dict_avg_tone_full']:
             if tone_col not in pearson.columns:
                 continue
             r = pearson.loc[tone_col, c]
@@ -957,12 +959,15 @@ STATA_LABELS_41 = {
     # 银行注册地 (步骤 40 的 7c 生成)
     'bank_province':               'Bank HQ Province',
     'bank_city':                   'Bank HQ City',
-    # Leave-one-out 情感 IV (步骤 40 的 7d 生成)
+    # Leave-one-out 情感 IV (步骤 40 的 7d 生成; 三轨 full/ctx/ss)
     # 用途: ivreghdfe Y (tone = prov_leave1out_tone_full) X, ...
+    # ⚠ full×ctx×ss 三轨各自 just-identified, 禁混进同一 over-id Hansen J。
     'prov_leave1out_tone_full':     'Prov Leave-1-Out Tone (Full)',
     'prov_leave1out_tone_ctx':      'Prov Leave-1-Out Tone (Ctx)',
+    'prov_leave1out_tone_ss':       'Prov Leave-1-Out Tone (Bank+FinTech same-sentence)',
     'city_leave1out_tone_full':     'City Leave-1-Out Tone (Full)',
     'city_leave1out_tone_ctx':      'City Leave-1-Out Tone (Ctx)',
+    'city_leave1out_tone_ss':       'City Leave-1-Out Tone (Bank+FinTech same-sentence)',
     # 治理约束型合约 (Zhou et al., 2026, JBR §2.1; Core et al. 2003)
     'GOV_equity_ratio':             'Equity Comp / Total Comp Ratio',
     'GOV_cash_ratio':               'Cash Comp / Total Comp Ratio',

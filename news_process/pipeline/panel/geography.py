@@ -8,8 +8,9 @@
   - 银行地理信息合并 (merge_bank_geography)
   - Leave-One-Out 省/市情感 IV (compute_leave_one_out_sentiment)
   - 四梯度地理距离缓冲 (compute_geo_proximity_buffers)
-    → 50/100/150/200 km 下的 40 个媒体接近度指标 (双轨化后 28→40,
-      fix(omni-g-geography-05, 2026-06-11) 计数勘误)
+    → 50/100/150/200 km 下的媒体接近度指标 (三轨 full/ctx/ss; 历史: full/ctx 化后 28→40,
+      fix(omni-g-geography-05, 2026-06-11) 计数勘误; third-track-ss 情感三项各补
+      _ss 孪生 40→52, ss 源列缺失时优雅跳过)
       + 1 个省会插补诊断列 prox_geo_imputed_frac
     → Gurun & Butler (2012, JF); Engelberg & Parsons (2011, JF)
   - 六层区域同行 FinTech 新闻覆盖渗透率 (compute_regional_imitation_pressure)
@@ -80,7 +81,9 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
     _BERT3 = [b for b in BERT_MODELS if b in THREE_CLASS_MODELS]
 
     # --- LLM 逐模型综合 ---
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨 (content_ss; 镜像 ctx 回退公理)。
+    # _safe_mean 对缺列优雅返回 NaN → ss 源列 (stage 21/22/23 的 *_ss) 未落盘前不崩。
+    for track in ['_full', '_ctx', '_ss']:
         new_cols[f'llm_models_avg_tone{track}'] = _safe_mean([f'{s}_tone{track}' for s in LLM_MODELS])
         new_cols[f'llm_models_avg_tone_sum{track}'] = _safe_mean([f'{s}_tone_sum{track}' for s in LLM_MODELS])
         new_cols[f'llm_models_avg_cont{track}'] = _safe_mean([f'{s}_cont_mean{track}' for s in LLM_MODELS])
@@ -132,7 +135,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         new_cols[f'bert_avg_pos_hw{track}'] = _safe_mean([f'{b}_pos_hw{track}' for b in _BERT3])
         new_cols[f'bert_avg_neg_hw{track}'] = _safe_mean([f'{b}_neg_hw{track}' for b in _BERT3])
 
-    logger.info(f"  生成双轨综合指标完成")
+    logger.info(f"  生成三轨 (full/ctx/ss) 综合指标完成")
 
     # --- 文章平均长度 ---
     # (a) 字符口径: avg_article_length = ln(1 + bank-year 平均【字符数】).
@@ -146,20 +149,35 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
 
     # (b) 词口径: ln_word_count = ln(1 + bank-year 平均【jieba 词数】) — 真 MLENGTH 词口径
     #     (Li 2008 JAE; He et al. 2024 IRFA). 2026-06-05 新增 (批 #7), 与 (a) 字符口径
-    #     互为长度稳健 (双轨纪律)。源列 avg_word_count_{full,ctx} 来自 encode H2 段。
-    for _track in ('_full', '_ctx'):
+    #     互为长度稳健 (三轨纪律)。源列 avg_word_count_{full,ctx,ss} 来自 encode H2 段。
+    #     _ss = 银行+金科同句共现轨; 缺列 (ss 未落盘) 时 if 守卫优雅跳过。
+    for _track in ('_full', '_ctx', '_ss'):
         _wc = f'avg_word_count{_track}'
         if _wc in panel.columns:
             new_cols[f'ln_word_count{_track}'] = np.log1p(panel[_wc])
     if 'avg_word_count_full' in panel.columns:
-        logger.info(f"  ln_word_count_{{full,ctx}} (ln(1+平均词数), 词口径 MLENGTH) 已生成")
+        logger.info(f"  ln_word_count_{{full,ctx,ss}} (ln(1+平均词数), 词口径 MLENGTH) 已生成")
 
     # (c) 汉字口径: ln_han_count = ln(1 + bank-year 平均【CJK 汉字数】) — 文章长度第三口径。
     #     fix(hanzi-char-dual, 2026-06-13): 字符口径 (a) 含数字/标点/拉丁, 词口径 (b) 受
-    #     分词切分影响; 汉字口径剔除非汉字符号、不依赖分词, 与 (a)(b) 互为长度稳健 (双轨
+    #     分词切分影响; 汉字口径剔除非汉字符号、不依赖分词, 与 (a)(b) 互为长度稳健 (三轨
+    #     纪律), 兑现"既要汉字也要字符"。源列 avg_han_count_{full,ctx,ss} 来自 encode H2 段
+    #     (= n_han_real 均值, n_han_real = is_cjk 过滤计数, 与 hard_char 的 n_han 同源)。
+    #     _ss = 银行+金科同句共现轨; 缺列 (ss 未落盘) 时 if 守卫优雅跳过。
+    for _track in ('_full', '_ctx', '_ss'):
+        _hc = f'avg_han_count{_track}'
+        if _hc in panel.columns:
+            new_cols[f'ln_han_count{_track}'] = np.log1p(panel[_hc])
+    if 'avg_han_count_full' in panel.columns:
+        logger.info(f"  ln_han_count_{{full,ctx,ss}} (ln(1+平均汉字数), 汉字口径) 已生成")
+
+    # (c) 汉字口径: ln_han_count = ln(1 + bank-year 平均【CJK 汉字数】) — 文章长度第三口径。
+    #     fix(hanzi-char-dual, 2026-06-13): 字符口径 (a) 含数字/标点/拉丁, 词口径 (b) 受
+    #     分词切分影响; 汉字口径剔除非汉字符号、不依赖分词, 与 (a)(b) 互为长度稳健 (两种口径
     #     纪律), 兑现"既要汉字也要字符"。源列 avg_han_count_{full,ctx} 来自 encode H2 段
     #     (= n_han_real 均值, n_han_real = is_cjk 过滤计数, 与 hard_char 的 n_han 同源)。
-    for _track in ('_full', '_ctx'):
+    # 三轨 (full/ctx/ss): avg_han_count_ss 缺列时 if-in-columns 守卫优雅跳过。
+    for _track in ('_full', '_ctx', '_ss'):
         _hc = f'avg_han_count{_track}'
         if _hc in panel.columns:
             new_cols[f'ln_han_count{_track}'] = np.log1p(panel[_hc])
@@ -172,7 +190,8 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         if f'n_articles{suffix}' not in panel.columns:
             continue
 
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨; _safe_mean 缺列优雅返回 NaN。
+        for track in ['_full', '_ctx', '_ss']:
             # LLM 逐模型综合
             new_cols[f'llm_models_avg_tone{suffix}{track}'] = _safe_mean(
                 [f'{s}_tone{suffix}{track}' for s in LLM_MODELS])
@@ -208,7 +227,9 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
     #   乘积含义: 高覆盖 + 高波动 = 高叙事暴露度
     logger.info("  ─── Fintech Exposure 复合指标 ───")
     has_news = panel['n_articles'] > 0
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨; std_col 缺列 (ss tone_std 未落盘)
+    # 时走 else 分支填 NaN, 与 ctx 缺列同口径 (graceful skip)。
+    for track in ['_full', '_ctx', '_ss']:
         std_col = f'llm_vote_tone_std{track}'
         if std_col in panel.columns and 'ln_news_coverage' in panel.columns:
             # 零新闻行 → NaN (与面板情感变量 NaN 语义一致)
@@ -267,7 +288,7 @@ _STANDARDIZE_COLS = [
     #   → 置信度越低 → 测量误差越大 → Tone 系数向零衰减
     'avg_llm_conf_{t}',
 ]
-# 无双轨的标量变量
+# 无轨道后缀的标量变量 (track-agnostic, 不随 full/ctx/ss 三轨分裂)
 _STANDARDIZE_SCALAR = [
     'ln_news_coverage', 'media_breadth',
     'avg_article_length',
@@ -275,12 +296,18 @@ _STANDARDIZE_SCALAR = [
 
 
 def _expand_track_templates(templates: list) -> list:
-    """将含 {t} 占位符的模板展开为 _full、_ctx 双轨变量名 (remove-title-track)。"""
+    """将含 {t} 占位符的模板展开为 _full、_ctx、_ss 三轨变量名 (remove-title-track)。
+
+    _ss = 银行+金科同句共现轨 (content_ss, 镜像 ctx 回退公理)。展开后的 _ss 列
+    若上游 (stage 21/22/23 *_ss) 未落盘, standardize_panel_variables 的 notna 计数
+    守卫 (≥10) 会把它判入 missing/skipped, 不影响 full/ctx (graceful skip)。
+    """
     result = []
     for tmpl in templates:
         if '{t}' in tmpl:
             result.append(tmpl.replace('{t}', 'full'))
             result.append(tmpl.replace('{t}', 'ctx'))
+            result.append(tmpl.replace('{t}', 'ss'))
         else:
             result.append(tmpl)
     return result
@@ -642,11 +669,13 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
       因为 leave-one-out 公式假设每家银行在 (geo, year) 内
       仅出现一次 (balance_panel 保证 target_bank×year 唯一)。
 
-    新增列 (双层 × 双轨道 = 4 个变量):
+    新增列 (双层 × 三轨道 = 6 个变量):
       prov_leave1out_tone_full — 省级 leave-one-out, Full 轨道
       prov_leave1out_tone_ctx  — 省级 leave-one-out, Ctx 轨道
+      prov_leave1out_tone_ss   — 省级 leave-one-out, SS 轨道 (银行+金科同句)
       city_leave1out_tone_full — 城市级 leave-one-out, Full 轨道
       city_leave1out_tone_ctx  — 城市级 leave-one-out, Ctx 轨道
+      city_leave1out_tone_ss   — 城市级 leave-one-out, SS 轨道 (银行+金科同句)
 
     变量命名:
       使用 _GEO_SHORT 映射确保缩写一致:
@@ -659,10 +688,11 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
 
     Args:
         panel: Bank-Year 面板, 须含 bank_province, bank_city,
-               llm_vote_tone_full, llm_vote_tone_ctx, year 列。
+               llm_vote_tone_full, llm_vote_tone_ctx, llm_vote_tone_ss
+               (ss 缺列时该轨 graceful skip), year 列。
 
     Returns:
-        panel: 附加 4 个 leave-one-out 列的 DataFrame。
+        panel: 附加 6 个 leave-one-out 列的 DataFrame (双层 × 三轨道)。
 
     白话: leave-one-out (留一法) 工具变量 = "同省/同城**其他**银行当年的
     平均舆论"。逻辑是: 本地媒体生态会同时影响一片银行, 但邻居们的报道
@@ -691,7 +721,10 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
             logger.warning(f"  {geo_col} 不可用, 跳过 {geo_label}")
             continue
 
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨; tone_col 缺列 (ss 未落盘)
+        # 时下方 `if tone_col not in panel.columns: continue` 守卫优雅跳过该轨。
+        # prov_leave1out_tone_ss (24字符) / city_leave1out_tone_ss (24字符) 均 ≤32。
+        for track in ['_full', '_ctx', '_ss']:
             tone_col = f'llm_vote_tone{track}'
             # 使用 _GEO_SHORT 缩写映射, 确保变量名与 Stata 模板一致
             # bank_province → prov_leave1out_tone_full (25字符)
@@ -763,16 +796,20 @@ def compute_leave_one_out_sentiment(panel: pd.DataFrame) -> pd.DataFrame:
     # dict_avg_tone → dict_tone — 原 prov/city_leave1out_dict_avg_tone_full
     # 为 33 字符, 超 Stata 32 字符上限被 sanitize_stata_columns 单侧缩写为
     # prov_l1o_dict_avg_tone_full, 而其 _ctx 孪生 (恰 32 字符) 保留原名 →
-    # .dta 内同一双轨变量 full/ctx 词干不同, Stata 通配
+    # .dta 内同一三轨变量 (full/ctx/ss) 词干不同, Stata 通配
     # `*_leave1out_dict_avg_tone_*` 只捕获 ctx 轨。成对改名保持词干对称且
-    # 全部 ≤32 字符 (bert_avg_pos 族本就 ≤32, 不变)。
+    # 全部 ≤32 字符 (bert_avg_pos 族本就 ≤32, 不变)。_ss(3)≤_ctx(4) → ss 轨
+    # 用同压缩词干 prov_leave1out_dict_tone_ss (28字符) 天然 ≤32, 不触发截断。
     _OUT_STEM = {'dict_avg_tone': 'dict_tone', 'bert_avg_pos': 'bert_avg_pos'}
     for base_col, desc in extra_tone_cols.items():
         for geo_col, geo_label in [('bank_province', '省级'),
                                     ('bank_city', '城市级')]:
             if geo_col not in panel.columns or (panel[geo_col] == '').all():
                 continue
-            for track in ['_full', '_ctx']:
+            # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨; dict_avg_tone_ss /
+            # bert_avg_pos_ss 由上方 compute_composite_indicators 三轨化产出, 缺列
+            # (ss 源未落盘) 时下方 `if tone_col not in panel.columns` 守卫优雅跳过。
+            for track in ['_full', '_ctx', '_ss']:
                 tone_col = f'{base_col}{track}'
                 out_col = (f'{_GEO_SHORT[geo_col]}_leave1out_'
                            f'{_OUT_STEM[base_col]}{track}')
@@ -879,15 +916,16 @@ def compute_geo_proximity_buffers(
 ) -> pd.DataFrame:
     """计算多梯度地理距离缓冲下的媒体接近度指标。
 
-    对 50/100/150/200 km 四个阈值, 分别计算 10 个变量, 共 40 个
-    (2026-06-08 dual-track parity: 情感三项补 _ctx 孪生, 28→40):
+    对 50/100/150/200 km 四个阈值, 分别计算情感三轨 (full/ctx/ss) 与 4 个
+    track-agnostic 列 (2026-06-08 dual-track parity 28→40; third-track-ss
+    三轨化后情感三项各补 _ss 孪生, 40→52, ss 源列缺失时优雅跳过填 NaN):
       - prox_{d}km_n_media:    距离圈内的媒体来源数 (track-agnostic 单轨)
       - prox_{d}km_n_articles: 距离圈内的文章数 (track-agnostic 单轨)
       - prox_{d}km_frac:       距离圈内文章占比 (track-agnostic 单轨)
       - prox_{d}km_is_local:   是否存在距离圈内媒体 (0/1, track-agnostic 单轨)
-      - prox_{d}km_tone_full / _ctx:   距离圈内文章的平均情感 (双轨)
-      - prox_{d}km_pos_frac / _ctx:    距离圈内正面文章比例 (双轨; full 沿用无后缀历史名)
-      - prox_{d}km_neg_frac / _ctx:    距离圈内负面文章比例 (双轨; full 沿用无后缀历史名)
+      - prox_{d}km_tone_full / _ctx / _ss:   距离圈内文章的平均情感 (三轨; ss=银行+金科同句)
+      - prox_{d}km_pos_frac / _ctx / _ss:    距离圈内正面文章比例 (三轨; full 沿用无后缀历史名)
+      - prox_{d}km_neg_frac / _ctx / _ss:    距离圈内负面文章比例 (三轨; full 沿用无后缀历史名)
 
     另追加 1 个阈值无关的诊断列 (fix(omni-g-geography-04, 2026-06-11)):
       - prox_geo_imputed_frac: 可定位文章中经 Level-3 省会回退插补坐标的
@@ -913,8 +951,9 @@ def compute_geo_proximity_buffers(
         panel: Bank-Year 面板
 
     Returns:
-        panel: 追加 40 个距离缓冲变量 (fix(omni-g-geography-05): 双轨化后
-               28→40 计数勘误) + 1 个省会插补诊断列 prox_geo_imputed_frac
+        panel: 追加距离缓冲变量 (三轨 full/ctx/ss; fix(omni-g-geography-05): full/ctx 化后 28→40;
+               third-track-ss 三轨化后情感三项各补 _ss → 40→52, ss 源列缺失时
+               填 NaN) + 1 个省会插补诊断列 prox_geo_imputed_frac
 
     白话: 以银行总部为圆心画 50/100/150/200 公里四个圈, 分别统计圈内媒体
     对它的报道量和语调 — 检验"近处媒体是否更捧本地银行"。注意坐标有水分:
@@ -1085,20 +1124,24 @@ def compute_geo_proximity_buffers(
                     else:
                         buf_results[key][f'{prefix}_n_media'] = 0
 
-                # 情感聚合 (LLM 投票分数) — dual-track parity (2026-06-08):
-                # 此前仅聚合 _full 文章列 (硬编码 llm_vote_score_full / is_positive_full /
-                # is_negative_full), 无 _ctx 孪生; 而同模块 LOO-IV (compute_*_leave_one_out)
-                # 已 `for track in ['_full','_ctx']` 双轨。此处复用该双轨惯用法补 _ctx 孪生。
+                # 情感聚合 (LLM 投票分数) — dual-track parity (2026-06-08) →
+                # three-track parity (third-track-ss): 此前仅聚合 _full 文章列 (硬编码
+                # llm_vote_score_full / is_positive_full / is_negative_full), 无 _ctx 孪生;
+                # 而同模块 LOO-IV (compute_*_leave_one_out) 已三轨。此处复用该惯用法补
+                # _ctx / _ss 孪生 (_ss = 银行+金科同句共现轨, content_ss 文章级派生
+                # llm_vote_score_ss / is_positive_ss / is_negative_ss; 缺列时下方
+                # `_tone_col in within.columns` 守卫优雅跳过填 NaN)。
                 # 命名: 保留既有列名作 full 轨 (tone 既有 _full 后缀; pos_frac/neg_frac 既有
                 # 无后缀=隐式 full, 沿用项目 _lc/_sc 对角线"隐式 full + 显式 ctx"约定 → 零
-                # 重命名、不破坏下游 Stata 模板/golden), ctx 轨统一加 _ctx 后缀。
+                # 重命名、不破坏下游 Stata 模板/golden), ctx/ss 轨统一加 _ctx / _ss 后缀。
                 # fix(omni-g-geography-01, 2026-06-11): float64 归一 — 文章级
                 # llm_vote_score/is_positive/is_negative 是 nullable Int8
                 # (encode.py, NA=测量失败/平局); n_within>0 但圈内该轨全 NA 时
                 # .mean() 返回 pd.NA (非 np.nan), 混入 buf_rows 后该列被
                 # pd.DataFrame 推断为 object dtype。先 astype('float64')
                 # (NA→NaN) 再 mean, 全-NA 圈得 np.nan, dtype 恒为 float64。
-                for _track, _pn_suffix in (('_full', ''), ('_ctx', '_ctx')):
+                for _track, _pn_suffix in (('_full', ''), ('_ctx', '_ctx'),
+                                           ('_ss', '_ss')):
                     _tone_col = f'llm_vote_score{_track}'
                     if _tone_col in within.columns and n_within > 0:
                         buf_results[key][f'{prefix}_tone{_track}'] = (

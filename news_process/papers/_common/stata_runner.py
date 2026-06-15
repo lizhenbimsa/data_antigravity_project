@@ -159,7 +159,7 @@ def run_do(do_path: str | Path,
 _KNOWN_PLACEHOLDERS_MAIN = {
     'MAIN_LOCUS_TRACK',  # lf / lc
     'MAIN_SUBST_TRACK',  # sf / sc
-    'MAIN_SENT_TRACK',   # full / ctx
+    'MAIN_SENT_TRACK',   # 三轨 (full / ctx / ss); ss = 银行+金科同句共现轨
     'PROJECT_ROOT',      # 绝对路径
 }
 
@@ -177,11 +177,13 @@ _KNOWN_PLACEHOLDERS_PAPER_LEVEL = {
 
 # Tier 3: paper-specific (稀疏占位符, 仅需要它的 paper 使用)
 _KNOWN_PLACEHOLDERS_PAPER_SPECIFIC = {
-    # benefit_society (v3.2.1 dual-track 双轨扩展 — plan v2.12)
+    # benefit_society (v3.2.1 起三轨 full/ctx/ss — plan v2.12 双轨基础上
+    # 2026-06-14 加入 ss 银行+金科同句共现轨, 与 full/ctx 并列第三主轨)
     'ATTITUDE_VAR',      # 别名 = ATTITUDE_FULL (向后兼容)
     'ATTITUDE_FULL', 'ATTITUDE_CTX',
-    'BENEFIT_POS_FRAC_FULL', 'BENEFIT_POS_FRAC_CTX',
-    'BENEFIT_NEG_FRAC_FULL', 'BENEFIT_NEG_FRAC_CTX',
+    'ATTITUDE_SS',       # 第三轨 (银行+金科同句); = ATTITUDE_CTX 的 _ctx→_ss 机械镜像
+    'BENEFIT_POS_FRAC_FULL', 'BENEFIT_POS_FRAC_CTX', 'BENEFIT_POS_FRAC_SS',
+    'BENEFIT_NEG_FRAC_FULL', 'BENEFIT_NEG_FRAC_CTX', 'BENEFIT_NEG_FRAC_SS',
     'MECHANISM_TOKEN', 'MECHANISM_HIDDEN', 'MECHANISM_SUBST',
     'ROBUSTNESS_DV', 'BOOTSTRAP_REPS', 'RANDOM_SEED',
     # benefit_society 22_tableA9_external_validation 外部效度占位符
@@ -192,12 +194,21 @@ _KNOWN_PLACEHOLDERS_PAPER_SPECIFIC = {
     # brokerage_network
     'MAIN_ENDOG', 'MAIN_IV', 'TREATMENT_DCEP', 'TREATMENT_SANDBOX',
     'CENTRALITY_BTW', 'CENTRALITY_CONS', 'CENTRALITY_BROKER',
+    # network-roles 多角色化 (network-metrics-elevation 2026-06-13): 主/次/中介中心度 +
+    # 跨族第二工具 (over-id) + 网络异质性分组; default 值见 derivative_replication.py:141-146。
+    # reaudit-t18-2026-06-15: 此前漏登记 → brokerage build-replication 抛"未知占位符"
+    # (烟雾 §四.6); 模板 16/17/19/20 已用, 补登记使全 11 篇可打包。
+    'PRIMARY_CENT', 'SECONDARY_CENT', 'MEDIATOR_CENT', 'MOD_CENT', 'OVERID_IV2', 'NET_HET_VAR',
     # strategic_diff
     'MAIN_DIFF_VAR', 'FLUIDITY_VAR', 'SIM_MAX_VAR',
     'BARTIK_IV', 'TONE_VAR', 'COHERENCE_VAR',
     # llm_peer
     'LLM_PEER_IV', 'LLM_PEER_COVERAGE_IV', 'COMPETE_IDX', 'CUTOFF_VARS',
     # (TONE_VAR 与 strategic_diff 共用)
+    # 第三轨 ss (银行+金科同句共现, 2026-06-14): strategic_diff / llm_peer 两篇
+    # 2SLS 论文的 TONE_VAR ss 镜像 (= TONE_VAR 的 _full→_ss 机械镜像); 全平价
+    # 覆盖, 见 THIRD_TRACK_SAME_SENTENCE_PLAN_2026-06-14.md §7.3-A2。
+    'TONE_VAR_SS',
 }
 
 # 并集 — 任何模板可合法引用的占位符超集。
@@ -210,7 +221,10 @@ _KNOWN_PLACEHOLDERS = (
 _VALID_SPEC_VALUES = {
     'MAIN_LOCUS_TRACK': {'lf', 'lc'},
     'MAIN_SUBST_TRACK': {'sf', 'sc'},
-    'MAIN_SENT_TRACK':  {'full', 'ctx'},
+    # 第三轨 'ss' (银行+金科同句共现) 2026-06-14 加入: 与 full/ctx 并列第三主
+    # 情感轨; 全平价覆盖 (见 scripts/audit/THIRD_TRACK_SAME_SENTENCE_PLAN_2026-06-14.md
+    # §⑩/§7.3-A2)。模板 foreach sent in full ctx ss 第 3 列以 capture confirm 守卫。
+    'MAIN_SENT_TRACK':  {'full', 'ctx', 'ss'},
 }
 
 # P1 (2026-05-15): paper_id 白名单 — 与 paper_config._VALID_PAPER_IDS 同步.
@@ -364,7 +378,16 @@ def build_replication_package(
 
     if template_dir is None:
         base = Path(__file__).resolve().parent / 'stata_templates'
-        template_dir = base if paper_id == 'bank_fintech_tone' else base / paper_id
+        if paper_id == 'bank_fintech_tone':
+            template_dir = base
+        elif (base / paper_id).is_dir():
+            template_dir = base / paper_id
+        else:
+            # reaudit-t18-2026-06-15: provisional 两篇 (bank_media_disagreement /
+            # bank_news_clarity) 模板在 papers/<paper_id>/stata_templates/ (不在 _common 下,
+            # 见 CLAUDE.md "不计入 142")。回退到该路径使全 11 篇均可 build-replication。
+            papers_dir = Path(__file__).resolve().parent.parent  # papers/
+            template_dir = papers_dir / paper_id / 'stata_templates'
     template_dir = Path(template_dir)
     if not template_dir.is_dir():
         raise FileNotFoundError(f"Template dir not found: {template_dir}")
@@ -674,6 +697,70 @@ def _cli_verify_replication(args) -> int:
     return 0
 
 
+# reaudit-t18-2026-06-15: doctor [6/6] Stata ado 检查所需 — 顶刊稳健性/复现必装包清单。
+# 用途: 外部复现者在自己机器跑 `doctor` 即知须 ssc install 哪些包 (空跑稳健性的根因之一)。
+_REQUIRED_STATA_ADOS = {
+    # name: (purpose, install_cmd)
+    'reghdfe':            ('高维固定效应回归 (主回归引擎)', 'ssc install reghdfe'),
+    'ftools':             ('reghdfe Mata 依赖', 'ssc install ftools'),
+    'require':            ('reghdfe 依赖管理 (新版 reghdfe/ivreghdfe 必需)', 'ssc install require'),
+    'ivreghdfe':          ('HDFE 2SLS (IV 主路径)', 'ssc install ivreghdfe'),
+    'ivreg2':             ('2SLS + KP F / Hansen J (IV 回退路径)', 'ssc install ivreg2'),
+    'weakiv':             ('弱工具 Anderson-Rubin CI (audit IV-2)', 'ssc install weakiv'),
+    'boottest':           ('野聚类自助法 wild bootstrap (小 G 推断, audit INFER-3)', 'ssc install boottest'),
+    'rwolf':              ('Romano-Wolf FWER 校正 (audit INFER-1)', 'ssc install rwolf'),
+    'wyoung':             ('Westfall-Young FWER battery (brokerage 中心度)', 'ssc install wyoung'),
+    'csdid':              ('Callaway-SantAnna 错时 DiD (audit DID-1)', 'ssc install csdid'),
+    'bacondecomp':        ('Goodman-Bacon 分解 (audit DID-1)', 'ssc install bacondecomp'),
+    'eventstudyinteract': ('Sun-Abraham 事件研究 (audit DID-2)', 'ssc install eventstudyinteract'),
+    'honestdid':          ('Rambachan-Roth HonestDiD (audit DID-3)', 'ssc install honestdid'),
+    'ppmlhdfe':           ('PPML 计数 outcome (P4 专利 / P5 并购)', 'ssc install ppmlhdfe'),
+    'xtbreak':            ('结构断点 / 分时代稳定性 (audit CY-2)', 'ssc install xtbreak'),
+    'winsor2':            ('缩尾稳健性', 'ssc install winsor2'),
+    'estout':             ('esttab/estout 表导出', 'ssc install estout'),
+    'coefplot':           ('系数图', 'ssc install coefplot'),
+}
+_OPTIONAL_STATA_ADOS = {
+    'bartik_weight': ('官方 GPSS Rotemberg 权重 — 本 LOO-Bartik 设计用内联投影替代, 非必装',
+                      'net install bartik_weight, from(https://raw.githubusercontent.com/paulgp/bartik-weight/master/code)'),
+    'condivreg':     ('条件 IV 置信区间 (weakiv 回退层; weakiv 已为首选, 非必装)', 'findit condivreg'),
+    'rivtest':       ('弱工具稳健检验 (weakiv 回退层, 非必装)', 'findit rivtest'),
+}
+
+
+def _candidate_ado_dirs() -> list:
+    """返回候选 Stata ado 目录 (personal PLUS + Stata 安装 base/site), 供 doctor ado 扫描。
+
+    不启动 Stata (保持 doctor 快): 直接扫文件系统。personal PLUS 是 ssc install 默认落点。
+    """
+    import os
+    dirs = []
+    home = os.path.expanduser('~')
+    dirs.append(os.path.join(home, 'ado', 'plus'))
+    dirs.append(os.path.join(home, 'ado', 'personal'))
+    try:
+        bin_path = discover_stata_bin()
+    except Exception:
+        bin_path = None
+    if bin_path:
+        bdir = os.path.dirname(bin_path)
+        for sub in (('ado', 'base'), ('ado', 'site')):
+            dirs.append(os.path.join(bdir, *sub))
+    return [d for d in dirs if os.path.isdir(d)]
+
+
+def _ado_installed(name: str, ado_dirs: list) -> bool:
+    """启发式: ado 存于 <dir>/<首字母>/<name>.ado 或 <dir>/<name>.ado 或 <dir>/_/<name>.ado。"""
+    import os
+    for d in ado_dirs:
+        for cand in (os.path.join(d, name[0].lower(), name + '.ado'),
+                     os.path.join(d, name + '.ado'),
+                     os.path.join(d, '_', name + '.ado')):
+            if os.path.exists(cand):
+                return True
+    return False
+
+
 def _cli_doctor(args) -> int:
     """CLI 子命令: doctor — 诊断 v3.2.0 用户层依赖完整性 (plan v14 §6 风险表 R20-A)."""
     try:
@@ -693,7 +780,7 @@ def _cli_doctor(args) -> int:
     print("=" * 60)
 
     # 1. Python deps (硬依赖 5 + optional 1)
-    print("\n[1/5] Python 依赖")
+    print("\n[1/6] Python 依赖")
     REQUIRED_DEPS = ['pandas', 'numpy', 'pyarrow', 'pytest', 'yaml']
     OPTIONAL_DEPS = {
         # v3.2.0 M1/7: pyreadstat 改为 OPTIONAL (pandas to_stata fallback 可代)
@@ -727,7 +814,7 @@ def _cli_doctor(args) -> int:
             n_warn += 1
 
     # 2. Stage 14 输入 (LLM launch 前置)
-    print("\n[2/5] Pipeline 数据")
+    print("\n[2/6] Pipeline 数据")
     try:
         from news_process.core.config import load_config
         CONFIG = load_config()
@@ -749,7 +836,7 @@ def _cli_doctor(args) -> int:
         n_err += 1
 
     # 3. LLM cache (stage 35 LLM 升级前置)
-    print("\n[3/5] LLM cache (stage 35 LLM 升级)")
+    print("\n[3/6] LLM cache (stage 35 LLM 升级)")
     try:
         from news_process.core.config import load_config
         cache_path = os.path.join(load_config()['paths']['output_dir'], '_llm_cache.db')
@@ -764,7 +851,7 @@ def _cli_doctor(args) -> int:
         n_warn += 1
 
     # 4. YUNWU_API_KEY (LLM launch 前置)
-    print("\n[4/5] LLM API access")
+    print("\n[4/6] LLM API access")
     if os.environ.get('YUNWU_API_KEY', '').strip():
         print("   [OK] YUNWU_API_KEY set")
         n_ok += 1
@@ -773,7 +860,7 @@ def _cli_doctor(args) -> int:
         n_warn += 1
 
     # 5. Stata bin (CLI build-replication 后用)
-    print("\n[5/5] Stata 可执行")
+    print("\n[5/6] Stata 可执行")
     try:
         from news_process.papers._common.stata_runner import discover_stata_bin
         bin_path = discover_stata_bin()
@@ -786,6 +873,36 @@ def _cli_doctor(args) -> int:
     except Exception as e:
         print(f"   [WARN] Stata bin check failed: {e}")
         n_warn += 1
+
+    # 6. Stata ado 包 (顶刊稳健性 / 复现必装; reaudit-t18-2026-06-15)
+    print("\n[6/6] Stata ado 包 (顶刊稳健性 / 复现必装)")
+    ado_dirs = _candidate_ado_dirs()
+    if not ado_dirs:
+        print("   [WARN] 未定位 Stata ado 目录 (personal PLUS / 安装 base);")
+        print("          在 Stata 内对各包跑 `which <pkg>` 自查, 缺则 `ssc install <pkg>`")
+        n_warn += 1
+    else:
+        if verbose:
+            print(f"   扫描目录: {', '.join(ado_dirs)}")
+        n_ado_miss = 0
+        for name, (purpose, install) in _REQUIRED_STATA_ADOS.items():
+            if _ado_installed(name, ado_dirs):
+                print(f"   [OK] {name}" + (f" — {purpose}" if verbose else ""))
+                n_ok += 1
+            else:
+                print(f"   [WARN] {name} 未装 — {purpose}")
+                print(f"          装: {install}")
+                n_warn += 1
+                n_ado_miss += 1
+        for name, (purpose, install) in _OPTIONAL_STATA_ADOS.items():
+            if _ado_installed(name, ado_dirs):
+                print(f"   [OK] {name} (optional)")
+                n_ok += 1
+            else:
+                print(f"   [INFO] {name} 未装 (optional) — {purpose}")
+        if n_ado_miss:
+            print(f"   → {n_ado_miss} 个必装 ado 缺失: 对应顶刊稳健性块 (弱工具 AR-CI / FWER /"
+                  " 错时 DiD / wild bootstrap 等) 会优雅跳过、不产出承诺统计量, 投稿前须装齐。")
 
     print("\n" + "=" * 60)
     print(f"  Summary: {n_ok} OK / {n_warn} WARN / {n_err} ERR")
@@ -831,8 +948,9 @@ def main():
                     help='Main locus track (required for bank_fintech_tone; ignored else)')
     bp.add_argument('--subst', choices=['sf', 'sc'], default=None,
                     help='Main substantiveness track (required for bank_fintech_tone)')
-    bp.add_argument('--sent', choices=['full', 'ctx'], default=None,
-                    help='Main sentiment track (required for bank_fintech_tone)')
+    bp.add_argument('--sent', choices=['full', 'ctx', 'ss'], default=None,
+                    help='Main sentiment track (full/ctx/ss; ss=银行+金科同句共现 '
+                         'Bank+FinTech same-sentence; required for bank_fintech_tone)')
     bp.add_argument('--root', type=str, default='.',
                     help='Project root for replication package (default: cwd)')
     bp.set_defaults(func=_cli_build_replication)

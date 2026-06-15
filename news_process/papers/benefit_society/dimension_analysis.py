@@ -268,10 +268,18 @@ def aggregate_to_bank_year(
 
 
 # ---------------------------------------------------------------------------
-# 7. 双轨辅助函数 (plan v2.12, F-B2 / F-M3 / F-V2-B2 — 回写到
+# 7. 多轨辅助函数 (plan v2.12, F-B2 / F-M3 / F-V2-B2 — 回写到
 #    pipeline/features 层, 而非共享的 panel runner)
+#
+# 说明: benefit 维度子指数走 SBERT **嵌入轴**, 该轴仍 full/ctx 两轨 —— ss
+# (银行+金科同句) 情感轨在情感阶段 (21/22/23/24) 已三轨化, 但 benefit 嵌入
+# (Stage 27 27_benefit_embeddings_*.npy) 的 ss 切片在 v1 延后 (plan §④/§7.5),
+# 暂无 27_benefit_embeddings_ss.npy → 本文件刻意保持 full/ctx。下方 dict/枚举
+# 的 '# no-ss-track' 即声明此处有意两轨 (非遗漏)。
+# legacy (full/ctx) 示例 — 本文件 prose 豁免标记 (benefit 嵌入轴 ss 待 30a 上线)
 # ---------------------------------------------------------------------------
 
+# no-ss-track: benefit SBERT 嵌入轴 ss 切片 v1 延后 (plan §④/§7.5), 无 _ss.npy
 _DEFAULT_EMBEDDINGS = {
     "full": "news_process/data/processed/27_benefit_embeddings_full.npy",
     "ctx":  "news_process/data/processed/27_benefit_embeddings_ctx.npy",
@@ -357,6 +365,7 @@ def merge_dimensions_to_panel(
     """
     if track not in ("full", "ctx", "both"):
         raise ValueError(f"track must be 'full' | 'ctx' | 'both', got {track!r}")
+    # no-ss-track: benefit 嵌入轴仍 full/ctx (ss 切片 v1 延后, 无 _ss.npy)
     tracks = ["full", "ctx"] if track == "both" else [track]
 
     if panel is None:
@@ -412,14 +421,16 @@ def merge_dimensions_to_panel(
 def main(argv: list[str] | None = None) -> int:
     """CLI 入口: 计算 4 维度子指数, 并可选聚合到 bank-year 面板.
 
-    Plan v2.12: ``--track {full,ctx,both}`` (默认 both) 产出双轨输出
-    ``benefit_{core_op,growth,resource,compliance}_{full,ctx}``。
+    Plan v2.12: ``--track {full,ctx,both}`` (默认 both) 产出 benefit 嵌入轴
+    的 full/ctx 两轨输出 ``benefit_{core_op,growth,resource,compliance}_{full,ctx}``
+    (ss 情感轨已三轨化, 但 benefit SBERT 嵌入轴 ss 切片 v1 延后, 暂无 _ss)。
 
     成功或优雅跳过 (可选输入缺失) 时返回 0; 硬错误直接 raise。
     """
     parser = argparse.ArgumentParser(
         prog="python -m news_process.papers.benefit_society.dimension_analysis",
-        description="4 维度子指数计算 (core_op / growth / resource / compliance, 双轨)",
+        description="4 维度子指数计算 (core_op / growth / resource / compliance; "
+                    "benefit 嵌入轴 full/ctx, ss 延后)",
         # F-V2-H2 向后兼容: 关闭前缀缩写匹配, 使旧版 --text-embeddings
         # (Phase 0) 与新版 --text-embeddings-full (v2.12) 不产生歧义。
         allow_abbrev=False,
@@ -488,7 +499,9 @@ def main(argv: list[str] | None = None) -> int:
     directions = compute_direction_vectors(pos, neg, cache_db_path=args.cache_db)
     logger.info(f"Computed {len(directions)} dimensional direction vectors: {list(directions)}")
 
+    # no-ss-track: benefit 嵌入轴仍 full/ctx (ss 切片 v1 延后, 无 _ss.npy)
     tracks = ["full", "ctx"] if args.track == "both" else [args.track]
+    # no-ss-track: 嵌入文件路径同上 — ss 待 30a 嵌入上线后再加 _ss 路径
     track_paths = {
         "full": Path(args.text_embeddings_full),
         "ctx":  Path(args.text_embeddings_ctx),

@@ -42,14 +42,16 @@
   - 词典法/LLM情感: 衡量"通用正面/负面"，不针对金融科技经营维度
 
 输出变量 (Bank-Year 级):
-  benefit_mean_full/ctx:      态度均值 ∈ [-1, 1]
-  benefit_std_full/ctx:       态度离散度 ∈ [0, 1] (单观测 bank-year 为 NaN,
+  benefit_mean_full/ctx/ss:      态度均值 ∈ [-1, 1]
+  benefit_std_full/ctx/ss:       态度离散度 ∈ [0, 1] (单观测 bank-year 为 NaN,
                               fix(omni-g-benefit-05): 不再 fillna(0) — '只有 1 篇报道'
                               与 '多篇完全一致' 在统计上不可区分, 与核心 tone std 族对齐)
-  benefit_pos_frac_full/ctx:  正态度文章占比 ∈ [0, 1]
-  benefit_neg_frac_full/ctx:  负态度文章占比 ∈ [0, 1]
-  (上述 4 指标 × full/ctx 双轨另各有 _t2v 稳健 twin 列:
-   benefit_mean_t2v_full/ctx 等; MAIN=API 1536 维 / ROBUSTNESS=text2vec 768 维, 共 16 列)
+  benefit_pos_frac_full/ctx/ss:  正态度文章占比 ∈ [0, 1]
+  benefit_neg_frac_full/ctx/ss:  负态度文章占比 ∈ [0, 1]
+  (上述 4 指标 × full/ctx/ss 三轨另各有 _t2v 稳健 twin 列:
+   benefit_mean_t2v_full/ctx/ss 等; MAIN=API 1536 维 / ROBUSTNESS=text2vec 768 维, 共 24 列)
+  ss 轨 (银行+金科同句, content_ss): 仅取"同句内同时含 目标银行∧金科词"的句 ±N 句窗,
+   回退=无共现→镜像 ctx 回退全文 body (ss_is_fallback=True); 与 full/ctx 并列第三主轨。
 
 pos/neg_frac 阈值中心 (KNOWN-OPEN① 修复, fix(omni-g-benefit, 2026-06-11)):
   median-center 不再每次 run 现算 — 首跑以全样本投影 pooled median 计算并持久化到
@@ -701,7 +703,7 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
         df_exploded: 包含新闻原文的文章-银行级数据集
 
     Returns:
-        pd.DataFrame: 合并了 16 列 benefit_* 指标的面板 (MAIN + _t2v 双模型 × Full/Ctx 双轨 × 4 指标)
+        pd.DataFrame: 合并了 24 列 benefit_* 指标的面板 (MAIN + _t2v 双模型 × Full/Ctx/SS 三轨 × 4 指标)
     """
     logger.info("=" * 60)
     logger.info("步骤 7h-benefit: 金融科技经营效益态度投影")
@@ -737,24 +739,29 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
         if _CACHE_EMBEDDINGS:
             _persist_direction_vector(direction, suffix, spec=spec)
 
-        # ---- 6.3 双轨投影 ----
-        # 【术语】双轨投影 (Dual-Track Projection):
+        # ---- 6.3 三轨投影 ----
+        # 【术语】三轨投影 (Triple-Track Projection):
         #   - Full 轨: 标题 + 全文正文，完整语义信号
         #   - Ctx  轨: 实体上下文 (entity_context.py 提取)，消除非目标实体的情感污染
-        #   与 Stage 25/26 的双轨设计同构
-        # 【白话】Full 轨 = 整篇新闻; Ctx 轨 = 只看提到这家银行的段落
-        for track in ['full', 'ctx']:
+        #   - SS   轨: 银行+金科同句共现 (content_ss; 仅"同句内同时含 目标银行∧金科词"
+        #             的句 ±N 句窗, 无共现→镜像 ctx 回退全文 body), 锁定金科归因更窄的语境
+        #   与 Stage 25/26 的双轨设计同构 (此处扩为三轨)
+        # 【白话】Full 轨 = 整篇新闻; Ctx 轨 = 只看提到这家银行的段落;
+        #   SS 轨 = 只看"既提这家银行又提金融科技"的同一句话 (归因最严)
+        for track in ['full', 'ctx', 'ss']:
             col_score = f'benefit_score{suffix}_{track}'
 
-            # 检查 Ctx 轨数据是否存在
-            if track == 'ctx' and 'content_ctx' not in df_exploded.columns:
-                logger.info(f"  [{spec_tag}] {track.upper()} 轨: content_ctx 列不存在, 跳过")
+            # 检查 Ctx/SS 轨数据是否存在 (content_ctx / content_ss 缺列时优雅跳过,
+            # 镜像 ctx 守卫: ss 由 stage 13 ctx_materializer 物化, 旧 schema 可能缺列)
+            content_col_for_track = f'content_{track}'
+            if track in ('ctx', 'ss') and content_col_for_track not in df_exploded.columns:
+                logger.info(f"  [{spec_tag}] {track.upper()} 轨: {content_col_for_track} 列不存在, 跳过")
                 continue
 
             # 向量化文本构建（避免 iterrows 性能瓶颈）
             if track == 'full':
                 # P1 修复 (metric-audit 2026-06-02, 病根A): 改读 content_full (= stage13
-                # prepend_title(标题,内容), 与 tone_words/tone_berts/ctx 轨同源), 替代裸
+                # prepend_title(标题,内容), 与 tone_words/tone_berts/ctx/ss 轨同源), 替代裸
                 # 空格拼接; 缺列回退 prepend_title 内联构建.
                 if 'content_full' in df_exploded.columns:
                     texts = df_exploded['content_full'].fillna('').astype(str).str.strip().tolist()
@@ -764,7 +771,8 @@ def compute_benefit_society_panel(panel: pd.DataFrame,
                     _b = df_exploded.get('内容', pd.Series('', index=df_exploded.index)).fillna('').astype(str)
                     texts = [prepend_title(t, b).strip() for t, b in zip(_t, _b)]
             else:
-                texts = df_exploded['content_ctx'].fillna('').astype(str).str.strip().tolist()
+                # ctx → content_ctx / ss → content_ss (同句共现; 回退已在 stage 13 镜像 ctx)
+                texts = df_exploded[content_col_for_track].fillna('').astype(str).str.strip().tolist()
 
             # 过滤空文本
             valid_mask = np.array([bool(t) for t in texts])

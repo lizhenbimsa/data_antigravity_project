@@ -22,6 +22,10 @@
      Borusyak-Hull-Jaravel(2022) "shift 准随机"视角 — 论文勿主张双重识别;
      诊断走 Rotemberg(share)而非 shift 平衡性. (本模块各函数注释中对 BHJ 的引用
      仅作对比, 非声称满足其前提.)
+     ⚠ 三轨铁律: bartik_*_iv_full / _ctx / _ss (ss=银行+金科同句) 是同一识别策略
+       在三种文本归因窗口下的并列工具, **各自 just-identified 单独进 2SLS**;
+       绝不可把 full+ctx+ss 三轨拼进同一 over-id Hansen J (三轨高度共线, 互为
+       稳健性而非独立矩条件 — 与 iv_extensions Hansen J 红线一致)。
   2. **diagnose_rotemberg_weights 是近似, 非 GPSS α_k**: 用 Cov(share,BIV)/
      Var(BIV) 的单变量 OLS 投影代替真正的两阶段 Rotemberg 分解; 其"负权重/HHI"
      仅作快速集中度提示, **正式论文的 Rotemberg 权重须走 Stata bartik_weight 包**
@@ -119,7 +123,9 @@ def compute_bartik_iv(panel: pd.DataFrame,
                         同时给定时以 base_years 为准)
 
     输出列:
-        bartik_{prefix}_iv_full / _ctx         — Bartik IV 值
+        bartik_{prefix}_iv_full / _ctx / _ss   — Bartik IV 值 (三轨; ss=银行+金科同句,
+                                                 ⚠ 三轨各自 just-identified, 禁混进
+                                                 同一 over-id Hansen J)
         bartik_{prefix}_share_{group}          — 基期份额
         bank_{prefix}                          — 银行分组标签
 
@@ -160,7 +166,8 @@ def compute_bartik_iv(panel: pd.DataFrame,
     if len(base) == 0:
         logger.warning(f"  基期 T0={resolved_base_years} 无数据, "
                        f"Bartik IV [{group_prefix}] 跳过")
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss): ss=银行+金科同句, 基期无数据时三轨同置 NaN
+        for track in ['_full', '_ctx', '_ss']:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
         return panel
 
@@ -232,7 +239,9 @@ def compute_bartik_iv(panel: pd.DataFrame,
         axis=1,
     ).copy()
 
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss): ss=银行+金科同句轨, 消费 llm_vote_score_ss 文章列;
+    # 缺列 (stage 21 未产 ss) 时下方守卫置 NaN 优雅跳过 (镜像 ctx)。
+    for track in ['_full', '_ctx', '_ss']:
         score_col = f'llm_vote_score{track}'
         if score_col not in df_with_group.columns:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
@@ -322,7 +331,8 @@ def compute_bartik_iv(panel: pd.DataFrame,
     # → IV 置 NaN (share 列保留, 仅供诊断)。
     _pre_base_mask = panel['year'] < max(resolved_base_years)
     if _pre_base_mask.any():
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss) 前视掩码同步
+        for track in ['_full', '_ctx', '_ss']:
             iv_col = f'bartik_{group_prefix}_iv{track}'
             if iv_col in panel.columns:
                 panel.loc[_pre_base_mask, iv_col] = np.nan
@@ -406,7 +416,9 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
         axis=1,
     ).copy()
 
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss): ss=银行+金科同句轨, 消费 llm_vote_score_ss; 缺列时
+    # 守卫置 NaN 优雅跳过 (镜像 ctx)。
+    for track in ['_full', '_ctx', '_ss']:
         score_col = f'llm_vote_score{track}'
         if score_col not in df_cat.columns:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
@@ -476,7 +488,8 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
     # fix(omni-g-ivdid-02, 2026-06-11): share 前视掩码 (与 compute_bartik_iv 同口径)
     _pre_base_mask = panel['year'] < max(resolved_base_years)
     if _pre_base_mask.any():
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss) 前视掩码同步
+        for track in ['_full', '_ctx', '_ss']:
             iv_col = f'bartik_{group_prefix}_iv{track}'
             if iv_col in panel.columns:
                 panel.loc[_pre_base_mask, iv_col] = np.nan
@@ -484,8 +497,8 @@ def compute_bartik_iv_fintech(panel: pd.DataFrame,
             f"  [{group_prefix}] {int(_pre_base_mask.sum())} 行面板年份早于基期末年 "
             f"{max(resolved_base_years)} → IV 置 NaN (share 前视掩码)")
 
-    # 诊断日志
-    for track in ['_full', '_ctx']:
+    # 诊断日志 (三轨 full/ctx/ss)
+    for track in ['_full', '_ctx', '_ss']:
         iv_col = f'bartik_{group_prefix}_iv{track}'
         if iv_col in panel.columns:
             n_valid = panel[iv_col].notna().sum()
@@ -525,7 +538,8 @@ def compute_zone_leave1out(panel: pd.DataFrame,
         - 经济圈 LOO: 同经济圈(跨省)内其他银行 → 样本更充足，捕捉区域共同冲击
 
     输出列:
-        zone_leave1out_tone_full / zone_leave1out_tone_ctx
+        zone_leave1out_tone_full / zone_leave1out_tone_ctx / zone_leave1out_tone_ss
+        (三轨; ss=银行+金科同句轨; 缺 llm_vote_score_ss 时优雅置 NaN)
         bank_zone (银行所属经济圈标签)
     """
     # Step 1: 为面板加上经济圈标签
@@ -551,7 +565,9 @@ def compute_zone_leave1out(panel: pd.DataFrame,
     # 银行的 zone LOO 输出 NaN, 镜像 compute_bartik_iv 排除 'other' 的口径。
     df_z = df_z[df_z['_zone'] != 'other']
 
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss): ss=银行+金科同句轨, 消费 llm_vote_score_ss; 缺列时
+    # 置 NaN 优雅跳过 (镜像 ctx)。
+    for track in ['_full', '_ctx', '_ss']:
         score_col = f'llm_vote_score{track}'
         out_col = f'zone_leave1out_tone{track}'
         if score_col not in df_z.columns:
@@ -594,10 +610,10 @@ def compute_zone_leave1out(panel: pd.DataFrame,
         panel = panel.merge(tmp[['target_bank', 'year', out_col]],
                             on=['target_bank', 'year'], how='left')
 
-    # 诊断
+    # 诊断 (三轨 full/ctx/ss)
     zone_dist = panel.drop_duplicates('target_bank')['bank_zone'].value_counts()
     logger.info(f"  经济圈分布: {dict(zone_dist)}")
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:
         out_col = f'zone_leave1out_tone{track}'
         if out_col in panel.columns:
             n_valid = panel[out_col].notna().sum()

@@ -37,7 +37,11 @@ def _patch_engine(monkeypatch):
 
 
 def _toy_df_exploded():
-    """4 银行 × 1 年的合成文章级数据 (满足 strat_diff 年度 ≥3 银行门槛)。"""
+    """4 银行 × 1 年的合成文章级数据 (满足 strat_diff 年度 ≥3 银行门槛)。
+
+    三轨 (ss, 2026-06-14): 同时供 content_ss (银行+金科同句轨) 输入列, 与
+    content_ctx 平价 — 嵌入特征模块经泛型 content 读取, ss 输入列对其透明。
+    """
     banks = ['工商银行', '建设银行', '中国银行', '农业银行']
     rows = []
     for i, b in enumerate(banks):
@@ -47,6 +51,7 @@ def _toy_df_exploded():
             '标题': f'{b} 金融科技 标题 {i}',
             '内容': f'{b} 区块链 移动支付 智能风控 数字化转型 内容 {i} ' * 3,
             'content_ctx': f'{b} 实体上下文 金融科技 段落 {i} ' * 2,
+            'content_ss': f'{b} 同句共现 金融科技 区块链 {i} ' * 2,
         })
     return pd.DataFrame(rows)
 
@@ -155,7 +160,10 @@ def _fake_embed_spec_aware(*, main_returns_none=False, robust_returns_none=False
 
 
 def _toy_df_exploded_2yr():
-    """4 银行 × 2 年 (2019/2020): network lag-1 (year-1) pass 在 2020 才有滞后数据。"""
+    """4 银行 × 2 年 (2019/2020): network lag-1 (year-1) pass 在 2020 才有滞后数据。
+
+    三轨 (ss, 2026-06-14): 同时供 content_ss 输入列与 content_ctx 平价。
+    """
     banks = ['工商银行', '建设银行', '中国银行', '农业银行']
     rows = []
     for year in (2019, 2020):
@@ -166,6 +174,7 @@ def _toy_df_exploded_2yr():
                 '标题': f'{b} 金融科技 标题 {year}-{i}',
                 '内容': f'{b} 区块链 移动支付 智能风控 数字化转型 内容 {year}-{i} ' * 3,
                 'content_ctx': f'{b} 实体上下文 金融科技 段落 {year}-{i} ' * 2,
+                'content_ss': f'{b} 同句共现 金融科技 区块链 {year}-{i} ' * 2,
             })
     return pd.DataFrame(rows)
 

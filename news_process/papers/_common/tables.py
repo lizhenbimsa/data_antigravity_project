@@ -43,9 +43,16 @@ def sanitize_stata_columns(columns: Sequence[str],
     3. 重复的**输入**名追加 ``_<n>`` 消歧 (DataFrame 列本就唯一, 对真实面板为 no-op;
        仅加固通用工具对重复输入的鲁棒性)。
     4. 缩写 + 截断到 **32 字符** (``stata_export.STATA_VAR_NAME_MAXLEN`` 硬编码),
-       保留 ``_full``/``_ctx`` 等判别后缀。
+       保留 ``_full``/``_ctx``/``_ss`` 等三轨判别后缀。
     5. 残留非 ASCII (中文 正面/负面/中性 → pos/neg/neu); 截断后冲突用 6-char md5
        后缀去重 (跨 run 确定性)。
+
+    三轨 (full / ctx / ss) 截断撞名核验 (2026-06-14):
+       ``_ss``(3 字符) **短于** ``_ctx``(4) → 任何能塞进 32 字符的 ``_ctx`` 列, 其
+       ``_ss`` 孪生 (机械 ``_ctx``→``_ss`` swap) 一定也能, 不会因截断而与 full/ctx 撞名;
+       且第 5 步的 md5 后缀去重 (非裸截断) 已对任何残余碰撞 fail-safe。故三元组
+       (``X_full`` / ``X_ctx`` / ``X_ss``) 经本函数清洗后**不撞名**, 无需新增缩写规则
+       (与 stage 46 ``stata_export`` 写前的三元组唯一性断言互为冗余护栏)。
 
     Args:
         columns:   原始列名列表。

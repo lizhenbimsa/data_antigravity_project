@@ -39,7 +39,8 @@
   3. 对每家银行取 N-最近邻 (N=3~7) 的平均距离作为差异度指标 → Ŝ_i
   4. 计算全行业向量法 (centroid distance) 度量与行业平均的差异
   5. 计算 Fluidity (市场流动性) 衡量竞争环境变化速度
-  6. Full/Ctx 双轨对比: 检验全文 vs 上下文窗口文本的指标稳健性
+  6. Full/Ctx/Ss 三轨对比: 检验全文 vs 上下文窗口 vs 银行+金科同句共现文本的
+     指标稳健性 (三轨互为稳健性, 归因窗口逐级收紧)
 
 方法论来源:
   - [核心] 创业战略度量: Guzman, J., & Li, A. (2023). Measuring founding
@@ -100,23 +101,33 @@
   strat_sim_max_lda_ctx         LDA+JSD Ctx 轨最大同行相似度
   strat_diff_n5_emb_ctx         Embedding Ctx 轨 N=5 差异度
   strat_sim_max_emb_ctx         Embedding Ctx 轨最大同行相似度
-  --- 全行业向量法 (谢佳松 2025; 8 列) ---
+  --- N-最近邻 Ss 轨 (8 列, N=5 only; 银行+金科同句共现, 镜像 Ctx 轨) ---
+  strat_diff_n5_ss / _w_ss      TF-IDF char/word Ss 轨 N=5 差异度
+  strat_sim_max_ss / _w_ss      TF-IDF char/word Ss 轨最大同行相似度
+  strat_diff_n5_lda_ss          LDA+JSD Ss 轨 N=5 差异度
+  strat_sim_max_lda_ss          LDA+JSD Ss 轨最大同行相似度
+  strat_diff_n5_emb_ss          Embedding Ss 轨 N=5 差异度
+  strat_sim_max_emb_ss          Embedding Ss 轨最大同行相似度
+  --- 全行业向量法 (谢佳松 2025; 三轨 full/ctx/ss) ---
   centroid_diff_tfidf_c / _w     TF-IDF char/word Full 轨 centroid 距离
   centroid_diff_lda              LDA θ Full 轨 centroid 距离
   centroid_diff_emb              Embedding Full 轨 centroid 距离
   centroid_diff_tfidf_c_ctx / _w_ctx  TF-IDF Ctx 轨 centroid 距离
   centroid_diff_lda_ctx          LDA θ Ctx 轨 centroid 距离
   centroid_diff_emb_ctx          Embedding Ctx 轨 centroid 距离
-  --- 相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024; 8 列) ---
-  coh_tfidf_c_{full|ctx}   TF-IDF char 相邻期文本连贯性
-  coh_tfidf_w_{full|ctx}   TF-IDF jieba 相邻期文本连贯性 (稳健性检验)
-  coh_lda_{full|ctx}       LDA+JSD 相邻期文本连贯性 (稳健性检验)
-  coh_emb_{full|ctx}       Embedding 相邻期文本连贯性 (稳健性检验)
+  centroid_diff_tfidf_c_ss / _w_ss   TF-IDF Ss 轨 centroid 距离 (银行+金科同句)
+  centroid_diff_lda_ss           LDA θ Ss 轨 centroid 距离
+  centroid_diff_emb_ss           Embedding Ss 轨 centroid 距离
+  --- 相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024; 三轨 full/ctx/ss) ---
+  coh_tfidf_c_{full|ctx|ss}   TF-IDF char 相邻期文本连贯性
+  coh_tfidf_w_{full|ctx|ss}   TF-IDF jieba 相邻期文本连贯性 (稳健性检验)
+  coh_lda_{full|ctx|ss}       LDA+JSD 相邻期文本连贯性 (稳健性检验)
+  coh_emb_{full|ctx|ss}       Embedding 相邻期文本连贯性 (稳健性检验)
   --- text2vec 稳健 twin 列 (2026-05-29 双模型重构; stage 30 退役后由本 stage 内联产出) ---
-  strat_diff_n5_emb_t2v{,_ctx}    text2vec N=5 Embedding 差异度
-  strat_sim_max_emb_t2v{,_ctx}    text2vec Embedding 最大同行相似度
-  centroid_diff_emb_t2v{,_ctx}    text2vec Embedding centroid 距离
-  strat_diff_t2v_{full,ctx}       契约别名 (export REQUIRED_PANEL_COLUMNS 硬要求)
+  strat_diff_n5_emb_t2v{,_ctx,_ss}    text2vec N=5 Embedding 差异度
+  strat_sim_max_emb_t2v{,_ctx,_ss}    text2vec Embedding 最大同行相似度
+  centroid_diff_emb_t2v{,_ctx,_ss}    text2vec Embedding centroid 距离
+  strat_diff_t2v_{full,ctx,ss}    契约别名 (full/ctx 为 export REQUIRED_PANEL_COLUMNS 硬要求)
                                   披露(omni-g-strategic-07): = centroid_diff_emb_t2v
                                   的逐值别名 (**centroid 构念**, 谢佳松 2025), 非
                                   Guzman-Li N-NN 构念 — N-NN 的 t2v 孪生是
@@ -124,7 +135,7 @@
                                   stage 30 同名列构造域已变 (旧=文章级 emb 对年度
                                   文章质心距离按银行年均值, 新=银行年聚合文档对
                                   行业质心距离), 跨版本结果不可比
-  coh_emb_t2v_{full,ctx}          text2vec Embedding 相邻期连贯性
+  coh_emb_t2v_{full,ctx,ss}       text2vec Embedding 相邻期连贯性
 
 注意: 连贯性变量 (coh_*) 对首年及年份间隙返回 NaN (与 strat_fluidity 一致),
       严格定义"相邻期"为连续年度 (year_t 与 year_{t-1})。
@@ -370,7 +381,8 @@ def _aggregate_bank_year_texts(df_exploded, text_col='内容',
 
     Args:
         df_exploded: 文章-银行级 DataFrame, 需包含 target_bank, year 列
-        text_col: 聚合使用的文本列名 ('内容' for Full 轨, 'content_ctx' for Ctx 轨)
+        text_col: 聚合使用的文本列名 — 三轨: '内容'/'content_full' (Full 轨),
+            'content_ctx' (Ctx 轨), 'content_ss' (Ss 轨, 银行+金科同句共现)
         co_mention_downweight: fix(omni-g-strategic-09) 稳健开关 (默认 False =
             维持原口径)。True 时同年内被 n>1 家银行共享的同文按句子 round-robin
             均分到各银行 (每家 1/n_banks 权重, 跨银行零逐字重叠)。
@@ -753,7 +765,7 @@ def _embed_texts_with_chunk_pooling(texts, *, spec=None, log_prefix="Embedding")
 
 
 def _build_embedding_sim_matrix(texts, spec=None):
-    """构建 Embedding cosine 相似度矩阵, 长文本分段池化 (spec 参数化双轨)。
+    """构建 Embedding cosine 相似度矩阵, 长文本分段池化 (spec 参数化, 逐轨复用于三轨 full/ctx/ss)。
 
     Returns:
         tuple: (sim, emb)
@@ -897,7 +909,7 @@ def _compute_nn_scores(matrix, bank_list, N_list, is_distance=False,
 #      - N-NN: "我与最像的几家同行有多不同" → niche distance
 #      - Centroid: "我与行业平均水平有多不同" → average distance
 #      - 两者的 Horse Race 回归可检验信息独立性;
-#   4. Full/Ctx 双轨对比检验全文噪声对指标的影响,
+#   4. Full/Ctx/Ss 三轨对比检验全文噪声 / 归因窗口收紧对指标的影响,
 #      增强学术论文稳健性检验的厚度。
 #
 # 【术语】计算每家银行文本向量与全行业质心 (centroid) 的余弦距离，
@@ -943,7 +955,7 @@ def _compute_centroid_scores(vectors, bank_list, is_sparse=False,
          比论文单一 BERTopic 稳健性更强;
       2. 余弦距离度量向量空间结构性差异, 克服词频统计的"Cheap Talk"偏差;
       3. 与 N-最近邻法互补 (可做 Horse Race 回归检验信息独立性);
-      4. Full/Ctx 双轨对比增强稳健性检验厚度。
+      4. Full/Ctx/Ss 三轨对比增强稳健性检验厚度。
 
     与 N-最近邻法的区别:
       - N-NN (Guzman & Li 2023, MS, §3): Ŝ_i = mean(dist to N peers)
@@ -1311,7 +1323,7 @@ def _compute_lda_coherence(agg_df):
 
 
 def _compute_emb_coherence(agg_df, spec=None):
-    """稠密语义嵌入的相邻期文本连贯性 (spec 参数化双轨; 默认主轨)。
+    """稠密语义嵌入的相邻期文本连贯性 (spec 参数化, 逐轨复用于三轨 full/ctx/ss; 默认主轨)。
 
     【学术】使用预训练语言模型 (text2vec / OpenAI Embedding) 将文本映射到
     高维语义空间, 计算 cosine similarity。与 TF-IDF 的词袋假设不同,
@@ -1449,7 +1461,8 @@ def compute_strategic_differentiation(df_exploded, panel):
       3. N-最近邻聚合 → Ŝ_i (N=3,4,5,6,7 for TF-IDF; N=5 for LDA/Embedding)
       4. 全行业向量法 → 1 - cos(vec_i, centroid) (谢佳松 2025, 经济研究)
       5. 计算 Fluidity → Hoberg et al. (2014, JF, Eq. 2)
-      6. Ctx 轨双轨对比 → 上下文窗口文本重跑 N-NN(N=5) + centroid
+      6. Ctx / Ss 轨三轨对比 → 上下文窗口 (content_ctx) / 银行+金科同句共现
+         (content_ss) 文本各重跑 N-NN(N=5) + centroid (ss 缺列优雅跳过)
       7. 合并到面板并执行六方法收敛效度诊断
 
     Args:
@@ -1458,8 +1471,8 @@ def compute_strategic_differentiation(df_exploded, panel):
 
     Returns:
         panel: 新增 ~50 列战略差异度指标的面板 DataFrame
-          (含 N-NN Full/Ctx, centroid Full/Ctx, fluidity, 连贯性,
-           及 text2vec 稳健 twin 列 strat_diff_*_t2v / centroid_diff_emb_t2v / coh_emb_t2v / strat_diff_t2v_{full,ctx})
+          (含 N-NN Full/Ctx/Ss, centroid Full/Ctx/Ss, fluidity, 连贯性,
+           及 text2vec 稳健 twin 列 strat_diff_*_t2v / centroid_diff_emb_t2v / coh_emb_t2v / strat_diff_t2v_{full,ctx,ss})
     """
     logger.info("=" * 60)
     logger.info("战略差异度指数 (Guzman & Li 2023; Hoberg & Phillips 2016)")
@@ -1601,8 +1614,10 @@ def compute_strategic_differentiation(df_exploded, panel):
     logger.info("相邻期文本连贯性 (欧阳志刚 & 胡雯华 2024)")
     logger.info("=" * 60)
 
+    # 三轨 (full/ctx/ss) 连贯性:
     # Full 轨: 复用本函数顶部已生成的 agg_df (避免冗余聚合)
     # Ctx 轨: 新建聚合 (使用 content_ctx 列)
+    # Ss  轨: 新建聚合 (使用 content_ss 列, 银行+金科同句共现; 回退镜像 ctx→全文)
     tracks = [('_full', agg_df)]
     if 'content_ctx' in df_exploded.columns:
         agg_ctx = _aggregate_bank_year_texts(df_exploded, text_col='content_ctx',
@@ -1610,6 +1625,13 @@ def compute_strategic_differentiation(df_exploded, panel):
         tracks.append(('_ctx', agg_ctx))
     else:
         logger.warning("  连贯性 _ctx: 列 'content_ctx' 不存在, 跳过 Ctx 轨道")
+    # ss 轨守卫镜像 ctx: content_ss 缺失则优雅跳过 (graceful skip)
+    if 'content_ss' in df_exploded.columns:
+        agg_ss = _aggregate_bank_year_texts(df_exploded, text_col='content_ss',
+                                            co_mention_downweight=_co_dw)
+        tracks.append(('_ss', agg_ss))
+    else:
+        logger.warning("  连贯性 _ss: 列 'content_ss' 不存在, 跳过 Ss 轨道")
 
     for track_suffix, agg_track in tracks:
         if agg_track.empty:
@@ -1650,31 +1672,40 @@ def compute_strategic_differentiation(df_exploded, panel):
     logger.info(f"  ✅ 文本连贯性: 新增 {coh_count} 列")
 
     # ══════════════════════════════════════════════════════════════════
-    # 改进 C: Ctx 轨 N-最近邻差异度 + 全行业向量法
+    # 改进 C: Ctx / Ss 轨 N-最近邻差异度 + 全行业向量法 (三轨 full/ctx/ss)
     # ══════════════════════════════════════════════════════════════════
-    # 【学术】Ctx 轨使用上下文窗口文本 (content_ctx) 聚合,
-    #   排除与银行无关的通用报道段落, 信噪比更高。
-    #   双轨对比可检验全文噪声对差异度指标的影响。
-    # 【白话】Full 轨用完整新闻, Ctx 轨只用提到银行名字附近的段落。
+    # 【学术】Ctx 轨使用上下文窗口文本 (content_ctx) 聚合, 排除与银行无关的
+    #   通用报道段落, 信噪比更高; Ss 轨进一步收紧到银行+金科同句共现文本
+    #   (content_ss), 仅保留两实体出现在同一句的最强信号 (回退镜像 ctx→全文)。
+    #   三轨 (full/ctx/ss) 互为稳健性, 检验归因窗口收紧对差异度指标的影响。
+    # 【白话】Full 轨用完整新闻, Ctx 轨只用提到银行名字附近的段落,
+    #   Ss 轨只用"银行和金融科技出现在同一句话"的文本。
     #   N-NN 仅跑 N=5 (不展开 N=3~7, N 敏感性已由 Full 轨覆盖)。
+    # 注: 此处把原 ctx 内联块参数化为 (track_suffix, text_col) 循环, ss 复用
+    #   完全相同的四方法 (TF-IDF char/word + LDA + Embedding + t2v) 逻辑;
+    #   每轨守卫 text_col 存在 (缺失 → graceful skip), 列名机械 _ctx/_ss 后缀。
     logger.info("=" * 60)
-    logger.info("Ctx 轨: N-最近邻 + 全行业向量法")
+    logger.info("Ctx / Ss 轨: N-最近邻 + 全行业向量法 (三轨)")
     logger.info("=" * 60)
 
-    if 'content_ctx' in df_exploded.columns:
-        agg_ctx_sd = _aggregate_bank_year_texts(
-            df_exploded, text_col='content_ctx', co_mention_downweight=_co_dw)
-        # dual-track parity (2026-06-08): Fluidity 此前仅 Full 轨 (strat_fluidity/_w),
-        # 是 strategic_diff 文本测度族中唯一缺 _ctx 孪生者; 而同族同业相对测度
-        # (strat_diff_n5 / strat_sim_max / centroid_diff_*) 均已产 _ctx 孪生。
-        # _compute_fluidity(agg_df, mode) 签名 track-agnostic, 复用现成 ctx 聚合 agg_ctx_sd
-        # 补 strat_fluidity_ctx / strat_fluidity_w_ctx, 与 Full 轨 strat_fluidity/_w 对称。
-        flu_c_ctx = _compute_fluidity(agg_ctx_sd, 'char')
-        flu_w_ctx = _compute_fluidity(agg_ctx_sd, 'word')
-        ctx_results = []
+    # 三轨参数化: (列名后缀, 源文本列) — ctx=上下文窗口, ss=银行+金科同句共现
+    _sub_tracks = [('_ctx', 'content_ctx'), ('_ss', 'content_ss')]
+    for _tsfx, _text_col in _sub_tracks:
+        if _text_col not in df_exploded.columns:
+            logger.warning(f"  {_tsfx} 轨: 列 '{_text_col}' 不存在, 跳过")
+            continue
+        agg_sub_sd = _aggregate_bank_year_texts(
+            df_exploded, text_col=_text_col, co_mention_downweight=_co_dw)
+        # dual/tri-track parity: Fluidity 与同业相对测度
+        # (strat_diff_n5 / strat_sim_max / centroid_diff_*) 各轨齐全。
+        # _compute_fluidity(agg_df, mode) 签名 track-agnostic, 复用本轨聚合
+        # 补 strat_fluidity{_tsfx} / strat_fluidity_w{_tsfx}, 与 Full 轨对称。
+        flu_c_sub = _compute_fluidity(agg_sub_sd, 'char')
+        flu_w_sub = _compute_fluidity(agg_sub_sd, 'word')
+        sub_results = []
 
-        for year in sorted(agg_ctx_sd['year'].unique()):
-            dy = agg_ctx_sd[agg_ctx_sd['year'] == year]
+        for year in sorted(agg_sub_sd['year'].unique()):
+            dy = agg_sub_sd[agg_sub_sd['year'] == year]
             banks = dy['target_bank'].tolist()
             texts = dy['agg_text'].tolist()
             if len(banks) < 3:
@@ -1719,60 +1750,60 @@ def compute_strategic_differentiation(df_exploded, panel):
 
             for bank in banks:
                 row = {'target_bank': bank, 'year': year}
-                # N-NN Ctx 轨 (N=5)
-                row['strat_diff_n5_ctx'] = sc['n5'][bank]
-                row['strat_diff_n5_w_ctx'] = sw['n5'][bank]
-                row['strat_sim_max_ctx'] = sc['sim_max'][bank]
-                row['strat_sim_max_w_ctx'] = sw['sim_max'][bank]
+                # N-NN 本轨 (N=5), 列名机械 _ctx/_ss 后缀
+                row[f'strat_diff_n5{_tsfx}'] = sc['n5'][bank]
+                row[f'strat_diff_n5_w{_tsfx}'] = sw['n5'][bank]
+                row[f'strat_sim_max{_tsfx}'] = sc['sim_max'][bank]
+                row[f'strat_sim_max_w{_tsfx}'] = sw['sim_max'][bank]
                 if sl:
-                    row['strat_diff_n5_lda_ctx'] = sl['n5'].get(bank, np.nan)
-                    row['strat_sim_max_lda_ctx'] = sl['sim_max'].get(bank, np.nan)
+                    row[f'strat_diff_n5_lda{_tsfx}'] = sl['n5'].get(bank, np.nan)
+                    row[f'strat_sim_max_lda{_tsfx}'] = sl['sim_max'].get(bank, np.nan)
                 if se:
-                    row['strat_diff_n5_emb_ctx'] = se['n5'].get(bank, np.nan)
-                    row['strat_sim_max_emb_ctx'] = se['sim_max'].get(bank, np.nan)
+                    row[f'strat_diff_n5_emb{_tsfx}'] = se['n5'].get(bank, np.nan)
+                    row[f'strat_sim_max_emb{_tsfx}'] = se['sim_max'].get(bank, np.nan)
                 if se_t2v:  # 稳健 twin (text2vec)
-                    row['strat_diff_n5_emb_t2v_ctx'] = se_t2v['n5'].get(bank, np.nan)
-                    row['strat_sim_max_emb_t2v_ctx'] = se_t2v['sim_max'].get(bank, np.nan)
-                # Centroid Ctx 轨
-                row['centroid_diff_tfidf_c_ctx'] = cd_c[bank]
-                row['centroid_diff_tfidf_w_ctx'] = cd_w[bank]
+                    row[f'strat_diff_n5_emb_t2v{_tsfx}'] = se_t2v['n5'].get(bank, np.nan)
+                    row[f'strat_sim_max_emb_t2v{_tsfx}'] = se_t2v['sim_max'].get(bank, np.nan)
+                # Centroid 本轨
+                row[f'centroid_diff_tfidf_c{_tsfx}'] = cd_c[bank]
+                row[f'centroid_diff_tfidf_w{_tsfx}'] = cd_w[bank]
                 if cd_lda:
-                    row['centroid_diff_lda_ctx'] = cd_lda.get(bank, np.nan)
+                    row[f'centroid_diff_lda{_tsfx}'] = cd_lda.get(bank, np.nan)
                 if cd_emb:
-                    row['centroid_diff_emb_ctx'] = cd_emb.get(bank, np.nan)
-                if cd_emb_t2v:  # 稳健 twin + 契约别名 strat_diff_t2v_ctx
-                    row['centroid_diff_emb_t2v_ctx'] = cd_emb_t2v.get(bank, np.nan)
-                    row['strat_diff_t2v_ctx'] = cd_emb_t2v.get(bank, np.nan)
-                ctx_results.append(row)
+                    row[f'centroid_diff_emb{_tsfx}'] = cd_emb.get(bank, np.nan)
+                if cd_emb_t2v:  # 稳健 twin + 契约别名 strat_diff_t2v_{ctx,ss}
+                    row[f'centroid_diff_emb_t2v{_tsfx}'] = cd_emb_t2v.get(bank, np.nan)
+                    row[f'strat_diff_t2v{_tsfx}'] = cd_emb_t2v.get(bank, np.nan)
+                sub_results.append(row)
 
-        if ctx_results:
-            ctx_df = pd.DataFrame(ctx_results)
-            panel = panel.merge(ctx_df, on=['target_bank', 'year'],
+        if sub_results:
+            sub_df = pd.DataFrame(sub_results)
+            panel = panel.merge(sub_df, on=['target_bank', 'year'],
                                 how='left')
-            logger.info(f"  ✅ Ctx 轨: {len(ctx_df)} 行, "
-                        f"{len(ctx_df.columns) - 2} 列")
+            logger.info(f"  ✅ {_tsfx} 轨: {len(sub_df)} 行, "
+                        f"{len(sub_df.columns) - 2} 列")
         else:
-            logger.warning("  Ctx 轨: 无有效结果")
-        # Fluidity Ctx 轨 (dual-track parity 2026-06-08; 与 Full strat_fluidity 对称)
+            logger.warning(f"  {_tsfx} 轨: 无有效结果")
+        # Fluidity 本轨 (tri-track parity; 与 Full strat_fluidity 对称)
         # fix(omni-g-strategic-13, 2026-06-11): 同 Full 轨, 落列独立于 NN ≥3
-        # 银行闸门 (原经 ctx_results 行附着, <3 银行年份的 ctx fluidity 被丢弃)
-        panel['strat_fluidity_ctx'] = panel.apply(
-            lambda r: flu_c_ctx.get((r['target_bank'], r['year']), np.nan),
+        # 银行闸门 (原经 sub_results 行附着, <3 银行年份的 fluidity 被丢弃)
+        panel[f'strat_fluidity{_tsfx}'] = panel.apply(
+            lambda r, d=flu_c_sub: d.get((r['target_bank'], r['year']), np.nan),
             axis=1)
-        panel['strat_fluidity_w_ctx'] = panel.apply(
-            lambda r: flu_w_ctx.get((r['target_bank'], r['year']), np.nan),
+        panel[f'strat_fluidity_w{_tsfx}'] = panel.apply(
+            lambda r, d=flu_w_sub: d.get((r['target_bank'], r['year']), np.nan),
             axis=1)
-    else:
-        logger.warning("  Ctx 轨: 列 'content_ctx' 不存在, 跳过")
 
-    # ── 双模型契约保证 (F2 fix 2026-05-30) ──
+    # ── 双模型契约保证 (F2 fix 2026-05-30; 三轨扩展 2026-06-14) ──
     # strat_diff_t2v_{full,ctx} 是 export.py::REQUIRED_PANEL_COLUMNS 硬要求列
-    # (stage 30 退役后 stage 25 是其唯一来源)。上面 `if cd_emb_t2v` 仅在
-    # ROBUSTNESS (text2vec) 嵌入成功时建列; 若本地模型加载失败 / 某年银行不足 /
-    # content_ctx 缺失, 该列不会出现 → 下游 export_panel 抛 RuntimeError。与
+    # (stage 30 退役后 stage 25 是其唯一来源); strat_diff_t2v_ss 为同句共现轨孪生
+    # (银行+金科同句), 与 ctx 同口径兜底。上面 `if cd_emb_t2v` 仅在 ROBUSTNESS
+    # (text2vec) 嵌入成功时建列; 若本地模型加载失败 / 某年银行不足 /
+    # content_{ctx,ss} 缺失, 该列不会出现 → 下游 export_panel 抛 RuntimeError。与
     # stage 15 (policy_alignment) / stage 26 (policy_similarity) 的 NaN 降级对称,
-    # 这里兜底保证两列恒存在 (失败即全 NaN, 不破坏 canonical 主轨)。
-    for _contract_col in ('strat_diff_t2v_full', 'strat_diff_t2v_ctx'):
+    # 这里兜底保证三列恒存在 (失败即全 NaN, 不破坏 canonical 主轨)。
+    for _contract_col in ('strat_diff_t2v_full', 'strat_diff_t2v_ctx',
+                          'strat_diff_t2v_ss'):
         if _contract_col not in panel.columns:
             panel[_contract_col] = np.nan
 

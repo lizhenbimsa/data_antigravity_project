@@ -101,8 +101,10 @@ def main(argv: list[str] | None = None) -> int:
             except FileNotFoundError as e:
                 _LOGGER.warning("  [SKIP] %s (depends on Stata first): %s", label, e)
 
-        # Figure 2 双轨 coefplot (PDF + PNG) 由 Stata 模板
-        # 31_figure2_coefplot_dual.do 生成 — Python 侧只做存在性检查。
+        # Figure 2 三轨 (full/ctx/ss) coefplot (PDF + PNG) 由 Stata 模板
+        # 31_figure2_coefplot_dual.do 生成 (ss 列来自 stage 21 ss 情感轨, 缺失时
+        # capture confirm 优雅降级为 full/ctx 6 根) — Python 侧只做存在性检查。
+        # 文件名 *_dual 沿用历史命名 (lineage 兼容)。
         fig2_pdf = pc.output_dir / 'figures' / 'figure2_coefplot_dual.pdf'
         if fig2_pdf.exists():
             _LOGGER.info("  [OK] Figure 2 -> %s", fig2_pdf)

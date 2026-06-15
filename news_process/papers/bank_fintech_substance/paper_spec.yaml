@@ -83,6 +83,10 @@ identification:
     # ctx 轨稳健性镜像 (2026-06-13 终审, iv_extensions.py lpeer_*): 内生孪生
     # sub_frac_sc 配 ctx 同业 LOO 工具 lpeer_subst_iv_ctx, 与 full 轨各自
     # just-identified 并排 (双轨互为稳健性); 非 full×ctx overid。模板 22_substance_iv_2sls。
+    # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨): 内生孪生
+    # sub_frac_ss 配同句同业 LOO 工具 lpeer_subst_iv_ss, 与 full/ctx 轨各自
+    # just-identified 并排; 严禁 full×ctx×ss 合成 Hansen J overid (机械 _ctx→_ss swap)。
+    ss_mirror: [lpeer_subst_iv_ss]
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
 # 消费 panel 实存共现中心度列 → golden-safe; control 立即生效, moderator 须 production T=18; schema 对本块 no-op。
@@ -110,6 +114,7 @@ inference:
     single_hypothesis: "实质性 fintech 宣告 (substantive vs symbolic, W&Z 1994 ASQ) → 经营效率前向改善 (CIR 下降); 象征性宣告无效"
   exploratory:  # robustness / 探索性, 非 co-equal headline
     - "ctx 轨孪生 sub_frac_sc (互为稳健性高相关孪生, 非独立假设)"
+    - "ss 轨孪生 sub_frac_ss (银行+金科同句共现轨; 三轨 full/ctx/ss 互为稳健性高相关孪生, 非独立假设)"
     - "sub-symb gap (full/ctx) 差值测度"
     - "异质性 (bank_type×SOE / fintech wave / capital quartile / pre-2013 交互)"
     - "子样本切分 (hub / size / SOE; 25_substance_subsamples)"
@@ -117,7 +122,7 @@ inference:
   multiple_testing:
     families:
       - name: substantiveness_measure_family
-        members: "sub_frac (full) + sub_frac_sc (ctx) + sub-symb gap"
+        members: "sub_frac (full) + sub_frac_sc (ctx) + sub_frac_ss (ss, 银行+金科同句) + sub-symb gap"   # 三轨 (full/ctx/ss)
         correction: "Romano-Wolf 2005 step-down FWER (rwolf) 校正后 p 进 esttab (18_substance_robustness rw_p 行)"
       - name: heterogeneity_subsamples
         members: "网络位置 / 规模 / 产权 三维子样本 + 异质性维度"

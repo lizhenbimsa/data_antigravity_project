@@ -79,19 +79,25 @@ def test_offline_flag_parsing_truthy():
 
 
 def test_iter_article_track_prompts_dual_track_and_deterministic():
-    """单一事实源: 每行 yield (full, ctx) 两轨, 且重复调用字节级一致。"""
+    """单一事实源: 每行 yield (full, ctx, ss) 三轨, 且重复调用字节级一致。
+
+    v3.9.0 三轨: 新增第三轨 ss (银行+金科同句); content_ss 缺列时 iter 内部
+    回退 content_full, 仍 yield 'ss' 轨 (轨结构三元, 确定性不变)。
+    """
     df = pd.DataFrame([
         {'内容': '招商银行上线区块链。', 'content_ctx': '招商银行区块链窗口。',
+         'content_ss': '招商银行上线区块链。',
          '标题': '招行科技', 'target_bank': '招商银行', 'co_mentioned_banks': '无'},
         {'内容': '工商银行布局数字货币。', 'content_ctx': '工行数字货币窗口。',
+         'content_ss': '工商银行布局数字货币。',
          '标题': '工行数币', 'target_bank': '工商银行', 'co_mentioned_banks': '无'},
     ])
     first = list(tone_llms.iter_article_track_prompts(df))
     second = list(tone_llms.iter_article_track_prompts(df))
-    # 2 行 × 2 轨 = 4 条
-    assert len(first) == 4
+    # 2 行 × 3 轨 (full/ctx/ss) = 6 条
+    assert len(first) == 6
     tracks = [t for _, t, _ in first]
-    assert tracks == ['full', 'ctx', 'full', 'ctx']
+    assert tracks == ['full', 'ctx', 'ss', 'full', 'ctx', 'ss']
     # 确定性: 两次构造完全一致 (缓存键稳定的前提)
     assert first == second
     # 每条 prompt 非空字符串

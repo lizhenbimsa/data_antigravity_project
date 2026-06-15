@@ -1,5 +1,5 @@
 """
-news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性测试（双轨版）
+news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性测试（三轨版）
 
 迁移说明 (Phase 7b)：
     本模块由原 root script ``36_entity_masking_test.py`` body 迁入。
@@ -11,22 +11,22 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
     通过将目标银行和共提银行名称替换为匿名占位符，验证 LLM 判定是否依赖
     文本语义内容而非实体先验知识（如 "工商银行 → 国有大行 → 稳健"）。
 
-    【双轨测试】每条新闻同时以全文 (_full) 和实体特异性上下文片段 (_ctx)
-    两种输入分别执行掩码替换与 LLM 重判，生成两套独立的一致性指标，
-    验证稳健性结论不受文本输入粒度的影响。
+    【三轨测试】每条新闻同时以全文 (_full)、实体特异性上下文片段 (_ctx) 和
+    银行+金科同句共现片段 (_ss) 三种输入分别执行掩码替换与 LLM 重判，生成三套
+    独立的一致性指标，验证稳健性结论不受文本输入粒度的影响。
 
     流程：
       1. 加载全量 LLM 结果（含 verified=True/False）
       2. 随机抽样 N=1000 条
-      3. 提取 baseline 判定（full + ctx 双轨已有列）
-      4. 银行名 → 匿名占位符替换 + 实体残留检测（双轨, 正文+标题全覆盖;
-         ctx 轨掩码前先剥离 stage13 prepend 的标题前缀, 与生产 prompt 构造对齐,
+      3. 提取 baseline 判定（full + ctx + ss 三轨已有列）
+      4. 银行名 → 匿名占位符替换 + 实体残留检测（三轨, 正文+标题全覆盖;
+         ctx/ss 轨掩码前先剥离 stage13 prepend 的标题前缀, 与生产 prompt 构造对齐,
          fix(omni-g-val-mask-01/03, 2026-06-11)）
-      5. 掩码文本重新调用 3 模型 LLM 判定（双轨）
-      6. 计算四维一致性指标（验证一致率、情感一致率、Cohen's κ、逐模型分解）× 双轨
+      5. 掩码文本重新调用 3 模型 LLM 判定（三轨）
+      6. 计算四维一致性指标（验证一致率、情感一致率、Cohen's κ、逐模型分解）× 三轨
          （分母双口径: 主口径 per-protocol 剔除调用全失败行 + ITT 披露口径,
          fix(omni-g-val-mask-02/04, 2026-06-11)）
-      7. 生成 JSON/CSV/LaTeX/PNG 报告（含双轨对比）
+      7. 生成 JSON/CSV/LaTeX/PNG 报告（含三轨对比）
 
     学术依据：
       - SSRN-4558295 §7.2: Entity substitution robustness check
@@ -36,13 +36,13 @@ news_process.validation.entity_masking — 阶段36：Entity Masking 稳健性�
         解释阈值出自 Landis & Koch (1977)，而非 Krippendorff's α
 
 输入：
-    `21_tone_llms_full.parquet`（全量 LLM 判定结果，含 full 和 ctx 双轨列）
+    `21_tone_llms_full.parquet`（全量 LLM 判定结果，含 full / ctx / ss 三轨列）
 
 输出：
-    `eval_reports/entity_masking_results.json`  — 双轨四维指标 + 判定
+    `eval_reports/entity_masking_results.json`  — 三轨四维指标 + 判定
     `eval_reports/entity_masking_detail.csv`    — 逐条对比
-    `eval_reports/entity_masking_table.tex`     — 论文就绪表格（含双轨 Panel）
-    `eval_reports/entity_masking_confusion.png` — 混淆矩阵（full + ctx 并排）
+    `eval_reports/entity_masking_table.tex`     — 论文就绪表格（含三轨 Panel）
+    `eval_reports/entity_masking_confusion.png` — 混淆矩阵（full + ctx + ss 并排）
 
 白话:
     担心 LLM 是"看名字下结论"——比如一看到"工商银行"就默认国有大行很稳健,
@@ -58,6 +58,7 @@ import json
 import os
 import sys
 import time
+from itertools import combinations
 
 import aiohttp
 import matplotlib
@@ -125,8 +126,10 @@ ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS = float(
 )
 ENTITY_MASKING_MAX_RETRIES = max(1, min(_tone_llms.MAX_RETRIES, int(EM_CFG.get('max_retries', 1))))
 
-# 双轨标识
-TRACKS = ['full', 'ctx']
+# 三轨标识 (full=全文 / ctx=实体上下文窗口 / ss=银行+金科同句共现)
+# 下游所有 `for track in TRACKS` 参数化循环 (baseline 提取/掩码/LLM 重判/一致性
+# 指标/报告) 随此列表自动扩到三轨; 仅 dict 字面量与混淆矩阵 zip 须显式同步。
+TRACKS = ['full', 'ctx', 'ss']
 
 
 def _build_entity_masking_llm_timeout() -> aiohttp.ClientTimeout:
@@ -150,7 +153,7 @@ def random_sample(df: pd.DataFrame, sample_size: int, seed: int) -> pd.DataFrame
 
 
 def extract_baseline(df_sample: pd.DataFrame) -> pd.DataFrame:
-    """从样本中提取已有的 LLM 判定作为 baseline（双轨）。"""
+    """从样本中提取已有的 LLM 判定作为 baseline（三轨 full/ctx/ss）。"""
     df = df_sample.copy()
 
     for track in TRACKS:
@@ -174,7 +177,10 @@ def extract_baseline(df_sample: pd.DataFrame) -> pd.DataFrame:
 # ============================================================================
 
 def build_ctx_masking_input(content_ctx: str, title: str) -> str:
-    """ctx 轨掩码输入构造: 剥离 stage13 ``prepend_title`` 拼接的标题前缀。
+    """ctx/ss 轨掩码输入构造: 剥离 stage13 ``prepend_title`` 拼接的标题前缀。
+
+    note(三轨, 2026-06-14): ss 轨 (``content_ss`` = 标题+银行+金科同句片段) 与 ctx
+    轨同构 (都由 prepend_title 拼了标题前缀), 故复用本函数剥标题, 无需 ss 专用变体。
 
     fix(omni-g-val-mask-01, 2026-06-11): 盘上 ``content_ctx`` = stage13 物化的
     "标题+实体窗口"; 生产 stage 21 (``tone_llms.iter_article_track_prompts``) 喂
@@ -261,7 +267,7 @@ def verify_masking_completeness(
 
 
 # ============================================================================
-# 4. LLM 调用（掩码后文本，双轨）
+# 4. LLM 调用（掩码后文本，三轨 full/ctx/ss）
 # ============================================================================
 
 async def run_masked_llms(
@@ -270,22 +276,24 @@ async def run_masked_llms(
     cache: LLMCache | None = None,
     model_availability: AsyncModelAvailability | None = None,
 ) -> dict:
-    """对掩码后数据执行 LLM 判定（full + ctx 双轨）。
+    """对掩码后数据执行 LLM 判定（full + ctx + ss 三轨）。
 
     Args:
         df_masked: 必须包含 masked_text_full, masked_title, masked_target,
-                   masked_co_mentioned, masked_text_ctx 列。
-                   fix(omni-g-val-mask-01, 2026-06-11): masked_text_ctx 须为
-                   **去标题**实体窗口 (main() 已在掩码前剥离 prepend 标题前缀),
-                   使 {title}+{content} 注入后标题恰出现 1 次, 与生产 baseline
-                   prompt (iter_article_track_prompts) 同构。
+                   masked_co_mentioned, masked_text_ctx, masked_text_ss 列。
+                   fix(omni-g-val-mask-01, 2026-06-11): masked_text_ctx / masked_text_ss
+                   须为 **去标题** 实体窗口/同句片段 (main() 已在掩码前剥离 prepend
+                   标题前缀), 使 {title}+{content} 注入后标题恰出现 1 次, 与生产
+                   baseline prompt (iter_article_track_prompts) 同构。
 
     Returns:
         dict: {row_idx: {'full': {model_id: response_text},
-                         'ctx':  {model_id: response_text}}}
+                         'ctx':  {model_id: response_text},
+                         'ss':   {model_id: response_text}}}
     """
     semaphore = asyncio.Semaphore(ENTITY_MASKING_MAX_CONCURRENCY)
-    results_map = {i: {'full': {}, 'ctx': {}} for i in df_masked.index}
+    # 三轨投票桶: 随 TRACKS 自动扩 (full/ctx/ss), 每轨独立模型应答字典。
+    results_map = {i: {track: {} for track in TRACKS} for i in df_masked.index}
 
     connector = build_llm_connector(ENTITY_MASKING_MAX_CONCURRENCY)
     request_pacers = build_model_pacers(models, ENTITY_MASKING_REQUEST_SPACING)
@@ -315,8 +323,8 @@ async def run_masked_llms(
                         )
                     )
 
-        logger.info(f"🔬 Entity Masking LLM 双轨请求: "
-                    f"{len(df_masked)} 条 × {len(models)} 模型 × 2 轨道 = {len(tasks)} 请求, "
+        logger.info(f"🔬 Entity Masking LLM 三轨请求: "
+                    f"{len(df_masked)} 条 × {len(models)} 模型 × {len(TRACKS)} 轨道 = {len(tasks)} 请求, "
                     f"concurrency={ENTITY_MASKING_MAX_CONCURRENCY}, "
                     f"per_model_spacing={ENTITY_MASKING_REQUEST_SPACING:.2f}s, "
                     f"timeout={ENTITY_MASKING_REQUEST_TIMEOUT_SECONDS:.0f}s, "
@@ -376,7 +384,7 @@ def compute_masking_consistency(df_result: pd.DataFrame, track: str) -> dict:
 
     Args:
         df_result: 含 baseline_verified_{track}, masked_verified_{track} 等列。
-        track: 'full' 或 'ctx'。
+        track: 'full' / 'ctx' / 'ss'。
 
     Returns:
         dict: 四维一致性指标 (含 ITT 披露键 + n_call_failure)。
@@ -465,24 +473,25 @@ def compute_masking_consistency(df_result: pd.DataFrame, track: str) -> dict:
 
 
 # ============================================================================
-# 6. 报告生成（双轨对比）
+# 6. 报告生成（三轨对比）
 # ============================================================================
 
 def generate_report(
-    consistency_full: dict,
-    consistency_ctx: dict,
+    results: dict,
     df_sample: pd.DataFrame,
-    df_valid_full: pd.DataFrame,
-    df_valid_ctx: pd.DataFrame,
+    df_valids: dict,
 ):
-    """生成 JSON/CSV/LaTeX/PNG 报告（双轨对比）。"""
+    """生成 JSON/CSV/LaTeX/PNG 报告（三轨对比 full/ctx/ss）。
+
+    Args:
+        results: {track: consistency_dict} 按 TRACKS 键入 (full/ctx/ss)。
+        df_valids: {track: df_valid} 各轨经零替换过滤后的有效子样本。
+    """
     report_dir = os.path.join(CONFIG['paths']['output_dir'], 'eval_reports')
     os.makedirs(report_dir, exist_ok=True)
 
-    combined = {
-        'full': consistency_full,
-        'ctx': consistency_ctx,
-    }
+    # 三轨综合 JSON: 随 TRACKS 自动展开 (full/ctx/ss)。
+    combined = {track: results[track] for track in TRACKS}
 
     # 6.1 JSON 报告
     json_path = os.path.join(report_dir, 'entity_masking_results.json')
@@ -511,20 +520,29 @@ def generate_report(
     df_sample[available_cols].to_csv(csv_path, index=True, encoding='utf-8-sig')
     logger.info(f"CSV 详情已保存: {csv_path}")
 
-    # 6.3 LaTeX 表格（双轨 Panel 对比）
+    # 6.3 LaTeX 表格（三轨 Panel 对比 Full / Ctx / SS）
+    # 三轨后弃单一 Δ 列 (轨数 >2 无单一基准), 改一轨一列并排。
     tex_path = os.path.join(report_dir, 'entity_masking_table.tex')
-    n_total = consistency_full['n_samples']
+    n_total = results['full']['n_samples']
+    # 表头文案: 每轨一列, ss = "Bank+FinTech same-sentence" (银行+金科同句)。
+    _TRACK_TEX_HEADER = {'full': 'Full Track', 'ctx': 'Ctx Track', 'ss': 'SS Track'}
+    col_spec = 'l' + 'c' * len(TRACKS)
+    header_cells = ' & '.join(_TRACK_TEX_HEADER.get(t, t.upper()) for t in TRACKS)
+    n_cols = len(TRACKS) + 1
+
+    def _pct_cell(v):
+        return f'{v*100:.1f}\\%' if v is not None else 'N/A'
 
     tex_lines = [
         r'\begin{table}[htbp]',
         r'\centering',
-        r'\caption{Entity Masking Robustness Test --- Dual-Track Comparison ($N=' + str(n_total) + r'$)}',
+        r'\caption{Entity Masking Robustness Test --- Three-Track Comparison ($N=' + str(n_total) + r'$)}',
         r'\label{tab:entity_masking}',
-        r'\begin{tabular}{lccc}',
+        r'\begin{tabular}{' + col_spec + r'}',
         r'\hline',
-        r'Metric & Full Track & Ctx Track & $\Delta$ \\',
+        r'Metric & ' + header_cells + r' \\',
         r'\hline',
-        r'\multicolumn{4}{l}{\textit{Panel A: Aggregate Consistency}} \\',
+        r'\multicolumn{' + str(n_cols) + r'}{l}{\textit{Panel A: Aggregate Consistency}} \\',
     ]
 
     for label_name, key in [
@@ -534,37 +552,27 @@ def generate_report(
         ('Verification Agreement (ITT)', 'verification_consistency_itt'),
         ('Sentiment Agreement (cond.)', 'sentiment_consistency'),
     ]:
-        v_full = consistency_full.get(key)
-        v_ctx = consistency_ctx.get(key)
-        if v_full is not None and v_ctx is not None:
-            delta = v_full - v_ctx
-            # 注: 不使用 Python format spec '.1%'，因为其输出的裸 '%' 在
-            # LaTeX 中是注释符，会导致同行后续列被吞掉。
-            # 改为手动 ×100 + \\% 转义，与 per-model 行一致。
-            tex_lines.append(
-                f'\\quad {label_name} & {v_full*100:.1f}\\% & {v_ctx*100:.1f}\\% & {delta*100:+.1f}pp \\\\'
-            )
-        else:
-            v_full_s = f'{v_full*100:.1f}\\%' if v_full is not None else 'N/A'
-            v_ctx_s = f'{v_ctx*100:.1f}\\%' if v_ctx is not None else 'N/A'
-            tex_lines.append(f'\\quad {label_name} & {v_full_s} & {v_ctx_s} & --- \\\\')
+        # 注: 不使用 Python format spec '.1%'，因为其输出的裸 '%' 在 LaTeX 中是
+        # 注释符，会导致同行后续列被吞掉。改为手动 ×100 + \\% 转义。
+        cells = ' & '.join(_pct_cell(results[t].get(key)) for t in TRACKS)
+        tex_lines.append(f'\\quad {label_name} & {cells} \\\\')
 
-    # Cohen's κ
-    kf = consistency_full['cohens_kappa']['kappa']
-    kc = consistency_ctx['cohens_kappa']['kappa']
-    dk = kf - kc
-    tex_lines.append(
-        f"\\quad Cohen's $\\kappa$ (Verification) & {kf:.4f} & {kc:.4f} & {dk:+.4f} \\\\"
+    # Cohen's κ — 一轨一列
+    kappa_cells = ' & '.join(
+        f"{results[t]['cohens_kappa']['kappa']:.4f}" for t in TRACKS
     )
+    tex_lines.append(f"\\quad Cohen's $\\kappa$ (Verification) & {kappa_cells} \\\\")
 
     tex_lines.append(r'\hline')
-    tex_lines.append(r'\multicolumn{4}{l}{\textit{Panel B: Per-Model Breakdown (Full / Ctx)}} \\')
+    tex_lines.append(
+        r'\multicolumn{' + str(n_cols) + r'}{l}{\textit{Panel B: Per-Model Breakdown (Full / Ctx / SS)}} \\'
+    )
     for m in MODELS:
         short = m['short_name']
-        vf = consistency_full['per_model_consistency'].get(short)
-        vc = consistency_ctx['per_model_consistency'].get(short)
-        if vf is not None and vc is not None:
-            tex_lines.append(f'\\quad {short} & {vf*100:.1f}\\% & {vc*100:.1f}\\% & {(vf-vc)*100:+.1f}pp \\\\')
+        per_model_vals = [results[t]['per_model_consistency'].get(short) for t in TRACKS]
+        if all(v is not None for v in per_model_vals):
+            cells = ' & '.join(f'{v*100:.1f}\\%' for v in per_model_vals)
+            tex_lines.append(f'\\quad {short} & {cells} \\\\')
 
     tex_lines.extend([
         r'\hline',
@@ -572,8 +580,9 @@ def generate_report(
         r'\begin{tablenotes}[flushleft]\footnotesize',
         r"  \item Each article's target bank name and co-mentioned bank names",
         r'  are replaced with anonymized placeholders. The LLM ensemble is',
-        r'  re-queried on both full-text and entity-context tracks. Agreement',
-        r'  is computed between original and masked predictions for each track.',
+        r'  re-queried on the full-text, entity-context and bank+fintech',
+        r'  same-sentence tracks. Agreement is computed between original and',
+        r'  masked predictions for each track.',
         # fix(omni-g-val-mask-02, 2026-06-11): 分母双口径披露 (ITT vs per-protocol)
         r'  \item Primary agreement rates use the per-protocol (valid) denominator:',
         r'  rows with LLM call failures in the masked re-query or the baseline are',
@@ -586,22 +595,29 @@ def generate_report(
         f.write('\n'.join(tex_lines))
     logger.info(f"LaTeX 表格已保存: {tex_path}")
 
-    # 6.4 混淆矩阵 (PNG) — 双轨并排
+    # 6.4 混淆矩阵 (PNG) — 三轨并排 (full/ctx/ss)
     try:
-        _generate_confusion_matrix_dual(df_valid_full, df_valid_ctx, report_dir)
+        _generate_confusion_matrix_per_track(df_valids, report_dir)
     except Exception as e:
         logger.warning(f"混淆矩阵生成失败: {e}")
 
 
-def _generate_confusion_matrix_dual(
-    df_valid_full: pd.DataFrame,
-    df_valid_ctx: pd.DataFrame,
+def _generate_confusion_matrix_per_track(
+    df_valids: dict,
     report_dir: str,
 ):
-    """生成验证任务的掩码前后混淆矩阵（双轨并排）。"""
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    """生成验证任务的掩码前后混淆矩阵（三轨并排 full/ctx/ss）。
 
-    for ax, df_valid, track in zip(axes, [df_valid_full, df_valid_ctx], TRACKS):
+    df_valids: {track: df_valid} 按 TRACKS 键入; 子图数随轨数自动扩展。
+    """
+    n_tracks = len(TRACKS)
+    fig, axes = plt.subplots(1, n_tracks, figsize=(6.5 * n_tracks, 5))
+    # 轨数==1 时 subplots 返回单 Axes 而非数组, 统一转 list 便于 zip。
+    if n_tracks == 1:
+        axes = [axes]
+
+    for ax, track in zip(axes, TRACKS):
+        df_valid = df_valids[track]
         # fix(omni-g-val-mask-02, 2026-06-11): 混淆矩阵与主口径 (per-protocol) 对齐 —
         # 调用全失败行 (空票判 False, 属测量缺失) 不进图, 否则图与主指标分母矛盾。
         df_valid = df_valid.loc[~_call_failure_mask(df_valid, track)]
@@ -646,14 +662,14 @@ def _generate_confusion_matrix_dual(
 def main():
     stage_start = time.time()
     logger.info("=" * 60)
-    logger.info("--- 开始执行 Entity Masking 稳健性测试（双轨版） ---")
+    logger.info("--- 开始执行 Entity Masking 稳健性测试（三轨版） ---")
     logger.info("=" * 60)
     logger.info("")
     logger.info("  📌 阶段目的")
     logger.info("     将目标银行名替换为匿名占位符(如 '工商银行'→'[BANK_A]'),")
     logger.info("     验证 LLM 情感判定是否依赖文本语义, 而非实体先验知识。")
-    logger.info("     同时在全文(full)和上下文片段(ctx)两条轨道上独立验证,")
-    logger.info("     确保稳健性结论不受文本输入粒度的影响。")
+    logger.info("     同时在全文(full)、上下文片段(ctx)和银行+金科同句(ss)三条轨道上")
+    logger.info("     独立验证, 确保稳健性结论不受文本输入粒度的影响。")
     logger.info("")
     logger.info("  📖 方法论依据")
     logger.info("     · SSRN-4558295 §7.2: Entity substitution robustness check")
@@ -663,7 +679,7 @@ def main():
     logger.info("     · 验证一致率 ≥ 90%: 判定不受实体身份干扰, 稳健性优秀")
     logger.info("     · Cohen's κ: ≥0.81 almost perfect, 0.61-0.80 substantial, 0.41-0.60 moderate")
     logger.info("     · 实体残留率: 应为 0%, 否则掩码替换不完整")
-    logger.info("     · 双轨差异(Δ): full 与 ctx 指标差异应 <5pp, 否则提示文本粒度敏感")
+    logger.info("     · 三轨差异: full/ctx/ss 各轨指标两两差异应 <5pp, 否则提示文本粒度敏感")
     logger.info("")
 
     # ── 配置 ──
@@ -690,20 +706,25 @@ def main():
         logger.warning("输入数据缺少 content_ctx 列，ctx 轨道将回退至全文")
         df['content_ctx'] = df['内容'].astype(str)
 
+    # 确认 content_ss 列存在 (镜像 ctx 回退: 缺列→全文 body, 与 ss_is_fallback=True 同义)
+    if 'content_ss' not in df.columns:
+        logger.warning("输入数据缺少 content_ss 列，ss 轨道将回退至全文")
+        df['content_ss'] = df['内容'].astype(str)
+
     # ── Step 2: 随机抽样 ──
     df_sample = random_sample(df, sample_size, seed)
     logger.info(f"随机抽样 {len(df_sample)} 条 (seed={seed})")
 
-    # ── Step 3: 提取 baseline（双轨）──
+    # ── Step 3: 提取 baseline（三轨 full/ctx/ss）──
     df_sample = extract_baseline(df_sample)
 
-    # ── Step 4: 执行掩码替换（双轨）──
-    n_incomplete = {'full': 0, 'ctx': 0}
+    # ── Step 4: 执行掩码替换（三轨 full/ctx/ss）──
+    n_incomplete = {track: 0 for track in TRACKS}
     for idx, row in df_sample.iterrows():
         aliases = get_target_aliases(str(row['target_bank']), bnf)
         co_banks_str = str(row.get('co_mentioned_banks', ''))
 
-        # 预计算共提银行别名（两轨共用）
+        # 预计算共提银行别名（三轨共用）
         co_aliases = []
         if co_banks_str.strip():
             for peer in co_banks_str.split(';'):
@@ -753,13 +774,36 @@ def main():
         df_sample.at[idx, 'masked_text_ctx'] = result_ctx['masked_text']
         df_sample.at[idx, 'n_replacements_ctx'] = result_ctx['n_replacements']
 
+        # ── SS 轨道掩码 (银行+金科同句共现) ──
+        # 镜像 ctx 轨: content_ss 同样由 stage13 prepend_title 拼了标题前缀,
+        # 掩码前先剥离 (与生产 stage 21 prompt 构造对齐), 使掩码后 ss prompt 与
+        # baseline prompt 仅差实体占位符, 一致性指标不混杂标题双重注入 (复用
+        # build_ctx_masking_input, 标题剥离逻辑 ctx 与 ss 两路共用, 详见其 docstring)。
+        content_ss = build_ctx_masking_input(
+            str(row.get('content_ss', row['内容'])), str(row['标题'])
+        )
+        result_ss = mask_entity(
+            content_ss, str(row['标题']),
+            str(row['target_bank']), aliases, co_banks_str, bnf,
+        )
+        completeness_ss = verify_masking_completeness(
+            result_ss['masked_text'], aliases, co_aliases,
+            masked_title=result_ss['masked_title'],
+        )
+        if not completeness_ss['complete']:
+            n_incomplete['ss'] += 1
+            logger.warning(f"行 {idx} [ss]: 实体残留 {completeness_ss['residual_aliases']}")
+
+        df_sample.at[idx, 'masked_text_ss'] = result_ss['masked_text']
+        df_sample.at[idx, 'n_replacements_ss'] = result_ss['n_replacements']
+
     for track in TRACKS:
         n_zero = int((df_sample[f'n_replacements_{track}'] == 0).sum())
         logger.info(f"[{track}] 掩码替换完成: {len(df_sample)} 条, "
                     f"残留异常 {n_incomplete[track]} 条, "
                     f"零替换 {n_zero} 条")
 
-    # ── Step 5: 调用 LLM（掩码后文本，双轨）──
+    # ── Step 5: 调用 LLM（掩码后文本，三轨 full/ctx/ss）──
     cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
     with LLMCache(cache_db) as cache:
         logger.info(f"Entity Masking LLM 缓存: {cache.size()} 条已缓存, 路径: {cache_db}")
@@ -770,9 +814,10 @@ def main():
             )
         )
 
-    # ── Step 6: 解析 + 投票（双轨）──
+    # ── Step 6: 解析 + 投票（三轨 full/ctx/ss）──
+    _empty_row_res = {track: {} for track in TRACKS}
     for idx in df_sample.index:
-        row_res = masked_llm_results.get(idx, {'full': {}, 'ctx': {}})
+        row_res = masked_llm_results.get(idx, _empty_row_res)
 
         for track in TRACKS:
             (
@@ -817,7 +862,7 @@ def main():
         df_valids[track] = df_valid
         results[track] = compute_masking_consistency(df_valid, track)
 
-    # ── Step 8: 判定（双轨均须通过）──
+    # ── Step 8: 判定（三轨 full/ctx/ss 均须通过）──
     thresholds = {
         'verification': EM_CFG.get('pass_threshold_verification', 0.90),
         'sentiment': EM_CFG.get('pass_threshold_sentiment', 0.85),
@@ -856,28 +901,33 @@ def main():
                     f"情感一致率={sen_display}, "
                     f"κ={c['cohens_kappa']['kappa']:.4f}")
 
-    # 双轨综合判定
-    overall_pass = results['full']['passed'] and results['ctx']['passed']
-    logger.info(f"{'✅' if overall_pass else '❌'} 双轨综合判定: "
-                f"full={'通过' if results['full']['passed'] else '未通过'}, "
-                f"ctx={'通过' if results['ctx']['passed'] else '未通过'}")
-
-    # 双轨差异诊断
-    delta_ver = abs(results['full']['verification_consistency'] - results['ctx']['verification_consistency'])
-    delta_kappa = abs(results['full']['cohens_kappa']['kappa'] - results['ctx']['cohens_kappa']['kappa'])
-    if delta_ver > 0.05 or delta_kappa > 0.05:
-        logger.info(f"   双轨差异较大: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
-        logger.info("   提示: 文本输入粒度可能影响稳健性，建议检查 ctx 提取质量")
-    else:
-        logger.info(f"   双轨差异正常: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
-
-    # ── Step 9: 输出报告 ──
-    generate_report(
-        results['full'], results['ctx'],
-        df_sample,
-        df_valids['full'], df_valids['ctx'],
+    # 三轨综合判定 (full/ctx/ss 全过才算整体通过)
+    overall_pass = all(results[track]['passed'] for track in TRACKS)
+    track_summary = ', '.join(
+        f"{track}={'通过' if results[track]['passed'] else '未通过'}" for track in TRACKS
     )
-    logger.info(f"Entity Masking 双轨测试完成, 耗时 {time.time()-stage_start:.1f}s")
+    logger.info(f"{'✅' if overall_pass else '❌'} 三轨综合判定: {track_summary}")
+
+    # 三轨差异诊断 — 两两 pairwise (full↔ctx / full↔ss / ctx↔ss), 任一对超 5pp 即提示
+    max_delta_flagged = False
+    for t1, t2 in combinations(TRACKS, 2):
+        delta_ver = abs(
+            results[t1]['verification_consistency'] - results[t2]['verification_consistency']
+        )
+        delta_kappa = abs(
+            results[t1]['cohens_kappa']['kappa'] - results[t2]['cohens_kappa']['kappa']
+        )
+        if delta_ver > 0.05 or delta_kappa > 0.05:
+            max_delta_flagged = True
+            logger.info(f"   {t1}↔{t2} 差异较大: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
+        else:
+            logger.info(f"   {t1}↔{t2} 差异正常: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
+    if max_delta_flagged:
+        logger.info("   提示: 文本输入粒度可能影响稳健性，建议检查 ctx/ss 提取质量")
+
+    # ── Step 9: 输出报告 (三轨) ──
+    generate_report(results, df_sample, df_valids)
+    logger.info(f"Entity Masking 三轨测试完成, 耗时 {time.time()-stage_start:.1f}s")
 
 
 if __name__ == "__main__":

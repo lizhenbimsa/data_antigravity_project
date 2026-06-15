@@ -395,6 +395,11 @@ def compute_industry_neg_shock(panel: pd.DataFrame,
     logger.info("步骤: 行业负面冲击指数 (LOO, Manski 1993)")
     logger.info("=" * 60)
 
+    # no-ss-track (三轨重定位 2026-06-14, 静态枚举护栏): industry_neg_shock 是
+    # **full 轨独有**的行业负面冲击 LOO — neg_count_full 自始无 ctx/ss 孪生
+    # (encode 仅产 neg_count_full), 故无 _ctx 路径可镜像 → 本模块刻意不产
+    # industry_neg_shock_ss / neg_count_ss。brokerage_eigen_cent / fire_sale /
+    # 二分图中心度均 track-agnostic (按媒体-银行边数, 与情感轨无关), 同样无 ss 派生。
     if 'neg_count_full' not in panel.columns:
         logger.warning("  neg_count_full 不存在, 跳过行业负面冲击")
         return panel

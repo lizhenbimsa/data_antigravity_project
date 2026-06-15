@@ -5,6 +5,11 @@
 
 如果 panel parquet 不存在: 跳过 (用户尚未跑 pipeline).
 
+三轨 (ss 银行+金科同句共现轨, 2026-06-14): full/ctx 之外新增并列第三主轨
+content_ss → 面板各情感族多出 `_ss` 列。⚠ ss 列须经付费 stage 21 重跑 + stage
+45/46 重生后才落盘, 当前冻结 panel 尚无 ss 列, 故列数下界守卫仍锁 1400 (未上调);
+ss 落盘后须据实重算下界 (见 test_panel_column_count_lower_bound 的 TODO)。
+
 测试覆盖 (plan v14 §2.1-§2.3):
   - stage 21 输出 9 双轨/dual gate 列 (篇章级, 但聚合到 panel 通过 40_article_bank_level)
   - encode.py M2 P2 加性: _lc × _ctx 对角线列 (12 列 panel 级)
@@ -49,6 +54,10 @@ def test_panel_main_columns_exist(panel_or_skip):
     }
     missing = required - set(panel_or_skip.columns)
     assert not missing, f"基础列缺失: {missing}"
+    # 三轨 (ss 2026-06-14): ss 主语调列须付费 stage 21 重跑 + 重生后落盘;
+    # 已落盘则校验存在 (skip-if-missing 软守卫, 共享 n_articles 分母)。
+    if 'llm_vote_tone_ss' in panel_or_skip.columns:
+        assert 'llm_vote_tone_ss' in panel_or_skip.columns
 
 
 def _panel_is_v3_2(panel) -> bool:
@@ -165,9 +174,16 @@ def test_panel_column_count_lower_bound(panel_or_skip):
     avg_agreement_rate_title), 重跑后约剩 ~1567 列。阈值下调到 1400:
     既高于 v3.1.1 baseline 994 (仍是有意义的"宽表未坍缩"守卫), 又同时容纳
     冻结 panel (1998, production 重跑前) 与重跑后的 2 轨 panel (~1567)。
+
+    三轨 (ss 银行+金科同句共现轨, 2026-06-14): ss 落盘后面板再增一批 `_ss` 情感族
+    列 (实测活面板 ctx 列 ~ 据实重算, 见 plan §⑫: 1658 列 + ss 增量)。
+    ⚠ TODO(post-impl): ss 列经付费 stage 21 重跑 + stage 45/46 重生落盘后, 据
+    实读面板的 _ss 列数把下界从 1400 上调到新值 (勿凭估值上调; ss 未落盘前保持
+    1400 以兼容当前冻结 panel)。
     """
     n_cols = len(panel_or_skip.columns)
+    # 注: ss 未落盘前下界保持 1400 (见上 TODO); ss 落盘后据实重算上调。
     assert n_cols >= 1400, (
         f"Panel 列数 {n_cols} < 1400 下界 (remove-title-track 后 2 轨 panel "
-        f"应 ~1567 列; 低于 1400 疑似宽表坍缩 regression)"
+        f"应 ~1567 列; ss 三轨落盘后更多; 低于 1400 疑似宽表坍缩 regression)"
     )

@@ -9,7 +9,7 @@ news_process.validation.prompt_sensitivity — Prompt 措辞敏感度量化测�
 
 功能：
     通过系统性改写 Prompt 措辞（保持任务语义不变），量化 LLM 标注结果
-    对 Prompt 表述选择的敏感程度。采用双轨（full + ctx）测试架构，
+    对 Prompt 表述选择的敏感程度。采用三轨（full + ctx + ss）测试架构，
     与 21_tone_llms.py 主流水线保持一致。
 
 方法论依据：
@@ -34,13 +34,13 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
     与变体 (v7) 的 schema 不一致（版本级混淆）并补上第三维度的敏感性覆盖；
     各变体仍在自身扰动维度内保持 collab 判定标准实质不变。配套接入
     PASS_THRESHOLD_INNOVATION_COLLAB_MODE 进 pass criteria（此前为死阈值）。
-    同时（fix omni-g-val-prompt-01/03/04/05）：ctx 轨变体 prompt 构造前剥离
-    stage 13 prepend 的标题（镜像生产 tonellms-01）；pass/fail 裁决改双轨
-    AND（full 与 ctx 各自评估，JSON 报 per-track）；变体 locus 空票回退与
+    同时（fix omni-g-val-prompt-01/03/04/05）：ctx/ss 轨变体 prompt 构造前剥离
+    stage 13 prepend 的标题（镜像生产 tonellms-01）；pass/fail 裁决改三轨
+    AND（full / ctx / ss 各自评估，JSON 报 per-track）；变体 locus 空票回退与
     生产 keyword 分类器对齐；API 全失败行加掩码不计入措辞不一致。
 
 输入：
-    阶段21输出 21_tone_llms_full.parquet（含双轨 LLM 判定列）
+    阶段21输出 21_tone_llms_full.parquet（含三轨 LLM 判定列）
 
 输出：
     eval_reports/prompt_sensitivity_results.json   — 结构化指标
@@ -52,7 +52,7 @@ v8 升级（2026-06-11, fix(omni-g-val-prompt-02)）：
     担心 LLM 的判定结果是"prompt 怎么写"碰巧决定的。本检验把同一个任务
     用 4 种不同说法重写 (换角色口吻 / 换段落顺序 / 大幅精简 / 整句改写),
     意思完全不变, 再让 LLM 对同一批文章重判。如果 5 个版本 (原版+4 变体)
-    给出的答案高度一致 (一致率/κ/α 全过阈值, 且 full 和 ctx 两条轨道都要
+    给出的答案高度一致 (一致率/κ/α 全过阈值, 且 full / ctx / ss 三条轨道都要
     过), 就说明结果反映的是文章本身, 不是 prompt 措辞的偶然产物。
 """
 
@@ -534,11 +534,11 @@ def _build_fleiss_matrix(labels_matrix: np.ndarray) -> np.ndarray:
 
 
 # ============================================================================
-# 4. LLM 双轨批量请求（自写编排，不能复用 run_all_llms）
+# 4. LLM 三轨批量请求（自写编排，不能复用 run_all_llms）
 # ============================================================================
 # run_all_llms 硬编码了 PROMPT_TEMPLATE，无法传入变体 prompt。
 # 本函数结构参考 36_entity_masking_test.run_masked_llms (L178-215)，
-# 但增加了双轨 (full + ctx) 支持。
+# 但增加了三轨 (full + ctx + ss) 支持。
 
 async def run_variant_llms(
     df: pd.DataFrame,
@@ -548,24 +548,26 @@ async def run_variant_llms(
     cache: LLMCache | None = None,
     model_availability: AsyncModelAvailability | None = None,
 ) -> dict:
-    """对样本执行双轨 LLM 请求，使用指定的变体 prompt。
+    """对样本执行三轨 LLM 请求，使用指定的变体 prompt。
 
     Args:
-        df: 样本 DataFrame，须含 '内容', 'content_ctx', 'target_bank',
-            'co_mentioned_banks', '标题' 列。
+        df: 样本 DataFrame，须含 '内容', 'content_ctx', 'content_ss',
+            'target_bank', 'co_mentioned_banks', '标题' 列。
         variant_prompt: 变体 prompt 模板字符串。
         models: 模型配置列表。
         variant_name: 变体名称（仅用于日志）。
 
     Returns:
-        dict: {row_idx: {'full': {model_id: res_text}, 'ctx': {model_id: res_text}}}
+        dict: {row_idx: {'full': {...}, 'ctx': {...}, 'ss': {...}}}
     """
     semaphore = asyncio.Semaphore(PROMPT_MAX_CONCURRENCY)
-    results_map = {i: {'full': {}, 'ctx': {}} for i in df.index}
+    # 三轨投票桶 (full=全文 / ctx=实体窗口 / ss=银行+金科同句共现)
+    results_map = {i: {'full': {}, 'ctx': {}, 'ss': {}} for i in df.index}
 
-    total_tasks = len(df) * len(models) * 2
+    # 三轨化: 任务总数 ×3 (此前 ×2)
+    total_tasks = len(df) * len(models) * 3
     logger.info(
-        f"  [{variant_name}] 双轨请求: {len(df)} 条 × {len(models)} 模型 × 2 轨道 = "
+        f"  [{variant_name}] 三轨请求: {len(df)} 条 × {len(models)} 模型 × 3 轨道 = "
         f"{total_tasks} 请求, concurrency={PROMPT_MAX_CONCURRENCY}, "
         f"per_model_spacing={PROMPT_REQUEST_SPACING:.2f}s, "
         f"timeout={PROMPT_REQUEST_TIMEOUT_SECONDS:.0f}s, retries={PROMPT_MAX_RETRIES}"
@@ -591,8 +593,17 @@ async def run_variant_llms(
             content_ctx = _strip_prepended_title(
                 str(row.get('content_ctx', content_full)), title
             )
+            # ss 轨同构 (content_ss 同由 stage 13 prepend 标题, 同样需剥离再由
+            # {title} 字段注入 1 次); 缺列优雅回退全文 (镜像 ss_is_fallback)。
+            content_ss = _strip_prepended_title(
+                str(row.get('content_ss', content_full)), title
+            )
 
-            for track, content in [('full', content_full), ('ctx', content_ctx)]:
+            for track, content in [
+                ('full', content_full),
+                ('ctx', content_ctx),
+                ('ss', content_ss),
+            ]:
                 prompt = variant_prompt.format(
                     title=title,
                     content=content,
@@ -636,15 +647,15 @@ def aggregate_variant_results(
 ) -> pd.DataFrame:
     """将变体的 LLM 响应聚合为 DataFrame 列。
 
-    为每个变体生成以下列（每轨道独立）：
-        {variant_key}_verified_full/ctx    — 多数投票验证结果 (bool)
-        {variant_key}_sentiment_full/ctx   — 多数投票情感标签 (str)
-        {variant_key}_innovation_substantiveness_full/ctx — W&Z 多数票
-        {variant_key}_innovation_locus_full/ctx — Gomber 多数票
+    为每个变体生成以下列（每轨道独立 full/ctx/ss）：
+        {variant_key}_verified_full/ctx/ss    — 多数投票验证结果 (bool)
+        {variant_key}_sentiment_full/ctx/ss   — 多数投票情感标签 (str)
+        {variant_key}_innovation_substantiveness_full/ctx/ss — W&Z 多数票
+        {variant_key}_innovation_locus_full/ctx/ss — Gomber 多数票
             (生产 tone_llms._resolve_locus_track 同源聚合)
-        {variant_key}_innovation_collab_mode_full/ctx — Chesbrough 多数票 (v8)
-        {variant_key}_call_failure_full/ctx — API 全失败旗标 (一致性计算掩码用)
-        {variant_key}_undefined_full/ctx    — 情感平局旗标 (透明披露)
+        {variant_key}_innovation_collab_mode_full/ctx/ss — Chesbrough 多数票 (v8)
+        {variant_key}_call_failure_full/ctx/ss — API 全失败旗标 (一致性计算掩码用)
+        {variant_key}_undefined_full/ctx/ss    — 情感平局旗标 (透明披露)
 
     语义变更披露: fix(omni-g-val-prompt-02/05, 2026-06-11) — 新增 collab 列;
     call_failure/undefined 旗标不再丢弃。fix(omni-gapfill-18, 2026-06-12) —
@@ -663,8 +674,8 @@ def aggregate_variant_results(
     n_parse_fail = 0
     n_total = 0
 
-    for track in ['_full', '_ctx']:
-        track_key = track.lstrip('_')  # 'full' 或 'ctx'
+    for track in ['_full', '_ctx', '_ss']:
+        track_key = track.lstrip('_')  # 'full' / 'ctx' / 'ss'
         v_list = []
         s_list = []
         innov_subst_list = []   # v7 R7.2: 创新实质性 (W&Z 1994/1998 ASQ)
@@ -741,18 +752,23 @@ def random_sample(df: pd.DataFrame, sample_size: int, seed: int) -> pd.DataFrame
 
 
 def extract_baseline(df_sample: pd.DataFrame) -> pd.DataFrame:
-    """从样本中提取已有的双轨 LLM 判定作为 baseline (V0)。"""
+    """从样本中提取已有的三轨 LLM 判定作为 baseline (V0)。"""
     df = df_sample.copy()
 
-    # 整体投票结果
+    # 整体投票结果 (full/ctx 为生产必备列; ss 镜像写法但加列存在守卫,
+    # 盘上未物化 _ss 时优雅跳过, 下游 ss 轨指标自然缺席而不崩)。
     df['V0_baseline_verified_full'] = df['llm_verified_full']
     df['V0_baseline_verified_ctx'] = df['llm_verified_ctx']
     df['V0_baseline_sentiment_full'] = df['llm_sentiment_full']
     df['V0_baseline_sentiment_ctx'] = df['llm_sentiment_ctx']
+    if 'llm_verified_ss' in df.columns:
+        df['V0_baseline_verified_ss'] = df['llm_verified_ss']
+    if 'llm_sentiment_ss' in df.columns:
+        df['V0_baseline_sentiment_ss'] = df['llm_sentiment_ss']
 
-    # v7 R7.2 / v3.2.0 (plan v14 §3.5 P5.7): V0 baseline 含 innovation 双轨独立
-    # v3.2.0 BREAKING: bare innovation_* 已重命名为 _full / _ctx, 此处对应轨道独立 baseline
-    for _track, _suffix in [('_full', '_full'), ('_ctx', '_ctx')]:
+    # v7 R7.2 / v3.2.0 (plan v14 §3.5 P5.7): V0 baseline 含 innovation 三轨独立
+    # v3.2.0 BREAKING: bare innovation_* 已重命名为 _full / _ctx / _ss, 此处对应轨道独立 baseline
+    for _track, _suffix in [('_full', '_full'), ('_ctx', '_ctx'), ('_ss', '_ss')]:
         src_subst = f'innovation_substantiveness{_suffix}'
         src_locus = f'innovation_locus{_suffix}'
         # fix(omni-g-val-prompt-02, 2026-06-11): v8 第三维度 collab_mode 纳入 baseline
@@ -764,10 +780,10 @@ def extract_baseline(df_sample: pd.DataFrame) -> pd.DataFrame:
         if src_collab in df.columns:
             df[f'V0_baseline_innovation_collab_mode{_track}'] = df[src_collab]
 
-    # 逐模型结果（用于后续分析扩展）
+    # 逐模型结果（用于后续分析扩展, 三轨; src 列缺失时按列守卫优雅跳过）
     for m in MODELS:
         short = m['short_name']
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             src_v = f'{short}_verified{track}'
             src_s = f'{short}_sentiment{track}'
             if src_v in df.columns:
@@ -792,7 +808,7 @@ def compute_pairwise_consistency(
     Args:
         df: 含 baseline 和变体列的 DataFrame。
         variant_key: 变体标识符。
-        track: '_full' 或 '_ctx'。
+        track: '_full' / '_ctx' / '_ss'。
 
     Returns:
         dict: {verification_agreement, sentiment_agreement, cohens_kappa_verification}
@@ -924,7 +940,7 @@ def compute_multivariant_consistency(
     Args:
         df: 含全部变体列的 DataFrame。
         variant_keys: 变体标识符列表（不含 V0）。
-        track: '_full' 或 '_ctx'。
+        track: '_full' / '_ctx' / '_ss'。
 
     Returns:
         dict: {krippendorffs_alpha, fleiss_kappa, n_items, n_call_failures_excluded}
@@ -1034,7 +1050,7 @@ def evaluate_track_criteria(
 
     fix(omni-g-val-prompt-03, 2026-06-11): 此前裁决仅基于 full 轨, 而 P1 主线
     main spec = llm_vote_tone_ctx (ctx 轨) — full 过而 ctx 不过时会误报通过。
-    抽出单轨评估函数, 由 main() 对 full/ctx 各评一次并取 AND。
+    抽出单轨评估函数, 由 main() 对 full/ctx/ss 各评一次并取 AND。
     fix(omni-g-val-prompt-02, 2026-06-11): 接入 PASS_THRESHOLD_INNOVATION_COLLAB_MODE
     (v8 第三维度, 此前为从未消费的死阈值)。
 
@@ -1042,7 +1058,7 @@ def evaluate_track_criteria(
         pairwise_results: {track: {variant_key: pairwise dict}}
         multi_results: {track: multi-variant dict}
         variant_keys: 变体标识符列表。
-        track: '_full' 或 '_ctx'。
+        track: '_full' / '_ctx' / '_ss'。
 
     Returns:
         tuple: (criteria: dict[str, bool], summary: dict[str, float])
@@ -1102,8 +1118,9 @@ def generate_reports(
     """生成全部报告文件（JSON/CSV/LaTeX/PNG）。
 
     fix(omni-g-val-prompt-03, 2026-06-11): 新增可选 passed_by_track
-    ({'_full': bool, '_ctx': bool}), JSON 报 per-track 裁决 (passed_full /
-    passed_ctx); 总 `passed` = 双轨 AND (由 main() 计算)。未传时两字段为 null。
+    ({'_full': bool, '_ctx': bool, '_ss': bool}), JSON 报 per-track 裁决
+    (passed_full / passed_ctx / passed_ss); 总 `passed` = 三轨 AND (由 main()
+    计算)。未传时各字段为 null。
     """
 
     # ── 7.1 JSON 报告 ──
@@ -1115,7 +1132,7 @@ def generate_reports(
         'n_variants': len(variant_keys),
         'n_models': len(MODELS),
         'model_names': [m['model_name'] for m in MODELS],
-        'tracks': ['full', 'ctx'],
+        'tracks': ['full', 'ctx', 'ss'],
         'thresholds': {
             'verification': PASS_THRESHOLD_VERIFICATION,
             'sentiment': PASS_THRESHOLD_SENTIMENT,
@@ -1133,9 +1150,10 @@ def generate_reports(
         'production_max_retries': _tone_llms.MAX_RETRIES,
         'passed': passed,
         # fix(omni-g-val-prompt-03, 2026-06-11): per-track 裁决 — P1 主 spec 在 ctx 轨
-        # (llm_vote_tone_ctx), 总判定 = full AND ctx, 不再仅 full 轨
+        # (llm_vote_tone_ctx), 总判定 = full AND ctx AND ss (三轨), 不再仅 full 轨
         'passed_full': None if passed_by_track is None else bool(passed_by_track.get('_full')),
         'passed_ctx': None if passed_by_track is None else bool(passed_by_track.get('_ctx')),
+        'passed_ss': None if passed_by_track is None else bool(passed_by_track.get('_ss')),
         'full_track': {
             'pairwise': pairwise_results.get('_full', {}),
             'multi_variant': multi_results.get('_full', {}),
@@ -1146,6 +1164,12 @@ def generate_reports(
             'multi_variant': multi_results.get('_ctx', {}),
             'cross_variant_variance': variance_results.get('_ctx', {}),
         },
+        # ss 轨 (银行+金科同句共现) per-track 明细
+        'ss_track': {
+            'pairwise': pairwise_results.get('_ss', {}),
+            'multi_variant': multi_results.get('_ss', {}),
+            'cross_variant_variance': variance_results.get('_ss', {}),
+        },
     }
 
     json_path = os.path.join(report_dir, 'prompt_sensitivity_results.json')
@@ -1155,8 +1179,12 @@ def generate_reports(
 
     # ── 7.2 CSV 逐条对比 ──
     csv_rows = []
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:
         track_label = track.lstrip('_')
+        # ss 轨守卫: 盘上未物化 _ss 时 baseline 列缺席 → 跳过该轨 (镜像
+        # full/ctx 始终存在的前提, 让三轨化对旧 parquet 优雅降级)。
+        if f'V0_baseline_verified{track}' not in df.columns:
+            continue
         for vk in variant_keys:
             # fix(omni-g-val-prompt-05, 2026-06-11): detail CSV 增加 call_failure 列
             # (旗标列缺失时向后兼容填 False)
@@ -1200,19 +1228,24 @@ def _generate_latex_table(
     pairwise: dict, multi: dict, variance: dict,
     variant_keys: list, n_samples: int, report_dir: str,
 ):
-    """生成 LaTeX 表格（双轨分 Panel）。"""
+    """生成 LaTeX 表格（三轨分 Panel full/ctx/ss）。"""
     lines = []
     lines.append(r"\begin{table}[htbp]")
     lines.append(r"\centering")
-    lines.append(rf"\caption{{Prompt Wording Sensitivity Analysis ($N={n_samples}$, Dual-Track)}}")
+    lines.append(rf"\caption{{Prompt Wording Sensitivity Analysis ($N={n_samples}$, Three-Track)}}")
     lines.append(r"\label{tab:prompt_sensitivity}")
     lines.append(r"\begin{tabular}{lcccc}")
     lines.append(r"\hline")
     lines.append(r"Variant & Verif. Agree. & Sent. Agree. & Cohen's $\kappa_{\text{verif}}$ & Parse Fail \\")
     lines.append(r"\hline")
 
+    # 三轨 pairwise Panel: full=Panel A / ctx=Panel B / ss=Panel C (银行+金科同句)
     for track, panel_label in [('_full', 'Panel A: Full-Text Track'),
-                                ('_ctx', 'Panel B: Context-Snippet Track')]:
+                                ('_ctx', 'Panel B: Context-Snippet Track'),
+                                ('_ss', 'Panel C: Bank+FinTech Same-Sentence Track')]:
+        # 盘上未物化 _ss 时该轨 pairwise dict 为空 → 跳过该 Panel (优雅降级)
+        if track == '_ss' and not pairwise.get(track):
+            continue
         lines.append(rf"\multicolumn{{5}}{{l}}{{\textit{{{panel_label} (Pairwise vs. Baseline)}}}} \\")
         for vk in variant_keys:
             pw = pairwise.get(track, {}).get(vk, {})
@@ -1223,20 +1256,24 @@ def _generate_latex_table(
             lines.append(rf"\quad {VARIANT_LABELS.get(vk, vk)} & {va:.1f}\% & {sa:.1f}\% & {kp:.4f} & -- \\")
         lines.append(r"\hline")
 
-    lines.append(r"\multicolumn{5}{l}{\textit{Panel C: Multi-Variant Agreement (Full / Ctx)}} \\")
+    # 多变体一致性 Panel D: 每指标三轨并列 (Full / Ctx / SS)
+    lines.append(r"\multicolumn{5}{l}{\textit{Panel D: Multi-Variant Agreement (Full / Ctx / SS)}} \\")
     mf = multi.get('_full', {})
     mc = multi.get('_ctx', {})
-    lines.append(rf"\quad Krippendorff's $\alpha$ & \multicolumn{{4}}{{c}}{{{mf.get('krippendorffs_alpha', 0):.4f} / {mc.get('krippendorffs_alpha', 0):.4f}}} \\")
-    lines.append(rf"\quad Fleiss' $\kappa$ & \multicolumn{{4}}{{c}}{{{mf.get('fleiss_kappa', 0):.4f} / {mc.get('fleiss_kappa', 0):.4f}}} \\")
+    ms = multi.get('_ss', {})
+    lines.append(rf"\quad Krippendorff's $\alpha$ & \multicolumn{{4}}{{c}}{{{mf.get('krippendorffs_alpha', 0):.4f} / {mc.get('krippendorffs_alpha', 0):.4f} / {ms.get('krippendorffs_alpha', 0):.4f}}} \\")
+    lines.append(rf"\quad Fleiss' $\kappa$ & \multicolumn{{4}}{{c}}{{{mf.get('fleiss_kappa', 0):.4f} / {mc.get('fleiss_kappa', 0):.4f} / {ms.get('fleiss_kappa', 0):.4f}}} \\")
     vf = variance.get('_full', {})
     vc = variance.get('_ctx', {})
-    lines.append(rf"\quad Cross-Variant $\sigma$(True Rate) & \multicolumn{{4}}{{c}}{{{vf.get('true_rate_std', 0):.4f} / {vc.get('true_rate_std', 0):.4f}}} \\")
+    vs = variance.get('_ss', {})
+    lines.append(rf"\quad Cross-Variant $\sigma$(True Rate) & \multicolumn{{4}}{{c}}{{{vf.get('true_rate_std', 0):.4f} / {vc.get('true_rate_std', 0):.4f} / {vs.get('true_rate_std', 0):.4f}}} \\")
     lines.append(r"\hline")
     lines.append(r"\end{tabular}")
     lines.append(r"\par\smallskip\footnotesize")
     lines.append(r"\textit{Notes:} Baseline uses the original prompt from the production pipeline.")
     lines.append(r"Each variant modifies wording while preserving identical task semantics.")
-    lines.append(r"Full track uses complete article text; Ctx track uses entity-specific context snippets.")
+    lines.append(r"Full track uses complete article text; Ctx track uses entity-specific context")
+    lines.append(r"snippets; SS track uses bank+fintech same-sentence co-occurrence snippets.")
     lines.append(r"Methodology follows Carlson \& Burbano (2026, SMJ \S3.5).")
     lines.append(r"\end{table}")
 
@@ -1247,7 +1284,7 @@ def _generate_latex_table(
 
 
 def _generate_heatmap(df: pd.DataFrame, variant_keys: list, report_dir: str):
-    """生成 2×1 双轨 pairwise Cohen's κ 热力图。"""
+    """生成三轨 (full/ctx/ss) pairwise Cohen's κ 热力图 (一轨一列)。"""
     all_keys = ['V0_baseline'] + variant_keys
     labels = ['V0 Baseline'] + [VARIANT_LABELS.get(vk, vk) for vk in variant_keys]
     n = len(all_keys)
@@ -1255,12 +1292,25 @@ def _generate_heatmap(df: pd.DataFrame, variant_keys: list, report_dir: str):
     # 配置中文字体
     _setup_chinese_font()
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
-    for ax_idx, (track, title_str) in enumerate([
+    # 三轨候选; ss 轨盘上未物化 (V0_baseline_verified_ss 列缺席) 时优雅剔除,
+    # 子图数随有效轨数自适应 (镜像 full/ctx 始终存在的前提)。
+    _track_titles = [
         ('_full', 'Full Track: Pairwise κ (Verification)'),
         ('_ctx', 'Ctx Track: Pairwise κ (Verification)'),
-    ]):
+        ('_ss', 'SS Track (Bank+FinTech same-sentence): Pairwise κ (Verification)'),
+    ]
+    track_titles = [
+        (tr, ti) for tr, ti in _track_titles
+        if f'V0_baseline_verified{tr}' in df.columns
+    ]
+    n_panels = len(track_titles)
+
+    fig, axes = plt.subplots(1, n_panels, figsize=(7 * n_panels, 6))
+    # 单轨时 subplots 返回单 Axes, 统一成 list 便于索引。
+    if n_panels == 1:
+        axes = [axes]
+
+    for ax_idx, (track, title_str) in enumerate(track_titles):
         kappa_matrix = np.ones((n, n))
 
         for i in range(n):
@@ -1341,10 +1391,10 @@ def main():
     logger.info(f"     变体数量: {len(VARIANT_PROMPTS)} (V1-V4) + V0 Baseline")
     logger.info(f"     抽样数量: {SAMPLE_SIZE}，随机种子: {RANDOM_SEED}")
     logger.info(f"     模型数量: {len(MODELS)}")
-    logger.info(f"     测试轨道: full + ctx（双轨）")
+    logger.info(f"     测试轨道: full + ctx + ss（三轨）")
     logger.info(f"     并发上限: {PROMPT_MAX_CONCURRENCY}")
-    logger.info(f"     预计请求: {len(VARIANT_PROMPTS)} × {SAMPLE_SIZE} × {len(MODELS)} × 2 = "
-                f"{len(VARIANT_PROMPTS) * SAMPLE_SIZE * len(MODELS) * 2:,} 次")
+    logger.info(f"     预计请求: {len(VARIANT_PROMPTS)} × {SAMPLE_SIZE} × {len(MODELS)} × 3 = "
+                f"{len(VARIANT_PROMPTS) * SAMPLE_SIZE * len(MODELS) * 3:,} 次")
     logger.info("")
     log_memory_usage(logger, "模块启动")
 
@@ -1371,8 +1421,10 @@ def main():
     df_sample = random_sample(df_full, SAMPLE_SIZE, RANDOM_SEED)
     logger.info(f"  抽样完成: {len(df_sample):,} 条")
 
-    # ── Step 3: 提取 baseline 双轨判定 ──
-    logger.info("Step 3: 提取 baseline (V0) 双轨判定 ...")
+    # ── Step 3: 提取 baseline 三轨判定 ──
+    logger.info("Step 3: 提取 baseline (V0) 三轨判定 ...")
+    # full/ctx 为生产必备列 (缺则报错退出); ss 不列入必备 (盘上未物化 _ss 时
+    # extract_baseline 已按列守卫优雅跳过, ss 轨指标自然缺席而不阻断 full/ctx)。
     required_cols = ['llm_verified_full', 'llm_verified_ctx',
                      'llm_sentiment_full', 'llm_sentiment_ctx']
     missing = [c for c in required_cols if c not in df_sample.columns]
@@ -1391,9 +1443,15 @@ def main():
         df_sample = _materialize(df_sample)
     else:
         logger.info("Step 4: content_ctx 列已存在，跳过物化")
+    # ss 轨安全后备: content_ss 缺列 → 回退全文 (镜像 ss_is_fallback 公理),
+    # run_variant_llms 内 row.get('content_ss', content_full) 已含此回退,
+    # 此处仅显式物化一份兜底列, 保证 detail/ss 轨指标有源。
+    if 'content_ss' not in df_sample.columns:
+        logger.info("Step 4b: content_ss 列缺失，ss 轨回退全文 (镜像 ctx 回退)")
+        df_sample['content_ss'] = df_sample['内容'].astype(str)
 
-    # ── Step 5: 循环 4 个变体执行双轨 LLM 请求 ──
-    logger.info("Step 5: 执行变体 LLM 双轨请求 ...")
+    # ── Step 5: 循环 4 个变体执行三轨 LLM 请求 ──
+    logger.info("Step 5: 执行变体 LLM 三轨请求 ...")
     variant_keys = list(VARIANT_PROMPTS.keys())
 
     cache_db = os.path.join(CONFIG["paths"]["output_dir"], '_llm_cache.db')
@@ -1424,7 +1482,13 @@ def main():
     multi_results = {}
     variance_results = {}
 
-    for track in ['_full', '_ctx']:
+    # 有效轨道集: full/ctx 始终在; ss 仅当变体聚合真正产出 _ss 列 (= 盘上有
+    # content_ss 真同句片段或回退全文) 时纳入, 否则三轨化对旧 parquet 优雅降级。
+    active_tracks = ['_full', '_ctx']
+    if f'{variant_keys[0]}_verified_ss' in df_sample.columns:
+        active_tracks.append('_ss')
+
+    for track in active_tracks:
         track_label = track.lstrip('_')
         logger.info(f"  ── {track_label} 轨道 ──")
 
@@ -1449,15 +1513,15 @@ def main():
         variance_results[track] = var
         logger.info(f"    True rate σ={var['true_rate_std']:.4f}")
 
-    # ── Step 7: 通过/未通过判定（双轨 AND） ──
+    # ── Step 7: 通过/未通过判定（三轨 AND） ──
     # fix(omni-g-val-prompt-03, 2026-06-11): 此前仅 full 轨进 gate, 而 P1 主线
     # main spec = llm_vote_tone_ctx (ctx 轨) — full 过 ctx 不过会误报通过。
-    # 改为 full / ctx 各自评估全部 criteria, 总判定 = 双轨 AND, JSON 报 per-track。
-    logger.info("Step 7: 通过/未通过判定（full 与 ctx 双轨均须通过）...")
+    # 改为 full / ctx / ss 各自评估全部 criteria, 总判定 = 三轨 AND, JSON 报 per-track。
+    logger.info("Step 7: 通过/未通过判定（full / ctx / ss 三轨均须通过）...")
 
     summary_by_track = {}
     passed_by_track = {}
-    for track in ['_full', '_ctx']:
+    for track in active_tracks:
         track_label = track.lstrip('_')
         criteria, summary = evaluate_track_criteria(
             pairwise_results, multi_results, variant_keys, track)
@@ -1470,10 +1534,12 @@ def main():
         logger.info(f"    {track_label} 轨道判定: "
                     f"{'✅ 通过' if passed_by_track[track] else '❌ 未通过'}")
 
-    passed = passed_by_track['_full'] and passed_by_track['_ctx']
+    # 总判定 = 全部有效轨道 AND (full/ctx 必含, ss 物化时一并纳入)
+    passed = all(passed_by_track[track] for track in active_tracks)
 
     if passed:
-        logger.info("  ✅ 判定: 通过 (双轨) — Prompt 措辞改写对标注结果无实质影响")
+        track_names = '/'.join(t.lstrip('_') for t in active_tracks)
+        logger.info(f"  ✅ 判定: 通过 ({track_names} 三轨) — Prompt 措辞改写对标注结果无实质影响")
     else:
         logger.info("  ❌ 判定: 未通过 — 至少一条轨道有指标低于阈值，需审查变体敏感性")
 
@@ -1493,7 +1559,7 @@ def main():
     logger.info("=" * 70)
     logger.info(f"  样本量: {len(df_sample):,}")
     logger.info(f"  变体数: {len(variant_keys)} + baseline")
-    for track in ['_full', '_ctx']:
+    for track in active_tracks:
         track_label = track.lstrip('_')
         s = summary_by_track[track]
         logger.info(f"  {track_label.capitalize()} 轨道:")
@@ -1503,7 +1569,8 @@ def main():
         logger.info(f"    Krippendorff's α: {s['krippendorffs_alpha']:.4f}")
         logger.info(f"    Fleiss' κ: {multi_results[track]['fleiss_kappa']:.4f}")
         logger.info(f"    轨道判定: {'✅ 通过' if passed_by_track[track] else '❌ 未通过'}")
-    logger.info(f"  总判定 (full AND ctx): {'✅ 通过' if passed else '❌ 未通过'}")
+    logger.info(f"  总判定 ({' AND '.join(t.lstrip('_') for t in active_tracks)}): "
+                f"{'✅ 通过' if passed else '❌ 未通过'}")
     logger.info("=" * 70)
     log_memory_usage(logger, "模块完成")
 

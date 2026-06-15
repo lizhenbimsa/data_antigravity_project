@@ -87,7 +87,10 @@ if _PROJECT_PARENT not in sys.path:
     sys.path.insert(0, _PROJECT_PARENT)
 
 # v3.5.2 PR #3 集成: A1 LM 4 子词典 (uncert/litig/constr/modal_strong) + A2 FLS.
-# 复用 v3.5.1 真双轨架构 (_dual_analyze 内对 content_full + content_ctx 各扫一次).
+# 复用 v3.5.1 三轨架构 (_dual_analyze 内对 content_full + content_ctx + content_ss 各扫一次).
+# 三轨 (full/ctx/ss): full=标题+全文; ctx=标题+含目标银行句±1句窗; ss=标题+
+# 同句内同时含 目标银行∧金科词 的句±N句窗 (银行+金科同句, suffix '_ss'; 缺/无共现
+# →content_ss 镜像 ctx 回退至全文 body, ss_is_fallback=True)。
 from news_process.core.config import load_config
 from news_process.core.logging import log_memory_usage, log_stage_summary, setup_logging
 from news_process.core.reporting import safe_save_preview_csv
@@ -204,7 +207,7 @@ _CLARITY_DICTS: tuple[frozenset, frozenset] | None = None
 
 
 def load_clarity_dictionaries() -> tuple[frozenset, frozenset]:
-    """加载 you_2018 Panel C (definite) + Panel D (ambiguous) 词典 (v3.5.1 A1 真双轨激活).
+    """加载 you_2018 Panel C (definite) + Panel D (ambiguous) 词典 (v3.5.1 A1 三轨激活).
 
     Returns:
         tuple[frozenset, frozenset]: ``(definite_set, ambiguous_set)``
@@ -219,7 +222,7 @@ def load_clarity_dictionaries() -> tuple[frozenset, frozenset]:
         - Bonsall et al. (2017) JAE 63(2-3) 信息环境模糊度框架
 
     与 v3.4.0 及之前差异: 此前 you_2018.definite/ambiguous "仅存档" (tone_dicts.json
-    含 keys 但无消费); v3.5.1 激活为真双轨独立扫描指标.
+    含 keys 但无消费); v3.5.1 激活为三轨 (full/ctx/ss) 独立扫描指标.
     """
     global _CLARITY_DICTS
     if _CLARITY_DICTS is not None:
@@ -259,11 +262,11 @@ def load_clarity_dictionaries() -> tuple[frozenset, frozenset]:
 
 
 def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset) -> dict[str, float]:
-    """对**单一文本**独立扫描派生 clarity 指标 (v3.5.1 A1 真双轨核心).
+    """对**单一文本**独立扫描派生 clarity 指标 (v3.5.1 A1 三轨核心).
 
-    此函数是真双轨的关键: ``_dual_analyze`` 对 content_full 和 content_ctx 各调用一次,
-    得到独立的 clarity_score_full_i 和 clarity_score_ctx_i — 与项目现有 ``_analyze_single_article``
-    的双轨契约一致 (per stage3_v3_5_1 plan v0.3 §2.1.1 修 R3-C1).
+    此函数是三轨的关键: ``_dual_analyze`` 对 content_full / content_ctx / content_ss 各调用一次,
+    得到独立的 clarity_score_full_i / clarity_score_ctx_i / clarity_score_ss_i — 与项目现有
+    ``_analyze_single_article`` 的三轨契约一致 (per stage3_v3_5_1 plan v0.3 §2.1.1 修 R3-C1).
 
     分词流: tone tokenizer (独立 jieba.Tokenizer 实例, 见 ``_get_tone_tokenizer``) +
     去空字符 token (与 ``_analyze_single_article`` 一致).
@@ -273,7 +276,7 @@ def _compute_clarity_for_text(text: str, def_set: frozenset, amb_set: frozenset)
     仍为"未去停用词"版 (paper §3.4 disclosure 不变)。
 
     Args:
-        text: 任意单一文本 (典型为 content_full 或 content_ctx).
+        text: 任意单一文本 (典型为 content_full / content_ctx / content_ss).
         def_set: frozenset of definite words (388, You 2018 Panel C).
         amb_set: frozenset of ambiguous words (178, You 2018 Panel D).
 
@@ -592,7 +595,7 @@ def _compute_sentiment_with_rules(
             # 应用转折加权
             # fix(rule-ablation negonly, 2026-06-13): apply_adversative=False 时不放大,
             # 但上方 ADVERSATIVE_WORDS 分支仍 reset negation/degree (维持从句边界骨架)
-            # → 与全规则共享 scoping (从句边界在两轨抵消, 不污染 negonly 纯否定语义)。
+            # → 与全规则共享 scoping (从句边界在两种打分变体抵消, 不污染 negonly 纯否定语义)。
             if adversative_active and apply_adversative:
                 final_score *= ADVERSATIVE_BOOST
 
@@ -741,7 +744,8 @@ def build_idf_weights(
          (``_get_tone_tokenizer``) 并行分词来统计 Document Frequency，
          坚决废除 Aho-Corasick 子匹配以避免把 “大家” 错误计为 “大”。
       2. IDF 在与 TF 加权同一语料（caller 传 text_col='content_full'，含标题；缺则回退
-         '内容'）上统一计算一次，两轨共享 (fix 2026-06-10: 原裸 '内容' 与 TF 打分语料不一致)。
+         '内容'）上统一计算一次，**三轨 (full/ctx/ss) 共享同一份 content_full 语料 IDF**
+         (绝不按轨分语料; ss 轨亦复用此权重) (fix 2026-06-10: 原裸 '内容' 与 TF 打分语料不一致)。
       3. 均值归一化确保 IDF 加权后得分量级 ≈ 等权版，可共享阈值。
       4. P1/P99 Winsorization 防止极端稀有词主导或极高频词归零。
       5. DF/N 按**唯一文档**统计 (fix omni-g-tonewords-04, 2026-06-11): stage 21 输出
@@ -877,7 +881,14 @@ ALL_DICTIONARIES = None
 IDF_DICTIONARIES = None  # IDF 加权词典（稳健性检验，在 main() 中初始化）
 
 _JIEBA_INJECTED = False
-_JIEBA_LOCK = threading.Lock()
+# fix(ss-deadlock, 2026-06-15): 用**可重入** RLock 而非 Lock。死锁路径:
+# _inject_custom_dicts_to_jieba 持 _JIEBA_LOCK (L942) 后在锁内调
+# _get_tone_tokenizer (L967), 若 _TONE_TOKENIZER 仍为 None, 后者会**再次**
+# acquire 同一把 _JIEBA_LOCK (L931) → 同线程重入非可重入 Lock 即永久死锁
+# (实测 stage 22 卡在"注入领域词汇"步、CPU 仅 ~1s 冻结; 仅当注入时 tokenizer
+# 尚未惰性创建才触发, 故偶发: 首跑 tokenizer 已建则跳过重入侥幸不锁)。
+# RLock 允许同线程重入, 彻底消除该死锁; 跨线程互斥语义不变。
+_JIEBA_LOCK = threading.RLock()
 
 # fix(omni-g-tonewords-10/-11, 2026-06-11): stage-22 词典匹配专用的**独立** jieba
 # Tokenizer 实例 (注入隔离)。领域词注入只写入此实例, 全局 jieba.dt / jieba.posseg
@@ -1108,6 +1119,10 @@ def _empty_article_result() -> dict:
     的空文本 NaN 契约一致; 旧实现回填 0.0 伪中性, 在 panel 聚合中压低均值)。
     label 维持 '中性' (类别列, 供 stats 计数), 可读性三列维持 0.0 (长度类, 空文本
     长度为 0 是真值而非缺失)。
+
+    三轨契约 (full/ctx/ss): 本函数返回 **无轨道后缀** 的键, 轨道后缀 (_full/_ctx/_ss)
+    由 ``_dual_analyze`` 对各轨结果统一追加 → 三轨自动获得完整的 _ss 空文本键集合
+    (含 content_ss 回退/空文本场景, 与 ctx 镜像), 无需在此显式枚举轨道。
     """
     result: dict[str, Any] = {}
     for dict_name, _ in ALL_DICTIONARIES:
@@ -1334,18 +1349,20 @@ def _analyze_single_article(content: str) -> dict:
 # ============================================================================
 
 def classify_batch(df_batch: pd.DataFrame) -> tuple:
-    """对单个批次执行词典法双轨情感分析（全文 + 上下文片段）。
+    """对单个批次执行词典法三轨情感分析（全文 + 上下文片段 + 银行+金科同句）。
 
     Args:
-        df_batch: 待分析的 DataFrame 批次（需含 'content_ctx' 列，
-                  由阶段 13 ctx_materializer 物化、随 21 输出下传）。
+        df_batch: 待分析的 DataFrame 批次（需含 'content_ctx' / 'content_ss' 列，
+                  由阶段 13 ctx_materializer 物化、随 21 输出下传；content_ss 缺列时
+                  在 _dual_analyze 内回退 ctx/全文，graceful skip）。
 
     Returns:
         tuple: (processed_df, stats_dict)
     """
     stats = {'total': 0}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss): ss = 银行+金科同句轨, 镜像 ctx 计数初始化
+        for track in ['_full', '_ctx', '_ss']:
             stats[f'{dict_name}_正面{track}'] = 0
             stats[f'{dict_name}_中性{track}'] = 0
             stats[f'{dict_name}_负面{track}'] = 0
@@ -1356,66 +1373,82 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     df = df_batch.copy()
     stats['total'] = len(df)
 
-    # 对每篇文章执行双轨情感分析
-    # content_ctx 由阶段 13 ctx_materializer 物化为列 (随上游输出下传)，直接读取以确保三种方法输入一致
+    # 对每篇文章执行三轨情感分析 (full/ctx/ss)
+    # content_ctx / content_ss 由阶段 13 ctx_materializer 物化为列 (随上游输出下传)，直接读取以确保各方法输入一致
     # v3.5.1 A1: 加载 clarity 词典 (lazy, batch 内 1 次)
     _def_set, _amb_set = load_clarity_dictionaries()
     # v3.5.2 PR #3: 加载 LM 4 子词典 (lru_cache 全局单例; 第 2 次调用 O(1))
     _lm_dicts = load_lm_non_sentiment_dicts()
 
     def _dual_analyze(row):
-        # remove-title-track: full / ctx 两轨文本均注入标题 (prepend_title); title 轨已取消
+        # remove-title-track: full / ctx / ss 三轨文本均注入标题 (prepend_title); title 轨已取消
         from news_process.core.text.entity_context import prepend_title
         _title = str(row.get('标题', '') or '')
         content_full = prepend_title(_title, str(row.get('内容', '')))
         content_ctx = prepend_title(_title, str(row.get('content_ctx', str(row.get('内容', '')))))
+        # 第三轨 ss (银行+金科同句): content_ss 由 stage 13 物化; 缺列时回退 content_ctx
+        # (其本身缺列时再回退裸 '内容') → graceful skip, 镜像 ctx 回退公理 (ss_is_fallback)。
+        content_ss = prepend_title(
+            _title, str(row.get('content_ss', row.get('content_ctx', row.get('内容', '')))))
 
         res_full = _analyze_single_article(content_full)
         res_ctx = _analyze_single_article(content_ctx)
+        res_ss = _analyze_single_article(content_ss)
 
-        # 合并：为每个键追加轨道后缀
+        # 合并：为每个键追加轨道后缀 (三轨 full/ctx/ss)
         merged = {}
         for k, v in res_full.items():
             merged[f'{k}_full'] = v
         for k, v in res_ctx.items():
             merged[f'{k}_ctx'] = v
+        for k, v in res_ss.items():
+            merged[f'{k}_ss'] = v
 
-        # v3.5.1 A1 真双轨 clarity (per plan v0.3 §2.1.1 修 R3-C1):
-        # 对 content_full + content_ctx **独立扫描** (title 轨不纳入, 修 R3-H1
+        # v3.5.1 A1 三轨 clarity (per plan v0.3 §2.1.1 修 R3-C1):
+        # 对 content_full + content_ctx + content_ss **独立扫描** (title 轨不纳入, 修 R3-H1
         # 锁定排除 — title 文本 < 50 字符分母不稳).
         clarity_full = _compute_clarity_for_text(content_full, _def_set, _amb_set)
         clarity_ctx = _compute_clarity_for_text(content_ctx, _def_set, _amb_set)
+        clarity_ss = _compute_clarity_for_text(content_ss, _def_set, _amb_set)
         for k, v in clarity_full.items():
             merged[f'clarity_{k}_full'] = v
         for k, v in clarity_ctx.items():
             merged[f'clarity_{k}_ctx'] = v
+        for k, v in clarity_ss.items():
+            merged[f'clarity_{k}_ss'] = v
 
-        # v3.5.2 PR #3 (A1): LM 4 non-sentiment 子词典真双轨扫描.
-        # 关键 4 panel 列: uncert_frac_{full,ctx} / litig_frac_{full,ctx} /
-        # constr_frac_{full,ctx} / modal_strong_frac_{full,ctx}.
+        # v3.5.2 PR #3 (A1): LM 4 non-sentiment 子词典三轨扫描.
+        # 关键 panel 列: uncert_frac_{full,ctx,ss} / litig_frac_{full,ctx,ss} /
+        # constr_frac_{full,ctx,ss} / modal_strong_frac_{full,ctx,ss}.
         # fix(omni-g-tonewords-10/-11, 2026-06-11): 改走 tone tokenizer 包装 —
         # lm_non_sentiment 原函数内部用全局 jieba, 注入隔离后会把多字 LM 词切碎。
         lm_full = _compute_lm_non_sentiment_for_text_tone_tok(content_full, _lm_dicts)
         lm_ctx = _compute_lm_non_sentiment_for_text_tone_tok(content_ctx, _lm_dicts)
+        lm_ss = _compute_lm_non_sentiment_for_text_tone_tok(content_ss, _lm_dicts)
         for k in ('uncert', 'litig', 'constr', 'modal_strong'):
             merged[f'{k}_frac_full'] = lm_full.get(f'frac_{k}', float('nan'))
             merged[f'{k}_frac_ctx'] = lm_ctx.get(f'frac_{k}', float('nan'))
+            merged[f'{k}_frac_ss'] = lm_ss.get(f'frac_{k}', float('nan'))
 
-        # v3.5.2 PR #3 (A2): Forward-Looking Statements 比例真双轨.
+        # v3.5.2 PR #3 (A2): Forward-Looking Statements 比例三轨.
         fls_full = compute_fls_for_text(content_full)
         fls_ctx = compute_fls_for_text(content_ctx)
+        fls_ss = compute_fls_for_text(content_ss)
         merged['frac_fls_full'] = fls_full.get('frac_fls', float('nan'))
         merged['frac_fls_ctx'] = fls_ctx.get('frac_fls', float('nan'))
+        merged['frac_fls_ss'] = fls_ss.get('frac_fls', float('nan'))
 
         return merged
 
     results = df.apply(_dual_analyze, axis=1)
 
-    # 提取各列（双轨）。先攒成一个列字典, 再一次性 concat, 避免大量
+    # 提取各列（三轨 full/ctx/ss）。先攒成一个列字典, 再一次性 concat, 避免大量
     # ``df[col] = ...`` 造成 pandas block fragmentation。
+    # ss = 银行+金科同句轨: 缺 content_ss 时 _dual_analyze 已回退 → 各 key 必存在,
+    # 此处与 full/ctx 同口径提取 (r.get 兜底)。
     new_columns = {}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             score_key = f'{dict_name}_score{track}'
             label_key = f'{dict_name}_label{track}'
             label_series = results.apply(lambda r, k=label_key: r.get(k, '中性'))
@@ -1439,15 +1472,18 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
             new_columns[negonly_key] = results.apply(
                 lambda r, k=negonly_key: r.get(k, float('nan')))
 
+    # sentiment_details 三轨提取 (full/ctx/ss); ss = 银行+金科同句轨
     new_columns['sentiment_details_full'] = results.apply(
         lambda r: r.get('sentiment_details_full', ''))
     new_columns['sentiment_details_ctx'] = results.apply(
         lambda r: r.get('sentiment_details_ctx', ''))
+    new_columns['sentiment_details_ss'] = results.apply(
+        lambda r: r.get('sentiment_details_ss', ''))
 
-    # ── 提取 IDF 加权列（双轨）──
+    # ── 提取 IDF 加权列（三轨 full/ctx/ss）──
     if IDF_DICTIONARIES is not None:
         for dict_name, _ in IDF_DICTIONARIES:
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_ss']:
                 score_key = f'{dict_name}_idf_score{track}'
                 label_key = f'{dict_name}_idf_label{track}'
                 new_columns[score_key] = results.apply(
@@ -1455,7 +1491,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
                 new_columns[label_key] = results.apply(
                     lambda r, k=label_key: r.get(k, '中性'))
 
-    # ── 提取新增指标列（双轨）──
+    # ── 提取新增指标列（三轨 full/ctx/ss）──
     new_metric_cols = [
         'avg_sentence_len', 'type_token_ratio', 'char_per_word',
         'pos_ratio', 'neg_ratio',
@@ -1463,41 +1499,41 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
         'msent_negonly',  # rule-ablation 计数口径变体 (仅否定; 与 msent_score 配对)
     ]
     for col in new_metric_cols:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             col_key = f'{col}{track}'
             new_columns[col_key] = results.apply(lambda r, k=col_key: r.get(k, 0.0))
 
-    # ── v3.5.1 A1 真双轨 clarity 列提取 (per plan v0.3 §2.1.1 + §2.1.3) ──
-    # title 轨不纳入 (R3-H1 锁定); 仅 full + ctx 双轨独立扫描.
+    # ── v3.5.1 A1 三轨 clarity 列提取 (per plan v0.3 §2.1.1 + §2.1.3) ──
+    # title 轨不纳入 (R3-H1 锁定); full + ctx + ss 三轨各自独立扫描 (ss=银行+金科同句).
     clarity_metric_cols = [
         'n_definite', 'n_ambiguous', 'n_tokens_clarity_base',
         'frac_definite', 'frac_ambiguous', 'clarity_score',
     ]
     for col in clarity_metric_cols:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             col_key = f'clarity_{col}{track}'
             new_columns[col_key] = results.apply(lambda r, k=col_key: r.get(k, float('nan')))
 
-    # ── v3.5.2 PR #3 (A1 LM 4 子词典 + A2 FLS) 真双轨列提取 ──
-    # A1: uncert_frac_{full,ctx} / litig_frac_{full,ctx} / constr_frac_{full,ctx}
-    #     / modal_strong_frac_{full,ctx}
-    # A2: frac_fls_{full,ctx}
-    # title 轨不纳入 (与 clarity 同款决策, R3-H1 锁定 — title 文本 < 50 字符).
+    # ── v3.5.2 PR #3 (A1 LM 4 子词典 + A2 FLS) 三轨列提取 ──
+    # A1: uncert_frac_{full,ctx,ss} / litig_frac_{full,ctx,ss} / constr_frac_{full,ctx,ss}
+    #     / modal_strong_frac_{full,ctx,ss}
+    # A2: frac_fls_{full,ctx,ss}
+    # title 轨不纳入 (与 clarity 同款决策, R3-H1 锁定 — title 文本 < 50 字符); ss=银行+金科同句.
     lm_a2_metric_cols = [
         'uncert_frac', 'litig_frac', 'constr_frac', 'modal_strong_frac',
         'frac_fls',
     ]
     for col in lm_a2_metric_cols:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             col_key = f'{col}{track}'
             new_columns[col_key] = results.apply(
                 lambda r, k=col_key: r.get(k, float('nan'))
             )
 
     # ── 词汇/句法复杂度 $0 测度族 (批 #2–#6) + 词级长度 n_words_real (批 #7)
-    #    + 汉字级长度 n_han_real (HAN_COUNT_KEY, hanzi-char-dual 2026-06-13) 双轨列提取 ──
+    #    + 汉字级长度 n_han_real (HAN_COUNT_KEY, hanzi-char-dual 2026-06-13) 三轨列提取 ──
     for col in (*LEXICAL_COMPLEXITY_KEYS, WORD_COUNT_KEY, HAN_COUNT_KEY):
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             col_key = f'{col}{track}'
             new_columns[col_key] = results.apply(
                 lambda r, k=col_key: r.get(k, float('nan'))
@@ -1520,7 +1556,8 @@ def merge_stats(stats_list: list) -> dict:
     """
     merged = {'total': 0}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss): ss = 银行+金科同句轨
+        for track in ['_full', '_ctx', '_ss']:
             merged[f'{dict_name}_正面{track}'] = 0
             merged[f'{dict_name}_中性{track}'] = 0
             merged[f'{dict_name}_负面{track}'] = 0
@@ -1528,7 +1565,7 @@ def merge_stats(stats_list: list) -> dict:
     for s in stats_list:
         merged['total'] += s['total']
         for dict_name, _ in ALL_DICTIONARIES:
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_ss']:
                 merged[f'{dict_name}_正面{track}'] += s.get(f'{dict_name}_正面{track}', 0)
                 merged[f'{dict_name}_中性{track}'] += s.get(f'{dict_name}_中性{track}', 0)
                 merged[f'{dict_name}_负面{track}'] += s.get(f'{dict_name}_负面{track}', 0)
@@ -1541,9 +1578,14 @@ def log_classification_report(stats: dict, logger, track_suffix: str = ''):
     Args:
         stats:         合并后的统计字典。
         logger:        日志记录器。
-        track_suffix:  轨道后缀 ('_full' 或 '_ctx')，用于区分报告。
+        track_suffix:  轨道后缀 ('_full' / '_ctx' / '_ss')，用于区分报告。
     """
-    track_label = '全文' if track_suffix == '_full' else '上下文片段' if track_suffix == '_ctx' else ''
+    track_label = (
+        '全文' if track_suffix == '_full'
+        else '上下文片段' if track_suffix == '_ctx'
+        else '银行+金科同句' if track_suffix == '_ss'
+        else ''
+    )
     logger.info("=" * 70)
     logger.info(f"===      词典法情感分析统计报告 [{track_label}]      ===")
     logger.info("=" * 70)
@@ -1615,7 +1657,7 @@ def main():
     logger.info("  📌 阶段目的")
     logger.info("     使用五部中文金融情感词典对每篇新闻进行情感打分。")
     logger.info("     每部词典独立计算正/负词频比, 并通过语言学规则(否定/程度/转折)修正。")
-    logger.info("     采用双轨模式: 全文(_full)和上下文片段(_ctx)分别计算, 供下游三角验证。")
+    logger.info("     采用三轨模式: 全文(_full)、上下文片段(_ctx)和银行+金科同句(_ss)分别计算, 供下游三角验证。")
     logger.info("")
     logger.info("  📖 方法论依据")
     logger.info("     · IDF 加权: Gentzkow, Kelly & Taddy (2019, JEL 57(3):535-574) §2.2")
@@ -1741,24 +1783,25 @@ def main():
     # 合并全部结果
     processed_df = pd.concat(processed_dfs, ignore_index=True)
 
-    # P1-4: 为每个词典的得分列添加 Z-score 标准化列（双轨独立计算）
+    # P1-4: 为每个词典的得分列添加 Z-score 标准化列（三轨 full/ctx/ss 独立计算）
     # 解决跨词典量纲不一致问题，供 34_tone_validation.py 的 Cronbach's Alpha 分析使用
-    # 注意：_full 和 _ctx 的 μ 和 σ 必须独立计算，因文本长度差异导致数值分布本质不同
+    # 注意：_full / _ctx / _ss 的 μ 和 σ 必须独立计算，因文本长度差异导致数值分布本质不同
+    # ss = 银行+金科同句轨; score_col 缺失时 (理论上 _dual_analyze 必产, 此守卫为防御) 优雅跳过。
     # fix(omni-g-tonewords-13, 2026-06-11): σ 退化分支改整列 NaN (见 _zscore_or_nan),
     # 不再回填 0.0 伪零分; 正常分支 NaN 传播行为不变。
     zscore_columns = {}
     for dict_name, _ in ALL_DICTIONARIES:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             score_col = f"{dict_name}_score{track}"
             zscore_col = f"{dict_name}_zscore{track}"
             if score_col in processed_df.columns:
                 zscore_columns[zscore_col] = _zscore_or_nan(
                     processed_df[score_col], f"{dict_name} [{track}]")
 
-    # IDF 列 Z-score 标准化
+    # IDF 列 Z-score 标准化 (三轨 full/ctx/ss)
     if IDF_DICTIONARIES is not None:
         for dict_name, _ in IDF_DICTIONARIES:
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_ss']:
                 score_col = f"{dict_name}_idf_score{track}"
                 zscore_col = f"{dict_name}_idf_zscore{track}"
                 if score_col in processed_df.columns:
@@ -1771,22 +1814,27 @@ def main():
             axis=1,
         ).copy()
 
-    # v3.5.1 A3: Numerical Intensity 真双轨 post-processor (per plan v0.3 §2.2.3 修 R3-C2 + H4).
-    # 对 content_full + content_ctx 各调用 compute_num_intensity 一次, 写入
-    # num_intensity_full / num_intensity_ctx 两 article 列. 锚定: 数值披露强度
+    # v3.5.1 A3: Numerical Intensity 三轨 post-processor (per plan v0.3 §2.2.3 修 R3-C2 + H4).
+    # 对 content_full + content_ctx + content_ss 各调用 compute_num_intensity 一次, 写入
+    # num_intensity_{full,ctx,ss} 等 article 列. 锚定: 数值披露强度
     # (Davis & Tama-Sweet 2012 CAR; 原引 Hales 2011 系误归, 见 numerical_intensity 模块 docstring).
-    # 依赖方向: tone_words → numerical_intensity (单向).
+    # 依赖方向: tone_words → numerical_intensity (单向); ss 轨 (银行+金科同句) 的实际派生
+    # 由 numerical_intensity 模块负责 (本文件仅传 ss_col)。
     try:
         from news_process.pipeline.sentiment.numerical_intensity import (
             enrich_with_num_intensity_dual_track,
         )
-        # fix(genA-01/V4): full 轨须读 content_full(含标题, v3.8.0 两轨契约), 不再用
+        # fix(genA-01/V4): full 轨须读 content_full(含标题, v3.8.0+ 多轨契约 full/ctx/ss), 不再用
         # 默认裸 '内容' — 否则 num_intensity_full 是唯一不含标题的 *_full 情感族指标,
         # 与同 stage 的 clarity/LM/FLS(均已读 content_full)轨道不对称。
         _ni_full_col = 'content_full' if 'content_full' in processed_df.columns else '内容'
+        # 三轨: ss 轨读 content_ss (银行+金科同句); 缺列时由 numerical_intensity 内部
+        # graceful 回退 (镜像 ctx 回退公理)。num_intensity 模块需支持 ss_col 形参方落地
+        # ss 列; 未支持时本调用整体 except 优雅跳过 (wire-ahead, 不阻断 full/ctx)。
         processed_df = enrich_with_num_intensity_dual_track(
-            processed_df, full_col=_ni_full_col)
-        logger.info(f"v3.5.1 A3: num_intensity 真双轨派生完成 (full 轨={_ni_full_col} + ctx 独立扫描)")
+            processed_df, full_col=_ni_full_col, ss_col='content_ss')
+        logger.info(
+            f"v3.5.1 A3: num_intensity 三轨派生完成 (full 轨={_ni_full_col} + ctx + ss 独立扫描)")
     except Exception as e:  # noqa: BLE001
         logger.warning(f"v3.5.1 A3 num_intensity enrich 失败 (graceful skip): {e}")
 
@@ -1800,11 +1848,12 @@ def main():
         input_files=[input_path],
     )
 
-    # 统计报告（双轨分别打印）
+    # 统计报告（三轨 full/ctx/ss 分别打印）
     if all_stats:
         merged_stats = merge_stats(all_stats)
         log_classification_report(merged_stats, logger, track_suffix='_full')
         log_classification_report(merged_stats, logger, track_suffix='_ctx')
+        log_classification_report(merged_stats, logger, track_suffix='_ss')
 
 
 
@@ -1814,7 +1863,7 @@ def main():
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=input_rows, output_rows=len(processed_df))
-    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (双轨模式) ---")
+    logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (三轨模式 full/ctx/ss) ---")
 
 
 if __name__ == "__main__":

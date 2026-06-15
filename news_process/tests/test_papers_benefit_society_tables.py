@@ -80,16 +80,17 @@ def test_table1_variables_anchors():
     """_TABLE1_VARIABLES 锚定 8 个 benefit_* 变量 + 2 个信息环境对照."""
     from news_process.papers.benefit_society.tables import _TABLE1_VARIABLES
     must_have = {
-        'benefit_mean_full', 'benefit_mean_ctx',
-        'benefit_std_full', 'benefit_std_ctx',
-        'benefit_pos_frac_full', 'benefit_pos_frac_ctx',
-        'benefit_neg_frac_full', 'benefit_neg_frac_ctx',
+        'benefit_mean_full', 'benefit_mean_ctx', 'benefit_mean_ss',
+        'benefit_std_full', 'benefit_std_ctx', 'benefit_std_ss',
+        'benefit_pos_frac_full', 'benefit_pos_frac_ctx', 'benefit_pos_frac_ss',
+        'benefit_neg_frac_full', 'benefit_neg_frac_ctx', 'benefit_neg_frac_ss',
         'n_articles', 'ln_news_coverage',
     }
     actual = set(_TABLE1_VARIABLES)
     missing = must_have - actual
     assert not missing
-    assert len(_TABLE1_VARIABLES) == 10
+    # v3.9.0 三轨: 4 个 benefit 测度各补 _ss 孪生 (10→14)
+    assert len(_TABLE1_VARIABLES) == 14
 
 
 def test_module_exports_match_all():

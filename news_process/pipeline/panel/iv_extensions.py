@@ -218,16 +218,16 @@ def compute_bartik_shift_iv(panel: pd.DataFrame,
         panel:       Bank-Year 面板 (须已含 share 列与 bank_type)
         df_exploded: 文章级数据
         group_map:   {银行名 → 组别} (iv_did.load_bank_group_maps 的 type_map)
-        group_prefix: 输出前缀, 产 ``bartik_{group_prefix}_iv_full/_ctx``
-        shift_col_by_track: {'_full': 文章级列名, '_ctx': 文章级列名};
-                     值为 None 的轨跳过 (输出 NaN)
+        group_prefix: 输出前缀, 产 ``bartik_{group_prefix}_iv_full/_ctx/_ss``
+        shift_col_by_track: {'_full': 文章级列名, '_ctx': ..., '_ss': ...};
+                     键缺失或值为 None 的轨跳过 (输出 NaN, ss 缺列优雅降级)
         base_years:  与步骤 7e 相同的基期年集合 (前视掩码用)
         share_prefix: 面板上基期 share 列前缀 (默认复用 type 维度)
         value_map:   分类列 → 数值指示的映射 (如 {'实质性':1.0,'象征性':0.0});
                      None 时按数值列直接使用; 映射外取值 → NaN (不进分子分母)
 
     Returns:
-        panel (追加 bartik_{group_prefix}_iv_full/_ctx)
+        panel (追加 bartik_{group_prefix}_iv_full/_ctx/_ss)
     """
     panel = panel.copy()
     groups = sorted({v for v in group_map.values() if v != 'other'})
@@ -236,14 +236,17 @@ def compute_bartik_shift_iv(panel: pd.DataFrame,
     if missing_share:
         logger.warning(f"  [bartik-{group_prefix}] 基期 share 列缺失 "
                        f"{missing_share} (步骤 7e 未运行?) → IV 置 NaN")
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss) 全置 NaN; share 列缺失则各轨 IV 不可计算
+        for track in ['_full', '_ctx', '_ss']:
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
         return panel
 
     df = df_exploded[['target_bank', 'year']].copy()
     df['_g'] = df_exploded['target_bank'].map(group_map).fillna('other')
 
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss): ss 轨 shift 源列缺失 (shift_col_by_track 无 _ss 键或
+    # 文章级列不存在) 时, 下方 src is None 守卫自动将 _ss IV 列优雅置 NaN
+    for track in ['_full', '_ctx', '_ss']:
         iv_col = f'bartik_{group_prefix}_iv{track}'
         src = shift_col_by_track.get(track)
         if src is None or src not in df_exploded.columns:
@@ -304,17 +307,17 @@ def compute_bartik_shift_iv(panel: pd.DataFrame,
             panel = panel.drop(columns=[iv_col])
         panel = panel.merge(biv_result, on=['target_bank', 'year'], how='left')
 
-    # share 前视掩码 (iv_did fix(omni-g-ivdid-02) 同口径)
+    # share 前视掩码 (iv_did fix(omni-g-ivdid-02) 同口径); 三轨同步掩码
     _pre_base = panel['year'] < max(int(y) for y in base_years)
     if _pre_base.any():
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             iv_col = f'bartik_{group_prefix}_iv{track}'
             if iv_col in panel.columns:
                 panel.loc[_pre_base, iv_col] = np.nan
         logger.warning(f"  [bartik-{group_prefix}] {int(_pre_base.sum())} 行早于"
                        f"基期末年 → IV 置 NaN (share 前视掩码)")
 
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:
         iv_col = f'bartik_{group_prefix}_iv{track}'
         if iv_col in panel.columns:
             n_valid = int(panel[iv_col].notna().sum())
@@ -348,17 +351,17 @@ def compute_outlet_composition_iv(panel: pd.DataFrame,
     Args:
         panel:        Bank-Year 面板
         df_exploded:  文章级数据 (须含 outlet_col)
-        shift_values_by_track: {'_full': pd.Series, '_ctx': pd.Series} —
+        shift_values_by_track: {'_full': pd.Series, '_ctx': ..., '_ss': ...} —
                       与 df_exploded 行对齐的文章级 style 取值 (调用方
                       预构造, 如 clarity 分或 |tone − 年均| 离散度);
-                      值为 None 的轨跳过
-        out_prefix:   输出前缀, 产 ``{out_prefix}_full/_ctx``
+                      键缺失或值为 None 的轨跳过 (ss 缺列优雅降级)
+        out_prefix:   输出前缀, 产 ``{out_prefix}_full/_ctx/_ss``
         base_years:   基期年集合 (share 冻结 + 前视掩码)
         outlet_col:   媒体来源列
         min_outlet_loo: LOO 后 outlet-year 最少剩余文章数 (默认 1)
 
     Returns:
-        panel (追加 {out_prefix}_full/_ctx)
+        panel (追加 {out_prefix}_full/_ctx/_ss)
     """
     panel = panel.copy()
     resolved_base = sorted({int(y) for y in base_years})
@@ -366,7 +369,8 @@ def compute_outlet_composition_iv(panel: pd.DataFrame,
     if outlet_col not in df_exploded.columns:
         logger.warning(f"  [outlet-IV {out_prefix}] 缺媒体来源列 {outlet_col!r} "
                        f"→ 全轨置 NaN")
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss) 全置 NaN
+        for track in ['_full', '_ctx', '_ss']:
             panel[f'{out_prefix}{track}'] = np.nan
         return panel
 
@@ -382,7 +386,8 @@ def compute_outlet_composition_iv(panel: pd.DataFrame,
     if base.empty:
         logger.warning(f"  [outlet-IV {out_prefix}] 基期 {resolved_base} 无可识别"
                        f"媒体来源文章 → 全轨置 NaN")
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss) 全置 NaN
+        for track in ['_full', '_ctx', '_ss']:
             panel[f'{out_prefix}{track}'] = np.nan
         return panel
 
@@ -399,7 +404,9 @@ def compute_outlet_composition_iv(panel: pd.DataFrame,
     long = shares[['target_bank', '_outlet', '_share']].merge(
         bank_years, on='target_bank', how='inner')
 
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss): ss 轨 shift 值缺失 (shift_values_by_track 无 _ss 键或
+    # 值为 None) 时, 下方 sv is None 守卫自动将 _ss IV 列优雅置 NaN
+    for track in ['_full', '_ctx', '_ss']:
         iv_col = f'{out_prefix}{track}'
         sv = shift_values_by_track.get(track)
         if sv is None:
@@ -443,17 +450,17 @@ def compute_outlet_composition_iv(panel: pd.DataFrame,
             panel = panel.drop(columns=[iv_col])
         panel = panel.merge(iv_series, on=['target_bank', 'year'], how='left')
 
-    # share 前视掩码
+    # share 前视掩码; 三轨同步掩码
     _pre_base = panel['year'] < max(resolved_base)
     if _pre_base.any():
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             iv_col = f'{out_prefix}{track}'
             if iv_col in panel.columns:
                 panel.loc[_pre_base, iv_col] = np.nan
         logger.warning(f"  [outlet-IV {out_prefix}] {int(_pre_base.sum())} 行早于"
                        f"基期末年 → IV 置 NaN (share 前视掩码)")
 
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:
         iv_col = f'{out_prefix}{track}'
         if iv_col in panel.columns:
             n_valid = int(panel[iv_col].notna().sum())
@@ -469,41 +476,51 @@ def compute_iv_extensions(panel: pd.DataFrame,
                           df_exploded: pd.DataFrame,
                           type_map: dict,
                           base_years: list) -> pd.DataFrame:
-    """11 论文 IV 补全编排 (2026-06-13)。
+    """11 论文 IV 补全编排 (2026-06-13; 2026-06-14 加 ss 同句轨)。
 
     逐论文产出 (列名与 paper_spec.yaml::identification.iv 一一对应):
       P2  attention: leave_one_out_peer_attention_iv(_lag1)
-                     + bartik_attention_iv / bartik_attention_iv_ctx
+                     + bartik_attention_iv / bartik_attention_iv_ctx / _ss
       P3  substance: leave_one_out_peer_subst_iv(_lag1)
-                     + bartik_subst_iv_full/_ctx
+                     + bartik_subst_iv_full/_ctx/_ss
       P4  locus:     leave_one_out_peer_locus_iv(_lag1)
       P5  collab:    leave_one_out_peer_collab_iv(_lag1)
-                     + bartik_collab_iv_full/_ctx
+                     + bartik_collab_iv_full/_ctx/_ss
       BS  benefit_society: leave_one_out_peer_benefit_iv(_lag1)
-                     + zone_leave1out_benefit_iv (+ zone_leave1out_benefit_iv_ctx)
-      P10 disagreement: outlet_disp_exposure_iv_full/_ctx
-      P11 clarity:   outlet_style_clarity_iv_full/_ctx
+                     + zone_leave1out_benefit_iv
+                       (+ zone_leave1out_benefit_iv_ctx / _ss)
+      P10 disagreement: outlet_disp_exposure_iv_full/_ctx/_ss
+      P11 clarity:   outlet_style_clarity_iv_full/_ctx/_ss
     (P1/llm_peer/brokerage/strategic_diff 既有 IV 不在此处, 见 geography.py /
      llm_peer_iv.py / network_spillover.py / iv_did.py。)
 
-    ctx 轨同业 LOO 工具 (2026-06-13 四 agent 对抗终审落地, lpeer_* 前缀):
+    ctx / ss 轨同业 LOO 工具 (ctx: 2026-06-13 四 agent 对抗终审落地;
+    ss: 2026-06-14 三轨平价补全, lpeer_* 前缀):
       lpeer_attention_iv_ctx(_lag1)  ← attention_index_ctx
+      lpeer_attention_iv_ss(_lag1)   ← attention_index_ss
       lpeer_subst_iv_ctx(_lag1)      ← sub_frac_sc
+      lpeer_subst_iv_ss(_lag1)       ← sub_frac_ss
       lpeer_locus_iv_ctx(_lag1)      ← tech_frac_lc
+      lpeer_locus_iv_ss(_lag1)       ← tech_frac_ls
       lpeer_collab_iv_ctx(_lag1)     ← collab_frac_cm
+      lpeer_collab_iv_ss(_lag1)      ← collab_frac_cm_ss
       lpeer_benefit_iv_ctx(_lag1)    ← benefit_mean_ctx
+      lpeer_benefit_iv_ss(_lag1)     ← benefit_mean_ss
       zone_leave1out_benefit_iv_ctx  ← benefit_mean_ctx (bank_zone 分组, 无 _lag1)
+      zone_leave1out_benefit_iv_ss   ← benefit_mean_ss (bank_zone 分组, 无 _lag1)
     与各论文 full 轨 LOO (leave_one_out_peer_*_iv / zone_leave1out_benefit_iv) 一一
     镜像; 紧凑前缀 lpeer_
-    使全部 ≤32 字符 (含 _ctx_lag1=27), 绕开 stata_export 32-char 截断歧义、
-    模板可直接引名 (codebook 约定见 stata_export HEURISTIC_LABELS)。
-    用法 (审计裁决): ctx 轨内生变量 (sub_frac_sc 等) 配 ctx LOO 工具, 与 full
-    轨【各自 just-identified、并排成列】表达双轨互为稳健性 (dualtrack-is-
-    mutual-robustness); 严禁把 full+ctx 两支 LOO 拼成一对工具跑 Hansen J —
-    二者源自同一篇文章的两个剪裁窗口 (full=标题+全文 / ctx=标题+实体窗口),
-    bank_type×year 共同冲击逐字同污染两轨 → J 对真实威胁功效≈0、近共线还拖垮
-    KP rk F (Parente & Santos Silva 2012 EL)。要做 overid 用跨族工具 (LOO ×
-    Bartik / LOO × zone-LOO, 见各 2SLS 模板既有 overid 列)。
+    使全部 ≤32 字符 (_ss 短于 _ctx → 含 _ss_lag1=26 < _ctx_lag1=27), 绕开
+    stata_export 32-char 截断歧义、模板可直接引名 (codebook 约定见 stata_export
+    HEURISTIC_LABELS)。
+    用法 (审计裁决): ctx / ss 轨内生变量 (sub_frac_sc / sub_frac_ss 等) 各配
+    同轨 LOO 工具, 与 full 轨【各自 just-identified、并排成列】表达三轨互为稳健性
+    (dualtrack-is-mutual-robustness); 严禁把 full/ctx/ss 任意两轨 LOO 拼成一对
+    工具跑 Hansen J — 三者源自同一篇文章的三个剪裁窗口 (full=标题+全文 /
+    ctx=标题+实体窗口 / ss=标题+银行金科同句窗口), bank_type×year 共同冲击逐字
+    同污染各轨 → J 对真实威胁功效≈0、近共线还拖垮 KP rk F (Parente & Santos
+    Silva 2012 EL)。要做 overid 用跨族工具 (LOO × Bartik / LOO × zone-LOO, 见
+    各 2SLS 模板既有 overid 列)。
     """
     logger.info("=" * 60)
     logger.info("步骤 8z: IV 扩展族 (11 论文工具变量补全, 2026-06-13)")
@@ -515,10 +532,15 @@ def compute_iv_extensions(panel: pd.DataFrame,
     # ctx 轨镜像 (实体窗口归因; 与 full 轨各自 just-identified 并排, 勿合成 overid)
     panel = compute_peer_loo_iv(panel, 'attention_index_ctx',
                                 'lpeer_attention_iv_ctx')
+    # ss 轨镜像 (银行+金科同句窗口归因; 与 full/ctx 轨各自 just-identified 并排,
+    # 勿合成 overid; attention_index_ss 缺列时内置守卫优雅置 NaN)
+    panel = compute_peer_loo_iv(panel, 'attention_index_ss',
+                                'lpeer_attention_iv_ss')
     panel = compute_bartik_shift_iv(
         panel, df_exploded, type_map, 'attention',
         {'_full': 'fintech_intensity_score_full',
-         '_ctx': 'fintech_intensity_score_ctx'},
+         '_ctx': 'fintech_intensity_score_ctx',
+         '_ss': 'fintech_intensity_score_ss'},
         base_years)
     # 模板/spec 契约名: 主名无轨后缀 = full 轨 (与 llm_peer_iv 主名约定一致)
     if 'bartik_attention_iv_full' in panel.columns:
@@ -529,10 +551,14 @@ def compute_iv_extensions(panel: pd.DataFrame,
                                 'leave_one_out_peer_subst_iv')
     panel = compute_peer_loo_iv(panel, 'sub_frac_sc',
                                 'lpeer_subst_iv_ctx')
+    # ss 轨镜像 (同句窗口实质性占比; sub_frac_ss 缺列时优雅置 NaN)
+    panel = compute_peer_loo_iv(panel, 'sub_frac_ss',
+                                'lpeer_subst_iv_ss')
     panel = compute_bartik_shift_iv(
         panel, df_exploded, type_map, 'subst',
         {'_full': 'innovation_substantiveness_full',
-         '_ctx': 'innovation_substantiveness_ctx'},
+         '_ctx': 'innovation_substantiveness_ctx',
+         '_ss': 'innovation_substantiveness_ss'},
         base_years,
         value_map={'实质性': 1.0, '象征性': 0.0})
 
@@ -541,16 +567,25 @@ def compute_iv_extensions(panel: pd.DataFrame,
                                 'leave_one_out_peer_locus_iv')
     panel = compute_peer_loo_iv(panel, 'tech_frac_lc',
                                 'lpeer_locus_iv_ctx')
+    # ss 轨镜像 (同句窗口底层技术占比; tech_frac_ls = locus-ss 对角 frac,
+    # encode.py:1431 产出; 缺列时 compute_peer_loo_iv 内置守卫优雅置 NaN)
+    panel = compute_peer_loo_iv(panel, 'tech_frac_ls',
+                                'lpeer_locus_iv_ss')
 
     # ── P5: collab (Chesbrough 自主研发 vs 外部协同) ──
     panel = compute_peer_loo_iv(panel, 'collab_frac',
                                 'leave_one_out_peer_collab_iv')
     panel = compute_peer_loo_iv(panel, 'collab_frac_cm',
                                 'lpeer_collab_iv_ctx')
+    # ss 轨镜像 (同句窗口外部协同占比; collab_frac_cm_ss = collab-ss 对角 frac,
+    # encode.py:1730 产出; 缺列时 compute_peer_loo_iv 内置守卫优雅置 NaN)
+    panel = compute_peer_loo_iv(panel, 'collab_frac_cm_ss',
+                                'lpeer_collab_iv_ss')
     panel = compute_bartik_shift_iv(
         panel, df_exploded, type_map, 'collab',
         {'_full': 'innovation_collab_mode_full',
-         '_ctx': 'innovation_collab_mode_ctx'},
+         '_ctx': 'innovation_collab_mode_ctx',
+         '_ss': 'innovation_collab_mode_ss'},
         base_years,
         value_map={'外部协同': 1.0, '自主研发': 0.0})
 
@@ -559,32 +594,43 @@ def compute_iv_extensions(panel: pd.DataFrame,
                                 'leave_one_out_peer_benefit_iv')
     panel = compute_peer_loo_iv(panel, 'benefit_mean_ctx',
                                 'lpeer_benefit_iv_ctx')
+    # ss 轨镜像 (同句窗口经营效益态度; benefit_mean_ss 缺列时优雅置 NaN)
+    panel = compute_peer_loo_iv(panel, 'benefit_mean_ss',
+                                'lpeer_benefit_iv_ss')
     if 'bank_zone' in panel.columns:
         panel = compute_peer_loo_iv(panel, 'benefit_mean_full',
                                     'zone_leave1out_benefit_iv',
                                     group_col='bank_zone', add_lag1=False)
-        # ctx 轨镜像 (2026-06-13 缺口补全): 内生孪生 benefit_mean_ctx 配同经济圈
-        # ctx LOO 工具, 与 full 轨 zone LOO【各自 just-identified、并排成列】表达双轨
-        # 互为稳健性 (实体窗口 vs 全文归因); 严禁与 full 轨 zone LOO 合成 overid —
-        # 同篇两窗共同冲击同污染, Hansen J 零功效 (Parente & Santos Silva 2012 EL)。
-        # benefit_mean_ctx 缺列时 compute_peer_loo_iv 内置守卫优雅置 NaN。
-        # ⚠ zone_leave1out_benefit_iv_ctx 是真新面板列 → 落盘须重跑 stage 45/46 +
-        #   golden 重生 (CLAUDE.md 约束 6; 本机不可安全 regen, 留受控生产 run)。
+        # ctx / ss 轨镜像 (ctx: 2026-06-13 缺口补全; ss: 2026-06-14 三轨平价):
+        # 内生孪生 benefit_mean_ctx / benefit_mean_ss 各配同经济圈同轨 LOO 工具,
+        # 与 full 轨 zone LOO【各自 just-identified、并排成列】表达三轨互为稳健性
+        # (实体窗口 / 同句窗口 vs 全文归因); 严禁把 full/ctx/ss 任意两轨 zone LOO
+        # 合成 overid — 同篇三窗共同冲击同污染, Hansen J 零功效 (Parente & Santos
+        # Silva 2012 EL)。benefit_mean_ctx/ss 缺列时 compute_peer_loo_iv 内置守卫
+        # 优雅置 NaN。
+        # ⚠ zone_leave1out_benefit_iv_ctx/_ss 是真新面板列 → 落盘须重跑 stage 45/46
+        #   + golden 重生 (CLAUDE.md 约束 6; 本机不可安全 regen, 留受控生产 run)。
         panel = compute_peer_loo_iv(panel, 'benefit_mean_ctx',
                                     'zone_leave1out_benefit_iv_ctx',
+                                    group_col='bank_zone', add_lag1=False)
+        panel = compute_peer_loo_iv(panel, 'benefit_mean_ss',
+                                    'zone_leave1out_benefit_iv_ss',
                                     group_col='bank_zone', add_lag1=False)
     else:
         panel['zone_leave1out_benefit_iv'] = np.nan
         panel['zone_leave1out_benefit_iv_ctx'] = np.nan
+        panel['zone_leave1out_benefit_iv_ss'] = np.nan
         logger.warning("  bank_zone 缺失 (7f 未运行?), "
-                       "zone_leave1out_benefit_iv(_ctx) 置 NaN")
+                       "zone_leave1out_benefit_iv(_ctx/_ss) 置 NaN")
 
     # ── P10: 跨媒体分歧 — 媒体组合"立场离散度"暴露 ──
     # 文章级 style = |tone − 该年全样本均值| (媒体 house-style 极端度;
     # Gentzkow & Shapiro 2010 媒体立场持久性)。年内 demean 防把"年份级
     # 共同情绪水平"误装进 style。
     disp_vals = {}
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss): ss 轨 llm_vote_score_ss 缺列时该轨 style 置 None →
+    # compute_outlet_composition_iv 内置守卫将 _ss IV 列优雅置 NaN
+    for track in ['_full', '_ctx', '_ss']:
         sc = f'llm_vote_score{track}'
         if sc in df_exploded.columns:
             s = pd.to_numeric(df_exploded[sc], errors='coerce').astype('float64')
@@ -596,11 +642,13 @@ def compute_iv_extensions(panel: pd.DataFrame,
         panel, df_exploded, disp_vals, 'outlet_disp_exposure_iv', base_years)
 
     # ── P11: 清晰度 — 媒体组合"笔法清晰度"暴露 (Dougal et al. 2012 RFS) ──
+    # 三轨 (full/ctx/ss): ss 轨 clarity_clarity_score_ss 缺列时该轨置 None →
+    # compute_outlet_composition_iv 将 _ss IV 列优雅置 NaN
     clarity_vals = {
         track: (df_exploded[f'clarity_clarity_score{track}']
                 if f'clarity_clarity_score{track}' in df_exploded.columns
                 else None)
-        for track in ['_full', '_ctx']
+        for track in ['_full', '_ctx', '_ss']
     }
     panel = compute_outlet_composition_iv(
         panel, df_exploded, clarity_vals, 'outlet_style_clarity_iv', base_years)

@@ -400,8 +400,10 @@ class TestEdgeCases:
         })
 
         # v3.6.0 在 df 没 content_ctx 时会发"内容 ctx 缺失"WARN — 该 WARN 与本测试无关
-        # (本测试关注 df 阈值参数, 非双轨化). 加 content_ctx 列消除 v3.6.0 引入的噪音 WARN.
+        # (本测试关注 df 阈值参数, 非轨道化). 加 content_ctx 列消除 v3.6.0 引入的噪音 WARN.
+        # v3.9.0 三轨: 同理补 content_ss 列, 消除"content_ss 缺失"噪音 WARN。
         df['content_ctx'] = df['内容']
+        df['content_ss'] = df['内容']
 
         result = compute_herd_weights(df)
 

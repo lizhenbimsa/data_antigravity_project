@@ -71,6 +71,10 @@ identification:
     # LOO 变体未实现, 地理 LOO 是当前唯一在产的 LOO tone IV; ctx=主轨)。
     primary: prov_leave1out_tone_ctx     # 省级 LOO tone (main=ctx 轨; prov_leave1out_tone_full 作 robustness)
     fallback: bartik_type_iv_ctx         # Bartik shift-share (panel 真实列; full 轨同)
+    # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨, 内生孪生
+    # llm_vote_tone_ss 配同句 LOO/Bartik 工具, 与 full/ctx 轨各自 just-identified 并排
+    # 表达对归因窗口的稳健性; 严禁 full×ctx×ss 合成 Hansen J overid)。机械 _ctx→_ss 后缀 swap。
+    ss_mirror: [prov_leave1out_tone_ss, bartik_type_iv_ss]
     # 已知缺口披露: P1 复现包现行唯一 IV 表 22_tableA3_bartik_iv.do 工具化的
     # 内生变量是 LOCUS 占比 (tech_frac), 不是 tone — tone-IV .do 模板待 M5 接线。
 
@@ -88,8 +92,8 @@ inference:
       财务面板 (funding_cost) 接入后须重写为本正向方程作为唯一 headline。
   # 检验族定义 (family-wise error 校正单位; 族内多检验须 Romano-Wolf / Westfall-Young 校正)
   families:
-    # full/ctx 双轨互为稳健性, 高相关孪生。
-    sentiment_tracks: [llm_vote_tone_ctx, llm_vote_tone_full]   # full×ctx 双轨 (互为稳健性, 高相关孪生)
+    # 三轨 (full/ctx/ss) 互为稳健性, 高相关孪生; ss = 银行+金科同句共现轨 (content_ss, 标签 "(银行+金科同句)")。
+    sentiment_tracks: [llm_vote_tone_ctx, llm_vote_tone_full, llm_vote_tone_ss]   # full×ctx×ss 三轨 (互为稳健性, 高相关孪生)
     sentiment_methods: [llm, dictionary, bert]                  # 三法三角 robustness battery (L&M 2011)
     cross_model: [gpt54nano, gemini31111, deepseekv4]           # LLM 跨模型 robustness
     weighting: [equal, value, media, herd]                      # EW vs VW/MW/HW 加权聚合

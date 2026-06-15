@@ -1,10 +1,17 @@
 * news_process — 第 10 篇 Table 3: 跨媒体分歧 IV 2SLS (2026-06-13 IV 补全)
 *
+* v3.9.0 三轨 ss: 新增第三主轨 _ss (银行+金科同句共现轨) — 内生孪生
+*   cross_outlet_tone_variance_ss 配同句 outlet 构成工具 outlet_disp_exposure_iv_ss,
+*   与 full/ctx 轨各自 just-identified 并排 (机械镜像现有 ctx/full eststo 块;
+*   每个 ss 列引用前 capture confirm variable 守卫, ss 列缺失时优雅跳过整块 —
+*   盘上面板在 P4 付费 run 前无 ss 列)。严禁 full×ctx×ss 合成 Hansen J overid。
+*
 * 内生变量: cross_outlet_tone_variance_ctx (跨媒体语调分歧, stage 39f;
 *           paper_spec treatment, main_track=_ctx)
 * IV (paper_spec identification.iv, iv_extensions.py 物化):
 *   primary  = outlet_disp_exposure_iv_ctx
 *   fallback = outlet_disp_exposure_iv_full
+*   ss 镜像 = outlet_disp_exposure_iv_ss (paper_spec ss_mirror)
 *   构造: 基期 outlet 报道份额 (冻结, GPSS 2020 AER share 外生性) ×
 *         各 outlet 当年 house-style 立场极端度 |tone − 年均| 的 LOO 均值
 *         (剔除焦点银行自身报道)。
@@ -43,6 +50,8 @@ xtset bank_id year
 local TX   cross_outlet_tone_variance_ctx
 local IV1  outlet_disp_exposure_iv_ctx
 local IV2  outlet_disp_exposure_iv_full
+local TXSS cross_outlet_tone_variance_ss
+local IVSS outlet_disp_exposure_iv_ss
 local DV   z_score
 
 capture confirm variable `TX'
@@ -71,6 +80,14 @@ capture confirm variable `IV2'
 if !_rc {
     eststo first_full: reghdfe `TX' `IV2', absorb(bank_id year) vce(cluster bank_id)
 }
+* ss 轨第一阶段 (v3.9.0 三轨; ss treatment + ss IV 均须物化, P4 付费 run 前盘上缺 → 跳过)
+capture confirm variable `TXSS'
+local _has_txss = (_rc == 0)
+capture confirm variable `IVSS'
+local _has_ivss = (_rc == 0)
+if `_has_txss' & `_has_ivss' {
+    eststo first_ss: reghdfe `TXSS' `IVSS', absorb(bank_id year) vce(cluster bank_id)
+}
 
 * 2SLS (DV=z_score 指标占位; 缺列优雅跳过)
 capture confirm variable `DV'
@@ -83,7 +100,7 @@ else {
     * (28 字符) → `_vhat_'(6)+28=34 > Stata 32 字符变量名上限 → weakiv r(198)
     * "_vhat_... invalid name", 被 capture noisily 吞掉 → AR p 静默不落 (claimed-but-not-run)。
     * 实测: 同一内生变量改短名别名后 weakiv rc=0, e(ar_p) 与 e(ar_cset) 正常返回。
-    * 修法: 为 2SLS 的内生变量造 ≤26 字符别名 (`_txd'), ivreg2/weakiv 跑别名;
+    * 修法: 为 2SLS 的内生变量造 ≤26 字符别名 (`_txd' / `_txs'), ivreg2/weakiv 跑别名;
     *   IV 名无需缩短 (weakiv 只前缀内生变量名)。ctx/full 两列共用同一内生变量 → 共用 `_txd'。
     capture drop _txd
     gen double _txd = `TX'
@@ -124,13 +141,37 @@ else {
             }
         }
     }
+    * ss 轨 2SLS (v3.9.0 三轨; ss 内生变量 + ss IV 均须物化, 否则跳过整块 —
+    * 与 ctx/full 各自 just-identified 并排, 不与之合成 overid)
+    capture confirm variable `TXSS'
+    local _has_txss = (_rc == 0)
+    capture confirm variable `IVSS'
+    local _has_ivss = (_rc == 0)
+    if `_has_txss' & `_has_ivss' {
+        * ss 内生变量同样过长 (cross_outlet_tone_variance_ss, 29 字符) → 别名 `_txs' 供 weakiv。
+        capture drop _txs
+        gen double _txs = `TXSS'
+        label variable _txs "cross-outlet tone variance (ss)"
+        eststo tsls_ss: ivreg2 `DV' (_txs = `IVSS') i.bank_id i.year, ///
+            cluster(bank_id) first
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_ss
+            }
+        }
+    }
 }
 
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_ctx first_full tsls_ctx tsls_full
-local cand_titles `""1st (ctx)" "1st (full)" "2SLS (ctx)" "2SLS (full)""'
+local cand_models first_ctx first_full first_ss tsls_ctx tsls_full tsls_ss
+local cand_titles `""1st (ctx)" "1st (full)" "1st (ss)" "2SLS (ctx)" "2SLS (full)" "2SLS (ss)""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -154,7 +195,7 @@ else {
         mtitles(`mtitles') ///
         addnotes("IV = base-period outlet portfolio shares x outlet-year leave-one-out tone extremeness |tone - year mean| (focal bank's own articles excluded)." ///
                  "Identification: outlet house-style persistence (Gentzkow-Shapiro 2010 Econometrica); writer-style exogeneity precedent (Dougal et al. 2012 RFS); base-period share exogeneity (Goldsmith-Pinkham et al. 2020 AER)." ///
-                 "2SLS (ctx) and 2SLS (full) are just-identified, each using the ctx-window vs full-text-window version of the outlet-style instrument for the same endogenous variable — a measurement-window robustness comparison, side by side, NOT an overidentified pair." ///
+                 "2SLS (ctx), (full) and (ss) are each just-identified, using the ctx-window / full-text-window / bank+fintech same-sentence (ss) version of the endogenous variable and its matching outlet-style instrument — a measurement-window robustness comparison, side by side, NOT an overidentified pair. The (ss) column appears only when its columns are materialized (P4 paid run)." ///
                  "No Hansen J is reported: same-text-window instruments share common shocks, making the overID test uninformative (Parente & Santos Silva 2012). KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%), instruments are weak — read the weak-IV-robust Anderson-Rubin test instead (Andrews-Stock-Sun 2019)." ///
                  "AR weak-IV p = Anderson-Rubin weak-instrument-robust p-value for H0: beta=0 (weakiv, Finlay-Magnusson-Schaffer); valid regardless of instrument strength. Blank if weakiv ado is not installed.")
 

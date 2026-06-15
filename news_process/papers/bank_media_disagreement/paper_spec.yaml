@@ -110,6 +110,7 @@ treatment:
 
   alternative:
     - cross_outlet_tone_variance_ctx  # ctx 轨 dual-track robustness
+    - cross_outlet_tone_variance_ss   # ss 轨 (银行+金科同句共现轨; 三轨 full/ctx/ss 互为稳健性)
     - llm_vote_tone_std_full          # bank-year 内 tone std (含 LLM noise + 时间噪声)
     - llm_vote_tone_std_ctx
     - 1_minus_avg_agreement_rate_full # LLM ensemble disagreement (Condorcet jury theorem)
@@ -176,6 +177,11 @@ identification:
   iv:
     primary: outlet_disp_exposure_iv_ctx     # main_track=_ctx (governance 同步)
     fallback: outlet_disp_exposure_iv_full
+    # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨): 内生孪生
+    # cross_outlet_tone_variance_ss 配同句 outlet 构成工具 outlet_disp_exposure_iv_ss,
+    # 与 full/ctx 轨各自 just-identified 并排; 严禁 full×ctx×ss 合成 Hansen J overid
+    # (机械 _ctx→_ss swap)。
+    ss_mirror: [outlet_disp_exposure_iv_ss]
   iv_candidates:  # V4 F4.2 修复, 5 个候选 (M5 first-stage 测试后选 1-2 作 main)
     bartik_outlet_share_x_fintech_trend:
       construction: "本行 pre-period 2011-2013 outlet portfolio composition × 全国年度 fintech 话题热度时序变化"
@@ -212,6 +218,7 @@ inference:
     single_hypothesis: "媒体观点分歧 → 银行风险承担 (方向 ambiguous ex ante, Granger 双向识别)"
   exploratory:  # robustness / 探索性, 非 co-equal headline
     - "11 alt disagreement measures (PCA composite + 各分量)"
+    - "三轨 full / ctx / ss (互为稳健性高相关孪生, 非独立假设; ss = 银行+金科同句共现轨)"
     - "5-way heterogeneity (SOE / capital / cycle / type / period)"
     - "5 IV cross-validation + alt outcomes (NPL / RWA / sigma_roa)"
   multiple_testing:

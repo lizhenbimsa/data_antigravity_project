@@ -171,8 +171,10 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
             logger.info(f"  窗口 {suffix}: 无平衡媒体数据, 跳过该稳健性窗口")
             continue
 
-        # (D.a) 双轨道全局情感均值 (平衡子集; full/ctx)
-        for track in ['_full', '_ctx']:
+        # (D.a) 三轨道全局情感均值 (平衡子集; full/ctx/ss)
+        # _ss = 银行+金科同句共现轨 (llm_vote_score_ss, 文章级 content_ss 派生);
+        # 缺列 (ss 未落盘) 时下方 `if src in df_b.columns` 守卫优雅跳过。
+        for track in ['_full', '_ctx', '_ss']:
             src = f'llm_vote_score{track}'
             col = f'bal_{suffix}_tone{track}'
             if src in df_b.columns:
@@ -207,7 +209,7 @@ def compute_balanced_media_robustness(df, panel, logger, score_patterns):
             panel = panel.drop(columns=[col_n])
         panel[col_n] = len(balanced)
         logger.info(f"  窗口 {suffix}: {len(balanced)} 家平衡媒体, "
-                    f"2 轨道 + {len(_bal_cols)} 全方法列")
+                    f"3 轨道 (full/ctx/ss) + {len(_bal_cols)} 全方法列")
 
     return panel
 
@@ -220,15 +222,23 @@ _ATTN_MIN_ARTICLES = 5
 
 
 def _validate_attention_treatments(panel: pd.DataFrame) -> None:
-    """校验 P2 attention 处理变量值域 (仿 _validate_attention_index 的 between(0,1) 模式)。"""
+    """校验 P2 attention 处理变量值域 (仿 _validate_attention_index 的 between(0,1) 模式)。
+
+    三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨; index/density/sd 各产 _ss 孪生
+    (源 fintech_intensity_score_ss, stage 14 三轨化), 缺列时下方 `if col not in
+    panel.columns: continue` 守卫优雅跳过 (graceful skip)。
+    """
     bounded = {
         'attention_index_full': (0.0, None), 'attention_index_ctx': (0.0, None),
+        'attention_index_ss': (0.0, None),
         'attention_pct_full': (0.0, 1.0), 'attention_disp_full': (0.0, 1.0),
         'attention_attr_share': (0.0, 1.0),
         'attention_intensity_density_full': (0.0, None),
         'attention_intensity_density_ctx': (0.0, None),
+        'attention_intensity_density_ss': (0.0, None),
         'attention_intensity_sd_full': (0.0, None),
         'attention_intensity_sd_ctx': (0.0, None),
+        'attention_intensity_sd_ss': (0.0, None),
     }
     for col, (lo, hi) in bounded.items():
         if col not in panel.columns:
@@ -283,24 +293,29 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         不去重会虚增); 测"传得多广"恰恰要数 50 次 (nf_media_breadth 口径)。两套
         口径并存、各管各的, 不是矛盾而是分工。
 
-    产出 spec 钦定 4 列 + 双轨/派生 (双轨 = 互为稳健性, 用户裁定 2026-06-05):
-      attention_index_full / attention_index_ctx          ln(1+Σ intensity) 累积曝光强度 (DUAL)
+    产出 spec 钦定 4 列 + 三轨/派生 (三轨 full/ctx/ss = 互为稳健性, 用户裁定 2026-06-05;
+    third-track-ss 2026-06-14; _ss = 银行+金科同句共现轨, 源 fintech_intensity_score_ss):
+      attention_index_full / _ctx / _ss                   ln(1+Σ intensity) 累积曝光强度 (TRI-TRACK)
       attention_pct_full                                  N_ft/N_all fintech 议程份额 (track-agnostic 单轨)
-      attention_intensity_density_full / _ctx             Σintensity/N_all 强度加权密度 (DUAL; 值域[0,+∞) 故非"share"名, B3)
+      attention_intensity_density_full / _ctx / _ss       Σintensity/N_all 强度加权密度 (TRI; 值域[0,+∞) 故非"share"名, B3)
       attention_disp_full                                 跨媒体 outlet 集中度 HHI (高值=集中=低分散, 勿按
                                                           "dispersion"反向解读符号; vectorized, track-agnostic 单轨, H4)
-      attention_intensity_sd_full / _ctx                  篇间强度二阶矩 (disp 真双轨; N<2→NaN, H1)
-      attention_gap_full_ctx                              mean(full−ctx) 双轨派生归因借位 (机制变量)
-      attention_attr_share                                Σctx/(Σctx+Σfull) 有界归因占比 (结构性[0,1]无删失, B4 修订)
+      attention_intensity_sd_full / _ctx / _ss            篇间强度二阶矩 (disp 真三轨; N<2→NaN, H1)
+      attention_gap_full_ctx                              mean(full−ctx) full 与 ctx 之差归因借位 (机制变量;
+                                                          gap 有意仅锚定 full/ctx 归因窗口对照, ss 不产 gap 孪生)
+      attention_attr_share                                Σctx/(Σctx+Σfull) 有界归因占比 (结构性[0,1]无删失, B4 修订;
+                                                          attr_share 锚定 full/ctx 归因比, ss 不产 share 孪生)
 
     语义变更披露 fix(omni-g-attention-01/08, 2026-06-11): attention_attr_share 由
       clip(Σctx/Σfull, 0, 1) 改为 Σctx/(Σctx+Σfull) — 旧比值的分子非分母嵌套子集
-      (两轨各自做文长归一化, ctx 短文本密度合法更高), 结构上可 >1, clip 把 11.5% 面板值
+      (full 与 ctx 各自做文长归一化, ctx 短文本密度合法更高; attr_share 锚定 full/ctx 归因比,
+      不涉 ss), 结构上可 >1, clip 把 11.5% 面板值
       右删失到 1.0; 新构造为同归一化口径的有界 share (= r/(1+r) 单调变换, 保序无删失)。
       另: attention_disp_full 是集中度 (HHI) 非分散度 — fix(omni-g-attention-06)。
       n_fintech_articles / n_outlets                      extensive baseline / HHI 可算性诊断
 
-    回归用法: index/density/sd 各产 _full/_ctx, main=full、robustness=ctx 分离复跑, 不同进一个 RHS。
+    回归用法: index/density/sd 各产 _full/_ctx/_ss, main=full、robustness=ctx/ss 分离复跑,
+      三轨不同进一个 RHS (三轨各自 just-identified 并排, 严禁 full×ctx×ss 混进同一 over-id Hansen J)。
 
     防选择偏差 (B1/B2) + verified 域门控 (panel-universe-consistency-audit 2026-06-13,
       ATT-1, 含同函数 HHI 分支): 分子(强度/计数, 取自 14_fintech_intensity)与 HHI 的 outlet 分布
@@ -313,6 +328,9 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
       分子, 零-(verified-)fintech bank-year: index/pct/density → 0 (真零曝光),
       disp/sd/gap/share → NaN (无报道无离散度/借位)。时间维方法 (Da异常/AR/burstiness/月度) 全量后
       opt-in, 此处不产 (T=2 试跑样本不可估, H2)。
+      三轨 ss 自动继承门控 (third-track-ss): _ss 列源 fintech_intensity_score_ss 与
+      full/ctx 同处经 restrict_to_verified 门控的 s14 帧, semi-join 按 (docid,target_bank)
+      track-agnostic → ss 列零额外门控代码即落入同一 verified 宇宙 (与 §⑪ 平价审计一致)。
 
     ⚠ 顶刊披露 (P2 data/sample): 门控后本族估计样本宇宙 = stage-21 verified 集
       (N≈857 article-bank pairs, 较 1170 候选集剔除约 26.8% LLM 判伪文章); 论文须在
@@ -341,15 +359,18 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     logger.info("=" * 60)
     # fix(omni-g-papers-misc-09, 2026-06-11): 日志锚点与本函数 docstring 锚点更正对齐
     logger.info("步骤 6b-2: P2 attention 处理变量 (Fang-Peress 2009 JF extensive 覆盖; "
-                "Hassan 2019 QJE 仅限 pct/density/ctx 归因; 双轨=互为稳健性)")
+                "Hassan 2019 QJE 仅限 pct/density/ctx 归因; 三轨 full/ctx/ss=互为稳健性)")
     logger.info("=" * 60)
 
     s14 = pd.read_parquet(s14_path)
+    # full/ctx 为硬依赖 (缺则整族跳过); ss 为软依赖 — stage 14 三轨化后才落盘
+    # fintech_intensity_score_ss, 缺列时仅 ss 轨优雅跳过 (graceful skip), full/ctx 照常。
     need_intensity = {'fintech_intensity_score_full', 'fintech_intensity_score_ctx'}
     if not need_intensity.issubset(s14.columns):
         logger.warning(f"  14_fintech_intensity 缺强度列 {need_intensity - set(s14.columns)}, "
                        f"跳过 attention 处理变量")
         return panel
+    _has_ss = 'fintech_intensity_score_ss' in s14.columns  # 三轨 ss 软门控
     # fix(panel-universe-consistency-audit 2026-06-13, ATT-1/ATT-2): 防御式取 docid
     # (verified 域门控需要)。合成测试帧无 docid → 不投影该列, 后续 restrict_to_verified
     # 因缺键 fail-open 未门控 (旧行为不变), 不触发 ArrowInvalid。
@@ -368,7 +389,7 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     universe = f12.drop_duplicates(GK)[GK].copy()
     n_all = f12.groupby(GK).size().rename('_n_all')
 
-    # ── 分子: 14_fintech_intensity (有双轨强度分) ──
+    # ── 分子: 14_fintech_intensity (有 full/ctx/ss 三轨强度分) ──
     # fix(panel-universe-consistency-audit 2026-06-13, ATT-1): 分子收敛到 stage-21
     # verified 集 (与政策对齐族 runner.py:_filter_to_verified_universe 同域), 剔除约
     # 26.8% 被 stage 21 判伪文章。⚠ 仅门控分子; 上方 universe/n_all (分母与全集脊柱)
@@ -385,6 +406,12 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         'sd_ctx': g['fintech_intensity_score_ctx'].std(),
         'n_ft': g.size(),
     })
+    # 三轨 ss (third-track-ss): _ss = 银行+金科同句共现轨; 仅 stage 14 已落盘
+    # fintech_intensity_score_ss 时聚合 sum/sd (index/density/sd 三轨孪生)。mean_ss 不需
+    # (gap=full−ctx 锚定, ss 不产 gap 孪生)。同 g 分组 → ss 与 full/ctx 同 verified 域。
+    if _has_ss:
+        num['sum_ss'] = g['fintech_intensity_score_ss'].sum()
+        num['sd_ss'] = g['fintech_intensity_score_ss'].std()      # ddof=1, N=1→NaN (H1)
 
     # ── 跨媒体 HHI (vectorized, 防 H4 groupby-apply 性能炸弹) ──
     f12_ft = f12[f12['is_fintech_news'] == True]
@@ -405,7 +432,9 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     # ── 在全集脊柱上组装 ──
     t = universe.set_index(GK).join(n_all).join(num).join(disp)
     # 分子缺失 (零-fintech bank-year) → 累积/计数填 0 (真零曝光)
-    for c in ['sum_full', 'sum_ctx', 'n_ft']:
+    # 三轨 ss: sum_ss 与 sum_full/ctx 同口径填 0 (零曝光真零); sd_ss 保持 NaN。
+    _sum_zero_fill = ['sum_full', 'sum_ctx', 'n_ft'] + (['sum_ss'] if _has_ss else [])
+    for c in _sum_zero_fill:
         t[c] = t[c].fillna(0)
     t['n_ft'] = t['n_ft'].astype(int)
     # mean/sd/disp/n_outlets 保持 NaN (零-fintech 无离散度/借位)
@@ -415,12 +444,18 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     # 当前数据 intensity min=0 未触发, clip 作结构性保证 (no-op on 非负数据)。
     t['sum_full'] = t['sum_full'].clip(lower=0)
     t['sum_ctx'] = t['sum_ctx'].clip(lower=0)
+    if _has_ss:
+        t['sum_ss'] = t['sum_ss'].clip(lower=0)  # 同 full/ctx 非负防御 (log1p/density 契约)
 
     t['attention_index_full'] = np.log1p(t['sum_full'])
     t['attention_index_ctx'] = np.log1p(t['sum_ctx'])
     t['attention_pct_full'] = t['n_ft'] / t['_n_all']            # _n_all≥1 (全集来自12_full)
     t['attention_intensity_density_full'] = t['sum_full'] / t['_n_all']
     t['attention_intensity_density_ctx'] = t['sum_ctx'] / t['_n_all']
+    # 三轨 ss (third-track-ss): index/density 镜像 full/ctx 口径, 同 _n_all 分母。
+    if _has_ss:
+        t['attention_index_ss'] = np.log1p(t['sum_ss'])
+        t['attention_intensity_density_ss'] = t['sum_ss'] / t['_n_all']
     t['attention_gap_full_ctx'] = t['mean_full'] - t['mean_ctx']  # 零-fintech → NaN
     # fix(omni-g-attention-01/08, 2026-06-11): 旧 Σctx/Σfull 是两种文长归一化密度之比
     # (fintech_intensity.py score = Σ(1+log tf)/(1+log L_d)×w, ctx 文本更短 → 密度合法
@@ -428,7 +463,7 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     # 旧 clip[0,1] 把越界质量右删失到 1.0 (面板 14/122=11.5% 值恰为 1.0) 并破坏删失区
     # 排序 — 系统性测度后果而非浮点边角。改为同归一化口径的有界 ctx 贡献占比:
     # share = Σctx/(Σctx+Σfull) ∈ [0,1] (= r/(1+r), r=ctx/full 的严格单调变换, 保序、
-    # 无删失; 0.5 ⇔ 两轨密度相等, 越大归因越纯)。Σctx+Σfull=0 (零 fintech) → NaN。
+    # 无删失; 0.5 ⇔ full 与 ctx 密度相等, 越大归因越纯)。Σctx+Σfull=0 (零 fintech) → NaN。
     # sums 已在上方 clip(lower=0), share 结构性落 [0,1], 无需 censor clip。
     # codebook.py/export.py 标签同步交由集中重生 (本组不越界编辑)。
     # 白话: ctx 文本短, 按"密度"算强度天然可能比全文还高, 直接拿 ctx/full
@@ -440,6 +475,8 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     t['attention_disp_full'] = t['disp_hhi']
     t['attention_intensity_sd_full'] = t['sd_full']
     t['attention_intensity_sd_ctx'] = t['sd_ctx']
+    if _has_ss:
+        t['attention_intensity_sd_ss'] = t['sd_ss']  # 篇间强度二阶矩 ss 孪生 (N<2→NaN, H1)
     t['n_fintech_articles'] = t['n_ft']
 
     out_cols = [
@@ -449,6 +486,12 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
         'attention_gap_full_ctx', 'attention_attr_share',
         'n_fintech_articles', 'n_outlets',
     ]
+    # 三轨 ss (third-track-ss): index/density/sd 的 _ss 孪生仅 stage 14 已落盘
+    # fintech_intensity_score_ss 时追加 (graceful skip); gap/share/pct/disp 锚定
+    # full-ctx 或 track-agnostic, 不产 ss 孪生。
+    if _has_ss:
+        out_cols += ['attention_index_ss', 'attention_intensity_density_ss',
+                     'attention_intensity_sd_ss']
     treat = t.reset_index()[GK + out_cols]
 
     drop = [c for c in out_cols if c in panel.columns]
@@ -492,8 +535,11 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
       某 Bank-Year 的全部文章均缺失地理信息时，
       ft_attn_prov / ft_attn_city 为 NaN (不填充)。
 
-    比值 vs 总量 两测度互为稳健性 (2026-06-13, 用户裁定; 双轨=互为稳健性同源原则,
+    比值 vs 总量 两测度互为稳健性 (2026-06-13, 用户裁定; 互为稳健性同源原则,
     memory dualtrack-is-mutual-robustness):
+    # no-ss-track: ft_attn_*/ft_vol_* 族建立在 is_fintech_news 计数上 (无 llm_vote_score),
+    # 非情感轨 → 无 full/ctx/ss 三轨分裂; 这里的"两测度"指 比值 vs 总量, 与 §⑥/§⑪ 三轨
+    # 化无关 (ATT-2 另一支, 见下方 ⚠ 范围注释)。
       每档 (年/省/市) 除产 **比值** ft_attn_* (= fintech/total, intensive 议程份额,
       ∈[0,1]) 外, 再并行产一个 **总量** ft_vol_* (= ln(1+fintech 覆盖篇数), extensive
       覆盖规模, ∈[0,+∞), Fang & Peress 2009 JF 覆盖计数范式):
@@ -966,7 +1012,9 @@ def compute_media_heterogeneity(df, panel):
         panel = panel.merge(frac, on=['target_bank', 'year'], how='left')
 
     # (2) 三类型情感均值 + 三维度缺口 - 维度①②③
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨 (llm_vote_score_ss); 缺列时
+    # `if src not in df.columns: continue` 守卫优雅跳过 (graceful skip)。
+    for track in ['_full', '_ctx', '_ss']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -997,8 +1045,8 @@ def compute_media_heterogeneity(df, panel):
               .mean().reset_index(name='central_media_frac'))
     panel = panel.merge(frac_c, on=['target_bank', 'year'], how='left')
 
-    # (4) 中央/地方情感均值 + 缺口
-    for track in ['_full', '_ctx']:
+    # (4) 中央/地方情感均值 + 缺口 (三轨 full/ctx/ss; _ss=银行+金科同句, 缺列优雅跳过)
+    for track in ['_full', '_ctx', '_ss']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -1036,7 +1084,8 @@ def compute_media_heterogeneity(df, panel):
                 .mean().reset_index(name='official_media_frac'))
     panel = panel.merge(frac_off, on=['target_bank', 'year'], how='left')
 
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss; _ss=银行+金科同句, 缺列优雅跳过)
+    for track in ['_full', '_ctx', '_ss']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -1069,7 +1118,8 @@ def compute_media_heterogeneity(df, panel):
                 .mean().reset_index(name='market_media_frac'))
     panel = panel.merge(frac_mkt, on=['target_bank', 'year'], how='left')
 
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss; _ss=银行+金科同句, 缺列优雅跳过)
+    for track in ['_full', '_ctx', '_ss']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -1098,7 +1148,8 @@ def compute_media_heterogeneity(df, panel):
                .mean().reset_index(name='deepdive_media_frac'))
     panel = panel.merge(frac_dd, on=['target_bank', 'year'], how='left')
 
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss; _ss=银行+金科同句, 缺列优雅跳过)
+    for track in ['_full', '_ctx', '_ss']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -1127,7 +1178,8 @@ def compute_media_heterogeneity(df, panel):
                .mean().reset_index(name='daily_media_frac'))
     panel = panel.merge(frac_dl, on=['target_bank', 'year'], how='left')
 
-    for track in ['_full', '_ctx']:
+    # 三轨 (full/ctx/ss; _ss=银行+金科同句, 缺列优雅跳过)
+    for track in ['_full', '_ctx', '_ss']:
         src = f'llm_vote_score{track}'
         if src not in df.columns:
             continue
@@ -1236,7 +1288,7 @@ def compute_media_heterogeneity(df, panel):
                     f"同城报道: {n_homecity:,} ({n_homecity/n_total*100:.1f}%), "
                     f"地理不可判 (出域): {n_geo_na:,} ({n_geo_na/n_total*100:.1f}%)")
 
-        # (9f) 三项核心指标 × Prov/City 双轨
+        # (9f) 三项核心指标 × Prov/City 双层 (geo 层级, 与情感 full/ctx/ss 三轨正交)
         #   指标1: 偏袒度 (tone_gap) — 均值层面的系统性倾斜
         #   指标2: 封闭度 (media_frac) — 本地报道占比
         #   指标3: 负面过滤 (neg_frac) — 负面消息尾部的选择性抑制
@@ -1258,7 +1310,9 @@ def compute_media_heterogeneity(df, panel):
             panel = panel.merge(frac, on=['target_bank', 'year'], how='left')
 
             # ── 指标1: 偏袒度 + 指标3: 负面过滤 ──
-            for track in ['_full', '_ctx']:
+            # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨 (llm_vote_score_ss /
+            # is_negative_ss); 缺列时 `if src_tone not in df.columns: continue` 优雅跳过。
+            for track in ['_full', '_ctx', '_ss']:
                 src_tone = f'llm_vote_score{track}'
                 src_neg = f'is_negative{track}'
                 if src_tone not in df.columns:
@@ -1343,9 +1397,11 @@ def compute_media_heterogeneity(df, panel):
     # ceased_media_frac (比例类) / exc_*tone* (情感类) 按契约保持 NaN, 勿连带零填。
     panel['n_articles_exc'] = panel['n_articles_exc'].fillna(0).astype('int64')
 
-    # (C.3) bank-year 双轨道全局情感均值（排除停刊; full/ctx）
+    # (C.3) bank-year 三轨道全局情感均值（排除停刊; full/ctx/ss）
+    # _ss = 银行+金科同句共现轨 (llm_vote_score_ss); 缺列时 `if src in df_alive.columns`
+    # 守卫优雅跳过 (graceful skip)。
     df_alive = df[df['_is_ceased_media'] == 0]
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:
         src = f'llm_vote_score{track}'
         col = f'exc_tone{track}'
         if src in df_alive.columns:
@@ -1374,7 +1430,7 @@ def compute_media_heterogeneity(df, panel):
             panel = panel.merge(tone, on=['target_bank', 'year'], how='left')
             _exc_cols.append(col)
     logger.info(f"  停刊稳健性: ceased_media_frac, n_articles_exc, "
-                f"exc_tone_{{full/ctx}}, {len(_exc_cols)} 个 exc_* 列")
+                f"exc_tone_{{full/ctx/ss}}, {len(_exc_cols)} 个 exc_* 列")
 
     # ── 平衡媒体面板 ──
     # 参考 Wooldridge (2010, §19.9): 比较平衡/非平衡面板系数稳定性

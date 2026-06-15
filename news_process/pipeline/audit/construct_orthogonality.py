@@ -20,8 +20,9 @@ Reproducibility lock (修 H-NEW-1):
 
 Performance estimate (修 F3):
     bootstrap 1000 × matrix cells: full 3×3 ≈ 7 min / ctx 3×3 ≈ 7 min /
-    cross 6×6 ≈ 30 min; permutation 1000 × 30 off-diagonal ≈ 25 min.
-    Total wall-time ≈ 70 min single-thread (sklearn NMI ~100 ms / call on N≈400k).
+    ss 3×3 ≈ 7 min (第三轨 NMI 诊断) / cross 6×6 ≈ 30 min;
+    permutation 1000 × 30 off-diagonal ≈ 25 min.
+    Total wall-time ≈ 77 min single-thread (sklearn NMI ~100 ms / call on N≈400k).
     Recommended default for D4 day (修 F31): n_jobs=16 → ~5 min on 64-core MP machine.
 
 Concurrency (修 F7 + F43):
@@ -60,6 +61,10 @@ DIMS_FULL = [
     'innovation_collab_mode_full',
 ]
 DIMS_CTX = [d.replace('_full', '_ctx') for d in DIMS_FULL]
+# 第三轨 ss = 银行+金科同句共现轨 (content_ss / suffix _ss): 机械 _full→_ss swap
+# (继承同三维度, 非新维度); ss 仅出 3×3 NMI 诊断, 不参与下文正交性分类 (见
+# run_stage: 分类只对 full 3×3 做, ss 是 NMI-diagnostic only — 有意不对称)。
+DIMS_SS = [d.replace('_full', '_ss') for d in DIMS_FULL]
 ALL_DIMS = DIMS_FULL + DIMS_CTX
 
 # 分类阈值口径 (fix(omni-g-audit-family-04, 2026-06-11)): 实现为 permutation null
@@ -311,13 +316,18 @@ def run_stage(
 ) -> dict:
     """Stage 39c 入口: 读 stage 21 parquet, 算 NMI 矩阵 + null 分布, 写出产物。
 
-    产物 (per plan §2.2.3):
+    产物 (per plan §2.2.3 + 第三轨 ss 三轨化):
         39c_nmi_matrix_full.parquet   — full 3×3 NMI + CI + n_pair (multi-frame parquet)
         39c_nmi_matrix_ctx.parquet    — ctx  3×3 同
+        39c_nmi_matrix_ss.parquet     — ss   3×3 同 (银行+金科同句共现轨 NMI 诊断)
         39c_nmi_matrix_cross.parquet  — 6×6 full ∪ ctx cross-matrix
         39c_nmi_null_p95.parquet      — Permutation null 95% percentile reference
         39c_nmi_null_p99.parquet      — 99% percentile
         39c_nmi_summary.json          — {max_off_diag, classify_per_pair, interpretation}
+
+    有意不对称 (plan §7.3-A3): 正交性分类 (classify_orthogonality) 只对 full
+    3×3 做 — substantiveness/locus/collab 这些是 full/ctx 锚定的 LLM 分类构念;
+    ss 是纯情感共现轨, 这里只产出它的 3×3 NMI 矩阵作诊断, 不进分类/解读。
 
     Reproducibility: 输入 parquet anchored to v3.4.0 commit 450c1aa7 (per plan §0 Tag-over-hash).
     """
@@ -349,6 +359,11 @@ def run_stage(
     point_c, lo_c, hi_c, n_c = compute_nmi_matrix(
         df, DIMS_CTX, bootstrap_n=bootstrap_n, seed=boot_seed_state,
     )
+    # ss 3x3 (银行+金科同句共现轨; NMI 诊断 only, 不进正交性分类 — 见 docstring 不对称)
+    # ss 列尚未物化时 compute_nmi_matrix 优雅返回全 NaN matrix (missing_cols 守卫)。
+    point_s, lo_s, hi_s, n_s = compute_nmi_matrix(
+        df, DIMS_SS, bootstrap_n=bootstrap_n, seed=boot_seed_state,
+    )
     # cross 6x6
     point_x, lo_x, hi_x, n_x = compute_nmi_matrix(
         df, ALL_DIMS, bootstrap_n=bootstrap_n, seed=boot_seed_state,
@@ -360,13 +375,14 @@ def run_stage(
 
     # fix(omni-g-audit-family-04, 2026-06-11): classify 的观测值 point_f 在 DIMS_FULL
     # 3 列 listwise 样本上计算, 旧实现却对照 ALL_DIMS 6 列 listwise 样本的 null 阈值 —
-    # NMI 有限样本偏差随 N 变化, 观测/阈值样本域不一致 (双轨缺失差异越大错配越大).
+    # NMI 有限样本偏差随 N 变化, 观测/阈值样本域不一致 (轨间缺失差异越大错配越大).
     # 现为 DIMS_FULL 在其自身 listwise 域上单独重算 null, 与 point_f 同域.
     null_p95_f, null_p99_f = compute_permutation_null(
         df, DIMS_FULL, n_permutations=n_permutations, seed=perm_seed_state,
     )
 
-    # 正交性分类 (仅 full 3 维 — 论文 Appendix A.2 叙事更简洁)
+    # 正交性分类 (有意只对 full 3 维 — 论文 Appendix A.2 叙事更简洁; plan §7.3-A3
+    # 不对称: ctx/ss 仅出 3×3 NMI 矩阵作诊断, 不进分类/解读)
     classify = classify_orthogonality(point_f, null_p95_f, null_p99_f)
 
     # 写出产物
@@ -387,6 +403,8 @@ def run_stage(
 
     _save_matrix('39c_nmi_matrix_full.parquet', point_f, lo_f, hi_f, n_f)
     _save_matrix('39c_nmi_matrix_ctx.parquet', point_c, lo_c, hi_c, n_c)
+    # 第三轨 ss 3×3 NMI 诊断 (复用既有文件名模式; plan §⑪: 列内扩展, OUTPUT_REGISTRY 不新增)
+    _save_matrix('39c_nmi_matrix_ss.parquet', point_s, lo_s, hi_s, n_s)
     _save_matrix('39c_nmi_matrix_cross.parquet', point_x, lo_x, hi_x, n_x)
     null_p95.to_parquet(out_path / '39c_nmi_null_p95.parquet')
     null_p99.to_parquet(out_path / '39c_nmi_null_p99.parquet')

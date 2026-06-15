@@ -57,6 +57,19 @@ HTMT_CUTOFF_LENIENT = 0.90
 PERMUTATION_SEED = 42  # 与 inter_track_kappa.py:41 一致 (修 R9-H3)
 N_PERMUTATIONS_DEFAULT = 1000
 
+# 三轨判别效度的 3 指标列名 (T1 substance / T2 clarity / T3 num_intensity)。
+# full = 主 spec (run_discriminant_validity 默认参数, 向后兼容旧测试契约);
+# ctx / ss = 镜像并列轨 (main() 额外各写一份 track-suffixed 输出)。
+# ss = 银行+金科同句共现轨 (suffix _ss): 机械 _full→_ss swap, 列尚未物化时
+# run_discriminant_validity 内部 missing-columns 守卫优雅跳过 (status=missing_columns)。
+INDICATORS_FULL = {
+    'substance_col': 'avg_subst_prob_score_full',
+    'clarity_col': 'mean_clarity_score_full',
+    'num_intensity_col': 'mean_num_intensity_full',
+}
+INDICATORS_CTX = {k: v.replace('_full', '_ctx') for k, v in INDICATORS_FULL.items()}
+INDICATORS_SS = {k: v.replace('_full', '_ss') for k, v in INDICATORS_FULL.items()}
+
 
 def _safe_corrcoef(a: np.ndarray, b: np.ndarray) -> float:
     """安全 Pearson r: 缺值 / 方差 0 → NaN."""
@@ -323,8 +336,47 @@ def run_discriminant_validity(
     }
 
 
+def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
+    """写单轨 39d 产物 (parquet 摘要 + JSON htmt 矩阵)。
+
+    full 轨保留 canonical 文件名 (``39d_lexical_discriminant.parquet`` /
+    ``39d_htmt_matrix.json``, 向后兼容旧测试/下游); ctx / ss 轨用 track-suffixed
+    名 (``39d_lexical_discriminant_{ctx,ss}.parquet`` 等)。
+    """
+    name_pq = ('39d_lexical_discriminant.parquet' if suffix == 'full'
+               else f'39d_lexical_discriminant_{suffix}.parquet')
+    name_js = ('39d_htmt_matrix.json' if suffix == 'full'
+               else f'39d_htmt_matrix_{suffix}.json')
+
+    # 输出 1: parquet (主表)
+    # quality-hardening Round 40 (2026-05-27): value 列旧实现是 int/float/str
+    # 混合 (e.g. n_obs=int + status='ok' str), pyarrow 无法推导 object 类型 →
+    # ArrowTypeError. 改 unifies to str: parquet 是 audit 摘要, 数值/字符串都
+    # 当 metric 文本看, 不破坏向后兼容 (无下游 reader; grep 全仓 0 个).
+    df_out = pd.DataFrame([{
+        'metric': k,
+        'value': str(v),
+    } for k, v in report.items() if not isinstance(v, dict)])
+    df_out.to_parquet(out_dir / name_pq, index=False)
+
+    # 输出 2: JSON htmt matrix
+    with open(out_dir / name_js, 'w', encoding='utf-8') as f:
+        json.dump(report, f, ensure_ascii=False, indent=2, default=str)
+
+    alpha_val = report.get('cronbach_alpha_across')
+    alpha_str = f"{alpha_val:.4f}" if isinstance(alpha_val, (int, float)) else 'N/A'
+    kappa_val = report.get('cohen_kappa_substance_clarity', {}).get('kappa', float('nan'))
+    kappa_str = f"{kappa_val:.4f}" if isinstance(kappa_val, (int, float)) else 'N/A'
+    logger.info(f"v3.5.1 stage 39d [{suffix}] 完成: HTMT verdict={report.get('htmt_verdict')}, "
+                f"α_across={alpha_str}, κ_subst_clarity={kappa_str}")
+
+
 def main():
-    """Stage 39d 入口。"""
+    """Stage 39d 入口。三轨 (full / ctx / ss) 各跑一次判别效度并写产物。
+
+    full = 主 spec (canonical 输出名, 向后兼容); ctx / ss = 镜像并列轨, 列尚未
+    物化时 run_discriminant_validity 返回 status=missing_columns → 该轨优雅跳过。
+    """
     import os
 
     from news_process.core.config import load_config
@@ -337,37 +389,20 @@ def main():
         return
 
     panel = pd.read_parquet(panel_path)
-    report = run_discriminant_validity(panel)
 
-    # graceful skip 路径: run_discriminant_validity 在缺列 / 样本不足时
-    # 返回 {'status': ..., ...} 而非完整 metric 字典. 此时不写文件 + 简短日志.
-    if isinstance(report, dict) and report.get('status') in ('missing_columns', 'insufficient_obs'):
-        logger.info(f"v3.5.1 stage 39d 跳过: {report}")
-        return
-
-    # 输出 1: parquet (主表)
-    # quality-hardening Round 40 (2026-05-27): value 列旧实现是 int/float/str
-    # 混合 (e.g. n_obs=int + status='ok' str), pyarrow 无法推导 object 类型 →
-    # ArrowTypeError. 改 unifies to str: parquet 是 audit 摘要, 数值/字符串都
-    # 当 metric 文本看, 不破坏向后兼容 (无下游 reader; grep 全仓 0 个).
-    out_parquet = out_dir / '39d_lexical_discriminant.parquet'
-    df_out = pd.DataFrame([{
-        'metric': k,
-        'value': str(v),
-    } for k, v in report.items() if not isinstance(v, dict)])
-    df_out.to_parquet(out_parquet, index=False)
-
-    # 输出 2: JSON htmt matrix
-    out_json = out_dir / '39d_htmt_matrix.json'
-    with open(out_json, 'w', encoding='utf-8') as f:
-        json.dump(report, f, ensure_ascii=False, indent=2, default=str)
-
-    alpha_val = report.get('cronbach_alpha_across')
-    alpha_str = f"{alpha_val:.4f}" if isinstance(alpha_val, (int, float)) else 'N/A'
-    kappa_val = report.get('cohen_kappa_substance_clarity', {}).get('kappa', float('nan'))
-    kappa_str = f"{kappa_val:.4f}" if isinstance(kappa_val, (int, float)) else 'N/A'
-    logger.info(f"v3.5.1 stage 39d 完成: HTMT verdict={report.get('htmt_verdict')}, "
-                f"α_across={alpha_str}, κ_subst_clarity={kappa_str}")
+    # 三轨各跑一次 (ss = 银行+金科同句共现轨; INDICATORS_SS 列缺失时优雅跳过)
+    for suffix, cols in (
+        ('full', INDICATORS_FULL),
+        ('ctx', INDICATORS_CTX),
+        ('ss', INDICATORS_SS),
+    ):
+        report = run_discriminant_validity(panel, **cols)
+        # graceful skip 路径: run_discriminant_validity 在缺列 / 样本不足时
+        # 返回 {'status': ..., ...} 而非完整 metric 字典. 此时不写文件 + 简短日志.
+        if isinstance(report, dict) and report.get('status') in ('missing_columns', 'insufficient_obs'):
+            logger.info(f"v3.5.1 stage 39d [{suffix}] 跳过: {report}")
+            continue
+        _write_track_report(report, out_dir, suffix)
 
 
 if __name__ == '__main__':

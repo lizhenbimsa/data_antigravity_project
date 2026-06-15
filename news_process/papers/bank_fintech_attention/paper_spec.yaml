@@ -83,6 +83,10 @@ identification:
     # attention_index_ctx 配 ctx 同业 LOO 工具 lpeer_attention_iv_ctx, 与 full
     # 轨各自 just-identified 并排表达双轨互为稳健性; 非 full×ctx overid (同文双窗,
     # Hansen J 零功效, Parente & Santos Silva 2012)。模板 19_attention_iv_first_stage。
+    # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨): 内生孪生
+    # attention_index_ss 配同句同业 LOO 工具 lpeer_attention_iv_ss, 与 full/ctx 轨
+    # 各自 just-identified 并排; 严禁 full×ctx×ss 合成 Hansen J overid (机械 _ctx→_ss swap)。
+    ss_mirror: [lpeer_attention_iv_ss]
     # R5-m03 与 llm_peer paper 区别: P2 leave-one-out peer = 银行类型 (国有 / 股份制 / 城商 / 农商)
     # 子样本内同类银行 attention 均值, 不依赖 LLM 语义判定; llm_peer paper 用 LLM-determined
     # semantic peer (Cao 2025 RAS 风格的语义相似度), 与 P2 的 4 类银行分类完全不同。
@@ -109,8 +113,8 @@ inference:
     estimator: cross_sectional_intensity_did  # M4 (+ctrl), TWFE bank+year FE
     one_sided_hypothesis: "曝光强度 ↑ → 银行 fintech 投入披露 ↑ (Hassan 2019 QJE 测度→响应)"
   exploratory:                 # 以下一律标 robustness / exploratory, 非 co-equal headline
-    # 双轨 (full/ctx) 互为稳健性。
-    alternative_treatments: [attention_index_ctx, attention_disp_full, attention_pct_full]   # 替代测度 (双轨互为稳健性 + secondary)
+    # 三轨 (full/ctx/ss) 互为稳健性; ss = 银行+金科同句共现轨 (attention_index_ss, 标签 "(银行+金科同句)")。
+    alternative_treatments: [attention_index_ctx, attention_index_ss, attention_disp_full, attention_pct_full]   # 替代测度 (三轨互为稳健性 + secondary)
     alternative_outcomes: [m_and_a_fintech, patent_fintech_count, employee_growth_it,
       noninterest_income_share, cost_income_ratio]   # outcome.secondary
     sentiment_methods: [llm, dict, bert]    # 三法 triangulation = L&M 2011 robustness battery
@@ -118,7 +122,7 @@ inference:
   fwer:                        # 多重检验 family-wise error 校正 (INFER IV-1)
     method: romano_wolf        # 18_attention_robustness rwolf stepdown (alt-measure family)
     families:
-      - alternative_attention_measures   # {index_full, index_ctx, disp, pct} — 双轨 (full/ctx)
+      - alternative_attention_measures   # {index_full, index_ctx, index_ss, disp, pct} — 三轨 (full/ctx/ss)
     lit: [Romano-Wolf 2005 ECMA, List-Shaikh-Xu 2019 EE, Anderson 2008 JASA]
   cluster: [bank]              # 主规格 firm-level 聚类 (= CLUSTER_VAR bank_id; T=18 G≈200 大 G 充足)
   cluster_robustness:          # small-G / 多维聚类对比 (Cameron-Miller 2015 JHR; T=2 试跑帧退化时优雅跳过)

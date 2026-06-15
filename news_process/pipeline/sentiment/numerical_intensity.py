@@ -1,4 +1,4 @@
-"""news_process.pipeline.sentiment.numerical_intensity — v3.5.1 A3 真双轨数字密度.
+"""news_process.pipeline.sentiment.numerical_intensity — v3.5.1 A3 真三轨 (full/ctx/ss) 数字密度.
 
 锚定文献 (2026-06-05 引文勘误):
     - 数值披露强度构念 (numerical intensity = 数字 token / 篇幅):
@@ -11,9 +11,11 @@
       为项目自定义操作化, 精确公式锚点待最终确认。
 
 设计要点 (per stage3_v3_5_1 plan v0.3 §2.2):
-    1. 真双轨 (修 R3-C2): `enrich_with_num_intensity_dual_track` 对 content_full
-       和 content_ctx **各独立调用** compute_num_intensity 一次; 与项目现有
-       _dual_analyze 双轨契约 (full + ctx) 一致.
+    1. 真三轨 (修 R3-C2; v3.9.0 +ss): `enrich_with_num_intensity_dual_track` 对
+       content_full / content_ctx / content_ss **各独立调用** compute_num_intensity
+       一次; 与项目现有 _dual_analyze 三轨契约 (full + ctx + ss) 一致.
+       (`compute_num_intensity` / `compute_num_intensity_word` 本身 track-agnostic,
+       第三轨 ss = 同句共现轨 = content_ss; 缺列优雅跳过, 镜像 ctx 守卫.)
     2. cn2arab 5 标准样例锁定 (修 H1, frozen at D0):
         - "两千万" → "20000000" (1 token)
         - "三亿五千万" → "350000000" (1 token, 不拆 3 + 5)
@@ -31,8 +33,8 @@
 中文 sentence 分母与英文不直接可比 disclosure (paper §3.4, 修 R7-M1):
    中文新闻句号使用比英文 sparse (长句 + 逗号), num_intensity 分母系统性偏低.
    word-level 替代版 (n_numeric / jieba 词数) 已实现 — compute_num_intensity_word,
-   产出 num_intensity_word_{full,ctx} (2026-06-05, 兑现 paper §4.3 承诺; 对"归一化
-   分母选择"互为稳健性).
+   产出 num_intensity_word_{full,ctx,ss} (2026-06-05; v3.9.0 +ss, 兑现 paper §4.3 承诺;
+   对"归一化分母选择"互为稳健性).
 """
 from __future__ import annotations
 
@@ -315,8 +317,8 @@ def compute_num_intensity(content: str) -> float:
         float: n_numeric / n_sentences; 空/单字符文本 → float('nan').
 
     R1-R5 audit fix A7 (2026-05-27):
-        修 silent NaN→0 propagation. 下游 enrich_with_num_intensity_dual_track 用
-        ``df[col].astype(str).apply(...)`` 调用时, pandas 把 ``NaN/None`` 转成
+        修 silent NaN→0 propagation. 下游 enrich_with_num_intensity_dual_track (三轨,
+        full/ctx/ss) 用 ``df[col].astype(str).apply(...)`` 调用时, pandas 把 ``NaN/None`` 转成
         字符串 ``'nan'`` / ``'None'`` / ``'<NA>'`` (长度 ≥ 3, 通过 isinstance(str)
         与 strip 检查), 返回 0.0 而非 NaN, 让 panel mean_num_intensity_* 系统性
         偏低 (R4-A8 实测). 本 fix 在 isinstance check 后**显式拦截字符串化 NaN
@@ -373,7 +375,8 @@ def compute_num_intensity_word(content: str) -> float:
     动机: 主测度 ``compute_num_intensity`` 以**句子数**为分母 (句级口径), 但中文新闻
     句号比英文 sparse (长句 + 逗号), 句级分母系统性偏低、放大数字密度 (见模块 docstring
     §3.4)。本 word-level 版改以 **jieba 词数**为分母, 规避中英文句读差异, 作为对
-    "归一化分母选择"互为稳健性的替代轨 (双轨纪律: 不以相关性取舍, 两版各自进回归)。
+    "归一化分母选择"互为稳健性的替代版 (句级 vs 词级两种分母口径纪律: 不以相关性取舍,
+    两种口径各自进回归)。
 
     与句级版**共享分子** n_numeric (同一 _cn2arab + _DIGIT_TOKEN_RE 计数), 仅分母不同
     → 误差同源、不引入新偏差。已知 cn2arab 修饰词误转 (序数/不定数, 见 compute_num_intensity
@@ -403,19 +406,23 @@ def compute_num_intensity_word(content: str) -> float:
 
 def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
                                          full_col: str = 'content_full',
-                                         ctx_col: str = 'content_ctx') -> pd.DataFrame:
-    """真双轨 post-processor: 对 content_full + content_ctx 各调用一次 compute_num_intensity.
+                                         ctx_col: str = 'content_ctx',
+                                         ss_col: str = 'content_ss') -> pd.DataFrame:
+    """真三轨 post-processor: 对 content_full / content_ctx / content_ss 各调用一次 compute_num_intensity.
 
-    与项目现有 _dual_analyze 双轨契约 (full + ctx) 一致 (per plan v0.3 §2.2.3 修 R3-C2 + H4).
+    与项目现有 _dual_analyze 三轨契约 (full + ctx + ss) 一致 (per plan v0.3 §2.2.3 修 R3-C2 + H4;
+    v3.9.0 加 ss = 银行+金科同句共现轨).
 
     Args:
-        df: 含 full_col + ctx_col 列的 DataFrame (典型来自 stage 22 batch 处理后).
+        df: 含 full_col + ctx_col (+ 可选 ss_col) 列的 DataFrame (典型来自 stage 22 batch 处理后).
         full_col: 全文列名 (默认 'content_full'; 含标题, 与 ctx 对称; 缺列回退裸 '内容').
         ctx_col: 上下文列名 (默认 'content_ctx').
+        ss_col: 同句共现列名 (默认 'content_ss', stage 13 物化; 缺列优雅跳过 ss 轨, 镜像 ctx 守卫).
 
     Returns:
         pd.DataFrame: 加 ``num_intensity_{full,ctx}`` (句级口径) +
-        ``num_intensity_word_{full,ctx}`` (词级替代版, §4.3) 共 4 列.
+        ``num_intensity_word_{full,ctx}`` (词级替代版, §4.3); 若 ss_col 在列, 再加
+        ``num_intensity_ss`` + ``num_intensity_word_ss`` (共 4 或 6 列)。
     """
     if df is None or len(df) == 0:
         return df
@@ -443,5 +450,13 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
     # 词级 (替代版, 兑现 §4.3; 对中文句读 sparse 稳健): n_numeric / jieba 词数
     df['num_intensity_word_full'] = df[full_col].astype(str).apply(compute_num_intensity_word)
     df['num_intensity_word_ctx'] = df[ctx_col].astype(str).apply(compute_num_intensity_word)
+
+    # 第三轨 ss (银行+金科同句共现轨, v3.9.0): content_ss 由 stage 13 物化, 缺列优雅跳过
+    # (镜像上方 ctx 守卫范式; 回退=镜像 ctx→全文 body 已由 stage 13 处理, 此处仅按列存在与否门控)。
+    if ss_col in df.columns:
+        df['num_intensity_ss'] = df[ss_col].astype(str).apply(compute_num_intensity)
+        df['num_intensity_word_ss'] = df[ss_col].astype(str).apply(compute_num_intensity_word)
+    else:
+        logger.info(f"num_intensity: '{ss_col}' 缺失, ss 轨 (同句共现) 跳过 (镜像 ctx 守卫优雅降级)")
 
     return df

@@ -3,6 +3,11 @@
 测试 ctx_is_fallback 列的产生、dtype 稳定性、idempotent 行为, 以及
 encode.py 聚合产 frac_ctx_fallback / n_articles_for_ctx_independence 的正确性.
 
+三轨 (ss 银行+金科同句共现轨, 2026-06-14): stage 13 在 content_ctx 之外额外
+物化第三条文本轨 content_ss + ss_is_fallback (镜像 ctx 回退公理: 无银行∧金科
+同句共现 → content_ss 退回全文 body → ss_is_fallback=True)。本测试同步加 ss
+列的结构存在性 + dtype + 旧 schema 回填 (哨兵填充, 不重算) 断言。
+
 锚定: pipeline/audit/lexical_discriminant_validity.py:20 (R8-H1 audit anchor).
 实测 fallback 率 (T0 R4-1, disk 13_news_with_ctx.parquet 1170 行) = 10.43%.
 """
@@ -78,6 +83,78 @@ class TestCtxIsFallbackColumnCreation:
         result = materialize_content_ctx(df_with_ctx_already)
         assert result['ctx_is_fallback'].dtype == bool, \
             f"ctx_is_fallback dtype 必须为 bool, 实际为 {result['ctx_is_fallback'].dtype}"
+
+
+class TestSsMaterialization:
+    """T3 三轨 (ss 银行+金科同句, 2026-06-14): content_ss + ss_is_fallback 物化.
+
+    回退公理镜像 ctx: 无银行∧金科同句共现 → content_ss 退回全文 body →
+    ss_is_fallback=True; FINTECH_AC=None (词典加载失败) ⇒ ss 全部回退 → 全 True。
+    旧 schema (content_ctx 已存在, 缺 content_ss/ss_is_fallback) 路径按 plan §8.3
+    哨兵填充 (content_ss=全文 body=content_full, ss_is_fallback=True, 不重算 ss)。
+    """
+
+    def test_ss_backfill_on_old_schema(self, df_with_ctx_already):
+        """旧 schema (有 content_ctx, 缺 ss 两列): 回填 content_ss + ss_is_fallback."""
+        result = materialize_content_ctx(df_with_ctx_already)
+        assert 'content_ss' in result.columns, \
+            "旧 schema 路径必须回填 content_ss"
+        assert 'ss_is_fallback' in result.columns, \
+            "旧 schema 路径必须回填 ss_is_fallback"
+
+    def test_ss_is_fallback_is_bool(self, df_with_ctx_already):
+        """ss_is_fallback dtype 必须严格 bool (镜像 ctx_is_fallback dtype 守卫)."""
+        result = materialize_content_ctx(df_with_ctx_already)
+        assert result['ss_is_fallback'].dtype == bool, \
+            f"ss_is_fallback dtype 必须为 bool, 实际为 {result['ss_is_fallback'].dtype}"
+
+    def test_ss_backfill_is_sentinel_all_true(self, df_with_ctx_already):
+        """plan §8.3 回填策略: 旧 schema 缺 ss → 哨兵 ss_is_fallback 全 True (不重算)."""
+        result = materialize_content_ctx(df_with_ctx_already)
+        # 哨兵填充 = 全文 body, 镜像 ctx 回退公理, 故每行皆 fallback
+        assert result['ss_is_fallback'].all(), \
+            "旧 schema 回填时 ss_is_fallback 应全 True (哨兵填充, 不重算 ss)"
+
+    def test_ss_materialized_when_no_content_ctx(self):
+        """全新物化 (无 content_ctx): content_ss/ss_is_fallback 与 ctx 五列并出.
+
+        FINTECH_AC 加载失败时 ss 全回退全文 body (镜像 ctx 回退契约), 但列结构
+        必齐 — 本测试只断言**结构平价** (五列齐全 + dtype), 不断言 ss 具体取句值
+        (ss 数据/词典依实际运行环境而定; 保守只验结构, 见 plan §⑫)。
+        """
+        df = pd.DataFrame({
+            '内容': ['银行 A 推进金融科技战略。这是另一句无关内容。',
+                      '银行 B 季报披露盈利。某非提及内容。'],
+            'target_bank': ['银行 A', '银行 B'],
+        })
+        result = materialize_content_ctx(df)
+        for col in ('content_full', 'content_ctx', 'content_ss',
+                    'ctx_is_fallback', 'ss_is_fallback'):
+            assert col in result.columns, f"全新物化缺五列之一: {col}"
+        assert result['ss_is_fallback'].dtype == bool
+        # 回退公理镜像 ctx: 回退行 content_ss == content_full (全文 body+标题)
+        fb_rows = result[result['ss_is_fallback']]
+        if len(fb_rows) > 0:
+            assert (fb_rows['content_ss'] == fb_rows['content_full']).all(), \
+                "ss 回退行 content_ss 应镜像 ctx 退回全文 body (==content_full)"
+
+    def test_idempotent_when_all_five_columns_present(self):
+        """五列 (content_full/ctx/ss + ctx/ss_is_fallback) 都在: skip 物化 (idempotent)."""
+        df = pd.DataFrame({
+            '内容': ['x', 'y'],
+            'target_bank': ['A', 'B'],
+            'content_full': ['标题。x', '标题。y'],
+            'content_ctx': ['标题。x', '标题。y'],
+            'content_ss': ['标题。x', '标题。y'],
+            'ctx_is_fallback': pd.Series([True, True], dtype='bool'),
+            'ss_is_fallback': pd.Series([True, True], dtype='bool'),
+        })
+        result = materialize_content_ctx(df)
+        # 列原样返回, 不重算
+        pd.testing.assert_series_equal(
+            result['ss_is_fallback'], df['ss_is_fallback'])
+        pd.testing.assert_series_equal(
+            result['content_ss'], df['content_ss'])
 
 
 class TestParquetRoundtrip:

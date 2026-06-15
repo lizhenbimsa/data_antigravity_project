@@ -27,12 +27,18 @@ if TYPE_CHECKING:
 # innovation_substantiveness_full/_ctx 是文章级中文字符串, 永远不会以该名出现在
 # bank-year panel (结构性错名 → Table 1 全 NaN)。金融 enrichment 列 (待 M0.5.11)
 # 保留为可见 NaN 占位行 (F16 政策) 并经 CSV 脚注披露。
+# 三轨 (full/ctx/ss) 平价 (third-track-ss 2026-06-14): _ss = 银行+金科同句共现轨
+# (encode.py 镜像 _sc×_ctx 块产 sub_frac_ss/symb_frac_ss, 分母 = n_articles_llm_valid_ss);
+# ss 列 stage 21 三轨产出后落盘, 落盘前 build_summary_table(strict=False) 以 NaN 占位行
+# 可见保留 (golden-safe)。⚠ ss 是同句共现情感/属性轨, 与 full/ctx 互为稳健性。
 _TABLE1_VARIABLES: list[str] = [
-    # P3 treatment — panel 真实列 (实质性/象征性新闻占比, full 轨 + ctx 轨)
+    # P3 treatment — panel 真实列 (实质性/象征性新闻占比, full 轨 + ctx 轨 *_sc + ss 轨 *_ss)
     'sub_frac',
     'symb_frac',
     'sub_frac_sc',
     'symb_frac_sc',
+    'sub_frac_ss',
+    'symb_frac_ss',
     # P3 outcome 族 (M0.5.11 enrichment 待落盘; 2026-06-13 重定位: 主因变量 =
     # cost_income_ratio_change_3yr 效率试金石, long_run_roa 降级 secondary,
     # CAR 降级上市行扩展)
@@ -55,7 +61,8 @@ _TABLE1_VARIABLES: list[str] = [
 # Table 1 CSV 脚注 (存在性披露; fix(omni-g-papers-misc-03))
 _TABLE1_FOOTNOTE = (
     "Treatment rows use panel-materialized bank-year shares "
-    "(sub_frac/symb_frac, full track; *_sc = ctx track). "
+    "(sub_frac/symb_frac, full track; *_sc = ctx track; "
+    "*_ss = bank+fintech same-sentence co-occurrence track). "
     "Outcome/control rows pending M0.5.11 financial enrichment appear as "
     "NaN placeholder rows until materialized (existence-checked at build time)."
 )
@@ -97,6 +104,6 @@ def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.Da
 
 
 def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 5: 高阶稳健性 + 替代 substantiveness 轨 (full vs ctx)."""
+    """Table 5: 高阶稳健性 + 替代 substantiveness 轨 (full / ctx / ss 三轨)."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_substance', 'table5_robustness.csv', paper_config)

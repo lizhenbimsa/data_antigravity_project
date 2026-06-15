@@ -1,14 +1,18 @@
-* news_process v3.4.0 — Table A1: 双轨间一致性 Inter-track κ (plan v14 §3.5 P5.1 / §9.2 + v3.4.0 §J)
+* news_process v3.9.0 — Table A1: 三轨间一致性 Inter-track κ (plan v14 §3.5 P5.1 / §9.2 + v3.4.0 §J)
 *
-* 双轨化核心新价值: 篇章级 + bank-year 级 κ for stage 3 字段双轨
+* 三轨化核心新价值: 篇章级 + bank-year 级 κ for stage 3 字段三轨 (full / ctx / ss)
 * v3.4.0: 加入第三维度 innovation_collab_mode (Chesbrough 2003 + L&S 2006 SMJ)
+* v3.9.0: 加入第三轨 ss (银行+金科同句共现, content_ss); 篇章级 κ 由 3 对 (full×ctx)
+*   扩成 9 对 (full×ctx / full×ss / ctx×ss × 3 维度) pairwise (plan §⑧/§⑩)。
 * 阈值 (plan v14 §5.2 R5-B):
 *   篇章级 locus κ ≥ 0.50 (Landis & Koch 1977 moderate)
 *   篇章级 substantiveness κ ≥ 0.45 (fair-to-moderate)
 *   篇章级 collab_mode κ ≥ 0.45 (mirrors substantiveness 标准, v3.4.0)
-*   注: κ 不应过高 (>0.70 → 双轨设计冗余)
-* 白话: κ 衡量全文轨与实体上下文轨对同一篇文章的分类有多一致; 太低说明两轨测的不是
-* 一回事, 太高说明第二条轨是多余的, 适中才证明双轨互为稳健性有价值。
+*   注: κ 不应过高 (>0.70 → 多轨设计冗余)
+* 白话: κ 衡量三条轨 (全文 / 实体上下文 / 银行+金科同句) 对同一篇文章的分类有多一致;
+* 太低说明各轨测的不是一回事, 太高说明多出的轨是多余的, 适中才证明三轨互为稳健性有价值。
+* 注: ss 轨列 (innovation_*_ss) 运行期可能缺失 (stage 21 ss 首跑前), 故 ss 相关 κ/ρ 均经
+* `capture confirm variable *_ss` 守卫, 缺列时优雅降级跳过, 不让整表 r(111) 崩。
 *
 * Stata 必装包: ssc install kappa (或 kapci2 含 CI)
 
@@ -35,12 +39,41 @@ if !_rc {
         gen byte _cm_full   = innovation_collab_mode_full == "外部协同"
         gen byte _cm_ctx    = innovation_collab_mode_ctx  == "外部协同"
 
-        display _newline "Article-level κ (篇章级 inter-track):"
+        * v3.9.0: 第三轨 ss (银行+金科同句共现) — 镜像 full/ctx 编码。
+        * 这三列 (innovation_*_ss) 由 stage 21 ss 轨产出; ss 首跑前缺列 → has_ss=0,
+        * 含 ss 的 6 个 pairwise κ (full×ss / ctx×ss × 3 维) 优雅跳过, 不崩表。
+        * 注: 此处编码的是 per-article LLM 分类属性 (locus/subst/collab), ss 轨同样产出
+        * 这三个属性列 (与 §⑥ cell_id collab-cell 分解的有意 full/ctx-only 决策无关)。
+        capture confirm variable innovation_locus_ss innovation_substantiveness_ss innovation_collab_mode_ss
+        local has_ss = (_rc == 0)
+        if `has_ss' {
+            gen byte _loc_ss = innovation_locus_ss == "应用场景"
+            gen byte _sub_ss = innovation_substantiveness_ss == "象征性"
+            gen byte _cm_ss  = innovation_collab_mode_ss == "外部协同"
+        }
+
+        display _newline "Article-level κ (篇章级 inter-track, 三轨 pairwise):"
         capture which kappa
         if !_rc {
+            * 3 维度 × 3 个轨道 pair (full×ctx / full×ss / ctx×ss) = 最多 9 行 κ。
+            * ss 缺列时 (has_ss==0) 仅出 3 行 full×ctx (优雅降级)。
+            display "  -- pair: full × ctx --"
             kappa _loc_full _loc_ctx
             kappa _sub_full _sub_ctx
             kappa _cm_full _cm_ctx
+            if `has_ss' {
+                display "  -- pair: full × ss (银行+金科同句) --"
+                kappa _loc_full _loc_ss
+                kappa _sub_full _sub_ss
+                kappa _cm_full _cm_ss
+                display "  -- pair: ctx × ss (银行+金科同句) --"
+                kappa _loc_ctx _loc_ss
+                kappa _sub_ctx _sub_ss
+                kappa _cm_ctx _cm_ss
+            }
+            else {
+                display "  ⏭ ss 轨列 (innovation_*_ss) 缺失, full×ss / ctx×ss 共 6 行 κ 跳过"
+            }
         }
         else {
             display "  ⚠️ kappa command 不可用 (Stata 内置 stat 模块); skip"
@@ -84,24 +117,57 @@ quietly {
     else {
         local corr_collab .
     }
+    * v3.9.0: 第三轨 ss bank-year ρ (full 裸名 × ss 后缀, 镜像 full×ctx 块)。
+    * ss 轨 bank-year frac 列由 encode.py 三轨化产出: 底层技术=tech_frac_ls
+    * (镜像 ctx 的 tech_frac_lc), 实质性=sub_frac_ss (镜像 sub_frac_sc), collab_mode
+    * 的 ss bank-year frac (indep_frac_cs) 当前未物化 → capture confirm 缺列即优雅置 .。
+    capture confirm variable tech_frac tech_frac_ls
+    if !_rc {
+        correlate tech_frac tech_frac_ls
+        local corr_locus_ss = r(rho)
+    }
+    else {
+        local corr_locus_ss .
+    }
+    capture confirm variable sub_frac sub_frac_ss
+    if !_rc {
+        correlate sub_frac sub_frac_ss
+        local corr_subst_ss = r(rho)
+    }
+    else {
+        local corr_subst_ss .
+    }
+    capture confirm variable indep_frac indep_frac_cs
+    if !_rc {
+        correlate indep_frac indep_frac_cs
+        local corr_collab_ss = r(rho)
+    }
+    else {
+        local corr_collab_ss .
+    }
 }
 
-display _newline "Bank-year level correlations:"
-display "  Locus full-ctx Pearson ρ      = `corr_locus'"
-display "  Subst full-ctx Pearson ρ      = `corr_subst'"
+display _newline "Bank-year level correlations (三轨 full × {ctx, ss}):"
+display "  Locus full-ctx Pearson ρ       = `corr_locus'"
+display "  Subst full-ctx Pearson ρ       = `corr_subst'"
 display "  Collab_mode full-ctx Pearson ρ = `corr_collab'"
+display "  Locus full-ss (同句) Pearson ρ       = `corr_locus_ss'"
+display "  Subst full-ss (同句) Pearson ρ       = `corr_subst_ss'"
+display "  Collab_mode full-ss (同句) Pearson ρ = `corr_collab_ss'"
 
 * --- Section 3: 表输出 (placeholder) ---
+* v3.9.0: 三轨化 — bank-year ρ 由 full×ctx 一列扩成 full×ctx + full×ss 两列
+* (ss = 银行+金科同句共现轨; ss 列缺失时该格为 `.`)。
 file open f1 using "output/tables/tableA1_inter_track_kappa.tex", write replace
 file write f1 "\begin{table}[h]\centering" _newline
-file write f1 "\caption{Table A1: Inter-track Agreement}" _newline
-file write f1 "\begin{tabular}{lccc}\toprule" _newline
-file write f1 "Field & Article-level κ & Bank-year ρ & N \\\\\midrule" _newline
-file write f1 "Innovation Locus      &  &  `corr_locus' &  \\\\" _newline
-file write f1 "Innovation Subst.     &  &  `corr_subst' &  \\\\" _newline
-file write f1 "Innovation Collab Mode &  &  `corr_collab' &  \\\\" _newline
+file write f1 "\caption{Table A1: Inter-track Agreement (full / ctx / ss 三轨)}" _newline
+file write f1 "\begin{tabular}{lcccc}\toprule" _newline
+file write f1 "Field & Article-level κ & Bank-year ρ (full-ctx) & Bank-year ρ (full-ss) & N \\\\\midrule" _newline
+file write f1 "Innovation Locus      &  &  `corr_locus' &  `corr_locus_ss' &  \\\\" _newline
+file write f1 "Innovation Subst.     &  &  `corr_subst' &  `corr_subst_ss' &  \\\\" _newline
+file write f1 "Innovation Collab Mode &  &  `corr_collab' &  `corr_collab_ss' &  \\\\" _newline
 file write f1 "\bottomrule\end{tabular}\end{table}" _newline
 file close f1
 
 display _newline "✅ Table A1 written to output/tables/tableA1_inter_track_kappa.tex"
-display "    (Article-level κ 见 log; bank-year correlations 入表)"
+display "    (Article-level κ 见 log: 3 维度 × 3 个轨道 pair = 最多 9 行; bank-year ρ 三轨入表)"

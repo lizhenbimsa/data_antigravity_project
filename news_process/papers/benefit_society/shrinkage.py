@@ -291,13 +291,16 @@ def main(argv: list[str] | None = None) -> int:
         type=str,
         default="news_process/data/processed/40_panel_yearly.parquet",
     )
-    # Plan v2.12 双轨 (F-H3): 默认 'both' 同时产出 benefit_mean_full 与
+    # no-ss-track: benefit_mean 源自 SBERT 嵌入轴 (Stage 27), 其 ss 切片 v1 延后
+    # (plan §④/§7.5, 无 benefit_mean_ss) → 收缩仍 full/ctx 两轨。ss 情感轨已在
+    # 情感阶段 21/22/23/24 三轨化, 但不参与 benefit 嵌入投影。
+    # Plan v2.12 (F-H3): 默认 'both' 同时产出 benefit_mean_full 与
     # benefit_mean_ctx 的 shrunk 列。旧版 --value-col 仍支持单列向后兼容。
     parser.add_argument(
         "--track",
         choices=["full", "ctx", "both"],
         default="both",
-        help="Dual-track selection (plan v2.12); overrides --value-col when set to non-legacy values",
+        help="full/ctx track selection (plan v2.12); overrides --value-col when set to non-legacy values",
     )
     parser.add_argument("--value-col", type=str, default=None,
                         help="Legacy single-column override (e.g., benefit_mean_full)")

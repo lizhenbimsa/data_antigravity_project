@@ -27,12 +27,18 @@ if TYPE_CHECKING:
 # locus_scenario_full/locus_gap 仅在 Stata 01_data_prep.do 内由 tech_frac/app_frac
 # 临时 gen, 不落 parquet (结构性错名 → Table 1 全 NaN)。金融 enrichment 列
 # (待 M0.5.11) 保留为可见 NaN 占位行 (F16 政策) 并经 CSV 脚注披露。
+# 三轨 (full/ctx/ss) 平价 (third-track-ss 2026-06-14): ss = 银行+金科同句共现轨;
+# 注 panel 后缀映射 = full(裸名) / ctx(*_lc) / ss(*_ls) (encode.py 镜像 _lc×_ctx 块
+# 产 tech_frac_ls/app_frac_ls, 分母 = n_articles_llm_valid_ss); ss 列 stage 21 三轨
+# 产出后落盘, 落盘前 build_summary_table(strict=False) 以 NaN 占位行可见保留 (golden-safe)。
 _TABLE1_VARIABLES: list[str] = [
-    # P4 treatment 源列 — panel 真实列 (底层技术/应用场景占比, full 轨 + ctx 轨)
+    # P4 treatment 源列 — panel 真实列 (底层技术/应用场景占比, full 轨 + ctx 轨 *_lc + ss 轨 *_ls)
     'tech_frac',
     'app_frac',
     'tech_frac_lc',
     'app_frac_lc',
+    'tech_frac_ls',
+    'app_frac_ls',
     # P4 primary outcome (M0.5.11 enrichment 待落盘)
     'car_5day_window',
     'patent_fintech_count',
@@ -51,7 +57,8 @@ _TABLE1_VARIABLES: list[str] = [
 # Table 1 CSV 脚注 (存在性披露; fix(omni-g-papers-misc-03))
 _TABLE1_FOOTNOTE = (
     "Treatment rows use panel-materialized bank-year shares "
-    "(tech_frac/app_frac, full track; *_lc = ctx track); the regression "
+    "(tech_frac/app_frac, full track; *_lc = ctx track; "
+    "*_ls = bank+fintech same-sentence co-occurrence track); the regression "
     "indicators locus_layer_full/locus_scenario_full/locus_gap are derived "
     "from these in Stata 01_data_prep.do (dominant-category binarization) "
     "and do not exist on the parquet panel. "
@@ -96,6 +103,6 @@ def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.Da
 
 
 def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 5: 高阶稳健性 + 替代 locus 分类器 (full vs ctx 轨) + Borusyak DiD."""
+    """Table 5: 高阶稳健性 + 替代 locus 分类器 (full / ctx / ss 三轨) + Borusyak DiD."""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('bank_fintech_locus', 'table5_robustness.csv', paper_config)

@@ -221,6 +221,101 @@ def extract_entity_context(
     return " [...] ".join(fragments)
 
 
+def _sent_has_fintech(sent: str, fintech_ac) -> bool:
+    """句内是否出现 ≥1 个金科词 (Aho-Corasick 裸匹配, 无否定/短名过滤)。
+
+    与 scripts/audit/measure_bank_fintech_cooccurrence.py::sent_has_fintech 同口径
+    (单一事实源, 保证审计==生产)。fintech_ac 为 None 或空句时返回 False。
+    """
+    if fintech_ac is None or not sent:
+        return False
+    for _ in fintech_ac.iter(sent):
+        return True
+    return False
+
+
+def extract_bank_fintech_cooccurrence(
+    text: str,
+    target_aliases: List[str],
+    fintech_ac,
+    sentence_radius: int = 1,
+    fallback_char_radius: int = 150,
+    negation_ac=None,
+    short_name_exclusions: dict = None,
+    context_window: int = 5,
+) -> str:
+    """第三轨 (ss): 提取【目标银行 ∧ 金融科技词 同句共现】的局部上下文。
+
+    与 extract_entity_context() (ctx 轨, 仅锚银行) 平行, 但锚点改为"同一句内
+    同时出现 目标银行 与 金科词"——度量的是文章里【真正把该银行与金融科技放在
+    一起谈】的那几句话, 排除罚款/坏账等非金科的银行句 (ctx 轨会保留)。实测
+    (disk 1170 篇): 银行句中仅 34% 同时含金科 (主题漂移 65.76%), 故 ss 与 ctx
+    是实质不同的独立信号 (互为稳健性, 非冗余)。
+
+    算法 (镜像 extract_entity_context, 复用同款原语):
+      1. _split_sentences 分句;
+      2. 命中句 = 该句【经否定/短名排除后仍含银行别名】∧【含 ≥1 金科词】;
+      3. 命中句前后各 sentence_radius 句扩窗, _merge_intervals 合并;
+      4. 拼接, 非连续区间用 ' [...] ' 分隔。
+    无任何同句共现 → 返回 '' (空串); 由 stage 13 按【回退公理: 镜像 ctx】回填
+    全文 body 并置 ss_is_fallback=True。
+
+    ⚠ 不对称匹配口径 (有意, 与审计脚本一致):
+      - 银行侧: has_unexcluded_occurrence —— 套用 stage 11/13 同款否定模式 + 短名
+        歧义排除 (NEGATION_AC / SHORT_NAME_EXCLUSIONS)。
+      - 金科侧: fintech_ac.iter 裸 AC 匹配 (1506 词词典), 不做否定/短名过滤。
+
+    口径单一事实源 = scripts/audit/measure_bank_fintech_cooccurrence.py
+    (sent_has_bank / sent_has_fintech), 保证审计==生产逐字节一致。
+
+    学术谱系: 同句共现 (co-mention / collocation) 作为"主题相关性"归因过滤, 承接
+      proximity-based attribution 谱系 —— Hassan et al. (2019) QJE §III.B (实体邻近
+      归因) 与 Andreou et al. (2026) Research Policy (span 内 core-contextual 词对)
+      的"同窗共现"特例。[同句 co-mention 专属文献锚点 (候选: Gentzkow & Shapiro
+      2010 ECMA / Dougal et al. 2012 RFS) 待 Crossref 核验后定稿, 见 plan §8.1 /
+      scripts/audit/LITERATURE_ANCHORS。]
+
+    Args / Returns: 同 extract_entity_context, 另加 fintech_ac (金科 AC 自动机)。
+    """
+    if not text or not target_aliases or fintech_ac is None:
+        return ""
+
+    sentences = _split_sentences(text)
+
+    # 短文本 (<3 句) 退化: 走字符级回退, 传入 fintech_ac 要求"同窗共现"。
+    if len(sentences) < 3:
+        return _char_level_fallback(
+            text, target_aliases, fallback_char_radius,
+            negation_ac=negation_ac,
+            short_name_exclusions=short_name_exclusions,
+            context_window=context_window,
+            fintech_ac=fintech_ac,
+        )
+
+    # 命中句索引: 银行 (排除过滤后) ∧ 金科 同句 (先筛金科, 便宜)。
+    hit_indices = set()
+    for i, sent in enumerate(sentences):
+        if not _sent_has_fintech(sent, fintech_ac):
+            continue
+        for alias in target_aliases:
+            if has_unexcluded_occurrence(sent, alias, negation_ac,
+                                         short_name_exclusions, context_window):
+                hit_indices.add(i)
+                break
+
+    if not hit_indices:
+        return ""
+
+    n = len(sentences)
+    raw_intervals = [
+        (max(0, i - sentence_radius), min(n - 1, i + sentence_radius))
+        for i in hit_indices
+    ]
+    merged = _merge_intervals(raw_intervals)
+    fragments = ["".join(sentences[s:e + 1]) for s, e in merged]
+    return " [...] ".join(fragments)
+
+
 def _char_level_fallback(
     text: str,
     target_aliases: List[str],
@@ -228,6 +323,7 @@ def _char_level_fallback(
     negation_ac=None,
     short_name_exclusions: dict = None,
     context_window: int = 5,
+    fintech_ac=None,
 ) -> str:
     """字符级回退: 当文本过短无法有效分句时使用。
 
@@ -236,6 +332,11 @@ def _char_level_fallback(
 
     fix(omni-g-entity-03/16, 2026-06-11): 出现位置先经 is_match_excluded
     否定/短名排除再开窗 (与句级路径同口径); 排除参数缺省时行为不变。
+
+    三轨 (ss 同句共现轨, 2026-06-14): 可选 fintech_ac 参数。
+      - fintech_ac=None  → 仅锚银行 (ctx 轨既有行为, 字节不变, 向后兼容)。
+      - fintech_ac 提供  → 仅当【银行出现位置的字符窗口内同时含金科词】才开窗
+        (短文本 <3 句无法分句时, 以"同窗口"近似"同句"共现, 与句级 ss 同取向)。
     """
     intervals = []
     for alias in target_aliases:
@@ -250,8 +351,14 @@ def _char_level_fallback(
                                       context_window) is not None:
                 start_pos = pos + 1
                 continue  # 被排除规则命中的假出现不开窗
-            intervals.append((max(0, pos - radius),
-                              min(len(text) - 1, pos + len(alias) + radius)))
+            lo = max(0, pos - radius)
+            hi = min(len(text) - 1, pos + len(alias) + radius)
+            # ss 轨: 该银行窗口内须同时含金科词, 否则非"同句共现", 不开窗。
+            if fintech_ac is not None and not _sent_has_fintech(text[lo:hi + 1],
+                                                                fintech_ac):
+                start_pos = pos + 1
+                continue
+            intervals.append((lo, hi))
             start_pos = pos + 1
 
     if not intervals:
@@ -259,6 +366,74 @@ def _char_level_fallback(
 
     merged = _merge_intervals(intervals)
     return " [...] ".join(text[s:e + 1] for s, e in merged)
+
+
+def has_bank_fintech_cooccurrence_within_radius(
+    text: str,
+    target_aliases: List[str],
+    fintech_ac,
+    sentence_radius: int = 1,
+    negation_ac=None,
+    short_name_exclusions: dict = None,
+    context_window: int = 5,
+    fallback_char_radius: int = 150,
+) -> bool:
+    """Stage 12b 邻近共现【保留判据】: 目标银行与金科词是否在 ±sentence_radius
+    句窗口内邻近共现。返回 True ⇒ 该 (文章, target_bank) 行保留; False ⇒ 丢弃。
+
+    Andreou et al. (2026, Research Policy) core-contextual word-pairing 的【句级
+    窗口】操作化 (比 10-lexical-token span 更宽; 详见 manuscript 披露)。
+
+    ⚠ 与 extract_bank_fintech_cooccurrence 口径【不同, 禁止互相替代】:
+      - 本函数 (窗口邻近): 命中 = ∃ 银行锚句 i (经否定/短名排除后仍含别名) 且
+        闭区间 [i-sentence_radius, i+sentence_radius] 内任一句含 ≥1 金科词。
+      - extract_bank_fintech_cooccurrence (严格同句): 命中句须【同一句】内同时
+        含银行与金科, 再扩【输出窗】。
+      二者仅在 sentence_radius=0 时于命中检测上等价; radius≥1 时本函数更宽
+      (keep 集 ⊇ 严格同句集 → 下游 _ss 严格同句轨保留独立信号,
+      frac_ss_fallback∈(0,1) — 经验事实, 待全量 gate 实测)。
+
+    不对称口径 (与 extract_bank_fintech_cooccurrence / 审计脚本一致):
+      银行侧 has_unexcluded_occurrence (否定+短名排除); 金科侧裸 AC
+      (_sent_has_fintech, 1506 词)。
+
+    短文本 (<3 句) 退化: 走 _char_level_fallback(fintech_ac=...) 字符窗近似,
+    非空即视为共现 (与 extract_bank_fintech_cooccurrence 同回退路径; ⚠ 字符窗
+    判据宽度与句窗不同, keep 率 gate 须分长/短文本两层披露)。
+
+    Args / Returns: 同 extract_bank_fintech_cooccurrence, 但返回 bool。
+    """
+    if not text or not target_aliases or fintech_ac is None:
+        return False
+
+    sentences = _split_sentences(text)
+
+    # 短文本 (<3 句): 复用字符级回退 (传 fintech_ac 要求同窗共现), 非空即共现。
+    if len(sentences) < 3:
+        return bool(_char_level_fallback(
+            text, target_aliases, fallback_char_radius,
+            negation_ac=negation_ac,
+            short_name_exclusions=short_name_exclusions,
+            context_window=context_window,
+            fintech_ac=fintech_ac,
+        ))
+
+    n = len(sentences)
+    for i, sent in enumerate(sentences):
+        # 外层: 该句经否定/短名排除后仍含目标银行别名 (银行锚句)。
+        if not any(
+            has_unexcluded_occurrence(sent, alias, negation_ac,
+                                      short_name_exclusions, context_window)
+            for alias in target_aliases
+        ):
+            continue
+        # 内层: 闭区间 [i-radius, i+radius] 任一句含 ≥1 金科词 → 命中。
+        lo = max(0, i - sentence_radius)
+        hi = min(n - 1, i + sentence_radius)
+        for j in range(lo, hi + 1):
+            if _sent_has_fintech(sentences[j], fintech_ac):
+                return True
+    return False
 
 
 # ============================================================================

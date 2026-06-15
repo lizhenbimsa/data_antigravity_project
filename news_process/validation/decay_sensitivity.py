@@ -2,9 +2,12 @@
 news_process.validation.decay_sensitivity — 距离衰减权重敏感性检验 (G-14)
 
 v3.6.0 (Plan E P7 C4 stub):
-    当前单轨实现. 双轨稳健性应对 full / ctx 各跑一遍 3 种 decay 函数,
-    输出 Pearson/Spearman 相关度矩阵 (3 decay × 2 track = 6×6 matrix).
-    双轨实施 (full/ctx 各跑 3 decay → 6×6 相关矩阵) 推迟到 P7.b 单独 PR (TODO)。
+    当前单轨实现. 多轨稳健性应对 full / ctx / ss 各跑一遍 3 种 decay 函数,
+    输出 Pearson/Spearman 相关度矩阵 (3 decay × 3 track = 9×9 matrix).
+    多轨实施 (full/ctx/ss 各跑 3 decay → 9×9 相关矩阵) 推迟到 P7.b 单独 PR (TODO)。
+    注(三轨, 2026-06-14): 本模块是 track-agnostic 的距离衰减权重族扫描 (只动句级
+    距离权重函数, 读原始 `内容` 全文 body, 不切换 LLM 情感轨), 故 _ss 第三轨同 _ctx
+    一样落入此 TODO; 本轮三轨化无需改本模块逻辑, 仅同步术语 双轨→多轨。
     当前模块不阻塞 Plan E 主线; 推迟到 P7.b 单独 PR 实施。
 
 迁移说明 (Phase 7b)：
@@ -18,7 +21,7 @@ v3.6.0 (Plan E P7 C4 stub):
     验证词典情感得分在衰减权重族内 (radius=2) 是否稳健。
 
 设计定位：
-    稳健性变体 — 不替换现有 full/ctx 双轨设计，
+    稳健性变体 — 不替换现有 full/ctx/ss 三轨设计，
     仅作为论文 Appendix 的一行结论。
 
 与生产主测度的口径差异 (fix(omni-g-val-robust-04, 2026-06-11) 披露):
@@ -29,7 +32,7 @@ v3.6.0 (Plan E P7 C4 stub):
          生产 22_tone_words = 整窗 token 池化 score/(pos+neg) (ratio-of-sums) —
          1 个命中词的句与 10 个命中词的句在前者等权、后者按命中数加权,
          数学上非同一估计量;
-      3. 输入文本: 本模块读原始 `内容` 列, 生产两轨自 v3.8.0 起读
+      3. 输入文本: 本模块读原始 `内容` 列, 生产三轨 (full/ctx/ss) 自 v3.8.0 起读
          prepend_title 注入标题后的文本。
     因此本检验的结论只支持 "词典得分在 radius=2 的衰减权重族内稳健",
     不可直接表述为 "主结果对权重方案不敏感"。

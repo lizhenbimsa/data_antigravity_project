@@ -61,7 +61,8 @@ treatment:
   # bank's own tone llm_vote_tone_full, instrumented by the LLM-peer leave-one-out tone.
   # The earlier `primary: llm_peer_tone_iv_full` mislabeled the INSTRUMENT as the treatment.
   primary: llm_vote_tone_full   # endogenous own-firm tone (instrumented by peer IV)
-  alternative: [llm_vote_tone_ctx]
+  # 三轨 (full/ctx/ss) 互为稳健性; ss = 银行+金科同句共现轨 (llm_vote_tone_ss, 标签 "(银行+金科同句)")。
+  alternative: [llm_vote_tone_ctx, llm_vote_tone_ss]
 
 controls:
   # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/
@@ -102,6 +103,11 @@ identification:
     # 严禁 full×ctx 合成 Hansen J overid (同篇两窗共同冲击同污染, J 零功效,
     # Parente & Santos Silva 2012 EL)。模板 11_table2_main_iv_2sls (M5 列)。
     ctx_mirror: [llm_peer_tone_iv_ctx]   # list 形式与 benefit_society spec 对齐
+    # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨): 内生孪生
+    # llm_vote_tone_ss (treatment.alternative) 配同句同业 LOO 工具 llm_peer_tone_iv_ss
+    # (源 llm_vote_score_ss), 与 full/ctx 轨各自 just-identified 并排; 严禁 full×ctx×ss
+    # 合成 Hansen J overid (同篇三窗共同冲击同污染, J 零功效; 机械 _ctx→_ss swap)。
+    ss_mirror: [llm_peer_tone_iv_ss]   # list 形式与 benefit_society spec 对齐
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
 # 方法学卖点: 共现网作"传统网络位置 baseline" 证 LLM 语义同业 IV 增量识别力。golden-safe; schema no-op。
@@ -130,8 +136,8 @@ inference:
     template: 11_table2_main_iv_2sls (M3)       # 单列 headline 系数
   # exploratory family (robustness / 稳健性, 非 co-equal headline; FWER 校正见下):
   exploratory_families:
-    # ctx 轨稳健性镜像 (双轨 = 互为稳健性高相关孪生)。
-    track_robustness: [llm_vote_tone_ctx + llm_peer_tone_iv_ctx]   # ctx 镜像 (11 M5)
+    # 三轨 (full/ctx/ss) 互为稳健性镜像; ss = 银行+金科同句共现轨 (双轨 = 互为稳健性高相关孪生)。
+    track_robustness: [llm_vote_tone_ctx + llm_peer_tone_iv_ctx, llm_vote_tone_ss + llm_peer_tone_iv_ss]   # ctx/ss 双镜像 (11 M5)
     cutoff_sensitivity: [0.70, 0.75, 0.80, 0.85, 0.90]             # 12_table3
     instrument_robustness: [llm_peer_coverage_iv]                  # 14_table5
     heterogeneity: [SOE_interaction]                               # 13_table4

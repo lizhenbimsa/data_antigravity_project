@@ -30,14 +30,23 @@ _TABLE1_VARIABLES: list[str] = [
     'strat_diff_n5_emb',
     # outcome (2026-06-13 重定位: 主因变量 = 特许权价值, 外部财务待落盘 → NaN 占位行)
     'tobin_q',
-    # 全行业重心 (谢佳松 2025)
+    # 全行业重心 (谢佳松 2025; full 轨, ss 同句共现孪生作三轨稳健性)
     'centroid_diff_tfidf_c',
     'centroid_diff_lda',
     'centroid_diff_emb',
-    # 文本连贯性 (Time-coherence)
+    'centroid_diff_tfidf_c_ss',
+    'centroid_diff_lda_ss',
+    'centroid_diff_emb_ss',
+    # 文本连贯性 (Time-coherence; full 轨 + ss 同句共现轨)
+    # 三轨 (full/ctx/ss) 平价 (third-track-ss 2026-06-14): coh_*_ss / centroid_diff_*_ss
+    # = 银行+金科同句共现轨 (strategic_diff.py 镜像 ctx 轨产出, 标签 "(银行+金科同句)");
+    # ss 列 stage 15 三轨产出后落盘, 落盘前 build_summary_table(strict=False) NaN 占位。
     'coh_tfidf_c_full',
     'coh_lda_full',
     'coh_emb_full',
+    'coh_tfidf_c_ss',
+    'coh_lda_ss',
+    'coh_emb_ss',
 ]
 
 
@@ -78,7 +87,11 @@ def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.Da
 
 
 def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 5: N 邻敏感性 / 行业重心 / Ctx 轨稳健性 (读 table5a_n_sensitivity.csv)."""
+    """Table 5: N 邻敏感性 / 行业重心 / Ctx 轨 + Ss 轨 (银行+金科同句共现) 稳健性
+    (读 table5a_n_sensitivity.csv).
+
+    third-track-ss 2026-06-14: 加 ss 轨 (strat_diff_n5_ss / coh_*_ss / centroid_diff_*_ss)
+    作同句共现稳健性, 与 full/ctx 三轨互为稳健性; ss 列缺失时 Stata capture confirm 守卫。"""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('strategic_diff', 'table5a_n_sensitivity.csv', paper_config)
 

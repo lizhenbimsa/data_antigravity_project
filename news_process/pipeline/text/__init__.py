@@ -1,8 +1,11 @@
 """news_process.pipeline.text — 文本/上下文物化与嵌入工具.
 
 包内模块:
-    ctx_materializer:  stage 13 content_full/content_ctx 列物化, 供 stage 14/15
-                       双轨化使用 (Plan E v3.6.0 P4 A1; v3.8.0 起两轨均 prepend 标题).
+    ctx_materializer:  stage 13 content_full/content_ctx/content_ss 列物化, 供
+                       stage 14/15 三轨化 (full/ctx/ss) 使用
+                       (Plan E v3.6.0 P4 A1; v3.8.0 起各轨均 prepend 标题;
+                       v3.9.0 新增第三轨 content_ss = 标题 + 含"目标银行∧金科词"
+                       同句 ±N 句窗, 无共现→镜像 ctx 回退全文, flag ss_is_fallback).
     embedding_engine:  双模型嵌入统一引擎 (主轨 API + _t2v 本地稳健轨, 穿透 LLMCache).
     article_sbert:     stage 30a article-level SBERT embeddings 持久化 (D 组前置).
     article_staleness: stage 18 article-level staleness 双指标

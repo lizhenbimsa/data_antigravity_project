@@ -86,18 +86,22 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CONTROLS': 'ln_news_coverage media_breadth n_articles',
         'CLUSTER_VAR': 'bank_id',
         'HET_VAR': 'is_listed',  # PAP v1.0-final DP-9: 取代 is_soe (F-R3-H2); external sentinel
-        # v3.2.1 dual-track (plan v2.12, F-M1 / F-H3): ATTITUDE_VAR 保留为
-        # 向后兼容别名 = full 轨; ATTITUDE_FULL / ATTITUDE_CTX 才是新模板
-        # 使用的规范双轨占位符
+        # v3.2.1 起三轨 (plan v2.12, F-M1 / F-H3; 2026-06-14 加 ss 第三轨):
+        # ATTITUDE_VAR 保留为向后兼容别名 = full 轨; ATTITUDE_FULL / ATTITUDE_CTX /
+        # ATTITUDE_SS 才是新模板使用的规范三轨占位符 (full / ctx / 银行+金科同句)
         # (20_tableA1_inter_track_kappa, 21_tableA2_attitude_track_switch,
         # 31_figure2_coefplot_dual, 17b_table8b_shrinkage_dual)。
+        # ATTITUDE_SS = ATTITUDE_CTX 的 _ctx→_ss 机械镜像 (银行+金科同句共现轨)。
         'ATTITUDE_VAR': 'benefit_mean_full',
         'ATTITUDE_FULL': 'benefit_mean_full',
         'ATTITUDE_CTX': 'benefit_mean_ctx',
+        'ATTITUDE_SS': 'benefit_mean_ss',
         'BENEFIT_POS_FRAC_FULL': 'benefit_pos_frac_full',
         'BENEFIT_POS_FRAC_CTX': 'benefit_pos_frac_ctx',
+        'BENEFIT_POS_FRAC_SS': 'benefit_pos_frac_ss',    # 三轨 ss (银行+金科同句)
         'BENEFIT_NEG_FRAC_FULL': 'benefit_neg_frac_full',
         'BENEFIT_NEG_FRAC_CTX': 'benefit_neg_frac_ctx',
+        'BENEFIT_NEG_FRAC_SS': 'benefit_neg_frac_ss',    # 三轨 ss (银行+金科同句)
         'MECHANISM_TOKEN': 'token_adopt_kw_p50',
         'MECHANISM_HIDDEN': 'hidden_adopt_kw_p50',
         'MECHANISM_SUBST': 'subst_adopt_kw_p50',
@@ -163,6 +167,10 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'SIM_MAX_VAR': 'strat_sim_max',
         'BARTIK_IV': 'bartik_type_iv_full',
         'TONE_VAR': 'llm_vote_tone_full',
+        # 第三轨 ss (银行+金科同句共现, 2026-06-14 全平价): TONE_VAR 的 _full→_ss
+        # 机械镜像, 供 2SLS 模板 foreach sent in full ctx ss 的第 3 列消费
+        # (运行期缺列以 capture confirm variable *_ss 守卫优雅降级)。
+        'TONE_VAR_SS': 'llm_vote_tone_ss',
         'COHERENCE_VAR': 'coh_tfidf_c_full',
         # MAIN_TREAT/RANDOM_SEED: 原为 v3.7.3 Plan A _title robustness 模板
         # (strategic_diff/25_tableA8_title_robustness.do.tmpl) 而加; 该 _title 情感轨
@@ -185,6 +193,10 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
         'CLUSTER_VAR': 'bank_id',
         'HET_VAR': 'is_soe',
         'TONE_VAR': 'llm_vote_tone_full',
+        # 第三轨 ss (银行+金科同句共现, 2026-06-14 全平价): TONE_VAR 的 _full→_ss
+        # 机械镜像, 供 2SLS 模板 foreach sent in full ctx ss 的第 3 列消费
+        # (运行期缺列以 capture confirm variable *_ss 守卫优雅降级)。
+        'TONE_VAR_SS': 'llm_vote_tone_ss',
         'LLM_PEER_IV': 'llm_peer_tone_iv_full',
         'LLM_PEER_COVERAGE_IV': 'llm_peer_coverage_iv',
         'COMPETE_IDX': 'peer_compete_idx',

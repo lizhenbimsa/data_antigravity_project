@@ -32,12 +32,15 @@ def get_labeled_vars() -> set:
 def infer_label(var_name: str) -> str:
     """根据变量名推断中文标签"""
 
-    # 基础映射
+    # 基础映射 (三轨: full / ctx / ss)
+    # 注: _ss = 银行+金科同句共现轨 (content_ss / suffix _ss), 与 _ctx 并列第三主轨,
+    #     标签后缀 '(同句共现)' 镜像 _ctx 的 '(上下文)'。
     # 注: _title 情感轨已废 (remove-title-track); 面板不再产出 _title 后缀情感列,
     # 此 '_title' 映射仅作旧 panel 兼容。
     track_map = {
         '_full': '(全文)',
         '_ctx': '(上下文)',
+        '_ss': '(同句共现)',
         '_title': '(标题)',
     }
 

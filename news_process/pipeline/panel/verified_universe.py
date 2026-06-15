@@ -17,6 +17,13 @@ verified 集; attention 处理变量族 (及其去重敏感性镜像) 此前漏�
 fintech 银行新闻行从不经 stage 21 验证, 物理上不可门控), 否则破坏 NaN-vs-0 契约与
 份额语义 (attention_pct = 已验证 fintech / 全部银行新闻 才是干净的议程份额)。
 
+三轨 (full/ctx/ss) 自动继承 (2026-06-14): 本 helper 按 ``(docid, target_bank)``
+inner-join 门控, 是 **track-agnostic** 的行级语义过滤 — 它只决定"哪些 (文章, 银行)
+对幸存", 与情感轨后缀 (_full/_ctx/_ss) 无关。故新增的 ss 轨 (银行+金科同句共现:
+fintech_intensity_score_ss / llm_vote_tone_ss 等) 在本模块**零改自动进 verified 门**,
+无需任何 _ss 分支; 上游调用方 (attention_media / dedup_sensitivity) 各自的 ss 列
+随其 full/ctx 兄弟一同经此 semi-join 收敛到同一聚合域。
+
 自包含读盘说明 (审计计划 D1/C4): 本 helper 直接读 ``24_herd_decay.parquet`` 作
 verified 脊柱。这在 stage-45 runner 内成立, 因 runner 从同一文件载入 df_exploded
 (runner.py ~L465) 且在调用 attention/dedup 前 (~L944-949) 仅按列追加、不删行 →

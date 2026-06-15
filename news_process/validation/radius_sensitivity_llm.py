@@ -55,7 +55,10 @@ RADII_TO_TEST: List[int] = [0, 1, 2, 3]
 CACHED_RADIUS: int = 1  # 已存在的 baseline 配置, 不重跑
 
 # κ 阈值 (plan v14 §5.2 R5-B, Landis & Koch 1977 substantial)
-KAPPA_THRESHOLD_RADIUS = 0.70  # radius 稳健性: 期望高 (双轨内不同 radius 应稳定)
+KAPPA_THRESHOLD_RADIUS = 0.70  # radius 稳健性: 期望高 (同一轨内不同 radius 应稳定)
+# 注(三轨, 2026-06-14): radius 扫描是 ctx 窗口提取参数的敏感性 (sentence_radius);
+# ss 轨有自己独立的 ss_sentence_radius 参数, 其 radius 敏感性是与本模块平行的
+# 未来扩展项 (本 LLM 法升级仍是 scaffold/dry-run, 三轨化无需改本模块扫描逻辑)。
 
 
 def cohens_kappa_2cat(y1: np.ndarray, y2: np.ndarray) -> Dict[str, float]:
@@ -359,7 +362,8 @@ def main():
         2. --dry-run (default): 只输出 estimate + prerequisites 检查
         3. --launch: 真实跑 (need YUNWU_API_KEY)
            对每个 new radius ∈ {0, 2, 3}: 重抽 ctx → 调 LLM → cache
-           parse_track_results_from_cache 收集双轨标签
+           parse_track_results_from_cache 收集篇章级标签 (当前仅 ctx 轨;
+           full 轨缓存命中不受 radius 影响, ss 轨另有独立 radius 扫描, 见模块头注)
            compute_radius_kappa_report + write_radius_llm_report
     """
     args = _parse_args()

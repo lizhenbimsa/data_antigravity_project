@@ -2,7 +2,10 @@
 
 2026-06-05 新增 (顶刊文本测度缺口报告批 #2–#6)。一篇文章做**单次** jieba.posseg
 词性标注 pass, 派生 6 个互补的"披露质量/可读性"测度, 全部 $0 (jieba 0.42.1 冻结,
-无付费 LLM、无新 PyPI 依赖、不触 M0 门、不动 Prompt v8), 真双轨 (_full/_ctx)。
+无付费 LLM、无新 PyPI 依赖、不触 M0 门、不动 Prompt v8), 真三轨 (_full/_ctx/_ss)。
+注: ``compute_lexical_complexity`` 本身 track-agnostic (输入单一文本, 返回 per-text dict);
+三轨 (full/ctx/ss=银行+金科同句共现轨) 的 per-track 循环由调用方 tone_words 用各轨文本
+(content_full / content_ctx / content_ss) 各调用一次驱动, 本模块无需改动即支持第三轨。
 
 测度与锚点:
   1. rare_word_ratio   低频词率   — You & Zhang (2009) RAS; Gentzkow-Kelly-Taddy
@@ -82,7 +85,7 @@ import jieba.posseg as pseg
 # fix(hanzi-char-dual, 2026-06-13): 汉字判定走 cn_text_utils 单一事实源原语 (is_cjk),
 # 取代本模块历史散落的 `'一' <= ch <= '鿿'` 内联谓词 —— 字节等价纯重构, 不改任何
 # 已落盘值; 同时新增的汉字口径篇内冗余 within_doc_redundancy_han 也据此与字符口径
-# within_doc_redundancy 互为"字符 vs 汉字"双口径稳健性 (双轨纪律)。
+# within_doc_redundancy 互为"字符 vs 汉字"两种口径稳健性 (口径纪律)。
 from news_process.core.text.cn_text_utils import is_cjk
 
 # ── 常量 (spec 固定) ─────────────────────────────────────────────────────────
@@ -262,7 +265,10 @@ def _empty_result() -> dict[str, float]:
 # fix(hanzi-char-dual, 2026-06-13): 新增 'within_doc_redundancy_han' (汉字口径篇内冗余,
 # 与字符口径 within_doc_redundancy 互为双口径) + 'redundancy_han_log_length' (ln 汉字数,
 # 汉字口径长度控制, 同样非 [0,1] 比率列)。两键经 LEXICAL_COMPLEXITY_KEYS 自动物化为
-# *_full/*_ctx 文章列 (tone_words), within_doc_redundancy_han 再由 encode 聚合到面板。
+# *_full/*_ctx/*_ss 文章列 (tone_words 三轨, v3.9.0 +ss=银行+金科同句共现轨),
+# within_doc_redundancy_han 再由 encode 聚合到面板。
+# ⚠ 此处"双口径"= char vs han (字符 vs 汉字) 计量口径, 与 full/ctx/ss 三轨是正交两轴,
+#   勿混淆 (汉字/字符双口径 × 三轨 = 6 个派生组合)。
 LEXICAL_COMPLEXITY_KEYS = (
     'rare_word_ratio', 'hard_char_ratio', 'nominalization_ratio',
     'function_word_ratio', 'specificity_index', 'within_doc_redundancy',
@@ -315,8 +321,8 @@ def _han_trigram_redundancy(content: str) -> tuple[float, float]:
     fix(hanzi-char-dual, 2026-06-13): 字符口径 _char_trigram_redundancy 的孪生版。
     先抽取**纯汉字子序列** (is_cjk 过滤掉数字/标点/拉丁/空白) 再切字符 3-gram ——
     分子(唯一汉字3-gram)与分母(全部汉字3-gram)同为汉字口径, 满足"分子分母口径
-    一致" (与 hard_char_ratio 同范式)。与字符版互为"字符 vs 汉字"双口径稳健性
-    (双轨纪律: 不以相关性取舍, 两版各自进回归)。
+    一致" (与 hard_char_ratio 同范式)。与字符版互为"字符 vs 汉字"两种
+    口径稳健性 (口径纪律: 不以相关性取舍, 两种口径各自进回归)。
 
     redundancy_han = 1 − (唯一汉字3-gram / 全部汉字3-gram); 汉字数 < 3 → 双 nan。
     han_log_length = ln(汉字数); 与 redundancy_han 同定义域, 作汉字口径长度控制
@@ -342,7 +348,7 @@ def compute_lexical_complexity(content: str) -> dict[str, float]:
     """对单一文本计算 6+1 个词汇/句法复杂度测度 (单次 posseg pass)。
 
     Args:
-        content: 任意单一文本 (典型 content_full 或 content_ctx)。
+        content: 任意单一文本 (典型 content_full / content_ctx / content_ss; track-agnostic)。
 
     Returns:
         dict: LEXICAL_COMPLEXITY_KEYS 各键 → float (无效/空文本 → nan)。

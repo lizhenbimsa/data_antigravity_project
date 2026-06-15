@@ -1,11 +1,15 @@
-* news_process v3.2.0 — Table A2: 主规格切换敏感性 Main Spec Switch Sensitivity (plan v14 §5.3 / §9.2)
+* news_process v3.9.0 — Table A2: 主规格切换敏感性 Main Spec Switch Sensitivity (plan v14 §5.3 / §9.2)
 *
 * 核心新价值 (Hassan 2019 QJE / Sautner 2023 JF / Bingler 2022 FRL):
-*   双轨化设计让 main spec 选择有 8 种 (2 locus × 2 subst × 2 sentiment).
-*   此表展示 main spec 在 8 种切换下的系数 / SE 稳健性 (robustness).
-*   论文 Methods §4 中 main spec 是 1 种, Robustness Appendix 展示其他 7 种.
-* 白话: 测量口径有三处可二选一 (创新位置/实质性/情感各有全文与上下文两版), 共 2×2×2=8 种
-* 组合; 把主回归在 8 种组合下各跑一遍, 若系数方向与显著性都差不多, 说明结论不靠挑口径挑出来。
+*   三轨化设计让 main spec 的情感维度有 3 档 (full / ctx / ss), 配 2 locus × 2 subst
+*   → main spec 选择共 2×2×3=12 种.
+*   此表展示 main spec 在 12 种切换下的系数 / SE 稳健性 (robustness).
+*   论文 Methods §4 中 main spec 是 1 种, Robustness Appendix 展示其他 11 种.
+* 白话: 测量口径有三处可挑 (创新位置/实质性各有全文与上下文两版, 情感有全文/上下文/银行+金科
+* 同句三版), 共 2×2×3=12 种组合; 把主回归在 12 种组合下各跑一遍, 若系数方向与显著性都差不多,
+* 说明结论不靠挑口径挑出来。
+* v3.9.0: 第三情感轨 ss (银行+金科同句共现, 因变量 llm_vote_tone_ss) 由 stage 21 ss 产出;
+*   ss 首跑前缺列时 4 个含 ss 的 spec 经既有 `capture confirm variable` 守卫优雅跳过, 不崩表。
 
 version 19
 * fix(master-chain-deadlock CY-2-reachability, 2026-06-14): 仅在【内存无数据】时
@@ -47,15 +51,17 @@ capture do "data/processed/46_panel_yearly_labels.do"
 * fix(omni-g-templates-14, 2026-06-11): 隔离估计命名空间 (主线模板链共享 session)
 eststo clear
 
-* 8-spec 笛卡尔 (2 locus × 2 subst × 2 sentiment)
+* 12-spec 笛卡尔 (2 locus × 2 subst × 3 sentiment: full/ctx/ss)
 * loop 用 macro 替换:
 * fix(omni-g-templates-13, 2026-06-11): 裸名重映射 (correctness-04 同款, 此前仅修
 * 11_table2 漏了本模板) — 面板 full 轨以裸名存在 (tech_frac/symb_frac), 直拼
-* tech_frac_lf/symb_frac_sf 是幻影列, 含 lf/sf 的 6/8 spec 被 confirm 跳过, 8-spec
-* 切换稳健性实际只覆盖 2/8。lf→tech_frac, sf→symb_frac; lc/sc 仍带后缀。
+* tech_frac_lf/symb_frac_sf 是幻影列, 含 lf/sf 的 spec 被 confirm 跳过。
+* lf→tech_frac, sf→symb_frac; lc/sc 仍带后缀。
+* v3.9.0: 第三情感轨 ss (sent=ss → DV=llm_vote_tone_ss) 加入笛卡尔, 8→12 spec;
+*   ss DV 缺列 (stage 21 ss 首跑前) 时由下方 `capture confirm variable` 守卫优雅跳过。
 foreach loc in lf lc {
     foreach sub in sf sc {
-        foreach sent in full ctx {
+        foreach sent in full ctx ss {
             if "`loc'" == "lf" {
                 local LOCUS tech_frac
             }
@@ -84,14 +90,18 @@ foreach loc in lf lc {
     }
 }
 
-* 输出 Table A2 (横 8 列)
-* fix(omni-g-templates-13, 2026-06-11): esttab 名单动态化 — 旧版硬点名 8 个估计,
+* 输出 Table A2 (横 12 列, 三情感轨 full/ctx/ss)
+* fix(omni-g-templates-13, 2026-06-11): esttab 名单动态化 — 旧版硬点名估计,
 * 任一 spec 被 confirm 跳过即 r(111) 丢整表; mtitle 同步删列防错位。
+* v3.9.0: 候选名单 8→12, 加 4 个 ss spec (后缀 -S = 银行+金科同句); ss spec 缺列
+*   未 eststo 时, 下方 `list m in stored` 动态过滤会自动跳过 → ss 缺失优雅降级。
 qui estimates dir
 local stored `r(names)'
-local cand_models spec_lf_sf_full spec_lf_sf_ctx spec_lf_sc_full spec_lf_sc_ctx ///
-                  spec_lc_sf_full spec_lc_sf_ctx spec_lc_sc_full spec_lc_sc_ctx
-local cand_titles `""LF-SF-F" "LF-SF-C" "LF-SC-F" "LF-SC-C" "LC-SF-F" "LC-SF-C" "LC-SC-F" "LC-SC-C""'
+local cand_models spec_lf_sf_full spec_lf_sf_ctx spec_lf_sf_ss ///
+                  spec_lf_sc_full spec_lf_sc_ctx spec_lf_sc_ss ///
+                  spec_lc_sf_full spec_lc_sf_ctx spec_lc_sf_ss ///
+                  spec_lc_sc_full spec_lc_sc_ctx spec_lc_sc_ss
+local cand_titles `""LF-SF-F" "LF-SF-C" "LF-SF-S" "LF-SC-F" "LF-SC-C" "LF-SC-S" "LC-SF-F" "LC-SF-C" "LC-SF-S" "LC-SC-F" "LC-SC-C" "LC-SC-S""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -110,10 +120,11 @@ else {
     esttab `models' using "output/tables/tableA2_main_spec_switch.tex", ///
         se star(* 0.10 ** 0.05 *** 0.01) ///
         booktabs replace fragment ///
-        title("Table A2: Main Spec Switch Sensitivity (8 specs, plan v14 §5.3)") ///
+        title("Table A2: Main Spec Switch Sensitivity (12 specs, plan v14 §5.3)") ///
         mtitles(`mtitles') ///
-        note("Main spec choices: locus={lf=full / lc=ctx}, subst={sf=full / sc=ctx}, sent={full / ctx}. " ///
+        note("Main spec choices: locus={lf=full / lc=ctx}, subst={sf=full / sc=ctx}, " ///
+             "sent={full / ctx / ss=bank+fintech same-sentence}. " ///
              "Robust SEs clustered at bank. Hassan 2019 QJE + Sautner 2023 JF + Bingler 2022 FRL.")
 
-    display "✅ Table A2 written to output/tables/tableA2_main_spec_switch.tex (`: word count `models''/8 specs)"
+    display "✅ Table A2 written to output/tables/tableA2_main_spec_switch.tex (`: word count `models''/12 specs)"
 }

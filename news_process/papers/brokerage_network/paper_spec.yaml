@@ -35,7 +35,8 @@ outcome:
 
 treatment:
   primary: peer_tone_lag1_full   # 一阶同业溢出 (endogenous)
-  alternative: [peer_tone_lag1_ctx]
+  # 三轨 (full/ctx/ss) 互为稳健性; ss = 银行+金科同句共现轨 (peer_tone_lag1_ss, 标签 "(银行+金科同句)")。
+  alternative: [peer_tone_lag1_ctx, peer_tone_lag1_ss]
 
 controls:
   # fix(omni-g-replication-07, 2026-06-11): bank_level 财务控制 5 列 (ln_assets/
@@ -55,6 +56,10 @@ identification:
   iv:
     primary: peer_tone_2nd_lag1_full   # 二阶溢出 (Bramoullé 排他性约束)
     fallback: peer_tone_2nd_lag1_ctx
+    # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨): 内生孪生
+    # peer_tone_lag1_ss 配同句二阶溢出工具 peer_tone_2nd_lag1_ss, 与 full/ctx 轨各自
+    # just-identified 并排; 严禁 full×ctx×ss 合成 Hansen J overid (机械 _ctx→_ss swap)。
+    ss_mirror: [peer_tone_2nd_lag1_ss]
   # ── 网络位置度量层 (network-metrics-elevation 2026-06-13) ──
   # ⚠ 区分两层 (审计 BRK-PRIMARY-1 裁决): 本篇**主识别引擎** = W·tone(endogenous,
   #   treatment.primary) / W²·tone(IV, 上方 iv.primary) 谱滞后; 下列中心度是**网络
@@ -93,7 +98,7 @@ network_roles:
     endogenous: peer_tone_lag1_full
     instruments: [peer_tone_2nd_lag1_full, prov_leave1out_tone_full]  # 共现族 W² + 地理族同省 LOO (跨族!)
     estimator: ivreghdfe_overid
-    forbidden: full_ctx_pooled_J        # 严禁 full+ctx 双支拼一对工具 (同污染→J 零功效, memory loo-ctx-iv)
+    forbidden: full_ctx_pooled_J        # 严禁 full/ctx/ss 任意两轨拼一对工具 (同污染→Hansen J 零功效, memory loo-ctx-iv; 三轨各自 just-identified 并排)
     lit: [Bramoullé-Djebbari-Fortin 2009 JoE, Leary-Roberts 2014 JF, GPSS 2020 AER, Andrews-Stock-Sun 2019 ARE]
   moderator:          # 角色4 调节 (18_table9) — 2SLS 交乘 (交乘项工具化), 非 OLS (审计 BRK-MOD-4)
     column: brokerage_eigen_cent        # 信息枢纽放大溢出
@@ -140,7 +145,7 @@ inference:
     # exploratory family (须 FWER 校正后 p 方可解读): 22 中心度 battery + 网络位置多角色
     centrality_battery: exploratory       # 22 中心度 (20_table11 wyoung FWER); primary=bank_between_cent
     network_roles: exploratory            # explanatory/mediator/moderator/heterogeneity (15-19)
-    dual_track: mutual_robustness         # full×ctx 双轨高相关孪生 = 互为稳健性, 非独立假设 (勿拼 Hansen J)
+    dual_track: mutual_robustness         # full×ctx×ss 三轨高相关孪生 = 互为稳健性, 非独立假设 (勿拼 Hansen J; 严禁 full×ctx×ss 合成 over-id)
     policy_did: exploratory               # DCEP/Sandbox 机制表 (12_table3); 非主识别
 
 robustness:

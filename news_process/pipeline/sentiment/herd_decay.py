@@ -1,27 +1,36 @@
 """
-news_process.pipeline.sentiment.herd_decay — 跟风/抄袭新闻检测与衰减加权 (双轨版 v3.6.0)
+news_process.pipeline.sentiment.herd_decay — 跟风/抄袭新闻检测与衰减加权 (三轨版 v3.9.0)
 =========================================================================
 
 迁移说明 (Phase 7a-7)：
     本模块由原 root script ``24_herd_decay_processor.py`` body 迁入。
     规范调用方式: ``python -m news_process.pipeline.sentiment.herd_decay``
 
-v3.6.0 (Plan E P1 B3) 双轨化升级:
+v3.6.0 (Plan E P1 B3) full/ctx 化升级:
     原实现仅对 '内容' 全文做 TF-IDF 相似度判定, 算出单列 herd_weight,
-    被下游同时施加到 _full / _ctx 两轨。这是 measurement-treatment
+    被下游同时施加到 _full / _ctx 两条轨道。这是 measurement-treatment
     错配 (Edwards 2001 ORM): 全文相似度 ≠ 对目标银行的报道相似度。
-    本版本改为对 '内容' 和 'content_ctx' 分别做 TF-IDF, 输出双轨权重
-    herd_weight_full + herd_weight_ctx, 下游按 track 各自施加。
+    本版本改为对 '内容' 和 'content_ctx' 分别做 TF-IDF, 输出 full/ctx
+    两列权重 herd_weight_full + herd_weight_ctx, 下游按 track 各自施加。
+    (本模块现已三轨: full/ctx/ss, 见下方 v3.9.0 段。)
+
+v3.9.0 (第三轨 _ss 同句共现) 三轨化升级:
+    在 full / ctx 之外新增第三主轨 ss (银行+金科同句, bank+fintech
+    same-sentence co-occurrence): 对 'content_ss' (标题+同句内同时含 目标银行∧
+    金科词 的句 ±N 句窗; 无共现→回退全文 body, 镜像 ctx 回退公理) 独立做
+    TF-IDF, 输出 herd_weight_ss + n_similar_articles_ss, 下游按 track 各自施加。
+    与 ctx 同动因 (Edwards 2001 ORM measurement-treatment matching): 同句共现
+    相似度 ≠ 全文相似度, 亦 ≠ 目标银行邻域相似度, 故第三轨各自判定不混用。
 
 功能:
   对同一 target_bank 在同一时间窗口内的多篇新闻进行文本相似度聚类,
   识别"跟风抄袭"新闻并施加衰减权重, 防止重复计数导致情感指标注水。
-  v3.6.0 起按 full / ctx 双轨独立判定。
+  v3.6.0 起按 full / ctx 双轨独立判定; v3.9.0 起扩为 full / ctx / ss 三轨。
 
 学术依据:
   - Tetlock (2011, RFS 24(5):1481-1512): 媒体新闻的信息冗余与重复效应
   - Sautner et al. (2023, JF): 文本相似度驱动的曝光度度量
-  - Edwards (2001, ORM): measurement-treatment matching (双轨化动因)
+  - Edwards (2001, ORM): measurement-treatment matching (双轨/三轨化动因)
 
 关键设计:
   - TF-IDF 向量化 + 维度封锁 (max_features=10000)
@@ -41,20 +50,26 @@ v3.6.0 (Plan E P1 B3) 双轨化升级:
   - ≤2000 篇/前缀 走 dense pairwise; >2000 篇走 7 天窗双指针分桶 O(N·window) (W1 2026-06-05)
   - 相似度阈值 0.35: 相似度 ≥ 此值视为"跟风" (闭边界, 代码用 >=)
   - 衰减公式: weight = 1 / (1 + n_similar_predecessors)
-  - **双轨**: full 用 'content_full'(标题+全文), ctx 用 'content_ctx'(标题+实体窗口);
-    两者均由 stage 13 物化、含标题对称 (病根A 已修); 缺 content_full 时 full 回退裸 '内容'
+  - **三轨** (full / ctx / ss): full 用 'content_full'(标题+全文), ctx 用 'content_ctx'
+    (标题+实体窗口), ss 用 'content_ss'(标题+银行∧金科同句窗); 三者均由 stage 13
+    物化、含标题对称 (病根A 已修); 缺 content_full 时 full 回退裸 '内容', 缺 content_ctx
+    时 ctx 回退 full, 缺 content_ss 时 ss 回退 full (ss 回退公理由 stage 13 物化时
+    镜像 ctx: 无银行∧金科同句共现→content_ss=全文 body, ss_is_fallback=True)
 
-输入: 23_bert_tone.parquet (含 content_ctx 列, 由 stage 13 ctx_materializer 物化后下传)
-输出: 24_herd_decay.parquet (追加 6 列: 4 双轨列 herd_weight_full + herd_weight_ctx
-      + n_similar_articles_full + n_similar_articles_ctx, 外加 herd_weight +
-      n_similar_articles 两个单列 —— 后者作为 _full 轨的 NON-BREAKING 别名保留
-      (v3.6.0 F-B 修, 见下方主路径), 供 v3.5.x 既有调用方继续读取, 不强制下游显式指定轨道)
+输入: 23_bert_tone.parquet (含 content_ctx / content_ss / ss_is_fallback 列,
+      由 stage 13 ctx_materializer 物化后下传)
+输出: 24_herd_decay.parquet (追加 8 列: 6 三轨列 herd_weight_full + herd_weight_ctx
+      + herd_weight_ss + n_similar_articles_full + n_similar_articles_ctx +
+      n_similar_articles_ss, 外加 herd_weight + n_similar_articles 两个单列 ——
+      后者作为 _full 轨的 NON-BREAKING 别名保留 (v3.6.0 F-B 修, 见下方主路径),
+      供 v3.5.x 既有调用方继续读取, 不强制下游显式指定轨道)
 
 阈值敏感性 (2026-06-13, herd_detection.sensitivity_thresholds):
   0.35 是研究者自由参数 — 构念锚 Tetlock (2011 RFS) 用连续 staleness 不设硬阈值,
   故按预注册网格 (默认 τ ∈ {0.25, 0.30, 0.40, 0.45}) 在同一 TF-IDF/余弦矩阵上
   一遍式复算前驱计数, 额外输出 herd_weight_{track}_thrNN + n_similar_articles_
-  {track}_thrNN (默认 +16 列), 并写 eval_reports/24_herd_threshold_sensitivity.csv
+  {track}_thrNN (默认 4 τ × 3 轨 × 2 列 = +24 列), 并写
+  eval_reports/24_herd_threshold_sensitivity.csv
   诊断摘要 (逐 τ flag 率 / 权重均值 / 对基线 Spearman ρ)。下游 runner 步骤 3d →
   encode 把每个 τ 聚合成面板列 llm_vote_tone_hw_thrNN_{track}, 供 Stata 稳健性表
   逐 τ 重估主回归 (网格单一事实源 = core.config.herd_sensitivity_grid)。
@@ -282,7 +297,8 @@ def _compute_similar_counts_for_track(
 ) -> np.ndarray | None:
     """对单一文本列计算同银行 + 时间窗口内的"前驱跟风计数"向量。
 
-    抽出 v3.5.0 单轨实现的核心算法以支持双轨复用 (Plan E P1 B3)。
+    抽出 v3.5.0 单轨实现的核心算法以支持多轨复用 (Plan E P1 B3 双轨; v3.9.0 三轨,
+    full / ctx / ss 每轨各调一次)。text_col 参数化 → 同一算法供三轨复用。
     返回 None 表示无法向量化 (空文本 / TF-IDF 失败), 调用方应保留 weight=1.0。
 
     fix(omni-g-herd-05, 2026-06-11): as-of yearly vocab fit — 原实现对单银行
@@ -295,7 +311,8 @@ def _compute_similar_counts_for_track(
 
     Args:
         bank_df: 单银行子集, 已按日期升序排序 (NaT 末位, 由调用方 sort_values 保证)。
-        text_col: 文本列名 ('content_full' for full, 'content_ctx' for ctx; 均含标题)。
+        text_col: 文本列名 ('content_full' for full, 'content_ctx' for ctx,
+            'content_ss' for ss 银行+金科同句; 三者均含标题)。
         dates:    与 bank_df 对齐的日期列表 (含 NaT)。
         bank_name: 银行名, 仅用于降级/截断透明日志 (fix(omni-g-herd-03))。
         thresholds: 阈值敏感性 (2026-06-13)。None → 单基线阈值, 返回 1D (历史
@@ -358,12 +375,13 @@ def _compute_similar_counts_for_track(
 
 
 def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
-    """对同一银行在时间窗口内的新闻进行**双轨**跟风检测 (Plan E P1 B3, v3.6.0)。
+    """对同一银行在时间窗口内的新闻进行**三轨**跟风检测 (Plan E P1 B3, v3.6.0; ss v3.9.0)。
 
-    算法流程 (对 full / ctx 两轨各跑一次):
+    算法流程 (对 full / ctx / ss 三轨各跑一次):
       1. 按 target_bank 分组
       2. 对每组新闻进行 TF-IDF 向量化 (轨 1 用 'content_full' 标题+全文, 缺列回退
-         '内容'/'正文'/'content'; 轨 2 用 'content_ctx')
+         '内容'/'正文'/'content'; 轨 2 用 'content_ctx'; 轨 3 用 'content_ss'
+         标题+银行∧金科同句窗, 缺列回退 full)
          — fix(omni-g-herd-04, 2026-06-11): 原文档误称轨 1 为裸正文列, 与病根A修复
          后的实现 (优先 content_full) 不符, 已同步
       3. 计算余弦距离 (≤2000 篇 dense / >2000 篇 7 天窗双指针分桶, W1 2026-06-05)
@@ -371,30 +389,36 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
          则 j 被标记为"跟风", 衰减权重递减
       5. 衰减公式: weight_j = 1 / (1 + n_similar_predecessors)
 
-    v3.6.0 修复 (Edwards 2001 ORM measurement-treatment matching):
+    v3.6.0 / v3.9.0 修复 (Edwards 2001 ORM measurement-treatment matching):
       原 v3.5.0 仅对全文计算 herd_weight 单列, 被下游同时施加到
-      _full / _ctx 两轨, 造成 _ctx 路径被"全文相似度"惩罚。
-      本版本输出 herd_weight_full + herd_weight_ctx 两列, 下游按轨匹配。
+      _full / _ctx 两条轨道, 造成 _ctx 路径被"全文相似度"惩罚。
+      v3.6.0 输出 herd_weight_full + herd_weight_ctx 两列;
+      v3.9.0 再加 herd_weight_ss (银行+金科同句相似度) → 现为
+      full/ctx/ss 三轨, 下游按轨匹配。
 
     Args:
         df: 篇章级 DataFrame, 须含 'target_bank', '日期', 'content_full'(或 '内容') 列;
-            'content_ctx' 可选 — 缺失时 ctx 轨回退到 full 轨文本 (即与 full 同值)。
+            'content_ctx' 可选 — 缺失时 ctx 轨回退到 full 轨文本 (即与 full 同值);
+            'content_ss' 可选 — 缺失时 ss 轨回退到 full 轨文本; 'ss_is_fallback' 可选
+            (由 stage 13 物化, =True 表示该行 content_ss 镜像回退到了全文 body)。
 
     Returns:
-        df: 附加 'herd_weight_full' / 'herd_weight_ctx' /
-            'n_similar_articles_full' / 'n_similar_articles_ctx' 四列;
+        df: 附加 'herd_weight_full' / 'herd_weight_ctx' / 'herd_weight_ss' /
+            'n_similar_articles_full' / 'n_similar_articles_ctx' /
+            'n_similar_articles_ss' 六列;
             另按 SENS_TAGS 网格 (2026-06-13 阈值敏感性) 附加
             'herd_weight_{track}_{tag}' / 'n_similar_articles_{track}_{tag}'
-            每轨每 τ 两列 (默认网格 4 τ × 2 轨 = +16 列)。
+            每轨每 τ 两列 (默认网格 4 τ × 3 轨 = +24 列)。
 
     白话: 同一家银行的新闻常被各家媒体转抄, 同一条消息若被算 10 遍,
     情感指标就被注了水。这里给每篇文章数一数"它发布前 7 天内有几篇
     长得很像的前文" (记为 n), 然后把它的权重打折成 1/(1+n): 头一篇原创
     权重 1, 第 10 篇抄稿权重只剩约 1/10。full 轨看标题+全文的相似,
-    ctx 轨只看与目标银行相关的那段文字的相似, 两轨各自打分互不混用。
+    ctx 轨只看与目标银行相关的那段文字的相似, ss 轨只看"银行和金科同句出现"
+    的那段文字的相似, 三轨各自打分互不混用。
     """
     logger.info("=" * 60)
-    logger.info("步骤 1: 跟风/抄袭新闻检测与衰减加权 (双轨 v3.6.0)")
+    logger.info("步骤 1: 跟风/抄袭新闻检测与衰减加权 (三轨 v3.9.0)")
     logger.info("=" * 60)
     logger.info(f"  参数: similarity_threshold={SIMILARITY_THRESHOLD}, "
                 f"time_window={TIME_WINDOW_DAYS}天, "
@@ -406,7 +430,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     # 确保日期列为 datetime
     df['日期'] = pd.to_datetime(df['日期'], errors='coerce')
 
-    # 双轨文本列解析
+    # 三轨文本列解析
     # full 轨: 优先 content_full (含标题), 缺列回退 '内容' / '正文' / 'content'
     # P1 修复 (metric-audit 2026-06-02, 病根A): full 轨优先 content_full (含标题, 与
     # 加权对象 _full 情感同源), 缺列回退 '内容'/'正文'/'content'.
@@ -417,13 +441,21 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     # ctx 轨: 来自 stage 13 ctx_materializer (fix(omni-g-herd-04, 2026-06-11):
     # 原注释错标到 stage 21, 与本文件头部/现行架构矛盾); 缺失则回退 full
     has_ctx = 'content_ctx' in df.columns
+    # ss 轨 (v3.9.0 第三轨, 银行+金科同句): 同来自 stage 13 ctx_materializer 物化的
+    # 'content_ss' (标题+银行∧金科同句窗); 缺失则回退 full (镜像 ctx 回退语义)。
+    # 'ss_is_fallback' 由 stage 13 物化 (=True 表示该行无共现已回退全文 body), 供
+    # 下方独立性诊断门控 (回退行 ss≡full 不参与相关性判定); 缺该 flag 列时下方
+    # 诊断按"全部非回退"宽松处理 (graceful)。
+    has_ss = 'content_ss' in df.columns
 
     if not has_full:
         logger.warning(f"  文本列 '{full_col}' 不存在, 所有 herd_weight 设为 1.0")
         df['herd_weight_full'] = 1.0
         df['herd_weight_ctx'] = 1.0
+        df['herd_weight_ss'] = 1.0
         df['n_similar_articles_full'] = 0
         df['n_similar_articles_ctx'] = 0
+        df['n_similar_articles_ss'] = 0
         # NON-BREAKING alias (F-B 修)
         df['herd_weight'] = 1.0
         df['n_similar_articles'] = 0
@@ -433,16 +465,27 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
         logger.warning(
             "  'content_ctx' 列不存在 (stage 13 ctx_materializer 未跑?), "
             "ctx 轨回退至全文计算 — 此时 herd_weight_ctx ≡ herd_weight_full, "
-            "不构成真双轨。建议先执行 stage 13 物化 content_ctx。"
+            "ctx 轨退化为 full 轨同值 (非独立轨)。建议先执行 stage 13 物化 content_ctx。"
+        )
+
+    if not has_ss:
+        # ss 轨缺列警告镜像 ctx (v3.9.0 第三轨): 缺 content_ss → ss 轨回退全文,
+        # herd_weight_ss ≡ herd_weight_full, 不构成真三轨。
+        logger.warning(
+            "  'content_ss' 列不存在 (stage 13 ctx_materializer 未物化同句轨?), "
+            "ss 轨回退至全文计算 — 此时 herd_weight_ss ≡ herd_weight_full, "
+            "不构成真三轨。建议先执行 stage 13 物化 content_ss。"
         )
 
     # 初始化结果列 (基线 + 阈值敏感性网格; 无新闻/无法向量化组保持 weight=1.0)
     df['herd_weight_full'] = 1.0
     df['herd_weight_ctx'] = 1.0
+    df['herd_weight_ss'] = 1.0  # v3.9.0 第三轨 (银行+金科同句) 基线权重
     df['n_similar_articles_full'] = 0
     df['n_similar_articles_ctx'] = 0
+    df['n_similar_articles_ss'] = 0  # v3.9.0 第三轨 (银行+金科同句) 基线计数
     for _tag in SENS_TAGS:
-        for _tn in ('full', 'ctx'):
+        for _tn in ('full', 'ctx', 'ss'):
             df[f'herd_weight_{_tn}_{_tag}'] = 1.0
             df[f'n_similar_articles_{_tn}_{_tag}'] = 0
 
@@ -455,10 +498,11 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
 
     bank_groups = df.groupby('target_bank')
     n_banks = len(bank_groups)
-    logger.info(f"  共 {n_banks} 家银行待处理 (双轨)")
+    logger.info(f"  共 {n_banks} 家银行待处理 (三轨)")
 
     total_herd_full = 0
     total_herd_ctx = 0
+    total_herd_ss = 0  # v3.9.0 第三轨 (银行+金科同句) 跟风篇数累计
 
     for bank_idx, (bank_name, bank_df) in enumerate(bank_groups):
         if len(bank_df) < 2:
@@ -485,10 +529,18 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
                 thresholds=_all_thr)
         else:
             ctx_counts = full_counts  # 回退: 与 full 同值, 由 has_ctx 警告告知用户
+        # ss 轨计算 (v3.9.0 第三轨, 银行+金科同句; 缺 content_ss 时回退 = full)
+        if has_ss:
+            ss_counts = _compute_similar_counts_for_track(
+                bank_df, 'content_ss', dates, bank_name=bank_name,
+                thresholds=_all_thr)
+        else:
+            ss_counts = full_counts  # 回退: 与 full 同值, 由 has_ss 警告告知用户
 
         # 按银行向量化赋值 (.loc[标签列表] 与 counts 行序一致 — bank_df 排序序;
-        # 替换原逐行 .at 循环, 数值等价, 多阈值下避免 (1+K)×2 列 × n 行的逐格写)
-        for _tn, _counts in (('full', full_counts), ('ctx', ctx_counts)):
+        # 替换原逐行 .at 循环, 数值等价, 多阈值下避免 (1+K)×3 列 × n 行的逐格写)
+        for _tn, _counts in (('full', full_counts), ('ctx', ctx_counts),
+                             ('ss', ss_counts)):
             if _counts is None:
                 continue
             _base = _counts[:, 0]
@@ -496,8 +548,10 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
             df.loc[indices, f'herd_weight_{_tn}'] = 1.0 / (1.0 + _base)
             if _tn == 'full':
                 total_herd_full += int((_base > 0).sum())
-            else:
+            elif _tn == 'ctx':
                 total_herd_ctx += int((_base > 0).sum())
+            else:  # ss (v3.9.0 第三轨)
+                total_herd_ss += int((_base > 0).sum())
             for _j, _tag in enumerate(SENS_TAGS, start=1):
                 _cj = _counts[:, _j]
                 df.loc[indices, f'n_similar_articles_{_tn}_{_tag}'] = _cj
@@ -507,16 +561,20 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
             logger.info(f"  已处理 {bank_idx + 1}/{n_banks} 家银行")
 
     n_total = len(df)
-    logger.info(f"  双轨跟风检测完成:")
+    logger.info(f"  三轨跟风检测完成:")
     logger.info(f"    总新闻数: {n_total:,}")
     logger.info(f"    full 轨跟风: {total_herd_full:,} "
                 f"({total_herd_full/max(n_total,1):.1%})")
     logger.info(f"    ctx  轨跟风: {total_herd_ctx:,} "
                 f"({total_herd_ctx/max(n_total,1):.1%})")
+    logger.info(f"    ss   轨跟风: {total_herd_ss:,} "
+                f"({total_herd_ss/max(n_total,1):.1%})")
     logger.info(f"    herd_weight_full mean={df['herd_weight_full'].mean():.4f}, "
                 f"min={df['herd_weight_full'].min():.4f}")
     logger.info(f"    herd_weight_ctx  mean={df['herd_weight_ctx'].mean():.4f}, "
                 f"min={df['herd_weight_ctx'].min():.4f}")
+    logger.info(f"    herd_weight_ss   mean={df['herd_weight_ss'].mean():.4f}, "
+                f"min={df['herd_weight_ss'].min():.4f}")
 
     # v3.6.0 NON-BREAKING 兼容层 (F-B 修): 保留 herd_weight / n_similar_articles
     # 单列 alias = _full 路径, 让 v3.5.x 既有调用方 (paper Stata 模板 / 测试套件 /
@@ -524,20 +582,40 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     df['herd_weight'] = df['herd_weight_full']
     df['n_similar_articles'] = df['n_similar_articles_full']
 
-    # 双轨独立性诊断 (Plan E P1 B3 验收门 #2):
-    # 若 Spearman ρ(herd_weight_full, herd_weight_ctx) < 0.95, 视为"真双轨";
-    # ≥ 0.95 提示 ctx 与 full 文本几乎相同 (可能 content_ctx fallback 比例过高)
+    # 三轨独立性诊断 (Plan E P1 B3 验收门 #2; v3.9.0 扩 3 路 pairwise):
+    # 对 (full, ctx) / (full, ss) / (ctx, ss) 三对各算一次 Spearman ρ。
+    # 若 ρ < 0.95, 视为该对"真双/三轨"; ≥ 0.95 提示两轨文本几乎相同
+    # (可能对应 content_ctx / content_ss fallback 比例过高)。
+    # ⚠ ss 腿门控 ss_is_fallback==False (镜像 ctx 回退公理): 回退行 content_ss≡全文
+    # body → herd_weight_ss≡herd_weight_full, 若计入会人为抬高 ss 相关性、污染独立性
+    # 判定; 故凡涉及 ss 的对 (full-ss / ctx-ss) 仅在 ss_is_fallback==False 的行上算
+    # (缺 ss_is_fallback 列时按全部行非回退宽松处理, graceful)。
     try:
         from scipy.stats import spearmanr
-        valid = (df['herd_weight_full'].notna() &
-                 df['herd_weight_ctx'].notna() &
-                 (df['herd_weight_full'].nunique() > 1))
-        if valid.sum() >= 50:
-            rho, _ = spearmanr(
-                df.loc[valid, 'herd_weight_full'],
-                df.loc[valid, 'herd_weight_ctx'])
-            logger.info(f"    双轨独立性诊断: Spearman ρ = {rho:.4f} "
-                        f"({'真双轨' if abs(rho) < 0.95 else '⚠ 高度相关, 检查 content_ctx fallback 比例'})")
+        # ss 非回退掩码: 仅在 ss 真共现 (非镜像全文回退) 的行上评估 ss 相关性。
+        # 缺 ss_is_fallback 列 → 全 False (即全部行视作非回退, 宽松)。
+        if 'ss_is_fallback' in df.columns:
+            _ss_real = ~df['ss_is_fallback'].fillna(False).astype(bool)
+        else:
+            _ss_real = pd.Series(True, index=df.index)
+        # (轨对名, 列 a, 列 b, 该对是否门控 ss 非回退)
+        _pairs = [
+            ('full-ctx', 'herd_weight_full', 'herd_weight_ctx', False),
+            ('full-ss', 'herd_weight_full', 'herd_weight_ss', True),
+            ('ctx-ss', 'herd_weight_ctx', 'herd_weight_ss', True),
+        ]
+        for _pair_name, _col_a, _col_b, _gate_ss in _pairs:
+            valid = df[_col_a].notna() & df[_col_b].notna()
+            if _gate_ss:
+                valid = valid & _ss_real
+            # 需 col_a 有方差 (全等值时 ρ 无定义)
+            if valid.sum() >= 50 and df.loc[valid, _col_a].nunique() > 1:
+                rho, _ = spearmanr(
+                    df.loc[valid, _col_a], df.loc[valid, _col_b])
+                logger.info(
+                    f"    三轨独立性诊断 [{_pair_name}]: Spearman ρ = {rho:.4f} "
+                    f"(n={int(valid.sum()):,}; "
+                    f"{'真双/三轨' if abs(rho) < 0.95 else '⚠ 高度相关, 检查 fallback 比例'})")
     except ImportError:
         pass
 
@@ -598,7 +676,7 @@ def main():
         except ImportError:
             spearmanr = None
         diag_rows = []
-        for _tn in ('full', 'ctx'):
+        for _tn in ('full', 'ctx', 'ss'):  # v3.9.0: ss 第三轨 (银行+金科同句) 同出诊断行
             base_w = df[f'herd_weight_{_tn}']
             for _thr, _tag in zip(SENS_THRESHOLDS, SENS_TAGS):
                 w = df[f'herd_weight_{_tn}_{_tag}']

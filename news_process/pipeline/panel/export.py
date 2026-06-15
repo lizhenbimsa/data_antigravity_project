@@ -285,8 +285,12 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     REQUIRED_PANEL_COLUMNS = [
         # bank-year 主键
         'target_bank', 'year',
-        # 双轨稳健性 (4 列) — 2026-05-29 双模型重构后由 stage 15/25 内联双模型产出
+        # t2v 稳健性 twin (4 列) — 2026-05-29 双模型重构后由 stage 15/25 内联双模型产出
         # (原 stage 30 已退役): strat_diff_t2v_* ← stage 25; policy_cosine_sim_t2v_* ← stage 15 聚合
+        # 三轨说明 (third-track _ss, 2026-06-14): 第三轨 "_ss" (银行+金科同句共现) 的列
+        # *刻意不进* REQUIRED_PANEL_COLUMNS — _ss 列在 stage 21 付费 ss 跑落盘前可能整体缺失,
+        # 硬要求会让首跑前的 export 直接 raise。ss 列的存在性由下游 .get()/`if col in`
+        # 守卫优雅处理 (STATA_LABELS 仅给实际落盘的 _ss 列贴标签, 缺则跳过), 不在此强制。
         'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
         'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx',
     ]
@@ -389,7 +393,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'ft_vol_yr':     'Fintech Coverage Volume (Year, ln)',
                 'ft_vol_prov':   'Fintech Coverage Volume (Province, Exp-Wt, ln)',
                 'ft_vol_city':   'Fintech Coverage Volume (City, Exp-Wt, ln)',
-                # P2 attention 处理变量 (W2 2026-06-05; Hassan 2019 QJE; 双轨)
+                # P2 attention 处理变量 (W2 2026-06-05; Hassan 2019 QJE; 三轨 full/ctx/ss,
+                # _ss 标签由字面量闭合后 _ctx→_ss 机械派生)
                 'attention_index_full':             'Fintech Attention Index (full)',
                 'attention_index_ctx':              'Fintech Attention Index (ctx)',
                 'attention_pct_full':               'Fintech Attention Share',
@@ -402,6 +407,14 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'attention_attr_share':             'Attention Attribution Purity',
                 'n_fintech_articles':               'N fintech articles (bank-year)',
                 'n_outlets':                        'N distinct outlets (fintech)',
+                # ═══ 主因变量: 媒体正向报道倾向/乐观度 (favorability/optimism) ═══
+                # SENT CV-1 (PROJECT_REAUDIT_TOPTIER_T18 2026-06-14): llm_vote_tone 负面类近退化
+                # (验证篇 正798/中33/负2, 负面 0.24%) → 名义双极 [-1,1] 实为单极正向强度。标签
+                # 从"情感(双极)"收敛为 favorability/optimism 口径 (codebook 同步, 见 codebook.py
+                # SENT CV-1 块)。与 codebook label 逐字一致, 故 _apply_label_fallback 任一路径
+                # (显式命中 / codebook 兜底) .dta 标签皆为该 favorability framing。$0 披露层。
+                'llm_vote_tone_full': 'Media Favorability/Optimism (LLM Vote, Full; neg degenerate)',
+                'llm_vote_tone_ctx':  'Media Favorability/Optimism (LLM Vote, Ctx; neg degenerate)',
                 # 媒体异质性 - 占比
                 'fin_media_frac':              'Financial Media Share',
                 'comp_media_frac':             'Comprehensive Media Share',
@@ -762,9 +775,11 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'tone_reversal_full':                  'Tone Reversal t-(t-1) (Full)',
                 'tone_reversal_ctx':                   'Tone Reversal t-(t-1) (Ctx)',
                 # 跟风新闻检测 (Tetlock 2011, RFS)
-                # fix(omni-g-panel-export-02, 2026-06-11): v3.6.0 双轨化后实际
-                # 列为 *_herd_weight_full/_ctx 六列 (encode.py 聚合), 原无后缀
+                # fix(omni-g-panel-export-02, 2026-06-11): v3.6.0 多轨化后实际
+                # 列为 *_herd_weight_full/_ctx (encode.py 聚合; _ss 同句轨标签由下方
+                # 第三轨机械派生循环自动补全), 原无后缀
                 # 键 avg/min_herd_weight 已不存在 → 活跃列曾在 .dta 中无标签。
+                # 三轨 (full/ctx/ss): 此处只手列 full/ctx, _ss 标签 swap 派生。
                 'avg_herd_weight_full':                'Avg Herd Decay Weight 1/(1+N) (Tetlock 2011, Full)',
                 'avg_herd_weight_ctx':                 'Avg Herd Decay Weight 1/(1+N) (Tetlock 2011, Ctx)',
                 'min_herd_weight_full':                'Min Herd Decay Weight (Tetlock 2011, Full)',
@@ -823,8 +838,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'neg_frac_nonprov_full':            'Non-Province Neg Frac (Full)',
                 'neg_frac_homecity_full':           'Home-City Neg Frac (Full)',
                 'neg_frac_noncity_full':            'Non-City Neg Frac (Full)',
-                # dual-track parity (2026-06-08): 地理-媒体情感 _ctx 孪生 (attention_media
-                # 早已双轨产出, 仅此前缺 Stata 标签 → .dta 中 _ctx 列丢失变量标签)。
+                # 三轨 (full/ctx/ss) parity (2026-06-08): 地理-媒体情感 _ctx 孪生 (attention_media
+                # 早已 full/ctx 产出, 仅此前缺 Stata 标签 → .dta 中 _ctx 列丢失变量标签);
+                # _ss 同句轨标签由下方第三轨机械派生循环自动补全。
                 'tone_homeprov_media_ctx':          'Home-Province Media Tone (Ctx)',
                 'tone_nonprov_media_ctx':           'Non-Province Media Tone (Ctx)',
                 'tone_gap_homeprov_nonprov_ctx':    'Local Media Slant: Prov (Ctx)',
@@ -870,7 +886,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'pos_symb_count_ctx':               'Pos & Symb Count (Ctx)',
                 'dummy_no_positive_news':           'No Positive News Dummy',
                 'low_conf_flag':                    'Low Confidence Flag',
-                # 单模型洗稿率 — 双轨 (动态生成)
+                # 单模型洗稿率 — full/ctx 动态生成 (第三轨 _ss 标签由字面量闭合后的
+                # _ctx→_ss 机械派生兜底, 见下方派生循环; 此处保持纯 full/ctx 字面量)
                 **{f'washing_ratio_{m}{s}': f'WR: {m} ({t})'
                    for m in ['gpt54nano', 'gemini31111', 'deepseekv4',
                              'jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
@@ -920,8 +937,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'prox_200km_pos_frac':           'Pos Frac Within 200km',
                 'prox_200km_neg_frac':           'Neg Frac Within 200km',
                 'prox_200km_is_local':           'Has Local Media 200km (0/1)',
-                # dual-track parity (2026-06-08): 距离缓冲情感 _ctx 孪生 (geography.py 新增,
-                # 由同模块 LOO-IV 双轨惯用法指导; full 轨保留既有列名: tone_*_full + pos/neg_frac)。
+                # 三轨 (full/ctx/ss) parity (2026-06-08): 距离缓冲情感 _ctx 孪生 (geography.py 新增,
+                # 由同模块 LOO-IV full/ctx 惯用法指导; full 轨保留既有列名: tone_*_full + pos/neg_frac;
+                # _ss 同句轨标签由下方第三轨机械派生循环自动补全)。
                 'prox_50km_tone_ctx':            'Avg Tone Within 50km (Ctx)',
                 'prox_50km_pos_frac_ctx':        'Pos Frac Within 50km (Ctx)',
                 'prox_50km_neg_frac_ctx':        'Neg Frac Within 50km (Ctx)',
@@ -1167,8 +1185,9 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # 连续型聚合 (主回归用)
                 'article_sim_mean':       'Avg Article-Policy Cosine Sim',
                 'article_sim_std':        'Std Article-Policy Cosine Sim',
-                # dual-track parity (2026-06-08): MAIN/API spec 政策对齐 _ctx 孪生 (runner.py
-                # 新增聚合; 与 _t2v 轨 policy_cosine_sim_t2v_full/_ctx 面板双轨对称)。
+                # 三轨 (full/ctx/ss) parity (2026-06-08): MAIN/API spec 政策对齐 _ctx 孪生 (runner.py
+                # 新增聚合; 与 _t2v 轨 policy_cosine_sim_t2v_full/_ctx 面板 full/ctx 对称;
+                # _ss 同句轨标签由下方第三轨机械派生循环自动补全)。
                 'article_sim_mean_ctx':   'Avg Article-Policy Cosine Sim (Ctx)',
                 'article_sim_std_ctx':    'Std Article-Policy Cosine Sim (Ctx)',
                 'fintech_intensity_mean': 'Avg FinTech Intensity Score',
@@ -1193,7 +1212,8 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'token_adopt_int_p75':    'Token Adoption (INT, P75)',
                 'hidden_adopt_int_p75':   'Hidden Adoption (INT, P75)',
                 'subst_adopt_int_p75':    'Substantive Adoption (INT, P75)',
-                # v3.5.1 A1 Lexical Clarity (LM 2011 JF; You 2018 hhx055) — 真双轨独立扫描
+                # v3.5.1 A1 Lexical Clarity (LM 2011 JF; You 2018 hhx055) — 三轨 (full/ctx/ss) 独立扫描
+                # (此处手列 full/ctx, _ss 同句轨标签由下方第三轨机械派生循环自动补全)
                 # 与 stata_export.py::HEURISTIC_LABELS 同步 (test_stata_export_v3_5_1 验证一致性).
                 'mean_clarity_score_full':   'Mean Clarity Score from indep Full-text scan (LM 2011 JF; You 2018)',
                 'mean_clarity_score_ctx':    'Mean Clarity Score from indep Ctx-text scan (LM 2011 JF; You 2018)',
@@ -1201,9 +1221,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 'mean_frac_definite_ctx':    'Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)',
                 'frac_amb_articles_full':    'Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)',
                 'frac_amb_articles_ctx':     'Frac Articles Ambiguous Ctx (>=D0 median, You 2018 Panel D)',
-                # v3.5.1 A3 Numerical Intensity (数值披露强度; 引文勘误见 codebook reference) — 真双轨
-                'mean_num_intensity_full':   'Mean Numerical Intensity Full (dual-track)',
-                'mean_num_intensity_ctx':    'Mean Numerical Intensity Ctx (dual-track)',
+                # v3.5.1 A3 Numerical Intensity (数值披露强度; 引文勘误见 codebook reference)
+                # — 三轨 (full/ctx/ss); 此处手列 full/ctx, _ss 标签由下方机械派生循环自动补全
+                'mean_num_intensity_full':   'Mean Numerical Intensity Full (three-track)',
+                'mean_num_intensity_ctx':    'Mean Numerical Intensity Ctx (three-track)',
             }
             # 跟风阈值敏感性变体标签 (2026-06-13): 逐 τ 重估的稳健性 DV +
             # 逐 τ 权重诊断; 网格单一事实源 = core.config.herd_sensitivity_grid。
@@ -1218,7 +1239,23 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                         f'Avg Herd Decay Weight @t={_thr:.2f} ({_t})')
                     STATA_LABELS[f'sum_herd_weight{_s}_{_tag}'] = (
                         f'Sum Herd Decay Weight @t={_thr:.2f} ({_t})')
-            # 仅保留面板中实际存在的列
+            # ═══ 第三轨 "_ss" (银行+金科同句共现) 标签机械派生 (third-track, 2026-06-14) ═══
+            # 三轨 (full / ctx / ss): _ss 是 _ctx 的同句共现孪生 (content_ss = 标题 + 同句内
+            # 同时含 目标银行∧金科词 的句窗; 无共现→回退全文 body, 镜像 ctx 回退公理)。
+            # 全部 _ss 标签 = 对应 _ctx 标签的机械 swap: key `_ctx`→`_ss`, 文案 `Ctx`→`SS`
+            # (`SS` = same-sentence Bank+FinTech co-occurrence; .dta variable label 受
+            # to_stata latin-1 + ≤80 字符硬约束, 故同句口径在英文标签用 ASCII 缩写 `SS`,
+            # 中文全称 "(银行+金科同句)" 仅落 codebook UTF-8 产物)。机械派生 (而非手抄 ~100 条)
+            # 保证 count(_ss labels) == count(_ctx labels), 且自动覆盖所有动态推导式产出的
+            # _ctx 键 (washing_ratio_*_ctx / disag_*_ctx / llm_peer_tone_iv_ctx_* 等)。
+            for _k, _v in [(k, v) for k, v in STATA_LABELS.items() if k.endswith('_ctx')]:
+                _ss_key = _k[:-4] + '_ss'
+                if _ss_key not in STATA_LABELS:
+                    _ss_v = _v.replace('Ctx', 'SS')
+                    if _ss_v == _v:  # 源标签无 (Ctx) 轨标记 → 显式补 SS 同句标识
+                        _ss_v = f'{_v} [SS]'
+                    STATA_LABELS[_ss_key] = _ss_v[:80]
+            # 仅保留面板中实际存在的列 (含 _ss; ss 列在 stage 21 ss 跑落盘前缺失 → 自动跳过)
             labels = {k: v for k, v in STATA_LABELS.items()
                       if k in panel_stata.columns}
             # fix(omni-g-panel-export-06, 2026-06-11): 未命中 STATA_LABELS 的列

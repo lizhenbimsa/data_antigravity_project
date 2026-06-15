@@ -128,31 +128,36 @@ def encode_categorical_columns(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str
     """把 stage 3 字符串列编码为 byte 0/1 + 收集 value labels.
 
     fix(omni-g-stata-export-11/14, 2026-06-11) 披露: 当前 bank-year panel 不含
-    这 6 个文章级 str 列 (encode.py 聚合期已消费), 本函数对其恒为 no-op →
+    这些文章级 str 列 (encode.py 聚合期已消费), 本函数对其恒为 no-op →
     value_labels={} — 保留以服务未来文章级/众数面板导出场景。
     未登记类别值 fail-loud raise 而非静默 NaN (见 _map_categorical_failloud)。
 
+    三轨 (full/ctx/ss): 第三轨 _ss = 银行+金科同句共现轨, 仅当 stage 21 真物化
+    innovation_*_ss 文章级 str 列时才编码 (``if col in df.columns`` 守卫, 缺列
+    优雅跳过, 与 full/ctx 同义)。
+
     Args:
-        df: panel DataFrame 含 innovation_locus_{full,ctx} 与
-            innovation_substantiveness_{full,ctx} 字符串列.
+        df: panel DataFrame 含 innovation_locus_{full,ctx,ss} 与
+            innovation_substantiveness_{full,ctx,ss} 字符串列 (若存在).
     Returns:
         (encoded_df, value_labels_dict): {var_name: {int_code: label_str}}
     """
     df = df.copy()
     value_labels: Dict[str, Dict[int, str]] = {}
 
-    for col in ['innovation_locus_full', 'innovation_locus_ctx']:
+    # 三轨 (full/ctx/ss): _ss = 银行+金科同句共现轨, IFF stage 21 物化对应列才编码
+    for col in ['innovation_locus_full', 'innovation_locus_ctx', 'innovation_locus_ss']:
         if col in df.columns:
             df[col] = _map_categorical_failloud(df[col], LOCUS_ENCODING, col)
             value_labels[col] = LOCUS_VALUE_LABELS
 
-    for col in ['innovation_substantiveness_full', 'innovation_substantiveness_ctx']:
+    for col in ['innovation_substantiveness_full', 'innovation_substantiveness_ctx', 'innovation_substantiveness_ss']:
         if col in df.columns:
             df[col] = _map_categorical_failloud(df[col], SUBSTANTIVENESS_ENCODING, col)
             value_labels[col] = SUBSTANTIVENESS_VALUE_LABELS
 
-    # v3.4.0: 第三维度 collab_mode encoding (Chesbrough 2003)
-    for col in ['innovation_collab_mode_full', 'innovation_collab_mode_ctx']:
+    # v3.4.0: 第三维度 collab_mode encoding (Chesbrough 2003); 三轨含 _ss
+    for col in ['innovation_collab_mode_full', 'innovation_collab_mode_ctx', 'innovation_collab_mode_ss']:
         if col in df.columns:
             df[col] = _map_categorical_failloud(df[col], COLLAB_MODE_ENCODING, col)
             value_labels[col] = COLLAB_MODE_VALUE_LABELS
@@ -190,7 +195,7 @@ def build_variable_labels(
         logger.warning(f"codebook metadata 不可用 ({e}), 使用启发式标签")
         meta = {}
 
-    # 启发式映射 (覆盖 v3.2.0 新增双轨列, codebook 未及时同步时的 fallback)
+    # 启发式映射 (覆盖三轨 (full/ctx/ss) 列, codebook 未及时同步时的 fallback)
     HEURISTIC_LABELS: Dict[str, str] = {
         'n_articles_llm_valid':             "News count, LLM-valid (category-frac denominator)",
         'n_articles_llm_valid_ctx':         "News count, ctx-track LLM-valid (ctx category-frac denom)",
@@ -229,16 +234,16 @@ def build_variable_labels(
         'avg_collab_prob_score_ctx':        "Avg Collab P_BIN (ctx-track) — 1=external/open, max-ent map",
         'avg_collab_prob_score_std_ctx':    "Std Collab P_BIN (ctx-track, bank-year SD)",
         # v3.5.1 A1 Lexical Clarity (LM 2011 JF 66:1; You 2018 hhx055 Panel C/D)
-        # 真双轨独立扫描; 每条 ≤ 80 UTF-8 bytes (per plan v0.3 §2.4.1 frozen at D0).
+        # 三轨 (full/ctx/ss) 独立扫描; 每条 ≤ 80 UTF-8 bytes (per plan v0.3 §2.4.1 frozen at D0).
         'mean_clarity_score_full':          "Mean Clarity Score from indep Full-text scan (LM 2011 JF; You 2018)",
         'mean_clarity_score_ctx':           "Mean Clarity Score from indep Ctx-text scan (LM 2011 JF; You 2018)",
         'mean_frac_definite_full':          "Mean Frac Definite from indep Full scan (You 2018 Panel C 388 words)",
         'mean_frac_definite_ctx':           "Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)",
         'frac_amb_articles_full':           "Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)",
         'frac_amb_articles_ctx':            "Frac Articles Ambiguous Ctx (>=D0 median, You 2018 Panel D)",
-        # v3.5.1 A3 Numerical Intensity (数值披露强度; 引文勘误见 codebook reference) 真双轨
-        'mean_num_intensity_full':          "Mean Numerical Intensity Full (dual-track)",
-        'mean_num_intensity_ctx':           "Mean Numerical Intensity Ctx (dual-track)",
+        # v3.5.1 A3 Numerical Intensity (数值披露强度; 引文勘误见 codebook reference) 三轨 (full/ctx/ss)
+        'mean_num_intensity_full':          "Mean Numerical Intensity Full (three-track)",
+        'mean_num_intensity_ctx':           "Mean Numerical Intensity Ctx (three-track)",
         # remove-title-track: title-indicator labels 已移除
         # ─────────────────────────────────────────────────────────────
         # 2026-05-29 双模型嵌入: text2vec 稳健 twin (主轨=text-embedding-3-small,
@@ -284,6 +289,58 @@ def build_variable_labels(
         'lpeer_locus_iv_ctx':               "Same-type peer LOO tech-locus IV (ctx)",
         'lpeer_collab_iv_ctx':              "Same-type peer LOO collaboration-share IV (ctx)",
         'lpeer_benefit_iv_ctx':             "Same-type peer LOO benefit-attitude IV (ctx)",
+        # ─────────────────────────────────────────────────────────────
+        # 三轨 (full/ctx/ss): 第三轨 _ss = 银行+金科同句共现轨 (content_ss; 同句内
+        # 同时含 目标银行∧金科词 的句 ±N 句窗, 无共现→回退全文镜像 ctx)。锚点:
+        # Gentzkow & Shapiro (2010) ECMA / Dougal et al. (2012) RFS 媒体共提及计量,
+        # 与 ctx 的 Hassan (2019) QJE proximity 谱系并列。下列每条 = 其 _ctx 孪生
+        # 标签的机械 `_ctx→_ss` 镜像 + 中文后缀 "(银行+金科同句)" (用户可见标签平价);
+        # 英文描述压缩为 "SS-track"/"same-sent" 以预留后缀字节 (≤ 80 UTF-8 bytes;
+        # build_variable_labels 仍按字节边界兜底截断)。三轨各自 just-identified IV
+        # 并排, full×ctx×ss 禁混进同一 over-id Hansen J (镜像 ctx 红线)。
+        # ─────────────────────────────────────────────────────────────
+        'n_articles_llm_valid_ss':          "News count, SS-track LLM-valid (银行+金科同句; ss category-frac denom)",
+        'innovation_locus_ss':              "Innovation Locus (SS-track 银行+金科同句, Gentzkow-Shapiro 2010)",
+        'innovation_substantiveness_ss':    "Innov. Substantiveness (SS-track 银行+金科同句, W&Z 1998 ASQ)",
+        'innovation_collab_mode_ss':        "Innov. Collab Mode (SS-track 银行+金科同句, Chesbrough 2003)",
+        'innovation_collab_mode_confidence_ss': "Collab Mode Confidence (SS-track 银行+金科同句, raw LLM)",
+        'category_confidence_ss':           "Locus Confidence (SS-track 银行+金科同句, hybrid LLM+keyword)",
+        'llm_verified_dual_ss_only':        "Dual Gate: SS-track only verified (银行+金科同句)",
+        'tone_gap_tech_app_lc_ss':          "Tone Gap: Tech-App (Loc=Ctx, ss sentiment 银行+金科同句)",
+        'tone_gap_sub_symb_sc_ss':          "Tone Gap: Sub-Symb (Subst=Ctx, ss sentiment 银行+金科同句)",
+        # 二元 prob_score 三维 × ss 轨 (positive_class = 象征性/应用场景/外部协同)
+        'avg_subst_prob_score_ss':          "Avg Subst P_BIN (SS-track 银行+金科同句) — 1=symbolic",
+        'avg_subst_prob_score_std_ss':      "Std Subst P_BIN (SS-track 银行+金科同句, bank-year SD)",
+        'avg_locus_prob_score_ss':          "Avg Locus P_BIN (SS-track 银行+金科同句) — 1=application",
+        'avg_locus_prob_score_std_ss':      "Std Locus P_BIN (SS-track 银行+金科同句, bank-year SD)",
+        'avg_collab_prob_score_ss':         "Avg Collab P_BIN (SS-track 银行+金科同句) — 1=external/open",
+        'avg_collab_prob_score_std_ss':     "Std Collab P_BIN (SS-track 银行+金科同句, bank-year SD)",
+        # A1 Lexical Clarity (LM 2011 JF; You 2018) ss 独立扫描
+        'mean_clarity_score_ss':            "Mean Clarity Score from indep SS-text scan (银行+金科同句, LM 2011 JF)",
+        'mean_frac_definite_ss':            "Mean Frac Definite from indep SS scan (银行+金科同句, You 2018)",
+        'frac_amb_articles_ss':             "Frac Articles Ambiguous SS (银行+金科同句, >=D0 median, You 2018)",
+        # A3 Numerical Intensity ss 轨
+        'mean_num_intensity_ss':            "Mean Numerical Intensity SS (三轨 full/ctx/ss; 银行+金科同句)",
+        # text2vec 稳健 twin ss 轨 (shibing624/text2vec-base-chinese)
+        'strat_diff_t2v_ss':                "Strat Diff (T2V robust=text2vec, ss 银行+金科同句)",
+        'strat_diff_n5_emb_t2v_ss':         "Strat Diff N5 Emb (T2V robust, ss 银行+金科同句)",
+        'strat_sim_max_emb_t2v_ss':         "Strat Max Sim Emb (T2V robust, ss 银行+金科同句)",
+        'centroid_diff_emb_t2v_ss':         "Centroid Diff Emb (T2V robust, ss 银行+金科同句)",
+        'coh_emb_t2v_ss':                   "Temporal Coherence Emb (T2V robust, ss 银行+金科同句)",
+        'policy_cosine_sim_t2v_ss':         "Policy Cosine Sim (T2V robust, ss 银行+金科同句)",
+        'auth_sim_emb_t2v_ss':              "Auth Policy Sim Emb (T2V robust, ss 银行+金科同句)",
+        'benefit_mean_t2v_ss':              "Benefit Attitude Mean (T2V robust, ss 银行+金科同句)",
+        'benefit_std_t2v_ss':               "Benefit Attitude SD (T2V robust, ss 银行+金科同句)",
+        'benefit_pos_frac_t2v_ss':          "Benefit Pos Frac (T2V robust, ss 银行+金科同句)",
+        'benefit_neg_frac_t2v_ss':          "Benefit Neg Frac (T2V robust, ss 银行+金科同句)",
+        # IV 扩展族 ss 轨镜像 lpeer_*_ss / zone_leave1out_benefit_iv_ss
+        # (各自 just-identified 并排, 禁与 full/ctx 混 over-id Hansen J)
+        'zone_leave1out_benefit_iv_ss':     "Same-zone (cross-prov) LOO benefit-attitude IV (ss 银行+金科同句)",
+        'lpeer_attention_iv_ss':            "Same-type peer LOO attention IV (ss 银行+金科同句, same-sent window)",
+        'lpeer_subst_iv_ss':                "Same-type peer LOO substantive-share IV (ss 银行+金科同句)",
+        'lpeer_locus_iv_ss':                "Same-type peer LOO tech-locus IV (ss 银行+金科同句)",
+        'lpeer_collab_iv_ss':               "Same-type peer LOO collaboration-share IV (ss 银行+金科同句)",
+        'lpeer_benefit_iv_ss':              "Same-type peer LOO benefit-attitude IV (ss 银行+金科同句)",
     }
 
     for col in df.columns:
@@ -326,8 +383,8 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
 
     Core 列规则:
         - 主键 (target_bank, year)
-        - sentiment 双轨主指标 (llm_sentiment_*, llm_vote_*, llm_prob_score_*)
-        - stage 3 双轨标签 + confidence (innovation_*_{full,ctx})
+        - sentiment 三轨 (full/ctx/ss) 主指标 (llm_sentiment_*, llm_vote_*, llm_prob_score_*)
+        - stage 3 三轨标签 + confidence (innovation_*_{full,ctx,ss})
         - dual gate 三互斥指示
         - 主子集 mean 列 (_lf × _full 隐式 + _lc × _ctx 显式对角线)
         - 主洗稿率 count
@@ -350,68 +407,76 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # 主键
         'target_bank', 'year',
         # 基础统计 + bank 属性
-        'n_articles', 'n_articles_llm_valid', 'n_articles_llm_valid_ctx', 'media_breadth', 'ln_news_coverage', 'bank_type',
+        'n_articles', 'n_articles_llm_valid', 'n_articles_llm_valid_ctx', 'n_articles_llm_valid_ss', 'media_breadth', 'ln_news_coverage', 'bank_type',
         'bank_size', 'bank_age', 'bank_province', 'bank_zone',
         'digital_frontier',
-        # sentiment 双轨主指标
-        'llm_sentiment_full', 'llm_sentiment_ctx',
-        'llm_vote_tone_full', 'llm_vote_tone_ctx',
-        'llm_prob_score_full', 'llm_prob_score_ctx',
-        'avg_llm_prob_score_full', 'avg_llm_prob_score_ctx',
-        # stage 3 双轨标签 + confidence (v3.4.0: 加 collab_mode 第三维度)
-        'innovation_locus_full', 'innovation_locus_ctx',
-        'innovation_substantiveness_full', 'innovation_substantiveness_ctx',
-        'innovation_collab_mode_full', 'innovation_collab_mode_ctx',
-        'innovation_collab_mode_confidence_full', 'innovation_collab_mode_confidence_ctx',
-        'category_confidence_full', 'category_confidence_ctx',
+        # sentiment 三轨 (full/ctx/ss) 主指标 — ss = 银行+金科同句共现轨
+        'llm_sentiment_full', 'llm_sentiment_ctx', 'llm_sentiment_ss',
+        'llm_vote_tone_full', 'llm_vote_tone_ctx', 'llm_vote_tone_ss',
+        'llm_prob_score_full', 'llm_prob_score_ctx', 'llm_prob_score_ss',
+        'avg_llm_prob_score_full', 'avg_llm_prob_score_ctx', 'avg_llm_prob_score_ss',
+        # stage 3 三轨标签 + confidence (v3.4.0: 加 collab_mode 第三维度; ss = 同句共现)
+        'innovation_locus_full', 'innovation_locus_ctx', 'innovation_locus_ss',
+        'innovation_substantiveness_full', 'innovation_substantiveness_ctx', 'innovation_substantiveness_ss',
+        'innovation_collab_mode_full', 'innovation_collab_mode_ctx', 'innovation_collab_mode_ss',
+        'innovation_collab_mode_confidence_full', 'innovation_collab_mode_confidence_ctx', 'innovation_collab_mode_confidence_ss',
+        'category_confidence_full', 'category_confidence_ctx', 'category_confidence_ss',
         # fix(omni-g-stata-export-07, 2026-06-11): panel 级实际聚合列名
         # (encode.py 产出 avg_category_confidence; 轨后缀版预留给 g-encode 组修复)
         'avg_category_confidence',
-        'avg_category_confidence_full', 'avg_category_confidence_ctx',
-        'avg_il_confidence_full', 'avg_il_confidence_ctx',
-        'avg_iss_confidence_full', 'avg_iss_confidence_ctx',
-        'avg_icm_confidence_full', 'avg_icm_confidence_ctx',
-        # dual gate
+        'avg_category_confidence_full', 'avg_category_confidence_ctx', 'avg_category_confidence_ss',
+        'avg_il_confidence_full', 'avg_il_confidence_ctx', 'avg_il_confidence_ss',
+        'avg_iss_confidence_full', 'avg_iss_confidence_ctx', 'avg_iss_confidence_ss',
+        'avg_icm_confidence_full', 'avg_icm_confidence_ctx', 'avg_icm_confidence_ss',
+        # dual gate (三轨后新增 ss-only 互斥态; full×ctx×ss 7 互斥态由 tone_llms 诊断,
+        # 此处仅保留 verified 门的 ss-only 核心标记)
         'llm_verified_dual_full_only', 'llm_verified_dual_ctx_only', 'llm_verified_dual_both',
-        # 主子集对角线 (_lf × _full 隐式 + _lc × _ctx 显式)
+        'llm_verified_dual_ss_only',
+        # 主子集对角线 (_lf × _full 隐式 + _lc × _ctx 显式; ss 轨情感 × ctx-锚定分类对角)
         'tech_frac', 'app_frac', 'sub_frac', 'symb_frac',
         'tech_frac_lc', 'app_frac_lc', 'sub_frac_sc', 'symb_frac_sc',
         'n_articles_tech', 'n_articles_app', 'n_articles_sub', 'n_articles_symb',
         'n_articles_tech_lc_ctx', 'n_articles_app_lc_ctx',
         'n_articles_sub_sc_ctx', 'n_articles_symb_sc_ctx',
+        'n_articles_tech_lc_ss', 'n_articles_app_lc_ss',
+        'n_articles_sub_sc_ss', 'n_articles_symb_sc_ss',
         'llm_vote_tone_tech_full', 'llm_vote_tone_app_full',
         'llm_vote_tone_tech_lc_ctx', 'llm_vote_tone_app_lc_ctx',
+        'llm_vote_tone_tech_lc_ss', 'llm_vote_tone_app_lc_ss',
         'llm_vote_tone_sub_full', 'llm_vote_tone_symb_full',
         'llm_vote_tone_sub_sc_ctx', 'llm_vote_tone_symb_sc_ctx',
-        # tone gap
-        'tone_gap_tech_app', 'tone_gap_tech_app_lc_ctx',
-        'tone_gap_sub_symb', 'tone_gap_sub_symb_sc_ctx',
-        # 主 Bartik IV (full/ctx; _title 列已随标题情感轨删除)
+        'llm_vote_tone_sub_sc_ss', 'llm_vote_tone_symb_sc_ss',
+        # tone gap (full/ctx/ss 三轨; ss = 银行+金科同句情感差)
+        'tone_gap_tech_app', 'tone_gap_tech_app_lc_ctx', 'tone_gap_tech_app_lc_ss',
+        'tone_gap_sub_symb', 'tone_gap_sub_symb_sc_ctx', 'tone_gap_sub_symb_sc_ss',
+        # 主 Bartik IV (full/ctx/ss; _title 列已随标题情感轨删除)
         # fix(omni-g-stata-export-07, 2026-06-11): 原声明 'bartik_fintech_iv_*'
         # 是幻影列名 (生产代码从不产出) → 改真实列名: 主 Bartik = 银行类型
         # bartik_type_iv_* (runner.py 'type'; iv_did.py f'bartik_{prefix}_iv{track}'),
         # fintech 稳健套 = bartik_fintech_lf_iv_* (share=innovation_locus_full 基期占比)
-        'bartik_type_iv_full', 'bartik_type_iv_ctx',
-        'bartik_fintech_lf_iv_full', 'bartik_fintech_lf_iv_ctx',
-        # 主洗稿率 count (sentiment × _full)
-        'pos_symb_count_full', 'pos_symb_count_ctx',
-        'neg_sub_count_full', 'neg_sub_count_ctx',
+        # 三轨 (full/ctx/ss): ss 镜像 bartik_*_iv_ss; full×ctx×ss 各自 just-identified
+        # 并排, 禁混进同一 over-id Hansen J (镜像 ctx 红线)。
+        'bartik_type_iv_full', 'bartik_type_iv_ctx', 'bartik_type_iv_ss',
+        'bartik_fintech_lf_iv_full', 'bartik_fintech_lf_iv_ctx', 'bartik_fintech_lf_iv_ss',
+        # 主洗稿率 count (sentiment × _full/_ctx/_ss)
+        'pos_symb_count_full', 'pos_symb_count_ctx', 'pos_symb_count_ss',
+        'neg_sub_count_full', 'neg_sub_count_ctx', 'neg_sub_count_ss',
         # Plan v1.37 P2 §5.3.4: 二元 prob_score 列 (归入分析核心列, 非 aux);
-        # 三维对称补 collab (2026-06-14) → 12 列 = 3 维 × 2 轨 × {mean, std}。
-        'avg_subst_prob_score_full', 'avg_subst_prob_score_ctx',
-        'avg_subst_prob_score_std_full', 'avg_subst_prob_score_std_ctx',
-        'avg_locus_prob_score_full', 'avg_locus_prob_score_ctx',
-        'avg_locus_prob_score_std_full', 'avg_locus_prob_score_std_ctx',
-        'avg_collab_prob_score_full', 'avg_collab_prob_score_ctx',
-        'avg_collab_prob_score_std_full', 'avg_collab_prob_score_std_ctx',
-        # v3.5.1 A1 Lexical Clarity (LM 2011 JF; You 2018) — 6 列全进 core
-        # (per plan v0.3 §1.3 invariant + §2.4.1; core 当前 ~95+8=103 远低于 IC 2048).
-        'mean_clarity_score_full', 'mean_clarity_score_ctx',
-        'mean_frac_definite_full', 'mean_frac_definite_ctx',
-        'frac_amb_articles_full', 'frac_amb_articles_ctx',
-        # v3.5.1 A3 Numerical Intensity (数值披露强度) — 2 列全进 core
-        'mean_num_intensity_full', 'mean_num_intensity_ctx',
-        # v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 (entity-miss → ctx ≡ full → 双轨退化)
+        # 三维对称补 collab (2026-06-14) → 18 列 = 3 维 × 3 轨 (full/ctx/ss) × {mean, std}。
+        'avg_subst_prob_score_full', 'avg_subst_prob_score_ctx', 'avg_subst_prob_score_ss',
+        'avg_subst_prob_score_std_full', 'avg_subst_prob_score_std_ctx', 'avg_subst_prob_score_std_ss',
+        'avg_locus_prob_score_full', 'avg_locus_prob_score_ctx', 'avg_locus_prob_score_ss',
+        'avg_locus_prob_score_std_full', 'avg_locus_prob_score_std_ctx', 'avg_locus_prob_score_std_ss',
+        'avg_collab_prob_score_full', 'avg_collab_prob_score_ctx', 'avg_collab_prob_score_ss',
+        'avg_collab_prob_score_std_full', 'avg_collab_prob_score_std_ctx', 'avg_collab_prob_score_std_ss',
+        # v3.5.1 A1 Lexical Clarity (LM 2011 JF; You 2018) — 9 列 (三轨 full/ctx/ss) 全进 core
+        # (per plan v0.3 §1.3 invariant + §2.4.1; core 仍远低于 IC 2048).
+        'mean_clarity_score_full', 'mean_clarity_score_ctx', 'mean_clarity_score_ss',
+        'mean_frac_definite_full', 'mean_frac_definite_ctx', 'mean_frac_definite_ss',
+        'frac_amb_articles_full', 'frac_amb_articles_ctx', 'frac_amb_articles_ss',
+        # v3.5.1 A3 Numerical Intensity (数值披露强度) — 3 列 (三轨 full/ctx/ss) 全进 core
+        'mean_num_intensity_full', 'mean_num_intensity_ctx', 'mean_num_intensity_ss',
+        # v3.7.2 R8-H1 全管道延伸: ctx 独立度信号 (entity-miss → ctx ≡ full → 该轨退化为 full)
         # ⚠ 与 intensity_verified_{full,ctx} 不同义:
         #    - frac_ctx_fallback: 上游 entity_context 提取失败 (Hassan 2019 QJE proximity)
         #    - intensity_verified_*: stage 14 fintech 关键词 IDF 验证失败
@@ -427,13 +492,13 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # PR #3 panel 集成完成前会被 ``if c in df.columns`` 过滤; append-only
         # 不破坏 v3.6.0 已 frozen 契约).
         # ─────────────────────────────────────────────────────────────
-        # A1 LM 2011 JF non-sentiment 4 子词典 (8 列双轨)
-        'uncert_frac_full', 'uncert_frac_ctx',
-        'litig_frac_full', 'litig_frac_ctx',
-        'constr_frac_full', 'constr_frac_ctx',
-        'modal_strong_frac_full', 'modal_strong_frac_ctx',
-        # A2 Forward-Looking Statements (Li 2010 JAR) — 2 列双轨
-        'frac_fls_full', 'frac_fls_ctx',
+        # A1 LM 2011 JF non-sentiment 4 子词典 (12 列三轨 full/ctx/ss)
+        'uncert_frac_full', 'uncert_frac_ctx', 'uncert_frac_ss',
+        'litig_frac_full', 'litig_frac_ctx', 'litig_frac_ss',
+        'constr_frac_full', 'constr_frac_ctx', 'constr_frac_ss',
+        'modal_strong_frac_full', 'modal_strong_frac_ctx', 'modal_strong_frac_ss',
+        # A2 Forward-Looking Statements (Li 2010 JAR) — 3 列三轨 full/ctx/ss
+        'frac_fls_full', 'frac_fls_ctx', 'frac_fls_ss',
         # ─────────────────────────────────────────────────────────────
         # v3.6.1 PR #14 集成 — C1 媒体 3 级 tier
         # ─────────────────────────────────────────────────────────────
@@ -442,29 +507,37 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # ─────────────────────────────────────────────────────────────
         # v3.7.0 PR #14 集成 — D 组 (staleness / α)
         # ─────────────────────────────────────────────────────────────
-        # D2 staleness 双指标
-        'surface_staleness_full', 'surface_staleness_ctx',
-        'semantic_staleness_full', 'semantic_staleness_ctx',
-        # D3 Krippendorff α (与第 10 篇 bank_media_disagreement 对齐)
-        'cross_outlet_tone_variance_full', 'cross_outlet_tone_variance_ctx',
-        'cross_media_alpha_full', 'cross_media_alpha_ctx',
+        # D2 staleness 双指标 (三轨 full/ctx/ss; surface_staleness_ss 免费加,
+        # semantic_staleness_ss 依赖 ss SBERT (stage 30a 未上线时优雅缺席→落 NaN/被过滤))
+        'surface_staleness_full', 'surface_staleness_ctx', 'surface_staleness_ss',
+        'semantic_staleness_full', 'semantic_staleness_ctx', 'semantic_staleness_ss',
+        # D3 Krippendorff α (与第 10 篇 bank_media_disagreement 对齐; 三轨 full/ctx/ss)
+        'cross_outlet_tone_variance_full', 'cross_outlet_tone_variance_ctx', 'cross_outlet_tone_variance_ss',
+        'cross_media_alpha_full', 'cross_media_alpha_ctx', 'cross_media_alpha_ss',
         # ─────────────────────────────────────────────────────────────
         # IV 扩展族 LOO 同业工具 (2026-06-13 iv_extensions.py; 单一 .dta 下
         # 仅作 is_core 标记 + 计数守卫, 不影响落盘)。名以"原始 panel 名"声明:
-        # full 轨 _lag1 (>32 字符) 经 rename_map 反查短名匹配; ctx 轨 lpeer_*
-        # (≤32) 直名匹配。full+ctx 镜像各自 just-identified 并排, 非 overid。
+        # full 轨 _lag1 (>32 字符) 经 rename_map 反查短名匹配; ctx/ss 轨 lpeer_*
+        # (≤32) 直名匹配。三轨 (full/ctx/ss) 镜像各自 just-identified 并排, 非 overid
+        # (full×ctx×ss 禁混进同一 over-id Hansen J — 镜像 ctx 红线)。
         # ─────────────────────────────────────────────────────────────
         'leave_one_out_peer_attention_iv', 'leave_one_out_peer_attention_iv_lag1',
         'leave_one_out_peer_subst_iv', 'leave_one_out_peer_subst_iv_lag1',
         'leave_one_out_peer_locus_iv', 'leave_one_out_peer_locus_iv_lag1',
         'leave_one_out_peer_collab_iv', 'leave_one_out_peer_collab_iv_lag1',
         'leave_one_out_peer_benefit_iv', 'leave_one_out_peer_benefit_iv_lag1',
-        'zone_leave1out_benefit_iv', 'zone_leave1out_benefit_iv_ctx',
+        'zone_leave1out_benefit_iv', 'zone_leave1out_benefit_iv_ctx', 'zone_leave1out_benefit_iv_ss',
         'lpeer_attention_iv_ctx', 'lpeer_attention_iv_ctx_lag1',
         'lpeer_subst_iv_ctx', 'lpeer_subst_iv_ctx_lag1',
         'lpeer_locus_iv_ctx', 'lpeer_locus_iv_ctx_lag1',
         'lpeer_collab_iv_ctx', 'lpeer_collab_iv_ctx_lag1',
         'lpeer_benefit_iv_ctx', 'lpeer_benefit_iv_ctx_lag1',
+        # ss 轨镜像 lpeer_*_ss (银行+金科同句 same-sentence window)
+        'lpeer_attention_iv_ss', 'lpeer_attention_iv_ss_lag1',
+        'lpeer_subst_iv_ss', 'lpeer_subst_iv_ss_lag1',
+        'lpeer_locus_iv_ss', 'lpeer_locus_iv_ss_lag1',
+        'lpeer_collab_iv_ss', 'lpeer_collab_iv_ss_lag1',
+        'lpeer_benefit_iv_ss', 'lpeer_benefit_iv_ss_lag1',
     ]
 
     # fix(omni-g-stata-export-09, 2026-06-11): 改名列经 rename_map 反查原名匹配 —
@@ -506,6 +579,47 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
     return core
 
 
+def _assert_track_triplet_unique(orig_cols: List[str], new_cols: List[str]) -> None:
+    """三轨 (full/ctx/ss) 写前唯一性断言: 同一 base 的轨家族 sanitize 后不撞名.
+
+    plan §0/§7.1/M1 前瞻护栏。机制: 把每个轨后缀列 (``*_full``/``*_ctx``/``*_ss``)
+    按 track-stripped base 分组, 断言组内不同原始轨 (full/ctx/ss) 的最终 Stata
+    短名两两互异。sanitizer 用 md5 后缀而非裸截断, 全局短名集本就无碰撞 → 正常
+    路径恒通过; 此断言仅在未来引入裸截断/手工缩写规则误把其中两条轨坍缩到同名时
+    fail-loud (而非静默列身份交换)。
+
+    白话: full/ctx/ss 三条轨道的同一个指标 (比如 llm_vote_tone_*), 缩短列名后
+    必须仍是三个不同的名字; 万一哪天改了缩写规则把其中两条挤成同一个名字,
+    这里直接报错, 不让这两条轨的数据悄悄串味。
+    """
+    _TRACK_SUFFIXES = ('_full', '_ctx', '_ss')
+    # base → {track: 最终短名}
+    family: Dict[str, Dict[str, str]] = {}
+    for orig, new in zip(orig_cols, new_cols):
+        for suf in _TRACK_SUFFIXES:
+            if orig.endswith(suf):
+                base = orig[: -len(suf)]
+                family.setdefault(base, {})[suf] = new
+                break
+    collisions: List[str] = []
+    for base, track_map in family.items():
+        if len(track_map) < 2:
+            continue  # 单轨 base 无三元组撞名风险
+        # 反查: 同一最终短名是否被 ≥2 个不同轨占用
+        short2tracks: Dict[str, List[str]] = {}
+        for suf, short in track_map.items():
+            short2tracks.setdefault(short, []).append(suf)
+        for short, tracks in short2tracks.items():
+            if len(tracks) > 1:
+                collisions.append(f"base '{base}' 的 {tracks} 轨 sanitize 后同名 '{short}'")
+    if collisions:
+        raise ValueError(
+            "shorten_long_column_names: 三轨 (full/ctx/ss) 唯一性断言失败 "
+            f"({len(collisions)} 处轨家族坍缩) — 列身份会静默交换:\n  - "
+            + "\n  - ".join(collisions[:10])
+        )
+
+
 def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, str]]:
     """v3.2.0 M3/7: 自动缩短超 32 字符列名 (Stata 硬限).
 
@@ -522,6 +636,12 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
     后 32-char 前缀相同时 (如 innovation_collab_mode_confidence_full/_ctx),
     全部 (含先到的第一列) 加 md5 后缀; 此前首列独占裸截断名, 彻底丢失
     _full/_ctx 判别轨后缀 (P-063 修复只救了碰撞的第二列)。
+
+    三轨 (full/ctx/ss): _ss(3) 短于 _ctx(4) → 任何 ctx 能塞进 32 字符的列, ss
+    一定也能, **无需新增缩写规则** (实测活面板 1658 列零 _ss 超 32、零三元组截断
+    撞名)。但保留**写前三元组唯一性断言** (见函数末 _assert_track_triplet_unique)
+    作前瞻护栏: 同一 base 的 {full, ctx, ss} 三轨 sanitize 后绝不可坍缩到同名
+    (sanitizer 用 md5 后缀非裸截断, 全局已无碰撞, 此断言专项核验轨家族层)。
 
     Returns:
         (renamed_df, {short_name: original_name}) — codebook 可反查
@@ -541,7 +661,7 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
         ('_bert_avg_pos_', '_bavg_p_'),
         # fix(omni-g-stata-export, 2026-06-11) 模板组约定: 36-char 事件研究列
         # car_3day_window_fintech_announcement → car_3day_window_ft_announce
-        # (27 字符; 未来双轨后缀 _full/_ctx 仍 ≤ 32, 免触发裸截断歧义)
+        # (27 字符; 三轨 (full/ctx/ss) 后缀 _full/_ctx/_ss 仍 ≤ 32, 免触发裸截断歧义)
         ('_fintech_announcement', '_ft_announce'),
     ]
     # P-063 修复 (v3.7.1): 旧 dedup 用 _1/_2 numeric suffix 截断 base
@@ -590,6 +710,10 @@ def shorten_long_column_names(df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str,
         new_cols.append(new_col)
         if new_col != col:
             rename_map[new_col] = col
+
+    # plan §0/§7.1/M1: 三轨 (full/ctx/ss) 写前唯一性断言 — 同一 base 的轨家族
+    # sanitize 后绝不可坍缩到同名 (前瞻护栏; _ss 短于 _ctx, 正常路径恒通过)
+    _assert_track_triplet_unique(list(df.columns), new_cols)
 
     df_renamed = df.copy()
     df_renamed.columns = new_cols
@@ -975,8 +1099,8 @@ def export_panel_to_stata(
     validate_stata_compat(df_encoded, var_labels)
 
     # 4. 计算分析核心列归属 (2026-06-12: 不再写独立 core.dta; 仅供 codebook is_core
-    #    列标注核心变量子集 — 主键 + 双轨主指标 + stage3 标签 + 主 Bartik 等)。
-    #    本机 StataNow/MP 19.5 (maxvar≤120,000) 直读全列 full.dta, 无需 IC 双切分。
+    #    列标注核心变量子集 — 主键 + 三轨 (full/ctx/ss) 主指标 + stage3 标签 + 主 Bartik 等)。
+    #    本机 StataNow/MP 19.5 (maxvar≤120,000) 直读全列 full.dta, 无需 IC core/aux 切分。
     #    assign_core_columns 内的 ≤2048 守卫保留为分析核心规模回归监测 (当前 ~100 列)。
     core_cols = assign_core_columns(df_encoded, rename_map=rename_map)
 

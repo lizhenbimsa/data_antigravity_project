@@ -99,6 +99,43 @@ def small_df():
     })
 
 
+@pytest.fixture
+def three_track_article_df():
+    """三轨 (full/ctx/ss) 文章级 fixture (2026-06-14).
+
+    给参数化三轨测试 (['_full','_ctx','_ss']) 提供统一的最小输入: 物化后的
+    content_full / content_ctx / content_ss 三条文本轨 + ctx_is_fallback /
+    ss_is_fallback 两个回退标志。
+
+    回退语义 (镜像 ctx 回退公理):
+      - 第 0 行: 银行与金科同句共现 → content_ss 为真窗口, ss_is_fallback=False。
+      - 第 1 行: **零共现** (银行句不提金科) → content_ss 退回全文 body
+        (== content_full), ss_is_fallback=True (按 plan §7.4-M2 至少含 1 个零共现
+        回退行)。
+    """
+    bodies = [
+        '工商银行推出金融科技风控平台。这是一句无关补充。',  # 共现行: 银行∧金科同句
+        '建设银行季报披露净利增长。某非提及内容句。',          # 零共现行 → ss 回退全文
+    ]
+    titles = ['工商银行金科创新', '建设银行季报']
+    full = [f'{t}。{b}' for t, b in zip(titles, bodies)]
+    ctx = full[:]  # ctx 真窗口 (本 fixture 取全文同形, 结构平价即可)
+    # ss: 共现行取窗口, 零共现行镜像 ctx 回退公理退回全文 body (== content_full)
+    ss = ['工商银行金科创新。工商银行推出金融科技风控平台。', full[1]]
+    ss_is_fallback = [False, True]
+    return pd.DataFrame({
+        'target_bank': ['工商银行', '建设银行'],
+        'year': [2024, 2024],
+        '标题': titles,
+        '内容': bodies,
+        'content_full': full,
+        'content_ctx': ctx,
+        'content_ss': ss,
+        'ctx_is_fallback': pd.Series([False, False], dtype='bool'),
+        'ss_is_fallback': pd.Series(ss_is_fallback, dtype='bool'),
+    })
+
+
 # ============================================================================
 # Mock JSON 数据 Fixtures
 # ============================================================================

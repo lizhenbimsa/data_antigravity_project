@@ -13,12 +13,20 @@ panel_building:
   # [compute_* 已 always-on] 2026-06-13 起 runner.py 移除了 if PANEL_CFG.get('compute_*')
   # 运行期守卫 (用户决策: 全部启用而非条件启用), 下列 compute_* 步骤结构性常开;
   # 各 flag 仅作记录, 改 false 不再跳过对应步骤。
+  # [三轨 (full/ctx/ss) 结构性 always-on] v3.9.0 (2026-06-14): 面板聚合自此对第三轨
+  # _ss (银行+金科同句共现轨) 与 full/ctx 并列产出聚合列 (情感/强度/IV 族机械加 _ss
+  # 后缀; cell_id D2/D4 分类族有意仅 full/ctx 不分解, 见 encode_collab.py)。ss 是
+  # 结构性列扩展, **无独立 compute / enabled 开关** — 只要上游 stage 13 物化了
+  # content_ss、stage 21-24 产出了 _ss 文章级列, 面板聚合即自动带上 _ss 聚合列。
+  # ss 回退=镜像 ctx (无共现→全文 body), 故与 ctx 共享 n_articles 分母, 无独立计数。
+  # 白话: 面板里凡是 full/ctx 两份的指标, 现在多一份 ss (只看银行金科同句的那批文章),
+  #       它不是开关项, 是常开的, 跟前两轨一起进面板。
   aggregation_frequency: yearly
   export_stata: true
   compute_attention_index: true      # 6b. 金融科技注意力指数 (三级地理维度)
   # fix(omni-g-papers-misc-09, 2026-06-11) 锚点更正: attention_index = Fang-Peress (2009 JF)
   # extensive 覆盖加权曝光; Hassan (2019 QJE) 仅限 pct/density 归一化度量与 ctx 轨归因
-  compute_attention_treatments: true # 6b-2. P2 attention 处理变量 (Fang-Peress 2009 JF; 双轨=互为稳健性, W2)
+  compute_attention_treatments: true # 6b-2. P2 attention 处理变量 (Fang-Peress 2009 JF; 三轨 full/ctx/ss=互为稳健性, W2)
   compute_dedup_sensitivity: true    # 6b-3. 去重阈值敏感性 (Tetlock 2011 RFS; Hassan 2019 QJE; $0 本地)
   dedup_sensitivity:
     # 严格方向 (Jaccard 阈值, 工作日窗口) 网格; 生产锚点 = (0.80, 5) 即既有

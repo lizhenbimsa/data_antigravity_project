@@ -42,12 +42,12 @@ media in the stock market. Journal of Finance, 62(3), 1139-1168.
   gap ≤ 2×window 时 ±window 窗口重叠 → 传递合并为单一 episode (窗口取并集),
   防同一文章跨事件重复计入加权 (持续性 spike 超权) 与 n_events 高估独立事件数。
 
-panel 新增 6 列
+panel 新增 9 列 (三轨 full/ctx/ss; ss = 银行+金科同句共现轨, 列缺失时该轨优雅跳过)
 ---------------
-``cross_outlet_tone_variance_{full,ctx}``  事件窗条件 tone 方差 (⚠ 与第 10 篇 spec
+``cross_outlet_tone_variance_{full,ctx,ss}``  事件窗条件 tone 方差 (⚠ 与第 10 篇 spec
                                             冻结构造同名异构, 见顶部披露)
-``cross_media_alpha_{full,ctx}``           α 度量, robustness
-``n_events_{full,ctx}``                     episode 计数 (重叠窗合并后的独立事件数)
+``cross_media_alpha_{full,ctx,ss}``           α 度量, robustness
+``n_events_{full,ctx,ss}``                     episode 计数 (重叠窗合并后的独立事件数)
 
 依赖
 ----
@@ -356,24 +356,27 @@ def main():
     events = detect_bank_events(art_df)
     logger.info(f"  检测到 {len(events)} 个 bank-level events")
 
-    # 39f fix (2026-05-30): panel 级 llm_vote_tone_{full,ctx} 是 bank-year 聚合阶段
-    # 才产生的列, article 级 parquet 没有 (只有 llm_sentiment_{full,ctx})。此前
-    # 双轨都因列缺失而 graceful-skip, stage 39f 永不产出。这里按 encode_sentiment
+    # 39f fix (2026-05-30): panel 级 llm_vote_tone_{full,ctx,ss} 是 bank-year 聚合阶段
+    # 才产生的列, article 级 parquet 没有 (只有 llm_sentiment_{full,ctx,ss})。此前
+    # 三轨都因列缺失而 graceful-skip, stage 39f 永不产出。这里按 encode_sentiment
     # 同款映射 (正面=+1 / 中性=0 / 负面=-1) 派生 article 级数值 tone, 让 cross-media
-    # variance + Krippendorff α 真正计算。
+    # variance + Krippendorff α 真正计算。ss = 银行+金科同句共现轨, 其
+    # llm_sentiment_ss 缺失时该轨不派生 tone 列 → 下游 panels 循环优雅跳过。
     # 与 encode.py SENTIMENT_MAP 一致 (LLM 仅产 正面/中性/负面; 其它标签 → NaN)
     _SENT_TO_TONE = {'正面': 1.0, '中性': 0.0, '负面': -1.0}
-    for _trk in ('full', 'ctx'):
+    for _trk in ('full', 'ctx', 'ss'):
         _tcol, _scol = f'llm_vote_tone_{_trk}', f'llm_sentiment_{_trk}'
         if _tcol not in art_df.columns and _scol in art_df.columns:
             art_df[_tcol] = art_df[_scol].map(_SENT_TO_TONE)
             logger.info(f"  派生 article 级 {_tcol} ← {_scol} "
                         f"(非空 {int(art_df[_tcol].notna().sum())}/{len(art_df)})")
 
+    # 三轨各算一次 (full/ctx/ss); ss = 银行+金科同句共现轨, tone 列缺失时跳过该轨
     panels = []
     for suffix, tone_col in (
         ('full', 'llm_vote_tone_full'),
         ('ctx', 'llm_vote_tone_ctx'),
+        ('ss', 'llm_vote_tone_ss'),
     ):
         if tone_col not in art_df.columns:
             logger.warning(f"  {tone_col} 不在 art_df.columns; 跳过 {suffix}")
@@ -397,9 +400,9 @@ def main():
 
     if not panels:
         # graceful skip: stage 21 article-level parquet 早期版本 schema 缺
-        # llm_vote_tone_full / ctx (该列名为 panel 聚合阶段加上). 此时双轨
+        # llm_vote_tone_full / ctx / ss (该列名为 panel 聚合阶段加上). 此时三轨
         # 都无法计算 cross-media variance, 返回 exit 0 而非中断 validation.
-        logger.warning("  双轨均无有效输出 (article-level tone 列缺失); 跳过 stage 39f")
+        logger.warning("  三轨均无有效输出 (article-level tone 列缺失); 跳过 stage 39f")
         return
 
     panel = panels[0]

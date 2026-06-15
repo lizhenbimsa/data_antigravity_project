@@ -173,8 +173,9 @@ def compute_placebo_projection(
     keyword_sets
         ``{placebo_id: [keyword, ...]}`` 映射 (4 业务线 + 1 中性 = 5).
     col_suffix
-        输出列后缀 (ctx 轨传 ``"_ctx"``; fix(omni-g-benefit-01, 2026-06-11)
-        补 ctx 轨)。默认 ``""`` 维持既有列名。
+        输出列后缀, track-agnostic (ctx 轨传 ``"_ctx"`` / ss 轨传 ``"_ss"``;
+        fix(omni-g-benefit-01, 2026-06-11) 补 ctx 轨, 三轨补 ss 轨)。
+        默认 ``""`` 维持既有列名。
 
     Returns
     -------

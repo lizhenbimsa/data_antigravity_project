@@ -51,7 +51,9 @@ _LLM_MODEL_NAMES: List[str] = [
 ] or ['gpt-5.4-nano', 'gemini-3.1-flash-lite', 'deepseek-v4-flash']
 
 # fix(omni-g-codebook-05, 2026-06-11): track 字段全卷统一枚举 (生成期断言用)
-_ALLOWED_TRACKS = frozenset({'', 'full', 'ctx', 'dual'})
+# 三轨 (third-track _ss, 2026-06-14): 加性追加 'ss' (银行+金科同句共现轨), 保留 'dual'。
+# 'ss' = content_ss 物化轨 (full/ctx/ss 三轨之一); 任一 _ss 列经 _infer_track 归为 'ss'。
+_ALLOWED_TRACKS = frozenset({'', 'full', 'ctx', 'ss', 'dual'})
 
 
 # ============================================================================
@@ -90,7 +92,7 @@ class VariableMetadata:
             reference: 学术文献引用
             notes: 额外说明
             category: 变量类别（如：情感指标、网络指标等）
-            track: 文本轨道（full/ctx）
+            track: 文本轨道（三轨: full/ctx/ss，ss=银行+金科同句共现）
         """
         self.var_name = var_name
         self.label = label
@@ -253,8 +255,11 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # fix(omni-g-codebook-03, 2026-06-11): 族级锚点与 attention_media.py:227-231 更正对齐 —
     # 主处理 attention_index = ln(1+Σ intensity) 是 **extensive 累积曝光** (Fang & Peress 2009 JF),
     # **不是** Hassan et al. (2019 QJE) intensive 归一化份额; intensive 对应 attention_pct/density。
-    # W2 (2026-06-05): compute_attention_treatments 物化。双轨=互为稳健性 (main=full, robustness=ctx
-    # 分离复跑)。零-fintech bank-year: index/pct/density→0 (真零曝光), disp/sd/gap/share→NaN。
+    # W2 (2026-06-05): compute_attention_treatments 物化。三轨 (full/ctx/ss) 互为稳健性
+    # (main=full, robustness=ctx/ss 分离复跑; ss=银行+金科同句共现轨)。零-fintech bank-year:
+    # index/pct/density→0 (真零曝光), disp/sd/gap/share→NaN。
+    # 注: 下方 _ATTN_TREAT 静态列表仅 curate full/ctx 列; attention_media 产出的 _ss 注意力
+    # 列在 codebook 中走 _infer_track/_infer_label 兜底 (已三轨化), 不在此重复 curate。
     _ATTN_TREAT = [
         ('attention_index_full', 'Fintech Attention Index (full)', 'full',
          'ln(1 + Σ_d fintech_intensity_score_full)', '[0, +inf)',
@@ -262,7 +267,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'extensive 累积曝光, 非 Hassan intensive 归一化份额 (intensive 对应 attention_pct/density)'),
         ('attention_index_ctx', 'Fintech Attention Index (ctx)', 'ctx',
          'ln(1 + Σ_d fintech_intensity_score_ctx)', '[0, +inf)',
-         '同上, 实体窗口口径 (entity-context 窗口归因); 双轨稳健性: 与 _full 分离复跑; '
+         '同上, 实体窗口口径 (entity-context 窗口归因); 三轨 (full/ctx/ss) 稳健性: 与 _full/_ss 分离复跑; '
          'extensive 累积曝光, 非 Hassan intensive 份额'),
         ('attention_pct_full', 'Fintech Attention Share', '',
          'N_ft / N_all (12_full 全部银行新闻为分母)', '[0, 1]',
@@ -272,25 +277,25 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          '跨媒体曝光集中度 (HHI, 单 outlet=1); 零-fintech→NaN (track-agnostic, Cookson-Niessner 2020 JF)'),
         ('attention_intensity_density_full', 'Attention Intensity Density (full)', 'full',
          'Σ_d fintech_intensity_score_full / N_all', '[0, +inf)',
-         '强度加权曝光密度 (非[0,1]故非"share"名); 双轨稳健性载体'),
+         '强度加权曝光密度 (非[0,1]故非"share"名); 三轨 (full/ctx/ss) 稳健性载体'),
         ('attention_intensity_density_ctx', 'Attention Intensity Density (ctx)', 'ctx',
          'Σ_d fintech_intensity_score_ctx / N_all', '[0, +inf)',
          '同上, 实体窗口口径; 与 _full 分离复跑'),
         ('attention_intensity_sd_full', 'Attention Intensity SD (full)', 'full',
          'std_d(fintech_intensity_score_full), ddof=1', '[0, +inf)',
-         '篇间 fintech 技术强度离散 (二阶矩); N<2→NaN; disp 真双轨载体'),
+         '篇间 fintech 技术强度离散 (二阶矩); N<2→NaN; disp 三轨 (full/ctx/ss) 载体'),
         ('attention_intensity_sd_ctx', 'Attention Intensity SD (ctx)', 'ctx',
          'std_d(fintech_intensity_score_ctx), ddof=1', '[0, +inf)',
-         '同上, 实体窗口口径; 双轨相关最低 (实跑 0.656), 最强稳健性'),
+         '同上, 实体窗口口径; 三轨 (full/ctx/ss) 中与 full 相关最低 (实跑 0.656), 最强稳健性'),
         ('attention_gap_full_ctx', 'Attention Attribution Gap', '',
          'mean_d(intensity_full − intensity_ctx)', '(-inf, +inf)',
-         '双轨派生: 注意力借位/稀释度 (full 相对 ctx 的非本行归因量); 机制变量'),
+         'full/ctx 派生: 注意力借位/稀释度 (full 相对 ctx 的非本行归因量); 机制变量'),
         ('attention_attr_share', 'Attention Attribution Purity', '',
          # fix(toptier-audit D4-1, 2026-06-13): 同步 attention_media.py:438 的有界 share
          # 构造 — 旧 clip(Σctx/Σfull,0,1) 右删失版已于 2026-06-12 撤回 (见该处 fix 注),
          # codebook 此前漏同步 (docstring:433 承诺的集中重生未落)。
          'Σ_d ctx / (Σ_d ctx + Σ_d full)  (= r/(1+r), 保序无删失)', '[0, 1]',
-         '双轨派生: 归因纯度 (指向本行的 fintech 注意力占比); Σctx+Σfull=0→NaN'),
+         'full/ctx 派生: 归因纯度 (指向本行的 fintech 注意力占比); Σctx+Σfull=0→NaN'),
         ('n_fintech_articles', 'N fintech articles', '',
          'count(fintech 文章 in bank-year)', '[0, +inf)',
          'extensive-margin baseline 计数 (诊断/对照, track-agnostic)'),
@@ -328,7 +333,8 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         else:
             _ref = ('Hassan et al. (2019, QJE); Fang & Peress (2009, JF); '
                     'Cookson & Niessner (2020, JF)')
-        _notes = ('W2 物化 (2026-06-05); 双轨=互为稳健性 (main=full / robustness=ctx 分离复跑); '
+        _notes = ('W2 物化 (2026-06-05); 三轨 (full/ctx/ss) 互为稳健性 (main=full / '
+                  'robustness=ctx/ss 分离复跑; ss=银行+金科同句共现); '
                   '零-fintech bank-year 填 0(index/pct/density) 或 NaN(disp/sd/gap/share)')
         if _vn == 'attention_disp_full':
             _notes += _ATTN_DISP_DISCLOSURE
@@ -512,14 +518,21 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     )
 
     # ═══ Innovation Substantiveness 子集 LLM Tone (v3.1.0, W&Z 1998 ASQ) ═══
-    # 12 列: 3 LLM × (_sub|_symb) × (_full|_ctx)
+    # 三轨 (third-track _ss, 2026-06-14): 18 列 = 3 LLM × (_sub|_symb) × (_full|_ctx|_ss)
+    # (_ss = 银行+金科同句共现轨; 原双轨 12 列)。
     # 使用 encode.py 的 LLM_MODELS 避免硬编码不同步
     from news_process.pipeline.panel.encode import LLM_MODELS as _ISS_LLM_MODELS
     _ISS_SUBSETS = {
         '_sub':  {'panel_value': '实质性', 'zh': '实质性', 'en': 'Substantive'},
         '_symb': {'panel_value': '象征性', 'zh': '象征性', 'en': 'Symbolic'},
     }
-    _ISS_TRACKS = {'_full': ('全文', 'Full-text'), '_ctx': ('上下文', 'Context')}
+    # _ISS_TRACKS: 静态轨枚举 (驱动下方 substantiveness-subset VariableMetadata 循环)。
+    # 三轨化 (third-track _ss): 加 '_ss':('同句','Same-sentence') (银行+金科同句共现)。
+    _ISS_TRACKS = {
+        '_full': ('全文', 'Full-text'),
+        '_ctx': ('上下文', 'Context'),
+        '_ss': ('同句', 'Same-sentence'),
+    }
     for _short in _ISS_LLM_MODELS:
         for _suffix, _meta in _ISS_SUBSETS.items():
             for _track, (_zh_t, _en_t) in _ISS_TRACKS.items():
@@ -560,7 +573,9 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='full',
     )
 
-    # ═══ v3.2.0 Stage 3 双轨 prob_score bank-year 聚合 (plan v1.37 P2) ═══
+    # ═══ v3.2.0 Stage 3 三轨 (full/ctx/ss) prob_score bank-year 聚合 (plan v1.37 P2) ═══
+    # 三轨 (third-track _ss, 2026-06-14): prob_score 轨枚举加 '_ss' (银行+金科同句共现);
+    # ss 列在 stage 21 ss 跑落盘前缺失 → generate_codebook 只迭代 panel.columns 自动不发射。
     # fix(omni-g-codebook-10, 2026-06-11): 本循环原先还注册 13 个 article 级列名
     # (innovation_locus_* / innovation_substantiveness_* / innovation_collab_mode_* /
     # *_confidence_* / llm_verified_dual_*) — 这些列只存在于 21_tone_llms.parquet,
@@ -578,10 +593,11 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     for _suffix, _track_zh, _track_en in [
         ('_full', '全文', 'Full-text'),
         ('_ctx', '上下文', 'Entity-context'),
+        ('_ss', '同句', 'Same-sentence'),
     ]:
-        _trk = _suffix.lstrip('_')  # 'full' / 'ctx' 标准枚举值
+        _trk = _suffix.lstrip('_')  # 'full' / 'ctx' / 'ss' 标准枚举值
         # ─── Plan v1.37 P2 + 三维对称 (2026-06-14): 每轨 6 个 binary prob_score
-        #     列 (subst/locus/collab × {mean,std}), 两轨共 12 列 ───
+        #     列 (subst/locus/collab × {mean,std}), 三轨 (full/ctx/ss) 共 18 列 ───
         metadata[f'avg_subst_prob_score{_suffix}'] = VariableMetadata(
             var_name=f'avg_subst_prob_score{_suffix}',
             label=f'Avg Subst P_BIN ({_track_en}, 1=symbolic)',
@@ -712,6 +728,35 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         ('collab_frac_cm', '外部协同', 'Open/collaborative', 'ctx',
          'n_articles_collab_cm_ctx', 'n_articles_llm_valid_ctx',
          'Chesbrough (2003); Hassan et al. (2019, QJE) entity-proximity', '创新属性-collab_mode'),
+        # ═══ 第三轨 "_ss" (银行+金科同句共现) frac 条目 (third-track, 2026-06-14) ═══
+        # 三轨 (full/ctx/ss): 6 个 ss 分类组成型 frac, 镜像 ctx 轨 6 个对角 frac, 分类于
+        # ss 轨 (同句共现窗口口径)。变量名沿用 ctx 对角编码 + ss 轨字母:
+        #   locus  ls (locus-ss):  tech_frac_ls / app_frac_ls
+        #   subst  ss (subst-ss):  sub_frac_ss / symb_frac_ss
+        #   collab cm_ss:          indep_frac_cm_ss / collab_frac_cm_ss
+        # ⚠ 分母 = ss 轨**独立** n_articles_llm_valid_ss (各轨 LLM 成功率不同, encode.py
+        #   :677/684 产出并使用; 与 ctx 用 n_articles_llm_valid_ctx 同口径)。原注释误称
+        #   "共享 n_articles_llm_valid" 与 encode.py 实现不符, 已订正 (code-vs-code 平价审计)。
+        # 分子 = 同轨 ss 对角分类计数列 (encode.py stage 45 ss 聚合落盘);
+        # 列缺失时 generate_codebook 只迭代 panel.columns → 该条目自动不发射 (优雅跳过)。
+        ('tech_frac_ls', '底层技术', 'Technology', 'ss',
+         'n_articles_tech_ls_ss', 'n_articles_llm_valid_ss',
+         'Gomber et al. (2018, JMIS); Gentzkow & Shapiro (2010, ECMA) co-mention', '创新属性-locus'),
+        ('app_frac_ls', '应用场景', 'Application', 'ss',
+         'n_articles_app_ls_ss', 'n_articles_llm_valid_ss',
+         'Gomber et al. (2018, JMIS); Gentzkow & Shapiro (2010, ECMA) co-mention', '创新属性-locus'),
+        ('sub_frac_ss', '实质性', 'Substantive', 'ss',
+         'n_articles_sub_ss_ss', 'n_articles_llm_valid_ss',
+         'Westphal & Zajac (1998, ASQ); Dougal et al. (2012, RFS) co-mention sentiment', '创新属性-substantiveness'),
+        ('symb_frac_ss', '象征性', 'Symbolic', 'ss',
+         'n_articles_symb_ss_ss', 'n_articles_llm_valid_ss',
+         'Westphal & Zajac (1998, ASQ); Bingler et al. (2022, FRL)', '创新属性-substantiveness'),
+        ('indep_frac_cm_ss', '自主研发', 'Closed/independent', 'ss',
+         'n_articles_indep_cm_ss', 'n_articles_llm_valid_ss',
+         'Chesbrough (2003); Gentzkow & Shapiro (2010, ECMA) co-mention', '创新属性-collab_mode'),
+        ('collab_frac_cm_ss', '外部协同', 'Open/collaborative', 'ss',
+         'n_articles_collab_cm_ss', 'n_articles_llm_valid_ss',
+         'Chesbrough (2003); Gentzkow & Shapiro (2010, ECMA) co-mention', '创新属性-collab_mode'),
     ]
     for _vn, _zh, _en, _trk, _num, _den, _ref, _cat in _FRAC_SPECS:
         metadata[_vn] = VariableMetadata(
@@ -797,7 +842,9 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
             track='ctx',
         )
 
-    # ═══ tone_gap 双轨对角线 ═══
+    # ═══ tone_gap full/ctx 对角线 (有意仅双轨, 第三轨 _ss 不分类故不产 tone_gap 对角线) ═══
+    # 三轨说明 (third-track _ss): tone_gap 对角线锚定 LLM 分类属性 (locus/substantiveness),
+    #   而 ss 是纯情感轨 (不做 D2/D4 分类分解, 见 plan §7.3-A1) → 刻意无 _ss 孪生。
     metadata['tone_gap_tech_app_lc_ctx'] = VariableMetadata(
         var_name='tone_gap_tech_app_lc_ctx',
         label='Tone Gap: Tech-App (Loc=Ctx, ctx sentiment)',
@@ -827,11 +874,13 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='ctx',
     )
 
-    # ═══ v3.5.1 A1 Lexical Clarity (真双轨, LM 2011 JF + You 2018 hhx055) ═══
+    # ═══ v3.5.1 A1 Lexical Clarity (三轨 full/ctx/ss, LM 2011 JF + You 2018 hhx055) ═══
     # 锚定: Loughran & McDonald (2011) JF 66(1) uncertain dictionary;
     #       You et al. (2018) hhx055 Panel C (388 definite) / Panel D (178 ambiguous);
     #       Bonsall, Leone, Miller, Rennekamp (2017) JAE 63(2-3).
-    # 真双轨: _compute_clarity_for_text 对 content_full + content_ctx 独立扫描;
+    # 三轨 (third-track _ss, 2026-06-14): _compute_clarity_for_text 泛型扫描, 由上游对
+    #   content_full / content_ctx / content_ss (银行+金科同句共现) 分别独立扫描; 此处
+    #   curate full/ctx 条目, ss 孪生 (mean_clarity_score_ss 等) 走 _infer_* 兜底注册;
     # title 轨不纳入 (修 R3-H1: title 文本 < 50 字符分母不稳).
     metadata['mean_clarity_score_full'] = VariableMetadata(
         var_name='mean_clarity_score_full',
@@ -843,7 +892,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         formula='Σ w_i × clarity_score_full_i / Σ w_i; clarity_score = frac_definite − frac_ambiguous',
         source_stage='Stage 22 (tone_words) + Stage 45 (encode_collab apply_v3_5_1)',
         reference='Loughran & McDonald (2011) JF 66(1); You et al. (2018) hhx055',
-        notes='v3.5.1 A1 真双轨独立扫描; 与 LLM substance 做 HTMT discriminant validity (stage 39d)',
+        notes='v3.5.1 A1 三轨 (full/ctx/ss) 独立扫描; 与 LLM substance 做 HTMT discriminant validity (stage 39d)',
         category='Lexical Clarity (v3.5.1 A1)',
         track='full',
     )
@@ -873,7 +922,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         formula='Σ w_i × (n_definite_full_i / n_tokens_clarity_base_full_i) / Σ w_i',
         source_stage='Stage 22 + Stage 45',
         reference='You et al. (2018) hhx055 Panel C',
-        notes='clarity 双轨连续备份; 与 frac_amb_articles 二值化指标互补',
+        notes='clarity 三轨 (full/ctx/ss) 连续备份; 与 frac_amb_articles 二值化指标互补',
         category='Lexical Clarity (v3.5.1 A1)',
         track='full',
     )
@@ -918,15 +967,17 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         formula='#{i: frac_ambiguous_ctx_i ≥ median_amb_d0 ∧ n_articles ≥ 2} / n_articles',
         source_stage='Stage 22 + Stage 45',
         reference='You et al. (2018) hhx055 Panel D',
-        notes='ctx 双轨二值化; 与 frac_amb_articles_full 配对',
+        notes='ctx 三轨 (full/ctx/ss) 二值化之一; 与 frac_amb_articles_full 配对',
         category='Lexical Clarity (v3.5.1 A1)',
         track='ctx',
     )
 
-    # ═══ v3.5.1 A3 Numerical Intensity (真双轨, 数值披露强度; 2026-06-05 引文勘误见 reference) ═══
+    # ═══ v3.5.1 A3 Numerical Intensity (三轨 full/ctx/ss, 数值披露强度; 2026-06-05 引文勘误见 reference) ═══
+    # 三轨 (third-track _ss, 2026-06-14): 泛型 num_intensity 扫描由上游对 content_full/ctx/ss
+    #   (银行+金科同句共现) 分别调用; 此处 curate full/ctx, mean_num_intensity_ss 走 _infer_* 兜底。
     metadata['mean_num_intensity_full'] = VariableMetadata(
         var_name='mean_num_intensity_full',
-        label='Mean Numerical Intensity Full (dual-track)',
+        label='Mean Numerical Intensity Full (three-track)',
         description='Bank-year 加权平均量化披露强度; 基于 content_full + cn2arab + 正则独立扫描',
         data_type='float',
         unit='digits per sentence',
@@ -934,14 +985,14 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         formula='Σ w_i × (n_digits_full_i / n_sentences_full_i) / Σ w_i; n_sentences lookahead/behind 排除小数点',
         source_stage='Stage 22 (tone_words post-processor enrich_with_num_intensity_dual_track) + Stage 45',
         reference='Davis & Tama-Sweet (2012) CAR 29(3); 公式为项目自定义操作化 (2026-06-05 引文勘误: 原引 Hales-Kuang-Venkataraman 2011 系误归, 该文实为 JAR 49(1) 论 vivid/pallid 语言, 未定义 numerical intensity)',
-        notes='v3.5.1 A3 真双轨; cn2arab 5 标准样例 frozen at D0; 不定数 (几千/数十亿) 不计为 token (修 R7-M2); 中文 sentence 分母与英文文献不直接可比 (paper §3.4 disclosure 修 R7-M1)',
+        notes='v3.5.1 A3 三轨 (full/ctx/ss); cn2arab 5 标准样例 frozen at D0; 不定数 (几千/数十亿) 不计为 token (修 R7-M2); 中文 sentence 分母与英文文献不直接可比 (paper §3.4 disclosure 修 R7-M1)',
         category='Numerical Intensity (v3.5.1 A3)',
         track='full',
     )
 
     metadata['mean_num_intensity_ctx'] = VariableMetadata(
         var_name='mean_num_intensity_ctx',
-        label='Mean Numerical Intensity Ctx (dual-track)',
+        label='Mean Numerical Intensity Ctx (three-track)',
         description='Bank-year 加权平均 num_intensity; ctx 轨独立扫描',
         data_type='float',
         unit='digits per sentence',
@@ -955,8 +1006,13 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     )
 
     # ═══ 文本测度缺口补全 (2026-06-05, 批 #1–#15): 词汇复杂度/披露质量/新闻显著性 ═══
-    # 全 $0 (jieba/posseg/纯解析); 真双轨; 详见 lexical_complexity.py / news_salience.py +
-    # scripts/audit/TEXTUAL_MEASURE_GAP_AUDIT_2026-06-05.md。
+    # 全 $0 (jieba/posseg/纯解析); 三轨 (full/ctx/ss); 详见 lexical_complexity.py /
+    # news_salience.py + scripts/audit/TEXTUAL_MEASURE_GAP_AUDIT_2026-06-05.md。
+    # 三轨 (third-track _ss, 2026-06-14): 下方 _DUAL_TEXT_SPECS 循环加 '_ss' (银行+金科
+    #   同句共现) 轨; 但仅 lexical_complexity 泛型 per-article 测度真出 ss 列, 而
+    #   strategic_diff (lazy_*) / geography (ln_*_count) / runner (tone_volatility) 等
+    #   非 per-article 泛型测度无 ss 孪生 → 其 _ss 元数据条目永不命中 panel.columns,
+    #   generate_codebook 静默不发射 (graceful, 无幻影行)。
     _CAT_NEW = 'Text Complexity/Disclosure (2026-06-05)'
     # (col_base, label, unit, value_range, formula, reference, source_stage)
     _DUAL_TEXT_SPECS = [
@@ -1013,14 +1069,17 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'Cohen, Malloy & Nguyen (2020) JF 75(3):1371', 'Stage 45 (strategic_diff)'),
     ]
     for _base, _label, _unit, _vr, _formula, _ref, _src in _DUAL_TEXT_SPECS:
-        for _tk, _tn in (('_full', 'full'), ('_ctx', 'ctx')):
+        # 三轨 (full/ctx/ss): ss 条目仅对 lexical_complexity 泛型测度命中 panel (见上注),
+        # 其余永不发射 → 加性安全。
+        for _tk, _tn in (('_full', 'full'), ('_ctx', 'ctx'), ('_ss', 'ss')):
             metadata[f'{_base}{_tk}'] = VariableMetadata(
                 var_name=f'{_base}{_tk}', label=f'{_label} ({_tn})',
                 description=f'{_label}; bank-year 聚合, {_tn} 轨', data_type='float',
                 unit=_unit, value_range=_vr, formula=_formula, source_stage=_src,
                 reference=_ref, category=_CAT_NEW, track=_tn)
 
-    # 新闻体裁显著性 (#8–#10, 非双轨; 版面/页号/作者 解析, Tetlock 2007/2008; Boudoukh 2019 RFS)
+    # 新闻体裁显著性 (#8–#10, track-agnostic 单轨, 无 full/ctx/ss 分轨; 版面/页号/作者 解析,
+    # Tetlock 2007/2008; Boudoukh 2019 RFS)
     _SINGLE_TEXT_SPECS = [
         ('frac_front_page', 'Front-Page Coverage Frac', '[0,1] ∪ NaN',
          'bank-year mean of is_front_page (头版/要闻 或 A叠首页)', 'Tetlock (2007) JF 62(3); Boudoukh et al. (2019) RFS', 'Stage 11 (news_salience) + Stage 45'),
@@ -1151,10 +1210,16 @@ def get_article_level_metadata_dict() -> Dict[str, VariableMetadata]:
         )
 
     # ═══ v3.2.0 Dual gate 三互斥指示列 (plan v14 §3.1 Action #6; article 级 bool) ═══
+    # 三轨说明 (third-track _ss, 2026-06-14): 第三轨 _ss 上线后 verified 门改三轨并集
+    #   (verified_full | verified_ctx | verified_ss; "任一轨过即过", 非 AND — 每轨各自
+    #   是合法独立归因窗口, 取并集最大化 verified 样本)。tone_llms 同时把该 dual-gate
+    #   分解扩为 7 互斥态 (full_only/ctx_only/ss_only/full_ctx/full_ss/ctx_ss/all_three);
+    #   下列 3 个 dual_* 列名由 tone_llms 产出, 本处只保留既有 curate (新 7 态列走 _infer_*
+    #   兜底), 不在此凭空注册 7 态列名 (列名单一事实源 = tone_llms)。
     for _gate_var, _gate_zh, _gate_en in [
         ('llm_verified_dual_full_only',  '只 full 通过',  'Full-track only'),
         ('llm_verified_dual_ctx_only',   '只 ctx 通过',   'Ctx-track only'),
-        ('llm_verified_dual_both',       '双轨都通过',    'Both tracks'),
+        ('llm_verified_dual_both',       'full 与 ctx 都通过',    'Both full & ctx tracks'),
     ]:
         metadata[_gate_var] = VariableMetadata(
             var_name=_gate_var,
@@ -1163,10 +1228,11 @@ def get_article_level_metadata_dict() -> Dict[str, VariableMetadata]:
             data_type='bool',
             unit='二元',
             value_range='True | False',
-            formula='derived from llm_verified_full / llm_verified_ctx',
+            formula='derived from llm_verified_full / llm_verified_ctx (三轨并集见上注)',
             source_stage='Stage 21 (article-level, 21_tone_llms.parquet)',
             reference='Hassan et al. (2019, QJE) entity-proximity independence',
-            notes='plan v14 §3.1 P1 R1-A: 改并集 verified_full | verified_ctx 修复',
+            notes='plan v14 §3.1 P1 R1-A: 改并集 verified_full | verified_ctx 修复; '
+                  '三轨上线后扩为 verified_full|verified_ctx|verified_ss (任一过即过)',
             category='Stage 1 gate',
             track='dual',
         )
@@ -1350,8 +1416,14 @@ def generate_codebook(
                 # 逐元素 str() 再取 len: nullable Float64/NaN 列上 .astype(str).map(len)
                 # 会在 pandas 2.x 留下 float 标量导致 `object of type 'float' has no len()`,
                 # 改用 map(lambda v: len(str(v))) 对每个标量先 Python str() 再 len, dtype 无关。
+                # 三轨 (third-track _ss, 2026-06-14): 新增 _ss 列的统计值 (mean/std/min/max 等)
+                # 同样可能落为 nullable Float64/NaN/<NA> — len(str(v)) 对每个标量逐元素处理,
+                # str(np.nan)='nan' / str(pd.NA)='<NA>' 均可 len, 故 ss 列天然受此守卫覆盖。
+                # 防御 (空 codebook_df 退化态): .max() 在零行列上返回 NaN → int(NaN) 崩溃,
+                # 用 pd.isna 兜底回退 len(col)。
+                _per_cell_max = codebook_df[col].map(lambda v: len(str(v))).max()
                 max_length = max(
-                    int(codebook_df[col].map(lambda v: len(str(v))).max()),
+                    int(_per_cell_max) if not pd.isna(_per_cell_max) else 0,
                     len(col)
                 )
                 worksheet.column_dimensions[get_column_letter(idx)].width = min(max_length + 2, 50)
@@ -1396,13 +1468,15 @@ def generate_codebook(
 # ============================================================================
 
 def _infer_label(var_name: str) -> str:
-    """自动推断变量标签"""
+    """自动推断变量标签 (三轨: full/ctx/ss; ss=银行+金科同句共现)"""
     # 轨道映射
     track_suffix = ''
     if var_name.endswith('_full'):
         track_suffix = ' (Full)'
     elif var_name.endswith('_ctx'):
         track_suffix = ' (Ctx)'
+    elif var_name.endswith('_ss'):
+        track_suffix = ' (SS; 同句共现)'
 
     # 基础标签推断
     if 'tone' in var_name:
@@ -1470,11 +1544,13 @@ def _infer_category(var_name: str) -> str:
 
 
 def _infer_track(var_name: str) -> str:
-    """自动推断文本轨道"""
+    """自动推断文本轨道 (三轨: full/ctx/ss; ss=银行+金科同句共现)"""
     if var_name.endswith('_full'):
         return 'full'
     elif var_name.endswith('_ctx'):
         return 'ctx'
+    elif var_name.endswith('_ss'):
+        return 'ss'
     else:
         return ''
 

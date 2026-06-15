@@ -191,7 +191,9 @@ def _pool_svd_substvalid_counts(frame: pd.DataFrame):
     agg = frame.groupby(['target_bank', 'year'])[svd_cols].sum().reset_index()
     rename = {}
     for c in svd_cols:
-        for tr in ('_full', '_ctx'):
+        # 三轨 (full/ctx/ss): ss=银行+金科同句轨。'_ss' 后缀不与 '_full'/'_ctx'
+        # 撞尾, 顺序无关 (但保持枚举三元一致以防漏列)。
+        for tr in ('_full', '_ctx', '_ss'):
             if c.endswith(tr):
                 rename[c] = f"{c[len('_svd_'):-len(tr)]}_substvalid_count{tr}"
                 break
@@ -376,8 +378,8 @@ def _build_llm_valid_masked_weights(frame: pd.DataFrame, weight, wtag: str) -> d
 
     Args:
         frame: 含 llm_vote_score / {short}_score / llm_prob_score {track} 列的篇级 df。
-        weight: pd.Series (两轨同权重, 如 VW mention_density / MW media_authority) 或
-                dict {track: Series} (如 HW 双轨独立权重 hw_by_track)。
+        weight: pd.Series (三轨同权重, 如 VW mention_density / MW media_authority) 或
+                dict {track: Series} (如 HW 三轨 (full/ctx/ss) 独立权重 hw_by_track)。
         wtag: 'vw' / 'mw' / 'hw' (列名标签)。
 
     白话: 算加权平均语调时, 分子只加了"LLM 真给出判断"的文章, 分母却把
@@ -391,7 +393,7 @@ def _build_llm_valid_masked_weights(frame: pd.DataFrame, weight, wtag: str) -> d
         无效行置 NaN → groupby('sum') 自动跳过 → Σ weight over valid。
     """
     out = {}
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         if f'llm_vote_score{track}' not in frame.columns:
             continue
         wt = weight[track] if isinstance(weight, dict) else weight
@@ -500,11 +502,11 @@ def main():
     # --- 3b. 提及密度加权列预计算 (Value-weighted Exposure, Hassan 2019 QJE) ---
     if 'mention_density' in df.columns:
         logger.info("=" * 60)
-        logger.info("步骤 3b: 提及密度加权列预计算 (VW, 双轨)")
+        logger.info("步骤 3b: 提及密度加权列预计算 (VW, 三轨 full/ctx/ss)")
         logger.info("=" * 60)
         w = df['mention_density'].fillna(0)
         weighted_cols = {}
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
             if f'llm_vote_score{track}' not in df.columns:
                 continue
             # 情感离散/连续
@@ -556,7 +558,7 @@ def main():
     df = compute_media_tier_weights(df)
     mw = df['media_authority_weight'].fillna(1.0)
     weighted_cols = {}
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         if f'llm_vote_score{track}' not in df.columns:
             continue
         weighted_cols[f'llm_vote_score_mw{track}'] = df[f'llm_vote_score{track}'] * mw
@@ -588,30 +590,36 @@ def main():
     logger.info(f"  已生成 {len(weighted_cols)} 个媒体权威性加权列")
 
     # --- 3d. 跟风衰减加权列预计算 (Tetlock 2011, RFS; Edwards 2001 ORM) ---
-    # v3.6.0 (Plan E P1 B3): 双轨权重独立施加 (remove-title-track 后收为 _full / _ctx)
+    # v3.6.0 (Plan E P1 B3): 三轨 (full/ctx/ss) 权重独立施加 (remove-title-track
+    # 后 full/ctx, v3.9.0 增 ss=银行+金科同句轨)
     #   _full track → herd_weight_full
     #   _ctx  track → herd_weight_ctx
+    #   _ss   track → herd_weight_ss   (stage 24 镜像 ctx 产出; 缺则回退 hw_full)
     # 向后兼容: 若仅存在历史的 herd_weight 单列 (v3.5.0 及更早), 退化为
-    # 旧行为 (_full / _ctx 双轨用同一权重), 但记 WARN 提示用户重跑 stage 24。
+    # 旧行为 (三轨用同一权重), 但记 WARN 提示用户重跑 stage 24。
     has_dual_hw = ('herd_weight_full' in df.columns and
                    'herd_weight_ctx' in df.columns)
     has_legacy_hw = 'herd_weight' in df.columns
     if has_dual_hw or has_legacy_hw:
         logger.info("=" * 60)
         if has_dual_hw:
-            logger.info("步骤 3d: 跟风衰减加权列预计算 (HW, 双轨独立 v3.6.0)")
+            logger.info("步骤 3d: 跟风衰减加权列预计算 (HW, 三轨独立 v3.9.0)")
             hw_full = df['herd_weight_full'].fillna(1.0)
             hw_ctx = df['herd_weight_ctx'].fillna(1.0)
         else:
             logger.warning(
                 "步骤 3d: 检测到 v3.5.0 legacy herd_weight 单列, "
-                "退化为单轨加权 — 建议重跑 stage 24 (herd_decay) 升级到双轨")
+                "退化为单轨加权 — 建议重跑 stage 24 (herd_decay) 升级到三轨")
             hw_full = df['herd_weight'].fillna(1.0)
             hw_ctx = hw_full
+        # ss 轨权重: stage 24 镜像 ctx 产 herd_weight_ss; 缺列 (旧 schema / ss
+        # 未上线) 优雅回退 hw_full (与 legacy 单轨退化同口径)。
+        hw_ss = (df['herd_weight_ss'].fillna(1.0)
+                 if 'herd_weight_ss' in df.columns else hw_full)
         logger.info("=" * 60)
-        hw_by_track = {'_full': hw_full, '_ctx': hw_ctx}  # remove-title-track
+        hw_by_track = {'_full': hw_full, '_ctx': hw_ctx, '_ss': hw_ss}
         weighted_cols = {}
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
             if f'llm_vote_score{track}' not in df.columns:
                 continue
             hw = hw_by_track[track]
@@ -642,11 +650,11 @@ def main():
             src_prob = f'llm_prob_score{track}'
             if src_prob in df.columns:
                 weighted_cols[f'llm_prob_score_hw{track}'] = df[src_prob] * hw
-        # fix(encode-01, 2026-06-10): LLM 族 valid-mask 跟风衰减权重分母 (双轨独立权重)
+        # fix(encode-01, 2026-06-10): LLM 族 valid-mask 跟风衰减权重分母 (三轨独立权重)
         weighted_cols.update(_build_llm_valid_masked_weights(df, hw_by_track, 'hw'))
         df = _append_columns(df, weighted_cols)
         logger.info(f"  已生成 {len(weighted_cols)} 个跟风衰减加权列 "
-                    f"({'双轨独立权重' if has_dual_hw else '单轨 legacy 权重'})")
+                    f"({'三轨独立权重' if has_dual_hw else '单轨 legacy 权重'})")
 
         # --- 3d-2. 阈值敏感性 HW 加权列 (2026-06-13) ---
         # stage 24 按 herd_detection.sensitivity_thresholds 网格输出
@@ -660,7 +668,7 @@ def main():
         _sens_thrs, _sens_tags = herd_sensitivity_grid(CONFIG)
         sens_cols = {}
         for _tag in _sens_tags:
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
                 w_src = f'herd_weight{track}_{_tag}'
                 if (w_src not in df.columns
                         or f'llm_vote_score{track}' not in df.columns):
@@ -681,7 +689,7 @@ def main():
     df = parse_time(df)
 
     # =========================================================================
-    # 洗稿率前置列: 多方法 × 双轨篇章级标记
+    # 洗稿率前置列: 多方法 × 三轨 (full/ctx/ss) 篇章级标记
     # =========================================================================
     # 学术依据:
     #   Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022).
@@ -689,10 +697,10 @@ def main():
     #   climate risk disclosures. Finance Research Letters, 47(Part B), 102776.
     #   https://doi.org/10.1016/j.frl.2022.102776
     #
-    # 构造 多方法 × 双轨 (Full/Ctx) 洗稿率变体的篇章级标记列
+    # 构造 多方法 × 三轨 (Full/Ctx/SS) 洗稿率变体的篇章级标记列
     # (fix(omni-g-runner-08, 2026-06-11): 历史注释硬编码 "40 种/5 模型" 与实现漂移 —
     #  实际变体数随启用模型/词典数浮动, 以步骤 7h 的 wr_variants 诊断日志为准):
-    #   A:  LLM 多数投票 (is_positive{track}, 双轨)
+    #   A:  LLM 多数投票 (is_positive{track}, 三轨)
     #   A2: 单个 LLM (逐 LLM 情感{track} > 0, LLM_MODELS 当前 3 个)
     #   B:  反向验证 (负面{track} ∧ 实质性)
     #   D/D2: 词典均值 / 单词典 ({dict}_score{track} > 0, DICT_NAMES 5 本)
@@ -701,7 +709,7 @@ def main():
     #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3, 实现= 2/3 - 1e-9 浮点下界)
     # 方法 C 和 G 无需篇章级标记, 直接使用面板级已有变量计算
     # v3.2.0 BREAKING (plan v14 §3.3 P3): bare innovation_substantiveness 删除, 单独使用 _full 作 main spec
-    # M2 P3 后续展开 count 4-way (sentiment × subst 双轨乘积)
+    # M2 P3 后续展开 count 4-way (sentiment × subst 三轨乘积)
     _tt = df['innovation_substantiveness_full'].astype(str).str.strip() if 'innovation_substantiveness_full' in df.columns else None
     _is_symb = (_tt == '象征性') if _tt is not None else None
     _is_sub  = (_tt == '实质性') if _tt is not None else None
@@ -716,7 +724,7 @@ def main():
     _subst_measured = _tt.isin(_SUBST_VALID_LABELS) if _tt is not None else None
 
     washing_cols = {}
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         pos_col = f'is_positive{track}'
         neg_col = f'is_negative{track}'
         if pos_col not in df.columns or _is_symb is None:
@@ -862,7 +870,7 @@ def main():
     _is_sub_ctx  = (_tt_ctx == '实质性') if _tt_ctx is not None else None
 
     if _is_symb_ctx is not None:
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
             pos_col = f'is_positive{track}'
             neg_col = f'is_negative{track}'
             if pos_col not in df.columns:
@@ -900,7 +908,7 @@ def main():
 
 
     _wr_flag_cols = [c for c in df.columns if c.startswith('_is_')]
-    logger.info(f"  洗稿率前置列生成完毕: {len(_wr_flag_cols)} 列 (双轨)")
+    logger.info(f"  洗稿率前置列生成完毕: {len(_wr_flag_cols)} 列 (三轨 full/ctx/ss)")
 
     # --- 5. Bank-Year 聚合 (df 为只读: groupby/filter/merge) ---
     panel = aggregate_panel(df)
@@ -940,9 +948,9 @@ def main():
 
     # --- 6b-2. P2 attention 处理变量 (Fang-Peress 2009 JF extensive 覆盖加权曝光;
     #     Hassan 2019 QJE 仅限 pct/density/ctx 归因 — fix(omni-g-papers-misc-09, 2026-06-11)
-    #     锚点更正, 同步 attention_media.py docstring; 双轨=互为稳健性) ---
-    # spec 钦定 attention_index_full/ctx + attention_pct_full + attention_disp_full +
-    # 双轨派生 (density/sd/gap/share)。防选择偏差: 全集脊柱 LEFT-join + 零-fintech 填 0 (index/pct)。
+    #     锚点更正, 同步 attention_media.py docstring; 三轨 (full/ctx/ss)=互为稳健性) ---
+    # spec 钦定 attention_index_full/ctx/ss + attention_pct_full + attention_disp_full +
+    # 三轨派生 (density/sd/gap/share)。防选择偏差: 全集脊柱 LEFT-join + 零-fintech 填 0 (index/pct)。
     panel = compute_attention_treatments(panel)
 
     # --- 6b-3. 去重阈值敏感性处理变量 (Tetlock 2011 RFS; Hassan 2019 QJE) ---
@@ -1031,13 +1039,13 @@ def main():
                 f"  Bartik {suffix} 变体基期 {base_yr} ≥ 政策冲击里程碑 "
                 f"{_bartik_pre_cutoff}, 违反外生性公理 → 置 NaN 跳过 "
                 f"(fix(omni-g-runner-04))")
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
                 panel[f'bartik_type_iv{track}{suffix}'] = np.nan
             continue
         ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
                                  df_exploded, type_map, 'type',
                                  base_year=base_yr)
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
             src_col = f'bartik_type_iv{track}'
             dst_col = f'bartik_type_iv{track}{suffix}'
             ptmp = ptmp.rename(columns={src_col: dst_col})
@@ -1057,13 +1065,13 @@ def main():
             f"  Bartik _t01 池化基期含 {T0 + 1} ≥ 政策冲击里程碑 "
             f"{_bartik_pre_cutoff}, 违反外生性公理 → 置 NaN 跳过 "
             f"(fix(omni-g-runner-04))")
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
             panel[f'bartik_type_iv{track}_t01'] = np.nan
     else:
         ptmp = compute_bartik_iv(panel[['target_bank', 'year']].copy(),
                                  df_exploded, type_map, 'type',
                                  base_years=[T0, T0 + 1])
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
             src_col = f'bartik_type_iv{track}'
             ptmp = ptmp.rename(columns={src_col: f'bartik_type_iv{track}_t01'})
         panel = panel.merge(
@@ -1312,9 +1320,9 @@ def main():
                 f"1={panel['high_coverage'].sum()}, "
                 f"0={(panel['high_coverage'] == 0).sum()}")
 
-    # --- (d) 交互项构建 (双轨: _full + _ctx) ---
+    # --- (d) 交互项构建 (三轨: _full + _ctx + _ss) ---
     het_count = 0
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         tone = f'llm_vote_tone{track}'
         if tone not in panel.columns:
             continue
@@ -1353,7 +1361,7 @@ def main():
     STRESS_YEARS = {2015, 2018, 2020}  # 股灾、去杠杆、疫情
     panel['stress_period'] = panel['year'].isin(STRESS_YEARS).astype(int)
     stress_count = 0
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         tone = f'llm_vote_tone{track}'
         if tone in panel.columns:
             panel[f'tone_x_stress{track}'] = panel[tone] * panel['stress_period']
@@ -1370,7 +1378,7 @@ def main():
     #   "全国" 不是有效省份名 (44_panel_iv_did.py L513-517)
     panel['depins_post'] = (panel['year'] >= 2015).astype(int)
     depins_count = 0
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         tone = f'llm_vote_tone{track}'
         if tone in panel.columns:
             panel[f'tone_x_depins{track}'] = panel[tone] * panel['depins_post']
@@ -1386,7 +1394,7 @@ def main():
     # ⚠️ 全中性文章 (pos=neg=0): total_pn=0 → senti_ratio=NaN → concern_score=NaN
     #   (语义合理: 无正/负方向性信息时, 关注度方向未定义)
     concern_count = 0
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         pos_c, neg_c = f'pos_count{track}', f'neg_count{track}'
         if pos_c in panel.columns and neg_c in panel.columns:
             # fix(completeness-03): Int8 计数转 float64 防 (pos+neg)≥128 静默回绕致 senti_ratio
@@ -1412,7 +1420,7 @@ def main():
     #   shift(1) 不会跳过年份。首年滞后值为 NaN (预期行为)
     panel = panel.sort_values(['target_bank', 'year'])
     lag_count = 0
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         tone = f'llm_vote_tone{track}'
         if tone in panel.columns:
             panel[f'{tone}_lag1'] = panel.groupby('target_bank')[tone].shift(1)
@@ -1427,7 +1435,7 @@ def main():
     # min_periods=2 → ≥2 年即出值, 优雅降级 (全量 T=18 充分, 磁盘 T=2 仅末年有值)。
     TONE_VOL_WINDOW, TONE_VOL_MINP = 3, 2
     vol_count = 0
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         tone = f'llm_vote_tone{track}'
         if tone in panel.columns:
             panel[f'tone_volatility{track}'] = (
@@ -1452,7 +1460,7 @@ def main():
         _X = pd.concat([panel[_funds].astype(float), _yd.astype(float)], axis=1)
         _X.insert(0, '_const', 1.0)
         abn_count = 0
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
             tone = f'llm_vote_tone{track}'
             if tone not in panel.columns:
                 continue
@@ -1529,7 +1537,7 @@ def main():
     #
     # 【白话说明】
     #   读取 Stage 15 的逐篇文章政策对齐分数 (policy_cosine_sim),
-    #   结合词频维度(双轨), 把每篇文章分到四个象限:
+    #   结合词频维度(kw/int 两条词频轨, 非 full/ctx/ss 情感轨), 把每篇文章分到四个象限:
     #     Token(说得多+没落地) / Hidden(说得少+做得真) /
     #     Substantive(言行一致) / Irrelevant(不相关)
     #   然后按(银行,年)统计各象限的文章占比, 作为面板变量.
@@ -1587,10 +1595,11 @@ def main():
         #   连续变量优于离散化
         # 【白话】算每家银行每年的平均政策对齐分和平均技术强度分
         if 'target_bank' in df_align.columns and 'year' in df_align.columns:
-            # dual-track parity (2026-06-08): MAIN/API spec 的 policy_cosine_sim_ctx
-            # 此前已在文章级产出 (stage 15 与 _full 对称), 却未聚合进面板 (只聚合 _full
-            # alias policy_cosine_sim) → 面板层 API 模型单边缺 ctx, 而 _t2v 稳健轨 full/ctx
-            # 双聚合 (见下方)。此处由 _t2v 轨写法指导补 ctx 孪生, 使 API 模型面板亦含双轨。
+            # multi-track parity (2026-06-08 ctx; v3.9.0 ss): MAIN/API spec 的
+            # policy_cosine_sim_ctx/_ss 在文章级产出 (stage 15 与 _full 对称), 须聚合进
+            # 面板 (只聚合 _full alias policy_cosine_sim 会让面板层 API 模型单边缺 ctx/ss,
+            # 而 _t2v 稳健轨三轨聚合, 见下方)。三轨 (full/ctx/ss): ss=银行+金科同句轨,
+            # 缺列 (旧 schema / ss 未上线) 优雅跳过。
             _agg_spec = {
                 'article_sim_mean': ('policy_cosine_sim', 'mean'),
                 'article_sim_std': ('policy_cosine_sim', 'std'),
@@ -1599,6 +1608,9 @@ def main():
             if 'policy_cosine_sim_ctx' in df_align.columns:
                 _agg_spec['article_sim_mean_ctx'] = ('policy_cosine_sim_ctx', 'mean')
                 _agg_spec['article_sim_std_ctx'] = ('policy_cosine_sim_ctx', 'std')
+            if 'policy_cosine_sim_ss' in df_align.columns:
+                _agg_spec['article_sim_mean_ss'] = ('policy_cosine_sim_ss', 'mean')
+                _agg_spec['article_sim_std_ss'] = ('policy_cosine_sim_ss', 'std')
             _agg = df_align.groupby(['target_bank', 'year']).agg(
                 **_agg_spec).reset_index()
             # fix(omni-group-std-singleobs, 2026-06-11, 组级裁决): 删除旧
@@ -1612,11 +1624,13 @@ def main():
                         f"fintech_intensity_mean 已合并")
 
             # 双模型稳健轨 (2026-05-29): stage 15 现额外产出 article 级
-            # policy_cosine_sim_t2v_{full,ctx} (text2vec)。此处按 (bank, year)
+            # policy_cosine_sim_t2v_{full,ctx,ss} (text2vec)。此处按 (bank, year)
             # 取均值聚合为 bank-year 同名列, 取代已退役的 stage 30 (30_text2vec_indicators)
             # 的 policy_cosine_sim_t2v_* 来源 (REQUIRED_PANEL_COLUMNS 契约名不变)。
+            # 三轨 (full/ctx/ss): ss=银行+金科同句轨, 缺列优雅跳过 (列表推导自动过滤)。
             _t2v_src = [c for c in ('policy_cosine_sim_t2v_full',
-                                    'policy_cosine_sim_t2v_ctx')
+                                    'policy_cosine_sim_t2v_ctx',
+                                    'policy_cosine_sim_t2v_ss')
                         if c in df_align.columns]
             if _t2v_src:
                 _t2v_agg = (df_align.groupby(['target_bank', 'year'])[_t2v_src]
@@ -1629,7 +1643,7 @@ def main():
 
             # --- 逻辑 B: 四象限离散分类 (机制检验 / 稳健性) ---
             # 【术语】
-            #   双轨词频维度:
+            #   两条词频轨 (此处指 kw/int 词频测度, 非 full/ctx/ss 情感轨):
             #     Track A (kw): fintech_distinct_keywords (AC 原始去重关键词数)
             #     Track B (int): fintech_intensity_score (TF-IDF x SIF 加权)
             #   分位数阈值: P={25, 50, 75}
@@ -1671,22 +1685,31 @@ def main():
             # 补 *_adopt_{kw,int}_p{pct}_ctx: sim 用 policy_cosine_sim_ctx, 词频
             # 优先 {freq_col}_ctx (int 轨存在); kw 轨的 AC 去重关键词数为
             # track-agnostic 元数据 (无 ctx 变体) 时复用 full 列并披露。
+            # v3.9.0: 三轨 (full/ctx/ss) — ss=银行+金科同句轨, sim 用
+            # policy_cosine_sim_ss, 词频优先 {freq_col}_ss; 缺列优雅跳过 (旧 schema)。
             _sim_tracks = [('', 'policy_cosine_sim')]
             if 'policy_cosine_sim_ctx' in df_align.columns:
                 _sim_tracks.append(('_ctx', 'policy_cosine_sim_ctx'))
             else:
                 logger.warning("  ⚠️ policy_cosine_sim_ctx 缺失, 四象限 ctx 孪生"
                                "跳过 (旧 schema)")
+            if 'policy_cosine_sim_ss' in df_align.columns:
+                _sim_tracks.append(('_ss', 'policy_cosine_sim_ss'))
+            else:
+                logger.warning("  ⚠️ policy_cosine_sim_ss 缺失, 四象限 ss 孪生"
+                               "跳过 (旧 schema / ss 未上线)")
 
             for _sim_sfx, _sim_col in _sim_tracks:
                 for track_name, freq_col in _tracks:
                     _freq_eff = freq_col
-                    if _sim_sfx == '_ctx':
-                        if f'{freq_col}_ctx' in df_align.columns:
-                            _freq_eff = f'{freq_col}_ctx'
+                    # ctx/ss 轨: 词频优先同轨变体 {freq_col}{_sim_sfx}; kw 轨的 AC
+                    # 去重关键词数为 track-agnostic 元数据 (无同轨变体) 时复用 full 列。
+                    if _sim_sfx in ('_ctx', '_ss'):
+                        if f'{freq_col}{_sim_sfx}' in df_align.columns:
+                            _freq_eff = f'{freq_col}{_sim_sfx}'
                         else:
                             logger.info(
-                                f"  Track {track_name} (ctx): 词频列无 ctx 变体 "
+                                f"  Track {track_name} ({_sim_sfx}): 词频列无同轨变体 "
                                 f"(track-agnostic), 复用 {freq_col}")
                     if _freq_eff not in df_align.columns:
                         logger.warning(f"  {_freq_eff} 列缺失, "
@@ -1771,26 +1794,26 @@ def main():
         logger.info("  compute_llm_peer_iv 不可用, 跳过")
 
     # =========================================================================
-    # 步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造
+    # 步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 三轨 (full/ctx/ss) 构造
     # =========================================================================
     # 学术依据:
     #   Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022).
     #   Cheap talk and cherry-picking. Finance Research Letters, 47(B), 102776.
     #   https://doi.org/10.1016/j.frl.2022.102776
     #
-    # 构造 多方法 × 双轨 (Full/Ctx) 洗稿率变体
+    # 构造 多方法 × 三轨 (Full/Ctx/SS) 洗稿率变体 (ss=银行+金科同句轨)
     # (fix(omni-g-runner-08, 2026-06-11): 旧注释硬编码 "40 种/5模型" 与实现漂移,
     #  实际变体数随启用模型/词典数浮动, 以下方 wr_variants 动态诊断日志为准):
-    #   A/A2: LLM 投票 + 单 LLM (LLM_MODELS 当前 3 个) × 双轨
-    #   B:    反向验证 + 非对称性 × 双轨
-    #   C:    情感纯度缺口 × 双轨
-    #   D/D2: 词典均值 + 单词典 (DICT_NAMES 5 本) × 双轨
-    #   E/E2: BERT 均值 + 单 BERT (BERT_MODELS 当前 3 个) × 双轨
-    #   F:    高置信度子样本 × 双轨
-    #   G:    象征性文章情感偏移 × 双轨
+    #   A/A2: LLM 投票 + 单 LLM (LLM_MODELS 当前 3 个) × 三轨
+    #   B:    反向验证 + 非对称性 × 三轨
+    #   C:    情感纯度缺口 × 三轨
+    #   D/D2: 词典均值 + 单词典 (DICT_NAMES 5 本) × 三轨
+    #   E/E2: BERT 均值 + 单 BERT (BERT_MODELS 当前 3 个) × 三轨
+    #   F:    高置信度子样本 × 三轨
+    #   G:    象征性文章情感偏移 × 三轨
     # =========================================================================
     logger.info("=" * 60)
-    logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 双轨构造")
+    logger.info("步骤 7h: 洗稿率 (Washing Ratio) — 多方法 × 三轨 (full/ctx/ss) 构造")
     logger.info("=" * 60)
 
     def _safe_ratio(numer, denom):
@@ -1818,8 +1841,10 @@ def main():
 
     wr_variants = {}  # {变量名: 描述}
 
-    for track in ['_full', '_ctx']:
-        _sfx = '' if track == '_full' else '_ctx'  # Full 不加后缀 (主指标)
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
+        # 变量名后缀: full 不加后缀 (主指标), ctx→_ctx, ss→_ss (银行+金科同句轨)。
+        # ⚠ 不可写成 '' if full else '_ctx' (会把 ss 误并到 ctx 列名)。
+        _sfx = '' if track == '_full' else track
         pos_col = f'pos_count{track}'
 
         # --- 方法 A: LLM 投票极化条件法 ---
@@ -1959,7 +1984,7 @@ def main():
     logger.info("步骤 7i: Janis-Fadner (J-F) 情绪系数")
     logger.info("=" * 60)
 
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         pos_col = f'pos_count{track}'
         neg_col = f'neg_count{track}'
         if pos_col in panel.columns and neg_col in panel.columns:
@@ -2030,7 +2055,7 @@ def main():
         ratio = ((p - n) / denom.replace(0, np.nan)) ** 2
         return np.sqrt(1 - ratio)
 
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         # (a) 词典综合 (词级比率)
         panel[f'disag{track}'] = _compute_disag(
             f'avg_pos_ratio{track}', f'avg_neg_ratio{track}', panel)
@@ -2068,7 +2093,7 @@ def main():
     # Allison 2001; Heckman 1979), 唯 log_sent 漏网。改经 _gated_log_sent
     # (n_articles==0 → NaN, 对齐同族缺失语义)。
     _log_sent_n = 0
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         pc, nc = f'pos_count{track}', f'neg_count{track}'
         if pc in panel.columns and nc in panel.columns:
             panel[f'log_sent{track}'] = _gated_log_sent(panel, track)
@@ -2083,7 +2108,7 @@ def main():
     # 公式: algo_cater = dict_tone - deep_model_tone
     #   正值 → 词典比深层模型更正面 (潜在迎合)
     _cater_count = 0
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨 (full/ctx/ss): ss=银行+金科同句
         dc = f'dict_avg_tone{track}'
         lc = f'llm_vote_tone{track}'
         bp, bn = f'bert_avg_pos{track}', f'bert_avg_neg{track}'
@@ -2122,25 +2147,30 @@ def main():
                     _cater_count += 1
     logger.info(f"  algo_cater 指标计算完成 ({_cater_count} 变量)")
 
-    # ═══ 8e. 数据双轨 (Data Dual-Track) 稳健性特征 — 内联双模型 (2026-05-29) ═══
+    # ═══ 8e. 嵌入双模型 (Embedding Dual-Model) 稳健性特征 — 内联双模型 (2026-05-29) ═══
+    # ⚠ 此处"双模型"= API/t2v 两个嵌入模型 (非 full/ctx/ss 文本情感轨)。
     # 【学术机制】稳健性联合检验 (Robustness Joint Testing): LLM/API 主轨 (text-embedding-3-small)
     # 对照 text2vec 本地稳健轨, 应对单一嵌入模型潜在的"幻觉偏移"(Hallucination Bias)。
     #
-    # 架构变更: 原 stage 30 (30_text2vec_indicators.parquet) 已退役。其 4 列稳健 twin 改由
-    # 主阶段内联双模型计算直接产出 (Plan 2026-05-29 in-feature dual compute):
-    #   - strat_diff_t2v_{full,ctx}        ← stage 25 strategic_diff (centroid_diff_emb_t2v 别名)
-    #   - policy_cosine_sim_t2v_{full,ctx} ← stage 15 article 级 → 上方 _t2v_agg 聚合 bank-year
+    # 架构变更: 原 stage 30 (30_text2vec_indicators.parquet) 已退役。其稳健 twin 改由
+    # 主阶段内联双模型计算直接产出 (Plan 2026-05-29 in-feature dual compute);
+    # 文本侧三轨 (full/ctx/ss): ss=银行+金科同句轨 (缺列优雅诊断, 不强报错):
+    #   - strat_diff_t2v_{full,ctx,ss}        ← stage 25 strategic_diff (centroid_diff_emb_t2v 别名)
+    #   - policy_cosine_sim_t2v_{full,ctx,ss} ← stage 15 article 级 → 上方 _t2v_agg 聚合 bank-year
     # 因此此处不再读取/merge 外部 parquet; 仅做存在性诊断 (保留自然缺失 NaN, 不 0 填充 —
     # Allison 2001 / Heckman 1979 listwise deletion 原则)。
+    # full/ctx 为硬契约 (REQUIRED_PANEL_COLUMNS); _ss twin 仅在 stage 15/25 ss 上线后出现,
+    # 故按存在性软诊断 (列在则进 present, 不在则不计入 missing 硬警告)。
     t2v_cols = [
         'strat_diff_t2v_full', 'strat_diff_t2v_ctx',
         'policy_cosine_sim_t2v_full', 'policy_cosine_sim_t2v_ctx'
     ]
-    _present = [c for c in t2v_cols if c in panel.columns]
-    _missing = [c for c in t2v_cols if c not in panel.columns]
+    t2v_cols_ss = ['strat_diff_t2v_ss', 'policy_cosine_sim_t2v_ss']  # 软诊断, 缺则不报错
+    _present = [c for c in t2v_cols + t2v_cols_ss if c in panel.columns]
+    _missing = [c for c in t2v_cols if c not in panel.columns]  # 仅 full/ctx 硬契约入 missing
     if _missing:
         logger.warning(
-            f"  ⚠️ 双轨稳健性: 以下内联 t2v 列缺失 {_missing} "
+            f"  ⚠️ 嵌入双模型稳健性: 以下内联 t2v 列缺失 {_missing} "
             f"(检查 stage 15/25 embedding_robustness 配置与运行); "
             f"export.py::REQUIRED_PANEL_COLUMNS 将据此 fail-loud。"
         )

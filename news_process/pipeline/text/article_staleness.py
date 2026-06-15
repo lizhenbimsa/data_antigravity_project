@@ -14,10 +14,16 @@ dedup.py:94 的 jaccard 布尔决策互补.
     (stage 30a article embeddings); 大样本可换 IVFFlat (见实现 _compute_semantic).
     捕捉语义相似度 (词面不同但含义近似), 与 surface 互补.
 
-双指标 panel 列 (G-S7 设计):
-    ``surface_staleness_{full,ctx}``     (与 MinHash jaccard 相关性 ≥ 80%)
+双指标 panel 列 (G-S7 设计; v3.9.0 三轨 full/ctx/ss):
+    ``surface_staleness_{full,ctx,ss}``  (与 MinHash jaccard 相关性 ≥ 80%; ss=银行+金科同句共现轨)
     ``semantic_staleness_{full,ctx}``    (SBERT cosine 扩展轨, Tetlock 2011 RFS 启发)
     ``staleness_corr``                  panel-level surface vs semantic 相关性
+
+⚠ 第三轨 ss 平价分两步 (v3.9.0):
+  - **surface_staleness_ss 现在加** ($0, 仅依赖 content_ss 文本的 MinHash, 与 surface_full/ctx 同源)。
+  - **semantic_staleness_ss 延后** (DEFER): 依赖 stage 30a 产出 content_ss 的 SBERT 嵌入
+    (`emb_ss` 列), 该 ss 嵌入轨尚未上线 (低 ROI, 计划 §⑫/残余风险 #5)。在 30a ss 嵌入落盘前,
+    main() 不产 semantic_staleness_ss 列 (优雅跳过), 下游聚合对该列按"缺列即跳过"处理 → 不崩。
 
 学术依据
 --------
@@ -29,9 +35,9 @@ react to stale information? Review of Financial Studies, 24(5), 1481-1512.
 ------------------------------------------------
 本实现与 Tetlock (2011) 原度量有两点刻意偏离, 论文/codebook 引用时须如实披露:
 1. **匹配域**: Tetlock 原文按 *同一公司* 过去 72h 内最近 10 篇旧故事匹配; 本实现
-   两轨均为 **corpus-level (全银行混池) 7d 日粒度窗口** — 度量"银行业信息环境"层面
-   的 staleness, 非严格的同公司旧闻重印率 (银行 A 的文章与上周关于银行 B 的行业
-   通稿相似亦计为 stale)。
+   surface 与 semantic 两种相似度均为 **corpus-level (全银行混池) 7d 日粒度窗口** —
+   度量"银行业信息环境"层面的 staleness, 非严格的同公司旧闻重印率 (银行 A 的文章与
+   上周关于银行 B 的行业通稿相似亦计为 stale)。
 2. **相似度函数**: Tetlock 原文是词重叠比率 (与本模块 surface jaccard 轨同族);
    semantic 轨的 SBERT 嵌入 cosine 是 *扩展* 而非"原文范式" (2011 年不存在 SBERT)。
 
@@ -52,7 +58,8 @@ Economic Literature, 57(3), 535-574. https://doi.org/10.1257/jel.20181020
 - N²: 400k 文章 × 7d 窗口典型 ~5000 candidates = 2×10^9 pair 不可行
   → 必须 LSH (MinHashLSHForest for jaccard) + Faiss (rolling-window
     IndexFlatIP for cosine; 大样本升级路径为 IVFFlat / HNSW)
-- 双轨独立 (full + ctx 各算一次), 与 v3.5.1 真双轨对齐
+- 三轨独立 (surface: full + ctx + ss 各算一次, 与 v3.5.1 真三轨对齐; v3.9.0 +ss=同句共现轨;
+  semantic 暂 full + ctx 两路, ss 嵌入轴待 30a ss 嵌入上线, 见上方 ⚠ 平价分步)
 
 D-0 实测项 (v2.3 G-D2.1)
 ------------------------
@@ -220,7 +227,7 @@ def compute_semantic_staleness(
     同日更早行 — 流水线把同一篇文章 (同 docid) 按 matched bank 复制成多行后,
     dup 组内第 2+ 行与第 1 行 cosine=1.0, semantic staleness 机械=1.0 (盘上
     155/155 同日 dup 行全 =1.0, semantic_highstale 信号几乎纯由该 artifact 驱动),
-    且哪一行得 1.0 取决于任意输入行序。修后两轨窗口/NaN 口径一致。
+    且哪一行得 1.0 取决于任意输入行序。修后 surface 与 semantic 两族窗口/NaN 口径一致。
 
     Args:
         df: article-level DataFrame (按 date_col 升序对齐 embeddings 行).
@@ -314,8 +321,14 @@ def aggregate_to_bank_year(article_df: pd.DataFrame) -> pd.DataFrame:
 
     df = article_df.copy()
     agg_cols = {}
+    # v3.9.0 三轨: 加 surface_staleness_ss (现产) + semantic_staleness_ss (前瞻登记,
+    # 30a ss 嵌入上线后才存在)。两 ss 列均由下方 `if stale_col in df.columns` 守卫 ——
+    # 缺列即跳过, 故 semantic_staleness_ss 在 30a ss 未上线时不会误产空列 (优雅降级,
+    # 镜像 ctx 守卫范式)。
     for stale_col in ['surface_staleness_full', 'surface_staleness_ctx',
-                      'semantic_staleness_full', 'semantic_staleness_ctx']:
+                      'surface_staleness_ss',
+                      'semantic_staleness_full', 'semantic_staleness_ctx',
+                      'semantic_staleness_ss']:
         if stale_col in df.columns:
             agg_cols[stale_col] = (stale_col, 'mean')
             # 加 binary high-stale 列 (NaN propagates, mean 自动 skip NA)
@@ -413,7 +426,7 @@ def _restrict_to_panel_domain(art_df: pd.DataFrame, output_dir: str) -> pd.DataF
 
     fix(omni-g-embed-06/08, 2026-06-11): 此前聚合域 = stage 13 预筛全集 (盘上 1170
     篇), 而面板全部兄弟文章级测度 (tone/herd/intensity/salience) 聚合自 24_herd_decay
-    (= stage 21 LLM 双轨验证并集, 盘上 857 篇): 26.8% 被 LLM 判定并非真正关于该银行
+    (= stage 21 LLM 三轨验证并集 full|ctx|ss, v3.9.0 +ss; 盘上 857 篇): 26.8% 被 LLM 判定并非真正关于该银行
     的文章混入 staleness 均值 (27% bank-year 偏移 >0.01, 最大 ≈10.6% 量程), 并产生
     n_articles==0 却带非缺 staleness 的幻影 bank-year 行。staleness 的 *参照窗口*
     (过去 7d 信息环境) 刻意保留全集 — compute_* 已在全集上算完, 本函数仅过滤进入
@@ -472,7 +485,7 @@ def main():
             sys.exit(1)
         art_df['year'] = pd.to_datetime(art_df['日期'], errors='coerce').dt.year
 
-    # ── D2.a Surface staleness (双轨) ──
+    # ── D2.a Surface staleness (三轨 full/ctx/ss, v3.9.0 +ss=银行+金科同句共现轨) ──
     # P1 修复 (metric-audit 2026-06-02, 病根A): surface_full 改读 content_full (含标题),
     # 与 semantic_full (emb 含标题) / ctx 轨对称; 缺列回退 '内容'.
     _full_col = 'content_full' if 'content_full' in art_df.columns else '内容'
@@ -483,8 +496,19 @@ def main():
         art_df['surface_staleness_ctx'] = compute_surface_staleness(
             art_df, content_col='content_ctx',
         )
+    # v3.9.0 第三轨 ss (银行+金科同句共现轨): surface staleness 免费加 ——
+    # content_ss 由 stage 13 物化 (回退=镜像 ctx→全文 body), 缺列优雅跳过 (镜像上方 ctx 守卫)。
+    if 'content_ss' in art_df.columns:
+        art_df['surface_staleness_ss'] = compute_surface_staleness(
+            art_df, content_col='content_ss',
+        )
 
-    # ── D2.b Semantic staleness (双轨, 依赖 stage 30a) ──
+    # ── D2.b Semantic staleness (依赖 stage 30a) ──
+    # v3.9.0 平价分步: semantic 暂 full + ctx 两路。**semantic_staleness_ss 延后** (DEFER) —
+    # ss 轨语义陈旧度需 stage 30a 为 content_ss 产出 SBERT 嵌入 (`emb_ss` 列), 该 ss 嵌入轨
+    # 尚未上线 (低 ROI, 见模块 docstring ⚠ 平价分步 + 计划 §⑫/残余风险 #5)。30a ss 嵌入落盘前
+    # 本阶段不产 semantic_staleness_ss → 下游 aggregate_to_bank_year 按"缺列即跳过"优雅降级,
+    # 该列在 panel 暂为 NaN (不崩); 待 30a ss 上线后此处镜像 full/ctx 补 compute 即恢复平价。
     emb_path = os.path.join(output_dir, '30a_article_embeddings.parquet')
     if os.path.exists(emb_path):
         # fix(omni-g-embed-03/09, 2026-06-11): article_id 显式 join 取代裸位置对齐

@@ -16,9 +16,11 @@ run_pipeline_function.py — 新闻处理流水线调度器
     └────────────────────────────────────────────────────────────┘
                       ↓
     ┌─ 模块二：新闻筛选模块 ──────────────────────────────┐
-    │ 11_news_bank → 12_news_fintech → 13_materialize_ctx        │
-    │ → 14_fintech_intensity → 15_article_policy_alignment       │
+    │ 11_news_bank → 12_news_fintech → 12b_cooccurrence_filter   │
+    │ → 13_materialize_ctx → 14_fintech_intensity                │
+    │ → 15_article_policy_alignment                              │
     └────────────────────────────────────────────────────────────┘
+    (12b: 银行×金科邻近共现硬过滤, Andreou et al. 2026; 下游三轨链继承过滤)
                       ↓
     ┌─ 模块三：新闻情感模块 ──────────────────────────────┐
     │ 21_tone_llms → 22_tone_words → 23_tone_berts               │
@@ -177,6 +179,10 @@ _STAGE21_FILTERED_FINGERPRINT_COLUMNS = (
 # v3.2.0 双轨独立标签 — 下游 stage 45 (panel build) 强依赖. 若 --skip-21-if-exists
 # 命中旧 (v3.1.x) 产物且这些列缺失, 下游会抛 KeyError. 见 CLAUDE.md / CHANGELOG.md
 # v3.2.0 节: innovation_locus_{full,ctx} + innovation_substantiveness_{full,ctx}.
+# legacy (full/ctx) by design: 这两族是 cell_id (D2/D4) 分类的 LLM 创新属性, 锚定
+# full/ctx, v3.9.0 第三轨 ss (银行+金科同句) 是纯情感轨、有意不分解 substantiveness/
+# locus, 故此处刻意只列 full/ctx 两轨 (无 *_ss 必需列; 见 encode_collab.py
+# cell_id intentionally NOT produced)。
 _STAGE21_REQUIRED_OUTPUT_COLUMNS = (
     'innovation_locus_full',
     'innovation_locus_ctx',
@@ -299,8 +305,10 @@ def _stage21_skip_is_compatible(stage21_outputs: list[str]) -> tuple[bool, str]:
     if expected_digest != main_digest:
         return False, "21_tone_llms does not match verified rows in 21_tone_llms_full"
 
-    # v3.2.0 schema 漂移防护: fingerprint 一致也未必意味着旧产物含 v3.2.0 双轨列.
-    # 若任一必需列缺失, reject skip → 触发 stage 21 重跑刷新 schema.
+    # v3.2.0 schema 漂移防护: fingerprint 一致也未必意味着旧产物含 v3.2.0
+    # cell_id 创新属性列 (legacy full/ctx by design — 见 _STAGE21_REQUIRED_OUTPUT_COLUMNS
+    # 注释: ss 第三轨不分解这两族)。若任一必需列缺失, reject skip → 触发
+    # stage 21 重跑刷新 schema。
     try:
         import pyarrow.parquet as pq
         full_schema_names = set(pq.read_schema(full_path).names)

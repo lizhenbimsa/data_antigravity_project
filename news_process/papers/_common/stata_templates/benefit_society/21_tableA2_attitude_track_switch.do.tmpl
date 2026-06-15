@@ -1,15 +1,19 @@
 * ============================================================================
-* 21_tableA2_attitude_track_switch.do — 双轨主规格对比
+* 21_tableA2_attitude_track_switch.do — 三轨主规格对比 (full / ctx / ss)
 * Paper: {{PAPER_ID}}
 *
 * PAP v1.0-final §2 H3 证据 (审计冻结):
-*   2 规格切换: full vs ctx
-*   H3 验收标准:
+*   规格切换: full vs ctx vs ss (银行+金科同句共现, v3.9.0 加入第三轨)
+*   H3 验收标准 (full×ctx 为主, ss 为补充第三轨):
 *     (1) sign(beta_full) == sign(beta_ctx)
 *     (2) min(|beta_full|, |beta_ctx|) / max(|beta_full|, |beta_ctx|) > 0.5
 *   3 个维度联合评估 (mean / pos_frac / neg_frac, F-H3)。
-* 白话: 同一个回归用全文口径和实体上下文口径各跑一遍, 两边系数得同号、
-* 大小差距不超过一倍, 才算"换口径结论不变"。
+* 白话: 同一个回归用全文口径、实体上下文口径、银行+金科同句口径各跑一遍, 前两者系数得
+* 同号、大小差距不超过一倍, 才算"换口径结论不变"; ss 作并列第三轨补充佐证。
+*
+* v3.9.0: 第三轨 ss 由 stage 21 ss 产出 ({{ATTITUDE_SS}} 等); ss 列在 stage 21 ss
+*   首跑前缺失时, 含 ss 的 3 个规格经 `capture confirm variable *_ss` 守卫优雅
+*   跳过, 表退化为 6 列 (full/ctx), 不崩。
 *
 * 野聚类自助法推断 (F-H4 / F-R5-H1), 经 boottest:
 *   boottest 不直接接受 reghdfe e-class; 思路是先把 FE partial out 进残差,
@@ -38,7 +42,7 @@ if !`has_boottest' {
             "Run: do 00_install_packages.do"
 }
 
-* ----- 2 规格主回归: full vs ctx, 3 个维度 = 共 6 个规格 -----
+* ----- 3 规格主回归: full vs ctx vs ss, 3 个维度 = 共 9 个规格 -----
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_FULL}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 scalar b_mean_full = _b[{{ATTITUDE_FULL}}]
@@ -64,6 +68,21 @@ if !_rc {
     eststo M_mean_ctx
 }
 
+* v3.9.0: ss 轨 mean 规格 (银行+金科同句; {{ATTITUDE_SS}} 缺列时 capture confirm 优雅跳过)
+capture confirm variable {{ATTITUDE_SS}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{ATTITUDE_SS}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    scalar b_mean_ss = _b[{{ATTITUDE_SS}}]
+    scalar se_mean_ss = _se[{{ATTITUDE_SS}}]
+    if `has_boottest' {
+        boottest {{ATTITUDE_SS}}=0, reps({{BOOTSTRAP_REPS}}) cluster({{CLUSTER_VAR}}) ///
+            seed({{RANDOM_SEED}}) nograph
+        estadd scalar p_wild = r(p)
+    }
+    eststo M_mean_ss
+}
+
 capture confirm variable {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_POS_FRAC_CTX}}
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_FULL}} $controls, ///
@@ -85,6 +104,20 @@ if !_rc {
         estadd scalar p_wild = r(p)
     }
     eststo M_pos_ctx
+}
+
+* v3.9.0: ss 轨 pos_frac 规格 (银行+金科同句; 缺列时 capture confirm 优雅跳过)
+capture confirm variable {{BENEFIT_POS_FRAC_SS}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_SS}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    scalar b_pos_ss = _b[{{BENEFIT_POS_FRAC_SS}}]
+    if `has_boottest' {
+        boottest {{BENEFIT_POS_FRAC_SS}}=0, reps({{BOOTSTRAP_REPS}}) ///
+            cluster({{CLUSTER_VAR}}) seed({{RANDOM_SEED}}) nograph
+        estadd scalar p_wild = r(p)
+    }
+    eststo M_pos_ss
 }
 
 capture confirm variable {{BENEFIT_NEG_FRAC_FULL}} {{BENEFIT_NEG_FRAC_CTX}}
@@ -110,6 +143,20 @@ if !_rc {
     eststo M_neg_ctx
 }
 
+* v3.9.0: ss 轨 neg_frac 规格 (银行+金科同句; 缺列时 capture confirm 优雅跳过)
+capture confirm variable {{BENEFIT_NEG_FRAC_SS}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{BENEFIT_NEG_FRAC_SS}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    scalar b_neg_ss = _b[{{BENEFIT_NEG_FRAC_SS}}]
+    if `has_boottest' {
+        boottest {{BENEFIT_NEG_FRAC_SS}}=0, reps({{BOOTSTRAP_REPS}}) ///
+            cluster({{CLUSTER_VAR}}) seed({{RANDOM_SEED}}) nograph
+        estadd scalar p_wild = r(p)
+    }
+    eststo M_neg_ss
+}
+
 * ----- H3 符号 + min/max 比例检查 (3 个维度) -----
 quietly {
     foreach dim in mean pos neg {
@@ -129,7 +176,9 @@ quietly {
     }
 }
 
-display _newline "H3 dual-track consistency (PAP v1.0-final §2):"
+* 注: H3 验收准则 (PAP v1.0-final §2, 审计冻结) 仅基于 full×ctx 两轨; ss 为 v3.9.0
+* 新增并列第三轨, 作补充佐证 (其系数另行 echo), 不改 H3 pass 判定逻辑。
+display _newline "H3 full-vs-ctx consistency (PAP v1.0-final §2, 冻结准则):"
 display "  mean   : sign_match=" sign_match_mean ", ratio=" ratio_mean ", pass=" h3_pass_mean
 display "  pos    : sign_match=" sign_match_pos  ", ratio=" ratio_pos  ", pass=" h3_pass_pos
 display "  neg    : sign_match=" sign_match_neg  ", ratio=" ratio_neg  ", pass=" h3_pass_neg
@@ -137,28 +186,84 @@ display "  neg    : sign_match=" sign_match_neg  ", ratio=" ratio_neg  ", pass="
 scalar h3_total_pass = (h3_pass_mean == 1) + (h3_pass_pos == 1) + (h3_pass_neg == 1)
 display "  TOTAL  : " h3_total_pass " / 3 dimensions pass (>=2 required)"
 
+* v3.9.0: ss 轨 (银行+金科同句) 系数补充展示 (非 H3 判定; 缺列时 scalar 未定义→capture)
+display _newline "ss-track (银行+金科同句) 系数补充 (非 H3 判定):"
+foreach dim in mean pos neg {
+    capture display "  `dim'_ss : beta=" b_`dim'_ss
+    if _rc display "  `dim'_ss : (ss 列缺失, 未估)"
+}
+
 * ----- 输出 Table A2 -----
 * fix(omni-gapfill-16, 2026-06-12): Wild boot p stats 行呈现逐规格 boottest
 * p 值 (estadd 注入, 见上方); 表注如实区分渐近 cluster SE 与 WCB p。
-esttab M_mean_full M_mean_ctx M_pos_full M_pos_ctx M_neg_full M_neg_ctx ///
-    using "$tables_dir/tableA2_attitude_track_switch.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("Table A2: Dual-Track Switch Sensitivity (full vs ctx, 3 dimensions)") ///
-    mgroups("benefit_mean" "benefit_pos_frac" "benefit_neg_frac", ///
-            pattern(1 0 1 0 1 0)) ///
-    mtitles("Full" "Ctx" "Full" "Ctx" "Full" "Ctx") ///
-    stats(N r2 p_wild, fmt(0 3 3) labels("N" "R2" "Wild boot p")) ///
-    addnotes("PAP v1.0-final §2 H3: sign_match AND min/max ratio > 0.5 across >=2/3 dimensions." ///
-             "SE in parentheses: asymptotic cluster-robust ({{CLUSTER_VAR}})." ///
-             "Wild boot p row: per-spec wild cluster bootstrap p-values (boottest, B={{BOOTSTRAP_REPS}}, F-R5-H1).")
+* v3.9.0: 三轨化 (full/ctx/ss) — 模型/mtitle/mlabel/mgroup pattern 动态构建,
+*   每个维度内按 stored 估计逐 track (full/ctx/ss) 追加; ss 估计缺失时该列自动省略
+*   → 表从满列 9 退化到 6 (full/ctx), esttab 不因点名缺失估计而 r(111) 崩。
+qui estimates dir
+local stored `r(names)'
+local models ""
+local mtitles `""'
+local mlabels `""'
+local pat ""
+local grp_titles `""'
+* 3 个维度, 各维度内逐 track (full/ctx/ss) 追加已存储估计; ss 列名后缀 _ss。
+* 维度键 (d) / 分组标题 (gtitle) / mlabel 短名 (short) 三条平行 local, 按位对应。
+local dim_keys    mean        pos              neg
+local dim_titles  benefit_mean benefit_pos_frac benefit_neg_frac
+local dim_shorts  Mean        Pos              Neg
+local ndim : word count `dim_keys'
+forvalues di = 1/`ndim' {
+    local d      : word `di' of `dim_keys'
+    local gtitle : word `di' of `dim_titles'
+    local short  : word `di' of `dim_shorts'
+    local first_in_group 1
+    foreach trk in full ctx ss {
+        local m M_`d'_`trk'
+        if `: list m in stored' {
+            local models `models' `m'
+            * track 列标签: Full / Ctx / SS (银行+金科同句)
+            if "`trk'" == "full"      local tlab "Full"
+            else if "`trk'" == "ctx"  local tlab "Ctx"
+            else                       local tlab "SS"
+            local mtitles `"`mtitles' "`tlab'""'
+            local mlabels `"`mlabels' "`short'-`tlab'""'
+            local pat `pat' `first_in_group'
+            if `first_in_group' {
+                local grp_titles `"`grp_titles' "`gtitle'""'
+                local first_in_group 0
+            }
+        }
+    }
+}
 
-* fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
-* tables.py:build_table_a2_attitude_track_switch 经 read_paper_esttab(...,
-* 'tableA2_attitude_track_switch.csv') 消费 (parse_esttab_csv 格式)。
-estout M_mean_full M_mean_ctx M_pos_full M_pos_ctx M_neg_full M_neg_ctx ///
-    using "$tables_dir/tableA2_attitude_track_switch.csv", replace delimiter(",") ///
-    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild, fmt(0 3 3)) ///
-    starlevels(* 0.10 ** 0.05 *** 0.01) ///
-    mlabels("Mean-Full" "Mean-Ctx" "Pos-Full" "Pos-Ctx" "Neg-Full" "Neg-Ctx")
+if "`models'" == "" {
+    display as error "  ⚠️ Table A2 无任何已存储 attitude 规格估计, 表跳过"
+}
+else {
+    * fix(reaudit-t18-2026-06-15): esttab addnotes() 内的英文【单引号】 ('Wild boot p')
+    * 触发 r(109) type mismatch (本机 StataNow 19.5 + esttab: addnotes 字符串里的 ' 被
+    * 误解析为宏引用/引号失衡)。经 probe 隔离: 同款 addnotes 去掉单引号即 rc=0 (title /
+    * CJK 均无关)。解: addnotes 内不使用英文单引号 ('Wild boot p' → Wild boot p)。
+    esttab `models' ///
+        using "$tables_dir/tableA2_attitude_track_switch.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        title("Table A2: Tri-Track Switch Sensitivity (full / ctx / ss=bank+fintech same-sentence, 3 dimensions)") ///
+        mgroups(`grp_titles', pattern(`pat')) ///
+        mtitles(`mtitles') ///
+        stats(N r2 p_wild, fmt(0 3 3) labels("N" "R2" "Wild boot p")) ///
+        addnotes("PAP v1.0-final Sec.2 H3 (full x ctx frozen criterion): sign_match AND min/max ratio greater than 0.5 across at least 2 of 3 dimensions." ///
+                 "ss (bank+fintech same-sentence) is the v3.9.0 third parallel track: supplementary evidence, not part of the H3 decision." ///
+                 "SE in parentheses: asymptotic cluster-robust ({{CLUSTER_VAR}})." ///
+                 "Wild boot p row: per-spec wild cluster bootstrap p-values (boottest, B={{BOOTSTRAP_REPS}}, F-R5-H1).")
 
-display _newline "[OK] Table A2 written to $tables_dir/tableA2_attitude_track_switch.tex (+ .csv side-channel)"
+    * fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
+    * tables.py:build_table_a2_attitude_track_switch 经 read_paper_esttab(...,
+    * 'tableA2_attitude_track_switch.csv') 消费 (parse_esttab_csv 格式)。
+    estout `models' ///
+        using "$tables_dir/tableA2_attitude_track_switch.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild, fmt(0 3 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) ///
+        mlabels(`mlabels')
+
+    display _newline "[OK] Table A2 written to $tables_dir/tableA2_attitude_track_switch.tex (+ .csv side-channel; `: word count `models'' specs)"
+}

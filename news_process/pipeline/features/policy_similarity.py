@@ -29,8 +29,10 @@ Firm-Year 级别的结构化特征。通过汇总该年度单家企业的全部�
    放在一模一样的算法标准（同构的字典、相同的主题抽取、超长文本同走 token 分段 +
    均值池化 — 旧注释所称“相同的 8000 字截断”已随 embedding_engine 统一而不存在）下比对。
 4. 最终得出 5 个相似度指标（TF-IDF 字符级 / TF-IDF 词级 / LDA 主题 / Embedding 主轨
-   / Embedding text2vec 稳健 twin）× Full/Ctx 双轨：分数越高，说明这家银行的战略步调
-   与（截至当年已发布的）国家政策跟得越紧密。
+   / Embedding text2vec 稳健 twin）× Full/Ctx/Ss 三轨：分数越高，说明这家银行的战略
+   步调与（截至当年已发布的）国家政策跟得越紧密。
+   注: ss 轨 = content_ss (银行+金科同句共现窗, stage 13 物化; 无共现回退全文,
+   镜像 ctx); content_ss 缺失时退回 Full/Ctx 两路 (优雅跳过, 不产 _ss 指标列)。
 ============================================================================
 """
 
@@ -113,7 +115,8 @@ def compute_authoritative_similarity(df_exploded, panel):
         panel (pd.DataFrame): 准备挂载结果的 Bank-Year 面板数据
 
     Returns:
-        pd.DataFrame: 合并了 10 列权威政策相似度指标的最新 panel (5 指标 × Full/Ctx 双轨)
+        pd.DataFrame: 合并了至多 15 列权威政策相似度指标的最新 panel
+        (5 指标 × Full/Ctx/Ss 三轨; content_ss 缺失时退回 10 列 = 5 指标 × Full/Ctx)
     """
     logger.info("=" * 60)
     logger.info("开始计算: 权威政策战略响应度 (Stage 26)")
@@ -144,15 +147,22 @@ def compute_authoritative_similarity(df_exploded, panel):
             "  vintage 前视守卫: 关闭 (opt-out 或语料年份全部未知) → "
             "静态全语料锚点 (含未来政策文本, 前视披露)")
 
-    # 2. 准备 Full 轨与 Ctx 轨池化数据
-    # fix(completeness-04): full 轨读 content_full(含标题, v3.8.0 两轨契约), 与 ctx 轨
+    # 2. 准备 Full / Ctx / Ss 三轨池化数据
+    # fix(completeness-04): full 轨读 content_full(含标题, v3.8.0 full/ctx 命名契约), 与 ctx 轨
     # (content_ctx 含标题) 对称; 原读裸 '内容'(无标题) 致 full↔ctx 不对称 (病根A 同型)。
+    # ss 轨 (银行+金科同句): content_ss 由 stage 13 物化 (无共现回退全文 body, 镜像
+    # ctx); 缺列优雅跳过 (镜像 ctx 缺列守卫) → 退回 Full/Ctx 两路, 不产 _ss 指标列。
     _full_text_col = 'content_full' if 'content_full' in df_exploded.columns else '内容'
     tracks = [('_full', _aggregate(df_exploded, text_col=_full_text_col))]
     if 'content_ctx' in df_exploded.columns:
         tracks.append(('_ctx', _aggregate(df_exploded, text_col='content_ctx')))
     else:
         logger.info("  未发现 'content_ctx' 列，将仅计算 Full 轨战略响应度。")
+    if 'content_ss' in df_exploded.columns:
+        tracks.append(('_ss', _aggregate(df_exploded, text_col='content_ss')))
+    else:
+        logger.info("  未发现 'content_ss' 列 (stage 13 未物化同句共现轨?)，"
+                    "将跳过 Ss 轨战略响应度 (镜像 ctx 缺列优雅跳过)。")
 
     all_results = []
 

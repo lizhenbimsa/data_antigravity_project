@@ -28,6 +28,8 @@ fix(omni-g-benefit-01, 2026-06-11) 链路重接线 (2026-05-29 主轨换模后�
 - 文章嵌入 .npy 必须带 stage 27 落盘的 ``.sidecar.json`` (model_id/n_rows
   一致性断言); 2026-05-09 陈旧无 sidecar 文件 → fail-loud, 不静默消费。
 - 新增 ctx 轨 (``--text-embeddings-ctx`` → ``benefit_jlm_zh_*_ctx`` 列)。
+- 第三轨 ss 轨 (``--text-embeddings-ss`` → ``benefit_jlm_zh_*_ss`` 列; 银行+金科同句
+  共现, content_ss; 与 full/ctx 并列, 投影机制 track-agnostic, 仅切换文章嵌入子集)。
 """
 
 from __future__ import annotations
@@ -306,7 +308,7 @@ def aggregate_to_bank_year(
     遵循 J-L-M 2026 Eq. (2) 的文章级 c=1 实例化:
     ``f_it = mean(银行 i 年度 t 内全部文章 j 的 a_ji)``.
 
-    返回列 (``col_suffix`` 用于 ctx 轨 ``_ctx`` 后缀):
+    返回列 (``col_suffix`` track-agnostic: ctx 轨传 ``_ctx`` / ss 轨传 ``_ss``):
         ``benefit_jlm_zh_mean``, ``benefit_jlm_zh_std``,
         ``benefit_jlm_zh_pos_frac``, ``benefit_jlm_zh_neg_frac``
 
@@ -426,6 +428,16 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--text-embeddings-ss",
+        type=str,
+        default=None,
+        help=(
+            "Optional ss-track embeddings .npy (27_benefit_embeddings_ss.npy "
+            "+ sidecar; 银行+金科同句共现, content_ss); produces "
+            "benefit_jlm_zh_*_ss columns (三轨第三轨, 与 ctx 并列)"
+        ),
+    )
+    parser.add_argument(
         "--df-exploded",
         type=str,
         default=None,
@@ -501,7 +513,7 @@ def main(argv: list[str] | None = None) -> int:
         if str(ctx_meta["model_id"]) != model_id:
             raise ValueError(
                 f"ctx embeddings model={ctx_meta['model_id']!r} != full track "
-                f"model={model_id!r} — 双轨必须同嵌入空间"
+                f"model={model_id!r} — 三轨必须同嵌入空间"
             )
         if emb_ctx.shape[0] != len(df_exploded):
             raise ValueError(
@@ -513,6 +525,26 @@ def main(argv: list[str] | None = None) -> int:
                                            col_suffix="_ctx")
         panel = panel.merge(panel_ctx, on=["target_bank", "year"], how="outer")
         tracks.append("ctx")
+
+    # ss 轨 (optional, 第三轨): 银行+金科同句共现 (content_ss); 同一方向向量
+    # (锚点 track-agnostic), 仅切换 ss 文章嵌入子集投影, 镜像 ctx 路径
+    if args.text_embeddings_ss is not None:
+        emb_ss, ss_meta = load_article_embeddings(args.text_embeddings_ss)
+        if str(ss_meta["model_id"]) != model_id:
+            raise ValueError(
+                f"ss embeddings model={ss_meta['model_id']!r} != full track "
+                f"model={model_id!r} — 三轨必须同嵌入空间"
+            )
+        if emb_ss.shape[0] != len(df_exploded):
+            raise ValueError(
+                f"ss embeddings rows ({emb_ss.shape[0]}) != df_exploded "
+                f"({len(df_exploded)})"
+            )
+        scores_ss = project_texts(emb_ss, direction)
+        panel_ss = aggregate_to_bank_year(df_exploded, scores_ss,
+                                          col_suffix="_ss")
+        panel = panel.merge(panel_ss, on=["target_bank", "year"], how="outer")
+        tracks.append("ss")
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)

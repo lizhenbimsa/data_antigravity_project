@@ -5,6 +5,11 @@
 2. majority_vote_sentiment 平局返回 None (tie_strategy='undefined')
 3. 21 输出含 n_valid_votes_* / n_verifying_votes_* / llm_call_failure_* / llm_undefined_*
 4. encode_sentiment 把 测量失败/平局/verification 失败 行映射为 NaN 而非 0
+
+三轨 (ss 银行+金科同句共现轨, 2026-06-14): _aggregate_track / fetch_llm_async /
+majority_vote_sentiment 均为 **track-agnostic** — full/ctx/ss 三轨各调一遍同一函数,
+track 名仅作旁路标识 (随返回元组透传)。本测试在既有 full/ctx 异步用例外补 "ss"
+track 旁路传递断言, 验证 ss 轨复用同一调用路径 (无需任何函数改动)。
 """
 from __future__ import annotations
 
@@ -269,10 +274,17 @@ async def test_fetch_llm_auth_failure_disables_model_without_retry_storm():
         session, semaphore, "another prompt", model_cfg, 2, "ctx",
         model_availability=availability,
     )
+    # 三轨 (ss 2026-06-14): ss track 旁路透传, 复用同一调用路径 (track-agnostic)
+    third = await fetch_llm_async(
+        session, semaphore, "ss prompt", model_cfg, 3, "ss",
+        model_availability=availability,
+    )
 
     assert first == (1, "disabled-model", None, "full")
     assert second == (2, "disabled-model", None, "ctx")
+    assert third == (3, "disabled-model", None, "ss")
     assert availability.is_disabled("disabled-model")
+    # 模型在首调即被永久停用 → 后续 ctx/ss 调用不再访问网络, session.calls 仍为 1
     assert session.calls == 1
 
 

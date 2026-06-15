@@ -28,11 +28,16 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-# Attention treatment 列 (stage 14_fintech_intensity 衍生) + outcome enrichment 列
+# Attention treatment 列 (stage 14_fintech_intensity 衍生) + outcome enrichment 列。
+# 三轨 (full/ctx/ss) 平价 (third-track-ss 2026-06-14): attention_index_ss = 银行+金科
+# 同句共现轨曝光强度 (content_ss; 标签 "(银行+金科同句)"; 配同句 IV lpeer_attention_iv_ss,
+# 与 full/ctx 各自 just-identified 并排, 严禁三轨合成 over-id Hansen J)。ss 列 stage
+# 14/21 三轨产出后落盘, 落盘前 build_summary_table(strict=False) 以 NaN 占位行可见保留。
 _TABLE1_VARIABLES: list[str] = [
-    # P2 处理变量 treatment (依 paper_spec.yaml R36-m01)
+    # P2 处理变量 treatment (依 paper_spec.yaml R36-m01; +ss 同句共现轨)
     'attention_index_full',
     'attention_index_ctx',
+    'attention_index_ss',
     'attention_disp_full',
     'attention_pct_full',
     # P2 结果变量 outcome (M0.5.11 财务数据扩充列)

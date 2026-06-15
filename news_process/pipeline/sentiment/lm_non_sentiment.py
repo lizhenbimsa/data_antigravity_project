@@ -1,7 +1,8 @@
 """news_process.pipeline.sentiment.lm_non_sentiment — A1 LM 4 子词典中文实现.
 
 v3.5.2 PR #3 (与 forward_looking.py 同 sprint) — 复用 v3.5.1 A1 lexical
-clarity 的 ``_compute_clarity_for_text`` + ``_dual_analyze`` 真双轨架构,
+clarity 的 ``_compute_clarity_for_text`` + ``_dual_analyze`` (函数名为历史 legacy,
+现已三轨 full/ctx/ss) 真三轨 (full/ctx/ss) 架构,
 但喂入 LM 2011 JF non-sentiment 4 个子词典:
     uncertainty / litigious / constraining / modal_strong
 
@@ -14,17 +15,19 @@ Bochkay, K., Hales, J., & Chava, S. (2020). Hyperbole or Reality? Investor
 Response to Extreme Language in Earnings Conference Calls. The Accounting
 Review, 95(2), 31-60.
 
-panel 新增 8 列 (双轨 × 4 子集)
--------------------------------
-``uncert_frac_{full,ctx}``     不确定性词频比例
-``litig_frac_{full,ctx}``      诉讼/监管风险词频比例
-``constr_frac_{full,ctx}``     约束词频比例
-``modal_strong_frac_{full,ctx}`` 强势模态词频比例
+panel 新增 12 列 (v3.9.0 三轨 × 4 子集)
+---------------------------------------
+``uncert_frac_{full,ctx,ss}``     不确定性词频比例
+``litig_frac_{full,ctx,ss}``      诉讼/监管风险词频比例
+``constr_frac_{full,ctx,ss}``     约束词频比例
+``modal_strong_frac_{full,ctx,ss}`` 强势模态词频比例
+(ss = 银行+金科同句共现轨; ``_compute_lm_non_sentiment_for_text`` 本身 track-agnostic,
+第三轨由调用方用 content_ss 文本驱动, 本模块无需改动)
 
 集成点 (PR #14)
 ---------------
-``pipeline.sentiment.tone_words::_dual_analyze`` 内对 content_full / content_ctx
-各调用一次本模块的 ``_compute_lm_non_sentiment_for_text``, 把 4 项结果
+``pipeline.sentiment.tone_words::_dual_analyze`` 内对 content_full / content_ctx /
+content_ss 各调用一次本模块的 ``_compute_lm_non_sentiment_for_text`` (三轨), 把 4 项结果
 加入 result dict.
 
 stub 说明
@@ -90,8 +93,9 @@ def _compute_lm_non_sentiment_for_text(
 ) -> dict[str, float]:
     """单文本 LM 4 子集词频; 仿 v3.5.1 ``_compute_clarity_for_text`` 接口.
 
-    与 ``_dual_analyze`` (tone_words.py:982) 在 content_full / content_ctx
-    各调用一次, 实现真双轨 (修双轨假化, 参见 v3.5.1 plan §2.1).
+    与 ``_dual_analyze`` (tone_words.py:982) 在 content_full / content_ctx / content_ss
+    各调用一次, 实现真三轨 (修双轨假化, 参见 v3.5.1 plan §2.1; v3.9.0 +ss=银行+金科同句
+    共现轨)。本函数 track-agnostic (输入单一文本), 第三轨由调用方传 content_ss 驱动。
 
     Args:
         text: 待分析的中文文本.
@@ -153,10 +157,12 @@ def _compute_lm_non_sentiment_for_text(
 
 
 def get_panel_columns(suffix: str) -> list[str]:
-    """返回 panel 应追加的 4 列名 (按指定后缀, 双轨各 4 列).
+    """返回 panel 应追加的 4 列名 (按指定后缀, 三轨各 4 列 = 12 列, v3.9.0 +ss).
+
+    suffix-parameterized → 本函数 track-agnostic, 调用方传 '_ss' 即得同句共现轨列名。
 
     Args:
-        suffix: '_full' 或 '_ctx'.
+        suffix: '_full' / '_ctx' / '_ss' (ss = 银行+金科同句共现轨).
 
     Returns:
         [f'uncert_frac{suffix}', f'litig_frac{suffix}', ...]

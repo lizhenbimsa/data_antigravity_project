@@ -72,7 +72,13 @@ def build_table4_heterogeneity(paper_config: PaperConfig | None = None) -> pd.Da
 
 
 def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataFrame:
-    """Table 5: 稳健性 (Ctx 轨 / bank 聚类 / 二阶滞后 (L2.) 中心度)."""
+    """Table 5: 稳健性 (Ctx 轨 / ss 轨 (银行+金科同句共现) / bank 聚类 / 二阶滞后 (L2.) 中心度).
+
+    third-track-ss 2026-06-14: peer_tone_lag1_ss / peer_tone_2nd_lag1_ss 由
+    network_spillover 三轨 (full/ctx/ss) 传播产出, 作 spillover IV 工具的同句共现稳健性轨
+    (与 full/ctx 各自 just-identified 并排, 严禁三轨合成 over-id Hansen J); ss 列缺失时
+    Stata capture confirm 守卫优雅降级。Table 1 仅列 full 轨 (peer_tone_lag1_full 作主 IV
+    工具源), ctx/ss 稳健轨在本表展开。"""
     from news_process.papers._common.stata_postprocess import read_paper_esttab
     return read_paper_esttab('brokerage_network', 'table5_robustness.csv', paper_config)
 

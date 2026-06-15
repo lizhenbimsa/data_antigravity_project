@@ -86,12 +86,15 @@ logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 RADII = [0, 1, 2, 3]                    # 待检验的窗口半径
 FALLBACK_CHAR_RADIUS = 150               # 字符级回退窗口（与原始设定一致）
 
-# v3.6.0 (Plan E P7 C1): 双轨标记 — 当前实现仍为词典法单轨 (用 '内容' 全文重提
-# ctx 在不同 radius 下的得分). 真正"双轨敏感性" 要求在 _full 和 _ctx 各跑一遍
-# 整个 RADII grid, 输出 35_radius_sensitivity_{full,ctx}.json 各一份。
-# 双轨敏感性扫描 (full + ctx 各跑一遍 RADII grid) 为待实施项 (TODO; 由 RUN_DUAL_TRACK 开关控制)。
-# 当前模块的 radius 扫描已经隐式覆盖 ctx 提取参数, 半成品双轨。
-RUN_DUAL_TRACK = False  # 占位开关, 尚未接线 (main() 未分支于此); 双轨扫描见上方 TODO, 翻 True 暂不生效
+# v3.6.0 (Plan E P7 C1): 多轨标记 — 当前实现仍为词典法单轨 (用 '内容' 全文重提
+# ctx 在不同 radius 下的得分). 真正"多轨敏感性" 要求在 _full / _ctx / _ss 各跑一
+# 遍整个 RADII grid, 输出 35_radius_sensitivity_{full,ctx,ss}.json 各一份。
+# 注(三轨, 2026-06-14): radius 扫描本身是 track-agnostic 的窗口半径参数扫描 (只动
+# 提取半径, 不切换 LLM 情感轨), 故 _ss 第三轨同 _ctx 一样落入下方待实施 TODO; 本轮
+# 三轨化无需改本模块的扫描逻辑, 仅同步术语 双轨→多轨。
+# 多轨敏感性扫描 (full + ctx + ss 各跑一遍 RADII grid) 为待实施项 (TODO; 由 RUN_MULTI_TRACK 开关控制)。
+# 当前模块的 radius 扫描已经隐式覆盖 ctx 提取参数, 半成品多轨。
+RUN_MULTI_TRACK = False  # 占位开关, 尚未接线 (main() 未分支于此); 多轨扫描见上方 TODO, 翻 True 暂不生效
 
 # 从 22_tone_words 复用的情感参数
 SENTIMENT_PARAMS = CONFIG.get('sentiment_analysis', {}).get('tone_words', {})

@@ -26,11 +26,17 @@ PAPER_ID = 'bank_fintech_collab'
 # innovation_collab_mode_full/_ctx 是文章级中文字符串 (自主研发/外部协同), 永远
 # 不会以该名出现在 bank-year panel (结构性错名 → Table 1 全 NaN)。金融
 # enrichment 列 (待 M0.5.11) 保留为可见 NaN 占位行 (F16 政策) 并经 CSV 脚注披露。
+# 三轨 (full/ctx/ss) 平价 (third-track-ss 2026-06-14): ss = 银行+金科同句共现轨;
+# panel 后缀映射 = full(裸名) / ctx(*_cm) / ss(*_cm_ss) (encode.py 镜像 _cm 块产
+# collab_frac_cm_ss/indep_frac_cm_ss, 分母 = n_articles_llm_valid_ss); ss 列 stage 21
+# 三轨产出后落盘, 落盘前 build_summary_table(strict=False) 以 NaN 占位行可见保留 (golden-safe)。
 _TABLE1_VARIABLES: list[str] = [
     'collab_frac',                     # treatment — 外部协同新闻占比 (full 轨, Chesbrough 2003)
     'indep_frac',                      # 自主研发新闻占比 (full 轨)
     'collab_frac_cm',                  # ctx 轨 (entity-context 分类)
     'indep_frac_cm',                   # ctx 轨
+    'collab_frac_cm_ss',               # ss 轨 (银行+金科同句共现; 缺列时 NaN 占位)
+    'indep_frac_cm_ss',                # ss 轨 (银行+金科同句共现)
     'm_and_a_fintech',                 # outcome.primary (外部协同直接 outcome; M0.5.11 待落盘)
     'r_and_d_intensity',               # secondary (自主研发强度; M0.5.11 待落盘)
     'car_5day_window',                 # short-run 市场反应 (M0.5.11 待落盘)
@@ -44,7 +50,8 @@ _TABLE1_VARIABLES: list[str] = [
 # Table 1 CSV 脚注 (存在性披露; fix(omni-g-papers-misc-03))
 _TABLE1_FOOTNOTE = (
     "Treatment rows use panel-materialized bank-year shares "
-    "(collab_frac/indep_frac, full track; *_cm = ctx track). "
+    "(collab_frac/indep_frac, full track; *_cm = ctx track; "
+    "*_cm_ss = bank+fintech same-sentence co-occurrence track). "
     "Outcome/control rows pending M0.5.11 financial enrichment appear as "
     "NaN placeholder rows until materialized (existence-checked at build time)."
 )

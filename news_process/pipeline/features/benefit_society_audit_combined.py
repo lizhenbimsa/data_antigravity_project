@@ -9,13 +9,14 @@ audit-only 输出:
 
 Schema (键 = target_bank + year):
     - benefit_jlm_zh_mean / std / pos_frac / neg_frac  (+ ``_ctx`` twin 列,
-      当提供 ctx 轨嵌入时; fix(omni-g-benefit-01, 2026-06-11) 补 ctx 轨)
+      当提供 ctx 轨嵌入时; + ``_ss`` twin 列, 当提供 ss 轨 [银行+金科同句]
+      嵌入时; fix(omni-g-benefit-01, 2026-06-11) 补 ctx 轨, 三轨补 ss 轨)
     - benefit_placebo_housing_loans_mean
     - benefit_placebo_credit_cards_mean
     - benefit_placebo_intermediate_business_mean
     - benefit_placebo_branch_channel_mean
     - benefit_placebo_general_corporate_mean   (中性基线)
-      (placebo 列同样有 ``_ctx`` twin)
+      (placebo 列同样有 ``_ctx`` / ``_ss`` twin)
 
 Sidecar JSON: ``...sidecar.json``, 记录锚点 yaml SHA-256 + 逐 placebo 命中数。
 
@@ -81,6 +82,7 @@ def build_audit_panel(
     bank_col: str = "target_bank",
     year_col: str = "year",
     text_embeddings_ctx: np.ndarray | None = None,
+    text_embeddings_ss: np.ndarray | None = None,
     anchor_embedding_fn=None,
     embedding_model_id: str | None = None,
     seed: int = DEFAULT_SEED,
@@ -102,6 +104,9 @@ def build_audit_panel(
         消费端归一)。
     text_embeddings_ctx
         可选 ctx 轨嵌入 (同 model / 同行序) → ``_ctx`` twin 列。
+    text_embeddings_ss
+        可选 ss 轨嵌入 (银行+金科同句共现 content_ss; 同 model / 同行序)
+        → ``_ss`` twin 列 (三轨第三轨, 与 ctx 并列)。
     anchor_embedding_fn
         可注入的锚点嵌入闭包 (测试用). ``None`` → 经
         ``make_anchor_embedding_fn(resolve_embedding_spec(model_id))`` 构造
@@ -134,6 +139,11 @@ def build_audit_panel(
             f"df_exploded ({len(df_exploded)}) and text_embeddings_ctx "
             f"({len(text_embeddings_ctx)}) length mismatch"
         )
+    if text_embeddings_ss is not None and len(df_exploded) != len(text_embeddings_ss):
+        raise ValueError(
+            f"df_exploded ({len(df_exploded)}) and text_embeddings_ss "
+            f"({len(text_embeddings_ss)}) length mismatch"
+        )
 
     np.random.seed(seed)  # 显式 seed (确定性披露见 docstring)
 
@@ -165,6 +175,17 @@ def build_audit_panel(
         alt_panel = alt_panel.merge(
             alt_panel_ctx, on=[bank_col, year_col], how="outer"
         )
+    # ss 轨 (第三轨, 银行+金科同句): 同一 alt 方向向量 (锚点 track-agnostic),
+    # 仅切换 ss 文章嵌入子集投影, 镜像 ctx 路径
+    if text_embeddings_ss is not None:
+        alt_scores_ss = _alt_project(text_embeddings_ss, alt_dir)
+        alt_panel_ss = _alt_aggregate(
+            df_exploded, alt_scores_ss,
+            bank_col=bank_col, year_col=year_col, col_suffix="_ss",
+        )
+        alt_panel = alt_panel.merge(
+            alt_panel_ss, on=[bank_col, year_col], how="outer"
+        )
 
     # ---- 2) Placebo (4 业务线 + 1 中性) — 使用 MAIN 主方向向量
     business_lines, neutral_baseline, placebo_meta = load_placebo_keywords()
@@ -191,6 +212,20 @@ def build_audit_panel(
         placebo_panel = placebo_panel.merge(
             placebo_panel_ctx, on=[bank_col, year_col], how="outer"
         )
+    if text_embeddings_ss is not None:
+        # ss twin (第三轨): 同关键词掩码 (track-agnostic 文本过滤) + ss 嵌入投影
+        placebo_panel_ss, _ = compute_placebo_projection(
+            df_exploded,
+            text_embeddings_ss,
+            main_direction,
+            keyword_sets,
+            bank_col=bank_col,
+            year_col=year_col,
+            col_suffix="_ss",
+        )
+        placebo_panel = placebo_panel.merge(
+            placebo_panel_ss, on=[bank_col, year_col], how="outer"
+        )
 
     # ---- 3) 按 (bank, year) outer-merge 合并
     combined = alt_panel.merge(
@@ -209,7 +244,11 @@ def build_audit_panel(
         "task_id": "P1.6 audit-only combined panel",
         "embedding_model": embedding_model_id,
         "embedding_dim": int(text_embeddings.shape[1]) if text_embeddings.ndim == 2 else None,
-        "tracks": ["full", "ctx"] if text_embeddings_ctx is not None else ["full"],
+        "tracks": (
+            ["full"]
+            + (["ctx"] if text_embeddings_ctx is not None else [])
+            + (["ss"] if text_embeddings_ss is not None else [])
+        ),
         "random_seed": int(seed),
     }
     return combined, metadata
@@ -248,6 +287,15 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "Optional ctx-track embeddings .npy (+ sidecar) → *_ctx twin 列 "
             "(fix(omni-g-benefit-01, 2026-06-11): 补 ctx 轨)"
+        ),
+    )
+    parser.add_argument(
+        "--text-embeddings-ss",
+        type=str,
+        default=None,
+        help=(
+            "Optional ss-track embeddings .npy (+ sidecar; 银行+金科同句共现, "
+            "content_ss) → *_ss twin 列 (三轨第三轨, 与 ctx 并列)"
         ),
     )
     parser.add_argument(
@@ -343,16 +391,28 @@ def main(argv: list[str] | None = None) -> int:
         if str(ctx_meta["model_id"]) != model_id:
             raise ValueError(
                 f"ctx embeddings model={ctx_meta['model_id']!r} != full track "
-                f"model={model_id!r} — 双轨必须同嵌入空间"
+                f"model={model_id!r} — 三轨必须同嵌入空间"
+            )
+
+    text_embeddings_ss = None
+    if args.text_embeddings_ss is not None:
+        text_embeddings_ss, ss_meta = load_article_embeddings(
+            args.text_embeddings_ss
+        )
+        if str(ss_meta["model_id"]) != model_id:
+            raise ValueError(
+                f"ss embeddings model={ss_meta['model_id']!r} != full track "
+                f"model={model_id!r} — 三轨必须同嵌入空间"
             )
 
     logger.info(
-        "Loaded embeddings shape=%s (model=%s) / df len=%d / direction shape=%s / ctx=%s",
+        "Loaded embeddings shape=%s (model=%s) / df len=%d / direction shape=%s / ctx=%s / ss=%s",
         text_embeddings.shape,
         model_id,
         len(df_exploded),
         main_direction.shape,
         "yes" if text_embeddings_ctx is not None else "no",
+        "yes" if text_embeddings_ss is not None else "no",
     )
 
     combined, meta = build_audit_panel(
@@ -360,6 +420,7 @@ def main(argv: list[str] | None = None) -> int:
         text_embeddings,
         main_direction,
         text_embeddings_ctx=text_embeddings_ctx,
+        text_embeddings_ss=text_embeddings_ss,
         embedding_model_id=model_id,
         seed=args.seed,
     )

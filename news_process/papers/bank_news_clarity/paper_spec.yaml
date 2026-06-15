@@ -110,6 +110,7 @@ treatment:
 
   alternative:
     - mean_clarity_score_full       # _full 轨 dual-track robustness
+    - mean_clarity_score_ss         # ss 轨 (银行+金科同句共现轨; 三轨 full/ctx/ss 互为稳健性)
     - mean_frac_definite_ctx        # 分母只看确定性词 (You 2018 Panel C 388 词)
     - mean_frac_definite_full
     - frac_amb_articles_ctx         # 二值化指标 (≥ D0 全样本中位数)
@@ -177,6 +178,11 @@ identification:
   iv:
     primary: outlet_style_clarity_iv_ctx     # main_track=_ctx (governance 同步)
     fallback: outlet_style_clarity_iv_full
+    # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨): 内生孪生
+    # mean_clarity_score_ss 配同句 outlet 笔法工具 outlet_style_clarity_iv_ss, 与
+    # full/ctx 轨各自 just-identified 并排; 严禁 full×ctx×ss 合成 Hansen J overid
+    # (机械 _ctx→_ss swap)。
+    ss_mirror: [outlet_style_clarity_iv_ss]
   iv_candidates:  # V4 F4.2 修复 (放弃记者轮换 IV — institution 不存在)
     accounting_standard_switch_did:  # PRIMARY candidate (Bushman-Williams 2012 JAE 范式同源)
       events:
@@ -217,6 +223,7 @@ inference:
     single_hypothesis: "媒体报道清晰度 (外部信息环境质量) → 银行风险承担 (方向 ambiguous ex ante, sample split 揭示)"
   exploratory:  # robustness / 探索性, 非 co-equal headline
     - "6 alt clarity measures (PCA composite + 各分量)"
+    - "三轨 full / ctx / ss (互为稳健性高相关孪生, 非独立假设; ss = 银行+金科同句共现轨)"
     - "5-way heterogeneity (SOE / listed / capital / type / period)"
     - "5 IV cross-validation + alt outcomes (NPL / RWA / LLP discretion)"
   multiple_testing:

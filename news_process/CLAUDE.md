@@ -12,7 +12,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **news_process** is a research data pipeline that transforms raw Chinese news articles into panel datasets for econometric analysis. It processes bank and fintech news through multiple stages: preprocessing, classification, sentiment analysis (LLM/dictionary/BERT), and panel construction.
 
-**Current version**: v3.8.0 (2026-05-31, remove-title-track, 移除提交 `6382cc67`)。
+**Current version**: v3.10.0 (2026-06-15, stage-12b-cooccurrence-prefilter, 新增 **stage 12b 银行×金科邻近共现硬过滤**)。
+
+**v3.10.0** — 在 stage 12 (news_fintech) 与 stage 13 (materialize_ctx) 之间**新增 stage 12b** (`12b_cooccurrence_filter.py` + `pipeline/filtering/cooccurrence_filter.py`): **硬过滤丢行**, 只保留"目标银行与 ≥1 金科词在 ±sentence_radius 句窗口内邻近共现"的文章 (Andreou et al. 2026, core-contextual word-pairing 的**句级窗口**操作化, 比 10-token span 更宽), 降低 stage 12 关键词判定的虚假相关。判据原语 = `core/text/entity_context.py::has_bank_fintech_cooccurrence_within_radius` (窗口邻近双层循环; 与 _ss 轨严格同句 `extract_bank_fintech_cooccurrence` **不同口径**, 后者是 radius=0 子集, **禁互相复用**)。**唯一 load-bearing 重指针** = stage 13 输入改读 `output_12b_cooccurrence` (ctx_materializer.py main)。
+- **路线 A (纯接受-披露, 经四轮 238-agent 对抗审计定稿)**: 12b 仅丢行, 下游 `controls.py`/`encode.py` **零改动**; `n_articles`/`fintech_share`(分子)/`attention 族①`/NF 对照组的统计宇宙统一平移为"近邻相关金科"口径, 在 manuscript/codebook **如实披露** (非代码修复)。fintech_share 分母经"望远镜式坍缩" `all_n_articles = ft_dedup + (|df_full|−ft_dedup) ≡ |df_full|` **恒不变** (12b 只把中间集 C 从 ft 端移到 nf 端, 代数和守恒); Hassan 互斥划分完整; 被丢的"关键词金科但非近邻"中间集 C 留在 NF (弱噪声, 偏保守 against-H1, 披露+附录可选排除)。
+- **安全铁律**: `FINTECH_AC=None` (词典缺失) → **保留全部行 + loud WARNING** (绝不静默清空整库, SAFE-1); keep 率低于 `cooccurrence_filter.min_keep_frac` 或 0 行 → `SystemExit(1)`。
+- **计数变更**: STAGES_MAIN **15→16**, 注册阶段 31→32 (16 + 16 validation), thin shim **34→35**, OUTPUT_REGISTRY +1 (`12b_cooccurrence_filtered.parquet`)。`config/filtering.yaml::cooccurrence_filter` (sentence_radius=1 / min_keep_frac); `config/paths.yaml::output_12b_cooccurrence`。
+- **生产层待办** (本机 data/raw 空、T=2 跑不了): keep 率硬 gate (须读 **pre-12b** `12_fintech_news.parquet` 作候选集, 否则自证假~100%) + 全量重跑 (30a 4-6h → 18) + golden 受控重生 (排除 3 个 BLAS-FP 网络列) + radius∈{0,1,2} 稳健性网格。**stage 21 缓存命中 $0** (12b 只删行, 存活行 content 不变)。⚠ "disk 1170 篇零共现 14.27%" 是**严格同句 (radius=0) 上界**, 12b 窗口 (radius≥1) 实际丢行率更低, 须 gate 实测。
+
+**v3.9.0** — 新增 `_ss` 银行+金科同句共现情感轨 (2026-06-14, third-track-same-sentence)。
+
+**v3.9.0** — 新增**第三主轨 `_ss` (银行+金科同句, bank+fintech same-sentence co-occurrence)**, 与 `_full` / `_ctx` 全平价并列 (非附录稳健性, 进全部阶段/IV/校验/Stata 模板/11 篇 paper_spec)。权威执行计划 = `scripts/audit/THIRD_TRACK_SAME_SENTENCE_PLAN_2026-06-14.md` (§1-8 + §⑬)。
+- **第三轨定义**: 文本列 `content_ss` = 标题 + **同句内同时含 目标银行∧金科词** 的句 ±N 句窗 (`config/filtering.yaml::context_window.ss_sentence_radius`, 默认 1); 判定复用 `scripts/audit/measure_bank_fintech_cooccurrence.py` 同口径 (银行侧=否定+短名过滤 / 金科侧=裸 AC 1506 词, **不对称口径**)。提取原语 = `core/text/entity_context.py::extract_bank_fintech_cooccurrence()`; stage 13 `ctx_materializer` 物化 `content_ss` + `ss_is_fallback`, 与 `content_ctx` + `ctx_is_fallback` 完全平行 (基础三件套已落地, 勿动)。
+- **回退语义 = 镜像 ctx**: 无"银行∧金科同句"共现 → `content_ss = 全文 body`, `ss_is_fallback=True` (与 ctx 回退公理完全一致, 共享 `n_articles` 分母, 不需独立计数列)。`load_fintech_dict` 失败 ⇒ `FINTECH_AC=None` ⇒ `ss_is_fallback` 全 True (优雅降级)。实测 disk 1170 篇: 零共现 14.27% (回退全文, 少数) / 主题漂移 65.76% (银行句仅 34% 提金科 → ss≠ctx, 独立信号成立)。
+- **机械命名规则**: 每个 ss 列 = 其 ctx 孪生的 `_ctx`→`_ss` (如 `llm_vote_tone_ctx→_ss` / `fintech_intensity_score_ctx→_ss` / `policy_cosine_sim_ctx→_ss` / `lpeer_attention_iv_ctx→_ss` / `bartik_X_iv_ctx→_ss`); 标签 = ctx 标签 + 后缀 **"(银行+金科同句)"** (英文 "(Bank+FinTech same-sentence)"), track-label 助手加 "(同句共现)"。`_ss`(3) **短于** `_ctx`(4) → 任何 ctx 列截断后 ss 必也合规, **无需新增缩写规则** (取消原 `_cooc`→`_co` 工作项); 仅保留 Stata 写前**三元组唯一性断言** (full/ctx/ss 截断后不撞名)。
+- **4 锁定决策** (用户 2026-06-14 拍板): ① 回退语义 = 回退全文 (镜像 ctx); ② 覆盖范围 = 全平价 (作并列第三主轨); ③ LLM 成本 = 现在批准线上付费跑 (stage 21 ss 首跑线上, 缓存现 0 条 ss, golden 随之重生); ④ 命名后缀 = `_ss` (同句, 3 字符)。
+- **冻结 prompt v8 字节级**: LLM (stage 21) 仅交换 `content` 实参 (`content_ss`), **绝不改任何 prompt 模板文本**。⚠ **铁律**: full×ctx×ss **禁混进同一 over-identified Hansen J**; 三轨各自 just-identified 并排 (重申既有 ctx 红线)。
+- **付费 / golden**: 免费 ~90% (核心提取/物化/词典-BERT/herd/特征/面板聚合/IV/校验/标签-codebook/Stata 模板/测试码); 付费 = stage 21 ss LLM (主) + stage 15 ss 嵌入 (低) + golden 重生那次线上跑 (受 **M0 gate**)。`NEWS_PROCESS_LLM_OFFLINE=1` 防偷跑; 批准后线上播种 ~3510 ss 缓存 → `generate_golden_snapshot.py` → **golden schema_version 2→3** (版本感知 loader, 单一 golden, schema_version==2 时丢 `_ss` 列), 重生 codebook.{csv,json,md,xlsx} + `46_*_labels.do`; 此后离线 $0 字节稳定复现。
+- **计数不变**: STAGES_MAIN=15 / STAGES_VALIDATION=16 **不变** (三轨为列内扩展, 无阶段增删; OUTPUT_REGISTRY=15 keys 不变, 列就地加在既有 parquet)。⚠ 上线前用 `measure_bank_fintech_cooccurrence` 逐年实测全量 17M/T=18 的 ss 非空率与 min-N (14.27%/65.76% 来自 1170 篇 disk 小样)。
 
 **v3.8.0 BREAKING** — 删除独立 `_title` 情感轨及全部产物, 标题改 prepend 进 full/ctx 两轨：
 - 删 stage 39g (`track_discriminant_validity`) → STAGES_VALIDATION 18→17, 注册阶段共 **36** (STAGES_MAIN 19 + STAGES_VALIDATION 17), thin shim 40→**39**。
@@ -38,7 +55,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **冻结锚点**: Prompt v8 字节级冻结 + `jieba == 0.42.1` (不重跑 stage 21, $0 LLM)。
 
 **Stage 21 确定性锚点 = `data/processed/_llm_cache.db`** (2026-06-06 落地, 问题3): golden 的跨-run 可复现性取决于 stage 21 LLM 投票是否确定。唯一不确定源是 **缓存 miss → 重调付费 API → 同篇文章投票可能翻转** (实测曾致某边缘银行整行掉出, panel 176→174 行漂移)。
-- **充要条件**: 当前语料 × 全部启用模型 × 双轨 在 `_llm_cache.db` 中 **0 miss**。已验证: 7020/7020 命中 (1170 文 × 3 模型 × 2 轨, `prompt_version='v8-2026-05-17'` / `temperature=0.0`); 离线真跑 stage 21 输出与原盘 **content-sha256 字节级一致**。
+- **充要条件**: 当前语料 × 全部启用模型 × 三轨 (full/ctx/ss) 在 `_llm_cache.db` 中 **0 miss**。已验证 (full+ctx 两轨): 7020/7020 命中 (1170 文 × 3 模型 × 2 轨, `prompt_version='v8-2026-05-17'` / `temperature=0.0`); 离线真跑 stage 21 输出与原盘 **content-sha256 字节级一致**。⚠ v3.9.0 新增第三轨 `_ss` 后, ss 缓存初始为 0 条 → 须线上付费首跑播种 **~3510 条** ss (1170 文 × 3 模型 × 1 轨, 预期 7020→7020+~3510), 之后方可 `NEWS_PROCESS_LLM_OFFLINE=1` 离线 $0 复现 (见顶部 v3.9.0 段)。
 - **强制机制 (新)**: 设 `NEWS_PROCESS_LLM_OFFLINE=1` → stage 21 缓存 miss 时 **raise `LLMCacheMissError` 而非调 API** (`pipeline/sentiment/tone_llms.py`, 默认关闭, 不改生产首跑); 离线模式同时跳过 preflight 探针 → 零网络、$0。
 - **验证工具**: `python -m news_process.scripts.audit.verify_stage21_cache_coverage` (纯缓存读, 报 hit/miss; misses=0 即可 $0 确定性复现)。
 - **铁律**: **勿删 `_llm_cache.db`** (407MB / 133,687 条) — 删则 golden 不再可复现, 须重跑付费 stage 21。prompt 构造单一事实源 = `tone_llms.iter_article_track_prompts` (生产与审计共用 → 缓存键一致)。
@@ -68,9 +85,9 @@ The pipeline is a **declarative DAG** defined in `news_process/core/dag.py`. All
 → 21_tone_llms / 22_tone_words / 23_tone_berts → 24_herd_decay_processor
 → 45_panel_export_main → 46_stata_export → 51_falsification_test
 ```
-`13_materialize_ctx` 物化 `content_ctx` 列, 让下游 14/15 在 stage 21 之前即可消费 ctx, 实现 fintech_intensity / policy_alignment 真双轨 (`*_full` / `*_ctx`)。stage 30 (`robustness_text2vec`) 已于 2026-05-29 退役 — `_t2v` 列改由 stage 15/25 inline 产出, 仅余 `30a_article_sbert`。
+`13_materialize_ctx` 物化 `content_ctx` 列 (v3.9.0 起同步物化 `content_ss`), 让下游 14/15 在 stage 21 之前即可消费 ctx/ss, 实现 fintech_intensity / policy_alignment 真**三轨** (`*_full` / `*_ctx` / `*_ss`)。stage 30 (`robustness_text2vec`) 已于 2026-05-29 退役 — `_t2v` 列改由 stage 15/25 inline 产出, 仅余 `30a_article_sbert`。
 
-Sentiment methods **21 (LLM) / 22 (词典) / 23 (BERT) / 24 (跟风衰减) 自 2026-06-13 起全部为无条件 always-on** (用户决策"全部启用而非条件启用", 在 2026-06-12 的 23/24 先例基础上扩展到 21/22 + 全部 14 个验证阶段): 所有 StageSpec 均取默认 `enabled_when=always_enabled`, 不再随 `config/sentiment.yaml::sentiment_analysis.enabled_methods` / `config/validation.yaml::validation.*` 启停; `METHOD_TO_PREDICATE` 已清空 `{}`, 各方法/验证谓词函数保留供测试。决策动机: 把全部阶段提升为结构性 always-on 后, 无论配置如何, 下游输入 (如 `24_herd_decay.parquet`) 始终生成 → 消除了 stage 45 因缺输入而 `sys.exit(1)` 的脆弱耦合。详见顶部 "全部 opt-in / 条件启用阶段 → 无条件 always-on (2026-06-13)" 段。
+Sentiment methods **21 (LLM) / 22 (词典) / 23 (BERT) / 24 (跟风衰减) 自 2026-06-13 起全部为无条件 always-on** (用户决策"全部启用而非条件启用", 在 2026-06-12 的 23/24 先例基础上扩展到 21/22 + 全部 14 个验证阶段): 所有 StageSpec 均取默认 `enabled_when=always_enabled`, 不再随 `config/sentiment.yaml::sentiment_analysis.enabled_methods` / `config/validation.yaml::validation.*` 启停; `METHOD_TO_PREDICATE` 已清空 `{}`, 各方法/验证谓词函数保留供测试。决策动机: 把全部阶段提升为结构性 always-on 后, 无论配置如何, 下游输入 (如 `24_herd_decay.parquet`) 始终生成 → 消除了 stage 45 因缺输入而 `sys.exit(1)` 的脆弱耦合。详见顶部 "全部 opt-in / 条件启用阶段 → 无条件 always-on (2026-06-13)" 段。**v3.9.0 起每个情感方法均跑三轨** `['_full', '_ctx', '_ss']` (原双轨循环 `['_full', '_ctx']` 加入第三轨 `_ss` 银行+金科同句; 详见顶部 v3.9.0 段)。
 
 ### Directory Layout
 
@@ -83,8 +100,8 @@ news_process/
 ├── config/         # Split YAML configs + prompt templates (config.yaml is a legacy stub)
 ├── data/           # Input (raw/) + output (processed/*.parquet)
 ├── tests/          # full sweep 2581 passed / 3 skipped / 0 failed (collect 数以 --collect-only 为准)
-└── NN_*.py         # 34 thin shim scripts under news_process/ (≤30 lines each);
-                    # 31 registered in core/dag.py (15 STAGES_MAIN + 16 STAGES_VALIDATION);
+└── NN_*.py         # 35 thin shim scripts under news_process/ (≤30 lines each; 含 2026-06-15 12b);
+                    # 32 registered in core/dag.py (16 STAGES_MAIN + 16 STAGES_VALIDATION);
                     # 3 unregistered by design: 27c (audit-only sibling),
                     # 52/53 (user-CLI wrappers, schemas.py:159 显式排除).
                     # planned retirement Plan-r3 P3-18 (拆分约束见 pipeline/panel/runner.py:159).
@@ -178,7 +195,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 ### Code Modification Rules
 
-1. **Stage shims are frozen**: The 37 `news_process/NN_*.py` scripts are thin shims (≤30 lines). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
+1. **Stage shims are frozen**: The 35 `news_process/NN_*.py` scripts are thin shims (≤30 lines). All logic belongs in `news_process.pipeline.*` or `news_process.validation.*`.
 2. **DAG consistency**: Any stage added/removed must update `core/dag.py::STAGES_MAIN`/`STAGES_VALIDATION` and `core/schemas.py::OUTPUT_REGISTRY` (if it produces parquet). Verify with `pytest tests/integration/test_dag_consistency.py`.
 3. **Config split is active**: `core/config.py::load_config()` prefers the 7-domain YAML split and falls back to legacy single-file mode only when all split files are absent. Keep split files semantically equivalent to the legacy config contract.
 4. **Golden baseline**: After column schema changes, regenerate `tests/fixtures/golden_panel_v0.json` via `scripts/migrate/generate_golden_snapshot.py`.

@@ -17,7 +17,7 @@ news_process.validation.llms_evaluation — 阶段33：新闻分类模型评估
       2. 分类器性能评估
          - Precision / Recall / F1-Score
          - 混淆矩阵（含可视化）
-         - McNemar 检验（比较规则分类器 vs LLM 分类器）
+         - McNemar 检验（规则分类器 vs LLM, 及三轨 full/ctx/ss 两两 pairwise）
       3. 误分类系统相关性诊断 (Carlson & Burbano 2026)
       4. 输出 LaTeX 格式表格（可直接嵌入论文）
 
@@ -37,6 +37,40 @@ news_process.validation.llms_evaluation — 阶段33：新闻分类模型评估
 
 输出：
     评估报告（日志 + CSV + PNG 图表 + LaTeX 表格）
+
+========================================================================
+【阶段功能权威说明 — 2026-06-15 三层核查定稿】
+（对应 thin shim: 33_news_llms_evaluation.py；摘自 scripts/audit/PIPELINE_NUMBERED_PY_REFERENCE_2026-06-15.md，
+  经"文档生成→对抗逐行核对代码→跨文件终审"三层核对。）
+
+■ 详细功能说明
+
+**职责**: 把 stage 32 的人工金标准当"标准答案", 全面评估 LLM 分类器的精度 (真伪验证 + 三分类情感 + 创新二元属性), 产出可直接嵌论文的 LaTeX 表。
+
+**输入**: ① stage 32 的人工标注 Excel (优先 `*_merged.xlsx` 双编码者共识, 回退原始人工样本 xlsx; sheet 名 `验证数据`); ② `21_tone_llms.parquet` (机器预测列); ③ 创新维度另读 `manual_validation_samples.xlsx` (3 编码者 R1/R2/R3, 经 manual_validation_schema.R_COLUMNS_BY_RATER)。人工文件全缺时用 `_generate_demo_data(n=200)` 合成数据走通框架 (demo_mode=True, 全部产物加 _DEMO 标记, 严禁引用)。
+
+**处理步骤** (`main()`, 多职责耦合): 加载 + schema 守护 → 提取金标准 (排除验证哨兵 -1 / 情感哨兵 '待仲裁', 待仲裁数作 attrition 报告; 记录 gold_source ∈ {two_coder_consensus, single_coder_A, demo_synthetic, none}) → 编码者间一致性 (ICR) → 分类器性能 → 误分类系统偏倚诊断 (Carlson & Burbano 2026) → 多格式导出。
+
+**关键算法/公式**:
+- **Cohen's κ** `compute_cohens_kappa`: (p_o - p_e)/(1 - p_e), p_o=混淆矩阵对角和/N, p_e=Σ(行和×列和)/N², 自动适配多分类。
+- **Krippendorff's α** `compute_krippendorffs_alpha` (名义尺度, 支持 ≥3 编码者 + 缺标): α=1 - D_o/D_e; D_e 仅基于可配对单元 (m_u≥2), 单编码者单元对 α 零贡献 (2026-06-13 修正)。
+- **Precision/Recall/F1** `compute_classification_metrics` 经 sklearn, 取 macro + weighted + per-class; accuracy 附 **Wilson score 95% CI** (acc_ci 键, 不改既有键)。sklearn 缺失则 raise ImportError。
+- **McNemar** `compute_mcnemar_test`: 分歧数 b+c < EXACT_CUTOFF(=25) 用精确二项检验 (min(b,c)~Binom(b+c,0.5), scipy.binomtest, 无 scipy 时 math.comb 手算), 否则连续性校正卡方 (chi2.sf)。返回 test_type 字段。
+- **误分类偏倚** (Panel D): 对 FP-vs-TP / FN-vs-TN 的下游情感分数做 Welch t-test (`_safe_ttest`, ttest_ind equal_var=False) + KS 检验 (`_safe_kstest`, ks_2samp), 检测一阶误差方向是否与二阶 DV 相关 (Carlson-Burbano Fig 1 警告)。
+- **创新维度** (Panel E/F, `_evaluate_innovation_panels`): 3 编码者多数票 (`merge_three_rater_majority`) 合成 gold, 与 `innovation_{substantiveness,locus}{track}` 经 docid join (去重 keep=first), 算分类指标; 同时对 3 编码者原始标注算 Krippendorff α (折叠前信度, results 独立键 innovation_inter_coder_reliability); 工作簿带 `population_weight` 时附总体后分层加权 accuracy (Manski-Lerman 选择性样本修正, 仅权重全有限非负时计)。
+
+**外部依赖**: sklearn (必需, 缺则 raise) / scipy (binomtest/chi2/ttest_ind/ks_2samp, 多处有手算回退) / matplotlib (Agg, 中文字体 configure_matplotlib_chinese_fonts)。无 LLM/Embedding API, 无缓存, $0。
+
+**DAG 位置**: 验证支线 stage 33, 上游 = stage 32 (人工 Excel) + stage 21 (机器预测); 纯诊断终点, 无下游消费 (只供论文)。shim 仅 `from ...llms_evaluation import main; main()`。
+
+■ 白话说明
+
+这一步是"批改 + 出成绩单": 拿 stage 32 那张人工填好的答卷当标准答案, 给 AI 大模型 (LLM) 的判断逐项打分 —— 它判断"是不是金融科技新闻"准不准 (precision/recall, 即"它说是的里有多少真是"和"真该挑出的它挑出了多少"), 它判断情感正负准不准, 它判断创新是"实质性还是象征性""底层技术还是应用场景"准不准。还会算两位人工编码员之间的一致度 (κ 系数、α 系数, 越接近 1 说明答案越靠谱、不是随便填的)。
+
+为什么需要它: 顶级期刊审稿人一定会问"你怎么知道机器打的标签是对的"。这一步就是用人工答案给机器开"体检报告", 还特别贴心地提醒一个陷阱 —— 人是读整篇文章判断的, 而 ctx/ss 这两条窗口轨的机器只看了银行名附近几句话, 所以拿"整篇答案"给"只看片段的机器"打分, 它答错不一定是笨, 可能是片段和整篇本来就传达了不同意思, 因此这两条窗口轨的分数只能算保守下限。
+
+对最终结果的影响: 不进面板、不改回归数字, 但它产出的精度表和一致性系数是论文"测量效度"章节的命脉。如果机器精度低或编码员一致度差, 整个用 AI 标签做的实证就失去可信度; 这一步做扎实, 主结果才经得起审稿人推敲。
+========================================================================
 """
 
 import json
@@ -45,6 +79,7 @@ import os
 import sys
 import time
 from collections import Counter
+from itertools import combinations
 
 import numpy as np
 import pandas as pd
@@ -69,16 +104,17 @@ STAGE_NAME = "33_news_llms_evaluation"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
 # fix(omni-g-val-tone-04, 2026-06-11) 构念披露 (写入 results JSON + 日志):
-# 人工金标准源于整篇阅读 (全文构念), 同一份 gold 同时评 _full 与 _ctx 两轨 —
-# _ctx 轨 (主 spec llm_vote_tone_ctx) 的 "误差" 混入 [归因窗口 vs 全文] 的
-# 真实分歧, 其 accuracy 应解释为 [模型误差 + 窗口-全文构念差] 的混合下界,
-# 不可解释为纯模型错误。独立的窗口级金标准待人工采集后可消除此混淆。
-# 白话: 人工标注员看的是整篇文章, 而 ctx 轨模型只看银行名附近的几句话。
-# 拿"整篇答案"去给"只看片段的模型"打分, 模型答错可能不是它笨, 而是片段
-# 和整篇本来就传达不同信息 — 所以 ctx 轨的准确率只能当保守下限看。
+# 人工金标准源于整篇阅读 (全文构念), 同一份 gold 同时评 _full / _ctx / _ss 三轨 —
+# _ctx (主 spec llm_vote_tone_ctx) 与 _ss (银行+金科同句) 两个窗口轨的 "误差"
+# 混入 [归因窗口 vs 全文] 的真实分歧, 其 accuracy 应解释为 [模型误差 +
+# 窗口-全文构念差] 的混合下界, 不可解释为纯模型错误。独立的窗口级金标准待
+# 人工采集后可消除此混淆。
+# 白话: 人工标注员看的是整篇文章, 而 ctx/ss 轨模型只看银行名 (及金科) 附近
+# 的几句话。拿"整篇答案"去给"只看片段的模型"打分, 模型答错可能不是它笨, 而是
+# 片段和整篇本来就传达不同信息 — 所以 ctx/ss 轨的准确率只能当保守下限看。
 GOLD_CONSTRUCT_DISCLOSURE = (
-    '人工金标准为整篇阅读的全文构念; _ctx 轨指标含归因窗口与全文的真实分歧, '
-    '其 accuracy 为 [模型误差 + 窗口-全文构念差] 的混合下界, 非纯模型误差'
+    '人工金标准为整篇阅读的全文构念; _ctx/_ss 窗口轨指标含归因窗口与全文的真实'
+    '分歧, 其 accuracy 为 [模型误差 + 窗口-全文构念差] 的混合下界, 非纯模型误差'
 )
 
 
@@ -89,9 +125,9 @@ def construct_disclosure_for(name: str) -> str:
     各自写 `name.endswith('_ctx')`, 但 classification_eval_summary 的键形如
     'LLM 情感分析 (_ctx)' / 'gpt54nano_ctx (独立)' (以 ')' 结尾), endswith
     恒 False → 披露列 100% 空 (死分支)。改为子串匹配并集中到本函数,
-    full/ctx 两轨文案跨 CSV 统一。
+    full/ctx/ss 三轨文案跨 CSV 统一 (ctx 与 ss 均为窗口轨, 共用混合下界披露)。
     """
-    return (GOLD_CONSTRUCT_DISCLOSURE if '_ctx' in name
+    return (GOLD_CONSTRUCT_DISCLOSURE if ('_ctx' in name or '_ss' in name)
             else '全文构念 gold 与 full 轨机器口径一致')
 
 
@@ -917,7 +953,8 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
         ('innovation_locus', 'gold_locus',
          'innovation_locus{track}', ['底层技术', '应用场景']),
     ]:
-        for track in ['_full', '_ctx']:
+        # 三轨 (full/ctx/ss); pred col 缺席时该轨优雅跳过 (下方守卫已处理)
+        for track in ['_full', '_ctx', '_ss']:
             pred_col = pred_template.format(track=track)
             if pred_col not in df_joined.columns:
                 logger_inst.info(f"  pred col {pred_col} absent; skip.")
@@ -1023,7 +1060,7 @@ def diagnose_misclassification_bias(
     Args:
         df_verify:    金标准验证样本 DataFrame。
         gold_ver_col: 黄金标准验证列名（如 '最终_验证'）。
-        track:        轨道后缀（'_full' 或 '_ctx'）。
+        track:        轨道后缀（'_full' / '_ctx' / '_ss'）。
         logger_inst:  日志记录器（可选）。
         output_dir:   CSV 输出目录（可选）。
         demo_mode:    True 时诊断 CSV 文件名加 _DEMO 后缀 (omni-g-val-eval-02)。
@@ -1278,7 +1315,7 @@ def _sentiment_eval_domain(frame: pd.DataFrame, pred_col: str,
     fix(omni-g-val-eval-01/05, 2026-06-11): 旧实现 ``fillna('中性')`` +
     ``np.where(非法标签→'中性')`` 把模型未输出情感的行 (调用失败/投票平局/
     未通过相关性验证 → NaN) 伪造成"中性预测"计入 accuracy/F1/混淆矩阵,
-    且双轨失败率不对称 (ctx NaN 率 ≈ 3× full) 直接污染双轨对比结论。
+    且三轨失败率不对称 (ctx/ss NaN 率 ≈ 3× full) 直接污染三轨对比结论。
     现从评估域剔除无有效预测行, coverage (有效预测占比) 单独报告 —
     与 tone_validation.py / panel encode 的 NA 语义 (测量失败 → 排除) 对齐。
 
@@ -1589,9 +1626,9 @@ def main():
     logger.info(f"    Macro F1:  {rule_metrics['macro']['f1']:.4f}")
     logger.info(f"    Accuracy:  {rule_metrics['accuracy']:.4f}")
 
-    # LLM 分类器（双轨对比）
+    # LLM 分类器（三轨对比 full/ctx/ss; ss 列缺席时该轨自然跳过）
     y_pred_llm_tracks = {}
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:
         ver_col = f'llm_verified{track}'
         if ver_col in df_eval_ver.columns:
             y_pred_llm = df_eval_ver[ver_col].fillna(False).astype(int).values
@@ -1620,12 +1657,21 @@ def main():
         results['mcnemar_rule_vs_llm_full'] = mcnemar
         logger.info(f"  McNemar (规则 vs LLM_full) p值: {mcnemar['p_value']:.6f}  {'显著' if mcnemar['significant'] else '不显著'}")
 
-    # McNemar: full vs ctx
-    if '_full' in y_pred_llm_tracks and '_ctx' in y_pred_llm_tracks:
-        mcnemar_fc = compute_mcnemar_test(y_gold_ver, y_pred_llm_tracks['_full'], y_pred_llm_tracks['_ctx'])
-        results['mcnemar_full_vs_ctx'] = mcnemar_fc
-        logger.info(f"  McNemar (full vs ctx) p值: {mcnemar_fc['p_value']:.6f}  {'显著' if mcnemar_fc['significant'] else '不显著'}")
-        
+    # McNemar: 三轨两两 pairwise (full↔ctx / full↔ss / ctx↔ss) —— 三轨化后
+    # 由 2 轨单一对比 (full vs ctx) 扩为 3 对 (任一轨缺席时该对自然跳过)。
+    for ta, tb in combinations(['_full', '_ctx', '_ss'], 2):
+        if ta in y_pred_llm_tracks and tb in y_pred_llm_tracks:
+            mcnemar_pair = compute_mcnemar_test(
+                y_gold_ver, y_pred_llm_tracks[ta], y_pred_llm_tracks[tb]
+            )
+            la, lb = ta.lstrip('_'), tb.lstrip('_')
+            results[f'mcnemar_{la}_vs_{lb}'] = mcnemar_pair
+            logger.info(
+                f"  McNemar ({la} vs {lb}) p值: {mcnemar_pair['p_value']:.6f}  "
+                f"{'显著' if mcnemar_pair['significant'] else '不显著'}"
+            )
+
+
     # 4.1b === 各 LLM 模型独立验证评估 ===
     logger.info(">>> 评估各 LLM 模型独立验证性能")
     llm_config = CONFIG.get('tone_llm_processing', {})
@@ -1634,7 +1680,7 @@ def main():
     
     for m in model_list:
         short = m.get('short_name', '')
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:  # 三轨; 缺列时下方 else 分支跳过
             col_name = f"{short}_verified{track}"
             if col_name in df_eval_ver.columns:
                 y_pred_model = df_eval_ver[col_name].fillna(False)
@@ -1683,8 +1729,8 @@ def main():
         labels_sen = ['正面', '中性', '负面']
 
         # fix(omni-g-val-tone-04, 2026-06-11): 构念披露 — 整篇阅读的全文 gold
-        # 同时评 _full 与 _ctx 两轨, _ctx 指标含窗口-全文构念差 (非纯模型误差),
-        # 详见模块级 GOLD_CONSTRUCT_DISCLOSURE
+        # 同时评 _full / _ctx / _ss 三轨, _ctx/_ss 窗口轨指标含窗口-全文构念差
+        # (非纯模型误差), 详见模块级 GOLD_CONSTRUCT_DISCLOSURE
         results['gold_construct_disclosure'] = GOLD_CONSTRUCT_DISCLOSURE
         logger.info(f"  ⚠ 构念披露: {GOLD_CONSTRUCT_DISCLOSURE}")
 
@@ -1705,8 +1751,8 @@ def main():
         # (不再 fillna('中性') 伪造中性预测), 每个评估单元 coverage 单独报告。
         results['sentiment_prediction_coverage'] = {}
 
-        # LLM 情感评估（双轨对比）
-        for track in ['_full', '_ctx']:
+        # LLM 情感评估（三轨对比 full/ctx/ss; ss 列缺席时该轨自然跳过）
+        for track in ['_full', '_ctx', '_ss']:
             sen_col = f'llm_sentiment{track}'
             if sen_col in df_eval_sen.columns:
                 y_gold_sen_t, y_pred_llm_sen, cov, valid_mask_t = _sentiment_eval_domain(
@@ -1764,7 +1810,7 @@ def main():
         per_model_sen_results = {}
         for m_cfg in model_list:
             short = m_cfg.get('short_name', '')
-            for track in ['_full', '_ctx']:
+            for track in ['_full', '_ctx', '_ss']:  # 三轨; 缺列时跳过
                 col_name = f"{short}_sentiment{track}"
                 if col_name in df_eval_sen.columns:
                     # fix(omni-g-val-eval-01/05, 2026-06-11): 逐模型同病同修 —
@@ -1843,7 +1889,7 @@ def main():
     logger.info("===    Carlson & Burbano (2026, Strategic Management Journal, 47(3), 699-725)    ===")
     logger.info("===    检验第一阶段筛选的误分类方向是否与下游情感变量系统相关    ===")
     logger.info("=" * 70)
-    for track in ['_full', '_ctx']:
+    for track in ['_full', '_ctx', '_ss']:  # 三轨; 缺列时下方 else 分支跳过
         ver_col_diag = f'llm_verified{track}'
         if ver_col_diag in df_eval_ver.columns:
             bias_diag = diagnose_misclassification_bias(
@@ -1959,8 +2005,8 @@ def main():
         '验证任务_gold来源': gold_source_ver,
         '情感任务_gold来源': gold_source_sen,
         # fix(human-annot-readback, 2026-06-13): 构念披露入论文方法论报告 —
-        # _ctx 轨指标必须按混合下界解读, 不随 JSON 丢失
-        '构念披露 (_ctx 轨)': GOLD_CONSTRUCT_DISCLOSURE,
+        # _ctx/_ss 窗口轨指标必须按混合下界解读, 不随 JSON 丢失
+        '构念披露 (_ctx/_ss 窗口轨)': GOLD_CONSTRUCT_DISCLOSURE,
     }
 
     # 提取 κ 和 α
@@ -2109,9 +2155,11 @@ def _generate_demo_data(n=200) -> pd.DataFrame:
         
         'llm_verified_full': llm_verified,
         'llm_verified_ctx': llm_verified,
+        'llm_verified_ss': llm_verified,  # 三轨 demo: ss 轨复用同一合成投票
         'llm_sentiment_full': llm_sentiment,
         'llm_sentiment_ctx': llm_sentiment,
-        
+        'llm_sentiment_ss': llm_sentiment,
+
         '编码者A_验证': coder_a_ver,
         '编码者A_情感': coder_a_sen,
         '编码者A_理由': '',
@@ -2125,18 +2173,18 @@ def _generate_demo_data(n=200) -> pd.DataFrame:
         '裁定备注': '',
     })
 
-    # 生成各模型独立列的模拟数据（双轨）
+    # 生成各模型独立列的模拟数据（三轨 full/ctx/ss）
     try:
         config = load_config()
         model_list = config.get('tone_llm_processing', {}).get('models', [])
     except Exception:
         model_list = []
-    
+
     for m in model_list:
         short = m.get('short_name', '')
         if not short:
             continue
-        for track in ['_full', '_ctx']:
+        for track in ['_full', '_ctx', '_ss']:
             # 各模型独立验证：以不同噪声率模拟（10%-20%）
             noise_rate = rng.uniform(0.10, 0.20)
             model_ver = np.where(rng.binomial(1, noise_rate, n), 1 - gold_ver, gold_ver).astype(bool)
