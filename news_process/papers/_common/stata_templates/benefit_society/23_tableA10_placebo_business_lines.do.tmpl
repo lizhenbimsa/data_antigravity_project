@@ -38,7 +38,7 @@ set seed {{RANDOM_SEED}}
 
 * ----- 基线: 主 fintech β (作验收比例的分母) -----
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
-    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo P0_main
 scalar b_main = _b[{{ATTITUDE_VAR}}]
 display "[INFO] Main β reference: " b_main
@@ -51,7 +51,7 @@ foreach pl of local placebos {
     capture confirm variable `col'
     if _rc == 0 {
         reghdfe {{MAIN_DV}}_w `col' $controls, ///
-            absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
         eststo P`i'_`pl'
         * 验收检查: |β_placebo / β_main| < 0.3
         scalar b_pl = _b[`col']

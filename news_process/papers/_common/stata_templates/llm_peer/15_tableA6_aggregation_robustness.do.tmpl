@@ -78,6 +78,10 @@ if _rc {
 
 capture which ivreghdfe
 local HAS_IV = (_rc == 0)
+* fix(reaudit-t18-2026-06-15, 烟雾 §四.4): Panel A 加权 2SLS 缺 ivreg2 回退 → 外部复现机
+* ivreghdfe r301 时整 Panel 静默零产出。补 ivreg2 + partial(FE) 回退 (镜像主表 llm_peer/11)。
+capture which ivreg2
+local HAS_IV2 = (_rc == 0)
 
 * ==========================================================================
 * Panel A — 加权聚合稳健性 (内生自身语调 EW vs VW/MW/HW; 同一 peer IV)
@@ -86,27 +90,45 @@ eststo clear
 local aggcols ""
 local agglabs ""
 
-* EW 基线 2SLS (= 主规格)
+* EW 基线 2SLS (= 主规格); ivreghdfe 优先, 缺装/运行期失败回退 ivreg2 + partial(FE)
 capture confirm variable `TONE' `IV'
-if !_rc & `HAS_IV' {
-    capture eststo A_ew: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-        absorb(bank_id year) cluster(`CL') ffirst
-    if !_rc {
+if !_rc & (`HAS_IV' | `HAS_IV2') {
+    local _aew_ok = 0
+    if `HAS_IV' {
+        capture eststo A_ew: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        if !_rc local _aew_ok = 1
+    }
+    if !`_aew_ok' & `HAS_IV2' {
+        capture eststo A_ew: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year, ///
+            cluster(`CL') ffirst partial(i.bank_id i.year)
+        if !_rc local _aew_ok = 1
+    }
+    if `_aew_ok' {
         local aggcols "`aggcols' A_ew"
         local agglabs `"`agglabs' "EW (main)""'
     }
 }
 
 * 三套加权自身语调 (vw/mw/hw), 同 EW-peer 工具
-if `HAS_IV' {
+if `HAS_IV' | `HAS_IV2' {
     foreach w in vw mw hw {
         * {{TONE_VAR}} 形如 llm_vote_tone_full → 插入 _`w' 得 llm_vote_tone_`w'_full
         local TONE_W = subinstr("`TONE'", "llm_vote_tone_", "llm_vote_tone_`w'_", 1)
         capture confirm variable `TONE_W'
         if !_rc {
-            capture eststo A_`w': ivreghdfe `DVUSE' (`TONE_W' = `IV') $controls, ///
-                absorb(bank_id year) cluster(`CL') ffirst
-            if !_rc {
+            local _aw_ok = 0
+            if `HAS_IV' {
+                capture eststo A_`w': ivreghdfe `DVUSE' (`TONE_W' = `IV') $controls, ///
+                    absorb(bank_id year) cluster(`CL') ffirst
+                if !_rc local _aw_ok = 1
+            }
+            if !`_aw_ok' & `HAS_IV2' {
+                capture eststo A_`w': ivreg2 `DVUSE' (`TONE_W' = `IV') $controls i.bank_id i.year, ///
+                    cluster(`CL') ffirst partial(i.bank_id i.year)
+                if !_rc local _aw_ok = 1
+            }
+            if `_aw_ok' {
                 local aggcols "`aggcols' A_`w'"
                 local agglabs `"`agglabs' "`=upper("`w'")'""'
             }
@@ -120,7 +142,7 @@ if `HAS_IV' {
     }
 }
 else {
-    display "  ⚠️ Panel A: ivreghdfe 未安装, 跳过加权 2SLS"
+    display "  ⚠️ Panel A: ivreghdfe/ivreg2 均未安装, 跳过加权 2SLS"
 }
 
 if "`aggcols'" != "" {

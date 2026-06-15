@@ -152,22 +152,23 @@ if !_rc {
         display ""
         display as text "── IV-3 Rotemberg 权重诊断 [`ROT_PREFIX'] (GPSS 2020 AER §5) ──"
 
-        * ① 官方 bartik_weight ado (若装) — 长格式权重分解
+        * ① 官方 GPSS bartik_weight ado 适用性说明 (方法学披露, 非缺陷):
+        *    官方 bartik_weight (paulgp/bartik-weight, code/bartik_weight.ado) 的
+        *    weightstub() 假设 national shift —— 每个 category 的 shift g_k 在所有
+        *    单元间【不随单元变化】(collapse (first) weightstub), 对应 GPSS 2020 SSIV
+        *    典范横截面布局。本项目是 bank-year LOO-Bartik: shift_{g,t}^{LOO(i)} 对每
+        *    家银行【留一】各不相同 (iv_extensions.compute_bartik_shift_iv), 违反
+        *    national-shift 假设, 且逐 category national-shift 列未物化在面板 (shift 已
+        *    折进 IV)。故【刻意不】调用官方 ado (强行调用语义错误); 改报下方对本 LOO
+        *    设计【正确】的 Rotemberg 投影权重 (GPSS 2020 §5 α_k 定义 / Borusyak-Hull-
+        *    Jaravel 2022 REStud 投影等价)。
         capture which bartik_weight
         if !_rc {
-            capture noisily bartik_weight `DV' `ROT_IV' `share_cols', absorb(bank_id year)
-            if !_rc {
-                display as text "  (官方 bartik_weight 输出见上方; α_k / β_k / 95% 入场费表)"
-            }
-            else {
-                display as text "  ⚠️ bartik_weight 运行退化 (T=2/长格式不满足), 回退内联近似"
-            }
-        }
-        else {
-            display as text "  ⚠️ bartik_weight 未安装 (ssc install bartik_weight); 用内联 OLS 近似"
+            display as text "  (note: 官方 bartik_weight 已装, 但其 national-shift 假设不适配本 LOO-Bartik 设计 → 用设计正确的投影权重, 见下)"
         }
 
-        * ② 内联 OLS 近似 α_k = Cov(share_k, BIV)/Var(BIV) (镜像 iv_did.py)
+        * ② Rotemberg 投影权重 α_k = Cov(share_k, BIV)/Var(BIV) (GPSS 2020 §5 / BHJ 2022;
+        *    本 LOO 设计的正确口径, 镜像 iv_did.py::diagnose_rotemberg_weights)
         quietly summarize `ROT_IV'
         local var_biv = r(Var)
         if `var_biv' > 0 & !missing(`var_biv') {
@@ -280,8 +281,8 @@ esttab `models' using "output/tables/tableA3_bartik_iv.tex", ///
          "`fe_note' " ///
          "KP F: Kleibergen-Paap rk Wald F (weak-ID test, threshold 10). " ///
          "Just-identified (1 endogenous = 1 instrument): Hansen J overid test not computable (df=0), not reported. " ///
-         "If first-stage KP F < 10, instrument is weak; interpret 2SLS with Anderson-Rubin weak-IV-robust CI (e.g. weakiv / condivreg). " ///
-         "Rotemberg weight diagnostics (per-share alpha_k, HHI concentration, negative-weight count, and a top-weight-share pre-period placebo) are reported in the log following GPSS 2020 AER Section 5 (official bartik_weight ado when installed; otherwise an inline OLS approximation on the materialized base-period share columns). " ///
+         "If first-stage KP F < 10, instrument is weak; interpret 2SLS with Anderson-Rubin weak-IV-robust CI (weakiv). " ///
+         "Rotemberg weight diagnostics (per-share alpha_k = Cov(share_k, Bartik)/Var(Bartik), HHI concentration, negative-weight count, and a top-weight-share pre-period placebo) are reported in the log following GPSS 2020 AER Section 5 / Borusyak-Hull-Jaravel 2022 REStud projection equivalence. The official GPSS bartik_weight ado assumes a national (unit-invariant) shift and is intentionally not invoked for this bank-year leave-one-out Bartik design (shifts vary by bank); the projection-based weights on the materialized base-period share columns are the design-appropriate diagnostic. " ///
          "Hassan 2019 QJE entity-proximity 同构 (lc share).")
 
 display "✅ Table A3 written to output/tables/tableA3_bartik_iv.tex"

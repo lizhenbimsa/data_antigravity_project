@@ -24,7 +24,7 @@ use "$data_dir/_prepared_panel.dta", clear
 
 * 全锚点基线
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
-    absorb(bank_type year) vce(cluster bank_id)
+    absorb(bank_id year) vce(cluster bank_id)
 eststo R_full
 scalar beta_full = _b[{{ATTITUDE_VAR}}]
 
@@ -33,7 +33,7 @@ forvalues i = 1/10 {
     capture confirm variable benefit_mean_loo_`i'
     if _rc == 0 {
         reghdfe {{MAIN_DV}}_w benefit_mean_loo_`i' $controls, ///
-            absorb(bank_type year) vce(cluster bank_id)
+            absorb(bank_id year) vce(cluster bank_id)
         eststo R_loo_`i'
     }
     else {

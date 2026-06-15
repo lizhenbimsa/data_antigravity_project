@@ -31,7 +31,7 @@ set seed {{RANDOM_SEED}}
 
 * 重跑主回归, 为 boottest 准备 e() 上下文
 quietly reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
-    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 display "Main β: " _b[{{ATTITUDE_VAR}}] "  SE (cluster): " _se[{{ATTITUDE_VAR}}]
 
 * 野聚类自助法推断 (boottest >=4.0)
@@ -47,7 +47,7 @@ if _rc == 0 {
     * 验收标准 (AC-A1, plan §4): |p_wild - p_cluster| < 0.05
     scalar p_wild = r(p)
     quietly reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     * fix(omni-gapfill-16, 2026-06-12): p_cluster 由 normal() z 近似改 t(e(df_r))
     * — reghdfe 在 vce(cluster) 下按 t(G-1) 汇报 p 值 (e(df_r)=G-1), 旧 z 近似与
     * 表内 p 值口径不一致, AC-A1 差值含人为成分。

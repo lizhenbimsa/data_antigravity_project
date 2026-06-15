@@ -458,6 +458,40 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         track='ctx',
     )
 
+    # ═══ CV-1 类别先验诊断列 (再审 v2 2026-06-15, CV-1-INFRA) ═══
+    # encode.py:547-550 已产 pos_frac/neg_frac/pos_count/neg_count × {_full,_ctx,_ss};
+    # 这些列支撑 SENT CV-1 measurement 节的"类别先验 + 负面子样本零方差/极小 N"诊断,
+    # 此前仅由 codebook fallback 自动推断, 此处补精写元数据 (含义/公式/来源/用途/引文)。
+    _SENT_DIAG_SPECS = {
+        'pos_frac': ('Positive-Class Fraction', '正面类占比 (文章级 is_positive 的 bank-year 均值)',
+                     'mean(is_positive)', '[0, 1]', '占比'),
+        'neg_frac': ('Negative-Class Fraction (near-degenerate)', '负面类占比 (近退化, 验证篇实测 0.24%)',
+                     'mean(is_negative)', '[0, 1] (实测近 0)', '占比'),
+        'pos_count': ('Positive-Class Count', '正面类文章计数 (bank-year)',
+                      'sum(is_positive)', '[0, +inf)', '篇'),
+        'neg_count': ('Negative-Class Count (near-zero)', '负面类文章计数 (近零)',
+                      'sum(is_negative)', '[0, +inf) (实测近 0)', '篇'),
+    }
+    _DIAG_TRACK_LABEL = {'_full': 'Full', '_ctx': 'Ctx', '_ss': 'SS (bank+fintech same-sentence)'}
+    for _stem, (_lab, _desc, _formula, _vrange, _unit) in _SENT_DIAG_SPECS.items():
+        for _trk in ('_full', '_ctx', '_ss'):
+            _col = f'{_stem}{_trk}'
+            metadata[_col] = VariableMetadata(
+                var_name=_col,
+                label=f'{_lab} ({_DIAG_TRACK_LABEL[_trk]})',
+                description=f'{_desc}; {_DIAG_TRACK_LABEL[_trk]} 轨道。LLM 投票类别先验诊断, 支撑 '
+                            'SENT CV-1 measurement 节 (负面类近退化 → 报告类别先验 + 负面子样本零方差/极小 N)。',
+                data_type='float',
+                unit=_unit,
+                value_range=_vrange,
+                formula=_formula,
+                source_stage='Stage 21 -> encode.py:547-550 (bank-year 聚合)',
+                reference='Loughran & McDonald (2011, JF); King & Zeng (2001, Political Analysis)',
+                notes=f'CV-1 类别先验诊断列; {_TONE_FAVORABILITY_NOTE}',
+                category='情感指标 (类别先验诊断/CV-1)',
+                track=_trk.lstrip('_'),
+            )
+
     # ═══ 网络中心度指标 ═══
     metadata['bank_degree_cent'] = VariableMetadata(
         var_name='bank_degree_cent',

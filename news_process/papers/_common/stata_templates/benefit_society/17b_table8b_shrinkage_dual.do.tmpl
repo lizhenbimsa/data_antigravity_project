@@ -29,7 +29,7 @@ if _rc {
 
 * ctx 轨原始 (未收缩)
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls, ///
-    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo Sc_raw
 
 * ctx 轨收缩后
@@ -40,7 +40,7 @@ if _rc != 0 {
     exit 0
 }
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}}_shrunk $controls, ///
-    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo Sc_shrunk
 
 * 逆权重
@@ -49,7 +49,7 @@ if _rc == 0 {
     gen analytic_weight_ctx = 1 - {{ATTITUDE_CTX}}_shrunk_weight
     reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls ///
         [aweight=analytic_weight_ctx], ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo Sc_aweighted
 }
 

@@ -23,14 +23,14 @@ use "$data_dir/_prepared_panel.dta", clear
 
 * 截面 + bank-type FE 规格 (MVP)
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
-    absorb(bank_type year) vce(cluster bank_id)
+    absorb(bank_id year) vce(cluster bank_id)
 eststo MVP1
 
 * 标准化系数
 egen std_dv  = std({{MAIN_DV}}_w)
 egen std_att = std({{ATTITUDE_VAR}})
 reghdfe std_dv std_att $controls, ///
-    absorb(bank_type year) vce(cluster bank_id)
+    absorb(bank_id year) vce(cluster bank_id)
 eststo MVP2
 
 * 一年变化量设计 (Δbenefit → ΔY)
