@@ -171,19 +171,6 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
     if 'avg_han_count_full' in panel.columns:
         logger.info(f"  ln_han_count_{{full,ctx,ss}} (ln(1+平均汉字数), 汉字口径) 已生成")
 
-    # (c) 汉字口径: ln_han_count = ln(1 + bank-year 平均【CJK 汉字数】) — 文章长度第三口径。
-    #     fix(hanzi-char-dual, 2026-06-13): 字符口径 (a) 含数字/标点/拉丁, 词口径 (b) 受
-    #     分词切分影响; 汉字口径剔除非汉字符号、不依赖分词, 与 (a)(b) 互为长度稳健 (两种口径
-    #     纪律), 兑现"既要汉字也要字符"。源列 avg_han_count_{full,ctx} 来自 encode H2 段
-    #     (= n_han_real 均值, n_han_real = is_cjk 过滤计数, 与 hard_char 的 n_han 同源)。
-    # 三轨 (full/ctx/ss): avg_han_count_ss 缺列时 if-in-columns 守卫优雅跳过。
-    for _track in ('_full', '_ctx', '_ss'):
-        _hc = f'avg_han_count{_track}'
-        if _hc in panel.columns:
-            new_cols[f'ln_han_count{_track}'] = np.log1p(panel[_hc])
-    if 'avg_han_count_full' in panel.columns:
-        logger.info(f"  ln_han_count_{{full,ctx}} (ln(1+平均汉字数), 汉字口径) 已生成")
-
     # --- 分类维度综合指标 ---
     for suffix in ['_tech', '_app']:
         # 仅当分类计数列存在时生成

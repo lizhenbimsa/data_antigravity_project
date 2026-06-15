@@ -23,10 +23,17 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
+* fix(IV-6, audit PROJECT_REAUDIT_T18 附录B): ivreghdfe 生产机 r(301) → 不硬 exit 199;
+*   缺失/失败时各 MOD 列回退 ivreg2 + i.bank_id i.year (capture noisily, 动态 esttab)。
+local _have_ivhdfe = 0
 capture which ivreghdfe
-if _rc {
-    display as error "[ERROR] ivreghdfe required for Table 9"
-    exit 199
+if !_rc local _have_ivhdfe = 1
+local _have_ivreg2 = 0
+capture which ivreg2
+if !_rc local _have_ivreg2 = 1
+if !`_have_ivhdfe' & !`_have_ivreg2' {
+    display "[INFO] neither ivreghdfe nor ivreg2 available; Table 9 (moderation) skipped."
+    exit 0
 }
 capture confirm variable {{MAIN_ENDOG}} {{MAIN_IV}}
 if _rc {
@@ -40,9 +47,31 @@ if !_rc {
     capture drop pt_x_brkr iv_x_brkr
     gen double pt_x_brkr = {{MAIN_ENDOG}} * L_broker
     gen double iv_x_brkr = {{MAIN_IV}} * L_broker
-    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_brkr = {{MAIN_IV}} iv_x_brkr) L_broker $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo MOD1_brkr
+    local _mod1 = 0
+    if `_have_ivhdfe' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_brkr = {{MAIN_IV}} iv_x_brkr) L_broker $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo MOD1_brkr
+            local _mod1 = 1
+        }
+    }
+    if !`_mod1' & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_brkr = {{MAIN_IV}} iv_x_brkr) L_broker $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo MOD1_brkr
+    }
+    * ── fix(IV-2, audit IV-2 P1): 主调节交乘 2SLS 的 Anderson-Rubin 弱工具稳健 CI (weakiv)。
+    *   交乘项内生 + 子样本弱工具风险高 → AR CI 是主推断。proven pattern: ivreg2 后 weakiv。──
+    capture which weakiv
+    if !_rc & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_brkr = {{MAIN_IV}} iv_x_brkr) L_broker $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}})
+        if !_rc {
+            capture noisily weakiv, level(95)
+            if !_rc display "  OK IV-2: weakiv AR CI (moderation MOD1, joint) logged (ASS 2019 ARE)"
+        }
+    }
 }
 * MOD2: 桥接放大 (betweenness)
 capture confirm variable L_btw
@@ -50,9 +79,20 @@ if !_rc {
     capture drop pt_x_btw iv_x_btw
     gen double pt_x_btw = {{MAIN_ENDOG}} * L_btw
     gen double iv_x_btw = {{MAIN_IV}} * L_btw
-    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_btw = {{MAIN_IV}} iv_x_btw) L_btw $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo MOD2_btw
+    local _mod2 = 0
+    if `_have_ivhdfe' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_btw = {{MAIN_IV}} iv_x_btw) L_btw $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo MOD2_btw
+            local _mod2 = 1
+        }
+    }
+    if !`_mod2' & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_btw = {{MAIN_IV}} iv_x_btw) L_btw $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo MOD2_btw
+    }
 }
 * MOD3: 结构洞调节 (constraint)
 capture confirm variable L_cons
@@ -60,9 +100,20 @@ if !_rc {
     capture drop pt_x_cons iv_x_cons
     gen double pt_x_cons = {{MAIN_ENDOG}} * L_cons
     gen double iv_x_cons = {{MAIN_IV}} * L_cons
-    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_cons = {{MAIN_IV}} iv_x_cons) L_cons $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo MOD3_cons
+    local _mod3 = 0
+    if `_have_ivhdfe' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_cons = {{MAIN_IV}} iv_x_cons) L_cons $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo MOD3_cons
+            local _mod3 = 1
+        }
+    }
+    if !`_mod3' & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_cons = {{MAIN_IV}} iv_x_cons) L_cons $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo MOD3_cons
+    }
 }
 
 qui estimates dir
@@ -93,7 +144,8 @@ esttab `models' using "$tables_dir/table9_moderation.tex", replace ///
              "2SLS INTERACTION (NOT OLS): peer_tone & peer_tone x L.centrality both endogenous," ///
              "instrumented by W2*tone & W2*tone x L.centrality (Wooldridge endogenous-interaction)." ///
              "Each column 2 endog / 2 IV = just-identified -> Hansen J df=0 (undefined)." ///
-             "KP rk Wald F = e(widstat); F<19.93 (2 IV Stock-Yogo) => weak IV => Anderson-Rubin CI (ASS 2019)." ///
+             "KP rk Wald F = e(widstat); F<19.93 (2 IV Stock-Yogo) => weak IV => Anderson-Rubin CI (weakiv after ivreg2, logged; ASS 2019 ARE) for MOD1." ///
+             "Estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6; production-machine ivreghdfe r301)." ///
              "Moderator endogenous to coverage (P1-5); L.lag insufficient -> interpret as conditional, not causal amplification." ///
              "brokerage_eigen_cent is within-component normalized; within-bank time variation mixes 'island switching' noise (N-11)." ///
              "Columns differ in N (NaN vs 0 fill, audit N-02); multiple interactions -> Romano-Wolf/sharpened-FDR over family (P2-12).")

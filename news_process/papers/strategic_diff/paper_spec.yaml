@@ -86,28 +86,6 @@ inference:
     centroid: [centroid_diff_tfidf_c, centroid_diff_tfidf_w, centroid_diff_lda, centroid_diff_emb]
   fwer: romano_wolf   # Romano-Wolf 2005 ECMA (族内多测度同时显著性校正)
 
-# 推断/多重检验纪律 (INFER IV-2, PROJECT_REAUDIT_TOPTIER_T18 2026-06-14)。
-# 形式化 confirmatory vs exploratory 边界 + family 定义 (非 RCT 预注册, 观测性研究
-# 顶刊不强制 OSF/PAP — List-Shaikh-Xu 2019 EE / Olken 2015 JEP); 此块声明单一
-# confirmatory 主规格, 把替代测度/双轨/异质性归为 exploratory, 配 FWER 校正口径。
-inference:
-  confirmatory:
-    # 单一预设主规格: strat_diff_n5 (N=5 TF-IDF char) → tobin_q (上市行特许权价值)
-    treatment: strat_diff_n5
-    outcome: tobin_q
-    spec: "reghdfe tobin_q_w strat_diff_n5 $controls, absorb(bank_id year) vce(cluster bank_id)"
-    one_sided_prediction: "差异化 → 市场势力 → 特许权价值上升 (β > 0); 全样本通道 funding_cost β < 0"
-  exploratory:  # 标 robustness/exploratory, 不与 confirmatory 同权 (减弱 LPU/p-hacking 暴露)
-    - "N-邻敏感性 strat_diff_n{3,4,6,7} (14_table5a; Bresnahan-Reiss 1991)"
-    - "alternative treatment strat_sim_max / centroid_diff_* / coherence (各自单跑, 非同时规格)"
-    - "ctx 轨 strat_diff_n5_ctx (full/ctx 双轨互为稳健性, 高相关孪生非独立假设)"
-    - "SOE/hub/size/bank_type 子样本异质性 (13_table4 / 17_table8)"
-    - "era-stability 分时代稳定性 (18_table9; CY-2)"
-  families:  # FWER 校正族 (rwolf/wyoung 在族内校正后 p 进 esttab)
-    n_neighbor: [strat_diff_n3, strat_diff_n4, strat_diff_n5, strat_diff_n6, strat_diff_n7]
-    centroid: [centroid_diff_tfidf_c, centroid_diff_tfidf_w, centroid_diff_lda, centroid_diff_emb]
-  fwer: romano_wolf   # Romano-Wolf 2005 ECMA (族内多测度同时显著性校正)
-
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
 # 与 brokerage 区隔: strategic_diff 用 constraint(嵌入度), brokerage 用 between(经纪位置)。golden-safe; schema no-op。
 network_roles:

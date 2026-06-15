@@ -25,10 +25,17 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
+* fix(IV-6, audit PROJECT_REAUDIT_T18 附录B): ivreghdfe 生产机 r(301) → 不硬 exit 199;
+*   缺失/失败时各子样本/pooled 列回退 ivreg2 + i.bank_id i.year (capture noisily)。
+local _have_ivhdfe = 0
 capture which ivreghdfe
-if _rc {
-    display as error "[ERROR] ivreghdfe required for Table 10"
-    exit 199
+if !_rc local _have_ivhdfe = 1
+local _have_ivreg2 = 0
+capture which ivreg2
+if !_rc local _have_ivreg2 = 1
+if !`_have_ivhdfe' & !`_have_ivreg2' {
+    display "[INFO] neither ivreghdfe nor ivreg2 available; Table 10 skipped."
+    exit 0
 }
 capture confirm variable {{NET_HET_VAR}} {{MAIN_ENDOG}} {{MAIN_IV}}
 if _rc {
@@ -58,9 +65,20 @@ preserve
 keep if _hub_q == 0
 count if !missing({{MAIN_ENDOG}}, {{MAIN_IV}}, {{MAIN_DV}}_w)
 if r(N) >= 30 {
-    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo G1_nonhub
+    local _g1 = 0
+    if `_have_ivhdfe' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo G1_nonhub
+            local _g1 = 1
+        }
+    }
+    if !`_g1' & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo G1_nonhub
+    }
 }
 else display "[SKIP] non-hub subsample N=" r(N) " < 30 (T=2 degenerate)"
 restore
@@ -70,9 +88,20 @@ preserve
 keep if _hub_q == 1
 count if !missing({{MAIN_ENDOG}}, {{MAIN_IV}}, {{MAIN_DV}}_w)
 if r(N) >= 30 {
-    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo G2_hub
+    local _g2 = 0
+    if `_have_ivhdfe' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo G2_hub
+            local _g2 = 1
+        }
+    }
+    if !`_g2' & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo G2_hub
+    }
 }
 else display "[SKIP] hub subsample N=" r(N) " < 30 (T=2 degenerate)"
 restore
@@ -83,9 +112,31 @@ gen double pt_x_hub = {{MAIN_ENDOG}} * _hub_q
 gen double iv_x_hub = {{MAIN_IV}} * _hub_q
 count if !missing({{MAIN_ENDOG}}, {{MAIN_IV}}, {{MAIN_DV}}_w, _hub_q)
 if r(N) >= 40 {
-    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_hub = {{MAIN_IV}} iv_x_hub) _hub_q $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo H_pooled
+    local _hp = 0
+    if `_have_ivhdfe' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_hub = {{MAIN_IV}} iv_x_hub) _hub_q $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo H_pooled
+            local _hp = 1
+        }
+    }
+    if !`_hp' & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_hub = {{MAIN_IV}} iv_x_hub) _hub_q $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo H_pooled
+    }
+    * ── fix(IV-2, audit IV-2 P1): pooled 交乘 (组间差) 的 Anderson-Rubin 弱工具稳健 CI。
+    *   子样本切分后弱工具风险陡增 → AR CI 是组间差的主推断。proven pattern: ivreg2 后 weakiv。──
+    capture which weakiv
+    if !_rc & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} pt_x_hub = {{MAIN_IV}} iv_x_hub) _hub_q $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}})
+        if !_rc {
+            capture noisily weakiv, level(95)
+            if !_rc display "  OK IV-2: weakiv AR CI (pooled hub-interaction, joint) logged (ASS 2019 ARE)"
+        }
+    }
 }
 else display "[SKIP] pooled-interaction N=" r(N) " < 40 (T=2 degenerate)"
 
@@ -117,7 +168,8 @@ esttab `models' using "$tables_dir/table10_network_het.tex", replace ///
              "Between-group difference is the pt_x_hub coefficient in the POOLED-interaction column," ///
              "NOT the eyeballed gap between split columns (suest unsupported for ivreghdfe)." ///
              "hub uses within-year median (not 10% absolute threshold, audit N-08); cross-year comparable within year only." ///
-             "Subsample N halves -> KP rk Wald F typically < Stock-Yogo 16.38 => Anderson-Rubin CI primary (ASS 2019)." ///
+             "Subsample N halves -> KP rk Wald F typically < Stock-Yogo 16.38 => Anderson-Rubin CI primary (weakiv after ivreg2, logged; ASS 2019 ARE) for the pooled-interaction column." ///
+             "Estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6; production-machine ivreghdfe r301)." ///
              "Subsamples with effective N<30 are skipped (T=2 panel degenerate; production T=18 required)." ///
              "Grouping var _hub_q derives from bank_degree_cent (endogenous to media coverage, P1-5) and also enters instrument iv_x_hub:" ///
              "between-group difference is CONDITIONAL heterogeneity, NOT causal amplification by hub status (mirrors Table 9 P1-5 caveat)." ///
