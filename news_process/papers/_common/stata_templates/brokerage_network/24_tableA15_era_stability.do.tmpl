@@ -1,0 +1,274 @@
+* ============================================================================
+* 24_tableA15_era_stability.do — 分时代结构稳定性 (brokerage_network, Table A15)
+* Paper: {{PAPER_ID}}
+*
+* fix(CY-2, audit PROJECT_REAUDIT_T18 CY-2 P1): 全代码库无分时代/结构断点稳定性检验。
+*   2007-2024 跨 2013 余额宝 / 2016 P2P / 2019 DCEP 多 regime, pooled intensity-DiD 若
+*   关系跨时代断裂, 会把异质效应平均成有偏均值。本表把样本切三时代各跑一次主规格 (网络
+*   2SLS) + 全样本 treatment×era 交乘 + Wald 检验三时代系数相等。
+*
+* ── 是什么 (一行白话) ───────────────────────────────────────────────────────
+*   把 18 年样本切成"金融科技萌芽 (2007-2012) / 爆发 (2013-2018) / 强监管 (2019-2024)"
+*   三段, 分别看"同业语调→ROA 的网络溢出"在每段里是否一样大; 再用一个交乘回归正式
+*   检验三段系数是否相等。若相等 = 关系跨时代稳定 (pooled 估计无构成漂移偏误)。
+*
+* ── golden-safe / 退化守卫 ──────────────────────────────────────────────────
+*   - DV={{MAIN_DV}}_w (ROA sentinel): 全程 capture confirm; 财务面板未接入时整表
+*     优雅 no-op (wire-ahead 桩), 接入并跑 01_data_prep 后自动激活。
+*   - T=2 试跑盘只有 2017-2018 → 仅 era2 (2013-2018) 有数据, 其余两时代 N=0 自动跳过;
+*     era 交乘/Wald 因单时代退化 → N-守卫优雅跳过, 不报错 (production T=18 才全功效)。
+*   - estimator ivreghdfe + ivreg2 + i.bank_id i.year 运行期回退 (IV-6; 生产机 r301)。
+*   - esttab 名单动态化 (不硬点名缺估计)。
+*
+* ── 文献锚点 ────────────────────────────────────────────────────────────────
+*   Bai & Perron (1998) ECMA 10.2307/2998540  — 结构断点 (面板 DiD 非硬要求, 此处用
+*       分时代系数稳定性 + 交乘 Wald 替代, Hansen 2001 JEP 同精神)
+*   Hansen (2001) JEP 10.1257/jep.15.4.117     — 结构断裂的新计量视角
+* ============================================================================
+
+version 19
+clear all
+set more off
+eststo clear
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* nested mkdir (独立重跑/dry-run 防御 — Stata mkdir 不递归)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* ── 数据加载 (主链经 01_data_prep 产出 _prepared_panel; 独立跑则回退真盘) ──
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+* ── 局部宏定义 ─────────────────────────────────────────────────────────────
+local ENDOG {{MAIN_ENDOG}}
+local IV    {{MAIN_IV}}
+local DV    {{MAIN_DV}}
+local CL    {{CLUSTER_VAR}}
+if "$controls" == "" global controls {{CONTROLS}}
+
+* DV 解析: 缩尾 _w -> 裸名 -> 缺则整表 no-op (wire-ahead 桩, 财务哨兵未接入)
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display "  WARN 结果变量 `DV'(_w) 待接入财务面板, Table A15 no-op (wire-ahead 桩)"
+        exit 0
+    }
+}
+* 内生/IV 解析 (缺则整表 degrade)
+capture confirm variable `ENDOG' `IV'
+if _rc {
+    display "  WARN 内生/IV (`ENDOG' / `IV') 缺 (须先跑 01_data_prep 或上游 stage 24/45); Table A15 degrade"
+    exit 0
+}
+* 聚类变量解析 (prov_id 由 01_data_prep encode; 独立跑回退 bank_id)
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+
+* 估计器探测 (IV-6: ivreghdfe 生产机 r301 → ivreg2 + i.bank_id i.year 回退)
+local _have_ivhdfe = 0
+capture which ivreghdfe
+if !_rc local _have_ivhdfe = 1
+local _have_ivreg2 = 0
+capture which ivreg2
+if !_rc local _have_ivreg2 = 1
+if !`_have_ivhdfe' & !`_have_ivreg2' {
+    display "  WARN ivreghdfe / ivreg2 均不可用 — Table A15 无法估计 (视为环境跳过)"
+    exit 0
+}
+
+* ── era 三时代分段 (FinTech 制度时代) ──────────────────────────────────────
+*   era1 萌芽 2007-2012 / era2 爆发 (余额宝-P2P) 2013-2018 / era3 强监管 (DCEP) 2019-2024
+capture drop _era
+gen byte _era = .
+replace _era = 1 if inrange(year, 2007, 2012)
+replace _era = 2 if inrange(year, 2013, 2018)
+replace _era = 3 if inrange(year, 2019, 2024)
+label define _eralab 1 "2007-2012" 2 "2013-2018" 3 "2019-2024", replace
+label values _era _eralab
+
+* 各时代有效样本计数 (单时代有数据时披露, 其余跳过)
+forvalues e = 1/3 {
+    quietly count if _era == `e' & !missing(`ENDOG', `IV', `DVUSE')
+    local _Ne`e' = r(N)
+    local _elab : label _eralab `e'
+    display "  [era] `_elab' effective N = `_Ne`e''"
+}
+
+* ==========================================================================
+* Panel A — 分时代主规格 (网络 2SLS), 每时代各一列
+*   系数若跨时代稳定 = pooled 估计无 regime 构成漂移偏误。
+* ==========================================================================
+local ecols ""
+local elabs `""'
+forvalues e = 1/3 {
+    if `_Ne`e'' >= 30 {
+        local _elab : label _eralab `e'
+        local _eok = 0
+        preserve
+        quietly keep if _era == `e'
+        if `_have_ivhdfe' {
+            capture noisily ivreghdfe `DVUSE' (`ENDOG' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            if !_rc {
+                eststo E`e'
+                local _eok = 1
+            }
+        }
+        if !`_eok' & `_have_ivreg2' {
+            capture noisily ivreg2 `DVUSE' (`ENDOG' = `IV') $controls i.bank_id i.year, ///
+                cluster(`CL') first
+            if !_rc {
+                eststo E`e'
+                local _eok = 1
+            }
+        }
+        restore
+        if `_eok' {
+            local ecols "`ecols' E`e'"
+            local elabs `"`elabs' "`_elab'""'
+        }
+        else {
+            display "[SKIP] era `_elab' 2SLS failed (degenerate); production T=18."
+        }
+    }
+    else {
+        local _elab : label _eralab `e'
+        display "[SKIP] Panel A era `_elab' effective N=`_Ne`e'' < 30 (T=2 only 2017-2018 has data; production T=18)."
+    }
+}
+
+if "`ecols'" != "" {
+    esttab `ecols' using "$tables_dir/tableA15_brok_era_stability.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) keep(`ENDOG') ///
+        stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
+        title("Table A15-A: Era Stability (network 2SLS by FinTech regime) --- {{PAPER_ID}}") ///
+        mtitles(`elabs') ///
+        addnotes("Split-sample network 2SLS by FinTech regime: 2007-2012 (nascent) / 2013-2018 (Yu'ebao-P2P) / 2019-2024 (DCEP tightening)." ///
+                 "Stable coefficient on `ENDOG' across eras => pooled intensity-DiD has no regime compositional-drift bias (Bai-Perron 1998 ECMA / Hansen 2001 JEP)." ///
+                 "KP rk Wald F = e(widstat); F < Stock-Yogo => weak IV => read Anderson-Rubin CI (ASS 2019 ARE) per era; subsample F halves." ///
+                 "T=2 disk panel only covers 2017-2018 -> only era2 has data, eras 1/3 N-guarded skip (production T=18)." ///
+                 "Estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6).")
+    estout `ecols' using "$tables_dir/tableA15_brok_era_stability.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) keep(`ENDOG') ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A15-A (era stability) written"
+}
+else {
+    display "  WARN Panel A: 所有时代退化 (T=2 只有 2017-2018; production T=18 才有功效), 跳过"
+}
+
+* ==========================================================================
+* Panel B — 全样本 treatment×era 交乘 + Wald 三时代系数相等检验
+*   交乘 2SLS: 主项 `ENDOG' + `ENDOG'×era 哑 (各配工具 `IV'×era)。
+*   Wald: 检验 era 交乘项联合为零 (= 三时代主效应相等)。须 >=2 时代有数据。
+* ==========================================================================
+eststo clear
+* 有数据的时代数 (>=2 才能做交乘/Wald)
+local _ndata = 0
+forvalues e = 1/3 {
+    if `_Ne`e'' >= 30 local _ndata = `_ndata' + 1
+}
+if `_ndata' >= 2 {
+    * 以 era2 (2013-2018, FinTech 爆发主时代) 为基准, 对其余有数据时代建交乘
+    capture drop pt_e1 pt_e3 iv_e1 iv_e3
+    gen double pt_e1 = `ENDOG' * (_era == 1)
+    gen double pt_e3 = `ENDOG' * (_era == 3)
+    gen double iv_e1 = `IV' * (_era == 1)
+    gen double iv_e3 = `IV' * (_era == 3)
+    * 仅纳入实际有数据 (>=30) 的非基准时代交乘项 (避免恒零列共线)
+    local _ptlist ""
+    local _ivlist ""
+    if `_Ne1' >= 30 {
+        local _ptlist "`_ptlist' pt_e1"
+        local _ivlist "`_ivlist' iv_e1"
+    }
+    if `_Ne3' >= 30 {
+        local _ptlist "`_ptlist' pt_e3"
+        local _ivlist "`_ivlist' iv_e3"
+    }
+    if "`_ptlist'" != "" {
+        local _bok = 0
+        if `_have_ivhdfe' {
+            capture noisily ivreghdfe `DVUSE' (`ENDOG' `_ptlist' = `IV' `_ivlist') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            if !_rc {
+                eststo B_interact
+                local _bok = 1
+            }
+        }
+        if !`_bok' & `_have_ivreg2' {
+            capture noisily ivreg2 `DVUSE' (`ENDOG' `_ptlist' = `IV' `_ivlist') $controls i.bank_id i.year, ///
+                cluster(`CL') first
+            if !_rc {
+                eststo B_interact
+                local _bok = 1
+            }
+        }
+        if `_bok' {
+            * Wald: era 交乘项联合为零 = 三时代主效应相等 (跨 regime 稳定)
+            local _wald_note "Wald test not computed"
+            capture test `_ptlist'
+            if !_rc {
+                local _wchi = r(chi2)
+                local _wp   = r(p)
+                local _wald_note "Wald(era interactions = 0): chi2=`_wchi', p=`_wp' (p>0.10 => eras statistically equal => stable)"
+                capture file close _waldf
+                file open _waldf using "$tables_dir/tableA15_brok_era_wald.csv", write replace
+                file write _waldf "stat,value" _n
+                file write _waldf "wald_chi2,`_wchi'" _n
+                file write _waldf "wald_p,`_wp'" _n
+                file write _waldf "note,Joint test that treatment x era interactions are zero (eras equal); base era = 2013-2018" _n
+                file close _waldf
+                display "  OK Panel B: `_wald_note'"
+            }
+            esttab B_interact using "$tables_dir/tableA15_brok_era_interact.tex", replace ///
+                se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+                stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
+                title("Table A15-B: Treatment x Era Interaction & Equality Wald --- {{PAPER_ID}}") ///
+                mtitles("Full-sample x era") ///
+                addnotes("2SLS with treatment x era interactions (base era = 2013-2018); interaction terms & instruments x era." ///
+                         "`_wald_note' -> tableA15_brok_era_wald.csv." ///
+                         "Non-significant interactions => network spillover stable across FinTech regimes (no Bai-Perron-style break)." ///
+                         "T=2 disk panel has only one era with data -> interaction/Wald N-guarded skip (production T=18 required).")
+            display "[OK] Table A15-B (era interaction + Wald) written"
+        }
+        else {
+            display "[SKIP] Panel B era-interaction 2SLS failed (degenerate); production T=18."
+        }
+    }
+    else {
+        display "[SKIP] Panel B — only base era has data; no era interaction to estimate (T=2; production T=18)."
+    }
+}
+else {
+    display "[SKIP] Panel B — fewer than 2 eras with data (T=2 disk panel covers only 2017-2018); era interaction/Wald needs production T=18."
+}
+
+display "[OK] Table A15 (era stability + treatment x era equality) — brokerage_network 完成"

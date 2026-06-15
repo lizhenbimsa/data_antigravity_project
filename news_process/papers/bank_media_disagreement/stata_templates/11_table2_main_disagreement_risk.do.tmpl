@@ -89,7 +89,7 @@ esttab M1 M2 M3 M4 M5 M6 ///
     b(%9.4f) se(%9.4f) ///
     title("Table 2: Media Disagreement and Bank Risk-Taking (Z-score)") ///
     mtitles("OLS" "Bank FE" "Bank+Year FE" "+Bank Ctrl" "+Year Ctrl" "+SOE Int.") ///
-    keep(`TX' 1.is_soe c.`TX'#1.is_soe) ///
+    keep(`TX' 1.is_soe#c.`TX') ///
     addnotes("Cluster-robust SE in parentheses (bank+year two-way)." ///
              "Z-score: CAR-based variant (capital term = regulatory CAR, not book equity/assets); cf. Laeven-Levine 2009 JFE." ///
              "SOE × disagreement interaction per Acharya 2016 RFS implicit guarantee framework.")

@@ -1,0 +1,194 @@
+* ============================================================================
+* 28_tableA15_era_stability.do — Table A15 分时代稳定性 (benefit_society)
+* Paper: {{PAPER_ID}}
+*
+* CY-2 (2026-06-14 顶刊重审, 跨年可比性/结构断裂维): 2007–2024 跨多 fintech regime
+*   (2013 余额宝 / 2016 P2P 整治 / 2019 DCEP), pooled within-FE 若主关系跨时代断裂
+*   会把异质效应平均成有偏均值。本表把样本分三时代各跑主规格 + 全样本加
+*   treatment×era 交乘 + Wald 检验三时代系数相等, 验主系数 {{ATTITUDE_VAR}}
+*   (benefit_mean_full) → {{MAIN_DV}}_w (ROA_w) 跨时代稳定。
+*     Era 1: 2007–2012 (P2P/余额宝前)
+*     Era 2: 2013–2018 (余额宝—P2P 整治期)
+*     Era 3: 2019–2024 (DCEP / 监管成型期)
+* 白话: 把 18 年样本切成三段历史时期各跑一遍, 再看"态度→ROA"的斜率在三段里
+*   是否一致 (Wald 检验若不拒 = 跨时代稳定 = 结论不是被某一时期单独撑起来的)。
+* 文献锚: Bai & Perron (1998), Econometrica, structural breaks; Hansen (2001),
+*         JEP, "The New Econometrics of Structural Change", DOI 10.1257/jep.15.4.117。
+*
+* ⚠ golden-safe: 仅消费在盘 treatment ({{ATTITUDE_VAR}}) + 在盘 year/$controls;
+*   outcome {{MAIN_DV}}_w (=ROA_w) 为外部财务 sentinel — capture confirm 守卫,
+*   缺列时全表优雅跳过 (wire-ahead)。FE = bank_id + year (SPEC IV-1 后主基线;
+*   分时代子样本内年份少 → 守卫退化)。
+* ⚠ T=2 退化守卫: 现盘 T=2 (2017–2018) 仅落在 Era 2 → 只有一个时代有数据;
+*   各时代 N 守卫 + 交乘 Wald 仅在 ≥2 时代有数据时计算, 否则优雅跳过 (不报错)。
+*   production T=18 三时代齐全才有完整功效。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+eststo clear
+
+* ----------------------------------------------------------------------------
+* outcome sentinel 守卫: {{MAIN_DV}}_w (=ROA_w) 缺列 → 全表 wire-ahead 跳过
+* ----------------------------------------------------------------------------
+capture confirm variable {{MAIN_DV}}_w
+if _rc {
+    display "  [WARN] outcome {{MAIN_DV}}_w 不在面板 (外部财务面板未接入); Table A15 全表跳过 (wire-ahead)"
+    display "[OK] Table A15 (era stability) → 跳过 (sentinel DV 缺失, 非失败)"
+    exit 0
+}
+
+* ----------------------------------------------------------------------------
+* 时代标签 era ∈ {1,2,3}; 各时代有数据的标记 (T=2 退化时仅 Era 2 有数据)
+* ----------------------------------------------------------------------------
+capture drop era
+gen byte era = .
+replace era = 1 if year >= 2007 & year <= 2012
+replace era = 2 if year >= 2013 & year <= 2018
+replace era = 3 if year >= 2019 & year <= 2024
+
+* 统计每个时代的有效观测数 (DV + treatment 非缺)
+local _eras_present ""
+forvalues e = 1/3 {
+    quietly count if era == `e' & !missing({{MAIN_DV}}_w) & !missing({{ATTITUDE_VAR}})
+    local _n_e`e' = r(N)
+    if `_n_e`e'' >= 10 local _eras_present `_eras_present' `e'
+    display "  [INFO] Era `e' 有效观测数 = `_n_e`e''"
+}
+local _n_eras_present : word count `_eras_present'
+display "  [INFO] 有数据的时代数 = `_n_eras_present' (`_eras_present')"
+
+* ----------------------------------------------------------------------------
+* Panel A — 分时代主规格回归 (各时代各一格; N<10 守卫优雅跳过)
+* ----------------------------------------------------------------------------
+* 时代标签 (esttab 列名)
+local _t1 "2007-2012"
+local _t2 "2013-2018"
+local _t3 "2019-2024"
+forvalues e = 1/3 {
+    if `_n_e`e'' >= 10 {
+        * 分时代子样本: bank_id + year FE (子样本内年份可能仅 1-2 → reghdfe 自动处理)
+        capture noisily reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls if era == `e', ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        if _rc {
+            * 子样本塌缩 (单年/共线) → 回退 OLS + i.year LSDV
+            capture noisily regress {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls i.year if era == `e', ///
+                vce(cluster {{CLUSTER_VAR}})
+        }
+        if !_rc {
+            eststo era`e'
+            display "  [OK] Era `e' (`_t`e'') 主规格 N=" e(N)
+        }
+        else {
+            display "  [WARN] Era `e' 回归失败 (完全共线/单组); 跳过"
+        }
+    }
+    else {
+        display "  [INFO] Era `e' N=`_n_e`e'' < 10; 分时代回归跳过 (T=2 退化, production T=18 才足量)"
+    }
+}
+
+* ----------------------------------------------------------------------------
+* Panel B — 全样本 treatment×era 交乘 + Wald 三时代系数相等性检验
+*   仅当 ≥2 时代有数据时才有意义 (单时代无跨时代对比)。
+* ----------------------------------------------------------------------------
+local _wald_note "Cross-era Wald equality test requires >=2 eras with data (T=2 sample has only Era 2)."
+if `_n_eras_present' >= 2 {
+    * i.era##c.{{ATTITUDE_VAR}} 全交乘; era#year 共线由 reghdfe 处理。
+    * 基准时代取出现的第一个 (ib`_base'.era)。
+    local _base : word 1 of `_eras_present'
+    capture noisily reghdfe {{MAIN_DV}}_w ib`_base'.era##c.{{ATTITUDE_VAR}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    if _rc {
+        capture noisily regress {{MAIN_DV}}_w ib`_base'.era##c.{{ATTITUDE_VAR}} $controls i.year, ///
+            vce(cluster {{CLUSTER_VAR}})
+    }
+    if !_rc {
+        eststo era_interact
+        display "  [OK] 全样本 treatment×era 交乘 N=" e(N)
+        * Wald: 所有非基准时代的 era#c.attitude 交乘项 = 0 (即三时代斜率相等)
+        *   逐时代构造可测试项 (仅对有数据且非基准的时代), 缺项 capture 守卫。
+        local _testterms ""
+        foreach e of local _eras_present {
+            if `e' != `_base' {
+                * 交乘项名: `e'.era#c.{{ATTITUDE_VAR}} (非基准时代的斜率差)
+                local _testterms `_testterms' `e'.era#c.{{ATTITUDE_VAR}}
+            }
+        }
+        if "`_testterms'" != "" {
+            capture noisily test `_testterms'
+            if !_rc {
+                local _wald_F : display %6.3f r(F)
+                local _wald_p : display %5.3f r(p)
+                local _wald_note "Cross-era slope equality (treatment x era interactions jointly = 0): Wald F=`_wald_F', p=`_wald_p'. p>0.10 => coefficient stable across eras (no structural break in the benefit-attitude -> ROA relation)."
+                display "  [OK] 跨时代系数相等性 Wald: F=`_wald_F' p=`_wald_p'"
+            }
+            else {
+                display "  [WARN] Wald 检验失败 (交乘项退化/缺); 跳过"
+                local _wald_note "Cross-era Wald test failed (interaction terms degenerate under the current sample)."
+            }
+        }
+    }
+    else {
+        display "  [WARN] treatment×era 交乘回归失败; Panel B 跳过"
+    }
+}
+else {
+    display "  [INFO] 仅 `_n_eras_present' 个时代有数据 (<2); 交乘 + Wald 跳过 (T=2 退化, production T=18 激活)"
+}
+
+* ============================================================================
+* 导出 — esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表) + CSV side-channel
+* ============================================================================
+qui estimates dir
+local stored `r(names)'
+local cand_models era1 era2 era3 era_interact
+local cand_titles `""2007-2012" "2013-2018" "2019-2024" "Full x era""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+
+if "`models'" == "" {
+    display as error "  [WARN] Table A15 无任何已存储估计 (全时代退化跳过), 表跳过"
+    display "[OK] Table A15 (era stability) → 全时代退化跳过 (T=2; production T=18 激活)"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA15_era_stability.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        keep({{ATTITUDE_VAR}}) ///
+        stats(N r2, fmt(0 3) labels("N" "R-squared")) ///
+        title("Table A15: Era Stability --- Sub-Period Regressions + Treatment x Era Wald --- benefit_society") ///
+        mtitles(`mtitles') ///
+        addnotes("Eras: 2007-2012 (pre-Yu'ebao/P2P) / 2013-2018 (Yu'ebao-P2P cleanup) / 2019-2024 (DCEP/regulatory consolidation); FinTech regime shifts (Bai-Perron 1998; Hansen 2001 JEP)." ///
+                 "Each Era column re-estimates {{ATTITUDE_VAR}} -> {{MAIN_DV}}_w on the sub-period; bank_id + year FE; SE clustered at {{CLUSTER_VAR}}." ///
+                 "Full x era column = full sample with treatment x era interactions (base era omitted)." ///
+                 "`_wald_note'" ///
+                 "Sub-period N small under T=2 (only Era 2 = 2017-2018 populated); production T=18 gives all three eras full power.")
+
+    * CSV side-channel (parse_esttab_csv 格式; tables.py 可经 read_paper_esttab 消费)
+    estout `models' using "$tables_dir/tableA15_era_stability.csv", replace delimiter(",") ///
+        keep({{ATTITUDE_VAR}}) ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) mlabels(`mtitles')
+
+    display "[OK] Table A15 → $tables_dir/tableA15_era_stability.tex (+ .csv side-channel)"
+}

@@ -29,48 +29,99 @@ if _rc {
 gen tone_x_het = {{TONE_VAR}} * {{HET_VAR}}
 gen peer_x_het = {{LLM_PEER_IV}} * {{HET_VAR}}
 
+* 主估计量为 2SLS — 优先 ivreghdfe (HDFE), 缺失/运行期失败时回退 ivreg2 + 显式 i.bank_id i.year
+* (镜像 11_table2 / 18_tableA9: 本机 StataNow 19.5 ivreghdfe 恒 r(301), ivreg2 正常 →
+*  旧 bare ivreghdfe + 硬点名 esttab 在运行期崩 → 经 plain do 调用阻断 00_master 整链)。
 capture which ivreghdfe
-if _rc {
-    display as error "[ERROR] ivreghdfe required for Table 4"
+local HAS_IVHDFE = (_rc == 0)
+capture which ivreg2
+local HAS_IVREG2 = (_rc == 0)
+if !`HAS_IVHDFE' & !`HAS_IVREG2' {
+    display as error "[ERROR] ivreghdfe / ivreg2 required for Table 4"
     exit 199
 }
 
 * H1: 带交互项的 OLS (无 IV, 供参照)
-reghdfe {{MAIN_DV}}_w {{TONE_VAR}} tone_x_het {{HET_VAR}} $controls, ///
+capture eststo H1: reghdfe {{MAIN_DV}}_w {{TONE_VAR}} tone_x_het {{HET_VAR}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-eststo H1
 
 * H2: 2SLS 交互规格 — 两个内生回归元需要两个工具变量; 为交互内生项
 * tone_x_het 追加第二工具 peer_x_het。
 * 白话: 语调和"语调×国有"两个都内生, 一个工具不够用, 于是把工具变量也
 *       乘上国有虚拟变量, 凑成两对一一对应。
-ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} tone_x_het = {{LLM_PEER_IV}} peer_x_het) ///
-    {{HET_VAR}} $controls, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo H2
+local _crc = 1
+if `HAS_IVHDFE' {
+    capture noisily eststo H2: ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} tone_x_het = {{LLM_PEER_IV}} peer_x_het) ///
+        {{HET_VAR}} $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    local _crc = _rc
+}
+if `_crc' != 0 & `HAS_IVREG2' {
+    capture estimates drop H2
+    capture noisily eststo H2: ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} tone_x_het = {{LLM_PEER_IV}} peer_x_het) ///
+        {{HET_VAR}} $controls i.bank_id i.year, ///
+        cluster({{CLUSTER_VAR}}) partial(i.bank_id i.year)
+}
 
 * H3: 分样本 2SLS (SOE=0)
 preserve
 keep if {{HET_VAR}} == 0
-ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo H3_nonSOE
+local _crc = 1
+if `HAS_IVHDFE' {
+    capture noisily eststo H3_nonSOE: ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    local _crc = _rc
+}
+if `_crc' != 0 & `HAS_IVREG2' {
+    capture estimates drop H3_nonSOE
+    capture noisily eststo H3_nonSOE: ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls i.bank_id i.year, ///
+        cluster({{CLUSTER_VAR}}) partial(i.bank_id i.year)
+}
 restore
 
 * H4: 分样本 2SLS (SOE=1)
 preserve
 keep if {{HET_VAR}} == 1
-ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo H4_SOE
+local _crc = 1
+if `HAS_IVHDFE' {
+    capture noisily eststo H4_SOE: ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    local _crc = _rc
+}
+if `_crc' != 0 & `HAS_IVREG2' {
+    capture estimates drop H4_SOE
+    capture noisily eststo H4_SOE: ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls i.bank_id i.year, ///
+        cluster({{CLUSTER_VAR}}) partial(i.bank_id i.year)
+}
 restore
 
-esttab H1 H2 H3_nonSOE H4_SOE using "$tables_dir/table4_heterogeneity.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
-    label compress b(3) ///
-    title("Heterogeneity by {{HET_VAR}} --- llm_peer IV 2SLS") ///
-    mtitles("OLS+Int" "2SLS+Int" "2SLS Non-SOE" "2SLS SOE") ///
-    addnotes("H1/H2 pool all banks with {{HET_VAR}} interactions; H3/H4 split sample." ///
-             "Bank and year FE; cluster-robust SE at {{CLUSTER_VAR}}.")
-
-display "[OK] Table 4 written to $tables_dir/table4_heterogeneity.tex"
+* esttab 名单动态化: 任一规格 (ivreghdfe/ivreg2 皆失败 / 子样本退化) 缺席时该列自动
+* 从表剔除而非 r(111) 丢整表 (镜像 11/14 idiom)。
+qui estimates dir
+local stored `r(names)'
+local cand_models H1 H2 H3_nonSOE H4_SOE
+local cand_titles `""OLS+Int" "2SLS+Int" "2SLS Non-SOE" "2SLS SOE""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "[WARN] Table 4 无任何已存储估计, 表跳过"
+}
+else {
+    esttab `models' using "$tables_dir/table4_heterogeneity.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs ///
+        label compress b(3) ///
+        title("Heterogeneity by {{HET_VAR}} --- llm_peer IV 2SLS") ///
+        mtitles(`mtitles') ///
+        addnotes("H1/H2 pool all banks with {{HET_VAR}} interactions; H3/H4 split sample." ///
+                 "Bank and year FE; cluster-robust SE at {{CLUSTER_VAR}}.")
+    display "[OK] Table 4 written to $tables_dir/table4_heterogeneity.tex"
+}

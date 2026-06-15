@@ -12,6 +12,12 @@ differentiation_claim: |
   跨 paper 区分:
   - 与 P1 (tone): llm_peer 用 LLM peer 网络 IV; P1 仅 firm-level tone
   - 与 P2 (attention): llm_peer 用 LLM peer IV (语义同业); P2 fallback Bartik (银行类型分类)
+    ⚠ 同源披露 (PORT SAL-3, 顶刊重审 2026-06-14): 本篇先前的文本量 outcome
+    avg_ft_intensity_full = mean(fintech_intensity_score) 与 P2 的 treatment
+    attention_index_full = ln1p(sum(同一 fintech 强度信号)) 派生自【同一媒体语料】。
+    为避免 Y 与隔壁论文 treatment 同源 (反映共同覆盖因子而非真实公司行为),
+    本篇主 outcome 已改回 real-economy roa (见 outcome 段), avg_ft_intensity_full
+    降为 first-stage 机制佐证。论文正文须显式声明此同源性并以 roa 作 headline。
   - 与 P3 (substance): llm_peer 不做 W&Z 实质性
   - 与 P4 (locus): llm_peer 用 LLM 语义同业; P4 用 4 银行类型分类同业 — 命名 surface-相似但 peer 定义机制完全不同
   - 与 benefit_society: llm_peer 用 LLM peer IV; benefit_society 用 firm-level 态度
@@ -19,17 +25,34 @@ differentiation_claim: |
   - 与 strategic_diff: llm_peer 用 LLM 同业 IV; strategic_diff 用文本表征差异
 
 outcome:
-  # primary 切换 (2026-06-13, 主规格重构, 顶刊组合定稿): 方法学论文的 outcome 应
-  # 最大化展示 "LLM 语义同业" 这把尺子 — 估计同业语调溢出对银行 fintech 战略响应
-  # 的因果效应 (Leary & Roberts 2014 JF 同群范式移植到银行)。avg_ft_intensity_full
-  # = 银行自身 fintech 报道强度年度聚合 (pipeline/panel/encode.py 真实在产列,
-  # 文本基 outcome, $0 即可跑通主回归), 取代泛用 ROA (方法学论文配 ROA 易被问
-  # "so what")。2SLS 结构不变: peer-IV → own tone → own fintech 战略响应。
-  primary: avg_ft_intensity_full
-  # roa 降级 secondary (经济显著性佐证); car_3day 需日频, 年度主线移除。
-  secondary: [roa, tobin_q]
-  enrichment_source: pipeline (avg_ft_intensity_full 已在产) + 财务面板 ROA + Wind
-    市值 → tobin_q (M0.5.11)
+  # ⚠ PORT SAL-3 修正 (2026-06-14, 顶刊重审 T=18; 报告 §⑩ SAL-3, P1 CONFIRMED):
+  # 主 outcome 从 avg_ft_intensity_full 改回 real-economy 财务/创新结局 (roa)。
+  # ── 病灶 (撤销 2026-06-13 重构): avg_ft_intensity_full = mean(fintech_intensity_
+  #    score_full), 与 P2 (attention) 的 treatment attention_index_full = ln1p(sum(
+  #    同一 fintech 强度信号)) 是【同一底层媒体语料派生文本量】(mean vs ln(1+sum))。
+  #    把 Y 设成与隔壁论文 treatment 同源的文本量 → 反映共同媒体覆盖因子而非真实
+  #    公司行为, 违反本 spec 锚定的 Leary & Roberts 2014 JF (Y = 真实杠杆政策, 非
+  #    文本量)。方法学篇尤须证 "LLM 语义同业 IV" 对【真实经济结局】的增量识别力,
+  #    否则 "peer 文本量 → own 文本量" 近同义反复, 易被审稿问 "so what / mechanical"。
+  # ── 修正: primary = roa (银行盈利能力, 外部财务面板 sentinel; 财务接入前 01_data_
+  #    prep capture confirm 守卫优雅跳过, 同 benefit/brokerage/strategic 三 B-route 篇)。
+  #    avg_ft_intensity_full 降为 first-stage 机制佐证 (见 outcome.mechanism_evidence):
+  #    展示 own tone → own fintech 战略响应这一中间通道, 但【不】作为 headline Y。
+  # ── 2SLS 结构不变: peer-IV (llm_peer_tone_iv) → own tone (llm_vote_tone) → roa。
+  #    财务接入后模板 LHS (MAIN_DV) 自动指向 roa; 当前 T=2 试跑盘无 roa 列 → 整复现
+  #    包在 01_data_prep 优雅 fail-loud (同主线 B-route 篇), 不冒充可跑。
+  primary: roa
+  # secondary (经济/创新结局佐证): ln_fintech_investment (fintech 实际投入, P2 重叠
+  # 但作 outcome 而非 treatment) / citation_weighted_patent (创新产出, Kogan et al.
+  # 2017); 均外部 sentinel, 财务接入后激活。car_3day 需日频 → listed_subsample_extension。
+  secondary: [ln_fintech_investment, citation_weighted_patent, tobin_q]
+  # first-stage 机制佐证 (NON-headline): 原主 outcome 降级于此。展示 LLM-peer IV →
+  # own tone → own fintech 报道强度的中间通道, 证 IV 经由本行 fintech 关注度传导,
+  # 但因与 P2 treatment 同源【不】作 co-equal headline (披露见 differentiation_claim)。
+  mechanism_evidence: [avg_ft_intensity_full]
+  enrichment_source: 财务面板 roa / ln_fintech_investment / patent (M0.5.11,
+    config/银行面板2007-2025年.xlsx 待接入) + Wind 市值 → tobin_q;
+    avg_ft_intensity_full (pipeline encode.py 已在产) 仅供 first-stage 机制图
 
 treatment:
   # v3.7.5 integrity fix (F3): the operative 2SLS in 11_table2_main_iv_2sls.do.tmpl is
@@ -52,6 +75,14 @@ controls:
     peer_compete_idx]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]
+  # INFER IV-2 (顶刊重审 2026-06-14, 报告 §⑦; 镜像 bank_media_disagreement spec):
+  # 显式声明聚类层级。主 2SLS 在 bank_id 单向聚类 (模板默认 CLUSTER_VAR=bank_id);
+  # cluster_robustness 列出对比表所需的多重聚类方案 (附录稳健性, 14_table5)。
+  cluster: [bank_id]                # 主规格单向 (模板 CLUSTER_VAR), G≈样本银行数
+  cluster_robustness:               # 多聚类对比 (附录; 省级在 14_table5 已有省级 cluster 列)
+    - bank_only
+    - bank_year_twoway
+    - province_only                 # prov_id (G 较小 → 升级时配 boottest/wild bootstrap)
 
 identification:
   baseline: llm_peer_2sls
@@ -84,6 +115,34 @@ network_roles:
   moderator:
     status: deferred   # lpeer_tone_iv × 网密度交乘工具化第一阶段双工具识别过复杂, T=18 才稳 (审计 LLMPEER-MOD-1 reject-fatal)
   centrality_missing_convention: zero_fill_offnetwork_disclose_N
+
+# 推断纪律 (INFER IV-2, 顶刊重审 2026-06-14, 报告 §⑦ P2; 镜像 disagreement/clarity spec)。
+# 形式化 confirmatory-vs-exploratory family 定义, 回应 "海量回归无单一主假设声明" 之
+# referee 关切。本篇是【方法学论文】: 单一 confirmatory 主规格 = "LLM 语义同业 IV →
+# 本行语调 → 真实经济结局", 其余测度/轨道/加权/cutoff 全部标 exploratory robustness。
+inference:
+  # 唯一 confirmatory 主规格 (一篇一识别): 主 IV 2SLS, full 轨, 主 outcome roa
+  confirmatory:
+    estimand: "β in roa_it = β·llm_vote_tone_full_it + Controls + α_i + δ_t (2SLS)"
+    instrument: llm_peer_tone_iv_full          # LLM-peer LOO tone, cutoff=0.80, full track
+    outcome: roa                                # PORT SAL-3: real-economy headline (非文本量)
+    treatment: llm_vote_tone_full               # 内生本行语调
+    template: 11_table2_main_iv_2sls (M3)       # 单列 headline 系数
+  # exploratory family (robustness / 稳健性, 非 co-equal headline; FWER 校正见下):
+  exploratory_families:
+    # ctx 轨稳健性镜像 (双轨 = 互为稳健性高相关孪生)。
+    track_robustness: [llm_vote_tone_ctx + llm_peer_tone_iv_ctx]   # ctx 镜像 (11 M5)
+    cutoff_sensitivity: [0.70, 0.75, 0.80, 0.85, 0.90]             # 12_table3
+    instrument_robustness: [llm_peer_coverage_iv]                  # 14_table5
+    heterogeneity: [SOE_interaction]                               # 13_table4
+    aggregation_weighting: [EW, VW, MW, HW]                        # 15_tableA6
+    mechanism: [avg_ft_intensity_full]          # first-stage 机制佐证 (非 headline; PORT SAL-3)
+  # FWER: 多测度/异质性族 referee 要求 Romano-Wolf / Westfall-Young 校正 (IV-1 P2);
+  # 移植 brokerage/20 wyoung battery 或将 rwolf 从注释转活跃 (附录稳健性表)。
+  fwer_correction: wyoung_or_romano_wolf       # 状态: wire-ahead (附录 battery 待接, 同 brokerage/20)
+  # p-hacking guard: confirmatory 单一主规格 + 预声明 family; 替代测度/轨道是稳健性
+  # 对照非独立假设 (双轨 = 互为稳健性高相关孪生; 严禁 full×ctx 合成 Hansen J overid)。
+  p_hacking_guard: single_confirmatory_spec_with_predeclared_families
 
 event_studies: []  # cross-sectional IV identification; no policy shocks
 

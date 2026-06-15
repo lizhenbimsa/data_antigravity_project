@@ -78,8 +78,19 @@ capture do 16_tableA7_fe_oster_robust.do
 capture do 17_tableA8_subsample_timing.do
 
 * ----------------------------------------------------------------------------
+* 6d. Table A9 (CY-2 顶刊重审 2026-06-14): 跨时代稳定性 / 结构断点稳健性 —
+*     三时代分段主 2SLS (2007-2012 / 2013-2018 / 2019-2024) + treatment×era 交乘
+*     + Wald 三时代系数相等检验 + 可选 estat sbsingle。capture do — T=2 仅中段有
+*     数据 / 缺 ivreghdfe / 弱识别时优雅跳过, 不阻断 figure (production T=18 才有三段功效)。
+* ----------------------------------------------------------------------------
+capture do 18_tableA9_era_stability.do
+
+* ----------------------------------------------------------------------------
 * 7. Figure 1: 各 cutoff 阈值下的第一阶段 F 统计量
 * ----------------------------------------------------------------------------
 do 30_figure1_first_stage_F.do
 
 display "[OK] llm_peer master.do complete. Tables in $tables_dir, figures in $figures_dir"
+
+* 2026-06-14 终端守卫: exit 让 /e 或双击裸起动也立即退出, 不弹「已完成」模态框 (见 CLAUDE.md "Stata Environment")
+exit, clear

@@ -95,7 +95,7 @@ esttab M1 M2 M3 M4 M5 M6 M_BW ///
     b(%9.4f) se(%9.4f) ///
     title("Table 2: Media Clarity and Bank Risk-Taking (Z-score / LLP Ratio)") ///
     mtitles("OLS" "Bank FE" "Bank+Year FE" "+Bank Ctrl" "+Year Ctrl" "+SOE Int." "LLP Ratio") ///
-    keep(`TX' 1.is_soe c.`TX'#1.is_soe) ///
+    keep(`TX' 1.is_soe#c.`TX') ///
     addnotes("Cluster-robust SE (bank+year two-way)." ///
              "Treatment = mean_clarity_score_ctx (You 2018 词典 _ctx 轨)." ///
              "Z-score: CAR-based variant (capital term = regulatory CAR, not book equity/assets); cf. Laeven-Levine 2009 JFE." ///

@@ -59,6 +59,13 @@ controls:
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]
+  # 聚类口径 (PROJECT_REAUDIT_TOPTIER_T18_2026-06-14 INFER IV-2, P2; 镜像 disagreement spec)。
+  # 主规格 = bank 一维聚类 (= derivative_replication CLUSTER_VAR=bank_id, G_bank≈200);
+  # two-way (bank, year) 与 wild-cluster bootstrap 作稳健性 (小 G 维 year G≈18)。
+  cluster: bank_id
+  cluster_robustness:
+    twoway: [bank_id, year]   # 双向聚类对比 (year 维 G≈18 偏小 → 见 inference.small_g_inference)
+    wild_bootstrap: "boottest wild-cluster bootstrap (Roodman et al. 2019 SJ); 见 18_substance_robustness"
 
 identification:
   baseline: long_panel_within_bank_within_year
@@ -89,6 +96,41 @@ network_roles:
     framing: visibility_confounder
     lit: [Fang-Peress 2009 JF]
   centrality_missing_convention: zero_fill_offnetwork_disclose_N
+
+# 推断纪律 (PROJECT_REAUDIT_TOPTIER_T18_2026-06-14 INFER IV-2, P2; 镜像 disagreement spec + controls.cluster 块)。
+# 形式化区分 confirmatory (单一预设主规格) vs exploratory (其余测度/加权/异质性),
+# 并定义 multiple-testing family 与 FWER 校正口径, 治理"海量回归无纪律"质疑。
+# 注: List-Shaikh-Xu/Olken 是 RCT 预注册标准; 顶刊对观测研究不强制 OSF/PAP,
+# 故此处为内部 confirmatory/exploratory 声明 + family 定义, 非外部预注册承诺。
+inference:
+  confirmatory:
+    primary_treatment: sub_frac                       # 单一主处理 (treatment.primary, full 轨实质性占比)
+    primary_outcome: cost_income_ratio_change_3yr     # 单一主因变量 (outcome.primary, 效率试金石)
+    primary_spec: long_panel_within_bank_within_year + bank_fe + year_fe + cluster(bank_id)
+    single_hypothesis: "实质性 fintech 宣告 (substantive vs symbolic, W&Z 1994 ASQ) → 经营效率前向改善 (CIR 下降); 象征性宣告无效"
+  exploratory:  # robustness / 探索性, 非 co-equal headline
+    - "ctx 轨孪生 sub_frac_sc (互为稳健性高相关孪生, 非独立假设)"
+    - "sub-symb gap (full/ctx) 差值测度"
+    - "异质性 (bank_type×SOE / fintech wave / capital quartile / pre-2013 交互)"
+    - "子样本切分 (hub / size / SOE; 25_substance_subsamples)"
+    - "IV 交叉验证 (peer-LOO + Bartik + lag1 + ctx; 22_substance_iv_2sls) + alt outcomes (long_run_roa_change_3yr / misconduct_penalty_count)"
+  multiple_testing:
+    families:
+      - name: substantiveness_measure_family
+        members: "sub_frac (full) + sub_frac_sc (ctx) + sub-symb gap"
+        correction: "Romano-Wolf 2005 step-down FWER (rwolf) 校正后 p 进 esttab (18_substance_robustness rw_p 行)"
+      - name: heterogeneity_subsamples
+        members: "网络位置 / 规模 / 产权 三维子样本 + 异质性维度"
+        correction: "Westfall-Young / wyoung battery (镜像 brokerage/20; wire-ahead)"
+    fwer_method: romano_wolf_or_westfall_young
+    references: ["Romano-Wolf 2005 ECMA", "Westfall-Young 1993", "List-Shaikh-Xu 2019 EE (RCT 范式, 仅参照)", "Anderson 2008 JASA"]
+  weak_iv_inference:  # IV-2 修复: 弱工具稳健推断 (22_substance_iv_2sls weakiv AR-CI)
+    concern: "peer-LOO / Bartik 工具在 T=2 退化盘上 KP F 可能 < Stock-Yogo 临界 16.38"
+    remedy: "Anderson-Rubin 弱工具稳健 CI (weakiv ado; Andrews-Stock-Sun 2019 ARE) 进 IV 表 stats 行; KP F 弱时改读 AR 区间"
+  cluster_primary: bank_id        # = controls.cluster (one-way; G_bank≈200)
+  small_g_inference:
+    concern: "two-way (bank, year) 时 year 维 G≈18 偏小; province / cohort 子样本 G 更小"
+    remedy: "boottest wild-cluster bootstrap (Roodman et al. 2019 SJ) 用于小 G 聚类层; few-treated 时 ritest / Conley-Taber 2011"
 
 event_studies:  # P3 applicable events
   - E1  # 2013-06-13 yuebao_launch

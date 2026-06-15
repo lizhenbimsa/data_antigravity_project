@@ -91,10 +91,18 @@ if _rc {
     local CL bank_id
 }
 
+* 主估计量为 2SLS — 优先 ivreghdfe (HDFE), 缺失/运行期失败时回退 ivreg2 + 显式 i.bank_id i.year
+* (镜像 11_table2 / 18_tableA9 的运行期鲁棒回退: 本机 StataNow 19.5 实测 ivreghdfe 因
+*  ftools/reghdfe Mata 版本不兼容恒 r(301), 但 ivreg2 正常 → 仅"缺 ivreghdfe 才跳过"会让
+*  全部子样本/时序 2SLS 静默零产出; 改为 ivreghdfe/ivreg2 任一可用即继续, 各 2SLS 调用
+*  运行期失败 (本机 ivreghdfe r301) 自动回退 ivreg2 + 显式 i.bank_id i.year)。
 capture which ivreghdfe
-local HAS_IV = (_rc == 0)
+local HAS_IVHDFE = (_rc == 0)
+capture which ivreg2
+local HAS_IVREG2 = (_rc == 0)
+local HAS_IV = (`HAS_IVHDFE' | `HAS_IVREG2')
 if !`HAS_IV' {
-    display as error "  ⚠️ ivreghdfe 未安装, Table A8 整表跳过 (主估计量为 2SLS)"
+    display as error "  ⚠️ ivreghdfe 与 ivreg2 均不可用 (ssc install ivreghdfe / ivreg2), Table A8 整表跳过 (主估计量为 2SLS)"
     exit 0
 }
 
@@ -121,9 +129,18 @@ else {
         quietly count if !missing(`DVUSE', `TONE', `IV')
         local _n = r(N)
         if `_n' >= `N_MIN' {
-            capture eststo A_nonhub: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-                absorb(bank_id year) cluster(`CL') ffirst
-            local _crc = _rc
+            local _crc = 1
+            if `HAS_IVHDFE' {
+                capture eststo A_nonhub: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                    absorb(bank_id year) cluster(`CL') ffirst
+                local _crc = _rc
+            }
+            if `_crc' != 0 & `HAS_IVREG2' {
+                capture estimates drop A_nonhub
+                capture eststo A_nonhub: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year, ///
+                    cluster(`CL') partial(i.bank_id i.year)
+                local _crc = _rc
+            }
         }
         else {
             local _crc = 1
@@ -142,9 +159,18 @@ else {
         quietly count if !missing(`DVUSE', `TONE', `IV')
         local _n = r(N)
         if `_n' >= `N_MIN' {
-            capture eststo A_hub: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-                absorb(bank_id year) cluster(`CL') ffirst
-            local _crc = _rc
+            local _crc = 1
+            if `HAS_IVHDFE' {
+                capture eststo A_hub: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                    absorb(bank_id year) cluster(`CL') ffirst
+                local _crc = _rc
+            }
+            if `_crc' != 0 & `HAS_IVREG2' {
+                capture estimates drop A_hub
+                capture eststo A_hub: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year, ///
+                    cluster(`CL') partial(i.bank_id i.year)
+                local _crc = _rc
+            }
         }
         else {
             local _crc = 1
@@ -173,9 +199,18 @@ else {
         quietly count if !missing(`DVUSE', `TONE', `IV')
         local _n = r(N)
         if `_n' >= `N_MIN' {
-            capture eststo A_small: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-                absorb(bank_id year) cluster(`CL') ffirst
-            local _crc = _rc
+            local _crc = 1
+            if `HAS_IVHDFE' {
+                capture eststo A_small: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                    absorb(bank_id year) cluster(`CL') ffirst
+                local _crc = _rc
+            }
+            if `_crc' != 0 & `HAS_IVREG2' {
+                capture estimates drop A_small
+                capture eststo A_small: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year, ///
+                    cluster(`CL') partial(i.bank_id i.year)
+                local _crc = _rc
+            }
         }
         else {
             local _crc = 1
@@ -194,9 +229,18 @@ else {
         quietly count if !missing(`DVUSE', `TONE', `IV')
         local _n = r(N)
         if `_n' >= `N_MIN' {
-            capture eststo A_large: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-                absorb(bank_id year) cluster(`CL') ffirst
-            local _crc = _rc
+            local _crc = 1
+            if `HAS_IVHDFE' {
+                capture eststo A_large: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                    absorb(bank_id year) cluster(`CL') ffirst
+                local _crc = _rc
+            }
+            if `_crc' != 0 & `HAS_IVREG2' {
+                capture estimates drop A_large
+                capture eststo A_large: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year, ///
+                    cluster(`CL') partial(i.bank_id i.year)
+                local _crc = _rc
+            }
         }
         else {
             local _crc = 1
@@ -222,9 +266,18 @@ else {
         quietly count if !missing(`DVUSE', `TONE', `IV')
         local _n = r(N)
         if `_n' >= `N_MIN' {
-            capture eststo A_city: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-                absorb(bank_id year) cluster(`CL') ffirst
-            local _crc = _rc
+            local _crc = 1
+            if `HAS_IVHDFE' {
+                capture eststo A_city: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                    absorb(bank_id year) cluster(`CL') ffirst
+                local _crc = _rc
+            }
+            if `_crc' != 0 & `HAS_IVREG2' {
+                capture estimates drop A_city
+                capture eststo A_city: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year, ///
+                    cluster(`CL') partial(i.bank_id i.year)
+                local _crc = _rc
+            }
         }
         else {
             local _crc = 1
@@ -275,9 +328,19 @@ capture confirm variable `TONE' `IV'
 if !_rc {
     quietly count if !missing(`DVUSE', `TONE', `IV')
     if r(N) >= `N_MIN' {
-        capture eststo B_contemp: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-            absorb(bank_id year) cluster(`CL') ffirst
-        if !_rc {
+        local _crc = 1
+        if `HAS_IVHDFE' {
+            capture eststo B_contemp: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        if `_crc' != 0 & `HAS_IVREG2' {
+            capture estimates drop B_contemp
+            capture eststo B_contemp: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year, ///
+                cluster(`CL') partial(i.bank_id i.year)
+            local _crc = _rc
+        }
+        if `_crc' == 0 {
             local tmcols "`tmcols' B_contemp"
             local tmlabs `"`tmlabs' "Contemp (t)""'
         }
@@ -290,9 +353,19 @@ capture confirm variable llm_vote_tone_full_lag1 peer_tone_lag1_full
 if !_rc {
     quietly count if !missing(`DVUSE', llm_vote_tone_full_lag1, peer_tone_lag1_full)
     if r(N) >= `N_MIN' {
-        capture eststo B_lag1: ivreghdfe `DVUSE' (llm_vote_tone_full_lag1 = peer_tone_lag1_full) $controls, ///
-            absorb(bank_id year) cluster(`CL') ffirst
-        if !_rc {
+        local _crc = 1
+        if `HAS_IVHDFE' {
+            capture eststo B_lag1: ivreghdfe `DVUSE' (llm_vote_tone_full_lag1 = peer_tone_lag1_full) $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        if `_crc' != 0 & `HAS_IVREG2' {
+            capture estimates drop B_lag1
+            capture eststo B_lag1: ivreg2 `DVUSE' (llm_vote_tone_full_lag1 = peer_tone_lag1_full) $controls i.bank_id i.year, ///
+                cluster(`CL') partial(i.bank_id i.year)
+            local _crc = _rc
+        }
+        if `_crc' == 0 {
             local tmcols "`tmcols' B_lag1"
             local tmlabs `"`tmlabs' "Lagged (t-1)""'
         }
@@ -308,9 +381,19 @@ else {
     * 回退: 用 L. 算子即时构造 (无在盘滞后 IV 列时)
     quietly count if !missing(`DVUSE') & !missing(L.`TONE') & !missing(L.`IV')
     if r(N) >= `N_MIN' {
-        capture eststo B_lag1: ivreghdfe `DVUSE' (L.`TONE' = L.`IV') $controls, ///
-            absorb(bank_id year) cluster(`CL') ffirst
-        if !_rc {
+        local _crc = 1
+        if `HAS_IVHDFE' {
+            capture eststo B_lag1: ivreghdfe `DVUSE' (L.`TONE' = L.`IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        if `_crc' != 0 & `HAS_IVREG2' {
+            capture estimates drop B_lag1
+            capture eststo B_lag1: ivreg2 `DVUSE' (L.`TONE' = L.`IV') $controls i.bank_id i.year, ///
+                cluster(`CL') partial(i.bank_id i.year)
+            local _crc = _rc
+        }
+        if `_crc' == 0 {
             local tmcols "`tmcols' B_lag1"
             local tmlabs `"`tmlabs' "Lagged (t-1)""'
         }
@@ -324,9 +407,19 @@ else {
 *     反向因果检验: 未来同行语调若对当期 outcome 有效应 → 警报 (placebo 应不显著)。
 quietly count if !missing(`DVUSE') & !missing(F.`TONE') & !missing(F.`IV')
 if r(N) >= `N_MIN' {
-    capture eststo B_lead: ivreghdfe `DVUSE' (F.`TONE' = F.`IV') $controls, ///
-        absorb(bank_id year) cluster(`CL') ffirst
-    if !_rc {
+    local _crc = 1
+    if `HAS_IVHDFE' {
+        capture eststo B_lead: ivreghdfe `DVUSE' (F.`TONE' = F.`IV') $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        local _crc = _rc
+    }
+    if `_crc' != 0 & `HAS_IVREG2' {
+        capture estimates drop B_lead
+        capture eststo B_lead: ivreg2 `DVUSE' (F.`TONE' = F.`IV') $controls i.bank_id i.year, ///
+            cluster(`CL') partial(i.bank_id i.year)
+        local _crc = _rc
+    }
+    if `_crc' == 0 {
         local tmcols "`tmcols' B_lead"
         local tmlabs `"`tmlabs' "Lead placebo (t+1)""'
     }

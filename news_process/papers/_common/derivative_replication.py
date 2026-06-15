@@ -173,11 +173,14 @@ _PAPER_DEFAULTS: dict[str, dict[str, str]] = {
     },
     'llm_peer': {
         'PAPER_ID': 'llm_peer',
-        # 2026-06-13 主规格重构 (顶刊组合定稿): outcome 改为银行自身 fintech 报道
-        # 强度年度聚合 (panel 真实在产列, encode.py:847) — 方法学论文用 "peer-IV →
-        # own tone → own fintech 战略响应" (Leary-Roberts 2014 JF 同群范式) 最大化
-        # 展示 LLM 语义同业尺子; 不再用外部财务 sentinel 'ROA' (roa 降级 secondary)。
-        'MAIN_DV': 'avg_ft_intensity_full',  # spec.outcome.primary (panel 实存列)
+        # 2026-06-14 PORT SAL-3 (顶刊重审 T=18): 主 outcome 改回 real-economy roa —
+        # 撤销 2026-06-13 的 avg_ft_intensity_full 主规格 (该文本量 Y 与 P2 attention
+        # treatment 同源派生自同一媒体语料 → 反映共同覆盖因子而非真实公司行为)。
+        # roa 是外部财务面板 sentinel (同 benefit/brokerage/strategic 三 B-route 篇);
+        # 当前 T=2 试跑盘无 roa 列 → 整复现包在 01_data_prep capture confirm (line 55)
+        # exit 198 优雅 fail-loud (wire-ahead, 财务接入后自动激活)。avg_ft_intensity_full
+        # 降为 first-stage 机制佐证 (spec.outcome.mechanism_evidence)。
+        'MAIN_DV': 'roa',  # spec.outcome.primary (external financial sentinel, SAL-3)
         'CONTROLS': 'ln_news_coverage media_hhi n_articles',
         'CLUSTER_VAR': 'bank_id',
         'HET_VAR': 'is_soe',

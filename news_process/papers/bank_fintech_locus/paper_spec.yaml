@@ -64,6 +64,52 @@ controls:
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]
+  # INFER IV-2 修复 (2026-06-14): 聚类设定显式化 (此前 spec 无 cluster 块)。
+  # 主规格 = 银行层聚类 (T=18 长面板内 within-bank 序列相关); 稳健性对比多维聚类。
+  cluster: [bank]              # 主规格单向银行聚类 (模板 vce(cluster bank_id))
+  cluster_robustness:         # 多维聚类对比 (small-G 时配 wild bootstrap, 见 inference 块)
+    - bank_only
+    - bank_year_twoway
+    - bank_type_year_twoway
+
+# INFER IV-2 修复 (2026-06-14): 推断纪律块 — 显式区分单一 confirmatory 主规格与
+# exploratory 稳健性/多测度族 (List-Shaikh-Xu 2019 EE confirmatory-vs-exploratory;
+# Romano-Wolf 2005 ECMA family-wise; 观测性研究不强制 OSF/PAP 预注册)。
+inference:
+  confirmatory:
+    # 单一预设主假设: 底层技术主导 (locus_layer_full) → 技术创新 (引用加权专利)
+    primary_hypothesis: "locus_layer_full → citation_weighted_patent (bank FE + year FE)"
+    treatment: locus_layer_full
+    outcome: citation_weighted_patent
+    family: locus_pair          # {locus_layer_full, locus_scenario_full} 双处理同族
+  exploratory:                  # 以下全标 robustness/exploratory, 非 co-equal headline
+    - ctx_track_twin            # tech_frac_lc 双轨互为稳健性 (高相关孪生, 非独立假设)
+    - secondary_outcomes        # patent_fintech_count / noninterest_income_share / car (上市行扩展)
+    - heterogeneity_splits      # 三波 fintech / SOE / bank_type / hub / size
+    - network_roles             # bank_between_cent 中介/调节 (探索性附录)
+    - alternative_classifier    # locus_layer_ctx 替代分类器 (双轨 full/ctx)
+  fwer_correction:
+    method: romano_wolf         # rwolf step-down over locus_pair family (18_locus_robustness)
+    family_def: "locus_layer_full + locus_scenario_full (treatment family)"
+    reps: 1000
+  small_g_inference:
+    # 银行/省级聚类 G 偏小或政策 DiD few-treated 时, 解析 cluster SE 偏小 → wild bootstrap
+    method: wild_cluster_bootstrap   # boottest (Roodman et al. 2019), 9999 reps
+    when: "G < 50 or few-treated-cluster event study"
+    lit: [Cameron-Miller 2015 JHR, MacKinnon-Webb 2017, Roodman et al. 2019 SJ]
+  weak_iv_robust:
+    # IV 表 KP F < Stock-Yogo 时改读 weakiv AR CI (20_locus_iv_2sls 已落地真实命令)
+    method: anderson_rubin      # weakiv (Finlay-Magnusson-Schaffer)
+    lit: [Andrews-Stock-Sun 2019 ARE, Stock-Yogo 2005]
+  parallel_trends_sensitivity:
+    # RB-3 修复 (2026-06-14): 事件研究平行趋势局部偏离的部分识别敏感性 (相对幅度限制)。
+    # 18_locus_robustness 的 honestdid 调用已订正为 ado 真支持的接口 (numpreperiods(3) +
+    # 从 reghdfe e(b) Mata 抽 6 event-time 交乘子向量 b()/vcov(); 旧 pre()/post() 选项不存在,
+    # 永久 r(198) 被 capture 吞 → 已替换为真命令)。E1=2013 余额宝事件 INLINE 强度事件研究上跑。
+    method: honest_did          # honestdid (Rambachan-Roth 2023 RES; delta(rm) 相对幅度)
+    m_grid: [0, 0.5, 1, 1.5, 2] # 相对幅度 M-band; pre-trend 联合 F 配套报 (leads −3/−2/−1 = 0)
+    event: E1                   # 2013-06-13 yuebao_launch (窗口最长); production T=18 激活, T=2 优雅跳过
+    lit: [Rambachan-Roth 2023 RES, Roth 2022 AER:Insights, Sun-Abraham 2021 JoE]
 
 identification:
   baseline: layer_x_event_study  # E1/E4 events × 2 locus class

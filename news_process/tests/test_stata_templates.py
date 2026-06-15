@@ -292,9 +292,10 @@ def test_cli_verify_replication_on_valid_package(tmp_path, capsys):
     out = capsys.readouterr().out
     assert '[1/5] 目录结构' in out
     # remove-title-track 后 14; IV 补全 (+25_tableA6) → 15; agg-audit (+26_tableA7) → 16;
-    # 2026-06-14 顶刊稳健性扩充 (+32_tableA8 +33_tableA9) → 18 .do / 17 子 .do
-    assert '18/18 完整' in out  # 18 .do (含语调 2SLS IV + 聚合 + FE饱和/稳健估计 + 子样本/时序)
-    assert '17/17 子 .do' in out  # master.do 引用 17 个子 .do
+    # 2026-06-14 顶刊稳健性扩充 (+32_tableA8 +33_tableA9) → 18 .do / 17 子 .do;
+    # 2026-06-14 T18 重审 era-stability (+34_tableA11) → 19 .do / 18 子 .do
+    assert '19/19 完整' in out  # 19 .do (含语调 2SLS IV + 聚合 + FE饱和/稳健估计 + 子样本/时序 + era 稳定性)
+    assert '18/18 子 .do' in out  # master.do 引用 18 个子 .do
     assert 'Summary: 8 OK' in out
 
 

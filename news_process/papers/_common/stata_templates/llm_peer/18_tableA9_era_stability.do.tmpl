@@ -1,0 +1,341 @@
+* ============================================================================
+* 18_tableA9_era_stability.do — 跨时代稳定性 / 结构断点稳健性 (llm_peer)
+* Paper: {{PAPER_ID}}
+*
+* CY-2 修复 (顶刊重审 2026-06-14, 报告 §⑥ CY-2 P1 CONFIRMED; 移植
+*   bank_media_disagreement/clarity 13_table4 的分时段 regime 面板范式到 2SLS)。
+*
+* 病灶: 样本 2007-2024 横跨多个 fintech 监管/市场 regime —
+*   余额宝 2013 / P2P 整治 2016 / 央行数字货币 DCEP 2019 —— 全代码库无
+*   结构性断点 / 分时代稳定性检验 (Bai-Perron / Chow / sbsingle 全树零命中)。
+*   pooled 2SLS 若 "LLM 语义同业语调溢出 → 本行结局" 的关系在不同 regime 间
+*   断裂, 会把异质效应平均成有偏均值。year-FE 只吸收年度水平位移, 不防"系数
+*   随时代漂移"。
+*
+* 本表三件套 (Bai-Perron 对面板 DiD/2SLS 非硬要求; 真要求是系数稳定性证据):
+*   Panel A — 三时代分段主 2SLS: 2007-2012 (pre-余额宝) / 2013-2018 (P2P-fintech
+*             爆发) / 2019-2024 (DCEP / 强监管)。各时代各跑一次主规格, 看系数与
+*             第一阶段 F 是否同号同量级。T=2 试跑盘仅 2017-2018 落在中段 →
+*             仅一个时代有数据时优雅跳过其余 (production T=18 才有三段功效)。
+*   Panel B — 全样本 treatment×era 交乘 2SLS + Wald 三时代系数相等检验:
+*             把 era 哑变量与本行语调交乘 (内生项), 用 peer-IV × era 工具识别,
+*             test 三时代效应是否统计上无差异 (p>0.10 = 跨时代稳定 = 支持 pooled)。
+*   Panel C (可选) — 主 DV 单变量结构断点 estat sbsingle (有 ado 才跑)。
+*
+* 白话:
+*   "你这 18 年里, 监管和市场天翻地覆 (余额宝、P2P 暴雷、数字人民币), 凭什么
+*    认为'同行风向影响银行'这件事一直是同一个力度?" → 把样本切成三个时代各算
+*    一遍 (Panel A), 再正式检验三个时代的系数是不是一样大 (Panel B 的 Wald)。
+*    如果一样 → pooled 估计可信; 如果不一样 → 论文须报分时代结果而非单一均值。
+*
+* 文献锚点 (已核验):
+*   Bai, J., & Perron, P. (1998). Estimating and testing linear models with
+*     multiple structural changes. Econometrica, 66(1), 47-78. DOI 10.2307/2998540
+*   Hansen, B.E. (2001). The new econometrics of structural change. JEP 15(4),
+*     117-128. DOI 10.1257/jep.15.4.117
+*
+* 全部 capture / capture-confirm / N-守卫: 缺列 / 缺包 (ivreghdfe) / T=2 退化
+*   (单一时代有数据) / 时代子样本 N 过小 时优雅跳过, esttab 动态列名不硬点名,
+*   绝不 r(111) 崩主链。era 哑变量/交乘项用即时构造 (不落盘) → golden-safe。
+*
+* 输出: $tables_dir/tableA9_era_stability.{tex,csv}
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+eststo clear
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* nested mkdir 防御 (Stata mkdir 不递归; 独立 dry-run / 主链外重跑)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* 载入 prepared panel; 缺失时回退 46_panel_yearly_full.dta (使本表可独立 dry-run)
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        display "  ⚠️ _prepared_panel.dta 缺, 回退 46_panel_yearly_full.dta (未缩尾)"
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+local DV     {{MAIN_DV}}
+local TONE   {{TONE_VAR}}
+local IV     {{LLM_PEER_IV}}
+local CL     {{CLUSTER_VAR}}
+
+* DV 兼容: 主模板用 {{MAIN_DV}}_w (缩尾); _w 缺则回退裸名 (dry-run/未缩尾盘)
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display as error "  ⚠️ 结果变量 `DV'(_w) 不在面板 (财务/强度哨兵未接入), Table A9 整表跳过 (degrade)"
+        exit 0
+    }
+}
+
+* CLUSTER 兜底: 占位符未解析或列缺 → bank_id
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+
+* 主估计量为 2SLS — 优先 ivreghdfe (HDFE), 缺失/运行期失败时回退 ivreg2 + 显式 i.bank_id i.year
+* (镜像 11_table2 的运行期鲁棒回退: 本机 StataNow 19.5 实测 ivreghdfe 因 ftools/reghdfe
+*  Mata 版本不兼容恒 r(301), 但 ivreg2 正常 → 仅"缺 ivreghdfe 才跳过"会让 era 2SLS 全空,
+*  改为 ivreghdfe/ivreg2 任一可用即继续, 各 2SLS 调用运行期失败自动回退 ivreg2)。
+capture which ivreghdfe
+local HAS_IVHDFE = (_rc == 0)
+capture which ivreg2
+local HAS_IVREG2 = (_rc == 0)
+local HAS_IV = (`HAS_IVHDFE' | `HAS_IVREG2')
+if !`HAS_IV' {
+    display as error "  ⚠️ ivreghdfe 与 ivreg2 均不可用 (ssc install ivreghdfe / ivreg2), Table A9 整表跳过 (主估计量为 2SLS)"
+    exit 0
+}
+
+* 处理 / 工具列在盘?
+capture confirm variable `TONE' `IV'
+if _rc {
+    display as error "  ⚠️ `TONE' / `IV' 缺, Table A9 整表跳过"
+    exit 0
+}
+
+* N-守卫: 时代子样本有效 2SLS 样本须 >= N_MIN, 否则优雅跳过 (T=2 退化保护)
+local N_MIN 20
+
+* ── era 哑变量即时构造 (不落盘 → golden-safe) ───────────────────────────
+*   era1 = 2007-2012 (pre-余额宝) / era2 = 2013-2018 (P2P-fintech) /
+*   era3 = 2019-2024 (DCEP / 强监管)。年份边界硬编码 (regime 锚点固定)。
+capture drop era
+gen byte era = .
+replace era = 1 if year >= 2007 & year <= 2012
+replace era = 2 if year >= 2013 & year <= 2018
+replace era = 3 if year >= 2019 & year <= 2024
+label define era_lbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2024", replace
+label values era era_lbl
+
+* 有数据的时代数 (T=2 试跑盘仅 2017-2018 → 只有 era2)
+quietly levelsof era if !missing(era, `DVUSE', `TONE', `IV'), local(eras_present)
+local n_eras : word count `eras_present'
+display "  [INFO] Table A9: 有数据的时代 = `eras_present' (共 `n_eras' 个)"
+
+* ==========================================================================
+* Panel A — 三时代分段主 2SLS (each era 各跑主规格)
+* ==========================================================================
+local eracols ""
+local eralabs ""
+
+forvalues e = 1/3 {
+    * 该时代名 (供列标题)
+    if `e' == 1 local _ename "2007-2012"
+    if `e' == 2 local _ename "2013-2018"
+    if `e' == 3 local _ename "2019-2024"
+
+    preserve
+    quietly keep if era == `e'
+    quietly count if !missing(`DVUSE', `TONE', `IV')
+    local _n = r(N)
+    if `_n' >= `N_MIN' {
+        local _crc = 1
+        if `HAS_IVHDFE' {
+            capture eststo Aera`e': ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        * 运行期失败 (本机 ivreghdfe r301) 或未装 ivreghdfe → 回退 ivreg2 + 显式 FE
+        if `_crc' != 0 & `HAS_IVREG2' {
+            capture estimates drop Aera`e'
+            capture eststo Aera`e': ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year, ///
+                cluster(`CL')
+            local _crc = _rc
+        }
+    }
+    else {
+        local _crc = 1
+    }
+    restore
+    if `_crc' == 0 {
+        local eracols "`eracols' Aera`e'"
+        local eralabs `"`eralabs' "`_ename'""'
+    }
+    else {
+        display "  ⚠️ Panel A: 时代 `_ename' 子样本 N<`N_MIN' 或 2SLS 失败, 跳过 (T=2 试跑盘仅中段有数据; production T=18 才有三段功效)"
+    }
+}
+
+if "`eracols'" != "" {
+    esttab `eracols' using "$tables_dir/tableA9_era_stability.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+        keep(`TONE') ///
+        stats(N widstat, fmt(0 3) labels("N" "KP rk Wald F")) ///
+        title("Table A9 Panel A: Era-Stability of LLM-peer IV Effect (segmented 2SLS)") ///
+        mtitles(`eralabs') ///
+        addnotes("Sample split by fintech regime era: 2007-2012 (pre-Yu'ebao) / 2013-2018 (P2P-fintech boom) / 2019-2024 (DCEP/tightening)." ///
+                 "Each column = main 2SLS (`TONE' = `IV'), bank+year FE, SE clustered at `CL'." ///
+                 "Eras with N<`N_MIN' skipped (T=2 trial panel only covers 2017-2018; production T=18 populates all three).")
+    estout `eracols' using "$tables_dir/tableA9_era_stability.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///
+        keep(`TONE') starlevels(* 0.10 ** 0.05 *** 0.01)
+    display "[OK] Table A9 Panel A (segmented era 2SLS) written"
+}
+else {
+    display "  ⚠️ Panel A 无可用列 (单一时代 / T=2 退化), 跳过 A9 Panel A 主表 (production T=18 才有功效)"
+}
+
+* ==========================================================================
+* Panel B — 全样本 treatment×era 交乘 2SLS + Wald 三时代系数相等检验
+* ==========================================================================
+* 仅当 >=2 个时代有数据时才有交乘可言 (单时代退化无对比 → 跳过)。
+eststo clear
+if `n_eras' < 2 {
+    display "  ⚠️ Panel B: 仅 `n_eras' 个时代有数据 (T=2 试跑盘), 无跨时代交乘可检验, 跳过 (production T=18 才能跑三时代 Wald)"
+}
+else {
+    * 交乘项即时构造: tone × era 哑变量 + iv × era 哑变量 (内生项各配工具)。
+    * 用 era2/era3 哑变量 (era1 为基准组)。仅对有数据的时代建交乘, 防全空列。
+    capture drop _e2 _e3
+    gen byte _e2 = (era == 2) if !missing(era)
+    gen byte _e3 = (era == 3) if !missing(era)
+
+    * 内生交乘 + 工具交乘 (即时构造, 不落盘)
+    capture drop _tone_e2 _tone_e3 _iv_e2 _iv_e3
+    gen double _tone_e2 = `TONE' * _e2
+    gen double _tone_e3 = `TONE' * _e3
+    gen double _iv_e2   = `IV'   * _e2
+    gen double _iv_e3   = `IV'   * _e3
+
+    * 动态构造内生/工具/外生表 (仅纳入实际有数据的时代交乘, 防共线全空列)。
+    local has_e2 : list 2 in eras_present
+    local has_e3 : list 3 in eras_present
+    local endo  "`TONE'"
+    local inst  "`IV'"
+    local exo_e ""
+    if `has_e2' {
+        local endo "`endo' _tone_e2"
+        local inst "`inst' _iv_e2"
+        local exo_e "`exo_e' _e2"
+    }
+    if `has_e3' {
+        local endo "`endo' _tone_e3"
+        local inst "`inst' _iv_e3"
+        local exo_e "`exo_e' _e3"
+    }
+
+    * era 主效应哑变量 (_e2/_e3) 作外生控制; era1 基准被 year-FE 部分吸收时
+    *   capture noisily 防共线 abort, 失败则降级仅交乘项 (不带 _e* 主效应)。
+    * 估计器顺序 (镜像 11_table2 / Panel A 运行期回退): ① ivreghdfe (带/不带 era 主效应) →
+    *   ② 运行期失败 (本机 ivreghdfe r301) 时 ivreg2 + 显式 i.bank_id i.year (带/不带 era 主效应)。
+    local _brc = 1
+    if `HAS_IVHDFE' {
+        capture noisily ivreghdfe `DVUSE' (`endo' = `inst') `exo_e' $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        local _brc = _rc
+        if `_brc' != 0 {
+            * 回退: 去掉 era 主效应外生哑变量 (year-FE 已吸收 era 水平), 仅留交乘
+            capture noisily ivreghdfe `DVUSE' (`endo' = `inst') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _brc = _rc
+        }
+    }
+    if `_brc' != 0 & `HAS_IVREG2' {
+        capture noisily ivreg2 `DVUSE' (`endo' = `inst') `exo_e' $controls i.bank_id i.year, ///
+            cluster(`CL')
+        local _brc = _rc
+        if `_brc' != 0 {
+            capture noisily ivreg2 `DVUSE' (`endo' = `inst') $controls i.bank_id i.year, ///
+                cluster(`CL')
+            local _brc = _rc
+        }
+    }
+
+    if `_brc' == 0 {
+        eststo B_interact
+
+        * Wald: 三时代效应相等 ⟺ 全部交乘系数 = 0 (era1 基准, _tone_e2=_tone_e3=0)。
+        local _wald_terms ""
+        if `has_e2' local _wald_terms "`_wald_terms' _tone_e2"
+        if `has_e3' local _wald_terms "`_wald_terms' _tone_e3"
+        local _wald_p = .
+        if "`_wald_terms'" != "" {
+            capture test `_wald_terms'
+            if !_rc {
+                local _wald_p = r(p)
+                estadd scalar wald_p = r(p)
+                display "  [INFO] Panel B Wald (三时代系数相等, H0: 交乘=0): p = " %5.3f r(p)
+            }
+        }
+
+        esttab B_interact using "$tables_dir/tableA9b_era_interaction.tex", replace ///
+            se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+            keep(`TONE' _tone_e2 _tone_e3) ///
+            stats(N widstat wald_p, fmt(0 3 3) labels("N" "KP rk Wald F" "Wald p (eras equal)")) ///
+            title("Table A9 Panel B: Treatment x Era Interaction & Equality Test (2SLS)") ///
+            mtitles("Full sample") ///
+            addnotes("`TONE' = base-era (2007-2012) effect; _tone_e2/_tone_e3 = differential effect in 2013-2018 / 2019-2024." ///
+                     "Endogenous interactions instrumented by `IV' x era dummies (just-identified)." ///
+                     "Wald p (eras equal): H0 all interaction coeffs = 0 (effect constant across regimes); p>0.10 supports pooling." ///
+                     "Bai-Perron 1998 ECMA / Hansen 2001 JEP structural-stability framing; requires >=2 eras with data (T=18 production).")
+        estout B_interact using "$tables_dir/tableA9b_era_interaction.csv", replace delimiter(",") ///
+            cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat wald_p, fmt(0 3 3)) ///
+            keep(`TONE' _tone_e2 _tone_e3) starlevels(* 0.10 ** 0.05 *** 0.01)
+        display "[OK] Table A9 Panel B (era interaction + Wald equality) written"
+    }
+    else {
+        display "  ⚠️ Panel B: 交乘 2SLS 失败 (弱识别/共线/退化), 跳过 (production T=18 才稳)"
+    }
+}
+
+* ==========================================================================
+* Panel C (可选) — 主 DV 单变量结构断点 estat sbsingle (有 ado 才跑, 探索性)
+* ==========================================================================
+* sbsingle 需先 tsset 单一时间序列; 面板上对 bank 均值序列做断点扫描 (探索性诊断,
+*   非主结论)。缺命令 / 时序过短时优雅跳过。
+capture which sbsingle
+if !_rc {
+    preserve
+    capture collapse (mean) _dvbar = `DVUSE', by(year)
+    if !_rc {
+        capture tsset year
+        if !_rc {
+            quietly count if !missing(_dvbar)
+            if r(N) >= 8 {
+                capture noisily estat sbsingle
+                * sbsingle 实为 regress 的 postestimation; 若上文无 regress 则改直接 sktest 风格;
+                * 此处仅在 ado 存在且序列够长时尝试, 失败不影响主链 (探索性)。
+                if _rc display "  [INFO] Panel C: estat sbsingle 不适用当前序列 (探索性, 跳过)"
+            }
+            else {
+                display "  [INFO] Panel C: 年度序列 <8 点 (T=2 退化), 跳过 sbsingle (production T=18)"
+            }
+        }
+    }
+    restore
+}
+else {
+    display "  [INFO] Panel C: sbsingle 命令不可用 (Stata 内置/可选), 跳过结构断点扫描 (探索性, 非主结论)"
+}
+
+display "[OK] Table A9 (era stability: segmented 2SLS + era interaction Wald + optional sbsingle) — llm_peer 完成"

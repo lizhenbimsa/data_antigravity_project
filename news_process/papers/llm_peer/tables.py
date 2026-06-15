@@ -31,7 +31,17 @@ _TABLE1_VARIABLES: list[str] = [
     'n_articles',
     'llm_vote_tone_full',
     'llm_vote_tone_ctx',
-    # outcome (2026-06-13 重定位: 主因变量 = 银行自身 fintech 报道强度, panel 实存列)
+    # ── 主 outcome (PORT SAL-3 修正 2026-06-14, 顶刊重审): real-economy 财务/创新结局。
+    #    撤销 2026-06-13 的 avg_ft_intensity_full 文本量 outcome (与 P2 attention
+    #    treatment 同源, 反映共同媒体覆盖因子而非真实公司行为)。这些是外部财务面板
+    #    sentinel (M0.5.11 待接入); build_summary_table strict=False → 接入前以 NaN
+    #    占位行可见保留 (golden-safe, 不静默剔除), 接入后自动填实。
+    'roa',                          # spec.outcome.primary (银行盈利能力, headline)
+    'ln_fintech_investment',        # spec.outcome.secondary (fintech 实际投入)
+    'citation_weighted_patent',     # spec.outcome.secondary (创新产出, Kogan 2017)
+    'tobin_q',                      # spec.outcome.secondary (市场估值; Wind 市值)
+    # first-stage 机制佐证 (NON-headline, PORT SAL-3 降级): 原主 outcome 降于此,
+    #    展示 LLM-peer IV → own tone → own fintech 报道强度的中间通道, 不作 headline。
     'avg_ft_intensity_full',
 ]
 

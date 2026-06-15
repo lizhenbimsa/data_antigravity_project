@@ -22,9 +22,17 @@ capture mkdir "$tables_dir"
 use "$data_dir/_prepared_panel.dta", clear
 
 local cutoffs 70 75 80 85 90
+* 主估计量为 2SLS — 优先 ivreghdfe (HDFE), 缺失/运行期失败时回退 ivreg2 + 显式 i.bank_id i.year
+* (镜像 11_table2 / 18_tableA9 的运行期鲁棒回退: 本机 StataNow 19.5 实测 ivreghdfe 因
+*  ftools/reghdfe Mata 版本不兼容恒 r(301), 但 ivreg2 正常 → 旧"仅缺 ivreghdfe 才跳过"会让
+*  Table 3 在 ivreghdfe 运行期崩 → 经 plain do 调用时阻断 00_master 整链; 改为各 2SLS
+*  调用运行期失败自动回退 ivreg2, 两估计器皆失败该列优雅缺席, 绝不 abort master)。
 capture which ivreghdfe
-if _rc {
-    display as error "[ERROR] ivreghdfe required for Table 3; install via ssc install ivreghdfe"
+local HAS_IVHDFE = (_rc == 0)
+capture which ivreg2
+local HAS_IVREG2 = (_rc == 0)
+if !`HAS_IVHDFE' & !`HAS_IVREG2' {
+    display as error "[ERROR] ivreghdfe / ivreg2 required for Table 3; install via ssc install ivreghdfe ivreg2"
     exit 199
 }
 
@@ -35,9 +43,20 @@ foreach c of local cutoffs {
         display "[WARN] `iv_var' missing; skipping cutoff=`c'"
         continue
     }
-    ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = `iv_var') $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo C`c'
+    local _crc = 1
+    if `HAS_IVHDFE' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = `iv_var') $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        local _crc = _rc
+    }
+    if `_crc' != 0 & `HAS_IVREG2' {
+        capture estimates drop C`c'
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = `iv_var') $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) partial(i.bank_id i.year)
+        local _crc = _rc
+    }
+    if `_crc' == 0 eststo C`c'
+    else display "[WARN] cutoff=`c' 2SLS 失败 (ivreghdfe r301 且 ivreg2 回退失败), 跳过"
 }
 
 * fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — 循环内任一 cutoff 列缺失

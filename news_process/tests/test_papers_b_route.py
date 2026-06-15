@@ -161,12 +161,19 @@ def test_total_template_count_77() -> None:
     #   llm_peer +2 (16/17) / strategic_diff +2 (16/17)。全部仅消费在盘列, 财务/计数 outcome 与 SSC
     #   命令 (psacalc/ppmlhdfe) 一律 capture confirm/which 守卫 (wire-ahead) → golden-safe, 不触 panel。
     #   provisional 两篇 (MD +1 / NC +2) 写入 papers/<id>/stata_templates, 不计入此 _common rglob 口径。
-    expected_count = 133  # 113 + 20 (2026-06-14 顶刊稳健性扩充六族)
+    # 2026-06-14 T18 顶刊重审落地 (PROJECT_REAUDIT_TOPTIER_T18_2026-06-14.md): +9 个 _common 模板 —
+    #   era-stability (时代稳定性, 2007-2024 跨年构成漂移防护) 族 8 篇各 1 + brokerage 选择性稳健性 1:
+    #   root +1 (34_tableA11_era_stability) / attention +1 (22) / substance +1 (26) / locus +1 (25) /
+    #   collab +1 (26) / benefit_society +1 (28) / brokerage_network +2 (22_selection / 24_era) /
+    #   llm_peer +1 (18) / strategic_diff +1 (18)。全部 capture confirm/which 守卫 (wire-ahead) →
+    #   golden-safe, 不触 panel。→ 共 142。
+    expected_count = 142  # 133 + 9 (2026-06-14 T18 重审 era-stability/selection 族)
     assert len(templates) == expected_count, (
         f"Expected {expected_count} total templates, found {len(templates)}: "
         f"= 95 (baseline) + 5 (IV 2SLS) + 6 (网络五角色化) + 2 (聚合审计 P1/llm_peer A+B+C) "
         f"+ 5 (聚合审计 B+C wire-ahead 桩) "
-        f"+ 20 (顶刊稳健性扩充: FE-SAT/ROBUST-EST/OSTER/SUBSAMPLE/TIMING/PPML)"
+        f"+ 20 (顶刊稳健性扩充: FE-SAT/ROBUST-EST/OSTER/SUBSAMPLE/TIMING/PPML) "
+        f"+ 9 (T18 重审: era-stability/selection 族)"
     )
 
 

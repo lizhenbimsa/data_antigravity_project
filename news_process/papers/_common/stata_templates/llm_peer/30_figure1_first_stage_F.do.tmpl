@@ -20,9 +20,15 @@ capture mkdir "$figures_dir"
 
 use "$data_dir/_prepared_panel.dta", clear
 
+* 第一阶段 F 收集器 — 优先 ivreghdfe (HDFE), 缺失/运行期失败时回退 ivreg2 + 显式 i.bank_id i.year
+* (镜像 11_table2 / 18_tableA9: 本机 StataNow 19.5 ivreghdfe 恒 r(301), ivreg2 正常且同样
+*  报 e(widstat)=KP rk Wald F → 旧 bare ivreghdfe 运行期崩 → 经 plain do 调用阻断 00_master)。
 capture which ivreghdfe
-if _rc {
-    display as error "[ERROR] ivreghdfe required for figure1"
+local HAS_IVHDFE = (_rc == 0)
+capture which ivreg2
+local HAS_IVREG2 = (_rc == 0)
+if !`HAS_IVHDFE' & !`HAS_IVREG2' {
+    display as error "[ERROR] ivreghdfe / ivreg2 required for figure1"
     exit 199
 }
 
@@ -39,8 +45,18 @@ foreach c in 70 75 80 85 90 {
     capture confirm variable `iv_var'
     if _rc continue
 
-    quietly ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = `iv_var') $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}})
+    local _crc = 1
+    if `HAS_IVHDFE' {
+        capture quietly ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = `iv_var') $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}})
+        local _crc = _rc
+    }
+    if `_crc' != 0 & `HAS_IVREG2' {
+        capture quietly ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = `iv_var') $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) partial(i.bank_id i.year)
+        local _crc = _rc
+    }
+    if `_crc' != 0 continue
     local F_stat = e(widstat)
     matrix `F_mat'[`i', 1] = `c' / 100
     matrix `F_mat'[`i', 2] = `F_stat'

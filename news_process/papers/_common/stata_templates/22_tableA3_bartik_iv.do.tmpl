@@ -80,11 +80,16 @@ if !_rc {
         local IV_LF `IV_LF_ctx'
     }
     * fix(omni-g-templates-17, 2026-06-11): TWFE 对齐 OLS 列 (ivreghdfe 可用时)
+    * fix(reaudit-t18-2026-06-14, IV-6 镜像 llm_peer/11): ivreghdfe 本机 r(301) 坏时
+    * uncaught 会中断整张 A3 (含下方 Rotemberg 诊断块永不执行) → capture noisily + 回退 ivreg2。
+    local _ivlf_ok = 0
     if `has_ivreghdfe' {
-        eststo IV_LF: ivreghdfe `DV' (`LOCUS' = `IV_LF') digital_frontier, ///
+        capture noisily eststo IV_LF: ivreghdfe `DV' (`LOCUS' = `IV_LF') digital_frontier, ///
             absorb(bank_id year) cluster(bank_id) first
+        if !_rc local _ivlf_ok = 1
+        else display as error "  ⚠️ ivreghdfe IV_LF 运行期失败 (rc=`=_rc', 本机 ivreghdfe r301); 回退 ivreg2"
     }
-    else {
+    if !`_ivlf_ok' {
         eststo IV_LF: ivreg2 `DV' (`LOCUS' = `IV_LF') digital_frontier, ///
             cluster(bank_id) first robust
     }
@@ -100,11 +105,15 @@ if !_rc {
         local IV_LC bartik_fintech_lc_iv_ctx
     }
     * fix(omni-g-templates-17, 2026-06-11): TWFE 对齐 OLS 列 (ivreghdfe 可用时)
+    * fix(reaudit-t18-2026-06-14, IV-6 镜像 llm_peer/11): ivreghdfe 本机 r(301) → 回退 ivreg2。
+    local _ivlc_ok = 0
     if `has_ivreghdfe' {
-        eststo IV_LC: ivreghdfe `DV' (`LOCUS' = `IV_LC') digital_frontier, ///
+        capture noisily eststo IV_LC: ivreghdfe `DV' (`LOCUS' = `IV_LC') digital_frontier, ///
             absorb(bank_id year) cluster(bank_id) first
+        if !_rc local _ivlc_ok = 1
+        else display as error "  ⚠️ ivreghdfe IV_LC 运行期失败 (rc=`=_rc'); 回退 ivreg2"
     }
-    else {
+    if !`_ivlc_ok' {
         eststo IV_LC: ivreg2 `DV' (`LOCUS' = `IV_LC') digital_frontier, ///
             cluster(bank_id) first robust
     }
@@ -112,6 +121,128 @@ if !_rc {
 
 * --- OLS 对照 (用 estout 同表呈现) ---
 eststo OLS: reghdfe `DV' `LOCUS' digital_frontier, absorb(bank_id year) vce(cluster bank_id)
+
+* ============================================================================
+* IV-3 Rotemberg 权重诊断 (GPSS 2020 AER §5 入场费)
+* ----------------------------------------------------------------------------
+* 落实 "声称走 GPSS 路线却不交 §5 入场费" 的整改: Bartik IV 的识别力来自基期
+* share 的 Rotemberg 权重 α_k = Cov(share_k, BIV)/Var(BIV); 报告 (i) 各维度权重
+* (ii) HHI 集中度 (iii) 负权重个数 (排他性约束违背提示) (iv) 对最高权重 share
+* 跑 pre-period (基期前) placebo, 验证高权重 share 不预提示后期 outcome。
+*
+* 双路: ① 优先官方 bartik_weight ado (capture which 守卫); ② 缺 ado 时回退本表
+* 内联 OLS 近似 (镜像 iv_did.py::diagnose_rotemberg_weights 同口径)。基期 share
+* 列 bartik_<prefix>_share_* 已物化在面板 → 真实可算 (非占位)。
+* T=2 退化 / share 列缺失时 capture 守卫优雅跳过。
+* ============================================================================
+* 选用与主 IV 同轨的 group_prefix: full→fintech_lf, ctx→fintech_lc
+if "{{MAIN_SENT_TRACK}}" == "full" {
+    local ROT_PREFIX fintech_lf
+}
+else {
+    local ROT_PREFIX fintech_lc
+}
+local ROT_IV bartik_`ROT_PREFIX'_iv_{{MAIN_SENT_TRACK}}
+capture confirm variable `ROT_IV'
+if !_rc {
+    * 收集已物化的基期 share 维度列
+    capture ds bartik_`ROT_PREFIX'_share_*
+    local share_cols `r(varlist)'
+    if "`share_cols'" != "" {
+        display ""
+        display as text "── IV-3 Rotemberg 权重诊断 [`ROT_PREFIX'] (GPSS 2020 AER §5) ──"
+
+        * ① 官方 bartik_weight ado (若装) — 长格式权重分解
+        capture which bartik_weight
+        if !_rc {
+            capture noisily bartik_weight `DV' `ROT_IV' `share_cols', absorb(bank_id year)
+            if !_rc {
+                display as text "  (官方 bartik_weight 输出见上方; α_k / β_k / 95% 入场费表)"
+            }
+            else {
+                display as text "  ⚠️ bartik_weight 运行退化 (T=2/长格式不满足), 回退内联近似"
+            }
+        }
+        else {
+            display as text "  ⚠️ bartik_weight 未安装 (ssc install bartik_weight); 用内联 OLS 近似"
+        }
+
+        * ② 内联 OLS 近似 α_k = Cov(share_k, BIV)/Var(BIV) (镜像 iv_did.py)
+        quietly summarize `ROT_IV'
+        local var_biv = r(Var)
+        if `var_biv' > 0 & !missing(`var_biv') {
+            local n_neg = 0
+            local n_dim = 0
+            local sum_abs = 0
+            local maxabs = 0
+            local max_share ""
+            * 第一遍: 算权重 + 找绝对值最大的 share (top-weight, 供 placebo)
+            * 注: correlate ..., covariance 把协方差矩阵存入 r(C); el(r(C),2,1) 取 Cov(share,BIV)。
+            foreach sc of local share_cols {
+                quietly correlate `sc' `ROT_IV', covariance
+                local cov_k = el(r(C), 2, 1)
+                if !missing(`cov_k') {
+                    local alpha_k = `cov_k' / `var_biv'
+                    local n_dim = `n_dim' + 1
+                    local aabs = abs(`alpha_k')
+                    local sum_abs = `sum_abs' + `aabs'
+                    if `alpha_k' < 0 local n_neg = `n_neg' + 1
+                    display as text "    `sc': alpha = " %9.6f `alpha_k'
+                    if `aabs' > `maxabs' {
+                        local maxabs = `aabs'
+                        local max_share `sc'
+                    }
+                }
+            }
+            * 第二遍: HHI(|alpha|)
+            local hhi = 0
+            if `sum_abs' > 0 {
+                foreach sc of local share_cols {
+                    quietly correlate `sc' `ROT_IV', covariance
+                    local cov_k = el(r(C), 2, 1)
+                    if !missing(`cov_k') {
+                        local alpha_k = `cov_k' / `var_biv'
+                        local w = abs(`alpha_k') / `sum_abs'
+                        local hhi = `hhi' + `w' * `w'
+                    }
+                }
+            }
+            display as text "    诊断: 维度数=`n_dim'  负权重=`n_neg'  HHI(|alpha|)=" %6.4f `hhi'
+            if `n_neg' > 0 {
+                display as text "    ⚠️ 负权重维度提示可能的排他性约束违背 (GPSS 2020 §5.2); 论文须报移除负权重后的稳健估计"
+            }
+
+            * ③ 对最高权重 share 跑 pre-period placebo: 高权重基期 share 不应预提示
+            *    后期 outcome (基期 share 外生性的可证伪检验)。基期前年份子样本上回归
+            *    DV ~ top-weight-share; 显著则警示该 share 的外生性。T<3 时优雅跳过。
+            if "`max_share'" != "" {
+                quietly summarize year
+                local _ymin = r(min)
+                * 取最早一年为 "基期前" 代理 (T=2 盘只有 2017-2018 → 优雅退化跳过)
+                quietly count if year == `_ymin' & !missing(`DV') & !missing(`max_share')
+                if r(N) > 10 {
+                    display as text "  ── Top-weight share `max_share' pre-period placebo (year==`_ymin') ──"
+                    capture noisily reghdfe `DV' `max_share' if year == `_ymin', noabsorb vce(cluster bank_id)
+                    if !_rc {
+                        display as text "    (该 share 在基期前对 DV 显著则警示其外生性; 见上方系数)"
+                    }
+                }
+                else {
+                    display as text "  ⚠️ 基期前样本过少 (N<=10, T=2 试跑盘正常), top-weight placebo 跳过 (全量 T=18 激活)"
+                }
+            }
+        }
+        else {
+            display as text "  ⚠️ `ROT_IV' 方差为 0 (T=2 退化), Rotemberg 近似跳过"
+        }
+    }
+    else {
+        display as text "  ⚠️ bartik_`ROT_PREFIX'_share_* 基期 share 列未物化, Rotemberg 诊断跳过"
+    }
+}
+else {
+    display as text "  ⚠️ `ROT_IV' 不在面板, Rotemberg 权重诊断跳过 (GPSS §5 入场费待 share 列落盘)"
+}
 
 * 输出 + 报 KP F (恰好识别, 不报 Hansen J; 见顶部 st-bartik-iv fix 说明)
 * fix(omni-g-templates-17, 2026-06-11): esttab 名单动态化 (IV_LF/IV_LC 被 confirm
@@ -150,6 +281,7 @@ esttab `models' using "output/tables/tableA3_bartik_iv.tex", ///
          "KP F: Kleibergen-Paap rk Wald F (weak-ID test, threshold 10). " ///
          "Just-identified (1 endogenous = 1 instrument): Hansen J overid test not computable (df=0), not reported. " ///
          "If first-stage KP F < 10, instrument is weak; interpret 2SLS with Anderson-Rubin weak-IV-robust CI (e.g. weakiv / condivreg). " ///
+         "Rotemberg weight diagnostics (per-share alpha_k, HHI concentration, negative-weight count, and a top-weight-share pre-period placebo) are reported in the log following GPSS 2020 AER Section 5 (official bartik_weight ado when installed; otherwise an inline OLS approximation on the materialized base-period share columns). " ///
          "Hassan 2019 QJE entity-proximity 同构 (lc share).")
 
 display "✅ Table A3 written to output/tables/tableA3_bartik_iv.tex"

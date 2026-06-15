@@ -55,6 +55,12 @@ if _rc {
     display "  [WARN] ivreg2 not installed (ssc install ivreg2); 表跳过"
     exit 0
 }
+* weakiv (Finlay-Magnusson-Schaffer) — 弱工具稳健 Anderson-Rubin 推断 (兑现脚注承诺)
+capture which weakiv
+local has_weakiv = (_rc == 0)
+if !`has_weakiv' {
+    display "  [INFO] weakiv 未安装 (ssc install weakiv); AR 弱工具稳健 CI 跳过, 仅报 KP F"
+}
 
 * 第一阶段 (treatment + IV 已物化即可运行)
 capture confirm variable `IV1'
@@ -76,6 +82,18 @@ else {
     if !_rc {
         eststo tsls_ctx: ivreg2 `DV' (`TX' = `IV1') i.bank_id i.year, ///
             cluster(bank_id) first
+        * 弱工具稳健 AR 推断 (KP F < Stock-Yogo 时脚注指定改读此处): AR test p-value
+        * (H0: beta=0), 对弱工具有效 (Andrews-Stock-Sun 2019 ARE; Finlay-Magnusson-Schaffer)
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_ctx
+            }
+        }
     }
     * ctx 与 full 轨各自 just-identified 并排 (终审裁决 2026-06-13): 同一内生变量
     * 分别用 ctx 窗口 / full 文本窗口的 outlet 工具, 作测量窗口稳健性对比; 不合成
@@ -84,6 +102,16 @@ else {
     if !_rc {
         eststo tsls_full: ivreg2 `DV' (`TX' = `IV2') i.bank_id i.year, ///
             cluster(bank_id) first
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_full
+            }
+        }
     }
 }
 
@@ -110,13 +138,14 @@ else {
     esttab `models' ///
         using "output/tables/table3_clarity_iv_2sls.tex", replace ///
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-        stats(N r2 widstat, fmt(0 3 3) labels("N" "R²" "KP F")) ///
+        stats(N r2 widstat ar_p, fmt(0 3 3 3) labels("N" "R²" "KP F" "AR weak-IV p")) ///
         title("Table 3: News Clarity IV — Outlet-Composition Writing-Style Exposure") ///
         mtitles(`mtitles') ///
         addnotes("IV = base-period outlet portfolio shares x outlet-year leave-one-out mean clarity score (focal bank's own articles excluded)." ///
                  "Identification: journalist/outlet writing-style exogeneity (Dougal et al. 2012 RFS); outlet style persistence (Gentzkow-Shapiro 2010 Econometrica); base-period share exogeneity (Goldsmith-Pinkham et al. 2020 AER)." ///
                  "2SLS (ctx) and 2SLS (full) are just-identified, each using the ctx-window vs full-text-window version of the outlet-style instrument for the same endogenous variable — a measurement-window robustness comparison, side by side, NOT an overidentified pair." ///
-                 "No Hansen J is reported: same-text-window instruments share common shocks, making the overID test uninformative (Parente & Santos Silva 2012). KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%), use Anderson-Rubin CI (Andrews-Stock-Sun 2019).")
+                 "No Hansen J is reported: same-text-window instruments share common shocks, making the overID test uninformative (Parente & Santos Silva 2012). KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%), instruments are weak — read the weak-IV-robust Anderson-Rubin test instead (Andrews-Stock-Sun 2019)." ///
+                 "AR weak-IV p = Anderson-Rubin weak-instrument-robust p-value for H0: beta=0 (weakiv, Finlay-Magnusson-Schaffer); valid regardless of instrument strength. Blank if weakiv ado is not installed.")
 
     display "[OK] 12_table3_iv_2sls → output/tables/table3_clarity_iv_2sls.tex"
 }

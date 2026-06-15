@@ -298,24 +298,49 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'nunique(媒体(中文) over fintech 文章)', '[0, +inf)',
          'HHI 可算性诊断 (n_outlets≥2 才有 disp 变异); 零-fintech→NaN'),
     ]
+    # 构念效度披露 (ATTN CV-1/CV-2, PROJECT_REAUDIT_TOPTIER_T18 2026-06-14):
+    #   CV-2 (attention_disp): outlet-HHI 在【低覆盖 bank-year 机械 =1】 (单 outlet → HHI=1),
+    #     混淆"集中度"与"低覆盖量"; 进回归时须控 ln(n_outlets)/n_fintech_articles 或仅
+    #     n_outlets≥3 子样本, 否则 disp 系数吸收的是覆盖广度而非真集中度。disp 是 secondary/
+    #     robustness 测度 (非主处理), n_outlets 已在盘作诊断列。
+    #   CV-1 (attention_index nomological): 注意力指数族的内部一致性 (nomological) 证据 =
+    #     attention_index 与已物化 salience 输入 (n_fintech_articles/attention_pct/density)
+    #     的 bank-year 相关矩阵 — 高相关只证内部一致 (类 Cronbach α), 非 DEG 2011 意义的
+    #     criterion validity (后者需独立于媒体的 turnover/收益); 外部 criterion 留待财务数据。
+    _ATTN_DISP_DISCLOSURE = (
+        ' ⚠ 构念效度 (ATTN CV-2, 顶刊重审 2026-06-14): outlet-HHI 在低覆盖 bank-year 机械=1 '
+        '(单 outlet → HHI=1), 混淆集中度与低覆盖量; 回归须控 ln(n_outlets) 或仅 n_outlets≥3 '
+        '子样本 (n_outlets 已在盘); 仅作 secondary/robustness, 非主处理。'
+    )
+    _ATTN_INDEX_DISCLOSURE = (
+        ' ⚠ 构念效度 (ATTN CV-1, 顶刊重审 2026-06-14): 内部一致性 (nomological) 证据 = '
+        'attention_index 与已物化 salience 输入 (n_fintech_articles/attention_pct/density) 的 '
+        'bank-year 相关矩阵 (类 Cronbach α, 证内部一致非 DEG 2011 criterion validity); '
+        '外部 criterion (独立于媒体的 turnover/收益) 留待财务数据接入。'
+    )
     for _vn, _lbl, _trk, _fml, _rng, _desc in _ATTN_TREAT:
         # fix(omni-g-codebook-03, 2026-06-11): attention_index_* 是 extensive 累积曝光
         # (Fang & Peress 2009 JF 主锚, Hassan 2019 QJE 仅作 cf. 对照), 其余列保持族级共引。
         if _vn.startswith('attention_index'):
             _ref = ('Fang & Peress (2009, JF) extensive coverage; '
                     'cf. Hassan et al. (2019, QJE) intensive share; '
-                    'Cookson & Niessner (2020, JF)')
+                    'Da, Engelberg & Gao (2011, JF); Cookson & Niessner (2020, JF)')
         else:
             _ref = ('Hassan et al. (2019, QJE); Fang & Peress (2009, JF); '
                     'Cookson & Niessner (2020, JF)')
+        _notes = ('W2 物化 (2026-06-05); 双轨=互为稳健性 (main=full / robustness=ctx 分离复跑); '
+                  '零-fintech bank-year 填 0(index/pct/density) 或 NaN(disp/sd/gap/share)')
+        if _vn == 'attention_disp_full':
+            _notes += _ATTN_DISP_DISCLOSURE
+        elif _vn.startswith('attention_index'):
+            _notes += _ATTN_INDEX_DISCLOSURE
         metadata[_vn] = VariableMetadata(
             var_name=_vn, label=_lbl, description=_desc, data_type='float',
             unit='比率' if _rng == '[0, 1]' else '',
             value_range=_rng, formula=_fml,
             source_stage='Stage 45 (panel/attention_media compute_attention_treatments)',
             reference=_ref,
-            notes='W2 物化 (2026-06-05); 双轨=互为稳健性 (main=full / robustness=ctx 分离复跑); '
-                  '零-fintech bank-year 填 0(index/pct/density) 或 NaN(disp/sd/gap/share)',
+            notes=_notes,
             category='注意力指数', track=_trk,
         )
 
@@ -381,33 +406,55 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         f"使用 {'、'.join(_LLM_MODEL_NAMES)} 共 {len(_LLM_MODEL_NAMES)} 个模型的"
         f"多数投票结果 (阵容动态读自 config/sentiment.yaml)"
     )
+    # ───────────────────────────────────────────────────────────────────────
+    # 构念效度披露 (SENT CV-1, PROJECT_REAUDIT_TOPTIER_T18 2026-06-14):
+    #   主因变量 llm_vote_tone 的【负面类近乎退化】 — 24_herd_decay.parquet 验证篇
+    #   实测 正 798 / 中 33 / 负 2 (负面占比仅 0.24%, 三模型 0–0.6%)。这是中文银行
+    #   新闻 PR-positive 语料伪迹 + LLM 乐观偏置的联合结果, 在全量 T=18 上不会反转。
+    #   故双极 (-1↔+1) "情感" 实为【单极正向报道倾向 / 乐观度 (favorability/optimism)】:
+    #   tone 的变异主要来自「正面 vs 中性」边际, 而非「正面 vs 负面」。系数应解读为
+    #   "更乐观/更正面的媒体报道", 不能解读为"从负面到正面的双极摆动"。
+    #   ⚠ 负面子样本零方差诊断: 负面类近退化 → 任何"负面媒体冲击"机制识别力弱,
+    #   论文 measurement 节须报告类别先验 (正/中/负 边际分布) + 负面子样本极小 N。
+    #   $0 披露/framing (不改面板值, .dta 标签随下次重生生效)。
+    # ───────────────────────────────────────────────────────────────────────
+    _TONE_FAVORABILITY_NOTE = (
+        '⚠ 构念=媒体正向报道倾向/乐观度 (favorability/optimism), 非双极情感: '
+        '负面类近退化 (验证篇实测 正798/中33/负2, 负面 0.24%, 三模型 0–0.6%) — '
+        'tone 变异主要来自正面 vs 中性边际; 系数解读为"更乐观/更正面", 勿作双极摆动。'
+        '类别先验与负面子样本零方差诊断须进 measurement 节 (SENT CV-1, 顶刊重审 2026-06-14)。'
+    )
     metadata['llm_vote_tone_full'] = VariableMetadata(
         var_name='llm_vote_tone_full',
-        label='LLM Vote Tone (Full-text)',
-        description='LLM投票情感指数（全文轨道），基于多个大语言模型的投票结果',
+        label='Media Favorability/Optimism (LLM Vote, Full; neg degenerate)',
+        description='LLM 投票媒体正向报道倾向/乐观度指数 (全文轨道), 多模型多数投票; '
+                    '名义双极 [-1,1] 但负面类近退化 → 实为单极正向强度 (favorability)',
         data_type='float',
-        unit='情感值',
-        value_range='[-1, 1]',
+        unit='正向倾向值 (favorability)',
+        value_range='[-1, 1] (名义); 实测近退化为单极正向 (负面类 0.24%)',
         formula='(n_pos - n_neg) / (n_pos + n_neg + n_neu)',
         source_stage='Stage 21',
-        reference='Cao et al. (2025, Working Paper)',
-        notes=_llm_lineup_note,
-        category='情感指标',
+        reference='Loughran & McDonald (2011, JF); Tetlock (2007, JF); '
+                  'King & Zeng (2001); Cao et al. (2025, Working Paper)',
+        notes=f'{_TONE_FAVORABILITY_NOTE} {_llm_lineup_note}',
+        category='情感指标 (媒体正向倾向/favorability)',
         track='full',
     )
 
     metadata['llm_vote_tone_ctx'] = VariableMetadata(
         var_name='llm_vote_tone_ctx',
-        label='LLM Vote Tone (Context)',
-        description='LLM投票情感指数（上下文轨道），仅分析包含目标银行的句子及其前后文',
+        label='Media Favorability/Optimism (LLM Vote, Ctx; neg degenerate)',
+        description='LLM 投票媒体正向报道倾向/乐观度指数 (上下文轨道, 仅含目标银行句及其前后文); '
+                    '名义双极 [-1,1] 但负面类近退化 → 实为单极正向强度',
         data_type='float',
-        unit='情感值',
-        value_range='[-1, 1]',
+        unit='正向倾向值 (favorability)',
+        value_range='[-1, 1] (名义); 实测近退化为单极正向 (负面类 0.24%)',
         formula='(n_pos - n_neg) / (n_pos + n_neg + n_neu)',
         source_stage='Stage 21',
-        reference='Cao et al. (2025, Working Paper)',
-        notes=f'上下文轨道可以减少噪音，提高情感识别的精确度；{_llm_lineup_note}',
-        category='情感指标',
+        reference='Loughran & McDonald (2011, JF); Tetlock (2007, JF); '
+                  'King & Zeng (2001); Cao et al. (2025, Working Paper)',
+        notes=f'上下文轨道可以减少噪音，提高识别精确度；{_TONE_FAVORABILITY_NOTE} {_llm_lineup_note}',
+        category='情感指标 (媒体正向倾向/favorability)',
         track='ctx',
     )
 

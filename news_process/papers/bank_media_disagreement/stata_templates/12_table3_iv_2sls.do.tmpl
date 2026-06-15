@@ -55,6 +55,12 @@ if _rc {
     display "  [WARN] ivreg2 not installed (ssc install ivreg2); 表跳过"
     exit 0
 }
+* weakiv (Finlay-Magnusson-Schaffer) — 弱工具稳健 Anderson-Rubin 推断 (兑现脚注承诺)
+capture which weakiv
+local has_weakiv = (_rc == 0)
+if !`has_weakiv' {
+    display "  [INFO] weakiv 未安装 (ssc install weakiv); AR 弱工具稳健 CI 跳过, 仅报 KP F"
+}
 
 * 第一阶段 (treatment + IV 已物化即可运行)
 capture confirm variable `IV1'
@@ -72,18 +78,51 @@ if _rc {
     display "  [WARN] 第二阶段 DV `DV' 未物化 (外部财务面板未接入); 仅输出第一阶段"
 }
 else {
+    * ── weakiv 短名别名 (smoke-reaudit3 2026-06-15 修复 IV-2 weakiv claimed-but-not-run) ──
+    * 根因: weakiv 内部建临时变量 `_vhat_'+内生变量名; 内生变量 cross_outlet_tone_variance_ctx
+    * (28 字符) → `_vhat_'(6)+28=34 > Stata 32 字符变量名上限 → weakiv r(198)
+    * "_vhat_... invalid name", 被 capture noisily 吞掉 → AR p 静默不落 (claimed-but-not-run)。
+    * 实测: 同一内生变量改短名别名后 weakiv rc=0, e(ar_p) 与 e(ar_cset) 正常返回。
+    * 修法: 为 2SLS 的内生变量造 ≤26 字符别名 (`_txd'), ivreg2/weakiv 跑别名;
+    *   IV 名无需缩短 (weakiv 只前缀内生变量名)。ctx/full 两列共用同一内生变量 → 共用 `_txd'。
+    capture drop _txd
+    gen double _txd = `TX'
+    label variable _txd "cross-outlet tone variance (ctx)"
     capture confirm variable `IV1'
     if !_rc {
-        eststo tsls_ctx: ivreg2 `DV' (`TX' = `IV1') i.bank_id i.year, ///
+        eststo tsls_ctx: ivreg2 `DV' (_txd = `IV1') i.bank_id i.year, ///
             cluster(bank_id) first
+        * 弱工具稳健 AR 推断 (KP F < Stock-Yogo 时脚注指定改读此处): AR test p-value
+        * (H0: beta=0), 对弱工具有效 (Andrews-Stock-Sun 2019 ARE; Finlay-Magnusson-Schaffer)
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_ctx
+            }
+        }
     }
     * ctx 与 full 轨各自 just-identified 并排 (终审裁决 2026-06-13): 同一内生变量
     * 分别用 ctx 窗口 / full 文本窗口的 outlet 工具, 作测量窗口稳健性对比; 不合成
     * overid — 同文双窗共同冲击使 Hansen J 无信息量 (Parente & Santos Silva 2012)。
     capture confirm variable `IV2'
     if !_rc {
-        eststo tsls_full: ivreg2 `DV' (`TX' = `IV2') i.bank_id i.year, ///
+        * full 列与 ctx 列共用同一内生变量 `TX' (= `_txd' 别名); 仅 IV 不同 (full 窗工具)。
+        eststo tsls_full: ivreg2 `DV' (_txd = `IV2') i.bank_id i.year, ///
             cluster(bank_id) first
+        if `has_weakiv' {
+            capture noisily weakiv, level(95)
+            if !_rc {
+                * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+                local _arp = .
+                capture local _arp = e(ar_p)
+                if missing(`_arp') capture local _arp = r(ar_p)
+                capture estadd scalar ar_p = `_arp': tsls_full
+            }
+        }
     }
 }
 
@@ -110,13 +149,14 @@ else {
     esttab `models' ///
         using "output/tables/table3_disagreement_iv_2sls.tex", replace ///
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-        stats(N r2 widstat, fmt(0 3 3) labels("N" "R²" "KP F")) ///
+        stats(N r2 widstat ar_p, fmt(0 3 3 3) labels("N" "R²" "KP F" "AR weak-IV p")) ///
         title("Table 3: Cross-Outlet Disagreement IV — Outlet-Composition Dispersion Exposure") ///
         mtitles(`mtitles') ///
         addnotes("IV = base-period outlet portfolio shares x outlet-year leave-one-out tone extremeness |tone - year mean| (focal bank's own articles excluded)." ///
                  "Identification: outlet house-style persistence (Gentzkow-Shapiro 2010 Econometrica); writer-style exogeneity precedent (Dougal et al. 2012 RFS); base-period share exogeneity (Goldsmith-Pinkham et al. 2020 AER)." ///
                  "2SLS (ctx) and 2SLS (full) are just-identified, each using the ctx-window vs full-text-window version of the outlet-style instrument for the same endogenous variable — a measurement-window robustness comparison, side by side, NOT an overidentified pair." ///
-                 "No Hansen J is reported: same-text-window instruments share common shocks, making the overID test uninformative (Parente & Santos Silva 2012). KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%), use Anderson-Rubin CI (Andrews-Stock-Sun 2019).")
+                 "No Hansen J is reported: same-text-window instruments share common shocks, making the overID test uninformative (Parente & Santos Silva 2012). KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%), instruments are weak — read the weak-IV-robust Anderson-Rubin test instead (Andrews-Stock-Sun 2019)." ///
+                 "AR weak-IV p = Anderson-Rubin weak-instrument-robust p-value for H0: beta=0 (weakiv, Finlay-Magnusson-Schaffer); valid regardless of instrument strength. Blank if weakiv ado is not installed.")
 
     display "[OK] 12_table3_iv_2sls → output/tables/table3_disagreement_iv_2sls.tex"
 }

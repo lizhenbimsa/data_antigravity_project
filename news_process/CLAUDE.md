@@ -48,7 +48,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > 历史版本 (v3.5.x–v3.7.5) 的完整 changelog 与 audit 记录见 git history。本文件顶部 "Current version" 段是版本变更的权威源 (CHANGELOG.md 暂未维护)。
 
 **CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):
-- `build-replication`: 一键 instantiate 15 .do 模板 + spec 替换 (2026-06-13 +25_tableA6 语调 IV)
+- `build-replication`: 一键 instantiate 19 个根级 .do 模板 + spec 替换 (2026-06-14 +32/33/34 FE饱和/子样本时序/era 稳定性)
 - `list-templates [--verbose]`: 模板清单 + 占位符 inventory
 - `doctor [--verbose]`: 5 段诊断 (deps + pipeline + LLM + Stata bin)
 - `verify-replication <path>`: 5 段验证 replication 包结构
@@ -250,10 +250,12 @@ Common utilities in `papers/_common/` (含 `AI_DISCLOSURE_TEMPLATES.md` 6 系列
 
 **Windows 上跑 `.do` 一律用 `/b` 批处理 flag，禁用 `/e` 与裸 GUI 启动。** 弹「已完成」模态框需手动点确定的根因是启动模式不对：
 
-- `StataMP-64.exe /b do x.do` — 真·批处理: 后台、跑完自动退出、不弹框 (本机实测退出码 0)。✅ 唯一推荐。
+- `StataMP-64.exe /b do x.do` — 真·批处理: 后台、跑完自动退出、不弹框 (本机实测退出码 0)。✅ 唯一推荐。**⚠ 修正 (2026-06-14 实测): `/b` 的"不弹框"前提是 do-file **跑到干净收尾**(走到 `exit` / 正常结束)。若 do-file **中途未捕获报错中断 (没走到终端 `exit`)** 或**根本没有终端 `exit`**, 本机 StataNow 19.5 的 `/b` 同样弹「Done」完成框并卡住 (实测 PID 23164 `/b` 起 `inst_collab.do` 卡在「Done」窗, `-Wait` 循环随之挂起 → 连环弹)。故"`/b` 永不弹"是**错的**; `/b` 万无一失需配合「body 全程 `capture` 防中途 abort + 末尾 `exit, clear`」。**
 - `StataMP-64.exe /e do x.do` — 跑完弹模态完成框并阻塞等待点击, 卡死自动化。❌ 禁用。
 - 无 flag / 双击 — GUI 交互模式, 同样卡。❌ 禁用。
 - Windows 用斜杠 `/b` (不是 Unix 的 `-b`; `-b` 在 Windows 上不可靠)。Unix/Mac 才用 `stata-mp -b do x.do`。
+
+**两层防御 (铁律, 二选一即可, 都做最稳)**: ① **起动走 `/b`** (上面四条) 或项目封装 `papers/_common/stata_runner.py::run_do` / `scripts/run_stata.ps1` (都硬编码 `/b`); ② **任何 ad-hoc / 一次性 probe `.do` 末尾必须加 `exit, clear`** —— 完成框是 do-file 跑完后由启动器弹的, `exit` 直接终结进程绕过它, 故**即便被 `/e` 或双击起动也不弹** (本机实测)。子代理写临时 probe 时尤其注意: **要么走 `run_stata.ps1`, 要么末尾 `exit, clear`**, 否则裸 Stata 命令起动会复弹 (2026-06-14 `build/fix_verify_mc/attention_oster_probe.do` 即此坑: 子代理裸起动 + 无 exit → 两防全绕过)。⚠ **终端 `exit` 只加在 standalone / `00_master.do` 末尾**, 绝不能加进被 master `do` 调用的子 `.do` (会让 master 提前退出, 中断编排链)。全部 11 个 `00_master.do.tmpl` + 2 个实例化复现包 `00_master.do` 已加终端 `exit, clear` 守卫 (2026-06-14), 外部研究者双击复现包不再弹框。
 
 推荐写法 (`StataMP-64.exe` 是 GUI 子系统程序, PowerShell `&` 调用会立即返回 → 必须 `Start-Process -Wait`):
 
@@ -286,7 +288,7 @@ MP 硬上限: max obs ≈ 1.1 兆 · maxvar 120,000 · RHS 65,532 · matsize 65,
 
 ### Stata 模板约定
 
-- **133 个 `.do.tmpl`** (2026-06-13 IV 补全 +5, network-metrics-elevation +6, agg-audit +7, **2026-06-14 顶刊稳健性扩充 +20**: FE-SAT/ROBUST-EST/OSTER/SUBSAMPLE/TIMING/PPML 六族) = 主线 18 (直接在 `stata_templates/` 下, 含 `25_tableA6_tone_iv_2sls` + `26_tableA7_aggregation_robustness` + `32_tableA8_fe_saturation_robust_est` + `33_tableA9_subsample_timing`) + 8 个 paper-specific 子目录 112 (attention 9 / collab 13 / locus 13 / substance 13 / benefit_society 25 / **brokerage_network 17** / **llm_peer 11** / strategic_diff 11) + 历史归档 `v3_5_0/` 2 + `v3_5_1/` 1。另有 provisional 两篇 (`papers/bank_media_disagreement|bank_news_clarity/stata_templates/`) 共 15 个 (MD 7 / NC 8, 各含 `12_table3_iv_2sls` + 2026-06-14 FE饱和/Oster/子样本扩充), **不计入** 133 (计数口径 = `papers/_common/stata_templates/` rglob, 见 `test_papers_b_route.py::test_total_template_count_77`, 现锁定 133)。全部统一头部 `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120` (见 `00_master.do.tmpl:13-16`)。新增模板复用此头部。
+- **142 个 `.do.tmpl`** (2026-06-13 IV 补全 +5, network-metrics-elevation +6, agg-audit +7, 2026-06-14 顶刊稳健性扩充 +20: FE-SAT/ROBUST-EST/OSTER/SUBSAMPLE/TIMING/PPML 六族, **2026-06-14 T18 顶刊重审 +9**: era-stability 时代稳定性族 8 篇各 1 + brokerage 选择性稳健性 1, 防 2007-2024 跨年构成漂移) = 主线 19 (直接在 `stata_templates/` 下, 含 `25_tableA6_tone_iv_2sls` + `26_tableA7_aggregation_robustness` + `32_tableA8_fe_saturation_robust_est` + `33_tableA9_subsample_timing` + `34_tableA11_era_stability`) + 8 个 paper-specific 子目录 120 (attention 10 / collab 14 / locus 14 / substance 14 / benefit_society 26 / **brokerage_network 18** / **llm_peer 12** / strategic_diff 12) + 历史归档 `v3_5_0/` 2 + `v3_5_1/` 1。另有 provisional 两篇 (`papers/bank_media_disagreement|bank_news_clarity/stata_templates/`) 共 15 个 (MD 7 / NC 8, 各含 `12_table3_iv_2sls` + 2026-06-14 FE饱和/Oster/子样本扩充), **不计入** 142 (计数口径 = `papers/_common/stata_templates/` rglob, 见 `test_papers_b_route.py::test_total_template_count_77`, 现锁定 142)。全部统一头部 `version 19` + `clear all` + `set maxvar 32767` + `set linesize 120` (见 `00_master.do.tmpl:13-16`)。新增模板复用此头部。
   - **网络位置五角色化** (network-metrics-elevation 2026-06-13, 蓝图 `scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md`): brokerage_network 子目录 8→14, 新增 `15_table6_centrality_outcome` (解释/描述性条件关联 + 火灾甩卖机制) / `16_table7_mediation` (中介, 探索性附录) / `17_table8_overid_iv` (跨族 over-id 工具, 破解 P1-6 恰好识别) / `18_table9_moderation` (2SLS 交乘调节) / `19_table10_network_het` (within-year 分位 + pooled 交乘 2SLS 异质性) / `20_table11_fwer_battery` (22 中心度 FWER, wyoung 非 rwolf-iv)。全部消费 panel 实存列 → golden-safe; 角色 production T=18 才有功效, 盘面 T=2 退化时 capture-confirm/N-守卫优雅跳过。`paper_spec.yaml` 加 `network_roles` 块 + `identification.primary_centrality=bank_between_cent`/`centrality_battery`(22)。
 - `version 19` 锁定最低版本: Stata 18 及更老会报 "version 19 is not a valid version" 拒跑 (这正是 "19+ only" 的执行机制), 可放心使用 `xtdidregress`/`frames`/`pystata`/新版 `meta` 等无需 `version` 守卫。
 - `set maxvar 32767` 是防御性保留 (SE 上限); 若未来列数突破 32,767 需上调到 `set maxvar 120000`。

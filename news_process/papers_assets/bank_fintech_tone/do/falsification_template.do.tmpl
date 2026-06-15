@@ -784,6 +784,96 @@ reghdfe Y c.sandbox_treated##c.sandbox_post##i.digital_frontier X, ///
   absorb(target_bank year) vce(cluster target_bank)
   est store ddd_sandbox
 
+* ── (12c) 错时 DiD 异质性稳健估计 (DID-1, Goodman-Bacon 2021) ──
+* 上方 (12a/12b) 的错时 cohort (DCEP 2019-22 / Sandbox 2019+) 用 plain TWFE 估计,
+* 在异质处理效应下含 Goodman-Bacon (2021) 负权重 (已处理组充当后处理组的对照)。
+* 此块把"头注/docstring 声称的 csdid/bacondecomp"落为真实命令: csdid + estat event
+* (Callaway-Sant'Anna 2021, dripw, notyet 控制组) 作稳健估计, bacondecomp 量化 TWFE
+* 的负权重。原 TWFE (ddd_dcep/ddd_sandbox) 保留为对照列 + 脚注披露 Bacon 权重。
+*
+* gvar 列: dcep_treat_year / sandbox_treat_year (0=控制组, iv_did.py 已物化)。
+* notyet: 政策覆盖面广 → never-treated 结构性稀少, 用 not-yet-treated 作对照
+*   (iv_did.py:639-641 识别局限披露)。
+* 全程 capture which / capture confirm 守卫: 缺 ado (csdid/bacondecomp/drdid) 或
+*   T=2 (单期无 pre/post) 时优雅跳过, 不报错; 全量 T=18 接入后自动激活。
+* 学术依据:
+*   Goodman-Bacon, A. (2021). Difference-in-Differences with Variation in Treatment
+*     Timing. Journal of Econometrics, 225(2), 254-277.
+*     https://doi.org/10.1016/j.jeconom.2021.03.014
+*   Callaway, B., & Sant'Anna, P. H. C. (2021). Difference-in-Differences with Multiple
+*     Time Periods. Journal of Econometrics, 225(2), 200-230.
+*     https://doi.org/10.1016/j.jeconom.2020.12.001
+*   de Chaisemartin, C., & D'Haultfoeuille, X. (2020). Two-Way Fixed Effects Estimators
+*     with Heterogeneous Treatment Effects. AER, 110(9), 2964-2996.
+*     https://doi.org/10.1257/aer.20181169
+
+* csdid 要求 ivar 为数值 — 若 target_bank 为字符串, 临时 encode 出 _csdid_bankid
+capture confirm numeric variable target_bank
+if _rc != 0 {
+  cap drop _csdid_bankid
+  capture encode target_bank, gen(_csdid_bankid)
+  local CSDID_IVAR _csdid_bankid
+}
+else {
+  local CSDID_IVAR target_bank
+}
+
+capture which csdid
+local has_csdid = (_rc == 0)
+capture which bacondecomp
+local has_bacon = (_rc == 0)
+
+foreach pol in dcep sandbox {
+  capture confirm variable `pol'_treat_year
+  if _rc != 0 {
+    display as text "  [skip] `pol'_treat_year 不在面板, 跳过 `pol' 错时 DiD 稳健估计 (12c)"
+    continue
+  }
+  * 多期守卫: csdid 需 ≥2 个时期且 cohort 有变异 (T=2 试跑盘只 2017-2018 → 退化跳过)
+  quietly levelsof year, local(_yrs)
+  local _ny : word count `_yrs'
+  quietly levelsof `pol'_treat_year if `pol'_treat_year > 0, local(_gs)
+  local _ng : word count `_gs'
+  if `_ny' < 3 | `_ng' < 1 {
+    display as text "  [skip] `pol' 错时 DiD: 时期数=`_ny' / 处理 cohort 数=`_ng' 过少 (T=2 试跑盘正常), 全量 T=18 激活"
+    continue
+  }
+
+  if `has_csdid' {
+    display as text "── (12c) `pol' 错时 DiD: Callaway-Sant'Anna (csdid, notyet, dripw) ──"
+    capture noisily csdid Y X, ivar(`CSDID_IVAR') time(year) ///
+      gvar(`pol'_treat_year) notyet method(dripw)
+    if !_rc {
+      * 事件研究式动态聚合 (pre-trend + 动态效应)
+      capture noisily estat event
+      capture noisily estat simple
+      display as text "    (csdid ATT + estat event 见上方; 替代 TWFE ddd_`pol' 的负权重场景)"
+    }
+    else {
+      display as text "    ⚠️ `pol' csdid 退化 (notyet 控制组空/cohort 不足), 全量 T=18 重试"
+    }
+  }
+  else {
+    display as text "  [skip] csdid 未安装 (ssc install csdid drdid); `pol' Callaway-Sant'Anna 估计跳过"
+  }
+
+  if `has_bacon' {
+    display as text "── (12c) `pol' Goodman-Bacon 分解 (bacondecomp, TWFE 负权重诊断) ──"
+    * bacondecomp 用 2×2 DiD 分解量化 TWFE 的负权重份额 (要求平衡面板 + 二元处理)
+    capture noisily bacondecomp Y `pol'_post X, ddetail
+    if !_rc {
+      display as text "    (Bacon 分解见上方; 已处理组充当对照的 'bad comparison' 负权重份额披露)"
+    }
+    else {
+      display as text "    ⚠️ `pol' bacondecomp 退化 (非平衡面板/处理变量非二元), 全量 T=18 重试"
+    }
+  }
+  else {
+    display as text "  [skip] bacondecomp 未安装 (ssc install bacondecomp); `pol' 负权重诊断跳过"
+  }
+}
+cap drop _csdid_bankid
+
 * ============================================================
 * 检验 13: 时间断点与压力期调节效应
 * ============================================================
@@ -843,10 +933,15 @@ esttab het_soe het_nonsoe het_soe_chow het_scale het_coverage ///
   mtitles("SOE" "Non-SOE" "Chow" "Scale" "Coverage")
 
 * 表 5: DDD + 调节效应
+* 注 (DID-1): DCEP-DDD / Sandbox-DDD 两列为 plain TWFE, 在异质处理效应下含
+*   Goodman-Bacon (2021) 负权重 (已处理组充当对照)。检验 (12c) 提供 Callaway-
+*   Sant'Anna csdid (notyet/dripw) 稳健估计 + bacondecomp 负权重分解 (见日志);
+*   本表 TWFE 列仅作对照, 因果解读以 (12c) csdid ATT 为准。
 esttab ddd_dcep ddd_sandbox mod_stress mod_depins mod_confidence ///
   using "table_moderation_extended.tex", ///
   star(* 0.10 ** 0.05 *** 0.01) se replace ///
-  mtitles("DCEP-DDD" "Sandbox-DDD" "Stress" "DepIns" "Confidence")
+  mtitles("DCEP-DDD" "Sandbox-DDD" "Stress" "DepIns" "Confidence") ///
+  addnote("DCEP/Sandbox DDD columns are plain TWFE (Goodman-Bacon 2021 negative-weight prone under heterogeneous effects). Robust staggered-DiD via csdid (Callaway-Sant'Anna 2021, notyet/dripw) and bacondecomp negative-weight diagnostics are reported in test (12c) log; interpret causal staggered effects from the csdid ATT, not the TWFE columns.")
 
 * 表 6: 动态效应
 esttab lag_effect reversal ///

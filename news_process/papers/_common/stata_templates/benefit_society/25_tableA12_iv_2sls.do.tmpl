@@ -13,6 +13,11 @@
 * 风向推得动对本行的态度, 但不直接由本行当期业绩决定。
 *
 * 第二阶段 DV: roa (外部财务面板待接入; 缺列时 2SLS 优雅跳过, 第一阶段照常输出)。
+*
+* IV-2 (2026-06-14 顶刊重审): 在已有 Hansen J over-id 基础上补 weakiv 弱工具稳健
+*   AR-CI 块 — 把头注"KP F < Stock-Yogo 时改读 Anderson-Rubin CI"的声明落为真实
+*   命令 (weakiv/condivreg/rivtest 三层回退 + capture which 守卫), AR-CI 经 esttab
+*   note lockstep 进表 (Andrews-Stock-Sun 2019 ARE; Lee et al. 2022 AER tF)。
 * ============================================================================
 
 version 19
@@ -92,8 +97,12 @@ else {
     if !_rc {
         * 过度识别列 (跨族 2 工具 1 内生 → Hansen J df=1; type-LOO×zone-LOO 两套
         * 不同分组、识别假设异质, 合法 overid — 区别于被否决的 full×ctx 同文双窗)
+        * fix(2026-06-14 smoke): partial(i.bank_id i.year) — 高维 bank/year 哑变量 +
+        *   bank 聚类下 ivreg2 否则判 moment-cov 秩亏 'overid stat not reported' → jp
+        *   恒空 (claimed-but-not-run); partial 后 moment-cov 满秩, Hansen J df=1 真报告
+        *   (同 attention/19 IV-5 修复, Stata /b 合成 T=18 验证)。
         eststo tsls_overid: ivreg2 `DV' (`TX' = `IV1' `IV2') $controls ///
-            i.bank_id i.year, cluster(bank_id) first
+            i.bank_id i.year, cluster(bank_id) partial(i.bank_id i.year) first
     }
     * ctx 轨 just-identified 2SLS (与 full 轨 tsls_type 并排; 同一 DV, 双轨各自工具)
     capture confirm variable `TXC' `IVC'
@@ -106,9 +115,93 @@ else {
     * full×ctx 同文双窗)
     capture confirm variable `TXC' `IVC' `IV2C'
     if !_rc {
+        * fix(2026-06-14 smoke): partial(i.bank_id i.year) 同 full 轨 tsls_overid —
+        *   令 ctx 跨族 Hansen J (df=1) 真报告 (否则 ivreg2 秩亏不报)。
         eststo tsls_overid_ctx: ivreg2 `DV' (`TXC' = `IVC' `IV2C') $controls ///
-            i.bank_id i.year, cluster(bank_id) first
+            i.bank_id i.year, cluster(bank_id) partial(i.bank_id i.year) first
     }
+}
+
+* ── IV-2 弱工具稳健推断 (Anderson-Rubin CI; Andrews-Stock-Sun 2019 ARE) ──
+* 把头注"KP F < Stock-Yogo 临界值时改读 AR CI"的声明落为真实命令: 对每个已估计的
+* 2SLS 规格紧随其后跑 weak-IV-robust AR 置信集 (weakiv, ivreg2 后端), 写进 esttab note
+* (lockstep)。三层回退: weakiv (over-id/恰好识别通用) → condivreg (恰好识别 AR/CLR) →
+* rivtest。全程 capture which 守卫: 未装 ado 时优雅跳过 (诊断照常输出 KP F)。T=2 退化
+* 或 DV 缺列时 AR 检验报错 → capture noisily 吞错, 不阻断主表输出。
+* (镜像主线 25_tableA6_tone_iv_2sls 的 weakiv 块; benefit 第二阶段含 $controls +
+*  i.bank_id i.year 外生集, IV 工具集随列而变。)
+local ar_note ""
+capture which weakiv
+local has_weakiv = (_rc == 0)
+capture which condivreg
+local has_condivreg = (_rc == 0)
+capture which rivtest
+local has_rivtest = (_rc == 0)
+* 仅当第二阶段 DV 在盘 (2SLS 列实际跑过) 才有 AR CI 可算
+capture confirm variable `DV'
+local has_dv = (_rc == 0)
+if `has_dv' & (`has_weakiv' | `has_condivreg' | `has_rivtest') {
+    * 4 列 (tag : 内生变量 : 工具集) — 与上方 eststo 同规格重估后立即调 weakiv
+    foreach iv_spec in tsls_type tsls_overid tsls_ctx tsls_overid_ctx {
+        capture estimates restore `iv_spec'
+        if _rc continue
+        * 按列设定内生变量 `_en' 与工具集 `_ivset' (Stata 无 `;` 行内分隔, 逐行赋值)
+        local _en ""
+        local _ivset ""
+        if "`iv_spec'" == "tsls_type" {
+            local _en `TX'
+            local _ivset `IV1'
+        }
+        if "`iv_spec'" == "tsls_overid" {
+            local _en `TX'
+            local _ivset `IV1' `IV2'
+        }
+        if "`iv_spec'" == "tsls_ctx" {
+            local _en `TXC'
+            local _ivset `IVC'
+        }
+        if "`iv_spec'" == "tsls_overid_ctx" {
+            local _en `TXC'
+            local _ivset `IVC' `IV2C'
+        }
+        display ""
+        display as text "── 弱工具稳健推断 (`iv_spec'): Anderson-Rubin CI ──"
+        local _did_ar = 0
+        if `has_weakiv' {
+            capture noisily ivreg2 `DV' (`_en' = `_ivset') $controls ///
+                i.bank_id i.year, cluster(bank_id)
+            if !_rc {
+                capture noisily weakiv, level(95)
+                if !_rc local _did_ar = 1
+            }
+        }
+        * condivreg 仅恰好识别 (单工具) 适用; 过度识别 (overid) 列跳过
+        local _niv : word count `_ivset'
+        if !`_did_ar' & `has_condivreg' & `_niv' == 1 {
+            capture noisily condivreg `DV' $controls i.bank_id i.year (`_en' = `_ivset'), test(0)
+            if !_rc local _did_ar = 1
+        }
+        if !`_did_ar' & `has_rivtest' {
+            capture noisily ivreg2 `DV' (`_en' = `_ivset') $controls ///
+                i.bank_id i.year, cluster(bank_id)
+            if !_rc {
+                capture noisily rivtest, ci
+                if !_rc local _did_ar = 1
+            }
+        }
+        if `_did_ar' {
+            display as text "  (AR 弱工具稳健 CI 见上方 `iv_spec' 输出; 弱工具下以此 CI 解读, 勿凭 t 检验)"
+        }
+        else {
+            display as text "  ⚠️ `iv_spec' AR CI 未能计算 (退化/缺 ado), 弱工具时须改用 AR-robust 推断"
+        }
+    }
+    local ar_note "Anderson-Rubin weak-IV-robust CIs are reported in the log for each 2SLS column (weakiv/condivreg/rivtest, run inline after each fit). When KP F is below the Stock-Yogo critical value (16.38 for 5% maximal bias), READ the AR CI rather than the 2SLS t-ratio (Andrews-Stock-Sun 2019 ARE; Lee et al. 2022 AER tF). "
+}
+else {
+    if !`has_dv' display as text "  [INFO] 第二阶段 DV `DV' 缺列, 无 2SLS 列; AR CI 跳过"
+    else display as text "  ⚠️ weakiv / condivreg / rivtest 均未安装 (ssc install weakiv); 弱工具 AR CI 跳过"
+    local ar_note "Anderson-Rubin weak-IV-robust CI NOT computed (weakiv/condivreg/rivtest unavailable, or 2SLS DV not yet merged; ssc install weakiv). If KP F < Stock-Yogo critical value, 2SLS t-inference is invalid — install weakiv and re-run for AR CI. "
 }
 
 * ── 跨族 over-id 工具相关性诊断 (GPSS 2020 AER §5: overid 须报告工具间相关性) ──
@@ -159,7 +252,8 @@ else {
                  "Exclusion caveats for peer-mean instruments (Manski 1993; Leary-Roberts 2014 JF) must be disclosed; lag-1 variant leave_one_out_peer_benefit_iv_lag1 as robustness." ///
                  "ctx columns: entity-window twin benefit_mean_ctx instrumented by ctx peer-LOO (lpeer_benefit_iv_ctx) and ctx zone-LOO (zone_leave1out_benefit_iv_ctx); just-identified + cross-family ctx over-id, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
                  "Cross-family over-id instrument correlations (GPSS 2020 AER sec.5): full type-LOO x zone-LOO rho=`rho_full'; ctx rho=`rho_ctx'. Distinct grouping dimensions (bank_type vs bank_zone) are near-orthogonal by construction; high |rho| would render the df=1 Hansen J underpowered." ///
-                 "KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005), use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified column.")
+                 "KP F = Kleibergen-Paap rk Wald F; if < 16.38 (Stock-Yogo 2005), use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified column." ///
+                 "`ar_note'")
 
     display "[OK] 25_tableA12_iv_2sls → $tables_dir/tableA12_benefit_iv_2sls.tex"
 }

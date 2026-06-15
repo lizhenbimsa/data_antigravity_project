@@ -51,13 +51,17 @@ preserve
             sort _u bank_id
             gen long _rank = _n
             sort bank_id
-            gen _rand_treat = `EXPL'[_rank]
-            keep bank_id _rand_treat
+            gen rand_treat = `EXPL'[_rank]
+            keep bank_id rand_treat
         }
         frlink m:1 bank_id, frame(`pfr')
-        frget _rand_treat, from(`pfr')
+        * fix(reaudit-t18-2026-06-14): frget 静默拒绝复制名以下划线开头的变量
+        * (实测 "variable not copied: _rand_treat" / 0 copied → 下方 reghdfe r(111) 中断
+        * 整张 Table 5, 含本轮 reaudit 的 5d 野聚类 boottest 块永不执行)。改用无下划线
+        * 名 rand_treat → frget 正常复制 (置换检验语义不变)。
+        frget rand_treat, from(`pfr')
 
-        eststo PLACEBO: reghdfe `DV' _rand_treat `LOCUS' `SUBST', ///
+        eststo PLACEBO: reghdfe `DV' rand_treat `LOCUS' `SUBST', ///
             absorb(bank_id year) vce(cluster bank_id)
         frame drop `pfr'
     }

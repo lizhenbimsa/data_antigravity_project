@@ -76,24 +76,34 @@ if _rc {
     display "  ⚠️ 第二阶段 DV `DV' 未物化 (外部财务面板未接入); 2SLS 列跳过, 仅输出第一阶段"
 }
 else {
+    * fix(reaudit-t18-2026-06-14, IV-6 镜像 llm_peer/11): ivreghdfe 在本机 StataNow 19.5
+    * 上 r(301) 坏 (ftools/reghdfe Mata 不兼容; 实测 reghdfe/ivreg2 正常). has_ivreghdfe
+    * 仅 which 探测=已装, 不保证运行期不崩 → 改 capture noisily, 运行期失败亦回退 ivreg2,
+    * 否则 ivreghdfe r(301) 会 uncaught 中断整张 Table A6 (含下方弱工具 AR CI 块永不执行).
     capture confirm variable `IV1'
     if !_rc {
+        local _t1_ok = 0
         if `has_ivreghdfe' {
-            eststo TSLS1: ivreghdfe `DV' (`TONE' = `IV1') digital_frontier, ///
+            capture noisily eststo TSLS1: ivreghdfe `DV' (`TONE' = `IV1') digital_frontier, ///
                 absorb(bank_id year) cluster(bank_id) first
+            if !_rc local _t1_ok = 1
+            else display as error "  ⚠️ ivreghdfe TSLS1 运行期失败 (rc=`=_rc', 本机 ivreghdfe r301); 回退 ivreg2"
         }
-        else {
+        if !`_t1_ok' {
             eststo TSLS1: ivreg2 `DV' (`TONE' = `IV1') digital_frontier, ///
                 cluster(bank_id) first robust
         }
     }
     capture confirm variable `IV2'
     if !_rc {
+        local _t2_ok = 0
         if `has_ivreghdfe' {
-            eststo TSLS2: ivreghdfe `DV' (`TONE' = `IV2') digital_frontier, ///
+            capture noisily eststo TSLS2: ivreghdfe `DV' (`TONE' = `IV2') digital_frontier, ///
                 absorb(bank_id year) cluster(bank_id) first
+            if !_rc local _t2_ok = 1
+            else display as error "  ⚠️ ivreghdfe TSLS2 运行期失败 (rc=`=_rc'); 回退 ivreg2"
         }
-        else {
+        if !`_t2_ok' {
             eststo TSLS2: ivreg2 `DV' (`TONE' = `IV2') digital_frontier, ///
                 cluster(bank_id) first robust
         }
@@ -101,15 +111,127 @@ else {
     capture confirm variable `IV1' `IV2'
     if !_rc {
         * 过度识别列: 2 工具 1 内生 → Hansen J df=1 可计算
+        local _t12_ok = 0
         if `has_ivreghdfe' {
-            eststo TSLS12: ivreghdfe `DV' (`TONE' = `IV1' `IV2') digital_frontier, ///
+            capture noisily eststo TSLS12: ivreghdfe `DV' (`TONE' = `IV1' `IV2') digital_frontier, ///
                 absorb(bank_id year) cluster(bank_id) first
+            if !_rc local _t12_ok = 1
+            else display as error "  ⚠️ ivreghdfe TSLS12 运行期失败 (rc=`=_rc'); 回退 ivreg2"
         }
-        else {
+        if !`_t12_ok' {
             eststo TSLS12: ivreg2 `DV' (`TONE' = `IV1' `IV2') digital_frontier, ///
                 cluster(bank_id) first robust
         }
     }
+}
+
+* ── IV-2 弱工具稳健推断 (Anderson-Rubin CI; Andrews-Stock-Sun 2019 ARE) ──
+* 把头注"KP F < Stock-Yogo 临界值时改读 AR CI"的声明落为真实命令: 对每个已存储的
+* 2SLS 规格跑 weak-IV-robust AR 置信集, 并把 AR p 值 / AR CI 边界 estadd 回写到对应
+* eststo → 经 esttab stats() 输出到表 (lockstep, 与姐妹模板 substance/22:148-204 口径一致),
+* 不再只留在 log。
+* 三层回退: weakiv (over-id/恰好识别通用) → condivreg (恰好识别 AR/CLR) → rivtest。
+* 全程 capture which 守卫: 未装 ado 时优雅跳过 (诊断照常输出 KP F)。T=2 退化时
+* AR 检验可能报错 → capture noisily 吞错, 不阻断主表输出。缺值时 estadd . 无害。
+local ar_note ""
+capture which weakiv
+local has_weakiv = (_rc == 0)
+capture which condivreg
+local has_condivreg = (_rc == 0)
+capture which rivtest
+local has_rivtest = (_rc == 0)
+local _ar_ran = 0
+if `has_weakiv' | `has_condivreg' | `has_rivtest' {
+    * 对每个 2SLS 列重估并紧随其后跑 weak-IV-robust AR CI (估计后立即调, e() 仍在)
+    foreach iv_spec in TSLS1 TSLS2 TSLS12 {
+        capture estimates restore `iv_spec'
+        if _rc continue
+        display ""
+        display as text "── 弱工具稳健推断 (`iv_spec'): Anderson-Rubin CI ──"
+        * weakiv 须在估计命令后立即调; 这里重跑同规格再接 weakiv (ivreg2 后端)
+        if "`iv_spec'" == "TSLS1"  local _ivset `IV1'
+        if "`iv_spec'" == "TSLS2"  local _ivset `IV2'
+        if "`iv_spec'" == "TSLS12" local _ivset `IV1' `IV2'
+        local _did_ar = 0
+        * AR p / 95% AR CI 边界 (各路径名跨版本不一, 逐个 capture 取; 缺则留 .)
+        local _arp = .
+        local _arlo = .
+        local _arhi = .
+        if `has_weakiv' {
+            capture noisily ivreg2 `DV' (`TONE' = `_ivset') digital_frontier, cluster(bank_id)
+            if !_rc {
+                capture noisily weakiv, level(95)
+                if !_rc {
+                    local _did_ar = 1
+                    * weakiv 返回名跨版本逐个尝试 (ar_p / ar_cset_lb / ar_cset_ub)
+                    capture local _arp  = e(ar_p)
+                    capture local _arlo = e(ar_cset_lb)
+                    capture local _arhi = e(ar_cset_ub)
+                    * fix(reaudit-t18-2026-06-14): 本机 weakiv 把 AR 95% 置信集存为字符串
+                    * macro e(ar_cset) = "[lb, ub]" (无数值 e(ar_cset_lb/ub)); 数值缺失时
+                    * 解析字符串取上下界 → AR CI low/high 行真实入表 (否则恒为 .)。
+                    if missing(`_arlo') | missing(`_arhi') {
+                        local _cset `"`e(ar_cset)'"'
+                        if `"`_cset'"' != "" {
+                            * 去 [ ] 与逗号 → 两数
+                            local _cset : subinstr local _cset "[" "", all
+                            local _cset : subinstr local _cset "]" "", all
+                            local _cset : subinstr local _cset "," " ", all
+                            capture local _arlo = real(word("`_cset'", 1))
+                            capture local _arhi = real(word("`_cset'", 2))
+                        }
+                    }
+                }
+            }
+        }
+        if !`_did_ar' & `has_condivreg' & "`iv_spec'" != "TSLS12" {
+            * condivreg 仅恰好识别 (单工具) 适用, 跳过 over-id 列
+            capture noisily condivreg `DV' digital_frontier (`TONE' = `_ivset'), test(0)
+            if !_rc {
+                local _did_ar = 1
+                capture local _arp  = e(arp)
+                capture local _arlo = e(arci_lb)
+                capture local _arhi = e(arci_ub)
+            }
+        }
+        if !`_did_ar' & `has_rivtest' {
+            capture noisily ivreg2 `DV' (`TONE' = `_ivset') digital_frontier, cluster(bank_id)
+            if !_rc {
+                capture noisily rivtest, ci
+                if !_rc {
+                    local _did_ar = 1
+                    capture local _arp  = r(p)
+                    capture local _arlo = r(ar_lb)
+                    capture local _arhi = r(ar_ub)
+                }
+            }
+        }
+        if `_did_ar' {
+            local _ar_ran = `_ar_ran' + 1
+            * estadd 回写 AR p / CI 到对应 eststo → 进 esttab stats (缺值 estadd . 无害)
+            capture estimates restore `iv_spec'
+            if !_rc {
+                capture estadd scalar ar_p  = `_arp'
+                capture estadd scalar ar_lo = `_arlo'
+                capture estadd scalar ar_hi = `_arhi'
+                eststo `iv_spec'
+            }
+            display as text "  (AR 弱工具稳健 CI 已 estadd 入表 `iv_spec'; 弱工具下以此 CI 解读, 勿凭 t 检验)"
+        }
+        else {
+            display as text "  ⚠️ `iv_spec' AR CI 未能计算 (退化/缺 ado), 弱工具时须改用 AR-robust 推断"
+        }
+    }
+    if `_ar_ran' > 0 {
+        local ar_note "AR p / AR CI low / AR CI high rows report the Anderson-Rubin weak-IV-robust test p-value and 95% confidence set bounds (weakiv/condivreg/rivtest, run inline after each 2SLS fit). When KP F is below the Stock-Yogo critical value, READ the AR CI rather than the 2SLS t-ratio (Andrews-Stock-Sun 2019 ARE; Lee et al. 2022 AER tF). "
+    }
+    else {
+        local ar_note "No 2SLS column was estimated (financial DV pending), so AR weak-IV-robust CIs are not yet produced; the AR p / AR CI rows activate with the second-stage outcome. "
+    }
+}
+else {
+    display as text "  ⚠️ weakiv / condivreg / rivtest 均未安装 (ssc install weakiv); 弱工具 AR CI 跳过"
+    local ar_note "Anderson-Rubin weak-IV-robust CI NOT computed (weakiv/condivreg/rivtest not installed; ssc install weakiv). If KP F < Stock-Yogo critical value, 2SLS t-inference is invalid — install weakiv and re-run for AR CI. "
 }
 
 * ── 输出 (esttab 名单动态化, 缺估计不点名 — 防 r(111) 丢整表) ──
@@ -135,13 +257,14 @@ if "`models'" == "" {
 esttab `models' using "output/tables/tableA6_tone_iv_2sls.tex", ///
     se star(* 0.10 ** 0.05 *** 0.01) ///
     booktabs replace fragment ///
-    stats(N r2 widstat jp, fmt(0 3 3 3) ///
-          labels("N" "R²" "KP F" "Hansen J p")) ///
+    stats(N r2 widstat jp ar_p ar_lo ar_hi, fmt(0 3 3 3 3 3 3) ///
+          labels("N" "R²" "KP F" "Hansen J p" "AR p" "AR CI low" "AR CI high")) ///
     title("Table A6: Media Tone 2SLS — Province LOO + Bartik Instruments") ///
     mtitles(`mtitles') ///
     note("Endogenous: media tone. IV1 = province leave-one-out peer tone (Gurun-Butler 2012 JF local-media logic); IV2 = Bartik type-share IV (Goldsmith-Pinkham et al. 2020 AER, base-period share exogeneity view only — shift is a LOO group mean, not quasi-random; do NOT claim BHJ identification). " ///
          "KP F: Kleibergen-Paap rk Wald F (Kleibergen-Paap 2006). Hansen J reported only in the overidentified column (df=1). " ///
          "If KP F is below the Stock-Yogo critical value (16.38 for 5% maximal IV bias, 13.91 for 10%), instruments are weak: a non-rejecting Hansen J (p>0.05) then has LOW POWER and must NOT be read as confirming instrument validity — interpret via Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE). " ///
+         "`ar_note'" ///
          "Exclusion caveats (peer-mean instruments; Manski 1993, Leary-Roberts 2014 JF) must be disclosed in the paper text.")
 
 display "✅ Table A6 written to output/tables/tableA6_tone_iv_2sls.tex"

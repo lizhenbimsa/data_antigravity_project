@@ -26,31 +26,102 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
+* fix(IV-6, audit PROJECT_REAUDIT_T18 附录B): ivreghdfe 生产机 r(301) → 不再硬 exit 199;
+*   缺失/失败时本表各 O-列改走 ivreg2 + i.bank_id i.year 回退 (capture noisily, 动态 esttab)。
+local _have_ivhdfe = 0
 capture which ivreghdfe
-if _rc {
-    display as error "[ERROR] ivreghdfe required for Table 8"
-    exit 199
+if !_rc local _have_ivhdfe = 1
+local _have_ivreg2 = 0
+capture which ivreg2
+if !_rc local _have_ivreg2 = 1
+if !`_have_ivhdfe' & !`_have_ivreg2' {
+    display "[INFO] neither ivreghdfe nor ivreg2 available; Table 8 skipped."
+    exit 0
 }
 
 * O1: 单工具恰好识别基线 (W²·tone), 对照 — Hansen J undefined (df=0)
-ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo O1_just
+local _o1 = 0
+if `_have_ivhdfe' {
+    capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    if !_rc {
+        eststo O1_just
+        local _o1 = 1
+    }
+}
+if !`_o1' & `_have_ivreg2' {
+    capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls i.bank_id i.year, ///
+        cluster({{CLUSTER_VAR}}) first
+    if !_rc eststo O1_just
+}
 
 * O2: 跨族 over-id — W²·tone (共现族) + 同省 LOO tone (地理族) → Hansen J 可检验
 capture confirm variable {{OVERID_IV2}}
 if !_rc {
-    ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}} {{OVERID_IV2}}) $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo O2_overid_full
+    local _o2 = 0
+    if `_have_ivhdfe' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}} {{OVERID_IV2}}) $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo O2_overid_full
+            local _o2 = 1
+        }
+    }
+    if !`_o2' & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}} {{OVERID_IV2}}) $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo O2_overid_full
+    }
+
+    * ── fix(IV-2/IV-3, audit IV-2 P1): over-id 列后补 Anderson-Rubin 弱工具稳健 CI (weakiv)
+    *   + prov 层 wild cluster bootstrap (boottest)。两 IV → AR 对弱工具稳健联合检验。
+    *   weakiv 用主线 proven pattern: 先 ivreg2 再 weakiv, level(95) (读上一条估计, log 输出)。──
+    capture which weakiv
+    if !_rc & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}} {{OVERID_IV2}}) $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}})
+        if !_rc {
+            capture noisily weakiv, level(95)
+            if !_rc display "  OK IV-2: weakiv AR CI (over-id, 2 IV joint) logged (Andrews-Stock-Sun 2019 ARE)"
+        }
+    }
+    capture which boottest
+    if !_rc & `_have_ivreg2' {
+        capture quietly ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}} {{OVERID_IV2}}) $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc {
+            capture boottest {{MAIN_ENDOG}}, reps(9999) bootcluster({{CLUSTER_VAR}}) cluster({{CLUSTER_VAR}}) nograph
+            if !_rc {
+                capture local _btp = r(p)
+                capture file close _btf8
+                file open _btf8 using "$tables_dir/table8_brok_boottest.csv", write replace
+                file write _btf8 "stat,value" _n
+                file write _btf8 "wild_p,`_btp'" _n
+                file write _btf8 "note,prov-level wild cluster bootstrap (G~31<50; Roodman 2019)" _n
+                file close _btf8
+                display "  OK IV-3: over-id boottest (prov-level) wild p=`_btp'"
+            }
+        }
+    }
 }
 
 * O3: ctx 轨跨族 over-id (稳健; 单次 confirm, 任一缺即跳过避免守卫穿透 r(111))
 capture confirm variable peer_tone_lag1_ctx peer_tone_2nd_lag1_ctx prov_leave1out_tone_ctx
 if !_rc {
-    ivreghdfe {{MAIN_DV}}_w (peer_tone_lag1_ctx = peer_tone_2nd_lag1_ctx prov_leave1out_tone_ctx) $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo O3_overid_ctx
+    local _o3 = 0
+    if `_have_ivhdfe' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w (peer_tone_lag1_ctx = peer_tone_2nd_lag1_ctx prov_leave1out_tone_ctx) $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo O3_overid_ctx
+            local _o3 = 1
+        }
+    }
+    if !`_o3' & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w (peer_tone_lag1_ctx = peer_tone_2nd_lag1_ctx prov_leave1out_tone_ctx) $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo O3_overid_ctx
+    }
 }
 
 qui estimates dir
@@ -78,9 +149,10 @@ esttab `models' using "$tables_dir/table8_overid_iv.tex", replace ///
              "Cross-family over-id: W2*tone (co-mention) + same-province LOO tone (geography) -> Hansen J testable." ///
              "FORBIDDEN: full+ctx LOO as one instrument pair (same contamination -> J no power; corr~0.998)." ///
              "KP rk Wald F = e(widstat); Stock-Yogo 10% maximal-size crit (2 IV) ~ 19.93; F below => weak IV =>" ///
-             "read Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE), not the 2SLS point/SE." ///
+             "read Anderson-Rubin weak-IV-robust CI (weakiv after ivreg2, logged; Andrews-Stock-Sun 2019 ARE), not the 2SLS point/SE." ///
              "Hansen J tests exclusion ONLY if the two instruments are not co-contaminated (Parente-Santos-Silva 2012);" ///
              "report corr(instruments) and VIF. Co-mention network external validity: see _shared/A_network_robustness (P1-3)." ///
-             "Province clusters G~31 < 40 (Cameron-Miller): production run uses wild cluster bootstrap (boottest).")
+             "Province clusters G~31 < 50 (Cameron-Miller 2015): wild cluster bootstrap (boottest, bootcluster=province) -> table8_brok_boottest.csv." ///
+             "Estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6; production-machine ivreghdfe r301).")
 
 display "[OK] Table 8 -> $tables_dir/table8_overid_iv.tex"

@@ -30,24 +30,47 @@ if `_prep_rc' {
 do 10_table1_descriptives.do
 do 11_table2_main_iv_2sls.do
 do 12_table3_mechanism_policy.do
-do 13_table4_heterogeneity.do
-do 14_table5_robustness.do
+* fix(IV-6 master-resilience, audit PROJECT_REAUDIT_T18 附录B + 烟雾验证 2026-06-14):
+*   13/14 (及 reghdfe 族 15/16/20) 仍含旧式裸 ivreghdfe/估计 — 生产机 (StataNow 19.5)
+*   ivreghdfe 因 ftools/reghdfe Mata 不兼容恒 r(301), 任一裸调用未捕获即 abort 整条
+*   master 链 → 其后全部表 (含本轮新增 21-24 era/oster/csdid/boottest 块) 永不生成。
+*   实测: master 此前死在 13_table4 的裸 ivreghdfe r(301), tables 14-24 全丢。
+*   改: 13-21 + 30 一律 capture noisily + [WARN] (镜像下方 22/23/24 既有守卫); 各表
+*   内部仍有自身退化守卫, 单表失败仅 WARN 跳过, 不连环中断。golden-safe / 列值不动。
+capture noisily do 13_table4_heterogeneity.do
+if _rc display as error "[WARN] 13_table4_heterogeneity.do failed (rc=`=_rc'); Table 4 skipped"
+capture noisily do 14_table5_robustness.do
+if _rc display as error "[WARN] 14_table5_robustness.do failed (rc=`=_rc'); Table 5 skipped"
 * network-metrics-elevation 2026-06-13: 网络位置五角色化新表 (15-20)。
 * 全部消费 panel 实存列 → golden-safe; 角色 (除描述性) production T=18 才有功效,
 * 盘面 T=2 退化时各表内 capture-confirm / N-守卫优雅跳过 (不中断主线)。
-do 15_table6_centrality_outcome.do
-do 16_table7_mediation.do
-do 17_table8_overid_iv.do
-do 18_table9_moderation.do
-do 19_table10_network_het.do
-do 20_table11_fwer_battery.do
+capture noisily do 15_table6_centrality_outcome.do
+if _rc display as error "[WARN] 15_table6_centrality_outcome.do failed (rc=`=_rc'); Table 6 skipped"
+capture noisily do 16_table7_mediation.do
+if _rc display as error "[WARN] 16_table7_mediation.do failed (rc=`=_rc'); Table 7 skipped"
+capture noisily do 17_table8_overid_iv.do
+if _rc display as error "[WARN] 17_table8_overid_iv.do failed (rc=`=_rc'); Table 8 skipped"
+capture noisily do 18_table9_moderation.do
+if _rc display as error "[WARN] 18_table9_moderation.do failed (rc=`=_rc'); Table 9 skipped"
+capture noisily do 19_table10_network_het.do
+if _rc display as error "[WARN] 19_table10_network_het.do failed (rc=`=_rc'); Table 10 skipped"
+capture noisily do 20_table11_fwer_battery.do
+if _rc display as error "[WARN] 20_table11_fwer_battery.do failed (rc=`=_rc'); Table 11 skipped"
 * agg-toptier-audit 2026-06-13: 推断(双向cluster/boottest)+覆盖筛选 wire-ahead 桩 (财务接入后激活)
-do 21_table12_agg_robustness.do
+capture noisily do 21_table12_agg_robustness.do
+if _rc display as error "[WARN] 21_table12_agg_robustness.do failed (rc=`=_rc'); Table A12 skipped"
 * 2026-06-14 顶刊稳健性扩充: 选择性稳健 (FE 饱和/离群稳健估计/Oster δ, Table A13) / 子样本-lead 时序 (Table A14)
 capture noisily do 22_tableA13_selection_robustness.do
 if _rc display as error "[WARN] 22_tableA13_selection_robustness.do failed (rc=`=_rc'); Table A13 skipped"
 capture noisily do 23_tableA14_subsample_timing.do
 if _rc display as error "[WARN] 23_tableA14_subsample_timing.do failed (rc=`=_rc'); Table A14 skipped"
-do 30_figure1_centrality_distribution.do
+* 2026-06-14 顶刊重审 CY-2: 分时代结构稳定性 (三时代分段 2SLS + treatment×era 交乘 + Wald, Table A15)
+capture noisily do 24_tableA15_era_stability.do
+if _rc display as error "[WARN] 24_tableA15_era_stability.do failed (rc=`=_rc'); Table A15 skipped"
+capture noisily do 30_figure1_centrality_distribution.do
+if _rc display as error "[WARN] 30_figure1_centrality_distribution.do failed (rc=`=_rc'); Figure 1 skipped"
 
 display "[OK] brokerage_network master.do complete"
+
+* 2026-06-14 终端守卫: exit 让 /e 或双击裸起动也立即退出, 不弹「已完成」模态框 (见 CLAUDE.md "Stata Environment")
+exit, clear

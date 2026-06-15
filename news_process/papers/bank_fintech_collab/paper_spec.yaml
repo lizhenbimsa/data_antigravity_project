@@ -74,6 +74,13 @@ controls:
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]
+  # INFER IV-2 修复 (2026-06-14): 显式聚类层声明 (此前 spec 缺 cluster 块, 模板默认
+  # cluster(bank_id))。主规格单向 bank 聚类; bank×year 双向 + bank_type LOO IV 的
+  # 类型层聚类作稳健性对照 (Cameron-Miller 2015 JHR)。
+  cluster: [bank]                       # primary: one-way bank-level
+  cluster_robustness:
+    - bank_year_twoway                  # 双向 (跨期相关稳健性)
+    - bank_type                         # 同业 LOO IV 设定的类型层聚类对照
 
 identification:
   baseline: long_panel_within_bank_within_year
@@ -88,6 +95,36 @@ identification:
     # ctx 轨稳健性镜像 (2026-06-13 终审, iv_extensions.py lpeer_*): 内生孪生
     # collab_frac_cm 配 ctx 同业 LOO 工具 lpeer_collab_iv_ctx, 与 full 轨各自
     # just-identified 并排 (双轨互为稳健性); 非 full×ctx overid。模板 21_collab_iv_2sls。
+
+# 推断与多重检验纪律 (INFER IV-2 修复 2026-06-14): 形式化声明单一 confirmatory
+# 主规格 vs exploratory 稳健性族, 划定 FWER family, 镜像 disagreement spec 做法。
+# 顶刊对观测性研究不强制 OSF/PAP, 此处为 confirmatory-vs-exploratory 事实层声明,
+# 非 RCT 预注册。锚点: List-Shaikh-Xu 2019 EE; Romano-Wolf 2005 ECMA; Olken 2015 JEP。
+inference:
+  confirmatory:
+    # 单一主假设: 外部协同主导 → 更多 fintech 并购 (Chesbrough 2003 开放创新)
+    primary_treatment: collab_frac          # (二元化主导对 collab_open_full/collab_closed_full)
+    primary_outcome: m_and_a_fintech
+    primary_track: _full                    # full 轨为 preferred; ctx 轨为互为稳健性孪生
+    primary_estimator: iv_2sls_peer_loo     # 主识别 = 同类型同业 LOO 工具 2SLS
+  exploratory:
+    # 以下一律标 robustness/exploratory, 不计入 confirmatory family
+    - ctx_track_twin                        # collab_frac_cm × lpeer_collab_iv_ctx (双轨)
+    - lag1_iv_variant                        # leave_one_out_peer_collab_iv_lag1
+    - bartik_iv                              # bartik_collab_iv_full (share-exogeneity 视角)
+    - secondary_outcomes                      # r_and_d_intensity / patent_fintech_count / capex_it / z_score
+    - alternative_treatments                  # independent_minus_collab_gap / cell_id_full
+    - subsample_splits                        # SOE / hub / size / type / era (24, 26)
+    - aggregation_weighting                   # EW vs VW/MW/HW (22)
+  fwer:
+    # 异质性/多测度族在 esttab 后加 FWER 校正 p (rwolf/wyoung); 主 confirmatory
+    # 单一规格无需校正。详见 18_collab_robustness (rwolf wire-ahead) / brokerage/20 (wyoung 范本)。
+    method: romano_wolf                      # Romano-Wolf 2005 ECMA (异质性族)
+    family: heterogeneity_and_alt_measures
+  weak_iv:
+    # KP F < Stock-Yogo 临界值时读弱工具稳健 AR CI (21_collab_iv_2sls 的
+    # tableA_collab_iv_arci.txt; Andrews-Stock-Sun 2019)。
+    weak_iv_robust_ci: anderson_rubin
 
 # 网络位置角色 (network-metrics-elevation 2026-06-13; 蓝图 scripts/audit/NETWORK_METRIC_ELEVATION_BLUEPRINT_2026-06-13.md)。
 # 消费 panel 实存共现中心度列 → golden-safe; mediator/moderator 须 production T=18; schema 对本块 no-op。

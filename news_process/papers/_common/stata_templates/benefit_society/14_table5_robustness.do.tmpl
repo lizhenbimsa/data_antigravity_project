@@ -8,6 +8,11 @@
 *   R3: INT 轨 (TF-IDF×SIF 加权)
 *   R4: Ctx 轨 attitude (双轨; full 主对比见 Table A2)
 *   R5: Pos/Neg 占比分解 (现为双轨, F-H3)
+*
+* ⚠ SPEC IV-1 修复 (2026-06-14 顶刊重审): 全表 FE 由 bank_type FE 升级为
+*   paper_spec.yaml:48 承诺的 bank_fe = absorb(bank_id year) (与 11_table2 主表
+*   一致)。bank_type (bank_id 的粗粒度划分) 在 bank FE 下机械共线被吸收。
+*   文献锚: Gormley & Matsa 2014 RFS。
 * ============================================================================
 
 version 19
@@ -33,7 +38,7 @@ local int_p50 token_adopt_int_p50 hidden_adopt_int_p50
 capture confirm variable `kw_p25'
 if !_rc {
     reghdfe {{MAIN_DV}}_w `kw_p25' $controls, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo R1_p25
 }
 else {
@@ -44,7 +49,7 @@ else {
 capture confirm variable `kw_p75'
 if !_rc {
     reghdfe {{MAIN_DV}}_w `kw_p75' $controls, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo R2_p75
 }
 else {
@@ -55,7 +60,7 @@ else {
 capture confirm variable `int_p50'
 if !_rc {
     reghdfe {{MAIN_DV}}_w `int_p50' $controls, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo R3_int
 }
 else {
@@ -66,7 +71,7 @@ else {
 capture confirm variable {{ATTITUDE_CTX}}
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{ATTITUDE_CTX}} $controls, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo R4_ctx
 }
 
@@ -74,23 +79,23 @@ if !_rc {
 capture confirm variable {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_NEG_FRAC_FULL}}
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_FULL}} {{BENEFIT_NEG_FRAC_FULL}} $controls, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo R5_frac_full
 }
 capture confirm variable {{BENEFIT_POS_FRAC_CTX}} {{BENEFIT_NEG_FRAC_CTX}}
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{BENEFIT_POS_FRAC_CTX}} {{BENEFIT_NEG_FRAC_CTX}} $controls, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo R5_frac_ctx
 }
 
 * === Winsorization sensitivity (Table 2 基准=1% 缩尾; 此处补 raw 与 5% 两档; Fama-French 1993 / Loughran-McDonald 2011) ===
 * {{MAIN_DV}} 为 levels-ratio outcome (ROA), cohort-A 主回归取 _w 缩尾基准, 故此处补 raw / 5% 对照证明结论不依赖缩尾力度
 reghdfe {{MAIN_DV}} {{ATTITUDE_VAR}} $controls, ///
-    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo wsens_raw
 reghdfe {{MAIN_DV}}_w5 {{ATTITUDE_VAR}} $controls, ///
-    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo wsens_w5
 
 * fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — R1-R5 全部在守卫块内,
@@ -119,7 +124,7 @@ else {
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
         title("Robustness Battery (PAP §5, R8/R11 removed) --- benefit_society") ///
         mtitles(`mtitles') ///
-        addnotes("bank_type/year FE; SE clustered at {{CLUSTER_VAR}}." ///
+        addnotes("bank (bank_id) + year FE; SE clustered at {{CLUSTER_VAR}}. SPEC IV-1 (2026-06-14): main FE = bank_id per paper_spec bank_fe (Gormley-Matsa 2014 RFS); bank_type subsumed by bank FE." ///
                  "R8 (1y-change) + R11 (NCD spread) removed per audit F-R3-H1.")
 
     * fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/

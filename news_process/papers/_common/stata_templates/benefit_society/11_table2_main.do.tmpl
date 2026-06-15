@@ -8,11 +8,19 @@
 *   理论锚: Tetlock 2007 JF + Garcia 2013 JF + Jha-Liu-Manela 2026 RFS
 *
 * M1: 仅 attitude, 无固定效应
-* M2: + bank_type FE
-* M3: + bank_type FE + year FE
+* M2: + bank FE (bank_id; 比 bank_type 更严, 吸收所有银行不变特征)
+* M3: + bank FE + year FE
 * M4: + 标准控制 $controls
 * M5: + 规模 / 年龄控制
 * M6: + attitude × intensity 交互项 (Brambor-Clark-Golder 2006)
+*
+* ⚠ SPEC IV-1 修复 (2026-06-14 顶刊重审): 主表 FE 由 bank_type FE (~4-7 粗类)
+*   升级为 paper_spec.yaml:48 承诺的 bank_fe = absorb(bank_id [+ year])。
+*   旧 bank_type FE 把所有时不变行级特征 (规模/商业模式/地域, 均与媒体态度
+*   相关) 留在误差; bank_id FE 吸收全部银行不变混淆, 与原始作者 do 一致。
+*   bank_type 是 bank_id 的粗粒度划分, 在 bank FE 下机械共线被吸收, 故不再作
+*   独立 FE/控制 (仅 13_table4 子样本/异质性维度仍用作分组)。FE 在 T=2 也识别。
+*   文献锚: Gormley & Matsa 2014 RFS; Angrist-Pischke 2009 MHE §5。
 *
 * 双轨推断: full/ctx 对比见 Table A2 (21_tableA2_attitude_track_switch.do)
 * 与 Figure 2 (31_figure2_coefplot_dual.do)。
@@ -34,32 +42,32 @@ set seed {{RANDOM_SEED}}
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}}, noabsorb vce(cluster {{CLUSTER_VAR}})
 eststo M1
 
-* M2: + bank_type FE
+* M2: + bank FE (bank_id; SPEC IV-1: 由 bank_type 升级为真 bank FE)
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}}, ///
-    absorb(bank_type) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_id) vce(cluster {{CLUSTER_VAR}})
 eststo M2
 
-* M3: + bank_type FE + year FE
+* M3: + bank FE + year FE (SPEC IV-1: bank_type year → bank_id year)
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}}, ///
-    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M3
 
 * M4: + 标准控制
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
-    absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M4
 
 * M5: + 规模 / 年龄控制 (缺列时优雅跳过)
 capture confirm variable ln_total_assets ln_bank_age
 if !_rc {
     reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls ln_total_assets ln_bank_age, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo M5
 }
 else {
     display "  [INFO] ln_total_assets / ln_bank_age 不存在; M5 复用 M4 规格"
     eststo M5: reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 }
 
 * M6: + attitude × intensity 交互项
@@ -67,7 +75,7 @@ capture confirm variable fintech_intensity_mean
 if !_rc {
     gen attitude_x_intensity = {{ATTITUDE_VAR}} * fintech_intensity_mean
     reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} fintech_intensity_mean attitude_x_intensity $controls, ///
-        absorb(bank_type year) vce(cluster {{CLUSTER_VAR}})
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
     eststo M6
 }
 else {
@@ -77,8 +85,9 @@ else {
 esttab M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Main Results --- benefit_society (PAP v1.0-final §4)") ///
-    mtitles("M1" "M2 +typeFE" "M3 +yearFE" "M4 +ctrl" "M5 +size" "M6 +int") ///
-    addnotes("bank_type / year FE; SE clustered at {{CLUSTER_VAR}}; G=84 — main inference via wild cluster bootstrap (Table A2 / boottest)." ///
+    mtitles("M1" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +size" "M6 +int") ///
+    addnotes("bank (bank_id) FE [M2+] + year FE [M3+]; SE clustered at {{CLUSTER_VAR}}; G=84 — main inference via wild cluster bootstrap (Table A2 / boottest)." ///
+             "SPEC IV-1 (2026-06-14): main FE = bank_id per paper_spec bank_fe (Gormley-Matsa 2014 RFS); bank_type (coarse partition of bank_id) is subsumed by bank FE and used only as a heterogeneity/subsample dimension (Table 4/A14)." ///
              "Dual-track full/ctx comparison: Table A2 + Figure 2.")
 
 * fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
@@ -89,6 +98,6 @@ esttab M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.tex", replace ///
 estout M1 M2 M3 M4 M5 M6 using "$tables_dir/table2_main.csv", replace delimiter(",") ///
     cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
     starlevels(* 0.10 ** 0.05 *** 0.01) ///
-    mlabels("M1" "M2 +typeFE" "M3 +yearFE" "M4 +ctrl" "M5 +size" "M6 +int")
+    mlabels("M1" "M2 +bankFE" "M3 +yearFE" "M4 +ctrl" "M5 +size" "M6 +int")
 
 display "[OK] Table 2 (M1-M6) → $tables_dir/table2_main.tex (+ .csv side-channel)"

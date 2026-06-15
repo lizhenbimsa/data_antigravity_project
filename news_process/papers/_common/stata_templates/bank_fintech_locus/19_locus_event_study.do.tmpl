@@ -1,14 +1,19 @@
 * ============================================================================
-* 19_locus_event_study.do — P4 paper-specific layer-specific event study
+* 19_locus_event_study.do — P4 INLINE 截面强度事件研究 (cross-sectional intensity DiD)
 * Paper: {{PAPER_ID}}
-* Plan: §5.5.2 P4 extras — 5 个外生冲击 layer-specific event study
+* Plan: §5.5.2 P4 extras — 同步政策冲击下的 layer-specific 差异化反应
 *
-* Layer-specific event study: 对每个政策冲击 E_k, 考察 layer 型 (locus_layer_full)
-* 与 scenario 型 (locus_scenario_full) 银行在事件窗口 [-3, +3] 年内的差异化反应。
+* DID-2 修复 (2026-06-14): 旧版喂 post_E* / treat_E*_year / never_treated_E* 给
+* eventstudyinteract — 这三族列【全 pipeline 零生产者】, 守卫永真 → 复现包永久空表。
+* 订正: E1-E5b 是【同步政策】(同一日期冲击全部银行, 无 cohort 错时变异), 不该
+* cohort 化 → 改接 INLINE event_t × locus_open 截面强度 DiD (镜像 collab/19)。
+* 即: 把 locus_layer_full 哑变量与"相对事件年的时间哑变量"相乘, 比较同一政策冲击
+* 对底层技术主导 (layer) 银行 vs 其他银行的差异化反应路径; bank FE + year FE 吸收
+* 银行恒定异质性与全行业共同年度冲击, 交乘项识别 layer 型银行的相对偏移。
 *
-* 估计量: eventstudyinteract (Sun-Abraham 2021) per §5.7.3 R30-M01。
-* 白话: 看政策冲击前后几年两类银行的表现差异何时出现 — 冲击前不该有差异 (平行趋势),
-* 冲击后出现的差异才能算政策效应; Sun-Abraham 法纠正各银行处理时点不同带来的加权偏误。
+* 白话: 看政策冲击 (余额宝/蚂蚁叫停/数据出境新规) 前后几年, "押底层技术"的银行
+*       与其他银行表现差异何时出现 — 冲击前不该有差异 (平行趋势), 冲击后才出现的
+*       差异才是政策效应。这是截面强度 DiD, 不依赖各行处理时点不同 (本就是同步冲击)。
 * ============================================================================
 
 version 19
@@ -25,48 +30,95 @@ use "$data_dir/_prepared_panel.dta", clear
 
 set seed {{RANDOM_SEED}}
 
-* ============================================================================
-* 对每个事件 E1/E4/E5a/E5b (P4 适用事件, per spec.event_studies):
-*   先在 layer 子样本、再在 scenario 子样本上跑 eventstudyinteract。
-* ============================================================================
+* P4 适用事件 (per spec.event_studies; 同步政策冲击, 用事件【年】定相对时间)
+*   E1: 2013 yuebao_launch / E4: 2020 ant_ipo_pause
+*   E5a: 2022 data_export_assessment / E5b: 2023 data_export_management
+local events  E1   E4   E5a  E5b
+local years   2013 2020 2022 2023
+local n_ev: word count `events'
 
-local events E1 E4 E5a E5b   // P4 适用事件, per Appendix C / §5.7.2
-
-foreach E of local events {
-    capture confirm variable post_`E' treat_`E'_year
-    if _rc {
-        display "  [WARN] post_`E' / treat_`E'_year not in panel (Appendix C build pending)"
-        continue
-    }
-
-    * 生成相对 treat_`E'_year 的事件时间 leads / lags 哑变量
-    capture drop event_time_`E' lead_3_`E' lead_2_`E' lead_1_`E' lag_0_`E' lag_1_`E' lag_2_`E' lag_3_`E'
-    gen event_time_`E' = year - treat_`E'_year
-    forvalues k = 1/3 {
-        gen lead_`k'_`E' = (event_time_`E' == -`k')
-        gen lag_`k'_`E'  = (event_time_`E' == `k')
-    }
-    gen lag_0_`E' = (event_time_`E' == 0)
-
-    * Layer 子样本 event study (locus_layer_full == 1)
-    eventstudyinteract {{MAIN_DV}} lead_3_`E' lead_2_`E' lead_1_`E' ///
-        lag_0_`E' lag_1_`E' lag_2_`E' lag_3_`E' if locus_layer_full == 1, ///
-        cohort(treat_`E'_year) control_cohort(never_treated_`E') ///
-        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-    eststo es_`E'_layer
-
-    * Scenario 子样本 event study (locus_scenario_full == 1)
-    eventstudyinteract {{MAIN_DV}} lead_3_`E' lead_2_`E' lead_1_`E' ///
-        lag_0_`E' lag_1_`E' lag_2_`E' lag_3_`E' if locus_scenario_full == 1, ///
-        cohort(treat_`E'_year) control_cohort(never_treated_`E') ///
-        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-    eststo es_`E'_scenario
+* 主处理 (intensity): locus_layer_full == 1 = 底层技术主导银行
+* (镜像 collab/19 的 collab_open_full; 由 01_data_prep 从 tech_frac/app_frac 派生)
+capture confirm variable locus_layer_full
+if _rc {
+    display "  [WARN] locus_layer_full 不在盘 — 须先跑 01_data_prep 派生主处理; 事件研究跳过"
+    exit 0
 }
 
-esttab es_*_layer es_*_scenario ///
-    using "$tables_dir/table_event_study_layer_specific.tex", replace ///
-    star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    title("P4 Layer-Specific Event Study (Sun-Abraham 2021; events E1/E4/E5a/E5b)") ///
-    addnotes("Pre-trend test (lead_3/lead_2/lead_1 = 0): in supplemental log.")
+forvalues i = 1/`n_ev' {
+    local ev: word `i' of `events'
+    local yr: word `i' of `years'
 
-display "[OK] 19_locus_event_study → $tables_dir/table_event_study_layer_specific.tex"
+    * 相对事件年的 lead/lag (-3 ~ +3) → 哑变量索引 0..6 (3 = 事件当年, 参照可省略)
+    capture drop event_t_*
+    forvalues lag = -3/3 {
+        gen byte event_t_`ev'_`=`lag'+3' = (year == `yr' + `lag')
+    }
+
+    * INLINE 截面强度 DiD: locus_layer_full × 事件年前后时间哑变量
+    * 仅在该事件窗内有 ≥2 个不同相对年份时才有识别 (T=2 试跑帧自动退化 → capture 跳过)
+    capture noisily reghdfe {{MAIN_DV}} ///
+            c.locus_layer_full#i.event_t_`ev'_0 ///
+            c.locus_layer_full#i.event_t_`ev'_1 ///
+            c.locus_layer_full#i.event_t_`ev'_2 ///
+            c.locus_layer_full#i.event_t_`ev'_4 ///
+            c.locus_layer_full#i.event_t_`ev'_5 ///
+            c.locus_layer_full#i.event_t_`ev'_6 ///
+            $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    if !_rc {
+        eststo es_`ev'
+
+        * pre-trend 联合检验 (lead −3/−2/−1 = 0): 平行趋势的正式 F 检验
+        * (DID-3 honestdid/pre-trend 依赖此处保存的 e(); 缺则该列 SKIP)
+        * reghdfe c.X#i.D 系数 Stata 规范化为 1.D#c.X; capture 兜底命名差异
+        capture test (1.event_t_`ev'_0#c.locus_layer_full = 0) ///
+                     (1.event_t_`ev'_1#c.locus_layer_full = 0) ///
+                     (1.event_t_`ev'_2#c.locus_layer_full = 0)
+        if !_rc {
+            estadd scalar pretrend_F = r(F): es_`ev'
+            estadd scalar pretrend_p = r(p): es_`ev'
+            display "  [PRE-TREND] `ev': joint F(leads)=" %6.3f r(F) " p=" %5.3f r(p)
+        }
+
+        * Coefplot (图; 缺 coefplot ado 时跳过)
+        capture which coefplot
+        if !_rc {
+            coefplot es_`ev', vertical drop(_cons $controls) ///
+                title("Event Study `ev' (`yr') — locus layer intensity DiD") ///
+                yline(0) saving("$figures_dir/event_locus_`ev'.gph", replace)
+        }
+    }
+    else {
+        display "  [SKIP] 事件 `ev' (`yr'): 窗内相对年份不足 / 共线 (T=2 退化); production T=18 自动激活"
+    }
+}
+
+* esttab 动态名单 (缺名不点名, 防 r(111))
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if strmatch("`m'", "es_*") local models `models' `m'
+}
+if "`models'" == "" {
+    display "  [WIRE-AHEAD] 事件研究无任何已存储估计 (T=2 仅 2017-2018, 各事件窗退化); production T=18 激活, 表跳过"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/table_event_study_layer_specific.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 pretrend_F pretrend_p, fmt(0 3 3 3) ///
+              labels("N" "R²" "Pre-trend joint F" "Pre-trend p")) ///
+        title("P4 Layer-Specific Event Study (INLINE intensity DiD; events E1/E4/E5a/E5b)") ///
+        addnotes("Treatment intensity = locus_layer_full (= bottom-layer-tech-dominant bank dummy) × relative-event-year dummies; bank FE + year FE absorbed (cross-sectional intensity DiD, synchronous policy shocks — no cohort timing)." ///
+                 "Reference period = event year (relative index 3) omitted." ///
+                 "Pre-trend joint F = test of leads (−3/−2/−1 interactions = 0); non-rejection supports parallel pre-trends. HonestDiD sensitivity in 18_locus_robustness.do.")
+
+    estout `models' using "$tables_dir/table_event_study_layer_specific.csv", replace ///
+        delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) ///
+        stats(N r2 pretrend_F pretrend_p, fmt(0 3 3 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+
+    display "[OK] 19_locus_event_study (INLINE intensity DiD) → $tables_dir/table_event_study_layer_specific.tex (+ .csv)"
+}

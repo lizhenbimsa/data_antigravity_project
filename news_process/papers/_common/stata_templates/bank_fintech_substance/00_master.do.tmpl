@@ -57,5 +57,10 @@ capture do 23_substance_agg_robustness.do
 * 2026-06-14 顶刊稳健性扩充: FE 饱和 + 离群稳健估计 + Oster δ (24) / Hub·规模·SOE 子样本 (25)
 capture do 24_substance_fe_est_robustness.do
 capture do 25_substance_subsamples.do
+* 2026-06-14 CY-2 修复: 分时代结构稳定性 (三 regime 分段 + treatment×era 交乘 + Wald 相等性)
+capture do 26_substance_era_stability.do
 
 display "[OK] bank_fintech_substance master.do complete (B-route P3)"
+
+* 2026-06-14 终端守卫: exit 让 /e 或双击裸起动也立即退出, 不弹「已完成」模态框 (见 CLAUDE.md "Stata Environment")
+exit, clear

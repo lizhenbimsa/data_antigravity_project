@@ -7,14 +7,26 @@
 *
 * M1: 仅 strat_diff_n5
 * M2: + fluidity (Hoberg-Phillips-Prabhala 2014 JF)
-* M3: + sim_max + fluidity (完整规格)
+* M3: + coherence (text_coherence 伴随度量, 完整文本规格)
 * M4: + tone 交互项 (本项目 tone × diff 假设)
-* M5: + coherence (text_coherence 伴随度量)
+* M5: sim_max 单独 (alternative treatment, 各自单跑)
+*
+* SPEC IV-2 修复 (PROJECT_REAUDIT_TOPTIER_T18 2026-06-14):
+*   strat_sim_max ({{SIM_MAX_VAR}}) 与主处理 strat_diff_n5 ({{MAIN_DIFF_VAR}}) 同源、
+*   机械互补 (距离 ≈ 1 − 最大相似度), 二者放进同一回归会产生近完全多重共线性,
+*   把"完整规格"的系数解读污染。故从主表的【同时规格】中剔除 sim_max:
+*     - M3 完整文本规格改为 strat_diff_n5 + coherence (互补的非同源文本量, 非互补构造);
+*     - sim_max 降为【alternative treatment】各自单跑 (M5), 与 strat_diff 不同时入 RHS;
+*     - 表末补 strat_diff_n5 × strat_sim_max 的相关系数 + 同时入 RHS 时的 VIF 披露,
+*       让审稿人直接看到共线性数量级 (>10 即支持本剔除决策)。
+*   参照 Angrist-Pischke 2009 MHE §3.2.3 (避免 post-treatment / 机械互补回归量);
+*   Table 5 (14_table5_robustness) 中各 N-邻测度本就各自单跑, 与此处口径一致。
 * ============================================================================
 
 version 19
 clear all
 set more off
+set linesize 120
 
 if "$data_dir" == ""    global data_dir "../data"
 if "$tables_dir" == ""  global tables_dir "../output/tables"
@@ -29,7 +41,8 @@ reghdfe {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M2
 
-reghdfe {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} {{SIM_MAX_VAR}} {{FLUIDITY_VAR}} $controls, ///
+* M3: 完整文本规格 = 主处理 + coherence (互补的非同源文本量); sim_max 不再同时入 RHS
+reghdfe {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} {{COHERENCE_VAR}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M3
 
@@ -38,14 +51,67 @@ reghdfe {{MAIN_DV}}_w {{TONE_VAR}} {{MAIN_DIFF_VAR}} tone_x_diff $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
 eststo M4
 
-reghdfe {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} {{COHERENCE_VAR}} $controls, ///
-    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-eststo M5
+* M5: sim_max 作为 alternative treatment 各自单跑 (与 strat_diff 不同时入 RHS, 破共线)
+capture confirm variable {{SIM_MAX_VAR}}
+if !_rc {
+    reghdfe {{MAIN_DV}}_w {{SIM_MAX_VAR}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    eststo M5
+}
 
-esttab M1 M2 M3 M4 M5 using "$tables_dir/table2_main.tex", replace ///
+* ----- esttab 名单动态化 (M5 缺 sim_max 列时被跳过, 不硬点名防 r(111)) -----
+qui estimates dir
+local stored `r(names)'
+local m_models ""
+local m_titles `""'
+local m_cand   M1 M2 M3 M4 M5
+local m_lab    `""Base" "+Fluid" "+Coh" "+Tone-Int" "Sim (alt)""'
+local nm : word count `m_cand'
+forvalues i = 1/`nm' {
+    local mm : word `i' of `m_cand'
+    if `: list mm in stored' {
+        local m_models `m_models' `mm'
+        local tt : word `i' of `m_lab'
+        local m_titles `"`m_titles' "`tt'""'
+    }
+}
+esttab `m_models' using "$tables_dir/table2_main.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     title("Main Results --- strategic_diff") ///
-    mtitles("Base" "+Fluid" "+Sim" "+Tone-Int" "+Coh") ///
-    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}.")
+    mtitles(`m_titles') ///
+    addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}." ///
+             "sim_max ({{SIM_MAX_VAR}}) 为 alternative treatment 单跑 (M5); 与 {{MAIN_DIFF_VAR}} 同源机械互补, 不进同时规格 (见表注共线性诊断)。")
 
-display "[OK] Table 2 → $tables_dir/table2_main.tex"
+* ==========================================================================
+* SPEC IV-2 共线性披露: corr(strat_diff_n5, strat_sim_max) + 同时入 RHS 时的 VIF
+* (capture 守卫: sim_max 缺列 / 退化样本时优雅跳过, 不中断主表渲染)
+* ==========================================================================
+capture confirm variable {{SIM_MAX_VAR}}
+if !_rc {
+    * (a) Pearson 相关系数 (越接近 ±1 越证机械互补)
+    *     ⚠ 用 correlate (非 pwcorr): 仅 correlate 把相关矩阵存入 r(C); pwcorr 只存
+    *        r(N)/r(rho) 无 r(C) → el(r(C),2,1) 会取空导致 _corr 恒为 . (本目录 22_*
+    *        亦用 correlate ... r(C) 同一惯例)。
+    capture noisily correlate {{MAIN_DIFF_VAR}} {{SIM_MAX_VAR}}
+    local _corr = .
+    capture local _corr = el(r(C), 2, 1)
+    * (b) VIF: strat_diff + sim_max 同时入 RHS 的方差膨胀因子 (>10 = 严重共线)
+    *     reghdfe 不支持 estat vif → 用普通 regress + i.year 哑变量近似诊断
+    capture noisily regress {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} {{SIM_MAX_VAR}} $controls i.year
+    capture noisily estat vif
+    * 落 CSV side-channel 供审稿人直查共线性数量级
+    capture file close _colf
+    capture file open  _colf using "$tables_dir/table2_collinearity_diag.csv", write replace
+    if !_rc {
+        file write _colf "metric,value" _n
+        file write _colf "corr_strat_diff_sim_max,`_corr'" _n
+        file write _colf "note,VIF printed in log (estat vif after regress; sim_max + strat_diff both in RHS)" _n
+        file close _colf
+    }
+    display "[OK] Table 2 collinearity diag: corr(strat_diff,sim_max)=`_corr'; VIF in log + table2_collinearity_diag.csv"
+}
+else {
+    display "  WARN sim_max ({{SIM_MAX_VAR}}) 缺列, 共线性诊断跳过 (wire-ahead no-op)"
+}
+
+display "[OK] Table 2 -> $tables_dir/table2_main.tex"

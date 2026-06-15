@@ -57,5 +57,10 @@ capture do 21_locus_agg_robustness.do
 capture do 22_locus_fe_saturation_oster.do
 capture do 23_locus_subsample_extension.do
 capture do 24_locus_ppml_count.do
+* CY-2 (2026-06-14) 跨时代稳定性: 三时代分段 + treatment×era 交乘 + Wald 相等性检验
+capture do 25_locus_era_stability.do
 
 display "[OK] bank_fintech_locus master.do complete (B-route P4)"
+
+* 2026-06-14 终端守卫: exit 让 /e 或双击裸起动也立即退出, 不弹「已完成」模态框 (见 CLAUDE.md "Stata Environment")
+exit, clear

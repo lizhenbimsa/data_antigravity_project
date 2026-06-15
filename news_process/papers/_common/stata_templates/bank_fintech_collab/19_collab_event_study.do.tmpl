@@ -5,6 +5,15 @@
 *   E1: 2013-06-13 yuebao_launch (fintech ecosystem 开启)
 *   E3: 2017-04-27 asset_management_rules
 *   E4: 2020-11-03 ant_ipo_pause
+*
+* 估计量声明 (DID-5 一致性, 2026-06-14):
+*   主估计 = 截面强度 DiD (cross-sectional intensity DiD): collab_open_full 哑变量 ×
+*     相对事件年时间哑变量的 TWFE 交乘 (bank + year FE)。E1/E3/E4 是 SYNCHRONOUS
+*     同步政策 (所有银行同年受冲击), 非错时 cohort → 不存在 Goodman-Bacon 负权重
+*     场景, plain TWFE 交乘是此设定下的正确估计量 (头注与估计量一致, 不引 Sun-Abraham
+*     作主估计)。
+*   稳健性 = 若处理强度的时序异质性可疑, 补 Sun-Abraham (2021 JoE) eventstudyinteract
+*     交互加权估计量作对照列 (capture which 守卫; 缺 ado / 缺 cohort 列时优雅跳过)。
 * ============================================================================
 
 version 19
@@ -53,6 +62,59 @@ forvalues i = 1/`n_ev' {
                 title("Event Study `ev' (`yr') --- bank_fintech_collab") ///
                 yline(0) saving("$figures_dir/event_`ev'.gph", replace)
         }
+    }
+}
+
+* ── DID-5 稳健性 (2026-06-14): Sun-Abraham 交互加权事件研究 (capture 守卫) ────
+* 仅当面板存在错时 cohort 列 (DCEP/Sandbox 等差异化处理年, 生产 T=18 接入) +
+* eventstudyinteract ado 时激活; 同步政策 E1/E3/E4 无跨 cohort 变异 → 该列在
+* 当前盘 (T=2 / 无 cohort 列) 优雅跳过, 不报错。Sun & Abraham 2021 JoE。
+capture which eventstudyinteract
+if _rc {
+    display "  [WARN] eventstudyinteract not installed (ssc install eventstudyinteract); 跳过 Sun-Abraham 稳健性列"
+}
+else {
+    * 错时 cohort 列 (生产接入后激活; 首个存在者用作 SA cohort)
+    local sa_cohort ""
+    foreach c in dcep_treat_year sandbox_cohort collab_treat_year {
+        capture confirm variable `c'
+        if !_rc & "`sa_cohort'" == "" local sa_cohort `c'
+    }
+    if "`sa_cohort'" == "" {
+        display "  [WARN] 无错时 cohort 列 (dcep_treat_year/sandbox_cohort/collab_treat_year); E1/E3/E4 为同步政策, Sun-Abraham 退化为 TWFE, 跳过"
+    }
+    else {
+        * 相对处理期 + never-treated 对照 (cohort 缺失=从未处理)
+        capture drop _rel_time _never_treat _g_*
+        gen byte _never_treat = missing(`sa_cohort')
+        gen _rel_time = year - `sa_cohort' if !_never_treat
+        * eventstudyinteract 需相对期哑变量集 (各 lead/lag 一列), 非单连续 _rel_time;
+        * 窗口 -3..+3 (含端点 binning), 省略 -1 作基期。生产 T=18 cohort 接入后激活。
+        local _gterms ""
+        forvalues k = -3/3 {
+            if `k' != -1 {
+                local _nm = cond(`k' < 0, "_g_m`=abs(`k')'", "_g_p`k'")
+                capture drop `_nm'
+                gen byte `_nm' = (_rel_time == `k') if !_never_treat
+                local _gterms "`_gterms' `_nm'"
+            }
+        }
+        capture noisily eventstudyinteract {{MAIN_DV}} `_gterms', ///
+            cohort(`sa_cohort') control_cohort(_never_treat) ///
+            covariates($controls) absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        if !_rc {
+            capture which coefplot
+            if !_rc {
+                matrix _sa_b = e(b_iw)
+                matrix _sa_V = e(V_iw)
+                coefplot matrix(_sa_b), vertical se(_sa_V) yline(0) ///
+                    title("Sun-Abraham IW event study --- bank_fintech_collab") ///
+                    saving("$figures_dir/event_sunab.gph", replace)
+            }
+            display "[OK] Sun-Abraham (eventstudyinteract) 稳健性 → cohort=`sa_cohort'"
+        }
+        else display "  [WARN] eventstudyinteract 失败 (cohort 无跨期变异 / T=2 退化), 跳过"
+        capture drop _rel_time _never_treat _g_*
     }
 }
 

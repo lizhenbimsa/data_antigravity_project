@@ -67,9 +67,122 @@ if (`_dcep_sd' > 0) & (`_dcep_sd' < .) & (`_sb_sd' > 0) & (`_sb_sd' < .) {
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
         title("Centrality × Policy --- brokerage_network") ///
         mtitles("DCEP×Btw" "DCEP×Cons" "DCEP×Brkr" "SB×Btw" "SB×Cons" "SB×Brkr") ///
-        addnotes("Bank/year FE; SE clustered at province.")
+        addnotes("Bank/year FE; SE clustered at province (TWFE comparison columns; staggered DiD robust estimator below)." ///
+                 "DCEP (2019/2020) and Sandbox (2019/2022) are STAGGERED adoptions; plain TWFE is contaminated by" ///
+                 "Goodman-Bacon (2021) negative-weight bias. Heterogeneity-robust csdid + Bacon decomposition reported" ///
+                 "in companion side-channel files (table3_brok_csdid_*.csv / table3_brok_bacon.csv); read those, not TWFE, for the treatment effect.")
 
     display "[OK] Table 3 → $tables_dir/table3_mechanism_policy.tex"
+
+    * ======================================================================
+    * fix(DID-1, audit PROJECT_REAUDIT_T18 DID-1 P1): 错时 (staggered) cohort DiD
+    *   robust estimator。DCEP/Sandbox 是错时采纳 → plain TWFE 受 Goodman-Bacon (2021)
+    *   负权重污染。补 csdid ... gvar() notyet method(dripw) (Callaway-Sant'Anna 2021)
+    *   + estat event (动态事件研究) + bacondecomp (Bacon 分解, 暴露坏对照权重)。
+    *   TWFE 上方保留为对照列。 全 capture which 守卫 (ado 未装/T=2 优雅跳过, T=18 激活)。
+    *   gvar (首次处理年, never-treated=0/缺) 由上游 iv_did.py 物化为 dcep_gvar/sandbox_gvar
+    *   (缺则跳过)。notyet 用尚未处理者作对照 (Callaway-Sant'Anna 2021 §6.1)。
+    * ======================================================================
+    * G_treated 披露 (政策处理银行/省份数, 决定小 G wild bootstrap 必要性)
+    foreach pol in {{TREATMENT_DCEP}} {{TREATMENT_SANDBOX}} {
+        capture quietly count if `pol' == 1
+        if !_rc display "  [G_treated] `pol' treated obs = " r(N) " (Conley-Taber/wild bootstrap if treated clusters small)"
+    }
+
+    capture which csdid
+    if !_rc {
+        * DCEP cohort robust DiD (gvar = 首次处理年 {prefix}_treat_year; 0=never-treated 控制组)。
+        *   iv_did.py 物化列名 = dcep_treat_year / sandbox_treat_year (= cfg['prefix']_treat_year);
+        *   旧 dcep_gvar 名错 → 改正确列名 + 兜底兼容 dcep_gvar。notyet = 用尚未处理者作对照
+        *   (Callaway-Sant'Anna 2021 §6.1; never-treated 趋空时更稳)。
+        local _dcepg ""
+        capture confirm variable dcep_treat_year
+        if !_rc local _dcepg dcep_treat_year
+        if "`_dcepg'" == "" {
+            capture confirm variable dcep_gvar
+            if !_rc local _dcepg dcep_gvar
+        }
+        if "`_dcepg'" != "" {
+            capture noisily csdid {{MAIN_DV}}_w $controls, ivar(bank_id) time(year) ///
+                gvar(`_dcepg') notyet method(dripw)
+            if !_rc {
+                capture estat simple
+                capture estat event
+                capture estat event, estore(_cs_dcep_event)
+                capture noisily esttab _cs_dcep_event using "$tables_dir/table3_brok_csdid_dcep.csv", ///
+                    replace plain b(4) se(4) wide
+                display "  OK DID-1: csdid DCEP (Callaway-Sant'Anna 2021, dripw, notyet, gvar=`_dcepg') -> table3_brok_csdid_dcep.csv"
+            }
+            else display "  [SKIP] csdid DCEP degenerate (T=2 / single cohort year); production T=18 required."
+        }
+        else display "  [SKIP] dcep_treat_year not in panel (iv_did.py cohort gvar pending); csdid DCEP skipped."
+        * Sandbox cohort robust DiD
+        local _sbg ""
+        capture confirm variable sandbox_treat_year
+        if !_rc local _sbg sandbox_treat_year
+        if "`_sbg'" == "" {
+            capture confirm variable sandbox_gvar
+            if !_rc local _sbg sandbox_gvar
+        }
+        if "`_sbg'" != "" {
+            capture noisily csdid {{MAIN_DV}}_w $controls, ivar(bank_id) time(year) ///
+                gvar(`_sbg') notyet method(dripw)
+            if !_rc {
+                capture estat simple
+                capture estat event, estore(_cs_sb_event)
+                capture noisily esttab _cs_sb_event using "$tables_dir/table3_brok_csdid_sandbox.csv", ///
+                    replace plain b(4) se(4) wide
+                display "  OK DID-1: csdid Sandbox (Callaway-Sant'Anna 2021, dripw, notyet, gvar=`_sbg') -> table3_brok_csdid_sandbox.csv"
+            }
+            else display "  [SKIP] csdid Sandbox degenerate; production T=18 required."
+        }
+        else display "  [SKIP] sandbox_treat_year not in panel; csdid Sandbox skipped."
+    }
+    else {
+        display "  [SKIP] csdid not installed (ssc install csdid drdid); staggered-robust DiD skipped (TWFE only). Production: install + run."
+    }
+
+    * Goodman-Bacon (2021) 分解: 暴露 TWFE 估计中"已处理作对照"的坏权重 (binary 吸收型处理)。
+    *   bacondecomp 须平衡面板 + 吸收型 treatment (dcep_post=treated×post, treated 单元一旦处理
+    *   恒为 1)。ddetail 输出各 2×2 比较组的权重与估计 (log)。T=2 退化由外层方差守卫已跳过。
+    capture which bacondecomp
+    if !_rc {
+        capture noisily bacondecomp {{MAIN_DV}}_w {{TREATMENT_DCEP}}, ddetail
+        if !_rc {
+            capture file close _baconf
+            file open _baconf using "$tables_dir/table3_brok_bacon.csv", write replace
+            file write _baconf "stat,value" _n
+            file write _baconf "ran,yes" _n
+            file write _baconf "note,Goodman-Bacon 2021 decomposition of TWFE DCEP effect (per-comparison weights in log); later-vs-earlier 'bad comparison' weight flags negative-weight bias" _n
+            file close _baconf
+            display "  OK DID-1: bacondecomp DCEP (Goodman-Bacon 2021, weights in log) -> table3_brok_bacon.csv"
+        }
+        else display "  [SKIP] bacondecomp degenerate (needs balanced panel T>=3 / variation in timing); production T=18."
+    }
+    else display "  [SKIP] bacondecomp not installed (ssc install bacondecomp); Bacon weights skipped."
+
+    * ── fix(INFER IV-3, audit PROJECT_REAUDIT_T18 IV-3 P1): 政策 DiD 省级聚类 + few-treated-
+    *   clusters → 渐近 SE 失真。对主交乘项补 wild cluster bootstrap (boottest) 在 prov 层。
+    *   用同设定 reghdfe 重估后 boottest; capture which + N 守卫优雅跳过。──
+    capture which boottest
+    if !_rc {
+        capture quietly reghdfe {{MAIN_DV}}_w dcep_x_btw {{TREATMENT_DCEP}} L_btw $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        if !_rc {
+            capture boottest dcep_x_btw, reps(9999) bootcluster({{CLUSTER_VAR}}) cluster({{CLUSTER_VAR}}) nograph
+            if !_rc {
+                capture local _bp = r(p)
+                capture file close _bdf
+                file open _bdf using "$tables_dir/table3_brok_did_boottest.csv", write replace
+                file write _bdf "stat,value" _n
+                file write _bdf "wild_p_dcep_x_btw,`_bp'" _n
+                file write _bdf "bootcluster,{{CLUSTER_VAR}}" _n
+                file write _bdf "note,prov-level wild cluster bootstrap for DCEP x betweenness policy interaction (Roodman 2019; small treated-cluster correction)" _n
+                file close _bdf
+                display "  OK INFER IV-3: policy-DiD boottest (prov-level) wild p(dcep_x_btw)=`_bp'"
+            }
+        }
+    }
 }
 else {
     display as error "[SKIP degradation F21/F22] 政策处理变量零方差 " ///

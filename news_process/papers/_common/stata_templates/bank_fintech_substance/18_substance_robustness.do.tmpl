@@ -21,14 +21,63 @@ set seed {{RANDOM_SEED}}
 * 白话: 估算"看不见的遗漏变量要比已控制变量强多少倍才能把结论翻盘"的界值。
 * psacalc delta {{MAIN_TREAT}}, rmax(1.3 r²) mcontrol($controls)
 
-* (2) rwolf 多重假设校正 (Romano-Wolf)
+* (2) rwolf 多重假设校正 (Romano-Wolf 2005 ECMA; List-Shaikh-Xu 2019)
 * 白话: 一次检验很多个假设时总会有几个"碰巧显著", rwolf 把 p 值整体调严防误报。
-* rwolf {{MAIN_DV}}, indepvar({{MAIN_TREAT}}) controls($controls) reps(1000) ///
-*     method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
+* INFER IV-1 修复 (2026-06-14): 把 claimed-but-never-run 的 rwolf 从注释转活跃。
+* 测度农场族 (主 sub_frac + ctx 孪生 sub_frac_sc + sub-symb gap) 同时检验同一
+* 机制的多个测度, 跨这族做 Romano-Wolf step-down FWER 校正, 把校正后 p 写进表。
+* 全程 capture 守卫: rwolf 未装 / DV sentinel 缺 / T=2 退化时优雅跳过, 不丢表。
+* 学术依据: Romano & Wolf 2005 ECMA; Romano-Wolf 2016 (rwolf Stata); Anderson 2008 JASA。
+local rw_p_main = .
+local rw_p_ctx  = .
+local rw_p_gap  = .
+capture which rwolf
+if _rc {
+    display "  ⚠️ rwolf not installed (ssc install rwolf); Romano-Wolf FWER 校正跳过 (无校正 p)"
+}
+else {
+    * rwolf 把 family 内每个 indepvar 各自单独回归后联合 step-down; 动态拼装实质性
+    * 测度族 (主 sub_frac + ctx 孪生 sub_frac_sc + sub-symb gap), 仅纳入在盘的测度。
+    capture confirm variable {{MAIN_DV}}
+    if !_rc {
+        local rw_treats {{MAIN_TREAT}}
+        capture confirm variable sub_frac_sc
+        if !_rc local rw_treats `rw_treats' sub_frac_sc
+        * gap 列在 (8) 块才派生 → 此处即时派生临时列 _rw_gap 纳入 family
+        capture confirm variable sub_frac symb_frac
+        if !_rc {
+            capture drop _rw_gap
+            gen double _rw_gap = sub_frac - symb_frac
+            local rw_treats `rw_treats' _rw_gap
+        }
+        capture noisily rwolf {{MAIN_DV}}, indepvar(`rw_treats') controls($controls) ///
+            reps(1000) seed({{RANDOM_SEED}}) ///
+            method(reghdfe) abs(bank_id year) cluster({{CLUSTER_VAR}})
+        if _rc {
+            display "  ⚠️ rwolf 执行失败 (rc=`=_rc'; 多为 T=2 退化/单测度); FWER 校正 p 缺失"
+        }
+        else {
+            * rwolf 把各 indepvar 的 step-down p 存入 e(rw_<var>) (跨版本名可能为
+            * e(rw_<var>) 或矩阵 e(RW)); 逐个 capture 取, 缺则留 .
+            capture local rw_p_main = e(rw_{{MAIN_TREAT}})
+            capture local rw_p_ctx  = e(rw_sub_frac_sc)
+            capture local rw_p_gap  = e(rw__rw_gap)
+        }
+        capture drop _rw_gap
+    }
+    else {
+        display "  ⚠️ {{MAIN_DV}} 不在面板 (外部财务 sentinel); rwolf FWER 校正跳过"
+    }
+}
 
-* (3) Honest DiD
-* 白话: 允许"平行趋势"不完美成立, 看结论在多大程度的偏离下仍然站得住。
-* honestdid, l_vec(...) m_grid(0 0.5 1 2)
+* (3) Honest DiD — NOT APPLICABLE 到本论文 (DID-3 裁决, PROJECT_REAUDIT 2026-06-14)
+* 白话: HonestDiD (Rambachan-Roth 2023) 是针对"事件研究/DiD 平行趋势可能不完美"的
+*       敏感性工具; 它需要事件时间 lead/lag 系数 (pre-period 趋势) 才能松弛平行趋势假设。
+* 本论文主规格 = within-bank within-year 双固定效应连续暴露面板 (sub_frac → CIR),
+*   不是事件研究/DiD, 没有 event-time lead/lag → HonestDiD 在此结构上不可定义, 刻意不接线。
+*   平行趋势/pre-trend 敏感性属于事件研究伴侣表 (E1-E5, 见 locus/19 式 INLINE intensity-DiD);
+*   本论文若未来加事件研究列, HonestDiD 应接到那张表而非本稳健性表。
+* 学术依据: Rambachan & Roth 2023 RES (适用前提=事件研究 pre-period 系数)。
 
 * (4) Wild cluster bootstrap (野聚类自助法)
 * 白话: 聚类个数少时常规聚类标准误会偏小, wild bootstrap 用重抽样把 p 值算得更可信。
@@ -36,16 +85,36 @@ set seed {{RANDOM_SEED}}
 * collab/18; 未装机器上旧版裸调 r(199) 致本表整丢); (ii) boottest 按设计不改写
 * e(b)/e(V) (wild p 在 r(p)), 旧 eststo 存的是 reghdfe 解析 cluster SE → "Wild boot"
 * 列名实不符。现以 estadd 把 r(p) 注入 e(p_wild) 进表 stats 行, 缺 boottest 时如实告警。
+* wild_boot 列展示的是 headline 双向 FE 规格 (bank+year FE), 与主表口径一致。
 reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+local p_wild = .
 capture which boottest
 if !_rc {
-    boottest {{MAIN_TREAT}}, reps(9999) seed({{RANDOM_SEED}})
-    estadd scalar p_wild = r(p)
+    * fix(reaudit-t18-2026-06-14): boottest 在【两套及以上 absorb FE 的 reghdfe 后】
+    *   直接报 "Doesn't work after reghdfe with more than one set of absorbed fixed
+    *   effects" 并空手返回 r(p)=. (本机 StataNow 19.5 实测; rc=0 但 r(p) 永缺) →
+    *   p_wild 行即便 boottest 已装也恒为空 (claimed-but-not-run)。改用 boottest 支持
+    *   的单 absorb 承载回归 (absorb(bank_id) + i.year 显式哑变量, 与双向 FE 同识别)
+    *   仅为算 wild p, 算完把 r(p) estadd 回写到上面的双向 FE wild_boot 估计 (表列不变)。
+    capture noisily reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls i.year, ///
+        absorb(bank_id) vce(cluster {{CLUSTER_VAR}})
+    if !_rc {
+        capture noisily boottest {{MAIN_TREAT}}, reps(9999) seed({{RANDOM_SEED}}) nograph
+        if !_rc & !missing(r(p)) local p_wild = r(p)
+    }
+    * 回到双向 FE 规格作展示列承载 (estadd 须挂在它上面)
+    reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    if missing(`p_wild') display "  ⚠️ boottest 已装但 wild p 未算出 (退化/承载回归失败); p_wild 缺"
+    else                 display "  [OK] wild-cluster bootstrap p({{MAIN_TREAT}}) = `p_wild' (boottest, single-absorb carrier)"
 }
 else {
     display "  ⚠️ boottest not installed (ssc install boottest); wild_boot 列仅含解析 cluster SE, wild p 缺失"
 }
+capture estadd scalar p_wild = `p_wild'
+* INFER IV-1: 把主测度的 Romano-Wolf FWER 校正 p 注入 wild_boot 列 stats 行 (缺则 .)
+capture estadd scalar rw_p = `rw_p_main'
 eststo wild_boot
 
 * (5) ritest 随机化推断 (randomization inference; Young 2019 QJE; MacKinnon-Webb 2020 JBES)
@@ -98,6 +167,8 @@ capture confirm variable sub_frac_sc
 if !_rc {
     reghdfe {{MAIN_DV}} sub_frac_sc $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    * INFER IV-1: ctx 测度的 Romano-Wolf 校正 p (缺则 .)
+    capture estadd scalar rw_p = `rw_p_ctx'
     eststo alt_ctx_track
 }
 capture confirm variable sub_frac symb_frac
@@ -105,6 +176,8 @@ if !_rc {
     gen sub_symb_gap_full = sub_frac - symb_frac
     reghdfe {{MAIN_DV}} sub_symb_gap_full $controls, ///
         absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    * INFER IV-1: gap 测度的 Romano-Wolf 校正 p (缺则 .)
+    capture estadd scalar rw_p = `rw_p_gap'
     eststo alt_gap_full
 }
 capture confirm variable sub_frac_sc symb_frac_sc
@@ -136,16 +209,18 @@ foreach m of local stored {
 }
 esttab `models' using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    stats(N r2 p_wild, fmt(0 3 3) labels("N" "R²" "Wild cluster bootstrap p")) ///
+    stats(N r2 p_wild rw_p, fmt(0 3 3 3) ///
+          labels("N" "R²" "Wild cluster bootstrap p" "Romano-Wolf FWER p")) ///
     title("Table 5 — Advanced Robustness (P3 substance)") ///
     addnotes("Column 1 (wild_boot): analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
+             "Romano-Wolf FWER p (rw\_p row): step-down familywise-error-corrected p across the substantiveness measure family {sub\_frac, sub\_frac\_sc, sub-symb gap}, 1000 reps (Romano-Wolf 2005 ECMA; Anderson 2008 JASA). Blank when rwolf is unavailable or the cell degenerates (T=2)." ///
              "Alternative substantiveness track: sub_frac_sc (ctx) + sub-symb gap (full/ctx), derived from panel-real columns." ///
-             "Honest DiD M-grid sensitivity output in supplemental log.")
+             "Honest DiD: see note below — substance baseline is a within-bank within-year FE panel (no event-time leads/lags), so Rambachan-Roth (2023) HonestDiD is not applicable here; pre-trend sensitivity belongs to the event-study companion (locus/19).")
 
 * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — tables.py:build_table5_robustness
 * 经 read_paper_esttab(...,'table5_robustness.csv') 消费 (parse_esttab_csv 格式)
 estout `models' using "$tables_dir/table5_robustness.csv", replace delimiter(",") ///
-    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild, fmt(0 3 3)) ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild rw_p, fmt(0 3 3 3)) ///
     starlevels(* 0.10 ** 0.05 *** 0.01)
 
 display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex (+ .csv side-channel)"

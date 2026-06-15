@@ -41,7 +41,7 @@ differentiation_claim: |
 theory:
   primary_anchors:
     - "Diether, Malloy & Scherbina (2002 JF 57:2113-2141) — disagreement → 收益经典"
-    - "Cookson & Niessner (2020 RFS 33:4327-4373) — 信息源分歧 → 投资者反应"
+    - "Cookson & Niessner (2020 JF 75(1):173-228, DOI 10.1111/jofi.12852) — 信息源分歧 → 投资者反应"
     - "Antweiler & Frank (2004 JF 59:1259-1294) — message board 分歧 → 波动"
   secondary_anchors:
     - "Bushman & Williams (2012 JAE 54:1-18) — bank info environment → risk-taking"
@@ -199,6 +199,36 @@ identification:
     required: true
     rationale: "V4 reframe identification, 双向反馈作 paper finding 而非问题"
 
+# 推断纪律 (PROJECT_REAUDIT_TOPTIER_T18_2026-06-14 INFER IV-2, P2; 镜像 controls.cluster 块)。
+# 形式化区分 confirmatory (单一预设主规格) vs exploratory (其余测度/加权/异质性),
+# 并定义 multiple-testing family 与 FWER 校正口径, 治理"海量回归无纪律"质疑。
+# 注: List-Shaikh-Xu/Olken 是 RCT 预注册标准; 顶刊对观测研究不强制 OSF/PAP,
+# 故此处为内部 confirmatory/exploratory 声明 + family 定义, 非外部预注册承诺。
+inference:
+  confirmatory:
+    primary_treatment: cross_outlet_tone_variance_ctx  # 单一主处理 (main_track=_ctx)
+    primary_outcome: z_score                            # 单一主因变量 (hierarchy.main)
+    primary_spec: long_panel_within_bank_within_year + bank_fe + year_fe + two-way cluster(bank, year)
+    single_hypothesis: "媒体观点分歧 → 银行风险承担 (方向 ambiguous ex ante, Granger 双向识别)"
+  exploratory:  # robustness / 探索性, 非 co-equal headline
+    - "11 alt disagreement measures (PCA composite + 各分量)"
+    - "5-way heterogeneity (SOE / capital / cycle / type / period)"
+    - "5 IV cross-validation + alt outcomes (NPL / RWA / sigma_roa)"
+  multiple_testing:
+    families:
+      - name: alt_disagreement_measures
+        members: "11 alt measures (treatment.alternative)"
+        correction: "Romano-Wolf 2005 FWER (rwolf2) 校正后 p 进 esttab"
+      - name: heterogeneity_subsamples
+        members: "5 heterogeneity dimensions"
+        correction: "Westfall-Young / wyoung battery (镜像 brokerage/20)"
+    fwer_method: romano_wolf_or_westfall_young
+    references: ["Romano-Wolf 2005 ECMA", "Westfall-Young 1993", "List-Shaikh-Xu 2019 EE (RCT 范式, 仅参照)", "Anderson 2008 JASA"]
+  cluster_primary: [bank, year]   # = controls.cluster (two-way; G_bank≈200, G_year=13)
+  small_g_inference:
+    concern: "year 维 G=13 偏小; province / cohort 子样本 G 更小"
+    remedy: "boottest wild-cluster bootstrap (Roodman et al. 2019 SJ) 用于小 G 聚类层; few-treated 时 ritest / Conley-Taber 2011"
+
 sample:
   # 2026-06-01 provisional wiring: 补 canonical 键 n_bank_min / t_year (= target_min),
   # 与其余 10 篇 paper_spec 及 schema 测试 (test_sample_block_complete) 对齐。
@@ -264,7 +294,7 @@ event_studies:
   - 2019_07_25  # 包商接管事件 (disagreement shock 强候选)
 
 targets:
-  primary_outlet: RFS  # Cookson-Niessner 2020 RFS 直接类比
+  primary_outlet: RFS  # Cookson-Niessner 2020 JF (75(1):173-228) 直接类比; 本篇 cross-outlet variance 投 RFS 审稿池
   ambitious_outlet: [RFS, JFE]
   backup_outlet: [JFI, JBF]
   cascade_path: "RFS → JFI → JBF → JFS (V4 F8.1 修复, 降一档而非平级)"
@@ -272,9 +302,33 @@ targets:
   desk_review_5q_test:  # V4 EiC 测试
     why_this_paper_now: "中国 fintech 政策周期 + banking 转型, disagreement 信号在 banking 监管 sweet spot"
     punchline: "Granger 双向反馈 + 三 channel 异质性, 不依赖单方向预测"
-    why_my_journal: "Cookson-Niessner 2020 RFS 直接 anchor + Bushman-Williams 2012 JAE 框架延伸"
+    why_my_journal: "Cookson-Niessner 2020 JF (75(1):173-228) 直接 anchor + Bushman-Williams 2012 JAE 框架延伸"
     credible_empirical_strategy: "5 IV 候选, Bartik / staggered DiD / quasi-experimental triple"
     professional_writing: "M11-M13 professional editing $2-3k"
+
+# Portfolio framing / salami 治理 (PROJECT_REAUDIT_TOPTIER_T18_2026-06-14 PORT SAL-2, P2)。
+# 第 10 篇 (本篇) 与第 11 篇 (bank_news_clarity) 共享同一 outcome panel/z_score, spec
+# 自承"channel 互补可同时跑"——referee 会提 least-publishable-unit 质疑。明确两篇为
+# 差异化卫星而非可合并的同一研究: 构念、IV、文献、审稿池各不相同, 故各自独立成篇。
+portfolio_framing:
+  shared_outcome_panel: true            # 两篇共享 z_score / NPL / RWA outcome panel (M0.5.x)
+  sibling_paper: bank_news_clarity      # 第 11 篇
+  distinct_construct: "cross-outlet tone variance (multi-outlet 信息分歧, 信息环境的 *离散度* 维度)"
+  sibling_construct: "single-text clarity (词典扫描可读性, 信息环境的 *清晰度* 维度)"
+  distinct_iv: outlet_disp_exposure_iv   # outlet house-style 立场极端度 LOO 暴露
+  sibling_iv: outlet_style_clarity_iv    # outlet house-style 清晰度 LOO 暴露 (须互斥论证 F12.2)
+  distinct_literature: "Diether-Malloy-Scherbina 2002 JF + Cookson-Niessner 2020 JF + Antweiler-Frank 2004 JF (disagreement 谱系)"
+  sibling_literature: "Loughran-McDonald 2014 JF + Bonsall et al. 2017 JAE + Bushee et al. 2010 JAR (readability 谱系)"
+  distinct_review_pool: RFS              # 本篇 cross-outlet variance → finance 审稿池
+  sibling_review_pool: JAE              # 第 11 篇 clarity → accounting 审稿池
+  cross_reference_required: true         # 两篇 manuscript 互引一次, 明示共享数据基础设施 + 构念分工
+  non_merge_rationale: |
+    构念 (variance vs readability)、IV 机制 (立场极端度 vs 笔法清晰度)、文献谱系
+    (disagreement vs readability)、目标审稿池 (RFS/finance vs JAE/accounting) 四重不同;
+    两篇各自有独立可证伪的方向预测 (本篇 Granger 双向; 第 11 篇三 channel 异质性)。
+    合并选项 (单篇 "Media Information Environment Quality and Bank Risk-Taking" + PCA composite)
+    在 portfolio audit 已评估为可选战略而非必需; 当前两篇 status=new 卡 G0, 无 manuscript,
+    referee 无从拒未写之稿。如 G3 前两篇均未独立站稳, 再行合并。
 
 governance:  # DC1 path B 路线
   ssrn_release: true

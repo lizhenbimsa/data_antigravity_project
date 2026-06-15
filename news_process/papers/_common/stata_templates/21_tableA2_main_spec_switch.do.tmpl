@@ -8,7 +8,14 @@
 * 组合; 把主回归在 8 种组合下各跑一遍, 若系数方向与显著性都差不多, 说明结论不靠挑口径挑出来。
 
 version 19
-set maxvar 32767
+* fix(master-chain-deadlock CY-2-reachability, 2026-06-14): 仅在【内存无数据】时
+*   set maxvar (standalone 运行路径)。根因: 本模板作为被 00_master `do` 调用的子 do 时,
+*   _prepared_panel.dta 已 load (c(N)>0), 此时本机 StataNow 19.5 /b batch 下执行裸
+*   `set maxvar 32767` 会死锁挂起 (弹「Done」框、-Wait 循环挂死) → 其后全部表 (含本轮
+*   新增 era/oster/FE-sat 块) 永不可达。根级 00_master 头部 (及 01_data_prep) 已在加载
+*   面板前 set 过一次, 子 do 链内无需再设; standalone 跑本表时下方 `use` 在此之后,
+*   故 c(N)==0 守卫只在无数据时设, 既保 standalone 又消除 mid-chain 死锁。
+if c(N) == 0 set maxvar 32767
 
 * M2/Bartik fix (2026-05-30): 加载 01_data_prep 存的 full _prepared_panel.dta
 * (全列版, 含原 aux-only 的 bartik_fintech_lf/lc_iv_*)。历史上的 46_panel_yearly

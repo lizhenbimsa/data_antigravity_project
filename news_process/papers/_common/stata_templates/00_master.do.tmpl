@@ -8,10 +8,7 @@
 *   SENT_TRACK:   {{MAIN_SENT_TRACK}}     (full / ctx)
 *
 * Stata 版本要求: ≥ 19 (项目策略 2026-05-16: Stata 19+ only, 无需向下兼容)
-* 必需包: ssc install reghdfe ivreg2 ranktest estout coefplot asdoc
-*   稳健性/IV/DiD 附加包 (审计 2026-06-14 补): csdid drdid (15_M7 错时 DiD), weakiv
-*   (19_ 弱工具稳健 AR CI), boottest rwolf wyoung (推断/FWER)。缺则相应稳健性表 capture
-*   守卫优雅跳过 (复现包会静默缺该对象), 复现前请 ssc install。
+* 必需包: ssc install reghdfe ivreg2 estout coefplot asdoc
 
 version 19
 clear all
@@ -26,30 +23,57 @@ cd "`project_root'"
 do "code/01_data_prep.do"
 
 * === Tables (论文主体) ===
-do "code/10_table1_descriptives.do"
-do "code/11_table2_main_m1m6.do"
-do "code/12_table3_mechanism.do"
-do "code/13_table4_heterogeneity.do"
-do "code/14_table5_advanced_robustness.do"
+* fix(master-resilience CY-2-reachability, 2026-06-14): 把所有调用分析子模板的裸 `do`
+*   改 capture noisily do + [WARN] (镜像 brokerage_network/00_master 既有范式)。根因:
+*   单表内任一未捕获 r(###) (如 ivreghdfe r(301) / set maxvar 死锁 / 幻影列 r(111))
+*   未守卫即 abort 整条 master 链 → 其后全部表 (含本轮新增 32/33/34 era/oster/FE-sat
+*   稳健性块) 永不生成 = claimed-but-not-run。改后单表失败仅 WARN 跳过, master 必走到
+*   末尾 exit, clear (不再 abort / 不弹 Done 框)。各表内仍有自身退化守卫。golden-safe。
+*   ⚠ 唯独 01_data_prep 保持裸 do 的 fail-loud (主 outcome 缺失即中止, 设计如此)。
+capture noisily do "code/10_table1_descriptives.do"
+if _rc display as error "[WARN] 10_table1_descriptives.do failed (rc=`=_rc'); Table 1 skipped"
+capture noisily do "code/11_table2_main_m1m6.do"
+if _rc display as error "[WARN] 11_table2_main_m1m6.do failed (rc=`=_rc'); Table 2 skipped"
+capture noisily do "code/12_table3_mechanism.do"
+if _rc display as error "[WARN] 12_table3_mechanism.do failed (rc=`=_rc'); Table 3 skipped"
+capture noisily do "code/13_table4_heterogeneity.do"
+if _rc display as error "[WARN] 13_table4_heterogeneity.do failed (rc=`=_rc'); Table 4 skipped"
+capture noisily do "code/14_table5_advanced_robustness.do"
+if _rc display as error "[WARN] 14_table5_advanced_robustness.do failed (rc=`=_rc'); Table 5 skipped"
 
 * === 稳健性附录 Robustness Appendix (双轨化核心) ===
-do "code/20_tableA1_inter_track_kappa.do"
-do "code/21_tableA2_main_spec_switch.do"
-do "code/22_tableA3_bartik_iv.do"
-do "code/23_tableA4_radius_sensitivity.do"
-do "code/24_tableA5_dictionary_method.do"
+capture noisily do "code/20_tableA1_inter_track_kappa.do"
+if _rc display as error "[WARN] 20_tableA1_inter_track_kappa.do failed (rc=`=_rc'); Table A1 skipped"
+capture noisily do "code/21_tableA2_main_spec_switch.do"
+if _rc display as error "[WARN] 21_tableA2_main_spec_switch.do failed (rc=`=_rc'); Table A2 skipped"
+capture noisily do "code/22_tableA3_bartik_iv.do"
+if _rc display as error "[WARN] 22_tableA3_bartik_iv.do failed (rc=`=_rc'); Table A3 skipped"
+capture noisily do "code/23_tableA4_radius_sensitivity.do"
+if _rc display as error "[WARN] 23_tableA4_radius_sensitivity.do failed (rc=`=_rc'); Table A4 skipped"
+capture noisily do "code/24_tableA5_dictionary_method.do"
+if _rc display as error "[WARN] 24_tableA5_dictionary_method.do failed (rc=`=_rc'); Table A5 skipped"
 * 2026-06-13 IV 补全: 语调 2SLS (prov LOO + Bartik 双工具, Hansen J 过度识别)
-do "code/25_tableA6_tone_iv_2sls.do"
+capture noisily do "code/25_tableA6_tone_iv_2sls.do"
+if _rc display as error "[WARN] 25_tableA6_tone_iv_2sls.do failed (rc=`=_rc'); Table A6 skipped"
 * 2026-06-13 聚合层审计补全: 加权聚合(EW vs VW/MW/HW) + 推断(双向聚类/boottest) + 覆盖筛选
-do "code/26_tableA7_aggregation_robustness.do"
+capture noisily do "code/26_tableA7_aggregation_robustness.do"
+if _rc display as error "[WARN] 26_tableA7_aggregation_robustness.do failed (rc=`=_rc'); Table A7 skipped"
 * 2026-06-14 顶刊稳健性扩充: FE 饱和阶梯 + 离群稳健估计 (Table A8) / 网络·类型子样本 + 时序-lead 安慰剂 (Table A9)
 capture noisily do "code/32_tableA8_fe_saturation_robust_est.do"
 if _rc display as error "[WARN] 32_tableA8_fe_saturation_robust_est.do failed (rc=`=_rc'); Table A8 skipped"
 capture noisily do "code/33_tableA9_subsample_timing.do"
 if _rc display as error "[WARN] 33_tableA9_subsample_timing.do failed (rc=`=_rc'); Table A9 skipped"
+* 2026-06-14 跨年可比性补全 (CY-2): 分时代结构稳定性 (2007-12 / 2013-18 / 2019-24 分段 + era 交乘 + Wald 相等检验)
+capture noisily do "code/34_tableA11_era_stability.do"
+if _rc display as error "[WARN] 34_tableA11_era_stability.do failed (rc=`=_rc'); Table A11 skipped"
 
 * === Figures ===
-do "code/30_figure1_event_study.do"
-do "code/31_figure_coefplot_dual.do"
+capture noisily do "code/30_figure1_event_study.do"
+if _rc display as error "[WARN] 30_figure1_event_study.do failed (rc=`=_rc'); Figure 1 skipped"
+capture noisily do "code/31_figure_coefplot_dual.do"
+if _rc display as error "[WARN] 31_figure_coefplot_dual.do failed (rc=`=_rc'); Figure 2 skipped"
 
 display "✅ All tables + figures generated. See output/tables/ + output/figures/"
+
+* 2026-06-14 终端守卫: exit 让 /e 或双击裸起动也立即退出, 不弹「已完成」模态框 (见 CLAUDE.md "Stata Environment")
+exit, clear

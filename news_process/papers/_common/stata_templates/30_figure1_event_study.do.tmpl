@@ -4,8 +4,11 @@
 *   y_{i,t} = Σ_τ β_τ × D_{i, t=τ} + α_i + γ_t + ε_{i,t}
 * 白话: 事件研究图把处理前后各年的效应分别画出来 — 处理前各年的系数应接近 0
 * (说明处理组与对照组事前走势平行, DiD 前提成立), 处理后的系数轨迹则展示效应随时间的演变。
-* 注 (2026-06-12 核对): 本模板实际估计是下方"标准 TWFE"lead/lag 回归; 头注所引
-* Sun-Abraham 2021 的 interaction-weighted 估计未实装 (下方 has_es 探测结果当前未被使用)。
+* 注 (2026-06-14 DID-5 修复): 头注—估计量不一致已修 — 若装 eventstudyinteract 则真跑
+* Sun-Abraham (2021) interaction-weighted 估计 (异质处理效应稳健); 未装才回退标准 TWFE
+* lead/lag, 并在图脚注如实标注实际所用估计量。下方 has_es 探测结果现已被消费。
+* 注 (2026-06-14 DID-6 修复): lead/lag 窗口不再硬编码 ±3 — 据样本实有年份跨度动态设定
+* (T=18 用 ±5, 小样本退化到可用宽度), 不浪费 T=18 功效, T=2 仍优雅退化。
 *
 * 主 spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
 
@@ -30,34 +33,92 @@ preserve
     bysort bank_id (year): egen _first_treat = min(cond(digital_frontier == 1, year, .))
     gen _rel_time = year - _first_treat if !missing(_first_treat)
 
-    * 截尾 ±3 (论文常见)
-    replace _rel_time = -3 if _rel_time < -3
-    replace _rel_time = 3 if _rel_time > 3 & !missing(_rel_time)
+    * DID-6: 窗口宽度据样本实有年份跨度动态设定 (T=18 用 ±5, 小样本退化), 不硬编码 ±3。
+    quietly summarize year
+    local _yspan = r(max) - r(min)
+    local W = min(5, max(1, `_yspan'))   // 上限 5 (避免极稀疏边角), 下限 1
+    display as text "── Event-study 窗口宽度 W = `W' (年份跨度=`_yspan') ──"
 
-    * 创建 lead/lag dummies
-    forvalues t = -3/3 {
+    * 截尾 ±W
+    replace _rel_time = -`W' if _rel_time < -`W'
+    replace _rel_time = `W' if _rel_time > `W' & !missing(_rel_time)
+
+    * 创建 lead/lag dummies (动态宽度) + 动态拼 coefplot 名单与标签
+    local es_terms ""
+    local cp_rename ""
+    forvalues t = -`W'/`W' {
         if `t' != -1 {
             local sign = cond(`t' < 0, "L", "F")
             local absT = abs(`t')
+            cap drop _`sign'`absT'
             gen byte _`sign'`absT' = _rel_time == `t'
+            local es_terms "`es_terms' _`sign'`absT'"
+            local cp_rename `cp_rename' _`sign'`absT'="`t'"
         }
     }
 
-    * 标准 TWFE 估计
-    reghdfe `DV' _L3 _L2 _F0 _F1 _F2 _F3, absorb(bank_id year) vce(cluster bank_id)
+    * DID-5: 优先 Sun-Abraham (eventstudyinteract) 异质稳健估计; 未装回退标准 TWFE。
+    local est_label ""
+    if `has_es' {
+        * eventstudyinteract 需 never-treated / last-treated 控制 cohort + 相对时间哑变量。
+        * cohort = _first_treat (never-treated 为 missing); control_cohort = never-treated 指示。
+        cap drop _never_treat
+        gen byte _never_treat = missing(_first_treat)
+        capture noisily eventstudyinteract `DV' `es_terms', ///
+            absorb(bank_id year) cohort(_first_treat) control_cohort(_never_treat) vce(cluster bank_id)
+        if !_rc {
+            local est_label "Sun-Abraham (2021) interaction-weighted, heterogeneity-robust"
+            display as text "  ✅ eventstudyinteract (Sun-Abraham) 估计完成"
+        }
+        else {
+            display as text "  ⚠️ eventstudyinteract 退化 (T=2 无 never-treated/cohort 变异?), 回退 TWFE"
+            local has_es = 0
+        }
+    }
+    if !`has_es' {
+        * 标准 TWFE 回退
+        reghdfe `DV' `es_terms', absorb(bank_id year) vce(cluster bank_id)
+        local est_label "Standard TWFE lead/lag (eventstudyinteract not installed/degraded)"
+    }
 
     * coefplot (ssc install coefplot)
+    * DID-5 修复 (2026-06-14): 头注—图内容一致。eventstudyinteract 把 IW 聚合估计存在
+    * e(b_iw)/e(V_iw) (非标准 e(b)/e(V) — 后者是底层 cohort×相对时间饱和系数, 名也不是
+    * _L1/_F1), 故 SA 成功路径必须画 matrix(e(b_iw)) (镜像 collab/19:108-112); 只有
+    * TWFE 回退路径才用 keep(es_terms)+rename(cp_rename) 画标准 e(b) 的 lead/lag。
+    * 此前两路径共用 keep(es_terms) → SA 时取错系数 (空图/画非 IW 结果, 与头注不符)。
     capture which coefplot
     if !_rc {
-        coefplot, ///
-            keep(_L3 _L2 _F0 _F1 _F2 _F3) ///
-            rename(_L3="-3" _L2="-2" _F0="0" _F1="+1" _F2="+2" _F3="+3") ///
-            vertical yline(0, lpattern(dash)) xtitle("Years from treatment") ///
-            ytitle("β (effect on Tone)") ///
-            title("Figure 1: Event Study — Digital Frontier Treatment") ///
-            note("TWFE dynamic effects. Reference: t=-1.")
-        graph export "output/figures/figure1_event_study.pdf", replace
-        display "✅ Figure 1 saved to output/figures/figure1_event_study.pdf"
+        local _cp_done = 0
+        if `has_es' {
+            * Sun-Abraham 成功路径: 画 interaction-weighted 聚合估计 (e(b_iw)/e(V_iw))
+            capture matrix _sa_b = e(b_iw)
+            capture matrix _sa_V = e(V_iw)
+            capture noisily coefplot matrix(_sa_b), se(_sa_V) ///
+                vertical yline(0, lpattern(dash)) xtitle("Years from treatment") ///
+                ytitle("β (effect on Tone)") ///
+                title("Figure 1: Event Study — Digital Frontier Treatment") ///
+                note("Dynamic effects (`est_label'). Reference: t=-1. Window ±`W'.")
+            if !_rc local _cp_done = 1
+        }
+        if !`_cp_done' {
+            * TWFE 回退路径 (或 SA 的 IW 矩阵绘图退化): 画标准 e(b) 的 lead/lag 系数
+            capture noisily coefplot, ///
+                keep(`es_terms') ///
+                rename(`cp_rename') ///
+                vertical yline(0, lpattern(dash)) xtitle("Years from treatment") ///
+                ytitle("β (effect on Tone)") ///
+                title("Figure 1: Event Study — Digital Frontier Treatment") ///
+                note("Dynamic effects (`est_label'). Reference: t=-1. Window ±`W'.")
+            if !_rc local _cp_done = 1
+        }
+        if `_cp_done' {
+            graph export "output/figures/figure1_event_study.pdf", replace
+            display "✅ Figure 1 saved to output/figures/figure1_event_study.pdf (`est_label')"
+        }
+        else {
+            display "  ⚠️ coefplot 退化跳过 (rc=`=_rc'); Figure 1 未导出"
+        }
     }
     else {
         display "  ⚠️ coefplot not installed (ssc install coefplot); Figure 1 跳过"

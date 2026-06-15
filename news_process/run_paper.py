@@ -81,7 +81,7 @@ _PAPER_SUMMARIES: Final[dict[str, str]] = {
     'bank_fintech_collab':
         '衍生/P5 (provisional): 自主研发 vs 外部协同 (Chesbrough 2003; 表/图占位待 M5/M6)',
     'bank_media_disagreement':
-        '第10篇 (provisional): 跨媒体语调分歧 → 风险承担 (Cookson-Niessner 2020 RFS; 待 M5)',
+        '第10篇 (provisional): 跨媒体语调分歧 → 风险承担 (Cookson-Niessner 2020 JF; 待 M5)',
     'bank_news_clarity':
         '第11篇 (provisional): 新闻清晰度 → 外部信息环境质量 (Bushman-Williams 2012 JAE; 待 M7)',
 }

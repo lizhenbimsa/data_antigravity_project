@@ -75,8 +75,14 @@ capture noisily do 26_tableA13_fe_robust_oster.do
 if _rc display as error "[WARN] 26_tableA13_fe_robust_oster.do failed (rc=`=_rc'); Table A13 skipped"
 capture noisily do 27_tableA14_subsample_composition.do
 if _rc display as error "[WARN] 27_tableA14_subsample_composition.do failed (rc=`=_rc'); Table A14 skipped"
+* 2026-06-14 顶刊重审 CY-2: 分时代稳定性 (三时代分段 + treatment×era 交乘 + Wald) (Table A15)
+capture noisily do 28_tableA15_era_stability.do
+if _rc display as error "[WARN] 28_tableA15_era_stability.do failed (rc=`=_rc'); Table A15 skipped"
 do 30_figure1_attitude_distribution.do
 capture noisily do 31_figure2_coefplot_dual.do
 if _rc display as error "[WARN] 31_figure2_coefplot_dual.do failed (rc=`=_rc'); Figure 2 skipped"
 
 display "[OK] benefit_society master.do complete (plan v2.12 dual-track)"
+
+* 2026-06-14 终端守卫: exit 让 /e 或双击裸起动也立即退出, 不弹「已完成」模态框 (见 CLAUDE.md "Stata Environment")
+exit, clear

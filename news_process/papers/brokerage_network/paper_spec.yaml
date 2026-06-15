@@ -114,6 +114,35 @@ network_roles:
   centrality_missing_convention: zero_fill_offnetwork_disclose_N
   external_validity_ref: _shared/A_network_robustness   # P1-3 共现≈peer 外部效度 QAP/dyadic (NET-SHARED-2)
 
+inference:
+  # fix(INFER IV-2, audit PROJECT_REAUDIT_T18 IV-2 P2): 形式化 confirmatory vs exploratory
+  #   纪律 + family 定义 + 聚类口径声明 (此前 spec 已隐含 treatment/outcome.primary 单一,
+  #   但缺显式 inference 块)。镜像 disagreement spec 的 cluster 块。
+  confirmatory:
+    # 单一预设主规格 (referee-facing headline): 网络 2SLS, 主处理 W·tone(endogenous),
+    #   工具 W²·tone, 主 outcome roa, 省级聚类。一篇一识别。
+    treatment: peer_tone_lag1_full       # = treatment.primary
+    outcome: roa                          # = outcome.primary
+    estimator: network_2sls_ivreghdfe     # 11_table2 M2/M3; 工具 peer_tone_2nd_lag1_full
+    primary_table: 11_table2_main_iv_2sls
+  cluster:
+    level: prov_id                        # 省级 (Cameron-Miller 2015 JHR; 项目级 LOO 一致)
+    n_clusters_expected: "~31"            # G≈31 < 50 → 小 G 层须 wild cluster bootstrap (boottest)
+    small_g_correction: wild_cluster_bootstrap_boottest   # bootcluster(prov_id), reps(9999); Roodman 2019
+    two_way_robustness: [bank_id, year]   # 21_table12 Panel B 双向聚类对照
+  weak_iv:
+    # KP rk Wald F < Stock-Yogo 临界 时改读 Anderson-Rubin 弱工具稳健 CI (weakiv; ASS 2019 ARE)
+    rule: read_anderson_rubin_ci_when_kp_f_below_stock_yogo
+    stock_yogo_10pct_1iv: 16.38
+    stock_yogo_10pct_2iv: 19.93
+    impl: weakiv                          # 11/17/18/19/23 各 IV 表已落 weakiv AR-CI 旁路 CSV
+  families:
+    # exploratory family (须 FWER 校正后 p 方可解读): 22 中心度 battery + 网络位置多角色
+    centrality_battery: exploratory       # 22 中心度 (20_table11 wyoung FWER); primary=bank_between_cent
+    network_roles: exploratory            # explanatory/mediator/moderator/heterogeneity (15-19)
+    dual_track: mutual_robustness         # full×ctx 双轨高相关孪生 = 互为稳健性, 非独立假设 (勿拼 Hansen J)
+    policy_did: exploratory               # DCEP/Sandbox 机制表 (12_table3); 非主识别
+
 robustness:
   # 22 选 3 p-hacking 防御 (审计 P2-12): 核心系数附录用 wyoung/rwolf2/sharpened-FDR
   # (⚠ rwolf 无 iv()/不支持 ivreghdfe → 用 wyoung 或 rwolf2; T=18 才激活, 盘面注释).

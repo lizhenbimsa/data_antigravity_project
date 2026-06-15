@@ -125,8 +125,15 @@ foreach g in bank_province bank_type bank_zone {
 * ==========================================================================
 * Panel A — 替代固定效应饱和 (主 2SLS 逐步加交乘 FE)
 * ==========================================================================
+* 主估计量为 2SLS — 优先 ivreghdfe (HDFE 吸收交乘 FE), 缺失/运行期失败时回退 ivreg2 + 显式
+* i. 因子项 (本机 StataNow 19.5 ivreghdfe 恒 r301; 镜像 11_table2 / 18_tableA9 回退, 否则
+* A7-A 替代 FE 饱和 2SLS 全列静默零产出)。回退把 absorb 的 bank/year/交乘 FE 改写成显式
+* i.bank_id i.year (+i.X_grp#i.year / c.year#i.bank_id), partial() 出以让 ivreg2 报 KP rk F。
 capture which ivreghdfe
-local HAS_IV = (_rc == 0)
+local HAS_IVHDFE = (_rc == 0)
+capture which ivreg2
+local HAS_IVREG2 = (_rc == 0)
+local HAS_IV = (`HAS_IVHDFE' | `HAS_IVREG2')
 local fecols ""
 local felabs ""
 
@@ -134,9 +141,19 @@ if `HAS_IV' {
     capture confirm variable `TONE' `IV'
     if !_rc {
         * A0: 基线 2SLS = bank + year FE (= 主规格)
-        capture eststo A_base: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-            absorb(bank_id year) cluster(`CL') ffirst
-        if !_rc {
+        local _crc = 1
+        if `HAS_IVHDFE' {
+            capture eststo A_base: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                absorb(bank_id year) cluster(`CL') ffirst
+            local _crc = _rc
+        }
+        if `_crc' != 0 & `HAS_IVREG2' {
+            capture estimates drop A_base
+            capture eststo A_base: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year, ///
+                cluster(`CL') partial(i.bank_id i.year)
+            local _crc = _rc
+        }
+        if `_crc' == 0 {
             local fecols "`fecols' A_base"
             local felabs `"`felabs' "Bank+Year""'
         }
@@ -144,9 +161,19 @@ if `HAS_IV' {
         * A1: + 省份×年 交乘 FE
         capture confirm variable bank_province_grp
         if !_rc {
-            capture eststo A_prov: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-                absorb(bank_id year i.bank_province_grp#i.year) cluster(`CL') ffirst
-            if !_rc {
+            local _crc = 1
+            if `HAS_IVHDFE' {
+                capture eststo A_prov: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                    absorb(bank_id year i.bank_province_grp#i.year) cluster(`CL') ffirst
+                local _crc = _rc
+            }
+            if `_crc' != 0 & `HAS_IVREG2' {
+                capture estimates drop A_prov
+                capture eststo A_prov: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year i.bank_province_grp#i.year, ///
+                    cluster(`CL') partial(i.bank_id i.year i.bank_province_grp#i.year)
+                local _crc = _rc
+            }
+            if `_crc' == 0 {
                 local fecols "`fecols' A_prov"
                 local felabs `"`felabs' "+Prov×Year""'
             }
@@ -158,9 +185,19 @@ if `HAS_IV' {
         * A2: + 银行类型×年 交乘 FE
         capture confirm variable bank_type_grp
         if !_rc {
-            capture eststo A_type: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-                absorb(bank_id year i.bank_type_grp#i.year) cluster(`CL') ffirst
-            if !_rc {
+            local _crc = 1
+            if `HAS_IVHDFE' {
+                capture eststo A_type: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                    absorb(bank_id year i.bank_type_grp#i.year) cluster(`CL') ffirst
+                local _crc = _rc
+            }
+            if `_crc' != 0 & `HAS_IVREG2' {
+                capture estimates drop A_type
+                capture eststo A_type: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year i.bank_type_grp#i.year, ///
+                    cluster(`CL') partial(i.bank_id i.year i.bank_type_grp#i.year)
+                local _crc = _rc
+            }
+            if `_crc' == 0 {
                 local fecols "`fecols' A_type"
                 local felabs `"`felabs' "+Type×Year""'
             }
@@ -172,9 +209,19 @@ if `HAS_IV' {
         * A3: + 区域×年 交乘 FE
         capture confirm variable bank_zone_grp
         if !_rc {
-            capture eststo A_zone: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-                absorb(bank_id year i.bank_zone_grp#i.year) cluster(`CL') ffirst
-            if !_rc {
+            local _crc = 1
+            if `HAS_IVHDFE' {
+                capture eststo A_zone: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                    absorb(bank_id year i.bank_zone_grp#i.year) cluster(`CL') ffirst
+                local _crc = _rc
+            }
+            if `_crc' != 0 & `HAS_IVREG2' {
+                capture estimates drop A_zone
+                capture eststo A_zone: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year i.bank_zone_grp#i.year, ///
+                    cluster(`CL') partial(i.bank_id i.year i.bank_zone_grp#i.year)
+                local _crc = _rc
+            }
+            if `_crc' == 0 {
                 local fecols "`fecols' A_zone"
                 local felabs `"`felabs' "+Zone×Year""'
             }
@@ -187,9 +234,19 @@ if `HAS_IV' {
         quietly levelsof year, local(_yrs)
         local _nyr : word count `_yrs'
         if `_nyr' >= 3 {
-            capture eststo A_trend: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
-                absorb(bank_id year c.year#i.bank_id) cluster(`CL') ffirst
-            if !_rc {
+            local _crc = 1
+            if `HAS_IVHDFE' {
+                capture eststo A_trend: ivreghdfe `DVUSE' (`TONE' = `IV') $controls, ///
+                    absorb(bank_id year c.year#i.bank_id) cluster(`CL') ffirst
+                local _crc = _rc
+            }
+            if `_crc' != 0 & `HAS_IVREG2' {
+                capture estimates drop A_trend
+                capture eststo A_trend: ivreg2 `DVUSE' (`TONE' = `IV') $controls i.bank_id i.year c.year#i.bank_id, ///
+                    cluster(`CL') partial(i.bank_id i.year c.year#i.bank_id)
+                local _crc = _rc
+            }
+            if `_crc' == 0 {
                 local fecols "`fecols' A_trend"
                 local felabs `"`felabs' "+BankTrend""'
             }
@@ -206,7 +263,7 @@ if `HAS_IV' {
     }
 }
 else {
-    display "  ⚠️ Panel A: ivreghdfe 未安装, 跳过替代 FE 2SLS"
+    display "  ⚠️ Panel A: ivreghdfe 与 ivreg2 均不可用, 跳过替代 FE 2SLS"
 }
 
 if "`fecols'" != "" {

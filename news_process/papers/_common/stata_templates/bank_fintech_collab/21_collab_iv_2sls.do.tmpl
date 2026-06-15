@@ -28,6 +28,7 @@ use "$data_dir/_prepared_panel.dta", clear
 
 local TX   collab_frac
 local IV1  leave_one_out_peer_collab_iv
+local IV1L leave_one_out_peer_collab_iv_lag1
 local IV2  bartik_collab_iv_full
 local DV   m_and_a_fintech
 * ctx 轨镜像 (2026-06-13 终审): 内生孪生 collab_frac_cm 配 ctx 同业 LOO 工具
@@ -50,10 +51,17 @@ if _rc {
     exit 0
 }
 
-* 第一阶段 (现有面板即可运行)
+* 第一阶段 (现有面板即可运行): 同期 + 滞后变体 (IV-1 修复 2026-06-14:
+*   addnote 早承诺 lag-1 稳健列但表里缺 eststo, 现补 first_lag/tsls_lag 兑现,
+*   镜像 locus/20 已落地写法; Manski 1993 反射对象用滞后同业 LOO 缓解。)
 capture confirm variable `IV1'
 if !_rc {
     eststo first_loo: reghdfe `TX' `IV1' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+capture confirm variable `IV1L'
+if !_rc {
+    eststo first_lag: reghdfe `TX' `IV1L' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
 capture confirm variable `IV2'
@@ -79,6 +87,12 @@ else {
         eststo tsls_loo: ivreg2 `DV' (`TX' = `IV1') $controls ///
             i.bank_id i.year, cluster(bank_id) first
     }
+    * lag-1 稳健 2SLS 列 (IV-1 兑现 addnote 承诺; 与 first_lag 配对)
+    capture confirm variable `IV1L'
+    if !_rc {
+        eststo tsls_lag: ivreg2 `DV' (`TX' = `IV1L') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
     capture confirm variable `IV1' `IV2'
     if !_rc {
         * 过度识别列 (跨族 2 工具 1 内生 → Hansen J df=1; LOO×Bartik 识别假设
@@ -92,13 +106,100 @@ else {
         eststo tsls_ctx: ivreg2 `DV' (`TXC' = `IVC') $controls ///
             i.bank_id i.year, cluster(bank_id) first
     }
+
+    * ── IV-2 修复 (2026-06-14): 弱工具稳健 Anderson-Rubin CI ─────────────────
+    * 脚注早已规定 "KP F < Stock-Yogo 时改读 AR CI", 但全项目无 weakiv 命令
+    * 兑现该决策规则 (claimed-but-never-run)。现对主 just-identified 列 (LOO 同期 /
+    * lag-1 / Bartik / ctx) 跑 `weakiv` 输出 AR 检验 + 弱工具稳健置信集, 写入侧表 .txt;
+    * 缺 ado / T=2 退化时优雅跳过 (capture which 守卫, $0/golden-safe)。
+    * 锚点: Andrews-Stock-Sun 2019 ARE; Lee et al. 2022 AER (tF); Stock-Yogo 2005。
+    *
+    * ⚠ IV-2 复核修复 (2026-06-14, PROJECT_REAUDIT collab smoke lane): 两处真错已修。
+    *   (a) weakiv 选项错: 旧 `weakiv ivreg2 ..., cluster(bank_id) lm ar` 中 `ar` 不是
+    *       weakiv 合法选项 (实测 StataNow 19.5 报 "option ar not allowed" → _rc!=0 →
+    *       四个 AR CI 块全静默跳过, 侧表只剩表头 = claimed-but-not-run)。weakiv 默认即
+    *       计算 AR 检验, 无需 `ar`; `lm` 合法 (请求 LM 版本) 故保留。删 `ar` 后四次
+    *       weakiv 在 T=18 合成盘均 _rc==0 (实测 AR p 真写出)。
+    *   (b) 返回值类: weakiv 结果在 e() 不在 r() (ado:1309 ereturn scalar ar_p;
+    *       :1361 ereturn local ar_cset【字符串置信集】, 无 e(ar_cset_lb/ub))。旧读
+    *       r(ar_p)/e(ar_cset_lb/ub) 全取到 missing/空 → 改读 e(ar_p) + 字符串 e(ar_cset)。
+    *   置信集以【字符串】宏在引号内当文本写文件 (不用数值括号 expr, 不再拆 lb/ub);
+    *   每次 weakiv 后 capture local 取标量再写, 整块外加 capture 守卫, weakiv 在场亦
+    *   绝不硬中断后面 esttab IV 主表。
+    capture which weakiv
+    if _rc {
+        display "  [WARN] weakiv not installed (ssc install weakiv); 跳过弱工具稳健 AR CI"
+    }
+    else {
+        capture {
+            capture file close _arci
+            file open _arci using "$tables_dir/tableA_collab_iv_arci.txt", write replace
+            file write _arci "P5 Collab weak-IV-robust Anderson-Rubin CIs (Andrews-Stock-Sun 2019)" _n
+            file write _arci "Read these AR CIs whenever KP F < Stock-Yogo critical value (16.38 @ 5% bias)." _n _n
+            * 同期 LOO
+            capture confirm variable `IV1'
+            if !_rc {
+                capture noisily weakiv ivreg2 `DV' (`TX' = `IV1') $controls ///
+                    i.bank_id i.year, cluster(bank_id) lm
+                if !_rc {
+                    local _arp = .
+                    local _arset = ""
+                    capture local _arp   = e(ar_p)
+                    capture local _arset = "`e(ar_cset)'"
+                    file write _arci "[LOO contemporaneous] AR p = `_arp'  AR 95% confidence set = `_arset'" _n
+                }
+            }
+            * lag-1 LOO
+            capture confirm variable `IV1L'
+            if !_rc {
+                capture noisily weakiv ivreg2 `DV' (`TX' = `IV1L') $controls ///
+                    i.bank_id i.year, cluster(bank_id) lm
+                if !_rc {
+                    local _arp = .
+                    local _arset = ""
+                    capture local _arp   = e(ar_p)
+                    capture local _arset = "`e(ar_cset)'"
+                    file write _arci "[LOO lag-1] AR p = `_arp'  AR 95% confidence set = `_arset'" _n
+                }
+            }
+            * Bartik
+            capture confirm variable `IV2'
+            if !_rc {
+                capture noisily weakiv ivreg2 `DV' (`TX' = `IV2') $controls ///
+                    i.bank_id i.year, cluster(bank_id) lm
+                if !_rc {
+                    local _arp = .
+                    local _arset = ""
+                    capture local _arp   = e(ar_p)
+                    capture local _arset = "`e(ar_cset)'"
+                    file write _arci "[Bartik] AR p = `_arp'  AR 95% confidence set = `_arset'" _n
+                }
+            }
+            * ctx 轨
+            capture confirm variable `TXC' `IVC'
+            if !_rc {
+                capture noisily weakiv ivreg2 `DV' (`TXC' = `IVC') $controls ///
+                    i.bank_id i.year, cluster(bank_id) lm
+                if !_rc {
+                    local _arp = .
+                    local _arset = ""
+                    capture local _arp   = e(ar_p)
+                    capture local _arset = "`e(ar_cset)'"
+                    file write _arci "[ctx LOO] AR p = `_arp'  AR 95% confidence set = `_arset'" _n
+                }
+            }
+            file close _arci
+            display "[OK] weak-IV-robust AR CIs → $tables_dir/tableA_collab_iv_arci.txt"
+        }
+        capture file close _arci
+    }
 }
 
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_loo first_bartik first_ctx tsls_loo tsls_overid tsls_ctx
-local cand_titles `""1st LOO" "1st Bartik" "1st LOO ctx" "2SLS LOO" "2SLS Overid" "2SLS LOO ctx""'
+local cand_models first_loo first_lag first_bartik first_ctx tsls_loo tsls_lag tsls_overid tsls_ctx
+local cand_titles `""1st LOO" "1st LOO lag1" "1st Bartik" "1st LOO ctx" "2SLS LOO" "2SLS LOO lag1" "2SLS Overid" "2SLS LOO ctx""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -123,7 +224,7 @@ else {
         addnotes("IV1 = same-bank-type leave-one-out external-collaboration share (Manski 1993; Leary-Roberts 2014 JF caveats — disclose in text; lag-1 variant for robustness)." ///
                  "IV2 = Bartik: base-period type co-mention shares x type-year LOO collaboration share (Goldsmith-Pinkham et al. 2020 AER, share-exogeneity view only)." ///
                  "ctx column: entity-window twin collab_frac_cm instrumented by lpeer_collab_iv_ctx, just-identified, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
-                 "KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%); if below, use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified column." ///
+                 "KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%); if below, read the weak-IV-robust Anderson-Rubin CIs reported in tableA_collab_iv_arci.txt (Andrews-Stock-Sun 2019; weakiv command). Hansen J only in overidentified column." ///
                  "Hansen J power depends on first-stage strength: when KP F is below the Stock-Yogo critical value, a non-rejecting Hansen J (p>0.05) has low power and must NOT be read as confirming instrument validity.")
 
     display "[OK] 21_collab_iv_2sls → $tables_dir/tableA_collab_iv_2sls.tex"

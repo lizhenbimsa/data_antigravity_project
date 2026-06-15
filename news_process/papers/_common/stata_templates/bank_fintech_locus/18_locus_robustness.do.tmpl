@@ -20,16 +20,132 @@ set seed {{RANDOM_SEED}}
 
 * (1) Oster (2019) δ
 * 白话: 估算"看不见的遗漏变量得有多强, 才能把结论推翻", 衡量选择性偏误的稳健性。
-* psacalc delta locus_layer_full, rmax(1.3 r²) mcontrol($controls)
+* RB-2 修复 (2026-06-14): Oster δ 的真实 psacalc 命令 (含 mcontrol = year-FE 哑变量、
+* rmax = min(1, 1.3×R²)、materialized 年度哑变量绕过 psacalc 不解析 i.year 的 r(5001))
+* 已在 22_locus_fe_saturation_oster.do (Panel C) 完整落地并进表; 此处不再留死注释。
 
-* (2) rwolf 多假设检验
-* 白话: 同时检验多个假设时, 用 Romano-Wolf 逐步法校正"碰运气显著"的多重检验问题。
-* rwolf {{MAIN_DV}}, indepvar(locus_layer_full) controls($controls) reps(1000) ///
-*     method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
+* (2) rwolf 多重假设 FWER 校正 (INFER IV-1 修复 2026-06-14): 注释脚手架转真实命令。
+* family = 两个 locus 处理 (layer / scenario), Romano-Wolf step-down 控制族内 FWER。
+* 白话: 同时检验"底层技术主导"与"应用场景主导"两个处理时, 总有一个可能碰巧显著;
+*       rwolf 用自助 step-down 法把 p 值整体调严, 防多重检验误报。capture which 守卫:
+*       缺 rwolf ado / T=2 退化时优雅跳过, 不报错; production T=18 自动激活。
+capture which rwolf
+if _rc {
+    capture ssc install rwolf, replace
+}
+capture which rwolf
+if !_rc {
+    capture noisily rwolf {{MAIN_DV}}, indepvar(locus_layer_full locus_scenario_full) ///
+        controls($controls) reps(1000) seed({{RANDOM_SEED}}) ///
+        method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
+    if !_rc {
+        * rwolf 把 family-wise p 存进 e(rw)/返回矩阵; 注入 stats 行供脚注引用
+        capture scalar _rw_layer = e(rw_locus_layer_full)
+        display "  [RWOLF] Romano-Wolf FWER-adjusted p (locus family, 1000 reps): see r()/e(rw_*)"
+    }
+    else {
+        display "  ⚠️ rwolf 运行失败 (T=2 退化 / within 变异不足); production T=18 激活"
+    }
+}
+else {
+    display "  ⚠️ rwolf not installed (ssc install rwolf); FWER 校正跳过"
+}
 
-* (3) Honest DiD
-* 白话: 允许"平行趋势"假设有一定程度的偏离, 看结论在多大偏离下仍然站得住。
-* honestdid, l_vec(...) m_grid(0 0.5 1 2)
+* (3) Honest DiD (DID-3 修复 2026-06-14): 注释脚手架转真实命令。
+* 白话: 允许"平行趋势"假设有一定程度偏离 (M-grid 控制最大偏离幅度), 看 layer 效应
+*       在多大违背下仍然显著。依赖事件研究 (19_locus_event_study) 保存的 leads/lags
+*       事件时间系数; honestdid 在其上做平滑度/相对幅度的部分识别敏感性。
+* 实现: 先复刻 19 的 INLINE 截面强度事件研究 (E1=2013, 余额宝, 窗口最长), 保存 e(),
+*       再对 leads/lags 系数向量跑 honestdid。capture 全程守卫 (缺 ado / T=2 退化跳过)。
+capture confirm variable locus_layer_full
+if !_rc {
+    * 事件 E1 (2013) 相对年哑变量 (镜像 19_locus_event_study INLINE 写法)
+    capture drop _hd_et_*
+    forvalues lag = -3/3 {
+        gen byte _hd_et_`=`lag'+3' = (year == 2013 + `lag')
+    }
+    * INLINE 事件研究 (参照 = 事件当年 index 3 省略); 保存 e() 供 honestdid 与 pre-trend F
+    * fix(2026-06-14 二轮): 交乘用 c.#c. (连续×0/1 哑变量) 而非 c.#i. (因子) — 因子展开
+    *   在 e(b) 产 0b. base + 1o. omitted 交错 12 列, 位置/名称抽取均易错位; c.#c. 每项产
+    *   单干净列 (顺序即 RHS 顺序), 供下方 honestdid 位置切片前 6 列。0/1 哑变量下两写法
+    *   event-study 系数等价 (Stata /b 合成 T=18 实测)。
+    capture noisily reghdfe {{MAIN_DV}} ///
+            c.locus_layer_full#c._hd_et_0 c.locus_layer_full#c._hd_et_1 ///
+            c.locus_layer_full#c._hd_et_2 c.locus_layer_full#c._hd_et_4 ///
+            c.locus_layer_full#c._hd_et_5 c.locus_layer_full#c._hd_et_6 ///
+            $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    if !_rc {
+        eststo es_honest_E1
+        * pre-trend 联合 F (DID-3): leads −3/−2/−1 交乘 = 0
+        * (c.#c. 写法系数名 = c.locus_layer_full#c._hd_et_K, 与 RHS 同名)
+        capture test (c.locus_layer_full#c._hd_et_0 = 0) ///
+                     (c.locus_layer_full#c._hd_et_1 = 0) ///
+                     (c.locus_layer_full#c._hd_et_2 = 0)
+        if !_rc {
+            estadd scalar pretrend_F = r(F): es_honest_E1
+            estadd scalar pretrend_p = r(p): es_honest_E1
+            display "  [PRE-TREND] E1 joint F(leads)=" %6.3f r(F) " p=" %5.3f r(p)
+        }
+        * HonestDiD 部分识别敏感性 (Rambachan-Roth 2023 RES 相对幅度 M-grid; 缺 ado / 退化时跳过)
+        * RB-3 修复 (2026-06-14): 旧版用 honestdid 不存在的用户级选项 pre()/post() (本机 ado
+        * Caceres Bravo 1.3.4 的 syntax 行只接受 numpreperiods() 或 preperiodindices()+
+        * postperiodindices(); pre/post 仅 HonestSanityChecks 内部子程序参数, 用户调用必 r(198))
+        * → capture noisily 永久吞掉 → 即便 T=18 数据齐全也从不真跑 (claimed-but-not-run 病灶)。
+        * 改两处: (1) pre()/post() → numpreperiods(3) (前 3 lead = pre-period);
+        * (2) reghdfe e(b) 含 6 event-time 交乘 + $controls + _cons → 不能直喂 e(b)/e(V)
+        *     (numpreperiods 会从首列切到 control 系数), 先用 Mata 按列名抽出 6 个 event-time
+        *     交乘子向量 b_es 与对应 6×6 vcov 子块 V_es, 再 honestdid, b(b_es) vcov(V_es)。
+        * 列序 = 3 lead (_hd_et_0/1/2 = year-3/-2/-1) + 3 lag (_hd_et_4/5/6 = year+1/+2/+3),
+        * 参照年 index 3 (=2013) 省略; reghdfe 把 c.X#i.D 规范化为 1.D#c.X (与 pre-trend test 同名)。
+        capture which honestdid
+        if !_rc {
+            * 6 个 event-time 交乘 = reghdfe RHS 前 6 列 (顺序 _hd_et_0/1/2 leads, _hd_et_4/5/6 lags),
+            * $controls/_cons 在其后。位置抽取前 6 列 b_es + 6×6 vcov 子块 V_es。
+            * fix(2026-06-14 二轮): 旧多行 Mata 名称匹配在本机 r(3000) 永不成形 (claimed-but-not-run);
+            *   且 c.#i. 因子展开在 e(b) 产 0b./1o. 交错列致名称/位置均错位 → 已改 c.#c. (上方) +
+            *   位置切片 (与 attention/18 同口径, Stata /b 合成 T=18 实测 honestdid 产 .gph rc=0)。
+            *   守卫: 前 6 列名均含 _hd_et (退化丢列时跳过)。
+            tempname b_es V_es
+            local hd_ok = 0
+            matrix _hb = e(b)
+            matrix _hV = e(V)
+            local _bn : colnames _hb
+            local _nw : word count `_bn'
+            if `_nw' >= 6 {
+                local _ok6 = 1
+                forvalues p = 1/6 {
+                    local _nm : word `p' of `_bn'
+                    if strpos("`_nm'", "_hd_et") == 0 local _ok6 = 0
+                }
+                if `_ok6' {
+                    capture {
+                        mata: st_matrix(st_local("b_es"), st_matrix("e(b)")[1, 1..6])
+                        mata: st_matrix(st_local("V_es"), st_matrix("e(V)")[1..6, 1..6])
+                    }
+                    if !_rc local hd_ok = 1
+                }
+            }
+            if `hd_ok' == 1 {
+                * numpreperiods(3): 前 3 列 (lead -3/-2/-1) 作 pre-period; 余 3 列作 post;
+                * mvec = 相对幅度 M-grid (delta(rm) 默认); coefplot 透传 saving() 落 .gph。
+                capture noisily honestdid, b(`b_es') vcov(`V_es') ///
+                    numpreperiods(3) mvec(0 0.5 1 1.5 2) delta(rm) ///
+                    coefplot saving("$tables_dir/honestdid_locus_E1.gph", replace)
+                if !_rc display "  [HONESTDID] E1 relative-magnitude sensitivity (M=0..2) → honestdid_locus_E1.gph"
+                else    display "  ⚠️ honestdid 运行失败 (T=2 退化 / OSQP-ECOS plugin / coefplot 版本); production T=18 激活"
+            }
+            else {
+                display "  [SKIP] event-time 子向量抽取失败 (退化样本部分交乘被 drop); production T=18 激活"
+            }
+        }
+        else {
+            display "  ⚠️ honestdid not installed (ssc install honestdid + coefplot); 平行趋势敏感性跳过 (真未运行)"
+        }
+    }
+    else {
+        display "  [SKIP] HonestDiD 前置事件研究退化 (T=2 仅 2017-2018, E1=2013 窗外); production T=18 激活"
+    }
+}
 
 * (4) Wild cluster bootstrap (野聚类自举)
 * fix(omni-g-templates-10, 2026-06-11): (i) boottest 补 capture which 守卫 (对齐
@@ -130,17 +246,21 @@ qui estimates dir
 local stored `r(names)'
 local models ""
 foreach m of local stored {
-    if inlist("`m'", "wild_boot", "excl_soe6", "excl_rural", "excl_pre", "alt_ctx", "wsens_w1", "wsens_w5") {
+    if inlist("`m'", "wild_boot", "excl_soe6", "excl_rural", "excl_pre", "alt_ctx") | ///
+       inlist("`m'", "wsens_w1", "wsens_w5", "es_honest_E1") {
         local models `models' `m'
     }
 }
 esttab `models' ///
     using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    stats(N r2 p_wild, fmt(0 3 3) labels("N" "R²" "Wild cluster bootstrap p")) ///
+    stats(N r2 p_wild pretrend_F pretrend_p, fmt(0 3 3 3 3) ///
+          labels("N" "R²" "Wild cluster bootstrap p" "Pre-trend joint F" "Pre-trend p")) ///
     title("Table 5 — Advanced Robustness (P4 locus + alternative classifier + Borusyak DiD)") ///
-    addnotes("Column 1 (wild_boot): analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
-             "Honest DiD M-grid sensitivity in supplemental log; layer-specific Sun-Abraham event study in 19_locus_event_study.do; Borusyak DiD output to robustness.log.")
+    addnotes("Column wild_boot: analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
+             "Column es_honest_E1: INLINE intensity event study (E1=2013 yuebao); Pre-trend joint F = test(leads −3/−2/−1 = 0). HonestDiD relative-magnitude (M=0..2) sensitivity (Rambachan-Roth 2023) runs on the extracted 6-coefficient event-time subvector via honestdid, b()/vcov() numpreperiods(3): activates in production T=18 (real command) and gracefully skips under T=2 degeneracy → honestdid_locus_E1.gph." ///
+             "Romano-Wolf FWER-adjusted p over the locus treatment family (rwolf, 1000 reps) actually run → supplemental log e(rw_*). Borusyak DiD output to robustness.log." ///
+             "All advanced estimators capture-guarded: absent ado / T=2 degeneracy ⇒ graceful skip; production T=18 activates.")
 
 * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_locus/
 * tables.py:build_table5_robustness 经 read_paper_esttab(..., 'table5_robustness.csv') 消费。

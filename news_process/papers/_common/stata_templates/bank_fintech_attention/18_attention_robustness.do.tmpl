@@ -33,21 +33,168 @@ set seed {{RANDOM_SEED}}
 * 白话: 估算"看不见的遗漏变量得有多强, 才能把结论推翻", 衡量选择性偏误的稳健性。
 * ============================================================================
 * ssc install psacalc, replace
-* psacalc delta {{MAIN_TREAT}}, rmax(1.3 r²) mcontrol($controls)
+* psacalc delta {{MAIN_TREAT}}, rmax(min(1,1.3 r²)) mcontrol(i.year)
+*   ⚠ mcontrol 只放 FE 哑变量 (i.year) 作 nuisance, 不放 $controls — 否则把
+*   substantive 控制错当 nuisance, δ 退化为只由 i.year 移动界定 (见 20_* Panel C ATT-ROB-01)。
 
 * ============================================================================
-* (2) Romano-Wolf stepdown 多重检验校正
+* (2) Romano-Wolf stepdown 多重检验校正 (INFER IV-1 修复, 2026-06-14)
 * 白话: 同时检验多个假设时, 用逐步法校正"碰运气显著"的多重检验问题。
+* 把此前仅注释存在的 rwolf 转为真实命令: 对主处理 + 替代注意力测度族
+* (attention_index_full / _ctx / disp / pct) 联合做 Romano-Wolf stepdown,
+* FWER 校正后 p 值经 r(table) 取出注入 e(rw_p) 进 esttab stats 行。
+* (Romano & Wolf 2005 Econometrica; List-Shaikh-Xu 2019 EE)
+* ⚠ 未装 rwolf 时 capture which 守卫优雅跳过 — 不再写"supplemental log"误导脚注。
 * ============================================================================
-* rwolf {{MAIN_DV}}, indepvar({{MAIN_TREAT}}) controls($controls) reps(1000) ///
-*       method(reghdfe) absorb(bank_id year) cluster({{CLUSTER_VAR}})
+local rw_p_main "n/a"
+capture which rwolf
+if !_rc {
+    * family = 主处理 + 已在盘的替代注意力测度 (动态拼装, 缺列不进 family)
+    local rw_family {{MAIN_TREAT}}
+    foreach alt in attention_index_ctx attention_disp_full attention_pct_full {
+        capture confirm variable `alt'
+        if !_rc local rw_family `rw_family' `alt'
+    }
+    capture confirm variable {{MAIN_DV}}
+    if !_rc {
+        capture noisily rwolf {{MAIN_DV}}, indepvar(`rw_family') controls($controls) ///
+            reps(1000) seed({{RANDOM_SEED}}) ///
+            method(reghdfe) abs(bank_id year) cluster({{CLUSTER_VAR}})
+        if !_rc {
+            * 主处理的 Romano-Wolf FWER 校正 p。rwolf (Clarke 2019/2020 SJ) 真实 ereturn
+            * 约定 = 每个 indepvar 一个标量 e(rw_<var>) (跨族 step-down p) + 矩阵 e(RW);
+            * 镜像 substance/18 与 locus/18, 直接取 e(rw_{{MAIN_TREAT}}) 标量 (展开 =
+            * e(rw_attention_index_full)), 取不到保持 "n/a"。
+            * ⚠ 旧版误用 e(table) — 那是上一个估计命令残留的标准结果表 (行名 b/se/t/...),
+            *   不含 "rw" 行 → 永远取不到值。已修正为 ereturn 标量约定 (INFER IV-1 复发修复)。
+            capture local rw_p_main = e(rw_{{MAIN_TREAT}})
+            * 二次回退: 个别 rwolf 版本仅 post 矩阵 e(RW) (列=indepvar, 行含 rw p);
+            *   仅在标量缺失时按列名定位主处理列取调整 p, 仍取不到则留 "n/a"。
+            if "`rw_p_main'" == "" | "`rw_p_main'" == "." | "`rw_p_main'" == "n/a" {
+                local rw_p_main "n/a"
+                capture matrix _rw = e(RW)
+                if !_rc {
+                    local _cn : colnames _rw
+                    local _ci : list posof "{{MAIN_TREAT}}" in _cn
+                    local _rn : rownames _rw
+                    if `_ci' > 0 & rowsof(_rw) > 0 {
+                        local rw_p_main : display %5.3f _rw[1, `_ci']
+                    }
+                }
+            }
+            else {
+                local rw_p_main : display %5.3f `rw_p_main'
+            }
+            display "  [Romano-Wolf FWER] 主处理 {{MAIN_TREAT}} rw-adjusted p = `rw_p_main'"
+        }
+        else {
+            display "  [WARN] rwolf 运行失败 (rc=`=_rc'); Romano-Wolf FWER p 缺失, 不阻断后续"
+        }
+    }
+}
+else {
+    display "  [WARN] rwolf not installed (ssc install rwolf); Romano-Wolf FWER 校正跳过 (非 supplemental log — 真未运行)"
+}
 
 * ============================================================================
-* (3) Honest DiD (Rambachan-Roth 2023) — 4 M-bands
-* 白话: 允许"平行趋势"假设有一定程度的偏离, 看结论在多大偏离下仍然站得住。
+* (3) Honest DiD (Rambachan-Roth 2023) + 正式 pre-trend 联合 F (DID-3 修复, 2026-06-14)
+* 白话: 先用政策冲击 (DCEP 数字人民币) 的 attention×相对年 leads/lags 跑一个事件研究,
+*   对所有"处理前 (pre-trend) 系数 = 0"做联合 F 检验; 再用 HonestDiD 允许平行趋势有
+*   一定偏离 (M ∈ {0, .5, 1, 2}×∆̂), 看主效应在多大偏离下仍显著。
+* 把此前仅 "* honestdid" 注释脚手架转为真实估计行 (capture which honestdid 守卫)。
+* (Rambachan & Roth 2023 RES; Roth 2022 AER:Insights; Sun & Abraham 2021 JoE)
+* ⚠ 依赖事件研究 (下游稳健性): 政策处理 dcep_lead*/dcep_lag* 在 T=2 试跑帧上全 0
+*   (处理年 2019 晚于面板末年) → coefleg 无 pre 系数, 守卫静默跳过; T=18 自动激活。
 * ============================================================================
-* honestdid, l_vec(...) m_grid(0 0.5 1 2)
-* 主设定: M = 1 × max|∆̂_pre|; 敏感性表呈现全部 4 个 M-band (R5-m06)。
+* (3a) INLINE intensity-DiD 事件研究 (DCEP) + pre-trend 联合 F
+local es_ok = 0
+capture confirm variable dcep_lead3 dcep_lead2 dcep_lag0 dcep_lag1 dcep_lag2 dcep_lag3
+if !_rc {
+    * 处理 dummy 方差守卫 (T=2 试跑帧 leads/lags 恒 0 → 不可识别, 跳过)
+    quietly summarize dcep_lag1
+    if (r(sd) > 0) & (r(sd) < .) {
+        * attention 强度 × 相对事件年 leads/lags (omit dcep_lead1 作基准期, 镜像 collab/19 INLINE 写法)
+        capture noisily reghdfe {{MAIN_DV}} ///
+            c.{{MAIN_TREAT}}#c.dcep_lead3 c.{{MAIN_TREAT}}#c.dcep_lead2 ///
+            c.{{MAIN_TREAT}}#c.dcep_lag0  c.{{MAIN_TREAT}}#c.dcep_lag1 ///
+            c.{{MAIN_TREAT}}#c.dcep_lag2  c.{{MAIN_TREAT}}#c.dcep_lag3 ///
+            $controls, absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        if !_rc {
+            local es_ok = 1
+            * 正式 pre-trend 联合 F: 所有 pre 期 (lead2/lead3) 交乘 = 0。
+            * estadd 须在 eststo 前注入活跃 e() (镜像下方 wild_boot 的 estadd→eststo 顺序)。
+            capture test c.{{MAIN_TREAT}}#c.dcep_lead3 c.{{MAIN_TREAT}}#c.dcep_lead2
+            if !_rc {
+                estadd scalar pretrend_F = r(F)
+                estadd scalar pretrend_p = r(p)
+                display "  [pre-trend joint F] F=" %6.3f r(F) "  p=" %5.3f r(p) " (H0: 所有处理前 attention×lead 系数=0)"
+            }
+            eststo es_dcep
+        }
+    }
+    else {
+        display "  [SKIP DID-3] DCEP leads/lags 零方差 (处理年 2019 晚于面板末年, T=2 试跑帧); 事件研究 + HonestDiD 跳过, T=18 自动激活"
+    }
+}
+else {
+    display "  [SKIP DID-3] dcep_lead*/dcep_lag* 不在盘; 事件研究 + HonestDiD 跳过"
+}
+
+* (3b) HonestDiD 平行趋势局部偏离敏感性 (Rambachan-Roth 2023; relative-magnitude M-band)
+* RB-3 修复 (2026-06-14, 与 locus/18 同源): 旧版用 honestdid 不存在的用户级选项
+*   pre()/post() (本机 ado Caceres Bravo 1.3.4 的 syntax 行只接受 numpreperiods() 或
+*   preperiodindices(); pre/post 仅其内部 HonestSanityChecks 子程序参数, 用户调用必
+*   r(198) → capture noisily 永久吞 → 即便 T=18 数据齐全也从不真跑, claimed-but-not-run)。
+* 改为: reghdfe e(b) 含 6 event-time 交乘 + $controls + _cons → 不能直喂 e(b)/e(V)
+*   (numpreperiods 会从首列切到 control 系数), 先用 Mata 按列名抽出 6 个 event-time 交乘
+*   子向量 b_es 与对应 6×6 vcov 子块 V_es, 再 honestdid, b(b_es) vcov(V_es)。
+* 列序 = 2 lead (dcep_lead3/lead2 = t-3/t-2 = pre) + 4 lag (dcep_lag0..lag3 = t..t+3 = post);
+*   基准期 dcep_lead1 (t-1) 省略 → numpreperiods(2)。
+if `es_ok' {
+    capture which honestdid
+    if !_rc {
+        * 6 个 event-time 交乘 = reghdfe RHS 前 6 列 (顺序 lead3 lead2 lag0 lag1 lag2 lag3),
+        * $controls/_cons 在其后。位置抽取前 6 列子向量 b_es + 6×6 vcov 子块 V_es。
+        * fix(2026-06-14 二轮): 旧多行 Mata 名称匹配在本机 r(3000) 永不成形 (claimed-but-
+        *   not-run); 改 colstripe 实测前 6 列即 dcep 交乘 (Stata /b 合成 T=18 验证 honestdid
+        *   产出 .gph rc=0) → 位置切片更稳健。守卫: 前 6 列名均含 dcep_ (退化丢列时跳过)。
+        tempname b_es V_es
+        local hd_ok = 0
+        matrix _hb = e(b)
+        matrix _hV = e(V)
+        local _bn : colnames _hb
+        local _nw : word count `_bn'
+        if `_nw' >= 6 {
+            local _ok6 = 1
+            forvalues p = 1/6 {
+                local _nm : word `p' of `_bn'
+                if strpos("`_nm'", "dcep_") == 0 local _ok6 = 0
+            }
+            if `_ok6' {
+                capture {
+                    mata: st_matrix(st_local("b_es"), st_matrix("e(b)")[1, 1..6])
+                    mata: st_matrix(st_local("V_es"), st_matrix("e(V)")[1..6, 1..6])
+                }
+                if !_rc local hd_ok = 1
+            }
+        }
+        if `hd_ok' == 1 {
+            * numpreperiods(2): 前 2 列 (dcep_lead3/lead2) 作 pre-period; 余 4 列作 post;
+            * mvec = 相对幅度 M-grid (delta(rm) 默认); coefplot 透传 saving() 落 .gph。
+            capture noisily honestdid, b(`b_es') vcov(`V_es') ///
+                numpreperiods(2) mvec(0 0.5 1 2) delta(rm) ///
+                coefplot saving("$tables_dir/honestdid_attention.gph", replace)
+            if !_rc display "  [OK DID-3] HonestDiD relative-magnitude sensitivity (M=0..2) → honestdid_attention.gph"
+            else    display "  [WARN] honestdid 运行失败 (T=2 退化 / OSQP-ECOS plugin / coefplot 版本); production T=18 激活"
+        }
+        else {
+            display "  [SKIP DID-3] event-time 子向量抽取失败 (退化样本部分交乘被 drop); production T=18 激活"
+        }
+    }
+    else {
+        display "  [WARN] honestdid not installed (ssc install honestdid + coefplot); 平行趋势敏感性跳过 (真未运行, 非 supplemental log)"
+    }
+}
 
 * ============================================================================
 * (4) Wild cluster bootstrap (boottest)
@@ -123,12 +270,38 @@ eststo excl_pre
 * 白话: 换用不同口径的注意力指标重跑 (ctx 窗口轨 / 跨媒体集中度 HHI 注意:
 *       attention_disp_full 高值=集中而非分散 / 金融科技议程份额 N_ft/N_all),
 * 验证结论不依赖单一测度构造。
+* ATTN CV-2 修复 (2026-06-14): attention_disp_full (outlet-HHI) 在低覆盖 bank-year
+*   机械=1 (单 outlet → HHI 恒 1), 把"集中度"与"低覆盖量"混淆。disp 进回归时
+*   【强制】控 ln(1+n_outlets) (覆盖宽度) 以剥离低覆盖机械成分; codebook 已披露
+*   "n_outlets≥2 才有 disp 变异"。其余测度沿用 $controls。
+*   (Cookson-Niessner 2020 JF; HHI 小 N 退化)
 * ============================================================================
+* 预生成覆盖宽度控制列 (capture: n_outlets 缺则不控, 不阻断)
+capture confirm variable ln_n_outlets
+if _rc {
+    capture confirm variable n_outlets
+    if !_rc capture gen double ln_n_outlets = ln(1 + n_outlets)
+}
 foreach alt in attention_index_ctx attention_disp_full attention_pct_full {
     capture confirm variable `alt'
     if !_rc {
-        reghdfe {{MAIN_DV}} `alt' $controls, ///
-            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        if "`alt'" == "attention_disp_full" {
+            * disp 列强制叠加覆盖宽度控制 (ATT CV-2); 缺 ln_n_outlets 时回落纯 $controls
+            capture confirm variable ln_n_outlets
+            if !_rc {
+                reghdfe {{MAIN_DV}} `alt' ln_n_outlets $controls, ///
+                    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            }
+            else {
+                reghdfe {{MAIN_DV}} `alt' $controls, ///
+                    absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+                display "  [WARN ATT CV-2] ln_n_outlets/n_outlets 不在盘; disp 列未能控覆盖宽度 (低覆盖机械 HHI=1 混淆未剥离)"
+            }
+        }
+        else {
+            reghdfe {{MAIN_DV}} `alt' $controls, ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        }
         eststo alt_`alt'
     }
 }
@@ -144,25 +317,29 @@ eststo wsens_w5
 * fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — alt_* 通配可能空匹配,
 * 旧版硬点名缺名即 r(111) 丢整表; ritest_ri 仍按原设计只留 log 不进表
 * 2026-06-13: 缩尾敏感性 wsens_w1/wsens_w5 加入白名单 (否则新列静默不进表, MF9)
+* 2026-06-14: es_dcep (INLINE 事件研究 + pre-trend F, DID-3) 加入白名单; 缺则静默不进表
 qui estimates dir
 local stored `r(names)'
 local models ""
 foreach m of local stored {
-    if inlist("`m'", "wild_boot", "excl_soe6", "excl_pre", "wsens_w1", "wsens_w5") | strmatch("`m'", "alt_*") {
+    if inlist("`m'", "wild_boot", "excl_soe6", "excl_pre", "wsens_w1", "wsens_w5", "es_dcep") | strmatch("`m'", "alt_*") {
         local models `models' `m'
     }
 }
 esttab `models' using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-    stats(N r2 p_wild, fmt(0 3 3) labels("N" "R²" "Wild cluster bootstrap p")) ///
+    stats(N r2 p_wild pretrend_F pretrend_p, fmt(0 3 3 3 3) ///
+          labels("N" "R2" "Wild cluster bootstrap p" "Pre-trend joint F" "Pre-trend joint p")) ///
     title("Table 5 — Advanced Robustness (P2 attention)") ///
-    addnotes("Column 1 (wild_boot): analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
-             "Oster δ / rwolf / Honest DiD / ritest output in supplemental log.")
+    addnotes("Column wild_boot: analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
+             "Column es\_dcep (DID-3): INLINE intensity-DiD event study (attention x DCEP rel-year leads/lags); Pre-trend joint F/p tests H0: all pre-period (lead2, lead3) interactions = 0 (Sun-Abraham 2021)." ///
+             "Romano-Wolf stepdown FWER-corrected p for the main treatment across the alternative-attention measure family: p\_rw = `rw_p_main' (rwolf, 1000 reps; Romano-Wolf 2005). attention\_disp\_full column additionally controls ln(1+n\_outlets) to net out mechanical low-coverage HHI=1 (Cookson-Niessner 2020; ATT CV-2)." ///
+             "HonestDiD parallel-trends sensitivity (M-bands 0/.5/1/2; Rambachan-Roth 2023) saved to honestdid\_attention.gph when the event study is identified and the ado is installed. Oster delta / ritest in supplemental log.")
 
 * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — tables.py:build_table5_robustness
 * 经 read_paper_esttab(...,'table5_robustness.csv') 消费 (parse_esttab_csv 格式)
 estout `models' using "$tables_dir/table5_robustness.csv", replace delimiter(",") ///
-    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild, fmt(0 3 3)) ///
+    cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 p_wild pretrend_F pretrend_p, fmt(0 3 3 3 3)) ///
     starlevels(* 0.10 ** 0.05 *** 0.01)
 
 display "[OK] Table 5 (robustness) → $tables_dir/table5_robustness.tex (+ .csv side-channel)"

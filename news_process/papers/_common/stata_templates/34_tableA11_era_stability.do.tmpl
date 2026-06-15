@@ -1,0 +1,206 @@
+* news_process — Table A11: 分时代结构稳定性 (Era / Regime Stability)
+*
+* CY-2 (P1 bank_fintech_tone 跨年可比性缺口补全; 全 $0, 列均在盘/golden-safe, 纯 Stata):
+*   全代码库此前无结构性断点 / 分时代稳定性检验, 唯一时间维稳健性 (Table A9 的
+*   excl-pre2013) 是 era-stability 的反面 (假设跨时代不变并验"去早期仍成立")。
+*   本表把 2007-2024 样本切成三个 fintech 监管时代, 直接检验主关系是否随时代漂移:
+*     Era 1 (2007-2012): 余额宝前, fintech 媒体议程萌芽期
+*     Era 2 (2013-2018): 余额宝(2013) / P2P 监管(2016) / 资管新规(2017) 爆发-整顿期
+*     Era 3 (2019-2024): DCEP(2019) / 平台反垄断 / 数字人民币常态化期
+*
+*   三块:
+*     Panel A — 三时代分段回归: 每个时代各跑一次主规格 (DV~digital_frontier, TWFE)。
+*     Panel B — 全样本 treatment×era 交乘: 在 pooled 面板上加 era 哑变量 × treatment,
+*               读各时代相对基准时代的处理效应差。
+*     Panel C — Wald 三时代系数相等检验: H0 三个时代的处理系数相等 (无结构断裂)。
+*
+* 为什么 (大白话):
+*   把 18 年按"金融科技监管大节点"切成三段, 分别看"数字化前沿→语调"这层关系在
+*   每段里是不是一样强; 再用一个交乘 + 一个 Wald 检验正式判断三段的效应是否显著不同。
+*   如果三段差很多, 说明把 18 年合在一起跑一个系数会把异质效应平均成有偏均值, 论文
+*   须分时代报告或限识别窗。
+*
+* T=2 退化守卫 (铁律): 当前硬盘是 T=2 试跑帧 (year∈{2017,2018}, 全落在 Era 2),
+*   则只有 Era 2 有数据 → Panel A 仅产 Era 2 一列, Panel B/C 因 era 无变异 (单时代)
+*   优雅跳过 (capture + 取值数守卫), 不报错不弹框; 全量 T=18 接入后三时代自动激活。
+*
+* 文献锚点 (DOI 已核验):
+*   Bai, J., & Perron, P. (1998). Estimating and Testing Linear Models with Multiple
+*     Structural Changes. Econometrica, 66(1), 47-78. https://doi.org/10.2307/2998540
+*                                                    [结构断点框架]
+*   Hansen, B. E. (2001). The New Econometrics of Structural Change: Dating Breaks in
+*     U.S. Labor Productivity. Journal of Economic Perspectives, 15(4), 117-128.
+*     https://doi.org/10.1257/jep.15.4.117          [分时代系数稳定性]
+*   Gentzkow, M., & Shapiro, J. M. (2010). What Drives Media Slant? Evidence from
+*     U.S. Daily Newspapers. Econometrica, 78(1), 35-71.
+*     https://doi.org/10.3982/ECTA7195               [媒体测度跨期构成漂移]
+*
+* Main spec: sent={{MAIN_SENT_TRACK}} (locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}})
+
+version 19
+set linesize 120
+
+* fix(omni-g-templates-14): 每表开头 eststo clear 隔离估计命名空间 (master 共享 session)。
+eststo clear
+
+* 载入与主表同口径的缩尾面板 (_prepared_panel; 缺失回退未缩尾 full.dta)
+capture confirm file "data/processed/_prepared_panel.dta"
+if !_rc {
+    use "data/processed/_prepared_panel.dta", clear
+}
+else {
+    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep); 回退未缩尾 full.dta"
+    use "data/processed/46_panel_yearly_full.dta", clear
+}
+
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+capture do "data/processed/46_panel_yearly_labels.do"
+
+local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
+local EXPL   digital_frontier
+local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
+local SUBST  symb_frac_{{MAIN_SUBST_TRACK}}
+
+* DV / EXPL 存在性守卫
+capture confirm variable `DV' `EXPL'
+if _rc {
+    display as error "  ⚠️ DV (`DV') 或 EXPL (`EXPL') 不在面板, Table A11 整表跳过 (degrade)"
+    exit 0
+}
+
+* LOCUS/SUBST 控制守卫
+capture confirm variable `LOCUS' `SUBST'
+if _rc {
+    display "  ⚠️ LOCUS/SUBST 列缺 (`LOCUS' / `SUBST'): 回归 degrade 为不含 LOCUS/SUBST"
+    local LOCUS
+    local SUBST
+}
+
+* year 存在性守卫 (era 切分依赖)
+capture confirm variable year
+if _rc {
+    display as error "  ⚠️ year 不在面板, era-stability 无法切分, Table A11 跳过"
+    exit 0
+}
+
+* ── 构造 era 时代变量 (1/2/3) ──
+* Era 1 (2007-2012) / Era 2 (2013-2018) / Era 3 (2019-2024)
+cap drop era
+gen byte era = .
+replace era = 1 if year >= 2007 & year <= 2012
+replace era = 2 if year >= 2013 & year <= 2018
+replace era = 3 if year >= 2019 & year <= 2024
+label define era_lbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2024", replace
+label values era era_lbl
+
+* 检测实际有几个时代有数据 (T=2 盘只有 Era 2)
+quietly levelsof era if !missing(`DV'), local(eras_present)
+local n_eras : word count `eras_present'
+display as text "── Table A11: 实有时代数 = `n_eras' (`eras_present') ──"
+
+* ==========================================================================
+* Panel A — 三时代分段回归
+* ==========================================================================
+* 每个有数据的时代各跑一次主规格 (DV ~ digital_frontier + 控制, TWFE)。
+eststo clear
+local acols ""
+local alabs ""
+foreach e of local eras_present {
+    quietly count if era == `e' & !missing(`DV')
+    if r(N) > 10 {
+        capture eststo ERA`e': reghdfe `DV' `EXPL' `LOCUS' `SUBST' ///
+            if era == `e', absorb(bank_id year) vce(cluster bank_id)
+        if !_rc {
+            local acols "`acols' ERA`e'"
+            if `e' == 1 local alabs `"`alabs' "2007-2012""'
+            if `e' == 2 local alabs `"`alabs' "2013-2018""'
+            if `e' == 3 local alabs `"`alabs' "2019-2024""'
+        }
+        else {
+            display "  ⚠️ Panel A era=`e' 回归退化, 跳过"
+        }
+    }
+    else {
+        display "  ⚠️ Panel A era=`e' 子样本 N=`r(N)' 过少 (<=10), 跳过 (T=2 试跑盘正常)"
+    }
+}
+
+if "`acols'" != "" {
+    esttab `acols' using "output/tables/tableA11a_era_segments.tex", ///
+        keep(`EXPL') se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
+        title("Table A11-A: Era-Segmented Main Spec (Regime Stability)") ///
+        mtitles(`alabs') ///
+        note("DV = `DV'; TREAT = digital_frontier; bank+year FE; SE clustered at bank. " ///
+             "Sample split into FinTech regulatory eras: pre-Yuebao (2007-2012), " ///
+             "boom-cleanup (2013-2018: Yuebao 2013 / P2P 2016 / asset-mgmt rules 2017), " ///
+             "and DCEP era (2019-2024). Coefficient stability across eras tests for " ///
+             "structural drift (Bai-Perron 1998 ECMA; Hansen 2001 JEP; Gentzkow-Shapiro 2010 ECMA).")
+    estout `acols' using "output/tables/tableA11a_era_segments.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) keep(`EXPL')
+    display "✅ Table A11-A (era-segmented main spec) written"
+}
+else {
+    display "  ⚠️ Panel A 无任何可用时代列, 跳过整张 A11-A"
+}
+
+* ==========================================================================
+* Panel B — 全样本 treatment×era 交乘 + Panel C — Wald 三时代系数相等
+* ==========================================================================
+* 仅当 ≥2 个时代有数据时才有意义 (单时代 era 无变异, i.era 会被 drop)。
+eststo clear
+if `n_eras' >= 2 {
+    * Panel B: pooled 面板上加 era 哑 × treatment 交乘 (## 自动含主效应+era 主效应)
+    capture eststo POOL_X: reghdfe `DV' c.`EXPL'##i.era `LOCUS' `SUBST', ///
+        absorb(bank_id year) vce(cluster bank_id)
+    if !_rc {
+        esttab POOL_X using "output/tables/tableA11b_era_interaction.tex", ///
+            se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
+            title("Table A11-B: Treatment x Era Interaction (Pooled)") ///
+            mtitles("Pooled treatment x era") ///
+            note("DV = `DV'; bank+year FE; SE clustered at bank. c.digital_frontier##i.era: " ///
+                 "the interaction coefficients give the per-era treatment-effect differential " ///
+                 "relative to the omitted (base) era. Significant interactions => effect drifts " ///
+                 "across FinTech regulatory regimes (Hansen 2001 JEP).")
+        estout POOL_X using "output/tables/tableA11b_era_interaction.csv", replace delimiter(",") ///
+            cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+            starlevels(* 0.10 ** 0.05 *** 0.01)
+        display "✅ Table A11-B (treatment x era interaction) written"
+
+        * Panel C: Wald 三 (或二) 时代处理系数相等 H0
+        * 交乘项命名 c.`EXPL'#i.era 下, 各非基准 era 的差分系数为
+        * `e'.era#c.`EXPL'; H0: 所有差分 = 0 (即三时代系数相等)。
+        * 动态拼检验项: 取除基准外的每个有数据 era 的交乘系数。
+        local _base : word 1 of `eras_present'
+        local test_terms ""
+        foreach e of local eras_present {
+            if `e' != `_base' {
+                local test_terms "`test_terms' `e'.era#c.`EXPL'"
+            }
+        }
+        if "`test_terms'" != "" {
+            display as text "── Panel C: Wald 时代系数相等检验 (H0: 各时代处理效应相等) ──"
+            capture noisily test `test_terms'
+            if !_rc {
+                display as text "    Wald: F = " %7.3f r(F) "  (df=" r(df) "," r(df_r) ")  p = " %6.4f r(p)
+                display as text "    p>0.10 => 无法拒绝跨时代系数相等 (结构稳定); p<0.10 => 存在显著结构漂移, 须分时代报告/限识别窗"
+            }
+            else {
+                display as text "    ⚠️ Wald 检验退化跳过 (交乘项被 drop / 单时代), 全量 T=18 激活"
+            }
+        }
+    }
+    else {
+        display "  ⚠️ Panel B/C: pooled treatment×era 回归退化 (单时代 era 无变异?), 跳过 (T=2 试跑盘正常)"
+    }
+}
+else {
+    display "  ⚠️ Panel B/C: 仅 `n_eras' 个时代有数据 (T=2 盘全落 Era 2), 交乘+Wald 跳过"
+    display "       全量 T=18 (2007-2024) 接入后, 三时代交乘与 Wald 相等检验自动激活。"
+}
+
+display "✅ Table A11 (分时代结构稳定性) 完成 — A 分段回归 / B 交乘 / C Wald 相等检验"

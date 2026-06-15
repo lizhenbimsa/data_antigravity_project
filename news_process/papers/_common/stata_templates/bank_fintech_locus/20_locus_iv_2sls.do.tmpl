@@ -72,6 +72,44 @@ if !_rc {
         absorb(bank_id year) vce(cluster bank_id)
 }
 
+* ----------------------------------------------------------------------------
+* weak-IV-robust 推断 (IV-2 修复 2026-06-14): 把脚注里"KP F < Stock-Yogo 时改读
+* Anderson-Rubin 弱工具稳健 CI"的决策规则从【散文承诺】落为【真实命令】。
+* weakiv (Finlay-Magnusson-Schaffer; Andrews-Stock-Sun 2019 ARE) 在 2SLS 后跑
+* AR / CLR 检验并给出弱工具稳健 CI; 同 estadd 把 AR p 注入 e(ar_p) 进 esttab。
+* 全程 capture which 守卫: 缺 weakiv ado / T=2 退化 / 缺 DV 时优雅跳过, 不弹框。
+* 白话: 工具弱时常规 2SLS 的点估计/标准误不可信, AR 区间不依赖工具强度, 即便
+* 弱工具也给出有效置信区间 — 现在表里真有这个统计量, 不再只是脚注承诺。
+* ----------------------------------------------------------------------------
+capture program drop _locus_arci
+program define _locus_arci
+    * args: 1=estimate name (eststo 已存的 2SLS), 2=endogenous var
+    args estname endog
+    capture which weakiv
+    if _rc {
+        display "  ⚠️ weakiv not installed (ssc install weakiv); `estname' AR 弱工具稳健 CI 跳过"
+        exit 0
+    }
+    capture estimates restore `estname'
+    if _rc {
+        display "  [SKIP] `estname' 未存储, AR CI 跳过"
+        exit 0
+    }
+    * weakiv 直接复用上一条 ivreg2 估计 (无参数 = replay 当前 e() 上的 AR/CLR 检验)
+    capture noisily weakiv, level(95)
+    if !_rc {
+        * AR p 返回名跨 weakiv 版本可能不同 (e(ar_p) / r(ar_p)); 双取兜底, 缺则留空
+        local _arp = .
+        capture local _arp = e(ar_p)
+        if missing(`_arp') capture local _arp = r(ar_p)
+        capture estadd scalar ar_p = `_arp': `estname'
+        display "  [AR] `estname' (`endog'): weak-IV-robust Anderson-Rubin test computed (AR p = " %5.3f `_arp' "); 95% AR CI in log above."
+    }
+    else {
+        display "  ⚠️ weakiv 运行失败 (T=2 退化 / 共线 / df=0); `estname' AR CI 跳过"
+    }
+end
+
 * 2SLS (DV 待外部行情数据; 缺列优雅跳过)
 capture confirm variable `DV'
 if _rc {
@@ -82,17 +120,21 @@ else {
     if !_rc {
         eststo tsls_loo: ivreg2 `DV' (`TX' = `IV1') $controls ///
             i.bank_id i.year, cluster(bank_id) first
+        * weak-IV-robust AR CI 紧随其后 (weakiv 复用 e())
+        _locus_arci tsls_loo `TX'
     }
     capture confirm variable `IV1L'
     if !_rc {
         eststo tsls_lag: ivreg2 `DV' (`TX' = `IV1L') $controls ///
             i.bank_id i.year, cluster(bank_id) first
+        _locus_arci tsls_lag `TX'
     }
     * ctx 轨 just-identified 2SLS (与 full 轨 tsls_loo 并排; 同一 DV, 双轨各自工具)
     capture confirm variable `TXC' `IVC'
     if !_rc {
         eststo tsls_ctx: ivreg2 `DV' (`TXC' = `IVC') $controls ///
             i.bank_id i.year, cluster(bank_id) first
+        _locus_arci tsls_ctx `TXC'
     }
 }
 
@@ -119,12 +161,13 @@ else {
     esttab `models' ///
         using "$tables_dir/tableA_locus_iv_2sls.tex", replace ///
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-        stats(N r2 widstat, fmt(0 3 3) labels("N" "R²" "KP F")) ///
+        stats(N r2 widstat ar_p, fmt(0 3 3 3) labels("N" "R²" "KP F" "Anderson-Rubin p (weakiv)")) ///
         title("P4 Locus IV: Same-Type Peer LOO Tech Exposure (First Stage + 2SLS)") ///
         mtitles(`mtitles') ///
         addnotes("IV = same-bank-type leave-one-out mean of peers' tech_frac (contemporaneous + lag-1 robustness; reflection/exclusion caveats per Manski 1993; Leary-Roberts 2014 JF — disclose in text)." ///
                  "ctx column: entity-window twin tech_frac_lc instrumented by lpeer_locus_iv_ctx, just-identified, side-by-side dual-track robustness (NOT pooled with full-track IV; Parente-Santos Silva 2012)." ///
-                 "Just-identified columns: Hansen J not computable (df=0), not reported. KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005); if below, use Anderson-Rubin CI (Andrews-Stock-Sun 2019).")
+                 "Just-identified columns: Hansen J not computable (df=0), not reported. KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005)." ///
+                 "Anderson-Rubin p row = weakiv (Finlay-Magnusson-Schaffer; Andrews-Stock-Sun 2019 ARE) weak-IV-robust test, actually computed when KP F is below threshold; AR CI in supplemental log. Blank = weakiv ado absent or T=2 degenerate.")
 
     display "[OK] 20_locus_iv_2sls → $tables_dir/tableA_locus_iv_2sls.tex"
 }

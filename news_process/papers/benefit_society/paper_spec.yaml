@@ -43,6 +43,14 @@ controls:
   # enrichment pending (M0.5.11 / config/银行面板2007-2025年.xlsx 待接入)。
   # 当前复现包实际控制集为 coverage 代理 (derivative_replication CONTROLS):
   # ln_news_coverage media_breadth n_articles (panel 实存列)。
+  # SPEC IV-2 (2026-06-14 顶刊重审, 坏控制澄清): coverage 代理 (ln_news_coverage /
+  #   media_breadth / n_articles) 是【外延边际】(覆盖总量) 而 treatment benefit_mean_full
+  #   是逐文章态度均值 (强度边际, 已对篇数取均值) — 控制覆盖量隔离"被报道多少"与
+  #   "被如何评价", 是 Tetlock 2007 JF / Fang-Peress 2009 JF 标准做法 (pre-determined
+  #   visibility 混淆, 非态度的后处理中介/坏控制)。framing 与 network_roles.control
+  #   一致 = visibility_confounder。
+  # ⚠ SPEC IV-1 (2026-06-14): fixed_effects = bank_fe (= absorb(bank_id), 主表/稳健性表
+  #   11/14 已落地; 旧 bank_type FE 退役为异质性/子样本维度)。
   bank_level: [ln_assets, leverage, capital_ratio, npl_ratio, deposit_growth]
   year_level: [gdp_growth, m2_growth]
   fixed_effects: [bank_fe, year_fe]
@@ -73,6 +81,30 @@ network_roles:
     pap_locked: true   # 不可改 primary (PAP v1.0-final)
     lit: [Fang-Peress 2009 JF, Burt 1992]
   centrality_missing_convention: zero_fill_offnetwork_disclose_N
+
+# 推断/聚类/family 声明 (INFER IV-2, 2026-06-14 顶刊重审): 此前 spec 无形式化
+# inference 块 → referee 无从区分 confirmatory 主规格与 exploratory 稳健性。
+# 顶刊对观测性研究不强制 OSF/PAP, 但要求明示单一主假设 + family 定义 + 聚类层级。
+inference:
+  # 单一 confirmatory 主规格 (PAP v1.0-final 锁定, 不可事后变更):
+  confirmatory:
+    treatment: benefit_mean_full    # treatment.primary
+    outcome: roa                    # outcome.primary (PAP-locked)
+    spec: M4   # 11_table2_main 的 +bank_id+year FE +controls 渐进列 (主规格)
+  # 主推断: 银行层聚类 (G≈84/200) + wild cluster bootstrap (11b_table2_boottest)
+  cluster: bank_id
+  small_g_inference: wild_cluster_bootstrap   # boottest, G_bank 偏小时主推断 (Roodman et al. 2019)
+  cluster_robustness: [bank_only, bank_year_twoway]   # 双向聚类对照 (Cameron-Miller 2015)
+  # confirmatory family = 主 DV × 主 treatment 单一假设; 其余皆 exploratory/robustness:
+  confirmatory_family: ["benefit_mean_full -> roa"]
+  exploratory:   # 非预注册, 论文须明示为 exploratory (替代测度/轨道/加权/异质性)
+    - "benefit_mean_ctx (dual-track robustness; Table A2)"
+    - "benefit_pos_frac_full / benefit_neg_frac_full (decomposition; Table 5 R5)"
+    - "secondary outcomes (car_3day / *_adopt_kw_p50; PAP secondary)"
+    - "is_listed heterogeneity (Table 4) + SOE/type/hub/size subsamples (Table A14)"
+  fwer:   # 多测度/异质性族跨族 FWER 校正 (Romano-Wolf 2005); 主 confirmatory 单假设免
+    method: romano_wolf
+    applies_to: [exploratory]   # confirmatory 单一主假设无须 FWER
 
 event_studies: []  # benefit_society 主回归不依赖外生 shock; cross-sectional within-bank within-year
 

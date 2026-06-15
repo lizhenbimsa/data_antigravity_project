@@ -1,0 +1,182 @@
+* ============================================================================
+* 26_substance_era_stability.do — 分时代结构稳定性 (P3 bank_fintech_substance)
+* Paper: {{PAPER_ID}}
+* CY-2 修复 (PROJECT_REAUDIT_TOPTIER_T18_2026-06-14, P1; era-stability 模板)。
+* ----------------------------------------------------------------------------
+* 是什么 (大白话):
+*   2007-2024 横跨多个 fintech 监管/市场 regime (2013 余额宝 / 2016 P2P 整治 /
+*   2019 DCEP 试点)。同一个 "实质性 vs 象征性" 比值在不同时代的含义和效应可能
+*   不一样。本表把样本切成三个时代各跑一次主回归 (sub_frac → 成本收入比变化),
+*   再用全样本 treatment×era 交乘 + Wald 检验"三时代系数是否相等", 看主效应
+*   是不是被跨时代异质性平均成有偏均值。这是顶刊对 2007-2024 长面板的硬要求,
+*   也是 excl-pre2013 (假设跨时代不变) 的正面对照。
+* ----------------------------------------------------------------------------
+* 三时代切分 (regime epochs):
+*   era 1 = 2007-2012  (pre-fintech / 余额宝前)
+*   era 2 = 2013-2018  (移动支付与 P2P 扩张-整治)
+*   era 3 = 2019-2024  (DCEP / 持牌化 / 严监管)
+* ----------------------------------------------------------------------------
+* 文献锚点 (literature anchors):
+*   - Bai & Perron (1998) ECMA 66(1):47-78 — 结构断点 (面板 DiD 非硬要求, 仅参照)
+*   - Hansen (2001) JEP 15(4):117-128 — 结构断裂检验综述
+*   - Gentzkow & Shapiro (2010) ECMA 78(1):35-71 — 媒体测度跨期可比性
+* ----------------------------------------------------------------------------
+* golden-safe 铁律 (capture 守卫 + 优雅跳过):
+*   主 outcome cost_income_ratio_change_3yr 为外部财务 sentinel; 全部回归
+*   capture confirm 守卫, 缺 DV 则整表优雅跳过 (wire-ahead)。T=2 试跑盘只有
+*   2017-2018 → 仅 era 2 有数据: 单时代时只出该列, 跳过其余时代与交乘/Wald,
+*   不报错不弹框; T=18 财务接入后三时代列与 Wald 自动激活。
+*   小单元守卫: 每时代估计前 quietly count raw N>=10, 估计后再查 e(N)>=10。
+*   esttab 名单动态化 (estimates dir → 缺名不点名, 防 r(111) 丢整表)。
+* ⚠ 本文件为被 00_master do 调用的子 .do, 末尾【不加】终端 exit (会中断 master 链)。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+
+use "$data_dir/_prepared_panel.dta", clear
+
+set seed {{RANDOM_SEED}}
+eststo clear
+
+* 前置: DV sentinel + treatment 门控 (整表依赖; 缺则优雅 no-op)
+capture confirm variable {{MAIN_DV}}
+local _have_dv = (_rc == 0)
+capture confirm variable {{MAIN_TREAT}}
+local _have_tx = (_rc == 0)
+if !`_have_dv' {
+    display "  [WARN] {{MAIN_DV}} 不在面板 (外部财务 sentinel 待接入); 26_* era-stability 表 wire-ahead 跳过"
+}
+if !`_have_tx' {
+    display "  [WARN] {{MAIN_TREAT}} 不在面板; 26_* era-stability 表跳过"
+}
+
+if `_have_dv' & `_have_tx' {
+
+    * era 三分类 (regime epochs; year FE 已吸收 era 主效应, era 仅用于切分/交乘)
+    capture drop _era
+    gen byte _era = .
+    replace _era = 1 if year >= 2007 & year <= 2012
+    replace _era = 2 if year >= 2013 & year <= 2018
+    replace _era = 3 if year >= 2019 & year <= 2024
+    label define _eralbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2024", replace
+    label values _era _eralbl
+
+    * --------------------------------------------------------------------
+    * (A) 分时代各跑主规格 (sub_frac → CIR, bank FE + year FE)
+    * --------------------------------------------------------------------
+    local n_era_ok = 0
+    forvalues e = 1/3 {
+        quietly count if _era == `e' & !missing({{MAIN_TREAT}}, {{MAIN_DV}})
+        if r(N) >= 10 {
+            capture reghdfe {{MAIN_DV}} {{MAIN_TREAT}} $controls if _era == `e', ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            * 二次门控: 吸收 FE 后自由度可能塌缩 (退化单元 e(N)=4 / R²=1) 不入表
+            if !_rc & e(N) >= 10 {
+                eststo era`e'
+                local ++n_era_ok
+            }
+            else {
+                display "  [INFO] era `e' 吸收 FE 后退化 (e(N)<10 或估计失败); 跳过该时代列"
+            }
+        }
+        else {
+            display "  [INFO] era `e' raw N<10 (T=2 盘多只覆盖 era 2); 跳过该时代列"
+        }
+    }
+
+    * --------------------------------------------------------------------
+    * (B) 全样本 treatment×era 交乘 + Wald 三时代系数相等检验
+    *     仅当 >=2 个时代有数据时才有意义 (单时代无可比对象)。
+    * --------------------------------------------------------------------
+    quietly levelsof _era if !missing({{MAIN_TREAT}}, {{MAIN_DV}}), local(eras_present)
+    local n_present : word count `eras_present'
+    if `n_present' >= 2 {
+        * c.treat#i.era 交乘 (era 主效应被 year FE 吸收, 不另入); 缺哑列 Stata 自动 omit
+        capture reghdfe {{MAIN_DV}} c.{{MAIN_TREAT}}##i._era $controls, ///
+            absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+        if !_rc {
+            * Wald: 各时代斜率相等 ⇔ 所有 treat#era 交互项 = 0 (相对基准时代)
+            * ⚠ 修复 (PROJECT_REAUDIT_TOPTIER_T18_2026-06-14, CY-2 root-cause #1):
+            *   基准时代交互项被 Stata omit (基名形如 1bn._era#c.treat), 显式
+            *   `test 1._era#c.treat ...` 会因该项不存在抛 r(111) "... not found",
+            *   被 capture 吞掉 → 进 else 分支 → wald_chi2/wald_p 永远空白 → CY-2
+            *   headline 检验在 T=18 激活路径上静默失效 ("声明—实现"缺口)。
+            *   改用 testparm i._era#c.treat: testparm 自动【只】对实际存在 (未被
+            *   omit) 的交互参数做联合检验, 跳过基准时代项, 无需手工拼名, 故只要
+            *   >=2 时代有数据即真正算出 chi2/p; 单时代由上游 n_present>=2 守卫拦截。
+            capture testparm i._era#c.{{MAIN_TREAT}}
+            if !_rc {
+                * fix(reaudit-t18-2026-06-14, CY-2 follow-up): reghdfe + vce(cluster) 下
+                *   testparm 报【F 统计量 r(F)】而非 r(chi2) (small-sample 集群推断), 旧版
+                *   只读 r(chi2) → wald_chi2 行即便 T=18 Wald 真跑成功也恒为空 (统计量虽
+                *   存在但落 r(F))。改: r(chi2) 缺时回退 r(F), 把实际算出的 Wald 统计量
+                *   (chi2 或 F) 真填进 wald_chi2 行; r(p) 是两者共用的联合检验 p。
+                local _wstat = r(chi2)
+                local _wp    = r(p)
+                if missing(`_wstat') local _wstat = r(F)
+                estadd scalar wald_chi2 = `_wstat'
+                estadd scalar wald_p    = `_wp'
+                display "  [OK] era 系数相等 Wald: stat=`_wstat' p=`_wp' (拒绝=时代异质; reghdfe+cluster 下统计量为 F)"
+            }
+            else {
+                display "  [INFO] Wald 相等性检验不可计算 (仅基准时代交互项保留 / 退化); 跳过"
+            }
+            eststo era_interact
+        }
+        else {
+            display "  [INFO] treatment×era 交乘回归失败 (rc=`=_rc'; 多为单时代退化); 跳过交乘列"
+        }
+    }
+    else {
+        display "  [INFO] 仅 `n_present' 个时代有数据 (T=2 盘=单时代); 跳过 era 交乘 + Wald (无可比对象)"
+    }
+
+    * --------------------------------------------------------------------
+    * 输出 (esttab 名单动态化, 缺估计不点名)
+    * --------------------------------------------------------------------
+    qui estimates dir
+    local stored `r(names)'
+    local cand_models era1 era2 era3 era_interact
+    local cand_titles `""2007-2012" "2013-2018" "2019-2024" "Treat x Era""'
+    local models ""
+    local mtitles `""'
+    local nmod : word count `cand_models'
+    forvalues i = 1/`nmod' {
+        local m : word `i' of `cand_models'
+        if `: list m in stored' {
+            local models `models' `m'
+            local t : word `i' of `cand_titles'
+            local mtitles `"`mtitles' "`t'""'
+        }
+    }
+    if "`models'" == "" {
+        display "  [WARN] era-stability 表无任何可估计列 (单时代退化或 DV 缺); 表跳过"
+    }
+    else {
+        esttab `models' using "$tables_dir/tableA_substance_era_stability.tex", replace ///
+            star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+            stats(N r2 wald_chi2 wald_p, fmt(0 3 3 3) ///
+                  labels("N" "R²" "Wald stat (era eq.; F under cluster)" "Wald p (era eq.)")) ///
+            title("Era-Stability: Substantiveness Effect Across Fintech Regimes (P3)") ///
+            mtitles(`mtitles') ///
+            addnotes("Columns 1-3: main spec (sub_frac -> cost_income_ratio_change_3yr, bank + year FE) re-estimated within each regime epoch (era 1 = 2007-2012 / era 2 = 2013-2018 / era 3 = 2019-2024)." ///
+                     "Last column: full-sample c.sub_frac##i.era interaction (era main effects absorbed by year FE); Wald rows test equality of the era-specific slopes (rejection => effect is regime-heterogeneous, pooled estimate is a biased average)." ///
+                     "Empty columns / blank Wald arise on T=2 trial frames where only one regime has data; full T=18 activates all three eras automatically. Anchors: Bai-Perron 1998 ECMA; Hansen 2001 JEP; Gentzkow-Shapiro 2010 ECMA.")
+
+        * CSV side-channel (与本目录其他模板一致约定; 供 tables.py 可选消费)
+        estout `models' using "$tables_dir/tableA_substance_era_stability.csv", replace delimiter(",") ///
+            cells(b(star fmt(3)) se(par fmt(3))) stats(N r2 wald_chi2 wald_p, fmt(0 3 3 3)) ///
+            starlevels(* 0.10 ** 0.05 *** 0.01)
+
+        display "[OK] 26_substance_era_stability → $tables_dir/tableA_substance_era_stability.tex (+ .csv)"
+    }
+
+    capture drop _era
+}

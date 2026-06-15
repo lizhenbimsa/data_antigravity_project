@@ -1,0 +1,219 @@
+* ============================================================================
+* 25_locus_era_stability.do — Table C: 跨时代稳定性 (era-stability) [P4 bank_fintech_locus]
+* Paper: {{PAPER_ID}}
+*
+* CY-2 修复 (2026-06-14): 全代码库此前无结构性断点 / 分时代稳定性检验; 唯一时间维
+* 稳健性 (18_locus_robustness 的 excl_pre year>=2013) 恰是 era-stability 的【反面】
+* (假设跨时代不变并验"去早期仍成立")。2007-2024 跨 2013 余额宝 / 2016 P2P / 2019
+* DCEP 多 regime, pooled intensity-DiD 若关系断裂会把异质效应平均成有偏均值。
+*
+* 本表三件套 (Bai-Perron 对面板 DiD 非硬要求, 真要求 = 系数稳定性 + 交乘 Wald):
+*   Panel A: 三时代【分段】各跑一次主规格 (locus_layer/scenario → MAIN_DV)
+*            era1 = 2007-2012 (pre-fintech) / era2 = 2013-2018 (互金+区块链浪潮)
+*            era3 = 2019-2024 (蚂蚁叫停后 + 监管收紧 + 大模型)
+*   Panel B: 全样本 + treatment × era 交乘 (era1 作参照组)
+*   Panel C: Wald 检验三时代主处理系数相等 (H0: layer 效应跨时代不变)
+*   (可选) estat sbsingle / sbknown 主处理结构断点 — 缺 ado / T 小时跳过
+*
+* ── 大白话 ──────────────────────────────────────────────────────────────────
+*   是什么: 把 2007-2024 切成三个金融科技时代, 分别看"押底层技术"的银行效应,
+*           再用交乘项正式检验三个时代的效应是不是一样大。
+*   为什么: 长面板 (T=18) 里同一个比值/强度测度跨年含义会漂移, year FE 只吸收水平
+*           不吸收"含义漂移"; 审稿人 (顶刊对长面板媒体测度的硬要求) 要看效应在不同
+*           监管/技术时代是否稳定, 而不是被平均成一个有偏的总均值。
+*   影响:   纯 Stata 层, 只读在盘 treatment/MAIN_DV; T=2 试跑帧仅 2017-2018 → 只有
+*           era2 一个时代有数据, 其余 era 与交乘/Wald 自动 capture 跳过 (优雅, 不报错);
+*           production T=18 自动激活全部三时代。$0 / golden-safe。
+*
+* ── 文献锚点 (DOI 已核验) ──────────────────────────────────────────────────
+*   分时代系数稳定性 / 结构断点:
+*   Bai, J., & Perron, P. (1998). Estimating and testing linear models with
+*   multiple structural changes. Econometrica, 66(1), 47-78. doi:10.2307/2998540
+*   Hansen, B. E. (2001). The new econometrics of structural change. Journal of
+*   Economic Perspectives, 15(4), 117-128. doi:10.1257/jep.15.4.117
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+eststo clear
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* 载入已 prepped 面板; 独立重跑兜底回退原盘 + 现场派生主处理 (镜像 23_locus_subsample)
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc use "data/processed/_prepared_panel.dta", clear
+    else    use "data/processed/46_panel_yearly_full.dta", clear
+    capture confirm variable bank_id
+    if _rc encode target_bank, gen(bank_id)
+    capture confirm variable locus_layer_full
+    if _rc {
+        capture confirm variable tech_frac
+        capture confirm variable app_frac
+        capture gen locus_layer_full    = (tech_frac > app_frac) if !missing(tech_frac, app_frac)
+        capture gen locus_scenario_full = (app_frac > tech_frac) if !missing(tech_frac, app_frac)
+    }
+    capture xtset bank_id year
+}
+
+set seed {{RANDOM_SEED}}
+
+* ----------------------------------------------------------------------------
+* 公共守卫 + 时代变量构造
+* ----------------------------------------------------------------------------
+local have_dv = 0
+capture confirm variable {{MAIN_DV}}
+if !_rc local have_dv = 1
+local have_treat = 0
+capture confirm variable locus_layer_full
+if !_rc local have_treat = 1
+
+if `have_treat' == 0 {
+    display as error "  [WARN] locus_layer_full 不在盘 — 须先跑 01_data_prep 派生主处理; Table C 跳过"
+    exit 0
+}
+if `have_dv' == 0 {
+    display as text "  [WIRE-AHEAD] {{MAIN_DV}} 不在盘 (外部专利/财务面板待接入); era-stability 优雅跳过, 仅写空表占位"
+}
+
+* era ∈ {1,2,3}: 2007-2012 / 2013-2018 / 2019-2024
+capture drop era
+gen byte era = .
+replace era = 1 if year >= 2007 & year <= 2012
+replace era = 2 if year >= 2013 & year <= 2018
+replace era = 3 if year >= 2019 & year <= 2024
+label define era_lbl 1 "2007-2012 (pre-fintech)" 2 "2013-2018 (互金/区块链)" 3 "2019-2024 (后蚂蚁/大模型)"
+label values era era_lbl
+
+* 每时代最低观测门控 (小单元不跑, 对齐 23_locus_subsample small-cell 守卫)
+local min_n = 10
+
+* ============================================================================
+* Panel A — 三时代分段主规格 (各自一列)
+* ============================================================================
+if `have_dv' & `have_treat' {
+    forvalues e = 1/3 {
+        count if era == `e' & !missing(locus_layer_full, {{MAIN_DV}})
+        if r(N) >= `min_n' {
+            * 单时代内可能只有 1 年 → year FE 退化, capture 守卫
+            capture noisily reghdfe {{MAIN_DV}} locus_layer_full locus_scenario_full $controls if era == `e', ///
+                absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+            if !_rc {
+                eststo era_`e'
+                capture estadd local era_lab : label era_lbl `e'
+            }
+            else {
+                display as text "  [SKIP] Panel A era==`e': 回归退化 (单时代内 year/within 变异不足); production T=18 激活"
+            }
+        }
+        else {
+            display as text "  [SKIP] Panel A era==`e': N=" r(N) " < `min_n' (T=2 试跑帧仅 2017-2018 落 era2); production 全样本激活"
+        }
+    }
+}
+
+* ============================================================================
+* Panel B — 全样本 + treatment × era 交乘 (era1 = 参照组)
+* Panel C — Wald 检验三时代主处理 (locus_layer_full) 系数相等
+* ============================================================================
+* 仅当 ≥2 个时代有数据时交乘才有识别 (T=2 单时代时自动跳过)
+* (have_dv==0 时 MAIN_DV 列不在盘 → capture 守卫防 levelsof r(111) 中断脚本)
+local n_eras_present = 0
+if `have_dv' & `have_treat' {
+    capture levelsof era if !missing(era, locus_layer_full, {{MAIN_DV}}), local(eras_present)
+    if !_rc local n_eras_present : word count `eras_present'
+}
+
+if `have_dv' & `have_treat' & `n_eras_present' >= 2 {
+    * c.locus#i.era 交乘 (factor era; ib1 取 era1 为参照组)
+    capture noisily reghdfe {{MAIN_DV}} ///
+            c.locus_layer_full##ib1.era c.locus_scenario_full##ib1.era $controls, ///
+        absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
+    if !_rc {
+        eststo era_interact
+
+        * Panel C: Wald — 三时代 layer 效应相等 (交乘项 era2=era3=0 ⇔ 跨时代不变)
+        * (reghdfe c.X##i.era 交乘系数 Stata 规范化为 2.era#c.X; capture 兜底命名差异)
+        capture test (2.era#c.locus_layer_full = 0) (3.era#c.locus_layer_full = 0)
+        if !_rc {
+            estadd scalar wald_eq_F = r(F): era_interact
+            estadd scalar wald_eq_p = r(p): era_interact
+            display "  [WALD] H0: layer 效应跨时代相等 → F=" %6.3f r(F) " p=" %5.3f r(p)
+        }
+        else {
+            * 退化时退而求其次: 只检 era2 vs era1 单交乘 (若存在)
+            capture test (2.era#c.locus_layer_full = 0)
+            if !_rc {
+                estadd scalar wald_eq_F = r(F): era_interact
+                estadd scalar wald_eq_p = r(p): era_interact
+                display "  [WALD] (退化) H0: era2 layer 交乘 = 0 → F=" %6.3f r(F) " p=" %5.3f r(p)
+            }
+        }
+    }
+    else {
+        display as text "  [SKIP] Panel B/C 交乘: 共线 / 退化 (可能仅 1 时代有变异); production T=18 激活"
+    }
+}
+else {
+    display as text "  [SKIP] Panel B/C: 仅 `n_eras_present' 个时代有数据 (T=2 退化, 需 ≥2); production T=18 激活全部三时代交乘 + Wald"
+}
+
+* ============================================================================
+* (可选) 主处理结构断点 estat sbsingle (Bai-Perron / Quandt-Andrews 风格)
+* 缺 ado / 时序太短时优雅跳过; 仅作探索性诊断不进主表
+* ============================================================================
+capture confirm variable {{MAIN_DV}}
+if !_rc & `n_eras_present' >= 2 {
+    capture which xtbreak
+    if !_rc {
+        capture noisily xtbreak test {{MAIN_DV}} locus_layer_full, breaks(1)
+        if !_rc display "  [SBREAK] xtbreak single-break test on locus_layer_full coefficient computed"
+        else    display "  [SKIP] xtbreak 退化 (T 太短); production T=18 激活"
+    }
+    else {
+        display "  [INFO] xtbreak not installed (ssc install xtbreak); 面板结构断点为可选诊断, 跳过 (非失败)"
+    }
+}
+
+* ============================================================================
+* 输出: esttab 动态名单 (缺名不点名) + CSV side-channel
+* ============================================================================
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m of local stored {
+    if strmatch("`m'", "era_*") local models `models' `m'
+}
+
+if "`models'" == "" {
+    display as text "  [WIRE-AHEAD] Table C 无任何已存储估计 (financial DV 待接入 / T=2 单时代退化); 表跳过, 非失败"
+}
+else {
+    esttab `models' using "$tables_dir/tableC_locus_era_stability.tex", replace ///
+        star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+        stats(N r2 wald_eq_F wald_eq_p, fmt(0 3 3 3) ///
+              labels("N" "R\textsuperscript{2}" "Wald F (era 效应相等)" "Wald p")) ///
+        title("Table C --- Era-Stability: Three-Era Subperiod \& Treatment×Era Interaction (P4 locus)") ///
+        addnotes("Era split: era1 = 2007-2012 (pre-fintech), era2 = 2013-2018 (互金/区块链浪潮), era3 = 2019-2024 (后蚂蚁/监管收紧/大模型)." ///
+                 "Columns era_1/era_2/era_3: subperiod main spec; column era_interact: pooled with locus×era interactions (era1 reference)." ///
+                 "Wald F/p rows (era_interact column) test H0: layer effect equal across eras (interaction terms era2=era3=0); rejection ⇒ effect varies by fintech regime." ///
+                 "Bai-Perron 1998 / Hansen 2001 structural-stability rationale; optional xtbreak single-break diagnostic in supplemental log." ///
+                 "T=2 trial frame (2017-2018) populates only era2 ⇒ other eras + interaction + Wald gracefully skipped; production T=18 activates all.")
+
+    estout `models' using "$tables_dir/tableC_locus_era_stability.csv", replace ///
+        delimiter(",") cells(b(star fmt(3)) se(par fmt(3))) ///
+        stats(N r2 wald_eq_F wald_eq_p, fmt(0 3 3 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01)
+
+    display "[OK] Table C (era-stability: 3-era subperiod + era interaction + Wald) → $tables_dir/tableC_locus_era_stability.tex (+ .csv)"
+}

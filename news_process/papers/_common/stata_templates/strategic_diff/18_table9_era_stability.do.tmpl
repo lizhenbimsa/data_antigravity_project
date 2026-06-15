@@ -1,0 +1,210 @@
+* ============================================================================
+* 18_table9_era_stability.do — 跨年/分时代稳定性 (strategic_diff)
+* Paper: {{PAPER_ID}}  (Guzman-Li 2023 + Hoberg-Phillips 2016)
+*
+* CY-2 修复 (PROJECT_REAUDIT_TOPTIER_T18 2026-06-14): era-stability 模板。
+*   2007-2024 跨多个金融科技 regime (2013 余额宝/互联网金融元年、2016 P2P 整治、
+*   2019 DCEP 试点), pooled intensity-DiD 若策略差异化-特许权价值关系随时代断裂,
+*   会把异质效应平均成有偏均值。本表把样本分三时代各跑一次主规格 + 全样本加
+*   treatment×era 交乘 + Wald 检验三时代主系数相等, 直接回应"跨年是否可比/有无
+*   结构断裂"的顶刊硬要求 (Bai-Perron 1998 ECMA; Hansen 2001 JEP)。
+*   移植自 bank_media_disagreement/clarity 13_table4 的 regime 分时段面板做法。
+*
+*   三时代切分 (与 P1-A 语料构成漂移诊断同口径):
+*     Era 1: 2007-2012 (前互联网金融期)
+*     Era 2: 2013-2018 (互联网金融爆发期; 余额宝→P2P)
+*     Era 3: 2019-2024 (强监管+DCEP 期)
+*
+* golden-safe 铁律:
+*   - 主结果 {{MAIN_DV}}=tobin_q 当前为外部财务哨兵列 (上市行特许权价值, 待接入
+*     config/银行面板2007-2025年.xlsx); 缺列时全表优雅 no-op (capture confirm 守卫),
+*     绝不 r(198) 中断, 财务面板接入并跑 01_data_prep 后自动激活。
+*   - 处理 (strat_diff_n5) + $controls 均在盘; 仅消费在盘列 + 派生 era 哑变量。
+*   - T=2 试跑盘 (years 2017-2018, ~174 行) 只落在 Era 2 → 仅一个时代有数据,
+*     其余两时代 capture count 守卫优雅跳过, 交乘/Wald 在 <2 个时代有数据时跳过
+*     (capture 守卫, 不报错; production T=18 才全功效)。
+*   - esttab/estout 名单动态化 (qui estimates dir → 过滤候选), 缺名不点名防 r(111),
+*     带 CSV side-channel。
+*
+* 文献锚点: Bai & Perron (1998 ECMA, doi:10.2307/2998540) 结构断点;
+*           Hansen (2001 JEP, doi:10.1257/jep.15.4.117) "The New Econometrics of
+*           Structural Change"; Brambor-Clark-Golder (2006 PA) 交乘项规范。
+* ============================================================================
+
+version 19
+clear all
+set more off
+set maxvar 32767
+set linesize 120
+
+if "$data_dir" == ""    global data_dir "../data"
+if "$tables_dir" == ""  global tables_dir "../output/tables"
+* nested mkdir (独立重跑/dry-run 防御 — Stata mkdir 不递归)
+capture mkdir "$tables_dir/.."
+capture mkdir "$tables_dir"
+
+* ----- 载入面板 (优先 01_data_prep 产物, 回退裸面板; 与 16/17 同口径) -----
+capture confirm file "$data_dir/_prepared_panel.dta"
+if !_rc {
+    use "$data_dir/_prepared_panel.dta", clear
+}
+else {
+    capture confirm file "data/processed/_prepared_panel.dta"
+    if !_rc {
+        use "data/processed/_prepared_panel.dta", clear
+    }
+    else {
+        use "data/processed/46_panel_yearly_full.dta", clear
+    }
+}
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+
+if "$controls" == "" {
+    global controls "{{CONTROLS}}"
+}
+
+local DV   {{MAIN_DV}}
+local X     {{MAIN_DIFF_VAR}}
+local CL   {{CLUSTER_VAR}}
+
+* ----- DV 解析: 缩尾 _w -> 裸名 -> 缺则整表 no-op (wire-ahead 桩) -----
+capture confirm variable `DV'_w
+if !_rc {
+    local DVUSE `DV'_w
+}
+else {
+    capture confirm variable `DV'
+    if !_rc {
+        local DVUSE `DV'
+    }
+    else {
+        display "  WARN 结果变量 `DV'(_w) 待接入财务面板, Table 9-strat (era stability) 全表 no-op (wire-ahead 桩)"
+        display "[OK] Table 9-strat (era stability) — wire-ahead no-op, 财务列接入后自动激活"
+        exit 0
+    }
+}
+capture confirm variable `CL'
+if _rc {
+    local CL bank_id
+}
+capture confirm variable `X'
+if _rc {
+    display "  WARN 主处理变量 (`X') 缺 (须先跑 stage 24/45 + 01_data_prep); Table 9-strat degrade, 跳过"
+    exit 0
+}
+
+* ----- 派生 era 哑变量 (2007-2012 / 2013-2018 / 2019-2024) -----
+capture drop era
+gen byte era = .
+replace era = 1 if year >= 2007 & year <= 2012
+replace era = 2 if year >= 2013 & year <= 2018
+replace era = 3 if year >= 2019 & year <= 2024
+label define era_lbl 1 "2007-2012" 2 "2013-2018" 3 "2019-2024", replace
+label values era era_lbl
+
+* small-N 守卫阈值: 单时代内有效观测 >= 8 才尝试回归 (否则 esttab 列必崩)
+local NMIN 8
+
+* ==========================================================================
+* Panel A — 三时代分段, 各自单跑主规格
+* ==========================================================================
+eststo clear
+local n_eras_with_data 0
+forvalues e = 1/3 {
+    quietly count if era == `e' & !missing(`DVUSE', `X')
+    if r(N) >= `NMIN' {
+        capture eststo era`e': reghdfe `DVUSE' `X' $controls if era == `e', ///
+            absorb(bank_id year) vce(cluster `CL')
+        if !_rc {
+            local ++n_eras_with_data
+        }
+        else {
+            display "  SKIP Panel A: era `e' 回归失败 (子样本退化/FE 吸收殆尽), 跳过"
+        }
+    }
+    else {
+        display "  SKIP Panel A: era `e' 子样本 N=`r(N)' < `NMIN', 跳过 (T=2 试跑盘仅 Era 2 有数据, 预期)"
+    }
+}
+
+qui estimates dir
+local stored `r(names)'
+local Am ""
+local At `""'
+local Acand era1 era2 era3
+local Alb `""2007-2012" "2013-2018" "2019-2024""'
+local nA : word count `Acand'
+forvalues i = 1/`nA' {
+    local mm : word `i' of `Acand'
+    if `: list mm in stored' {
+        local Am `Am' `mm'
+        local tt : word `i' of `Alb'
+        local At `"`At' "`tt'""'
+    }
+}
+if "`Am'" != "" {
+    esttab `Am' using "$tables_dir/table9a_era_split.tex", replace ///
+        se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) keep(`X') ///
+        title("Table 9-strat-A: Sub-Era Stability (Hansen 2001)") ///
+        mtitles(`At') ///
+        addnotes("分时代主规格各自单跑; reghdfe absorb(bank_id year), cluster `CL'." ///
+                 "Era 边界对应 2013 互联网金融元年 / 2019 DCEP 强监管 (Bai-Perron 1998)。")
+    estout `Am' using "$tables_dir/table9a_era_split.csv", replace delimiter(",") ///
+        cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
+        starlevels(* 0.10 ** 0.05 *** 0.01) keep(`X')
+    display "[OK] Table 9-strat-A (era split) written"
+}
+else {
+    display "  WARN Table 9-strat-A 无任何 era 子样本估计; 表跳过 (T=2 试跑盘仅 1 个时代)"
+}
+
+* ==========================================================================
+* Panel B — 全样本 treatment×era 交乘 + Wald 检验三时代主系数相等
+* (仅 >= 2 个时代有数据时才有意义; capture 守卫退化样本)
+* ==========================================================================
+quietly levelsof era if !missing(`DVUSE', `X'), local(_eras)
+local n_eras : word count `_eras'
+if `n_eras' >= 2 {
+    * 交乘项: c.strat_diff#i.era (era 基组为最早有数据的时代)
+    capture eststo era_int: reghdfe `DVUSE' c.`X'##i.era $controls, ///
+        absorb(bank_id year) vce(cluster `CL')
+    if !_rc {
+        * Wald: 各时代相对基组的差异交乘项联合为 0 (= 三时代主系数相等)
+        *   c.X#i.era 中 i.era 的高于基组各档交乘系数全 0 → 跨时代无结构断裂
+        capture testparm c.`X'#i.era
+        local _wald_F  = r(F)
+        local _wald_p  = r(p)
+        local _wald_df = r(df)
+        esttab era_int using "$tables_dir/table9b_era_interaction.tex", replace ///
+            se star(* 0.10 ** 0.05 *** 0.01) booktabs label compress b(3) ///
+            title("Table 9-strat-B: Treatment x Era Interaction (full sample)") ///
+            mtitles("Interaction") ///
+            addnotes("c.`X'##i.era; reghdfe absorb(bank_id year), cluster `CL'." ///
+                     "Wald(testparm c.`X'#i.era): F=`_wald_F' (df=`_wald_df'), p=`_wald_p' — H0: 三时代主系数相等。")
+        * CSV side-channel 落 Wald 结果
+        capture file close _eraf
+        capture file open  _eraf using "$tables_dir/table9b_era_wald.csv", write replace
+        if !_rc {
+            file write _eraf "metric,value" _n
+            file write _eraf "n_eras_with_data,`n_eras'" _n
+            file write _eraf "wald_F,`_wald_F'" _n
+            file write _eraf "wald_df,`_wald_df'" _n
+            file write _eraf "wald_p,`_wald_p'" _n
+            file write _eraf "note,H0 = treatment effect equal across eras (no structural break)" _n
+            file close _eraf
+        }
+        display "[OK] Table 9-strat-B (era interaction + Wald) written: F=`_wald_F', p=`_wald_p'"
+    }
+    else {
+        display "  SKIP Panel B: 交乘回归失败 (退化样本), 跳过"
+    }
+}
+else {
+    display "  SKIP Panel B: 仅 `n_eras' 个时代有数据 (须 >= 2), 交乘/Wald 跳过 (T=2 试跑盘预期; production T=18 才全功效)"
+}
+
+display "[OK] Table 9-strat (era stability: 三时代分段 + era 交乘 + Wald) — strategic_diff 完成"

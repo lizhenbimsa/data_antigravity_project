@@ -30,6 +30,10 @@ use "$data_dir/_prepared_panel.dta", clear
 
 local TX   sub_frac
 local IV1  leave_one_out_peer_subst_iv
+* IV-1 修复 (2026-06-14): addnote 早承诺却缺失的 lag-1 稳健列 (镜像 locus/20)。
+* 滞后变体缓解 Manski 1993 反射 (同期 peer-LOO 与本行同年互为反射对象);
+* 导出后真实列名 = leave_one_out_peer_subst_iv_lag1 (iv_extensions.py 物化, ≤32 字符)。
+local IV1L leave_one_out_peer_subst_iv_lag1
 local IV2  bartik_subst_iv_full
 * 2026-06-13 outcome 重定位同步: spec.outcome.primary = cost_income_ratio_change_3yr
 * (W&Z 效率试金石); 原 long_run_roa_change_3yr 已降级 secondary。
@@ -61,6 +65,12 @@ if !_rc {
     eststo first_loo: reghdfe `TX' `IV1' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
+* IV-1 修复: lag-1 工具一阶段 (镜像 locus/20 first_lag)
+capture confirm variable `IV1L'
+if !_rc {
+    eststo first_lag: reghdfe `TX' `IV1L' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
 capture confirm variable `IV2'
 if !_rc {
     eststo first_bartik: reghdfe `TX' `IV2' $controls, ///
@@ -84,6 +94,13 @@ else {
         eststo tsls_loo: ivreg2 `DV' (`TX' = `IV1') $controls ///
             i.bank_id i.year, cluster(bank_id) first
     }
+    * IV-1 修复: lag-1 工具 just-identified 2SLS 稳健列 (镜像 locus/20 tsls_lag);
+    * 缓解反射, 兑现 addnote 承诺。导出列名 leave_one_out_peer_subst_iv_lag1。
+    capture confirm variable `IV1L'
+    if !_rc {
+        eststo tsls_lag: ivreg2 `DV' (`TX' = `IV1L') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
     capture confirm variable `IV1' `IV2'
     if !_rc {
         * 过度识别列 (跨族 2 工具 1 内生 → Hansen J df=1; LOO×Bartik 识别假设
@@ -97,13 +114,92 @@ else {
         eststo tsls_ctx: ivreg2 `DV' (`TXC' = `IVC') $controls ///
             i.bank_id i.year, cluster(bank_id) first
     }
+
+    * ====================================================================
+    * IV-2 修复 (2026-06-14): 弱工具稳健 Anderson-Rubin 推断 (weakiv ado)
+    * --------------------------------------------------------------------
+    * 模板脚注早承诺"KP F < Stock-Yogo 时改读 AR 区间", 但全项目 weakiv 零调用
+    * (PROJECT_REAUDIT IV-2, P1)。此处把承诺落为真实估计行: 对每个 2SLS 列重跑
+    * weakiv 取 AR 检验 p 值 (e(ar_p)/r(ar_p), 真实返回标量), estadd 进对应 eststo。
+    * ⚠ 复审订正 (CY-2 root-cause / 铁律 #8, "声明—实现"缺口): 旧版还想抽
+    *   e(ar_cset_lb)/e(ar_cset_ub) 当 AR CI 数值列 — 但 weakiv 把 95% AR 置信集
+    *   存为【字符串】e(ar_cset), 并不返回 _lb/_ub 数值标量 → capture 后恒为
+    *   missing(.) → 表里 "AR CI low/high" 两列即使 T=18 weakiv 跑成功也永远空白
+    *   (claimed-but-not-delivered)。改对齐本仓三个 proven pattern (主线
+    *   25_tableA6_tone_iv_2sls / benefit_society/25 / brokerage_network/11):
+    *   AR 95% 置信集只写进 log (weakiv after ivreg2), esttab 仅出真实可填的
+    *   AR p 列, 并用 ar_note 在脚注声明"AR CI 见 log"。
+    * 全程 capture 守卫: weakiv 未装 / 旧版 e() 名不符 / T=2 退化时优雅跳过, 不丢表。
+    * 白话: KP F 弱时, 常规 2SLS 的标准误不可信; AR 区间无论工具强弱都正确覆盖,
+    *       是弱工具下唯一可读的推断。
+    * 学术依据: Anderson-Rubin 1949; Andrews-Stock-Sun 2019 ARE; Stock-Yogo 2005;
+    *           Finlay-Magnusson weakiv (Stata Journal 2009/2014)。
+    * ====================================================================
+    local ar_note "Anderson-Rubin weak-IV-robust CI NOT computed (weakiv not installed; ssc install weakiv). If KP F < Stock-Yogo critical value (16.38), 2SLS t-inference is invalid — install weakiv and re-run for the AR CI. "
+    capture which weakiv
+    if _rc {
+        display "  [WARN] weakiv not installed (ssc install weakiv); AR p 列跳过, KP F 仍报"
+    }
+    else {
+        * 对每个 just-identified 2SLS 列跑 weakiv 取 AR 弱工具稳健推断。
+        * 重跑 ivreg2 而非依赖 stored e()（weakiv 需即时模型上下文）。
+        * AR 95% 置信集由 weakiv 直接输出到 log (e(ar_cset) 为字符串, 不入表); 表内
+        * 仅 estadd 真实可填的 AR p 标量。
+        qui estimates dir
+        local stored `r(names)'
+        local _ar_ran = 0
+        foreach pair in "tsls_loo `TX' `IV1'" "tsls_lag `TX' `IV1L'" "tsls_ctx `TXC' `IVC'" {
+            gettoken nm rest : pair
+            gettoken en iv  : rest
+            * 估计与工具列均须在盘 + 该 eststo 已存储, 否则跳过
+            capture confirm variable `en' `iv'
+            if _rc continue
+            if !`: list nm in stored' continue
+            * fix(reaudit-t18-2026-06-14, IV-2 root-cause): 旧版用冒号前缀 weakiv 语法
+            *   `weakiv, level(95): ivreg2 ... , cluster(bank_id)` — 本机 weakiv 不接受
+            *   被包裹估计命令的 cluster() 选项, 报 "invalid 'cluster'" → rc=198 → 每列
+            *   weakiv 都失败 → _ar_ran 恒 0 → AR p 列即便 T=18 weakiv 已装也永远空白,
+            *   且脚注误落 "No 2SLS column estimated" 分支 (claimed-but-not-run)。
+            *   改对齐本仓三个 proven pattern (25_tableA6_tone_iv_2sls / benefit_society/25 /
+            *   brokerage_network/17): 先单独跑 ivreg2 (e() 落定), 紧随其后裸调 weakiv,
+            *   level(95) (无冒号、无被包裹命令; weakiv 读上一条估计的 e())。
+            capture noisily ivreg2 `DV' (`en' = `iv') $controls i.bank_id i.year, cluster(bank_id)
+            if _rc {
+                display "  [WARN] `nm' ivreg2 (AR 承载估计) 失败 (rc=`=_rc'); 该列 AR p 缺失"
+                continue
+            }
+            * AR (Anderson-Rubin) 为 weakiv 默认弱工具稳健检验; level(95) 把 95% AR 置信集打印到 log。
+            capture noisily weakiv, level(95)
+            if _rc {
+                display "  [WARN] weakiv 在 `nm' 上失败 (rc=`=_rc'); 该列 AR p 缺失"
+                continue
+            }
+            * AR p (真实返回; e(ar_p) 优先, 跨版本兜底 r(ar_p), 镜像 locus/20:104); 缺则留 .
+            local arp = .
+            capture local arp = e(ar_p)
+            if missing(`arp') capture local arp = r(ar_p)
+            * estadd 回写到对应 eststo (缺值时 estadd . 无害); 不抽脆弱的 _lb/_ub 标量
+            capture estimates restore `nm'
+            if !_rc {
+                capture estadd scalar ar_p = `arp'
+                eststo `nm'
+                local _ar_ran = `_ar_ran' + 1
+            }
+        }
+        if `_ar_ran' > 0 {
+            local ar_note "AR p row reports the Anderson-Rubin weak-IV-robust test p-value (weakiv after ivreg2; Andrews-Stock-Sun 2019 ARE); the 95% AR weak-IV-robust confidence set is printed in the log for each 2SLS column. When KP F is below the Stock-Yogo critical value (16.38), READ the AR CI / AR p rather than the 2SLS t-ratio. "
+        }
+        else {
+            local ar_note "No 2SLS column was estimated (financial DV pending), so AR weak-IV-robust inference is not yet produced; the AR p row and the logged AR CI activate with the second-stage outcome. "
+        }
+    }
 }
 
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_loo first_bartik first_ctx tsls_loo tsls_overid tsls_ctx
-local cand_titles `""1st LOO" "1st Bartik" "1st LOO ctx" "2SLS LOO" "2SLS Overid" "2SLS LOO ctx""'
+local cand_models first_loo first_lag first_bartik first_ctx tsls_loo tsls_lag tsls_overid tsls_ctx
+local cand_titles `""1st LOO" "1st LOO lag1" "1st Bartik" "1st LOO ctx" "2SLS LOO" "2SLS LOO lag1" "2SLS Overid" "2SLS LOO ctx""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -122,13 +218,16 @@ else {
     esttab `models' ///
         using "$tables_dir/tableA_substance_iv_2sls.tex", replace ///
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
-        stats(N r2 widstat jp, fmt(0 3 3 3) labels("N" "R²" "KP F" "Hansen J p")) ///
+        stats(N r2 widstat jp ar_p, fmt(0 3 3 3 3) ///
+              labels("N" "R²" "KP F" "Hansen J p" "AR p")) ///
         title("P3 Substance IV: Peer LOO + Bartik (First Stage + 2SLS)") ///
         mtitles(`mtitles') ///
-        addnotes("IV1 = same-bank-type leave-one-out substantive share (exclusion caveats per Manski 1993; Leary-Roberts 2014 JF — disclose in text; lag-1 variant leave_one_out_peer_subst_iv_lag1 for robustness)." ///
+        addnotes("IV1 = same-bank-type leave-one-out substantive share (exclusion caveats per Manski 1993; Leary-Roberts 2014 JF — disclose in text)." ///
+                 "lag-1 column: leave_one_out_peer_subst_iv_lag1 (lagged peer mean) mitigates Manski 1993 reflection between same-year contemporaneous peer LOO and own outcome." ///
                  "IV2 = Bartik: base-period type co-mention shares x type-year LOO substantive share (Goldsmith-Pinkham et al. 2020 AER, share-exogeneity view only)." ///
                  "ctx column: entity-window twin sub_frac_sc instrumented by lpeer_subst_iv_ctx, just-identified, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
-                 "KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005); if below, use Anderson-Rubin CI (Andrews-Stock-Sun 2019). Hansen J only in overidentified column.")
+                 "KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005). Hansen J only in the overidentified column." ///
+                 "`ar_note'")
 
     display "[OK] 22_substance_iv_2sls → $tables_dir/tableA_substance_iv_2sls.tex"
 }
