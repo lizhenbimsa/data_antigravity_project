@@ -7,8 +7,9 @@ Plan E P4 A1 (v3.6.0):
     实现真正的三轨化 (full/ctx/ss; B1 + B2 闭合; ss 见下方 "三轨" 段)。
 
 工作流:
-    stage 12 (news_fintech) → 12_fintech_news.parquet
-    stage 13 (本模块)        → 13_news_with_ctx.parquet  (= 12 + content_ctx 列)
+    stage 12 (news_fintech)  → 12_fintech_news.parquet
+    stage 12b (cooccurrence) → 12b_cooccurrence_filtered.parquet (邻近共现硬过滤后子集; 2026-06-15)
+    stage 13 (本模块)        → 13_news_with_ctx.parquet  (= 12b + content_ctx 列)
     stage 14 (fintech_intensity) → 读 13, 三轨产 fintech_intensity_score_{full,ctx,ss}
     stage 15 (policy_alignment)  → 读 14, 三轨产 policy_cosine_sim_{full,ctx,ss}
     stage 21 (tone_llms)         → 已物化的 content_ctx 直接复用 (跳过重复物化)
@@ -45,7 +46,7 @@ Plan E P4 A1 (v3.6.0):
 
 ■ 详细功能说明
 
-**输入**: `12_fintech_news.parquet` (config 键 output_12_fintech_news) 的 '内容'/'标题'/'target_bank' 等列。模块导入时全局加载: 银行否定/短名排除配置 (`load_exclusion_patterns` → NEGATION_AC/SHORT_NAME_EXCLUSIONS/CONTEXT_WINDOW) 与金科 AC 自动机 (`load_fintech_dict` → FINTECH_AC; 加载失败 try/except 兜底为 None → content_ss 全回退)。
+**输入**: `12b_cooccurrence_filtered.parquet` (config 键 output_12b_cooccurrence; 自 2026-06-15 起 = stage 12b 银行×金科邻近共现硬过滤后的近邻相关子集, 上游来自 stage 12 金科子集) 的 '内容'/'标题'/'target_bank' 等列。模块导入时全局加载: 银行否定/短名排除配置 (`load_exclusion_patterns` → NEGATION_AC/SHORT_NAME_EXCLUSIONS/CONTEXT_WINDOW) 与金科 AC 自动机 (`load_fintech_dict` → FINTECH_AC; 加载失败 try/except 兜底为 None → content_ss 全回退)。
 
 **处理步骤** (`main` → `materialize_content_ctx`, idempotent):
 1. 幂等短路: 若五列俱全直接返回; 旧 schema (仅有 content_ctx) 走兼容回填路径——补 content_full/ctx_is_fallback, 并以**哨兵**填 content_ss=content_full、ss_is_fallback=True (保幂等, 不重算 ss; 删 content_ctx 可触发全量重算)。
@@ -62,7 +63,7 @@ Plan E P4 A1 (v3.6.0):
 
 **外部依赖/确定性**: 纯 CPU (pandas + ahocorasick + 正则分句), **不调 LLM/Embedding/BERT**, 无网络, 逐位可复现。ss 词典加载失败优雅降级 (FINTECH_AC=None → ss 全回退, 不崩管道)。
 
-**DAG 位置**: 上游 stage 12, 下游 stage 14 (fintech_intensity 三轨)/15 (policy_alignment 三轨)/21 (tone_llms 三轨) 全部消费三列文本。实测 (disk 1170 篇): ss 零共现回退 ~14.27%, 主题漂移 65.76% (银行句仅 34% 同时提金科 → ss 与 ctx 是独立信号)。
+**DAG 位置**: 上游 stage 12b (邻近共现硬过滤; 其上游为 stage 12 金科子集), 下游 stage 14 (fintech_intensity 三轨)/15 (policy_alignment 三轨)/21 (tone_llms 三轨) 全部消费三列文本。实测 (disk 1170 篇): ss 零共现回退 ~14.27%, 主题漂移 65.76% (银行句仅 34% 同时提金科 → ss 与 ctx 是独立信号)。
 
 ■ 白话说明
 

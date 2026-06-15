@@ -25,8 +25,11 @@ news_process.pipeline.filtering.fintech_intensity — 阶段14：金融科技技
       fix omni-g-fintech-01/-03, 2026-06-11: DF 按唯一文档 (标题,日期) 去重后以
       jieba 整词统计 — 与 TF 同分词器, 替换原 AC 子串计数源; 语料列在线物化
       content_full = 标题 + 内容, 与 TF 打分文本同语义。⚠ 参考语料必须是全量:
-      13_news_with_ctx 仅含 fintech 子集, 不可用作 IDF 语料）
-    阶段 12 输出的 `12_fintech_news.parquet`（仅金融科技，用于得分计算）
+      13_news_with_ctx 仅含 fintech 子集, 不可用作 IDF 语料; 此 _full 全量语料在
+      stage 12b 上游、不受 12b 邻近共现过滤影响 — 保 IDF 区分度不塌缩）
+    打分语料: 优先 `13_news_with_ctx.parquet`（自 2026-06-15 起 stage 13 读 stage 12b
+      输出 = 12_fintech_news 经邻近共现硬过滤后的近邻相关金科子集 → 打分天然继承 12b;
+      含 content_full/ctx/ss 三轨）; 缺失时回退 `12_fintech_news.parquet`（pre-12b, degraded）
 
 输出：
     `14_fintech_intensity.parquet`（= 12 filtered + fintech_intensity_score + intensity_verified
@@ -571,6 +574,11 @@ def main():
 
     combined_weights = _build_intensity_weights(keyword_doc_freq, N_total)
 
+    # 存在性 gate: 校验 stage 12 原始金科子集仍在盘。2026-06-15 插入 stage 12b
+    # (邻近共现硬过滤) 后, 12_fintech_news.parquet 仍由 stage 12 产出 (12b 只读它、
+    # 不删) → 本 gate 照常通过; 真正的【打分语料】走下方 stage 13 输出 (已是 12b
+    # 过滤后物化的子集, 故评分天然继承 12b)。仅当 stage 13 输出缺失才回退读此文件
+    # (degraded 模式, 会绕过 12b; 全量 run 下 stage 13 always-on, 不触发)。
     filtered_filename = CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet')
     filtered_path = os.path.join(output_dir, filtered_filename)
 
@@ -578,15 +586,18 @@ def main():
         logger.error(f"金融科技子集文件未找到: {filtered_path}")
         raise SystemExit(1)
 
-    # v3.6.0 (Plan E P4 A1/B1): 优先读 stage 13 输出 (含 content_ctx 列),
-    # 缺失则 fallback 到 stage 12 输出 (无 ctx, 触发 _ctx 轨回退)
+    # v3.6.0 (Plan E P4 A1/B1): 优先读 stage 13 输出 (含 content_ctx 列; 2026-06-15
+    # 起 stage 13 读 12b 输出 → 此处 df 已是 12b 邻近共现过滤后子集, 评分继承过滤),
+    # 缺失则 fallback 到 stage 12 输出 (无 ctx, 触发 _ctx 轨回退; 且绕过 12b)
     ctx_filename = CONFIG['filenames'].get(
         'output_13_news_with_ctx', '13_news_with_ctx.parquet')
     ctx_path = os.path.join(output_dir, ctx_filename)
     if os.path.exists(ctx_path):
         logger.info(f"加载 stage 13 输出 (含 content_ctx): {ctx_path}")
         df = pd.read_parquet(ctx_path)
-        # stage 13 输出是 stage 12 全集 + ctx 列, 但 stage 14 需要金融科技子集
+        # stage 13 现读 stage 12b 输出 (= 12_fintech_news 经邻近共现硬过滤, 本就是
+        # is_fintech_news==True 金科子集) → 下面这道筛选自 2026-06-15 起为防御性恒真
+        # no-op, 保留仅作 schema 兼容 (旧产物可能含非金科行时仍正确)。
         if 'is_fintech_news' in df.columns:
             df = df[df['is_fintech_news'].astype(bool)].reset_index(drop=True)
             logger.info(f"  筛选 is_fintech_news=True: {len(df)} 篇")

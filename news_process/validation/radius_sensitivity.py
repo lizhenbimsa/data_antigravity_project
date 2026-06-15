@@ -1104,6 +1104,9 @@ def main():
 
     # ── 加载输入数据 ──
     # 优先使用阶段 21 的输出（经 LLM 精筛，含 target_bank 列）
+    # 注 (2026-06-15): 回退候选 12_fintech_news.parquet 是 stage 12b 邻近共现硬过滤
+    #   【之前】的候选集 (pre-12b)。本检验意在评估 ctx 半径稳健性、是对'12b 应取何
+    #   radius'的诊断, 故在 pre-12b 候选集上量窗口口径是有意为之, 非 bug。
     input_candidates = [
         CONFIG['filenames'].get('output_21_tone_llms', '21_tone_llms.parquet'),
         CONFIG['filenames'].get('output_12_fintech_news', '12_fintech_news.parquet'),
