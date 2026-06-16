@@ -12,7 +12,7 @@
 * 31.1 全文轨道洗绿指标
 label variable washing_ratio "洗绿比率(全文)"
 label variable washing_ratio_gpt54nano "洗绿比率GPT5nano(全文)"
-label variable washing_ratio_gemini311 "洗绿比率Gemini3(全文)"
+label variable washing_ratio_gemini31111 "洗绿比率Gemini3(全文)"
 label variable washing_ratio_deepseekv4 "洗绿比率Grok4.1(全文)"
 
 label variable neg_sub_ratio_full "负面实质性比率(全文)"
@@ -36,7 +36,7 @@ label variable washing_tone_shift_full "洗绿情感转移(全文)"
 * 31.2 上下文轨道洗绿指标
 label variable washing_ratio_ctx "洗绿比率(上下文)"
 label variable washing_ratio_gpt54nano_ctx "洗绿比率GPT5nano(上下文)"
-label variable washing_ratio_gemini311_ctx "洗绿比率Gemini3(上下文)"
+label variable washing_ratio_gemini31111_ctx "洗绿比率Gemini3(上下文)"
 label variable washing_ratio_deepseekv4_ctx "洗绿比率Grok4.1(上下文)"
 
 label variable neg_sub_ratio_ctx "负面实质性比率(上下文)"
@@ -74,7 +74,7 @@ label variable disag_you_2018_full "尤2018词典分歧度(全文)"
 * LLM分歧度
 label variable disag_llm_full "LLM总体分歧度(全文)"
 label variable disag_gpt54nano_full "GPT5nano分歧度(全文)"
-label variable disag_gemini311_full "Gemini3分歧度(全文)"
+label variable disag_gemini31111_full "Gemini3分歧度(全文)"
 label variable disag_deepseekv4_full "Grok4.1分歧度(全文)"
 
 * BERT分歧度
@@ -93,7 +93,7 @@ label variable disag_you_2018_ctx "尤2018词典分歧度(上下文)"
 
 label variable disag_llm_ctx "LLM总体分歧度(上下文)"
 label variable disag_gpt54nano_ctx "GPT5nano分歧度(上下文)"
-label variable disag_gemini311_ctx "Gemini3分歧度(上下文)"
+label variable disag_gemini31111_ctx "Gemini3分歧度(上下文)"
 label variable disag_deepseekv4_ctx "Grok4.1分歧度(上下文)"
 
 label variable disag_bert_ctx "BERT总体分歧度(上下文)"

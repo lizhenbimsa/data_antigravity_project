@@ -60,14 +60,39 @@ foreach b of local berts {
 }
 
 * 输出 — 注释更正 (2026-06-12): 旧注释声称 "esttab 部分缺失 spec 时仍输出可用列" 不实 —
-* esttab 对缺名估计是 r(111) 硬崩 (同 12_table3 fix(omni-g-templates-14) 实证)。本表 esttab
-* 仍硬点名 6 个估计, 任一词典列缺失 (上方守卫跳过 eststo) 时整表会崩, 尚未做动态名单化。
-esttab LLM_main DICT_jiang_2021 DICT_yao_2021 DICT_bian_2021 DICT_du_2022 DICT_you_2018 ///
-    using "output/tables/tableA5_dictionary_method.tex", ///
-    se star(* 0.10 ** 0.05 *** 0.01) ///
-    booktabs replace fragment ///
-    title("Table A5: LLM vs Dictionary-Based Sentiment (Robustness)") ///
-    mtitles("LLM ensemble" "Jiang 2021" "Yao 2021" "Bian 2021" "Du 2022" "You 2018") ///
-    note("DV: 情感分数. LLM = 3 模型多数投票. Dict = 5 个中文金融词典 (Loughran & McDonald 2011 JF 同框架).")
+* esttab 对缺名估计是 r(111) 硬崩 (同 12_table3 fix(omni-g-templates-14) 实证)。
+* fix(S1-03, 2026-06-16): 改为动态名单化 (同 12_table3/13_table4/21_tableA2 idiom) —
+* 仅引用实际已存储的估计, mtitle 同步删列防错位, 任一词典列缺失时优雅降级不再整表崩。
+qui estimates dir
+local stored `r(names)'
+local cand_models LLM_main DICT_jiang_2021 DICT_yao_2021 DICT_bian_2021 DICT_du_2022 DICT_you_2018
+local cand_titles `""LLM ensemble" "Jiang 2021" "Yao 2021" "Bian 2021" "Du 2022" "You 2018""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  ⚠️ Table A5 无任何已存储估计 (LLM/词典列全缺), 表跳过"
+}
+else {
+    esttab `models' using "output/tables/tableA5_dictionary_method.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) ///
+        booktabs replace fragment ///
+        title("Table A5: LLM vs Dictionary-Based Sentiment (Robustness)") ///
+        mtitles(`mtitles') ///
+        note("DV: 情感分数. LLM = 3 模型多数投票. Dict = 5 个中文金融词典 (Loughran & McDonald 2011 JF 同框架). " ///
+             "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier; every " ///
+             "column here uses absorb(bank_id year), so it is collinear with the bank FE and silently dropped — " ///
+             "beta(digital_frontier) is identified only in a no-absorb column (see 11_table2 M1). These columns identify " ///
+             "the within-bank time-varying terms (LOCUS/SUBST controls); the comparison is across sentiment measures, not " ///
+             "across the frontier main effect.")
 
-display "✅ Table A5 written to output/tables/tableA5_dictionary_method.tex"
+    display "✅ Table A5 written to output/tables/tableA5_dictionary_method.tex"
+}

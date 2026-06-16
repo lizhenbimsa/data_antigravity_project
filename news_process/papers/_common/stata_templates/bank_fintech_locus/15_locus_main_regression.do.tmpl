@@ -71,7 +71,13 @@ if !_rc {
 }
 
 * 检验 layer ≠ scenario 系数 (正式的 layer-vs-scenario 差异检验)
-test locus_layer_full = locus_scenario_full
+* fix(audit-2026-06-16): test 必须跑在同时含 layer+scenario 的 M5(回退 M4)上 — 否则内存中
+* 最后一个估计是 M6_gap(仅 locus_gap), test 引用不存在系数 → r(111); 且裸 test 无 capture
+* 会在 esttab 前中止 do-file → 主结果表(Table 2)永不写出 (M6_gap 因 01_data_prep 无条件
+* gen locus_gap 每次生产运行必触发)。
+capture estimates restore M5
+if _rc capture estimates restore M4
+capture noisily test locus_layer_full = locus_scenario_full
 
 * fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — M6_gap 在守卫块内
 * (locus_gap 缺失即跳过), 旧版硬点名缺名 → r(111) 丢整表且 master 链中止。

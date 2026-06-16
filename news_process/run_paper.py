@@ -71,7 +71,7 @@ _PAPER_SUMMARIES: Final[dict[str, str]] = {
     'benefit_society':
         '衍生 1: 经营效益态度投影 (Jha, Liu & Manela 2026, RFS §1.3.2)',
     'brokerage_network':
-        '衍生 2: 信息经纪网络与企业表现 (Han, Jiang, Zhang & Zhu 2024)',
+        '衍生 2: 信息经纪网络与企业表现 (Han, Kim & Nanda 2024)',
     'llm_peer':
         '衍生 3: LLM 生成同业竞争 IV (Cao, Li, Wang & Zhao 2025)',
     'strategic_diff':

@@ -17,8 +17,10 @@ v2.3 计划 PR #1 — 中文 sentence splitter + jieba tokenizer + 金融领域
 
 API
 ---
-- ``cn_split_sentence(text) -> list[str]``: 中文分句; 与 1000 句人工分句
-  一致率 ≥ 95% (G-S4 准入门控).
+- ``cn_split_sentence(text) -> list[str]``: 中文分句 (正则切 [。！？] + 引号
+  lookahead); G-S4 设计目标: 与 1000 句人工分句一致率 ≥ 95% (准入目标, 见
+  ``config/v2_3_implementation_constants.json::sentence_splitter_accuracy_target``;
+  当前测试套件仅含确定性单元断言, 无人工标注一致率 fixture 入库).
 - ``cn_tokenize(text) -> list[str]``: jieba 分词 + 停用词过滤; 供 sklearn
   ``CountVectorizer`` ``tokenizer=cn_tokenize`` 使用 (通用中文分词器).
 - ``CN_FIN_STOPWORDS``: frozenset[str]; 通用中文 + 金融领域停用词合集.
@@ -92,9 +94,12 @@ CN_FIN_STOPWORDS: frozenset[str] = _GENERIC_STOPWORDS | _FINANCIAL_STOPWORDS
 # ── CJK 汉字判定 + 字符/汉字计数原语 (单一事实源) ─────────────────────
 # **文本测度计数口径**的单一定义点 (限定范围, 顶刊终审 Gap#7 收敛措辞)。下游文本
 # 测度 (lexical_complexity 难字率 hard_char_ratio / 篇内冗余 within_doc_redundancy[_han]
-# / 汉字长度 n_han_real 等) 的"汉字 vs 字符"计数统一引用这三个原语, 避免各模块各自
-# 硬编码 `'一' <= ch <= '鿿'` 或裸 `len()` 导致**计数口径**漂移 —— 历史教训:
-# avg_article_length 曾把"字符数"误标为"词数" (见 geography.py:132 单位勘误)。
+# / 汉字长度 n_han_real 等) 的"汉字 vs 字符"计数口径统一以这三个原语为准: 实际被消费
+# 的是 is_cjk (lexical_complexity 内联用 is_cjk 过滤计数, 字节等价于 cn_han_count);
+# cn_han_count / cn_char_count 是同口径的规范计数 helper (当前下游以 is_cjk 内联重导出,
+# 与 cn_han_count 字节等价; 字符口径 cn_char_count 等价于内联 len(re.sub(r"\s+","",content)))。
+# 避免各模块各自硬编码 `'一' <= ch <= '鿿'` 或裸 `len()` 导致**计数口径**漂移 —— 历史教训:
+# avg_article_length 曾把"字符数"误标为"词数" (见 geography.py:141-148 单位勘误)。
 # 范围 = CJK 统一表意文字基本区 U+4E00–U+9FFF ('一'..'鿿'), 与 _constants.py /
 # _extract_hhx055.py 的 [一-鿿] 一致, 纯重构不改任何已落盘值。
 # ⚠ 项目另有 preprocess/filter.py 用窄区间 `[一-龥]` (U+9FA5, 窄 90 码点) 做

@@ -1,5 +1,10 @@
 * news_process v3.5.0 — Table A6: Dual-track Residual Robustness (D4)
 *
+* ⚠ 归档说明 (archive note): 本文件是 v3.5.0 历史归档模板, 已被废弃 (superseded)。
+*   现行主线的 25_tableA6 是 ../25_tableA6_tone_iv_2sls.do.tmpl (tone IV 2SLS), 与本文件
+*   内容无关, 仅共用 "25_tableA6" 编号。build-replication 对根目录非递归 glob → 本归档文件
+*   不会被实例化, 无运行期冲突; 此处仅消除"同号不同义"的阅读/归档陷阱。
+*
 * Per v3.5.0 Stage-3 augmentation plan §2.3 (历史方法学文档, 已随 docs/ 目录删除归档):
 *   全文判定 (full) 与 entity-context 判定 (ctx) 的 differential signals:
 *     - disagree: full ≠ ctx 的文章占比
@@ -59,3 +64,6 @@ esttab M_disagree M_residual using "{{ output_dir }}/table_A6_residual.tex", ///
     addnotes("D4 measure 作者自创; 类比借用 Loughran-McDonald 2011 + W&Z 2001 decoupling." ///
              "small-sample restriction: panel n_articles < 5 → *_frac forced NA." ///
              "d4_data_quality_flag='ok' samples only.")
+
+* standalone (clear all + 自 use panel) → 终端 exit 防双击弹「Done」完成框
+exit, clear

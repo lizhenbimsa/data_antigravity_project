@@ -317,7 +317,7 @@ sentiment_analysis:
 # [模块二 D-group] Stage 18 Article-level staleness 双指标 (surface MinHash + semantic Faiss) (D2)
 # ------------------------------------------------------------------------------
 # 依赖 faiss-cpu + datasketch 已 pip 安装到位 (2026-06-01)。学术依据: Tetlock (2011)
-# RFS 24(5):1481-1512; Gentzkow-Shapiro-Taddy (2019) JEL.
+# RFS 24(5):1481-1512; Gentzkow-Kelly-Taddy (2019) JEL.
 article_staleness:
   enabled: true                # [已 always-on] stage 18 谓词改 always_enabled (2026-06-13); 仅作记录, 改 false 不再停掉本阶段
 

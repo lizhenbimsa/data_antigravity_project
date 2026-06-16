@@ -57,14 +57,88 @@ eststo long_run
 *       "长期跌的" (两个系数一正一负互为镜像), 这正是 W&Z 象征性宣告的预测。
 * (反转检验对 = 短期 CAR vs 长期 ROA 变化, 与主回归的 CIR outcome 独立;
 *  两列均待 enrichment — 各自 confirm, 防 CAR 先到位而 ROA 缺列时 sureg r(111))
+*
+* fix(S4-01, 2026-06-16): 原 sureg 直接 POOLED OLS, **无固定效应** (sureg 本身无法
+* absorb bank_id/year FE) — 与上方两条 reghdfe absorb(bank_id year) 的 FE-identified
+* 单结果列口径不一致, 且此前未披露。修复 = FWL (Frisch-Waugh-Lovell) 部分化:
+* 先用 reghdfe ..., residuals() 把每个进 sureg 的变量 (两 outcome + treatment +
+* $controls) 各自对 (bank_id, year) FE **回归取残差**, 再对残差跑 sureg。FWL 定理
+* 保证残差上的 OLS 系数 = 原 reghdfe absorb(bank_id year) 的 within 系数 (与单结果
+* 列同口径), 跨方程反转检验从此也是 FE-identified, 不再是 pooled。
+* 白话: "先把每个变量里能被'哪家银行/哪一年'解释掉的部分擦干净, 只留下扣除银行和
+*       年份固定差异后的净变动, 再拿这些净变动去做联立反转检验" — 这样短期和长期两
+*       列就和上面单独跑的固定效应回归用的是同一把尺子。
 capture confirm variable car_3day_window_ft_announce
 local _rc_car = _rc
 capture confirm variable long_run_roa_change_3yr
 if !`_rc_car' & !_rc {
-    sureg (car_3day_window_ft_announce {{MAIN_TREAT}} $controls) ///
-          (long_run_roa_change_3yr {{MAIN_TREAT}} $controls)
-    test [car_3day_window_ft_announce]_b[{{MAIN_TREAT}}] = ///
-         -[long_run_roa_change_3yr]_b[{{MAIN_TREAT}}]
+    * --- FWL 第一步: 把 sureg 要用的每个变量对 (bank_id, year) FE 取残差 ---
+    * (treatment + controls 也要残差化, 否则 sureg 系数无法等同 within 估计)
+    local _sureg_resid_ok 1
+    local _resid_vars car_3day_window_ft_announce long_run_roa_change_3yr {{MAIN_TREAT}} $controls
+    * fix(S4-01b, 2026-06-16): FWL 精确性要求**所有变量在同一估计样本上残差化**。
+    * 若 CAR/ROA enrichment 列与 $controls 缺失模式不同, 逐变量各自 listwise 会让
+    * 每个残差吸收的 FE 来自不同子样本 → 残差上的 OLS 系数 ≠ 公共样本 within 系数,
+    * FWL 不再精确。故先建公共样本 _fwl_touse (对全部 SUR 变量都 non-missing 的行),
+    * 每个 reghdfe 残差化都加 `if _fwl_touse`, 保证同一把尺子, FWL 严格成立。
+    capture drop _fwl_touse
+    capture noisily gen byte _fwl_touse = 1
+    if _rc {
+        local _sureg_resid_ok 0
+        display as error "  [WARN S4-01] 无法建 FWL 公共样本标记, 反转检验降级跳过"
+    }
+    if `_sureg_resid_ok' {
+        foreach _v of local _resid_vars {
+            capture confirm variable `_v'
+            if _rc {
+                local _sureg_resid_ok 0
+                display as error "  [WARN S4-01] FWL 残差化跳过: 变量 `_v' 不在面板, 反转检验降级跳过"
+                continue, break
+            }
+            qui replace _fwl_touse = 0 if missing(`_v')
+        }
+    }
+    local _resid_list ""
+    local _ri 0
+    if `_sureg_resid_ok' {
+        foreach _v of local _resid_vars {
+            local _ri = `_ri' + 1
+            capture drop _fwlres_`_ri'
+            capture noisily reghdfe `_v' if _fwl_touse, absorb(bank_id year) residuals(_fwlres_`_ri')
+            if _rc {
+                local _sureg_resid_ok 0
+                display as error "  [WARN S4-01] reghdfe 残差化 `_v' 失败 (rc=`=_rc'), 反转检验降级跳过"
+                continue, break
+            }
+            local _resid_list `_resid_list' _fwlres_`_ri'
+        }
+    }
+    if `_sureg_resid_ok' {
+        * 残差名映射: 1=CAR残差, 2=ROA残差, 3=treatment残差, 4+=controls残差
+        local _y_short _fwlres_1
+        local _y_long  _fwlres_2
+        local _x_treat _fwlres_3
+        * controls 残差 = 第 4 个起到末尾
+        local _x_ctrls ""
+        local _ntot : word count `_resid_list'
+        forvalues k = 4/`_ntot' {
+            local _x_ctrls `_x_ctrls' _fwlres_`k'
+        }
+        * --- FWL 第二步: 在残差上跑 sureg (现已等同 FE-identified within 口径) ---
+        capture noisily sureg (`_y_short' `_x_treat' `_x_ctrls') ///
+                              (`_y_long'  `_x_treat' `_x_ctrls')
+        if !_rc {
+            * 跨方程反转检验: 短期(CAR残差)系数 = -长期(ROA残差)系数
+            capture noisily test [`_y_short']_b[`_x_treat'] = ///
+                                 -[`_y_long']_b[`_x_treat']
+        }
+        else {
+            display as error "  [WARN S4-01] FE-residualized sureg 失败 (rc=`=_rc'), 反转检验跳过"
+        }
+        * 清理临时残差列, 防污染后续估计
+        capture drop _fwlres_*
+    }
+    capture drop _fwl_touse
 }
 
 * fix(omni-g-templates-06/07, 2026-06-11): 旧版 esttab 无条件点名 short_run — CAR 列
@@ -90,7 +164,9 @@ esttab `models' using "$tables_dir/table3_dual_outcome.tex", replace ///
     title("Table 3 — Dual Outcome (W&Z 1994 — short-run CAR vs long-run ROA reversal)") ///
     mtitles(`mtitles') ///
     addnotes("W&Z 1994 prediction: symbolic substantiveness → short-run CAR + / long-run ROA −." ///
-             "Joint reversal test via sureg + test (cross-equation coefficient reversal).")
+             "Joint reversal test via FWL-residualized sureg (bank+year FE partialled out via" ///
+             "reghdfe residuals, then SUR on residuals) — FE-identified, same within scope as" ///
+             "the single-outcome columns; cross-equation coefficient reversal test.")
 
 * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel — papers/bank_fintech_substance/
 * tables.py:build_table3_dual_outcome 经 read_paper_esttab(..., 'table3_dual_outcome.csv') 消费。

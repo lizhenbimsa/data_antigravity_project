@@ -43,6 +43,11 @@ if _rc {
 }
 xtset bank_id year
 
+* $controls (独立重跑时可能未由 01_data_prep 设全局; 缺则用本篇默认)
+if "$controls" == "" {
+    global controls "{{CONTROLS}}"
+}
+
 local DV   {{MAIN_DV}}
 local CL   {{CLUSTER_VAR}}
 local X    strat_diff_n5

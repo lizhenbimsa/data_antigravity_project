@@ -18,37 +18,91 @@ if _rc {
     exit 0
 }
 
+* ── fix(IV-6, audit PROJECT_REAUDIT_T18 附录B / BRK-02): 生产机 StataNow 19.5 实测 ivreghdfe
+*   因 ftools/reghdfe Mata 版本不兼容恒 r(301) (reghdfe/ivreg2 均正常); 旧版"ivreghdfe 缺失
+*   即 exit 199"会让本表两列空缺、整表静默丢失。改镜像 11_table2 / 17_table8: 优先 ivreghdfe,
+*   缺失【或运行期 r(301) 等失败】→ 自动回退 ivreg2 + 显式 i.bank_id i.year; capture
+*   noisily 防弱识别/退化样本 abort; 两估计器皆失败该列优雅缺席 (下方动态 esttab)。
+*   识别不变 (同 endog {{MAIN_ENDOG}} / 同工具 {{MAIN_IV}})。──
+local _have_ivhdfe = 0
 capture which ivreghdfe
-if _rc {
-    display as error "[ERROR] ivreghdfe required"
-    exit 199
+if !_rc local _have_ivhdfe = 1
+local _have_ivreg2 = 0
+capture which ivreg2
+if !_rc local _have_ivreg2 = 1
+if !`_have_ivhdfe' & !`_have_ivreg2' {
+    display "[INFO] neither ivreghdfe nor ivreg2 available; Table 4 skipped."
+    exit 0
 }
 
 * H1: 分样本 SOE=0
 preserve
 keep if {{HET_VAR}} == 0
-ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo H1_nonSOE
+local _h1 = 0
+if `_have_ivhdfe' {
+    capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    if !_rc {
+        eststo H1_nonSOE
+        local _h1 = 1
+    }
+}
+if !`_h1' & `_have_ivreg2' {
+    capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls i.bank_id i.year, ///
+        cluster({{CLUSTER_VAR}}) first
+    if !_rc eststo H1_nonSOE
+}
 restore
 
 * H2: 分样本 SOE=1
 preserve
 keep if {{HET_VAR}} == 1
-ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo H2_SOE
+local _h2 = 0
+if `_have_ivhdfe' {
+    capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    if !_rc {
+        eststo H2_SOE
+        local _h2 = 1
+    }
+}
+if !`_h2' & `_have_ivreg2' {
+    capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls i.bank_id i.year, ///
+        cluster({{CLUSTER_VAR}}) first
+    if !_rc eststo H2_SOE
+}
 restore
 
 * fix(network-metrics-audit, 2026-06-13, P1-2): 补弱工具诊断 (KP rk Wald F + Stock-Yogo/AR-CI)
 * — 分样本 2SLS 在小子样本上弱工具风险更高, 必须报第一阶段 F。
-esttab H1_nonSOE H2_SOE using "$tables_dir/table4_heterogeneity.tex", replace ///
+* fix(BRK-02): esttab 名单动态化 — H1/H2 经 ivreghdfe→ivreg2 回退后仍可能某列缺席
+*   (子样本退化或两估计器皆失败), 不再硬点名避免 r(111) 整表丢失; mtitle 同步对齐。
+qui estimates dir
+local stored `r(names)'
+local cand_models H1_nonSOE H2_SOE
+local cand_titles `""Non-SOE" "SOE""'
+local models ""
+local mtitles `""'
+local nmod : word count `cand_models'
+forvalues i = 1/`nmod' {
+    local m : word `i' of `cand_models'
+    if `: list m in stored' {
+        local models `models' `m'
+        local t : word `i' of `cand_titles'
+        local mtitles `"`mtitles' "`t'""'
+    }
+}
+if "`models'" == "" {
+    display as error "  [WARN] Table 4 无任何已存储估计 (ivreghdfe/ivreg2 均失败?), 表跳过"
+    exit 0
+}
+esttab `models' using "$tables_dir/table4_heterogeneity.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
     title("Heterogeneity by {{HET_VAR}} --- brokerage_network 2SLS") ///
-    mtitles("Non-SOE" "SOE") ///
-    addnotes("Split-sample 2SLS; bank/year FE; SE clustered at province." ///
-             "KP rk Wald F = Kleibergen-Paap rk Wald first-stage F (e(widstat), reported by ivreghdfe under cluster VCE; ffirst adds per-instrument first stage)." ///
+    mtitles(`mtitles') ///
+    addnotes("Split-sample 2SLS; bank/year FE; SE clustered at province; estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6)." ///
+             "KP rk Wald F = Kleibergen-Paap rk Wald first-stage F (e(widstat); blank for ivreg2 fallback if not stored)." ///
              "Just-identified (1 IV W2*tone / 1 endogenous) -> Hansen J undefined (df=0)." ///
              "Stock-Yogo 10% maximal-size critical value (1 instrument) = 16.38; KP F below it => weak IV;" ///
              "split-sample F is typically lower, read Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019).")

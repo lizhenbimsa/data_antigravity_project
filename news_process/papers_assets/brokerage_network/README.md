@@ -1,6 +1,6 @@
 # Paper: `brokerage_network` — Information Brokerage Network & Causal Identification
 
-**Status (2026-05-15 / post-P4 / commit 8d33c46)**: P0-P4 落地完成. Stata 8 模板 + Python tables/figures + 345 行 network_causal.do (paper-specific override) + en/zh 双语 manuscript 骨架.
+**Status (历史 P0-P4 快照, 原 2026-05-15 / commit 8d33c46; 计数已刷新至当前态)**: P0-P4 落地完成. Stata 18 模板 + Python tables/figures + 345 行 network_causal.do (paper-specific override) + en/zh 双语 manuscript 骨架.
 
 ## 主题
 
@@ -33,7 +33,7 @@ papers_assets/brokerage_network/
 
 | 层 | 交付 |
 |---|---|
-| Stata | 8 .do.tmpl @ `_common/stata_templates/brokerage_network/` + 345 行 paper-specific network_causal.do (保留) |
+| Stata | 18 .do.tmpl @ `_common/stata_templates/brokerage_network/` + 345 行 paper-specific network_causal.do (保留) |
 | Python | `tables.py` 5 函数 + `figures.py` 3 函数 |
 | 复现包 | `python -c "from news_process.papers._common.derivative_replication import build_derivative_replication_package as b; b('brokerage_network')"` |
 | Manuscript | en (86 行 / 10 TODO) + zh 双语骨架 + refs.bib |
@@ -58,6 +58,6 @@ papers_assets/brokerage_network/
 
 - Bramoullé, Y., Djebbari, H., & Fortin, B. (2009). Identification of Peer Effects. *JoE*, 150(1).
 - Manski, C. F. (1993). Identification of Endogenous Social Effects. *RES*, 60(3).
-- Han, M., Kim, S. H., Nanda, V., & Ramadorai, T. (2024). Institutional Brokerage Networks. *RFS*, 37(9).
+- Han, M., Kim, S. H., & Nanda, V. (2024). Institutional Brokerage Networks: Facilitating Liquidity Provision. *RFS*, 37(9), 2903-2935. doi:10.1093/rfs/hhae026
 - Burt, R. S. (1992). *Structural Holes*. Harvard University Press.
 - Cameron, A. C., & Miller, D. L. (2015). Cluster-Robust Inference. *JHR*, 50(2).

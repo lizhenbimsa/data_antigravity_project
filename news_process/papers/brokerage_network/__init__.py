@@ -4,7 +4,7 @@
 --------
 Brokerage-Network — 信息经纪网络与企业表现 (Information Brokerage Network).
 衍生自 ``pipeline/panel/network_brokerage.py`` (原 47_panel_network_brokerage.py),
-学术依据 Han, Jiang, Zhang & Zhu 2024 — 银行作为信息经纪人在共现网络中的中介性。
+学术依据 Han, Kim & Nanda 2024 (RFS) — 银行作为信息经纪人在共现网络中的中介性。
 
 核心被解释变量
 --------------

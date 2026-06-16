@@ -1,10 +1,12 @@
 # news_process 流水线编号 .py 文件参考 (2026-06-15)
 
-本文档汇编 `news_process/` 根目录下全部 34 个编号 `NN_*.py` 脚本的权威参考。这 34 个文件都是 **thin shim** (极薄转发脚本, 每个 ≤30 行): 真正的业务逻辑全部位于 `news_process.pipeline.*` 与 `news_process.validation.*` 子包中, shim 只做 `sys.path` 注入后导入并调用对应实现模块的入口函数。
+本文档汇编 `news_process/` 根目录下全部 35 个编号 `NN_*.py` 脚本的权威参考。这 35 个文件都是 **thin shim** (极薄转发脚本, 每个 ≤30 行): 真正的业务逻辑全部位于 `news_process.pipeline.*` 与 `news_process.validation.*` 子包中, shim 只做 `sys.path` 注入后导入并调用对应实现模块的入口函数。
 
-其中 **31 个已在 DAG 注册** = 15 个 `STAGES_MAIN` (生产主链) + 16 个 `STAGES_VALIDATION` (验证支线); 另有 **3 个设计上未注册** (`27c_placebo_and_alt_anchor.py` / `52_stata_data_audit.py` / `53_export_stats_excel.py`): 它们刻意游离于编排器之外 —— `27c` 是 benefit_society 论文的 audit-only 旁支, `52`/`53` 是用户按需手动调用的 CLI 工具, `core/schemas.py:156-158` 显式注释排除 52/53。
+其中 **32 个已在 DAG 注册** = 16 个 `STAGES_MAIN` (生产主链) + 16 个 `STAGES_VALIDATION` (验证支线); 另有 **3 个设计上未注册** (`27c_placebo_and_alt_anchor.py` / `52_stata_data_audit.py` / `53_export_stats_excel.py`): 它们刻意游离于编排器之外 —— `27c` 是 benefit_society 论文的 audit-only 旁支, `52`/`53` 是用户按需手动调用的 CLI 工具, `core/schemas.py:156-158` 显式注释排除 52/53。
 
 每个文件小节给出: 一行元信息 (注册 / 底层模块 / 产出 / 三轨), 然后逐字引用定稿的 **详细功能说明** (技术细节) 与 **白话说明** (非技术解释)。
+
+> ⚠ **行号说明 (post-12b)**: stage 12b StageSpec 块 (core/dag.py:187-191) 后续插入在 stage 12 与 stage 13 之间, 故本文档中 stage 13 及之后各小节引用的 `core/dag.py` / `pipeline/panel/runner.py` 源行号统一向后漂移 (dag.py 约 +8 行 / runner.py 约 +38 行), 与现行源码偏移。stage 00/11/12 (12b 之前) 行号不受影响。各小节的 StageSpec 名称、script 文件名、语义描述均仍正确, 仅行号待重生; 以现行源码实读为准。
 
 ---
 
@@ -15,6 +17,7 @@
 | 00_preprocessing.py | STAGES_MAIN (阶段00) | pipeline/preprocess/runner.py | 00_preprocessing.parquet + 旁路对账 json/csv | 不适用 (三轨在 stage 13 物化) |
 | 11_news_bank.py | STAGES_MAIN (阶段11) | pipeline/filtering/news_bank.py | 11_bank_news.parquet + .csv | 不适用 (firm-level 公共上游) |
 | 12_news_fintech.py | STAGES_MAIN (阶段12) | pipeline/filtering/news_fintech.py | 12_fintech_news.parquet + 12_fintech_news_full.parquet | 不适用 (金科词典是 ss 轨金科侧词源) |
+| 12b_cooccurrence_filter.py | STAGES_MAIN (阶段12b) | pipeline/filtering/cooccurrence_filter.py | 12b_cooccurrence_filtered.parquet | 不适用 (硬过滤丢行, 三轨天然继承) |
 | 13_materialize_ctx.py | STAGES_MAIN (阶段13) | pipeline/text/ctx_materializer.py | 13_news_with_ctx.parquet (五列文本/旗标) | **三轨源头** (full/ctx/ss) |
 | 14_fintech_intensity.py | STAGES_MAIN (阶段14) | pipeline/filtering/fintech_intensity.py | 14_fintech_intensity.parquet | 真三轨 |
 | 15_article_policy_alignment.py | STAGES_MAIN (阶段15) | pipeline/filtering/policy_alignment.py | 15_article_alignment.parquet | 真三轨 + 双模型 twin |
@@ -165,6 +168,46 @@
 
 ---
 
+### 12b_cooccurrence_filter.py
+
+- **注册**: STAGES_MAIN(阶段12b: 银行×金科邻近共现预过滤 (Andreou et al. 2026))。core/dag.py:187-191 注册 StageSpec(name="阶段12b: 银行×金科邻近共现预过滤 (Andreou et al. 2026)", script="12b_cooccurrence_filter.py", group="main", kind="filter"); core/schemas.py:53 在 OUTPUT_REGISTRY 声明产出 12b_cooccurrence_filtered.parquet (config 键 output_12b_cooccurrence, 见 schemas.py:118)。v3.10.0 (2026-06-15) 引入。非 EXPECTED_NO_OUTPUT_STAGES。
+- **底层模块**: pipeline/filtering/cooccurrence_filter.py (入口 main → filter_cooccurrence; 判据原语 core/text/entity_context.py::has_bank_fintech_cooccurrence_within_radius)
+- **产出**: data/processed/12b_cooccurrence_filtered.parquet (config 键 output_12b_cooccurrence) = stage 12 子集的【近邻相关】子集 (硬过滤丢行); 另落 .meta.json provenance sidecar (判据 + criterion_sha256 + 行数对账)。经 core/reporting.py::save_dataset 写盘 (版本元数据; input_files 含 12_fintech_news.parquet + fintech_dict.json + 排除配置)。
+- **三轨**: 不适用情感三轨。它在 stage 12 与 stage 13 之间硬过滤丢行, 三轨情感/强度链在下游天然继承过滤结果 (下游 controls.py/encode.py 零改动, 路线 A 纯接受-披露)。注: 判据口径与 stage 13 _ss 轨【不同】—— 12b 是窗口邻近 (银行锚句 ±sentence_radius 句), 严格同句 (_ss, radius=0) 是其子集, **禁互相复用**。
+
+**详细功能说明**
+
+**输入**: `12_fintech_news.parquet` (config 键 output_12_fintech_news, stage 12 的 is_fintech_news==True 关键词金科子集)。
+
+**处理步骤** (`main` → `filter_cooccurrence` → 逐行判定窗口邻近共现):
+1. 模块级加载金科 AC 自动机 (load_fintech_dict, 1506 词) + 银行否定/短名排除配置 (load_exclusion_patterns, 与 stage 11/13 同口径)。
+2. 对每个 (文章, target_bank) 行, 调 `has_bank_fintech_cooccurrence_within_radius(body, aliases, FINTECH_AC, sentence_radius, ...)` 判定 "目标银行锚句 ∧ ≥1 金科词在 ±sentence_radius 句窗口内" 是否成立, 命中则保留。
+3. 性能 (CF-01): 先 `tolist` 取 target_bank/内容两列再纯 Python zip 循环 (避开 df.iterrows() 逐行 Series 开销), 语义与逐行等价 (同序、同 mask); 稳定布尔掩码保留 stage 12 原序, 不 sort_values。
+
+**保留判据** (`has_bank_fintech_cooccurrence_within_radius`, 与 _ss 轨严格同句口径不同):
+- 窗口邻近: 银行锚句 i ∧ 金科∈[i±radius] 邻句 (默认 sentence_radius=1); 严格同句 (radius=0) 是其子集。
+- 不对称匹配: 银行侧做否定/短名排除 (has_unexcluded_occurrence); 金科侧裸 AC (1506 词), 与 stage 12/13 ss 轨金科侧一致 (单一事实源 core/text/ahocorasick)。
+
+**安全铁律**:
+- SAFE-1: FINTECH_AC=None (词典加载失败) → **保留全部行 + loud WARNING** (绝不静默清空整库)。
+- min-N 守卫: 仅当 FINTECH_AC 实际生效 (非 SAFE-1) 时校验, keep 率低于 `cooccurrence_filter.min_keep_frac` (默认 0.001) 或 0 行 → `SystemExit(1)` + loud (防真实零共现把整库清空)。
+
+**路线 A (纯接受-披露)**: 12b 仅丢行, 下游 controls.py/encode.py 零改动; n_articles/fintech_share(分子)/attention 族①/NF 对照组的统计宇宙统一平移为 "近邻相关金科" 口径, 在 manuscript/codebook 如实披露。fintech_share 分母经 "望远镜式坍缩" 恒不变 (12b 只把中间集从 ft 端移到 nf 端, 代数和守恒)。⚠ 地理 attention 族 (ft_attn_*/ft_vol_*) 直读 12_fintech_news_full、不经 12b → 仍原始关键词口径, 与 12b 正交。
+
+**外部依赖/确定性**: 纯 CPU (ahocorasick), 无 LLM/网络, 逐位可复现。fintech_dict.json + 排除配置纳入 input_hashes 血缘。provenance sidecar 刻意不含 wall-clock 时间戳 (保确定性)。
+
+**DAG 位置**: 上游 stage 12 (news_fintech), 下游 stage 13 (ctx_materializer) 改读 12b 输出 (唯一 load-bearing 重指针)。学术依据 Andreou et al. 2026 Research Policy (core-contextual word-pairing 的句级窗口操作化) + Hassan et al. 2019 QJE §III.B proximity-based attribution (见模块 docstring)。
+
+**白话说明**
+
+**这一步在做什么**: 在'已经被判为金科新闻'的稿件里, 再卡一道更严的关: 只留下'目标银行和金融科技词出现得足够近'(在同一句或相邻一句里) 的文章, 其余直接丢掉。打个比方: stage 12 只要一篇里凑够几个金科词就盖章'涉金科', 但这篇可能前半段讲某银行、后半段才单独讲金融科技, 两者其实没在谈一回事; 这步就把'银行和金科隔得太远、各说各的'那种稿子剔出去。
+
+**为什么需要它**: 光靠关键词命中容易把'顺带提了金科、但主题根本不是银行×金科'的稿件误算进来 (虚假相关)。要求银行和金科词在相邻句窗口内同时出现, 等于要求它们'谈的是同一件事', 大幅降低误判, 让后面所有银行×金科指标更干净。
+
+**做得好不好的影响**: 这一刀决定了进入下游所有情感/强度/注意力指标的文章总集。它有两道保险: 词典万一加载失败就原样全保留 (绝不误删整库), 真过滤时如果剩下的太少 (疑似全删) 就直接中止报警。它只删行不改下游计算口径, 被删与保留的代数和守恒, 所以 fintech_share 这类比例变量的分母保持不变; 但分子 (近邻相关金科篇数) 会因这道过滤变小, 这一点在论文和码本里如实披露。
+
+---
+
 ### 13_materialize_ctx.py
 
 - **注册**: STAGES_MAIN(阶段13: 实体特异性上下文物化 content_ctx / content_ss 三轨)。core/dag.py:189-193 注册 StageSpec(name="阶段13: 实体特异性上下文物化 (content_ctx / content_ss 三轨)", script="13_materialize_ctx.py", group="main", kind="filter"); core/schemas.py:53 声明产出 13_news_with_ctx.parquet。v3.6.0 引入 (Plan E P4 A1), v3.9.0 (2026-06-14) 扩出第三轨 _ss。非 EXPECTED_NO_OUTPUT_STAGES。
@@ -267,7 +310,7 @@
 **处理步骤**:
 1. **语料加载** `load_policy_corpus_docs`: 按 `# [VINTAGE YYYY]` 标注行 / 落款日期行(YYYY年M月)/ 文号〔YYYY〕N号 解析各政策文档发布年份(vintage); 经 `_strip_leader_names` 镜像新闻侧 normalize 步骤2.5 做敏感词('习近平')对称清洗; 无 VINTAGE 标注时按 ≥3 连续空行切文档。
 2. **Vintage-aware 前视守卫**(默认开, config: article_alignment.vintage_aware, 函数 vintage_aware_enabled): 年度 t 的文章只与 **发布年份 ≤ t** 的政策文档段拼成锚点算余弦(消除'2017年新闻比2022年才发布的政策'前视构造)。文章年份从 year 列或 日期 列派生; 年份未知或早于全部政策文档 → 该篇置 NaN。无年份信息或 opt-out 时降级为静态全语料锚点并 WARNING 披露。
-3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档 Early Chunking(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(API 1536维 vs text2vec 768维, 严禁混算)。
+3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档朴素分段 (naive chunking)(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(API 1536维 vs text2vec 768维, 严禁混算)。
 4. **双模型**: MAIN = text-embedding-3-small(config embedding_api, yunwu OpenAI-compat API)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; ROBUSTNESS = shibing624/text2vec-base-chinese(本地, config embedding_robustness)→ `policy_cosine_sim_t2v_{full,ctx,ss}`。_t2v 失败(try/except 守卫)仅置 NaN 不破坏 canonical。
 5. 统计/断言全部 NaN-安全(nanmin/nanmax/nanmean); full↔ctx Spearman ρ 轨间独立性诊断。
 

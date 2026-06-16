@@ -1,7 +1,10 @@
-"""一次性脚本：对 `news_process/**/*.py` 中遗留的旧模型名做幂等字符串替换。
+"""一次性脚本：对 `news_process/**/*.py` 中遗留的旧模型名做幂等字符串替换。[OBSOLETE — 历史/已废, 勿再运行]
 
 `replacements` 字典上下值多为 1:1（保留为兼容回滚记录），实际有效条目见短名映射
 段（如 `gemini31111 → gemini311111`）。运行前先 `git diff` 预览。
+
+⚠ 已废弃：当前线上 LLM 短名仍为 `gemini31111`（config/sentiment.yaml:35），若再跑此脚本
+会把活跃短名误改为不存在的 `gemini311111`，破坏缓存键/标签。仅作历史记录保留，勿再运行。
 """
 
 import glob

@@ -36,7 +36,21 @@ if !_rc {
     eststo locus_clarity_dual
 }
 
-esttab locus_clarity_interact locus_clarity_dual ///
-    using "$tables_dir/tableA7_clarity_robustness.tex", ///
-    se star(* 0.10 ** 0.05 *** 0.01) replace ///
-    title("Table A7: Lexical Clarity × Locus — {{PAPER_ID}}")
+* fix(omni-g-templates-07): esttab 名单动态化 — locus_clarity_interact/locus_clarity_dual
+* 均在 `capture confirm variable mean_clarity_score_full` 守卫块内 (清晰度列缺失即跳过),
+* 旧版硬点名缺名 → r(111) 丢整表; 镜像 16_locus_mechanism.do.tmpl:78-91 的标准动态写法。
+qui estimates dir
+local stored `r(names)'
+local models ""
+foreach m in locus_clarity_interact locus_clarity_dual {
+    if strpos(" `stored' ", " `m' ") > 0  local models `models' `m'
+}
+if "`models'" == "" {
+    display "[WARN] no clarity estimates stored (mean_clarity_score_full absent); skipping Table A7"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA7_clarity_robustness.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) replace ///
+        title("Table A7: Lexical Clarity × Locus — {{PAPER_ID}}")
+}

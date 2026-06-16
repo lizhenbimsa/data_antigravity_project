@@ -347,60 +347,36 @@ if !_rc {
     }
 }
 
-* B2: L1 滞后处理 — 用在盘滞后列 llm_vote_tone_full_lag1 (= L.{{TONE_VAR}}) 工具用 peer_tone_lag1_full
-*     (在盘滞后 IV); 缺则回退 L./F. 算子构造。检验上一年同行风向对当年决策的影响。
-capture confirm variable llm_vote_tone_full_lag1 peer_tone_lag1_full
-if !_rc {
-    quietly count if !missing(`DVUSE', llm_vote_tone_full_lag1, peer_tone_lag1_full)
-    if r(N) >= `N_MIN' {
-        local _crc = 1
-        if `HAS_IVHDFE' {
-            capture eststo B_lag1: ivreghdfe `DVUSE' (llm_vote_tone_full_lag1 = peer_tone_lag1_full) $controls, ///
-                absorb(bank_id year) cluster(`CL') ffirst
-            local _crc = _rc
-        }
-        if `_crc' != 0 & `HAS_IVREG2' {
-            capture estimates drop B_lag1
-            capture eststo B_lag1: ivreg2 `DVUSE' (llm_vote_tone_full_lag1 = peer_tone_lag1_full) $controls i.bank_id i.year, ///
-                cluster(`CL') partial(i.bank_id i.year)
-            local _crc = _rc
-        }
-        if `_crc' == 0 {
-            local tmcols "`tmcols' B_lag1"
-            local tmlabs `"`tmlabs' "Lagged (t-1)""'
-        }
-        else {
-            display "  ⚠️ Panel B: L1 滞后 2SLS 失败 (T=2 滞后塌缩仅留 1 期), 跳过 B2"
-        }
+* B2: L1 滞后处理 — 用 L. 算子即时构造滞后的内生 tone 与滞后的 LLM-peer IV: (L.{{TONE_VAR}} = L.{{LLM_PEER_IV}})。
+*     检验上一年同行风向对当年决策的影响。
+*     ⚠ 工具必须用与 B1/B3 一致的 headline LLM-semantic-peer 工具 (`IV' = {{LLM_PEER_IV}}, 由 llm_peer_iv.py 产),
+*       的滞后 L.`IV'; 绝不可换成 co-mention 共现网络同行工具 peer_tone_lag1_full (network_spillover.py),
+*       否则本"LLM-peer IV 时序"表的滞后列偷换识别工具, 与同期/lead 列口径不一致。本机无在盘
+*       llm_peer_tone_iv_full_lag1 列 → 统一走 L. 算子 (golden-safe, 不落盘), 与 B1/B3 镜像。
+quietly count if !missing(`DVUSE') & !missing(L.`TONE') & !missing(L.`IV')
+if r(N) >= `N_MIN' {
+    local _crc = 1
+    if `HAS_IVHDFE' {
+        capture eststo B_lag1: ivreghdfe `DVUSE' (L.`TONE' = L.`IV') $controls, ///
+            absorb(bank_id year) cluster(`CL') ffirst
+        local _crc = _rc
+    }
+    if `_crc' != 0 & `HAS_IVREG2' {
+        capture estimates drop B_lag1
+        capture eststo B_lag1: ivreg2 `DVUSE' (L.`TONE' = L.`IV') $controls i.bank_id i.year, ///
+            cluster(`CL') partial(i.bank_id i.year)
+        local _crc = _rc
+    }
+    if `_crc' == 0 {
+        local tmcols "`tmcols' B_lag1"
+        local tmlabs `"`tmlabs' "Lagged (t-1)""'
     }
     else {
-        display "  ⚠️ Panel B: L1 滞后有效 N<`N_MIN' (T=2 滞后后仅 2018 年留存), 跳过 B2 (production T=18)"
+        display "  ⚠️ Panel B: L1 滞后 2SLS 失败 (T=2 滞后塌缩仅留 1 期), 跳过 B2"
     }
 }
 else {
-    * 回退: 用 L. 算子即时构造 (无在盘滞后 IV 列时)
-    quietly count if !missing(`DVUSE') & !missing(L.`TONE') & !missing(L.`IV')
-    if r(N) >= `N_MIN' {
-        local _crc = 1
-        if `HAS_IVHDFE' {
-            capture eststo B_lag1: ivreghdfe `DVUSE' (L.`TONE' = L.`IV') $controls, ///
-                absorb(bank_id year) cluster(`CL') ffirst
-            local _crc = _rc
-        }
-        if `_crc' != 0 & `HAS_IVREG2' {
-            capture estimates drop B_lag1
-            capture eststo B_lag1: ivreg2 `DVUSE' (L.`TONE' = L.`IV') $controls i.bank_id i.year, ///
-                cluster(`CL') partial(i.bank_id i.year)
-            local _crc = _rc
-        }
-        if `_crc' == 0 {
-            local tmcols "`tmcols' B_lag1"
-            local tmlabs `"`tmlabs' "Lagged (t-1)""'
-        }
-    }
-    else {
-        display "  ⚠️ Panel B: 滞后列缺且 L. 算子有效 N<`N_MIN' (T=2 退化), 跳过 B2"
-    }
+    display "  ⚠️ Panel B: L1 滞后 (L.) 有效 N<`N_MIN' (T=2 滞后后仅 2018 年留存), 跳过 B2 (production T=18)"
 }
 
 * B3: lead 安慰剂 — F.{{TONE_VAR}} 工具用 F.{{LLM_PEER_IV}}。
@@ -439,7 +415,7 @@ if "`tmcols'" != "" {
         mtitles(`tmlabs') ///
         addnotes("Contemporaneous (t) vs lagged (t-1) treatment vs lead placebo (t+1)." ///
                  "Lead placebo should be insignificant; a significant lead flags reverse-causality / reflection (Manski 1993; BDM 2004 QJE serial-correlation framework)." ///
-                 "⚠ Lag/lead construction is asymmetric: the lag column (t-1) prefers the pipeline-pre-aggregated on-panel columns llm_vote_tone_full_lag1 / peer_tone_lag1_full (built at panel-build time), whereas the lead placebo (t+1) is built on-the-fly via the F. time-series operator (no pre-aggregated lead column on panel). On a balanced T>=3 panel with xtset these coincide year-over-year; in production verify the on-panel _lag1 equals L. of the contemporaneous column (assert no off-by-one) before reading the placebo." ///
+                 "All three columns use the SAME headline LLM-semantic-peer instrument (`IV', from llm_peer_iv.py): contemporaneous (`TONE'=`IV'), lagged (L.`TONE'=L.`IV') and lead (F.`TONE'=F.`IV') are built symmetrically via the L./F. time-series operators under xtset (no pre-aggregated on-panel lag/lead column; not the co-mention network instrument peer_tone_lag1_full)." ///
                  "All require T>=3 to populate lag+lead; T=2 trial panel collapses these (production T=18).")
     estout `tmcols' using "$tables_dir/tableA8b_timing.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N widstat, fmt(0 3)) ///

@@ -8,7 +8,7 @@
 学术依据:
     Cohen (1988) effect-size convention: |Δ/baseline| > 30% =
     medium-large practical significance.
-    Andrews, Stock & Sun (2019, AER) weak IV diagnostic: t-stat < 1.96
+    Andrews, Stock & Sun (2019, Annual Review of Economics) weak IV diagnostic: t-stat < 1.96
     in 50% subsample is a leading indicator of full-sample insignificance.
 
 用法（user-run）:

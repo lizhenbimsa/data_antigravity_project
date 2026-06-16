@@ -33,8 +33,9 @@
   prompts/sentiment_cot.txt 改写时, 旧 cache 仍命中, 分析结果不反映新提示词.
   现在 prompt_version 进键, 改一行 prompt → cache miss → 重新调 API.
 - BREAKING — Plan-r3 P3-17 把 SCHEMA_VERSION 从 ``"v0"`` 升至 ``"v1"``,
-  既有 ``_llm_cache.db`` (236 MiB) 全部 silent miss, 下次跑 stage 21 / 15
-  / 27 会冷启动. 用户已在 plan 中 explicit 接受此代价.
+  既有 ``_llm_cache.db`` (236 MiB, 历史快照 @ P3-17 迁移时刻; 当前 ~407MB)
+  全部 silent miss, 下次跑 stage 21 / 15 / 27 会冷启动. 用户已在 plan 中
+  explicit 接受此代价.
 - 向后兼容 API — ``get/put/put_batch`` 新增的两个参数 ``prompt_version``
   / ``temperature`` 都有默认值 (v0 / 0.0); 旧调用方不修改也能跑, 只是
   键会落到 (v1, v0, 0.0) 命名空间, 与 round 1+2 (v0 命名空间) 完全隔离.
@@ -228,8 +229,10 @@ class LLMCache:
             模块级 ``SCHEMA_VERSION`` 常量.
         """
         # ⚠ final recode 审查发现: model_id=None 与 model_id="" 不能共用 namespace
-        # (旧实现 ``str(x) if x is not None else ""`` 让 None ≡ ""). 用 null byte 哨兵
-        # ``\x00<None>\x00`` 区分 — null byte 不会出现在合法字符串中, 与任何用户输入分离.
+        # (旧实现 ``str(x) if x is not None else ""`` 让 None ≡ ""). 用纯 ASCII 哨兵
+        # ``_NONE_SENTINEL`` ('<<NULL_SENTINEL>>') 区分, 并经 ``f"{len(m_id)}:{m_id}"``
+        # 长度前缀绑定, 即便用户传入字面量 '<<NULL_SENTINEL>>' 也与 None 长度不同而区分
+        # (详见模块 docstring 141-157, round-3 review R8 已弃用旧 null-byte 方案).
         # 生产 code path 不传 None (yaml 配置必有值), 但作为公开 API 接口契约必须严格.
         m_id = _NONE_SENTINEL if model_id is None else str(model_id)
         p_str = _NONE_SENTINEL if prompt is None else str(prompt)

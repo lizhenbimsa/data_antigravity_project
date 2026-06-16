@@ -102,7 +102,7 @@ esttab `models' using "$tables_dir/table2_main.tex", replace ///
     title("Main Results --- bank_fintech_substance (P3)") ///
     mtitles(`mtitles') ///
     addnotes("bank / year FE; SE clustered at {{CLUSTER_VAR}}; baseline = long_panel within-bank within-year (no IV per spec)." ///
-             "M1-M5 share the long-run DV cost_income_ratio_change_3yr (3-year forward CIR change); by construction this DV is undefined for the last 3 sample years (t+3 censoring), so M1-M5 estimate on t in {2007,...,2021} (SPEC IV-6 disclosure)." ///
+             "M1-M5 share the long-run DV cost_income_ratio_change_3yr (3-year forward CIR change); by construction this DV is undefined for the last 3 sample years (t+3 censoring), so M1-M5 estimate drops those years (in the full 2007-2024 corpus this restricts estimation to t in 2007-2021) (SPEC IV-6 disclosure)." ///
              "M6 reports the short-run CAR outcome (car_3day_window_ft_announce) and is NOT a progressive-controls continuation of M1-M5 but a separate dual-outcome column (W&Z 1994 short-run vs long-run); it is labelled accordingly and discussed in 16_substance_mechanism.do." ///
              "Dual outcome (short-run CAR + long-run ROA reversal) detail in 16_substance_mechanism.do.")
 

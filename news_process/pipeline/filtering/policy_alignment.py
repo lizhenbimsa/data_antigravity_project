@@ -88,7 +88,7 @@
 **处理步骤**:
 1. **语料加载** `load_policy_corpus_docs`: 按 `# [VINTAGE YYYY]` 标注行 / 落款日期行(YYYY年M月)/ 文号〔YYYY〕N号 解析各政策文档发布年份(vintage); 经 `_strip_leader_names` 镜像新闻侧 normalize 步骤2.5 做敏感词('习近平')对称清洗; 无 VINTAGE 标注时按 ≥3 连续空行切文档。
 2. **Vintage-aware 前视守卫**(默认开, config: article_alignment.vintage_aware, 函数 vintage_aware_enabled): 年度 t 的文章只与 **发布年份 ≤ t** 的政策文档段拼成锚点算余弦(消除'2017年新闻比2022年才发布的政策'前视构造)。文章年份从 year 列或 日期 列派生; 年份未知或早于全部政策文档 → 该篇置 NaN。无年份信息或 opt-out 时降级为静态全语料锚点并 WARNING 披露。
-3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档 Early Chunking(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(API 1536维 vs text2vec 768维, 严禁混算)。
+3. **嵌入与池化** `_cosine_for_spec`: 政策语料按文档朴素分段 (naive chunking)(_split_into_chunks, token 上限切不重叠段)→ 各段独立嵌入 → 对该年度允许的段做 mean pooling + L2 归一化 = 年度锚点; 文章侧无预截断(2026-06-12 选项 B 移除 8191-token 预截断), 超长文章由引擎 chunk+pool。文章与锚点算 cosine_similarity。每个 spec 用自己的模型独立嵌(API 1536维 vs text2vec 768维, 严禁混算)。
 4. **双模型**: MAIN = text-embedding-3-small(config embedding_api, yunwu OpenAI-compat API)→ canonical `policy_cosine_sim_{full,ctx,ss}` + 无后缀别名; ROBUSTNESS = shibing624/text2vec-base-chinese(本地, config embedding_robustness)→ `policy_cosine_sim_t2v_{full,ctx,ss}`。_t2v 失败(try/except 守卫)仅置 NaN 不破坏 canonical。
 5. 统计/断言全部 NaN-安全(nanmin/nanmax/nanmean); full↔ctx Spearman ρ 轨间独立性诊断。
 
@@ -333,7 +333,7 @@ def vintage_anchor_text(docs: list[dict], year) -> str | None:
 #   _get_embeddings_api_dynamic 是 **legacy 实现, 生产路径已不再调用**:
 #   生产嵌入统一走 pipeline/text/embedding_engine.py::embed_texts
 #   (LLMCache 穿透 + 动态分批: 单批 ≤2000 条 且 token 总和 ≤ 上限 + 超长文本
-#   Early Chunking + Mean Pooling)。Stage 25/26/27 也走同一引擎 (不存在旧注释
+#   朴素分段 (naive chunking) + Mean Pooling)。Stage 25/26/27 也走同一引擎 (不存在旧注释
 #   所称 "Stage 25 固定每批 100 条" — 该描述已随引擎统一而过时)。
 #   本函数仅余 tests/test_pipeline_robustness.py 引用 (缓存穿透/重试机制单测),
 #   保留以维持测试契约; 勿在生产代码中新增调用。
@@ -747,7 +747,8 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
     #   三轨均含同一标题前缀 (remove-title-track 终态: 标题 prepend 进 full/ctx/ss)。
     # 【白话】三条轨道分别打分:
     #   - full: 整篇新闻 vs 政策 (措施层 — Hassan 2019 macro 类比)
-    #   - ctx:  目标银行那段 vs 政策 (实体特异性 — Tetlock 2007 / L&M 2016)
+    #   - ctx:  目标银行那段 vs 政策 (实体特异性窗口 — Hassan et al. 2019 QJE §III.B
+    #           proximity-based attribution; Tetlock 2007 / L&M 2016 为媒体文本分析谱系)
     #   - ss:   目标银行∧金科同句那段 vs 政策 (共现特异性, 主题漂移更小的独立信号)
     # P0 修复 (embedding-reuse-audit 2026-06-05, 病根A 残留): full 轨改读 stage 13
     # 物化的 content_full (= prepend_title(标题, 内容)), 替代旧的裸 '标题 + 空格 + 内容'。
@@ -802,8 +803,8 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
 
     # ---- 4.3 Token 诊断 (无预截断 — 超长由引擎 chunk+pool 接管) ----
     # 【术语】fix(2026-06-12, 选项 B; 镜像 stage 27 omni-g-benefit-04): 移除文章侧
-    #   8191-token 预截断。统一引擎 _eng.embed_texts 自带 Early Chunking + token
-    #   加权 Mean Pooling (Günther et al. 2024, arXiv:2409.04701; Reimers &
+    #   8191-token 预截断。统一引擎 _eng.embed_texts 自带朴素分段 (naive chunking) + token
+    #   加权 Mean Pooling (Reimers &
     #   Gurevych 2019, EMNLP), 对超长文章无损分段池化 — 与锚点侧 (4.4) 及 stage
     #   25/26/27 完全同一口径。两侧 (文章 / 政策锚点) 现走**对称** chunk-pool 管线,
     #   符合 Hoberg & Phillips (2016, JPE) / Loughran & McDonald (2011, JF) 文本
@@ -829,7 +830,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
                 f"超长 (引擎 chunk+pool) {n_long}/{len(raw_texts)} 篇")
 
     # ---- 4.4 权威政策文本分段 (Chunk-then-Pool, 按文档分组) ----
-    # 【术语】Early Chunking + Mean Pooling (Günther et al., 2024; Reimers &
+    # 【术语】朴素分段 (naive / independent chunking) + Mean Pooling (Reimers &
     #   Gurevych, 2019): 将超长锚点文本按 token 上限切分为 K 个不重叠段，
     #   各段独立嵌入后均值池化为单个锚点向量，保留全部语义信息。
     # fix(omni-g-policy-02, 2026-06-11): 分段改为**逐文档**进行 (doc_chunks 按

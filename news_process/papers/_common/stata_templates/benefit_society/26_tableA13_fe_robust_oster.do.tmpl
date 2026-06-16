@@ -91,14 +91,13 @@ if _rc {
 * ============================================================================
 * Panel A — 固定效应饱和阶梯 (FE saturation ladder)
 * ============================================================================
-* M0: 更严格 bank FE over-baseline 检验 (NOT 主回归基线)
-* ⚠ 订正 (BS-A13-001): 本篇主表基线是 bank_type FE (见 11_table2 / 13_table4:7
-*   'NOT absorb(bank_id year)'), 非 bank+year 双向 FE。这里的 absorb(bank_id year)
-*   是刻意比主表更严格的 over-baseline 稳健性检验 — 用最严的 bank FE 吸收所有
-*   银行不变特征 + year FE 吸收共同冲击, 看主系数能否在比主规格更狠的设定下扛住。
-*   刻意偏离 F-R5-H2 (主表用 bank_type FE) 的理由: bank_type FE 是为保留 T=2 试跑盘
-*   的 within-type 变异 (bank FE 在 T=2 + singleton drop 后有效银行数骤降, 见表注);
-*   本稳健性表 production T=18 下用 bank FE 才有功效, 故在此作 over-baseline 而非主基线。
+* M0: 复刻 SPEC IV-1 主表基线 FE (FE-saturation 阶梯起点)
+* ⚠ 订正 (BS-A13-001): M0 的 absorb(bank_id year) 复刻 SPEC IV-1 主表 FE
+*   (同 11_table2 / 14_table5, paper_spec.yaml:52), 非 over-baseline。本表是
+*   FE-saturation 阶梯: Panel A 在主 FE 之上逐级加 province/type/zone×year FE
+*   + bank 线性趋势 (Gormley & Matsa 2014 RFS), 看主系数能否扛住更细的时变冲击。
+*   注: 全项目仅 13_table4_heterogeneity 刻意保留 bank_type FE (F-R5-H2 within-type
+*   异质性, T=2 试跑盘 + 仅类型内变异); 11_table2 / 14_table5 / 本表均用 bank_id year。
 * (capture 守卫: 财务列接入后若 M0 退化共线也不中断本表, Panel B/C 仍可跑)
 capture noisily reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
     absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
@@ -289,7 +288,7 @@ else {
     * BS-A13-003: M0 over-baseline 有效识别银行(聚类)数表注 (T=2 + bank FE singleton drop)。
     *   _m0_nclust / _n_all_clust 为 Panel A 内设的 local (do-file 单作用域内持续可见);
     *   非空且非 missing 时才追加有效银行数披露。
-    local _m0note "M0 uses stricter bank FE as an OVER-BASELINE robustness check (the main tables use bank_type FE, NOT bank+year); see header for the deliberate deviation rationale."
+    local _m0note "M0 reproduces the main bank_id+year FE (SPEC IV-1); subsequent columns saturate FE further (province/type/zone x year + bank trends)."
     if "`_m0_nclust'" != "" & "`_m0_nclust'" != "." {
         local _m0note = "`_m0note' Under T=2 + bank FE, single-year banks drop as singletons: effective identifying banks = `_m0_nclust' (vs `_n_all_clust' panel banks)."
     }
@@ -298,9 +297,9 @@ else {
         star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
         keep({{ATTITUDE_VAR}}) ///
         stats(N r2, fmt(0 3) labels("N" "R-squared")) ///
-        title("Table A13: FE over-baseline + Robust Estimators + Oster delta --- benefit_society") ///
+        title("Table A13: FE saturation ladder + Robust Estimators + Oster delta --- benefit_society") ///
         mtitles(`mtitles') ///
-        addnotes("Panel A (cols bank+year .. +bank trend): FE saturation ladder over a stricter bank-FE over-baseline (Gormley & Matsa 2014 RFS); SE clustered at {{CLUSTER_VAR}}." ///
+        addnotes("Panel A (cols bank+year .. +bank trend): FE saturation ladder over the main bank_id+year FE (SPEC IV-1; Gormley & Matsa 2014 RFS); SE clustered at {{CLUSTER_VAR}}." ///
                  "`_m0note'" ///
                  "Panel B (OLS/qreg/rreg): LSDV i.year(+i.type) design; qreg(.5) = median regression (Koenker-Bassett 1978); rreg = Huber + Tukey-biweight IRLS bounded-influence M-estimator (NOT Yohai MM)." ///
                  "Panel B SE bases DIFFER across columns and are not directly comparable: OLS = bank-clustered; qreg(.5) = iid sparsity-based; rreg = IRLS." ///

@@ -32,8 +32,8 @@ if !`HAS_IVHDFE' & !`HAS_IVREG2' {
     exit 199
 }
 
-* 手工收集第一阶段 F 统计量 (coefplot 不原生支持 `r(weakid)`)。
-* 构造 5 行 (cutoff, F) 小数据集后用 twoway/coefplot 作图。
+* 手工收集第一阶段 F 统计量 (各回归后从 e(widstat) 逐个取出, 见下方循环)。
+* 构造 5 行 (cutoff, F) 小数据集后用 twoway 作图 (本图不调用 coefplot)。
 
 tempname F_mat
 matrix `F_mat' = J(5, 2, .)

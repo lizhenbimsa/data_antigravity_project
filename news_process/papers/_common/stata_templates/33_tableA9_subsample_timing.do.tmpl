@@ -213,7 +213,11 @@ if "`subcols'" != "" {
              "Dimensions chosen to be orthogonal to Table 4 (size/zone/frontier) and " ///
              "falsification test 11 (SOE/scale/coverage): information-hub status (bank_is_hub), " ///
              "structural effective network size (median split), and bank-type categories. " ///
-             "External-validity / compositional robustness (Gormley & Matsa 2014 RFS, 10.1093/rfs/hht047).")
+             "External-validity / compositional robustness (Gormley & Matsa 2014 RFS, 10.1093/rfs/hht047). " ///
+             "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier; every " ///
+             "subsample column here uses absorb(bank_id year), so it is collinear with the bank FE and silently dropped — " ///
+             "beta(digital_frontier) is identified only in a no-absorb column (see 11_table2 M1). These columns identify " ///
+             "the within-bank time-varying terms (LOCUS/SUBST controls), not the frontier main effect.")
     estout `subcols' using "output/tables/tableA9a_subsample.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
         starlevels(* 0.10 ** 0.05 *** 0.01) keep(`EXPL')

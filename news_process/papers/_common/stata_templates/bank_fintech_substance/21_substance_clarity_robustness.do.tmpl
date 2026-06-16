@@ -23,7 +23,8 @@ use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
 * Panel A: 主 DV 对双轨 clarity 回归 (full + ctx 独立扫描)
-capture confirm variable mean_clarity_score_full
+* 两列由 encode_collab 同源无条件共产 (encode_collab.py:732-733), 故 _full 在则 _ctx 必在; 一并 confirm 保证守卫字面覆盖所用回归量。
+capture confirm variable mean_clarity_score_full mean_clarity_score_ctx
 if !_rc {
     reghdfe {{MAIN_DV}} mean_clarity_score_full mean_clarity_score_ctx $bank_controls, ///
         absorb(bank_id year) vce(cluster bank_id year)
@@ -33,8 +34,9 @@ else {
     display "  [WARN] mean_clarity_score_full not in panel (v3.5.1 D5 enrichment pending)"
 }
 
-* Panel B: LLM substance × clarity_full 交互 (HTMT 区分效度验证)
-* 白话: HTMT 是检查两个构念是否"其实在量同一个东西"的指标, 这里验证实质性与清晰度可区分。
+* Panel B: clarity_full × substantiveness 交互 (construct-separability 构念可分性检验)
+* 白话: 这里跑的是清晰度与实质性的交互回归, 检查两构念是否可区分; HTMT 比率本身不在本 do-file 计算,
+*       而是由 stage 39d 产出后填入下方 display 行 (见 line 64-66), 此回归只是其旁证。
 capture confirm variable mean_clarity_score_full
 if !_rc {
     reghdfe {{MAIN_DV}} c.mean_clarity_score_full##c.{{MAIN_TREAT}} $bank_controls, ///

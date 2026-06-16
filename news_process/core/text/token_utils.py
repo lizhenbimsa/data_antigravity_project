@@ -54,9 +54,9 @@ def truncate_to_max_tokens(text: str, max_tokens: int = MAX_TOKENS_PER_INPUT) ->
 def split_into_chunks(text: str, max_tokens: int = MAX_TOKENS_PER_INPUT) -> list[str]:
     """将超长文本按 token 粒度切分为多个不重叠分段。
 
-    Early Chunking (Günther et al., 2024, arXiv:2409.04701):
+    朴素分段 (naive / independent chunking):
     对超过 Embedding 模型单条上限的长文本, 先按固定 token 数切分为 K 个
-    不重叠段, 各段独立嵌入后均值池化。
+    不重叠段, 各段独立嵌入后均值池化 (无跨段上下文)。
     """
     tokens = _ENCODING.encode(text)
     if len(tokens) <= max_tokens:

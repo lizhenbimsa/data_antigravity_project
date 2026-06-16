@@ -562,7 +562,7 @@ def _project_texts(texts: list[str], direction: np.ndarray,
     引擎, 对应得分为 NaN。返回与 texts 等长的得分向量。
 
     fix(omni-g-benefit-04, 2026-06-11): 移除 8191-token 预截断 — 统一引擎
-    embed_texts 自带 Early Chunking + token 加权 mean pooling (与 stage 25
+    embed_texts 自带朴素分段 (naive chunking) + token 加权 mean pooling (与 stage 25
     strategic_diff 同口径), 长文尾部不再被静默丢弃 (兑现 'Full 轨: 完整语义
     信号' 声称)。≤8191 token 文本的缓存键不变 (旧截断恒等); 超长文本首块与旧
     截断文本字节一致 (cache hit), 仅尾部块为新键 → 嵌入重算 deferred 到下次

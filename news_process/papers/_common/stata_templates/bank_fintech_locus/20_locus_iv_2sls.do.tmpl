@@ -40,6 +40,14 @@ local DV   citation_weighted_patent
 * 零功效 (Parente & Santos Silva 2012 EL)。
 local TXC  tech_frac_lc
 local IVC  lpeer_locus_iv_ctx
+* ss 轨镜像 (2026-06-14 第三轨 _ss 平价补全): 内生孪生 tech_frac_ls 配 ss 同业 LOO
+* 工具 lpeer_locus_iv_ss, 与 full / ctx 轨【各自 just-identified、并排成列】表达三轨
+* 互为稳健性; 严禁 full/ctx/ss 任两轨 LOO 合成 overid — 同文三窗共同冲击同污染,
+* Hansen J 零功效 (Parente & Santos Silva 2012 EL)。
+* ⚠ 命名例外: ss 轨内生孪生列名是 tech_frac_ls (NOT tech_frac_ss) — iv_extensions.py
+*   对角创新命名 (locus_layer 二元 pair 的 ls 后缀), 勿机械拼 _ss 否则静默全 NaN。
+local TXS  tech_frac_ls
+local IVS  lpeer_locus_iv_ss
 
 * ⚠ FE 锁定 = bank FE + year FE; 严禁 bank_type×year 交互 FE — 同业 LOO 工具
 *   格内残余 = 自身内生变量的负镜像, type×year FE 下工具退化、排他性按构造违反。
@@ -69,6 +77,12 @@ if !_rc {
 capture confirm variable `TXC' `IVC'
 if !_rc {
     eststo first_ctx: reghdfe `TXC' `IVC' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+* ss 轨一阶段 (tech_frac_ls ~ ss LOO 工具; 缺列优雅跳过)
+capture confirm variable `TXS' `IVS'
+if !_rc {
+    eststo first_ss: reghdfe `TXS' `IVS' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
 
@@ -136,13 +150,21 @@ else {
             i.bank_id i.year, cluster(bank_id) first
         _locus_arci tsls_ctx `TXC'
     }
+    * ss 轨 just-identified 2SLS (与 full 轨 tsls_loo / ctx 轨 tsls_ctx 并排;
+    * 同一 DV, 三轨各自工具; 三轨各自 just-id 绝不合并 Hansen J)
+    capture confirm variable `TXS' `IVS'
+    if !_rc {
+        eststo tsls_ss: ivreg2 `DV' (`TXS' = `IVS') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+        _locus_arci tsls_ss `TXS'
+    }
 }
 
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_loo first_lag first_ctx tsls_loo tsls_lag tsls_ctx
-local cand_titles `""1st LOO" "1st LOO lag1" "1st LOO ctx" "2SLS LOO" "2SLS LOO lag1" "2SLS LOO ctx""'
+local cand_models first_loo first_lag first_ctx first_ss tsls_loo tsls_lag tsls_ctx tsls_ss
+local cand_titles `""1st LOO" "1st LOO lag1" "1st LOO ctx" "1st LOO ss" "2SLS LOO" "2SLS LOO lag1" "2SLS LOO ctx" "2SLS LOO ss""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -166,6 +188,7 @@ else {
         mtitles(`mtitles') ///
         addnotes("IV = same-bank-type leave-one-out mean of peers' tech_frac (contemporaneous + lag-1 robustness; reflection/exclusion caveats per Manski 1993; Leary-Roberts 2014 JF — disclose in text)." ///
                  "ctx column: entity-window twin tech_frac_lc instrumented by lpeer_locus_iv_ctx, just-identified, side-by-side dual-track robustness (NOT pooled with full-track IV; Parente-Santos Silva 2012)." ///
+                 "ss column: bank+fintech same-sentence twin tech_frac_ls (naming exception, not tech_frac_ss) instrumented by lpeer_locus_iv_ss, just-identified, side-by-side tri-track robustness — full/ctx/ss are NEVER pooled into one Hansen J (same-article windows co-contaminate; Parente-Santos Silva 2012)." ///
                  "Just-identified columns: Hansen J not computable (df=0), not reported. KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005)." ///
                  "Anderson-Rubin p row = weakiv (Finlay-Magnusson-Schaffer; Andrews-Stock-Sun 2019 ARE) weak-IV-robust test, actually computed when KP F is below threshold; AR CI in supplemental log. Blank = weakiv ado absent or T=2 degenerate.")
 

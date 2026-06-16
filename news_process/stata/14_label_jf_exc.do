@@ -6,7 +6,7 @@
 ==============================================================================*/
 
 * ============================================================================
-* 42. JF系数 (Jaffe-Feldman Coefficient)
+* 42. JF系数 (Janis-Fadner imbalance coefficient; Janis and Fadner 1965; Deephouse 2000, J. of Management 26(6):1091-1112)
 * ============================================================================
 
 label variable jf_coefficient_full "JF系数(全文)"
@@ -39,17 +39,17 @@ label variable exc_you_2018_score_ctx "排除性尤2018得分(上下文)"
 
 * 43.3 排除性LLM情感
 label variable exc_gpt54nano_score_full "排除性GPT5nano得分(全文)"
-label variable exc_gemini311_score_full "排除性Gemini3得分(全文)"
+label variable exc_gemini31111_score_full "排除性Gemini3得分(全文)"
 label variable exc_deepseekv4_score_full "排除性Grok4.1得分(全文)"
 
 label variable exc_gpt54nano_score_ctx "排除性GPT5nano得分(上下文)"
-label variable exc_gemini311_score_ctx "排除性Gemini3得分(上下文)"
+label variable exc_gemini31111_score_ctx "排除性Gemini3得分(上下文)"
 label variable exc_deepseekv4_score_ctx "排除性Grok4.1得分(上下文)"
 
 
 * 43.4 排除性跟风衰减加权
 label variable exc_gpt54nano_score_hw_full "排除性GPT5nano得分HW(全文)"
-label variable exc_gemini311_score_hw_full "排除性Gemini3得分HW(全文)"
+label variable exc_gemini31111_score_hw_full "排除性Gemini3得分HW(全文)"
 label variable exc_deepseekv4_score_hw_full "排除性Grok4.1得分HW(全文)"
 label variable exc_jiang_2021_score_hw_full "排除性江2021得分HW(全文)"
 label variable exc_yao_2021_score_hw_full "排除性姚2021得分HW(全文)"
@@ -58,7 +58,7 @@ label variable exc_du_2022_score_hw_full "排除性杜2022得分HW(全文)"
 label variable exc_you_2018_score_hw_full "排除性尤2018得分HW(全文)"
 
 label variable exc_gpt54nano_score_hw_ctx "排除性GPT5nano得分HW(上下文)"
-label variable exc_gemini311_score_hw_ctx "排除性Gemini3得分HW(上下文)"
+label variable exc_gemini31111_score_hw_ctx "排除性Gemini3得分HW(上下文)"
 label variable exc_deepseekv4_score_hw_ctx "排除性Grok4.1得分HW(上下文)"
 label variable exc_jiang_2021_score_hw_ctx "排除性江2021得分HW(上下文)"
 label variable exc_yao_2021_score_hw_ctx "排除性姚2021得分HW(上下文)"

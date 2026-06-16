@@ -326,21 +326,6 @@ def load_config(config_path=None):
     return config
 
 
-# P0-3 (cleanup/2026-05-13): cross-stage enabled_methods 一致性提示.
-    # 原为暴露 stage 24 → 45 隐式硬依赖 (配错会跑 8 小时才在 stage 45 崩).
-    # 2026-06-12 起 stage 23/24 已改无条件 always-on, 该崩溃路径消除, 本检查
-    # 降级为纯信息提示 (见函数 docstring).
-    _validate_enabled_methods_consistency(config)
-
-    # P1-2 (cleanup/2026-05-13): 三域 YAML schema 校验
-    # tone_llm_processing / panel_building / herd_detection
-    # 类型错误 raise; 未知字段 warning (防 typo silent fallback).
-    from .schemas_yaml import validate_config_schema
-    validate_config_schema(config)
-
-    return config
-
-
 def herd_sensitivity_grid(config: dict) -> tuple[list[float], list[str]]:
     """herd 相似度阈值敏感性网格的单一事实源 (2026-06-13)。
 

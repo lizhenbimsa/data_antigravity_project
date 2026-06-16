@@ -140,7 +140,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
     # --- 文章平均长度 ---
     # (a) 字符口径: avg_article_length = ln(1 + bank-year 平均【字符数】).
     #     ⚠ 2026-06-05 引文/单位勘误: 底层 doc_length = len(str(内容)) = Unicode 字符数
-    #     (news_bank.py:230), 非 jieba 词数。原注"MLENGTH=ln(文章词数)/avg_words"系单位
+    #     (news_bank.py:279-280), 非 jieba 词数。原注"MLENGTH=ln(文章词数)/avg_words"系单位
     #     误标 (字符≈词数×1.5-1.7)。中文场景字符数是 defensible 长度代理, 但口径是【字符】。
     #     He et al. 2024 IRFA 的 MLENGTH 本是词数定义, 真词口径见下方 (b) ln_word_count。
     if 'avg_doc_length' in panel.columns:

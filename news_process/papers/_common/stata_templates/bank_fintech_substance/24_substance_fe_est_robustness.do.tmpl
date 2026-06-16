@@ -258,12 +258,34 @@ else {
 * ============================================================================
 * 输出 — esttab/estout 名单动态化 (golden-safe: 缺名不点名, 防 r(111) 丢整表)
 * ============================================================================
+* 模型名单 + mgroups pattern/标题动态构建 (golden-safe): 列集是动态的 —— M4 需
+* T>=3 (line 122 守卫)、qreg/rreg 可能失败 (line 152/174)、Oster 可能跳过
+* (line 249) → 实现列数 < 满列 9。故 mgroups 的 pattern() 与 grp_titles 必须与
+* 实现列集严格 lockstep (镜像 benefit_society/21 的 first_in_group 习语), 否则静态
+* pattern(0 0 0 0 0 1 0 0 1) 在缺列时把 Panel B/C banner 错位标到别的估计量列。
 qui estimates dir
 local stored `r(names)'
 local models ""
-foreach m of local stored {
-    if strmatch("`m'", "feA_*") | strmatch("`m'", "feB_*") | strmatch("`m'", "feC_*") {
-        local models `models' `m'
+local pat ""
+local grp_titles `""'
+* 3 个 Panel, 各 Panel 内逐已存储估计 (按 stored 顺序) 追加; pattern 仅在
+* 每个 Panel 首列置 1, grp_titles 仅在该 Panel 首次出现时加标题。
+local fam_keys    feA                          feB                       feC
+local fam_titles  `""Panel A: FE saturation ladder" "Panel B: robust estimators" "Panel C: Oster""'
+local nfam : word count `fam_keys'
+forvalues fi = 1/`nfam' {
+    local fam    : word `fi' of `fam_keys'
+    local gtitle : word `fi' of `fam_titles'
+    local first_in_group 1
+    foreach m of local stored {
+        if strmatch("`m'", "`fam'_*") {
+            local models `models' `m'
+            local pat `pat' `first_in_group'
+            if `first_in_group' {
+                local grp_titles `"`grp_titles' "`gtitle'""'
+                local first_in_group 0
+            }
+        }
     }
 }
 if "`models'" == "" {
@@ -275,8 +297,8 @@ else {
         stats(N r2 oster_delta, fmt(0 3 3) ///
             labels("N" "R²" "Oster δ (rmax=1.3R²)")) ///
         title("Advanced Robustness (P3 substance): FE saturation / robust estimators / Oster δ") ///
-        mgroups("Panel A: FE saturation ladder" "Panel B: robust estimators" "Panel C: Oster", ///
-            pattern(0 0 0 0 0 1 0 0 1) span erepeat(\cmidrule(lr){2-2})) ///
+        mgroups(`grp_titles', ///
+            pattern(`pat') span erepeat(\cmidrule(lr){2-2})) ///
         addnotes("Panel A (Gormley-Matsa 2014 RFS): bank+year FE → +province#year → +type#year → +zone#year → +bank linear trend (last needs T>=3)." ///
                  "Panel B (Koenker-Bassett 1978; Leone et al. 2019 TAR): qreg(.5) median + rreg Huber/Tukey biweight (IRLS, bounded-influence M-estimator) vs OLS, i.year(+i.type) spec (T small)." ///
                  "Panel B SE bases are NOT comparable across columns: OLS = bank-clustered (vce cluster); qreg = default i.i.d. sparsity SE; rreg = IRLS analytic SE. Stars are within-column only and must not be compared across the three estimators." ///

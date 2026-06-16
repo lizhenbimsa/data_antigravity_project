@@ -13,7 +13,7 @@ Bank-Media-Disagreement: 媒体观点分歧 (cross-outlet tone variance) 对银�
 - Cookson & Niessner (2020 JF)《Why Don't We Agree?》— 信息源分歧
   (本 paper outlet-level 类比; 勘误: 旧注释误标 RFS, 实为 JF)
 - Bushman & Williams (2012 JAE) — bank info environment → risk-taking
-- Acharya, Anginer & Warburton (2016 RFS) — implicit guarantee 框架 (V4 必加)
+- Acharya, Anginer & Warburton (2016 RFS, working) — implicit guarantee 框架 (V4 必加)
 
 治理路径 (DC1 path B)
 --------------------

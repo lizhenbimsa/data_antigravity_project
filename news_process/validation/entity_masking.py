@@ -699,7 +699,7 @@ def main():
     logger.info("=" * 60)
     logger.info("")
     logger.info("  📌 阶段目的")
-    logger.info("     将目标银行名替换为匿名占位符(如 '工商银行'→'[BANK_A]'),")
+    logger.info("     将目标银行名替换为匿名占位符(如 '工商银行'→'目标银行A'),")
     logger.info("     验证 LLM 情感判定是否依赖文本语义, 而非实体先验知识。")
     logger.info("     同时在全文(full)、上下文片段(ctx)和银行+金科同句(ss)三条轨道上")
     logger.info("     独立验证, 确保稳健性结论不受文本输入粒度的影响。")

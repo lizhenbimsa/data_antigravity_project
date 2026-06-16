@@ -78,7 +78,7 @@ esttab EXT_Y* using "$tables_dir/tableA9_external_validation.tex", replace ///
     mtitles("NCD spread" "Penalty freq" "Rating") ///
     addnotes("Predicted signs: NCD spread (-), Penalty (-), Rating (+) as benefit_mean increases." ///
              "Acceptance (AC-G4): >=2/3 sign-match with predicted direction." ///
-             "Bank-type/year FE; SE clustered at {{CLUSTER_VAR}}.")
+             "bank (bank_id) + year FE; SE clustered at {{CLUSTER_VAR}}.")
 
 * fix(omni-gapfill-08, 2026-06-12): CSV side-channel — papers/benefit_society/
 * tables.py:build_table_a9_external_validation 经 read_paper_esttab(...,

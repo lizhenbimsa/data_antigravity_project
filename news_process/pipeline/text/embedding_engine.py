@@ -25,7 +25,7 @@ spec 是一个 dict (来自 ``config/features.yaml::embedding_api`` 或 ``embedd
 
 学术依据 (沿用 strategic_diff/policy_alignment 既有锚点):
   - Reimers & Gurevych (2019, EMNLP) Sentence-BERT mean pooling, DOI 10.18653/v1/D19-1410
-  - Guenther et al. (2024, arXiv:2409.04701) Early Chunking 超长文本分段
+  - 朴素分段 (naive / independent chunking) 超长文本分段
   - Carlson & Burbano (2026, SMJ §3.3) version-aware provenance (cache 版本维度)
 
 白话:
@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 # ── Embedding token 级精确截断 (统一 stage 15 标准) ──
 # text-embedding-3-small 用 cl100k_base 编码, 单条上限 8,191 tokens;
-# 超长文本 (如权威政策语料) 走 Early Chunking + Mean Pooling。
+# 超长文本 (如权威政策语料) 走朴素分段 (naive chunking) + Mean Pooling。
 _EMB_ENCODING = tiktoken.get_encoding("cl100k_base")
 EMB_MAX_TOKENS = 8191
 EMB_MAX_TOKENS_PER_REQUEST = 250_000
@@ -139,7 +139,7 @@ def spec_version(spec: dict | None) -> str:
 
 
 def split_text_for_embedding(text) -> list[str]:
-    """按 token 粒度切分超长文本 (Early Chunking, Guenther et al. 2024)。
+    """按 token 粒度切分超长文本 (朴素分段 / naive independent chunking)。
 
     短文本原样返回 (避免 encode/decode 往返); 超长文本切成 <= EMB_MAX_TOKENS 的段。
     """
@@ -419,7 +419,7 @@ def embed_texts(texts, spec: dict, *,
                 enable_archive: bool = True) -> np.ndarray | None:
     """文本 → 文本级 Embedding 向量 (n_texts, dim), spec 决定模型与路径。
 
-    超长文本走 Early Chunking + Mean Pooling。local spec 走 sentence-transformers,
+    超长文本走朴素分段 (naive chunking) + Mean Pooling。local spec 走 sentence-transformers,
     API spec 走 get_embeddings_api (经 LLMCache 穿透)。失败/形状异常 → None。
 
     fix(omni-g-embed-04, 2026-06-11): 多块池化改为"逐块 L2 归一 + token 数加权"

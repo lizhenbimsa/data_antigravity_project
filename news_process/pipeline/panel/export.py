@@ -321,7 +321,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
     panel_filename = FILENAMES.get('output_40_panel_yearly', '40_panel_yearly.parquet')
     panel_path = os.path.join(OUTPUT_DIR, panel_filename)
     # 血缘修复 (audit-fixes 2026-05-29): stage 45 是 fan-in, runner 硬读
-    # 24_herd_decay (主) + 15_article_alignment (RuntimeError if absent, runner.py:1077).
+    # 24_herd_decay (主) + 15_article_alignment (RuntimeError if absent, runner.py:1598).
     # 记全部硬上游闭包, 否则 verify_data_integrity 对 15 的篡改/陈旧检测不到
     # (与 stage 14 fintech_intensity 记双输入的受测约定一致).
     # 2026-05-29 双模型重构: 原 stage 30 (30_text2vec_indicators) 已退役 — 其 t2v 列改由

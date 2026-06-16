@@ -16,7 +16,7 @@
 - **Laursen & Salter (2006)** Open for innovation: The role of openness in explaining innovation performance among UK manufacturing firms. SMJ 27(2), 131-150.
 - **Hagedoorn (2002)** Inter-firm R&D partnerships: An overview of major trends and patterns since 1960. Research Policy 31(4), 477-492.
 
-## 与现有 8 paper 的差异化
+## 与其他 7 篇 fully-coded paper 的差异化
 
 详见 [paper_spec.yaml](../../papers/bank_fintech_collab/paper_spec.yaml) `differentiation_claim` 段。简言之：
 - **P3 (substance)**: 度量公告的 W&Z 二元属性（实质/象征），与本 paper 概念正交
@@ -25,17 +25,20 @@
 
 ## 关键变量
 
+> **operative treatment**: bank-year 面板真实处理变量是 `collab_frac` (full 轨) / `collab_frac_cm` (ctx 轨) / `collab_frac_cm_ss` (ss 轨)，由 encode.py (stage 45) 把文章级 LLM 标签聚合为外部协同新闻占比 (分母 `n_articles_llm_valid`)；`.do` 复现模板消费的即此列 (`derivative_replication.py` MAIN_TREAT='collab_frac')。下表 `innovation_collab_mode_*` 是其上游**文章级** LLM 标签 (paper_spec.yaml:51-56 fix omni-g-papers-misc-11: 旧 primary=innovation_collab_mode_full 在 bank-year panel 0 命中, 是幻影列, 已不再是面板处理变量)。
+
 | 变量 | 类型 | 来源 |
 |---|---|---|
-| `innovation_collab_mode_full` | byte 0/1 | Stage 21 LLM (prompt v8) |
-| `innovation_collab_mode_ctx` | byte 0/1 | Stage 21 LLM (entity-context, Hassan 2019 QJE 同构) |
+| `collab_frac` / `collab_frac_cm` / `collab_frac_cm_ss` | float | 面板处理变量 — encode.py (stage 45) 聚合文章级标签为 bank-year 外部协同占比 |
+| `innovation_collab_mode_full` | str (文章级原始 LLM 标签, '自主研发'/'外部协同') | Stage 21 LLM (prompt v8), 上游分组输入 |
+| `innovation_collab_mode_ctx` | str (文章级原始 LLM 标签) | Stage 21 LLM (entity-context, Hassan 2019 QJE 同构), 上游分组输入 |
 | `m_and_a_fintech` | int | M0.5.11 Tonghuashun |
 | `r_and_d_intensity` | float | M0.5.11 CSMAR 年报 |
 | `car_5day_window` | float | M0.5.11 CSMAR daily returns |
 
 ## Pre-registration
 
-本 paper 锚定 prompt v8 字节级冻结（v8 = v7 严格超集，additive supplementation per Nosek et al. 2018 PNAS；v8 SHA256 详见 CLAUDE.md L33 (Prompt v8 字节级冻结) / L40 (prompt_v8_sha256 sidecar) 与 `data/processed/v3_5_1_constants.json::prompt_v8_sha256`。专属 git tag `prompt-v8-supplementation-released` 尚未打，唯一已打的 prompt tag 是 `prompt-v7-released`）。W&Z 框架边界论证（collab mode 维度与 P3 substance / P4 locus 概念正交、不构成同一构念的重复测量）原 wz_framework_boundary_justification.md §4 已随 docs/ 目录整体删除 commit 1698bda5 而不存在。
+本 paper 锚定 prompt v8 字节级冻结（v8 = v7 严格超集，additive supplementation per Nosek et al. 2018 PNAS；v8 SHA256 详见 CLAUDE.md 顶部「冻结锚点」段 (Prompt v8 字节级冻结)；SHA256 由 stage 21/面板首跑时写入运行期 sidecar `data/processed/v3_5_1_constants.json::prompt_v8_sha256` (`pipeline/panel/encode_collab.py` 生成产物, gitignore, 非随包分发的静态文件)。专属 git tag `prompt-v8-supplementation-released` 尚未打，唯一已打的 prompt tag 是 `prompt-v7-released`）。W&Z 框架边界论证（collab mode 维度与 P3 substance / P4 locus 概念正交、不构成同一构念的重复测量）原 wz_framework_boundary_justification.md §4 已随 docs/ 目录整体删除 commit 1698bda5 而不存在。
 
 ## 投稿路径
 
@@ -62,7 +65,7 @@ bank_fintech_collab/
 
 - [x] paper_spec.yaml 冻结
 - [x] `papers/bank_fintech_collab/__init__.py` 注册
-- [x] Stata 8 模板镜像 locus 子目录
+- [x] Stata 模板镜像 locus 子目录 (与 locus 同 14 个, 随稳健性扩充同步)
 - [ ] M3 manuscript 8 section 填实
 - [ ] M5 主回归实证
 - [ ] M6 稳健性 battery

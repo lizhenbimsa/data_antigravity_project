@@ -48,6 +48,9 @@ if !_rc {
     eststo reduced_loo
 
     * 2SLS: outcome ~ 工具化的 treat + controls
+    * 注: just-identified 列 (tsls_loo / tsls_bartik / tsls_ctx) 刻意把 i.bank_id i.year
+    *   FE 哑变量留在回归内 (不 partial), 系数与 KP rk F 仍有效; 仅 over-id 列须 partial()
+    *   才能让 ivreg2 报告 Hansen J (见 :92-98)。
     ivreg2 {{MAIN_DV}} ({{MAIN_TREAT}} = leave_one_out_peer_attention_iv) $controls ///
         i.bank_id i.year, cluster({{CLUSTER_VAR}}) first
     eststo tsls_loo
@@ -160,7 +163,7 @@ else {
         stats(N r2 widstat jp, fmt(0 3 3 3) labels("N" "R2" "KP rk F" "Hansen J p")) ///
         title("P2 IV First Stage + 2SLS") ///
         mtitles(`mtitles') ///
-        addnotes("KP rk F = Kleibergen-Paap rk Wald F (ivreg2 widstat); weak-IV threshold = 16.38 (Stock-Yogo 2005). If KP F < 16.38, read Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019)." ///
+        addnotes("KP rk F = Kleibergen-Paap rk Wald F (ivreg2 widstat); weak-IV threshold (Stock-Yogo 2005, 10% maximal IV size, 1 endogenous regressor) = 16.38 for the just-identified columns (LOO, Bartik, ctx; 1 instrument each); = 19.93 for the over-identified column (2SLS Overid, 2 instruments). Compare each column's KP rk F against its own threshold; if KP F is below it, read the Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019)." ///
                  "2SLS Overid (IV-5): full-track endogenous attention_index_full jointly instrumented by same-type leave-one-out peer mean AND Bartik shift-share — two mechanistically distinct (near-orthogonal) instruments → cross-family Hansen J (df=1) overidentification test, fulfilling spec.identification.iv. LOO x Bartik instrument correlation rho=`rho_fb' (GPSS 2020 AER sec.5)." ///
                  "ctx column: entity-window twin attention_index_ctx instrumented by lpeer_attention_iv_ctx, just-identified, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012). Hansen J reported only in the overidentified column.")
 

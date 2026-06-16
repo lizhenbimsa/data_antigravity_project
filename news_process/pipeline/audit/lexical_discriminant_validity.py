@@ -13,9 +13,12 @@ A1/A3 vs LLM substance 的 discriminant validity 检验 — 3 × 3 矩阵:
     - Cronbach (1951) Psychometrika 16(3): 297-334 — α reliability
 
 实施状态 (per plan v0.3 §2.3, 8 项中 7 已实施, 第 4 项 R8-H1 mask 在 v3.7.2 推迟):
-    1. Algorithm path: **pairwise on-disk** (修 R7-H3 + R8-H3 OOM): 每对 indicator
-       单独读 parquet 计算 cross-correlation; 内存 < 1GB; CI heavy 4GB ceiling 安全.
-    2. Permutation seed = **42** (与 pipeline/audit/inter_track_kappa.py:41 一致, 修 R9-H3).
+    1. Algorithm path: main() 一次性 pd.read_parquet 读全表入内存, 逐对 indicator
+       在内存计算 cross-correlation (面板仅约 9000 bank-year, 内存无压力, 无 OOM).
+       注: 计划中的 "pairwise on-disk" OOM 缓解设计 (R7-H3/R8-H3) 从未实现,
+       因实测面板规模远小于 OOM 阈值.
+    2. Permutation seed = **42** (与 pipeline/audit/inter_track_kappa.py 的
+       _compute_kappa_with_bootstrap (seed=42) 一致, 修 R9-H3).
     3. HTMT 双 cutoff (修 R4-M2): strict < 0.85 / lenient < 0.90.
     4. ctx-fallback HTMT mask (R8-H1 audit anchor): 文档锁定但**当前未在 39d 内实施**.
        实测 fallback 率 10.43% (v3.7.2 R4-1 测于 disk 13_news_with_ctx.parquet, 1170 行).

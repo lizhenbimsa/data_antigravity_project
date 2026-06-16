@@ -7,8 +7,10 @@ V2.0 J-L-M 2026 RFS robustness alignment plan §3 Phase 1 P1.1 + P1.2:
 中性基线) 上。预期行为: 过滤后的投影**不应**预测 ROA (验收标准:
 ≥4/5 个 placebo spec 满足 |β_placebo / β_fintech| < 0.3, 见 AC-S1)。
 
-**Audit-only 路径**: 只写 `data/processed/27c_alt_anchor_panel.parquet`
-或其同级文件; **不**修改主面板 `40_panel_yearly.parquet` 及其 golden snapshot。
+**Audit-only / library-only 路径**: 本模块自身的 CLI (main) **不写任何 parquet**
+(只做 validation + 提供库函数, 见 main 末尾日志); 经编排的 placebo 面板由
+`benefit_society_audit_combined.py` 写出为 `data/processed/27c_alt_anchor_and_placebo_panel.parquet`;
+**不**修改主面板 `40_panel_yearly.parquet` 及其 golden snapshot。
 
 白话: 这是一个"反向对照实验"。我们的主指标声称量出了"金融科技利好经营"
 的态度; 为了证明它量的真是金融科技而不是随便什么新闻都能量出效果,

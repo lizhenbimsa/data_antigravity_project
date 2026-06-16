@@ -221,8 +221,8 @@ except ImportError as _archive_import_exc:
 
 # Embedding Token 级精确截断与分段 (统一 Stage 15 标准)
 # 【术语】text-embedding-3-small 使用 cl100k_base 编码，单条上限 8,191 tokens
-#   对超过上限的文本 (如权威政策语料)，采用 Early Chunking + Mean Pooling
-#   策略 (Guenther et al., 2024, arXiv:2409.04701; Reimers & Gurevych, 2019,
+#   对超过上限的文本 (如权威政策语料)，采用朴素分段 (naive / independent
+#   chunking) + Mean Pooling 策略 (Reimers & Gurevych, 2019,
 #   EMNLP, DOI: 10.18653/v1/D19-1410)，分段嵌入后均值池化为单个向量。
 # 【白话】用 AI 模型同款的"令牌计数器"来精确控制文本长度，
 #   短文本正常处理，超长文本切段后取平均，保留完整语义。
@@ -246,7 +246,7 @@ def _coerce_positive_int(value, default: int) -> int:
 def _split_text_for_embedding(text: str) -> list[str]:
     """按 token 粒度切分超长文本，适配 Embedding 模型上限。
 
-    【术语】Early Chunking (Guenther et al., 2024, arXiv:2409.04701):
+    【术语】朴素分段 (naive / independent chunking):
       将超过单条上限的文本切分为不重叠段，各段独立嵌入后均值池化。
     【白话】短文本原样返回；超长文本（如权威政策语料）切成多段处理。
 
@@ -746,7 +746,7 @@ async def _get_embeddings_api(texts, cache=None):
 def _embed_texts_with_chunk_pooling(texts, *, spec=None, log_prefix="Embedding"):
     """将任意长度文本嵌入为文本级向量 (2026-05-29: 委托 embedding_engine, spec 参数化)。
 
-    超长文本走 Early Chunking + Mean Pooling。spec 默认主轨 (text-embedding-3-small);
+    超长文本走朴素分段 (naive chunking) + Mean Pooling。spec 默认主轨 (text-embedding-3-small);
     传 _ROBUSTNESS_SPEC 则走 text2vec 本地稳健轨。失败/形状异常 → None。
 
     Returns:

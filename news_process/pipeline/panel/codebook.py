@@ -291,7 +291,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
          'mean_d(intensity_full − intensity_ctx)', '(-inf, +inf)',
          'full/ctx 派生: 注意力借位/稀释度 (full 相对 ctx 的非本行归因量); 机制变量'),
         ('attention_attr_share', 'Attention Attribution Purity', '',
-         # fix(toptier-audit D4-1, 2026-06-13): 同步 attention_media.py:438 的有界 share
+         # fix(toptier-audit D4-1, 2026-06-13): 同步 attention_media.py:472-474 的有界 share
          # 构造 — 旧 clip(Σctx/Σfull,0,1) 右删失版已于 2026-06-12 撤回 (见该处 fix 注),
          # codebook 此前漏同步 (docstring:433 承诺的集中重生未落)。
          'Σ_d ctx / (Σ_d ctx + Σ_d full)  (= r/(1+r), 保序无删失)', '[0, 1]',
@@ -355,7 +355,7 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
     # 口径 — n_articles = 物理新闻覆盖篇数 (含 LLM 失败/NA 行, 供 ln_news_coverage /
     # falsification 等 coverage 消费者); n_articles_llm_valid(_ctx) = LLM 有效投票
     # 篇数, 用作所有分类组成型 frac (tech/app/sub/symb/indep/collab) 的分母, 保证
-    # 分子分母同口径 (encode.py:579-588)。补这三列的 codebook 条目消除元数据缺口。
+    # 分子分母同口径 (encode.py:661-684)。补这三列的 codebook 条目消除元数据缺口。
     metadata['n_articles'] = VariableMetadata(
         var_name='n_articles',
         label='N articles (physical coverage)',
@@ -687,8 +687,8 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
 
     # ═══ 分类组成型 frac (panel 真实聚合列) ═══
     # fix(omni-g-codebook-10, 2026-06-11): 把原 13 个死条目承载的三维分类引文转移到
-    # panel 中真实存在的 bank-year 聚合 frac 列 (encode.py:1039-1048/1117-1122/
-    # 1188-1192/1238-1243/1308-1312/1370-1375); 分母 = 同轨 n_articles_llm_valid(_ctx)
+    # panel 中真实存在的 bank-year 聚合 frac 列 (见 encode.aggregate_panel 中
+    # _aggregate_ctx_diagonal 各 frac 赋值处, 用符号引用避免行号漂移); 分母 = 同轨 n_articles_llm_valid(_ctx)
     # (分子分母同口径, metric-audit 2026-06-02 final 修轨道不对称除法)。
     # (var, 子集中文, 子集英文, track, 分子列, 分母列, reference, category)
     _FRAC_SPECS = [

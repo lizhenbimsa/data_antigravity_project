@@ -134,27 +134,78 @@ else {
         absorb(bank_id year) vce(cluster bank_id)
 }
 
+* ============================================================================
+* M7 (FE-ROBUST IDENTIFICATION, D1-digital_frontier fix 2026-06-16):
+*   ⚠ 核心识别披露: digital_frontier 是【基年、银行内时间不变】的 0/1 银行分类
+*   (base-year within-bank time-invariant)。在 absorb(bank_id ...) 的列 (M2-M6)
+*   里它与银行固定效应【完全共线】→ reghdfe 静默 drop, 其系数【无法识别】, 这些列
+*   真正识别的是银行内随时间变动的项 (LOCUS/SUBST 控制)。digital_frontier 的主效应
+*   仅在【无吸收】列 M1 (noabsorb) 中被识别。
+*   为在 bank-FE 设定下仍恢复"数字化前沿"的可识别信号, 这里补一列银行内随时间变动
+*   形式 c.digital_frontier##i.year (交乘项【不会】被 bank FE 吸收, 基年自动省略),
+*   读各年相对基年的 digital_frontier × year 微分效应 — 镜像 34_tableA11 Panel B 的
+*   c.`EXPL'##i.era ... absorb(bank_id year) 工作模式, 但按年 (i.year) 而非按时代。
+* 白话: "数字化前沿"是一家银行的固定标签 (基年定、之后不变), 一旦放进"按银行去均值"
+*   的固定效应里就被吃光、看不到系数了 (M2-M6 那一行其实是空的, 只有 M1 那列真有它);
+*   所以这里换个写法——让它和年份相乘, 看"前沿银行在不同年份相对基年的语调差", 这个
+*   交乘项不会被银行固定效应吸收, 在带银行 FE 的设定里照样能识别。
+* 守卫: year 必须存在且 ≥2 取值, 交乘列才有意义; 缺/单年时优雅跳过 (T=2 试跑盘可跑,
+*   但只有一个非基年交乘项)。capture noisily 包裹, 缺列/退化绝不 r(111) 中断本表。
+* ============================================================================
+capture confirm variable year
+if !_rc {
+    quietly levelsof year, local(_yrs_m7)
+    local _ny_m7 : word count `_yrs_m7'
+    if `_ny_m7' >= 2 {
+        capture noisily eststo M7: reghdfe `DV' c.digital_frontier##i.year `LOCUS' `SUBST', ///
+            absorb(bank_id year) vce(cluster bank_id)
+        if _rc {
+            display "  ⚠️ M7 (c.digital_frontier##i.year FE-robust) 回归退化 (rc=`=_rc'), 跳过 — 不影响 M1-M6"
+        }
+    }
+    else {
+        display "  ⚠️ M7 跳过: year 仅 `_ny_m7' 个取值 (需 ≥2 才有交乘变异); 全量 T=18 下有功效"
+    }
+}
+else {
+    display "  ⚠️ M7 跳过: year 不在面板, 无法构造 c.digital_frontier##i.year"
+}
+
 * 输出 Table 2 (booktabs LaTeX)
 * ⚠ SPEC IV-3 (descriptive-placeholder): 本表方程是 tone ~ digital_frontier
 *   (tone 作 DV), 与 paper_spec 主识别方向相反 (spec: funding_cost ~ tone)。在财务
 *   面板 (funding_cost) 接入前, 本表仅是占位的描述性关联, 不是论文的 confirmatory
 *   Main Results。标题/脚注显式标注 DESCRIPTIVE PLACEHOLDER, 防外部研究者误引。
 *   财务列落地后须重写为 funding_cost ~ {MAIN_TREAT} 正向方程。
-esttab M1 M2 M3 M4 M5 M6 using "output/tables/table2_main.tex", ///
+* fix(D1-digital_frontier, 2026-06-16): 列名动态化 — M1-M6 始终在; M7 (FE-robust
+* c.digital_frontier##i.year) 仅在实际 eststo 存储时才追加 (year 缺/单年/退化时跳过),
+* 沿用 13_table4/21_tableA2/24_tableA5 的 `list m in stored` 动态名单 idiom, 避免硬点名
+* 缺失估计 r(111) 丢整表。M1-M6 不删、不改, M7 只是额外补列。
+qui estimates dir
+local stored `r(names)'
+local cols    M1 M2 M3 M4 M5 M6
+local coltits `""M1" "M2" "M3" "M4" "M5" "M6""'
+if `: list M7 in stored' {
+    local cols    `cols' M7
+    local coltits `"`coltits' "M7 (FE-robust x year)""'
+}
+
+esttab `cols' using "output/tables/table2_main.tex", ///
     se star(* 0.10 ** 0.05 *** 0.01) ///
     booktabs replace fragment ///
     title("Table 2 [DESCRIPTIVE PLACEHOLDER — NOT confirmatory main results]: Bank Fintech Tone (M1-M6)") ///
-    mtitles("M1" "M2" "M3" "M4" "M5" "M6") ///
+    mtitles(`coltits') ///
     note("DESCRIPTIVE PLACEHOLDER, do NOT cite as Main Results. This table runs tone ~ digital_frontier (tone as DV), the REVERSE of the paper_spec primary identification (funding_cost ~ tone). It holds the Table 2 slot until the financial panel (funding_cost) is merged (M0.5.11 enrichment), after which it must be rewritten in the forward direction. " ///
+         "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier, so beta(digital_frontier) is identified ONLY in the no-absorb column M1; in the bank-FE columns (M2-M6) it is collinear with the bank fixed effect and absorbed (silently dropped), so those columns identify the within-bank time-varying terms (LOCUS/SUBST controls), not the frontier main effect. Column M7 recovers an FE-robust form by interacting c.digital_frontier with i.year (interaction terms are NOT absorbed; base year omitted). " ///
          "Robust SEs clustered at bank level. Main spec: locus={{MAIN_LOCUS_TRACK}}, subst={{MAIN_SUBST_TRACK}}, sent={{MAIN_SENT_TRACK}}.")
 
 * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel (与 .tex 同模型同统计规格) —
 * 供 python 侧 papers/_common/stata_postprocess.parse_esttab_csv 消费。
 * 用 estout + delimiter(",") 而非 esttab csv: esttab csv 默认 ="..." Excel 包裹
 * (plain 则丢 SE 括号), 两者都破坏 parse_esttab_csv 的 (se) 行正则。
-estout M1 M2 M3 M4 M5 M6 using "output/tables/table2_main.csv", replace delimiter(",") ///
+estout `cols' using "output/tables/table2_main.csv", replace delimiter(",") ///
     cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
     starlevels(* 0.10 ** 0.05 *** 0.01) ///
-    mlabels("M1" "M2" "M3" "M4" "M5" "M6")
+    mlabels(`coltits')
 
 display "✅ Table 2 written to output/tables/table2_main.tex (+ .csv side-channel)"

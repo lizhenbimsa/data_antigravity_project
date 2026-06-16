@@ -96,11 +96,10 @@ if !_rc {
 * 01_data_prep 加载面板后无 save (旧 IC 回退分支已于 2026-06-13 移除)。(remove-title-track:
 * 原 25_tableA8/26_bs 标题轨表已删, 不再是消费方。)
 capture mkdir "data/processed"
-if "$data_dir" == "" {
-    save "data/processed/_prepared_panel.dta", replace
-}
-else {
-    save "$data_dir/_prepared_panel.dta", replace
-}
+* (S1-06 fix 2026-06-16): root family 的 00_master 从不设 $data_dir (只 cd PROJECT_ROOT
+* 后 do code/0N_*.do), 输入 use (line 22 硬编码 data/processed/) 与 11_table2 读取
+* (硬编码 data/processed/_prepared_panel.dta) 均不认 $data_dir; 原 $data_dir else 分支
+* 为死代码且会与硬编码读取方向不一致, 故移除, 统一硬编码 data/processed/。
+save "data/processed/_prepared_panel.dta", replace
 
 display "✅ Data prep done. Ready for tables."

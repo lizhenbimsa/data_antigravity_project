@@ -36,10 +36,12 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
       Denzin, N. K. (1978/2017). The research act: A theoretical introduction
       to sociological methods. Routledge. DOI: https://doi.org/10.4324/9781315134543
     LLM 金融文本分析可复现性:
-      Bybee, L. (2024). The ghost in the machine: Generating beliefs with
-      large language models. Working paper (未正式发表于 JF; 原引 DOI
-      10.1111/jofi.13366 系误植 — 该 DOI 实指 Bhattacharya et al. (2024)
-      "Do Women Receive Worse Financial Advice?" JF 79(5) — 已移除)。
+      Lopez-Lira, A., & Tang, Y. (2023). Can ChatGPT forecast stock price
+      movements? Return predictability and large language models. SSRN
+      Working Paper No. 4412788. DOI: https://doi.org/10.2139/ssrn.4412788
+      (temperature=0 确定性推理锚点; 详见下方 TEMPERATURE 常量学术依据注。
+      原引 Bybee "ghost in the machine" 工作论文无可解析标识符且 DOI
+      10.1111/jofi.13366 系误植 — 已移除)。
 
 输入：
     模块二前置输出的 `14_fintech_intensity.parquet`
@@ -64,7 +66,7 @@ news_process.pipeline.sentiment.tone_llms — 阶段21：统一 LLM 语义精筛
 
 **输出列** (每轨 _full/_ctx/_ss 各一套): `llm_verified_*`、`llm_sentiment_*`、`llm_agreement_rate_v/s_*`、`n_valid_votes_*`/`n_verifying_votes_*`、`innovation_locus_*`(Gomber 2018 JMIS)、`innovation_substantiveness_*`(W&Z 1994/1998 ASQ)、`innovation_collab_mode_*`(Chesbrough 2003 + L&S 2006 SMJ)、各维度 `*_confidence_*`、`llm_prob_score`(avg_prob_score, 轨级聚合主列)、per-model `{short}_prob_score_*`、`avg_subst/locus/collab_prob_score_*`、逐模型 `{short}_verified/sentiment_*` 存档列; 另产 `llm_verified_dual_*`(3 态) / `llm_verified_triple_*`(7 态) 互斥指示列。
 
-**外部依赖**: 三个 LLM 家族经 config/sentiment.yaml 锁定 = gpt-5.4-nano(short_name gpt54nano) / gemini-3.1-flash-lite(gemini31111) / deepseek-v4-flash(deepseekv4, 走 api.deepseek.com 直连, 其余两家走 yunwu.ai/v1); 需 YUNWU_API_KEY / DEEPSEEK_API_KEY。**Prompt v8 字节级冻结** (`iter_article_track_prompts` 为生产与缓存覆盖审计共用单一事实源; 缓存键 = 模型名+prompt 文本+prompt_version+temperature+seed)。**确定性锚点 = _llm_cache.db** (~407MB/13.3 万条): 命中即 $0 字节级复现; `NEWS_PROCESS_LLM_OFFLINE=1` 离线守卫下缓存 miss 抛 `LLMCacheMissError` 而非调 API + 跳 preflight 探针。**超时**: 父端子进程硬超时 21600s (3x 安全余量覆盖冷缓存/雪崩退避)。
+**外部依赖**: 三个 LLM 家族经 config/sentiment.yaml 锁定 = gpt-5.4-nano(short_name gpt54nano) / gemini-3.1-flash-lite(gemini31111) / deepseek-v4-flash(deepseekv4, 走 api.deepseek.com 直连, 其余两家走 yunwu.ai/v1); 需 YUNWU_API_KEY / DEEPSEEK_API_KEY。**Prompt v8 字节级冻结** (`iter_article_track_prompts` 为生产与缓存覆盖审计共用单一事实源; 缓存键 = 模型名+prompt 文本+prompt_version+temperature (+seed 仅当 temperature>0; 生产 temperature=0.0 下 seed 不进键, 故键与历史 no-seed schema 字节级一致, 零缓存失效))。**确定性锚点 = _llm_cache.db** (~407MB/13.3 万条): 命中即 $0 字节级复现; `NEWS_PROCESS_LLM_OFFLINE=1` 离线守卫下缓存 miss 抛 `LLMCacheMissError` 而非调 API + 跳 preflight 探针。**超时**: 父端子进程硬超时 21600s (3x 安全余量覆盖冷缓存/雪崩退避)。
 
 **DAG 位置**: 上游 stage 14 (fintech_intensity) + stage 13 (content_ctx/content_ss 物化); 下游 stage 22 (词典法读 21 输出 `21_tone_llms.parquet`)、最终经 stage 24/45 进面板。本阶段是全流水线唯一核心付费阶段。
 
@@ -515,7 +517,7 @@ async def fetch_llm_async(session: aiohttp.ClientSession, semaphore: asyncio.Sem
     Args:
         track: 'full' / 'ctx' / 'ss'，标识本次请求使用的文本轨道。
         cache: LLMCache 实例，用于查询/写入缓存。
-        prompt_version: prompt 模板版本字符串 (例如 ``"v6-2026-05-13"``),
+        prompt_version: prompt 模板版本字符串 (例如 ``"v8-2026-05-17"``),
             传给 ``LLMCache.get/put`` 用作缓存键命名空间。full/ctx/ss 三轨
             统一使用 PROMPT_VERSION。
 
@@ -1145,7 +1147,7 @@ def compute_prob_score(sentiment_label: str, confidence: float) -> dict:
 
 # 创新维度 binary 标签的 canonical 集合
 # - W&Z 1994/1998 ASQ: 实质性 / 象征性 (innovation_substantiveness)
-# - Gomber 2018 JMIS: 底层技术 / 应用场景 (innovation_locus)
+# - Gomber, Koch & Siering 2017 (Digital Finance Cube) 二元直接出处 / Gomber et al. 2018 JMIS 领域综述背景: 底层技术 / 应用场景 (innovation_locus)
 # - v3.4.0 新增 Chesbrough 2003 + L&S 2006 SMJ: 自主研发 / 外部协同 (innovation_collab_mode)
 VALID_BINARY_LABELS = {
     "实质性", "象征性",
@@ -1269,7 +1271,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
     s_votes_all = []           # 所有成功调用模型的 sentiment（含 verified=False 模型）
     s_votes_verified_only = [] # 仅含 verified=True 模型的 sentiment（v6/F2 新逻辑）
     topics = []
-    innov_loci = []            # v7: 原 llm_categories (Gomber 2018 JMIS 技术-应用层)
+    innov_loci = []            # v7: 原 llm_categories (Gomber, Koch & Siering 2017 Digital Finance Cube 技术-应用层; Gomber et al. 2018 JMIS 为领域综述背景)
     innov_substs = []          # v7: 原 text_types (W&Z 1994/1998 ASQ 实质-象征)
     innov_collab_modes = []    # v8 新增 (Chesbrough 2003 + L&S 2006 SMJ 自主-外部协同)
     per_model_parsed = {}
@@ -1364,7 +1366,7 @@ def _aggregate_track(model_res_dict: dict, models: list) -> tuple:
         if topic and str(topic).strip().lower() not in ('null', 'none', ''):
             topics.append(str(topic))
 
-        # v7: innovation_locus (原 fintech_category, Gomber 2018 JMIS technology-application 层)
+        # v7: innovation_locus (原 fintech_category, Gomber, Koch & Siering 2017 Digital Finance Cube technology-application 层; Gomber et al. 2018 JMIS 领域综述背景)
         # fix(omni-g-tonellms-09, 2026-06-11): 创新三维度补模型级 verified 门控 —
         # 仅 verified=True 模型的标签入票 (镜像 sentiment 的 s_votes_verified_only
         # `if v:` 门控, v6/F2 契约), 不再依赖 prompt "false 时填 null" 的软约束
@@ -1815,9 +1817,9 @@ def main():
         undefined_ss_arr = []
         # v3.2.0 双轨化 (plan v14 §3.1 P1) + v3.9.0 三轨化: innovation_locus /
         # substantiveness 各自 full/ctx/ss 独立产出
-        innovation_locus_full_arr = []     # Gomber 2018 JMIS, full-text classification
-        innovation_locus_ctx_arr = []      # Gomber 2018 JMIS, entity-context classification (Hassan 2019 QJE)
-        innovation_locus_ss_arr = []       # Gomber 2018 JMIS, 银行+金科同句共现 classification
+        innovation_locus_full_arr = []     # Gomber, Koch & Siering 2017 Digital Finance Cube (Gomber et al. 2018 JMIS 背景), full-text classification
+        innovation_locus_ctx_arr = []      # Gomber, Koch & Siering 2017 Digital Finance Cube (Gomber et al. 2018 JMIS 背景), entity-context classification (Hassan 2019 QJE)
+        innovation_locus_ss_arr = []       # Gomber, Koch & Siering 2017 Digital Finance Cube (Gomber et al. 2018 JMIS 背景), 银行+金科同句共现 classification
         category_confidence_full_arr = []  # LLM × keyword cross-validation, full track
         category_confidence_ctx_arr = []   # LLM × keyword cross-validation, ctx track
         category_confidence_ss_arr = []    # LLM × keyword cross-validation, ss track (同句共现)
@@ -2099,7 +2101,7 @@ def main():
         df['llm_undefined_ctx'] = undefined_ctx_arr
         df['llm_undefined_ss'] = undefined_ss_arr
         # v3.2.0 BREAKING (plan v14 §2.1 Action #2): bare innovation_locus / innovation_substantiveness 删除,
-        # 重命名为 _full / _ctx 双轨独立列 (W&Z 1998 ASQ + Gomber 2018 JMIS + Hassan 2019 QJE);
+        # 重命名为 _full / _ctx 双轨独立列 (W&Z 1998 ASQ + Gomber, Koch & Siering 2017 Digital Finance Cube [Gomber et al. 2018 JMIS 背景] + Hassan 2019 QJE);
         # v3.9.0 三轨化: 追加 _ss (银行+金科同句共现) 独立列。
         df['innovation_locus_full'] = innovation_locus_full_arr
         df['innovation_locus_ctx'] = innovation_locus_ctx_arr
@@ -2172,7 +2174,7 @@ def main():
         if n_api_failures > 0:
             logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")
 
-        # 统计创新位点分布 (v3.2.0 双轨独立 + v3.9.0 三轨; Gomber 2018 JMIS + Hassan 2019 QJE)
+        # 统计创新位点分布 (v3.2.0 双轨独立 + v3.9.0 三轨; Gomber, Koch & Siering 2017 Digital Finance Cube [Gomber et al. 2018 JMIS 背景] + Hassan 2019 QJE)
         for _track, _ver_col, _loc_col in [
             ('full', 'llm_verified_full', 'innovation_locus_full'),
             ('ctx',  'llm_verified_ctx',  'innovation_locus_ctx'),

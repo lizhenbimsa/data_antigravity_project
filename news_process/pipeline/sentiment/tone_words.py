@@ -1519,7 +1519,7 @@ def classify_batch(df_batch: pd.DataFrame) -> tuple:
     new_metric_cols = [
         'avg_sentence_len', 'type_token_ratio', 'char_per_word',
         'pos_ratio', 'neg_ratio',
-        'msent_score',  # He et al. (2024, IRFA), Eq. 1
+        'msent_score',  # Henry (2008) JBC / Tetlock (2007) JF — see derivation lines 1314-1325
         'msent_negonly',  # rule-ablation 计数口径变体 (仅否定; 与 msent_score 配对)
     ]
     for col in new_metric_cols:

@@ -474,7 +474,7 @@ def main():
         ``threshold_sensitivity_table.tex``
 
     学术依据: Loughran & McDonald (2011, JF) 阈值稳健性范式;
-              Tetlock (2007, JF) 媒体语调阈值敏感性.
+              Gentzkow, Kelly & Taddy (2019, JEL) 文本分析人为选择须报告稳健性.
     """
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")

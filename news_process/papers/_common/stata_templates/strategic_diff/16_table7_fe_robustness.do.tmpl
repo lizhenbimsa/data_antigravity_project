@@ -157,10 +157,15 @@ if !_rc {
 
 * M2: + 类型×年 (bank_type#year) — 控制银行类型时变冲击 (国有/股份/城商共同趋势)
 * SD-SPEC-1: Table 7 全表为 OLS 稳健性 (FE 饱和), bank_type×year 仅作为 OLS 设定里
-*   更细的时变 FE 进入。它**不**进入主 IV 规格 (2SLS, 工具 = bartik_type_iv_full)——
-*   原因: bartik_type IV 的 shift-share 暴露本身按 bank_type 构造, 若再把 type×year
-*   放进 2SLS 会与工具的识别变异共线。故 Table 7 (type×year OLS 稳健性) 与主 IV
-*   (bartik_type 2SLS) 是**互补**两条识别路径, 非互相强化 (各自回应不同混淆)。
+*   更细的时变 FE 进入。它**不**进入本篇唯一的 2SLS 规格 (12_table3_mechanism, M1,
+*   工具 = bartik_type_iv_full)——但须澄清: 该 2SLS 工具化的是**语调通道**
+*   (llm_vote_tone_full), 差异化处理变量 (strat_diff) **在本复现包任何 do-file 中都未被
+*   IV 识别** (它以外生控制身份进那条 2SLS 的 RHS, 仍是 conditional-OLS; 见 12_table3
+*   头部 fix(omni-g-templates-05) 勘误)。之所以 type×year 不进该 2SLS: bartik_type IV 的
+*   shift-share 暴露本身按 bank_type 构造, 若再把 type×year 放进 2SLS 会与工具的识别
+*   变异共线 (此共线推理与内生回归元为何无关, 恒成立)。故 Table 7 (type×year OLS 稳健性)
+*   是对**语调 IV 规格**的互补稳健性 (各自回应不同混淆), 而非互补于某条 differentiation
+*   2SLS——后者不存在 (差异化效应未在本包获任何 IV 识别)。
 capture confirm variable btype_grp
 if !_rc {
     capture eststo A_type: reghdfe `DVUSE' `X' $controls, absorb(bank_id year btype_grp#year) vce(cluster `CL')
@@ -293,6 +298,7 @@ if "`Bcols'" != "" {
         title("Table 7-strat-B: Outlier-Robust Estimators (Koenker-Bassett 1978)") ///
         mtitles(`Blabs') ///
         addnotes("OLS / median (qreg .5) / Huber-Tukey biweight (rreg); year (+type if large) dummies in lieu of high-dim FE." ///
+                 "Unlike the main within-bank spec, qreg/rreg omit bank FE (high-dim FE incompatible): these are estimator-robustness on a pooled (cross-bank) estimand, not a within-bank one." ///
                  "Complements winsorization (Table 5d): estimator-level downweighting of outliers." ///
                  "R-squared defined only for the OLS column (qreg reports pseudo-R2; rreg has none) and is omitted for comparability." ///
                  "SE bases differ across columns: OLS = cluster-robust; qreg = iid sparsity; rreg = IRLS — not directly comparable.")

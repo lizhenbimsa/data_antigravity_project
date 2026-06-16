@@ -161,7 +161,7 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     # remove-title-track: 三轨文本 (full/ctx/ss) 均需"包含标题"。content_full
     # (= 标题 + 内容) / content_ctx (= 标题 + 实体窗口) / content_ss (= 标题 +
     # 银行∧金科同句窗口) 都经 prepend_title 注入标题。原始 '内容' 列保持不变 (仍供
-    # doc_length / 去重 / 上下半切分 / fintech 强度分母 / topic / staleness 等非情感
+    # doc_length / 去重 / 上下半切分 / fintech 强度分母 / staleness 等非情感
     # 复用)。下游 full 轨情感消费者改读 content_full。
     from news_process.core.text.entity_context import prepend_title
 

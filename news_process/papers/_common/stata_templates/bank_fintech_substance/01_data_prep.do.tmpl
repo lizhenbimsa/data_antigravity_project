@@ -7,6 +7,8 @@
 version 19
 clear all
 set more off
+set maxvar 32767
+set linesize 120
 
 if "$data_dir" == ""  global data_dir "../data"
 if "$panel_dta" == "" global panel_dta "$data_dir/40_panel_yearly.dta"

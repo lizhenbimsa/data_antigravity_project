@@ -71,7 +71,7 @@ if !`_m3' {
     capture which ivreg2
     if !_rc {
         capture noisily ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) $controls i.bank_id i.year, ///
-            cluster({{CLUSTER_VAR}}) first
+            cluster({{CLUSTER_VAR}}) partial(i.bank_id i.year)
         if !_rc eststo M3
     }
     else display "[WARN] ivreghdfe 与 ivreg2 均不可用; M3 跳过"
@@ -94,7 +94,7 @@ if !`_m4' {
     capture which ivreg2
     if !_rc {
         capture noisily ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{LLM_PEER_IV}}) {{COMPETE_IDX}} $controls i.bank_id i.year, ///
-            cluster({{CLUSTER_VAR}}) first
+            cluster({{CLUSTER_VAR}}) partial(i.bank_id i.year)
         if !_rc eststo M4
     }
 }
@@ -135,13 +135,48 @@ else {
 }
 
 * ----------------------------------------------------------------------------
-* 输出表格 (名单动态化: M3/M4 依赖 ivreghdfe/ivreg2、M5 依赖 ctx 列在盘;
+* M6: IV 2SLS — ss 轨三轨稳健性 (2026-06-14 第三轨 _ss 平价补全)
+*   内生孪生 llm_vote_tone_ss (银行+金科同句窗口归因) 配 ss 同业 LOO 工具
+*   llm_peer_tone_iv_ss (iv_extensions.py 三轨平价已物化), 与 full 轨 M3 / ctx 轨 M5
+*   【各自 just-identified、并排成列】表达对归因窗口 (全文 vs 实体窗口 vs 同句窗口)
+*   的稳健性。严禁 full×ctx×ss 任两轨合成 Hansen J overid — 同篇三窗共同冲击同污染,
+*   J 零功效 (Parente & Santos Silva 2012 EL)。ss 列名硬编码 (非 spec 参数, 轨道恒定),
+*   缺列优雅跳过 (旧复现包 / ss 未落盘时不丢整表); ivreghdfe 失败同 M5 回退 ivreg2。
+* ----------------------------------------------------------------------------
+* 合并单次多变量 confirm (避免相邻双 confirm 后者覆盖 _rc; 同 M5 idiom)
+capture confirm variable llm_vote_tone_ss llm_peer_tone_iv_ss
+if !_rc {
+    local _m6 = 0
+    capture which ivreghdfe
+    if !_rc {
+        capture noisily ivreghdfe {{MAIN_DV}}_w (llm_vote_tone_ss = llm_peer_tone_iv_ss) $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo M6
+            local _m6 = 1
+        }
+    }
+    if !`_m6' {
+        capture which ivreg2
+        if !_rc {
+            capture noisily ivreg2 {{MAIN_DV}}_w (llm_vote_tone_ss = llm_peer_tone_iv_ss) $controls i.bank_id i.year, ///
+                cluster({{CLUSTER_VAR}}) first
+            if !_rc eststo M6
+        }
+    }
+}
+else {
+    display "[WARN] ss 轨列 (llm_vote_tone_ss / llm_peer_tone_iv_ss) 不在面板; M6 跳过"
+}
+
+* ----------------------------------------------------------------------------
+* 输出表格 (名单动态化: M3/M4 依赖 ivreghdfe/ivreg2、M5 依赖 ctx 列、M6 依赖 ss 列在盘;
 *   任一缺失时该列自动从表剔除而非触发 r(111) 丢整表)
 * ----------------------------------------------------------------------------
 qui estimates dir
 local stored `r(names)'
-local cand_models M1 M2 M3 M4 M5
-local cand_titles `""OLS" "OLS+X" "2SLS" "2SLS+CompIdx" "2SLS ctx""'
+local cand_models M1 M2 M3 M4 M5 M6
+local cand_titles `""OLS" "OLS+X" "2SLS" "2SLS+CompIdx" "2SLS ctx" "2SLS ss""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -164,7 +199,8 @@ else {
         mtitles(`mtitles') ///
         addnotes("Bank and year fixed effects in all columns. Cluster-robust SE at {{CLUSTER_VAR}} level." ///
                  "{{LLM_PEER_IV}} = LLM-defined peer leave-one-out tone (cutoff=0.80, full track)." ///
-                 "M5 (2SLS ctx): entity-window twin llm_vote_tone_ctx instrumented by llm_peer_tone_iv_ctx, just-identified side-by-side dual-track robustness --- NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012).")
+                 "M5 (2SLS ctx): entity-window twin llm_vote_tone_ctx instrumented by llm_peer_tone_iv_ctx, just-identified side-by-side dual-track robustness --- NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
+                 "M6 (2SLS ss): bank+fintech same-sentence twin llm_vote_tone_ss instrumented by llm_peer_tone_iv_ss, just-identified side-by-side tri-track robustness --- NEVER pooled with full/ctx IV into one Hansen J (same-article windows co-contaminate; Parente-Santos Silva 2012).")
 
     display "[OK] Table 2 written to $tables_dir/table2_main_iv_2sls.tex"
 }

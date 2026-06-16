@@ -1,7 +1,9 @@
-* news_process v3.2.0 — Figure 2: 双轨系数对比图 Coefplot Dual-Track Comparison (plan v14 §9.2)
+* news_process v3.10.0 — Figure 2: 三轨系数对比图 Coefplot Tri-Track Comparison (plan v14 §9.2)
 *
-* 核心新价值: 双轨化 main spec 切换的系数 + CI 视觉对比.
-* 论文 Methods §4 选 1 个 main spec, Figure 2 展示 8 specs 系数 + CI 一图呈现.
+* 核心新价值: 三轨化 main spec 切换的系数 + CI 视觉对比.
+* 论文 Methods §4 选 1 个 main spec, Figure 2 展示 12 specs 系数 + CI 一图呈现.
+* v3.9.0 起 sent 轨加入第三轨 _ss (银行+金科同句); capture-confirm/动态名单在
+* _ss 列缺盘 (旧复现包) 时优雅丢弃该 spec, full/ctx 仍照常出图。
 
 version 19
 
@@ -12,12 +14,12 @@ eststo clear
 * 主规格 local (供图例标注用)
 local main_spec  "{{MAIN_LOCUS_TRACK}}-{{MAIN_SUBST_TRACK}}-{{MAIN_SENT_TRACK}}"
 
-* 估 8 specs (与 tableA2 同 loop)
+* 估 12 specs (与 tableA2 同 loop; v3.9.0 sent 轨 full ctx → full ctx ss)
 * fix(omni-g-templates-13, 2026-06-11): 裸名重映射 (correctness-04 同款, 此前漏本模板) —
 * full 轨在面板是裸名 tech_frac/symb_frac, 直拼 _lf/_sf 是幻影列致 6/8 spec 永跳。
 foreach loc in lf lc {
     foreach sub in sf sc {
-        foreach sent in full ctx {
+        foreach sent in full ctx ss {
             if "`loc'" == "lf" {
                 local LOCUS tech_frac
             }
@@ -42,7 +44,7 @@ foreach loc in lf lc {
     }
 }
 
-* coefplot: 8 specs × digital_frontier 系数
+* coefplot: 12 specs × digital_frontier 系数
 * fix(omni-g-templates-13, 2026-06-11): 绘图名单动态化 — 旧版硬点名 8 估计,
 * 任一 spec 缺即 coefplot r(111) 整图丢失; 改为仅绘实际已存储者。
 capture which coefplot
@@ -52,7 +54,7 @@ if !_rc {
     local plots ""
     foreach loc in lf lc {
         foreach sub in sf sc {
-            foreach sent in full ctx {
+            foreach sent in full ctx ss {
                 local nm spec_`loc'_`sub'_`sent'
                 if `: list nm in stored' {
                     local plots `"`plots' (`nm', label("`loc'-`sub'-`sent'"))"'

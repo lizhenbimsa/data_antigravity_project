@@ -33,7 +33,7 @@ use "{{ panel_path }}", clear
 * --- Step 2: 8-cell 分类处理变量回归 ---
 * base = cell 1 (sub.tech.indep, 三维全 baseline)
 eststo M_cell: reghdfe {{ outcome }} i.cell_id_full {{ controls }} [aw={{ weight }}], ///
-    absorb(i.{{ bank_fe }} i.{{ year_fe }}) cluster({{ cluster_var }})
+    absorb({{ bank_fe }} {{ year_fe }}) cluster({{ cluster_var }})
 
 * --- Step 3: 联合 Wald 检验 ---
 testparm i.cell_id_full

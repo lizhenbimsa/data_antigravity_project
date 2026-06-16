@@ -48,19 +48,39 @@ forvalues i = 1/`n_ev' {
     * 比较事件冲击对开放协同型 vs 其他银行的差异化影响 (截面强度 DiD)。
     capture confirm variable collab_open_full
     if !_rc {
-        reghdfe {{MAIN_DV}} c.collab_open_full#i.event_t_`ev'_3 ///
+        * fix(audit-2026-06-16): 补全 lead 项 (_0/_1/_2 = t-3/-2/-1) — 原仅纳入 _3.._6 (t≥0)
+        * 是 post-only dynamic DiD, 无平行趋势检验且无 omitted base period (名实不符)。现镜像
+        * locus/19: omit _3 (t=0) 为基期, 纳入前趋 _0/_1/_2 + 后趋 _4/_5/_6, 并对前趋做联合 F 检验。
+        capture noisily reghdfe {{MAIN_DV}} ///
+                            c.collab_open_full#i.event_t_`ev'_0 ///
+                            c.collab_open_full#i.event_t_`ev'_1 ///
+                            c.collab_open_full#i.event_t_`ev'_2 ///
                             c.collab_open_full#i.event_t_`ev'_4 ///
                             c.collab_open_full#i.event_t_`ev'_5 ///
                             c.collab_open_full#i.event_t_`ev'_6 ///
                             $controls, ///
             absorb(bank_id year) vce(cluster {{CLUSTER_VAR}})
-
-        * Coefplot
-        capture which coefplot
         if !_rc {
-            coefplot, vertical drop(_cons $controls) ///
-                title("Event Study `ev' (`yr') --- bank_fintech_collab") ///
-                yline(0) saving("$figures_dir/event_`ev'.gph", replace)
+            eststo es_`ev'
+
+            * pre-trend 联合检验 (lead −3/−2/−1 = 0): 平行趋势的正式 F 检验
+            * reghdfe c.X#i.D 系数 Stata 规范化为 1.D#c.X; capture 兜底命名差异
+            capture test (1.event_t_`ev'_0#c.collab_open_full = 0) ///
+                         (1.event_t_`ev'_1#c.collab_open_full = 0) ///
+                         (1.event_t_`ev'_2#c.collab_open_full = 0)
+            if !_rc {
+                estadd scalar pretrend_F = r(F): es_`ev'
+                estadd scalar pretrend_p = r(p): es_`ev'
+                display "  [PRE-TREND] `ev': joint F(leads)=" %6.3f r(F) " p=" %5.3f r(p)
+            }
+
+            * Coefplot
+            capture which coefplot
+            if !_rc {
+                coefplot es_`ev', vertical drop(_cons $controls) ///
+                    title("Event Study `ev' (`yr') --- bank_fintech_collab") ///
+                    yline(0) saving("$figures_dir/event_`ev'.gph", replace)
+            }
         }
     }
 }

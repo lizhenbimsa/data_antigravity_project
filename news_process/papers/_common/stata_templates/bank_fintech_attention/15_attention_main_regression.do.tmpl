@@ -12,8 +12,9 @@
 * M2: + bank FE (银行固定效应)
 * M3: + bank FE + year FE (银行+年份双固定效应)
 * M4: + 标准银行层面控制变量
-* M5: + 宏观控制 (gdp_growth / m2_growth)
-* M6: + attention × post-event 交互 (对应 spec.event_studies 的事件设定)
+* M5: + 宏观控制 (gdp_growth / m2_growth 存在时; 否则退化复用 M4 规格)
+* M6: + attention × post-DCEP-pilot 试点哑变量 INLINE 强度 DiD (intensity-DiD,
+*     兑现 spec.event_studies 的事件设定; 仅 T≥3 才可识别, T=2 试跑帧零方差跳过)
 *
 * 识别策略: 双向固定效应 (TWFE) 面板回归 (bank FE + year FE)
 *                via reghdfe; M1-M6 全为 reghdfe TWFE, 本模板无 csdid 调用.

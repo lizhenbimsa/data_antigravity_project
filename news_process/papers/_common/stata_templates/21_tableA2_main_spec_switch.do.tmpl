@@ -124,7 +124,11 @@ else {
         mtitles(`mtitles') ///
         note("Main spec choices: locus={lf=full / lc=ctx}, subst={sf=full / sc=ctx}, " ///
              "sent={full / ctx / ss=bank+fintech same-sentence}. " ///
-             "Robust SEs clustered at bank. Hassan 2019 QJE + Sautner 2023 JF + Bingler 2022 FRL.")
+             "Robust SEs clustered at bank. Hassan 2019 QJE + Sautner 2023 JF + Bingler 2022 FRL. " ///
+             "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier; every " ///
+             "spec column here uses absorb(bank_id year), so it is collinear with the bank FE and silently dropped — " ///
+             "beta(digital_frontier) is identified only in a no-absorb column (see 11_table2 M1). These spec-switch " ///
+             "columns identify the within-bank time-varying terms (LOCUS/SUBST controls), not the frontier main effect.")
 
     display "✅ Table A2 written to output/tables/tableA2_main_spec_switch.tex (`: word count `models''/12 specs)"
 }

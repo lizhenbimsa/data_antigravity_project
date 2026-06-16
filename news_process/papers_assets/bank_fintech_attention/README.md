@@ -16,7 +16,8 @@ P2 = Bank Fintech Attention: 度量银行被 fintech 媒体话题"曝光"的强�
 | 子模块 | 行数 | 责任 |
 |---|---|---|
 | `news_process.pipeline.filtering.fintech_intensity` (stage 14) | ~ | 计算 fintech intensity 双轨列 (上游 attention 输入) |
-| `news_process.pipeline.panel.attention_media::compute_fintech_attention_index` | ~ | 当前实际计算 attention 指数, 产出 `ft_attn_yr` / `ft_attn_prov` / `ft_attn_city` (注: paper_spec R36-m01 设计名 `attention_index_full` / `attention_index_ctx` / `attention_disp_full` / `attention_pct_full` 为 M0 设计目标列, 尚未物化) |
+| `news_process.pipeline.panel.attention_media::compute_attention_treatments` | ~ | 物化 firm-level Hassan-style 设计列 `attention_index_full` / `attention_index_ctx` / `attention_index_ss` / `attention_pct_full` / `attention_disp_full` (含 density/sd 孪生); runner 步骤 6b-2, verified-domain gated, 标签在 export.py |
+| `news_process.pipeline.panel.attention_media::compute_fintech_attention_index` | ~ | 计算地理三级 attention 比值, 产出 `ft_attn_yr` / `ft_attn_prov` / `ft_attn_city` + 总量孪生 `ft_vol_yr` / `ft_vol_prov` / `ft_vol_city` (runner 步骤 6b; 与上一行 firm-level 设计列是两套不同度量) |
 | `news_process.papers.bank_fintech_attention.analysis` | ~60 | CLI 入口 (--stage pipeline\|tables\|figures\|all) |
 | `news_process.papers.bank_fintech_attention.tables` | ~80 | Table 1-5 (descriptive + main + mechanism + heterogeneity + robustness) |
 | `news_process.papers.bank_fintech_attention.figures` | ~45 | Figure 1 (attention 分布) — 后续扩展 event study + time trend |

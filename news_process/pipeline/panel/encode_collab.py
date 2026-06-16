@@ -284,8 +284,10 @@ def aggregate_d2_panel(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
     panel_idx = pd.MultiIndex.from_frame(panel[['target_bank', 'year']])
 
     # F-CR-cell-NA (R6 fix): cell 聚合需与 panel.n_articles 同源 subset 计数。
-    # encode.py:573 `n_articles = ('llm_vote_score_full', 'count')` 只数 LLM 总分
-    # 非 NaN 的 articles. 直接 `df['cell_id_full'] == cell_id` 会把 LLM 总分失败但
+    # encode.py:672 `n_articles_llm_valid = ('llm_vote_score_full','count')` 只数 LLM
+    # 总分非 NaN 的 articles (= 本 cell 子集口径); 注意 encode.py:671 `n_articles` 本身
+    # 用 'size' (含 NA, 物理篇数), 故 cell 聚合须对齐 n_articles_llm_valid 而非 n_articles.
+    # 直接 `df['cell_id_full'] == cell_id` 会把 LLM 总分失败但
     # cell_id 三维都合法的 articles 也计入 cells → Σ cells > n_articles → 假阳性
     # main_fail (实测 13/87 bank-years). 解决: cell aggregation 限定在与 n_articles
     # 同源 subset 上. 优先用 llm_vote_score_full (encode.py 计算后状态); 退化时复刻

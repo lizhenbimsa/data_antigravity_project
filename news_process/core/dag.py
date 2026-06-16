@@ -244,8 +244,9 @@ STAGES_MAIN: list[StageSpec] = [
     ),
 
     # ── 模块四b：跟风衰减权重 (硬依赖 stage 23 BERT 输出) ──
-    # stage 24 内部硬编码读 23_bert_tone.parquet (见
-    # pipeline/sentiment/herd_decay.py:24/247-262)。因 stage 23 自 2026-06-12 起
+    # stage 24 内部硬编码读 23_bert_tone.parquet (见 pipeline/sentiment/herd_decay.py
+    # main(): input_filename=filenames.get('output_23_bert_tone', '23_bert_tone.parquet');
+    # 输入契约 docstring L59/L86)。因 stage 23 自 2026-06-12 起
     # 已是无条件 always-on, 其硬依赖者 stage 24 同样改为 always-on — 二者构成
     # 结构性 always-on 链, 不再随 enabled_methods 启停。
     #
@@ -279,7 +280,7 @@ STAGES_MAIN: list[StageSpec] = [
         timeout=21600,  # 40 万文章: GPU 约 4-6 小时, CPU 约 12-24 小时
     ),
     # v3.7.0 PR #11+#11.5 (D2.a + D2.b): article staleness 双指标.
-    # 学术依据: Tetlock (2011) RFS 24(5):1481-1512; Gentzkow-Shapiro-Taddy (2019) JEL.
+    # 学术依据: Tetlock (2011) RFS 24(5):1481-1512; Gentzkow-Kelly-Taddy (2019) JEL.
     # 2026-06-13: 改为无条件 always-on (用户决策: 全部启用而非条件启用); 历史 opt-in flag
     # article_staleness.enabled 仅作记录。⚠ 依赖 faiss-cpu + datasketch (已于 2026-06-01
     # pip 安装到位); always-on 后若缺包会真崩, 运行环境须确保两包已安装。

@@ -48,7 +48,7 @@ strategic_diff:
 
 benefit_society:
   # fix(omni-g-benefit-04, 2026-06-11): max_tokens_per_input 不再用于文章预截断
-  # (统一引擎 embed_texts 自带 Early Chunking + 加权池化处理超长文本); 保留为
+  # (统一引擎 embed_texts 自带 naive 分块 (朴素分段) + 加权池化处理超长文本); 保留为
   # 单条 API 输入硬上限的文档值 (engine 内 EMB_MAX_TOKENS=8191 同义)。
   max_tokens_per_input: 8191        # 单条输入 token 上限 (text-embedding-3-small 硬性上限)
   max_tokens_per_request: 250000    # 单次 API 请求总 token 上限

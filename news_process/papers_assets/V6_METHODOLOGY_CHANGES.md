@@ -22,9 +22,13 @@
 
 > "We employ three independent LLM families for sentiment annotation:
 > gpt-5.4-nano (OpenAI), gemini-3.1-flash-lite (Google),
-> and deepseek-v4-flash (DeepSeek). All three are routed through
-> the yunwu.ai aggregator using OpenAI-compatible /v1/chat/completions API
-> (single account, identical schema), with temperature=0 and seed=42 for
+> and deepseek-v4-flash (DeepSeek). OpenAI (gpt-5.4-nano) and Google
+> (gemini-3.1-flash-lite) are queried through the yunwu.ai
+> OpenAI-compatible aggregator (base_url https://yunwu.ai/v1, YUNWU_API_KEY);
+> DeepSeek (deepseek-v4-flash) is queried via its native endpoint
+> (base_url https://api.deepseek.com, separate DEEPSEEK_API_KEY).
+> All three use the OpenAI-compatible /v1/chat/completions schema with
+> temperature=0 and seed=42 for
 > deterministic outputs. Inter-family agreement is reported as Cohen's κ
 > and Krippendorff's α; majority vote across families produces the final
 > sentiment label, with ties marked as `undefined` (not `neutral`)."
@@ -42,7 +46,7 @@
 | `_aggregate_track`：单模型 verified=False 不再强制改 sentiment | 每个模型独立保留自己的 sentiment 判定 |
 | `majority_vote_sentiment`：平局返回 None | 不再降级到"中性"；平局行标记 `llm_undefined=1` |
 | `encode_sentiment`：使用 nullable Int8 + 4 类掩码 | `is_neutral` 仅在 verified=True ∧ undefined=0 ∧ call_failure=0 ∧ sentiment="中性" 时为 1 |
-| 21 输出新增 10 列元数据 (5 类状态指标 × 2 轨 _full/_ctx) | `n_valid_votes_*` / `n_verifying_votes_*` / `llm_call_failure_*` / `llm_undefined_*` / `agreement_rate_s_*` |
+| 21 输出新增 10 列元数据 (5 类状态指标 × 2 轨 _full/_ctx)（后于 v3.9.0 / 2026-06-14 新增第三主轨 _ss 银行+金科同句共现 → 元数据实为 5 类状态指标 × 3 轨 _full/_ctx/_ss = 15 列） | `n_valid_votes_*` / `n_verifying_votes_*` / `llm_call_failure_*` / `llm_undefined_*` / `agreement_rate_s_*` |
 
 **论文方法章节建议表述**：
 
@@ -55,7 +59,7 @@
 > coerced these to 'neutral' and conflated 81.7% of the neutral labels with
 > measurement failure / verification rejection. Under listwise deletion, this
 > reclassification removes a non-trivial number of bank-year × track
-> observations (track ∈ {full, ctx}; 标题情感轨已于 remove-title-track 移除)
+> observations (track ∈ {full, ctx, ss} (v3.9.0 起 _ss 银行+金科同句轨与 full/ctx 全平价); 标题情感轨已于 remove-title-track 移除)
 > from regressions; counts before/after are reported in
 > Table A.X (sample composition diagnostics)."
 
@@ -88,7 +92,8 @@
 > these as missing-by-design and use listwise deletion in regressions.
 > Count and sum-type variables (n_articles, pos_count, *_sum) remain at 0
 > as the mathematically correct zero-observation value. The number of
-> bank-year × track observations (track ∈ {full, ctx}; 标题情感轨已于
+> bank-year × track observations (track ∈ {full, ctx, ss} (v3.9.0 起 _ss
+> 银行+金科同句轨与 full/ctx 全平价); 标题情感轨已于
 > remove-title-track 移除) dropped is reported in Table A.X."
 
 ---
@@ -108,7 +113,7 @@
 |---|---|---|
 | `bartik_type_*` | type/scale 已 pre-treatment 固定 | Goldsmith-Pinkham, Sorkin & Swift (2020, AER) |
 | `bartik_scale_*` | 同 | 同 |
-| `bartik_fintech_*` | LLM 主题分类，须配合论证 | 项目内置 |
+| `bartik_fintech_lf_*` / `bartik_fintech_lc_*` | LLM 主题分类，须配合论证（v3.2 locus 拆分：lf=innovation_locus_full 基期份额 / lc=innovation_locus_ctx） | 项目内置 |
 | `bartik_media_*` | 媒体三方分类 (fin/comp/other) | Snyder & Strömberg (2010, JPE) |
 | `bartik_geoprox_*` | 银行注册地 vs 媒体省份 | Engelberg & Parsons (2011, JF) |
 | `bartik_mauth_*` | 媒体权威性档位 (high/mid/low) | Holzman, Miller & Twedt (2023, TAR) |
@@ -164,7 +169,7 @@ mvdecode is_positive_full is_negative_full is_neutral_full ///
 * 不需要额外的 if 条件（Stata 自动跳过）
 
 * v6/F4: 主表使用 6 类 IV + Romano-Wolf 校正
-local biv_main "bartik_type_iv_full bartik_scale_iv_full bartik_fintech_iv_full bartik_media_iv_full bartik_geoprox_iv_full bartik_mauth_iv_full"
+local biv_main "bartik_type_iv_full bartik_scale_iv_full bartik_fintech_lf_iv_full bartik_media_iv_full bartik_geoprox_iv_full bartik_mauth_iv_full"
 ivreg2 dep_var (treat = `biv_main') controls i.bank i.year, cluster(bank year) first
 
 rwolf dep_var, indepvars(`biv_main') controls(...) reps(1000) seed(42)

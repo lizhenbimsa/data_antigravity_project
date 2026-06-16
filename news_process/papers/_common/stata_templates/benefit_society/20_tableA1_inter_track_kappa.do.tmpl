@@ -14,6 +14,9 @@
 *
 * PAP v1.0-final §9 偏离披露: benefit_mean rho = 0.761 已接近冗余阈值;
 * pos/neg_frac rho = 0.459 承载真实的双轨增量信息。
+* 注: 0.761 / 0.459 为 PAP v1.0-final 磁盘样本 (n=116) 的实现值, 生产规模
+* (T=18 / 全量语料) 下可能漂移; 表格单元格 (`rho_mean'/`rho_pos'/`rho_neg')
+* 始终按运行期面板实算, 此处文字为预注册披露口径, 二者出现分歧以单元格为准。
 * ============================================================================
 
 version 19
@@ -97,7 +100,10 @@ file write f1 "\begin{tablenotes}\footnotesize\item " _newline
 file write f1 "F-M2: stage 21 lacks article-level benefit-domain discrete labels; " _newline
 file write f1 "falls back to llm_prob_score_full vs llm_prob_score_ctx as closest proxy. " _newline
 file write f1 "F-H2 / F-R4-M1: rho=0.761 on benefit_mean approaches redundancy threshold; " _newline
-file write f1 "discriminative info concentrates in pos/neg_frac (rho=0.459)." _newline
+file write f1 "discriminative info concentrates in pos/neg_frac (rho=0.459). " _newline
+file write f1 "(0.761/0.459 are PAP v1.0-final disk-sample (n=116) realized values and may " _newline
+file write f1 "shift at production scale (T=18 / full corpus); the bank-year cells above are " _newline
+file write f1 "always recomputed live from the panel.)" _newline
 file write f1 "\end{tablenotes}\end{table}" _newline
 file close f1
 

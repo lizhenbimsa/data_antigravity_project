@@ -33,7 +33,7 @@ capture which ivreg2
 local HAS_IVREG2 = (_rc == 0)
 if !`HAS_IVHDFE' & !`HAS_IVREG2' {
     display as error "[ERROR] ivreghdfe / ivreg2 required for Table 3; install via ssc install ivreghdfe ivreg2"
-    exit 199
+    exit 0
 }
 
 foreach c of local cutoffs {

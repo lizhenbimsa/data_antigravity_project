@@ -21,7 +21,7 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
-* 截面 + bank-type FE 规格 (MVP)
+* bank FE + year FE 规格 (MVP; SPEC IV-1: absorb(bank_id year), 非 bank-type FE)
 reghdfe {{MAIN_DV}}_w {{ATTITUDE_VAR}} $controls, ///
     absorb(bank_id year) vce(cluster bank_id)
 eststo MVP1

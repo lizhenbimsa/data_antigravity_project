@@ -5,15 +5,17 @@ Plan v14 §3.5 P5.2: stage 35 词典法 → LLM 法升级
     本模块新建 LLM 法 section, 与 dict-based 并存 (plan v14 P5.2 backward-compat).
 
 核心洞察 (plan v14 R11):
-    一次 LLM 调用的 unified_cot.txt v7 prompt 同时产出三阶段输出:
+    一次 LLM 调用的 unified_cot.txt v8 prompt 同时产出三阶段输出:
       stage 1: verification (is_bank_fintech_news + confidence)
       stage 2: sentiment + confidence
-      stage 3: innovation_locus + innovation_substantiveness + confidences
+      stage 3: innovation_locus + innovation_substantiveness + innovation_collab_mode + confidences
+              (innovation_collab_mode = v8 新增第三创新维度, Chesbrough 2003 自主-外部协同)
     → 一组 LLM 调用产 sentiment + locus + substantiveness 三轴 robustness 报告.
 
 实际 LLM 调用量 (plan v14 修订, 取代 180k 误估):
     N = 1170 (current production stage 14 input rows)
-    L = 3 LLMs (gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash)
+    L = 3 LLMs (roster 读自 config/sentiment.yaml LLM_CONFIG; 下列名仅示例, 以配置为准:
+                gpt-5.4-nano / gemini-3.1-flash-lite / deepseek-v4-flash)
     R_new = 3 (radii ∈ {0, 2, 3}; radius=1 已缓存 baseline)
     T = 1 (仅 ctx 轨; full 轨缓存命中, 不受 radius 影响)
     Total = N × L × R_new × T = 1170 × 3 × 3 × 1 = 10,530

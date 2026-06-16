@@ -7,7 +7,7 @@ golden snapshot 的可复现性依赖 stage 21 (LLM 双轨投票) 的确定性�
 (实测: 某边缘文章 idx 在一次重生中 DeepSeek 单模型票 True→False, 致某仅 1 篇
 有效文章的边缘银行整行掉出, panel 176→174 行漂移)。
 
-因此确定性的充要条件是: **当前语料 × 全部启用模型 × 双轨, 在 ``_llm_cache.db``
+因此确定性的充要条件是: **当前语料 × 全部启用模型 × 三轨 (full/ctx/ss), 在 ``_llm_cache.db``
 中 0 个 miss**。本脚本即如实测量这一覆盖率, 全程 **纯缓存读, 零网络、零 API、$0**。
 
 判定
@@ -94,8 +94,8 @@ def verify_cache_coverage(max_show: int = 10, input_path: str | None = None,
 
     n_rows = len(df)
     print(f"[verify] 输入帧: {input_path}")
-    print(f"[verify] 语料: {n_rows} 行 × {len(models)} 模型 × 2 轨 "
-          f"= {n_rows * len(models) * 2} 次查找")
+    print(f"[verify] 语料: {n_rows} 行 × {len(models)} 模型 × 3 轨 (full/ctx/ss) "
+          f"= {n_rows * len(models) * 3} 次查找")
     if min_rows > 0 and n_rows < min_rows:
         print(f"[verify] ⚠ 帧行数 {n_rows:,} < 生产门槛 --min-rows={min_rows:,} — "
               f"覆盖率证明仅对此 *子生产* 帧有效, 不足以 bless 全量 T=18 golden。")

@@ -37,6 +37,14 @@ local DV   m_and_a_fintech
 * 零功效 (Parente & Santos Silva 2012 EL)。
 local TXC  collab_frac_cm
 local IVC  lpeer_collab_iv_ctx
+* ss 轨镜像 (2026-06-14 第三轨 _ss 平价补全): 内生孪生 collab_frac_cm_ss 配 ss 同业
+* LOO 工具 lpeer_collab_iv_ss, 与 full / ctx 轨【各自 just-identified、并排成列】表达
+* 三轨互为稳健性; 严禁 full/ctx/ss 任两轨 LOO 合成 overid — 同文三窗共同冲击同污染,
+* Hansen J 零功效 (Parente & Santos Silva 2012 EL)。
+* ⚠ 命名: ss 轨内生孪生列名 = collab_frac_cm_ss (在 ctx 孪生 collab_frac_cm 后再缀 _ss,
+*   iv_extensions.py 对角创新命名), 勿误拼 collab_frac_ss 否则静默全 NaN。
+local TXS  collab_frac_cm_ss
+local IVS  lpeer_collab_iv_ss
 
 * ⚠ FE 锁定 = bank FE + year FE; 严禁 bank_type×year 交互 FE — 同业 LOO 工具
 *   格内残余 = 自身内生变量的负镜像, type×year FE 下工具退化、排他性按构造违反。
@@ -75,6 +83,12 @@ if !_rc {
     eststo first_ctx: reghdfe `TXC' `IVC' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
+* ss 轨一阶段 (collab_frac_cm_ss ~ ss LOO 工具; 缺列优雅跳过)
+capture confirm variable `TXS' `IVS'
+if !_rc {
+    eststo first_ss: reghdfe `TXS' `IVS' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
 
 * 2SLS (DV 待外部并购数据; 缺列优雅跳过)
 capture confirm variable `DV'
@@ -106,6 +120,13 @@ else {
         eststo tsls_ctx: ivreg2 `DV' (`TXC' = `IVC') $controls ///
             i.bank_id i.year, cluster(bank_id) first
     }
+    * ss 轨 just-identified 2SLS (与 full 轨 tsls_loo / ctx 轨 tsls_ctx 并排;
+    * 同一 DV, 三轨各自工具; 三轨各自 just-id 绝不合并 Hansen J)
+    capture confirm variable `TXS' `IVS'
+    if !_rc {
+        eststo tsls_ss: ivreg2 `DV' (`TXS' = `IVS') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
 
     * ── IV-2 修复 (2026-06-14): 弱工具稳健 Anderson-Rubin CI ─────────────────
     * 脚注早已规定 "KP F < Stock-Yogo 时改读 AR CI", 但全项目无 weakiv 命令
@@ -135,7 +156,7 @@ else {
             capture file close _arci
             file open _arci using "$tables_dir/tableA_collab_iv_arci.txt", write replace
             file write _arci "P5 Collab weak-IV-robust Anderson-Rubin CIs (Andrews-Stock-Sun 2019)" _n
-            file write _arci "Read these AR CIs whenever KP F < Stock-Yogo critical value (16.38 @ 5% bias)." _n _n
+            file write _arci "Read these AR CIs whenever KP F < Stock-Yogo 10% maximal-IV-size critical value (1 instrument) = 16.38." _n _n
             * 同期 LOO
             capture confirm variable `IV1'
             if !_rc {
@@ -188,6 +209,19 @@ else {
                     file write _arci "[ctx LOO] AR p = `_arp'  AR 95% confidence set = `_arset'" _n
                 }
             }
+            * ss 轨
+            capture confirm variable `TXS' `IVS'
+            if !_rc {
+                capture noisily weakiv ivreg2 `DV' (`TXS' = `IVS') $controls ///
+                    i.bank_id i.year, cluster(bank_id) lm
+                if !_rc {
+                    local _arp = .
+                    local _arset = ""
+                    capture local _arp   = e(ar_p)
+                    capture local _arset = "`e(ar_cset)'"
+                    file write _arci "[ss LOO] AR p = `_arp'  AR 95% confidence set = `_arset'" _n
+                }
+            }
             file close _arci
             display "[OK] weak-IV-robust AR CIs → $tables_dir/tableA_collab_iv_arci.txt"
         }
@@ -198,8 +232,8 @@ else {
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_loo first_lag first_bartik first_ctx tsls_loo tsls_lag tsls_overid tsls_ctx
-local cand_titles `""1st LOO" "1st LOO lag1" "1st Bartik" "1st LOO ctx" "2SLS LOO" "2SLS LOO lag1" "2SLS Overid" "2SLS LOO ctx""'
+local cand_models first_loo first_lag first_bartik first_ctx first_ss tsls_loo tsls_lag tsls_overid tsls_ctx tsls_ss
+local cand_titles `""1st LOO" "1st LOO lag1" "1st Bartik" "1st LOO ctx" "1st LOO ss" "2SLS LOO" "2SLS LOO lag1" "2SLS Overid" "2SLS LOO ctx" "2SLS LOO ss""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -224,7 +258,8 @@ else {
         addnotes("IV1 = same-bank-type leave-one-out external-collaboration share (Manski 1993; Leary-Roberts 2014 JF caveats — disclose in text; lag-1 variant for robustness)." ///
                  "IV2 = Bartik: base-period type co-mention shares x type-year LOO collaboration share (Goldsmith-Pinkham et al. 2020 AER, share-exogeneity view only)." ///
                  "ctx column: entity-window twin collab_frac_cm instrumented by lpeer_collab_iv_ctx, just-identified, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
-                 "KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005, 5% maximal bias; 13.91 for 10%); if below, read the weak-IV-robust Anderson-Rubin CIs reported in tableA_collab_iv_arci.txt (Andrews-Stock-Sun 2019; weakiv command). Hansen J only in overidentified column." ///
+                 "ss column: bank+fintech same-sentence twin collab_frac_cm_ss instrumented by lpeer_collab_iv_ss, just-identified, side-by-side tri-track robustness — full/ctx/ss are NEVER pooled into one Hansen J (same-article windows co-contaminate; Parente-Santos Silva 2012)." ///
+                 "KP F = Kleibergen-Paap rk Wald F; Stock-Yogo 10% maximal-IV-size critical value (1 instrument) = 16.38 (Stock-Yogo 2005); maximal-relative-bias thresholds apply only to over-identified models with >=3 instruments. If KP F is below, read the weak-IV-robust Anderson-Rubin CIs reported in tableA_collab_iv_arci.txt (Andrews-Stock-Sun 2019; weakiv command). Hansen J only in overidentified column." ///
                  "Hansen J power depends on first-stage strength: when KP F is below the Stock-Yogo critical value, a non-rejecting Hansen J (p>0.05) has low power and must NOT be read as confirming instrument validity.")
 
     display "[OK] 21_collab_iv_2sls → $tables_dir/tableA_collab_iv_2sls.tex"

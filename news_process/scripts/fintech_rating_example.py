@@ -12,7 +12,7 @@ fintech_rating_example.py — 金融科技新闻多维度连续评分示例
 
 属性设计学术依据:
   - 情感倾向: Lopez-Lira & Tang (2023, SSRN 4412788)
-  - 创新深度: Li et al. (2021, Management Science)
+  - 创新深度: Li et al. (2021, The Review of Financial Studies — Measuring corporate culture using machine learning)
   - 战略前瞻: 姜富伟等 (2024, 管理世界)
   - 实质关联: Carlson & Burbano (2026, SMJ §3.3)
 """

@@ -286,6 +286,9 @@ def generate_pipeline_summary(config, logger):
         ("模块一: 00_preprocessing", "output_00_preprocessing"),
         ("模块二: 11_news_bank", "output_11_bank_news"),
         ("模块二: 12_news_fintech", "output_12_fintech_news"),
+        # 12b 银行×金科邻近共现硬过滤 (v3.10.0): 丢行, 故行数会下降,
+        # 须列入摘要否则保留率会漏掉这一步硬过滤 (12 与 13 之间)。
+        ("模块二: 12b_cooccurrence_filter", "output_12b_cooccurrence"),
         ("模块二: 14_fintech_intensity", "output_14_fintech_intensity"),
         ("模块三: 21_tone_llms", "output_21_tone_llms"),
         ("模块三: 21_tone_llms(全量)", "output_21_tone_llms_full"),

@@ -164,7 +164,11 @@ else {
         mtitles(`mtitles') ///
         note("Placebo: bank-level permutation of treatment (treated count preserved); β should be insignificant. " ///
              "Leave-one-out: `n_stable'/`n_banks' bank exclusions yield β within the full-sample 95% CI. " ///
-             "MacKinnon & Webb 2020 JBES wild cluster bootstrap p reported in the Main column (boottest, 999 reps).")
+             "MacKinnon & Webb 2020 JBES wild cluster bootstrap p reported in the Main column (boottest, 999 reps). " ///
+             "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier, so in every " ///
+             "absorb(bank_id ...) column here it is collinear with the bank FE and silently dropped; beta(digital_frontier) " ///
+             "is identified only in a no-absorb column (see 11_table2 M1). These robustness columns identify the within-bank " ///
+             "time-varying terms (LOCUS/SUBST controls); the frontier main effect is absorbed.")
 
     * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel (parse_esttab_csv 消费)
     estout `models' using "output/tables/table5_advanced_robust.csv", replace delimiter(",") ///

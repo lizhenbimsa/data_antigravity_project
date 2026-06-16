@@ -88,6 +88,9 @@ def build_table5_robustness(paper_config: PaperConfig | None = None) -> pd.DataF
 def build_table_a1_inter_track_kappa(paper_config: PaperConfig | None = None) -> pd.DataFrame:
     """Table A1: 轨间一致性 (文章级 rho + bank-year 级 rho; full/ctx/ss 三轨 pairwise).
 
+    注: 测度实为 correlation (rho); 函数名/文件名中的 'kappa' 仅作历史血缘
+    (lineage) 兼容保留 (per loo-ctx-iv 审计, kappa/Hansen 框架已撤回, 改 rho)。
+
     third-track-ss 2026-06-14: 由 2 轨 (full/ctx) 扩为 3 轨 (full/ctx/ss) pairwise
     一致性 (full-ctx / full-ss / ctx-ss 三对), Holm 跨 3 对 FWER 校正 (per plan §⑧)。"""
     from news_process.papers._common.stata_postprocess import read_paper_esttab

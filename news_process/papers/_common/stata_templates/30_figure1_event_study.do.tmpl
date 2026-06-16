@@ -9,6 +9,14 @@
 * lead/lag, 并在图脚注如实标注实际所用估计量。下方 has_es 探测结果现已被消费。
 * 注 (2026-06-14 DID-6 修复): lead/lag 窗口不再硬编码 ±3 — 据样本实有年份跨度动态设定
 * (T=18 用 ±5, 小样本退化到可用宽度), 不浪费 T=18 功效, T=2 仍优雅退化。
+* 设计披露 (2026-06-16 S1-04): digital_frontier 是【基年截面固定分组】(runner.py:1138,
+* _base_year_median_split, "组员资格跨年固定"), 非交错采纳事件 — 故 _first_treat (line 33)
+* 对每家处理组银行都坍缩为面板首年, 全部处理观测 _rel_time ≥ 0: 无处理前 lead、单一
+* cohort、即便满 T=18 也无交错时变。因此本图本质是【固定分组 × 时间 DiD】, 而非 Sun-Abraham
+* 交错事件研究; 上方"处理前各年系数≈0 / 平行趋势"(line 5-6) 在此变量下结构性无法产出
+* (无 lead 可画)。eventstudyinteract 路径无 cohort 异质可加权, 多退回 TWFE。如需真正的
+* 事件研究, 应把相对时间锚到面板已构建的真实时变政策日 (如 dcep_post/sandbox_post/
+* depins_post 的年阈值), 而非锚到基年分组指示符 digital_frontier。
 *
 * 主 spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
 
@@ -98,7 +106,9 @@ preserve
                 vertical yline(0, lpattern(dash)) xtitle("Years from treatment") ///
                 ytitle("β (effect on Tone)") ///
                 title("Figure 1: Event Study — Digital Frontier Treatment") ///
-                note("Dynamic effects (`est_label'). Reference: t=-1. Window ±`W'.")
+                note("Dynamic effects (`est_label'). Reference: t=-1. Window ±`W'." ///
+                     "digital_frontier is a time-invariant base-year group (single cohort," ///
+                     "no leads): fixed-group-by-time DiD, not a staggered event study.")
             if !_rc local _cp_done = 1
         }
         if !`_cp_done' {
@@ -109,7 +119,9 @@ preserve
                 vertical yline(0, lpattern(dash)) xtitle("Years from treatment") ///
                 ytitle("β (effect on Tone)") ///
                 title("Figure 1: Event Study — Digital Frontier Treatment") ///
-                note("Dynamic effects (`est_label'). Reference: t=-1. Window ±`W'.")
+                note("Dynamic effects (`est_label'). Reference: t=-1. Window ±`W'." ///
+                     "digital_frontier is a time-invariant base-year group (single cohort," ///
+                     "no leads): fixed-group-by-time DiD, not a staggered event study.")
             if !_rc local _cp_done = 1
         }
         if `_cp_done' {

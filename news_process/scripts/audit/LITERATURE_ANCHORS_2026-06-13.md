@@ -216,13 +216,13 @@
 - Babina, T., Fedyk, A., He, A., & Hodson, J. (2024). Artificial intelligence, firm growth, and product innovation. *Journal of Financial Economics*, 151, 103745. https://doi.org/10.1016/j.jfineco.2023.103745
   - *锚定*: JFE 顶刊用员工简历构造企业层面 AI 实质投入测度的标杆; 为项目用'落地/投产/数据'等可验证证据 (而非宣称频次) 定义实质性 fintech 采纳变量提供测度正当性与外部基准。
 - Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2024). How cheap talk in climate disclosures relates to climate initiatives, corporate emissions, and reputation risk. *Journal of Banking & Finance*, 164, 107191. https://doi.org/10.1016/j.jbankfin.2024.107191
-  - *锚定*: 首篇用领域微调 BERT (ClimateBERT) 自动分类企业气候披露并据此实证揭示 TCFD 支持多为 cheap talk、披露内容 cherry-pick 非实质类别的金融研究; 为项目用文本分类器检测银行 fintech 叙事中的象征性话语提供方法先例 (显式"具体 vs 含糊"二分类器设计见其 2024 JBF 后续)。
+  - *锚定*: 2022 FRL 前作 (见下) 的 JBF 后续, 把 ClimateBERT 分类与企业减排行动、真实碳排放、声誉风险打通做更完整的实证检验; 显式落实"具体 vs 含糊"二分类器设计, 为项目用文本分类器检测银行 fintech 叙事中的象征性话语提供方法先例。
 - Sastry, P. R., Verner, E., & Marques-Ibanez, D. (2024). Business as usual: Bank net zero commitments, lending, and engagement (NBER Working Paper No. 32402). National Bureau of Economic Research. https://www.nber.org/papers/w32402
   - *锚定*: 用信贷登记数据证明银行自愿净零承诺后放贷行为'一切如常'——承诺即象征性采纳; 为项目'公开宣称型 fintech 新闻不必然对应实质投入'的核心假设提供银行业最新因果证据。
 - Kim, S., & Yoon, A. (2023). Analyzing active fund managers' commitment to ESG: Evidence from the United Nations Principles for Responsible Investment. *Management Science*, 69(2), 741–758. https://doi.org/10.1287/mnsc.2022.4394
   - *锚定*: 签署 PRI (口头承诺) 吸引资金流入但无任何后续实质 ESG 行动的顶刊证据; 为项目检验'象征性 fintech 宣称带来短期媒体/市场关注但不改善基本面'的结果变量设计提供平行范式。
 - Bingler, J. A., Kraus, M., Leippold, M., & Webersinke, N. (2022). Cheap talk and cherry-picking: What ClimateBert has to say on corporate climate risk disclosures. *Finance Research Letters*, 47(Part B), 102776. https://doi.org/10.1016/j.frl.2022.102776
-  - *锚定*: 首篇用领域微调 BERT (ClimateBERT) 自动分类企业气候披露并据此实证揭示 TCFD 支持多为 cheap talk、披露内容 cherry-pick 非实质类别的金融研究; 为项目用文本分类器检测银行 fintech 叙事中的象征性话语提供方法先例 (显式"具体 vs 含糊"二分类器设计见其 2024 JBF 后续)。
+  - *锚定*: 首篇用领域微调 BERT (ClimateBERT) 自动分类企业气候披露并据此实证揭示 TCFD 支持多为 cheap talk、披露内容 cherry-pick 非实质类别的金融研究; 为项目用文本分类器检测银行 fintech 叙事中的象征性话语提供方法先例 (其更完整的"具体 vs 含糊"二分类器实证见上方 2024 JBF 后续)。
 - Flammer, C. (2021). Corporate green bonds. *Journal of Financial Economics*, 142(2), 499–516. https://doi.org/10.1016/j.jfineco.2021.01.010
   - *锚定*: JFE 顶刊示范如何用可验证的真实承诺工具 (绿债发行+第三方认证) 区分信号 vs 漂绿; 为项目把'有落地/投产/认证证据的 fintech 新闻'定义为实质性采纳的操作化思路提供金融学正当性。
 - Webersinke, N., Kraus, M., Bingler, J. A., & Leippold, M. (2021). ClimateBert: A pretrained language model for climate-related text. *arXiv*. https://arxiv.org/abs/2110.12010

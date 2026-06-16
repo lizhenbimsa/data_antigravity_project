@@ -391,7 +391,7 @@ def test_stage26_t2v_build_emb_raise_guard(tmp_path, monkeypatch):
 
 def test_article_pretruncation_removed_engine_chunkpools():
     """stage 15 (选项 B, 2026-06-12): 文章侧 8191-token 预截断已移除 — 统一引擎
-    embed_texts 的 Early Chunking + Mean Pooling 接管超长文章, 两侧 (文章/锚点)
+    embed_texts 的朴素分段 (naive chunking) + Mean Pooling 接管超长文章, 两侧 (文章/锚点)
     对称 (镜像 stage 27 omni-g-benefit-04)。源码级回归锁: 防静默 revert 回预截断。"""
     import inspect
 

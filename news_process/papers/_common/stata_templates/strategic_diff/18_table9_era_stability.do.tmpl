@@ -170,6 +170,7 @@ quietly levelsof era if !missing(`DVUSE', `X'), local(_eras)
 local n_eras : word count `_eras'
 if `n_eras' >= 2 {
     * 交乘项: c.strat_diff#i.era (era 基组为最早有数据的时代)
+    * 注: era 是 year 的确定性粗化 (lines 103-105), 故 ## 展开里的 i.era 主效应与 absorb 的 year FE 完全共线, 被 reghdfe 丢弃 (era 主效应行空白属预期); 仅 c.X#i.era 交乘项 (strat_diff 在同年跨行有变异) 识别下方 testparm 检验的跨时代异质性。
     capture eststo era_int: reghdfe `DVUSE' c.`X'##i.era $controls, ///
         absorb(bank_id year) vce(cluster `CL')
     if !_rc {

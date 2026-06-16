@@ -44,6 +44,13 @@ local DV   cost_income_ratio_change_3yr
 * 实体窗口) 共同冲击逐字同污染, Hansen J 零功效 (Parente & Santos Silva 2012 EL)。
 local TXC  sub_frac_sc
 local IVC  lpeer_subst_iv_ctx
+* ss 轨镜像 (2026-06-14 第三轨 _ss 平价补全): 内生孪生 sub_frac_ss 配 ss 同业 LOO
+* 工具 lpeer_subst_iv_ss, 与 full / ctx 轨【各自 just-identified、并排成列】表达三轨
+* 互为稳健性; 严禁 full/ctx/ss 任两轨 LOO 合成 overid — 同文三窗 (full=标题+全文 /
+* ctx=标题+实体窗口 / ss=标题+银行金科同句窗口) 共同冲击逐字同污染, Hansen J
+* 零功效 (Parente & Santos Silva 2012 EL)。
+local TXS  sub_frac_ss
+local IVS  lpeer_subst_iv_ss
 
 * ⚠ FE 锁定 = bank FE + year FE; 严禁 bank_type×year 交互 FE — 同业 LOO 工具
 *   格内残余 = 自身内生变量的负镜像 (实测格内 corr −0.67~−0.84), type×year FE
@@ -82,6 +89,12 @@ if !_rc {
     eststo first_ctx: reghdfe `TXC' `IVC' $controls, ///
         absorb(bank_id year) vce(cluster bank_id)
 }
+* ss 轨一阶段 (sub_frac_ss ~ ss LOO 工具; 缺列优雅跳过)
+capture confirm variable `TXS' `IVS'
+if !_rc {
+    eststo first_ss: reghdfe `TXS' `IVS' $controls, ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
 
 * 2SLS (DV 待外部财务数据; 缺列优雅跳过)
 capture confirm variable `DV'
@@ -112,6 +125,13 @@ else {
     capture confirm variable `TXC' `IVC'
     if !_rc {
         eststo tsls_ctx: ivreg2 `DV' (`TXC' = `IVC') $controls ///
+            i.bank_id i.year, cluster(bank_id) first
+    }
+    * ss 轨 just-identified 2SLS (与 full 轨 tsls_loo / ctx 轨 tsls_ctx 并排;
+    * 同一 DV, 三轨各自工具; 三轨各自 just-id 绝不合并 Hansen J)
+    capture confirm variable `TXS' `IVS'
+    if !_rc {
+        eststo tsls_ss: ivreg2 `DV' (`TXS' = `IVS') $controls ///
             i.bank_id i.year, cluster(bank_id) first
     }
 
@@ -148,7 +168,7 @@ else {
         qui estimates dir
         local stored `r(names)'
         local _ar_ran = 0
-        foreach pair in "tsls_loo `TX' `IV1'" "tsls_lag `TX' `IV1L'" "tsls_ctx `TXC' `IVC'" {
+        foreach pair in "tsls_loo `TX' `IV1'" "tsls_lag `TX' `IV1L'" "tsls_ctx `TXC' `IVC'" "tsls_ss `TXS' `IVS'" {
             gettoken nm rest : pair
             gettoken en iv  : rest
             * 估计与工具列均须在盘 + 该 eststo 已存储, 否则跳过
@@ -198,8 +218,8 @@ else {
 * esttab 名单动态化 (缺估计不点名, 防 r(111) 丢整表)
 qui estimates dir
 local stored `r(names)'
-local cand_models first_loo first_lag first_bartik first_ctx tsls_loo tsls_lag tsls_overid tsls_ctx
-local cand_titles `""1st LOO" "1st LOO lag1" "1st Bartik" "1st LOO ctx" "2SLS LOO" "2SLS LOO lag1" "2SLS Overid" "2SLS LOO ctx""'
+local cand_models first_loo first_lag first_bartik first_ctx first_ss tsls_loo tsls_lag tsls_overid tsls_ctx tsls_ss
+local cand_titles `""1st LOO" "1st LOO lag1" "1st Bartik" "1st LOO ctx" "1st LOO ss" "2SLS LOO" "2SLS LOO lag1" "2SLS Overid" "2SLS LOO ctx" "2SLS LOO ss""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -226,6 +246,7 @@ else {
                  "lag-1 column: leave_one_out_peer_subst_iv_lag1 (lagged peer mean) mitigates Manski 1993 reflection between same-year contemporaneous peer LOO and own outcome." ///
                  "IV2 = Bartik: base-period type co-mention shares x type-year LOO substantive share (Goldsmith-Pinkham et al. 2020 AER, share-exogeneity view only)." ///
                  "ctx column: entity-window twin sub_frac_sc instrumented by lpeer_subst_iv_ctx, just-identified, side-by-side dual-track robustness — NOT pooled with full-track IV (same-text windows make Hansen J uninformative; Parente-Santos Silva 2012)." ///
+                 "ss column: bank+fintech same-sentence twin sub_frac_ss instrumented by lpeer_subst_iv_ss, just-identified, side-by-side tri-track robustness — full/ctx/ss are NEVER pooled into one Hansen J (same-article windows co-contaminate; Parente-Santos Silva 2012)." ///
                  "KP F = Kleibergen-Paap rk Wald F; weak-IV threshold 16.38 (Stock-Yogo 2005). Hansen J only in the overidentified column." ///
                  "`ar_note'")
 

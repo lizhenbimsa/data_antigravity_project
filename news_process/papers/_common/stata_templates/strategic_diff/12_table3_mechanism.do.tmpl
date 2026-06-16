@@ -34,6 +34,119 @@ ivreghdfe {{MAIN_DV}}_w ({{TONE_VAR}} = {{BARTIK_IV}}) {{MAIN_DIFF_VAR}} {{FLUID
     absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
 eststo M1_bartik
 
+* ── M1 弱工具诊断套件 (S7-01, 2026-06-16; 口径镜像姐妹 IV 模板 25_tableA6 / llm_peer/11) ──
+* M1 是本篇唯一因果 IV 列 (恰好识别: 单工具 {{BARTIK_IV}} 工具化单内生 {{TONE_VAR}})。
+* 恰好识别 ⇒ 无 Hansen J 过度识别检验 (df=0); 弱工具风险只能靠第一阶段 F 与
+* 弱工具稳健的 Anderson-Rubin (AR) 推断把关。
+* 白话: 只有"一根杠杆撬一个内生变量"时, 没法用过度识别检验 (没有多余工具互相印证);
+*       要看"杠杆够不够硬" (KP rk Wald F) 和"杠杆软时也站得住的置信区间" (AR CI)。
+* 学术依据:
+*   Kleibergen & Paap (2006, J. Econometrics 133:97-126) — KP rk Wald F (非 iid 稳健第一阶段 F)
+*   Stock & Yogo (2005) — 弱工具临界值 (1 工具 1 内生: 10% maximal-IV-size = 16.38)
+*   Andrews, Stock & Sun (2019, ARE 11:727-753) — KP F 低于临界值时改读 AR 弱工具稳健 CI
+* 全程 capture 守卫: ivreghdfe 运行期失败 / ado 缺失 / 退化样本时优雅降级, 缺值 estadd . 无害,
+* 绝不 r(111) 丢整表。
+capture estimates restore M1_bartik
+if !_rc {
+    * KP rk Wald F: ivreghdfe 把第一阶段弱识别统计量存进 e(widstat)
+    capture estadd scalar KPF = e(widstat)
+    display as text "  (M1 KP rk Wald F = `=string(e(widstat), "%9.3f")'; Stock-Yogo 10% maximal-IV-size 临界值 = 16.38)"
+}
+
+* ── M1 Anderson-Rubin 弱工具稳健 CI (capture-guarded; 三层 ado 回退) ──
+* 恰好识别单工具列同样需要 AR: KP F 低于 16.38 时, 2SLS 的 t 检验失真, 须改读 AR CI。
+* weakiv (通用) → condivreg (恰好识别 AR/CLR 专用) → rivtest, 逐个 capture which 探测;
+* 全无 ado 时跳过 (诊断仍输出 KP F)。AR 须紧随同规格估计后调 → 用 ivreg2 重估同列再接。
+local ar_note ""
+capture which weakiv
+local has_weakiv = (_rc == 0)
+capture which condivreg
+local has_condivreg = (_rc == 0)
+capture which rivtest
+local has_rivtest = (_rc == 0)
+local _ar_ran = 0
+if `has_weakiv' | `has_condivreg' | `has_rivtest' {
+    capture which ivreg2
+    if !_rc {
+        local _arp  = .
+        local _arlo = .
+        local _arhi = .
+        local _did_ar = 0
+        * 优先 weakiv (ivreg2 后端, partial 掉 FE 与外生协变量)
+        if `has_weakiv' {
+            capture noisily ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{BARTIK_IV}}) ///
+                {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} $controls i.bank_id i.year, ///
+                cluster({{CLUSTER_VAR}}) partial(i.bank_id i.year)
+            if !_rc {
+                capture noisily weakiv, level(95)
+                if !_rc {
+                    local _did_ar = 1
+                    capture local _arp  = e(ar_p)
+                    capture local _arlo = e(ar_cset_lb)
+                    capture local _arhi = e(ar_cset_ub)
+                    * 本机 weakiv 把 95% AR 置信集存为字符串 macro e(ar_cset)="[lb, ub]"
+                    * (无数值 e(ar_cset_lb/ub)); 数值缺时解析字符串取上下界 (同 25_tableA6:170-183)。
+                    if missing(`_arlo') | missing(`_arhi') {
+                        local _cset `"`e(ar_cset)'"'
+                        if `"`_cset'"' != "" {
+                            local _cset : subinstr local _cset "[" "", all
+                            local _cset : subinstr local _cset "]" "", all
+                            local _cset : subinstr local _cset "," " ", all
+                            capture local _arlo = real(word("`_cset'", 1))
+                            capture local _arhi = real(word("`_cset'", 2))
+                        }
+                    }
+                }
+            }
+        }
+        * condivreg 仅恰好识别 (单工具) 适用 — M1 正是恰好识别, 可直接用
+        if !`_did_ar' & `has_condivreg' {
+            capture noisily condivreg {{MAIN_DV}}_w {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} $controls ///
+                i.bank_id i.year ({{TONE_VAR}} = {{BARTIK_IV}}), test(0)
+            if !_rc {
+                local _did_ar = 1
+                capture local _arp  = e(arp)
+                capture local _arlo = e(arci_lb)
+                capture local _arhi = e(arci_ub)
+            }
+        }
+        if !`_did_ar' & `has_rivtest' {
+            capture noisily ivreg2 {{MAIN_DV}}_w ({{TONE_VAR}} = {{BARTIK_IV}}) ///
+                {{MAIN_DIFF_VAR}} {{FLUIDITY_VAR}} $controls i.bank_id i.year, ///
+                cluster({{CLUSTER_VAR}}) partial(i.bank_id i.year)
+            if !_rc {
+                capture noisily rivtest, ci
+                if !_rc {
+                    local _did_ar = 1
+                    capture local _arp  = r(p)
+                    capture local _arlo = r(ar_lb)
+                    capture local _arhi = r(ar_ub)
+                }
+            }
+        }
+        if `_did_ar' {
+            local _ar_ran = 1
+            capture estimates restore M1_bartik
+            if !_rc {
+                capture estadd scalar ar_p  = `_arp'
+                capture estadd scalar ar_lo = `_arlo'
+                capture estadd scalar ar_hi = `_arhi'
+                eststo M1_bartik
+            }
+            display as text "  (M1 AR 弱工具稳健 CI 已 estadd 入表; 弱工具下以此 CI 解读, 勿凭 2SLS t 检验)"
+        }
+        else {
+            display as text "  ⚠️ M1 AR CI 未能计算 (退化/缺 ado); 弱工具时须改用 AR-robust 推断"
+        }
+    }
+}
+if `_ar_ran' {
+    local ar_note "AR p / AR CI low / AR CI high (M1) report the Anderson-Rubin weak-IV-robust test p-value and 95% confidence set (weakiv/condivreg/rivtest, inline after the just-identified 2SLS). When KP F is below the Stock-Yogo critical value, READ the AR CI rather than the 2SLS t-ratio (Andrews-Stock-Sun 2019 ARE). "
+}
+else {
+    local ar_note "Anderson-Rubin weak-IV-robust CI for M1 not computed (weakiv/condivreg/rivtest not installed or degenerate sample; ssc install weakiv). If KP F < 16.38, 2SLS t-inference is invalid — install weakiv and re-run for the AR CI. "
+}
+
 * M2-M5: 多方法稳健性 (TF-IDF char vs jieba vs LDA vs Embedding)
 foreach v in strat_diff_n5_w strat_diff_n5_lda strat_diff_n5_emb {
     capture confirm variable `v'
@@ -64,9 +177,15 @@ forvalues i = 1/`nmod' {
 esttab `models' ///
     using "$tables_dir/table3_mechanism.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
+    stats(N r2 KPF ar_p ar_lo ar_hi, fmt(0 3 3 3 3 3) ///
+          labels("N" "R²" "KP F" "AR p" "AR CI low" "AR CI high")) ///
     title("Mechanism: Bartik IV + Multi-Method --- strategic_diff") ///
     mtitles(`mtitles') ///
     addnotes("Convergent validity across text representations." ///
-             "Col 1: Bartik IV instruments tone (endogenous covariate); the differentiation coefficient remains conditional-OLS, not IV-identified.")
+             "Col 1 (M1): Bartik IV instruments tone (endogenous covariate); the differentiation coefficient remains conditional-OLS, not IV-identified." ///
+             "KP F: Kleibergen-Paap rk Wald F (Kleibergen-Paap 2006), reported for the just-identified Bartik IV column (M1; single instrument, single endogenous regressor)." ///
+             "Stock-Yogo reference: with 1 instrument and 1 endogenous regressor the 10% maximal-IV-SIZE critical value is 16.38 (Stock-Yogo 2005). Maximal-BIAS critical values are undefined for <=2 instruments, so size, not bias, is the relevant weak-IV benchmark here." ///
+             "`ar_note'" ///
+             "Exclusion restriction (M1): the Bartik instrument = base-period bank-type co-occurrence shares x same-type leave-one-out tone (Goldsmith-Pinkham et al. 2020 AER, share-exogeneity view), so it shifts a bank's tone only through industry-wide type-level media trends and is plausibly orthogonal to that bank's own contemporaneous differentiation/outcome shocks conditional on bank and year FE; peer-mean instrument caveats (Manski 1993; Leary-Roberts 2014 JF) must be disclosed in the paper text.")
 
 display "[OK] Table 3 → $tables_dir/table3_mechanism.tex"

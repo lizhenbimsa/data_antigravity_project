@@ -46,15 +46,15 @@ papers_assets/bank_fintech_substance/
 | Spec | `paper_spec.yaml` (status: new; 原 B-route master plan §B.3 已随 docs/ 目录整体删除) |
 | Python | `analysis.py` / `tables.py` / `figures.py` 骨架 |
 | Manuscript | en + zh manuscript.tex 骨架 (M3 实质填充) |
-| Stata | 9 templates = 00_master + 01_data_prep + 15_substance_main_regression + 16_substance_mechanism + 17_substance_heterogeneity + 18_substance_robustness + 19_substance_lr_reversal + 20_substance_disclosure_quality + 21_substance_clarity_robustness (已生成于 papers/_common/stata_templates/bank_fintech_substance/) |
+| Stata | 14 templates = 00_master + 01_data_prep + 15_substance_main_regression + 16_substance_mechanism + 17_substance_heterogeneity + 18_substance_robustness + 19_substance_lr_reversal + 20_substance_disclosure_quality + 21_substance_clarity_robustness + 22_substance_iv_2sls + 23_substance_agg_robustness + 24_substance_fe_est_robustness + 25_substance_subsamples + 26_substance_era_stability (已生成于 papers/_common/stata_templates/bank_fintech_substance/; 22-26 为 post-M0 新增: 2026-06-13 IV 补全 + 2026-06-14 顶刊稳健性/era 稳定性扩充) |
 
 ## 关键变量 (Dual Outcome)
 
 - `OUTCOME.primary`: `cost_income_ratio_change_3yr` (2026-06-13 outcome 重定位: within-bank 3-year forward CIR change, W&Z decoupling 效率试金石; 原 `long_run_roa_change_3yr` 降级 secondary)
   - Construction: `cost_income_ratio_change_3yr[bank_b, year_t] = CIR[b, t+3] - CIR[b, t]`
 - `OUTCOME.listed_subsample_extension`: `car_3day_window_fintech_announcement` (短期 CAR 事件窗口, 与 P1 tone_shock 窗口区分; 年度数据约束下降级上市行扩展, Stata 列用 ≤32 字符短名 `car_3day_window_ft_announce`)
-- `MAIN_TREAT`: `innovation_substantiveness_full` (pipeline v3.2.0 实测列名, R35-M01)
-- `ALT.treat`: `innovation_substantiveness_ctx` / `substantive_minus_symbolic_gap` (derived ∈ {-1, +1})
+- `MAIN_TREAT`: `sub_frac` (bank-year panel 实质性文章占比列 = n_articles_sub / n_articles_llm_valid, encode.py:1505-1511 产出; stata/05_label_advanced.do:29 打标. NB: `innovation_substantiveness_full`/`_ctx` 是上游 article-level LLM W&Z 标签 (实质性/象征性), 聚合成 sub_frac/sub_frac_sc, 本身**不在** bank-year panel, 非 panel treatment — paper_spec.yaml:48 已纠正)
+- `ALT.treat`: `sub_frac_sc` (ctx 轨, 分母 n_articles_llm_valid_ctx) / `substantive_minus_symbolic_gap` (= sub_frac - symb_frac, ∈ [-1, +1], 01_data_prep 现场派生)
 - `CLUSTER_VAR`: `bank_id`
 
 P3 **不使用经典 Baron-Kenny mediation**, 而用 **dual outcome regression** (R11-m02 注: 16_mechanism.do template name 仅 stata 命名一致性, header 注明实际是 dual outcome).

@@ -175,8 +175,8 @@ identification:
   # 其余 4 候选 (利率市场化 DiD / Wind 基建 / 媒体集团重组 / 记者流动)
   # 仍保留待外部数据, M5 first-stage 后与本 IV 赛马。
   iv:
-    primary: outlet_disp_exposure_iv_ctx     # main_track=_ctx (governance 同步)
-    fallback: outlet_disp_exposure_iv_full
+    primary: outlet_disp_exposure_iv_full     # main_track=_full (governance 同步; 与 treatment.main_track + 11_table2 OLS 一致)
+    fallback: outlet_disp_exposure_iv_ctx
     # ss 轨稳健性镜像 (三轨第三主轨, 2026-06-14; ss = 银行+金科同句共现轨): 内生孪生
     # cross_outlet_tone_variance_ss 配同句 outlet 构成工具 outlet_disp_exposure_iv_ss,
     # 与 full/ctx 轨各自 just-identified 并排; 严禁 full×ctx×ss 合成 Hansen J overid
@@ -212,7 +212,7 @@ identification:
 # 故此处为内部 confirmatory/exploratory 声明 + family 定义, 非外部预注册承诺。
 inference:
   confirmatory:
-    primary_treatment: cross_outlet_tone_variance_ctx  # 单一主处理 (main_track=_ctx)
+    primary_treatment: cross_outlet_tone_variance_full  # 单一主处理 (main_track=_full; 与 treatment.primary + 11_table2 OLS 一致)
     primary_outcome: z_score                            # 单一主因变量 (hierarchy.main)
     primary_spec: long_panel_within_bank_within_year + bank_fe + year_fe + two-way cluster(bank, year)
     single_hypothesis: "媒体观点分歧 → 银行风险承担 (方向 ambiguous ex ante, Granger 双向识别)"

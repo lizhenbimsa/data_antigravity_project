@@ -40,7 +40,7 @@
 
 ■ 详细功能说明
 
-**输入**: `40_panel_yearly.parquet` (stage 45 产出的 bank-year 全列面板; main() 经 CONFIG['filenames']['output_45_panel_main'] 解析路径, 缺失则 FileNotFoundError)。
+**输入**: `40_panel_yearly.parquet` (stage 45 产出的 bank-year 全列面板; main() 经 CONFIG['filenames']['output_40_panel_yearly'] 解析路径, 缺失则 FileNotFoundError)。
 
 **处理步骤 (export_panel_to_stata)**:
 1. `_select_dta_backend`: 优先 pyreadstat (嵌入 value labels + 中文 column labels), 缺失则 fallback pandas `to_stata` 并 WARN (两后端 .dta 二进制不等价: pandas 路径不嵌 value label, 须手动 run labels.do; nullable Int 存储宽度也可能不同)。
@@ -1208,7 +1208,7 @@ def main():
     log = setup_logging(STAGE_NAME, CONFIG['paths']['log_dir'])
     log.info(f"--- Stage 46 Stata Export (plan v14 §9 stata_export) ---")
 
-    panel_filename = CONFIG.get('filenames', {}).get('output_45_panel_main', '40_panel_yearly.parquet')
+    panel_filename = CONFIG.get('filenames', {}).get('output_40_panel_yearly', '40_panel_yearly.parquet')
     panel_path = os.path.join(CONFIG['paths']['output_dir'], panel_filename)
     output_dir = CONFIG['paths']['output_dir']
 

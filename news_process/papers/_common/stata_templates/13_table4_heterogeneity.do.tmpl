@@ -88,7 +88,12 @@ else {
         booktabs replace fragment ///
         title("Table 4: Heterogeneity — Bank Size × Digital Frontier × Geography") ///
         mtitles(`mtitles') ///
-        note("Robust SEs clustered at bank. Bank size split by median. Coastal = {京津冀, 长三角, 珠三角, 东南, 环渤海}.")
+        note("Robust SEs clustered at bank. Bank size split by median. Coastal = {京津冀, 长三角, 珠三角, 东南, 环渤海}. " ///
+             "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier, so in any " ///
+             "bank-FE column (absorb(bank_id ...)) it is collinear with the bank fixed effect and silently dropped; " ///
+             "beta(digital_frontier) is identified only in a no-absorb column (see 11_table2 M1). The Size/Geography " ///
+             "subsample columns here identify the within-bank time-varying terms (LOCUS/SUBST controls), not the frontier " ///
+             "main effect; the Frontier/Follower columns split ON digital_frontier rather than estimating its coefficient.")
 
     * fix(omni-g-esttab-csv, 2026-06-11): CSV side-channel (parse_esttab_csv 消费)
     estout `models' using "output/tables/table4_heterogeneity.csv", replace delimiter(",") ///

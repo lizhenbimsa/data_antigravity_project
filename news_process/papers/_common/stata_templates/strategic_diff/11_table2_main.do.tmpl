@@ -80,7 +80,8 @@ esttab `m_models' using "$tables_dir/table2_main.tex", replace ///
     title("Main Results --- strategic_diff") ///
     mtitles(`m_titles') ///
     addnotes("Bank/year FE; SE clustered at {{CLUSTER_VAR}}." ///
-             "sim_max ({{SIM_MAX_VAR}}) 为 alternative treatment 单跑 (M5); 与 {{MAIN_DIFF_VAR}} 同源机械互补, 不进同时规格 (见表注共线性诊断)。")
+             "sim_max ({{SIM_MAX_VAR}}) 为 alternative treatment 单跑 (M5); 与 {{MAIN_DIFF_VAR}} 同源机械互补, 不进同时规格 (见表注共线性诊断)。" ///
+             "M4 交互项 tone_x_diff 取原始(未中心化)乘积 (Brambor-Clark-Golder 2006); 含 FE 时交互系数无偏, 但 tone/diff 主效应系数为条件解读 (在对方变量=0 处求值)。")
 
 * ==========================================================================
 * SPEC IV-2 共线性披露: corr(strat_diff_n5, strat_sim_max) + 同时入 RHS 时的 VIF

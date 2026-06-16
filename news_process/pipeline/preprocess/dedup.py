@@ -45,7 +45,7 @@ class ArticleDeduplicator:
          - 构建 LSH 索引(阈值 = Jaccard ≥ 0.8), O(1) 查询近似重复簇。
            注: Jaccard ≥ 0.8 具备双重文献支持:
            1) English Lit: 相似度 > 0.8 常用作剔除冗余信息的安全学术门槛。
-           2) Chinese Lit: 胡俊 (2021) 验证了 0.8 作为金融文本极高相似度的基准,
+           2) Chinese Lit: 中文金融文本去重文献普遍以相似度 ≥ 0.8 作为极高相似度基准,
                             有效过滤通稿 / 转载。
            ⚠ LSH banding 有效阈值披露 (datasketch==1.10.0, MinHashLSH 默认 FP/FN 权重
               (0.5,0.5), num_perm=128, threshold=0.8): datasketch 自动分带为 b=9 带 ×
@@ -133,7 +133,7 @@ class ArticleDeduplicator:
         # 仅 config 缺 'jaccard_similarity_threshold' 键时命中; 当前 5 个构造点传入的 config
         # 均含该键, 故 fallback 不可达, 改此值对所有现有产物零影响 —— 目的是消除 "代码默认值 (0.85) ≠
         # 生产值 (0.80)" 的复现性陷阱 (他人无 config 复现时不再静默用更松的 0.85)。
-        # 文献支持: 相似度 ≥ 0.8 是学术界 (胡俊 2021 等) 公认的去重门槛。
+        # 文献支持: 相似度 ≥ 0.8 是中文金融文本去重文献普遍采用的去重门槛。
         self.threshold = self.params.get('jaccard_similarity_threshold', 0.80)
         self.ngram_size = self.params.get('ngram_size', 3)
 

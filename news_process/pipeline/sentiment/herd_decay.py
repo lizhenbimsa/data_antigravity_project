@@ -619,7 +619,7 @@ def compute_herd_weights(df: pd.DataFrame) -> pd.DataFrame:
     try:
         from scipy.stats import spearmanr
         # ss 非回退掩码: 仅在 ss 真共现 (非镜像全文回退) 的行上评估 ss 相关性。
-        # 缺 ss_is_fallback 列 → 全 False (即全部行视作非回退, 宽松)。
+        # 缺 ss_is_fallback 列 → _ss_real 全 True (即将 ss_is_fallback 视作全 False / 全部行非回退, 宽松)。
         if 'ss_is_fallback' in df.columns:
             _ss_real = ~df['ss_is_fallback'].fillna(False).astype(bool)
         else:

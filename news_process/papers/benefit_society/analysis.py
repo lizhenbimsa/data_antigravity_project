@@ -57,9 +57,9 @@ def main(argv: list[str] | None = None) -> int:
             ('Table 3 (mechanism)', tables.build_table3_mechanism),
             ('Table 4 (heterogeneity exploratory)', tables.build_table4_heterogeneity),
             ('Table 5 (robustness)', tables.build_table5_robustness),
-            ('Table 8b (shrinkage ctx dual)', tables.build_table_8b_shrinkage_dual),
+            ('Table 8b (shrinkage three-track)', tables.build_table_8b_shrinkage_dual),
             ('Table A1 (inter-track agreement)', tables.build_table_a1_inter_track_kappa),
-            ('Table A2 (dual-track switch)', tables.build_table_a2_attitude_track_switch),
+            ('Table A2 (three-track switch)', tables.build_table_a2_attitude_track_switch),
         ]:
             try:
                 df = builder(pc)

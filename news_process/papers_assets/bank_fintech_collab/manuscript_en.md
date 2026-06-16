@@ -47,7 +47,7 @@ Cross-tab 2³ = 8 cells (collaboration mode × P3 substantiveness × P4 locus):
 
 ### 3.1 Sample
 - 400,000 news articles, 500 Chinese commercial banks, 2007-2024 (18 years)
-- M0.5 全量重跑 pipeline produces 46_panel_yearly_v34.dta (~3000-9000 obs)
+- M0.5 全量重跑 pipeline produces 46_panel_yearly_full.dta (~3000-9000 obs)
 
 ### 3.2 Measurement: Innovation Collaboration Mode
 - LLM ensemble (gpt-5.4-nano + gemini-3.1-flash-lite + deepseek-v4-flash) majority vote
@@ -59,6 +59,7 @@ Cross-tab 2³ = 8 cells (collaboration mode × P3 substantiveness × P4 locus):
 - Primary: `m_and_a_fintech` (M&A event count from Tonghuashun)
 - Short-run: `car_5day_window` (5-day market-adjusted CAR, 中证银行指数 benchmark)
 - Secondary: `r_and_d_intensity`, `patent_fintech_count`, `capex_it`
+- Note: these outcome variables depend on the (forthcoming) financial/M&A enrichment layer (M0.5.11) and are constructed via capture-guarded wire-ahead columns; they are not yet computable on the current panel.
 
 ### 3.4 Identification
 - Baseline: long-panel within-bank within-year FE

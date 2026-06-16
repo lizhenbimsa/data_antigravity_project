@@ -29,7 +29,19 @@ encode target_bank, generate(bank_id)
 xtset bank_id year
 
 // 宏定义：基础控制变量集 (可依据主回归模型调整)
-global controls "bank_scale_ord is_soe" 
+global controls "bank_scale_ord is_soe"
+
+// 宏定义：被解释变量 DV (默认空, 用户在 do 本文件前 `global DV <列名>` 显式设置)
+if "$DV" == "" {
+    global DV ""
+}
+// 守卫：DV 未设置或不在面板中 → 可读跳过, 避免 reghdfe r(111) 未捕获中断
+//       (财务会计列 ROA / ln_penalty_amount 等尚未并入 panel, 见 README 待补项)
+capture confirm variable $DV
+if _rc {
+    di as error "DV 未设置或不存在于面板, 跳过 text2vec 稳健性表 (请先 global DV <被解释变量>)"
+    exit, clear
+}
 
 // 3. 双轨稳健性检验 (双向固定效应 TWFE)
 // 【学术机制】Two-Way Fixed Effects Estimator (Gormley & Matsa 2014, RFS)
@@ -37,23 +49,26 @@ global controls "bank_scale_ord is_soe"
 // 引入 时间固定效应 (year) 吸收宏观经济冲击。使用聚类稳健标准误 (vce cluster) 纠正面板异方差与自相关。
 // 【通俗应用】把银行天生带有的固有特性（固定效应）剥离掉，只看由于政策或差异化导致的净变化。
 
-// 注意：请将 'DV' 替换为您实际的被解释变量 (如 ln_penalty_amount, ROA 等)
+// 注意：被解释变量经宏 $DV 注入 (在 do 本文件前 `global DV <列名>`, 如 ln_penalty_amount / ROA 等)
 
 // --- 轨道 1: 权威响应度 (AP) 双轨对比 ---
-reghdfe DV policy_cosine_sim_t2v_full $controls, absorb(bank_id year) vce(cluster bank_id)
+reghdfe $DV policy_cosine_sim_t2v_full $controls, absorb(bank_id year) vce(cluster bank_id)
 est store m_ap_full
 
-reghdfe DV policy_cosine_sim_t2v_ctx $controls, absorb(bank_id year) vce(cluster bank_id)
+reghdfe $DV policy_cosine_sim_t2v_ctx $controls, absorb(bank_id year) vce(cluster bank_id)
 est store m_ap_ctx
 
 // --- 轨道 2: 战略差异度 (SD) 双轨对比 ---
-reghdfe DV strat_diff_t2v_full $controls, absorb(bank_id year) vce(cluster bank_id)
+reghdfe $DV strat_diff_t2v_full $controls, absorb(bank_id year) vce(cluster bank_id)
 est store m_sd_full
 
-reghdfe DV strat_diff_t2v_ctx $controls, absorb(bank_id year) vce(cluster bank_id)
+reghdfe $DV strat_diff_t2v_ctx $controls, absorb(bank_id year) vce(cluster bank_id)
 est store m_sd_ctx
 
 // 4. 导出 LaTeX 学术表格 (双轨并列呈现)
 esttab m_ap_full m_ap_ctx m_sd_full m_sd_ctx using "$out_dir/robustness_t2v_dual_track.tex", ///
     replace label b(3) p(3) star(* 0.10 ** 0.05 *** 0.01) ///
     indicate("Bank FE = *bank_id" "Year FE = *year")
+
+// standalone 脚本：终端 exit 收尾, 防 Windows /b 'Done' 完成框卡死 (见 CLAUDE.md Stata 约定)
+exit, clear

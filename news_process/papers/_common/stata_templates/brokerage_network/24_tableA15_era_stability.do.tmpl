@@ -170,7 +170,7 @@ if "`ecols'" != "" {
         stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
         title("Table A15-A: Era Stability (network 2SLS by FinTech regime) --- {{PAPER_ID}}") ///
         mtitles(`elabs') ///
-        addnotes("Split-sample network 2SLS by FinTech regime: 2007-2012 (nascent) / 2013-2018 (Yu'ebao-P2P) / 2019-2024 (DCEP tightening)." ///
+        addnotes("Split-sample network 2SLS by FinTech regime: 2007-2012 (nascent) / 2013-2018 (Yuebao-P2P) / 2019-2024 (DCEP tightening)." ///
                  "Stable coefficient on `ENDOG' across eras => pooled intensity-DiD has no regime compositional-drift bias (Bai-Perron 1998 ECMA / Hansen 2001 JEP)." ///
                  "KP rk Wald F = e(widstat); F < Stock-Yogo => weak IV => read Anderson-Rubin CI (ASS 2019 ARE) per era; subsample F halves." ///
                  "T=2 disk panel only covers 2017-2018 -> only era2 has data, eras 1/3 N-guarded skip (production T=18)." ///

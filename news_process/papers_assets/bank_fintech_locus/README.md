@@ -16,7 +16,7 @@ P4 = Bank Fintech Locus: 区分银行 fintech 公告中的"底层技术 (区块�
 
 | 子模块 | 行数 | 责任 |
 |---|---|---|
-| `news_process.pipeline.sentiment.tone_llms` (v3.2.0 stage 21) | ~ | LLM 分类产出 `innovation_locus_full` (底层技术 / 应用场景 中文类别列; Gomber 2018 JMIS); Stata 导出时按 `stata_export.py::LOCUS_ENCODING` 编码 底层技术=0 / 应用场景=1 (见 tone_llms.py:1686 赋值) |
+| `news_process.pipeline.sentiment.tone_llms` (v3.2.0 stage 21) | ~ | LLM 分类产出 `innovation_locus_full` (底层技术 / 应用场景 中文类别列; Gomber 2018 JMIS); Stata 导出时按 `stata_export.py::LOCUS_ENCODING` 编码 底层技术=0 / 应用场景=1 (见 tone_llms.py:~1818 赋值) |
 | `news_process.papers.bank_fintech_locus.analysis` | ~60 | CLI 入口 |
 | `news_process.papers.bank_fintech_locus.tables` | ~80 | Table 1-5 (descriptive + main + mechanism + heterogeneity + robustness) |
 | `news_process.papers.bank_fintech_locus.figures` | ~50 | Figure 1 (layer vs scenario 双柱) |
@@ -33,7 +33,7 @@ papers/bank_fintech_locus/
 
 papers_assets/bank_fintech_locus/
 ├── README.md
-├── do/                ← (当前仅 .gitkeep; 共享模板 8 个已生成于 papers/_common/stata_templates/bank_fintech_locus/: 00_master / 01_data_prep / 15_locus_main_regression / 16_locus_mechanism / 17_locus_heterogeneity / 18_locus_robustness / 19_locus_clarity_robustness / 19_locus_event_study)
+├── do/                ← (当前仅 .gitkeep; 共享模板 14 个已生成于 papers/_common/stata_templates/bank_fintech_locus/: 00_master / 01_data_prep / 15_locus_main_regression / 16_locus_mechanism / 17_locus_heterogeneity / 18_locus_robustness / 19_locus_clarity_robustness / 19_locus_event_study / 20_locus_iv_2sls / 21_locus_agg_robustness / 22_locus_fe_saturation_oster / 23_locus_subsample_extension / 24_locus_ppml_count / 25_locus_era_stability)
 ├── output/
 └── drafts/{en,zh}/manuscript.tex + refs.bib
 ```
@@ -46,8 +46,9 @@ papers_assets/bank_fintech_locus/
 - `locus_gap`            = `locus_layer_full - locus_scenario_full` ∈ {-1, +1}
 
 ### Outcome:
-- `MAIN_DV`: `car_5day_window` (event-window 5-day CAR, M0.5.11 enrichment)
-- `SECONDARY`: `patent_fintech_count` (IncoPat) / `citation_weighted_patent` (Kogan 2017 algo)
+- `MAIN_DV`: `citation_weighted_patent` (Kogan 2017 algo; spec.outcome.primary, 底层技术轨直接产出)
+- `SECONDARY`: `patent_fintech_count` (IncoPat) / `noninterest_income_share` (应用场景轨对照 outcome)
+- `LISTED_SUBSAMPLE_EXTENSION`: `car_5day_window` (event-window 5-day CAR, 上市行扩展, 非年度主线, 待日频数据)
 
 ### Mediator (R7-M04):
 - `capex_it`             ← CSMAR 资本支出 IT 板块 (primary)

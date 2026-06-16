@@ -127,8 +127,8 @@ display as text "正在执行: 14_label_jf_exc.do"
 do "stata/14_label_jf_exc.do"
 
 * 15. 补充标签（遗漏的变量）
-display as text "正在执行: 15_label_supplementary.do"
-do "stata/15_label_supplementary.do"
+display as text "正在执行: 15_label_complete.do"
+do "stata/15_label_complete.do"
 
 * ============================================================================
 * 步骤3.5: 处理超长变量名（Stata 32字符限制）
@@ -160,6 +160,9 @@ display as result "=" * 70
 display as result "保存带标签的数据..."
 display as result "=" * 70
 
+* 注 (S11-04, 2026-06-16): 本手工标签集仅覆盖 _full / _ctx 两轨; 第三轨 _ss
+* (银行+金科同句) 标签不在此手工维护, 权威来源 = stage 46 自动生成的
+* 46_panel_yearly_labels.do (write_labels_do_file, 已三轨全覆盖)。详见 01_label_variables.do 头部披露。
 save "data/processed/40_panel_yearly_labeled.dta", replace
 
 display as text _newline(2)
@@ -209,4 +212,8 @@ display as text "战略差异度指标: " as result `strategic_vars'
 
 display as text _newline(2)
 display as result "所有文本生成的指标已成功聚合到Stata面板数据中!"
+
+* fix(audit-2026-06-16): 顶层 master 末尾终端 exit — /b 批处理跑完直接退出, 不弹「Done」模态框。
+* (铁律: 只加在顶层 standalone master, 绝不加进被本 master `do` 调用的 01..15 子脚本)
+exit, clear
 

@@ -174,11 +174,11 @@ for var in unlabeled_vars:
     groups[group].append(var)
 
 # 生成do文件
-output_file = 'stata/16_label_complete.do'
+output_file = 'stata/15_label_complete.do'
 
 with open(output_file, 'w', encoding='utf-8') as f:
     f.write('/*' + '=' * 76 + '\n')
-    f.write('  文件: 16_label_complete.do\n')
+    f.write('  文件: 15_label_complete.do\n')
     f.write('  目的: 补充所有剩余未标注的变量标签（自动生成）\n')
     f.write('  作者: Claude Code\n')
     f.write('  日期: 2026-05-10\n')

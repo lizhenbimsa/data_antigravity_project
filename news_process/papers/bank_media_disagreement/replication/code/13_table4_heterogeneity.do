@@ -10,6 +10,16 @@ clear all
 set maxvar 32767
 
 * v3.7.0 (C1 修复): 直接 use .dta (risk_taking_outcomes.py main 已 pyreadstat 导出)
+* (stage 49 已移除; outcome 待财务面板接入)
+capture confirm file "data/processed/49_risk_taking_outcomes.dta"
+if _rc {
+    display as error "============================================================"
+    display as error "[复现暂不可跑] stage 49 (risk_taking_outcomes) 已于 2026-06-12 整体移除:"
+    display as error "  其结果变量 (z_score / npl_formation / rwa_to_ta) 依赖银行财务面板, 该数据尚未接入;"
+    display as error "  本 provisional 论文复现包待财务面板 onboarding 后方可跑通 (详见 README / CLAUDE.md)。"
+    display as error "============================================================"
+    exit 198
+}
 use "data/processed/49_risk_taking_outcomes.dta", clear
 encode target_bank, gen(bank_id)
 xtset bank_id year

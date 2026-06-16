@@ -31,6 +31,26 @@ version 19
 * fix(omni-g-templates-14, 2026-06-11): 隔离估计命名空间 (主线模板链共享 session)
 eststo clear
 
+* fix(S1-05, 2026-06-16): 自载入面板, 消除对前表 21_tableA2 in-memory 残留的跨文件顺序依赖
+* (旧版 22/23/24 均无自己的 use, 继承 21 留在内存的状态 → 不可独立运行, 且 master 链中
+* 21 若 use 失败会让本表对空/陈旧数据静默出表)。改用 26/32/33/34 同款自载入惯用法:
+* 优先 _prepared_panel (与主表同口径缩尾面板), 缺失回退未缩尾 full.dta。
+capture confirm file "data/processed/_prepared_panel.dta"
+if !_rc {
+    use "data/processed/_prepared_panel.dta", clear
+}
+else {
+    display "  ⚠️ _prepared_panel.dta 不存在 (应先跑 01_data_prep); 回退未缩尾 full.dta"
+    use "data/processed/46_panel_yearly_full.dta", clear
+}
+
+capture confirm variable bank_id
+if _rc {
+    encode target_bank, gen(bank_id)
+}
+xtset bank_id year
+capture do "data/processed/46_panel_yearly_labels.do"
+
 local DV     llm_vote_tone_{{MAIN_SENT_TRACK}}
 local LOCUS  tech_frac_{{MAIN_LOCUS_TRACK}}
 

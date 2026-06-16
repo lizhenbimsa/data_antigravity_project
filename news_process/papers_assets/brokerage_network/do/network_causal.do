@@ -36,8 +36,10 @@
 *   3. do stata/network_causal.do
 * =========================================================================
 
+version 19
 clear all
 set more off
+set maxvar 32767
 
 * ----------------------------------------------------------------------------
 * Phase 4a 路径前奏 — papers_assets/<paper>/do/ 自包含调用契约
@@ -205,7 +207,7 @@ eststo b2
 *     brokerage_eigen_cent: 媒体-银行二分图的特征向量中心度
 *     衡量银行在信息分发网络中的枢纽地位
 *     高值 = 通过更多异质媒体渠道传播/接收信息
-*     学术依据: Han, M., Kim, S. H., Nanda, V., & Ramadorai, T.
+*     学术依据: Han, M., Kim, S. H., & Nanda, V.
 *       (2024). Institutional brokerage networks: Facilitating
 *       liquidity provision. The Review of Financial Studies,
 *       37(9), 2903–2935. https://doi.org/10.1093/rfs/hhae026
@@ -313,7 +315,7 @@ esttab ols_baseline iv_net2sls b1 b2 b3 c1 c2 c3 iv_ctx, ///
 *     interaction models: Improving empirical analyses. Political
 *     Analysis, 14(1), 63–82. https://doi.org/10.1093/pan/mpi014
 *
-* [6] Han, M., Kim, S. H., Nanda, V., & Ramadorai, T. (2024).
+* [6] Han, M., Kim, S. H., & Nanda, V. (2024).
 *     Institutional brokerage networks: Facilitating liquidity provision.
 *     The Review of Financial Studies, 37(9), 2903–2935.
 *     https://doi.org/10.1093/rfs/hhae026
@@ -343,3 +345,6 @@ esttab ols_baseline iv_net2sls b1 b2 b3 c1 c2 c3 iv_ctx, ///
 *      Econometrics, 133(1), 97–126.
 *      https://doi.org/10.1016/j.jeconom.2005.02.011
 * =========================================================================
+
+* 终端守卫: exit 让 /e 或双击裸起动也立即退出, 不弹「已完成」模态框 (见 CLAUDE.md "Stata Environment")
+exit, clear

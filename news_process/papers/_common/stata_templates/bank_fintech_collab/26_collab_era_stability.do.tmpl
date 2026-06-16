@@ -126,10 +126,11 @@ local n_era_present : word count `_eras_present'
 if `n_era_present' >= 2 {
     quietly count if !missing(`DVUSE', `TX', _era)
     if r(N) >= 20 {
-        * i._era#c.`TX' 给出各时代 treatment 斜率; 主效应 i._era 由 year FE 部分吸收,
+        * ib`_base'._era##c.`TX' 全交乘: 主项 c.`TX' 给出基组 treatment 斜率, 各
+        * 非基时代交乘项为相对基组的斜率偏移; era 主截距 i._era 与 year FE 共线被吸收。
         * 用 ib(#).era 设基组防共线 (取最早有数据时代为基)。
         local _base : word 1 of `_eras_present'
-        capture eststo eraB: reghdfe `DVUSE' ib`_base'._era#c.`TX' $controls, ///
+        capture eststo eraB: reghdfe `DVUSE' ib`_base'._era##c.`TX' $controls, ///
             absorb(bank_id year) vce(cluster `CL')
         if !_rc {
             esttab eraB using "$tables_dir/tableA_collab_era_interaction.tex", replace ///

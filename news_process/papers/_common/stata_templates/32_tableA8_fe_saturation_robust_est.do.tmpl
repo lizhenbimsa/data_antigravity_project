@@ -182,23 +182,70 @@ else {
     display "  ⚠️ Panel A M4 跳过: 银行特定线性趋势需 T>=3 (当前 T=`_T'); 全量 T=18 下有功效"
 }
 
+* ── FE-ROBUST IDENTIFICATION (D1-digital_frontier fix 2026-06-16) ──
+* ⚠ digital_frontier 是【基年、银行内时间不变】的 0/1 银行分类, 在上面所有
+* absorb(bank_id ...) 的 FE-饱和列 (M0-M4) 里都与银行固定效应【完全共线】→ reghdfe
+* 静默 drop, β(digital_frontier) 主效应在这些列【根本无法识别】(那一行其实是空的);
+* 它仅在【无吸收】回归 (主表 11_table2 的 M1, noabsorb) 里可识别。这正是本表 FE 饱和
+* 阶梯的盲点: 加再多 group×year FE 也救不回一个被 bank FE 吃光的时间不变变量。
+* 为在 bank-FE 设定下恢复"数字化前沿"的可识别信号, 补一列银行内随时间变动形式
+* c.digital_frontier##i.year (交乘项【不会】被 bank FE 吸收, 基年自动省略), 镜像
+* 34_tableA11 Panel B 的 c.`EXPL'##i.era ... absorb(bank_id year) 工作模式 (按年 i.year
+* 而非按时代 i.era)。守卫: year 须 ≥2 取值; 缺/单年/退化时 capture noisily 优雅跳过。
+* 因交乘项系数名 (`年'.year#c.digital_frontier) 不是裸 `EXPL', 该列入表时 keep() 须
+* 放开 (见下方 `keepopt' 动态构造), 否则 keep(digital_frontier) 会把交乘项全过滤掉。
+capture confirm variable year
+if !_rc {
+    quietly levelsof year, local(_yrs_fr)
+    local _ny_fr : word count `_yrs_fr'
+    if `_ny_fr' >= 2 {
+        capture noisily eststo FE_ROB: reghdfe `DV' c.`EXPL'##i.year `LOCUS' `SUBST', ///
+            absorb(bank_id year) vce(cluster bank_id)
+        if !_rc {
+            local fecols "`fecols' FE_ROB"
+            local felabs `"`felabs' "FE-robust x year""'
+        }
+        else {
+            display "  ⚠️ Panel A FE-robust (c.`EXPL'##i.year) 回归退化 (rc=`=_rc'), 跳过 — 不影响 M0-M4"
+        }
+    }
+    else {
+        display "  ⚠️ Panel A FE-robust 跳过: year 仅 `_ny_fr' 个取值 (需 ≥2 才有交乘变异); 全量 T=18 有功效"
+    }
+}
+else {
+    display "  ⚠️ Panel A FE-robust 跳过: year 不在面板, 无法构造 c.`EXPL'##i.year"
+}
+
 * 输出 Panel A (动态名单, 缺列不点名)
+* keep 动态化: 仅 FE-饱和列 (M0-M4) 时 keep(`EXPL') 只显主系数; 一旦含 FE_ROB
+* (c.`EXPL'##i.year 交乘列), keep() 放开为全系数, 否则交乘项被 keep(digital_frontier)
+* 过滤掉、FE_ROB 那列变空。
 if "`fecols'" != "" {
+    local keepopt keep(`EXPL')
+    if `: list FE_ROB in fecols' {
+        local keepopt ""
+    }
     esttab `fecols' using "output/tables/tableA8a_fe_saturation.tex", ///
-        keep(`EXPL') se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
+        `keepopt' se star(* 0.10 ** 0.05 *** 0.01) booktabs replace fragment ///
         title("Table A8-A: Fixed-Effects Saturation Ladder (Gormley & Matsa 2014 RFS)") ///
         mtitles(`felabs') ///
         note("DV = bank-year tone (`DV'). Each column adds a finer group-by-year FE set: " ///
              "province×year, bank-type×year, zone×year, and bank-specific linear trend. " ///
              "SE clustered at bank. Stability of beta(digital_frontier) across the ladder " ///
              "addresses unobserved time-varying heterogeneity (Gormley & Matsa 2014 RFS, 10.1093/rfs/hht047). " ///
+             "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier; " ///
+             "in EVERY absorb(bank_id ...) column here (M0-M4) it is collinear with the bank FE and silently " ///
+             "dropped, so beta(digital_frontier) is NOT identified in the FE columns — it is identified only in " ///
+             "the no-absorb column M1 of the main table (11_table2). The final FE-robust column recovers an " ///
+             "identified signal via c.digital_frontier##i.year (interaction terms are NOT absorbed; base year omitted). " ///
              "Note: this is an OLS descriptive equation (tone ~ digital_frontier); the M2 bank-type×year " ///
              "FE here is NOT imposed on the Table A6 2SLS, whose Bartik bank-type instrument requires " ///
              "type×year variation to remain excluded. The two are complementary, not in conflict: A8-A " ///
              "saturates type×year as a descriptive robustness check; A6 leaves it out for IV identification.")
     estout `fecols' using "output/tables/tableA8a_fe_saturation.csv", replace delimiter(",") ///
         cells(b(star fmt(3)) se(par fmt(3))) stats(N r2, fmt(0 3)) ///
-        starlevels(* 0.10 ** 0.05 *** 0.01) keep(`EXPL')
+        starlevels(* 0.10 ** 0.05 *** 0.01) `keepopt'
     display "✅ Table A8-A (FE saturation ladder) written"
 }
 else {

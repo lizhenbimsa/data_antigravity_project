@@ -19,10 +19,21 @@ if "$tables_dir" == ""  global tables_dir "../output/tables"
 
 use "$data_dir/_prepared_panel.dta", clear
 
+* ── fix(IV-6, audit PROJECT_REAUDIT_T18 附录B / BRK-02): 生产机 StataNow 19.5 实测 ivreghdfe
+*   因 ftools/reghdfe Mata 版本不兼容恒 r(301) (reghdfe/ivreg2 均正常); 旧版"ivreghdfe 缺失
+*   即 exit 199"会让本表全部稳健性列空缺、整表静默丢失。改镜像 11_table2 / 17_table8:
+*   每列优先 ivreghdfe, 缺失【或运行期 r(301) 等失败】→ 自动回退 ivreg2 + 显式 i.bank_id i.year;
+*   capture noisily 防弱识别/退化样本 abort; 两估计器皆失败该列优雅缺席 (下方动态 esttab)。
+*   识别不变 (各列同 endog / 同工具)。──
+local _have_ivhdfe = 0
 capture which ivreghdfe
-if _rc {
-    display as error "[ERROR] ivreghdfe required"
-    exit 199
+if !_rc local _have_ivhdfe = 1
+local _have_ivreg2 = 0
+capture which ivreg2
+if !_rc local _have_ivreg2 = 1
+if !`_have_ivhdfe' & !`_have_ivreg2' {
+    display "[INFO] neither ivreghdfe nor ivreg2 available; Table 5 skipped."
+    exit 0
 }
 
 * R1: ctx 轨 2SLS
@@ -31,15 +42,37 @@ if _rc {
 * (多变量语义: 任一缺失即 _rc≠0)。
 capture confirm variable peer_tone_lag1_ctx peer_tone_2nd_lag1_ctx
 if !_rc {
-    ivreghdfe {{MAIN_DV}}_w (peer_tone_lag1_ctx = peer_tone_2nd_lag1_ctx) $controls, ///
-        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-    eststo R1_ctx
+    local _r1 = 0
+    if `_have_ivhdfe' {
+        capture noisily ivreghdfe {{MAIN_DV}}_w (peer_tone_lag1_ctx = peer_tone_2nd_lag1_ctx) $controls, ///
+            absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+        if !_rc {
+            eststo R1_ctx
+            local _r1 = 1
+        }
+    }
+    if !`_r1' & `_have_ivreg2' {
+        capture noisily ivreg2 {{MAIN_DV}}_w (peer_tone_lag1_ctx = peer_tone_2nd_lag1_ctx) $controls i.bank_id i.year, ///
+            cluster({{CLUSTER_VAR}}) first
+        if !_rc eststo R1_ctx
+    }
 }
 
 * R2: 改在 bank_id 层聚类 (替代 SE)
-ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
-    absorb(bank_id year) cluster(bank_id) ffirst
-eststo R2_bank_cluster
+local _r2 = 0
+if `_have_ivhdfe' {
+    capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+        absorb(bank_id year) cluster(bank_id) ffirst
+    if !_rc {
+        eststo R2_bank_cluster
+        local _r2 = 1
+    }
+}
+if !`_r2' & `_have_ivreg2' {
+    capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls i.bank_id i.year, ///
+        cluster(bank_id) first
+    if !_rc eststo R2_bank_cluster
+}
 
 * R3: 剔除 singleton 银行组 (仅单条可用观测的银行)
 * fix(omni-g-templates-03, 2026-06-11): 旧版命令与 Table 2 M2 基线逐 token 相同,
@@ -47,25 +80,69 @@ eststo R2_bank_cluster
 * (假稳健性列)。现真实剔除单观测银行组后重估 (singleton 组在 within-FE 估计中
 * 本就不贡献识别, 此列验证点估计不被这些组的存在性影响)。
 bysort bank_id: gen long _bank_grp_n = _N
-ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls if _bank_grp_n > 1, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo R3_kept
+local _r3 = 0
+if `_have_ivhdfe' {
+    capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls if _bank_grp_n > 1, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    if !_rc {
+        eststo R3_kept
+        local _r3 = 1
+    }
+}
+if !`_r3' & `_have_ivreg2' {
+    capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls i.bank_id i.year if _bank_grp_n > 1, ///
+        cluster({{CLUSTER_VAR}}) first
+    if !_rc eststo R3_kept
+}
 drop _bank_grp_n
 
 * R4: 加入二阶滞后中心度
 gen L2_broker = L2.{{CENTRALITY_BROKER}}
-ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) L_broker L2_broker $controls, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo R4_l2
+local _r4 = 0
+if `_have_ivhdfe' {
+    capture noisily ivreghdfe {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) L_broker L2_broker $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    if !_rc {
+        eststo R4_l2
+        local _r4 = 1
+    }
+}
+if !`_r4' & `_have_ivreg2' {
+    capture noisily ivreg2 {{MAIN_DV}}_w ({{MAIN_ENDOG}} = {{MAIN_IV}}) L_broker L2_broker $controls i.bank_id i.year, ///
+        cluster({{CLUSTER_VAR}}) first
+    if !_rc eststo R4_l2
+}
 
 * === Winsorization sensitivity (主 2SLS 基准=1% 缩尾; 此处补 raw 与 5% 两档; Fama-French 1993 / Loughran-McDonald 2011) ===
 * {{MAIN_DV}} 为 levels-ratio outcome (ROA); 与主 2SLS 同 (endog=IV) 与 ffirst, 仅切换 DV 缩尾力度
-ivreghdfe {{MAIN_DV}} ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo wsens_raw
-ivreghdfe {{MAIN_DV}}_w5 ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
-    absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
-eststo wsens_w5
+local _wr = 0
+if `_have_ivhdfe' {
+    capture noisily ivreghdfe {{MAIN_DV}} ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    if !_rc {
+        eststo wsens_raw
+        local _wr = 1
+    }
+}
+if !`_wr' & `_have_ivreg2' {
+    capture noisily ivreg2 {{MAIN_DV}} ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls i.bank_id i.year, ///
+        cluster({{CLUSTER_VAR}}) first
+    if !_rc eststo wsens_raw
+}
+local _w5 = 0
+if `_have_ivhdfe' {
+    capture noisily ivreghdfe {{MAIN_DV}}_w5 ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls, ///
+        absorb(bank_id year) cluster({{CLUSTER_VAR}}) ffirst
+    if !_rc {
+        eststo wsens_w5
+        local _w5 = 1
+    }
+}
+if !`_w5' & `_have_ivreg2' {
+    capture noisily ivreg2 {{MAIN_DV}}_w5 ({{MAIN_ENDOG}} = {{MAIN_IV}}) $controls i.bank_id i.year, ///
+        cluster({{CLUSTER_VAR}}) first
+    if !_rc eststo wsens_w5
+}
 
 * fix(omni-g-templates-04, 2026-06-11): esttab 名单动态化 — R1_ctx 被守卫跳过后
 * 旧版硬点名 → r(111) 整表丢失; 仅引用实际已存储估计, mtitle 同步删列防错位。
@@ -87,16 +164,17 @@ forvalues i = 1/`nmod' {
 * fix(network-metrics-audit, 2026-06-13, P1-2): 补弱工具诊断 (KP rk Wald F + Stock-Yogo/AR-CI)
 * — R1-R4 全为 ffirst 2SLS, 旧表未提取 e(widstat)。补 widstat + 脚注。
 * 注(reaudit P1-2b): 本族脚注采用 K=1 恰好识别下唯一有定义的 Stock-Yogo "10% maximal-size=16.38"
-*   判据 (maximal-bias 表对单工具不存在); 主线 25_tableA6 的 "5% maximal bias" 措辞待该会话同步订正。
+*   判据 (maximal-bias 表对单工具不存在)。主线 25_tableA6 的旧 "maximal bias" 措辞已订正为
+*   maximal-IV-size 口径 (2026-06-16, D10-stockyogo-maximalsize), 此处与之一致, 不再有待订正项。
 esttab `models' ///
     using "$tables_dir/table5_robustness.tex", replace ///
     star(* 0.10 ** 0.05 *** 0.01) se booktabs label compress b(3) ///
     stats(N r2 widstat, fmt(0 3 3) labels("N" "R-squared" "KP rk Wald F")) ///
     title("Robustness Battery --- brokerage_network") ///
     mtitles(`mtitles') ///
-    addnotes("Bank/year FE; cluster varies per column." ///
+    addnotes("Bank/year FE; cluster varies per column; estimator ivreghdfe with ivreg2+i.bank_id i.year runtime fallback (IV-6)." ///
              "Drop-singletons column re-estimates after excluding banks with a single observation." ///
-             "KP rk Wald F = Kleibergen-Paap rk Wald first-stage F (e(widstat), reported by ivreghdfe under cluster VCE; ffirst adds per-instrument first stage)." ///
+             "KP rk Wald F = Kleibergen-Paap rk Wald first-stage F (e(widstat) under cluster VCE; ffirst adds per-instrument first stage; blank for ivreg2 fallback if not stored)." ///
              "Just-identified (1 IV W2*tone / 1 endogenous) -> Hansen J undefined (df=0)." ///
              "Stock-Yogo 10% maximal-size critical value (1 instrument) = 16.38; KP F below it => weak IV =>" ///
              "read Anderson-Rubin weak-IV-robust CI (Andrews-Stock-Sun 2019 ARE), not the 2SLS point/SE.")

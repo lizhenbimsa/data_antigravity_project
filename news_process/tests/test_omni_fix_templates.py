@@ -237,10 +237,13 @@ def test_brokerage_r3_actually_drops_singletons():
     text = _read('brokerage_network/14_table5_robustness.do.tmpl')
     assert '_bank_grp_n' in text, "R3 须真实剔除 singleton 银行组 (非复读基线)"
     assert re.search(r'if\s+_bank_grp_n\s*>\s*1', text)
-    # R3 的 ivreghdfe 与 R2 不再逐 token 相同 (R3 带 if 子样本限制)
-    stmts = [s for s in _stata_statements(text) if s.startswith('ivreghdfe')]
+    # R3 的 IV 命令与 R2 不再逐 token 相同 (R3 带 if 子样本限制)
+    # 注(BRK-02 2026-06-16): IV-6 回退后 ivreghdfe 行带 `capture noisily` 前缀,
+    #   且缺失时回退 ivreg2 — 故匹配任意 ivreghdfe/ivreg2 估计语句, 不再硬绑 startswith。
+    stmts = [s for s in _stata_statements(text)
+             if re.search(r'\bivreg(hdfe|2)\b', s)]
     r3 = [s for s in stmts if '_bank_grp_n' in s]
-    assert r3, "R3 ivreghdfe 必须引用 _bank_grp_n 子样本"
+    assert r3, "R3 IV 命令 (ivreghdfe/ivreg2) 必须引用 _bank_grp_n 子样本"
 
 
 def test_brokerage_m3_no_overid_claim():

@@ -291,9 +291,11 @@ def main(argv: list[str] | None = None) -> int:
         type=str,
         default="news_process/data/processed/40_panel_yearly.parquet",
     )
-    # no-ss-track: benefit_mean 源自 SBERT 嵌入轴 (Stage 27), 其 ss 切片 v1 延后
-    # (plan §④/§7.5, 无 benefit_mean_ss) → 收缩仍 full/ctx 两轨。ss 情感轨已在
-    # 情感阶段 21/22/23/24 三轨化, 但不参与 benefit 嵌入投影。
+    # no-ss-track: benefit_mean 源自 SBERT 嵌入轴 (Stage 27) 现已三轨化
+    # (full/ctx/ss + _t2v twins, features/benefit_society.py 已产出 benefit_mean_ss,
+    # 下游 derivative_replication.py(ATTITUDE_SS)/tables.py/paper_spec.yaml/iv_extensions.py
+    # 均活跃消费); 但本收缩 CLI 刻意仅对 full/ctx 两轨应用经验贝叶斯收缩 —
+    # ss 轨收缩超出本 CLI 范围 (out of scope), 故 --track 仅 full/ctx/both。
     # Plan v2.12 (F-H3): 默认 'both' 同时产出 benefit_mean_full 与
     # benefit_mean_ctx 的 shrunk 列。旧版 --value-col 仍支持单列向后兼容。
     parser.add_argument(

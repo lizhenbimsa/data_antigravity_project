@@ -1,6 +1,6 @@
 # Paper: `benefit_society` — Operating-Benefit Attitude Projection
 
-**Status (历史 P0-P4 快照, 原 2026-05-15 / commit 8d33c46; 计数已刷新至当前态)**: P0-P4 落地完成. Stata 22 模板 + Python tables/figures + 187 行 token_hidden_regression.do (paper-specific override) + en/zh 双语 manuscript 骨架.
+**Status (历史 P0-P4 快照, 原 2026-05-15 / commit 8d33c46; 计数已刷新至当前态)**: P0-P4 落地完成. Stata 26 模板 + Python tables/figures + 187 行 token_hidden_regression.do (paper-specific override) + en/zh 双语 manuscript 骨架.
 
 ## 主题
 
@@ -32,7 +32,7 @@ papers_assets/benefit_society/
 
 | 层 | 交付 |
 |---|---|
-| Stata | 22 .do.tmpl @ `_common/stata_templates/benefit_society/` (00_install_packages / 00_master / 01_data_prep / 10_table1_descriptives / 11_table2_main / 11b_table2_boottest / 12_table3_mechanism / 13_table4_heterogeneity / 14_table5_robustness / 15_table6_effect_size / 16_table7_robustness_loo_anchor / 17_table8_shrinkage_robustness / 17b_table8b_shrinkage_dual / 18_table9_dimension_decomposition / 19_bs_num_intensity_robustness / 20_tableA1_inter_track_kappa / 21_tableA2_attitude_track_switch / 22_tableA9_external_validation / 23_tableA10_placebo_business_lines / 24_tableA11_anchor_family_alternative / 30_figure1_attitude_distribution / 31_figure2_coefplot_dual) + 187 行 paper-specific token_hidden_regression.do (保留) |
+| Stata | 26 .do.tmpl @ `_common/stata_templates/benefit_society/` (00_install_packages / 00_master / 01_data_prep / 10_table1_descriptives / 11_table2_main / 11b_table2_boottest / 12_table3_mechanism / 13_table4_heterogeneity / 14_table5_robustness / 15_table6_effect_size / 16_table7_robustness_loo_anchor / 17_table8_shrinkage_robustness / 17b_table8b_shrinkage_dual / 18_table9_dimension_decomposition / 19_bs_num_intensity_robustness / 20_tableA1_inter_track_kappa / 21_tableA2_attitude_track_switch / 22_tableA9_external_validation / 23_tableA10_placebo_business_lines / 24_tableA11_anchor_family_alternative / 25_tableA12_iv_2sls / 26_tableA13_fe_robust_oster / 27_tableA14_subsample_composition / 28_tableA15_era_stability / 30_figure1_attitude_distribution / 31_figure2_coefplot_dual) + 187 行 paper-specific token_hidden_regression.do (保留) |
 | Python | `tables.py` 11 函数 + `figures.py` 5 函数 |
 | 复现包 | `python -c "from news_process.papers._common.derivative_replication import build_derivative_replication_package as b; b('benefit_society')"` |
 | Manuscript | en (170 行 / 15 TODO) + zh 双语骨架 + refs.bib |

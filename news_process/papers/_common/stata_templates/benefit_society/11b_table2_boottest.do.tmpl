@@ -4,13 +4,13 @@
 *
 * V2.0 J-L-M 2026 稳健性对齐计划 §3 Phase 2 P2.A1:
 *   对主回归做按 bank_id 聚类的 wild cluster bootstrap (G_bank=84)。
-*   按 MacKinnon-Webb 2017 (J. Econometrics), G≥30 满足 wild cluster
+*   按 MacKinnon-Webb 2017 (Econometrics Journal), G≥30 满足 wild cluster
 *   bootstrap 正则性。当前面板 G_year=2 → 不能按 year 聚类
 *   (推迟到 Stage B 触发条件 T≥30)。
 *
 * 参考文献:
 *   - Cameron, Gelbach & Miller (2008, REStat) wild cluster bootstrap
-*   - MacKinnon-Webb 2017 (J. Econometrics) small-G 情形
+*   - MacKinnon-Webb 2017 (Econometrics Journal) small-G 情形
 *   - Baron & Muir 2022 (RFS) 窄面板 SE 实务
 *
 * 把主回归系数 {{ATTITUDE_VAR}} 的常规聚类 SE p 值替换为 wild bootstrap p 值。

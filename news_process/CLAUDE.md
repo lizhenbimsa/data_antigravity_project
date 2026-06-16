@@ -58,7 +58,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **充要条件**: 当前语料 × 全部启用模型 × 三轨 (full/ctx/ss) 在 `_llm_cache.db` 中 **0 miss**。已验证 (full+ctx 两轨): 7020/7020 命中 (1170 文 × 3 模型 × 2 轨, `prompt_version='v8-2026-05-17'` / `temperature=0.0`); 离线真跑 stage 21 输出与原盘 **content-sha256 字节级一致**。⚠ v3.9.0 新增第三轨 `_ss` 后, ss 缓存初始为 0 条 → 须线上付费首跑播种 **~3510 条** ss (1170 文 × 3 模型 × 1 轨, 预期 7020→7020+~3510), 之后方可 `NEWS_PROCESS_LLM_OFFLINE=1` 离线 $0 复现 (见顶部 v3.9.0 段)。
 - **强制机制 (新)**: 设 `NEWS_PROCESS_LLM_OFFLINE=1` → stage 21 缓存 miss 时 **raise `LLMCacheMissError` 而非调 API** (`pipeline/sentiment/tone_llms.py`, 默认关闭, 不改生产首跑); 离线模式同时跳过 preflight 探针 → 零网络、$0。
 - **验证工具**: `python -m news_process.scripts.audit.verify_stage21_cache_coverage` (纯缓存读, 报 hit/miss; misses=0 即可 $0 确定性复现)。
-- **铁律**: **勿删 `_llm_cache.db`** (407MB / 133,687 条) — 删则 golden 不再可复现, 须重跑付费 stage 21。prompt 构造单一事实源 = `tone_llms.iter_article_track_prompts` (生产与审计共用 → 缓存键一致)。
+- **铁律**: **勿删 `_llm_cache.db`** (~453MB / ~140.6k 条, 随 _ss 轨缓存播种继续增长) — 删则 golden 不再可复现, 须重跑付费 stage 21。prompt 构造单一事实源 = `tone_llms.iter_article_track_prompts` (生产与审计共用 → 缓存键一致)。
 
 **Test baseline** (v3.8.0 实测 2026-05-31): 全量 sweep **2581 passed / 3 skipped / 0 failed** (ruff clean)。精确 collect 数随 production run 漂移, 以 `pytest --collect-only` 为准; 历史逐版计数已失效, 不再维护。
 
@@ -67,7 +67,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **CLI 子命令** (`python -m news_process.papers._common.stata_runner <cmd>`):
 - `build-replication`: 一键 instantiate 19 个根级 .do 模板 + spec 替换 (2026-06-14 +32/33/34 FE饱和/子样本时序/era 稳定性)
 - `list-templates [--verbose]`: 模板清单 + 占位符 inventory
-- `doctor [--verbose]`: 5 段诊断 (deps + pipeline + LLM + Stata bin)
+- `doctor [--verbose]`: 6 段诊断 (Python 依赖 + pipeline 数据 + LLM cache + LLM API + Stata bin + Stata ado 包)
 - `verify-replication <path>`: 5 段验证 replication 包结构
 
 **v3.1.1 → v3.2.0 panel 迁移**: `python -m news_process.scripts.migrate.v3_1_to_v3_2_panel_upgrade`
@@ -104,7 +104,7 @@ news_process/
                     # 32 registered in core/dag.py (16 STAGES_MAIN + 16 STAGES_VALIDATION);
                     # 3 unregistered by design: 27c (audit-only sibling),
                     # 52/53 (user-CLI wrappers, schemas.py:159 显式排除).
-                    # planned retirement Plan-r3 P3-18 (拆分约束见 pipeline/panel/runner.py:159).
+                    # planned retirement Plan-r3 P3-18 (拆分约束见 pipeline/panel/runner.py).
 ```
 
 **Key invariant**: `news_process/NN_*.py` scripts are thin shims. All logic lives in `news_process.pipeline.*`. Never add business logic to shims.
@@ -235,7 +235,7 @@ pytest tests/integration/test_panel_reproducibility.py
 
 Required in `.env`:
 
-- `YUNWU_API_KEY`: Unified API key for LLM sentiment analysis (stages 21, 32a, 33, 34, 36, 39) and embedding (stage 15, 27)
+- `YUNWU_API_KEY`: Unified API key for LLM sentiment analysis (stages 21, 33, 34, 36, 39) and embedding (stage 15, 27)
 - `EMBEDDING_API_KEY`: Defaults to `${YUNWU_API_KEY}` (can override for separate endpoint)
 - `FINBERT2_MODEL_DIR`: Optional local BERT model path (stage 23 gracefully skips if missing)
 
@@ -245,7 +245,7 @@ Required in `.env`:
 
 **P1–P5 Bank-FinTech 主线五篇** (统一 `bank_fintech_*` 命名):
 - `bank_fintech_tone/` (P1, 主线): 媒体语调; 三轨化 spec, main = `llm_vote_tone_ctx`
-- `bank_fintech_attention/` (P2): firm-level fintech attention intensity (Hassan 2019 QJE)
+- `bank_fintech_attention/` (P2): firm-level fintech attention intensity; main = `attention_index_full` (Fang-Peress 2009 JF extensive coverage, intensity-weighted; Hassan 2019 QJE 仅作归一化稳健性度量 attention_pct/attention_intensity_density 与"测度→企业响应" outcome 范式的对标)
 - `bank_fintech_substance/` (P3): W&Z 实质/象征二元属性
 - `bank_fintech_locus/` (P4): Gomber 底层/应用二元属性
 - `bank_fintech_collab/` (P5, provisional): Chesbrough 自主研发 vs 外部协同

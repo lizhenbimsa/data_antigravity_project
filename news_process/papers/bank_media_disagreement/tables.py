@@ -26,8 +26,8 @@ PAPER_ID = 'bank_media_disagreement'
 # build_summary_table 对缺列/NaN 防御性跳过 — ss (银行+金科同句轨) 在 P4 付费 run
 # 前盘上无列, ctx/ss 会被自动略过, 不致整表崩。
 _TABLE1_VARIABLES: list[str] = [
-    'cross_outlet_tone_variance_full',  # treatment.primary (V4 R3, 待 M2-M3 新建)
-    'cross_outlet_tone_variance_ctx',   # treatment main_track=_ctx (paper_spec)
+    'cross_outlet_tone_variance_full',  # treatment.primary (main_track=_full, V4 R3, 待 M2-M3 新建)
+    'cross_outlet_tone_variance_ctx',   # treatment ctx 轨 dual-track robustness (paper_spec alternative)
     'cross_outlet_tone_variance_ss',    # treatment ss 镜像轨 (银行+金科同句, P4 前盘上缺则跳)
     'z_score',                          # outcome.primary (CAR-based Z-score 变体, cf. Laeven-Levine 2009; 与第11篇共享)
     'sigma_roa_5y_rolling',

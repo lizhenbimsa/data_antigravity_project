@@ -24,6 +24,34 @@ use "$data_dir/_prepared_panel.dta", clear
 set seed {{RANDOM_SEED}}
 
 * ============================================================================
+* 现场派生 fintech 浪潮哑变量 (D9-wave-het 修复, 2026-06-16)
+* ----------------------------------------------------------------------------
+* 此前 wave_1/wave_2/consolidation/wave_3 四列无任何 producer (Stata 01_data_prep
+* 与 Python 面板皆不产) → 下方 (b) 块 `capture confirm variable` 永远缺列, treatment
+* × wave 交互 (R10-m03 主设定) 在任何 run 都静默跳过 (文档/addnote 却宣称 live)。
+* 修复: 直接从 year 现场派生 (镜像 34_tableA11 / 25_locus_era_stability 的 era 派生
+* 惯用法), 年区间取 bank_fintech_locus/paper_spec.yaml::heterogeneity_wave (R4-M03
+* 三波严格对称, 全项目同口径):
+*   pre_period   2007-2012 / wave_1 2013-2015 / wave_2 2016-2018 /
+*   consolidation 2019-2021 (对照组) / wave_3 2022-2024
+* year 不在盘时优雅跳过 (四列仍缺 → 原 capture confirm 守卫接管, 行为同旧)。
+* T=2 试跑帧 (2017-2018) 仅 wave_2==1 → 交互项多列被 drop, capture 守卫兜底;
+* production T=18 自动激活全部浪潮交互。$0 / golden-safe (纯 Stata 派生, 不落盘新列)。
+* ============================================================================
+capture confirm variable year
+if !_rc {
+    capture drop pre_period wave_1 wave_2 consolidation wave_3
+    gen byte pre_period    = inrange(year, 2007, 2012)
+    gen byte wave_1        = inrange(year, 2013, 2015)
+    gen byte wave_2        = inrange(year, 2016, 2018)
+    gen byte consolidation = inrange(year, 2019, 2021)
+    gen byte wave_3        = inrange(year, 2022, 2024)
+}
+else {
+    display as text "  [WIRE-AHEAD] year 不在面板 → fintech 浪潮哑无法派生; (b) treatment×wave 交互优雅跳过 (列仍缺, 守卫接管)"
+}
+
+* ============================================================================
 * (a) 按 4 类 bank_type 分组的异质性
 * ============================================================================
 capture confirm variable bank_type

@@ -13,7 +13,7 @@
 工作流:
     stage 12 (news_fintech)  → 12_fintech_news.parquet      (is_fintech_news==True 关键词金科)
     stage 12b (本模块)       → 12b_cooccurrence_filtered.parquet (= 12 的近邻相关子集, 丢行)
-    stage 13 (materialize_ctx) → 读 12b 输出 (ctx_materializer.py:339 重指针)
+    stage 13 (materialize_ctx) → 读 12b 输出 (ctx_materializer.py:345 main in_name 重指针)
 
 口径 (与 stage 13 _ss 轨【不同】, 见 entity_context.has_bank_fintech_cooccurrence_within_radius):
     - 保留判据 = 窗口邻近 (银行锚句 i ∧ 金科∈[i±radius] 邻句); 严格同句 (_ss) 是其子集。

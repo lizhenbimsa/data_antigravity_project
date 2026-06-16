@@ -438,7 +438,7 @@ def build_replication_package(
 - **Main spec choices** (locked at generation):
   - locus track: `{locus}` ({'full-text' if locus == 'lf' else 'entity-context'} classification)
   - subst track: `{subst}` ({'full-text' if subst == 'sf' else 'entity-context'} classification)
-  - sent track:  `{sent}` ({'Hassan 2019 QJE entity-proximity' if sent == 'ctx' else 'full-text'})
+  - sent track:  `{sent}` ({'Hassan 2019 QJE entity-proximity' if sent == 'ctx' else 'bank+fintech same-sentence co-occurrence' if sent == 'ss' else 'full-text'})
 - **Templates instantiated**: {n_templates}
 - **Plan version**: v14 (62 rounds audit; user confirmed 9 Action Items)
 """

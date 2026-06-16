@@ -70,7 +70,12 @@ if !_rc {
 }
 
 * 检验 open ≠ closed 系数 (正式的开放式-vs-封闭式创新差异检验)
-test collab_open_full = collab_closed_full
+* fix(audit-2026-06-16): 镜像 locus/15 — test 必须跑在同时含 open+closed 的 M5(回退 M4)上,
+* 否则内存中最后一个估计 M6_gap(仅 collab_gap) 无被测系数 → r(111); 裸 test 无 capture 会在
+* esttab 前中止 do-file → 主结果表(Table 2)永不写出。
+capture estimates restore M5
+if _rc capture estimates restore M4
+capture noisily test collab_open_full = collab_closed_full
 
 * fix(omni-g-templates-07, 2026-06-11): esttab 名单动态化 — M6_gap 在守卫块内
 * (collab_gap 缺失即跳过), 旧版硬点名缺名 → r(111) 丢整表且 master 链中止。

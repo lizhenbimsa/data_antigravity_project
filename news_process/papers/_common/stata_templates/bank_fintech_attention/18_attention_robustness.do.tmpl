@@ -33,9 +33,12 @@ set seed {{RANDOM_SEED}}
 * 白话: 估算"看不见的遗漏变量得有多强, 才能把结论推翻", 衡量选择性偏误的稳健性。
 * ============================================================================
 * ssc install psacalc, replace
-* psacalc delta {{MAIN_TREAT}}, rmax(min(1,1.3 r²)) mcontrol(i.year)
-*   ⚠ mcontrol 只放 FE 哑变量 (i.year) 作 nuisance, 不放 $controls — 否则把
-*   substantive 控制错当 nuisance, δ 退化为只由 i.year 移动界定 (见 20_* Panel C ATT-ROB-01)。
+* Oster δ 已在 20_attention_fe_saturation_estrobust.do Panel C live 计算 (此处仅备注, 不重复运行)。
+*   ⚠ 关键约束 (见 20_* Panel C ATT-ROB-01): psacalc 的 mcontrol() 按变量名匹配 e(b),
+*   不接受 factor 记号 i.year (会报 "Unrelated control not in regression" rc=5001 → 永久跳过);
+*   须先 `tab year, gen(_yc_)` 展开年度哑变量, 再 psacalc delta {{MAIN_TREAT}}, rmax(min(1, 1.3*e(r2)))
+*   mcontrol(`_yfe') — mcontrol 只放展开的 year-FE 哑变量作 nuisance, 不放 $controls (否则把
+*   substantive 控制错当 nuisance, δ 退化为只由 year-FE 移动界定)。
 
 * ============================================================================
 * (2) Romano-Wolf stepdown 多重检验校正 (INFER IV-1 修复, 2026-06-14)
@@ -332,7 +335,7 @@ esttab `models' using "$tables_dir/table5_robustness.tex", replace ///
           labels("N" "R2" "Wild cluster bootstrap p" "Pre-trend joint F" "Pre-trend joint p")) ///
     title("Table 5 — Advanced Robustness (P2 attention)") ///
     addnotes("Column wild_boot: analytic cluster SE shown; wild cluster bootstrap p (boottest, 9999 reps) reported in the p\_wild row." ///
-             "Column es\_dcep (DID-3): INLINE intensity-DiD event study (attention x DCEP rel-year leads/lags); Pre-trend joint F/p tests H0: all pre-period (lead2, lead3) interactions = 0 (Sun-Abraham 2021)." ///
+             "Column es\_dcep (DID-3): INLINE intensity-DiD event study (attention x DCEP rel-year leads/lags); Pre-trend joint F/p tests H0: all pre-period (lead2, lead3) interactions = 0 (parallel-trends pre-test; Roth 2022 AER:Insights)." ///
              "Romano-Wolf stepdown FWER-corrected p for the main treatment across the alternative-attention measure family: p\_rw = `rw_p_main' (rwolf, 1000 reps; Romano-Wolf 2005). attention\_disp\_full column additionally controls ln(1+n\_outlets) to net out mechanical low-coverage HHI=1 (Cookson-Niessner 2020; ATT CV-2)." ///
              "HonestDiD parallel-trends sensitivity (M-bands 0/.5/1/2; Rambachan-Roth 2023) saved to honestdid\_attention.gph when the event study is identified and the ado is installed. Oster delta / ritest in supplemental log.")
 

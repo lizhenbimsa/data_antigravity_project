@@ -26,8 +26,8 @@ label variable msent_sum_full "情感强度总和(全文)"
 * 5.3 LLM置信度指标
 label variable avg_llm_conf_full "LLM平均置信度(全文)"
 label variable avg_llm_conf_std_full "LLM置信度标准差(全文)"
-label variable avg_gpt54nano_conf_full "GPT5nano平均置信度(全文)"
-label variable avg_gemini311_conf_full "Gemini3平均置信度(全文)"
+label variable avg_gpt54nano_conf_full "GPT-5.4-nano平均置信度(全文)"
+label variable avg_gemini31111_conf_full "Gemini-3.1平均置信度(全文)"
 label variable avg_deepseekv4_conf_full "Grok4.1平均置信度(全文)"
 
 * 5.4 LLM一致性指标

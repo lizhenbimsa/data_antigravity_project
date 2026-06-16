@@ -36,7 +36,23 @@ if !_rc {
     eststo collab_clarity_dual
 }
 
-esttab collab_clarity_interact collab_clarity_dual ///
-    using "$tables_dir/tableA7_clarity_robustness.tex", ///
-    se star(* 0.10 ** 0.05 *** 0.01) replace ///
-    title("Table A7: Lexical Clarity × Collab Mode — {{PAPER_ID}}")
+* fix(audit-2026-06-16, S6-collab-03): esttab 名单动态化 — collab_clarity_interact /
+* collab_clarity_dual 均在 `capture confirm variable mean_clarity_score_full` 守卫块内
+* (清晰度列缺失即跳过), 旧版硬点名缺名 → r(111) 丢整表。镜像 15_collab_main_regression。
+* 白话: 出表时只点名实际估计成功的模型, 防止某一列缺席导致整张表报错丢失。
+qui estimates dir
+local stored `r(names)'
+local cand_models collab_clarity_interact collab_clarity_dual
+local models ""
+foreach m of local cand_models {
+    if `: list m in stored' local models `models' `m'
+}
+if "`models'" == "" {
+    display "  [WARN] no clarity estimates stored (mean_clarity_score_full absent) — skipping Table A7"
+}
+else {
+    esttab `models' ///
+        using "$tables_dir/tableA7_clarity_robustness.tex", ///
+        se star(* 0.10 ** 0.05 *** 0.01) replace ///
+        title("Table A7: Lexical Clarity × Collab Mode — {{PAPER_ID}}")
+}

@@ -1,6 +1,6 @@
 # Paper: `bank_fintech_tone` — Bank-FinTech Media Tone (主线论文)
 
-**Status (2026-05-15 / post-P4 / commit 8d33c46)**: 主线 paper, v3.2.0 完整发布 + post-v3.2.0 multi-paper 扩展. Stata 14 主模板 + 1677 行 falsification template + Python tables/figures (Phase 9b) + en/zh 双语 manuscript 骨架.
+**Status (历史 P0-P4 快照, 原 2026-05-15 / commit 8d33c46; 计数已刷新至当前态)**: 主线 paper, v3.2.0 完整发布 + post-v3.2.0 multi-paper 扩展. Stata 19 主模板 (主线 root-level; 原 v3.2.0 为 14) + 1874 行 falsification template + Python tables/figures (Phase 9b) + en/zh 双语 manuscript 骨架.
 
 ## 主题
 
@@ -12,8 +12,8 @@ Bank-FinTech-Tone (Hassan et al. 2019 QJE 方法 + Westphal--Zajac 1994/1998 ASQ
 |---|---|---|
 | `news_process.pipeline.panel.stata_export` | ~769 | HEURISTIC_LABELS 字典 + bank-year panel .dta 导出 |
 | `news_process.papers.bank_fintech_tone.analysis` | 99 | CLI 入口 (`--stage pipeline\|tables\|figures\|all`) |
-| `news_process.papers.bank_fintech_tone.tables` | 91 | Table 1 (描述统计) |
-| `news_process.papers.bank_fintech_tone.figures` | 69 | Figure 1 (核心变量分布) |
+| `news_process.papers.bank_fintech_tone.tables` | 127 | Table 1 (描述统计) |
+| `news_process.papers.bank_fintech_tone.figures` | 86 | Figure 1 (核心变量分布) |
 
 ## 资产目录约定
 
@@ -22,7 +22,7 @@ papers_assets/bank_fintech_tone/
 ├── README.md          ← 本文件
 ├── do/                ← Stata .do
 │   ├── 50_robustness_text2vec_stata.do   ← 59 行
-│   └── falsification_template.do.tmpl    ← 1677 行 (主线 falsification template)
+│   └── falsification_template.do.tmpl    ← 1874 行 (主线 falsification template)
 ├── output/            ← (gitignored) — runtime mkdir; tables/ figures/ logs/
 └── drafts/
     ├── en/manuscript.tex + refs.bib    ← 英文版手稿
@@ -33,7 +33,7 @@ papers_assets/bank_fintech_tone/
 
 | 层 | 交付 |
 |---|---|
-| Stata | **14 .do.tmpl @ `_common/stata_templates/`** (主线已存在; v3.2.0 M7) + 1677 行 falsification template (论文专属) |
+| Stata | **19 .do.tmpl @ `_common/stata_templates/`** (主线 root-level; v3.2.0 M7 原 14, 后经 IV 补全/agg-audit/FE-saturation/era-stability 扩至 19) + 1874 行 falsification template (论文专属) |
 | Python | `tables.py` Table 1 + `figures.py` Figure 1 |
 | 复现包 | `python -m news_process.papers._common.stata_runner build-replication --locus lc --subst sf --sent ctx` |
 | Manuscript | en (114 行 / 12 处 \NoteThis{} 占位) + zh 双语骨架 + refs.bib |
@@ -42,7 +42,7 @@ papers_assets/bank_fintech_tone/
 
 1. Manuscript 实质内容 (Intro / Lit / Results 等; 当前 12 处 \NoteThis{} 占位)
 2. ROA / Tobin_Q 等会计变量并入 panel
-3. Falsification template (1677 行) 实际渲染 + 跑通
+3. Falsification template (1874 行) 实际渲染 + 跑通
 
 ## 学术依据
 
