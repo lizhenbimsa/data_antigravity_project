@@ -1495,6 +1495,29 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
             row2 = [counts_raw[m2].get(cat, 0) for cat in categories]
             contingency = np.array([row1, row2])
 
+            # 剔除全零边际（两模型均未观测到的类别列 / 整行为空的模型）：
+            # 空类别对同质性检验无信息量，且会令期望频数 E[i,j]=row*col/N 出现
+            # 0 元素 → scipy.chi2_contingency 抛 ValueError（如二者负面均为 0）。
+            # 剔除后 dof 随有效类别数自动收缩，统计结论不变。
+            nonzero_cols = contingency.sum(axis=0) > 0
+            nonzero_rows = contingency.sum(axis=1) > 0
+            kept_cats = [c for c, keep in zip(categories, nonzero_cols) if keep]
+            contingency = contingency[np.ix_(nonzero_rows, nonzero_cols)]
+            n_dropped = len(categories) - len(kept_cats)
+
+            # 有效边际不足 2x2 → 两模型在所有共同观测到的类别上完全一致，
+            # chi-square 同质性检验无定义（dof=0），记为不显著并跳过以防崩溃。
+            if contingency.shape[0] < 2 or contingency.shape[1] < 2:
+                logger_inst.info(
+                    f"  {m1} vs {m2}: 仅 {len(kept_cats)} 个非空类别"
+                    f"（{kept_cats or '无'}），同质性检验无定义，跳过"
+                )
+                chi2_results.append({
+                    'pair': f"{m1} vs {m2}",
+                    'chi2': 0.0, 'p_value': 1.0, 'dof': 0, 'significant': False,
+                })
+                continue
+
             if _use_scipy:
                 chi2_stat, p_val, dof, _ = chi2_contingency(contingency)
             else:
@@ -1508,9 +1531,10 @@ def diagnose_llm_category_bias(df: pd.DataFrame, llm_cols: dict,
                 'significant': p_val < 0.05,
             })
             sig_mark = '*' if p_val < 0.05 else ''
+            drop_note = f"（剔除 {n_dropped} 个空类别）" if n_dropped else ""
             logger_inst.info(
                 f"  {m1} vs {m2}: chi2={chi2_stat:.2f}, "
-                f"p={p_val:.4f}{sig_mark}, dof={dof}"
+                f"p={p_val:.4f}{sig_mark}, dof={dof}{drop_note}"
             )
 
     # ── 3. 模型间 Jensen-Shannon 散度 ──
