@@ -940,9 +940,22 @@ def audit_geography_variables(panel: pd.DataFrame, name: str):
 
 def main():
     start_time = time.time()
-    logger.info("=" * 70)
-    logger.info("===  52_stata_data_audit: Stata 用面板数据全面审核  ===")
-    logger.info("=" * 70)
+
+    # ---【功能 banner】交付前面板质检 (黄金范式: 紧随启动日志; 已替换旧短 banner, 不叠加) ---
+    logger.info("=" * 72)
+    logger.info("阶段 52: Stata 用面板数据审计 (CLI; Baltagi 2021 / Wooldridge 2010 / GPSS 2020)")
+    logger.info("=" * 72)
+    logger.info("【功能】交付前的数据质检员: 把准备送进 Stata 跑回归的面板表 (40_panel_yearly")
+    logger.info("        / 51_panel_with_controls) 与同名 .dta 从头到脚体检一遍, 最后出一张")
+    logger.info("        体检报告 (eval_reports/52_stata_data_audit.csv) 列出每项 PASS/WARN/FAIL。")
+    logger.info("【方法】对 40/51 各跑 9 类只读审核函数 + 1 类跨文件一致性, 共 10 类: 面板结构")
+    logger.info("        (唯一键/平衡率)、变量质量 (缺失率/5σ异常/值域/Inf)、情感一致性 (frac")
+    logger.info("        恒等式/三轨相关/VW·MW·HW 加权恒等式)、IV 预检 (Bartik 份额≤1/LOO/变异)、")
+    logger.info("        DID 合规 (0-1编码/treated-post 逻辑/event-study 互斥)、Stata 兼容 (列名/")
+    logger.info("        .dta 行数·精度·NaN对齐/nullable dtype)、网络/地理变量、描述统计。")
+    logger.info("【判读】只读不改数: FAIL=必修硬错 (重复键/份额溢出/恒等式破裂→退出码 1), ")
+    logger.info("        WARN=需人工复核的临界/已知口径限制, PASS=该项体检通过; FAIL 越少越好。")
+    logger.info("【确定性】纯 pandas/numpy 只读校验, 无 LLM/Embedding/网络, 逐位可复现。")
 
     # --- 加载数据 ---
     panel_40_path = os.path.join(OUTPUT_DIR,
@@ -1022,6 +1035,105 @@ def main():
         logger.warning("  === 警告项摘要 ===")
         for _, row in df_results[df_results['status'] == 'WARN'].iterrows():
             logger.warning(f"  ⚠️ [{row['category']}] {row['check']}: {row['detail']}")
+
+    # ---【结果分析】把上面 PASS/WARN/FAIL 计数翻译成"数据能不能交付"的判读 ---
+    # crash-guard: 整块只读诊断包进 try/except — 本块在导出 CSV 报告之前执行,
+    # 若因空 df / 缺列 / dtype 异常抛错会丢失产物, 故失败时仅记 warning 跳过, 不影响写盘。
+    logger.info("-" * 72)
+    logger.info("【结果分析】交付前体检报告判读 (FAIL=硬错须修, WARN=人工复核, PASS=通过):")
+    try:
+        if n_total == 0 or 'status' not in df_results.columns:
+            # NaN/空守卫: 两面板皆缺 → audit_results 为空, 无任何检查项可判读
+            logger.warning("  · 无任何审核结果 (面板皆缺失或未产出检查项), 跳过结果分析。")
+        else:
+            # (1) 总体通过率 — 纯 PASS 占比, 越接近 100% 越干净
+            pass_rate = n_pass / max(n_total, 1)
+            if n_fail > 0:
+                logger.info(
+                    f"  · 总体: {n_total} 项检查, PASS {pass_rate:.1%} / WARN {n_warn/max(n_total,1):.1%}"
+                    f" / FAIL {n_fail/max(n_total,1):.1%} → 存在 {n_fail} 项 FAIL [坏], 数据"
+                    "不应直接交付 Stata, 须先按下方失败项修复后重生面板。")
+            elif n_warn > 0:
+                logger.info(
+                    f"  · 总体: {n_total} 项检查, 0 FAIL [好], 但有 {n_warn} 项 WARN [临界] —"
+                    "多为已知口径限制/小样本退化/缺列优雅跳过, 须逐条人工复核确认非真错。")
+            else:
+                logger.info(
+                    f"  · 总体: {n_total} 项检查全部 PASS [好], 0 WARN/0 FAIL, 面板可放心交付 Stata。")
+
+            # (2) CRITICAL 级硬错单列 — record(severity='CRITICAL') 仅用于唯一键重复 (最致命)
+            if 'severity' in df_results.columns:
+                n_critical = int((df_results['severity'] == 'CRITICAL').sum())
+                if n_critical > 0:
+                    logger.warning(
+                        f"  · CRITICAL: {n_critical} 项致命错 (如 (target_bank, year) 唯一键重复) [极坏] —"
+                        "面板键非唯一会使所有银行年回归崩坏, 必须最优先修复。")
+                else:
+                    logger.info("  · CRITICAL: 0 项 [好], (target_bank, year) 面板唯一键约束未被违反。")
+
+            # (3) 按 10 类检查域归并 FAIL/WARN, 定位问题集中在哪个子系统 (结构/情感/IV/DID/Stata/...)
+            if n_fail > 0 or n_warn > 0:
+                _bad = df_results[df_results['status'].isin(['FAIL', 'WARN'])]
+                _by_cat = (
+                    _bad.assign(is_fail=(_bad['status'] == 'FAIL'))
+                    .groupby('category')
+                    .agg(fail=('is_fail', 'sum'), n=('status', 'size'))
+                    .sort_values(['fail', 'n'], ascending=False)
+                )
+                logger.info("  · 问题分布 (按检查域, 优先看 FAIL 多的域):")
+                for _cat, _row in _by_cat.head(12).iterrows():
+                    _f = int(_row['fail'])
+                    _w = int(_row['n']) - _f
+                    logger.info(
+                        f"      [{_cat}] FAIL={_f} / WARN={_w}"
+                        + (" ← 含硬错, 优先修" if _f > 0 else ""))
+
+            # (4) 关键恒等式族单独点名 (情感 frac/计数恒等式、Bartik 份额、加权恒等式) —
+            #     这些是论文核心变量的内部自洽性, 破裂直接威胁结果可信度
+            _identity_keywords = ('恒等式', '份额归一', 'frac 值域', 'event-study 互斥')
+            _identity = df_results[df_results['check'].str.contains(
+                '|'.join(_identity_keywords), na=False)]
+            if len(_identity) > 0:
+                _id_fail = int((_identity['status'] == 'FAIL').sum())
+                _id_warn = int((_identity['status'] == 'WARN').sum())
+                if _id_fail > 0:
+                    logger.warning(
+                        f"  · 核心恒等式族: {len(_identity)} 项中 {_id_fail} FAIL / {_id_warn} WARN [坏] —"
+                        "情感/分类计数或 Bartik 份额自洽性破裂, 优先排查 (双重计数/份额溢出/陈旧列名)。")
+                else:
+                    logger.info(
+                        f"  · 核心恒等式族: {len(_identity)} 项全无硬错 (FAIL=0, WARN={_id_warn}) [好] —"
+                        "情感 frac/计数、Bartik 份额、加权恒等式内部自洽。")
+
+            # (5) 小样本 (T=2) 提醒: 盘面年跨度小则 IV/DID/平衡率检查多为退化, 仅验证管道正确性
+            _spans = []
+            for _p, _nm in [(panel_40, '40面板'), (panel_51, '51面板')]:
+                if _p is not None and 'year' in _p.columns:
+                    _yn = int(_p['year'].nunique())
+                    _spans.append((_nm, _yn, _p.shape))
+            for _nm, _yn, _shape in _spans:
+                if _yn <= 2:
+                    # 口径对齐 audit_iv_variables (n_years<=1 才是截面 LOO 负相关路径, 见 line 575):
+                    # T=1 纯截面退化时 LOO 数学性质致负相关; T=2 时 n_years=2>1, LOO 走常规面板
+                    # 分支 (abs(r)<0.05/else), 不进截面负相关路径, 退化主要在时间逻辑近乎无功效。
+                    logger.info(
+                        f"  · 小样本警告 [{_nm}]: 仅 {_yn} 个年份 ({_shape[0]} 行) — T={_yn} 下"
+                        "LOO-IV/DID/事件研究/平衡率检查多退化 (T=1 截面退化时 LOO 数学性质致负相关、"
+                        "T=2 时间逻辑近乎无功效、treated-post 无变异), 本次审计仅验证管道正确性; 全量结论以"
+                        " 17M/T=18 重生面板实测为准。")
+
+            # (6) 优雅降级: 若 51 面板缺失 → 跨文件一致性 + 51 半套审核全部跳过, 覆盖面打折
+            if panel_40 is not None and panel_51 is None:
+                logger.warning(
+                    "  · 优雅降级: 51_panel_with_controls 缺失 → 已跳过跨文件一致性 (40 vs 51) 与"
+                    "51 半套审核, 本次仅覆盖 40 面板; nf_ 控制变量与对照组一致性未受检。")
+            elif panel_40 is None:
+                logger.warning(
+                    "  · 优雅降级: 40_panel_yearly 缺失 → 主面板未加载, 绝大多数检查未执行; "
+                    "请先重跑 stage 45/46 产出面板再审计。")
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+    logger.info("-" * 72)
 
     # 导出审核结果
     report_dir = os.path.join(OUTPUT_DIR, 'eval_reports')

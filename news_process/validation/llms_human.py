@@ -131,7 +131,25 @@ def set_excel_data_validation(writer, sheet_name, df, start_row=1):
 def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
-    
+
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
+    logger.info("=" * 72)
+    logger.info("阶段 32: LLM×人工金标准采样器 (人工抽样验证样本生成; criterion validity 上游)")
+    logger.info("=" * 72)
+    logger.info(f"【功能】从全部新闻里随机抽一批文章 (本次 SAMPLE_SIZE={SAMPLE_SIZE} 篇, 受 config 控制), 做成可直接")
+    logger.info("        填写的 Excel 标注工作台 (sheet=验证数据), 发给两位人工编码员逐篇判定")
+    logger.info("        ①是否真银行金科新闻 (验证 1/0) ②语气 (正面/中性/负面)。")
+    logger.info("        产出 = 人工'标准答案'考卷, 是 stage 33/34 评 LLM 精度/κ 的上游 (本阶段不进面板)。")
+    logger.info(
+        f"【方法】简单随机抽样 df.sample(n=min({SAMPLE_SIZE},N), random_state={RANDOM_SEED}); "
+        "固定种子保证逐位可复现。"
+    )
+    logger.info("        追加 4 空标注列 + 关键展示列提到最前; xlsxwriter 写下拉数据校验 (验证锁{1,0}/")
+    logger.info("        情感锁{正面,中性,负面}), 引擎不可用时回退普通 to_excel。无统计计算。")
+    logger.info("【判读】抽样代表性是 stage 33/34 结论可信度的前提: 抽偏 (全抽易判篇) 会高估机器水平;")
+    logger.info("        抽样率应≈目标量/总量, 全选 (N≤目标量) 时下游金标准覆盖度受限须披露。")
+    logger.info("【确定性】纯 CPU, 无 LLM/Embedding/网络调用, $0; 固定 random_state → 逐位可复现。")
+
     # 优先使用全量 LLM 结果
     input_filename = CONFIG.get('filenames', {}).get('output_21_tone_llms_full', '21_tone_llms_full.parquet')
     input_path = os.path.join(CONFIG["paths"]["output_dir"], input_filename)
@@ -195,6 +213,72 @@ def main():
     except Exception as e:
         logger.warning(f"写入 xlsxwriter 带验证失败 ({e}), 回退到普通 Excel 写入")
         sample_df.to_excel(output_path, index=False)
+
+    # 结果分析 — 写入日志: 抽样源/抽样率/标注列就绪情况 + 判读 (仿 39c)。
+    # crash-guard: 本块仅"读数据算计数+打日志", 不写盘/不改产物 (Excel 已于上方落盘);
+    # 但仍整体包 try/except, 防未来取数异常 (如缺列/空 Series) 冒泡崩掉阶段、误伤 golden-safe 性质。
+    try:
+        n_total = len(df)
+        n_sample = len(sample_df)
+        sample_frac = (n_sample / n_total * 100) if n_total > 0 else 0.0
+        full_select = n_total <= target_sample_size  # 全选 (未真正抽样) 标记
+        # 展示列就绪度: desired_front 里真正落入 Excel 的关键列 (供编码员判读用)
+        display_present = [c for c in front_cols if c not in col_names]
+        n_display = len(display_present)
+        n_display_expected = 7  # 日期/媒体类型(中文)/标题/内容/target_bank/co_mentioned_banks/fintech_keyword_details
+
+        logger.info("-" * 72)
+        logger.info("【结果分析】人工金标准考卷已生成 (抽样代表性 → 下游 stage 33/34 结论可信度):")
+        logger.info(
+            f"  抽样源 = {input_filename} (三级回退取第一存在者: 21_full → 23_bert → 21_tone_llms)"
+        )
+        logger.info(
+            f"  总语料 N = {n_total:,} 篇; 目标抽样量 = {target_sample_size} (config SAMPLE_SIZE={SAMPLE_SIZE})"
+        )
+        if n_total == 0:
+            # NaN/空数据 guard: 空语料时不落进抽样率方向判读 (否则除零/恒为 0 误判)
+            logger.warning("  ⚠ 总语料 N=0 (无有效数据): 无样本可抽, 跳过抽样率判读; 请检查抽样源是否为空。")
+        elif full_select:
+            logger.warning(
+                f"  ⚠ 全选: N({n_total:,}) ≤ 目标量({target_sample_size}), 未真正随机抽样 → "
+                "抽样率=100%; 盘面 T=2 小语料下属预期, 全量 17M 不会触发。"
+            )
+        else:
+            logger.info(
+                f"  实际抽样 = {n_sample:,} 篇, 抽样率 = {sample_frac:.2f}% "
+                f"(简单随机, random_state={RANDOM_SEED}, 逐位可复现)"
+            )
+            # 仅作记录: 抽样率 = 实际抽样量/总量, 由 .sample(n=target) 构造保证抽样量恒等于目标量
+            # (故抽样率与目标占比恒相等, 非代表性检验)。⚠ 本行不下'无偏'结论 —— 抽样量等于请求量
+            # 是构造性事实, 并未检验样本在银行/年份/媒体维度上是否代表总体; 代表性须 stage 33/34 实测。
+            logger.info(
+                "    判读: 抽样量=配置目标量 (由 df.sample(n=) 构造保证); "
+                "此处仅记录抽样规模, 维度代表性 (银行/年份/媒体) 不在本阶段检验。"
+            )
+        logger.info(
+            f"  标注列 = {len(col_names)}/4 就绪 ({', '.join(col_names)}, 初值空待人工回填)"
+        )
+        if n_display < n_display_expected:
+            logger.warning(
+                f"  ⚠ 展示列 {n_display}/{n_display_expected} 就绪 (实有: {display_present}); "
+                "缺列会降低编码员判读上下文, 但不影响抽样确定性。"
+            )
+        else:
+            logger.info(
+                f"  展示列 {n_display}/{n_display_expected} 就绪 ({display_present}) → 编码员上下文充分。"
+            )
+        logger.info(f"  产出 Excel = {output_path} (sheet=验证数据, 验证/情感列已锁下拉; 不进面板, golden 无关)")
+        logger.info(
+            "  ⚠ 本阶段只产'考卷'不算指标: 精度/κ 在 stage 33 评; 抽样若偏 (全抽易判篇) 会高估机器水平。"
+        )
+        if n_sample < 50:
+            logger.warning(
+                f"  ⚠ 样本仅 {n_sample} 篇 (盘面 T=2 小样本): 仅验证管道正确性, "
+                "criterion validity 结论以全量 17M/T=18 实测为准。"
+            )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(sample_df))
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")

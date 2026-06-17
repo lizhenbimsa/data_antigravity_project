@@ -6,9 +6,12 @@ embeddings 持久化, 让 D2 (staleness) / D3 (Krippendorff α)
 
 学术依据
 --------
-Bybee, L., Kelly, B., Manela, A., & Xiu, D. (2024). Business news and
-business cycles. Review of Financial Studies, 37(3), 887-936.
+Bybee, L., Kelly, B. T., Manela, A., & Xiu, D. (2024). Business news and
+business cycles. The Journal of Finance, 79(5), 3105-3147.
+https://doi.org/10.1111/jofi.13377
 → 标题 + 首段 300 字策略 (避免 SBERT 512-token 截断丢尾段)
+  (期刊订正: 此前误标 RFS 37(3):887-936, 经 Crossref 核验为 JF 79(5);
+   与 scripts/audit/LITERATURE_ANCHORS_2026-06-13.md:140 锚点对齐)
 
 设计决策
 --------
@@ -228,9 +231,34 @@ def _build_output_frame(
 
 def main():
     stage_start = time.time()
-    logger.info("=" * 60)
-    logger.info("阶段 30a: Article-level SBERT 持久化 (v3.7.0 PR #9)")
-    logger.info("=" * 60)
+    logger.info("=" * 72)
+    logger.info(
+        "阶段 30a: Article-level SBERT 嵌入持久化 "
+        "(v3.7.0 PR #9; Bybee et al. 2024 JF 标题+首段策略)"
+    )
+    logger.info("=" * 72)
+    logger.info(
+        "【功能】把每篇新闻'翻译'成一串语义向量 (意思指纹, 默认 768 维, 随所配 SBERT 隐藏维), 一次性持久化成 "
+        "30a_article_embeddings.parquet 备用; 是 D 组前置 (stage 18 语义陈旧度 / D3 "
+        "Krippendorff α 等)的共享地基, 算一次大家共用, 省 ~12-15h 重复编码。"
+    )
+    logger.info(
+        "【方法】SBERT 模型 = config/features.yaml::embedding_robustness.model "
+        f"(实解析={_SBERT_MODEL_ID}" + (f"@{_SBERT_REVISION}" if _SBERT_REVISION else "")
+        + "); 输入构造 = 标题(≤"
+        f"{TITLE_CHARS}字) + 首段(≤{FIRST_PARA_CHARS}字) 防 512-token 截断丢尾; "
+        "嵌入轴 full/ctx 两路 (content_full/content_ctx 已由 stage 13 prepend 标题恰好一次, "
+        "title_col=None 关二次前置); model.encode(normalize_embeddings=True) "
+        "→ (N, hidden_dim) float32 (默认 768)。"
+    )
+    logger.info(
+        "【判读】嵌入有效率越高(NaN 行越少)越好; emb_full 单位归一化 → L2 范数应≈1.0 "
+        "(偏离=归一化失效); emb_ctx 全 NaN = 上游缺 content_ctx 回退 (ctx 语义陈旧度将不可用)。"
+    )
+    logger.info(
+        "【确定性】纯本地 CPU/GPU 推理, 无 LLM/Embedding API、$0; ensure_torch_determinism + "
+        "revision 钉死保证逐位可复现; 无 _llm_cache.db 参与 (每跑重算)。"
+    )
 
     output_dir = CONFIG['paths']['output_dir']
     src_path = os.path.join(output_dir, '13_news_with_ctx.parquet')
@@ -285,6 +313,107 @@ def main():
 
     size_mb = os.path.getsize(out_path) / 1024 / 1024
     logger.info(f"  输出: {out_path} ({size_mb:.1f} MB)")
+
+    # ── 结果分析 (纯增量日志: 下列度量仅用于打印, 不回写 df / 不进任何产物;
+    #    且整体在 to_parquet 写盘之后执行, 故崩溃也不丢产物。仍包 try/except 双保险:
+    #    分析块抛异常不得让阶段非零退出 / 影响 golden) ──
+    logger.info("-" * 72)
+    logger.info("【结果分析】SBERT 嵌入持久化产出体检 (语义指纹的完整性 / 归一化 / 双轨覆盖):")
+    try:
+        _n_art = len(out_df)
+        _dim_full = embs_full.shape[1] if embs_full.ndim == 2 else -1
+        logger.info(
+            f"  文章篇数 = {_n_art} 篇; emb_full 维度 = {_dim_full} "
+            f"(= 所配 SBERT 隐藏维; 默认 shibing624/text2vec-base-chinese=768。维度与 "
+            f"model_id={_SBERT_MODEL_ID} 应自洽 —— 若换稳健性模型须同步确认下游 stage 18 "
+            "Faiss/语义陈旧度的维度假设)。"
+        )
+
+        if _n_art == 0:
+            # 空 frame 守卫: 无任何文章 → 不进比率/方向判读 (否则 _full_rate=0.0 会误报
+            # "100% 行全 NaN")。走"无有效数据"分支, 后续判读整体短路 (不抛异常)。
+            logger.warning(
+                "  本阶段 0 篇文章 (上游 13_news_with_ctx.parquet 为空?), 无嵌入可体检; "
+                "跳过有效率/归一化/双轨覆盖判读。"
+            )
+        else:
+            # full 轨有效率: 整行全 NaN 视为编码失败 (正常 full 轨应 100% 有效, 无回退 NaN 路径)。
+            # 性能: 唯一 NaN 路径是整数组 np.full_like(.., nan) 回退 → 行级全 NaN ⟺ 首列 NaN,
+            # 故用 (N,) 首列判定替换满 (N,768) bool 矩阵, 全量 17M 时内存/算力降一个数量级。
+            _full_valid_mask = (
+                ~np.isnan(embs_full[:, 0])
+                if embs_full.ndim == 2
+                else np.zeros(0, dtype=bool)
+            )
+            _full_valid = int(_full_valid_mask.sum())
+            _full_rate = _full_valid / _n_art
+            logger.info(
+                f"  emb_full 有效行 = {_full_valid}/{_n_art} ({_full_rate:.1%}); "
+                + ("好: full 轨全覆盖 (无 NaN), 符合预期。"
+                   if _full_rate >= 0.999
+                   else f"⚠ 临界/坏: {(1 - _full_rate):.1%} 行 emb_full 全 NaN, full 轨编码异常须排查。")
+            )
+
+            # ctx 轨: 上游缺 content_ctx 时 embs_ctx = np.full_like(.., nan) → 全 NaN 回退。
+            # 同 full 轨, 用 (N,) 首列判定替换满矩阵 isnan (唯一 NaN 路径是整数组级回退)。
+            _ctx_col0 = embs_ctx[:, 0] if embs_ctx.ndim == 2 else embs_ctx
+            _ctx_all_nan = bool(np.isnan(_ctx_col0).all())
+            if _ctx_all_nan:
+                logger.warning(
+                    "  emb_ctx 全 NaN: 上游 stage 13 缺 content_ctx 列, ctx 轨已优雅回退占位; "
+                    "下游 stage 18 的 ctx 语义陈旧度 (semantic_staleness_ctx) 将不可用。"
+                )
+            else:
+                _ctx_valid_mask = ~np.isnan(_ctx_col0)
+                _ctx_valid = int(_ctx_valid_mask.sum())
+                _ctx_rate = _ctx_valid / _n_art
+                logger.info(
+                    f"  emb_ctx 有效行 = {_ctx_valid}/{_n_art} ({_ctx_rate:.1%}); "
+                    + ("好: ctx 轨 (实体窗口)语义指纹齐备。"
+                       if _ctx_rate >= 0.999
+                       else f"⚠ {(1 - _ctx_rate):.1%} 行 emb_ctx 全 NaN (部分文章无 ctx 文本)。")
+                )
+
+            # 归一化体检: normalize_embeddings=True → 每行 L2 范数应≈1.0 (随机取首个有效行)
+            if _full_valid > 0:
+                _first_valid_idx = int(np.argmax(_full_valid_mask))
+                _l2 = float(np.linalg.norm(embs_full[_first_valid_idx]))
+                logger.info(
+                    f"  emb_full 单位归一化抽检 (行 {_first_valid_idx}): L2 范数 = {_l2:.4f}; "
+                    + ("好: ≈1.0, normalize_embeddings 生效 (cosine 友好)。"
+                       if abs(_l2 - 1.0) < 1e-3
+                       else "⚠ 偏离 1.0: 归一化可能未生效, 下游 cosine 度量须复核。")
+                )
+            else:
+                logger.warning(
+                    "  emb_full 无有效行 (全 NaN 或空): 跳过归一化抽检; full 轨编码可能整体失败。"
+                )
+
+            # ss 嵌入轨上线状态 (v1 延后, 信息性记录)
+            if 'content_ss' in df.columns:
+                logger.info(
+                    "  ss 嵌入轨: content_ss 已物化但 emb_ss 在 v1 延后 (plan §④/§7.5, 最贵收益低); "
+                    "semantic_staleness_ss 在 30a ss 上线前恒 NaN (预期行为, 非缺陷)。"
+                )
+
+            # provenance 自证 (供 stage 18 检测 30a 陈旧, 防位置错位)
+            logger.info(
+                f"  provenance: model_id={_SBERT_MODEL_ID} / "
+                f"model_revision={_SBERT_REVISION or '(未钉死)'} / "
+                f"text_pipeline_version={_TEXT_PIPELINE_VERSION}; "
+                "下游 stage 18 按 article_id 显式 join 并核对这三列, 不匹配即报错强制重算 (防错位语义信号)。"
+            )
+
+            # 小样本 (盘面 T=2) 警告
+            if _n_art < 2000:
+                logger.info(
+                    f"  ⚠ 小样本 (仅 {_n_art} 篇, 盘面 T=2 验证语料): 上述比率/范数仅验证编码管道正确性, "
+                    "全量结论以 17M 文章 / T=18 实测为准。"
+                )
+    except Exception as _e:  # noqa: BLE001
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+    logger.info("-" * 72)
+
     logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
 
 

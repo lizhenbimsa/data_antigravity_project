@@ -478,25 +478,28 @@ def main():
     """
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
-    logger.info("")
-    logger.info("  📌 阶段目的")
-    logger.info("     对银行新闻分类(min_name_occurrences)和金融科技新闻分类")
-    logger.info("     (min_distinct_keywords)的核心阈值参数进行网格搜索(1~10),")
-    logger.info("     评估每个阈值对最终样本量的影响, 验证当前设置的稳健性。")
-    logger.info("")
-    logger.info("  📖 方法论依据")
-    logger.info("     · Loughran & McDonald (2011, JF 66(1):35-65):")
-    logger.info("       分类系统的关键参数应做敏感性分析, 证明结果不受阈值微调影响")
-    logger.info("     · Gentzkow, Kelly & Taddy (2019, JEL 57(3):535-574):")
-    logger.info("       文本分析的全部人为选择(如阈值)须报告稳健性")
-    logger.info("")
-    logger.info("  📊 关键指标解读")
-    logger.info("     · '肘部法则'(Elbow Method): 样本量下降速率最大的阈值通常是最优分界点")
-    logger.info("     · 若当前阈值位于'平台区'(小幅调整不改变样本量), 则选择是稳健的")
-    logger.info("     · 若当前阈值位于'陡降区', 需谨慎评估微小变化对下游分析的影响")
-    logger.info("")
 
-    # 使用抽样进行快速分析——取完整数据量的 max(10%, 10000 行)
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段说明书 (仿 39c 黄金范式)。
+    logger.info("=" * 72)
+    logger.info("阶段 31: 银行×金科分类阈值敏感性 (Loughran-McDonald 2011 / GKT 2019 稳健性范式)")
+    logger.info("=" * 72)
+    logger.info("【功能】把银行分类阈值 min_name_occurrences 与金科分类阈值 min_distinct_keywords")
+    logger.info("        各从 1 扫到 10, 统计每个阈值下被判为正例的文章数/保留率, 验证当前生产")
+    logger.info("        阈值(银行=3、金科=3)是否站得住脚 (产稳健性附录表/图, 不改任何主链数据)。")
+    logger.info("【方法】复用与 stage 11/12 完全一致的 Aho-Corasick 匹配逻辑(含否定模式+短名歧义消解);")
+    logger.info("        银行判正 = total(含标题)>=阈值 且 (上下半各达标 或 标题命中且正文计数达标);")
+    logger.info("        金科判正 = distinct_count>=阈值 且 (上下半各达标 或 标题命中且全文计数达标)。")
+    logger.info("        为提速取 min(10000, max(1000, 10%)) 行抽样 (即下限 1000、上限封顶 1 万行;")
+    logger.info("        random_state=42); 全量场景实抽 <=1 万行 (约 0.06%), 按抽样比例外推全量。")
+    logger.info("【判读】最理想是当前阈值落在'平台区'(±1 微调时正例数几乎不变=稳健, 非凑结果);")
+    logger.info("        相邻阈值 |Δ正例数| 降幅最大处(np.argmin diffs, 即 diff 最负处)= '拐点/陡降区',")
+    logger.info("        离当前阈值越远越好 (注: 正例数随阈值单调非增, diffs<=0, argmin 取最负=绝对降幅最大)。")
+    logger.info("【文献】Loughran & McDonald (2011, JF 66(1):35-65) 分类关键参数须做敏感性分析;")
+    logger.info("        Gentzkow, Kelly & Taddy (2019, JEL 57(3):535-574) 文本分析人为选择须报告稳健性。")
+    logger.info("【确定性】纯 CPU 计数, 无 LLM/Embedding/BERT; 抽样 seed 固定=42 → 逐位可复现。")
+    logger.info("=" * 72)
+
+    # 使用抽样进行快速分析——取 min(10000, max(1000, 10%)) 行 (下限 1000, 上限封顶 1 万)
     sample_frac = CONFIG.get('threshold_sensitivity', {}).get('sample_fraction', 0.10)
     sample_max = CONFIG.get('threshold_sensitivity', {}).get('sample_max', 10000)
     threshold_range = CONFIG.get('threshold_sensitivity', {}).get('threshold_range', list(range(1, 11)))
@@ -700,6 +703,93 @@ def main():
             f"金融科技分类建议：阈值={fintech_results[max_drop_idx+1]['threshold']} "
             f"处样本量下降最剧烈 (Δ={diffs[max_drop_idx]:+,})"
         )
+
+    # ======================================================================
+    # 结果分析 — 写入日志, 让 <stage>.log 自带"当前阈值稳不稳"的判读 (仿 39c)。
+    # 仅服务于日志的局部计算, 不回写 df / 任何产物 (golden-safe)。
+    # ======================================================================
+    def _platform_verdict(results: list, cur_thr: int):
+        """检查 cur_thr 是否落在'平台区'(±1 微调时正例数几乎不变=稳健)。
+
+        返回 (cur_count, cur_ratio, 相对左右邻居的最大百分比波动, 文字判读)。
+        纯日志用, 不修改任何产物。
+        """
+        by_thr = {r['threshold']: r for r in results}
+        cur = by_thr.get(cur_thr)
+        if cur is None or cur['count'] == 0:
+            return (cur['count'] if cur else 0,
+                    cur['ratio'] if cur else 0.0, None, '当前阈值不在网格内或正例为 0')
+        neighbors = [by_thr[t] for t in (cur_thr - 1, cur_thr + 1) if t in by_thr]
+        if not neighbors:
+            return cur['count'], cur['ratio'], None, '无相邻阈值可比 (网格端点)'
+        max_pct = max(abs(n['count'] - cur['count']) / cur['count'] * 100
+                      for n in neighbors)
+        if max_pct < 5.0:
+            verdict = f'平台区 (±1 仅 {max_pct:.1f}% 波动 <5% → 阈值稳健, 非凑结果)'
+        elif max_pct < 15.0:
+            verdict = f'缓坡区 (±1 波动 {max_pct:.1f}% → 尚可, 建议附录披露敏感性)'
+        else:
+            verdict = f'陡降区 (±1 波动 {max_pct:.1f}% ≥15% → 不利, 微调即显著改变样本, 须谨慎)'
+        return cur['count'], cur['ratio'], max_pct, verdict
+
+    # crash-guard: 结果分析块整体 try/except, 任何诊断异常都不得拖垮阶段
+    # (本块已在 CSV/PNG/LaTeX 写盘之后, 但仍兜底以防 division/索引异常)。
+    try:
+        logger.info("-" * 72)
+        logger.info(
+            f"【结果分析】阈值网格 {threshold_range[0]}~{threshold_range[-1]}, "
+            f"抽样 {len(df_sample):,} 篇 (银行名 {len(banks_list)} 家 / 金科词 {len(keywords_list)} 个):"
+        )
+
+        b_cnt, b_ratio, b_pct, b_verdict = _platform_verdict(
+            bank_results, current_threshold)
+        logger.info(
+            f"  · 银行分类 @当前阈值={current_threshold}: 正例={b_cnt:,} ({b_ratio:.1f}%), "
+            f"估计全量={next((r['estimated_total'] for r in bank_results if r['threshold'] == current_threshold), 0):,}"
+        )
+        logger.info(
+            f"    判读 (±1 最大波动 {b_pct:.1f}%): {b_verdict}"
+            if b_pct is not None else f"    判读: {b_verdict}"
+        )
+
+        f_cnt, f_ratio, f_pct, f_verdict = _platform_verdict(
+            fintech_results, ft_current_threshold)
+        logger.info(
+            f"  · 金科分类 @当前阈值={ft_current_threshold}: 正例={f_cnt:,} ({f_ratio:.1f}%), "
+            f"估计全量={next((r['estimated_total'] for r in fintech_results if r['threshold'] == ft_current_threshold), 0):,}"
+        )
+        logger.info(
+            f"    判读 (±1 最大波动 {f_pct:.1f}%): {f_verdict}"
+            if f_pct is not None else f"    判读: {f_verdict}"
+        )
+
+        # 全网格单调性自检 (阈值越高正例应越少; 反单调=逻辑异常, loud 提示)。
+        b_counts = [r['count'] for r in bank_results]
+        f_counts = [r['count'] for r in fintech_results]
+        b_mono = all(b_counts[i] >= b_counts[i + 1] for i in range(len(b_counts) - 1))
+        f_mono = all(f_counts[i] >= f_counts[i + 1] for i in range(len(f_counts) - 1))
+        logger.info(
+            f"  · 单调性自检: 银行 {'✓ 单调非增 (符合预期)' if b_mono else '✗ 出现反单调 (异常, 须排查)'}, "
+            f"金科 {'✓ 单调非增 (符合预期)' if f_mono else '✗ 出现反单调 (异常, 须排查)'}"
+        )
+
+        # 优雅降级 / 边界警告。
+        if b_cnt == 0:
+            logger.warning("  ⚠ 银行分类在当前阈值正例为 0 — 检查银行名词典/否定模式是否加载成功")
+        if f_cnt == 0:
+            logger.warning("  ⚠ 金科分类在当前阈值正例为 0 — 检查金科关键词词典 (fintech_dict) 是否加载成功")
+        if len(keywords_list) == 0:
+            logger.warning("  ⚠ 金科关键词词典为空 → 金科网格全 0, 敏感性结论无效 (优雅降级, 须补词典)")
+
+        # 小样本警告 (盘面抽样 / T=2)。
+        if sample_n < total_rows:
+            logger.info(
+                f"  ⚠ 本次为抽样分析 ({sample_n:,}/{total_rows:,}={sample_n / total_rows * 100:.1f}%), "
+                "全量比率以外推值为参考; 阈值平台/陡降判读以 17M/T=18 全量实测为准, 当前仅验证管道正确性。"
+            )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=len(df_sample),

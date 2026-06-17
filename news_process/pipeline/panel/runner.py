@@ -486,9 +486,25 @@ def main():
         ``python news_process/45_panel_export_main.py`` 这个外部 CLI 契约.
     """
     start_time = time.time()
-    logger.info("=" * 70)
-    logger.info("===    45_panel_export_main: Bank-Year 面板数据构建    ===")
-    logger.info("=" * 70)
+
+    # ── 阶段功能 banner (黄金范式: 让 <stage>.log 自带说明书) ──
+    logger.info("=" * 72)
+    logger.info("阶段 45: 面板导出 (主, 三轨承载) — Bank-Year 面板总装 (41+42+43+44+46+47→45)")
+    logger.info("=" * 72)
+    logger.info("【功能】整条流水线的'总装车间': 把 stage 21 语义精筛后的 article×bank 级")
+    logger.info("        记录 (24_herd_decay) 按 (银行, 年份) 归拢压缩成 bank-year 面板,")
+    logger.info("        每家银行每年一行, 一行上千列指标 (情感/注意力/网络/IV/稳健性),")
+    logger.info("        最终落 40_panel_yearly.parquet(+.csv/.dta) + 3 张地理注意力副表。")
+    logger.info("【方法】串行 7 子步 (StageSpec 41→42→43→44→46→47→45): 篇章级情感编码 →")
+    logger.info("        VW/MW/HW 三类加权 → aggregate_panel 聚合 → balance_panel 笛卡尔积")
+    logger.info("        补全 (无报道行标 has_coverage=0, 不填零) → 注意力/地理/Bartik IV/DID/")
+    logger.info("        网络族; 三轨 ['_full','_ctx','_ss'] 全平价 (ss=银行+金科同句, 缺列优雅跳过)。")
+    logger.info("        关键公式: J-F P>N→(P²−PN)/t²; Bartik=Σ_k(base-share×year-shift)。")
+    logger.info("【判读】结构自检: 行数应==banks×years笛卡尔积(post-balance_panel恒成立);")
+    logger.info("        真实信号密度看 has_coverage=1 占比; 零新闻行=故意标缺失而非零(护回归口径);")
+    logger.info("        P1 主规格主因变量=llm_vote_tone_ctx; 上游缺数据→fail-loud 停。")
+    logger.info("【确定性】本阶段不直接调 LLM (消费 stage 21 缓存); 仅 7h-emb/llmpeer 内联")
+    logger.info("        Sentence-Embedding 相似度可能触网 (timeout=7200 留 buffer); 其余纯 CPU。")
 
     # --- 1. 数据加载与验证 ---
     logger.info("=" * 60)
@@ -2244,6 +2260,174 @@ def main():
         _ivx_T0 = int(_ivx_base_cfg)
     panel = compute_iv_extensions(panel, df_exploded,
                                   _ivx_type_map, [_ivx_T0])
+
+    # ── 【结果分析】(仅日志, 不回写 panel/产物; golden-safe) ──
+    # 取最终 panel 的真实产出指标, 对照阈值/预期方向给出好/坏/临界判读,
+    # 让 <stage>.log 自带"这次跑出来对不对"的体检报告。
+    # crash-guard: 整块仅做"读数据算指标"的诊断, 全部包进 try/except —— 本块在
+    # export_panel 写盘之前执行, 若任一指标计算抛异常 (空 Series / 缺列 / int(NaN)),
+    # 绝不能让阶段崩溃丢产物 (这才是真 golden-safe)。
+    try:
+        logger.info("-" * 72)
+        logger.info("【结果分析】Bank-Year 面板总装收尾, 关键产出指标体检:")
+
+        _n_rows = len(panel)
+        _n_banks = panel['target_bank'].nunique() if 'target_bank' in panel.columns else 0
+        # NaN-guard: year 列全空 (空面板 / 上游异常) 时 min()/max() 为 NaN,
+        # int(NaN) 会 ValueError → 用 notna 守卫退化为 0 跨度, 不进数值判断。
+        if 'year' in panel.columns and panel['year'].notna().sum() > 0:
+            _y_min, _y_max = int(panel['year'].min()), int(panel['year'].max())
+            _n_years = _y_max - _y_min + 1
+            _yr_span = f"{_y_min}-{_y_max}"
+        else:
+            _y_min, _y_max, _n_years, _yr_span = 0, 0, 0, "无有效年份(全 NaN)"
+        logger.info(
+            f"  · 面板维度: {_n_rows:,} 行 = {_n_banks} 银行 × {_n_years} 年 "
+            f"({_yr_span}); 入站文章-银行级行数 {len(df_exploded):,}"
+        )
+
+        # (1) 结构完整性自检: 实际行 vs 理论笛卡尔积 (Wooldridge 2010 / Baltagi 2021)
+        # ⚠ 这不是"名册对齐质量"指标: balance_panel (encode.py:2017-2021) 已用
+        #   MultiIndex.from_product([all_banks, all_years]) 把 panel 强制补成完整
+        #   笛卡尔积, 且下游无删行/删银行/删年份操作 → 干净 run 上 _n_rows 结构性
+        #   恒 = _theo, 平衡率应 ==100.0%。故此处只作二值自检: 偏离 100% 即下游
+        #   merge 产生了重复/丢失 (bank,year) 键 (而 _merge_optin_feature_panels
+        #   L2247 已对重复键 fail-loud 拦截), 是异常告警而非"规整度"度量。
+        _theo = _n_banks * _n_years
+        _bal = _n_rows / _theo if _theo > 0 else 0.0
+        if _theo <= 0:
+            _bal_verdict = "无法计算 (银行数或年份跨度为 0, 见上方维度行)"
+        elif _n_rows == _theo:
+            _bal_verdict = "✅ 通过 (==100.0%, post-balance_panel 笛卡尔积; 行=banks×years)"
+        else:
+            _bal_verdict = ("🔴 异常 (≠100%, 下游 merge 产生重复/丢失 (bank,year) 键; "
+                            "正常应被 _merge_optin_feature_panels fail-loud 拦截)")
+        logger.info(
+            f"  · 结构完整性自检: 实际 {_n_rows:,} / 理论笛卡尔积 {_theo:,} = "
+            f"{_bal:.1%} → {_bal_verdict}"
+        )
+        # 真实覆盖率 (信号密度): 有报道 bank-year 占完整笛卡尔积比例 —— 这才是有信息量
+        # 的口径 (零报道行已笛卡尔补全为缺失, has_coverage=0); 越高=真实信号越密。
+        if 'has_coverage' in panel.columns and _theo > 0:
+            _cov_frac = int(panel['has_coverage'].sum()) / _theo
+            logger.info(
+                f"  · 真实信号密度: 有报道 bank-year 占完整笛卡尔积 = {_cov_frac:.1%} "
+                f"(越高信号越密; 零报道格已笛卡尔补全为缺失行)"
+            )
+
+        # (2) 新闻覆盖: 零新闻行应为"缺失"而非数值零 (护回归口径)
+        if 'n_articles' in panel.columns:
+            _no_news = int((panel['n_articles'] == 0).sum())
+            _no_news_pct = _no_news / _n_rows if _n_rows > 0 else 0.0
+            _cov_rows = _n_rows - _no_news
+            _na = panel['n_articles']
+            _na_pos = _na[_na > 0]
+            _na_mean = float(_na_pos.mean()) if len(_na_pos) > 0 else 0.0
+            logger.info(
+                f"  · 新闻覆盖: 有报道 bank-year {_cov_rows:,} / 零报道 {_no_news:,} "
+                f"({_no_news_pct:.1%}); 有报道行均篇数 {_na_mean:.1f}"
+            )
+            if 'has_coverage' in panel.columns:
+                _hc = int(panel['has_coverage'].sum())
+                logger.info(
+                    f"    has_coverage=1 共 {_hc:,} 行 (仅这些行带情感信号; 零报道行 tone=NaN, "
+                    f"刻意不填零以防回归口径污染)"
+                )
+
+        # (3) 主因变量 (P1 注册主规格): llm_vote_tone_ctx (entity-attributed, ctx 轨;
+        #     CLAUDE.md / papers/bank_fintech_tone/paper_spec 锁定 main=llm_vote_tone_ctx,
+        #     Tetlock 2007 / Loughran-McDonald 2016); llm_vote_tone_full 为全平价孪生轨,
+        #     此处一并报告作 robustness 对照, 但不冠以"P1 主线"避免误判落盘主回归 DV。
+        for _tone_col, _tone_lab in (
+            ('llm_vote_tone_ctx', '媒体语调主测度 llm_vote_tone_ctx (ctx 轨, P1 注册主规格)'),
+            ('llm_vote_tone_full', '媒体语调 llm_vote_tone_full (full 轨, 全平价稳健性对照)'),
+        ):
+            if _tone_col not in panel.columns:
+                # ctx 缺列才告警 (主规格); full 缺列降级 info
+                if _tone_col == 'llm_vote_tone_ctx':
+                    logger.warning(
+                        "  · ⚠️ 主因变量 llm_vote_tone_ctx (P1 主规格) 列缺失: "
+                        "stage 21 产物可能未就绪"
+                    )
+                continue
+            _tone = panel[_tone_col].dropna()
+            if _tone.notna().sum() == 0:
+                logger.warning(
+                    f"  · ⚠️ {_tone_col} 该轨无有效数据(全 NaN): "
+                    "检查上游 stage 21 LLM 投票是否落盘"
+                )
+                continue
+            _tm = float(_tone.mean())
+            _dir = "整体偏乐观(>0)" if _tm > 0 else ("整体偏悲观(<0)" if _tm < 0 else "中性(≈0)")
+            logger.info(
+                f"  · {_tone_lab}: mean={_tm:+.4f} ({_dir}), "
+                f"std={_tone.std():.4f}, 非缺 {len(_tone):,}/{_n_rows:,} 行"
+            )
+
+        # (4) 内容属性二元分割 (P4 locus): 底层技术占比偏向
+        if 'tech_frac' in panel.columns:
+            _tf = panel['tech_frac'].dropna()
+            if _tf.notna().sum() == 0:
+                logger.info("  · tech_frac 该轨无有效数据(全 NaN; 盘面或无 locus 二元分类标注, 优雅降级)")
+            else:
+                _tfm = float(_tf.mean())
+                logger.info(
+                    f"  · 底层技术占比 tech_frac: mean={_tfm:.3f} "
+                    f"({'偏底层技术' if _tfm > 0.5 else '偏应用场景'}; 0=应用/1=底层), "
+                    f"非缺 {len(_tf):,} 行"
+                )
+        for _sfx, _lab in [('_tech', '底层技术'), ('_app', '应用场景')]:
+            _col = f'n_articles{_sfx}'
+            if _col in panel.columns and 'n_articles' in panel.columns:
+                _has_cat = int((panel[_col] > 0).sum())
+                _tot = int((panel['n_articles'] > 0).sum())
+                if _tot > 0:
+                    logger.info(
+                        f"    {_lab} ({_col}): 有该类文章 bank-year = {_has_cat}/{_tot} "
+                        f"({_has_cat / _tot:.1%})"
+                    )
+
+        # (5) P2 注意力指数 (Fang-Peress 2009 extensive 覆盖; 全集脊柱 LEFT-join 零填 0)
+        if 'attention_index_full' in panel.columns:
+            _ai = panel['attention_index_full'].dropna()
+            if _ai.notna().sum() == 0:
+                logger.info("  · attention_index_full 该轨无有效数据(全 NaN), 跳过")
+            else:
+                _ai_nz = int((_ai > 0).sum())
+                logger.info(
+                    f"  · 金科注意力指数 attention_index_full: mean={float(_ai.mean()):.4f}, "
+                    f"max={float(_ai.max()):.4f}; >0 的 bank-year {_ai_nz:,}/{len(_ai):,} "
+                    f"(零-fintech 行被刻意填 0, 非 NaN)"
+                )
+
+        # (6) 三轨承载体检: 统计实际落盘的 _full/_ctx/_ss 列数 (ss 首跑前可整体缺)
+        _track_counts = {}
+        for _tk in ('_full', '_ctx', '_ss'):
+            _track_counts[_tk] = sum(1 for _c in panel.columns if _c.endswith(_tk))
+        logger.info(
+            f"  · 三轨列承载: _full={_track_counts['_full']} / _ctx={_track_counts['_ctx']} / "
+            f"_ss={_track_counts['_ss']} 列; 面板总列数 {panel.shape[1]:,}"
+        )
+        if _track_counts['_ss'] == 0:
+            logger.warning(
+                "    ⚠️ _ss 三轨列为 0: stage 21 付费 ss 跑尚未播种缓存属预期 "
+                "(REQUIRED_PANEL_COLUMNS 刻意不含 _ss, 不阻塞导出); 全量上线后应非零。"
+            )
+        elif _track_counts['_ss'] < _track_counts['_ctx'] * 0.5:
+            logger.warning(
+                f"    ⚠️ _ss({_track_counts['_ss']}) 远少于 _ctx({_track_counts['_ctx']}): "
+                "ss 轨可能部分缺列, 检查 stage 21 ss 缓存覆盖率。"
+            )
+
+        # (7) 小样本(盘面 T=2)守卫: 提醒结论以全量 17M/T=18 为准
+        if 0 < _n_years <= 3 or _n_rows < 300:
+            logger.info(
+                f"  · ⚠️ 小样本盘面 (T={_n_years}, {_n_rows:,} 行): 本次仅验证管道正确性与 "
+                "schema 完整性, 一切回归级数值结论以全量 17M 语料 / T=18 (2007-2024) 实测为准。"
+            )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     log_diagnostics(panel, df_exploded)
 

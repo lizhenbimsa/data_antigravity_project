@@ -416,6 +416,9 @@ def analysis_2_monotonicity_test(df: pd.DataFrame,
 
             results_df.attrs['ca_statistic'] = ca_result['statistic']
             results_df.attrs['ca_p_value'] = ca_result['p_value']
+            # 把趋势方向也写进 attrs (仅供下游汇总日志判读方向, 不改产物列/返回值, golden-safe):
+            # ca_p_value 是双尾, 单看 p<0.05 无法区分正向/负向趋势 → 须配 slope_sign 才能正确判读。
+            results_df.attrs['ca_slope_sign'] = ca_result['slope_sign']
         else:
             logger.warning("  分组不足 2 组, 跳过趋势检验")
     except ImportError:
@@ -790,11 +793,24 @@ def main():
     args = parser.parse_args()
 
     start_time = time.time()
-    logger.info("=" * 70)
-    logger.info("===  37_dict_coverage_audit: 词典覆盖率审计  ===")
-    logger.info("=" * 70)
-    logger.info(f"  阈值 T (min_distinct_keywords): {T}")
-    logger.info(f"  LLM 交叉验证: {'启用' if args.run_llm_check else '禁用'}")
+
+    # ================================================================
+    # 【功能】banner (黄金范式: 让 37_dict_coverage_audit.log 自带说明书)
+    # ================================================================
+    logger.info("=" * 72)
+    logger.info("阶段 37: 金融科技词典覆盖率审计 (Precision/Coverage/Stability 三维, Sautner et al. 2023 JF)")
+    logger.info("=" * 72)
+    logger.info("【功能】给静态金融科技词典 (fintech_dict.json, ~1500 词) 做体检: 判断一篇")
+    logger.info("        新闻是不是金科新闻, 靠的是这本人工编的关键词词典。本阶段量化诊断它")
+    logger.info("        '够不够用', 产出 4 张诊断 CSV (分布/词频/零命中词/时间趋势), 不改任何管道数据。")
+    logger.info("【方法】三维全自动审计: ① Precision = 边际通过率 (恰好命中 T 个) + LLM 验证率单调性")
+    logger.info("        (Cochran-Armitage 趋势 + Wilson CI); ② Coverage = HHI 集中度 + 有效关键词数")
+    logger.info("        ENK=1/HHI + 零命中死词; ③ Stability = 逐年通过率/边际率 np.polyfit 一阶斜率判老化。")
+    logger.info("【判读】边际率↑、ENK↓、有效覆盖率↓、边际组验证率显著低于高命中组 = 词典越差;")
+    logger.info(f"        阈值: 边际率≤15% / ENK≥50 / 覆盖率≥50% / 验证率差异<3pp 为健康。T={T}。")
+    logger.info("【确定性】纯统计 (pandas/numpy/scipy), 无 LLM/Embedding API 调用, $0, 逐位可复现。")
+    logger.info(f"【运行参数】阈值 T (min_distinct_keywords) = {T}; "
+                f"LLM 交叉验证 = {'启用' if args.run_llm_check else '禁用'}。")
 
     # ================================================================
     # 加载数据
@@ -929,6 +945,105 @@ def main():
         coverage_rate = 1 - len(zero_hit_df) / n_dict if n_dict > 0 else 0
     except Exception:
         coverage_rate = 0.0
+
+    # ================================================================
+    # 【结果分析】黄金范式: 逐个关键产出指标打印数值 + 对照阈值判读
+    #   (纯增量日志, 下列局部变量仅服务于日志打印, 不回写任何产物)
+    #   crash-guard: 本分析块虽在全部 to_csv 写盘之后执行, 仍整体包 try/except,
+    #   保证任何读数/计算异常 (空 Series / 缺列 / polyfit) 只告警跳过, 不丢产物。
+    # ================================================================
+    try:
+        logger.info("-" * 72)
+        logger.info("【结果分析】本次词典体检的核心产出指标逐项解读 (越偏离阈值 = 词典越需修):")
+
+        # ① 边际通过率 (Precision): 恰好踩线 T 个的占比
+        logger.info(f"  ① 边际通过率 = {marginal_rate:.1%} "
+                     f"({n_marginal:,}/{total_fintech:,}, 安全阈值 ≤15%): "
+                     + ("偏高, 大量文章勉强踩线, 词典对边际区域覆盖不足"
+                        if marginal_rate > 0.15 else "✓ 健康, 词典在阈值区域表现稳健"))
+
+        # ② LLM 验证率差异 (Precision): 边际组 vs 高命中组
+        #   注意: ca_p_value 是双尾 (p=2*(1-Φ(|z|))), 单看 p<0.05 无法区分趋势方向 →
+        #   必须配 ca_slope_sign 三分支判读, 否则显著的"负向趋势 (异常信号)"会被反报成健康上升。
+        ca_p = group_df.attrs.get('ca_p_value') if not group_df.empty else None
+        ca_sign = group_df.attrs.get('ca_slope_sign') if not group_df.empty else None
+        if not group_df.empty and 'verified_rate' in group_df.columns:
+            logger.info(f"  ② 验证率差异 (边际组 vs 高命中组) = {effect_size:+.1f}pp "
+                         f"(安全阈值 |差异|<3pp): "
+                         + ("✓ 无实质差异, 踩线文章未明显混入噪声"
+                            if abs(effect_size) < 3.0
+                            else "差异偏大, 踩线组混入了较多伪金科新闻"))
+            if ca_p is not None:
+                if ca_p < 0.05 and ca_sign is not None and ca_sign > 0:
+                    ca_msg = "✓ 验证率随命中数显著单调上升 (p<0.05), 关键词数是有效信号"
+                elif ca_p < 0.05:
+                    # 显著但非正向 (slope_sign<=0): 关键词越多验证率反而越低, 正是 analysis_2 标记的异常信号
+                    ca_msg = "⚠ 显著但为负向趋势 (异常信号), 关键词数越多验证率反而越低, 词典需重审"
+                else:
+                    ca_msg = "趋势不显著 (p≥0.05), 命中数与真伪关联弱"
+                logger.info(f"     Cochran-Armitage 趋势检验 p={ca_p:.4f}: " + ca_msg)
+        else:
+            logger.warning("  ② 验证率单调性不可用 (llm_verified_full 缺失或 group_df 为空) → 跳过 Precision 第二维")
+
+        # ③ 集中度 ENK (Coverage)
+        n_hit_kw = len(freq_df) if not freq_df.empty else 0
+        logger.info(f"  ③ 有效关键词数 ENK = {enk:.0f} (实际命中 {n_hit_kw} 个不同词, 建议 ≥50): "
+                     + ("偏低, 词典靠少数高频词撑场, 有效维度不足"
+                        if enk < 50 else "✓ 关键词使用分散, 有效覆盖面较好"))
+
+        # ④ 有效覆盖率 + 零命中死词 (Coverage)
+        n_zero = len(zero_hit_df)
+        logger.info(f"  ④ 有效覆盖率 = {coverage_rate:.1%} (零命中词 {n_zero:,} 个, 建议 ≥50%; 通过样本口径): "
+                     + ("偏低, 但属选择后样本口径, 系统性高估死词数, 删词前须在全量语料复核"
+                        if coverage_rate < 0.50 else "✓ 词典与通过样本匹配度尚可"))
+
+        # ⑤ 时间稳定性 (Stability): 逐年边际率/总体率斜率
+        #   column-guard: trend_df 须含 marginal_rate / overall_pass_rate 两列方可拟合;
+        #   NaN-guard: 任一列全 NaN (无有效年度数据) 则不落进数值方向判断。
+        if not trend_df.empty:
+            n_years = len(trend_df)
+            slope_cols_ok = ('marginal_rate' in trend_df.columns
+                             and 'overall_pass_rate' in trend_df.columns)
+            if n_years >= 3 and slope_cols_ok:
+                m_series = pd.to_numeric(trend_df['marginal_rate'], errors='coerce')
+                o_series = pd.to_numeric(trend_df['overall_pass_rate'], errors='coerce')
+                if m_series.notna().sum() < 3 or o_series.notna().sum() < 3:
+                    logger.warning("  ⑤ 时间稳定性: 有效年度点 <3 (边际率/总体率含过多 NaN) "
+                                   "→ 无法拟合趋势, 跳过老化判读")
+                else:
+                    m_slope = float(np.polyfit(range(n_years), m_series.values, 1)[0])
+                    o_slope = float(np.polyfit(range(n_years), o_series.values, 1)[0])
+                    logger.info(f"  ⑤ 时间稳定性 ({n_years} 年, 边际率斜率={m_slope:+.4f}/年, "
+                                 f"总体率斜率={o_slope:+.4f}/年, 老化阈值各 ±0.005): "
+                                 + ("边际率↑且总体率↓ = 词典老化, 应扩词或调阈值"
+                                    if (m_slope > 0.005 and o_slope < -0.005)
+                                    else "边际率有上升趋势, 需留意" if m_slope > 0.005
+                                    else "✓ 无明显老化信号"))
+            elif not slope_cols_ok:
+                logger.warning("  ⑤ 时间稳定性: trend_df 缺 marginal_rate/overall_pass_rate 列 → 跳过趋势拟合")
+            else:
+                logger.warning(f"  ⑤ 时间稳定性: 仅 {n_years} 年数据 (<3 年), 无法做趋势拟合 "
+                                "→ 盘面 T=2 退化, 此维仅验证管道正确性, 老化结论以全量 17M/T=18 实测为准")
+        else:
+            logger.warning("  ⑤ 时间稳定性: 时间趋势表为空 (无可用年度数据) → 跳过趋势拟合")
+
+        # ⑥ 灰色地带 (Coverage 下界): 可能被漏掉的真金科新闻
+        pct_grey = grey_info.get('pct_grey_zone', 0)
+        logger.info(f"  ⑥ 灰色地带占比 = {pct_grey:.1%} "
+                     f"(1≤distinct<{T} 的被拒文章 {grey_info.get('n_grey_zone', 0):,} 篇, 全部银行新闻"
+                     f" {grey_info.get('total_bank_news', 0):,} 篇, 参考阈值 ≤10%): "
+                     + ("偏高, 可能有真金科新闻因词典覆盖不足被漏判"
+                        if pct_grey > 0.10 else "✓ 灰色地带规模可控"))
+
+        # 小样本警告 (盘面 T=2)
+        if total_fintech < 500:
+            logger.info(f"  [小样本警告] 通过分类的金科文章仅 {total_fintech:,} 篇 (盘面 T=2 退化), "
+                         "上述比率/趋势统计功效有限, 仅验证管道正确性; "
+                         "词典覆盖结论以全量 17M 语料 / T=18 实测为准。")
+
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     log_summary(marginal_rate, effect_size, enk, coverage_rate)
 

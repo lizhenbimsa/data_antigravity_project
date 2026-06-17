@@ -284,7 +284,22 @@ def run_stage(config=None, logger=None):
     if config is None:
         config = load_config()
     if logger is None:
-        logger = setup_logging(STAGE_NAME, config["paths"]["log_dir"])
+        logger = setup_logging(STAGE_NAME, config["paths"].get("log_dir", "logs"))
+
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
+    logger.info("=" * 72)
+    logger.info("阶段 39a: 轨间一致性 Cohen's κ (inter-track kappa; Plan v1.37 P1)")
+    logger.info("=" * 72)
+    logger.info("【功能】同一篇文章用三种文本口径 (full=全文 / ctx=银行实体上下文窗口 /")
+    logger.info("        ss=银行+金科同句共现窗口) 各打一次创新标签, 对 locus / substantiveness /")
+    logger.info("        collab_mode 三维, 在 llm_verified_dual_both 子集上两两比对一致程度,")
+    logger.info("        产 9 行诊断表 (3 维 × full_ctx/full_ss/ctx_ss 3 个 pair) 供论文附录 (Table A1)。")
+    logger.info("【方法】Cohen(1960) κ=(p_o−p_e)/(1−p_e); bootstrap 1000 次 (seed=42) 取 2.5%/97.5%")
+    logger.info("        为 95% CI, 单侧 bootstrap p 值检验 H0:κ=0; 同维度 3 个 pair 做 Holm(1979)")
+    logger.info("        step-down FWER 校正。阈值: locus≥0.50 / substantiveness≥0.45 / collab≥0.45。")
+    logger.info("【判读】预期 κ∈[0.50,0.70] (非越高越好): κ>0.70 提示两轨冗余 (测同一东西),")
+    logger.info("        κ<0.30 提示某轨噪声; 落中间区间=三轨互补、各有信息 (项目立场: 三轨互为稳健性)。")
+    logger.info("【确定性】纯 numpy/pandas, 无 LLM/Embedding/BERT 调用, seed=42 + NaN-aware 守卫保证逐位可复现。")
 
     output_dir = config["paths"]["output_dir"]
     input_path = os.path.join(output_dir, "21_tone_llms.parquet")
@@ -335,6 +350,76 @@ def run_stage(config=None, logger=None):
             logger.warning(
                 f"{r['field']} [{r['pair']}] κ={k:.4f} outside [0.30, 0.70] sentinel range."
             )
+
+    # 结果分析 — 写入日志: 逐行 κ 点估计 + CI + Holm p 值 + 阈值/区间判读。
+    logger.info("-" * 72)
+    n_dual_both = int(len(df_subset))
+    logger.info(
+        f"【结果分析】轨间 κ 诊断 (双向验证 both 子集 n={n_dual_both} 篇; "
+        f"共 {len(table)} 行 = 3 维 × 3 个 pair):"
+    )
+    # 逐行解读: κ 点估计 + 95% CI + Holm 校正 p 值, 对照阈值与 [0.30,0.70] 哨兵区间。
+    n_valid = 0          # 非 NaN κ 的行数 (实际算出 κ 的 pair)
+    n_pass = 0           # 达到本维度阈值的行数 (好)
+    n_redundant = 0      # κ>0.70 轨间冗余 (临界, 提示测同一东西)
+    n_noise = 0          # κ<0.30 某轨噪声 (不利)
+    for _, r in table.iterrows():
+        fld = str(r['field']).replace('innovation_', '')
+        k = r['kappa_point']
+        lo = r['ci_95_low']
+        hi = r['ci_95_high']
+        n_obs = int(r['n_obs'])
+        thr = r['threshold']
+        ph = r['p_value_holm']
+        if np.isnan(k):
+            # 典型: ss 轨列尚未物化, 该 pair 优雅退化为 NaN (n_obs=0)
+            logger.info(
+                f"  {fld} [{r['pair']}]: κ=NaN (n_obs={n_obs}) → 轨列缺失/样本不足, 优雅跳过"
+            )
+            continue
+        n_valid += 1
+        # 方向判读: 落在 [0.30,0.70] 哨兵区间内且达阈值=好; >0.70 冗余; <0.30 噪声
+        if k > 0.70:
+            verdict = "κ>0.70 → 轨间冗余 (临界, 提示两轨测同一东西)"
+            n_redundant += 1
+        elif k < 0.30:
+            verdict = "κ<0.30 → 某轨噪声 (不利)"
+            n_noise += 1
+        elif k >= thr:
+            verdict = f"达阈值 (≥{thr:.2f}) 且落 [0.30,0.70] 互补区间 (好)"
+            n_pass += 1
+        else:
+            verdict = f"未达阈值 (<{thr:.2f}) 但落 [0.30,0.70] (临界偏弱)"
+        ph_str = "NaN" if (ph is None or np.isnan(ph)) else f"{ph:.4f}"
+        sig = "" if (ph is None or np.isnan(ph)) else (
+            " [Holm 后 κ>0 显著]" if ph < 0.05 else " [Holm 后不显著]"
+        )
+        logger.info(
+            f"  {fld} [{r['pair']}]: κ={k:.4f}  95%CI=[{lo:.4f}, {hi:.4f}]  "
+            f"n_obs={n_obs}  Holm_p={ph_str}{sig} → {verdict}"
+        )
+    # 汇总判读
+    logger.info(
+        f"  汇总: 有效行 {n_valid}/{len(table)} | 达阈值(好) {n_pass} | "
+        f"冗余 κ>0.70 {n_redundant} | 噪声 κ<0.30 {n_noise}"
+    )
+    if n_valid == 0:
+        logger.warning(
+            "  ⚠ 全部 9 行 κ 均为 NaN — 上游 21_tone_llms 缺失 / 缺 llm_verified_dual_both 列 / "
+            "dual_both 子集为空 / 三轨创新列均未物化; 本次仅发空占位表, 无可用诊断结论 (优雅降级)。"
+        )
+    elif n_valid < len(table):
+        logger.warning(
+            f"  ⚠ 仅 {n_valid}/{len(table)} 行算出 κ — 多为 ss 轨 (full_ss/ctx_ss) 列尚未物化所致; "
+            "ss 缓存付费播种 + 全量重跑后该缺口闭合。"
+        )
+    # 小样本警告: 盘面 dual_both 子集偏小时只验证管道正确性
+    if 0 < n_dual_both < 100:
+        logger.info(
+            f"  ⚠ dual_both 子集仅 {n_dual_both} 篇 (盘面 T=2 小样本), κ 点估计与 CI 仅验证管道正确性; "
+            "全量结论以 17M/T=18 实测为准。"
+        )
+    logger.info("-" * 72)
 
     logger.info(f"Wrote {csv_path} + {tex_path} (n_obs={int(table['n_obs'].iloc[0] if len(table) else 0)})")
     return table

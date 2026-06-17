@@ -43,12 +43,17 @@ Phase 2 规划: (a) 将其余 23 个简易 CLI 正文迁入子包; (b) 将 22/23
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 
 import pandas as pd
 
 from news_process.core.config import load_config
+
+# 模块级 logger 占位; main() 内经 setup_logging 重绑为带 FileHandler 的实例
+# (此前本模块只用 print, 无 logger; 现对齐同族 audit 阶段, 让日志落 <stage>.log)。
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -62,6 +67,35 @@ def main():
 
     config = load_config()
     output_dir = config['paths']['output_dir']
+
+    # 接入项目统一日志: 写 <log_dir>/53_export_stats_excel.log。
+    # 此前本阶段仅用 print() 输出 (CLI 便利工具, 不在 DAG), 不落 <stage>.log。
+    # 现对齐同族 audit 阶段的 setup_logging 约定, 让日志自带阶段用途说明与结果分析;
+    # 原 print() 全部保留 (向后兼容外部 CLI 契约), 仅【新增】logger 调用。
+    global logger
+    from news_process.core.logging import setup_logging
+    logger = setup_logging(
+        "53_export_stats_excel",
+        config['paths'].get('log_dir', 'logs'),
+    )
+
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
+    logger.info("=" * 72)
+    logger.info("阶段 53: 各阶段媒体/地区/城市描述性统计 Excel 导出 (value_counts 频次分布)")
+    logger.info("=" * 72)
+    logger.info("【功能】把流水线四个关键阶段 (00 预处理 / 11 银行新闻 / 12 金科新闻 / 21 LLM 打分后)")
+    logger.info("        的新闻, 按发文媒体、来源省份、来源城市分别数频次, 写成多 sheet Excel,")
+    logger.info("        供论文样本描述/数据来源说明/覆盖范围附录使用 (纯描述性, 不进面板/回归)。")
+    logger.info("【方法】每阶段 × 每字段做 df[col].fillna('(空值)').value_counts(); 一个 sheet 一个分布;")
+    logger.info("        无回归/聚合公式。外部依赖仅 pandas + openpyxl, 无 LLM/Embedding/网络, 确定性强。")
+    logger.info("【判读】看 ① 各阶段行数的逐级漏斗 (筛选强度); ② 头部媒体/地区集中度 (代表性偏倚预警);")
+    logger.info("        ③ 各字段不同取值数与空值占比 (元数据完整性)。本工具不影响论文核心结果。")
+
+    # 仅供【结果分析】的日志变量 (绝不回写产物): 逐阶段行数 + 逐 sheet 摘要。
+    stage_rowcounts: dict[str, int] = {}
+    stage_field_summary: list[tuple[str, str, int, int, float, int]] = []
+    missing_stages: list[str] = []
+    missing_fields: list[str] = []
 
     stages = [
         {'label': '00_preprocessing',
@@ -92,16 +126,19 @@ def main():
 
             if not os.path.exists(parquet_path):
                 print(f"[跳过] {label}: 文件不存在 ({parquet_path})")
+                missing_stages.append(label)  # 仅供结果分析日志
                 continue
 
             print(f"[读取] {label}: {parquet_path}")
             cols_to_read = [f for f, _ in stat_fields]
             df = pd.read_parquet(parquet_path, columns=cols_to_read)
             print(f"  行数: {len(df):,}")
+            stage_rowcounts[label] = len(df)  # 仅供结果分析日志
 
             for col_name, sheet_suffix in stat_fields:
                 if col_name not in df.columns:
                     print(f"  [警告] 列 '{col_name}' 不存在于 {label}，跳过")
+                    missing_fields.append(f"{label}.{col_name}")  # 仅供结果分析日志
                     continue
 
                 sheet_name = f"{label}_{sheet_suffix}"[:31]  # Excel sheet 名上限 31 字符
@@ -111,7 +148,130 @@ def main():
                 vc.to_excel(writer, sheet_name=sheet_name, index=False)
                 print(f"  [OK] Sheet '{sheet_name}': {len(vc)} 个不同值")
 
+                # 仅供结果分析日志: 不同值数 / 总频次 / 头部值占比 / 空值条数 (不回写产物)。
+                # crash-guard: 此块在 ExcelWriter 仍打开时执行, 若诊断计算抛异常 (如空表
+                # iloc[0] / 计数转换), 异常会冲出 with 块致 Excel 未正常落盘 → 丢产物。
+                # 包 try/except 后即便诊断失败也不影响 sheet 已写入的产物。
+                try:
+                    n_distinct = len(vc)
+                    total_cnt = int(vc['数量'].sum())
+                    top_share = (
+                        float(vc['数量'].iloc[0]) / total_cnt
+                        if (total_cnt > 0 and len(vc) > 0)
+                        else 0.0
+                    )
+                    null_mask = vc[col_name] == '(空值)'
+                    null_cnt = int(vc.loc[null_mask, '数量'].sum()) if null_mask.any() else 0
+                    stage_field_summary.append(
+                        (label, col_name, n_distinct, total_cnt, top_share, null_cnt)
+                    )
+                except Exception as _e:
+                    logger.warning(
+                        f"[结果分析] sheet '{sheet_name}' 诊断指标计算异常, 跳过"
+                        f" (不影响产物): {_e}"
+                    )
+
     print(f"\n已生成 Excel: {output_excel}")
+
+    # ------------------------------------------------------------------
+    # 结果分析 — 写入日志: 逐阶段行数漏斗 + 各 sheet 集中度/完整性判读。
+    # 纯描述性诊断, 取已算出的真实数值, 不改任何产物。
+    # crash-guard: 整块包 try/except — 该块虽在 ExcelWriter 关闭【之后】执行
+    # (产物已落盘), 但仍以 try/except 兜底, 确保任何诊断异常 (除零/空 dict/缺键)
+    # 都不会让 stage 退出非零码或刷掉已生成的 Excel。golden-safe 不可证伪。
+    # ------------------------------------------------------------------
+    try:
+        logger.info("-" * 72)
+        logger.info("【结果分析】各阶段样本漏斗与字段分布 (描述性, 仅供数据家底体检, 不进回归):")
+
+        # ① 逐级漏斗: 00 全量 → 11 银行 → 12 金科(关键词) → 21 LLM 验证。
+        # 观测单位差异 (关键判读前提): 00 为【文章级】, 11/12/21 为【firm-document 级】
+        # (一篇讲多家银行会展开成多条物理行, 见 PIPELINE_NUMBERED_PY_REFERENCE)。
+        # 故 00→11 行数比是【跨观测单位比】(文章级→firm-doc 级), 非严格保留率, 行数可合法 >00;
+        # 只有同为 firm-doc 级的 11→12→21 才是真子集, 其"本步保留率"才有单调收窄的预期意义。
+        funnel_order = ['00_preprocessing', '11_news_bank', '12_news_fintech', '21_tone_llms']
+        # firm-document 展开起点: 该阶段之前 (即从 00 跨到它) 属跨观测单位比, 不打反增警告。
+        firmdoc_expansion_step = '11_news_bank'
+        present_funnel = [s for s in funnel_order if s in stage_rowcounts]
+        if present_funnel:
+            base = stage_rowcounts[present_funnel[0]]
+            logger.info(f"  样本漏斗 (相邻阶段保留率 + 相对首阶段 {present_funnel[0]} 累计占比):")
+            prev_label = None
+            prev_n = None
+            for s in present_funnel:
+                n = stage_rowcounts[s]
+                cum_share = (n / base) if base > 0 else 0.0
+                # 用 prev_label is None 精确判"真首阶段" (仅首轮迭代为 None), 与"上一阶段 0 行"分开。
+                if prev_label is None:
+                    logger.info(f"    {s}: {n:,} 篇 (基准)")
+                elif not prev_n:  # 上一阶段存在但 0 行: 保留率无意义, 不误标为漏斗起点
+                    logger.info(
+                        f"    {prev_label} → {s}: {n:,} 篇  上一阶段 0 行, 本步保留率无意义  "
+                        f"累计占首阶段={cum_share:.1%}"
+                    )
+                else:
+                    step_ratio = n / prev_n
+                    if s == firmdoc_expansion_step:
+                        # 00(文章级)→11(firm-doc 级): 跨观测单位, 行数 >00 属 firm-document 展开, 非异常
+                        note = "  (11 为 firm-document 展开, 行数可 >00 属正常, 此比非严格保留率)"
+                    else:
+                        # 同口径 firm-doc 阶段对 (11→12, 12→21): 才用子集保留率, 反增才提示
+                        note = "" if step_ratio <= 1.0 + 1e-9 else "  ⚠ 反增(本阶段非上阶段子集?)"
+                    logger.info(
+                        f"    {prev_label} → {s}: {n:,} 篇  本步比值={step_ratio:.1%}  "
+                        f"累计占首阶段={cum_share:.1%}{note}"
+                    )
+                prev_label, prev_n = s, n
+        else:
+            logger.info("  (无任何阶段成功读入, 无法绘制漏斗)")
+
+        # ② 各 sheet 集中度与完整性: 头部取值占比 (代表性偏倚) + 不同值数 + 空值占比。
+        # 头部占比越高 = 样本越向少数媒体/地区集中 = 代表性预警; 空值占比高 = 元数据缺失。
+        HIGH_CONCENTRATION = 0.50  # 头部单一取值 >50% 视作高集中, 论文需披露代表性局限
+        HIGH_NULL = 0.20           # 空值 >20% 视作元数据完整性偏低
+        if stage_field_summary:
+            logger.info("  逐字段分布 (头部占比越低=越分散; 空值占比越低=元数据越全):")
+            for label, col_name, n_distinct, total_cnt, top_share, null_cnt in stage_field_summary:
+                null_share = (null_cnt / total_cnt) if total_cnt > 0 else 0.0
+                flags = []
+                if top_share >= HIGH_CONCENTRATION:
+                    flags.append("高集中(代表性预警)")
+                if null_share >= HIGH_NULL:
+                    flags.append("空值偏高(元数据缺失)")
+                verdict = ("  ⚠ " + " / ".join(flags)) if flags else "  ✓ 分布健康"
+                logger.info(
+                    f"    {label} · {col_name}: 不同取值={n_distinct:,} 个  "
+                    f"头部占比={top_share:.1%}  空值占比={null_share:.1%}{verdict}"
+                )
+        else:
+            logger.info("  (无任何字段成功统计)")
+
+        # ③ 小样本警告: 盘面 T=2 仅验证管道正确性, 结论以全量为准。
+        max_rows = max(stage_rowcounts.values()) if stage_rowcounts else 0
+        if 0 < max_rows < 100000:
+            logger.info(
+                f"  ⚠ 最大阶段样本 = {max_rows:,} 篇 (盘面 T=2 小样本, 仅验证管道与 Excel 导出正确性,"
+                " 媒体/地区覆盖结论以全量 17M/T=18 实测为准)"
+            )
+
+        # ④ 优雅降级警告: 缺文件 / 缺字段。
+        if missing_stages:
+            logger.warning(
+                f"  缺失阶段产物 (跳过, 该阶段在 Excel 中无 sheet): {', '.join(missing_stages)} "
+                "— 上游阶段未跑或文件不在 output_dir; 不影响其余阶段导出。"
+            )
+        if missing_fields:
+            logger.warning(
+                f"  缺失统计字段 (跳过对应 sheet): {', '.join(missing_fields)} "
+                "— 该阶段 parquet 不含此元数据列 (如 21 阶段精筛后可能丢列); 仅影响该字段分布。"
+            )
+        logger.info("-" * 72)
+        logger.info(
+            f"  ✓ stage 53 done; 成功统计阶段={len(stage_rowcounts)} 个 / "
+            f"sheet={len(stage_field_summary)} 张; 输出 = {output_excel}"
+        )
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过 (不影响产物): {_e}")
 
 
 if __name__ == '__main__':

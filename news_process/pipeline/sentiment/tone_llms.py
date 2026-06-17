@@ -1728,7 +1728,24 @@ def main():
         IO 解耦.
     """
     stage_start = time.time()
-    logger.info(f"--- 开始执行阶段: {STAGE_NAME} (三轨模式 full/ctx/ss) ---")
+    # ── 【功能】banner (golden 范式; 取自 PIPELINE_NUMBERED_PY_REFERENCE 21 小节; 替换旧短头) ──
+    logger.info("=" * 72)
+    logger.info(f"阶段 21: 统一 LLM 语义精筛与情感分析 (三轨 full/ctx/ss; prompt {PROMPT_VERSION} 字节冻结)")
+    logger.info("=" * 72)
+    logger.info("【功能】让 3 个 LLM 家族 (相当于 3 位独立金融分析员) 各读同一篇新闻: 先精筛")
+    logger.info("        判定是否真在讲'目标银行×金融科技'(verified 把关), 再判语气 正面/负面/中性,")
+    logger.info("        顺带给 创新位点(底层/应用)、实质性(实质/象征)、协同模式(自研/外部) 三维标签;")
+    logger.info("        三轨各跑一遍并各自 majority-vote, 产 _full/_ctx/_ss 整套列, 是面板'媒体语调'主变量之源。")
+    logger.info("【方法】三模型 ensemble 多数决 (>50% 严格多数); sentiment 平局→None (防中性污染),")
+    logger.info("        创新三维平局→保守 MAP 降级(象征性/应用场景/自主研发); logit-to-score 把"
+                f"(标签×置信度) 映射到 [-1,+1] 连续分 (enabled={LOGIT_SCORE_ENABLED})。")
+    logger.info("        verified gate = 并集 verified_full|verified_ctx|verified_ss (任一轨过即留, 非交集)。")
+    logger.info("【判读】verified 率高=语料金科相关度高; 情绪三类占比看方向; 三轨样本各自 just-identified")
+    logger.info("        不混同一 Hansen J。Triple-gate 7 互斥态之和 == 并集样本数 (恒等校验)。")
+    logger.info(f"【确定性】核心付费阶段, 但确定性锚点 = _llm_cache.db (temperature={TEMPERATURE}, prompt {PROMPT_VERSION});")
+    logger.info(f"          缓存全命中 ⟺ 零 API 调用 ⟺ golden 字节级可复现 (并发 MAX_CONCURRENCY={MAX_CONCURRENCY};"
+                + ("  OFFLINE 离线守卫 ON" if LLM_OFFLINE else "  在线模式") + ")。")
+    logger.info("=" * 72)
     _write_run_lineage(stage_start)
 
     # Step 4(a) 硬化 (致命问题 5 / 红队 v6 修订): 删除"14 不存在则回退 12"的
@@ -2263,6 +2280,134 @@ def main():
                     stage_name="21_tone_llms",
                     config=CONFIG,
                     input_files=[input_file])
+
+        # ── 【结果分析】: 对真实产出指标对照阈值/预期方向给判读 (golden 范式; 纯只读日志) ──
+        # 所有局部量仅服务于日志, 不回写 df/产物。本块整体 try/except 包裹:
+        # 即便在最终写盘之后, 任何只读诊断异常 (缺列/类型/除零等) 也不得拖垮阶段或丢失产物。
+        logger.info("-" * 72)
+        logger.info("【结果分析】LLM 三轨语义精筛与情感产出解读 (对照阈值/预期方向):")
+        # 说明: 以下 ②④ 为对上方 2200-2217 既有三轨循环统计 (verified 计数 + 情绪 value_counts)
+        # 的判读性复述, 取值与既有块 df[df[ver_col]] 真值索引同口径 (不存在两份相左统计)。
+        try:
+            _total = total_len  # = len(df) = 全量候选篇数
+
+            # ① 确定性/成本闸门 — 缓存命中 == golden 可复现的充要条件
+            _miss = _cstats.get('misses', 0)
+            _writes = _cstats.get('writes', 0)
+            _hit_rate = _cstats.get('hit_rate', 0.0)
+            logger.info(
+                f"  · 缓存命中: hit_rate={_hit_rate:.4f}, misses={_miss}, writes={_writes} "
+                f"(lookups={_cstats.get('lookups', 0)})。"
+            )
+            if _miss == 0 and _writes == 0:
+                logger.info("    → 零 miss/零 write = 本次全部命中 _llm_cache.db, 无新 API 调用, golden 字节级可复现(好)。")
+            else:
+                logger.warning(
+                    f"    ⚠ 存在 {_miss} 次缓存 miss / {_writes} 次新写入 — 本次有新 API 调用(付费), "
+                    "投票可能与历史盘面漂移; 复现 golden 前须确认这些新条目已稳定播种回 _llm_cache.db。"
+                )
+            if n_api_failures > 0:
+                logger.warning(
+                    f"    ⚠ {n_api_failures} 次模型 API 调用失败已从投票中剔除 — 若失败集中于单一模型/单一轨, "
+                    "对应 verified/sentiment 多数决会退化为双模型决, 建议核查网络/限流后重跑。"
+                )
+
+            # ② verified 精筛闸门 — 三轨各自通过率 + 并集 (下游主消费样本)
+            _n_union = len(df_filtered)
+            logger.info(
+                f"  · verified 并集 (任一轨过即留): {_n_union}/{_total} "
+                f"({(_n_union / _total * 100) if _total else float('nan'):.1f}%) → 即 21_tone_llms.parquet 下游样本。"
+            )
+            for _trk, _vcol in [('_full', 'llm_verified_full'),
+                                ('_ctx', 'llm_verified_ctx'),
+                                ('_ss (银行+金科同句)', 'llm_verified_ss')]:
+                if _vcol not in df.columns:
+                    logger.info(f"    · 轨道 {_trk}: 列 {_vcol} 缺失, 跳过该轨。")
+                    continue
+                _passed = int(df[_vcol].sum())
+                _pct = (_passed / _total * 100) if _total else float('nan')
+                logger.info(f"    · 轨道 {_trk}: verified {_passed}/{_total} ({_pct:.1f}%)。")
+            logger.info(
+                "    判读: verified 率越高=语料越聚焦'银行×金科', 率过低(经验上 <10%)再结合金科词典缺失/语料漂移排查; "
+                "三轨取材窗口不同(全文 / 银行邻近句 / 银行∧金科同句)且回退比例各异 — ss 无共现时回退全文(镜像 ctx), "
+                "故三轨 verified 率互为稳健性印证、不存在固定大小关系(ss 可能高于或低于 full)。"
+            )
+
+            # ③ Triple-gate 7 互斥态恒等校验 (7 计数之和应 == 并集样本数)
+            _gate_sum = (_n_full_only + _n_ctx_only + _n_ss_only + _n_full_ctx
+                         + _n_full_ss + _n_ctx_ss + _n_all_three)
+            logger.info(
+                f"  · Triple-gate 7 态之和={_gate_sum}, 并集样本={_n_union} → "
+                + ("一致(恒等校验通过, 好)。" if _gate_sum == _n_union
+                   else "不一致(异常! 互斥态分解与并集不闭合, 须排查 verified 列对齐)。")
+            )
+            if _gate_sum != _n_union:
+                logger.warning(
+                    f"    ⚠ Triple-gate 恒等校验失败: 7 态和 {_gate_sum} != 并集 {_n_union}; "
+                    "互斥/穷尽假设被破坏, 下游 triple-gate 诊断列不可信。"
+                )
+            _n_three_track = _n_all_three
+            if _n_union > 0:
+                logger.info(
+                    f"    三轨全 verified (all-three) {_n_three_track} 篇 "
+                    f"({_n_three_track / _n_union * 100:.1f}% of 并集); 占比越高=三种归因窗口判定越一致, 测度越稳。"
+                )
+
+            # ④ 情绪极性方向 — 并集样本各轨情绪占比 (主变量信号)
+            for _trk, _vcol, _scol in [('_full', 'llm_verified_full', 'llm_sentiment_full'),
+                                       ('_ctx', 'llm_verified_ctx', 'llm_sentiment_ctx'),
+                                       ('_ss', 'llm_verified_ss', 'llm_sentiment_ss')]:
+                if _vcol not in df.columns or _scol not in df.columns:
+                    logger.info(f"    · 轨道 {_trk} 情绪分布: 列 {_vcol}/{_scol} 缺失, 跳过该轨。")
+                    continue
+                _vsub = df[df[_vcol]]  # 真值索引, 与既有 2200/2214 块同口径
+                _n_v = len(_vsub)
+                if _n_v == 0:
+                    logger.info(f"    · 轨道 {_trk} 情绪分布: 无 verified 篇, 跳过。")
+                    continue
+                _sc = _vsub[_scol].value_counts(dropna=False)
+                _pos = int(_sc.get('正面', 0))
+                _neg = int(_sc.get('负面', 0))
+                _neu = int(_sc.get('中性', 0))
+                _undef = _n_v - _pos - _neg - _neu  # None/未定 (平局 tie→None, 防中性污染)
+                logger.info(
+                    f"    · 轨道 {_trk} (verified={_n_v}): 正面 {_pos / _n_v * 100:.1f}% / "
+                    f"负面 {_neg / _n_v * 100:.1f}% / 中性 {_neu / _n_v * 100:.1f}% / "
+                    f"未定 {_undef / _n_v * 100:.1f}%。"
+                )
+            logger.info(
+                "    判读: '未定'(None)是平局保守降级而非中性, 占比偏高=三模型分歧大(测度噪声); "
+                "正负面方向跨轨一致=测度收敛(好)。"
+            )
+
+            # ⑤ logit-to-score 连续分 — 取 verified 并集样本的轨级均值
+            if LOGIT_SCORE_ENABLED:
+                for _trk, _pcol in [('_full', 'llm_prob_score_full'),
+                                    ('_ctx', 'llm_prob_score_ctx'),
+                                    ('_ss', 'llm_prob_score_ss')]:
+                    if _pcol in df_filtered.columns and len(df_filtered) > 0:
+                        _ser = pd.to_numeric(df_filtered[_pcol], errors='coerce')
+                        _nn = int(_ser.notna().sum())
+                        if _nn == 0:
+                            logger.info(f"    · llm_prob_score{_trk}: 该轨无有效数据(全 NaN), 跳过均值判读。")
+                        else:
+                            _mean = float(_ser.mean())
+                            logger.info(
+                                f"    · llm_prob_score{_trk} 并集均值={_mean:+.4f} (非空 {_nn}); "
+                                "[-1,+1] 连续分, >0 偏正面、<0 偏负面、|值| 越大语气越强。"
+                            )
+            else:
+                logger.info("    · logit-to-score 已禁用 (LOGIT_SCORE_ENABLED=False), 无 llm_prob_score_* 连续分输出。")
+
+            # ⑥ 小样本/盘面规模警告
+            if _total <= 2000:
+                logger.info(
+                    f"  · 样本规模 {_total:,} 行 (盘面 T=2 小样本): 本次仅验证三轨 LLM 管道正确性, "
+                    "全量结论以 17M 篇 / T=18 (2007–2024) 实测为准。"
+                )
+            logger.info("-" * 72)
+        except Exception as _e:  # noqa: BLE001  (只读诊断, 异常绝不拖垮阶段/丢失已落盘产物)
+            logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
         log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(df_filtered))
 

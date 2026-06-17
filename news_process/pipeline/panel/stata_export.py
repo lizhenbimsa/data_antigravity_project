@@ -1198,6 +1198,99 @@ def _write_codebook_xlsx(
                 f"含 {len(rename_map)} 个 Stata-shortened names 反查映射)")
 
 
+def _log_export_result_analysis(log, panel_path: str, results: Dict[str, str]) -> None:
+    """【结果分析】(黄金范式): 对 stage 46 产出做只读体检并打印判读。
+
+    纯增量日志: 仅读取 panel parquet / 产出 .dta 的元信息, 计算服务于日志的
+    局部指标 (行列数 / 主键唯一性 / 三轨主指标齐备性 / 类别 str 列存在性 / round-trip
+    行数), 对照阈值/预期方向给好/坏/临界判读。不修改任何返回值或落盘内容; 全程
+    try/except 包裹, 分析失败仅 WARNING, 绝不影响已写盘的产物。
+
+    注: fintech_share 不在本阶段输入 40_panel_yearly.parquet 中 (它由下游
+    stage 51 controls.py::merge_to_panel 构造), 故本体检不检查它 (避免对错文件
+    做误导性诊断, 见 controls.py:789)。
+    """
+    # crash-guard: 整个【结果分析】块包 try/except — 本块在 export_panel_to_stata 写盘
+    # 之后执行 (产物已落地), 但仍兜底防御任何读数/算指标异常 (如 read_stata 后端差异 /
+    # 意外 dtype), 失败仅 WARNING, 绝不让纯日志诊断把已交付的 stage 反噬成崩溃。
+    try:
+        try:
+            df = pd.read_parquet(panel_path)
+        except Exception as e:  # pragma: no cover - 分析层防御
+            log.warning(f"【结果分析】跳过: 无法回读 panel parquet 做体检 ({e})")
+            return
+
+        log.info("-" * 72)
+        log.info("【结果分析】对交付产物做只读体检 (不改任何数值):")
+
+        n_rows, n_cols = len(df), len(df.columns)
+        log.info(f"  · 面板规模: {n_rows} 行 × {n_cols} 列 (bank-year 面板)。")
+
+        # 1) 主键唯一性 (Wooldridge 2010: (target_bank, year) 应唯一)
+        if {'target_bank', 'year'}.issubset(df.columns):
+            n_dup = int(df.duplicated(subset=['target_bank', 'year']).sum())
+            n_banks = int(df['target_bank'].nunique())
+            years = sorted(pd.Series(df['year'].dropna().unique()).tolist())
+            span = f"{years[0]}–{years[-1]}" if years else "?"
+            verdict = "好 (主键唯一)" if n_dup == 0 else f"坏 (有 {n_dup} 个重复 (bank,year) 键)"
+            log.info(f"  · 主键唯一性: 重复键数={n_dup} → {verdict}; "
+                     f"覆盖 {n_banks} 家银行 × 年份跨度 {span} ({len(years)} 个年度)。")
+            if len(years) <= 2:
+                log.info("    ⚠ 小样本 (T≤2): 这是开发盘面占位样本, 仅验证管道正确性; "
+                         "全量结论以 17M 文 / T=18 (2007–2024) 实测为准。")
+
+        # 2) fintech 情感三轨 (full/ctx/ss) 主指标齐备性 — 缺则下游论文该轨回归空跑
+        track_metrics = {
+            'full': 'llm_vote_tone_full',
+            'ctx':  'llm_vote_tone_ctx',
+            'ss':   'llm_vote_tone_ss',
+        }
+        present, missing = [], []
+        for trk, col in track_metrics.items():
+            if col in df.columns:
+                nn = int(df[col].notna().sum())
+                present.append(f"{trk}({col}: 非空 {nn}/{n_rows})")
+            else:
+                missing.append(f"{trk}({col})")
+        if present:
+            log.info(f"  · 主语调三轨齐备: {'; '.join(present)} → 好 (论文 P1 主指标可消费)。")
+        if missing:
+            log.warning(f"  · 主语调三轨缺列 (ss 缓存常未播种, 缺属预期): {', '.join(missing)} "
+                        "→ 该轨回归会空跑, 须确认 stage 21 是否产出。")
+
+        # 3) 三轨类别编码 (LOCUS/SUBSTANTIVENESS/COLLAB_MODE) 文章级 str 列在 bank-year 面板的存在性
+        #    (原 fintech_share 体检块已删: 该列不在 stage 46 输入 40_panel_yearly.parquet,
+        #     由下游 stage 51 controls.py::merge_to_panel 构造, 在此检查恒为死分支且误导, 见 finding f_46)
+        cat_str_cols = [c for c in df.columns
+                        if c.startswith(('innovation_locus', 'innovation_substantiveness', 'innovation_collab_mode'))
+                        and df[c].dtype == object]
+        if cat_str_cols:
+            log.info(f"  · 类别 str 列: 发现 {len(cat_str_cols)} 个文章级中文类别列 → encoder 会做 str→byte 0/1 编码。")
+        else:
+            log.info("  · 类别 str 列: 0 个 (bank-year 面板只含派生数值聚合) → 类别 encoder no-op, "
+                     "value_labels={} (诚实披露 omni-g-stata-export-14, 符合预期)。")
+
+        # 4) .dta round-trip 行数一致性 (写盘后回读, 须与 parquet 完全相等)
+        full_dta = results.get('full_dta')
+        backend = results.get('backend', '?')
+        if full_dta and os.path.exists(full_dta):
+            try:
+                dta_df = pd.read_stata(full_dta)
+                dta_rows, dta_cols = len(dta_df), len(dta_df.columns)
+                row_ok = (dta_rows == n_rows)
+                verdict = "好 (无丢行)" if row_ok else f"坏 (.dta {dta_rows} 行 ≠ parquet {n_rows} 行!)"
+                log.info(f"  · .dta round-trip (backend={backend}): {dta_rows} 行 × {dta_cols} 列 → {verdict}。")
+            except Exception as e:  # pragma: no cover - 回读后端差异防御
+                log.info(f"  · .dta round-trip 跳过 (pandas read_stata 无法回读 backend={backend} 产物: {e})。")
+        if backend == 'pandas':
+            log.warning("  · 后端=pandas (pyreadstat 缺失): .dta 未内嵌 value label, 研究者须手动 run "
+                        "46_panel_yearly_labels.do 才有标签; 优雅降级但建议安装 pyreadstat。")
+
+        log.info("-" * 72)
+    except Exception as _e:  # pragma: no cover - 纯日志诊断兜底, 绝不影响产物
+        log.warning(f"【结果分析】日志诊断计算异常, 跳过(不影响产物): {_e}")
+
+
 def main():
     """Stage 46 CLI 入口 (由 thin shim 46_stata_export.py 调用)."""
     from news_process.core.config import load_config
@@ -1206,7 +1299,24 @@ def main():
     CONFIG = load_config()
     STAGE_NAME = '46_stata_export'
     log = setup_logging(STAGE_NAME, CONFIG['paths']['log_dir'])
-    log.info(f"--- Stage 46 Stata Export (plan v14 §9 stata_export) ---")
+
+    # ── 【功能】banner (黄金范式: 紧随 setup_logging 之后, 替换而非叠加旧短 banner) ──
+    log.info("=" * 72)
+    log.info("阶段 46: Stata 数据导出 (parquet → .dta + value labels, plan v14 §9.1)")
+    log.info("=" * 72)
+    log.info("【功能】数据的「出关口岸」: 把 stage 45 的 bank-year 全列面板 (40_panel_yearly.parquet)")
+    log.info("        翻译成经济学家 Stata 能直读的 .dta, 并附 variable/value labels 的 .do 脚本")
+    log.info("        与人类可读的 codebook.xlsx 变量字典 (含 is_core/original_name 反查)。")
+    log.info("【方法】① 三套中文类别 str→byte 0/1 + value label (LOCUS/SUBSTANTIVENESS/COLLAB_MODE,")
+    log.info("        当前 bank-year 面板无文章级 str 列 → no-op); ② 非 value-labeled int8 计数列升")
+    log.info("        Int16 (避开 Stata byte 缺失码位 101..127); ③ 列名超 32 字符缩写+md5 去重, 中文")
+    log.info("        列名转写为合法 ASCII; ④ 写前 _assert_track_triplet_unique 断言 full/ctx/ss 三轨")
+    log.info("        缩短后不撞名; ⑤ NaN→. (sysmiss); .dta format version=118 (文件格式编号≠Stata 版本)。")
+    log.info("【判读】是格式转换层, 不改任何数值。看产出健康度: 列名缩短/撞名=0 为好; 标签覆盖率越高越好;")
+    log.info("        .dta 行数须与 parquet 完全一致 (round-trip 无丢行); fintech 三轨主指标 (_full/_ctx/_ss)")
+    log.info("        在面板里齐备为好, 缺则下游论文该轨回归空跑。")
+    log.info("【确定性】纯 CPU 函数转换, 无 LLM/Embedding/网络; 输入 parquet 固定则输出值稳定")
+    log.info("        (仅 .dta 二进制随 backend pyreadstat/pandas 选择漂移)。")
 
     panel_filename = CONFIG.get('filenames', {}).get('output_40_panel_yearly', '40_panel_yearly.parquet')
     panel_path = os.path.join(CONFIG['paths']['output_dir'], panel_filename)
@@ -1216,6 +1326,8 @@ def main():
     log.info(f"Stage 46 完成. 产出:")
     for k, v in results.items():
         log.info(f"  {k}: {v}")
+
+    _log_export_result_analysis(log, panel_path, results)
 
 
 if __name__ == '__main__':

@@ -1124,6 +1124,24 @@ def main():
     logger.info("  学术依据: Shannon (1948), Herfindahl (1950), Pielou (1966),")
     logger.info("            Gini (1912), Bushee et al. (2010), Laakso (1979)")
 
+    # --- 【功能】banner (golden 范式: 让 <stage>.log 自带说明书) ---
+    logger.info("=" * 72)
+    logger.info("阶段 38: 媒体名称与地域多样性审计 (经典集中度/多样性指标族)")
+    logger.info("=" * 72)
+    logger.info("【功能】查新闻来源的'家底': 逐道流水线筛子 (00→11→12→21→23→40) 量化")
+    logger.info("        '媒体来源'与'地域覆盖'的多样性, 回答审稿人'你的新闻是不是都来自")
+    logger.info("        一两家媒体/一两个省', 为论文'数据来源客观性/样本代表性'辩护。")
+    logger.info("        产出 = 12-Sheet Excel 体检报告 (不改任何面板数字, 纯诊断终点)。")
+    logger.info("【方法】媒体/地域名称多样性: HHI=Σ份额² (Herfindahl) / 等效数 ENM=1/HHI")
+    logger.info("        (Laakso-Taagepera) / Shannon 熵 H=-Σpᵢlog₂pᵢ / Pielou 均匀度")
+    logger.info("        J'=H/log₂(N) (S=1 单一媒体报 NaN) / Gini 系数 / 加权 HHI (按权威权重)")
+    logger.info("        / CRk 集中率; 时序看年际 Jaccard=|交|/|并|; 跨阶段看 HHI 变化率与存留率。")
+    logger.info("【判读】HHI/Gini 越低越好 (来源越分散); ENM 越大越好 (相当于几家媒体在干活);")
+    logger.info("        J'/Shannon 越高越好 (报道量摊得越匀); 省份覆盖率/Jaccard 越高越好。")
+    logger.info("        告警阈值: 媒体 HHI≥0.10 / J'<0.70 / Gini≥0.80 / 已评级报道<40% /")
+    logger.info("        省份覆盖<80% / 地域 HHI≥0.15 任一触发即提示来源/地域过度集中。")
+    logger.info("【确定性】纯 CPU (pandas/numpy/openpyxl), 无 LLM/Embedding API, $0; 逐位可复现。")
+
     # --- 加载媒体权重 ---
     media_weights = load_media_weights()
     default_weight = media_weights.get("default", 10)
@@ -1306,6 +1324,87 @@ def main():
     # --- 综合诊断结论 ---
     if last_metrics and last_region_metrics:
         log_comprehensive_summary(last_metrics, last_region_metrics)
+
+    # --- 【结果分析】banner (golden 范式: 对产出指标逐个判读 + 小样本/降级告警) ---
+    logger.info("-" * 72)
+    logger.info("【结果分析】媒体多样性审计核心产出逐项判读 (对照阈值给好/坏/临界):")
+    n_stages_done = len(overview_rows)
+    logger.info(f"  · 成功分析阶段数: {n_stages_done}/6 "
+                f"({'✓ 全部 6 阶段就绪' if n_stages_done >= 6 else '部分阶段 parquet 缺失, 见上方 WARNING'})")
+
+    if last_metrics:
+        fin_media = last_metrics.get("唯一媒体数", 0)
+        fin_hhi = last_metrics.get("HHI", 0.0)
+        fin_enm = last_metrics.get("等效媒体数ENM", 0.0)
+        fin_evn = last_metrics.get("Pielou均匀度", float('nan'))
+        fin_gini = last_metrics.get("Gini系数", 0.0)
+        fin_rated = last_metrics.get("已评级报道占比(%)", 0.0)
+        hhi_verdict = ("✓ <0.10 来源分散 (好)" if fin_hhi < 0.10
+                       else "⚠ ≥0.10 来源向少数媒体集中 (坏)")
+        gini_verdict = "✓ <0.80 (好)" if fin_gini < 0.80 else "⚠ ≥0.80 报道数高度不等 (坏)"
+        rated_verdict = "✓ ≥40% (好)" if fin_rated >= 40 else "⚠ <40% 大量未评级媒体 (坏)"
+        logger.info(f"  · 最终阶段(40_article_bank)唯一媒体数: {fin_media} 家, "
+                    f"等效媒体数 ENM={fin_enm:.0f} (越大越好, 相当于几家媒体在均匀供稿)")
+        logger.info(f"  · 媒体 HHI={fin_hhi:.6f} → {hhi_verdict}")
+        if pd.isna(fin_evn):
+            logger.info("  · Pielou 均匀度 J': n/a (S=1 单一媒体垄断, J' 不适用; 集中度已由 HHI 门捕获)")
+        else:
+            evn_verdict = "✓ ≥0.70 报道摊得匀 (好)" if fin_evn >= 0.70 else "⚠ <0.70 报道分布不均 (坏)"
+            logger.info(f"  · Pielou 均匀度 J'={fin_evn:.4f} → {evn_verdict}")
+        logger.info(f"  · Gini 系数={fin_gini:.4f} → {gini_verdict}")
+        logger.info(f"  · Tier1-5 已评级报道占比={fin_rated:.1f}% → {rated_verdict}")
+
+    if last_region_metrics:
+        reg_n = last_region_metrics.get("唯一地域数", 0)
+        reg_hhi = last_region_metrics.get("地域HHI", 0.0)
+        reg_cov = last_region_metrics.get("省份覆盖率", 0.0)
+        reg_hhi_verdict = ("✓ <0.15 地域分散 (好)" if reg_hhi < 0.15
+                           else "⚠ ≥0.15 地域过度集中 (坏)")
+        cov_verdict = "✓ ≥80% (好)" if reg_cov >= 0.80 else "⚠ <80% 地域覆盖存盲区 (坏)"
+        logger.info(f"  · 最终阶段唯一地域数: {reg_n} 个 | 地域 HHI={reg_hhi:.6f} → {reg_hhi_verdict}")
+        logger.info(f"  · 省份覆盖率={reg_cov:.1%} → {cov_verdict}")
+
+    # 时序稳定性 (年际 Jaccard 平均, ≥0.7 视为媒体构成跨年稳定)
+    if all_temporal:
+        try:
+            temporal_all = pd.concat(all_temporal, ignore_index=True)
+            jac_vals = temporal_all['Jaccard相似度'].dropna()
+            jac_vals = jac_vals[jac_vals > 0]
+            if len(jac_vals) > 0:
+                avg_jac = float(jac_vals.mean())
+                jac_verdict = ("✓ ≥0.70 媒体构成跨年稳定 (好)" if avg_jac >= 0.70
+                               else "ℹ 0.50-0.70 有一定变动" if avg_jac >= 0.50
+                               else "⚠ <0.50 媒体构成跨年变动大 (坏)")
+                logger.info(f"  · 年际媒体 Jaccard 相似度均值={avg_jac:.3f} → {jac_verdict}")
+        except Exception:  # noqa: BLE001 — 仅日志统计, 失败不影响产物
+            logger.info("  · 年际 Jaccard 统计跳过 (时序数据不足或列缺失)")
+    else:
+        logger.info("  · 时序稳定性: 无可用年份数据 (各阶段年份<2, 已跳过 Jaccard)")
+
+    # 跨阶段存留率 (流水线每过一道筛子媒体多样性损耗)
+    if not delta_df.empty and '媒体存留率' in delta_df.columns:
+        min_ret = float(delta_df['媒体存留率'].min())
+        max_hhi_jump = float(delta_df['HHI变化率(%)'].abs().max())
+        logger.info(f"  · 跨阶段最低媒体存留率={min_ret:.1%} "
+                    f"({'✓ 各筛子保留多数来源' if min_ret >= 0.50 else '⚠ 某筛子大幅削减来源, 见跨阶段差异 Sheet'})")
+        logger.info(f"  · 跨阶段最大 HHI 变化率={max_hhi_jump:.1f}% "
+                    f"({'某筛子显著改变集中度, 需复核是否过度过滤' if max_hhi_jump > 20 else '集中度跨筛子平稳'})")
+
+    # 按银行覆盖 (仅 40_ 阶段产出)
+    if not bank_media_df.empty:
+        mean_breadth = float(bank_media_df['唯一媒体数'].mean())
+        logger.info(f"  · 按银行媒体广度 (Bushee2010 breadth): "
+                    f"{len(bank_media_df)} 家银行, 平均唯一媒体数={mean_breadth:.1f} 家/行")
+
+    # 小样本 / 优雅降级告警
+    n_stage40 = sum(1 for r in overview_rows
+                    if str(r.get("阶段", "")).startswith("40_"))
+    if n_stage40 == 0:
+        logger.warning("  ⚠ 未分析到 40_article_bank 阶段 (parquet 缺失): "
+                       "按银行覆盖/权重诊断/最终综合结论将基于上游阶段, 代表性下降。")
+    logger.info("  ⚠ 小样本提示: 本机盘面为 T=2 (2017-2018) 子样, 上述多样性结论仅验证")
+    logger.info("    审计管道正确性; 全量结论以 17M 文章 / T=18 (2007-2024) 实测为准。")
+    logger.info("-" * 72)
 
     # --- 导出 Excel ---
     output_path = os.path.join(EVAL_DIR, "38_media_diversity.xlsx")

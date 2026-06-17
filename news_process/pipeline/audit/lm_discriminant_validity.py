@@ -259,9 +259,24 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
 
 def main():
     stage_start = time.time()
-    logger.info("=" * 60)
-    logger.info("阶段 39e: LM Non-Sentiment 判别效度 (v3.5.2 PR #4)")
-    logger.info("=" * 60)
+    logger.info("=" * 72)
+    logger.info("阶段 39e: LM 词典 6 维判别效度 (v3.5.2 PR #4; Henseler-Ringle-Sarstedt 2015 HTMT)")
+    logger.info("=" * 72)
+    logger.info("【功能】给 6 个非情感文本测度 (LM 4 子词典频率 uncert/litig/constr/modal_strong +")
+    logger.info("        清晰度 mean_clarity_score + 数字密集度 mean_num_intensity) 做判别效度安检:")
+    logger.info("        把两两相关排成 6×6 表, 看它们是否各测各的、有没有谁跟谁其实在量同一件事。")
+    logger.info("        产出 (三轨各一份): 39e_lm_htmt_matrix_{ctx,full,ss}.csv (6×6 HTMT 矩阵) +")
+    logger.info("        39e_lm_permutation_{ctx,full,ss}.csv (1000-rep permutation null 汇总)。")
+    logger.info("【方法】单 item HTMT 退化为 |Pearson r|; Cronbach α=(k/(k-1))(1-Σσ²_i/σ²_total);")
+    logger.info("        permutation null 在 listwise-complete 子样本上对每列洗牌 1000 次 (seed=42);")
+    logger.info("        G-A1.2 准入门控: max off-diagonal HTMT < 0.85(strict) → PASS, 否则 FAIL(需专家复核)。")
+    logger.info("        样本口径与 39d 统一 (n_articles_llm_valid ≥ 2), 两份判别效度报告同样本可比。")
+    logger.info("【判读】HTMT 越低越好 (越低=两测度越独立); 6×6 全 < 0.85 即判别效度通过、6 个测度可独立进回归;")
+    logger.info("        某对 ≥ 0.85 = 疑似重复计量, 需砍掉或合并冗余指标。permutation p_empirical 越大")
+    logger.info("        说明观测 HTMT 越接近随机噪声 (相关弱、判别效度越强)。Cronbach α 此处仅供参考")
+    logger.info("        (6 维本就该低耦合, α 高反而坏 — 与传统'量表内一致性高=好'方向相反)。")
+    logger.info("【确定性】纯 numpy/pandas, 无 LLM/Embedding/sklearn; seed=42; 逐位可复现。")
+    logger.info("=" * 72)
 
     output_dir = CONFIG['paths']['output_dir']
     eval_dir = os.path.join(output_dir, '..', 'eval_reports')
@@ -282,6 +297,10 @@ def main():
     # 三轨各跑一次 (full / ctx / ss; 与 v3.5.1 stage 39d 对齐)
     # ss = 银行+金科同句共现轨; INDICATORS_SS 列尚未物化时 compute_htmt_matrix
     # 内部 present < 2 → 返回空矩阵, 本轮 continue 优雅跳过 (镜像 ctx/full 缺列守卫)。
+    # _track_summaries: 仅供下方【结果分析】打印的本地累积器, 不回写 df / 任何产物。
+    _track_summaries = []
+    _skipped_tracks = []
+    n_obs_masked = len(panel)
     for suffix, indicators in (
         ('ctx', INDICATORS_CTX),
         ('full', INDICATORS_FULL),
@@ -291,6 +310,7 @@ def main():
         htmt = compute_htmt_matrix(panel, indicators)
         if htmt.empty:
             logger.warning(f"  {suffix}: HTMT 跳过 (indicator 列缺失)")
+            _skipped_tracks.append(suffix)
             continue
         htmt_path = os.path.join(eval_dir, f'39e_lm_htmt_matrix_{suffix}.csv')
         htmt.to_csv(htmt_path)
@@ -311,6 +331,91 @@ def main():
             f"    G-A1.2 判定: max HTMT = {max_htmt:.4f} "
             f"({'PASS' if max_htmt < HTMT_STRICT else 'FAIL (need expert audit)'})"
         )
+        # 记录本轨汇总供【结果分析】(纯日志, 不影响产物)
+        _track_summaries.append({
+            'suffix': suffix,
+            'n_items': htmt.shape[0],
+            'max_htmt': max_htmt,
+            'alpha': alpha,
+            'p_emp': (None if perm.empty else float(perm['p_empirical'].iloc[0])),
+            'p95': (None if perm.empty else float(perm['perm_htmt_max_p95'].iloc[0])),
+            'n_listwise': (None if perm.empty else int(perm['n_listwise'].iloc[0])),
+        })
+
+    # ── 【结果分析】(纯日志增量; 引用变量均在作用域内) ──────────────────
+    # crash-guard (硬化 A): 整块【结果分析】纯读 _track_summaries / n_obs_masked 算指标,
+    # 且所有 CSV 已在上方循环内 to_csv 落盘完毕; 此处再包 try/except 兜底, 任何诊断
+    # 计算异常都只 warning 跳过, 绝不冒泡使阶段崩溃丢产物 (确保 golden-safe)。
+    try:
+        logger.info("-" * 72)
+        logger.info("【结果分析】LM 6 维判别效度安检结果逐轨解读 (主 spec 用 ctx 轨):")
+        logger.info(f"  样本: mask 后 {n_obs_masked} 个 bank-year 单元参与判别效度计算。")
+        if _track_summaries:
+            for s in _track_summaries:
+                mh = s['max_htmt']
+                # NaN-guard (硬化 B): max_htmt 为 NaN (该轨全 NaN / 方差退化 → corr 全 NaN
+                # → nanmax 返回 nan) 时, 不能落进 < 阈值的方向 ternary (nan 比较恒 False
+                # → 会误判成 FAIL), 走独立"无有效数据"分支。
+                if mh != mh:  # NaN (NaN != NaN)
+                    logger.info(
+                        f"  [{s['suffix']:>4}] {s['n_items']} 维: max off-diag HTMT = NaN "
+                        f"→ 该轨无有效数据 (列存在但全 NaN / 方差退化), 判别效度不可估, 跳过判读。")
+                else:
+                    # verdict 与上方 G-A1.2 二分门控 (max<strict → PASS, 否则 FAIL) 显式对齐:
+                    # canonical 门控以 strict(0.85) 为界, [strict,lenient) 区间门控已判 FAIL,
+                    # 仅按 Henseler-Ringle-Sarstedt(2015) lenient(0.90) 线尚属临界 (仍需专家复核),
+                    # 不把门控未过的指标软化为 "borderline 可放行"。
+                    verdict = (
+                        f'PASS(G-A1.2 门控通过, max<strict={HTMT_STRICT})' if mh < HTMT_STRICT
+                        else (
+                            f'G-A1.2 门控判 FAIL — max≥strict({HTMT_STRICT})未达; '
+                            f'按 Henseler lenient({HTMT_LENIENT})尚属临界 '
+                            f'({HTMT_STRICT}≤HTMT<{HTMT_LENIENT}), 仍需专家复核' if mh < HTMT_LENIENT
+                            else f'FAIL(疑似重复计量, max≥lenient={HTMT_LENIENT}, 需专家复核)'))
+                    logger.info(
+                        f"  [{s['suffix']:>4}] {s['n_items']} 维: max off-diag HTMT = "
+                        f"{mh:.4f} (阈值 strict={HTMT_STRICT} / lenient={HTMT_LENIENT}) → {verdict}")
+                    if mh >= HTMT_STRICT:
+                        logger.warning(
+                            f"  [{s['suffix']}] 最大 HTMT ≥ {HTMT_STRICT}: 6 个测度中存在疑似冗余对, "
+                            f"该轨这些词典/文本指标不应同时进回归 (论文需砍掉或合并)。")
+                # Cronbach α 反向判读: 6 维本应低耦合, α 高反而提示构念不纯
+                if s['alpha'] == s['alpha']:  # 非 NaN (NaN != NaN)
+                    a_read = ('良性(6 维低耦合, 符合判别效度预期)' if s['alpha'] < 0.7
+                              else '偏高(6 维内部一致性高 → 可能在量同一构念, 与判别效度方向相悖, 留意)')
+                    logger.info(f"        Cronbach α = {s['alpha']:.4f} → {a_read}")
+                else:
+                    logger.info("        Cronbach α = NaN (present 列不足或方差退化, 不可估)")
+                # permutation null 判读: p_empirical 越大越说明观测 HTMT 接近随机噪声
+                if s['p_emp'] is not None:
+                    p_read = ('观测 HTMT 弱于/接近随机洗牌 null, 相关非系统性 (判别效度强)'
+                              if s['p_emp'] >= 0.05
+                              else '观测 HTMT 显著高于洗牌 null (p<0.05), 该轨指标对存在系统性相关')
+                    logger.info(
+                        f"        permutation: p_empirical = {s['p_emp']:.4f}, "
+                        f"null p95 = {s['p95']:.4f}, n_listwise = {s['n_listwise']} → {p_read}")
+                    if s['n_listwise'] is not None and s['n_listwise'] < 30:
+                        logger.warning(
+                            f"        [{s['suffix']}] listwise-complete 样本仅 {s['n_listwise']} 行: "
+                            f"permutation null 自由度低, p 值不稳, 仅供参考。")
+                else:
+                    logger.info("        permutation: 跳过 (listwise-complete 样本 < 4 行)")
+        else:
+            logger.warning("  全部三轨均跳过 (无任一轨 HTMT 可算); 见下方依赖缺失提示。")
+        if _skipped_tracks:
+            logger.warning(
+                f"  优雅降级: 轨道 {_skipped_tracks} indicator 列缺失而跳过 "
+                f"(ss 轨首跑前列未物化属预期; full/ctx 缺列说明上游 LM 子词典/clarity/"
+                f"num_intensity 列未落盘, 须先跑 stage 14/15/22 与 panel 重生)。")
+        # 小样本警告 (盘面 T=2 → bank-year 单元有限, HTMT/permutation 自由度低)
+        if n_obs_masked < 50:
+            logger.info(
+                f"  小样本提示: 当前仅 {n_obs_masked} 个 bank-year 单元 (盘面 T=2 demo), "
+                f"HTMT 矩阵与 permutation null 自由度低, 此结果仅验证管道正确性; "
+                f"判别效度结论以全量 17M / T=18 实测为准。")
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
 

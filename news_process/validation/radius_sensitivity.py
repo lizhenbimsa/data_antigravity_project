@@ -1102,6 +1102,25 @@ def main():
     logger.info(f"检验的窗口半径: {RADII}")
     logger.info(f"基准半径: 1（当前生产配置）")
 
+    # ── 阶段功能 banner（黄金范式: 让 <stage>.log 自带说明书）──
+    logger.info("=" * 72)
+    logger.info("阶段 35: 实体上下文窗口半径敏感性检验 (Hassan et al. 2019 QJE, proximity-based attribution)")
+    logger.info("=" * 72)
+    logger.info("【功能】ctx 轨只截取'银行名所在句 ± N 句'这一小段文本来打情感分, '几句'(sentence_radius,")
+    logger.info("        生产 = 前后 1 句) 是人为参数。本阶段把窗口改成 radius ∈ {0,1,2,3} 各重提一遍、用")
+    logger.info("        5 套中文金融情感词典各重算情感分, 检验结论对窗口大小是否稳健。产出 JSON/LaTeX 表 +")
+    logger.info("        标签分布柱状图 + 半径相关性热力图 (附录级证据, 无 parquet)。")
+    logger.info(f"【方法】每篇文章对每个 radius 调 extract_entity_context(sentence_radius=r, "
+                f"fallback_char_radius={FALLBACK_CHAR_RADIUS}) 提上下文 (未命中回退原文), jieba 分词后")
+    logger.info("        对 5 词典各算否定翻转/程度缩放/转折增强的规则增强词典分 → 归一化得分 + 三分类标签")
+    logger.info(f"        (阈值 ±{POS_THRESHOLD})。以 r=1 为基准, 跨半径算 标签一致率 / Cohen's κ / "
+                f"Pearson·Spearman 相关 / 配对 t 检验。")
+    logger.info("【判读】邻近窗口 (r=1 vs 2/3): κ↑、一致率↑、Pearson↑ = 稳健 (min κ≥0.80 强稳健; ≥0.60")
+    logger.info("        且一致率≥95%、Pearson≥0.80 实质稳健)。r=0 (仅实体所在句、砍光上下文) 是故意的极端")
+    logger.info("        压力测试, 偏差大属预期, 不作主判据。标签 ≥90% 集中于单一类时存在 'Kappa 悖论'")
+    logger.info("        (κ 被 P(e) 数学压低), 此时一致率/Pearson 更可信。")
+    logger.info("【确定性】纯 CPU 词典 + 确定性提取, 不调 LLM/Embedding、无缓存、无抽样 (全量处理), 逐位可复现。")
+
     # ── 加载输入数据 ──
     # 优先使用阶段 21 的输出（经 LLM 精筛，含 target_bank 列）
     # 注 (2026-06-15): 回退候选 12_fintech_news.parquet 是 stage 12b 邻近共现硬过滤
@@ -1156,6 +1175,138 @@ def main():
 
     # ── 输出报告 ──
     log_report(analysis_results)
+
+    # ── 结果分析（黄金范式: 取真实产出指标 + 对照阈值/预期方向给判读）──
+    # 说明: 以下全部为纯增量日志计算 — 只读 analysis_results / per_radius_data, 局部变量
+    #       不回写任何产物, 不改返回值/写盘内容/schema/计量逻辑 (golden-safe)。
+    # crash-guard: 本分析块跑在 JSON/LaTeX/PNG 写盘 (下方) 之前, 一旦此处诊断计算抛异常
+    #       (如缺键 KeyError / 空 Series 聚合 ValueError) 会带崩整个阶段并丢失产物 →
+    #       证伪 golden-safe。故整体 try/except, 异常仅告警跳过, 绝不阻断后续写盘。
+    # 去重声明 (fix radius-P2): 本文件改动【前】已有两层自动研判 —— log_report 内
+    #       '结论摘要'(min κ/一致率/Pearson + 强/实质稳健判定) + _log_key_interpretation
+    #       '关键解读'(标签不平衡/Kappa 悖论/极端 vs 邻近窗口/t 检验汇总/综合研判)。下面这段
+    #       与其中 κ/一致率/Pearson/Kappa悖论/t检验 几项【口径完全相同、数值同源】, 仅作单点
+    #       速览 + 补充真增量诊断 (上下文回退率/词典降级/小样本), 非另一套独立检验。
+    logger.info("【结果分析】下文为对上方'结论摘要'+'关键解读'的补充诊断速览: 同名指标 "
+                "(κ/一致率/Pearson/Kappa悖论/t检验) 系同源复述、阈值口径一致, 增量在 "
+                "(7)上下文回退率/(8)词典降级/(9)小样本 三项。")
+    try:
+        dict_names_ra = analysis_results['meta']['dictionaries']
+        cross = analysis_results['cross_radius']
+        baseline_r = 1
+        extreme_k = f"r{baseline_r}_vs_r0"
+
+        # 汇总全部对比组 + 区分邻近窗口(r=2/3) vs 极端窗口(r=0)
+        all_k, all_ag, all_pe = [], [], []
+        adj_k, adj_ag, adj_pe = [], [], []
+        for pair_key, pair_data in cross.items():
+            for dn in dict_names_ra:
+                d = pair_data[dn]
+                all_k.append(d['cohens_kappa'])
+                all_ag.append(d['label_agreement'])
+                all_pe.append(d['pearson_r'])
+                if pair_key != extreme_k:
+                    adj_k.append(d['cohens_kappa'])
+                    adj_ag.append(d['label_agreement'])
+                    adj_pe.append(d['pearson_r'])
+
+        logger.info("-" * 72)
+        logger.info("【结果分析】实体上下文窗口半径稳健性逐指标研判")
+
+        # (1) 邻近窗口 Cohen's κ — 主稳健性判据 (强稳健阈值 0.80 / 实质稳健 0.60)
+        #     注: compute_cohens_kappa 恒返回有限浮点 (不产 NaN), 故 κ 无需 nan-guard。
+        if adj_k:
+            adj_min_k = min(adj_k)
+            adj_mean_k = float(np.mean(adj_k))
+            if adj_min_k >= 0.80:
+                verdict_k = "好(≥0.80 强稳健: 邻近窗口标签判定高度一致)"
+            elif adj_min_k >= 0.60:
+                verdict_k = "临界(0.60~0.80 实质稳健, 需配合一致率/Pearson 佐证)"
+            else:
+                verdict_k = "偏弱(<0.60: 留意是否 Kappa 悖论或上下文不足所致)"
+            logger.info(f"  邻近窗口(r=1 vs r=2/3) Cohen's κ: min={adj_min_k:.4f} / mean={adj_mean_k:.4f} → {verdict_k}")
+        else:
+            logger.info("  邻近窗口对比组为空 (RADII 不含 2/3?), 无邻近 κ 可判。")
+
+        # (2) 邻近窗口标签一致率 — 阈值 0.95 (compute_label_agreement 恒为 [0,1] 比例, 无 NaN)
+        if adj_ag:
+            adj_min_ag = min(adj_ag)
+            verdict_ag = "好(≥95%)" if adj_min_ag >= 0.95 else (
+                "临界(90%~95%)" if adj_min_ag >= 0.90 else "偏低(<90%, 窗口改变明显翻动标签)")
+            logger.info(f"  邻近窗口最低标签一致率: {adj_min_ag:.2%} → {verdict_ag}")
+
+        # (3) 邻近窗口 Pearson 相关 — 阈值 0.80 (nan-guard: 零方差守卫可置 NaN)
+        if adj_pe:
+            nan_pe = sum(1 for v in adj_pe if np.isnan(v))
+            if nan_pe == len(adj_pe):
+                # 全 NaN: 不落进数值方向判断 (nanmin/nanmean 对全 NaN 会 RuntimeWarning + 返 nan)
+                logger.info(f"  邻近窗口 Pearson 相关: 全部 {len(adj_pe)} 个词典×对比组均零方差/退化 "
+                            f"→ 相关无定义 (不可判)。")
+            else:
+                adj_min_pe = float(np.nanmin(adj_pe))
+                adj_mean_pe = float(np.nanmean(adj_pe))
+                if adj_mean_pe >= 0.80:
+                    verdict_pe = "好(均值≥0.80: 得分随窗口几乎不变)"
+                else:
+                    verdict_pe = "偏低(<0.80: 得分对窗口敏感)"
+                logger.info(f"  邻近窗口 Pearson 相关: min={adj_min_pe:.4f} / mean={adj_mean_pe:.4f} → {verdict_pe}")
+                if nan_pe:
+                    logger.warning(f"  零方差守卫: 邻近窗口有 {nan_pe} 个词典×对比组的 Pearson 被置 NaN "
+                                   f"(常量分数/词典零命中/空窗口/小样本退化 → 相关无定义, 已 nan-safe 聚合)。")
+
+        # (4) 极端窗口 r=0 — 故意压力测试, 偏差大属预期 (非否定 r=1 的证据)
+        if extreme_k in cross:
+            ext_k = [cross[extreme_k][dn]['cohens_kappa'] for dn in dict_names_ra]
+            ext_ag = [cross[extreme_k][dn]['label_agreement'] for dn in dict_names_ra]
+            if ext_k:
+                ext_mean_k = float(np.mean(ext_k))
+                logger.info(f"  极端窗口(r=1 vs r=0, 仅实体所在句) κ: min={min(ext_k):.4f} / mean={ext_mean_k:.4f}, "
+                            f"一致率 min={min(ext_ag):.2%} → "
+                            f"{'偏差大属预期(上下文被砍光, 不作主判据)' if ext_mean_k < 0.60 else '意外稳健(r=0 即已足够)'}")
+
+        # (5) Kappa 悖论检测 — 主导标签平均占比 ≥90% 时 κ 被数学压低
+        dom_pcts = []
+        for r in analysis_results['meta']['radii_tested']:
+            for dn in dict_names_ra:
+                dist_pct = analysis_results['per_radius'][str(r)]['dictionaries'][dn]['label_distribution_pct']
+                dom_pcts.append(max(dist_pct.values()))
+        avg_dom = float(np.mean(dom_pcts)) if dom_pcts else 0.0
+        if avg_dom >= 90.0:
+            logger.info(f"  标签分布: 主导标签平均占比 {avg_dom:.1f}% (≥90%) → 触发 Kappa 悖论, "
+                        f"κ 偏低应以一致率/Pearson 为准, 勿仅凭 κ 否定稳健性。")
+        else:
+            logger.info(f"  标签分布: 主导标签平均占比 {avg_dom:.1f}% (<90%) → 分布较均衡, κ 可作可靠判据。")
+
+        # (6) 配对 t 检验显著比例 — 越低越说明均值差异不显著(稳健)
+        #     注: NaN p 值 (退化样本) 不满足 p<0.05 → 不计入显著, 偏保守, 语义正确。
+        t_ps = [cross[pk][dn]['paired_t_p'] for pk in cross for dn in dict_names_ra]
+        if t_ps:
+            sig = sum(1 for p in t_ps if p < 0.05)
+            sig_frac = sig / len(t_ps)
+            logger.info(f"  配对 t 检验: {sig}/{len(t_ps)} 组均值差异显著(p<0.05) "
+                        f"({sig_frac:.0%}) → {'多数不显著, 窗口改变未系统性移动得分(好)' if sig_frac <= 0.2 else '显著比例偏高, 需讨论参数选择'}")
+
+        # (7) 上下文回退(未命中实体)率 — 回退过高会削弱 ctx 与 full 的区分度
+        for r in analysis_results['meta']['radii_tested']:
+            ctx_stat = analysis_results['per_radius'][str(r)]['context']
+            empty_n = ctx_stat['empty_count']
+            empty_pct = empty_n / input_rows * 100 if input_rows > 0 else 0.0
+            logger.info(f"  r={r}: 平均上下文 {ctx_stat['mean_char_len']:.0f} 字 (占全文 {ctx_stat['mean_ratio']:.1%}), "
+                        f"未命中回退 {empty_n:,} 篇 ({empty_pct:.1f}%)")
+
+        # (8) 词典可用性优雅降级警告
+        if non_empty < len(dictionaries):
+            logger.warning(f"  词典降级: 仅 {non_empty}/{len(dictionaries)} 套情感词典非空 "
+                           f"(tone_dicts.json 缺失/损坏?), 空词典文章被记为'中性', 会人为抬高一致率/κ。")
+
+        # (9) 小样本警告 (盘面 T=2 仅验证管道正确性)
+        if input_rows < 5000:
+            logger.info(f"  ⚠ 样本量 {input_rows:,} 篇偏小 (盘面 T=2 退化): 本次结果仅验证管道正确性, "
+                        f"全量稳健性结论以 17M 篇 / T=18 实测为准 (小样本下 κ/相关易退化、零方差守卫频繁触发)。")
+
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     # ── 保存 JSON 结果 ──
     output_dir = CONFIG['paths']['output_dir']

@@ -657,9 +657,49 @@ def main():
     import time
     start_time = time.time()
 
-    logger.info("=" * 60)
-    logger.info(f"阶段 {STAGE_NAME} 启动")
-    logger.info("=" * 60)
+    # ── 【功能】banner (黄金范式, 摘自 PIPELINE_NUMBERED_PY_REFERENCE 白话/详细说明;
+    #     替换而非叠加旧的 "="*60 短启动头, 对齐 39c construct_orthogonality 单 banner 范式) ──
+    logger.info("=" * 72)
+    logger.info("阶段 24: 跟风/抄袭新闻衰减加权 (三轨 v3.9.0; Tetlock 2011 RFS / Edwards 2001 ORM)")
+    logger.info("=" * 72)
+    logger.info(
+        "【功能】解决'同一条新闻被各家媒体抄来抄去导致情绪被重复计算'。给每篇新闻数"
+    )
+    logger.info(
+        "        '它发布前 7 天内有几篇内容长得很像的旧文', 据此打折后输出逐篇降权乘子,"
+    )
+    logger.info(
+        "        供下游 stage 45 面板聚合情感时乘上去 (硬依赖, 缺/错则整张面板回归受影响)。"
+    )
+    logger.info(
+        f"【方法】按 target_bank 分组 → 三轨 (full/ctx/ss) 各做 char_wb (2,4) TF-IDF + 余弦; "
+        f"as-of 年度前缀拟合 (历史不变);"
+    )
+    logger.info(
+        f"        7 天窗 (TIME_WINDOW_DAYS={TIME_WINDOW_DAYS}) 内相似度 >= "
+        f"SIMILARITY_THRESHOLD={SIMILARITY_THRESHOLD} (闭边界) 记为跟风前驱;"
+    )
+    logger.info(
+        "        衰减公式 weight_j = 1/(1+n_similar_predecessors) — 原创首篇=1, 第 10 篇抄稿≈1/10;"
+    )
+    logger.info(
+        f"        ≤2000 篇/前缀走 dense pairwise, >2000 篇走 7 天窗双指针分桶 (数值逐位等价); "
+        f"max_features={MAX_FEATURES} 按词频截断。"
+    )
+    logger.info(
+        "【判读】跟风占比/均值: herd_weight mean 越接近 1 = 转抄越少(信息越独立); 越低 = 转抄"
+    )
+    logger.info(
+        "        越密集(降权越重)。三轨独立性 Spearman ρ<0.95 = 真三轨(各轨各自打分); ρ≥0.95"
+    )
+    logger.info(
+        "        = 两轨文本几近相同(多因 ctx/ss fallback 占比过高)。阈值敏感性 ρ_vs_baseline 越高(≥0.9)"
+    )
+    logger.info(f"        = 权重排序对 {SIMILARITY_THRESHOLD} 这个具体门槛越不敏感(结论稳健)。")
+    logger.info(
+        "【确定性】纯 CPU, $0, 无 LLM/Embedding/网络; 固定 TF-IDF 参数 + as-of vocab fit + "
+        "稳定排序 → 逐位可复现。"
+    )
 
     # 加载篇章级数据: 固定读取阶段 23 (BERT情感分析) 的输出
     # 严禁回退读取 22/21 的输出，避免磁盘残留旧文件导致静默数据污染
@@ -731,6 +771,119 @@ def main():
         pd.DataFrame(diag_rows).to_csv(diag_path, index=False,
                                        encoding='utf-8-sig')
         logger.info(f"  阈值敏感性诊断已写出: {diag_path}")
+
+    # ── 【结果分析】(黄金范式, 紧随写盘前; 仅读 df 既有列, 不回写任何产物) ──
+    # crash-guard: 整块包 try/except — 该块在最终 to_parquet 之前执行, 若因边缘
+    # 数据 (空 Series.min() / 全 NaN / 缺列) 抛异常会丢失产物 → 直接证伪 golden-safe;
+    # 任何异常仅记 warning 后跳过, 绝不阻断写盘 (本块为纯日志, 不回写 df)。
+    try:
+        logger.info("-" * 72)
+        logger.info("【结果分析】跟风衰减权重产出体检 (篇数/占比/降权强度/三轨独立性):")
+        _n_total = len(df)
+        # column-guard: 6 列由 compute_herd_weights 必产 (见其初始化块), 但仍逐轨检测
+        # 以防上游契约变更; 缺列轨记 info 跳过, 不落进数值判读。
+        _have = {_tn: (f'n_similar_articles_{_tn}' in df.columns
+                       and f'herd_weight_{_tn}' in df.columns)
+                 for _tn in ('full', 'ctx', 'ss')}
+        for _tn in ('full', 'ctx', 'ss'):
+            if not _have[_tn]:
+                logger.info(
+                    f"  [跳过 {_tn} 轨] herd_weight_{_tn}/n_similar_articles_{_tn} 列缺失 "
+                    f"(上游 compute_herd_weights 未产出该轨?), 不纳入体检。"
+                )
+
+        def _flag_rate(_tn):
+            # 跟风占比 = n_similar_articles_{track} > 0 的篇数 / 总篇数 (转抄越多占比越高)
+            return float((df[f'n_similar_articles_{_tn}'] > 0).mean()) if _have[_tn] else float('nan')
+
+        def _mean_w(_tn):
+            # 平均降权乘子 = herd_weight_{track}.mean(); NaN-guard: 全 NaN 轨返回 nan
+            if not _have[_tn]:
+                return float('nan')
+            _s = df[f'herd_weight_{_tn}']
+            return float(_s.mean()) if _s.notna().sum() > 0 else float('nan')
+
+        _flag_full, _flag_ctx, _flag_ss = (_flag_rate('full'), _flag_rate('ctx'), _flag_rate('ss'))
+        _mw_full, _mw_ctx, _mw_ss = (_mean_w('full'), _mean_w('ctx'), _mean_w('ss'))
+        # min 仅在 full 轨有有效数据时计算 (空/全 NaN Series.min() 会抛/返 nan)
+        _mn_full = (float(df['herd_weight_full'].min())
+                    if _have['full'] and df['herd_weight_full'].notna().sum() > 0
+                    else float('nan'))
+
+        logger.info(f"  样本: 总新闻 {_n_total:,} 篇 (banks × T)")
+        logger.info(
+            f"  跟风占比: full={_flag_full:.1%}  ctx={_flag_ctx:.1%}  ss={_flag_ss:.1%} "
+            f"— 占比越高=该范围内转抄越普遍; 三轨候选前驱集合相同 (同银行 7 天窗内更早文章), "
+            f"占比差异仅反映各轨文本 (全文/实体窗/同句窗) 的余弦重叠差异, 不预设 full/ctx/ss 间"
+            f"单调方向 (窄文本既可因内容重叠减少而降 flag, 也可因样板句跨媒体高度相似而升 flag)"
+        )
+        logger.info(
+            f"  平均降权乘子 herd_weight.mean: full={_mw_full:.4f}  ctx={_mw_ctx:.4f}  ss={_mw_ss:.4f} "
+            f"(min_full={_mn_full:.4f}) — 接近 1.0=信息独立基本不降权; 显著<1=存在密集转抄被打折"
+        )
+        # 判读 (NaN-guard 优先): full 轨全 NaN/缺列 → 不落进数值方向判断
+        if _mw_full != _mw_full:  # NaN
+            logger.info(
+                "  判读: full 轨无有效 herd_weight 数据 (全 NaN 或缺列), 跳过降权方向判读。"
+            )
+        elif _mw_full >= 0.9995 and _flag_full == _flag_full and _flag_full < 0.001:
+            # 退化为全 1.0 (无任何降权) 往往意味着上游文本列缺失或样本过稀, 需告警
+            logger.warning(
+                "  ⚠ full 轨 herd_weight≈1.0 且跟风占比≈0 — 几乎未检出任何转抄。盘面 T=2 小样本"
+                "下属预期(每银行每年文章稀疏, 7 天窗内难凑相似前驱); 但若全量 run 出现, 须排查"
+                "文本列是否缺失/向量化是否大面积降级。"
+            )
+        elif _mw_full < 1.0:
+            logger.info(
+                "  判读: full 轨已检出转抄并施加降权 (mean<1) — 符合预期方向, 转载量被压缩为真实信息量。"
+            )
+        # ctx/ss 是否退化为 full 同值 (fallback 比例过高时两轨与 full 逐位相同);
+        # 仅在两轨列均存在时比较, 否则记 info 跳过 (column-guard)。
+        _ctx_eq_full = (_have['full'] and _have['ctx'] and bool(np.allclose(
+            df['herd_weight_ctx'].to_numpy(dtype=float),
+            df['herd_weight_full'].to_numpy(dtype=float), equal_nan=True)))
+        _ss_eq_full = (_have['full'] and _have['ss'] and bool(np.allclose(
+            df['herd_weight_ss'].to_numpy(dtype=float),
+            df['herd_weight_full'].to_numpy(dtype=float), equal_nan=True)))
+        if _ctx_eq_full:
+            logger.warning(
+                "  ⚠ ctx 轨 herd_weight 与 full 轨逐位相同 — content_ctx 缺列或全 fallback, "
+                "ctx 退化为非独立轨 (盘面 T=2 全无跟风时三轨权重同为 1.0 亦会逐位相同, 非必然 "
+                "content_ctx 缺列/fallback; 若全量 run 出现再查 stage 13 ctx_materializer 是否物化 content_ctx)。"
+            )
+        if _ss_eq_full:
+            logger.warning(
+                "  ⚠ ss 轨 herd_weight 与 full 轨逐位相同 — content_ss 缺列或全 fallback (无银行∧"
+                "金科同句共现), ss 退化为非独立轨 (盘面 T=2 / 同句共现稀疏时可能发生)。"
+            )
+        if _have['full'] and _have['ctx'] and _have['ss'] and not _ctx_eq_full and not _ss_eq_full:
+            logger.info(
+                "  三轨各自独立打分 (ctx/ss 均不与 full 逐位相同) — measurement-treatment matching 成立。"
+            )
+        # 阈值敏感性: ρ_vs_baseline 越高 = 权重排序对 SIMILARITY_THRESHOLD 越不敏感 (取 full 轨各 τ 的 ρ 概览)
+        if SENS_TAGS:
+            _rhos = [r['spearman_vs_baseline'] for r in diag_rows
+                     if r['track'] == 'full' and r['spearman_vs_baseline'] == r['spearman_vs_baseline']]
+            if _rhos:
+                _rho_min = min(_rhos)
+                logger.info(
+                    f"  阈值敏感性 (full 轨, τ∈{SENS_THRESHOLDS}): ρ_vs_baseline 最低={_rho_min:.4f} "
+                    f"— {f'≥0.9 权重排序对阈值稳健, 结论不靠 {SIMILARITY_THRESHOLD} 这个具体数' if _rho_min >= 0.9 else '<0.9 权重排序随 τ 漂移, 须在论文披露阈值敏感性'}"
+                )
+            else:
+                logger.info(
+                    "  阈值敏感性: 各 τ 权重无方差或 spearman 不可用 (盘面 T=2 小样本下常见, ρ 无定义)。"
+                )
+        # 小样本 / 全量提醒
+        if _n_total < 5000:
+            logger.info(
+                f"  ⚠ 小样本提醒: 当前 {_n_total:,} 篇属盘面 T=2 规模, 上述跟风占比/降权强度仅验证"
+                "管道正确性; 全量结论 (转抄密集度/三轨分化) 以 17M/T=18 实测为准 (大组 max_features "
+                "截断咬合时另见运行期 logger.warning)。"
+            )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     # 保存 (追加 herd_weight 列后写入独立输出文件)
     # 使用数据版本控制保存

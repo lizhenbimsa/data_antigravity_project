@@ -1964,6 +1964,23 @@ def main():
     """情感三角验证主入口（三轨模式 full/ctx/ss）。"""
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} (三轨模式) ---")
+    # ── 黄金范式【功能】banner (canonical markers; 详细方法论见下方 📌 段) ──
+    logger.info("=" * 72)
+    logger.info("阶段 34: 情感验证 (三轨主控) — 词典法/BERT/LLM 三角交叉验证 (Loughran-McDonald 2016 收敛效度)")
+    logger.info("=" * 72)
+    logger.info(
+        "【功能】对三种独立机理的情感测量(查情感词典/BERT 神经网络/LLM 大模型)做系统交叉验证, "
+        "为情感度量提供方法间趋同的【收敛效度】证据; 对 _full/_ctx/_ss 三轨各跑一遍完整 6 步并出报告。"
+    )
+    logger.info(
+        "【方法】内部一致性 Cronbach α=(k/(k-1))(1-Σσ²ᵢ/σ²ₜ) + 方法间 Spearman ρ + 标签完全/多数一致率; "
+        "LLM 类别偏向(chi-square+JS 散度)与置信度校准(ECE); 并抽样产人工验证工作台(分歧篇 2:1 过采样)。"
+    )
+    logger.info(
+        "【判读】Cronbach α ≥0.70 可接受/≥0.80 良好; Spearman |ρ|≥0.7 强一致; 标签多数一致率 ≥85% 良好。"
+        " 三机器方法趋同=收敛效度, 不等于效标效度(vs 人工金标准, 须人工回读/stage 33), 勿夸大。"
+    )
+    logger.info("【确定性】纯 pandas/numpy/scipy/matplotlib, 无 LLM/Embedding API 调用, $0, 逐位可复现 (抽样 seed=42)。")
     logger.info("")
     logger.info("  📌 阶段目的")
     logger.info("     对三种情感分析方法(词典法/BERT/LLM)进行系统性交叉验证。")
@@ -2487,6 +2504,139 @@ def _run_validation_for_track(df, track, output_dir, logger, CONFIG):
     n_llm = len(llm_independent)
     total_methods = n_words + n_bert + n_llm
     logger.info(f"[{track}] 三角验证完毕: 词典={n_words}, BERT={n_bert}, LLM={n_llm}")
+
+    # ── 黄金范式【结果分析】: 取本轨真实算出的产出指标 + 对照阈值/预期方向给判读 ──
+    # 注: 下述变量均为仅服务于日志的局部读取/计算, 绝不回写 df / 不改任何产物 (json/tex/csv/xlsx)。
+    _track_label = {'_full': '全文', '_ctx': '上下文片段', '_ss': '银行+金科同句'}.get(track, track)
+    _alpha_map = within_results.get('cronbach_alpha', {})
+    _agree_full = agreement.get('full_agreement_rate', 0.0)
+    _agree_maj = agreement.get('majority_agreement_rate', 0.0)
+    _agree_nm = agreement.get('n_methods', 0)
+    _spearman_pairs = cross_results.get('spearman_pairs', {})
+    _hv = results.get('human_verification', {})
+    _hv_status = _hv.get('status', 'pending')
+    _hv_n = _hv.get('n_annotated', 0)
+
+    def _alpha_verdict(a):
+        # Cronbach (1951): ≥0.90 优秀 / ≥0.80 良好 / ≥0.70 可接受 / <0.70 需改进
+        if a >= 0.90:
+            return "优秀(≥0.90)"
+        if a >= 0.80:
+            return "良好(≥0.80)"
+        if a >= 0.70:
+            return "可接受(≥0.70)"
+        return "需改进(<0.70, 内部一致性偏弱)"
+
+    def _rho_verdict(r):
+        # Spearman ρ: ≥0.7 强 / 0.4-0.7 中 / <0.4 弱 (按 main() 关键指标解读口径)
+        ar = abs(r)
+        if ar >= 0.70:
+            return "强一致(|ρ|≥0.7)"
+        if ar >= 0.40:
+            return "中等一致(0.4≤|ρ|<0.7)"
+        return "弱一致(|ρ|<0.4, 方法间排序分歧明显)"
+
+    logger.info("-" * 72)
+    logger.info(
+        f"【结果分析】[{track}={_track_label}] 三角验证(收敛效度)关键产出指标逐项解读 "
+        f"(对照阈值/预期方向; 收敛效度≠效标效度):"
+    )
+    logger.info(
+        f"  · 参与三角验证的独立测量数: 词典={n_words} + BERT={n_bert} + LLM(独立模型, "
+        f"已剔除聚合投票列)={n_llm} = 合计 {total_methods} (样本 n={len(df):,} 篇)。"
+        f"判读: 三族测量来自完全不同机理(查词典/神经网络/大模型), 越多独立测量趋同, 收敛效度越强。"
+    )
+    # 内部一致性 Cronbach α 逐方法判读
+    if _alpha_map:
+        for _m, _a in _alpha_map.items():
+            try:
+                _af = float(_a)
+            except (TypeError, ValueError):
+                continue
+            logger.info(f"  · 内部一致性 Cronbach α [{_m}]: {_af:.4f} → {_alpha_verdict(_af)}")
+    else:
+        logger.info(
+            "  · 内部一致性 Cronbach α: 本轨无任一方法满足 ≥2 个模型, 未计算 α "
+            "(单模型方法无内部一致性可言, 属预期)。"
+        )
+    # 跨方法 Spearman ρ 逐对判读
+    if _spearman_pairs:
+        for _pair, _r in _spearman_pairs.items():
+            try:
+                _rf = float(_r)
+            except (TypeError, ValueError):
+                continue
+            logger.info(f"  · 跨方法 Spearman ρ [{_pair}]: {_rf:.4f} → {_rho_verdict(_rf)}")
+    else:
+        logger.info(
+            "  · 跨方法 Spearman ρ: 可比较的方法不足 2 族, 未产出成对相关 "
+            "(需词典/BERT/LLM 中至少 2 族同时在轨)。"
+        )
+    # 标签一致率判读 (经验参考 ≥85% 良好)
+    logger.info(
+        f"  · 标签完全一致率: {_agree_full:.4f} ({_agree_full * 100:.1f}%) — "
+        f"{_agree_nm} 个方法/模型对同一篇判出完全相同标签的占比。"
+        f"判读: 越高=测量越稳; 完全一致较多数一致更严苛, 中文情感三分类下偏低属正常。"
+    )
+    _maj_verdict = "良好(≥85%)" if _agree_maj >= 0.85 else (
+        "中等(70%-85%)" if _agree_maj >= 0.70 else "偏弱(<70%, 方法间分歧较多)")
+    logger.info(
+        f"  · 标签多数一致率: {_agree_maj:.4f} ({_agree_maj * 100:.1f}%) → {_maj_verdict} "
+        f"(严格多数 > 方法数/2)。判读: ≥85% 视为方法间一致性良好(经验参考值)。"
+    )
+    # 合成产物的描述性判读 (仅供解读, 不入产物列以外用途)
+    _vote_total = int(vote_dist.sum()) if len(vote_dist) else 0
+    _vote_brief = ", ".join(
+        f"{_lab}={int(_cnt)}({_cnt / _vote_total * 100:.1f}%)"
+        for _lab, _cnt in vote_dist.items()
+    ) if _vote_total > 0 else "无"
+    logger.info(
+        f"  · 多数投票情感分布: {_vote_brief}。加权平均(等权)得分: "
+        f"mean={weighted_score.mean():.4f}, std={weighted_score.std():.4f}。"
+        f"判读: 分布严重偏向单一类别(如'中性'占绝大多数)提示测量保守或题材中性化, "
+        f"需结合 LLM 类别偏向诊断(本轨 Step 6.5)一并解读。"
+    )
+    # 人工验证(效标效度)状态判读
+    if _hv_status == 'ok':
+        logger.info(
+            f"  · 人工验证(效标效度): status=ok, 已回读 {_hv_n} 条人工标注 (≥{HUMAN_VERIFY_MIN_N} "
+            f"达标)。判读: 已为词典/BERT/LLM 各方法产出 accuracy/macro-F1/Cohen κ vs 人工金标准, "
+            f"是真正的效标效度证据(优于本阶段方法间趋同)。"
+        )
+    elif _hv_status == 'insufficient':
+        logger.info(
+            f"  · 人工验证(效标效度): status=insufficient, 仅 {_hv_n} 条标注 (<{HUMAN_VERIFY_MIN_N}); "
+            f"指标已算但置信区间过宽, 仅供参考。判读: 需补足人工标注方可作正式效标效度。"
+        )
+    else:  # pending / error
+        logger.info(
+            f"  · 人工验证(效标效度): status={_hv_status} (n_annotated={_hv_n})。"
+            f"判读: 人工工作台尚未填写(pending)或读取异常(error) → 本轨当前仅有【收敛效度】"
+            f"(方法间趋同)证据, 不得据此宣称构念效度达顶刊标准 (披露铁律)。"
+        )
+    # 优雅降级警告: 某情感方法整族缺列 → 该族未进三角验证
+    if n_words == 0:
+        logger.warning(
+            f"  ⚠ [{track}] 未发现词典法情感列 → 阶段 22 可能未运行或列名后缀不匹配; "
+            f"词典族缺席会削弱三角验证的'独立机理'多样性 (优雅降级, 不中断)。"
+        )
+    if n_bert == 0:
+        logger.warning(
+            f"  ⚠ [{track}] 未发现 BERT 情感列 → 阶段 23 可能未运行 / FinBERT2 模型缺失而优雅跳过; "
+            f"BERT 族缺席同样削弱方法多样性 (优雅降级, 不中断)。"
+        )
+    if n_llm == 0:
+        logger.warning(
+            f"  ⚠ [{track}] 未发现 LLM 独立模型情感列 → 阶段 21 可能未运行; "
+            f"LLM 族缺席将无法做类别偏向/置信度校准诊断 (优雅降级, 不中断)。"
+        )
+    # 小样本警告: 盘面 T=2 仅验证管道正确性
+    if len(df) < 1000:
+        logger.info(
+            f"  ⚠ 本轨样本 n={len(df):,} 篇属小样本 (盘面 T=2 / 子样本); 上述 α / ρ / 一致率 "
+            f"仅用于验证三角验证管道正确性, 全量结论以 17M / T=18 实测为准。"
+        )
+    logger.info("-" * 72)
 
 
 if __name__ == "__main__":

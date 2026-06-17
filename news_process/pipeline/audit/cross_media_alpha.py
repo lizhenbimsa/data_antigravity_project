@@ -370,10 +370,24 @@ def aggregate_to_bank_year(
 
 def main():
     stage_start = time.time()
-    logger.info("=" * 60)
-    logger.info("阶段 39f: Cross-Media tone variance + α (v3.7.0 PR #12, D3)")
-    logger.info("⚠️  与第 10 篇 bank_media_disagreement 重叠; spec 对齐前仅 validation")
-    logger.info("=" * 60)
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
+    logger.info("=" * 72)
+    logger.info("阶段 39f: 跨媒体源 tone 一致性 (Krippendorff α + 事件窗方差; v3.7.0 PR #12, D3)")
+    logger.info("=" * 72)
+    logger.info("【功能】同一家银行出大新闻的那几天, 不同媒体打出来的语调一致吗? 找出每家银行的")
+    logger.info("        报道高峰日 (event episode), 在事件窗内度量各媒体语调的分歧度与一致性,")
+    logger.info("        给 bank-year 面板加 9 列 (variance/α/n_events × full/ctx/ss 三轨)。")
+    logger.info("【方法】bank-day 文章数 ≥ 该 bank p90 (N_ARTICLE_PERCENTILE=0.90) 为峰值日 → 相邻")
+    logger.info(f"        gap ≤ 2×{EVENT_WINDOW_DAYS}d 的重叠 ±{EVENT_WINDOW_DAYS}d 窗合并为 episode; "
+                f"每事件要求 ≥{MIN_OUTLETS_PER_EVENT} 家媒体。")
+    logger.info("        variance=outlet 间 tone 方差 (np.var ddof=1, 事件窗条件); Krippendorff(2004)")
+    logger.info("        α (interval scale, outlet×day matrix, NaN 作 missing); 按 episode 文章数加权聚合。")
+    logger.info("【判读】α 越高 (→1) = 各媒体语调越吻合, 情感信号越可靠 (Tetlock 2007 信号质量代理);")
+    logger.info("        variance 越高 = 媒体分歧越大 (本身也是信息, 第 10 篇媒体分歧度核心变量)。")
+    logger.info("【确定性】无 LLM/Embedding, 纯 CPU 只读已落盘 stage 21 + 确定性 _SENT_TO_TONE 派生 → 逐位可复现。")
+    logger.info("⚠️  cross_outlet_tone_variance_{full,ctx,ss} 与第 10 篇 bank_media_disagreement spec 冻结")
+    logger.info("    main treatment **同名异构** (本模块=事件窗条件; spec=全年无条件截面); 采用前须对齐, 当前仅 validation。")
+    logger.info("=" * 72)
 
     output_dir = CONFIG['paths']['output_dir']
     src_path = os.path.join(output_dir, '21_tone_llms_full.parquet')
@@ -441,6 +455,114 @@ def main():
     panel = panels[0]
     for p in panels[1:]:
         panel = panel.merge(p, on=['target_bank', 'year'], how='outer')
+
+    # 结果分析 — 写入日志: 逐轨 variance/α/n_events 实测值 + 对照阈值/预期方向判读。
+    # 仅用于日志, 不回写 panel (golden-safe)。
+    # crash-guard (硬化 A): 本分析块在 panel.to_parquet 写盘之前执行, 任何读数/算指标
+    # 异常 (空 Series 聚合 / 缺列 KeyError / dtype 边缘 case) 都不得拖垮整个阶段而丢产物;
+    # 整体包 try/except, 失败仅告警跳过, 写盘照常进行 (保证 golden-safe)。
+    try:
+        try:
+            import krippendorff  # noqa: F401
+            _krip_ok = True
+        except ImportError:
+            _krip_ok = False
+        logger.info("-" * 72)
+        logger.info(f"【结果分析】跨媒体 tone 一致性 (bank-year 面板 {len(panel)} 行; 三轨 full/ctx/ss):")
+        if not _krip_ok:
+            logger.warning(
+                "  krippendorff 未装 → 所有 cross_media_alpha_* 列为 NaN, 仅 variance 可用; "
+                "α 一致性证据缺失 (优雅降级, 取消 requirements.txt 注释后 pip install 可恢复)"
+            )
+        for _trk in ('full', 'ctx', 'ss'):
+            _vcol = f'cross_outlet_tone_variance_{_trk}'
+            _acol = f'cross_media_alpha_{_trk}'
+            _ncol = f'n_events_{_trk}'
+            # column-guard (硬化 C): ss 轨缓存常未播种 → variance 列缺失即跳过该轨
+            if _vcol not in panel.columns:
+                logger.info(f"  轨道 {_trk}: 未产出 (article 级 tone 列缺失, 该轨优雅跳过)")
+                continue
+            _var_s = panel[_vcol].dropna()
+            _alpha_s = panel[_acol].dropna() if _acol in panel.columns else pd.Series(dtype=float)
+            _n_units = int(panel[_vcol].notna().sum())
+            _total_events = int(panel[_ncol].sum()) if _ncol in panel.columns else 0
+            logger.info(
+                f"  轨道 {_trk}: {_n_units} 个 bank-year 单元有有效输出, 合计 {_total_events} 个 event episode"
+            )
+            # variance: 越高 = 媒体分歧越大 (无绝对阈值, 报均值/极值供横向对比)
+            # NaN-guard (硬化 B): dropna 后 len==0 走 "全 NaN" 分支, 不落进数值统计
+            if len(_var_s) > 0:
+                logger.info(
+                    f"    cross_outlet_tone_variance: 均值={_var_s.mean():.4f} "
+                    f"中位={_var_s.median():.4f} [min={_var_s.min():.4f}, max={_var_s.max():.4f}]  "
+                    "(越高=各媒体语调分歧越大; 0=完全一致)"
+                )
+            else:
+                logger.info(f"    cross_outlet_tone_variance: 全 NaN (无 ≥{MIN_OUTLETS_PER_EVENT} 媒体的事件)")
+            # α: 越高(→1)=越一致, 越好。常用门槛 α≥0.667 可接受 / ≥0.80 良好 (Krippendorff 2004)
+            # NaN-guard (硬化 B): 仅 dropna 后非空才进方向判读, 否则 mean=nan 且 ternary 恒 False 误判
+            if len(_alpha_s) > 0:
+                _a_mean = float(_alpha_s.mean())
+                if _a_mean >= 0.80:
+                    _verdict = "良好 (媒体高度一致, 信号可靠)"
+                elif _a_mean >= 0.667:
+                    _verdict = "可接受 (Krippendorff 2004 最低门槛)"
+                else:
+                    _verdict = "偏低/分歧 (信号一致性弱, 或本身即媒体分歧信息)"
+                logger.info(
+                    f"    cross_media_alpha: 均值={_a_mean:.4f} 中位={_alpha_s.median():.4f} "
+                    f"(非空 {len(_alpha_s)}/{_n_units})  → {_verdict}"
+                )
+            elif _krip_ok:
+                logger.info(
+                    "    cross_media_alpha: 全 NaN (无 item 满足 ≥2 outlets 同日报道, α 不可估)"
+                )
+        # G-D3.1 总覆盖判读 (用 full 轨; D-0 实测项要求 valid bank-year 覆盖 ≥60%)
+        # 口径修正 (P1): panel 以 (target_bank, year) 为单元, full variance 的
+        # notna().sum() 是**有效 bank-year 行数**; 分母须同口径取**总 bank-year 单元数**,
+        # 否则 (分子=bank-year 行 / 分母=去重 bank 数) 在 T>1 时比值可 >100%, 且与
+        # 注释 'bank-year 覆盖' / 行内 G-D3.1 'bank 覆盖' 自相矛盾, 误导 D-0≥60% 判读。
+        # 分母从 art_df 的日期列派生 year, drop_duplicates 取 bank-year 总数; 缺日期列
+        # 时优雅降级为 'bank 覆盖' 口径 (分子=有效 bank 数, 与 line 442 自洽口径对齐)。
+        # column-guard (硬化 C): full variance 列缺失 / 总单元数为 0 时不算覆盖率。
+        if 'cross_outlet_tone_variance_full' in panel.columns and 'target_bank' in art_df.columns:
+            _date_col = '日期'
+            if _date_col in art_df.columns:
+                # bank-year 口径 (与 panel 单元一致, 比值 ≤100%, 对齐注释 'bank-year 覆盖')
+                _by = art_df[['target_bank', _date_col]].copy()
+                _by['_y'] = pd.to_datetime(_by[_date_col], errors='coerce').dt.year
+                _bank_year_total = int(_by[['target_bank', '_y']].dropna().drop_duplicates().shape[0])
+                _cov_label = "full 轨有效 bank-year 数 / 总 bank-year 数"
+                _cov_denom = _bank_year_total
+            else:
+                # 降级: 缺日期列 → bank 口径 (分子分母均以银行为单元, 与 line 442 自洽口径对齐)
+                _cov_label = "full 轨有效 bank 数 / 总 bank 数"
+                _cov_denom = int(art_df['target_bank'].nunique())
+            if _cov_denom > 0:
+                # 分子: full variance 非空的 panel 行数 (bank-year 单元); 降级口径下亦以
+                # 有效 bank 数为分子, 与降级分母同口径 (line 442 范式)。
+                if _cov_label.endswith("总 bank 数"):
+                    _cov_num = int(
+                        panel.loc[panel['cross_outlet_tone_variance_full'].notna(),
+                                  'target_bank'].nunique()
+                    )
+                else:
+                    _cov_num = int(panel['cross_outlet_tone_variance_full'].notna().sum())
+                _cov_full = _cov_num / _cov_denom
+                logger.info(
+                    f"  G-D3.1 覆盖: {_cov_label} = {_cov_full:.1%} "
+                    f"({'PASS (≥60%)' if _cov_full >= 0.60 else 'WARN (<60%, 事件/媒体稀疏)'})"
+                )
+        logger.info(
+            f"  检测到 {len(events)} 个 bank-level events (合并重叠 ±{EVENT_WINDOW_DAYS}d 窗后的独立 episode)"
+        )
+        logger.info(
+            "  ⚠ 盘面 T=2 小样本: 事件检测/媒体覆盖均稀疏, 仅验证管道正确性; "
+            "全量 17M/T=18 实测 α 与覆盖率以生产 run 为准。"
+        )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     panel_path = os.path.join(output_dir, '39f_cross_media_alpha.parquet')
     panel.to_parquet(panel_path, index=False)

@@ -549,6 +549,23 @@ def main():
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
     log_memory_usage(logger, "阶段启动")
 
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c/13)。
+    logger.info("=" * 72)
+    logger.info("阶段 14: 金融科技技术重度评分 (TF-IDF + IDF 加权关键词质心, 三轨 full/ctx/ss)")
+    logger.info("=" * 72)
+    logger.info("【功能】给每篇'金融科技'新闻打一个连续的'技术含金量分数' fintech_intensity_score —")
+    logger.info("        在 stage 12 二元'是不是金科'判定之上, 进一步衡量它谈得'有多硬核'。")
+    logger.info("        产出三轨 fintech_intensity_score_{full,ctx,ss} + intensity_verified_{full,ctx,ss},")
+    logger.info("        下游聚合为银行-年度平均金科强度, 直接进入 P2(注意力强度)等论文核心解释变量。")
+    logger.info("【方法】双重对数核公式 Score_d = Σ_{i:TF>0} [(1+ln(TF_d,i)) / (1+ln(L_d))] × W_i,")
+    logger.info("        其中 W_i = IDF_i × CosSim_scaled_i (越稀有+语义越纯的金科词权重越高)。")
+    logger.info(f"        分母 1+ln(L_d) 防长文偏差; 对 TF 取对数防'复读机刷分'; distinct 关键词 "
+                f"< {MIN_DISTINCT_KEYWORDS_JIEBA} → 二次熔断 score=NaN(不计入下游均值)。")
+    logger.info("【判读】分数越高 = 技术含金量越硬核; verified=True 占比越高 = 越多文章通过验证门槛。")
+    logger.info("        三轨分歧(full vs ctx vs ss)越大 = ss/ctx 带来越独立的聚焦信号(支撑三轨稳健性)。")
+    logger.info("【确定性】纯 CPU (jieba 整词 + joblib 线程并行 + 本地 text2vec 词向量), "
+                "不调任何 LLM/Embedding API, 本阶段 $0, 确定性取决于 jieba==0.42.1 与本地词向量模型。")
+
     output_dir = CONFIG['paths']['output_dir']
 
     full_filename = CONFIG['filenames'].get('output_12_fintech_full', '12_fintech_news_full.parquet')
@@ -688,6 +705,87 @@ def main():
                 f"({n_verified_ctx / max(n_total, 1) * 100:.1f}%)")
     logger.info(f"intensity_verified_ss=True:   {n_verified_ss}/{n_total} "
                 f"({n_verified_ss / max(n_total, 1) * 100:.1f}%)")
+
+    # ── 结果分析 (仿 39c): 把真实算出的产出指标逐个打印 + 对照阈值/预期方向给判读 ──
+    # 仅用于日志, 不回写 df / 不改任何产物 (golden-safe 纯增量)。本块整体在 save_dataset
+    # 之后执行 (产物已落盘), 但仍 try/except 兜底: 即便诊断计算抛异常 (如缺列 KeyError /
+    # 空 Series 统计) 也只打 WARNING、绝不让阶段崩溃丢已写产物 (crash-guard)。
+    try:
+        _verif_rate_full = n_verified_full / max(n_total, 1)
+        _verif_rate_ctx = n_verified_ctx / max(n_total, 1)
+        _verif_rate_ss = n_verified_ss / max(n_total, 1)
+        # verified=True 行的得分分布 (NaN 自动剔除, 与下游 bank-year mean 同口径)。
+        # 三列在上方三轨分支中必被赋值 (缺 content 列时回退 = full), 故 column-guard 下
+        # 仍兜底用 .get-式存在判断, 缺列则记 None 并给"全 NaN"路径 (双保险)。
+        def _coerce(_col):
+            return pd.to_numeric(df[_col], errors='coerce') if _col in df.columns else None
+        _sc_full = _coerce('fintech_intensity_score_full')
+        _sc_ctx = _coerce('fintech_intensity_score_ctx')
+        _sc_ss = _coerce('fintech_intensity_score_ss')
+
+        # NaN-guard: 全 NaN / 缺列 → mean=NaN, 不落进任何数值方向判断
+        def _safe_mean(_s):
+            if _s is None or _s.notna().sum() == 0:
+                return float('nan')
+            return float(np.nanmean(_s))
+        _mean_full = _safe_mean(_sc_full)
+        _mean_ctx = _safe_mean(_sc_ctx)
+        _mean_ss = _safe_mean(_sc_ss)
+        # 三轨是否真正分歧 (是否退化为 ≡ full): ctx/ss 与 full 列是否逐元素相等
+        _ctx_distinct = (_sc_ctx is not None and _sc_full is not None
+                         and not _sc_ctx.equals(_sc_full))
+        _ss_distinct = (_sc_ss is not None and _sc_full is not None
+                        and not _sc_ss.equals(_sc_full))
+        # 权重宇宙规模 (matchable 关键词数) + 区分度: 综合权重的离散程度
+        _w_vals = (np.array(list(combined_weights.values()), dtype=float)
+                   if combined_weights else np.array([]))
+        _w_mean = float(np.mean(_w_vals)) if _w_vals.size else float('nan')
+        _w_std = float(np.std(_w_vals)) if _w_vals.size else float('nan')
+
+        logger.info("-" * 72)
+        logger.info("【结果分析】技术重度评分质量解读:")
+        logger.info(f"  IDF 参考语料: N_total={N_total:,} 篇唯一文档, "
+                    f"命中 {len(keyword_doc_freq):,} 个不同金科关键词 (jieba 整词口径)")
+        logger.info(f"  综合权重宇宙: {len(combined_weights):,} 个可匹配关键词, "
+                    f"W mean={_w_mean:.4f}, std={_w_std:.4f}")
+        # NaN-guard: _w_std 为 NaN (空权重) 时不进 ">0" 方向判读, 单列降级提示
+        if not np.isfinite(_w_std):
+            logger.info("    → ⚠ 权重宇宙为空 (combined_weights 为空), 评分将全部熔断/降级, 见上方口径降级日志")
+        elif _w_std > 0:
+            logger.info("    → 权重有区分度 (std>0), 稀有/语义纯的硬核词与泛化词被有效拉开")
+        else:
+            logger.info("    → ⚠ 权重几乎无区分度 (std≈0), 评分可能已降级为纯词频/纯 IDF, 见上方口径降级日志")
+        logger.info(f"  full 轨 verified=True: {n_verified_full:,}/{n_total:,} "
+                    f"({_verif_rate_full*100:.1f}%), 通过验证文章 mean score={_mean_full:.4f}")
+        logger.info("    → " + ("验证通过率健康, 多数金科文章含 ≥2 个 distinct 金科词, 强度信号可用"
+                                if _verif_rate_full >= 0.50 else
+                                "⚠ 验证通过率偏低, 大量文章仅孤立提及 1 个金科词 → 被熔断为 NaN "
+                                "(核查 stage 12 关键词判定是否过宽 / 语料是否多顺带一提)"))
+        # column-guard: ss 缓存常未播种 → content_ss 缺列时 ss 轨退化为 full, 据实标注
+        if _sc_ctx is None:
+            logger.info(f"  ctx 轨: 列 fintech_intensity_score_ctx 缺失, 跳过 (verified={n_verified_ctx:,})")
+        else:
+            logger.info(f"  ctx 轨 verified=True: {n_verified_ctx:,}/{n_total:,} ({_verif_rate_ctx*100:.1f}%), "
+                        f"mean score={_mean_ctx:.4f}, 独立于 full: {_ctx_distinct}")
+        if _sc_ss is None:
+            logger.info(f"  ss  轨: 列 fintech_intensity_score_ss 缺失, 跳过 (verified={n_verified_ss:,})")
+        else:
+            logger.info(f"  ss  轨 verified=True: {n_verified_ss:,}/{n_total:,} ({_verif_rate_ss*100:.1f}%), "
+                        f"mean score={_mean_ss:.4f}, 独立于 full: {_ss_distinct}")
+        if _sc_ctx is not None and not _ctx_distinct:
+            logger.warning("  ⚠ ctx 轨得分逐元素 ≡ full → content_ctx 列缺失或全回退 "
+                           "(stage 13 _materialize_ctx 未跑?), ctx 轨此次不提供独立信号")
+        if _sc_ss is not None and not _ss_distinct:
+            logger.warning("  ⚠ ss 轨得分逐元素 ≡ full → content_ss 列缺失或全回退 "
+                           "(stage 13 ss 物化未跑?), ss 轨此次不提供独立信号")
+        if _ctx_distinct and _ss_distinct:
+            logger.info("    → 三轨得分互不相同, full/ctx/ss 各自携带独立的文本聚焦视角 (支撑三轨稳健性设计)")
+        if n_total < 5000:
+            logger.info(f"  ⚠ 金科子集行数偏少 ({n_total:,}), 多为盘面小样本 (如 T=2): "
+                        "上述率/分布仅供验证管道正确性, 全量结论以 17M/T=18 实测为准")
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start, n_total, n_total)
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")

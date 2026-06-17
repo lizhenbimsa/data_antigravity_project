@@ -1443,17 +1443,26 @@ def diagnose_alias_matching_quality(panel: pd.DataFrame,
 def main():
     """51_falsification_test 主流程。"""
     start_time = time.time()
-    logger.info("=" * 70)
-    logger.info("===  51_falsification_test: 伪造检验对照变量构建  ===")
-    logger.info("=" * 70)
-    logger.info("")
-    logger.info("  假设检验框架:")
-    logger.info("    H0: fintech tone 的解释力完全来自银行层面一般媒体关注度")
-    logger.info("    H1: fintech tone 包含金融科技维度的特异性增量信息")
-    logger.info("")
-    logger.info("  核心方法论:")
-    logger.info(f"    {REFERENCES['Hassan2019']}")
-    logger.info(f"    → Table 7: 通过 PRisk vs NPRisk 的非对称预测验证构造效度")
+    # ── 黄金范式单 banner (替换旧短阶段头, 让 <stage>.log 自带说明书; 不叠加旧 banner) ──
+    logger.info("=" * 72)
+    logger.info("阶段 51: 伪造检验对照变量构建 (Hassan et al. 2019 QJE Table 7 范式)")
+    logger.info("=" * 72)
+    logger.info("【功能】给核心结论做'打假对照实验': 用 anti-join 把所有非金融科技银行新闻")
+    logger.info("        (全量银行新闻 MINUS 已进面板的金融科技文章) 挑出来, 数清每家银行")
+    logger.info("        每年的普通新闻篇数/媒体广度/标题提及率, 当作安慰剂(volume)对照变量")
+    logger.info("        挂回 bank-year 面板, 产出 51_panel_with_controls.{parquet,dta} +")
+    logger.info("        51_falsification_diagnostics.csv (情感×新闻量相关矩阵)。")
+    logger.info("【假设】H0: fintech tone 的解释力完全来自银行层面一般媒体关注度;")
+    logger.info("        H1: fintech tone 包含金融科技维度的特异性增量信息 (本检验欲支持 H1)。")
+    logger.info("【方法】anti-join 复合键 (target_bank, 标题, 日期) 双侧去重后集合差集 (互补划分);")
+    logger.info("        nf_ln_coverage=ln(1+count) (Fang-Peress 2009); nf_media_breadth=物理口径")
+    logger.info("        distinct-outlet (Bushee 2010); fintech_share=ft_dedup/(ft_dedup+nf) 同基,")
+    logger.info("        分母0→NaN(zero_coverage 标记); 诊断阈值 |r|<0.3 弱相关支持 H1。")
+    logger.info(f"        核心方法论对标: {REFERENCES['Hassan2019']}")
+    logger.info("        → Table 7: 通过 PRisk vs NPRisk 的非对称预测验证构造效度。")
+    logger.info("【判读】fintech_share 与 nf_* 越是弱相关 (|r|<0.3) → fintech tone 越像独立信号(好);")
+    logger.info("        |r|≥0.7 高相关→赛马回归区分力存疑(坏); 挤出弹性 r(ln_ft,ln_nf)<-0.95→机械约束(坏)。")
+    logger.info("【确定性】纯 pandas/numpy, 无 LLM/Embedding/网络, 逐位可复现。")
 
     # 1-7. 主流程
     df_full, df_art, panel = load_data()
@@ -1467,6 +1476,126 @@ def main():
     export_results(panel, pearson_corr)
     print_stata_template()
     print_references()
+
+    # ── 黄金范式【结果分析】: 取真实产出指标, 对照阈值/预期方向给好/坏/临界判读 ──
+    # 注: 以下局部变量仅用于日志解读, 绝不回写 panel / 任何产物 (golden-safe)。
+    # crash-guard: 本分析块虽在 export_results 写盘**之后**执行 (产物不会因此丢失),
+    # 但仍整体包 try/except, 任何缺列/空 Series/NaN 比较异常都降级为 WARNING, 决不
+    # 中断阶段收尾 (log_stage_summary)。
+    try:
+        logger.info("-" * 72)
+        logger.info("【结果分析】伪造检验对照变量产出质量评估 (相对 Hassan 2019 H0 vs H1)")
+
+        # (1) 对照组规模与互补划分 — Non-Fintech 占比应远高于 fintech (对照组须够大)
+        # 注: 覆盖率分子须取 left-join 后**落到面板内**的 NF 行 (nf_n_articles>0),
+        # 而非 len(nf_agg) — 后者按 (target_bank,year) 聚合自全量 NF 语料, 含面板外
+        # 银行/年份, 直接除以 len(panel) 会得 >100% 的无意义比率。
+        _n_panel = len(panel)
+        if 'nf_n_articles' in panel.columns:
+            _n_nf_rows = int((panel['nf_n_articles'] > 0).sum())
+        else:
+            _n_nf_rows = 0
+        _nf_cover_rate = _n_nf_rows / max(_n_panel, 1) * 100
+        logger.info(f"  ① 对照组覆盖: {_n_nf_rows:,}/{_n_panel:,} 个面板 bank-year 有非金融科技新闻 "
+                    f"({_nf_cover_rate:.1f}%)。")
+        if _nf_cover_rate >= 50:
+            logger.info("     判读: 多数 bank-year 有 NF 对照新闻 → 安慰剂 volume 变量有足量变异 (好)。")
+        elif _nf_cover_rate > 0:
+            logger.info("     判读: NF 覆盖偏稀疏 → 赛马回归中 nf_* 变异有限, 控制效力受限 (临界)。")
+        else:
+            logger.warning("     判读: NF 对照组为空 → 伪造检验无法执行, 须检查 anti-join 与上游覆盖 (坏)。")
+
+        # (2) fintech_share 信息密集度 — 越接近 Hassan PRisk/(PRisk+NPRisk) 的合理低值越好
+        if 'fintech_share' in panel.columns:
+            _fs = panel['fintech_share'].dropna()
+            # NaN-guard: 全 NaN (无有效份额) 时不落进数值方向判断 (否则 mean=nan 且
+            # 方向 ternary 因 nan 比较恒 False 误落 "占少数(合理)" 档)。
+            if len(_fs) == 0:
+                logger.info(f"  ② fintech_share: 该列全 NaN (0/{_n_panel:,} 行有定义) → "
+                            "无有效份额, 跳过密集度判读 (多因面板全为零新闻 bank-year)。")
+            else:
+                _fs_mean = float(_fs.mean())
+                _fs_med = float(_fs.median())
+                logger.info(f"  ② fintech_share: mean={_fs_mean:.4f}, median={_fs_med:.4f} "
+                            f"(有定义行 {len(_fs):,}/{_n_panel:,})。")
+                if _fs_mean < 0.5:
+                    logger.info("     判读: 金融科技新闻在全部银行新闻中占少数 → 与制度先验一致, "
+                                "对照组(NF)主导信息环境 (合理)。")
+                else:
+                    logger.warning("     判读: fintech_share 均值 ≥0.5 偏高 → 警惕 anti-join 漏切或"
+                                   "分子分母计数基不一致 (须复核去重同基)。")
+            # zero_coverage: 全年零新闻被标 NaN 而非 0 份额, 应占少数
+            if 'zero_coverage' in panel.columns:
+                _zc = int(panel['zero_coverage'].sum())
+                _zc_rate = _zc / max(_n_panel, 1) * 100
+                logger.info(f"     zero_coverage (全年零新闻, fintech_share 无定义): {_zc:,} 行 "
+                            f"({_zc_rate:.1f}%)。")
+                if _zc_rate > 50:
+                    logger.warning("     判读: 过半 bank-year 零新闻 → 面板稀疏, 份额类变量样本严重缩水 (坏)。")
+                else:
+                    logger.info("     判读: 零新闻行已正确记 NaN (而非冒充 0 份额), 回归将自然剔除 (好)。")
+
+        # (3) 区分效力 — 情感三轨 × NF 新闻量相关; |r|<0.3 支持 H1 (tone 含特异性增量信息)
+        # column-guard: 相关矩阵为方阵 (行列对称); _tc/_nc 均先核 in columns 再 .loc
+        # 取值 (ss 轨缓存常未播种 → llm_vote_tone_ss 缺列时自然不进列表, 优雅跳过)。
+        if pearson_corr is not None:
+            _tone_cols = [c for c in ['llm_vote_tone_full', 'llm_vote_tone_ctx',
+                                      'llm_vote_tone_ss', 'dict_avg_tone_full']
+                          if c in pearson_corr.columns]
+            _nf_diag_cols = [c for c in ['nf_ln_coverage', 'nf_media_breadth']
+                             if c in pearson_corr.columns]
+            _r_abs_list = []
+            for _tc in _tone_cols:
+                for _nc in _nf_diag_cols:
+                    _rv = pearson_corr.loc[_tc, _nc]
+                    if pd.notna(_rv):
+                        _r_abs_list.append(abs(float(_rv)))
+            if _r_abs_list:
+                _max_r = max(_r_abs_list)
+                _n_weak = sum(1 for v in _r_abs_list if v < 0.3)
+                logger.info(f"  ③ 区分效力: 情感×NF新闻量 共 {len(_r_abs_list)} 对相关, "
+                            f"其中 {_n_weak} 对 |r|<0.3 (弱相关), 最大 |r|={_max_r:.4f}。")
+                if _max_r < 0.3:
+                    logger.info("     判读: 全部弱相关 → fintech tone 与一般媒体关注度独立, 强支持 H1 (好)。")
+                elif _max_r < 0.7:
+                    logger.info("     判读: 存在中等相关 → Stata 赛马回归须同时控制 nf_* 变量 (临界)。")
+                else:
+                    logger.warning("     判读: 出现高度相关 (|r|≥0.7) → 多重共线性威胁伪造检验区分效力 (坏)。")
+            else:
+                logger.info("  ③ 区分效力: 情感×NF新闻量 相关全 NaN/无可用配对 → 跳过区分判读 "
+                            "(多因情感轨列未物化或样本不足)。")
+            # 挤出弹性: r(ln_ft, ln_nf) 不应趋于 -1 (否则 fintech%+nf%≡100% 机械约束未消除)
+            if ('ln_ft_articles' in panel.columns and 'ln_nf_articles' in panel.columns):
+                _vp = panel[['ln_ft_articles', 'ln_nf_articles']].dropna()
+                if len(_vp) >= 2:
+                    _r_elast = float(_vp.corr().iloc[0, 1])
+                    # NaN-guard: 任一列常数 (零方差) 时 corr 返回 NaN, 不能落进
+                    # r<-0.95 比较 (nan 比较恒 False 会误判 "非机械关联(好)")。
+                    if pd.isna(_r_elast):
+                        logger.info("     挤出弹性 r(ln_ft, ln_nf) = NaN (某列零方差/常数) → "
+                                    "无法判读机械关联, 跳过。")
+                    else:
+                        logger.info(f"     挤出弹性 r(ln_ft, ln_nf) = {_r_elast:.4f}。")
+                        if _r_elast < -0.95:
+                            logger.warning("     判读: r<-0.95 → 疑似机械关联, 对数变换未消除百分比约束 (坏)。")
+                        else:
+                            logger.info("     判读: 非机械关联 (r>-0.95), 对数弹性策略有效 (好)。")
+        else:
+            logger.warning("  ③ 区分效力: run_diagnostics 返回 None (可用诊断列<2) → "
+                           "相关矩阵未生成, 伪造检验区分判读缺失; 多因情感轨列尚未物化 (优雅降级)。")
+
+        # (4) 小样本警告 — 盘面 T=2 仅验证管道正确性, 全量结论以 17M/T=18 为准
+        if 'year' in panel.columns and 'target_bank' in panel.columns:
+            _n_years = int(panel['year'].nunique())
+            _n_banks = int(panel['target_bank'].nunique())
+            logger.info(f"  ④ 面板深度: {_n_banks} 家银行 × {_n_years} 年 = {_n_panel:,} 行。")
+            if _n_years <= 2:
+                logger.info(f"     ⚠ 小样本 (T={_n_years}): 本机盘面为伪两年片段, 相关系数与份额分布"
+                            "仅验证管道正确性, 弱/高相关结论以全量 17M/T=18 实测为准。")
+
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     # 阶段摘要
     log_stage_summary(

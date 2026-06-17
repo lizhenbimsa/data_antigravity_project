@@ -1428,6 +1428,30 @@ def main():
     logger.info(f"     预计请求: {len(VARIANT_PROMPTS)} × {SAMPLE_SIZE} × {len(MODELS)} × 3 = "
                 f"{len(VARIANT_PROMPTS) * SAMPLE_SIZE * len(MODELS) * 3:,} 次")
     logger.info("")
+
+    # ── 黄金范式【功能】banner (自带说明书; 取自 PIPELINE_NUMBERED_PY_REFERENCE 白话/详细说明) ──
+    logger.info("=" * 72)
+    logger.info("阶段 39: Prompt 措辞敏感度量化测试 (Carlson & Burbano 2026 SMJ §3.5)")
+    logger.info("=" * 72)
+    logger.info("【功能】同一道判断题, 用 5 种问法 (原版 V0 + 4 变体 V1-V4) 重问 AI, 意思一字不差:")
+    logger.info("        V1 换角色口吻 / V2 调段落顺序+Markdown / V3 大幅精简 / V4 整句改写+XML 标签;")
+    logger.info("        看 5 套答案是否一致, 量化 LLM 标注对 prompt 措辞选择的敏感程度 (越一致越稳健)。")
+    logger.info("        产出 eval_reports/{results.json, detail.csv, table.tex, heatmap.png}, 不写 parquet。")
+    logger.info("【方法】三轨 (full/ctx/ss) 各自评估; 变体 vs V0 的 pairwise (验证一致率/情感一致率/Cohen's κ")
+    logger.info("        + 三创新维度 κ) + 5 编码者多变体 (Krippendorff's α + Fleiss' κ=(P̄−P_e)/(1−P_e)) + 跨变体方差;")
+    logger.info("        API 全失败行掩码剔除 (不计为措辞不一致), 全失败→指标 NaN (fail-loud)。")
+    logger.info(
+        f"【阈值】验证一致率≥{PASS_THRESHOLD_VERIFICATION:.2f} / 情感≥{PASS_THRESHOLD_SENTIMENT:.2f} / "
+        f"κ≥{PASS_THRESHOLD_KAPPA:.2f} / α≥{PASS_THRESHOLD_ALPHA:.3f} / "
+        f"substantiveness κ≥{PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS:.2f} / "
+        f"locus κ≥{PASS_THRESHOLD_INNOVATION_LOCUS:.2f} / "
+        f"collab κ≥{PASS_THRESHOLD_INNOVATION_COLLAB_MODE:.2f}")
+    logger.info("【判读】各指标越高=越稳健 (=好); gate = full/ctx/ss 三轨各自全 criteria AND (P1 主 spec 在 ctx 轨);")
+    logger.info("        过线 → 可在论文写'LLM 标注对 prompt 措辞稳健'; 不过线 → AI 派生情感/创新变量恐成'问法的产物'。")
+    logger.info("【确定性】调 LLM API (变体 prompt 与生产不同 → 增量付费请求, 冷缓存需线上跑); 确定性锚点 = _llm_cache.db;")
+    logger.info("          NEWS_PROCESS_LLM_OFFLINE=1 时缓存 miss 抛错而非偷跑 API。全流水线最贵检验, timeout=43200s (12h)。")
+    logger.info("=" * 72)
+
     log_memory_usage(logger, "模块启动")
 
     # 2026-06-13: stage 39 已改为无条件 always-on (用户决策: 全部启用而非条件启用),
@@ -1604,6 +1628,101 @@ def main():
     logger.info(f"  总判定 ({' AND '.join(t.lstrip('_') for t in active_tracks)}): "
                 f"{'✅ 通过' if passed else '❌ 未通过'}")
     logger.info("=" * 70)
+
+    # ── 黄金范式【结果分析】(逐指标对照阈值/预期方向给好-坏-临界判读) ──
+    logger.info("-" * 72)
+    logger.info("【结果分析】Prompt 措辞敏感度 — 5 问法 (V0+V1-V4) 答案是否一致, 越一致 = AI 标注越稳健")
+
+    def _verdict(val: float, thr: float, *, margin: float = 0.03) -> str:
+        # 临界带 = 阈值上下 margin; NaN (依赖缺失/全失败) 单独判读
+        if val is None or (isinstance(val, float) and np.isnan(val)):
+            return "数据缺失(NaN)"
+        if val < thr:
+            return "❌ 未达阈值"
+        if val < thr + margin:
+            return "⚠ 临界(刚过线)"
+        return "✅ 稳健"
+
+    for track in active_tracks:
+        track_label = track.lstrip('_')
+        s = summary_by_track[track]
+        multi = multi_results[track]
+        var = variance_results[track]
+        logger.info(f"  ── {track_label} 轨道 ──")
+        # 1) 验证一致率: 4 变体相对 V0 的"是否金科新闻"判定一致比例
+        logger.info(
+            f"    均值验证一致率 = {s['mean_verification_agreement']:.2%} "
+            f"(阈值 {PASS_THRESHOLD_VERIFICATION:.0%}) → {_verdict(s['mean_verification_agreement'], PASS_THRESHOLD_VERIFICATION)}")
+        # 2) 情感一致率: 三分类(正/中/负)简单匹配率
+        logger.info(
+            f"    均值情感一致率 = {s['mean_sentiment_agreement']:.2%} "
+            f"(阈值 {PASS_THRESHOLD_SENTIMENT:.0%}) → {_verdict(s['mean_sentiment_agreement'], PASS_THRESHOLD_SENTIMENT)}")
+        # 3) 最小 Cohen's κ (验证): 取最差变体, 扣除碰巧一致后的真实一致度
+        logger.info(
+            f"    最小 Cohen's κ(verification) = {s['min_kappa_verification']:.4f} "
+            f"(阈值 {PASS_THRESHOLD_KAPPA:.2f}) → {_verdict(s['min_kappa_verification'], PASS_THRESHOLD_KAPPA)}")
+        # 4) Krippendorff's α: 5 编码者整体一致性
+        logger.info(
+            f"    Krippendorff's α = {s['krippendorffs_alpha']:.4f} "
+            f"(阈值 {PASS_THRESHOLD_ALPHA:.3f}) → {_verdict(s['krippendorffs_alpha'], PASS_THRESHOLD_ALPHA)}")
+        # 5) Fleiss' κ: 5 编码者多人名义一致 (与 α 互证, 越高越好, 无独立 gate 阈值)
+        logger.info(
+            f"    Fleiss' κ(5 编码者) = {multi['fleiss_kappa']:.4f} (与 α 互证, 越高=越一致)")
+        # 6) 三创新维度最小 κ (仅 verified=True 子集; NaN=该轨双向 verified 样本不足)
+        logger.info(
+            f"    最小 κ(substantiveness, W&Z 1994) = {s['min_kappa_innovation_substantiveness']:.4f} "
+            f"(阈值 {PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS:.2f}) → "
+            f"{_verdict(s['min_kappa_innovation_substantiveness'], PASS_THRESHOLD_INNOVATION_SUBSTANTIVENESS)}")
+        logger.info(
+            f"    最小 κ(locus, Gomber 2018) = {s['min_kappa_innovation_locus']:.4f} "
+            f"(阈值 {PASS_THRESHOLD_INNOVATION_LOCUS:.2f}) → "
+            f"{_verdict(s['min_kappa_innovation_locus'], PASS_THRESHOLD_INNOVATION_LOCUS)}")
+        logger.info(
+            f"    最小 κ(collab_mode, Chesbrough 2003) = {s['min_kappa_innovation_collab_mode']:.4f} "
+            f"(阈值 {PASS_THRESHOLD_INNOVATION_COLLAB_MODE:.2f}) → "
+            f"{_verdict(s['min_kappa_innovation_collab_mode'], PASS_THRESHOLD_INNOVATION_COLLAB_MODE)}")
+        # 7) 跨变体 true_rate 标准差: 5 问法下"判 true 比例"的离散度, 越小越好 (措辞越不影响产出)
+        logger.info(
+            f"    跨变体 true_rate σ = {var['true_rate_std']:.4f} "
+            f"(越小越好; σ→0 表示措辞几乎不改变金科新闻判定比例)")
+        # 8) API 全失败掩码剔除量 (透明披露; 剔除多则该轨指标基于更小有效样本)
+        n_excluded = multi.get('n_call_failures_excluded', 0)
+        n_items = multi.get('n_items', len(df_sample))
+        if n_excluded > 0:
+            logger.warning(
+                f"    ⚠ {track_label} 轨: {n_excluded} 行因变体 API 全失败被掩码剔除, "
+                f"有效比对样本 {n_items} 条 (失败行不计为'措辞不一致', 避免偏置 κ/α)")
+        logger.info(
+            f"    {track_label} 轨道判定: {'✅ 通过' if passed_by_track[track] else '❌ 未通过'}")
+
+    # 小样本警告 (盘面 T=2 / 抽样数远小于设计 N=1000 时)
+    if len(df_sample) < SAMPLE_SIZE:
+        logger.info(
+            f"  ⚠ 小样本: 实际抽样 {len(df_sample):,} 条 < 设计 N={SAMPLE_SIZE} "
+            f"(盘面 T=2 仅验证管道正确性; κ/α 在小样本下方差大, 全量结论以 17M/T=18 实测为准)")
+
+    # 优雅降级警告: ss 轨未纳入有效轨道集 (盘上未物化 content_ss / 变体未产出 _ss 列)
+    if '_ss' not in active_tracks:
+        logger.warning(
+            "  ⚠ ss 轨 (银行+金科同句) 未纳入裁决: 盘上变体未产出 _ss 列 (content_ss 缺失或旧 parquet), "
+            "本次仅 full/ctx 两轨进 gate (对旧 parquet 优雅降级, 非错误)")
+    # 重试策略披露: 变体 max_retries 低于生产时失败率系统性偏高
+    if PROMPT_MAX_RETRIES < _tone_llms.MAX_RETRIES:
+        logger.info(
+            f"  ⚠ 变体 max_retries={PROMPT_MAX_RETRIES} < 生产 {_tone_llms.MAX_RETRIES} "
+            f"(validation.yaml 刻意下调防长尾卡死; 失败行已掩码剔除, 不偏置 κ)")
+
+    # 总裁决判读: 三轨 AND 才算通过, 否则核心结论恐成"问法的产物"
+    if passed:
+        logger.info(
+            "  ✅ 总判读: 全部有效轨道各项指标过线 — LLM 标注对 prompt 措辞稳健, "
+            "可在论文声明'标注结果反映新闻本身而非问法偶然产物'")
+    else:
+        logger.info(
+            "  ❌ 总判读: 至少一条轨道有指标低于阈值 — AI 派生情感/创新变量可能随措辞飘忽, "
+            "须审查未过线维度/变体, 否则面板下游结论存效度风险")
+    logger.info("-" * 72)
+
     log_memory_usage(logger, "模块完成")
 
 

@@ -419,28 +419,29 @@ def load_and_process_data(raw_data_dir: str, output_path: str) -> int:
 def main() -> None:
     """主执行函数: 数据加载 → 文本标准化 → 过滤 → 去重."""
     stage_start = time.time()
-    logger.info(f"{'='*70}")
-    logger.info(f"=== 开始执行: {STAGE_NAME} ===")
-    logger.info(f"{'='*70}")
-    logger.info("")
-    logger.info("  📌 阶段目的")
-    logger.info("     将 176 个原始 XLSX 文件 (~37GB, ~1700万条) 处理为干净的 Parquet 文件。")
-    logger.info("     核心步骤: 加载 → 过滤(地域/媒体/广告/银行关键词) → 文本标准化")
-    logger.info("     → 长度过滤 → 精确去重 → 近似去重(MinHash LSH)")
-    logger.info("")
-    logger.info("  📖 方法论依据")
-    logger.info("     · 近似去重: MinHash LSH 算法 (Broder, 1997, SEQUENCES '97)")
-    logger.info("       128 个置换函数保证 Jaccard 相似度估计的标准差 ≈ 1/√128 ≈ 8.8%")
-    logger.info("     · 时间窗口: 5 个工作日内的近似重复视为转载, 保留首发源")
-    logger.info("     · Aho-Corasick 自动机: O(n+m) 多模式匹配, 用于银行关键词过滤")
-    logger.info("")
-    logger.info("  📊 关键指标解读")
-    logger.info("     · 去重保留率: 85%-95% 为健康范围, <80% 需排查数据源质量")
-    logger.info("     · Jaccard 阈值: 由 config.yaml 控制 (config 默认 0.8), 越高 → 去重越保守")
-    logger.info("       [学术支持]: The informational content of key audit matters 及 胡俊(2021)")
-    logger.info("       均印证 ≥ 0.8/0.85 为合理的文本高度相似/冗余判别门槛")
-    logger.info("     · MinHash 签名: 128 个置换 = 精度与速度的工业级平衡点")
-    logger.info("")
+
+    # ── 黄金范式【功能】banner (golden-safe: 纯日志; 单一权威 banner, 替换旧 emoji 概览) ──
+    logger.info("=" * 72)
+    logger.info("阶段 00: 数据预处理 (DAG 根阶段; MinHash LSH, Broder 1997)")
+    logger.info("=" * 72)
+    logger.info("【功能】把上百个原始 XLSX (生产 ~176 文件 / ~37GB / ~1700 万条媒体报道) 倒进")
+    logger.info("       '洗衣机+分拣机': 统一 schema、修乱码、繁简转换、去广告与网页噪声, 再把")
+    logger.info("       '同一稿件被多家媒体转载'的重复删到只剩最早一份, 产出全流水线的语料底座")
+    logger.info("       00_preprocessing.parquet (下游 11/12/13… 全部依赖)。")
+    logger.info("【方法】8 步初步过滤 (地域/媒体类型/黑名单/缺失/广告/银行关键词保留/Schema/媒体名)")
+    logger.info("       + 文本标准化 (OpenCC 繁简/全角半角/HTML/噪声) + 长度过滤 (标题汉字≥2,")
+    logger.info("       内容汉字 100~10000) + 精确去重 (标题+内容完全匹配, 保首发) + 近似去重")
+    logger.info("       (MinHash LSH, 128 置换, 字符级 3-gram, Jaccard≥阈值, 5 工作日时间窗)。")
+    logger.info("       银行关键词保留过滤走 Aho-Corasick 自动机 (O(n) 一次线性扫描)。")
+    logger.info("       [方法论锚点] 近似去重 = Broder 1997 (SEQUENCES '97); 128 置换 → Jaccard")
+    logger.info("       估计标准差 ≈ 1/√128 ≈ 8.8%; Jaccard 阈值由 config 控制 (默认 0.8, 越高越保守)。")
+    logger.info("【判读】去重保留率 85%~95% 为健康区间; <80% 须排查源质量 (可能误删真实报道),")
+    logger.info("       >98% 可能去重过松 (转载灌水将虚高银行媒体关注度)。该保留率直接决定")
+    logger.info("       银行-年度面板里注意力/情感等核心指标的分母。")
+    logger.info("【确定性】纯 CPU (calamine/pyarrow/multiprocessing/datasketch/ahocorasick),")
+    logger.info("         不调任何 LLM/Embedding/BERT, 无网络; 给定语料+配置+词典逐位可复现。")
+    logger.info("=" * 72)
+
     log_memory_usage(logger, "阶段启动")
 
     output_dir = CONFIG['paths']['output_dir']
@@ -499,6 +500,58 @@ def main() -> None:
     else:
         input_rows = load_rows
         output_rows = load_rows
+
+    # ── 黄金范式【结果分析】(golden-safe: 仅读已算出的 load_rows/input_rows/output_rows) ──
+    # 派生去重指标只服务于日志判读, 不回写 df / 不入任何产物。整体包 try/except:
+    # 本块虽在最终写盘之后 (产物已落盘, 不会丢), 仍兜底防御异常拖垮阶段退出码。
+    try:
+        logger.info("-" * 72)
+        logger.info("【结果分析】预处理产出体量与去重效果判读 (对照健康区间)")
+        logger.info(f"  · 加载总行数 (清洗+长度过滤后, 去重前): {load_rows:,} 行")
+        logger.info(f"  · 去重输入行数 (回读 parquet): {input_rows:,} 行")
+        logger.info(f"  · 去重输出行数 (最终落盘语料): {output_rows:,} 行")
+
+        n_removed = input_rows - output_rows
+        if input_rows > 0:
+            keep_rate = output_rows / input_rows
+            removed_rate = n_removed / input_rows
+            logger.info(
+                f"  · 去重剔除 (精确+近似合计): {n_removed:,} 行 ({removed_rate:.1%}); "
+                f"保留率 = {keep_rate:.1%}"
+            )
+            # 保留率判读: 报警门 <80% (偏激进) / >98% (偏松); 中间 [80%,98%] 不报警,
+            # 其中 85%~95% 为典型理想带 (与上方【判读】banner 口径对齐, 避免把 81%/96% 误称"健康")
+            if keep_rate < 0.80:
+                logger.warning(
+                    f"  ⚠ 保留率 {keep_rate:.1%} < 80%: 去重偏激进, 可能误删真实报道 — "
+                    f"须排查源质量/重复稿占比 (删多了会丢真实报道, 使面板分母偏小、估计不稳)。"
+                )
+            elif keep_rate > 0.98:
+                logger.warning(
+                    f"  ⚠ 保留率 {keep_rate:.1%} > 98%: 去重偏宽松, 转载灌水可能未删净 — "
+                    f"将虚高银行媒体关注度 (核对 Jaccard 阈值是否过高/时间窗是否过窄)。"
+                )
+            else:
+                logger.info(
+                    f"  ✓ 保留率 {keep_rate:.1%} 落在不报警区间 [80%,98%] "
+                    f"(85%~95% 为典型理想带), 去重力度可接受 "
+                    f"(该保留率即银行-年度面板注意力/情感指标的分母基数)。"
+                )
+        else:
+            logger.warning(
+                "  ⚠ 去重输入行数为 0: 未读到任何清洗后语料 (源目录为空 / 全部源处理失败 / "
+                "长度过滤过严)。下游 11/12/13… 将无语料可消费 — 须先排查 data/raw/*.xlsx。"
+            )
+
+        # 小样本提示: 本机盘面常为受控小样 (T=2 伪两年), 仅验证管道正确性
+        if 0 < output_rows < 10000:
+            logger.info(
+                f"  ⓘ 当前输出仅 {output_rows:,} 行, 远小于生产规模 (~1700 万条): 系本机受控小样, "
+                f"仅用于验证管道正确性; 去重保留率/分母等结论以全量 17M/T=18 实测为准。"
+            )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     # ── 阶段摘要 ──
     log_stage_summary(

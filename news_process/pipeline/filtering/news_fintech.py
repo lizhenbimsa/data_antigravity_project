@@ -266,7 +266,27 @@ def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
 
+    # threshold_number_fidelity 修复: 词数动态取自 len(FINTECH_KEYWORDS), 不再硬编码 "1506",
+    # 以免日后词典增删后 banner 散文与实际词数漂移失真。total_keywords 上移到 banner 之前。
     total_keywords = len(FINTECH_KEYWORDS)
+
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
+    logger.info("=" * 72)
+    logger.info(f"阶段 12: 金融科技新闻判断 + 全量分类结果 (胡俊等 2024 中国管理科学 / Aho-Corasick {total_keywords} 词)")
+    logger.info("=" * 72)
+    logger.info("【功能】在'已是银行新闻'的稿件里, 再判断哪几篇真在谈金融科技 (手机银行/移动支付/")
+    logger.info("        大数据风控/区块链等), 框定全项目'银行×金科'话题范围。产出两份: full=")
+    logger.info("        银行新闻全集+金科标记 (供抽查 & fintech_share 分母来源之一); filtered=")
+    logger.info("        is_fintech_news==True 的子集 (交 stage 13+ 三轨/强度/情感消费)。")
+    logger.info("【方法】每篇按 split_ratio 等分上下半, 用全局 Aho-Corasick 一次线性扫描金科词典;")
+    logger.info(f"        判定 = 前置多样性 (标题或全文 ≥{MIN_DISTINCT_KEYWORDS} 个不同金科词) ∧ 分布条件其一")
+    logger.info(f"        ((a) 上半合计≥{MIN_UPPER} ∧ 下半合计≥{MIN_LOWER}; 或 (b) 任一词在标题 ∧ 全文≥{MIN_UPPER})。")
+    logger.info("        金科侧裸 AC 匹配 (不做否定/短名排除), 与 stage 13 _ss 轨金科侧同一事实源。")
+    logger.info("【判读】判定率 (true%) 适中为佳: 过高=框太宽噪声灌入 (核心解释变量被稀释), 过低=")
+    logger.info(f"        漏掉真实金科报道 (核心变量偏移); 多样性前置 (≥{MIN_DISTINCT_KEYWORDS} 不同词) 即用于压制'顺嘴一句'误判。")
+    logger.info("【确定性】纯 CPU (ahocorasick/joblib/psutil), 无 LLM/网络, 逐位可复现; fintech_dict.json")
+    logger.info("          纳入两 parquet 的 input_hashes 血缘 (防词典篡改失明)。")
+
     logger.info(f"金融科技词典: 共 {total_keywords} 个词汇")
     logger.info(f"AC 自动机状态: {'已构建' if FINTECH_AC_AUTOMATON else '未构建'}")
     logger.info(
@@ -365,6 +385,87 @@ def main():
         f"过滤非金融科技新闻: {before_count:,} → {after_count:,} 行"
         f"（移除 {before_count - after_count:,} 行）"
     )
+
+    # 结果分析 — 写入日志: 判定率/标题占比/词典命中分布逐项判读 (仿 39c)。
+    # crash-guard: 本块在 filtered parquet 最终写盘 (下方 save_parquet_with_metadata)
+    # 之前执行, 整体 try/except, 任何诊断异常都不得拖垮 stage 产物 (golden-safe)。
+    try:
+        total_n = merged_stats['total']
+        true_n = merged_stats['is_fintech_news_true']
+        with_title_n = merged_stats.get('is_fintech_news_with_title', 0)
+        true_pct = (true_n / total_n * 100) if total_n > 0 else 0.0
+        title_pct = (with_title_n / true_n * 100) if true_n > 0 else 0.0
+        kw_hit = merged_stats['keyword_article_counts']
+        n_distinct_kw_hit = len(kw_hit)  # 实际触发判定的不同金科词数 (覆盖广度)
+        kw_coverage = (n_distinct_kw_hit / total_keywords * 100) if total_keywords > 0 else 0.0
+        top_kw = kw_hit.most_common(1)[0] if kw_hit else None
+        # corpus-level 集中度 (非 per-article 多样性): 最高频触发词占所有触发次数的份额。
+        # 注意此处与单篇 MIN_DISTINCT_KEYWORDS=3 门是【不同量纲】(全语料 broad vs 单篇 diversity),
+        # 故不复用 3 词门做广度判读; 仅作 log-only 诊断, 不回写 df, golden-safe。
+        # top_share 越高 = 主题越集中于个别热词 (疑单点驱动); 经验阈值 0.30, 仅启发, 非硬 gate。
+        breadth_top_share_warn = 0.30  # log-only 局部阈值, 不进 config / 不回写 df
+        total_kw_hits = sum(kw_hit.values())
+        top_share = (top_kw[1] / total_kw_hits) if (top_kw is not None and total_kw_hits > 0) else 0.0
+
+        logger.info("-" * 72)
+        logger.info("【结果分析】金科判定产出指标判读 (越接近预期方向越健康):")
+        # ① 输入对账: 与上游 stage 11 行数 1:1
+        logger.info(
+            f"  ① 输入对账: 加载 {input_rows:,} 行 (stage 11 银行新闻); 分类后 full={before_count:,} 行"
+            f" → {'1:1 对齐 (好)' if before_count == input_rows else '⚠ 与输入不一致, 检查并行 concat'}"
+        )
+        # ② 判定率: 适中为佳, 过高=框太宽, 过低=漏报
+        if true_pct >= 60.0:
+            verdict_pct = "⚠ 偏高 (疑框太宽, 噪声稿件可能灌入)"
+        elif true_pct < 1.0:
+            verdict_pct = "⚠ 偏低 (疑词典/阈值过严, 可能漏报真实金科报道)"
+        else:
+            verdict_pct = "适中 (好)"
+        logger.info(
+            f"  ② 金科判定率: {true_n:,}/{total_n:,} = {true_pct:.2f}% → {verdict_pct}"
+        )
+        # ③ 标题匹配占比: 标题命中 = 强信号, 占比越高判定越可信
+        logger.info(
+            f"  ③ 标题命中占比 (金科篇内): {with_title_n:,}/{true_n:,} = {title_pct:.2f}%"
+            f" → {'含标题强信号, 判定可信度高 (好)' if title_pct >= 30.0 else '多靠正文匹配 (信号偏弱, 关注)' if true_n > 0 else '无金科篇'}"
+        )
+        # ④ 词典覆盖广度 (corpus-level): 触发判定的不同金科词越多 + 最高频词份额越低,
+        #    主题越分散 (非单点关键词驱动)。判据用 corpus-level 集中度 top_share, 与单篇
+        #    MIN_DISTINCT_KEYWORDS 门是不同量纲, 不复用 3 词门 (见上方注释)。
+        if total_kw_hits == 0:
+            verdict_breadth = "无触发词 (无金科篇, 无法判读广度)"
+        elif top_share > breadth_top_share_warn:
+            verdict_breadth = (
+                f"⚠ 触发高度集中 (最高频词占 {top_share:.1%} > {breadth_top_share_warn:.0%}), "
+                "疑单点关键词主导, 主题不分散"
+            )
+        else:
+            verdict_breadth = f"广度健康, 非单点驱动 (最高频词占 {top_share:.1%}, 好)"
+        logger.info(
+            f"  ④ 词典命中广度: {n_distinct_kw_hit:,}/{total_keywords:,} 个金科词曾触发判定 "
+            f"({kw_coverage:.1f}%) → {verdict_breadth}"
+        )
+        if top_kw is not None:
+            logger.info(f"     最高频触发词: '{top_kw[0]}' ({top_kw[1]:,} 篇)")
+        # ⑤ 下游交付量: filtered 子集是 stage 13+ 全部三轨/强度/情感的原料
+        logger.info(
+            f"  ⑤ 下游交付 (filtered 子集): {after_count:,} 篇交 stage 13 (ctx 物化)"
+            f" → {'有可消费样本 (好)' if after_count > 0 else '⚠ 零金科篇, 下游三轨链将空跑'}"
+        )
+        # 优雅降级 / 边界警告
+        if not FINTECH_AC_AUTOMATON:
+            logger.warning(
+                "  ⚠ FINTECH_AC_AUTOMATON 未构建 (词典加载失败/为空): 所有判定将退化, "
+                "金科子集可能异常; 须核查 fintech_dict_file 路径与内容。"
+            )
+        if after_count < 100:
+            logger.info(
+                f"  ⚠ 金科子集仅 {after_count:,} 篇 (盘面 T=2 小样本): 上述比率仅验证管道正确性, "
+                "全量结论以 17M/T=18 实测为准。"
+            )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     logger.info(f"正在将处理结果写入 {output_path}...")
     # 使用数据版本控制保存 filtered 版本

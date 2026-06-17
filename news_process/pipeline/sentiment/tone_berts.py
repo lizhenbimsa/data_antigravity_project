@@ -1040,6 +1040,31 @@ def log_classification_report(output: dict, total: int):
     logger.info("=" * 70)
 
 
+def _track_polarity_shares(out_dict: dict, total: int) -> dict:
+    """从单轨 output 提取各模型 正面/中性/负面 占比与失败篇数 (仅供【结果分析】日志)。
+
+    纯只读聚合, 不回写任何 df/产物。返回:
+        {short_name: {'pos_pct':.., 'neu_pct':.., 'neg_pct':.., 'n_failed':..,
+                      'avg_windows':..}}
+    """
+    summary = {}
+    for sn, blob in out_dict.items():
+        stats = blob.get('stats', {})
+        pos = stats.get(f'{sn}_正面', 0)
+        neu = stats.get(f'{sn}_中性', 0)
+        neg = stats.get(f'{sn}_负面', 0)
+        nw_list = blob.get('num_windows_list', [])
+        n_failed = sum(1 for nw in nw_list if nw == -1)
+        summary[sn] = {
+            'pos_pct': (pos / total * 100) if total > 0 else float('nan'),
+            'neu_pct': (neu / total * 100) if total > 0 else float('nan'),
+            'neg_pct': (neg / total * 100) if total > 0 else float('nan'),
+            'n_failed': n_failed,
+            'avg_windows': blob.get('avg_windows', 0),
+        }
+    return summary
+
+
 # ============================================================================
 # 6. 主函数
 # ============================================================================
@@ -1056,23 +1081,27 @@ def main():
     """
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
-    logger.info("")
-    logger.info("  📌 阶段目的")
-    logger.info("     使用 3 个 BERT 系列预训练模型对每篇新闻进行情感分类。")
-    logger.info("     采用三轨模式: 全文(_full)、上下文片段(_ctx) 与")
-    logger.info("     银行+金科同句共现(_ss)分别推理 (ss 缺列时优雅跳过)。")
-    logger.info("     超长文本使用滑动窗口切片 + 置信度加权池化聚合。")
-    logger.info("")
-    logger.info("  📖 方法论依据")
-    logger.info("     · 滑动窗口: 步长比例 0.5, 确保相邻窗口有 50% 重叠, 减少边界信息丢失")
-    logger.info("     · 置信度加权池化: 高置信度窗口获得更大权重, 避免噪声窗口拉偏结果")
-    logger.info("     · AMP 动态混合精度: 自动选择 FP16/FP32, 对 argmax 分类结果无影响")
-    logger.info("")
-    logger.info("  📊 关键指标解读")
-    logger.info("     · 单窗口文章: 内容 ≤ 510 tokens, 无截断风险")
-    logger.info("     · 多窗口文章: 需关注窗口数分布, 若 max>10 说明有超长文本")
-    logger.info("     · 各模型正/负面占比: 若模型间差异 >15pp, 需在三角验证中重点关注")
-    logger.info("")
+    logger.info("=" * 72)
+    logger.info("阶段 23: BERT 情感分析 (三轨/优雅降级; finbert_cn / fin_sent_zh / finbert2)")
+    logger.info("=" * 72)
+    logger.info("【功能】用 3 个金融领域预训练 BERT 模型对每篇新闻判正面/中性/负面, 与")
+    logger.info("        stage 21(LLM)、stage 22(词典) 构成三条独立情感测度路线互相印证;")
+    logger.info("        按全文(_full)/银行相关段(_ctx)/银行金科同句段(_ss)各推理一遍, 产")
+    logger.info("        出 {模型}_label + 各标签概率列 (供下游 stage 45 panel/encode 聚合 BERT 极性) +")
+    logger.info("        bert_num_windows_{轨} (仅供可选验证阶段 tone_validation 窗口数分层; production panel 不消费)。")
+    logger.info("        stage 24 herd_decay 硬依赖本阶段整个 23_bert_tone.parquet 文件 (缺文件即 SystemExit(1)), 但只读 content/标识列。")
+    logger.info(f"【方法】超长文本滑动窗口切片 (WINDOW_STRIDE_RATIO={WINDOW_STRIDE_RATIO:.2f}, "
+                "相邻窗 50% 重叠, 单窗 ≤")
+    logger.info("        max_length 512 含特殊 token) + 置信度加权池化 logits*=Σ(conf_k·logits_k)/Σconf_k;")
+    logger.info("        各模型按自身 tokenizer 分窗 (fix g-berts-01 词表不同不共享分词); argmax 分类。")
+    logger.info("【判读】三模型全语料聚合极性占比相近 (边际分布一致), 若模型间占比差 >15pp 需在")
+    logger.info("        三角验证中重点关注。num_windows: ≥1 正常 / 0 空文本 / -1 推理失败哨兵。")
+    logger.info("        (注: 此处仅比对全语料聚合极性占比; 文章级一致性/收敛效度须看 stage 39a")
+    logger.info("        pipeline/audit/inter_track_kappa.py 的跨模型 kappa。)")
+    logger.info("【确定性】纯本地 torch/transformers 推理, 无 LLM API、无 _llm_cache.db; 确定性来自模型")
+    logger.info(f"          权重 + argmax (deterministic_mode={_DETERMINISTIC_MODE}; "
+                "AMP 对 argmax 分类结果无影响)。")
+    logger.info("=" * 72)
     logger.info(f"配置的模型数量: {len(MODEL_CONFIGS)}")
     logger.info(f"推理 batch 大小: {INFERENCE_BATCH_SIZE}")
     logger.info(f"每次处理文章数: {ARTICLES_PER_BATCH}")
@@ -1219,6 +1248,109 @@ def main():
     # ── 生成预览 CSV ──
     preview_path = output_path.replace('.parquet', '.csv')
     safe_save_preview_csv(df, preview_path, logger)
+
+    # ── 【结果分析】: 对真实产出指标对照阈值/预期方向给判读 ──
+    # 整块只读聚合, 不回写 df/产物。已在最终写盘 (save_parquet_with_metadata) 之后,
+    # 仍统一包 try/except 防边缘崩溃 (如空 Series.max()) 中断阶段收尾 (crash-guard, golden-safe)。
+    try:
+        _total = len(df)
+        logger.info("-" * 72)
+        logger.info("【结果分析】BERT 三轨情感分类产出解读 (对照阈值/预期方向):")
+
+        # ① 模型加载/降级状态
+        n_expected = len(MODEL_CONFIGS)
+        n_loaded = len(loaded_names)
+        logger.info(f"  · 模型加载: {n_loaded}/{n_expected} 成功 "
+                    f"(预期跳过 {len(engine.skipped_expected)}: {engine.skipped_expected or '无'}; "
+                    f"意外失败 {len(engine.failed_models)}: {engine.failed_models or '无'})。")
+        if 'finbert2' in engine.skipped_expected:
+            logger.warning(
+                "    ⚠ finbert2 (本地私有 2-class 模型) 优雅跳过 — FINBERT2_MODEL_DIR 未配置或"
+                "路径不存在; 另 2 个 HF 模型 (finbert_cn/fin_sent_zh) 照跑, 输出缺 finbert2_* 列属预期。"
+            )
+        if engine.failed_models:
+            logger.warning(
+                f"    ⚠ {engine.failed_models} 为非预期加载失败 (strict_models=false 才会走到此)，"
+                "其三轨情感列将整体缺失, 下游 stage 24/45 按列存在性静默跳过 — 请核查 HF 离线缓存/驱动。"
+            )
+
+        # ② 三轨极性占比 — 跨模型边际分布同向性 (仅全语料聚合占比, 非文章级收敛效度; 后者看 stage 39a)
+        _AGREE_THRESHOLD_PP = 15.0  # 模型间占比差阈值, 取自 banner【判读】/逐行注释
+        for out_dict, track_name in [(output_full, '_full'), (output_ctx, '_ctx'),
+                                     (output_ss, '_ss (银行+金科同句)')]:
+            if out_dict is None:
+                logger.info(f"  · 轨道 {track_name}: 优雅跳过 (content_ss 列缺失, 旧 schema)。")
+                continue
+            if _total <= 0:
+                logger.info(f"  · 轨道 {track_name}: 无有效数据 (df 0 行), 跳过占比判读。")
+                continue
+            shares = _track_polarity_shares(out_dict, _total)
+            pos_list = [v['pos_pct'] for v in shares.values()]
+            neg_list = [v['neg_pct'] for v in shares.values()]
+            for sn, v in shares.items():
+                logger.info(
+                    f"  · 轨道 {track_name} 模型 {sn}: 正面 {v['pos_pct']:.1f}% / "
+                    f"中性 {v['neu_pct']:.1f}% / 负面 {v['neg_pct']:.1f}%, "
+                    f"平均窗口数 {v['avg_windows']:.2f}, 推理失败 {v['n_failed']} 篇。"
+                )
+                if v['n_failed'] > 0:
+                    logger.warning(
+                        f"    ⚠ {sn}{track_name} 有 {v['n_failed']} 篇推理失败哨兵 "
+                        f"(num_windows=-1, 概率 NaN); 下游聚合自动跳过, 但失败率高需重跑本阶段。"
+                    )
+            # NaN-guard: 任一占比为 NaN (理论上 total<=0 已先跳过, 防御性兜底) 时不做方向判读,
+            # 否则 max/min 含 nan 的比较恒 False 会误落到"边际占比相近"档。
+            _valid_pn = [p for p in (pos_list + neg_list) if not (isinstance(p, float) and np.isnan(p))]
+            if len(_valid_pn) != len(pos_list) + len(neg_list):
+                logger.info(
+                    f"    {track_name} 占比含 NaN (无有效情感数据), 跳过跨模型同向性判读。"
+                )
+            elif len(pos_list) >= 2:
+                pos_spread = max(pos_list) - min(pos_list)
+                neg_spread = max(neg_list) - min(neg_list)
+                _verdict = ("边际占比相近" if max(pos_spread, neg_spread) <= _AGREE_THRESHOLD_PP
+                            else "边际占比发散(需关注)")
+                logger.info(
+                    f"    模型间占比极差: 正面 {pos_spread:.1f}pp / 负面 {neg_spread:.1f}pp "
+                    f"→ {_verdict} (阈值 {_AGREE_THRESHOLD_PP:.0f}pp; ≤阈值=三模型全语料聚合极性"
+                    f"占比相近(边际分布一致), 非逐文章一致性; >阈值=三角验证重点关注; "
+                    f"文章级 concordance/收敛效度须看 stage 39a inter_track_kappa.py)。"
+                )
+            else:
+                logger.info(
+                    f"    {track_name} 仅 {len(pos_list)} 个模型成功 → 无法做跨模型同向性判读 "
+                    f"(finbert2 跳过时只剩 2 个 HF 模型)。"
+                )
+
+        # ③ 滑动窗口截断 — 取 full 轨首个模型, 判读长文占比
+        _first_sn = next((mc['short_name'] for mc in MODEL_CONFIGS
+                          if mc['short_name'] in output_full), None)
+        if _first_sn and 'num_windows_list' in output_full.get(_first_sn, {}):
+            _nw = np.array(output_full[_first_sn]['num_windows_list'])
+            _valid = _nw[_nw > 0]
+            if len(_valid) > 0:
+                _multi = int((_valid > 1).sum())
+                _multi_pct = _multi / len(_valid) * 100
+                _empty = int((_nw == 0).sum())
+                _maxw = int(_valid.max())
+                logger.info(
+                    f"  · 滑动窗口 (基于 {_first_sn}, _full 轨): 多窗口长文 {_multi} 篇 "
+                    f"({_multi_pct:.1f}%), 最大窗口数 {_maxw}, 空文本 {_empty} 篇。"
+                )
+                if _maxw > 10:
+                    logger.info(
+                        f"    注: 最大窗口数 {_maxw}>10, 存在超长文本; 置信度加权池化已无损融合各窗, 无截断丢失。"
+                    )
+
+        # ④ 小样本/盘面规模警告
+        if _total <= 2000:
+            logger.info(
+                f"  · 样本规模 {_total:,} 行 (盘面 T=2 小样本): 本次仅验证三轨推理管道正确性 "
+                "(无 NameError/列对齐/降级路径); 占比与同向性的实证结论以 17M/T=18 全量重跑为准。"
+            )
+        logger.info("-" * 72)
+    except Exception as _e:  # noqa: BLE001  仅日志诊断, 绝不影响已落盘产物
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=input_rows, output_rows=len(df))

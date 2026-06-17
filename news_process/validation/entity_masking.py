@@ -694,25 +694,37 @@ def _generate_confusion_matrix_per_track(
 
 def main():
     stage_start = time.time()
-    logger.info("=" * 60)
-    logger.info("--- 开始执行 Entity Masking 稳健性测试（三轨版） ---")
-    logger.info("=" * 60)
-    logger.info("")
-    logger.info("  📌 阶段目的")
-    logger.info("     将目标银行名替换为匿名占位符(如 '工商银行'→'目标银行A'),")
-    logger.info("     验证 LLM 情感判定是否依赖文本语义, 而非实体先验知识。")
-    logger.info("     同时在全文(full)、上下文片段(ctx)和银行+金科同句(ss)三条轨道上")
-    logger.info("     独立验证, 确保稳健性结论不受文本输入粒度的影响。")
-    logger.info("")
-    logger.info("  📖 方法论依据")
-    logger.info("     · SSRN-4558295 §7.2: Entity substitution robustness check")
-    logger.info("     · Landis & Koch (1977, Biometrics 33(1):159-174): Cohen's κ 解释标准")
-    logger.info("")
-    logger.info("  📊 关键指标解读")
-    logger.info("     · 验证一致率 ≥ 90%: 判定不受实体身份干扰, 稳健性优秀")
-    logger.info("     · Cohen's κ: ≥0.81 almost perfect, 0.61-0.80 substantial, 0.41-0.60 moderate")
-    logger.info("     · 实体残留率: 应为 0%, 否则掩码替换不完整")
-    logger.info("     · 三轨差异: full/ctx/ss 各轨指标两两差异应 <5pp, 否则提示文本粒度敏感")
+
+    # ── 黄金范式标准化 banner (功能/方法/判读/确定性) ──
+    # fix(C7-V-004, 2026-06-17): 删除旧短 banner (📌/📖/📊 三段, 其中 '[BANK_A]'
+    # 是陈旧示例, 实际占位符为 '目标银行A'/PLACEHOLDER), 替换为下方黄金范式单
+    # banner (对齐 39c construct_orthogonality.py: 替换而非叠加, 占位符与代码一致)。
+    # 仅供 banner 文案展示的预读 (源同 Step 8 thresholds / 配置块 sample_size·seed,
+    # EM_CFG 单一事实源, 不改任何下游取值)。
+    sample_size_preview = EM_CFG.get('sample_size', 1000)
+    seed_preview = EM_CFG.get('random_seed', 42)
+    thresholds_preview_ver = EM_CFG.get('pass_threshold_verification', 0.90)
+    thresholds_preview_kappa = EM_CFG.get('pass_threshold_kappa', 0.80)
+    logger.info("=" * 72)
+    logger.info("阶段 36: Entity Masking 实体掩码稳健性测试 (SSRN-4558295 §7.2 / 三轨)")
+    logger.info("=" * 72)
+    logger.info("【功能】把每篇新闻里的目标银行名和共提银行名全部涂掉换成匿名代号")
+    logger.info("        ('工商银行'→'目标银行A'、共提行→'同业银行B/C/D'), 再让同一批 3 个")
+    logger.info("        LLM 重判真伪与褒贬, 对比涂名前后判定是否一致 — 验证 LLM 靠'读懂")
+    logger.info("        文本'而非'看到银行名的刻板印象'(国有大行→稳健)下结论。产出三轨")
+    logger.info("        四维一致性指标 + JSON/CSV/LaTeX 报告 + 三轨混淆矩阵 PNG。")
+    logger.info(f"【方法】随机抽样 N={sample_size_preview} (seed={seed_preview}); 别名按长度降序替换(防短名先匹配)+正文标题双覆盖;")
+    logger.info("        四维指标 × 三轨(full/ctx/ss): ①验证一致率 ②情感一致率(双方均判真子集)")
+    logger.info("        ③Cohen's κ(扣随机一致) ④逐模型分解; 分母双口径(per-protocol 主 / ITT 披露,")
+    logger.info("        调用全失败行属测量缺失剔出主口径)。Landis & Koch (1977) κ 解释阈值。")
+    logger.info(f"【判读】验证一致率↑=好(≥{thresholds_preview_ver * 100:.0f}% 视为不受身份干扰); "
+                f"κ↑=好(≥{thresholds_preview_kappa:.2f} 通过门槛; 落 0.61-0.80 substantial 高度一致, "
+                f"≥0.81 才 almost-perfect, Landis-Koch 1977);")
+    logger.info("        实体残留率应=0%(否则掩码不完整, 稳健性被高估); 三轨两两差异 <5pp 为好")
+    logger.info("        (否则提示文本输入粒度敏感)。三轨须全过(full∧ctx∧ss)才算整体通过。")
+    logger.info("【确定性】调 LLM API(yunwu 3 模型 × 3 轨 × 样本量, 经 _llm_cache.db 命中缓存);")
+    logger.info("          掩码文本 prompt 与生产不同 → 这些是增量请求, 冷缓存需付费跑(timeout 6h)。")
+    logger.info("=" * 72)
     logger.info("")
 
     # ── 配置 ──
@@ -957,6 +969,115 @@ def main():
             logger.info(f"   {t1}↔{t2} 差异正常: Δ验证一致率={delta_ver:.1%}, Δκ={delta_kappa:.4f}")
     if max_delta_flagged:
         logger.info("   提示: 文本输入粒度可能影响稳健性，建议检查 ctx/ss 提取质量")
+
+    # ── 黄金范式【结果分析】(只读 results/n_incomplete/df_sample, 不改任何产物) ──
+    # crash-guard (硬化 A): 本分析块在 Step 9 generate_report (写盘 JSON/CSV/LaTeX/PNG)
+    # 之前执行, 纯日志诊断; 一旦此处抛异常 (如缺键/NaN 比较/格式化) 会令整个 stage 36
+    # 崩溃并丢失产物 → 故整体包 try/except, 异常仅告警跳过, 不影响产物落盘。
+    try:
+        _KAPPA_BANDS = [
+            (0.81, "almost perfect (几乎完全一致)"),
+            (0.61, "substantial (高度一致)"),
+            (0.41, "moderate (中等一致)"),
+            (0.21, "fair (尚可)"),
+            (0.0, "slight (微弱)"),
+        ]
+
+        def _kappa_band(k: float) -> str:
+            # NaN-guard (硬化 B): κ 理论上恒为 float (n==0→0.0), 仍防御性兜底 NaN
+            if pd.isna(k):
+                return "N/A (无有效数据)"
+            for lo, name in _KAPPA_BANDS:
+                if k >= lo:
+                    return name
+            return "poor (差, κ<0, 比随机还差)"
+
+        logger.info("-" * 72)
+        logger.info("【结果分析】涂名前后 LLM 判定一致性 — 越一致 = LLM 越靠文本语义而非银行身份先验")
+        n_total_sample = len(df_sample)
+        th_ver = thresholds['verification']
+        th_sen = thresholds['sentiment']
+        th_kap = thresholds['kappa']
+        logger.info(f"  样本规模: 抽样 {n_total_sample} 条; 通过门槛 验证一致率≥{th_ver:.0%} / "
+                    f"情感一致率≥{th_sen:.0%} / κ≥{th_kap:.2f}")
+
+        for track in TRACKS:
+            c = results[track]
+            ver = c['verification_consistency']
+            ver_itt = c['verification_consistency_itt']
+            kap = c['cohens_kappa']['kappa']
+            kap_itt = c['cohens_kappa_itt']['kappa']
+            sen = c['sentiment_consistency']
+            # NaN-guard (硬化 B): 全 call_failure 退化场景 verification_consistency=NaN,
+            # 不能落进 ver>=th_ver 的方向判读 (NaN 比较恒 False 会误判"❌弱(身份偏见)")。
+            ver_is_nan = pd.isna(ver)
+            ver_disp = "NaN(无有效数据)" if ver_is_nan else f"{ver:.1%}"
+            if ver_is_nan:
+                ver_verdict = "⚪该轨无有效数据(全 NaN, 调用全失败)"
+            else:
+                ver_verdict = ("✅好(身份无关)" if ver >= th_ver
+                               else ("⚠临界" if ver >= th_ver - 0.05 else "❌弱(疑似身份偏见)"))
+            kap_verdict = f"{_kappa_band(kap)}"
+            if pd.isna(kap):
+                kap_flag = "⚪N/A"
+            else:
+                kap_flag = "✅好" if kap >= th_kap else ("⚠临界" if kap >= th_kap - 0.10 else "❌弱")
+            if c['sentiment_inconclusive']:
+                sen_line = ("情感一致率=N/A — 双方均判真子集为空(n_both_true=0), 不可判定, "
+                            "保守计为不通过(防伪装通过)")
+            else:
+                sen_verdict = ("✅好" if sen >= th_sen
+                               else ("⚠临界" if sen >= th_sen - 0.05 else "❌弱"))
+                sen_line = (f"情感一致率(双方均判真 n_both_true={c['n_both_true']} 子集)="
+                            f"{sen:.1%} {sen_verdict}")
+            logger.info(f"  [{track.upper()}] {'✅整体通过' if c['passed'] else '❌整体未通过'}")
+            logger.info(f"     · 验证一致率(per-protocol)={ver_disp} {ver_verdict} "
+                        f"| ITT={ver_itt:.1%} (剔除 call_failure {c['n_call_failure']} 行)")
+            logger.info(f"     · Cohen's κ(per-protocol)={kap:.4f} [{kap_verdict}] {kap_flag} "
+                        f"| ITT κ={kap_itt:.4f}")
+            logger.info(f"     · {sen_line}")
+            # 逐模型分解 (哪个模型对掩码最敏感)
+            pm = c['per_model_consistency']
+            if pm:
+                pm_str = ', '.join(f"{k}={v:.1%}" for k, v in pm.items())
+                pm_min = min(pm.values())
+                pm_flag = ("(全模型稳健)" if pm_min >= th_ver
+                           else f"(最低 {pm_min:.1%}, 该模型对掩码偏敏感)")
+                logger.info(f"     · 逐模型一致率: {pm_str} {pm_flag}")
+            # 掩码质量: 残留率 + 零替换率
+            n_resid = n_incomplete[track]
+            n_zero = c['n_zero_replacements']
+            resid_rate = n_resid / n_total_sample if n_total_sample else 0.0
+            zero_rate = n_zero / n_total_sample if n_total_sample else 0.0
+            if n_resid > 0:
+                logger.warning(f"     · ⚠掩码不完整: 残留 {n_resid} 条 ({resid_rate:.1%}) — "
+                               f"银行名经标题/正文泄漏给 LLM, 该轨稳健性结论被高估, 须排查别名表")
+            else:
+                logger.info("     · 掩码完整性: 残留 0 条 (0.0%) ✅ 别名全部涂净")
+            if zero_rate > 0.10:
+                logger.warning(f"     · ⚠零替换 {n_zero} 条 ({zero_rate:.1%}) 偏高 — "
+                               f"这些文未命中任何目标行别名, 涂名对其无效, 已排除出一致性分母")
+            else:
+                logger.info(f"     · 零替换: {n_zero} 条 ({zero_rate:.1%}); 有效子样本 "
+                            f"n_valid={c['n_samples_valid']}")
+
+        # 整体方向判读
+        if overall_pass:
+            logger.info("  ▶ 整体结论: 三轨(full∧ctx∧ss)全部通过 — LLM 判定不受银行身份先验干扰, "
+                        "情感/注意力测度稳健, 可在论文中宣称'实体匿名化后判定一致'。")
+        else:
+            failed_tracks = [t for t in TRACKS if not results[t]['passed']]
+            logger.warning(f"  ▶ 整体结论: 轨道 {failed_tracks} 未通过 — 提示 LLM 可能部分依赖银行身份, "
+                           "下游情感变量或掺'身份偏见', 须在论文如实披露并加附录敏感性。")
+
+        # 小样本警告 (盘面 T=2 退化场景)
+        if n_total_sample < 200:
+            logger.info(f"  ⚠小样本提示: 本次仅 {n_total_sample} 条 (远小于 EM_CFG.sample_size 目标), "
+                        "一致率/κ 抽样方差大、混淆矩阵稀疏, 仅用于验证管道正确性; "
+                        "稳健性结论以全量 17M/T=18 实测 N=1000 为准。")
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     # ── Step 9: 输出报告 (三轨) ──
     generate_report(results, df_sample, df_valids)

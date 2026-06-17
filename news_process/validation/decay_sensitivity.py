@@ -104,7 +104,7 @@ v3.6.0 (Plan E P7 C4 stub):
 2. `run_analysis` 逐文: `core.text.entity_context.extract_entity_context_with_distances(content, aliases, sentence_radius=2)` 提取 [(句文本, 句级距离 d), ...] (radius=2 大于生产 ctx 的 1, 给衰减留空间); 每句 jieba 分词一次 (3 衰减函数共享预分词)。
 3. 对 5 词典 × 3 衰减函数 = 15 组合调 `compute_decay_sentiment`。
 
-**关键算法/公式**: 衰减函数 (3 种固定形式, 不做超参搜索以避免研究者自由度, DECAY_FUNCTIONS): uniform w(d)=1 / inverse w(d)=1/(1+d) / exponential w(d)=exp(−0.5d)。距离加权得分 = Σ w(d_s)·tone(s) / Σ w(d_s), 其中 tone(s)=单句归一化得分 (`_sentence_tone`, 否定/转折/程度三规则状态机, 与 22_tone_words 对齐)。`log_correlation_report` 算 uniform vs inverse/exponential 的 Pearson/Spearman + 均值差; 零方差/有效样本<10 守卫置 0.0 (注: 与 35 选 NaN 路线不同, 这里是 0.0 sentinel)。判定: min Pearson≥0.95 高度不敏感 / ≥0.90 基本不敏感 / <0.90 正文讨论。
+**关键算法/公式**: 衰减函数 (3 种固定形式, 不做超参搜索以避免研究者自由度, DECAY_FUNCTIONS): uniform w(d)=1 / inverse w(d)=1/(1+d) / exponential w(d)=exp(−0.5d)。距离加权得分 = Σ w(d_s)·tone(s) / Σ w(d_s), 其中 tone(s)=单句归一化得分 (`_sentence_tone`, 否定/转折/程度三规则状态机, 与 22_tone_words 对齐)。`log_correlation_report` 算 uniform vs inverse/exponential 的 Pearson/Spearman + 均值差; 两类守卫行为相反: 缺列 / 有效样本 n<10 → 直接剔除 (不入表, 令对数减少); 零方差 / 异常 → 置 0.0 sentinel 但仍入表 (注: 与 35 选 NaN 路线不同, 这里是 0.0 sentinel)。判定: min Pearson≥0.95 高度不敏感 / ≥0.90 基本不敏感 / <0.90 正文讨论。
 
 **重要口径披露 (fix omni-g-val-robust-04)**: uniform 列**不是**生产 ctx 测度的数值锚点 — 三重差异: ①半径 2 vs 生产 1 ②估计量 mean-of-ratios vs 生产 ratio-of-sums ③读原始 `内容` vs 生产读 prepend_title 文本。故结论只能表述为'词典得分在 radius=2 衰减权重族内稳健', 不可说'主结果对权重不敏感'。
 
@@ -783,6 +783,81 @@ def log_correlation_report(score_df: pd.DataFrame, dict_names: list):
     else:
         logger.warning("  未能计算任何相关系数 (可能数据量不足)")
 
+    # ── 结果分析 — 写入日志: 逐个产出指标 + 阈值判读 (仿 39c) ──
+    # 全部为日志专用局部变量, 不回写 score_df / 不改写盘内容 (golden-safe)。
+    # crash-guard: 本块在 main() 中早于 CSV 写盘 (步骤 6 < 步骤 7) 执行, 任何异常
+    # (空 Series.min / np.mean(NaN) 等) 都必须被吞掉, 否则会带走整阶段产物 → 证伪
+    # golden-safe; 故整块包 try/except, 失败仅 warning, 不影响 to_csv。
+    try:
+        n_obs = len(score_df)
+        # NaN-guard: all_pearsons 理论上仅含有限 0.0 或 pearsonr 结果, 但仍剔除
+        # 任何 NaN/inf, 防止 np.mean/min/max 被 NaN 污染、方向 ternary 因 NaN 比较
+        # 恒 False 而落到错误档位。
+        finite_pearsons = [float(p) for p in all_pearsons if np.isfinite(p)]
+        n_nonfinite = len(all_pearsons) - len(finite_pearsons)
+        n_pairs = len(finite_pearsons)  # 算成且有限的 uniform-vs-衰减对数 (满编 = 5 词典 × 2 衰减 = 10)
+        expected_pairs = len(dict_names) * 2  # inverse + exponential 两对/词典
+        logger.info("-" * 72)
+        logger.info("【结果分析】距离衰减权重敏感性 (uniform vs inverse/exponential; Pearson 越接近 1 = 越不敏感):")
+        if finite_pearsons:
+            avg_pr_a = float(np.mean(finite_pearsons))
+            min_pr_a = float(min(finite_pearsons))
+            max_pr_a = float(max(finite_pearsons))
+            # 通过率: min Pearson 三级阈值体系 (Kline 2023 p.76 r≥.90 / Cohen 1988 r≥.50)
+            n_ge95 = sum(1 for p in finite_pearsons if p >= 0.95)
+            n_ge90 = sum(1 for p in finite_pearsons if p >= 0.90)
+            # 注: 两类行为相反, 须分开说 — (1) 缺列 / 有效样本 n<10 → continue 直接
+            # 剔除, 不入 all_pearsons, 令 n_pairs 减少 (= 缺口, 不进 mean/min);
+            # (2) 零方差 / pearsonr 异常 → pr 置 0.0 但仍 append 入表, 故计入 n_pairs
+            # 并被 mean/min 拉低。切勿把"剔除致缺口"与"置 0.0 仍计入"混为同一档。
+            n_gap = expected_pairs - n_pairs - n_nonfinite  # 被剔除致缺口的对数 (近似)
+            logger.info(
+                f"  完成相关对 {n_pairs}/{expected_pairs} (满编 = 5 词典 × 2 衰减 = 10): "
+                f"差额 {n_gap} 对 = 缺列或有效样本 n<10 被直接剔除 (不计入 n_pairs / mean / min); "
+                "零方差或异常对则 pr 置 0.0 仍计入 n_pairs 并进 mean/min (二者结果相反)"
+            )
+            if n_nonfinite:
+                logger.info(f"  (另剔除 {n_nonfinite} 个 NaN/inf 相关值, 不计入分布统计)")
+            logger.info(
+                f"  Pearson 分布: 平均={avg_pr_a:.4f}  最低={min_pr_a:.4f}  最高={max_pr_a:.4f}"
+            )
+            logger.info(
+                f"  命中率: ≥0.95 的对 {n_ge95}/{n_pairs} (高度不敏感)  ≥0.90 的对 {n_ge90}/{n_pairs} (基本不敏感)"
+            )
+            if min_pr_a >= 0.95:
+                logger.info(
+                    f"  → 判读: min r={min_pr_a:.4f} ≥ 0.95, 衰减权重族内 (radius=2) 高度不敏感 (好); "
+                    "论文 Appendix 一句话即可。"
+                )
+            elif min_pr_a >= 0.90:
+                logger.info(
+                    f"  → 判读: min r={min_pr_a:.4f} ∈ [0.90,0.95), 衰减权重族内基本不敏感 (好); "
+                    "论文 Appendix 报相关性表格。"
+                )
+            else:
+                logger.info(
+                    f"  → 判读: min r={min_pr_a:.4f} < 0.90, 至少一套词典对衰减权重敏感 (临界/不利); "
+                    "须在正文讨论衰减函数选择。"
+                )
+            logger.info(
+                "  ⚠ 口径披露: uniform 列非生产 ctx 数值锚点 (半径 2 vs 1 / mean-of-ratios vs ratio-of-sums /"
+            )
+            logger.info(
+                "    无标题 prepend); 高相关只证'衰减权重族内稳健', 不等于'主结果对权重方案不敏感'。"
+            )
+        else:
+            logger.warning(
+                f"  ⚠ 优雅降级: 0/{expected_pairs} 个有限相关对算成 — 词典缺失 / 全零方差 / 有效样本不足 "
+                "(min Pearson 需有效样本 n≥10, 即 Pearson df=n−2≥8) / 全 NaN, 本阶段无稳健性结论。"
+            )
+        logger.info(
+            f"  ⚠ 样本 = {n_obs:,} 篇 (盘面 T=2 小样本仅验证管道正确性, "
+            "全量结论以 17M/T=18 实测为准)"
+        )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+
 
 # ============================================================================
 # 7. 主流程
@@ -800,9 +875,22 @@ def main():
       6. 输出 Pearson/Spearman 相关性报告并保存 CSV
     """
     start_time = time.time()
-    logger.info("=" * 70)
-    logger.info("===  38b_decay_sensitivity: 距离衰减权重敏感性检验 (G-14)  ===")
-    logger.info("=" * 70)
+
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
+    # 去重: 删除旧的短 banner (===  38b_decay_sensitivity ===), 只留本黄金范式单 banner。
+    logger.info("=" * 72)
+    logger.info("阶段 38b: 距离衰减权重敏感性检验 (Sautner et al. 2023 JF §2.2; G-14)")
+    logger.info("=" * 72)
+    logger.info("【功能】算银行情感分时, 离银行名越远的句子是否该按距离'打折'计权? 本阶段对")
+    logger.info("        5 套词典各用 3 种衰减权重 (不打折/倒数/指数) 算一遍句级加权情感分,")
+    logger.info("        看三套分数相关性高不高, 产出 15 列得分矩阵 + Pearson/Spearman 相关报告。")
+    logger.info("【方法】句级距离 d (radius=2 窗口) → 权重 w(d): uniform=1 / inverse=1/(1+d) /")
+    logger.info("        exponential=exp(-0.5d); 加权得分 = Σ w(d)·tone(s) / Σ w(d), tone(s)=单句")
+    logger.info("        否定/转折/程度三规则归一化分 (与 22_tone_words 对齐)。比 uniform vs 衰减的相关。")
+    logger.info("【判读】min Pearson≥0.95 高度不敏感(好) / ≥0.90 基本不敏感(好) / <0.90 须正文讨论(临界)。")
+    logger.info("        ⚠ uniform 列非生产 ctx 数值锚点 (半径 2 vs 1 / mean-of-ratios vs ratio-of-sums /")
+    logger.info("        无标题 prepend 三重口径差), 结论只支持'衰减权重族内稳健', 勿当'主结果不敏感'。")
+    logger.info("【确定性】纯词典 + 确定句级提取 + jieba 分词, 无 LLM/Embedding 调用, 逐位可复现。")
 
     # ── 步骤 1: 加载词典 ──
     dictionaries = load_dictionaries()

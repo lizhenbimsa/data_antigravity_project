@@ -1363,6 +1363,24 @@ def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
 
+    # ── 【功能】banner (黄金范式; 让 33_news_llms_evaluation.log 自带说明书) ──
+    logger.info("=" * 72)
+    logger.info("阶段 33: 新闻分类模型评估 (Cohen κ/Krippendorff α: Landis-Koch 1977 / Krippendorff 2018; 误分类偏倚: Carlson & Burbano 2026 SMJ)")
+    logger.info("=" * 72)
+    logger.info("【功能】拿 stage 32 人工填好的答卷当标准答案, 给 LLM 分类器逐项打分:")
+    logger.info("        真伪验证(二分类) + 情感(三分类正/中/负) + 创新二元属性(实质性/象征性、底层/应用);")
+    logger.info("        同时算两位编码者间一致度 (κ/α), 产出可直接嵌论文的 LaTeX 表 + CSV + 混淆矩阵 PNG。")
+    logger.info("【方法】Cohen κ / Krippendorff α (一致度); sklearn P/R/F1 + Wilson 95%CI accuracy;")
+    logger.info("        McNemar 检验(分歧数<25 用精确二项, 否则连续校正卡方)比较两分类器; ")
+    logger.info("        Carlson-Burbano 误分类偏倚诊断(FP/TP·FN/TN 的下游情感分数 Welch-t + KS)。")
+    logger.info("【判读】Precision/Recall/F1/Accuracy 越高越好 (经验上 ≳0.80 较稳健, 具体可接受门槛任务相关, 仅作分档参考);")
+    logger.info("        κ≥0.80 / α≥0.80=几乎完全一致 (Krippendorff 2018 / Landis-Koch 1977), α≥0.667=暂定可接受 (Krippendorff 2004);")
+    logger.info("        McNemar p<0.05=两分类器有真实性能差异; 误分类偏倚 p<0.05=一阶误差与二阶 DV 系统相关(坏)。")
+    logger.info("【确定性】纯 CPU/磁盘, 无 LLM/Embedding API 调用, 无缓存, $0; 给定输入逐位可复现。")
+    logger.info("【披露】人工金标准基于整篇阅读(全文构念); 用它评 _ctx/_ss 窗口轨时, accuracy 为")
+    logger.info("        [模型误差 + 窗口-全文构念差] 的混合下界, 非纯模型误差。")
+    logger.info("-" * 72)
+
     # 定义输入输出路径
     verify_path = os.path.join(
         CONFIG['paths']['output_dir'],
@@ -2098,6 +2116,168 @@ def main():
                         f"α = {std_report.get('验证任务_Krippendorffs_α', 'N/A')}.\"")
 
     results['standardized_validation_report'] = std_report
+
+    # ── 【结果分析】(黄金范式; 取真实算出的产出指标, 对照阈值给好/坏/临界判读) ──
+    # crash-guard: 本块在 JSON/CSV/LaTeX/混淆矩阵 PNG 全部写盘 (见上文 ~L1949/2003/2086)
+    # 之后执行, 纯读 results 字典发日志, 不写盘/不改 schema; 即便如此仍整体 try/except,
+    # 任何诊断异常 (缺键 / NaN / 空 Series) 都降级为 WARNING, 绝不让本阶段崩溃丢产物。
+    logger.info("-" * 72)
+    logger.info("【结果分析】机器分类标签的测量效度(measurement validity)成绩单 — 逐项对照顶刊阈值判读:")
+
+    def _grade_agreement(_v):
+        # Cohen κ 专用判读 (Landis & Koch 1977 区间带; 仅用于 κ, 勿套用到 α)
+        # NaN-guard: None / NaN 一律走 N/A, 不落进数值方向判断
+        # (NaN 与任何阈值比较恒 False, 会误落到最差档 "<0.40 一致度差")
+        if _v is None or pd.isna(_v):
+            return "N/A"
+        if _v >= 0.80:
+            return f"{_v:.4f} (κ≥0.80 几乎完全一致, 好)"
+        if _v >= 0.60:
+            return f"{_v:.4f} (κ 0.60–0.80 实质一致, 临界)"
+        if _v >= 0.40:
+            return f"{_v:.4f} (κ 0.40–0.60 中等, 偏弱)"
+        return f"{_v:.4f} (κ<0.40 一致度差, 金标准可信度存疑)"
+
+    def _grade_alpha(_v):
+        # Krippendorff α 专用判读 (Krippendorff 2004 canonical 门槛; 与 κ 解耦):
+        # ≥.80 可靠 / ≥.667 暂定可接受下限 / <.667 信度不足。
+        # α 没有 Landis-Koch 的 .60 "substantial" 档, 故不复用 _grade_agreement
+        # (后者用 .60 当下界会把 α 0.60–0.667 误判为 "临界", 实属信度不足)。
+        # NaN-guard: None / NaN 一律走 N/A, 不落进数值方向判断。
+        if _v is None or pd.isna(_v):
+            return "N/A"
+        if _v >= 0.80:
+            return f"{_v:.4f} (α≥0.80 可靠, 好)"
+        if _v >= 0.667:
+            return f"{_v:.4f} (α 0.667–0.80 暂定可接受, 临界)"
+        return f"{_v:.4f} (α<0.667 信度不足)"
+
+    def _grade_perf(_acc, _f1):
+        # 分类器性能分档 (任务相关启发式, 非公认顶刊门槛): 分类器 accuracy/F1 的可接受
+        # 门槛随任务而定, 学界无统一 "≳0.80" 标准 (0.80 是 reliability κ/α 阈值, 见
+        # _grade_alpha, 此处仅借其数值作内部分档参考, 不等同 reliability 门槛)。
+        # NaN-guard: 任一指标缺失/NaN 则不下结论 (min(NaN, x) 行为依实现不定,
+        # 且 NaN 比较恒 False 会误落到 "偏弱" 档)
+        if pd.isna(_acc) or pd.isna(_f1):
+            return "N/A (指标缺失, 不评级)"
+        _lo = min(_acc, _f1)
+        if _lo >= 0.80:
+            return "较高 (≳0.80, 启发式分档)"
+        if _lo >= 0.70:
+            return "中等 (0.70–0.80, 启发式分档)"
+        return "偏低 (<0.70, 测量效度章节须谨慎)"
+
+    try:
+        # (0) 金标准来源与样本规模 (披露口径自检)
+        _src_map = {'two_coder_consensus': '双编码者共识', 'single_coder_A': '单编码者(编码者A)',
+                    'demo_synthetic': '合成模拟', 'none': '缺失'}
+        logger.info(
+            f"  · 金标准: 验证轨={_src_map.get(gold_source_ver, gold_source_ver)} / "
+            f"情感轨={_src_map.get(gold_source_sen, gold_source_sen)}; "
+            f"有效验证 gold={n_gold_ver} 条 (待仲裁剔除={n_pending_ver})。"
+        )
+        if demo_mode:
+            logger.warning(
+                "  · ⚠ 当前为 demo_mode 合成数据 (人工标注文件缺失): 以下所有 κ/F1/混淆矩阵均为"
+                " seed 生成的噪声, 仅验证评估框架可跑通, 严禁引用进论文; 待人工编码完成后重跑。"
+            )
+
+        # (1) 编码者间一致性 ICR (κ: Landis-Koch 1977; α: Krippendorff 2004/2018, α≥0.80 可靠 / ≥0.667 暂定可接受)
+        _icr_ver = results.get('inter_coder_reliability', {}).get('verification', {})
+        _icr_sen = results.get('inter_coder_reliability', {}).get('sentiment', {})
+        if _icr_ver:
+            _kv = _icr_ver.get('cohens_kappa', {}).get('kappa', None)
+            _av = _icr_ver.get('krippendorffs_alpha', None)
+            logger.info(f"  · ICR-验证: Cohen κ={_grade_agreement(_kv)}; Krippendorff α={_grade_alpha(_av)} (n={n_both_ver})")
+        else:
+            logger.info("  · ICR-验证: 无双编码者样本 → 不可得 (论文不得表述为'双编码者共识')")
+        if _icr_sen:
+            _ks = _icr_sen.get('cohens_kappa', {}).get('kappa', None)
+            _as = _icr_sen.get('krippendorffs_alpha', None)
+            logger.info(f"  · ICR-情感: Cohen κ={_grade_agreement(_ks)}; Krippendorff α={_grade_alpha(_as)} (n={n_both_sen})")
+        else:
+            logger.info("  · ICR-情感: 无双编码者情感样本 → 不可得")
+
+        # (2) 分类器性能: 真伪验证 + 情感 (Accuracy/Macro-F1; ≳0.80 仅作启发式分档, 非公认门槛)
+        _ver_metrics = results.get('classifier_metrics', {}).get('verification', {})
+        for _name, _m in _ver_metrics.items():
+            _acc = _m.get('accuracy', 0.0)
+            _f1 = _m.get('macro', {}).get('f1', 0.0)
+            _ci = _m.get('accuracy_ci', None)
+            _ci_txt = f" 95%CI{_ci}" if _ci else ""
+            logger.info(
+                f"  · [验证] {_name}: Acc={_acc:.4f}{_ci_txt}, Macro-F1={_f1:.4f} → {_grade_perf(_acc, _f1)}"
+            )
+        _sen_metrics = results.get('classifier_metrics', {}).get('sentiment', {})
+        if _sen_metrics:
+            for _name, _m in _sen_metrics.items():
+                _acc = _m.get('accuracy', 0.0)
+                _f1 = _m.get('macro', {}).get('f1', 0.0)
+                _cov = _m.get('coverage', None)
+                _cov_txt = f", coverage={_cov:.1%}" if isinstance(_cov, (int, float)) else ""
+                _wndw = " [窗口轨, 含构念差→保守下界]" if ('_ctx' in _name or '_ss' in _name) else ""
+                logger.info(
+                    f"  · [情感] {_name}: Acc={_acc:.4f}, Macro-F1={_f1:.4f}{_cov_txt}"
+                    f" → {_grade_perf(_acc, _f1)}{_wndw}"
+                )
+        else:
+            logger.warning("  · [情感] 无情感分类金标准 → 情感效度未评估")
+
+        # (3) McNemar 三轨/规则 vs LLM 两两比较 (p<0.05 = 性能有真实差异)
+        _mcnemar_keys = [k for k in results
+                         if k.startswith('mcnemar_') and isinstance(results.get(k), dict)
+                         and 'p_value' in results[k]]
+        if _mcnemar_keys:
+            for _k in sorted(_mcnemar_keys):
+                _mc = results[_k]
+                _sig = "显著(两者有真实性能差异)" if _mc.get('significant') else "不显著(性能相当)"
+                logger.info(
+                    f"  · McNemar[{_k.replace('mcnemar_', '')}]: p={_mc.get('p_value')}"
+                    f" (b={_mc.get('b_count')}, c={_mc.get('c_count')}, {_mc.get('test_type')}) → {_sig}"
+                )
+
+        # (4) 误分类系统相关性诊断 (Carlson-Burbano: 显著 = 一阶误差与下游 DV 系统相关, 坏)
+        for _track in ['_full', '_ctx', '_ss']:
+            _bias = results.get(f'misclassification_bias{_track}', {})
+            _tests = _bias.get('tests', []) if isinstance(_bias, dict) else []
+            _run = [t for t in _tests if not t.get('skipped', True)]
+            _sig_n = sum(1 for t in _run if t.get('significant'))
+            if _run:
+                _verdict = (f"⚠ {_sig_n}/{len(_run)} 项显著 — 误分类方向与下游情感系统相关, "
+                            "下游回归须警惕系统性偏倚" if _sig_n
+                            else f"{len(_run)} 项全不显著 — 误分类近似随机, 对下游 DV 无系统偏倚(好)")
+                (logger.warning if _sig_n else logger.info)(
+                    f"  · 误分类偏倚[{_track}]: {_verdict}")
+
+        # (5) 创新维度 Panel E/F 状态 + 折叠前 3 编码者信度
+        _innov_pending = results.get('innovation_pending_reason')
+        if _innov_pending:
+            logger.info(
+                f"  · 创新维度(Panel E/F): pending — {_innov_pending}"
+                " (manual_validation_samples.xlsx 未就绪, 实质性/象征性/底层/应用未评)")
+        else:
+            _subst = results.get('classifier_metrics', {}).get('innovation_substantiveness', {})
+            _locus = results.get('classifier_metrics', {}).get('innovation_locus', {})
+            logger.info(
+                f"  · 创新维度(Panel E/F): 已评估 — substantiveness {len(_subst)} 个分类单元 / "
+                f"locus {len(_locus)} 个分类单元")
+        _innov_icr = results.get('innovation_inter_coder_reliability', {})
+        if _innov_icr:
+            for _dim, _info in _innov_icr.items():
+                logger.info(
+                    f"  · 创新维度信度[{_dim}]: Krippendorff α={_grade_alpha(_info.get('krippendorffs_alpha'))}"
+                    f" (折叠前 3 编码者, 可配对单元={_info.get('n_pairable_items')}, status={_info.get('status')})")
+
+        # (6) 小样本警告: 盘面 T=2 仅数百人工样本 → 点估计噪声不可忽略
+        if not demo_mode and n_gold_ver < 300:
+            logger.info(
+                f"  · ⚠ 人工金标准样本偏小 (n_gold_ver={n_gold_ver} < 300): "
+                "accuracy 点估计噪声不可忽略, 须连同 Wilson 95%CI 报告; "
+                "本机盘面为 T=2 子样, 仅验证管道正确性, 全量结论以 17M/T=18 实测为准。"
+            )
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+    logger.info("-" * 72)
 
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=len(df_verify), output_rows=n_gold_ver)

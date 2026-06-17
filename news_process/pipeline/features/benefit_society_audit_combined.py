@@ -370,10 +370,35 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     args = parser.parse_args(argv)
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
+
+    # 接入项目统一日志: 写 <log_dir>/27c_placebo_and_alt_anchor.log。此前本阶段仅
+    # 模块级 getLogger(__name__) + 一次性 basicConfig, audit-only 旁支日志不落
+    # <stage>.log; 现对齐 39c/39d 同族 audit 阶段的 setup_logging 约定 (替换而非
+    # 叠加旧 basicConfig), 让日志自带阶段说明书。
+    global logger
+    from news_process.core.config import load_config
+    from news_process.core.logging import setup_logging
+    logger = setup_logging(
+        "27c_placebo_and_alt_anchor",
+        load_config()["paths"].get("log_dir", "logs"),
     )
+
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c)。
+    logger.info("=" * 72)
+    logger.info(
+        "阶段 27c: benefit_society 替代锚点 + 安慰剂审计 "
+        "(audit-only; V2.0 J-L-M 2026 §3 P1.6)"
+    )
+    logger.info("=" * 72)
+    logger.info("【功能】给银行'惠及社会'测度做两项打假实验, 产出独立审计面板 (不进主面板/golden):")
+    logger.info("        ① 替代锚点 = 换 J-L-M canonical 5 对锚句重打分, 测主测度对锚点选择的敏感性;")
+    logger.info("        ② 安慰剂 = 拿 4 条无关业务线 + 1 中性基线打同样的分, 测主信号是否在不该出现处冒头 (伪相关)。")
+    logger.info("【方法】句嵌入方向投影 (锚点对方向向量 ⊙ 文章嵌入点积) → bank-year 聚合 mean/std/pos_frac/neg_frac;")
+    logger.info("        placebo 用 MAIN 主方向向量 + 关键词掩码子集投影; 锚点与文章须同嵌入空间 (model_id 反查校验)。")
+    logger.info("【判读】替代锚点: 与主测度方向一致、量级相近=稳健(好); 翻盘/塌缩=锚点敏感(不利)。")
+    logger.info("        安慰剂: 业务线信号量级 *远小于* 替代锚点 (|均值|占比 ratio<0.5)=干净(好); 接近/超过=主测度乱抓相关(伪相关,不利)。")
+    logger.info("        注: RAW 余弦投影均值在各向异性嵌入空间 (sign-at-0 实测 ~97% 投影>0, 见 alt_anchor 饱和退化披露) 下系统性非零, 无绝对 ≈0 基线, 故只作 *相对* 量级判读。")
+    logger.info("【确定性】不调 LLM; 仅嵌 ~10 句锚点 (≈$0, 经 LLMCache); 文章嵌入读 stage 27 预落盘 .npy; 显式 seed。")
 
     # 恒安全的 yaml schema 校验 (不加载嵌入)
     pos, neg, alt_meta = load_jlm_zh_anchors()
@@ -466,6 +491,125 @@ def main(argv: list[str] | None = None) -> int:
 
     sidecar_path = write_sidecar_json(output_path, meta)
     logger.info("Wrote sidecar JSON: %s", sidecar_path)
+
+    # 结果分析 — 写入日志: 替代锚点信号强度 + 逐安慰剂命中数/均值, 对照"伪相关"方向判读。
+    # 仅用于日志打印, 不回写 combined / meta (golden-safe 纯增量)。此块在产物 (parquet
+    # + sidecar) 已落盘之后执行, 故即便抛异常也不影响产物; 仍整体 try/except 兜底
+    # (crash-guard), 防止纯日志诊断意外让阶段返回非 0。
+    try:
+        logger.info("-" * 72)
+        n_obs = meta.get("n_bank_year_obs", len(combined))
+        n_art = meta.get("n_articles_total", len(combined))
+        logger.info(
+            "【结果分析】审计面板 %s bank-year obs (源自 %s 篇文章-银行行; embedding_dim=%s; tracks=%s):",
+            n_obs,
+            n_art,
+            meta.get("embedding_dim", "?"),
+            ",".join(meta.get("tracks", [])) or "?",
+        )
+
+        # ① 替代锚点 (J-L-M 5 对) — full 轨信号强度。pos_frac > 0.5 表示多数文章投影为"正向惠及"。
+        # NaN-guard: 全 NaN (上游空文本/聚合无有效行) 时 alt_abs_mean 取 nan, 下游 ② 的
+        # 占比判读会自动落进"基准不可比"分支, 不会打出 nan% 误导。
+        alt_abs_mean = float("nan")
+        if "benefit_jlm_zh_mean" in combined and combined["benefit_jlm_zh_mean"].notna().sum() == 0:
+            logger.warning("  ① 替代锚点 full: benefit_jlm_zh_mean 全 NaN — 该轨无有效数据, 替代锚点信号无法评估")
+        elif "benefit_jlm_zh_pos_frac" in combined:
+            alt_mean = float(combined["benefit_jlm_zh_mean"].mean())
+            alt_abs_mean = float(combined["benefit_jlm_zh_mean"].abs().mean())
+            alt_pos = float(combined["benefit_jlm_zh_pos_frac"].mean())
+            alt_neg = float(combined["benefit_jlm_zh_neg_frac"].mean())
+            logger.info(
+                "  ① 替代锚点 full: 均值=%.4f  |均值|=%.4f  pos_frac=%.3f  neg_frac=%.3f "
+                "(pos_frac 以批内 median 为 center → ~0.5 属预期; 与主测度方向一致即稳健)",
+                alt_mean, alt_abs_mean, alt_pos, alt_neg,
+            )
+        else:
+            logger.warning("  ① 替代锚点列缺失 (benefit_jlm_zh_*) — 上游嵌入/锚点链路异常, 替代锚点检验未生效")
+
+        # ② 安慰剂 (4 业务线 + 1 中性) — 命中数 + 均值; 期望"业务线信号量级 *远小于* 替代锚点 (相对判读, 非绝对 ≈0)"。
+        # 各向异性嵌入空间下 RAW |均值| 系统性非零 (alt_anchor.py:317 实测 ~97% 投影>0), 故不存在绝对 ≈0 基线, 只看相对占比。
+        logger.info("  ② 安慰剂 (期望: 命中数充足且均值 |·| 远小于替代锚点 |均值|=%.4f → 无伪相关, 好):", alt_abs_mean)
+        # ⚠ 判读口径说明 (顶刊免责声明, 仅日志): 替代锚点与安慰剂均用 *未去中心* 的 RAW |余弦均值|,
+        # 在各向异性嵌入空间 (sign-at-0 实测 ~97% 投影>0, 见 alt_anchor.py:317 饱和退化披露) 下二者各带
+        # 固定方向的基线正偏移, 故下方 ratio 主要反映两条 direction 的偏移大小关系, 仅作 *量级参考*;
+        # 正式伪相关检验须改用 median-center / 相对中性基线 (general_corporate) 口径。
+        # ⚠ 阈值 0.5 / 1.0 是本块的 ad-hoc 日志启发式 (粗分干净/临界/泄漏三档), *不是* alt_anchor.py:10
+        # 文档授权的正式判据 — 文档判据是『benefit_jlm_zh vs benefit_mean 的回归 β 符号一致 + β 比值 > 0.5』
+        # (回归系数比), 与此处 placebo-vs-alt 的 |均值| 幅值比是语义无关的两个量, 仅恰好共用数字 0.5。
+        logger.info(
+            "  ⚠ 口径: 下方 ratio = 安慰剂 RAW|均值| / 替代锚点 RAW|均值| (均未去中心, 各向异性下二者带固定正偏移), 仅作量级参考; "
+            "阈值 0.5/1.0 为 ad-hoc 日志启发式, 非 alt_anchor.py:10 文档的回归 β 比值判据。"
+        )
+        placebo_hits = meta.get("placebo_match_counts", {}) or {}
+        leak_lines: list[str] = []
+        for pid, n_hit in placebo_hits.items():
+            col = f"benefit_placebo_{pid}_mean"
+            is_neutral = pid == "general_corporate"
+            tag = " [中性基线]" if is_neutral else ""
+            if n_hit == 0:
+                logger.warning("    - %s%s: 命中 0 篇 → 该列全 NaN, 安慰剂在此业务线上无法评估 (优雅降级)", pid, tag)
+                continue
+            # column-guard: 命中非 0 但列缺失 (聚合异常); 命中且有列但全 NaN (NaN-guard) 也单独分支。
+            if col not in combined:
+                logger.warning("    - %s%s: 命中 %d 篇但列缺失 (%s) — 聚合异常", pid, tag, n_hit, col)
+                continue
+            if combined[col].notna().sum() == 0:
+                logger.warning("    - %s%s: 命中 %d 篇但 %s 全 NaN — 该业务线无有效投影, 无法评估", pid, tag, n_hit, col)
+                continue
+            p_abs_mean = float(combined[col].abs().mean())
+            # 判读 (ad-hoc 量级启发式, 见上方口径说明): 安慰剂 RAW|均值| 显著小于替代锚点 RAW|均值| = 干净;
+            # 接近或超过 = 可能伪相关泄漏。两者均未去中心, 仅作量级参考, 非 alt_anchor.py:10 文档的回归 β 比值判据。
+            if alt_abs_mean == alt_abs_mean and alt_abs_mean > 0:  # noqa: PLR0124 (NaN 自比过滤)
+                ratio = p_abs_mean / alt_abs_mean
+                verdict = "干净(好)" if ratio < 0.5 else ("临界" if ratio < 1.0 else "⚠ 疑似伪相关泄漏(不利)")
+                if ratio >= 0.5:
+                    leak_lines.append(pid)
+                logger.info(
+                    "    - %s%s: 命中 %d 篇  |均值|=%.4f  占替代锚点信号 %.0f%%  → %s",
+                    pid, tag, n_hit, p_abs_mean, ratio * 100, verdict,
+                )
+            else:
+                logger.info("    - %s%s: 命中 %d 篇  |均值|=%.4f (替代锚点基准不可比)", pid, tag, n_hit, p_abs_mean)
+
+        # 辅助判读 (更干净, 仅日志): 以中性基线 general_corporate |均值| 为分母, 算各业务线 |均值| 的相对偏离。
+        # 中性基线与业务线安慰剂同走 MAIN 方向投影 → 共享同一各向异性正偏移, 相比 alt-anchor 分母能更多消去固定偏移,
+        # 故"相对中性基线"的比值比"相对替代锚点"的量级比更接近真正的伪相关信号强度。仅打印, 不回写产物。
+        neutral_col = "benefit_placebo_general_corporate_mean"
+        if neutral_col in combined and combined[neutral_col].notna().sum() > 0:
+            neutral_abs_mean = float(combined[neutral_col].abs().mean())
+            if neutral_abs_mean > 0:
+                logger.info(
+                    "  (辅助) 相对中性基线 general_corporate |均值|=%.4f 的偏离 (更干净的伪相关参考量, 越接近 1 越无超额信号):",
+                    neutral_abs_mean,
+                )
+                for pid, n_hit in placebo_hits.items():
+                    if pid == "general_corporate" or n_hit == 0:
+                        continue
+                    col = f"benefit_placebo_{pid}_mean"
+                    if col not in combined or combined[col].notna().sum() == 0:
+                        continue
+                    rel = float(combined[col].abs().mean()) / neutral_abs_mean
+                    logger.info("    - %s: |均值| / 中性基线 |均值| = %.2f", pid, rel)
+            else:
+                logger.info("  (辅助) 中性基线 general_corporate |均值|=0, 无法作相对中性参考")
+
+        if leak_lines:
+            logger.info(
+                "  ⚠ %d 条安慰剂信号量级 ≥ 替代锚点一半 (%s): 需在论文稳健性附录中正面回应是否伪相关",
+                len(leak_lines), ", ".join(leak_lines),
+            )
+        else:
+            logger.info("  ✓ 全部安慰剂信号均显著弱于替代锚点 → 主测度未在无关业务线乱抓相关 (支持构念效度)")
+
+        # 小样本警告: 盘面 T=2 仅验证管道正确性, 全量结论以 17M/T=18 实测为准。
+        logger.info(
+            "  ⚠ 样本 = %s 篇文章 / %s bank-year (盘面 T=2 小样本时仅验证管道正确性, 全量结论以 17M/T=18 实测为准)",
+            n_art, n_obs,
+        )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
     return 0
 
 

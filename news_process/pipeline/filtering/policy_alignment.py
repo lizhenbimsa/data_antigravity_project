@@ -689,9 +689,9 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         + _t2v_full/_t2v_ctx/_t2v_ss 稳健 twin, 共 7 列 (content_ss 缺失时退回 5 列;
         见模块 docstring 输出段)
     """
-    logger.info("=" * 60)
+    # 旧短 banner ("=" * 60 + "开始计算...") 已删: 与 main() 新【功能】黄金范式 banner
+    # 重复 (替换而非叠加, 对齐 39c construct_orthogonality.py); 此处仅留计算起点标记。
     logger.info("开始计算: 文章级政策语义对齐度 (Stage 15)")
-    logger.info("=" * 60)
 
     # ---- 4.1 加载权威政策文本 ----
     # 【术语】权威政策语料 = 国家级金融科技宏观政策文件的拼接文本
@@ -1012,8 +1012,33 @@ def main():
     新增列: policy_cosine_sim 族共 7 列 (float32, 值域 [-1, 1];
     含 _full/_ctx/_ss 三轨 + _t2v_* 双模型稳健 twin; content_ss 缺失时退回 5 列)
     """
+    # setup_logging 接线 (golden 范式): 本模块的 logger 自 encode.py import,
+    # 其 STAGE_NAME='40_build_panel' → stage 15 日志原会落入 40_build_panel.log。
+    # 此处按本阶段 STAGE_NAME 重接, 使 <stage>.log 命名为 15_article_policy_alignment.log
+    # (纯日志路由, 不改任何返回值/产物/计量逻辑)。
+    global logger
+    from news_process.core.logging import setup_logging
+    logger = setup_logging(STAGE_NAME, CONFIG["paths"].get("log_dir", "logs"))
+
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
+
+    # ---- 【功能】banner (golden 范式: 紧随"开始执行阶段"之后) ----
+    logger.info("=" * 72)
+    logger.info("阶段 15: 文章级政策语义对齐度 (Distel/Grimpe/Poetz 2026 RP §3.2.1; "
+                "余弦相似度 Hoberg & Phillips 2016 JPE)")
+    logger.info("=" * 72)
+    logger.info("【功能】给每篇金科新闻打一个 0~1 的『政策对齐分』: 把国家重磅金科政策文件浓缩成")
+    logger.info("        一份『标准答案向量』, 再算每篇新闻向量与它的夹角余弦; 产出 policy_cosine_sim")
+    logger.info("        族列 (full/ctx/ss 三轨 + _t2v 双模型 twin), 供 stage 45 四象限分类消费。")
+    logger.info("【方法】policy_cosine_sim_i = cos(emb(article_i), emb(auth_anchor)), 值域 [-1,1] 实务多落 0~1。")
+    logger.info("        anchor = 权威语料按文档朴素分段 → mean pooling + L2 归一化; vintage-aware 前视守卫:")
+    logger.info("        年度 t 文章只与发布年份 ≤ t 的政策段算锚 (article_alignment.vintage_aware)。")
+    logger.info("        双模型: MAIN=text-embedding-3-small(API,1536维) → canonical; ROBUSTNESS=text2vec(本地,768维) → _t2v。")
+    logger.info("【判读】分数越高 = 这篇新闻越贴政策方向 (实质性); 越低 = 越不沾边 (象征性/无关)。")
+    logger.info("        full↔ctx Spearman ρ < 0.95 = 轨道真独立 (期望); 三轨值域须 ⊆ [-1,1]。")
+    logger.info("【确定性】调 Embedding API (MAIN 轨, miss 即付费; 不受 NEWS_PROCESS_LLM_OFFLINE 守卫保护) +")
+    logger.info("          本地 text2vec (_t2v, $0)。API 向量经 _llm_cache.db 缓存, 命中即逐位可复现。")
 
     # 读取 Stage 14 输出
     output_dir = CONFIG['paths']['output_dir']
@@ -1062,6 +1087,111 @@ def main():
     n_valid = df['policy_cosine_sim'].notna().sum()
     logger.info(f"  有效 policy_cosine_sim: {n_valid}/{len(df)} "
                 f"({n_valid / max(len(df), 1) * 100:.1f}%)")
+
+    # ---- 【结果分析】(golden 范式: 取真实产出指标 + 对照阈值/方向给判读) ----
+    # 全部为日志专用局部量, 不回写 df / 不改任何产物。
+    # crash-guard (golden-safety): 整块包 try/except, 任何诊断异常 (空 Series / 缺列 /
+    # scipy 行为变更等) 只降级为 warning, 绝不让纯日志块崩掉阶段。本块虽已在 save_dataset
+    # 之后 (产物已落盘), 仍兜底防 main() 非零退出污染编排链。
+    try:
+        logger.info("-" * 72)
+        logger.info("【结果分析】文章级政策对齐分质检 —— 逐轨值域/覆盖率/轨间独立性, 以下判读仅供解读:")
+        _n_total = len(df)
+
+        # (1) 主轨覆盖率 (有效非 NaN 占比): vintage 前视守卫会把年份未知/早于全部政策的文章合法置 NaN。
+        _valid_pct = n_valid / max(_n_total, 1) * 100
+        if _valid_pct >= 90:
+            _cov_judge = "好 (绝大多数文章落在政策发布年之后, 前视守卫几乎不丢分)"
+        elif _valid_pct >= 50:
+            _cov_judge = "临界 (相当比例文章年份未知或早于全部政策 → 合法 NaN, 检查 year/日期 列与语料最早 vintage)"
+        else:
+            _cov_judge = "差/可疑 (多数文章无对齐分; 多因 vintage 前视守卫剔除或锚点缺失, 须核语料年份覆盖)"
+        logger.info(f"  · canonical 主轨覆盖率 policy_cosine_sim: {n_valid}/{_n_total} "
+                    f"({_valid_pct:.1f}%) → {_cov_judge}")
+
+        # (2) 逐轨值域/均值判读: 政策余弦实务多落 0~1, 均值偏高=语料整体偏政策腔, 偏低=偏市场化报道。
+        _track_cols = [
+            ('full ', 'policy_cosine_sim_full'),
+            ('ctx  ', 'policy_cosine_sim_ctx'),
+            ('ss   ', 'policy_cosine_sim_ss'),
+            ('t2v_f', 'policy_cosine_sim_t2v_full'),
+            ('t2v_c', 'policy_cosine_sim_t2v_ctx'),
+            ('t2v_s', 'policy_cosine_sim_t2v_ss'),
+        ]
+        for _nm, _col in _track_cols:
+            if _col not in df.columns:
+                continue
+            _arr = df[_col].to_numpy(dtype=float)
+            # NaN-guard: 全 NaN 轨直接走"无有效数据"分支, 不落入均值/方向判读 (否则打 nan)。
+            if np.isnan(_arr).all():
+                logger.warning(f"  · {_nm} 轨 ({_col}) 全 NaN (该轨无有效数据) → 嵌入失败或上游列缺失, "
+                               f"下游消费该轨将退化 (优雅降级披露)")
+                continue
+            _lo, _hi = np.nanmin(_arr), np.nanmax(_arr)
+            _mu, _sd = np.nanmean(_arr), np.nanstd(_arr)
+            _range_ok = (_lo >= -1.0 - 1e-6) and (_hi <= 1.0 + 1e-6)
+            _range_judge = "值域合法 ⊆[-1,1]" if _range_ok else "⚠ 值域越界! 嵌入/池化异常"
+            logger.info(f"  · {_nm} 轨 {_col}: 范围=[{_lo:.4f}, {_hi:.4f}] 均值={_mu:.4f} σ={_sd:.4f} → {_range_judge}")
+
+        # (3) 轨间独立性 (full vs ctx): ρ 过高说明 ctx 局部窗口未带来增量信号 (退化为 full)。
+        if ('policy_cosine_sim_full' in df.columns
+                and 'policy_cosine_sim_ctx' in df.columns):
+            _f = df['policy_cosine_sim_full'].to_numpy(dtype=float)
+            _c = df['policy_cosine_sim_ctx'].to_numpy(dtype=float)
+            _both = ~np.isnan(_f) & ~np.isnan(_c)
+            _n_both = int(_both.sum())
+            if _n_both < 3:
+                logger.info(f"  · 轨间独立性 full↔ctx: 共同有效样本 {_n_both} <3, 跳过 (样本不足)")
+            elif _f[_both].min() == _f[_both].max() or _c[_both].min() == _c[_both].max():
+                logger.info("  · 轨间独立性 full↔ctx: 某轨零方差 (常量), Spearman ρ 无定义, 跳过")
+            else:
+                try:
+                    from scipy.stats import spearmanr
+                    _rho, _ = spearmanr(_f[_both], _c[_both])
+                    if abs(_rho) < 0.95:
+                        _rho_judge = "好 (轨道真独立, ctx 局部窗口带来增量信号)"
+                    elif _f[_both].tolist() == _c[_both].tolist():
+                        _rho_judge = "已知降级 (content_ctx 缺失 → ctx 轨回退为 full, ρ≈1 符合预期)"
+                    else:
+                        _rho_judge = "⚠ 高度相关 (ctx 与 full 近乎一致, 独立性存疑, 须核 content_ctx 物化)"
+                    logger.info(f"  · 轨间独立性 full↔ctx: Spearman ρ={_rho:.4f} (n={_n_both}) → {_rho_judge}")
+                except ImportError:
+                    logger.info("  · 轨间独立性 full↔ctx: scipy 缺失, 跳过相关性诊断")
+
+        # (4) 主轨 vs 稳健 twin 一致性 (MAIN-API 与 text2vec 同向则结论更可信)。
+        if ('policy_cosine_sim_full' in df.columns
+                and 'policy_cosine_sim_t2v_full' in df.columns):
+            _m = df['policy_cosine_sim_full'].to_numpy(dtype=float)
+            _t = df['policy_cosine_sim_t2v_full'].to_numpy(dtype=float)
+            _mt = ~np.isnan(_m) & ~np.isnan(_t)
+            _n_mt = int(_mt.sum())
+            if _n_mt < 3:
+                logger.info(f"  · 双模型一致性 MAIN↔t2v(full): 共同有效样本 {_n_mt} <3, 跳过 (t2v 轨可能全 NaN/未跑)")
+            elif _m[_mt].min() == _m[_mt].max() or _t[_mt].min() == _t[_mt].max():
+                logger.info("  · 双模型一致性 MAIN↔t2v(full): 某轨零方差, 相关性无定义, 跳过")
+            else:
+                try:
+                    from scipy.stats import spearmanr
+                    _rho_mt, _ = spearmanr(_m[_mt], _t[_mt])
+                    _mt_judge = ("好 (两套嵌入同向, 对齐分稳健)" if _rho_mt >= 0.3
+                                 else "临界/弱 (两套嵌入结论分歧, 稳健性对照偏弱, 披露即可)")
+                    logger.info(f"  · 双模型一致性 MAIN↔t2v(full): Spearman ρ={_rho_mt:.4f} (n={_n_mt}) → {_mt_judge}")
+                except ImportError:
+                    pass
+
+        # (5) 小样本 / 依赖缺失警告。
+        if _n_total < 50:
+            logger.info(f"  · ⚠ 小样本: 本次仅 {_n_total} 篇 (盘面 T=2 演示规模) → 上述判读仅验证管道正确性, "
+                        f"全量结论以 17M/T=18 实测为准。")
+        if 'policy_cosine_sim_ss' not in df.columns:
+            logger.warning("  · content_ss 未物化 → ss 三轨 (policy_cosine_sim_ss / _t2v_ss) 未产出, "
+                           "下游 ss 轨对齐信号缺失 (镜像 ctx 缺列优雅降级)。")
+        if 'policy_cosine_sim_t2v_full' in df.columns and df['policy_cosine_sim_t2v_full'].isna().all():
+            logger.warning("  · 稳健 twin (_t2v) 全 NaN → text2vec 本地模型加载/嵌入失败, "
+                           "仅余 MAIN-API 单模型 (canonical 不受影响, 但失去双模型稳健性对照)。")
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     log_stage_summary(logger, STAGE_NAME, stage_start, len(df), len(df))
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} ---")

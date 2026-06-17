@@ -1885,6 +1885,124 @@ def main():
     preview_path = output_path.replace('.parquet', '.csv')
     safe_save_preview_csv(processed_df, preview_path, logger)
 
+    # ────────────────────────────────────────────────────────────────────
+    # 【结果分析】对本次产出的关键指标逐个打印数值 + 对照阈值/预期方向给判读。
+    # 注: 以下全部为纯日志用局部变量, 不回写 processed_df / 不改任何产物 (golden-safe)。
+    # ────────────────────────────────────────────────────────────────────
+    try:
+        n_out = len(processed_df)
+        logger.info("-" * 72)
+        logger.info("【结果分析】词典法情感分析三轨产出诊断 (查字典版情绪打分, 给 LLM 找独立旁证)")
+        logger.info(f"  行数守恒: 输入 {input_rows:,} → 输出 {n_out:,} 行 "
+                    f"({'一致, 词典法只加列不删行 (符合预期)' if n_out == input_rows else '⚠ 不一致, 请检查 classify_batch 是否丢行'})")
+        logger.info(f"  有效词典: {len(non_empty_dicts)}/{len(ALL_DICTIONARIES)} 部 "
+                    f"(jiang/yao/bian/du/you 五部金融情感词典; 跨类重叠词已双侧剔除)")
+
+        # ── 指标①: msent_score (零规则原始极性 (neg−pos)/(pos+neg)) 的均值与覆盖率 ──
+        # 口径提示: msent = (负面词−正面词)/(正负面词总数), **越大越负面** (与直觉相反)。
+        # 判读: 均值 ∈ (-1,+1); 接近 0 = 正负基本平衡; 显著为正(mean>0) = 负面词占优 = 整体偏负面;
+        #       显著为负(mean<0) = 正面词占优 = 整体偏正面。(真数据 mean≈-0.79 / 98.2% 正面词 → 偏正面)
+        logger.info("  · 指标① msent_score (原始极性计数, 零语言学规则; ≈ Tetlock 2007/Garcia 2013/Henry 2008; 越大越负面):")
+        for track, tlabel in [('_full', '全文'), ('_ctx', '上下文片段'), ('_ss', '银行+金科同句')]:
+            col = f"msent_score{track}"
+            if col in processed_df.columns:
+                s = pd.to_numeric(processed_df[col], errors='coerce')
+                n_valid = int(s.notna().sum())
+                cov = n_valid / n_out * 100 if n_out else 0.0
+                mean_v = s.mean()
+                if n_valid == 0:
+                    logger.warning(f"      [{tlabel}] {col}: 该轨无有效数据(全 NaN, 该轨文本可能整体为空, 优雅降级) — 影响该轨词典情感")
+                else:
+                    # P0 方向 (msent=(neg−pos)/total, 越大越负面): mean>0 → 负面词占优 → 整体偏负面;
+                    # mean<0 → 正面词占优 → 整体偏正面 (两条独立审计 + 真数据 mean=-0.79/98.2%正面词 坐实)。
+                    direction = ("整体偏负面" if mean_v > 0.05 else
+                                 "整体偏正面" if mean_v < -0.05 else "正负大致平衡")
+                    logger.info(f"      [{tlabel}] 均值={mean_v:+.4f} ({direction}), "
+                                f"覆盖={n_valid:,}/{n_out:,} ({cov:.1f}%)")
+            else:
+                logger.warning(f"      [{tlabel}] {col} 列缺失 (该轨未产出, 优雅降级)")
+
+        # ── 指标②: negonly 消融变体与全规则的相关性 (主结果对程度/转折规则的敏感性) ──
+        # 判读: corr(full规则, negonly) 越接近 1 → 主结果对去掉程度/转折越不敏感 (越稳健)。
+        # 参考文档: 实测 corr ≈ 0.998–0.999 高度共线 (稳健性对照, 非独立信号)。
+        logger.info("  · 指标② 规则消融稳健性 corr(msent_score, msent_negonly) — 仅否定 vs 全规则:")
+        for track, tlabel in [('_full', '全文'), ('_ctx', '上下文片段'), ('_ss', '银行+金科同句')]:
+            full_col, neg_col = f"msent_score{track}", f"msent_negonly{track}"
+            if full_col in processed_df.columns and neg_col in processed_df.columns:
+                a = pd.to_numeric(processed_df[full_col], errors='coerce')
+                b = pd.to_numeric(processed_df[neg_col], errors='coerce')
+                paired = pd.concat([a, b], axis=1).dropna()
+                if len(paired) >= 3 and paired.iloc[:, 0].std() > 0 and paired.iloc[:, 1].std() > 0:
+                    r = float(paired.iloc[:, 0].corr(paired.iloc[:, 1]))
+                    verdict = ("稳健 (主结果不依赖程度/转折两规则, 符合预期 0.998–0.999)"
+                               if r >= 0.95 else
+                               "中等 (程度/转折规则贡献可观, 须在稳健性表披露)"
+                               if r >= 0.7 else "偏低 (规则贡献大, 需进一步核查)")
+                    logger.info(f"      [{tlabel}] r={r:.4f} → {verdict} (n={len(paired):,})")
+                else:
+                    logger.info(f"      [{tlabel}] 样本/方差不足 (n={len(paired):,}), 相关性不可计算 (T=2 盘面常见)")
+
+        # ── 指标③: Z-score 列的退化情况 (σ=0 常数列 → 整列 NaN 哨兵) ──
+        # 判读: 退化列越多 → 该轨/词典区分度越差 (小样本 T=2 下高发, 仅验证管道正确性)。
+        zcols = [c for c in processed_df.columns
+                 if (c.endswith('_zscore_full') or c.endswith('_zscore_ctx') or c.endswith('_zscore_ss'))]
+        if zcols:
+            n_degraded = sum(1 for c in zcols if pd.to_numeric(processed_df[c], errors='coerce').notna().sum() == 0)
+            logger.info(f"  · 指标③ Z-score 标准化列: 共 {len(zcols)} 列, "
+                        f"其中退化(全 NaN, σ=0 常数列)={n_degraded} 列")
+            if n_degraded > 0:
+                logger.warning(f"      ⚠ {n_degraded} 个 Z-score 列退化为全 NaN (σ=0): "
+                               f"该词典×轨在本样本无区分度; T=2 小样本下常见, 全量 T=18 应大幅缓解")
+
+        # ── 指标④: num_intensity 三轨 (数值披露强度, Davis & Tama-Sweet 2012 CAR) ──
+        # 判读: num_intensity = 数字 token 数 / 句数, 是按句数归一化的**密度** (非原始计数)。
+        # 密度高低取决于各窗口内句子相对全文均值的数字密集度, **不存在 full≥ctx≥ss 单调律**
+        # (单调性只对原始计数成立; 密度可任意大小)。故偶发不满足 full≥ctx≥ss 非指标异常。
+        ni_present = [t for t in ('full', 'ctx', 'ss') if f"num_intensity_{t}" in processed_df.columns]
+        if ni_present:
+            ni_msg = []
+            for t in ni_present:
+                s = pd.to_numeric(processed_df[f"num_intensity_{t}"], errors='coerce')
+                ni_msg.append(f"{t}={s.mean():.4f}" if s.notna().any() else f"{t}=NaN")
+            logger.info(f"  · 指标④ num_intensity 数值披露强度均值 (三轨): {', '.join(ni_msg)} "
+                        f"(注: 为按句数归一化的密度=数字token数/句数, 非原始计数; 三轨高低取决于"
+                        f"各窗口内句子相对全文的数字密集度, 不必然单调 full≥ctx≥ss)")
+        else:
+            logger.warning("  · 指标④ num_intensity 三轨列缺失 (numerical_intensity enrich 已优雅跳过, 见上方告警)")
+
+        # ── 指标⑤: IDF 加权轨道存活情况 (稳健性度量是否落盘) ──
+        if idf_enabled and IDF_DICTIONARIES is not None:
+            n_idf_cols = sum(1 for c in processed_df.columns if '_idf_score_' in c or '_idf_zscore_' in c)
+            logger.info(f"  · 指标⑤ IDF 加权稳健性轨: 已构建 {len(IDF_DICTIONARIES)} 部加权词典, "
+                        f"落盘 {n_idf_cols} 个 idf_score/zscore 列 (Gentzkow et al. 2019 JEL §2.2)")
+        else:
+            logger.info("  · 指标⑤ IDF 加权轨: 未启用 (idf_weighting=false) — 仅 raw 词频, 不影响主轨")
+
+        # ── 三轨分类标签分布 (来自 merged_stats; 负面占比 >60% 提示负面偏差) ──
+        if all_stats:
+            logger.info("  · 指标⑥ 三轨分类标签分布 (负面占比 >60% 提示词典负面偏差, 详表见上方分类报告):")
+            _ms = merge_stats(all_stats)
+            _tot = _ms.get('total', 0)
+            for track, tlabel in [('_full', '全文'), ('_ctx', '上下文片段'), ('_ss', '银行+金科同句')]:
+                neg_sum = sum(_ms.get(f'{dn}_负面{track}', 0) for dn, _ in ALL_DICTIONARIES)
+                pos_sum = sum(_ms.get(f'{dn}_正面{track}', 0) for dn, _ in ALL_DICTIONARIES)
+                base = _tot * len(ALL_DICTIONARIES)
+                if base > 0:
+                    neg_pct = neg_sum / base * 100
+                    pos_pct = pos_sum / base * 100
+                    flag = " ⚠ 负面偏差(>60%)" if neg_pct > 60 else ""
+                    logger.info(f"      [{tlabel}] 跨五词典聚合: 正面={pos_pct:.1f}%, 负面={neg_pct:.1f}%{flag}")
+
+        # ── 小样本 / 确定性提示 ──
+        if input_rows < 1000:
+            logger.info(f"  ⚠ 小样本 ({input_rows:,} 行, 疑似 T=2 盘面): 上述判读仅验证管道正确性, "
+                        f"全量结论以 17M/T=18 实测为准")
+        logger.info("  ✓ 确定性: 纯 CPU, 无 LLM/网络/API ($0); 同 jieba==0.42.1 + 同词典文件 → 逐位可复现")
+        logger.info("-" * 72)
+    except Exception as e:  # noqa: BLE001
+        # 结果分析纯属日志增强, 任何异常都不得影响产物落盘 (已在上方完成写盘)。
+        logger.warning(f"【结果分析】诊断日志生成失败 (不影响产物, 已写盘): {e}")
+
     log_stage_summary(logger, STAGE_NAME, stage_start,
                       input_rows=input_rows, output_rows=len(processed_df))
     logger.info(f"--- 阶段执行完毕: {STAGE_NAME} (三轨模式 full/ctx/ss) ---")

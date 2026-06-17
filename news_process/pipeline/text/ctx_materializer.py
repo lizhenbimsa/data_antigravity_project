@@ -334,6 +334,78 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
                 f"({n_ss_fallback/max(n_with_bank,1)*100:.1f}%)")
     logger.info(f"  ss_is_fallback 列已写入 (bool): "
                 f"{int(df['ss_is_fallback'].sum())}/{len(df)} True")
+
+    # ── 结果分析 (写入 <stage>.log, 让日志自带"这批数据物化得好不好"的解读) ──
+    # crash-guard (硬化 A): 整块"读数据算指标 + 打印"包进 try/except。本块在最终
+    # 写盘 (save_dataset, main() L429) 之前执行 → 若任何统计计算抛异常 (空列表
+    # 除零已 max(...,1) 守住, 但仍防御未预期的 KeyError/TypeError/数值异常), 必须
+    # 降级为 WARNING 跳过, 绝不连带崩掉整个 stage 13 丢失产物 (否则证伪 golden-safe)。
+    # 本块纯读 in-memory 列表/已算好的标量 (full_list/ctx_list/ss_list/n_fallback…),
+    # 不回写 df、不改返回值、不改写盘内容 → 纯日志, golden-safe。
+    try:
+        # 三轨平均字符数 + 压缩比: 体现 ctx/ss 窗口相对全文截掉了多少 (越小 = 越聚焦)。
+        # 注: full_list/ctx_list/ss_list 元素均为 prepend_title 产出的 str (非 NaN),
+        # len() 恒有效; 各比率分母均 max(...,1) 守零 → 无 NaN/除零方向误判风险 (硬化 B
+        # 在本块不适用: 此处统计的是字符串列表长度, 非含 NaN 的数值 Series)。
+        _mean_full = sum(len(x) for x in full_list) / max(len(full_list), 1)
+        _mean_ctx = sum(len(x) for x in ctx_list) / max(len(ctx_list), 1)
+        _mean_ss = sum(len(x) for x in ss_list) / max(len(ss_list), 1)
+        # ctx↔ss 分歧率: 两轨截到的 body 不同的占比 (高 = ss 是独立信号, 非 ctx 的冗余
+        # 复制; 无 bank 行两轨同为全文 body, 恒相等不计入, 故分母取 n_with_bank)。
+        n_div = sum(1 for sb, cb in zip(ss_body_list, ctx_body_list) if sb != cb)
+        _ctx_hit = n_with_bank - n_fallback    # ctx 真正截到银行相关句的条数
+        _ss_hit = n_with_bank - n_ss_fallback  # ss 真正截到"银行∧金科同句"的条数
+        _ctx_fb_rate = n_fallback / max(n_with_bank, 1)
+        _ss_fb_rate = n_ss_fallback / max(n_with_bank, 1)
+        _div_rate = n_div / max(n_with_bank, 1)
+        logger.info("-" * 72)
+        logger.info("【结果分析】三轨文本物化质量解读:")
+        logger.info(f"  样本: {len(df):,} 行, 其中 {n_with_bank:,} 行带有效 target_bank "
+                    f"(ctx/ss 窗口仅对这些行生效, 其余直接用全文)")
+        if n_with_bank == 0:
+            # 全样本无有效 target_bank: 三轨退化为'全文=全文=全文', 回退/分歧率分母为 0
+            # (已 max(...,1) 兜底为 100%/0%), 此时方向判读无意义, 走专门分支不落数值档。
+            logger.info("  本批无任何带有效 target_bank 的行: ctx/ss 三轨全部退化为全文 body, "
+                        "回退率/分歧率不适用 (核查上游 target_bank 是否全空)")
+        else:
+            logger.info(f"  平均文本长度: full={_mean_full:,.0f} 字 | "
+                        f"ctx={_mean_ctx:,.0f} 字 ({_mean_ctx/max(_mean_full,1)*100:.0f}% of full) | "
+                        f"ss={_mean_ss:,.0f} 字 ({_mean_ss/max(_mean_full,1)*100:.0f}% of full)")
+            logger.info(f"  ctx 轨: {_ctx_hit:,}/{n_with_bank:,} 条截到银行相关句, "
+                        f"{n_fallback:,} 条无命中→回退全文 (回退率 {_ctx_fb_rate*100:.1f}%)")
+            logger.info("    → " + ("回退率低, 多数文章成功聚焦到银行相关句, ctx 轨信号有效"
+                                    if _ctx_fb_rate < 0.30 else
+                                    "回退率偏高, 较多文章 ctx≈full 聚焦信号弱 (核查别名表/分句口径/语料是否离题)"))
+            # P2 fix: ss 轨命中判读 + ctx↔ss 分歧判读必须置于 FINTECH_AC is not None 守卫下。
+            # 词典缺失时 ss 全回退全文 (回退率=100%、分歧率≡ctx 回退率), 此时打"ss 回退率天然
+            # 高于 ctx 属预期 / 分歧明显支撑三轨稳健性"会与紧随其后的 loud warning (词典未加载、
+            # ss 不可用) 相邻矛盾, 且诱导读者据全回退假象误判三轨稳健性。故守卫内才走方向判读;
+            # 守卫外只打原始计数并明示分歧全部来自 ss 退化为全文 body, 非 ss 独立信号。
+            if FINTECH_AC is not None:
+                logger.info(f"  ss 轨: {_ss_hit:,}/{n_with_bank:,} 条截到'银行∧金科同句', "
+                            f"{n_ss_fallback:,} 条无共现→回退全文 (回退率 {_ss_fb_rate*100:.1f}%)")
+                logger.info("    → ss 回退率天然高于 ctx 属预期 (大量银行新闻讲罚款/坏账, 与金科无关); "
+                            "回退即按镜像 ctx 的公理退回全文 body")
+                logger.info(f"  ctx↔ss 分歧率: {n_div:,}/{n_with_bank:,} ({_div_rate*100:.1f}%) 两轨截到不同句子")
+                logger.info("    → " + ("分歧明显, ss 带来独立于 ctx 的新信息, 支撑三轨稳健性设计"
+                                        if _div_rate > 0.40 else
+                                        "分歧较小, ss 与 ctx 高度重叠, 作为独立信号的增量有限 (论文须如实披露)"))
+            else:
+                # FINTECH_AC is None: ss 全回退全文 → _ss_hit=0、回退率=100%、分歧率纯由 ss
+                # 退化为全文 body 与 ctx 不同所致, 与"ss 独立信号"无关。只打原始计数 + 明确禁判读。
+                logger.info(f"  ss 轨: 0/{n_with_bank:,} 条截到'银行∧金科同句', "
+                            f"全部 {n_ss_fallback:,} 条回退全文 (回退率 100.0%, 因金科词典未加载)")
+                logger.info(f"  ctx↔ss 分歧={_div_rate*100:.1f}% ({n_div:,}/{n_with_bank:,}) 全部来自 ss "
+                            "退化为全文 body (词典缺失), 非 ss 独立信号, 请勿据此判读三轨稳健性")
+        if FINTECH_AC is None:
+            logger.warning("  ⚠ 金科词典未加载 (FINTECH_AC=None): content_ss 已全部回退全文, "
+                           "ss 轨此次不可用 (优雅降级, 不阻断管道; 修复词典路径后重跑可恢复)")
+        if n_with_bank < 5000:
+            logger.info(f"  ⚠ 带 target_bank 的行数偏少 ({n_with_bank:,}), 多为盘面小样本 (如 T=2), "
+                        "上述回退/分歧率仅供管道正确性验证, 全量结论以 17M/T=18 实测为准")
+        logger.info("-" * 72)
+    except Exception as _e:  # noqa: BLE001 — 仅日志诊断, 绝不阻断写盘
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
     return df
 
 
@@ -346,6 +418,23 @@ def main():
     """
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
+
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c/39d/39e)。
+    logger.info("=" * 72)
+    logger.info("阶段 13: 三轨文本物化 (content_full / content_ctx / content_ss; v3.6.0 + v3.9.0)")
+    logger.info("=" * 72)
+    logger.info("【功能】给每篇新闻造三段可供下游'分别阅读'同一篇文章的文本, 供 stage 14/15/21")
+    logger.info("        在三个口径下各算一遍情感/金科强度/政策契合度, 互相印证 (互为稳健性)。")
+    logger.info("          · content_full = 标题 + 整篇正文              (全文视角)")
+    logger.info("          · content_ctx  = 标题 + 只跟目标银行相关的句子 (实体聚焦视角)")
+    logger.info("          · content_ss   = 标题 + 银行与金科同句出现的句子 (银行×金科共现视角)")
+    logger.info("【方法】分句(硬边界 。！？；)→定位银行别名命中句(套否定/短名排除)→前后各扩 N 句→")
+    logger.info("        O(N log N) 区间合并; ss 额外要求同句含 ≥1 金科词(裸 AC 词典, 不对称口径)。")
+    logger.info("        截不到相关句则按'回退公理'退回全文 body 并置 *_is_fallback=True。")
+    logger.info("【判读】回退率越低 = 越多文章截到了相关上下文(信号越聚焦); ctx 与 ss 分歧越大")
+    logger.info("        = ss 带来越独立的新信息(支撑论文三轨稳健性, 而非 ctx 的冗余复制)。")
+    logger.info("【确定性】纯 CPU(pandas + 正则分句 + ahocorasick), 不调 LLM/Embedding, 逐位可复现。")
+
     output_dir = CONFIG['paths']['output_dir']
     filenames = CONFIG.get('filenames', {})
     in_name = filenames.get(

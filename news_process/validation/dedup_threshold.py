@@ -193,12 +193,20 @@ def main():
     config = load_config()
     logger = setup_logging(STAGE_NAME, config["paths"]["log_dir"])
 
-    logger.info("=" * 60)
-    logger.info("阶段 32a: 去重阈值参数敏感性实证测试")
-    logger.info("=" * 60)
-    logger.info("  学术依据: Broder, A. Z. (1997). On the resemblance and")
-    logger.info("  containment of documents. IEEE SEQUENCES.")
-    logger.info("  https://doi.org/10.1109/SEQUEN.1997.666900")
+    logger.info("=" * 72)
+    logger.info("阶段 32a: 去重阈值参数敏感性 (Jaccard MinHash LSH, Broder 1997)")
+    logger.info("=" * 72)
+    logger.info("【功能】把 stage 00 的近似去重阈值换成 [0.70/0.75/0.80/0.85/0.90] 各跑一遍,")
+    logger.info("        统计每个阈值下保留/拦截的文章数与保留率, 产出 dedup_sensitivity_report.csv,")
+    logger.info("        作为'去重阈值不影响核心结论'的参数稳健性附录证据 (纯诊断, 不写回主链)。")
+    logger.info("【方法】Jaccard MinHash LSH 近似去重 (Broder 1997 IEEE SEQUENCES, "
+                "DOI:10.1109/SEQUEN.1997.666900);")
+    logger.info("        签名仅依赖文本+(num_perm,ngram), 与阈值无关 → 全阈值共用一次签名,")
+    logger.info("        逐阈值 find_near_duplicate_indices(th) 判重 (与 _perform_near_deduplication 逐位一致)。")
+    logger.info("        生产阈值 = deduplication.jaccard_similarity_threshold (默认 0.80)。")
+    logger.info("【判读】各阈值保留率随阈值升高单调上升=正常 (阈值越严, 越少文章被判重而被剔除);")
+    logger.info("        相邻阈值保留率跨度越小 → 结论越不依赖 0.80 这一人为门槛 (稳健, 好)。")
+    logger.info("【确定性】无 LLM/Embedding, 纯 CPU; MinHash 用固定 permutation → 结果逐位可复现。")
 
     # ── 加载生产阈值 (作为基准参考标注) ──
     prod_threshold = config.get('deduplication', {}).get(
@@ -352,6 +360,86 @@ def main():
     csv_path = os.path.join(eval_dir, "dedup_sensitivity_report.csv")
     res_df.to_csv(csv_path, index=False)
     logger.info(f"报告已保存至: {csv_path}")
+
+    # ── 【结果分析】对照阈值/预期方向逐指标判读 (纯日志, 不回写产物) ──
+    # crash-guard (2026-06-17): 本判读块只读已落盘的 res_df/results 算诊断指标,
+    # 整体包进 try/except — 任何指标计算异常 (缺列/空序列/除零等) 仅吞掉并 WARNING,
+    # 绝不冒泡使阶段崩溃 (产物 dedup_sensitivity_report.csv 已在上方写盘, 此块纯日志)。
+    logger.info("-" * 72)
+    logger.info("【结果分析】去重阈值敏感性产出指标判读 (阈值稳健 ⇒ 结论不依赖 0.80 门槛)")
+    try:
+        # 指标①: 输入口径有效性 — 双向有效 / 单侧机械截尾
+        # column-guard: Mechanically_Censored 由 _annotate_censoring 保证存在, 防御性再核
+        if 'Mechanically_Censored' in res_df.columns:
+            n_censored = int(res_df['Mechanically_Censored'].sum())
+        else:
+            n_censored = 0
+        if input_mode == 'pre_dedup_cache':
+            logger.info(f"  · 输入口径 = pre_dedup_cache (去重前快照, {n_input_rows:,} 行) → "
+                        "双向阈值敏感性均有效, 全部阈值是真稳健性证据 (好)。")
+        else:
+            logger.warning(f"  · 输入口径 = post_dedup_fallback (已按生产阈值 {prod_threshold} 去重的 "
+                           f"{input_desc}, {n_input_rows:,} 行)。")
+            logger.warning(f"    Threshold >= {prod_threshold} 的 {n_censored} 行 Dropped≈0 是机械截尾, "
+                           f"仅 < {prod_threshold} 一侧有信息量 (报告列 Mechanically_Censored 已逐行标记)。")
+
+        # 指标②: 精确去重基数 (近似去重的分母)
+        # NaN/除零-guard: df.empty 已在上方提前返回 → n_input_rows>0; 仍显式守 >0 防御
+        exact_drop = n_input_rows - exact_retained
+        if n_input_rows > 0:
+            logger.info(f"  · 精确去重基数 = {exact_retained:,} 篇 "
+                        f"(精确剔除 {exact_drop:,} 篇 = {exact_drop / n_input_rows:.2%}, 全字符重复)。")
+        else:
+            logger.info(f"  · 精确去重基数 = {exact_retained:,} 篇 (输入行数为 0, 跳过占比计算)。")
+
+        # 指标③: 生产阈值 (0.80) 下的保留率 — 实际投产口径的结果
+        prod_row = next((r for r in results if r['Is_Production']), None)
+        if prod_row is not None:
+            logger.info(f"  · 生产阈值 {prod_threshold} 保留率 = {prod_row['Retained_Ratio']:.2%} "
+                        f"(保留 {prod_row['Retained']:,} / 拦截 {prod_row['Dropped']:,} 篇) "
+                        "← 这是实际投产口径。")
+
+        # 指标④/⑤/⑥: 保留率序列诊断 (Retained_Ratio 恒为数值, 见 retained_ratio 计算的 else 0 兜底)
+        ratios = [r['Retained_Ratio'] for r in results]
+        if not ratios:
+            # 序列空 (thresholds 非空时不可达) → 跳过序列类指标, 不落进 max()/min() 空序列崩溃
+            logger.info("  · 无阈值结果 (results 为空), 跳过单调性/跨度/边际诊断。")
+        else:
+            # 指标④: 保留率随阈值单调性 — 预期方向 = 随阈值升高单调不减
+            monotone = all(b >= a - 1e-9 for a, b in zip(ratios, ratios[1:]))
+            if monotone:
+                logger.info("  · 保留率随阈值单调不减: 是 (符合预期 — 阈值越严, 越少文章被判重剔除, 好)。")
+            else:
+                logger.warning("  · 保留率随阈值单调不减: 否 (反常! 阈值变严反而剔除更多, 需复查 MinHash 判重逻辑)。")
+
+            # 指标⑤: 保留率跨度 — 越小越稳健 (经验门槛: 全程 <5pp 视为高度稳健)
+            ratio_span = max(ratios) - min(ratios)
+            span_verdict = ("高度稳健" if ratio_span < 0.05
+                            else "中等敏感" if ratio_span < 0.15 else "高敏感(需警惕)")
+            logger.info(f"  · 保留率跨度 (max-min) = {ratio_span:.2%} → {span_verdict}; "
+                        f"区间 {min(ratios):.2%} ~ {max(ratios):.2%} "
+                        f"(跨度越小 ⇒ 结论越不依赖 {prod_threshold} 门槛)。")
+
+            # 指标⑥: 相邻阈值边际变化 — 0.80 附近最敏感档位
+            deltas = [(thresholds[i + 1], ratios[i + 1] - ratios[i])
+                      for i in range(len(ratios) - 1)]
+            if deltas:
+                max_th, max_delta = max(deltas, key=lambda kv: abs(kv[1]))
+                logger.info(f"  · 最大相邻边际变化 = {abs(max_delta):.2%} (出现在 → {max_th} 档); "
+                            "边际越平滑说明阈值附近无悬崖式样本翻转。")
+
+        # 小样本警告 (盘面 T=2 / 极少行只验证管道正确性)
+        # 口径消歧 (2026-06-17): 本 stage 真实输入 = _load_pre_dedup_corpus 读 stage 00
+        # _cache (normalize+filter 后、去重前快照) ≈ 385万行 (见 line 289 perf 注释 + memory N4);
+        # 17M 是 normalize+filter **之前** 的项目级原始 raw 报道数, 本 stage 永远不会扫到 →
+        # 全量分母只挂一次 "T=18", 给 385万 加 "去重前" 限定、17M 加 "项目级原始" 限定, 防误判量级。
+        if n_input_rows < 50_000:
+            logger.warning(f"  ⚠ 输入仅 {n_input_rows:,} 行 (远小于本 stage 去重前全量语料 ~385万行): "
+                           "本次仅验证管道正确性与阈值单调性, 稳健性结论须以全量去重前语料 "
+                           "(~385万行 = 项目级原始 17M 经 normalize+filter 后, 2007-2024 T=18) 实测为准。")
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+    logger.info("-" * 72)
 
     # ── 阶段汇总 ──
     logger.info("=" * 60)

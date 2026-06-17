@@ -510,8 +510,25 @@ def _restrict_to_panel_domain(art_df: pd.DataFrame, output_dir: str) -> pd.DataF
 def main():
     stage_start = time.time()
     logger.info("=" * 60)
-    logger.info("阶段 18: Article-level staleness 双指标 (v3.7.0 PR #11+#11.5, D2)")
+    logger.info("阶段 18: Article-level staleness 双指标 (v3.7.0 PR #11+#11.5, D2; Tetlock 2011 RFS)")
     logger.info("=" * 60)
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39c/13)。
+    logger.info("【功能】给每篇新闻打一个'陈旧度'分: 它发表前 7 天内, 有没有一篇更早的旧新闻和它高度雷同")
+    logger.info("        (新瓶装旧酒/通稿转载)? 雷同度越高 = 信息含量越低。聚合成 bank-year 指标后")
+    logger.info("        主要用作稳健性检验: 验证主结论不是被'重复报道的噪音'驱动的。")
+    logger.info("        产出两族列 (三轨 full/ctx/ss): surface_staleness_* (字面像) + semantic_staleness_*")
+    logger.info("        (语义像; 依赖 stage 30a 嵌入, 缺则仅出 surface)。")
+    logger.info("【方法】对每篇文章求'过去 7 天窗口内最相似旧文章'的最大相似度 (严格排除同日行):")
+    logger.info("          · surface = 字符 3-gram shingle → MinHash(num_perm=128) → 按天滚动的 LSHForest")
+    logger.info("                      jaccard top-10 取 max; 有窗无命中→0.0; 第一周/空窗口→NaN; O(N²)→~7N 加速。")
+    logger.info("          · semantic = 复用 30a SBERT 768维嵌入 → Faiss IndexFlatIP(归一化内积=cosine)")
+    logger.info("                      同 7 天日粒度滚动窗口取 top-1。第一周/空窗口→NaN (窗非空必有 top-1, 无 0.0 哨兵)。")
+    logger.info("        bank-year 聚合: 每轨 mean + highstale(>0.9 占比); 平均域收缩到 verified 面板语料")
+    logger.info("        ((docid,target_bank) 内连 24_herd_decay/21_tone_llms), 参照窗口仍用全集。")
+    logger.info("【判读】staleness 越高 = 这篇越像炒冷饭; surface 看字面、semantic 看语义, 两者互补:")
+    logger.info("        真正的旧闻重印两边通常都高。G-D2.1: 两轨 corr 期望 ∈ [0.3,0.7] (互补≠冗余)。")
+    logger.info("【确定性】纯 CPU (MinHash/Faiss FlatIP 精确内积, 均 stable argsort), 不调 LLM/付费 API, $0;")
+    logger.info("          逐位可复现 (P0 修复后两轨均逆置换还原原始行序, 不随输入序漂移)。")
 
     output_dir = CONFIG['paths']['output_dir']
     src_path = os.path.join(output_dir, '13_news_with_ctx.parquet')
@@ -595,6 +612,66 @@ def main():
             f"  G-D2.1: surface vs semantic corr = {corr:.4f} "
             f"({'PASS' if 0.3 <= corr <= 0.7 else 'WARN (互补性偏离区间)'})"
         )
+
+    # ── 结果分析 (纯增量日志, 不回写 df / 不改产物) ──
+    # crash-guard: 本块在两处 to_parquet 写盘之后执行 (产物已落盘), 但仍整体包 try/except,
+    # 防 mean()/分位/相关性等诊断计算意外抛错 (如全 NaN dtype 边角) 致整阶段非零退出。
+    try:
+        n_art = len(art_df)
+        logger.info("-" * 72)
+        logger.info("【结果分析】陈旧度双指标产出解读:")
+        logger.info(f"  样本: article-level {n_art:,} 行 → bank-year 面板 {len(panel):,} 行 "
+                    f"(后者已收缩到 verified 面板语料的平均域)")
+        # 逐个 staleness 列: 覆盖率(非 NaN 占比, =有 7d 前窗的文章) / 均值 / 高陈旧占比(>0.9)
+        _stale_cols = [c for c in art_df.columns
+                       if 'staleness' in c and 'highstale' not in c]
+        for col in _stale_cols:
+            s = art_df[col]
+            _n_valid = int(s.notna().sum())
+            _cov = _n_valid / max(n_art, 1)
+            if _n_valid == 0:
+                # NaN-guard: 全 NaN 轨直接走专属分支, 不落进 mean/方向判读 (否则打 +nan/恒错档)
+                logger.info(f"  {col}: 全为 NaN (无文章拥有过去 7d 前窗 → 多见于首周/盘面小样本)")
+                continue
+            _mean = float(s.mean())
+            # 分母=有效(非 NaN)行, 与 panel highstale 列同口径 (aggregate_to_bank_year
+            # 先 df.loc[isna, high_col]=NaN 再 .mean() skipna → 分母也是 valid 行);
+            # 等价 (s>0.9).sum()/_n_valid。勿用 (s>0.9).mean(): 那是分母含 NaN 行的
+            # 全样本占比 (NaN>0.9=False 被当非高陈旧稀释), 覆盖率低时系统性偏低且与落盘列不一致。
+            _highfrac = float((s.dropna() > 0.9).mean())
+            logger.info(
+                f"  {col}: 覆盖 {_n_valid:,}/{n_art:,} ({_cov*100:.1f}% 有 7d 前窗) | "
+                f"均值={_mean:.4f} | 高陈旧(>0.9)占有效行={_highfrac*100:.2f}% (分母=valid, 同 panel highstale)"
+            )
+            # 判读: 0=窗内无相似旧文(纯新信息), 1=窗内有近乎重复旧文(炒冷饭); 均值方向参考
+            if _mean < 0.05:
+                logger.info("    → 均值很低: 该轨语料整体'新信息'为主, 重复报道少 (信息环境健康, against 旧闻噪音)")
+            elif _highfrac > 0.30:
+                logger.info("    → 高陈旧占比偏高: 较多文章近似旧闻重印, 稳健性检验须重点排查其对主结论的扰动")
+            else:
+                logger.info("    → 均值/高陈旧占比处于温和区间: 存在一定重复报道但非主导, 符合常态信息环境")
+        # 两轨互补性 (G-D2.1) 方向判读 — 'corr' 仅在上方 surface/semantic 双列齐备时才定义
+        if 'corr' in dir() and not pd.isna(corr):
+            if 0.3 <= corr <= 0.7:
+                logger.info(f"  互补性: surface↔semantic corr={corr:.4f} 落在 [0.3,0.7] → 两把尺子既相关又非冗余 (PASS)")
+            elif corr > 0.7:
+                logger.info(f"  互补性: corr={corr:.4f} 偏高 → 字面/语义两轨高度重叠, 语义轨增量信息有限 (论文须如实披露)")
+            else:
+                logger.info(f"  互补性: corr={corr:.4f} 偏低 → 两轨几乎正交, 度量的是不同侧面 (核查是否同一构念)")
+        # 优雅降级警告: semantic 轨依赖 stage 30a 嵌入
+        if not os.path.exists(emb_path):
+            logger.warning("  ⚠ stage 30a 嵌入缺失: 本次仅产 surface 轨, semantic_staleness_* 列全部缺席 "
+                           "(优雅降级, 不阻断管道; 跑完 30a 后重跑可恢复双指标)")
+        if 'surface_staleness_ss' in art_df.columns and 'semantic_staleness_ss' not in art_df.columns:
+            logger.info("  说明: semantic_staleness_ss 按设计延后 (DEFER, 30a 未产 emb_ss); ss 轨现仅 surface, "
+                        "下游聚合对缺列已'缺列即跳过'优雅处理 (不崩)。")
+        # 小样本警告
+        if n_art < 5000:
+            logger.info(f"  ⚠ article 行数偏少 ({n_art:,}), 多为盘面小样本 (如 T=2): 第一周文章无前窗→大量 NaN, "
+                        "上述覆盖率/均值/相关性仅供验证管道正确性, 全量结论以 17M/T=18 实测为准。")
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     logger.info(f"  耗时: {time.time() - stage_start:.1f} s")
 

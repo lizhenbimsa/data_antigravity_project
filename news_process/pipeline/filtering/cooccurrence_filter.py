@@ -195,7 +195,33 @@ def _write_sidecar_meta(out_path: str, n_in: int, n_out: int) -> None:
 def main():
     """Stage 12b 入口: 读 12_fintech_news.parquet → 写 12b_cooccurrence_filtered.parquet."""
     stage_start = time.time()
-    logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
+    # 功能说明 banner — 替换旧 "--- 开始执行阶段 ---" 短 banner (对齐 39c 黄金范式:
+    # 单 banner 替换而非叠加; 末尾 log_stage_summary 仍负责收尾摘要)。
+    logger.info("=" * 72)
+    logger.info("阶段 12b: 银行×金科邻近共现硬过滤 (Andreou et al. 2026 Research Policy)")
+    logger.info("=" * 72)
+    logger.info(
+        "【功能】在 stage 12 (关键词金科) 与 stage 13 (物化 ctx) 之间插一道更严的"
+        "硬过滤: 只保留 '目标银行与 ≥1 金科词在 ±sentence_radius 句窗口内邻近共现' 的"
+        "文章行, 丢弃 '银行与金科隔太远、各说各的' 稿件 → 压降 stage 12 关键词判定的"
+        "虚假相关 (False Positives)。产出 = stage 12 的近邻相关子集 parquet + provenance "
+        "sidecar (判据 + criterion_sha256 + 行数对账)。"
+    )
+    logger.info(
+        "【方法】逐 (文章, target_bank) 行调 has_bank_fintech_cooccurrence_within_radius: "
+        "银行锚句 i (经否定/短名排除) ∧ 金科∈[i±radius] 邻句 (金科侧裸 AC, 不对称口径) → "
+        "命中保留。严格同句 (_ss 轨, radius=0) 是本口径子集, 禁互相复用。稳定布尔掩码保留 "
+        "stage 12 原序, 不 sort。"
+    )
+    logger.info(
+        "【判读】keep 率越高 = 删得越少 (stage 12 关键词判定本就近邻相关, 噪声少); "
+        "keep 率越低 = 剔除的虚假相关越多。⚠ keep 率低于 min_keep_frac 或 0 行 → "
+        "SystemExit(1) 报警 (疑似全库误删)。"
+    )
+    logger.info(
+        "【确定性】纯 CPU (ahocorasick + 正则分句), 无 LLM/Embedding/网络, 逐位可复现; "
+        "sidecar 刻意不含 wall-clock 时间戳。"
+    )
     output_dir = CONFIG['paths']['output_dir']
     filenames = CONFIG.get('filenames', {})
     in_name = filenames.get('output_12_fintech_news', '12_fintech_news.parquet')
@@ -246,6 +272,89 @@ def main():
                 f"sentence_radius。"
             )
             raise SystemExit(1)
+
+    # --- 结果分析 (纯增量日志; 下列局部变量仅服务于日志打印, 不回写 df / 不入产物) ---
+    # crash-guard: 整个 "读数据算指标" 分析块包 try/except, 任何诊断异常只 WARNING 跳过,
+    # 绝不阻断后续 save_dataset 写盘 (golden-safe: 日志诊断永不拖垮产物)。
+    logger.info("-" * 72)
+    logger.info("【结果分析】banner-as-spec: 逐项解读本次硬过滤的产出指标与方向判读")
+    try:
+        _n_dropped = n_in - n_out
+        _drop_frac = (_n_dropped / n_in) if n_in else 0.0
+        if FINTECH_AC is None:
+            # SAFE-1 生效: 词典缺失 → 原样全保留, keep 必为 1.0
+            logger.warning(
+                f"  [SAFE-1 优雅降级] FINTECH_AC=None (金科词典加载失败), 12b 未执行任何"
+                f"过滤, 原样保留全部 {n_out} 行 (keep=1.0)。下游沿用 stage 12 原始关键词口径, "
+                f"近邻共现硬过滤【未生效】, 请核对金科词典 "
+                f"{os.path.basename(_FINTECH_DICT_FILE)} 后重跑以激活过滤。"
+            )
+        elif n_in == 0:
+            # 空输入: keep_frac 已被 (if n_in else 0.0) 兜底为 0, 不落数值方向判读分支
+            logger.warning(
+                "  [空输入] stage 12 输出 0 行, 无可分析的 keep 率/银行覆盖; "
+                "请核对上游 stage 12 是否产出。"
+            )
+        else:
+            logger.info(
+                f"  [keep_frac] 保留 {n_out}/{n_in} 行, keep={keep_frac:.4f} "
+                f"(丢弃 {_n_dropped} 行 / drop={_drop_frac:.4f})。"
+            )
+            # 方向判读: keep 率对照 min_keep_frac 下界 + 严格同句 (radius=0) 14.27% 零共现上界。
+            # 注: 14.27% 是【严格同句零共现率】上界 → 窗口 (radius≥1) 实际丢行率应更低,
+            # 即 keep 率应高于 (1-0.1427)=0.8573 这一保守下界 (见 CLAUDE.md v3.10.0 披露)。
+            _min_keep = CONFIG.get('cooccurrence_filter', {}).get(
+                'min_keep_frac', 0.001
+            )
+            _ss_zero_cooc_upper = 0.1427  # 严格同句 radius=0 零共现率上界 (disk 1170 篇实测)
+            if keep_frac >= (1.0 - _ss_zero_cooc_upper):
+                logger.info(
+                    f"  [判读: 好] keep={keep_frac:.4f} ≥ 保守下界 "
+                    f"{1.0 - _ss_zero_cooc_upper:.4f} (=1−严格同句零共现上界 "
+                    f"{_ss_zero_cooc_upper}); 窗口邻近 (radius≥1) 删行少于严格同句, "
+                    f"符合预期方向 (窗口比同句更宽)。"
+                )
+            elif keep_frac >= 0.5:
+                logger.warning(
+                    f"  [判读: 临界] keep={keep_frac:.4f} 低于保守下界 "
+                    f"{1.0 - _ss_zero_cooc_upper:.4f} 但仍 ≥0.5; 删行偏多, 请核对 "
+                    f"sentence_radius / 金科词典覆盖是否过严。"
+                )
+            else:
+                logger.warning(
+                    f"  [判读: 坏] keep={keep_frac:.4f} <0.5 (删掉过半行) 但未触发 "
+                    f"min_keep_frac={_min_keep} 中止; 远低于严格同句口径预期, 强烈怀疑"
+                    f"词典/语料/radius 配置异常, 请人工复核后再放行下游。"
+                )
+        # 银行覆盖判读: 过滤后若有银行整家掉出 → 该银行无任何近邻共现稿件, 面板会少一格
+        _n_banks_lost = n_banks_in - n_banks_out
+        if _n_banks_lost > 0:
+            logger.warning(
+                f"  [银行覆盖] 过滤后银行数 {n_banks_in}→{n_banks_out} "
+                f"(掉出 {_n_banks_lost} 家): 这些银行无任何 '与金科近邻共现' 稿件, "
+                f"将不进入下游 bank-year 面板的金科口径。"
+            )
+        else:
+            logger.info(
+                f"  [银行覆盖: 好] 银行数 {n_banks_in}→{n_banks_out} (无银行整家掉出), "
+                f"面板银行维度无收缩。"
+            )
+        # 守恒/口径披露 (路线 A): 12b 仅丢行, fintech_share 分母望远镜式坍缩恒不变
+        logger.info(
+            "  [口径披露] 路线 A 纯接受-披露: 12b 仅丢行, 下游 controls.py/encode.py "
+            "零改动; 被丢的中间集从 ft 端移到 nf 端代数和守恒 → fintech_share 分母恒不变, "
+            "仅分子(近邻相关金科篇数) 随过滤变小, 已在 manuscript/codebook 如实披露。"
+        )
+        # 小样本警告 (盘面 T=2)
+        if n_banks_out <= 2 or n_in < 5000:
+            logger.warning(
+                f"  [小样本警告] 当前为盘面小样本 (n_in={n_in} 行 / {n_banks_out} 家银行, "
+                f"疑似 T=2 验证盘): 上述 keep 率/银行覆盖仅用于验证管道正确性, 全量结论以 "
+                f"17M/T=18 实测为准。"
+            )
+    except Exception as _e:  # noqa: BLE001 — 诊断日志绝不阻断产物落盘
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
+    logger.info("-" * 72)
 
     from news_process.core.reporting import save_dataset
     _lineage = [

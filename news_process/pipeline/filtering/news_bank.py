@@ -433,6 +433,29 @@ def main():
     stage_start = time.time()
     logger.info(f"--- 开始执行阶段: {STAGE_NAME} ---")
 
+    # ── 黄金范式【功能】banner: 让 11_news_bank.log 自带说明书 ──────────────
+    logger.info("=" * 72)
+    logger.info("阶段 11: 银行新闻判断 (Aho-Corasick 实体匹配 + 上下半分布判定)")
+    logger.info("=" * 72)
+    logger.info("【功能】从 stage 00 全部预处理新闻里挑出'真的在讲某家银行'的稿件,")
+    logger.info("        并标注主角是哪家银行; 一篇同时认真讲多家银行时按 firm-document")
+    logger.info("        展开为多条独立物理行。产出 11_bank_news.parquet (银行-文档级),")
+    logger.info("        是整个银行-年度面板的样本来源, 也是下游金科/三轨情感的公共上游。")
+    logger.info("【方法】每篇按 split_ratio 等分上下两半, 全局 AC 自动机一次线性扫描全部")
+    logger.info("        银行别名; 判定 = 前置(任一别名含标题合计 >= MIN_NAME_OCCURRENCES)")
+    logger.info("        ∧ 分布条件(上半>=MIN_UPPER ∧ 下半>=MIN_LOWER, 或 别名在标题 ∧ 全文")
+    logger.info("        合计>=MIN_UPPER); 另设两道假阳性闸门: 否定模式排除('务农行列'误中")
+    logger.info("        '农行') + 短名歧义消解(<=2字简称查前后 context_window 字符)。")
+    logger.info(
+        f"        当前阈值: split_ratio={SPLIT_RATIO}, MIN_UPPER={MIN_UPPER}, "
+        f"MIN_LOWER={MIN_LOWER}, MIN_NAME_OCCURRENCES={MIN_NAME_OCCURRENCES}。"
+    )
+    logger.info("【判读】银行新闻占比偏高=判定可能过松(噪声稿件混入, 污染情感/注意力);")
+    logger.info("        偏低=可能过严(漏真实报道, 样本变小估计不稳); 排除计数>0 说明假阳性")
+    logger.info("        闸门在生效, 越多说明中文简称歧义越被有效拦截。")
+    logger.info("【确定性】纯 CPU (ahocorasick/joblib/psutil), 无 LLM/Embedding/网络;")
+    logger.info("        给定语料+词典逐位可复现, 词典文件已纳入 parquet 血缘 input_hashes。")
+
     # 检查数据加载状态
     logger.info(f"银行名称分组数据: 共 {len(BANKS)} 家银行")
     if BANKS:
@@ -505,6 +528,69 @@ def main():
     processed_df = processed_df.reset_index(drop=True)
     after_count = len(processed_df)
     logger.info(f"展开后 Firm-Document 对总数: {after_count:,} 行")
+
+    # ── 黄金范式【结果分析】: 取真实产出指标 + 对照阈值/预期方向给判读 ────────
+    # 注: 下述变量均为只服务于日志的局部计算, 不回写 df / 不改任何产物。
+    # crash-guard: 整个分析块在最终写盘 (save_parquet_with_metadata) 之前执行,
+    # 若取数/算指标异常 (缺键/除零/格式化) 绝不能拖垮阶段丢产物 → 整体 try/except。
+    try:
+        _total_seen = merged_stats.get('total', 0)
+        _bank_true = merged_stats.get('is_bank_news_true', 0)
+        _bank_pct = (_bank_true / _total_seen * 100) if _total_seen > 0 else 0.0
+        _with_title = merged_stats.get('is_bank_news_with_title', 0)
+        _title_pct = (_with_title / _bank_true * 100) if _bank_true > 0 else 0.0
+        _neg_excl = merged_stats.get('negation_excluded_total', 0)
+        _short_excl = merged_stats.get('short_name_excluded_total', 0)
+        _total_excl = _neg_excl + _short_excl
+        _unique_banks = len(merged_stats.get('bank_article_counts', {}))
+        _expand_ratio = (after_count / _bank_true) if _bank_true > 0 else 0.0
+
+        logger.info("-" * 72)
+        logger.info("【结果分析】对本次银行新闻判定的关键产出指标逐项解读 (对照阈值/预期方向):")
+        logger.info(
+            f"  · 银行新闻判定率: {_bank_true:,}/{_total_seen:,} = {_bank_pct:.2f}% "
+            f"(文章去重计)。判读: 中文报纸语料里多数稿件并非银行报道, 该比率通常远低于"
+            f" 50%; 若异常高(>50%)需警惕判定过松(噪声混入), 异常低(接近 0)需警惕过严或"
+            f"词典/输入异常。"
+        )
+        logger.info(
+            f"  · 标题命中占比: {_with_title:,}/{_bank_true:,} = {_title_pct:.2f}% "
+            f"(银行名出现在标题的银行新闻)。判读: 偏高=报道更聚焦该行(target_bank_in_title"
+            f"=1 这类显著性/β 信号更密集); 偏低=多为正文一笔带过, 下游加权权重更分散。"
+        )
+        logger.info(
+            f"  · firm-document 展开比: 展开后 {after_count:,} 行 / 银行新闻 {_bank_true:,} "
+            f"篇 = {_expand_ratio:.3f} 行每篇。判读: >1 表示存在'一篇同时讲多家银行'被复制成"
+            f"多行 (Hassan 2019 firm-level 标准做法); =1 则几乎每篇只命中单一银行。"
+        )
+        logger.info(
+            f"  · 涉及不同银行数: {_unique_banks} 家 / 词典共 {len(BANKS)} 家。判读: 覆盖面"
+            f"越广越说明样本不偏集于少数大行; 远低于词典规模说明多数银行在本语料无合格报道"
+            f"(小样本/特定年份下属正常)。"
+        )
+        logger.info(
+            f"  · 假阳性闸门拦截: 否定模式排除 {_neg_excl:,} 次 + 短名歧义消解 {_short_excl:,}"
+            f" 次 = 合计 {_total_excl:,} 次。判读: >0 说明两道防误判闸门在生效(拦下'务农行列'"
+            f"误中'农行'之类); 恒为 0 时若语料含大量银行简称, 需复核排除词典是否真正加载。"
+        )
+
+        # 优雅降级警告: 假阳性排除词典缺失 → 两道闸门失效
+        if NEGATION_AC is None and not SHORT_NAME_EXCLUSIONS:
+            logger.warning(
+                "  ⚠ 假阳性排除配置 (bank_name_exclusions.json) 缺失或为空 → 否定模式 + "
+                "短名歧义消解两道闸门均未生效, 银行简称误匹配风险升高 (优雅降级, 不中断), "
+                "判定结果可能偏松, 请确认 paths.bank_name_exclusions_file 指向正确词典。"
+            )
+
+        # 小样本警告: 盘面 T=2 仅验证管道, 结论以全量为准
+        if _total_seen > 0 and _bank_true < 1000:
+            logger.info(
+                f"  ⚠ 本次输入 {_total_seen:,} 行、银行新闻 {_bank_true:,} 篇属小样本 (盘面 "
+                f"T=2 / 子样本); 上述比率仅用于验证管道正确性, 全量结论以 17M / T=18 实测为准。"
+            )
+        logger.info("-" * 72)
+    except Exception as _e:
+        logger.warning(f"[结果分析] 日志诊断计算异常, 跳过(不影响产物): {_e}")
 
     # --- 保存结果 ---
     logger.info(f"正在将处理结果写入 {output_path}...")
