@@ -305,18 +305,22 @@ class ArticleDeduplicator:
             tokenizer_func=self._clean_and_tokenize
         )
 
-        texts = df[self.COL_COMBINED].tolist()
-        indices = df.index.tolist()
-        tasks = list(zip(indices, texts))  # (index, text) 元组
-        total_count = len(tasks)
+        # fix(perf-mem, 2026-06-17): 用惰性 (index, text) 迭代器替代 .tolist()+list(zip())
+        # 的两次全量物化 — 在 ~385 万行预去重语料上避免一次性建 ~385 万元组 (~200MB+)
+        # 与文本引用列表的瞬时峰值; Pool 的喂任务线程按 chunksize 惰性拉取即可。
+        # 行为与旧实现逐位一致: Series.items() 产出 (index, value), 与 _create_minhash
+        # 期望的 (idx, text) 同形; imap_unordered 结果按 index 收集, 与到达顺序无关。
+        total_count = len(df)
         progress_step = max(1, total_count // 10)  # 每 10% 输出一次进度
+        chunksize = max(1, total_count // (nb_workers * 4))
+        tasks = df[self.COL_COMBINED].items()  # 惰性 (index, text) 迭代器
 
         minhash_results = {}  # {index: MinHash}
         with multiprocessing.Pool(processes=nb_workers) as pool:
             for i, (idx, mh) in enumerate(pool.imap_unordered(
                 create_minhash_with_params,
                 tasks,
-                chunksize=max(1, total_count // (nb_workers * 4))
+                chunksize=chunksize
             )):
                 if mh is not None:
                     minhash_results[idx] = mh
@@ -350,13 +354,22 @@ class ArticleDeduplicator:
             self.logger.warning("无有效 MinHash, 跳过近似去重")
             return set()
 
+        # fix(perf, 2026-06-17): 预抽取去重热循环所需列, 替代每次在大 df 上走 df.loc
+        # 的对齐/装箱开销 (3.85M 行预去重语料上每次标量/花式 .loc 都不可忽略)。
+        #   - _combined_arr + _index.get_loc: COL_COMBINED 文本改 numpy 位置访问 (供 _toks);
+        #   - _sort_df: 簇内排序只需 3 列, 预切窄帧避免每簇复制全宽 df。
+        # 纯访问优化, 取值/排序键与原 df.loc 逐位一致 (排序仍用 pandas sort_values, 语义不变)。
+        _index = df.index
+        _combined_arr = df[self.COL_COMBINED].to_numpy()
+        _sort_df = df[[self.COL_DATETIME, self.COL_WEIGHT, 'docid']]
+
         # fix(N4): pairwise 真 Jaccard 复核所需的 token 缓存 (按 index 惰性物化, 复用)
         _tok_cache: Dict[Any, Set[str]] = {}
 
         def _toks(i):
             t = _tok_cache.get(i)
             if t is None:
-                t = self._clean_and_tokenize(str(df.loc[i, self.COL_COMBINED]))
+                t = self._clean_and_tokenize(str(_combined_arr[_index.get_loc(i)]))
                 _tok_cache[i] = t
             return t
 
@@ -409,10 +422,11 @@ class ArticleDeduplicator:
             if len(result_cluster) <= 1:
                 continue
 
-            # 簇内排序: 日期升序 → 权重降序 → docid 升序
-            cluster_df = df.loc[result_cluster]
+            # 簇内排序: 日期升序 → 权重降序 → docid 升序 (在窄帧 _sort_df 上做, 仅含
+            # 排序所需 3 列 + Index; 排序键/方向/na_position 与原全宽帧逐位一致)
+            cluster_df = _sort_df.loc[result_cluster]
             sorted_cluster = cluster_df.sort_values(
-                by=['temp_datetime', self.COL_WEIGHT, 'docid'],
+                by=[self.COL_DATETIME, self.COL_WEIGHT, 'docid'],
                 ascending=[True, False, True],
                 na_position='last'
             )

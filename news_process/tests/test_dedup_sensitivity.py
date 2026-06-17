@@ -123,6 +123,31 @@ class TestDedupRefactorEquivalence:
         assert dd.find_near_duplicate_indices(
             pd.DataFrame(), pd.Series(dtype=object)) == set()
 
+    def test_cluster_sort_tiebreak_and_nat_kept(self, tmp_path):
+        """钉桩近似去重簇内排序的两条易碎路径 (perf 2026-06-17 窄帧排序 + numpy
+        token 访问优化的逐位等价守护):
+          ① 同日同权重 (同媒体) → 簇内排序退化为 docid 升序: 先发 docid='d1' 作锚点
+             保留, 后发 docid='d2' 在窗口内且真 Jaccard≥阈值 → 被删 (验证 docid tiebreak
+             在窄帧 _sort_df 上与全宽帧逐位一致);
+          ② 日期不可解析 (NaT) 的簇成员走 `pd.isna(current_date)` 保留分支, 不被删
+             (验证 na_position='last' 排序 + NaT 保留语义不变)。
+        """
+        df = pd.DataFrame({
+            '标题': ['央行宣布降准'] * 3,
+            # 近似 (非完全) 重复: 各带不同短后缀, 真 3-gram Jaccard 远高于 0.8
+            '内容': [_BODY, _BODY + '(补充)', _BODY + '(第三版)'],
+            '媒体(中文)': ['新华社', '新华社', '新华社'],  # 同媒体 ⇒ 同权重
+            '日期': ['2018-03-05', '2018-03-05', 'not-a-date'],  # d1/d2 同日; d3→NaT
+            'docid': ['d1', 'd2', 'd3'],
+        })
+        dd = _make_dedup(tmp_path)
+        prep = dd._prepare_dataframe(df)
+        mh = dd.compute_minhashes(prep)
+        drop = dd.find_near_duplicate_indices(prep, mh)  # 生产默认 (0.8, W=5)
+        survivors = set(prep.loc[~prep.index.isin(drop), 'docid'])
+        # d1 锚点保留; d2 同日近似 → 删; d3 NaT → 保留
+        assert survivors == {'d1', 'd3'}, f'实得存活 {survivors}'
+
 
 class TestVariantConfig:
 

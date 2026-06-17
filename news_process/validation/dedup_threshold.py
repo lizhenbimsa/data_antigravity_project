@@ -8,7 +8,7 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
 =============================================================================
 
 功能：
-    使用 Jaccard MinHash 分别测试截断点阈值 [0.75, 0.80, 0.85, 0.90]，
+    使用 Jaccard MinHash 分别测试截断点阈值 [0.70, 0.75, 0.80, 0.85, 0.90]，
     输出去重敏感性统计表，供实证检验附件使用。
 
     本阶段用于证明生产去重阈值 (config/preprocessing.yaml:
@@ -51,7 +51,7 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
 
 白话:
     去重时"相似到多少算重复"是个人为定的阈值 (生产用 0.80)。本检验把
-    阈值换成 0.75/0.80/0.85/0.90 各跑一遍, 看保留的文章数变化大不大;
+    阈值换成 0.70/0.75/0.80/0.85/0.90 各跑一遍, 看保留的文章数变化大不大;
     变化小就说明结论不依赖这个阈值。关键坑 ("机械截尾"): 如果输入语料
     本身已经按 0.80 去过重, 那再用 0.85/0.90 去测肯定"测不出"新重复 —
     这不是稳健, 是数据早被剪过了。所以本模块优先读去重之前的原始快照
@@ -72,7 +72,7 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
 **处理步骤**:
 1. 读生产阈值 `deduplication.jaccard_similarity_threshold` (默认 0.80) 作基准标注。
 2. 实例化 `ArticleDeduplicator(config, logger)` (canonical path = `news_process.pipeline.preprocess.dedup`, 与生产 stage 00 同一类), 先 `_prepare_dataframe` + `_perform_exact_deduplication` 做一次精确去重 (作近似去重基数)。
-3. 对 thresholds=[0.75, 0.80, 0.85, 0.90] 逐个覆写 `dedup.threshold` 并 `_perform_near_deduplication`, 记录 Retained/Dropped/Retained_Ratio, 每轮 `del df_near; gc.collect()` 防 OOM。
+3. 对 thresholds=[0.70, 0.75, 0.80, 0.85, 0.90] 逐个覆写 `dedup.threshold` 并 `_perform_near_deduplication`, 记录 Retained/Dropped/Retained_Ratio, 每轮 `del df_near; gc.collect()` 防 OOM。
 
 **关键算法**: Jaccard MinHash LSH 近似去重 (Broder 1997 IEEE SEQUENCES, DOI:10.1109/SEQUEN.1997.666900)。`_annotate_censoring` 追加披露列: pre_dedup_cache 口径双向有效 (Mechanically_Censored 全 False); post_dedup_fallback 口径下 `Threshold >= 生产阈值` 的行 Dropped≈0 是'机械截尾'而非稳健性 (逐行标 Mechanically_Censored=True) — 这是 fix(omni-g-val-robust-01, 2026-06-11) 的核心: 旧实现读已去重数据扫更高阈值必然 Retained≈100%, 是数据被剪过的假象, 现改读去重前快照真实重去重。
 
@@ -82,7 +82,7 @@ news_process.validation.dedup_threshold — 去重阈值参数敏感性分析 (�
 
 ■ 白话说明
 
-**这一步在做什么**: 同一条新闻常被多家媒体转载, 流水线会把高度相似的稿子合并成一条 (去重)。'相似到什么程度算重复' 是个门槛 (现在用 0.80, 即 80% 相似)。这一步把门槛换成 0.75/0.80/0.85/0.90 各跑一遍, 看每个门槛下还剩多少篇文章。
+**这一步在做什么**: 同一条新闻常被多家媒体转载, 流水线会把高度相似的稿子合并成一条 (去重)。'相似到什么程度算重复' 是个门槛 (现在用 0.80, 即 80% 相似)。这一步把门槛换成 0.70/0.75/0.80/0.85/0.90 各跑一遍, 看每个门槛下还剩多少篇文章。
 
 **为什么需要它**: 防止有人质疑'你定 0.80 是为了凑数据'。如果门槛上下挪保留的文章数变化不大, 就说明去重不会人为操纵样本。这里有个大坑模块特意防住了: 如果拿'已经去过重的数据'去测更严的门槛, 肯定测不出新重复 — 不是因为门槛好, 而是数据早被剪过了。所以它优先去读'去重之前的原始快照'来真测, 实在拿不到才退而求其次并在报告里逐行老实标明'这个数字是机械结果, 别当证据'。
 
@@ -256,7 +256,7 @@ def main():
         logger.error(f"  可用列: {list(df.columns[:20])}...")
         return
 
-    thresholds = [0.75, 0.80, 0.85, 0.90]
+    thresholds = [0.70, 0.75, 0.80, 0.85, 0.90]
     results = []
 
     # ── 前置预处理 + 精确去重 (仅执行一次) ──
@@ -266,6 +266,9 @@ def main():
     # 精确去重会真实移除行 (与生产 stage 00 行为一致); 仅回退口径
     # (post_dedup_fallback) 下精确重复已被上游清除、此步为幂等空转。
     # 若 ArticleDeduplicator API 变更，需同步更新。
+    # 输入语料行数 (供末尾汇总; df 下面会被释放以省内存)
+    n_input_rows = len(df)
+
     dedup = ArticleDeduplicator(config, logger)
     df_prep = dedup._prepare_dataframe(df)
     df_exact = dedup._perform_exact_deduplication(df_prep)
@@ -274,17 +277,43 @@ def main():
     logger.info(f"精确去重完成, 剩余行数: {exact_retained:,} "
                 f"(作为近似去重的基数)")
 
+    # fix(perf-mem, 2026-06-17): 精确去重后立即释放近似去重【不需要】的重列 —
+    # 原始 标题/内容 (与已合并的 temp_title_content 重复持有, 全量 ~385 万行正文是
+    # 本阶段内存最大头) + 日期/媒体(中文)/temp_content_length。下游仅需 4 列:
+    #   temp_title_content (compute_minhashes + N4 真 Jaccard 复核),
+    #   temp_datetime / temp_media_weight / docid (find_near_duplicate_indices 簇内排序判重)。
+    # 纯丢列 + 释放预去重全量帧, 不改任何去重结果; 文本内存由 3 份 (标题+内容+合并)
+    # 收缩到 1 份 (合并), 峰值约降 2/3。
+    _keep_cols = [dedup.COL_COMBINED, dedup.COL_DATETIME, dedup.COL_WEIGHT, 'docid']
+    df_exact = df_exact[[c for c in _keep_cols if c in df_exact.columns]].copy()
+    del df, df_prep  # df_prep 即 _prepare_dataframe 原地改写后返回的 df, 同一对象
+    gc.collect()
+
+    # fix(perf, 2026-06-17): MinHash 签名只依赖文本 + (num_perm, ngram_size), **与 Jaccard
+    # 阈值无关** (见 compute_minhashes docstring) — 故全部阈值共用同一批签名, 仅计算一次。
+    # 旧实现逐阈值调 _perform_near_deduplication, 每次都从头重算签名 (在去重前全量语料
+    # 上是分钟级多进程重负载), N 个阈值 = N× 冗余 MinHash, 是 stage 32a 在全量语料上
+    # 超时 (7200s) 的主因之一。判重逐阈值调 find_near_duplicate_indices(threshold=th),
+    # 结果与逐阈值 _perform_near_deduplication 逐位一致 (compute_minhashes + find(默认参数)
+    # == _perform_near_deduplication, 由 test_dedup_sensitivity.py::
+    # test_default_params_equal_production_method 锚定)。
+    logger.info("计算 MinHash 签名 (一次, 全部阈值共用; 签名与阈值无关)...")
+    mh_start = time.time()
+    minhashes = dedup.compute_minhashes(df_exact)
+    logger.info(f"MinHash 签名完成, 耗时 {time.time() - mh_start:.1f}秒 "
+                f"(此前每阈值重算, 现 {len(thresholds)} 阈值共用此一次)")
+
     for th in thresholds:
         logger.info(f"\n--- 测试阈值: Jaccard >= {th} "
                      f"{'← 生产阈值' if th == prod_threshold else ''} ---")
         start_t = time.time()
 
-        # 覆写 dedup 实例的阈值 (单阶段内安全, 无并发竞争)
-        dedup.threshold = th
-        df_near = dedup._perform_near_deduplication(df_exact)
-
-        retained = len(df_near)
-        dropped = exact_retained - retained
+        # 共用 minhashes, 仅按 th 判重 (window 取生产默认 5 工作日, 同
+        # _perform_near_deduplication); dropped = 应剔除索引数。
+        drop_idx = dedup.find_near_duplicate_indices(
+            df_exact, minhashes, threshold=th)
+        dropped = len(drop_idx)
+        retained = exact_retained - dropped
         retained_ratio = retained / exact_retained if exact_retained > 0 else 0
 
         elapsed = time.time() - start_t
@@ -300,8 +329,8 @@ def main():
             'Is_Production': th == prod_threshold,
         })
 
-        # [内存安全保护] 显式释放大对象视图以防止内存溢出 (OOM)
-        del df_near
+        # [内存安全保护] 释放本轮临时对象 (minhashes 跨阈值复用, 不释放)
+        del drop_idx
         gc.collect()
 
     logger.info("\n" + "=" * 40)
@@ -328,7 +357,7 @@ def main():
     logger.info("=" * 60)
     logger.info(f"阶段 32a 完成: 测试 {len(thresholds)} 个阈值, "
                 f"生产阈值={prod_threshold}")
-    logger.info(f"  输入数据: {input_desc} ({len(df):,} 行, 口径={input_mode})")
+    logger.info(f"  输入数据: {input_desc} ({n_input_rows:,} 行, 口径={input_mode})")
     logger.info(f"  保留率范围: "
                 f"{min(r['Retained_Ratio'] for r in results):.2%} ~ "
                 f"{max(r['Retained_Ratio'] for r in results):.2%}")
