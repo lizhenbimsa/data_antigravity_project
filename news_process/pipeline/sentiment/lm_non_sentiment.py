@@ -33,8 +33,14 @@ content_ss 各调用一次本模块的 ``_compute_lm_non_sentiment_for_text`` (�
 stub 说明
 ---------
 词表 v0.1.5 共 314 词 (uncert 83 / litig 104 / constr 76 / modal_strong 51),
-status=AWAITING_EXPERT_AUDIT (见 config/lm_non_sentiment_dicts.json::_meta).
+status=AWAITING_EXPERT_AUDIT (见 config/tone_dicts.json::lm_non_sentiment._meta).
 v0.2 由中文金融专家扩至 LM 2011 原版 1219 词覆盖 (G-A1.1 准入门控).
+
+数据源统一 (2026-06-17)
+----------------------
+4 子词典已从独立文件 ``config/lm_non_sentiment_dicts.json`` 并入 ``config/tone_dicts.json``
+的顶层条目 ``lm_non_sentiment`` (单一事实源, 与 6 部 sentiment 词典同居一文件); 本模块改读
+该条目的 4 个 subset 数组, 词表逐字不变 (12 个 frac panel 列结果不变, golden 不受影响)。
 """
 
 from __future__ import annotations
@@ -51,9 +57,12 @@ import jieba
 # 或字母的 token 不会 fullmatch, 被保留为 word。
 _LMFLS_NONWORD_RE = re.compile(r'[\W\d_]+')
 
+# 数据源统一 (2026-06-17): 4 子词典并入 config/tone_dicts.json 顶层条目 ``lm_non_sentiment``
+# (单一事实源)。_LM_DICT_PATH 指向 tone_dicts.json; _LM_DICT_KEY = 该条目顶层键。
 _LM_DICT_PATH = (
-    Path(__file__).resolve().parents[2] / 'config' / 'lm_non_sentiment_dicts.json'
+    Path(__file__).resolve().parents[2] / 'config' / 'tone_dicts.json'
 )
+_LM_DICT_KEY = 'lm_non_sentiment'
 
 _SUBSETS = ('uncertainty', 'litigious', 'constraining', 'modal_strong')
 
@@ -81,8 +90,13 @@ def load_lm_non_sentiment_dicts() -> dict[str, frozenset[str]]:
         return {s: frozenset() for s in _SUBSETS}
     with open(_LM_DICT_PATH, 'r', encoding='utf-8') as f:
         raw = json.load(f)
+    # 自 config/tone_dicts.json 顶层条目 ``lm_non_sentiment`` 取 4 子词典 (2026-06-17 统一)。
+    # 文件/条目缺失 → 4 个空 frozenset (优雅降级, 与原独立文件缺失语义一致)。
+    entry = raw.get(_LM_DICT_KEY, {}) if isinstance(raw, dict) else {}
+    if not isinstance(entry, dict):
+        entry = {}
     return {
-        s: frozenset(raw.get(s, []) or [])
+        s: frozenset(entry.get(s, []) or [])
         for s in _SUBSETS
     }
 

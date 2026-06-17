@@ -10,9 +10,9 @@ Li, F. (2010). The Information Content of Forward-Looking Statements in
 Corporate Filings — A Naïve Bayesian Machine Learning Approach. Journal of
 Accounting Research, 48(5), 1049-1102.
 
-Bozanic, Z., Roulstone, D. T., & Buskirk, A. V. (2018). Management
-earnings forecasts and other forward-looking statements. Review of
-Accounting Studies, 23(1), 1-26.
+Bozanic, Z., Roulstone, D. T., & Van Buskirk, A. (2018). Management
+earnings forecasts and other forward-looking statements. Journal of
+Accounting and Economics, 65(1), 1-20.
 
 判定规则 (双门控)
 -----------------
@@ -37,10 +37,24 @@ G-A2.1 准入门控
 ---------------
 词表 ≥ 100 词 + 500 句人工标注 precision ≥ 0.80; 当前是 v0.1.6 双门控
 (future 68 词 + time 53 词 = 121 词; fix(omni-g-numlex-03, 2026-06-11) 自
-v0.1.5 删 10 个非未来指向词, 见 _FUTURE_WORDS 上方变更披露).
+v0.1.5 删 10 个非未来指向词, 见该词表 _meta 变更披露).
+
+数据源 (2026-06-18 统一)
+-----------------------
+双门控词表已从本文件内联 frozenset 外置到 ``config/tone_dicts.json`` 顶层条目
+``forward_looking_statements`` (future_words / time_words 两数组; 单一事实源,
+与 7 部情感/非情感词典同居一文件), 本模块 import 时加载为模块级 ``_FUTURE_WORDS`` /
+``_TIME_FUTURE_MARKERS`` frozenset; 词表逐字不变 (3 个 frac_fls panel 列结果不变).
+⚠ 加载契约: 词表在 **import 时**一次性读 tone_dicts.json 并绑定为模块级 frozenset
+(非 lru_cache, import 后 monkeypatch _FLS_DICT_PATH 不再生效); 文件/条目缺失时**静默降级
+空集** (frac_fls→0/nan)。因 tone_dicts.json 是项目核心必备文件、且原内联 frozenset 本就
+无缺失态, 此降级仅为防御。需热加载/可 patch 时改 _load_fls_wordlists 为 lazy lru_cache。
 """
 
 from __future__ import annotations
+
+import json
+from pathlib import Path
 
 import jieba
 
@@ -51,70 +65,40 @@ from news_process.core.text.cn_text_utils import cn_split_sentence
 # jieba.cut() 精确 token 匹配, 避免 substring false positives.
 # Performance: jieba 单例 cache, ~0.1ms/sentence.
 
-# ── FLS 双门控词表 (v0.1.6, future 68 词 + time 53 词 = 双门控 ≥ 100 词总) ──
-# v2.3-followup-v2 第 17 轮 user-request 扩展 (基于 Li 2010 JAR + 中文金融
-# 年报披露规范, 非专家审定);
-# USER_ACTION_REQUIRED v0.2:
-#   - 中文金融专家进一步审定 (1 人·周)
-#   - 500 句人工标注验证 precision ≥ 0.80 (G-A2.1 准入门控)
-#
-# fix(omni-g-numlex-03, 2026-06-11) 词表变更披露 (v0.1.5 → v0.1.6):
-# Li (2010 JAR) 的 FLS 双门控要求两门均为**未来指向**; 修前实测回溯性成就报道
-# 被判 FLS ('过去三年,该行持续推进零售转型。'→True; 语料 400 篇中 18.2% FLS 句
-# 的时间门控仅由模糊/当期词触发)。本次删除:
-#   - D_future 删进行体动词 ×4: 推进/推动/促进/努力 — 描述当下/过去行为, 无
-#     未来 modal 语义 (保留 推动力/推行/着力/致力于/力争 等, 组级裁决未列)。
-#   - D_time 删纯时长词 ×3: 三年/五年/十年 — 裸时距无方向, '过去三年/十年来'
-#     同样命中 (保留未来锚定的 三年内/未来三年/三年期 等)。
-#   - D_time 删当期词 ×3: 本年度/本季度/本财年 — '本X' 指当期而非未来
-#     (本财年与 本年度/本季度 同构, 按 g-numlex-03 adjudication 一并删除)。
-# 行为由 tests/test_omni_fix_numlex.py 锁定 (词表成员 + 回溯句判定)。
-_FUTURE_WORDS = frozenset([
-    # ── 主动未来 modal ──
-    "将", "将要", "将会", "将于", "拟", "拟于", "拟将", "意欲",
-    "意图", "意在", "拟定",
-    # ── 计划意图 ──
-    "计划", "规划", "筹划", "策划", "谋划", "图谋", "拟订",
-    "预计", "预期", "预测", "预想", "预判", "预估", "预设",
-    # ── 展望 ──
-    "展望", "望", "有望", "期待", "期望", "盼望", "盼", "瞻望",
-    "翘首", "希冀", "希望",
-    # ── 战略意图 ──
-    "战略", "蓝图", "愿景", "目标", "前景", "愿望",
-    # ── 持续推进 (fix(omni-g-numlex-03): 删进行体 推进/推动/促进/努力) ──
-    "着力", "致力于", "力争", "争取", "奋力",
-    "推动力", "推行",
-    # ── 即将 ──
-    "即将", "行将", "快将", "马上",
-    # ── 承诺 / 决心 ──
-    "承诺", "誓将", "誓必", "决心", "誓言", "宣告",
-    # ── 财务/IR 披露惯用前瞻动词 (Li 2010 JAR appendix) ──
-    "拟实施", "拟开展", "拟推出", "拟落地", "拟启动",
-    "酝酿", "筹备", "准备", "拟议",
-])
+# ── FLS 双门控词表 (v0.1.6, future 68 + time 53; 2026-06-18 外置进 config/tone_dicts.json) ──
+# 词表已从本文件内联 frozenset 外置到 config/tone_dicts.json::forward_looking_statements
+# (单一事实源, future_words / time_words 两数组), 本模块 import 时加载为模块级 frozenset。
+# 历史/口径/变更披露 (P-038 jieba 精确匹配 + omni-g-numlex-03 v0.1.5→v0.1.6 删进行体动词/
+# 裸时距/当期词) 见该条目 _meta; 词表成员由 tests/test_omni_fix_numlex.py 锁定。
+_FLS_DICT_PATH = (
+    Path(__file__).resolve().parents[2] / 'config' / 'tone_dicts.json'
+)
+_FLS_DICT_KEY = 'forward_looking_statements'
 
-_TIME_FUTURE_MARKERS = frozenset([
-    # ── 显式未来 ──
-    "未来", "今后", "日后", "以后", "嗣后",
-    "明年", "次年", "下年", "翌年", "明春", "明秋",
-    "下季", "下季度", "下半年", "下半场",
-    "下月", "下一月", "下旬", "次月",
-    "下一阶段", "下一步", "下一轮", "下一程", "下一周期",
-    # ── 时段 (fix(omni-g-numlex-03): 删裸时距 三年/五年/十年) ──
-    "中长期", "长远", "远期", "中期", "短期内", "长期",
-    "三年内", "五年内", "十年内",
-    "三年期", "五年期", "十年期",
-    # ── 节点 (Li 2010 后续工作建议增强 regex 模式)
-    #    (fix(omni-g-numlex-03): 删当期词 本年度/本季度/本财年) ──
-    "到 2030", "到 2035", "到 2040", "至 2030",
-    "十四五", "十五五", "十六五",
-    "年底", "年内",
-    # ── 滚动期窗 ──
-    "未来三年", "未来五年", "未来十年",
-    "下一财年", "下一会计期",
-    # ── 远景 (战略规划惯用) ──
-    "中长期目标", "远景目标", "战略目标期",
-])
+
+def _load_fls_wordlists() -> tuple[frozenset[str], frozenset[str]]:
+    """从 config/tone_dicts.json::forward_looking_statements 读双门控词表.
+
+    Returns:
+        (future_words, time_words) 两个 frozenset; 文件/条目缺失 → 两个空集 (优雅降级).
+    """
+    if not _FLS_DICT_PATH.exists():
+        return frozenset(), frozenset()
+    try:
+        with open(_FLS_DICT_PATH, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return frozenset(), frozenset()
+    entry = raw.get(_FLS_DICT_KEY, {}) if isinstance(raw, dict) else {}
+    if not isinstance(entry, dict):
+        entry = {}
+    return (
+        frozenset(entry.get('future_words', []) or []),
+        frozenset(entry.get('time_words', []) or []),
+    )
+
+
+_FUTURE_WORDS, _TIME_FUTURE_MARKERS = _load_fls_wordlists()
 
 
 def _is_fls_sentence(sentence: str) -> bool:

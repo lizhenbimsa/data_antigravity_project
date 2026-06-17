@@ -14,7 +14,7 @@
     "test_count": 50
   },
   "v3_5_2_pr_2_3_lm_fls": {
-    "lm_dict_path": "config/lm_non_sentiment_dicts.json",
+    "lm_dict_path": "config/tone_dicts.json::lm_non_sentiment (2026-06-18 统一: 原 config/lm_non_sentiment_dicts.json 已并入 tone_dicts.json 并删除)",
     "lm_version": "v0.1.5 (实测词数)",
     "lm_status": "AWAITING_EXPERT_AUDIT_FOR_V0_2",
     "lm_actual_word_counts_v0_1_5": {
