@@ -102,14 +102,11 @@ pytest-asyncio>=0.20,<2.0
 pre-commit>=3.0.0,<5.0.0
 
 # ─────────────────────────────────────────────────────────────────────
-# v3.7.0 待启用依赖 (PR #8.5, 默认注释化, 实施 D 组前由用户 uncomment)
+# v3.7.0 D 组依赖 (PR #8.5; 自 2026-06-13 stage 18/39f always-on 后为硬运行依赖, 已启用)
 # 设计动机:
-#   D2 Faiss: semantic staleness LSH (cosine, 与 datasketch MinHash 互补)
-#   D3 krippendorff: 跨媒体一致性 α (与 stage 39a Cohen κ 同 family)
-# 启用步骤:
-#   1. 取消下方 faiss-cpu 注释 (stage 18 staleness semantic 轨)
-#   2. pip install -r news_process/requirements.txt
-#   3. pip-compile pyproject.toml → 同步 requirements.lock
+#   D2 Faiss: semantic staleness LSH (cosine, 与 datasketch MinHash 互补) — stage 18
+#   D3 krippendorff: 跨媒体一致性 α (与 stage 39a Cohen κ 同 family) — stage 39f
+# 注: Python 3.13 须用 faiss-cpu>=1.9.0 (1.7.4 无 cp313 wheel); 区间约束自动解析到 1.14.3。
 # ─────────────────────────────────────────────────────────────────────
-# faiss-cpu>=1.7.4,<2.0.0
+faiss-cpu>=1.7.4,<2.0.0  # stage 18 staleness semantic 轨 (always-on 后缺包会真崩, ImportError)
 krippendorff>=0.5.0,<1.0.0  # stage 39f cross_media_alpha (metric-audit V3: 启用, 否则 alpha 列全 NaN 空壳)
