@@ -1,0 +1,2156 @@
+# 词频统计表 A — 金融中文主译词（去重）
+
+由 Loughran-McDonald 中文金融情感词典的 3900 个主译词去重而得，共 2150 个唯一匹配词。「英文原词」列出所有映射到该中文词的英文源词；「词典情感分类」为这些源词类别的并集（按 消极/积极/不确定/诉讼/约束性/强情态/弱情态/复杂性 排序）。
+
+| ID | 金融中文主译词 | 金融中文主译词 的英文原词 | 词典情感分类 |
+|---|---|---|---|
+| 1 | 放弃 | ABANDON; ABANDONING; ABANDONMENT; ABANDONMENTS; ABANDONS; FOREGO; FOREGOES; RELINQUISH; RELINQUISHED; RELINQUISHES; RELINQUISHING; RELINQUISHMENT; RELINQUISHMENTS; RENOUNCE; RENOUNCEMENT; RENOUNCEMENTS; RENOUNCES | 消极 |
+| 2 | 已放弃 | ABANDONED; RENOUNCED | 消极 |
+| 3 | 已推卸职责 | ABDICATED | 消极 |
+| 4 | 推卸职责 | ABDICATES; ABDICATING | 消极 |
+| 5 | 失职 | ABDICATION; ABDICATIONS; DERELICTION | 消极 |
+| 6 | 异常的 | ABERRANT; ABERRATIONAL; ABNORMAL; ANOMALOUS; UNUSUAL | 消极、不确定 |
+| 7 | 异常 | ABERRATION; ABERRATIONS; ABNORMALITIES; ABNORMALITY; ANOMALIES; ANOMALY | 消极、不确定 |
+| 8 | 教唆协从 | ABETTING | 消极 |
+| 9 | 暂缓 | ABEYANCE; ABEYANCES | 不确定 |
+| 10 | 遵守 | ABIDE; ABIDING; COMPLY | 约束性 |
+| 11 | 有能力的 | ABLE | 积极 |
+| 12 | 异常地 | ABNORMALLY; ANOMALOUSLY; UNUSUALLY | 消极、不确定 |
+| 13 | 废除 | ABOLISH; ABOLISHES; ABOLISHING | 消极 |
+| 14 | 已废除 | ABOLISHED | 消极 |
+| 15 | 上述的 | ABOVEMENTIONED; AFOREMENTIONED; AFORESAID | 诉讼 |
+| 16 | 废止 | ABROGATE; ABROGATES; ABROGATING; ABROGATION; ABROGATIONS | 消极、诉讼 |
+| 17 | 已废止 | ABROGATED | 消极、诉讼 |
+| 18 | 骤然的 | ABRUPT | 消极 |
+| 19 | 骤然 | ABRUPTLY | 消极 |
+| 20 | 骤然性 | ABRUPTNESS | 消极 |
+| 21 | 缺失 | ABSENCE; ABSENCES | 消极 |
+| 22 | 缺勤 | ABSENTEEISM | 消极 |
+| 23 | 免除责任 | ABSOLVE; ABSOLVES; ABSOLVING; EXCULPATE; EXCULPATES | 消极、诉讼 |
+| 24 | 已免责 | ABSOLVED | 诉讼 |
+| 25 | 充裕 | ABUNDANCE; PLENTIFUL | 积极 |
+| 26 | 充裕的 | ABUNDANT | 积极 |
+| 27 | 滥用 | ABUSE; ABUSES; ABUSING; MISUSE; MISUSES; MISUSING | 消极 |
+| 28 | 被滥用 | ABUSED | 消极 |
+| 29 | 滥用性的 | ABUSIVE | 消极 |
+| 30 | 滥用地 | ABUSIVELY | 消极 |
+| 31 | 滥用性 | ABUSIVENESS | 消极 |
+| 32 | 加入 | ACCESSION; ACCESSIONS | 诉讼 |
+| 33 | 事故 | ACCIDENT; ACCIDENTS | 消极 |
+| 34 | 意外的 | ACCIDENTAL; UNEXPECTED | 消极、不确定 |
+| 35 | 意外地 | ACCIDENTALLY; UNEXPECTEDLY | 消极、不确定 |
+| 36 | 广受好评的 | ACCLAIMED | 积极 |
+| 37 | 完成 | ACCOMPLISH; ACCOMPLISHES; ACCOMPLISHING | 积极 |
+| 38 | 已完成的 | ACCOMPLISHED | 积极 |
+| 39 | 成就 | ACCOMPLISHMENT; ACCOMPLISHMENTS; ACHIEVEMENT; ACHIEVEMENTS; ATTAINMENTS | 积极 |
+| 40 | 应计 | ACCRUES | 复杂性 |
+| 41 | 指控 | ACCUSATION; ACCUSATIONS; ACCUSE; ACCUSES; ACCUSING; ALLEGATION; ALLEGATIONS; ALLEGE; ALLEGES; ALLEGING | 消极、诉讼 |
+| 42 | 被指控 | ACCUSED | 消极 |
+| 43 | 实现 | ACHIEVE; ACHIEVES; ACHIEVING; ATTAINING; ATTAINMENT | 积极 |
+| 44 | 已实现 | ACHIEVED | 积极 |
+| 45 | 默许 | ACQUIESCE; ACQUIESCES; ACQUIESCING | 消极 |
+| 46 | 已默许 | ACQUIESCED | 消极 |
+| 47 | 被收购方 | ACQUIREES | 诉讼 |
+| 48 | 收购方 | ACQUIRORS | 诉讼 |
+| 49 | 宣告无罪 | ACQUIT; ACQUITS; ACQUITTING | 消极、诉讼 |
+| 50 | 无罪判决 | ACQUITTAL; ACQUITTALS | 消极、诉讼 |
+| 51 | 债务清偿证明 | ACQUITTANCE; ACQUITTANCES | 诉讼 |
+| 52 | 被宣告无罪 | ACQUITTED | 消极、诉讼 |
+| 53 | 补充协议 | ADDENDUMS | 诉讼 |
+| 54 | 充分地 | ADEQUATELY | 积极 |
+| 55 | 休庭 | ADJOURN; ADJOURNING; ADJOURNMENT; ADJOURNMENTS; ADJOURNS | 诉讼 |
+| 56 | 已休庭 | ADJOURNED | 诉讼 |
+| 57 | 判决 | ADJUDGE; ADJUDGES; ADJUDGING; VERDICT; VERDICTS | 消极、诉讼 |
+| 58 | 已判决 | ADJUDGED | 诉讼 |
+| 59 | 裁决 | ADJUDICATE; ADJUDICATES; ADJUDICATING; ADJUDICATION; ADJUDICATIONS | 诉讼 |
+| 60 | 已裁决 | ADJUDICATED | 诉讼 |
+| 61 | 裁决性的 | ADJUDICATIVE; ADJUDICATORY | 诉讼 |
+| 62 | 裁决人 | ADJUDICATOR; ADJUDICATORS | 诉讼 |
+| 63 | 可采性 | ADMISSIBILITY | 诉讼 |
+| 64 | 可采纳的 | ADMISSIBLE | 诉讼 |
+| 65 | 可采纳地 | ADMISSIBLY | 诉讼 |
+| 66 | 承认 | ADMISSION; ADMISSIONS; CONCEDE; CONCEDED; CONCEDES; CONCEDING | 消极、诉讼 |
+| 67 | 掺假 | ADULTERATE; ADULTERATING; ADULTERATION | 消极 |
+| 68 | 掺假的 | ADULTERATED | 消极 |
+| 69 | 掺假行为 | ADULTERATIONS | 消极 |
+| 70 | 进步 | ADVANCEMENT; ADVANCEMENTS | 积极 |
+| 71 | 进展 | ADVANCES; PROGRESS | 积极 |
+| 72 | 推进 | ADVANCING; FURTHERANCE; PROGRESSED; PROGRESSES | 积极、诉讼 |
+| 73 | 优势 | ADVANTAGE; ADVANTAGES; STRENGTHS | 积极 |
+| 74 | 占优的 | ADVANTAGED | 积极 |
+| 75 | 有利的 | ADVANTAGEOUS; CONDUCIVE; FAVORABLE | 积极 |
+| 76 | 有利地 | ADVANTAGEOUSLY; BENEFICIALLY; FAVORABLY | 积极 |
+| 77 | 对抗性的 | ADVERSARIAL; CONFRONTATIONAL | 消极 |
+| 78 | 对手 | ADVERSARIES; ADVERSARY | 消极 |
+| 79 | 不利的 | ADVERSE; DISADVANTAGEOUS; INIMICAL; UNDESIRABLE; UNFAVORABLE; UNFAVOURABLE | 消极 |
+| 80 | 不利地 | ADVERSELY; AVERSELY; UNFAVORABLY | 消极 |
+| 81 | 逆境 | ADVERSITIES; ADVERSITY | 消极 |
+| 82 | 宣誓书 | AFFIDAVIT; AFFIDAVITS | 诉讼 |
+| 83 | 关联方 | AFFILIATES | 复杂性 |
+| 84 | 维持原判 | AFFIRMANCE | 诉讼 |
+| 85 | 运输合同 | AFFREIGHTMENT | 诉讼 |
+| 86 | 前述的 | AFOREDESCRIBED; AFORESTATED | 诉讼 |
+| 87 | 后果 | AFTERMATH; AFTERMATHS | 消极 |
+| 88 | 不利于 | AGAINST | 消极 |
+| 89 | 加剧 | AGGRAVATE; AGGRAVATES; AGGRAVATING; EXACERBATE; EXACERBATED; EXACERBATES; EXACERBATION; EXACERBATIONS | 消极 |
+| 90 | 加剧的 | AGGRAVATED | 消极 |
+| 91 | 恶化 | AGGRAVATION; AGGRAVATIONS; DEGRADATION; DEGRADATIONS; DEGRADE; DEGRADED; DEGRADES; DEGRADING; DETERIORATE; DETERIORATES; DETERIORATION; DETERIORATIONS; WORSEN; WORSENS | 消极 |
+| 92 | 权益受损的 | AGGRIEVED | 诉讼 |
+| 93 | 示警 | ALERTED | 消极 |
+| 94 | 预警 | ALERTING; WARNING; WARNINGS | 消极 |
+| 95 | 疏远 | ALIENATE; ALIENATES; ALIENATING | 消极 |
+| 96 | 疏远的 | ALIENATED | 消极 |
+| 97 | 疏离 | ALIENATION; ALIENATIONS | 消极 |
+| 98 | 被指控的 | ALLEGED | 消极、诉讼 |
+| 99 | 据称 | ALLEGEDLY; PURPORTEDLY | 消极、诉讼 |
+| 100 | 联盟 | ALLIANCE; ALLIANCES | 积极 |
+| 101 | 几乎 | ALMOST | 不确定、弱情态 |
+| 102 | 变更 | ALTERATION; ALTERATIONS | 不确定 |
+| 103 | 始终 | ALWAYS | 强情态 |
+| 104 | 含糊 | AMBIGUITIES; AMBIGUITY | 不确定 |
+| 105 | 含糊的 | AMBIGUOUS | 不确定 |
+| 106 | 修订 | AMEND; AMENDS; REVISE | 不确定、诉讼 |
+| 107 | 可修订的 | AMENDABLE | 诉讼 |
+| 108 | 修订性的 | AMENDATORY | 诉讼 |
+| 109 | 经修订的 | AMENDED; REVISED | 不确定、诉讼 |
+| 110 | 修订中 | AMENDING | 诉讼 |
+| 111 | 修订案 | AMENDMENT; AMENDMENTS | 诉讼 |
+| 112 | 困扰 | ANNOY; ANNOYANCE; ANNOYANCES; ANNOYS | 消极 |
+| 113 | 恼火的 | ANNOYED | 消极 |
+| 114 | 扰人的 | ANNOYING | 消极 |
+| 115 | 撤销 | ANNUL; ANNULMENT; ANNULMENTS; ANNULS; RESCIND; RESCINDING; RESCINDS; REVOCATION; REVOCATIONS; REVOKE; REVOKES; REVOKING | 消极、诉讼、复杂性 |
+| 116 | 已撤销 | ANNULLED; RESCINDED; REVOKED | 消极、诉讼 |
+| 117 | 撤销中 | ANNULLING | 消极 |
+| 118 | 先前事项 | ANTECEDENT; ANTECEDENTS | 诉讼 |
+| 119 | 预期 | ANTICIPATE; ANTICIPATES; ANTICIPATION; ANTICIPATIONS | 不确定 |
+| 120 | 预期的 | ANTICIPATED | 不确定 |
+| 121 | 预期中 | ANTICIPATING | 不确定 |
+| 122 | 反竞争的 | ANTICOMPETITIVE | 消极 |
+| 123 | 反腐败的 | ANTICORRUPTION | 诉讼 |
+| 124 | 反垄断 | ANTITRUST | 消极、诉讼 |
+| 125 | 以任何方式 | ANYWISE | 诉讼 |
+| 126 | 看似的 | APPARENT | 不确定 |
+| 127 | 似乎 | APPARENTLY; APPEAR; APPEARED; APPEARING; APPEARS; SEEMS | 不确定、弱情态 |
+| 128 | 上诉 | APPEAL; APPEALS | 诉讼 |
+| 129 | 可上诉的 | APPEALABLE | 诉讼 |
+| 130 | 已上诉 | APPEALED | 诉讼 |
+| 131 | 上诉中 | APPEALING | 诉讼 |
+| 132 | 上诉人 | APPELLANT; APPELLANTS | 诉讼 |
+| 133 | 上诉的 | APPELLATE | 诉讼 |
+| 134 | 被上诉人 | APPELLEES | 诉讼 |
+| 135 | 指定人 | APPOINTOR; DESIGNATOR | 诉讼 |
+| 136 | 约略的 | APPROXIMATE | 不确定 |
+| 137 | 约略估计的 | APPROXIMATED | 不确定 |
+| 138 | 约 | APPROXIMATELY | 不确定 |
+| 139 | 近似于 | APPROXIMATES | 不确定 |
+| 140 | 近似 | APPROXIMATING | 不确定 |
+| 141 | 近似值 | APPROXIMATION; APPROXIMATIONS | 不确定 |
+| 142 | 附属权益 | APPURTENANCE; APPURTENANCES | 诉讼 |
+| 143 | 附属的 | APPURTENANT | 诉讼 |
+| 144 | 可仲裁性 | ARBITRABILITY | 诉讼 |
+| 145 | 仲裁的 | ARBITRAL; ARBITRATIONAL | 诉讼 |
+| 146 | 任意地 | ARBITRARILY | 不确定 |
+| 147 | 任意性 | ARBITRARINESS | 不确定 |
+| 148 | 任意的 | ARBITRARY | 不确定 |
+| 149 | 仲裁 | ARBITRATE; ARBITRATES; ARBITRATION; ARBITRATIONS | 诉讼 |
+| 150 | 已仲裁 | ARBITRATED | 诉讼 |
+| 151 | 仲裁中 | ARBITRATING | 诉讼 |
+| 152 | 仲裁性的 | ARBITRATIVE | 诉讼 |
+| 153 | 仲裁员 | ARBITRATOR; ARBITRATORS | 诉讼 |
+| 154 | 争辩 | ARGUE; ARGUED; ARGUING; CONTENDING; DISPUTING | 消极 |
+| 155 | 争议 | ARGUMENT; ARGUMENTS; CONTENTION; CONTENTIONS; CONTESTATION; CONTESTING; CONTROVERSIES; CONTROVERSY | 消极、诉讼 |
+| 156 | 好争辩的 | ARGUMENTATIVE | 消极 |
+| 157 | 欠款 | ARREARAGE; ARREARAGES; ARREARS | 消极、诉讼 |
+| 158 | 逮捕 | ARREST; ARRESTS | 消极 |
+| 159 | 被捕 | ARRESTED | 消极 |
+| 160 | 人为地 | ARTIFICIALLY | 消极 |
+| 161 | 支配地位 | ASCENDANCY | 诉讼 |
+| 162 | 尊亲属 | ASCENDANT; ASCENDANTS | 诉讼 |
+| 163 | 袭击 | ASSAULT; ASSAULTING; ASSAULTS | 消极 |
+| 164 | 遭袭击 | ASSAULTED | 消极 |
+| 165 | 可主张的 | ASSERTABLE | 诉讼 |
+| 166 | 主张 | ASSERTIONS; CONTEND; CONTENDED; CONTENDS | 消极 |
+| 167 | 权利转让 | ASSIGNATION; ASSIGNATIONS | 诉讼 |
+| 168 | 可承接的 | ASSUMABLE | 诉讼 |
+| 169 | 假定 | ASSUME; ASSUMES; ASSUMING; PRESUMING | 不确定 |
+| 170 | 假定的 | ASSUMED | 不确定 |
+| 171 | 假设 | ASSUMPTION; ASSUMPTIONS | 不确定 |
+| 172 | 保证 | ASSURE; ASSURES; SURETY | 积极、诉讼 |
+| 173 | 有保障的 | ASSURED | 积极 |
+| 174 | 令人安心的 | ASSURING | 积极 |
+| 175 | 达到 | ATTAIN; ATTAINS | 积极 |
+| 176 | 已达到 | ATTAINED | 积极 |
+| 177 | 证明 | ATTEST; ATTESTING | 诉讼 |
+| 178 | 鉴证 | ATTESTATION; ATTESTATIONS | 诉讼 |
+| 179 | 证实 | ATTESTED | 诉讼 |
+| 180 | 转认 | ATTORN; ATTORNMENT; ATTORNS | 诉讼 |
+| 181 | 律师 | ATTORNEY; ATTORNEYS; LAWYER; LAWYERS | 诉讼 |
+| 182 | 有吸引力的 | ATTRACTIVE | 积极 |
+| 183 | 吸引力 | ATTRACTIVENESS | 积极 |
+| 184 | 流失 | ATTRITION | 消极 |
+| 185 | 倒签日期 | BACKDATING | 消极 |
+| 186 | 不良 | BAD; ILL; NONPERFORMING | 消极 |
+| 187 | 保释 | BAIL | 消极、诉讼 |
+| 188 | 已保释 | BAILED | 诉讼 |
+| 189 | 受寄托人 | BAILEE; BAILEES | 诉讼 |
+| 190 | 法警 | BAILIFF; BAILIFFS | 诉讼 |
+| 191 | 寄托 | BAILMENT | 诉讼 |
+| 192 | 纾困 | BAILOUT | 消极 |
+| 193 | 阻碍 | BALK; FRUSTRATE; FRUSTRATES; HAMPER; HAMPERS; HINDER; HINDERING; HINDERS; IMPEDE; IMPEDES; IMPEDING; OBSTRUCT; OBSTRUCTING; OBSTRUCTION; OBSTRUCTIONS | 消极 |
+| 194 | 受阻 | BALKED; DETERRED; HAMPERED; HINDERED; IMPEDED; OBSTRUCTED | 消极 |
+| 195 | 破产的 | BANKRUPT | 消极 |
+| 196 | 破产 | BANKRUPTCIES; BANKRUPTCY; BANKRUPTED; BANKRUPTS; INSOLVENCIES; INSOLVENCY | 消极、复杂性 |
+| 197 | 导致破产 | BANKRUPTING | 消极 |
+| 198 | 禁令 | BANS; INJUNCTION; INJUNCTIONS; PROHIBITION; PROHIBITIONS | 消极、诉讼、约束性 |
+| 199 | 被禁止 | BARRED; PROHIBITED | 消极、约束性 |
+| 200 | 壁垒 | BARRIER; BARRIERS | 消极 |
+| 201 | 亮眼的 | BEAUTIFUL; IMPRESSIVE | 积极 |
+| 202 | 出色地 | BEAUTIFULLY; IMPRESSIVELY | 积极 |
+| 203 | 认为 | BELIEVE; BELIEVED; BELIEVES; BELIEVING | 不确定 |
+| 204 | 受益的 | BENEFICIAL | 诉讼 |
+| 205 | 已选矿 | BENEFICIATED | 诉讼 |
+| 206 | 选矿 | BENEFICIATION | 诉讼 |
+| 207 | 受益 | BENEFITED; BENEFITING; BENEFITTED; BENEFITTING | 积极 |
+| 208 | 最佳 | BEST | 积极、强情态 |
+| 209 | 更好 | BETTER | 积极 |
+| 210 | 提振 | BOLSTERED; BOLSTERING; BOLSTERS; BOOST | 积极 |
+| 211 | 善意 | BONA; FIDE | 诉讼 |
+| 212 | 善意的 | BONAFIDE; FRIENDLY | 积极、诉讼 |
+| 213 | 繁荣 | BOOM; PROSPERITY | 积极 |
+| 214 | 蓬勃发展的 | BOOMING | 积极 |
+| 215 | 提振了 | BOOSTED | 积极 |
+| 216 | 瓶颈 | BOTTLENECK; BOTTLENECKS | 消极 |
+| 217 | 受约束的 | BOUND; RESTRAINED | 约束性 |
+| 218 | 受限的 | BOUNDED; CONFINED; RESTRICTED | 消极、约束性 |
+| 219 | 抵制 | BOYCOTT; BOYCOTTING | 消极 |
+| 220 | 抵制了 | BOYCOTTED | 消极 |
+| 221 | 抵制行动 | BOYCOTTS | 消极 |
+| 222 | 违约 | BREACH; DEFAULT; DEFAULTED; DEFAULTING; DEFAULTS | 消极、诉讼 |
+| 223 | 违反了 | BREACHED | 消极、诉讼 |
+| 224 | 违约行为 | BREACHES | 消极、诉讼 |
+| 225 | 违反 | BREACHING; CONTRAVENE; CONTRAVENED; CONTRAVENES; CONTRAVENING; CONTRAVENTION; CONTRAVENTIONS; OFFEND; VIOLATE; VIOLATED; VIOLATES; VIOLATING | 消极、诉讼 |
+| 226 | 破裂 | BREAK | 消极 |
+| 227 | 损耗 | BREAKAGE; BREAKAGES | 消极 |
+| 228 | 崩溃 | BREAKDOWN; COLLAPSE; COLLAPSED; COLLAPSES; COLLAPSING; DEMOLITION; DEMOLITIONS | 消极 |
+| 229 | 故障 | BREAKDOWNS; MALFUNCTION; MALFUNCTIONING; MALFUNCTIONS | 消极 |
+| 230 | 中断 | BREAKS; INTERRUPT; INTERRUPTING; INTERRUPTION; INTERRUPTIONS; INTERRUPTS; OUTAGE; OUTAGES | 消极 |
+| 231 | 突破 | BREAKTHROUGH; BREAKTHROUGHS | 积极 |
+| 232 | 行贿 | BRIBE; BRIBING | 消极 |
+| 233 | 行贿了 | BRIBED | 消极 |
+| 234 | 贿赂 | BRIBERIES; BRIBERY; BRIBES | 消极 |
+| 235 | 卓越的 | BRILLIANT; PREEMINENT | 积极 |
+| 236 | 负担 | BURDEN; BURDENS | 消极 |
+| 237 | 背负的 | BURDENED | 消极 |
+| 238 | 加重负担 | BURDENING; OVERBURDENING | 消极 |
+| 239 | 繁重的 | BURDENSOME; ONEROUS | 消极 |
+| 240 | 损失惨重 | BURNED | 消极 |
+| 241 | 灾难 | CALAMITIES; CALAMITY; DISASTER; DISASTERS | 消极 |
+| 242 | 灾难性的 | CALAMITOUS; CATASTROPHIC; DISASTROUS | 消极 |
+| 243 | 取消 | CANCEL; CANCELING; CANCELLATION; CANCELLING; CANCELS | 消极 |
+| 244 | 取消了 | CANCELED; CANCELLED | 消极 |
+| 245 | 退订 | CANCELLATIONS | 消极 |
+| 246 | 疏忽的 | CARELESS; NEGLECTFUL | 消极 |
+| 247 | 疏忽地 | CARELESSLY | 消极 |
+| 248 | 疏忽 | CARELESSNESS; INATTENTION; NEGLECT; NEGLECTS | 消极 |
+| 249 | 亏损前转 | CARRYBACK | 复杂性 |
+| 250 | 亏损结转 | CARRYFORWARD; CARRYFORWARDS | 复杂性 |
+| 251 | 巨灾 | CATASTROPHE; CATASTROPHES | 消极 |
+| 252 | 灾难性地 | CATASTROPHICALLY; DISASTROUSLY | 消极 |
+| 253 | 谨慎 | CAUTION | 消极 |
+| 254 | 警示性 | CAUTIONARY | 消极 |
+| 255 | 告诫 | CAUTIONED; CAUTIONING; CAUTIONS | 消极 |
+| 256 | 审慎 | CAUTIOUS | 不确定 |
+| 257 | 审慎地 | CAUTIOUSLY | 不确定 |
+| 258 | 审慎性 | CAUTIOUSNESS | 不确定 |
+| 259 | 停止 | CEASE; CEASED; CEASES; CEASING; DESIST; STOPPED; STOPPING; STOPS | 消极、诉讼 |
+| 260 | 分出人 | CEDANT; CEDANTS | 诉讼 |
+| 261 | 谴责 | CENSURE; CENSURED; CENSURES; CENSURING; CONDEMN; CONDEMNATION; CONDEMNATIONS; CONDEMNED; CONDEMNING; CONDEMNS | 消极 |
+| 262 | 调卷令 | CERTIORARI | 诉讼 |
+| 263 | 分保 | CESSION | 诉讼 |
+| 264 | 挑战 | CHALLENGE; CHALLENGES | 消极 |
+| 265 | 受到挑战 | CHALLENGED | 消极 |
+| 266 | 严峻的 | CHALLENGING | 消极 |
+| 267 | 核销 | CHARGEOFFS; WRITEOFF; WRITEOFFS | 消极 |
+| 268 | 慈善的 | CHARITABLE | 积极 |
+| 269 | 动产 | CHATTEL; CHATTELS | 诉讼 |
+| 270 | 完全确立的 | CHOATE | 诉讼 |
+| 271 | 规避 | CIRCUMVENT; CIRCUMVENTED; CIRCUMVENTING; CIRCUMVENTION; CIRCUMVENTIONS; CIRCUMVENTS | 消极 |
+| 272 | 索赔 | CLAIM; CLAIMS | 消极、诉讼 |
+| 273 | 可索赔的 | CLAIMABLE | 诉讼 |
+| 274 | 索赔人 | CLAIMANT; CLAIMANTS | 诉讼 |
+| 275 | 求偿权人 | CLAIMHOLDER | 诉讼 |
+| 276 | 声称 | CLAIMING; PURPORT; PURPORTING; PURPORTS | 消极 |
+| 277 | 澄清 | CLARIFICATION; CLARIFICATIONS | 不确定 |
+| 278 | 追回 | CLAWBACK | 消极 |
+| 279 | 追索 | CLAWBACKS | 诉讼 |
+| 280 | 明确地 | CLEARLY; DEFINITIVELY | 强情态 |
+| 281 | 平仓 | CLOSEOUT; CLOSEOUTS | 消极 |
+| 282 | 关闭 | CLOSINGS; CLOSURE; CLOSURES; SHUT; SHUTS; SHUTTING | 消极 |
+| 283 | 共同被告 | CODEFENDANT; CODEFENDANTS | 诉讼 |
+| 284 | 遗嘱附录 | CODICIL; CODICILS | 诉讼 |
+| 285 | 法典化 | CODIFICATION; CODIFICATIONS | 诉讼 |
+| 286 | 法典化的 | CODIFIED | 诉讼 |
+| 287 | 编纂 | CODIFIES; CODIFY | 诉讼 |
+| 288 | 编纂成法 | CODIFYING | 诉讼 |
+| 289 | 胁迫 | COERCE; COERCES; COERCING; COERCION; DURESS | 消极 |
+| 290 | 被胁迫 | COERCED | 消极 |
+| 291 | 胁迫性 | COERCIVE | 消极 |
+| 292 | 合作 | COLLABORATE; COLLABORATES; COLLABORATING; COLLABORATION; COLLABORATIONS; PARTNERING | 积极、复杂性 |
+| 293 | 已合作 | COLLABORATED | 积极 |
+| 294 | 协作的 | COLLABORATIVE | 积极 |
+| 295 | 合作方 | COLLABORATOR; COLLABORATORS | 积极 |
+| 296 | 抵押品 | COLLATERAL | 复杂性 |
+| 297 | 抵押担保 | COLLATERALIZATION | 复杂性 |
+| 298 | 冲突 | COLLISION; COLLISIONS; CONFLICT; CONFLICTS | 消极 |
+| 299 | 串通 | COLLUDE; COLLUDED; COLLUDES; COLLUDING; COLLUSION; COLLUSIONS | 消极、诉讼 |
+| 300 | 串通的 | COLLUSIVE | 消极 |
+| 301 | 承诺 | COMMIT; COMMITMENT; COMMITMENTS; COMMITS; COMMITTING | 约束性 |
+| 302 | 已承诺 | COMMITTED | 约束性 |
+| 303 | 迫使 | COMPEL; COMPELS; FORCING | 消极、约束性 |
+| 304 | 被迫 | COMPELLED | 约束性 |
+| 305 | 强制性的 | COMPELLING; MANDATORY; OBLIGATORY | 约束性 |
+| 306 | 补偿性 | COMPENSATORY | 诉讼 |
+| 307 | 投诉 | COMPLAIN; COMPLAINED; COMPLAINING; COMPLAINS; COMPLAINT; COMPLAINTS | 消极 |
+| 308 | 申诉人 | COMPLAINANT; COMPLAINANTS | 诉讼 |
+| 309 | 复杂 | COMPLEX; COMPLICATED | 消极、复杂性 |
+| 310 | 使复杂化 | COMPLICATE; COMPLICATES; COMPLICATING | 消极 |
+| 311 | 复杂情况 | COMPLICATION; COMPLICATIONS | 消极 |
+| 312 | 赞誉 | COMPLIMENT; COMPLIMENTS | 积极 |
+| 313 | 赞许的 | COMPLIMENTARY | 积极 |
+| 314 | 获赞誉 | COMPLIMENTED | 积极 |
+| 315 | 赞扬 | COMPLIMENTING | 积极 |
+| 316 | 强制 | COMPULSION | 消极、约束性 |
+| 317 | 强制性 | COMPULSORY | 约束性 |
+| 318 | 隐瞒 | CONCEALED; CONCEALING | 消极 |
+| 319 | 可能的 | CONCEIVABLE | 不确定、弱情态 |
+| 320 | 或许 | CONCEIVABLY; MAYBE; MIGHT; PERHAPS | 不确定、弱情态 |
+| 321 | 担忧 | CONCERN; CONCERNS; FEAR; FEARS; WORRY | 消极 |
+| 322 | 担忧的 | CONCERNED | 消极 |
+| 323 | 调解 | CONCILIATING; CONCILIATION; CONCILIATIONS; MEDIATE; MEDIATES; MEDIATING; MEDIATION; MEDIATIONS | 消极、诉讼 |
+| 324 | 确凿的 | CONCLUSIVE | 积极 |
+| 325 | 确凿地 | CONCLUSIVELY | 积极 |
+| 326 | 征收方 | CONDEMNOR | 诉讼 |
+| 327 | 有条件的 | CONDITIONAL | 不确定 |
+| 328 | 有条件地 | CONDITIONALLY | 不确定 |
+| 329 | 纵容 | CONDONE; CONDONED | 消极 |
+| 330 | 供认 | CONFESS; CONFESSED; CONFESSES; CONFESSING; CONFESSION | 消极 |
+| 331 | 有信心的 | CONFIDENT | 积极 |
+| 332 | 限制 | CONFINE; CONFINEMENT; CONFINEMENTS; CONFINING; RESTRICT; RESTRICTING; RESTRICTION; RESTRICTIONS; RESTRICTS | 消极、约束性 |
+| 333 | 局限 | CONFINES; LIMITATION; LIMITATIONS | 消极、约束性 |
+| 334 | 没收 | CONFISCATE; CONFISCATED; CONFISCATES; CONFISCATING; CONFISCATION; CONFISCATIONS; FORFEIT; FORFEITING; FORFEITS; FORFEITURE; FORFEITURES | 消极 |
+| 335 | 没收性的 | CONFISCATORY | 诉讼 |
+| 336 | 存在冲突的 | CONFLICTED | 消极 |
+| 337 | 相互矛盾的 | CONFLICTING | 消极 |
+| 338 | 面临 | CONFRONT; CONFRONTED; CONFRONTS | 消极 |
+| 339 | 对抗 | CONFRONTATION; CONFRONTATIONS | 消极 |
+| 340 | 应对 | CONFRONTING | 消极 |
+| 341 | 混淆 | CONFUSE; CONFUSES | 消极、不确定 |
+| 342 | 混乱 | CONFUSED; CONFUSION | 消极、不确定 |
+| 343 | 令人困惑的 | CONFUSING | 消极、不确定 |
+| 344 | 令人困惑地 | CONFUSINGLY | 消极、不确定 |
+| 345 | 同意 | CONSENT; CONSENTING; CONSENTS | 诉讼 |
+| 346 | 已同意 | CONSENTED | 诉讼 |
+| 347 | 接管 | CONSERVATORSHIPS | 诉讼 |
+| 348 | 共谋 | CONSPIRACIES; CONSPIRACY; CONSPIRE; CONSPIRED; CONSPIRES; CONSPIRING | 消极 |
+| 349 | 共谋者 | CONSPIRATOR; CONSPIRATORS | 消极 |
+| 350 | 共谋的 | CONSPIRATORIAL | 消极 |
+| 351 | 章程 | CONSTITUTION; CONSTITUTIONS | 诉讼 |
+| 352 | 章程规定的 | CONSTITUTIONAL | 诉讼 |
+| 353 | 合宪性 | CONSTITUTIONALITY | 诉讼 |
+| 354 | 依章程地 | CONSTITUTIONALLY | 诉讼 |
+| 355 | 构成性的 | CONSTITUTIVE | 诉讼 |
+| 356 | 约束 | CONSTRAIN; CONSTRAINS; CONSTRAINT; CONSTRAINTS; RESTRAIN; RESTRAINS; RESTRAINT; RESTRAINTS | 约束性 |
+| 357 | 受限 | CONSTRAINED | 约束性 |
+| 358 | 制约 | CONSTRAINING | 约束性 |
+| 359 | 建设性的 | CONSTRUCTIVE | 积极 |
+| 360 | 建设性地 | CONSTRUCTIVELY | 积极 |
+| 361 | 解释 | CONSTRUE; CONSTRUED; CONSTRUES; CONSTRUING | 诉讼 |
+| 362 | 藐视法庭 | CONTEMPT | 消极 |
+| 363 | 存在争议的 | CONTENTIOUS; DISPUTED | 消极 |
+| 364 | 充满争议地 | CONTENTIOUSLY | 消极 |
+| 365 | 可竞争性 | CONTESTABILITY | 诉讼 |
+| 366 | 有争议的 | CONTESTED; CONTROVERSIAL | 消极 |
+| 367 | 或有事项 | CONTINGENCIES; CONTINGENCY; CONTINGENTS | 不确定 |
+| 368 | 或有的 | CONTINGENT | 不确定 |
+| 369 | 或有地 | CONTINGENTLY | 不确定 |
+| 370 | 合同 | CONTRACT; CONTRACTS | 诉讼 |
+| 371 | 签约 | CONTRACTED | 诉讼 |
+| 372 | 合约持有人 | CONTRACTHOLDER; CONTRACTHOLDERS | 诉讼 |
+| 373 | 可缔约的 | CONTRACTIBLE | 诉讼 |
+| 374 | 可缩约的 | CONTRACTILE | 诉讼 |
+| 375 | 缔约 | CONTRACTING | 诉讼 |
+| 376 | 收缩 | CONTRACTION; CONTRACTIONS | 消极 |
+| 377 | 合同的 | CONTRACTUAL | 诉讼 |
+| 378 | 依合同地 | CONTRACTUALLY | 诉讼 |
+| 379 | 抵触 | CONTRADICT; CONTRADICTS | 消极 |
+| 380 | 相抵触 | CONTRADICTED; CONTRADICTING | 消极 |
+| 381 | 矛盾 | CONTRADICTION; CONTRADICTIONS | 消极 |
+| 382 | 矛盾的 | CONTRADICTORY | 消极 |
+| 383 | 相反 | CONTRARY | 消极 |
+| 384 | 反驳 | CONTROVERT; CONTROVERTING; REBUT; REBUTS; REBUTTAL; REBUTTALS | 诉讼 |
+| 385 | 被反驳 | CONTROVERTED | 诉讼 |
+| 386 | 不便法院原则 | CONVENIENS | 诉讼 |
+| 387 | 可转换债券 | CONVERTIBLE | 复杂性 |
+| 388 | 产权转让 | CONVEYANCE; CONVEYANCES | 诉讼 |
+| 389 | 定罪 | CONVICT; CONVICTING; CONVICTION; CONVICTIONS | 消极、诉讼 |
+| 390 | 被定罪 | CONVICTED | 消极、诉讼 |
+| 391 | 更正 | CORRECTED; CORRECTING; CORRECTS | 消极 |
+| 392 | 回调 | CORRECTION; CORRECTIONS | 消极 |
+| 393 | 腐败 | CORRUPT; CORRUPTION; CORRUPTIONS; CORRUPTNESS | 消极 |
+| 394 | 被腐化的 | CORRUPTED | 消极 |
+| 395 | 腐蚀 | CORRUPTING | 消极 |
+| 396 | 以腐败手段 | CORRUPTLY | 消极 |
+| 397 | 代价高昂的 | COSTLY | 消极 |
+| 398 | 同期届满的 | COTERMINOUS | 诉讼 |
+| 399 | 可能 | COULD; MAY; POSSIBLE; POSSIBLY | 不确定、弱情态 |
+| 400 | 法律顾问 | COUNSEL; COUNSELS | 诉讼 |
+| 401 | 提供法律意见 | COUNSELED; COUNSELLED | 诉讼 |
+| 402 | 反诉 | COUNTERCLAIM; COUNTERSUIT; COUNTERSUITS | 消极、诉讼 |
+| 403 | 提起反诉 | COUNTERCLAIMED; COUNTERCLAIMING; COUNTERSUED | 消极、诉讼 |
+| 404 | 反诉请求 | COUNTERCLAIMS | 消极 |
+| 405 | 假冒的 | COUNTERFEIT | 消极 |
+| 406 | 伪造的 | COUNTERFEITED; FALSIFIED | 消极 |
+| 407 | 造假者 | COUNTERFEITER; COUNTERFEITERS | 消极 |
+| 408 | 伪造 | COUNTERFEITING; FALSIFICATION; FALSIFICATIONS; FALSIFIES; FALSIFY; FALSIFYING; FORGERY | 消极 |
+| 409 | 假冒品 | COUNTERFEITS | 消极 |
+| 410 | 应对措施 | COUNTERMEASURE; COUNTERMEASURES | 消极 |
+| 411 | 交易对手 | COUNTERPARTIES; COUNTERPARTY | 复杂性 |
+| 412 | 会签人 | COUNTERSIGNOR | 诉讼 |
+| 413 | 法院 | COURT; COURTS | 诉讼 |
+| 414 | 礼貌的 | COURTEOUS | 积极 |
+| 415 | 法庭 | COURTROOM | 诉讼 |
+| 416 | 契约条款 | COVENANT; COVENANTS | 约束性、复杂性 |
+| 417 | 约定的 | COVENANTED | 约束性 |
+| 418 | 订立契约 | COVENANTING | 约束性 |
+| 419 | 创新的 | CREATIVE; INNOVATIVE; INVENTIVE | 积极 |
+| 420 | 创造性地 | CREATIVELY | 积极 |
+| 421 | 创造力 | CREATIVENESS; CREATIVITY; INGENUITY; INVENTIVENESS | 积极 |
+| 422 | 犯罪 | CRIME | 消极、诉讼 |
+| 423 | 犯罪行为 | CRIMES | 消极、诉讼 |
+| 424 | 刑事的 | CRIMINAL | 消极、诉讼 |
+| 425 | 犯罪性 | CRIMINALITY | 诉讼 |
+| 426 | 入罪 | CRIMINALIZE; CRIMINALIZING | 诉讼 |
+| 427 | 依刑法地 | CRIMINALLY | 消极、诉讼 |
+| 428 | 犯罪分子 | CRIMINALS | 消极、诉讼 |
+| 429 | 危机 | CRISES; CRISIS | 消极 |
+| 430 | 严重地 | CRITICALLY; GROSSLY; SERIOUSLY; SEVERELY | 消极 |
+| 431 | 批评 | CRITICISM; CRITICISMS; CRITICIZE; CRITICIZES; CRITICIZING | 消极 |
+| 432 | 受到批评 | CRITICIZED | 消极 |
+| 433 | 交叉请求 | CROSSCLAIM; CROSSCLAIMS | 诉讼 |
+| 434 | 十字路口 | CROSSROAD; CROSSROADS | 不确定 |
+| 435 | 紧要的 | CRUCIAL | 消极 |
+| 436 | 紧要地 | CRUCIALLY | 消极 |
+| 437 | 过错责任 | CULPABILITY | 消极 |
+| 438 | 有过错的 | CULPABLE | 消极 |
+| 439 | 有过错地 | CULPABLY | 消极 |
+| 440 | 繁琐的 | CUMBERSOME | 消极 |
+| 441 | 削减 | CURTAIL; CURTAILED; CURTAILING; CURTAILMENT; CURTAILMENTS; CURTAILS; CUT; CUTBACK; CUTBACKS | 消极 |
+| 442 | 网络攻击 | CYBERATTACK; CYBERATTACKS | 消极 |
+| 443 | 网络霸凌 | CYBERBULLYING | 消极 |
+| 444 | 网络犯罪 | CYBERCRIME; CYBERCRIMES | 消极 |
+| 445 | 网络罪犯 | CYBERCRIMINAL; CYBERCRIMINALS | 消极 |
+| 446 | 损害 | DAMAGE; DETRIMENT; DETRIMENTS; HARM; HARMS; HURT; HURTING; INJURE; INJURES; INJURIES; INJURING; INJURY; MISCHIEF; PREJUDICE; PREJUDICES; PREJUDICING; VITIATES | 消极、诉讼 |
+| 447 | 受损 | DAMAGED; HARMED; INJURED | 消极 |
+| 448 | 损害赔偿 | DAMAGES | 消极 |
+| 449 | 有害的 | DAMAGING; DELETERIOUS; DETRIMENTAL; HARMFUL; INJURIOUS | 消极 |
+| 450 | 抑制 | DAMPEN; DISCOURAGE; DISCOURAGES; INHIBIT; INHIBITING; INHIBITS | 消极、约束性 |
+| 451 | 受抑制 | DAMPENED | 消极 |
+| 452 | 危险 | DANGER; DANGERS | 消极 |
+| 453 | 危险的 | DANGEROUS; HAZARDOUS | 消极 |
+| 454 | 危险地 | DANGEROUSLY | 消极 |
+| 455 | 僵局 | DEADLOCK; DEADLOCKS; IMPASSE; IMPASSES | 消极 |
+| 456 | 陷入僵局 | DEADLOCKED; DEADLOCKING | 消极 |
+| 457 | 沉重负担 | DEADWEIGHT; DEADWEIGHTS | 消极 |
+| 458 | 禁入 | DEBARMENT; DEBARMENTS | 消极 |
+| 459 | 被禁入 | DEBARRED | 消极 |
+| 460 | 已故 | DECEASED | 消极 |
+| 461 | 被继承人 | DECEDENT; DECEDENTS | 诉讼 |
+| 462 | 欺诈 | DECEIT; DECEPTION; DECEPTIONS; FRAUD | 消极 |
+| 463 | 欺诈的 | DECEITFUL; FRAUDULENT | 消极 |
+| 464 | 欺诈性 | DECEITFULNESS; FRAUDULENCE | 消极 |
+| 465 | 欺骗 | DECEIVE; DECEIVES; DECEIVING | 消极 |
+| 466 | 被欺骗 | DECEIVED | 消极 |
+| 467 | 欺骗性的 | DECEPTIVE | 消极 |
+| 468 | 欺骗性地 | DECEPTIVELY | 消极 |
+| 469 | 声明人 | DECLARANT | 诉讼 |
+| 470 | 下降 | DECLINE; DECLINED; DECLINES | 消极 |
+| 471 | 下滑 | DECLINING | 消极 |
+| 472 | 裁定 | DECREE; DECREED; DECREEING; DECREES; RULING; RULINGS | 诉讼 |
+| 473 | 损毁 | DEFACE; DEFACEMENT | 消极 |
+| 474 | 受损毁 | DEFACED | 消极 |
+| 475 | 挪用公款 | DEFALCATION; DEFALCATIONS | 诉讼 |
+| 476 | 诽谤 | DEFAMATION; DEFAMATIONS; DEFAME; DEFAMED; DEFAMES; DEFAMING; LIBEL; LIBELS; SLANDER; SLANDERED; SLANDERS | 消极、诉讼 |
+| 477 | 诽谤性的 | DEFAMATORY; LIBELOUS; SLANDEROUS | 消极、诉讼 |
+| 478 | 债务解除 | DEFEASANCE; DEFEASANCES; DEFEASEMENT | 诉讼 |
+| 479 | 解除债务 | DEFEASE; DEFEASES; DEFEASING | 诉讼 |
+| 480 | 已解除债务 | DEFEASED | 诉讼 |
+| 481 | 失利 | DEFEAT; DEFEATS | 消极 |
+| 482 | 落败 | DEFEATED | 消极 |
+| 483 | 挫败 | DEFEATING; FRUSTRATION | 消极 |
+| 484 | 缺陷 | DEFECT; DEFECTS; DEFICIENCIES; DEFICIENCY; FAILINGS; FAULTS; FLAW; FLAWS; IMPERFECTION; IMPERFECTIONS | 消极 |
+| 485 | 有缺陷的 | DEFECTIVE; FLAWED | 消极 |
+| 486 | 有瑕疵地 | DEFECTIVELY | 诉讼 |
+| 487 | 抗辩 | DEFEND; DEFENDED; DEFENDING; DEFENDS; INTERPOSITION; INTERPOSITIONS; PLEA; PLEAS | 消极、诉讼 |
+| 488 | 可抗辩的 | DEFENDABLE | 诉讼 |
+| 489 | 被告 | DEFENDANT; DEFENDANTS | 消极、诉讼 |
+| 490 | 防御性的 | DEFENSIVE | 消极 |
+| 491 | 递延 | DEFER | 消极 |
+| 492 | 遵从 | DEFERENCE | 诉讼 |
+| 493 | 不足的 | DEFICIENT; INSUFFICIENT | 消极 |
+| 494 | 赤字 | DEFICIT; DEFICITS | 消极 |
+| 495 | 必定 | DEFINITELY | 强情态 |
+| 496 | 诈骗 | DEFRAUD; DEFRAUDED; DEFRAUDING; DEFRAUDS | 消极 |
+| 497 | 已停业倒闭的 | DEFUNCT | 消极 |
+| 498 | 延迟 | DELAY; DELAYED; DELAYS | 消极 |
+| 499 | 拖延 | DELAYING; PROTRACTION | 消极 |
+| 500 | 可委托的 | DELEGABLE; DELEGATABLE | 诉讼 |
+| 501 | 被授权人 | DELEGATEE | 诉讼 |
+| 502 | 受托代理人 | DELEGEES | 诉讼 |
+| 503 | 蓄意的 | DELIBERATE | 消极 |
+| 504 | 蓄意实施 | DELIBERATED | 消极 |
+| 505 | 蓄意地 | DELIBERATELY | 消极 |
+| 506 | 欣喜 | DELIGHT; PLEASURE | 积极 |
+| 507 | 欣喜的 | DELIGHTED | 积极 |
+| 508 | 令人满意的 | DELIGHTFUL; SATISFACTORY; SATISFYING | 积极 |
+| 509 | 令人欣喜地 | DELIGHTFULLY; PLEASANTLY | 积极 |
+| 510 | 令人欣喜 | DELIGHTING | 积极 |
+| 511 | 喜讯 | DELIGHTS | 积极 |
+| 512 | 逾期欠款 | DELINQUENCIES | 消极 |
+| 513 | 逾期 | DELINQUENCY; OVERDUE | 消极 |
+| 514 | 逾期的 | DELINQUENT | 消极 |
+| 515 | 逾期地 | DELINQUENTLY | 消极 |
+| 516 | 逾期借款人 | DELINQUENTS | 消极 |
+| 517 | 退市 | DELIST; DELISTING; DELISTS | 消极 |
+| 518 | 已退市 | DELISTED | 消极 |
+| 519 | 倒闭 | DEMISE; DEMISES | 消极 |
+| 520 | 已倒闭的 | DEMISED | 消极 |
+| 521 | 走向衰亡 | DEMISING | 消极 |
+| 522 | 摧毁 | DEMOLISH; DEMOLISHES; DESTROY; DESTROYING; DESTROYS | 消极 |
+| 523 | 被摧毁 | DEMOLISHED | 消极 |
+| 524 | 正在摧毁 | DEMOLISHING | 消极 |
+| 525 | 降级 | DEMOTE; DEMOTES; DEMOTING; DEMOTION; DEMOTIONS | 消极 |
+| 526 | 被降级 | DEMOTED | 消极 |
+| 527 | 提出抗辩 | DEMURRED; DEMURRING; INTERPOSE; INTERPOSES | 诉讼 |
+| 528 | 妨诉抗辩 | DEMURRER; DEMURRERS | 诉讼 |
+| 529 | 提出异议 | DEMURS; OBJECTED; OBJECTING | 消极、诉讼 |
+| 530 | 否认 | DENIAL; DENIALS; DENIED; DENIES; DENY; DENYING; DISAVOW; DISAVOWAL; DISAVOWING; DISAVOWS; DISCLAIMING; DISCLAIMS | 消极 |
+| 531 | 诋毁 | DENIGRATE; DENIGRATES; DENIGRATING; DENIGRATION | 消极 |
+| 532 | 被诋毁 | DENIGRATED | 消极 |
+| 533 | 取决于 | DEPEND; DEPENDED; DEPENDS; HINGES | 不确定、弱情态、约束性 |
+| 534 | 可靠性 | DEPENDABILITY | 积极 |
+| 535 | 可靠的 | DEPENDABLE | 积极 |
+| 536 | 依赖 | DEPENDANCE; DEPENDENCE | 不确定、约束性 |
+| 537 | 依赖关系 | DEPENDANCES; DEPENDENCIES | 不确定、约束性 |
+| 538 | 依赖的 | DEPENDANT; DEPENDENT | 不确定、约束性 |
+| 539 | 依赖性 | DEPENDENCY | 不确定 |
+| 540 | 视乎 | DEPENDING | 不确定、弱情态、约束性 |
+| 541 | 耗尽 | DEPLETE; DEPLETES | 消极 |
+| 542 | 已耗尽的 | DEPLETED | 消极 |
+| 543 | 正在耗尽 | DEPLETING | 消极 |
+| 544 | 耗减 | DEPLETION; DEPLETIONS | 消极 |
+| 545 | 宣誓作证 | DEPOSE | 诉讼 |
+| 546 | 已作证的 | DEPOSED | 诉讼 |
+| 547 | 作证 | DEPOSES; TESTIFY; TESTIFYING | 消极、诉讼 |
+| 548 | 取证 | DEPOSING | 诉讼 |
+| 549 | 庭外证言 | DEPOSITION; DEPOSITIONS | 诉讼 |
+| 550 | 证言的 | DEPOSITIONAL | 诉讼 |
+| 551 | 贬损 | DEPRECATION; DISPARAGEMENT | 消极 |
+| 552 | 压低 | DEPRESS; DEPRESSES; DEPRESSING | 消极 |
+| 553 | 低迷的 | DEPRESSED | 消极 |
+| 554 | 剥夺 | DEPRIVATION; DEPRIVE; DEPRIVES; DEPRIVING; DISPOSSESS; DISPOSSESSES; DISPOSSESSING | 消极 |
+| 555 | 被剥夺的 | DEPRIVED; DISPOSSESSED | 消极 |
+| 556 | 失职的 | DERELICT | 消极 |
+| 557 | 衍生品 | DERIVATIVE; DERIVATIVES | 复杂性 |
+| 558 | 克减 | DEROGATE; DEROGATES; DEROGATING; DEROGATION; DEROGATIONS | 诉讼 |
+| 559 | 已克减的 | DEROGATED | 诉讼 |
+| 560 | 贬损性的 | DEROGATORY | 消极 |
+| 561 | 理想的 | DESIRABLE | 积极 |
+| 562 | 期望的 | DESIRED | 积极 |
+| 563 | 尽管 | DESPITE | 积极 |
+| 564 | 不稳定化 | DESTABILIZATION | 消极 |
+| 565 | 动摇 | DESTABILIZE | 消极 |
+| 566 | 被动摇的 | DESTABILIZED | 消极 |
+| 567 | 破坏稳定的 | DESTABILIZING | 消极、不确定 |
+| 568 | 注定的 | DESTINED | 积极 |
+| 569 | 被摧毁的 | DESTROYED | 消极 |
+| 570 | 毁灭 | DESTRUCTION | 消极 |
+| 571 | 破坏性的 | DESTRUCTIVE | 消极 |
+| 572 | 拘留 | DETAIN; DETENTION; DETENTIONS | 消极 |
+| 573 | 被拘留的 | DETAINED | 消极 |
+| 574 | 扣押令 | DETAINER | 诉讼 |
+| 575 | 阻止 | DETER; DETERS | 消极 |
+| 576 | 已恶化 | DETERIORATED; WORSENED | 消极 |
+| 577 | 持续恶化 | DETERIORATING; WORSENING | 消极 |
+| 578 | 威慑 | DETERRENCE; DETERRENCES | 消极 |
+| 579 | 威慑因素 | DETERRENT; DETERRENTS | 消极 |
+| 580 | 遏制 | DETERRING | 消极 |
+| 581 | 削弱 | DETRACT; DETRACTING; UNDERMINE; UNDERMINES; UNDERMINING | 消极 |
+| 582 | 已削弱 | DETRACTED | 消极 |
+| 583 | 有害地 | DETRIMENTALLY; HARMFULLY | 消极 |
+| 584 | 贬值 | DEVALUE; DEVALUES | 消极 |
+| 585 | 已贬值 | DEVALUED | 消极 |
+| 586 | 持续贬值 | DEVALUING | 消极 |
+| 587 | 重创 | DEVASTATE; DEVASTATION | 消极 |
+| 588 | 遭重创 | DEVASTATED | 消极 |
+| 589 | 毁灭性的 | DEVASTATING | 消极 |
+| 590 | 偏离 | DEVIATE; DEVIATES; DEVIATING | 消极、不确定 |
+| 591 | 已偏离 | DEVIATED | 消极、不确定 |
+| 592 | 偏差 | DEVIATION; DEVIATIONS | 消极、不确定 |
+| 593 | 遗产受赠人 | DEVISEES; LEGATEE; LEGATEES | 诉讼 |
+| 594 | 转嫁 | DEVOLVE; DEVOLVES; DEVOLVING | 消极 |
+| 595 | 已转嫁 | DEVOLVED | 消极 |
+| 596 | 规定 | DICTATE; DICTATES; DICTATING; STIPULATE; STIPULATES; STIPULATING | 约束性 |
+| 597 | 所规定 | DICTATED | 约束性 |
+| 598 | 存在差异 | DIFFER; DIFFERED; DIFFERS | 不确定 |
+| 599 | 不同的 | DIFFERING | 不确定 |
+| 600 | 困难的 | DIFFICULT | 消极 |
+| 601 | 困难 | DIFFICULTIES; DIFFICULTY | 消极 |
+| 602 | 艰难地 | DIFFICULTLY | 消极 |
+| 603 | 勤勉的 | DILIGENT | 积极 |
+| 604 | 勤勉地 | DILIGENTLY | 积极 |
+| 605 | 减少 | DIMINISH; DIMINISHES; DIMINUTION | 消极 |
+| 606 | 已减少 | DIMINISHED | 消极 |
+| 607 | 递减 | DIMINISHING | 消极 |
+| 608 | 指令 | DIRECTIVE; DIRECTIVES | 约束性 |
+| 609 | 劣势 | DISADVANTAGE; DISADVANTAGES | 消极 |
+| 610 | 处于不利地位的 | DISADVANTAGED | 消极 |
+| 611 | 脱离关联 | DISAFFILIATION | 消极、诉讼 |
+| 612 | 否定 | DISAFFIRM; DISAFFIRMANCE; DISAFFIRMS | 诉讼 |
+| 613 | 已否定 | DISAFFIRMED | 诉讼 |
+| 614 | 不同意 | DISAGREE; DISAGREED; DISAGREES | 消极 |
+| 615 | 令人不快的 | DISAGREEABLE | 消极 |
+| 616 | 持异议 | DISAGREEING | 消极 |
+| 617 | 分歧 | DISAGREEMENT; DISAGREEMENTS | 消极 |
+| 618 | 不予认可 | DISALLOW; DISALLOWANCE; DISALLOWING; DISALLOWS | 消极 |
+| 619 | 不予认可项 | DISALLOWANCES | 消极 |
+| 620 | 已驳回 | DISALLOWED; DISMISSED | 消极 |
+| 621 | 消失 | DISAPPEAR; DISAPPEARANCE; DISAPPEARANCES; DISAPPEARS | 消极 |
+| 622 | 已消失 | DISAPPEARED | 消极 |
+| 623 | 正在消失 | DISAPPEARING | 消极 |
+| 624 | 令人失望 | DISAPPOINT; DISAPPOINTS | 消极 |
+| 625 | 失望的 | DISAPPOINTED | 消极 |
+| 626 | 令人失望的 | DISAPPOINTING | 消极 |
+| 627 | 令人失望地 | DISAPPOINTINGLY | 消极 |
+| 628 | 失望 | DISAPPOINTMENT; DISAPPOINTMENTS | 消极 |
+| 629 | 否决 | DISAPPROVAL; DISAPPROVALS; DISAPPROVE; DISAPPROVES; REJECT; REJECTED; REJECTING; REJECTION; REJECTIONS; REJECTS; VETOED | 消极 |
+| 630 | 已否决 | DISAPPROVED | 消极 |
+| 631 | 反对的 | DISAPPROVING; OPPOSED | 消极 |
+| 632 | 撇清关系 | DISASSOCIATES; DISASSOCIATING | 消极 |
+| 633 | 脱离关系 | DISASSOCIATION; DISASSOCIATIONS | 消极 |
+| 634 | 已否认 | DISAVOWED; DISCLAIMED | 消极 |
+| 635 | 纪律处分的 | DISCIPLINARY | 消极 |
+| 636 | 声明免责 | DISCLAIM | 消极 |
+| 637 | 免责声明 | DISCLAIMER; DISCLAIMERS | 消极 |
+| 638 | 披露 | DISCLOSE; DISCLOSES; DISCLOSING | 消极 |
+| 639 | 已披露 | DISCLOSED | 消极 |
+| 640 | 终止 | DISCONTINUANCE; DISCONTINUANCES; DISCONTINUATION; DISCONTINUATIONS; DISCONTINUE; DISCONTINUES; DISCONTINUING; SEVER; TERMINATE; TERMINATES; TERMINATION; TERMINATIONS | 消极 |
+| 641 | 已终止 | DISCONTINUED; TERMINATED | 消极 |
+| 642 | 受挫 | DISCOURAGED | 消极 |
+| 643 | 令人沮丧 | DISCOURAGING | 消极 |
+| 644 | 信誉受损 | DISCREDIT | 消极 |
+| 645 | 信誉扫地 | DISCREDITED | 消极 |
+| 646 | 损害声誉 | DISCREDITING; DISCREDITS | 消极 |
+| 647 | 不符 | DISCREPANCIES; DISCREPANCY | 消极 |
+| 648 | 失宠 | DISFAVOR | 消极 |
+| 649 | 不受青睐 | DISFAVORED | 消极 |
+| 650 | 冷落 | DISFAVORING; DISFAVORS | 消极 |
+| 651 | 退缴违法所得 | DISGORGE; DISGORGES; DISGORGING | 消极 |
+| 652 | 已退缴违法所得 | DISGORGED | 消极 |
+| 653 | 违法所得追缴 | DISGORGEMENT; DISGORGEMENTS | 消极 |
+| 654 | 蒙羞 | DISGRACE | 消极 |
+| 655 | 可耻的 | DISGRACEFUL | 消极 |
+| 656 | 可耻地 | DISGRACEFULLY | 消极 |
+| 657 | 不诚信的 | DISHONEST | 消极 |
+| 658 | 不诚信地 | DISHONESTLY | 消极 |
+| 659 | 不诚信 | DISHONESTY | 消极 |
+| 660 | 拒付 | DISHONOR; DISHONORING; DISHONORS | 消极 |
+| 661 | 不光彩的 | DISHONORABLE; UNSAVORY | 消极 |
+| 662 | 不光彩地 | DISHONORABLY | 消极 |
+| 663 | 遭拒付 | DISHONORED | 消极 |
+| 664 | 抑制因素 | DISINCENTIVES | 消极 |
+| 665 | 缺乏兴趣的 | DISINTERESTED | 消极 |
+| 666 | 冷淡地 | DISINTERESTEDLY | 消极 |
+| 667 | 冷淡 | DISINTERESTEDNESS | 消极 |
+| 668 | 不忠诚的 | DISLOYAL | 消极 |
+| 669 | 不忠诚地 | DISLOYALLY | 消极 |
+| 670 | 不忠诚 | DISLOYALTY | 消极 |
+| 671 | 惨淡的 | DISMAL | 消极 |
+| 672 | 惨淡地 | DISMALLY | 消极 |
+| 673 | 驳回 | DISMISS; DISMISSAL; DISMISSALS; DISMISSES; DISMISSING; OVERRULE; OVERRULED; OVERRULES; OVERRULING | 消极、诉讼 |
+| 674 | 无序的 | DISORDERLY | 消极 |
+| 675 | 贬低 | DISPARAGE; DISPARAGES | 消极 |
+| 676 | 被贬低的 | DISPARAGED | 消极 |
+| 677 | 贬损言论 | DISPARAGEMENTS | 消极 |
+| 678 | 贬损的 | DISPARAGING | 消极 |
+| 679 | 贬损地 | DISPARAGINGLY | 消极 |
+| 680 | 差距 | DISPARITIES; DISPARITY | 消极 |
+| 681 | 取代 | DISPLACE; DISPLACES; DISPLACING; SUPERSEDE; SUPERSEDES | 消极、诉讼 |
+| 682 | 被取代的 | DISPLACED | 消极 |
+| 683 | 替代 | DISPLACEMENT | 消极 |
+| 684 | 替代效应 | DISPLACEMENTS | 消极 |
+| 685 | 处置 | DISPOSE | 消极 |
+| 686 | 决定性的 | DISPOSITIVE | 诉讼 |
+| 687 | 强制收回 | DISPOSSESSION | 诉讼 |
+| 688 | 收回占有的 | DISPOSSESSORY | 诉讼 |
+| 689 | 失衡 | DISPROPORTION; IMBALANCE; IMBALANCES | 消极 |
+| 690 | 不成比例的 | DISPROPORTIONAL; DISPROPORTIONATE | 消极 |
+| 691 | 不成比例地 | DISPROPORTIONATELY | 消极 |
+| 692 | 纠纷 | DISPUTE; DISPUTES | 消极 |
+| 693 | 取消资格 | DISQUALIFICATION; DISQUALIFICATIONS; DISQUALIFIES; DISQUALIFY | 消极 |
+| 694 | 被取消资格的 | DISQUALIFIED | 消极 |
+| 695 | 取消资格的 | DISQUALIFYING | 消极 |
+| 696 | 无视 | DISREGARD; DISREGARDING; DISREGARDS | 消极 |
+| 697 | 被无视的 | DISREGARDED | 消极 |
+| 698 | 声名狼藉的 | DISREPUTABLE | 消极 |
+| 699 | 声誉受损 | DISREPUTE | 消极 |
+| 700 | 扰乱 | DISRUPT; DISRUPTING; DISRUPTS; DISTURB; DISTURBS; UPSET | 消极 |
+| 701 | 被扰乱的 | DISRUPTED | 消极 |
+| 702 | 冲击 | DISRUPTION; DISRUPTIONS | 消极 |
+| 703 | 颠覆性的 | DISRUPTIVE | 消极 |
+| 704 | 不满 | DISSATISFACTION | 消极 |
+| 705 | 不满意的 | DISSATISFIED | 消极 |
+| 706 | 异议 | DISSENT; DISSENTS; OBJECTION; OBJECTIONS | 消极 |
+| 707 | 投反对票 | DISSENTED | 消极 |
+| 708 | 异议者 | DISSENTER; DISSENTERS | 消极 |
+| 709 | 持异议的 | DISSENTING | 消极 |
+| 710 | 异议股东 | DISSIDENT; DISSIDENTS | 消极 |
+| 711 | 解散 | DISSOLUTION; DISSOLUTIONS | 消极 |
+| 712 | 卓越 | DISTINCTION; DISTINCTIONS; EXCELLENCE; EXCEPTIONAL; GREATNESS | 积极 |
+| 713 | 独特的 | DISTINCTIVE | 积极 |
+| 714 | 独特地 | DISTINCTIVELY | 积极 |
+| 715 | 独特性 | DISTINCTIVENESS | 积极 |
+| 716 | 扭曲 | DISTORT; DISTORTING; DISTORTION; DISTORTIONS; DISTORTS | 消极 |
+| 717 | 扭曲的 | DISTORTED | 消极 |
+| 718 | 分散精力 | DISTRACT; DISTRACTS | 消极 |
+| 719 | 分心的 | DISTRACTED | 消极 |
+| 720 | 令人分心的 | DISTRACTING | 消极 |
+| 721 | 干扰 | DISTRACTION; DISTRACTIONS; INTERFERE; INTERFERED; INTERFERENCE; INTERFERENCES; INTERFERES; INTERFERING | 消极 |
+| 722 | 扣押 | DISTRAINT; IMPOUND; IMPOUNDING; IMPOUNDS | 消极、诉讼 |
+| 723 | 财务困境 | DISTRESS | 消极 |
+| 724 | 陷入困境的 | DISTRESSED; FAILING; TROUBLED | 消极 |
+| 725 | 受分配人 | DISTRIBUTEE; DISTRIBUTEES | 诉讼 |
+| 726 | 动荡 | DISTURBANCE; DISTURBANCES; TURBULENCE; TURMOIL; UNREST | 消极、不确定 |
+| 727 | 受扰的 | DISTURBED | 消极 |
+| 728 | 令人不安的 | DISTURBING | 消极 |
+| 729 | 挪用 | DIVERSION; DIVERT; DIVERTING; DIVERTS; EMBEZZLING | 消极 |
+| 730 | 被挪用的 | DIVERTED | 消极 |
+| 731 | 剥离 | DIVEST; DIVESTING; DIVESTS | 消极 |
+| 732 | 已剥离的 | DIVESTED | 消极 |
+| 733 | 资产剥离 | DIVESTITURE; DIVESTITURES | 消极 |
+| 734 | 撤资 | DIVESTMENT; DIVESTMENTS | 消极 |
+| 735 | 分离 | DIVORCE | 消极 |
+| 736 | 分离的 | DIVORCED | 消极 |
+| 737 | 泄露 | DIVULGE; DIVULGES; DIVULGING | 消极 |
+| 738 | 已泄露的 | DIVULGED | 消极 |
+| 739 | 案件清单 | DOCKET; DOCKETS | 诉讼 |
+| 740 | 已立案登记 | DOCKETED | 诉讼 |
+| 741 | 立案登记 | DOCKETING | 诉讼 |
+| 742 | 受赠人 | DONEES | 诉讼 |
+| 743 | 质疑 | DOUBT; DOUBTS; QUESTION; QUESTIONING; QUESTIONS | 消极、不确定 |
+| 744 | 受到质疑 | DOUBTED | 消极、不确定 |
+| 745 | 可疑 | DOUBTFUL; SUSPICIOUS | 消极、不确定 |
+| 746 | 下调评级 | DOWNGRADE; DOWNGRADING | 消极 |
+| 747 | 已下调评级 | DOWNGRADED | 消极 |
+| 748 | 评级下调 | DOWNGRADES | 消极 |
+| 749 | 裁员 | DOWNSIZE; DOWNSIZES; DOWNSIZING; DOWNSIZINGS; LAYOFF; LAYOFFS | 消极 |
+| 750 | 已裁员 | DOWNSIZED | 消极 |
+| 751 | 停机 | DOWNTIME; DOWNTIMES | 消极 |
+| 752 | 下行 | DOWNTURN; DOWNTURNS | 消极 |
+| 753 | 下行的 | DOWNWARD | 消极 |
+| 754 | 向下 | DOWNWARDS | 消极 |
+| 755 | 拖累 | DRAG | 消极 |
+| 756 | 剧烈的 | DRASTIC; VIOLENT | 消极 |
+| 757 | 大幅地 | DRASTICALLY | 消极 |
+| 758 | 弊端 | DRAWBACK; DRAWBACKS | 消极 |
+| 759 | 愿景 | DREAM | 积极 |
+| 760 | 下跌 | DROPPED | 消极 |
+| 761 | 干旱 | DROUGHT; DROUGHTS | 消极 |
+| 762 | 正式地 | DULY | 诉讼 |
+| 763 | 失灵 | DYSFUNCTION; DYSFUNCTIONS | 消极 |
+| 764 | 失灵的 | DYSFUNCTIONAL | 消极 |
+| 765 | 专项拨付 | EARMARK; EARMARKING; EARMARKS | 约束性 |
+| 766 | 已专项拨付 | EARMARKED | 约束性 |
+| 767 | 更宽松 | EASIER | 积极 |
+| 768 | 轻松地 | EASILY | 积极 |
+| 769 | 松动 | EASING | 消极 |
+| 770 | 宽松 | EASY | 积极 |
+| 771 | 效率 | EFFICIENCIES; EFFICIENCY | 积极 |
+| 772 | 高效的 | EFFICIENT | 积极 |
+| 773 | 高效地 | EFFICIENTLY | 积极 |
+| 774 | 恶劣的 | EGREGIOUS | 消极 |
+| 775 | 恶劣地 | EGREGIOUSLY | 消极 |
+| 776 | 收回不动产之诉 | EJECTMENT | 诉讼 |
+| 777 | 禁运 | EMBARGO; EMBARGOES | 消极 |
+| 778 | 被禁运 | EMBARGOED | 消极 |
+| 779 | 实施禁运 | EMBARGOING | 消极 |
+| 780 | 令其难堪 | EMBARRASS; EMBARRASSES | 消极 |
+| 781 | 陷入难堪 | EMBARRASSED | 消极 |
+| 782 | 难堪的 | EMBARRASSING | 消极 |
+| 783 | 难堪 | EMBARRASSMENT; EMBARRASSMENTS | 消极 |
+| 784 | 侵占 | EMBEZZLE; EMBEZZLED; EMBEZZLEMENT; EMBEZZLEMENTS; EMBEZZLES; MISAPPROPRIATE; MISAPPROPRIATED; MISAPPROPRIATES; MISAPPROPRIATING; MISAPPROPRIATION; MISAPPROPRIATIONS; USURP; USURPATION; USURPING; USURPS | 消极、诉讼 |
+| 785 | 侵占者 | EMBEZZLER | 消极 |
+| 786 | 赋能 | EMPOWER; EMPOWERING; EMPOWERS | 积极 |
+| 787 | 获得赋能 | EMPOWERED | 积极 |
+| 788 | 助力 | ENABLE; ENABLES; ENABLING | 积极 |
+| 789 | 得以实现 | ENABLED | 积极 |
+| 790 | 受到鼓励 | ENCOURAGED | 积极 |
+| 791 | 鼓励 | ENCOURAGEMENT; ENCOURAGES | 积极 |
+| 792 | 令人鼓舞的 | ENCOURAGING | 积极 |
+| 793 | 侵蚀 | ENCROACH; ENCROACHES; ENCROACHING; ENCROACHMENT; ENCROACHMENTS; ERODE; ERODES; EROSION | 消极 |
+| 794 | 遭侵蚀 | ENCROACHED | 消极 |
+| 795 | 设定权利负担 | ENCUMBER; ENCUMBERING; ENCUMBERS | 消极、诉讼、约束性 |
+| 796 | 附带权利负担 | ENCUMBERED | 消极、诉讼、约束性 |
+| 797 | 权利负担 | ENCUMBRANCE; ENCUMBRANCES | 消极、诉讼、约束性 |
+| 798 | 担保权利人 | ENCUMBRANCER; ENCUMBRANCERS | 诉讼 |
+| 799 | 危及 | ENDANGER; ENDANGERING; ENDANGERMENT; ENDANGERS; IMPERIL; JEOPARDIZE; JEOPARDIZED | 消极 |
+| 800 | 受到危及 | ENDANGERED | 消极 |
+| 801 | 被背书人 | ENDORSEE; INDORSEES | 诉讼 |
+| 802 | 可执行性 | ENFORCEABILITY | 诉讼 |
+| 803 | 可强制执行的 | ENFORCEABLE | 诉讼 |
+| 804 | 可强制执行地 | ENFORCEABLY | 诉讼 |
+| 805 | 提升 | ENHANCE; ENHANCEMENT; ENHANCEMENTS; ENHANCES; ENHANCING | 积极 |
+| 806 | 增强 | ENHANCED; STRENGTHEN; STRENGTHENING; STRENGTHENS | 积极 |
+| 807 | 责令禁止 | ENJOIN; ENJOINING; ENJOINS | 消极 |
+| 808 | 被责令禁止 | ENJOINED | 消极 |
+| 809 | 享有 | ENJOY; ENJOYED; ENJOYING; ENJOYMENT; ENJOYS | 积极 |
+| 810 | 良好的 | ENJOYABLE; GOOD; PLEASANT | 积极 |
+| 811 | 令人满意地 | ENJOYABLY; SATISFACTORILY | 积极 |
+| 812 | 意味着需承担 | ENTAIL; ENTAILS | 约束性 |
+| 813 | 所附带的 | ENTAILED | 约束性 |
+| 814 | 附带 | ENTAILING | 约束性 |
+| 815 | 热情 | ENTHUSIASM; EXCITEMENT | 积极 |
+| 816 | 踊跃 | ENTHUSIASTIC | 积极 |
+| 817 | 踊跃地 | ENTHUSIASTICALLY | 积极 |
+| 818 | 实体 | ENTITIES | 复杂性 |
+| 819 | 固守 | ENTRENCH | 约束性 |
+| 820 | 根深蒂固的 | ENTRENCHED | 约束性 |
+| 821 | 受侵蚀的 | ERODED | 消极 |
+| 822 | 正在侵蚀 | ERODING | 消极 |
+| 823 | 反复无常的 | ERRATIC | 消极 |
+| 824 | 无规律地 | ERRATICALLY | 消极 |
+| 825 | 出错 | ERRED; ERRING; ERRS | 消极 |
+| 826 | 错误的 | ERRONEOUS; INCORRECT; MISTAKEN | 消极 |
+| 827 | 错误地 | ERRONEOUSLY; INCORRECTLY; MISTAKENLY; WRONGLY | 消极 |
+| 828 | 差错 | ERROR; ERRORS; MISTAKE; MISTAKES | 消极 |
+| 829 | 升级 | ESCALATE; ESCALATED; ESCALATES | 消极 |
+| 830 | 不断升级 | ESCALATING | 消极 |
+| 831 | 充公 | ESCHEAT; ESCHEATMENT | 诉讼 |
+| 832 | 已充公 | ESCHEATED | 诉讼 |
+| 833 | 第三方托管 | ESCROW | 约束性 |
+| 834 | 托管的 | ESCROWED | 约束性 |
+| 835 | 托管 | ESCROWING | 诉讼 |
+| 836 | 托管账户 | ESCROWS | 约束性 |
+| 837 | 禁止反言 | ESTOPPEL | 诉讼 |
+| 838 | 逃避 | EVADE; EVADED; EVADES; EVADING; EVASION | 消极 |
+| 839 | 逃避行为 | EVASIONS | 消极 |
+| 840 | 回避的 | EVASIVE | 消极 |
+| 841 | 驱逐 | EVICT; EVICTING; EVICTION; EVICTIONS; EVICTS | 消极 |
+| 842 | 被驱逐 | EVICTED | 消极 |
+| 843 | 证据的 | EVIDENTIAL | 诉讼 |
+| 844 | 证据性的 | EVIDENTIARY | 诉讼 |
+| 845 | 不断加剧 | EXACERBATING | 消极 |
+| 846 | 夸大 | EXAGGERATE; EXAGGERATES; EXAGGERATING; EXAGGERATION; OVERSTATE; OVERSTATED; OVERSTATEMENT; OVERSTATEMENTS; OVERSTATES; OVERSTATING | 消极 |
+| 847 | 夸大的 | EXAGGERATED | 消极 |
+| 848 | 超标 | EXCEEDANCE; EXCEEDANCES; EXCEEDENCES | 诉讼 |
+| 849 | 优异的 | EXCELLENT; SUPERIOR | 积极 |
+| 850 | 表现卓越 | EXCELLING | 积极 |
+| 851 | 表现优异 | EXCELS | 积极 |
+| 852 | 格外 | EXCEPTIONALLY | 积极 |
+| 853 | 过度 | EXCESSIVE | 消极 |
+| 854 | 过度地 | EXCESSIVELY; INORDINATELY; UNDULY | 消极 |
+| 855 | 剔除 | EXCISED | 诉讼 |
+| 856 | 振奋 | EXCITED | 积极 |
+| 857 | 振奋人心 | EXCITING | 积极 |
+| 858 | 独家 | EXCLUSIVE | 积极 |
+| 859 | 独家地 | EXCLUSIVELY | 积极 |
+| 860 | 排他性 | EXCLUSIVENESS | 积极 |
+| 861 | 独家产品 | EXCLUSIVES | 积极 |
+| 862 | 独占性 | EXCLUSIVITY | 积极 |
+| 863 | 获免责 | EXCULPATED | 消极、诉讼 |
+| 864 | 开脱责任 | EXCULPATING | 消极、诉讼 |
+| 865 | 免责 | EXCULPATION; EXONERATION | 消极、诉讼 |
+| 866 | 免责事由 | EXCULPATIONS | 消极、诉讼 |
+| 867 | 免责性的 | EXCULPATORY | 消极、诉讼 |
+| 868 | 遗嘱执行人 | EXECUTOR; EXECUTORS | 诉讼 |
+| 869 | 待履行的 | EXECUTORY | 诉讼 |
+| 870 | 女遗嘱执行人 | EXECUTRICES; EXECUTRIX; EXECUTRIXES | 诉讼 |
+| 871 | 堪称典范 | EXEMPLARY | 积极 |
+| 872 | 免除指控 | EXONERATE; EXONERATES | 消极 |
+| 873 | 获洗脱罪责 | EXONERATED | 消极 |
+| 874 | 洗脱罪责的 | EXONERATING | 消极 |
+| 875 | 免责认定 | EXONERATIONS | 消极 |
+| 876 | 不当利用 | EXPLOIT; EXPLOITING; EXPLOITS | 消极 |
+| 877 | 盘剥 | EXPLOITATION | 消极 |
+| 878 | 盘剥行为 | EXPLOITATIONS | 消极 |
+| 879 | 盘剥性的 | EXPLOITATIVE | 消极 |
+| 880 | 被侵占 | EXPLOITED | 消极 |
+| 881 | 曝光 | EXPOSE | 消极 |
+| 882 | 暴露 | EXPOSED | 消极 |
+| 883 | 揭露 | EXPOSES; EXPOSING; UNCOVER; UNCOVERING; UNCOVERS | 消极 |
+| 884 | 风险敞口 | EXPOSURE; EXPOSURES | 不确定 |
+| 885 | 征收 | EXPROPRIATE; EXPROPRIATES; EXPROPRIATING; EXPROPRIATION | 消极 |
+| 886 | 被征收 | EXPROPRIATED | 消极 |
+| 887 | 征收行为 | EXPROPRIATIONS | 消极 |
+| 888 | 除名 | EXPULSION; EXPULSIONS | 消极 |
+| 889 | 可减轻的 | EXTENUATING | 消极 |
+| 890 | 合同外的 | EXTRACONTRACTUAL | 诉讼 |
+| 891 | 体外的 | EXTRACORPOREAL | 诉讼 |
+| 892 | 法外的 | EXTRAJUDICIAL | 诉讼 |
+| 893 | 表面证据 | FACIE | 诉讼 |
+| 894 | 事实上 | FACTO | 诉讼 |
+| 895 | 失败 | FAIL; FAILS; FAILURE; FAILURES | 消极 |
+| 896 | 失败的 | FAILED; UNSUCCESSFUL | 消极 |
+| 897 | 负面影响 | FALLOUT | 消极 |
+| 898 | 虚假 | False | 消极 |
+| 899 | 虚假地 | FALSELY | 消极 |
+| 900 | 虚假性 | FALSITY | 消极 |
+| 901 | 出色的 | FANTASTIC | 积极 |
+| 902 | 死亡人数 | FATALITIES | 消极 |
+| 903 | 死亡 | FATALITY | 消极 |
+| 904 | 致命地 | FATALLY | 消极 |
+| 905 | 过错 | FAULT | 消极 |
+| 906 | 指责 | FAULTED | 消极 |
+| 907 | 存在缺陷的 | FAULTY | 消极 |
+| 908 | 看好的 | FAVORED | 积极 |
+| 909 | 倾向于 | FAVORING | 积极 |
+| 910 | 热门 | FAVORITE; POPULAR | 积极 |
+| 911 | 热门标的 | FAVORITES | 积极 |
+| 912 | 重罪 | FELONIES; FELONY | 消极、诉讼 |
+| 913 | 犯重罪的 | FELONIOUS | 消极、诉讼 |
+| 914 | 虚构的 | FICTITIOUS | 消极 |
+| 915 | 被罚款 | FINED | 消极 |
+| 916 | 罚款 | FINES; PENALTIES; PENALTY | 消极 |
+| 917 | 被解雇 | FIRED | 消极 |
+| 918 | 解雇 | FIRING | 消极 |
+| 919 | 浮动 | FLOATING | 复杂性 |
+| 920 | 波动 | FLUCTUATE; FLUCTUATED; FLUCTUATES; FLUCTUATION; FLUCTUATIONS | 不确定 |
+| 921 | 波动的 | FLUCTUATING | 不确定 |
+| 922 | 禁止 | FORBADE; FORBID; FORBIDS; PROHIBIT; PROHIBITING; PROHIBITS | 消极、诉讼、约束性 |
+| 923 | 宽限 | FORBEAR; FORBEARANCE; FORBEARANCES; FORBEARS; FOREBEAR; FOREBEARANCE; FOREBEARS | 诉讼 |
+| 924 | 宽限的 | FORBEARING | 诉讼 |
+| 925 | 被禁止的 | FORBIDDEN | 消极、约束性 |
+| 926 | 令人却步的 | FORBIDDING | 消极、约束性 |
+| 927 | 被迫的 | FORCED; INVOLUNTARY | 消极 |
+| 928 | 取消抵押品赎回权 | FORECLOSE; FORECLOSES | 消极 |
+| 929 | 已止赎的 | FORECLOSED | 消极 |
+| 930 | 止赎 | FORECLOSING; FORECLOSURE | 消极 |
+| 931 | 止赎案件 | FORECLOSURES | 消极 |
+| 932 | 放弃的 | FOREGONE | 消极 |
+| 933 | 预先阻止 | FORESTALL; FORESTALLING; FORESTALLS | 消极 |
+| 934 | 已预先阻止的 | FORESTALLED | 消极 |
+| 935 | 可没收性 | FORFEITABILITY | 诉讼 |
+| 936 | 可没收的 | FORFEITABLE | 诉讼 |
+| 937 | 被没收的 | FORFEITED | 消极 |
+| 938 | 伪造者 | FORGERS | 消极 |
+| 939 | 立即 | FORTHWITH | 诉讼 |
+| 940 | 据此 | FORWHICH; HEREON; HEREUPON; THEREON; WHEREBY | 诉讼 |
+| 941 | 欺诈行为 | FRAUDS | 消极 |
+| 942 | 欺诈性地 | FRAUDULENTLY | 消极 |
+| 943 | 无理的 | FRIVOLOUS | 消极 |
+| 944 | 无理地 | FRIVOLOUSLY | 消极 |
+| 945 | 受挫的 | FRUSTRATED | 消极 |
+| 946 | 令人沮丧的 | FRUSTRATING | 消极 |
+| 947 | 令人沮丧地 | FRUSTRATINGLY | 消极 |
+| 948 | 挫折 | FRUSTRATIONS; SETBACK; SETBACKS | 消极 |
+| 949 | 在逃人员 | FUGITIVE; FUGITIVES | 消极、诉讼 |
+| 950 | 收益 | GAIN; GAINS | 积极 |
+| 951 | 取得 | GAINED | 积极 |
+| 952 | 上升 | GAINING | 积极 |
+| 953 | 全球的 | GLOBAL | 复杂性 |
+| 954 | 授予方 | GRANTOR; GRANTORS | 诉讼 |
+| 955 | 无端的 | GRATUITOUS | 消极 |
+| 956 | 无端地 | GRATUITOUSLY | 消极 |
+| 957 | 最大的 | GREATEST | 积极 |
+| 958 | 大幅 | GREATLY; SHARPLY | 消极、积极 |
+| 959 | 申诉 | GRIEVANCE; GRIEVANCES | 消极 |
+| 960 | 毫无根据的 | GROUNDLESS; UNFOUNDED | 消极 |
+| 961 | 有罪的 | GUILTY | 消极 |
+| 962 | 停牌 | HALT | 消极 |
+| 963 | 已停牌 | HALTED | 消极 |
+| 964 | 阻碍着 | HAMPERING | 消极 |
+| 965 | 最满意的 | HAPPIEST | 积极 |
+| 966 | 可喜的是 | HAPPILY | 积极 |
+| 967 | 满意 | HAPPINESS; SATISFACTION | 积极 |
+| 968 | 满意的 | HAPPY; PLEASED; SATISFIED | 积极 |
+| 969 | 骚扰 | HARASS; HARASSMENT | 消极 |
+| 970 | 遭骚扰 | HARASSED | 消极 |
+| 971 | 骚扰性的 | HARASSING | 消极 |
+| 972 | 困境 | HARDSHIP; HARDSHIPS; TROUBLE; TROUBLES | 消极 |
+| 973 | 损害着 | HARMING | 消极 |
+| 974 | 严厉的 | HARSH | 消极 |
+| 975 | 更严厉的 | HARSHER | 消极 |
+| 976 | 最严厉的 | HARSHEST | 消极 |
+| 977 | 严厉地 | HARSHLY | 消极 |
+| 978 | 严厉 | HARSHNESS | 消极 |
+| 979 | 风险 | HAZARD; HAZARDS; PERIL; PERILS; RISK; RISKS | 消极、不确定 |
+| 980 | 已对冲的 | HEDGED | 复杂性 |
+| 981 | 对冲工具 | HEDGES | 复杂性 |
+| 982 | 自此以后 | HENCEFORTH; THENCEFORTH; THENCEFORWARD | 诉讼 |
+| 983 | 今后 | HENCEFORWARD | 诉讼 |
+| 984 | 以下 | HEREAFTER | 诉讼 |
+| 985 | 特此 | HEREBY | 诉讼 |
+| 986 | 可继承财产 | HEREDITAMENTS | 诉讼 |
+| 987 | 为此 | HEREFOR; HEREFORE; THEREUNTO; WHEREFORE | 诉讼 |
+| 988 | 由此 | HEREFROM; THENCE; THEREFROM | 诉讼 |
+| 989 | 本协议中 | HEREIN | 诉讼 |
+| 990 | 上文 | HEREINABOVE; HEREINBEFORE | 诉讼 |
+| 991 | 下文 | HEREINAFTER; HEREINBELOW | 诉讼 |
+| 992 | 本协议的 | HEREOF | 诉讼 |
+| 993 | 于此 | HERETO; HEREUNTO; THEREAT; WHEREAT | 诉讼 |
+| 994 | 迄今 | HERETOFORE | 诉讼 |
+| 995 | 本协议项下 | HEREUNDER | 诉讼 |
+| 996 | 随附 | HEREWITH | 诉讼 |
+| 997 | 本协议内 | HEREWITHIN | 诉讼 |
+| 998 | 隐性 | HIDDEN | 不确定 |
+| 999 | 最高 | HIGHEST | 积极、强情态 |
+| 1000 | 障碍 | HINDRANCE; HINDRANCES; IMPEDIMENT; IMPEDIMENTS; OBSTACLE; OBSTACLES | 消极 |
+| 1001 | 履行 | HONOR; HONORING; HONORS | 积极 |
+| 1002 | 已履行 | HONORED | 积极 |
+| 1003 | 敌意的 | HOSTILE; UNFRIENDLY | 消极 |
+| 1004 | 敌意 | HOSTILITY | 消极 |
+| 1005 | 理想 | IDEAL | 积极 |
+| 1006 | 闲置 | IDLE | 消极 |
+| 1007 | 停摆 | IDLED | 消极 |
+| 1008 | 停滞 | IDLING; STAGNANT; STAGNATE; STAGNATES; STAGNATION | 消极 |
+| 1009 | 忽视 | IGNORE; IGNORES; IGNORING; NEGLECTING; OVERLOOK; OVERLOOKED; OVERLOOKING; OVERLOOKS | 消极 |
+| 1010 | 被忽视 | IGNORED; NEGLECTED | 消极 |
+| 1011 | 违法 | ILLEGAL | 消极 |
+| 1012 | 违法行为 | ILLEGALITIES; OFFENCE; OFFENCES; OFFENSE | 消极、诉讼 |
+| 1013 | 违法性 | ILLEGALITY; UNLAWFULNESS | 消极、诉讼 |
+| 1014 | 违法地 | ILLEGALLY | 消极 |
+| 1015 | 无法辨认 | ILLEGIBLE | 消极 |
+| 1016 | 非法 | ILLICIT | 消极 |
+| 1017 | 非法地 | ILLICITLY; UNLAWFULLY | 消极、诉讼 |
+| 1018 | 流动性差 | ILLIQUID | 消极 |
+| 1019 | 流动性不足 | ILLIQUIDITY | 消极 |
+| 1020 | 非重大性 | IMMATERIALITY | 诉讼 |
+| 1021 | 不成熟 | IMMATURE | 消极 |
+| 1022 | 不道德 | IMMORAL | 消极 |
+| 1023 | 减损 | IMPAIR; IMPAIRING; IMPAIRS | 消极、约束性 |
+| 1024 | 减值的 | IMPAIRED | 消极、约束性 |
+| 1025 | 减值 | IMPAIRMENT; IMPAIRMENTS | 消极、约束性 |
+| 1026 | 迫近 | IMPENDING | 消极 |
+| 1027 | 亟需 | IMPERATIVE | 消极 |
+| 1028 | 不允许的 | IMPERMISSIBLE | 消极 |
+| 1029 | 追加为被告 | IMPLEADED | 诉讼 |
+| 1030 | 牵连 | IMPLICATE; IMPLICATES; IMPLICATING | 消极 |
+| 1031 | 被牵连 | IMPLICATED | 消极 |
+| 1032 | 施加 | IMPOSE; IMPOSES; IMPOSING | 约束性 |
+| 1033 | 已施加 | IMPOSED | 约束性 |
+| 1034 | 课征 | IMPOSITION; IMPOSITIONS | 约束性 |
+| 1035 | 不可能性 | IMPOSSIBILITY | 消极 |
+| 1036 | 不可能的 | IMPOSSIBLE | 消极 |
+| 1037 | 已扣押 | IMPOUNDED | 消极 |
+| 1038 | 不可行的 | IMPRACTICABLE; UNFEASIBLE | 消极 |
+| 1039 | 不切实际的 | IMPRACTICAL; UNREALISTIC | 消极 |
+| 1040 | 不可行之处 | IMPRACTICALITIES | 消极 |
+| 1041 | 不可行性 | IMPRACTICALITY | 消极 |
+| 1042 | 不精确的 | IMPRECISE; INEXACT | 不确定 |
+| 1043 | 不精确 | IMPRECISION | 不确定 |
+| 1044 | 不精确之处 | IMPRECISIONS | 不确定 |
+| 1045 | 令人印象深刻 | IMPRESS; IMPRESSES; IMPRESSING | 积极 |
+| 1046 | 印象深刻 | IMPRESSED | 积极 |
+| 1047 | 监禁 | IMPRISONMENT; INCARCERATE; INCARCERATES; INCARCERATING; INCARCERATION; INCARCERATIONS | 消极、诉讼 |
+| 1048 | 不大可能 | IMPROBABILITY | 不确定 |
+| 1049 | 不大可能的 | IMPROBABLE | 不确定 |
+| 1050 | 不当的 | IMPROPER; INAPPROPRIATE | 消极 |
+| 1051 | 不当地 | IMPROPERLY; INAPPROPRIATELY; WRONGFULLY | 消极 |
+| 1052 | 不当行为 | IMPROPRIETIES; IMPROPRIETY; INDECENCY; MISCONDUCT; WRONGDOING; WRONGDOINGS | 消极 |
+| 1053 | 改善 | IMPROVE; IMPROVEMENT; IMPROVEMENTS; IMPROVES | 积极 |
+| 1054 | 已改善 | IMPROVED | 积极 |
+| 1055 | 改善中的 | IMPROVING | 积极 |
+| 1056 | 不审慎的 | IMPRUDENT | 消极 |
+| 1057 | 不审慎地 | IMPRUDENTLY | 消极 |
+| 1058 | 无力 | INABILITY; UNABLE | 消极 |
+| 1059 | 无法获取的 | INACCESSIBLE; UNOBTAINABLE | 消极 |
+| 1060 | 不准确之处 | INACCURACIES | 消极 |
+| 1061 | 不准确 | INACCURACY | 消极 |
+| 1062 | 不准确的 | INACCURATE | 消极 |
+| 1063 | 不准确地 | INACCURATELY | 消极 |
+| 1064 | 不作为 | INACTION; INACTIONS; NONFEASANCE | 消极、诉讼 |
+| 1065 | 停用 | INACTIVATE; INACTIVATES | 消极 |
+| 1066 | 已停用 | INACTIVATED | 消极 |
+| 1067 | 使失效 | INACTIVATING | 消极 |
+| 1068 | 失效 | INACTIVATION; INACTIVATIONS; LAPSE; LAPSED; LAPSES; VITIATION | 消极 |
+| 1069 | 不活跃 | INACTIVITY | 消极 |
+| 1070 | 不足 | INADEQUACIES; INADEQUACY; INSUFFICIENCY | 消极 |
+| 1071 | 不充分的 | INADEQUATE | 消极 |
+| 1072 | 不充分地 | INADEQUATELY; INSUFFICIENTLY | 消极 |
+| 1073 | 无意的 | INADVERTENT | 消极 |
+| 1074 | 无意中 | INADVERTENTLY | 消极 |
+| 1075 | 不可取 | INADVISABILITY | 消极 |
+| 1076 | 不可取的 | INADVISABLE | 消极 |
+| 1077 | 鉴于 | INASMUCH; WHEREAS | 诉讼 |
+| 1078 | 无力的 | INCAPABLE | 消极 |
+| 1079 | 丧失行为能力的 | INCAPACITATED | 消极 |
+| 1080 | 无行为能力 | INCAPACITY | 消极、诉讼 |
+| 1081 | 被监禁的 | INCARCERATED | 消极、诉讼 |
+| 1082 | 未完成的 | INCHOATE; UNCOMPLETED | 消极、诉讼 |
+| 1083 | 发生率 | INCIDENCE; INCIDENCES | 消极 |
+| 1084 | 事件 | INCIDENT; INCIDENTS | 消极 |
+| 1085 | 不兼容 | INCOMPATIBILITIES; INCOMPATIBILITY | 消极 |
+| 1086 | 不兼容的 | INCOMPATIBLE | 消极 |
+| 1087 | 无能 | INCOMPETENCE; INCOMPETENCY | 消极 |
+| 1088 | 不胜任的 | INCOMPETENT | 消极 |
+| 1089 | 无能地 | INCOMPETENTLY | 消极 |
+| 1090 | 不胜任者 | INCOMPETENTS | 消极 |
+| 1091 | 不完整的 | INCOMPLETE | 消极 |
+| 1092 | 不完整地 | INCOMPLETELY | 消极 |
+| 1093 | 不完整性 | INCOMPLETENESS | 消极、不确定 |
+| 1094 | 未有定论的 | INCONCLUSIVE | 消极 |
+| 1095 | 不一致 | INCONSISTENCIES; INCONSISTENCY | 消极 |
+| 1096 | 不一致的 | INCONSISTENT | 消极 |
+| 1097 | 不一致地 | INCONSISTENTLY | 消极 |
+| 1098 | 不可抗辩 | INCONTESTABILITY | 诉讼 |
+| 1099 | 不可抗辩的 | INCONTESTABLE | 诉讼 |
+| 1100 | 不便 | INCONVENIENCE; INCONVENIENCES | 消极 |
+| 1101 | 不便的 | INCONVENIENT | 消极 |
+| 1102 | 错误 | INCORRECTNESS; WRONG | 消极 |
+| 1103 | 惊人的 | INCREDIBLE | 积极 |
+| 1104 | 惊人地 | INCREDIBLY | 积极 |
+| 1105 | 负债的 | INDEBTED | 约束性 |
+| 1106 | 不正当的 | INDECENT | 消极 |
+| 1107 | 不可撤销的 | INDEFEASIBLE; IRREVOCABLE; NONCANCELABLE; NONCANCELLABLE | 消极、诉讼、约束性 |
+| 1108 | 不可撤销地 | INDEFEASIBLY; IRREVOCABLY | 消极、诉讼、约束性 |
+| 1109 | 无限期的 | INDEFINITE | 不确定 |
+| 1110 | 无限期地 | INDEFINITELY | 不确定 |
+| 1111 | 不确定性 | INDEFINITENESS; UNCERTAINTIES; UNCERTAINTY | 不确定 |
+| 1112 | 可获补偿的 | INDEMNIFIABLE | 诉讼 |
+| 1113 | 补偿 | INDEMNIFICATION; INDEMNIFICATIONS; INDEMNIFIES; INDEMNIFY; INDEMNIFYING; INDEMNITY | 诉讼 |
+| 1114 | 已补偿的 | INDEMNIFIED | 诉讼 |
+| 1115 | 受补偿方 | INDEMNITEE; INDEMNITEES | 诉讼 |
+| 1116 | 补偿金 | INDEMNITIES | 诉讼 |
+| 1117 | 补偿方 | INDEMNITOR; INDEMNITORS | 诉讼 |
+| 1118 | 无法确定的 | INDETERMINABLE; UNDETERMINABLE | 不确定 |
+| 1119 | 不确定的 | INDETERMINATE; UNCERTAIN; UNSURE | 消极、不确定、弱情态 |
+| 1120 | 起诉 | INDICT; INDICTING; PROSECUTE; PROSECUTES; PROSECUTING; PROSECUTION; PROSECUTIONS; SUE; SUES; SUING | 消极、诉讼 |
+| 1121 | 可起诉的 | INDICTABLE | 消极、诉讼 |
+| 1122 | 被起诉 | INDICTED; PROSECUTED; SUED | 消极、诉讼 |
+| 1123 | 起诉书 | INDICTMENT; INDICTMENTS | 消极、诉讼 |
+| 1124 | 无效的 | INEFFECTIVE; INVALID | 消极 |
+| 1125 | 无效地 | INEFFECTIVELY | 消极 |
+| 1126 | 无效性 | INEFFECTIVENESS | 消极 |
+| 1127 | 低效率 | INEFFICIENCIES; INEFFICIENCY | 消极 |
+| 1128 | 低效的 | INEFFICIENT; UNPRODUCTIVE | 消极 |
+| 1129 | 低效地 | INEFFICIENTLY | 消极 |
+| 1130 | 不合格 | INELIGIBILITY | 消极 |
+| 1131 | 不合格的 | INELIGIBLE; NONCONFORMING; UNQUALIFIED | 消极 |
+| 1132 | 不公平的 | INEQUITABLE; UNFAIR | 消极 |
+| 1133 | 不公平地 | INEQUITABLY; UNFAIRLY | 消极 |
+| 1134 | 不公平 | INEQUITIES; INEQUITY | 消极 |
+| 1135 | 不可避免的 | INEVITABLE; UNAVOIDABLE | 消极 |
+| 1136 | 不精确性 | INEXACTNESS | 不确定 |
+| 1137 | 缺乏经验 | INEXPERIENCE | 消极 |
+| 1138 | 缺乏经验的 | INEXPERIENCED | 消极 |
+| 1139 | 较差的 | INFERIOR | 消极 |
+| 1140 | 造成的 | INFLICTED | 消极 |
+| 1141 | 有影响力的 | INFLUENTIAL | 积极 |
+| 1142 | 存续有效的 | INFORCE | 诉讼 |
+| 1143 | 信息丰富的 | INFORMATIVE | 积极 |
+| 1144 | 违规 | INFRACTION; INFRACTIONS; IRREGULARITY; NONCOMPLIANCE; OFFENDING; VIOLATION; VIOLATIONS | 消极、诉讼 |
+| 1145 | 侵犯 | INFRINGE; INFRINGED; INFRINGES | 消极 |
+| 1146 | 侵权 | INFRINGEMENT; INFRINGEMENTS; TORT | 消极、诉讼、复杂性 |
+| 1147 | 侵权人 | INFRINGER | 诉讼 |
+| 1148 | 侵权的 | INFRINGING; TORTIOUS | 消极、诉讼 |
+| 1149 | 受抑制的 | INHIBITED | 消极、约束性 |
+| 1150 | 禁令性的 | INJUNCTIVE | 诉讼 |
+| 1151 | 创新 | INNOVATE; INNOVATED; INNOVATES; INNOVATING; INNOVATION; INNOVATIONS | 积极 |
+| 1152 | 创新性 | INNOVATIVENESS | 积极 |
+| 1153 | 创新者 | INNOVATOR; INNOVATORS | 积极 |
+| 1154 | 过度的 | INORDINATE; UNDUE | 消极 |
+| 1155 | 调查 | INQUIRY; INVESTIGATE; INVESTIGATES; INVESTIGATION; INVESTIGATIONS | 消极 |
+| 1156 | 不稳固的 | INSECURE | 消极 |
+| 1157 | 麻木迟钝的 | INSENSITIVE | 消极 |
+| 1158 | 富有洞见的 | INSIGHTFUL | 积极 |
+| 1159 | 坚持要求 | INSIST; INSISTED; INSISTING; INSISTS | 约束性 |
+| 1160 | 坚持 | INSISTENCE | 约束性 |
+| 1161 | 在……范围内 | INSOFAR | 诉讼 |
+| 1162 | 资不抵债的 | INSOLVENT | 消极 |
+| 1163 | 鼓舞 | INSPIRATION | 积极 |
+| 1164 | 鼓舞人心的 | INSPIRATIONAL | 积极 |
+| 1165 | 不稳定 | INSTABILITIES; INSTABILITY | 消极、不确定 |
+| 1166 | 违抗 | INSUBORDINATION | 消极 |
+| 1167 | 动乱 | INSURRECTION; INSURRECTIONS | 消极 |
+| 1168 | 无形的 | INTANGIBLE | 不确定 |
+| 1169 | 无形资产 | INTANGIBLES | 不确定、复杂性 |
+| 1170 | 诚信 | INTEGRITY | 积极 |
+| 1171 | 故意的 | INTENTIONAL; WILFUL; WILLFUL | 消极、诉讼 |
+| 1172 | 中间裁定的 | INTERLOCUTORY | 诉讼 |
+| 1173 | 间歇性的 | INTERMITTENT | 消极 |
+| 1174 | 间歇性地 | INTERMITTENTLY | 消极 |
+| 1175 | 国际的 | INTERNATIONAL | 复杂性 |
+| 1176 | 互争权利之诉 | INTERPLEADER | 诉讼 |
+| 1177 | 提出的抗辩 | INTERPOSED | 诉讼 |
+| 1178 | 提出抗辩中 | INTERPOSING | 诉讼 |
+| 1179 | 讯问 | INTERROGATE; INTERROGATES; INTERROGATION; INTERROGATIONS | 诉讼 |
+| 1180 | 被讯问 | INTERROGATED | 诉讼 |
+| 1181 | 讯问中 | INTERROGATING | 诉讼 |
+| 1182 | 讯问人 | INTERROGATOR; INTERROGATORS | 诉讼 |
+| 1183 | 书面质询 | INTERROGATORIES; INTERROGATORY | 诉讼 |
+| 1184 | 中断的 | INTERRUPTED | 消极 |
+| 1185 | 无遗嘱继承 | INTESTACY | 诉讼 |
+| 1186 | 无遗嘱的 | INTESTATE | 诉讼 |
+| 1187 | 恐吓 | INTIMIDATION | 消极 |
+| 1188 | 入侵 | INTRUSION | 消极 |
+| 1189 | 使无效 | INVALIDATE; INVALIDATES; INVALIDATING; NULLIFIES; NULLIFY; VITIATE | 消极、诉讼 |
+| 1190 | 被认定无效 | INVALIDATED | 消极 |
+| 1191 | 无效认定 | INVALIDATION | 消极 |
+| 1192 | 无效 | INVALIDITY; NULLITY | 消极、诉讼 |
+| 1193 | 发明 | INVENT; INVENTING; INVENTION; INVENTIONS | 积极 |
+| 1194 | 发明的 | INVENTED | 积极 |
+| 1195 | 发明人 | INVENTOR; INVENTORS | 积极 |
+| 1196 | 被调查 | INVESTIGATED | 消极 |
+| 1197 | 调查中 | INVESTIGATING | 消极 |
+| 1198 | 被迫地 | INVOLUNTARILY | 消极 |
+| 1199 | 无法调和的 | IRRECONCILABLE | 消极 |
+| 1200 | 无法调和地 | IRRECONCILABLY | 消极 |
+| 1201 | 不可收回的 | IRRECOVERABLE; NONRECOVERABLE | 消极 |
+| 1202 | 不可收回地 | IRRECOVERABLY | 消极 |
+| 1203 | 不规范的 | IRREGULAR | 消极 |
+| 1204 | 违规行为 | IRREGULARITIES; NONCOMPLIANCES | 消极 |
+| 1205 | 违规地 | IRREGULARLY | 消极 |
+| 1206 | 无法弥补的 | IRREPARABLE | 消极 |
+| 1207 | 无可挽回地 | IRREPARABLY | 消极 |
+| 1208 | 不可逆转的 | IRREVERSIBLE | 消极 |
+| 1209 | 不可撤销性 | IRREVOCABILITY | 诉讼 |
+| 1210 | 合并诉讼 | JOINDER | 诉讼 |
+| 1211 | 司法的 | JUDICIAL | 诉讼 |
+| 1212 | 经司法程序地 | JUDICIALLY | 诉讼 |
+| 1213 | 司法机关 | JUDICIARIES; JUDICIARY | 诉讼 |
+| 1214 | 陪审团 | JURIES; JURY | 诉讼 |
+| 1215 | 法律 | JURIS; LAW; LAWS | 诉讼 |
+| 1216 | 管辖权 | JURISDICTION | 诉讼 |
+| 1217 | 管辖权的 | JURISDICTIONAL | 诉讼 |
+| 1218 | 在管辖权上 | JURISDICTIONALLY | 诉讼 |
+| 1219 | 司法辖区 | JURISDICTIONS | 诉讼 |
+| 1220 | 法理学 | JURISPRUDENCE | 诉讼 |
+| 1221 | 法学家 | JURIST; JURISTS | 诉讼 |
+| 1222 | 陪审员 | JUROR; JURORS; JURYMAN | 诉讼 |
+| 1223 | 司法公正 | JUSTICE | 诉讼 |
+| 1224 | 大法官 | JUSTICES | 诉讼 |
+| 1225 | 正当的 | JUSTIFIABLE | 消极 |
+| 1226 | 回扣 | KICKBACK; KICKBACKS | 消极 |
+| 1227 | 明知地 | KNOWINGLY | 消极 |
+| 1228 | 缺乏 | LACK; LACKED; LACKS | 消极 |
+| 1229 | 缺乏的 | LACKING | 消极 |
+| 1230 | 乏善可陈的 | LACKLUSTER | 消极 |
+| 1231 | 滞后 | LAG; LAGGED; LAGS | 消极 |
+| 1232 | 滞后的 | LAGGING | 消极 |
+| 1233 | 正在失效 | LAPSING | 消极 |
+| 1234 | 洗钱 | LAUNDERING | 消极 |
+| 1235 | 合法的 | LAWFUL | 诉讼 |
+| 1236 | 合法地 | LAWFULLY; LEGALLY | 诉讼 |
+| 1237 | 合法性 | LAWFULNESS; LEGALITY | 诉讼 |
+| 1238 | 立法者 | LAWMAKERS; LEGISLATOR; LEGISLATORS | 诉讼 |
+| 1239 | 立法 | LAWMAKING; LEGISLATE; LEGISLATES; LEGISLATING; LEGISLATION; LEGISLATIONS | 诉讼 |
+| 1240 | 诉讼 | LAWSUIT; LAWSUITS; LITIGATION; LITIGATIONS | 消极、诉讼、复杂性 |
+| 1241 | 领先地位 | LEADERSHIP; PREEMINENCE | 积极 |
+| 1242 | 领先的 | LEADING | 积极 |
+| 1243 | 租赁权益 | LEASEHOLD | 复杂性 |
+| 1244 | 租赁 | LEASES | 复杂性 |
+| 1245 | 法律的 | LEGAL | 诉讼 |
+| 1246 | 晦涩法律措辞 | LEGALESE | 诉讼 |
+| 1247 | 合法化 | LEGALIZATION; LEGALIZATIONS; LEGALIZING | 诉讼 |
+| 1248 | 使合法化 | LEGALIZE; LEGALIZES | 诉讼 |
+| 1249 | 已合法化的 | LEGALIZED | 诉讼 |
+| 1250 | 法律事务 | LEGALS | 诉讼 |
+| 1251 | 已立法的 | LEGISLATED | 诉讼 |
+| 1252 | 立法的 | LEGISLATIVE | 诉讼 |
+| 1253 | 经由立法 | LEGISLATIVELY | 诉讼 |
+| 1254 | 立法机关 | LEGISLATURE; LEGISLATURES | 诉讼 |
+| 1255 | 出租人 | LESSORS | 复杂性 |
+| 1256 | 遭诽谤 | LIBELED | 诉讼 |
+| 1257 | 可授权许可的 | LICENSABLE | 诉讼 |
+| 1258 | 牌照许可 | LICENSING | 复杂性 |
+| 1259 | 虚假陈述 | LIE; LYING; MISREPRESENT; MISREPRESENTATION; MISREPRESENTATIONS; MISREPRESENTING; MISREPRESENTS | 消极 |
+| 1260 | 留置权人 | LIENHOLDERS | 诉讼 |
+| 1261 | 可能性 | LIKELIHOOD; POSSIBILITIES; POSSIBILITY | 不确定 |
+| 1262 | 限额 | LIMIT; LIMITS | 约束性 |
+| 1263 | 限制性的 | LIMITING; RESTRICTIVE | 约束性 |
+| 1264 | 挥之不去的 | LINGERING | 消极 |
+| 1265 | 清算 | LIQUIDATE; LIQUIDATES; LIQUIDATION; LIQUIDATIONS | 消极 |
+| 1266 | 已清算的 | LIQUIDATED | 消极 |
+| 1267 | 清算中 | LIQUIDATING | 消极 |
+| 1268 | 清算人 | LIQUIDATOR; LIQUIDATORS | 消极 |
+| 1269 | 诉讼当事人 | LITIGANT; LITIGANTS | 消极、诉讼 |
+| 1270 | 提起诉讼 | LITIGATE; LITIGATES | 消极、诉讼 |
+| 1271 | 已涉诉的 | LITIGATED | 消极、诉讼 |
+| 1272 | 诉讼中 | LITIGATING | 消极、诉讼 |
+| 1273 | 诉讼律师 | LITIGATOR; LITIGATORS | 诉讼 |
+| 1274 | 易涉讼的 | LITIGIOUS | 诉讼 |
+| 1275 | 诉讼倾向 | LITIGIOUSNESS | 诉讼 |
+| 1276 | 停工 | LOCKOUT; LOCKOUTS; STOPPAGE; STOPPAGES | 消极 |
+| 1277 | 亏损 | LOSE; LOSES; LOSING; LOSS; LOSSES; LOST | 消极 |
+| 1278 | 最低 | LOWEST | 强情态 |
+| 1279 | 忠实的 | LOYAL | 积极 |
+| 1280 | 丰厚的 | LUCRATIVE | 积极 |
+| 1281 | 不可抗力 | MAJEURE | 诉讼 |
+| 1282 | 渎职 | MALFEASANCE; MALPRACTICE | 消极 |
+| 1283 | 发生故障 | MALFUNCTIONED | 消极 |
+| 1284 | 恶意 | MALICE | 消极 |
+| 1285 | 恶意的 | MALICIOUS | 消极 |
+| 1286 | 恶意地 | MALICIOUSLY | 消极 |
+| 1287 | 履行令 | MANDAMUS | 诉讼 |
+| 1288 | 强制要求 | MANDATE; MANDATES; MANDATING | 约束性 |
+| 1289 | 强制规定的 | MANDATED | 约束性 |
+| 1290 | 强制地 | MANDITORILY | 约束性 |
+| 1291 | 操纵 | MANIPULATE; MANIPULATED; MANIPULATES; MANIPULATING; MANIPULATION; MANIPULATIONS | 消极 |
+| 1292 | 操纵性的 | MANIPULATIVE | 消极 |
+| 1293 | 减记 | MARKDOWN; MARKDOWNS | 消极 |
+| 1294 | 经调解 | MEDIATED | 诉讼 |
+| 1295 | 调解人 | MEDIATOR; MEDIATORS | 诉讼 |
+| 1296 | 并购 | MERGERS | 复杂性 |
+| 1297 | 合并 | MERGING | 复杂性 |
+| 1298 | 有充分依据的 | MERITORIOUS | 积极 |
+| 1299 | 不当使用 | MISAPPLICATION; MISAPPLICATIONS | 消极 |
+| 1300 | 误用 | MISAPPLIED; MISAPPLIES; MISAPPLY; MISAPPLYING | 消极 |
+| 1301 | 虚假标识 | MISBRANDED | 消极 |
+| 1302 | 误算 | MISCALCULATE; MISCALCULATED; MISCALCULATES; MISCALCULATING | 消极 |
+| 1303 | 测算失误 | MISCALCULATION; MISCALCULATIONS | 消极 |
+| 1304 | 错误表述 | MISCHARACTERIZATION | 消极 |
+| 1305 | 错误分类 | MISCLASSIFICATION; MISCLASSIFICATIONS; MISCLASSIFIED; MISCLASSIFY | 消极 |
+| 1306 | 沟通失误 | MISCOMMUNICATION | 消极 |
+| 1307 | 日期错填 | MISDATED | 消极 |
+| 1308 | 轻罪 | MISDEMEANOR; MISDEMEANORS | 消极、诉讼 |
+| 1309 | 错配 | MISDIRECTED; MISMATCH; MISMATCHES; MISMATCHING | 消极 |
+| 1310 | 不当履职 | MISFEASANCE | 诉讼 |
+| 1311 | 处置不当 | MISHANDLE; MISHANDLED; MISHANDLES; MISHANDLING | 消极 |
+| 1312 | 误传 | MISINFORM; MISINFORMING; MISINFORMS | 消极 |
+| 1313 | 失实信息 | MISINFORMATION | 消极 |
+| 1314 | 受误导 | MISINFORMED | 消极 |
+| 1315 | 误读 | MISINTERPRET; MISINTERPRETATION; MISINTERPRETATIONS; MISINTERPRETED; MISINTERPRETING; MISINTERPRETS | 消极 |
+| 1316 | 误判 | MISJUDGE; MISJUDGED; MISJUDGES; MISJUDGING; MISJUDGMENT; MISJUDGMENTS; MISTAKING | 消极 |
+| 1317 | 标注错误 | MISLABEL; MISLABELED; MISLABELING; MISLABELLED; MISLABELS | 消极 |
+| 1318 | 误导 | MISLEAD; MISLEADS; MISLED | 消极 |
+| 1319 | 误导性 | MISLEADING | 消极 |
+| 1320 | 误导性地 | MISLEADINGLY | 消极 |
+| 1321 | 管理不善 | MISMANAGE; MISMANAGEMENT; MISMANAGES; MISMANAGING | 消极 |
+| 1322 | 管理不善的 | MISMANAGED | 消极 |
+| 1323 | 错配的 | MISMATCHED | 消极 |
+| 1324 | 失当的 | MISPLACED | 消极 |
+| 1325 | 错误定价 | MISPRICE; MISPRICING; MISPRICINGS | 消极 |
+| 1326 | 虚假陈述的 | MISREPRESENTED | 消极 |
+| 1327 | 未达预期 | MISS; MISSES | 消极 |
+| 1328 | 未达预期的 | MISSED | 消极 |
+| 1329 | 错报 | MISSTATE; MISSTATEMENT; MISSTATEMENTS; MISSTATES; MISSTATING | 消极 |
+| 1330 | 错报的 | MISSTATED | 消极 |
+| 1331 | 失误 | MISSTEP; MISSTEPS | 消极 |
+| 1332 | 审判无效 | MISTRIAL; MISTRIALS | 消极、诉讼 |
+| 1333 | 误解 | MISUNDERSTAND; MISUNDERSTANDING; MISUNDERSTANDINGS | 消极 |
+| 1334 | 被误解的 | MISUNDERSTOOD | 消极 |
+| 1335 | 被滥用的 | MISUSED | 消极 |
+| 1336 | 垄断的 | MONOPOLISTIC | 消极 |
+| 1337 | 垄断者 | MONOPOLISTS | 消极 |
+| 1338 | 垄断 | MONOPOLIZATION; MONOPOLIZE; MONOPOLIZES; MONOPOLIZING; MONOPOLY | 消极 |
+| 1339 | 被垄断的 | MONOPOLIZED | 消极 |
+| 1340 | 延期偿付 | MORATORIA; MORATORIUM; MORATORIUMS | 消极 |
+| 1341 | 此外 | MOREOVER | 诉讼 |
+| 1342 | 封存停用的 | MOTHBALLED | 消极 |
+| 1343 | 封存停用 | MOTHBALLING | 消极 |
+| 1344 | 动议 | MOTIONS | 诉讼 |
+| 1345 | 必须 | MUST | 强情态 |
+| 1346 | 比照适用 | MUTANDIS | 诉讼 |
+| 1347 | 近乎 | NEARLY | 不确定、弱情态 |
+| 1348 | 必然要求 | NECESSITATE; NECESSITATES | 约束性 |
+| 1349 | 所必需 | NECESSITATED | 约束性 |
+| 1350 | 促使必须 | NECESSITATING | 约束性 |
+| 1351 | 负面 | NEGATIVE | 消极 |
+| 1352 | 负面地 | NEGATIVELY | 消极 |
+| 1353 | 负面因素 | NEGATIVES | 消极 |
+| 1354 | 过失 | NEGLIGENCE | 消极 |
+| 1355 | 过失行为 | NEGLIGENCES | 消极 |
+| 1356 | 过失的 | NEGLIGENT | 消极 |
+| 1357 | 过失地 | NEGLIGENTLY | 消极 |
+| 1358 | 从未 | NEVER | 强情态 |
+| 1359 | 不抗辩 | NOLO | 诉讼 |
+| 1360 | 不可上诉的 | NONAPPEALABLE; UNAPPEALABLE | 诉讼 |
+| 1361 | 无需追缴的 | NONASSESSABLE | 不确定 |
+| 1362 | 未达标 | NONATTAINMENT | 消极 |
+| 1363 | 未违约 | NONBREACHING | 诉讼 |
+| 1364 | 无竞争力的 | NONCOMPETITIVE | 消极 |
+| 1365 | 不合规的 | NONCOMPLIANT; NONCOMPLYING | 消极 |
+| 1366 | 不符合项 | NONCONFORMITIES | 消极 |
+| 1367 | 不符合 | NONCONFORMITY | 消极 |
+| 1368 | 非或有的 | NONCONTINGENT | 诉讼 |
+| 1369 | 非合同的 | NONCONTRACT | 诉讼 |
+| 1370 | 非合同性的 | NONCONTRACTUAL | 诉讼 |
+| 1371 | 无需缴费的 | NONCONTRIBUTORY | 诉讼 |
+| 1372 | 未披露 | NONDISCLOSURE | 消极 |
+| 1373 | 非受信的 | NONFIDUCIARY | 诉讼 |
+| 1374 | 不可没收性 | NONFORFEITABILITY | 诉讼 |
+| 1375 | 不可没收的 | NONFORFEITABLE | 诉讼 |
+| 1376 | 不丧失权益 | NONFORFEITURE | 诉讼 |
+| 1377 | 无法运作的 | NONFUNCTIONAL | 消极 |
+| 1378 | 非担保人 | NONGUARANTOR | 诉讼 |
+| 1379 | 不侵权 | NONINFRINGEMENT | 诉讼 |
+| 1380 | 不侵权的 | NONINFRINGING | 诉讼 |
+| 1381 | 非司法的 | NONJUDICIAL | 诉讼 |
+| 1382 | 非司法地 | NONJUDICIALLY | 诉讼 |
+| 1383 | 非管辖性的 | NONJURISDICTIONAL | 诉讼 |
+| 1384 | 未付款 | NONPAYMENT | 消极 |
+| 1385 | 欠付款项 | NONPAYMENTS | 消极 |
+| 1386 | 不履约 | NONPERFORMANCE | 消极 |
+| 1387 | 不履约情形 | NONPERFORMANCES | 消极 |
+| 1388 | 不产出的 | NONPRODUCING | 消极 |
+| 1389 | 无效益的 | NONPRODUCTIVE | 消极 |
+| 1390 | 不予续约 | NONRENEWAL | 消极 |
+| 1391 | 不可分割的 | NONSEVERABLE | 诉讼 |
+| 1392 | 不可终止的 | NONTERMINABLE | 诉讼 |
+| 1393 | 非高利贷的 | NONUSURIOUS | 诉讼 |
+| 1394 | 公证的 | NOTARIAL | 诉讼 |
+| 1395 | 公证员 | NOTARIES | 诉讼 |
+| 1396 | 公证 | NOTARIZATION; NOTARIZATIONS; NOTARIZE | 诉讼 |
+| 1397 | 经公证的 | NOTARIZED | 诉讼 |
+| 1398 | 公证中 | NOTARIZING | 诉讼 |
+| 1399 | 公证处 | NOTARY | 诉讼 |
+| 1400 | 尽管有此约定 | NOTWITHSTANDING | 诉讼 |
+| 1401 | 重新审理 | NOVO; REHEAR; REHEARD | 诉讼 |
+| 1402 | 妨害 | NUISANCE; NUISANCES | 消极 |
+| 1403 | 宣告无效 | NULLIFICATION; NULLIFICATIONS; NULLIFYING; VOIDED; VOIDING | 消极、诉讼 |
+| 1404 | 被宣告无效 | NULLIFIED | 消极、诉讼 |
+| 1405 | 无效行为 | NULLITIES | 诉讼 |
+| 1406 | 令人反对的 | OBJECTIONABLE | 消极 |
+| 1407 | 令人反对地 | OBJECTIONABLY | 消极 |
+| 1408 | 使负有义务 | OBLIGATE; OBLIGATES; OBLIGATING | 约束性 |
+| 1409 | 负有义务的 | OBLIGATED | 约束性 |
+| 1410 | 义务 | OBLIGATION; OBLIGATIONS | 约束性 |
+| 1411 | 责令 | OBLIGE; OBLIGES | 约束性 |
+| 1412 | 有义务的 | OBLIGED | 约束性 |
+| 1413 | 债权人 | OBLIGEE; OBLIGEES | 诉讼 |
+| 1414 | 债务人 | OBLIGOR; OBLIGORS | 诉讼 |
+| 1415 | 淫秽的 | OBSCENE | 消极 |
+| 1416 | 淫秽内容 | OBSCENITY | 消极 |
+| 1417 | 过时 | OBSOLESCENCE | 消极 |
+| 1418 | 过时的 | OBSOLETE; OUTDATED | 消极 |
+| 1419 | 偶尔 | OCCASIONALLY | 不确定、弱情态 |
+| 1420 | 触犯 | OFFENDED; OFFENDS | 消极 |
+| 1421 | 违规者 | OFFENDER; OFFENDERS; VIOLATOR; VIOLATORS | 消极 |
+| 1422 | 受要约人 | OFFEREE; OFFEREES | 诉讼 |
+| 1423 | 要约人 | OFFEROR; OFFERORS | 诉讼 |
+| 1424 | 遗漏 | OMISSION; OMISSIONS; OMIT; OMITS; OMITTING | 消极 |
+| 1425 | 遗漏的 | OMITTED | 消极 |
+| 1426 | 投机的 | OPPORTUNISTIC | 消极 |
+| 1427 | 投机地 | OPPORTUNISTICALLY | 消极 |
+| 1428 | 机遇 | OPPORTUNITIES; OPPORTUNITY | 积极 |
+| 1429 | 反对 | OPPOSE; OPPOSES; OPPOSING; OPPOSITION | 消极 |
+| 1430 | 反对意见 | OPPOSITIONS | 消极 |
+| 1431 | 乐观的 | OPTIMISTIC | 积极 |
+| 1432 | 期权受让人 | OPTIONEE; OPTIONEES | 诉讼 |
+| 1433 | 通常 | ORDINARILY | 不确定 |
+| 1434 | 陈旧的 | OUTMODED | 消极 |
+| 1435 | 跑赢 | OUTPERFORM; OUTPERFORMED; OUTPERFORMING; OUTPERFORMS | 积极 |
+| 1436 | 外包 | OUTSOURCE | 复杂性 |
+| 1437 | 超额 | OVERAGE; OVERAGES | 消极 |
+| 1438 | 过度建设 | OVERBUILD; OVERBUILDING; OVERBUILDS | 消极 |
+| 1439 | 建设过剩的 | OVERBUILT | 消极 |
+| 1440 | 过度负担 | OVERBURDEN | 消极 |
+| 1441 | 负担过重的 | OVERBURDENED | 消极 |
+| 1442 | 产能过剩 | OVERCAPACITIES; OVERCAPACITY | 消极 |
+| 1443 | 多收费 | OVERCHARGE; OVERCHARGED; OVERCHARGES; OVERCHARGING | 消极 |
+| 1444 | 克服 | OVERCOME; OVERCOMES; OVERCOMING | 消极 |
+| 1445 | 高估 | OVERESTIMATE; OVERESTIMATED; OVERESTIMATES; OVERESTIMATING; OVERESTIMATION; OVERESTIMATIONS; OVERVALUE; OVERVALUING | 消极 |
+| 1446 | 超负荷 | OVERLOAD; OVERLOADED; OVERLOADING; OVERLOADS | 消极 |
+| 1447 | 溢价过高 | OVERPAID | 消极 |
+| 1448 | 超额支付 | OVERPAYMENT; OVERPAYMENTS | 消极 |
+| 1449 | 生产过剩 | OVERPRODUCED; OVERPRODUCES; OVERPRODUCING; OVERPRODUCTION | 消极 |
+| 1450 | 超支 | OVERRUN; OVERRUNNING; OVERRUNS | 消极 |
+| 1451 | 盖过 | OVERSHADOW; OVERSHADOWED; OVERSHADOWING; OVERSHADOWS | 消极 |
+| 1452 | 供给过剩 | OVERSUPPLIED; OVERSUPPLIES; OVERSUPPLY; OVERSUPPLYING | 消极 |
+| 1453 | 公然 | OVERTLY | 消极 |
+| 1454 | 推翻 | OVERTURN; OVERTURNED; OVERTURNING; OVERTURNS | 消极 |
+| 1455 | 估值过高 | OVERVALUED | 消极 |
+| 1456 | 恐慌 | PANIC; PANICS | 消极 |
+| 1457 | 同等地位 | PARI | 诉讼 |
+| 1458 | 同顺位 | PASSU | 诉讼 |
+| 1459 | 专利权人 | PATENTEE | 诉讼 |
+| 1460 | 金钱上 | PECUNIARILY | 诉讼 |
+| 1461 | 处罚 | PENALIZE; PENALIZED; PENALIZES; PENALIZING; PUNISHES; PUNISHMENT; PUNISHMENTS | 消极 |
+| 1462 | 待决 | PENDING | 不确定 |
+| 1463 | 完美 | PERFECT | 积极 |
+| 1464 | 完善的 | PERFECTED | 积极 |
+| 1465 | 完美地 | PERFECTLY | 积极 |
+| 1466 | 完善 | PERFECTS | 积极 |
+| 1467 | 伪证 | PERJURY | 消极、诉讼 |
+| 1468 | 允许的 | PERMISSIBLE | 约束性 |
+| 1469 | 许可 | PERMISSION; PERMISSIONS | 约束性 |
+| 1470 | 获准 | PERMITTED | 约束性 |
+| 1471 | 被许可人 | PERMITTEE; PERMITTEES | 诉讼 |
+| 1472 | 准许 | PERMITTING | 约束性 |
+| 1473 | 犯下 | PERPETRATE; PERPETRATES; PERPETRATING | 消极、诉讼 |
+| 1474 | 犯下的 | PERPETRATED | 消极、诉讼 |
+| 1475 | 犯案 | PERPETRATION | 消极、诉讼 |
+| 1476 | 持续 | PERSIST; PERSISTED; PERSISTING; PERSISTS | 消极 |
+| 1477 | 持续性 | PERSISTENCE | 消极 |
+| 1478 | 持续的 | PERSISTENT | 消极 |
+| 1479 | 持续地 | PERSISTENTLY | 消极 |
+| 1480 | 对人诉讼 | PERSONAM | 诉讼 |
+| 1481 | 普遍存在的 | PERVASIVE | 消极 |
+| 1482 | 普遍地 | PERVASIVELY | 消极 |
+| 1483 | 普遍性 | PERVASIVENESS | 消极 |
+| 1484 | 申请 | PETITION; PETITIONED; PETITIONING; PETITIONS | 诉讼 |
+| 1485 | 申请人 | PETITIONER; PETITIONERS | 诉讼 |
+| 1486 | 琐碎的 | PETTY | 消极 |
+| 1487 | 罢工纠察 | PICKET; PICKETING | 消极 |
+| 1488 | 纠察示威 | PICKETED | 消极 |
+| 1489 | 原告 | PLAINTIFF; PLAINTIFFS | 消极、诉讼 |
+| 1490 | 答辩 | PLEAD; PLEADED; PLEADS; PLED | 消极、诉讼 |
+| 1491 | 诉辩状 | PLEADING | 消极、诉讼 |
+| 1492 | 诉辩文书 | PLEADINGS | 消极、诉讼 |
+| 1493 | 质押 | PLEDGE; PLEDGES; PLEDGING | 约束性 |
+| 1494 | 已质押 | PLEDGED | 约束性 |
+| 1495 | 质权人 | PLEDGEE; PLEDGEES | 诉讼 |
+| 1496 | 出质人 | PLEDGOR; PLEDGORS | 诉讼 |
+| 1497 | 疲弱 | POOR; WEAKNESS | 消极 |
+| 1498 | 欠佳 | POORLY | 消极 |
+| 1499 | 受欢迎度 | POPULARITY | 积极 |
+| 1500 | 构成 | POSES; POSING | 消极 |
+| 1501 | 正面 | POSITIVE | 积极 |
+| 1502 | 积极地 | POSITIVELY | 积极 |
+| 1503 | 占有的 | POSSESSORY | 诉讼 |
+| 1504 | 交割后 | POSTCLOSING | 诉讼 |
+| 1505 | 关闭后 | POSTCLOSURE | 诉讼 |
+| 1506 | 合同后 | POSTCONTRACT | 诉讼 |
+| 1507 | 判决后 | POSTJUDGMENT | 诉讼 |
+| 1508 | 推迟 | POSTPONE; POSTPONED; POSTPONEMENT; POSTPONEMENTS; POSTPONES; POSTPONING | 消极 |
+| 1509 | 修订前 | PREAMENDMENT | 诉讼 |
+| 1510 | 防范措施 | PRECAUTION; PRECAUTIONS | 不确定 |
+| 1511 | 预防性 | PRECAUTIONARY | 不确定 |
+| 1512 | 引发 | PRECIPITATED; PROVOKE; PROVOKED; PROVOKES; PROVOKING | 消极 |
+| 1513 | 急剧的 | PRECIPITOUS | 消极 |
+| 1514 | 急剧地 | PRECIPITOUSLY | 消极 |
+| 1515 | 排除 | PRECLUDE; PRECLUDED; PRECLUDES; PRECLUDING | 消极、约束性 |
+| 1516 | 先决条件 | PRECONDITION; PRECONDITIONS | 约束性 |
+| 1517 | 掠夺性 | PREDATORY | 消极 |
+| 1518 | 先于死亡 | PREDECEASE; PREDECEASED; PREDECEASES; PREDECEASING | 诉讼 |
+| 1519 | 预测 | PREDICT; PREDICTED; PREDICTING; PREDICTION; PREDICTIONS; PREDICTS | 不确定 |
+| 1520 | 可预测性 | PREDICTABILITY | 不确定 |
+| 1521 | 预测性 | PREDICTIVE | 不确定 |
+| 1522 | 预测指标 | PREDICTOR; PREDICTORS | 不确定 |
+| 1523 | 庭前 | PREHEARING | 诉讼 |
+| 1524 | 受损的 | PREJUDICED | 消极、诉讼 |
+| 1525 | 有损的 | PREJUDICIAL | 消极、诉讼 |
+| 1526 | 初步地 | PRELIMINARILY; TENTATIVELY | 不确定 |
+| 1527 | 初步的 | PRELIMINARY; TENTATIVE | 不确定 |
+| 1528 | 过早的 | PREMATURE | 消极 |
+| 1529 | 过早地 | PREMATURELY | 消极 |
+| 1530 | 顶尖的 | PREMIER | 积极 |
+| 1531 | 首发 | PREMIERE | 积极 |
+| 1532 | 申请破产前 | PREPETITION | 诉讼 |
+| 1533 | 预设的 | PRESET | 约束性 |
+| 1534 | 紧迫的 | PRESSING; URGENT | 消极 |
+| 1535 | 声誉 | PRESTIGE | 积极 |
+| 1536 | 享有盛誉的 | PRESTIGIOUS | 积极 |
+| 1537 | 想必 | PRESUMABLY | 不确定 |
+| 1538 | 推定 | PRESUME; PRESUMES; PRESUMPTION; PRESUMPTIONS | 不确定 |
+| 1539 | 推定的 | PRESUMED | 不确定 |
+| 1540 | 推定地 | PRESUMPTIVELY | 诉讼 |
+| 1541 | 审前的 | PRETRIAL | 消极、诉讼 |
+| 1542 | 防止 | PREVENT; PREVENTING; PREVENTS | 消极、约束性 |
+| 1543 | 已阻止 | PREVENTED | 约束性 |
+| 1544 | 防范 | PREVENTION | 消极 |
+| 1545 | 表面的 | PRIMA | 诉讼 |
+| 1546 | 合同相对性 | PRIVITY | 诉讼 |
+| 1547 | 主动的 | PROACTIVE | 积极 |
+| 1548 | 主动地 | PROACTIVELY | 积极 |
+| 1549 | 概率性的 | PROBABILISTIC | 不确定 |
+| 1550 | 概率 | PROBABILITIES; PROBABILITY | 不确定 |
+| 1551 | 很可能的 | PROBABLE | 不确定 |
+| 1552 | 很可能 | PROBABLY | 不确定 |
+| 1553 | 遗嘱认证 | PROBATE; PROBATES | 诉讼 |
+| 1554 | 已认证的 | PROBATED | 诉讼 |
+| 1555 | 认证遗嘱 | PROBATING | 诉讼 |
+| 1556 | 缓刑 | PROBATION; PROBATIONS | 诉讼 |
+| 1557 | 缓刑的 | PROBATIONAL | 诉讼 |
+| 1558 | 试用考察的 | PROBATIONARY | 诉讼 |
+| 1559 | 缓刑人员 | PROBATIONER; PROBATIONERS | 诉讼 |
+| 1560 | 问题 | PROBLEM; PROBLEMS | 消极 |
+| 1561 | 有问题的 | PROBLEMATIC; PROBLEMATICAL | 消极 |
+| 1562 | 专业能力 | PROFICIENCY | 积极 |
+| 1563 | 精通的 | PROFICIENT | 积极 |
+| 1564 | 娴熟地 | PROFICIENTLY | 积极 |
+| 1565 | 盈利能力 | PROFITABILITY | 积极 |
+| 1566 | 盈利的 | PROFITABLE | 积极 |
+| 1567 | 盈利地 | PROFITABLY | 积极 |
+| 1568 | 推进中 | PROGRESSING | 积极 |
+| 1569 | 过高的 | PROHIBITIVE | 约束性 |
+| 1570 | 高得令人却步地 | PROHIBITIVELY | 约束性 |
+| 1571 | 禁止性的 | PROHIBITORY | 约束性 |
+| 1572 | 延长 | PROLONG; PROLONGATION; PROLONGATIONS; PROLONGING; PROLONGS | 消极 |
+| 1573 | 持续过久的 | PROLONGED | 消极 |
+| 1574 | 颁布 | PROMULGATE; PROMULGATED; PROMULGATES; PROMULGATING; PROMULGATION; PROMULGATIONS | 诉讼 |
+| 1575 | 颁布机关 | PROMULGATOR; PROMULGATORS | 诉讼 |
+| 1576 | 易于陷入的 | PRONE | 消极 |
+| 1577 | 按比例 | PRORATA; RATA | 诉讼 |
+| 1578 | 按比例分摊 | PRORATION | 诉讼 |
+| 1579 | 检察官 | PROSECUTOR; PROSECUTORS | 诉讼 |
+| 1580 | 检控的 | PROSECUTORIAL | 诉讼 |
+| 1581 | 繁荣发展 | PROSPERED; PROSPERING; PROSPERS | 积极 |
+| 1582 | 繁荣的 | PROSPEROUS | 积极 |
+| 1583 | 抗议 | PROTEST; PROTESTED; PROTESTING; PROTESTS | 消极 |
+| 1584 | 抗议者 | PROTESTER; PROTESTERS; PROTESTOR; PROTESTORS | 消极 |
+| 1585 | 旷日持久的 | PROTRACTED | 消极 |
+| 1586 | 限制性条款 | PROVISO; PROVISOES; PROVISOS | 诉讼 |
+| 1587 | 应受处罚的 | PUNISHABLE | 诉讼 |
+| 1588 | 已处罚 | PUNISHED | 消极 |
+| 1589 | 惩处 | PUNISHING; RETRIBUTION; RETRIBUTIONS | 消极 |
+| 1590 | 惩罚性的 | PUNITIVE | 消极 |
+| 1591 | 所谓的 | PURPORTED | 消极 |
+| 1592 | 可疑的 | QUESTIONABLE | 消极 |
+| 1593 | 可疑地 | QUESTIONABLY; SUSPICIOUSLY | 消极 |
+| 1594 | 受质疑 | QUESTIONED | 消极 |
+| 1595 | 退出 | QUIT; QUITTING | 消极 |
+| 1596 | 放弃权利 | QUITCLAIM; QUITCLAIMS; REMISED | 诉讼 |
+| 1597 | 敲诈勒索者 | RACKETEER | 消极 |
+| 1598 | 敲诈勒索 | RACKETEERING | 消极 |
+| 1599 | 随机的 | RANDOM | 不确定 |
+| 1600 | 随机化 | RANDOMIZE; RANDOMIZES; RANDOMIZING | 不确定 |
+| 1601 | 随机化的 | RANDOMIZED | 不确定 |
+| 1602 | 随机地 | RANDOMLY | 不确定 |
+| 1603 | 随机性 | RANDOMNESS | 不确定 |
+| 1604 | 可按比例分摊的 | RATABLE | 诉讼 |
+| 1605 | 按比例地 | RATABLY | 诉讼 |
+| 1606 | 整顿重组 | RATIONALIZATION; RATIONALIZATIONS | 消极 |
+| 1607 | 整顿 | RATIONALIZE; RATIONALIZES; RATIONALIZING | 消极 |
+| 1608 | 已整顿 | RATIONALIZED | 消极 |
+| 1609 | 重新辩论 | REARGUMENT | 诉讼 |
+| 1610 | 重新评估 | REASSESS; REASSESSES; REASSESSING; REASSESSMENT; REASSESSMENTS | 消极、不确定 |
+| 1611 | 已重新评估 | REASSESSED | 不确定 |
+| 1612 | 重新调配 | REASSIGN; REASSIGNING; REASSIGNS | 消极 |
+| 1613 | 已改派 | REASSIGNED | 消极 |
+| 1614 | 改派 | REASSIGNMENT; REASSIGNMENTS | 消极 |
+| 1615 | 反弹 | REBOUND; REBOUNDING | 积极 |
+| 1616 | 已反弹 | REBOUNDED | 积极 |
+| 1617 | 可反驳的 | REBUTTABLE | 诉讼 |
+| 1618 | 可反驳地 | REBUTTABLY | 诉讼 |
+| 1619 | 已反驳 | REBUTTED | 诉讼 |
+| 1620 | 反驳中 | REBUTTING | 诉讼 |
+| 1621 | 重新计算 | RECALCULATE; RECALCULATED; RECALCULATES; RECALCULATION; RECALCULATIONS | 不确定 |
+| 1622 | 重新计算中 | RECALCULATING | 不确定 |
+| 1623 | 召回 | RECALL; RECALLS | 消极 |
+| 1624 | 已召回 | RECALLED | 消极 |
+| 1625 | 召回中 | RECALLING | 消极 |
+| 1626 | 乐于接纳的 | RECEPTIVE | 积极 |
+| 1627 | 衰退 | RECESSION; RECESSIONS | 消极 |
+| 1628 | 衰退性的 | RECESSIONARY | 消极 |
+| 1629 | 鲁莽的 | RECKLESS | 消极 |
+| 1630 | 鲁莽地 | RECKLESSLY | 消极 |
+| 1631 | 鲁莽 | RECKLESSNESS | 消极 |
+| 1632 | 重新分类 | RECLASSIFIED | 复杂性 |
+| 1633 | 重新考虑 | RECONSIDER; RECONSIDERED; RECONSIDERS | 不确定 |
+| 1634 | 重新考虑中 | RECONSIDERING | 不确定 |
+| 1635 | 登记备案 | RECORDATION | 诉讼 |
+| 1636 | 可追偿的 | RECOUPABLE | 诉讼 |
+| 1637 | 追偿 | RECOUPMENT; RECOUPMENTS | 诉讼 |
+| 1638 | 追索权 | RECOURSE; RECOURSES | 诉讼 |
+| 1639 | 整改 | RECTIFICATION; RECTIFICATIONS; REMEDIATE; REMEDIATED; REMEDIATING; REMEDIATION | 诉讼 |
+| 1640 | 回避 | RECUSAL; RECUSE; RECUSES | 诉讼 |
+| 1641 | 已回避 | RECUSED | 诉讼 |
+| 1642 | 回避中 | RECUSING | 诉讼 |
+| 1643 | 删节 | REDACT; REDACTION; REDACTIONS | 消极、诉讼 |
+| 1644 | 已删节 | REDACTED | 消极、诉讼 |
+| 1645 | 删节中 | REDACTING | 消极、诉讼 |
+| 1646 | 再次违约 | REDEFAULT; REDEFAULTED; REDEFAULTS | 消极 |
+| 1647 | 救济 | REDRESS; REDRESSES | 消极 |
+| 1648 | 已救济 | REDRESSED | 消极 |
+| 1649 | 救济中 | REDRESSING | 消极 |
+| 1650 | 重新审查 | REEXAMINATION; REEXAMINE | 不确定 |
+| 1651 | 重新审查中 | REEXAMINING | 不确定 |
+| 1652 | 公投 | REFERENDA; REFERENDUM; REFERENDUMS | 诉讼 |
+| 1653 | 重新提交 | REFILE; REFILES; REFILING | 诉讼 |
+| 1654 | 已重新提交 | REFILED | 诉讼 |
+| 1655 | 克制 | REFRAIN; REFRAINING; REFRAINS | 约束性 |
+| 1656 | 拒绝 | REFUSAL; REFUSALS; REFUSE; REFUSED; REFUSES; REFUSING | 消极 |
+| 1657 | 重新获得 | REGAIN; REGAINED; REGAINING | 积极 |
+| 1658 | 监管 | REGULATE; REGULATES; REGULATING; REGULATION; REGULATORY | 诉讼 |
+| 1659 | 受监管 | REGULATED | 诉讼 |
+| 1660 | 监管规定 | REGULATIONS | 诉讼 |
+| 1661 | 监管性 | REGULATIVE | 诉讼 |
+| 1662 | 监管机构 | REGULATOR; REGULATORS | 诉讼 |
+| 1663 | 再审 | REHEARING; REHEARINGS | 诉讼 |
+| 1664 | 重新解读 | REINTERPRET; REINTERPRETATION; REINTERPRETATIONS; REINTERPRETED; REINTERPRETING; REINTERPRETS | 不确定 |
+| 1665 | 免责受益人 | RELEASEES | 诉讼 |
+| 1666 | 不情愿 | RELUCTANCE; RELUCTANT; UNWILLINGNESS | 消极 |
+| 1667 | 发回重审 | REMAND; REMANDED; REMANDING; REMANDS | 诉讼 |
+| 1668 | 整改措施 | REMEDIATIONS | 诉讼 |
+| 1669 | 纠正 | REMEDIED | 诉讼 |
+| 1670 | 重新谈判 | RENEGOTIATE; RENEGOTIATES; RENEGOTIATION; RENEGOTIATIONS | 消极 |
+| 1671 | 已重新谈判 | RENEGOTIATED | 消极 |
+| 1672 | 正在重新谈判 | RENEGOTIATING | 消极 |
+| 1673 | 正在放弃 | RENOUNCING | 消极 |
+| 1674 | 赔偿 | REPARATION | 消极 |
+| 1675 | 赔偿金 | REPARATIONS | 消极 |
+| 1676 | 汇回 | REPATRIATE | 复杂性 |
+| 1677 | 已汇回 | REPATRIATED | 复杂性 |
+| 1678 | 资金汇回 | REPATRIATION | 复杂性 |
+| 1679 | 再质押 | REPLEDGED | 诉讼 |
+| 1680 | 返还财产之诉 | REPLEVIN | 诉讼 |
+| 1681 | 已收回 | REPOSSESSED | 消极 |
+| 1682 | 收回 | REPOSSESSES | 消极 |
+| 1683 | 正在收回 | REPOSSESSING | 消极 |
+| 1684 | 抵押物收回 | REPOSSESSION; REPOSSESSIONS | 消极 |
+| 1685 | 重新按比例分摊 | REPRORATED | 诉讼 |
+| 1686 | 拒绝履行 | REPUDIATE; REPUDIATES; REPUDIATING; REPUDIATION; REPUDIATIONS | 消极 |
+| 1687 | 已拒绝履行 | REPUDIATED | 消极 |
+| 1688 | 请求人 | REQUESTER; REQUESTOR | 诉讼 |
+| 1689 | 要求 | REQUIRE; REQUIREMENT; REQUIREMENTS; REQUIRES; REQUIRING | 约束性 |
+| 1690 | 所要求的 | REQUIRED | 约束性 |
+| 1691 | 重新监管 | REREGULATION | 诉讼 |
+| 1692 | 合同撤销 | RESCISSION; RESCISSIONS | 诉讼 |
+| 1693 | 辞职 | RESIGN; RESIGNATION; RESIGNATIONS; RESIGNING; RESIGNS | 消极 |
+| 1694 | 已辞职 | RESIGNED | 消极 |
+| 1695 | 化解 | RESOLVE | 积极 |
+| 1696 | 重述 | RESTATE; RESTATES; RESTATING | 消极 |
+| 1697 | 已重述 | RESTATED | 消极 |
+| 1698 | 财务重述 | RESTATEMENT; RESTATEMENTS | 消极 |
+| 1699 | 返还性的 | RESTITUTIONARY | 诉讼 |
+| 1700 | 约束性的 | RESTRAINING | 约束性 |
+| 1701 | 严格地 | RESTRICTIVELY; STRICTLY | 约束性 |
+| 1702 | 限制程度 | RESTRICTIVENESS | 约束性 |
+| 1703 | 重组 | RESTRUCTURE; RESTRUCTURES; RESTRUCTURING; RESTRUCTURINGS | 消极、复杂性 |
+| 1704 | 已重组的 | RESTRUCTURED | 消极、复杂性 |
+| 1705 | 报复 | RETALIATE; RETALIATES; RETALIATING; RETALIATION; RETALIATIONS | 消极 |
+| 1706 | 已报复 | RETALIATED | 消极 |
+| 1707 | 报复性的 | RETALIATORY | 消极 |
+| 1708 | 重新招标 | RETENDERING | 诉讼 |
+| 1709 | 转分保 | RETROCEDE | 诉讼 |
+| 1710 | 已转分保 | RETROCEDED | 诉讼 |
+| 1711 | 转分保接受人 | RETROCESSIONAIRES | 诉讼 |
+| 1712 | 重估 | REVALUATION | 复杂性 |
+| 1713 | 可撤销性 | REVOCABILITY | 诉讼 |
+| 1714 | 变革 | REVOLUTIONIZE; REVOLUTIONIZES; REVOLUTIONIZING | 积极 |
+| 1715 | 已变革 | REVOLUTIONIZED | 积极 |
+| 1716 | 回报 | REWARD | 积极 |
+| 1717 | 获得回报 | REWARDED | 积极 |
+| 1718 | 有回报的 | REWARDING | 积极 |
+| 1719 | 嘲讽 | RIDICULE; RIDICULES; RIDICULING | 消极 |
+| 1720 | 遭嘲讽 | RIDICULED | 消极 |
+| 1721 | 冒险 | RISKED; RISKING | 不确定 |
+| 1722 | 风险更高的 | RISKIER | 消极、不确定 |
+| 1723 | 风险最高的 | RISKIEST | 消极、不确定 |
+| 1724 | 风险程度 | RISKINESS | 不确定 |
+| 1725 | 高风险 | RISKY | 消极、不确定 |
+| 1726 | 大致 | ROUGHLY | 不确定 |
+| 1727 | 传闻 | RUMORS | 不确定 |
+| 1728 | 蓄意破坏 | SABOTAGE; VANDALISM | 消极 |
+| 1729 | 牺牲 | SACRIFICE; SACRIFICED; SACRIFICES; SACRIFICING | 消极 |
+| 1730 | 牺牲性的 | SACRIFICIAL | 消极 |
+| 1731 | 满足 | SATISFIES; SATISFY | 积极 |
+| 1732 | 丑闻性的 | SCANDALOUS | 消极 |
+| 1733 | 丑闻 | SCANDALS | 消极 |
+| 1734 | 审查 | SCRUTINIZE; SCRUTINIZES; SCRUTINIZING; SCRUTINY | 消极 |
+| 1735 | 受到审查 | SCRUTINIZED | 消极 |
+| 1736 | 资产证券化 | SECURITIZATIONS | 复杂性 |
+| 1737 | 证券化的 | SECURITIZED | 复杂性 |
+| 1738 | 业务板块 | SEGMENTS | 复杂性 |
+| 1739 | 查封 | SEIZE; SEIZES; SEIZING | 消极 |
+| 1740 | 被查封 | SEIZED | 消极 |
+| 1741 | 很少 | SELDOM; SELDOMLY | 不确定、弱情态 |
+| 1742 | 被判处 | SENTENCED | 消极、诉讼 |
+| 1743 | 量刑 | SENTENCING | 消极、诉讼 |
+| 1744 | 财产保管人 | SEQUESTRATOR | 诉讼 |
+| 1745 | 严重的 | SERIOUS; SEVERE | 消极 |
+| 1746 | 严重性 | SERIOUSNESS | 消极 |
+| 1747 | 和解 | SETTLEMENT; SETTLEMENTS | 诉讼 |
+| 1748 | 可分割性 | SEVERABILITY | 诉讼 |
+| 1749 | 可分割的 | SEVERABLE | 诉讼 |
+| 1750 | 分别地 | SEVERALLY | 诉讼 |
+| 1751 | 解约补偿 | SEVERANCE; SEVERANCES | 诉讼 |
+| 1752 | 已切断 | SEVERED | 消极 |
+| 1753 | 严重程度 | SEVERITIES; SEVERITY | 消极 |
+| 1754 | 应当 | SHALL | 诉讼 |
+| 1755 | 震惊 | SHOCKED | 消极 |
+| 1756 | 短缺 | SHORTAGE; SHORTAGES | 消极 |
+| 1757 | 缺口 | SHORTFALL; SHORTFALLS | 消极 |
+| 1758 | 缩水 | SHRINKAGE; SHRINKAGES | 消极 |
+| 1759 | 停业 | SHUTDOWN; SHUTDOWNS | 消极 |
+| 1760 | 滑落 | SLIPPAGE; SLIPPAGES | 消极 |
+| 1761 | 放缓 | SLOW; SLOWDOWN; SLOWDOWNS; SLOWED; SLOWING | 消极 |
+| 1762 | 更缓慢 | SLOWER | 消极 |
+| 1763 | 最缓慢 | SLOWEST | 消极 |
+| 1764 | 缓慢地 | SLOWLY | 消极 |
+| 1765 | 迟缓 | SLOWNESS | 消极 |
+| 1766 | 低迷 | SLUGGISH; SLUGGISHNESS | 消极 |
+| 1767 | 低迷地 | SLUGGISHLY | 消极 |
+| 1768 | 平稳 | SMOOTH | 积极 |
+| 1769 | 平滑 | SMOOTHING; SMOOTHS | 积极 |
+| 1770 | 顺利地 | SMOOTHLY | 积极 |
+| 1771 | 偿付能力 | SOLVENCIES; SOLVENCY | 消极 |
+| 1772 | 解决 | SOLVES; SOLVING | 积极 |
+| 1773 | 某时 | SOMETIME | 不确定 |
+| 1774 | 有时 | SOMETIMES | 不确定、弱情态 |
+| 1775 | 略微 | SOMEWHAT | 不确定、弱情态 |
+| 1776 | 大约 | SOMEWHERE | 不确定 |
+| 1777 | 主权 | SOVEREIGN | 复杂性 |
+| 1778 | 垃圾信息 | SPAM | 消极 |
+| 1779 | 垃圾信息发送者 | SPAMMERS | 消极 |
+| 1780 | 滥发垃圾信息 | SPAMMING | 消极 |
+| 1781 | 亮眼 | SPECTACULAR | 积极 |
+| 1782 | 显著地 | SPECTACULARLY | 积极 |
+| 1783 | 猜测 | SPECULATE; SPECULATED; SPECULATES; SPECULATING; SPECULATION; SPECULATIONS | 不确定 |
+| 1784 | 推测性的 | SPECULATIVE | 不确定 |
+| 1785 | 推测性地 | SPECULATIVELY | 不确定 |
+| 1786 | 零星 | SPORADIC | 不确定 |
+| 1787 | 零星地 | SPORADICALLY | 不确定 |
+| 1788 | 稳定 | STABILITY; STABILIZE | 积极 |
+| 1789 | 企稳 | STABILIZATION; STABILIZATIONS; STABILIZING | 积极 |
+| 1790 | 已企稳 | STABILIZED | 积极 |
+| 1791 | 趋稳 | STABILIZES | 积极 |
+| 1792 | 稳健 | STABLE | 积极 |
+| 1793 | 惊人 | STAGGERING | 消极 |
+| 1794 | 陷入停滞 | STAGNATED | 消极 |
+| 1795 | 停滞中 | STAGNATING | 消极 |
+| 1796 | 停顿 | STANDSTILL; STANDSTILLS | 消极 |
+| 1797 | 法规 | STATUTE; STATUTES | 诉讼 |
+| 1798 | 依法地 | STATUTORILY | 诉讼 |
+| 1799 | 法定 | STATUTORY | 诉讼 |
+| 1800 | 规定的 | STIPULATED | 约束性 |
+| 1801 | 约定条款 | STIPULATION; STIPULATIONS | 约束性 |
+| 1802 | 被盗 | STOLEN | 消极 |
+| 1803 | 压力 | STRAIN; STRAINS; STRESS; STRESSES | 消极 |
+| 1804 | 紧张 | STRAINED; TENSE | 消极 |
+| 1805 | 承压 | STRAINING; STRESSED | 消极 |
+| 1806 | 实力 | STRENGTH | 积极 |
+| 1807 | 已增强 | STRENGTHENED | 积极 |
+| 1808 | 高压 | STRESSFUL | 消极 |
+| 1809 | 承压加剧 | STRESSING | 消极 |
+| 1810 | 严格 | STRICT | 约束性 |
+| 1811 | 更严格 | STRICTER | 约束性 |
+| 1812 | 最严格 | STRICTEST | 约束性 |
+| 1813 | 严苛 | STRINGENT | 消极 |
+| 1814 | 强劲 | STRONG | 积极 |
+| 1815 | 更强劲 | STRONGER | 积极 |
+| 1816 | 最强劲 | STRONGEST | 积极 |
+| 1817 | 强烈地 | STRONGLY | 强情态 |
+| 1818 | 分项条款 | SUBCLAUSE; SUBCLAUSES | 诉讼 |
+| 1819 | 子案卷 | SUBDOCKET | 诉讼 |
+| 1820 | 遭受 | SUBJECTED; SUFFER; SUFFERED; SUFFERING; SUFFERS | 消极 |
+| 1821 | 使遭受 | SUBJECTING | 消极 |
+| 1822 | 受制 | SUBJECTION | 消极 |
+| 1823 | 转租承租人 | SUBLEASEE | 诉讼 |
+| 1824 | 转租租赁权 | SUBLEASEHOLD | 诉讼 |
+| 1825 | 转租 | SUBLEASES | 复杂性 |
+| 1826 | 转租出租人 | SUBLESSORS | 诉讼 |
+| 1827 | 分许可被许可人 | SUBLICENSEE | 诉讼 |
+| 1828 | 分许可人 | SUBLICENSOR | 诉讼 |
+| 1829 | 子条款 | SUBPARAGRAPH; SUBPARAGRAPHS | 诉讼 |
+| 1830 | 传票 | SUBPOENA; SUBPOENAS; SUMMONS; SUMMONSES | 消极、诉讼 |
+| 1831 | 被传唤 | SUBPOENAED; SUMMONED | 消极、诉讼 |
+| 1832 | 已代位 | SUBROGATED | 诉讼 |
+| 1833 | 代位求偿 | SUBROGATION | 诉讼 |
+| 1834 | 补贴 | SUBSIDY | 复杂性 |
+| 1835 | 次级 | SUBSTANDARD | 消极 |
+| 1836 | 子信托 | SUBTRUST; SUBTRUSTS | 诉讼 |
+| 1837 | 成功 | SUCCEED; SUCCEEDED; SUCCEEDS; SUCCESS; SUCCESSES | 积极 |
+| 1838 | 成功的 | SUCCEEDING; SUCCESSFUL | 积极 |
+| 1839 | 成功地 | SUCCESSFULLY | 积极 |
+| 1840 | 突然的 | SUDDEN | 不确定 |
+| 1841 | 突然 | SUDDENLY | 不确定 |
+| 1842 | 暗示 | SUGGEST; SUGGESTED; SUGGESTING; SUGGESTS | 不确定、弱情态 |
+| 1843 | 传唤 | SUMMONING | 消极、诉讼 |
+| 1844 | 中止执行令 | SUPERSEDEAS | 诉讼 |
+| 1845 | 被取代 | SUPERSEDED | 诉讼 |
+| 1846 | 取代的 | SUPERSEDING | 诉讼 |
+| 1847 | 保证人 | SURETIES | 诉讼 |
+| 1848 | 超过 | SURPASS; SURPASSED; SURPASSES; SURPASSING | 积极 |
+| 1849 | 易受影响性 | SUSCEPTIBILITY | 消极、不确定 |
+| 1850 | 易受影响的 | SUSCEPTIBLE | 消极 |
+| 1851 | 怀疑 | SUSPECT; SUSPECTS | 消极 |
+| 1852 | 涉嫌 | SUSPECTED | 消极 |
+| 1853 | 暂停 | SUSPEND; SUSPENDS; SUSPENSION; SUSPENSIONS | 消极 |
+| 1854 | 已暂停 | SUSPENDED | 消极 |
+| 1855 | 暂停中 | SUSPENDING | 消极 |
+| 1856 | 嫌疑 | SUSPICION; SUSPICIONS | 消极 |
+| 1857 | 掉期 | SWAPS | 复杂性 |
+| 1858 | 玷污 | TAINT; TAINTING; TAINTS | 消极 |
+| 1859 | 受污 | TAINTED | 消极 |
+| 1860 | 篡改 | TAMPERED | 消极 |
+| 1861 | 适租性 | TENANTABILITY | 诉讼 |
+| 1862 | 趋向 | TENDING | 不确定 |
+| 1863 | 可终止的 | TERMINABLE | 诉讼 |
+| 1864 | 终止中 | TERMINATING | 消极 |
+| 1865 | 遗嘱的 | TESTAMENTARY | 诉讼 |
+| 1866 | 证词 | TESTIMONY | 诉讼 |
+| 1867 | 其后 | THEREAFTER | 诉讼 |
+| 1868 | 其中 | THEREIN; WHEREIN | 诉讼 |
+| 1869 | 在下文中 | THEREINAFTER | 诉讼 |
+| 1870 | 其 | THEREOF | 诉讼 |
+| 1871 | 就此之上 | THEREOVER | 诉讼 |
+| 1872 | 对此 | THERETO; WHERETO | 诉讼 |
+| 1873 | 在此之前 | THERETOFOR; THERETOFORE | 诉讼 |
+| 1874 | 据此项下 | THEREUNDER | 诉讼 |
+| 1875 | 于是 | THEREUPON | 诉讼 |
+| 1876 | 随之 | THEREWITH | 诉讼 |
+| 1877 | 威胁 | THREAT; THREATEN; THREATENS; THREATS | 消极 |
+| 1878 | 受威胁 | THREATENED | 消极 |
+| 1879 | 威胁性的 | THREATENING | 消极 |
+| 1880 | 收紧 | TIGHTENING | 消极 |
+| 1881 | 容忍 | TOLERATE; TOLERATES; TOLERATING; TOLERATION | 消极 |
+| 1882 | 被容忍 | TOLERATED | 消极 |
+| 1883 | 以侵权方式 | TORTIOUSLY | 诉讼 |
+| 1884 | 侵权行为 | TORTS | 诉讼 |
+| 1885 | 曲折的 | TORTUOUS | 消极 |
+| 1886 | 曲折地 | TORTUOUSLY | 消极 |
+| 1887 | 悲剧 | TRAGEDIES; TRAGEDY | 消极 |
+| 1888 | 悲剧性的 | TRAGIC | 消极 |
+| 1889 | 悲剧性地 | TRAGICALLY | 消极 |
+| 1890 | 转让人 | TRANSFEROR; TRANSFERORS | 诉讼 |
+| 1891 | 透明度 | TRANSPARENCY | 积极 |
+| 1892 | 创伤性的 | TRAUMATIC | 消极 |
+| 1893 | 巨大的 | TREMENDOUS | 积极 |
+| 1894 | 极大地 | TREMENDOUSLY | 积极 |
+| 1895 | 不可接受的 | UNACCEPTABLE | 消极 |
+| 1896 | 无法接受地 | UNACCEPTABLY | 消极 |
+| 1897 | 去向不明的 | UNACCOUNTED | 消极 |
+| 1898 | 明确无误地 | UNAMBIGUOUSLY; UNEQUIVOCALLY | 强情态 |
+| 1899 | 未经预告的 | UNANNOUNCED | 消极 |
+| 1900 | 未预料的 | UNANTICIPATED | 消极 |
+| 1901 | 未上诉的 | UNAPPEALED | 诉讼 |
+| 1902 | 未获批准的 | UNAPPROVED | 消极 |
+| 1903 | 缺乏吸引力的 | UNATTRACTIVE | 消极 |
+| 1904 | 未经授权的 | UNAUTHORIZED | 消极 |
+| 1905 | 无法获得 | UNAVAILABILITY | 消极、约束性 |
+| 1906 | 无法获得的 | UNAVAILABLE | 消极、约束性 |
+| 1907 | 不可避免地 | UNAVOIDABLY | 消极 |
+| 1908 | 未察觉的 | UNAWARE | 消极 |
+| 1909 | 不确定地 | UNCERTAINLY | 不确定、弱情态 |
+| 1910 | 不明朗的 | UNCLEAR | 不确定 |
+| 1911 | 无法收回的 | UNCOLLECTABLE; UNCOLLECTIBLE; UNRECOVERABLE | 消极 |
+| 1912 | 未收回的 | UNCOLLECTED; UNRECOVERED | 消极 |
+| 1913 | 不可收回性 | UNCOLLECTIBILITY | 消极 |
+| 1914 | 呆账 | UNCOLLECTIBLES | 消极 |
+| 1915 | 缺乏竞争力的 | UNCOMPETITIVE | 消极 |
+| 1916 | 毫不妥协的 | UNCOMPROMISING | 强情态 |
+| 1917 | 未经证实的 | UNCONFIRMED; UNPROVED; UNPROVEN; UNSUBSTANTIATED | 消极、不确定 |
+| 1918 | 显失公平的 | UNCONSCIONABLE | 消极 |
+| 1919 | 显失公平地 | UNCONSCIONABLY | 消极 |
+| 1920 | 违宪的 | UNCONSTITUTIONAL | 诉讼 |
+| 1921 | 违宪性 | UNCONSTITUTIONALITY | 诉讼 |
+| 1922 | 违宪地 | UNCONSTITUTIONALLY | 诉讼 |
+| 1923 | 未签约的 | UNCONTRACTED | 诉讼 |
+| 1924 | 难以控制的 | UNCONTROLLABLE | 消极 |
+| 1925 | 失控地 | UNCONTROLLABLY | 消极 |
+| 1926 | 失控的 | UNCONTROLLED | 消极 |
+| 1927 | 未更正的 | UNCORRECTED | 消极 |
+| 1928 | 已揭露的 | UNCOVERED | 消极 |
+| 1929 | 未决的 | UNDECIDED | 不确定 |
+| 1930 | 未解除的 | UNDEFEASED | 诉讼 |
+| 1931 | 未界定的 | UNDEFINED | 不确定 |
+| 1932 | 无法交付的 | UNDELIVERABLE | 消极 |
+| 1933 | 未交付的 | UNDELIVERED | 消极 |
+| 1934 | 资本不足的 | UNDERCAPITALIZED | 消极 |
+| 1935 | 削价竞争 | UNDERCUT; UNDERCUTS; UNDERCUTTING | 消极 |
+| 1936 | 低估 | UNDERESTIMATE; UNDERESTIMATES; UNDERESTIMATING; UNDERESTIMATION | 消极 |
+| 1937 | 被低估的 | UNDERESTIMATED | 消极 |
+| 1938 | 资金不足的 | UNDERFUNDED | 消极 |
+| 1939 | 保险不足的 | UNDERINSURED | 消极 |
+| 1940 | 被削弱的 | UNDERMINED | 消极 |
+| 1941 | 支付不足的 | UNDERPAID | 消极 |
+| 1942 | 支付不足 | UNDERPAYMENT; UNDERPAYMENTS; UNDERPAYS | 消极 |
+| 1943 | 跑输 | UNDERPERFORM; UNDERPERFORMED; UNDERPERFORMS | 消极 |
+| 1944 | 表现欠佳 | UNDERPERFORMANCE | 消极 |
+| 1945 | 表现欠佳的 | UNDERPERFORMING | 消极 |
+| 1946 | 产量不足的 | UNDERPRODUCED | 消极 |
+| 1947 | 生产不足 | UNDERPRODUCTION | 消极 |
+| 1948 | 少报 | UNDERREPORTING | 消极 |
+| 1949 | 少计 | UNDERSTATE; UNDERSTATEMENT; UNDERSTATEMENTS; UNDERSTATES; UNDERSTATING | 消极 |
+| 1950 | 被少计的 | UNDERSTATED | 消极 |
+| 1951 | 利用率不足 | UNDERUTILIZATION | 消极 |
+| 1952 | 利用不足的 | UNDERUTILIZED | 消极 |
+| 1953 | 未指定的 | UNDESIGNATED | 不确定 |
+| 1954 | 不合意的 | UNDESIRED | 消极 |
+| 1955 | 难以察觉的 | UNDETECTABLE | 不确定 |
+| 1956 | 未被发现的 | UNDETECTED | 消极 |
+| 1957 | 未确定的 | UNDETERMINED | 消极、不确定 |
+| 1958 | 未清偿的 | UNDISCHARGED; UNLIQUIDATED | 消极、诉讼 |
+| 1959 | 未披露的 | UNDISCLOSED; UNREPORTED | 消极 |
+| 1960 | 无争议的 | UNDISPUTED | 强情态 |
+| 1961 | 无凭证的 | UNDOCUMENTED | 消极、不确定 |
+| 1962 | 无疑 | UNDOUBTEDLY | 强情态 |
+| 1963 | 不经济的 | UNECONOMIC; UNECONOMICAL | 消极 |
+| 1964 | 不经济地 | UNECONOMICALLY | 消极 |
+| 1965 | 失业的 | UNEMPLOYED | 消极 |
+| 1966 | 失业 | UNEMPLOYMENT | 消极 |
+| 1967 | 解除负担 | UNENCUMBER | 诉讼 |
+| 1968 | 无权利负担的 | UNENCUMBERED | 诉讼 |
+| 1969 | 不可执行性 | UNENFORCEABILITY | 诉讼 |
+| 1970 | 不可执行的 | UNENFORCEABLE | 诉讼 |
+| 1971 | 明确无误的 | UNEQUIVOCAL | 强情态 |
+| 1972 | 不道德的 | UNETHICAL | 消极 |
+| 1973 | 不道德地 | UNETHICALLY | 消极 |
+| 1974 | 无正当理由的 | UNEXCUSED; UNWARRANTED | 消极 |
+| 1975 | 不熟悉的 | UNFAMILIAR | 不确定 |
+| 1976 | 不熟悉 | UNFAMILIARITY | 不确定 |
+| 1977 | 不利 | UNFAVORABILITY | 消极 |
+| 1978 | 不适合的 | UNFIT; UNSUITED | 消极 |
+| 1979 | 不胜任 | UNFITNESS | 消极 |
+| 1980 | 未预测的 | UNFORECASTED | 不确定 |
+| 1981 | 不可预见的 | UNFORESEEABLE | 消极 |
+| 1982 | 未预见的 | UNFORESEEN; UNFORSEEN | 消极、不确定 |
+| 1983 | 不幸的 | UNFORTUNATE | 消极 |
+| 1984 | 不幸地 | UNFORTUNATELY | 消极 |
+| 1985 | 未兑现的 | UNFULFILLED | 消极 |
+| 1986 | 无资金支持的 | UNFUNDED | 消极 |
+| 1987 | 无担保的 | UNGUARANTEED | 不确定 |
+| 1988 | 未对冲的 | UNHEDGED | 不确定 |
+| 1989 | 无法识别的 | UNIDENTIFIABLE | 不确定 |
+| 1990 | 未查明的 | UNIDENTIFIED | 不确定 |
+| 1991 | 未投保的 | UNINSURED | 消极 |
+| 1992 | 非预期的 | UNINTENDED | 消极 |
+| 1993 | 非故意的 | UNINTENTIONAL | 消极 |
+| 1994 | 非故意地 | UNINTENTIONALLY | 消极 |
+| 1995 | 不公正的 | UNJUST | 消极 |
+| 1996 | 不合理的 | UNJUSTIFIABLE; UNREASONABLE | 消极 |
+| 1997 | 不合理地 | UNJUSTIFIABLY; UNREASONABLY | 消极 |
+| 1998 | 缺乏依据的 | UNJUSTIFIED; UNMERITORIOUS | 消极 |
+| 1999 | 不公正地 | UNJUSTLY | 消极 |
+| 2000 | 不知情的 | UNKNOWING | 消极 |
+| 2001 | 不知情地 | UNKNOWINGLY | 消极 |
+| 2002 | 未知的 | UNKNOWN | 不确定 |
+| 2003 | 未知因素 | UNKNOWNS | 不确定 |
+| 2004 | 非法的 | UNLAWFUL | 消极、诉讼 |
+| 2005 | 无牌照的 | UNLICENSED | 消极 |
+| 2006 | 无法销售的 | UNMARKETABLE | 消极 |
+| 2007 | 无与伦比的 | UNMATCHED; UNSURPASSED | 积极、强情态 |
+| 2008 | 不适销的 | UNMERCHANTABLE | 消极 |
+| 2009 | 不必要地 | UNNECESSARILY | 消极 |
+| 2010 | 不必要的 | UNNECESSARY | 消极 |
+| 2011 | 不需要的 | UNNEEDED | 消极 |
+| 2012 | 不可观察的 | UNOBSERVABLE | 不确定 |
+| 2013 | 空置的 | UNOCCUPIED | 消极 |
+| 2014 | 未支付的 | UNPAID | 消极 |
+| 2015 | 前所未有的 | UNPARALLELED | 积极、强情态 |
+| 2016 | 未履行的 | UNPERFORMED | 消极 |
+| 2017 | 计划外的 | UNPLANNED; UNSCHEDULED | 消极、不确定 |
+| 2018 | 不受欢迎的 | UNPOPULAR; UNWANTED; UNWELCOME | 消极 |
+| 2019 | 不可预测性 | UNPREDICTABILITY | 消极、不确定 |
+| 2020 | 难以预测的 | UNPREDICTABLE | 消极、不确定 |
+| 2021 | 难以预料地 | UNPREDICTABLY | 消极、不确定 |
+| 2022 | 未曾预料的 | UNPREDICTED | 消极、不确定 |
+| 2023 | 盈利能力缺失 | UNPROFITABILITY | 消极 |
+| 2024 | 无盈利的 | UNPROFITABLE | 消极 |
+| 2025 | 无法量化的 | UNQUANTIFIABLE | 不确定 |
+| 2026 | 未量化的 | UNQUANTIFIED | 不确定 |
+| 2027 | 不合理性 | UNREASONABLENESS | 消极 |
+| 2028 | 反应冷淡的 | UNRECEPTIVE | 消极 |
+| 2029 | 未核对一致的 | UNRECONCILED | 不确定 |
+| 2030 | 未获补偿的 | UNREIMBURSED | 消极 |
+| 2031 | 不可靠的 | UNRELIABLE | 消极 |
+| 2032 | 未予整改的 | UNREMEDIATED | 诉讼 |
+| 2033 | 未补救的 | UNREMEDIED | 消极 |
+| 2034 | 悬而未决的 | UNRESOLVED | 消极 |
+| 2035 | 不安全的 | UNSAFE | 消极 |
+| 2036 | 滞销的 | UNSALABLE; UNSALEABLE | 消极 |
+| 2037 | 令人不满意的 | UNSATISFACTORY | 消极 |
+| 2038 | 未满足的 | UNSATISFIED | 消极 |
+| 2039 | 反常的 | UNSEASONABLE | 不确定 |
+| 2040 | 反常地 | UNSEASONABLY | 不确定 |
+| 2041 | 无法售出的 | UNSELLABLE | 消极 |
+| 2042 | 未结算的 | UNSETTLED | 不确定 |
+| 2043 | 未售出的 | UNSOLD | 消极 |
+| 2044 | 不稳健的 | UNSOUND | 消极 |
+| 2045 | 不明确的 | UNSPECIFIC | 不确定 |
+| 2046 | 未指明的 | UNSPECIFIED | 不确定 |
+| 2047 | 未企稳的 | UNSTABILIZED | 消极 |
+| 2048 | 不稳定的 | UNSTABLE | 消极 |
+| 2049 | 未中止的 | UNSTAYED | 诉讼 |
+| 2050 | 未能成功地 | UNSUCCESSFULLY | 消极 |
+| 2051 | 不适当性 | UNSUITABILITY | 消极 |
+| 2052 | 不适当的 | UNSUITABLE | 消极 |
+| 2053 | 不适当地 | UNSUITABLY | 消极 |
+| 2054 | 未曾料及的 | UNSUSPECTED | 消极 |
+| 2055 | 毫无防备的 | UNSUSPECTING | 消极 |
+| 2056 | 不可持续的 | UNSUSTAINABLE | 消极 |
+| 2057 | 站不住脚的 | UNTENABLE | 消极 |
+| 2058 | 未经检验的 | UNTESTED | 不确定 |
+| 2059 | 不合时宜的 | UNTIMELY | 消极 |
+| 2060 | 归于 | UNTO | 诉讼 |
+| 2061 | 不被信任的 | UNTRUSTED | 消极 |
+| 2062 | 不实陈述 | UNTRUTH | 消极 |
+| 2063 | 不真实的 | UNTRUTHFUL | 消极 |
+| 2064 | 不真实地 | UNTRUTHFULLY | 消极 |
+| 2065 | 不真实性 | UNTRUTHFULNESS | 消极 |
+| 2066 | 不实之词 | UNTRUTHS | 消极 |
+| 2067 | 无法使用的 | UNUSABLE | 消极 |
+| 2068 | 不愿的 | UNWILLING | 消极 |
+| 2069 | 不成文的 | UNWRITTEN | 不确定 |
+| 2070 | 回升 | UPTURN; UPTURNS | 积极 |
+| 2071 | 紧迫性 | URGENCY | 消极 |
+| 2072 | 高利贷的 | USURIOUS | 消极、诉讼 |
+| 2073 | 被侵占的 | USURPED | 消极、诉讼 |
+| 2074 | 高利贷 | USURY | 消极、诉讼 |
+| 2075 | 变幻莫测 | VAGARIES | 不确定 |
+| 2076 | 模糊的 | VAGUE | 不确定 |
+| 2077 | 含糊地 | VAGUELY | 不确定 |
+| 2078 | 模糊性 | VAGUENESS | 不确定 |
+| 2079 | 模糊之处 | VAGUENESSES | 不确定 |
+| 2080 | 更模糊的 | VAGUER | 不确定 |
+| 2081 | 最模糊的 | VAGUEST | 不确定 |
+| 2082 | 有价值的 | VALUABLE | 积极 |
+| 2083 | 波动性 | VARIABILITY | 不确定 |
+| 2084 | 可变的 | VARIABLE | 不确定 |
+| 2085 | 变量 | VARIABLES | 不确定 |
+| 2086 | 不定地 | VARIABLY | 不确定 |
+| 2087 | 差异 | VARIANCE; VARIANCES | 不确定 |
+| 2088 | 变体 | VARIANT; VARIANTS | 不确定 |
+| 2089 | 变动 | VARIATION; VARIATIONS | 不确定 |
+| 2090 | 不一 | VARIED; VARIES | 不确定 |
+| 2091 | 变化 | VARY | 不确定 |
+| 2092 | 不一的 | VARYING | 不确定 |
+| 2093 | 买受人 | VENDEE; VENDEES | 诉讼 |
+| 2094 | 合营企业 | VENTURES | 复杂性 |
+| 2095 | 多功能的 | VERSATILE | 积极 |
+| 2096 | 多功能性 | VERSATILITY | 积极 |
+| 2097 | 保单贴现的 | VIATICAL | 诉讼 |
+| 2098 | 活力 | VIBRANCY | 积极 |
+| 2099 | 活跃的 | VIBRANT | 积极 |
+| 2100 | 受害者 | VICTIMS | 消极 |
+| 2101 | 违规的 | VIOLATIVE | 消极、诉讼 |
+| 2102 | 暴力 | VIOLENCE | 消极 |
+| 2103 | 剧烈地 | VIOLENTLY | 消极 |
+| 2104 | 已失效 | VITIATED | 消极 |
+| 2105 | 损害性的 | VITIATING | 消极 |
+| 2106 | 可撤销的 | VOIDABLE | 诉讼 |
+| 2107 | 波动剧烈的 | VOLATILE | 消极、不确定 |
+| 2108 | 波动率 | VOLATILITIES; VOLATILITY | 消极、不确定 |
+| 2109 | 脆弱性 | VULNERABILITIES; VULNERABILITY | 消极 |
+| 2110 | 脆弱的 | VULNERABLE | 消极 |
+| 2111 | 脆弱地 | VULNERABLY | 消极 |
+| 2112 | 警告 | WARN; WARNED; WARNS | 消极 |
+| 2113 | 被担保人 | WARRANTEES | 诉讼 |
+| 2114 | 担保人 | WARRANTOR | 诉讼 |
+| 2115 | 浪费 | WASTED; WASTING | 消极 |
+| 2116 | 浪费的 | WASTEFUL | 消极 |
+| 2117 | 疲软 | WEAK | 消极 |
+| 2118 | 走弱 | WEAKEN; WEAKENED; WEAKENING; WEAKENS | 消极 |
+| 2119 | 较弱 | WEAKER | 消极 |
+| 2120 | 最弱 | WEAKEST | 消极 |
+| 2121 | 疲弱地 | WEAKLY | 消极 |
+| 2122 | 薄弱环节 | WEAKNESSES | 消极 |
+| 2123 | 无论何种 | WHATEVER | 诉讼 |
+| 2124 | 任何 | WHATSOEVER | 诉讼 |
+| 2125 | 无论何时 | WHENSOEVER | 诉讼 |
+| 2126 | 下落 | WHEREABOUTS | 诉讼 |
+| 2127 | 关于此 | WHEREOF | 诉讼 |
+| 2128 | 据以 | WHEREON | 诉讼 |
+| 2129 | 据其规定 | WHEREUNDER | 诉讼 |
+| 2130 | 随即 | WHEREUPON | 诉讼 |
+| 2131 | 借以 | WHEREWITH | 诉讼 |
+| 2132 | 举报人 | WHISTLEBLOWERS | 诉讼 |
+| 2133 | 任何人 | WHOMEVER | 诉讼 |
+| 2134 | 无论何人 | WHOMSOEVER; WHOSOEVER | 诉讼 |
+| 2135 | 将 | WILL | 强情态 |
+| 2136 | 故意地 | WILLFULLY | 消极、诉讼 |
+| 2137 | 故意性 | WILLFULNESS | 诉讼 |
+| 2138 | 获胜 | WIN; WINNING | 积极 |
+| 2139 | 赢家 | WINNER; WINNERS | 积极 |
+| 2140 | 证人 | WITNESS; WITNESSES | 诉讼 |
+| 2141 | 全球范围 | WORLDWIDE | 复杂性 |
+| 2142 | 忧虑 | WORRIES | 消极 |
+| 2143 | 令人担忧的 | WORRYING | 消极 |
+| 2144 | 更差 | WORSE | 消极 |
+| 2145 | 最差 | WORST | 消极 |
+| 2146 | 毫无价值 | WORTHLESS | 消极 |
+| 2147 | 值得 | WORTHY | 积极 |
+| 2148 | 令状 | WRIT; WRITS | 诉讼 |
+| 2149 | 资产减记 | WRITEDOWN; WRITEDOWNS | 消极 |
+| 2150 | 不法的 | WRONGFUL | 消极 |
