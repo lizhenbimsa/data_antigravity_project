@@ -408,6 +408,32 @@ def _write_track_report(report: dict, out_dir: Path, suffix: str) -> None:
     logger.info(f"v3.5.1 stage 39d [{suffix}] 完成: HTMT verdict={report.get('htmt_verdict')}, "
                 f"α_across={alpha_str}, κ_subst_clarity={kappa_str}")
 
+    # 结果分析 — 写入日志: 逐对 HTMT vs null + α / κ / ρ 人话判读。
+    htmt = report.get('htmt', {})
+    verdict = report.get('htmt_verdict', {})
+    null = report.get('permutation_null', {})
+    logger.info(f"  [{suffix}] 结果分析 (n_obs={report.get('n_obs')}; HTMT 越低越好, <0.85 strict_pass):")
+    _pairs = (
+        ('htmt_T1_substance_T2_clarity', 'null_T1_substance_T2_clarity', '实质性 × 清晰度'),
+        ('htmt_T1_substance_T3_num_intensity', 'null_T1_substance_T3_num_intensity', '实质性 × 数字密集'),
+        ('htmt_T2_clarity_T3_num_intensity', 'null_T2_clarity_T3_num_intensity', '清晰度 × 数字密集'),
+    )
+    for hk, nk, label in _pairs:
+        hv = htmt.get(hk, float('nan'))
+        p95 = null.get(nk, {}).get('p95', float('nan'))
+        logger.info(f"    {label}: HTMT={hv:.4f} (null_p95={p95:.4f}) → {verdict.get(hk, 'nan')}")
+    _all_pass = bool(verdict) and all(v == 'strict_pass' for v in verdict.values())
+    logger.info("    HTMT 总判读: " + ("三对全部 strict_pass → 三指标判别有效, 各量各的"
+                                       if _all_pass else "存在未通过对 (见上)"))
+    logger.info(f"    Cronbach α_across = {alpha_str} (越低越好: 证明三者非单一量表、不冗余)")
+    if isinstance(kappa_val, (int, float)) and np.isnan(kappa_val):
+        logger.info("    Cohen κ = nan (常量轴守卫: mask 后 substance 二分轴退化为常量, "
+                    "κ 数学未定义, 显式置 NaN 避免假的 κ=0)")
+    else:
+        logger.info(f"    Cohen κ (象征性↔含糊) = {kappa_str} (方向锁定, 预期正)")
+    spear = report.get('spearman_substance_clarity', float('nan'))
+    logger.info(f"    Spearman ρ (实质性 vs 清晰度) = {spear:.4f}")
+
 
 def main():
     """Stage 39d 入口。三轨 (full / ctx / ss) 各跑一次判别效度并写产物。
@@ -418,7 +444,24 @@ def main():
     import os
 
     from news_process.core.config import load_config
+    from news_process.core.logging import setup_logging
     config = load_config()
+    # 接入项目统一日志: 写 <log_dir>/39d_lexical_discriminant_validity.log。
+    # 此前本阶段仅 getLogger(__name__) 无 FileHandler, 虽产出 parquet/json 却不落
+    # <stage>.log (与 39a/39e 等同族 audit 阶段不一致); 现对齐 setup_logging 约定。
+    global logger
+    logger = setup_logging(STAGE_NAME, config['paths'].get('log_dir', 'logs'))
+
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39e)。
+    logger.info("=" * 72)
+    logger.info("阶段 39d: 文本指标判别效度 (HTMT + AVE + Cronbach α + Cohen κ; v3.5.1)")
+    logger.info("=" * 72)
+    logger.info("【功能】检验 T1=LLM实质性 / T2=词典清晰度 / T3=数字密集度 三把文本尺子是否各量各的")
+    logger.info("        (论文 §3.4 判别效度披露; 三轨 full/ctx/ss 各跑一次)。")
+    logger.info("【方法】HTMT=两两 |corr| (双 cutoff strict<0.85 / lenient<0.90, 越低越好);")
+    logger.info("        φ²=共享方差; Cronbach α 跨 3 指标 (此处越低越好=非单一量表/不冗余);")
+    logger.info("        Cohen κ 验'象征性↔含糊'方向; permutation null 1000 次 (seed=42) 为参照。")
+
     panel_path = os.path.join(config['paths']['output_dir'], '40_panel_yearly.parquet')
     out_dir = Path(config['paths']['output_dir'])
 
@@ -441,6 +484,8 @@ def main():
             logger.info(f"v3.5.1 stage 39d [{suffix}] 跳过: {report}")
             continue
         _write_track_report(report, out_dir, suffix)
+
+    logger.info("⚠ 盘面 T=2 小样本 (mask 后约数十个 bank-year), 结果仅验证管道正确性, 非全量生产结论。")
 
 
 if __name__ == '__main__':

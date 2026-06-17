@@ -363,6 +363,28 @@ def run_stage(
 
     Reproducibility: 输入 parquet anchored to v3.4.0 commit 450c1aa7 (per plan §0 Tag-over-hash).
     """
+    # 接入项目统一日志: 写 <log_dir>/39c_construct_orthogonality.log。
+    # 此前本阶段仅 getLogger(__name__) 而无 FileHandler, 故虽能产出 parquet/json,
+    # 却不像 39a/39e 等同族 audit 阶段那样落 <stage>.log (logger.info 被 root 默认
+    # 级别静默丢弃)。现对齐 setup_logging 约定 (见模块 docstring「Logging 约定 修 F13」)。
+    global logger
+    from news_process.core.config import load_config
+    from news_process.core.logging import setup_logging
+    logger = setup_logging(
+        "39c_construct_orthogonality",
+        load_config()["paths"].get("log_dir", "logs"),
+    )
+
+    # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39e)。
+    logger.info("=" * 72)
+    logger.info("阶段 39c: 创新构念正交性检验 (NMI + permutation null; v3.5.0 D3)")
+    logger.info("=" * 72)
+    logger.info("【功能】检验 substantiveness / locus / collab_mode 三个创新构念是否各自独立、")
+    logger.info("        无重复计量 (论文 Appendix A.2 构念效度证据)。")
+    logger.info("【方法】每对构念算 NMI (归一化互信息); 随机打乱标签 1000 次得 null 分布,")
+    logger.info("        取单侧 p95/p99 为门槛; bootstrap 1000 次给 CI。NMI 越低越正交。")
+    logger.info("【判读】obs≤p95→strong(充分正交,好); ≤p99→moderate; >p99→weak(超出随机的真重叠,不利)。")
+
     if stage_21_parquet is None:
         stage_21_parquet = os.environ.get(
             'STAGE_21_PARQUET',
@@ -479,6 +501,31 @@ def run_stage(
     with open(out_path / '39c_nmi_summary.json', 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
+    # 结果分析 — 写入日志: full 3×3 逐对 NMI vs null 门槛 + 判读。
+    logger.info("-" * 72)
+    logger.info(
+        f"【结果分析】full 3×3 构念对 (listwise n={int(n_f.iloc[0, 1])}; NMI 越低越正交):"
+    )
+    for i, j in ((0, 1), (0, 2), (1, 2)):
+        d1, d2 = DIMS_FULL[i], DIMS_FULL[j]
+        s1 = d1.replace('innovation_', '').replace('_full', '')
+        s2 = d2.replace('innovation_', '').replace('_full', '')
+        v1 = classify.get(f'{d1}__{d2}', 'undefined')
+        v2 = classify.get(f'{d2}__{d1}', 'undefined')
+        verdict = v1 if v1 == v2 else f'{v1}/{v2} (临界)'
+        logger.info(
+            f"  {s1} × {s2}: NMI={point_f.iloc[i, j]:.4f}  "
+            f"null_p95={null_p95_f.iloc[i, j]:.4f}  null_p99={null_p99_f.iloc[i, j]:.4f}  → {verdict}"
+        )
+    logger.info(f"  cross 6×6 非对角最大 NMI = {max_off_diag:.4f}")
+    logger.info(
+        f"  总判读 interpretation = {interpretation} "
+        "(strong=全对正交; moderate=无 weak 但非全 strong; mixed=至少一对 weak; undefined=不可判)"
+    )
+    logger.info(
+        f"  ⚠ 样本 = {len(df):,} 篇 (盘面 T=2 小样本, 仅验证管道正确性, 非全量生产结论)"
+    )
+    logger.info("-" * 72)
     logger.info(
         f"  ✓ v3.5.0 D3 stage 39c done; max off-diag NMI = {max_off_diag:.4f}; "
         f"interpretation = {summary['interpretation']}"
