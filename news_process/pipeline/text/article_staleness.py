@@ -298,10 +298,22 @@ def compute_semantic_staleness(
     t0 = time.time()
     window_start_idx = 0
     window_end_idx = 0  # 首个 day_j >= 当前日 d 的位置 (同日行被排除在窗口外)
-    for i in range(N):
+    # perf(accel-stale-01): day-bucket — 同一天 d 的全部文章共享**完全相同**的窗口
+    # [window_start_idx, window_end_idx) (同 cutoff 起点 + 同"首个 day>=d"终点), 故按
+    # 天建一次 IndexFlatIP 并批量 query 当天全部文章, 把 ~N 次 index 重建降到 ~unique-day
+    # 次。窗口切片/查询向量逐位不变 + faiss FlatIP 精确内积确定 → stale 值逐位等价。
+    # 窗口指针用当天首行 i 推进, 与原逐文章推进在同日内等价 (day_vals[首行]=d≥cutoff
+    # 使两 while 在 first_d 处稳定收敛, 与 i∈[first_d,last_d] 无关)。加速计划 §②。
+    i = 0
+    while i < N:
         if pd.isna(day_vals[i]):
+            i += 1
             continue
         d = day_vals[i]
+        # 当天文章块 [i, j) (day_vals 已 stable 升序, 同日行连续)
+        j = i + 1
+        while j < N and pd.notna(day_vals[j]) and day_vals[j] == d:
+            j += 1
         cutoff = d - np.timedelta64(WINDOW_DAYS, 'D')
         # 移除窗外 (P-013 修复: 镜像 compute_surface_staleness L144-147 的 NaT 守卫.
         # 不加 pd.isna 守卫时, NaT < cutoff 返 False, 窗口起点冻结在 NaT 行.)
@@ -318,14 +330,16 @@ def compute_semantic_staleness(
             pd.notna(day_vals[window_end_idx]) and day_vals[window_end_idx] < d
         ):
             window_end_idx += 1
-        if window_end_idx <= window_start_idx:
-            continue  # 窗口空 → NaN (与 surface 轨空窗口口径一致)
-        # 重建 index (滚动重建; FlatIP 重建成本与 size 线性)
-        index.reset()
-        index.add(embs_sorted[window_start_idx:window_end_idx].astype(np.float32))
-        # 查询 top-1 (除自己与同日行)
-        D_sim, I_idx = index.search(embs_sorted[i:i + 1].astype(np.float32), 1)
-        stale[i] = float(D_sim[0, 0]) if D_sim.shape[1] > 0 else 0.0
+        if window_end_idx > window_start_idx:
+            # 按天建一次 index (滚动重建; FlatIP 重建成本与 size 线性)
+            index.reset()
+            index.add(embs_sorted[window_start_idx:window_end_idx].astype(np.float32))
+            # 批量查询当天全部文章 top-1 (除自己与同日行); 逐查询独立 → 与单查询等价
+            D_sim, I_idx = index.search(embs_sorted[i:j].astype(np.float32), 1)
+            for k in range(i, j):
+                stale[k] = float(D_sim[k - i, 0]) if D_sim.shape[1] > 0 else 0.0
+        # else: 窗口空 → 当天 [i, j) 文章 stale 保持 NaN (与 surface 轨空窗口口径一致)
+        i = j
 
     logger.info(f"  semantic staleness 完成: {time.time() - t0:.1f}s")
 

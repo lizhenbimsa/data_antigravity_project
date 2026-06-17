@@ -1020,6 +1020,19 @@ def compute_geo_proximity_buffers(
                 return c['lat'], c['lon'], 'capital'
         return None, None, None
 
+    # perf(accel-geo-02): _lookup_coords 记忆化 — 同一 (city,prov) 媒体地名对的三级
+    # 坐标查找 (含字符串清洗) 在海量文章间高度重复; 按对缓存, 复用同一返回元组 →
+    # 逐位等价 (缓存命中返回同一 (lat,lon,level), 非重算/换语义)。加速计划 §④。
+    _coord_cache: dict = {}
+
+    def _lookup_coords_cached(city_name, province_name=None):
+        ck = (city_name, province_name)
+        r = _coord_cache.get(ck)
+        if r is None:
+            r = _lookup_coords(city_name, province_name)
+            _coord_cache[ck] = r
+        return r
+
     # ── 媒体地理列发现 ──
     media_city_col = '城市' if '城市' in df_exploded.columns else None
     media_prov_col = None
@@ -1056,12 +1069,17 @@ def compute_geo_proximity_buffers(
             # 计算每篇文章与银行的距离
             # fix(omni-g-geography-04, 2026-06-11): 同时统计媒体侧省会插补
             # (Level 3) 文章数, 供 prox_geo_imputed_frac 诊断列。
+            # perf(accel-geo-02): iterrows → 列式访问 + 记忆化查找; 逐位等价。
+            _mc = (df_bank[media_city_col].tolist()
+                   if (media_city_col and media_city_col in df_bank.columns) else None)
+            _mp = (df_bank[media_prov_col].tolist()
+                   if (media_prov_col and media_prov_col in df_bank.columns) else None)
             distances = []
             n_capital_imputed = 0
-            for _, row in df_bank.iterrows():
-                m_city = row.get(media_city_col) if media_city_col else None
-                m_prov = row.get(media_prov_col) if media_prov_col else None
-                m_lat, m_lon, m_level = _lookup_coords(m_city, m_prov)
+            for _k in range(n_total):
+                m_city = _mc[_k] if _mc is not None else None
+                m_prov = _mp[_k] if _mp is not None else None
+                m_lat, m_lon, m_level = _lookup_coords_cached(m_city, m_prov)
                 if m_lat is not None:
                     distances.append(_haversine(b_lat, b_lon, m_lat, m_lon))
                     if m_level == 'capital':
@@ -1302,6 +1320,21 @@ def compute_regional_imitation_pressure(
 
     logger.info(f"  银行坐标匹配: {len(bank_coords)}/{len(bank_addr)}")
 
+    # perf(accel-geo-01): haversine 标量记忆化 — 同一 (bank_i,bank_j) 有序对的球面距离
+    # 与年份/阈值无关; 原实现对每个阈值×每年重算 (≈4×|years|× 次)。改按有序对惰性缓存,
+    # 复用同一 _haversine 标量结果 → 逐位等价 (memoize 同一浮点值, 非重算/换算法), 调用
+    # 次数降至每对一次。加速计划 §③ (强制标量记忆化, 禁 numpy-trig 重写)。
+    _dist_cache: dict = {}
+
+    def _cached_haversine(bi, bj):
+        d = _dist_cache.get((bi, bj))
+        if d is None:
+            lat_i, lon_i = bank_coords[bi]
+            lat_j, lon_j = bank_coords[bj]
+            d = _haversine(lat_i, lon_i, lat_j, lon_j)
+            _dist_cache[(bi, bj)] = d
+        return d
+
     # 逐年计算距离级 LOO
     for threshold in _DISTANCE_THRESHOLDS_KM:
         var_name = f'ai_reg_{threshold}km'
@@ -1316,7 +1349,6 @@ def compute_regional_imitation_pressure(
                 if bank_i not in bank_coords:
                     continue
 
-                lat_i, lon_i = bank_coords[bank_i]
                 peers_ft = []
 
                 for idx_j in year_panel.index:
@@ -1326,8 +1358,7 @@ def compute_regional_imitation_pressure(
                     if bank_j not in bank_coords:
                         continue
 
-                    lat_j, lon_j = bank_coords[bank_j]
-                    dist = _haversine(lat_i, lon_i, lat_j, lon_j)
+                    dist = _cached_haversine(bank_i, bank_j)
                     if dist <= threshold:
                         peers_ft.append(panel.at[idx_j, '_has_fintech'])
 

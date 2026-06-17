@@ -404,6 +404,23 @@ def compute_num_intensity_word(content: str) -> float:
     return round(n_num / max(n_words, 1), 6)
 
 
+def _num_intensity_both(content: str) -> tuple[float, float]:
+    """共享一次 _cn2arab pass 计算 (句级, 词级) num_intensity, 逐位等价于分别调用
+    compute_num_intensity / compute_num_intensity_word (perf(accel-numint-01) —
+    消去同文本对 _cn2arab 的重复转换)。两个独立公开函数保留供单测, 语义不变。
+    """
+    if not isinstance(content, str) or not content.strip():
+        return (float('nan'), float('nan'))
+    if content.strip() in ('nan', 'NaN', 'None', '<NA>', 'NaT'):
+        return (float('nan'), float('nan'))
+    text_arabic = _cn2arab(content)           # 单次转换, 句级/词级共享分子 n_num
+    n_num, n_sent = _count_numerical_tokens(text_arabic)
+    sent_intensity = round(n_num / max(n_sent, 1), 6)
+    n_words = _count_word_tokens(content)
+    word_intensity = round(n_num / max(n_words, 1), 6)
+    return (sent_intensity, word_intensity)
+
+
 def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
                                          full_col: str = 'content_full',
                                          ctx_col: str = 'content_ctx',
@@ -443,19 +460,24 @@ def enrich_with_num_intensity_dual_track(df: pd.DataFrame,
         logger.warning(f"v3.5.1 A3: '{ctx_col}' 缺失, ctx 轨回退用 '{full_col}'")
         df[ctx_col] = df[full_col]
 
+    # perf(accel-numint-01): 每轨共享一次 _cn2arab pass — 原对每轨分别 apply
+    # compute_num_intensity 与 compute_num_intensity_word, 各算一遍 _cn2arab (同文本
+    # 重复转换); 改 _num_intensity_both 单 pass 返回 (句级, 词级), 逐位等价。
+    _both_full = [_num_intensity_both(c) for c in df[full_col].astype(str)]
+    _both_ctx = [_num_intensity_both(c) for c in df[ctx_col].astype(str)]
     # 句级 (主测度): n_numeric / n_sentences
-    df['num_intensity_full'] = df[full_col].astype(str).apply(compute_num_intensity)
-    df['num_intensity_ctx'] = df[ctx_col].astype(str).apply(compute_num_intensity)
-
+    df['num_intensity_full'] = [t[0] for t in _both_full]
+    df['num_intensity_ctx'] = [t[0] for t in _both_ctx]
     # 词级 (替代版, 兑现 §4.3; 对中文句读 sparse 稳健): n_numeric / jieba 词数
-    df['num_intensity_word_full'] = df[full_col].astype(str).apply(compute_num_intensity_word)
-    df['num_intensity_word_ctx'] = df[ctx_col].astype(str).apply(compute_num_intensity_word)
+    df['num_intensity_word_full'] = [t[1] for t in _both_full]
+    df['num_intensity_word_ctx'] = [t[1] for t in _both_ctx]
 
     # 第三轨 ss (银行+金科同句共现轨, v3.9.0): content_ss 由 stage 13 物化, 缺列优雅跳过
     # (镜像上方 ctx 守卫范式; 回退=镜像 ctx→全文 body 已由 stage 13 处理, 此处仅按列存在与否门控)。
     if ss_col in df.columns:
-        df['num_intensity_ss'] = df[ss_col].astype(str).apply(compute_num_intensity)
-        df['num_intensity_word_ss'] = df[ss_col].astype(str).apply(compute_num_intensity_word)
+        _both_ss = [_num_intensity_both(c) for c in df[ss_col].astype(str)]
+        df['num_intensity_ss'] = [t[0] for t in _both_ss]
+        df['num_intensity_word_ss'] = [t[1] for t in _both_ss]
     else:
         logger.info(f"num_intensity: '{ss_col}' 缺失, ss 轨 (同句共现) 跳过 (镜像 ctx 守卫优雅降级)")
 

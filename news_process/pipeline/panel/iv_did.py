@@ -171,28 +171,34 @@ def compute_bartik_iv(panel: pd.DataFrame,
             panel[f'bartik_{group_prefix}_iv{track}'] = np.nan
         return panel
 
-    def get_co_groups(co_banks_str):
-        """从 co_mentioned_banks 提取涉及的组别。"""
+    # perf(accel-ivdid-01): explode + map + groupby 替代 apply(get_co_groups) + 逐 bank
+    # O(|base|) 布尔重扫 (base[base['target_bank']==bank]) + 嵌套 python 计数。跨组共现
+    # 计数向量化; 份额公式 / total==0 own-group one-hot 兜底 / 'other' 排除 / own_group
+    # ∉groups→skip(NaN) / 基期无文章→NaN 语义逐位保留 (int 计数 + int/int→float)。
+    def _split_cobanks(co_banks_str):
         if not co_banks_str or str(co_banks_str).strip() in ('', 'nan'):
             return []
-        banks = [b.strip() for b in str(co_banks_str).split(';') if b.strip()]
-        return [bank_group_map.get(b, 'other') for b in banks]
+        return [b.strip() for b in str(co_banks_str).split(';') if b.strip()]
 
-    base['_co_groups'] = base['co_mentioned_banks'].apply(get_co_groups)
+    _ex = base[['target_bank', 'co_mentioned_banks']].copy()
+    _ex['_cobank'] = _ex['co_mentioned_banks'].apply(_split_cobanks)
+    _ex = _ex.explode('_cobank').dropna(subset=['_cobank'])
+    if len(_ex) > 0:
+        _ex['_grp'] = _ex['_cobank'].map(bank_group_map).fillna('other')
+        _ex = _ex[_ex['_grp'] != 'other']
+    if len(_ex) > 0:
+        _cnt = _ex.groupby(['target_bank', '_grp']).size()  # (bank, group) → 非 other 计数
+        _tot = _ex.groupby('target_bank').size().to_dict()  # bank → total (非 other 共现)
+    else:
+        _cnt = pd.Series(dtype='int64')
+        _tot = {}
 
-    # 计算每家银行在基期的跨组暴露份额
-    all_banks = panel['target_bank'].unique()
+    # 计算每家银行在基期的跨组暴露份额。遍历**有基期文章的银行** (base 的 unique target_bank,
+    # = 原 panel-bank ∩ base-bank: 原对 panel bank 无 base 行者 continue → 同效; base-only
+    # bank 的多余 share 行在下游按 target_bank 的 panel merge 中被自然丢弃, 不影响结果)。
     shares_data = []
-    for bank in all_banks:
-        bank_base = base[base['target_bank'] == bank]
-        if len(bank_base) == 0:
-            continue
-        group_counts = {}
-        for groups_list in bank_base['_co_groups']:
-            for g in groups_list:
-                if g != 'other':
-                    group_counts[g] = group_counts.get(g, 0) + 1
-        total = sum(group_counts.values())
+    for bank in base['target_bank'].unique():
+        total = _tot.get(bank, 0)
         if total == 0:
             own_group = bank_group_map.get(bank, 'other')
             # fix(omni-g-ivdid-01, 2026-06-11): own_group=='other' (未映射银行) 时
@@ -210,7 +216,7 @@ def compute_bartik_iv(panel: pd.DataFrame,
             for g in groups:
                 shares_data.append({
                     'target_bank': bank, 'group': g,
-                    'share': group_counts.get(g, 0) / total
+                    'share': _cnt.get((bank, g), 0) / total
                 })
 
     # 显式列名: shares_data 为空时仍保有 schema, 下游按列筛选不抛 KeyError

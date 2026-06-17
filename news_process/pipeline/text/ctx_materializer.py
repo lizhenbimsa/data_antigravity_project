@@ -237,16 +237,22 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     ctx_body_list = []   # ctx 的纯 body 部分 (无标题前缀), 仅用于 fallback 判定
     ss_list = []         # ss 轨: 标题 + 银行∧金科同句窗口 (或 fallback)
     ss_body_list = []    # ss 的纯 body 部分 (无标题前缀), 仅用于 fallback 判定
-    for _, row in df.iterrows():
-        body_full = str(row.get('内容', ''))
+    # perf(accel-stage13-01): iterrows → 列式 tolist/zip, 去 per-row Series 物化开销。
+    # 逐位等价: 仅访问 str 列 (内容/标题/target_bank) 且统一 str() 包裹, 不受 iterrows
+    # 跨列 dtype 上溯影响; pd.isna 标题守卫原样保留 (omni-g-misc-04)。主成本仍是下方
+    # extract_* 抽取 (后续可 loky 并行, 见加速计划 §②)。
+    _contents = df['内容'].tolist() if '内容' in df.columns else [''] * len(df)
+    _titles = df['标题'].tolist() if '标题' in df.columns else [''] * len(df)
+    _banks = df['target_bank'].tolist() if 'target_bank' in df.columns else [''] * len(df)
+    for body_raw, _t, bank_raw in zip(_contents, _titles, _banks):
+        body_full = str(body_raw)
         # fix(omni-g-misc-04, 2026-06-11): 缺失标题显式 pd.isna 判空, 与 L98 旧 schema
         # 路径 fillna('') 口径对齐 — 原 `str(... or '')`: np.nan (truthy float) 漏网被
         # str() 成字面 'nan' 前缀静默注入三轨 (full/ctx/ss) 情感/embedding 文本; pd.NA
         # 在 `or` 布尔语境直接 TypeError。上游 stage 00 KEY_COLUMNS 过滤守卫是 config 驱动
         # (默认可为空), 不可依赖。
-        _t = row.get('标题', '')
         title = '' if pd.isna(_t) else str(_t)
-        target_bank = str(row.get('target_bank', ''))
+        target_bank = str(bank_raw)
         if target_bank and target_bank not in ('nan', 'None'):
             if target_bank not in _alias_cache:
                 _alias_cache[target_bank] = get_target_aliases(target_bank, _bnf)
