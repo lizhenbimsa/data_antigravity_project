@@ -203,7 +203,7 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 - **SAFE-1 铁律** (`:107-112`): `FINTECH_AC=None` → 保留全部行 + loud WARNING; keep 率 < `min_keep_frac` 或 0 行 → `SystemExit(1)` (`:264-274`)。
 - **路线 A 纯接受-披露**: 12b 仅丢行, 下游 `controls.py`/`encode.py` **零改动**。`fintech_share` 分母经"望远镜式坍缩"**恒不变** —— `all_n_articles = ft_dedup + nf ≡ |df_full|`, 12b 只把被丢中间集 C 从 ft 端移到 nf 端, 代数和守恒 (`controls.py:484-493,770-771`)。统计宇宙平移为"近邻相关金科"口径, 在 manuscript/codebook **如实披露** (非代码修复)。
 - ⚠ **盲区例外① (地理 attention 族)**: `ft_attn_*`/`ft_vol_*` 直读 `12_fintech_news_full`、**不经 12b**, 仍是原始关键词口径 (分子分母同处 pre-12b, 比值口径内部一致), 须单独披露。
-- ⚠ **盲区例外② (firm-level attention 族, 分裂宇宙)**: `attention_pct_*` / `attention_intensity_density_{full,ctx,ss}` 的**分子**取自 `14_fintech_intensity` (经 stage 13 已是 12b 子集) 并在 `attention_media.py:397` 再 `restrict_to_verified` 收缩到 verified 集 → 分子口径 = 『12b 近邻 ∩ verified』; 而**分母** `_n_all` 直读 `12_fintech_news_full` = pre-12b 全量银行新闻 (`attention_media.py:388-390,452-458`)。两端非同一统计宇宙 → 比值被系统性压低, 须在 codebook/manuscript 显式披露该分子分母异宇宙口径。
+- ⚠ **盲区例外② (firm-level attention 族, 分裂宇宙)**: `attention_pct_*` / `attention_intensity_density_{full,ctx,ss}` 的**分子**取自 `14_fintech_intensity` (经 stage 13 已是 12b 子集) 并在 `attention_media.py:398` 再 `restrict_to_verified` 收缩到 verified 集 → 分子口径 = 『12b 近邻 ∩ verified』; 而**分母** `_n_all` 直读 `12_fintech_news_full` = pre-12b 全量银行新闻 (`attention_media.py:388-390,452-458`)。两端非同一统计宇宙 → 比值被系统性压低, 须在 codebook/manuscript 显式披露该分子分母异宇宙口径。
 
 ---
 
