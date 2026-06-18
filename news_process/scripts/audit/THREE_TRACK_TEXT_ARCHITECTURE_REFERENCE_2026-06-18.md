@@ -148,7 +148,7 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 - **写前守卫** `stata_export.py::_assert_track_triplet_unique`: Stata 写前唯一性断言, 仅断言 full/ctx/ss 三元组 sanitize 截断后不撞名 (撞名 `raise ValueError`), **不发标签**。
 - **ss 轨标签后缀** (机械 `_ctx→_ss` 镜像):
   - 中文 `(银行+金科同句)` —— 产于 `stata_export.py::build_variable_labels` 的 `HEURISTIC_LABELS` 字典 (ss 轨标签项)。
-  - 英文全后缀 `(Bank+FinTech same-sentence)` —— **不在 `stata_export.py`** (该文件英文用压缩形 `SS-track`/`same-sent`); 整串出现于 `controls.py::STATA_LABELS_41` (collab/locus ss 标签)、`validation/entity_masking.py 模块级 STATA 标签` 等。
+  - 英文全后缀 `(Bank+FinTech same-sentence)` —— **不在 `stata_export.py`** (该文件英文用压缩形 `SS-track`/`same-sent`); 整串出现于 `controls.py::STATA_LABELS_41` 的 **prov/city leave-one-out 地理 IV tone** 标签 (`prov_leave1out_tone_ss` / `city_leave1out_tone_ss`) 与 `validation/prompt_sensitivity.py` 的 κ 表列标签 (`'SS Track (Bank+FinTech same-sentence): Pairwise κ'`)。(`validation/entity_masking.py` 仅在注释中提及该子串, 实产 LaTeX 表头 `'SS Track'`, 非 Stata 标签。)
 
 ### 计量铁律 (红线)
 **`full × ctx × ss` 严禁混进同一 over-identified Hansen J** (`tone_llms.py 模块 over-id Hansen J 红线注释`, `iv_extensions.py::compute_iv_extensions` docstring 用法裁决)。三轨高度相关 (corr 可达 0.998), 混进 J 检验会零功效。正确做法: **三轨各自 just-identified、并排报告**。
