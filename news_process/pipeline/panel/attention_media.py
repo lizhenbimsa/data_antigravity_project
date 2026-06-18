@@ -335,10 +335,11 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     ⚠ 顶刊披露 (P2 data/sample): 门控后本族估计样本宇宙 = stage-21 verified 集
       (N≈857 article-bank pairs, 较 1170 候选集剔除约 26.8% LLM 判伪文章); 论文须在
       data/sample 段与 Table 1 注报告该 verified 宇宙与剔除率 (与去重披露义务同级)。
-    ⚠ 范围 (勿混): 地理注意力指数族 (compute_fintech_attention_index 的 ft_attn_yr/prov/city)
-      是**另一支**, 其 is_fintech_news 分子取自未经 stage-21 验证的 12_full, 仍**未门控**
-      (审计 ATT-2, deferred 待决: gate-or-披露); 本函数 (含 HHI 分支) 仅覆盖 firm-level
-      attention 处理变量族, 不要据此误判 ft_attn_* 已修。
+    ⚠ 范围 (勿混): 地理注意力指数族 (compute_fintech_attention_index 的 ft_attn_yr/prov/city
+      + 总量孪生 ft_vol_*) 是**另一支**, 其 is_fintech_news 分子已于 2026-06-18 (审计 ATT-2)
+      在 compute_fintech_attention_index 内 docid 去重前经同口径 restrict_to_verified
+      (docid,target_bank) 门控收敛到同一 verified 集 — 与本函数 (ATT-1) 已对齐, 不再有
+      "未门控/deferred" 缺口。本函数 (含 HHI 分支) 仅覆盖 firm-level attention 处理变量族。
 
     NaN 非对称契约 (须知): panel 是 balance_panel 笛卡尔积, 可含 12_full universe 之外的
       bank-year (该银行该年**完全无银行新闻**, has_coverage=0)。这些行最终 panel.merge LEFT-join
@@ -416,7 +417,7 @@ def compute_attention_treatments(panel: pd.DataFrame) -> pd.DataFrame:
     # ── 跨媒体 HHI (vectorized, 防 H4 groupby-apply 性能炸弹) ──
     f12_ft = f12[f12['is_fintech_news'] == True]
     # fix(ATT-1, HHI 分支): HHI/n_outlets 的 outlet 分布同样收敛到 verified 集 (与分子 s14 同域)。
-    # (审计 ATT-2 = 另一支 compute_fintech_attention_index ft_attn_*, 仍未门控/deferred, 勿混。)
+    # (审计 ATT-2 = 另一支 compute_fintech_attention_index ft_attn_*, 已于 2026-06-18 同口径门控, 勿混。)
     # verified ⊆ f12_ft 经盘面实测 → 门控后 f12_ft 的非空 bank-year 集与门控后 s14 恒一致,
     # 保 n_fintech_articles==0 ⇔ disp_hhi=NaN 契约 (test_disp_hhi_bounded / test_zero_fintech_semantics)。
     f12_ft = restrict_to_verified(f12_ft, OUTPUT_DIR, FILENAMES,
@@ -527,8 +528,23 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
       该文件为 article × bank 粒度。统一作为指数和权重的数据源，
       避免 df_exploded (仅含 fintech 文章) 导致的地理曝露偏差。
 
+    verified 域门控 (ATT-2 修复 2026-06-18, panel-universe-consistency-audit):
+      本族比值 ft_attn = 单元 fintech 篇数 / **全部银行新闻**篇数 (Fang-Peress 议程份额),
+      故仅门控**分子** (is_fintech_news 计数), 分母 _total 须保持全部银行新闻全集。实现:
+      对 fintech 子集按 (docid, target_bank) semi-join 到 stage-21 verified 集
+      (24_herd_decay), 把**未通过验证的 fintech 行就地重标为非 fintech** (is_fintech_news=
+      False) — 行数不变, 故分母 _total 仍是全部银行新闻、分子 _ft 仅含 verified fintech,
+      与 compute_attention_treatments (ATT-1) 同 verified 域, 剔约 26.8% 被 stage 21 判伪。
+      该单次重标经 is_fintech_news 向下游传播 (year-level / _build_geo_index 的 _ft /
+      _merge LOO 扣减全部 key 于 is_fintech_news==True) → 一处覆盖全部六列。此前该支直读未
+      验证 12_full、与 ATT-1 不一致 (审计 ATT-2), 现已修复, 不再 deferred/待决。
+      ⚠ **不可**对整个 df_all 做 semi-join: 非 fintech 银行新闻行从不经 stage 21 验证、不在
+      24_herd_decay (verified_universe.py:15-18), inner-join 整 df_all 会删全部非 fintech 行
+      → 分母塌成 fintech-only → ft_attn≈1 退化。缺 docid (更早 ERROR) / 缺 24_herd_decay 时
+      restrict_to_verified 响亮 fail-open → 无重标 → 未门控全集, 不新增回退逻辑。
+
     去重策略:
-      - 计算注意力指数 → 按 docid 去重到唯一文章级
+      - 计算注意力指数 → 按 docid 去重到唯一文章级 (门控后)
       - 计算银行地理曝露权重 → 不去重 (每个 target_bank 行算一次曝露)
 
     NaN 语义:
@@ -595,6 +611,33 @@ def compute_fintech_attention_index(panel: pd.DataFrame) -> pd.DataFrame:
             df_all[col] = (df_all[col].astype(str).str.strip()
                            .str.replace(r'\s+', '', regex=True))
             df_all.loc[df_all[col].isin(_GEO_NAN_VALUES), col] = np.nan
+
+    # ── verified 域门控 (panel-universe-consistency-audit, ATT-2 修复 2026-06-18) ──
+    # 地理注意力比值 ft_attn = 单元 fintech 篇数 / **全部银行新闻**篇数 (Fang-Peress 议程份额),
+    # 故只能门控**分子** (is_fintech_news 计数), 分母 _total 须保持全部银行新闻全集。
+    # ⚠ 不可对整个 df_all 做 semi-join: 非 fintech 银行新闻行从不经 stage 21 验证、不在
+    #   24_herd_decay (verified_universe.py:15-18), inner-join 整 df_all 会把全部非 fintech 行
+    #   删掉 → 分母 _total 塌成 fintech-only → ft_attn≈1 退化。改为: 仅对 fintech 子集做
+    #   verified semi-join, 把未通过验证的 fintech 行就地重标为非 fintech (is_fintech_news=
+    #   False) — 行数不变 → 分母 _total 仍是全部银行新闻、分子 _ft 仅含 verified fintech。
+    #   该单次重标经 is_fintech_news 向下游传播 (year-level / _build_geo_index 的 _ft /
+    #   _merge_geo_index_to_panel 的 LOO 扣减全部 key 于 is_fintech_news==True) → 一处覆盖
+    #   全部六列, 与 ATT-1 (compute_attention_treatments) 同 verified 域。
+    #   fail-open: 缺 docid 在 :578-590 已更早 ERROR; 缺 24_herd_decay → restrict_to_verified
+    #   响亮 fail-open 返回原 fintech 子集 → verified 对集 == 原 fintech 对集 → 无重标 →
+    #   未门控全集 (与 ATT-1 同 fail-open 语义), 不新增回退逻辑。
+    _ft_mask = df_all['is_fintech_news'] == True
+    _ft_verified = restrict_to_verified(
+        df_all.loc[_ft_mask], OUTPUT_DIR, FILENAMES,
+        keys=['docid', 'target_bank'], logger=logger,
+        label='attention.geo_numerator')
+    _verified_ft_pairs = set(zip(_ft_verified['docid'], _ft_verified['target_bank']))
+    _n_ft_before = int(_ft_mask.sum())
+    _keep_ft = pd.MultiIndex.from_arrays(
+        [df_all['docid'], df_all['target_bank']]).isin(_verified_ft_pairs)
+    df_all['is_fintech_news'] = (df_all['is_fintech_news'] == True).to_numpy() & _keep_ft
+    logger.info("  verified 域门控 (ATT-2, 仅分子重标): fintech 篇 %d → %d (分母全集 %d 不变)",
+                _n_ft_before, int((df_all['is_fintech_news'] == True).sum()), len(df_all))
 
     # ── 按 docid 去重 → 唯一文章 (计算注意力指数) ──
     df_unique = df_all.drop_duplicates(subset=['docid'])
