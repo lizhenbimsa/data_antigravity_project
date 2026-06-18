@@ -185,7 +185,9 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
             'content_full' in df.columns and 'ctx_is_fallback' in df.columns
             and 'content_ss' in df.columns and 'ss_is_fallback' in df.columns):
         df = df.copy()
-        _bodies_old = df['内容'].astype(str).tolist()
+        # fix(three-track-verify 2026-06-18): 与主物化路径 body_full / _bodies 同口径 pd.isna→''
+        # (NaN 正文不被 astype(str) 变 'nan'), 保 legacy 幂等分支 ctx_is_fallback/content_full 一致。
+        _bodies_old = ['' if pd.isna(v) else str(v) for v in df['内容'].tolist()]
         _ctx_old = df['content_ctx'].astype(str).tolist()
         if 'ctx_is_fallback' not in df.columns:
             df['ctx_is_fallback'] = pd.Series(

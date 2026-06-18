@@ -174,7 +174,7 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 三轨不止生产情感阶段, 两个 validation-only 稳健性阶段也对 full/ctx/ss **各跑一遍**, 用以证明"生产-验证口径一致"。两者都读 `21_tone_llms_full.parquet` 的三轨列, 都是**增量付费 LLM 请求** (掩码/变体 prompt 与生产不同 → 冷缓存须线上跑)。
 
 ### stage 36 entity_masking (`validation/entity_masking.py`, 实体掩码稳健性)
-- 三轨各做掩码替换 (银行别名→匿名占位符) + LLM 重判: `mask_entity` × 三轨 → `masked_text_{full,ctx,ss}` (`:315-317`), main 主循环逐轨跑 `mask_entity`+`verify_masking_completeness` (`:781-818`)。
+- 三轨各做掩码替换 (银行别名→匿名占位符) + LLM 重判: `mask_entity` × 三轨 → `masked_text_{full,ctx,ss}` (`:315-317`), main 主循环逐轨跑 `mask_entity`+`verify_masking_completeness` (full/ctx `:781-818`, ss 段 `:822-843`)。
 - `content_ss` 缺列 → 回退全文 body (`:754-757`, 镜像 `ss_is_fallback` 回退公理); 算四维一致性指标 (验证一致率/情感一致率/Cohen's κ/逐模型) × 三轨, gate = full/ctx/ss AND。
 
 ### stage 39 prompt_sensitivity (`validation/prompt_sensitivity.py`, prompt 措辞敏感度)
