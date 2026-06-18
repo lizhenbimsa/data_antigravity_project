@@ -38,17 +38,17 @@
 
 | 列 | 公式 | 锚点 |
 |---|---|---|
-| `content_full` | `prepend_title(标题, 全文 body)` | `:292` |
-| `content_ctx` | `prepend_title(标题, extract_entity_context(...))` | `:262-271,293` |
-| `content_ss` | `prepend_title(标题, extract_bank_fintech_cooccurrence(...))` | `:274-294` |
-| `ctx_is_fallback` | bool, `(ctx_body == 全文 body)` | `:307-311` |
-| `ss_is_fallback` | bool, `(ss_body == 全文 body)` | `:312-315` |
+| `content_full` | `prepend_title(标题, 全文 body)` | `:294` |
+| `content_ctx` | `prepend_title(标题, extract_entity_context(...))` | `:264-273,295` |
+| `content_ss` | `prepend_title(标题, extract_bank_fintech_cooccurrence(...))` | `:276-296` |
+| `ctx_is_fallback` | bool, `(ctx_body == 全文 body)` | `:311-315` |
+| `ss_is_fallback` | bool, `(ss_body == 全文 body)` | `:316-319` |
 
 `prepend_title` (`core/text/entity_context.py:66-81`): 标题为空→原样返回 body; body 已以标题开头→不重复拼 (防双标题); 标题末已是句末标点 (`。！？!?；;…`)→直接相连, 否则插中文句号 `。` (`_TITLE_SEP`)。
 
 **为何物化在 stage 13 (早于情感打分 stage 21)?** 让 stage 14 (fintech 强度) / stage 15 (政策对齐) 在 LLM 阶段**之前**即可消费 ctx/ss, 做到真三轨。把"切文本"从"打分"里解耦。
 
-**幂等守卫** (`:168-219`): 五列俱全→短路跳过; 旧 schema (仅 `content_ctx`)→兼容回填, 以**哨兵** `content_ss=content_full` / `ss_is_fallback=True` 填充 (**不重算 ss**)。⚠ 要拿真 `_ss` 列须删 `content_ctx` 触发全量重算; 审计 ss 非空率时须区分"真共现回退"与"哨兵回填" (各阶段缺列回退口径完整对照见 **§6.1 统一矩阵**)。
+**幂等守卫** (`:168-221`): 五列俱全→短路跳过; 旧 schema (仅 `content_ctx`)→兼容回填, 以**哨兵** `content_ss=content_full` / `ss_is_fallback=True` 填充 (**不重算 ss**)。⚠ 要拿真 `_ss` 列须删 `content_ctx` 触发全量重算; 审计 ss 非空率时须区分"真共现回退"与"哨兵回填" (各阶段缺列回退口径完整对照见 **§6.1 统一矩阵**)。
 
 ---
 
@@ -81,7 +81,7 @@
 
 ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计数列**。ss 回退率天然高于 ctx (大量银行新闻只讲罚款/坏账, 与金科无关)。
 
-⚠ **判定细节**: `*_is_fallback` 比较"**去标题后的 body**" (`ctx_body`/`ss_body` vs 原始 `内容` 列 body, `:300-306`), 不是带标题的 `content_*`。标题前缀对三轨相同, 不影响 entity-miss 语义。
+⚠ **判定细节**: `*_is_fallback` 比较"**去标题后的 body**" (`ctx_body`/`ss_body` vs 原始 `内容` 列 body, `:303-305`), 不是带标题的 `content_*`。标题前缀对三轨相同, 不影响 entity-miss 语义。
 
 ⚠ **`ss_is_fallback` 不仅是 entity-miss 信号**: 它还被 **stage 24** 用作三轨独立性诊断的门控掩码 —— full-ss / ctx-ss 两对的 Spearman ρ **仅在 `ss_is_fallback==False` 的行上算** (`herd_decay.py:633-636`), 防回退行 (`content_ss≡全文 body → herd_weight_ss≡herd_weight_full`) 虚抬 ss 相关性 (详见 §5 stage 24 子节)。
 
@@ -118,7 +118,7 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 
 | 接触点 | 位置 | 行为 |
 |---|---|---|
-| ① stage 13 prepend | `ctx_materializer.py:292-294` | `content_{full,ctx,ss}` 各 = `prepend_title(同一 title, body/ctx_body/ss_body)` |
+| ① stage 13 prepend | `ctx_materializer.py:294-296` | `content_{full,ctx,ss}` 各 = `prepend_title(同一 title, body/ctx_body/ss_body)` |
 | ② stage 21 strip + 独立 `{title}` | `tone_llms.py:716,727,732,742` | ctx/ss 喂 prompt 前 `_strip_prepended_title` 剥前缀; prompt 的 `{title}` 字段三轨同填原始 `标题` 列 (`:716` 单一赋值, `:742` 同循环内 `format(title=title,...)`) |
 | ③ stage 22/23 再调 prepend | `tone_words.py:1415-1416` / `tone_berts.py:1159-1160` | 读已 prepend 的 `content_ss` 后再调 `prepend_title` — 守卫幂等 (`entity_context.py:77-78` `body.startswith(title)→return body` 短路, no-op) |
 
@@ -157,8 +157,8 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 
 | 阶段 | `content_ss` / `_ss` 源缺时行为 | `_ss` 列是否产出 | 空值语义 | 对 ss 非空率统计的影响 | 锚点 |
 |---|---|---|---|---|---|
-| stage 13 (旧 schema) | 哨兵 `content_ss=content_full`, `ss_is_fallback=True` | 文本列产出 (=full) | **哨兵回填** | 全部记 fallback, 非真共现回退 | `ctx_materializer.py:168-219` |
-| stage 13 (无共现, 新 schema) | 退回全文 body, `ss_is_fallback=True` | 文本列产出 (=full body) | **真回退 full** | 计入 fallback 率 (镜像 ctx) | `ctx_materializer.py:274-315` |
+| stage 13 (旧 schema) | 哨兵 `content_ss=content_full`, `ss_is_fallback=True` | 文本列产出 (=full) | **哨兵回填** | 全部记 fallback, 非真共现回退 | `ctx_materializer.py:168-221` |
+| stage 13 (无共现, 新 schema) | 退回全文 body, `ss_is_fallback=True` | 文本列产出 (=full body) | **真回退 full** | 计入 fallback 率 (镜像 ctx) | `ctx_materializer.py:276-319` |
 | stage 14 fintech_intensity | `score_ss = scores_full` | **产出 (值 ≡ _full)** | **回退 full (非空拷贝)** | `_ss` 非 NaN 但 ≡ `_full` → 误判"有信号" | `fintech_intensity.py:669-674` |
 | stage 15 policy_alignment | `ss_texts=None` → 跳过 | **不产出 (退回 5 列)** | **None / 不产列** | 列直接缺失, 须按列存在性判定 | `policy_alignment.py:790-797,910-913` |
 | stage 22 词典法 | 回退 `content_ctx`→`内容` | **产出** | **优雅回退 (非空, ≡ctx/内容)** | `_ss` 非 NaN 但 ≡ ctx/full → 误判"有信号" | `tone_words.py:1415-1416` |
@@ -199,7 +199,7 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 | 产物 | `12b_cooccurrence_filtered.parquet` | `content_ss` + `ss_is_fallback` 列 |
 
 - **12b 只保留**目标银行与 ≥1 金科词在 ±radius 句窗邻近共现的文章 (`cooccurrence_filter.py:102-159`), 降 stage 12 关键词判定的虚假相关 (Andreou et al. 2026)。
-- **唯一 load-bearing 重指针** = stage 13 输入改读 `output_12b_cooccurrence` (`ctx_materializer.py:440-452`)。回滚只需把 `in_name` 改回 `output_12_fintech_news`。
+- **唯一 load-bearing 重指针** = stage 13 输入改读 `output_12b_cooccurrence` (`ctx_materializer.py:444-456`)。回滚只需把 `in_name` 改回 `output_12_fintech_news`。
 - **SAFE-1 铁律** (`:107-112`): `FINTECH_AC=None` → 保留全部行 + loud WARNING; keep 率 < `min_keep_frac` 或 0 行 → `SystemExit(1)` (`:264-274`)。
 - **路线 A 纯接受-披露**: 12b 仅丢行, 下游 `controls.py`/`encode.py` **零改动**。`fintech_share` 分母经"望远镜式坍缩"**恒不变** —— `all_n_articles = ft_dedup + nf ≡ |df_full|`, 12b 只把被丢中间集 C 从 ft 端移到 nf 端, 代数和守恒 (`controls.py:484-493,770-771`)。统计宇宙平移为"近邻相关金科"口径, 在 manuscript/codebook **如实披露** (非代码修复)。
 - ⚠ **盲区例外① (地理 attention 族)**: `ft_attn_*`/`ft_vol_*` 直读 `12_fintech_news_full`、**不经 12b**, 仍是原始关键词口径 (分子分母同处 pre-12b, 比值口径内部一致), 须单独披露。
@@ -210,7 +210,7 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 ## 9. 配置与覆盖率
 
 `config/filtering.yaml`:
-- `context_window` (`:86-89`): `sentence_radius=1` (ctx)、`fallback_char_radius=150`、`ss_sentence_radius=1` (代码默认回退到 `sentence_radius`, `ctx_materializer.py:225` —— 改 ctx 半径会连带改 ss)。
+- `context_window` (`:86-89`): `sentence_radius=1` (ctx)、`fallback_char_radius=150`、`ss_sentence_radius=1` (代码默认回退到 `sentence_radius`, `ctx_materializer.py:227` —— 改 ctx 半径会连带改 ss)。
 - `cooccurrence_filter` (`:103-105`): `sentence_radius=1`、`min_keep_frac=0.001`。
 
 **实测覆盖率 (disk 1170 篇旧小样, `THIRD_TRACK_SAME_SENTENCE_PLAN_2026-06-14.md:33-34`)**:
