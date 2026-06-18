@@ -89,7 +89,7 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 
 ## 5. 各情感方法如何"三轨化"
 
-三种打分器 (+ stage 24 跟风衰减) 各自对 `content_full` / `content_ctx` / `content_ss` 跑一遍, 机械加后缀。**driver `['_full','_ctx','_ss']` 是散落在约 17 个生产源 .py 的重复字面量** (精确三元列字面量 ~115 处; 放宽到"含全部三后缀字面量"的逐文件口径达 ~33 个 .py — 含 `encode.py` · `runner.py` · `iv_extensions.py` · `tone_words.py` · `attention_media.py` · `iv_did.py` · `llms_evaluation.py` 等), **无各 driver 共享导入的单一常量事实源** (仅 `stata_export.py:628` 有函数局部 `_TRACK_SUFFIXES`, 专供 Stata 写前撞名断言, 不被任何 driver 复用) —— 改三轨须全仓同步。
+三种打分器 (+ stage 24 跟风衰减) 各自对 `content_full` / `content_ctx` / `content_ss` 跑一遍, 机械加后缀。**driver `['_full','_ctx','_ss']` 是散落在约 17 个生产源 .py 的重复字面量** (精确三元列字面量 ~115 处; 放宽到"含全部三后缀字面量"的逐文件口径达 ~33 个 .py — 含 `encode.py` · `runner.py` · `iv_extensions.py` · `tone_words.py` · `attention_media.py` · `iv_did.py` · `llms_evaluation.py` 等), **无各 driver 共享导入的单一常量事实源** (仅 `stata_export.py:635` 有函数局部 `_TRACK_SUFFIXES`, 专供 Stata 写前撞名断言, 不被任何 driver 复用) —— 改三轨须全仓同步。
 - **同步不靠人肉清单, 而由自动护栏兜底**: `scripts/audit/check_static_enums.py` 扫 `pipeline`/`validation`/`papers` 全树, 对每处 `['_full','_ctx']` 双轨静态枚举断言邻近存在 `_ss` 兄弟或显式豁免, 缺一即 pytest 红线 `test_no_unconverted_two_track_enums` FAIL (当前 0 漏)。⚠ 该护栏**只覆盖机械后缀类枚举**, 抓不到 §6 的"对角命名"列 (`tech_frac_ls` / `collab_frac_cm_ss` / `sub_frac_ss`) —— 那几个非后缀别名必须**人工硬编码 + 对照 §6 锚点**, 是真正的静默 NaN 高危点。(注: 护栏位于 `scripts/audit/` 而 `testpaths=["news_process/tests"]`, 默认 sweep 不收, 须显式给路径或加薄包装才进 CI。)
 
 ### stage 21 LLM (付费, 核心, `pipeline/sentiment/tone_llms.py`)
@@ -144,9 +144,9 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 > 订正: `sub_frac_ss` / `collab_frac_cm_ss` **确实以 `_ss` 结尾**; 唯一连后缀都不规则的是 `tech_frac_ls`。chain-break 真因 = **ctx 名无字面 `_ctx` 子串** (`_sc`/`_lc`/`_cm`) → 从 ctx 名朴素 `_ctx→_ss` 替换三者皆 no-op → `lpeer_subst_iv_ss` / `lpeer_locus_iv_ss` / `lpeer_collab_iv_ss` 若不显式喂真名会**静默全 NaN**, 毁 P3/P4/P5。`iv_extensions.py:555/572/582` 已**显式硬编码全部三个真名**。这是 v3.9.0 落地时 19-agent QA 才逮出的 bug (前几轮全漏), **必须硬编码这些例外**。
 
 ### Stata 写前守卫与标签后缀
-- **写前守卫** `stata_export.py:615-653` `_assert_track_triplet_unique`: Stata 写前唯一性断言, 仅断言 full/ctx/ss 三元组 sanitize 截断后不撞名 (撞名 `raise ValueError`), **不发标签**。
+- **写前守卫** `stata_export.py:622-662` `_assert_track_triplet_unique`: Stata 写前唯一性断言, 仅断言 full/ctx/ss 三元组 sanitize 截断后不撞名 (撞名 `raise ValueError`), **不发标签**。
 - **ss 轨标签后缀** (机械 `_ctx→_ss` 镜像):
-  - 中文 `(银行+金科同句)` —— 产于 `stata_export.py:335-376` 的 `HEURISTIC_LABELS` 字典。
+  - 中文 `(银行+金科同句)` —— 产于 `stata_export.py:335-375` 的 `HEURISTIC_LABELS` 字典。
   - 英文全后缀 `(Bank+FinTech same-sentence)` —— **不在 `stata_export.py`** (该文件英文用压缩形 `SS-track`/`same-sent`); 整串出现于 `controls.py:1001,1004` (`STATA_LABELS_41`)、`validation/entity_masking.py:560` 等。
 
 ### 计量铁律 (红线)
@@ -233,7 +233,7 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 
 ⚠ **重要订正**: ss 轨**已落地, 非"待付费首跑"** (此前文档此处方向写反, 经实读盘面纠正):
 
-- **本机已落地 (含 ss LLM)**: `_ss` LLM 轨已线上付费首跑并落盘 —— disk `40_panel_yearly.parquet` (2026-06-18 重生) = 172 行 × 2661 列, 含 **760 个 `_ss` 列**, `llm_vote_tone_ss` 真实填充 (109/172 非空, mean≈0.955, 与 `llm_vote_tone_ctx` 数值不同); `13_news_with_ctx.parquet` 的 `ss_is_fallback` True 率 ≈14.4% (非 100% 哨兵), `content_ss != 内容` 在 1124/1125 行 (走真共现重算); `_llm_cache.db` ≈528MB / ~154.8k 条 (含 ss)。golden fixture `golden_panel_v0.json` 亦已对该含-ss 面板**重生过** (`40_panel_yearly` 记录 760 个 `_ss` 列 / 2661 列 / 172 行与盘面逐一一致; commit `98efb2ec`)。
+- **本机已落地 (含 ss LLM)**: `_ss` LLM 轨已线上付费首跑并落盘 —— disk `40_panel_yearly.parquet` (2026-06-18 重生) = 172 行 × 2661 列, 含 **760 个 `_ss` 列**, `llm_vote_tone_ss` 真实填充 (109/172 非空, mean≈0.955, 与 `llm_vote_tone_ctx` 数值不同); `13_news_with_ctx.parquet` 的 `ss_is_fallback` True 率 ≈14.4% (非 100% 哨兵), `content_ss != 内容` 在 1124/1125 行 (走真共现重算); `_llm_cache.db` ≈504 MiB (528 MB 十进制) / 154,793 条 (含 ss)。golden fixture `golden_panel_v0.json` 亦已对该含-ss 面板**重生过** (`40_panel_yearly` 记录 760 个 `_ss` 列 / 2661 列 / 172 行与盘面逐一一致; commit `98efb2ec`)。
 - **唯一真残留 (golden 版本戳)**: golden `schema_version` 字段**仍是 2** —— `generate_golden_snapshot.py:131` 硬编码 `"schema_version": 2` 未随数据重生 bump 到 3 (**数据已 bless, 仅版本戳过时**); 计划升 2→3 + 版本感知 loader (`schema_version==2` 时丢 `_ss` 列向后兼容)。另: 3 个非确定网络中心度列及其 ss 派生仍排除字节级 repro。
 - **12b keep 率硬 gate 尚未实现**: 当前 `cooccurrence_filter.py:256` 的 `keep_frac=n_out/n_in` 以 stage 12 自身输出 (已是 ≥3 关键词金科子集) 作分母, 12b 又只取其近邻共现子集, 结构上必然偏高 ("自证假~100%"); `min_keep_frac=0.001` 只能防近乎清空, **防不住静默大规模过删**。生产首跑须按 CLAUDE.md:21 实现真 gate: 读 **pre-12b** 真候选集做下界校验 + 按逐年/长短文本/银行分层报 keep 率; 银行整家掉出 (当前 117→113) 应升级为硬上界守卫。
 - **生产规模覆盖率矩阵未填** (见 §9 待测矩阵): 14.27%/65.76% 均为 disk 1170 小样推算, 全量逐年须在生产 run 落盘后回填; 在此之前"独立信号成立"仅为小样结论。

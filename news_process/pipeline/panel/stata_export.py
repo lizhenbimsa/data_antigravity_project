@@ -338,7 +338,6 @@ def build_variable_labels(
         'innovation_collab_mode_ss':        "Innov. Collab Mode (SS-track 银行+金科同句, Chesbrough 2003)",
         'innovation_collab_mode_confidence_ss': "Collab Mode Confidence (SS-track 银行+金科同句, raw LLM)",
         'category_confidence_ss':           "Locus Confidence (SS-track 银行+金科同句, hybrid LLM+keyword)",
-        'llm_verified_dual_ss_only':        "Dual Gate: SS-track only verified (银行+金科同句)",
         'tone_gap_tech_app_ls_ss':          "Tone Gap: Tech-App (Loc=SS, ss sentiment 银行+金科同句)",
         'tone_gap_sub_symb_ss_ss':          "Tone Gap: Sub-Symb (Subst=SS, ss sentiment 银行+金科同句)",
         # 二元 prob_score 三维 × ss 轨 (positive_class = 象征性/应用场景/外部协同)
@@ -454,18 +453,20 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         'innovation_collab_mode_full', 'innovation_collab_mode_ctx', 'innovation_collab_mode_ss',
         'innovation_collab_mode_confidence_full', 'innovation_collab_mode_confidence_ctx', 'innovation_collab_mode_confidence_ss',
         'category_confidence_full', 'category_confidence_ctx', 'category_confidence_ss',
-        # fix(omni-g-stata-export-07, 2026-06-11): panel 级实际聚合列名
-        # (encode.py 产出 avg_category_confidence; 轨后缀版预留给 g-encode 组修复)
+        # fix(omni-g-stata-export-07, 2026-06-11; three-track-verify 2026-06-18): panel 级
+        # 聚合列名。avg_category_confidence(=_full 别名) + _full/_ctx; ss 轨刻意不做该分类
+        # 置信度聚合 (与 encode.py:1331-1332/1752-1754 cell_id 口径一致: ss 当纯情感轨, LLM
+        # 分类属性仅 full/ctx) → 删去原 _ss 过度声明 (producer 不产出 avg_category_confidence_ss)。
         'avg_category_confidence',
-        'avg_category_confidence_full', 'avg_category_confidence_ctx', 'avg_category_confidence_ss',
+        'avg_category_confidence_full', 'avg_category_confidence_ctx',
         'avg_il_confidence_full', 'avg_il_confidence_ctx', 'avg_il_confidence_ss',
         'avg_iss_confidence_full', 'avg_iss_confidence_ctx', 'avg_iss_confidence_ss',
         'avg_icm_confidence_full', 'avg_icm_confidence_ctx', 'avg_icm_confidence_ss',
-        # dual gate (三轨后新增 ss-only 互斥态; full×ctx×ss 7 互斥态由 tone_llms 诊断,
-        # 此处仅保留 verified 门的 ss-only 核心标记)
+        # dual gate = full×ctx 二元互斥划分 (数学上只有 3 态 _full_only/_ctx_only/_both;
+        # fix(three-track-verify 2026-06-18): 删去原 'llm_verified_dual_ss_only' — dual 是二元,
+        # 无 ss_only 态; 第三轨 ss 验证态由独立的 llm_verified_triple_ss_only 覆盖, tone_llms.py:2146)
         'llm_verified_dual_full_only', 'llm_verified_dual_ctx_only', 'llm_verified_dual_both',
-        'llm_verified_dual_ss_only',
-        # 主子集对角线 (_lf × _full 隐式 + _lc × _ctx 显式; ss 轨情感 × ctx-锚定分类对角)
+        # 主子集对角线 (_lf × _full 隐式 + _lc × _ctx 显式; ss 轨情感 × ss-锚定分类对角 _ls/_ss)
         'tech_frac', 'app_frac', 'sub_frac', 'symb_frac',
         'tech_frac_lc', 'app_frac_lc', 'sub_frac_sc', 'symb_frac_sc',
         # fix(three-track-verify, 2026-06-18): 补 ss 轨对角 frac 主测度, 恢复
