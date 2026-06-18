@@ -30,17 +30,16 @@ panel 新增 12 列 (v3.9.0 三轨 × 4 子集)
 content_ss 各调用一次本模块的 ``_compute_lm_non_sentiment_for_text`` (三轨), 把 4 项结果
 加入 result dict.
 
-stub 说明
----------
-词表 v0.1.5 共 314 词 (uncert 83 / litig 104 / constr 76 / modal_strong 51),
-status=AWAITING_EXPERT_AUDIT (见 config/tone_dicts.json::lm_non_sentiment._meta).
-v0.2 由中文金融专家扩至 LM 2011 原版 1219 词覆盖 (G-A1.1 准入门控).
-
-数据源统一 (2026-06-17)
-----------------------
-4 子词典已从独立文件 ``config/lm_non_sentiment_dicts.json`` 并入 ``config/tone_dicts.json``
-的顶层条目 ``lm_non_sentiment`` (单一事实源, 与 6 部 sentiment 词典同居一文件); 本模块改读
-该条目的 4 个 subset 数组, 词表逐字不变 (12 个 frac panel 列结果不变, golden 不受影响)。
+数据源 (2026-06-18 替代)
+-----------------------
+原手工 stub v0.1.5 (``lm_non_sentiment``, 314 词, AWAITING_EXPERT_AUDIT) 经用户 directive
+"用 loughran_mcdonald_zh_2026 完全替代 lm_non_sentiment" 已**废弃并从 tone_dicts.json 删除**。
+本模块 4 个非情感子集现取自 L&M 情感主译全本 ``config/tone_dicts.json::loughran_mcdonald_zh_2026``
+的对应非极性类别 (uncertainty 392 / litigious 913 / constraining 174 / strong_modal 54 =
+1533 词; 经 325-agent 审计的全本翻译, 远超原 314 词 stub)。
+⚠ loughran 类别键用 strong_modal, 本模块 subset 沿用 modal_strong → 经 ``_SUBSET_SOURCE`` 映射。
+⚠ 这是**有意的测度变更** (非行为保持): 12 个 frac panel 列 (uncert/litig/constr/modal_strong_frac
+× full/ctx/ss) 的数值随词表扩大而改变, golden 须重生 (M0 gate)。
 """
 
 from __future__ import annotations
@@ -57,14 +56,24 @@ import jieba
 # 或字母的 token 不会 fullmatch, 被保留为 word。
 _LMFLS_NONWORD_RE = re.compile(r'[\W\d_]+')
 
-# 数据源统一 (2026-06-17): 4 子词典并入 config/tone_dicts.json 顶层条目 ``lm_non_sentiment``
-# (单一事实源)。_LM_DICT_PATH 指向 tone_dicts.json; _LM_DICT_KEY = 该条目顶层键。
+# 数据源 (2026-06-18 替代): 4 个非情感子集取自 L&M 情感主译全本 ``loughran_mcdonald_zh_2026``
+# 的对应非极性类别 (原 lm_non_sentiment stub 已删除)。_LM_DICT_PATH 指向 tone_dicts.json;
+# _LM_DICT_KEY = 源条目顶层键。
 _LM_DICT_PATH = (
     Path(__file__).resolve().parents[2] / 'config' / 'tone_dicts.json'
 )
-_LM_DICT_KEY = 'lm_non_sentiment'
+_LM_DICT_KEY = 'loughran_mcdonald_zh_2026'
 
 _SUBSETS = ('uncertainty', 'litigious', 'constraining', 'modal_strong')
+
+# 本模块 subset 名 → loughran_mcdonald_zh_2026 条目内的源类别键
+# (loughran 用 strong_modal; 其余三者同名)。
+_SUBSET_SOURCE = {
+    'uncertainty': 'uncertainty',
+    'litigious': 'litigious',
+    'constraining': 'constraining',
+    'modal_strong': 'strong_modal',
+}
 
 # panel 列前缀映射 (与 LM 原文 + Bochkay 2020 命名约定一致)
 SUBSET_PREFIX = {
@@ -83,20 +92,21 @@ def load_lm_non_sentiment_dicts() -> dict[str, frozenset[str]]:
         {subset_name: frozenset(words)} for 4 subsets.
 
     Note:
-        当前是 v0.1.5 (共 314 词: uncert 83 / litig 104 / constr 76 / modal_strong 51);
-        G-A1.1 门控通过后由专家扩展.
+        2026-06-18 起源自 loughran_mcdonald_zh_2026 的 4 个非极性类别
+        (uncert 392 / litig 913 / constr 174 / modal_strong←strong_modal 54);
+        原 314 词 stub 已删除 (见模块 docstring 数据源段)。
     """
     if not _LM_DICT_PATH.exists():
         return {s: frozenset() for s in _SUBSETS}
     with open(_LM_DICT_PATH, 'r', encoding='utf-8') as f:
         raw = json.load(f)
-    # 自 config/tone_dicts.json 顶层条目 ``lm_non_sentiment`` 取 4 子词典 (2026-06-17 统一)。
-    # 文件/条目缺失 → 4 个空 frozenset (优雅降级, 与原独立文件缺失语义一致)。
+    # 自 config/tone_dicts.json::loughran_mcdonald_zh_2026 取 4 个非极性类别 (2026-06-18 替代);
+    # 经 _SUBSET_SOURCE 映射 (modal_strong←strong_modal)。文件/条目缺失 → 4 空 frozenset (优雅降级)。
     entry = raw.get(_LM_DICT_KEY, {}) if isinstance(raw, dict) else {}
     if not isinstance(entry, dict):
         entry = {}
     return {
-        s: frozenset(entry.get(s, []) or [])
+        s: frozenset(entry.get(_SUBSET_SOURCE[s], []) or [])
         for s in _SUBSETS
     }
 

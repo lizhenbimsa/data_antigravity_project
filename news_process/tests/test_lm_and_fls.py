@@ -35,17 +35,17 @@ class TestLmNonSentimentLoad:
             assert isinstance(v, frozenset)
             assert len(v) > 0, f"{k} 词典为空"
 
-    def test_v01_5_stub_size_within_range(self):
-        # v0.1.5 (v2.3-followup-v2 第 17 轮 user-request 扩展):
-        # uncertainty 85 / litigious 105 / constraining 77 / modal_strong 52
-        # USER_ACTION_REQUIRED v0.2: 上限 500 预留中文金融专家审定后扩容
+    def test_subset_sizes_within_range(self):
+        # 2026-06-18 替代: 4 个非情感子集源自 loughran_mcdonald_zh_2026 对应非极性类别
+        # (uncertainty 392 / litigious 913 / constraining 174 / strong_modal→modal_strong 54);
+        # 原 314 词 stub (lm_non_sentiment) 已删除。上限放宽到 2000 容纳 L&M 全本翻译。
         from news_process.pipeline.sentiment.lm_non_sentiment import (
             load_lm_non_sentiment_dicts,
         )
         d = load_lm_non_sentiment_dicts()
         for k, v in d.items():
-            assert 20 <= len(v) <= 500, \
-                f"{k} 词数 {len(v)} 超出 v0.1.5/v0.2 预期范围"
+            assert 20 <= len(v) <= 2000, \
+                f"{k} 词数 {len(v)} 超出预期范围 (loughran 非情感类别)"
 
     def test_lru_cache_idempotent(self):
         from news_process.pipeline.sentiment.lm_non_sentiment import (
