@@ -245,12 +245,12 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     _titles = df['标题'].tolist() if '标题' in df.columns else [''] * len(df)
     _banks = df['target_bank'].tolist() if 'target_bank' in df.columns else [''] * len(df)
     for body_raw, _t, bank_raw in zip(_contents, _titles, _banks):
-        body_full = str(body_raw)
-        # fix(omni-g-misc-04, 2026-06-11): 缺失标题显式 pd.isna 判空, 与 L98 旧 schema
-        # 路径 fillna('') 口径对齐 — 原 `str(... or '')`: np.nan (truthy float) 漏网被
-        # str() 成字面 'nan' 前缀静默注入三轨 (full/ctx/ss) 情感/embedding 文本; pd.NA
-        # 在 `or` 布尔语境直接 TypeError。上游 stage 00 KEY_COLUMNS 过滤守卫是 config 驱动
-        # (默认可为空), 不可依赖。
+        # fix(omni-g-misc-04, 2026-06-11; 扩展 three-track-verify 2026-06-18 覆盖正文):
+        # 缺失正文/标题均显式 pd.isna 判空, 与 L98 旧 schema 路径 fillna('') 口径对齐 —
+        # 原 `str(body_raw)`: np.nan (truthy float) 漏网被 str() 成字面 'nan' 前缀静默注入
+        # 三轨 (full/ctx/ss) 情感/embedding 文本; pd.NA 在 `or` 布尔语境直接 TypeError。
+        # 上游 stage 00 KEY_COLUMNS 过滤守卫是 config 驱动 (默认可为空), 不可依赖。
+        body_full = '' if pd.isna(body_raw) else str(body_raw)
         title = '' if pd.isna(_t) else str(_t)
         target_bank = str(bank_raw)
         if target_bank and target_bank not in ('nan', 'None'):
@@ -304,7 +304,9 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
     # 锚定: lexical_discriminant_validity.py:20 (R8-H1 audit anchor)
     # 三轨 ss (2026-06-14): ss_is_fallback = (ss_body == 全文 body), 镜像
     # ctx_is_fallback 语义 (无银行∧金科同句共现 → 回退全文 → True)。
-    _bodies = df['内容'].astype(str).tolist()
+    # fix(three-track-verify, 2026-06-18): 与 body_full 同口径 pd.isna→'' (而非 astype(str)
+    # 把 NaN 变 'nan'), 保 is_fallback 比较两侧一致 (NaN 正文行: body_full='' vs _bodies='')。
+    _bodies = ['' if pd.isna(v) else str(v) for v in df['内容'].tolist()]
     df['ctx_is_fallback'] = pd.Series(
         [cb == fb for cb, fb in zip(ctx_body_list, _bodies)],
         index=df.index,

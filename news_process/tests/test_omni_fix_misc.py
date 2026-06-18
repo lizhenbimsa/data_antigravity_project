@@ -96,6 +96,38 @@ class TestCtxMaterializerMissingTitle:
         assert out['content_ctx'].iloc[0] == f'某银行数字化转型。{body}'
 
 
+class TestCtxMaterializerMissingBody:
+    """fix(three-track-verify 2026-06-18): 主物化路径正文 (内容) 缺失处理, 对称于
+    标题缺失修复 (omni-g-misc-04)。旧 `body_full = str(body_raw)`: np.nan (truthy float)
+    漏网被 str() 成字面 'nan' 静默注入三轨 (full/ctx/ss) 情感/embedding 文本; pd.NA 同险。
+    新: 显式 pd.isna 判缺 → 空正文 (与标题守卫同口径; 当前语料无 NaN 正文, 纯防御)。
+    """
+
+    @staticmethod
+    def _df(body):
+        return pd.DataFrame({
+            '内容': pd.Series([body], dtype='object'),
+            '标题': ['某行数字化转型'],
+            'target_bank': [''],  # 空 target → 跳过实体窗口, 三轨退化为仅标题
+        })
+
+    def test_nan_body_no_literal_nan_prefix(self):
+        from news_process.pipeline.text.ctx_materializer import materialize_content_ctx
+        out = materialize_content_ctx(self._df(np.nan))
+        cf = out['content_full'].iloc[0]
+        assert 'nan' not in cf, f"np.nan 正文应按空正文处理, 不得注入字面 'nan': {cf!r}"
+        # 空正文 + 真标题 → 三轨均退化为仅标题前缀, 互等
+        assert out['content_ctx'].iloc[0] == cf
+        assert out['content_ss'].iloc[0] == cf
+
+    def test_pd_na_body_does_not_raise(self):
+        from news_process.pipeline.text.ctx_materializer import materialize_content_ctx
+        out = materialize_content_ctx(self._df(pd.NA))  # 旧险: str(pd.NA) → '<NA>'
+        for col in ('content_full', 'content_ctx', 'content_ss'):
+            val = str(out[col].iloc[0])
+            assert 'nan' not in val and '<NA>' not in val, f"{col}: {val!r}"
+
+
 # ════════════════════════════════════════════════════════════════════════
 # g-misc-01: export.py Berger 2022 误引清除 (源码文本锁)
 # ════════════════════════════════════════════════════════════════════════

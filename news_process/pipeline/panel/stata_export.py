@@ -339,8 +339,8 @@ def build_variable_labels(
         'innovation_collab_mode_confidence_ss': "Collab Mode Confidence (SS-track 银行+金科同句, raw LLM)",
         'category_confidence_ss':           "Locus Confidence (SS-track 银行+金科同句, hybrid LLM+keyword)",
         'llm_verified_dual_ss_only':        "Dual Gate: SS-track only verified (银行+金科同句)",
-        'tone_gap_tech_app_lc_ss':          "Tone Gap: Tech-App (Loc=Ctx, ss sentiment 银行+金科同句)",
-        'tone_gap_sub_symb_sc_ss':          "Tone Gap: Sub-Symb (Subst=Ctx, ss sentiment 银行+金科同句)",
+        'tone_gap_tech_app_ls_ss':          "Tone Gap: Tech-App (Loc=SS, ss sentiment 银行+金科同句)",
+        'tone_gap_sub_symb_ss_ss':          "Tone Gap: Sub-Symb (Subst=SS, ss sentiment 银行+金科同句)",
         # 二元 prob_score 三维 × ss 轨 (positive_class = 象征性/应用场景/外部协同)
         'avg_subst_prob_score_ss':          "Avg Subst P_BIN (SS-track 银行+金科同句) — 1=symbolic",
         'avg_subst_prob_score_std_ss':      "Std Subst P_BIN (SS-track 银行+金科同句, bank-year SD)",
@@ -468,20 +468,26 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # 主子集对角线 (_lf × _full 隐式 + _lc × _ctx 显式; ss 轨情感 × ctx-锚定分类对角)
         'tech_frac', 'app_frac', 'sub_frac', 'symb_frac',
         'tech_frac_lc', 'app_frac_lc', 'sub_frac_sc', 'symb_frac_sc',
+        # fix(three-track-verify, 2026-06-18): 补 ss 轨对角 frac 主测度, 恢复
+        # full(:上行 tech_frac)/ctx(_lc/_sc)/ss 三轨 is_core 平价 (encode.py 实产
+        # tech_frac_ls/app_frac_ls/sub_frac_ss/symb_frac_ss; 此前漏注册 → ss 主测度未标 is_core)
+        'tech_frac_ls', 'app_frac_ls', 'sub_frac_ss', 'symb_frac_ss',
         'n_articles_tech', 'n_articles_app', 'n_articles_sub', 'n_articles_symb',
         'n_articles_tech_lc_ctx', 'n_articles_app_lc_ctx',
         'n_articles_sub_sc_ctx', 'n_articles_symb_sc_ctx',
-        'n_articles_tech_lc_ss', 'n_articles_app_lc_ss',
-        'n_articles_sub_sc_ss', 'n_articles_symb_sc_ss',
+        # fix(three-track-verify, 2026-06-18): ss 轨对角计数真名用 _ls_ss/_ss_ss 中缀
+        # (encode.py:1433/1436/1578/1581); 原 _lc_ss/_sc_ss 是 ctx 中缀误抄, 永不命中→schema-drift WARN
+        'n_articles_tech_ls_ss', 'n_articles_app_ls_ss',
+        'n_articles_sub_ss_ss', 'n_articles_symb_ss_ss',
         'llm_vote_tone_tech_full', 'llm_vote_tone_app_full',
         'llm_vote_tone_tech_lc_ctx', 'llm_vote_tone_app_lc_ctx',
-        'llm_vote_tone_tech_lc_ss', 'llm_vote_tone_app_lc_ss',
+        'llm_vote_tone_tech_ls_ss', 'llm_vote_tone_app_ls_ss',
         'llm_vote_tone_sub_full', 'llm_vote_tone_symb_full',
         'llm_vote_tone_sub_sc_ctx', 'llm_vote_tone_symb_sc_ctx',
-        'llm_vote_tone_sub_sc_ss', 'llm_vote_tone_symb_sc_ss',
+        'llm_vote_tone_sub_ss_ss', 'llm_vote_tone_symb_ss_ss',
         # tone gap (full/ctx/ss 三轨; ss = 银行+金科同句情感差)
-        'tone_gap_tech_app', 'tone_gap_tech_app_lc_ctx', 'tone_gap_tech_app_lc_ss',
-        'tone_gap_sub_symb', 'tone_gap_sub_symb_sc_ctx', 'tone_gap_sub_symb_sc_ss',
+        'tone_gap_tech_app', 'tone_gap_tech_app_lc_ctx', 'tone_gap_tech_app_ls_ss',
+        'tone_gap_sub_symb', 'tone_gap_sub_symb_sc_ctx', 'tone_gap_sub_symb_ss_ss',
         # 主 Bartik IV (full/ctx/ss; _title 列已随标题情感轨删除)
         # fix(omni-g-stata-export-07, 2026-06-11): 原声明 'bartik_fintech_iv_*'
         # 是幻影列名 (生产代码从不产出) → 改真实列名: 主 Bartik = 银行类型
