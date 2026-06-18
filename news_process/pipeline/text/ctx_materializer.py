@@ -188,7 +188,9 @@ def materialize_content_ctx(df: pd.DataFrame) -> pd.DataFrame:
         # fix(three-track-verify 2026-06-18): 与主物化路径 body_full / _bodies 同口径 pd.isna→''
         # (NaN 正文不被 astype(str) 变 'nan'), 保 legacy 幂等分支 ctx_is_fallback/content_full 一致。
         _bodies_old = ['' if pd.isna(v) else str(v) for v in df['内容'].tolist()]
-        _ctx_old = df['content_ctx'].astype(str).tolist()
+        # 与 _bodies_old 同口径 pd.isna→'' (content_ctx 由本模块恒写为字符串、当前无 NaN producer,
+        # 此处纯对称防御: 保 ctx_is_fallback 的 _ctx_old==_bodies_old 比较两侧口径一致)。
+        _ctx_old = ['' if pd.isna(v) else str(v) for v in df['content_ctx'].tolist()]
         if 'ctx_is_fallback' not in df.columns:
             df['ctx_is_fallback'] = pd.Series(
                 [c == b for c, b in zip(_ctx_old, _bodies_old)],

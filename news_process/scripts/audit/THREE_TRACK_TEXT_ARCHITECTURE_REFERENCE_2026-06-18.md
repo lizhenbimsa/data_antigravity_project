@@ -95,7 +95,7 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 
 ### stage 21 LLM (付费, 核心, `pipeline/sentiment/tone_llms.py`)
 - **单一事实源 = `iter_article_track_prompts`** (`tone_llms.py::iter_article_track_prompts`): 逐 (行 × 轨) yield `(row_idx, track, prompt)`; **生产 `run_all_llms` 与缓存覆盖审计 `verify_stage21_cache_coverage.py` 共用此生成器**, 保证缓存键字节级一致。
-- **三轨同一循环、共用同一 `PROMPT_TEMPLATE`, `content` 是唯一变参** (`tone_llms.py::iter_article_track_prompts` track/content 循环)。**prompt v8 字节级冻结铁律**: 只交换 `content` 实参, 绝不改模板文本 —— 改一个字 → 缓存键全 miss → 13 万条旧答案作废、须重新付费。
+- **三轨同一循环、共用同一 `PROMPT_TEMPLATE`, `content` 是唯一变参** (`tone_llms.py::iter_article_track_prompts` track/content 循环)。**prompt v8 字节级冻结铁律**: 只交换 `content` 实参, 绝不改模板文本 —— 改一个字 → 缓存键全 miss → ~13 万条 LLM 旧答案 (stage 21 子集) 作废、须重新付费 (注: `_llm_cache.db` 全库 ~15.5 万条含 stage 15/27 embedding, 见 §10 的 154,793)。
 - ctx/ss 喂 prompt 前用 `_strip_prepended_title` 剥标题 (`tone_llms.py::iter_article_track_prompts` ctx/ss 剥标题); prompt 的 `{title}` 字段三轨同填**原始 `标题` 列** (`tone_llms.py::iter_article_track_prompts` title 赋值 + PROMPT_TEMPLATE.format), 标题侧零差异 (详见下文"标题三处接触点")。
 - 任务数 = `len(df) × len(models) × 3` (`tone_llms.py::run_all_llms` total_tasks); main 对每篇调 `_aggregate_track` 三次 (`tone_llms.py::main` 逐 full/ctx/ss 三次调用 `_aggregate_track`)。
 - ⚠ **缓存键不含 track** (`caching.py::LLMCache._make_key`): 键 = `sha256(SCHEMA|len:model|len:prompt|len:pv|temp[|seed])`; track **不进键**, 仅靠 prompt(=唯一变参 content)文本差异间接分区。
@@ -147,8 +147,8 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 ### Stata 写前守卫与标签后缀
 - **写前守卫** `stata_export.py::_assert_track_triplet_unique`: Stata 写前唯一性断言, 仅断言 full/ctx/ss 三元组 sanitize 截断后不撞名 (撞名 `raise ValueError`), **不发标签**。
 - **ss 轨标签后缀** (机械 `_ctx→_ss` 镜像):
-  - 中文 `(银行+金科同句)` —— 产于 `stata_export.py::build_variable_labels` 的 `HEURISTIC_LABELS` 字典 (ss 轨标签项)。
-  - 英文全后缀 `(Bank+FinTech same-sentence)` —— **不在 `stata_export.py`** (该文件英文用压缩形 `SS-track`/`same-sent`); 整串出现于 `controls.py::STATA_LABELS_41` 的 **prov/city leave-one-out 地理 IV tone** 标签 (`prov_leave1out_tone_ss` / `city_leave1out_tone_ss`) 与 `validation/prompt_sensitivity.py` 的 κ 表列标签 (`'SS Track (Bank+FinTech same-sentence): Pairwise κ'`)。(`validation/entity_masking.py` 仅在注释中提及该子串, 实产 LaTeX 表头 `'SS Track'`, 非 Stata 标签。)
+  - 中文 `(银行+金科同句)` —— 在 `stata_export.py::build_variable_labels` 的 `HEURISTIC_LABELS` ss 值里以**复合形**出现 (如 `Innovation Locus (SS-track 银行+金科同句, ...)`, 非干净独立后缀); 干净独立后缀形产于 `pipeline/audit/stata_audit.py` (`llm_vote_tone_ss → 'LLM投票情感(银行+金科同句)'`) 与 codebook UTF-8 产物 (`.dta` 标签用 ASCII `SS`, 中文全称仅落 codebook)。
+  - 英文全后缀 `(Bank+FinTech same-sentence)` —— **不在 `stata_export.py`** (该文件英文用压缩形 `SS-track`/`same-sent`); 整串出现于 `controls.py::STATA_LABELS_41` 的 **prov/city leave-one-out 地理 IV tone** 标签 (`prov_leave1out_tone_ss` / `city_leave1out_tone_ss`) 与 `validation/prompt_sensitivity.py` 的 κ 表列标签 (`'SS Track (Bank+FinTech same-sentence): Pairwise κ (Verification)'`)。(`validation/entity_masking.py` 仅在注释中提及该子串, 实产 LaTeX 表头 `'SS Track'`, 非 Stata 标签。)
 
 ### 计量铁律 (红线)
 **`full × ctx × ss` 严禁混进同一 over-identified Hansen J** (`tone_llms.py 模块 over-id Hansen J 红线注释`, `iv_extensions.py::compute_iv_extensions` docstring 用法裁决)。三轨高度相关 (corr 可达 0.998), 混进 J 检验会零功效。正确做法: **三轨各自 just-identified、并排报告**。
@@ -203,8 +203,8 @@ ss 回退是镜像 ctx → **与 ctx 共享 `n_articles` 分母, 不需独立计
 - **唯一 load-bearing 重指针** = stage 13 输入改读 `output_12b_cooccurrence` (`ctx_materializer.py::main` in_name 改读 output_12b_cooccurrence)。回滚只需把 `in_name` 改回 `output_12_fintech_news`。
 - **SAFE-1 铁律** (`cooccurrence_filter.py::filter_cooccurrence` FINTECH_AC=None 保留全部行分支): `FINTECH_AC=None` → 保留全部行 + loud WARNING; keep 率 < `min_keep_frac` 或 0 行 → `SystemExit(1)` (`cooccurrence_filter.py::main` min-keep-frac 守卫)。
 - **路线 A 纯接受-披露**: 12b 仅丢行, 下游 `controls.py`/`encode.py` **零改动**。`fintech_share` 分母经"望远镜式坍缩"**恒不变** —— `all_n_articles = ft_dedup + nf ≡ |df_full|`, 12b 只把被丢中间集 C 从 ft 端移到 nf 端, 代数和守恒 (`controls.py::build_non_fintech` 三分类恒等校验 + `controls.py::merge_to_panel` all_n_articles 同基相加)。统计宇宙平移为"近邻相关金科"口径, 在 manuscript/codebook **如实披露** (非代码修复)。
-- ⚠ **盲区例外① (地理 attention 族)**: `ft_attn_*`/`ft_vol_*` 直读 `12_fintech_news_full`、**不经 12b**, 仍是原始关键词口径 (分子分母同处 pre-12b, 比值口径内部一致), 须单独披露。
-- ⚠ **盲区例外② (firm-level attention 族, 分裂宇宙)**: `attention_pct_*` / `attention_intensity_density_{full,ctx,ss}` 的**分子**取自 `14_fintech_intensity` (经 stage 13 已是 12b 子集) 并在 `attention_media.py::compute_attention_treatments` 再 `restrict_to_verified` 收缩到 verified 集 → 分子口径 = 『12b 近邻 ∩ verified』; 而**分母** `_n_all` 直读 `12_fintech_news_full` = pre-12b 全量银行新闻 (`attention_media.py::compute_attention_treatments` _n_all 分母直读 + attention_pct/density 三轨计算)。两端非同一统计宇宙 → 比值被系统性压低, 须在 codebook/manuscript 显式披露该分子分母异宇宙口径。
+- ⚠ **盲区例外① (地理 attention 族, 同型分裂宇宙)**: `ft_attn_*`/`ft_vol_*` 直读 `12_fintech_news_full`、**不经 12b** (12b 轴一致); 但其**分子** `is_fintech_news` 已于 ATT-2 (2026-06-18) 经 `restrict_to_verified` 门控、**分母** `_total` 仍是全量银行新闻全集 (Fang-Peress 议程份额, 仅门控分子, `attention_media.py::compute_fintech_attention_index`) → 在 **verification 轴上同属分子分母异宇宙** (与例外②同型, 仅门控源不同: 此处 ATT-2 verified-gating, 例外② 叠加 12b)。须单独披露此 verified-gated 分子 vs 全集分母口径。
+- ⚠ **盲区例外② (firm-level attention 族, 分裂宇宙)**: `attention_pct_full` (单轨, track-agnostic 计数比值) / `attention_intensity_density_{full,ctx,ss}` (三轨) 的**分子**取自 `14_fintech_intensity` (经 stage 13 已是 12b 子集) 并在 `attention_media.py::compute_attention_treatments` 再 `restrict_to_verified` 收缩到 verified 集 → 分子口径 = 『12b 近邻 ∩ verified』; 而**分母** `_n_all` 直读 `12_fintech_news_full` = pre-12b 全量银行新闻 (`attention_media.py::compute_attention_treatments` _n_all 分母直读 + attention_pct/density 三轨计算)。两端非同一统计宇宙 → 比值被系统性压低, 须在 codebook/manuscript 显式披露该分子分母异宇宙口径。
 
 ---
 
