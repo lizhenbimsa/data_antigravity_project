@@ -19,7 +19,7 @@ run_pipeline_validation.py — 新闻处理流水线: 评估验证模块
       - 阶段39a: 轨间一致性 Cohen's κ    (39a_inter_track_kappa.py)
       - 阶段39c: NMI construct 正交性     (39c_construct_orthogonality.py)
       - 阶段39d: lexical HTMT+AVE+κ+α     (39d_lexical_discriminant_validity.py)
-      - 阶段39e: LM 4 子词典 discriminant (39e_lm_discriminant_validity.py)
+      - 阶段39e: LM 6 子词典 discriminant (39e_lm_discriminant_validity.py)
       - 阶段39f: cross-media Krippendorff α (39f_cross_media_alpha.py)
     (阶段清单以 core/dag.py::STAGES_VALIDATION 为权威真源, 共 16 个。)
 
@@ -98,7 +98,7 @@ def run_validation():
      11. 阶段39a: 轨间一致性 Cohen's κ
      12. 阶段39c: NMI construct 正交性
      13. 阶段39d: lexical HTMT+AVE+κ+α
-     14. 阶段39e: LM 4 子词典 discriminant
+     14. 阶段39e: LM 6 子词典 discriminant
      15. 阶段39f: cross-media Krippendorff α
 
     阶段清单以 core/dag.py::STAGES_VALIDATION 为权威真源, 共 16 个;
@@ -135,7 +135,7 @@ def run_validation():
         logger.info("     39a: 轨间一致性  — full/ctx 轨间 Cohen's κ")
         logger.info("     39c: 正交性      — 三 construct 的 NMI 正交性 + permutation null")
         logger.info("     39d: 词汇判别效度 — HTMT+AVE+Cohen's κ+Cronbach's α")
-        logger.info("     39e: LM 判别效度 — LM 2011 JF 4 子词典 discriminant validity")
+        logger.info("     39e: LM 判别效度 — LM 2011 JF 6 子词典 discriminant validity")
         logger.info("     39f: 跨媒体一致性 — outlet×day Krippendorff's α")
         logger.info("")
         logger.info(f"Python: {sys.version}")

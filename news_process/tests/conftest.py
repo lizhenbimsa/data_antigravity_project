@@ -215,6 +215,19 @@ def mock_tone_dicts_json(tmp_dir):
             'political_positive': ['改革', '开放'],
         },
         'you_2018': {'name': 'You(2018)', 'positive': [], 'negative': []},
+        # v3.10.0: 第 6 部主词典 (L&M 2011 中文译本) + 6 非极性子集。
+        # 缺此块 → load_all_dictionaries().get('loughran_mcdonald_zh_2026') 取空 → 列数对不齐。
+        'loughran_mcdonald_zh_2026': {
+            'name': 'Loughran-McDonald(2026)',
+            'positive': ['盈余', '增益'],
+            'negative': ['诉讼', '违规'],
+            'uncertainty': ['可能', '或许'],
+            'litigious': ['诉讼', '仲裁'],
+            'constraining': ['必须', '强制'],
+            'strong_modal': ['一定', '必定'],
+            'weak_modal': ['也许', '大概'],
+            'complexity': ['复杂', '繁琐'],
+        },
     }
     path = tmp_dir / 'tone_dicts.json'
     path.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')

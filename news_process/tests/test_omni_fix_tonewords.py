@@ -1,7 +1,7 @@
 """tests/test_omni_fix_tonewords.py — OMNI 2026-06-11 g-tonewords 组修复回归锁.
 
 覆盖 (fix omni-g-tonewords-*, 2026-06-11; 裁决见 scripts/audit/_omni_fix/g-tonewords.json):
-- 01/05: pos_ratio/neg_ratio/msent_score 计数基 = 5 词典固定 union 词典
+- 01/05: pos_ratio/neg_ratio/msent_score 计数基 = 6 词典固定 union 词典 (v3.10.0 由 5→6, +loughran)
          (build_union_dictionary, 多数票消歧+平票剔除), 替代逐篇漂移 best-dict
 - 02/06/12: clarity / {dict}_pos|neg_ratio / 全局 pos|neg_ratio 分母 word-token 化
          (复用 lm_non_sentiment._LMFLS_NONWORD_RE, 与 lmfls-01 LM/FLS 修复同口径)

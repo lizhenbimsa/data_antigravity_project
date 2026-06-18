@@ -25,8 +25,9 @@ v3.7.0 breaking 备忘: 若未来 collab_mode 升级为 6-class (multi-class A1)
 full/ctx 两轨**, 第三轨 ss (银行+金科同句) 不参与 — cell_id 分类的是
 substantiveness/locus/collab 这类 full/ctx 锚定的 LLM 属性, ss 是纯情感轨,
 不做属性分解 (故无 cell_id_ss / n_articles_cell_*_ss 列, 见各函数内 intentionally
-NOT produced 注释)。本模块内**仅 clarity / num_intensity 等情感族**聚合得 `_ss`
-三轨; LM 4 子词典 / FLS 等非情感 lexicon 族同 cell_id 保持 full/ctx 两轨。
+NOT produced 注释)。clarity / num_intensity 等情感族聚合得 `_ss` 三轨。
+⚠ v3.10.0 (apply_v3_5_2): LM 6 子词典 / FLS 等非情感 lexicon 族**亦产 `_ss` 三轨**
+(用户决策推翻原 §7.3-A1 "非情感族仅 full/ctx" 冻结设计; 仅 D2/D4 cell_id 分解仍 full/ctx)。
 """
 from __future__ import annotations
 
@@ -36,6 +37,10 @@ import os
 from typing import Optional
 
 import pandas as pd
+
+# v3.10.0: LM 子集前缀单一事实源 (取代 apply_v3_5_2 内硬编码 6-tuple, 防漂移)。
+# lm_non_sentiment 仅依赖 jieba/json/re/pathlib, 无 panel 导入 → 无循环。
+from news_process.pipeline.sentiment.lm_non_sentiment import SUBSET_PREFIXES
 
 logger = logging.getLogger(__name__)
 
@@ -1044,43 +1049,36 @@ def apply_v3_5_1(df: pd.DataFrame, panel: pd.DataFrame,
 
 
 def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
-    """v3.5.2 PR #2/#3: LM 4 子词典 + FLS 的 panel 层聚合。
+    """v3.5.2 PR #2/#3 + v3.10.0: LM 6 子词典 + FLS 的 panel 层聚合 (三轨)。
 
-    补齐历史声明 "Stage 22 _dual_analyze 真集成 LM+FLS → panel +10 列"
-    在 panel 层的实现缺口: stage 22 article 级产出 8 个 LM 列 + 2 个 FLS 列,
-    但 encode.py 当时仅 apply_v3_5_0/v3_5_1, 无对应 v3.5.2 panel 聚合 →
-    panel 层 0 列 (O2 sample-run 实测发现)。
-
-    把 10 个 article 级列按简单均值聚合到 bank-year panel
+    把 article 级 LM/FLS frac 列按简单均值聚合到 bank-year panel
     (输出列名与 article 源列**同名**, dst_col = src_col, 无 _panel 后缀 —
     与 stata_export.py core_patterns 注册名一致):
-        LM 4 子词典 × 2 轨 (full, ctx) = 8 个 panel 列:
-            uncert_frac_{full,ctx} (mean)
-            litig_frac_{full,ctx} (mean)
-            constr_frac_{full,ctx} (mean)
-            modal_strong_frac_{full,ctx} (mean)
-        FLS × 2 轨 = 2 个 panel 列:
-            frac_fls_{full,ctx} (mean)
+        LM 6 子词典 × 3 轨 (full, ctx, ss) = 18 个 panel 列:
+            uncert_frac / litig_frac / constr_frac / modal_strong_frac /
+            modal_weak_frac / complexity_frac  各 × {full,ctx,ss} (mean)
+        FLS × 3 轨 = 3 个 panel 列: frac_fls_{full,ctx,ss} (mean)
 
-    这 10 个 panel 列已在 stata_export.py 注册 core_patterns
+    这些 panel 列已在 stata_export.py 注册 core_patterns
     (即下游 Stata 已期待这些列存在)。
 
-    # _ss intentionally NOT produced (plan §7.3-A1 line 936 TRACKS): LM 4 子词典
-    # (uncert/litig/constr/modal_strong, Loughran-McDonald) + FLS 是**非情感** lexicon
-    # 族, 同 cell_id 保持 full/ctx 两轨; 第三轨 ss (银行+金科同句) 仅情感族 (clarity /
-    # num_intensity) 得 _ss。故本聚合不产 uncert_frac_ss / frac_fls_ss 等 ss 列。
+    _ss 第三轨 (v3.10.0): LM/FLS 非情感 lexicon 族**亦产 _ss** —— 这是用户
+    2026 决策对 §7.3-A1 "非情感族仅 full/ctx 两轨" 冻结设计的**有意推翻**
+    (理由: 第三轨平价覆盖)。原仅情感族 (clarity/num_intensity) 得 _ss 的限制
+    已解除; A2 新增 modal_weak/complexity 两子集亦随 6×3 矩阵产出。
 
     Args:
-        df: article 级 DataFrame (含 8 LM + 2 FLS article 列)。
-        panel: bank-year panel DataFrame (原地新增 10 列)。
+        df: article 级 DataFrame (含 LM 6 子集 + FLS article 列, 三轨)。
+        panel: bank-year panel DataFrame (原地新增 21 列)。
 
     Returns:
         dict: {v3_5_2_lm_added, v3_5_2_fls_added, v3_5_2_skipped_reason}。
     """
-    LM_KEYS = ('uncert', 'litig', 'constr', 'modal_strong')
-    # _ss intentionally NOT produced: LM/FLS 非情感 lexicon 族保持 full/ctx 两轨
-    # (plan §7.3-A1; 仅情感族 clarity/num_intensity 得第三轨 ss 银行+金科同句)。
-    TRACKS = ('full', 'ctx')
+    # v3.10.0: 6 子集前缀直接复用 lm_non_sentiment.SUBSET_PREFIXES (单一事实源, 防漂移)。
+    # 现值 = ('uncert','litig','constr','modal_strong','modal_weak','complexity')。
+    LM_KEYS = SUBSET_PREFIXES
+    # v3.10.0: LM/FLS 全族产 _ss (用户决策推翻 §7.3-A1, 见上 docstring)。
+    TRACKS = ('full', 'ctx', 'ss')
 
     added_cols: list[str] = []
     skipped_cols: list[str] = []
@@ -1097,7 +1095,7 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
 
     agg_dict: dict[str, tuple[str, str]] = {}
 
-    # LM 4 subdicts × 2 tracks
+    # LM 6 subdicts × 3 tracks (v3.10.0: LM_KEYS=SUBSET_PREFIXES 6, TRACKS=full/ctx/ss)
     for k in LM_KEYS:
         for track in TRACKS:
             src_col = f'{k}_frac_{track}'
@@ -1108,7 +1106,7 @@ def apply_v3_5_2(df: pd.DataFrame, panel: pd.DataFrame) -> dict:
             else:
                 skipped_cols.append(src_col)
 
-    # FLS × 2 tracks
+    # FLS × 3 tracks (v3.10.0: TRACKS=full/ctx/ss)
     for track in TRACKS:
         src_col = f'frac_fls_{track}'
         dst_col = src_col

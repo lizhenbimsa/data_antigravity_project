@@ -116,7 +116,7 @@ _VALIDATION_PREDS: dict[str, Callable[[dict[str, Any]], bool]] = {
     'inter_track_kappa': _validation_flag('inter_track_kappa'),
     'construct_orthogonality': _validation_flag('construct_orthogonality'),  # v3.5.0 D3 stage 39c
     'lexical_discriminant_validity': _validation_flag('lexical_discriminant_validity'),  # v3.5.1 stage 39d
-    'lm_discriminant_validity': _validation_flag('lm_discriminant_validity'),  # v3.5.2 PR #4 stage 39e (LM 4 子词典 HTMT)
+    'lm_discriminant_validity': _validation_flag('lm_discriminant_validity'),  # v3.5.2 PR #4 stage 39e (LM 6 子词典 HTMT)
     'cross_media_alpha': _validation_flag('cross_media_alpha'),  # v3.7.0 PR #12 stage 39f (Krippendorff α + variance)
 }
 
@@ -433,10 +433,10 @@ STAGES_VALIDATION: list[StageSpec] = [
         # Permutation 1000 次, seed=42 (修 R9-H3)。
         timeout=900,  # 15 分钟上限
     ),
-    # v3.5.2 PR #4: LM 4 子词典 (uncert/litig/constr/modal_strong) HTMT.
+    # v3.5.2 PR #4: LM 6 子词典 (uncert/litig/constr/modal_strong/modal_weak/complexity) HTMT.
     # Henseler-Ringle-Sarstedt (2015) JAMS 43(1) 双 cutoff 0.85/0.90.
     StageSpec(
-        name="阶段39e: LM 4 子词典 discriminant validity (HTMT + Cronbach α + permutation)",
+        name="阶段39e: LM 6 子词典 discriminant validity (HTMT + Cronbach α + permutation)",
         script="39e_lm_discriminant_validity.py",
         group="validation", kind="audit",
         timeout=900,  # 15 分钟上限, 仿 39d

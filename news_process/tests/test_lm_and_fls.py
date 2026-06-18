@@ -1,4 +1,4 @@
-"""Tests for v3.5.2 PR #3: A1 LM 4 子词典 + A2 Forward-Looking Statements.
+"""Tests for v3.5.2 PR #3: A1 LM 6 子词典 + A2 Forward-Looking Statements.
 
 覆盖:
 - pipeline.sentiment.lm_non_sentiment._compute_lm_non_sentiment_for_text
@@ -15,15 +15,19 @@ import pytest
 pytestmark = pytest.mark.fast
 
 
-# ── LM 4 子词典 (PR #3 A1) ──────────────────────────────────────────
+# ── LM 6 子词典 (PR #3 A1) ──────────────────────────────────────────
 class TestLmNonSentimentLoad:
-    def test_load_returns_4_subsets(self):
+    def test_load_returns_6_subsets(self):
+        # v3.10.0: 6 子集 (原 4 + weak_modal/complexity)。
         from news_process.pipeline.sentiment.lm_non_sentiment import (
+            _SUBSETS,
             load_lm_non_sentiment_dicts,
         )
         d = load_lm_non_sentiment_dicts()
+        assert set(d.keys()) == set(_SUBSETS)
         assert set(d.keys()) == {
-            'uncertainty', 'litigious', 'constraining', 'modal_strong'
+            'uncertainty', 'litigious', 'constraining', 'modal_strong',
+            'weak_modal', 'complexity',
         }
 
     def test_each_subset_is_frozenset(self):
@@ -63,9 +67,7 @@ class TestLmNonSentimentLoad:
         monkeypatch.setattr(M, '_LM_DICT_PATH', tmp_path / 'nonexistent.json')
         try:
             d = M.load_lm_non_sentiment_dicts()
-            assert set(d.keys()) == {
-                'uncertainty', 'litigious', 'constraining', 'modal_strong'
-            }
+            assert set(d.keys()) == set(M._SUBSETS)  # v3.10.0: 6 子集
             assert all(len(v) == 0 for v in d.values())
             assert all(isinstance(v, frozenset) for v in d.values())
         finally:
@@ -80,7 +82,7 @@ class TestLmNonSentimentScan:
         )
         r = _compute_lm_non_sentiment_for_text("")
         assert r['n_tokens'] == 0
-        for subset in ('uncert', 'litig', 'constr', 'modal_strong'):
+        for subset in ('uncert', 'litig', 'constr', 'modal_strong', 'modal_weak', 'complexity'):
             assert math.isnan(r[f'frac_{subset}'])
 
     def test_whitespace_only_after_jieba_returns_empty(self):
@@ -138,7 +140,7 @@ class TestLmNonSentimentScan:
         )
         r = _compute_lm_non_sentiment_for_text("银行年报数据公布, 资产规模 100 亿元")
         # 中性陈述, 各类 frac 应低 (< 0.1)
-        for subset in ('uncert', 'litig', 'constr', 'modal_strong'):
+        for subset in ('uncert', 'litig', 'constr', 'modal_strong', 'modal_weak', 'complexity'):
             v = r[f'frac_{subset}']
             assert math.isnan(v) or v < 0.2, f"{subset} 在中性句中 frac={v} 过高"
 
@@ -147,9 +149,34 @@ class TestLmNonSentimentScan:
             _compute_lm_non_sentiment_for_text,
         )
         r = _compute_lm_non_sentiment_for_text("银行业务推广战略转型")
-        for subset in ('uncert', 'litig', 'constr', 'modal_strong'):
+        for subset in ('uncert', 'litig', 'constr', 'modal_strong', 'modal_weak', 'complexity'):
             v = r[f'frac_{subset}']
             assert math.isnan(v) or (0.0 <= v <= 1.0), f"{subset} frac={v} 越界"
+
+    def test_genericization_backward_compat_keys(self):
+        """v3.10.0 字节等价守卫: 泛型化 (4→6 子集) 后, 现有 4 子集的返回键名/顺序不变,
+        且新 2 子集追加在末尾。两个实现 (只读模块 + tone_words tone_tok 包装) 须同构。"""
+        from news_process.pipeline.sentiment.lm_non_sentiment import (
+            _compute_lm_non_sentiment_for_text,
+            load_lm_non_sentiment_dicts,
+        )
+        from news_process.pipeline.sentiment.tone_words import (
+            _compute_lm_non_sentiment_for_text_tone_tok,
+        )
+        txt = "银行可能存在重大不确定性诉讼风险，必须依法合规，未来或将复杂化。"
+        expected = [
+            'n_tokens',
+            'n_uncert', 'frac_uncert',
+            'n_litig', 'frac_litig',
+            'n_constr', 'frac_constr',
+            'n_modal_strong', 'frac_modal_strong',
+            'n_modal_weak', 'frac_modal_weak',
+            'n_complexity', 'frac_complexity',
+        ]
+        r1 = _compute_lm_non_sentiment_for_text(txt)
+        r2 = _compute_lm_non_sentiment_for_text_tone_tok(txt, load_lm_non_sentiment_dicts())
+        assert list(r1.keys()) == expected, "只读模块返回键名/顺序漂移"
+        assert list(r2.keys()) == expected, "tone_tok 包装返回键名/顺序漂移"
 
 
 class TestLmPanelColumnsHelper:
@@ -161,6 +188,7 @@ class TestLmPanelColumnsHelper:
         assert cols == [
             'uncert_frac_full', 'litig_frac_full',
             'constr_frac_full', 'modal_strong_frac_full',
+            'modal_weak_frac_full', 'complexity_frac_full',
         ]
 
     def test_get_panel_columns_ctx(self):
@@ -169,7 +197,7 @@ class TestLmPanelColumnsHelper:
         )
         cols = get_panel_columns('_ctx')
         assert all(c.endswith('_ctx') for c in cols)
-        assert len(cols) == 4
+        assert len(cols) == 6  # v3.10.0: 6 子集
 
 
 # ── A2 FLS (PR #3) ──────────────────────────────────────────────────
@@ -249,7 +277,7 @@ class TestStage22Integration:
         from news_process.pipeline.sentiment import tone_words
         src = inspect.getsource(tone_words)
         assert "_compute_lm_non_sentiment_for_text" in src, \
-            "tone_words.py 未集成 LM 4 子词典 (PR #3)"
+            "tone_words.py 未集成 LM 6 子词典 (PR #3)"
         assert "compute_fls_for_text" in src, \
             "tone_words.py 未集成 FLS (PR #3 A2)"
 
@@ -263,15 +291,15 @@ class TestStage22Integration:
 
         from news_process.pipeline.sentiment import tone_words
         src = inspect.getsource(tone_words)
-        # 关键构造前缀 (检查 _dual_analyze 内确实有这些 prefix + suffix 模式)
-        assert "'uncert'" in src and "'litig'" in src and "'constr'" in src, \
-            "_dual_analyze 未引用 LM 4 子集 prefix"
-        assert "'modal_strong'" in src, "_dual_analyze 未引用 modal_strong"
-        assert "frac_fls_full" in src or "'frac_fls'" in src, \
-            "_dual_analyze 未引用 FLS 列"
-        # 提取阶段必须包含 LM + FLS 5 个 metric base names
-        assert 'uncert_frac' in src and 'litig_frac' in src, \
-            "tone_words new_columns 列提取段缺 LM frac 列"
+        # v3.10.0: stage 22 改用泛型 SUBSET_PREFIXES 循环 + f-string 拼接列名
+        # (取代硬编码 4-prefix 元组), 故源码不含 literal 'uncert' 等裸前缀。
+        assert "SUBSET_PREFIXES" in src, \
+            "_dual_analyze 未用泛型 SUBSET_PREFIXES 迭代 LM 子集"
+        assert "_compute_lm_non_sentiment_for_text_tone_tok" in src, \
+            "_dual_analyze 未调用 LM 非情感扫描"
+        assert "_frac_full" in src, "_dual_analyze 未拼接 LM frac 列 (f'{k}_frac_full')"
+        assert "frac_fls" in src or "compute_fls_for_text" in src, \
+            "_dual_analyze 未集成 FLS (PR #3 A2)"
 
 
 # ---------------------------------------------------------------------------

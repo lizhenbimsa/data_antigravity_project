@@ -270,6 +270,19 @@ def build_variable_labels(
         # 三轨 (full/ctx/ss) 独立扫描; 每条 ≤ 80 UTF-8 bytes (per plan v0.3 §2.4.1 frozen at D0).
         'mean_clarity_score_full':          "Mean Clarity Score from indep Full-text scan (LM 2011 JF; You 2018)",
         'mean_clarity_score_ctx':           "Mean Clarity Score from indep Ctx-text scan (LM 2011 JF; You 2018)",
+        # v3.10.0: L&M 2011 JF 中文主译第 6 部主词典 tone + 纯计数版 (negonly) + 2 新非情感子集.
+        'loughran_tone_full':               "Avg Tone Loughran-McDonald 2011 JF Chinese 6th dict (full-track)",
+        'loughran_tone_ctx':                "Avg Tone Loughran-McDonald 2011 JF Chinese 6th dict (ctx-track)",
+        'loughran_tone_ss':                 "Avg Tone L-M 2011 JF Chinese (bank+fintech same-sentence track)",
+        'loughran_negonly_tone_full':       "Avg Tone L-M counts-faithful (negonly, rule-reduced) full-track",
+        'loughran_negonly_tone_ctx':        "Avg Tone L-M counts-faithful (negonly, rule-reduced) ctx-track",
+        'loughran_negonly_tone_ss':         "Avg Tone L-M counts-faithful (negonly) same-sentence track",
+        'modal_weak_frac_full':             "Frac Weak-Modal words (L-M 2011 JF; Bochkay 2020) full-track",
+        'modal_weak_frac_ctx':              "Frac Weak-Modal words (L-M 2011 JF; Bochkay 2020) ctx-track",
+        'modal_weak_frac_ss':               "Frac Weak-Modal words (L-M 2011 JF) same-sentence track",
+        'complexity_frac_full':             "Frac Complexity words (L-M 2011 JF complexity list) full-track",
+        'complexity_frac_ctx':              "Frac Complexity words (L-M 2011 JF complexity list) ctx-track",
+        'complexity_frac_ss':               "Frac Complexity words (L-M 2011 JF) same-sentence track",
         'mean_frac_definite_full':          "Mean Frac Definite from indep Full scan (You 2018 Panel C 388 words)",
         'mean_frac_definite_ctx':           "Mean Frac Definite from indep Ctx scan (You 2018 Panel C 388 words)",
         'frac_amb_articles_full':           "Frac Articles Ambiguous Full (>=D0 median, You 2018 Panel D)",
@@ -528,15 +541,17 @@ def assign_core_columns(df: pd.DataFrame, rename_map: Dict[str, str] = None) -> 
         # 历史锚点留档: Antweiler-Frank (2004) JF subject-relevance threshold;
         #               Da-Engelberg-Gao (2011) JF attention-channel separation.
         # ─────────────────────────────────────────────────────────────
-        # v3.5.2 PR #14 集成 — A1 LM 4 子词典 + A2 FLS (本批列在 v3.5.2
+        # v3.5.2 PR #14 集成 — A1 LM 6 子词典 + A2 FLS (本批列在 v3.5.2
         # PR #3 panel 集成完成前会被 ``if c in df.columns`` 过滤; append-only
         # 不破坏 v3.6.0 已 frozen 契约).
         # ─────────────────────────────────────────────────────────────
-        # A1 LM 2011 JF non-sentiment 4 子词典 (12 列三轨 full/ctx/ss)
+        # A1 LM 2011 JF non-sentiment 6 子词典 (18 列三轨 full/ctx/ss; v3.10.0 +modal_weak/complexity)
         'uncert_frac_full', 'uncert_frac_ctx', 'uncert_frac_ss',
         'litig_frac_full', 'litig_frac_ctx', 'litig_frac_ss',
         'constr_frac_full', 'constr_frac_ctx', 'constr_frac_ss',
         'modal_strong_frac_full', 'modal_strong_frac_ctx', 'modal_strong_frac_ss',
+        'modal_weak_frac_full', 'modal_weak_frac_ctx', 'modal_weak_frac_ss',
+        'complexity_frac_full', 'complexity_frac_ctx', 'complexity_frac_ss',
         # A2 Forward-Looking Statements (Li 2010 JAR) — 3 列三轨 full/ctx/ss
         'frac_fls_full', 'frac_fls_ctx', 'frac_fls_ss',
         # ─────────────────────────────────────────────────────────────

@@ -152,6 +152,10 @@ class TestStage22DictDualTrack:
         """5 套词典 × 2 轨道 × 3 指标 = 30 列 (ss 落盘后 × 3 轨 = 45 列)"""
         dicts = ['jiang_2021', 'yao_2021', 'bian_2021',
                  'du_2022', 'you_2018']
+        # v3.10.0: 第 6 部 loughran 仅当已落盘 (golden 重生后) 时纳入硬断言, 否则软跳过
+        # (旧盘面 5-dict parquet 仍绿; 重生后 6-dict 自动覆盖)。
+        if 'loughran_score_full' in df22.columns:
+            dicts = dicts + ['loughran']
         # 三轨 (ss 2026-06-14): full/ctx 硬断言; ss 仅当首词典首指标 ss 列已落盘时
         # 纳入 (skip-if-missing 软守卫, ss 须付费 stage 21 重跑前置 stage 13/22 重算)。
         tracks = ['_full', '_ctx']
@@ -181,8 +185,8 @@ class TestStage22DictDualTrack:
     def test_zscore_independence(self, df22):
         """Z-score 独立标准化: 均值接近 0 (三轨 full/ctx/ss, 每轨各 if 存在守卫)"""
         dicts = ['jiang_2021', 'yao_2021', 'bian_2021',
-                 'du_2022', 'you_2018']
-        # 三轨 (ss 2026-06-14): 每轨各自 `if col in columns` 守卫 → ss 未落盘自动跳过
+                 'du_2022', 'you_2018', 'loughran']  # v3.10.0 +loughran (per-col 软守卫)
+        # 三轨 (ss 2026-06-14): 每轨各自 `if col in columns` 守卫 → ss/loughran 未落盘自动跳过
         for d in dicts:
             for track in ('_full', '_ctx', '_ss'):
                 col = f'{d}_zscore{track}'

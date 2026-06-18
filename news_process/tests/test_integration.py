@@ -124,8 +124,9 @@ class TestResourceFiles:
             with open(path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             assert isinstance(data, dict)
-            # 应包含预期的词典键
-            expected_keys = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+            # 应包含预期的词典键 (v3.10.0 +loughran 第 6 部主词典)
+            expected_keys = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022',
+                             'you_2018', 'loughran_mcdonald_zh_2026']
             for key in expected_keys:
                 assert key in data, f"tone_dicts.json 缺少键: {key}"
 

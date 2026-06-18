@@ -59,7 +59,8 @@ def _isolate_cwd_relative_writes(tmp_path, monkeypatch):
 # ============================================================================
 
 LLM_SHORTS = ['gpt54nano', 'gemini31111', 'deepseekv4']  # v3: 真三家族
-DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+# v3.10.0: 直接复用生产常量 _enc.DICT_NAMES (含第 6 部 'loughran' 别名), 避免测试硬编码与生产漂移。
+DICT_NAMES = _enc.DICT_NAMES
 BERT_SHORTS = ['finbert_cn', 'fin_sent_zh', 'finbert2']
 THREE_CLASS = {'finbert_cn', 'fin_sent_zh'}
 

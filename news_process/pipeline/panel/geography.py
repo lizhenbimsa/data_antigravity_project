@@ -100,7 +100,7 @@ def compute_composite_indicators(panel: pd.DataFrame) -> pd.DataFrame:
         new_cols[f'dict_avg_idf_tone_sum{track}'] = _safe_mean([f'{d}_idf_tone_sum{track}' for d in DICT_NAMES])
 
         # --- 词典法仅否定综合 (rule-ablation negation-only, 2026-06-13) ---
-        # 五词典 {d}_negonly_tone 跨词典均值; 与 dict_avg_tone (全规则) + avg_msent (零规则)
+        # 六词典 {d}_negonly_tone 跨词典均值; 与 dict_avg_tone (全规则) + avg_msent (零规则)
         # 构成跨词典层三点 ablation 谱。_safe_mean 缺列优雅返回 NaN (negonly 列由 stage 22
         # 重跑后落盘, golden 重生前缺列不崩)。dict_avg_negonly_tone_*=26 字符 ≤32。
         new_cols[f'dict_avg_negonly_tone{track}'] = _safe_mean([f'{d}_negonly_tone{track}' for d in DICT_NAMES])

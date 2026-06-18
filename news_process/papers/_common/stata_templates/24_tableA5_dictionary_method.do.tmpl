@@ -1,11 +1,16 @@
 * news_process v3.2.0 — Table A5: 词典法对比 Dictionary Method Comparison (plan v14 §9.2)
 *
 * 词典法 vs LLM 法 robustness:
-*   主 spec 用 LLM ensemble; 此表展示 5 个金融情感词典的同 spec 结果.
+*   主 spec 用 LLM ensemble; 此表展示 6 个金融情感词典的同 spec 结果.
 *   读者可对比 LLM vs Loughran-McDonald-style 词典法的 β 一致性.
 *
-* 词典清单 (Loughran & McDonald 2011 JF + 中文金融词典):
-*   jiang_2021, yao_2021, bian_2021, du_2022, you_2018
+* 词典清单 (Loughran & McDonald 2011 JF + 中文金融词典, v3.10.0 +第 6 部 L&M 中文主译):
+*   jiang_2021, yao_2021, bian_2021, du_2022, you_2018, loughran (L&M 2011 中文全译)
+*
+* 方法学红线 (L&M 规则版 vs 纯计数版): 本管道对所有词典施加否定/程度/转折三条语言学
+*   规则; 而 Loughran & McDonald (2011) 原版是**纯计数**。故额外列出 loughran_negonly_tone
+*   (仅否定翻转, 去程度/转折 ≈ L&M-faithful 计数版) 与全规则 loughran_tone 并排, 读者可验
+*   两者 β 一致性 (预期高度相关 ≈0.998); 若符号翻转/幅度差 >10% 须在正文披露为数据质量信号。
 *
 * Main spec: locus={{MAIN_LOCUS_TRACK}} subst={{MAIN_SUBST_TRACK}} sent={{MAIN_SENT_TRACK}}
 
@@ -34,8 +39,8 @@ if !_rc {
         absorb(bank_id year) vce(cluster bank_id)
 }
 
-* --- 词典法 Dictionary methods (5 个词典) ---
-local dicts jiang_2021 yao_2021 bian_2021 du_2022 you_2018
+* --- 词典法 Dictionary methods (6 个词典, v3.10.0 +loughran) ---
+local dicts jiang_2021 yao_2021 bian_2021 du_2022 you_2018 loughran
 foreach d of local dicts {
     local DICT_DV `d'_tone_{{MAIN_SENT_TRACK}}
     capture confirm variable `DICT_DV'
@@ -46,6 +51,19 @@ foreach d of local dicts {
     else {
         display "  Skip dict `d': var `DICT_DV' not in panel"
     }
+}
+
+* --- L&M 纯计数版 (negonly ≈ L&M-faithful, 方法学红线) ---
+* loughran_negonly_tone = 仅否定翻转、去程度/转折 → 最接近 Loughran-McDonald (2011) 原版纯计数;
+* 与全规则 loughran_tone 并排, 验 β 一致性 (capture-confirm 守卫缺列优雅跳过)。
+local LM_NEGONLY loughran_negonly_tone_{{MAIN_SENT_TRACK}}
+capture confirm variable `LM_NEGONLY'
+if !_rc {
+    eststo LM_negonly: reghdfe `LM_NEGONLY' `EXPL' `LOCUS' `SUBST', ///
+        absorb(bank_id year) vce(cluster bank_id)
+}
+else {
+    display "  Skip LM_negonly: var `LM_NEGONLY' not in panel"
 }
 
 * --- BERT methods (对照) ---
@@ -65,8 +83,8 @@ foreach b of local berts {
 * 仅引用实际已存储的估计, mtitle 同步删列防错位, 任一词典列缺失时优雅降级不再整表崩。
 qui estimates dir
 local stored `r(names)'
-local cand_models LLM_main DICT_jiang_2021 DICT_yao_2021 DICT_bian_2021 DICT_du_2022 DICT_you_2018
-local cand_titles `""LLM ensemble" "Jiang 2021" "Yao 2021" "Bian 2021" "Du 2022" "You 2018""'
+local cand_models LLM_main DICT_jiang_2021 DICT_yao_2021 DICT_bian_2021 DICT_du_2022 DICT_you_2018 DICT_loughran LM_negonly
+local cand_titles `""LLM ensemble" "Jiang 2021" "Yao 2021" "Bian 2021" "Du 2022" "You 2018" "L-M 2026" "L-M counts""'
 local models ""
 local mtitles `""'
 local nmod : word count `cand_models'
@@ -87,7 +105,8 @@ else {
         booktabs replace fragment ///
         title("Table A5: LLM vs Dictionary-Based Sentiment (Robustness)") ///
         mtitles(`mtitles') ///
-        note("DV: 情感分数. LLM = 3 模型多数投票. Dict = 5 个中文金融词典 (Loughran & McDonald 2011 JF 同框架). " ///
+        note("DV: 情感分数. LLM = 3 模型多数投票. Dict = 6 个中文金融词典 (含 Loughran-McDonald 2011 JF 中文全译 L-M 2026). " ///
+             "L-M counts = loughran negonly (仅否定, 去程度/转折), 最接近 L&M 原版纯计数; 与 L-M 2026 (全规则) 并排验稳健性. " ///
              "IDENTIFICATION NOTE: digital_frontier is a base-year within-bank time-invariant 0/1 classifier; every " ///
              "column here uses absorb(bank_id year), so it is collinear with the bank FE and silently dropped — " ///
              "beta(digital_frontier) is identified only in a no-absorb column (see 11_table2 M1). These columns identify " ///

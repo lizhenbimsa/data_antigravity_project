@@ -757,7 +757,7 @@ def main():
     #   A:  LLM 多数投票 (is_positive{track}, 三轨)
     #   A2: 单个 LLM (逐 LLM 情感{track} > 0, LLM_MODELS 当前 3 个)
     #   B:  反向验证 (负面{track} ∧ 实质性)
-    #   D/D2: 词典均值 / 单词典 ({dict}_score{track} > 0, DICT_NAMES 5 本)
+    #   D/D2: 词典均值 / 单词典 ({dict}_score{track} > 0, DICT_NAMES 6 本)
     #   E/E2: BERT 均值 (逐模型 argmax 多数票) / 单 BERT (argmax 标签,
     #         BERT_MODELS 当前 3 个; 见 fix(omni-g-runner-01))
     #   F:  高置信度子样本 (agreement_rate{track} ≥ 2/3, 实现= 2/3 - 1e-9 浮点下界)
@@ -1861,7 +1861,7 @@ def main():
     #   A/A2: LLM 投票 + 单 LLM (LLM_MODELS 当前 3 个) × 三轨
     #   B:    反向验证 + 非对称性 × 三轨
     #   C:    情感纯度缺口 × 三轨
-    #   D/D2: 词典均值 + 单词典 (DICT_NAMES 5 本) × 三轨
+    #   D/D2: 词典均值 + 单词典 (DICT_NAMES 6 本) × 三轨
     #   E/E2: BERT 均值 + 单 BERT (BERT_MODELS 当前 3 个) × 三轨
     #   F:    高置信度子样本 × 三轨
     #   G:    象征性文章情感偏移 × 三轨

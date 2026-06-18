@@ -111,7 +111,9 @@ def log_diagnostics(panel: pd.DataFrame, df_exploded: pd.DataFrame):
         try:
             decay_df = pd.read_csv(decay_report)
             # 计算 uniform vs inverse 的平均 Pearson
-            dict_names = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+            # v3.10.0: +'loughran' (别名, 见 tone_words.DICT_COLUMN_ALIAS); 下方 if-in-columns
+            # 守卫使其在 decay 报告未含 loughran 列时优雅跳过。
+            dict_names = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
             pearsons = []
             for dn in dict_names:
                 u_col, d_col = f'{dn}_uniform', f'{dn}_inverse'
@@ -890,7 +892,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 # _ctx→_ss 机械派生兜底, 见下方派生循环; 此处保持纯 full/ctx 字面量)
                 **{f'washing_ratio_{m}{s}': f'WR: {m} ({t})'
                    for m in ['gpt54nano', 'gemini31111', 'deepseekv4',
-                             'jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018',
+                             'jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran',
                              'finbert_cn', 'fin_sent_zh', 'finbert2']
                    for s, t in [('', 'Full'), ('_ctx', 'Ctx')]},
                 # ═══ 停刊稳健性 (Heese et al. 2022, JFE) ═══
@@ -1097,7 +1099,7 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'disag{s}': f'Disagreement: Dict Avg ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'disag_{d}{s}': f'Disagreement: {d} ({t})'
-                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'disag_llm{s}': f'Disagreement: LLM Vote ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
@@ -1118,10 +1120,10 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                 **{f'algo_cater_b{s}': f'Algo Catering: Dict-BERT ({t})'
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'{d}_cater{s}': f'Catering: {d}-LLM ({t})'
-                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'{d}_cater_b{s}': f'Catering: {d}-BERT ({t})'
-                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'cater_{m}{s}': f'Catering: Dict-{m} ({t})'
                    for m in ['gpt54nano', 'gemini31111', 'deepseekv4']
@@ -1144,17 +1146,17 @@ def export_panel(panel: pd.DataFrame, df_exploded: pd.DataFrame):
                    for m in ['gpt54nano', 'gemini31111', 'deepseekv4']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'{d}_neg_count{s}': f'Neg Count: {d} ({t})'
-                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'{b}_neg_count{s}': f'Neg Count: {b} ({t})'
                    for b in ['finbert_cn', 'fin_sent_zh', 'finbert2']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 # ═══ 前置中间变量: 单词典 pos/neg ratio ═══
                 **{f'avg_{d}_pos_ratio{s}': f'Avg Pos Ratio: {d} ({t})'
-                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 **{f'avg_{d}_neg_ratio{s}': f'Avg Neg Ratio: {d} ({t})'
-                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+                   for d in ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
                    for s, t in [('_full', 'Full'), ('_ctx', 'Ctx')]},
                 # ═══ Logit-to-Score 概率映射情感 (Törnberg 2024 / Shapiro 2022) ═══
                 **{f'avg_llm_prob_score{s}': f'Avg Prob Score ({t})'

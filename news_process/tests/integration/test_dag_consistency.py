@@ -112,7 +112,7 @@ def test_validation_stage_count(core_dag):
     v3.4.0 baseline = 13 (含 39a inter_track_kappa).
     v3.5.0 +1 = 14: 加 39c construct_orthogonality (NMI 正交性 D3 stage)
     v3.5.1 +1 = 15: 加 39d lexical_discriminant_validity (A1+A3 HTMT/AVE/κ/α)
-    v2.3 PR-#4 +1 = 16: 加 39e lm_discriminant_validity (LM 4 子词典 HTMT)
+    v2.3 PR-#4 +1 = 16: 加 39e lm_discriminant_validity (LM 6 子词典 HTMT)
     v2.3 PR-D3 +1 = 17: 加 39f cross_media_alpha (Krippendorff α + variance)
     2026-06-05 +1 = 18: 加 39h llm_contamination_test (DC4 接线, opt-in 默认禁用)
     随后 −1 = 17: 删 39h (其唯一 outcome 源 stage 49 移除, 无财务数据无法计算)

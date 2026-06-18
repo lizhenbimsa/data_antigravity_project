@@ -176,11 +176,11 @@ class TestPeerCompeteIdx:
 
 # ═══ F. Stata 变量名长度验证 ═══
 class TestStataVarNames:
-    """验证全部 111 个新增变量名 ≤ 32 字符 (原 123 个, v3.8.0 移除 title 轨后为 111)。"""
+    """验证全部 123 个新增变量名 ≤ 32 字符 (v3.10.0 +loughran 第 6 部, 6 词典族各 +2)。"""
 
     ALL_VARS = [
         'disag_full','disag_ctx',
-        *[f'disag_{d}{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
+        *[f'disag_{d}{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018','loughran']
           for s in ['_full','_ctx']],
         'disag_llm_full','disag_llm_ctx',
         *[f'disag_{m}{s}' for m in ['gpt54nano','gemini31111','deepseekv4']
@@ -190,9 +190,9 @@ class TestStataVarNames:
           for s in ['_full','_ctx']],
         'log_sent_full','log_sent_ctx',
         'algo_cater_full','algo_cater_ctx','algo_cater_b_full','algo_cater_b_ctx',
-        *[f'{d}_cater{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
+        *[f'{d}_cater{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018','loughran']
           for s in ['_full','_ctx']],
-        *[f'{d}_cater_b{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
+        *[f'{d}_cater_b{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018','loughran']
           for s in ['_full','_ctx']],
         *[f'cater_{m}{s}' for m in ['gpt54nano','gemini31111','deepseekv4']
           for s in ['_full','_ctx']],
@@ -201,18 +201,18 @@ class TestStataVarNames:
         'avg_ft_word_ratio','avg_ft_word_ratio_std','peer_compete_idx',
         *[f'{m}_neg_count{s}' for m in ['gpt54nano','gemini31111','deepseekv4']
           for s in ['_full','_ctx']],
-        *[f'{d}_neg_count{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
+        *[f'{d}_neg_count{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018','loughran']
           for s in ['_full','_ctx']],
         *[f'{b}_neg_count{s}' for b in ['finbert_cn','fin_sent_zh','finbert2']
           for s in ['_full','_ctx']],
-        *[f'avg_{d}_pos_ratio{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
+        *[f'avg_{d}_pos_ratio{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018','loughran']
           for s in ['_full','_ctx']],
-        *[f'avg_{d}_neg_ratio{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018']
+        *[f'avg_{d}_neg_ratio{s}' for d in ['jiang_2021','yao_2021','bian_2021','du_2022','you_2018','loughran']
           for s in ['_full','_ctx']],
     ]
 
     def test_total_count(self):
-        assert len(self.ALL_VARS) == 111
+        assert len(self.ALL_VARS) == 123
 
     def test_all_under_32_chars(self):
         for v in self.ALL_VARS:

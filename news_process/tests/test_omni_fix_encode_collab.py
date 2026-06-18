@@ -252,10 +252,11 @@ def _mk_v352_df():
         'target_bank': ['A', 'A', 'B'],
         'year': [2017, 2017, 2017],
     })
-    for k in ('uncert', 'litig', 'constr', 'modal_strong'):
-        for t in ('full', 'ctx'):
+    # v3.10.0: 6 LM 子集 × 3 轨 (full/ctx/ss)。
+    for k in ('uncert', 'litig', 'constr', 'modal_strong', 'modal_weak', 'complexity'):
+        for t in ('full', 'ctx', 'ss'):
             df[f'{k}_frac_{t}'] = [0.1, 0.3, 0.5]
-    for t in ('full', 'ctx'):
+    for t in ('full', 'ctx', 'ss'):
         df[f'frac_fls_{t}'] = [0.2, 0.4, 0.6]
     return df
 

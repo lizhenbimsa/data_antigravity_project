@@ -1,6 +1,6 @@
 """news_process.pipeline.audit.lm_discriminant_validity — stage 39e.
 
-v3.5.2 PR #4 — LM 4 子词典与 v3.5.1 lexical clarity / numerical intensity
+v3.5.2 PR #4 — LM 6 子词典与 v3.5.1 lexical clarity / numerical intensity
 的 panel-level 判别效度 (Discriminant Validity) 测试.
 
 学术依据
@@ -18,22 +18,24 @@ tests. Psychometrika, 16(3), 297-334.
 
 测试指标对
 ----------
-本 stage 测试 6 维构念间的判别效度:
+本 stage 测试 8 维构念间的判别效度 (v3.10.0: LM 4→6 子集):
     1. uncert_frac (LM uncertainty)
     2. litig_frac (LM litigious)
     3. constr_frac (LM constraining)
     4. modal_strong_frac (LM modal_strong)
-    5. clarity_score (v3.5.1 A1)
-    6. num_intensity (v3.5.1 A3)
+    5. modal_weak_frac (LM weak_modal, v3.10.0)
+    6. complexity_frac (LM complexity, v3.10.0)
+    7. clarity_score (v3.5.1 A1)
+    8. num_intensity (v3.5.1 A3)
 
-预期: 6×6 HTMT 矩阵中 LM 4 子集互相 HTMT < 0.85, 且与 clarity / num_intensity
+预期: 8×8 HTMT 矩阵中 LM 6 子集互相 HTMT < 0.85, 且与 clarity / num_intensity
 HTMT < 0.85 (判别效度通过).
 
 输入 / 输出
 -----------
 输入: ``data/processed/40_panel_yearly.parquet`` (含 v3.5.1 + v3.5.2 全部列)
 输出 (按 full / ctx / ss 三轨各写一份):
-    ``eval_reports/39e_lm_htmt_matrix_{ctx,full,ss}.csv``   6×6 HTMT 矩阵
+    ``eval_reports/39e_lm_htmt_matrix_{ctx,full,ss}.csv``   8×8 HTMT 矩阵
     ``eval_reports/39e_lm_permutation_{ctx,full,ss}.csv``   1000-rep permutation null (seed=42)
     (仅产上述 CSV — 与 core/schemas.py 登记的契约一致; 不单独落盘 Cohen κ /
      Cronbach α CSV, 亦不产 parquet; ss = 银行+金科同句共现轨, 列缺失时该轨优雅跳过)
@@ -44,8 +46,8 @@ HTMT < 0.85 (判别效度通过).
 PR #3 (lm_non_sentiment) 输出的 panel 列存在; G-A1.2 准入门控
 (panel HTMT < 0.85) 在该集成中验证。
 
-白话: LM 词典给文本打了 4 类标签 (不确定性/诉讼/约束/强情态), 我们又造了
-清晰度和数字密集度两个测度。这一步检查这 6 个测度两两相关是否都低于
+白话: LM 词典给文本打了 6 类标签 (不确定性/诉讼/约束/强弱情态/复杂度), 我们又造了
+清晰度和数字密集度两个测度。这一步检查这 8 个测度两两相关是否都低于
 0.85 — 低才说明它们各测各的、没有重复造轮子; 否则要请专家复核。
 
 ========================================================================
@@ -55,26 +57,26 @@ PR #3 (lm_non_sentiment) 输出的 panel 列存在; G-A1.2 准入门控
 
 ■ 详细功能说明
 
-**输入**: 读 `40_panel_yearly.parquet`(银行-年度面板)。每轨 6 个 indicator: LM 4 子词典频率 uncert_frac / litig_frac / constr_frac / modal_strong_frac, 加 v3.5.1 的 mean_clarity_score、mean_num_intensity(各带 _ctx/_full/_ss 后缀)。panel 缺失时 sys.exit(0) 优雅跳过。
+**输入**: 读 `40_panel_yearly.parquet`(银行-年度面板)。每轨 8 个 indicator: LM 6 子词典频率 uncert_frac / litig_frac / constr_frac / modal_strong_frac / modal_weak_frac / complexity_frac, 加 v3.5.1 的 mean_clarity_score、mean_num_intensity(各带 _ctx/_full/_ss 后缀)。panel 缺失时 sys.exit(0) 优雅跳过。
 
 **处理步骤**(`main`):
 - `_apply_llm_valid_mask`: 与 39d 统一, 优先 `n_articles_llm_valid ≥ 2`(缺该列回退 n_articles, 两列均缺则不过滤)以保证 HTMT/α/permutation 同样本可比(修 omni-g-audit-family-05)。
-- 三轨循环, 每轨: `compute_htmt_matrix` 取 present 列(<2 列跳过)算 `panel[present].corr().abs()`(单 item HTMT 退化为 |Pearson r|); `compute_cronbach_alpha` 跨 6 item α=(k/(k−1))(1−Σσ²_i/σ²_total); `permutation_null` 在 listwise-complete 子样本(观测与 null 同域; len(sub)<4 则跳过)上对每列洗牌 1000 次(seed=42)算 HTMT 上限 null 分布, 报 obs_htmt_max、perm_htmt_max_p95、p_empirical、n_listwise、note(披露行置换未处理 bank 聚类); `_offdiag_max` 用 to_numpy(copy=True) 取非对角最大值(pandas 3.0 Copy-on-Write 下只读数组守卫, 修 P0 崩溃)。
+- 三轨循环, 每轨: `compute_htmt_matrix` 取 present 列(<2 列跳过)算 `panel[present].corr().abs()`(单 item HTMT 退化为 |Pearson r|); `compute_cronbach_alpha` 跨 8 item α=(k/(k−1))(1−Σσ²_i/σ²_total); `permutation_null` 在 listwise-complete 子样本(观测与 null 同域; len(sub)<4 则跳过)上对每列洗牌 1000 次(seed=42)算 HTMT 上限 null 分布, 报 obs_htmt_max、perm_htmt_max_p95、p_empirical、n_listwise、note(披露行置换未处理 bank 聚类); `_offdiag_max` 用 to_numpy(copy=True) 取非对角最大值(pandas 3.0 Copy-on-Write 下只读数组守卫, 修 P0 崩溃)。
 - G-A1.2 准入门控: max off-diagonal HTMT < 0.85 → PASS, 否则 FAIL(need expert audit), 仅写日志。
 
-**关键算法/公式**: Henseler-Ringle-Sarstedt(2015) HTMT 双 cutoff 0.85/0.90; Cronbach(1951) α; 1000-rep permutation(与 39d 基线对齐, Henseler 建议≥500)。预期 6×6 中 LM 4 子集互相及与 clarity/num_intensity 的 HTMT 均<0.85。
+**关键算法/公式**: Henseler-Ringle-Sarstedt(2015) HTMT 双 cutoff 0.85/0.90; Cronbach(1951) α; 1000-rep permutation(与 39d 基线对齐, Henseler 建议≥500)。预期 8×8 中 LM 6 子集互相及与 clarity/num_intensity 的 HTMT 均<0.85。
 
 **输出**: 上列 CSV; α 与 G-A1.2 判定仅入日志。
 
 **外部依赖/超时/确定性**: 纯 numpy/pandas, 无 sklearn/LLM/Embedding/_llm_cache.db; seed=42; DAG timeout=900(15 分钟, 仿 39d)。
 
-**DAG 位置**: 验证阶段 39e(STAGES_VALIDATION), 上游=stage 40 panel(及上游 LM 子词典/clarity/num_intensity 列), 与 39d 测同一对 clarity/num_intensity 构念但扩到 LM 6 维, 互补不冲突; 服务 G-A1.2 准入门控与论文判别效度披露。
+**DAG 位置**: 验证阶段 39e(STAGES_VALIDATION), 上游=stage 40 panel(及上游 LM 子词典/clarity/num_intensity 列), 与 39d 测同一对 clarity/num_intensity 构念但扩到 LM 8 维, 互补不冲突; 服务 G-A1.2 准入门控与论文判别效度披露。
 
 ■ 白话说明
 
-**这一步在做什么**: Loughran-McDonald(LM)金融词典会给文本贴四类标签——不确定性、诉讼、约束、强语气情态; 我们又加了"表述清晰度"和"数字密集度"两把尺子, 一共 6 个测度。这一步像检查"这 6 个测度是不是各管各的、有没有谁跟谁其实在量同一件事": 它把 6 个测度两两的相关排成一张 6×6 表, 看是不是都低于 0.85; 再用随机打乱一千次确认"这个判断不是碰巧"。
+**这一步在做什么**: Loughran-McDonald(LM)金融词典会给文本贴六类标签——不确定性、诉讼、约束、强/弱语气情态、复杂度; 我们又加了"表述清晰度"和"数字密集度"两把尺子, 一共 8 个测度。这一步像检查"这 8 个测度是不是各管各的、有没有谁跟谁其实在量同一件事": 它把 8 个测度两两的相关排成一张 8×8 表, 看是不是都低于 0.85; 再用随机打乱一千次确认"这个判断不是碰巧"。
 
-**为什么需要它**: 这 6 个词典/文本指标如果彼此高度相关, 同时塞进回归就是重复计量、会误导结论。这一步设了一个"准入门"(G-A1.2): 只有最大相关低于 0.85 才算通过, 否则要请专家人工复核。它和 39d 测的是同一对清晰度/数字密集度, 用同一套样本过滤, 保证两份报告互相可比。
+**为什么需要它**: 这 8 个词典/文本指标如果彼此高度相关, 同时塞进回归就是重复计量、会误导结论。这一步设了一个"准入门"(G-A1.2): 只有最大相关低于 0.85 才算通过, 否则要请专家人工复核。它和 39d 测的是同一对清晰度/数字密集度, 用同一套样本过滤, 保证两份报告互相可比。
 
 **对最终面板/论文的影响**: 它不改主回归面板(只产几张 CSV 诊断表和日志), 但它是这些文本指标能否进论文的"安检"。安检通过, 论文可以放心声称这些词典测度各自独立有效; 不通过, 就得砍掉或合并冗余指标, 直接影响论文用哪些自变量、结论的可信度。
 ========================================================================
@@ -102,12 +104,18 @@ CONFIG = load_config()
 STAGE_NAME = "39e_lm_discriminant_validity"
 logger = setup_logging(STAGE_NAME, CONFIG["paths"]["log_dir"])
 
-# 6 个 indicator 列 (三轨各一组; main spec 用 _ctx 与 P1 v3.6.0 G3 对齐)
+# 8 个 indicator 列 (三轨各一组; main spec 用 _ctx 与 P1 v3.6.0 G3 对齐)。
+# v3.10.0: 6 个 LM 非情感子集 (原 4 + modal_weak/complexity) + clarity + num_intensity。
+# compute_htmt_matrix/permutation_null/compute_cronbach_alpha 均 k-agnostic, 自动扩 8×8。
+# 注: L&M 极性 (pos/neg) 走 loughran_tone 主轨, **不进** 39e — 此处全为单值非情感 frac/mean,
+# 无 pos/neg 极性对, 故无需"极性对 HTMT≈1 例外"逻辑。
 INDICATORS_CTX = [
     'uncert_frac_ctx',
     'litig_frac_ctx',
     'constr_frac_ctx',
     'modal_strong_frac_ctx',
+    'modal_weak_frac_ctx',
+    'complexity_frac_ctx',
     'mean_clarity_score_ctx',
     'mean_num_intensity_ctx',
 ]
@@ -116,10 +124,12 @@ INDICATORS_FULL = [
     'litig_frac_full',
     'constr_frac_full',
     'modal_strong_frac_full',
+    'modal_weak_frac_full',
+    'complexity_frac_full',
     'mean_clarity_score_full',
     'mean_num_intensity_full',
 ]
-# 第三轨 ss = 银行+金科同句共现轨 (suffix _ss): 机械 _full→_ss swap (继承同 6 维度);
+# 第三轨 ss = 银行+金科同句共现轨 (suffix _ss): 机械 _full→_ss swap (继承同 8 维度);
 # ss 列尚未物化时下游 compute_htmt_matrix 缺列优雅跳过 (present < 2 → 空矩阵)。
 INDICATORS_SS = [c.replace('_full', '_ss') for c in INDICATORS_FULL]
 
@@ -178,7 +188,7 @@ def compute_htmt_matrix(panel: pd.DataFrame, indicators: list[str]) -> pd.DataFr
 
     Note:
         v3.5.1 stage 39d 已实现 multi-indicator HTMT 完整版; stage 39e 因
-        LM 4 子集为 single-item, 用 abs(Pearson r) 作为 HTMT 简化估计.
+        LM 6 子集为 single-item, 用 abs(Pearson r) 作为 HTMT 简化估计.
         与 39d 互补不冲突.
     """
     present = [c for c in indicators if c in panel.columns]
@@ -190,7 +200,7 @@ def compute_htmt_matrix(panel: pd.DataFrame, indicators: list[str]) -> pd.DataFr
 
 
 def compute_cronbach_alpha(panel: pd.DataFrame, indicators: list[str]) -> float:
-    """跨 6 个 indicator 的 Cronbach α (Cronbach 1951)。"""
+    """跨 8 个 indicator 的 Cronbach α (Cronbach 1951)。"""
     present = [c for c in indicators if c in panel.columns]
     if len(present) < 2:
         return float('nan')
@@ -260,21 +270,21 @@ def permutation_null(panel: pd.DataFrame, indicators: list[str],
 def main():
     stage_start = time.time()
     logger.info("=" * 72)
-    logger.info("阶段 39e: LM 词典 6 维判别效度 (v3.5.2 PR #4; Henseler-Ringle-Sarstedt 2015 HTMT)")
+    logger.info("阶段 39e: LM 词典 8 维判别效度 (v3.5.2 PR #4; Henseler-Ringle-Sarstedt 2015 HTMT)")
     logger.info("=" * 72)
-    logger.info("【功能】给 6 个非情感文本测度 (LM 4 子词典频率 uncert/litig/constr/modal_strong +")
+    logger.info("【功能】给 8 个非情感文本测度 (LM 6 子词典频率 uncert/litig/constr/modal_strong/modal_weak/complexity +")
     logger.info("        清晰度 mean_clarity_score + 数字密集度 mean_num_intensity) 做判别效度安检:")
-    logger.info("        把两两相关排成 6×6 表, 看它们是否各测各的、有没有谁跟谁其实在量同一件事。")
-    logger.info("        产出 (三轨各一份): 39e_lm_htmt_matrix_{ctx,full,ss}.csv (6×6 HTMT 矩阵) +")
+    logger.info("        把两两相关排成 8×8 表, 看它们是否各测各的、有没有谁跟谁其实在量同一件事。")
+    logger.info("        产出 (三轨各一份): 39e_lm_htmt_matrix_{ctx,full,ss}.csv (8×8 HTMT 矩阵) +")
     logger.info("        39e_lm_permutation_{ctx,full,ss}.csv (1000-rep permutation null 汇总)。")
     logger.info("【方法】单 item HTMT 退化为 |Pearson r|; Cronbach α=(k/(k-1))(1-Σσ²_i/σ²_total);")
     logger.info("        permutation null 在 listwise-complete 子样本上对每列洗牌 1000 次 (seed=42);")
     logger.info("        G-A1.2 准入门控: max off-diagonal HTMT < 0.85(strict) → PASS, 否则 FAIL(需专家复核)。")
     logger.info("        样本口径与 39d 统一 (n_articles_llm_valid ≥ 2), 两份判别效度报告同样本可比。")
-    logger.info("【判读】HTMT 越低越好 (越低=两测度越独立); 6×6 全 < 0.85 即判别效度通过、6 个测度可独立进回归;")
+    logger.info("【判读】HTMT 越低越好 (越低=两测度越独立); 8×8 全 < 0.85 即判别效度通过、8 个测度可独立进回归;")
     logger.info("        某对 ≥ 0.85 = 疑似重复计量, 需砍掉或合并冗余指标。permutation p_empirical 越大")
     logger.info("        说明观测 HTMT 越接近随机噪声 (相关弱、判别效度越强)。Cronbach α 此处仅供参考")
-    logger.info("        (6 维本就该低耦合, α 高反而坏 — 与传统'量表内一致性高=好'方向相反)。")
+    logger.info("        (8 维本就该低耦合, α 高反而坏 — 与传统'量表内一致性高=好'方向相反)。")
     logger.info("【确定性】纯 numpy/pandas, 无 LLM/Embedding/sklearn; seed=42; 逐位可复现。")
     logger.info("=" * 72)
 
@@ -348,7 +358,7 @@ def main():
     # 计算异常都只 warning 跳过, 绝不冒泡使阶段崩溃丢产物 (确保 golden-safe)。
     try:
         logger.info("-" * 72)
-        logger.info("【结果分析】LM 6 维判别效度安检结果逐轨解读 (主 spec 用 ctx 轨):")
+        logger.info("【结果分析】LM 8 维判别效度安检结果逐轨解读 (主 spec 用 ctx 轨):")
         logger.info(f"  样本: mask 后 {n_obs_masked} 个 bank-year 单元参与判别效度计算。")
         if _track_summaries:
             for s in _track_summaries:
@@ -377,12 +387,12 @@ def main():
                         f"{mh:.4f} (阈值 strict={HTMT_STRICT} / lenient={HTMT_LENIENT}) → {verdict}")
                     if mh >= HTMT_STRICT:
                         logger.warning(
-                            f"  [{s['suffix']}] 最大 HTMT ≥ {HTMT_STRICT}: 6 个测度中存在疑似冗余对, "
+                            f"  [{s['suffix']}] 最大 HTMT ≥ {HTMT_STRICT}: 8 个测度中存在疑似冗余对, "
                             f"该轨这些词典/文本指标不应同时进回归 (论文需砍掉或合并)。")
-                # Cronbach α 反向判读: 6 维本应低耦合, α 高反而提示构念不纯
+                # Cronbach α 反向判读: 8 维本应低耦合, α 高反而提示构念不纯
                 if s['alpha'] == s['alpha']:  # 非 NaN (NaN != NaN)
-                    a_read = ('良性(6 维低耦合, 符合判别效度预期)' if s['alpha'] < 0.7
-                              else '偏高(6 维内部一致性高 → 可能在量同一构念, 与判别效度方向相悖, 留意)')
+                    a_read = ('良性(8 维低耦合, 符合判别效度预期)' if s['alpha'] < 0.7
+                              else '偏高(8 维内部一致性高 → 可能在量同一构念, 与判别效度方向相悖, 留意)')
                     logger.info(f"        Cronbach α = {s['alpha']:.4f} → {a_read}")
                 else:
                     logger.info("        Cronbach α = NaN (present 列不足或方差退化, 不可估)")

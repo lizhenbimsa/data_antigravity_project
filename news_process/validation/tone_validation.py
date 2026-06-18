@@ -18,7 +18,7 @@ news_process.validation.tone_validation — 阶段34：情感分析三角验证�
     验证内容：
     ┌────────────────────────────────────────────────────────────┐
     │ 一、内部一致性 (Within-Method Consistency)                   │
-    │    1.1 五词典间 Spearman 相关矩阵                            │
+    │    1.1 各词典间 Spearman 相关矩阵                            │
     │    1.2 三 BERT 模型间 Spearman 相关矩阵                      │
     │    1.3 Cronbach's Alpha 内部一致性系数                       │
     │                                                            │

@@ -32,6 +32,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from typing import Any, Dict, List
 
 import pandas as pd
@@ -123,6 +124,62 @@ class VariableMetadata:
             '变量类别': self.category,
             '文本轨道': self.track,
         }
+
+
+# ============================================================================
+# v3.10.0 测度变更披露: 6-词典体系 (union 5→6, plan §R1)
+# ============================================================================
+# L&M 2011 中文主译接成第 6 部词典后, 凡【依赖词典集合】的派生 panel 列 —— 固定 union
+# 投票的 avg_msent/msent_sum/avg_pos_ratio/avg_neg_ratio + 跨词典均值 dict_avg_* —— 的
+# 数值由 5 部基扩为 6 部基而回溯微变 (有意测度变更, 非 bug)。实测 (见
+# scripts/audit/measure_dict_union_impact.py): Pearson r(5,6)=0.985 / 符号翻转 0.13% /
+# mean msent ~3.5% 微变 → 词表覆盖改善。
+# ⚠ 此披露必须落到【真实 panel 列】: 此前 _UNION_NOTE 仅绑在 article 级 msent_score_*
+# 幻影列上, 而 codebook 发射门控 (`for col in panel.columns`) 只对 panel 实存列发射元数据
+# → 幻影列永不进 codebook/.dta, 真正受影响的 avg_msent_*/avg_pos_ratio_*/dict_avg_* DV
+# 零披露。修复 = 在 emission-loop 按列名前缀注入下列披露 (panel 驱动, 覆盖全部变体)。
+_DICT6_DISCLOSURE_NOTE = (
+    'v3.10.0 测度变更: 本列依赖词典法词典集合; 新增第 6 部 Loughran-McDonald (2011, JF) '
+    '中文主译本使词表由 5 部扩为 6 部 (固定 union 投票基 / 跨词典均值基), 致本列回溯微变 '
+    '(r=0.985 / 符号翻转 0.13% / mean msent ~3.5%), 反映词表覆盖改善非方法误。'
+    '见 scripts/audit/measure_dict_union_impact.py 与论文稳健性披露。'
+)
+_DICT6_CITATION = ('Loughran & McDonald (2011, JF); Tetlock (2007, JF); Garcia (2013, JF)')
+_DICT6_MARKER = 'v3.10.0 测度变更'  # 幂等注入守卫 (备注已含则不重复追加)
+_AUTO_INFER_NOTE = '自动推断的元数据，需要人工审核'  # 与 emission-loop fallback 备注同字面
+# 6-词典扩张 (5→6) 回溯改变【数值】的真实 panel 列前缀: union 投票 DV +
+# 跨词典均值族 (dict_avg_tone/idf/negonly + app/tech/vw/mw/hw/sum/std/_z 全变体)。
+# 不匹配 per-dict 新增列 (avg_loughran_pos_ratio 等 = 新增列非"变值", 走 provenance 另标)。
+_DICT6_AFFECTED_RE = re.compile(
+    r'^(?:avg_msent|msent_sum|avg_pos_ratio|avg_neg_ratio|dict_avg_'
+    r'|disag_(?:full|ctx|ss)$'              # 跨词典 Dict-Avg 分歧 (非 per-method disag_jiang_*/disag_bert_*)
+    r'|washing_ratio_dict(?:_ctx|_ss)?$)'   # 跨词典 Dict-Avg 洗稿率 (非 per-dict washing_ratio_bian_*)
+)
+
+
+def _is_dict6_union_affected(col: str) -> bool:
+    """col 是否为 6-词典扩张 (union 5→6 / 跨词典均值 5→6) 回溯改变数值的真实 panel 列。"""
+    return bool(_DICT6_AFFECTED_RE.match(col))
+
+
+# --- LM 第 6 部主词典 + 6 非情感子集 provenance (plan §Tier-1.2 / §注册:164) ---
+# loughran_* 全列族 (第 6 部主情感词典: tone/negonly/idf/score/washing_ratio/disag/cater/
+# pos_neg_ratio 等) 与 6 个非情感子集 frac (原 uncert/litig/constr/modal_strong + 新
+# modal_weak/complexity) 是【新增/扩展】列, 非"变值"列。.dta 标签经 stata_export.py
+# HEURISTIC_LABELS 已带 L&M provenance, 但 codebook 此前走 auto-infer → 学术引用为空、
+# 备注='需人工审核'。此处按列名补 L&M 引文 + provenance 备注 (panel 驱动, 含 negonly 红线标注)。
+_LM_PROVENANCE_CITATION = 'Loughran & McDonald (2011, JF); 中文主译本 (2026)'
+_LM_PROVENANCE_NOTE = (
+    'Loughran-McDonald (2011, JF) 金融情感词表中文主译本 (v3.10.0 接入第 6 部主词典 + '
+    'weak_modal/complexity 非情感子集 + _ss 三轨)。'
+)
+_LM_NEGONLY_NOTE = ' negonly = rule-reduced L&M (仅否定规则 ≈ L&M 原版纯计数 baseline; 见 plan §Tier-1.2)。'
+_LM_SUBSET_FRAC_RE = re.compile(r'^(uncert|litig|constr|modal_strong|modal_weak|complexity)_frac')
+
+
+def _is_lm_provenance_col(col: str) -> bool:
+    """col 是否为 L&M 词表派生的新增/扩展列 (第 6 部主词典全列族 + 6 子集 frac), 需补 provenance。"""
+    return ('loughran' in col) or bool(_LM_SUBSET_FRAC_RE.match(col))
 
 
 # ============================================================================
@@ -463,6 +520,33 @@ def get_variable_metadata_dict() -> Dict[str, VariableMetadata]:
         category='情感指标 (媒体正向倾向/favorability)',
         track='ctx',
     )
+
+    # ═══ v3.10.0 测度变更披露: 跨词典固定 union 5→6 (plan §R1) ═══
+    # L&M 2011 中文主译接成第 6 部主情感词典 → 固定 union 词典 5 部扩为 6 部, 驱动
+    # pos_ratio/neg_ratio/msent_score 计数基改变 (有意测度变更, 非 bug)。实测影响
+    # (scripts/audit/measure_dict_union_impact.py): Pearson r(5,6)=0.985 / 符号翻转 0.13%
+    # / mean msent ~3.5% 微变 → 词表覆盖改善, 论文作稳健性如实披露。
+    _UNION_NOTE = ('v3.10.0: 计数基 = 固定 6-词典 union (jiang/yao/bian/du/you + '
+                   'Loughran-McDonald 2011 中文译本)。union 5→6 致本列微变 '
+                   '(r=0.985/符号翻转0.13%), 反映词表覆盖改善非方法误; 见 '
+                   'scripts/audit/measure_dict_union_impact.py 与论文稳健性披露。')
+    for _trk in ('full', 'ctx', 'ss'):
+        _mcol = f'msent_score_{_trk}'
+        metadata[_mcol] = VariableMetadata(
+            var_name=_mcol,
+            label=f'Net-Negative MSENT ({_trk}-track, 6-dict union v3.10.0)',
+            description='固定 union 词典原始极性计数净负情感 (零语言学规则; '
+                        'Tetlock 2007 / Garcia 2013 固定词表范式)',
+            data_type='float',
+            unit='净负极性比',
+            value_range='[-1, 1]',
+            formula='(raw_neg - raw_pos) / (raw_pos + raw_neg)',
+            source_stage='Stage 22 (union) + Stage 45',
+            reference='Tetlock (2007, JF); Garcia (2013, JF); Loughran & McDonald (2011, JF)',
+            notes=_UNION_NOTE,
+            category='情感指标 (跨词典 union 净负情感)',
+            track=_trk,
+        )
 
     # ═══ CV-1 类别先验诊断列 (再审 v2 2026-06-15, CV-1-INFRA) ═══
     # encode.py:547-550 已产 pos_frac/neg_frac/pos_count/neg_count × {_full,_ctx,_ss};
@@ -1377,6 +1461,25 @@ def generate_codebook(
                 '文本轨道': _infer_track(col),
             }
 
+        # v3.10.0 测度变更披露 (plan §R1): 把 union 5→6 / 6-词典扩张披露落到【真实 panel 列】
+        # (此前 _UNION_NOTE 仅绑 article 级幻影列 msent_score_* → 永不发射; 见模块顶 _DICT6_* 注释)。
+        # panel 驱动注入 → 覆盖 avg_msent/pos_ratio/neg_ratio/dict_avg_* 全部变体; 幂等。
+        if _is_dict6_union_affected(col):
+            _note = row.get('备注', '') or ''
+            if (not _note.strip()) or (_AUTO_INFER_NOTE in _note):
+                row['备注'] = _DICT6_DISCLOSURE_NOTE
+            elif _DICT6_MARKER not in _note:
+                row['备注'] = f'{_note} {_DICT6_DISCLOSURE_NOTE}'
+            if not (row.get('学术引用', '') or '').strip():
+                row['学术引用'] = _DICT6_CITATION
+        elif _is_lm_provenance_col(col):
+            # L&M 第 6 部主词典 / 6 子集 frac 的 provenance (新增列, 非变值列; plan §Tier-1.2)
+            if not (row.get('学术引用', '') or '').strip():
+                row['学术引用'] = _LM_PROVENANCE_CITATION
+            _pn = row.get('备注', '') or ''
+            if (not _pn.strip()) or (_AUTO_INFER_NOTE in _pn):
+                row['备注'] = _LM_PROVENANCE_NOTE + (_LM_NEGONLY_NOTE if 'negonly' in col else '')
+
         # fix(omni-g-codebook-06/-14/-01, 2026-06-11): 主键取值范围动态实测覆盖
         row = _apply_dynamic_value_ranges(row, col, panel)
 
@@ -1512,7 +1615,10 @@ def _infer_source_stage(var_name: str) -> str:
         return 'Stage 21'
     elif 'bert' in var_name:
         return 'Stage 23'
-    elif 'dict' in var_name or 'jiang' in var_name or 'yao' in var_name:
+    elif ('dict' in var_name or 'jiang' in var_name or 'yao' in var_name
+          or 'loughran' in var_name or 'modal_weak' in var_name
+          or 'complexity' in var_name):
+        # v3.10.0: loughran (L&M 第 6 部主词典) + LM 新非情感子集 modal_weak/complexity
         return 'Stage 22'
     elif 'attn' in var_name or var_name.startswith('ft_vol'):
         # ft_vol_* = 地理注意力总量孪生 (compute_fintech_attention_index, 2026-06-13)

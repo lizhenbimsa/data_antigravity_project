@@ -56,8 +56,11 @@ PANEL_CFG = CONFIG.get("panel_building", {})
 _llm_cfg = CONFIG.get('tone_llm_processing', {}).get('models', [])
 LLM_MODELS = [m['short_name'] for m in _llm_cfg] if _llm_cfg else ['gpt54nano', 'gemini31111', 'deepseekv4']
 
-# 词典名列表 — 对应阶段 22 中的五本中文金融情感词典
-DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018']
+# 词典名列表 — 对应阶段 22 产出的情感词典列前缀。
+# v3.10.0: +第 6 部 'loughran' (= L&M 2011 JF 中文主译, 别名; 对应 stage 22 产的
+# loughran_*_score 列。别名权威 = tone_words.DICT_COLUMN_ALIAS, 此处须 byte-for-byte 一致，
+# 否则 `for d in DICT_NAMES` 聚合循环找不到列 → 静默全 NaN)。
+DICT_NAMES = ['jiang_2021', 'yao_2021', 'bian_2021', 'du_2022', 'you_2018', 'loughran']
 
 # BERT 模型 short_name 列表与分类数（从 sentiment_analysis.tone_berts.models 读取）
 _bert_cfg = CONFIG.get('sentiment_analysis', {}).get('tone_berts', {}).get('models', [])
@@ -1781,7 +1784,7 @@ def aggregate_panel(df: pd.DataFrame) -> pd.DataFrame:
         except Exception as e:  # noqa: BLE001
             logger.warning(f"  ⚠ v3.5.1 A1+A3 派生 graceful skip: {e}")
 
-        # v3.5.2 PR #2/#3: LM 4 子词典 + FLS 的 panel 级聚合
+        # v3.5.2 PR #2/#3: LM 6 子词典 + FLS 的 panel 级聚合 (v3.10.0 由 4→6 子集)
         # (O2 sample-run finding 2026-05-25: 关闭 CLAUDE.md 顶部声明 "stage 22
         # +10 panel 列" 与 disk 实际 0 panel 列的 gap; article-level 8 LM + 2 FLS
         # 已在 stage 22 _dual_analyze 产出, 缺 panel-agg).

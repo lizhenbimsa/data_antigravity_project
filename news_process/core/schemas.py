@@ -179,7 +179,7 @@ EXPECTED_NO_OUTPUT_STAGES: frozenset[str] = frozenset({
     "39a_inter_track_kappa.py",
     "39c_construct_orthogonality.py",  # v3.5.0 D3 NMI: 写 data/processed/39c_*.parquet 但走 validation 约定 (per schemas.py:134 historical)
     "39d_lexical_discriminant_validity.py",  # v3.5.1 A1/A3 HTMT+κ+α: 写 data/processed/39d_*.parquet + 39d_htmt_matrix.json, validation 不进 OUTPUT_REGISTRY
-    "39e_lm_discriminant_validity.py",  # v3.5.2 PR #4 (A1 LM 4 子词典 HTMT): 仅写 eval_reports/*.csv
+    "39e_lm_discriminant_validity.py",  # v3.5.2 PR #4 (A1 LM 6 子词典 HTMT): 仅写 eval_reports/*.csv
     "39f_cross_media_alpha.py",  # v3.7.0 PR #12 (D3 Krippendorff α): 写 data/processed/39f_*.parquet, 但 validation 类不进 OUTPUT_REGISTRY (与 39c/39d 约定一致)
 })
 

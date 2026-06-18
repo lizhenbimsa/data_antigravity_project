@@ -64,7 +64,7 @@ A1/A3 vs LLM substance 的 discriminant validity 检验 — 3 × 3 矩阵:
 
 **外部依赖/超时/确定性**: 纯 numpy/pandas, 无 sklearn/LLM/Embedding/_llm_cache.db; permutation seed=42 保证确定性; DAG timeout=900(15 分钟, 实际 N≈9000 bank-year 单线程<1 分钟)。
 
-**DAG 位置**: 验证阶段 39d(STAGES_VALIDATION), 上游=stage 40 panel(及上游 14/15 物化的 clarity/num_intensity 列), 与 39e(LM 子词典 6 维 HTMT)互补, 服务论文 §3.4 判别效度披露。注: R8-H1 ctx-fallback HTMT mask 文档锁定但本 stage 推迟实施(validation-only ROI 低), 论文层若需可在 Stata 用 frac_ctx_fallback<0.30 等价处理。
+**DAG 位置**: 验证阶段 39d(STAGES_VALIDATION), 上游=stage 40 panel(及上游 14/15 物化的 clarity/num_intensity 列), 与 39e(LM 子词典 8 维 HTMT)互补, 服务论文 §3.4 判别效度披露。注: R8-H1 ctx-fallback HTMT mask 文档锁定但本 stage 推迟实施(validation-only ROI 低), 论文层若需可在 Stata 用 frac_ctx_fallback<0.30 等价处理。
 
 ■ 白话说明
 
