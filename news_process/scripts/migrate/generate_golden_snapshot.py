@@ -128,7 +128,10 @@ def main() -> int:
         return 2
 
     snapshot: dict = {
-        "schema_version": 2,
+        # v3 (three-track-verify 2026-06-18): _ss 第三主轨 (v3.9.0) + stage 12b (v3.10.0)。
+        # 数据 2026-06-18 已重生 bless (含 760 _ss 列); 本次仅把版本戳 2→3 对齐已落盘 schema —
+        # 无 golden 重生、无 loader 分支于此字段 (纯信息戳, test_panel_reproducibility 只校 hashes)。
+        "schema_version": 3,
         "generated_utc": datetime.now(timezone.utc).isoformat(),
         "git_tag": "baseline-pre-restructure",
         "data_dir": str(data_dir.relative_to(project_root)),

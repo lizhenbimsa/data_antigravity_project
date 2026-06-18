@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "generated_utc": "2026-06-18T05:01:43.495431+00:00",
   "git_tag": "baseline-pre-restructure",
   "data_dir": "data\\processed",
