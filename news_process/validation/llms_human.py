@@ -322,9 +322,10 @@ def merge_annotations(input_path: str = None, output_path: str = None):
     # 读取已标注数据
     logger.info(f"读取标注文件: {input_path}")
     try:
-        xl = pd.ExcelFile(input_path)
-        sheet_name = '验证数据' if '验证数据' in xl.sheet_names else xl.sheet_names[0]
-        df = pd.read_excel(xl, sheet_name=sheet_name)
+        # fix(2026-06-19 run-check F5 兄弟泄漏): with 上下文确保 ExcelFile 句柄关闭 (消除 ResourceWarning)
+        with pd.ExcelFile(input_path) as xl:
+            sheet_name = '验证数据' if '验证数据' in xl.sheet_names else xl.sheet_names[0]
+            df = pd.read_excel(xl, sheet_name=sheet_name)
     except Exception as e:
         logger.error(f"读取标注文件失败: {e}")
         return

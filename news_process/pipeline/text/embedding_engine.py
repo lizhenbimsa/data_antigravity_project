@@ -260,15 +260,7 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
     base_url = (spec or {}).get('base_url')
     api_key = (spec or {}).get('api_key')
     embedding_model = spec_model(spec)
-    if not base_url or not api_key:
-        raise RuntimeError("Embedding API spec missing base_url or api_key")
-    base_url = str(base_url).rstrip("/")
     text_pipeline_version = spec_version(spec)
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
-    }
 
     cached_results = [
         cache.get(embedding_model, text, prompt_version=text_pipeline_version)
@@ -286,6 +278,17 @@ async def get_embeddings_api(texts, spec: dict, cache=None, *,
 
     missing_embs: list = []
     if missing_texts:
+        # fix(2026-06-19 run-check F1): API spec 校验 + headers 构造下移至此 —
+        # 仅当确有未缓存文本需联网时才要求 base_url/api_key。全命中路径 (含离线
+        # 空 key) 由缓存直接返回, 兑现 stage 15 banner "命中即逐位 $0 复现" 契约,
+        # 修复 stage 15/45 在嵌入缓存完整时仍因空 key 在 cache 查找前误崩。
+        if not base_url or not api_key:
+            raise RuntimeError("Embedding API spec missing base_url or api_key")
+        base_url = str(base_url).rstrip("/")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        }
         # 动态分批: 单批 <= 2000 条 且 token 总和 <= EMB_MAX_TOKENS_PER_REQUEST
         batches: list[list[str]] = []
         current_batch: list[str] = []

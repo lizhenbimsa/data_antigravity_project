@@ -308,10 +308,15 @@ def compute_variance_and_alpha(
                 # 仅当至少 1 个 item 有 ≥ 2 outlets 报道时 α 才有信号.
                 n_valid_items = int(np.sum(np.sum(~np.isnan(matrix), axis=0) >= 2))
                 if n_valid_items >= 1:
-                    alpha = float(krippendorff.alpha(
-                        reliability_data=matrix,
-                        level_of_measurement='interval',
-                    ))
+                    # fix(2026-06-19 run-check F8): T=2 退化数据 (方差为零/评分不足) 喂给
+                    # krippendorff 会在库内触发 numpy "invalid value encountered in scalar
+                    # divide" RuntimeWarning; 结果本就是 NaN (已被 try/except 与下游消费正确处理),
+                    # 故仅在 FP 错误态层面消噪, 不改任何 alpha 取值 → golden 安全。
+                    with np.errstate(invalid='ignore', divide='ignore'):
+                        alpha = float(krippendorff.alpha(
+                            reliability_data=matrix,
+                            level_of_measurement='interval',
+                        ))
             except Exception as e:
                 logger.debug(f"  α fail for ({bank}, {ed}): {type(e).__name__}: {e}")
         rows.append({
@@ -358,11 +363,15 @@ def aggregate_to_bank_year(
 
     panel = (
         df.groupby(['target_bank', 'year'])
+        # fix(2026-06-19 run-check F4): include_groups=False 消除 pandas 2.2 弃用警告
+        # "DataFrameGroupBy.apply operated on the grouping columns"。lambda 不引用分组列
+        # (target_bank/year 经 reset_index 从组索引恢复) → 输出值/dtype/列序逐位不变 (已验
+        # old.equals(new)==True on pandas 2.2.3)。⚠ pandas 3.0 该参数将默认行为并移除。
         .apply(lambda g: pd.Series({
             f'cross_outlet_tone_variance_{suffix}': _wmean(g, 'variance'),
             f'cross_media_alpha_{suffix}': _wmean(g, 'alpha'),
             f'n_events_{suffix}': int(len(g)),
-        }))
+        }), include_groups=False)
         .reset_index()
     )
     return panel

@@ -370,9 +370,10 @@ def run_stage(
     global logger
     from news_process.core.config import load_config
     from news_process.core.logging import setup_logging
+    config = load_config()
     logger = setup_logging(
         "39c_construct_orthogonality",
-        load_config()["paths"].get("log_dir", "logs"),
+        config["paths"].get("log_dir", "logs"),
     )
 
     # 功能说明 banner — 写入 <stage>.log, 让日志自带阶段用途说明 (仿 39e)。
@@ -385,13 +386,18 @@ def run_stage(
     logger.info("        取单侧 p95/p99 为门槛; bootstrap 1000 次给 CI。NMI 越低越正交。")
     logger.info("【判读】obs≤p95→strong(充分正交,好); ≤p99→moderate; >p99→weak(超出随机的真重叠,不利)。")
 
+    # fix(2026-06-19 run-check F2): 默认路径改用 load_config 解析的 output_dir (绝对,
+    # CWD 无关), 镜像兄弟阶段 39d/39e; 此前相对 'data/processed/...' 仅当 CWD==news_process/
+    # 才有效, 经 run_pipeline_validation.py 子进程 (无 cwd=) 从仓库根启动时 FileNotFound。
+    # env 覆盖 (STAGE_21_PARQUET/OUT_DIR) 保留; 输入文件名仍为 canonical 21_tone_llms.parquet。
+    _output_dir = config['paths']['output_dir']
     if stage_21_parquet is None:
         stage_21_parquet = os.environ.get(
             'STAGE_21_PARQUET',
-            'data/processed/21_tone_llms.parquet',
+            os.path.join(_output_dir, '21_tone_llms.parquet'),
         )
     if out_dir is None:
-        out_dir = os.environ.get('OUT_DIR', 'data/processed')
+        out_dir = os.environ.get('OUT_DIR', _output_dir)
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)

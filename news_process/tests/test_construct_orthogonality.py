@@ -426,6 +426,43 @@ def test_run_stage_uses_env_var_defaults(tmp_path, monkeypatch):
     assert (tmp_path / '39c_nmi_summary.json').exists()
 
 
+def test_run_stage_default_paths_config_resolved_absolute(monkeypatch):
+    """F2 回归 (2026-06-19 run-check): 无 args 且无 env 时, run_stage 默认输入/输出
+    路径经 load_config 解析为 **CWD-无关绝对路径** (镜像兄弟 39d/39e), 而非旧的相对
+    'data/processed/21_tone_llms.parquet' —— 后者从仓库根 CWD (run_pipeline_validation.py
+    子进程无 cwd=) 启动会 FileNotFound (真实文件仅在 news_process/data/processed)。
+    轻量探针: monkeypatch read_parquet 截获解析后路径并短路, 不跑重型 NMI。"""
+    import os
+
+    from news_process.core.config import load_config
+    from news_process.pipeline.audit import construct_orthogonality as _co
+
+    monkeypatch.delenv('STAGE_21_PARQUET', raising=False)
+    monkeypatch.delenv('OUT_DIR', raising=False)
+
+    class _StopProbe(Exception):
+        pass
+
+    captured: dict = {}
+
+    def _probe_read_parquet(path, *args, **kwargs):
+        captured['path'] = str(path)
+        raise _StopProbe()
+
+    monkeypatch.setattr(_co.pd, 'read_parquet', _probe_read_parquet)
+    with pytest.raises(_StopProbe):
+        _co.run_stage(bootstrap_n=2, n_permutations=2)
+
+    expected = os.path.join(
+        load_config()['paths']['output_dir'], '21_tone_llms.parquet')
+    assert captured['path'] == expected, (
+        f"39c 默认输入路径应为 config 解析的绝对路径 {expected}, 实得 {captured['path']}")
+    assert os.path.isabs(captured['path']), "默认路径须为绝对路径 (CWD 无关)"
+    # 旧 bug = CWD-相对 'data/processed/...'; F2 订正后绝不以该相对前缀开头
+    assert not captured['path'].replace('\\', '/').startswith('data/processed/'), \
+        "默认路径不应是 CWD-相对的 'data/processed/...' (F2 回归)"
+
+
 # ---------------------------------------------------------------------------
 # quality-hardening Round 57 (2026-05-27): 94.51% → ≥99%
 # 补 bootstrap degenerate (175-185) + permutation degenerate (243) +

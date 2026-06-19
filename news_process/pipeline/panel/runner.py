@@ -67,9 +67,11 @@ import json
 import os
 import sys
 import time
+import warnings
 
 import numpy as np
 import pandas as pd
+from pandas.errors import PerformanceWarning
 
 from news_process.core.config import herd_sensitivity_grid
 from news_process.core.logging import log_stage_summary
@@ -486,6 +488,18 @@ def main():
         ``python news_process/45_panel_export_main.py`` 这个外部 CLI 契约.
     """
     start_time = time.time()
+
+    # fix(2026-06-19 run-check F13): 面板总装在多处对宽表 (~2700 列) 逐列 panel[col]=...
+    # 赋值 (如 disag/cater 三轨族, runner.py:~2120-2205), 会反复触发 pandas
+    # PerformanceWarning(DataFrame is highly fragmented) —— 本模块 docstring (L168) 与
+    # L987 早已记录此为预期的良性碎片化提示, 不影响 40_panel_yearly.parquet 任一列的
+    # 值/dtype/列序 (golden 锚点字节不变, 已实证)。在主流程入口按 message+category 精确
+    # 抑制 (函数级, 不在 import 期污染测试; 与 stage 21 F3 同口径)。
+    warnings.filterwarnings(
+        "ignore",
+        category=PerformanceWarning,
+        message="DataFrame is highly fragmented",
+    )
 
     # ── 阶段功能 banner (黄金范式: 让 <stage>.log 自带说明书) ──
     logger.info("=" * 72)

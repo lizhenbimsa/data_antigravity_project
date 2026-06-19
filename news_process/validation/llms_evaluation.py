@@ -838,9 +838,10 @@ def _evaluate_innovation_panels(results: dict, output_dir: str, logger_inst) -> 
 
     # 加载 xlsx
     try:
-        xl = pd.ExcelFile(mv_path)
-        sheet = xl.sheet_names[0]
-        df_mv = pd.read_excel(xl, sheet_name=sheet)
+        # fix(2026-06-19 run-check F5): with 上下文确保 ExcelFile 句柄关闭 (消除 ResourceWarning)
+        with pd.ExcelFile(mv_path) as xl:
+            sheet = xl.sheet_names[0]
+            df_mv = pd.read_excel(xl, sheet_name=sheet)
     except Exception as exc:
         results['innovation_pending_reason'] = 'file not present'
         logger_inst.warning(
@@ -1413,11 +1414,12 @@ def main():
         logger.info(f"正在从 {verify_path} 加载人工验证数据...")
         try:
             # 优先读取"验证数据" sheet；若不存在则读取第一个 sheet
-            xl = pd.ExcelFile(verify_path)
-            sheet_name = '验证数据' if '验证数据' in xl.sheet_names else xl.sheet_names[0]
-            if sheet_name != '验证数据':
-                logger.info(f"  未找到 '验证数据' sheet，改用: '{sheet_name}'")
-            df_verify = pd.read_excel(xl, sheet_name=sheet_name)
+            # fix(2026-06-19 run-check F5): with 上下文确保 ExcelFile 句柄关闭 (消除 ResourceWarning)
+            with pd.ExcelFile(verify_path) as xl:
+                sheet_name = '验证数据' if '验证数据' in xl.sheet_names else xl.sheet_names[0]
+                if sheet_name != '验证数据':
+                    logger.info(f"  未找到 '验证数据' sheet，改用: '{sheet_name}'")
+                df_verify = pd.read_excel(xl, sheet_name=sheet_name)
             demo_mode = False
         except Exception as e:
             logger.error(f"加载人工验证文件失败: {e}")

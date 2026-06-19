@@ -82,10 +82,12 @@ import math
 import os
 import sys
 import time
+import warnings
 from collections import Counter
 
 import aiohttp
 import pandas as pd
+from pandas.errors import PerformanceWarning
 
 # Phase 7a-4: 注入项目父目录, 让 ``news_process.core.*`` 在任意 cwd 解析
 # (从 pipeline/sentiment/tone_llms.py 出发, 上溯 3 层抵达 news_process/ 的父目录)
@@ -2088,6 +2090,17 @@ def main():
 
 
 
+        # fix(2026-06-19 run-check F3): 以下向宽表一次性批量加 ~80 列 (per-model 独立判断 +
+        # 三轨 verified/sentiment/agreement/innovation/prob_score 等; 所有值均预先算好,
+        # 段内无 read-after-write) 会反复触发 pandas PerformanceWarning(DataFrame is highly
+        # fragmented) —— 纯性能提示, 不改 21_tone_llms.parquet 任一列的值/dtype/列序 (golden
+        # 锚点字节不变)。按 message+category 精确抑制该提示 (而非重构为 pd.concat: 后者可能改
+        # dtype/列序破坏 golden 列哈希, 两位 golden-safety 评审已 BLOCK Option B)。
+        warnings.filterwarnings(
+            "ignore",
+            category=PerformanceWarning,
+            message="DataFrame is highly fragmented",
+        )
         # 批量赋值各模型独立判断列
         for col_name, col_values in per_model_cols.items():
             df[col_name] = col_values
@@ -2181,12 +2194,19 @@ def main():
             df['avg_collab_prob_score_ctx'] = collab_prob_score_ctx_arr
             df['avg_collab_prob_score_ss'] = collab_prob_score_ss_arr
             n_rows = len(prob_score_full_arr)
-            mean_full = sum(prob_score_full_arr) / max(n_rows, 1)
-            mean_ctx = sum(prob_score_ctx_arr) / max(n_rows, 1)
-            mean_ss = sum(prob_score_ss_arr) / max(n_rows, 1)
-            logger.info(f"Logit-to-Score: "
-                        f"full mean={mean_full:.4f}, ctx mean={mean_ctx:.4f}, "
-                        f"ss mean={mean_ss:.4f}, n={n_rows}")
+            # fix(2026-06-19 run-check F12): 原 sum(arr)/n 对含 NaN 的 prob_score 列恒得 NaN,
+            # 诊断日志永远打印 'mean=nan' (掩盖真实分布)。改为 NaN-aware 均值 (v==v 滤除 NaN),
+            # 纯日志行, 不写 21_tone_llms.parquet → golden 安全; 无新依赖、不触发空切片告警。
+            _pf = [v for v in prob_score_full_arr if v == v]
+            _pc = [v for v in prob_score_ctx_arr if v == v]
+            _ps = [v for v in prob_score_ss_arr if v == v]
+            mean_full = sum(_pf) / len(_pf) if _pf else float('nan')
+            mean_ctx = sum(_pc) / len(_pc) if _pc else float('nan')
+            mean_ss = sum(_ps) / len(_ps) if _ps else float('nan')
+            logger.info(f"Logit-to-Score (NaN-aware 均值, 分母=非空数): "
+                        f"full mean={mean_full:.4f} (n={len(_pf)}), "
+                        f"ctx mean={mean_ctx:.4f} (n={len(_pc)}), "
+                        f"ss mean={mean_ss:.4f} (n={len(_ps)}), n_total={n_rows}")
 
         if n_api_failures > 0:
             logger.warning(f"共有 {n_api_failures} 次模型 API 调用失败，已从对应投票中排除")

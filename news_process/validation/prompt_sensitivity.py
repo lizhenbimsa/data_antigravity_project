@@ -1410,6 +1410,15 @@ def _setup_chinese_font():
 
 def main():
     """Prompt 措辞敏感度量化测试主流程。"""
+    # fix(2026-06-19 run-check F7): 同阶段 36 — 离线确定性模式下变体 prompt 必为冷缓存,
+    # 强行运行会抛大量 LLMCacheMissError + 异步未回收异常噪声。阶段 39 在线付费 only
+    # (EXPECTED_NO_OUTPUT, 不写面板) → 离线优雅跳过, 在线行为不变。复用 tone_llms.LLM_OFFLINE。
+    if _tone_llms.LLM_OFFLINE:
+        logger.warning(
+            "阶段 39 (Prompt 敏感度) 需在线 LLM 重判变体 prompt (冷缓存); "
+            "NEWS_PROCESS_LLM_OFFLINE=1 离线守卫下优雅跳过 — 在线运行不受影响。"
+        )
+        return
     logger.info("=" * 70)
     logger.info("=== 阶段 39: Prompt 措辞敏感度量化测试 (Prompt Wording Sensitivity) ===")
     logger.info("=" * 70)

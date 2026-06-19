@@ -695,6 +695,17 @@ def _generate_confusion_matrix_per_track(
 def main():
     stage_start = time.time()
 
+    # fix(2026-06-19 run-check F7): 离线确定性模式下本阶段必为冷缓存 (掩码文本 prompt 与生产不同),
+    # 强行运行会抛大量 LLMCacheMissError + "Task exception was never retrieved" 异步噪声。
+    # 阶段 36 是在线付费 only 的稳健性验证 (EXPECTED_NO_OUTPUT, 不写面板) → 离线优雅跳过,
+    # 在线 (生产) 行为完全不变。复用 tone_llms.LLM_OFFLINE 单一事实源 (勿重解析 env)。
+    if _tone_llms.LLM_OFFLINE:
+        logger.warning(
+            "阶段 36 (Entity Masking) 需在线 LLM 重判掩码文本 (变体 prompt 冷缓存); "
+            "NEWS_PROCESS_LLM_OFFLINE=1 离线守卫下优雅跳过 — 在线运行不受影响。"
+        )
+        return
+
     # ── 黄金范式标准化 banner (功能/方法/判读/确定性) ──
     # fix(C7-V-004, 2026-06-17): 删除旧短 banner (📌/📖/📊 三段, 其中 '[BANK_A]'
     # 是陈旧示例, 实际占位符为 '目标银行A'/PLACEHOLDER), 替换为下方黄金范式单
