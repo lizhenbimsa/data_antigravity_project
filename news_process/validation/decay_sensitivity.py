@@ -100,7 +100,7 @@ v3.6.0 (Plan E P7 C4 stub):
 **输入**: `21_tone_llms_full.parquet` (CONFIG['filenames']['output_21_tone_llms_full'], 回退 glob `21_*.parquet` 取字典序末位)。过滤 `llm_verified_full == True` 仅保留已验证的金科新闻。
 
 **处理步骤**:
-1. 加载 5 套词典 (jiang/yao/bian/du/you; 正面+1/负面-1/政治正面+0.5) + 注入 jieba (与 22_tone_words/35 一致)。
+1. 加载 5 套词典 (jiang/yao/bian/du/you; 正面+1/负面-1/政治正面+0.5) + 注入 jieba (与 stage 35 词典集一致; 语言学规则参数与 22_tone_words 一致, 但 22_tone_words 自 2026-06-18 起已扩为 6 词典 union, 本模块刻意仍取原 5 套子集)。
 2. `run_analysis` 逐文: `core.text.entity_context.extract_entity_context_with_distances(content, aliases, sentence_radius=2)` 提取 [(句文本, 句级距离 d), ...] (radius=2 大于生产 ctx 的 1, 给衰减留空间); 每句 jieba 分词一次 (3 衰减函数共享预分词)。
 3. 对 5 词典 × 3 衰减函数 = 15 组合调 `compute_decay_sentiment`。
 
@@ -262,7 +262,7 @@ DECAY_FUNCTIONS = {
 def load_dictionaries() -> list:
     """从 tone_dicts.json 加载 5 套中文金融情感词典。
 
-    加载的词典列表与 22_tone_words.py 完全一致, 确保跨模块可比性:
+    加载与 22_tone_words.py 共有的 5 套中文情感词典 (jiang/yao/bian/du/you)。注: 生产 22_tone_words 自 2026-06-18 起已扩为 6 词典固定 union (新增 loughran_mcdonald_zh_2026), 本验证模块刻意仍取原 5 套子集 (独立 loader, 非生产 union 口径), 故词典列表已非与 22_tone_words 完全一致 — follow-up 已披露:
       1. jiang_2021 — 姜富伟等 (2021) 中文金融情感词典
       2. yao_2021  — 姚加权等 (2021) 金融领域情绪词典
       3. bian_2021 — Bian et al. (2021) LM 中文扩充版

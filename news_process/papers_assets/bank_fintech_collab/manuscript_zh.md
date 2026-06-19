@@ -10,7 +10,7 @@
 
 [M3 阶段填实 ~250 字]
 
-银行的金融科技创新模式——自主研发（内部 R&D）与外部协同（与 fintech 公司 / 科技巨头 / 大学的 joint R&D、并购、战略投资、开放 API、行业联盟）——如何影响其长期能力建设、市场反应与下游 M&A 活动？本研究基于 2007-2024 年 500 家中国商业银行的 40 万条金融科技新闻语料，构造了一个**银行-年-公告级的二元"创新协作模式"度量**，锚定 Chesbrough (2003) 开放式创新框架与 Laursen & Salter (2006 SMJ) search breadth-depth 分类法。...
+银行的金融科技创新模式——自主研发（内部 R&D）与外部协同（与 fintech 公司 / 科技巨头 / 大学的 joint R&D、并购、战略投资、开放 API、行业联盟）——如何影响其长期能力建设、市场反应与下游 M&A 活动？本研究基于 2007-2024 年 500 家中国商业银行的 40 万条金融科技新闻语料，构造了一个**篇章级二元"创新协作模式"分类（聚合为银行-年外部协同新闻占比 `collab_frac`）**，锚定 Chesbrough (2003) 开放式创新框架与 Laursen & Salter (2006 SMJ) search breadth-depth 分类法。...
 
 ---
 
@@ -20,7 +20,7 @@
 
 - 研究问题: 银行 fintech 创新的"自主 vs 协同"选择路径与传统制造业 R&D 路径异同
 - 文献缺口: 既有文献多以单维度衡量 fintech 创新（量、质、locus），忽视组织来源（open vs closed）
-- 本研究贡献: 篇章级二元度量 + 与 P3 (substantiveness) / P4 (locus) 形成 2³=8 cross-tab cells
+- 本研究贡献: 篇章级二元分类（聚合为银行-年外部协同占比 `collab_frac`）+ 与 P3 (substantiveness) / P4 (locus) 形成 2³=8 cross-tab cells
 
 ---
 

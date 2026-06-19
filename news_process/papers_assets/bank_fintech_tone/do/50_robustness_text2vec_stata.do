@@ -1,6 +1,13 @@
-/* 
+/*
   50_robustness_text2vec_stata.do
   数据双轨验证方案：基于 Text2Vec (全文/上下文) 的稳健性特征测试
+
+  ⚠ 现状说明 (2026-06-19 文档审计, legacy 脚本):
+    (1) text2vec (_t2v) 稳健性列仍在生产, 但已改由 stage 15/25 内联产出 ——
+        独立的 stage 30 编排已于 2026-05-29 退役 (现仅余 30a SBERT), 词典/列本身未删。
+    (2) 本 Phase-4a 自包含脚本仅覆盖 full/ctx 两轨; v3.9.0 起项目已加入第三主轨 _ss
+        (银行+金科同句), 生产 _t2v 列亦有 *_ss 孪生 (policy_cosine_sim_t2v_ss /
+        strat_diff_t2v_ss)。如需三轨稳健性, 以主线 Stata 模板为准。
 */
 
 clear all

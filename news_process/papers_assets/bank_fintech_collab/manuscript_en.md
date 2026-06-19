@@ -10,7 +10,7 @@
 
 [M3 阶段填实 ~250 words]
 
-How does a bank's mode of fintech innovation — independent in-house R&D versus external collaboration — shape its long-run capability building, market response, and downstream M&A activity? We construct a novel firm-level binary measure of *innovation collaboration mode* from a large-scale corpus of Chinese fintech news (2007-2024; 500 banks; 400k articles), classified by a triangulated LLM ensemble anchored to Chesbrough's (2003) Open Innovation framework and Laursen & Salter's (2006) search breadth–depth taxonomy. ...
+How does a bank's mode of fintech innovation — independent in-house R&D versus external collaboration — shape its long-run capability building, market response, and downstream M&A activity? We construct a novel article-level binary classification of *innovation collaboration mode* (aggregated to a bank-year external-collaboration share, `collab_frac`) from a large-scale corpus of Chinese fintech news (2007-2024; 500 banks; 400k articles), classified by a triangulated LLM ensemble anchored to Chesbrough's (2003) Open Innovation framework and Laursen & Salter's (2006) search breadth–depth taxonomy. ...
 
 ---
 
@@ -20,7 +20,7 @@ How does a bank's mode of fintech innovation — independent in-house R&D versus
 
 - Motivating puzzle: fintech 银行的 "自主 vs 协同" 决策路径与传统制造业 R&D 路径有何异同？
 - 现有文献缺口: existing literature 多以单维度衡量 fintech 创新（量、质、locus），但忽视组织来源 (open vs closed)
-- 本研究贡献: novel firm-level binary measure + 2³ cross-tab with existing P3/P4 dimensions
+- 本研究贡献: novel article-level binary classification (aggregated to bank-year external-collaboration share `collab_frac`) + 2³ cross-tab with existing P3/P4 dimensions
 
 ---
 

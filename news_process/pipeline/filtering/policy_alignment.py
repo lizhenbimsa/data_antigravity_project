@@ -654,7 +654,7 @@ def compute_article_policy_alignment(df: pd.DataFrame) -> pd.DataFrame:
         policy_cosine_sim_i = cos(emb(article_i), emb(auth_text))
 
     其中:
-      - emb() 为 text-embedding-3-small 的稠密语义编码 (1536 (API main) / 768 (text2vec robustness) 维)
+      - emb() 为稠密语义编码: MAIN spec = text-embedding-3-small (API, 1536 维); ROBUSTNESS spec = shibing624/text2vec-base-chinese (本地, 768 维); 两 spec 各自独立编码, 严禁混算 (见 L92/L513)。
       - auth_text 为权威政策语料库 (config/authoritative_corpus.txt) 中发布年份
         ≤ 文章年份的文档段拼接 (vintage-aware, fix(omni-g-policy-02, 2026-06-11):
         旧静态全语料锚点含未来政策文本, 构成前视; 现按政策发布年份切分,

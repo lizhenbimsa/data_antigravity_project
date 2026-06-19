@@ -1,13 +1,13 @@
 """news_process.pipeline.text.article_staleness — stage 18 article-level staleness.
 
 v3.7.0 PR #11 + #11.5 (D2 双指标) — Article staleness 连续 score, 与 v3.6.x
-dedup.py:94 的 jaccard 布尔决策互补.
+dedup.py 的 jaccard 布尔决策 (find_near_duplicate_indices) 互补.
 
 两种 staleness 计算方式
 -----------------------
 **surface_staleness** (D2.a, PR #11):
     MinHash + datasketch LSHForest, char-shingle 3-gram jaccard.
-    与现有 dedup.py jaccard_similarity_threshold=0.85 同源, 升级为连续 score.
+    与现有 dedup.py jaccard_similarity_threshold=0.80 (生产值) 同源, 升级为连续 score.
 
 **semantic_staleness** (D2.b, PR #11.5):
     Faiss IndexFlatIP (normalized inner-product = cosine) + SBERT cosine
@@ -273,8 +273,8 @@ def compute_semantic_staleness(
         import faiss
     except ImportError:
         logger.error(
-            "faiss-cpu 未装; v3.7.0 启用步骤: 取消 requirements.txt 中 "
-            "faiss-cpu>=1.7.4 行注释后 pip install"
+            "faiss-cpu 未装; 安装步骤: pip install 'faiss-cpu>=1.7.4' "
+            "(requirements.txt 已列为 always-on 依赖)"
         )
         raise
 

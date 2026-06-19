@@ -10,9 +10,9 @@
     46_panel_yearly_codebook.xlsx  # 人类可读变量字典 (is_core 列仍标注分析核心变量子集)
 
 关键转换 (plan v14 §9.1; v3.4.0 +collab_mode):
-    - innovation_locus_{full,ctx} (中文 str) → byte 0=底层技术, 1=应用场景 + value label
-    - innovation_substantiveness_{full,ctx} (中文 str) → byte 0=实质性, 1=象征性 + value label
-    - innovation_collab_mode_{full,ctx} (中文 str) → byte 0=自主研发, 1=外部协同 + value label  [v3.4.0]
+    - innovation_locus_{full,ctx,ss} (中文 str) → byte 0=底层技术, 1=应用场景 + value label
+    - innovation_substantiveness_{full,ctx,ss} (中文 str) → byte 0=实质性, 1=象征性 + value label
+    - innovation_collab_mode_{full,ctx,ss} (中文 str) → byte 0=自主研发, 1=外部协同 + value label  [v3.4.0; ss v3.9.0]
       ⚠ 上述 3 组类别编码仅当列存在时启用 — 当前 bank-year panel 不含这些文章级
       str 列 (仅有派生数值聚合 avg_*_prob_score / *_frac 等), encoder 为 no-op,
       盘上 .dta value label = 0; 保留以服务未来文章级/众数面板导出场景

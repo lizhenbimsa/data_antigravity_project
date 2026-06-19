@@ -8,7 +8,7 @@
 
 ## 1. F1：LLM 三家族真三角验证（取代 v5 单家族 / v3 错位）
 
-**v5 之前的状态**：sentiment.yaml 中 `gpt54nano` / `gemini3111` / `claude4h` 三个 slot 的 model_name 错位（claude4h 实际跑的是 GLM 或 DeepSeek）。
+**v5 之前的状态**：sentiment.yaml 中 `gpt54nano` / `gemini31111` / `claude4h` 三个 slot 的 model_name 错位（claude4h 实际跑的是 GLM 或 DeepSeek）。
 
 **v3 锁定**：基于 yunwu.ai/v1 实际授权清单，确认三个独立家族可用：
 
@@ -109,7 +109,7 @@
 
 **v3 锁定（仅保留 6 类核心）**：
 
-| IV 类 | 列数 (× 2 tracks: _full / _ctx) | 文献依据 |
+| IV 类 | 列数 (× 3 tracks: _full / _ctx / _ss，v3.9.0 起) | 文献依据 |
 |---|---|---|
 | `bartik_type_*` | type/scale 已 pre-treatment 固定 | Goldsmith-Pinkham, Sorkin & Swift (2020, AER) |
 | `bartik_scale_*` | 同 | 同 |
@@ -120,7 +120,7 @@
 
 **基期约束**：`bartik_base_year = max(panel.year.min(), 2010)`，强制 `< 2019`（DCEP 沙盒里程碑）。
 
-**panel 列变化**：bartik_* 列从 ~214 列降至约 29 列（6 类核心 × 含 share / iv × 2 tracks（_full / _ctx）；remove-title-track 后已无 _title 情感轨）。逐类列数随各类 share 分组数不同：type=8（iv×2 + 6 share）/ scale=6（iv×2 + 4 share）/ fintech=4（iv×2 + 2 share）/ media=4（iv×2 + 2 share）/ geoprox=2（仅 iv×2）/ mauth=5（iv×2 + 3 share），合计 ≈ 29 列。
+**panel 列变化**：bartik_* 列从 ~214 列降至约 29 列（6 类核心 × 含 share / iv × 2 tracks（_full / _ctx）（注: v3.9.0/2026-06-14 起新增第三主轨 _ss 银行+金科同句共现，bartik IV 实为 ×3 轨 _full/_ctx/_ss，本节按旧两轨口径，IV 列数应相应上调；remove-title-track 后已无 _title 情感轨）。逐类列数随各类 share 分组数不同：type=8（iv×2 + 6 share）/ scale=6（iv×2 + 4 share）/ fintech=4（iv×2 + 2 share）/ media=4（iv×2 + 2 share）/ geoprox=2（仅 iv×2）/ mauth=5（iv×2 + 3 share），合计 ≈ 29 列。
 
 **强制 Romano-Wolf 校正**：IV ≥ 6 类（按类计数），主表必须使用 step-down p 值（`rwolf` Stata 包）。
 
@@ -160,6 +160,7 @@
 
 ```stata
 * v6/F2: 处理 nullable Int8 转换后的 Stata 缺失值
+* 注: 下例仅列 _full/_ctx；v3.9.0/2026-06-14 起须同步加 _ss 轨同名列 (llm_vote_score_ss / n_valid_votes_ss / n_verifying_votes_ss / bartik_*_iv_ss 等)
 mvdecode is_positive_full is_negative_full is_neutral_full ///
     llm_vote_score_full llm_vote_score_ctx ///
     n_valid_votes_full n_valid_votes_ctx ///

@@ -40,7 +40,7 @@ papers_assets/llm_peer/
 
 1. Manuscript 内 `\\NoteThis{...}` 占位 (Intro / Lit Review / Results / Conclusion 等实质内容)
 2. BibLaTeX 文献库扩展 (当前 5 条共享 + 1 条 LLM-Peer 专属 = 共 6 条, 需扩到 ~30-50 条)
-3. 跑通 12 .do 端到端验证 (llm_peer 衍生复现包, 与 L34 模板表一致)。2026-06-13 outcome 重定位后主回归 DV = `avg_ft_intensity_full` (panel 实存列, 无需等财务数据即可跑); ROA / Tobin_Q 降级 secondary, 并入 panel 后补跑
+3. 跑通 12 .do 端到端验证 (llm_peer 衍生复现包, 与 L34 模板表一致)。2026-06-14 PORT SAL-3 顶刊重审后主回归 DV 改回 `roa` (外部财务哨兵, 撤销 2026-06-13 短暂采用的 avg_ft_intensity_full 主规格 — 该文本量 Y 与 P2 attention 同源派生自同一媒体语料); avg_ft_intensity_full 降为 first-stage 机制佐证 (spec.outcome.mechanism_evidence); roa / Tobin_Q 待财务数据并入 panel 后补跑。
 
 ## 学术依据
 

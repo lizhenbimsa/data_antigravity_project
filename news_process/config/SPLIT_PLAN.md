@@ -35,7 +35,7 @@ config/
 ├── sentiment.yaml                # tone_llm_processing (sans prompts) + sentiment_analysis
 │                                 # + herd_detection
 ├── features.yaml                 # embedding_api + benefit_society
-├── panel.yaml                    # panel_building + temporal_mask_test
+├── panel.yaml                    # panel_building (temporal_mask_test 已随 stage 38a 于 2026-06-12 移除)
 ├── validation.yaml               # human_validation + validation
 │                                 # + entity_masking_test + prompt_sensitivity_test
 │                                 # + threshold_sensitivity
@@ -69,7 +69,7 @@ ensures the column-hash baseline cannot be silently broken by a YAML edit.
 - All 7 split YAMLs created with all sections accounted for; `git diff` of
   the legacy `config.yaml` against the union of split files shows zero
   semantic delta.
-- prompt templates externalized to disk; LLM stage runners updated to load them. (remove-title-track: 原计划抽取 tone_llm_processing.prompt_template + title_sentiment_prompt_template 两个模板; 标题情感轨取消后 prompts/title_sentiment.txt 已删除, 现仅 prompts/unified_cot.txt 一个由 config 外部化, 见 config/sentiment.yaml:56-57 与 config/config.yaml:16-19)
+- prompt templates externalized to disk; LLM stage runners updated to load them. (remove-title-track: 原计划抽取 tone_llm_processing.prompt_template + title_sentiment_prompt_template 两个模板; 标题情感轨取消后 prompts/title_sentiment.txt 已删除, 现仅 prompts/unified_cot.txt 一个由 config 外部化, 见 config/sentiment.yaml:59 与 config/config.yaml:16-19)
 - `tests/integration/test_config_split_equivalence.py` asserts that
   `load_config()` produces an identical dict whether reading the legacy
   monolithic file or the new split files.

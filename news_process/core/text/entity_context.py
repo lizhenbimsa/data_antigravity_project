@@ -271,9 +271,10 @@ def extract_bank_fintech_cooccurrence(
     学术谱系: 同句共现 (co-mention / collocation) 作为"主题相关性"归因过滤, 承接
       proximity-based attribution 谱系 —— Hassan et al. (2019) QJE §III.B (实体邻近
       归因) 与 Andreou et al. (2026) Research Policy (span 内 core-contextual 词对)
-      的"同窗共现"特例。[同句 co-mention 专属文献锚点 (候选: Gentzkow & Shapiro
-      2010 ECMA / Dougal et al. 2012 RFS) 待 Crossref 核验后定稿, 见 plan §8.1 /
-      scripts/audit/LITERATURE_ANCHORS。]
+      的"同窗共现"特例。同句 (same-sentence, radius=0) 即上述 proximity 归因谱系的最严
+      特例 (Hassan et al. 2019 实体邻近归因的零半径退化), 不另设专属同句文献锚点;
+      相关 co-mention / collocation 旁证 (Gentzkow & Shapiro 2010 ECMA / Dougal et al.
+      2012 RFS) 见 scripts/audit/LITERATURE_ANCHORS。
 
     Args / Returns: 同 extract_entity_context, 另加 fintech_ac (金科 AC 自动机)。
     """

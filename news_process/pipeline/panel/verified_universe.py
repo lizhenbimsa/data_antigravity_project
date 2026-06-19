@@ -25,8 +25,10 @@ fintech_intensity_score_ss / llm_vote_tone_ss 等) 在本模块**零改自动进
 随其 full/ctx 兄弟一同经此 semi-join 收敛到同一聚合域。
 
 自包含读盘说明 (审计计划 D1/C4): 本 helper 直接读 ``24_herd_decay.parquet`` 作
-verified 脊柱。这在 stage-45 runner 内成立, 因 runner 从同一文件载入 df_exploded
-(runner.py ~L465) 且在调用 attention/dedup 前 (~L944-949) 仅按列追加、不删行 →
+verified 脊柱。这在 stage-45 runner 内成立, 因 runner 从同一文件载入 df (runner.py:~535, df_exploded 别名 :~993)
+且在调用 attention/dedup 前 (compute_fintech_attention_index /
+compute_attention_treatments / compute_dedup_sensitivity_treatments,
+~L1015-1027) 仅按列追加、不删行 →
 盘面 ≡ 内存。若未来在 attention 调用前对 df_exploded 加行级过滤, 应改为把 verified
 keyset 显式传入而非读盘。
 """

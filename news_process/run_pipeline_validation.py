@@ -132,7 +132,7 @@ def run_validation():
         logger.info("     38:  媒体多样性  — HHI/Shannon/Gini 多维度量化媒体来源与地域覆盖")
         logger.info("     38b: 衰减敏感性  — 比较 uniform/inverse/exponential 权重, 检验结果稳健性")
         logger.info("     39:  提示词敏感度 — 系统性改写 Prompt 措辞, 量化标注结果的表述稳健性")
-        logger.info("     39a: 轨间一致性  — full/ctx 轨间 Cohen's κ")
+        logger.info("     39a: 轨间一致性  — full/ctx/ss 三轨两两 Cohen's κ (3 pair × 3 维 = 9 行)")
         logger.info("     39c: 正交性      — 三 construct 的 NMI 正交性 + permutation null")
         logger.info("     39d: 词汇判别效度 — HTMT+AVE+Cohen's κ+Cronbach's α")
         logger.info("     39e: LM 判别效度 — LM 2011 JF 6 子词典 discriminant validity")

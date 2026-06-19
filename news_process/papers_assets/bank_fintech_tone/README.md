@@ -4,7 +4,7 @@
 
 ## 主题
 
-Bank-FinTech-Tone (Hassan et al. 2019 QJE 方法 + Westphal--Zajac 1994/1998 ASQ + Gomber et al. 2018 JMIS): 用 LLM 三家族真三角验证情感, 度量银行金融科技战略的媒体语调, 检验对银行绩效与战略响应的影响. **三轨化 spec** (locus × subst × sent = 2³ = 8 种 main spec 选项).
+Bank-FinTech-Tone (Hassan et al. 2019 QJE 方法 + Westphal--Zajac 1994/1998 ASQ + Gomber et al. 2018 JMIS): 用 LLM 三家族真三角验证情感, 度量银行金融科技战略的媒体语调, 检验对银行绩效与战略响应的影响. **三维 spec** (locus(2) × subst(2) × sent(3, full/ctx/ss) = 12 种 main spec 选项)。
 
 ## 与 pipeline 的对应关系
 

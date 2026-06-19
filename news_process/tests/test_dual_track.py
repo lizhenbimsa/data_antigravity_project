@@ -149,7 +149,7 @@ class TestStage22DictDualTrack:
         return _load_parquet_or_skip(output_dir, '22_words_tone.parquet')
 
     def test_dict_dual_track_columns(self, df22):
-        """5 套词典 × 2 轨道 × 3 指标 = 30 列 (ss 落盘后 × 3 轨 = 45 列)"""
+        """6 套词典 × 2 轨道 × 3 指标 = 36 列 (ss 落盘后 × 3 轨 = 54 列; loughran 第 6 部仅在 golden 重生后落盘)"""
         dicts = ['jiang_2021', 'yao_2021', 'bian_2021',
                  'du_2022', 'you_2018']
         # v3.10.0: 第 6 部 loughran 仅当已落盘 (golden 重生后) 时纳入硬断言, 否则软跳过

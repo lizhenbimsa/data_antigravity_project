@@ -128,7 +128,7 @@ def test_v3_5_1_stage_39d_registered(core_dag):
     """v3.5.1 stage 39d 必须在 STAGES_VALIDATION 中且 not in OUTPUT_REGISTRY.
 
     Per plan v0.3 §3.1: 39d 是 validation stage, dependencies=["22_tone_words.py",
-    "46_panel_export_main.py"] 双依赖 (修 R7-M4); 不进 OUTPUT_REGISTRY (与 39a/39c 一致).
+    "45_panel_export_main.py"] 双依赖 (修 R7-M4); 不进 OUTPUT_REGISTRY (与 39a/39c 一致).
     """
     scripts = {stage.script for stage in core_dag.STAGES_VALIDATION}
     assert '39d_lexical_discriminant_validity.py' in scripts, (
@@ -433,7 +433,7 @@ def test_recode_invariant_detects_filename_key_collision(monkeypatch):
 def test_recode_invariant_allows_multiple_none_filename_keys(monkeypatch):
     """recode round 2 校验 5 边界: 多个 None filename_key 必须被允许 (不参与唯一性校验).
 
-    现状有多个 None 条目 (30a_article_sbert + 3 个 40_attn_index_* + 5 个 stage46 .dta);
+    现状有多个 None 条目 (30a_article_sbert + 3 个 40_attn_index_* + 3 个 stage46 导出 .dta/.do/.xlsx);
     必须正常通过 (stage 30 已于 2026-05-29 退役, 不再计入). 本测试用未污染的 schemas
     直接调用, 不抛即过.
     """

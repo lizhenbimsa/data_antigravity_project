@@ -1,6 +1,6 @@
 # `papers_assets/_shared/` — Shared LaTeX preambles for paper drafts
 
-> P4.1 (plan-r3 derivative-paper extension, 2026-05-15; 当前组合共 9 篇 = 5 主线 + 4 衍生，其中 8 篇产出 .tex 草稿并消费本 preamble，bank_fintech_collab 用 Markdown 草稿不引用)
+> P4.1 (plan-r3 derivative-paper extension, 2026-05-15; 当前组合共 11 篇 = 5 主线 + 4 衍生 + 2 provisional，其中 8 篇 fully-coded paper 产出 .tex 草稿并消费本 preamble，bank_fintech_collab 用 Markdown 草稿、2 篇 provisional 暂无 LaTeX 草稿，均不引用本 preamble)
 
 ## Files
 

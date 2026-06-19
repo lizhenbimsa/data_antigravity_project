@@ -75,7 +75,7 @@ news_process.validation.tone_validation — 阶段34：情感分析三角验证�
 3. **跨方法一致性**: 词典综合 vs BERT vs LLM 的 Spearman/Pearson; 标签一致率 (完全一致 = nunique==1; 多数一致 = 众数票数 > 方法数/2 的严格多数)。
 4. **分层稳健性** `stratified_analysis`: 按新闻长度 (33/66 分位)、年度、词典覆盖率分层, 每层算 α + 观测一致率; 年度 α 序列 ≥5 年做 Spearman 趋势检验 (预警 temporal drift)。
 5. **LLM 概率诊断**: 类别偏向 (chi-square + Jensen-Shannon) + 置信度校准 ECE。
-6. **人工验证样本生成** `generate_validation_sample`: 一致样本随机抽 n_agree=100 + 分歧样本随机抽 n_disagree=200 (对分歧案例 2:1 过采样, 经 RandomState(seed) 简单 choice — **非几何/邻域加密**, 只是对存在分歧的文章集做无放回随机抽样并放大配额), 附"机器输入文本"列 (content_full/ctx/ss) 与轨道专属编码指南, 写 `09_sentiment_verify{track}.xlsx`。配套 `evaluate_human_verification` 回读端: 对工作台内全部 11 方法列 (词典 5 / BERT 3 / LLM 逐模型+多数投票) vs 人工判定算 accuracy/macro-P/R/F1 + Cohen κ (复用 stage 33 的 compute_classification_metrics / compute_cohens_kappa, 这是全项目唯一能给词典/BERT 族产出人工指标的路径); 空表 pending 绝不合成, `count_human_annotations` 做 fail-closed 防覆盖守卫 (pending 时清陈旧 CSV, error 时保留)。
+6. **人工验证样本生成** `generate_validation_sample`: 一致样本随机抽 n_agree=100 + 分歧样本随机抽 n_disagree=200 (对分歧案例 2:1 过采样, 经 RandomState(seed) 简单 choice — **非几何/邻域加密**, 只是对存在分歧的文章集做无放回随机抽样并放大配额), 附"机器输入文本"列 (content_full/ctx/ss) 与轨道专属编码指南, 写 `09_sentiment_verify{track}.xlsx`。配套 `evaluate_human_verification` 回读端: 对工作台内全部方法列 (词典 6: jiang/yao/bian/du/you/loughran 自 2026-06-18 起 / BERT 3 / LLM 逐模型+多数投票, 约 12, 实际方法数由 discover_sentiment_columns 动态发现) vs 人工判定算 accuracy/macro-P/R/F1 + Cohen κ (复用 stage 33 的 compute_classification_metrics / compute_cohens_kappa, 这是全项目唯一能给词典/BERT 族产出人工指标的路径); 空表 pending 绝不合成, `count_human_annotations` 做 fail-closed 防覆盖守卫 (pending 时清陈旧 CSV, error 时保留)。
 
 **关键公式**: Cronbach α / Spearman ρ / Krippendorff (复用) / Jensen-Shannon 散度 / ECE / Cohen κ。标签数值化: 正面=+1/中性=0/负面=-1, 缺失保 NaN (不 fillna(0) 伪造中性)。
 
@@ -732,7 +732,7 @@ def generate_validation_sample(df: pd.DataFrame,
 # (词典_*/BERT_*/LLM_*/多数投票标签) vs 人工判定计算 accuracy/macro-P/R/F1 +
 # Cohen's κ, 空表优雅 pending (绝不合成数据, 防 demo 假产物覆辙)。
 # 白话: 以前考卷只管印出来, 没人负责批改 — 哪怕标注员填完了, 词典和 BERT
-# 的得分也算不出来。现在补上"批改"环节: 表填了就出 11 种方法的真实成绩单,
+# 的得分也算不出来。现在补上"批改"环节: 表填了就出全部方法 (词典 6+BERT 3+LLM, 约 12 种) 的真实成绩单,
 # 没填就明确说"待标注", 绝不编造分数。
 
 #: 人工标注样本量低于此阈值时指标仅供参考 (CLT 经验下限)
@@ -817,7 +817,8 @@ def evaluate_human_verification(verify_path: str, track: str,
                                 output_dir: str, logger_inst) -> dict:
     """回读人工验证工作台, 对全部方法标签列 vs 人工判定计算分类指标。
 
-    覆盖全部 11 种情感方法 (词典 5 / BERT 3 / LLM 逐模型+投票) × 本轨道 —
+    覆盖全部情感方法 (词典 6: jiang/yao/bian/du/you/loughran 自 2026-06-18 起 / BERT 3 /
+    LLM 逐模型+投票, 约 12, 实际方法数由 discover_sentiment_columns 动态发现) × 本轨道 —
     这是全项目唯一能为词典/BERT 族产出人工验证指标的代码路径 (stage 33
     评估循环只接 LLM 列)。
 

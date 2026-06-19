@@ -73,7 +73,7 @@ _PAPER_SUMMARIES: Final[dict[str, str]] = {
     'brokerage_network':
         '衍生 2: 信息经纪网络与企业表现 (Han, Kim & Nanda 2024)',
     'llm_peer':
-        '衍生 3: LLM 生成同业竞争 IV (Cao, Li, Wang & Zhao 2025)',
+        '衍生 3: LLM 生成同业竞争 IV (Cao, Chen, Tucker & Wan 2025, RAS)',
     'strategic_diff':
         '衍生 4: 银行金融科技战略差异度 (Guzman-Li 2023; Hoberg-Phillips 2016)',
     # Provisional (2026-06-01 wiring): 可调度但 tables/figures 为 Phase-3 契约占位骨架,

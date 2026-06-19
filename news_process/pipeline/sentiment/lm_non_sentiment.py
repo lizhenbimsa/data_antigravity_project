@@ -130,7 +130,7 @@ def _compute_lm_non_sentiment_for_text(
 ) -> dict[str, float]:
     """单文本 LM 6 子集词频; 仿 v3.5.1 ``_compute_clarity_for_text`` 接口.
 
-    与 ``_dual_analyze`` (tone_words.py:982) 在 content_full / content_ctx / content_ss
+    与 ``_dual_analyze`` (tone_words.py:1417) 在 content_full / content_ctx / content_ss
     各调用一次, 实现真三轨 (修双轨假化, 参见 v3.5.1 plan §2.1; v3.9.0 +ss=银行+金科同句
     共现轨)。本函数 track-agnostic (输入单一文本), 第三轨由调用方传 content_ss 驱动。
 

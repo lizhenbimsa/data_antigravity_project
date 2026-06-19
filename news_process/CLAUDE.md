@@ -103,7 +103,7 @@ news_process/
 └── NN_*.py         # 35 thin shim scripts under news_process/ (≤30 lines each; 含 2026-06-15 12b);
                     # 32 registered in core/dag.py (16 STAGES_MAIN + 16 STAGES_VALIDATION);
                     # 3 unregistered by design: 27c (audit-only sibling),
-                    # 52/53 (user-CLI wrappers, schemas.py:159 显式排除).
+                    # 52/53 (user-CLI wrappers, schemas.py:160-162 显式排除).
                     # planned retirement Plan-r3 P3-18 (拆分约束见 pipeline/panel/runner.py).
 ```
 

@@ -1,7 +1,7 @@
 * news_process v3.7.0 — 第 11 篇 Table 4: 异质性分析 (本模板实际落地 Panel A-D 四维度)
 *
 * V4 F2.2 边界条件 (boundary condition):
-* Panel A: implicit_guarantee_tier 隐性担保层级 (Acharya 2016 RFS, 5 档)
+* Panel A: implicit_guarantee_tier 隐性担保层级 (Acharya, Anginer & Warburton 2016 working paper, 5 档)
 * Panel B: 上市 vs 非上市 (listed; V4 F-P1.3)
 * Panel C: 分时段 regime 切换 (V4 F-Comp.3)
 * Panel D: 剔除 top 6 国有大行 (V4 F-P1.2)

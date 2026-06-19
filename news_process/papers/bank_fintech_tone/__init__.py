@@ -4,7 +4,7 @@
 --------
 Bank-FinTech-Tone: 媒体对金融科技的情感倾向如何影响银行行为
 (presented as the canonical "main pipeline" of the project — drives
-the entire 00→11→12→13→14→15→21/22/23→24→45→46→51 stage chain).
+the entire 00→11→12→12b→13→14→15→21/22/23→24→45→46→51 stage chain).
 
 包结构
 ------

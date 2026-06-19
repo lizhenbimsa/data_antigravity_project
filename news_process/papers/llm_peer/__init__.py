@@ -21,11 +21,13 @@ LLM-Peer — 基于大语言模型构造的同业竞争 IV (LLM-Generated Peer C
 
 P0-P4 落地状态 (commit 8d33c46, 2026-05-15)
 --------------------------------------------
-- **Stata 模板** (8 .do.tmpl):
+- **Stata 模板** (12 .do.tmpl, 2026-06-14 IV+稳健性扩充后; 原 8 为 commit 8d33c46/2026-05-15 快照):
   ``_common/stata_templates/llm_peer/{00_master, 01_data_prep,
   10_table1_descriptives, 11_table2_main_iv_2sls,
   12_table3_cutoff_sensitivity, 13_table4_heterogeneity,
-  14_table5_robustness, 30_figure1_first_stage_F}.do.tmpl``
+  14_table5_robustness, 15_tableA6_aggregation_robustness,
+  16_tableA7_fe_oster_robust, 17_tableA8_subsample_timing,
+  18_tableA9_era_stability, 30_figure1_first_stage_F}.do.tmpl``
   + README.md.
 - **Python tables**: build_table1 (描述统计) + build_table2_main / build_table3_cutoff /
   build_table4_heterogeneity / build_table5_robustness (读 Stata esttab CSV).

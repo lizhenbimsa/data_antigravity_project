@@ -13,7 +13,9 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
 
 检验设计：
     - 对 radius ∈ {0, 1, 2, 3} 四组设定，分别提取实体上下文
-    - 使用全部 5 个词典重新计算情感得分和标签
+    - 使用 5 套基准中文情感词典 (jiang/yao/bian/du/you) 重新计算情感得分和标签
+      (⚠ 生产主线 22_tone_words 自 2026-06-18 已扩为 6 词典 union, 含 loughran_mcdonald_zh_2026;
+       本敏感性检验为独立旁路 loader, 刻意仍取原 5 套, 非生产 union 口径)
     - 计算跨半径的标签一致性、得分相关性和分布统计
     - 生成学术论文附录级别的报告（LaTeX 表格 + 可视化图表）
 
@@ -49,7 +51,7 @@ news_process.validation.radius_sensitivity — 窗口半径敏感性检验
 **输入 (订正)**: 优先 `21_tone_llms.parquet` (CONFIG['filenames']['output_21_tone_llms'] — 经 LLM 精筛、仅 llm_verified=True 的下游产物, 含 `target_bank` 列), 回退 `12_fintech_news.parquet`。⚠ 注意是 `21_tone_llms.parquet` 而非 `_full` 版本。必需列 `target_bank` + `内容`。
 
 **处理步骤**:
-1. 加载 5 套中文金融情感词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018; 正面+1/负面-1/政治正面+0.5), 注入 jieba (词典词+银行名+金科词+否定/程度/转折词)。
+1. 加载 5 套中文金融情感词典 (jiang_2021/yao_2021/bian_2021/du_2022/you_2018; 正面+1/负面-1/政治正面+0.5), 注入 jieba (词典词+银行名+金科词+否定/程度/转折词)。⚠ 本旁路 loader 刻意仍取原 5 套, 不含生产 22_tone_words 自 2026-06-18 新增的第 6 部 loughran_mcdonald_zh_2026。
 2. 对每篇文章, `analyze_single_article_multi_radius`: 每个 radius 调 `core.text.entity_context.extract_entity_context(sentence_radius=r, fallback_char_radius=150)` 提上下文 (未命中回退原文), jieba 分词, 对 5 词典各算 `_compute_sentiment_with_rules` (否定窗口翻转/程度副词缩放/转折增强/句末标点重置状态机, 与 22_tone_words 逐行对齐) → 归一化得分 + 三分类标签 (正/中/负, 阈值 ±0.1)。
 3. 跨半径对比 (基准 r=1): 对每词典算标签一致率、Cohen's κ、Pearson/Spearman 相关、配对 t 检验 (ttest_1samp 得分差)。
 
@@ -152,7 +154,7 @@ TONE_DICTS_FILE = CONFIG['paths'].get(
 # ============================================================================
 
 def load_all_dictionaries() -> list[tuple[str, dict[str, float]]]:
-    """从 tone_dicts.json 加载所有情感词典。完全复用 22_tone_words.py 逻辑。"""
+    """从 tone_dicts.json 加载 5 套与 22_tone_words 共有的中文情感词典 (jiang/yao/bian/du/you), 复用其逐句规则逻辑。注: 22_tone_words 自 2026-06-18 起已扩为 6 词典固定 union (新增 loughran), 本验证模块为独立 loader, 刻意仍取原 5 套子集 (非生产 union 口径)。"""
     logger.info(f"正在从 {TONE_DICTS_FILE} 加载情感词典...")
 
     all_dict_data = {}

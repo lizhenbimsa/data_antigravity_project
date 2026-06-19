@@ -31,6 +31,7 @@ else {
 }
 
 * Panel B: 双轨主回归 dual-track main
+* ⚠ 项目纪律: 双轨互为稳健性, 高相关双轨同进一 RHS 致两个 β 共线不可解释; Panel B 仅为历史保留的联合规格, 主稳健性以单轨各自回归为准
 capture confirm variable mean_num_intensity_full
 if !_rc {
     reghdfe {{MAIN_DV}} mean_num_intensity_full mean_num_intensity_ctx $bank_controls, ///
